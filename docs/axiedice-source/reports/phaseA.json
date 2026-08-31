@@ -1,0 +1,145 @@
+{
+  "url": "http://localhost:5173",
+  "at": "2026-08-14T14:45:41.178Z",
+  "total": 17,
+  "passed": 17,
+  "results": [
+    {
+      "id": "A4",
+      "phase": "A",
+      "title": "Bảng token type đã cập nhật",
+      "pass": true,
+      "required": true,
+      "detail": ""
+    },
+    {
+      "id": "A5",
+      "phase": "A",
+      "title": "Token --faint đã bị xoá khỏi :root",
+      "pass": true,
+      "required": true,
+      "detail": "--faint vẫn tồn tại = undefined"
+    },
+    {
+      "id": "A1.menu",
+      "phase": "A",
+      "title": "[menu] Không có chữ < 11px và mọi cỡ đều thuộc thang",
+      "pass": true,
+      "required": true,
+      "detail": ""
+    },
+    {
+      "id": "A2.menu",
+      "phase": "A",
+      "title": "[menu] Mọi chữ đạt contrast AA",
+      "pass": true,
+      "required": true,
+      "detail": ""
+    },
+    {
+      "id": "A3.menu",
+      "phase": "A",
+      "title": "[menu] Không còn #59616e (--faint) dùng cho chữ",
+      "pass": true,
+      "required": true,
+      "detail": ""
+    },
+    {
+      "id": "A7.menu",
+      "phase": "A",
+      "title": "[menu] Không có undefined / NaN / null lộ ra UI",
+      "pass": true,
+      "required": true,
+      "detail": ""
+    },
+    {
+      "id": "A6",
+      "phase": "A",
+      "title": "Viền component đạt ≥ 3:1 (WCAG 1.4.11)",
+      "pass": true,
+      "required": true,
+      "detail": ""
+    },
+    {
+      "id": "A8a",
+      "phase": "A",
+      "title": "Mọi element tương tác nhận được focus bằng bàn phím",
+      "pass": true,
+      "required": true,
+      "detail": "focus được 8/8 element"
+    },
+    {
+      "id": "A8b",
+      "phase": "A",
+      "title": "Focus ring nhìn thấy rõ (outline ≥ 2px)",
+      "pass": true,
+      "required": true,
+      "detail": ""
+    },
+    {
+      "id": "A10",
+      "phase": "A",
+      "title": "prefers-reduced-motion: reduce tắt hết animation",
+      "pass": true,
+      "required": true,
+      "detail": ""
+    },
+    {
+      "id": "N0",
+      "phase": "A",
+      "title": "Đi được từ Menu tới Combat bằng UI",
+      "pass": true,
+      "required": true,
+      "detail": "trail=menu → team-select → map → combat"
+    },
+    {
+      "id": "A1.combat",
+      "phase": "A",
+      "title": "[combat] Không có chữ < 11px và mọi cỡ đều thuộc thang",
+      "pass": true,
+      "required": true,
+      "detail": ""
+    },
+    {
+      "id": "A2.combat",
+      "phase": "A",
+      "title": "[combat] Mọi chữ đạt contrast AA",
+      "pass": true,
+      "required": true,
+      "detail": ""
+    },
+    {
+      "id": "A3.combat",
+      "phase": "A",
+      "title": "[combat] Không còn #59616e (--faint) dùng cho chữ",
+      "pass": true,
+      "required": true,
+      "detail": ""
+    },
+    {
+      "id": "A7.combat",
+      "phase": "A",
+      "title": "[combat] Không có undefined / NaN / null lộ ra UI",
+      "pass": true,
+      "required": true,
+      "detail": ""
+    },
+    {
+      "id": "A9",
+      "phase": "A",
+      "title": "Thanh máu mã hoá % HP, không mã hoá phe",
+      "pass": true,
+      "required": true,
+      "detail": "Đã kiểm 7 thanh máu"
+    },
+    {
+      "id": "A11",
+      "phase": "A",
+      "title": "Không có console error",
+      "pass": true,
+      "required": true,
+      "detail": ""
+    }
+  ],
+  "consoleErrors": []
+}

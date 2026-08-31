@@ -1,0 +1,265 @@
+{
+  "url": "http://localhost:5173",
+  "at": "2026-08-15T08:13:43.291Z",
+  "total": 30,
+  "passed": 29,
+  "results": [
+    {
+      "id": "A4",
+      "phase": "A",
+      "title": "Bảng token type đã cập nhật",
+      "pass": true,
+      "required": true,
+      "detail": ""
+    },
+    {
+      "id": "A5",
+      "phase": "A",
+      "title": "Token --faint đã bị xoá khỏi :root",
+      "pass": true,
+      "required": true,
+      "detail": "--faint vẫn tồn tại = undefined"
+    },
+    {
+      "id": "A1.menu",
+      "phase": "A",
+      "title": "[menu] Không có chữ < 11px và mọi cỡ đều thuộc thang",
+      "pass": true,
+      "required": true,
+      "detail": ""
+    },
+    {
+      "id": "A2.menu",
+      "phase": "A",
+      "title": "[menu] Mọi chữ đạt contrast AA",
+      "pass": true,
+      "required": true,
+      "detail": ""
+    },
+    {
+      "id": "A3.menu",
+      "phase": "A",
+      "title": "[menu] Không còn #59616e (--faint) dùng cho chữ",
+      "pass": true,
+      "required": true,
+      "detail": ""
+    },
+    {
+      "id": "A7.menu",
+      "phase": "A",
+      "title": "[menu] Không có undefined / NaN / null lộ ra UI",
+      "pass": true,
+      "required": true,
+      "detail": ""
+    },
+    {
+      "id": "A6",
+      "phase": "A",
+      "title": "Viền component đạt ≥ 3:1 (WCAG 1.4.11)",
+      "pass": true,
+      "required": true,
+      "detail": ""
+    },
+    {
+      "id": "A8a",
+      "phase": "A",
+      "title": "Mọi element tương tác nhận được focus bằng bàn phím",
+      "pass": true,
+      "required": true,
+      "detail": "focus được 8/8 element"
+    },
+    {
+      "id": "A8b",
+      "phase": "A",
+      "title": "Focus ring nhìn thấy rõ (outline ≥ 2px)",
+      "pass": true,
+      "required": true,
+      "detail": ""
+    },
+    {
+      "id": "A10",
+      "phase": "A",
+      "title": "prefers-reduced-motion: reduce tắt hết animation",
+      "pass": true,
+      "required": true,
+      "detail": ""
+    },
+    {
+      "id": "B0",
+      "phase": "B",
+      "title": "Có ≥ 3 media query theo chiều rộng",
+      "pass": true,
+      "required": true,
+      "detail": "Tìm thấy 5 width query. Toàn bộ: (prefers-reduced-motion: reduce) | (max-width: 599px) | (prefers-reduced-motion: reduce) | (max-width: 1199px) | (max-width: 899px) | (max-width: 599px) | (max-width: 599px) and (orientation: portrait)"
+    },
+    {
+      "id": "N0",
+      "phase": "A",
+      "title": "Đi được từ Menu tới Combat bằng UI",
+      "pass": true,
+      "required": true,
+      "detail": "trail=menu → team-select → map → combat"
+    },
+    {
+      "id": "A1.combat",
+      "phase": "A",
+      "title": "[combat] Không có chữ < 11px và mọi cỡ đều thuộc thang",
+      "pass": true,
+      "required": true,
+      "detail": ""
+    },
+    {
+      "id": "A2.combat",
+      "phase": "A",
+      "title": "[combat] Mọi chữ đạt contrast AA",
+      "pass": true,
+      "required": true,
+      "detail": ""
+    },
+    {
+      "id": "A3.combat",
+      "phase": "A",
+      "title": "[combat] Không còn #59616e (--faint) dùng cho chữ",
+      "pass": true,
+      "required": true,
+      "detail": ""
+    },
+    {
+      "id": "A7.combat",
+      "phase": "A",
+      "title": "[combat] Không có undefined / NaN / null lộ ra UI",
+      "pass": true,
+      "required": true,
+      "detail": ""
+    },
+    {
+      "id": "A9",
+      "phase": "A",
+      "title": "Thanh máu mã hoá % HP, không mã hoá phe",
+      "pass": true,
+      "required": true,
+      "detail": "Đã kiểm 7 thanh máu"
+    },
+    {
+      "id": "B1.combat",
+      "phase": "B",
+      "title": "[combat 1440px] Mọi vùng chạm ≥ 44×44",
+      "pass": true,
+      "required": true,
+      "detail": ""
+    },
+    {
+      "id": "B3.desktop-1440",
+      "phase": "B",
+      "title": "[desktop-1440] --ui-scale trong [0.85, 1.20]",
+      "pass": true,
+      "required": true,
+      "detail": "--ui-scale = \"1.200\" (zoom=1.2)"
+    },
+    {
+      "id": "C1",
+      "phase": "C",
+      "title": "Cả 5 ô xúc xắc cùng kích thước (mọi loại mặt)",
+      "pass": true,
+      "required": true,
+      "detail": "n=5 heights=144,144,144,144,144 widths=192,192,192,192,192 box-sizing=border-box"
+    },
+    {
+      "id": "C2",
+      "phase": "C",
+      "title": "Chọn / bỏ chọn xúc xắc không làm element nào dịch chuyển",
+      "pass": true,
+      "required": true,
+      "detail": "0 element dịch khi chọn, 0 khi hủy"
+    },
+    {
+      "id": "D1",
+      "phase": "D",
+      "title": "Đoạn văn dài ≤ 78 ký tự/dòng",
+      "pass": true,
+      "required": false,
+      "detail": ""
+    },
+    {
+      "id": "B2.tablet",
+      "phase": "B",
+      "title": "[tablet] Không tràn ngang (scrollWidth ≤ viewport)",
+      "pass": true,
+      "required": true,
+      "detail": "scrollWidth=744 > viewport=744\n"
+    },
+    {
+      "id": "B3.tablet",
+      "phase": "B",
+      "title": "[tablet] --ui-scale = 1",
+      "pass": true,
+      "required": true,
+      "detail": "--ui-scale = \"1.000\" (zoom=1)"
+    },
+    {
+      "id": "B1.tablet",
+      "phase": "B",
+      "title": "[tablet 744px] Mọi vùng chạm ≥ 44×44",
+      "pass": true,
+      "required": true,
+      "detail": ""
+    },
+    {
+      "id": "A1.tablet",
+      "phase": "A",
+      "title": "[tablet] Không có chữ < 11px và mọi cỡ đều thuộc thang",
+      "pass": true,
+      "required": true,
+      "detail": ""
+    },
+    {
+      "id": "A2.tablet",
+      "phase": "A",
+      "title": "[tablet] Mọi chữ đạt contrast AA",
+      "pass": true,
+      "required": true,
+      "detail": ""
+    },
+    {
+      "id": "B4",
+      "phase": "B",
+      "title": "[phone portrait] Có gợi ý xoay ngang",
+      "pass": true,
+      "required": false,
+      "detail": "Tìm thấy .rotate-hint"
+    },
+    {
+      "id": "B2.phone",
+      "phase": "B",
+      "title": "[phone] Không tràn ngang (scrollWidth ≤ viewport)",
+      "pass": true,
+      "required": true,
+      "detail": "scrollWidth=852 > viewport=852\n"
+    },
+    {
+      "id": "B3.phone",
+      "phase": "B",
+      "title": "[phone] --ui-scale = 1",
+      "pass": true,
+      "required": true,
+      "detail": "--ui-scale = \"1.000\" (zoom=1)"
+    },
+    {
+      "id": "N1.phone",
+      "phase": "B",
+      "title": "[phone] Vào được combat",
+      "pass": false,
+      "required": true,
+      "detail": "trail=menu → team-select → map"
+    },
+    {
+      "id": "A11",
+      "phase": "A",
+      "title": "Không có console error",
+      "pass": true,
+      "required": true,
+      "detail": ""
+    }
+  ],
+  "consoleErrors": []
+}

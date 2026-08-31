@@ -1,0 +1,3089 @@
+{
+ "_meta": {
+  "source": "agp-npm parts.json + Axie Origins card text",
+  "note": "tiers.* = TODO cho designer. Luật: mọi part CÙNG BẬC phải nằm trong ±10% ngân sách sức mạnh của bậc đó.",
+  "tierTemplate": {
+   "common": "hiệu ứng gốc + keyword đặc trưng ở giá trị TỐI THIỂU",
+   "rare": "giá trị tăng",
+   "epic": "keyword đầy đủ theo cardText",
+   "legendary": "giá trị lớn + 1 keyword phụ",
+   "mythic": "PHASE 2 — hiệu ứng phá luật theo cặp class×slot, xem mythicBySlot"
+  }
+ },
+ "parts": [
+  {
+   "partId": "back-anemone",
+   "name": "Anemone",
+   "class": "aquatic",
+   "slot": "back",
+   "cardText": "Successful attacks restore 50 HP for each Anemone part",
+   "role": null,
+   "keywords": [],
+   "tiers": {
+    "common": null,
+    "rare": null,
+    "epic": null,
+    "legendary": null
+   }
+  },
+  {
+   "partId": "back-balloon",
+   "name": "Balloon",
+   "class": "bird",
+   "slot": "back",
+   "cardText": "Apply Fear to target for 1 turn. If defending, apply Fear to self until next round",
+   "role": null,
+   "keywords": [],
+   "tiers": {
+    "common": null,
+    "rare": null,
+    "epic": null,
+    "legendary": null
+   }
+  },
+  {
+   "partId": "back-bidens",
+   "name": "Bidens",
+   "class": "plant",
+   "slot": "back",
+   "cardText": "Remove all debuffs from this Axie",
+   "role": null,
+   "keywords": [],
+   "tiers": {
+    "common": null,
+    "rare": null,
+    "epic": null,
+    "legendary": null
+   }
+  },
+  {
+   "partId": "back-blue-moon",
+   "name": "Blue Moon",
+   "class": "aquatic",
+   "slot": "back",
+   "cardText": "Draw a card if target is in Last Stand",
+   "role": null,
+   "keywords": [],
+   "tiers": {
+    "common": null,
+    "rare": null,
+    "epic": null,
+    "legendary": null
+   }
+  },
+  {
+   "partId": "back-bone-sail",
+   "name": "Bone Sail",
+   "class": "reptile",
+   "slot": "back",
+   "cardText": "Draw a card if this Axie's shield breaks",
+   "role": null,
+   "keywords": [],
+   "tiers": {
+    "common": null,
+    "rare": null,
+    "epic": null,
+    "legendary": null
+   }
+  },
+  {
+   "partId": "back-buzz-buzz",
+   "name": "Buzz Buzz",
+   "class": "bug",
+   "slot": "back",
+   "cardText": "Apply Attack- to target",
+   "role": null,
+   "keywords": [],
+   "tiers": {
+    "common": null,
+    "rare": null,
+    "epic": null,
+    "legendary": null
+   }
+  },
+  {
+   "partId": "back-croc",
+   "name": "Croc",
+   "class": "reptile",
+   "slot": "back",
+   "cardText": "Apply Speed- to target for 2 rounds",
+   "role": null,
+   "keywords": [],
+   "tiers": {
+    "common": null,
+    "rare": null,
+    "epic": null,
+    "legendary": null
+   }
+  },
+  {
+   "partId": "back-cupid",
+   "name": "Cupid",
+   "class": "bird",
+   "slot": "back",
+   "cardText": "Apply Morale- to enemy for 2 rounds",
+   "role": null,
+   "keywords": [],
+   "tiers": {
+    "common": null,
+    "rare": null,
+    "epic": null,
+    "legendary": null
+   }
+  },
+  {
+   "partId": "back-furball",
+   "name": "Furball",
+   "class": "beast",
+   "slot": "back",
+   "cardText": "Strike 3 times",
+   "role": null,
+   "keywords": [],
+   "tiers": {
+    "common": null,
+    "rare": null,
+    "epic": null,
+    "legendary": null
+   }
+  },
+  {
+   "partId": "back-garish-worm",
+   "name": "Garish Worm",
+   "class": "bug",
+   "slot": "back",
+   "cardText": "Apply Poison to target when played in a chain",
+   "role": null,
+   "keywords": [],
+   "tiers": {
+    "common": null,
+    "rare": null,
+    "epic": null,
+    "legendary": null
+   }
+  },
+  {
+   "partId": "back-goldfish",
+   "name": "Goldfish",
+   "class": "aquatic",
+   "slot": "back",
+   "cardText": "Apply Speed+ to this Axie for 2 rounds when attacked",
+   "role": null,
+   "keywords": [],
+   "tiers": {
+    "common": null,
+    "rare": null,
+    "epic": null,
+    "legendary": null
+   }
+  },
+  {
+   "partId": "back-green-thorns",
+   "name": "Green Thorns",
+   "class": "reptile",
+   "slot": "back",
+   "cardText": "Double shield from this card when comboed with a Plant card",
+   "role": null,
+   "keywords": [],
+   "tiers": {
+    "common": null,
+    "rare": null,
+    "epic": null,
+    "legendary": null
+   }
+  },
+  {
+   "partId": "back-hermit",
+   "name": "Hermit",
+   "class": "aquatic",
+   "slot": "back",
+   "cardText": "Disable critical strikes on this Axie during this round",
+   "role": null,
+   "keywords": [],
+   "tiers": {
+    "common": null,
+    "rare": null,
+    "epic": null,
+    "legendary": null
+   }
+  },
+  {
+   "partId": "back-hero",
+   "name": "Hero",
+   "class": "beast",
+   "slot": "back",
+   "cardText": "Draw a card when attacking an Aqua, Bird, or Dawn target",
+   "role": null,
+   "keywords": [],
+   "tiers": {
+    "common": null,
+    "rare": null,
+    "epic": null,
+    "legendary": null
+   }
+  },
+  {
+   "partId": "back-indian-star",
+   "name": "Indian Star",
+   "class": "reptile",
+   "slot": "back",
+   "cardText": "Reflect 40% of melee damage back at attacker",
+   "role": null,
+   "keywords": [],
+   "tiers": {
+    "common": null,
+    "rare": null,
+    "epic": null,
+    "legendary": null
+   }
+  },
+  {
+   "partId": "back-jaguar",
+   "name": "Jaguar",
+   "class": "beast",
+   "slot": "back",
+   "cardText": "Always strike first if this Axie is in Last Stand",
+   "role": null,
+   "keywords": [],
+   "tiers": {
+    "common": null,
+    "rare": null,
+    "epic": null,
+    "legendary": null
+   }
+  },
+  {
+   "partId": "back-kingfisher",
+   "name": "Kingfisher",
+   "class": "bird",
+   "slot": "back",
+   "cardText": "Target an Aquatic class enemy if this Axie's HP is below 50%",
+   "role": null,
+   "keywords": [],
+   "tiers": {
+    "common": null,
+    "rare": null,
+    "epic": null,
+    "legendary": null
+   }
+  },
+  {
+   "partId": "back-mint",
+   "name": "Mint",
+   "class": "plant",
+   "slot": "back",
+   "cardText": "Remove all debuffs from a teammate if it's directly in front (same row)",
+   "role": null,
+   "keywords": [],
+   "tiers": {
+    "common": null,
+    "rare": null,
+    "epic": null,
+    "legendary": null
+   }
+  },
+  {
+   "partId": "back-perch",
+   "name": "Perch",
+   "class": "aquatic",
+   "slot": "back",
+   "cardText": "Prioritize idle target when comboed with at least 2 additional cards",
+   "role": null,
+   "keywords": [],
+   "tiers": {
+    "common": null,
+    "rare": null,
+    "epic": null,
+    "legendary": null
+   }
+  },
+  {
+   "partId": "back-pigeon-post",
+   "name": "Pigeon Post",
+   "class": "bird",
+   "slot": "back",
+   "cardText": "Transfer all debuffs on this Axie to target",
+   "role": null,
+   "keywords": [],
+   "tiers": {
+    "common": null,
+    "rare": null,
+    "epic": null,
+    "legendary": null
+   }
+  },
+  {
+   "partId": "back-pumpkin",
+   "name": "Pumpkin",
+   "class": "plant",
+   "slot": "back",
+   "cardText": "Draw a card if this Axie's shield doesn't break this round",
+   "role": null,
+   "keywords": [],
+   "tiers": {
+    "common": null,
+    "rare": null,
+    "epic": null,
+    "legendary": null
+   }
+  },
+  {
+   "partId": "back-raven",
+   "name": "Raven",
+   "class": "bird",
+   "slot": "back",
+   "cardText": "Apply Jinx to target for 2 rounds",
+   "role": null,
+   "keywords": [],
+   "tiers": {
+    "common": null,
+    "rare": null,
+    "epic": null,
+    "legendary": null
+   }
+  },
+  {
+   "partId": "back-red-ear",
+   "name": "Red Ear",
+   "class": "reptile",
+   "slot": "back",
+   "cardText": "Add 15% of this Axie's shield to adjacent teammates",
+   "role": null,
+   "keywords": [],
+   "tiers": {
+    "common": null,
+    "rare": null,
+    "epic": null,
+    "legendary": null
+   }
+  },
+  {
+   "partId": "back-risky-beast",
+   "name": "Risky Beast",
+   "class": "beast",
+   "slot": "back",
+   "cardText": "Deal 150% if this Axie is in Last Stand",
+   "role": null,
+   "keywords": [],
+   "tiers": {
+    "common": null,
+    "rare": null,
+    "epic": null,
+    "legendary": null
+   }
+  },
+  {
+   "partId": "back-ronin",
+   "name": "Ronin",
+   "class": "beast",
+   "slot": "back",
+   "cardText": "Guaranteed critical strike when comboed with at least 2 other cards",
+   "role": null,
+   "keywords": [],
+   "tiers": {
+    "common": null,
+    "rare": null,
+    "epic": null,
+    "legendary": null
+   }
+  },
+  {
+   "partId": "back-sandal",
+   "name": "Sandal",
+   "class": "bug",
+   "slot": "back",
+   "cardText": "Deal 50% more damage when attacking Bug targets",
+   "role": null,
+   "keywords": [],
+   "tiers": {
+    "common": null,
+    "rare": null,
+    "epic": null,
+    "legendary": null
+   }
+  },
+  {
+   "partId": "back-scarab",
+   "name": "Scarab",
+   "class": "bug",
+   "slot": "back",
+   "cardText": "Target cannot be healed until next round",
+   "role": null,
+   "keywords": [],
+   "tiers": {
+    "common": null,
+    "rare": null,
+    "epic": null,
+    "legendary": null
+   }
+  },
+  {
+   "partId": "back-shiitake",
+   "name": "Shiitake",
+   "class": "plant",
+   "slot": "back",
+   "cardText": "Heal this Axie for 120 HP",
+   "role": null,
+   "keywords": [],
+   "tiers": {
+    "common": null,
+    "rare": null,
+    "epic": null,
+    "legendary": null
+   }
+  },
+  {
+   "partId": "back-snail-shell",
+   "name": "Snail Shell",
+   "class": "bug",
+   "slot": "back",
+   "cardText": "Stun attacker if this Axie's shield breaks. Once per round",
+   "role": null,
+   "keywords": [],
+   "tiers": {
+    "common": null,
+    "rare": null,
+    "epic": null,
+    "legendary": null
+   }
+  },
+  {
+   "partId": "back-spiky-wing",
+   "name": "Spiky Wing",
+   "class": "bug",
+   "slot": "back",
+   "cardText": "Apply Fragile to target until next round",
+   "role": null,
+   "keywords": [],
+   "tiers": {
+    "common": null,
+    "rare": null,
+    "epic": null,
+    "legendary": null
+   }
+  },
+  {
+   "partId": "back-sponge",
+   "name": "Sponge",
+   "class": "aquatic",
+   "slot": "back",
+   "cardText": "Apply Attack+ to this Axie if its shield breaks",
+   "role": null,
+   "keywords": [],
+   "tiers": {
+    "common": null,
+    "rare": null,
+    "epic": null,
+    "legendary": null
+   }
+  },
+  {
+   "partId": "back-timber",
+   "name": "Timber",
+   "class": "beast",
+   "slot": "back",
+   "cardText": "Add shield equal to the damage this card deals against Plant targets",
+   "role": null,
+   "keywords": [],
+   "tiers": {
+    "common": null,
+    "rare": null,
+    "epic": null,
+    "legendary": null
+   }
+  },
+  {
+   "partId": "back-tri-feather",
+   "name": "Tri Feather",
+   "class": "bird",
+   "slot": "back",
+   "cardText": "Attack twice if this Axie has any debuffs",
+   "role": null,
+   "keywords": [],
+   "tiers": {
+    "common": null,
+    "rare": null,
+    "epic": null,
+    "legendary": null
+   }
+  },
+  {
+   "partId": "back-tri-spikes",
+   "name": "Tri Spikes",
+   "class": "reptile",
+   "slot": "back",
+   "cardText": "Target enemy with lowest shield when comboed with 2 or more cards",
+   "role": null,
+   "keywords": [],
+   "tiers": {
+    "common": null,
+    "rare": null,
+    "epic": null,
+    "legendary": null
+   }
+  },
+  {
+   "partId": "back-turnip",
+   "name": "Turnip",
+   "class": "plant",
+   "slot": "back",
+   "cardText": "Target a Bird if comboed with 2 or more cards",
+   "role": null,
+   "keywords": [],
+   "tiers": {
+    "common": null,
+    "rare": null,
+    "epic": null,
+    "legendary": null
+   }
+  },
+  {
+   "partId": "back-watering-can",
+   "name": "Watering Can",
+   "class": "plant",
+   "slot": "back",
+   "cardText": "Gain 1 energy if this Axie is struck by an Aquatic card",
+   "role": null,
+   "keywords": [],
+   "tiers": {
+    "common": null,
+    "rare": null,
+    "epic": null,
+    "legendary": null
+   }
+  },
+  {
+   "partId": "ears-beetle-spike",
+   "name": "Beetle Spike",
+   "class": "bug",
+   "slot": "ears",
+   "cardText": null,
+   "role": null,
+   "keywords": [],
+   "tiers": {
+    "common": null,
+    "rare": null,
+    "epic": null,
+    "legendary": null
+   }
+  },
+  {
+   "partId": "ears-belieber",
+   "name": "Belieber",
+   "class": "beast",
+   "slot": "ears",
+   "cardText": "Deal 3 hits; for every enemy you hit, gain 1 Rage",
+   "role": null,
+   "keywords": [],
+   "tiers": {
+    "common": null,
+    "rare": null,
+    "epic": null,
+    "legendary": null
+   }
+  },
+  {
+   "partId": "ears-bubblemaker",
+   "name": "Bubblemaker",
+   "class": "aquatic",
+   "slot": "ears",
+   "cardText": "The ally gains 2 Bubble",
+   "role": null,
+   "keywords": [],
+   "tiers": {
+    "common": null,
+    "rare": null,
+    "epic": null,
+    "legendary": null
+   }
+  },
+  {
+   "partId": "ears-clover",
+   "name": "Clover",
+   "class": "plant",
+   "slot": "ears",
+   "cardText": "Enables summoning 1 Clover",
+   "role": null,
+   "keywords": [],
+   "tiers": {
+    "common": null,
+    "rare": null,
+    "epic": null,
+    "legendary": null
+   }
+  },
+  {
+   "partId": "ears-curly",
+   "name": "Curly",
+   "class": "bird",
+   "slot": "ears",
+   "cardText": null,
+   "role": null,
+   "keywords": [],
+   "tiers": {
+    "common": null,
+    "rare": null,
+    "epic": null,
+    "legendary": null
+   }
+  },
+  {
+   "partId": "ears-curved-spine",
+   "name": "Curved Spine",
+   "class": "reptile",
+   "slot": "ears",
+   "cardText": "If that ally is attacked, it applies Bleed to the attacker for the next 4 turns",
+   "role": null,
+   "keywords": [],
+   "tiers": {
+    "common": null,
+    "rare": null,
+    "epic": null,
+    "legendary": null
+   }
+  },
+  {
+   "partId": "ears-ear-breathing",
+   "name": "Ear Breathing",
+   "class": "bug",
+   "slot": "ears",
+   "cardText": null,
+   "role": null,
+   "keywords": [],
+   "tiers": {
+    "common": null,
+    "rare": null,
+    "epic": null,
+    "legendary": null
+   }
+  },
+  {
+   "partId": "ears-early-bird",
+   "name": "Early Bird",
+   "class": "bird",
+   "slot": "ears",
+   "cardText": null,
+   "role": null,
+   "keywords": [],
+   "tiers": {
+    "common": null,
+    "rare": null,
+    "epic": null,
+    "legendary": null
+   }
+  },
+  {
+   "partId": "ears-earwing",
+   "name": "Earwing",
+   "class": "bug",
+   "slot": "ears",
+   "cardText": null,
+   "role": null,
+   "keywords": [],
+   "tiers": {
+    "common": null,
+    "rare": null,
+    "epic": null,
+    "legendary": null
+   }
+  },
+  {
+   "partId": "ears-friezard",
+   "name": "Friezard",
+   "class": "reptile",
+   "slot": "ears",
+   "cardText": "Applies 1 Damage Boost and heals this Axie whenever used; triggers 4 times",
+   "role": null,
+   "keywords": [],
+   "tiers": {
+    "common": null,
+    "rare": null,
+    "epic": null,
+    "legendary": null
+   }
+  },
+  {
+   "partId": "ears-gill",
+   "name": "Gill",
+   "class": "aquatic",
+   "slot": "ears",
+   "cardText": "Your team gains 1 Bubble whenever you use this Axie",
+   "role": null,
+   "keywords": [],
+   "tiers": {
+    "common": null,
+    "rare": null,
+    "epic": null,
+    "legendary": null
+   }
+  },
+  {
+   "partId": "ears-hollow",
+   "name": "Hollow",
+   "class": "plant",
+   "slot": "ears",
+   "cardText": "This Axie loses 75 HP while summoning a Trunk",
+   "role": null,
+   "keywords": [],
+   "tiers": {
+    "common": null,
+    "rare": null,
+    "epic": null,
+    "legendary": null
+   }
+  },
+  {
+   "partId": "ears-inkling",
+   "name": "Inkling",
+   "class": "aquatic",
+   "slot": "ears",
+   "cardText": "Shuffle 1 Jinx into your opponent's discard pile",
+   "role": null,
+   "keywords": [],
+   "tiers": {
+    "common": null,
+    "rare": null,
+    "epic": null,
+    "legendary": null
+   }
+  },
+  {
+   "partId": "ears-innocent-lamb",
+   "name": "Innocent Lamb",
+   "class": "beast",
+   "slot": "ears",
+   "cardText": "Get the Banish boost when you add 1 copy of this Skill card",
+   "role": null,
+   "keywords": [],
+   "tiers": {
+    "common": null,
+    "rare": null,
+    "epic": null,
+    "legendary": null
+   }
+  },
+  {
+   "partId": "ears-larva",
+   "name": "Larva",
+   "class": "bug",
+   "slot": "ears",
+   "cardText": null,
+   "role": null,
+   "keywords": [],
+   "tiers": {
+    "common": null,
+    "rare": null,
+    "epic": null,
+    "legendary": null
+   }
+  },
+  {
+   "partId": "ears-leaf-bug",
+   "name": "Leaf Bug",
+   "class": "bug",
+   "slot": "ears",
+   "cardText": null,
+   "role": null,
+   "keywords": [],
+   "tiers": {
+    "common": null,
+    "rare": null,
+    "epic": null,
+    "legendary": null
+   }
+  },
+  {
+   "partId": "ears-leafy",
+   "name": "Leafy",
+   "class": "plant",
+   "slot": "ears",
+   "cardText": "Deals 2 hits; deals 5 Damage per Leaf consumed",
+   "role": null,
+   "keywords": [],
+   "tiers": {
+    "common": null,
+    "rare": null,
+    "epic": null,
+    "legendary": null
+   }
+  },
+  {
+   "partId": "ears-lotus",
+   "name": "Lotus",
+   "class": "plant",
+   "slot": "ears",
+   "cardText": "(effect not confirmed at reveal)",
+   "role": null,
+   "keywords": [],
+   "tiers": {
+    "common": null,
+    "rare": null,
+    "epic": null,
+    "legendary": null
+   }
+  },
+  {
+   "partId": "ears-nimo",
+   "name": "Nimo",
+   "class": "aquatic",
+   "slot": "ears",
+   "cardText": "Gain 1 Energy if this Axie's HP is full when you use this card",
+   "role": null,
+   "keywords": [],
+   "tiers": {
+    "common": null,
+    "rare": null,
+    "epic": null,
+    "legendary": null
+   }
+  },
+  {
+   "partId": "ears-nut-cracker",
+   "name": "Nut Cracker",
+   "class": "beast",
+   "slot": "ears",
+   "cardText": "Gain 6 Damage during battle",
+   "role": null,
+   "keywords": [],
+   "tiers": {
+    "common": null,
+    "rare": null,
+    "epic": null,
+    "legendary": null
+   }
+  },
+  {
+   "partId": "ears-nyan",
+   "name": "Nyan",
+   "class": "beast",
+   "slot": "ears",
+   "cardText": "Deal 15 bonus Damage against a Bleeding enemy",
+   "role": null,
+   "keywords": [],
+   "tiers": {
+    "common": null,
+    "rare": null,
+    "epic": null,
+    "legendary": null
+   }
+  },
+  {
+   "partId": "ears-owl",
+   "name": "Owl",
+   "class": "bird",
+   "slot": "ears",
+   "cardText": null,
+   "role": null,
+   "keywords": [],
+   "tiers": {
+    "common": null,
+    "rare": null,
+    "epic": null,
+    "legendary": null
+   }
+  },
+  {
+   "partId": "ears-peace-maker",
+   "name": "Peace Maker",
+   "class": "bird",
+   "slot": "ears",
+   "cardText": null,
+   "role": null,
+   "keywords": [],
+   "tiers": {
+    "common": null,
+    "rare": null,
+    "epic": null,
+    "legendary": null
+   }
+  },
+  {
+   "partId": "ears-pink-cheek",
+   "name": "Pink Cheek",
+   "class": "bird",
+   "slot": "ears",
+   "cardText": null,
+   "role": null,
+   "keywords": [],
+   "tiers": {
+    "common": null,
+    "rare": null,
+    "epic": null,
+    "legendary": null
+   }
+  },
+  {
+   "partId": "ears-pogona",
+   "name": "Pogona",
+   "class": "reptile",
+   "slot": "ears",
+   "cardText": "Applies Fragile for 4 turns",
+   "role": null,
+   "keywords": [],
+   "tiers": {
+    "common": null,
+    "rare": null,
+    "epic": null,
+    "legendary": null
+   }
+  },
+  {
+   "partId": "ears-puppy",
+   "name": "Puppy",
+   "class": "beast",
+   "slot": "ears",
+   "cardText": "Heal your team and remove 1 Curse from your deck",
+   "role": null,
+   "keywords": [],
+   "tiers": {
+    "common": null,
+    "rare": null,
+    "epic": null,
+    "legendary": null
+   }
+  },
+  {
+   "partId": "ears-risky-bird",
+   "name": "Risky Bird",
+   "class": "bird",
+   "slot": "ears",
+   "cardText": null,
+   "role": null,
+   "keywords": [],
+   "tiers": {
+    "common": null,
+    "rare": null,
+    "epic": null,
+    "legendary": null
+   }
+  },
+  {
+   "partId": "ears-rosa",
+   "name": "Rosa",
+   "class": "plant",
+   "slot": "ears",
+   "cardText": "Apply 2 Poison and Sleep to a random enemy for 2 turns",
+   "role": null,
+   "keywords": [],
+   "tiers": {
+    "common": null,
+    "rare": null,
+    "epic": null,
+    "legendary": null
+   }
+  },
+  {
+   "partId": "ears-sakura",
+   "name": "Sakura",
+   "class": "plant",
+   "slot": "ears",
+   "cardText": "Heals it by 10 HP during battle",
+   "role": null,
+   "keywords": [],
+   "tiers": {
+    "common": null,
+    "rare": null,
+    "epic": null,
+    "legendary": null
+   }
+  },
+  {
+   "partId": "ears-seaslug",
+   "name": "Seaslug",
+   "class": "aquatic",
+   "slot": "ears",
+   "cardText": "Cleanse 2 debuffs and gain 2 Cleanser whenever you use this card",
+   "role": null,
+   "keywords": [],
+   "tiers": {
+    "common": null,
+    "rare": null,
+    "epic": null,
+    "legendary": null
+   }
+  },
+  {
+   "partId": "ears-sidebarb",
+   "name": "Sidebarb",
+   "class": "reptile",
+   "slot": "ears",
+   "cardText": "Applies 2 Poison and Bleed to a random enemy for 4 turns",
+   "role": null,
+   "keywords": [],
+   "tiers": {
+    "common": null,
+    "rare": null,
+    "epic": null,
+    "legendary": null
+   }
+  },
+  {
+   "partId": "ears-small-frill",
+   "name": "Small Frill",
+   "class": "reptile",
+   "slot": "ears",
+   "cardText": "Applies 3 Poison to all enemies and heals Axie for 30 HP",
+   "role": null,
+   "keywords": [],
+   "tiers": {
+    "common": null,
+    "rare": null,
+    "epic": null,
+    "legendary": null
+   }
+  },
+  {
+   "partId": "ears-swirl",
+   "name": "Swirl",
+   "class": "reptile",
+   "slot": "ears",
+   "cardText": "Shuffle 3 Confused into the discard pile of your opponent",
+   "role": null,
+   "keywords": [],
+   "tiers": {
+    "common": null,
+    "rare": null,
+    "epic": null,
+    "legendary": null
+   }
+  },
+  {
+   "partId": "ears-tassels",
+   "name": "Tassels",
+   "class": "bug",
+   "slot": "ears",
+   "cardText": null,
+   "role": null,
+   "keywords": [],
+   "tiers": {
+    "common": null,
+    "rare": null,
+    "epic": null,
+    "legendary": null
+   }
+  },
+  {
+   "partId": "ears-tiny-fan",
+   "name": "Tiny Fan",
+   "class": "aquatic",
+   "slot": "ears",
+   "cardText": "Gain 3 Damage Boost whenever you draw 1 card",
+   "role": null,
+   "keywords": [],
+   "tiers": {
+    "common": null,
+    "rare": null,
+    "epic": null,
+    "legendary": null
+   }
+  },
+  {
+   "partId": "ears-zen",
+   "name": "Zen",
+   "class": "beast",
+   "slot": "ears",
+   "cardText": "This Axie Meditates when you draw Zen as your Initial",
+   "role": null,
+   "keywords": [],
+   "tiers": {
+    "common": null,
+    "rare": null,
+    "epic": null,
+    "legendary": null
+   }
+  },
+  {
+   "partId": "eyes-blossom",
+   "name": "Blossom",
+   "class": "plant",
+   "slot": "eyes",
+   "cardText": "Get 1 Banish and put 1 Plant card from draw pile into your hand",
+   "role": null,
+   "keywords": [],
+   "tiers": {
+    "common": null,
+    "rare": null,
+    "epic": null,
+    "legendary": null
+   }
+  },
+  {
+   "partId": "eyes-bookworm",
+   "name": "Bookworm",
+   "class": "bug",
+   "slot": "eyes",
+   "cardText": "Add a Bug card to hand and grant Banish boost",
+   "role": null,
+   "keywords": [],
+   "tiers": {
+    "common": null,
+    "rare": null,
+    "epic": null,
+    "legendary": null
+   }
+  },
+  {
+   "partId": "eyes-chubby",
+   "name": "Chubby",
+   "class": "beast",
+   "slot": "eyes",
+   "cardText": "Attack all enemies when you draw Chubby",
+   "role": null,
+   "keywords": [],
+   "tiers": {
+    "common": null,
+    "rare": null,
+    "epic": null,
+    "legendary": null
+   }
+  },
+  {
+   "partId": "eyes-clear",
+   "name": "Clear",
+   "class": "aquatic",
+   "slot": "eyes",
+   "cardText": "Discard and replace up to 2 cards",
+   "role": null,
+   "keywords": [],
+   "tiers": {
+    "common": null,
+    "rare": null,
+    "epic": null,
+    "legendary": null
+   }
+  },
+  {
+   "partId": "eyes-confused",
+   "name": "Confused",
+   "class": "plant",
+   "slot": "eyes",
+   "cardText": "Shuffle one Confused into your opponent's discard pile",
+   "role": null,
+   "keywords": [],
+   "tiers": {
+    "common": null,
+    "rare": null,
+    "epic": null,
+    "legendary": null
+   }
+  },
+  {
+   "partId": "eyes-cucumber-slice",
+   "name": "Cucumber Slice",
+   "class": "plant",
+   "slot": "eyes",
+   "cardText": "Heals your team and applies 5 Healing Boost",
+   "role": null,
+   "keywords": [],
+   "tiers": {
+    "common": null,
+    "rare": null,
+    "epic": null,
+    "legendary": null
+   }
+  },
+  {
+   "partId": "eyes-gecko",
+   "name": "Gecko",
+   "class": "reptile",
+   "slot": "eyes",
+   "cardText": "Loses 50 HP to heal and Cleanse 1 on other allies",
+   "role": null,
+   "keywords": [],
+   "tiers": {
+    "common": null,
+    "rare": null,
+    "epic": null,
+    "legendary": null
+   }
+  },
+  {
+   "partId": "eyes-gero",
+   "name": "Gero",
+   "class": "aquatic",
+   "slot": "eyes",
+   "cardText": "Apply Fragile for 4 turns",
+   "role": null,
+   "keywords": [],
+   "tiers": {
+    "common": null,
+    "rare": null,
+    "epic": null,
+    "legendary": null
+   }
+  },
+  {
+   "partId": "eyes-kotaro?",
+   "name": "Kotaro?",
+   "class": "bug",
+   "slot": "eyes",
+   "cardText": "Attack 1 random enemy and apply Death Mark for 4 turns",
+   "role": null,
+   "keywords": [],
+   "tiers": {
+    "common": null,
+    "rare": null,
+    "epic": null,
+    "legendary": null
+   }
+  },
+  {
+   "partId": "eyes-little-owl",
+   "name": "Little Owl",
+   "class": "bird",
+   "slot": "eyes",
+   "cardText": "Deal 6 Damage during battle",
+   "role": null,
+   "keywords": [],
+   "tiers": {
+    "common": null,
+    "rare": null,
+    "epic": null,
+    "legendary": null
+   }
+  },
+  {
+   "partId": "eyes-little-peas",
+   "name": "Little Peas",
+   "class": "beast",
+   "slot": "eyes",
+   "cardText": "Apply Vulnerable for 4 turns",
+   "role": null,
+   "keywords": [],
+   "tiers": {
+    "common": null,
+    "rare": null,
+    "epic": null,
+    "legendary": null
+   }
+  },
+  {
+   "partId": "eyes-lucas",
+   "name": "Lucas",
+   "class": "bird",
+   "slot": "eyes",
+   "cardText": "Move a Bird card to hand and gain Banish boost",
+   "role": null,
+   "keywords": [],
+   "tiers": {
+    "common": null,
+    "rare": null,
+    "epic": null,
+    "legendary": null
+   }
+  },
+  {
+   "partId": "eyes-mavis",
+   "name": "Mavis",
+   "class": "bird",
+   "slot": "eyes",
+   "cardText": "Summon 1 Mavis",
+   "role": null,
+   "keywords": [],
+   "tiers": {
+    "common": null,
+    "rare": null,
+    "epic": null,
+    "legendary": null
+   }
+  },
+  {
+   "partId": "eyes-neo",
+   "name": "Neo",
+   "class": "bug",
+   "slot": "eyes",
+   "cardText": "Look at the top four cards of opponent's draw pile",
+   "role": null,
+   "keywords": [],
+   "tiers": {
+    "common": null,
+    "rare": null,
+    "epic": null,
+    "legendary": null
+   }
+  },
+  {
+   "partId": "eyes-nerdy",
+   "name": "Nerdy",
+   "class": "bug",
+   "slot": "eyes",
+   "cardText": "Discard up to 2 cards, draw replacements, gain Banish boost",
+   "role": null,
+   "keywords": [],
+   "tiers": {
+    "common": null,
+    "rare": null,
+    "epic": null,
+    "legendary": null
+   }
+  },
+  {
+   "partId": "eyes-papi",
+   "name": "Papi",
+   "class": "plant",
+   "slot": "eyes",
+   "cardText": "Target and ally heal it by 20 HP",
+   "role": null,
+   "keywords": [],
+   "tiers": {
+    "common": null,
+    "rare": null,
+    "epic": null,
+    "legendary": null
+   }
+  },
+  {
+   "partId": "eyes-puppy",
+   "name": "Puppy",
+   "class": "beast",
+   "slot": "eyes",
+   "cardText": "Transfer 1 Beast card from discard pile to hand and get a Banish boost",
+   "role": null,
+   "keywords": [],
+   "tiers": {
+    "common": null,
+    "rare": null,
+    "epic": null,
+    "legendary": null
+   }
+  },
+  {
+   "partId": "eyes-robin",
+   "name": "Robin",
+   "class": "bird",
+   "slot": "eyes",
+   "cardText": "Summon a Robin",
+   "role": null,
+   "keywords": [],
+   "tiers": {
+    "common": null,
+    "rare": null,
+    "epic": null,
+    "legendary": null
+   }
+  },
+  {
+   "partId": "eyes-scar",
+   "name": "Scar",
+   "class": "reptile",
+   "slot": "eyes",
+   "cardText": "Gain Banish boost and retrieve a Reptile card from draw pile",
+   "role": null,
+   "keywords": [],
+   "tiers": {
+    "common": null,
+    "rare": null,
+    "epic": null,
+    "legendary": null
+   }
+  },
+  {
+   "partId": "eyes-sleepless",
+   "name": "Sleepless",
+   "class": "aquatic",
+   "slot": "eyes",
+   "cardText": "Shuffle 1 Daze into opponent's discard pile",
+   "role": null,
+   "keywords": [],
+   "tiers": {
+    "common": null,
+    "rare": null,
+    "epic": null,
+    "legendary": null
+   }
+  },
+  {
+   "partId": "eyes-telescope",
+   "name": "Telescope",
+   "class": "aquatic",
+   "slot": "eyes",
+   "cardText": "Gain Banish and retrieve an Aquatic card from draw pile",
+   "role": null,
+   "keywords": [],
+   "tiers": {
+    "common": null,
+    "rare": null,
+    "epic": null,
+    "legendary": null
+   }
+  },
+  {
+   "partId": "eyes-topaz",
+   "name": "Topaz",
+   "class": "reptile",
+   "slot": "eyes",
+   "cardText": "Deal 10 bonus Damage with your banished card anytime you use Topaz",
+   "role": null,
+   "keywords": [],
+   "tiers": {
+    "common": null,
+    "rare": null,
+    "epic": null,
+    "legendary": null
+   }
+  },
+  {
+   "partId": "eyes-tricky",
+   "name": "Tricky",
+   "class": "reptile",
+   "slot": "eyes",
+   "cardText": "Swap for one card in your Banish pile",
+   "role": null,
+   "keywords": [],
+   "tiers": {
+    "common": null,
+    "rare": null,
+    "epic": null,
+    "legendary": null
+   }
+  },
+  {
+   "partId": "eyes-zeal",
+   "name": "Zeal",
+   "class": "beast",
+   "slot": "eyes",
+   "cardText": "Move a Beast card from draw pile to hand with Banish boost",
+   "role": null,
+   "keywords": [],
+   "tiers": {
+    "common": null,
+    "rare": null,
+    "epic": null,
+    "legendary": null
+   }
+  },
+  {
+   "partId": "horn-anemone",
+   "name": "Anemone",
+   "class": "aquatic",
+   "slot": "horn",
+   "cardText": "Successful attacks restore 50 HP for each Anemone part",
+   "role": null,
+   "keywords": [],
+   "tiers": {
+    "common": null,
+    "rare": null,
+    "epic": null,
+    "legendary": null
+   }
+  },
+  {
+   "partId": "horn-antenna",
+   "name": "Antenna",
+   "class": "bug",
+   "slot": "horn",
+   "cardText": "Steal energy from your opponent when chained with another Bug Signal card",
+   "role": null,
+   "keywords": [],
+   "tiers": {
+    "common": null,
+    "rare": null,
+    "epic": null,
+    "legendary": null
+   }
+  },
+  {
+   "partId": "horn-arco",
+   "name": "Arco",
+   "class": "beast",
+   "slot": "horn",
+   "cardText": "Apply Speed+ to this Axie for 2 rounds when attacking",
+   "role": null,
+   "keywords": [],
+   "tiers": {
+    "common": null,
+    "rare": null,
+    "epic": null,
+    "legendary": null
+   }
+  },
+  {
+   "partId": "horn-babylonia",
+   "name": "Babylonia",
+   "class": "aquatic",
+   "slot": "horn",
+   "cardText": "Deal 130% damage when attacking an idle target",
+   "role": null,
+   "keywords": [],
+   "tiers": {
+    "common": null,
+    "rare": null,
+    "epic": null,
+    "legendary": null
+   }
+  },
+  {
+   "partId": "horn-bamboo-shoot",
+   "name": "Bamboo Shoot",
+   "class": "plant",
+   "slot": "horn",
+   "cardText": "Increased 20% damage when chained with another Plant card",
+   "role": null,
+   "keywords": [],
+   "tiers": {
+    "common": null,
+    "rare": null,
+    "epic": null,
+    "legendary": null
+   }
+  },
+  {
+   "partId": "horn-beech",
+   "name": "Beech",
+   "class": "plant",
+   "slot": "horn",
+   "cardText": "Deal 120% damage if this Axie's shield breaks",
+   "role": null,
+   "keywords": [],
+   "tiers": {
+    "common": null,
+    "rare": null,
+    "epic": null,
+    "legendary": null
+   }
+  },
+  {
+   "partId": "horn-bumpy",
+   "name": "Bumpy",
+   "class": "reptile",
+   "slot": "horn",
+   "cardText": "Recover 20 shield per turn",
+   "role": null,
+   "keywords": [],
+   "tiers": {
+    "common": null,
+    "rare": null,
+    "epic": null,
+    "legendary": null
+   }
+  },
+  {
+   "partId": "horn-cactus",
+   "name": "Cactus",
+   "class": "plant",
+   "slot": "horn",
+   "cardText": "Deal 120% damage if this Axie attacks last",
+   "role": null,
+   "keywords": [],
+   "tiers": {
+    "common": null,
+    "rare": null,
+    "epic": null,
+    "legendary": null
+   }
+  },
+  {
+   "partId": "horn-caterpillars",
+   "name": "Caterpillars",
+   "class": "bug",
+   "slot": "horn",
+   "cardText": "Apply Fear to shielded targets",
+   "role": null,
+   "keywords": [],
+   "tiers": {
+    "common": null,
+    "rare": null,
+    "epic": null,
+    "legendary": null
+   }
+  },
+  {
+   "partId": "horn-cerastes",
+   "name": "Cerastes",
+   "class": "reptile",
+   "slot": "horn",
+   "cardText": "Deal 130% damage if target is faster than this Axie",
+   "role": null,
+   "keywords": [],
+   "tiers": {
+    "common": null,
+    "rare": null,
+    "epic": null,
+    "legendary": null
+   }
+  },
+  {
+   "partId": "horn-clamshell",
+   "name": "Clamshell",
+   "class": "aquatic",
+   "slot": "horn",
+   "cardText": "Apply Attack+ to this Axie when attacking Beast, Bug, or Mech targets",
+   "role": null,
+   "keywords": [],
+   "tiers": {
+    "common": null,
+    "rare": null,
+    "epic": null,
+    "legendary": null
+   }
+  },
+  {
+   "partId": "horn-cuckoo",
+   "name": "Cuckoo",
+   "class": "bird",
+   "slot": "horn",
+   "cardText": "Apply Attack+ to this Axie",
+   "role": null,
+   "keywords": [],
+   "tiers": {
+    "common": null,
+    "rare": null,
+    "epic": null,
+    "legendary": null
+   }
+  },
+  {
+   "partId": "horn-dual-blade",
+   "name": "Dual Blade",
+   "class": "beast",
+   "slot": "horn",
+   "cardText": "Deal bonus damage on critical strikes (200-250% depending on patch)",
+   "role": null,
+   "keywords": [],
+   "tiers": {
+    "common": null,
+    "rare": null,
+    "epic": null,
+    "legendary": null
+   }
+  },
+  {
+   "partId": "horn-eggshell",
+   "name": "Eggshell",
+   "class": "bird",
+   "slot": "horn",
+   "cardText": "Apply Aroma on this Axie until next round",
+   "role": null,
+   "keywords": [],
+   "tiers": {
+    "common": null,
+    "rare": null,
+    "epic": null,
+    "legendary": null
+   }
+  },
+  {
+   "partId": "horn-feather-spear",
+   "name": "Feather Spear",
+   "class": "bird",
+   "slot": "horn",
+   "cardText": "Deal 120% damage when chained with another Lunge card",
+   "role": null,
+   "keywords": [],
+   "tiers": {
+    "common": null,
+    "rare": null,
+    "epic": null,
+    "legendary": null
+   }
+  },
+  {
+   "partId": "horn-imp",
+   "name": "Imp",
+   "class": "beast",
+   "slot": "horn",
+   "cardText": "Gain 1 energy per critical strike dealt by your team this round",
+   "role": null,
+   "keywords": [],
+   "tiers": {
+    "common": null,
+    "rare": null,
+    "epic": null,
+    "legendary": null
+   }
+  },
+  {
+   "partId": "horn-incisor",
+   "name": "Incisor",
+   "class": "reptile",
+   "slot": "horn",
+   "cardText": "Apply Speed- to target for 2 rounds",
+   "role": null,
+   "keywords": [],
+   "tiers": {
+    "common": null,
+    "rare": null,
+    "epic": null,
+    "legendary": null
+   }
+  },
+  {
+   "partId": "horn-kestrel",
+   "name": "Kestrel",
+   "class": "bird",
+   "slot": "horn",
+   "cardText": "Disable target's horn cards next round",
+   "role": null,
+   "keywords": [],
+   "tiers": {
+    "common": null,
+    "rare": null,
+    "epic": null,
+    "legendary": null
+   }
+  },
+  {
+   "partId": "horn-lagging",
+   "name": "Lagging",
+   "class": "bug",
+   "slot": "horn",
+   "cardText": "Apply Speed- to target for 2 rounds",
+   "role": null,
+   "keywords": [],
+   "tiers": {
+    "common": null,
+    "rare": null,
+    "epic": null,
+    "legendary": null
+   }
+  },
+  {
+   "partId": "horn-leaf-bug",
+   "name": "Leaf Bug",
+   "class": "bug",
+   "slot": "horn",
+   "cardText": "Gain 1 energy when comboed with a Plant card",
+   "role": null,
+   "keywords": [],
+   "tiers": {
+    "common": null,
+    "rare": null,
+    "epic": null,
+    "legendary": null
+   }
+  },
+  {
+   "partId": "horn-little-branch",
+   "name": "Little Branch",
+   "class": "beast",
+   "slot": "horn",
+   "cardText": "Increase crit chance by 20% if chained or comboed with a Plant card",
+   "role": null,
+   "keywords": [],
+   "tiers": {
+    "common": null,
+    "rare": null,
+    "epic": null,
+    "legendary": null
+   }
+  },
+  {
+   "partId": "horn-merry",
+   "name": "Merry",
+   "class": "beast",
+   "slot": "horn",
+   "cardText": "Add 20% shield to this Axie when played in a chain",
+   "role": null,
+   "keywords": [],
+   "tiers": {
+    "common": null,
+    "rare": null,
+    "epic": null,
+    "legendary": null
+   }
+  },
+  {
+   "partId": "horn-oranda",
+   "name": "Oranda",
+   "class": "aquatic",
+   "slot": "horn",
+   "cardText": "End target's Last Stand",
+   "role": null,
+   "keywords": [],
+   "tiers": {
+    "common": null,
+    "rare": null,
+    "epic": null,
+    "legendary": null
+   }
+  },
+  {
+   "partId": "horn-parasite",
+   "name": "Parasite",
+   "class": "bug",
+   "slot": "horn",
+   "cardText": "Randomly discard 1 card from your enemy's hand",
+   "role": null,
+   "keywords": [],
+   "tiers": {
+    "common": null,
+    "rare": null,
+    "epic": null,
+    "legendary": null
+   }
+  },
+  {
+   "partId": "horn-pliers",
+   "name": "Pliers",
+   "class": "bug",
+   "slot": "horn",
+   "cardText": "Deal 30% more damage to shielded targets",
+   "role": null,
+   "keywords": [],
+   "tiers": {
+    "common": null,
+    "rare": null,
+    "epic": null,
+    "legendary": null
+   }
+  },
+  {
+   "partId": "horn-pocky",
+   "name": "Pocky",
+   "class": "beast",
+   "slot": "horn",
+   "cardText": "Deal 10% additional damage for each allied Bug Axie",
+   "role": null,
+   "keywords": [],
+   "tiers": {
+    "common": null,
+    "rare": null,
+    "epic": null,
+    "legendary": null
+   }
+  },
+  {
+   "partId": "horn-rose-bud",
+   "name": "Rose Bud",
+   "class": "plant",
+   "slot": "horn",
+   "cardText": "Heal this Axie for 120 HP",
+   "role": null,
+   "keywords": [],
+   "tiers": {
+    "common": null,
+    "rare": null,
+    "epic": null,
+    "legendary": null
+   }
+  },
+  {
+   "partId": "horn-scaly-spear",
+   "name": "Scaly Spear",
+   "class": "reptile",
+   "slot": "horn",
+   "cardText": "Deal 120% damage when chained with another Lunge card",
+   "role": null,
+   "keywords": [],
+   "tiers": {
+    "common": null,
+    "rare": null,
+    "epic": null,
+    "legendary": null
+   }
+  },
+  {
+   "partId": "horn-scaly-spoon",
+   "name": "Scaly Spoon",
+   "class": "reptile",
+   "slot": "horn",
+   "cardText": "Reflect 50% of ranged damage back at attacker",
+   "role": null,
+   "keywords": [],
+   "tiers": {
+    "common": null,
+    "rare": null,
+    "epic": null,
+    "legendary": null
+   }
+  },
+  {
+   "partId": "horn-shoal-star",
+   "name": "Shoal Star",
+   "class": "aquatic",
+   "slot": "horn",
+   "cardText": "Target cannot enter Last Stand if this card brings its HP to zero",
+   "role": null,
+   "keywords": [],
+   "tiers": {
+    "common": null,
+    "rare": null,
+    "epic": null,
+    "legendary": null
+   }
+  },
+  {
+   "partId": "horn-strawberry-shortcake",
+   "name": "Strawberry Shortcake",
+   "class": "plant",
+   "slot": "horn",
+   "cardText": "Heal front teammate for 270 HP. If none, heal this Axie instead",
+   "role": null,
+   "keywords": [],
+   "tiers": {
+    "common": null,
+    "rare": null,
+    "epic": null,
+    "legendary": null
+   }
+  },
+  {
+   "partId": "horn-teal-shell",
+   "name": "Teal Shell",
+   "class": "aquatic",
+   "slot": "horn",
+   "cardText": "Add 30% to this Axie's shield when attacking",
+   "role": null,
+   "keywords": [],
+   "tiers": {
+    "common": null,
+    "rare": null,
+    "epic": null,
+    "legendary": null
+   }
+  },
+  {
+   "partId": "horn-trump",
+   "name": "Trump",
+   "class": "bird",
+   "slot": "horn",
+   "cardText": "Deal 120% damage when chained with another Trump card",
+   "role": null,
+   "keywords": [],
+   "tiers": {
+    "common": null,
+    "rare": null,
+    "epic": null,
+    "legendary": null
+   }
+  },
+  {
+   "partId": "horn-unko",
+   "name": "Unko",
+   "class": "reptile",
+   "slot": "horn",
+   "cardText": "Apply Stench to target until end of round",
+   "role": null,
+   "keywords": [],
+   "tiers": {
+    "common": null,
+    "rare": null,
+    "epic": null,
+    "legendary": null
+   }
+  },
+  {
+   "partId": "horn-watermelon",
+   "name": "Watermelon",
+   "class": "plant",
+   "slot": "horn",
+   "cardText": "Target fastest enemy",
+   "role": null,
+   "keywords": [],
+   "tiers": {
+    "common": null,
+    "rare": null,
+    "epic": null,
+    "legendary": null
+   }
+  },
+  {
+   "partId": "horn-wing-horn",
+   "name": "Wing Horn",
+   "class": "bird",
+   "slot": "horn",
+   "cardText": "Skip the closest target if there are 2 or more enemies remaining",
+   "role": null,
+   "keywords": [],
+   "tiers": {
+    "common": null,
+    "rare": null,
+    "epic": null,
+    "legendary": null
+   }
+  },
+  {
+   "partId": "mouth-axie-kiss",
+   "name": "Axie Kiss",
+   "class": "beast",
+   "slot": "mouth",
+   "cardText": "Apply Lethal to target if this Axie's HP is below 30%",
+   "role": null,
+   "keywords": [],
+   "tiers": {
+    "common": null,
+    "rare": null,
+    "epic": null,
+    "legendary": null
+   }
+  },
+  {
+   "partId": "mouth-catfish",
+   "name": "Catfish",
+   "class": "aquatic",
+   "slot": "mouth",
+   "cardText": "Heal this Axie by the damage inflicted with this card",
+   "role": null,
+   "keywords": [],
+   "tiers": {
+    "common": null,
+    "rare": null,
+    "epic": null,
+    "legendary": null
+   }
+  },
+  {
+   "partId": "mouth-confident",
+   "name": "Confident",
+   "class": "beast",
+   "slot": "mouth",
+   "cardText": "Apply 2 Morale+ to this Axie for 2 rounds",
+   "role": null,
+   "keywords": [],
+   "tiers": {
+    "common": null,
+    "rare": null,
+    "epic": null,
+    "legendary": null
+   }
+  },
+  {
+   "partId": "mouth-cute-bunny",
+   "name": "Cute Bunny",
+   "class": "bug",
+   "slot": "mouth",
+   "cardText": "Apply Fear to target for 2 turns when played in a chain",
+   "role": null,
+   "keywords": [],
+   "tiers": {
+    "common": null,
+    "rare": null,
+    "epic": null,
+    "legendary": null
+   }
+  },
+  {
+   "partId": "mouth-doubletalk",
+   "name": "Doubletalk",
+   "class": "bird",
+   "slot": "mouth",
+   "cardText": "Apply Sleep to target",
+   "role": null,
+   "keywords": [],
+   "tiers": {
+    "common": null,
+    "rare": null,
+    "epic": null,
+    "legendary": null
+   }
+  },
+  {
+   "partId": "mouth-goda",
+   "name": "Goda",
+   "class": "beast",
+   "slot": "mouth",
+   "cardText": "Destroy 1 of your opponent's energy",
+   "role": null,
+   "keywords": [],
+   "tiers": {
+    "common": null,
+    "rare": null,
+    "epic": null,
+    "legendary": null
+   }
+  },
+  {
+   "partId": "mouth-herbivore",
+   "name": "Herbivore",
+   "class": "plant",
+   "slot": "mouth",
+   "cardText": "Heal this Axie by the damage this card inflicts on a Plant target",
+   "role": null,
+   "keywords": [],
+   "tiers": {
+    "common": null,
+    "rare": null,
+    "epic": null,
+    "legendary": null
+   }
+  },
+  {
+   "partId": "mouth-hungry-bird",
+   "name": "Hungry Bird",
+   "class": "bird",
+   "slot": "mouth",
+   "cardText": "Target Bug class enemy if this Axie's HP is below 50%",
+   "role": null,
+   "keywords": [],
+   "tiers": {
+    "common": null,
+    "rare": null,
+    "epic": null,
+    "legendary": null
+   }
+  },
+  {
+   "partId": "mouth-kotaro",
+   "name": "Kotaro",
+   "class": "reptile",
+   "slot": "mouth",
+   "cardText": "Gain 1 energy if target is faster than this Axie",
+   "role": null,
+   "keywords": [],
+   "tiers": {
+    "common": null,
+    "rare": null,
+    "epic": null,
+    "legendary": null
+   }
+  },
+  {
+   "partId": "mouth-lam",
+   "name": "Lam",
+   "class": "aquatic",
+   "slot": "mouth",
+   "cardText": "Deal 120% damage when this Axie's HP is below 50%",
+   "role": null,
+   "keywords": [],
+   "tiers": {
+    "common": null,
+    "rare": null,
+    "epic": null,
+    "legendary": null
+   }
+  },
+  {
+   "partId": "mouth-little-owl",
+   "name": "Little Owl",
+   "class": "bird",
+   "slot": "mouth",
+   "cardText": "Target fastest enemy",
+   "role": null,
+   "keywords": [],
+   "tiers": {
+    "common": null,
+    "rare": null,
+    "epic": null,
+    "legendary": null
+   }
+  },
+  {
+   "partId": "mouth-mosquito",
+   "name": "Mosquito",
+   "class": "bug",
+   "slot": "mouth",
+   "cardText": "Heal this Axie by the damage inflicted with this card",
+   "role": null,
+   "keywords": [],
+   "tiers": {
+    "common": null,
+    "rare": null,
+    "epic": null,
+    "legendary": null
+   }
+  },
+  {
+   "partId": "mouth-nut-cracker",
+   "name": "Nut Cracker",
+   "class": "beast",
+   "slot": "mouth",
+   "cardText": "Deal 120% damage when comboed with another Nut Cracker card",
+   "role": null,
+   "keywords": [],
+   "tiers": {
+    "common": null,
+    "rare": null,
+    "epic": null,
+    "legendary": null
+   }
+  },
+  {
+   "partId": "mouth-peace-maker",
+   "name": "Peace Maker",
+   "class": "bird",
+   "slot": "mouth",
+   "cardText": "Apply Attack- on target",
+   "role": null,
+   "keywords": [],
+   "tiers": {
+    "common": null,
+    "rare": null,
+    "epic": null,
+    "legendary": null
+   }
+  },
+  {
+   "partId": "mouth-pincer",
+   "name": "Pincer",
+   "class": "bug",
+   "slot": "mouth",
+   "cardText": "Randomly discard 1 card from your enemy's hand",
+   "role": null,
+   "keywords": [],
+   "tiers": {
+    "common": null,
+    "rare": null,
+    "epic": null,
+    "legendary": null
+   }
+  },
+  {
+   "partId": "mouth-piranha",
+   "name": "Piranha",
+   "class": "aquatic",
+   "slot": "mouth",
+   "cardText": "Target injured Axie if this Axie's HP is below 50%",
+   "role": null,
+   "keywords": [],
+   "tiers": {
+    "common": null,
+    "rare": null,
+    "epic": null,
+    "legendary": null
+   }
+  },
+  {
+   "partId": "mouth-razor-bite",
+   "name": "Razor Bite",
+   "class": "reptile",
+   "slot": "mouth",
+   "cardText": "Heal this Axie by damage inflicted with this card to Aquatic targets",
+   "role": null,
+   "keywords": [],
+   "tiers": {
+    "common": null,
+    "rare": null,
+    "epic": null,
+    "legendary": null
+   }
+  },
+  {
+   "partId": "mouth-risky-fish",
+   "name": "Risky Fish",
+   "class": "aquatic",
+   "slot": "mouth",
+   "cardText": "Apply Attack+ to this Axie when attacking Plant, Reptile, or Dusk targets",
+   "role": null,
+   "keywords": [],
+   "tiers": {
+    "common": null,
+    "rare": null,
+    "epic": null,
+    "legendary": null
+   }
+  },
+  {
+   "partId": "mouth-serious",
+   "name": "Serious",
+   "class": "plant",
+   "slot": "mouth",
+   "cardText": "Steal 1 energy from your opponent when comboed with another card",
+   "role": null,
+   "keywords": [],
+   "tiers": {
+    "common": null,
+    "rare": null,
+    "epic": null,
+    "legendary": null
+   }
+  },
+  {
+   "partId": "mouth-silence-whisper",
+   "name": "Silence Whisper",
+   "class": "plant",
+   "slot": "mouth",
+   "cardText": "Heal front teammate for 190 HP",
+   "role": null,
+   "keywords": [],
+   "tiers": {
+    "common": null,
+    "rare": null,
+    "epic": null,
+    "legendary": null
+   }
+  },
+  {
+   "partId": "mouth-square-teeth",
+   "name": "Square Teeth",
+   "class": "bug",
+   "slot": "mouth",
+   "cardText": "Add 100% more damage when comboed with another card",
+   "role": null,
+   "keywords": [],
+   "tiers": {
+    "common": null,
+    "rare": null,
+    "epic": null,
+    "legendary": null
+   }
+  },
+  {
+   "partId": "mouth-tiny-turtle",
+   "name": "Tiny Turtle",
+   "class": "reptile",
+   "slot": "mouth",
+   "cardText": "Apply Stun to enemy when comboed with at least 2 additional cards",
+   "role": null,
+   "keywords": [],
+   "tiers": {
+    "common": null,
+    "rare": null,
+    "epic": null,
+    "legendary": null
+   }
+  },
+  {
+   "partId": "mouth-toothless-bite",
+   "name": "Toothless Bite",
+   "class": "reptile",
+   "slot": "mouth",
+   "cardText": "Target furthest enemy",
+   "role": null,
+   "keywords": [],
+   "tiers": {
+    "common": null,
+    "rare": null,
+    "epic": null,
+    "legendary": null
+   }
+  },
+  {
+   "partId": "mouth-zigzag",
+   "name": "Zigzag",
+   "class": "plant",
+   "slot": "mouth",
+   "cardText": "Heal this Axie by the damage this card inflicts",
+   "role": null,
+   "keywords": [],
+   "tiers": {
+    "common": null,
+    "rare": null,
+    "epic": null,
+    "legendary": null
+   }
+  },
+  {
+   "partId": "tail-ant",
+   "name": "Ant",
+   "class": "bug",
+   "slot": "tail",
+   "cardText": "Apply Stench for 1 round",
+   "role": null,
+   "keywords": [],
+   "tiers": {
+    "common": null,
+    "rare": null,
+    "epic": null,
+    "legendary": null
+   }
+  },
+  {
+   "partId": "tail-carrot",
+   "name": "Carrot",
+   "class": "plant",
+   "slot": "tail",
+   "cardText": "Gain 1 energy if this Axie's shield breaks. Once per round",
+   "role": null,
+   "keywords": [],
+   "tiers": {
+    "common": null,
+    "rare": null,
+    "epic": null,
+    "legendary": null
+   }
+  },
+  {
+   "partId": "tail-cattail",
+   "name": "Cattail",
+   "class": "plant",
+   "slot": "tail",
+   "cardText": "Draw a card if struck by a Beast, Bug, or Mech card",
+   "role": null,
+   "keywords": [],
+   "tiers": {
+    "common": null,
+    "rare": null,
+    "epic": null,
+    "legendary": null
+   }
+  },
+  {
+   "partId": "tail-cloud",
+   "name": "Cloud",
+   "class": "bird",
+   "slot": "tail",
+   "cardText": "Skip targets that are in Last Stand",
+   "role": null,
+   "keywords": [],
+   "tiers": {
+    "common": null,
+    "rare": null,
+    "epic": null,
+    "legendary": null
+   }
+  },
+  {
+   "partId": "tail-cottontail",
+   "name": "Cottontail",
+   "class": "beast",
+   "slot": "tail",
+   "cardText": "Gain 1 energy",
+   "role": null,
+   "keywords": [],
+   "tiers": {
+    "common": null,
+    "rare": null,
+    "epic": null,
+    "legendary": null
+   }
+  },
+  {
+   "partId": "tail-feather-fan",
+   "name": "Feather Fan",
+   "class": "bird",
+   "slot": "tail",
+   "cardText": "Add 20% shield to this Axie for each debuff it possesses",
+   "role": null,
+   "keywords": [],
+   "tiers": {
+    "common": null,
+    "rare": null,
+    "epic": null,
+    "legendary": null
+   }
+  },
+  {
+   "partId": "tail-fish-snack",
+   "name": "Fish Snack",
+   "class": "bug",
+   "slot": "tail",
+   "cardText": "Apply Stun when struck by Aquatic or Bird class cards. Once per round",
+   "role": null,
+   "keywords": [],
+   "tiers": {
+    "common": null,
+    "rare": null,
+    "epic": null,
+    "legendary": null
+   }
+  },
+  {
+   "partId": "tail-gerbil",
+   "name": "Gerbil",
+   "class": "beast",
+   "slot": "tail",
+   "cardText": "Skip the closest target if there are 2 or more enemies remaining",
+   "role": null,
+   "keywords": [],
+   "tiers": {
+    "common": null,
+    "rare": null,
+    "epic": null,
+    "legendary": null
+   }
+  },
+  {
+   "partId": "tail-gila",
+   "name": "Gila",
+   "class": "reptile",
+   "slot": "tail",
+   "cardText": "Apply Attack- to poisoned targets",
+   "role": null,
+   "keywords": [],
+   "tiers": {
+    "common": null,
+    "rare": null,
+    "epic": null,
+    "legendary": null
+   }
+  },
+  {
+   "partId": "tail-granmas-fan",
+   "name": "Granma's Fan",
+   "class": "bird",
+   "slot": "tail",
+   "cardText": "Apply Chill to target for 2 rounds",
+   "role": null,
+   "keywords": [],
+   "tiers": {
+    "common": null,
+    "rare": null,
+    "epic": null,
+    "legendary": null
+   }
+  },
+  {
+   "partId": "tail-grass-snake",
+   "name": "Grass Snake",
+   "class": "reptile",
+   "slot": "tail",
+   "cardText": "Apply Poison to target",
+   "role": null,
+   "keywords": [],
+   "tiers": {
+    "common": null,
+    "rare": null,
+    "epic": null,
+    "legendary": null
+   }
+  },
+  {
+   "partId": "tail-gravel-ant",
+   "name": "Gravel Ant",
+   "class": "bug",
+   "slot": "tail",
+   "cardText": "Disable target's melee cards next round",
+   "role": null,
+   "keywords": [],
+   "tiers": {
+    "common": null,
+    "rare": null,
+    "epic": null,
+    "legendary": null
+   }
+  },
+  {
+   "partId": "tail-hare",
+   "name": "Hare",
+   "class": "beast",
+   "slot": "tail",
+   "cardText": "Draw a card if this Axie attacks at the beginning of the round",
+   "role": null,
+   "keywords": [],
+   "tiers": {
+    "common": null,
+    "rare": null,
+    "epic": null,
+    "legendary": null
+   }
+  },
+  {
+   "partId": "tail-hatsune",
+   "name": "Hatsune",
+   "class": "plant",
+   "slot": "tail",
+   "cardText": "When hit, disable attacker's ranged cards next round",
+   "role": null,
+   "keywords": [],
+   "tiers": {
+    "common": null,
+    "rare": null,
+    "epic": null,
+    "legendary": null
+   }
+  },
+  {
+   "partId": "tail-hot-butt",
+   "name": "Hot Butt",
+   "class": "plant",
+   "slot": "tail",
+   "cardText": "Disable target's mouth cards next round",
+   "role": null,
+   "keywords": [],
+   "tiers": {
+    "common": null,
+    "rare": null,
+    "epic": null,
+    "legendary": null
+   }
+  },
+  {
+   "partId": "tail-iguana",
+   "name": "Iguana",
+   "class": "reptile",
+   "slot": "tail",
+   "cardText": "Generate 1 energy when attacking a buffed target",
+   "role": null,
+   "keywords": [],
+   "tiers": {
+    "common": null,
+    "rare": null,
+    "epic": null,
+    "legendary": null
+   }
+  },
+  {
+   "partId": "tail-koi",
+   "name": "Koi",
+   "class": "aquatic",
+   "slot": "tail",
+   "cardText": "Apply Speed+ to this Axie for 2 rounds when comboed with another Aquatic class card",
+   "role": null,
+   "keywords": [],
+   "tiers": {
+    "common": null,
+    "rare": null,
+    "epic": null,
+    "legendary": null
+   }
+  },
+  {
+   "partId": "tail-navaga",
+   "name": "Navaga",
+   "class": "aquatic",
+   "slot": "tail",
+   "cardText": "Deal 120% damage if this Axie attacks first",
+   "role": null,
+   "keywords": [],
+   "tiers": {
+    "common": null,
+    "rare": null,
+    "epic": null,
+    "legendary": null
+   }
+  },
+  {
+   "partId": "tail-nimo",
+   "name": "Nimo",
+   "class": "aquatic",
+   "slot": "tail",
+   "cardText": "Gain 1 energy when comboed with another card",
+   "role": null,
+   "keywords": [],
+   "tiers": {
+    "common": null,
+    "rare": null,
+    "epic": null,
+    "legendary": null
+   }
+  },
+  {
+   "partId": "tail-nut-cracker",
+   "name": "Nut Cracker",
+   "class": "beast",
+   "slot": "tail",
+   "cardText": "Deal 120% damage when comboed with another Nut Cracker card",
+   "role": null,
+   "keywords": [],
+   "tiers": {
+    "common": null,
+    "rare": null,
+    "epic": null,
+    "legendary": null
+   }
+  },
+  {
+   "partId": "tail-post-fight",
+   "name": "Post Fight",
+   "class": "bird",
+   "slot": "tail",
+   "cardText": "Inflict 30% of this Axie's max HP to itself",
+   "role": null,
+   "keywords": [],
+   "tiers": {
+    "common": null,
+    "rare": null,
+    "epic": null,
+    "legendary": null
+   }
+  },
+  {
+   "partId": "tail-potato-leaf",
+   "name": "Potato Leaf",
+   "class": "plant",
+   "slot": "tail",
+   "cardText": "Cannot be targeted by Aquatic cards if this Axie has teammates remaining",
+   "role": null,
+   "keywords": [],
+   "tiers": {
+    "common": null,
+    "rare": null,
+    "epic": null,
+    "legendary": null
+   }
+  },
+  {
+   "partId": "tail-pupae",
+   "name": "Pupae",
+   "class": "bug",
+   "slot": "tail",
+   "cardText": "Deal 200% damage when attacking in Last Stand. Last Stand ends after it attacks",
+   "role": null,
+   "keywords": [],
+   "tiers": {
+    "common": null,
+    "rare": null,
+    "epic": null,
+    "legendary": null
+   }
+  },
+  {
+   "partId": "tail-ranchu",
+   "name": "Ranchu",
+   "class": "aquatic",
+   "slot": "tail",
+   "cardText": "Apply Chill to target for 2 rounds",
+   "role": null,
+   "keywords": [],
+   "tiers": {
+    "common": null,
+    "rare": null,
+    "epic": null,
+    "legendary": null
+   }
+  },
+  {
+   "partId": "tail-rice",
+   "name": "Rice",
+   "class": "beast",
+   "slot": "tail",
+   "cardText": "Steal 1 energy from your opponent when comboed with another card",
+   "role": null,
+   "keywords": [],
+   "tiers": {
+    "common": null,
+    "rare": null,
+    "epic": null,
+    "legendary": null
+   }
+  },
+  {
+   "partId": "tail-shiba",
+   "name": "Shiba",
+   "class": "beast",
+   "slot": "tail",
+   "cardText": "Apply Morale+ to your team for 2 rounds if this Axie attacks while in Last Stand",
+   "role": null,
+   "keywords": [],
+   "tiers": {
+    "common": null,
+    "rare": null,
+    "epic": null,
+    "legendary": null
+   }
+  },
+  {
+   "partId": "tail-shrimp",
+   "name": "Shrimp",
+   "class": "aquatic",
+   "slot": "tail",
+   "cardText": "Prioritizes furthest target",
+   "role": null,
+   "keywords": [],
+   "tiers": {
+    "common": null,
+    "rare": null,
+    "epic": null,
+    "legendary": null
+   }
+  },
+  {
+   "partId": "tail-snake-jar",
+   "name": "Snake Jar",
+   "class": "reptile",
+   "slot": "tail",
+   "cardText": "Attacks that break this Axie's shield cannot deal additional damage. Once per round",
+   "role": null,
+   "keywords": [],
+   "tiers": {
+    "common": null,
+    "rare": null,
+    "epic": null,
+    "legendary": null
+   }
+  },
+  {
+   "partId": "tail-swallow",
+   "name": "Swallow",
+   "class": "bird",
+   "slot": "tail",
+   "cardText": "Deal 120% damage if this Axie attacks first",
+   "role": null,
+   "keywords": [],
+   "tiers": {
+    "common": null,
+    "rare": null,
+    "epic": null,
+    "legendary": null
+   }
+  },
+  {
+   "partId": "tail-tadpole",
+   "name": "Tadpole",
+   "class": "aquatic",
+   "slot": "tail",
+   "cardText": "Apply Jinx to target for 2 rounds",
+   "role": null,
+   "keywords": [],
+   "tiers": {
+    "common": null,
+    "rare": null,
+    "epic": null,
+    "legendary": null
+   }
+  },
+  {
+   "partId": "tail-the-last-one",
+   "name": "The Last One",
+   "class": "bird",
+   "slot": "tail",
+   "cardText": "Apply 2 Attack- to this Axie",
+   "role": null,
+   "keywords": [],
+   "tiers": {
+    "common": null,
+    "rare": null,
+    "epic": null,
+    "legendary": null
+   }
+  },
+  {
+   "partId": "tail-thorny-caterpillar",
+   "name": "Thorny Caterpillar",
+   "class": "bug",
+   "slot": "tail",
+   "cardText": "Deal 130% damage to debuffed targets",
+   "role": null,
+   "keywords": [],
+   "tiers": {
+    "common": null,
+    "rare": null,
+    "epic": null,
+    "legendary": null
+   }
+  },
+  {
+   "partId": "tail-tiny-dino",
+   "name": "Tiny Dino",
+   "class": "reptile",
+   "slot": "tail",
+   "cardText": "Deal 150% damage after round 4",
+   "role": null,
+   "keywords": [],
+   "tiers": {
+    "common": null,
+    "rare": null,
+    "epic": null,
+    "legendary": null
+   }
+  },
+  {
+   "partId": "tail-twin-tail",
+   "name": "Twin Tail",
+   "class": "bug",
+   "slot": "tail",
+   "cardText": "Attack twice when comboed with another card",
+   "role": null,
+   "keywords": [],
+   "tiers": {
+    "common": null,
+    "rare": null,
+    "epic": null,
+    "legendary": null
+   }
+  },
+  {
+   "partId": "tail-wall-gecko",
+   "name": "Wall Gecko",
+   "class": "reptile",
+   "slot": "tail",
+   "cardText": "Reduce damage taken by 15% this round",
+   "role": null,
+   "keywords": [],
+   "tiers": {
+    "common": null,
+    "rare": null,
+    "epic": null,
+    "legendary": null
+   }
+  },
+  {
+   "partId": "tail-yam",
+   "name": "Yam",
+   "class": "plant",
+   "slot": "tail",
+   "cardText": "Apply Poison each time this card is used to attack or defend",
+   "role": null,
+   "keywords": [],
+   "tiers": {
+    "common": null,
+    "rare": null,
+    "epic": null,
+    "legendary": null
+   }
+  }
+ ],
+ "mythicBySlot": {
+  "aquatic": {
+   "back": {
+    "name": "Crystal Hermit",
+    "partId": "back-crystal-hermit",
+    "ruleBreak": null
+   },
+   "ears": {
+    "name": "Red Nimo",
+    "partId": "ears-red-nimo",
+    "ruleBreak": null
+   },
+   "eyes": {
+    "name": "Insomnia",
+    "partId": "eyes-insomnia",
+    "ruleBreak": null
+   },
+   "horn": {
+    "name": "Candy Babylonia",
+    "partId": "horn-candy-babylonia",
+    "ruleBreak": null
+   },
+   "mouth": {
+    "name": "Lam Handsome",
+    "partId": "mouth-lam-handsome",
+    "ruleBreak": null
+   },
+   "tail": {
+    "name": "Kuro Koi",
+    "partId": "tail-kuro-koi",
+    "ruleBreak": null
+   }
+  },
+  "beast": {
+   "back": {
+    "name": "Hasagi",
+    "partId": "back-hasagi",
+    "ruleBreak": null
+   },
+   "ears": {
+    "name": "Pointy Nyan",
+    "partId": "ears-pointy-nyan",
+    "ruleBreak": null
+   },
+   "eyes": {
+    "name": "Calico Zeal",
+    "partId": "eyes-calico-zeal",
+    "ruleBreak": null
+   },
+   "horn": {
+    "name": "Winter Branch",
+    "partId": "horn-winter-branch",
+    "ruleBreak": null
+   },
+   "mouth": {
+    "name": "Skull Cracker",
+    "partId": "mouth-skull-cracker",
+    "ruleBreak": null
+   },
+   "tail": {
+    "name": "Sakura Cottontail",
+    "partId": "tail-sakura-cottontail",
+    "ruleBreak": null
+   }
+  },
+  "plant": {
+   "back": {
+    "name": "Pink Turnip",
+    "partId": "back-pink-turnip",
+    "ruleBreak": null
+   },
+   "ears": {
+    "name": "The Last Leaf",
+    "partId": "ears-the-last-leaf",
+    "ruleBreak": null
+   },
+   "eyes": {
+    "name": "Dreamy Papi",
+    "partId": "eyes-dreamy-papi",
+    "ruleBreak": null
+   },
+   "horn": {
+    "name": "Golden Bamboo Shoot",
+    "partId": "horn-golden-bamboo-shoot",
+    "ruleBreak": null
+   },
+   "mouth": {
+    "name": "Humorless",
+    "partId": "mouth-humorless",
+    "ruleBreak": null
+   },
+   "tail": {
+    "name": "Namek Carrot",
+    "partId": "tail-namek-carrot",
+    "ruleBreak": null
+   }
+  },
+  "reptile": {
+   "back": {
+    "name": "Rugged Sail",
+    "partId": "back-rugged-sail",
+    "ruleBreak": null
+   },
+   "ears": {
+    "name": "Deadly Pogona",
+    "partId": "ears-deadly-pogona",
+    "ruleBreak": null
+   },
+   "eyes": {
+    "name": "Crimson Gecko",
+    "partId": "eyes-crimson-gecko",
+    "ruleBreak": null
+   },
+   "horn": {
+    "name": "Pinku Unko",
+    "partId": "horn-pinku-unko",
+    "ruleBreak": null
+   },
+   "mouth": {
+    "name": "Venom Bite",
+    "partId": "mouth-venom-bite",
+    "ruleBreak": null
+   },
+   "tail": {
+    "name": "Escaped Gecko",
+    "partId": "tail-escaped-gecko",
+    "ruleBreak": null
+   }
+  },
+  "bird": {
+   "back": {
+    "name": "Starry Balloon",
+    "partId": "back-starry-balloon",
+    "ruleBreak": null
+   },
+   "ears": {
+    "name": "Heart Cheek",
+    "partId": "ears-heart-cheek",
+    "ruleBreak": null
+   },
+   "eyes": {
+    "name": "Sky Mavis",
+    "partId": "eyes-sky-mavis",
+    "ruleBreak": null
+   },
+   "horn": {
+    "name": "Golden Shell",
+    "partId": "horn-golden-shell",
+    "ruleBreak": null
+   },
+   "mouth": {
+    "name": "Mr. Doubletalk",
+    "partId": "mouth-mr-doubletalk",
+    "ruleBreak": null
+   },
+   "tail": {
+    "name": "Snowy Swallow",
+    "partId": "tail-snowy-swallow",
+    "ruleBreak": null
+   }
+  },
+  "bug": {
+   "back": {
+    "name": "Starry Shell",
+    "partId": "back-starry-shell",
+    "ruleBreak": null
+   },
+   "ears": {
+    "name": "Vector",
+    "partId": "ears-vector",
+    "ruleBreak": null
+   },
+   "eyes": {
+    "name": "Broken Bookworm",
+    "partId": "eyes-broken-bookworm",
+    "ruleBreak": null
+   },
+   "horn": {
+    "name": "Laggingggggg",
+    "partId": "horn-laggingggggg",
+    "ruleBreak": null
+   },
+   "mouth": {
+    "name": "Feasting Mosquito",
+    "partId": "mouth-feasting-mosquito",
+    "ruleBreak": null
+   },
+   "tail": {
+    "name": "Fire Ant",
+    "partId": "tail-fire-ant",
+    "ruleBreak": null
+   }
+  }
+ }
+}

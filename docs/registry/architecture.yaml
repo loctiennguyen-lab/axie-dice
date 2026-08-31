@@ -43,7 +43,17 @@ last_updated: ""
 # interface: how other systems access this state (read-only property, method call,
 #   signal, shared resource, etc.) — this is the contract other ADRs depend on.
 
-state_ownership: []
+state_ownership:
+  - state: leaderboard_scores
+    status: active
+    owner_system: leaderboard-backend
+    adr: docs/architecture/adr-0001-leaderboard-backend-infrastructure.md
+    interface: "POST /submit-run (write, server-computed score only) · GET /leaderboard (read-only, top-N per mode/ascension/board/period)"
+    write_access: leaderboard-backend-only   # client never writes a score directly; server computes it from replay
+    referenced_by:
+      - docs/architecture/adr-0001-leaderboard-backend-infrastructure.md
+    added: 2026-09-01
+    revised: ""
 
 # Example:
 #
@@ -71,7 +81,19 @@ state_ownership: []
 #
 # pattern options: signal | direct_call | event_bus | shared_resource | rpc | none
 
-interfaces: []
+interfaces:
+  - contract: leaderboard_submit_run
+    status: active
+    pattern: rpc              # client fetch() to a serverless function endpoint
+    producer: client (static HTML build)
+    consumers:
+      - leaderboard-backend   # replays action log via src/engine.js, computes score itself
+    adr: docs/architecture/adr-0001-leaderboard-backend-infrastructure.md
+    signal_signature: "POST /submit-run {seed, teamKeys, mode, ascension, nftPreselect[], actions[], engineVersion} -> {accepted, score?, reason?}"
+    referenced_by:
+      - docs/architecture/adr-0001-leaderboard-backend-infrastructure.md
+    added: 2026-09-01
+    revised: ""
 
 # Example:
 #
@@ -157,7 +179,19 @@ api_decisions: []
 # Register a pattern when an ADR explicitly bans it AND other ADRs might
 # unknowingly use it (i.e., it's a tempting but wrong approach for this project).
 
-forbidden_patterns: []
+forbidden_patterns:
+  - pattern: rules_only_baas_for_score_authority
+    status: active
+    description: "Any feature that needs to authoritatively verify game-logic outcomes
+      (leaderboard scores, and any future feature with the same shape) must not rely
+      solely on a BaaS product's declarative client-side security rules (e.g. Firestore/
+      Realtime DB rules with no Cloud Function). A real Node.js execution context capable
+      of running src/engine.js verbatim is required."
+    why: "Security rules are a declarative constraint language, not a general-purpose
+      runtime — they cannot replay src/engine.js to verify a submitted score is real,
+      which is the entire anti-cheat basis of the leaderboard design."
+    adr: docs/architecture/adr-0001-leaderboard-backend-infrastructure.md
+    added: 2026-09-01
 
 # Example:
 #

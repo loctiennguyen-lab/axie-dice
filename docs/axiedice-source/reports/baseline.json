@@ -1,0 +1,161 @@
+{
+  "url": "http://localhost:5173",
+  "at": "2026-08-14T14:39:28.127Z",
+  "total": 19,
+  "passed": 7,
+  "results": [
+    {
+      "id": "A4",
+      "phase": "A",
+      "title": "Bảng token type đã cập nhật",
+      "pass": false,
+      "required": true,
+      "detail": "--t1: có \"9px\", cần \"11px\"\n--t2: có \"11px\", cần \"13px\"\n--t3: có \"13px\", cần \"15px\"\n--t4: có \"17px\", cần \"20px\"\n--t5: có \"26px\", cần \"28px\"\n--t6: có \"40px\", cần \"44px\"\n--die-num: có \"30px\", cần \"34px\"\n--die-kw: có \"10px\", cần \"13px\"\n--intent-v: có \"15px\", cần \"20px\""
+    },
+    {
+      "id": "A5",
+      "phase": "A",
+      "title": "Token --faint đã bị xoá khỏi :root",
+      "pass": false,
+      "required": true,
+      "detail": "--faint vẫn tồn tại = #59616e"
+    },
+    {
+      "id": "A1.menu",
+      "phase": "A",
+      "title": "[menu] Không có chữ < 11px và mọi cỡ đều thuộc thang",
+      "pass": false,
+      "required": true,
+      "detail": "40px · .logo · \"AXIE DICE TACTICS\"\n17px · .btn big play go · \"PLAY\""
+    },
+    {
+      "id": "A2.menu",
+      "phase": "A",
+      "title": "[menu] Mọi chữ đạt contrast AA",
+      "pass": false,
+      "required": true,
+      "detail": "1:1 (cần 4.5) 11px #212730 trên #212730 · .btn rail · \"LUNACIA PASS\"\n1:1 (cần 4.5) 11px #212730 trên #212730 · .btn rail · \"UNLOCKS\"\n1:1 (cần 4.5) 11px #212730 trên #212730 · .btn rail · \"COLLECTION\"\n1:1 (cần 4.5) 11px #212730 trên #212730 · .btn rail · \"CODEX\"\n1:1 (cần 4.5) 11px #212730 trên #212730 · .btn rail · \"SAMPLE TEAMS\"\n1:1 (cần 4.5) 11px #212730 trên #212730 · .btn rail · \"SETTINGS\"\n1:1 (cần 4.5) 11px #212730 trên #212730 · .btn rail · \"DEV TOOLS\"\n3.05:1 (cần 4.5) 11px #59616e trên #0e1013 · .sub · \"LUNACIA MUTANTS · v0.9\"\n3.05:1 (cần 4.5) 11px #59616e trên #0e1013 · .metaline · \"Pass Lv 0\""
+    },
+    {
+      "id": "A3.menu",
+      "phase": "A",
+      "title": "[menu] Không còn #59616e (--faint) dùng cho chữ",
+      "pass": false,
+      "required": true,
+      "detail": "sub · \"LUNACIA MUTANTS · v0.9\"\nmetaline · \"Pass Lv 0\""
+    },
+    {
+      "id": "A7.menu",
+      "phase": "A",
+      "title": "[menu] Không có undefined / NaN / null lộ ra UI",
+      "pass": true,
+      "required": true,
+      "detail": ""
+    },
+    {
+      "id": "A6",
+      "phase": "A",
+      "title": "Viền component đạt ≥ 3:1 (WCAG 1.4.11)",
+      "pass": false,
+      "required": true,
+      "detail": "2.09:1 · #3f4956 trên #0e1013 · .btn rail"
+    },
+    {
+      "id": "A8a",
+      "phase": "A",
+      "title": "Mọi element tương tác nhận được focus bằng bàn phím",
+      "pass": true,
+      "required": true,
+      "detail": "focus được 10/10 element"
+    },
+    {
+      "id": "A8b",
+      "phase": "A",
+      "title": "Focus ring nhìn thấy rõ (outline ≥ 2px)",
+      "pass": false,
+      "required": true,
+      "detail": "railtab → outline:rgb(139, 149, 164) auto 0px\nbtn rail → outline:rgb(233, 237, 243) auto 0px\nbtn rail → outline:rgb(233, 237, 243) auto 0px\nbtn rail → outline:rgb(233, 237, 243) auto 0px\nrailtab → outline:rgb(139, 149, 164) auto 0px\nbtn rail → outline:rgb(233, 237, 243) auto 0px\nbtn rail → outline:rgb(233, 237, 243) auto 0px\nbtn rail → outline:rgb(233, 237, 243) auto 0px"
+    },
+    {
+      "id": "A10",
+      "phase": "A",
+      "title": "prefers-reduced-motion: reduce tắt hết animation",
+      "pass": true,
+      "required": true,
+      "detail": ""
+    },
+    {
+      "id": "B0",
+      "phase": "B",
+      "title": "Có ≥ 3 media query theo chiều rộng",
+      "pass": false,
+      "required": true,
+      "detail": "Tìm thấy 0 width query. Toàn bộ: (không có)"
+    },
+    {
+      "id": "N0",
+      "phase": "A",
+      "title": "Đi được từ Menu tới Combat bằng UI",
+      "pass": false,
+      "required": true,
+      "detail": "trail=menu → team-select → map → combat"
+    },
+    {
+      "id": "B2.tablet",
+      "phase": "B",
+      "title": "[tablet] Không tràn ngang (scrollWidth ≤ viewport)",
+      "pass": true,
+      "required": true,
+      "detail": "scrollWidth=744 > viewport=744\n"
+    },
+    {
+      "id": "B3.tablet",
+      "phase": "B",
+      "title": "[tablet] --ui-scale = 1",
+      "pass": true,
+      "required": true,
+      "detail": "--ui-scale = \"1\" (zoom=1)"
+    },
+    {
+      "id": "N1.tablet",
+      "phase": "B",
+      "title": "[tablet] Vào được combat",
+      "pass": false,
+      "required": true,
+      "detail": "trail=menu → team-select → map → combat"
+    },
+    {
+      "id": "B2.phone",
+      "phase": "B",
+      "title": "[phone] Không tràn ngang (scrollWidth ≤ viewport)",
+      "pass": false,
+      "required": true,
+      "detail": "scrollWidth=729 > viewport=393\ntrk-right → right=729\nturn → right=410\nrr → right=452\nicow t → right=429\n[object SVGAnimatedString] → right=429\n[object SVGAnimatedString] → right=426\n[object SVGAnimatedString] → right=422\n[object SVGAnimatedString] → right=428"
+    },
+    {
+      "id": "B3.phone",
+      "phase": "B",
+      "title": "[phone] --ui-scale = 1",
+      "pass": true,
+      "required": true,
+      "detail": "--ui-scale = \"1\" (zoom=1)"
+    },
+    {
+      "id": "N1.phone",
+      "phase": "B",
+      "title": "[phone] Vào được combat",
+      "pass": false,
+      "required": true,
+      "detail": "trail=menu → team-select → map → combat"
+    },
+    {
+      "id": "A11",
+      "phase": "A",
+      "title": "Không có console error",
+      "pass": true,
+      "required": true,
+      "detail": ""
+    }
+  ],
+  "consoleErrors": []
+}

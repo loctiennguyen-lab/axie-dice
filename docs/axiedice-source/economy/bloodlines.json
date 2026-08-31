@@ -1,0 +1,1037 @@
+{
+ "meta": {
+  "source": "agp-npm parts.json (Axie Gene Parser)",
+  "coreParts": 192,
+  "mysticParts": 36,
+  "structurePerClass": {
+   "horn": 6,
+   "back": 6,
+   "tail": 6,
+   "ears": 6,
+   "mouth": 4,
+   "eyes": 4
+  }
+ },
+ "bloodlines": {
+  "plant": {
+   "core": {
+    "mouth": [
+     {
+      "id": "mouth-herbivore",
+      "name": "Herbivore"
+     },
+     {
+      "id": "mouth-serious",
+      "name": "Serious"
+     },
+     {
+      "id": "mouth-silence-whisper",
+      "name": "Silence Whisper"
+     },
+     {
+      "id": "mouth-zigzag",
+      "name": "Zigzag"
+     }
+    ],
+    "horn": [
+     {
+      "id": "horn-bamboo-shoot",
+      "name": "Bamboo Shoot"
+     },
+     {
+      "id": "horn-beech",
+      "name": "Beech"
+     },
+     {
+      "id": "horn-cactus",
+      "name": "Cactus"
+     },
+     {
+      "id": "horn-rose-bud",
+      "name": "Rose Bud"
+     },
+     {
+      "id": "horn-strawberry-shortcake",
+      "name": "Strawberry Shortcake"
+     },
+     {
+      "id": "horn-watermelon",
+      "name": "Watermelon"
+     }
+    ],
+    "back": [
+     {
+      "id": "back-bidens",
+      "name": "Bidens"
+     },
+     {
+      "id": "back-mint",
+      "name": "Mint"
+     },
+     {
+      "id": "back-pumpkin",
+      "name": "Pumpkin"
+     },
+     {
+      "id": "back-shiitake",
+      "name": "Shiitake"
+     },
+     {
+      "id": "back-turnip",
+      "name": "Turnip"
+     },
+     {
+      "id": "back-watering-can",
+      "name": "Watering Can"
+     }
+    ],
+    "tail": [
+     {
+      "id": "tail-carrot",
+      "name": "Carrot"
+     },
+     {
+      "id": "tail-cattail",
+      "name": "Cattail"
+     },
+     {
+      "id": "tail-hatsune",
+      "name": "Hatsune"
+     },
+     {
+      "id": "tail-hot-butt",
+      "name": "Hot Butt"
+     },
+     {
+      "id": "tail-potato-leaf",
+      "name": "Potato Leaf"
+     },
+     {
+      "id": "tail-yam",
+      "name": "Yam"
+     }
+    ],
+    "eyes": [
+     {
+      "id": "eyes-blossom",
+      "name": "Blossom"
+     },
+     {
+      "id": "eyes-confused",
+      "name": "Confused"
+     },
+     {
+      "id": "eyes-cucumber-slice",
+      "name": "Cucumber Slice"
+     },
+     {
+      "id": "eyes-papi",
+      "name": "Papi"
+     }
+    ],
+    "ears": [
+     {
+      "id": "ears-clover",
+      "name": "Clover"
+     },
+     {
+      "id": "ears-hollow",
+      "name": "Hollow"
+     },
+     {
+      "id": "ears-leafy",
+      "name": "Leafy"
+     },
+     {
+      "id": "ears-lotus",
+      "name": "Lotus"
+     },
+     {
+      "id": "ears-rosa",
+      "name": "Rosa"
+     },
+     {
+      "id": "ears-sakura",
+      "name": "Sakura"
+     }
+    ]
+   },
+   "mystic": {
+    "back": {
+     "id": "back-pink-turnip",
+     "name": "Pink Turnip"
+    },
+    "ears": {
+     "id": "ears-the-last-leaf",
+     "name": "The Last Leaf"
+    },
+    "eyes": {
+     "id": "eyes-dreamy-papi",
+     "name": "Dreamy Papi"
+    },
+    "horn": {
+     "id": "horn-golden-bamboo-shoot",
+     "name": "Golden Bamboo Shoot"
+    },
+    "mouth": {
+     "id": "mouth-humorless",
+     "name": "Humorless"
+    },
+    "tail": {
+     "id": "tail-namek-carrot",
+     "name": "Namek Carrot"
+    }
+   }
+  },
+  "beast": {
+   "core": {
+    "mouth": [
+     {
+      "id": "mouth-axie-kiss",
+      "name": "Axie Kiss"
+     },
+     {
+      "id": "mouth-confident",
+      "name": "Confident"
+     },
+     {
+      "id": "mouth-goda",
+      "name": "Goda"
+     },
+     {
+      "id": "mouth-nut-cracker",
+      "name": "Nut Cracker"
+     }
+    ],
+    "horn": [
+     {
+      "id": "horn-arco",
+      "name": "Arco"
+     },
+     {
+      "id": "horn-dual-blade",
+      "name": "Dual Blade"
+     },
+     {
+      "id": "horn-imp",
+      "name": "Imp"
+     },
+     {
+      "id": "horn-little-branch",
+      "name": "Little Branch"
+     },
+     {
+      "id": "horn-merry",
+      "name": "Merry"
+     },
+     {
+      "id": "horn-pocky",
+      "name": "Pocky"
+     }
+    ],
+    "back": [
+     {
+      "id": "back-furball",
+      "name": "Furball"
+     },
+     {
+      "id": "back-hero",
+      "name": "Hero"
+     },
+     {
+      "id": "back-jaguar",
+      "name": "Jaguar"
+     },
+     {
+      "id": "back-risky-beast",
+      "name": "Risky Beast"
+     },
+     {
+      "id": "back-ronin",
+      "name": "Ronin"
+     },
+     {
+      "id": "back-timber",
+      "name": "Timber"
+     }
+    ],
+    "tail": [
+     {
+      "id": "tail-cottontail",
+      "name": "Cottontail"
+     },
+     {
+      "id": "tail-gerbil",
+      "name": "Gerbil"
+     },
+     {
+      "id": "tail-hare",
+      "name": "Hare"
+     },
+     {
+      "id": "tail-nut-cracker",
+      "name": "Nut Cracker"
+     },
+     {
+      "id": "tail-rice",
+      "name": "Rice"
+     },
+     {
+      "id": "tail-shiba",
+      "name": "Shiba"
+     }
+    ],
+    "eyes": [
+     {
+      "id": "eyes-chubby",
+      "name": "Chubby"
+     },
+     {
+      "id": "eyes-little-peas",
+      "name": "Little Peas"
+     },
+     {
+      "id": "eyes-puppy",
+      "name": "Puppy"
+     },
+     {
+      "id": "eyes-zeal",
+      "name": "Zeal"
+     }
+    ],
+    "ears": [
+     {
+      "id": "ears-belieber",
+      "name": "Belieber"
+     },
+     {
+      "id": "ears-innocent-lamb",
+      "name": "Innocent Lamb"
+     },
+     {
+      "id": "ears-nut-cracker",
+      "name": "Nut Cracker"
+     },
+     {
+      "id": "ears-nyan",
+      "name": "Nyan"
+     },
+     {
+      "id": "ears-puppy",
+      "name": "Puppy"
+     },
+     {
+      "id": "ears-zen",
+      "name": "Zen"
+     }
+    ]
+   },
+   "mystic": {
+    "back": {
+     "id": "back-hasagi",
+     "name": "Hasagi"
+    },
+    "ears": {
+     "id": "ears-pointy-nyan",
+     "name": "Pointy Nyan"
+    },
+    "eyes": {
+     "id": "eyes-calico-zeal",
+     "name": "Calico Zeal"
+    },
+    "horn": {
+     "id": "horn-winter-branch",
+     "name": "Winter Branch"
+    },
+    "mouth": {
+     "id": "mouth-skull-cracker",
+     "name": "Skull Cracker"
+    },
+    "tail": {
+     "id": "tail-sakura-cottontail",
+     "name": "Sakura Cottontail"
+    }
+   }
+  },
+  "aquatic": {
+   "core": {
+    "mouth": [
+     {
+      "id": "mouth-catfish",
+      "name": "Catfish"
+     },
+     {
+      "id": "mouth-lam",
+      "name": "Lam"
+     },
+     {
+      "id": "mouth-piranha",
+      "name": "Piranha"
+     },
+     {
+      "id": "mouth-risky-fish",
+      "name": "Risky Fish"
+     }
+    ],
+    "horn": [
+     {
+      "id": "horn-anemone",
+      "name": "Anemone"
+     },
+     {
+      "id": "horn-babylonia",
+      "name": "Babylonia"
+     },
+     {
+      "id": "horn-clamshell",
+      "name": "Clamshell"
+     },
+     {
+      "id": "horn-oranda",
+      "name": "Oranda"
+     },
+     {
+      "id": "horn-shoal-star",
+      "name": "Shoal Star"
+     },
+     {
+      "id": "horn-teal-shell",
+      "name": "Teal Shell"
+     }
+    ],
+    "back": [
+     {
+      "id": "back-anemone",
+      "name": "Anemone"
+     },
+     {
+      "id": "back-blue-moon",
+      "name": "Blue Moon"
+     },
+     {
+      "id": "back-goldfish",
+      "name": "Goldfish"
+     },
+     {
+      "id": "back-hermit",
+      "name": "Hermit"
+     },
+     {
+      "id": "back-perch",
+      "name": "Perch"
+     },
+     {
+      "id": "back-sponge",
+      "name": "Sponge"
+     }
+    ],
+    "tail": [
+     {
+      "id": "tail-koi",
+      "name": "Koi"
+     },
+     {
+      "id": "tail-navaga",
+      "name": "Navaga"
+     },
+     {
+      "id": "tail-nimo",
+      "name": "Nimo"
+     },
+     {
+      "id": "tail-ranchu",
+      "name": "Ranchu"
+     },
+     {
+      "id": "tail-shrimp",
+      "name": "Shrimp"
+     },
+     {
+      "id": "tail-tadpole",
+      "name": "Tadpole"
+     }
+    ],
+    "eyes": [
+     {
+      "id": "eyes-clear",
+      "name": "Clear"
+     },
+     {
+      "id": "eyes-gero",
+      "name": "Gero"
+     },
+     {
+      "id": "eyes-sleepless",
+      "name": "Sleepless"
+     },
+     {
+      "id": "eyes-telescope",
+      "name": "Telescope"
+     }
+    ],
+    "ears": [
+     {
+      "id": "ears-bubblemaker",
+      "name": "Bubblemaker"
+     },
+     {
+      "id": "ears-gill",
+      "name": "Gill"
+     },
+     {
+      "id": "ears-inkling",
+      "name": "Inkling"
+     },
+     {
+      "id": "ears-nimo",
+      "name": "Nimo"
+     },
+     {
+      "id": "ears-seaslug",
+      "name": "Seaslug"
+     },
+     {
+      "id": "ears-tiny-fan",
+      "name": "Tiny Fan"
+     }
+    ]
+   },
+   "mystic": {
+    "back": {
+     "id": "back-crystal-hermit",
+     "name": "Crystal Hermit"
+    },
+    "ears": {
+     "id": "ears-red-nimo",
+     "name": "Red Nimo"
+    },
+    "eyes": {
+     "id": "eyes-insomnia",
+     "name": "Insomnia"
+    },
+    "horn": {
+     "id": "horn-candy-babylonia",
+     "name": "Candy Babylonia"
+    },
+    "mouth": {
+     "id": "mouth-lam-handsome",
+     "name": "Lam Handsome"
+    },
+    "tail": {
+     "id": "tail-kuro-koi",
+     "name": "Kuro Koi"
+    }
+   }
+  },
+  "reptile": {
+   "core": {
+    "mouth": [
+     {
+      "id": "mouth-kotaro",
+      "name": "Kotaro"
+     },
+     {
+      "id": "mouth-razor-bite",
+      "name": "Razor Bite"
+     },
+     {
+      "id": "mouth-tiny-turtle",
+      "name": "Tiny Turtle"
+     },
+     {
+      "id": "mouth-toothless-bite",
+      "name": "Toothless Bite"
+     }
+    ],
+    "horn": [
+     {
+      "id": "horn-bumpy",
+      "name": "Bumpy"
+     },
+     {
+      "id": "horn-cerastes",
+      "name": "Cerastes"
+     },
+     {
+      "id": "horn-incisor",
+      "name": "Incisor"
+     },
+     {
+      "id": "horn-scaly-spear",
+      "name": "Scaly Spear"
+     },
+     {
+      "id": "horn-scaly-spoon",
+      "name": "Scaly Spoon"
+     },
+     {
+      "id": "horn-unko",
+      "name": "Unko"
+     }
+    ],
+    "back": [
+     {
+      "id": "back-bone-sail",
+      "name": "Bone Sail"
+     },
+     {
+      "id": "back-croc",
+      "name": "Croc"
+     },
+     {
+      "id": "back-green-thorns",
+      "name": "Green Thorns"
+     },
+     {
+      "id": "back-indian-star",
+      "name": "Indian Star"
+     },
+     {
+      "id": "back-red-ear",
+      "name": "Red Ear"
+     },
+     {
+      "id": "back-tri-spikes",
+      "name": "Tri Spikes"
+     }
+    ],
+    "tail": [
+     {
+      "id": "tail-gila",
+      "name": "Gila"
+     },
+     {
+      "id": "tail-grass-snake",
+      "name": "Grass Snake"
+     },
+     {
+      "id": "tail-iguana",
+      "name": "Iguana"
+     },
+     {
+      "id": "tail-snake-jar",
+      "name": "Snake Jar"
+     },
+     {
+      "id": "tail-tiny-dino",
+      "name": "Tiny Dino"
+     },
+     {
+      "id": "tail-wall-gecko",
+      "name": "Wall Gecko"
+     }
+    ],
+    "eyes": [
+     {
+      "id": "eyes-gecko",
+      "name": "Gecko"
+     },
+     {
+      "id": "eyes-scar",
+      "name": "Scar"
+     },
+     {
+      "id": "eyes-topaz",
+      "name": "Topaz"
+     },
+     {
+      "id": "eyes-tricky",
+      "name": "Tricky"
+     }
+    ],
+    "ears": [
+     {
+      "id": "ears-curved-spine",
+      "name": "Curved Spine"
+     },
+     {
+      "id": "ears-friezard",
+      "name": "Friezard"
+     },
+     {
+      "id": "ears-pogona",
+      "name": "Pogona"
+     },
+     {
+      "id": "ears-sidebarb",
+      "name": "Sidebarb"
+     },
+     {
+      "id": "ears-small-frill",
+      "name": "Small Frill"
+     },
+     {
+      "id": "ears-swirl",
+      "name": "Swirl"
+     }
+    ]
+   },
+   "mystic": {
+    "back": {
+     "id": "back-rugged-sail",
+     "name": "Rugged Sail"
+    },
+    "ears": {
+     "id": "ears-deadly-pogona",
+     "name": "Deadly Pogona"
+    },
+    "eyes": {
+     "id": "eyes-crimson-gecko",
+     "name": "Crimson Gecko"
+    },
+    "horn": {
+     "id": "horn-pinku-unko",
+     "name": "Pinku Unko"
+    },
+    "mouth": {
+     "id": "mouth-venom-bite",
+     "name": "Venom Bite"
+    },
+    "tail": {
+     "id": "tail-escaped-gecko",
+     "name": "Escaped Gecko"
+    }
+   }
+  },
+  "bug": {
+   "core": {
+    "mouth": [
+     {
+      "id": "mouth-cute-bunny",
+      "name": "Cute Bunny"
+     },
+     {
+      "id": "mouth-mosquito",
+      "name": "Mosquito"
+     },
+     {
+      "id": "mouth-pincer",
+      "name": "Pincer"
+     },
+     {
+      "id": "mouth-square-teeth",
+      "name": "Square Teeth"
+     }
+    ],
+    "horn": [
+     {
+      "id": "horn-antenna",
+      "name": "Antenna"
+     },
+     {
+      "id": "horn-caterpillars",
+      "name": "Caterpillars"
+     },
+     {
+      "id": "horn-lagging",
+      "name": "Lagging"
+     },
+     {
+      "id": "horn-leaf-bug",
+      "name": "Leaf Bug"
+     },
+     {
+      "id": "horn-parasite",
+      "name": "Parasite"
+     },
+     {
+      "id": "horn-pliers",
+      "name": "Pliers"
+     }
+    ],
+    "back": [
+     {
+      "id": "back-buzz-buzz",
+      "name": "Buzz Buzz"
+     },
+     {
+      "id": "back-garish-worm",
+      "name": "Garish Worm"
+     },
+     {
+      "id": "back-sandal",
+      "name": "Sandal"
+     },
+     {
+      "id": "back-scarab",
+      "name": "Scarab"
+     },
+     {
+      "id": "back-snail-shell",
+      "name": "Snail Shell"
+     },
+     {
+      "id": "back-spiky-wing",
+      "name": "Spiky Wing"
+     }
+    ],
+    "tail": [
+     {
+      "id": "tail-ant",
+      "name": "Ant"
+     },
+     {
+      "id": "tail-fish-snack",
+      "name": "Fish Snack"
+     },
+     {
+      "id": "tail-gravel-ant",
+      "name": "Gravel Ant"
+     },
+     {
+      "id": "tail-pupae",
+      "name": "Pupae"
+     },
+     {
+      "id": "tail-thorny-caterpillar",
+      "name": "Thorny Caterpillar"
+     },
+     {
+      "id": "tail-twin-tail",
+      "name": "Twin Tail"
+     }
+    ],
+    "eyes": [
+     {
+      "id": "eyes-bookworm",
+      "name": "Bookworm"
+     },
+     {
+      "id": "eyes-kotaro?",
+      "name": "Kotaro?"
+     },
+     {
+      "id": "eyes-neo",
+      "name": "Neo"
+     },
+     {
+      "id": "eyes-nerdy",
+      "name": "Nerdy"
+     }
+    ],
+    "ears": [
+     {
+      "id": "ears-beetle-spike",
+      "name": "Beetle Spike"
+     },
+     {
+      "id": "ears-ear-breathing",
+      "name": "Ear Breathing"
+     },
+     {
+      "id": "ears-earwing",
+      "name": "Earwing"
+     },
+     {
+      "id": "ears-larva",
+      "name": "Larva"
+     },
+     {
+      "id": "ears-leaf-bug",
+      "name": "Leaf Bug"
+     },
+     {
+      "id": "ears-tassels",
+      "name": "Tassels"
+     }
+    ]
+   },
+   "mystic": {
+    "back": {
+     "id": "back-starry-shell",
+     "name": "Starry Shell"
+    },
+    "ears": {
+     "id": "ears-vector",
+     "name": "Vector"
+    },
+    "eyes": {
+     "id": "eyes-broken-bookworm",
+     "name": "Broken Bookworm"
+    },
+    "horn": {
+     "id": "horn-laggingggggg",
+     "name": "Laggingggggg"
+    },
+    "mouth": {
+     "id": "mouth-feasting-mosquito",
+     "name": "Feasting Mosquito"
+    },
+    "tail": {
+     "id": "tail-fire-ant",
+     "name": "Fire Ant"
+    }
+   }
+  },
+  "bird": {
+   "core": {
+    "mouth": [
+     {
+      "id": "mouth-doubletalk",
+      "name": "Doubletalk"
+     },
+     {
+      "id": "mouth-hungry-bird",
+      "name": "Hungry Bird"
+     },
+     {
+      "id": "mouth-little-owl",
+      "name": "Little Owl"
+     },
+     {
+      "id": "mouth-peace-maker",
+      "name": "Peace Maker"
+     }
+    ],
+    "horn": [
+     {
+      "id": "horn-cuckoo",
+      "name": "Cuckoo"
+     },
+     {
+      "id": "horn-eggshell",
+      "name": "Eggshell"
+     },
+     {
+      "id": "horn-feather-spear",
+      "name": "Feather Spear"
+     },
+     {
+      "id": "horn-kestrel",
+      "name": "Kestrel"
+     },
+     {
+      "id": "horn-trump",
+      "name": "Trump"
+     },
+     {
+      "id": "horn-wing-horn",
+      "name": "Wing Horn"
+     }
+    ],
+    "back": [
+     {
+      "id": "back-balloon",
+      "name": "Balloon"
+     },
+     {
+      "id": "back-cupid",
+      "name": "Cupid"
+     },
+     {
+      "id": "back-kingfisher",
+      "name": "Kingfisher"
+     },
+     {
+      "id": "back-pigeon-post",
+      "name": "Pigeon Post"
+     },
+     {
+      "id": "back-raven",
+      "name": "Raven"
+     },
+     {
+      "id": "back-tri-feather",
+      "name": "Tri Feather"
+     }
+    ],
+    "tail": [
+     {
+      "id": "tail-cloud",
+      "name": "Cloud"
+     },
+     {
+      "id": "tail-feather-fan",
+      "name": "Feather Fan"
+     },
+     {
+      "id": "tail-granmas-fan",
+      "name": "Granma's Fan"
+     },
+     {
+      "id": "tail-post-fight",
+      "name": "Post Fight"
+     },
+     {
+      "id": "tail-swallow",
+      "name": "Swallow"
+     },
+     {
+      "id": "tail-the-last-one",
+      "name": "The Last One"
+     }
+    ],
+    "eyes": [
+     {
+      "id": "eyes-little-owl",
+      "name": "Little Owl"
+     },
+     {
+      "id": "eyes-lucas",
+      "name": "Lucas"
+     },
+     {
+      "id": "eyes-mavis",
+      "name": "Mavis"
+     },
+     {
+      "id": "eyes-robin",
+      "name": "Robin"
+     }
+    ],
+    "ears": [
+     {
+      "id": "ears-curly",
+      "name": "Curly"
+     },
+     {
+      "id": "ears-early-bird",
+      "name": "Early Bird"
+     },
+     {
+      "id": "ears-owl",
+      "name": "Owl"
+     },
+     {
+      "id": "ears-peace-maker",
+      "name": "Peace Maker"
+     },
+     {
+      "id": "ears-pink-cheek",
+      "name": "Pink Cheek"
+     },
+     {
+      "id": "ears-risky-bird",
+      "name": "Risky Bird"
+     }
+    ]
+   },
+   "mystic": {
+    "back": {
+     "id": "back-starry-balloon",
+     "name": "Starry Balloon"
+    },
+    "ears": {
+     "id": "ears-heart-cheek",
+     "name": "Heart Cheek"
+    },
+    "eyes": {
+     "id": "eyes-sky-mavis",
+     "name": "Sky Mavis"
+    },
+    "horn": {
+     "id": "horn-golden-shell",
+     "name": "Golden Shell"
+    },
+    "mouth": {
+     "id": "mouth-mr-doubletalk",
+     "name": "Mr. Doubletalk"
+    },
+    "tail": {
+     "id": "tail-snowy-swallow",
+     "name": "Snowy Swallow"
+    }
+   }
+  }
+ }
+}
