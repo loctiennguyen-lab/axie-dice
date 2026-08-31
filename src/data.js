@@ -143,6 +143,25 @@ const FACE_POOL = [
   FR(4,'eyes','summon',3,'cantrip'),
   FR(4,'horn','dmg',26,'heavy','vital','exec'),
 ];
+/* 2026-09-01: tên part Axie thật (đã có quyền dùng tên — art dùng placeholder tạm,
+   xem docs/axiedice-source/economy/PART_REVIEW_SHEET.md). Chỉ gắn NHÃN hiển thị,
+   không đổi số/keyword nào — zero rủi ro balance. Khớp 1:1 theo thứ tự FACE_POOL. */
+const FACE_NAMES=[
+  // COMMON
+  'Zigzag','Incisor','Snail Shell','Blossom','Gill','Grass Snake','Razor Bite','Pumpkin',
+  // RARE
+  'Cerastes','Toothless Bite','Cloud','Hermit','Imp','Tiny Dino','Cucumber Slice','Confident',
+  'Bubblemaker','Little Peas','Dual Blade','The Last One',
+  // EPIC
+  'Eggshell','Axie Kiss','Swallow','Indian Star','Gila','Nut Cracker','Little Branch','Nyan',
+  'Scar','Post Fight','Mavis','Lam',
+  // LEGENDARY
+  'Scaly Spear','Twin Tail','Piranha','Tri Spikes','Wall Gecko','Kestrel','Friezard','Gecko',
+  'Goda','Robin',
+  // MYTHIC
+  'Thorny Caterpillar','Wing Horn','Green Thorns','Mosquito','Sidebarb',"Granma's Fan",'Neo','Pocky',
+];
+FACE_POOL.forEach((f,i)=>{ if(FACE_NAMES[i]) f.name=FACE_NAMES[i]; });
 const MYTHIC_KW = {plague:'Poison never decays',echo:'Triggers twice',bastion:'Shield also deals damage',overflow:'Unspent Mana becomes area damage'};
 const RUNES = ['cleave','pierce','growth','vital','lifesteal','aoe','crit:30','burn:4','exec','echo'];
 

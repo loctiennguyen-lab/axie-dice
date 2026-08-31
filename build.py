@@ -37,9 +37,6 @@ for k,f in FILES:
     if PUBLIC and k=='%DEV%':
         html=html.replace(k,'/* dev tools stripped from public build */'); continue
     html=html.replace(k,r(f))
-if PUBLIC:
-    html=html.replace("const dv=el('button','devbtn','DEV TOOLS (F2)'); dv.onclick=()=>devToggle(true); w.appendChild(dv);","")
-    html=html.replace("if(typeof bindDrag==='function') bindDrag();","if(typeof bindDrag==='function') bindDrag();")
 out='index.html' if PUBLIC else 'AxieDiceTactics.html'
 open(out,'w',encoding='utf-8').write(html)
 print(('PUBLIC ' if PUBLIC else 'DEV    ')+out, round(os.path.getsize(out)/1024),'KB')

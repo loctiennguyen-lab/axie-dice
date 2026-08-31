@@ -132,7 +132,7 @@ function paintDieFace(d,u,fi,temp){
   d.dataset.r=f.r||0;
   d.innerHTML='';
   if(hasKw(f,'heavy')) d.appendChild(el('div','heavytag','HEAVY'));
-  d.appendChild(el('div','dp',PARTN[f.p]||''));
+  d.appendChild(el('div','dp',f.name||PARTN[f.p]||''));
   d.appendChild(ico(FT_IC[f.t],'di'));
   if(f.t==='blank') d.appendChild(el('div','dv blanktxt','BLANK'));
   else if(f.v>0||f.t==='dmg') d.appendChild(el('div','dv',String(temp?f.v:faceValue(S,u,fi))));
@@ -240,7 +240,7 @@ function scMenu(){
   const row=el('div','menu-mini');
   row.appendChild(btn('ghost btn--sm','SAMPLE TEAMS',()=>{ screen='guide'; render(); }));
   row.appendChild(btn('ghost btn--sm','SETTINGS',()=>{ modal='set'; render(); }));
-  row.appendChild(btn('ghost btn--sm','DEV TOOLS',()=>devToggle(true)));
+  if(typeof devToggle==='function') row.appendChild(btn('ghost btn--sm','DEV TOOLS',()=>devToggle(true)));
   inner.appendChild(row);
   w.appendChild(inner);
   return w;
@@ -1323,7 +1323,7 @@ function faceRow(u,f,i){
   const r=el('div','ifrow'+(u&&u.rolled===i?' cur':'')+' r'+(f.r||0));
   r.appendChild(el('div','ifn',String(i+1)));
   const ic=el('div','ific'); ic.appendChild(ico(FT_IC[f.t],'t')); r.appendChild(ic);
-  r.appendChild(el('div','ifp',PARTN[f.p]||TYPEN[f.t]||'—'));
+  r.appendChild(el('div','ifp',f.name||PARTN[f.p]||TYPEN[f.t]||'—'));
   r.appendChild(el('div','ifv', f.t==='blank'?'—':String(u?faceValue(S,u,i):f.v)));
   const kws=f.k.filter(k=>k!=='heavy');
   r.appendChild(el('div','ifk',kws.length?kws.map(kwText).join(' · '):''));
