@@ -353,3 +353,149 @@ Thực hiện bởi `game-designer`, cân bằng tương đối primary/alt tron
 - Curly → primary (rerollup) · Early Bird → primary (rerollup) · Owl → alt (mana) · Peace Maker → alt (mana) · Pink Cheek → primary (rerollup) · Risky Bird → alt (mana)
 
 **Ghi chú**: `Little Owl` (Bird) và `Nut Cracker` (Beast), `Nimo` (Aquatic), `Leaf Bug` (Bug), `Peace Maker` (Bird) xuất hiện ở 2 slot khác nhau cho cùng class — đúng với dữ liệu gốc trong `axie-body-parts.md` (một part có thể tồn tại ở nhiều slot với card khác nhau); mỗi lần xuất hiện là một part riêng, nhận effect theo đúng ô slot đang xét, không dùng chung.
+
+---
+
+## 9. MỞ RỘNG CATALOG — 285 part thật + 111 part Origin/α (2026-09-01)
+
+> **Bối cảnh**: catalog thật (`docs/axiedice-source/economy/parts_full_source.json`, nguồn `Part name.xlsx` do product owner cung cấp) có **285 part** (stage 1, đầy đủ), không phải 192 như §8 ở trên — 192 chỉ là tập con "stage 2" (tên có hậu tố "+"). Phần này gán nốt **75 part còn thiếu** (285 − 192 − 18 trùng tên-khác-slot = 75 part mới thật sự) + map **111 part α (Origin, stage 0)** làm danh tính cho bậc Mythic. Xem `design/gdd/economy-progression.md` §10.2b cho quyết định truy cập: **285 part gắn với NFT thật** (chỉ dùng được nếu sở hữu đúng Axie NFT mang part đó); **111 part α là pool DUY NHẤT free player mua được bằng Shard**.
+
+### 9a. Gán 75 part mới (cùng phương pháp §8 — theo tên/flavor, không đọc card text)
+
+*Keyword primary/alt của mỗi ô lấy đúng theo phân công đã CHỐT ở §8 (một số ô có thứ tự primary/alt ngược với tiêu đề gốc ở §2c — ví dụ Aquatic·Horn đã chốt `crit`=primary/`pierce`=alt ở §8, không phải `pierce`/`crit` như tiêu đề — dùng đúng thứ tự đã chốt để nhất quán).*
+
+#### Aquatic — Ears: mana (primary) / rerollup (alt)
+- Little Crab → alt (rerollup)
+
+#### Aquatic — Eyes: cantrip (primary) / regen (alt)
+- Baby → alt (regen) · Cold Fish → primary (cantrip) · Kind Fish → alt (regen)
+
+#### Aquatic — Horn: crit (primary) / pierce (alt)
+- Jellytacle → alt (pierce) · Darksea Jellyfish → primary (crit)
+
+#### Aquatic — Mouth: mana (primary) / lifesteal (alt)
+- Ranchu → alt (lifesteal)
+
+#### Aquatic — Tail: chain (primary) / multi (alt)
+- Puff → alt (multi) · Oranda → primary (chain)
+
+#### Beast — Back: thorns (primary) / vulnerable (alt)
+- Pangolin Slayer → primary (thorns)
+
+#### Beast — Ears: rerollup (primary) / mana (alt)
+- Foxy → primary (rerollup)
+
+#### Beast — Eyes: regen (primary) / vulnerable (alt)
+- Sparky → primary (regen) · Nut Cracker → alt (vulnerable) · Daydreaming → alt (vulnerable) · Sobby → primary (regen)
+
+#### Beast — Horn: heavy (primary) / pierce (alt)
+- Rocky Skull → primary (heavy) · Toy Ball → alt (pierce, đọc theo hình ảnh "banh gai/đồ chơi gai" thay vì banh trơn, để tránh lệch 4/1 trong ô — có thể đổi lại thành heavy nếu thấy gượng ép) · Beast Bun → primary (heavy) · Lump → primary (heavy) · Small Yak → alt (pierce)
+
+#### Beast — Mouth: lifesteal (primary) / crit (alt)
+- Foxy → alt (crit) · Puff → primary (lifesteal) · Cub → primary (lifesteal) · Platypus → alt (crit) · Puppy → primary (lifesteal) · Sniffle → primary (lifesteal) · Shishi → alt (crit)
+
+#### Beast — Tail: multi (primary) / chain (alt)
+- Buba Brush → primary (multi) · Pangolin → alt (chain)
+
+#### Bird — Back: vulnerable (primary) / blind (alt)
+- Lil Bro → primary (vulnerable) · Feather Melody → alt (blind) · Paper Wing → primary (vulnerable) · Rubber Duckling → alt (blind)
+
+#### Bird — Eyes: blind (primary) / vulnerable (alt)
+- Concentrate → primary (blind) · Passion → alt (vulnerable)
+
+#### Bird — Horn: pierce (primary) / crit (alt)
+- Big Sister → alt (crit)
+
+#### Bird — Mouth: pierce (primary) / lifesteal (alt)
+- Feathery Dart → primary (pierce)
+
+#### Bird — Tail: chain (primary) / multi (alt)
+- Death Shower → alt (multi)
+
+#### Bug — Ears: mana (primary) / rerollup (alt)
+- Brimstone → primary (mana) · Termites → alt (rerollup) · Maggot → alt (rerollup)
+
+#### Bug — Eyes: poison (primary) / blind (alt)
+- Ladybug Goggles → alt (blind)
+
+#### Bug — Mouth: poison (primary) / lifesteal (alt)
+- Nose Drill → primary (poison) · Maggot → alt (lifesteal)
+
+#### Bug — Tail: poison (primary) / aoe (alt)
+- Centipede → alt (aoe) · Leaf Bug → primary (poison) · Eye Wing → alt (aoe) · Shield Shattering → primary (poison)
+
+#### Plant — Back: shieldself (primary) / thorns (alt)
+- Forest Hero → primary (shieldself) · Succulent → alt (thorns) · Death Shroom → primary (shieldself) · Cone Shell → alt (thorns) · Meadow Blanket → primary (shieldself)
+
+#### Plant — Ears: mana (primary) / rerollup (alt)
+- Turnip → primary (mana) · Greenwood Rhythm → alt (rerollup)
+
+#### Plant — Eyes: regen (primary) / cantrip (alt)
+- Risky Trunk → primary (regen)
+
+#### Plant — Horn: pierce (primary) / heavy (alt)
+- Persimmon → alt (heavy) · Mandarine → alt (heavy) · Acorn Cap → primary (pierce) · Lotus → primary (pierce) · Ballad Of The Shore → primary (pierce)
+
+#### Plant — Mouth: lifesteal (primary) / vital (alt)
+- Beetroot → primary (lifesteal) · Hazelnut → alt (vital) · Kidney Bean → alt (vital)
+
+#### Plant — Tail: shieldself (primary) / regen (alt)
+- Sprout → alt (regen) · Drowsy Moss → alt (regen) · Tropical Guardian → primary (shieldself)
+
+#### Reptile — Back: thorns (primary) / shieldself (alt)
+- Tiny Dino → primary (thorns)
+
+#### Reptile — Ears: mana (primary) / rerollup (alt)
+- Hidden Ears → primary (mana) · Venom Nail → alt (rerollup)
+
+#### Reptile — Eyes: regen (primary) / weaken (alt)
+- Punky → alt (weaken) · Hard-boiled → primary (regen)
+
+#### Reptile — Horn: pierce (primary) / heavy (alt)
+- Poison Tube → primary (pierce)
+
+#### Reptile — Mouth: lifesteal (primary) / poison (alt)
+- Chemical Fang → alt (poison) · Tiny Dino → primary (lifesteal)
+
+**Đếm lại**: 9+20+9+10+19+8 = 75 ✓ khớp danh sách nguồn.
+
+### 9b. 111 part α (Origin) → danh tính Mythic
+
+Mỗi ô Mythic (§2c) là **một cơ chế phá luật cho cả class×slot**, không phải per-part — nên nhiều part α cùng ô chia sẻ chung cơ chế đó, chỉ khác tên/art hiển thị. 4 flag nhẹ dưới đây là ghi nhận cảm tính (flavor lỏng ở bậc này, không chặn gì):
+
+| (class, slot) | Part α (danh tính Mythic) | Flag |
+|---|---|---|
+| aquatic·back | Sponge | — |
+| aquatic·ears | Little Crab, Gill | — |
+| aquatic·eyes | Baby, Cold Fish, Kind Fish | — |
+| aquatic·horn | Jellytacle, Darksea Jellyfish | — |
+| aquatic·mouth | Ranchu | — |
+| aquatic·tail | Puff, Oranda, Tadpole | — |
+| beast·back | Pangolin Slayer | — |
+| beast·ears | Foxy, Nut Cracker, Belieber, Puppy, Innocent Lamb | — |
+| beast·eyes | Sparky, Nut Cracker, Puppy, Daydreaming, Sobby | nhẹ: Daydreaming/Sobby hiền hơn cơ chế execute hung hãn |
+| beast·horn | Rocky Skull, Toy Ball, Beast Bun, Lump, Small Yak | nhẹ: Toy Ball/Beast Bun hơi dễ thương cho bonus +60% hung hãn |
+| beast·mouth | Foxy, Puff, Cub, Nut Cracker, Platypus, Puppy, Sniffle, Shishi | — |
+| beast·tail | Buba Brush, Nut Cracker, Pangolin, Shiba | — |
+| bird·back | Lil Bro, Feather Melody, Paper Wing, Rubber Duckling | — |
+| bird·eyes | Concentrate, Passion | — |
+| bird·horn | Big Sister | — |
+| bird·mouth | Feathery Dart | — |
+| bird·tail | Death Shower | — |
+| bug·ears | Brimstone, Leaf Bug, Termites, Maggot | — |
+| bug·eyes | Ladybug Goggles | — |
+| bug·mouth | Nose Drill, Maggot | — |
+| bug·tail | Centipede, Leaf Bug, Eye Wing, Shield Shattering | — |
+| plant·back | Forest Hero, Succulent, Death Shroom, Cone Shell, Meadow Blanket | — |
+| plant·ears | Sakura, Turnip, Greenwood Rhythm | — |
+| plant·eyes | Risky Trunk, Papi | — |
+| plant·horn | Persimmon, Mandarine, Acorn Cap, Lotus, Ballad Of The Shore | nhẹ: "Ballad Of The Shore" nghe hợp tai/âm thanh hơn horn |
+| plant·mouth | Beetroot, Hazelnut, Kidney Bean | — |
+| plant·tail | Sprout, Drowsy Moss, Tropical Guardian | — |
+| reptile·back | Tiny Dino, Croc | — |
+| reptile·ears | Hidden Ears, Venom Nail, Curved Spine | nhẹ: Venom Nail/Curved Spine nghe hợp back/spine hơn ears |
+| reptile·eyes | Punky, Hard-boiled, Scar | — |
+| reptile·horn | Poison Tube, Bumpy | — |
+| reptile·mouth | Chemical Fang, Tiny Dino | — |
+
+**Tổng**: 111/111 part α đã gán. Việc còn lại: dawn/dusk/mech (36 part, D15 — thiết kế riêng, dùng lại part đã có ở 6 class chính theo đúng quyết định "rút 3/6 slot từ mỗi bloodline gốc").

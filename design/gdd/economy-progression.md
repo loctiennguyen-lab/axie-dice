@@ -296,20 +296,32 @@ HP_bonus_% = base × ownership_mult × rarity_mult, cap tại BONUS_CAP
 
 Ở kịch bản cực đại thực tế (mọi Axie trong đội đều là NFT chọn-trước, sở hữu nhiều nhất, độ hiếm cao nhất), winrate tăng **~+22% tương đối** (8.6%→10.5% Full, 17.9%→21.8% Short) — có cảm nhận được, không áp đảo, không phá curve đã đo. Kết luận: **`base=3%`, các hệ số ở bảng trên GIỮ NGUYÊN**, không cần hạ trước khi ship.
 
-### 10.2b NFT vs Free — ai được gì (tóm tắt, 2026-09-01)
+### 10.2b NFT vs Free — ai được gì (SỬA LẠI 2026-09-01, đảo ngược quyết định cũ)
 
-Gộp lại từ C6, D7, D10, D11, §G8 (`AUDIT_AND_SPEC_v1.md`), và §10.2a ở trên — vì các quyết định này rải rác nhiều chỗ, dễ hiểu nhầm thành "NFT có part riêng". **Không đúng.** Bảng dưới đây là nguồn tóm tắt duy nhất — nếu có mâu thuẫn với suy luận từ nơi khác, bảng này thắng.
+> ⚠️ **Quyết định mới đảo ngược hoàn toàn bảng cũ bên dưới (giữ lại có gạch ngang để đối chiếu lịch sử).** Bối cảnh: catalog part thật hoá ra lớn hơn nhiều so với 192 đã dùng — file part thật (`Part name.xlsx`, xem `design/gdd/axie-body-parts.md` cập nhật 2026-09-01) có **285 part thường** (`stage=1`) + **111 part Origin/"α"** (`stage=0`, hiếm nhất) + 36 part dawn/dusk/mech. Product owner chốt **2026-09-01, "hướng đi cuối cùng"**:
+>
+> - **Free chỉ mua được 111 part α bằng Gene Shard.** Đây là pool duy nhất người chơi không sở hữu NFT có thể mở khoá qua chơi.
+> - **285 part thường (+ 36 dawn/dusk/mech) gắn với NFT thật — không mua được bằng Shard.** Người sở hữu Axie NFT dùng được **đúng 6 part thật của con Axie đó** (cơ chế "Import Axie", đã phác thảo ở `AUDIT_AND_SPEC_v1.md` Phần G① nhưng trước đây xếp Phase 2 — giờ là cơ chế chính của Collection, không còn là roadmap xa).
+>
+> **Đây là pay-to-win thật, có chủ đích, không phải ngoại lệ nhỏ như §10.2a (NFT HP Bonus).** Khác với HP Bonus (chỉ +3-6.75%, có trần), việc này khoá hẳn **285/396 part khỏi người chơi free vĩnh viễn** trừ khi họ tự mua/sở hữu Axie NFT tương ứng. **Mâu thuẫn trực tiếp với D12 luật 2** ("Không bán chỉ số bằng tiền... không part mạnh hơn mua được") — cần product owner xác nhận rõ đây là **sửa đổi D12 luật 2 lần thứ hai** (lần đầu là NFT HP Bonus §10.2a), mở rộng phạm vi ngoại lệ. Ghi lại minh bạch để không ai đọc D12 rồi tưởng luật 2 vẫn còn nguyên vẹn.
+>
+> **Việc chưa quyết, cần làm rõ trước khi implement**:
+> - Giá 111 part α bằng Shard là bao nhiêu? (D10's "~400/part phẳng" áp dụng cho part nào — chỉ α, hay α được định giá riêng cao hơn vì giờ là *toàn bộ* pool free?)
+> - "Sở hữu NFT" dùng được part của nó — có cần sở hữu *đang chơi cùng lúc* (pre-select vào đội, theo §G8) hay chỉ cần sở hữu ví là đủ mở khoá vĩnh viễn vào Collection?
+> - Echo Points (§10.3, sink cuối game) gate theo "Collection đủ 192/192" — con số này giờ vô nghĩa (192 không còn là tổng catalog). Cần định nghĩa lại "Collection đầy đủ" nghĩa là gì trong mô hình mới (đủ 111 α? hay tính riêng theo phần free/NFT?).
+>
+> Ba câu hỏi trên **chưa trả lời trong phiên này** — đánh dấu rõ để không ai lặng lẽ giả định.
 
-| | Người chơi Free | Người chơi sở hữu NFT |
-|---|---|---|
-| **Mở khoá part (danh tính/effect)** | Toàn bộ 192 part, mua bằng Gene Shard kiếm được qua chơi (~400/part, D10). Không giới hạn. | **Giống hệt** — không có part nào độc quyền NFT. Sở hữu NFT không tự động mở khoá part tương ứng trong Collection. |
-| **Effect/mặt xúc xắc của một part** | Y hệt effect thiết kế trong `part-tier-system.md` §2 | **Y hệt** — cùng một effect, không có bản mạnh hơn dành riêng cho NFT |
-| **Đội hình vào run** | Chọn 1 Lead Axie trước run (C4), 4 con còn lại tuyển ngẫu nhiên giữa run | Chọn trước tới 5/5 Axie NFT sở hữu (§G8) — **tiện lợi**, giảm rủi ro RNG tuyển quân, không phải sức mạnh thuần |
-| **maxHP của Axie chọn-trước** | Chuẩn (100%) | **+3.15% đến +6.75%** tuỳ sở hữu/độ hiếm (§10.2a) — ngoại lệ có phạm vi, có trần, đã ghi rõ lý do |
-| **Art bậc Mystic** | Cùng effect Mystic, skin thường | Art gốc độc quyền ở bậc Mystic (D11) — **thẩm mỹ**, không effect |
-| **Sức mạnh tối đa lý thuyết trong 1 run** | 100% (mọi part đều mở được) | 100% part + tối đa +6.75%/Axie chọn-trước từ §10.2a |
+---
 
-**Kết luận dùng để trả lời câu hỏi player/nhà đầu tư**: *"NFT có mua được sức mạnh không?"* → Có, nhưng bị giới hạn nghiêm ngặt (§10.2a, trần +20%/Axie, chỉ áp dụng Axie chọn-trước) và **không đi qua part/effect** — phần lớn giá trị NFT vẫn là tiện lợi (chọn trước) và thẩm mỹ (art Mystic), không phải mở khoá nội dung độc quyền.
+**Bảng cũ (2026-09-01 sáng, ĐÃ ĐẢO NGƯỢC — chỉ giữ tham khảo lịch sử):**
+
+~~| | Người chơi Free | Người chơi sở hữu NFT |~~
+~~|---|---|---|~~
+~~| **Mở khoá part (danh tính/effect)** | Toàn bộ 192 part, mua bằng Gene Shard kiếm được qua chơi (~400/part, D10). Không giới hạn. | **Giống hệt** — không có part nào độc quyền NFT. |~~
+~~| **Effect/mặt xúc xắc của một part** | Y hệt effect thiết kế | **Y hệt** — cùng một effect, không có bản mạnh hơn dành riêng cho NFT |~~
+
+~~**Kết luận cũ**: "NFT có mua được sức mạnh không?" → Có, nhưng giới hạn nghiêm ngặt, không đi qua part/effect.~~ **Kết luận mới: CÓ, và lần này đi thẳng qua part/effect — đây là thay đổi lớn nhất về monetization trong toàn bộ doc.**
 
 ### 10.3 🔬 S4 — Faucet / Sink (dải khởi điểm)
 

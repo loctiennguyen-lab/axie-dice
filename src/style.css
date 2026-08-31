@@ -35,8 +35,13 @@
   --pan:   #1e242c;
   --pan2:  #2a323d;
   --pan3:  #39434f;
+  --pan-hi:#333c47;   /* 2026-09-01: bậc bề mặt mới cho "Table plane" (unit/die) — giữa pan2 và pan3 */
   --line:  #4a5563;   /* kẻ TRANG TRÍ */
   --line2: #707c8c;   /* VIỀN CARD */
+  /* 2026-09-01: depth token cho "Table plane" (unit/die) — KHÔNG dùng cho Deck plane
+     (btn/icard/bottombar/track giữ nguyên phẳng, xem docs/review UI 2026-09-01) */
+  --sh-card: 0 1px 0 rgba(255,255,255,.04) inset, 0 3px 0 rgba(0,0,0,.35), 0 6px 14px rgba(0,0,0,.45);
+  --sh-hero: 0 1px 0 rgba(255,255,255,.06) inset, 0 4px 0 rgba(0,0,0,.4), 0 10px 22px rgba(0,0,0,.5);
   --radius:10px; --rad-sm:6px; --bd:2px;
 
   /* ═══ TEXT ═══ */
@@ -120,7 +125,9 @@ h1,h2,h3,h4{font-weight:700}
 .btn--lg,.btn.big{--btn-h:var(--ctl-lg);padding:0 28px;font-size:var(--t4)}
 .btn.go{background:var(--acc);border-color:var(--acc);color:#1a1503}
 .btn.go:hover{background:#ffd77e;border-color:#ffd77e}
-.btn.end{background:var(--acc);border-color:var(--acc);color:#1a1503}
+/* 2026-09-01: END TURN là hành động hệ trọng nhất mỗi lượt (Fitts's Law) —
+   to hơn hẳn REROLL, dùng --ctl-lg đã có sẵn trong hệ thống thay vì kích thước --ctl-md mặc định */
+.btn.end{background:var(--acc);border-color:var(--acc);color:#1a1503;--btn-h:var(--ctl-lg);padding:0 var(--s6);font-size:var(--t3)}
 .btn.end:hover{background:#ffd77e}
 .btn.reroll{background:transparent;border-color:var(--shd);color:var(--shd)}
 .btn.reroll:hover{background:rgba(99,179,255,.12)}
@@ -303,15 +310,21 @@ small{font-size:var(--t1)}
 .combat.frozen{filter:saturate(.4) brightness(.5)}
 .msg{text-align:center;font-size:var(--t2);color:var(--acc);min-height:15px;margin-bottom:2px}
 .zone{display:flex;justify-content:center;align-items:flex-end;gap:var(--zone-gap);flex-wrap:wrap}
-.zone.enemies{min-height:150px;padding-top:14px}
-.zone.party{margin-top:22px}
+.zone.enemies{min-height:150px;padding-top:14px;position:relative}
+.zone.party{margin-top:22px;position:relative}
+/* 2026-09-01: "vùng sáng" trung tính dưới mỗi zone — cảm giác bàn, không phải khoảng trống.
+   Chỉ đổi lightness, không thêm hue/saturation — không phá nguyên tắc nền trung tính (rule 1) */
+.zone.enemies::before,.zone.party::before{content:"";position:absolute;inset:-14px -20px;z-index:-1;
+  background:radial-gradient(ellipse 70% 60% at 50% 30%,#161b22 0%,transparent 72%);pointer-events:none}
 .divider{display:none}
 
 .unit{position:relative;width:var(--unit-w);border-radius:var(--radius);overflow:visible;
-  background:var(--pan);border:var(--bd) solid var(--line);padding:6px;text-align:center;transition:.1s}
+  background:var(--pan-hi);border:var(--bd) solid var(--line);padding:6px;text-align:center;transition:.1s;
+  box-shadow:var(--sh-card);
+  display:flex;flex-direction:column}
 .unit.p{border-bottom:3px solid var(--cc)}
 .unit.p.token{width:calc(var(--unit-w)*.72);opacity:.85;border-style:dashed}
-.unit.e{background:var(--pan);border-color:var(--line2);border-top:3px solid var(--dmg)}
+.unit.e{background:var(--pan-hi);border-color:var(--line2);border-top:3px solid var(--dmg)}
 .unit.e.elite{border-color:var(--burn)}
 .unit.big{width:290px;border-color:var(--dmg)}
 .unit.dead{opacity:.2;filter:grayscale(1)}
@@ -319,6 +332,10 @@ small{font-size:var(--t1)}
 .unit.hovtgt{box-shadow:0 0 0 2px var(--acc),0 0 30px #ffc85788}
 .unit.threat{border-color:#7a4a4a}
 .sprwrap{position:relative}
+/* 2026-09-01: bóng đổ chân sprite — gắn sprite vào mặt bàn thay vì lơ lửng trong khung */
+.sprwrap::after{content:"";position:absolute;left:50%;bottom:-2px;transform:translateX(-50%);
+  width:60%;height:8px;border-radius:50%;background:radial-gradient(ellipse,rgba(0,0,0,.5),transparent 72%);
+  pointer-events:none;z-index:-1}
 .unit .spr{margin:0 auto 2px}
 .unit.big .spr{width:var(--spr-big);height:var(--spr-big)}
 .unit.p.token .spr{width:calc(var(--spr-w)*.6);height:calc(var(--spr-w)*.6)}
@@ -328,8 +345,10 @@ small{font-size:var(--t1)}
 .unit.p .spr{animation:breathe 3.4s ease-in-out infinite}
 @keyframes breathe{0%,100%{transform:translateY(0) scaleX(var(--fx,1))}50%{transform:translateY(-3px) scaleX(var(--fx,1))}}
 .unit.e .spr.mut{--fx:-1}
-.pasdot{position:absolute;top:0;left:0;width:16px;height:16px;line-height:14px;font-size:var(--t1);
-  background:var(--cc);color:#0d1013;border:1px solid #0007;border-radius:50%}
+/* 2026-09-01: to hơn (16px→24px) và nằm hẳn trên bề mặt card thay vì đè viền —
+   đây là tín hiệu chiến thuật (archetype), không phải icon trang trí */
+.pasdot{position:absolute;top:4px;left:4px;width:24px;height:24px;line-height:22px;font-size:var(--t2);
+  background:var(--cc);color:#0d1013;border:1px solid #0007;border-radius:50%;z-index:2;font-weight:700}
 .unit .nm{font-size:var(--t1);color:var(--dim);margin-bottom:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;letter-spacing:.5px}
 /* T05 · số HP ra khỏi thanh — bài toán contrast biến mất hoàn toàn */
 .hpbar{position:relative;height:var(--hp-h);margin-top:20px}
@@ -356,14 +375,18 @@ small{font-size:var(--t1)}
 .stats .thorns{color:var(--acc)} .stats .blind{color:#b0a8d0} .stats .weaken{color:var(--shd)}
 .stats .vulnerable{color:var(--deb)} .stats .stun{color:var(--txt)} .stats .undying{color:var(--r3)}
 .stats .frz{color:#9fe8ff} .stats .sh{color:var(--shd)}
-.intent{margin-top:5px;background:var(--pan2);border-radius:var(--rad-sm);padding:4px;display:flex;gap:5px;
-  align-items:center;justify-content:center;flex-wrap:wrap;font-size:var(--t2);border:1px solid var(--line)}
-.intent .ii{font-size:14px} .intent .iv{font-size:var(--intent-v)} .intent .itg{font-size:var(--t1);color:var(--dim)}
+/* 2026-09-01: intent lên ĐẦU card (order:-1, xem .unit display:flex ở trên) —
+   đây là thông tin quan trọng nhất mỗi lượt (đúng pillar minh bạch), không còn
+   là "chip phụ" đóng khung riêng dưới card mà hoà vào bề mặt card, đậm hơn hẳn. */
+.intent{order:-1;margin:-6px -6px 6px -6px;padding:6px;display:flex;gap:5px;
+  align-items:center;justify-content:center;flex-wrap:wrap;font-size:var(--t3);
+  background:var(--pan2);border-radius:var(--radius) var(--radius) 0 0;border-bottom:1px solid var(--line)}
+.intent .ii{font-size:16px} .intent .iv{font-size:var(--intent-v);font-weight:700} .intent .itg{font-size:var(--t2);color:var(--dim)}
 .intent .ik{font-size:var(--t1);color:var(--dim)}
 .intent.t_dmg{color:var(--dmg)} .intent.t_shield{color:var(--shd)}
 .intent.t_heal{color:var(--heal)} .intent.t_poison{color:var(--poi)}
 .intent.t_debuff,.intent.t_buff{color:var(--deb)} .intent.t_summon{color:var(--man)}
-.intent.danger{border-color:var(--dmg)}
+.intent.danger{background:#3a1f1f;box-shadow:inset 0 0 0 1px var(--dmg)}
 .bossdesc{font-size:var(--t1);color:var(--dim);margin-top:5px;line-height:1.55}
 .preview{pointer-events:none;position:absolute;top:-14px;left:50%;transform:translateX(-50%);font-size:var(--t3);
   background:var(--bg);border:1px solid var(--acc);border-radius:var(--rad-sm);padding:2px 8px;white-space:nowrap;z-index:8}
@@ -381,10 +404,13 @@ small{font-size:var(--t1)}
   100%{opacity:0;transform:translate(-50%,-46px) scale(1)}}
 
 /* ---------- dice tray: the hero object ---------- */
-.tray{display:flex;justify-content:center;gap:var(--zone-gap);margin-top:10px;flex-wrap:wrap}
+/* 2026-09-01: mỗi Axie + die của nó giờ là 1 cột (.pcol), thay vì 2 hàng riêng
+   (zone.party + tray cũ) — .zone{display:flex} có sẵn xử lý layout hàng ngang cho .pcol */
+.pcol{display:flex;flex-direction:column;align-items:center;gap:10px}
 .diebox{width:var(--die-w);text-align:center;position:relative}
-.diebox .die{background:var(--pan2);border:var(--bd) solid var(--line2);border-bottom:3px solid var(--cc);
-  padding:8px 6px;min-height:var(--die-h);cursor:pointer;transition:.1s;position:relative;border-radius:var(--radius);
+.diebox .die{background:var(--pan-hi);border:var(--bd) solid var(--line2);border-bottom:3px solid var(--cc);
+  padding:8px 6px;min-height:var(--die-h);cursor:pointer;transition:.1s;position:relative;border-radius:12px;
+  box-shadow:var(--sh-hero);
   display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px}
 .die:hover{background:var(--pan3);border-color:var(--dim)}
 .die.sel{border-color:var(--acc);box-shadow:0 0 0 2px var(--acc),0 0 26px #ffc85777}

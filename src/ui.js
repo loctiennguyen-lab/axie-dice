@@ -493,14 +493,11 @@ function scCombat(frozen){
   const ez=el('div','zone enemies');
   S.enemies.forEach(e=>ez.appendChild(unitCard(e)));
   w.appendChild(ez);
-  /* party */
+  /* party — mỗi Axie ghép chung 1 cột với đúng die của nó (2026-09-01: trước đây
+     là 2 hàng riêng, chỉ thẳng cột nhờ trùng width tình cờ; giờ ghép rõ ràng bằng cấu trúc) */
   const pz=el('div','zone party');
-  S.party.forEach(u=>pz.appendChild(unitCard(u)));
+  S.party.forEach(u=>{ const col=el('div','pcol'); col.appendChild(unitCard(u)); col.appendChild(dieBox(u)); pz.appendChild(col); });
   w.appendChild(pz);
-  /* dice tray */
-  const tray=el('div','tray');
-  S.party.forEach(u=>tray.appendChild(dieBox(u)));
-  w.appendChild(tray);
   /* bottom */
   const bb=el('div','bottombar');
   const mo=el('div','manaorb'+(S.mana>=10?' full':''));
