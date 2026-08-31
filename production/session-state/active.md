@@ -41,7 +41,12 @@ Xử lý GDD/spec/mechanics theo `docs/review-2026-08-31.md` + `docs/adoption-pl
 - [x] NFT HP Bonus (§10.2a) implement thật trong `src/engine.js` (`nftHpBonusPct`, `opt.nftPreselect`) + `tools/sim.js` hỗ trợ test (`nftCount=`/`nftOwned=`/`nftGenes=`). Validate: Full Run 8.6%→10.5%, Short Run 17.9%→21.8% ở kịch bản cực đại — an toàn, không cần hạ hệ số. Log ở `docs/balance-log.md`.
 - [x] `.rsel` button-nesting — **hoá ra là báo động giả**: đối chiếu code thật (`ui.js:671-674`, `style.css:429-430`) cho thấy `.rsel` vốn đã là sibling của `.die`, không lồng bên trong. Đã đính chính `docs/review-2026-08-31.md` (mục 5 và hành động #8), không cần fix.
 
-## Open Questions
-- Có nên xin quyền IP tên/art part Axie Origins song song ngay bây giờ không (blocker Bloodline, D1 đã CHỐT nhưng IP request thực tế chưa xác nhận đã gửi)?
-- TALON (pierce) 0% Full Run — mẫu nhỏ (34), cần N≥2000 riêng biệt trước khi kết luận có cần buff không.
-- `PART_REVIEW_SHEET.md` (bảng duyệt tay cho designer) chưa tạo — có thể sinh từ `parts_build_data.json` nếu cần review UI ngoài code.
+## Progress Checklist (tiếp — 2026-09-01 phần 4)
+- [x] TALON N=2500: 3% winrate (190 mẫu), cùng nhóm CONDUIT/TEMPEST — mẫu 34 cũ chỉ là nhiễu, không cần buff. Log ở `docs/balance-log.md`.
+- [x] `docs/axiedice-source/economy/PART_REVIEW_SHEET.md` sinh từ `parts_build_data.json` — 192 part, dễ duyệt tay.
+- [x] Cập nhật bảng hành động trong `docs/review-2026-08-31.md` — 10/11 mục ✅, chỉ còn #4 (xin quyền IP) là hành động ngoài đời thực.
+
+## Open Questions (thật sự còn treo)
+- **Mục #4 — xin quyền IP tên/art part Sky Mavis**: hành động ngoài đời thực (liên hệ người có quan hệ nội bộ Sky Mavis), Claude Code không tự làm được. Đây là blocker thật duy nhất còn lại cho toàn bộ hệ Bloodline/192-part.
+- AEGIS (thorns) giờ là archetype mẫu nhỏ nhất (25 run, 0% ở N=2500) — chưa đủ dữ liệu, theo dõi ở lần sim lớn tiếp theo.
+- Icon pixel data thật (`IC_G` format) và implement combat log UI — việc code thật, ngoài phạm vi GDD/balance, cần ui-programmer/technical-artist.

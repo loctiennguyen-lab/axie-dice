@@ -51,3 +51,28 @@ Ghi lại các lần chỉnh `TUNE`/balance constants và kết quả đo qua `n
 | **5/5 chọn-trước, sở hữu ≥20, 3 gene (max thực tế, +6.75%/con)** | **10.5%** | **21.8%** |
 
 **Kết luận**: bonus tối đa thực tế (~+22% winrate tương đối) nằm trong biên độ chấp nhận được — không cần hạ `base=3%` hay các hệ số trước khi ship. `BONUS_CAP=20%` chưa từng chạm tới ở kịch bản cực đại (max thực tế chỉ 6.75%/Axie), giữ nguyên làm rào chắn cho tương lai.
+
+---
+
+## 2026-09-01 — TALON (pierce) mẫu lớn: không chết, chỉ là nhiễu thống kê ở N=34
+
+**Bối cảnh**: baseline ban đầu (N=500) cho TALON 0/34 run thắng ở Full Run — economy-designer cảnh báo mẫu quá nhỏ để kết luận, đề xuất chạy lại N≥2000 trước khi buff.
+
+**Kết quả** (`node tools/sim.js 2500 mode=full asc=0`, đọc phần archetype breakdown):
+
+| Archetype | Số run | Winrate |
+|---|---|---|
+| PLAGUE | 700 | 6% |
+| BULWARK | 568 | 10% |
+| CONDUIT | 318 | 4% |
+| APEX | 227 | 14% |
+| INFERNO | 200 | 13% |
+| **TALON** | **190** | **3%** |
+| TEMPEST | 121 | 4% |
+| SWARM | 82 | 12% |
+| EVOLVE | 69 | 12% |
+| AEGIS | 25 | 0% |
+
+**Kết luận**: TALON ở N=190 đạt 3% winrate — thấp nhưng **không chết**, nằm cùng nhóm với CONDUIT (4%) và TEMPEST (4%), không phải ngoại lệ. Xác suất quan sát 0/34 nếu tỷ lệ thật ~3-4% là ~23-28% — hoàn toàn có thể xảy ra do nhiễu mẫu nhỏ, không phải bằng chứng archetype hỏng. **Không cần buff TALON.**
+
+**Ghi nhận mới**: AEGIS (thorns) giờ là archetype mẫu nhỏ nhất (25 run, 0% win) — cùng tình trạng TALON trước đây. Chưa đủ dữ liệu để kết luận, để theo dõi ở lần sim lớn tiếp theo, không buff vội.
