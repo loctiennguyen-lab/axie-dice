@@ -6,7 +6,9 @@
 >
 > Hệ quả tích cực: mục §5.2 bản cũ ("7 part thiếu card text cần duyệt tay") **không còn là vấn đề** — vì không còn đọc card text nữa. Mục §5.1 ("Beast lệch archetype") cũng **tự động giải quyết** — 36 template đã hand-designed đúng bản sắc FERAL cho Beast ngay từ đầu, không cần khoá cứng 7 dòng như trước.
 >
-> Doc này giải thích **cách** bảng 4 bậc được sinh ra, và **cái gì cần người duyệt**. Dữ liệu ở `parts_build_data.json`, bảng duyệt ở `PART_REVIEW_SHEET.md`, công cụ ở `gen_parts.py` — **`gen_parts.py` cần được viết lại** để đọc 36 template thay vì gọi Axie Origin Data API (việc kỹ thuật, chưa làm trong phiên này — xem §6).
+> Doc này giải thích **cách** bảng 4 bậc được sinh ra, và **cái gì cần người duyệt**. Dữ liệu ở `parts_build_data.json`, công cụ ở `tools/gen_parts.py`.
+>
+> **✅ 2026-09-01 — `tools/gen_parts.py` đã được viết lại**, đọc thẳng 36 template (§2a/§2c) + bảng gán (§8) đã nhúng sẵn trong script, không gọi API/đọc card text nào nữa. Đã chạy: sinh đúng 192/192 part, không có part nào rơi ngoài bảng gán §8. Chạy `python3 tools/gen_parts.py` để tái sinh `docs/axiedice-source/economy/parts_build_data.json` bất kỳ lúc nào sau khi sửa CELLS/ASSIGN_RAW trong script (hoặc sửa §2c/§8 ở đây rồi đồng bộ lại script — script là nguồn thực thi, doc là nguồn thiết kế, giữ hai bên khớp nhau khi sửa).
 
 ---
 
@@ -158,7 +160,9 @@ Mốc 42.6 nằm gọn giữa Epic và Legendary — đúng chỗ một build cu
 
 ## 4. KẾT QUẢ
 
-> ⚠️ **Toàn bộ §4 dưới đây là kết quả CŨ**, sinh ra từ `gen_parts.py` bản đọc card text Origins qua regex (đã ngừng dùng theo quyết định 2026-09-01 ở đầu doc). Giữ lại làm tham chiếu lịch sử — **không dùng các con số này để quyết định gì** cho tới khi `gen_parts.py` được viết lại theo 36 template (§2a) và chạy lại. Kỳ vọng: INV-5 vẫn đạt (công thức ngân sách ở §2b không đổi), nhưng phân bố archetype ở dưới sẽ khác vì role/archetype giờ đến từ template có chủ đích, không còn suy từ regex.
+> ⚠️ **Toàn bộ §4 dưới đây là kết quả CŨ**, sinh ra từ bản `gen_parts.py` đọc card text Origins qua regex (đã ngừng dùng theo quyết định 2026-09-01 ở đầu doc). Giữ lại làm tham chiếu lịch sử — không dùng các con số dưới đây để quyết định gì.
+>
+> **✅ Kết quả thật, chạy `tools/gen_parts.py` mới (2026-09-01)**: 192/192 part sinh thành công, INV-5 đạt cho cả 4 bậc (spread trong role/tier rất hẹp — vd. dmg-epic 8-11, shield-legendary đúng 16 cho mọi part, xem output `docs/axiedice-source/economy/parts_build_data.json`). **`classPassive` giờ đơn giản = passive của class đó** (BULWARK/FERAL/CONDUIT/SCALES/VIRULENT/TALON, đúng 32/32/32/32/32/32 — vì mỗi part chỉ thuộc một class) — **đây KHÔNG phải hệ 10-archetype runtime** (`ARCH` trong `src/data.js`: PLAGUE/INFERNO/BULWARK/CONDUIT/TALON/APEX/EVOLVE/SWARM/TEMPEST/AEGIS, được tính động mỗi trận theo keyword đội hình đang dùng qua `archScore()`). Hai khái niệm khác nhau, đừng nhầm khi đọc dữ liệu.
 
 ### INV-5 — đạt toàn bộ (số liệu cũ, cần chạy lại)
 
@@ -219,8 +223,8 @@ Bản cũ cần 7 part (`Lotus`, `Rose Bud`, `Serious`, `Grass Snake`, `Post Fig
 |---|---|
 | `parts_build_data.json` | 192 part đầy đủ: role, archetype, keywords, 4 bậc. **Không còn cột card text Origins** — không cần đối chiếu với Origins nữa |
 | `PART_REVIEW_SHEET.md` | Bảng duyệt 192 dòng, nhóm theo class, đánh dấu ⚠️ chỗ cần ưu tiên |
-| `gen_parts.py` | **CẦN VIẾT LẠI** (chưa làm trong phiên này). Logic cũ gọi Axie Origin Data API + regex đọc `description` — phải thay bằng: đọc 36 template (§2a, có thể lưu dạng JSON riêng `face_templates.json`) → với mỗi part trong `axie-body-parts.md`, tra template theo `(class, slot)` → áp công thức ngân sách bậc (§2b, không đổi) để ra 4 bậc. Đây là việc kỹ thuật thuần, không cần đọc card text hay gọi API ngoài nữa. |
-| ~~`origins_cards_raw.json`~~ | **Không còn cần** — có thể xoá sau khi `gen_parts.py` được viết lại và không còn phụ thuộc nó |
+| `tools/gen_parts.py` | **✅ Đã viết lại (2026-09-01).** Đọc `design/gdd/axie-body-parts.md` cho danh tính (tên/class/slot), tra 36 template + bảng gán §8 nhúng sẵn trong script, áp công thức ngân sách bậc (§2b) → ghi `parts_build_data.json`. Không gọi API, không đọc card text. |
+| ~~`origins_cards_raw.json`~~ | Không còn tồn tại trong repo (chưa từng được import) — không còn cần |
 
 **Quy trình tune về sau:** sửa `TIER_BUDGET` / `KW_COST` trong `gen_parts.py`, hoặc sửa trực tiếp 36 template ở §2a nếu muốn đổi bản sắc một class → chạy lại → INV-5 tự động vẫn đạt → chạy `sim.js`. Không phải sửa 192 dòng bằng tay lần nào nữa.
 

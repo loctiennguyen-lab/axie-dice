@@ -18,12 +18,25 @@ const rcall = (s,k,ctx)=>{ for(const r of rlist(s)) if(r[k]) r[k](s,ctx); };
 
 /* ================= ROSTER → UNIT ================= */
 let UID=1;
-function newRosterEntry(key,vr){ return {uid:UID++,key,vr:vr||0,muts:[],bonusHp:0}; }
+function newRosterEntry(key,vr,nftBonusPct){ return {uid:UID++,key,vr:vr||0,muts:[],bonusHp:0,nftBonusPct:nftBonusPct||0}; }
+
+/* NFT HP Bonus (design/gdd/economy-progression.md §10.2a — ngoại lệ có phạm vi của D12).
+   Chỉ áp dụng cho Axie NFT được CHỌN TRƯỚC vào đội hình (không áp dụng Axie tuyển ngẫu nhiên).
+   ownedCount = tổng số Axie NFT người chơi sở hữu · specialGenes = 0-3 (thuộc tính Axie thật). */
+const NFT_BONUS_BASE=3, NFT_BONUS_CAP=20;
+function nftOwnershipMult(ownedCount){ return ownedCount>=20?1.5 : ownedCount>=5?1.25 : 1.0; }
+function nftRarityMult(specialGenes){ return [1.0,1.15,1.3,1.5][Math.max(0,Math.min(3,specialGenes|0))]; }
+function nftHpBonusPct(ownedCount,specialGenes){
+  const pct=NFT_BONUS_BASE*nftOwnershipMult(ownedCount)*nftRarityMult(specialGenes);
+  return Math.min(NFT_BONUS_CAP,pct);
+}
 
 function buildUnit(re,s){
   const h=HEROES[re.key];
+  const baseHp=h.hp+re.bonusHp;
+  const nftHp=re.nftBonusPct? Math.round(baseHp*re.nftBonusPct/100) : 0;
   const u={uid:re.uid,side:'p',key:re.key,n:h.n,cls:h.cls,tier:h.tier,pas:PASSIVE[h.cls],
-    artIdx:h.art+((re.vr||0)%3), maxHp:h.hp+re.bonusHp, hp:0, shield:0,
+    artIdx:h.art+((re.vr||0)%3), maxHp:baseHp+nftHp, hp:0, shield:0,
     die:clone(h.die), st:{}, rolled:-1, used:false, heavy:false, frozen:false, growth:{}, critNow:false};
   for(const m of re.muts){
     if(m.type==='part') u.die[m.idx]=clone(m.face);
@@ -97,7 +110,11 @@ function newGame(seed,teamKeys,opt){
   if(mods.extraElite) for(let i=0;i<mods.extraElite;i++){ const c=1+ri(rl.len-1); if(!elite.includes(c)&&!rl.boss.includes(c)) elite.push(c); }
   const s={seed,mode:opt.mode||'short',asc,mods,len:rl.len,bossSteps:rl.boss,eliteSteps:elite,bossPlan:order,
     step:0,pw:0,phase:'map',nodes:null,node:null,
-    roster:teamKeys.map((k,i)=>newRosterEntry(k,teamKeys.slice(0,i).filter(x=>x===k).length)),
+    roster:teamKeys.map((k,i)=>{
+      const nft=opt.nftPreselect&&opt.nftPreselect[i];
+      const pct=nft? nftHpBonusPct(nft.owned||0,nft.genes||0) : 0;
+      return newRosterEntry(k,teamKeys.slice(0,i).filter(x=>x===k).length,pct);
+    }),
     relics:(opt.startRelics||[]).slice(), party:[], enemies:[],
     mana:0,manaSpent:0,rerolls:2,maxRerolls:2+(opt.bonusReroll||0),metaHpBonus:opt.metaHpBonus||0,
     shards:0,rerollReward:1,rrwMax:1,runMods:{enemyHp:1,enemyDmg:1},curses:[],
@@ -751,4 +768,4 @@ function archScore(s){
 if(typeof module!=='undefined') module.exports={facePool,rerollRewards,mkRng,newGame,nextStep,chooseNode,startCombat,rollAll,doReroll,
   anyRerollable,playerUseDie,playerUseRelic,endTurn,undo,takeReward,genRewards,buildUnit,dieRarity,aliveP,aliveE,realP,
   byUid,faceValue,hasKw,kwVal,genEncounter,eventChoose,eventDone,genShop,shopBuy,shopDone,archScore,
-  faceText,kwText,faceArch,RELIC_BY_ID,rlist,critChance};
+  faceText,kwText,faceArch,RELIC_BY_ID,rlist,critChance,nftHpBonusPct};

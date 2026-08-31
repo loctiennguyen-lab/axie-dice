@@ -6,7 +6,7 @@ const NAMES=['CURVE','HEROES','MON','BOSSES','RELICS','RELIC_BY_ID','TIER_UP','T
   'RUN_LEN','ASCENSION','ascMods','UNLOCKS','EVENTS',
   'newGame','nextStep','chooseNode','startCombat','rollAll','doReroll','anyRerollable','playerUseDie','playerUseRelic',
   'endTurn','undo','takeReward','buildUnit','dieRarity','aliveP','aliveE','realP','byUid','faceValue','hasKw','kwVal',
-  'eventChoose','eventDone','shopBuy','shopDone','archScore','faceText','faceArch'];
+  'eventChoose','eventDone','shopBuy','shopDone','archScore','faceText','faceArch','nftHpBonusPct'];
 const src=['src/data.js','src/engine.js'].map(f=>fs.readFileSync(f,'utf8')).join('\n')
   +'\n;globalThis.__X={'+NAMES.map(n=>n+':'+n).join(',')+'};';
 vm.runInContext(src,ctx);
@@ -90,7 +90,13 @@ const TEAMS=[['plant1','beast1','aqua1','reptile1','bug1'],['plant1','beast1','a
   ['plant1','beast1','beast1','aqua1','reptile1'],['plant1','reptile1','aqua1','bug1','bird1'],
   ['bug1','bug1','reptile1','plant1','aqua1'],['bird1','bird1','beast1','aqua1','plant1']];
 for(let n=0;n<N;n++){
-  const s=G.newGame(9000+n,TEAMS[n%TEAMS.length],{mode:MODE,asc:ASC});
+  const team=TEAMS[n%TEAMS.length];
+  let nftPreselect;
+  if(OV.nftCount){ // ví dụ: node tools/sim.js 500 mode=full nftCount=5 nftOwned=8 nftGenes=2
+    const owned=OV.nftOwned||1, genes=OV.nftGenes||0;
+    nftPreselect=team.map((_,i)=> i<OV.nftCount? {owned,genes} : null);
+  }
+  const s=G.newGame(9000+n,team,{mode:MODE,asc:ASC,nftPreselect});
   if(OV.bp) s.bpFaces=['bp_plague','bp_apex','bp_bulwark','bp_conduit','bp_swarm'];
   let g=0, seen={};
   while(s.phase!=='won'&&s.phase!=='lost'){

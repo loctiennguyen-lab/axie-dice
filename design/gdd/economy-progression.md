@@ -286,7 +286,15 @@ HP_bonus_% = base × ownership_mult × rarity_mult, cap tại BONUS_CAP
 
 **Output range**: 3.15% (1 NFT, 0 gene) → 6.75% (20+ NFT, 3 gene, chưa chạm trần). **Ví dụ**: người chơi sở hữu 8 Axie NFT, chọn trước 1 con có 2 Special Gene vào đội: `3% × 1.25 × 1.3 = 4.875%` maxHP bonus cho riêng con Axie đó.
 
-**⚠️ Chưa xác nhận qua simulation** — hệ thống chọn-trước NFT (§G8) chưa được implement trong code (`src/engine.js` hiện chưa có cơ chế nftPreselect), nên bonus này mới ở mức thiết kế trên giấy, hiệu chuẩn theo trực giác (khớp thang Ascension), không phải đo thật. **Bắt buộc chạy `node tools/sim.js` với bonus này sau khi implement**, đối chiếu lại với baseline đã có ở `docs/balance-log.md` (Full Run 8.0%) — nếu winrate lệch quá xa, hạ `base`/hệ số trước khi ship, không hạ trần `BONUS_CAP` (trần là rào chắn cuối, không phải giá trị vận hành).
+**✅ Đã implement và validate qua simulation thật (2026-09-01).** `nftHpBonusPct()` + `opt.nftPreselect` đã thêm vào `src/engine.js` (`newGame`/`buildUnit`), `tools/sim.js` hỗ trợ tham số `nftCount=`/`nftOwned=`/`nftGenes=` để test. Kết quả 800 run/kịch bản, so với baseline không-NFT ở `docs/balance-log.md`:
+
+| Kịch bản | Full Run winrate | Short Run winrate |
+|---|---|---|
+| Baseline (không NFT) | 8.6% | 17.9% |
+| 1 Axie chọn-trước (sở hữu 5, 1 gene → +3.75%) | 8.4% (nhiễu, không đổi có ý nghĩa) | — |
+| **5/5 chọn-trước, sở hữu ≥20, 3 gene (max thực tế, +6.75%/con)** | **10.5%** | **21.8%** |
+
+Ở kịch bản cực đại thực tế (mọi Axie trong đội đều là NFT chọn-trước, sở hữu nhiều nhất, độ hiếm cao nhất), winrate tăng **~+22% tương đối** (8.6%→10.5% Full, 17.9%→21.8% Short) — có cảm nhận được, không áp đảo, không phá curve đã đo. Kết luận: **`base=3%`, các hệ số ở bảng trên GIỮ NGUYÊN**, không cần hạ trước khi ship.
 
 ### 10.2b NFT vs Free — ai được gì (tóm tắt, 2026-09-01)
 

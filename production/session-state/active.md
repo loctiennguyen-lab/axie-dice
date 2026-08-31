@@ -36,8 +36,12 @@ Xử lý GDD/spec/mechanics theo `docs/review-2026-08-31.md` + `docs/adoption-pl
 - [x] Icon spec 6 body part (`docs/art/icon-spec-body-parts.md`)
 - [x] Combat log UX spec (`design/ux/combat-log.md`)
 
+## Progress Checklist (tiếp — 2026-09-01 phần 3, "việc còn treo")
+- [x] `tools/gen_parts.py` viết lại hoàn toàn — đọc 36 template (§2a/§2c) + bảng gán (§8) nhúng trong script, không gọi API/đọc card text. Chạy thành công 192/192 part, không part nào lọt ngoài bảng gán. Output: `docs/axiedice-source/economy/parts_build_data.json`.
+- [x] NFT HP Bonus (§10.2a) implement thật trong `src/engine.js` (`nftHpBonusPct`, `opt.nftPreselect`) + `tools/sim.js` hỗ trợ test (`nftCount=`/`nftOwned=`/`nftGenes=`). Validate: Full Run 8.6%→10.5%, Short Run 17.9%→21.8% ở kịch bản cực đại — an toàn, không cần hạ hệ số. Log ở `docs/balance-log.md`.
+- [x] `.rsel` button-nesting — **hoá ra là báo động giả**: đối chiếu code thật (`ui.js:671-674`, `style.css:429-430`) cho thấy `.rsel` vốn đã là sibling của `.die`, không lồng bên trong. Đã đính chính `docs/review-2026-08-31.md` (mục 5 và hành động #8), không cần fix.
+
 ## Open Questions
-- NFT HP bonus (§10.2a) cần chạy sim thật sau khi implement `nftPreselect` trong engine.js — hiện chỉ hiệu chuẩn trực giác.
 - Có nên xin quyền IP tên/art part Axie Origins song song ngay bây giờ không (blocker Bloodline, D1 đã CHỐT nhưng IP request thực tế chưa xác nhận đã gửi)?
-- `gen_parts.py` vẫn chưa viết lại theo template mới (việc kỹ thuật, ngoài phạm vi GDD).
-- `.rsel` button-nesting fix (T08 accessibility) chưa thiết kế — được ux-designer flag nhưng chưa làm trong phiên này.
+- TALON (pierce) 0% Full Run — mẫu nhỏ (34), cần N≥2000 riêng biệt trước khi kết luận có cần buff không.
+- `PART_REVIEW_SHEET.md` (bảng duyệt tay cho designer) chưa tạo — có thể sinh từ `parts_build_data.json` nếu cần review UI ngoài code.
