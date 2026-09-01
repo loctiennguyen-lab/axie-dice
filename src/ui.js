@@ -52,6 +52,7 @@ function importAxieToVault(axieData){
 function removeFromVault(axieId){
   if(!META.vault) return;
   META.vault=META.vault.filter(v=>v.axieId!==axieId);
+  delete HEROES['vault_'+axieId];
   saveMeta();
 }
 /* Bridge: engine.js resolves roster members via HEROES[re.key] everywhere
@@ -928,6 +929,7 @@ function dieBox(u){
   if(hasKw(f,'heavy')) d.classList.add('heavy');
   d.onclick=()=>clickDie(u);
   d.onmouseenter=()=>SFX.hover();
+  kbAct(d);
   b.appendChild(d);
   const pips=el('div','pips');
   for(let i=0;i<6;i++){ const p=el('span','pip r'+(u.die[i].r||0)+(i===u.rolled?' on':''));
@@ -936,7 +938,7 @@ function dieBox(u){
   if(!u.used&&!u.heavy&&!u.frozen){
     const rs=el('div','rsel'+(u.rsel?' on':'')); rs.appendChild(ico('reroll','t'));
     rs.title='Mark this die for reroll';
-    rs.onclick=e=>{ e.stopPropagation(); SFX.ui(); u.rsel=!u.rsel; render(); }; b.appendChild(rs);
+    rs.onclick=e=>{ e.stopPropagation(); SFX.ui(); u.rsel=!u.rsel; render(); }; kbAct(rs); b.appendChild(rs);
   } else if(u.frozen){ const fz=el('div','rsel frz'); fz.appendChild(ico('freeze','t')); b.appendChild(fz); }
   b.appendChild(el('div','dlbl',u.n));
   return b;
