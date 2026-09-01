@@ -93,7 +93,17 @@ Visual: ≥2 mặt Legendary trên một die → **Golden Die**; ≥1 mặt Myth
 
 ### Core Rules — Reward pool (chọn 1/3 sau mỗi wave)
 
-`LEVEL_UP` (weight 40) · `ITEM/RELIC` (30) · `GENE_MUTATION` (18) · `MAX_REROLL+1` (6, cap 3 lần upgrade) · `RECRUIT` (6). Mỗi wave có **1 lần reroll cả 3 lựa chọn phần thưởng** (van xả xui — người chơi không bị ép nhận reward lệch build).
+**SỬA 2026-09-01 — đối chiếu lại với `genRewards()`/`mkReward()` (`src/engine.js:650-669`), bảng weight cố định 40/30/18/6/6 cũ KHÔNG khớp code thật, đã sửa lại đúng cơ chế đang chạy:**
+
+Không phải bảng % cố định — là 1 pool token (mỗi loại xuất hiện nhiều lần tuỳ trọng số), rút ngẫu nhiên 3 phần thưởng khác nhau không lặp loại đã có trong 3 lựa chọn đang hiện:
+- `LEVEL_UP` ×2 token (nếu còn hero chưa max tier trong roster) — **không còn ai lên tier được thì thay bằng `ASCEND` ×2** (không có trong `game-concept.md` bản cũ, đã bỏ sót).
+- `RELIC` ×2, `GENE_MUTATION` (`face`) ×2, `RUNE_IMBUE` (`rune`) ×1 — luôn có.
+- `MAX_REROLL+1` (`reroll`) ×1 — chỉ khi `maxRerolls<4` (cap thật là 4, không phải "3 lần upgrade" như bản cũ ghi).
+- `HP` (bonus maxHP) ×1 — luôn có, không có trong bảng cũ.
+- Từ tier ≥2: thêm `RELIC`/`GENE_MUTATION`/`chaos` mỗi loại +1 token. Từ tier ≥3: thêm cả `curse` +1 token nữa.
+- **`RECRUIT` KHÔNG tồn tại trong code** — đã xoá khỏi tài liệu, không phải reward type thật.
+
+Mỗi wave có **1 lần reroll cả 3 lựa chọn phần thưởng** (van xả xui — người chơi không bị ép nhận reward lệch build).
 
 **Gene Mutation**: `PART_REPLACE` (đổi 1 mặt thành part khác, mặt về lại Common) · `RUNE_IMBUE` (gắn 1 keyword vào 1 mặt) · `OVERCLOCK` (+50% value toàn die, làm tròn lên).
 
@@ -196,7 +206,7 @@ XP_cần_cho_level(lv) = 45 + 22×(lv−1)
 | `TUNE.knee` (12) | 8–16 | Đặt quá sớm → khựng power giữa game; quá muộn → cliff không được làm mềm kịp |
 | `eliteMult` (1.40) | 1.2–1.6 | Quá cao → elite trở thành mini-boss ngoài dự kiến |
 | `maxRerolls` base (2) | 1–3 | 1 quá gắt cho Short Run mới; ≥4 làm variance-control quá mạnh, giảm giá trị quyết định |
-| Reward pool weights (40/30/18/6/6) | tổng luôn =100 | Tăng `LEVEL_UP` quá cao làm build hội tụ về ít archetype hơn |
+| Reward pool token count (xem §Core Rules — Reward pool đã sửa 2026-09-01) | `LEVEL_UP`/`ASCEND` giữ ×2, không vượt số token loại `RELIC`+`GENE_MUTATION` cộng lại | Tăng token `LEVEL_UP`/`ASCEND` quá cao làm build hội tụ về ít archetype hơn |
 | `RESONANCE.mult` (1.15, hạ từ đề xuất ban đầu 1.25 sau khi đo đa-seed, xem `docs/balance-log.md`) | 1.15–1.40 | Đội hình mono-type liền kề trở nên quá mạnh nếu vượt trần |
 | Ascension mods (10 mức, `ascMods`) | không đổi thứ tự, chỉ đổi độ dốc | Đảo thứ tự làm A1 khó hơn A5 — phá kỳ vọng người chơi |
 | Status-effect scale exponent (poison/debuff `^0.45–0.50`) | không được đưa về `^1` (linear) | Linear → wall bất khả thi đã xác nhận qua sim (xem Edge Cases) |

@@ -967,7 +967,7 @@ function scReward(){
       if(ent){ const u=buildUnit(ent,S); const old=u.die[r.idx];
         c.appendChild(el('div','rrepl','Overwrites: '+faceText(old))); } }
     c.appendChild(el('div','rcta','TAKE'));
-    c.onclick=()=>{ SFX.legend(); if(r.rar>=4) flashScreen('myth'); takeReward(S,i); sel=null;
+    c.onclick=()=>{ if(r.t==='level') SFX.levelup(); else SFX.legend(); if(r.rar>=4) flashScreen('myth'); takeReward(S,i); sel=null;
       if(typeof clogIngest==='function') clogIngest(S.ev);
       S.ev=[]; S.floatText=[];
       if(S.phase==='combat') triggerRollAnim(); render(); saveRun(); };
@@ -1074,6 +1074,8 @@ function scEnd(){
   if(S.seedStr) row.appendChild(btn('sm ghost','COPY SEED',()=>{ try{navigator.clipboard.writeText(S.seedStr);}catch(e){} flash('Seed copied: '+S.seedStr); render(); }));
   bx.appendChild(row);
   ov.appendChild(bx);
+  if(won){ flashScreen('gold'); bigText('VICTORY','win'); }
+  else { shake(3); flashScreen('dmg'); bigText('DEFEATED','lose'); }
   setTimeout(()=>won?SFX.win():SFX.lose(),100);
   return ov;
 }
@@ -1131,7 +1133,7 @@ function scBP(){
   w.appendChild(bar);
   const un=bpUnclaimed();
   if(un.length){ const cw=el('div','trow');
-    cw.appendChild(btn('big go','CLAIM ALL ('+un.length+')',()=>{ un.forEach(bpClaim); SFX.legend(); flashScreen('gold'); render(); }));
+    cw.appendChild(btn('big go','CLAIM ALL ('+un.length+')',()=>{ un.forEach(bpClaim); SFX.passClaim(); flashScreen('gold'); render(); }));
     w.appendChild(cw); }
   const tr=el('div','bptrack');
   BP.forEach(b=>{
@@ -1152,7 +1154,7 @@ function scBP(){
       const ar=ARCH[bf.arch]; if(ar){ const tg=el('div','rarch',ar.n); tg.style.color=ar.c; c.appendChild(tg); } }
     if(b.title) c.appendChild(el('div','bpttl','TITLE: '+b.title));
     c.appendChild(el('div','bpstate',got?'CLAIMED':ready?'CLAIM':'LOCKED'));
-    if(ready){ c.onclick=()=>{ bpClaim(b); SFX.legend(); if(r.t==='face'){ flashScreen('myth'); bigText('MYTHIC',''); SFX.mythic(); } render(); }; kbAct(c); }
+    if(ready){ c.onclick=()=>{ bpClaim(b); if(r.t==='face'){ flashScreen('myth'); bigText('MYTHIC',''); SFX.mythic(); } else { SFX.passClaim(); flashScreen('gold'); } render(); }; kbAct(c); }
     tr.appendChild(c);
   });
   w.appendChild(tr);

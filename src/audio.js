@@ -39,6 +39,8 @@ const SFX={
   kill:()=>{ noise(0.2,0.28,700,0,0.5); tone(120,0.3,'square',0.24,50,0.02); },
   reroll:()=>{ noise(0.18,0.18,900,0,1); tone(500,0.1,'square',0.14,760); },
   legend:()=>{ [523,659,784].forEach((f,i)=>tone(f,0.5,'triangle',0.2,null,i*0.06)); noise(0.4,0.14,3400,0,2); },
+  levelup:()=>{ [392,494,587,784].forEach((f,i)=>tone(f,0.16,'square',0.22,null,i*0.05)); noise(0.15,0.12,2200,0,1); },
+  passClaim:()=>{ [440,554,659,880,1109].forEach((f,i)=>tone(f,0.6,'triangle',0.2,null,i*0.045)); noise(0.5,0.15,3800,0,2); },
   mythic:()=>{ [392,523,659,784,1046].forEach((f,i)=>tone(f,0.85,'triangle',0.22,null,i*0.05));
     tone(90,0.9,'sawtooth',0.26,45); noise(0.7,0.16,4200,0.05,2); },
   warn:()=>{ tone(320,0.18,'square',0.26); tone(320,0.18,'square',0.26,null,0.24); },

@@ -116,6 +116,7 @@ h1,h2,h3,h4{font-weight:700}
 .flashfx{position:fixed;inset:0;pointer-events:none;z-index:200;animation:fl .3s ease-out forwards}
 .flashfx.gold{background:radial-gradient(circle,#ffc85744,transparent 70%)}
 .flashfx.myth{background:radial-gradient(circle,#ff5f8f66,#b388ff22 40%,transparent 75%)}
+.flashfx.dmg{background:radial-gradient(circle,#ff6b6b44,transparent 70%)}
 /* Accessibility: "REDUCE FLASH EFFECTS" setting / OS prefers-reduced-motion —
    trade the full-viewport radial burst for a thin top-edge accent at a quarter
    of the opacity. Still reads as "something big just happened" without the
@@ -123,10 +124,13 @@ h1,h2,h3,h4{font-weight:700}
 .flashfx.low{background:none!important;border-top:6px solid;animation-name:flLow}
 .flashfx.low.gold{border-color:#ffc857}
 .flashfx.low.myth{border-color:#ff5f8f}
+.flashfx.low.dmg{border-color:#ff6b6b}
 @keyframes fl{0%{opacity:.9}100%{opacity:0}}
 @keyframes flLow{0%{opacity:.35}100%{opacity:0}}
 .bigfx{position:fixed;top:32%;left:0;right:0;text-align:center;font-size:56px;color:var(--r4);z-index:201;
   pointer-events:none;text-shadow:0 0 26px #ff5f8f,0 5px 0 #000;animation:bgf 1.1s ease-out forwards;letter-spacing:8px}
+.bigfx.win{color:var(--heal);text-shadow:0 0 26px var(--heal),0 5px 0 #000}
+.bigfx.lose{color:var(--dmg);text-shadow:0 0 26px var(--dmg),0 5px 0 #000}
 @keyframes bgf{0%{opacity:0;transform:scale(.4)}25%{opacity:1;transform:scale(1.12)}
   60%{opacity:1;transform:scale(1)}100%{opacity:0;transform:scale(1.45)}}
 
