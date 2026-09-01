@@ -418,6 +418,34 @@ small{font-size:var(--t1)}
 .achip.lead{opacity:1}
 .achip .av{font-size:var(--t2)}
 
+/* ---------- match history (reuses .colsec/.rchip/.recap/.achip/.clog-*
+   verbatim — no new color tokens, per the ui-programmer spec for this
+   feature) ---------- */
+.histlist{max-width:1050px;margin:0 auto;display:flex;flex-direction:column;gap:2px}
+.histrow{display:grid;grid-template-columns:64px 90px 1fr auto auto;gap:var(--s3);align-items:center;
+  background:var(--pan);border:1px solid var(--line);border-radius:var(--rad-sm);padding:var(--s2) var(--s3);
+  min-height:44px;cursor:pointer;text-align:left}
+.histrow:hover{background:var(--pan2)}
+.histrow.won{border-left:3px solid var(--acc)}
+.histrow.open{border-color:var(--acc)}
+.histres{font-size:var(--t2);color:var(--dmg);letter-spacing:1px}
+.histrow.won .histres{color:var(--acc)}
+.histwave{font-size:var(--t2);color:var(--dim)}
+.histdate{font-size:var(--t1);color:var(--dim)}
+.histteam{display:flex;gap:2px}
+.histspr{width:28px;height:28px;image-rendering:pixelated}
+.histarch{display:flex;gap:4px;flex-wrap:wrap;justify-content:flex-end}
+.histdetail{max-width:1050px;margin:0 auto 12px;background:var(--pan2);border:1px solid var(--line);
+  border-radius:var(--radius);padding:var(--s3)}
+.histlogbody{max-height:420px;overflow-y:auto;background:var(--pan);border:1px solid var(--line);
+  border-radius:var(--rad-sm);padding:var(--s2) var(--s3)}
+@media (max-width:899px){
+  .histrow{grid-template-columns:56px 76px 1fr;row-gap:4px}
+  .histdate{grid-column:1/-1}
+  .histteam,.histarch{grid-column:1/-1}
+  .histarch{justify-content:flex-start}
+}
+
 /* ================= COMBAT ================= */
 .combat{min-height:calc(100vh - 30px);display:flex;flex-direction:column;justify-content:center}
 .combat.frozen{filter:saturate(.4) brightness(.5)}

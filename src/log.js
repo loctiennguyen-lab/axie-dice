@@ -13,6 +13,38 @@
 const CLOG_KEY='axiedice_logopen_v1';
 let clogOpen=false;
 let clogEntries=[];          /* newest-first compiled entries */
+/* Run-scoped accumulator (Match History — design/gdd unwritten as of this
+   change, see ui.js saveRunHistory()). Unlike clogEntries (wiped every
+   clogReset(), i.e. every new wave — T15 "current combat only"), this holds
+   the FULL run's compiled log across every wave.
+   Entries pushed here are the SAME object references pushed into
+   clogEntries, not snapshots: clogRefreshDom()/clogHandleFt()/clogHandle()
+   keep mutating an entry's `.segs`/`.actor`/`.part`/`.tgt` in place as a
+   `use` -> `hit`/`ft` -> ... sequence resolves. A snapshot taken at
+   push-time (clogCreateEntry) would freeze mid-action — e.g. missing the
+   part name on a still-provisional `eact` entry, or a later "(N blocked by
+   Shield)" suffix appended after the fact. Sharing the reference means this
+   accumulator always reflects each entry's FINAL state by the time a run
+   ends and ui.js's onRunEnd() reads it — which is the only point that
+   matters, since runLogEntries is never rendered live itself.
+   The `.node` DOM reference these entries pick up (assigned in
+   clogCreateEntry/clogRefreshDom) is stripped EXPLICITLY by ui.js's
+   saveRunHistory() right before JSON.stringify — never rely on
+   JSON.stringify to drop it implicitly (a DOM node's ancestor chain isn't
+   even guaranteed to throw a clean circular-reference error). */
+let runLogEntries=[];
+/* Cap: a full 20-wave run generates comfortably under a thousand compiled
+   lines in practice; 1500 mirrors the "generous vs. realistic, blocks
+   unbounded growth" reasoning already used for MAX_ACTIONS in
+   api/submit-run.js and the clogEntries.length>400 cap just below. Oldest
+   entries are dropped first (FIFO, via shift()) so the TAIL of the run —
+   what a player actually wants to relive, especially the final blow — is
+   never the part that gets truncated. */
+const RUN_LOG_CAP=1500;
+/* Called from ui.js's startRun() — a NEW RUN boundary, not a new wave.
+   Deliberately separate from clogReset() (which runs every wave and must
+   keep leaving this accumulator untouched). */
+function clogRunReset(){ runLogEntries=[]; }
 let clogSeq=1;
 let clogTurnNo=1;
 let clogOpenEntry=null;      /* entry currently accumulating hit/ft segments */
@@ -301,6 +333,13 @@ function clogCreateEntry(e){
     const dropped=clogEntries.splice(400);
     dropped.forEach(d=>{ if(d.node&&d.node.parentNode) d.node.parentNode.removeChild(d.node); });
   }
+  /* Match History accumulator — see runLogEntries comment above. Pushed in
+     chronological (oldest-first) order via push()/shift(), the opposite of
+     clogEntries' newest-first unshift() above, because a saved run's log is
+     read top-to-bottom like a story (see ui.js scHistory()), not like a
+     live panel. */
+  runLogEntries.push(e);
+  if(runLogEntries.length>RUN_LOG_CAP) runLogEntries.shift();
   if(!clogBody) return;
   const atTop=clogBody.scrollTop<=2;
   e.node=clogBuildNode(e);

@@ -21,6 +21,25 @@ let META={...DEF_META};
 function loadMeta(){ try{ const j=localStorage.getItem(MK); if(j) META={...DEF_META,...JSON.parse(j)}; }catch(e){} }
 function saveMeta(){ META.savedAt=Date.now(); try{ localStorage.setItem(MK,JSON.stringify(META)); }catch(e){} scheduleSyncPush(); }
 
+/* ---------- MATCH HISTORY (localStorage, degrade gracefully — same pattern
+   as META above). Deliberately LOCAL-ONLY: unlike META, this is never pushed
+   through scheduleSyncPush()/api/sync-save.js. This is a scope decision, not
+   an oversight — do not "fix" it by wiring in server sync without discussing
+   scope first. Reasoning: history is purely a player-facing "what happened"
+   record (including a full battle log per run), not progression state that
+   needs cross-device continuity, and syncing it would meaningfully grow the
+   sync payload for no gameplay benefit. Could be a fast-follow later. */
+const HK='axiedice_history_v1';
+/* Cap on NUMBER OF RUNS kept, oldest evicted first. Reasoning (same class as
+   MAX_META_BYTES in api/auth.js, applied locally): each run's log is already
+   capped at RUN_LOG_CAP (1500 entries, src/log.js) so per-run size is
+   bounded; 20 runs of that bounded size is comfortably inside a typical
+   5-10MB localStorage quota even before considering that most entries are
+   short strings, not binary data. */
+const HISTORY_MAX_RUNS=20;
+function loadHistory(){ try{ const j=localStorage.getItem(HK); if(j) return JSON.parse(j); }catch(e){} return []; }
+function saveHistory(list){ try{ localStorage.setItem(HK,JSON.stringify(list)); }catch(e){} }
+
 /* ---------- ACCOUNT SYNC (design/gdd/player-accounts.md, ADR-0002) ----------
    Entirely additive to guest play: no token in localStorage = no server calls,
    META/localStorage path is unchanged. Session token cached separately from META
@@ -429,6 +448,7 @@ function render(){
   else if(screen==='collection') root.appendChild(scCollection());
   else if(screen==='vault') root.appendChild(scImportAxie());
   else if(screen==='leaderboard') root.appendChild(scLeaderboard());
+  else if(screen==='history') root.appendChild(scHistory());
   else if(screen==='account') root.appendChild(scAccount());
   else if(screen==='bp') root.appendChild(scBP());
   else if(screen==='codex') root.appendChild(scCodex());
@@ -547,6 +567,7 @@ function scMenu(){
   refGrid.appendChild(menuTile('CODEX','how to play',()=>{ screen='codex'; render(); }));
   refGrid.appendChild(menuTile('VAULT',(META.vault||[]).length+'/'+VAULT_MAX+' imported',()=>{ screen='vault'; render(); }));
   refGrid.appendChild(menuTile('LEADERBOARD','Ranked Run scores',()=>{ screen='leaderboard'; render(); loadLeaderboard(); }));
+  refGrid.appendChild(menuTile('HISTORY',loadHistory().length+' runs',()=>{ screen='history'; render(); }));
   refGroup.appendChild(refGrid);
   groups.appendChild(refGroup);
 
@@ -755,6 +776,10 @@ function hashSeed(str){ let h=2166136261; for(let i=0;i<str.length;i++){ h^=str.
 function logAction(fn,args){ if(S&&S.actionLog) S.actionLog.push({fn,args}); }
 
 function startRun(){
+  // Match History (src/log.js runLogEntries): reset at the NEW RUN boundary,
+  // not per-wave (clogReset() below/in scMap stays wave-scoped) — see
+  // log.js's runLogEntries comment for why this is a separate accumulator.
+  if(typeof clogRunReset==='function') clogRunReset();
   const seed = pickSeed? hashSeed(pickSeed) : (Math.random()*1e9)|0;
   const P=META.perks||{};
   /* Ranked Run (leaderboard-eligible): zero every META-derived bonus so a
@@ -1205,7 +1230,41 @@ function onRunEnd(){
   S.seen.relics.forEach(r=>{ if(!META.relics.includes(r)) META.relics.push(r); });
   if(S.phase==='won'){ META.wins++; if(S.asc>=META.ascMax&&META.ascMax<10) META.ascMax=Math.min(10,S.asc+1); }
   S.xpGain=runXp(S,S.phase==='won'); META.xp+=S.xpGain;
-  saveMeta(); clearRun();
+  saveMeta();
+  saveRunHistory(); // reads S — must run before clearRun() discards it
+  clearRun();
+}
+/* ---------- MATCH HISTORY entry (see HK comment above for local-only scope
+   decision). Runs once per finished (won OR lost, including an ABANDON RUN
+   — see scSettings' ABANDON RUN button, which just sets S.phase='lost' and
+   calls onRunEnd()) run, before S is discarded. */
+function saveRunHistory(){
+  // Same selection logic as archStrip() (top archScore(S) entries by score,
+  // ties broken by score order) — do not recompute this differently.
+  const sc=archScore(S);
+  const archetypes=Object.keys(sc).filter(k=>sc[k]>0).sort((a,b)=>sc[b]-sc[a]).slice(0,4).map(k=>({key:k,score:sc[k]}));
+  const entry={
+    ts:Date.now(), won:S.phase==='won', mode:S.mode, asc:S.asc, ranked:!!S.ranked,
+    wave:S.step, len:S.len,
+    stats:{dmg:S.stat.dmg,taken:S.stat.taken,maxHit:S.stat.maxHit,kills:S.stat.kills,turns:S.stat.turns},
+    shards:S.shards, xp:S.xpGain,
+    team:S.roster.map(e=>{ const u=buildUnit(e,S); return {n:u.n,cls:u.cls,tier:u.tier,artIdx:u.artIdx,die:u.die.map(faceText)}; }),
+    relics:S.relics.map(id=>RELIC_BY_ID[id]).filter(Boolean).map(r=>({n:r.n,rar:r.rar,d:r.d})),
+    archetypes,
+    // Explicit strip of DOM/bookkeeping fields (`node`,`id`,`uid`,`provisional`,
+    // `orphan`) before persisting — see src/log.js runLogEntries comment:
+    // entries share object references with the live clogEntries panel while
+    // a run is in progress, so this mapping is the actual "plain-data copy"
+    // boundary, done once here rather than trusted to JSON.stringify.
+    log:(typeof runLogEntries!=='undefined'?runLogEntries:[]).map(e=>({
+      kind:e.kind, text:e.text, fallback:e.fallback, actor:e.actor, part:e.part, tgt:e.tgt,
+      segs:e.segs?e.segs.map(g=>({txt:g.txt,cls:g.cls,ic:g.ic})):e.segs,
+      deathTag:e.deathTag}))
+  };
+  const list=loadHistory();
+  list.unshift(entry);
+  if(list.length>HISTORY_MAX_RUNS) list.length=HISTORY_MAX_RUNS;
+  saveHistory(list);
 }
 function flash(t){ msg=t; }
 
@@ -1351,6 +1410,113 @@ function scLeaderboard(){
   }
   w.appendChild(btn('','BACK',()=>{ screen='menu'; render(); }));
   return w;
+}
+
+/* ================= MATCH HISTORY (view) =================
+   Local-only (see HK/saveRunHistory() comments in the META/onRunEnd section
+   above). Rows are inline-expand (accordion), not a separate screen state —
+   keeps Esc/ESC_TO_MENU_SCREENS simple (a second `screen` value for the
+   detail view would need its own back-target and Esc handling; an expand
+   toggle needs neither). */
+let historyExpanded=new Set(); /* Set of entry.ts (unique per run) currently expanded */
+function scHistory(){
+  const w=el('div','screen menu history');
+  w.appendChild(el('h1','logo sm','HISTORY'));
+  const list=loadHistory();
+  w.appendChild(el('div','sub',list.length+' run'+(list.length===1?'':'s')+' recorded on this device'));
+  if(!list.length){
+    w.appendChild(el('div','iempty','No runs yet — finish a run to see it here.'));
+  } else {
+    const toolrow=el('div','trow');
+    toolrow.appendChild(btn('sm danger','CLEAR HISTORY',()=>{
+      if(confirm('Clear all match history? This cannot be undone.')){ saveHistory([]); historyExpanded.clear(); render(); }
+    }));
+    w.appendChild(toolrow);
+    const tbl=el('div','histlist');
+    list.forEach(r=>{
+      const open=historyExpanded.has(r.ts);
+      const row=el('div','histrow'+(r.won?' won':'')+(open?' open':''));
+      row.appendChild(el('div','histres',r.won?'WIN':'LOSS'));
+      row.appendChild(el('div','histwave','Wave '+r.wave+'/'+r.len));
+      row.appendChild(el('div','histdate',new Date(r.ts).toLocaleString()));
+      const portraits=el('div','histteam');
+      (r.team||[]).forEach(u=>{ const im=el('img','spr histspr'); im.src=sprOf(u.cls,u.artIdx); im.title=u.n+' T'+u.tier; portraits.appendChild(im); });
+      row.appendChild(portraits);
+      const chips=el('div','histarch');
+      (r.archetypes||[]).slice(0,2).forEach(a=>{ const def=ARCH[a.key]; if(!def) return;
+        const c=el('span','achip'); c.style.setProperty('--ac',def.c);
+        c.appendChild(ico(ARCH_IC[a.key]||'buff','ai',def.c)); c.appendChild(el('span','an',def.n));
+        chips.appendChild(c); });
+      row.appendChild(chips);
+      row.onclick=()=>{ SFX.ui(); if(open) historyExpanded.delete(r.ts); else historyExpanded.add(r.ts); render(); };
+      kbAct(row);
+      tbl.appendChild(row);
+      if(open) tbl.appendChild(histDetail(r));
+    });
+    w.appendChild(tbl);
+  }
+  w.appendChild(btn('','BACK',()=>{ screen='menu'; render(); }));
+  return w;
+}
+/* Dedicated small renderers from the saved plain data, rather than forcing
+   partyStrip()/archStrip() (which read the live `S`/`buildUnit()` engine
+   state) onto a lightweight fake context — the saved shape (already
+   display-ready: `u.n/u.cls/u.tier/u.artIdx/u.die` as strings, `r.n/r.rar/r.d`)
+   doesn't line up with what those functions expect closely enough to reuse
+   cleanly. archScore() IS reused (in saveRunHistory()) for the archetype
+   *selection*; only the presentational chip here is a small local copy of
+   archStrip()'s chip markup. */
+function histDetail(r){
+  const d=el('div','histdetail');
+  const tsec=el('div','colsec'); tsec.appendChild(el('h3',null,'TEAM'));
+  const tgrid=el('div','pstrip');
+  (r.team||[]).forEach(u=>{
+    const c=el('div','psc'); c.style.setProperty('--cc',CLASS_COLOR[u.cls]||'#888');
+    const im=el('img','spr'); im.src=sprOf(u.cls,u.artIdx); c.appendChild(im);
+    c.appendChild(el('div','nm',u.n+' T'+u.tier));
+    const dv=el('div','minidie');
+    (u.die||[]).forEach(fx=>dv.appendChild(el('span','mf',fx)));
+    c.appendChild(dv);
+    tgrid.appendChild(c);
+  });
+  tsec.appendChild(tgrid);
+  d.appendChild(tsec);
+
+  const rsec=el('div','colsec'); rsec.appendChild(el('h3',null,'RELICS'));
+  const rl=el('div','relicstrip');
+  if(!r.relics||!r.relics.length) rl.appendChild(el('div','nothing','no relics'));
+  (r.relics||[]).forEach(rr=>{ const c=el('div','rchip r'+rr.rar,rr.n); c.title=rr.d; rl.appendChild(c); });
+  rsec.appendChild(rl);
+  d.appendChild(rsec);
+
+  const ssec=el('div','colsec'); ssec.appendChild(el('h3',null,'STATS'));
+  const rc=el('div','recap');
+  const mk=(k,v)=>{ const c=el('div','rcstat'); c.appendChild(el('div','rv',String(v))); c.appendChild(el('div','rk',k)); return c; };
+  const st=r.stats||{};
+  rc.appendChild(mk('Damage dealt',st.dmg||0));
+  rc.appendChild(mk('Damage taken',st.taken||0));
+  rc.appendChild(mk('Biggest hit',st.maxHit||0));
+  rc.appendChild(mk('Enemies killed',st.kills||0));
+  rc.appendChild(mk('Turns played',st.turns||0));
+  rc.appendChild(mk('Shard earned',r.shards||0));
+  ssec.appendChild(rc);
+  d.appendChild(ssec);
+
+  const lsec=el('div','colsec'); lsec.appendChild(el('h3',null,'BATTLE LOG'));
+  const log=r.log||[];
+  if(!log.length){ lsec.appendChild(el('div','iempty','No log recorded for this run.')); }
+  else {
+    // Oldest-first, top-to-bottom — runLogEntries (src/log.js) accumulates in
+    // that chronological order (push, not unshift), the opposite of the live
+    // panel's newest-first convention, because a finished run's log reads
+    // like a story here, not like an in-progress feed. clogBuildNode() is the
+    // exact same renderer the live panel uses, reused verbatim.
+    const body=el('div','histlogbody');
+    log.forEach(e=>body.appendChild(clogBuildNode(e)));
+    lsec.appendChild(body);
+  }
+  d.appendChild(lsec);
+  return d;
 }
 
 /* ================= ACCOUNT (register/login/sync) ================= */
@@ -1544,7 +1710,7 @@ function tutOverlay(){
    Esc backs out to the main menu from these, same as clicking that button.
    Deliberately excludes 'combat' (Esc there only deselects, never leaves a
    run) and 'menu'/'team' (no single obvious "back" destination). */
-const ESC_TO_MENU_SCREENS=['codex','collection','unlocks','vault','guide','bp','leaderboard','account'];
+const ESC_TO_MENU_SCREENS=['codex','collection','unlocks','vault','guide','bp','leaderboard','account','history'];
 document.addEventListener('keydown',e=>{
   if(e.key==='Escape'){
     if(modal){ modal=null; render(); return; }
