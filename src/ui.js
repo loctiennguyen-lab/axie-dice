@@ -146,15 +146,22 @@ function paintDieFace(d,u,fi,temp){
   d.className=d.className.replace(/t_\w+/g,'')+' t_'+f.t;
   d.dataset.r=f.r||0;
   d.innerHTML='';
-  if(hasKw(f,'heavy')) d.appendChild(el('div','heavytag','HEAVY'));
+  /* §3.4 — merge the heavy banner + rarity dot into one top accent strip:
+     3px-tall, full-width, coloured by rarity (data-r drives the CSS colour,
+     same --r1..r4 mapping as before); a small weight glyph insets at the
+     left edge only when the face has the `heavy` keyword. */
+  const strip=el('div','ractag'); if(hasKw(f,'heavy')) strip.appendChild(el('span','ractag-hv','⚖'));
+  d.appendChild(strip);
   d.appendChild(el('div','dp',f.name||PARTN[f.p]||''));
   d.appendChild(ico(FT_IC[f.t],'di'));
   if(f.t==='blank') d.appendChild(el('div','dv blanktxt','BLANK'));
   else if(f.v>0||f.t==='dmg') d.appendChild(el('div','dv',String(temp?f.v:faceValue(S,u,fi))));
-  const kws=f.k.filter(k=>k!=='cantrip'&&k!=='heavy');
+  /* §3.3 interim fix — compact die face only shows combat-decision-critical
+     keywords (aoe/heavy/exec); the rest (multi/chain/pierce/cleave/cantrip)
+     remain visible via the existing unit-inspect modal (modal='unit'). */
+  const kws=f.k.filter(k=>k==='aoe'||k==='exec');
   if(kws.length) d.appendChild(el('div','dk',kws.map(kwText).join(' · ')));
   if(!temp&&u.critNow) d.appendChild(el('div','critbadge','CRIT x'+rcritMult()));
-  if(f.r>=1) d.appendChild(el('div','rartag','r'+f.r,''));
 }
 function rcritMult(){ let m=2; for(const id of S.relics){ const r=RELIC_BY_ID[id]; if(r&&r.critMult&&r.critMult>m)m=r.critMult; } return m; }
 
@@ -627,7 +634,7 @@ function unitCard(u){
   const pct = u.maxHp ? u.hp/u.maxHp : 0;
   const hpState = pct<=0.25 ? ' crit' : pct<=0.50 ? ' low' : '';
   const bar=el('div','hpbar'+hpState);
-  const num=el('div','hpnum'); num.appendChild(el('span',null,'HP'));
+  const num=el('div','hpnum');
   num.appendChild(el('b',null,u.hp+'/'+u.maxHp)); bar.appendChild(num);
   const track=el('div','hptrack');
   bar.setAttribute('role','progressbar');
@@ -644,11 +651,26 @@ function unitCard(u){
     const sl=el('span'); sl.appendChild(ico('shield','t')); sl.appendChild(el('span','stv',String(u.shield)));
     sb.appendChild(sl); c.appendChild(sb); }
   const row=el('div','stats');
-  for(const k in ST_IC){ const v=u.st[k];
-    if(v>0){ const sp=el('span','st '+k); sp.appendChild(ico(ST_IC[k],'t'));
-      if(k!=='stun'&&k!=='undying') sp.appendChild(el('span','stv',String(v)));
-      sp.title=ST_NAME[k]+' '+v; row.appendChild(sp); } }
-  if(u.frozen){ const sp=el('span','st frz'); sp.appendChild(ico('freeze','t')); sp.title='Frozen: cannot be rerolled'; row.appendChild(sp); }
+  /* §3.2 — cap visible status chips: priority-sort (stun/undying > poison/burn >
+     everything else), render top 3 + a "+N" overflow chip whose title= lists
+     the rest (reuses the existing per-chip title= tooltip pattern). */
+  const stChips=[];
+  for(const k in ST_IC){ const v=u.st[k]; if(v>0) stChips.push({k,v}); }
+  if(u.frozen) stChips.push({k:'frz',v:0,frozen:true});
+  const stPriority=k=>(k==='stun'||k==='undying')?0:(k==='poison'||k==='burn')?1:2;
+  stChips.sort((a,b)=>stPriority(a.k)-stPriority(b.k));
+  const shown=stChips.slice(0,3), overflow=stChips.slice(3);
+  shown.forEach(({k,v,frozen})=>{
+    if(frozen){ const sp=el('span','st frz'); sp.appendChild(ico('freeze','ii')); sp.title='Frozen: cannot be rerolled'; row.appendChild(sp); return; }
+    const sp=el('span','st '+k); sp.appendChild(ico(ST_IC[k],'ii'));
+    if(k!=='stun'&&k!=='undying') sp.appendChild(el('span','stv',String(v)));
+    sp.title=ST_NAME[k]+' '+v; row.appendChild(sp);
+  });
+  if(overflow.length){
+    const more=el('span','st more','+'+overflow.length);
+    more.title=overflow.map(({k,v,frozen})=>frozen?'Frozen: cannot be rerolled':(ST_NAME[k]+' '+v)).join(', ');
+    row.appendChild(more);
+  }
   c.appendChild(row);
   if(isE&&u.hp>0&&u.intent){
     const f=u.intent.face, v=faceValue(S,u,u.rolled);

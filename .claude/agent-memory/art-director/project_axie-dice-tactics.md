@@ -38,3 +38,21 @@ Other art findings from that review, not yet actioned:
 
 See [[reference_icon-system-pattern]] for the technical shape of the icon
 system these fixes must slot into.
+
+**2026-09-01 update — third-round UI complaint, escalated to a full redesign spec.**
+Two prior rounds of point-fixes (layout bugs, contrast, class-tint gradient, acting-unit glow)
+were not enough — user confirmed via survey the issue is systemic across all four of
+layout/spacing, information density, color identity, and typography at once. Wrote
+`docs/art/visual-redesign-2026-09-01.md`, direction name "Lunacia Void": recolor the neutral
+scale (`--bg/--pan*/--line*`) from blue-gray to deep violet-black (no new accent token — every
+hue on the wheel is already claimed by semantic/rarity/class colors, see the hue-collision audit
+in that file), keep `--acc` gold as the sole brand/hero color (pops harder on a violet backdrop),
+add a display-only font (`--font-brand`, recommend "Chakra Petch" self-hosted as base64 WOFF2 —
+keeps the zero-network-dependency rule) for logo/screen-titles only, keep JetBrains Mono for all
+data/body text, fix 6 selectors using `--t2` for what should be `--t3` prose per the token's own
+documented role, and a combat-card density pass (cap status chips to top-3+overflow, convert
+spelled-out die keywords to icon chips via a new `KW_IC` map, merge the heavy-tag/rarity-dot
+overlays into one top accent strip, drop the redundant "HP" text label, grow `--unit-w`/`--die-w`
+modestly at ≥1200px only). Also flagged (not fixed): `RAR_COL` (data.js) / `--r0..r4` (CSS) are
+still two hand-kept copies of the same 5 values, still in sync today but a real unification task.
+See [[feedback_orchestrator-collaboration-mode]] for how this task was delegated.
