@@ -172,9 +172,7 @@ function clogCloseOpen(){
   if(!clogOpenEntry) return;
   const e=clogOpenEntry; clogOpenEntry=null; clogPendingShield=null;
   if(e.provisional&&!e.segs.length) e.fallback=e.actor+' acts (no effect)';
-  clogEntries.unshift(e);
-  if(clogEntries.length>400) clogEntries.length=400;
-  clogAppendDom(e);
+  clogRefreshDom(e);
   clogQueueSR(clogEntryText(e));
 }
 function clogEnsureOpen(e,actorSide){
@@ -187,37 +185,42 @@ function clogEnsureOpen(e,actorSide){
      see report for this flagged decision. */
   const name=clogUnitName(e.uid);
   clogOpenEntry={id:clogSeq++,kind:'line',actor:name,part:null,tgt:null,uid:e.uid,segs:[],provisional:false,orphan:true};
+  clogCreateEntry(clogOpenEntry);
 }
 function clogHandle(e){
   if(clogFrozen) return;
   if(e.t==='eact'){
     clogCloseOpen();
     clogOpenEntry={id:clogSeq++,kind:'line',actor:clogUnitName(e.uid),part:null,tgt:null,uid:e.uid,segs:[],provisional:true};
+    clogCreateEntry(clogOpenEntry);
   } else if(e.t==='use'){
     if(clogOpenEntry&&clogOpenEntry.provisional&&clogOpenEntry.uid===e.uid){
       const up=clogOpenFromUse(e);
       clogOpenEntry.actor=up.actor; clogOpenEntry.part=up.part; clogOpenEntry.tgt=up.tgt; clogOpenEntry.provisional=false;
-    } else { clogCloseOpen(); clogOpenEntry=clogOpenFromUse(e); }
+      clogRefreshDom(clogOpenEntry);
+    } else { clogCloseOpen(); clogOpenEntry=clogOpenFromUse(e); clogCreateEntry(clogOpenEntry); }
   } else if(e.t==='hit'){
     clogEnsureOpen(e);
     const seg={ic:'dmg',cls:'dmg',txt:(e.crit?'CRIT ':'')+e.v+' dmg'};
     clogOpenEntry.segs.push(seg);
     clogPendingShield={uid:e.uid,seg};
+    clogRefreshDom(clogOpenEntry);
   } else if(e.t==='ft'){
     clogHandleFt(e);
   } else if(e.t==='death'){
     clogEnsureOpen(e);
     clogOpenEntry.segs.push({ic:null,cls:'dead',txt:clogUnitName(e.uid)+' ☠ defeated'});
     clogOpenEntry.deathTag=true;
+    clogRefreshDom(clogOpenEntry);
   } else if(e.t==='phase'){
     clogCloseOpen();
     const e2={id:clogSeq++,kind:'ban',text:'⚡ '+clogUnitName(e.uid)+' enters Phase 2'};
-    clogEntries.unshift(e2); clogAppendDom(e2); clogQueueSR(e2.text);
+    clogCreateEntry(e2); clogQueueSR(e2.text);
   } else if(e.t==='tick'){
     clogCloseOpen();
     clogTurnNo++;
     const d={id:clogSeq++,kind:'div',text:'— Turn '+clogTurnNo+' —'};
-    clogEntries.unshift(d); clogAppendDom(d);
+    clogCreateEntry(d);
   }
   /* 'hp' and 'resonance' are intentionally not compiled into their own line:
      'hp' is a bar-sync signal with no info the accompanying `ft` doesn't
@@ -247,6 +250,7 @@ function clogHandleFt(e){
   } else {
     clogOpenEntry.segs.push({ic:null,cls:null,txt:e.txt});
   }
+  clogRefreshDom(clogOpenEntry);
 }
 function clogIngest(evs){
   if(!evs||!evs.length||clogFrozen) return;
@@ -285,11 +289,28 @@ function clogBuildNode(e){
   }
   return n;
 }
-function clogAppendDom(e){
+/* Entries are pushed into clogEntries AND rendered the moment they're
+   created (not deferred until closed) — the spec requires the log to
+   "append synchronously and instantly", including the currently-in-progress
+   action, not just fully-resolved ones. clogRefreshDom() then keeps that
+   same DOM node in sync in place as more hit/ft/death segments arrive,
+   without re-inserting or re-scrolling (it's already the newest/topmost). */
+function clogCreateEntry(e){
+  clogEntries.unshift(e);
+  if(clogEntries.length>400){
+    const dropped=clogEntries.splice(400);
+    dropped.forEach(d=>{ if(d.node&&d.node.parentNode) d.node.parentNode.removeChild(d.node); });
+  }
   if(!clogBody) return;
   const atTop=clogBody.scrollTop<=2;
-  const node=clogBuildNode(e);
-  clogBody.insertBefore(node,clogBody.firstChild);
+  e.node=clogBuildNode(e);
+  clogBody.insertBefore(e.node,clogBody.firstChild);
   if(atTop){ clogBody.scrollTop=0; clogAtTop=true; }
-  else { clogBody.scrollTop+=node.offsetHeight||0; clogUnseen++; clogAtTop=false; clogRenderUnread(); }
+  else { clogBody.scrollTop+=e.node.offsetHeight||0; clogUnseen++; clogAtTop=false; clogRenderUnread(); }
+}
+function clogRefreshDom(e){
+  if(!e||!e.node||!e.node.parentNode) return;
+  const fresh=clogBuildNode(e);
+  e.node.parentNode.replaceChild(fresh,e.node);
+  e.node=fresh;
 }
