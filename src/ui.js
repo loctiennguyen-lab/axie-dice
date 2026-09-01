@@ -246,7 +246,7 @@ function scMenu(){
   return w;
 }
 function scUnlocks(){
-  const w=el('div','screen menu');
+  const w=el('div','screen menu unlocks');
   w.appendChild(el('h1','logo sm','UNLOCKS'));
   w.appendChild(el('div','sub',META.shards+' GENE SHARD'));
   const g=el('div','unlockgrid');
@@ -264,17 +264,22 @@ function scUnlocks(){
   return w;
 }
 function scCollection(){
-  const w=el('div','screen menu');
+  const w=el('div','screen menu collection');
   w.appendChild(el('h1','logo sm','COLLECTION'));
   w.appendChild(el('div','sub',`Faces ${META.faces.length}/${FACE_POOL.length} · Relics ${META.relics.length}/${RELICS.length} · Bosses ${META.bosses.length}/${BOSSES.length}`));
-  const mk=(title,items,total)=>{
+  const mk=(title,items,total,emptyMsg)=>{
     const s=el('div','colsec'); s.appendChild(el('h3',null,title+'  ('+items.length+'/'+total+')'));
-    const g=el('div','colgrid'); items.forEach(x=>{ const c=el('div','citem'+(x.r!=null?' r'+x.r:'')); c.textContent=x.n; g.appendChild(c); });
+    const g=el('div','colgrid');
+    if(!items.length) g.appendChild(el('div','iempty',emptyMsg));
+    items.forEach(x=>{ const c=el('div','citem'+(x.r!=null?' r'+x.r:'')); c.textContent=x.n; g.appendChild(c); });
     s.appendChild(g); return s;
   };
-  w.appendChild(mk('RELIC', RELICS.filter(r=>META.relics.includes(r.id)).map(r=>({n:r.n,r:r.rar})), RELICS.length));
-  w.appendChild(mk('DIE FACES', FACE_POOL.filter(f=>META.faces.includes(faceText(f))).map(f=>({n:faceText(f),r:f.r})), FACE_POOL.length));
-  w.appendChild(mk('BOSSES DEFEATED', BOSSES.filter(b=>META.bosses.includes(b.k)).map(b=>({n:b.n,r:4})), BOSSES.length));
+  w.appendChild(mk('RELIC', RELICS.filter(r=>META.relics.includes(r.id)).map(r=>({n:r.n,r:r.rar})), RELICS.length,
+    'No relics yet — you get them from rewards, the Merchant and Treasure nodes.'));
+  w.appendChild(mk('DIE FACES', FACE_POOL.filter(f=>META.faces.includes(faceText(f))).map(f=>({n:faceText(f),r:f.r})), FACE_POOL.length,
+    'No die faces collected yet — every Gene Mutation reward unlocks a new one.'));
+  w.appendChild(mk('BOSSES DEFEATED', BOSSES.filter(b=>META.bosses.includes(b.k)).map(b=>({n:b.n,r:4})), BOSSES.length,
+    'No bosses defeated yet — bosses appear on waves marked BOSS on the map.'));
   w.appendChild(btn('','BACK',()=>{ screen='menu'; render(); }));
   return w;
 }
@@ -421,7 +426,10 @@ function track(withCtl){
     n.title='Wave '+i+(cl==='boss'?' · Boss':cl==='elite'?' · Elite':''); t.appendChild(n);
   }
   const r=el('div','trk-right');
-  if(withCtl) r.appendChild(el('div','turn','TURN '+S.turn));
+  // S.turn only exists once startCombat() has run; on the map screen (e.g. the
+  // forced wave-1 battle node) combat has not started yet, so fall back to 1
+  // rather than ever rendering the literal string "undefined".
+  if(withCtl) r.appendChild(el('div','turn','TURN '+(S.turn||1)));
   if(withCtl){ const rr=el('div','rr'); rr.appendChild(ico('reroll','t'));
     rr.appendChild(el('span','rrn',S.rerolls+'/'+S.maxRerolls)); rr.title='Rerolls left this turn'; r.appendChild(rr); }
   const shw=el('span','shards'); shw.appendChild(ico('shard','t')); shw.appendChild(el('span',null,' '+S.shards)); r.appendChild(shw);
@@ -496,7 +504,21 @@ function scCombat(frozen){
   /* party — mỗi Axie ghép chung 1 cột với đúng die của nó (2026-09-01: trước đây
      là 2 hàng riêng, chỉ thẳng cột nhờ trùng width tình cờ; giờ ghép rõ ràng bằng cấu trúc) */
   const pz=el('div','zone party');
-  S.party.forEach(u=>{ const col=el('div','pcol'); col.appendChild(unitCard(u)); col.appendChild(dieBox(u)); pz.appendChild(col); });
+  /* Formation Resonance (design/quick-specs/formation-resonance-2026-09-01.md):
+     hiển thị cặp "đang mở" TRƯỚC khi người chơi click — bắt buộc theo pillar
+     minh bạch triệt để. cols[i] tương ứng roster/pos i cho các Axie thật vì
+     s.party = roster.map(buildUnit) rồi mới push token ở cuối. */
+  const resPairs=resonancePairs(S);
+  S.party.forEach((u,i)=>{
+    const col=el('div','pcol'); col.appendChild(unitCard(u)); col.appendChild(dieBox(u)); pz.appendChild(col);
+    const pair=resPairs.find(p=>p.posA===i);
+    if(pair){
+      const link=el('div','reslink');
+      link.appendChild(ico(FT_IC[pair.type],'ii'));
+      link.title='Formation Resonance: cặp Axie liền kề cùng roll mặt '+pair.type+' — Axie thực thi SAU nhận +'+Math.round((RESONANCE.mult-1)*100)+'%.';
+      pz.appendChild(link);
+    }
+  });
   w.appendChild(pz);
   /* bottom */
   const bb=el('div','bottombar');
@@ -948,11 +970,22 @@ let cxTab='basic', cxFilter='';
 function cxH(t){ return el('h4','cxh',t); }
 function cxP(html){ const d=el('div','cxp'); d.innerHTML=html; return d; }
 function cxTable(head,rows,cls){
+  // Column count must always match head.length: the grid template is derived
+  // from the real number of columns instead of a hand-matched CSS class, so a
+  // 3- or 4-column row can never overflow into the next row's first column
+  // (that mismatch used to make a row's last cell visually collide with the
+  // following row, e.g. the CLASS/PASSIVE/EFFECT table).
+  const n=head.length;
+  const gtc = n<=2 ? '150px 1fr' : '130px repeat('+(n-1)+',1fr)';
   const t=el('div','cxtable '+(cls||''));
-  const h=el('div','cxtr cxhead'); head.forEach(x=>h.appendChild(el('div','cxtd',x))); t.appendChild(h);
-  rows.forEach(r=>{ const tr=el('div','cxtr');
-    r.forEach(c=>{ const d=el('div','cxtd'); if(typeof c==='string') d.textContent=c; else if(c) d.appendChild(c); tr.appendChild(d); });
-    t.appendChild(tr); });
+  const mkRow=(cells,isHead)=>{
+    const tr=el('div','cxtr'+(isHead?' cxhead':''));
+    tr.style.gridTemplateColumns=gtc;
+    cells.forEach(c=>{ const d=el('div','cxtd'); if(typeof c==='string') d.textContent=c; else if(c) d.appendChild(c); tr.appendChild(d); });
+    return tr;
+  };
+  t.appendChild(mkRow(head,true));
+  rows.forEach(r=>t.appendChild(mkRow(r,false)));
   return t;
 }
 const chip=(txt,col)=>{ const s2=el('span','cchip',txt); if(col){ s2.style.borderColor=col; s2.style.color=col; } return s2; };
@@ -994,7 +1027,7 @@ const CX_BODY={
   d.appendChild(cxH('A TURN IN COMBAT'));
   d.appendChild(cxTable(['STEP','WHAT HAPPENS'],[
     [chip('1 · ROLL','#ffd76a'),'All five of your dice and every enemy die roll at once. Whatever an enemy rolls is printed on its card, so its intent is public.'],
-    [chip('2 · REROLL','#5fb8ff'),'Mark the dice you want to reroll using the small button on each one, then press REROLL. Mark nothing and every die is rerolled. You get one reroll per turn by default.'],
+    [chip('2 · REROLL','#5fb8ff'),'Mark the dice you want to reroll using the small button on each one, then press REROLL. Mark nothing and every die is rerolled. You get two rerolls per turn by default.'],
     [chip('3 · ACT','#66e08a'),'Click a die then click a target, or drag it straight onto the target. Order is up to you. Ctrl+Z undoes anything.'],
     [chip('4 · END TURN','#ff5f5f'),'Enemies act out exactly the intent they showed, one at a time. Then status effects such as Poison, Burn and Regen tick.'],
   ]));

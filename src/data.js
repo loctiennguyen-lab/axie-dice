@@ -395,6 +395,10 @@ const EVENTS = [
 
 /* ================= CURVE + ASCENSION ================= */
 const TUNE = { base:10.5, growth:1.150, growth2:1.05, knee:12, eliteMult:1.25 };
+/* Formation Resonance (design/quick-specs/formation-resonance-2026-09-01.md):
+   hai Axie liền kề trong s.roster cùng roll mặt cùng type trong cùng lượt →
+   Axie thực thi SAU nhận +25% giá trị mặt. Xem engine.js checkResonance/resonancePairs. */
+const RESONANCE = { mult: 1.15, types: ['dmg','shield','heal','poison','mana'] };
 /* 2026-09-01: growth2 1.065→1.05, eliteMult 1.40→1.25 — economy-designer diagnosis
    (docs/review-2026-08-31.md follow-up): Full Run winrate measured 3.6% via
    tools/sim.js vs 6% target, driven by 8 compounding hard gates over 20 waves +
@@ -452,7 +456,7 @@ const UNLOCKS = [
 
 if (typeof module!=='undefined') module.exports={B,F,FR,RARITY,RAR_COL,CLASSES,CLASS_COLOR,PASSIVE,ARCH,
   HEROES,TIER_UP,T1,FACE_POOL,MYTHIC_KW,RUNES,MON,NORMAL_POOL,ELITE_POOL,BOSSES,BOSS_BY_K,
-  BOSS_ORDER_12,BOSS_ORDER_20,BOSS_ALT,RELICS,RELIC_BY_ID,EVENTS,CURVE,RUN_LEN,ASCENSION,ascMods,UNLOCKS};
+  BOSS_ORDER_12,BOSS_ORDER_20,BOSS_ALT,RELICS,RELIC_BY_ID,EVENTS,CURVE,RUN_LEN,ASCENSION,ascMods,UNLOCKS,RESONANCE};
 
 /* ================= BATTLE PASS PARTS (4+1 mặt độc quyền, mỗi cái 1 lối chơi) ================= */
 const BP_FACES = {

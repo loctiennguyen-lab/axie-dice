@@ -78,7 +78,7 @@ function aiNode(s){
   const j = ['event','shop','treasure'].includes(s.nodes[i].type)? i : (s.nodes.findIndex(n=>['battle','elite','boss'].includes(n.type)));
   return G.chooseNode(s, j>=0? (Math.floor(ctxRnd()*100)<35? i : j) : 0);
 }
-let _seed=1; function ctxRnd(){ _seed=(_seed*1103515245+12345)&0x7fffffff; return _seed/0x7fffffff; }
+let _seed=OV.seed0||1; function ctxRnd(){ _seed=(_seed*1103515245+12345)&0x7fffffff; return _seed/0x7fffffff; }
 
 const N=+process.argv[2]||300;
 const MODE=OV.mode||'short', ASC=OV.asc||0;

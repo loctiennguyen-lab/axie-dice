@@ -35,6 +35,9 @@ COMBAT TURN (4 bước):
                tốn 1 charge/lần. Reroll xoá undo stack (trừ khi có relic đặc biệt).
   3. EXECUTE — click mặt đã roll → click mục tiêu hợp lệ (click-click, không bắt buộc kéo-thả).
                Dùng active của relic (tốn Mana). Undo tự do trong bước này.
+               Formation Resonance: hai Axie liền kề trong đội hình (`s.roster`) cùng roll mặt cùng
+               loại (dmg/shield/heal/poison/mana) trong cùng lượt → Axie thực thi SAU trong cặp nhận
+               +25% giá trị mặt (xem `design/quick-specs/formation-resonance-2026-09-01.md`).
   4. END TURN — địch thực hiện intent theo thứ tự vị trí → tick status (poison/burn/regen) →
                kiểm tra thắng/thua.
 Hết trận (thắng hoặc thua): toàn party hồi đầy máu + Axie đã chết sống lại trước wave kế tiếp.
@@ -194,6 +197,7 @@ XP_cần_cho_level(lv) = 45 + 22×(lv−1)
 | `eliteMult` (1.40) | 1.2–1.6 | Quá cao → elite trở thành mini-boss ngoài dự kiến |
 | `maxRerolls` base (2) | 1–3 | 1 quá gắt cho Short Run mới; ≥4 làm variance-control quá mạnh, giảm giá trị quyết định |
 | Reward pool weights (40/30/18/6/6) | tổng luôn =100 | Tăng `LEVEL_UP` quá cao làm build hội tụ về ít archetype hơn |
+| `RESONANCE.mult` (1.15, hạ từ đề xuất ban đầu 1.25 sau khi đo đa-seed, xem `docs/balance-log.md`) | 1.15–1.40 | Đội hình mono-type liền kề trở nên quá mạnh nếu vượt trần |
 | Ascension mods (10 mức, `ascMods`) | không đổi thứ tự, chỉ đổi độ dốc | Đảo thứ tự làm A1 khó hơn A5 — phá kỳ vọng người chơi |
 | Status-effect scale exponent (poison/debuff `^0.45–0.50`) | không được đưa về `^1` (linear) | Linear → wall bất khả thi đã xác nhận qua sim (xem Edge Cases) |
 

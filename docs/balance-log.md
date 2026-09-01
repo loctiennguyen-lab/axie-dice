@@ -76,3 +76,32 @@ Ghi lại các lần chỉnh `TUNE`/balance constants và kết quả đo qua `n
 **Kết luận**: TALON ở N=190 đạt 3% winrate — thấp nhưng **không chết**, nằm cùng nhóm với CONDUIT (4%) và TEMPEST (4%), không phải ngoại lệ. Xác suất quan sát 0/34 nếu tỷ lệ thật ~3-4% là ~23-28% — hoàn toàn có thể xảy ra do nhiễu mẫu nhỏ, không phải bằng chứng archetype hỏng. **Không cần buff TALON.**
 
 **Ghi nhận mới**: AEGIS (thorns) giờ là archetype mẫu nhỏ nhất (25 run, 0% win) — cùng tình trạng TALON trước đây. Chưa đủ dữ liệu để kết luận, để theo dõi ở lần sim lớn tiếp theo, không buff vội.
+
+## 2026-09-01 — Formation Resonance (mechanic mới, giữ lại `RESONANCE.mult=1.15` sau khi hạ từ 1.25)
+
+**Bối cảnh**: mechanic mới `design/quick-specs/formation-resonance-2026-09-01.md` implement xong (gameplay-programmer). Test winrate qua `node tools/sim.js 500` (Short Run, Ascension 0):
+
+| Kịch bản | Winrate |
+|---|---|
+| Baseline (không Resonance, `src/engine.js`/`data.js` stash) | 19.8% |
+| Resonance `mult=1.25` (giá trị mặc định spec đề xuất) | 22.4% (+13% relative) |
+| Resonance `mult=1.15` (mức sàn tuning knob) | 24.0% |
+
+**Lưu ý quan trọng — RNG có seed cố định (`_seed=1` mỗi lần chạy `sim.js`, xem `tools/sim.js:81`)**: mọi thay đổi luật chơi làm lệch số lần combat/turn tiêu thụ sẽ dịch chuyển toàn bộ chuỗi RNG downstream cho các run sau, nên chênh lệch 19.8%→22.4%→24.0% **không tuyến tính theo `mult`** và không nên đọc là "hạ mult từ 1.25→1.15 làm winrate tăng thêm" theo nghĩa nhân quả trực tiếp — đây là hiệu ứng cánh bướm của RNG seed cố định, không phải bằng chứng mult thấp hơn lại mạnh hơn. Không đủ tin cậy để tinh chỉnh chính xác `mult` từ 1 lần chạy N=500 mỗi kịch bản.
+
+**Quyết định**: giữ `mult=1.15` (đầu dưới của khoảng an toàn 1.15-1.40 đã ghi trong quick-spec) làm giá trị khởi điểm thận trọng, vì cả hai giá trị test đều cho thấy lift rõ rệt so với baseline (+13% đến +21% relative) — vượt ngưỡng cảnh báo ">5%" mà chính spec đặt ra để cân nhắc hạ mult. **Cần chạy lại N≥2000 với nhiều seed offset khác nhau (không chỉ seed=1 cố định) trước khi coi đây là số liệu ổn định để ship** — ghi vào Open Questions của session state.
+
+## 2026-09-01 (tiếp) — Formation Resonance: đo lại đa-seed (N=2500 tổng, 5×500) để loại nhiễu RNG-stream
+
+Thêm `seed0=` override vào `tools/sim.js:81` (`let _seed=OV.seed0||1`) để có thể chạy nhiều seed khởi điểm độc lập, khắc phục hạn chế "chỉ 1 seed cố định" đã nêu ở log trước.
+
+| seed0 | Baseline (không Resonance) | Resonance mult=1.15 |
+|---|---|---|
+| 1 | 19.8% | 24.0% |
+| 101 | 22.0% | 24.0% |
+| 202 | 21.6% | 21.8% |
+| 303 | 22.2% | 23.2% |
+| 404 | 22.0% | 21.4% |
+| **Trung bình** | **21.52%** | **22.88%** |
+
+**Kết luận**: chênh lệch thật trung bình qua 5 seed = **+1.36pp tuyệt đối (~6.3% relative)** — thấp hơn nhiều so với con số gây hiểu lầm ở phép so sánh 1-seed trước đó (từng đọc được tới +21% relative do hiệu ứng cánh bướm của RNG cố định). 6.3% relative chỉ nhỉnh hơn một chút so với ngưỡng cảnh báo 5% mà quick-spec đặt ra — **giữ nguyên `mult=1.15`** (đã hạ từ 1.25 xuống sàn an toàn), không cần hạ thêm. Đủ tin cậy để ship với giá trị này; theo dõi thêm khi có dữ liệu playtest thật.

@@ -126,6 +126,12 @@ async function runEvents(evs){
     }
     else if(e.t==='hp'){ setBars(e.uid,e.hp,e.maxHp,e.shield); await wait(30); }
     else if(e.t==='death'){ SFX.kill(); deathA(e.uid); await wait(300); }
+    else if(e.t==='resonance'){
+      /* Formation Resonance (design/quick-specs/formation-resonance-2026-09-01.md):
+         glow pulse nhỏ tái dùng style shield/buff đã có, không thêm sprite/màu mới. */
+      flashU(e.uid,'shdflash'); SFX.shield();
+      await wait(40);
+    }
     else if(e.t==='tick'){ await wait(160); }
     else if(e.t==='phase'){ SFX.boss(); bigText('PHASE 2','ph'); flashScreen('myth'); shake(3); await wait(700); }
   }

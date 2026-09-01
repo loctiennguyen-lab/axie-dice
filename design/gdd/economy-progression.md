@@ -305,12 +305,10 @@ HP_bonus_% = base × ownership_mult × rarity_mult, cap tại BONUS_CAP
 >
 > **Đây là pay-to-win thật, có chủ đích, không phải ngoại lệ nhỏ như §10.2a (NFT HP Bonus).** Khác với HP Bonus (chỉ +3-6.75%, có trần), việc này khoá hẳn **285/396 part khỏi người chơi free vĩnh viễn** trừ khi họ tự mua/sở hữu Axie NFT tương ứng. **Mâu thuẫn trực tiếp với D12 luật 2** ("Không bán chỉ số bằng tiền... không part mạnh hơn mua được") — cần product owner xác nhận rõ đây là **sửa đổi D12 luật 2 lần thứ hai** (lần đầu là NFT HP Bonus §10.2a), mở rộng phạm vi ngoại lệ. Ghi lại minh bạch để không ai đọc D12 rồi tưởng luật 2 vẫn còn nguyên vẹn.
 >
-> **Việc chưa quyết, cần làm rõ trước khi implement**:
-> - Giá 111 part α bằng Shard là bao nhiêu? (D10's "~400/part phẳng" áp dụng cho part nào — chỉ α, hay α được định giá riêng cao hơn vì giờ là *toàn bộ* pool free?)
-> - "Sở hữu NFT" dùng được part của nó — có cần sở hữu *đang chơi cùng lúc* (pre-select vào đội, theo §G8) hay chỉ cần sở hữu ví là đủ mở khoá vĩnh viễn vào Collection?
-> - Echo Points (§10.3, sink cuối game) gate theo "Collection đủ 192/192" — con số này giờ vô nghĩa (192 không còn là tổng catalog). Cần định nghĩa lại "Collection đầy đủ" nghĩa là gì trong mô hình mới (đủ 111 α? hay tính riêng theo phần free/NFT?).
->
-> Ba câu hỏi trên **chưa trả lời trong phiên này** — đánh dấu rõ để không ai lặng lẽ giả định.
+> **✅ Ba câu hỏi treo — đã chốt với product owner (2026-09-01, phiên tiếp theo)**:
+> - **Giá 111 part α**: **tăng lên ~700 Shard/part** (dao động 600-800 theo độ hiếm thẩm mỹ, thay cho D10 cũ "~400 phẳng" — con số cũ được tính khi 400 áp cho toàn bộ 192 part chia sẻ faucet; giờ α là 100% pool free nên cần giá cao hơn để giữ nhịp progression dài tương đương). D10 ở §10.3 cập nhật theo giá mới này.
+> - **Điều kiện dùng part NFT**: **phải pre-select vào đội hình mỗi run** — đồng bộ với §10.2a/§G8 (NFT HP Bonus cũng yêu cầu pre-select). Sở hữu ví không đủ; con Axie đó phải đang active trong đội hình run hiện tại thì 6 part thật của nó mới dùng được. Nhất quán 1 luật "pre-select" cho cả 2 ngoại lệ NFT của D12 luật 2, không có 2 định nghĩa "sở hữu" khác nhau trong cùng hệ.
+> - **Gate Echo Points**: **tách 2 thanh độc lập** — (1) Free track: đủ 111/111 part α; (2) NFT track: N/285 part NFT đang sở hữu (N = số part thật từ các Axie NFT người chơi sở hữu, đếm theo ví, không cần đang pre-select). Người chơi free đạt Tier Echo Point qua thanh (1) một mình, không bị khoá bởi việc không sở hữu NFT — giữ đúng tinh thần D12 luật 1 (không gate tiến trình cốt lõi bằng thứ chỉ mua được). Chi tiết công thức ở §10.3.
 
 ---
 
@@ -325,7 +323,7 @@ HP_bonus_% = base × ownership_mult × rarity_mult, cap tại BONUS_CAP
 
 ### 10.3 🔬 S4 — Faucet / Sink (dải khởi điểm)
 
-**✅ D10 — Giá part phẳng ~400 Shard** (dao động 350-450 theo độ hiếm *thẩm mỹ*, không theo sức mạnh).
+**✅ D10 (SỬA 2026-09-01) — Giá part α ~700 Shard** (dao động 600-800 theo độ hiếm thẩm mỹ, không theo sức mạnh). Áp dụng cho **111 part α** — pool Shard-mua-được duy nhất kể từ §10.2b. 285 part thường không có giá Shard (khoá NFT, không mua được trong game). Giá cũ 400 (khi 400 chia đều cho 192 part chung 1 faucet) không còn dùng — giữ tham khảo lịch sử ở nguyên bản diff.
 
 | Nguồn | Lượng |
 |---|---|
@@ -338,14 +336,14 @@ Trung tâm dải: **~156 Shard/run**.
 
 | Tiêu | Shard | Quy ra |
 |---|---|---|
-| Mở 1 part | ~400 | 2,6 run |
-| 1 bloodline (32 part) — *tính từ 0* | 12.800 | ~82 run ≈ 27-41 giờ |
-| 1 bloodline — **trừ 10 part khởi đầu** | 8.800 | **~56 run ≈ 19-28 giờ** |
-| Toàn bộ 192 part — *từ 0* | 76.800 | ~492 run ≈ 164-246 giờ |
-| Toàn bộ — **trừ 60 part khởi đầu** | 52.800 | **~338 run ≈ 113-169 giờ** |
+| Mở 1 part α | ~700 | 4,5 run |
+| Toàn bộ 111 part α — *từ 0* | 77.700 | ~498 run ≈ 166-249 giờ |
+| Toàn bộ — **trừ 10 part khởi đầu** | 70.700 | **~453 run ≈ 151-227 giờ** |
 | Pin / Forge / reroll | 100-200 | sink lặp lại |
 
-> ✅ **S3 — Sink đầu cuối: Echo Points (Vọng Gene), chốt 2026-09-01.** Sau khi Collection đủ 192/192 part, mở khoá **Echo Forge** (cùng màn hình với Collection Log) — đổi Shard dư lấy **Echo Point (EP)**, một counter vĩnh viễn toàn tài khoản, không giới hạn trên, không reset. EP không mua trực tiếp gì — cứ 25 EP mở 1 **Prestige Tier**: khung viền/hiệu ứng dice-trail/danh hiệu profile (tái dùng art pipeline của Mastery M4, không cần asset mới).
+> Bloodline 32-part cũ (D10 gốc, tính trên catalog 192) không còn áp dụng nguyên vẹn cho pool α 111 part — cấu trúc "bloodline" (nếu giữ) cần ánh xạ lại trên 111 part α trong lần review part-tier-system.md kế tiếp; chưa làm trong phiên này.
+
+> ✅ **S3 — Sink đầu cuối: Echo Points (Vọng Gene), chốt 2026-09-01, gate SỬA LẠI cùng ngày (2 thanh độc lập).** Sau khi **thanh Free (111/111 part α)** đủ, mở khoá **Echo Forge** (cùng màn hình với Collection Log) — đổi Shard dư lấy **Echo Point (EP)**, một counter vĩnh viễn toàn tài khoản, không giới hạn trên, không reset. Người sở hữu NFT thấy thêm **thanh NFT (N/285)** hiển thị song song (tiến độ sưu tầm phần khoá-NFT), nhưng thanh này **không phải điều kiện** để mở Echo Forge — chỉ để theo dõi/khoe, tránh việc free player bị khoá sink cuối game vì không sở hữu NFT (D12 luật 1). EP không mua trực tiếp gì — cứ 25 EP mở 1 **Prestige Tier**: khung viền/hiệu ứng dice-trail/danh hiệu profile (tái dùng art pipeline của Mastery M4, không cần asset mới).
 >
 > ```
 > cost(n)       = EP.base × EP.growth^(n−1)                      [giá Shard cho EP thứ n]
@@ -355,7 +353,7 @@ Trung tâm dải: **~156 Shard/run**.
 >
 > **Nhịp đo được** (dùng baseline ~156 Shard/run ở bảng trên): Tier 1 (25 EP) ≈ 46h chơi thêm sau khi hết 192 part · Tier 2 (50 EP) ≈ 157h · Tier 3 (75 EP) ≈ 418h · Tier 4 (100 EP) ≈ 1035h. Khoảng cách giữa các mốc giãn ~2.3-2.6× mỗi lần — đúng hình dạng cho một hệ giữ chân nhiều tháng/năm, không phải một bucket hữu hạn khác.
 >
-> **Gate**: chỉ cần Collection đủ 192/192 part (không cần Mastery M4 từng part) — kích hoạt đúng lúc Shard bắt đầu dư, không chờ hệ chậm hơn nhiều.
+> **Gate (SỬA 2026-09-01)**: chỉ cần thanh **Free đủ 111/111 part α** (không cần Mastery M4 từng part, không cần sở hữu bất kỳ NFT nào) — kích hoạt đúng lúc Shard bắt đầu dư, không chờ hệ chậm hơn nhiều, và không khoá free player khỏi sink cuối game.
 >
 > **Rào chắn P2W (bắt buộc)**: (1) Echo Rank/Tier **không được hiện trên Gauntlet leaderboard** hay bất kỳ UI matchmaking-adjacent nào — chỉ hiện ở profile cá nhân, đúng cách §12.2 đã tách Ascension khỏi winrate thô; (2) không SKU nào được tăng Shard/giờ trực tiếp hay gián tiếp (kể cả SKU tăng tốc Mastery ở §11 mục 4) — nếu không, Echo Point âm thầm biến thành làn mua-tắt-grind. (3) Moon Dust không được mua/quy đổi ra EP hoặc Shard trực tiếp — giữ đúng luật 3 của D12.
 

@@ -1,2 +1,3 @@
 - [Axie Dice combat hierarchy project context](project_axiedice_combat_hierarchy.md) — blunt PM feedback style, why hierarchy work is split from art-director's color pass
 - [Axie Dice UI rules & source locations](reference_axiedice_ui_rules.md) — where the 8 hard UI laws, design system, CSS vars, and combat-log spec live
+- [Axie Dice UX QA gate 2026-09](project_axiedice_ux_qa_gate_2026-09.md) — Collection empty-state confirmed real, Codex reroll-count desync, keyboard-only gap scope, PM does hands-on browser QA

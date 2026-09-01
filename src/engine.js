@@ -165,7 +165,7 @@ function startCombat(s,kind){
   s.enemies=genEncounter(s,kind);
   s.turn=1; s.mana=0; s.manaSpent=0; s.maxRerolls=2+(s.bonusReroll||0)+rsum(s,'rerollUp');
   s.rerolls=s.maxRerolls; s.phase='combat'; s.undo=[]; s.log=[]; s.usedActives=[]; s.floatText=[]; s.ev=[];
-  s.lastBig=null; s._firstUsed=0; s._condGiven=0;
+  s.lastBig=null; s._firstUsed=0; s._condGiven=0; s.resonanceLog=[];
   s.party.forEach(u=>{ if(u.cls==='reptile') u.st.thorns=Math.max(u.st.thorns||0,2); });
   s.enemies.forEach(e=>{ if(e.permThorns) e.st.thorns=e.permThorns; });
   if(s.mods.weaken){ const p=aliveP(s).filter(u=>!u.token); if(p.length) pick(p).st.weaken=2; }
@@ -341,23 +341,72 @@ function faceValue(s,u,fi){
     if(u.side==='p'&&rhas(s,'hiveMind')) v+=rsum(s,'hiveMind')*s.party.filter(x=>x.token&&x.hp>0).length;
   }
   if(f.t==='mana'&&u.side==='p'&&u.cls==='aqua') v+=1;
+  if(u.side==='p'&&u.resonantNow) v=Math.ceil(v*RESONANCE.mult);
   return v;
 }
 const neighborsOf=(arr,t)=>{ const i=arr.indexOf(t),o=[]; if(i>0)o.push(arr[i-1]); if(i>=0&&i<arr.length-1)o.push(arr[i+1]); return o; };
+
+/* ================= FORMATION RESONANCE ================= */
+/* design/quick-specs/formation-resonance-2026-09-01.md §Formulas 2-4 */
+function formationPos(s,u){
+  if(u.token) return -1;
+  const i=s.roster.findIndex(r=>r.uid===u.uid);
+  return i;
+}
+function findResonanceIdx(s,u,f){
+  if(u.side!=='p'||u.token) return -1;
+  if(!RESONANCE.types.includes(f.t)) return -1;
+  const pos=formationPos(s,u);
+  if(pos<0) return -1;
+  return (s.resonanceLog||[]).findIndex(e=>!e.used&&e.t===f.t&&Math.abs(e.pos-pos)===1);
+}
+function logResonanceAttempt(s,u,f,wasConsumer){
+  if(u.side!=='p'||u.token) return;
+  if(!RESONANCE.types.includes(f.t)) return;
+  if(wasConsumer) return;
+  const pos=formationPos(s,u);
+  if(pos<0) return;
+  s.resonanceLog.push({pos,t:f.t,used:false});
+}
+function resonancePairs(s){
+  const out=[];
+  const real=[];
+  s.roster.forEach((r,i)=>{
+    const u=s.party.find(p=>p.uid===r.uid);
+    if(u&&u.hp>0&&u.rolled>=0&&!u.used) real.push({pos:i,u});
+  });
+  for(let i=0;i<real.length;i++){
+    for(let j=i+1;j<real.length;j++){
+      const a=real[i], b=real[j];
+      if(Math.abs(a.pos-b.pos)!==1) continue;
+      const fa=a.u.die[a.u.rolled], fb=b.u.die[b.u.rolled];
+      if(RESONANCE.types.includes(fa.t)&&fa.t===fb.t) out.push({posA:a.pos,posB:b.pos,type:fa.t});
+    }
+  }
+  return out;
+}
 
 function execFace(s,u,tgtUid){
   const fi=u.rolled; if(fi<0||u.used) return false;
   const f=u.die[fi];
   if(f.t==='blank') return false;
+  const resIdx=findResonanceIdx(s,u,f);
+  const isResonant=resIdx>=0;
+  u.resonantNow=isResonant;
+  if(isResonant) ft(s,u,'LINK ×'+RESONANCE.mult,'buf');
   let reps = hasKw(f,'echo')?2:1;
   if(u.side==='p'&&rhas(s,'firstEcho')&&!s._firstUsed) reps=Math.max(reps,2);
   EV(s,{t:'use',uid:u.uid,side:u.side,tgt:tgtUid,aoe:hasKw(f,'aoe')||f.t==='mana'||f.t==='summon'});
   const ok=doFace(s,u,tgtUid,f,fi);
-  if(!ok) return false;
+  if(!ok){ u.resonantNow=false; return false; }
   if(u.side==='p') s._firstUsed=1;
   for(let i=1;i<reps;i++) doFace(s,u,tgtUid,f,fi,true);
   u.used=true;
+  if(isResonant) s.resonanceLog[resIdx].used=true;
+  logResonanceAttempt(s,u,f,isResonant);
+  if(isResonant) EV(s,{t:'resonance',uid:u.uid});
   if(u.side==='p'&&u.critNow) u.critNow=false;
+  u.resonantNow=false;
   return true;
 }
 function doFace(s,u,tgtUid,f,fi,isEcho){
@@ -425,7 +474,7 @@ function doFace(s,u,tgtUid,f,fi,isEcho){
 }
 
 /* ================= UNDO ================= */
-const SNAP=['party','enemies','mana','manaSpent','rerolls','usedActives','turn','stat','_firstUsed','lastBig'];
+const SNAP=['party','enemies','mana','manaSpent','rerolls','usedActives','turn','stat','_firstUsed','lastBig','resonanceLog'];
 function snap(s){ const o={}; SNAP.forEach(k=>o[k]=(s[k]===undefined?null:clone(s[k]))); return o; }
 function pushUndo(s){ s.undo.push(snap(s)); if(s.undo.length>90) s.undo.shift(); }
 function undo(s){ if(!s.undo.length) return false; const o=s.undo.pop(); SNAP.forEach(k=>s[k]=o[k]); s.ev=[]; s.floatText=[]; return true; }
@@ -507,7 +556,7 @@ function endTurn(s){
   tickStatus(s);
   if(checkEnd(s)) return;
   s.turn++; s.stat.turns++;
-  s.rerolls=s.maxRerolls; s.usedActives=[];
+  s.rerolls=s.maxRerolls; s.usedActives=[]; s.resonanceLog=[];
   s.party.forEach(u=>{ if(u.frozen) u.frozen=false; });
   rcall(s,'onTurnStart',null);
   bossTurnTraits(s);
@@ -768,4 +817,4 @@ function archScore(s){
 if(typeof module!=='undefined') module.exports={facePool,rerollRewards,mkRng,newGame,nextStep,chooseNode,startCombat,rollAll,doReroll,
   anyRerollable,playerUseDie,playerUseRelic,endTurn,undo,takeReward,genRewards,buildUnit,dieRarity,aliveP,aliveE,realP,
   byUid,faceValue,hasKw,kwVal,genEncounter,eventChoose,eventDone,genShop,shopBuy,shopDone,archScore,
-  faceText,kwText,faceArch,RELIC_BY_ID,rlist,critChance,nftHpBonusPct};
+  faceText,kwText,faceArch,RELIC_BY_ID,rlist,critChance,nftHpBonusPct,resonancePairs};
