@@ -425,6 +425,14 @@ small{font-size:var(--t1)}
 .zone{display:flex;justify-content:center;align-items:flex-end;gap:var(--zone-gap);flex-wrap:wrap}
 .zone.enemies{min-height:150px;padding-top:14px;position:relative}
 .zone.party{margin-top:22px;position:relative}
+/* Swarm builds (living Axie Eggs push the party past 5, up to 9 — see the
+   'compact' class comment in ui.js scCombat()). Shrink locally so up to 9
+   columns (9*112 + 8*8 = 1072px) fit inside #app's ~1160px content width
+   without wrapping to a hard-to-reach second row on an ordinary desktop
+   window. Values match the existing <=899px breakpoint's sizing (style.css
+   already proves that size is legible/tappable there), just applied earlier
+   based on party count instead of viewport width. */
+.zone.party.compact{--unit-w:112px;--die-w:112px;--die-h:96px;--zone-gap:8px}
 /* 2026-09-01: "vùng sáng" trung tính dưới mỗi zone — cảm giác bàn, không phải khoảng trống.
    Chỉ đổi lightness, không thêm hue/saturation — không phá nguyên tắc nền trung tính (rule 1) */
 /* Horizontal bleed was -20px — at tablet width the zone sits only ~8px from

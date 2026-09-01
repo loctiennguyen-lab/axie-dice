@@ -938,7 +938,14 @@ function scCombat(frozen){
   w.appendChild(ez);
   /* party — mỗi Axie ghép chung 1 cột với đúng die của nó (2026-09-01: trước đây
      là 2 hàng riêng, chỉ thẳng cột nhờ trùng width tình cờ; giờ ghép rõ ràng bằng cấu trúc) */
-  const pz=el('div','zone party');
+  /* Swarm builds (Primal Nest cantrip, Swarm Nest/Hive Mind relics) can push
+     the party past 5 with living Axie Eggs (engine.js applyFace 'summon',
+     capped at 4 tokens => up to 9 total). .pcol's default --unit-w never
+     shrank for this, so a 7-9-unit party wrapped to a 2nd row that landed
+     far below the fold — technically reachable by scrolling (nothing was
+     actually broken), but easy to mistake for "abilities stopped working"
+     mid-combat. Shrink the whole zone at >6 so it fits without hunting. */
+  const pz=el('div','zone party'+(S.party.length>6?' compact':''));
   /* Formation Resonance (design/quick-specs/formation-resonance-2026-09-01.md):
      hiển thị cặp "đang mở" TRƯỚC khi người chơi click — bắt buộc theo pillar
      minh bạch triệt để. cols[i] tương ứng roster/pos i cho các Axie thật vì

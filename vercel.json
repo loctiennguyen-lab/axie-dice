@@ -1,5 +1,10 @@
 {
   "buildCommand": "mkdir -p build && python3 build.py public && mv -f index.html build/index.html",
   "outputDirectory": "build",
-  "cleanUrls": true
+  "cleanUrls": true,
+  "functions": {
+    "api/*.js": {
+      "includeFiles": "src/**"
+    }
+  }
 }

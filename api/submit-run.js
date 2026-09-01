@@ -73,7 +73,18 @@ module.exports = async (req, res) => {
   }
   const name = (typeof displayName === 'string' ? displayName : '').trim().slice(0, 24) || 'Anonymous';
 
-  const G = loadEngine();
+  // loadEngine() reads src/data.js + src/engine.js from disk (see api/_engine.js) —
+  // this crashed in production once already (ENOENT: /var/task/src/data.js) because
+  // Vercel's function bundler couldn't statically trace the dynamic fs.readFileSync
+  // path and left those files out of the deployed bundle; vercel.json now forces
+  // them in via functions.includeFiles, but this try/catch is defense-in-depth so a
+  // future regression of that same gap degrades to a clear JSON error instead of an
+  // uncaught crash (FUNCTION_INVOCATION_FAILED, a non-JSON response the client's
+  // r.json() then throws on — surfaces to the player as a misleading generic
+  // "Network error", not the real cause).
+  let G;
+  try { G = loadEngine(); }
+  catch (e) { res.status(500).json({ accepted: false, reason: 'Server-side engine failed to load — this is a deployment issue, not your run. Try again shortly.' }); return; }
   if (engineVersion !== G.ENGINE_VERSION) {
     res.status(409).json({ accepted: false, reason: 'Client engine version out of date (' + engineVersion + ' vs server ' + G.ENGINE_VERSION + ') — refresh and replay.' });
     return;
