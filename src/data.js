@@ -545,11 +545,15 @@ const UNLOCKS = [
    chú 2026-09-01 phần 9. */
 const ECHO = { base: 500, growth: 1.035, tierSize: 25 };
 const ECHO_TIER_NAMES = ['','Waning','Crescent','Gibbous','Full','Eclipse'];
+/* Profile titles unlocked when echoTier() crosses each boundary (economy-progression.md
+   §10.3). Index-matched to ECHO_TIER_NAMES; index 0 unused (tier 0 = no Echo title yet).
+   ALL-CAPS to match the existing title voice (see BP max-level title 'LUNACIA SOVEREIGN'). */
+const ECHO_TITLES = ['','WANING WANDERER','CRESCENT ADEPT','GIBBOUS HERALD','FULLMOON MUTANT','ECLIPSE SOVEREIGN'];
 
 if (typeof module!=='undefined') module.exports={B,F,FR,RARITY,RAR_COL,CLASSES,CLASS_COLOR,PASSIVE,ARCH,
   HEROES,TIER_UP,T1,FACE_POOL,MYTHIC_KW,RUNES,MON,NORMAL_POOL,ELITE_POOL,BOSSES,BOSS_BY_K,
   BOSS_ORDER_12,BOSS_ORDER_20,BOSS_ALT,RELICS,RELIC_BY_ID,EVENTS,CURVE,RUN_LEN,ASCENSION,ascMods,UNLOCKS,RESONANCE,
-  SLOT_CLASS_TEMPLATE,ORIGIN_CLASS_MAP,ORIGIN_TIER3_MULT,ECHO,ECHO_TIER_NAMES};
+  SLOT_CLASS_TEMPLATE,ORIGIN_CLASS_MAP,ORIGIN_TIER3_MULT,ECHO,ECHO_TIER_NAMES,ECHO_TITLES};
 
 /* ================= BATTLE PASS PARTS (4+1 mặt độc quyền, mỗi cái 1 lối chơi) ================= */
 const BP_FACES = {

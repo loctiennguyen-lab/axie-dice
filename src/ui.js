@@ -156,7 +156,13 @@ function echoBuy(){
   if(!collectionComplete()) return false;
   const cost=echoCost((META.echoPoints||0)+1);
   if(META.shards<cost) return false;
-  META.shards-=cost; META.echoPoints=(META.echoPoints||0)+1; saveMeta();
+  const beforeTier=echoTier();
+  META.shards-=cost; META.echoPoints=(META.echoPoints||0)+1;
+  /* economy-progression.md §10.3 payoff: crossing an Echo Tier boundary grants
+     a profile title. Same "most recent unlock wins, single slot" model as
+     Battle Pass titles (see bpClaim) — no separate title-picker UI. */
+  if(echoTier()>beforeTier) META.title=ECHO_TITLES[echoTier()];
+  saveMeta();
   return true;
 }
 /* ---------- IMPORT AXIE VAULT (design/AUDIT_AND_SPEC_v1.md §G3① / §G5) ----------
@@ -1043,9 +1049,19 @@ function validTargets(u){
   return (foe?aliveE(S):aliveP(S)).map(x=>x.uid);
 }
 
+/* Disambiguate same-name units (dup Axie picks, dup enemy mobs). Returns the
+   unit's 1-based position — stable-sorted by uid, not board order — among
+   currently-ALIVE same-named units on its side, or null when there's no
+   collision (the common case, which must render with zero extra markup). */
+function dupeIndex(u){
+  const pool=(u.side==='e'?S.enemies:S.party).filter(x=>x.hp>0&&x.n===u.n);
+  if(pool.length<2) return null;
+  pool.sort((a,b)=>a.uid-b.uid);
+  return pool.findIndex(x=>x.uid===u.uid)+1;
+}
 function unitCard(u){
   const isE=u.side==='e';
-  const c=el('div','unit'+(isE?' e':' p')+(u.hp<=0?' dead':'')+(u.big?' big':'')+(u.elite?' elite':'')+(u.token?' token':''));
+  const c=el('div','unit'+(isE?' e':' p')+(u.hp<=0?' dead':'')+(u.big?' big':'')+(u.elite?' elite':'')+(u.token?' token':'')+(!isE&&echoTier()>0?' echo'+echoTier():''));
   c.dataset.uid=u.uid;
   if(!isE) c.style.setProperty('--cc',CLASS_COLOR[u.cls]||'#888');
   let tgtable=false;
@@ -1059,7 +1075,10 @@ function unitCard(u){
   const im=el('img','spr'+(isE?' mut':'')); im.src=isE?sprMon(u.key):sprOf(u.cls,u.artIdx); spw.appendChild(im);
   if(!isE&&u.pas) { const p=el('div','pasdot',u.pas.n[0]); p.title=u.pas.n+': '+u.pas.d; spw.appendChild(p); }
   c.appendChild(spw);
-  c.appendChild(el('div','nm',(isE?u.n:u.n+' T'+u.tier)+(u.token?' *':'')));
+  const dupeI=dupeIndex(u);
+  const nm=el('div','nm',(isE?u.n:u.n+' T'+u.tier)+(u.token?' *':''));
+  if(dupeI) nm.appendChild(el('span','dupe-tag',' ('+dupeI+')'));
+  c.appendChild(nm);
   /* hp bar + ghost preview */
   /* T05 · the number sits above the bar, so no fill colour can ever make it
      unreadable.  T06 · the class encodes how close to death the unit is —
@@ -1112,7 +1131,9 @@ function unitCard(u){
     it.appendChild(ico(FT_IC[f.t],'ii'));
     it.appendChild(el('span','iv', (f.t==='debuff'||f.t==='buff')? f.k.filter(x=>x!=='aoe').map(kwText).join(' ') : String(v)));
     const tg=u.intent.tgt!=null?byUid(S,u.intent.tgt):null;
-    const tl=hasKw(f,'aoe')?'ALL':(tg?(tg.side==='p'?tg.n:(tg.uid===u.uid?'itself':tg.n)):'');
+    const tgDupe=tg?dupeIndex(tg):null;
+    let tl=hasKw(f,'aoe')?'ALL':(tg?(tg.side==='p'?tg.n:(tg.uid===u.uid?'itself':tg.n)):'');
+    if(tl&&tgDupe&&tl!=='ALL'&&tl!=='itself') tl+=' ('+tgDupe+')';
     if(tl) it.appendChild(el('span','itg','→ '+tl));
     ['cleave','pierce','exec'].forEach(k=>{ if(hasKw(f,k)) it.appendChild(el('span','ik',kwText(k).toUpperCase())); });
     c.appendChild(it);

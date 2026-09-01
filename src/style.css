@@ -4,8 +4,9 @@
    1. The background is neutral. Colour is reserved for meaning.
    2. Six type sizes. Nothing else.
    3. One border weight, two radii, spacing on a 4px grid.
-   4. Glow marks exactly three things: your selection, a legal
-      target, and Mythic rarity. Nothing else glows.
+   4. Glow marks exactly four things: your selection, a legal
+      target, Mythic rarity, and Echo Tier prestige frames (opt-in,
+      end-game, invisible at tier 0). Nothing else glows.
    ============================================================ */
 *{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -481,6 +482,22 @@ small{font-size:var(--t1)}
    card (not just a 3px edge) so PLANT/BEAST/AQUA/REPTILE/BUG/BIRD read at a
    glance instead of every card looking like the same flat grey panel. */
 .unit.p{border-bottom:3px solid var(--cc);background:linear-gradient(180deg,color-mix(in srgb,var(--cc) 10%,var(--pan-hi)) 0%,var(--pan-hi) 60%)}
+/* Echo Tier prestige frame (economy-progression.md §10.3) — a full ring layered
+   via box-shadow so it never fights the class-colour --cc bottom border above.
+   Tier 0 (echoTier()===0, the default for ~everyone) adds no class at all, so
+   this is fully invisible until the end-game Echo Forge is unlocked. Escalates
+   cool→warm, thin→thick across tiers 1-5; only the top tier (Eclipse) pulses,
+   to keep the "glow means something rare" rule meaningful. */
+.unit.p.echo1{box-shadow:0 0 0 1px rgba(154,164,178,.45),0 0 5px rgba(154,164,178,.3)}
+.unit.p.echo2{box-shadow:0 0 0 1px rgba(99,179,255,.55),0 0 8px rgba(99,179,255,.4)}
+.unit.p.echo3{box-shadow:0 0 0 1.5px rgba(179,136,255,.6),0 0 12px rgba(179,136,255,.45)}
+.unit.p.echo4{box-shadow:0 0 0 2px rgba(255,200,87,.65),0 0 16px rgba(255,200,87,.5),0 0 10px rgba(179,136,255,.3)}
+.unit.p.echo5{box-shadow:0 0 0 2.5px var(--acc),0 0 20px rgba(255,200,87,.75),0 0 32px rgba(179,136,255,.45);
+  animation:echo-eclipse-pulse 2.2s ease-in-out infinite}
+@keyframes echo-eclipse-pulse{
+  0%,100%{box-shadow:0 0 0 2.5px var(--acc),0 0 20px rgba(255,200,87,.75),0 0 32px rgba(179,136,255,.45)}
+  50%{box-shadow:0 0 0 3px var(--acc),0 0 30px rgba(255,200,87,.9),0 0 46px rgba(179,136,255,.6)}
+}
 .unit.p.token{width:calc(var(--unit-w)*.72);opacity:.85;border-style:dashed}
 .unit.e{background:var(--pan-hi);border-color:var(--line2);border-top:3px solid var(--dmg)}
 .unit.e.elite{border-color:var(--burn)}
@@ -511,6 +528,12 @@ small{font-size:var(--t1)}
 .pasdot{position:absolute;top:var(--s1);left:var(--s1);width:var(--icon-md);height:var(--icon-md);line-height:22px;font-size:var(--t2);
   background:var(--cc);color:#0d1013;border:1px solid #0007;border-radius:50%;z-index:2;font-weight:700}
 .unit .nm{font-size:var(--t1);color:var(--dim);margin-bottom:var(--s1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;letter-spacing:.5px}
+/* Duplicate-name disambiguation suffix — same dim tone as .nm itself, just
+   slightly de-emphasized so "Sprout (1)" doesn't read as a stat. */
+/* color:var(--dim), not opacity — opacity on already-small 11px text failed
+   the AA contrast check (tools/verify.mjs A2), --dim is already used at full
+   opacity elsewhere in this same card and passes. */
+.dupe-tag{color:var(--dim)}
 /* T05 · số HP ra khỏi thanh — bài toán contrast biến mất hoàn toàn */
 .hpbar{position:relative;height:var(--hp-h);margin-top:var(--hp-num-offset)}
 .hpnum{position:absolute;bottom:calc(100% + 3px);left:0;right:0;display:flex;
