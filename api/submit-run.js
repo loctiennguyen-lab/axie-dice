@@ -102,8 +102,26 @@ module.exports = async (req, res) => {
     const a = actions[i];
     let ok;
     try { ok = G[a.fn](s, ...a.args); }
-    catch (e) { res.status(400).json({ accepted: false, reason: 'Replay threw at action ' + i + ' (' + a.fn + ')' }); return; }
+    catch (e) {
+      // Diagnostic-only: a real, unexplained client/server replay divergence
+      // was reported in production and couldn't be reproduced with a
+      // synthetic self-replay test (same code, same process, passed clean),
+      // so the next real occurrence needs to leave enough in `vercel logs`
+      // to actually diagnose it — no player-identifying data beyond the
+      // already-public displayName, and this is a debug aid, not a feature.
+      console.error('[submit-run] replay threw', JSON.stringify({
+        seed, teamKeys, mode, ascension, actionIndex: i, action: a,
+        window: actions.slice(Math.max(0, i - 3), i + 1), errMsg: e.message,
+      }));
+      res.status(400).json({ accepted: false, reason: 'Replay threw at action ' + i + ' (' + a.fn + ')' }); return;
+    }
     if (RETURN_CHECKED_FNS.has(a.fn) && ok === false) {
+      console.error('[submit-run] replay rejected', JSON.stringify({
+        seed, teamKeys, mode, ascension, actionIndex: i, action: a,
+        window: actions.slice(Math.max(0, i - 3), i + 1),
+        partySnapshot: s.party && s.party.map((u) => ({ uid: u.uid, n: u.n, hp: u.hp, used: u.used, side: u.side })),
+        phase: s.phase, step: s.step,
+      }));
       res.status(400).json({ accepted: false, reason: 'Replay rejected action ' + i + ' (' + a.fn + ') as invalid — log does not match a legal game session' });
       return;
     }
