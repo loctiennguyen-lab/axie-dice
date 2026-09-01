@@ -298,6 +298,14 @@ HP_bonus_% = base × ownership_mult × rarity_mult, cap tại BONUS_CAP
 
 ### 10.2b NFT vs Free — ai được gì (SỬA LẠI 2026-09-01, đảo ngược quyết định cũ)
 
+> **✅ Trạng thái implement (2026-09-01, phiên tiếp theo)**: cơ chế "Import Axie" đã có code thật — `api/axie.js` (Vercel serverless proxy tới Axie Infinity GraphQL, vì endpoint gốc chặn CORS), `axieToDie()`/`mapAxieClass()` (`src/engine.js`), Vault lưu trong `META.vault` (`src/ui.js`, tối đa 20 Axie), màn "IMPORT AXIE" từ menu chính. Đây là scope **P0 prototype** theo đúng bảng §G7 trong `AUDIT_AND_SPEC_v1.md` (Axie ID → 6 part thật → map qua `SLOT_CLASS_TEMPLATE` 6×6 → 1 viên xí ngầu chơi được), **KHÔNG phải toàn bộ mô hình pay-to-win đã tả ở phần dưới**:
+> - Chưa gate 285/396 part theo NFT — bất kỳ ai cũng import được bất kỳ Axie ID nào (đọc-only từ blockchain, không cần chứng minh sở hữu ví qua chữ ký).
+> - Vault là **persistent** (lưu `localStorage`, dùng ở mọi run), KHÔNG phải "pre-select mỗi run" như luật đã chốt ở dưới — cần 1 vòng làm sau nếu muốn khớp đúng luật §10.2a/§G8.
+> - Echo Points 2-thanh (§10.3) CHƯA nối với Vault — track "N/285 part NFT sở hữu" chưa tồn tại.
+> - Giá Shard 111 part α (~700), monetization SKU, và toàn bộ phần dưới của mục này VẪN CHỈ LÀ THIẾT KẾ, chưa có code.
+>
+> Nói cách khác: người chơi giờ **thấy được** "Axie thật → xí ngầu chơi được" (đúng insight §G1 "cấu trúc trùng khớp 1:1"), nhưng **hàng rào kinh tế/pay-to-win** giữa NFT và free chưa được xây — ai cũng dùng Vault miễn phí như nhau ở bản này. Quyết định có xây hàng rào đó hay không (và xây tới đâu) là quyết định sản phẩm riêng, chưa được hỏi/chốt trong phiên này.
+
 > ⚠️ **Quyết định mới đảo ngược hoàn toàn bảng cũ bên dưới (giữ lại có gạch ngang để đối chiếu lịch sử).** Bối cảnh: catalog part thật hoá ra lớn hơn nhiều so với 192 đã dùng — file part thật (`Part name.xlsx`, xem `design/gdd/axie-body-parts.md` cập nhật 2026-09-01) có **285 part thường** (`stage=1`) + **111 part Origin/"α"** (`stage=0`, hiếm nhất) + 36 part dawn/dusk/mech. Product owner chốt **2026-09-01, "hướng đi cuối cùng"**:
 >
 > - **Free chỉ mua được 111 part α bằng Gene Shard.** Đây là pool duy nhất người chơi không sở hữu NFT có thể mở khoá qua chơi.

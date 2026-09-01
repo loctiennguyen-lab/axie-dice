@@ -48,6 +48,43 @@ function buildUnit(re,s){
   u.hp=u.maxHp;
   return u;
 }
+/* ================= IMPORT AXIE → DIE (design/AUDIT_AND_SPEC_v1.md §G3① / §G5) =================
+   axieData = {id, class, parts:[{id,name,class,type,specialGenes}, ...]} — shape thật từ api/axie.js proxy.
+   KHÔNG hand-author theo part; tra SLOT_CLASS_TEMPLATE[slot][class] (data.js). Deep-clone mọi face
+   (qua clone()) để 2 Axie import khác nhau không share reference. */
+function mapAxieClass(axieClassName){
+  const c=(axieClassName||'').toLowerCase();
+  if(CLASSES.includes(c)) return c;
+  if(c==='aquatic') return 'aqua';
+  if(ORIGIN_CLASS_MAP[c]) return ORIGIN_CLASS_MAP[c];
+  return 'beast'; /* class thật không nhận diện được — an toàn thay vì crash */
+}
+function axieToDie(axieData){
+  const parts=(axieData&&axieData.parts)||[];
+  let die=parts.map(part=>{
+    const slot=(part.type||'').toLowerCase();
+    const rawCls=(part.class||'').toLowerCase();
+    const isOrigin=!!ORIGIN_CLASS_MAP[rawCls];
+    const mappedCls=mapAxieClass(part.class);
+    const table=SLOT_CLASS_TEMPLATE[slot];
+    const src=(table&&table[mappedCls])||SLOT_CLASS_TEMPLATE.mouth.beast; /* slot lạ → fallback an toàn */
+    const face=clone(src);
+    if(isOrigin){ /* part Origin (Dawn/Dusk/Mech) = hiếm nhất → luôn tier3 */
+      if(face.v>0) face.v=Math.round(face.v*ORIGIN_TIER3_MULT);
+      face.r=Math.max(face.r,3);
+    }
+    if(part.specialGenes!=null){ /* gene đặc biệt = tín hiệu hiếm → +30% value, rarity tối thiểu Rare */
+      if(face.v>0) face.v=Math.round(face.v*1.3);
+      face.r=Math.max(face.r,1);
+    }
+    return face;
+  });
+  while(die.length<6) die.push(clone(B));
+  die=die.slice(0,6);
+  const bodyCls=mapAxieClass(axieData&&axieData.class);
+  const hp=(HEROES[bodyCls+'1']&&HEROES[bodyCls+'1'].hp)||14;
+  return {n:'Axie #'+(axieData&&axieData.id), cls:bodyCls, tier:1, hp, art:0, die, imported:true, axieId:axieData&&axieData.id};
+}
 /* độ hiếm của viên dice = tổng hợp các mặt (Option D) */
 function dieRarity(u){
   const myth=u.die.filter(f=>f.r>=4).length, leg=u.die.filter(f=>f.r>=3).length;
@@ -817,4 +854,4 @@ function archScore(s){
 if(typeof module!=='undefined') module.exports={facePool,rerollRewards,mkRng,newGame,nextStep,chooseNode,startCombat,rollAll,doReroll,
   anyRerollable,playerUseDie,playerUseRelic,endTurn,undo,takeReward,genRewards,buildUnit,dieRarity,aliveP,aliveE,realP,
   byUid,faceValue,hasKw,kwVal,genEncounter,eventChoose,eventDone,genShop,shopBuy,shopDone,archScore,
-  faceText,kwText,faceArch,RELIC_BY_ID,rlist,critChance,nftHpBonusPct,resonancePairs};
+  faceText,kwText,faceArch,RELIC_BY_ID,rlist,critChance,nftHpBonusPct,resonancePairs,axieToDie,mapAxieClass};

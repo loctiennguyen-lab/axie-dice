@@ -102,3 +102,21 @@ User hỏi "còn gì trước khi release" → chọn scope V1: web game offline
 - AEGIS archetype vẫn thiếu dữ liệu cân bằng lớn (N nhỏ) — theo dõi tiếp.
 - `kbAct` elements có thể thêm `role="button"` cho AT rõ ràng hơn (đề xuất lead-programmer, không blocking).
 - Patch nhỏ gắn `reason:'poison'|'burn'` vào `dealDamage`/`tickStatus` để combat log hiện đúng "Poison N damage" thay vì "N dmg" chung chung (2 dòng, không blocking, đã được ux-designer duyệt tạm chấp nhận).
+
+## Progress Checklist (tiếp — 2026-09-01 phần 8, Import Axie NFT thật)
+User: "chưa có kho đồ để đưa NFT Axie vào — tiến hành chuẩn bị để release" → sau làm rõ: build luôn Phase 2 (Import Axie thật), không phải bỏ qua.
+
+- [x] **Nghiên cứu kỹ thuật thật** (không đoán): Axie Infinity GraphQL (`graphql-gateway.axieinfinity.com/graphql`) chặn CORS (xác nhận qua `curl -X OPTIONS`, thiếu header `access-control-allow-origin`) → bắt buộc proxy qua Vercel serverless. Node `fetch`/`https` bị Cloudflare Managed Challenge chặn (đã test cả với User-Agent giả — vẫn bị chặn, đây là TLS/HTTP2 fingerprint check) nhưng `curl` bypass được → dùng `execFileSync('curl',...)` (argv array, KHÔNG shell string) trong serverless function. Query `GetAxieDetail(axieId)` đã verify hoạt động thật với nhiều ID (100000, 5000000...), trả đúng `class`+`parts[]` (id/name/class/type/specialGenes).
+- [x] **`api/axie.js`** (Vercel serverless, mới) — proxy CORS + rate limit in-memory (20 req/phút/IP) + timeout curl (`-m 8`) + validate input regex + error handling không leak thông tin nội bộ. Đã qua security-engineer review (NEEDS FIXES → đã fix cả 2 điểm: timeout + rate limit).
+- [x] **Mapping engine** (`src/data.js` `SLOT_CLASS_TEMPLATE` 6×6, `src/engine.js` `axieToDie`/`mapAxieClass`) — đúng insight thiết kế cũ (`AUDIT_AND_SPEC_v1.md` §G3①): KHÔNG hand-author theo từng part, map theo `(slot, class-của-part)` qua bảng nhỏ tái dùng dải giá trị `HEROES` tier1 sẵn có. Fallback Origin (Dawn/Dusk/Mech→beast/reptile/bug cố định, ×2.2) + `specialGenes` (×1.3) đã kiểm tra không tràn số, nằm trong dải myth-tier hiện có.
+- [x] **Vault** (`META.vault`, tối đa 20) + màn "IMPORT AXIE" (menu → nhập Axie ID → preview → ADD TO VAULT) + tích hợp vào Team Select (section "YOUR VAULT", ẩn khi rỗng — học từ bài học Collection/Unlocks trước đây).
+- [x] **Bug thật tìm được khi tôi tự test bằng chuột** (không phải qua console): click chọn Axie từ Vault vào team không hoạt động — root cause (do lead-programmer xác định chính xác): `PLAY`/`NEW RUN` pre-fill `teamPick` đủ 5/5 mặc định TRƯỚC khi vào màn Team Select, nên card Vault bị guard `if(teamPick.length<5)` chặn im lặng — không phải lỗi wiring. Đã fix: thêm class `.full` (dim card) + thông báo rõ ràng "Team full (5/5) — right-click a card to swap it out" khi click card đã đầy đội, áp dụng cho cả T1 lẫn Vault card.
+- [x] **Verify end-to-end bằng browser thật**: dựng local mock server chạy đúng `api/axie.js` handler thật (không phải giả lập), import Axie #100000 thật → data thật hiển thị đúng → add vào Vault → chọn vào team qua UI thật (không phải console) → vào combat thật, unit build đúng 6 face theo class của TỪNG part (không phải class thân) — đúng bản chất Axie genetics.
+- [x] `node tools/sim.js 500` không đổi (24.0%), `node tools/verify.mjs` giữ 28/30 — không regression.
+- [x] Cập nhật `design/gdd/economy-progression.md` §10.2b — ghi rõ đây là scope **P0 prototype** (Vault miễn phí, không gate NFT, không pre-select-mỗi-run), KHÔNG phải toàn bộ mô hình pay-to-win đã thiết kế — tránh nhầm là economy đầy đủ đã live.
+
+## Chưa làm (backlog thật, không chặn)
+- README.md vẫn là README của template "Claude Code Game Studios", chưa viết riêng cho game — cân nhắc: repo này có vẻ là fork của chính template, README có thể có chủ đích quảng bá template — CHƯA tự ý thay, cần hỏi ý user trước khi động vào.
+- Gate NFT thật (285/396 part khoá theo sở hữu, pre-select-mỗi-run, Echo Points 2-thanh nối với Vault) — toàn bộ mô hình pay-to-win ở economy-progression.md vẫn chỉ là thiết kế, chưa code.
+- `HEROES[vaultKey]` không được dọn khi `removeFromVault` — vô hại (không có code nào scan `Object.keys(HEROES)`) nhưng là rác nhỏ, có thể dọn sau.
+- Chưa có test tự động cho `axieToDie`/`mapAxieClass` (`tests/` trống) — verify hiện tại là tay + sim.js gián tiếp.

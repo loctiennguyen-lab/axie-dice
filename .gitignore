@@ -28,6 +28,7 @@ docs/consistency-failures.md
 # === Build Output ===
 build/
 builds/
+AxieDiceTactics.html
 bin/
 obj/
 out/

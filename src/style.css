@@ -250,6 +250,8 @@ small{font-size:var(--t1)}
   border-bottom:3px solid var(--cc);padding:10px 6px;position:relative;transition:.1s;cursor:pointer}
 .pick:hover{background:var(--pan2);border-color:var(--line2)}
 .pick.on{border-color:var(--acc)}
+.pick.full{opacity:.5;cursor:not-allowed}
+.pick.full:hover{background:var(--pan);border-color:var(--line)}
 .pick .spr{margin:0 auto 4px}
 .pick .nm{font-size:var(--t3)} .pick .cls{font-size:var(--t1);color:var(--dim);letter-spacing:1px}
 .pasbox{margin:6px 0;padding:5px 0;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
@@ -271,6 +273,27 @@ small{font-size:var(--t1)}
 .ascdesc{font-size:var(--t1);color:var(--deb);line-height:1.7;margin-top:6px}
 .trow{display:flex;align-items:center;justify-content:center;gap:10px;margin:12px 0;flex-wrap:wrap}
 .tcount{color:var(--dim);font-size:var(--t2)}
+.vaulthdr{max-width:1050px;margin:4px auto 8px;text-align:left;font-size:var(--t2);color:var(--dim);
+  letter-spacing:2px;border-bottom:1px solid var(--line);padding-bottom:6px}
+.vaultgrid{grid-template-columns:repeat(auto-fit,minmax(140px,1fr));margin-bottom:16px}
+.pick .vbadge{position:absolute;top:4px;left:4px;font-size:var(--t1);color:var(--acc);
+  background:var(--pan2);border:1px solid var(--line);border-radius:var(--rad-sm);padding:1px 5px;pointer-events:none}
+
+/* ================= IMPORT AXIE / VAULT ================= */
+.vwrow{max-width:1050px;margin:0 auto 12px;text-align:left}
+.vwaddr{font-size:var(--t2);color:var(--heal);letter-spacing:1px}
+.vform{max-width:1050px;margin:0 auto 12px}
+.vmsg{max-width:1050px;margin:0 auto 12px;font-size:var(--t3);padding:8px 0;text-align:left}
+.vmsg-info{color:var(--dim)}
+.vmsg-bad{color:var(--dmg)}
+.vpreview{max-width:1050px;margin:0 auto 16px;background:var(--pan);border:var(--bd) solid var(--line);
+  border-radius:var(--radius);padding:var(--card-pad);text-align:left}
+.vpn{font-size:var(--t4);color:var(--txt);margin-bottom:8px}
+.vparts{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:10px}
+.vpart{font-size:var(--t1);padding:4px 8px;background:var(--pan2);border:1px solid var(--line);
+  border-radius:var(--rad-sm);color:var(--dim)}
+.vaultscreen .colsec{max-width:1050px}
+.vcard{cursor:default;display:flex;flex-direction:column;gap:6px;align-items:flex-start}
 
 /* ================= WAVE TRACK / HUD ================= */
 .track{display:flex;align-items:center;gap:8px;background:var(--pan);border:var(--bd) solid var(--line);
@@ -612,7 +635,7 @@ body.dragging{cursor:grabbing} body.dragging .die{cursor:grabbing}
 #aim.on{opacity:1}
 
 /* ================= LUNACIA PASS ================= */
-.screen.menu.bpscreen,.screen.menu.codex,.screen.menu.guide,.screen.menu.collection,.screen.menu.unlocks{justify-content:flex-start;padding-top:16px}
+.screen.menu.bpscreen,.screen.menu.codex,.screen.menu.guide,.screen.menu.collection,.screen.menu.unlocks,.screen.menu.vaultscreen{justify-content:flex-start;padding-top:16px}
 .bpbar{width:320px;height:6px;background:var(--pan2);border-radius:3px;overflow:visible;position:relative;margin:0 auto 6px}
 .bpbar.big{margin:4px auto 26px}
 .bpfill{height:100%;background:var(--acc);border-radius:3px;transition:width .4s}

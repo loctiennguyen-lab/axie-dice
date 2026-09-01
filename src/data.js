@@ -109,6 +109,75 @@ const TIER_UP = {plant1:'plant2',plant2:'plant3',beast1:'beast2',beast2:'beast3'
   reptile1:'reptile2',reptile2:'reptile3',bug1:'bug2',bug2:'bug3',bird1:'bird2',bird2:'bird3'};
 const T1 = ['plant1','beast1','aqua1','reptile1','bug1','bird1'];
 
+/* ================= IMPORT AXIE — SLOT × CLASS TEMPLATE (design/AUDIT_AND_SPEC_v1.md §G3① / §G5) =================
+   Insight: KHÔNG hand-author theo 500+ part thật. Đây là bảng TEMPLATE tất định 6 slot × 6 class (36 entry) +
+   1 fallback Origin (Dawn/Dusk/Mech). Mọi part thật có cùng (slot, class) → LUÔN ra CÙNG 1 face — đây là điểm
+   mấu chốt giữ balance surface nhỏ. KHÔNG cá nhân hoá theo part.name/part.id.
+   Số liệu copy tinh thần/dải giá trị từ face tier1 của đúng class đó trong HEROES ở trên (dmg/shield 2-4,
+   ears luôn mana 1 cantrip). Đọc-chỉ-để-tham-khảo HEROES — bảng này không sửa HEROES/TUNE.
+   eyes: type chọn theo PASSIVE[cls].a (archetype code) để nhất quán identity —
+     plant/aqua (đã có heal ở tier1/2) → heal · reptile (SCALES/thorns) → buff thorns:2 (=reptile1) ·
+     bug (VIRULENT/poison, debuff vốn có) → debuff weaken:2 (=bug1) ·
+     beast (FERAL/exec — nhắm target yếu) → debuff vulnerable:2 (setup cho execute, không có face gốc tier1 để copy) ·
+     bird (TALON/pierce — hit-and-run) → debuff blind:1 (utility nhẹ, giữ bird là class dmg thuần, không lấn buff/heal). */
+const SLOT_CLASS_TEMPLATE = {
+  eyes: {
+    plant:   F('eyes','heal',3),
+    beast:   F('eyes','debuff',0,'vulnerable:2'),
+    aqua:    F('eyes','heal',3),
+    reptile: F('eyes','buff',0,'thorns:2'),
+    bug:     F('eyes','debuff',0,'weaken:2'),
+    bird:    F('eyes','debuff',0,'blind:1'),
+  },
+  ears: {
+    plant:   F('ears','mana',1,'cantrip'),
+    beast:   F('ears','mana',1,'cantrip'),
+    aqua:    F('ears','mana',1,'cantrip'),
+    reptile: F('ears','mana',1,'cantrip'),
+    bug:     F('ears','mana',1,'cantrip'),
+    bird:    F('ears','mana',1,'cantrip'),
+  },
+  mouth: {
+    plant:   F('mouth','dmg',2),
+    beast:   F('mouth','dmg',3),
+    aqua:    F('mouth','dmg',3),
+    reptile: F('mouth','dmg',3),
+    bug:     F('mouth','dmg',3),
+    bird:    F('mouth','dmg',4),
+  },
+  horn: {
+    plant:   F('horn','dmg',3),
+    beast:   F('horn','dmg',4,'heavy'),
+    aqua:    F('horn','dmg',3,'pierce'),
+    reptile: F('horn','dmg',3,'pierce'),
+    bug:     F('horn','dmg',3),
+    bird:    F('horn','dmg',3,'pierce'),
+  },
+  back: {
+    plant:   F('back','shield',4),
+    beast:   F('back','shield',2),
+    aqua:    F('back','shield',3),
+    reptile: F('back','shield',4),
+    bug:     F('back','shield',3),
+    bird:    F('back','shield',2),
+  },
+  tail: {
+    plant:   F('tail','dmg',2),
+    beast:   F('tail','dmg',3,'cleave'),
+    aqua:    F('tail','dmg',2,'aoe'),
+    reptile: F('tail','dmg',2),
+    bug:     F('tail','dmg',2,'multi:2'),
+    bird:    F('tail','dmg',2,'aoe'),
+  },
+};
+/* Fallback cho 3 class Origin thật (Dawn/Dusk/Mech) — không có trong 6 class game hỗ trợ.
+   Quyết định: mỗi Origin class map TẤT ĐỊNH sang 1 class game đại diện (đơn giản hoá — không hash part.id),
+   để 3 Origin class ít nhất khác nhau (Dawn≠Dusk≠Mech), dù 2 part Dawn khác nhau cùng slot vẫn ra cùng face
+   (đúng nguyên tắc template). axieToDie() nhân giá trị mặt lên ORIGIN_TIER3_MULT và ép rarity>=3 (Legendary)
+   để phản ánh "part Origin là hiếm nhất trong game thật" như yêu cầu. */
+const ORIGIN_CLASS_MAP = {dawn:'beast', dusk:'reptile', mech:'bug'};
+const ORIGIN_TIER3_MULT = 2.2; /* xấp xỉ tỉ lệ value tier1→tier3 quan sát được trong HEROES ở trên */
+
 /* ================= MUTATION FACE POOL (rarity-tiered) =================
    Đây là "Rare Dice" theo Option D: rarity nằm trên MẶT, người chơi tự slot vào. */
 const FACE_POOL = [
@@ -456,7 +525,8 @@ const UNLOCKS = [
 
 if (typeof module!=='undefined') module.exports={B,F,FR,RARITY,RAR_COL,CLASSES,CLASS_COLOR,PASSIVE,ARCH,
   HEROES,TIER_UP,T1,FACE_POOL,MYTHIC_KW,RUNES,MON,NORMAL_POOL,ELITE_POOL,BOSSES,BOSS_BY_K,
-  BOSS_ORDER_12,BOSS_ORDER_20,BOSS_ALT,RELICS,RELIC_BY_ID,EVENTS,CURVE,RUN_LEN,ASCENSION,ascMods,UNLOCKS,RESONANCE};
+  BOSS_ORDER_12,BOSS_ORDER_20,BOSS_ALT,RELICS,RELIC_BY_ID,EVENTS,CURVE,RUN_LEN,ASCENSION,ascMods,UNLOCKS,RESONANCE,
+  SLOT_CLASS_TEMPLATE,ORIGIN_CLASS_MAP,ORIGIN_TIER3_MULT};
 
 /* ================= BATTLE PASS PARTS (4+1 mặt độc quyền, mỗi cái 1 lối chơi) ================= */
 const BP_FACES = {

@@ -16,10 +16,128 @@ let rollAnim=null, pendFloats=[], hoverT=null;
 /* ---------- META (localStorage, degrade gracefully) ---------- */
 const MK='axiedice_meta_v2', RK='axiedice_run_v2';
 const DEF_META={vol:0.28,mute:false,spd:1,shards:0,unlocks:[],ascMax:0,best:0,runs:0,wins:0,faces:[],relics:[],bosses:[],tut:0,
-  xp:0,bpClaimed:[],bpFaces:[],perks:{},title:'',reduceFlash:false};
+  xp:0,bpClaimed:[],bpFaces:[],perks:{},title:'',reduceFlash:false,vault:[]};
 let META={...DEF_META};
 function loadMeta(){ try{ const j=localStorage.getItem(MK); if(j) META={...DEF_META,...JSON.parse(j)}; }catch(e){} }
 function saveMeta(){ try{ localStorage.setItem(MK,JSON.stringify(META)); }catch(e){} }
+/* ---------- IMPORT AXIE VAULT (design/AUDIT_AND_SPEC_v1.md §G3① / §G5) ----------
+   Vault lưu die suy ra từ Axie NFT thật (axieToDie, engine.js). Giới hạn 20 slot (localStorage) —
+   nếu đầy, TỪ CHỐI import mới kèm thông báo rõ ràng thay vì âm thầm cắt bớt (LRU/silent-trim).
+   Import lại cùng axieId (VD: đã đổi part ngoài đời rồi quét lại) → CẬP NHẬT bản ghi cũ, không tạo bản sao. */
+const VAULT_MAX=20;
+function importAxieToVault(axieData){
+  if(!axieData||axieData.id==null) return {ok:false,err:'invalid_axie_data'};
+  const die=axieToDie(axieData);
+  const idx=META.vault.findIndex(v=>v.axieId===die.axieId);
+  if(idx>=0){ META.vault[idx]=die; saveMeta(); return {ok:true,updated:true,die}; }
+  if(META.vault.length>=VAULT_MAX) return {ok:false,err:'vault_full',max:VAULT_MAX};
+  META.vault.push(die); saveMeta();
+  return {ok:true,updated:false,die};
+}
+function removeFromVault(axieId){
+  if(!META.vault) return;
+  META.vault=META.vault.filter(v=>v.axieId!==axieId);
+  saveMeta();
+}
+/* Bridge: engine.js resolves roster members via HEROES[re.key] everywhere
+   (buildUnit, ascend/gene rewards, passives). Vault entries are already
+   shaped like a HEROES record (n/cls/tier/hp/art/die — see axieToDie), so
+   registering them under a stable synthetic key lets a vault Axie be picked
+   into teamPick and played exactly like a T1 hero, with zero engine changes.
+   Idempotent — safe to call on every render. */
+function vaultKey(v){ return 'vault_'+v.axieId; }
+function ensureVaultHero(v){
+  const key=vaultKey(v);
+  if(!HEROES[key]) HEROES[key]=v;
+  return key;
+}
+/* ---------- IMPORT AXIE screen state ---------- */
+let importIdInput='', importState='idle', importMsg='', importPreview=null, roninAddr=null;
+async function connectRonin(){
+  if(typeof window.ronin==='undefined') return null;
+  try{ const accounts=await window.ronin.provider.request({method:'eth_requestAccounts'}); return accounts&&accounts[0]; }
+  catch(e){ return null; }
+}
+const shortAddr=a=>a?(a.slice(0,9)+'…'+a.slice(-4)):'';
+async function doAxieLookup(){
+  const id=(importIdInput||'').trim();
+  if(!id||isNaN(Number(id))||Number(id)<=0){ importState='error'; importMsg='Nhập Axie ID hợp lệ'; render(); return; }
+  importState='loading'; importMsg=''; importPreview=null; render();
+  let res;
+  try{ res=await fetch('/api/axie?id='+encodeURIComponent(id)); }
+  catch(e){ importState='error'; importMsg='Không kết nối được, thử lại sau'; render(); return; }
+  if(res.status===404){ importState='error'; importMsg='Không tìm thấy Axie #'+id; render(); return; }
+  if(!res.ok){ importState='error'; importMsg='Không kết nối được, thử lại sau'; render(); return; }
+  let data;
+  try{ data=await res.json(); }
+  catch(e){ importState='error'; importMsg='Không kết nối được, thử lại sau'; render(); return; }
+  importPreview=data; importState='preview'; render();
+}
+function scImportAxie(){
+  const w=el('div','screen menu vaultscreen');
+  w.appendChild(el('h1','logo sm','IMPORT AXIE'));
+  w.appendChild(el('div','sub','Manual Axie ID lookup · optional wallet connect for trust signal'));
+
+  if(typeof window!=='undefined'&&typeof window.ronin!=='undefined'){
+    const wrow=el('div','vwrow');
+    if(roninAddr) wrow.appendChild(el('div','vwaddr','WALLET · '+shortAddr(roninAddr)));
+    else wrow.appendChild(btn('ghost sm','CONNECT RONIN WALLET',async()=>{ const a=await connectRonin(); if(a){ roninAddr=a; render(); } }));
+    w.appendChild(wrow);
+  }
+
+  const form=el('div','cfgrow vform');
+  form.appendChild(el('span','cl','AXIE ID'));
+  const inp=el('input','seedinp'); inp.type='number'; inp.min='1'; inp.placeholder='e.g. 1234567'; inp.value=importIdInput;
+  inp.oninput=e=>importIdInput=e.target.value;
+  inp.onkeydown=e=>{ if(e.key==='Enter') doAxieLookup(); };
+  form.appendChild(inp);
+  const goB=btn('sm','IMPORT',()=>doAxieLookup());
+  if(importState==='loading') goB.classList.add('dis');
+  form.appendChild(goB);
+  w.appendChild(form);
+
+  if(importState==='loading') w.appendChild(el('div','vmsg vmsg-info','Đang tra cứu…'));
+  if(importState==='error') w.appendChild(el('div','vmsg vmsg-bad',importMsg));
+
+  if(importState==='preview'&&importPreview){
+    const die=axieToDie(importPreview);
+    const pv=el('div','vpreview');
+    pv.appendChild(el('div','vpn',die.n+'  ·  '+die.cls.toUpperCase()));
+    const parts=el('div','vparts');
+    (importPreview.parts||[]).forEach(p=>parts.appendChild(el('span','vpart',(p.type||'?').toUpperCase()+': '+(p.name||'?'))));
+    pv.appendChild(parts);
+    const dv=el('div','minidie'); die.die.forEach(f=>{ const c=el('span','mf r'+(f.r||0)+' t_'+f.t); c.appendChild(ico(FT_IC[f.t],'t')); if(f.v)c.appendChild(el('span','mfv',String(f.v))); dv.appendChild(c); });
+    pv.appendChild(dv);
+    const full=(META.vault||[]).length>=VAULT_MAX;
+    const already=(META.vault||[]).some(v=>v.axieId===die.axieId);
+    const addB=btn('sm go',full&&!already?'VAULT FULL':already?'UPDATE VAULT ENTRY':'ADD TO VAULT',()=>{
+      const r=importAxieToVault(importPreview);
+      if(r.ok){ importState='idle'; importPreview=null; importIdInput=''; render(); }
+      else { importState='error'; importMsg=(r.err==='vault_full')?('Vault đã đầy ('+r.max+'/'+r.max+')'):'Không thể thêm Axie này'; render(); }
+    });
+    if(full&&!already) addB.classList.add('dis');
+    pv.appendChild(addB);
+    w.appendChild(pv);
+  }
+
+  const vlist=META.vault||[];
+  if(vlist.length){
+    const sec=el('div','colsec'); sec.appendChild(el('h3',null,'YOUR VAULT  ('+vlist.length+'/'+VAULT_MAX+')'));
+    const g=el('div','vaultgrid');
+    vlist.forEach(v=>{
+      const c=el('div','ucard vcard');
+      c.appendChild(el('div','un',v.n));
+      c.appendChild(el('div','ud',v.cls.toUpperCase()+' · HP '+v.hp+' · '+v.die.length+' faces'));
+      c.appendChild(btn('ghost sm','REMOVE',()=>{ removeFromVault(v.axieId); render(); }));
+      g.appendChild(c);
+    });
+    sec.appendChild(g);
+    w.appendChild(sec);
+  }
+
+  w.appendChild(btn('','BACK',()=>{ importState='idle'; importMsg=''; importPreview=null; screen='menu'; render(); }));
+  return w;
+}
 function saveRun(){ try{ if(S&&S.phase!=='won'&&S.phase!=='lost') localStorage.setItem(RK,JSON.stringify({s:S,screen})); else localStorage.removeItem(RK); }catch(e){} }
 function loadRun(){ try{ const j=localStorage.getItem(RK); if(!j) return null; return JSON.parse(j); }catch(e){ return null; } }
 function clearRun(){ try{ localStorage.removeItem(RK); }catch(e){} }
@@ -177,6 +295,7 @@ function render(){
   else if(screen==='team') root.appendChild(scTeam());
   else if(screen==='unlocks') root.appendChild(scUnlocks());
   else if(screen==='collection') root.appendChild(scCollection());
+  else if(screen==='vault') root.appendChild(scImportAxie());
   else if(screen==='bp') root.appendChild(scBP());
   else if(screen==='codex') root.appendChild(scCodex());
   else if(screen==='guide') root.appendChild(scGuide());
@@ -255,6 +374,7 @@ function scMenu(){
   grid.appendChild(menuTile('COLLECTION',faces+' faces · '+relics+' relics',()=>{ screen='collection'; render(); }));
   grid.appendChild(menuTile('UNLOCKS',(META.unlocks||[]).length+'/'+UNLOCKS.length,()=>{ screen='unlocks'; render(); }));
   grid.appendChild(menuTile('CODEX','how to play',()=>{ screen='codex'; render(); }));
+  grid.appendChild(menuTile('VAULT',(META.vault||[]).length+'/'+VAULT_MAX+' imported',()=>{ screen='vault'; render(); }));
   inner.appendChild(grid);
   const line=[];
   if(META.runs) line.push(META.runs+(META.runs===1?' run':' runs'));
@@ -315,10 +435,12 @@ function scTeam(){
   const w=el('div','screen title');
   w.appendChild(el('h1','logo sm','CHOOSE YOUR TEAM'));
   w.appendChild(el('div','sub','Pick 5 Axies · left click to add · right click to remove'));
+  if(msg) w.appendChild(el('div','msg',msg));
+  const full=teamPick.length>=5;
   const grid=el('div','pickgrid');
   T1.forEach(k=>{
     const h=HEROES[k], n=teamPick.filter(x=>x===k).length, pa=PASSIVE[h.cls];
-    const c=el('div','pick'+(n?' on':'')); c.style.setProperty('--cc',CLASS_COLOR[h.cls]);
+    const c=el('div','pick'+(n?' on':'')+(full&&!n?' full':'')); c.style.setProperty('--cc',CLASS_COLOR[h.cls]);
     const im=el('img','spr'); im.src=sprOf(h.cls,h.art+(n%3)); c.appendChild(im);
     c.appendChild(el('div','nm',h.n));
     c.appendChild(el('div','cls',h.cls.toUpperCase()+' · HP '+h.hp));
@@ -326,12 +448,35 @@ function scTeam(){
     const dv=el('div','minidie'); h.die.forEach(f=>{ const c=el('span','mf t_'+f.t); c.appendChild(ico(FT_IC[f.t],'t')); if(f.v)c.appendChild(el('span','mfv',String(f.v))); dv.appendChild(c); });
     c.appendChild(dv);
     if(n) c.appendChild(el('div','cnt','×'+n));
-    c.onclick=()=>{ if(teamPick.length<5){ SFX.ui(); teamPick.push(k); render(); } };
-    c.oncontextmenu=e=>{ e.preventDefault(); const i=teamPick.lastIndexOf(k); if(i>=0){SFX.ui();teamPick.splice(i,1);render();} };
+    c.onclick=()=>{ if(teamPick.length<5){ SFX.ui(); msg=''; teamPick.push(k); render(); } else { SFX.warn(); flash('Team full (5/5) — right-click a card to swap it out'); render(); } };
+    c.oncontextmenu=e=>{ e.preventDefault(); const i=teamPick.lastIndexOf(k); if(i>=0){SFX.ui();msg='';teamPick.splice(i,1);render();} };
     kbAct(c);
     grid.appendChild(c);
   });
   w.appendChild(grid);
+
+  if((META.vault||[]).length){
+    w.appendChild(el('h3','vaulthdr','YOUR VAULT'));
+    const vgrid=el('div','pickgrid vaultgrid');
+    META.vault.forEach(v=>{
+      const key=ensureVaultHero(v), h=HEROES[key];
+      const n=teamPick.filter(x=>x===key).length, pa=PASSIVE[h.cls];
+      const c=el('div','pick'+(n?' on':'')+(full&&!n?' full':'')); c.style.setProperty('--cc',CLASS_COLOR[h.cls]);
+      const im=el('img','spr'); im.src=sprOf(h.cls,h.art); c.appendChild(im);
+      c.appendChild(el('div','nm',h.n));
+      c.appendChild(el('div','cls',h.cls.toUpperCase()+' · HP '+h.hp));
+      const p=el('div','pasbox'); p.appendChild(el('span','pn',pa.n)); p.appendChild(el('span','pd',pa.d)); c.appendChild(p);
+      const dv=el('div','minidie'); h.die.forEach(f=>{ const cc=el('span','mf t_'+f.t); cc.appendChild(ico(FT_IC[f.t],'t')); if(f.v)cc.appendChild(el('span','mfv',String(f.v))); dv.appendChild(cc); });
+      c.appendChild(dv);
+      if(n) c.appendChild(el('div','cnt','×'+n));
+      c.appendChild(el('div','vbadge','VAULT'));
+      c.onclick=()=>{ if(teamPick.length<5){ SFX.ui(); msg=''; teamPick.push(key); render(); } else { SFX.warn(); flash('Team full (5/5) — right-click a card to swap it out'); render(); } };
+      c.oncontextmenu=e=>{ e.preventDefault(); const i=teamPick.lastIndexOf(key); if(i>=0){SFX.ui();msg='';teamPick.splice(i,1);render();} };
+      kbAct(c);
+      vgrid.appendChild(c);
+    });
+    w.appendChild(vgrid);
+  }
 
   const cfg=el('div','cfg');
   const modeBox=el('div','cfgrow'); modeBox.appendChild(el('span','cl','MODE'));
@@ -363,7 +508,7 @@ function scTeam(){
   bar.appendChild(btn('','RANDOM',()=>{ teamPick=[]; while(teamPick.length<5) teamPick.push(T1[Math.floor(Math.random()*6)]); render(); }));
   bar.appendChild(btn('sm','CODEX',()=>{ screen='codex'; render(); }));
   bar.appendChild(btn('sm','SAMPLE TEAMS',()=>{ screen='guide'; render(); }));
-  bar.appendChild(btn('','MENU',()=>{ screen='menu'; render(); }));
+  bar.appendChild(btn('','MENU',()=>{ msg=''; screen='menu'; render(); }));
   const go=btn('big go','START RUN',()=>{ if(teamPick.length===5) startRun(); });
   if(teamPick.length!==5) go.classList.add('dis');
   bar.appendChild(go);
