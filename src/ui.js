@@ -16,10 +16,25 @@ let rollAnim=null, pendFloats=[], hoverT=null;
 /* ---------- META (localStorage, degrade gracefully) ---------- */
 const MK='axiedice_meta_v2', RK='axiedice_run_v2';
 const DEF_META={vol:0.28,mute:false,spd:1,shards:0,unlocks:[],ascMax:0,best:0,runs:0,wins:0,faces:[],relics:[],bosses:[],tut:0,
-  xp:0,bpClaimed:[],bpFaces:[],perks:{},title:'',reduceFlash:false,vault:[]};
+  xp:0,bpClaimed:[],bpFaces:[],perks:{},title:'',reduceFlash:false,vault:[],echoPoints:0};
 let META={...DEF_META};
 function loadMeta(){ try{ const j=localStorage.getItem(MK); if(j) META={...DEF_META,...JSON.parse(j)}; }catch(e){} }
 function saveMeta(){ try{ localStorage.setItem(MK,JSON.stringify(META)); }catch(e){} }
+/* ---------- ECHO POINTS (design/gdd/economy-progression.md §10.3) ----------
+   End-game Gene Shard sink, unlocked once the Collection Log (Faces + Relics +
+   Bosses) is 100% complete. Formula/constants come from data.js `ECHO`. */
+function collectionComplete(){
+  return META.faces.length>=FACE_POOL.length && META.relics.length>=RELICS.length && META.bosses.length>=BOSSES.length;
+}
+function echoCost(n){ return Math.round(ECHO.base*Math.pow(ECHO.growth,n-1)); }
+function echoTier(){ return Math.min(Math.floor((META.echoPoints||0)/ECHO.tierSize), ECHO_TIER_NAMES.length-1); }
+function echoBuy(){
+  if(!collectionComplete()) return false;
+  const cost=echoCost((META.echoPoints||0)+1);
+  if(META.shards<cost) return false;
+  META.shards-=cost; META.echoPoints=(META.echoPoints||0)+1; saveMeta();
+  return true;
+}
 /* ---------- IMPORT AXIE VAULT (design/AUDIT_AND_SPEC_v1.md §G3① / §G5) ----------
    Vault lưu die suy ra từ Axie NFT thật (axieToDie, engine.js). Giới hạn 20 slot (localStorage) —
    nếu đầy, TỪ CHỐI import mới kèm thông báo rõ ràng thay vì âm thầm cắt bớt (LRU/silent-trim).
@@ -362,6 +377,7 @@ function scMenu(){
   const inner=el('div','menu-inner');
   inner.appendChild(el('h1','logo','AXIE DICE TACTICS'));
   inner.appendChild(el('div','sub','LUNACIA MUTANTS · v1.0'));
+  if(echoTier()>0) inner.appendChild(el('div','sub echotier','Echo Tier: '+ECHO_TIER_NAMES[echoTier()]));
   if(saved){
     inner.appendChild(btn('go cta btn--lg','CONTINUE RUN',()=>{ S=saved.s; screen='combat'; render(); }));
     inner.appendChild(btn('ghost cta2 btn--lg','NEW RUN',()=>{ teamPick=['plant1','beast1','aqua1','reptile1','bug1']; screen='team'; render(); }));
@@ -425,8 +441,42 @@ function scCollection(){
     'No die faces collected yet — every Gene Mutation reward unlocks a new one.'));
   w.appendChild(mk('BOSSES DEFEATED', BOSSES.filter(b=>META.bosses.includes(b.k)).map(b=>({n:b.n,r:4})), BOSSES.length,
     'No bosses defeated yet — bosses appear on waves marked BOSS on the map.'));
+  w.appendChild(scEchoForge());
   w.appendChild(btn('','BACK',()=>{ screen='menu'; render(); }));
   return w;
+}
+/* ---------- ECHO FORGE panel (part of Collection screen) ---------- */
+function scEchoForge(){
+  const s=el('div','colsec echosec');
+  s.appendChild(el('h3',null,'ECHO FORGE'));
+  if(!collectionComplete()){
+    s.appendChild(el('div','iempty','Complete every Relic, Die Face and Boss above to unlock the Echo Forge.'));
+    return s;
+  }
+  s.appendChild(el('div','ud','Convert leftover Gene Shard into permanent Echo Points.'));
+  const ep=META.echoPoints||0;
+  const tier=echoTier();
+  const tierName=tier>0?ECHO_TIER_NAMES[tier]:'—';
+  const inTier=ep%ECHO.tierSize;
+  const cost=echoCost(ep+1);
+  s.appendChild(el('div','ud',`Echo Points: ${ep}  ·  Tier: ${tierName}  ·  ${inTier}/${ECHO.tierSize} to next tier`));
+  s.appendChild(el('div','ud',`Next Echo Point costs ${cost} Shard.`));
+  const can=META.shards>=cost;
+  const fb=el('button','btn cta'+(can?'':' dis'),'FORGE ECHO POINT');
+  if(can){
+    fb.onclick=()=>{
+      const beforeTier=echoTier();
+      if(echoBuy()){
+        SFX[echoTier()>beforeTier?'legend':'coin']();
+        render();
+      }
+    };
+    fb.onmouseenter=()=>SFX.hover();
+  } else {
+    fb.disabled=true;
+  }
+  s.appendChild(fb);
+  return s;
 }
 
 /* ================= TEAM SELECT ================= */

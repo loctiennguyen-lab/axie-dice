@@ -523,10 +523,20 @@ const UNLOCKS = [
   {id:'u_hp',     n:'Ancient Bloodline',  cost:500, d:'Your whole party permanently gains 3 Max HP.'},
 ];
 
+/* ================= ECHO POINTS (design/gdd/economy-progression.md §10.3) =================
+   Sink cuối game cho Shard dư sau khi Collection đầy đủ. Công thức giữ nguyên 100% theo
+   doc gốc (base=500, growth=1.035); GATE đã đổi từ "111/111 part α" (chưa tồn tại trong
+   code — catalog 396-part chỉ dùng cho Import Axie, không phải FACE_POOL 55-face thật
+   đang chạy) sang "Collection Log đầy đủ cả 3 mục" (Faces/Relics/Bosses), vì đó là hoàn
+   thành-qua-chơi thật duy nhất hiện có trong game. Xem economy-progression.md §10.3 ghi
+   chú 2026-09-01 phần 9. */
+const ECHO = { base: 500, growth: 1.035, tierSize: 25 };
+const ECHO_TIER_NAMES = ['','Waning','Crescent','Gibbous','Full','Eclipse'];
+
 if (typeof module!=='undefined') module.exports={B,F,FR,RARITY,RAR_COL,CLASSES,CLASS_COLOR,PASSIVE,ARCH,
   HEROES,TIER_UP,T1,FACE_POOL,MYTHIC_KW,RUNES,MON,NORMAL_POOL,ELITE_POOL,BOSSES,BOSS_BY_K,
   BOSS_ORDER_12,BOSS_ORDER_20,BOSS_ALT,RELICS,RELIC_BY_ID,EVENTS,CURVE,RUN_LEN,ASCENSION,ascMods,UNLOCKS,RESONANCE,
-  SLOT_CLASS_TEMPLATE,ORIGIN_CLASS_MAP,ORIGIN_TIER3_MULT};
+  SLOT_CLASS_TEMPLATE,ORIGIN_CLASS_MAP,ORIGIN_TIER3_MULT,ECHO,ECHO_TIER_NAMES};
 
 /* ================= BATTLE PASS PARTS (4+1 mặt độc quyền, mỗi cái 1 lối chơi) ================= */
 const BP_FACES = {

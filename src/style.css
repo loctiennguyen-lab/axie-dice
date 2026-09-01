@@ -247,6 +247,10 @@ small{font-size:var(--t1)}
 .citem{font-size:var(--t1);padding:4px 8px;background:var(--pan);border:1px solid var(--line);border-radius:var(--rad-sm);color:var(--dim)}
 .citem.r1{border-color:var(--r1);color:var(--r1)} .citem.r2{border-color:var(--r2);color:var(--r2)}
 .citem.r3{border-color:var(--r3);color:var(--r3)} .citem.r4{border-color:var(--r4);color:var(--r4)}
+.echosec{background:var(--pan);border:var(--bd) solid var(--line);border-radius:var(--radius);padding:var(--card-pad)}
+.echosec .ud{font-size:var(--t3);font-weight:var(--fw-prose);color:var(--dim);margin:6px 0;line-height:1.6}
+.echosec .cta{margin-top:8px}
+.echotier{color:var(--acc);font-size:var(--t1);letter-spacing:2px;margin:-14px 0 14px}
 
 /* ================= TEAM ================= */
 .pickgrid{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;margin-bottom:12px}
