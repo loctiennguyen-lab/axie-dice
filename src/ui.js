@@ -306,6 +306,13 @@ function render(){
   if(typeof clogFreeze==='function'&&S&&S.phase==='lost') clogFreeze();
   if(typeof clogSetOpen==='function'&&screen!=='combat'&&clogOpen) clogSetOpen(false,false);
   $$('.tutov').forEach(n=>n.remove());
+  // screen==='combat' covers the entire active run (map/event/shop/reward/
+  // combat/win-lose all render under this value via the `else if(S){...}`
+  // branch below) — the board is a fixed single-viewport during a run, so
+  // the page itself must not scroll or rubber-band drag. Menu/list screens
+  // (menu/unlocks/collection/vault/leaderboard/bp/codex/guide/team) never
+  // get this class and keep scrolling normally.
+  document.body.classList.toggle('locked-scroll', screen==='combat');
   root.innerHTML=''; root.className='';
   if(screen==='menu') root.appendChild(scMenu());
   else if(screen==='team') root.appendChild(scTeam());
@@ -352,7 +359,14 @@ function postRender(){
    both ways. Below 1200px the breakpoints (T10) already handle sizing, so we
    lock to 1 there — otherwise the two mechanisms multiply. */
 const BOARD_W = 880;   /* 846px content + 34px headroom */
-const BOARD_H = 720;   /* header + enemies + party + tray + bar + gaps */
+const BOARD_H = 985;   /* header + enemies + party + tray + bar + gaps —
+  measured live (972px at --ui-scale:1, 5-unit party + msg banner), not a
+  guess: the old value of 720 predated later additions (Formation Resonance
+  links, the 5th party column) and silently let the board grow taller than
+  fitUI's shrink math accounted for, pushing the dice tray/END TURN off the
+  bottom on shorter windows. Re-measure with document.querySelector('.screen
+  .combat').scrollHeight at --ui-scale:1 if combat's vertical content changes
+  again — don't just bump this number blind. */
 function fitUI(){
   const raw = Math.min(innerWidth / BOARD_W, innerHeight / BOARD_H);
   const s = innerWidth >= 1200 ? Math.min(raw, 1.20) : 1;
@@ -416,9 +430,15 @@ function scUnlocks(){
   const g=el('div','unlockgrid');
   UNLOCKS.forEach(u=>{
     const has=unlocked(u.id), can=!has&&META.shards>=u.cost;
-    const c=el('div','ucard'+(has?' has':can?'':' dis'));
-    c.appendChild(el('div','un',u.n));
-    c.appendChild(el('div','ud',u.d));
+    // Reuse the Lunacia Pass card language: icon zone up top, body in the
+    // middle, cost/state pinned to the bottom via margin-top:auto — so
+    // has/can/dis states read from icon + border color, not just opacity.
+    const c=el('div','ucard'+(has?' has':can?' can':' dis'));
+    c.appendChild(ico(has?'chest':can?'shard':'blank','ucicow',has?'#5fd68a':undefined));
+    const body=el('div','ubody');
+    body.appendChild(el('div','un',u.n));
+    body.appendChild(el('div','ud',u.d));
+    c.appendChild(body);
     c.appendChild(el('div','uc',has?'UNLOCKED':u.cost+' SHARD'));
     if(can){ c.onclick=()=>{ SFX.coin(); META.shards-=u.cost; META.unlocks.push(u.id); saveMeta(); render(); }; kbAct(c); }
     g.appendChild(c);
@@ -431,19 +451,22 @@ function scCollection(){
   const w=el('div','screen menu collection');
   w.appendChild(el('h1','logo sm','COLLECTION'));
   w.appendChild(el('div','sub',`Faces ${META.faces.length}/${FACE_POOL.length} · Relics ${META.relics.length}/${RELICS.length} · Bosses ${META.bosses.length}/${BOSSES.length}`));
-  const mk=(title,items,total,emptyMsg)=>{
-    const s=el('div','colsec'); s.appendChild(el('h3',null,title+'  ('+items.length+'/'+total+')'));
+  // Render the FULL pool per section (not just owned items) so players can see
+  // what's still missing. Unowned entries render as a rarity-tinted "???"
+  // placeholder instead of being omitted, keeping progress-by-rarity visible.
+  const mk=(title,all)=>{
+    const ownedCount=all.filter(x=>x.owned).length;
+    const s=el('div','colsec'); s.appendChild(el('h3',null,title+'  ('+ownedCount+'/'+all.length+')'));
     const g=el('div','colgrid');
-    if(!items.length) g.appendChild(el('div','iempty',emptyMsg));
-    items.forEach(x=>{ const c=el('div','citem'+(x.r!=null?' r'+x.r:'')); c.textContent=x.n; g.appendChild(c); });
+    all.forEach(x=>{
+      const cls='citem'+(x.r!=null?' r'+x.r:'')+(x.owned?'':' locked');
+      const c=el('div',cls); c.textContent=x.owned?x.n:'???'; g.appendChild(c);
+    });
     s.appendChild(g); return s;
   };
-  w.appendChild(mk('RELIC', RELICS.filter(r=>META.relics.includes(r.id)).map(r=>({n:r.n,r:r.rar})), RELICS.length,
-    'No relics yet — you get them from rewards, the Merchant and Treasure nodes.'));
-  w.appendChild(mk('DIE FACES', FACE_POOL.filter(f=>META.faces.includes(faceText(f))).map(f=>({n:faceText(f),r:f.r})), FACE_POOL.length,
-    'No die faces collected yet — every Gene Mutation reward unlocks a new one.'));
-  w.appendChild(mk('BOSSES DEFEATED', BOSSES.filter(b=>META.bosses.includes(b.k)).map(b=>({n:b.n,r:4})), BOSSES.length,
-    'No bosses defeated yet — bosses appear on waves marked BOSS on the map.'));
+  w.appendChild(mk('RELIC', RELICS.map(r=>({n:r.n,r:r.rar,owned:META.relics.includes(r.id)}))));
+  w.appendChild(mk('DIE FACES', FACE_POOL.map(f=>{ const n=faceText(f); return {n,r:f.r,owned:META.faces.includes(n)}; })));
+  w.appendChild(mk('BOSSES DEFEATED', BOSSES.map(b=>({n:b.n,r:4,owned:META.bosses.includes(b.k)}))));
   w.appendChild(scEchoForge());
   w.appendChild(btn('','BACK',()=>{ screen='menu'; render(); }));
   return w;
@@ -784,7 +807,8 @@ function scCombat(frozen){
     if(pair){
       const link=el('div','reslink');
       link.appendChild(ico(FT_IC[pair.type],'ii'));
-      link.title='Formation Resonance: cặp Axie liền kề cùng roll mặt '+pair.type+' — Axie thực thi SAU nhận +'+Math.round((RESONANCE.mult-1)*100)+'%.';
+      const tip='Formation Resonance: cặp Axie liền kề cùng roll mặt '+pair.type+' — Axie thực thi SAU nhận +'+Math.round((RESONANCE.mult-1)*100)+'%.';
+      link.title=tip; link.dataset.tip=tip; kbAct(link);
       pz.appendChild(link);
     }
   });
@@ -1327,13 +1351,18 @@ function scBP(){
     else if(r.t==='unlock'){ const u=UNLOCKS.find(x=>x.id===r.v); icn='chest'; txt=u?u.n:'UNLOCK'; sub=u?u.d:''; }
     else if(r.t==='perk'){ icn='buff'; txt=r.n; sub='PERMANENT'; }
     else if(r.t==='face'){ const bf=BP_FACES[r.v]; icn='summon'; txt=bf.n; sub=bf.d; c.classList.add('mythic'); }
-    c.appendChild(ico(icn,'bpic'));
-    c.appendChild(el('div','bpn',txt));
-    if(sub) c.appendChild(el('div','bpd',sub));
+    // everything but the level header and the claim state sits in a fixed
+    // icon/name/desc "body" zone so the icon lands at the same offset on
+    // every card, whatever reward type it holds.
+    const body=el('div','bpbody');
+    const icow=el('div','bpicow'); icow.appendChild(ico(icn,'bpic')); body.appendChild(icow);
+    body.appendChild(el('div','bpn',txt));
+    if(sub) body.appendChild(el('div','bpd',sub));
     if(r.t==='face'){ const bf=BP_FACES[r.v];
-      c.appendChild(el('div','bpface',faceText(bf.face)));
-      const ar=ARCH[bf.arch]; if(ar){ const tg=el('div','rarch',ar.n); tg.style.color=ar.c; c.appendChild(tg); } }
-    if(b.title) c.appendChild(el('div','bpttl','TITLE: '+b.title));
+      body.appendChild(el('div','bpface',faceText(bf.face)));
+      const ar=ARCH[bf.arch]; if(ar){ const tg=el('div','rarch',ar.n); tg.style.color=ar.c; body.appendChild(tg); } }
+    if(b.title) body.appendChild(el('div','bpttl','TITLE: '+b.title));
+    c.appendChild(body);
     c.appendChild(el('div','bpstate',got?'CLAIMED':ready?'CLAIM':'LOCKED'));
     if(ready){ c.onclick=()=>{ bpClaim(b); if(r.t==='face'){ flashScreen('myth'); bigText('MYTHIC',''); SFX.mythic(); } else { SFX.passClaim(); flashScreen('gold'); } render(); }; kbAct(c); }
     tr.appendChild(c);

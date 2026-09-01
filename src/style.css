@@ -94,8 +94,19 @@
 }
 html,body{height:100%}
 html,body{font-size:var(--t3);font-family:var(--font)}
+/* Stop the body's gradient from tearing/shifting during pull-to-refresh /
+   rubber-band overscroll on mobile — the page itself never needs that bounce. */
+html,body{overscroll-behavior-y:none}
 body{background:linear-gradient(180deg,var(--bg-top) 0%,var(--bg) 480px);background-color:var(--bg);color:var(--txt);
   font-weight:700;letter-spacing:.2px;overflow-x:hidden;-webkit-font-smoothing:none}
+/* Active-run lock (screen==='combat' covers map/event/shop/reward/combat/
+   win-lose — see render() in ui.js): only suppress touch-driven page drag
+   (which fights the dice drag-and-drop on mobile) via touch-action:none.
+   Deliberately NOT overflow:hidden — the combat screen can be taller than
+   the viewport (many units/wave nodes), and clipping it there made the
+   bottom action bar unreachable on desktop, where scroll is mouse/wheel
+   driven, not touch. Menu/list screens never get this class either way. */
+body.locked-scroll{touch-action:none}
 img.spr{image-rendering:pixelated;display:block;
   width:var(--spr-w);height:var(--spr-w);object-fit:contain;object-position:center bottom;margin:0 auto}
 button{font-family:inherit;font-weight:700;cursor:pointer;color:var(--txt);letter-spacing:.5px}
@@ -231,15 +242,23 @@ small{font-size:var(--t1)}
   background:var(--pan);border:var(--bd) solid var(--line);border-radius:var(--radius);padding:14px 18px;text-align:left}
 .tips b{color:var(--acc);font-weight:700} .gold{color:var(--r3)} .cos{color:var(--r4)}
 .ver{color:var(--dim);font-size:var(--t1);margin-top:16px;letter-spacing:1px}
-.unlockgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:8px;max-width:1000px;margin:0 auto 16px}
-.ucard{background:var(--pan);border:var(--bd) solid var(--line);border-radius:var(--radius);padding:var(--card-pad);cursor:pointer;transition:.1s;text-align:left}
-.ucard:hover{border-color:var(--acc)}
-.ucard.has{border-color:var(--line);opacity:.5;pointer-events:none}
-.ucard.dis{opacity:.32;pointer-events:none}
+.unlockgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:8px;max-width:1000px;margin:0 auto 16px;align-items:stretch}
+/* same card language as .bpnode: icon zone, flexible body, cost/state
+   pinned to the bottom via margin-top:auto, min-height for row evenness. */
+.ucard{background:var(--pan);border:var(--bd) solid var(--line);border-radius:var(--radius);padding:var(--card-pad);
+  cursor:pointer;transition:.1s;text-align:left;display:flex;flex-direction:column;gap:6px;min-height:150px}
+.ucard.can{border-color:var(--acc)}
+.ucard.can:hover{background:var(--pan2)}
+.ucard.has{border-color:var(--heal);opacity:.7;cursor:default;pointer-events:none}
+.ucard.dis{opacity:.4;cursor:default;pointer-events:none}
+.ucard .ucicow{display:flex;align-items:center}
+.ucard .ucicow svg{width:20px;height:20px}
+.ucard .ubody{flex:1}
 .ucard .un{font-size:var(--t3);color:var(--txt)}
 .ucard .ud{font-size:var(--t3);font-weight:var(--fw-prose);color:var(--dim);margin:6px 0;line-height:1.6}
-.ucard .uc{font-size:var(--t2);color:var(--acc)}
+.ucard .uc{margin-top:auto;padding-top:4px;font-size:var(--t2);color:var(--acc);letter-spacing:1px}
 .ucard.has .uc{color:var(--heal)}
+.ucard.dis .uc{color:var(--dim)}
 .colsec{max-width:1050px;margin:0 auto 18px;text-align:left}
 .colsec h3{font-size:var(--t2);color:var(--dim);letter-spacing:2px;margin-bottom:8px;border-bottom:1px solid var(--line);padding-bottom:6px}
 .citem-empty{font-size:var(--t2);color:var(--dim);padding:4px 0}
@@ -247,6 +266,11 @@ small{font-size:var(--t1)}
 .citem{font-size:var(--t1);padding:4px 8px;background:var(--pan);border:1px solid var(--line);border-radius:var(--rad-sm);color:var(--dim)}
 .citem.r1{border-color:var(--r1);color:var(--r1)} .citem.r2{border-color:var(--r2);color:var(--r2)}
 .citem.r3{border-color:var(--r3);color:var(--r3)} .citem.r4{border-color:var(--r4);color:var(--r4)}
+/* unowned pool entries: keep the rarity-tinted border (progress-by-rarity
+   stays visible at a glance) but dim + dash the fill so they never read as
+   "owned" — locked always wins over the .rN text color since it's declared
+   after those rules and matches their specificity. */
+.citem.locked{opacity:.55;border-style:dashed;color:var(--dim)}
 .echosec{background:var(--pan);border:var(--bd) solid var(--line);border-radius:var(--radius);padding:var(--card-pad)}
 .echosec .ud{font-size:var(--t3);font-weight:var(--fw-prose);color:var(--dim);margin:6px 0;line-height:1.6}
 .echosec .cta{margin-top:8px}
@@ -487,9 +511,21 @@ small{font-size:var(--t1)}
    badge nối 2 chân dung liền kề đang có cặp "mở" — bắt buộc hiện TRƯỚC khi click,
    tái dùng màu buff (--acc) đã có, không thêm màu/art mới. */
 .reslink{align-self:center;display:flex;align-items:center;justify-content:center;
-  width:24px;height:24px;border-radius:50%;border:2px solid var(--acc);
-  box-shadow:0 0 8px var(--acc);animation:reslink-pulse 1.4s ease-in-out infinite;flex:none}
+  width:24px;height:24px;border-radius:50%;border:2px solid var(--acc);position:relative;
+  box-shadow:0 0 8px var(--acc);animation:reslink-pulse 1.4s ease-in-out infinite;flex:none;cursor:help}
 @keyframes reslink-pulse{0%,100%{box-shadow:0 0 6px var(--acc)}50%{box-shadow:0 0 14px var(--acc)}}
+/* The native title= tooltip everywhere else in this file has a long hover
+   delay and never appears on touch at all — fine for incidental info, but
+   this badge IS the only place Formation Resonance explains itself before
+   the player acts, so it needs to show immediately on hover AND on tap
+   (kbAct() in ui.js gives it tabIndex, so a touch tap focuses it → :focus). */
+[data-tip]{position:relative}
+[data-tip]::after{content:attr(data-tip);position:absolute;bottom:calc(100% + 8px);left:50%;
+  transform:translateX(-50%);background:var(--pan2);border:1px solid var(--line2);border-radius:var(--rad-sm);
+  padding:6px 10px;font-size:var(--t1);font-weight:var(--fw-prose);line-height:1.4;color:var(--txt);
+  white-space:normal;width:max-content;max-width:220px;text-align:center;
+  opacity:0;pointer-events:none;transition:opacity .1s;z-index:50}
+[data-tip]:hover::after,[data-tip]:focus::after{opacity:1}
 .diebox{width:var(--die-w);text-align:center;position:relative}
 .diebox .die{background:var(--pan-hi);border:var(--bd) solid var(--line2);border-bottom:3px solid var(--cc);
   padding:8px 6px;min-height:var(--die-h);cursor:pointer;transition:.1s;position:relative;border-radius:12px;
@@ -650,11 +686,15 @@ body.dragging{cursor:grabbing} body.dragging .die{cursor:grabbing}
 .bptxt{position:absolute;left:0;right:0;top:10px;text-align:center;font-size:var(--t1);color:var(--dim);letter-spacing:1px}
 .bpmini{display:flex;flex-direction:column;align-items:center;gap:2px;margin:10px 0}
 .bptitle{font-size:var(--t1);color:var(--acc);letter-spacing:2px}
-/* the reward track — every card the same compact shape, whatever it holds */
+/* the reward track — every card the same compact shape, whatever it holds.
+   align-items:stretch (grid default) makes every card in a row match the
+   tallest card's height, so short reward-only nodes and long description
+   nodes read as one even row instead of a ragged skyline. */
 .bptrack{display:grid;grid-template-columns:repeat(auto-fill,minmax(146px,1fr));gap:8px;max-width:1160px;
-  margin:0 auto 20px;align-items:start}
+  margin:0 auto 20px;align-items:stretch}
 .bpnode{background:var(--pan);border:var(--bd) solid var(--line);border-radius:var(--radius);
   padding:var(--card-pad-sm);text-align:center;transition:.1s;display:flex;flex-direction:column;align-items:center;gap:4px;min-height:150px}
+.bpnode .bpicow{display:flex;align-items:center;justify-content:center;min-height:24px}
 .bpnode.ready{border-color:var(--acc);cursor:pointer}
 .bpnode.ready:hover{background:var(--pan2)}
 .bpnode.lock{opacity:.4}
@@ -667,6 +707,7 @@ body.dragging{cursor:grabbing} body.dragging .die{cursor:grabbing}
 .bpnode .bpface{font-size:var(--t1);color:var(--r4);line-height:1.5;border:none}
 .bpnode .rarch{font-size:var(--t1);letter-spacing:1px}
 .bpnode .bpttl{font-size:var(--t1);color:var(--acc)}
+.bpnode .bpbody{display:flex;flex-direction:column;align-items:center;gap:4px}
 .bpnode .bpstate{margin-top:auto;padding-top:8px;font-size:var(--t1);letter-spacing:2px;color:var(--dim)}
 .bpnode.ready .bpstate{color:var(--acc)}
 .bpnode.got .bpstate{color:var(--heal)}
