@@ -38,6 +38,10 @@ built around "lost, try again," not attrition.
   stored in your local Vault and usable in any team. See [Import Axie](#import-axie) below.
 - **Battle Log** — every action this combat, compiled into readable lines, frozen and reopenable as
   a "Battle Report" after a loss.
+- **Ranked Run + Leaderboard** — an opt-in run mode that plays with every Unlock/Pass bonus zeroed
+  out (so every submission is on the same baseline) and submits your result to a real leaderboard.
+  The server never trusts a client-sent score — it replays your exact recorded actions through
+  `src/engine.js` and computes the score itself. See [Leaderboard](#leaderboard--ranked-run) below.
 - **Deterministic & seeded** — every run can be replayed exactly from its seed; a Daily Seed mode is
   built in.
 - **Accessible** — full keyboard navigation, reduced-motion/reduced-flash settings, WCAG AA contrast
@@ -64,9 +68,21 @@ works fully offline.
 git push origin <branch>
 ```
 
-then import the repo into Vercel (not just the built HTML file — the `api/axie.js` serverless
-function needs to deploy alongside the static build for Import Axie to work). `vercel.json` already
-points Vercel at the right build command and output directory.
+then import the repo into Vercel (not just the built HTML file — the `api/*.js` serverless
+functions need to deploy alongside the static build for Import Axie and the Leaderboard to work).
+`vercel.json` already points Vercel at the right build command and output directory.
+
+For the Leaderboard to actually save scores (not just compute them), also set these two
+environment variables in the Vercel project (Settings → Environment Variables) from a free
+[Upstash Redis](https://upstash.com) database:
+
+```
+UPSTASH_REDIS_REST_URL=...
+UPSTASH_REDIS_REST_TOKEN=...
+```
+
+Without them the game still works fully — Ranked Run scores are computed correctly, the API just
+responds `stored:false` instead of erroring.
 
 ## Tech stack
 
@@ -88,11 +104,15 @@ src/
   devtools.js  dev-only in-game inspector (stripped from public builds)
   style.css    all styling — design tokens in :root
 api/
-  axie.js      Vercel serverless proxy for Import Axie (Axie Infinity GraphQL → JSON)
+  axie.js        Vercel serverless proxy for Import Axie (Axie Infinity GraphQL → JSON)
+  submit-run.js  Leaderboard: replays a submitted action log through engine.js, computes the score
+  leaderboard.js Leaderboard: read-only top-100 per (mode, ascension)
+  _engine.js     shared helper — loads data.js+engine.js into a Node vm context for replay
 tools/
   sim.js       headless balance simulator (node tools/sim.js 500)
   verify.mjs   UI/UX rule checker, needs Playwright (node tools/verify.mjs)
   soak.mjs / soakm.mjs   extended-play regression soak (desktop/mobile)
+  t_import.mjs   unit tests for the Import Axie part→face mapping (node tools/t_import.mjs)
 ```
 
 ## Testing
@@ -112,6 +132,21 @@ real Axie's ID and the game fetches its 6 parts from the Axie Infinity API (prox
 class)`, and adds it to your Vault. This is the **prototype scope** — anyone can import any public
 Axie ID, no wallet signature or ownership gating. See `design/gdd/economy-progression.md` §10.2b for
 the full NFT-vs-free economy design this could grow into.
+
+## Leaderboard / Ranked Run
+
+Toggle **RANKED RUN** in Team Select before starting. It forces every Unlock/Battle-Pass bonus to
+zero and blocks Vault (Import Axie) picks from your team, so every submitted run plays against the
+exact same baseline no matter how much local progression a player has — the server has no way to
+verify per-player Unlocks/Shard state (it's never synced anywhere), so this sidesteps that instead
+of trusting it. Win or lose, the end screen lets you enter a display name (and optionally connect a
+Ronin wallet for a badge next to it) and submit. View standings from the **LEADERBOARD** tile on the
+main menu, filterable by Mode and Ascension.
+
+This ships as an MVP: one board per (mode, ascension) rather than the full Standard/Collector split
+in `design/gdd/leaderboard-system.md`, and no Daily-seed view yet — see
+`docs/architecture/adr-0001-leaderboard-backend-infrastructure.md` for why and what a full
+implementation would still need (syncing meta-progression to a server).
 
 ## Controls
 

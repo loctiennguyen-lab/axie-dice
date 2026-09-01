@@ -127,3 +127,39 @@ User: "dọn nợ kỹ thuật" (3 mục đã liệt kê: keyboard-only, HEROES[
 - [x] **`removeFromVault` dọn sạch `HEROES[vaultKey]`** khi xoá Axie khỏi Vault.
 - [x] **`tools/t_import.mjs`** — 23 test logic thuần (không cần Playwright) cho `axieToDie`/`mapAxieClass`: class mapping, 6-face shape, map theo class-của-part, Origin/specialGenes bump riêng lẻ + compound đúng thứ tự, edge case (thiếu/thừa/0 part, slot lạ). 23/23 pass.
 - [x] Verify: `node tools/verify.mjs` 28/30, `node tools/sim.js` 24.0% — không regression.
+
+## Progress Checklist (tiếp — 2026-09-01 phần 12, LOGIN + LEADERBOARD, tính năng lớn nhất phiên này)
+User: "hướng dẫn làm phần login để cho người chơi chơi thử nghiệm bản beta" → làm rõ: mục đích là chơi + đua bảng xếp hạng → "tôi muốn bạn làm luôn". Đây là tính năng ĐẦU TIÊN của dự án cần backend thật (trước đó 100% client-side + 1 proxy đọc-only cho Import Axie).
+
+**Đã có sẵn spec/ADR từ phiên trước** (`design/gdd/leaderboard-system.md`, `docs/architecture/adr-0001-leaderboard-backend-infrastructure.md`, status "Proposed") — đọc lại, bám sát, cập nhật status → **Accepted**, chọn vendor cụ thể (ADR gốc để ngỏ): **Vercel Functions + Upstash Redis** (REST API thuần `fetch()`, không SDK, khớp tinh thần "không bundler").
+
+- [x] **Anti-cheat replay đúng 100% theo thiết kế** — client KHÔNG BAO GIỜ gửi score, chỉ gửi action log `{fn,args}` cho 11 hàm engine (`chooseNode/playerUseDie/playerUseRelic/doReroll/endTurn/undo/takeReward/eventChoose/eventDone/shopBuy/shopDone`), server replay qua chính `src/engine.js` (load qua `vm`, giống hệt cách `tools/sim.js` đã chứng minh khả thi) và tự tính score bằng `runXp()` (hàm XP Lunacia Pass đã có sẵn, tái dùng đúng theo thiết kế, không công thức mới).
+- [x] **`ENGINE_VERSION`** const mới trong `engine.js` (hiện `'2026-09-01-echo1'`) — server từ chối replay nếu client gửi version cũ (tránh balance patch sau này tính điểm sai cho run cũ).
+- [x] **Bug thật tìm được khi tự test** (không phải qua review agent lần này — tự phát hiện bằng cách chơi 1 run headless thật rồi replay): quên `logAction` cho `eventDone` (nút CONTINUE sau khi resolve event) — nếu không sửa, mọi run đi qua event node sẽ có log không replay được tới cuối. Đã sửa + verify lại bằng đối chiếu 11/11 hàm có `logAction` khớp đúng số lần gọi thật (không phải đoán).
+- [x] **`api/_engine.js`** (helper, không phải route — Vercel bỏ qua file bắt đầu bằng `_`) — load `data.js+engine.js` vào `vm` context.
+- [x] **`api/submit-run.js`** — validate shape chặt (regex team key, cap 3000 action chặn spam-log), reject nếu `engineVersion` không khớp, replay thật, ghi vào Upstash sorted set `lb:{mode}:{ascension}` qua `ZADD`. Nếu thiếu env var Upstash → vẫn tính điểm đúng, trả `stored:false` thay vì lỗi (graceful degrade, đã tự verify).
+- [x] **`api/leaderboard.js`** — đọc top-100 qua `ZRANGE ... REV WITHSCORES`, cache 30s.
+- [x] **"RANKED RUN" toggle mới** (Team Select) — **đây là giải pháp thay thế cho việc chưa sync progression lên server** (không có trong `leaderboard-system.md` gốc, tự thiết kế khi gặp vấn đề thật): ép `bonusReroll=metaHpBonus=0, startRelics=[]` bất kể Unlocks/Pass đã mua, chặn Vault (Import Axie) khỏi team — để MỌI submission replay ra cùng baseline bất kể tiến trình local của người chơi. Server KHÔNG cần biết META của client vì client đã tự ép về 0 và server replay lại đúng y hệt logic đó. Đổi lại: **KHÔNG có Standard/Collector split** như spec gốc (chỉ 1 board/mode/ascension) — lý do và toàn bộ quyết định đã ghi rõ trong ADR-0001 + `leaderboard-system.md` (status note đầu file), không phải lặng lẽ bỏ scope.
+- [x] **UI**: `scLeaderboard()` (xem bảng, chọn mode/ascension), `scSubmitBox()` (nhập tên + optional Ronin wallet + nút nộp, tái dùng `connectRonin()`/`shortAddr()` đã có từ Import Axie) trong `scEnd()` khi `S.ranked`. Tile "LEADERBOARD" mới ở menu chính.
+- [x] **Bug UI thật tìm được khi tự test bằng chuột thật**: nút SUBMIT tính `disabled` tại thời điểm render, không cập nhật khi gõ tên (vì input `oninput` không gọi `render()` — đây là **convention có chủ đích của codebase**, không phải sơ suất: input Import-Axie-ID và Seed cũng không re-render khi gõ). Đã sửa: chuyển validate vào trong click handler thay vì disable trước, khớp đúng pattern 2 input kia.
+- [x] **Verify sâu, nhiều lớp** (quan trọng vì đây là tính năng an toàn/chống gian lận):
+  1. Script headless tự chơi 1 run thật (`aiTurn` tối giản), ghi log, replay lại qua state riêng → **bit-identical** (`s1.phase/step/shards/stat` giống hệt) — xác nhận tính chất cốt lõi của anti-cheat.
+  2. Gọi THẲNG `api/submit-run.js` (không mock) với log thật từ 1 run chơi headless đầy đủ tới `lost` (139 action, wave 6) → replay đúng, `score=170`, `stored:false` (đúng vì sandbox không có Upstash).
+  3. Gọi thẳng `api/leaderboard.js` → `{rows:[],configured:false}` đúng khi chưa cấu hình.
+  4. Browser thật: bật Ranked Run qua click chuột thật (`pickRanked` state đúng), vào `startRun()` xác nhận `bonusReroll=0/metaHpBonus=0`, giả lập thua, điền tên qua `form_input`, bấm SUBMIT qua ref thật → fetch thất bại đúng cách (server test không có `/api/*`) hiện lỗi rõ ràng, không crash.
+- [x] `node tools/verify.mjs` 28/30, `node tools/sim.js` 24.0%, `node tools/t_import.mjs` 23/23 — không regression.
+- [x] Đã commit: `8de96e1`.
+
+## ⚠️ VIỆC BẮT BUỘC TRƯỚC KHI LEADERBOARD HOẠT ĐỘNG THẬT TRÊN PRODUCTION
+Đây là việc NGOÀI PHẠM VI code — cần user tự làm (không thể tự động hoá từ Claude Code):
+1. Tạo 1 Upstash Redis database miễn phí tại **upstash.com** (free tier đủ dùng cho beta test quy mô nhỏ).
+2. Copy `UPSTASH_REDIS_REST_URL` và `UPSTASH_REDIS_REST_TOKEN` từ dashboard Upstash.
+3. Vào Vercel Project Settings → Environment Variables, thêm đúng 2 biến trên.
+4. Redeploy. Không làm bước này thì game vẫn chạy bình thường, Ranked Run vẫn tính điểm đúng, chỉ là điểm **không được lưu** (`stored:false`) — không có gì crash, đã tự verify hành vi graceful-degrade này.
+
+## Backlog mới sau phần 12 (không chặn, ghi lại để không quên)
+- Standard/Collector board split thật (theo đúng spec gốc) — cần thiết kế + implement việc sync progression lên server trước, phạm vi lớn hơn nhiều, chưa làm.
+- Daily seed leaderboard view — chưa làm, chỉ có All-time.
+- Chưa có UI hiển thị "rank của tôi" nổi bật riêng (chỉ list top-100 chung).
+- `api/submit-run.js` không có test tự động (`tools/t_*.mjs`) — mới verify tay qua script scratch, nên cân nhắc viết `tools/t_leaderboard.mjs` chính thức nếu làm thêm việc trên leaderboard sau này.
+- Score tiebreak "nộp sớm hơn thắng" (ghi trong `leaderboard-system.md` Edge Cases) CHƯA implement — Upstash `ZADD` hiện chỉ so sánh đúng 1 giá trị score, 2 người cùng điểm sẽ xếp theo thứ tự Upstash tự quyết (không đảm bảo "sớm hơn thắng"). Nhỏ, dễ sửa sau nếu cần (mã hoá tiebreak vào chính giá trị score gửi cho ZADD).
