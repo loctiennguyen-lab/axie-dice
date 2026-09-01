@@ -1,7 +1,17 @@
 # ADR-0001: Leaderboard Backend Infrastructure
 
 ## Status
-Proposed
+Accepted (2026-09-01, phiên tiếp theo — product owner yêu cầu implement trực tiếp)
+
+**Vendor cụ thể đã chọn** (Decision section để ngỏ "exact vendor is an implementation detail"): **Vercel Functions + Upstash Redis** (REST API, không dùng SDK — chỉ `fetch()` thuần, khớp tinh thần "không bundler/dependency" của dự án). Sorted-set (`ZADD`/`ZRANGE`) là cấu trúc dữ liệu tự nhiên cho leaderboard, không cần schema SQL. Xem `api/submit-run.js`, `api/leaderboard.js`, `api/_engine.js`.
+
+**MVP scope đã ship — hẹp hơn spec đầy đủ trong `leaderboard-system.md`, ghi rõ để không ai tưởng nhầm đã xong 100%:**
+- **1 board/(mode, ascension)** — KHÔNG có tách Standard/Collector. Lý do: tách bảng cần biết chắc 1 run có dùng "quyền chọn-trước NFT" hợp lệ hay không, nhưng progression/Vault hiện chưa sync lên server nên không xác minh được — xem giải pháp "Ranked Run" bên dưới.
+- **Không có Daily seed view riêng** — chỉ All-time top-100.
+- **"Ranked Run"** (mới, không có trong `leaderboard-system.md` gốc) — cơ chế thay thế tạm cho việc chưa sync progression: khi bật, `newGame()` bị ép `bonusReroll=0, metaHpBonus=0, startRelics=[]` bất kể Unlocks/Pass đã mua gì, và Vault (Import Axie) bị chặn khỏi team — cả server lẫn client đều áp dụng đúng luật này nên không cần server biết META của người chơi. Đây chính là tinh thần "Standard board, ai cũng như nhau" của thiết kế gốc, chỉ khác là MỌI run (không chỉ Standard) đều chơi ở mức baseline thay vì tách riêng 2 bảng.
+- Anti-cheat replay (phần khó/quan trọng nhất) đã implement ĐẦY ĐỦ đúng thiết kế: server replay qua chính `src/engine.js`, không bao giờ tin score client gửi. Đã test bằng 1 run thật (139 action) chơi tự động rồi replay qua đúng `api/submit-run.js` — điểm khớp 100%.
+
+**Việc còn lại để vận hành thật** (ngoài phạm vi 1 phiên code): user cần tự tạo Upstash Redis database (upstash.com, free tier đủ dùng cho beta) và set 2 env var `UPSTASH_REDIS_REST_URL`/`UPSTASH_REDIS_REST_TOKEN` trong Vercel Project Settings — không có 2 biến này, `/api/submit-run` vẫn tính điểm đúng nhưng trả về `stored:false` (đã tự verify hành vi graceful-degrade này).
 
 ## Date
 2026-09-01

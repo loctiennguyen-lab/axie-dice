@@ -643,7 +643,7 @@ body.dragging{cursor:grabbing} body.dragging .die{cursor:grabbing}
 #aim.on{opacity:1}
 
 /* ================= LUNACIA PASS ================= */
-.screen.menu.bpscreen,.screen.menu.codex,.screen.menu.guide,.screen.menu.collection,.screen.menu.unlocks,.screen.menu.vaultscreen{justify-content:flex-start;padding-top:16px}
+.screen.menu.bpscreen,.screen.menu.codex,.screen.menu.guide,.screen.menu.collection,.screen.menu.unlocks,.screen.menu.vaultscreen,.screen.menu.leaderboard{justify-content:flex-start;padding-top:16px}
 .bpbar{width:320px;height:6px;background:var(--pan2);border-radius:3px;overflow:visible;position:relative;margin:0 auto 6px}
 .bpbar.big{margin:4px auto 26px}
 .bpfill{height:100%;background:var(--acc);border-radius:3px;transition:width .4s}
@@ -759,6 +759,15 @@ body.dragging{cursor:grabbing} body.dragging .die{cursor:grabbing}
 .ifrow.r1 .ifr{color:var(--r1)} .ifrow.r2 .ifr{color:var(--r2)}
 .ifrow.r3 .ifr{color:var(--r3)} .ifrow.r4 .ifr{color:var(--r4)}
 .iempty{font-size:var(--t2);color:var(--dim);padding:12px}
+.submitbox{max-width:1050px;margin:16px auto;padding:var(--card-pad);background:var(--pan);
+  border:var(--bd) solid var(--line);border-radius:var(--radius);display:flex;flex-direction:column;gap:8px;align-items:flex-start}
+.lbtable{max-width:1050px;margin:0 auto;display:flex;flex-direction:column;gap:2px}
+.lbrow{display:grid;grid-template-columns:56px 1fr 80px 90px;gap:8px;align-items:center;
+  padding:8px var(--card-pad-sm);background:var(--pan);border:1px solid var(--line);border-radius:var(--rad-sm,6px);font-size:var(--t3)}
+.lbrow.won{border-color:var(--acc)}
+.lbrank{color:var(--dim);font-weight:var(--fw-action)}
+.lbscore{color:var(--acc);font-weight:var(--fw-action);text-align:right}
+.lbstep{color:var(--dim);font-size:var(--t2);text-align:right}
 .icard2{background:var(--pan2);border:1px solid var(--line);border-radius:var(--rad-sm);padding:var(--card-pad-sm);margin-bottom:10px}
 .ic2h{display:flex;gap:12px;align-items:center}
 .ic2h .spr{width:54px;height:54px;flex:0 0 54px;margin:0}

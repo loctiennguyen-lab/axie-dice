@@ -1,4 +1,12 @@
 /* ============ AXIE DICE TACTICS v0.2 — ENGINE (pure, no DOM) ============ */
+/* design/gdd/leaderboard-system.md Edge Cases + ADR-0001 Key Interfaces: replay
+   must use the exact engine build active when a run's seed was issued, so a
+   later balance patch (docs/balance-log.md) never retroactively rescoreS an
+   old submission. Bump this string any time engine.js's gameplay math changes
+   (new TUNE values, new mechanic, etc.) — NOT for pure refactors with no
+   behavior change. Server stores this per-submission and only accepts a
+   replay if it can run the matching engine version. */
+const ENGINE_VERSION = '2026-09-01-echo1';
 
 function mkRng(seed){ let a=seed>>>0; return function(){ a=(a+0x6D2B79F5)>>>0; let t=a; t=Math.imul(t^t>>>15,t|1); t^=t+Math.imul(t^t>>>7,t|61); return ((t^t>>>14)>>>0)/4294967296; }; }
 let RNG=mkRng(12345);
@@ -854,4 +862,5 @@ function archScore(s){
 if(typeof module!=='undefined') module.exports={facePool,rerollRewards,mkRng,newGame,nextStep,chooseNode,startCombat,rollAll,doReroll,
   anyRerollable,playerUseDie,playerUseRelic,endTurn,undo,takeReward,genRewards,buildUnit,dieRarity,aliveP,aliveE,realP,
   byUid,faceValue,hasKw,kwVal,genEncounter,eventChoose,eventDone,genShop,shopBuy,shopDone,archScore,
-  faceText,kwText,faceArch,RELIC_BY_ID,rlist,critChance,nftHpBonusPct,resonancePairs,axieToDie,mapAxieClass};
+  faceText,kwText,faceArch,RELIC_BY_ID,rlist,critChance,nftHpBonusPct,resonancePairs,axieToDie,mapAxieClass,
+  ENGINE_VERSION};

@@ -1,6 +1,6 @@
 # Leaderboard System
 
-> **Status**: In Design
+> **Status**: MVP implemented (2026-09-01, phiên tiếp theo) — xem `docs/architecture/adr-0001-leaderboard-backend-infrastructure.md` (Accepted) cho scope thật đã ship (1 board/mode/ascension thay vì Standard/Collector split, cơ chế "Ranked Run" mới thay thế tạm cho việc chưa sync progression lên server, không có Daily view). Anti-cheat replay đúng 100% theo thiết kế dưới đây. Code: `api/submit-run.js`, `api/leaderboard.js`, `src/ui.js` (`scLeaderboard`, `scSubmitBox`, `logAction`).
 > **Author**: Claude Code (2026-09-01), theo yêu cầu product owner
 > **Last Updated**: 2026-09-01
 > **Implements Pillar**: Minh bạch triệt để — mở rộng sang cạnh tranh: thứ hạng phải minh bạch và không thể gian lận bằng thủ thuật client, cùng tinh thần với "không giấu thông tin trong combat".

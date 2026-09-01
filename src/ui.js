@@ -16,7 +16,7 @@ let rollAnim=null, pendFloats=[], hoverT=null;
 /* ---------- META (localStorage, degrade gracefully) ---------- */
 const MK='axiedice_meta_v2', RK='axiedice_run_v2';
 const DEF_META={vol:0.28,mute:false,spd:1,shards:0,unlocks:[],ascMax:0,best:0,runs:0,wins:0,faces:[],relics:[],bosses:[],tut:0,
-  xp:0,bpClaimed:[],bpFaces:[],perks:{},title:'',reduceFlash:false,vault:[],echoPoints:0};
+  xp:0,bpClaimed:[],bpFaces:[],perks:{},title:'',reduceFlash:false,vault:[],echoPoints:0,displayName:''};
 let META={...DEF_META};
 function loadMeta(){ try{ const j=localStorage.getItem(MK); if(j) META={...DEF_META,...JSON.parse(j)}; }catch(e){} }
 function saveMeta(){ try{ localStorage.setItem(MK,JSON.stringify(META)); }catch(e){} }
@@ -312,6 +312,7 @@ function render(){
   else if(screen==='unlocks') root.appendChild(scUnlocks());
   else if(screen==='collection') root.appendChild(scCollection());
   else if(screen==='vault') root.appendChild(scImportAxie());
+  else if(screen==='leaderboard') root.appendChild(scLeaderboard());
   else if(screen==='bp') root.appendChild(scBP());
   else if(screen==='codex') root.appendChild(scCodex());
   else if(screen==='guide') root.appendChild(scGuide());
@@ -392,6 +393,7 @@ function scMenu(){
   grid.appendChild(menuTile('UNLOCKS',(META.unlocks||[]).length+'/'+UNLOCKS.length,()=>{ screen='unlocks'; render(); }));
   grid.appendChild(menuTile('CODEX','how to play',()=>{ screen='codex'; render(); }));
   grid.appendChild(menuTile('VAULT',(META.vault||[]).length+'/'+VAULT_MAX+' imported',()=>{ screen='vault'; render(); }));
+  grid.appendChild(menuTile('LEADERBOARD','Ranked Run scores',()=>{ screen='leaderboard'; render(); loadLeaderboard(); }));
   inner.appendChild(grid);
   const line=[];
   if(META.runs) line.push(META.runs+(META.runs===1?' run':' runs'));
@@ -481,7 +483,7 @@ function scEchoForge(){
 }
 
 /* ================= TEAM SELECT ================= */
-let pickMode='short', pickAsc=0, pickSeed='';
+let pickMode='short', pickAsc=0, pickSeed='', pickRanked=false;
 function scTeam(){
   const w=el('div','screen title');
   w.appendChild(el('h1','logo sm','CHOOSE YOUR TEAM'));
@@ -545,6 +547,16 @@ function scTeam(){
   }
   if(META.ascMax===0) ascBox.appendChild(el('span','hintxt','Win a run to unlock Ascension 1'));
   cfg.appendChild(ascBox);
+  const rkBox=el('div','cfgrow'); rkBox.appendChild(el('span','cl','RANKED'));
+  const hasVault=teamPick.some(k=>k.startsWith('vault_'));
+  if(hasVault) pickRanked=false;
+  const rb=el('button','btn sm'+(pickRanked?' on':'')+(hasVault?' dis':''),'RANKED RUN'+(pickRanked?' ✓':''));
+  rb.title=hasVault?'Remove your Vault (Import Axie) picks to enable Ranked Run.'
+    :'Ranked Run ignores all Unlock/Pass bonuses (everyone plays the exact same numbers) and can be submitted to the Leaderboard.';
+  rb.onclick=()=>{ if(hasVault)return; SFX.ui(); pickRanked=!pickRanked; render(); };
+  rkBox.appendChild(rb);
+  if(pickRanked) rkBox.appendChild(el('span','hintxt','No Unlock/Pass bonuses this run · eligible for the Leaderboard'));
+  cfg.appendChild(rkBox);
   if(pickAsc>0){ const d=el('div','ascdesc'); ASCENSION.slice(0,pickAsc).forEach(x=>d.appendChild(el('div',null,'A'+x.a+' · '+x.d))); cfg.appendChild(d); }
   const seedBox=el('div','cfgrow'); seedBox.appendChild(el('span','cl','SEED'));
   const inp=el('input','seedinp'); inp.placeholder='leave blank for random'; inp.value=pickSeed;
@@ -567,15 +579,40 @@ function scTeam(){
   return w;
 }
 function hashSeed(str){ let h=2166136261; for(let i=0;i<str.length;i++){ h^=str.charCodeAt(i); h=Math.imul(h,16777619); } return h>>>0; }
+/* Leaderboard anti-cheat (design/gdd/leaderboard-system.md "Nộp điểm & xác thực"):
+   the server replays actionLog through the exact same engine.js call sequence
+   and only trusts the score IT computes. logAction() must be called at every
+   site that mutates S via an engine.js function — see the matching list this
+   comment enumerates, kept in sync manually since there's no framework to
+   enforce it: chooseNode, playerUseDie, playerUseRelic, doReroll, endTurn,
+   undo, takeReward, eventChoose, shopBuy, shopDone. */
+function logAction(fn,args){ if(S&&S.actionLog) S.actionLog.push({fn,args}); }
+
 function startRun(){
   const seed = pickSeed? hashSeed(pickSeed) : (Math.random()*1e9)|0;
   const P=META.perks||{};
-  const sr=(unlocked('u_start')?1:0)+(P.relic0||0)+(P.relic1||0);
+  /* Ranked Run (leaderboard-eligible): zero every META-derived bonus so a
+     submission replays identically for every player regardless of how many
+     Unlocks they've bought locally — meta-progression is never synced to the
+     server, so it can't be trusted/verified there. This is the MVP's
+     "Standard board, ai cũng như nhau" guarantee (leaderboard-system.md) —
+     see docs/architecture/adr-0001 follow-up note on why a full Standard/
+     Collector split needing server-side progression sync is out of scope
+     for this beta. Vault (Import Axie) picks are blocked in Ranked Run for
+     the same reason: replay would need the server to re-fetch NFT part data
+     over the network mid-replay, which the design's deterministic-replay
+     model forbids (network calls aren't deterministic). */
+  const ranked=!!pickRanked;
+  const sr=ranked?0:(unlocked('u_start')?1:0)+(P.relic0||0)+(P.relic1||0);
   const srRar=(P.relic1?1:0);
   S=newGame(seed,teamPick.slice(),{mode:pickMode,asc:pickAsc,
-    bonusReroll:(unlocked('u_reroll')?1:0)+(unlocked('u_reroll2')?1:0)+(P.reroll||0),
-    metaHpBonus:(unlocked('u_hp')?3:0)+(unlocked('u_hp2')?2:0)+4*(P.hp4||0),
+    bonusReroll: ranked?0:(unlocked('u_reroll')?1:0)+(unlocked('u_reroll2')?1:0)+(P.reroll||0),
+    metaHpBonus: ranked?0:(unlocked('u_hp')?3:0)+(unlocked('u_hp2')?2:0)+4*(P.hp4||0),
     startRelics: sr? [pick0(RELICS.filter(r=>r.rar<=srRar&&!r.act)).id] : []});
+  S.ranked=ranked;
+  S.actionLog = ranked? [] : null;
+  S.runSeed = seed;
+  S.runTeamKeys = teamPick.slice();
   S.bpFaces=(META.bpFaces||[]).slice();
   S.rerollReward=1+(P.rrw||0); S.rrwMax=S.rerollReward;
   S.unlockRelicMax = unlocked('u_relic2')?3:unlocked('u_relic1')?2:1;
@@ -618,6 +655,7 @@ function scMap(){
       }
     }
     c.onclick=()=>{ SFX.ui(); if(nd.type==='boss') SFX.boss();
+      logAction('chooseNode',[i]);
       chooseNode(S,i);
       if(['battle','elite','boss'].includes(nd.type)){
         /* New combat: the log is scoped to "current combat only" (T15) —
@@ -665,7 +703,7 @@ function track(withCtl){
   const shw=el('span','shards'); shw.appendChild(ico('shard','t')); shw.appendChild(el('span',null,' '+S.shards)); r.appendChild(shw);
   if(S.asc) r.appendChild(el('span','ascbadge','A'+S.asc));
   if(withCtl){
-    const ub=btn('xs ghost','UNDO',()=>{ if(undo(S)){ sel=null;selRelic=null;flash('Undone.'); render(); } });
+    const ub=btn('xs ghost','UNDO',()=>{ if(undo(S)){ logAction('undo',[]); sel=null;selRelic=null;flash('Undone.'); render(); } });
     if(!S.undo.length) ub.classList.add('dis'); r.appendChild(ub);
     const sp=el('div','spd');
     [1,2,3].forEach(v=>{ const b=el('button','btn xs'+(SPD===v?' on':''),v+'x'); b.onclick=()=>{SPD=v;render();}; sp.appendChild(b); });
@@ -764,7 +802,7 @@ function scCombat(frozen){
     c.appendChild(el('div','ic-n',r.n)); c.appendChild(el('div','ic-c','MP '+r.act.cost));
     c.title=r.d;
     c.onclick=()=>{ if(!can)return; SFX.ui(); sel=null;
-      if(r.act.tgt==='self'){ if(playerUseRelic(S,id,null)) afterAct(); }
+      if(r.act.tgt==='self'){ if(playerUseRelic(S,id,null)){ logAction('playerUseRelic',[id,null]); afterAct(); } }
       else { selRelic=id; render(); } };
     if(can) kbAct(c);
     items.appendChild(c);
@@ -774,7 +812,7 @@ function scCombat(frozen){
   const rb=btn('reroll','REROLL '+S.rerolls,()=>{
     const pickd=S.party.filter(u=>u.rsel&&u.hp>0&&!u.used&&!u.heavy&&!u.frozen).map(u=>u.uid);
     const use=pickd.length?pickd:S.party.filter(u=>u.hp>0&&!u.used&&!u.heavy&&!u.frozen).map(u=>u.uid);
-    if(doReroll(S,use)){ SFX.reroll(); S.party.forEach(u=>u.rsel=false); sel=null;
+    if(doReroll(S,use)){ logAction('doReroll',[use]); SFX.reroll(); S.party.forEach(u=>u.rsel=false); sel=null;
       flash('Rerolled. Undo history cleared.'); triggerRollAnim(use); collectFloats(); render(); } });
   if(!(S.rerolls>0&&anyRerollable(S))) rb.classList.add('dis');
   bb.appendChild(rb);
@@ -950,15 +988,15 @@ function clickDie(u){
   const f=u.die[u.rolled];
   if(f.t==='blank'){ flash('This face is blank. Try rerolling it.'); render(); return; }
   selRelic=null; SFX.ui();
-  if(!needsTarget(u)){ if(playerUseDie(S,u.uid,null)) afterAct(); return; }
+  if(!needsTarget(u)){ if(playerUseDie(S,u.uid,null)){ logAction('playerUseDie',[u.uid,null]); afterAct(); } return; }
   sel = sel===u.uid? null : u.uid; render();
 }
 function doTarget(uid){
   if(playing) return;
-  if(selRelic){ const r=selRelic; selRelic=null; if(playerUseRelic(S,r,uid)) afterAct(); else render(); return; }
+  if(selRelic){ const r=selRelic; selRelic=null; if(playerUseRelic(S,r,uid)){ logAction('playerUseRelic',[r,uid]); afterAct(); } else render(); return; }
   if(sel==null) return;
   const su=sel; sel=null;
-  if(playerUseDie(S,su,uid)) afterAct(); else render();
+  if(playerUseDie(S,su,uid)){ logAction('playerUseDie',[su,uid]); afterAct(); } else render();
 }
 async function afterAct(){
   flash(''); sel=null; selRelic=null;
@@ -972,6 +1010,7 @@ async function doEndTurn(){
   if(rollAnim||playing) return;
   sel=null; selRelic=null;
   const before=S.turn;
+  logAction('endTurn',[]);
   endTurn(S); flash('');
   await playEvents();
   S.floatText=[];
@@ -1019,7 +1058,7 @@ function scReward(){
       if(ent){ const u=buildUnit(ent,S); const old=u.die[r.idx];
         c.appendChild(el('div','rrepl','Overwrites: '+faceText(old))); } }
     c.appendChild(el('div','rcta','TAKE'));
-    c.onclick=()=>{ if(r.t==='level') SFX.levelup(); else SFX.legend(); if(r.rar>=4) flashScreen('myth'); takeReward(S,i); sel=null;
+    c.onclick=()=>{ if(r.t==='level') SFX.levelup(); else SFX.legend(); if(r.rar>=4) flashScreen('myth'); logAction('takeReward',[i]); takeReward(S,i); sel=null;
       if(typeof clogIngest==='function') clogIngest(S.ev);
       S.ev=[]; S.floatText=[];
       if(S.phase==='combat') triggerRollAnim(); render(); saveRun(); };
@@ -1055,12 +1094,12 @@ function scEvent(){
     d.opts.forEach((o,i)=>{ const c=el('div','rcard evopt');
       c.appendChild(el('div','rt',o.t)); c.appendChild(el('div','rd',o.d));
       c.appendChild(el('div','rcta','TAKE'));
-      c.onclick=()=>{ SFX.open(); eventChoose(S,i); render(); saveRun(); };
+      c.onclick=()=>{ SFX.open(); logAction('eventChoose',[i]); eventChoose(S,i); render(); saveRun(); };
       c.onmouseenter=()=>SFX.hover(); kbAct(c); row.appendChild(c); });
     bx.appendChild(row);
   } else {
     bx.appendChild(el('div','evres',ev.res.msg));
-    bx.appendChild(btn('big go','CONTINUE',()=>{ eventDone(S); render(); saveRun(); }));
+    bx.appendChild(btn('big go','CONTINUE',()=>{ logAction('eventDone',[]); eventDone(S); render(); saveRun(); }));
   }
   bx.appendChild(partyStrip());
   ov.appendChild(bx);
@@ -1084,17 +1123,97 @@ function scShop(){
     c.appendChild(el('div','rd',it.d));
     if(it.arch&&ARCH[it.arch]){ const a=el('div','rarch',ARCH[it.arch].n); a.style.color=ARCH[it.arch].c; c.appendChild(a); }
     c.appendChild(el('div','rcost',sold?'SOLD'  :it.cost+' SHARD'));
-    if(can){ c.onclick=()=>{ SFX.coin(); shopBuy(S,i); render(); saveRun(); }; kbAct(c); }
+    if(can){ c.onclick=()=>{ SFX.coin(); logAction('shopBuy',[i]); shopBuy(S,i); render(); saveRun(); }; kbAct(c); }
     row.appendChild(c);
   });
   bx.appendChild(row);
-  bx.appendChild(btn('big go','LEAVE',()=>{ shopDone(S); render(); saveRun(); }));
+  bx.appendChild(btn('big go','LEAVE',()=>{ logAction('shopDone',[]); shopDone(S); render(); saveRun(); }));
   bx.appendChild(partyStrip());
   ov.appendChild(bx);
   return ov;
 }
 
 /* ================= END / RECAP ================= */
+/* ================= LEADERBOARD (view) ================= */
+let lbMode='short', lbAsc=0, lbState='idle', lbRows=[], lbConfigured=true;
+async function loadLeaderboard(){
+  lbState='busy'; render();
+  try{
+    const r=await fetch('/api/leaderboard?mode='+lbMode+'&ascension='+lbAsc);
+    const data=await r.json();
+    lbRows=data.rows||[]; lbConfigured=data.configured!==false; lbState='done';
+  }catch(e){ lbState='error'; lbRows=[]; }
+  render();
+}
+function scLeaderboard(){
+  const w=el('div','screen menu leaderboard');
+  w.appendChild(el('h1','logo sm','LEADERBOARD'));
+  w.appendChild(el('div','sub','Ranked Run scores · replayed and verified server-side, never trusted from the client'));
+  const cfg=el('div','cfg');
+  const modeBox=el('div','cfgrow'); modeBox.appendChild(el('span','cl','MODE'));
+  ['short','full'].forEach(m=>{ const b=el('button','btn sm'+(lbMode===m?' on':''),m==='short'?'SHORT RUN':'FULL RUN');
+    b.onclick=()=>{ SFX.ui(); lbMode=m; loadLeaderboard(); }; modeBox.appendChild(b); });
+  cfg.appendChild(modeBox);
+  const ascBox=el('div','cfgrow'); ascBox.appendChild(el('span','cl','ASCENSION'));
+  for(let a=0;a<=10;a++){ const b=el('button','btn sm'+(lbAsc===a?' on':''),'A'+a);
+    b.onclick=()=>{ SFX.ui(); lbAsc=a; loadLeaderboard(); }; ascBox.appendChild(b); }
+  cfg.appendChild(ascBox);
+  w.appendChild(cfg);
+  if(lbState==='busy') w.appendChild(el('div','iempty','Loading…'));
+  else if(lbState==='error') w.appendChild(el('div','iempty','Could not reach the server. Try again later.'));
+  else if(!lbConfigured) w.appendChild(el('div','iempty','Leaderboard storage is not set up on this server yet — scores are computed but not saved. See README for setup.'));
+  else if(!lbRows.length) w.appendChild(el('div','iempty','No Ranked Run scores yet for this Mode/Ascension — be the first.'));
+  else{
+    const tbl=el('div','lbtable');
+    lbRows.forEach(row=>{
+      const r=el('div','lbrow'+(row.won?' won':''));
+      r.appendChild(el('div','lbrank','#'+row.rank));
+      r.appendChild(el('div','lbname',row.name+(row.wallet?' 🔗':'')));
+      r.appendChild(el('div','lbscore',String(row.score)));
+      r.appendChild(el('div','lbstep',(row.won?'WON':'wave '+row.step)));
+      tbl.appendChild(r);
+    });
+    w.appendChild(tbl);
+  }
+  w.appendChild(btn('','BACK',()=>{ screen='menu'; render(); }));
+  return w;
+}
+
+/* ================= LEADERBOARD SUBMISSION (Ranked Run only) ================= */
+let submitState='idle', submitMsg='';
+async function submitRun(){
+  submitState='busy'; submitMsg=''; render();
+  try{
+    const body={ seed:S.runSeed, teamKeys:S.runTeamKeys, mode:S.mode, ascension:S.asc,
+      actions:S.actionLog, displayName:META.displayName, walletAddr:roninAddr, engineVersion:ENGINE_VERSION };
+    const r=await fetch('/api/submit-run',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+    const data=await r.json();
+    if(!r.ok||!data.accepted){ submitState='error'; submitMsg=data.reason||'Submission rejected.'; render(); return; }
+    submitState='done';
+    submitMsg = data.stored? ('Submitted — Score '+data.score+'.') : ('Score computed ('+data.score+') but the leaderboard isn\'t configured on this server yet.');
+    render();
+  }catch(e){ submitState='error'; submitMsg='Network error — could not reach the server. Try again.'; render(); }
+}
+function scSubmitBox(){
+  const b=el('div','submitbox');
+  b.appendChild(el('div','ud','RANKED RUN — this score is eligible for the Leaderboard.'));
+  const nameRow=el('div','vform');
+  const inp=el('input','seedinp'); inp.placeholder='Display name'; inp.value=META.displayName||'';
+  inp.oninput=e=>{ META.displayName=e.target.value.slice(0,24); saveMeta(); };
+  nameRow.appendChild(inp);
+  b.appendChild(nameRow);
+  if(roninAddr) b.appendChild(el('div','vwaddr','WALLET · '+shortAddr(roninAddr)));
+  else if(typeof window.ronin!=='undefined') b.appendChild(btn('ghost sm','CONNECT RONIN WALLET (optional)',async()=>{ const a=await connectRonin(); if(a){ roninAddr=a; render(); } }));
+  if(submitState==='idle'||submitState==='error'){
+    b.appendChild(btn('cta','SUBMIT TO LEADERBOARD',()=>{
+      if(!(META.displayName||'').trim()){ submitState='error'; submitMsg='Enter a display name first.'; render(); return; }
+      submitRun();
+    }));
+  } else if(submitState==='busy'){ b.appendChild(el('div','vmsg vmsg-info','Submitting…')); }
+  if(submitMsg) b.appendChild(el('div','vmsg '+(submitState==='error'?'vmsg-bad':'vmsg-info'),submitMsg));
+  return b;
+}
+
 function scEnd(){
   const won=S.phase==='won';
   const ov=el('div','overlay');
@@ -1120,6 +1239,7 @@ function scEnd(){
   bx.appendChild(el('div','buildsum','FINAL BUILD'));
   bx.appendChild(partyStrip());
   bx.appendChild(archStrip());
+  if(S.ranked) bx.appendChild(scSubmitBox());
   const row=el('div','trow');
   row.appendChild(btn('big go','RETRY (same team)',()=>{ startRun(); }));
   row.appendChild(btn('','MENU',()=>{ screen='menu'; render(); }));
@@ -1159,7 +1279,7 @@ function tutOverlay(){
    Esc backs out to the main menu from these, same as clicking that button.
    Deliberately excludes 'combat' (Esc there only deselects, never leaves a
    run) and 'menu'/'team' (no single obvious "back" destination). */
-const ESC_TO_MENU_SCREENS=['codex','collection','unlocks','vault','guide','bp'];
+const ESC_TO_MENU_SCREENS=['codex','collection','unlocks','vault','guide','bp','leaderboard'];
 document.addEventListener('keydown',e=>{
   if(e.key==='Escape'){
     if(modal){ modal=null; render(); return; }
@@ -1171,7 +1291,7 @@ document.addEventListener('keydown',e=>{
   if((e.key==='l'||e.key==='L')&&S&&screen==='combat'&&typeof clogSetOpen==='function'){ clogSetOpen(!clogOpen); render(); return; }
   if(modal) return;
   if(!S||S.phase!=='combat'||playing) return;
-  if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='z'){ e.preventDefault(); if(undo(S)){ sel=null; render(); } }
+  if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='z'){ e.preventDefault(); if(undo(S)){ logAction('undo',[]); sel=null; render(); } }
   else if(e.key==='r'||e.key==='R'){ const b=$('.btn.reroll'); if(b&&!b.classList.contains('dis')) b.click(); }
   else if(e.key===' '||e.key==='Enter'){ e.preventDefault(); const b=$('.btn.end'); if(b) b.click(); }
   else if(e.key>='1'&&e.key<='5'){ const u=S.party.filter(x=>x.side==='p')[+e.key-1]; if(u) clickDie(u); }
