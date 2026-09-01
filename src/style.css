@@ -311,6 +311,11 @@ small{font-size:var(--t1)}
 .pick .vbadge{position:absolute;top:4px;left:4px;font-size:var(--t1);color:var(--acc);
   background:var(--pan2);border:1px solid var(--line);border-radius:var(--rad-sm);padding:1px 5px;pointer-events:none}
 
+/* ================= ACCOUNT (register/login/sync) ================= */
+/* Reuses .cfgrow/.vform/.seedinp/.vmsg/.vwaddr from Import Axie/Leaderboard —
+   no new palette, this is a beta feature and should match the existing bar. */
+.seedinp[type="password"]{letter-spacing:2px}
+
 /* ================= IMPORT AXIE / VAULT ================= */
 .vwrow{max-width:1050px;margin:0 auto 12px;text-align:left}
 .vwaddr{font-size:var(--t2);color:var(--heal);letter-spacing:1px}

@@ -19,7 +19,100 @@ const DEF_META={vol:0.28,mute:false,spd:1,shards:0,unlocks:[],ascMax:0,best:0,ru
   xp:0,bpClaimed:[],bpFaces:[],perks:{},title:'',reduceFlash:false,vault:[],echoPoints:0,displayName:''};
 let META={...DEF_META};
 function loadMeta(){ try{ const j=localStorage.getItem(MK); if(j) META={...DEF_META,...JSON.parse(j)}; }catch(e){} }
-function saveMeta(){ try{ localStorage.setItem(MK,JSON.stringify(META)); }catch(e){} }
+function saveMeta(){ META.savedAt=Date.now(); try{ localStorage.setItem(MK,JSON.stringify(META)); }catch(e){} scheduleSyncPush(); }
+
+/* ---------- ACCOUNT SYNC (design/gdd/player-accounts.md, ADR-0002) ----------
+   Entirely additive to guest play: no token in localStorage = no server calls,
+   META/localStorage path is unchanged. Session token cached separately from META
+   so logging out never touches local progress (GDD §3 Logout). */
+const TK='axiedice_token_v1';
+function loadToken(){ try{ return localStorage.getItem(TK)||null; }catch(e){ return null; } }
+function saveToken(t){ try{ localStorage.setItem(TK,t); }catch(e){} }
+function clearToken(){ try{ localStorage.removeItem(TK); }catch(e){} }
+/* Session token isn't JWT-spec — just base64url(payload)+'.'+base64url(hmac). Decoding
+   the payload client-side is display-only (whose name to show); the server is the only
+   party that verifies the signature, so a tampered token here just shows a wrong name
+   until the next authenticated call 401s and clears it. */
+function tokenUsername(t){
+  try{
+    const payloadB64=String(t).split('.')[0];
+    let s=payloadB64.replace(/-/g,'+').replace(/_/g,'/'); while(s.length%4)s+='=';
+    const u=JSON.parse(atob(s)).u;
+    return typeof u==='string'?u:null;
+  }catch(e){ return null; }
+}
+let authToken=loadToken(), authUsername=authToken?tokenUsername(authToken):null;
+let acctMode='login', acctUsername='', acctPassword='', acctState='idle', acctMsg='', acctConflict=null;
+
+let syncPushTimer=null;
+/* Debounced push (~5s after the last saveMeta()) — never blocks or throws on
+   failure, same graceful-degrade philosophy as the leaderboard's stored:false. */
+function scheduleSyncPush(){
+  if(!authToken) return;
+  if(syncPushTimer) clearTimeout(syncPushTimer);
+  syncPushTimer=setTimeout(pushSync,5000);
+}
+async function pushSync(){
+  if(!authToken) return;
+  try{
+    await fetch('/api/sync-save',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+authToken},body:JSON.stringify({meta:META})});
+  }catch(e){ /* offline/server error — silently degrade, gameplay is never blocked */ }
+}
+/* Pulls the cloud save and reconciles with local META by savedAt (GDD §3 Login):
+   server newer/equal -> silently adopt; local strictly newer -> explicit
+   keep-local-vs-use-cloud choice, never a silent overwrite either way.
+   navigateOnDone controls whether we jump back to the menu when this resolves
+   without a conflict (true from the login form; false from the boot-time pull,
+   which should leave the player wherever they already are). */
+async function pullSyncAfterLogin(navigateOnDone){
+  try{
+    const r=await fetch('/api/sync-save',{headers:{'Authorization':'Bearer '+authToken}});
+    if(r.status===401){ clearToken(); authToken=null; authUsername=null; render(); return; }
+    const data=await r.json();
+    if(!data||typeof data!=='object'){ if(navigateOnDone) screen='menu'; render(); return; }
+    const serverMeta=data.meta;
+    if(!serverMeta){
+      // Never synced from any device yet — push current local META as the first cloud save.
+      saveMeta();
+      if(navigateOnDone) screen='menu'; render(); return;
+    }
+    const localSavedAt=META.savedAt||0, serverSavedAt=serverMeta.savedAt||0;
+    if(localSavedAt>serverSavedAt){
+      acctConflict={server:serverMeta}; screen='account'; render(); return;
+    }
+    META={...DEF_META,...serverMeta}; saveMeta();
+    if(navigateOnDone) screen='menu'; render();
+  }catch(e){ if(navigateOnDone) screen='menu'; render(); }
+}
+async function doAuth(action){
+  if(acctState==='busy') return;
+  const u=(acctUsername||'').trim().toLowerCase();
+  if(!/^[a-z0-9_]{3,20}$/.test(u)){ acctState='error'; acctMsg='Username must be 3-20 characters: a-z, 0-9, _ only.'; render(); return; }
+  if((acctPassword||'').length<8){ acctState='error'; acctMsg='Password must be at least 8 characters.'; render(); return; }
+  acctState='busy'; acctMsg=''; render();
+  try{
+    const body={action, username:u, password:acctPassword};
+    if(action==='register') body.meta=META;
+    const r=await fetch('/api/auth',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+    const data=await r.json();
+    if(!data.ok){ acctState='error'; acctMsg=data.error||'Something went wrong.'; render(); return; }
+    authToken=data.token; saveToken(authToken); authUsername=data.username||u;
+    acctPassword=''; acctState='idle';
+    if(action==='register'){
+      // Registration already uploaded current local META as the first cloud save
+      // server-side — nothing to merge, just re-stamp and let debounced sync take over.
+      saveMeta(); screen='menu'; render(); return;
+    }
+    await pullSyncAfterLogin(true);
+  }catch(e){ acctState='error'; acctMsg='Network error — could not reach the server. Try again.'; render(); }
+}
+function doLogout(){
+  clearToken(); authToken=null; authUsername=null;
+  if(syncPushTimer){ clearTimeout(syncPushTimer); syncPushTimer=null; }
+  screen='menu'; render();
+}
+function resolveConflictKeepLocal(){ acctConflict=null; saveMeta(); screen='menu'; render(); }
+function resolveConflictUseCloud(){ if(acctConflict) META={...DEF_META,...acctConflict.server}; acctConflict=null; saveMeta(); screen='menu'; render(); }
 /* ---------- ECHO POINTS (design/gdd/economy-progression.md §10.3) ----------
    End-game Gene Shard sink, unlocked once the Collection Log (Faces + Relics +
    Bosses) is 100% complete. Formula/constants come from data.js `ECHO`. */
@@ -320,6 +413,7 @@ function render(){
   else if(screen==='collection') root.appendChild(scCollection());
   else if(screen==='vault') root.appendChild(scImportAxie());
   else if(screen==='leaderboard') root.appendChild(scLeaderboard());
+  else if(screen==='account') root.appendChild(scAccount());
   else if(screen==='bp') root.appendChild(scBP());
   else if(screen==='codex') root.appendChild(scCodex());
   else if(screen==='guide') root.appendChild(scGuide());
@@ -408,6 +502,7 @@ function scMenu(){
   grid.appendChild(menuTile('CODEX','how to play',()=>{ screen='codex'; render(); }));
   grid.appendChild(menuTile('VAULT',(META.vault||[]).length+'/'+VAULT_MAX+' imported',()=>{ screen='vault'; render(); }));
   grid.appendChild(menuTile('LEADERBOARD','Ranked Run scores',()=>{ screen='leaderboard'; render(); loadLeaderboard(); }));
+  grid.appendChild(menuTile('ACCOUNT', authToken?('Signed in · '+(authUsername||'')):'Sync progress', ()=>{ screen='account'; acctState='idle'; acctMsg=''; render(); }));
   inner.appendChild(grid);
   const line=[];
   if(META.runs) line.push(META.runs+(META.runs===1?' run':' runs'));
@@ -1203,13 +1298,73 @@ function scLeaderboard(){
   return w;
 }
 
+/* ================= ACCOUNT (register/login/sync) ================= */
+/* design/gdd/player-accounts.md, docs/architecture/adr-0002-player-accounts.md.
+   Entirely additive — guests never see server calls from this screen unless
+   they submit the form. Follows scImportAxie()'s form pattern (cfgrow+vform
+   input row, vmsg status line). */
+function scAccount(){
+  const w=el('div','screen menu vaultscreen');
+  w.appendChild(el('h1','logo sm','ACCOUNT'));
+
+  if(acctConflict){
+    w.appendChild(el('div','sub','This device has progress newer than your cloud save. Choose which to keep — nothing is discarded silently.'));
+    const row=el('div','cfgrow vform');
+    row.appendChild(btn('cta','KEEP THIS DEVICE',()=>resolveConflictKeepLocal()));
+    row.appendChild(btn('ghost','USE CLOUD SAVE',()=>resolveConflictUseCloud()));
+    w.appendChild(row);
+    return w;
+  }
+
+  if(authToken){
+    w.appendChild(el('div','sub','Signed in as '+(authUsername||'?')+' · progress syncs automatically across devices'));
+    w.appendChild(btn('ghost sm','LOG OUT',()=>doLogout()));
+    w.appendChild(btn('','BACK',()=>{ screen='menu'; render(); }));
+    return w;
+  }
+
+  w.appendChild(el('div','sub','Sync your Vault, Unlocks, Collection and Battle Pass across devices. Guest play works fine without this.'));
+
+  const tabRow=el('div','cfgrow');
+  [['login','LOG IN'],['register','REGISTER']].forEach(([m,label])=>{
+    const b=el('button','btn sm'+(acctMode===m?' on':''),label);
+    b.onclick=()=>{ SFX.ui(); acctMode=m; acctState='idle'; acctMsg=''; render(); };
+    tabRow.appendChild(b);
+  });
+  w.appendChild(tabRow);
+
+  const form=el('div','cfgrow vform');
+  const uIn=el('input','seedinp'); uIn.placeholder='Username (3-20, a-z0-9_)'; uIn.value=acctUsername;
+  uIn.oninput=e=>acctUsername=e.target.value;
+  uIn.onkeydown=e=>{ if(e.key==='Enter') doAuth(acctMode); };
+  form.appendChild(uIn);
+  const pIn=el('input','seedinp'); pIn.type='password'; pIn.placeholder='Password (min 8 chars)'; pIn.value=acctPassword;
+  pIn.oninput=e=>acctPassword=e.target.value;
+  pIn.onkeydown=e=>{ if(e.key==='Enter') doAuth(acctMode); };
+  form.appendChild(pIn);
+  const goB=btn('sm go', acctMode==='login'?'LOG IN':'CREATE ACCOUNT', ()=>doAuth(acctMode));
+  if(acctState==='busy') goB.classList.add('dis');
+  form.appendChild(goB);
+  w.appendChild(form);
+
+  if(acctState==='busy') w.appendChild(el('div','vmsg vmsg-info','Working…'));
+  if(acctState==='error') w.appendChild(el('div','vmsg vmsg-bad',acctMsg));
+  if(acctMode==='register') w.appendChild(el('div','vmsg vmsg-info','Registering uploads this device\'s current progress as your first cloud save.'));
+
+  w.appendChild(btn('','BACK',()=>{ screen='menu'; render(); }));
+  return w;
+}
+
 /* ================= LEADERBOARD SUBMISSION (Ranked Run only) ================= */
 let submitState='idle', submitMsg='';
 async function submitRun(){
   submitState='busy'; submitMsg=''; render();
   try{
+    // Logged-in players submit under their account username automatically — closes
+    // the free-text name-spoofing gap (ADR-0002 GDD Requirements Addressed).
+    const nameToUse=(authToken&&authUsername)?authUsername:META.displayName;
     const body={ seed:S.runSeed, teamKeys:S.runTeamKeys, mode:S.mode, ascension:S.asc,
-      actions:S.actionLog, displayName:META.displayName, walletAddr:roninAddr, engineVersion:ENGINE_VERSION };
+      actions:S.actionLog, displayName:nameToUse, walletAddr:roninAddr, engineVersion:ENGINE_VERSION };
     const r=await fetch('/api/submit-run',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
     const data=await r.json();
     if(!r.ok||!data.accepted){ submitState='error'; submitMsg=data.reason||'Submission rejected.'; render(); return; }
@@ -1221,16 +1376,20 @@ async function submitRun(){
 function scSubmitBox(){
   const b=el('div','submitbox');
   b.appendChild(el('div','ud','RANKED RUN — this score is eligible for the Leaderboard.'));
-  const nameRow=el('div','vform');
-  const inp=el('input','seedinp'); inp.placeholder='Display name'; inp.value=META.displayName||'';
-  inp.oninput=e=>{ META.displayName=e.target.value.slice(0,24); saveMeta(); };
-  nameRow.appendChild(inp);
-  b.appendChild(nameRow);
+  if(authToken&&authUsername){
+    b.appendChild(el('div','vwaddr','SIGNED IN AS '+authUsername.toUpperCase()));
+  } else {
+    const nameRow=el('div','vform');
+    const inp=el('input','seedinp'); inp.placeholder='Display name'; inp.value=META.displayName||'';
+    inp.oninput=e=>{ META.displayName=e.target.value.slice(0,24); saveMeta(); };
+    nameRow.appendChild(inp);
+    b.appendChild(nameRow);
+  }
   if(roninAddr) b.appendChild(el('div','vwaddr','WALLET · '+shortAddr(roninAddr)));
   else if(typeof window.ronin!=='undefined') b.appendChild(btn('ghost sm','CONNECT RONIN WALLET (optional)',async()=>{ const a=await connectRonin(); if(a){ roninAddr=a; render(); } }));
   if(submitState==='idle'||submitState==='error'){
     b.appendChild(btn('cta','SUBMIT TO LEADERBOARD',()=>{
-      if(!(META.displayName||'').trim()){ submitState='error'; submitMsg='Enter a display name first.'; render(); return; }
+      if(!(authToken&&authUsername)&&!(META.displayName||'').trim()){ submitState='error'; submitMsg='Enter a display name first.'; render(); return; }
       submitRun();
     }));
   } else if(submitState==='busy'){ b.appendChild(el('div','vmsg vmsg-info','Submitting…')); }
@@ -1303,7 +1462,7 @@ function tutOverlay(){
    Esc backs out to the main menu from these, same as clicking that button.
    Deliberately excludes 'combat' (Esc there only deselects, never leaves a
    run) and 'menu'/'team' (no single obvious "back" destination). */
-const ESC_TO_MENU_SCREENS=['codex','collection','unlocks','vault','guide','bp','leaderboard'];
+const ESC_TO_MENU_SCREENS=['codex','collection','unlocks','vault','guide','bp','leaderboard','account'];
 document.addEventListener('keydown',e=>{
   if(e.key==='Escape'){
     if(modal){ modal=null; render(); return; }
@@ -1325,7 +1484,8 @@ window.addEventListener('load',()=>{ loadMeta();
   if(META.vol!=null) AU.vol=META.vol;
   if(META.mute) AU.on=false;
   if(META.spd) SPD=META.spd;
-  if(META.tut)tut=0; render(); });
+  if(META.tut)tut=0; render();
+  if(authToken) pullSyncAfterLogin(false); });
 
 /* ================= LUNACIA PASS ================= */
 function scBP(){
