@@ -85,3 +85,20 @@ User yêu cầu rõ: "kiểm duyệt chặt chẽ từ agent cấp cao, UIUX ph�
 - Label nút thoát không nhất quán (BACK/MENU, class khác nhau giữa các màn) — polish nhỏ.
 - Esc chưa phải universal "back" ở các màn top-level không phải modal.
 - `design/ux/interaction-patterns.md` chưa tồn tại — team-ui skill Phase 1a từng flag việc này, quyết định (b) là proceed không có pattern library, patterns mới coi là mới. Chưa tạo file này chính thức trong phiên này.
+
+## Progress Checklist (tiếp — 2026-09-01 phần 7, release-readiness song song)
+User hỏi "còn gì trước khi release" → chọn scope V1: web game offline free, không economy/leaderboard. Chạy 3 việc song song (devops-engineer, ui-programmer, accessibility-specialist), rồi 2 review cấp cao (ux-designer, lead-programmer):
+
+- [x] **Test infra**: cài `playwright` qua `package.json` mới (chỉ devDependency, không đụng `build.py`). `tools/verify.mjs`/`soak.mjs`/`soakm.mjs` sửa hardcoded Chromium path. Kết quả: verify.mjs 28/30 (2 fail còn lại là baseline có sẵn: B2.tablet scrollWidth overflow, N1.phone landscape-only theo thiết kế — không phải regression). Soak 25 run tổng, 0 crash/stall. Fix kèm theo: `--dim` contrast (`style.css:49`, `#99a3b2`→`#a1aec0`) để đạt WCAG AA — trước đó 26/30, sau khi fix contrast lên 28/30.
+- [x] **Combat Log UI (T15)** implement đầy đủ theo `design/ux/combat-log.md`: module mới `src/log.js` (296 dòng), hook `clogIngest` trong `fx.js` (đọc đúng batch `playEvents()` sắp drain, không đọc `s.ev` sau khi mất), toggle `LOG` trong combat header + phím tắt `L`, Battle Report freeze+auto-open khi thua, SR channel throttle 400ms riêng biệt khỏi visible log.
+  - **Bug MAJOR tìm bởi ux-designer, đã fix**: breakpoint desktop "dock zero-overlap" (ban đầu ≥1200px) sai vì `#app` center + `.zone` center lồng nhau — đo thật bằng browser (không đoán): overlap 266px@1280px, 21px@1600px, 0px@1680px+. Đã nâng breakpoint lên **1700px** (có buffer an toàn), dải 600-1699px dùng overlay-drawer (đã có scrim, cùng pattern chấp nhận sẵn cho tablet cũ 600-1199px).
+  - **Fix MINOR**: panel Battle Report từng đè xuyên qua màn Menu sau khi thua+bấm MENU (không reset qua RETRY) — đã thêm auto-close (không xoá data) khi `screen!=='combat'` trong `render()` (`ui.js`).
+  - 4 quyết định tự phát sinh của agent (aria-live="off" cho container + kênh riêng cho SR, status-tick damage generic "N dmg", resonance/hp không có dòng riêng, buff/debuff verbatim fallback) — tất cả đã được ux-designer duyệt kỹ bằng cách đọc chéo `engine.js`, đều APPROVE.
+- [x] **Keyboard-only nav + Flash toggle**: helper `kbAct()` áp dụng cho `.pick`/`.nodecard`/`.icard`/`.unit`/`.rcard`/`.ucard`/`.bpnode` (Enter/Space kích hoạt, đúng semantics, không double-fire). `META.reduceFlash` mới trong Settings, `flashScreen()`/`hitstop()` tôn trọng cả setting này lẫn `prefers-reduced-motion` OS — verify bởi lead-programmer, không có vấn đề.
+- [x] Verify cuối: `node tools/sim.js 500`/`seed0=999` không đổi winrate (24.0%/21.0%, khớp `balance-log.md`) — 3 track UI/test-only không ảnh hưởng balance. `verify.mjs` 28/30 giữ nguyên sau mọi fix.
+
+## Backlog còn lại sau phần 7 (không chặn release V1 này)
+- README.md vẫn là README template studio, chưa viết lại cho riêng game — làm khi chuẩn bị public repo/deploy link.
+- AEGIS archetype vẫn thiếu dữ liệu cân bằng lớn (N nhỏ) — theo dõi tiếp.
+- `kbAct` elements có thể thêm `role="button"` cho AT rõ ràng hơn (đề xuất lead-programmer, không blocking).
+- Patch nhỏ gắn `reason:'poison'|'burn'` vào `dealDamage`/`tickStatus` để combat log hiện đúng "Poison N damage" thay vì "N dmg" chung chung (2 dòng, không blocking, đã được ux-designer duyệt tạm chấp nhận).

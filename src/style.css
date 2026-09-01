@@ -46,7 +46,7 @@
 
   /* ═══ TEXT ═══ */
   --txt:#e9edf3;
-  --dim:#99a3b2;
+  --dim:#a1aec0;
   --off:#7d8794;   /* CHỈ cho [disabled] */
 
   /* ═══ SEMANTIC ═══ */
@@ -82,6 +82,9 @@ img.spr{image-rendering:pixelated;display:block;
 button{font-family:inherit;font-weight:700;cursor:pointer;color:var(--txt);letter-spacing:.5px}
 #app{max-width:1240px;margin:0 auto;padding:8px 12px 16px;transition:filter .06s;zoom:var(--ui-scale)}
 #app.hstop{filter:brightness(1.8) contrast(1.3)}
+/* Accessibility: "REDUCE FLASH EFFECTS" setting / OS prefers-reduced-motion —
+   a much smaller brightness/contrast punch instead of skipping feedback outright. */
+#app.hstop-lite{filter:brightness(1.15) contrast(1.05)}
 h1,h2,h3,h4{font-weight:700}
 .scr{overflow-y:auto}
 
@@ -94,7 +97,15 @@ h1,h2,h3,h4{font-weight:700}
 .flashfx{position:fixed;inset:0;pointer-events:none;z-index:200;animation:fl .3s ease-out forwards}
 .flashfx.gold{background:radial-gradient(circle,#ffc85744,transparent 70%)}
 .flashfx.myth{background:radial-gradient(circle,#ff5f8f66,#b388ff22 40%,transparent 75%)}
+/* Accessibility: "REDUCE FLASH EFFECTS" setting / OS prefers-reduced-motion —
+   trade the full-viewport radial burst for a thin top-edge accent at a quarter
+   of the opacity. Still reads as "something big just happened" without the
+   whole screen lighting up. */
+.flashfx.low{background:none!important;border-top:6px solid;animation-name:flLow}
+.flashfx.low.gold{border-color:#ffc857}
+.flashfx.low.myth{border-color:#ff5f8f}
 @keyframes fl{0%{opacity:.9}100%{opacity:0}}
+@keyframes flLow{0%{opacity:.35}100%{opacity:0}}
 .bigfx{position:fixed;top:32%;left:0;right:0;text-align:center;font-size:56px;color:var(--r4);z-index:201;
   pointer-events:none;text-shadow:0 0 26px #ff5f8f,0 5px 0 #000;animation:bgf 1.1s ease-out forwards;letter-spacing:8px}
 @keyframes bgf{0%{opacity:0;transform:scale(.4)}25%{opacity:1;transform:scale(1.12)}
@@ -805,4 +816,90 @@ body.devmode{cursor:crosshair}
   }
   .rotate-hint .rh-ic{ font-size:var(--t5); color:var(--acc); }
   .screen.combat{ display:none; }
+}
+
+/* ═══════════════════ T15 · COMBAT LOG ═══════════════════
+   design/ux/combat-log.md. Lives outside #app (see log.js clogInit()) so
+   ui.js's full-teardown render() never unmounts it — visibility is toggled
+   with body.clog-open, not by adding/removing the node. */
+.sr-only{ position:absolute; width:1px; height:1px; padding:0; margin:-1px;
+  overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0; }
+
+/* Outer box: always fully inside the viewport, geometry never changes between
+   open/closed — this is what keeps a closed panel from ever contributing to
+   document.scrollWidth. The reveal animates via clip-path (paint-only, does
+   not move the box) rather than transform:translateX(), because a
+   translated-out-of-view descendant was still being counted toward
+   document.scrollWidth by the browser even with overflow:hidden on an
+   ancestor (regressed tools/verify.mjs B2 — see log.js clogInit() comment). */
+.clog-panel{
+  position:fixed; z-index:60; top:0; right:0; height:100%; width:280px; max-width:92vw;
+  pointer-events:none;
+}
+body.clog-open .clog-panel{ pointer-events:auto; }
+.clog-inner{
+  position:absolute; inset:0; display:flex; flex-direction:column;
+  background:var(--pan); border-left:var(--bd) solid var(--line2);
+  clip-path:inset(0 0 0 100%); opacity:0;
+  transition:clip-path .18s ease, opacity .18s ease;
+}
+body.clog-open .clog-inner{ clip-path:inset(0 0 0 0); opacity:1; }
+.clog-head{ display:flex; align-items:center; justify-content:space-between;
+  padding:var(--s2) var(--s3); border-bottom:1px solid var(--line); }
+.clog-title{ font-size:var(--t1); letter-spacing:2px; color:var(--dim); }
+.clog-bodywrap{ position:relative; flex:1; overflow:hidden; display:flex; flex-direction:column; }
+.clog-body{ flex:1; overflow-y:auto; padding:var(--s2) var(--s3); display:flex; flex-direction:column; }
+.clog-entry{ font-size:var(--t2); color:var(--txt); padding:6px 0; border-bottom:1px solid var(--line);
+  animation:clogIn .08s ease; }
+.clog-entry.dead{ color:var(--dmg); }
+.clog-line1{ font-weight:700; }
+.clog-line2{ color:var(--dim); margin-top:2px; display:flex; flex-wrap:wrap; align-items:center; gap:4px; }
+.clog-seg{ display:inline-flex; align-items:center; gap:3px; }
+.clog-seg .icow{ width:12px; height:12px; }
+.clog-seg.c-dmg{ color:var(--dmg); } .clog-seg.c-heal{ color:var(--heal); } .clog-seg.c-shd{ color:var(--shd); }
+.clog-seg.c-poi{ color:var(--poi); } .clog-seg.c-man{ color:var(--man); } .clog-seg.c-buf{ color:var(--acc); }
+.clog-seg.c-deb{ color:var(--deb); }
+.clog-dot{ color:var(--dim); }
+.clog-div{ font-size:var(--t1); color:var(--dim); text-align:center; letter-spacing:2px; padding:8px 0; }
+.clog-ban{ font-size:var(--t2); color:var(--acc); text-align:center; font-weight:700; padding:8px 0;
+  border-top:2px solid var(--acc); border-bottom:2px solid var(--acc); margin:6px 0; }
+.clog-unread{ position:sticky; top:0; z-index:2; align-self:center; margin:4px auto;
+  background:var(--acc); color:#1a1503; font-size:var(--t1); letter-spacing:1px;
+  padding:3px 10px; border-radius:12px; cursor:pointer; display:none; }
+.clog-unread.on{ display:block; }
+.clog-scrim{ position:fixed; inset:0; z-index:59; background:#080a0caa; opacity:0; pointer-events:none;
+  transition:opacity .18s ease; }
+@keyframes clogIn{ from{opacity:0} to{opacity:1} }
+@media (prefers-reduced-motion:reduce){ .clog-entry{ animation:none; } }
+
+/* >=1700px: dock in dead space to the right of the board — zero overlap, zero reflow.
+   #app is max-width:1240px and centered (margin:0 auto), AND .zone additionally
+   centers the board within #app — two nested centering steps, so the original
+   spec math (single right-aligned board, safe at 1200px) undercounted the real
+   margin needed. Empirically measured via getBoundingClientRect() in-browser
+   (party-unit right edge vs panel left edge) across viewport widths:
+     1280px → 266px overlap · 1600px → 21px overlap · 1620px → 11px overlap
+     1680px → 0px overlap   · 1750px → 0px overlap
+   True zero-overlap threshold is ~1660-1670px; 1700px keeps a safety buffer.
+   Below this, overlay-drawer (see next block) is used instead, same pattern
+   already shipped and accepted for the 600-1199px tablet tier (which also
+   overlaps live board content by design, behind a scrim). */
+@media (min-width:1700px){
+  .clog-panel{ top:8px; right:12px; height:calc(100% - 16px); }
+  .clog-inner{ border:var(--bd) solid var(--line2); border-radius:var(--radius); box-shadow:var(--sh-card); }
+  body.clog-open .clog-scrim{ opacity:0; pointer-events:none; }
+}
+/* 600-1699px: overlay drawer — scrim only under the panel's own width, board stays visible
+   behind the scrim in spirit (same accepted tradeoff as the original 600-1199px tablet tier).
+   Widened from the original 600-1199px so the docked tier only activates where there is
+   actually enough dead space (see comment above). */
+@media (max-width:1699px){
+  .clog-scrim{ left:auto; width:280px; }
+  body.clog-open .clog-scrim{ opacity:1; pointer-events:auto; }
+}
+/* <600px landscape: full-screen modal takeover (portrait is already gated by T11) */
+@media (max-width:599px){
+  .clog-scrim{ left:0; width:100%; }
+  .clog-panel{ width:100%; max-width:100%; }
+  .clog-inner{ border-left:none; }
 }

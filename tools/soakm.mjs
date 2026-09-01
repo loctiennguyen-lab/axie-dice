@@ -1,14 +1,20 @@
 /* Soak test driven by REAL mouse events (pointerdown/move/up), the exact path a player uses. */
 import { chromium } from 'playwright';
+import { fileURLToPath } from 'node:url';
+import { dirname, join } from 'node:path';
+
 const FILE = process.argv[2] || 'AxieDiceTactics.html';
 const RUNS = +(process.argv[3] || 6);
 
-const b = await chromium.launch({executablePath:'/opt/pw-browsers/chromium',args:['--no-sandbox']});
+const __dir = dirname(fileURLToPath(import.meta.url));
+const buildFile = FILE.startsWith('http') ? FILE : 'file:' + join(__dir, '..', 'build', 'index.html');
+
+const b = await chromium.launch({args:['--no-sandbox']});
 const p = await b.newPage({ viewport:{width:1700,height:1050} });
 const errs = [];
 p.on('pageerror', e => errs.push('PAGEERROR: ' + (e.stack||e.message)));
 p.on('console', m => { if(m.type()==='error') errs.push('CONSOLE: ' + m.text()); });
-await p.goto('file:///home/claude/axie-dice/' + FILE);
+await p.goto(buildFile);
 await p.waitForTimeout(400);
 
 const st = () => p.evaluate(() => ({

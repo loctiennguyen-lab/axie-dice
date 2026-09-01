@@ -405,7 +405,7 @@ async function checkCharsPerLine(page) {
 }
 
 async function run() {
-  const browser = await chromium.launch({ headless: !HEADED, executablePath:'/opt/pw-browsers/chromium', args:['--no-sandbox'] });
+  const browser = await chromium.launch({ headless: !HEADED, args:['--no-sandbox'] });
   const ctx = await browser.newContext({ viewport: DESKTOP, deviceScaleFactor: 1 });
   await ctx.addInitScript(HELPERS);
   const page = await ctx.newPage();

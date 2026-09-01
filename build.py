@@ -3,7 +3,7 @@ PUBLIC = 'public' in sys.argv
 def r(p): return open(p,encoding='utf-8').read()
 FILES=[('%CSS%','src/style.css'),('%ART%','src/art.js'),('%DATA%','src/data.js'),
        ('%ENGINE%','src/engine.js'),('%AUDIO%','src/audio.js'),('%ICONS%','src/icons.js'),
-       ('%UI%','src/ui.js'),('%FX%','src/fx.js'),('%DEV%','src/devtools.js')]
+       ('%LOG%','src/log.js'),('%UI%','src/ui.js'),('%FX%','src/fx.js'),('%DEV%','src/devtools.js')]
 html = """<!DOCTYPE html>
 <html lang="en"><head>
 <meta charset="utf-8">
@@ -27,6 +27,7 @@ html = """<!DOCTYPE html>
 %ENGINE%
 %AUDIO%
 %ICONS%
+%LOG%
 %UI%
 %FX%
 %DEV%

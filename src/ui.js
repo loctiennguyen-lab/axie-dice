@@ -2,14 +2,21 @@
 const $=q=>document.querySelector(q), $$=q=>[...document.querySelectorAll(q)];
 const el=(t,c,x)=>{ const e=document.createElement(t); if(c)e.className=c; if(x!=null)e.textContent=x; return e; };
 const btn=(c,x,fn)=>{ const b=el('button','btn '+(c||''),x); b.onclick=e=>{ SFX.ui(); fn(e); }; b.onmouseenter=()=>SFX.hover(); return b; };
+/* Accessibility: make a non-<button> interactive element (div with .onclick)
+   reachable and operable by keyboard alone. Only call this once the element's
+   .onclick has actually been assigned to a real handler — never on a
+   disabled/"dis" card, so Tab order only ever lands on things that do something. */
+const kbAct=e2=>{ e2.tabIndex=0;
+  e2.addEventListener('keydown',ev=>{ if((ev.key==='Enter'||ev.key===' ')&&typeof e2.onclick==='function'){ ev.preventDefault(); e2.onclick(ev); } });
+  return e2; };
 
 let S=null, screen='menu', sel=null, selRelic=null, teamPick=[], msg='', SPD=1, tut=0;
-let rollAnim=null, pendFloats=[], hoverT=null, logOpen=false;
+let rollAnim=null, pendFloats=[], hoverT=null;
 
 /* ---------- META (localStorage, degrade gracefully) ---------- */
 const MK='axiedice_meta_v2', RK='axiedice_run_v2';
 const DEF_META={vol:0.28,mute:false,spd:1,shards:0,unlocks:[],ascMax:0,best:0,runs:0,wins:0,faces:[],relics:[],bosses:[],tut:0,
-  xp:0,bpClaimed:[],bpFaces:[],perks:{},title:''};
+  xp:0,bpClaimed:[],bpFaces:[],perks:{},title:'',reduceFlash:false};
 let META={...DEF_META};
 function loadMeta(){ try{ const j=localStorage.getItem(MK); if(j) META={...DEF_META,...JSON.parse(j)}; }catch(e){} }
 function saveMeta(){ try{ localStorage.setItem(MK,JSON.stringify(META)); }catch(e){} }
@@ -54,8 +61,16 @@ const ST_NAME={poison:'Poison',burn:'Burn',regen:'Regen',thorns:'Thorns',blind:'
 function shake(n){ const a=$('#app'); if(!a) return; a.classList.remove('shk1','shk2','shk3');
   void a.offsetWidth; a.classList.add('shk'+Math.min(3,Math.max(1,n||1)));
   setTimeout(()=>a.classList.remove('shk1','shk2','shk3'),420/SPD); }
-function flashScreen(cls){ const f=el('div','flashfx '+(cls||'')); document.body.appendChild(f); setTimeout(()=>f.remove(),300/SPD); }
-function hitstop(ms){ const a=$('#app'); if(!a) return; a.classList.add('hstop'); setTimeout(()=>a.classList.remove('hstop'),(ms||90)/SPD); }
+/* Photosensitivity: honour both the in-game "REDUCE FLASH EFFECTS" setting and
+   the OS-level prefers-reduced-motion query. Neither removes the feedback
+   entirely (crit/Mythic still needs *some* signal) — instead flashScreen loses
+   its full-viewport radial burst and becomes a thin top-edge accent bar at a
+   quarter of the opacity, and hitstop's brightness/contrast punch is cut down
+   to a barely-there version instead of being skipped outright. */
+const prefersReducedMotion=()=>{ try{ return matchMedia('(prefers-reduced-motion: reduce)').matches; }catch(e){ return false; } };
+const wantsLessFlash=()=>META.reduceFlash||prefersReducedMotion();
+function flashScreen(cls){ const f=el('div','flashfx '+(cls||'')+(wantsLessFlash()?' low':'')); document.body.appendChild(f); setTimeout(()=>f.remove(),300/SPD); }
+function hitstop(ms){ const a=$('#app'); if(!a) return; a.classList.add(wantsLessFlash()?'hstop-lite':'hstop'); setTimeout(()=>a.classList.remove('hstop','hstop-lite'),(ms||90)/SPD); }
 function bigText(t,cls){ const d=el('div','bigfx '+(cls||''),t); document.body.appendChild(d); setTimeout(()=>d.remove(),1100/SPD); }
 
 function collectFloats(){ pendFloats=pendFloats.concat(S.floatText); S.floatText=[]; }
@@ -146,6 +161,9 @@ function rcritMult(){ let m=2; for(const id of S.relics){ const r=RELIC_BY_ID[id
 /* ================= RENDER ================= */
 function render(){
   const root=$('#app'); if(!root) return;
+  if(typeof clogInit==='function'&&!clogPanel) clogInit();
+  if(typeof clogFreeze==='function'&&S&&S.phase==='lost') clogFreeze();
+  if(typeof clogSetOpen==='function'&&screen!=='combat'&&clogOpen) clogSetOpen(false,false);
   $$('.tutov').forEach(n=>n.remove());
   root.innerHTML=''; root.className='';
   if(screen==='menu') root.appendChild(scMenu());
@@ -256,7 +274,7 @@ function scUnlocks(){
     c.appendChild(el('div','un',u.n));
     c.appendChild(el('div','ud',u.d));
     c.appendChild(el('div','uc',has?'UNLOCKED':u.cost+' SHARD'));
-    if(can) c.onclick=()=>{ SFX.coin(); META.shards-=u.cost; META.unlocks.push(u.id); saveMeta(); render(); };
+    if(can){ c.onclick=()=>{ SFX.coin(); META.shards-=u.cost; META.unlocks.push(u.id); saveMeta(); render(); }; kbAct(c); }
     g.appendChild(c);
   });
   w.appendChild(g);
@@ -303,6 +321,7 @@ function scTeam(){
     if(n) c.appendChild(el('div','cnt','×'+n));
     c.onclick=()=>{ if(teamPick.length<5){ SFX.ui(); teamPick.push(k); render(); } };
     c.oncontextmenu=e=>{ e.preventDefault(); const i=teamPick.lastIndexOf(k); if(i>=0){SFX.ui();teamPick.splice(i,1);render();} };
+    kbAct(c);
     grid.appendChild(c);
   });
   w.appendChild(grid);
@@ -397,8 +416,16 @@ function scMap(){
     }
     c.onclick=()=>{ SFX.ui(); if(nd.type==='boss') SFX.boss();
       chooseNode(S,i);
-      if(['battle','elite','boss'].includes(nd.type)) triggerRollAnim();
+      if(['battle','elite','boss'].includes(nd.type)){
+        /* New combat: the log is scoped to "current combat only" (T15) —
+           reset before ingesting this combat's own startup batch (e.g. a
+           turn-1 cantrip resolving before the player can act). */
+        if(typeof clogReset==='function') clogReset();
+        if(typeof clogIngest==='function') clogIngest(S.ev);
+        triggerRollAnim();
+      }
       S.ev=[]; S.floatText=[]; render(); saveRun(); };
+    kbAct(c);
     row.appendChild(c);
   });
   w.appendChild(row);
@@ -443,6 +470,7 @@ function track(withCtl){
     const ib=btn('xs ghost','INFO',()=>{ modal='info'; render(); });
     ib.title='Every relic, stat and die face — yours and the enemy’s  (press I)';
     r.appendChild(ib);
+    if(typeof clogToggleBtn==='function') r.appendChild(clogToggleBtn());
     r.appendChild(btn('xs ghost','SET',()=>{ modal='set'; render(); }));
   }
   t.appendChild(r);
@@ -535,6 +563,7 @@ function scCombat(frozen){
     c.onclick=()=>{ if(!can)return; SFX.ui(); sel=null;
       if(r.act.tgt==='self'){ if(playerUseRelic(S,id,null)) afterAct(); }
       else { selRelic=id; render(); } };
+    if(can) kbAct(c);
     items.appendChild(c);
   });
   if(!items.children.length) items.appendChild(el('div','nothing','no active cards yet'));
@@ -635,12 +664,13 @@ function unitCard(u){
   }
   if(u.boss){ c.appendChild(el('div','bossdesc',u.desc+(u.phase===2?' · PHASE 2':''))); }
   if(pv) c.appendChild(el('div','preview '+pv.cls,pv.txt));
-  if(tgtable) c.onclick=()=>doTarget(u.uid);
+  if(tgtable){ c.onclick=()=>doTarget(u.uid); kbAct(c); }
   else if(u.hp>0){
     /* Not a legal target right now, so a click is a question rather than an
        action: show every face on that Axie's die, ally or enemy. */
     c.classList.add('inspect');
     c.onclick=()=>{ if(Date.now()-lastDragEnd<200) return; SFX.ui(); modal='unit'; modalUid=u.uid; render(); };
+    kbAct(c);
   }
   const fl=el('div','floats'); fl.dataset.uid=u.uid; c.appendChild(fl);
   return c;
@@ -771,9 +801,11 @@ function scReward(){
         c.appendChild(el('div','rrepl','Overwrites: '+faceText(old))); } }
     c.appendChild(el('div','rcta','TAKE'));
     c.onclick=()=>{ SFX.legend(); if(r.rar>=4) flashScreen('myth'); takeReward(S,i); sel=null;
+      if(typeof clogIngest==='function') clogIngest(S.ev);
       S.ev=[]; S.floatText=[];
       if(S.phase==='combat') triggerRollAnim(); render(); saveRun(); };
     c.onmouseenter=()=>SFX.hover();
+    kbAct(c);
     row.appendChild(c);
   });
   bx.appendChild(row);
@@ -805,7 +837,7 @@ function scEvent(){
       c.appendChild(el('div','rt',o.t)); c.appendChild(el('div','rd',o.d));
       c.appendChild(el('div','rcta','TAKE'));
       c.onclick=()=>{ SFX.open(); eventChoose(S,i); render(); saveRun(); };
-      c.onmouseenter=()=>SFX.hover(); row.appendChild(c); });
+      c.onmouseenter=()=>SFX.hover(); kbAct(c); row.appendChild(c); });
     bx.appendChild(row);
   } else {
     bx.appendChild(el('div','evres',ev.res.msg));
@@ -833,7 +865,7 @@ function scShop(){
     c.appendChild(el('div','rd',it.d));
     if(it.arch&&ARCH[it.arch]){ const a=el('div','rarch',ARCH[it.arch].n); a.style.color=ARCH[it.arch].c; c.appendChild(a); }
     c.appendChild(el('div','rcost',sold?'SOLD'  :it.cost+' SHARD'));
-    if(can) c.onclick=()=>{ SFX.coin(); shopBuy(S,i); render(); saveRun(); };
+    if(can){ c.onclick=()=>{ SFX.coin(); shopBuy(S,i); render(); saveRun(); }; kbAct(c); }
     row.appendChild(c);
   });
   bx.appendChild(row);
@@ -906,6 +938,7 @@ document.addEventListener('keydown',e=>{
   if(!S||screen!=='combat'&&screen!=='menu') { }
   if(e.key==='Escape'){ if(modal){ modal=null; render(); return; } sel=null; selRelic=null; render(); return; }
   if((e.key==='i'||e.key==='I')&&S&&screen==='combat'){ modal=(modal==='info'?null:'info'); render(); return; }
+  if((e.key==='l'||e.key==='L')&&S&&screen==='combat'&&typeof clogSetOpen==='function'){ clogSetOpen(!clogOpen); render(); return; }
   if(modal) return;
   if(!S||S.phase!=='combat'||playing) return;
   if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='z'){ e.preventDefault(); if(undo(S)){ sel=null; render(); } }
@@ -952,7 +985,7 @@ function scBP(){
       const ar=ARCH[bf.arch]; if(ar){ const tg=el('div','rarch',ar.n); tg.style.color=ar.c; c.appendChild(tg); } }
     if(b.title) c.appendChild(el('div','bpttl','TITLE: '+b.title));
     c.appendChild(el('div','bpstate',got?'CLAIMED':ready?'CLAIM':'LOCKED'));
-    if(ready) c.onclick=()=>{ bpClaim(b); SFX.legend(); if(r.t==='face'){ flashScreen('myth'); bigText('MYTHIC',''); SFX.mythic(); } render(); };
+    if(ready){ c.onclick=()=>{ bpClaim(b); SFX.legend(); if(r.t==='face'){ flashScreen('myth'); bigText('MYTHIC',''); SFX.mythic(); } render(); }; kbAct(c); }
     tr.appendChild(c);
   });
   w.appendChild(tr);
@@ -1488,6 +1521,13 @@ function scSettings(){
     [1,2,3].forEach(v=>{ const b=el('button','btn sm'+(SPD===v?' on':''),v+'x');
       b.onclick=()=>{ SPD=v; META.spd=v; saveMeta(); render(); }; sw.appendChild(b); });
     row('ANIMATION SPEED',sw);
+    /* photosensitivity: crit/Mythic flashScreen() + hitstop() screen punch */
+    const flw=el('div','setctl');
+    const fb=el('button','btn sm'+(META.reduceFlash?' on':''),META.reduceFlash?'FLASH: REDUCED':'FLASH: NORMAL');
+    fb.title='Softens the full-screen flash on crits/Mythic pickups and the hit-stop punch. Also respects your OS "reduce motion" setting automatically.';
+    fb.onclick=()=>{ META.reduceFlash=!META.reduceFlash; saveMeta(); render(); };
+    flw.appendChild(fb);
+    row('REDUCE FLASH EFFECTS',flw);
     /* tra cứu */
     const iw=el('div','setctl');
     iw.appendChild(btn('sm','INFORMATION',()=>{ modal='info'; render(); }));

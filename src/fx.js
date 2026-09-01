@@ -90,6 +90,11 @@ function dieFly(uid,tgtUid){
 async function playEvents(){
   if(!S||!S.ev||!S.ev.length){ S.ev=[]; return; }
   const evs=S.ev.slice(); S.ev=[];
+  /* Combat log (T15): compile the same batch fx.js is about to animate,
+     synchronously and before any wait() — the log must be complete at any
+     speed, decoupled from animation pacing (design/ux/combat-log.md §Speed-
+     Slider Interaction). */
+  if(typeof clogIngest==='function') clogIngest(evs);
   playing=true; document.body.classList.add('playing');
   try{ await runEvents(evs); }
   catch(err){ console.error('playback error',err); }
