@@ -105,3 +105,20 @@ Thêm `seed0=` override vào `tools/sim.js:81` (`let _seed=OV.seed0||1`) để c
 | **Trung bình** | **21.52%** | **22.88%** |
 
 **Kết luận**: chênh lệch thật trung bình qua 5 seed = **+1.36pp tuyệt đối (~6.3% relative)** — thấp hơn nhiều so với con số gây hiểu lầm ở phép so sánh 1-seed trước đó (từng đọc được tới +21% relative do hiệu ứng cánh bướm của RNG cố định). 6.3% relative chỉ nhỉnh hơn một chút so với ngưỡng cảnh báo 5% mà quick-spec đặt ra — **giữ nguyên `mult=1.15`** (đã hạ từ 1.25 xuống sàn an toàn), không cần hạ thêm. Đủ tin cậy để ship với giá trị này; theo dõi thêm khi có dữ liệu playtest thật.
+
+## 2026-09-01 (tiếp) — Mở rộng UNLOCKS (8→10) + fix bug thật phát hiện khi test
+
+**Bối cảnh**: audit progression flagged 8 UNLOCKS quá mỏng (hết sạch ~15-20 run). Thêm 2 tier mới nối dài category đã có (reroll/HP).
+
+**Bản nháp đầu bị loại** (4 mục mới: +1 reroll, +7 maxHP qua 2 tier, +1 relic khởi đầu thứ 2): đo qua `node tools/sim.js 500 allUnlocks=1` cho **62.8%** so với baseline-có-8-unlock-cũ 35.2% — riêng 4 mục mới đã đẩy +79% relative, quá mạnh. Cô lập từng biến: +1 relic khởi đầu một mình = +9.4pp (relic là hiệu ứng build-wide, không phải số liệu đơn thuần — không an toàn bán trực tiếp bằng Shard); +7 maxHP một mình = +22.2pp (HP có đòn bẩy rất lớn trong engine này — sống lâu hơn = nhiều lượt combo/build-up hơn); +1 reroll gần như 0 ảnh hưởng.
+
+**Bug thật phát hiện trong lúc test** (không phải do thay đổi UNLOCKS gây ra — đã tồn tại từ khi `u_reroll` "Survival Instinct" ra mắt): `newGame()` tính `maxRerolls` ban đầu từ `opt.bonusReroll` nhưng KHÔNG lưu `s.bonusReroll` — `startCombat()` (chạy mỗi trận) tính lại `maxRerolls=2+(s.bonusReroll||0)+...` từ `s.bonusReroll` rỗng, xoá sạch bonus reroll từ Unlock ngay khi vào combat đầu tiên. Nghĩa là "Survival Instinct" đã **vô tác dụng thật sự** kể từ khi ra mắt (chỉ có tác dụng ở khoảnh khắc trước khi build unit đầu tiên). Đã fix: `src/engine.js:156` thêm `bonusReroll:opt.bonusReroll||0` vào state khởi tạo.
+
+**Cấu hình cuối cùng đã ship** (2 mục mới, đã fix bug reroll): `Overdrive Reflexes` (+1 reroll, 650 Shard), `Titan Bloodline` (+2 maxHP, 600 Shard). Đo lại đa-seed (N=1500, 3×500):
+
+| | seed0=1 | seed0=101 | seed0=202 | TB |
+|---|---|---|---|---|
+| Không unlock | 24.0% | 24.0% | 21.8% | 23.3% |
+| Đủ 10 unlock (sau fix bug) | 45.8% | 40.0% | 42.0% | 42.6% |
+
+**Kết luận**: TB +19.3pp tuyệt đối (+83% relative) cho người chơi đã mua HẾT 10 unlock (đòi hỏi grind rất nhiều giờ) — phần lớn mức tăng này đến từ 8 unlock cũ đã live từ trước (nay còn tăng nhẹ vì bug reroll đã fix); phần đóng góp riêng của 2 mục MỚI chỉ ~12% relative trên nền đã có — hợp lý cho phần thưởng veteran dài hạn, không phá game (Full Run 20-wave + Ascension vẫn giữ thử thách). `verify.mjs` giữ 28/30.

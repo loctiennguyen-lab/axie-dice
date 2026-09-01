@@ -153,7 +153,7 @@ function newGame(seed,teamKeys,opt){
       return newRosterEntry(k,teamKeys.slice(0,i).filter(x=>x===k).length,pct);
     }),
     relics:(opt.startRelics||[]).slice(), party:[], enemies:[],
-    mana:0,manaSpent:0,rerolls:2,maxRerolls:2+(opt.bonusReroll||0),metaHpBonus:opt.metaHpBonus||0,
+    mana:0,manaSpent:0,rerolls:2,maxRerolls:2+(opt.bonusReroll||0),bonusReroll:opt.bonusReroll||0,metaHpBonus:opt.metaHpBonus||0,
     shards:0,rerollReward:1,rrwMax:1,runMods:{enemyHp:1,enemyDmg:1},curses:[],
     undo:[],floatText:[],ev:[],log:[],rewards:null,rewardTier:0,event:null,shop:null,
     stat:{dmg:0,taken:0,turns:0,kills:0,maxHit:0},

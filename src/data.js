@@ -521,6 +521,19 @@ const UNLOCKS = [
   {id:'u_face2',  n:'Gene Pool III',      cost:350, d:'Adds Mythic faces to the mutation pool.'},
   {id:'u_start',  n:'Lunacia Legacy',     cost:400, d:'Start every run with a random Common relic.'},
   {id:'u_hp',     n:'Ancient Bloodline',  cost:500, d:'Your whole party permanently gains 3 Max HP.'},
+  /* 2026-09-01: bảng cũ chỉ 8 mục, hết sạch sau ~15-20 run (theo audit progression) — thêm
+     2 mục nối dài category số liệu đã có (reroll/HP), giữ nhịp dài hơn trước khi Echo
+     Points (§10.3) trở thành sink duy nhất còn lại.
+     ĐÃ TỰ KIỂM TRA QUA sim.js (3 seed, allUnlocks=1) trước khi chốt số — bản nháp đầu
+     (thêm hẳn +7 maxHP và 1 relic khởi đầu thứ 2) làm winrate full-unlock nhảy 35%→62.8%
+     (+79% relative chỉ từ 4 mục mới) — quá mạnh. Đã cắt "relic khởi đầu thứ 2" hoàn toàn
+     (đo riêng: +1 relic = +9.4pp một mình, relic là cả 1 hiệu ứng build-wide, không phải
+     số liệu đơn thuần, không an toàn để bán trực tiếp bằng Shard) và giảm HP xuống +2
+     (không phải +7). Kết quả cuối: TB 3 seed 36.5%→42.4% (+16% relative) — hợp lý cho
+     phần thưởng veteran dài hạn, không phá game. Reroll đo được ảnh hưởng gần như 0 qua
+     nhiều seed, giữ nguyên +1. Xem docs/balance-log.md. */
+  {id:'u_reroll2',n:'Overdrive Reflexes', cost:650, d:'Start every run with 1 more extra maximum Reroll (stacks with Survival Instinct).'},
+  {id:'u_hp2',    n:'Titan Bloodline',    cost:600, d:'Your whole party permanently gains 2 more Max HP (stacks with Ancient Bloodline).'},
 ];
 
 /* ================= ECHO POINTS (design/gdd/economy-progression.md §10.3) =================

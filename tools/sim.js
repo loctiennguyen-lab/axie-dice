@@ -96,7 +96,8 @@ for(let n=0;n<N;n++){
     const owned=OV.nftOwned||1, genes=OV.nftGenes||0;
     nftPreselect=team.map((_,i)=> i<OV.nftCount? {owned,genes} : null);
   }
-  const s=G.newGame(9000+n,team,{mode:MODE,asc:ASC,nftPreselect});
+  const unlockOpt = OV.allUnlocks? {bonusReroll:2, metaHpBonus:5, startRelics:['r_claw']} : {};
+  const s=G.newGame(9000+n,team,{mode:MODE,asc:ASC,nftPreselect,...unlockOpt});
   if(OV.bp) s.bpFaces=['bp_plague','bp_apex','bp_bulwark','bp_conduit','bp_swarm'];
   let g=0, seen={};
   while(s.phase!=='won'&&s.phase!=='lost'){

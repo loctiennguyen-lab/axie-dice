@@ -572,8 +572,8 @@ function startRun(){
   const sr=(unlocked('u_start')?1:0)+(P.relic0||0)+(P.relic1||0);
   const srRar=(P.relic1?1:0);
   S=newGame(seed,teamPick.slice(),{mode:pickMode,asc:pickAsc,
-    bonusReroll:(unlocked('u_reroll')?1:0)+(P.reroll||0),
-    metaHpBonus:(unlocked('u_hp')?3:0)+4*(P.hp4||0),
+    bonusReroll:(unlocked('u_reroll')?1:0)+(unlocked('u_reroll2')?1:0)+(P.reroll||0),
+    metaHpBonus:(unlocked('u_hp')?3:0)+(unlocked('u_hp2')?2:0)+4*(P.hp4||0),
     startRelics: sr? [pick0(RELICS.filter(r=>r.rar<=srRar&&!r.act)).id] : []});
   S.bpFaces=(META.bpFaces||[]).slice();
   S.rerollReward=1+(P.rrw||0); S.rrwMax=S.rerollReward;
