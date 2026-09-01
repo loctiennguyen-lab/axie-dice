@@ -116,7 +116,14 @@ User: "chưa có kho đồ để đưa NFT Axie vào — tiến hành chuẩn b�
 - [x] Cập nhật `design/gdd/economy-progression.md` §10.2b — ghi rõ đây là scope **P0 prototype** (Vault miễn phí, không gate NFT, không pre-select-mỗi-run), KHÔNG phải toàn bộ mô hình pay-to-win đã thiết kế — tránh nhầm là economy đầy đủ đã live.
 
 ## Chưa làm (backlog thật, không chặn)
-- README.md vẫn là README của template "Claude Code Game Studios", chưa viết riêng cho game — cân nhắc: repo này có vẻ là fork của chính template, README có thể có chủ đích quảng bá template — CHƯA tự ý thay, cần hỏi ý user trước khi động vào.
-- Gate NFT thật (285/396 part khoá theo sở hữu, pre-select-mỗi-run, Echo Points 2-thanh nối với Vault) — toàn bộ mô hình pay-to-win ở economy-progression.md vẫn chỉ là thiết kế, chưa code.
-- `HEROES[vaultKey]` không được dọn khi `removeFromVault` — vô hại (không có code nào scan `Object.keys(HEROES)`) nhưng là rác nhỏ, có thể dọn sau.
-- Chưa có test tự động cho `axieToDie`/`mapAxieClass` (`tests/` trống) — verify hiện tại là tay + sim.js gián tiếp.
+- Gate NFT thật (285/396 part khoá theo sở hữu, pre-select-mỗi-run) — vẫn chỉ là thiết kế, chưa code. Echo Points ĐÃ code (phần 9-10).
+- AEGIS archetype vẫn thiếu dữ liệu cân bằng lớn (N nhỏ) — theo dõi tiếp.
+- Label nút thoát chưa nhất quán (BACK/MENU), Esc chưa phải universal-back ở màn top-level.
+- Combat log hiện "N dmg" chung chung cho status-tick thay vì "Poison N damage" (không blocking, đã duyệt tạm chấp nhận).
+
+## Progress Checklist (tiếp — 2026-09-01 phần 11, dọn nợ kỹ thuật)
+User: "dọn nợ kỹ thuật" (3 mục đã liệt kê: keyboard-only, HEROES[vaultKey] rác, test axieToDie).
+- [x] **Kiểm tra lại trước khi làm**: backlog note "keyboard-only gần như chỉ hoạt động ở bước chọn die" đã LỖI THỜI — `kbAct()` đã phủ team pick/map node/relic active/combat target/reward/event/shop/unlock/battle-pass từ phần 7. Chỉ còn đúng 1 gap thật: nút đánh dấu die-để-reroll (`rsel`) không có `tabIndex`/keydown — đã fix (`src/ui.js`), verify bằng `KeyboardEvent('keydown',' ')` thật trong browser, `u.rsel` toggle đúng. Thêm luôn `kbAct` cho die box (đã có phím tắt 1-5 nhưng chưa vào Tab order).
+- [x] **`removeFromVault` dọn sạch `HEROES[vaultKey]`** khi xoá Axie khỏi Vault.
+- [x] **`tools/t_import.mjs`** — 23 test logic thuần (không cần Playwright) cho `axieToDie`/`mapAxieClass`: class mapping, 6-face shape, map theo class-của-part, Origin/specialGenes bump riêng lẻ + compound đúng thứ tự, edge case (thiếu/thừa/0 part, slot lạ). 23/23 pass.
+- [x] Verify: `node tools/verify.mjs` 28/30, `node tools/sim.js` 24.0% — không regression.

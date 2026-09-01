@@ -1155,9 +1155,18 @@ function tutOverlay(){
 }
 
 /* ================= KEYS / BOOT ================= */
+/* Leaf/single-purpose screens (each already has its own BACK/MENU button) —
+   Esc backs out to the main menu from these, same as clicking that button.
+   Deliberately excludes 'combat' (Esc there only deselects, never leaves a
+   run) and 'menu'/'team' (no single obvious "back" destination). */
+const ESC_TO_MENU_SCREENS=['codex','collection','unlocks','vault','guide','bp'];
 document.addEventListener('keydown',e=>{
-  if(!S||screen!=='combat'&&screen!=='menu') { }
-  if(e.key==='Escape'){ if(modal){ modal=null; render(); return; } sel=null; selRelic=null; render(); return; }
+  if(e.key==='Escape'){
+    if(modal){ modal=null; render(); return; }
+    sel=null; selRelic=null;
+    if(ESC_TO_MENU_SCREENS.includes(screen)){ msg=''; screen='menu'; }
+    render(); return;
+  }
   if((e.key==='i'||e.key==='I')&&S&&screen==='combat'){ modal=(modal==='info'?null:'info'); render(); return; }
   if((e.key==='l'||e.key==='L')&&S&&screen==='combat'&&typeof clogSetOpen==='function'){ clogSetOpen(!clogOpen); render(); return; }
   if(modal) return;
