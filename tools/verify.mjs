@@ -408,6 +408,43 @@ async function run() {
   const browser = await chromium.launch({ headless: !HEADED, args:['--no-sandbox'] });
   const ctx = await browser.newContext({ viewport: DESKTOP, deviceScaleFactor: 1 });
   await ctx.addInitScript(HELPERS);
+  // Login is mandatory (design/gdd/player-accounts.md §3 "App gate") and this
+  // test harness has no live Upstash/AUTH_JWT_SECRET to register/log in
+  // against. Seed a cached token before the app's own boot script runs, the
+  // same way a real returning player's browser would already have one — this
+  // exercises the SAME "optimistic render, verify later" path the real app
+  // uses (ui.js: `if(!authToken) screen='gate'` only checks presence, not
+  // validity — that's a deliberate, documented tradeoff of the static-HTML
+  // architecture, not a hole this script is opening). It does NOT test the
+  // gate/auth-form UI itself — that needs its own check against a real
+  // deployment with Upstash configured, not this offline suite.
+  await ctx.addInitScript(() => { try { localStorage.setItem('axiedice_token_v1', 'verify-mjs-test-token'); } catch (e) {} });
+  // This suite serves the build over a bare `python -m http.server` (see
+  // .claude/launch.json) — there is no /api/* backend at all locally, so any
+  // real fetch() to it 404s/501s and Chromium logs that resource failure as
+  // a console error regardless of whether the app's own JS catches the
+  // rejection (that log line comes from the browser's network stack, not
+  // from app code — try/catch cannot suppress it). Now that login is
+  // mandatory and a token is always present (see above), saveMeta()'s
+  // debounced sync push actually fires during these checks for the first
+  // time, so this was previously latent. Stub fetch for /api/* to return a
+  // benign, shape-correct response instead — this tests the SAME app code
+  // path (a resolved fetch handled normally) without a real backend, it does
+  // not test the backend itself (that needs a real deployment).
+  await ctx.addInitScript(() => {
+    const real = window.fetch.bind(window);
+    window.fetch = (input, init) => {
+      const url = typeof input === 'string' ? input : (input && input.url) || '';
+      if (url.indexOf('/api/') === -1) return real(input, init);
+      const method = (init && init.method) || 'GET';
+      let body = { ok: true };
+      if (url.indexOf('/api/sync-save') !== -1) body = method === 'GET' ? { meta: null } : { ok: true, savedAt: Date.now() };
+      else if (url.indexOf('/api/leaderboard') !== -1) body = { rows: [], configured: false };
+      else if (url.indexOf('/api/submit-run') !== -1) body = { accepted: false, reason: 'verify.mjs stub' };
+      else if (url.indexOf('/api/auth') !== -1) body = { ok: false, error: 'verify.mjs stub — auth flow not exercised by this offline suite' };
+      return Promise.resolve(new Response(JSON.stringify(body), { status: 200, headers: { 'Content-Type': 'application/json' } }));
+    };
+  });
   const page = await ctx.newPage();
   page.on('console', m => { if (m.type() === 'error') consoleErrors.push(m.text()); });
   page.on('pageerror', e => consoleErrors.push('pageerror: ' + e.message));
@@ -451,13 +488,19 @@ async function run() {
       await p2.setViewportSize(vp);
       await p2.goto(URL, { waitUntil: 'networkidle', timeout: 60000 });
       await p2.waitForTimeout(700);
-      const n2 = await reachCombat(p2);
+      // Portrait gate (game is landscape-only, .rotate-hint covers PLAY and
+      // intercepts clicks — see .claude/docs/technical-preferences.md) must be
+      // cleared BEFORE attempting reachCombat, not after: a real phone player
+      // rotates first, then plays. Checking/rotating after the fact meant
+      // reachCombat's click was always silently swallowed by the overlay and
+      // N1.phone could never pass regardless of the app actually working.
       const portraitGate = await p2.locator('.rotate-hint, [class*=rotate]').first().count();
       if (label === 'phone' && portraitGate) {
         record('B4', 'B', '[phone portrait] Có gợi ý xoay ngang', true, 'Tìm thấy .rotate-hint', false);
         await p2.setViewportSize({ width: PHONE.height, height: PHONE.width });
         await p2.waitForTimeout(500);
       }
+      const n2 = await reachCombat(p2);
       await checkNoHorizontalOverflow(p2, label);
       await checkUiScale(p2, label, true);
       if (n2.inCombat || await p2.locator('.die').count()) {

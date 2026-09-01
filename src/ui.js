@@ -43,6 +43,11 @@ function tokenUsername(t){
 }
 let authToken=loadToken(), authUsername=authToken?tokenUsername(authToken):null;
 let acctMode='login', acctUsername='', acctPassword='', acctState='idle', acctMsg='', acctConflict=null;
+/* Login is mandatory (ADR-0002 Amendment, design/gdd/player-accounts.md §3 "App
+   gate"): gateMsg is the neutral banner shown on the gate screen when a cached
+   token turns out to be stale (401 on first authenticated call) — never a
+   silent drop, per GDD Edge Cases "Cached token present but expired/invalid". */
+let gateMsg='';
 
 let syncPushTimer=null;
 /* Debounced push (~5s after the last saveMeta()) — never blocks or throws on
@@ -55,7 +60,12 @@ function scheduleSyncPush(){
 async function pushSync(){
   if(!authToken) return;
   try{
-    await fetch('/api/sync-save',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+authToken},body:JSON.stringify({meta:META})});
+    const r=await fetch('/api/sync-save',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+authToken},body:JSON.stringify({meta:META})});
+    // Same "first authenticated call 401s -> drop to gate" rule as pullSyncAfterLogin
+    // below — the debounced push can just as easily be the call that first
+    // discovers a stale/rotated token, and the GDD's edge case doesn't care which
+    // code path found it (design/gdd/player-accounts.md §5 Edge Cases).
+    if(r.status===401){ clearToken(); authToken=null; authUsername=null; screen='gate'; gateMsg='Session expired — please log in again.'; render(); }
   }catch(e){ /* offline/server error — silently degrade, gameplay is never blocked */ }
 }
 /* Pulls the cloud save and reconciles with local META by savedAt (GDD §3 Login):
@@ -67,7 +77,7 @@ async function pushSync(){
 async function pullSyncAfterLogin(navigateOnDone){
   try{
     const r=await fetch('/api/sync-save',{headers:{'Authorization':'Bearer '+authToken}});
-    if(r.status===401){ clearToken(); authToken=null; authUsername=null; render(); return; }
+    if(r.status===401){ clearToken(); authToken=null; authUsername=null; screen='gate'; gateMsg='Session expired — please log in again.'; render(); return; }
     const data=await r.json();
     if(!data||typeof data!=='object'){ if(navigateOnDone) screen='menu'; render(); return; }
     const serverMeta=data.meta;
@@ -109,7 +119,9 @@ async function doAuth(action){
 function doLogout(){
   clearToken(); authToken=null; authUsername=null;
   if(syncPushTimer){ clearTimeout(syncPushTimer); syncPushTimer=null; }
-  screen='menu'; render();
+  // Login is mandatory (GDD §3 Logout) — there's nowhere else for a logged-out
+  // session to land but the gate. Local META is left untouched (not wiped).
+  gateMsg=''; screen='gate'; render();
 }
 function resolveConflictKeepLocal(){ acctConflict=null; saveMeta(); screen='menu'; render(); }
 function resolveConflictUseCloud(){ if(acctConflict) META={...DEF_META,...acctConflict.server}; acctConflict=null; saveMeta(); screen='menu'; render(); }
@@ -407,7 +419,11 @@ function render(){
   // get this class and keep scrolling normally.
   document.body.classList.toggle('locked-scroll', screen==='combat');
   root.innerHTML=''; root.className='';
-  if(screen==='menu') root.appendChild(scMenu());
+  // Mandatory login gate (design/gdd/player-accounts.md §3 "App gate") — checked
+  // first, before any other screen dispatch, so there is no ordering accident
+  // that could let a later branch render while screen==='gate'.
+  if(screen==='gate') root.appendChild(scGate());
+  else if(screen==='menu') root.appendChild(scMenu());
   else if(screen==='team') root.appendChild(scTeam());
   else if(screen==='unlocks') root.appendChild(scUnlocks());
   else if(screen==='collection') root.appendChild(scCollection());
@@ -464,7 +480,15 @@ const BOARD_H = 985;   /* header + enemies + party + tray + bar + gaps —
 function fitUI(){
   const raw = Math.min(innerWidth / BOARD_W, innerHeight / BOARD_H);
   const s = innerWidth >= 1200 ? Math.min(raw, 1.20) : 1;
-  document.documentElement.style.setProperty('--ui-scale', Math.max(0.85, s).toFixed(3));
+  // Floor raised 0.85 -> 1.0: text must never be shrunk below its authored
+  // size (--t1 is 11px, already the accessibility minimum — tools/verify.mjs
+  // A4 also hardcodes 11px, so bumping the token itself isn't an option
+  // either). The real, measured combat height (BOARD_H above) is taller than
+  // a standard 900px-tall desktop viewport, so something has to give: below
+  // this floor, the board scrolls (body is no longer overflow:hidden — see
+  // the scroll-lock fix) instead of shrinking text past legibility. Only
+  // scales UP (still capped at 1.20) on genuinely tall windows.
+  document.documentElement.style.setProperty('--ui-scale', Math.max(1.0, s).toFixed(3));
 }
 function autoFit(){ fitUI(); }
 let fitT=null;
@@ -485,6 +509,14 @@ function scMenu(){
   const w=el('div','screen menu title');
   const nb=bpUnclaimed().length, pr=bpProg(), saved=loadRun();
   const inner=el('div','menu-inner');
+  // T19 · login is mandatory now, so every menu view has a signed-in user —
+  // surface it as a small persistent line, not a full-weight tile (there's no
+  // "sync progress" call-to-action anymore, sync is automatic and invisible).
+  if(authToken){
+    const acctbar=el('div','menu-acctbar','Signed in as ');
+    acctbar.appendChild(el('b',null,authUsername||'?'));
+    inner.appendChild(acctbar);
+  }
   inner.appendChild(el('h1','logo','AXIE DICE TACTICS'));
   inner.appendChild(el('div','sub','LUNACIA MUTANTS · v1.0'));
   if(echoTier()>0) inner.appendChild(el('div','sub echotier','Echo Tier: '+ECHO_TIER_NAMES[echoTier()]));
@@ -494,16 +526,31 @@ function scMenu(){
   } else {
     inner.appendChild(btn('go cta btn--lg','PLAY',()=>{ teamPick=['plant1','beast1','aqua1','reptile1','bug1']; screen='team'; render(); }));
   }
-  const grid=el('div','menu-grid');
+  // T19 · grouped by function instead of one flat 4-per-row grid: progression-
+  // tracking screens ("what have I earned / what's left") vs. reference/utility
+  // screens. Grouping communicates relationship; a uniform grid didn't.
   const faces=(META.faces||[]).length, relics=(META.relics||[]).length;
-  grid.appendChild(menuTile('PASS','Lv '+pr.lv,()=>{ screen='bp'; render(); }, nb>0));
-  grid.appendChild(menuTile('COLLECTION',faces+' faces · '+relics+' relics',()=>{ screen='collection'; render(); }));
-  grid.appendChild(menuTile('UNLOCKS',(META.unlocks||[]).length+'/'+UNLOCKS.length,()=>{ screen='unlocks'; render(); }));
-  grid.appendChild(menuTile('CODEX','how to play',()=>{ screen='codex'; render(); }));
-  grid.appendChild(menuTile('VAULT',(META.vault||[]).length+'/'+VAULT_MAX+' imported',()=>{ screen='vault'; render(); }));
-  grid.appendChild(menuTile('LEADERBOARD','Ranked Run scores',()=>{ screen='leaderboard'; render(); loadLeaderboard(); }));
-  grid.appendChild(menuTile('ACCOUNT', authToken?('Signed in · '+(authUsername||'')):'Sync progress', ()=>{ screen='account'; acctState='idle'; acctMsg=''; render(); }));
-  inner.appendChild(grid);
+  const groups=el('div','menu-groups');
+
+  const progGroup=el('div','menu-group');
+  progGroup.appendChild(el('div','menu-group-label','PROGRESS'));
+  const progGrid=el('div','menu-grid menu-grid--3');
+  progGrid.appendChild(menuTile('PASS','Lv '+pr.lv,()=>{ screen='bp'; render(); }, nb>0));
+  progGrid.appendChild(menuTile('COLLECTION',faces+' faces · '+relics+' relics',()=>{ screen='collection'; render(); }));
+  progGrid.appendChild(menuTile('UNLOCKS',(META.unlocks||[]).length+'/'+UNLOCKS.length,()=>{ screen='unlocks'; render(); }));
+  progGroup.appendChild(progGrid);
+  groups.appendChild(progGroup);
+
+  const refGroup=el('div','menu-group');
+  refGroup.appendChild(el('div','menu-group-label','REFERENCE'));
+  const refGrid=el('div','menu-grid menu-grid--3');
+  refGrid.appendChild(menuTile('CODEX','how to play',()=>{ screen='codex'; render(); }));
+  refGrid.appendChild(menuTile('VAULT',(META.vault||[]).length+'/'+VAULT_MAX+' imported',()=>{ screen='vault'; render(); }));
+  refGrid.appendChild(menuTile('LEADERBOARD','Ranked Run scores',()=>{ screen='leaderboard'; render(); loadLeaderboard(); }));
+  refGroup.appendChild(refGrid);
+  groups.appendChild(refGroup);
+
+  inner.appendChild(groups);
   const line=[];
   if(META.runs) line.push(META.runs+(META.runs===1?' run':' runs'));
   if(META.wins) line.push(META.wins+(META.wins===1?' win':' wins'));
@@ -513,6 +560,7 @@ function scMenu(){
   const row=el('div','menu-mini');
   row.appendChild(btn('ghost btn--sm','SAMPLE TEAMS',()=>{ screen='guide'; render(); }));
   row.appendChild(btn('ghost btn--sm','SETTINGS',()=>{ modal='set'; render(); }));
+  row.appendChild(btn('ghost btn--sm','LOGOUT',()=>doLogout()));
   if(typeof devToggle==='function') row.appendChild(btn('ghost btn--sm','DEV TOOLS',()=>devToggle(true)));
   inner.appendChild(row);
   w.appendChild(inner);
@@ -1303,28 +1351,13 @@ function scLeaderboard(){
    Entirely additive — guests never see server calls from this screen unless
    they submit the form. Follows scImportAxie()'s form pattern (cfgrow+vform
    input row, vmsg status line). */
-function scAccount(){
-  const w=el('div','screen menu vaultscreen');
-  w.appendChild(el('h1','logo sm','ACCOUNT'));
-
-  if(acctConflict){
-    w.appendChild(el('div','sub','This device has progress newer than your cloud save. Choose which to keep — nothing is discarded silently.'));
-    const row=el('div','cfgrow vform');
-    row.appendChild(btn('cta','KEEP THIS DEVICE',()=>resolveConflictKeepLocal()));
-    row.appendChild(btn('ghost','USE CLOUD SAVE',()=>resolveConflictUseCloud()));
-    w.appendChild(row);
-    return w;
-  }
-
-  if(authToken){
-    w.appendChild(el('div','sub','Signed in as '+(authUsername||'?')+' · progress syncs automatically across devices'));
-    w.appendChild(btn('ghost sm','LOG OUT',()=>doLogout()));
-    w.appendChild(btn('','BACK',()=>{ screen='menu'; render(); }));
-    return w;
-  }
-
-  w.appendChild(el('div','sub','Sync your Vault, Unlocks, Collection and Battle Pass across devices. Guest play works fine without this.'));
-
+/* Shared login/register form body — used by both the mandatory gate (scGate,
+   reached pre-auth) and the post-auth conflict/account screen (scAccount).
+   opts.showBack controls whether a BACK-to-menu button is appended: the gate
+   has no menu to go back to (there is no screen before it), scAccount's
+   pre-auth branch does. */
+function buildAuthForm(w, opts){
+  opts=opts||{};
   const tabRow=el('div','cfgrow');
   [['login','LOG IN'],['register','REGISTER']].forEach(([m,label])=>{
     const b=el('button','btn sm'+(acctMode===m?' on':''),label);
@@ -1351,7 +1384,49 @@ function scAccount(){
   if(acctState==='error') w.appendChild(el('div','vmsg vmsg-bad',acctMsg));
   if(acctMode==='register') w.appendChild(el('div','vmsg vmsg-info','Registering uploads this device\'s current progress as your first cloud save.'));
 
-  w.appendChild(btn('','BACK',()=>{ screen='menu'; render(); }));
+  if(opts.showBack) w.appendChild(btn('','BACK',()=>{ screen='menu'; render(); }));
+}
+/* Mandatory login gate (design/gdd/player-accounts.md §3 "App gate"). Reached
+   only from boot with no cached token, or a 401 on the first authenticated
+   call after boot (stale/expired token). No BACK button — deliberately: there
+   is no prior screen to return to, PLAY and every other screen are unreachable
+   until doAuth()/pullSyncAfterLogin() succeed and set screen='menu' themselves. */
+function scGate(){
+  const w=el('div','screen menu title gate');
+  const inner=el('div','menu-inner');
+  inner.appendChild(el('h1','logo','AXIE DICE TACTICS'));
+  inner.appendChild(el('div','sub','Log in or create an account to play.'));
+  if(gateMsg) inner.appendChild(el('div','vmsg vmsg-bad',gateMsg));
+  buildAuthForm(inner,{showBack:false});
+  w.appendChild(inner);
+  return w;
+}
+/* Reachable only post-auth: the sync-conflict prompt (GDD §3 Login) after a
+   pullSyncAfterLogin() finds divergent progress, or (pre-auth branch below,
+   currently unreachable via any in-app navigation since the ACCOUNT menu tile
+   was removed — kept for a possible future "switch account" entry point). */
+function scAccount(){
+  const w=el('div','screen menu vaultscreen');
+  w.appendChild(el('h1','logo sm','ACCOUNT'));
+
+  if(acctConflict){
+    w.appendChild(el('div','sub','This device has progress newer than your cloud save. Choose which to keep — nothing is discarded silently.'));
+    const row=el('div','cfgrow vform');
+    row.appendChild(btn('cta','KEEP THIS DEVICE',()=>resolveConflictKeepLocal()));
+    row.appendChild(btn('ghost','USE CLOUD SAVE',()=>resolveConflictUseCloud()));
+    w.appendChild(row);
+    return w;
+  }
+
+  if(authToken){
+    w.appendChild(el('div','sub','Signed in as '+(authUsername||'?')+' · progress syncs automatically across devices'));
+    w.appendChild(btn('ghost sm','LOG OUT',()=>doLogout()));
+    w.appendChild(btn('','BACK',()=>{ screen='menu'; render(); }));
+    return w;
+  }
+
+  w.appendChild(el('div','sub','Sync your Vault, Unlocks, Collection and Battle Pass across devices.'));
+  buildAuthForm(w,{showBack:true});
   return w;
 }
 
@@ -1484,7 +1559,12 @@ window.addEventListener('load',()=>{ loadMeta();
   if(META.vol!=null) AU.vol=META.vol;
   if(META.mute) AU.on=false;
   if(META.spd) SPD=META.spd;
-  if(META.tut)tut=0; render();
+  if(META.tut)tut=0;
+  // Mandatory login gate: no cached token -> show ONLY the gate, never the menu
+  // (design/gdd/player-accounts.md §3). A cached token renders normally,
+  // optimistically, while pullSyncAfterLogin verifies it server-side below.
+  if(!authToken) screen='gate';
+  render();
   if(authToken) pullSyncAfterLogin(false); });
 
 /* ================= LUNACIA PASS ================= */

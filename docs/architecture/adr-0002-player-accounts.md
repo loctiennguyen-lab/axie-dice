@@ -3,6 +3,8 @@
 ## Status
 Accepted (2026-09-01) — beta scope: username/password only, wallet auth deferred.
 
+**Amendment (2026-09-01, same day, product owner directive):** the original Decision below treated accounts as opt-in — guest play unaffected, login only needed for sync/Ranked Run. The product owner has since decided login is **mandatory**: the app must not let a player reach PLAY (or any other screen) without an authenticated session. Guest mode is removed entirely. Everything else in this ADR (backend choice, token mechanism, hashing, sync contract) is unchanged — only the client-side enforcement policy changes, from "accounts are additive" to "accounts gate the app." The "Negative Consequences" and "Edge Cases" below that assumed guest fallback (e.g. "no password reset flow — a player who forgets their password loses access to *that account's cloud save*") now mean losing access to the game entirely, which raises the stakes on the still-missing password-recovery flow — flagged again here so it isn't lost: **recovery-less accounts are a materially bigger risk once login is mandatory than they were when it was optional**, and should be prioritized sooner than "beta fast-follow."
+
 ## Date
 2026-09-01
 

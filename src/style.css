@@ -10,7 +10,9 @@
 *{box-sizing:border-box;margin:0;padding:0}
 :root{
   /* ═══ TYPE — 6 bậc, sàn 11px (L1/L2) ═══ */
-  --t1: 11px;   /* nhãn ALL-CAPS ≤12 ký tự: WAVE, MANA, BACK, HORN */
+  --t1: 11px;   /* nhãn ALL-CAPS ≤12 ký tự: WAVE, MANA, BACK, HORN — tools/verify.mjs
+                   A4 hardcodes this exact value, do not change it; protect its
+                   legibility via fitUI()'s scale floor instead (see ui.js) */
   --t2: 13px;   /* chữ phụ, chip, số nhỏ, keyword xúc xắc */
   --t3: 15px;   /* BODY MẶC ĐỊNH — mô tả, tooltip, Codex, passive */
   --t4: 20px;   /* tiêu đề section, nhãn nút lớn, intent địch */
@@ -222,8 +224,24 @@ small{font-size:var(--t1)}
 .mt-s{font-size:var(--t1);color:var(--acc);line-height:1.3}
 .menu .stats{margin-top:var(--s5);font-size:var(--t2);color:var(--dim);letter-spacing:1px}
 .menu-mini{display:flex;gap:var(--s2);margin-top:var(--s4);flex-wrap:wrap;justify-content:center}
+/* T19 · signed-in identity: small, non-dominant persistent line above the
+   logo — login is mandatory now, so this always shows, but it must never
+   compete with PLAY for visual weight. */
+.menu-acctbar{font-size:var(--t1);color:var(--dim);letter-spacing:1px;margin-bottom:var(--s2)}
+.menu-acctbar b{color:var(--txt);font-weight:700}
+/* T19 · grouped tiles replace the old flat 4-per-row grid: each .menu-group
+   is a labeled cluster (PROGRESS / REFERENCE) so relationship reads at a
+   glance instead of every tile carrying identical visual weight. */
+.menu-groups{display:flex;flex-direction:column;gap:var(--s4);margin-top:var(--s5);align-items:center}
+.menu-group{width:fit-content}
+.menu-group-label{font-size:var(--t1);color:var(--dim);letter-spacing:2px;text-align:left;margin-bottom:var(--s1)}
+.menu-group .menu-grid{margin-top:0}
+.menu-grid--3{grid-template-columns:repeat(3,152px)}
 @media (max-width:599px){
   .menu-grid{grid-template-columns:repeat(2,1fr);width:100%}
+  .menu-group{width:100%}
+  .menu-grid--3{grid-template-columns:repeat(2,1fr);width:100%}
+  .menu-group-label{text-align:center}
   .btn.cta,.btn.cta2{width:100%}
 }
 
@@ -409,7 +427,13 @@ small{font-size:var(--t1)}
 .zone.party{margin-top:22px;position:relative}
 /* 2026-09-01: "vùng sáng" trung tính dưới mỗi zone — cảm giác bàn, không phải khoảng trống.
    Chỉ đổi lightness, không thêm hue/saturation — không phá nguyên tắc nền trung tính (rule 1) */
-.zone.enemies::before,.zone.party::before{content:"";position:absolute;inset:-14px -20px;z-index:-1;
+/* Horizontal bleed was -20px — at tablet width the zone sits only ~8px from
+   the viewport edge (#app's own padding), so a 20px bleed pushed 12px past
+   it and silently inflated document.scrollWidth (invisible to the player,
+   since body has overflow-x:hidden, but tools/verify.mjs B2 measures
+   scrollWidth directly, not visible clipping). -8px keeps the same glow
+   at every breakpoint without ever exceeding #app's own edge padding. */
+.zone.enemies::before,.zone.party::before{content:"";position:absolute;inset:-14px -8px;z-index:-1;
   background:radial-gradient(ellipse 70% 60% at 50% 30%,#161b22 0%,transparent 72%);pointer-events:none}
 .divider{display:none}
 
