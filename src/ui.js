@@ -17,6 +17,14 @@ let rollAnim=null, pendFloats=[], hoverT=null;
 const MK='axiedice_meta_v2', RK='axiedice_run_v2';
 const DEF_META={vol:0.28,mute:false,spd:1,shards:0,unlocks:[],ascMax:0,best:0,runs:0,wins:0,faces:[],relics:[],bosses:[],tut:0,
   xp:0,bpClaimed:[],bpFaces:[],perks:{},title:'',reduceFlash:false,vault:[],echoPoints:0,displayName:'',
+  /* Echo Box cosmetics (economy-progression.md §10.3 amendment, 2026-09-02):
+     titles/avatars/decor/backgrounds are now an owned COLLECTION, separately
+     equipped, not a single last-write-wins field. `title`/`echoPoints` above
+     are kept (dead but harmless) for the one-time migration in loadMeta(). */
+  ownedTitles:[], ownedAvatars:[], ownedDecor:[], ownedBackgrounds:[],
+  equipped:{title:'',avatar:'',decor:'',background:''},
+  echoBoxesOpened:0, echoMigrated:false,
+  dupeCounts:{0:0,1:0,2:0,3:0,4:0},
   /* owner: which logged-in account's data currently occupies local storage on
      THIS device (lowercased username, '' = not yet claimed by any account —
      a brand-new device, or a fresh install). Without this, local META was
@@ -28,7 +36,26 @@ const DEF_META={vol:0.28,mute:false,spd:1,shards:0,unlocks:[],ascMax:0,best:0,ru
      choice, only ever the truth from its own cloud save. */
   owner:''};
 let META={...DEF_META};
-function loadMeta(){ try{ const j=localStorage.getItem(MK); if(j) META={...DEF_META,...JSON.parse(j)}; }catch(e){} }
+function loadMeta(){
+  try{ const j=localStorage.getItem(MK); if(j) META={...DEF_META,...JSON.parse(j)}; }catch(e){}
+  /* One-time Echo Box migration (economy-progression.md §10.3 amendment):
+     carry the old deterministic echoPoints meter forward as echoBoxesOpened
+     (same tier/glow-border math, see echoTier()) and, if the player already
+     had an Echo tier title in the old single-slot META.title, preserve it in
+     the new ownedTitles collection instead of silently losing it. Guarded so
+     a brand-new account (echoPoints undefined pre-DEF_META, or 0 post-) never
+     crashes — `!=null` also treats 0 as "set", which is harmless: it just
+     migrates to echoBoxesOpened=0, identical to the default. */
+  if(!META.echoMigrated){
+    if(META.echoPoints!=null) META.echoBoxesOpened=META.echoPoints;
+    if(META.title && typeof ECHO_TITLES!=='undefined' && ECHO_TITLES.includes(META.title)){
+      if(!META.ownedTitles.includes(META.title)) META.ownedTitles.push(META.title);
+      META.equipped.title=META.title;
+    }
+    META.echoMigrated=true;
+    saveMeta();
+  }
+}
 function saveMeta(){ META.savedAt=Date.now(); try{ localStorage.setItem(MK,JSON.stringify(META)); }catch(e){} scheduleSyncPush(); }
 
 /* ---------- MATCH HISTORY (localStorage, degrade gracefully — same pattern
@@ -175,26 +202,93 @@ function doLogout(){
 }
 function resolveConflictKeepLocal(){ acctConflict=null; saveMeta(); screen='menu'; render(); }
 function resolveConflictUseCloud(){ if(acctConflict) META={...DEF_META,...acctConflict.server}; acctConflict=null; saveMeta(); screen='menu'; render(); }
-/* ---------- ECHO POINTS (design/gdd/economy-progression.md §10.3) ----------
+/* ---------- ECHO BOX (design/gdd/economy-progression.md §10.3, amended
+   2026-09-02: Echo Forge -> Echo Box, deterministic point-buy -> gacha) ----------
    End-game Gene Shard sink, unlocked once the Collection Log (Faces + Relics +
-   Bosses) is 100% complete. Formula/constants come from data.js `ECHO`. */
+   Bosses) is 100% complete. The tier meter/glow-border math (ECHO/echoTier/
+   echoCost) is UNCHANGED from the original Echo Forge — only what a purchase
+   GRANTS changed, from a deterministic point to a cosmetic gacha pull. See
+   COSMETIC_POOLS/ECHO_BOX_* in cosmetics.js and scEchoBox()/scProfile() below. */
 function collectionComplete(){
   return META.faces.length>=FACE_POOL.length && META.relics.length>=RELICS.length && META.bosses.length>=BOSSES.length;
 }
 function echoCost(n){ return Math.round(ECHO.base*Math.pow(ECHO.growth,n-1)); }
-function echoTier(){ return Math.min(Math.floor((META.echoPoints||0)/ECHO.tierSize), ECHO_TIER_NAMES.length-1); }
-function echoBuy(){
-  if(!collectionComplete()) return false;
-  const cost=echoCost((META.echoPoints||0)+1);
-  if(META.shards<cost) return false;
+function echoTier(){ return Math.min(Math.floor((META.echoBoxesOpened||0)/ECHO.tierSize), ECHO_TIER_NAMES.length-1); }
+/* Deterministic tier-title grant (NO randomness — same mechanic as before,
+   just routed through the new ownership model): push into ownedTitles so it's
+   never silently lost, and auto-equip it (matches the old "always show your
+   newest unlock" behaviour). Also used by bpClaim() below for Battle Pass
+   titles. */
+function grantTitle(t){
+  if(!t) return;
+  if(!META.ownedTitles.includes(t)) META.ownedTitles.push(t);
+  META.equipped.title=t;
+}
+function ownedArrFor(cat){
+  return cat==='avatar'?META.ownedAvatars:cat==='decor'?META.ownedDecor:cat==='background'?META.ownedBackgrounds:META.ownedTitles;
+}
+/* Cumulative-weight rarity roll over ECHO_BOX_RARITY_ODDS (r0..r4). */
+function rollEchoRarity(){
+  let roll=Math.random(), acc=0;
+  for(let r=0;r<ECHO_BOX_RARITY_ODDS.length;r++){ acc+=ECHO_BOX_RARITY_ODDS[r]; if(roll<acc) return r; }
+  return ECHO_BOX_RARITY_ODDS.length-1;
+}
+/* Opens one Echo Box: (1) unchanged gate/cost/tier-title mechanic, (2) rolls
+   a cosmetic reward by rarity then category, granting an unowned item in that
+   exact rarity+category cell, or recording a duplicate toward fusion if the
+   whole cell is already owned. Returns a result object for the caller to
+   render (scEchoBox()), or null if the purchase itself couldn't happen. */
+function echoBoxOpen(){
+  if(!collectionComplete()) return null;
+  const cost=echoCost((META.echoBoxesOpened||0)+1);
+  if(META.shards<cost) return null;
   const beforeTier=echoTier();
-  META.shards-=cost; META.echoPoints=(META.echoPoints||0)+1;
-  /* economy-progression.md §10.3 payoff: crossing an Echo Tier boundary grants
-     a profile title. Same "most recent unlock wins, single slot" model as
-     Battle Pass titles (see bpClaim) — no separate title-picker UI. */
-  if(echoTier()>beforeTier) META.title=ECHO_TITLES[echoTier()];
+  META.shards-=cost; META.echoBoxesOpened=(META.echoBoxesOpened||0)+1;
+  let tierTitle=null;
+  if(echoTier()>beforeTier){ tierTitle=ECHO_TITLES[echoTier()]; grantTitle(tierTitle); }
+  const rar=rollEchoRarity();
+  const cat=ECHO_BOX_CATEGORIES[Math.floor(Math.random()*ECHO_BOX_CATEGORIES.length)];
+  const pool=COSMETIC_POOLS[cat], owned=ownedArrFor(cat);
+  const candidates=Object.keys(pool).filter(k=>pool[k].rar===rar && !owned.includes(k));
+  let result;
+  if(candidates.length){
+    const key=candidates[Math.floor(Math.random()*candidates.length)];
+    owned.push(key);
+    result={dup:false,cat,rar,key,n:pool[key].n,tierTitle};
+  } else {
+    META.dupeCounts[rar]=(META.dupeCounts[rar]||0)+1;
+    result={dup:true,cat,rar,dupeCount:META.dupeCounts[rar],tierTitle};
+  }
   saveMeta();
-  return true;
+  return result;
+}
+/* Fusion (economy-progression.md §10.3 amendment): ECHO_FUSE_COST duplicate
+   rolls of the same rarity (any category) fuse into 1 guaranteed-new item one
+   rarity tier up. Mythic (r4) duplicates have nowhere higher to go and refund
+   Shard instead; if the entire next tier (and every tier above it, up to
+   mythic) is already 100% owned, cascade upward and fall back to the same
+   refund rather than getting stuck with an unspendable fusion. */
+function fuseCosmetics(rarity){
+  if(((META.dupeCounts&&META.dupeCounts[rarity])||0)<ECHO_FUSE_COST) return null;
+  META.dupeCounts[rarity]-=ECHO_FUSE_COST;
+  if(rarity>=4){ META.shards+=ECHO_FUSE_MYTHIC_REFUND; saveMeta(); return {refund:true,shards:ECHO_FUSE_MYTHIC_REFUND}; }
+  let targetRar=rarity+1, granted=null;
+  while(targetRar<=4 && !granted){
+    for(const cat of ECHO_BOX_CATEGORIES){
+      const pool=COSMETIC_POOLS[cat], owned=ownedArrFor(cat);
+      const candidates=Object.keys(pool).filter(k=>pool[k].rar===targetRar && !owned.includes(k));
+      if(candidates.length){
+        const key=candidates[Math.floor(Math.random()*candidates.length)];
+        owned.push(key);
+        granted={cat,rar:targetRar,key,n:pool[key].n};
+        break;
+      }
+    }
+    if(!granted) targetRar++;
+  }
+  if(!granted){ META.shards+=ECHO_FUSE_MYTHIC_REFUND; saveMeta(); return {refund:true,shards:ECHO_FUSE_MYTHIC_REFUND}; }
+  saveMeta();
+  return granted;
 }
 /* ---------- IMPORT AXIE VAULT (design/AUDIT_AND_SPEC_v1.md §G3① / §G5) ----------
    Vault lưu die suy ra từ Axie NFT thật (axieToDie, engine.js). Giới hạn 20 slot (localStorage) —
@@ -331,7 +425,7 @@ function bpClaim(b){
   else if(r.t==='face'){ if(!META.bpFaces.includes(r.v)) META.bpFaces.push(r.v);
     const f=BP_FACES[r.v]; if(f&&!META.faces.includes(faceText(f.face))) META.faces.push(faceText(f.face)); }
   else if(r.t==='perk') META.perks[r.v]=(META.perks[r.v]||0)+1;
-  if(b.title) META.title=b.title;
+  if(b.title) grantTitle(b.title);
   saveMeta();
 }
 
@@ -483,6 +577,7 @@ function render(){
   else if(screen==='team') root.appendChild(scTeam());
   else if(screen==='unlocks') root.appendChild(scUnlocks());
   else if(screen==='collection') root.appendChild(scCollection());
+  else if(screen==='profile') root.appendChild(scProfile());
   else if(screen==='vault') root.appendChild(scImportAxie());
   else if(screen==='leaderboard') root.appendChild(scLeaderboard());
   else if(screen==='history') root.appendChild(scHistory());
@@ -572,6 +667,8 @@ function scMenu(){
   if(authToken){
     const acctbar=el('div','menu-acctbar','Signed in as ');
     acctbar.appendChild(el('b',null,authUsername||'?'));
+    acctbar.onclick=()=>{ screen='profile'; render(); };
+    kbAct(acctbar);
     inner.appendChild(acctbar);
   }
   inner.appendChild(el('h1','logo','AXIE DICE TACTICS'));
@@ -595,6 +692,7 @@ function scMenu(){
   progGrid.appendChild(menuTile('PASS','Lv '+pr.lv,()=>{ screen='bp'; render(); }, nb>0));
   progGrid.appendChild(menuTile('COLLECTION',faces+' faces · '+relics+' relics',()=>{ screen='collection'; render(); }));
   progGrid.appendChild(menuTile('UNLOCKS',(META.unlocks||[]).length+'/'+UNLOCKS.length,()=>{ screen='unlocks'; render(); }));
+  progGrid.appendChild(menuTile('PROFILE','Titles · Avatars · Decor',()=>{ screen='profile'; render(); }));
   progGroup.appendChild(progGrid);
   groups.appendChild(progGroup);
 
@@ -668,42 +766,149 @@ function scCollection(){
   w.appendChild(mk('RELIC', RELICS.map(r=>({n:r.n,r:r.rar,owned:META.relics.includes(r.id)}))));
   w.appendChild(mk('DIE FACES', FACE_POOL.map(f=>{ const n=faceText(f); return {n,r:f.r,owned:META.faces.includes(n)}; })));
   w.appendChild(mk('BOSSES DEFEATED', BOSSES.map(b=>({n:b.n,r:4,owned:META.bosses.includes(b.k)}))));
-  w.appendChild(scEchoForge());
+  w.appendChild(scEchoBox());
   w.appendChild(btn('','BACK',()=>{ screen='menu'; render(); }));
   return w;
 }
-/* ---------- ECHO FORGE panel (part of Collection screen) ---------- */
-function scEchoForge(){
+/* ---------- ECHO BOX panel (part of Collection screen) ----------
+   design/gdd/economy-progression.md §10.3 amendment: was "Echo Forge", a
+   deterministic point-buy. Now a cosmetic gacha (avatars/decor/backgrounds/
+   titles from cosmetics.js) with the same underlying Shard-cost/tier-meter
+   curve. Reveal cards reuse .rcard/rbadge (scReward()'s visual language). */
+let echoBoxResult=null, echoFuseResult=null;
+function scEchoBox(){
   const s=el('div','colsec echosec');
-  s.appendChild(el('h3',null,'ECHO FORGE'));
+  s.appendChild(el('h3',null,'ECHO BOX'));
   if(!collectionComplete()){
-    s.appendChild(el('div','iempty','Complete every Relic, Die Face and Boss above to unlock the Echo Forge.'));
+    s.appendChild(el('div','iempty','Complete every Relic, Die Face and Boss above to unlock the Echo Box.'));
     return s;
   }
-  s.appendChild(el('div','ud','Convert leftover Gene Shard into permanent Echo Points.'));
-  const ep=META.echoPoints||0;
+  s.appendChild(el('div','ud','Spend leftover Gene Shard on Echo Boxes — gacha pulls for avatars, decor, backgrounds and titles.'));
+  const opened=META.echoBoxesOpened||0;
   const tier=echoTier();
   const tierName=tier>0?ECHO_TIER_NAMES[tier]:'—';
-  const inTier=ep%ECHO.tierSize;
-  const cost=echoCost(ep+1);
-  s.appendChild(el('div','ud',`Echo Points: ${ep}  ·  Tier: ${tierName}  ·  ${inTier}/${ECHO.tierSize} to next tier`));
-  s.appendChild(el('div','ud',`Next Echo Point costs ${cost} Shard.`));
+  const inTier=opened%ECHO.tierSize;
+  const cost=echoCost(opened+1);
+  s.appendChild(el('div','ud',`Echo Boxes Opened: ${opened}  ·  Tier: ${tierName}  ·  ${inTier}/${ECHO.tierSize} to next tier`));
+  s.appendChild(el('div','ud',`Next Echo Box costs ${cost} Shard.`));
   const can=META.shards>=cost;
-  const fb=el('button','btn cta'+(can?'':' dis'),'FORGE ECHO POINT');
+  const ob=el('button','btn cta'+(can?'':' dis'),'OPEN BOX');
   if(can){
-    fb.onclick=()=>{
+    ob.onclick=()=>{
       const beforeTier=echoTier();
-      if(echoBuy()){
-        SFX[echoTier()>beforeTier?'legend':'coin']();
+      const r=echoBoxOpen();
+      if(r){
+        echoBoxResult=r;
+        SFX[(r.rar>=3||r.tierTitle)?'legend':'coin']();
         render();
       }
     };
-    fb.onmouseenter=()=>SFX.hover();
+    ob.onmouseenter=()=>SFX.hover();
   } else {
-    fb.disabled=true;
+    ob.disabled=true;
   }
-  s.appendChild(fb);
+  s.appendChild(ob);
+
+  if(echoBoxResult){
+    const r=echoBoxResult;
+    const card=el('div','rcard r'+r.rar+' echoresult');
+    card.appendChild(el('div','rbadge',RARITY[r.rar]));
+    card.appendChild(el('div','rt',r.dup?'DUPLICATE':(r.n||'')));
+    card.appendChild(el('div','rd',r.dup?('Fusion progress: '+r.dupeCount+'/'+ECHO_FUSE_COST+' at '+RARITY[r.rar]):(r.cat||'').toUpperCase()));
+    if(r.tierTitle) card.appendChild(el('div','rsub','Tier title unlocked: '+r.tierTitle));
+    s.appendChild(card);
+  }
+
+  const fs=el('div','fusewrap');
+  for(let r=0;r<5;r++){
+    const dc=(META.dupeCounts&&META.dupeCounts[r])||0;
+    const row=el('div','fuserow');
+    row.appendChild(el('span','rchip r'+r,RARITY[r]));
+    row.appendChild(el('span','ud',dc+'/'+ECHO_FUSE_COST));
+    const fb=el('button','btn sm'+(dc>=ECHO_FUSE_COST?'':' dis'),r>=4?'FUSE (SHARD REFUND)':'FUSE');
+    if(dc>=ECHO_FUSE_COST){
+      fb.onclick=()=>{ const res=fuseCosmetics(r); if(res){ echoFuseResult=res; SFX.legend(); render(); } };
+      fb.onmouseenter=()=>SFX.hover();
+    } else {
+      fb.disabled=true;
+    }
+    row.appendChild(fb);
+    fs.appendChild(row);
+  }
+  s.appendChild(fs);
+  if(echoFuseResult){
+    const r=echoFuseResult;
+    const card=el('div','rcard'+(r.refund?'':(' r'+r.rar))+' echoresult');
+    if(r.refund) card.appendChild(el('div','rt','+'+r.shards+' Gene Shard'));
+    else {
+      card.appendChild(el('div','rbadge',RARITY[r.rar]));
+      card.appendChild(el('div','rt',r.n));
+      card.appendChild(el('div','rd',(r.cat||'').toUpperCase()));
+    }
+    s.appendChild(card);
+  }
   return s;
+}
+
+/* ================= PROFILE ================= */
+/* Equipped-cosmetics preview + the 4 owned-collection sections (Titles/
+   Avatars/Decor/Backgrounds). Reuses scCollection()'s mk()-style "owned item
+   vs rarity-tinted ??? placeholder" pattern (.colsec/.citem — see scCollection
+   above). Scope note: equipped avatar/decor/background render ONLY here (and
+   the small menu acctbar entry point) — in-combat unit card sprites are a
+   separate, already-correct system (Axie class art) and out of scope. */
+function scProfile(){
+  const w=el('div','screen menu profile');
+  w.appendChild(el('h1','logo sm','PROFILE'));
+  w.appendChild(el('div','sub','Signed in as '+(authUsername||'?')));
+
+  const eq=META.equipped||{title:'',avatar:'',decor:'',background:''};
+  const prevCls='profile-preview'+(eq.background&&COSMETIC_BACKGROUNDS[eq.background]?(' '+COSMETIC_BACKGROUNDS[eq.background].style):'');
+  const prev=el('div',prevCls);
+  const avWrap=el('div','profile-avatar-wrap'+(eq.decor&&COSMETIC_DECOR[eq.decor]?(' decor-'+COSMETIC_DECOR[eq.decor].style):''));
+  const av=el('div','profile-avatar');
+  if(eq.avatar&&COSMETIC_AVATARS[eq.avatar]){
+    const im=el('img','profile-avatar-img'); im.src=COSMETIC_AVATARS[eq.avatar].src; av.appendChild(im);
+  } else {
+    av.appendChild(el('div','profile-avatar-empty','—'));
+  }
+  avWrap.appendChild(av);
+  prev.appendChild(avWrap);
+  prev.appendChild(el('div','profile-title',eq.title?(COSMETIC_TITLES[eq.title]?COSMETIC_TITLES[eq.title].n:eq.title):'No title equipped'));
+  w.appendChild(prev);
+
+  const mkSec=(title,cat,pool)=>{
+    const owned=ownedArrFor(cat)||[];
+    const keys=Object.keys(pool);
+    const s=el('div','colsec'); s.appendChild(el('h3',null,title+'  ('+owned.length+'/'+keys.length+')'));
+    const g=el('div','colgrid');
+    keys.forEach(k=>{
+      const item=pool[k], has=owned.includes(k), isEq=eq[cat]===k;
+      const c=el('div','citem r'+item.rar+(has?'':' locked')+(isEq?' on':''));
+      c.textContent=has?item.n:'???';
+      if(has){
+        c.onclick=()=>{ META.equipped[cat]=k; saveMeta(); render(); };
+        kbAct(c);
+      }
+      g.appendChild(c);
+    });
+    s.appendChild(g); return s;
+  };
+  // ownedTitles also holds deterministic titles that AREN'T in the gacha
+  // pool (Echo Tier's ECHO_TITLES, Battle Pass's b.title rewards — both
+  // granted via grantTitle(), see echoBoxOpen()/bpClaim()). Without this,
+  // they'd count toward the "(N/18)" total but never actually appear as a
+  // selectable chip, and the count would look broken (more owned than the
+  // pool size). Show them as their own always-owned, max-rarity entries,
+  // keyed by the title text itself (how ownedTitles stores them).
+  const titlePool={...COSMETIC_TITLES};
+  (META.ownedTitles||[]).forEach(t=>{ if(!titlePool[t]) titlePool[t]={n:t,rar:4}; });
+  w.appendChild(mkSec('TITLES','title',titlePool));
+  w.appendChild(mkSec('AVATARS','avatar',COSMETIC_AVATARS));
+  w.appendChild(mkSec('DECOR','decor',COSMETIC_DECOR));
+  w.appendChild(mkSec('BACKGROUNDS','background',COSMETIC_BACKGROUNDS));
+  w.appendChild(btn('','BACK',()=>{ screen='menu'; render(); }));
+  return w;
 }
 
 /* ================= TEAM SELECT ================= */
@@ -1762,7 +1967,7 @@ function tutOverlay(){
    Esc backs out to the main menu from these, same as clicking that button.
    Deliberately excludes 'combat' (Esc there only deselects, never leaves a
    run) and 'menu'/'team' (no single obvious "back" destination). */
-const ESC_TO_MENU_SCREENS=['codex','collection','unlocks','vault','guide','bp','leaderboard','account','history'];
+const ESC_TO_MENU_SCREENS=['codex','collection','unlocks','vault','guide','bp','leaderboard','account','history','profile'];
 document.addEventListener('keydown',e=>{
   if(e.key==='Escape'){
     if(modal){ modal=null; render(); return; }
@@ -1797,7 +2002,7 @@ function scBP(){
   const w=el('div','screen menu bpscreen');
   w.appendChild(el('h1','logo sm','LUNACIA PASS'));
   const pr=bpProg();
-  w.appendChild(el('div','sub','Level '+pr.lv+' of 30  ·  '+META.xp+' XP earned'+(META.title?'  ·  '+META.title:'')));
+  w.appendChild(el('div','sub','Level '+pr.lv+' of 30  ·  '+META.xp+' XP earned'+(META.equipped.title?'  ·  '+META.equipped.title:'')));
   const bar=el('div','bpbar big'); const f=el('div','bpfill'); f.style.width=pr.pct+'%'; bar.appendChild(f);
   bar.appendChild(el('div','bptxt',pr.lv<30?(pr.cur+' / '+pr.need+' XP to Level '+(pr.lv+1)):'MAX LEVEL'));
   w.appendChild(bar);
