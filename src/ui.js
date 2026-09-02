@@ -648,6 +648,28 @@ addEventListener('resize', fitUI, { passive:true });
 fitUI();
 
 /* ================= MENU ================= */
+/* Shared avatar+decor composition — used by the menu's top-left corner
+   (48px) and the full Profile screen preview (96px, sized via CSS on
+   .profile-avatar-wrap/.profile-avatar). Decor pack 1 (CSS ring/frame) sets
+   a `decor-<style>` class on the wrap; decor pack 2 (real land-item art)
+   badges a small `<img>` in the corner instead — the two kinds coexist in
+   the same pool, this renders whichever the equipped item has. */
+function buildAvatarWrap(eq){
+  const eqDecor=eq.decor&&COSMETIC_DECOR[eq.decor];
+  const avWrap=el('div','profile-avatar-wrap'+(eqDecor&&eqDecor.style?(' decor-'+eqDecor.style):''));
+  const av=el('div','profile-avatar');
+  if(eq.avatar&&COSMETIC_AVATARS[eq.avatar]){
+    const im=el('img','profile-avatar-img'); im.src=COSMETIC_AVATARS[eq.avatar].src; av.appendChild(im);
+  } else {
+    av.appendChild(el('div','profile-avatar-empty','—'));
+  }
+  avWrap.appendChild(av);
+  if(eqDecor&&eqDecor.img){
+    const badge=el('div','decor-badge'); const bim=el('img','decor-badge-img'); bim.src=eqDecor.img; badge.appendChild(bim);
+    avWrap.appendChild(badge);
+  }
+  return avWrap;
+}
 /* T18 · One decision in the middle, four secondary destinations under it.
    The old vertical rails are gone: rotated edge text reads ~2x slower, the
    screen edge is browser-chrome territory, and :hover never fires on touch. */
@@ -662,14 +684,24 @@ function scMenu(){
   const nb=bpUnclaimed().length, pr=bpProg(), saved=loadRun();
   const inner=el('div','menu-inner');
   // T19 · login is mandatory now, so every menu view has a signed-in user —
-  // surface it as a small persistent line, not a full-weight tile (there's no
-  // "sync progress" call-to-action anymore, sync is automatic and invisible).
+  // surface identity as a persistent top-left corner (avatar + name + title),
+  // not a full-weight tile: there's no "sync progress" call-to-action
+  // anymore, sync is automatic and invisible. Absolutely positioned against
+  // .screen.menu.title (position:relative, see style.css) so it sits in the
+  // corner regardless of .menu-inner's centered flow.
   if(authToken){
-    const acctbar=el('div','menu-acctbar','Signed in as ');
-    acctbar.appendChild(el('b',null,authUsername||'?'));
-    acctbar.onclick=()=>{ screen='profile'; render(); };
-    kbAct(acctbar);
-    inner.appendChild(acctbar);
+    const eqCorner=META.equipped||{title:'',avatar:'',decor:'',background:''};
+    const corner=el('div','menu-corner');
+    corner.appendChild(buildAvatarWrap(eqCorner));
+    const txt=el('div','menu-corner-txt');
+    txt.appendChild(el('div','menu-corner-name',authUsername||'?'));
+    const hasTitle=!!eqCorner.title;
+    const titleTxt=hasTitle?(COSMETIC_TITLES[eqCorner.title]?COSMETIC_TITLES[eqCorner.title].n:eqCorner.title):'No title';
+    txt.appendChild(el('div','menu-corner-title'+(hasTitle?' has':''),titleTxt));
+    corner.appendChild(txt);
+    corner.onclick=()=>{ screen='profile'; render(); };
+    kbAct(corner);
+    w.appendChild(corner);
   }
   inner.appendChild(el('h1','logo','AXIE DICE TACTICS'));
   inner.appendChild(el('div','sub','LUNACIA MUTANTS · v1.0'));
@@ -865,23 +897,9 @@ function scProfile(){
   const eq=META.equipped||{title:'',avatar:'',decor:'',background:''};
   const prevCls='profile-preview'+(eq.background&&COSMETIC_BACKGROUNDS[eq.background]?(' '+COSMETIC_BACKGROUNDS[eq.background].style):'');
   const prev=el('div',prevCls);
-  const eqDecor=eq.decor&&COSMETIC_DECOR[eq.decor];
-  /* Decor pack 2 (land-item art, 2026-09-02) has `img` instead of `style` —
-     a real item icon badged in the corner, not a CSS ring/frame. The two
-     kinds coexist in the same pool; render whichever the equipped item has. */
-  const avWrap=el('div','profile-avatar-wrap'+(eqDecor&&eqDecor.style?(' decor-'+eqDecor.style):''));
-  const av=el('div','profile-avatar');
-  if(eq.avatar&&COSMETIC_AVATARS[eq.avatar]){
-    const im=el('img','profile-avatar-img'); im.src=COSMETIC_AVATARS[eq.avatar].src; av.appendChild(im);
-  } else {
-    av.appendChild(el('div','profile-avatar-empty','—'));
-  }
-  avWrap.appendChild(av);
-  if(eqDecor&&eqDecor.img){
-    const badge=el('div','decor-badge'); const bim=el('img','decor-badge-img'); bim.src=eqDecor.img; badge.appendChild(bim);
-    avWrap.appendChild(badge);
-  }
-  prev.appendChild(avWrap);
+  // Avatar+decor composition shared with the menu corner — see
+  // buildAvatarWrap() above scMenu().
+  prev.appendChild(buildAvatarWrap(eq));
   prev.appendChild(el('div','profile-title',eq.title?(COSMETIC_TITLES[eq.title]?COSMETIC_TITLES[eq.title].n:eq.title):'No title equipped'));
   w.appendChild(prev);
 

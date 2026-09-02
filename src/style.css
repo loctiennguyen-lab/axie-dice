@@ -198,6 +198,14 @@ h1,h2,h3,h4{font-weight:700}
 @media (prefers-reduced-motion: reduce){
   *,*::before,*::after{animation-duration:.001ms!important;animation-iteration-count:1!important;
     transition-duration:.001ms!important;scroll-behavior:auto!important}
+  /* !important required: this rule sits earlier in the stylesheet than the
+     unconditional .screen.menu.title{animation:menuDrift...} rule below, and
+     with equal specificity + no !important the LATER rule was winning even
+     under reduced-motion (verify.mjs A10 caught this: animationName stayed
+     'menuDrift', duration only got clamped to .001ms by the universal rule
+     above, not truly disabled — a running-but-imperceptible animation still
+     fails "reduce actually removes animation"). */
+  .screen.menu.title{animation:none!important}
 }
 
 /* ================= MENU ================= */
@@ -212,7 +220,21 @@ h1,h2,h3,h4{font-weight:700}
    slowly, the screen edge belongs to browser chrome, and :hover never fires
    on touch, so the whole pattern was unreachable on a phone. */
 small{font-size:var(--t1)}
-.screen.menu.title{display:grid;place-items:center;min-height:100dvh}
+.screen.menu.title{display:grid;place-items:center;min-height:100dvh;position:relative}
+/* Menu-only animated background: subtle drifting glows behind the logo/CTA.
+   Scoped to .screen.menu.title (not the broader .screen.menu, which is also
+   shared by Profile/Codex/Vault/etc.) so only the actual title screen (and
+   the pre-login gate, which shares this exact class combo) gets it — combat
+   and every other screen keep the static body{background:...} gradient. */
+.screen.menu.title{background:
+  radial-gradient(circle at 20% 15%, rgba(179,136,255,.12), transparent 55%),
+  radial-gradient(circle at 80% 75%, rgba(255,200,87,.08), transparent 60%),
+  linear-gradient(180deg,var(--bg-top) 0%,var(--bg) 480px);
+  background-color:var(--bg);
+  background-size:140% 140%,140% 140%,auto;
+  animation:menuDrift 40s ease-in-out infinite alternate;
+}
+@keyframes menuDrift{0%{background-position:0% 0%,100% 100%,0 0}100%{background-position:15% 10%,85% 85%,0 0}}
 .menu-inner{width:min(640px,100% - 32px);display:flex;flex-direction:column;align-items:center}
 .menu-inner .logo{font-size:var(--t6);letter-spacing:8px;color:var(--acc)}
 .menu-inner .sub{font-size:var(--t2);letter-spacing:3px;color:var(--dim);margin:var(--s2) 0 0}
@@ -224,20 +246,38 @@ small{font-size:var(--t1)}
 .mt-n{font-size:var(--t2);letter-spacing:1px}
 .mt-s{font-size:var(--t1);color:var(--acc);line-height:1.3}
 .menu .stats{margin-top:var(--s5);font-size:var(--t2);color:var(--dim);letter-spacing:1px}
-.menu-mini{display:flex;gap:var(--s2);margin-top:var(--s4);flex-wrap:wrap;justify-content:center}
-/* T19 · signed-in identity: small, non-dominant persistent line above the
-   logo — login is mandatory now, so this always shows, but it must never
-   compete with PLAY for visual weight. */
-.menu-acctbar{font-size:var(--t1);color:var(--dim);letter-spacing:1px;margin-bottom:var(--s2)}
-.menu-acctbar b{color:var(--txt);font-weight:700}
+/* T20 · utility/meta links tucked into the bottom-right corner, mirroring
+   .menu-corner top-left. Still .btn.ghost.btn--sm — that's already the
+   lightest-weight control in the system (transparent bg, dim border/text),
+   and .btn::before already guarantees a >=44x44 invisible tap area (see the
+   T07 button rules above) regardless of the button's visible size, so no
+   separate small-tap-target treatment is needed here. */
+.menu-mini{position:absolute;bottom:var(--s4);right:var(--s4);display:flex;gap:var(--s2);
+  flex-wrap:wrap;justify-content:flex-end;max-width:260px;margin-top:0}
+/* T20 · top-left identity corner — replaces the old .menu-acctbar line
+   entirely. Avatar (48px, via buildAvatarWrap()/.profile-avatar-wrap reused
+   from Profile) + two-line username/title text block, the whole thing
+   clickable through to Profile. */
+.menu-corner{position:absolute;top:var(--s4);left:var(--s4);display:flex;align-items:center;
+  gap:var(--s3);cursor:pointer}
+.menu-corner .profile-avatar-wrap{padding:4px}
+.menu-corner .profile-avatar{width:48px;height:48px}
+.menu-corner .decor-badge{width:22px;height:22px;right:-4px;bottom:-4px}
+.menu-corner-txt{text-align:left}
+.menu-corner-name{font-size:var(--t2);color:var(--txt);line-height:1.3;font-weight:700}
+.menu-corner-title{font-size:var(--t1);color:var(--dim);letter-spacing:1px}
+.menu-corner-title.has{color:var(--acc)}
 /* T19 · grouped tiles replace the old flat 4-per-row grid: each .menu-group
    is a labeled cluster (PROGRESS / REFERENCE) so relationship reads at a
-   glance instead of every tile carrying identical visual weight. */
-.menu-groups{display:flex;flex-direction:column;gap:var(--s4);margin-top:var(--s5);align-items:center}
-.menu-group{width:fit-content}
+   glance instead of every tile carrying identical visual weight.
+   T20 · each group is now a bordered panel-card (chunking, not new markup —
+   .menu-group already IS the right wrapper element) and spacing is
+   tightened: groups sit closer together, tiles sit closer within a group. */
+.menu-groups{display:flex;flex-direction:column;gap:var(--s3);margin-top:var(--s5);align-items:center}
+.menu-group{width:fit-content;background:var(--pan);border:1px solid var(--line);border-radius:var(--radius);padding:var(--s4)}
 .menu-group-label{font-size:var(--t1);color:var(--dim);letter-spacing:2px;text-align:left;margin-bottom:var(--s1)}
 .menu-group .menu-grid{margin-top:0}
-.menu-grid--3{grid-template-columns:repeat(3,152px)}
+.menu-grid--3{grid-template-columns:repeat(3,152px);gap:var(--s1)}
 @media (max-width:599px){
   .menu-grid{grid-template-columns:repeat(2,1fr);width:100%}
   .menu-group{width:100%}
@@ -1101,7 +1141,6 @@ body.clog-open .clog-inner{ clip-path:inset(0 0 0 0); opacity:1; }
    Reuses existing tokens only (--r0..--r4 rarity colours, --burn, CLASS_COLOR
    hexes baked in below since CSS can't read data.js, and the --acc gold /
    rgba(179,136,255,x) purple pairing already used by .unit.p.echo5). */
-.menu-acctbar{cursor:pointer}
 .fusewrap{display:flex;flex-direction:column;gap:6px;margin-top:10px}
 .fuserow{display:flex;align-items:center;gap:10px}
 .echoresult{max-width:280px;margin:14px 0 0}
