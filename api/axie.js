@@ -4,7 +4,7 @@
  * Uses curl (available in Vercel runtime) to bypass Cloudflare challenge.
  *
  * GET /api/axie?id=<axieId>
- * Returns: { id, class, parts: [{id, name, class, type, specialGenes}] }
+ * Returns: { id, class, image, parts: [{id, name, class, type, specialGenes}] }
  */
 
 const { execFileSync } = require('child_process');
@@ -16,7 +16,6 @@ const QUERY = `
     axie(axieId: $axieId) {
       id
       class
-      image
       parts {
         id
         name
@@ -27,6 +26,19 @@ const QUERY = `
     }
   }
 `;
+
+/**
+ * The GraphQL API's own `axie.image` field returns a URL on
+ * assets.axieinfinity.com that 403s (AccessDenied) even from a real browser
+ * — verified directly, not assumed; that bucket appears to reject public
+ * reads regardless of headers/referrer. The actual public, hotlink-safe CDN
+ * for the same rendered PNG is a different host with the same path shape —
+ * verified working (HTTP 200, image/png) for multiple real Axie IDs. Build
+ * the URL ourselves instead of trusting the field GraphQL returns.
+ */
+function axieImageUrl(id) {
+  return `https://axiecdn.axieinfinity.com/axies/${id}/axie/axie-full-transparent.png`;
+}
 
 /**
  * Validates axieId is a non-empty string of digits.
@@ -156,7 +168,7 @@ module.exports = async (req, res) => {
     res.status(200).json({
       id: axie.id,
       class: axie.class,
-      image: axie.image || null,
+      image: axieImageUrl(axie.id),
       parts: axie.parts,
     });
   } catch (err) {
