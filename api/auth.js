@@ -45,6 +45,23 @@ function isRateLimited(ip) {
 const NOT_CONFIGURED = { ok: false, error: 'Accounts are not configured on this server yet' };
 const INVALID_CREDS = { ok: false, error: 'Invalid username or password' };
 
+// Telemetry piggyback (docs/architecture/telemetry-dashboard-design.md §3):
+// account.created/session.login ride these existing handlers for free — no
+// extra client round trip. Best-effort only: a failure here must never block
+// login/register, so errors are swallowed, never awaited into the response path.
+function todayUTC() { return new Date().toISOString().slice(0, 10); }
+function recordTelemetry(username, kind) {
+  const day = todayUTC();
+  const dauKey = 'tel:dau:' + day;
+  Promise.all([
+    upstash('sadd', 'tel:players', username),
+    upstash('sadd', dauKey, username),
+    upstash('expire', dauKey, String(90 * 24 * 60 * 60)),
+    upstash('hincrby', 'tel:totals', kind === 'register' ? 'accounts_created' : 'logins', '1'),
+    upstash('hincrby', 'tel:d:' + day, kind === 'register' ? 'accounts_created' : 'logins', '1'),
+  ]).catch(() => {});
+}
+
 module.exports = async (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
@@ -91,6 +108,7 @@ module.exports = async (req, res) => {
     await upstash('set', 'save:' + username, serialized);
 
     const token = signToken(username, secret);
+    recordTelemetry(username, 'register');
     res.status(200).json({ ok: true, token, username });
     return;
   }
@@ -109,5 +127,6 @@ module.exports = async (req, res) => {
   if (!valid) { res.status(200).json(INVALID_CREDS); return; }
 
   const token = signToken(username, secret);
+  recordTelemetry(username, 'login');
   res.status(200).json({ ok: true, token, username });
 };

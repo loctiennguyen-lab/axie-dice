@@ -120,6 +120,19 @@ function scheduleSyncPush(){
   if(syncPushTimer) clearTimeout(syncPushTimer);
   syncPushTimer=setTimeout(pushSync,5000);
 }
+/* Coarse run start/end signal for the admin dashboard (docs/architecture/
+   telemetry-dashboard-design.md) — NOT anti-cheat, NOT the leaderboard replay
+   log (see api/submit-run.js for that). Fire-and-forget: must never throw,
+   block, or slow down gameplay if the network/server is unavailable, same
+   graceful-degrade philosophy as pushSync() above. No-ops entirely when
+   logged out (shouldn't happen post-ADR-0002, but never assume). */
+function sendTelemetry(type, extra){
+  if(!authToken) return;
+  try{
+    fetch('/api/telemetry',{method:'POST',headers:{'Content-Type':'application/json','Authorization':'Bearer '+authToken},
+      body:JSON.stringify({type,...extra})}).catch(()=>{});
+  }catch(e){}
+}
 async function pushSync(){
   if(!authToken) return;
   try{
@@ -1143,6 +1156,7 @@ function startRun(){
     metaHpBonus: ranked?0:(unlocked('u_hp')?3:0)+(unlocked('u_hp2')?2:0)+4*(P.hp4||0),
     startRelics: sr? [pick0(RELICS.filter(r=>r.rar<=srRar&&!r.act)).id] : []});
   S.ranked=ranked;
+  S.startedAt=Date.now();
   S.actionLog = ranked? [] : null;
   S.runSeed = seed;
   S.runTeamKeys = teamPick.slice();
@@ -1152,6 +1166,7 @@ function startRun(){
   S.unlockFaceMax  = unlocked('u_face2')?4:unlocked('u_face1')?3:2;
   S.seedStr=pickSeed||('#'+seed);
   META.runs++; saveMeta();
+  sendTelemetry('run.started',{mode:pickMode,ascension:pickAsc,ranked});
   screen='combat'; sel=null; selRelic=null; msg='';
   /* T-preflight · the tutorial used to auto-open over the map and blocked the
      very first click of a new run. It now lives in CODEX, reachable from the menu. */
@@ -1588,6 +1603,9 @@ function onRunEnd(){
   if(S.phase==='won'){ META.wins++; if(S.asc>=META.ascMax&&META.ascMax<10) META.ascMax=Math.min(10,S.asc+1); }
   S.xpGain=runXp(S,S.phase==='won'); META.xp+=S.xpGain;
   saveMeta();
+  const outcome=S.phase==='won'?'win':(S.abandoned?'quit':'loss');
+  sendTelemetry('run.ended',{mode:S.mode,ascension:S.asc,ranked:!!S.ranked,outcome,wave:S.step,
+    durationMs:S.startedAt?(Date.now()-S.startedAt):0});
   saveRunHistory(); // reads S — must run before clearRun() discards it
   clearRun();
 }
@@ -2688,7 +2706,7 @@ function scSettings(){
     rw.appendChild(btn('sm','SAVE & QUIT TO MENU',()=>{ saveRun(); modal=null; screen='menu'; render(); }));
     const ab=btn('sm danger','ABANDON RUN',()=>{
       if(confirm('Abandon this run? You keep the Gene Shard and XP you have already earned.')){
-        S.phase='lost'; onRunEnd(); modal=null; render(); } });
+        S.phase='lost'; S.abandoned=true; onRunEnd(); modal=null; render(); } });
     rw.appendChild(ab);
     row('RUN',rw);
     d.appendChild(el('div','sethint','Shortcuts: I opens information · Esc closes · Space ends the turn · Ctrl+Z undoes'));

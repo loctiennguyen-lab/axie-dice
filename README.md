@@ -84,6 +84,16 @@ UPSTASH_REDIS_REST_TOKEN=...
 Without them the game still works fully — Ranked Run scores are computed correctly, the API just
 responds `stored:false` instead of erroring.
 
+For the admin telemetry dashboard (`/admin-dashboard`, see
+`docs/architecture/telemetry-dashboard-design.md`) to work, also set:
+
+```
+ADMIN_DASHBOARD_TOKEN=<any long random string you pick>
+```
+
+Without it `/api/admin-stats` responds "not configured" and the dashboard page shows nothing
+sensitive — it's a separate secret from player login, never a player's own session token.
+
 ## Tech stack
 
 Vanilla JavaScript (ES6+), no framework, no bundler. `build.py` assembles `src/*.js`/`src/style.css`

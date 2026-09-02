@@ -1,5 +1,5 @@
 {
-  "buildCommand": "mkdir -p build && python3 build.py public && mv -f index.html build/index.html",
+  "buildCommand": "mkdir -p build && python3 build.py public && mv -f index.html build/index.html && cp tools/admin-dashboard.html build/admin-dashboard.html",
   "outputDirectory": "build",
   "cleanUrls": true,
   "functions": {
