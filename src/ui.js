@@ -417,6 +417,7 @@ function scImportAxie(){
     const sec=el('div','colsec'); sec.appendChild(el('h3',null,'YOUR VAULT  ('+vlist.length+'/'+VAULT_MAX+')'));
     const g=el('div','vaultgrid');
     vlist.forEach(v=>{
+      ensureVaultArt(v);
       const c=el('div','vchip'); c.style.setProperty('--cc',CLASS_COLOR[v.cls]);
       const im=el('img','vchip-thumb'); im.src=axieArtSrc(v); im.onerror=()=>{ im.onerror=null; im.src=sprOf(v.cls,v.art||0); }; c.appendChild(im);
       const info=el('div','vchip-info');
@@ -1038,6 +1039,26 @@ let pickMode='short', pickAsc=0, pickSeed='', pickRanked=false;
    image:null|undefined and just show the sprite, no re-import required. */
 let vaultExpanded=new Set();
 const axieArtSrc=v=>v.image||sprOf(v.cls,v.art||0);
+/* Vault entries imported before the `image` field existed (2026-09-03) have
+   no v.image at all — rather than force a manual re-import for every old
+   entry, lazily backfill it once per render pass: refetch just the id from
+   the same api/axie proxy Import Axie already uses, cache the real art URL
+   into the vault record, and re-render. Silent no-op on any failure (offline,
+   API down, Axie no longer resolvable) — the sprite fallback already covers
+   that, this is purely a nice-to-have upgrade, never blocking. */
+let vaultArtFetching=new Set();
+function ensureVaultArt(v){
+  if(v.image||!v.axieId||vaultArtFetching.has(v.axieId)) return;
+  vaultArtFetching.add(v.axieId);
+  fetch('/api/axie?id='+encodeURIComponent(v.axieId)).then(r=>r.ok?r.json():null).then(data=>{
+    if(data&&data.image){
+      v.image=data.image;
+      const idx=(META.vault||[]).findIndex(x=>x.axieId===v.axieId);
+      if(idx>=0) META.vault[idx].image=data.image;
+      saveMeta(); render();
+    }
+  }).catch(()=>{}).finally(()=>vaultArtFetching.delete(v.axieId));
+}
 function scTeam(){
   const w=el('div','screen title');
   w.appendChild(el('h1','logo sm','CHOOSE YOUR TEAM'));
@@ -1066,6 +1087,7 @@ function scTeam(){
     w.appendChild(el('h3','vaulthdr','YOUR VAULT'));
     const vgrid=el('div','vaultgrid');
     META.vault.forEach(v=>{
+      ensureVaultArt(v);
       const key=ensureVaultHero(v), h=HEROES[key];
       const n=teamPick.filter(x=>x===key).length, pa=PASSIVE[h.cls];
       const open=vaultExpanded.has(key);
