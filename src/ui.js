@@ -16,7 +16,17 @@ let rollAnim=null, pendFloats=[], hoverT=null;
 /* ---------- META (localStorage, degrade gracefully) ---------- */
 const MK='axiedice_meta_v2', RK='axiedice_run_v2';
 const DEF_META={vol:0.28,mute:false,spd:1,shards:0,unlocks:[],ascMax:0,best:0,runs:0,wins:0,faces:[],relics:[],bosses:[],tut:0,
-  xp:0,bpClaimed:[],bpFaces:[],perks:{},title:'',reduceFlash:false,vault:[],echoPoints:0,displayName:''};
+  xp:0,bpClaimed:[],bpFaces:[],perks:{},title:'',reduceFlash:false,vault:[],echoPoints:0,displayName:'',
+  /* owner: which logged-in account's data currently occupies local storage on
+     THIS device (lowercased username, '' = not yet claimed by any account —
+     a brand-new device, or a fresh install). Without this, local META was
+     compared/offered by savedAt alone regardless of who it actually belonged
+     to, so logging into account B on a device that last had account A's
+     progress would present A's data as "this device's progress" and could
+     leak it into B's cloud save. See pullSyncAfterLogin()/doAuth() below —
+     any account other than `owner` must never see a merge/keep-device
+     choice, only ever the truth from its own cloud save. */
+  owner:''};
 let META={...DEF_META};
 function loadMeta(){ try{ const j=localStorage.getItem(MK); if(j) META={...DEF_META,...JSON.parse(j)}; }catch(e){} }
 function saveMeta(){ META.savedAt=Date.now(); try{ localStorage.setItem(MK,JSON.stringify(META)); }catch(e){} scheduleSyncPush(); }
@@ -87,9 +97,15 @@ async function pushSync(){
     if(r.status===401){ clearToken(); authToken=null; authUsername=null; screen='gate'; gateMsg='Session expired — please log in again.'; render(); }
   }catch(e){ /* offline/server error — silently degrade, gameplay is never blocked */ }
 }
-/* Pulls the cloud save and reconciles with local META by savedAt (GDD §3 Login):
-   server newer/equal -> silently adopt; local strictly newer -> explicit
-   keep-local-vs-use-cloud choice, never a silent overwrite either way.
+/* Pulls the cloud save and reconciles with local META (GDD §3 Login).
+   Reconciliation by savedAt ONLY applies when local data is already owned
+   by THIS account (META.owner===authUsername) — i.e. "did I make progress
+   on this device since my last sync". If local data belongs to a different
+   account (or no account yet — a fresh device), it is never compared or
+   offered as a choice: that would leak one player's progress into another
+   account's cloud save. In that case we just adopt the cloud save outright
+   (or start clean at DEF_META if this account has no cloud save yet), then
+   stamp ownership so the NEXT login on this device reasons correctly.
    navigateOnDone controls whether we jump back to the menu when this resolves
    without a conflict (true from the login form; false from the boot-time pull,
    which should leave the player wherever they already are). */
@@ -100,16 +116,23 @@ async function pullSyncAfterLogin(navigateOnDone){
     const data=await r.json();
     if(!data||typeof data!=='object'){ if(navigateOnDone) screen='menu'; render(); return; }
     const serverMeta=data.meta;
+    const sameOwner=META.owner&&META.owner===authUsername;
     if(!serverMeta){
-      // Never synced from any device yet — push current local META as the first cloud save.
+      // This account has never synced from any device yet.
+      if(!sameOwner){ META={...DEF_META,owner:authUsername}; } else { META.owner=authUsername; }
       saveMeta();
+      if(navigateOnDone) screen='menu'; render(); return;
+    }
+    if(!sameOwner){
+      // Local data (if any) isn't this account's — never prompt, just adopt the cloud truth.
+      META={...DEF_META,...serverMeta,owner:authUsername}; saveMeta();
       if(navigateOnDone) screen='menu'; render(); return;
     }
     const localSavedAt=META.savedAt||0, serverSavedAt=serverMeta.savedAt||0;
     if(localSavedAt>serverSavedAt){
       acctConflict={server:serverMeta}; screen='account'; render(); return;
     }
-    META={...DEF_META,...serverMeta}; saveMeta();
+    META={...DEF_META,...serverMeta,owner:authUsername}; saveMeta();
     if(navigateOnDone) screen='menu'; render();
   }catch(e){ if(navigateOnDone) screen='menu'; render(); }
 }
@@ -120,17 +143,25 @@ async function doAuth(action){
   if((acctPassword||'').length<8){ acctState='error'; acctMsg='Password must be at least 8 characters.'; render(); return; }
   acctState='busy'; acctMsg=''; render();
   try{
+    // Only offer local META as the new account's starting cloud save when this
+    // device's local data is actually unclaimed (fresh device) or already this
+    // same username's — never hand a brand-new account someone else's leftover
+    // local progress just because they happen to share a device (see the
+    // ownership comment on DEF_META/pullSyncAfterLogin above).
+    const localIsForeign=action==='register'&&META.owner&&META.owner!==u;
     const body={action, username:u, password:acctPassword};
-    if(action==='register') body.meta=META;
+    if(action==='register') body.meta=localIsForeign?DEF_META:META;
     const r=await fetch('/api/auth',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
     const data=await r.json();
     if(!data.ok){ acctState='error'; acctMsg=data.error||'Something went wrong.'; render(); return; }
     authToken=data.token; saveToken(authToken); authUsername=data.username||u;
     acctPassword=''; acctState='idle';
     if(action==='register'){
-      // Registration already uploaded current local META as the first cloud save
-      // server-side — nothing to merge, just re-stamp and let debounced sync take over.
-      saveMeta(); screen='menu'; render(); return;
+      // Registration already uploaded the right starting META server-side
+      // (see localIsForeign above) — mirror that choice locally, stamp
+      // ownership, then let debounced sync take over from here.
+      if(localIsForeign) META={...DEF_META};
+      META.owner=authUsername; saveMeta(); screen='menu'; render(); return;
     }
     await pullSyncAfterLogin(true);
   }catch(e){ acctState='error'; acctMsg='Network error — could not reach the server. Try again.'; render(); }
