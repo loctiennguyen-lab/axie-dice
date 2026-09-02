@@ -480,6 +480,7 @@ small{font-size:var(--t1)}
 .psc.dr3{border-color:var(--r3)} .psc.dr4{border-color:var(--r4)}
 .drtag{font-size:var(--t1);margin-top:4px;letter-spacing:1px;color:var(--dim)}
 .psc.dr3 .drtag{color:var(--r3)} .psc.dr4 .drtag{color:var(--r4)}
+.asctag{font-size:var(--t1);margin-top:2px;letter-spacing:1px;color:var(--acc)}
 .relicstrip{display:flex;gap:4px;justify-content:center;flex-wrap:wrap;margin-top:8px}
 .rchip{font-size:var(--t1);padding:3px 7px;background:var(--pan);border:1px solid var(--line);border-radius:var(--rad-sm);color:var(--dim)}
 .rchip.r1{border-color:var(--r1);color:var(--r1)} .rchip.r2{border-color:var(--r2);color:var(--r2)}

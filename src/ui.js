@@ -1331,6 +1331,16 @@ function partyStrip(){
     c.appendChild(unitArtImg(u));
     c.appendChild(el('div','nm',u.n+' T'+u.tier));
     c.appendChild(el('div','hp','HP '+u.maxHp));
+    /* ASCENSION reward (mkReward 't'==='ascend', applyReward pushes a `muts`
+       entry {type:'oc',mult}) never changes key/tier/name/art by design —
+       that's what keeps a Vault Axie's identity intact when it "upgrades"
+       (see design/quick-specs/import-axie-variants-2026-09-03.md). But that
+       meant the card showed literally nothing different after taking it,
+       which read as "did this even work?" — this tag is the missing
+       confirmation that the +25%-per-stack buff (and the one-off "forge"
+       event mutation, same {type:'oc'} shape) actually landed. */
+    const ascCount=(e.muts||[]).filter(m=>m.type==='oc').length;
+    if(ascCount) c.appendChild(el('div','asctag','ASCENDED ×'+ascCount));
     const dv=el('div','minidie');
     u.die.forEach((f,i)=>{ const s2=el('span','mf t_'+f.t+' r'+f.r); s2.appendChild(ico(FT_IC[f.t],'t'));
     if(f.v) s2.appendChild(el('span','mfv',String(f.v))); s2.title='Face '+(i+1)+': '+faceText(f); dv.appendChild(s2); });
@@ -1716,7 +1726,10 @@ function scReward(){
     c.appendChild(el('div','rbadge',RARITY[r.rar||0]));
     c.appendChild(el('div','rt',r.title));
     if(r.cls){ const im=el('img','spr'); const ent=r.uid!=null?S.roster.find(x=>x.uid===r.uid):null;
-      im.src=sprOf(r.cls,(r.tier===4?6:(r.tier-1)*3)+((ent&&ent.vr||0)%3)); c.appendChild(im); }
+      const vh=ent&&HEROES[ent.key];
+      if(vh&&vh.image){ im.src=vh.image; im.onerror=()=>{ im.onerror=null; im.src=sprOf(r.cls,(r.tier===4?6:(r.tier-1)*3)+((ent&&ent.vr||0)%3)); }; }
+      else im.src=sprOf(r.cls,(r.tier===4?6:(r.tier-1)*3)+((ent&&ent.vr||0)%3));
+      c.appendChild(im); }
     else c.appendChild(ico(r.t==='relic'||r.t==='chaos'?'chest':r.t==='curse'?'poison':r.t==='reroll'?'reroll':'shard','ricon'));
     c.appendChild(el('div','rd',r.desc));
     if(r.sub) c.appendChild(el('div','rsub',r.sub));
@@ -2651,7 +2664,10 @@ function scUnitInfo(){
   const u = S && byUid(S,modalUid);
   if(!u) return el('div');
   const isE = u.side==='e';
-  const sub = 'HP '+u.hp+'/'+u.maxHp + (u.shield?'  ·  Shield '+u.shield:'') + (isE?'':'  ·  Tier '+u.tier);
+  const re = !isE && S.roster.find(r=>r.uid===u.uid);
+  const ascCount = re? (re.muts||[]).filter(m=>m.type==='oc').length : 0;
+  const sub = 'HP '+u.hp+'/'+u.maxHp + (u.shield?'  ·  Shield '+u.shield:'') + (isE?'':'  ·  Tier '+u.tier)
+    + (ascCount?'  ·  Ascended ×'+ascCount:'');
   return modalShell(u.n.toUpperCase(), sub, null, ()=>{
     const d=el('div','uinsp');
     const h=el('div','ic2h');
