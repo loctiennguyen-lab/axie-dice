@@ -865,7 +865,11 @@ function scProfile(){
   const eq=META.equipped||{title:'',avatar:'',decor:'',background:''};
   const prevCls='profile-preview'+(eq.background&&COSMETIC_BACKGROUNDS[eq.background]?(' '+COSMETIC_BACKGROUNDS[eq.background].style):'');
   const prev=el('div',prevCls);
-  const avWrap=el('div','profile-avatar-wrap'+(eq.decor&&COSMETIC_DECOR[eq.decor]?(' decor-'+COSMETIC_DECOR[eq.decor].style):''));
+  const eqDecor=eq.decor&&COSMETIC_DECOR[eq.decor];
+  /* Decor pack 2 (land-item art, 2026-09-02) has `img` instead of `style` —
+     a real item icon badged in the corner, not a CSS ring/frame. The two
+     kinds coexist in the same pool; render whichever the equipped item has. */
+  const avWrap=el('div','profile-avatar-wrap'+(eqDecor&&eqDecor.style?(' decor-'+eqDecor.style):''));
   const av=el('div','profile-avatar');
   if(eq.avatar&&COSMETIC_AVATARS[eq.avatar]){
     const im=el('img','profile-avatar-img'); im.src=COSMETIC_AVATARS[eq.avatar].src; av.appendChild(im);
@@ -873,6 +877,10 @@ function scProfile(){
     av.appendChild(el('div','profile-avatar-empty','—'));
   }
   avWrap.appendChild(av);
+  if(eqDecor&&eqDecor.img){
+    const badge=el('div','decor-badge'); const bim=el('img','decor-badge-img'); bim.src=eqDecor.img; badge.appendChild(bim);
+    avWrap.appendChild(badge);
+  }
   prev.appendChild(avWrap);
   prev.appendChild(el('div','profile-title',eq.title?(COSMETIC_TITLES[eq.title]?COSMETIC_TITLES[eq.title].n:eq.title):'No title equipped'));
   w.appendChild(prev);
@@ -884,8 +892,10 @@ function scProfile(){
     const g=el('div','colgrid');
     keys.forEach(k=>{
       const item=pool[k], has=owned.includes(k), isEq=eq[cat]===k;
-      const c=el('div','citem r'+item.rar+(has?'':' locked')+(isEq?' on':''));
-      c.textContent=has?item.n:'???';
+      const thumbSrc=item.src||item.img; // real art (avatar portraits/cards, land-item decor) vs. CSS-only entries
+      const c=el('div','citem r'+item.rar+(has?'':' locked')+(isEq?' on':'')+(thumbSrc?' has-thumb':''));
+      if(has&&thumbSrc){ const t=el('img','citem-thumb'); t.src=thumbSrc; c.appendChild(t); c.appendChild(el('span',null,item.n)); }
+      else c.textContent=has?item.n:'???';
       if(has){
         c.onclick=()=>{ META.equipped[cat]=k; saveMeta(); render(); };
         kbAct(c);
