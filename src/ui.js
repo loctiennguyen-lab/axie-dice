@@ -2285,12 +2285,35 @@ function cxTable(head,rows,cls){
   // 3- or 4-column row can never overflow into the next row's first column
   // (that mismatch used to make a row's last cell visually collide with the
   // following row, e.g. the CLASS/PASSIVE/EFFECT table).
+  //
+  // T21 (2026-09-03) · the first column used to be a flat 130px regardless of
+  // content, and .cchip had no white-space rule — a long chip'd name (relic
+  // names like "Chain Reaction", "LUNACIA ULTIMA") would wrap its OWN text
+  // mid-badge, splitting the border across two lines (looked broken, not
+  // just "wrapped"). Fixed at the root: .cchip is nowrap now (never breaks a
+  // badge's own text — see style.css), and the table itself is ONE real CSS
+  // grid (was: every .cxtr an independent per-row grid, each sizing its own
+  // column 1 independently, which is why `max-content` couldn't be used
+  // before — it would have misaligned column edges row to row). Rows are
+  // `display:contents` so their cells become direct items of the table's
+  // single grid, letting `max-content` size column 1 once, consistently,
+  // to whatever that specific table's longest first-column entry actually
+  // needs — short-label tables (KEY, MODE, TIER) stay compact, name-heavy
+  // ones (NAME, CARD, RELIC) get the room they need, capped so one freak
+  // long entry can't eat the EFFECT column's space.
+  // Nesting min()/max() inside minmax() (to also cap the grown width) is
+  // CSS-valid per spec but NOT supported by this project's target renderer
+  // (verified: CSS.supports() returns false for it here, and assigning it
+  // via .style silently no-ops the WHOLE property, which is far worse than
+  // the bug this was fixing — every column collapsed to one). Plain
+  // minmax(x,max-content) alone IS supported; skip the cap.
   const n=head.length;
-  const gtc = n<=2 ? '150px 1fr' : '130px repeat('+(n-1)+',1fr)';
+  const gtc = n<=2 ? 'minmax(120px,max-content) 1fr'
+    : 'minmax(110px,max-content) repeat('+(n-1)+',1fr)';
   const t=el('div','cxtable '+(cls||''));
+  t.style.gridTemplateColumns=gtc;
   const mkRow=(cells,isHead)=>{
     const tr=el('div','cxtr'+(isHead?' cxhead':''));
-    tr.style.gridTemplateColumns=gtc;
     cells.forEach(c=>{ const d=el('div','cxtd'); if(typeof c==='string') d.textContent=c; else if(c) d.appendChild(c); tr.appendChild(d); });
     return tr;
   };
