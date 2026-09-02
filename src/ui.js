@@ -24,6 +24,13 @@ const DEF_META={vol:0.28,mute:false,spd:1,shards:0,unlocks:[],ascMax:0,best:0,ru
   ownedTitles:[], ownedAvatars:[], ownedDecor:[], ownedBackgrounds:[],
   equipped:{title:'',avatar:'',decor:'',background:''},
   echoBoxesOpened:0, echoMigrated:false,
+  /* Custom profile identity (Profile screen "CHANGE NAME"/"UPLOAD AVATAR"):
+     first use of each is free, every use after costs Gene Shard — see
+     RENAME_COST/REAVATAR_COST below. customAvatar is a downscaled data URL,
+     kept even after switching back to a gacha avatar (avatarSource flips
+     which one is displayed, never destroys the upload) so re-equipping it
+     later is free. */
+  customAvatar:'', avatarSource:'gacha', freeNameUsed:false, freeAvatarUsed:false,
   dupeCounts:{0:0,1:0,2:0,3:0,4:0},
   /* owner: which logged-in account's data currently occupies local storage on
      THIS device (lowercased username, '' = not yet claimed by any account —
@@ -604,6 +611,8 @@ function render(){
   if(S&&modal==='info') root.appendChild(scInfo());
   if(S&&modal==='unit') root.appendChild(scUnitInfo());
   if(modal==='set')     root.appendChild(scSettings());
+  if(modal==='name')    root.appendChild(scNameModal());
+  if(modal==='avatar')  root.appendChild(scAvatarModal());
   postRender();
 }
 function postRender(){
@@ -647,6 +656,50 @@ let fitT=null;
 addEventListener('resize', fitUI, { passive:true });
 fitUI();
 
+/* Profile identity costs (design/gdd/economy-progression.md tier calibration:
+   150 matches the cheapest existing UNLOCKS shard cost, 200 sits one tier up
+   to reflect image storage/sync weight — both stay well under the 400+ range
+   reserved for power-adjacent unlocks, keeping this clearly cosmetic-tier).
+   First use of each is free (META.freeNameUsed/freeAvatarUsed), tracked
+   independently so using one doesn't silently spend the other's free use. */
+const RENAME_COST=150, REAVATAR_COST=200;
+const AVATAR_MAX_DIM=128, AVATAR_JPEG_Q=0.7, AVATAR_MAX_BYTES=40*1024;
+function nameChangeCost(){ return META.freeNameUsed?RENAME_COST:0; }
+function avatarChangeCost(){ return META.freeAvatarUsed?REAVATAR_COST:0; }
+function applyDisplayName(name){
+  const n=(name||'').trim().slice(0,24);
+  if(!n) return false;
+  const cost=nameChangeCost();
+  if(cost>0){ if(META.shards<cost) return false; META.shards-=cost; }
+  META.displayName=n; META.freeNameUsed=true; saveMeta(); return true;
+}
+function applyCustomAvatar(dataUrl){
+  const cost=avatarChangeCost();
+  if(cost>0){ if(META.shards<cost) return false; META.shards-=cost; }
+  META.customAvatar=dataUrl; META.avatarSource='custom'; META.freeAvatarUsed=true; saveMeta(); return true;
+}
+/* Downscales/re-encodes an uploaded image client-side (center-cropped to a
+   square) so a custom avatar can never meaningfully threaten the 512KB
+   api/sync-save.js META budget — see AVATAR_MAX_DIM/AVATAR_JPEG_Q/
+   AVATAR_MAX_BYTES above. Rejects non-images and anything that's still too
+   big after compression rather than silently truncating it. */
+function readAvatarFile(file, cb){
+  if(!file||!/^image\//.test(file.type)){ cb(null,'Please choose an image file.'); return; }
+  const img=new Image();
+  const url=URL.createObjectURL(file);
+  img.onload=()=>{
+    URL.revokeObjectURL(url);
+    const side=Math.min(img.width,img.height);
+    const sx=(img.width-side)/2, sy=(img.height-side)/2;
+    const cv=document.createElement('canvas'); cv.width=AVATAR_MAX_DIM; cv.height=AVATAR_MAX_DIM;
+    cv.getContext('2d').drawImage(img,sx,sy,side,side,0,0,AVATAR_MAX_DIM,AVATAR_MAX_DIM);
+    const dataUrl=cv.toDataURL('image/jpeg',AVATAR_JPEG_Q);
+    if(dataUrl.length>AVATAR_MAX_BYTES*1.4){ cb(null,'Image too complex to compress small enough — try a simpler picture.'); return; }
+    cb(dataUrl,null);
+  };
+  img.onerror=()=>{ URL.revokeObjectURL(url); cb(null,'Could not read that image.'); };
+  img.src=url;
+}
 /* ================= MENU ================= */
 /* Shared avatar+decor composition — used by the menu's top-left corner
    (48px) and the full Profile screen preview (96px, sized via CSS on
@@ -658,7 +711,9 @@ function buildAvatarWrap(eq){
   const eqDecor=eq.decor&&COSMETIC_DECOR[eq.decor];
   const avWrap=el('div','profile-avatar-wrap'+(eqDecor&&eqDecor.style?(' decor-'+eqDecor.style):''));
   const av=el('div','profile-avatar');
-  if(eq.avatar&&COSMETIC_AVATARS[eq.avatar]){
+  if(META.avatarSource==='custom'&&META.customAvatar){
+    const im=el('img','profile-avatar-img'); im.src=META.customAvatar; av.appendChild(im);
+  } else if(eq.avatar&&COSMETIC_AVATARS[eq.avatar]){
     const im=el('img','profile-avatar-img'); im.src=COSMETIC_AVATARS[eq.avatar].src; av.appendChild(im);
   } else {
     av.appendChild(el('div','profile-avatar-empty','—'));
@@ -694,7 +749,7 @@ function scMenu(){
     const corner=el('div','menu-corner');
     corner.appendChild(buildAvatarWrap(eqCorner));
     const txt=el('div','menu-corner-txt');
-    txt.appendChild(el('div','menu-corner-name',authUsername||'?'));
+    txt.appendChild(el('div','menu-corner-name',META.displayName||authUsername||'?'));
     const hasTitle=!!eqCorner.title;
     const titleTxt=hasTitle?(COSMETIC_TITLES[eqCorner.title]?COSMETIC_TITLES[eqCorner.title].n:eqCorner.title):'No title';
     txt.appendChild(el('div','menu-corner-title'+(hasTitle?' has':''),titleTxt));
@@ -724,13 +779,12 @@ function scMenu(){
   progGrid.appendChild(menuTile('PASS','Lv '+pr.lv,()=>{ screen='bp'; render(); }, nb>0));
   progGrid.appendChild(menuTile('COLLECTION',faces+' faces · '+relics+' relics',()=>{ screen='collection'; render(); }));
   progGrid.appendChild(menuTile('UNLOCKS',(META.unlocks||[]).length+'/'+UNLOCKS.length,()=>{ screen='unlocks'; render(); }));
-  progGrid.appendChild(menuTile('PROFILE','Titles · Avatars · Decor',()=>{ screen='profile'; render(); }));
   progGroup.appendChild(progGrid);
   groups.appendChild(progGroup);
 
   const refGroup=el('div','menu-group');
   refGroup.appendChild(el('div','menu-group-label','REFERENCE'));
-  const refGrid=el('div','menu-grid menu-grid--3');
+  const refGrid=el('div','menu-grid menu-grid--4');
   refGrid.appendChild(menuTile('CODEX','how to play',()=>{ screen='codex'; render(); }));
   refGrid.appendChild(menuTile('VAULT',(META.vault||[]).length+'/'+VAULT_MAX+' imported',()=>{ screen='vault'; render(); }));
   refGrid.appendChild(menuTile('LEADERBOARD','Ranked Run scores',()=>{ screen='leaderboard'; render(); loadLeaderboard(); }));
@@ -901,6 +955,13 @@ function scProfile(){
   // buildAvatarWrap() above scMenu().
   prev.appendChild(buildAvatarWrap(eq));
   prev.appendChild(el('div','profile-title',eq.title?(COSMETIC_TITLES[eq.title]?COSMETIC_TITLES[eq.title].n:eq.title):'No title equipped'));
+  const idRow=el('div','profile-idrow');
+  idRow.appendChild(el('div','profile-dispname',META.displayName||authUsername||'?'));
+  const nameCost=nameChangeCost();
+  idRow.appendChild(btn('xs ghost',nameCost?'CHANGE NAME · '+nameCost+' SHARD':'CHANGE NAME · FREE',()=>{ modal='name'; render(); }));
+  const avCost=avatarChangeCost();
+  idRow.appendChild(btn('xs ghost',avCost?'UPLOAD AVATAR · '+avCost+' SHARD':'UPLOAD AVATAR · FREE',()=>{ modal='avatar'; render(); }));
+  prev.appendChild(idRow);
   w.appendChild(prev);
 
   const mkSec=(title,cat,pool)=>{
@@ -915,11 +976,22 @@ function scProfile(){
       if(has&&thumbSrc){ const t=el('img','citem-thumb'); t.src=thumbSrc; c.appendChild(t); c.appendChild(el('span',null,item.n)); }
       else c.textContent=has?item.n:'???';
       if(has){
-        c.onclick=()=>{ META.equipped[cat]=k; saveMeta(); render(); };
+        c.onclick=()=>{ META.equipped[cat]=k; if(cat==='avatar') META.avatarSource='gacha'; saveMeta(); render(); };
         kbAct(c);
       }
       g.appendChild(c);
     });
+    // A previously-uploaded custom avatar is never deleted by switching to a
+    // gacha one (see applyCustomAvatar()) — surface it as its own always-
+    // owned tile so switching back is free, not a re-purchase.
+    if(cat==='avatar'&&META.customAvatar){
+      const isEq=META.avatarSource==='custom';
+      const c=el('div','citem custom has-thumb'+(isEq?' on':''));
+      const t=el('img','citem-thumb'); t.src=META.customAvatar; c.appendChild(t); c.appendChild(el('span',null,'My Upload'));
+      c.onclick=()=>{ META.avatarSource='custom'; saveMeta(); render(); };
+      kbAct(c);
+      g.insertBefore(c,g.firstChild);
+    }
     s.appendChild(g); return s;
   };
   // ownedTitles also holds deterministic titles that AREN'T in the gacha
@@ -2435,8 +2507,9 @@ function scGuide(){
 
 /* ================= [4] SETTINGS + [MỚI] BẢNG THÔNG TIN TRONG TRẬN ================= */
 let modal=null, infoTab='party', modalUid=null, railOpen=null;
+let pendAvatarData=null, pendAvatarErr=null;
 
-function closeModal(){ modal=null; render(); }
+function closeModal(){ modal=null; pendAvatarData=null; pendAvatarErr=null; render(); }
 function modalShell(title,sub,tabs,bodyFn){
   const ov=el('div','overlay modalov');
   ov.onclick=e=>{ if(e.target===ov) closeModal(); };
@@ -2619,6 +2692,74 @@ function scSettings(){
     rw.appendChild(ab);
     row('RUN',rw);
     d.appendChild(el('div','sethint','Shortcuts: I opens information · Esc closes · Space ends the turn · Ctrl+Z undoes'));
+    return d;
+  });
+}
+/* First use free, then RENAME_COST Gene Shard every time after — see the
+   cost helpers above buildAvatarWrap(). Purely the display name shown on
+   the menu corner/Profile; never touches the login username (an auth-system
+   identifier — see api/auth.js, out of scope here). */
+function scNameModal(){
+  return modalShell('CHANGE NAME',null,null,()=>{
+    const d=el('div','setwrap');
+    const cost=nameChangeCost();
+    d.appendChild(el('div','sethint',cost?('Costs '+cost+' Gene Shard — you have '+META.shards+'.'):'Free — your first name change.'));
+    const inp=el('input','seedinp'); inp.maxLength=24; inp.placeholder='Display name';
+    inp.value=META.displayName||authUsername||'';
+    d.appendChild(inp);
+    const err=el('div','sethint danger','');
+    d.appendChild(err);
+    const row=el('div','setctl');
+    const canAfford=cost===0||META.shards>=cost;
+    const ok=btn('sm'+(canAfford?'':' dis'),canAfford?'CONFIRM':('NEEDS '+cost+' SHARD'),()=>{
+      if(!canAfford) return;
+      if(!(inp.value||'').trim()){ err.textContent='Enter a name.'; return; }
+      applyDisplayName(inp.value); closeModal();
+    });
+    if(!canAfford) ok.disabled=true;
+    row.appendChild(ok);
+    row.appendChild(btn('sm ghost','CANCEL',closeModal));
+    d.appendChild(row);
+    return d;
+  });
+}
+/* First use free, then REAVATAR_COST every time after. Client-side downscale
+   (readAvatarFile()) happens before the cost is even shown so the preview
+   the player is paying for is the actual stored image. Never destroys a
+   previous upload (see applyCustomAvatar()) — switching away and back is
+   free via the "My Upload" tile in the Profile AVATARS grid. */
+function scAvatarModal(){
+  return modalShell('UPLOAD AVATAR',null,null,()=>{
+    const d=el('div','setwrap');
+    const cost=avatarChangeCost();
+    if(!pendAvatarData){
+      d.appendChild(el('div','sethint',cost?('Costs '+cost+' Gene Shard — you have '+META.shards+'.'):'Free — your first avatar upload.'));
+      const inp=document.createElement('input'); inp.type='file'; inp.accept='image/*'; inp.style.display='none';
+      inp.onchange=()=>{
+        const f=inp.files&&inp.files[0]; if(!f) return;
+        readAvatarFile(f,(dataUrl,e)=>{ pendAvatarData=dataUrl; pendAvatarErr=e; render(); });
+      };
+      d.appendChild(inp);
+      d.appendChild(btn('sm','CHOOSE IMAGE',()=>inp.click()));
+      if(pendAvatarErr) d.appendChild(el('div','sethint danger',pendAvatarErr));
+      d.appendChild(btn('sm ghost','CANCEL',closeModal));
+    } else {
+      const prevW=el('div','profile-avatar-wrap'); const av=el('div','profile-avatar');
+      const im=el('img','profile-avatar-img'); im.src=pendAvatarData; av.appendChild(im); prevW.appendChild(av);
+      d.appendChild(prevW);
+      d.appendChild(el('div','sethint',cost?('Costs '+cost+' Gene Shard — you have '+META.shards+'.'):'Free — your first avatar upload.'));
+      const canAfford=cost===0||META.shards>=cost;
+      const row=el('div','setctl');
+      const ok=btn('sm'+(canAfford?'':' dis'),canAfford?'CONFIRM':('NEEDS '+cost+' SHARD'),()=>{
+        if(!canAfford) return;
+        applyCustomAvatar(pendAvatarData); pendAvatarData=null; pendAvatarErr=null; closeModal();
+      });
+      if(!canAfford) ok.disabled=true;
+      row.appendChild(ok);
+      row.appendChild(btn('sm ghost','RETAKE',()=>{ pendAvatarData=null; render(); }));
+      row.appendChild(btn('sm ghost','CANCEL',closeModal));
+      d.appendChild(row);
+    }
     return d;
   });
 }

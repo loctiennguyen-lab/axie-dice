@@ -253,7 +253,10 @@ small{font-size:var(--t1)}
    T07 button rules above) regardless of the button's visible size, so no
    separate small-tap-target treatment is needed here. */
 .menu-mini{position:absolute;bottom:var(--s4);right:var(--s4);display:flex;gap:var(--s2);
-  flex-wrap:wrap;justify-content:flex-end;max-width:260px;margin-top:0}
+  flex-wrap:nowrap;justify-content:flex-end;margin-top:0}
+@media (max-width:599px){
+  .menu-mini{flex-wrap:wrap;max-width:260px}
+}
 /* T20 · top-left identity corner — replaces the old .menu-acctbar line
    entirely. Avatar (48px, via buildAvatarWrap()/.profile-avatar-wrap reused
    from Profile) + two-line username/title text block, the whole thing
@@ -278,10 +281,12 @@ small{font-size:var(--t1)}
 .menu-group-label{font-size:var(--t1);color:var(--dim);letter-spacing:2px;text-align:left;margin-bottom:var(--s1)}
 .menu-group .menu-grid{margin-top:0}
 .menu-grid--3{grid-template-columns:repeat(3,152px);gap:var(--s1)}
+.menu-grid--4{grid-template-columns:repeat(4,112px);gap:var(--s1)}
 @media (max-width:599px){
   .menu-grid{grid-template-columns:repeat(2,1fr);width:100%}
   .menu-group{width:100%}
   .menu-grid--3{grid-template-columns:repeat(2,1fr);width:100%}
+  .menu-grid--4{grid-template-columns:repeat(4,1fr);gap:6px;width:100%}
   .menu-group-label{text-align:center}
   .btn.cta,.btn.cta2{width:100%}
 }
@@ -325,6 +330,9 @@ small{font-size:var(--t1)}
 .citem{font-size:var(--t1);padding:4px 8px;background:var(--pan);border:1px solid var(--line);border-radius:var(--rad-sm);color:var(--dim)}
 .citem.r1{border-color:var(--r1);color:var(--r1)} .citem.r2{border-color:var(--r2);color:var(--r2)}
 .citem.r3{border-color:var(--r3);color:var(--r3)} .citem.r4{border-color:var(--r4);color:var(--r4)}
+/* Uploaded avatar tile — deliberately NOT an r1-r4 rarity color (it isn't a
+   gacha rarity tier), so it doesn't misread as legendary. */
+.citem.custom{border-color:var(--acc);color:var(--acc)}
 /* unowned pool entries: keep the rarity-tinted border (progress-by-rarity
    stays visible at a glance) but dim + dash the fill so they never read as
    "owned" — locked always wins over the .rN text color since it's declared
@@ -953,6 +961,7 @@ body.dragging{cursor:grabbing} body.dragging .die{cursor:grabbing}
 .setv{font-size:var(--t2);color:var(--acc);width:52px;text-align:right}
 .setctl{flex:1;display:flex;gap:6px;align-items:center}
 .sethint{font-size:var(--t2);color:var(--dim);line-height:1.8}
+.sethint.danger{color:var(--dmg)}
 input[type=range]{accent-color:var(--acc);width:100%}
 
 /* tutorial */
@@ -1180,6 +1189,8 @@ body.clog-open .clog-inner{ clip-path:inset(0 0 0 0); opacity:1; }
 .profile-avatar-img{width:100%;height:100%;object-fit:cover}
 .profile-avatar-empty{font-size:var(--t4);color:var(--dim)}
 .profile-title{margin-top:14px;font-size:var(--t3);letter-spacing:2px;color:var(--acc)}
+.profile-idrow{margin-top:14px;display:flex;flex-wrap:wrap;gap:var(--s2);align-items:center;justify-content:center}
+.profile-dispname{font-size:var(--t2);color:var(--txt);font-weight:700;width:100%}
 
 /* Decor pack 2 (2026-09-02): real land-item art (rings/necklaces/armor/
    weapons) badged at the avatar's corner, instead of a CSS ring — these
