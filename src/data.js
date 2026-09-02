@@ -170,6 +170,26 @@ const SLOT_CLASS_TEMPLATE = {
     bird:    F('tail','dmg',2,'aoe'),
   },
 };
+/* Biến thể theo TÊN PART THẬT (2026-09-03, game-designer đề xuất — xem
+   design/quick-specs/import-axie-variants-2026-09-03.md) — giải quyết vấn đề
+   "nhiều Axie khác ID nhưng ra thẻ gần như y hệt" (SLOT_CLASS_TEMPLATE trên
+   chỉ phân biệt theo (slot,class), bỏ qua danh tính riêng của từng part thật).
+   Mỗi TYPE mặt có sẵn vài biến thể — cùng dải sức mạnh (giữ balance, chỉ khác
+   1 keyword nhỏ hoặc value ±1), CHỌN TẤT ĐỊNH theo part.name/part.id qua
+   partVariantIndex() (engine.js) — không random, không hash-làm-RNG-ẩn: cùng
+   tên part luôn ra đúng 1 biến thể, có thể tra bảng này để biết trước (đúng
+   pillar "minh bạch triệt để"). KHÔNG đổi type/part-slot, chỉ tinh chỉnh nhỏ
+   trên value/keyword của face gốc — vẫn đúng 6 mặt = 6 part thật của Axie đó. */
+const PART_VARIANT_MODS = {
+  dmg:    [ {}, {addKw:'crit:15'}, {dv:1} ],
+  shield: [ {}, {addKw:'thorns:1'}, {dv:1} ],
+  heal:   [ {}, {addKw:'regen:1'}, {dv:1} ],
+  poison: [ {}, {addKw:'aoe'}, {dv:1} ],
+  mana:   [ {}, {addKw:'rerollup'}, {dv:1} ],
+  debuff: [ {}, {dv:1} ],
+  buff:   [ {}, {dv:1} ],
+  summon: [ {}, {dv:1} ],
+};
 /* Fallback cho 3 class Origin thật (Dawn/Dusk/Mech) — không có trong 6 class game hỗ trợ.
    Quyết định: mỗi Origin class map TẤT ĐỊNH sang 1 class game đại diện (đơn giản hoá — không hash part.id),
    để 3 Origin class ít nhất khác nhau (Dawn≠Dusk≠Mech), dù 2 part Dawn khác nhau cùng slot vẫn ra cùng face

@@ -393,6 +393,7 @@ function scImportAxie(){
   if(importState==='preview'&&importPreview){
     const die=axieToDie(importPreview);
     const pv=el('div','vpreview');
+    if(die.image){ const pim=el('img','vpreview-art'); pim.src=die.image; pv.appendChild(pim); }
     pv.appendChild(el('div','vpn',die.n+'  ·  '+die.cls.toUpperCase()));
     const parts=el('div','vparts');
     (importPreview.parts||[]).forEach(p=>parts.appendChild(el('span','vpart',(p.type||'?').toUpperCase()+': '+(p.name||'?'))));
@@ -416,10 +417,13 @@ function scImportAxie(){
     const sec=el('div','colsec'); sec.appendChild(el('h3',null,'YOUR VAULT  ('+vlist.length+'/'+VAULT_MAX+')'));
     const g=el('div','vaultgrid');
     vlist.forEach(v=>{
-      const c=el('div','ucard vcard');
-      c.appendChild(el('div','un',v.n));
-      c.appendChild(el('div','ud',v.cls.toUpperCase()+' · HP '+v.hp+' · '+v.die.length+' faces'));
-      c.appendChild(btn('ghost sm','REMOVE',()=>{ removeFromVault(v.axieId); render(); }));
+      const c=el('div','vchip'); c.style.setProperty('--cc',CLASS_COLOR[v.cls]);
+      const im=el('img','vchip-thumb'); im.src=axieArtSrc(v); im.onerror=()=>{ im.onerror=null; im.src=sprOf(v.cls,v.art||0); }; c.appendChild(im);
+      const info=el('div','vchip-info');
+      info.appendChild(el('div','vchip-nm',v.n));
+      info.appendChild(el('div','vchip-cls',v.cls.toUpperCase()+' · HP '+v.hp));
+      c.appendChild(info);
+      c.appendChild(btn('ghost xs','REMOVE',()=>{ removeFromVault(v.axieId); render(); }));
       g.appendChild(c);
     });
     sec.appendChild(g);
@@ -1026,6 +1030,14 @@ function scProfile(){
 
 /* ================= TEAM SELECT ================= */
 let pickMode='short', pickAsc=0, pickSeed='', pickRanked=false;
+/* Compact Vault chip accordion (ux-designer spec, 2026-09-03) — Set of
+   expanded vault hero keys, same inline-expand pattern as historyExpanded/
+   lbExpanded elsewhere in this file. Real art (v.image, from the Axie
+   Infinity API via api/axie.js) falls back to the generated pixel sprite if
+   missing/broken — vault entries imported before this field existed have
+   image:null|undefined and just show the sprite, no re-import required. */
+let vaultExpanded=new Set();
+const axieArtSrc=v=>v.image||sprOf(v.cls,v.art||0);
 function scTeam(){
   const w=el('div','screen title');
   w.appendChild(el('h1','logo sm','CHOOSE YOUR TEAM'));
@@ -1052,23 +1064,32 @@ function scTeam(){
 
   if((META.vault||[]).length){
     w.appendChild(el('h3','vaulthdr','YOUR VAULT'));
-    const vgrid=el('div','pickgrid vaultgrid');
+    const vgrid=el('div','vaultgrid');
     META.vault.forEach(v=>{
       const key=ensureVaultHero(v), h=HEROES[key];
       const n=teamPick.filter(x=>x===key).length, pa=PASSIVE[h.cls];
-      const c=el('div','pick'+(n?' on':'')+(full&&!n?' full':'')); c.style.setProperty('--cc',CLASS_COLOR[h.cls]);
-      const im=el('img','spr'); im.src=sprOf(h.cls,h.art); c.appendChild(im);
-      c.appendChild(el('div','nm',h.n));
-      c.appendChild(el('div','cls',h.cls.toUpperCase()+' · HP '+h.hp));
-      const p=el('div','pasbox'); p.appendChild(el('span','pn',pa.n)); p.appendChild(el('span','pd',pa.d)); c.appendChild(p);
-      const dv=el('div','minidie'); h.die.forEach(f=>{ const cc=el('span','mf t_'+f.t); cc.appendChild(ico(FT_IC[f.t],'t')); if(f.v)cc.appendChild(el('span','mfv',String(f.v))); dv.appendChild(cc); });
-      c.appendChild(dv);
+      const open=vaultExpanded.has(key);
+      const c=el('div','vchip'+(n?' on':'')+(full&&!n?' full':'')); c.style.setProperty('--cc',CLASS_COLOR[h.cls]);
+      const im=el('img','vchip-thumb'); im.src=axieArtSrc(v); im.onerror=()=>{ im.onerror=null; im.src=sprOf(h.cls,h.art); }; c.appendChild(im);
+      const info=el('div','vchip-info');
+      info.appendChild(el('div','vchip-nm',h.n));
+      info.appendChild(el('div','vchip-cls',h.cls.toUpperCase()+' · HP '+h.hp));
+      c.appendChild(info);
       if(n) c.appendChild(el('div','cnt','×'+n));
-      c.appendChild(el('div','vbadge','VAULT'));
+      const ib=el('button','vchip-i',open?'×':'i'); ib.title='Ability & dice faces';
+      ib.onclick=e=>{ e.stopPropagation(); if(open) vaultExpanded.delete(key); else vaultExpanded.add(key); render(); };
+      c.appendChild(ib);
       c.onclick=()=>{ if(teamPick.length<5){ SFX.ui(); msg=''; teamPick.push(key); render(); } else { SFX.warn(); flash('Team full (5/5) — right-click a card to swap it out'); render(); } };
       c.oncontextmenu=e=>{ e.preventDefault(); const i=teamPick.lastIndexOf(key); if(i>=0){SFX.ui();msg='';teamPick.splice(i,1);render();} };
       kbAct(c);
       vgrid.appendChild(c);
+      if(open){
+        const d=el('div','vdetail');
+        const p=el('div','pasbox'); p.appendChild(el('span','pn',pa.n)); p.appendChild(el('span','pd',pa.d)); d.appendChild(p);
+        const dv=el('div','minidie'); h.die.forEach(f=>{ const cc=el('span','mf t_'+f.t); cc.appendChild(ico(FT_IC[f.t],'t')); if(f.v)cc.appendChild(el('span','mfv',String(f.v))); dv.appendChild(cc); });
+        d.appendChild(dv);
+        vgrid.appendChild(d);
+      }
     });
     w.appendChild(vgrid);
   }

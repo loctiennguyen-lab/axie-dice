@@ -67,6 +67,22 @@ function mapAxieClass(axieClassName){
   if(ORIGIN_CLASS_MAP[c]) return ORIGIN_CLASS_MAP[c];
   return 'beast'; /* class thật không nhận diện được — an toàn thay vì crash */
 }
+/* Deterministic string hash (not RNG, not crypto — just a stable index picker)
+   used to pick a PART_VARIANT_MODS entry from a real part's own name/id, see
+   data.js's PART_VARIANT_MODS comment for why this must stay a pure function
+   of the part's identity, never Math.random(). */
+function hashPartIdentity(str){
+  str=String(str||''); let h=0;
+  for(let i=0;i<str.length;i++){ h=(h*31+str.charCodeAt(i))|0; }
+  return Math.abs(h);
+}
+function applyPartVariant(face,part){
+  const mods=PART_VARIANT_MODS[face.t]; if(!mods||!mods.length) return face;
+  const m=mods[hashPartIdentity(part.name||part.id)%mods.length];
+  if(m.dv) face.v=Math.max(1,face.v+m.dv);
+  if(m.addKw&&!face.k.includes(m.addKw)) face.k=face.k.concat([m.addKw]);
+  return face;
+}
 function axieToDie(axieData){
   const parts=(axieData&&axieData.parts)||[];
   let die=parts.map(part=>{
@@ -77,6 +93,7 @@ function axieToDie(axieData){
     const table=SLOT_CLASS_TEMPLATE[slot];
     const src=(table&&table[mappedCls])||SLOT_CLASS_TEMPLATE.mouth.beast; /* slot lạ → fallback an toàn */
     const face=clone(src);
+    applyPartVariant(face,part); /* differentiate by the part's real name/id — see data.js PART_VARIANT_MODS */
     if(isOrigin){ /* part Origin (Dawn/Dusk/Mech) = hiếm nhất → luôn tier3 */
       if(face.v>0) face.v=Math.round(face.v*ORIGIN_TIER3_MULT);
       face.r=Math.max(face.r,3);
@@ -91,7 +108,8 @@ function axieToDie(axieData){
   die=die.slice(0,6);
   const bodyCls=mapAxieClass(axieData&&axieData.class);
   const hp=(HEROES[bodyCls+'1']&&HEROES[bodyCls+'1'].hp)||14;
-  return {n:'Axie #'+(axieData&&axieData.id), cls:bodyCls, tier:1, hp, art:0, die, imported:true, axieId:axieData&&axieData.id};
+  return {n:'Axie #'+(axieData&&axieData.id), cls:bodyCls, tier:1, hp, art:0, die, imported:true,
+    axieId:axieData&&axieData.id, image:(axieData&&axieData.image)||null};
 }
 /* độ hiếm của viên dice = tổng hợp các mặt (Option D) */
 function dieRarity(u){
@@ -266,6 +284,13 @@ function resolveCantrips(s){
 }
 function anyRerollable(s){ return s.party.some(u=>u.hp>0&&!u.used&&!u.heavy&&!u.frozen); }
 function doReroll(s,uids){
+  // Guards against a stale/queued UI action (e.g. a drag-and-drop gesture in
+  // flight right as combat ends) landing after the phase has already moved on
+  // to map/shop/event/reward — see api/submit-run.js replay-rejection
+  // postmortem: without this, such an action could still succeed client-side
+  // (nothing here checked phase) and get logged, then fail an honest server
+  // replay because the two sides' `s.phase` no longer line up at that point.
+  if(s.phase!=='combat') return false;
   if(s.rerolls<=0) return false;
   const list=uids.filter(id=>{ const u=byUid(s,id); return u&&u.side==='p'&&u.hp>0&&!u.used&&!u.heavy&&!u.frozen; });
   if(!list.length) return false;
@@ -525,12 +550,16 @@ function pushUndo(s){ s.undo.push(snap(s)); if(s.undo.length>90) s.undo.shift();
 function undo(s){ if(!s.undo.length) return false; const o=s.undo.pop(); SNAP.forEach(k=>s[k]=o[k]); s.ev=[]; s.floatText=[]; return true; }
 
 function playerUseDie(s,uid,tgtUid){
+  // See doReroll's comment above — same stale-action-after-phase-change guard.
+  if(s.phase!=='combat') return false;
   const u=byUid(s,uid); if(!u||u.side!=='p'||u.hp<=0||u.used) return false;
   pushUndo(s);
   if(!execFace(s,u,tgtUid)){ s.undo.pop(); return false; }
   checkEnd(s); return true;
 }
 function playerUseRelic(s,id,tgtUid){
+  // See doReroll's comment above — same stale-action-after-phase-change guard.
+  if(s.phase!=='combat') return false;
   const it=RELIC_BY_ID[id]; if(!it||!it.act) return false;
   if(s.usedActives.includes(id)||s.mana<it.act.cost) return false;
   pushUndo(s);

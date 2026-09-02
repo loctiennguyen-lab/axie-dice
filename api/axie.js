@@ -16,6 +16,7 @@ const QUERY = `
     axie(axieId: $axieId) {
       id
       class
+      image
       parts {
         id
         name
@@ -155,6 +156,7 @@ module.exports = async (req, res) => {
     res.status(200).json({
       id: axie.id,
       class: axie.class,
+      image: axie.image || null,
       parts: axie.parts,
     });
   } catch (err) {
