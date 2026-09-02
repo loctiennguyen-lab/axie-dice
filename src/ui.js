@@ -462,6 +462,21 @@ const MON_SPR={slime:['plant',2],chomper:['beast',1],spikelet:['reptile',2],bugl
   e_ravager:['beast',8],e_plague:['bug',8],e_bulwark:['plant',8],e_archon:['aqua',8],
   gooey_king:['plant',5],mecha:['reptile',8],frost_lord:['aqua',5],plague_mother:['bug',6],mirror:['reptile',4],agony:['bird',8]};
 const sprOf=(cls,i)=>(AXIE_PIX[cls]&&AXIE_PIX[cls][((i%9)+9)%9])?AXIE_PIX[cls][((i%9)+9)%9].src:'';
+/* Real Axie art in combat/inspector views for a Vault (Import Axie) unit —
+   buildUnit() carries the roster entry's `key` onto every built unit, and for
+   a vault_<id> key that's exactly the HEROES[key] record axieToDie() made
+   (see importAxieToVault/ensureVaultHero), image and all. Standard heroes'
+   HEROES entries never have `.image`, so this is a no-op fallback for them —
+   safe to call for any player unit, not just vault ones. */
+function unitArtSrc(u){
+  const h=u.key&&HEROES[u.key];
+  return (h&&h.image)?h.image:sprOf(u.cls,u.artIdx);
+}
+function unitArtImg(u,cls){
+  const im=el('img',cls||'spr'); im.src=unitArtSrc(u);
+  im.onerror=()=>{ im.onerror=null; im.src=sprOf(u.cls,u.artIdx); };
+  return im;
+}
 const sprMon=k=>{ const m=MON_SPR[k]||['beast',0]; return sprOf(m[0],m[1]); };
 
 
@@ -1313,7 +1328,7 @@ function partyStrip(){
   S.roster.forEach(e=>{
     const u=buildUnit(e,S), dr=dieRarity(u);
     const c=el('div','psc dr'+dr); c.style.setProperty('--cc',CLASS_COLOR[u.cls]);
-    const im=el('img','spr'); im.src=sprOf(u.cls,u.artIdx); c.appendChild(im);
+    c.appendChild(unitArtImg(u));
     c.appendChild(el('div','nm',u.n+' T'+u.tier));
     c.appendChild(el('div','hp','HP '+u.maxHp));
     const dv=el('div','minidie');
@@ -1466,7 +1481,8 @@ function unitCard(u){
   if(incoming) c.classList.add('threat');
 
   const spw=el('div','sprwrap');
-  const im=el('img','spr'+(isE?' mut':'')); im.src=isE?sprMon(u.key):sprOf(u.cls,u.artIdx); spw.appendChild(im);
+  if(isE){ const im=el('img','spr mut'); im.src=sprMon(u.key); spw.appendChild(im); }
+  else spw.appendChild(unitArtImg(u));
   if(!isE&&u.pas) { const p=el('div','pasdot',u.pas.n[0]); p.title=u.pas.n+': '+u.pas.d; spw.appendChild(p); }
   c.appendChild(spw);
   const dupeI=dupeIndex(u);
@@ -2639,7 +2655,8 @@ function scUnitInfo(){
   return modalShell(u.n.toUpperCase(), sub, null, ()=>{
     const d=el('div','uinsp');
     const h=el('div','ic2h');
-    const im=el('img','spr'+(isE?' mut':'')); im.src=isE?sprMon(u.key):sprOf(u.cls,u.artIdx); h.appendChild(im);
+    if(isE){ const im=el('img','spr mut'); im.src=sprMon(u.key); h.appendChild(im); }
+    else h.appendChild(unitArtImg(u));
     const t=el('div','ic2t');
     if(!isE&&u.pas){ const p=el('div','ic2p'); p.appendChild(el('b',null,u.pas.n+': ')); p.appendChild(el('span',null,u.pas.d)); t.appendChild(p); }
     if(isE&&u.desc) t.appendChild(el('div','ic2s',u.desc));
@@ -2672,7 +2689,7 @@ function scInfo(){
       S.party.filter(u=>!u.token).forEach(u=>{
         const c=el('div','icard2'); c.style.setProperty('--cc',CLASS_COLOR[u.cls]||'#888');
         const h=el('div','ic2h');
-        const im=el('img','spr'); im.src=sprOf(u.cls,u.artIdx); h.appendChild(im);
+        h.appendChild(unitArtImg(u));
         const t=el('div','ic2t');
         t.appendChild(el('div','ic2n',u.n+' · T'+u.tier+(u.hp<=0?'  [DOWN]':'')));
         t.appendChild(el('div','ic2s','HP '+u.hp+'/'+u.maxHp+(u.shield?'  ·  Shield '+u.shield:'')));
