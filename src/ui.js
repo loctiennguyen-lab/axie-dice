@@ -393,7 +393,7 @@ function scImportAxie(){
   if(importState==='preview'&&importPreview){
     const die=axieToDie(importPreview);
     const pv=el('div','vpreview');
-    if(die.image){ const pim=el('img','vpreview-art'); pim.src=die.image; pv.appendChild(pim); }
+    if(die.image) pv.appendChild(realArtWrap(die.image,'','vpreview-art'));
     pv.appendChild(el('div','vpn',die.n+'  ·  '+die.cls.toUpperCase()));
     const parts=el('div','vparts');
     (importPreview.parts||[]).forEach(p=>parts.appendChild(el('span','vpart',(p.type||'?').toUpperCase()+': '+(p.name||'?'))));
@@ -419,7 +419,7 @@ function scImportAxie(){
     vlist.forEach(v=>{
       ensureVaultArt(v);
       const c=el('div','vchip'); c.style.setProperty('--cc',CLASS_COLOR[v.cls]);
-      const im=el('img','vchip-thumb'); im.src=axieArtSrc(v); im.onerror=()=>{ im.onerror=null; im.src=sprOf(v.cls,v.art||0); }; c.appendChild(im);
+      c.appendChild(realArtWrap(v.image,sprOf(v.cls,v.art||0),'vchip-thumb'));
       const info=el('div','vchip-info');
       info.appendChild(el('div','vchip-nm',v.n));
       info.appendChild(el('div','vchip-cls',v.cls.toUpperCase()+' · HP '+v.hp));
@@ -467,15 +467,31 @@ const sprOf=(cls,i)=>(AXIE_PIX[cls]&&AXIE_PIX[cls][((i%9)+9)%9])?AXIE_PIX[cls][(
    a vault_<id> key that's exactly the HEROES[key] record axieToDie() made
    (see importAxieToVault/ensureVaultHero), image and all. Standard heroes'
    HEROES entries never have `.image`, so this is a no-op fallback for them —
-   safe to call for any player unit, not just vault ones. */
-function unitArtSrc(u){
-  const h=u.key&&HEROES[u.key];
-  return (h&&h.image)?h.image:sprOf(u.cls,u.artIdx);
+   safe to call for any player unit, not just vault ones.
+
+   "ID card" framing (art-director consult, 2026-09-03): mixing the painterly
+   real-Axie PNG with the house pixel-sprite style in the same plain <img>
+   slot read as broken/placeholder art, not an intentional distinction — real
+   art visually outranks the sprites for salience it hadn't earned. Fix is a
+   deliberate frame (gold border/glow + small badge), never a filter trying
+   to make the two styles blend — see design/quick-specs/ if this needs a
+   full writeup later. realArtWrap() applies this ONLY when real art is
+   actually showing; the badge/frame both vanish automatically via the
+   image's own onerror if that URL 404s and it falls back to the sprite. */
+function realArtWrap(realSrc,fallbackSrc,imgClass){
+  const wrap=el('div','axie-id'+(realSrc?' real':''));
+  const im=el('img',imgClass||''); im.src=realSrc||fallbackSrc;
+  wrap.appendChild(im);
+  if(realSrc){
+    const badge=el('div','axie-id-badge','⛓'); badge.title='Real Axie NFT art';
+    wrap.appendChild(badge);
+    im.onerror=()=>{ im.onerror=null; im.src=fallbackSrc; wrap.classList.remove('real'); badge.remove(); };
+  }
+  return wrap;
 }
 function unitArtImg(u,cls){
-  const im=el('img',cls||'spr'); im.src=unitArtSrc(u);
-  im.onerror=()=>{ im.onerror=null; im.src=sprOf(u.cls,u.artIdx); };
-  return im;
+  const h=u.key&&HEROES[u.key];
+  return realArtWrap(h&&h.image,sprOf(u.cls,u.artIdx),cls||'spr');
 }
 const sprMon=k=>{ const m=MON_SPR[k]||['beast',0]; return sprOf(m[0],m[1]); };
 
@@ -1053,7 +1069,6 @@ let pickMode='short', pickAsc=0, pickSeed='', pickRanked=false;
    missing/broken — vault entries imported before this field existed have
    image:null|undefined and just show the sprite, no re-import required. */
 let vaultExpanded=new Set();
-const axieArtSrc=v=>v.image||sprOf(v.cls,v.art||0);
 /* Vault entries imported before the `image` field existed (2026-09-03) have
    no v.image at all — rather than force a manual re-import for every old
    entry, lazily backfill it once per render pass: refetch just the id from
@@ -1107,7 +1122,7 @@ function scTeam(){
       const n=teamPick.filter(x=>x===key).length, pa=PASSIVE[h.cls];
       const open=vaultExpanded.has(key);
       const c=el('div','vchip'+(n?' on':'')+(full&&!n?' full':'')); c.style.setProperty('--cc',CLASS_COLOR[h.cls]);
-      const im=el('img','vchip-thumb'); im.src=axieArtSrc(v); im.onerror=()=>{ im.onerror=null; im.src=sprOf(h.cls,h.art); }; c.appendChild(im);
+      c.appendChild(realArtWrap(v.image,sprOf(h.cls,h.art),'vchip-thumb'));
       const info=el('div','vchip-info');
       info.appendChild(el('div','vchip-nm',h.n));
       info.appendChild(el('div','vchip-cls',h.cls.toUpperCase()+' · HP '+h.hp));
@@ -1725,11 +1740,10 @@ function scReward(){
     c.style.animationDelay=(i*140/SPD)+'ms';
     c.appendChild(el('div','rbadge',RARITY[r.rar||0]));
     c.appendChild(el('div','rt',r.title));
-    if(r.cls){ const im=el('img','spr'); const ent=r.uid!=null?S.roster.find(x=>x.uid===r.uid):null;
+    if(r.cls){ const ent=r.uid!=null?S.roster.find(x=>x.uid===r.uid):null;
       const vh=ent&&HEROES[ent.key];
-      if(vh&&vh.image){ im.src=vh.image; im.onerror=()=>{ im.onerror=null; im.src=sprOf(r.cls,(r.tier===4?6:(r.tier-1)*3)+((ent&&ent.vr||0)%3)); }; }
-      else im.src=sprOf(r.cls,(r.tier===4?6:(r.tier-1)*3)+((ent&&ent.vr||0)%3));
-      c.appendChild(im); }
+      const fallback=sprOf(r.cls,(r.tier===4?6:(r.tier-1)*3)+((ent&&ent.vr||0)%3));
+      c.appendChild(realArtWrap(vh&&vh.image,fallback,'spr')); }
     else c.appendChild(ico(r.t==='relic'||r.t==='chaos'?'chest':r.t==='curse'?'poison':r.t==='reroll'?'reroll':'shard','ricon'));
     c.appendChild(el('div','rd',r.desc));
     if(r.sub) c.appendChild(el('div','rsub',r.sub));
