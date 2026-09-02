@@ -1417,7 +1417,8 @@ function scCombat(frozen){
      s.party = roster.map(buildUnit) rồi mới push token ở cuối. */
   const resPairs=resonancePairs(S);
   S.party.forEach((u,i)=>{
-    const col=el('div','pcol'); col.appendChild(unitCard(u)); col.appendChild(dieBox(u)); pz.appendChild(col);
+    const isOpenRes=resPairs.some(p=>p.posA===i||p.posB===i);
+    const col=el('div','pcol'); col.appendChild(unitCard(u)); col.appendChild(dieBox(u,isOpenRes)); pz.appendChild(col);
     const pair=resPairs.find(p=>p.posA===i);
     if(pair){
       const link=el('div','reslink');
@@ -1611,7 +1612,7 @@ function previewOn(t){
   return null;
 }
 
-function dieBox(u){
+function dieBox(u,isOpenRes){
   const b=el('div','diebox'); b.dataset.uid=u.uid;
   if(u.hp<=0||u.rolled<0){ b.appendChild(el('div','die out','X')); b.appendChild(el('div','dlbl','')); return b; }
   const f=u.die[u.rolled];
@@ -1619,6 +1620,13 @@ function dieBox(u){
   const d=el('div','die dr'+dr+(u.used?' used':'')+(sel===u.uid?' sel':'')+(f.t==='blank'?' blank':'')+(u.critNow?' critready':''));
   d.style.setProperty('--cc',CLASS_COLOR[u.cls]||'#888');
   paintDieFace(d,u,u.rolled,false);
+  /* Formation Resonance: this die's shown number is still the un-boosted
+     base value (see .linkhint comment in style.css for why we don't just
+     multiply it — only whichever of the pair executes SECOND gets +N%, and
+     order isn't known yet) — flag it right on the die so the player isn't
+     deciding off a number that's about to change, without promising a
+     specific outcome that might not happen. */
+  if(isOpenRes&&!u.used) d.appendChild(el('div','linkhint','LINK +'+Math.round((RESONANCE.mult-1)*100)+'% IF 2ND'));
   if(hasKw(f,'heavy')) d.classList.add('heavy');
   d.onclick=()=>clickDie(u);
   d.onmouseenter=()=>SFX.hover();

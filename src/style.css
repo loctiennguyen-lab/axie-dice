@@ -746,6 +746,22 @@ small{font-size:var(--t1)}
 .die.dr3{border-left-color:var(--r3)} .die.dr4{border-left-color:var(--r4)}
 .critbadge{pointer-events:none;position:absolute;top:-8px;left:50%;transform:translateX(-50%);font-size:var(--t1);
   background:var(--acc);color:#1a1503;padding:1px 7px;border-radius:var(--rad-sm);letter-spacing:1px;white-space:nowrap}
+/* T23 (2026-09-03) · Formation Resonance's number was only ever accurate
+   AFTER a hit landed (see the "LINK -N" damage-float fix) — the number
+   shown on the die itself, BEFORE the player commits to an order, was
+   always the un-boosted base value even for a die sitting in an "open"
+   resonant pair, so the number a player was deciding from didn't match
+   what they'd actually get. Can't just multiply the shown number by
+   RESONANCE.mult for both dice in the pair — only whichever one gets
+   clicked SECOND actually receives it, and we can't know that in advance;
+   baking in a promised number would be wrong for whichever one executes
+   first. So this stays a conditional badge on the number, not a rewritten
+   number — accurate either way, still visibly attached to the specific
+   die it applies to (not just the separate .reslink connector between
+   cards, which a player could miss correlating to a specific number). */
+.linkhint{pointer-events:none;position:absolute;bottom:-9px;left:50%;transform:translateX(-50%);font-size:var(--t1);
+  background:var(--pan2);color:var(--acc);border:1px solid var(--acc);padding:0 6px;border-radius:var(--rad-sm);
+  letter-spacing:.5px;white-space:nowrap}
 .die.critready{border-color:var(--acc)}
 .pips{display:flex;gap:3px;justify-content:center;margin-top:6px}
 .pip{width:9px;height:9px;border-radius:2px;background:var(--line);border:1px solid transparent}
