@@ -12,6 +12,12 @@ const NAMES = [
   'newGame', 'chooseNode', 'playerUseDie', 'playerUseRelic', 'doReroll',
   'endTurn', 'undo', 'takeReward', 'eventChoose', 'eventDone', 'shopBuy', 'shopDone',
   'runXp', 'ENGINE_VERSION', 'RUN_LEN',
+  // Read-only display helpers (docs/architecture/telemetry-dashboard-design.md's
+  // sibling feature: leaderboard team/relic display) — pure functions, no DOM,
+  // used by submit-run.js to turn its own trusted replay state into the same
+  // {n,cls,tier,artIdx,die}/{n,rar,d} shape src/ui.js's saveRunHistory() already
+  // produces client-side, so the Leaderboard can show it via the same renderer.
+  'buildUnit', 'faceText', 'RELIC_BY_ID',
 ];
 
 function loadEngine() {

@@ -133,6 +133,16 @@ module.exports = async (req, res) => {
 
   const score = G.runXp(s, s.phase === 'won');
   const board = 'lb:' + mode + ':' + ascension;
+  // Team/relics come from the server's OWN replayed `s`, never from the
+  // client-submitted body — same trust boundary as `score` above, so
+  // displaying "what did the #1 player actually run" on the Leaderboard adds
+  // no new spoofing surface (a forged team would just be the wrong team for
+  // whatever score the real replay produced, immediately implausible).
+  const team = s.roster.map((e) => {
+    const u = G.buildUnit(e, s);
+    return { n: u.n, cls: u.cls, tier: u.tier, artIdx: u.artIdx, die: u.die.map(G.faceText) };
+  });
+  const relics = s.relics.map((id) => G.RELIC_BY_ID[id]).filter(Boolean).map((r) => ({ n: r.n, rar: r.rar, d: r.d }));
   const entry = JSON.stringify({
     name,
     wallet: typeof walletAddr === 'string' ? walletAddr.slice(0, 64) : null,
@@ -140,6 +150,8 @@ module.exports = async (req, res) => {
     won: s.phase === 'won',
     step: s.step,
     ts: Date.now(),
+    team,
+    relics,
   });
 
   const zres = await upstash('zadd', board, String(score), entry);

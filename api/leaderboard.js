@@ -48,6 +48,10 @@ module.exports = async (req, res) => {
       won: !!parsed.won,
       step: parsed.step,
       submittedAt: parsed.ts,
+      // team/relics: absent on entries submitted before this field existed —
+      // the client must treat a missing/empty array as "no data", not an error.
+      team: Array.isArray(parsed.team) ? parsed.team : [],
+      relics: Array.isArray(parsed.relics) ? parsed.relics : [],
     });
   }
   res.setHeader('Cache-Control', 'public, max-age=30');

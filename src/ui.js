@@ -1744,8 +1744,12 @@ function scShop(){
 /* ================= END / RECAP ================= */
 /* ================= LEADERBOARD (view) ================= */
 let lbMode='short', lbAsc=0, lbState='idle', lbRows=[], lbConfigured=true;
+/* Set of expanded row `rank`s (see scLeaderboard's build-reference accordion,
+   same inline-expand pattern as historyExpanded above) — reset on every
+   reload since `rank` is only unique within the CURRENT mode/ascension view. */
+let lbExpanded=new Set();
 async function loadLeaderboard(){
-  lbState='busy'; render();
+  lbState='busy'; lbExpanded.clear(); render();
   try{
     const r=await fetch('/api/leaderboard?mode='+lbMode+'&ascension='+lbAsc);
     const data=await r.json();
@@ -1774,12 +1778,23 @@ function scLeaderboard(){
   else{
     const tbl=el('div','lbtable');
     lbRows.forEach(row=>{
-      const r=el('div','lbrow'+(row.won?' won':''));
+      const hasBuild=!!(row.team&&row.team.length);
+      const open=lbExpanded.has(row.rank);
+      const r=el('div','lbrow'+(row.won?' won':'')+(hasBuild?' expandable':'')+(open?' open':''));
       r.appendChild(el('div','lbrank','#'+row.rank));
       r.appendChild(el('div','lbname',row.name+(row.wallet?' 🔗':'')));
       r.appendChild(el('div','lbscore',String(row.score)));
       r.appendChild(el('div','lbstep',(row.won?'WON':'wave '+row.step)));
+      if(hasBuild){
+        r.onclick=()=>{ SFX.ui(); if(open) lbExpanded.delete(row.rank); else lbExpanded.add(row.rank); render(); };
+        kbAct(r);
+      }
       tbl.appendChild(r);
+      if(open&&hasBuild){
+        const d=el('div','lbdetail');
+        teamRelicsSec(row).forEach(sec=>d.appendChild(sec));
+        tbl.appendChild(d);
+      }
     });
     w.appendChild(tbl);
   }
@@ -1841,8 +1856,13 @@ function scHistory(){
    cleanly. archScore() IS reused (in saveRunHistory()) for the archetype
    *selection*; only the presentational chip here is a small local copy of
    archStrip()'s chip markup. */
-function histDetail(r){
-  const d=el('div','histdetail');
+/* Shared by HISTORY's detail accordion and the Leaderboard's (see scLeaderboard
+   below) — both work from the same plain, display-ready shape ({n,cls,tier,
+   artIdx,die}[] / {n,rar,d}[]), just from different sources: HISTORY reads the
+   client's own saveRunHistory() snapshot, Leaderboard reads api/submit-run.js's
+   server-side replay output (see that file's team/relics comment) — the shape
+   matching is what lets this one renderer serve both. */
+function teamRelicsSec(r){
   const tsec=el('div','colsec'); tsec.appendChild(el('h3',null,'TEAM'));
   const tgrid=el('div','pstrip');
   (r.team||[]).forEach(u=>{
@@ -1855,14 +1875,18 @@ function histDetail(r){
     tgrid.appendChild(c);
   });
   tsec.appendChild(tgrid);
-  d.appendChild(tsec);
 
   const rsec=el('div','colsec'); rsec.appendChild(el('h3',null,'RELICS'));
   const rl=el('div','relicstrip');
   if(!r.relics||!r.relics.length) rl.appendChild(el('div','nothing','no relics'));
   (r.relics||[]).forEach(rr=>{ const c=el('div','rchip r'+rr.rar,rr.n); c.title=rr.d; rl.appendChild(c); });
   rsec.appendChild(rl);
-  d.appendChild(rsec);
+
+  return [tsec,rsec];
+}
+function histDetail(r){
+  const d=el('div','histdetail');
+  teamRelicsSec(r).forEach(sec=>d.appendChild(sec));
 
   const ssec=el('div','colsec'); ssec.appendChild(el('h3',null,'STATS'));
   const rc=el('div','recap');

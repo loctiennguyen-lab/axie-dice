@@ -945,6 +945,15 @@ body.dragging{cursor:grabbing} body.dragging .die{cursor:grabbing}
 .lbrank{color:var(--dim);font-weight:var(--fw-action)}
 .lbscore{color:var(--acc);font-weight:var(--fw-action);text-align:right}
 .lbstep{color:var(--dim);font-size:var(--t2);text-align:right}
+/* Rows with a stored team/relics snapshot (docs/architecture — server-replay
+   trusted, see api/submit-run.js) are click-to-expand, same accordion pattern
+   as .histrow/.histdetail above — older entries have no team data and stay
+   plain (no pointer cursor, no hover state, no click handler attached). */
+.lbrow.expandable{cursor:pointer;min-height:44px}
+.lbrow.expandable:hover{background:var(--pan2)}
+.lbrow.expandable.open{border-color:var(--acc)}
+.lbdetail{max-width:1050px;margin:0 0 2px;background:var(--pan2);border:1px solid var(--line);
+  border-radius:var(--radius);padding:var(--s3)}
 .icard2{background:var(--pan2);border:1px solid var(--line);border-radius:var(--rad-sm);padding:var(--card-pad-sm);margin-bottom:10px}
 .ic2h{display:flex;gap:12px;align-items:center}
 .ic2h .spr{width:54px;height:54px;flex:0 0 54px;margin:0}
