@@ -1,9 +1,11 @@
 import { chromium } from 'playwright';
-const b = await chromium.launch({executablePath:'/opt/pw-browsers/chromium',args:['--no-sandbox']});
+import { pathToFileURL } from 'node:url';
+import { resolve } from 'node:path';
+const b = await chromium.launch({args:['--no-sandbox']});
 for(const vp of [{width:1440,height:900},{width:1280,height:720},{width:1920,height:1080},{width:1366,height:768}]){
   const p = await b.newPage({viewport:vp});
   p.on('pageerror',e=>console.log('  PAGEERROR',e.message));
-  await p.goto('file:///home/claude/axie-dice/AxieDiceTactics.html');
+  await p.goto(pathToFileURL(resolve(process.cwd(), 'AxieDiceTactics.html')).href);
   await p.waitForTimeout(300);
   await p.evaluate(()=>{
     try{localStorage.clear()}catch(e){}

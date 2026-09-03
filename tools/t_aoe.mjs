@@ -1,9 +1,11 @@
 import { chromium } from 'playwright';
+import { pathToFileURL } from 'node:url';
+import { resolve } from 'node:path';
 const file = process.argv[2] || 'AxieDiceTactics.html';
-const b = await chromium.launch({executablePath:'/opt/pw-browsers/chromium',args:['--no-sandbox']});
+const b = await chromium.launch({args:['--no-sandbox']});
 const p = await b.newPage({ viewport:{width:1600,height:1000} });
 p.on('pageerror', e=>console.log('PAGEERROR', e.message));
-await p.goto('file:///home/claude/axie-dice/'+file);
+await p.goto(pathToFileURL(resolve(process.cwd(), file)).href);
 await p.waitForTimeout(400);
 
 // start a run through the API the menu uses
