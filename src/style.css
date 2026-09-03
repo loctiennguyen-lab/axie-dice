@@ -1122,6 +1122,54 @@ body.devmode{cursor:crosshair}
   .bptrack{ grid-template-columns:repeat(auto-fill,minmax(120px,1fr)); }
 }
 
+/* ═══════════════════ T10b · SHORT-WINDOW BREAKPOINT (chiều CAO) ═══════════════════
+   T10 ở trên chỉ hỏi "cửa sổ RỘNG bao nhiêu". Nhưng bàn combat có chiều cao
+   nội tại ~808px (track 48 + enemies 233 + party 369 + bottombar 68 + gap/padding),
+   và con số đó KHÔNG phụ thuộc chiều rộng — nên ở 1280×720 (laptop 13" phổ biến)
+   END TURN rơi xuống bottom=768, tức 48px dưới mép màn hình.
+
+   Trước đây fitUI() trong ui.js che được lỗi này bằng cách zoom cả trang nhỏ lại,
+   nhưng sàn của nó đã bị nâng 0.85 → 1.0 (chữ không được nhỏ hơn --t1:11px, và
+   tools/verify.mjs A4 hardcode 11px), nên --ui-scale giờ luôn = 1 ở mọi cửa sổ
+   thấp — không còn cơ chế nào bù chiều cao nữa. Đây là cơ chế thay thế, và nó đi
+   đúng theo triết lý của T10: đổi KÍCH THƯỚC COMPONENT, không zoom, nên chữ vẫn
+   giữ nguyên cỡ đã thiết kế (11px vẫn là 11px).
+
+   Ngưỡng 840px: bàn full-size đo được 808px, nên mọi cửa sổ dưới ~840px là không
+   còn headroom. 900px (viewport desktop của verify.mjs) nằm ngoài, cố ý — bản
+   render desktop đã được verify không đổi một pixel nào.
+
+   min-width:900px: dưới mức đó T10 đã thu nhỏ component rồi (--spr-w:76px,
+   --die-h:100px — đã nhỏ hơn các giá trị ở đây), nên khối này sẽ chỉ làm TO ra.
+   Điện thoại xoay ngang (852×393, verify.mjs có kiểm) vì thế không bị đụng tới.
+
+   Các giá trị lấy lại từ breakpoint ≤899px sẵn có (--spr-w:76px) và từ
+   .zone.party.compact — style.css đã tự chứng minh cỡ đó đọc/chạm được. */
+@media (min-width:900px) and (max-height:840px){
+  /* --spr-big phải co theo --spr-w, không được để nguyên 164px: tỉ lệ thiết kế
+     gốc là 164/100 = 1.64 (boss to hơn Axie party 64%). Nếu chỉ co --spr-w mà
+     giữ --spr-big thì tỉ lệ thành 164/76 = 2.16 — con boss ĐÈ TO HƠN chủ đích,
+     và chính nó là thứ duy nhất làm trận boss còn tràn. 76*1.64 ≈ 124px giữ
+     nguyên đúng tỉ lệ 1.63, nên boss vẫn áp đảo y như trên desktop. */
+  :root{ --spr-w:76px; --spr-big:124px; --die-h:104px; }
+  #app{ padding-bottom:var(--s2); }
+  .track{ padding:4px 10px; margin-bottom:6px; }
+  .zone.enemies{ padding-top:8px; }
+  .zone.party{ margin-top:12px; }
+  .pcol{ gap:8px; }
+  /* Ghim thanh hành động — đúng cách breakpoint ≤599px đã dùng sẵn cho cùng vấn
+     đề này. Lưới token phía trên đã đủ để trận THƯỜNG vừa khít (1280×720:
+     doc 808 → 720, hết scroll hẳn), nhưng trận boss thì .unit.big vẫn cao 282px
+     nên bàn còn cao hơn cửa sổ ~67px. Ghim bar là lưới an toàn: END TURN /
+     REROLL LUÔN chạm tới được bất kể bàn cao bao nhiêu, và không phải chỉnh lại
+     số ma thuật mỗi lần thêm nội dung dọc (đúng nỗi lo mà comment BOARD_H trong
+     ui.js đã ghi). Đã đo: ở boss 1280×720, tâm cả 5 xúc xắc đều nằm TRÊN bar
+     (không bị che), cuộn xuống là hiện đủ toàn bàn.
+     .bottombar đã có background:var(--pan) + border đặc nên không lộ nội dung
+     phía dưới khi cuộn. */
+  .bottombar{ margin-top:8px; position:sticky; bottom:0; z-index:20; }
+}
+
 /* T11 · phone portrait gate — bàn 5 cột về bản chất là bố cục ngang */
 .rotate-hint{ display:none; }
 @media (max-width:599px) and (orientation:portrait){

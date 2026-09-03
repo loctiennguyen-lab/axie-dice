@@ -698,6 +698,13 @@ function fitUI(){
   // this floor, the board scrolls (body is no longer overflow:hidden — see
   // the scroll-lock fix) instead of shrinking text past legibility. Only
   // scales UP (still capped at 1.20) on genuinely tall windows.
+  // Consequence of that floor: on a short window this function can no longer
+  // compensate at all (--ui-scale is pinned to 1 at 1280x720, 1366x768,
+  // 1280x800 alike), which is exactly how END TURN ended up 48px below the
+  // fold at 1280x720. The compensation now lives in CSS instead — see the
+  // T10b short-window breakpoint in style.css, which shrinks COMPONENTS
+  // (not text) and pins the action bar. Keep the two in mind together:
+  // this function owns the tall-window case, T10b owns the short one.
   document.documentElement.style.setProperty('--ui-scale', Math.max(1.0, s).toFixed(3));
 }
 function autoFit(){ fitUI(); }
