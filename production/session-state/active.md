@@ -18,6 +18,16 @@ Task: Đã xong, đã merge vào main — chờ việc mới
 > 165 dòng nên 20 dòng cuối mà phiên mới nhìn thấy là backlog của việc KHÁC —
 > vô dụng cho việc đang làm. Chi tiết dài để ở `docs/`, đây chỉ để trỏ đường.
 
+## Cấu trúc nguồn (đổi 2026-09-03)
+
+**Sửa code client = sửa ĐÚNG 1 file: `src/client.html`** (CSS + audio/icons/log/
+ui/fx, có mốc `/* ─── name.js ─── */`). `build.py` ghép thành 1 file HTML để deploy.
+
+Nhưng **luật chơi/cân bằng vẫn ở `src/engine.js` + `src/data.js`** — không gộp
+được vì `api/_engine.js` đọc chúng từ đĩa để chống gian lận Leaderboard.
+`src/devtools.js` cũng riêng vì `build.py public` phải strip được nó.
+Lý do đầy đủ: comment ở đầu `src/client.html`.
+
 ## Nguồn sự thật hiện tại
 
 - **`docs/fixes-2026-09-03.md`** — đợt sửa mới nhất (layout cửa sổ thấp +
@@ -63,6 +73,7 @@ cd /Users/loc.tien.nguyen/my-game && vercel deploy --prod --yes
 ## ĐỌC NGAY — dành cho phiên mới
 
 1. **Đọc `docs/fixes-2026-09-03.md`** trước khi làm gì. Đó là nguồn sự thật.
+   Code client: sửa **`src/client.html`** (1 file). Luật chơi: `engine.js`/`data.js`.
 2. **Làm việc trên `main` ở checkout gốc** `/Users/loc.tien.nguyen/my-game`.
    `main` đã khớp production. Các worktree trong `.claude/worktrees/` là nhánh
    CŨ, phân kỳ, **không phải "cùng file"** — mỗi worktree là checkout riêng,

@@ -33,9 +33,22 @@
 
 - **Classes**: N/A (no OOP class hierarchy — `engine.js` is pure functions over plain data)
 - **Variables**: `camelCase`
-- **Signals/Events**: `engine.js` emits a flat event stream `s.ev` (array of typed events: damage, shield, poison, death, …); `fx.js` replays it for animation without re-rendering. Any new mechanic that doesn't emit an event will be numerically correct but invisible to the player.
-- **Files**: lowercase, one module per concern (`engine.js`, `ui.js`, `fx.js`, `data.js`, `audio.js`, `icons.js`, `art.js`, `devtools.js`, `style.css`)
-- **Scenes/Prefabs**: N/A — `ui.js` re-renders each screen (`sc*` functions) fully on every state change
+- **Signals/Events**: `engine.js` emits a flat event stream `s.ev` (array of typed events: damage, shield, poison, death, …); the `fx.js` section of `client.html` replays it for animation without re-rendering. Any new mechanic that doesn't emit an event will be numerically correct but invisible to the player.
+- **Files** (merged 2026-09-03 — 10 source files became 6): lowercase. All client
+  code lives in **one** file, `src/client.html` (CSS + audio/icons/log/ui/fx, with
+  `/* ─── name.js ─── */` markers kept at the old module boundaries). Four files
+  deliberately stay outside it — the reasons are in the comment at the top of
+  `client.html`, read it before merging anything else in:
+  - `src/engine.js`, `src/data.js` — `api/_engine.js` reads both from disk into a
+    Node VM to replay-verify Leaderboard scores (server-side anti-cheat);
+    `tools/sim.js` and `tools/t_import.mjs` read them directly too.
+  - `src/devtools.js` — `build.py public` STRIPS this file. `devGo()` can jump to
+    any screen and grant `META.shards=900` + relics/legendaries, so merging it in
+    would ship a cheat toolkit in production while ranked Leaderboard is live.
+  - `src/art.js`, `src/cosmetics.js` — 1.8MB of pure base64 (`art.js` is a single
+    232,878-character line). Never hand-edited; merging them in would only make
+    every read of the working file cost context for nothing.
+- **Scenes/Prefabs**: N/A — the `ui.js` section of `client.html` re-renders each screen (`sc*` functions) fully on every state change
 - **Constants**: CSS design tokens use `--kebab-case` (e.g. `--t1..--t6`, `--die-num`); the removed `--faint` token must never be reintroduced
 
 ## Performance Budgets
@@ -73,10 +86,10 @@
 <!-- to know which specialist to spawn for engine-specific validation. -->
 
 - **Primary**: `lead-programmer` (no `godot-*`/`unity-*`/`ue-*` specialist applies — this is a hand-rolled vanilla-JS/HTML5 project, not a commercial engine)
-- **Language/Code Specialist**: `gameplay-programmer` (`engine.js` combat rules, `data.js`), `ui-programmer` (`ui.js`, `fx.js`, `style.css`)
+- **Language/Code Specialist**: `gameplay-programmer` (`engine.js` combat rules, `data.js`), `ui-programmer` (`client.html` — CSS + UI + FX all in one file)
 - **Shader Specialist**: N/A — no shaders (DOM/CSS rendering only)
 - **UI Specialist**: `ui-programmer` for implementation; `ux-designer` / `art-director` for spec and visual review
-- **Additional Specialists**: `accessibility-specialist` (open a11y debt — see HANDOVER §2), `technical-artist` for `icons.js`/`art.js` sprite data if visual fidelity work is needed
+- **Additional Specialists**: `accessibility-specialist` (open a11y debt — see HANDOVER §2), `technical-artist` for `art.js`/`cosmetics.js` sprite data if visual fidelity work is needed
 - **Routing Notes**: No engine reference docs apply (`docs/engine-reference/godot/` is irrelevant to this project). Skip any skill step that checks engine-version knowledge gaps.
 
 ### File Extension Routing
@@ -87,12 +100,12 @@
 | File Extension / Type | Specialist to Spawn |
 |-----------------------|---------------------|
 | Game code — `engine.js`, `data.js` | `gameplay-programmer` |
-| Game code — `ui.js`, `fx.js` | `ui-programmer` |
-| `style.css` | `ui-programmer` + `art-director` (visual review) |
-| `audio.js` | `sound-designer` (design) / `gameplay-programmer` (impl) |
-| `art.js`, `icons.js` (sprite/icon data) | `technical-artist` |
+| Client code — `client.html` (CSS + UI + FX + audio + icons + log) | `ui-programmer` (+ `art-director` for visual review of the CSS half) |
+| Audio design inside `client.html` | `sound-designer` (design) / `gameplay-programmer` (impl) |
+| `art.js`, `cosmetics.js` (sprite/cosmetic data) | `technical-artist` |
+| `devtools.js` (kept separate — stripped from public builds) | `tools-programmer` |
 | `build.py`, `tools/*` (build & verify scripts) | `devops-engineer` / `tools-programmer` |
 | Shader / material files | N/A — none in this project |
-| Scene / prefab / level files | N/A — no scene system; screens are `sc*` functions in `ui.js` |
+| Scene / prefab / level files | N/A — no scene system; screens are `sc*` functions in `client.html` |
 | Native extension / plugin files | N/A |
 | General architecture review | Primary (`lead-programmer`) |
