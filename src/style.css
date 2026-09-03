@@ -739,7 +739,11 @@ small{font-size:var(--t1)}
   border-radius:8px 8px 0 0;background:transparent;display:flex;align-items:center}
 .die[data-r="1"] .ractag{background:var(--r1)} .die[data-r="2"] .ractag{background:var(--r2)}
 .die[data-r="3"] .ractag{background:var(--r3)} .die[data-r="4"] .ractag{background:var(--r4)}
-.ractag-hv{position:absolute;left:2px;top:-6px;font-size:9px;line-height:1;color:var(--acc)}
+/* font-size phải nằm trong thang type (--t1:11px là sàn a11y, tools/verify.mjs
+   A1 hardcode 11px). Trước đây là 9px cứng: glyph ⚖ chỉ render khi mặt xúc xắc
+   có keyword `heavy`, nên A1 chỉ trượt ở những run RNG tình cờ sinh ra mặt đó —
+   suite lúc 30/32, lúc 32/32. Position absolute nên đổi cỡ không đẩy layout die. */
+.ractag-hv{position:absolute;left:2px;top:-7px;font-size:var(--t1);line-height:1;color:var(--acc)}
 .die[data-r="3"]{border-color:var(--r3)}
 .die[data-r="4"]{border-color:var(--r4);box-shadow:0 0 20px #ff5f8f66;animation:mythg 1.8s infinite}
 @keyframes mythg{0%,100%{box-shadow:0 0 14px #ff5f8f55}50%{box-shadow:0 0 28px #ff5f8fbb}}
