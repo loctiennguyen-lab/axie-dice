@@ -6,7 +6,7 @@
    (new TUNE values, new mechanic, etc.) — NOT for pure refactors with no
    behavior change. Server stores this per-submission and only accepts a
    replay if it can run the matching engine version. */
-const ENGINE_VERSION = '2026-09-01-echo1';
+const ENGINE_VERSION = '2026-09-04-relic94';
 
 function mkRng(seed){ let a=seed>>>0; return function(){ a=(a+0x6D2B79F5)>>>0; let t=a; t=Math.imul(t^t>>>15,t|1); t^=t+Math.imul(t^t>>>7,t|61); return ((t^t>>>14)>>>0)/4294967296; }; }
 let RNG=mkRng(12345);
@@ -23,6 +23,22 @@ const rsum  = (s,k)=>{ let v=0; for(const r of rlist(s)) if(r[k]) v+=r[k]; retur
 const rhas  = (s,k)=>rlist(s).some(r=>r[k]);
 const rmax  = (s,k,d)=>{ let v=d; for(const r of rlist(s)) if(r[k]&&r[k]>v) v=r[k]; return v; };
 const rcall = (s,k,ctx)=>{ for(const r of rlist(s)) if(r[k]) r[k](s,ctx); };
+/* INV-5 (relic-system.md §3.12) — modFace KHÔNG được chạy theo thứ tự nhặt.
+   `rlist` là thứ tự người chơi nhặt relic, nên r_claw(+1) + r_ancientgene(×1.3) cho
+   (v+1)×1.3 hoặc v×1.3+1 tuỳ dãy nhặt: RP của một relic không còn là một SỐ mà là một
+   KHOẢNG. Không phải lỗi replay (cùng dãy vẫn tất định) nhưng phá INV-1 trực tiếp.
+   Khoá sắp xếp [PHASE_RANK, rar, RELIC_INDEX] đều là hằng của DỮ LIỆU ⇒ kết quả độc lập
+   tuyệt đối với thứ tự nhặt, thứ tự shop và bet_big. Một relic có thể khai 2 entry ở 2 pha
+   (modFace/mfPhase + modFace2/mfPhase2) — r_thousandcuts vừa thêm keyword vừa sửa f.v. */
+function modFaceOrder(s){
+  const out=[];
+  for(const r of rlist(s)){
+    if(r.modFace)  out.push({r, ph:MF_PHASE_RANK[r.mfPhase ||'add']||0, sub:0, fn:r.modFace});
+    if(r.modFace2) out.push({r, ph:MF_PHASE_RANK[r.mfPhase2||'add']||0, sub:1, fn:r.modFace2});
+  }
+  return out.sort((a,b)=> a.ph-b.ph || a.r.rar-b.r.rar
+    || (RELIC_INDEX[a.r.id]-RELIC_INDEX[b.r.id]) || a.sub-b.sub);
+}
 
 /* ================= ROSTER → UNIT ================= */
 let UID=1;
@@ -33,7 +49,9 @@ function newRosterEntry(key,vr,nftBonusPct){ return {uid:UID++,key,vr:vr||0,muts
    ownedCount = tổng số Axie NFT người chơi sở hữu · specialGenes = 0-3 (thuộc tính Axie thật). */
 const NFT_BONUS_BASE=3, NFT_BONUS_CAP=20;
 function nftOwnershipMult(ownedCount){ return ownedCount>=20?1.5 : ownedCount>=5?1.25 : 1.0; }
-function nftRarityMult(specialGenes){ return [1.0,1.15,1.3,1.5][Math.max(0,Math.min(3,specialGenes|0))]; }
+/* E16 — nhận SỐ PART có gene thật (specialGeneCount), không phải field thô. v1 coi field là số
+   nguyên 0–3 trong khi API trả chuỗi ⇒ luôn ra 1.0. Một định nghĩa, hai chỗ dùng. */
+function nftRarityMult(specialGeneCount){ return [1.0,1.15,1.3,1.5][Math.max(0,Math.min(3,specialGeneCount|0))]; }
 function nftHpBonusPct(ownedCount,specialGenes){
   const pct=NFT_BONUS_BASE*nftOwnershipMult(ownedCount)*nftRarityMult(specialGenes);
   return Math.min(NFT_BONUS_CAP,pct);
@@ -51,15 +69,32 @@ function buildUnit(re,s){
     else if(m.type==='rune'){ if(!u.die[m.idx].k.includes(m.kw)) u.die[m.idx].k.push(m.kw); if(u.die[m.idx].r<1)u.die[m.idx].r=1; }
     else if(m.type==='oc') u.die.forEach(f=>{ if(f.v>0) f.v=Math.ceil(f.v*(m.mult||1.5)); });
   }
-  if(s) for(const r of rlist(s)) if(r.modFace) r.modFace(u);
+  /* ENG-3 — growth bền qua các trận (r_worldtree). Gieo TRƯỚC modFace: growth là số cộng
+     vào faceValue, không phải vào f.v, nên thứ tự với modFace không đổi kết quả. */
+  if(re.grown) for(const k in re.grown) u.growth[k]=(u.growth[k]||0)+re.grown[k];
+  if(s) for(const e of modFaceOrder(s)) e.fn(u);   /* INV-5, không phải thứ tự nhặt */
   if(s&&s.metaHpBonus) u.maxHp+=s.metaHpBonus;
   u.hp=u.maxHp;
   return u;
 }
-/* ================= IMPORT AXIE → DIE (design/AUDIT_AND_SPEC_v1.md §G3① / §G5) =================
+/* ================= IMPORT AXIE → DIE (design/gdd/part-skill-identity.md §3.1–§3.6) =================
    axieData = {id, class, parts:[{id,name,class,type,specialGenes}, ...]} — shape thật từ api/axie.js proxy.
-   KHÔNG hand-author theo part; tra SLOT_CLASS_TEMPLATE[slot][class] (data.js). Deep-clone mọi face
-   (qua clone()) để 2 Axie import khác nhau không share reference. */
+
+   v2 thay bảng SLOT_CLASS_TEMPLATE (36 ô, nhưng chỉ 19 mặt engine-distinct — cả 6 class dùng chung
+   một mặt ears `mana 1 cantrip`) bằng bảng part-identity do tools/gen_faces.mjs sinh ra: 285 identity
+   → 285 mặt distinct. Dữ liệu đi vào bundle qua src/part_faces.js (build.py %PARTFACES%), cùng byte
+   với assets/data/part_faces.json — `node tools/gen_faces.mjs --check` so cả hai, nên bundle cũ
+   không thể ship im lặng.
+
+   BẤT BIẾN (AC-1, BLOCKING): mọi thứ dưới đây PURE — không Math.random, không Date, không I/O.
+   api/submit-run.js chạy lại action log phía server để chấm điểm ranked, nên nó phải dựng lại ĐÚNG
+   viên dice từ đúng part data. Một nguồn ngẫu nhiên ở đây làm sai điểm một cách ÂM THẦM, không throw. */
+const PFACES = (typeof PART_FACES !== 'undefined') ? PART_FACES : null;
+const PFK    = PFACES ? PFACES.constants : {};
+/* E2/N3 — thứ tự mặt phải tất định. API trả part theo thứ tự nào là chuyện của API; nếu ta không
+   sort thì cùng một Axie ra hai viên dice khác nhau ⇒ replay phía server fail. */
+const SLOT_ORDER = ['mouth','horn','back','tail','eyes','ears'];
+
 function mapAxieClass(axieClassName){
   const c=(axieClassName||'').toLowerCase();
   if(CLASSES.includes(c)) return c;
@@ -67,49 +102,168 @@ function mapAxieClass(axieClassName){
   if(ORIGIN_CLASS_MAP[c]) return ORIGIN_CLASS_MAP[c];
   return 'beast'; /* class thật không nhận diện được — an toàn thay vì crash */
 }
-/* Deterministic string hash (not RNG, not crypto — just a stable index picker)
-   used to pick a PART_VARIANT_MODS entry from a real part's own name/id, see
-   data.js's PART_VARIANT_MODS comment for why this must stay a pure function
-   of the part's identity, never Math.random(). */
-function hashPartIdentity(str){
-  str=String(str||''); let h=0;
-  for(let i=0;i<str.length;i++){ h=(h*31+str.charCodeAt(i))|0; }
-  return Math.abs(h);
+/* §3.1 — normClass GIỮ NGUYÊN dawn/dusk/mech (khác mapAxieClass, cái đó collapse chúng về
+   beast/reptile/bug). Khoá tra bảng cần class thật vì 18 part secret-class có face riêng. */
+function normPartClass(x){ const c=String(x==null?'':x).trim().toLowerCase(); return c==='aquatic'?'aqua':c; }
+function normSlot(x){ return String(x==null?'':x).trim().toLowerCase(); }
+/* §3.1 — bỏ hậu tố stage (` α` `α` ` +` `+`) ở cuối, trim, collapse khoảng trắng đôi.
+   'Nut Cracker α' → 'Nut Cracker'. Phải khớp BYTE-BY-BYTE với baseName() của gen_faces.mjs,
+   nếu không mọi tra bảng đều trượt về fallback. */
+function baseName(x){
+  let t=String(x==null?'':x);
+  for(;;){ const u=t.replace(/[\s]*[α+]\s*$/,''); if(u===t) break; t=u; }
+  return t.trim().replace(/\s{2,}/g,' ');
 }
-function applyPartVariant(face,part){
-  const mods=PART_VARIANT_MODS[face.t]; if(!mods||!mods.length) return face;
-  const m=mods[hashPartIdentity(part.name||part.id)%mods.length];
-  if(m.dv) face.v=Math.max(1,face.v+m.dv);
-  if(m.addKw&&!face.k.includes(m.addKw)) face.k=face.k.concat([m.addKw]);
-  return face;
+function partKey(part){ return normPartClass(part&&part.class)+'|'+normSlot(part&&part.type)+'|'+baseName(part&&part.name); }
+
+/* §3.4a / E16-bis — thang specialGenes 8 bậc. Bảng alias nằm trong PART_FACES.constants.SG_TIER
+   (dữ liệu, không hardcode). MỌI giá trị không nhận diện được → tier 0; đó là mặc định an toàn và
+   nó xoá luôn bug lạm phát 30% của v1 (`if(part.specialGenes!=null)` đúng với gần như mọi part). */
+function sgTier(part){
+  const raw=part&&part.specialGenes; if(raw==null) return 0;
+  const list=Array.isArray(raw)?raw:[raw]; const tbl=PFK.SG_TIER||{}; let best=0;
+  for(const x of list){
+    let k;
+    if(typeof x==='number'){ if(!(x>0)) continue; k=String(x); }
+    else k=String(x).trim().toLowerCase().replace(/[\s_-]+/g,'');
+    if(k===''||k==='none'||k==='null'||k==='false') continue;
+    if(/^0+$/.test(k)) continue;            /* '000000' và mọi bitmask toàn 0 = KHÔNG có gene */
+    const t=tbl[k]; if(t===undefined) continue;   /* chưa biết → tier 0 */
+    if(t>best) best=t;
+  }
+  return best;
 }
-function axieToDie(axieData){
-  const parts=(axieData&&axieData.parts)||[];
-  let die=parts.map(part=>{
-    const slot=(part.type||'').toLowerCase();
-    const rawCls=(part.class||'').toLowerCase();
-    const isOrigin=!!ORIGIN_CLASS_MAP[rawCls];
-    const mappedCls=mapAxieClass(part.class);
-    const table=SLOT_CLASS_TEMPLATE[slot];
-    const src=(table&&table[mappedCls])||SLOT_CLASS_TEMPLATE.mouth.beast; /* slot lạ → fallback an toàn */
-    const face=clone(src);
-    applyPartVariant(face,part); /* differentiate by the part's real name/id — see data.js PART_VARIANT_MODS */
-    if(isOrigin){ /* part Origin (Dawn/Dusk/Mech) = hiếm nhất → luôn tier3 */
-      if(face.v>0) face.v=Math.round(face.v*ORIGIN_TIER3_MULT);
-      face.r=Math.max(face.r,3);
-    }
-    if(part.specialGenes!=null){ /* gene đặc biệt = tín hiệu hiếm → +30% value, rarity tối thiểu Rare */
-      if(face.v>0) face.v=Math.round(face.v*1.3);
-      face.r=Math.max(face.r,1);
-    }
-    return face;
-  });
-  while(die.length<6) die.push(clone(B));
-  die=die.slice(0,6);
+/* §3.4a-3 — gene `origin` và bucket `O`/`P` đo CÙNG một sự thật ("part thuộc dòng Axie Origin").
+   Cộng dồn là tính tiền hai lần, nên trục tất định (bucket, tra từ catalog) thắng và gene bị
+   trung hoà. Trên part bucket C thì tier vẫn áp — nghĩa là catalog đã lạc hậu. */
+function sgTierEff(part,bucket){
+  const t=sgTier(part), org=(PFK.SG_TIER&&PFK.SG_TIER.origin);
+  if(org!=null && t===org && (bucket==='O'||bucket==='P')) return 0;
+  return t;
+}
+/* E16 — MỘT định nghĩa cho cả hai chỗ dùng: đây và nftRarityMult(). Số part có gene thật, kẹp 0–3. */
+function specialGeneCount(axieData){
+  const parts=(axieData&&axieData.parts)||[]; let n=0;
+  for(const p of parts) if(sgTier(p)>0) n++;
+  return Math.max(0,Math.min(3,n));
+}
+const geneMult=t=>1+(PFK.SG_STEP||0)*t;
+const rBonus  =t=>((PFK.SG_RBONUS||[0])[t])||0;
+
+/* §3.4b — coherence/purity là thuộc tính của CẢ VIÊN DICE, không của từng part.
+   Tính trên mapAxieClass() chứ không trên part.class thô: nhờ vậy part Dawn trên một Axie Dawn
+   ĐẾM LÀ KHỚP mà không cần luật ngoại lệ nào. Die khuyết part giữ TỈ LỆ (không phạt hai lần:
+   một lần vì có mặt BLANK vô dụng, một lần nữa vì coherence). */
+function diePurity(parts,bodyCls){
+  const n=parts.length; if(n===0) return 6;
+  let match=0; for(const p of parts) if(mapAxieClass(p&&p.class)===bodyCls) match++;
+  return n===6 ? match : Math.round(6*match/n);
+}
+function coherenceMod(parts,bodyCls){
+  const COH=PFK.COH||{}; const pur=Math.max(0,Math.min(6,diePurity(parts,bodyCls)));
+  let m=COH[pur]; if(m==null) m=1;
+  const secret=parts.some(p=>(PFACES&&PFACES.scarcityBucket[partKey(p)])==='X');
+  if(secret) m=Math.max(m,PFK.COH_FLOOR_SECRET||m);
+  return m;
+}
+/* §3.4a-2 + §3.4c — ngân sách của MỘT part trên viên dice này.
+   B_acq = trần của TIỀN (bucket × gene, kẹp B_CAP0) · B_run = trần của CHƠI (+ GENE_STEP mỗi bậc
+   geneTier, kẹp B_CAP_RUN) · B_final = × coherence. */
+function partBudget(bucket,part,geneTier,coh){
+  const acq=Math.min(PFK.B_C*PFK.S[bucket]*geneMult(sgTierEff(part,bucket)), PFK.B_CAP0);
+  const run=Math.min(acq+(PFK.GENE_STEP||0)*(geneTier||0), PFK.B_CAP_RUN);
+  return run*coh;
+}
+/* F5b là AFFINE theo ngân sách ở cả hai nhánh, nên generator ship đúng hai hệ số (m, c) thay vì
+   bắt engine.js chép lại toàn bộ bảng giá keyword — một bản sao thứ hai chắc chắn sẽ trôi.
+   `lift` mang bump F6 (monotone) + REPAIR, là quyết định theo BUCKET mà mô hình affine không biết. */
+function affValue(model,budget,lift){
+  const x=model.m*budget-model.c;
+  return Math.max(1, model.mode==='f'?Math.floor(x):Math.round(x))+(lift||0);
+}
+/* §5 E1 — part CÓ trong API thật nhưng KHÔNG có trong catalog. Đây là edge case xác suất cao
+   nhất, không phải giả thuyết: catalog đã lớn 192 → 285 một lần rồi, và Sky Mavis phát hành part
+   mới bất cứ lúc nào. Không có nhánh này thì người chơi import một Axie mang part mới ra một mặt
+   CHẾT — đúng loại lỗi âm thầm mà cả hệ này tồn tại để chặn.
+
+   Bốn quyết định, mỗi cái chịu lực:
+   - variant 'A' (baseline của cả 36 family) chứ không random ⇒ axieToDie vẫn PURE ⇒ replay được.
+   - bucket 'C' luôn ⇒ một part mới chưa cân bằng KHÔNG BAO GIỜ là thứ mạnh nhất game. Fail-safe
+     đúng hướng.
+   - vẫn hiện TÊN THẬT của part ⇒ giữ player fantasy, không phải "Unknown Part".
+   - telemetry('part_unmapped') là tín hiệu vận hành DUY NHẤT báo catalog đã trôi. Gọi qua hook
+     tuỳ chọn nên nó không đưa I/O vào đường suy diễn (giá trị mặt không phụ thuộc hook). */
+function partTelemetry(evt,data){
+  if(typeof telemetryHook==='function') try{ telemetryHook(evt,data); }catch(e){ /* never break a die */ }
+}
+function fallbackFace(part,coh,geneTier){
+  const cls=normPartClass(part&&part.class), slot=normSlot(part&&part.type);
+  const name=baseName(part&&part.name);
+  partTelemetry('part_unmapped',{cls,slot,name});
+  const fam=PFACES&&PFACES.familyVariant[cls];
+  const tpl=fam&&fam[slot]&&fam[slot].A;
+  if(!tpl){    /* E3 — slot hoặc class không nhận diện được. CHỈ ca này mới ra mặt blank. */
+    const f=clone(B); f.src='fallback-blank'; f.name=name; return f;
+  }
+  const n=affValue(tpl,partBudget('C',part,geneTier,coh),tpl.lift&&tpl.lift.C);
+  const isV0=tpl.t==='buff'||tpl.t==='debuff';
+  return {p:slot,t:tpl.t,v:isV0?0:n,k:tpl.k.map(x=>/:N$/.test(x)?x.replace(/:N$/,':'+n):x),
+    r:(PFK.SCARCITY_RFLOOR||{}).C||0,src:'fallback',name,variant:'A',bucket:'C'};
+}
+/* §3.6 bước 1–2. suppress = §3.4b (purity ≤ 2 → keyword sắc bị THAY bằng keyword thô, ngân sách
+   chênh lệch hoàn vào v). Signature KHÔNG bị suppress và KHÔNG nhận bucket multiplier (§3.3). */
+function resolveFace(part,coh,suppress,geneTier){
+  const k=partKey(part);
+  const sig=PFACES&&PFACES.signatureFace[k];
+  const bucket=(PFACES&&PFACES.scarcityBucket[k])||'C';
+  if(sig){
+    const isV0=sig.t==='buff'||sig.t==='debuff';
+    return {p:sig.p,t:sig.t,v:isV0?0:Math.max(1,Math.round(sig.v*coh)),k:sig.k.slice(),
+      r:Math.min(4,sig.r+rBonus(sgTierEff(part,bucket))),src:'sig',name:baseName(part&&part.name)};
+  }
+  const letter=PFACES&&PFACES.partVariant[k];
+  if(!letter) return fallbackFace(part,coh,geneTier);
+  const fam=PFACES.familyVariant[normPartClass(part&&part.class)];
+  const tpl=fam&&fam[normSlot(part&&part.type)]&&fam[normSlot(part&&part.type)][letter];
+  if(!tpl) return fallbackFace(part,coh,geneTier);
+  const model=(suppress&&tpl.sup)?tpl.sup:tpl;
+  const n=affValue(model,partBudget(bucket,part,geneTier,coh),tpl.lift&&tpl.lift[bucket]);
+  const isV0=tpl.t==='buff'||tpl.t==='debuff';
+  /* trên mặt v=0 thì con số vừa tính là ĐỘ LỚN của keyword `:N`, không phải v */
+  const keys=model.k.map(x=>/:N$/.test(x)?x.replace(/:N$/,':'+n):x);
+  const rFloor=(PFK.SCARCITY_RFLOOR||{})[bucket]||0;
+  return {p:normSlot(part&&part.type),t:tpl.t,v:isV0?0:n,k:keys,
+    r:Math.min(3,rFloor+rBonus(sgTierEff(part,bucket))),  /* F8: variant kẹp r≤3 — chỉ signature mới lên COSMIC */
+    src:'var',name:baseName(part&&part.name),variant:letter,bucket};
+}
+/* §3.9 — manifest scarcity đi kèm die để server verify lại được mà không cần fetch API. */
+function scarcityManifest(parts){
+  const out=[];
+  for(const p of parts) out.push({k:partKey(p),b:(PFACES&&PFACES.scarcityBucket[partKey(p)])||'?',g:sgTier(p)});
+  return out;
+}
+function axieToDie(axieData,geneTier){
+  const raw=(axieData&&axieData.parts)||[];
   const bodyCls=mapAxieClass(axieData&&axieData.class);
-  const hp=(HEROES[bodyCls+'1']&&HEROES[bodyCls+'1'].hp)||14;
+  /* N3/E2 — sort TRƯỚC khi cắt 6, nếu không viên dice phụ thuộc thứ tự API trả về. Sort ổn định
+     theo (SLOT_ORDER, partKey) để hai part cùng slot cũng có thứ tự tất định (E5). */
+  const parts=raw.slice().sort((a,b)=>{
+    const d=SLOT_ORDER.indexOf(normSlot(a&&a.type))-SLOT_ORDER.indexOf(normSlot(b&&b.type));
+    if(d!==0) return d;
+    const ka=partKey(a),kb=partKey(b); return ka<kb?-1:ka>kb?1:0;
+  }).slice(0,6);
+  const coh=PFACES?coherenceMod(parts,bodyCls):1;
+  const secret=PFACES&&parts.some(p=>PFACES.scarcityBucket[partKey(p)]==='X');
+  const suppress=PFACES&&!secret&&diePurity(parts,bodyCls)<=2;
+  const die=PFACES? parts.map(p=>resolveFace(p,coh,suppress,geneTier||0))
+                  : parts.map(()=>clone(B));   /* bundle thiếu part_faces.js — die trống, không crash */
+  while(die.length<6) die.push(clone(B));
+  const baseHp=(HEROES[bodyCls+'1']&&HEROES[bodyCls+'1'].hp)||14;
+  const hpStep=(PFK.HP_STEP||[0])[Math.max(0,Math.min(6,geneTier||0))]||0;
+  const hp=Math.max(1,Math.round(baseHp*coh)+hpStep);
   return {n:'Axie #'+(axieData&&axieData.id), cls:bodyCls, tier:1, hp, art:0, die, imported:true,
-    axieId:axieData&&axieData.id, image:(axieData&&axieData.image)||null};
+    axieId:axieData&&axieData.id, image:(axieData&&axieData.image)||null,
+    purity:diePurity(parts,bodyCls), coh, geneTier:geneTier||0, scarcity:scarcityManifest(parts)};
 }
 /* độ hiếm của viên dice = tổng hợp các mặt (Option D) */
 function dieRarity(u){
@@ -225,6 +379,7 @@ function startCombat(s,kind){
   s.party=s.roster.map(r=>buildUnit(r,s));
   const ss=rsum(s,'startSummon');
   for(let i=0;i<ss;i++) s.party.push(mkAlly(s));
+  if(ss) EVrelic(s,'startSummon',null);
   s.enemies=genEncounter(s,kind);
   s.turn=1; s.mana=0; s.manaSpent=0; s.maxRerolls=2+(s.bonusReroll||0)+rsum(s,'rerollUp');
   s.rerolls=s.maxRerolls; s.phase='combat'; s.undo=[]; s.log=[]; s.usedActives=[]; s.floatText=[]; s.ev=[];
@@ -239,8 +394,15 @@ function startCombat(s,kind){
 function mkAlly(s){
   const m=MON.egg, sc=Math.max(1,CURVE.budget(s.pw)/14);
   const hp=Math.max(4,Math.round(m.hp*sc*0.55));
-  return {uid:UID++,side:'p',token:1,key:'egg',n:'Axie Egg',cls:'aqua',tier:1,artIdx:1,pas:null,
+  const a={uid:UID++,side:'p',token:1,key:'egg',n:'Axie Egg',cls:'aqua',tier:1,artIdx:1,pas:null,
     maxHp:hp,hp,shield:0,die:scaleDie(m.die,sc*0.5),st:{},rolled:-1,used:false,heavy:false,frozen:false,growth:{},critNow:false};
+  /* ENG-20 — token KHÔNG đi qua buildUnit nên chưa bao giờ nhận modFace. r_hivequeen mở cửa đó,
+     và trả giá bằng mload 2 (§6.7.3). Vẫn chạy theo INV-5 nên độc lập thứ tự nhặt. */
+  if(s&&rhas(s,'eggInherit')){ const before=a.maxHp;
+    for(const e of modFaceOrder(s)) e.fn(a);
+    if(a.maxHp!==before) a.hp=a.maxHp;
+    EVrelic(s,'eggInherit',a.uid); }
+  return a;
 }
 
 /* ================= ROLL ================= */
@@ -295,7 +457,11 @@ function doReroll(s,uids){
   const list=uids.filter(id=>{ const u=byUid(s,id); return u&&u.side==='p'&&u.hp>0&&!u.used&&!u.heavy&&!u.frozen; });
   if(!list.length) return false;
   s.rerolls--;
-  list.forEach(id=>rollUnit(s,byUid(s,id)));
+  /* ENG-15 — reroll hôm nay huỷ luôn crit đã roll được, tức người chơi bị PHẠT vì dùng
+     tài nguyên của chính mình. critKeep gỡ hình phạt đó (r_predatorpoise). */
+  const keepCrit=rhas(s,'critKeep');
+  list.forEach(id=>{ const u=byUid(s,id); const had=keepCrit&&u.critNow;
+    rollUnit(s,u); if(had){ u.critNow=true; EVrelic(s,'critKeep',u.uid); } });
   resolveCantrips(s);
   if(!rhas(s,'safeReroll')) s.undo=[];
   return true;
@@ -304,6 +470,15 @@ function doReroll(s,uids){
 /* ================= DAMAGE PIPELINE ================= */
 function EV(s,o){ if(!s.ev) s.ev=[]; if(s.ev.length>900) s.ev.length=0; s.ev.push(o); }
 function EVhp(s,u){ EV(s,{t:'hp',uid:u.uid,hp:u.hp,maxHp:u.maxHp,shield:u.shield}); }
+/* §3.9 — một relic không phát event là ĐÚNG SỐ nhưng VÔ HÌNH: fx.js replay s.ev để animate,
+   nên plague/noShieldCap/firstEcho/growthAll... hôm nay không có cách nào hiện ra.
+   Payload chỉ id + uid ⇒ tất định, không đụng math, KHÔNG cần bump ENGINE_VERSION vì
+   server replay so sánh state chứ không so sánh s.ev.
+   LƯU Ý CỐ Ý LỆCH SPEC: §10 E1 liệt kê cả buildUnit làm call site. Không làm ở đó — sau R1,
+   relicPool() gọi buildUnit cho cả roster ở 6 call site để dò partyKeywords, nên emit trong
+   buildUnit sẽ bơm rác vào s.ev mỗi lần sinh reward. Roster §5 tự nói relic modFace là
+   "visible trên mặt die" nên không cần event. */
+function EVrelic(s,id,uid){ if(s&&s.ev) EV(s,{t:'relic',id,uid:uid||null}); }
 function ft(s,u,txt,cls,big){ s.floatText.push({uid:u.uid,txt,cls,big:big||0});
   EV(s,{t:'ft',uid:u.uid,txt,cls,big:big||0}); }
 
@@ -318,7 +493,20 @@ function dealDamage(s,src,tgt,v,o){
     if(pierce){ v+= (src.cls==='bird'?3:0) + rsum(s,'piercePlus'); }
     const dm=rmul_(s,'dmgMult'); if(dm!==1) v=Math.ceil(v*dm);
     for(const r of rlist(s)) if(r.modDmg) v=r.modDmg({s,src,tgt,v});
-    if(o.crit) v*=rmax(s,'critMult',2);
+    if(o.crit){
+      v*=rmax(s,'critMult',2);
+      /* ENG-21 — cộng SAU khi nhân, không trước. HAI phạm vi tách rời:
+           critFlat     -> MỌI đòn crit            (r_shatterpoint)
+           critFlatPity -> CHỈ đòn mang cờ pityCrit (r_keeneye, do onRollEnd của nó đặt)
+         Giữ cả hai ⇒ +9 trên đòn pity, +5 trên các crit khác (roster §17.4). Gộp làm một field
+         `critFlat` biến r_keeneye thành +9 trên MỌI crit ⇒ ≥35.60 RP, một EPIC đứng trong dải
+         LEGENDARY. Event vẫn phát dưới id 'critFlat' vì đó là KEY LUẬT mà fx.js tra (nhãn 'CRIT'
+         đúng cho cả hai; nếu chỉ giữ r_keeneye thì fallback label của fx.js lo phần tên). */
+      let cf=rsum(s,'critFlat');
+      if(src.pityCrit) cf+=rsum(s,'critFlatPity');
+      if(cf){ v+=cf; EVrelic(s,'critFlat',tgt.uid); }
+      if(rhas(s,'critPierce')){ pierce=true; EVrelic(s,'critPierce',tgt.uid); }  /* ENG-8 */
+    }
   }
   /* ---- target side ---- */
   if(tgt.st.vulnerable>0) v=Math.ceil(v*1.5);
@@ -334,11 +522,17 @@ function dealDamage(s,src,tgt,v,o){
   /* stats */
   if(src&&src.side==='p'){ s.stat.dmg+=dealt; if(dealt>s.stat.maxHit) s.stat.maxHit=dealt; }
   if(tgt.side==='p') s.stat.taken+=dealt;
+  /* ENG-19 / §10 G2(b) — QĐ-2 đã duyệt. Chạy SAU khi shield đã hấp thụ nên relic đọc được
+     `dealt` thật, và mang `attack` vì hook nổ cho MỌI lần trừ HP kể cả tick poison/burn
+     (src=null) trong khi thorns chỉ nổ khi o.attack — thiếu cờ này r_bloodthorn vượt dải. */
+  if(tgt.side==='p') rcall(s,'onDmgTaken',{src,tgt,dealt,attack:!!o.attack});
   /* thorns (pierce+piercePlus relic bỏ qua thorns) */
   const skipThorns = pierce && rhas(s,'piercePlus');
   if(src&&o.attack&&!skipThorns&&tgt.st.thorns>0&&src.hp>0&&src!==tgt){
     let th=tgt.st.thorns;
-    if(tgt.side==='p') th*=rmax(s,'thornsMult',1);
+    /* ENG-4 — thornsPlus cộng SAU khi nhân, nên nó không bị thornsMult khuếch đại. */
+    if(tgt.side==='p'){ const tm=rmax(s,'thornsMult',1), tp=rsum(s,'thornsPlus');
+      th=th*tm+tp; if(tm!==1||tp) EVrelic(s,'thorns',tgt.uid); }
     EV(s,{t:'hit',src:tgt.uid,uid:src.uid,v:th,crit:false});
     src.hp-=th; ft(s,src,'-'+th,'dmg');
     if(tgt.side==='p'&&tgt.cls==='reptile') addStatus(s,src,['poison:1']);
@@ -346,10 +540,11 @@ function dealDamage(s,src,tgt,v,o){
     if(src.hp<0) src.hp=0;
     EVhp(s,src); if(src.hp<=0) EV(s,{t:'death',uid:src.uid});
     if(src.hp<=0&&src.side==='e') onEnemyDeath(s,src);
+    if(tgt.side==='p') rcall(s,'onThorns',{src,tgt,th});   /* ENG-5 */
   }
   /* onHit relic hooks */
   if(src&&src.side==='p'&&dealt>0){
-    for(const r of rlist(s)) if(r.onHit) r.onHit(s,{type:o.faceType||'dmg',dealt,tgt,addStatus:kw=>addStatus(s,tgt,[kw])});
+    for(const r of rlist(s)) if(r.onHit) r.onHit(s,{type:o.faceType||'dmg',dealt,tgt,crit:!!o.crit,src,addStatus:kw=>addStatus(s,tgt,[kw])});   /* ENG-1: ctx thêm crit + src */
   }
   if(tgt.side==='e'&&tgt.hp<=0) onEnemyDeath(s,tgt);
   if(tgt.boss) checkBossPhase(s,tgt);
@@ -374,10 +569,12 @@ function applyHeal(s,t,v){
 function applyShield(s,t,v){
   if(t.hp<=0||v<=0) return;
   if(t.side==='p'&&t.cls==='plant') v+=2;
-  const cap = (t.side==='p'&&rhas(s,'noShieldCap'))? 99999 : t.maxHp*2;
+  const noCap = t.side==='p'&&rhas(s,'noShieldCap');
+  if(noCap&&t.shield+v>t.maxHp*2) EVrelic(s,'noShieldCap',t.uid);
+  const cap = noCap? 99999 : t.maxHp*2;
   t.shield=Math.min(cap,t.shield+v); ft(s,t,'+'+v,'shd'); EVhp(s,t);
   if(t.side==='p'&&t.cls==='plant'&&t.shield>=10) t.st.thorns=Math.max(t.st.thorns||0,2);
-  if(t.side==='p') rcall(s,'onShield',{v,splash:m=>{ const es=aliveE(s); if(es.length) dealDamage(s,t,pick(es),Math.ceil(v*m),{attack:false}); }});
+  if(t.side==='p') rcall(s,'onShield',{v,tgt:t,splash:m=>{ const es=aliveE(s); if(es.length) dealDamage(s,t,pick(es),Math.ceil(v*m),{attack:false}); }});
 }
 function addStatus(s,t,kws,src){
   for(const k of kws){
@@ -392,7 +589,10 @@ function addStatus(s,t,kws,src){
       continue;
     }
     if(['thorns','regen','burn','blind','weaken','vulnerable'].includes(n)){
-      t.st[n]=(t.st[n]||0)+v; ft(s,t,n.slice(0,3).toUpperCase()+v,(n==='thorns'||n==='regen')?'buf':'deb');
+      /* THORNS_CAP (K24) — thorns là đại lượng DUY NHẤT không bao giờ giảm: tickStatus không
+         trừ nó. Không có trần thì nó vô hạn theo số lượt và KHÔNG giá hữu hạn nào đúng. */
+      t.st[n] = (n==='thorns') ? Math.min(THORNS_CAP,(t.st[n]||0)+v) : (t.st[n]||0)+v;
+      ft(s,t,n.slice(0,3).toUpperCase()+v,(n==='thorns'||n==='regen')?'buf':'deb');
     } else if(n==='stun'){ t.st.stun=1; ft(s,t,'STUN','deb'); }
     else if(n==='freeze'){ if(t.side==='p'){ t.frozenNext=true; ft(s,t,'FREEZE','deb'); } else { t.st.stun=1; ft(s,t,'STUN','deb'); } }
     else if(n==='enrage'){ t.die.forEach(f=>{ if(f.t==='dmg') f.v=Math.ceil(f.v*1.25); }); ft(s,t,'ENRAGE','buf'); }
@@ -503,7 +703,7 @@ function doFace(s,u,tgtUid,f,fi,isEcho){
         if(!tgt||tgt.hp<=0||tgt.side===u.side) return false;
         const mult=kwVal(f,'multi')||1;
         for(let i=0;i<mult;i++) if(tgt.hp>0||i===0) hit(tgt,v);
-        if(hasKw(f,'cleave')) neighborsOf(foes,tgt).forEach(t=>hit(t,Math.ceil(v*0.5)));
+        if(hasKw(f,'cleave')) neighborsOf(foes,tgt).forEach(t=>hit(t,Math.ceil(v*rmax(s,'cleaveRatio',0.5))));   /* ENG-9 */
       }
     }
     if(hasKw(f,'selfkill')){ u.hp=0; ft(s,u,'BOOM','dmg',1); }
@@ -529,14 +729,15 @@ function doFace(s,u,tgtUid,f,fi,isEcho){
   } else if(f.t==='mana'){
     if(u.side==='p'){ s.mana+=v; ft(s,u,'+'+v+' MP','man'); }
   } else if(f.t==='summon'){
-    if(u.side==='p'){ for(let i=0;i<v;i++) if(s.party.filter(x=>x.token&&x.hp>0).length<4){ const a=mkAlly(s); rollUnit(s,a); a.used=true; s.party.push(a); } ft(s,u,'SUMMON','buf'); }
+    if(u.side==='p'){ const tcap=rmax(s,'tokenCap',4);   /* ENG-20 — 4 không còn là số trần */
+      for(let i=0;i<v;i++) if(s.party.filter(x=>x.token&&x.hp>0).length<tcap){ const a=mkAlly(s); rollUnit(s,a); a.used=true; s.party.push(a); } ft(s,u,'SUMMON','buf'); }
     else { const k=u.summons||'egg'; for(let i=0;i<v;i++) if(s.enemies.length<7){ const m=mkMonster(k,u.sc*0.7,{hp:1,dmg:1}); rollUnit(s,m); pickEnemyIntent(s,m); s.enemies.push(m); } }
   }
   if(!isEcho){
     const sh=kwVal(f,'selfharm'); if(sh) dealDamage(s,null,u,sh,{pierce:1});
     const mn=kwVal(f,'mana'); if(mn&&u.side==='p') s.mana+=mn;
     if(hasKw(f,'rerollup')&&u.side==='p') s.rerolls++;
-    if(hasKw(f,'growth')) u.growth[fi]=(u.growth[fi]||0)+1;
+    if(hasKw(f,'growth')) u.growth[fi]=(u.growth[fi]||0)+1+rsum(s,'growthPlus');   /* ENG-2 */
     if(hasKw(f,'decay')) u.growth[fi]=(u.growth[fi]||0)-1;
     if(u.side==='p'&&f.t==='dmg'&&v>0) s.lastBig=(!s.lastBig||v>s.lastBig.v)?{v,f:clone(f)}:s.lastBig;
   }
@@ -561,17 +762,58 @@ function playerUseRelic(s,id,tgtUid){
   // See doReroll's comment above — same stale-action-after-phase-change guard.
   if(s.phase!=='combat') return false;
   const it=RELIC_BY_ID[id]; if(!it||!it.act) return false;
-  if(s.usedActives.includes(id)||s.mana<it.act.cost) return false;
+  if(s.mana<it.act.cost) return false;
+  /* ENG-16 — actReuse nới TRẦN LƯỢT (số lần dùng/lượt), chỉ cho thẻ rarity <= 2.
+     LƯU Ý: actives reset MỖI LƯỢT (endTurn xoá usedActives ngay sau khi tăng số lượt), không
+     phải mỗi trận — mana là chốt chặn duy nhất. Mọi định giá active dựa trên sự thật đó. */
+  const usedN = s.usedActives.filter(x=>x===id).length;
+  const maxUse = it.rar<=2 ? Math.max(1,rmax(s,'actReuse',1)) : 1;
+  if(usedN>=maxUse) return false;
   pushUndo(s);
   const a=it.act, tgt=tgtUid!=null?byUid(s,tgtUid):null, u=aliveP(s)[0]; let ok=true;
   if(a.kind==='heal'){ if(!tgt||tgt.side!=='p'||tgt.hp<=0) ok=false; else applyHeal(s,tgt,a.v); }
-  else if(a.kind==='dmg'){ if(!tgt||tgt.side!=='e'||tgt.hp<=0) ok=false; else dealDamage(s,u,tgt,a.v,{pierce:a.pierce,attack:true}); }
-  else if(a.kind==='ult'){ if(!tgt||tgt.side!=='e'||tgt.hp<=0) ok=false; else { dealDamage(s,u,tgt,a.v,{pierce:1,attack:true}); aliveP(s).forEach(t=>applyShield(s,t,10)); } }
+  /* ENG-14 — nhánh dmg trước đây BỎ QUA crit/exec trong opts, nên một active tự khai crit
+     không bao giờ crit được. a.crit/a.exec đọc từ data ⇒ không lặp lại lỗi hardcode. */
+  else if(a.kind==='dmg'){ if(!tgt||tgt.side!=='e'||tgt.hp<=0) ok=false; else dealDamage(s,u,tgt,a.v,{pierce:a.pierce,attack:true,crit:!!a.crit,exec:!!a.exec}); }
+  /* QĐ-3 bug 2: opts thiếu `crit` nên nhánh này KHÔNG BAO GIỜ crit được dù thẻ tự khai crit.
+     Sửa bằng cách truyền a.crit (giống hit() trong doFace). a_ult đồng thời được retag
+     crit -> mana ở §6.5 vì RP 36.05 của nó định giá trên 40 damage KHÔNG crit. */
+  else if(a.kind==='ult'){ if(!tgt||tgt.side!=='e'||tgt.hp<=0) ok=false; else { dealDamage(s,u,tgt,a.v,{pierce:1,attack:true,crit:!!a.crit}); aliveP(s).forEach(t=>applyShield(s,t,10)); } }
   else if(a.kind==='shieldall') aliveP(s).forEach(t=>applyShield(s,t,a.v));
   else if(a.kind==='dmgall') aliveE(s).slice().forEach(t=>dealDamage(s,u,t,a.v,{attack:true}));
   else if(a.kind==='poisonall') aliveE(s).slice().forEach(t=>addStatus(s,t,['poison:'+a.v],u));
-  else if(a.kind==='stun'){ if(!tgt||tgt.side!=='e'||tgt.hp<=0) ok=false; else addStatus(s,tgt,['stun']); }
+  else if(a.kind==='stun'){ if(!tgt||tgt.side!=='e'||tgt.hp<=0) ok=false; else addStatus(s,tgt,['stun'],u); }   /* §11 mục 8: truyền source cho nhất quán */
   else if(a.kind==='reroll') s.rerolls+=a.v;
+  /* ENG-10 — kind:'kw' (mode × scope). mode 'min' idempotent (nâng lên sàn), 'add' cộng dồn. */
+  else if(a.kind==='kw'){
+    const [kn,kvRaw]=String(a.kw).split(':'); const kv=kvRaw?+kvRaw:1;
+    const list=(a.scope==='allEnemies'? aliveE(s): aliveP(s)).slice();
+    for(const t of list){
+      if(a.mode==='min'){ const cur=t.st[kn]||0; if(cur<kv) addStatus(s,t,[kn+':'+(kv-cur)],u); }
+      else addStatus(s,t,[a.kw],u);
+    }
+  }
+  /* ENG-11 — kind:'grow'. Growth theo MẶT ĐANG ROLL, vĩnh viễn trong trận. */
+  else if(a.kind==='grow'){
+    aliveP(s).forEach(p=>{ if(p.rolled>=0&&p.die[p.rolled]&&p.die[p.rolled].v>0){
+      p.growth[p.rolled]=(p.growth[p.rolled]||0)+a.v; ft(s,p,'GROW +'+a.v,'buf'); } });
+  }
+  /* ENG-12 — kind:'summon'. Copy nguyên nhánh summon của doFace: GIỮ cap token và used=true. */
+  else if(a.kind==='summon'){
+    const tcap=rmax(s,'tokenCap',4);
+    for(let i=0;i<a.v;i++) if(s.party.filter(x=>x.token&&x.hp>0).length<tcap){
+      const al=mkAlly(s); rollUnit(s,al); al.used=true; s.party.push(al); }
+    ft(s,u,'SUMMON','buf');
+  }
+  /* ENG-13 — kind:'shatter'. Phá sạch shield và gây damage bằng lượng đã phá, tối thiểu a.min:
+     sàn này là lý do thẻ không bằng 0 trước địch không giáp. */
+  else if(a.kind==='shatter'){
+    if(!tgt||tgt.side!=='e'||tgt.hp<=0) ok=false;
+    else { const sh=tgt.shield||0; if(sh>0){ tgt.shield=0; ft(s,tgt,'-'+sh,'shd'); EVhp(s,tgt); }
+      dealDamage(s,u,tgt,Math.max(a.min||0,sh),{pierce:1,attack:true}); }
+  }
+  /* Trước đây KHÔNG có else: một `kind` lạ vẫn TRỪ MANA + tiêu slot của lượt + không làm gì. */
+  else ok=false;
   if(!ok){ s.undo.pop(); return false; }
   s.mana-=a.cost; s.manaSpent+=a.cost; s.usedActives.push(id);
   /* AQUA CONDUIT: mỗi 4 mana tiêu → +1 reroll */
@@ -635,6 +877,16 @@ function endTurn(s){
   rcall(s,'onTurnStart',null);
   bossTurnTraits(s);
   rollAll(s);
+  /* G1 / ENG-18 — growthAll. `growth` hôm nay chỉ cộng cho ĐÚNG MẶT vừa dùng, nên ở Ω=5 lượt
+     giá trị ≈ 0 và EVOLVE không có relic hợp bậc nào. growthAll cộng cho MỌI mặt của die.
+     Guard !p.token bắt buộc: token không đi qua buildUnit, u.growth của chúng không bền.
+     Guard theo lượt nằm trong THÂN relic (growthAllGuard), không nằm trong spec G1. */
+  let ga=0;
+  for(const r of rlist(s)){ if(!r.growthAll) continue;
+    if(r.growthAllGuard&&!r.growthAllGuard(s)) continue; ga+=r.growthAll; }
+  if(ga) s.party.forEach(p=>{ if(p.hp>0&&!p.token){
+    p.die.forEach((f,i)=>{ if(f.v>0) p.growth[i]=(p.growth[i]||0)+ga; });
+    ft(s,p,'GROW +'+ga,'buf'); EVrelic(s,'growthAll',p.uid); } });
   checkEnd(s);
 }
 function tickStatus(s){
@@ -646,11 +898,20 @@ function tickStatus(s){
       const t=(u.side==='e')?ticks:1;
       for(let i=0;i<t;i++) if(u.hp>0) dealDamage(s,null,u,u.st.poison,{pierce:1});
       const keepFull = u.side==='e' && (plague || u.die.some(f=>hasKw(f,'plague')) || s.party.some(p=>p.die.some(f=>hasKw(f,'plague'))));
-      if(!keepFull) u.st.poison--;
+      if(!keepFull) u.st.poison--; else EVrelic(s,'plague',u.uid);   /* §3.9: plague 100% vô hình trước đây */
     }
     if(u.st.burn>0){
       const bm=rmax(s,'burnMult',1);
-      dealDamage(s,null,u,u.st.burn*(u.side==='e'?bm:1),{pierce:1});
+      const base=u.st.burn*(u.side==='e'?bm:1);
+      dealDamage(s,null,u,base,{pierce:1});
+      /* ENG-7 — đối xứng chính xác với poisonTicks (cũng rmax) thay vì phát minh khái niệm mới.
+         Tick 2+ chỉ gây burnTickRatio phần: nếu không, r_hearthcore × r_solarcore = ×4 output. */
+      const bt=Math.max(1,rmax(s,'burnTicks',1));
+      if(u.side==='e'&&bt>1){
+        const ratio=rmax(s,'burnTickRatio',0.7);
+        for(let i=1;i<bt;i++) if(u.hp>0) dealDamage(s,null,u,Math.max(1,Math.ceil(base*ratio)),{pierce:1});
+        EVrelic(s,'burnTicks',u.uid);
+      }
       if(u.side==='e'&&rhas(s,'burnSpread')){
         const arr=aliveE(s), i=arr.indexOf(u), sp=Math.ceil(u.st.burn*0.5);
         [arr[i-1],arr[i+1]].forEach(x=>{ if(x&&x!==u){ x.st.burn=(x.st.burn||0)+sp; ft(s,x,'BUR'+sp,'deb'); } });
@@ -668,6 +929,20 @@ function checkEnd(s){
 }
 function finishCombat(s){
   const k=s.kind;
+  /* ENG-3 — giữ MỘT NỬA growth kiếm được trong trận, trần GROWTH_KEEP_CAP mỗi mặt.
+     Trần này là bắt buộc, không phải tuỳ chọn: đây là relic DUY NHẤT tích luỹ qua các trận,
+     và không trần thì nó đo được ≈70 RP = 1.6× trần LEGENDARY (§6.7.2).
+     s.party[i] khớp s.roster[i] vì startCombat dựng party bằng s.roster.map(); token được
+     push SAU nên không bao giờ lọt vào vòng này. */
+  if(rhas(s,'growthKeep')) for(let i=0;i<s.roster.length;i++){
+    const re=s.roster[i], u=s.party[i];
+    if(!re||!u||u.token) continue;
+    if(!re.grown) re.grown={};
+    for(let g=0;g<u.die.length;g++){
+      const seeded=re.grown[g]||0, earned=(u.growth[g]||0)-seeded;
+      if(earned>0) re.grown[g]=Math.min(GROWTH_KEEP_CAP, seeded+Math.floor(earned/2));
+    }
+  }
   s.shards += k==='boss'?90:k==='elite'?45:25;
   s.rewardTier = k==='boss'?3:k==='elite'?2:(s.step%3===0?1:0);
   if(k==='boss'&&s.step>=s.len){ s.phase='won'; return; }
@@ -680,9 +955,46 @@ function facePool(s,minR,maxR){
   const bp = s.bpFaces||[];
   return FACE_POOL.filter(f=>f.r>=minR&&f.r<=Math.min(maxR,cap)&&(!f.bp||bp.includes(f.bp)));
 }
+/* §3.7 nguồn 2 — một keyword đang có trên mặt party đã cấp sẵn luật của relic, nên relic đó
+   là dead draw. Phải đọc mặt SAU mutation (buildUnit), không phải HEROES[key].die, vì mặt
+   Mythic đến từ `muts`. buildUnit không dùng RNG ⇒ tất định. */
+function partyKeywords(s){
+  const out=new Set();
+  for(const re of (s.roster||[])){
+    let die; try{ die=buildUnit(re,s).die; }catch(e){ continue; }
+    for(const f of die) for(const k of f.k){ const t=KW_EX[k.split(':')[0]]; if(t) out.add(t); }
+  }
+  return out;
+}
+const mloadHeld = s => rlist(s).reduce((a,r)=>a+(r.mload||0),0);
+/* §3.6 + §3.7 — thi hành ở ĐIỂM PHÁT, không ở điểm tính: người chơi không bao giờ được đề nghị
+   một relic họ không dùng an toàn được. Không UI mới, không màn "chọn bỏ relic nào", và pool
+   vẫn là hàm thuần của s.relics ⇒ không phá determinism. */
+function relicConflict(s,r){
+  if((s.relics||[]).length>=RELIC_CAP) return true;                  /* trần thứ hai */
+  if(mloadHeld(s)+(r.mload||0)>RELIC_MLOAD_CAP) return true;         /* anti-stacking */
+  /* Hai tập KHÁC NHAU, và sự khác nhau đó chính là tính bất đối xứng của §3.7a:
+       heldEx = token `ex` của relic ĐANG GIỮ       -> nguồn duy nhất cho `exSub`
+       owned  = heldEx + token suy ra từ KW_EX của mặt party -> nguồn cho `ex` (§3.7) */
+  const heldEx=new Set();
+  for(const h of rlist(s)) for(const t of (h.ex||[])) heldEx.add(t);
+  const owned=new Set(heldEx);
+  for(const t of partyKeywords(s)) owned.add(t);
+  if((r.ex||[]).some(t=>owned.has(t))) return true;                  /* §3.7  — ĐỐI XỨNG */
+  /* §3.7a — MỘT CHIỀU: "đừng đề nghị TÔI nếu một superset đã được giữ".
+     `exSub` chỉ đọc, KHÔNG BAO GIỜ đổ vào heldEx/owned ⇒ subset đang giữ không thể chặn
+     superset. Đây là toàn bộ lý do mục này tồn tại: `ex` đối xứng sẽ khiến r_gorehook
+     (COMMON, 11.88 RP) CẤM r_apexferal (LEGENDARY) xuất hiện — một món nhặt sớm rẻ tiền xoá
+     mất phần thưởng cuối build, đảo ngược đúng đường tiến bộ §3.12 sinh ra để bảo vệ.
+     ⚠ GIỚI HẠN ĐÃ BIẾT, không sửa ở đây: lấy subset TRƯỚC rồi superset sau thì subset vẫn
+     thành 0 HỒI TỐ. Chặn điều đó cần cơ chế hoàn trả (refund/xoá relic) — là content thật,
+     không phải một luật pool. `exSub` mua đúng nửa có giá trị hơn: game KHÔNG BAO GIỜ đề nghị
+     một relic đã chết sẵn. Hàm vẫn thuần theo (s.relics, roster) ⇒ không phá determinism. */
+  return (r.exSub||[]).some(t=>heldEx.has(t));
+}
 function relicPool(s,maxR){
   const cap = s.unlockRelicMax!=null? s.unlockRelicMax : 3;
-  return RELICS.filter(r=>r.rar<=Math.min(maxR,cap)&&!s.relics.includes(r.id));
+  return RELICS.filter(r=>r.rar<=Math.min(maxR,cap)&&!s.relics.includes(r.id)&&!relicConflict(s,r));
 }
 function genRewards(s,kind){
   const tier=s.rewardTier, n=s.mods.rewards;
@@ -692,6 +1004,14 @@ function genRewards(s,kind){
   const out=[]; const pool=[];
   const canLevel=s.roster.filter(r=>TIER_UP[r.key]);
   if(canLevel.length) pool.push('level','level'); else pool.push('ascend','ascend');
+  /* design/gdd/part-skill-identity.md §3.4c — Axie import KHÔNG BAO GIỜ level được (chúng không có
+     entry trong TIER_UP), nên với nhánh else ở trên, một đội trộn hero + vault chỉ thấy 'ascend'
+     khi KHÔNG hero nào còn level được — tức gần như không bao giờ trong phần lớn một run. Kết quả:
+     con Axie import bị bỏ đói đúng đường tăng trưởng duy nhất của nó.
+     Sửa bằng cách THÊM vào pool, không thay nhánh else: đội TOÀN HERO có phân phối pool y hệt
+     trước (AC-31), vì điều kiện đòi có ít nhất một thành viên `imported` không level được. */
+  const importedStuck=s.roster.filter(r=>{ const h=HEROES[r.key]; return h&&h.imported&&!TIER_UP[r.key]; });
+  if(canLevel.length&&importedStuck.length) pool.push('ascend','ascend');
   pool.push('relic','relic','face','face','rune');
   if(s.maxRerolls<4) pool.push('reroll');
   pool.push('hp');
@@ -752,17 +1072,30 @@ function mkReward(s,t,band,out){
       sub:'IN EXCHANGE: all damage faces deal 4 more, and 1 extra maximum Reroll'}; }
   return null;
 }
+/* Archetype của một MẶT — bảng ưu tiên tường minh, khớp đầu tiên thắng.
+   Nguồn: design/gdd/relic-system.md §3.4 (12 dòng, thứ tự dưới đây LÀ luật, không phải
+   thứ tự tình cờ của một if-chain). Luật phát biểu bằng lời: "archetype của một mặt là
+   archetype hiếm nhất và khó thay thế nhất mà nó thuộc về — keyword trước type;
+   accumulator (poison/thorns) trước burst; điều kiện (exec) trước xác suất (crit);
+   phạm vi (aoe) cuối cùng."
+   Bản cũ KHÔNG BAO GIỜ trả 'thorns' hay 'exec' ⇒ AEGIS là archetype không mặt nào nuôi
+   được (Reptile không nuôi nổi chính SCALES của mình) và mọi mặt `exec` nuôi 0 archetype. */
+const ARCH_PRIORITY = [
+  ['summon', f => f.t === 'summon'],                       /* 1  type độc quyền */
+  ['poison', f => f.t === 'poison' || hasKw(f, 'poison')], /* 2  accumulator bậc hai */
+  ['thorns', f => hasKw(f, 'thorns')],                     /* 3  thorns không bao giờ giảm */
+  ['burn',   f => hasKw(f, 'burn')],                       /* 4  cần mật độ mới hoạt động */
+  ['exec',   f => hasKw(f, 'exec')],                       /* 5  điều kiện, ×1.6 với FERAL */
+  ['crit',   f => hasKw(f, 'crit')],                       /* 6  xác suất, sau điều kiện */
+  ['growth', f => hasKw(f, 'growth')],                     /* 7 */
+  ['pierce', f => hasKw(f, 'pierce')],                     /* 8 */
+  ['mana',   f => f.t === 'mana' || hasKw(f, 'mana')],     /* 9  type xuống dưới keyword */
+  ['shield', f => f.t === 'shield'],                       /* 10 sau thorns — có chủ ý */
+  ['aoe',    f => hasKw(f, 'aoe') || hasKw(f, 'cleave')],  /* 11 phạm vi, không phải bản sắc */
+];
 function faceArch(f){
-  if(f.t==='poison') return 'poison';
-  if(hasKw(f,'burn')) return 'burn';
-  if(f.t==='shield') return 'shield';
-  if(f.t==='mana') return 'mana';
-  if(f.t==='summon') return 'summon';
-  if(hasKw(f,'crit')) return 'crit';
-  if(hasKw(f,'pierce')) return 'pierce';
-  if(hasKw(f,'growth')) return 'growth';
-  if(hasKw(f,'aoe')||hasKw(f,'cleave')) return 'aoe';
-  return '';
+  for(const [a, test] of ARCH_PRIORITY) if(test(f)) return a;
+  return '';   /* 12  dmg/heal/debuff/buff trơn là mặt trung tính — đúng, không phải thiếu sót */
 }
 const KWT={cleave:'Cleave',pierce:'Pierce',aoe:'All',cantrip:'Cantrip',heavy:'Heavy',growth:'Growth',
   decay:'Decay',vital:'Vital',lifesteal:'Lifesteal',rerollup:'+Reroll',exec:'Execute',echo:'Echo x2',
@@ -855,7 +1188,7 @@ function genShop(s){
   const items=[];
   const rp=relicPool(s,3);
   shuffle(rp).slice(0,3).forEach(r=>items.push({kind:'relic',key:r.id,n:r.n,d:r.d,rar:r.rar,
-    cost:[45,75,120,180][r.rar]||60,arch:r.a}));
+    cost:RELIC_SHOP_COST[r.rar],arch:r.a}));
   const fp=facePool(s,1,3);
   shuffle(fp).slice(0,2).forEach(f=>{ const e=pick(s.roster);
     items.push({kind:'face',face:clone(f),uid:e.uid,idx:ri(6),n:'GENE · '+HEROES[e.key].n,

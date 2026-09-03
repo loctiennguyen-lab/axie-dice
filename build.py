@@ -1,7 +1,7 @@
 import os,sys
 PUBLIC = 'public' in sys.argv
 def r(p): return open(p,encoding='utf-8').read()
-FILES=[('%CSS%','src/style.css'),('%ART%','src/art.js'),('%COS%','src/cosmetics.js'),('%DATA%','src/data.js'),
+FILES=[('%CSS%','src/style.css'),('%ART%','src/art.js'),('%COS%','src/cosmetics.js'),('%DATA%','src/data.js'),('%PARTFACES%','src/part_faces.js'),
        ('%ENGINE%','src/engine.js'),('%AUDIO%','src/audio.js'),('%ICONS%','src/icons.js'),
        ('%LOG%','src/log.js'),('%UI%','src/ui.js'),('%FX%','src/fx.js'),('%DEV%','src/devtools.js')]
 html = """<!DOCTYPE html>
@@ -25,6 +25,7 @@ html = """<!DOCTYPE html>
 %ART%
 %COS%
 %DATA%
+%PARTFACES%
 %ENGINE%
 %AUDIO%
 %ICONS%

@@ -16,6 +16,7 @@ let rollAnim=null, pendFloats=[], hoverT=null;
 /* ---------- META (localStorage, degrade gracefully) ---------- */
 const MK='axiedice_meta_v2', RK='axiedice_run_v2';
 const DEF_META={vol:0.28,mute:false,spd:1,shards:0,unlocks:[],ascMax:0,best:0,runs:0,wins:0,faces:[],relics:[],bosses:[],tut:0,
+  collectionGrandfathered:false,
   xp:0,bpClaimed:[],bpFaces:[],perks:{},title:'',reduceFlash:false,vault:[],echoPoints:0,displayName:'',
   /* Echo Box cosmetics (economy-progression.md §10.3 amendment, 2026-09-02):
      titles/avatars/decor/backgrounds are now an owned COLLECTION, separately
@@ -43,8 +44,19 @@ const DEF_META={vol:0.28,mute:false,spd:1,shards:0,unlocks:[],ascMax:0,best:0,ru
      choice, only ever the truth from its own cloud save. */
   owner:''};
 let META={...DEF_META};
+/* design/gdd/relic-system.md §7 E7 — roster relic 44 -> 94 khiến MỌI người chơi đang 44/44
+   tụt xuống 44/94 và MẤT quyền vào Echo Box, một sink cuối game họ đã mở khoá. Đó là mất
+   tiến độ, không phải chi tiết. Không relic nào bị xoá/đổi id nên 0 dữ liệu META mồ côi;
+   chỉ cần một cờ một chiều. Sửa `>=` thành `>= 44` cứng thì người chơi MỚI không bao giờ
+   phải hoàn thành gì — cờ là cách duy nhất đúng cả hai phía. */
+function migrateMeta(){
+  if(!META.collectionGrandfathered && (META.relics||[]).length>=RELIC_COUNT_PRE_EXPANSION){
+    META.collectionGrandfathered=true;
+  }
+}
 function loadMeta(){
   try{ const j=localStorage.getItem(MK); if(j) META={...DEF_META,...JSON.parse(j)}; }catch(e){}
+  migrateMeta();
   /* One-time Echo Box migration (economy-progression.md §10.3 amendment):
      carry the old deterministic echoPoints meter forward as echoBoxesOpened
      (same tier/glow-border math, see echoTier()) and, if the player already
@@ -172,14 +184,14 @@ async function pullSyncAfterLogin(navigateOnDone){
     }
     if(!sameOwner){
       // Local data (if any) isn't this account's — never prompt, just adopt the cloud truth.
-      META={...DEF_META,...serverMeta,owner:authUsername}; saveMeta();
+      META={...DEF_META,...serverMeta,owner:authUsername}; migrateMeta(); saveMeta();
       if(navigateOnDone) screen='menu'; render(); return;
     }
     const localSavedAt=META.savedAt||0, serverSavedAt=serverMeta.savedAt||0;
     if(localSavedAt>serverSavedAt){
       acctConflict={server:serverMeta}; screen='account'; render(); return;
     }
-    META={...DEF_META,...serverMeta,owner:authUsername}; saveMeta();
+    META={...DEF_META,...serverMeta,owner:authUsername}; migrateMeta(); saveMeta();
     if(navigateOnDone) screen='menu'; render();
   }catch(e){ if(navigateOnDone) screen='menu'; render(); }
 }
@@ -230,6 +242,7 @@ function resolveConflictUseCloud(){ if(acctConflict) META={...DEF_META,...acctCo
    GRANTS changed, from a deterministic point to a cosmetic gacha pull. See
    COSMETIC_POOLS/ECHO_BOX_* in cosmetics.js and scEchoBox()/scProfile() below. */
 function collectionComplete(){
+  if(META.collectionGrandfathered) return true;   /* §7 E7 */
   return META.faces.length>=FACE_POOL.length && META.relics.length>=RELICS.length && META.bosses.length>=BOSSES.length;
 }
 function echoCost(n){ return Math.round(ECHO.base*Math.pow(ECHO.growth,n-1)); }
@@ -315,9 +328,22 @@ function fuseCosmetics(rarity){
    nếu đầy, TỪ CHỐI import mới kèm thông báo rõ ràng thay vì âm thầm cắt bớt (LRU/silent-trim).
    Import lại cùng axieId (VD: đã đổi part ngoài đời rồi quét lại) → CẬP NHẬT bản ghi cũ, không tạo bản sao. */
 const VAULT_MAX=20;
+/* design/gdd/part-skill-identity.md §5 E13 — Vault schema version.
+   Bản ghi vault là die ĐÃ RESOLVE, đóng băng lúc import. Khi luật resolve đổi (v1 tra
+   SLOT_CLASS_TEMPLATE 36 ô → chỉ 19 mặt engine-distinct; v2 tra bảng part-identity 285 mặt),
+   mọi bản ghi cũ vẫn giữ mặt CŨ. Không có migration thì hệ mới VÔ HÌNH với mọi người chơi đã
+   import — họ không có cách nào biết die của mình đã lạc hậu.
+   Migration là RE-SCAN, không phải chuyển đổi tại chỗ: die v1 không lưu `parts` nên không thể
+   dựng lại; phải gọi lại API. Bản ghi stale hiện badge RE-SCAN và bị team-select TỪ CHỐI. */
+const VAULT_SCHEMA=2;
+function vaultStale(v){ return !v||(v.schema|0)<VAULT_SCHEMA; }
 function importAxieToVault(axieData){
   if(!axieData||axieData.id==null) return {ok:false,err:'invalid_axie_data'};
   const die=axieToDie(axieData);
+  die.schema=VAULT_SCHEMA;
+  /* giữ manifest part đã verify cạnh die đã resolve — cần cho re-derive (geneTier) và cho
+     server dựng lại die khi replay (§3.9e bước 4). */
+  die.parts=((axieData.parts)||[]).map(p=>({id:p.id,name:p.name,class:p.class,type:p.type,specialGenes:p.specialGenes==null?null:p.specialGenes}));
   const idx=META.vault.findIndex(v=>v.axieId===die.axieId);
   if(idx>=0){ META.vault[idx]=die; saveMeta(); return {ok:true,updated:true,die}; }
   if(META.vault.length>=VAULT_MAX) return {ok:false,err:'vault_full',max:VAULT_MAX};
@@ -868,7 +894,12 @@ function scUnlocks(){
 function scCollection(){
   const w=el('div','screen menu collection');
   w.appendChild(el('h1','logo sm','COLLECTION'));
+  /* §7 E7: thanh tiến độ KHÔNG nói dối — vẫn hiện 44/94 thật; cờ grandfather chỉ giữ quyền
+     vào Echo Box, và được nói rõ bằng nhãn riêng thay vì bằng một con số sai. */
   w.appendChild(el('div','sub',`Faces ${META.faces.length}/${FACE_POOL.length} · Relics ${META.relics.length}/${RELICS.length} · Bosses ${META.bosses.length}/${BOSSES.length}`));
+  if(META.collectionGrandfathered && META.relics.length<RELICS.length){
+    w.appendChild(el('div','sub','Completed before the expansion — Echo Box stays unlocked'));
+  }
   // Render the FULL pool per section (not just owned items) so players can see
   // what's still missing. Unowned entries render as a rarity-tinted "???"
   // placeholder instead of being omitted, keeping progress-by-rarity visible.
@@ -1106,17 +1137,21 @@ function scTeam(){
       const key=ensureVaultHero(v), h=HEROES[key];
       const n=teamPick.filter(x=>x===key).length, pa=PASSIVE[h.cls];
       const open=vaultExpanded.has(key);
-      const c=el('div','vchip'+(n?' on':'')+(full&&!n?' full':'')); c.style.setProperty('--cc',CLASS_COLOR[h.cls]);
+      const stale=vaultStale(v);   /* E13 — die resolve theo luật cũ, phải quét lại */
+      const c=el('div','vchip'+(n?' on':'')+(full&&!n?' full':'')+(stale?' stale':'')); c.style.setProperty('--cc',CLASS_COLOR[h.cls]);
       const im=el('img','vchip-thumb'); im.src=axieArtSrc(v); im.onerror=()=>{ im.onerror=null; im.src=sprOf(h.cls,h.art); }; c.appendChild(im);
       const info=el('div','vchip-info');
       info.appendChild(el('div','vchip-nm',h.n));
       info.appendChild(el('div','vchip-cls',h.cls.toUpperCase()+' · HP '+h.hp));
       c.appendChild(info);
       if(n) c.appendChild(el('div','cnt','×'+n));
+      if(stale) c.appendChild(el('div','vchip-rescan','RE-SCAN'));
       const ib=el('button','vchip-i',open?'×':'i'); ib.title='Ability & dice faces';
       ib.onclick=e=>{ e.stopPropagation(); if(open) vaultExpanded.delete(key); else vaultExpanded.add(key); render(); };
       c.appendChild(ib);
-      c.onclick=()=>{ if(teamPick.length<5){ SFX.ui(); msg=''; teamPick.push(key); render(); } else { SFX.warn(); flash('Team full (5/5) — right-click a card to swap it out'); render(); } };
+      c.onclick=()=>{
+        if(stale){ SFX.warn(); flash(h.n+' was imported under the old part rules — re-import it from Import Axie to refresh its dice'); render(); return; }
+        if(teamPick.length<5){ SFX.ui(); msg=''; teamPick.push(key); render(); } else { SFX.warn(); flash('Team full (5/5) — right-click a card to swap it out'); render(); } };
       c.oncontextmenu=e=>{ e.preventDefault(); const i=teamPick.lastIndexOf(key); if(i>=0){SFX.ui();msg='';teamPick.splice(i,1);render();} };
       kbAct(c);
       vgrid.appendChild(c);

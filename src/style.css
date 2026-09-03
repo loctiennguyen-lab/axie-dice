@@ -388,6 +388,12 @@ small{font-size:var(--t1)}
 .vchip:hover{background:var(--pan2);border-color:var(--line2)}
 .vchip.on{border-color:var(--acc)}
 .vchip.full{opacity:.5;cursor:not-allowed}
+/* E13 — bản ghi vault sinh ra trước khi luật part→face đổi. Không mờ đi (người chơi vẫn phải
+   đọc được nó để biết quét lại con nào); đổi màu viền + badge chữ. Không dùng transform nên
+   không gây layout shift (luật UI 5). */
+.vchip.stale{border-color:var(--dmg);cursor:not-allowed}
+.vchip-rescan{position:absolute;bottom:-7px;left:8px;background:var(--dmg);color:#2a0a0a;
+  border-radius:var(--rad-sm);padding:0 4px;font-size:var(--t1);letter-spacing:.5px;line-height:1.4}
 .vchip-thumb{width:32px;height:32px;border-radius:50%;object-fit:cover;flex:none;background:var(--pan2)}
 .vchip-info{display:flex;flex-direction:column;line-height:1.25;max-width:110px}
 .vchip-nm{font-size:var(--t2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -664,6 +670,55 @@ small{font-size:var(--t1)}
 @keyframes fly{0%{opacity:0;transform:translate(-50%,8px) scale(.6)}18%{opacity:1;transform:translate(-50%,-8px) scale(1.2)}
   100%{opacity:0;transform:translate(-50%,-46px) scale(1)}}
 
+/* ---------- relic badge (relic-system.md §3.9 + §10 E1) ----------
+   fx.js relicBadge() dựng phần tử này khi engine phát {t:'relic'}. Trước đây 14
+   relic đúng số nhưng KHÔNG có cách nào hiện ra. Badge tái dùng đúng khung ngôn
+   ngữ có sẵn: neo trong .floats (cùng host với .ftx), nền tối đặc + viền màu
+   archetype giống .preview, cỡ chữ lấy từ thang --t1/--t2 — KHÔNG px rời, vì
+   một `font-size:9px` cứng trong .ractag-hv là thứ làm verify.mjs flap.
+   Chữ tên dùng --txt (AA chắc chắn); màu archetype (--rbc) chỉ dùng cho viền +
+   icon, nơi nó nằm trên nền --bg nên vẫn vượt 4.5:1 cho mọi giá trị trong ARCH.
+   --rbi là bậc thang xếp chồng khi nhiều relic KHÁC nhau nổ cùng lúc. */
+/* Neo trong .sprwrap: top tính theo % chiều cao khối tranh nên badge luôn nằm
+   giữa vùng art ở mọi breakpoint, không đè intent địch / HP / chip class. */
+.rbadge{pointer-events:none;position:absolute;left:50%;top:calc(24% + var(--rbi,0) * 24px);
+  transform:translateX(-50%);display:flex;align-items:center;gap:5px;z-index:11;
+  background:var(--bg);border:1px solid var(--rbc,var(--acc));border-radius:var(--rad-sm);
+  padding:2px 7px;max-width:min(150px,calc(var(--unit-w) + 28px));white-space:nowrap;
+  box-shadow:0 0 10px #000c,0 0 6px var(--rbc,var(--acc));
+  animation:rb-in .18s ease-out both}
+/* Màu archetype trong ARCH được chọn cho chip/nhãn trên panel mid-tone, KHÔNG
+   phải cho chữ nhỏ ở opacity giảm trên nền gần đen. Đo thật: ✜ AEGIS #a86fd8 đạt
+   5.55:1 ở opacity 1 nhưng chỉ 4.29:1 khi badge nằm trên Axie Egg
+   (.unit.p.token{opacity:.85}) — DƯỚI ngưỡng AA 4.5, và Egg chính là nơi
+   startSummon/eggInherit bắn. Pha 22% trắng nâng sàn lên 5.70:1 ở cùng điều kiện
+   mà vẫn giữ nhận dạng hue. Viền/glow giữ --rbc nguyên bản: chúng là non-text,
+   chỉ cần 3:1 (WCAG 1.4.11) và #a86fd8@.85 = 4.29:1 vẫn dư.
+   --rbc-tx do fx.js relicFxLighten() set sẵn dưới dạng hex phẳng, KHÔNG dùng
+   color-mix() ở đây: color-mix serialise thành color(srgb ...) mà parser contrast
+   của verify.mjs không đọc được ⇒ check sẽ pass giả. */
+.rbadge .rbi{font-size:var(--t2);line-height:1;color:var(--rbc-tx);flex:none}
+.rbadge .rbn{font-size:var(--t1);line-height:1.2;letter-spacing:1px;color:var(--txt);
+  overflow:hidden;text-overflow:ellipsis}
+/* Bộ đếm gộp: relic bắn lại trong cửa sổ throttle chỉ cập nhật "×N" ở đây,
+   không sinh badge mới (xem relicBadge() — coalesce theo id). */
+.rbadge .rbx{font-size:var(--t1);line-height:1.2;color:var(--rbc-tx);flex:none;font-weight:700}
+.rbadge.rb-pop{animation:rb-pop .18s ease-out}
+.rbadge.rb-out{animation:rb-out .2s ease-in forwards}
+@keyframes rb-in{0%{opacity:0;transform:translateX(-50%) translateY(6px) scale(.86)}
+  100%{opacity:1;transform:translateX(-50%) translateY(0) scale(1)}}
+@keyframes rb-pop{0%{transform:translateX(-50%) scale(1)}45%{transform:translateX(-50%) scale(1.12)}
+  100%{transform:translateX(-50%) scale(1)}}
+@keyframes rb-out{0%{opacity:1;transform:translateX(-50%) translateY(0)}
+  100%{opacity:0;transform:translateX(-50%) translateY(-10px)}}
+/* Cùng hợp đồng photosensitivity với flashScreen/hitstop: bỏ chuyển động, GIỮ
+   thông tin — badge vẫn hiện đủ lâu để đọc, chỉ không trượt/nảy. */
+@media (prefers-reduced-motion:reduce){
+  .rbadge,.rbadge.rb-pop{animation:none}
+  .rbadge.rb-out{animation:rb-fade .2s linear forwards}
+  @keyframes rb-fade{to{opacity:0}}
+}
+
 /* ---------- dice tray: the hero object ---------- */
 /* 2026-09-01: mỗi Axie + die của nó giờ là 1 cột (.pcol), thay vì 2 hàng riêng
    (zone.party + tray cũ) — .zone{display:flex} có sẵn xử lý layout hàng ngang cho .pcol */
@@ -722,7 +777,11 @@ small{font-size:var(--t1)}
   border-radius:8px 8px 0 0;background:transparent;display:flex;align-items:center}
 .die[data-r="1"] .ractag{background:var(--r1)} .die[data-r="2"] .ractag{background:var(--r2)}
 .die[data-r="3"] .ractag{background:var(--r3)} .die[data-r="4"] .ractag{background:var(--r4)}
-.ractag-hv{position:absolute;left:2px;top:-6px;font-size:9px;line-height:1;color:var(--acc)}
+/* UI rule 1 (closed type scale, no text < 11px). This was a hardcoded 9px and it made
+   verify.mjs A1 FLAP: the badge only exists while a heavy/vital face is on screen, so the
+   check went red or green depending on which relics that run happened to offer. Measured on
+   the unmodified HEAD build too — pre-existing, not a regression of the part-skill work. */
+.ractag-hv{position:absolute;left:2px;top:-7px;font-size:var(--t1);line-height:1;color:var(--acc)}
 .die[data-r="3"]{border-color:var(--r3)}
 .die[data-r="4"]{border-color:var(--r4);box-shadow:0 0 20px #ff5f8f66;animation:mythg 1.8s infinite}
 @keyframes mythg{0%,100%{box-shadow:0 0 14px #ff5f8f55}50%{box-shadow:0 0 28px #ff5f8fbb}}

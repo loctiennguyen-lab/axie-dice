@@ -6,8 +6,9 @@ const NAMES=['CURVE','HEROES','MON','BOSSES','RELICS','RELIC_BY_ID','TIER_UP','T
   'RUN_LEN','ASCENSION','ascMods','UNLOCKS','EVENTS',
   'newGame','nextStep','chooseNode','startCombat','rollAll','doReroll','anyRerollable','playerUseDie','playerUseRelic',
   'endTurn','undo','takeReward','buildUnit','dieRarity','aliveP','aliveE','realP','byUid','faceValue','hasKw','kwVal',
-  'eventChoose','eventDone','shopBuy','shopDone','archScore','faceText','faceArch','nftHpBonusPct'];
-const src=['src/data.js','src/engine.js'].map(f=>fs.readFileSync(f,'utf8')).join('\n')
+  'eventChoose','eventDone','shopBuy','shopDone','archScore','faceText','faceArch','nftHpBonusPct',
+  'axieToDie','PART_FACES','SLOT_ORDER'];
+const src=['src/data.js','src/part_faces.js','src/engine.js'].map(f=>fs.readFileSync(f,'utf8')).join('\n')
   +'\n;globalThis.__X={'+NAMES.map(n=>n+':'+n).join(',')+'};';
 vm.runInContext(src,ctx);
 const G=ctx.__X;
@@ -86,11 +87,37 @@ const L=G.RUN_LEN[MODE].len;
 const win=Array(L+1).fill(0), tri=Array(L+1).fill(0), trn=Array(L+1).fill(0), die=Array(L+1).fill(0);
 const pHp=Array(L+1).fill(0),pDps=Array(L+1).fill(0),eHp=Array(L+1).fill(0),eDps=Array(L+1).fill(0),cnt=Array(L+1).fill(0);
 let wins=0, stuck=0; const archWin={}, archAll={};
+/* N14 — forced roster. sim.js only ever played starter HEROES, so it could not say anything
+   about IMPORTED Axies; that left the one balance prediction this design makes (§5 E15: face
+   inflation drops time-to-kill for imported teams) completely unmeasured.
+     node tools/sim.js 300 vault=5           -> all five slots are imported Axies
+     node tools/sim.js 300 vault=2 mix=1     -> 2 imported + 3 heroes
+     node tools/sim.js 300 vault=5 genes=mystic
+   Selection is deterministic (catalog order, index-strided) — no Math.random — so a given
+   `vault=` invocation is reproducible and comparable run to run. */
+function buildVaultTeam(nVault, gene, variantSeed){
+  const PF=G.PART_FACES, ids=Object.keys(PF.scarcityBucket).sort();
+  const bySlot={};
+  for(const k of ids){ const [c,sl,nm]=k.split('|'); if(!G.CLASSES.includes(c)) continue;
+    ((bySlot[c]=bySlot[c]||{})[sl]=bySlot[c][sl]||[]).push({id:k,name:nm,class:c,type:sl,specialGenes:gene||null}); }
+  const keys=[];
+  for(let i=0;i<nVault;i++){
+    const cls=G.CLASSES[i%G.CLASSES.length];
+    const parts=G.SLOT_ORDER.map(sl=>{ const a=(bySlot[cls]||{})[sl]||[]; return a.length? a[(variantSeed+i*7)%a.length] : null; }).filter(Boolean);
+    const rec=G.axieToDie({id:'sim'+i+'_'+variantSeed,class:cls,parts});
+    const key='vault_sim'+i; G.HEROES[key]=rec; keys.push(key);
+  }
+  return keys;
+}
 const TEAMS=[['plant1','beast1','aqua1','reptile1','bug1'],['plant1','beast1','aqua1','bird1','bug1'],
   ['plant1','beast1','beast1','aqua1','reptile1'],['plant1','reptile1','aqua1','bug1','bird1'],
   ['bug1','bug1','reptile1','plant1','aqua1'],['bird1','bird1','beast1','aqua1','plant1']];
 for(let n=0;n<N;n++){
-  const team=TEAMS[n%TEAMS.length];
+  let team=TEAMS[n%TEAMS.length];
+  if(OV.vault){
+    const vk=buildVaultTeam(OV.vault, OV.genes, n);
+    team=vk.concat(team.slice(OV.vault)).slice(0,5);
+  }
   let nftPreselect;
   if(OV.nftCount){ // ví dụ: node tools/sim.js 500 mode=full nftCount=5 nftOwned=8 nftGenes=2
     const owned=OV.nftOwned||1, genes=OV.nftGenes||0;

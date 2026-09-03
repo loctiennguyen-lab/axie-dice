@@ -4,7 +4,7 @@
     {
       "name": "axie-dice",
       "runtimeExecutable": "python3",
-      "runtimeArgs": ["-m", "http.server", "5173", "--directory", "build"],
+      "runtimeArgs": ["-m", "http.server", "5173", "--directory", "."],
       "port": 5173
     }
   ]

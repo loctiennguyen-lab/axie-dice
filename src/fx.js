@@ -41,6 +41,110 @@ function floatOn(uid,txt,cls,big){
   host.appendChild(n);
   setTimeout(()=>n.remove(),1200/SPD);
 }
+/* ---------- relic badge (design/gdd/relic-system.md §3.9 + §10 E1) ----------
+   engine.js EVrelic() phát {t:'relic',id,uid} với `id` là KEY LUẬT (rhas/rsum key),
+   không phải relic id — nên phải tra ngược ra relic đang giữ để hiện đúng TÊN.
+   Fallback label lo trường hợp luật đến từ nguồn khác relic (vd `plague` có thể
+   do mặt Mythic `plague`, không do r_plaguelord) ⇒ không bao giờ hiện "undefined". */
+const RELIC_FX_FIELD = {
+  startSummon:['startSummon'], eggInherit:['eggInherit'], critKeep:['critKeep'],
+  critFlat:['critFlat'], critPierce:['critPierce'], thorns:['thornsMult','thornsPlus'],
+  noShieldCap:['noShieldCap'], growthAll:['growthAll'], plague:['plague'], burnTicks:['burnTicks']
+};
+const RELIC_FX_LABEL = {
+  startSummon:'SUMMON', eggInherit:'INHERIT', critKeep:'CRIT KEPT', critFlat:'CRIT',
+  critPierce:'PIERCE', thorns:'THORNS', noShieldCap:'NO CAP', growthAll:'GROWTH',
+  plague:'PLAGUE', burnTicks:'BURN'
+};
+/* Pha màu archetype về phía trắng, trả HEX phẳng. Vì sao tính ở JS mà không dùng
+   CSS color-mix(): computed style của color-mix serialise thành `color(srgb ...)`,
+   và helper contrast của tools/verify.mjs chỉ parse `rgb()/rgba()` — màu sẽ bị đọc
+   nhầm thành trắng, tức check contrast trên phần tử đó trở nên vô nghĩa (đo được,
+   xem báo cáo). Hex phẳng giữ cho badge tự chứng minh được bằng chính công cụ gate. */
+function relicFxLighten(hex,amt){
+  const m=/^#([0-9a-f]{6})$/i.exec(hex||''); if(!m) return hex;
+  const v=parseInt(m[1],16), mix=c=>Math.round(c+(255-c)*amt);
+  return '#'+[mix(v>>16&255),mix(v>>8&255),mix(v&255)]
+    .map(c=>c.toString(16).padStart(2,'0')).join('');
+}
+/* Tra relic đang giữ có field tương ứng. rlist() lọc theo s.relics nên chỉ trả về
+   relic người chơi THẬT SỰ cầm — nếu không có, luật đến từ face/class passive. */
+function relicFxInfo(id){
+  const fields=RELIC_FX_FIELD[id]||[id];
+  let hit=null;
+  try{ for(const r of rlist(S)){ if(fields.some(f=>r[f]!=null)){ hit=r; break; } } }catch(e){}
+  const arch=ARCH[hit?hit.a:'']||null;
+  const c=arch?arch.c:'#ffc857';   /* fallback = --acc, hex phẳng để đo được */
+  return { n:(hit?hit.n:(RELIC_FX_LABEL[id]||id)).toUpperCase(),
+           ic:arch?arch.ic:'◆', c, ctx:relicFxLighten(c,0.22) };
+}
+/* Throttle: CẢ HAI trục, vì hai kiểu spam khác nhau.
+   1) Coalesce repeat cùng id — relic trên onHit/onDmgTaken/onThorns bắn nhiều lần
+      trong MỘT lượt (thorns × 5 đòn AoE = 5 event giống hệt). Lần đầu hiện badge,
+      các lần sau trong cửa sổ RELIC_FX_HOLD chỉ tăng bộ đếm "×N" trên badge đang
+      sống → người chơi vẫn biết nó chạy 5 lần mà màn hình không nhấp nháy.
+   2) Xếp hàng id KHÁC nhau theo bậc thang — 3 relic khác nhau cùng lượt là 3 thông
+      tin khác nhau, không được nuốt. Bậc thang tính THEO TỪNG UNIT (đếm badge đang
+      sống trong host đó), không phải một bộ đếm toàn cục: hai relic nổ trên hai
+      Axie khác nhau không che nhau nên không có lý do gì phải đẩy cái thứ hai xuống.
+   KHÔNG dùng await: badge sống bằng setTimeout riêng, playback không bị kéo dài,
+   nên turn timing / replay không đổi. */
+const RELIC_FX_HOLD=600;
+let relicFxLive={};
+function relicBadge(id,uid){
+  const now=Date.now();
+  /* Đã có badge cùng id còn sống → gộp, không tạo phần tử mới. */
+  /* Điều kiện gộp = "badge đó CÒN trên màn hình", không phải một mốc thời gian
+     song song: mọi thời lượng ở đây chia cho SPD, nên một hằng số 600ms cứng sẽ
+     lệch khỏi tuổi thọ thật của badge ở speed khác 1 và sinh ra badge thứ hai
+     cùng tên nằm cạnh badge thứ nhất. isConnected là nguồn sự thật duy nhất. */
+  const live=relicFxLive[id];
+  if(live&&live.node&&live.node.isConnected&&!live.node.classList.contains('rb-out')){
+    live.n++; live.at=now;
+    let c=live.node.querySelector('.rbx');
+    if(!c){ c=el('span','rbx'); live.node.appendChild(c); }
+    c.textContent='×'+live.n;
+    live.node.classList.remove('rb-pop'); void live.node.offsetWidth; live.node.classList.add('rb-pop');
+    clearTimeout(live.timer);
+    live.timer=setTimeout(()=>relicBadgeEnd(id),RELIC_FX_HOLD/SPD);
+    return;
+  }
+  /* Neo vào .sprwrap (khối tranh) chứ KHÔNG phải .floats. Lý do đo được, không
+     phải thẩm mỹ: .floats nằm ở đỉnh card, mà đỉnh card của ĐỊCH chính là dòng
+     intent ("☠3 → Cub") — thông tin quyết định lượt chơi. Badge phủ lên đó dù chỉ
+     600ms vẫn là che mất dữ liệu người chơi cần. .sprwrap chỉ chứa tranh (không có
+     số nào), position:relative sẵn, và co giãn theo card ở cả 4 breakpoint nên
+     không cần magic number cho từng cỡ. Fallback .floats giữ cho badge luôn hiện
+     được kể cả nếu cấu trúc card đổi.
+     uid null (startSummon xảy ra trước khi có unit card) → neo vào Axie đầu đội. */
+  const un=uid!=null?unitEl(uid):null;
+  let host=un&&(un.querySelector('.sprwrap')||un.querySelector('.floats'));
+  if(!host){ const f=document.querySelector('.zone.party .sprwrap')||document.querySelector('.sprwrap')
+             ||document.querySelector('.floats'); host=f; }
+  if(!host) return;
+  const slot=host.querySelectorAll('.rbadge:not(.rb-out)').length;
+  const info=relicFxInfo(id);
+  const n=el('div','rbadge');
+  n.style.setProperty('--rbc',info.c);
+  n.style.setProperty('--rbc-tx',info.ctx);
+  n.style.setProperty('--rbi',String(slot%3));
+  n.appendChild(el('span','rbi',info.ic));
+  n.appendChild(el('span','rbn',info.n));
+  host.appendChild(n);
+  /* Cue rất nhỏ (hover tick), CHỈ khi badge mới xuất hiện — lần gộp ×N im lặng,
+     nếu không một relic thorns bắn 5 lần sẽ thành 5 tiếng bíp. Đi qua SFX chứ
+     không tự tạo audio node, theo luật "UI sound qua audio event system". */
+  try{ SFX.hover(); }catch(err){}
+  relicFxLive[id]={node:n,n:1,at:now,timer:setTimeout(()=>relicBadgeEnd(id),RELIC_FX_HOLD/SPD)};
+}
+function relicBadgeEnd(id){
+  const live=relicFxLive[id]; if(!live) return;
+  delete relicFxLive[id];
+  const n=live.node; if(!n||!n.isConnected) return;
+  n.classList.add('rb-out');
+  setTimeout(()=>n.remove(),220/SPD);
+}
+
 /* ---------- unit motion ---------- */
 function lunge(srcUid,tgtUid){
   const a=unitEl(srcUid), b=tgtUid!=null?unitEl(tgtUid):null;
@@ -136,6 +240,13 @@ async function runEvents(evs){
          glow pulse nhỏ tái dùng style shield/buff đã có, không thêm sprite/màu mới. */
       flashU(e.uid,'shdflash'); SFX.shield();
       await wait(40);
+    }
+    else if(e.t==='relic'){
+      /* §3.9 — relic bắn trên onHit/onKill/onShield/onTurnStart/onDmgTaken nên có thể
+         dày đặc; relicBadge() tự throttle. Không await lâu: badge tự hết hạn bằng
+         setTimeout, playback không bị kéo dài ⇒ không đụng timing replay dựa vào. */
+      relicBadge(e.id,e.uid);
+      await wait(30);
     }
     else if(e.t==='tick'){ await wait(160); }
     else if(e.t==='phase'){ SFX.boss(); bigText('PHASE 2','ph'); flashScreen('myth'); shake(3); await wait(700); }

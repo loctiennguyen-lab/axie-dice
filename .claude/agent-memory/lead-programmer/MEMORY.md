@@ -26,3 +26,9 @@
 
 ### Skills Completed
 - `story-done` — end-of-story completion handshake (Phase 1-8, writes story file)
+
+## Working Style
+- [Large design docs: write first, grep on demand](feedback_large_design_docs.md) — don't read 3400-line specs linearly; a passing generator beats the prose.
+
+## Axie Dice Tactics
+- [Verification baselines & harness gotchas](project_axiedice_verification.md) — harness file lists, soak needs build/, serve.py is broken, soakm flake is pre-existing.
