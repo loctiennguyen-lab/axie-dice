@@ -1407,7 +1407,12 @@ body.clog-open .clog-inner{ clip-path:inset(0 0 0 0); opacity:1; }
 /* ─────────── audio.js ─────────── */
 /* ============ AUDIO — WebAudio synth, 0 byte asset ============ */
 const AU={ctx:null,on:true,vol:0.28};
-function ac(){ if(!AU.ctx){ try{ AU.ctx=new (window.AudioContext||window.webkitAudioContext)(); }catch(e){ AU.on=false; } } return AU.ctx; }
+function ac(){ if(!AU.ctx){ try{ AU.ctx=new (window.AudioContext||window.webkitAudioContext)(); }catch(e){ AU.on=false; } }
+  /* btn() fires SFX.ui() on every click and every SFX routes through here, so this
+     runs inside the first real user gesture — the only moment a browser lets audio
+     start. MUS.arm() is idempotent, so calling it on every SFX costs nothing. */
+  if(typeof MUS!=='undefined') MUS.arm();
+  return AU.ctx; }
 function env(g,t,a,d,pk){ g.gain.setValueAtTime(0,t); g.gain.linearRampToValueAtTime(pk,t+a); g.gain.exponentialRampToValueAtTime(0.0001,t+a+d); }
 function tone(f,dur,type,pk,slide,delay){
   if(!AU.on) return; const c=ac(); if(!c) return;
@@ -1457,6 +1462,164 @@ const SFX={
   coin:()=>{ tone(1318,0.09,'square',0.2); tone(1760,0.13,'square',0.16,null,0.05); },
   open:()=>{ noise(0.24,0.16,1300,0,1); tone(400,0.24,'triangle',0.16,900); },
 };
+
+/* ─────────── music.js ─────────── */
+/* ============================================================
+   BACKGROUND MUSIC — external, lazily fetched, optional.
+
+   Deliberately NOT embedded in the single HTML file. Audio is the one asset
+   class where the single-file rule stops paying: a usable loop is 1-3MB, which
+   would more than double a 2.4MB page that today loads in one request. So the
+   game stays one file and the music arrives separately, on demand.
+
+   Three properties this has to hold, in order of importance:
+
+   1. MUSIC IS OPTIONAL. No file present, a 404, a file:// load with no server,
+      a browser that refuses the codec, autoplay denied — every one of those
+      ends in a silent game that plays perfectly. Nothing here may throw into
+      the caller: render() calls sync() on every screen change, and t_vault.mjs
+      loads the build over file:// where media may not load at all.
+   2. NO RETRY STORM. A failed track is marked dead once and never retried.
+      sync() runs on every render, so a retry-on-failure would hammer the
+      network for the whole session.
+   3. IT OBEYS THE EXISTING MUTE. AU.on and META.mute already gate every SFX;
+      music reads the same two flags plus its own level, AU.mvol.
+
+   Plain HTMLAudioElement with .volume, NOT a Web Audio graph: routing media
+   through MediaElementAudioSourceNode taints on file:// and needs CORS headers
+   on any other origin, which would trade working audio for a filter we do not
+   need. Crossfading is done by ramping .volume on a single shared ticker.
+
+   `var`, not `const`: the guards at the call sites read `typeof MUS`, and
+   `typeof` on a const/let still in its TDZ throws instead of saying
+   'undefined'. var hoists, so those guards mean what they look like.
+   ============================================================ */
+if(AU.mvol==null) AU.mvol=0.55;   /* music sits under the SFX; see README in assets/audio */
+
+var MUS=(()=>{
+  const DIR='assets/audio/';
+  /* One file per mood. `w` trims a track that was mastered hotter than the rest
+     without re-exporting it. Add a key here and sync() can reach it. */
+  /* `intro` is optional and plays ONCE per session, then hands off to `file`, which
+     loops forever. Real game music is built this way for a reason: the composed
+     build-up is the best part to arrive on, and the worst thing to hear every 69
+     seconds. Cut from the source on the beat grid (117.719 BPM, bar = 2.0387s):
+     intro = 5.1675s-17.4000s (6 bars), loop = 17.4000s-86.7174s (34 bars), with a
+     50ms equal-power crossfade at the loop's head. All three moods point at the same
+     pair, so one continuous take runs across menu / battle / boss. */
+  const TRACKS={
+    menu:  {file:'lunacia-loop.m4a', intro:'lunacia-intro.m4a', w:1.00},
+    combat:{file:'lunacia-loop.m4a', intro:'lunacia-intro.m4a', w:1.00},
+    boss:  {file:'lunacia-loop.m4a', intro:'lunacia-intro.m4a', w:1.00},
+  };
+  const FADE_MS=900, TICK_MS=50;
+
+  /* Keyed by FILE, not by track key. Two moods pointing at the same file share one
+     element, so moving menu -> combat -> boss on a single-track soundtrack keeps one
+     continuous take instead of restarting it three times. Balatro ships five "themes"
+     that are one composition; this is the same idea, and it must not stutter. */
+  const el={}, dead={}, introDone={};   /* dead[file]=true once that file has failed for good */
+  let curKey=null, ticker=null, armed=false, introFile=null;
+
+  const audible=()=>AU.on&&!(typeof META!=='undefined'&&META.mute);
+  function target(file){
+    const cur=TRACKS[curKey];
+    return (cur&&liveFile(curKey)===file&&audible())?Math.max(0,Math.min(1,AU.mvol*cur.w)):0;
+  }
+
+  function mk(file,doLoop){
+    if(!file||dead[file]) return null;
+    if(el[file]) return el[file];
+    /* build.py injects AUDIO_MANIFEST from what is actually in assets/audio. Asking for
+       a file that never shipped would 404, and the browser logs that itself — which
+       fails verify.mjs A11 ("no console error"). So a missing file is dead on arrival,
+       with no request at all. Drop the file in, rebuild, and it wakes up by itself. */
+    if(typeof AUDIO_MANIFEST!=='undefined'&&AUDIO_MANIFEST.indexOf(file)<0){ dead[file]=true; return null; }
+    let a;
+    try{ a=new Audio(DIR+file); }catch(e){ dead[file]=true; return null; }
+    a.loop=!!doLoop; a.preload='auto'; a.volume=0;
+    /* Any failure to obtain audio is final and silent — see property 2 above. */
+    a.addEventListener('error',()=>{ dead[file]=true; try{ a.pause(); }catch(e){} });
+    if(!doLoop) a.addEventListener('ended',()=>{ introFile=null; kick(curKey); pump(); });
+    el[file]=a; return a;
+  }
+  /* Which file should be sounding right now: the intro while it is still running,
+     otherwise the looping body. */
+  function liveFile(key){
+    const t=TRACKS[key]; if(!t) return null;
+    return (introFile&&introFile===t.intro)?t.intro:t.file;
+  }
+  function make(key){
+    const t=TRACKS[key]; if(!t) return null;
+    if(t.intro&&!introDone[t.file]&&!dead[t.intro]){
+      const iv=mk(t.intro,false);
+      if(iv){ introDone[t.file]=true; introFile=t.intro; mk(t.file,true); return iv; }
+    }
+    return mk(t.file,true);
+  }
+
+  function tick(){
+    let moving=false;
+    for(const f in el){
+      const a=el[f], want=target(f);
+      if(Math.abs(a.volume-want)<0.005){
+        a.volume=want;
+        /* Park a fully faded-out track so it stops decoding in the background. */
+        if(want===0&&!a.paused){ try{ a.pause(); }catch(e){} }
+        continue;
+      }
+      moving=true;
+      const stepSz=TICK_MS/FADE_MS;
+      a.volume=Math.max(0,Math.min(1,a.volume+(want>a.volume?stepSz:-stepSz)));
+    }
+    if(!moving&&ticker){ clearInterval(ticker); ticker=null; }
+  }
+  function pump(){ if(!ticker) ticker=setInterval(tick,TICK_MS); tick(); }
+
+  /* play() is a promise that REJECTS when autoplay is blocked. Swallow it: the
+     next real click calls arm() again through ac(), which is when it succeeds. */
+  function kick(key){
+    if(!key) return;
+    const a=make(key); if(!a) return;
+    if(a.paused&&audible()&&AU.mvol>0){
+      const p=a.play();
+      if(p&&p.catch) p.catch(()=>{});
+    }
+  }
+
+  function switchTo(key){
+    if(!TRACKS[key]||dead[TRACKS[key].file]||key===curKey) return;
+    curKey=key;
+    if(armed) kick(key);
+    pump();
+  }
+  /* Called from ac(), i.e. from inside the first real user gesture, which is the
+     only moment a browser will let audio begin. Idempotent on purpose. */
+  function arm(){
+    if(armed) return; armed=true;
+    if(curKey) kick(curKey);
+    pump();
+  }
+  function refresh(){ if(curKey&&audible()) kick(curKey); pump(); }
+  function stop(){ for(const k in el){ try{ el[k].pause(); }catch(e){} } curKey=null; pump(); }
+
+  /* render() calls this on every screen change, so it must stay cheap and must
+     never throw. It only picks a mood; the ticker does the fading. */
+  function sync(){
+    try{
+      let key='menu';
+      if(screen==='combat'&&S){
+        if(S.phase==='won'||S.phase==='lost') key='menu';
+        else if(S.kind==='boss') key='boss';
+        else key='combat';
+      }
+      switchTo(key);
+    }catch(e){ /* music must never break a render */ }
+  }
+  /* available() lets a settings screen hide the slider when no audio shipped. */
+  const available=()=>Object.keys(TRACKS).some(k=>!dead[TRACKS[k].file]);
+  return {arm,sync,refresh,stop,available};
+})();
 /* ─────────── icons.js ─────────── */
 /* ============ PIXEL ICONS (inline SVG, không phụ thuộc font) ============ */
 const IC_G={
@@ -2514,6 +2677,7 @@ function rcritMult(){ let m=2; for(const id of S.relics){ const r=RELIC_BY_ID[id
 /* ================= RENDER ================= */
 function render(){
   const root=$('#app'); if(!root) return;
+  if(typeof MUS!=='undefined') MUS.sync();   /* every screen/phase change already lands here */
   if(typeof clogInit==='function'&&!clogPanel) clogInit();
   if(typeof clogFreeze==='function'&&S&&S.phase==='lost') clogFreeze();
   if(typeof clogSetOpen==='function'&&screen!=='combat'&&clogOpen) clogSetOpen(false,false);
@@ -4153,6 +4317,7 @@ document.addEventListener('keydown',e=>{
 document.addEventListener('mousedown',e=>{ if(e.button===0&&rollAnim){ rollAnim.t0-=400; } });
 window.addEventListener('load',()=>{ loadMeta();
   if(META.vol!=null) AU.vol=META.vol;
+  if(META.mvol!=null) AU.mvol=META.mvol;
   if(META.mute) AU.on=false;
   if(META.spd) SPD=META.spd;
   if(META.tut)tut=0;
@@ -4750,15 +4915,28 @@ function scSettings(){
     /* âm lượng */
     const vw=el('div','setctl');
     const vi=document.createElement('input'); vi.type='range'; vi.min=0; vi.max=100; vi.step=5;
-    vi.value=Math.round((META.vol!=null?META.vol:0.28)*100/0.6*0.6*100/100*100)/100*1;
     vi.value=Math.round((META.vol!=null?META.vol:0.28)*167);
     const vv=el('span','setv',vi.value+'%');
-    vi.oninput=()=>{ vv.textContent=vi.value+'%'; META.vol=(+vi.value)/167; AU.vol=META.vol; AU.on=+vi.value>0; saveMeta(); };
+    vi.oninput=()=>{ vv.textContent=vi.value+'%'; META.vol=(+vi.value)/167; AU.vol=META.vol; AU.on=+vi.value>0; saveMeta();
+      if(typeof MUS!=='undefined') MUS.refresh(); };
     vw.appendChild(vi); vw.appendChild(vv);
     const mb=el('button','btn sm'+(AU.on?'':' on'),AU.on?'SOUND ON':'SOUND OFF');
-    mb.onclick=()=>{ AU.on=!AU.on; META.mute=!AU.on; saveMeta(); render(); };
+    mb.onclick=()=>{ AU.on=!AU.on; META.mute=!AU.on; saveMeta();
+      if(typeof MUS!=='undefined') MUS.refresh(); render(); };
     vw.appendChild(mb);
     row('VOLUME',vw);
+    /* Music has its own level so it can sit under the SFX. The row is hidden when no
+       audio shipped, rather than offering a slider that controls silence. */
+    if(typeof MUS!=='undefined'&&MUS.available()){
+      const mvw=el('div','setctl');
+      const mvi=document.createElement('input'); mvi.type='range'; mvi.min=0; mvi.max=100; mvi.step=5;
+      mvi.value=Math.round((META.mvol!=null?META.mvol:AU.mvol)*100);
+      const mvv=el('span','setv',mvi.value+'%');
+      mvi.oninput=()=>{ mvv.textContent=mvi.value+'%'; META.mvol=(+mvi.value)/100; AU.mvol=META.mvol; saveMeta();
+        if(typeof MUS!=='undefined') MUS.refresh(); };
+      mvw.appendChild(mvi); mvw.appendChild(mvv);
+      row('MUSIC',mvw);
+    }
     /* tốc độ */
     const sw=el('div','setctl');
     [1,2,3].forEach(v=>{ const b=el('button','btn sm'+(SPD===v?' on':''),v+'x');

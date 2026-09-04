@@ -1,5 +1,5 @@
 {
-  "buildCommand": "mkdir -p build && python3 build.py public && mv -f index.html build/index.html && cp tools/admin-dashboard.html build/admin-dashboard.html",
+  "buildCommand": "mkdir -p build && python3 build.py public && mv -f index.html build/index.html && cp tools/admin-dashboard.html build/admin-dashboard.html && mkdir -p build/assets/audio && (cp assets/audio/*.mp3 assets/audio/*.ogg assets/audio/*.m4a assets/audio/*.wav build/assets/audio/ 2>/dev/null || true)",
   "outputDirectory": "build",
   "cleanUrls": true,
   "functions": {

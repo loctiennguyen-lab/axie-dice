@@ -6,6 +6,18 @@ def r(p): return open(p,encoding='utf-8').read()
 # It ships its own <style> and <script> tags, so it is substituted whole.
 # src/part_faces.js is GENERATED (tools/gen_faces.mjs) and must load before
 # engine.js: axieToDie() v2 resolves parts through the 285-face table it defines.
+# Audio is the one asset class NOT embedded (see assets/audio/README.md). The client
+# must not request a track that was never shipped: a 404 on <audio> is logged by the
+# browser itself, which trips verify.mjs check A11 ("no console error") and would make
+# a green gate impossible until music lands. So the build states what actually exists
+# and MUS only ever asks for those files.
+AUDIO_DIR = 'assets/audio'
+AUDIO_EXT = ('.mp3', '.ogg', '.m4a', '.wav')
+def audio_manifest():
+    try: names = sorted(f for f in os.listdir(AUDIO_DIR) if f.lower().endswith(AUDIO_EXT))
+    except OSError: names = []
+    return 'const AUDIO_MANIFEST=' + repr(names).replace("'", '"') + ';'
+
 FILES=[('%ART%','src/art.js'),('%COS%','src/cosmetics.js'),('%DATA%','src/data.js'),
        ('%PARTFACES%','src/part_faces.js'),
        ('%ENGINE%','src/engine.js'),('%CLIENT%','src/client.html'),('%DEV%','src/devtools.js')]
@@ -27,6 +39,7 @@ html = """<!DOCTYPE html>
      client.html's top-level code (fitUI(), render()) runs on load and needs
      both them and #app to already exist. -->
 <script>
+%AUDIOMANIFEST%
 %ART%
 %COS%
 %DATA%
@@ -39,6 +52,7 @@ html = """<!DOCTYPE html>
 </script>
 </body></html>
 """
+html=html.replace('%AUDIOMANIFEST%', audio_manifest())
 for k,f in FILES:
     if PUBLIC and k=='%DEV%':
         html=html.replace(k,'/* dev tools stripped from public build */'); continue
