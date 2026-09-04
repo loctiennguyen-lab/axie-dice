@@ -5067,8 +5067,51 @@ async function playEvents(){
     document.body.classList.remove('dragging'); dragging=null;
   }
 }
+/* ================= OVERKILL — juice tier above crit/mythic =================
+   The per-hit ladder inside runEvents() tops out at shake(3) + hitstop(110), so a
+   die that wipes half the board read exactly like a die that hit one enemy hard:
+   the payoff moment of a build-around run was the flattest thing on screen.
+   Two triggers, PLAYER actions only:
+     - one action kills >= OVERKILL_KILLS enemies (aoe / cleave / chain wipes)
+     - one hit removes >= OVERKILL_BOSS_FRAC of a boss's max HP
+   Detected in a PRE-PASS because the moment to punch is the LAST death of a
+   multi-kill, and that is only knowable once the whole action's events are seen.
+   Reuses hitstop/flashScreen/shake/bigText/SFX.mythic — no new asset and no new
+   colour token, and the photosensitivity contract comes along for free since every
+   primitive here already honours wantsLessFlash(). Tune the two constants, not the fx. */
+const OVERKILL_KILLS=2, OVERKILL_BOSS_FRAC=0.5;
+function overkillMarks(evs){
+  const marks=new Map(); if(!S) return marks;
+  for(let i=0;i<evs.length;){
+    if(evs[i].t!=='use'||evs[i].side!=='p'){ i++; continue; }
+    let kills=0,lastKill=-1,frac=0,fracAt=-1;
+    for(i++;i<evs.length&&evs[i].t!=='use';i++){
+      const e=evs[i],u=byUid(S,e.uid);
+      /* thorns (engine.js:548) hits the ATTACKER back and can kill it — a dead
+         friendly must never trigger a celebration, hence the side check. */
+      if(!u||u.side==='p') continue;
+      if(e.t==='death'){ kills++; lastKill=i; }
+      else if(e.t==='hit'&&e.v>0&&u.boss&&u.maxHp>0){
+        const f=e.v/u.maxHp; if(f>frac){ frac=f; fracAt=i; }
+      }
+    }
+    if(kills>=OVERKILL_KILLS) marks.set(lastKill,{kills:kills,frac:0});
+    else if(frac>=OVERKILL_BOSS_FRAC) marks.set(fracAt,{kills:0,frac:frac});
+  }
+  return marks;
+}
+async function overkillFx(m){
+  SFX.mythic();
+  hitstop(260);            /* > crit 110 and mythic 140 so the tier reads as its own beat */
+  flashScreen('myth');
+  shake(3);
+  bigText(m.kills>=OVERKILL_KILLS?'OVERKILL \u00d7'+m.kills:'CRUSHING BLOW','');
+  await wait(360);
+}
 async function runEvents(evs){
-  for(const e of evs){
+  const oks=overkillMarks(evs);
+  for(let i=0;i<evs.length;i++){
+    const e=evs[i];
     if(e.t==='use'){
       if(e.side==='p'){ dieFly(e.uid,e.aoe?null:e.tgt); lunge(e.uid,e.aoe?null:e.tgt); await wait(150); }
       else { lunge(e.uid,e.aoe?null:e.tgt); await wait(110); }
@@ -5108,6 +5151,7 @@ async function runEvents(evs){
     }
     else if(e.t==='tick'){ await wait(160); }
     else if(e.t==='phase'){ SFX.boss(); bigText('PHASE 2','ph'); flashScreen('myth'); shake(3); await wait(700); }
+    if(oks.has(i)) await overkillFx(oks.get(i));
   }
 }
 
