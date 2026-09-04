@@ -40,7 +40,7 @@ window.__V = (() => {
      The color() form is what EVERY css color-mix() serialises to — verified in
      Chromium: color-mix(in srgb, #ff7a7a 45%, transparent) computes to
      "color(srgb 1 0.478431 0.478431 / 0.45)" in color, background-color AND
-     border-color alike. src/style.css ships color-mix() today, so before this
+     border-color alike. src/client.html ships color-mix() today, so before this
      was fixed contrast scoring on those surfaces was vacuous.
 
      Anything still not understood (oklch/oklab/lab/lch/hwb, color() in a space
@@ -169,7 +169,7 @@ window.__V = (() => {
   /* ---------- transient recorder ----------
      This file checks by SNAPSHOT, so any element that appears and vanishes
      between two snapshots is never inspected at all. The concrete case that
-     exposed it: the relic activation badges in src/fx.js (relicBadge(), held
+     exposed it: the relic activation badges in src/client.html (relicBadge(), held
      RELIC_FX_HOLD = 600ms) passed no check because no check ever saw them —
      "the suite is green" and "the badge is compliant" were different claims and
      only a hand audit ever established the second.
@@ -275,7 +275,7 @@ window.__V = (() => {
       }
       return;
     }
-    /* src/ui.js re-renders a whole screen on every state change, so ordinary,
+    /* src/client.html re-renders a whole screen on every state change, so ordinary,
        persistent UI is destroyed and rebuilt constantly — a spent die's node
        lives 300ms even though a spent die is on screen for the rest of the
        turn. That is DOM churn, not transient UI. If an element with the same
@@ -729,7 +729,7 @@ async function checkTransients(page, label = 'transient', drv = {}) {
   const seen = r.findings.length;
   /* A canary, not decoration. "The suite is green" and "the badge is compliant"
      were different claims once already; this makes the second one an assertion.
-     If src/fx.js renames these classes the check goes red and someone has to
+     If src/client.html renames these classes the check goes red and someone has to
      come back here — which is the correct failure mode. A check that quietly
      stops finding its subject is the bug this whole file is fixing. */
   const WITNESS = { '.rbi/.rbn (relic badge, fx.js relicBadge)': /^rb[inx]$/,
@@ -944,7 +944,7 @@ async function checkPixelTruth(page, label, frozen = {}) {
    torn down while the camera is open.
 
    relicBadge('eggInherit', uid) is the exact call fx.js's own event replay makes
-   (src/fx.js:248, `relicBadge(e.id, e.uid)`) for the event engine.js:404 emits,
+   (src/client.html, `relicBadge(e.id, e.uid)` in runEvents) for the event engine.js emits,
    `EVrelic(s,'eggInherit',a.uid)` where `a` is the Axie Egg. Aiming it at the Egg
    is deliberate: .unit.p.token{opacity:.85} over artwork is the worst backdrop
    the badge ever lands on, and the one an earlier hand audit measured at 4.29:1. */

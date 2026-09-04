@@ -145,7 +145,9 @@ console.log('\n=== P6 · faceArch reaches thorns and exec (§3.4) ===');
 
 console.log('\n=== P7 · collectionGrandfathered migration (§7 E7) ===');
 {
-  const uiSrc=fs.readFileSync('src/ui.js','utf8');
+  /* ui.js was folded into src/client.html by main's a206b12 client refactor; the
+     migrateMeta()/collectionComplete() source these proofs assert on moved verbatim. */
+  const uiSrc=fs.readFileSync('src/client.html','utf8');
   const DEF={faces:[],relics:[],bosses:[],collectionGrandfathered:false};
   const mkMeta=o=>({...DEF,...o});
   let META;
@@ -153,7 +155,7 @@ console.log('\n=== P7 · collectionGrandfathered migration (§7 E7) ===');
   const complete=()=>META.collectionGrandfathered
     ||(META.faces.length>=G.FACE_POOL.length&&META.relics.length>=G.RELICS.length&&META.bosses.length>=Object.keys(G.BOSSES).length);
   ok(/function migrateMeta\(\)/.test(uiSrc)&&/if\(META\.collectionGrandfathered\) return true;/.test(uiSrc),
-     'src/ui.js ships migrateMeta() and collectionComplete() honours the flag');
+     'src/client.html ships migrateMeta() and collectionComplete() honours the flag');
   ok(/loadMeta\(\)\{[\s\S]{0,200}migrateMeta\(\);/.test(uiSrc),'migrateMeta() runs on local save load');
   ok((uiSrc.match(/migrateMeta\(\); saveMeta\(\);/g)||[]).length===2,'migrateMeta() also runs on both server-meta load paths');
   /* người chơi CŨ đã 44/44 relic + full faces/bosses */

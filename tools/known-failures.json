@@ -11,12 +11,5 @@
     "this file entirely and shows the true invariant state."
   ],
   "gen_faces": [],
-  "t_fit": [
-    {
-      "viewport": "1280x720",
-      "reason": "END TURN button sits below the fold (doc height 808 > window 720). Pre-existing bug, unrelated to the part-skill face work; being fixed in a separate session.",
-      "owner": "ui-programmer",
-      "since": "2026-09-03"
-    }
-  ]
+  "t_fit": []
 }

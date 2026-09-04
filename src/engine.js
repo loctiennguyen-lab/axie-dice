@@ -514,7 +514,19 @@ function dealDamage(s,src,tgt,v,o){
   let dealt=0;
   EV(s,{t:'hit',src:src?src.uid:null,uid:tgt.uid,v:v,crit:!!o.crit});
   if(!pierce&&tgt.shield>0){ const ab=Math.min(tgt.shield,v); tgt.shield-=ab; v-=ab; if(ab>0) ft(s,tgt,'-'+ab,'shd'); }
-  if(v>0){ tgt.hp-=v; dealt=v; ft(s,tgt,(o.crit?'CRIT ':'')+'-'+v,'dmg',o.crit?2:(v>=25?1:0)); }
+  /* T22 (2026-09-03) · Formation Resonance's +25% was already baked into `v`
+     by the time it reaches here (faceValue() applies RESONANCE.mult before
+     dealDamage ever sees the number) — but the ONLY visible cue was a
+     separate "LINK ×1.25" float on the ATTACKER, shown before the hit lands.
+     The actual damage number on the TARGET carried zero indication it had
+     been boosted, so a player watching numbers land had no way to connect
+     "why did that one hit for more" back to their formation choice — see
+     design/quick-specs/formation-resonance-2026-09-01.md Player Fantasy
+     ("minh bạch triệt để"): a mechanic that changes a number must show up
+     ON that number, not just as a separate pre-attack label. Tag the
+     boosted hit's own float text so the two "LINK" cues read as one
+     connected story instead of two disconnected floats. */
+  if(v>0){ tgt.hp-=v; dealt=v; ft(s,tgt,(o.crit?'CRIT ':'')+(o.resonant?'LINK ':'')+'-'+v,'dmg',o.crit?2:(v>=25?1:0)); }
   if(tgt.hp<=0&&tgt.st.undying){ tgt.st.undying=0; tgt.hp=1; ft(s,tgt,'UNDYING','buf'); }
   if(tgt.hp<0) tgt.hp=0;
   EVhp(s,tgt);
@@ -689,7 +701,7 @@ function doFace(s,u,tgtUid,f,fi,isEcho){
     && k!=='cleave'&&k!=='pierce'&&k!=='lifesteal'&&k!=='growth'&&k!=='decay'&&k!=='vital'&&k!=='rerollup'&&k!=='exec');
   const hit=(t,amount,extra)=>{
     const d=dealDamage(s,u,t,amount,{pierce:hasKw(f,'pierce')||(u.side==='p'&&u.cls==='bird'&&hasKw(f,'aoe')),
-      attack:true,crit,exec:hasKw(f,'exec'),faceType:'dmg'});
+      attack:true,crit,exec:hasKw(f,'exec'),faceType:'dmg',resonant:u.resonantNow});
     if(hasKw(f,'lifesteal')&&d>0) applyHeal(s,u,d);
     if(kwPure.length&&d>=0) addStatus(s,t,kwPure,u);
     return d;

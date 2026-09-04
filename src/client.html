@@ -1,3 +1,1878 @@
+<!-- ═══════════════════════════════════════════════════════════════════════
+     src/client.html — TOÀN BỘ code client trong MỘT file.
+     Gộp ngày 2026-09-03 từ: style.css + audio.js + icons.js + log.js +
+     ui.js + fx.js. Thứ tự <script> dưới đây GIỮ NGUYÊN thứ tự nạp cũ của
+     build.py — audio → icons → log → ui → fx — vì tất cả dùng chung một
+     global scope, không có module system.
+
+     BỐN file CỐ Ý ĐỨNG NGOÀI file này, không phải vì lười:
+       src/engine.js, src/data.js  — api/_engine.js đọc 2 file này từ đĩa vào
+         Node VM để replay-verify điểm Leaderboard (anti-cheat server-side).
+         Gộp vào đây là hỏng anti-cheat. tools/sim.js, tools/t_import.mjs cũng
+         đọc trực tiếp.
+       src/devtools.js             — build.py STRIP file này khỏi bản public
+         (`build.py public`). devGo() nhảy được mọi màn và tự cấp
+         META.shards=900 + relic/legendary. Gộp vào đây là không strip được
+         nữa, tức bản production ship kèm bộ cheat trong khi Leaderboard
+         ranked đang chạy. Đây là lý do bảo mật, không thương lượng.
+       src/art.js, src/cosmetics.js — 1,8MB base64 thuần (art.js nằm trong
+         ĐÚNG 1 dòng dài 232.878 ký tự). Không ai sửa tay; nhét vào đây chỉ
+         làm mọi lần đọc/sửa file này tốn context vô ích.
+     ═══════════════════════════════════════════════════════════════════════ -->
+<style>
+/* ============================================================
+   AXIE DICE TACTICS — visual system v0.8
+   Rules this file follows, so it stays clean as it grows:
+   1. The background is neutral. Colour is reserved for meaning.
+   2. Six type sizes. Nothing else.
+   3. One border weight, two radii, spacing on a 4px grid.
+   4. Glow marks exactly four things: your selection, a legal
+      target, Mythic rarity, and Echo Tier prestige frames (opt-in,
+      end-game, invisible at tier 0). Nothing else glows.
+   ============================================================ */
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  /* ═══ TYPE — 6 bậc, sàn 11px (L1/L2) ═══ */
+  --t1: 11px;   /* nhãn ALL-CAPS ≤12 ký tự: WAVE, MANA, BACK, HORN — tools/verify.mjs
+                   A4 hardcodes this exact value, do not change it; protect its
+                   legibility via fitUI()'s scale floor instead (see ui.js) */
+  --t2: 13px;   /* chữ phụ, chip, số nhỏ, keyword xúc xắc */
+  --t3: 15px;   /* BODY MẶC ĐỊNH — mô tả, tooltip, Codex, passive */
+  --t4: 20px;   /* tiêu đề section, nhãn nút lớn, intent địch */
+  --t5: 28px;   /* tiêu đề màn hình */
+  --t6: 44px;   /* logo */
+  --die-num: 34px;
+  --die-kw:  13px;
+  --intent-v:20px;
+  --float-sz:28px;
+  --icon-sm: 14px; --icon-md: 24px;
+  --font: "JetBrains Mono","IBM Plex Mono",ui-monospace,"Courier New",monospace;
+  /* 2026-09-01: Lunacia Void redesign §2.2/§2.3 — second weight + display face
+     for chrome text. Fallback system-sans stack (base64 font embed rejected
+     for this pass — see docs/art/visual-redesign-2026-09-01.md §2.3). */
+  --fw-action: 700;
+  --fw-prose:  500;
+  --font-brand: ui-sans-serif, "Segoe UI", system-ui, sans-serif;
+
+  /* ═══ SPACING — lưới 4px ═══ */
+  --s1:4px; --s2:8px; --s3:12px; --s4:16px; --s5:24px; --s6:32px; --s7:48px;
+  /* 2026-09-01: two-tier canonical card padding (§4.2) */
+  --card-pad-sm: var(--s3);
+  --card-pad:    var(--s4);
+  /* 2026-09-01: named offset for the HP-number reserve above the bar (§3.7) */
+  --hp-num-offset: 20px;
+
+  /* ═══ CONTROL — 3 cỡ ═══ */
+  --ctl-sm:32px; --ctl-md:40px; --ctl-lg:48px; --tap-min:44px;
+
+  /* ═══ SURFACE — --line2 gánh việc phân định component (1.4.11) ═══ */
+  /* 2026-09-01: "Lunacia Void" — neutrals rotated to deep violet-black (§1.2 of
+     docs/art/visual-redesign-2026-09-01.md). Semantic/rarity/class colors below
+     are untouched by design — see that spec's hue-collision audit (§1.3). */
+  --bg:    #0b0a14;
+  --bg-top:#171426;
+  --pan:   #201d33;
+  --pan2:  #2a2638;
+  --pan3:  #3a3449;
+  --pan-hi:#423b54;   /* 2026-09-01: bậc bề mặt mới cho "Table plane" (unit/die) — giữa pan2 và pan3 */
+  --line:  #524a68;   /* kẻ TRANG TRÍ */
+  --line2: #786d99;   /* VIỀN CARD */
+  /* 2026-09-01: depth token cho "Table plane" (unit/die) — KHÔNG dùng cho Deck plane
+     (btn/icard/bottombar/track giữ nguyên phẳng, xem docs/review UI 2026-09-01) */
+  --sh-card: 0 1px 0 rgba(255,255,255,.04) inset, 0 3px 0 rgba(10,6,20,.4), 0 6px 14px rgba(10,6,20,.5);
+  --sh-hero: 0 1px 0 rgba(255,255,255,.06) inset, 0 4px 0 rgba(10,6,20,.45), 0 10px 22px rgba(10,6,20,.55);
+  --radius:10px; --rad-sm:6px; --bd:2px;
+
+  /* ═══ TEXT ═══ */
+  --txt:#eee9f5;
+  /* 2026-09-01: spec §1.2 gave --dim:#a89fc2, but that fails WCAG AA (4.23:1,
+     need 4.5:1) against --pan-hi #423b54 (.nm/.dp text on unit/die cards) —
+     verified by tools/verify.mjs A2.combat/A2.tablet. Nudged lighter within
+     the same violet-grey hue to #b2a9cc (4.76:1) to hold the ≥29/30 bar;
+     flagged for art-director review. */
+  --dim:#b2a9cc;
+  --off:#7d7590;   /* CHỈ cho [disabled] */
+
+  /* ═══ SEMANTIC ═══ */
+  --acc: #ffc857;
+  --heal:#5fd68a;
+  --shd: #63b3ff;
+  --man: #b388ff;
+  --dmg: #ff6b6b;
+  --poi: #a8d84a; --burn:#ff9a4d; --deb:#ff8fc7;
+
+  /* ═══ HP — mã hoá % HP, không mã hoá phe (L6) ═══ */
+  --hp-full:#5fd68a;
+  --hp-low: #ffc857;
+  --hp-crit:#ff6b6b;
+  --hp-h:8px;
+  --hp-ink:#0b0e12;
+
+  /* ═══ RARITY ═══ */
+  --r0:#9aa4b2; --r1:#63b3ff; --r2:#b388ff; --r3:#ffc857; --r4:#ff5f8f;
+
+  /* ═══ LAYOUT ═══ */
+  --unit-w:172px; --die-w:176px; --die-h:128px;
+  --spr-w:100px; --spr-big:164px; --spr-guide:64px;
+  --zone-gap:12px;
+  --ui-scale:1;
+}
+html,body{height:100%}
+html,body{font-size:var(--t3);font-family:var(--font)}
+/* Stop the body's gradient from tearing/shifting during pull-to-refresh /
+   rubber-band overscroll on mobile — the page itself never needs that bounce. */
+html,body{overscroll-behavior-y:none}
+body{background:linear-gradient(180deg,var(--bg-top) 0%,var(--bg) 480px);background-color:var(--bg);color:var(--txt);
+  font-weight:700;letter-spacing:.2px;overflow-x:hidden;-webkit-font-smoothing:none}
+/* Active-run lock (screen==='combat' covers map/event/shop/reward/combat/
+   win-lose — see render() in ui.js): only suppress touch-driven page drag
+   (which fights the dice drag-and-drop on mobile) via touch-action:none.
+   Deliberately NOT overflow:hidden — the combat screen can be taller than
+   the viewport (many units/wave nodes), and clipping it there made the
+   bottom action bar unreachable on desktop, where scroll is mouse/wheel
+   driven, not touch. Menu/list screens never get this class either way. */
+body.locked-scroll{touch-action:none}
+img.spr{image-rendering:pixelated;display:block;
+  width:var(--spr-w);height:var(--spr-w);object-fit:contain;object-position:center bottom;margin:0 auto}
+/* "ID card" framing for real Axie NFT art (art-director consult, 2026-09-03,
+   see realArtWrap() in ui.js) — a deliberate gold frame + corner badge marks
+   real painterly Axie art as a distinct kind of object from the house pixel-
+   sprite style, rather than letting the two incompatible renderings sit in
+   identical unframed slots (which read as broken/placeholder art). Wrapper
+   carries no layout of its own — `.real img` still inherits every existing
+   `.spr`/`.vchip-thumb`/etc size rule via the ordinary descendant selectors,
+   this only adds the frame/glow on top. `.axie-id:not(.real)` (the sprite
+   fallback path, incl. after an onerror) is intentionally unstyled. */
+.axie-id{position:relative;display:inline-block;line-height:0}
+.axie-id.real img{image-rendering:auto;border-radius:8px;
+  box-shadow:0 0 0 2px var(--acc),0 0 10px #ffc85766}
+.axie-id-badge{position:absolute;bottom:-3px;right:-3px;width:15px;height:15px;
+  background:var(--acc);color:#1a1503;border-radius:50%;display:flex;align-items:center;
+  justify-content:center;font-size:8px;font-weight:900;box-shadow:0 0 0 2px var(--pan);
+  pointer-events:none}
+button{font-family:inherit;font-weight:700;cursor:pointer;color:var(--txt);letter-spacing:.5px}
+#app{max-width:1240px;margin:0 auto;padding:8px 12px 16px;transition:filter .06s;zoom:var(--ui-scale)}
+#app.hstop{filter:brightness(1.8) contrast(1.3)}
+/* Accessibility: "REDUCE FLASH EFFECTS" setting / OS prefers-reduced-motion —
+   a much smaller brightness/contrast punch instead of skipping feedback outright. */
+#app.hstop-lite{filter:brightness(1.15) contrast(1.05)}
+h1,h2,h3,h4{font-weight:700}
+.scr{overflow-y:auto}
+
+/* screen-wide feedback */
+.shk1{animation:sk .22s} .shk2{animation:sk2 .3s} .shk3{animation:sk3 .4s}
+@keyframes sk{0%,100%{transform:translate(0)}25%{transform:translate(-3px,2px)}75%{transform:translate(3px,-2px)}}
+@keyframes sk2{0%,100%{transform:translate(0)}20%{transform:translate(-7px,4px)}45%{transform:translate(6px,-3px)}70%{transform:translate(-4px,2px)}}
+@keyframes sk3{0%,100%{transform:translate(0) rotate(0)}15%{transform:translate(-12px,6px) rotate(-.6deg)}
+  40%{transform:translate(10px,-5px) rotate(.5deg)}65%{transform:translate(-7px,3px) rotate(-.3deg)}85%{transform:translate(4px,-2px)}}
+.flashfx{position:fixed;inset:0;pointer-events:none;z-index:200;animation:fl .3s ease-out forwards}
+.flashfx.gold{background:radial-gradient(circle,#ffc85744,transparent 70%)}
+.flashfx.myth{background:radial-gradient(circle,#ff5f8f66,#b388ff22 40%,transparent 75%)}
+.flashfx.dmg{background:radial-gradient(circle,#ff6b6b44,transparent 70%)}
+/* Accessibility: "REDUCE FLASH EFFECTS" setting / OS prefers-reduced-motion —
+   trade the full-viewport radial burst for a thin top-edge accent at a quarter
+   of the opacity. Still reads as "something big just happened" without the
+   whole screen lighting up. */
+.flashfx.low{background:none!important;border-top:6px solid;animation-name:flLow}
+.flashfx.low.gold{border-color:#ffc857}
+.flashfx.low.myth{border-color:#ff5f8f}
+.flashfx.low.dmg{border-color:#ff6b6b}
+@keyframes fl{0%{opacity:.9}100%{opacity:0}}
+@keyframes flLow{0%{opacity:.35}100%{opacity:0}}
+.bigfx{position:fixed;top:32%;left:0;right:0;text-align:center;font-size:56px;color:var(--r4);z-index:201;
+  pointer-events:none;text-shadow:0 0 26px #ff5f8f,0 5px 0 #000;animation:bgf 1.1s ease-out forwards;letter-spacing:8px}
+.bigfx.win{color:var(--heal);text-shadow:0 0 26px var(--heal),0 5px 0 #000}
+.bigfx.lose{color:var(--dmg);text-shadow:0 0 26px var(--dmg),0 5px 0 #000}
+@keyframes bgf{0%{opacity:0;transform:scale(.4)}25%{opacity:1;transform:scale(1.12)}
+  60%{opacity:1;transform:scale(1)}100%{opacity:0;transform:scale(1.45)}}
+
+/* ---------- T07 · buttons: three sizes, nothing else ---------- */
+.btn{
+  box-sizing:border-box;
+  --btn-h:var(--ctl-md);
+  position:relative;                 /* BẮT BUỘC cho ::before — L5 */
+  min-height:var(--btn-h);
+  display:inline-flex; align-items:center; justify-content:center;
+  padding:0 var(--s4);
+  font-size:var(--t2); letter-spacing:.5px;
+  border:var(--bd) solid var(--line2); border-radius:var(--radius);
+  background:var(--pan2); color:var(--txt);
+  cursor:pointer; transition:background .08s,border-color .08s;
+}
+.btn::before{
+  content:""; position:absolute; inset:50% 50%;
+  width:max(100%,var(--tap-min)); height:max(100%,var(--tap-min));
+  transform:translate(-50%,-50%);
+}
+.btn:hover{background:var(--pan3)}
+.btn:active{filter:brightness(.9)}
+.btn--sm,.btn.sm,.btn.xs{--btn-h:var(--ctl-sm);padding:0 var(--s3)}
+.btn--md{--btn-h:var(--ctl-md)}
+.btn--lg,.btn.big{--btn-h:var(--ctl-lg);padding:0 28px;font-size:var(--t4)}
+.btn.go{background:var(--acc);border-color:var(--acc);color:#1a1503}
+.btn.go:hover{background:#ffd77e;border-color:#ffd77e}
+/* 2026-09-01: END TURN là hành động hệ trọng nhất mỗi lượt (Fitts's Law) —
+   to hơn hẳn REROLL, dùng --ctl-lg đã có sẵn trong hệ thống thay vì kích thước --ctl-md mặc định */
+.btn.end{background:var(--acc);border-color:var(--acc);color:#1a1503;--btn-h:var(--ctl-lg);padding:0 var(--s6);font-size:var(--t3)}
+.btn.end:hover{background:#ffd77e}
+.btn.reroll{background:transparent;border-color:var(--shd);color:var(--shd)}
+.btn.reroll:hover{background:rgba(99,179,255,.12)}
+.btn.ghost{background:transparent;border-color:var(--line2);color:var(--dim)}
+.btn.ghost:hover{color:var(--txt);border-color:var(--dim);background:var(--pan2)}
+.btn.on{border-color:var(--acc);color:var(--acc);background:#2b2718}
+.btn--danger{border-color:var(--dmg);color:var(--dmg);background:transparent}
+.btn--danger:hover{background:rgba(255,107,107,.12)}
+/* disabled: giảm tương phản CÓ KIỂM SOÁT, không dùng opacity mù (L3) */
+.btn[disabled],.btn.dis,button[disabled]{
+  background:transparent; border-color:var(--line);
+  color:var(--off); opacity:1; cursor:not-allowed; pointer-events:none;
+}
+/* T08 · focus ring — không tồn tại rule nào trước bản này */
+:where(button,[role=button],a[href],input,select,textarea,[tabindex]:not([tabindex="-1"])):focus-visible{
+  outline:3px solid var(--acc); outline-offset:2px; border-radius:var(--rad-sm);
+}
+.die:focus-visible,.unit:focus-visible{outline:3px solid var(--acc);outline-offset:3px}
+/* T08 · reduce motion — phủ toàn bộ */
+@media (prefers-reduced-motion: reduce){
+  *,*::before,*::after{animation-duration:.001ms!important;animation-iteration-count:1!important;
+    transition-duration:.001ms!important;scroll-behavior:auto!important}
+  /* !important required: this rule sits earlier in the stylesheet than the
+     unconditional .screen.menu.title{animation:menuDrift...} rule below, and
+     with equal specificity + no !important the LATER rule was winning even
+     under reduced-motion (verify.mjs A10 caught this: animationName stayed
+     'menuDrift', duration only got clamped to .001ms by the universal rule
+     above, not truly disabled — a running-but-imperceptible animation still
+     fails "reduce actually removes animation"). */
+  .screen.menu.title{animation:none!important}
+}
+
+/* ================= MENU ================= */
+.screen.menu,.screen.title{text-align:center;padding-top:8px;min-height:calc(100vh - 30px);
+  display:flex;flex-direction:column;justify-content:center}
+.logo{font-size:var(--t6);color:var(--acc);letter-spacing:6px;font-family:var(--font-brand);font-weight:900}
+.logo.sm{font-size:var(--t5);letter-spacing:3px;font-family:var(--font-brand);font-weight:900}
+.sub{color:var(--dim);font-size:var(--t2);letter-spacing:3px;margin:6px 0 24px}
+
+/* ---- T18 · title screen: one CTA centred, four tiles under it ----
+   The old vertical rails are deleted: rotated edge text reads about twice as
+   slowly, the screen edge belongs to browser chrome, and :hover never fires
+   on touch, so the whole pattern was unreachable on a phone. */
+small{font-size:var(--t1)}
+.screen.menu.title{display:grid;place-items:center;min-height:100dvh;position:relative}
+/* Menu-only animated background: subtle drifting glows behind the logo/CTA.
+   Scoped to .screen.menu.title (not the broader .screen.menu, which is also
+   shared by Profile/Codex/Vault/etc.) so only the actual title screen (and
+   the pre-login gate, which shares this exact class combo) gets it — combat
+   and every other screen keep the static body{background:...} gradient. */
+.screen.menu.title{background:
+  radial-gradient(circle at 20% 15%, rgba(179,136,255,.12), transparent 55%),
+  radial-gradient(circle at 80% 75%, rgba(255,200,87,.08), transparent 60%),
+  linear-gradient(180deg,var(--bg-top) 0%,var(--bg) 480px);
+  background-color:var(--bg);
+  background-size:140% 140%,140% 140%,auto;
+  animation:menuDrift 40s ease-in-out infinite alternate;
+}
+@keyframes menuDrift{0%{background-position:0% 0%,100% 100%,0 0}100%{background-position:15% 10%,85% 85%,0 0}}
+.menu-inner{width:min(640px,100% - 32px);display:flex;flex-direction:column;align-items:center}
+.menu-inner .logo{font-size:var(--t6);letter-spacing:8px;color:var(--acc)}
+.menu-inner .sub{font-size:var(--t2);letter-spacing:3px;color:var(--dim);margin:var(--s2) 0 0}
+.btn.cta{width:320px;min-height:56px;margin-top:var(--s6);font-size:var(--t4)}
+.btn.cta2{width:320px;margin-top:var(--s2)}
+.menu-grid{display:grid;grid-template-columns:repeat(4,152px);gap:var(--s2);margin-top:var(--s5)}
+.btn.menu-tile{min-height:72px;flex-direction:column;gap:var(--s1);padding:var(--s2)}
+.btn.menu-tile.hasnew{border-color:var(--acc)}
+.mt-n{font-size:var(--t2);letter-spacing:1px}
+.mt-s{font-size:var(--t1);color:var(--acc);line-height:1.3}
+.menu .stats{margin-top:var(--s5);font-size:var(--t2);color:var(--dim);letter-spacing:1px}
+/* T20 · utility/meta links tucked into the bottom-right corner, mirroring
+   .menu-corner top-left. Still .btn.ghost.btn--sm — that's already the
+   lightest-weight control in the system (transparent bg, dim border/text),
+   and .btn::before already guarantees a >=44x44 invisible tap area (see the
+   T07 button rules above) regardless of the button's visible size, so no
+   separate small-tap-target treatment is needed here. */
+.menu-mini{position:absolute;bottom:var(--s4);right:var(--s4);display:flex;gap:var(--s2);
+  flex-wrap:nowrap;justify-content:flex-end;margin-top:0}
+@media (max-width:599px){
+  .menu-mini{flex-wrap:wrap;max-width:260px}
+}
+/* T20 · top-left identity corner — replaces the old .menu-acctbar line
+   entirely. Avatar (48px, via buildAvatarWrap()/.profile-avatar-wrap reused
+   from Profile) + two-line username/title text block, the whole thing
+   clickable through to Profile. */
+.menu-corner{position:absolute;top:var(--s4);left:var(--s4);display:flex;align-items:center;
+  gap:var(--s3);cursor:pointer}
+.menu-corner .profile-avatar-wrap{padding:4px}
+.menu-corner .profile-avatar{width:48px;height:48px}
+.menu-corner .decor-badge{width:22px;height:22px;right:-4px;bottom:-4px}
+.menu-corner-txt{text-align:left}
+.menu-corner-name{font-size:var(--t2);color:var(--txt);line-height:1.3;font-weight:700}
+.menu-corner-title{font-size:var(--t1);color:var(--dim);letter-spacing:1px}
+.menu-corner-title.has{color:var(--acc)}
+/* T19 · grouped tiles replace the old flat 4-per-row grid: each .menu-group
+   is a labeled cluster (PROGRESS / REFERENCE) so relationship reads at a
+   glance instead of every tile carrying identical visual weight.
+   T20 · each group is now a bordered panel-card (chunking, not new markup —
+   .menu-group already IS the right wrapper element) and spacing is
+   tightened: groups sit closer together, tiles sit closer within a group. */
+.menu-groups{display:flex;flex-direction:column;gap:var(--s3);margin-top:var(--s5);align-items:center}
+.menu-group{width:fit-content;background:var(--pan);border:1px solid var(--line);border-radius:var(--radius);padding:var(--s4)}
+.menu-group-label{font-size:var(--t1);color:var(--dim);letter-spacing:2px;text-align:left;margin-bottom:var(--s1)}
+.menu-group .menu-grid{margin-top:0}
+.menu-grid--3{grid-template-columns:repeat(3,152px);gap:var(--s1)}
+.menu-grid--4{grid-template-columns:repeat(4,112px);gap:var(--s1)}
+@media (max-width:599px){
+  .menu-grid{grid-template-columns:repeat(2,1fr);width:100%}
+  .menu-group{width:100%}
+  .menu-grid--3{grid-template-columns:repeat(2,1fr);width:100%}
+  .menu-grid--4{grid-template-columns:repeat(4,1fr);gap:6px;width:100%}
+  .menu-group-label{text-align:center}
+  .btn.cta,.btn.cta2{width:100%}
+}
+
+/* a click that only answers a question, never spends your turn */
+.unit.inspect{cursor:help}
+.unit.inspect:hover{border-color:var(--line2)}
+.uinsp .ic2h{margin-bottom:6px}
+.uinsp .ic2h .spr{width:76px;height:76px;flex:0 0 76px}
+.uinsp .ic2t{font-size:var(--t1);color:var(--dim);letter-spacing:1px}
+.statrow{display:flex;gap:1px;justify-content:center;margin-bottom:24px;flex-wrap:wrap;
+  background:var(--line);border:var(--bd) solid var(--line);border-radius:var(--radius);overflow:hidden;width:fit-content;margin-inline:auto}
+.stat{background:var(--pan);padding:9px 20px;min-width:104px}
+.stat .sv{font-size:var(--t4);color:var(--txt)} .stat .sk{font-size:var(--t1);color:var(--dim);letter-spacing:1px;margin-top:2px}
+.menurow{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-bottom:20px}
+.tips{max-width:760px;margin:0 auto;color:var(--dim);font-size:var(--t2);line-height:2;
+  background:var(--pan);border:var(--bd) solid var(--line);border-radius:var(--radius);padding:14px 18px;text-align:left}
+.tips b{color:var(--acc);font-weight:700} .gold{color:var(--r3)} .cos{color:var(--r4)}
+.ver{color:var(--dim);font-size:var(--t1);margin-top:16px;letter-spacing:1px}
+.unlockgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:8px;max-width:1000px;margin:0 auto 16px;align-items:stretch}
+/* same card language as .bpnode: icon zone, flexible body, cost/state
+   pinned to the bottom via margin-top:auto, min-height for row evenness. */
+.ucard{background:var(--pan);border:var(--bd) solid var(--line);border-radius:var(--radius);padding:var(--card-pad);
+  cursor:pointer;transition:.1s;text-align:left;display:flex;flex-direction:column;gap:6px;min-height:150px}
+.ucard.can{border-color:var(--acc)}
+.ucard.can:hover{background:var(--pan2)}
+.ucard.has{border-color:var(--heal);opacity:.7;cursor:default;pointer-events:none}
+.ucard.dis{opacity:.4;cursor:default;pointer-events:none}
+.ucard .ucicow{display:flex;align-items:center}
+.ucard .ucicow svg{width:20px;height:20px}
+.ucard .ubody{flex:1}
+.ucard .un{font-size:var(--t3);color:var(--txt)}
+.ucard .ud{font-size:var(--t3);font-weight:var(--fw-prose);color:var(--dim);margin:6px 0;line-height:1.6}
+.ucard .uc{margin-top:auto;padding-top:4px;font-size:var(--t2);color:var(--acc);letter-spacing:1px}
+.ucard.has .uc{color:var(--heal)}
+.ucard.dis .uc{color:var(--dim)}
+.colsec{max-width:1050px;margin:0 auto 18px;text-align:left}
+.colsec h3{font-size:var(--t2);color:var(--dim);letter-spacing:2px;margin-bottom:8px;border-bottom:1px solid var(--line);padding-bottom:6px}
+.citem-empty{font-size:var(--t2);color:var(--dim);padding:4px 0}
+.colgrid{display:flex;flex-wrap:wrap;gap:4px}
+.citem{font-size:var(--t1);padding:4px 8px;background:var(--pan);border:1px solid var(--line);border-radius:var(--rad-sm);color:var(--dim)}
+.citem.r1{border-color:var(--r1);color:var(--r1)} .citem.r2{border-color:var(--r2);color:var(--r2)}
+.citem.r3{border-color:var(--r3);color:var(--r3)} .citem.r4{border-color:var(--r4);color:var(--r4)}
+/* Uploaded avatar tile — deliberately NOT an r1-r4 rarity color (it isn't a
+   gacha rarity tier), so it doesn't misread as legendary. */
+.citem.custom{border-color:var(--acc);color:var(--acc)}
+/* unowned pool entries: keep the rarity-tinted border (progress-by-rarity
+   stays visible at a glance) but dim + dash the fill so they never read as
+   "owned" — locked always wins over the .rN text color since it's declared
+   after those rules and matches their specificity. */
+.citem.locked{opacity:.55;border-style:dashed;color:var(--dim)}
+.echosec{background:var(--pan);border:var(--bd) solid var(--line);border-radius:var(--radius);padding:var(--card-pad)}
+.echosec .ud{font-size:var(--t3);font-weight:var(--fw-prose);color:var(--dim);margin:6px 0;line-height:1.6}
+.echosec .cta{margin-top:8px}
+.echotier{color:var(--acc);font-size:var(--t1);letter-spacing:2px;margin:-14px 0 14px}
+
+/* ================= TEAM ================= */
+.pickgrid{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;margin-bottom:12px}
+.pick{background:var(--pan);border:var(--bd) solid var(--line);border-radius:var(--radius);
+  border-bottom:3px solid var(--cc);padding:10px 6px;position:relative;transition:.1s;cursor:pointer}
+.pick:hover{background:var(--pan2);border-color:var(--line2)}
+.pick.on{border-color:var(--acc)}
+.pick.full{opacity:.5;cursor:not-allowed}
+.pick.full:hover{background:var(--pan);border-color:var(--line)}
+.pick .spr{margin:0 auto 4px}
+.pick .nm{font-size:var(--t3)} .pick .cls{font-size:var(--t1);color:var(--dim);letter-spacing:1px}
+.pasbox{margin:6px 0;padding:5px 0;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+.pasbox .pn{display:block;font-size:var(--t1);color:var(--acc);letter-spacing:1px}
+.pasbox .pd{display:block;font-size:var(--t3);color:var(--dim);line-height:22px;margin-top:4px}
+.pick .cnt{position:absolute;top:-8px;right:-8px;background:var(--acc);color:#1a1503;border-radius:50%;
+  width:22px;height:22px;line-height:22px;font-size:var(--t2)}
+.minidie{display:flex;gap:2px;justify-content:center;flex-wrap:wrap}
+.mf{font-size:var(--t1);background:var(--pan2);border:1px solid var(--line);border-radius:3px;padding:1px 3px;min-width:20px;color:var(--dim)}
+.mf.r1{border-color:var(--r1)} .mf.r2{border-color:var(--r2)}
+.mf.r3{border-color:var(--r3);color:var(--r3)} .mf.r4{border-color:var(--r4);color:var(--r4)}
+.cfg{max-width:820px;margin:0 auto 12px;background:var(--pan);border:var(--bd) solid var(--line);border-radius:var(--radius);padding:12px}
+.cfgrow{display:flex;gap:6px;align-items:center;justify-content:center;flex-wrap:wrap;margin:6px 0}
+.cfgrow .cl{font-size:var(--t2);color:var(--dim);width:86px;text-align:right;letter-spacing:1px}
+.seedinp{background:var(--bg);border:var(--bd) solid var(--line);border-radius:var(--rad-sm);color:var(--txt);
+  font-family:inherit;font-weight:700;padding:6px 9px;font-size:var(--t2);width:230px}
+.seedinp:focus{outline:none;border-color:var(--acc)}
+.hintxt{font-size:var(--t1);color:var(--dim)}
+.ascdesc{font-size:var(--t1);color:var(--deb);line-height:1.7;margin-top:6px}
+.trow{display:flex;align-items:center;justify-content:center;gap:10px;margin:12px 0;flex-wrap:wrap}
+.tcount{color:var(--dim);font-size:var(--t2)}
+.vaulthdr{max-width:1050px;margin:4px auto 8px;text-align:left;font-size:var(--t2);color:var(--dim);
+  letter-spacing:2px;border-bottom:1px solid var(--line);padding-bottom:6px}
+/* Compact Vault chips (ux-designer spec, 2026-09-03) — replaces the old
+   .pick-sized vault cards, which reused the full 6-face starter-hero layout
+   and became unusably large/cluttered as the Vault grows toward its 20-slot
+   cap. Flex-wrap (not a stretching grid) so 1 entry stays small and N=20
+   wraps into a tidy multi-row flow, capped and scrollable rather than ever
+   pushing MODE/ASCENSION/START RUN below the fold. */
+.vaultgrid{display:flex;flex-wrap:wrap;gap:6px;max-width:1050px;margin:0 auto 16px;
+  max-height:132px;overflow-y:auto;padding:2px}
+.vchip{display:flex;align-items:center;gap:6px;background:var(--pan);border:var(--bd) solid var(--line);
+  border-bottom:3px solid var(--cc);border-radius:var(--rad-sm);padding:4px 8px;cursor:pointer;
+  position:relative;flex:0 0 auto}
+.vchip:hover{background:var(--pan2);border-color:var(--line2)}
+.vchip.on{border-color:var(--acc)}
+.vchip.full{opacity:.5;cursor:not-allowed}
+/* E13 — bản ghi vault sinh ra trước khi luật part→face đổi. Không mờ đi (người chơi vẫn phải
+   đọc được nó để biết quét lại con nào); đổi màu viền + badge chữ. Không dùng transform nên
+   không gây layout shift (luật UI 5). */
+.vchip.stale{border-color:var(--dmg);cursor:not-allowed}
+.vchip-rescan{position:absolute;bottom:-7px;left:8px;background:var(--dmg);color:#2a0a0a;
+  border-radius:var(--rad-sm);padding:0 4px;font-size:var(--t1);letter-spacing:.5px;line-height:1.4}
+.vchip-thumb{width:32px;height:32px;border-radius:50%;object-fit:cover;flex:none;background:var(--pan2)}
+.vchip-info{display:flex;flex-direction:column;line-height:1.25;max-width:110px}
+.vchip-nm{font-size:var(--t2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.vchip-cls{font-size:var(--t1);color:var(--dim);letter-spacing:.5px}
+.vchip-i{flex:none;width:18px;height:18px;border-radius:50%;background:var(--pan2);
+  border:1px solid var(--line);color:var(--dim);font-size:10px;font-style:italic;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;padding:0}
+.vchip-i:hover{border-color:var(--line2);color:var(--txt)}
+.vchip .cnt{position:absolute;top:-8px;right:-8px;background:var(--acc);color:#1a1503;border-radius:50%;
+  width:20px;height:20px;line-height:20px;font-size:var(--t1);text-align:center}
+.vdetail{flex:1 1 100%;background:var(--pan2);border:1px solid var(--line);border-radius:var(--rad-sm);
+  padding:8px 10px}
+.vdetail .pasbox{margin:0 0 6px;padding:0 0 6px}
+
+/* ================= ACCOUNT (register/login/sync) ================= */
+/* Reuses .cfgrow/.vform/.seedinp/.vmsg/.vwaddr from Import Axie/Leaderboard —
+   no new palette, this is a beta feature and should match the existing bar. */
+.seedinp[type="password"]{letter-spacing:2px}
+
+/* ================= IMPORT AXIE / VAULT ================= */
+.vwrow{max-width:1050px;margin:0 auto 12px;text-align:left}
+.vwaddr{font-size:var(--t2);color:var(--heal);letter-spacing:1px}
+.vform{max-width:1050px;margin:0 auto 12px}
+.vmsg{max-width:1050px;margin:0 auto 12px;font-size:var(--t3);padding:8px 0;text-align:left}
+.vmsg-info{color:var(--dim)}
+.vmsg-bad{color:var(--dmg)}
+.vpreview{max-width:1050px;margin:0 auto 16px;background:var(--pan);border:var(--bd) solid var(--line);
+  border-radius:var(--radius);padding:var(--card-pad);text-align:left}
+.vpn{font-size:var(--t4);color:var(--txt);margin-bottom:8px}
+.vpreview-art{display:block;width:96px;height:96px;object-fit:contain;margin-bottom:8px;
+  background:var(--pan2);border-radius:var(--rad-sm)}
+.vparts{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:10px}
+.vpart{font-size:var(--t1);padding:4px 8px;background:var(--pan2);border:1px solid var(--line);
+  border-radius:var(--rad-sm);color:var(--dim)}
+.vaultscreen .colsec{max-width:1050px}
+
+/* ================= WAVE TRACK / HUD ================= */
+.track{display:flex;align-items:center;gap:8px;background:var(--pan);border:var(--bd) solid var(--line);
+  border-radius:var(--radius);padding:6px 10px;margin-bottom:8px;flex-wrap:nowrap;white-space:nowrap}
+.tlabel{font-size:var(--t1);color:var(--dim);letter-spacing:2px}
+.tstep{font-size:var(--t3);color:var(--txt);letter-spacing:1px}
+.tstep .en{color:var(--acc)}
+.tstep.elite .en{color:var(--burn)} .tstep.boss .en{color:var(--dmg)}
+.tnode{position:relative;width:10px;height:10px;border-radius:50%;background:var(--line2);
+  flex-shrink:0;font-size:0;color:transparent;border:none;padding:0;cursor:default}
+/* L5 · hit area must be 44px even though the dot reads at 10px */
+.tnode::before{content:"";position:absolute;left:-20px;right:-20px;top:-20px;bottom:-20px}
+/* shape, not colour alone — deuteranopia still tells these apart */
+.tnode.elite{border-radius:2px}
+.tnode.boss{width:13px;height:13px;border-radius:2px;transform:rotate(45deg)}
+.tnode.done{background:var(--dim)}
+.tnode.cur{background:var(--acc);box-shadow:0 0 8px var(--acc);transform:scale(1.5)}
+.tnode.elite{background:var(--burn);opacity:.55} .tnode.boss{background:var(--dmg);opacity:.55}
+.tnode.elite.done,.tnode.boss.done{opacity:1}
+.tnode.elite.cur{background:var(--burn);opacity:1;box-shadow:0 0 8px var(--burn)}
+.tnode.boss.cur{background:var(--dmg);opacity:1;box-shadow:0 0 8px var(--dmg)}
+.tnode .icow{display:none}
+.trk-right{margin-left:auto;display:flex;gap:8px;align-items:center}
+.shards{font-size:var(--t2);color:var(--acc)}
+.ascbadge{font-size:var(--t1);border:1px solid var(--deb);border-radius:var(--rad-sm);color:var(--deb);padding:2px 6px}
+.turn{font-size:var(--t2);color:var(--dim)}
+.rr{font-size:var(--t2);color:var(--shd);display:flex;align-items:center;gap:3px}
+.spd{display:flex;gap:2px}
+
+/* ================= MAP ================= */
+.screen.map{min-height:calc(100vh - 30px);display:flex;flex-direction:column;justify-content:center}
+.maph{text-align:center;font-size:var(--t2);color:var(--dim);letter-spacing:4px;margin:8px 0 16px;font-family:var(--font-brand);font-weight:900}
+.noderow{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;margin-bottom:16px}
+.nodecard{width:300px;background:var(--pan);border:var(--bd) solid var(--line);border-top:3px solid var(--nc);
+  border-radius:var(--radius);padding:var(--card-pad);text-align:center;cursor:pointer;transition:.12s}
+/* A node choice is the single biggest decision on this screen — hover/focus
+   needs a real lift (glow + scale), not just a background tint. */
+.nodecard:hover,.nodecard:focus-visible{background:var(--pan2);border-color:var(--nc);
+  box-shadow:0 0 0 2px var(--nc),0 0 26px color-mix(in srgb,var(--nc) 45%,transparent);
+  transform:translateY(-2px) scale(1.02)}
+.nodecard .nic{font-size:var(--t5);color:var(--nc);line-height:1}
+.nodecard .nn{font-size:var(--t3);color:var(--nc);letter-spacing:3px;margin:8px 0 4px}
+.nodecard .nd{font-size:var(--t3);color:var(--dim);line-height:24px}
+.nodecard .nbn{font-size:var(--t3);color:var(--dmg);margin:6px 0}
+.nodecard .spr{margin:8px auto 0}
+.n_boss{border-top-color:var(--dmg)}
+
+/* ---------- party strip ---------- */
+.pstripwrap{margin-top:16px}
+.pstrip{display:flex;gap:6px;justify-content:center;flex-wrap:wrap}
+.psc{width:max(148px,calc(var(--spr-w) + 48px));background:var(--pan);border:var(--bd) solid var(--line);
+  border-bottom:3px solid var(--cc);border-radius:var(--radius);padding:var(--card-pad-sm);position:relative}
+.psc .spr{margin:0 auto}
+.psc .nm{font-size:var(--t1);color:var(--dim)} .psc .hp{font-size:var(--t1);color:var(--heal);margin-bottom:4px}
+.psc.dr3{border-color:var(--r3)} .psc.dr4{border-color:var(--r4)}
+.drtag{font-size:var(--t1);margin-top:4px;letter-spacing:1px;color:var(--dim)}
+.psc.dr3 .drtag{color:var(--r3)} .psc.dr4 .drtag{color:var(--r4)}
+.asctag{font-size:var(--t1);margin-top:2px;letter-spacing:1px;color:var(--acc)}
+.relicstrip{display:flex;gap:4px;justify-content:center;flex-wrap:wrap;margin-top:8px}
+.rchip{font-size:var(--t1);padding:3px 7px;background:var(--pan);border:1px solid var(--line);border-radius:var(--rad-sm);color:var(--dim)}
+.rchip.r1{border-color:var(--r1);color:var(--r1)} .rchip.r2{border-color:var(--r2);color:var(--r2)}
+.rchip.r3{border-color:var(--r3);color:var(--r3)} .rchip.r4{border-color:var(--r4);color:var(--r4)}
+.nothing{font-size:var(--t2);color:var(--dim)}
+.archstrip{display:flex;gap:6px;justify-content:center;align-items:center;flex-wrap:wrap;margin:10px 0}
+.archstrip .al{font-size:var(--t1);color:var(--dim);letter-spacing:2px}
+.achip{display:flex;gap:5px;align-items:center;font-size:var(--t1);padding:3px 8px;border-radius:var(--rad-sm);
+  background:var(--pan);border:1px solid var(--ac);color:var(--ac);opacity:.5}
+.achip.lead{opacity:1}
+.achip .av{font-size:var(--t2)}
+
+/* ---------- match history (reuses .colsec/.rchip/.recap/.achip/.clog-*
+   verbatim — no new color tokens, per the ui-programmer spec for this
+   feature) ---------- */
+.histlist{max-width:1050px;margin:0 auto;display:flex;flex-direction:column;gap:2px}
+.histrow{display:grid;grid-template-columns:64px 90px 1fr auto auto;gap:var(--s3);align-items:center;
+  background:var(--pan);border:1px solid var(--line);border-radius:var(--rad-sm);padding:var(--s2) var(--s3);
+  min-height:44px;cursor:pointer;text-align:left}
+.histrow:hover{background:var(--pan2)}
+.histrow.won{border-left:3px solid var(--acc)}
+.histrow.open{border-color:var(--acc)}
+.histres{font-size:var(--t2);color:var(--dmg);letter-spacing:1px}
+.histrow.won .histres{color:var(--acc)}
+.histwave{font-size:var(--t2);color:var(--dim)}
+.histdate{font-size:var(--t1);color:var(--dim)}
+.histteam{display:flex;gap:2px}
+.histspr{width:28px;height:28px;image-rendering:pixelated}
+.histarch{display:flex;gap:4px;flex-wrap:wrap;justify-content:flex-end}
+.histdetail{max-width:1050px;margin:0 auto 12px;background:var(--pan2);border:1px solid var(--line);
+  border-radius:var(--radius);padding:var(--s3)}
+.histlogbody{max-height:420px;overflow-y:auto;background:var(--pan);border:1px solid var(--line);
+  border-radius:var(--rad-sm);padding:var(--s2) var(--s3)}
+@media (max-width:899px){
+  .histrow{grid-template-columns:56px 76px 1fr;row-gap:4px}
+  .histdate{grid-column:1/-1}
+  .histteam,.histarch{grid-column:1/-1}
+  .histarch{justify-content:flex-start}
+}
+
+/* ================= COMBAT ================= */
+.combat{min-height:calc(100vh - 30px);display:flex;flex-direction:column;justify-content:center}
+.combat.frozen{filter:saturate(.4) brightness(.5)}
+.msg{text-align:center;font-size:var(--t2);color:var(--acc);min-height:15px;margin-bottom:2px}
+.zone{display:flex;justify-content:center;align-items:flex-end;gap:var(--zone-gap);flex-wrap:wrap}
+.zone.enemies{min-height:150px;padding-top:14px;position:relative}
+.zone.party{margin-top:22px;position:relative}
+/* Swarm builds (living Axie Eggs push the party past 5, up to 9 — see the
+   'compact' class comment in ui.js scCombat()). Shrink locally so up to 9
+   columns (9*112 + 8*8 = 1072px) fit inside #app's ~1160px content width
+   without wrapping to a hard-to-reach second row on an ordinary desktop
+   window. Values match the existing <=899px breakpoint's sizing (style.css
+   already proves that size is legible/tappable there), just applied earlier
+   based on party count instead of viewport width. */
+.zone.party.compact{--unit-w:112px;--die-w:112px;--die-h:96px;--zone-gap:8px}
+/* 2026-09-01: "vùng sáng" trung tính dưới mỗi zone — cảm giác bàn, không phải khoảng trống.
+   Chỉ đổi lightness, không thêm hue/saturation — không phá nguyên tắc nền trung tính (rule 1) */
+/* Horizontal bleed was -20px — at tablet width the zone sits only ~8px from
+   the viewport edge (#app's own padding), so a 20px bleed pushed 12px past
+   it and silently inflated document.scrollWidth (invisible to the player,
+   since body has overflow-x:hidden, but tools/verify.mjs B2 measures
+   scrollWidth directly, not visible clipping). -8px keeps the same glow
+   at every breakpoint without ever exceeding #app's own edge padding. */
+.zone.enemies::before,.zone.party::before{content:"";position:absolute;inset:-14px -8px;z-index:-1;
+  background:radial-gradient(ellipse 70% 60% at 50% 30%,#161b22 0%,transparent 72%);pointer-events:none}
+.divider{display:none}
+
+.unit{position:relative;width:var(--unit-w);border-radius:var(--radius);overflow:visible;
+  background:var(--pan-hi);border:var(--bd) solid var(--line);padding:6px;text-align:center;transition:.1s;
+  box-shadow:var(--sh-card);
+  display:flex;flex-direction:column}
+/* Visual hierarchy pass: a party unit's class colour now washes the whole
+   card (not just a 3px edge) so PLANT/BEAST/AQUA/REPTILE/BUG/BIRD read at a
+   glance instead of every card looking like the same flat grey panel. */
+.unit.p{border-bottom:3px solid var(--cc);background:linear-gradient(180deg,color-mix(in srgb,var(--cc) 10%,var(--pan-hi)) 0%,var(--pan-hi) 60%)}
+/* Echo Tier prestige frame (economy-progression.md §10.3) — a full ring layered
+   via box-shadow so it never fights the class-colour --cc bottom border above.
+   Tier 0 (echoTier()===0, the default for ~everyone) adds no class at all, so
+   this is fully invisible until the end-game Echo Forge is unlocked. Escalates
+   cool→warm, thin→thick across tiers 1-5; only the top tier (Eclipse) pulses,
+   to keep the "glow means something rare" rule meaningful. */
+.unit.p.echo1{box-shadow:0 0 0 1px rgba(154,164,178,.45),0 0 5px rgba(154,164,178,.3)}
+.unit.p.echo2{box-shadow:0 0 0 1px rgba(99,179,255,.55),0 0 8px rgba(99,179,255,.4)}
+.unit.p.echo3{box-shadow:0 0 0 1.5px rgba(179,136,255,.6),0 0 12px rgba(179,136,255,.45)}
+.unit.p.echo4{box-shadow:0 0 0 2px rgba(255,200,87,.65),0 0 16px rgba(255,200,87,.5),0 0 10px rgba(179,136,255,.3)}
+.unit.p.echo5{box-shadow:0 0 0 2.5px var(--acc),0 0 20px rgba(255,200,87,.75),0 0 32px rgba(179,136,255,.45);
+  animation:echo-eclipse-pulse 2.2s ease-in-out infinite}
+@keyframes echo-eclipse-pulse{
+  0%,100%{box-shadow:0 0 0 2.5px var(--acc),0 0 20px rgba(255,200,87,.75),0 0 32px rgba(179,136,255,.45)}
+  50%{box-shadow:0 0 0 3px var(--acc),0 0 30px rgba(255,200,87,.9),0 0 46px rgba(179,136,255,.6)}
+}
+.unit.p.token{width:calc(var(--unit-w)*.72);opacity:.85;border-style:dashed}
+.unit.e{background:var(--pan-hi);border-color:var(--line2);border-top:3px solid var(--dmg)}
+.unit.e.elite{border-color:var(--burn)}
+.unit.big{width:290px;border-color:var(--dmg)}
+.unit.dead{opacity:.2;filter:grayscale(1)}
+.unit.tgt{cursor:pointer;border-color:var(--acc);box-shadow:0 0 0 1px var(--acc),0 0 22px #ffc85755;z-index:6}
+.unit.hovtgt{box-shadow:0 0 0 2px var(--acc),0 0 30px #ffc85788}
+.unit.threat{border-color:#7a4a4a}
+/* Whoever is currently acting must be unmissable — a colour swap alone (the
+   previous .acting rule) was too close to the .threat/.e border treatment. */
+.unit.acting{border-color:var(--dmg);box-shadow:0 0 0 2px var(--dmg),0 0 24px #ff5f5f77;transform:scale(1.04);z-index:7}
+.sprwrap{position:relative}
+/* 2026-09-01: bóng đổ chân sprite — gắn sprite vào mặt bàn thay vì lơ lửng trong khung */
+.sprwrap::after{content:"";position:absolute;left:50%;bottom:-2px;transform:translateX(-50%);
+  width:60%;height:8px;border-radius:50%;background:radial-gradient(ellipse,rgba(0,0,0,.5),transparent 72%);
+  pointer-events:none;z-index:-1}
+.unit .spr{margin:0 auto var(--s1)}
+.unit.big .spr{width:var(--spr-big);height:var(--spr-big)}
+.unit.p.token .spr{width:calc(var(--spr-w)*.6);height:calc(var(--spr-w)*.6)}
+.unit .spr.mut{transform:scaleX(-1);filter:grayscale(1) sepia(1) hue-rotate(-38deg) saturate(3.6) contrast(1.1) brightness(.86)}
+.unit.big .spr.mut{filter:grayscale(1) sepia(1) hue-rotate(-50deg) saturate(4.4) contrast(1.16) brightness(.78);
+  animation:breathe 2.6s ease-in-out infinite}
+.unit.p .spr{animation:breathe 3.4s ease-in-out infinite}
+@keyframes breathe{0%,100%{transform:translateY(0) scaleX(var(--fx,1))}50%{transform:translateY(-3px) scaleX(var(--fx,1))}}
+.unit.e .spr.mut{--fx:-1}
+/* 2026-09-01: to hơn (16px→24px) và nằm hẳn trên bề mặt card thay vì đè viền —
+   đây là tín hiệu chiến thuật (archetype), không phải icon trang trí */
+.pasdot{position:absolute;top:var(--s1);left:var(--s1);width:var(--icon-md);height:var(--icon-md);line-height:22px;font-size:var(--t2);
+  background:var(--cc);color:#0d1013;border:1px solid #0007;border-radius:50%;z-index:2;font-weight:700}
+.unit .nm{font-size:var(--t1);color:var(--dim);margin-bottom:var(--s1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;letter-spacing:.5px}
+/* Duplicate-name disambiguation suffix — same dim tone as .nm itself, just
+   slightly de-emphasized so "Sprout (1)" doesn't read as a stat. */
+/* color:var(--dim), not opacity — opacity on already-small 11px text failed
+   the AA contrast check (tools/verify.mjs A2), --dim is already used at full
+   opacity elsewhere in this same card and passes. */
+.dupe-tag{color:var(--dim)}
+/* T05 · số HP ra khỏi thanh — bài toán contrast biến mất hoàn toàn */
+.hpbar{position:relative;height:var(--hp-h);margin-top:var(--hp-num-offset)}
+.hpnum{position:absolute;bottom:calc(100% + 3px);left:0;right:0;display:flex;
+  justify-content:space-between;align-items:baseline;
+  font-size:var(--t1);letter-spacing:.5px;color:var(--dim)}
+/* Numbers you decide on (HP, damage) must be easier to scan than the label
+   text around them — bump weight+size instead of only colour. */
+.hpnum b{color:var(--txt);font-size:var(--t3);font-weight:800}
+.hptrack{height:100%;background:#0a0c0f;border-radius:4px;overflow:hidden;position:relative}
+/* T06 · fill mã hoá % HP, giống nhau cho cả hai phe (L6) */
+.hpfill{height:100%;background:var(--hp-full);transition:width .22s ease-out}
+.hpbar.low  .hpfill{background:var(--hp-low)}
+.hpbar.crit .hpfill{background:var(--hp-crit);animation:hp-pulse 1.2s infinite}
+@keyframes hp-pulse{50%{opacity:.55}}
+@media (prefers-reduced-motion: reduce){.hpbar.crit .hpfill{animation:none}}
+.hpchip{display:none}
+.hpghost{pointer-events:none;position:absolute;top:0;height:100%;background:#ffffff44}
+.hptxt{display:none}
+.shbar{height:5px;margin-top:var(--s1);background:var(--shd);border-radius:3px;position:relative;min-width:16px}
+.shbar span{position:absolute;left:0;top:-13px;font-size:var(--t1);color:var(--shd)}
+.shbar.brk{opacity:0;transition:opacity .2s}
+.stats{display:flex;gap:3px;justify-content:center;flex-wrap:wrap;min-height:14px;margin-top:var(--s1)}
+.stats span{font-size:var(--t1);padding:1px 4px;border-radius:3px;background:var(--pan2);color:var(--dim)}
+.stats span.more{color:var(--dim)}
+.stats .icow.ii svg{width:15px;height:15px}
+.stats .poison{color:var(--poi)} .stats .burn{color:var(--burn)} .stats .regen{color:var(--heal)}
+.stats .thorns{color:var(--acc)} .stats .blind{color:#b0a8d0} .stats .weaken{color:var(--shd)}
+.stats .vulnerable{color:var(--deb)} .stats .stun{color:var(--txt)} .stats .undying{color:var(--r3)}
+.stats .frz{color:#9fe8ff} .stats .sh{color:var(--shd)}
+/* 2026-09-01: intent lên ĐẦU card (order:-1, xem .unit display:flex ở trên) —
+   đây là thông tin quan trọng nhất mỗi lượt (đúng pillar minh bạch), không còn
+   là "chip phụ" đóng khung riêng dưới card mà hoà vào bề mặt card, đậm hơn hẳn. */
+.intent{order:-1;margin:-6px -6px 6px -6px;padding:6px;display:flex;gap:5px;
+  align-items:center;justify-content:center;flex-wrap:wrap;font-size:var(--t3);
+  background:var(--pan2);border-radius:var(--radius) var(--radius) 0 0;border-bottom:1px solid var(--line)}
+.intent .ii{font-size:16px} .intent .iv{font-size:var(--intent-v);font-weight:700} .intent .itg{font-size:var(--t2);color:var(--dim)}
+.intent .ik{font-size:var(--t1);color:var(--dim)}
+.intent.t_dmg{color:var(--dmg)} .intent.t_shield{color:var(--shd)}
+.intent.t_heal{color:var(--heal)} .intent.t_poison{color:var(--poi)}
+.intent.t_debuff,.intent.t_buff{color:var(--deb)} .intent.t_summon{color:var(--man)}
+.intent.danger{background:#3a1f1f;box-shadow:inset 0 0 0 1px var(--dmg)}
+.bossdesc{font-size:var(--t1);color:var(--dim);margin-top:5px;line-height:1.55}
+.preview{pointer-events:none;position:absolute;top:-14px;left:50%;transform:translateX(-50%);font-size:var(--t3);
+  background:var(--bg);border:1px solid var(--acc);border-radius:var(--rad-sm);padding:2px 8px;white-space:nowrap;z-index:8}
+.preview.dmg{color:var(--dmg);border-color:var(--dmg)} .preview.shd{color:var(--shd);border-color:var(--shd)}
+.preview.heal{color:var(--heal);border-color:var(--heal)} .preview.poi{color:var(--poi);border-color:var(--poi)}
+.preview.deb{color:var(--deb);border-color:var(--deb);font-size:var(--t2)}
+.floats{position:absolute;left:0;right:0;top:4px;height:0;pointer-events:none;z-index:9}
+.ftx{pointer-events:none;position:absolute;transform:translateX(-50%);font-size:var(--float-sz);
+  animation:fly 1.2s ease-out forwards;text-shadow:0 2px 0 #000,0 0 10px #000}
+.ftx.b1{font-size:28px} .ftx.b2{font-size:36px;color:var(--acc)!important}
+.ftx.dmg{color:var(--dmg)} .ftx.shd{color:var(--shd)} .ftx.heal{color:var(--heal)}
+.ftx.man{color:var(--man)} .ftx.buf{color:var(--acc)} .ftx.poi{color:var(--poi);font-size:15px}
+.ftx.deb{color:var(--deb);font-size:14px}
+@keyframes fly{0%{opacity:0;transform:translate(-50%,8px) scale(.6)}18%{opacity:1;transform:translate(-50%,-8px) scale(1.2)}
+  100%{opacity:0;transform:translate(-50%,-46px) scale(1)}}
+
+/* ---------- relic badge (relic-system.md §3.9 + §10 E1) ----------
+   fx.js relicBadge() dựng phần tử này khi engine phát {t:'relic'}. Trước đây 14
+   relic đúng số nhưng KHÔNG có cách nào hiện ra. Badge tái dùng đúng khung ngôn
+   ngữ có sẵn: neo trong .floats (cùng host với .ftx), nền tối đặc + viền màu
+   archetype giống .preview, cỡ chữ lấy từ thang --t1/--t2 — KHÔNG px rời, vì
+   một `font-size:9px` cứng trong .ractag-hv là thứ làm verify.mjs flap.
+   Chữ tên dùng --txt (AA chắc chắn); màu archetype (--rbc) chỉ dùng cho viền +
+   icon, nơi nó nằm trên nền --bg nên vẫn vượt 4.5:1 cho mọi giá trị trong ARCH.
+   --rbi là bậc thang xếp chồng khi nhiều relic KHÁC nhau nổ cùng lúc. */
+/* Neo trong .sprwrap: top tính theo % chiều cao khối tranh nên badge luôn nằm
+   giữa vùng art ở mọi breakpoint, không đè intent địch / HP / chip class. */
+.rbadge{pointer-events:none;position:absolute;left:50%;top:calc(24% + var(--rbi,0) * 24px);
+  transform:translateX(-50%);display:flex;align-items:center;gap:5px;z-index:11;
+  background:var(--bg);border:1px solid var(--rbc,var(--acc));border-radius:var(--rad-sm);
+  padding:2px 7px;max-width:min(150px,calc(var(--unit-w) + 28px));white-space:nowrap;
+  box-shadow:0 0 10px #000c,0 0 6px var(--rbc,var(--acc));
+  animation:rb-in .18s ease-out both}
+/* Màu archetype trong ARCH được chọn cho chip/nhãn trên panel mid-tone, KHÔNG
+   phải cho chữ nhỏ ở opacity giảm trên nền gần đen. Đo thật: ✜ AEGIS #a86fd8 đạt
+   5.55:1 ở opacity 1 nhưng chỉ 4.29:1 khi badge nằm trên Axie Egg
+   (.unit.p.token{opacity:.85}) — DƯỚI ngưỡng AA 4.5, và Egg chính là nơi
+   startSummon/eggInherit bắn. Pha 22% trắng nâng sàn lên 5.70:1 ở cùng điều kiện
+   mà vẫn giữ nhận dạng hue. Viền/glow giữ --rbc nguyên bản: chúng là non-text,
+   chỉ cần 3:1 (WCAG 1.4.11) và #a86fd8@.85 = 4.29:1 vẫn dư.
+   --rbc-tx do fx.js relicFxLighten() set sẵn dưới dạng hex phẳng, KHÔNG dùng
+   color-mix() ở đây: color-mix serialise thành color(srgb ...) mà parser contrast
+   của verify.mjs không đọc được ⇒ check sẽ pass giả. */
+.rbadge .rbi{font-size:var(--t2);line-height:1;color:var(--rbc-tx);flex:none}
+.rbadge .rbn{font-size:var(--t1);line-height:1.2;letter-spacing:1px;color:var(--txt);
+  overflow:hidden;text-overflow:ellipsis}
+/* Bộ đếm gộp: relic bắn lại trong cửa sổ throttle chỉ cập nhật "×N" ở đây,
+   không sinh badge mới (xem relicBadge() — coalesce theo id). */
+.rbadge .rbx{font-size:var(--t1);line-height:1.2;color:var(--rbc-tx);flex:none;font-weight:700}
+.rbadge.rb-pop{animation:rb-pop .18s ease-out}
+.rbadge.rb-out{animation:rb-out .2s ease-in forwards}
+@keyframes rb-in{0%{opacity:0;transform:translateX(-50%) translateY(6px) scale(.86)}
+  100%{opacity:1;transform:translateX(-50%) translateY(0) scale(1)}}
+@keyframes rb-pop{0%{transform:translateX(-50%) scale(1)}45%{transform:translateX(-50%) scale(1.12)}
+  100%{transform:translateX(-50%) scale(1)}}
+@keyframes rb-out{0%{opacity:1;transform:translateX(-50%) translateY(0)}
+  100%{opacity:0;transform:translateX(-50%) translateY(-10px)}}
+/* Cùng hợp đồng photosensitivity với flashScreen/hitstop: bỏ chuyển động, GIỮ
+   thông tin — badge vẫn hiện đủ lâu để đọc, chỉ không trượt/nảy. */
+@media (prefers-reduced-motion:reduce){
+  .rbadge,.rbadge.rb-pop{animation:none}
+  .rbadge.rb-out{animation:rb-fade .2s linear forwards}
+  @keyframes rb-fade{to{opacity:0}}
+}
+
+/* ---------- dice tray: the hero object ---------- */
+/* 2026-09-01: mỗi Axie + die của nó giờ là 1 cột (.pcol), thay vì 2 hàng riêng
+   (zone.party + tray cũ) — .zone{display:flex} có sẵn xử lý layout hàng ngang cho .pcol */
+.pcol{display:flex;flex-direction:column;align-items:center;gap:10px}
+/* Formation Resonance (design/quick-specs/formation-resonance-2026-09-01.md):
+   badge nối 2 chân dung liền kề đang có cặp "mở" — bắt buộc hiện TRƯỚC khi click,
+   tái dùng màu buff (--acc) đã có, không thêm màu/art mới. */
+.reslink{align-self:center;display:flex;align-items:center;justify-content:center;
+  width:24px;height:24px;border-radius:50%;border:2px solid var(--acc);position:relative;
+  box-shadow:0 0 8px var(--acc);animation:reslink-pulse 1.4s ease-in-out infinite;flex:none;cursor:help}
+@keyframes reslink-pulse{0%,100%{box-shadow:0 0 6px var(--acc)}50%{box-shadow:0 0 14px var(--acc)}}
+/* The native title= tooltip everywhere else in this file has a long hover
+   delay and never appears on touch at all — fine for incidental info, but
+   this badge IS the only place Formation Resonance explains itself before
+   the player acts, so it needs to show immediately on hover AND on tap
+   (kbAct() in ui.js gives it tabIndex, so a touch tap focuses it → :focus). */
+[data-tip]{position:relative}
+[data-tip]::after{content:attr(data-tip);position:absolute;bottom:calc(100% + 8px);left:50%;
+  transform:translateX(-50%);background:var(--pan2);border:1px solid var(--line2);border-radius:var(--rad-sm);
+  padding:6px 10px;font-size:var(--t1);font-weight:var(--fw-prose);line-height:1.4;color:var(--txt);
+  white-space:normal;width:max-content;max-width:220px;text-align:center;
+  opacity:0;pointer-events:none;transition:opacity .1s;z-index:50}
+[data-tip]:hover::after,[data-tip]:focus::after{opacity:1}
+.diebox{width:var(--die-w);text-align:center;position:relative}
+.diebox .die{background:var(--pan-hi);border:var(--bd) solid var(--line2);border-bottom:3px solid var(--cc);
+  padding:8px 6px;min-height:var(--die-h);cursor:pointer;transition:.1s;position:relative;border-radius:12px;
+  box-shadow:var(--sh-hero);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px}
+.die:hover{background:var(--pan3);border-color:var(--dim)}
+.die.sel{border-color:var(--acc);box-shadow:0 0 0 2px var(--acc),0 0 26px #ffc85777}
+.die.used{opacity:.2;pointer-events:none;filter:grayscale(1)}
+.die.blank{opacity:.45}
+.die.out{opacity:.15;justify-content:center;font-size:var(--t4);cursor:default}
+.die.heavy{border-top:3px solid var(--acc)}
+.die.tumble{animation:tum .12s linear infinite}
+@keyframes tum{0%{transform:translateY(0) rotate(-3deg)}50%{transform:translateY(-8px) rotate(4deg)}100%{transform:translateY(0) rotate(-3deg)}}
+.die.landed{animation:land .3s cubic-bezier(.3,1.7,.5,1)}
+@keyframes land{0%{transform:translateY(-13px) scaleY(1.18) scaleX(.86)}45%{transform:translateY(3px) scaleY(.8) scaleX(1.16)}
+  70%{transform:translateY(-2px) scaleY(1.06)}100%{transform:translateY(0) scale(1)}}
+.die .dp{font-size:var(--t1);color:var(--dim);letter-spacing:2px}
+.die .di{font-size:20px;line-height:22px}
+.die .dv{font-size:var(--die-num);line-height:1.05}
+.die .dk{font-size:var(--die-kw);color:var(--dim);letter-spacing:.5px}
+.dv.blanktxt{font-size:var(--t2);color:var(--dim);letter-spacing:2px}
+.die.t_dmg .di,.die.t_dmg .dv{color:var(--dmg)}
+.die.t_shield .di,.die.t_shield .dv{color:var(--shd)}
+.die.t_heal .di,.die.t_heal .dv{color:var(--heal)}
+.die.t_mana .di,.die.t_mana .dv{color:var(--man)}
+.die.t_poison .di,.die.t_poison .dv{color:var(--poi)}
+.die.t_debuff .di,.die.t_buff .di,.die.t_debuff .dv,.die.t_buff .dv{color:var(--deb)}
+.die.t_summon .di,.die.t_summon .dv{color:var(--man)}
+/* §3.4 — merged top accent strip: replaces the old separate .heavytag banner
+   and .rartag dot with one full-width 3px bar, coloured by rarity, with an
+   inset weight glyph only when the face is `heavy`. */
+.ractag{pointer-events:none;position:absolute;top:0;left:0;right:0;height:3px;
+  border-radius:8px 8px 0 0;background:transparent;display:flex;align-items:center}
+.die[data-r="1"] .ractag{background:var(--r1)} .die[data-r="2"] .ractag{background:var(--r2)}
+.die[data-r="3"] .ractag{background:var(--r3)} .die[data-r="4"] .ractag{background:var(--r4)}
+/* font-size phải nằm trong thang type (--t1:11px là sàn a11y, tools/verify.mjs
+   A1 hardcode 11px). Trước đây là 9px cứng: glyph ⚖ chỉ render khi mặt xúc xắc
+   có keyword `heavy`, nên A1 chỉ trượt ở những run RNG tình cờ sinh ra mặt đó —
+   suite lúc 30/32, lúc 32/32. Position absolute nên đổi cỡ không đẩy layout die. */
+/* bottom:100%, KHÔNG phải top:-7px. Đo bằng pixel thật (verify.mjs A2px): với
+   top:-7px thì hộp chữ 11px trải từ y=-7 đến y=+4 trong .ractag, tức 3px cuối
+   ĐÈ LÊN chính thanh rarity — và --acc (#ffc857) trùng đúng --r3 (#ffc857), nên
+   phần ink nằm trên thanh đo được 1.63:1 (ngưỡng AA 4.5). Không thang màu nào
+   cứu được: --acc trên r1 1.45:1, r2 1.73:1, r3 1.00:1, r4 1.87:1 — glyph sáng
+   trên thanh sáng luôn hỏng. Trên mặt die thì 10.62:1. bottom:calc(100% + var(--bd)) ghim đáy hộp
+   chữ lên trên CẢ thanh lẫn viền die (viền cũng tô --r3 ở die Epic) nên không còn chồng lấn, và không phụ thuộc
+   font-size như một magic number âm. Ba lớp che khiến lỗi này vô hình trước đây:
+   nền thật là ANH EM (không nằm trong chuỗi ancestor mà effBg đi), glyph chỉ tồn
+   tại khi có mặt heavy trên bàn, và mô hình DOM không composite được pixel. */
+.ractag-hv{position:absolute;left:2px;bottom:calc(100% + var(--bd));font-size:var(--t1);line-height:1;color:var(--acc)}
+.die[data-r="3"]{border-color:var(--r3)}
+.die[data-r="4"]{border-color:var(--r4);box-shadow:0 0 20px #ff5f8f66;animation:mythg 1.8s infinite}
+@keyframes mythg{0%,100%{box-shadow:0 0 14px #ff5f8f55}50%{box-shadow:0 0 28px #ff5f8fbb}}
+.die.dr3{border-left-color:var(--r3)} .die.dr4{border-left-color:var(--r4)}
+.critbadge{pointer-events:none;position:absolute;top:-8px;left:50%;transform:translateX(-50%);font-size:var(--t1);
+  background:var(--acc);color:#1a1503;padding:1px 7px;border-radius:var(--rad-sm);letter-spacing:1px;white-space:nowrap}
+.die.critready{border-color:var(--acc)}
+.pips{display:flex;gap:3px;justify-content:center;margin-top:6px}
+.pip{width:9px;height:9px;border-radius:2px;background:var(--line);border:1px solid transparent}
+.pip.r1{border-color:var(--r1)} .pip.r2{border-color:var(--r2)}
+.pip.r3{border-color:var(--r3)} .pip.r4{border-color:var(--r4)}
+.pip.on{background:var(--acc)}
+.rsel{position:relative;width:28px;height:28px;line-height:24px;font-size:var(--t2);background:var(--pan);border:1px solid var(--line2);border-radius:50%;cursor:pointer;z-index:4;color:var(--dim)}
+.rsel::before{content:"";position:absolute;left:-10px;right:-10px;top:-10px;bottom:-10px}
+.rsel:hover{border-color:var(--shd);color:var(--shd)}
+.rsel.on{background:var(--shd);color:#0a141d;border-color:var(--shd)}
+.rsel.frz{background:var(--pan);color:#9fe8ff;border-color:#9fe8ff;pointer-events:none}
+.dlbl{display:none}
+
+/* ---------- bottom bar ---------- */
+.bottombar{display:flex;align-items:center;gap:10px;background:var(--pan);border:var(--bd) solid var(--line);
+  border-radius:var(--radius);padding:8px 10px;margin-top:12px}
+.manaorb{position:relative;display:flex;flex-direction:row-reverse;align-items:center;gap:7px;
+  padding:7px 13px;border:var(--bd) solid var(--line2);border-radius:var(--radius);background:var(--pan2);flex-shrink:0}
+.manaorb .mfill{display:none}
+.manaorb .mv{font-size:var(--t4);color:var(--man);line-height:1}
+.manaorb .ml{font-size:var(--t1);color:var(--dim);letter-spacing:2px}
+.manaorb.full{border-color:var(--man)}
+.items{display:flex;gap:6px;flex:1;flex-wrap:wrap}
+.icard{background:var(--pan2);border:1px solid var(--line2);border-radius:var(--rad-sm);padding:5px 9px;
+  cursor:pointer;font-size:var(--t2);transition:.1s;color:var(--dim)}
+.icard:hover{background:var(--pan3);color:var(--txt)}
+.icard.sel{border-color:var(--acc);color:var(--acc)}
+.icard.dis{opacity:.28;pointer-events:none}
+.icard.r1{border-color:var(--r1)} .icard.r2{border-color:var(--r2)} .icard.r3{border-color:var(--r3)}
+.icard .ic-n{color:var(--txt)}
+.icard .ic-c{font-size:var(--t1);color:var(--man)}
+.f_end .btn.end{background:var(--acc);color:#1a1503;border-color:var(--acc)}
+.hintbar{text-align:center;font-size:var(--t2);color:var(--dim);margin-top:var(--s2);letter-spacing:.5px;min-height:16px}
+
+/* ================= OVERLAYS ================= */
+.overlay{position:fixed;inset:0;background:#080a0ceb;display:flex;align-items:center;justify-content:center;
+  z-index:60;padding:16px;overflow:auto;animation:ovin .18s ease-out}
+@keyframes ovin{from{opacity:0}to{opacity:1}}
+.rewardbox{background:var(--pan);border:var(--bd) solid var(--line2);border-radius:var(--radius);padding:var(--card-pad);
+  max-width:1020px;width:100%;text-align:center;max-height:94vh;overflow:auto}
+.rewardbox.tier2{border-color:var(--burn)} .rewardbox.tier3{border-color:var(--r4)}
+.rewardbox h2{font-size:var(--t4);color:var(--txt);letter-spacing:4px;font-family:var(--font-brand);font-weight:900}
+.rewardbox.tier3 h2{color:var(--r4)}
+.rewardbox .sub{margin:6px 0 18px}
+.rrow{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-bottom:10px}
+.rrow.wrap{max-width:880px;margin:0 auto 12px}
+.rcard{position:relative;background:var(--pan2);border:var(--bd) solid var(--line);border-radius:var(--radius);
+  padding:var(--card-pad);width:266px;display:flex;flex-direction:column;align-items:center;gap:6px;transition:.12s;
+  cursor:pointer;min-height:180px;animation:cardin .3s ease-out backwards}
+@keyframes cardin{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+.rcard:hover{background:var(--pan3);border-color:var(--acc);z-index:5}
+.rcard .ricon{font-size:36px}
+.rcard .rbadge{position:absolute;top:-9px;left:50%;transform:translateX(-50%);font-size:var(--t1);padding:2px 9px;
+  background:var(--pan);border:1px solid var(--line);border-radius:var(--rad-sm);letter-spacing:2px;color:var(--dim)}
+.rcard .rt{font-size:var(--t3);color:var(--txt);letter-spacing:1px}
+.rcard .rd{font-size:var(--t3);font-weight:var(--fw-prose);line-height:1.65;color:var(--dim)}
+.rcard .rsub{font-size:var(--t1);color:var(--dim);line-height:1.6;white-space:pre-line}
+.rcard .rarch{font-size:var(--t1);letter-spacing:2px}
+.rcard .rrepl{font-size:var(--t1);color:var(--dim)}
+.rcard .rcost{font-size:var(--t3);color:var(--acc);margin-top:auto}
+.rcard.r0{border-color:var(--line2)} .rcard.r1{border-color:var(--r1)} .rcard.r2{border-color:var(--r2)}
+.rcard.r3{border-color:var(--r3)} .rcard.r4{border-color:var(--r4);box-shadow:0 0 20px #ff5f8f44}
+.rcard.r0 .rbadge{color:var(--r0)} .rcard.r1 .rbadge{border-color:var(--r1);color:var(--r1)}
+.rcard.r2 .rbadge{border-color:var(--r2);color:var(--r2)} .rcard.r3 .rbadge{border-color:var(--r3);color:var(--r3)}
+.rcard.r4 .rbadge{border-color:var(--r4);color:var(--r4)}
+.rcard.t_curse,.rcard.t_chaos{border-color:var(--deb)}
+.rcard.sold{opacity:.3;pointer-events:none} .rcard.dis{opacity:.35;pointer-events:none;cursor:default}
+.rcard.evopt{min-height:110px}
+.rcard.shopitem{min-height:146px}
+.rcta{margin-top:auto;padding-top:8px;font-size:var(--t1);color:var(--dim);letter-spacing:3px}
+.rcard:hover .rcta{color:var(--acc)}
+.evic{font-size:38px;color:var(--acc)}
+.evres{font-size:var(--t3);color:var(--heal);margin:16px 0;line-height:1.8}
+.rewardbox.end h2{font-size:var(--t5);font-family:var(--font-brand);font-weight:900} .rewardbox.end.lose{border-color:var(--dmg)} .rewardbox.end.lose h2{color:var(--dmg)}
+.rewardbox.end.win h2{color:var(--acc)}
+.recap{display:flex;gap:1px;justify-content:center;flex-wrap:wrap;margin:16px auto;background:var(--line);
+  border:1px solid var(--line);border-radius:var(--radius);overflow:hidden;width:fit-content}
+.rcstat{background:var(--pan2);padding:9px 16px;min-width:100px}
+.rcstat .rv{font-size:var(--t4);color:var(--txt)} .rcstat .rk{font-size:var(--t1);color:var(--dim);letter-spacing:1px}
+.killer{display:flex;gap:10px;align-items:center;justify-content:center;font-size:var(--t2);color:var(--dim);margin:10px 0}
+
+/* ---------- pixel icons ---------- */
+.icow{display:inline-flex;align-items:center;justify-content:center;vertical-align:-2px}
+.icow svg{display:block}
+.icow.t svg{width:11px;height:11px} .icow.tn svg{width:12px;height:12px}
+.icow.ii svg{width:15px;height:15px} .icow.di svg{width:22px;height:22px}
+.icow.ricon svg{width:38px;height:38px} .icow.evic svg{width:40px;height:40px}
+.icow.nic svg{width:30px;height:30px} .icow.ific svg{width:14px;height:14px}
+
+/* ================= COMBAT ANIMATION ================= */
+body.playing #app{pointer-events:none}
+body.playing::after{content:'HOLD MOUSE OR SPACE TO FAST FORWARD';position:fixed;bottom:8px;left:0;right:0;
+  text-align:center;font-size:var(--t1);color:var(--dim);letter-spacing:2px;z-index:80;pointer-events:none}
+body.dragging{cursor:grabbing} body.dragging .die{cursor:grabbing}
+.unit.lunge{animation:lng .34s ease-out}
+@keyframes lng{0%{transform:translate(0)}40%{transform:translate(var(--lx,0),var(--ly,-18px))}100%{transform:translate(0)}}
+.unit.knock{animation:knk .3s}
+@keyframes knk{0%,100%{transform:translate(0)}30%{transform:translate(var(--kx,5px))}65%{transform:translate(calc(var(--kx,5px)*-.6))}}
+.spr.hitflash{filter:brightness(3) saturate(0)} .spr.healflash{filter:brightness(1.7) hue-rotate(70deg)}
+.spr.shdflash{filter:brightness(1.7) hue-rotate(180deg)}
+.unit.dying{animation:dyn .42s ease-in forwards}
+@keyframes dyn{0%{opacity:1;transform:translateY(0)}100%{opacity:0;transform:translateY(14px) scale(.86)}}
+.puff{position:absolute;inset:0;pointer-events:none;background:radial-gradient(circle at 50% 45%,#fff6,transparent 62%);
+  animation:pf .4s ease-out forwards}
+@keyframes pf{0%{opacity:.9;transform:scale(.5)}100%{opacity:0;transform:scale(1.5)}}
+.die.flyer{position:fixed;z-index:90;pointer-events:none;transition:transform .23s ease-in,opacity .23s ease-in}
+.die.spent{opacity:.25}
+#aim{position:fixed;inset:0;width:100vw;height:100vh;pointer-events:none;z-index:70;opacity:0;transition:opacity .1s}
+#aim.on{opacity:1}
+
+/* ================= LUNACIA PASS ================= */
+.screen.menu.bpscreen,.screen.menu.codex,.screen.menu.guide,.screen.menu.collection,.screen.menu.unlocks,.screen.menu.vaultscreen,.screen.menu.leaderboard{justify-content:flex-start;padding-top:16px}
+.bpbar{width:320px;height:6px;background:var(--pan2);border-radius:3px;overflow:visible;position:relative;margin:0 auto 6px}
+.bpbar.big{margin:4px auto 26px}
+.bpfill{height:100%;background:var(--acc);border-radius:3px;transition:width .4s}
+.bptxt{position:absolute;left:0;right:0;top:10px;text-align:center;font-size:var(--t1);color:var(--dim);letter-spacing:1px}
+.bpmini{display:flex;flex-direction:column;align-items:center;gap:2px;margin:10px 0}
+.bptitle{font-size:var(--t1);color:var(--acc);letter-spacing:2px}
+/* the reward track — every card the same compact shape, whatever it holds.
+   align-items:stretch (grid default) makes every card in a row match the
+   tallest card's height, so short reward-only nodes and long description
+   nodes read as one even row instead of a ragged skyline. */
+.bptrack{display:grid;grid-template-columns:repeat(auto-fill,minmax(146px,1fr));gap:8px;max-width:1160px;
+  margin:0 auto 20px;align-items:stretch}
+.bpnode{background:var(--pan);border:var(--bd) solid var(--line);border-radius:var(--radius);
+  padding:var(--card-pad-sm);text-align:center;transition:.1s;display:flex;flex-direction:column;align-items:center;gap:4px;min-height:150px}
+.bpnode .bpicow{display:flex;align-items:center;justify-content:center;min-height:24px}
+.bpnode.ready{border-color:var(--acc);cursor:pointer}
+.bpnode.ready:hover{background:var(--pan2)}
+.bpnode.lock{opacity:.4}
+.bpnode.got{opacity:.55}
+.bpnode.mythic{border-color:var(--r4)}
+.bpnode .bplv{font-size:var(--t2);color:var(--dim);letter-spacing:2px}
+.bpnode .icow svg{width:20px;height:20px}
+.bpnode .bpn{font-size:var(--t2);color:var(--txt);line-height:1.4}
+.bpnode .bpd{font-size:var(--t1);color:var(--dim);line-height:1.5}
+.bpnode .bpface{font-size:var(--t1);color:var(--r4);line-height:1.5;border:none}
+.bpnode .rarch{font-size:var(--t1);letter-spacing:1px}
+.bpnode .bpttl{font-size:var(--t1);color:var(--acc)}
+.bpnode .bpbody{display:flex;flex-direction:column;align-items:center;gap:4px}
+.bpnode .bpstate{margin-top:auto;padding-top:8px;font-size:var(--t1);letter-spacing:2px;color:var(--dim)}
+.bpnode.ready .bpstate{color:var(--acc)}
+.bpnode.got .bpstate{color:var(--heal)}
+
+/* ================= GUIDE ================= */
+/* Deterministic 2-column grid instead of auto-fit: the nested 5-avatar
+   .gteam row has enough intrinsic content width that auto-fit's own track
+   sizing could ask for more columns than actually fit, letting cards
+   overflow the container and clip their body text (no wrap) instead of
+   wrapping into a narrower card. minmax(0,1fr) plus min-width:0 on every
+   flex/grid item in the chain lets long sentences wrap normally instead. */
+.guidegrid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;max-width:1120px;margin:0 auto;text-align:left}
+.gcard{background:var(--pan);border:var(--bd) solid var(--line);border-top:3px solid var(--gc,var(--acc));
+  border-radius:var(--radius);padding:var(--card-pad);min-width:0;display:flex;flex-direction:column;
+  transition:border-color .12s,box-shadow .12s;}
+.gcard:hover{border-color:var(--gc,var(--acc));box-shadow:0 0 0 1px var(--gc,var(--acc)) inset}
+.gname{font-size:var(--t4);font-weight:700;color:var(--gc,var(--acc));letter-spacing:2px}
+.gdiff{font-size:var(--t1);color:var(--dim);letter-spacing:2px;margin-top:4px}
+.gteam{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:5px;margin:14px 0}
+.gu{background:var(--pan2);border:1px solid var(--line);border-bottom:2px solid var(--cc);
+  border-radius:var(--rad-sm);padding:6px 2px;text-align:center;min-width:0}
+.gu .spr{width:100%;max-width:var(--spr-guide);height:auto;aspect-ratio:1/1}
+.gn{font-size:var(--t1);color:var(--dim);margin-top:4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.gwhy{font-size:var(--t3);font-weight:var(--fw-prose);color:var(--dim);line-height:1.9;margin-top:10px;overflow-wrap:break-word;word-break:break-word}
+.ghow{margin-top:12px;display:flex;flex-direction:column;gap:6px}
+.gh{display:flex;gap:9px;align-items:flex-start;font-size:var(--t2);color:var(--dim);line-height:1.7;min-width:0}
+.gh>span:last-child{min-width:0;overflow-wrap:break-word;word-break:break-word}
+/* bullet drawn in CSS — the pixel font has no glyph for a triangle */
+.gb{flex:0 0 5px;width:5px;height:5px;margin-top:7px;background:var(--gc,var(--acc));border-radius:1px}
+.gwhy b,.ghow b{color:var(--acc)}
+
+/* ================= CODEX ================= */
+.cxshell{display:flex;gap:14px;max-width:1180px;margin:0 auto;width:100%;align-items:flex-start}
+.cxnav{flex:0 0 176px;display:flex;flex-direction:column;gap:3px;position:sticky;top:12px}
+.cxtab{background:transparent;border:none;border-left:2px solid transparent;border-radius:0;text-align:left;
+  padding:9px 12px;font-size:var(--t2);color:var(--dim);letter-spacing:1px;cursor:pointer;transition:.08s}
+.cxtab:hover{color:var(--txt);background:var(--pan)}
+.cxtab.on{color:var(--acc);border-left-color:var(--acc);background:var(--pan)}
+.cxpane{flex:1;background:var(--pan);border:var(--bd) solid var(--line);border-radius:var(--radius);
+  padding:var(--card-pad);text-align:left;min-height:440px}
+.cxh{font-size:var(--t4);color:var(--txt);letter-spacing:2px;margin-bottom:4px;font-family:var(--font-brand);font-weight:900}
+.cxsum{font-size:var(--t3);font-weight:var(--fw-prose);color:var(--dim);line-height:1.8;margin-bottom:16px}
+.cxsumbox{background:var(--pan2);border-left:2px solid var(--acc);border-radius:0 var(--rad-sm) var(--rad-sm) 0;
+  padding:12px 14px;margin-bottom:16px;font-size:var(--t3);font-weight:var(--fw-prose);line-height:1.8;color:var(--dim)}
+.cxhead{font-size:var(--t2);color:var(--dim);letter-spacing:3px;margin:20px 0 8px;padding-bottom:6px;border-bottom:1px solid var(--line)}
+/* the same class name is used for a table's header row — reset it there */
+.cxtable .cxhead{margin:0;padding-bottom:0;border-bottom:none;letter-spacing:0;font-size:inherit}
+.cxp{font-size:var(--t3);color:var(--dim);line-height:24px;margin-bottom:var(--s2)}
+.cxp b{color:var(--txt)}
+/* T21 (2026-09-03) · one real grid for the whole table, not one independent
+   grid per row (see cxTable() in ui.js for why that made `max-content`
+   column sizing impossible before — misaligned column edges row to row).
+   grid-template-columns is now set inline per-table (content-dependent, via
+   cxTable()); .cxtr is display:contents so its .cxtd cells become direct
+   items of THIS grid, letting the browser size column 1 once using every
+   row's real content. */
+.cxtable{display:grid;gap:1px;background:var(--line);border:1px solid var(--line);border-radius:var(--rad-sm);overflow:hidden}
+.cxtr{display:contents}
+.cxtd{background:var(--pan2);padding:10px 12px;font-size:var(--t2);color:var(--dim);line-height:1.6;min-height:32px;
+  display:flex;align-items:center}
+.cxtr:first-child .cxtd{background:var(--pan3);color:var(--dim);font-size:var(--t1);letter-spacing:2px}
+.cxtd:first-child{color:var(--txt)}
+.cxfilter{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:12px}
+.cxfb{background:var(--pan2);border:1px solid var(--line2);border-radius:var(--rad-sm);color:var(--dim);
+  padding:4px 10px;font-size:var(--t1);letter-spacing:1px;cursor:pointer}
+.cxfb.on{border-color:var(--acc);color:var(--acc)}
+.cxtop{display:flex;align-items:center;gap:12px;justify-content:center;margin-bottom:14px}
+.cchip{font-size:var(--t1);padding:3px 8px;border-radius:var(--rad-sm);border:1px solid currentColor;
+  white-space:nowrap;display:inline-block}
+
+/* ================= MODALS ================= */
+.modalov{position:fixed;inset:0;background:#080a0cee;z-index:75;display:flex;align-items:center;justify-content:center;padding:16px}
+.modalbox{background:var(--pan);border:var(--bd) solid var(--line2);border-radius:var(--radius);
+  width:100%;max-width:980px;max-height:92vh;display:flex;flex-direction:column;overflow:hidden}
+.mdhead{display:flex;align-items:center;gap:12px;padding:var(--card-pad);border-bottom:1px solid var(--line)}
+.mdtitle{display:flex;align-items:baseline;gap:14px;font-size:var(--t3);color:var(--txt);letter-spacing:3px}
+.mdsub{font-size:var(--t1);color:var(--dim);letter-spacing:1px}
+.mdx{margin-left:auto}
+.die.out{color:var(--dim)}
+.mdtabs{display:flex;gap:2px;padding:10px 18px 0;flex-wrap:wrap}
+.mdtab{background:transparent;border:none;border-bottom:2px solid transparent;color:var(--dim);
+  padding:7px 12px;font-size:var(--t2);letter-spacing:1px;cursor:pointer}
+.mdtab:hover{color:var(--txt)}
+.mdtab.on{color:var(--acc);border-bottom-color:var(--acc)}
+.mdbody{padding:16px 18px 20px;overflow:auto;text-align:left}
+/* Face rows are a table, so every Axie's six faces line up column for column. */
+.iflist{display:flex;flex-direction:column;gap:2px;margin-top:10px}
+.ifrow{display:grid;grid-template-columns:22px 20px 76px 46px 1fr 70px;gap:8px;align-items:center;
+  background:var(--pan);border-radius:var(--rad-sm);padding:5px 10px}
+.ifrow.cur{background:var(--pan3)}
+.ifrow.cur .ifv{color:var(--acc)}
+.ifn{font-size:var(--t1);color:var(--dim)}
+.ific{display:flex;align-items:center}
+.ifp{font-size:var(--t1);color:var(--dim);letter-spacing:1px}
+.ifv{font-size:var(--t3);color:var(--txt)}
+.ifk{font-size:var(--t1);color:var(--dim)}
+.ifr{font-size:var(--t1);letter-spacing:1px;text-align:right;color:var(--dim)}
+.ifrow.r1 .ifr{color:var(--r1)} .ifrow.r2 .ifr{color:var(--r2)}
+.ifrow.r3 .ifr{color:var(--r3)} .ifrow.r4 .ifr{color:var(--r4)}
+.iempty{font-size:var(--t2);color:var(--dim);padding:12px}
+.submitbox{max-width:1050px;margin:16px auto;padding:var(--card-pad);background:var(--pan);
+  border:var(--bd) solid var(--line);border-radius:var(--radius);display:flex;flex-direction:column;gap:8px;align-items:flex-start}
+.lbtable{max-width:1050px;margin:0 auto;display:flex;flex-direction:column;gap:2px}
+.lbrow{display:grid;grid-template-columns:56px 1fr 80px 90px;gap:8px;align-items:center;
+  padding:8px var(--card-pad-sm);background:var(--pan);border:1px solid var(--line);border-radius:var(--rad-sm,6px);font-size:var(--t3)}
+.lbrow.won{border-color:var(--acc)}
+.lbrank{color:var(--dim);font-weight:var(--fw-action)}
+.lbscore{color:var(--acc);font-weight:var(--fw-action);text-align:right}
+.lbstep{color:var(--dim);font-size:var(--t2);text-align:right}
+/* Rows with a stored team/relics snapshot (docs/architecture — server-replay
+   trusted, see api/submit-run.js) are click-to-expand, same accordion pattern
+   as .histrow/.histdetail above — older entries have no team data and stay
+   plain (no pointer cursor, no hover state, no click handler attached). */
+.lbrow.expandable{cursor:pointer;min-height:44px}
+.lbrow.expandable:hover{background:var(--pan2)}
+.lbrow.expandable.open{border-color:var(--acc)}
+.lbdetail{max-width:1050px;margin:0 0 2px;background:var(--pan2);border:1px solid var(--line);
+  border-radius:var(--radius);padding:var(--s3)}
+.icard2{background:var(--pan2);border:1px solid var(--line);border-radius:var(--rad-sm);padding:var(--card-pad-sm);margin-bottom:10px}
+.ic2h{display:flex;gap:12px;align-items:center}
+.ic2h .spr{width:54px;height:54px;flex:0 0 54px;margin:0}
+.ic2h .ic2t{flex:1;min-width:0}
+.ic2n{font-size:var(--t3);color:var(--txt)}
+.ic2t{font-size:var(--t1);color:var(--dim);letter-spacing:1px}
+.ic2s{font-size:var(--t3);font-weight:var(--fw-prose);color:var(--dim);line-height:1.7}
+.ic2st{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
+.ic2p{font-size:var(--t1);color:var(--acc)}
+.ic2dr{font-size:var(--t1)}
+.setwrap{display:flex;flex-direction:column;gap:14px}
+.setrow{display:flex;align-items:center;gap:12px}
+.setl{font-size:var(--t2);color:var(--dim);width:130px}
+.setv{font-size:var(--t2);color:var(--acc);width:52px;text-align:right}
+.setctl{flex:1;display:flex;gap:6px;align-items:center}
+.sethint{font-size:var(--t2);color:var(--dim);line-height:1.8}
+.sethint.danger{color:var(--dmg)}
+input[type=range]{accent-color:var(--acc);width:100%}
+
+/* tutorial */
+.tutov{position:fixed;inset:0;background:#080a0cf2;z-index:120;display:flex;align-items:center;justify-content:center;padding:18px}
+.tutbox{background:var(--pan);border:var(--bd) solid var(--acc);border-radius:var(--radius);
+  padding:var(--card-pad);max-width:680px;text-align:center}
+.tutbox h4{font-size:var(--t4);color:var(--acc);letter-spacing:3px;margin-bottom:12px}
+.tutbox .pre{font-size:var(--t3);color:var(--dim);line-height:2;white-space:pre-line;text-align:left}
+
+/* ================= DEV TOOLS ================= */
+body.devmode{cursor:crosshair}
+.devbtn{position:fixed;right:10px;bottom:10px;z-index:150}
+.dvpanel{position:fixed;top:0;right:0;bottom:0;width:360px;background:#0c0e12f5;border-left:2px solid var(--line2);
+  z-index:160;display:flex;flex-direction:column;font-size:var(--t2)}
+.dvhead{display:flex;align-items:center;gap:8px;padding:10px 12px;border-bottom:1px solid var(--line)}
+.dvtitle{font-size:var(--t3);color:var(--acc);letter-spacing:2px}
+.dvx{margin-left:auto}
+.dvtabs{display:flex;gap:2px;padding:8px 12px 0}
+.dvtab{background:transparent;border:none;border-bottom:2px solid transparent;color:var(--dim);padding:6px 10px;
+  font-size:var(--t2);cursor:pointer}
+.dvtab.on{color:var(--acc);border-bottom-color:var(--acc)}
+.dvbody{padding:12px;overflow:auto;flex:1}
+.dvrow{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+.dvlbl{font-size:var(--t1);color:var(--dim);width:106px}
+.dvval{font-size:var(--t1);color:var(--acc);width:56px;text-align:right}
+.dvsl{flex:1}
+.dvbox{background:var(--pan);border:1px solid var(--line);border-radius:var(--rad-sm);padding:10px;margin-bottom:8px}
+.dvn{font-size:var(--t2);color:var(--txt)}
+.dvk{font-size:var(--t1);color:var(--dim)}
+.dvhint{font-size:var(--t3);font-weight:var(--fw-prose);color:var(--dim);line-height:1.7;margin-bottom:8px}
+.dvsum{font-size:var(--t3);font-weight:var(--fw-prose);color:var(--dim);line-height:1.7}
+.dvta{width:100%;height:220px;background:#07090c;border:1px solid var(--line);border-radius:var(--rad-sm);
+  color:var(--txt);font-family:inherit;font-size:var(--t1);padding:8px}
+.dvpre{white-space:pre-wrap;font-size:var(--t1);color:var(--dim)}
+.dvbtn{margin-bottom:6px}
+.dvscreens{display:grid;grid-template-columns:1fr 1fr;gap:5px}
+.dvsel{outline:2px solid var(--acc)!important;outline-offset:1px}
+.dvnote{font-size:var(--t1);color:var(--acc)}
+.dvcol{width:34px;height:26px;border:1px solid var(--line);background:none;padding:0}
+.dvdel{color:var(--dmg)}
+.dvempty{font-size:var(--t1);color:var(--dim)}
+.dvm{font-size:var(--t1);color:var(--dim)}
+.dvknob{margin-bottom:10px}
+.dvkn{font-size:var(--t1);color:var(--dim)}
+
+
+/* ═══════════════════ T10 · BREAKPOINTS ═══════════════════
+   Trước bản này toàn bộ file có đúng 1 @media, và đó là prefers-reduced-motion.
+   Chiến lược responsive duy nhất là zoom cả trang, nên ở 393px nhãn BACK/HORN
+   sẽ render ở 4.1px. Ở đây ta đổi KÍCH THƯỚC COMPONENT thay vì zoom.
+   Bề rộng tối thiểu của bàn chơi = 5×unit + 4×gap + 2×padding. */
+
+/* 900–1199px — laptop hẹp / tablet landscape: 5×140 + 4×10 + 24 = 764px */
+@media (max-width:1199px){
+  :root{ --unit-w:140px; --die-w:140px; --die-h:112px; --zone-gap:10px; --ui-scale:1; }
+}
+
+/* 600–899px — tablet portrait. Kiểm ở cận dưới 600: 5×104 + 4×8 + 16 = 568 ≤ 600 */
+@media (max-width:899px){
+  :root{ --unit-w:104px; --die-w:104px; --die-h:100px; --zone-gap:8px;
+         --die-num:24px; --spr-w:76px; --ui-scale:1; }
+  #app{ padding:var(--s2) var(--s2) var(--s3); }
+  .dp{ display:none; }
+  .track{ flex-wrap:wrap; row-gap:var(--s2); }
+  .menu-grid{ grid-template-columns:repeat(2,1fr); }
+  .pickgrid{ grid-template-columns:repeat(3,1fr); }
+  .cxshell{ flex-direction:column; }
+  .cxnav{ flex:0 0 auto; flex-direction:row; flex-wrap:wrap; position:static; }
+  .cxtab.on{ border-left-color:transparent; border-bottom:2px solid var(--acc); }
+}
+
+/* <600px — phone. Kiểm ở 393px: 16 + 5×64 + 4×6 = 360 ≤ 393 */
+@media (max-width:599px){
+  :root{ --unit-w:64px; --die-w:64px; --die-h:88px; --zone-gap:6px;
+         --die-num:24px; --spr-w:56px; --hp-h:6px; --ui-scale:1; }
+  #app{ padding:var(--s2) var(--s2) var(--s3); }
+  .nm,.dp,.pips,.dlbl{ display:none; }
+  .die{ padding:6px 4px; }
+  .bottombar{ position:sticky; bottom:0; height:60px; z-index:20; }
+  .btn--lg,.btn.big,.btn.cta{ --btn-h:52px; }
+  .pickgrid{ grid-template-columns:repeat(2,1fr); }
+  .guidegrid{ grid-template-columns:1fr; }
+  .bptrack{ grid-template-columns:repeat(auto-fill,minmax(120px,1fr)); }
+}
+
+/* ═══════════════════ T10b · SHORT-WINDOW BREAKPOINT (chiều CAO) ═══════════════════
+   T10 ở trên chỉ hỏi "cửa sổ RỘNG bao nhiêu". Nhưng bàn combat có chiều cao
+   nội tại ~808px (track 48 + enemies 233 + party 369 + bottombar 68 + gap/padding),
+   và con số đó KHÔNG phụ thuộc chiều rộng — nên ở 1280×720 (laptop 13" phổ biến)
+   END TURN rơi xuống bottom=768, tức 48px dưới mép màn hình.
+
+   Trước đây fitUI() trong ui.js che được lỗi này bằng cách zoom cả trang nhỏ lại,
+   nhưng sàn của nó đã bị nâng 0.85 → 1.0 (chữ không được nhỏ hơn --t1:11px, và
+   tools/verify.mjs A4 hardcode 11px), nên --ui-scale giờ luôn = 1 ở mọi cửa sổ
+   thấp — không còn cơ chế nào bù chiều cao nữa. Đây là cơ chế thay thế, và nó đi
+   đúng theo triết lý của T10: đổi KÍCH THƯỚC COMPONENT, không zoom, nên chữ vẫn
+   giữ nguyên cỡ đã thiết kế (11px vẫn là 11px).
+
+   Ngưỡng 840px: bàn full-size đo được 808px, nên mọi cửa sổ dưới ~840px là không
+   còn headroom. 900px (viewport desktop của verify.mjs) nằm ngoài, cố ý — bản
+   render desktop đã được verify không đổi một pixel nào.
+
+   min-width:900px: dưới mức đó T10 đã thu nhỏ component rồi (--spr-w:76px,
+   --die-h:100px — đã nhỏ hơn các giá trị ở đây), nên khối này sẽ chỉ làm TO ra.
+   Điện thoại xoay ngang (852×393, verify.mjs có kiểm) vì thế không bị đụng tới.
+
+   Các giá trị lấy lại từ breakpoint ≤899px sẵn có (--spr-w:76px) và từ
+   .zone.party.compact — style.css đã tự chứng minh cỡ đó đọc/chạm được. */
+@media (min-width:900px) and (max-height:840px){
+  /* --spr-big phải co theo --spr-w, không được để nguyên 164px: tỉ lệ thiết kế
+     gốc là 164/100 = 1.64 (boss to hơn Axie party 64%). Nếu chỉ co --spr-w mà
+     giữ --spr-big thì tỉ lệ thành 164/76 = 2.16 — con boss ĐÈ TO HƠN chủ đích,
+     và chính nó là thứ duy nhất làm trận boss còn tràn. 76*1.64 ≈ 124px giữ
+     nguyên đúng tỉ lệ 1.63, nên boss vẫn áp đảo y như trên desktop. */
+  :root{ --spr-w:76px; --spr-big:124px; --die-h:104px; }
+  #app{ padding-bottom:var(--s2); }
+  .track{ padding:4px 10px; margin-bottom:6px; }
+  .zone.enemies{ padding-top:8px; }
+  .zone.party{ margin-top:12px; }
+  .pcol{ gap:8px; }
+  /* Ghim thanh hành động — đúng cách breakpoint ≤599px đã dùng sẵn cho cùng vấn
+     đề này. Lưới token phía trên đã đủ để trận THƯỜNG vừa khít (1280×720:
+     doc 808 → 720, hết scroll hẳn), nhưng trận boss thì .unit.big vẫn cao 282px
+     nên bàn còn cao hơn cửa sổ ~67px. Ghim bar là lưới an toàn: END TURN /
+     REROLL LUÔN chạm tới được bất kể bàn cao bao nhiêu, và không phải chỉnh lại
+     số ma thuật mỗi lần thêm nội dung dọc (đúng nỗi lo mà comment BOARD_H trong
+     ui.js đã ghi). Đã đo: ở boss 1280×720, tâm cả 5 xúc xắc đều nằm TRÊN bar
+     (không bị che), cuộn xuống là hiện đủ toàn bàn.
+     .bottombar đã có background:var(--pan) + border đặc nên không lộ nội dung
+     phía dưới khi cuộn. */
+  .bottombar{ margin-top:8px; position:sticky; bottom:0; z-index:20; }
+}
+
+/* T11 · phone portrait gate — bàn 5 cột về bản chất là bố cục ngang */
+.rotate-hint{ display:none; }
+@media (max-width:599px) and (orientation:portrait){
+  .rotate-hint{
+    display:flex; position:fixed; inset:0; z-index:100;
+    flex-direction:column; align-items:center; justify-content:center; gap:var(--s4);
+    background:var(--bg); color:var(--txt); font-size:var(--t3); text-align:center;
+    padding:var(--s5);
+  }
+  .rotate-hint .rh-ic{ font-size:var(--t5); color:var(--acc); }
+  .screen.combat{ display:none; }
+}
+
+/* ═══════════════════ T15 · COMBAT LOG ═══════════════════
+   design/ux/combat-log.md. Lives outside #app (see log.js clogInit()) so
+   ui.js's full-teardown render() never unmounts it — visibility is toggled
+   with body.clog-open, not by adding/removing the node. */
+.sr-only{ position:absolute; width:1px; height:1px; padding:0; margin:-1px;
+  overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0; }
+
+/* Outer box: always fully inside the viewport, geometry never changes between
+   open/closed — this is what keeps a closed panel from ever contributing to
+   document.scrollWidth. The reveal animates via clip-path (paint-only, does
+   not move the box) rather than transform:translateX(), because a
+   translated-out-of-view descendant was still being counted toward
+   document.scrollWidth by the browser even with overflow:hidden on an
+   ancestor (regressed tools/verify.mjs B2 — see log.js clogInit() comment). */
+.clog-panel{
+  position:fixed; z-index:60; top:0; right:0; height:100%; width:280px; max-width:92vw;
+  pointer-events:none;
+}
+body.clog-open .clog-panel{ pointer-events:auto; }
+.clog-inner{
+  position:absolute; inset:0; display:flex; flex-direction:column;
+  background:var(--pan); border-left:var(--bd) solid var(--line2);
+  clip-path:inset(0 0 0 100%); opacity:0;
+  transition:clip-path .18s ease, opacity .18s ease;
+}
+body.clog-open .clog-inner{ clip-path:inset(0 0 0 0); opacity:1; }
+.clog-head{ display:flex; align-items:center; justify-content:space-between;
+  padding:var(--s2) var(--s3); border-bottom:1px solid var(--line); }
+.clog-title{ font-size:var(--t1); letter-spacing:2px; color:var(--dim); }
+.clog-bodywrap{ position:relative; flex:1; overflow:hidden; display:flex; flex-direction:column; }
+.clog-body{ flex:1; overflow-y:auto; padding:var(--s2) var(--s3); display:flex; flex-direction:column; }
+.clog-entry{ font-size:var(--t2); color:var(--txt); padding:6px 0; border-bottom:1px solid var(--line);
+  animation:clogIn .08s ease; }
+.clog-entry.dead{ color:var(--dmg); }
+.clog-line1{ font-weight:700; }
+.clog-line2{ color:var(--dim); margin-top:2px; display:flex; flex-wrap:wrap; align-items:center; gap:4px; }
+.clog-seg{ display:inline-flex; align-items:center; gap:3px; }
+.clog-seg .icow{ width:12px; height:12px; }
+.clog-seg.c-dmg{ color:var(--dmg); } .clog-seg.c-heal{ color:var(--heal); } .clog-seg.c-shd{ color:var(--shd); }
+.clog-seg.c-poi{ color:var(--poi); } .clog-seg.c-man{ color:var(--man); } .clog-seg.c-buf{ color:var(--acc); }
+.clog-seg.c-deb{ color:var(--deb); }
+.clog-dot{ color:var(--dim); }
+.clog-div{ font-size:var(--t1); color:var(--dim); text-align:center; letter-spacing:2px; padding:8px 0; }
+.clog-ban{ font-size:var(--t2); color:var(--acc); text-align:center; font-weight:700; padding:8px 0;
+  border-top:2px solid var(--acc); border-bottom:2px solid var(--acc); margin:6px 0; }
+.clog-unread{ position:sticky; top:0; z-index:2; align-self:center; margin:4px auto;
+  background:var(--acc); color:#1a1503; font-size:var(--t1); letter-spacing:1px;
+  padding:3px 10px; border-radius:12px; cursor:pointer; display:none; }
+.clog-unread.on{ display:block; }
+.clog-scrim{ position:fixed; inset:0; z-index:59; background:#080a0caa; opacity:0; pointer-events:none;
+  transition:opacity .18s ease; }
+@keyframes clogIn{ from{opacity:0} to{opacity:1} }
+@media (prefers-reduced-motion:reduce){ .clog-entry{ animation:none; } }
+
+/* >=1700px: dock in dead space to the right of the board — zero overlap, zero reflow.
+   #app is max-width:1240px and centered (margin:0 auto), AND .zone additionally
+   centers the board within #app — two nested centering steps, so the original
+   spec math (single right-aligned board, safe at 1200px) undercounted the real
+   margin needed. Empirically measured via getBoundingClientRect() in-browser
+   (party-unit right edge vs panel left edge) across viewport widths:
+     1280px → 266px overlap · 1600px → 21px overlap · 1620px → 11px overlap
+     1680px → 0px overlap   · 1750px → 0px overlap
+   True zero-overlap threshold is ~1660-1670px; 1700px keeps a safety buffer.
+   Below this, overlay-drawer (see next block) is used instead, same pattern
+   already shipped and accepted for the 600-1199px tablet tier (which also
+   overlaps live board content by design, behind a scrim). */
+@media (min-width:1700px){
+  .clog-panel{ top:8px; right:12px; height:calc(100% - 16px); }
+  .clog-inner{ border:var(--bd) solid var(--line2); border-radius:var(--radius); box-shadow:var(--sh-card); }
+  body.clog-open .clog-scrim{ opacity:0; pointer-events:none; }
+}
+/* 600-1699px: overlay drawer — scrim only under the panel's own width, board stays visible
+   behind the scrim in spirit (same accepted tradeoff as the original 600-1199px tablet tier).
+   Widened from the original 600-1199px so the docked tier only activates where there is
+   actually enough dead space (see comment above). */
+@media (max-width:1699px){
+  .clog-scrim{ left:auto; width:280px; }
+  body.clog-open .clog-scrim{ opacity:1; pointer-events:auto; }
+}
+/* <600px landscape: full-screen modal takeover (portrait is already gated by T11) */
+@media (max-width:599px){
+  .clog-scrim{ left:0; width:100%; }
+  .clog-panel{ width:100%; max-width:100%; }
+  .clog-inner{ border-left:none; }
+}
+
+/* ================= ECHO BOX / PROFILE (economy-progression.md §10.3 amendment) =================
+   Reuses existing tokens only (--r0..--r4 rarity colours, --burn, CLASS_COLOR
+   hexes baked in below since CSS can't read data.js, and the --acc gold /
+   rgba(179,136,255,x) purple pairing already used by .unit.p.echo5). */
+.fusewrap{display:flex;flex-direction:column;gap:6px;margin-top:10px}
+.fuserow{display:flex;align-items:center;gap:10px}
+.echoresult{max-width:280px;margin:14px 0 0}
+.citem.on{box-shadow:0 0 0 2px var(--acc)}
+
+/* ---------- Decor: 9 rings/halos/frames, escalating visual weight with rarity ---------- */
+.profile-avatar-wrap{position:relative;display:inline-block;border-radius:50%;padding:6px}
+.decor-ring{box-shadow:0 0 0 3px var(--r0)}
+.decor-ring-dashed{border-radius:50%;border:3px dashed var(--r0)}
+.decor-ring-twin{box-shadow:0 0 0 2px var(--r1),0 0 0 6px var(--r1)}
+.decor-halo-dotted{border-radius:50%;border:3px dotted var(--r1);box-shadow:0 0 12px rgba(99,179,255,.5)}
+.decor-frame-vine{box-shadow:0 0 0 3px var(--r2),0 0 14px rgba(179,136,255,.35)}
+.decor-frame-shard{box-shadow:0 0 0 3px var(--r2),0 0 18px rgba(179,136,255,.5)}
+.decor-frame-ember{box-shadow:0 0 0 3px var(--r3),0 0 22px var(--burn)}
+.decor-frame-storm{box-shadow:0 0 0 3px var(--r3),0 0 22px rgba(99,179,255,.5)}
+.decor-frame-eclipse{box-shadow:0 0 0 3px var(--r4),0 0 20px rgba(255,200,87,.75),0 0 32px rgba(179,136,255,.45)}
+
+/* ---------- Backgrounds: 11 CSS gradients. First 6 use CLASS_COLOR hexes
+   (data.js) for the common/rare class-flavored tier; the lunar-tier flavored
+   ones (waning/gibbous/full/eclipse/lunacia) reuse the .unit.p.echo1-5 glow
+   palette (r0 grey -> r1 blue -> r2 purple -> r3 gold -> r4 gold+purple+pink). ---------- */
+.bg-plant{background:radial-gradient(circle at 30% 20%,rgba(111,192,74,.35),transparent 60%),var(--pan)}
+.bg-beast{background:radial-gradient(circle at 30% 20%,rgba(224,145,58,.35),transparent 60%),var(--pan)}
+.bg-aqua{background:radial-gradient(circle at 30% 20%,rgba(46,196,182,.35),transparent 60%),var(--pan)}
+.bg-reptile{background:radial-gradient(circle at 30% 20%,rgba(138,154,58,.35),transparent 60%),var(--pan)}
+.bg-bug{background:radial-gradient(circle at 30% 20%,rgba(199,79,216,.35),transparent 60%),var(--pan)}
+.bg-bird{background:radial-gradient(circle at 30% 20%,rgba(92,107,192,.35),transparent 60%),var(--pan)}
+.bg-waning{background:radial-gradient(circle at 50% 30%,rgba(154,164,178,.4),transparent 65%),var(--pan)}
+.bg-gibbous{background:radial-gradient(circle at 50% 30%,rgba(179,136,255,.4),transparent 65%),var(--pan)}
+.bg-full{background:radial-gradient(circle at 50% 30%,rgba(255,200,87,.4),transparent 65%),var(--pan)}
+.bg-eclipse{background:radial-gradient(circle at 50% 30%,rgba(255,95,143,.45),rgba(179,136,255,.25) 45%,transparent 70%),var(--pan)}
+.bg-lunacia{background:conic-gradient(from 180deg at 50% 50%,rgba(255,200,87,.35),rgba(179,136,255,.35),rgba(255,95,143,.35),rgba(99,179,255,.35),rgba(255,200,87,.35))}
+
+/* ---------- Profile screen layout (reuses .colsec/.citem/.colgrid from Collection) ---------- */
+.profile-preview{max-width:420px;margin:0 auto 24px;padding:24px;border-radius:var(--radius);border:var(--bd) solid var(--line2);text-align:center}
+.profile-avatar{width:96px;height:96px;border-radius:50%;overflow:hidden;background:var(--pan2);display:flex;align-items:center;justify-content:center;margin:0 auto}
+.profile-avatar-img{width:100%;height:100%;object-fit:cover}
+.profile-avatar-empty{font-size:var(--t4);color:var(--dim)}
+.profile-title{margin-top:14px;font-size:var(--t3);letter-spacing:2px;color:var(--acc)}
+.profile-idrow{margin-top:14px;display:flex;flex-wrap:wrap;gap:var(--s2);align-items:center;justify-content:center}
+.profile-dispname{font-size:var(--t2);color:var(--txt);font-weight:700;width:100%}
+
+/* Decor pack 2 (2026-09-02): real land-item art (rings/necklaces/armor/
+   weapons) badged at the avatar's corner, instead of a CSS ring — these
+   items have `img` in COSMETIC_DECOR, not `style`, see scProfile(). */
+.decor-badge{position:absolute;right:-6px;bottom:-6px;width:34px;height:34px;border-radius:50%;
+  background:var(--pan2);border:2px solid var(--line2);padding:3px;box-shadow:0 2px 6px #0008}
+.decor-badge-img{width:100%;height:100%;object-fit:contain}
+
+/* Collection/Profile grid chips: a small thumbnail for items with real art
+   (avatar portraits/cards, land-item decor) — text-only chips (backgrounds,
+   gacha titles, the original CSS-only decor) are unaffected. */
+.citem.has-thumb{display:flex;align-items:center;gap:6px;padding:4px 8px 4px 4px}
+.citem-thumb{width:22px;height:22px;border-radius:50%;object-fit:cover;flex:none;background:var(--pan2)}
+</style>
+<script>
+/* ─────────── audio.js ─────────── */
+/* ============ AUDIO — WebAudio synth, 0 byte asset ============ */
+const AU={ctx:null,on:true,vol:0.28};
+function ac(){ if(!AU.ctx){ try{ AU.ctx=new (window.AudioContext||window.webkitAudioContext)(); }catch(e){ AU.on=false; } } return AU.ctx; }
+function env(g,t,a,d,pk){ g.gain.setValueAtTime(0,t); g.gain.linearRampToValueAtTime(pk,t+a); g.gain.exponentialRampToValueAtTime(0.0001,t+a+d); }
+function tone(f,dur,type,pk,slide,delay){
+  if(!AU.on) return; const c=ac(); if(!c) return;
+  const t=c.currentTime+(delay||0), o=c.createOscillator(), g=c.createGain();
+  o.type=type||'square'; o.frequency.setValueAtTime(f,t);
+  if(slide) o.frequency.exponentialRampToValueAtTime(Math.max(30,slide),t+dur);
+  env(g,t,0.004,dur,(pk||0.3)*AU.vol); o.connect(g); g.connect(c.destination); o.start(t); o.stop(t+dur+0.05);
+}
+let NB=null;
+function noise(dur,pk,filt,delay,q){
+  if(!AU.on) return; const c=ac(); if(!c) return;
+  if(!NB){ NB=c.createBuffer(1,c.sampleRate*0.5,c.sampleRate); const d=NB.getChannelData(0);
+    for(let i=0;i<d.length;i++) d[i]=Math.random()*2-1; }
+  const t=c.currentTime+(delay||0), s=c.createBufferSource(), g=c.createGain(), f=c.createBiquadFilter();
+  s.buffer=NB; f.type='bandpass'; f.frequency.value=filt||900; f.Q.value=q||1;
+  env(g,t,0.003,dur,(pk||0.25)*AU.vol); s.connect(f); f.connect(g); g.connect(c.destination); s.start(t); s.stop(t+dur+0.05);
+}
+const SFX={
+  ui:()=>tone(680,0.05,'square',0.16),
+  hover:()=>tone(1200,0.025,'sine',0.07),
+  tray:()=>noise(0.14,0.16,420,0,0.8),
+  tumble:(i)=>noise(0.035,0.11,1500+i*120,0,2),
+  land:(i,rar)=>{ const base=[392,440,494,523,587][i%5];
+    tone(base,0.09,'square',0.2); noise(0.05,0.14,1100,0,1.5);
+    if(rar>=1) tone(base*2,0.13,'triangle',0.14,null,0.04);
+    if(rar>=3) tone(base*3,0.22,'sine',0.16,null,0.08); },
+  heavy:()=>{ tone(70,0.24,'sawtooth',0.34,40); noise(0.14,0.24,240,0,0.7); },
+  hit:(m)=>{ noise(0.09,0.24+Math.min(0.2,m/160),260+m*3,0,0.7); tone(150-Math.min(70,m),0.11,'square',0.2,60); },
+  crit:()=>{ noise(0.16,0.4,3000,0,3); tone(1180,0.13,'square',0.3,420); tone(300,0.26,'sawtooth',0.28,90,0.03); },
+  heal:()=>{ tone(523,0.16,'sine',0.24,784); tone(784,0.2,'sine',0.16,null,0.06); },
+  shield:()=>{ tone(880,0.13,'triangle',0.22,1320); noise(0.07,0.1,2600,0,3); },
+  mana:()=>{ tone(1046,0.16,'sine',0.2); tone(1568,0.2,'sine',0.13,null,0.05); },
+  poison:()=>{ tone(190,0.16,'sine',0.22,110); noise(0.09,0.1,520,0,2); },
+  burn:()=>noise(0.22,0.2,1700,0,0.6),
+  die:()=>{ tone(220,0.36,'sawtooth',0.3,60); noise(0.24,0.2,340,0,0.6); },
+  kill:()=>{ noise(0.2,0.28,700,0,0.5); tone(120,0.3,'square',0.24,50,0.02); },
+  reroll:()=>{ noise(0.18,0.18,900,0,1); tone(500,0.1,'square',0.14,760); },
+  legend:()=>{ [523,659,784].forEach((f,i)=>tone(f,0.5,'triangle',0.2,null,i*0.06)); noise(0.4,0.14,3400,0,2); },
+  levelup:()=>{ [392,494,587,784].forEach((f,i)=>tone(f,0.16,'square',0.22,null,i*0.05)); noise(0.15,0.12,2200,0,1); },
+  passClaim:()=>{ [440,554,659,880,1109].forEach((f,i)=>tone(f,0.6,'triangle',0.2,null,i*0.045)); noise(0.5,0.15,3800,0,2); },
+  mythic:()=>{ [392,523,659,784,1046].forEach((f,i)=>tone(f,0.85,'triangle',0.22,null,i*0.05));
+    tone(90,0.9,'sawtooth',0.26,45); noise(0.7,0.16,4200,0.05,2); },
+  warn:()=>{ tone(320,0.18,'square',0.26); tone(320,0.18,'square',0.26,null,0.24); },
+  boss:()=>{ tone(70,1.0,'sawtooth',0.34,38); [147,175,220].forEach((f,i)=>tone(f,0.7,'square',0.16,null,0.1+i*0.07)); },
+  win:()=>[523,659,784,1046,1318].forEach((f,i)=>tone(f,0.55,'triangle',0.24,null,i*0.1)),
+  lose:()=>[440,392,330,247].forEach((f,i)=>tone(f,0.55,'sawtooth',0.24,null,i*0.16)),
+  coin:()=>{ tone(1318,0.09,'square',0.2); tone(1760,0.13,'square',0.16,null,0.05); },
+  open:()=>{ noise(0.24,0.16,1300,0,1); tone(400,0.24,'triangle',0.16,900); },
+};
+/* ─────────── icons.js ─────────── */
+/* ============ PIXEL ICONS (inline SVG, không phụ thuộc font) ============ */
+const IC_G={
+ dmg:[ '...##...','..####..','..####..','..####..','########','########','...##...','..####..' ],
+ shield:['.######.','########','########','.######.','.######.','..####..','...##...','....#...' ],
+ heal:[ '..#..#..','..####..','########','########','..####..','..#..#..','........','........' ],
+ mana:[ '....###.','...###..','..###...','.#####..','....##..','...##...','..##....','.##.....' ],
+ poison:['.######.','########','##.##.##','##.##.##','########','.######.','.#.##.#.','.#.##.#.' ],
+ buff:[ '...##...','..####..','.######.','########','...##...','...##...','...##...','........' ],
+ debuff:['...##...','...##...','...##...','########','.######.','..####..','...##...','........' ],
+ summon:['...##...','..####..','.######.','########','########','########','.######.','..####..' ],
+ blank:[ '........','........','...##...','..####..','...##...','........','........','........' ],
+ burn:[ '....#...','...##...','..####..','.#####..','.######.','.######.','..####..','...##...' ],
+ regen:[ '.##..##.','########','########','########','.######.','..####..','...##...','........' ],
+ thorns:['#..##..#','#.####.#','#######.','.######.','.######.','..####..','..#..#..','.#....#.' ],
+ blind:[ '..####..','.##..##.','##.##.##','##.##.##','.##..##.','..####..','#......#','.#....#.' ],
+ weaken:['########','.######.','..####..','...##...','........','########','.######.','..####..' ],
+ vuln:[ '.##..##.','.##..##.','..####..','...##...','..####..','.##..##.','.##..##.','........' ],
+ stun:[ '##....##','.##..##.','..####..','...##...','...##...','..####..','.##..##.','##....##' ],
+ freeze:['...##...','#..##..#','.#####..','..###...','...###..','.#####..','#..##..#','...##...' ],
+ undying:['.##..##.','#..##..#','#.####.#','.######.','.######.','#.####.#','#..##..#','.##..##.' ],
+ reroll:['..####..','.##..##.','##....##','##......','##....##','.##..##.','..####..','...##...' ],
+ shard:[ '...##...','..####..','.######.','########','.######.','..####..','...##...','........' ],
+ boss:[ '#.#..#.#','#######.','.######.','.######.','..####..','.######.','########','########' ],
+ elite:[ '...##...','..####..','.##..##.','##....##','##....##','.##..##.','..####..','...##...' ],
+ event:[ '..####..','.##..##.','##.##.##','##.##.##','##....##','.##..##.','..####..','...##...' ],
+ shop:[ '...##...','########','.#....#.','##....##','.#....#.','..#..#..','...##...','..####..' ],
+ chest:[ '########','##.##.##','########','...##...','########','##....##','##....##','########' ],
+};
+const IC_COL={dmg:'#ff6b6b',shield:'#7ac8ff',heal:'#77e895',mana:'#c78cff',poison:'#a4e05a',
+  buff:'#ffd76a',debuff:'#ff9ad1',summon:'#c8c0f0',blank:'#6b648c',burn:'#ff9a4d',regen:'#77e895',
+  thorns:'#ffd76a',blind:'#b0a8d0',weaken:'#9ad1ff',vuln:'#ff9ad1',stun:'#ffffff',freeze:'#9fe8ff',
+  undying:'#ffd76a',reroll:'#5fb8ff',shard:'#ffd76a',boss:'#ff5f5f',elite:'#ffa94d',event:'#c78cff',
+  shop:'#ffd76a',chest:'#5fb8ff'};
+const IC_CACHE={};
+function icoSvg(name,col){
+  const g=IC_G[name]; if(!g) return '';
+  const key=name+'|'+(col||'');
+  if(IC_CACHE[key]) return IC_CACHE[key];
+  const c=col||IC_COL[name]||'#fff';
+  let r='';
+  for(let y=0;y<g.length;y++){
+    let x=0; const row=g[y];
+    while(x<row.length){
+      if(row[x]==='#'){ let w=0; while(x+w<row.length&&row[x+w]==='#')w++;
+        r+=`<rect x="${x}" y="${y}" width="${w}" height="1"/>`; x+=w; }
+      else x++;
+    }
+  }
+  const out=`<svg class="ico" viewBox="0 0 8 8" fill="${c}" shape-rendering="crispEdges" xmlns="http://www.w3.org/2000/svg">${r}</svg>`;
+  IC_CACHE[key]=out; return out;
+}
+function ico(name,cls,col){
+  const s=el('span','icow '+(cls||'')); s.innerHTML=icoSvg(name,col); return s;
+}
+const FT_IC={dmg:'dmg',shield:'shield',heal:'heal',mana:'mana',poison:'poison',
+  buff:'buff',debuff:'debuff',summon:'summon',blank:'blank'};
+const ST_IC={poison:'poison',burn:'burn',regen:'regen',thorns:'thorns',blind:'blind',
+  weaken:'weaken',vulnerable:'vuln',stun:'stun',undying:'undying'};
+/* ─────────── log.js ─────────── */
+/* ============ COMBAT LOG (T15) ============
+   design/ux/combat-log.md — second, display-only consumer of the same
+   engine event stream fx.js plays back (S.ev / EV()). This module never
+   mutates S and never touches engine.js; it only compiles already-emitted
+   events into short, human-readable lines and renders them into a panel
+   that lives outside the #app tree (so ui.js's full-teardown render()
+   never unmounts it — see clogInit()).
+
+   Compiled-line mapping: design/ux/combat-log.md §Detailed Rules —
+   Information Architecture. Any deviation from that table is called out
+   in a comment at the point of the deviation. */
+
+const CLOG_KEY='axiedice_logopen_v1';
+let clogOpen=false;
+let clogEntries=[];          /* newest-first compiled entries */
+/* Run-scoped accumulator (Match History — design/gdd unwritten as of this
+   change, see ui.js saveRunHistory()). Unlike clogEntries (wiped every
+   clogReset(), i.e. every new wave — T15 "current combat only"), this holds
+   the FULL run's compiled log across every wave.
+   Entries pushed here are the SAME object references pushed into
+   clogEntries, not snapshots: clogRefreshDom()/clogHandleFt()/clogHandle()
+   keep mutating an entry's `.segs`/`.actor`/`.part`/`.tgt` in place as a
+   `use` -> `hit`/`ft` -> ... sequence resolves. A snapshot taken at
+   push-time (clogCreateEntry) would freeze mid-action — e.g. missing the
+   part name on a still-provisional `eact` entry, or a later "(N blocked by
+   Shield)" suffix appended after the fact. Sharing the reference means this
+   accumulator always reflects each entry's FINAL state by the time a run
+   ends and ui.js's onRunEnd() reads it — which is the only point that
+   matters, since runLogEntries is never rendered live itself.
+   The `.node` DOM reference these entries pick up (assigned in
+   clogCreateEntry/clogRefreshDom) is stripped EXPLICITLY by ui.js's
+   saveRunHistory() right before JSON.stringify — never rely on
+   JSON.stringify to drop it implicitly (a DOM node's ancestor chain isn't
+   even guaranteed to throw a clean circular-reference error). */
+let runLogEntries=[];
+/* Cap: a full 20-wave run generates comfortably under a thousand compiled
+   lines in practice; 1500 mirrors the "generous vs. realistic, blocks
+   unbounded growth" reasoning already used for MAX_ACTIONS in
+   api/submit-run.js and the clogEntries.length>400 cap just below. Oldest
+   entries are dropped first (FIFO, via shift()) so the TAIL of the run —
+   what a player actually wants to relive, especially the final blow — is
+   never the part that gets truncated. */
+const RUN_LOG_CAP=1500;
+/* Called from ui.js's startRun() — a NEW RUN boundary, not a new wave.
+   Deliberately separate from clogReset() (which runs every wave and must
+   keep leaving this accumulator untouched). */
+function clogRunReset(){ runLogEntries=[]; }
+let clogSeq=1;
+let clogTurnNo=1;
+let clogOpenEntry=null;      /* entry currently accumulating hit/ft segments */
+let clogPendingShield=null;  /* {uid,seg} — last hit segment eligible for a "(N blocked by Shield)" suffix */
+let clogFrozen=false;
+let clogAtTop=true;
+let clogUnseen=0;
+let clogSRQueue=[];
+let clogSRTimer=null;
+let clogPanel=null, clogBody=null, clogSR=null, clogScrim=null, clogUnreadEl=null;
+
+function clogLoadPref(){ try{ clogOpen=localStorage.getItem(CLOG_KEY)==='1'; }catch(e){} }
+function clogSavePref(){ try{ localStorage.setItem(CLOG_KEY,clogOpen?'1':'0'); }catch(e){} }
+
+/* ---------- lifecycle ---------- */
+function clogReset(){
+  clogEntries=[]; clogOpenEntry=null; clogPendingShield=null; clogFrozen=false;
+  clogTurnNo=1; clogAtTop=true; clogUnseen=0; clogSRQueue=[];
+  if(clogSRTimer){ clearTimeout(clogSRTimer); clogSRTimer=null; }
+  if(clogSR) clogSR.textContent='';
+  if(clogBody){ clogBody.innerHTML=''; clogBody.scrollTop=0; }
+  clogRenderUnread();
+}
+/* Defeat is the one case the log must survive into (design/ux/combat-log.md
+   §Interaction: "Battle Report"). Freezing just means we stop compiling —
+   nothing more will arrive from a combat that has already ended — and we
+   force the panel open without touching the player's remembered preference
+   (so their next combat still opens/closes the way they set it). */
+function clogFreeze(){
+  if(clogFrozen) return;
+  clogCloseOpen();
+  clogFrozen=true;
+  clogSetOpen(true,false);
+}
+
+/* ---------- open/close panel ---------- */
+function clogSetOpen(v,persist){
+  clogOpen=!!v;
+  if(persist!==false) clogSavePref();
+  clogApplyOpenClass();
+  if(clogOpen){ clogUnseen=0; clogRenderUnread(); }
+}
+function clogApplyOpenClass(){
+  document.body.classList.toggle('clog-open',clogOpen);
+}
+function clogToggleBtn(){
+  const b=btn('xs ghost'+(clogOpen?' on':''),'LOG',()=>{ SFX.ui(); clogSetOpen(!clogOpen); render(); });
+  b.setAttribute('aria-pressed',clogOpen?'true':'false');
+  b.title='Battle log — every action this combat, compiled (press L)';
+  return b;
+}
+
+/* ---------- persistent DOM (created once; never unmounted by render()) ---------- */
+function clogInit(){
+  if(clogPanel) return;
+  clogLoadPref();
+  clogScrim=el('div','clog-scrim');
+  clogScrim.onclick=()=>{ clogSetOpen(false); render(); };
+  document.body.appendChild(clogScrim);
+
+  /* .clog-panel is a fixed, viewport-bounded, overflow:hidden clipper — it
+     never itself extends past the viewport edge. .clog-inner is what
+     actually slides via transform. Sliding .clog-panel itself off-screen
+     (translateX(100%) on a right:0;width:280px box) put its border box
+     past the viewport edge, which some engines still count toward
+     document.scrollWidth even though nothing is visible there — that
+     regressed tools/verify.mjs's B2 (no-horizontal-overflow) check.
+     Clipping at the outer, viewport-bounded box fixes it without changing
+     the visual toggle mechanism (still opacity/transform, never unmounted). */
+  clogPanel=el('div','clog-panel');
+  const inner=el('div','clog-inner');
+  const head=el('div','clog-head');
+  head.appendChild(el('div','clog-title','BATTLE LOG'));
+  head.appendChild(btn('xs ghost clog-close','CLOSE',()=>{ clogSetOpen(false); render(); }));
+  inner.appendChild(head);
+
+  const wrap=el('div','clog-bodywrap');
+  clogUnreadEl=el('div','clog-unread');
+  clogUnreadEl.onclick=()=>{ if(clogBody) clogBody.scrollTop=0; clogUnseen=0; clogAtTop=true; clogRenderUnread(); };
+  wrap.appendChild(clogUnreadEl);
+
+  clogBody=el('div','clog-body');
+  /* role=log gives assistive tech a navigable landmark; aria-live is
+     deliberately "off" here — the throttled announcer below (clogSR) is the
+     ONLY live-region channel, per the spec's explicit anti-flood rule. See
+     the ambiguity note in the implementation report: the spec text also
+     says the visible container itself should be aria-live="polite", which
+     would reintroduce the exact per-event flood the spec spends a whole
+     section warning against. Resolved in favour of the anti-flood rule. */
+  clogBody.setAttribute('role','log');
+  clogBody.setAttribute('aria-live','off');
+  clogBody.setAttribute('aria-label','Combat log');
+  clogBody.addEventListener('scroll',()=>{
+    const wasTop=clogAtTop; clogAtTop=clogBody.scrollTop<=2;
+    if(clogAtTop&&!wasTop){ clogUnseen=0; clogRenderUnread(); }
+  },{passive:true});
+  wrap.appendChild(clogBody);
+  inner.appendChild(wrap);
+  clogPanel.appendChild(inner);
+  document.body.appendChild(clogPanel);
+
+  clogSR=el('div','sr-only clog-sr');
+  clogSR.setAttribute('aria-live','polite');
+  clogSR.setAttribute('aria-atomic','true');
+  document.body.appendChild(clogSR);
+
+  clogApplyOpenClass();
+}
+function clogRenderUnread(){
+  if(!clogUnreadEl) return;
+  clogUnreadEl.classList.toggle('on',clogUnseen>0&&!clogAtTop);
+  clogUnreadEl.textContent='• '+clogUnseen+' new ▲';
+}
+
+/* ---------- screen-reader channel: batched, throttled ~400ms, always polite ---------- */
+function clogQueueSR(sentence){
+  if(!sentence) return;
+  clogSRQueue.push(sentence);
+  clogPumpSR();
+}
+function clogPumpSR(){
+  if(clogSRTimer) return;
+  if(!clogSRQueue.length) return;
+  const batch=clogSRQueue.splice(0,clogSRQueue.length);
+  if(clogSR) clogSR.textContent=batch.join('. ')+'.';
+  clogSRTimer=setTimeout(()=>{ clogSRTimer=null; clogPumpSR(); },400);
+}
+
+/* ---------- raw-text -> plain language (buf/deb float text) ---------- */
+const CLOG_STATUS_WORD={THO:'Thorns',REG:'Regen',BUR:'Burn',BLI:'Blind',WEA:'Weaken',VUL:'Vulnerable'};
+const CLOG_STATUS_EXACT={STUN:'Stunned',STUNNED:'Stunned — turn wasted',FREEZE:'Frozen next turn',
+  FROZEN:'Frozen this turn',ENRAGE:'Enraged (+25% damage)',UNDYING:'Undying',OVERDRIVE:'Overdrive',
+  SUMMON:'Summoned an ally'};
+function clogStatusPhrase(txt){
+  if(CLOG_STATUS_EXACT[txt]) return CLOG_STATUS_EXACT[txt];
+  const m=/^([A-Z]{3})(\d+)$/.exec(txt);
+  if(m&&CLOG_STATUS_WORD[m[1]]) return CLOG_STATUS_WORD[m[1]]+' +'+m[2];
+  if(txt.indexOf('LINK')===0) return 'Formation Resonance '+txt.slice(4).trim();
+  if(/^\+\d+ REROLL$/.test(txt)) return txt.charAt(0)+txt.slice(1).toLowerCase().replace('reroll','Reroll');
+  return txt; /* unmapped status text: show it verbatim rather than drop it */
+}
+
+/* ---------- compiling ---------- */
+function clogUnitName(uid){ const u=S&&byUid(S,uid); return u?u.n:('#'+uid); }
+function clogOpenFromUse(e){
+  const u=S&&byUid(S,e.uid);
+  const rolled = u&&u.rolled>=0? u.die[u.rolled] : null;
+  const part = (u&&u.side==='p'&&rolled) ? (rolled.name||PARTN[rolled.p]||rolled.p||null) : null;
+  const faceT = rolled? rolled.t : null;
+  let tgt;
+  if(faceT==='mana'||faceT==='summon') tgt='self';
+  else if(e.tgt==null) tgt=e.aoe?'all':'self';
+  else tgt=clogUnitName(e.tgt);
+  return {id:clogSeq++,kind:'line',actor:u?u.n:('#'+e.uid),part,tgt,uid:e.uid,segs:[],provisional:false};
+}
+function clogCloseOpen(){
+  if(!clogOpenEntry) return;
+  const e=clogOpenEntry; clogOpenEntry=null; clogPendingShield=null;
+  if(e.provisional&&!e.segs.length) e.fallback=e.actor+' acts (no effect)';
+  clogRefreshDom(e);
+  clogQueueSR(clogEntryText(e));
+}
+function clogEnsureOpen(e,actorSide){
+  if(clogOpenEntry) return;
+  /* Orphan hit/ft: engine emitted damage/status with no open use/eact entry
+     (status-tick damage after a `tick` boundary, or passive regen). The raw
+     stream doesn't say *which* status caused it (dealDamage doesn't tag its
+     caller), so rather than guess and risk mislabeling Burn as Poison (or
+     vice versa) we attribute the line to the affected unit generically —
+     see report for this flagged decision. */
+  const name=clogUnitName(e.uid);
+  clogOpenEntry={id:clogSeq++,kind:'line',actor:name,part:null,tgt:null,uid:e.uid,segs:[],provisional:false,orphan:true};
+  clogCreateEntry(clogOpenEntry);
+}
+function clogHandle(e){
+  if(clogFrozen) return;
+  if(e.t==='eact'){
+    clogCloseOpen();
+    clogOpenEntry={id:clogSeq++,kind:'line',actor:clogUnitName(e.uid),part:null,tgt:null,uid:e.uid,segs:[],provisional:true};
+    clogCreateEntry(clogOpenEntry);
+  } else if(e.t==='use'){
+    if(clogOpenEntry&&clogOpenEntry.provisional&&clogOpenEntry.uid===e.uid){
+      const up=clogOpenFromUse(e);
+      clogOpenEntry.actor=up.actor; clogOpenEntry.part=up.part; clogOpenEntry.tgt=up.tgt; clogOpenEntry.provisional=false;
+      clogRefreshDom(clogOpenEntry);
+    } else { clogCloseOpen(); clogOpenEntry=clogOpenFromUse(e); clogCreateEntry(clogOpenEntry); }
+  } else if(e.t==='hit'){
+    clogEnsureOpen(e);
+    const seg={ic:'dmg',cls:'dmg',txt:(e.crit?'CRIT ':'')+e.v+' dmg'};
+    clogOpenEntry.segs.push(seg);
+    clogPendingShield={uid:e.uid,seg};
+    clogRefreshDom(clogOpenEntry);
+  } else if(e.t==='ft'){
+    clogHandleFt(e);
+  } else if(e.t==='death'){
+    clogEnsureOpen(e);
+    clogOpenEntry.segs.push({ic:null,cls:'dead',txt:clogUnitName(e.uid)+' ☠ defeated'});
+    clogOpenEntry.deathTag=true;
+    clogRefreshDom(clogOpenEntry);
+  } else if(e.t==='phase'){
+    clogCloseOpen();
+    const e2={id:clogSeq++,kind:'ban',text:'⚡ '+clogUnitName(e.uid)+' enters Phase 2'};
+    clogCreateEntry(e2); clogQueueSR(e2.text);
+  } else if(e.t==='tick'){
+    clogCloseOpen();
+    clogTurnNo++;
+    const d={id:clogSeq++,kind:'div',text:'— Turn '+clogTurnNo+' —'};
+    clogCreateEntry(d);
+  }
+  /* 'hp' and 'resonance' are intentionally not compiled into their own line:
+     'hp' is a bar-sync signal with no info the accompanying `ft` doesn't
+     already carry (see report); 'resonance' is always paired with the
+     `ft` LINK ×N line that clogStatusPhrase already renders. */
+}
+function clogHandleFt(e){
+  if(e.cls==='dmg') return; /* folded into the `hit` line — hit.v is the source of truth */
+  clogEnsureOpen(e);
+  if(e.cls==='shd'){
+    if(e.txt.charAt(0)==='-'){
+      const amt=e.txt.slice(1);
+      if(clogPendingShield&&clogPendingShield.uid===e.uid){
+        clogPendingShield.seg.txt+=' ('+amt+' blocked by Shield)';
+        clogPendingShield=null;
+      } else clogOpenEntry.segs.push({ic:'shield',cls:'shd',txt:amt+' blocked by Shield'});
+    } else clogOpenEntry.segs.push({ic:'shield',cls:'shd',txt:e.txt+' Shield'});
+  } else if(e.cls==='heal'){
+    clogOpenEntry.segs.push({ic:'heal',cls:'heal',txt:e.txt+' HP'});
+  } else if(e.cls==='poi'){
+    const m=/PSN (\d+)/.exec(e.txt);
+    clogOpenEntry.segs.push({ic:'poison',cls:'poi',txt:'Poison +'+(m?m[1]:e.txt)});
+  } else if(e.cls==='man'){
+    clogOpenEntry.segs.push({ic:'mana',cls:'man',txt:e.txt.replace('MP','Mana')});
+  } else if(e.cls==='buf'||e.cls==='deb'){
+    clogOpenEntry.segs.push({ic:e.cls==='buf'?'buff':'debuff',cls:e.cls,txt:clogStatusPhrase(e.txt)});
+  } else {
+    clogOpenEntry.segs.push({ic:null,cls:null,txt:e.txt});
+  }
+  clogRefreshDom(clogOpenEntry);
+}
+function clogIngest(evs){
+  if(!evs||!evs.length||clogFrozen) return;
+  for(const e of evs) clogHandle(e);
+}
+
+/* ---------- rendering ---------- */
+function clogEntryText(e){
+  if(e.fallback) return e.fallback;
+  let s=e.actor+(e.part?' ('+e.part+')':'')+(e.tgt&&e.tgt!=='self'?' to '+e.tgt:'');
+  if(e.segs&&e.segs.length) s+=': '+e.segs.map(g=>g.txt).join(', ');
+  return s;
+}
+function clogBuildNode(e){
+  if(e.kind==='div') return el('div','clog-div',e.text);
+  if(e.kind==='ban'){ const n=el('div','clog-ban'); n.textContent=e.text; return n; }
+  const n=el('div','clog-entry'+(e.deathTag?' dead':''));
+  const head=el('div','clog-line1');
+  if(e.fallback) head.textContent=e.fallback;
+  else {
+    let t=e.actor+(e.part?' ('+e.part+')':'');
+    if(e.tgt&&e.tgt!=='self') t+=' → '+e.tgt;
+    head.textContent=t;
+  }
+  n.appendChild(head);
+  if(!e.fallback&&e.segs&&e.segs.length){
+    const body=el('div','clog-line2');
+    e.segs.forEach((g,i)=>{
+      if(i>0) body.appendChild(el('span','clog-dot','·'));
+      const s=el('span','clog-seg'+(g.cls?' c-'+g.cls:''));
+      if(g.ic) s.appendChild(ico(g.ic,'clog-ic'));
+      s.appendChild(el('span',null,g.txt));
+      body.appendChild(s);
+    });
+    n.appendChild(body);
+  }
+  return n;
+}
+/* Entries are pushed into clogEntries AND rendered the moment they're
+   created (not deferred until closed) — the spec requires the log to
+   "append synchronously and instantly", including the currently-in-progress
+   action, not just fully-resolved ones. clogRefreshDom() then keeps that
+   same DOM node in sync in place as more hit/ft/death segments arrive,
+   without re-inserting or re-scrolling (it's already the newest/topmost). */
+function clogCreateEntry(e){
+  clogEntries.unshift(e);
+  if(clogEntries.length>400){
+    const dropped=clogEntries.splice(400);
+    dropped.forEach(d=>{ if(d.node&&d.node.parentNode) d.node.parentNode.removeChild(d.node); });
+  }
+  /* Match History accumulator — see runLogEntries comment above. Pushed in
+     chronological (oldest-first) order via push()/shift(), the opposite of
+     clogEntries' newest-first unshift() above, because a saved run's log is
+     read top-to-bottom like a story (see ui.js scHistory()), not like a
+     live panel. */
+  runLogEntries.push(e);
+  if(runLogEntries.length>RUN_LOG_CAP) runLogEntries.shift();
+  if(!clogBody) return;
+  const atTop=clogBody.scrollTop<=2;
+  e.node=clogBuildNode(e);
+  clogBody.insertBefore(e.node,clogBody.firstChild);
+  if(atTop){ clogBody.scrollTop=0; clogAtTop=true; }
+  else { clogBody.scrollTop+=e.node.offsetHeight||0; clogUnseen++; clogAtTop=false; clogRenderUnread(); }
+}
+function clogRefreshDom(e){
+  if(!e||!e.node||!e.node.parentNode) return;
+  const fresh=clogBuildNode(e);
+  e.node.parentNode.replaceChild(fresh,e.node);
+  e.node=fresh;
+}
+/* ─────────── ui.js ─────────── */
 /* ============ AXIE DICE TACTICS v0.2 — UI ============ */
 const $=q=>document.querySelector(q), $$=q=>[...document.querySelectorAll(q)];
 const el=(t,c,x)=>{ const e=document.createElement(t); if(c)e.className=c; if(x!=null)e.textContent=x; return e; };
@@ -419,7 +2294,7 @@ function scImportAxie(){
   if(importState==='preview'&&importPreview){
     const die=axieToDie(importPreview);
     const pv=el('div','vpreview');
-    if(die.image){ const pim=el('img','vpreview-art'); pim.src=die.image; pv.appendChild(pim); }
+    if(die.image) pv.appendChild(realArtWrap(die.image,'','vpreview-art'));
     pv.appendChild(el('div','vpn',die.n+'  ·  '+die.cls.toUpperCase()));
     const parts=el('div','vparts');
     (importPreview.parts||[]).forEach(p=>parts.appendChild(el('span','vpart',(p.type||'?').toUpperCase()+': '+(p.name||'?'))));
@@ -445,7 +2320,7 @@ function scImportAxie(){
     vlist.forEach(v=>{
       ensureVaultArt(v);
       const c=el('div','vchip'); c.style.setProperty('--cc',CLASS_COLOR[v.cls]);
-      const im=el('img','vchip-thumb'); im.src=axieArtSrc(v); im.onerror=()=>{ im.onerror=null; im.src=sprOf(v.cls,v.art||0); }; c.appendChild(im);
+      c.appendChild(realArtWrap(v.image,sprOf(v.cls,v.art||0),'vchip-thumb'));
       const info=el('div','vchip-info');
       info.appendChild(el('div','vchip-nm',v.n));
       info.appendChild(el('div','vchip-cls',v.cls.toUpperCase()+' · HP '+v.hp));
@@ -493,15 +2368,31 @@ const sprOf=(cls,i)=>(AXIE_PIX[cls]&&AXIE_PIX[cls][((i%9)+9)%9])?AXIE_PIX[cls][(
    a vault_<id> key that's exactly the HEROES[key] record axieToDie() made
    (see importAxieToVault/ensureVaultHero), image and all. Standard heroes'
    HEROES entries never have `.image`, so this is a no-op fallback for them —
-   safe to call for any player unit, not just vault ones. */
-function unitArtSrc(u){
-  const h=u.key&&HEROES[u.key];
-  return (h&&h.image)?h.image:sprOf(u.cls,u.artIdx);
+   safe to call for any player unit, not just vault ones.
+
+   "ID card" framing (art-director consult, 2026-09-03): mixing the painterly
+   real-Axie PNG with the house pixel-sprite style in the same plain <img>
+   slot read as broken/placeholder art, not an intentional distinction — real
+   art visually outranks the sprites for salience it hadn't earned. Fix is a
+   deliberate frame (gold border/glow + small badge), never a filter trying
+   to make the two styles blend — see design/quick-specs/ if this needs a
+   full writeup later. realArtWrap() applies this ONLY when real art is
+   actually showing; the badge/frame both vanish automatically via the
+   image's own onerror if that URL 404s and it falls back to the sprite. */
+function realArtWrap(realSrc,fallbackSrc,imgClass){
+  const wrap=el('div','axie-id'+(realSrc?' real':''));
+  const im=el('img',imgClass||''); im.src=realSrc||fallbackSrc;
+  wrap.appendChild(im);
+  if(realSrc){
+    const badge=el('div','axie-id-badge','⛓'); badge.title='Real Axie NFT art';
+    wrap.appendChild(badge);
+    im.onerror=()=>{ im.onerror=null; im.src=fallbackSrc; wrap.classList.remove('real'); badge.remove(); };
+  }
+  return wrap;
 }
 function unitArtImg(u,cls){
-  const im=el('img',cls||'spr'); im.src=unitArtSrc(u);
-  im.onerror=()=>{ im.onerror=null; im.src=sprOf(u.cls,u.artIdx); };
-  return im;
+  const h=u.key&&HEROES[u.key];
+  return realArtWrap(h&&h.image,sprOf(u.cls,u.artIdx),cls||'spr');
 }
 const sprMon=k=>{ const m=MON_SPR[k]||['beast',0]; return sprOf(m[0],m[1]); };
 
@@ -708,6 +2599,13 @@ function fitUI(){
   // this floor, the board scrolls (body is no longer overflow:hidden — see
   // the scroll-lock fix) instead of shrinking text past legibility. Only
   // scales UP (still capped at 1.20) on genuinely tall windows.
+  // Consequence of that floor: on a short window this function can no longer
+  // compensate at all (--ui-scale is pinned to 1 at 1280x720, 1366x768,
+  // 1280x800 alike), which is exactly how END TURN ended up 48px below the
+  // fold at 1280x720. The compensation now lives in CSS instead — see the
+  // T10b short-window breakpoint in style.css, which shrinks COMPONENTS
+  // (not text) and pins the action bar. Keep the two in mind together:
+  // this function owns the tall-window case, T10b owns the short one.
   document.documentElement.style.setProperty('--ui-scale', Math.max(1.0, s).toFixed(3));
 }
 function autoFit(){ fitUI(); }
@@ -1084,7 +2982,6 @@ let pickMode='short', pickAsc=0, pickSeed='', pickRanked=false;
    missing/broken — vault entries imported before this field existed have
    image:null|undefined and just show the sprite, no re-import required. */
 let vaultExpanded=new Set();
-const axieArtSrc=v=>v.image||sprOf(v.cls,v.art||0);
 /* Vault entries imported before the `image` field existed (2026-09-03) have
    no v.image at all — rather than force a manual re-import for every old
    entry, lazily backfill it once per render pass: refetch just the id from
@@ -1139,7 +3036,7 @@ function scTeam(){
       const open=vaultExpanded.has(key);
       const stale=vaultStale(v);   /* E13 — die resolve theo luật cũ, phải quét lại */
       const c=el('div','vchip'+(n?' on':'')+(full&&!n?' full':'')+(stale?' stale':'')); c.style.setProperty('--cc',CLASS_COLOR[h.cls]);
-      const im=el('img','vchip-thumb'); im.src=axieArtSrc(v); im.onerror=()=>{ im.onerror=null; im.src=sprOf(h.cls,h.art); }; c.appendChild(im);
+      c.appendChild(realArtWrap(v.image,sprOf(h.cls,h.art),'vchip-thumb'));
       const info=el('div','vchip-info');
       info.appendChild(el('div','vchip-nm',h.n));
       info.appendChild(el('div','vchip-cls',h.cls.toUpperCase()+' · HP '+h.hp));
@@ -1366,6 +3263,16 @@ function partyStrip(){
     c.appendChild(unitArtImg(u));
     c.appendChild(el('div','nm',u.n+' T'+u.tier));
     c.appendChild(el('div','hp','HP '+u.maxHp));
+    /* ASCENSION reward (mkReward 't'==='ascend', applyReward pushes a `muts`
+       entry {type:'oc',mult}) never changes key/tier/name/art by design —
+       that's what keeps a Vault Axie's identity intact when it "upgrades"
+       (see design/quick-specs/import-axie-variants-2026-09-03.md). But that
+       meant the card showed literally nothing different after taking it,
+       which read as "did this even work?" — this tag is the missing
+       confirmation that the +25%-per-stack buff (and the one-off "forge"
+       event mutation, same {type:'oc'} shape) actually landed. */
+    const ascCount=(e.muts||[]).filter(m=>m.type==='oc').length;
+    if(ascCount) c.appendChild(el('div','asctag','ASCENDED ×'+ascCount));
     const dv=el('div','minidie');
     u.die.forEach((f,i)=>{ const s2=el('span','mf t_'+f.t+' r'+f.r); s2.appendChild(ico(FT_IC[f.t],'t'));
     if(f.v) s2.appendChild(el('span','mfv',String(f.v))); s2.title='Face '+(i+1)+': '+faceText(f); dv.appendChild(s2); });
@@ -1604,7 +3511,21 @@ function previewOn(t){
     if(a.kind==='stun') return {txt:'STUN',cls:'deb'}; return null; }
   if(sel==null) return null;
   const u=byUid(S,sel); if(!u||!validTargets(u).includes(t.uid)) return null;
-  const f=u.die[u.rolled]; let v=faceValue(S,u,u.rolled);
+  const f=u.die[u.rolled];
+  /* Formation Resonance: engine.js only sets u.resonantNow INSIDE execFace,
+     so a naive faceValue() here returns the un-boosted number — the preview
+     above the target read "-3" while the hit that followed dealt 4. Ask the
+     engine the same question execFace asks (findResonanceIdx), then run
+     faceValue through the identical code path by flipping the flag for the
+     duration of the call and restoring it. Deliberately NOT re-deriving
+     `Math.ceil(v*RESONANCE.mult)` here: a second copy of the formula is
+     exactly how preview and execution drift apart again. */
+  const wouldResonate = findResonanceIdx(S,u,f)>=0;
+  let v;
+  if(wouldResonate){ const saved=u.resonantNow; u.resonantNow=true;
+    v=faceValue(S,u,u.rolled); u.resonantNow=saved; }
+  else v=faceValue(S,u,u.rolled);
+  const linkTag = wouldResonate ? 'LINK ' : '';
   if(f.t==='dmg'){
     if(u.critNow) v*=rcritMult();
     const low=t.hp<t.maxHp*0.5; if(low&&(u.cls==='beast'||hasKw(f,'exec'))) v=Math.ceil(v*1.6);
@@ -1612,11 +3533,11 @@ function previewOn(t){
     if(t.st.vulnerable>0) v=Math.ceil(v*1.5);
     const m=kwVal(f,'multi')||1, tot=v*m;
     const eff=pierce?tot:Math.max(0,tot-t.shield);
-    return {txt:(u.critNow?'CRIT ':'')+'-'+tot+(t.hp<=eff?' KILL':''),cls:'dmg',hpAfter:Math.max(0,t.hp-eff)};
+    return {txt:linkTag+(u.critNow?'CRIT ':'')+'-'+tot+(t.hp<=eff?' KILL':''),cls:'dmg',hpAfter:Math.max(0,t.hp-eff)};
   }
-  if(f.t==='shield') return {txt:'SH +'+(v+(t.cls==='plant'?2:0)),cls:'shd'};
-  if(f.t==='heal') return {txt:'+'+Math.min(v,t.maxHp-t.hp),cls:'heal',hpAfter:null};
-  if(f.t==='poison'){ let n=v; if(u.cls==='bug'&&t.st.poison>0) n+=2; return {txt:'PSN +'+n,cls:'poi'}; }
+  if(f.t==='shield') return {txt:linkTag+'SH +'+(v+(t.cls==='plant'?2:0)),cls:'shd'};
+  if(f.t==='heal') return {txt:linkTag+'+'+Math.min(v,t.maxHp-t.hp),cls:'heal',hpAfter:null};
+  if(f.t==='poison'){ let n=v; if(u.cls==='bug'&&t.st.poison>0) n+=2; return {txt:linkTag+'PSN +'+n,cls:'poi'}; }
   if(f.t==='debuff'||f.t==='buff') return {txt:f.k.filter(x=>x!=='aoe'&&x!=='cantrip').map(kwText).join(' '),cls:'deb'};
   return null;
 }
@@ -1629,6 +3550,13 @@ function dieBox(u){
   const d=el('div','die dr'+dr+(u.used?' used':'')+(sel===u.uid?' sel':'')+(f.t==='blank'?' blank':'')+(u.critNow?' critready':''));
   d.style.setProperty('--cc',CLASS_COLOR[u.cls]||'#888');
   paintDieFace(d,u,u.rolled,false);
+  /* Formation Resonance is deliberately NOT annotated on the die face. The
+     die shows its own base number; the +N% is reported at the moment it is
+     actually earned, by the "LINK -N" damage float on the target (engine.js
+     dealDamage) plus the "LINK x1.15" float on the executor. A badge here
+     had to hedge ("IF 2ND") because the order isn't known before the click,
+     and that hedge was noise on every die of an open pair. The .reslink
+     connector between the two portraits still announces the pair up front. */
   if(hasKw(f,'heavy')) d.classList.add('heavy');
   d.onclick=()=>clickDie(u);
   d.onmouseenter=()=>SFX.hover();
@@ -1750,8 +3678,10 @@ function scReward(){
     c.style.animationDelay=(i*140/SPD)+'ms';
     c.appendChild(el('div','rbadge',RARITY[r.rar||0]));
     c.appendChild(el('div','rt',r.title));
-    if(r.cls){ const im=el('img','spr'); const ent=r.uid!=null?S.roster.find(x=>x.uid===r.uid):null;
-      im.src=sprOf(r.cls,(r.tier===4?6:(r.tier-1)*3)+((ent&&ent.vr||0)%3)); c.appendChild(im); }
+    if(r.cls){ const ent=r.uid!=null?S.roster.find(x=>x.uid===r.uid):null;
+      const vh=ent&&HEROES[ent.key];
+      const fallback=sprOf(r.cls,(r.tier===4?6:(r.tier-1)*3)+((ent&&ent.vr||0)%3));
+      c.appendChild(realArtWrap(vh&&vh.image,fallback,'spr')); }
     else c.appendChild(ico(r.t==='relic'||r.t==='chaos'?'chest':r.t==='curse'?'poison':r.t==='reroll'?'reroll':'shard','ricon'));
     c.appendChild(el('div','rd',r.desc));
     if(r.sub) c.appendChild(el('div','rsub',r.sub));
@@ -2293,12 +4223,35 @@ function cxTable(head,rows,cls){
   // 3- or 4-column row can never overflow into the next row's first column
   // (that mismatch used to make a row's last cell visually collide with the
   // following row, e.g. the CLASS/PASSIVE/EFFECT table).
+  //
+  // T21 (2026-09-03) · the first column used to be a flat 130px regardless of
+  // content, and .cchip had no white-space rule — a long chip'd name (relic
+  // names like "Chain Reaction", "LUNACIA ULTIMA") would wrap its OWN text
+  // mid-badge, splitting the border across two lines (looked broken, not
+  // just "wrapped"). Fixed at the root: .cchip is nowrap now (never breaks a
+  // badge's own text — see style.css), and the table itself is ONE real CSS
+  // grid (was: every .cxtr an independent per-row grid, each sizing its own
+  // column 1 independently, which is why `max-content` couldn't be used
+  // before — it would have misaligned column edges row to row). Rows are
+  // `display:contents` so their cells become direct items of the table's
+  // single grid, letting `max-content` size column 1 once, consistently,
+  // to whatever that specific table's longest first-column entry actually
+  // needs — short-label tables (KEY, MODE, TIER) stay compact, name-heavy
+  // ones (NAME, CARD, RELIC) get the room they need, capped so one freak
+  // long entry can't eat the EFFECT column's space.
+  // Nesting min()/max() inside minmax() (to also cap the grown width) is
+  // CSS-valid per spec but NOT supported by this project's target renderer
+  // (verified: CSS.supports() returns false for it here, and assigning it
+  // via .style silently no-ops the WHOLE property, which is far worse than
+  // the bug this was fixing — every column collapsed to one). Plain
+  // minmax(x,max-content) alone IS supported; skip the cap.
   const n=head.length;
-  const gtc = n<=2 ? '150px 1fr' : '130px repeat('+(n-1)+',1fr)';
+  const gtc = n<=2 ? 'minmax(120px,max-content) 1fr'
+    : 'minmax(110px,max-content) repeat('+(n-1)+',1fr)';
   const t=el('div','cxtable '+(cls||''));
+  t.style.gridTemplateColumns=gtc;
   const mkRow=(cells,isHead)=>{
     const tr=el('div','cxtr'+(isHead?' cxhead':''));
-    tr.style.gridTemplateColumns=gtc;
     cells.forEach(c=>{ const d=el('div','cxtd'); if(typeof c==='string') d.textContent=c; else if(c) d.appendChild(c); tr.appendChild(d); });
     return tr;
   };
@@ -2686,7 +4639,10 @@ function scUnitInfo(){
   const u = S && byUid(S,modalUid);
   if(!u) return el('div');
   const isE = u.side==='e';
-  const sub = 'HP '+u.hp+'/'+u.maxHp + (u.shield?'  ·  Shield '+u.shield:'') + (isE?'':'  ·  Tier '+u.tier);
+  const re = !isE && S.roster.find(r=>r.uid===u.uid);
+  const ascCount = re? (re.muts||[]).filter(m=>m.type==='oc').length : 0;
+  const sub = 'HP '+u.hp+'/'+u.maxHp + (u.shield?'  ·  Shield '+u.shield:'') + (isE?'':'  ·  Tier '+u.tier)
+    + (ascCount?'  ·  Ascended ×'+ascCount:'');
   return modalShell(u.n.toUpperCase(), sub, null, ()=>{
     const d=el('div','uinsp');
     const h=el('div','ic2h');
@@ -2900,3 +4856,348 @@ function scAvatarModal(){
     return d;
   });
 }
+/* ─────────── fx.js ─────────── */
+/* ============ COMBAT ANIMATION ENGINE (S&D-style playback) ============
+   Engine phát ra một stream sự kiện có thứ tự (s.ev). UI phát lại tuần tự:
+   lunge → flash → knockback → số bay lên → HP bar tụt (chip bar) → chết.
+   Trong lúc playback KHÔNG re-render (giữ DOM ổn định), chỉ mutate trực tiếp. */
+
+let playing=false, skipHold=false, dragging=null, aimEl=null, lastDragEnd=0;
+
+const unitEl=uid=>document.querySelector('.unit[data-uid="'+uid+'"]');
+const dieBoxEl=uid=>document.querySelector('.diebox[data-uid="'+uid+'"]');
+const wait=ms=>new Promise(r=>setTimeout(r, Math.max(8, ms/(SPD*(skipHold?4:1)))));
+
+function centerOf(n){ const r=n.getBoundingClientRect(); return {x:r.left+r.width/2,y:r.top+r.height/2}; }
+
+/* ---------- bar helpers ---------- */
+function setBars(uid,hp,maxHp,shield){
+  const n=unitEl(uid); if(!n) return;
+  const pct=Math.max(0,100*hp/maxHp);
+  const fill=n.querySelector('.hpfill'), txt=n.querySelector('.hpnum b');
+  if(fill) fill.style.width=pct+'%';
+  if(txt) txt.textContent=Math.max(0,hp)+'/'+maxHp;
+  /* keep the danger class in sync during playback, not only on re-render */
+  const bar=n.querySelector('.hpbar');
+  if(bar){ const p=maxHp?hp/maxHp:0;
+    bar.classList.toggle('low', p<=0.50 && p>0.25);
+    bar.classList.toggle('crit', p<=0.25 && p>0);
+    bar.setAttribute('aria-valuenow',String(Math.max(0,hp))); }
+  let sb=n.querySelector('.shbar');
+  if(shield>0){
+    if(!sb){ sb=el('div','shbar'); const sl=el('span'); sl.appendChild(ico('shield','t'));
+      sl.appendChild(el('span','stv','0')); sb.appendChild(sl); n.querySelector('.hpbar').after(sb); }
+    sb.style.width=Math.min(100,100*shield/maxHp)+'%';
+    const v=sb.querySelector('.stv'); if(v) v.textContent=String(shield);
+    sb.classList.remove('brk');
+  } else if(sb){ sb.classList.add('brk'); setTimeout(()=>sb.remove(),260/SPD); }
+}
+function floatOn(uid,txt,cls,big){
+  const host=document.querySelector('.floats[data-uid="'+uid+'"]'); if(!host) return;
+  const n=el('div','ftx '+cls+(big?' b'+big:''),txt);
+  n.style.animationDuration=(1100/SPD)+'ms';
+  n.style.left=(50+(Math.random()*30-15))+'%';
+  host.appendChild(n);
+  setTimeout(()=>n.remove(),1200/SPD);
+}
+/* ---------- relic badge (design/gdd/relic-system.md §3.9 + §10 E1) ----------
+   engine.js EVrelic() phát {t:'relic',id,uid} với `id` là KEY LUẬT (rhas/rsum key),
+   không phải relic id — nên phải tra ngược ra relic đang giữ để hiện đúng TÊN.
+   Fallback label lo trường hợp luật đến từ nguồn khác relic (vd `plague` có thể
+   do mặt Mythic `plague`, không do r_plaguelord) ⇒ không bao giờ hiện "undefined". */
+const RELIC_FX_FIELD = {
+  startSummon:['startSummon'], eggInherit:['eggInherit'], critKeep:['critKeep'],
+  critFlat:['critFlat'], critPierce:['critPierce'], thorns:['thornsMult','thornsPlus'],
+  noShieldCap:['noShieldCap'], growthAll:['growthAll'], plague:['plague'], burnTicks:['burnTicks']
+};
+const RELIC_FX_LABEL = {
+  startSummon:'SUMMON', eggInherit:'INHERIT', critKeep:'CRIT KEPT', critFlat:'CRIT',
+  critPierce:'PIERCE', thorns:'THORNS', noShieldCap:'NO CAP', growthAll:'GROWTH',
+  plague:'PLAGUE', burnTicks:'BURN'
+};
+/* Pha màu archetype về phía trắng, trả HEX phẳng. Vì sao tính ở JS mà không dùng
+   CSS color-mix(): computed style của color-mix serialise thành `color(srgb ...)`,
+   và helper contrast của tools/verify.mjs chỉ parse `rgb()/rgba()` — màu sẽ bị đọc
+   nhầm thành trắng, tức check contrast trên phần tử đó trở nên vô nghĩa (đo được,
+   xem báo cáo). Hex phẳng giữ cho badge tự chứng minh được bằng chính công cụ gate. */
+function relicFxLighten(hex,amt){
+  const m=/^#([0-9a-f]{6})$/i.exec(hex||''); if(!m) return hex;
+  const v=parseInt(m[1],16), mix=c=>Math.round(c+(255-c)*amt);
+  return '#'+[mix(v>>16&255),mix(v>>8&255),mix(v&255)]
+    .map(c=>c.toString(16).padStart(2,'0')).join('');
+}
+/* Tra relic đang giữ có field tương ứng. rlist() lọc theo s.relics nên chỉ trả về
+   relic người chơi THẬT SỰ cầm — nếu không có, luật đến từ face/class passive. */
+function relicFxInfo(id){
+  const fields=RELIC_FX_FIELD[id]||[id];
+  let hit=null;
+  try{ for(const r of rlist(S)){ if(fields.some(f=>r[f]!=null)){ hit=r; break; } } }catch(e){}
+  const arch=ARCH[hit?hit.a:'']||null;
+  const c=arch?arch.c:'#ffc857';   /* fallback = --acc, hex phẳng để đo được */
+  return { n:(hit?hit.n:(RELIC_FX_LABEL[id]||id)).toUpperCase(),
+           ic:arch?arch.ic:'◆', c, ctx:relicFxLighten(c,0.22) };
+}
+/* Throttle: CẢ HAI trục, vì hai kiểu spam khác nhau.
+   1) Coalesce repeat cùng id — relic trên onHit/onDmgTaken/onThorns bắn nhiều lần
+      trong MỘT lượt (thorns × 5 đòn AoE = 5 event giống hệt). Lần đầu hiện badge,
+      các lần sau trong cửa sổ RELIC_FX_HOLD chỉ tăng bộ đếm "×N" trên badge đang
+      sống → người chơi vẫn biết nó chạy 5 lần mà màn hình không nhấp nháy.
+   2) Xếp hàng id KHÁC nhau theo bậc thang — 3 relic khác nhau cùng lượt là 3 thông
+      tin khác nhau, không được nuốt. Bậc thang tính THEO TỪNG UNIT (đếm badge đang
+      sống trong host đó), không phải một bộ đếm toàn cục: hai relic nổ trên hai
+      Axie khác nhau không che nhau nên không có lý do gì phải đẩy cái thứ hai xuống.
+   KHÔNG dùng await: badge sống bằng setTimeout riêng, playback không bị kéo dài,
+   nên turn timing / replay không đổi. */
+const RELIC_FX_HOLD=600;
+let relicFxLive={};
+function relicBadge(id,uid){
+  const now=Date.now();
+  /* Đã có badge cùng id còn sống → gộp, không tạo phần tử mới. */
+  /* Điều kiện gộp = "badge đó CÒN trên màn hình", không phải một mốc thời gian
+     song song: mọi thời lượng ở đây chia cho SPD, nên một hằng số 600ms cứng sẽ
+     lệch khỏi tuổi thọ thật của badge ở speed khác 1 và sinh ra badge thứ hai
+     cùng tên nằm cạnh badge thứ nhất. isConnected là nguồn sự thật duy nhất. */
+  const live=relicFxLive[id];
+  if(live&&live.node&&live.node.isConnected&&!live.node.classList.contains('rb-out')){
+    live.n++; live.at=now;
+    let c=live.node.querySelector('.rbx');
+    if(!c){ c=el('span','rbx'); live.node.appendChild(c); }
+    c.textContent='×'+live.n;
+    live.node.classList.remove('rb-pop'); void live.node.offsetWidth; live.node.classList.add('rb-pop');
+    clearTimeout(live.timer);
+    live.timer=setTimeout(()=>relicBadgeEnd(id),RELIC_FX_HOLD/SPD);
+    return;
+  }
+  /* Neo vào .sprwrap (khối tranh) chứ KHÔNG phải .floats. Lý do đo được, không
+     phải thẩm mỹ: .floats nằm ở đỉnh card, mà đỉnh card của ĐỊCH chính là dòng
+     intent ("☠3 → Cub") — thông tin quyết định lượt chơi. Badge phủ lên đó dù chỉ
+     600ms vẫn là che mất dữ liệu người chơi cần. .sprwrap chỉ chứa tranh (không có
+     số nào), position:relative sẵn, và co giãn theo card ở cả 4 breakpoint nên
+     không cần magic number cho từng cỡ. Fallback .floats giữ cho badge luôn hiện
+     được kể cả nếu cấu trúc card đổi.
+     uid null (startSummon xảy ra trước khi có unit card) → neo vào Axie đầu đội. */
+  const un=uid!=null?unitEl(uid):null;
+  let host=un&&(un.querySelector('.sprwrap')||un.querySelector('.floats'));
+  if(!host){ const f=document.querySelector('.zone.party .sprwrap')||document.querySelector('.sprwrap')
+             ||document.querySelector('.floats'); host=f; }
+  if(!host) return;
+  const slot=host.querySelectorAll('.rbadge:not(.rb-out)').length;
+  const info=relicFxInfo(id);
+  const n=el('div','rbadge');
+  n.style.setProperty('--rbc',info.c);
+  n.style.setProperty('--rbc-tx',info.ctx);
+  n.style.setProperty('--rbi',String(slot%3));
+  n.appendChild(el('span','rbi',info.ic));
+  n.appendChild(el('span','rbn',info.n));
+  host.appendChild(n);
+  /* Cue rất nhỏ (hover tick), CHỈ khi badge mới xuất hiện — lần gộp ×N im lặng,
+     nếu không một relic thorns bắn 5 lần sẽ thành 5 tiếng bíp. Đi qua SFX chứ
+     không tự tạo audio node, theo luật "UI sound qua audio event system". */
+  try{ SFX.hover(); }catch(err){}
+  relicFxLive[id]={node:n,n:1,at:now,timer:setTimeout(()=>relicBadgeEnd(id),RELIC_FX_HOLD/SPD)};
+}
+function relicBadgeEnd(id){
+  const live=relicFxLive[id]; if(!live) return;
+  delete relicFxLive[id];
+  const n=live.node; if(!n||!n.isConnected) return;
+  n.classList.add('rb-out');
+  setTimeout(()=>n.remove(),220/SPD);
+}
+/* ---------- unit motion ---------- */
+function lunge(srcUid,tgtUid){
+  const a=unitEl(srcUid), b=tgtUid!=null?unitEl(tgtUid):null;
+  if(!a) return;
+  const dir = b ? Math.sign(centerOf(b).y-centerOf(a).y)||-1 : -1;
+  const dx = b ? (centerOf(b).x-centerOf(a).x)*0.10 : 0;
+  a.style.setProperty('--lx',Math.max(-40,Math.min(40,dx))+'px');
+  a.style.setProperty('--ly',(dir*22)+'px');
+  a.classList.remove('lunge'); void a.offsetWidth; a.classList.add('lunge');
+  setTimeout(()=>a.classList.remove('lunge'),340/SPD);
+}
+function flashU(uid,cls){
+  const n=unitEl(uid); if(!n) return;
+  const s=n.querySelector('.spr'); if(!s) return;
+  s.classList.remove('hitflash','healflash','shdflash'); void s.offsetWidth;
+  s.classList.add(cls||'hitflash');
+  setTimeout(()=>s.classList.remove('hitflash','healflash','shdflash'),260/SPD);
+}
+function knock(uid,mag){
+  const n=unitEl(uid); if(!n) return;
+  n.style.setProperty('--kx',(mag>=25?9:mag>=12?6:4)+'px');
+  n.classList.remove('knock'); void n.offsetWidth; n.classList.add('knock');
+  setTimeout(()=>n.classList.remove('knock'),320/SPD);
+}
+function deathA(uid){
+  const n=unitEl(uid); if(!n) return;
+  n.classList.add('dying');
+  const p=el('div','puff'); n.appendChild(p);
+  setTimeout(()=>{ n.classList.add('dead'); n.classList.remove('dying'); p.remove(); },420/SPD);
+}
+/* die bay tới mục tiêu */
+function dieFly(uid,tgtUid){
+  const box=dieBoxEl(uid); const d=box&&box.querySelector('.die'); if(!d) return;
+  const tn = tgtUid!=null? unitEl(tgtUid) : null;
+  const from=centerOf(d), to= tn? centerOf(tn) : {x:from.x,y:from.y-160};
+  const g=d.cloneNode(true); g.classList.add('flyer');
+  g.style.left=(from.x-d.offsetWidth/2)+'px'; g.style.top=(from.y-d.offsetHeight/2)+'px';
+  g.style.width=d.offsetWidth+'px'; g.style.height=d.offsetHeight+'px';
+  document.body.appendChild(g);
+  requestAnimationFrame(()=>{ g.style.transitionDuration=(230/SPD)+'ms';
+    g.style.transform='translate('+(to.x-from.x)+'px,'+(to.y-from.y)+'px) scale(.45) rotate(18deg)'; g.style.opacity='0'; });
+  d.classList.add('spent');
+  setTimeout(()=>g.remove(),300/SPD);
+}
+
+/* ================= PLAYBACK ================= */
+async function playEvents(){
+  if(!S||!S.ev||!S.ev.length){ S.ev=[]; return; }
+  const evs=S.ev.slice(); S.ev=[];
+  /* Combat log (T15): compile the same batch fx.js is about to animate,
+     synchronously and before any wait() — the log must be complete at any
+     speed, decoupled from animation pacing (design/ux/combat-log.md §Speed-
+     Slider Interaction). */
+  if(typeof clogIngest==='function') clogIngest(evs);
+  playing=true; document.body.classList.add('playing');
+  try{ await runEvents(evs); }
+  catch(err){ console.error('playback error',err); }
+  finally{
+    /* Never leave the board locked: if playback throws, the player would be
+       unable to click any die or target for the rest of the run. */
+    playing=false; document.body.classList.remove('playing'); skipHold=false;
+    document.body.classList.remove('dragging'); dragging=null;
+  }
+}
+async function runEvents(evs){
+  for(const e of evs){
+    if(e.t==='use'){
+      if(e.side==='p'){ dieFly(e.uid,e.aoe?null:e.tgt); lunge(e.uid,e.aoe?null:e.tgt); await wait(150); }
+      else { lunge(e.uid,e.aoe?null:e.tgt); await wait(110); }
+    }
+    else if(e.t==='eact'){
+      const n=unitEl(e.uid); if(n){ n.classList.add('acting'); setTimeout(()=>n.classList.remove('acting'),520/SPD); }
+      await wait(230);
+    }
+    else if(e.t==='hit'){
+      flashU(e.uid,'hitflash'); knock(e.uid,e.v);
+      if(e.v>0){ SFX.hit(e.v); shake(e.v>=45?3:e.v>=20?2:1); }
+      if(e.crit){ SFX.crit(); hitstop(110); flashScreen('gold'); }
+      await wait(e.crit?150:70);
+    }
+    else if(e.t==='ft'){
+      floatOn(e.uid,e.txt,e.cls,e.big);
+      if(e.cls==='heal'){ SFX.heal(); flashU(e.uid,'healflash'); }
+      else if(e.cls==='shd'&&e.txt[0]==='+'){ SFX.shield(); flashU(e.uid,'shdflash'); }
+      else if(e.cls==='poi') SFX.poison();
+      else if(e.cls==='man') SFX.mana();
+      await wait(40);
+    }
+    else if(e.t==='hp'){ setBars(e.uid,e.hp,e.maxHp,e.shield); await wait(30); }
+    else if(e.t==='death'){ SFX.kill(); deathA(e.uid); await wait(300); }
+    else if(e.t==='resonance'){
+      /* Formation Resonance (design/quick-specs/formation-resonance-2026-09-01.md):
+         glow pulse nhỏ tái dùng style shield/buff đã có, không thêm sprite/màu mới. */
+      flashU(e.uid,'shdflash'); SFX.shield();
+      await wait(40);
+    }
+    else if(e.t==='relic'){
+      /* §3.9 — relic bắn trên onHit/onKill/onShield/onTurnStart/onDmgTaken nên có thể
+         dày đặc; relicBadge() tự throttle. Không await lâu: badge tự hết hạn bằng
+         setTimeout, playback không bị kéo dài ⇒ không đụng timing replay dựa vào. */
+      relicBadge(e.id,e.uid);
+      await wait(30);
+    }
+    else if(e.t==='tick'){ await wait(160); }
+    else if(e.t==='phase'){ SFX.boss(); bigText('PHASE 2','ph'); flashScreen('myth'); shake(3); await wait(700); }
+  }
+}
+
+/* ================= DRAG & DROP ================= */
+function aimInit(){
+  if(aimEl) return;
+  aimEl=document.createElementNS('http://www.w3.org/2000/svg','svg');
+  aimEl.setAttribute('id','aim'); aimEl.innerHTML=
+    '<defs><marker id="ah" markerWidth="6" markerHeight="6" refX="3" refY="3" orient="auto">'+
+    '<path d="M0,0 L6,3 L0,6 z" fill="#ffd76a"/></marker></defs>'+
+    '<line id="aimline" stroke="#ffd76a" stroke-width="4" stroke-dasharray="8 6" marker-end="url(#ah)"/>';
+  document.body.appendChild(aimEl);
+}
+function aimShow(x1,y1,x2,y2){ aimInit(); aimEl.classList.add('on');
+  const l=aimEl.querySelector('#aimline'); l.setAttribute('x1',x1); l.setAttribute('y1',y1);
+  l.setAttribute('x2',x2); l.setAttribute('y2',y2); }
+function aimHide(){ if(aimEl) aimEl.classList.remove('on'); }
+
+function bindDrag(){
+  $$('.diebox .die:not(.used):not(.out)').forEach(d=>{
+    d.onpointerdown=ev=>{
+      if(playing||rollAnim) return;
+      const box=d.closest('.diebox'); const uid=+box.dataset.uid;
+      const u=byUid(S,uid); if(!u||u.used||u.hp<=0) return;
+      const f=u.die[u.rolled]; if(f.t==='blank') return;
+      ev.preventDefault();
+      const need=needsTarget(u);
+      dragging={uid,x0:ev.clientX,y0:ev.clientY,moved:false,el:d,need};
+      d.setPointerCapture&&d.setPointerCapture(ev.pointerId);
+      /* Faces that hit everything (All), Mana, Summon and Chain need no target.
+         Do not select-and-rerender here: that detaches the die element and the
+         click never lands, leaving the die stuck highlighted. Fire on release. */
+      if(!need) return;
+      sel=uid; selRelic=null; render();
+    };
+  });
+}
+document.addEventListener('pointermove',ev=>{
+  if(!dragging) return;
+  const dx=ev.clientX-dragging.x0, dy=ev.clientY-dragging.y0;
+  if(!dragging.moved&&Math.hypot(dx,dy)>7){ dragging.moved=true; document.body.classList.add('dragging'); }
+  if(!dragging.moved) return;
+  const d=dieBoxEl(dragging.uid); if(!d) return;
+  const c=centerOf(d);
+  aimShow(c.x,c.y,ev.clientX,ev.clientY);
+  const over=document.elementFromPoint(ev.clientX,ev.clientY);
+  const t=over&&over.closest('.unit.tgt');
+  $$('.unit.tgt').forEach(n=>n.classList.toggle('hovtgt',n===t));
+});
+document.addEventListener('pointerup',ev=>{
+  if(!dragging) return;
+  const d=dragging; dragging=null;
+  /* A finished drag must not also register as a click, or releasing short of a
+     target would pop the Axie inspector open. */
+  if(d.moved) lastDragEnd=Date.now();
+  document.body.classList.remove('dragging'); aimHide();
+  $$('.unit.hovtgt').forEach(n=>n.classList.remove('hovtgt'));
+  if(!d.moved){
+    /* A tap on a no-target face uses it right away. A tap on a targeting face
+       keeps the selection so the player can then click a target. */
+    if(!d.need){ const u=byUid(S,d.uid); if(u) clickDie(u); }
+    return;
+  }
+  /* Dragging a no-target face anywhere on the board also uses it. */
+  if(!d.need){ const u=byUid(S,d.uid); if(u) clickDie(u); return; }
+  const over=document.elementFromPoint(ev.clientX,ev.clientY);
+  const t=over&&over.closest('.unit.tgt');
+  if(t){ doTarget(+t.dataset.uid); }
+  else {
+    /* Released short of a target. Keep the die selected so a near miss costs
+       nothing — the player can just click the target instead of starting over. */
+    render();
+  }
+});
+/* Last-resort watchdog. If playback or the roll animation ever hangs, the whole
+   board becomes unclickable (body.playing sets pointer-events:none). Rather than
+   stranding the player mid-run, release the lock and redraw. */
+let lockSince=0;
+setInterval(()=>{
+  const locked = playing || !!rollAnim;
+  if(!locked){ lockSince=0; return; }
+  if(!lockSince){ lockSince=Date.now(); return; }
+  if(Date.now()-lockSince < 12000) return;
+  console.warn('input lock released by watchdog');
+  lockSince=0; playing=false; rollAnim=null; skipHold=false; dragging=null;
+  document.body.classList.remove('playing','dragging');
+  try{ if(S) render(); }catch(e){}
+},2000);
+
+/* giữ chuột / space để tua nhanh playback */
+document.addEventListener('pointerdown',()=>{ if(playing) skipHold=true; });
+document.addEventListener('keydown',e=>{ if(playing&&(e.key===' '||e.key==='Enter')) skipHold=true; });
+</script>

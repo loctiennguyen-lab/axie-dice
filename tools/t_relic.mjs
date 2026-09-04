@@ -1707,7 +1707,7 @@ function checkIdStability(all, src, rosterDoc) {
   for (const id of lost) {
     hardFail('ID-STABLE', id, 'every shipped relic id survives the retune (§6: "ID GIỮ NGUYÊN")',
       'absent from the combined 94-relic roster',
-      'META.relics persists Collection progress across saves, and src/ui.js gates a meta reward on '
+      'META.relics persists Collection progress across saves, and src/client.html gates a meta reward on '
       + 'META.relics.length >= RELICS.length — a vanished id becomes an orphan that can never be counted');
   }
   /* every id the roster doc authors must appear in the framework audit, and vice versa */
