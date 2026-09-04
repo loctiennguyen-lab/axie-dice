@@ -781,7 +781,17 @@ small{font-size:var(--t1)}
    verify.mjs A1 FLAP: the badge only exists while a heavy/vital face is on screen, so the
    check went red or green depending on which relics that run happened to offer. Measured on
    the unmodified HEAD build too — pre-existing, not a regression of the part-skill work. */
-.ractag-hv{position:absolute;left:2px;top:-7px;font-size:var(--t1);line-height:1;color:var(--acc)}
+/* bottom:100%, KHÔNG phải top:-7px. Đo bằng pixel thật (verify.mjs A2px): với
+   top:-7px thì hộp chữ 11px trải từ y=-7 đến y=+4 trong .ractag, tức 3px cuối
+   ĐÈ LÊN chính thanh rarity — và --acc (#ffc857) trùng đúng --r3 (#ffc857), nên
+   phần ink nằm trên thanh đo được 1.63:1 (ngưỡng AA 4.5). Không thang màu nào
+   cứu được: --acc trên r1 1.45:1, r2 1.73:1, r3 1.00:1, r4 1.87:1 — glyph sáng
+   trên thanh sáng luôn hỏng. Trên mặt die thì 10.62:1. bottom:calc(100% + var(--bd)) ghim đáy hộp
+   chữ lên trên CẢ thanh lẫn viền die (viền cũng tô --r3 ở die Epic) nên không còn chồng lấn, và không phụ thuộc
+   font-size như một magic number âm. Ba lớp che khiến lỗi này vô hình trước đây:
+   nền thật là ANH EM (không nằm trong chuỗi ancestor mà effBg đi), glyph chỉ tồn
+   tại khi có mặt heavy trên bàn, và mô hình DOM không composite được pixel. */
+.ractag-hv{position:absolute;left:2px;bottom:calc(100% + var(--bd));font-size:var(--t1);line-height:1;color:var(--acc)}
 .die[data-r="3"]{border-color:var(--r3)}
 .die[data-r="4"]{border-color:var(--r4);box-shadow:0 0 20px #ff5f8f66;animation:mythg 1.8s infinite}
 @keyframes mythg{0%,100%{box-shadow:0 0 14px #ff5f8f55}50%{box-shadow:0 0 28px #ff5f8fbb}}
