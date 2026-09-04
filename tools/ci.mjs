@@ -32,6 +32,10 @@
  * `/opt/pw-browsers/chromium` and `file:///home/claude/axie-dice/`, paths from a Linux sandbox
  * that no longer exists. They now resolve the browser from playwright and the page from
  * `process.cwd()`. Do not re-pin a machine-specific path.
+ *
+ *   t_vault.mjs was registered above the build until 2026-09-04. It needs a built
+ *   AxieDiceTactics.html, so it failed on a clean checkout and — the real damage — passed
+ *   against a stale build when one was present. Browser suites belong under the build.
  */
 import { spawn, spawnSync } from 'node:child_process';
 import fs from 'node:fs';
@@ -102,10 +106,6 @@ step('relic behaviour proofs', 'node', ['tools/t_relic_behaviour.mjs'],
   ({ code, out }) => code === 0 ? okWith((out.match(/(ALL \d+ PROOFS PASS)/) || [, ''])[1])
     : 'expected ALL N PROOFS PASS');
 
-step('vault migration', 'node', ['tools/t_vault.mjs'],
-  ({ code, out }) => code === 0 ? okWith((out.match(/(\d+ passed, \d+ failed)/) || [, ''])[1])
-    : 't_vault exited ' + code);
-
 step('headless balance sim', 'node', ['tools/sim.js'],
   ({ out }) => {
     const m = out.match(/full-run winrate:\s*([\d.]+)%/);
@@ -122,6 +122,15 @@ if (!FAST) {
 
   step('AoE / summon regression', 'node', ['tools/t_aoe.mjs'],
     ({ out }) => /ALL REGRESSION CHECKS PASS/.test(out) ? okWith() : 'expected "ALL REGRESSION CHECKS PASS"');
+
+  /* t_vault MUST stay BELOW the build. It is a playwright suite that loads
+     AxieDiceTactics.html over file://, so while it sat up with the logic suites it failed
+     with ERR_FILE_NOT_FOUND on a clean checkout — and, far worse, PASSED against whatever
+     stale build happened to be lying around, verifying code that was no longer the code.
+     Do not move it back up. Its own header says: python3 build.py && node tools/t_vault.mjs */
+  step('vault migration', 'node', ['tools/t_vault.mjs'],
+    ({ code, out }) => code === 0 ? okWith((out.match(/(\d+ passed, \d+ failed)/) || [, ''])[1])
+      : 't_vault exited ' + code);
 
   /* t_fit reads AxieDiceTactics.html over file://, so it needs no server. It exits 0 even when
      a viewport is broken, so count the "OFF SCREEN" markers and diff against the allowlist. */

@@ -43,17 +43,13 @@ node tools/gen_faces.mjs --check --strict    # verify, không ghi
 (78 passive + 16 active), 285 face (81 sig + 204 variant), `ARCH` có `exec`,
 `devGo` undefined (devtools strip đúng), 3 Axie cùng class ra 3 dice khác nhau.
 
-Gate: **`node tools/ci.mjs` = 11/11** (đọc việc mở #1 về t_vault trước khi tin
-con số này). `verify` 37/37 · `t_partskill` 44/0 · `t_import` 43/0 · `t_vault`
+Gate: **`node tools/ci.mjs` = 11/11**, verify từ checkout SẠCH (đã xoá
+`AxieDiceTactics.html` rồi chạy lại). `--fast` = 7/7. `verify` 37/37 · `t_partskill` 44/0 · `t_import` 43/0 · `t_vault`
 8/0 · `t_relic` 94/94 INV-1 · `t_relic_behaviour` 38 proof · `gen_faces
 --check --strict` GREEN cả 2 profile.
 
 ## Việc còn mở (không chặn)
 
-- [ ] `tools/ci.mjs:105` đăng ký `t_vault` TRƯỚC bước build, nhưng nó là suite
-      Playwright cần file đã build → FAIL trên checkout sạch, và **PASS SAI**
-      nếu có `AxieDiceTactics.html` cũ nằm lại (verify build cũ). Chuyển xuống
-      khối browser, cạnh t_aoe/t_fit/verify.
 - [ ] `data.js:765` comment ghi `+25%` trong khi `:766` là `mult: 1.15` (+15%).
 - [ ] `soak.mjs:11`/`soakm.mjs:10` trỏ `build/index.html`. File đó do
       `buildCommand` trong `vercel.json` tạo, `build.py` KHÔNG tạo — nên chạy
@@ -94,6 +90,7 @@ cd /Users/loc.tien.nguyen/my-game && vercel deploy --prod --yes
      người khác. Kiểm `lsof -nP -iTCP:5173 -sTCP:LISTEN` trước.
    - Server trỏ sai thư mục cho dấu hiệu y như bug CSS: `verify.mjs` báo `A4`
      thiếu token + `B0` "0 width query". **Đó là 404, không phải bug CSS.**
-   - Một check "luôn pass" có thể là đang không chạy, hoặc chạy trên file CŨ —
-     đúng ca `t_vault`. Kiểm nó có thật chạy trên build vừa tạo không.
+   - Một check "luôn pass" có thể là đang không chạy, hoặc chạy trên file CŨ.
+     Suite dùng playwright PHẢI nằm dưới bước build trong `ci.mjs` — `t_vault`
+     từng nằm trên và pass bằng build cũ. Đừng chuyển suite browser lên trên.
 4. Cập nhật file này khi xong một mốc, và **giữ nó dưới 100 dòng**.
