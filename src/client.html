@@ -1562,15 +1562,28 @@ var MUS=(()=>{
     let moving=false;
     for(const f in el){
       const a=el[f], want=target(f);
-      if(Math.abs(a.volume-want)<0.005){
+      /* Self-healing watchdog: anything that should be sounding but is paused gets
+         restarted here. The bug this closes was reachable — muting during the intro
+         paused it and nothing ever resumed it — but the point is that the ticker
+         already runs every 50ms while faders move, so making it responsible for
+         "audible implies playing" means no future state bug can leave the game
+         permanently silent. Cheap: a.play() on an already-playing element is a no-op. */
+      if(want>0&&a.paused){ const pr=a.play(); if(pr&&pr.catch) pr.catch(()=>{}); }
+      const d=want-a.volume;
+      if(Math.abs(d)<0.0005){
         a.volume=want;
         /* Park a fully faded-out track so it stops decoding in the background. */
         if(want===0&&!a.paused){ try{ a.pause(); }catch(e){} }
         continue;
       }
       moving=true;
+      /* Clamp the step to the remaining distance. A fixed step of TICK_MS/FADE_MS
+         (0.0556) cannot land on an arbitrary target like AU.mvol 0.55: it overshot to
+         0.5556, stepped back to 0.5, and oscillated at 20Hz forever — an audible
+         wobble, and a setInterval that never cleared because `moving` never went
+         false. Measured on production before this fix. */
       const stepSz=TICK_MS/FADE_MS;
-      a.volume=Math.max(0,Math.min(1,a.volume+(want>a.volume?stepSz:-stepSz)));
+      a.volume=Math.max(0,Math.min(1,a.volume+(Math.abs(d)<stepSz?d:(d>0?stepSz:-stepSz))));
     }
     if(!moving&&ticker){ clearInterval(ticker); ticker=null; }
   }
@@ -1580,7 +1593,16 @@ var MUS=(()=>{
      next real click calls arm() again through ac(), which is when it succeeds. */
   function kick(key){
     if(!key) return;
-    const a=make(key); if(!a) return;
+    make(key);                      /* ensure the elements exist and the intro decision is made */
+    /* Resume whatever is LIVE, not whatever make() happened to return. make() reports
+       the loop once the intro has been started, so keying off it meant that muting
+       during the 12s intro killed the music for good: tick() paused the intro, unmute
+       then tried to play the loop, liveFile() still said the intro, so the loop was
+       held at volume 0 and the intro was never resumed. Silent forever, and `ended`
+       could not fire to hand over because the intro was paused. Verified on
+       production before this fix. */
+    const f=liveFile(key); if(!f) return;
+    const a=el[f]; if(!a) return;
     if(a.paused&&audible()&&AU.mvol>0){
       const p=a.play();
       if(p&&p.catch) p.catch(()=>{});
@@ -5407,17 +5429,26 @@ document.addEventListener('pointerup',ev=>{
 /* Last-resort watchdog. If playback or the roll animation ever hangs, the whole
    board becomes unclickable (body.playing sets pointer-events:none). Rather than
    stranding the player mid-run, release the lock and redraw. */
-let lockSince=0;
+let lockSince=0, lockDiag=null;
+/* 12s threshold polled every 2s meant a stranded player waited up to 14 seconds —
+   long past the point where anyone concludes the game is broken and reloads. A
+   report of exactly that ("could not attack any monster until I abandoned the run")
+   is what moved these numbers. The longest legitimate playback measured here is
+   about 3.3s for a four-kill AoE with its OVERKILL beat, so 5s still cannot fire
+   during real playback while cutting the worst case from 14s to 6s.
+   lockDiag records what was in flight, because the cause of the original report was
+   never reproduced and the next occurrence should leave evidence. */
 setInterval(()=>{
   const locked = playing || !!rollAnim;
-  if(!locked){ lockSince=0; return; }
-  if(!lockSince){ lockSince=Date.now(); return; }
-  if(Date.now()-lockSince < 12000) return;
-  console.warn('input lock released by watchdog');
-  lockSince=0; playing=false; rollAnim=null; skipHold=false; dragging=null;
+  if(!locked){ lockSince=0; lockDiag=null; return; }
+  if(!lockSince){ lockSince=Date.now(); lockDiag={playing:playing,roll:!!rollAnim,
+    phase:S&&S.phase, kind:S&&S.kind, step:S&&S.step, ev:S&&S.ev?S.ev.length:null}; return; }
+  if(Date.now()-lockSince < 5000) return;
+  console.warn('input lock released by watchdog after '+(Date.now()-lockSince)+'ms',lockDiag);
+  lockSince=0; lockDiag=null; playing=false; rollAnim=null; skipHold=false; dragging=null;
   document.body.classList.remove('playing','dragging');
   try{ if(S) render(); }catch(e){}
-},2000);
+},1000);
 
 /* giữ chuột / space để tua nhanh playback */
 document.addEventListener('pointerdown',()=>{ if(playing) skipHold=true; });
