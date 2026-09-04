@@ -762,7 +762,12 @@ const EVENTS = [
 const TUNE = { base:10.5, growth:1.150, growth2:1.05, knee:12, eliteMult:1.25 };
 /* Formation Resonance (design/quick-specs/formation-resonance-2026-09-01.md):
    hai Axie liền kề trong s.roster cùng roll mặt cùng type trong cùng lượt →
-   Axie thực thi SAU nhận +25% giá trị mặt. Xem engine.js checkResonance/resonancePairs. */
+   Axie thực thi SAU nhận +15% giá trị mặt. Xem engine.js checkResonance/resonancePairs.
+   1.15 là ĐÚNG — đừng "sửa" thành 1.25. Spec §Tuning Knobs cho khoảng an toàn
+   1.15-1.40 và chỉ định 1.15 cho trường hợp team dmg-stack quá mạnh; code ra đời
+   đã là 1.15 (commit 5f54429), chưa bao giờ là 1.25. Chỗ THẬT SỰ lệch là spec
+   §Formulas vẫn ghi "1.25 (mặc định)" và dùng 1.25 trong mọi ví dụ tính toán.
+   Comment này từng ghi +25% và đã khiến một lượt review kết luận sai giá trị. */
 const RESONANCE = { mult: 1.15, types: ['dmg','shield','heal','poison','mana'] };
 /* 2026-09-01: growth2 1.065→1.05, eliteMult 1.40→1.25 — economy-designer diagnosis
    (docs/review-2026-08-31.md follow-up): Full Run winrate measured 3.6% via

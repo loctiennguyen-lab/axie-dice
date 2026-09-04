@@ -23,8 +23,17 @@
 <!-- to scope interaction specs, test helpers, and implementation to the correct input methods. -->
 
 - **Target Platforms**: Web / Browser (desktop-first; deploys as a single static HTML file to Vercel/Netlify/S3)
-- **Input Methods**: Mouse (drag-and-drop dice onto targets) primary; touch supported; keyboard accessibility in progress (Tab focus, Q–T target hotkeys — see HANDOVER §2, not yet complete)
-- **Primary Input**: Mouse/touch drag-and-drop
+- **Input Methods**: Mouse/touch **click-click** — click a rolled face, then click a legal
+  target (`design/gdd/game-concept.md`, EXECUTE step 3). There is **no drag-and-drop**:
+  `grep -c "dragstart\|draggable" src/client.html` returns 0. This line claimed
+  drag-and-drop until 2026-09-04 and, because `CLAUDE.md` loads this file into every
+  session, it kept handing agents a wrong premise about the core interaction.
+- **Keyboard**: **not playable**, and no Q-T target hotkeys exist. The only handlers are
+  Enter/Space on already-focusable elements (`client.html:1885`), Enter inside text inputs,
+  Escape to cancel a selection (`:4138`), and Space/Enter to fast-forward FX (`:5202`).
+  `tabindex` occurs exactly ONCE in the whole file — as a CSS selector, not an attribute —
+  so `.die`/`.unit`/`.nodecard` cannot be focused at all. Open P0 since 2026-08-31.
+- **Primary Input**: Mouse/touch click-click
 - **Gamepad Support**: None
 - **Touch Support**: Partial — playable, but phone portrait hides the play field and shows a "rotate your device" prompt (game is landscape-only)
 - **Platform Notes**: 3 real breakpoints (1199 / 899 / 599px); `--ui-scale` via `zoom` on `#app` is a final polish layer only, applied when `innerWidth >= 1200`
