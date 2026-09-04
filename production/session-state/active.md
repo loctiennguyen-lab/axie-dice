@@ -1,68 +1,77 @@
 # Session State
 
 <!-- STATUS -->
-Epic: UI/UX polish
-Feature: Layout cửa sổ thấp + Formation Resonance
-Task: Đã xong, đã merge vào main — chờ việc mới
+Epic: Skill/Part + Relic
+Feature: per-part Axie skills (285 face) + relic rebuild (94)
+Task: Đã merge main, đã deploy, đã verify prod khớp main từng byte — chờ việc mới
 <!-- /STATUS -->
 
-> **Giữ file này DƯỚI 100 DÒNG.** Không phải thẩm mỹ — hai hook đọc hai đầu
-> ngược nhau của chính file này:
->
-> | Hook | Chạy khi | Đọc phần nào |
-> |---|---|---|
-> | `.claude/hooks/session-start.sh` | mở phiên mới | **`tail -20`** (20 dòng CUỐI) |
-> | `.claude/hooks/pre-compact.sh` | **hết context / compact** | **`head -100`** (100 dòng ĐẦU) |
->
-> File dài hơn 100 dòng thì khúc giữa **không hook nào đọc được**. Bản trước dài
-> 165 dòng nên 20 dòng cuối mà phiên mới nhìn thấy là backlog của việc KHÁC —
-> vô dụng cho việc đang làm. Chi tiết dài để ở `docs/`, đây chỉ để trỏ đường.
+> **Giữ file này DƯỚI 100 DÒNG.** Hai hook đọc hai đầu ngược nhau của chính nó:
+> `session-start.sh` đọc **`tail -20`** (20 dòng CUỐI) khi mở phiên; `pre-compact.sh`
+> đọc **`head -100`** khi hết context. Dài hơn 100 dòng thì khúc giữa **không hook
+> nào đọc được**. Chi tiết để ở `docs/` và `design/gdd/`, đây chỉ trỏ đường.
 
-## Cấu trúc nguồn (đổi 2026-09-03)
+## Cấu trúc nguồn
 
-**Sửa code client = sửa ĐÚNG 1 file: `src/client.html`** (CSS + audio/icons/log/
-ui/fx, có mốc `/* ─── name.js ─── */`). `build.py` ghép thành 1 file HTML để deploy.
+**Code client = sửa ĐÚNG 1 file: `src/client.html`** (CSS + audio/icons/log/ui/fx,
+có mốc `/* ─── name.js ─── */`). `build.py` ghép thành 1 file HTML.
 
-Nhưng **luật chơi/cân bằng vẫn ở `src/engine.js` + `src/data.js`** — không gộp
-được vì `api/_engine.js` đọc chúng từ đĩa để chống gian lận Leaderboard.
-`src/devtools.js` cũng riêng vì `build.py public` phải strip được nó.
-Lý do đầy đủ: comment ở đầu `src/client.html`.
+Luật chơi/cân bằng ở **`src/engine.js` + `src/data.js`** — không gộp được vì
+`api/_engine.js` đọc chúng từ đĩa để chống gian lận Leaderboard. `src/devtools.js`
+riêng vì `build.py public` phải strip được nó.
 
-## Nguồn sự thật hiện tại
+**`src/part_faces.js` là FILE SINH RA — KHÔNG sửa tay.** Nguồn cùng một lần chạy:
+`assets/data/part_faces.json`. Muốn đổi bảng face thì sửa `tools/gen_faces.mjs`:
 
-- **`docs/fixes-2026-09-03.md`** — đợt sửa mới nhất (layout cửa sổ thấp +
-  Formation Resonance preview). Đọc file này là đủ, không cần kể lại bối cảnh.
-- `docs/session-notes-2026-09-02-leaderboard.md` — ghi chú phiên Leaderboard
-  (lưu trữ). Backlog trong đó VẪN CÒN, chưa làm mục nào.
-- `CLAUDE.md` → `.claude/docs/technical-preferences.md` — kiến trúc, quy ước.
+```bash
+node tools/gen_faces.mjs                    # ghi lại cả .json và .js
+node tools/gen_faces.mjs --check --strict    # verify, không ghi
+```
 
-## Trạng thái 2026-09-03
+## Nguồn sự thật
 
-`main` = `834a8e4`, đã chứa toàn bộ 5 commit của đợt sửa + 12 commit trước đó
-mà `main` từng thiếu. **`main` giờ khớp production.**
+- **`design/gdd/part-skill-identity.md`** (3487 dòng) — hệ part→skill, 285 face.
+- **`relic-system.md`** (2462) + **`relic-roster-expansion.md`** (1977) — relic 94.
+- `docs/fixes-2026-09-03.md` — đợt layout + Formation Resonance (đợt trước).
+- `docs/session-notes-2026-09-02-leaderboard.md` — backlog Leaderboard, VẪN CÒN.
 
-Gate: `verify.mjs` **32/32** (3 lần liên tiếp, cả bản public) · `t_fit` 4/4 ·
-`t_aoe` PASS · `t_import` 23/23 · `soak` 20 run 0 problem.
+## Trạng thái 2026-09-04
+
+`main` = `de6c987`. **Đã verify production khớp main từng byte**: md5
+`948ba31a53e0409d1c97c0daca526e5a`, 2.404.807 B, giống nhau giữa local
+`build.py public` và `https://axiedice.vercel.app/`. Runtime trên prod: 94 relic
+(78 passive + 16 active), 285 face (81 sig + 204 variant), `ARCH` có `exec`,
+`devGo` undefined (devtools strip đúng), 3 Axie cùng class ra 3 dice khác nhau.
+
+Gate: **`node tools/ci.mjs` = 11/11** (đọc việc mở #1 về t_vault trước khi tin
+con số này). `verify` 37/37 · `t_partskill` 44/0 · `t_import` 43/0 · `t_vault`
+8/0 · `t_relic` 94/94 INV-1 · `t_relic_behaviour` 38 proof · `gen_faces
+--check --strict` GREEN cả 2 profile.
 
 ## Việc còn mở (không chặn)
 
-- [ ] `t_fit.mjs` chỉ test trận thường → bug boss từng vô hình vì thế. Thêm case boss.
-- [ ] `tools/soak.mjs` + `soakm.mjs` còn mục đường dẫn (`build/index.html` không
-      bao giờ được tạo). Tạm thời truyền URL http để chạy.
-- [ ] `soakm.mjs` 5 `NOPROGRESS` — có sẵn từ trước, chưa điều tra.
-- [ ] Comment ghi `+25%` trong khi code là `RESONANCE.mult = 1.15` (+15%).
+- [ ] `tools/ci.mjs:105` đăng ký `t_vault` TRƯỚC bước build, nhưng nó là suite
+      Playwright cần file đã build → FAIL trên checkout sạch, và **PASS SAI**
+      nếu có `AxieDiceTactics.html` cũ nằm lại (verify build cũ). Chuyển xuống
+      khối browser, cạnh t_aoe/t_fit/verify.
+- [ ] `data.js:765` comment ghi `+25%` trong khi `:766` là `mult: 1.15` (+15%).
+- [ ] `soak.mjs:11`/`soakm.mjs:10` trỏ `build/index.html`. File đó do
+      `buildCommand` trong `vercel.json` tạo, `build.py` KHÔNG tạo — nên chạy
+      local phải truyền URL http.
+- [ ] `soakm.mjs` 5 `NOPROGRESS` — có từ trước, chưa điều tra.
+- [ ] `t_fit.mjs:15` lấy node đầu tiên trong `[battle,elite,boss]` nên gần như
+      luôn là battle thường; bug boss từng vô hình vì thế. Thêm case boss thật.
 - [ ] Backlog Leaderboard — xem file lưu trữ ở trên.
 
-## Quy trình build / verify / deploy
+## Build / verify / deploy
 
 ```bash
-python3 build.py                                   # → AxieDiceTactics.html
-python3 -m http.server 5199 --directory "$(pwd)"   # KHÔNG dùng 5173, xem bẫy #1
-node tools/verify.mjs --url http://localhost:5199/AxieDiceTactics.html
-node tools/t_fit.mjs
+npm install && npx playwright install chromium   # BẮT BUỘC, xem bẫy #1
+node tools/ci.mjs                                # 1 entry point, cả 11 gate
+node tools/ci.mjs --fast                         # chỉ suite logic, không browser
 ```
 
-Deploy (Vercel tự chạy `build.py public`, upload file local — không cần push):
+Deploy: Vercel tự chạy `build.py public` qua `buildCommand` trong `vercel.json`.
 
 ```bash
 cd /Users/loc.tien.nguyen/my-game && vercel deploy --prod --yes
@@ -72,18 +81,19 @@ cd /Users/loc.tien.nguyen/my-game && vercel deploy --prod --yes
 
 ## ĐỌC NGAY — dành cho phiên mới
 
-1. **Đọc `docs/fixes-2026-09-03.md`** trước khi làm gì. Đó là nguồn sự thật.
-   Code client: sửa **`src/client.html`** (1 file). Luật chơi: `engine.js`/`data.js`.
-2. **Làm việc trên `main` ở checkout gốc** `/Users/loc.tien.nguyen/my-game`.
-   `main` đã khớp production. Các worktree trong `.claude/worktrees/` là nhánh
-   CŨ, phân kỳ, **không phải "cùng file"** — mỗi worktree là checkout riêng,
-   khác branch, khác inode. Deploy sai worktree = ship sai code.
-3. **Ba bẫy môi trường đã ngốn thời gian thật:**
-   - Port **5173** bị session khác chiếm, serve build ở thư mục khác → test nhầm
-     file người khác. Dùng port khác.
+1. Code client sửa **`src/client.html`**; luật ở `engine.js`/`data.js`;
+   **`src/part_faces.js` sinh tự động, đừng sửa tay.**
+2. **Làm trên `main` ở checkout gốc** `/Users/loc.tien.nguyen/my-game`.
+   Worktree trong `.claude/worktrees/` là nhánh CŨ, phân kỳ — mỗi cái là
+   checkout riêng, khác branch, khác inode. Deploy sai worktree = ship sai code.
+3. **Bốn bẫy đã ngốn thời gian thật:**
+   - Chưa `npm install` → `verify`/`t_aoe`/`t_fit`/`t_vault` chết ở
+     `import { chromium } from 'playwright'`: trông như 4 suite hỏng, thực ra
+     thiếu 1 dependency.
+   - Port **5173** (ci.mjs hardcode) bị session khác chiếm → test nhầm file
+     người khác. Kiểm `lsof -nP -iTCP:5173 -sTCP:LISTEN` trước.
    - Server trỏ sai thư mục cho dấu hiệu y như bug CSS: `verify.mjs` báo `A4`
-     thiếu toàn bộ token + `B0` "0 width query" + console 404. **Đó là 404, không
-     phải bug CSS.**
-   - `tools/t_*.mjs` từng hardcode đường dẫn Linux nên im lặng không chạy suốt
-     thời gian dài. Nếu một check "luôn pass", kiểm xem nó có thực sự chạy không.
+     thiếu token + `B0` "0 width query". **Đó là 404, không phải bug CSS.**
+   - Một check "luôn pass" có thể là đang không chạy, hoặc chạy trên file CŨ —
+     đúng ca `t_vault`. Kiểm nó có thật chạy trên build vừa tạo không.
 4. Cập nhật file này khi xong một mốc, và **giữ nó dưới 100 dòng**.
