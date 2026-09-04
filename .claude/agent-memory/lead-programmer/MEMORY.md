@@ -31,4 +31,4 @@
 - [Large design docs: write first, grep on demand](feedback_large_design_docs.md) — don't read 3400-line specs linearly; a passing generator beats the prose.
 
 ## Axie Dice Tactics
-- [Verification baselines & harness gotchas](project_axiedice_verification.md) — harness file lists, soak needs build/, serve.py is broken, soakm flake is pre-existing.
+- [Verification baselines & harness gotchas](project_axiedice_verification.md) — ci.mjs is the entry point; harnesses hardcode src paths (incl. source-text asserts); known-failures is two-sided.
