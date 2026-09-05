@@ -404,7 +404,7 @@ small{font-size:var(--t1)}
 .cfgrow{display:flex;gap:6px;align-items:center;justify-content:center;flex-wrap:wrap;margin:6px 0}
 .cfgrow .cl{font-size:var(--t2);color:var(--dim);width:86px;text-align:right;letter-spacing:1px}
 .seedinp{background:var(--bg);border:var(--bd) solid var(--line);border-radius:var(--rad-sm);color:var(--txt);
-  font-family:inherit;font-weight:700;padding:6px 9px;font-size:var(--t2);width:230px}
+  font-family:inherit;font-weight:700;padding:13px 9px;font-size:var(--t2);width:230px}
 .seedinp:focus{outline:none;border-color:var(--acc)}
 .hintxt{font-size:var(--t1);color:var(--dim)}
 .ascdesc{font-size:var(--t1);color:var(--deb);line-height:1.7;margin-top:6px}
@@ -469,7 +469,12 @@ small{font-size:var(--t1)}
 .vaultscreen .colsec{max-width:1050px}
 
 /* ================= WAVE TRACK / HUD ================= */
-.track{display:flex;align-items:center;gap:8px;background:var(--pan);border:var(--bd) solid var(--line);
+/* --line2 (not --line) against --pan/--bg: --line alone measures 2.38:1 here,
+   under WCAG 1.4.11's 3:1 — caught once verify.mjs's screen coverage grew to
+   include Shop/Event, the only two screens that render .track without also
+   layering a --line2-bordered card over it. .rewardbox already used --line2
+   on this same --pan background and passed. */
+.track{display:flex;align-items:center;gap:8px;background:var(--pan);border:var(--bd) solid var(--line2);
   border-radius:var(--radius);padding:6px 10px;margin-bottom:8px;flex-wrap:nowrap;white-space:nowrap}
 .tlabel{font-size:var(--t1);color:var(--dim);letter-spacing:2px}
 .tstep{font-size:var(--t3);color:var(--txt);letter-spacing:1px}
@@ -1770,6 +1775,17 @@ function clogReset(){
   if(clogSRTimer){ clearTimeout(clogSRTimer); clogSRTimer=null; }
   if(clogSR) clogSR.textContent='';
   if(clogBody){ clogBody.innerHTML=''; clogBody.scrollTop=0; }
+  /* clogFreeze() (defeat "Battle Report") force-opens the panel with
+     persist:false, so the saved preference in localStorage is untouched —
+     but nothing was reverting the in-memory clogOpen/body class back to it.
+     Without this, one loss anywhere in the session left body.clog-open
+     (and its fixed, click-catching .clog-panel) stuck on top of the
+     bottombar for every combat afterward, silently eating clicks on
+     END TURN. Re-sync to the real preference at the start of every new
+     combat — matches the comment on clogFreeze() ("their next combat
+     still opens/closes the way they set it"). */
+  if(typeof clogLoadPref==='function') clogLoadPref();
+  if(typeof clogApplyOpenClass==='function') clogApplyOpenClass();
   clogRenderUnread();
 }
 /* Defeat is the one case the log must survive into (design/ux/combat-log.md
@@ -2067,7 +2083,20 @@ const btn=(c,x,fn)=>{ const b=el('button','btn '+(c||''),x); b.onclick=e=>{ SFX.
    .onclick has actually been assigned to a real handler — never on a
    disabled/"dis" card, so Tab order only ever lands on things that do something. */
 const kbAct=e2=>{ e2.tabIndex=0;
-  e2.addEventListener('keydown',ev=>{ if((ev.key==='Enter'||ev.key===' ')&&typeof e2.onclick==='function'){ ev.preventDefault(); e2.onclick(ev); } });
+  e2.addEventListener('keydown',ev=>{ if((ev.key==='Enter'||ev.key===' ')&&typeof e2.onclick==='function'){ ev.preventDefault();
+    e2.onclick(ev);
+    /* Enter/Space are ALSO bound globally on document: End Turn (~line 4336)
+       and, while an animation is replaying, fast-forward FX (skipHold, further
+       down). Without stopping propagation here, the same keydown that a
+       focused .die/.unit/.rsel just consumed (selecting a die, confirming a
+       target, toggling reroll) went on to bubble to document and trigger
+       End Turn too — silently discarding the selection and ending the turn
+       from what looked like a single confirm press. Swallow it once this
+       element has acted... but NOT while `playing`: in that state every
+       onclick above is already a guaranteed no-op (clickDie/doTarget bail out
+       on `playing`), so let the event keep bubbling to the skip-animation
+       listener instead of eating it for nothing. */
+    if(!playing) ev.stopPropagation(); } });
   return e2; };
 
 let S=null, screen='menu', sel=null, selRelic=null, teamPick=[], msg='', SPD=1, tut=0;
@@ -3307,6 +3336,24 @@ function hashSeed(str){ let h=2166136261; for(let i=0;i<str.length;i++){ h^=str.
 function logAction(fn,args){ if(S&&S.actionLog) S.actionLog.push({fn,args}); }
 
 function startRun(){
+  /* Defensive input-lock reset (freeze bug — docs/OVERVIEW_v2.md §12): starting a
+     run always begins a brand-new S via newGame() below, discarding whatever
+     combat (if any) was previously in progress. If that previous combat's
+     playback (playEvents(), see ~line 5273) was still mid-animation — e.g. the
+     devtools screen-jump helper interrupting it, or any other future caller
+     that jumps straight to a fresh run without waiting for the old playback to
+     finish naturally — `playing` (and rollAnim/skipHold/dragging, which the
+     same body.playing pointer-events:none lock and the watchdog below both key
+     off of) must not carry over into the new run. The interrupted playEvents()
+     call still runs to completion in the background on its own captured event
+     list and will redundantly reset these to the same values when it does, so
+     this is a no-op for the common "started fresh from the menu" case and only
+     matters for the interrupted-mid-animation case. Kept in addition to, not
+     instead of, the watchdog (~5445) — this clears the lock immediately instead
+     of waiting up to the watchdog's threshold. */
+  playing=false; rollAnim=null; skipHold=false; dragging=null;
+  document.body.classList.remove('playing','dragging');
+  lockSince=0; lockDiag=null;
   // Match History (src/log.js runLogEntries): reset at the NEW RUN boundary,
   // not per-wave (clogReset() below/in scMap stays wave-scoped) — see
   // log.js's runLogEntries comment for why this is a separate accumulator.

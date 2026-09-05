@@ -475,7 +475,7 @@ async function checkTokens(page) {
   return t;
 }
 
-async function checkBorderContrast(page) {
+async function checkBorderContrast(page, label = null) {
   const bad = await page.evaluate(min => {
     const out = [];
     for (const el of document.querySelectorAll('.unit, .die, .pick, .nodecard, .bottombar, .track, .btn')) {
@@ -499,7 +499,8 @@ async function checkBorderContrast(page) {
     const seen = new Set();
     return out.filter(o => { const k = o.cls + o.bc; if (seen.has(k)) return false; seen.add(k); return true; });
   }, AA_NONTEXT);
-  record('A6', 'A', `Viền component đạt ≥ ${AA_NONTEXT}:1 (WCAG 1.4.11)`,
+  record(label ? `A6.${label}` : 'A6', 'A',
+    label ? `[${label}] Viền component đạt ≥ ${AA_NONTEXT}:1 (WCAG 1.4.11)` : `Viền component đạt ≥ ${AA_NONTEXT}:1 (WCAG 1.4.11)`,
     bad.length === 0, bad.slice(0,10).map(o => o.unparsed
       ? `KHÔNG ĐO ĐƯỢC — màu viền ${o.bc} không parse được · .${o.cls}`
       : `${o.cr}:1 · ${o.bc} trên ${o.bg} · .${o.cls}`).join('\n'));
@@ -1056,6 +1057,92 @@ async function run() {
       await checkPixelTruth(page, 'combat', frozen);
       await releaseBadges(page);
     }
+  }
+
+  /* ---------------------------------------------------------------------------
+     EXTRA SCREENS — Shop / Vault / Leaderboard / Event
+     Known gap (docs/OVERVIEW_v2.md §12): this suite ran its full check set on
+     only 2 of 27 screens (menu, combat), leaving the screens with the heaviest
+     currency/user-data interaction (buying, importing an Axie, viewing Ranked
+     Run scores) completely unscanned. Reuses the exact same rule-check
+     functions used above for menu/combat — no rule is reimplemented here.
+
+     Shop and Event are reached the same way src/devtools.js's own DEV PANEL
+     reaches them (devGo('shop') / devGo('event')): `screen` stays 'combat',
+     `S.phase` flips to 'shop'/'event', both render as an overlay over
+     scCombatShell() (track()+partyStrip(), no dice — see client.html render()).
+     Vault and Leaderboard are TOP-LEVEL `screen` values with no devGo() case
+     (its static-screen branch only covers menu/team/codex/guide/bp/unlocks/
+     collection) — reached here directly with the same META seed devGo() uses
+     for that branch, entirely inside this test harness; devtools.js's
+     user-facing devGo() menu is NOT touched.
+
+     Checks applied, and why others are structurally skipped here:
+       - checkFontSizes / checkContrast / checkNoFaint / checkNoBrokenStrings
+         (rules #1, #2, #3, #6) — apply to any screen with text.
+       - checkTapTargets @ desktop (rule #4) — all four screens are exactly
+         the currency/data-entry heavy ones (buy, import, remove).
+       - checkBorderContrast (rule #2, non-text), parameterised by label so
+         results don't collide with the plain menu-call 'A6' id.
+       - SKIPPED as not applicable: checkDieUniform / checkNoLayoutShift (need
+         `.die` — none of these screens have dice), checkHpState (needs
+         `.hpbar` — none here), checkCharsPerLine (`.cxp,.pd,.nd,p` selectors —
+         none of those classes are used by Shop/Vault/Leaderboard/Event, so it
+         would measure nothing), checkMediaQueries/checkUiScale/B4 (page-global
+         or phone-portrait specific, already covered once for the whole build).
+       - KNOWN GAP, reported rather than silently dropped: Shop's
+         `.rcard.shopitem` and Event's `.rcard.evopt` sit inside rule #5's own
+         forbidden-transform selector list (`.unit,.die,.nodecard,.rcard,.btn`
+         — UIUX brief §4.5), but checkNoLayoutShift() only ever clicks a
+         `.die` — it has never actually exercised a `.rcard` hover/select on
+         ANY screen, this run included. Left unaddressed under this task's
+         scope (generalising that function's click target is a bigger change
+         than "add 4 screens"); flagged in the final report, not hidden. */
+  async function checkNewScreen(page, label) {
+    await checkFontSizes(page, label);
+    await checkContrast(page, label);
+    await checkNoFaint(page, label);
+    await checkNoBrokenStrings(page, label);
+    await checkTapTargets(page, label, DESKTOP);
+    await checkBorderContrast(page, label);
+  }
+
+  async function reachViaDevGo(page, key) {
+    return await page.evaluate(k => {
+      try { devGo(k); return { ok: true }; }
+      catch (e) { return { ok: false, err: String(e && e.message || e) }; }
+    }, key);
+  }
+
+  // devGo()'s own static-screen META seed (src/devtools.js), replayed here
+  // for the two screens devGo() itself does not have a case for.
+  async function reachStaticScreen(page, key) {
+    return await page.evaluate(k => {
+      try {
+        if (!META.runs) { META.runs = 18; META.wins = 3; META.best = 12; META.ascMax = 4; META.shards = 900; META.xp = 5200; }
+        screen = k; render();
+        if (k === 'leaderboard' && typeof loadLeaderboard === 'function') loadLeaderboard();
+        return { ok: true };
+      } catch (e) { return { ok: false, err: String(e && e.message || e) }; }
+    }, key);
+  }
+
+  if (want('A')) {
+    const shop = await reachViaDevGo(page, 'shop');
+    record('N2.shop', 'A', "Vào được màn Shop qua devGo('shop')", shop.ok, shop.err || '');
+    if (shop.ok) { await page.waitForTimeout(500); await checkNewScreen(page, 'shop'); }
+
+    const event = await reachViaDevGo(page, 'event');
+    record('N2.event', 'A', "Vào được màn Event qua devGo('event')", event.ok, event.err || '');
+    if (event.ok) { await page.waitForTimeout(500); await checkNewScreen(page, 'event'); }
+
+    const vault = await reachStaticScreen(page, 'vault');
+    record('N2.vault', 'A', "Vào được màn Vault (Import Axie) — screen='vault'", vault.ok, vault.err || '');
+    if (vault.ok) { await page.waitForTimeout(400); await checkNewScreen(page, 'vault'); }
+
+    const lb = await reachStaticScreen(page, 'leaderboard');
+    record('N2.leaderboard', 'A', "Vào được màn Leaderboard — screen='leaderboard'", lb.ok, lb.err || '');
+    if (lb.ok) { await page.waitForTimeout(500); await checkNewScreen(page, 'leaderboard'); }
   }
 
   if (want('B')) {

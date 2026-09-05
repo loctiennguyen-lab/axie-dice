@@ -1,13 +1,17 @@
 /* Soak test driven by REAL mouse events (pointerdown/move/up), the exact path a player uses. */
 import { chromium } from 'playwright';
-import { fileURLToPath } from 'node:url';
-import { dirname, join } from 'node:path';
+import { pathToFileURL } from 'node:url';
+import { resolve } from 'node:path';
 
 const FILE = process.argv[2] || 'AxieDiceTactics.html';
 const RUNS = +(process.argv[3] || 6);
 
-const __dir = dirname(fileURLToPath(import.meta.url));
-const buildFile = FILE.startsWith('http') ? FILE : 'file:' + join(__dir, '..', 'build', 'index.html');
+/* NOTE: this used to hardcode 'file:'+join(__dir,'..','build','index.html')
+   for any non-http FILE arg, silently ignoring whatever path was actually
+   passed in (e.g. 'AxieDiceTactics.html') and testing a stale, unrelated
+   build/index.html artifact instead. Resolve FILE against cwd like t_fit.mjs
+   does, so the file you name on the command line is the file that runs. */
+const buildFile = FILE.startsWith('http') ? FILE : pathToFileURL(resolve(process.cwd(), FILE)).href;
 
 const b = await chromium.launch({args:['--no-sandbox']});
 const p = await b.newPage({ viewport:{width:1700,height:1050} });

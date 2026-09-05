@@ -28,11 +28,19 @@
   `grep -c "dragstart\|draggable" src/client.html` returns 0. This line claimed
   drag-and-drop until 2026-09-04 and, because `CLAUDE.md` loads this file into every
   session, it kept handing agents a wrong premise about the core interaction.
-- **Keyboard**: **not playable**, and no Q-T target hotkeys exist. The only handlers are
-  Enter/Space on already-focusable elements (`client.html:1885`), Enter inside text inputs,
-  Escape to cancel a selection (`:4138`), and Space/Enter to fast-forward FX (`:5202`).
-  `tabindex` occurs exactly ONCE in the whole file — as a CSS selector, not an attribute —
-  so `.die`/`.unit`/`.nodecard` cannot be focused at all. Open P0 since 2026-08-31.
+- **Keyboard**: Die-select and target-confirm **are now playable by keyboard** (fixed
+  2026-09-05). `kbAct()` (`client.html` ~2069) gives `.die`/`.unit`/`.rsel`/`.nodecard`/etc.
+  real `tabIndex=0` plus an Enter/Space keydown handler that invokes the element's
+  `.onclick` — this already existed, but a global combat shortcut (Enter/Space → END TURN,
+  ~line 4349) was ALSO bound on `document` for the same keys: focusing a die/target and
+  pressing Enter fired both handlers on the same keydown, so the die/target action was
+  silently discarded and the turn ended instead. Fixed by having `kbAct()` call
+  `ev.stopPropagation()` after it handles the key — except while `playing` (mid-animation),
+  where every `.onclick` above is already a guaranteed no-op and the event must keep
+  bubbling to the Space/Enter fast-forward-FX listener (~line 5468). The global
+  Enter/Space-ends-turn shortcut still works when nothing is focused. No Q-T target
+  hotkeys exist; numeric `1`-`5` still selects party dice directly (unaffected by this,
+  it doesn't go through focus/kbAct).
 - **Primary Input**: Mouse/touch click-click
 - **Gamepad Support**: None
 - **Touch Support**: Partial — playable, but phone portrait hides the play field and shows a "rotate your device" prompt (game is landscape-only)

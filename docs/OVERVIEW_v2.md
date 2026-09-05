@@ -170,8 +170,9 @@ RESONANCE = { mult: 1.15, types: ['dmg','shield','heal','poison','mana'] }
 
 **Là +15%, không phải +25%.** Spec (`design/quick-specs/formation-resonance-2026-09-01.md`)
 cho dải an toàn 1.15–1.40 và chỉ định 1.15 khi team dmg-stack quá mạnh; code ra đời đã
-là 1.15 (commit `5f54429`), chưa bao giờ là 1.25. Chỗ **thật sự còn lệch** là §Formulas
-của spec vẫn ghi "1.25 (mặc định)" trong mọi ví dụ tính toán.
+là 1.15 (commit `5f54429`), chưa bao giờ là 1.25. Spec đã được sửa (2026-09-05) — mọi
+chỗ từng ghi 1.25 (§Formulas, Overview, Tuning Knobs, Dependencies, GDD Update) giờ
+khớp 1.15.
 
 Đây là cơ chế đầu tiên khiến **thứ tự sắp đội hình** và **thứ tự click thực thi** trở
 thành quyết định có ý nghĩa.
@@ -371,10 +372,31 @@ node tools/ci.mjs --fast     # 7 gate logic, không browser
 | AoE / summon | PASS |
 | vault migration | 8 / 0 |
 | viewport fit | PASS |
-| **UI rules (build đã serve)** | **37 / 37** |
+| **UI rules (build đã serve)** | **65 / 65** |
 
 **Không được để tụt.** Sàn `tools/verify.mjs` từng ghi 29/30 trong khi suite đã lên 37 — một
 con số sàn lỗi thời không chỉ sai, nó **cho phép một regression thật đi qua review**.
+
+**2026-09-05: mở rộng 2→6 màn, phát hiện và sửa 2 lỗi thật.** `verify.mjs` giờ
+chạy đủ bộ check trên Shop, Event, Vault, Leaderboard ngoài menu/combat — tất cả
+xanh. Việc mở rộng lộ ra 2 lỗi trước đó vô hình vì chỉ 2/27 màn được quét:
+- `B1.vault`: `.seedinp` cao 31px < 44px (dùng chung bởi Team Select/Account/
+  Vault) — tăng padding dọc 6px→13px.
+- `A6.shop`/`A6.event`: `.track` (chỉ render trong `scCombatShell()`, dùng
+  chung cho Shop/Event) có `border-color:var(--line)` (#524a68, "kẻ TRANG TRÍ")
+  đo được 2.38:1 trên nền `--bg` (#0b0a14), dưới ngưỡng 3:1 của WCAG 1.4.11.
+  Đã kiểm lại ghi chú "Deck plane giữ nguyên phẳng — btn/icard/bottombar/track"
+  cạnh định nghĩa `--line`/`--line2`: ghi chú đó chỉ nói về **--sh-card/--sh-hero
+  (độ nổi/shadow)**, không nói gì về màu viền — nên đổi màu viền không vi phạm
+  chủ đích "phẳng" đó. Đổi `.track` từ `--line` sang `--line2` (giống
+  `.rewardbox` cùng nền `--pan`, đã xanh từ trước) → 4.16:1, xanh. Theo đúng
+  tiền lệ đã có ở `--dim` (dòng ~88, nudge màu rồi flag cho art-director xem
+  lại) — đã áp dụng, chưa cần art-director duyệt trước khi merge nhưng nên
+  review lại một lượt cho yên tâm.
+Còn mở, chưa làm trong đợt này: `tools/t_fit.mjs` vẫn còn điểm mù boss (luôn
+lấy node đầu trong `[battle,elite,boss]`); `tools/soakm.mjs` 5 `NOPROGRESS`
+chưa điều tra riêng (nghi liên quan tới bug "playing kẹt true" ở dưới, chưa
+xác nhận độc lập). Chi tiết: xem `tools/verify.mjs` (khối "EXTRA SCREENS").
 
 ### Bốn bẫy đã ngốn thời gian thật
 
@@ -396,25 +418,42 @@ con số sàn lỗi thời không chỉ sai, nó **cho phép một regression th
   trong khi `api/auth.js` / `api/sync-save.js` / `api/telemetry.js` đều dùng. Ai cũng submit được điểm
   **dưới tên người khác**, và không có rate-limit. *Chống giả mạo điểm số thì làm rất
   tốt* — server replay lại toàn bộ hành động; lỗ hổng ở **danh tính**, không ở **điểm**.
-- 🟠 **"37/37" nhỏ hơn tưởng.** `tools/verify.mjs` chỉ chạy bộ check đầy đủ trên **2 trong 27**
-  màn (`menu`, `combat`). Shop/Vault/Leaderboard/Event/Reward/Account/Codex chưa từng
-  được quét tự động.
-- 🟠 **Không chơi được bằng bàn phím.** `tabindex` xuất hiện **đúng 1 lần** trong toàn
-  `client.html`, và là selector CSS chứ không phải attribute. `.die`/`.unit` không
-  focus được. P0 từ 2026-08-31, vẫn còn.
+- 🟠 **6/27 màn được quét, không phải 2/27 nữa** (2026-09-05: thêm Shop/Vault/
+  Leaderboard/Event, xem ghi chú ở bảng gate phía trên — 2 lỗi thật đã lộ ra,
+  1 đã sửa). Reward/Account/Codex/Profile/History/… vẫn chưa được quét tự động.
+- ✅ **Chơi được bằng bàn phím (die-select + target-confirm), fix 2026-09-05.** P0 từ
+  2026-08-31 — `kbAct()` đã cho `.die`/`.unit`/`.rsel` `tabIndex` thật, nhưng một shortcut
+  toàn cục (Enter/Space → END TURN) cũng bind trên `document` cho cùng phím, nên focus
+  một die/target rồi Enter kích hoạt CẢ HAI handler: action bị huỷ ngầm, lượt chơi kết
+  thúc thay vào đó. Sửa bằng `kbAct()` gọi `stopPropagation()` sau khi tự xử lý phím
+  (trừ lúc `playing` — khi đó mọi `.onclick` đã no-op sẵn, để phím còn bubble tới listener
+  tua nhanh FX). Shortcut Enter/Space-kết-thúc-lượt khi không focus gì vẫn hoạt động bình
+  thường. Còn thiếu: không có hotkey Q-T cho mục tiêu.
 - 🟠 **`api/submit-run.js` là vùng vỡ nhiều nhất** — 4 commit sửa lỗi kể từ khi ra đời,
   và comment trong code tự thừa nhận một ca "replay divergence" ở production **chưa tái
   hiện được**, hiện chỉ đang vá bằng logging.
 - 🟠 **`tools/soakm.mjs` 5 `NOPROGRESS`** chưa điều tra — cùng vùng drag/drop từng gây bug nặng nhất.
-- 🟠 **Một ca đơ bàn chơi chưa tìm ra nguyên nhân** (báo 2026-09-05): không đánh được
-  con nào cho tới khi abandon run. `body.playing` đặt `pointer-events:none` và
-  `client.html:3766` chặn click khi `playing`. Watchdog chống khoá đã siết từ 12s/2s
-  xuống **5s/1s** và ghi lại trạng thái lúc khoá — playback dài nhất đo được là 3,3s
-  nên 5s không thể bắn oan. **Nếu tái diễn: đợi 5 giây, đừng abandon**, và lấy dòng
-  `input lock released by watchdog after …` trong Console.
+- 🟠 **Ca đơ bàn chơi (`playing` kẹt `true`) — vá phòng vệ, chưa chốt được nguyên nhân
+  gốc duy nhất** (2026-09-05). Tái hiện được: ngắt một chuỗi animation (`playEvents()`)
+  đang chạy dở bằng một lần chuyển màn hình/state khác (vd devtools screen-jump) trước
+  khi nó tự hoàn tất. `playEvents()` tự resolve trên dữ liệu event đã chụp cục bộ nên
+  luôn tự về `playing=false` — đo được là **tự hồi trong ~1-3s** chứ không kẹt vĩnh viễn
+  trong các phép thử ở đây, nhưng khoảng hở đó vẫn đọc y hệt triệu chứng "đơ" đã báo.
+  Đã thêm reset phòng vệ ở `startRun()` (client.html) — mọi lần bắt đầu run mới xoá ngay
+  `playing`/`rollAnim`/`skipHold`/`dragging` thay vì đợi chuỗi animation cũ tự dọn — khép
+  đường ngắt cụ thể này về 0ms thay vì ~1-3s. Watchdog 5s/1s vẫn giữ nguyên làm lưới an
+  toàn cuối. Chưa loại trừ được: có đường ngắt nào khác trong sản phẩm thật (ngoài
+  devtools, vốn bị `build.py public` cắt) khiến `playing` kẹt **vĩnh viễn** thay vì tự
+  hồi — không tái hiện được ca đó trong phiên này. **Nếu tái diễn: đợi 5 giây, đừng
+  abandon**, và lấy dòng `input lock released by watchdog after …` trong Console.
 - 🟡 `tools/t_fit.mjs:15` lấy node đầu tiên trong `[battle,elite,boss]` nên gần như luôn test
-  battle thường; bug boss từng vô hình vì thế.
-- 🟡 Spec Formation Resonance vẫn ghi 1.25 trong §Formulas (xem §5).
+  battle thường; bug boss từng vô hình vì thế. **Vẫn CHƯA sửa** (2026-09-05: hết lượt
+  trước khi làm tới, ưu tiên mở rộng verify.mjs) — cần thêm 1 case riêng qua
+  `devGo('boss')` (giống pattern reachCombat/driveTransients trong verify.mjs), xác nhận
+  bằng `S.kind==='boss'`, không chỉ dựa vào `.find()`.
+- ✅ Spec Formation Resonance đã sửa 1.25→1.15 khắp file (2026-09-05) — không chỉ
+  §Formulas: cả Overview, code snippet §3, Tuning Knobs, Dependencies (chuỗi float
+  text) và mục "GDD Update Required" đều từng ghi sai 1.25.
 
 ---
 
@@ -446,8 +485,9 @@ Theo thứ tự tác động/công sức, từ đợt review 2026-09-04:
    nếu làm việc 1.
 3. **Mở rộng `tools/verify.mjs`** ra Shop/Vault/Leaderboard/Event — 4 màn có tương tác
    tiền tệ và dữ liệu người dùng cao nhất.
-4. **Bàn phím cho `.die`/`.unit`/`.nodecard`** — P0 treo từ 2026-08-31.
-5. **Điều tra 5 `NOPROGRESS`** của `tools/soakm.mjs` và ca "replay divergence" chưa tái hiện.
+4. ~~Bàn phím cho `.die`/`.unit`/`.nodecard`~~ — fix 2026-09-05 (xem §12). Còn thiếu: hotkey Q-T cho mục tiêu.
+5. **Điều tra 5 `NOPROGRESS`** của `tools/soakm.mjs`, ca "replay divergence" chưa tái hiện, và
+   liệu ca đơ `playing` (§12) có đường ngắt nào khác ngoài đường đã vá.
 
 ### Điểm mạnh nhất
 

@@ -10,7 +10,7 @@
 
 ## Overview
 
-Formation Resonance là một luật MỚI cho bước EXECUTE: nếu hai Axie **liền kề nhau trong đội hình** (thứ tự chọn ở màn "CHOOSE YOUR TEAM") cùng roll ra mặt **cùng loại giá trị** (dmg/shield/heal/poison/mana) trong CÙNG một lượt, thì lần thực thi thứ hai của cặp đó nhận **+25% giá trị mặt** (`RESONANCE.mult`). Đây là cơ chế đầu tiên khiến **thứ tự sắp xếp đội hình của người chơi** và **thứ tự click thực thi các mặt trong lượt** trở thành quyết định có ý nghĩa — hiện tại cả hai điều này không ảnh hưởng gì tới luật chơi.
+Formation Resonance là một luật MỚI cho bước EXECUTE: nếu hai Axie **liền kề nhau trong đội hình** (thứ tự chọn ở màn "CHOOSE YOUR TEAM") cùng roll ra mặt **cùng loại giá trị** (dmg/shield/heal/poison/mana) trong CÙNG một lượt, thì lần thực thi thứ hai của cặp đó nhận **+15% giá trị mặt** (`RESONANCE.mult`). Đây là cơ chế đầu tiên khiến **thứ tự sắp xếp đội hình của người chơi** và **thứ tự click thực thi các mặt trong lượt** trở thành quyết định có ý nghĩa — hiện tại cả hai điều này không ảnh hưởng gì tới luật chơi.
 
 ## Vì sao đây là mechanic MỚI (không lặp lại thứ đã có dưới tên khác)
 
@@ -58,14 +58,14 @@ v_final = ceil(v_base × RESONANCE.mult)      nếu Axie đang ở trạng thái
 v_final = v_base                              nếu không
 ```
 - `v_base` = giá trị mặt sau khi đã áp dụng mọi modifier khác đã có (vital ×2, weaken trừ, overdrive ×1.5, hiveMind cộng thêm — xem `faceValue()` hiện tại trong `src/engine.js`).
-- `RESONANCE.mult` = 1.25 (mặc định, xem Tuning Knobs).
+- `RESONANCE.mult` = 1.15 (mặc định, xem Tuning Knobs — giá trị đã shipped trong `src/client.html` từ commit `5f54429`, chưa bao giờ là 1.25).
 - Áp dụng cho MỌI type đủ điều kiện (dmg/shield/heal/poison/mana) bằng cùng một công thức — không cần nhánh riêng theo type vì `faceValue()` đã trả về `v` thống nhất cho các type này.
 - **Không áp dụng** cho giá trị của keyword cố định gắn kèm (vd. `weaken:2`, `burn:3`, `vulnerable:1`) — các giá trị này đọc trực tiếp từ chuỗi keyword trong `addStatus()`, không đi qua `faceValue()`, nên không bị nhân.
 
 **Ví dụ tính toán**:
 - Axie A (vị trí 1) roll mặt `HORN · dmg 10`, thực thi trước → gây 10 sát thương (không bonus, đây là nửa đầu).
-- Axie B (vị trí 2) roll mặt `MOUTH · dmg 8`, thực thi sau, cùng type `dmg`, liền kề A → `v_final = ceil(8×1.25) = 10` sát thương thay vì 8.
-- Nếu A có Vital active (đủ máu, mặt có keyword `vital`) và cũng resonant: `v = 8(base)×2(vital)=16 → ceil(16×1.25)=20`. Thứ tự nhân: vital trước, resonance sau cùng (resonance luôn là bước nhân cuối cùng trong `faceValue()`).
+- Axie B (vị trí 2) roll mặt `MOUTH · dmg 8`, thực thi sau, cùng type `dmg`, liền kề A → `v_final = ceil(8×1.15) = 10` sát thương thay vì 8.
+- Nếu A có Vital active (đủ máu, mặt có keyword `vital`) và cũng resonant: `v = 8(base)×2(vital)=16 → ceil(16×1.15)=19`. Thứ tự nhân: vital trước, resonance sau cùng (resonance luôn là bước nhân cuối cùng trong `faceValue()`).
 
 ### 2. Trigger detection (pseudocode cho `checkResonance`)
 
@@ -118,7 +118,7 @@ function logResonanceAttempt(s, u, f, wasConsumer):
 - Export thêm hàm `resonancePairs(s)` (đọc bên dưới, dùng cho UI preview) trong `module.exports` ở cuối file.
 - `src/data.js`: thêm hằng số mới, đặt cạnh `TUNE`:
   ```js
-  const RESONANCE = { mult: 1.25, types: ['dmg','shield','heal','poison','mana'] };
+  const RESONANCE = { mult: 1.15, types: ['dmg','shield','heal','poison','mana'] };
   ```
   và thêm `RESONANCE` vào `module.exports` của `data.js` nếu file đó có export tương tự `TUNE`/`ASCENSION`.
 
@@ -165,7 +165,7 @@ UI gọi hàm này lại sau mỗi roll/reroll để vẽ 1 icon "liên kết" (
 **Hệ thống này cung cấp (provides)**:
 - `resonancePairs(s)` — hàm thuần (pure, đọc `s`, không sửa state) để UI tính preview.
 - Sự kiện mới trong `s.ev`: `{t:'resonance', uid}` — bắn ra đúng lúc một Axie nhận Resonance Bonus, để `fx.js` phát hiệu ứng/âm thanh riêng (khác với `{t:'hit'}`/`{t:'ft'}` đã có).
-- Float text mới: chuỗi `'LINK ×1.25'` với class css `'buf'` (tái dùng class màu buff đã có, không cần màu mới).
+- Float text mới: chuỗi `'LINK ×1.15'` với class css `'buf'` (tái dùng class màu buff đã có, không cần màu mới).
 
 **Hệ thống này yêu cầu (requires)** — bắt buộc để không phá pillar minh bạch:
 - `ui.js` (màn hình combat): sau mỗi lần roll/reroll, gọi `resonancePairs(s)` và vẽ 1 icon nối giữa 2 chân dung Axie liền kề đang có cặp mở, TRƯỚC khi người chơi click thực thi bất kỳ mặt nào. Không được chỉ hiện float text SAU khi bonus đã áp dụng — nếu chỉ làm vậy, cơ chế trở thành "may rủi ẩn", vi phạm trực tiếp player fantasy "minh bạch triệt để" đã ghi trong `game-concept.md`.
@@ -184,7 +184,7 @@ UI gọi hàm này lại sau mỗi roll/reroll để vẽ 1 icon "liên kết" (
 
 | Knob | Giá trị mặc định | Khoảng an toàn | Loại | Rationale |
 |---|---|---|---|---|
-| `RESONANCE.mult` | 1.25 | 1.15 – 1.40 | Curve knob | Thấp hơn FERAL (+60% có điều kiện), cao hơn TALON (+3 flat) — vì Resonance dễ đạt hơn FERAL (không cần địch <50% HP) nhưng khó chủ động ép ra hơn TALON (cần đúng type + đúng vị trí cùng lúc). 1.15 nếu sim cho thấy team dmg-stack quá mạnh; 1.40 nếu tỷ lệ trigger thực tế trong `tools/sim.js` thấp hơn dự kiến và cơ chế bị người chơi bỏ qua vì "không đáng công sắp xếp". |
+| `RESONANCE.mult` | 1.15 | 1.15 – 1.40 | Curve knob | Thấp hơn FERAL (+60% có điều kiện), cao hơn TALON (+3 flat) — vì Resonance dễ đạt hơn FERAL (không cần địch <50% HP) nhưng khó chủ động ép ra hơn TALON (cần đúng type + đúng vị trí cùng lúc). 1.15 nếu sim cho thấy team dmg-stack quá mạnh; 1.40 nếu tỷ lệ trigger thực tế trong `tools/sim.js` thấp hơn dự kiến và cơ chế bị người chơi bỏ qua vì "không đáng công sắp xếp". |
 | `RESONANCE.types` (danh sách 5 type) | `[dmg,shield,heal,poison,mana]` | không nên thêm `buff`/`debuff` trừ khi các type đó được refactor để có giá trị số đi qua `faceValue()` | Gate knob | Giữ scope đúng những gì `faceValue()` thực sự kiểm soát; mở rộng sai sẽ tạo bug im lặng (nhân giá trị không tồn tại). |
 
 ---
@@ -223,6 +223,6 @@ UI gọi hàm này lại sau mỗi roll/reroll để vẽ 1 icon "liên kết" (
 
 **Yes.** Sau khi implement và playtest xác nhận ổn định, cần thêm 1 đoạn mới vào `design/gdd/game-concept.md`:
 - Trong "Core Rules — Vòng lặp một trận", bước 3 (EXECUTE): thêm 1 câu mô tả Formation Resonance và trỏ về file quick-spec này.
-- Trong bảng "Tuning Knobs" của `game-concept.md`: thêm dòng `RESONANCE.mult (1.25) | 1.15–1.40 | Đội hình mono-type liền kề trở nên quá mạnh nếu vượt trần`.
+- Trong bảng "Tuning Knobs" của `game-concept.md`: thêm dòng `RESONANCE.mult (1.15) | 1.15–1.40 | Đội hình mono-type liền kề trở nên quá mạnh nếu vượt trần`.
 
 Không cần sửa Dependencies/Acceptance Criteria của `game-concept.md` (cơ chế này không đổi cấu trúc run/reward/rarity đã ghi ở đó).
