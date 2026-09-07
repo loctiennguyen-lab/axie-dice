@@ -1,8 +1,8 @@
 # Session State
 
 <!-- STATUS -->
-Epic: Real-art overhaul + World Tour + Echo Box UX + QA rà soát pixel toàn diện
-Feature: (xem lịch sử) + Blood Pact relic fix + leaderboard save bug fix + icon audit
+Epic: Real-art overhaul + World Tour v6 + World Map redesign + Chimera monster art
+Feature: (xem lịch sử) + World Map node-path + Chimera art 22 quái + World Tour quest chain 3-trục
 Task: node tools/ci.mjs 11/11 GREEN. build.py public + git commit + vercel deploy --prod đang tiến hành.
 <!-- /STATUS -->
 
@@ -28,50 +28,45 @@ preview Decor/Background. Chi tiết đầy đủ: `git log` (commit sắp tạo
 `design/ux/echo-box.md` + `design/gdd/world-tour.md`. Không lặp lại ở đây nữa —
 mục đích của mục này chỉ còn là index, không phải nhật ký.
 
-## Phiên 2026-09-07 (tiếp) — 6 việc do product owner giao, tất cả verify xong
+## Phiên 2026-09-07 (tiếp, ĐÃ COMMIT `5ac6a22`+deploy) — tóm tắt, chi tiết xem git log
 
-12. **Fix "PROGRESS" xuống dòng**: `.menu-grid--5` 96px→112px (tile "TOUR" sub
-    "Lovely Forest II" wrap 2 dòng, lệch chiều cao 5 tile). Verify: cả 5 tile
-    `offsetHeight` bằng nhau (72px), 1 dòng, ở 1199/899/1440px.
-13. **Fix tên vật phẩm Echo Box bị cắt chữ**: `.echoshow` 72px→88px,
-    `.echoshow-n` đổi `white-space:nowrap` (ellipsis 1 dòng) → 2-dòng
-    `-webkit-line-clamp:2`. "Eclipse T_" giờ đọc đủ "Eclipse Tofu".
-14. **Echo Box locked-chip dimming** — art-director chốt
-    `grayscale(.65) brightness(.6);opacity:.55` (spec ở `design/ux/echo-box.md`
-    Open Q#1, lý do đầy đủ ở đó), ĐÃ áp vào `src/client.html`.
-15. **Relic Blood Pact** (`design/gdd/relic-rebalance-2026-09-07.md`, product
-    owner đã duyệt): mất Max HP 25%→15% (`data.js` dòng ~634,
-    `u.maxHp*0.75`→`*0.85`), giữ `dmgMult:1.6`. `t_relic.mjs` 94/94,
-    `t_relic_behaviour.mjs` 38/38 — không cần sửa test (không hardcode RP).
-16. **Fix bug Leaderboard không lưu điểm** — root cause: `api/submit-run.js`
-    hàm `upstash()` không check field `.error` trong response Upstash REST
-    (Upstash trả HTTP 200 + `{error:...}` khi ghi thất bại — code cũ coi MỌI
-    response non-null là `stored:true`). Cũng đổi GET-path-encode → POST
-    JSON-body (tránh giới hạn độ dài path với payload team+relic lớn) và bọc
-    try/catch quanh `fetch`/`.json()` (trước đây network fail = uncaught
-    exception). Verify: script thay thế `global.fetch` giả lập cả 3 case
-    (success/Upstash-error/network-fail) qua 1 replay thật (13 action, seed
-    12345) — case success `stored:true`, 2 case còn lại `stored:false` kèm lý
-    do thay vì báo nhầm thành công như code cũ.
-17. **Icon pixel audit** (`docs/art/icon-system-redesign-2026-09-07.md`,
-    art-director) — kiểm kê đủ 25 icon `IC_G`, hướng thay thế, tận dụng lại
-    folder Drive "Battle Status Icon" đã tìm thấy từ
-    `design/quick-specs/real-art-adoption-plan-2026-09-07.md` (6/9 ST_IC đã
-    có match). BLOCKED thực thi: chưa có ảnh loại-trừ + quyền Drive — product
-    owner đã chọn "bỏ qua ảnh, rà soát toàn bộ" nên spec không loại trừ gì.
+Fix PROGRESS xuống dòng + Echo Box tên bị cắt chữ + locked-chip dimming
+(art-director) + Relic Blood Pact 25%→15% + bug Leaderboard không lưu điểm
+(`upstash()` thiếu check `.error`) + icon pixel audit (`docs/art/icon-system-
+redesign-2026-09-07.md`, BLOCKED sourcing thật).
 
-`node tools/ci.mjs` 11/11 GREEN sau tất cả thay đổi trên (chạy 2026-09-07).
+## Phiên 2026-09-08 — World Tour v6 + World Map redesign + Chimera art (IMPLEMENT xong)
+
+18. **World Tour v6** (`design/gdd/world-tour.md`) — badge Map1 dùng `fullAscMax`
+    (câu hỏi mở #3), chuỗi mở Map2 đổi sang 3 TRỤC (`wins>=5`/`ascMax>=2`/
+    `fullAscMax>=3`, câu hỏi mở #2, game-designer thiết kế lại sau khi bản
+    4-bước-1-trục cũ bị từ chối vì có thể "nhảy cóc" bỏ qua cả chuỗi).
+    `tourQuestStep()`/`tourLockReason()` (`client.html`) đã sửa khớp — verify
+    bằng test vector trong browser console, đúng cả 4 mốc biên trong spec.
+19. **World Map redesign** (`design/ux/world-tour-map.md`) — `scTourMap()` viết
+    lại hoàn toàn: art thật full-bleed (CSS breakout `100vw`, KHÔNG cần
+    `#bgLayer`), 10 node tròn bám đúng đường mòn (`TOUR_MAPS[].tiles[].node`,
+    `data.js`), path SVG nét đứt, pawn "vị trí hiện tại" nội suy, boss-landmark
+    dùng thẳng `sprMon()`. Cũng nâng cấp `TOUR_MAP_ART` (`art5.js`) lên bản nét
+    hơn (1770×578, JPEG q88, ~415KB/ảnh — không dùng bản gốc PNG 2MB/ảnh vì quá
+    nặng cho lợi ích thấy được). Verify: chụp màn hình ở 899/1440px VÀ với
+    `--ui-scale:1.2` (giả lập zoom) — không seam, không crop.
+20. **Chimera monster art** (`docs/art/chimera-monster-art-mapping-2026-09-08.md`)
+    — `MON_ART` mới trong `art3.js` (22 key), wire vào `sprMon()`/`sprMonIsReal()`
+    (ưu tiên BOSS_ART → MON_ART → monArt2() Hero-reskin cũ), KHÔNG qua
+    `realArtWrap()`/badge NFT (quái không phải Vault Axie sở hữu). Verify bằng
+    browser: quái thường giờ có art riêng biệt hẳn với Hero, không đỏ.
+
+`node tools/ci.mjs` 11/11 GREEN sau tất cả (chạy 2026-09-08). CHƯA commit/deploy.
 
 ## Việc còn mở (không chặn)
 
 - [ ] Test tự động "3 item World Tour không lọt COSMETIC_POOLS" chưa vào `ci.mjs`.
-- [ ] World-tour.md Câu hỏi mở #2/#3 chưa chốt (xem file đó).
-- [ ] `data.js:765` comment `+25%` sai (KHÔNG liên quan Blood Pact — relic/dòng
-      khác), thực là `+15%`.
-- [ ] Icon pixel — spec xong, thực thi (sourcing asset thật từ Drive) BLOCKED,
-      cần product owner cấp quyền Drive hoặc gửi ảnh loại trừ.
-- [ ] icon-system-redesign §7: `ARCH_IC`/`EV_IC` tách art riêng khỏi
-      `FT_IC`/`ST_IC`? — quyết định trước khi sourcing mở rộng ngoài 25 icon.
+- [ ] Icon pixel — spec xong, sourcing asset thật BLOCKED, cần quyền Drive.
+- [ ] World Tour `W=5` (ngưỡng `wins` bước 2) là số trực giác chưa qua đo đạc
+      — cần sim/playtest thật để tinh chỉnh (xem world-tour.md §Tuning Knobs).
+- [ ] Node coordinates World Map là ước lượng ban đầu (đã verify bằng mắt qua
+      browser, ổn), có thể tinh chỉnh thêm nếu art-director muốn soi kỹ hơn.
 
 ## Build / verify / deploy
 

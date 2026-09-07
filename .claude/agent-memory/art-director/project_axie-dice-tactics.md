@@ -93,6 +93,28 @@ modestly at ≥1200px only). Also flagged (not fixed): `RAR_COL` (data.js) / `--
 still two hand-kept copies of the same 5 values, still in sync today but a real unification task.
 See [[feedback_orchestrator-collaboration-mode]] for how this task was delegated.
 
+**2026-09-08 update — Chimera monster-art curation pass (regular/elite
+monsters only, bosses untouched).** Product owner supplied a Chimera asset
+kit (22 creature families, `Chimeras/<name>-NN-00.png` card-art variants,
+75 files) to give the 17 normal + 4 elite `MON_SPR` keys real, distinct art
+instead of the `monArt2()` Hero-reskin (see main entry above). Full proposal
+with per-key file + rationale is `docs/art/chimera-monster-art-mapping-
+2026-09-08.md` (DRAFT, awaiting product-owner sign-off, no code changed).
+**Load-bearing finding for any future pass over this same kit:** the local
+extraction had heavy cross-file duplication — ~15 clusters where files under
+completely different creature-family names (e.g. `daddy-bear-01` and
+`mommy-bear-01`, or `alpha-wolf-01` and `aqua-alpha-wolf-01`) are byte-for-
+byte the same image, and several don't even depict the creature their
+filename claims. Full cluster list is in that doc's §1 — do not trust any
+single filename in this kit without opening it; re-verify against the
+product owner's master Drive copy before implementation, the scratchpad
+extraction may not reflect the source-of-truth kit. `machito` and `shilin`
+(the two "extraCatalogSkeletons" in `pve-chimeras.json`, not in
+`uniqueAssets`) turned out to be all comedic/flavor vignettes (sleep, eat,
+fiesta, hit-reaction) with no combat-ready pose outside the one variant each
+already claimed by a boss (`mecha`=shilin-04) — excluded from the mapping
+entirely, not a gap to fill later.
+
 **2026-09-07 update — §6 "keep pixel icons as-is" partially reversed; §8/§9
 added to the real-art plan.** A real Drive icon set ("Battle Status Icon",
 ~50 files, 3-12KB each) was found that plausibly replaces `ST_IC` (status

@@ -155,7 +155,7 @@ UI gọi hàm này lại sau mỗi roll/reroll để vẽ 1 icon "liên kết" (
 - **Relic active (`playerUseRelic`)**: KHÔNG đi qua `execFace`/`faceValue`, nên không tham gia Resonance ở bản v1 này (relic có công thức tính riêng, đây là scope out — ghi vào Open Questions nếu muốn mở rộng sau).
 - **Reward mutation làm đổi type của một mặt** (`PART_REPLACE`) giữa các trận: không ảnh hưởng gì tới Resonance vì trạng thái reset mỗi trận/mỗi lượt — không có state nào bị "kẹt" qua các lần thay đổi build.
 - **Undo giữa lượt**: nếu người chơi dùng Ctrl+Z ngay sau khi X vừa nhận Resonance Bonus (tiêu thụ bản ghi của Y), `undo()` phải khôi phục `s.resonanceLog` về trạng thái trước đó (bản ghi của Y trở lại `used:false`) — đã đảm bảo vì `resonanceLog` nằm trong `SNAP`.
-- **Giá trị mặt = 0** (vd. mặt `buff` lọt qua do lỗi phân loại type tương lai): `ceil(0×1.25)=0`, không crash, không có hiệu ứng — an toàn tuyệt đối trước chia/nhân với 0.
+- **Giá trị mặt = 0** (vd. mặt `buff` lọt qua do lỗi phân loại type tương lai): `ceil(0×1.15)=0`, không crash, không có hiệu ứng — an toàn tuyệt đối trước chia/nhân với 0.
 - **Ally token (summon) đứng cạnh Axie thật về mặt UI**: không tham gia Resonance dù hiển thị gần nhau trên màn hình — cần ghi rõ trong tooltip UI để tránh hiểu lầm (xem Dependencies).
 
 ---
@@ -193,7 +193,7 @@ UI gọi hàm này lại sau mỗi roll/reroll để vẽ 1 icon "liên kết" (
 
 - **Trần sức mạnh mỗi lượt bị chặn cứng**: tối đa 2 cặp không chồng lấn / lượt (5 Axie → tối đa 2 bonus, xem Edge Cases), nên không có rủi ro combo tuyến tính leo thang vô hạn kiểu "càng nhiều Axie cùng type càng mạnh theo cấp số nhân".
 - **Chi phí cơ hội**: để chủ động ép resonance, người chơi thường phải dùng reroll cho mục đích "khớp type" thay vì "sửa roll xấu chỗ khác" — tạo đánh đổi thật giữa 2 lượt reroll giới hạn/turn, không phải buff miễn phí.
-- **Tương tác với class hiện có**: không cộng dồn kiểu nhân chồng nguy hiểm với FERAL/TALON vì Resonance nhân vào `v` TRƯỚC — chuỗi nhân vẫn tuyến tính (`v×1.6×1.25` hay `v×1.25` rồi `+3` pierce của TALON, không có hiệu ứng cấp số nhân kép ẩn).
+- **Tương tác với class hiện có**: không cộng dồn kiểu nhân chồng nguy hiểm với FERAL/TALON vì Resonance nhân vào `v` TRƯỚC — chuỗi nhân vẫn tuyến tính (`v×1.6×1.15` hay `v×1.15` rồi `+3` pierce của TALON, không có hiệu ứng cấp số nhân kép ẩn).
 - **Rủi ro cần theo dõi qua `tools/sim.js`**: đội hình toàn Beast hoặc toàn Aqua (die thiên nhiều về 1-2 type) có thể đạt tỷ lệ trigger resonance cao hơn đội hình đa dạng type — nên chạy `node tools/sim.js 500` so sánh winrate đội "mono-type-adjacent" vs đội ngẫu nhiên sau khi implement, trước khi ship, đúng quy tắc "mọi thay đổi giá trị ship phải chạy qua sim" đã ghi trong `game-concept.md` → Tuning Knobs.
 - **Đề xuất theo dõi**: nếu sim cho thấy winrate tăng >5% so với baseline chỉ nhờ xếp đội hình tối ưu resonance (không đổi build khác), hạ `RESONANCE.mult` xuống 1.15–1.20 trước khi ship.
 
@@ -204,7 +204,7 @@ UI gọi hàm này lại sau mỗi roll/reroll để vẽ 1 icon "liên kết" (
 **Functional**:
 - [ ] `GIVEN` Axie ở vị trí 0 roll mặt `dmg`, Axie vị trí 1 roll mặt `dmg`, chưa ai thực thi, `WHEN` gọi `resonancePairs(s)`, `THEN` trả về đúng 1 cặp `{posA:0,posB:1,type:'dmg'}`.
 - [ ] `GIVEN` cặp trên, `WHEN` Axie 0 thực thi trước, `THEN` Axie 0 không nhận bonus (nửa đầu), `s.resonanceLog` có 1 bản ghi `{pos:0,t:'dmg',used:false}`.
-- [ ] `GIVEN` trạng thái trên, `WHEN` Axie 1 thực thi sau vào cùng type, `THEN` giá trị mặt của Axie 1 = `ceil(v_base×1.25)`, bản ghi của Axie 0 chuyển `used:true`, sự kiện `{t:'resonance',uid:Axie1.uid}` xuất hiện trong `s.ev`.
+- [ ] `GIVEN` trạng thái trên, `WHEN` Axie 1 thực thi sau vào cùng type, `THEN` giá trị mặt của Axie 1 = `ceil(v_base×1.15)`, bản ghi của Axie 0 chuyển `used:true`, sự kiện `{t:'resonance',uid:Axie1.uid}` xuất hiện trong `s.ev`.
 - [ ] `GIVEN` 3 Axie liền kề cùng type (0,1,2 đều `dmg`), `WHEN` cả 3 thực thi theo thứ tự 0→1→2, `THEN` chỉ Axie 1 nhận bonus (khớp với 0); Axie 2 KHÔNG nhận bonus (bản ghi của Axie 1 không được tạo vì Axie 1 là "nửa sau tiêu thụ").
 - [ ] `GIVEN` Axie ở vị trí 1 đã chết, `WHEN` kiểm tra liền kề giữa vị trí 0 và vị trí 2, `THEN` không được coi là liền kề (`abs(0-2)=2≠1`), không có bonus.
 - [ ] `GIVEN` một hành động vừa tạo Resonance Bonus, `WHEN` người chơi bấm Undo, `THEN` `s.resonanceLog` khôi phục đúng trạng thái trước đó (bản ghi trở lại `used:false`), giá trị HP/shield liên quan cũng khôi phục đúng như cơ chế undo hiện có.

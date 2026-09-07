@@ -2,3 +2,4 @@
 - [Axie Dice UI rules & source locations](reference_axiedice_ui_rules.md) — where the 8 hard UI laws, design system, CSS vars, and combat-log spec live
 - [Axie Dice UX QA gate 2026-09](project_axiedice_ux_qa_gate_2026-09.md) — Collection empty-state confirmed real, Codex reroll-count desync, keyboard-only gap scope, flash-toggle gap now FIXED
 - [Echo Box chest-tier gacha + full screen/ceremony redesign](project_axiedice_echobox_chest_gacha.md) — DONE, specs at design/quick-specs/echo-box-double-gacha-ux.md and design/ux/echo-box.md
+- [World Tour map node-on-path redesign](project_axiedice_worldtour_map_redesign.md) — DRAFT spec at design/ux/world-tour-map.md; #bgLayer-fix-doesn't-auto-transfer lesson, node-icon-source still unconfirmed

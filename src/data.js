@@ -916,42 +916,55 @@ const ECHO_TITLES = ['','WANING WANDERER','CRESCENT ADEPT','GIBBOUS HERALD','FUL
    the actual Tour-exclusive items (TOUR_EXCLUSIVE_DECOR/_BACKGROUNDS in
    cosmetics.js + the literal 'TOUR CHAMPION' title). */
 const TOUR_T=[2,6,12,20,30,42,56,72,90,110]; // T(i), i=1..10, index i-1
+/* `node:{x,y}` (percent 0-100, top-left origin, relative to the rendered map
+   <img>'s own box) — design/ux/world-tour-map.md §4. Hand-traced against the
+   actual path curvature in the map art; a STARTING placement, not pixel-
+   locked truth (spec's own words — nudge once viewed against the real
+   rendered <img> in a browser, the live DOM box wins over these guesses). */
 const TOUR_MAPS=[
   { map:1, name:'Lovely Forest I', art:'1',
     tiles:[
-      {i:1, reward:{cat:'avatar',key:'slime'}},
-      {i:2, reward:{cat:'decor',key:'ring_plain'}},
-      {i:3, reward:{cat:'background',key:'bg_plant'}},
-      {i:4, landmark:{type:'boss',boss:'gooey_king'}, reward:{cat:'decor',key:'tour_gooeytrophy'}},
-      {i:5, reward:{cat:'avatar',key:'gray_wolf'}},
-      {i:6, reward:{cat:'decor',key:'ring_dashed'}},
-      {i:7, reward:{cat:'background',key:'bg_beast'}},
-      {i:8, reward:{cat:'avatar',key:'treant'}},
-      {i:9, reward:{cat:'decor',key:'ring_twin'}},
-      {i:10, landmark:{type:'ascMax',min:1}, reward:{cat:'background',key:'tour_ascthreshold'}},
+      {i:1, reward:{cat:'avatar',key:'slime'}, node:{x:6,y:87}},
+      {i:2, reward:{cat:'decor',key:'ring_plain'}, node:{x:13,y:58}},
+      {i:3, reward:{cat:'background',key:'bg_plant'}, node:{x:19,y:26}},
+      {i:4, landmark:{type:'boss',boss:'gooey_king'}, reward:{cat:'decor',key:'tour_gooeytrophy'}, node:{x:40,y:58}},
+      {i:5, reward:{cat:'avatar',key:'gray_wolf'}, node:{x:50,y:76}},
+      {i:6, reward:{cat:'decor',key:'ring_dashed'}, node:{x:60,y:64}},
+      {i:7, reward:{cat:'background',key:'bg_beast'}, node:{x:69,y:45}},
+      {i:8, reward:{cat:'avatar',key:'treant'}, node:{x:78,y:30}},
+      {i:9, reward:{cat:'decor',key:'ring_twin'}, node:{x:87,y:18}},
+      {i:10, landmark:{type:'ascMax',min:1}, reward:{cat:'background',key:'tour_ascthreshold'}, node:{x:95,y:9}},
     ] },
   { map:2, name:'Lovely Forest II', art:'2',
     tiles:[
-      {i:1, reward:{cat:'avatar',key:'aqua_wolf'}},
-      {i:2, reward:{cat:'decor',key:'halo_dotted'}},
-      {i:3, reward:{cat:'background',key:'bg_aqua'}},
-      {i:4, reward:{cat:'avatar',key:'dryad_fighter'}},
-      {i:5, reward:{cat:'decor',key:'frame_vine'}},
-      {i:6, reward:{cat:'background',key:'bg_reptile'}},
-      {i:7, reward:{cat:'avatar',key:'dryad_mage'}},
-      {i:8, reward:{cat:'decor',key:'frame_shard'}},
-      {i:9, reward:{cat:'background',key:'bg_bug'}},
-      {i:10, landmark:{type:'boss',boss:'agony'}, reward:{cat:'title',key:'TOUR CHAMPION'}},
+      {i:1, reward:{cat:'avatar',key:'aqua_wolf'}, node:{x:5,y:62}},
+      {i:2, reward:{cat:'decor',key:'halo_dotted'}, node:{x:13,y:38}},
+      {i:3, reward:{cat:'background',key:'bg_aqua'}, node:{x:21,y:14}},
+      {i:4, reward:{cat:'avatar',key:'dryad_fighter'}, node:{x:31,y:30}},
+      {i:5, reward:{cat:'decor',key:'frame_vine'}, node:{x:41,y:50}},
+      {i:6, reward:{cat:'background',key:'bg_reptile'}, node:{x:50,y:68}},
+      {i:7, reward:{cat:'avatar',key:'dryad_mage'}, node:{x:59,y:80}},
+      {i:8, reward:{cat:'decor',key:'frame_shard'}, node:{x:69,y:64}},
+      {i:9, reward:{cat:'background',key:'bg_bug'}, node:{x:80,y:42}},
+      {i:10, landmark:{type:'boss',boss:'agony'}, reward:{cat:'title',key:'TOUR CHAMPION'}, node:{x:93,y:16}},
     ] },
 ];
-/* badgeTier() §Formulas #6 — implemented literally against ascMax (not the
-   questStep() gate's fullAscMax) per Acceptance Criteria #8's own test
-   vectors, which are written in terms of ascMax. The GDD's still-open
-   Question #3 flags that this can let a Short-Run-only player see Gold on
-   Map1 while Map2 stays locked (gate reads fullAscMax) — a known, named
-   inconsistency the doc leaves for product owner to resolve, not a bug to
-   silently "fix" by picking the other option unilaterally. */
+/* badgeTier() §Formulas #6 — product owner resolved world-tour.md's open
+   Question #3 (2026-09-08): option (a), badge now reads fullAscMax so it
+   always agrees with the Map2 gate (questStep(), which already reads
+   fullAscMax) instead of the old ascMax-based check that let a Short-Run-only
+   player see Gold on Map1 while Map2 stayed locked. Acceptance Criteria #8's
+   test vectors (written against ascMax) need updating to match — see
+   world-tour.md. */
 const TOUR_GOLD_THRESHOLD={1:3,2:5};
+/* questStep() §Formulas #3 (world-tour.md, v6) — W, the META.wins floor for
+   step 2 of the Map1->Map2 quest chain. Replaces v4/v5's single-axis chain
+   (3 thresholds stacked on META.fullAscMax alone, which let one high-Ascension
+   win skip the whole chain) with 3 different axes: wins (volume) -> ascMax
+   (skill ceiling, any mode) -> fullAscMax (skill + endurance in Full mode).
+   Untuned constant (§Tuning Knobs: safe range 3-15) — no real playtest/sim
+   data yet on wins-before-Map1-completion, revisit once available. */
+const TOUR_QUEST_WINS=5;
 
 if (typeof module!=='undefined') module.exports={B,F,FR,RARITY,RAR_COL,RELIC_SHOP_COST,RELIC_COUNT_PRE_EXPANSION,RELIC_MLOAD_CAP,RELIC_CAP,THORNS_CAP,IRONMAIDEN_CAP,GROWTH_KEEP_CAP,
   MF_PHASE_RANK,KW_EX,RELIC_INDEX,CLASSES,CLASS_COLOR,PASSIVE,ARCH,

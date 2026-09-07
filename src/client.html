@@ -1614,7 +1614,46 @@ body.clog-open .clog-inner{ clip-path:inset(0 0 0 0); opacity:1; }
 .tourbadge-silver{background:#c8ccd0;color:#222}
 .tourbadge-gold{background:#e8c34a;color:#3a2a00}
 .tourflag{position:absolute;top:8px;right:8px;z-index:1;font-size:var(--t3)}
-.tourmap.has-bgart{background-size:cover;background-position:center;background-repeat:no-repeat}
+/* scTourMap() in-map board (design/ux/world-tour-map.md) — replaces the old
+   CSS `background-image`+`background-size:cover` (cropped the ~3:1 map art
+   into a narrow vertical sliver, since it lived inside #app's 1240px-boxed,
+   non-3:1 subtree) with a real <img> at native aspect ratio, height-locked,
+   horizontally-scrollable — a full-bleed board wider than any one viewport,
+   same pattern Bingo Blitz (the named reference) uses for its own world map.
+   §2 Option A: escape #app's centered max-width from the inside without a
+   new DOM sibling/build.py change — screenshot-verified at both --ui-scale:1
+   and a triggered non-1 scale (see the PostToolUse verification note this
+   session's hook attaches to every edit here). */
+.tourmap-header{max-width:1160px;margin:0 auto var(--s3)}
+.tourmap-nav{display:flex;align-items:center;justify-content:space-between;gap:var(--s3);flex-wrap:wrap}
+.tourmap-actions{display:flex;align-items:center;gap:var(--s3);flex-wrap:wrap;margin-top:var(--s2)}
+.tourboard{position:relative;left:50%;width:100vw;margin-left:-50vw;
+  height:min(50vh,380px);overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch}
+.tourboard-inner{position:relative;height:100%;display:inline-block}
+.tourboard-inner>img{height:100%;width:auto;display:block;user-select:none;-webkit-user-drag:none;pointer-events:none}
+.tourpath{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+.tourpath path{fill:none;stroke:#fef6d8;stroke-width:2.5;stroke-dasharray:7 7;stroke-linecap:round;
+  vector-effect:non-scaling-stroke;filter:drop-shadow(0 0 2px #000b)}
+.tournode{position:absolute;transform:translate(-50%,-50%);width:52px;height:52px;border-radius:50%;
+  background:var(--pan);border:var(--bd) solid var(--line);padding:0;display:flex;align-items:center;justify-content:center;
+  cursor:default}
+.tournode.landmark{width:72px;height:72px}
+.tournode img{width:100%;height:100%;object-fit:cover;border-radius:50%}
+.tournode-lock{font-size:20px;filter:grayscale(1)}
+.tournode.locked{opacity:.5}
+.tournode.ready{border-color:var(--acc);cursor:pointer}
+.tournode.ready.pulse{animation:tournodePulse 2.2s ease-in-out infinite}
+@keyframes tournodePulse{0%,100%{box-shadow:0 0 6px #ffc85744}50%{box-shadow:0 0 22px #ffc85799}}
+.tournode.got{border-color:var(--heal);opacity:.85}
+.tournode-badge{position:absolute;bottom:-4px;right:-4px;width:20px;height:20px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;line-height:1}
+.tournode.ready .tournode-badge{background:var(--acc);color:#000}
+.tournode.got .tournode-badge{background:var(--heal);color:#000}
+.tourpawn{position:absolute;transform:translate(-50%,-100%);font-size:26px;pointer-events:none;
+  filter:drop-shadow(0 2px 3px #000c)}
+@media (max-width:599px){
+  .tourboard{height:min(60vh,320px)}
+}
 </style>
 <script>
 /* ─────────── audio.js ─────────── */
@@ -2911,16 +2950,22 @@ function heroArtWrap(cls,tier,artIdx,imgClass){
 }
 /* Boss reveal art (real Chimera card-art, §3a of the art-adoption plan) —
    `phase` picks Nightmare Agony's die2 transformation art (BOSS_ART.agony2)
-   when the fight has flipped to its second phase; every other boss/monster
-   key falls straight through to BOSS_ART[k] or the pixel-sprite fallback. */
+   when the fight has flipped to its second phase. Field monsters (regular +
+   elite, `MON_ART` — docs/art/chimera-monster-art-mapping-2026-09-08.md,
+   distinct Chimera art per key, NOT a reused Hero portrait) are checked next;
+   only a key with neither falls through to `monArt2()`'s Hero-reskin or the
+   pixel-sprite fallback. MON_ART is deliberately NOT routed through
+   realArtWrap()/the "Real Axie NFT art" badge anywhere in this file — these
+   are non-owned field monsters, not player-owned Vault Axies. */
 const sprMon=(k,phase)=>{
   const bk=(k==='agony'&&phase===2)?'agony2':k;
   if(typeof BOSS_ART!=='undefined'&&BOSS_ART[bk]) return BOSS_ART[bk];
+  if(typeof MON_ART!=='undefined'&&MON_ART[k]) return MON_ART[k];
   const m=MON_SPR[k]||['beast',0];
   return monArt2(m[0],m[1])||sprOf(m[0],m[1]);
 };
-/* True when sprMon(k,phase) is about to return real art (BOSS_ART or
-   monArt2()), not the pixel-sprite fallback — every `el('img','spr mut')`
+/* True when sprMon(k,phase) is about to return real art (BOSS_ART, MON_ART,
+   or monArt2()), not the pixel-sprite fallback — every `el('img','spr mut')`
    call site needs this to add the `.real` class so the enemy-tint filter
    (see `.unit .spr.mut` in style.css) can be skipped for real art. Without
    it, that filter (grayscale+sepia+hue-rotate, tuned to recolor a flat
@@ -2931,6 +2976,7 @@ const sprMon=(k,phase)=>{
 function sprMonIsReal(k,phase){
   const bk=(k==='agony'&&phase===2)?'agony2':k;
   if(typeof BOSS_ART!=='undefined'&&BOSS_ART[bk]) return true;
+  if(typeof MON_ART!=='undefined'&&MON_ART[k]) return true;
   const m=MON_SPR[k]||['beast',0];
   return !!monArt2(m[0],m[1]);
 }
@@ -4412,15 +4458,20 @@ function tourProgress(mapIdx){
   if(META.tourMap2Base==null) return 0;
   return Math.max(0, (META.runs||0) - META.tourMap2Base);
 }
-// questStep() §Formulas #3 — participation (Map 1 fully progressed) always
-// gates first, independent of fullAscMax; then 3 further fullAscMax rungs.
+// questStep() §Formulas #3 (world-tour.md v6) — participation (Map 1 fully
+// progressed) always gates first, then 3 DIFFERENT axes in order: wins
+// (volume, TOUR_QUEST_WINS) -> ascMax (skill ceiling, any mode) -> fullAscMax
+// (skill + endurance in Full mode specifically). v4/v5 stacked all 3 rungs on
+// fullAscMax alone, which let one high-Ascension Full Run win skip the whole
+// chain in a single event — this can't collapse the same way because wins is
+// an independent counter that doesn't scale with skill (see world-tour.md
+// §Detailed Rules/Tầng 2 for the full diagnosis).
 function tourQuestStep(){
   if(tourProgress(1) < TOUR_T[9]) return 0;
-  const fam=META.fullAscMax||0;
-  if(fam<1) return 1;
-  if(fam===1) return 2;
-  if(fam===2) return 3;
-  return 4; // fam>=3
+  if((META.wins||0) < TOUR_QUEST_WINS) return 1;
+  if((META.ascMax||0) < 2) return 2;
+  if((META.fullAscMax||0) < 3) return 3;
+  return 4;
 }
 function tourGateCleared(){ return tourQuestStep()>=4; }
 // Snapshot base(map2) the instant the gate is first observed clear — safe to
@@ -4432,12 +4483,15 @@ function tourGateCleared(){ return tourQuestStep()>=4; }
 function tourMaybeSnapshotMap2Base(){
   if(META.tourMap2Base==null && tourQuestStep()>=4){ META.tourMap2Base=META.runs||0; saveMeta(); }
 }
-// badgeTier(map) §Formulas #6 — deliberately reads ascMax (not fullAscMax);
-// see the TOUR_GOLD_THRESHOLD comment in data.js for why this keeps the
-// GDD's own open Question #3 mismatch rather than silently resolving it.
+// badgeTier(map) §Formulas #6 — product owner resolved world-tour.md's open
+// Question #3 (2026-09-08) by choosing option (a): badge now reads
+// fullAscMax, same field the Map2 gate (questStep()) already gates on, so
+// Gold Map1 and "eligible for Map2" are guaranteed to mean the same thing
+// again. See the TOUR_GOLD_THRESHOLD comment in data.js for the prior
+// (now-resolved) mismatch this replaces.
 function tourBadgeTier(mapIdx){
   if(tourProgress(mapIdx) < TOUR_T[9]) return 'none';
-  return (META.ascMax||0) >= TOUR_GOLD_THRESHOLD[mapIdx] ? 'gold' : 'silver';
+  return (META.fullAscMax||0) >= TOUR_GOLD_THRESHOLD[mapIdx] ? 'gold' : 'silver';
 }
 function tourLandmarkOk(cond){
   if(!cond) return true;
@@ -5094,8 +5148,8 @@ function tourLockReason(mapIdx){
   if(mapIdx!==2) return '';
   const step=tourQuestStep();
   if(step===0){ const need=TOUR_T[9]-tourProgress(1); return 'Finish Lovely Forest I ('+need+' more run'+(need===1?'':'s')+')'; }
-  if(step===1) return 'Step 1/3 done. Need: win 1 Full Run (any Ascension)';
-  if(step===2) return 'Step 2/3 done. Need: win 1 Full Run at Ascension 1+';
+  if(step===1){ const need=TOUR_QUEST_WINS-(META.wins||0); return 'Step 1/3 done. Need: win '+need+' more run'+(need===1?'':'s')+' (any mode/Ascension)'; }
+  if(step===2) return 'Step 2/3 done. Need: reach Ascension 2 (any mode)';
   return 'Step 3/3 done. Need: win 1 Full Run at Ascension 2+ — unlocks Map 2!';
 }
 function scTour(){ return tourView==='map' ? scTourMap(tourMapIdx) : scTourMapSelect(); }
@@ -5137,40 +5191,101 @@ function scTourMapSelect(){
   w.appendChild(btn('','BACK',()=>{ screen='menu'; render(); }));
   return w;
 }
+// scTourMap() — node-on-path board (design/ux/world-tour-map.md, full spec).
+// Board art is a real full-bleed <img> (not a CSS background — needed so
+// percent node coordinates can anchor to the image's own rendered box, see
+// spec §2), horizontally scrollable, nodes threaded along the real path via
+// TOUR_MAPS[].tiles[].node {x,y} (data.js).
 function scTourMap(mapIdx){
   const mapDef=tourMapDef(mapIdx);
   const w=el('div','screen menu tourmap');
-  const artUrl=(typeof TOUR_MAP_ART!=='undefined'&&TOUR_MAP_ART[mapDef.art])||'';
-  if(artUrl){ w.style.backgroundImage="url('"+artUrl+"')"; w.classList.add('has-bgart'); }
-  w.appendChild(el('h1','logo sm',mapDef.name));
+
+  const header=el('div','tourmap-header');
+  const nav=el('div','tourmap-nav');
+  nav.appendChild(btn('sm ghost','‹ WORLD MAP',()=>{ tourView='select'; render(); }));
+  nav.appendChild(el('h1','logo sm',mapDef.name));
+  header.appendChild(nav);
+  const actions=el('div','tourmap-actions');
   const p=tourProgress(mapIdx);
   const bar=el('div','bpbar big'); const f=el('div','bpfill'); f.style.width=Math.min(100,p/TOUR_T[9]*100)+'%'; bar.appendChild(f);
   bar.appendChild(el('div','bptxt',Math.min(p,TOUR_T[9])+' / '+TOUR_T[9]+' runs'));
-  w.appendChild(bar);
+  actions.appendChild(bar);
   const readyTiles=mapDef.tiles.filter(t=>tourTileEligible(mapIdx,t)&&!(META.tourClaimed||[]).includes(tourClaimKey(mapIdx,t.i)));
   if(readyTiles.length){
-    w.appendChild(btn('big go','CLAIM ALL ('+readyTiles.length+')',()=>{ tourClaimAll(mapIdx); SFX.passClaim(); flashScreen('gold'); render(); }));
+    actions.appendChild(btn('big go','CLAIM ALL ('+readyTiles.length+')',()=>{ tourClaimAll(mapIdx); SFX.passClaim(); flashScreen('gold'); render(); }));
   }
-  const tr=el('div','bptrack tourtrack');
-  mapDef.tiles.forEach(t=>{
+  header.appendChild(actions);
+  w.appendChild(header);
+
+  const board=el('div','tourboard'); board.tabIndex=0;
+  const inner=el('div','tourboard-inner');
+  const artUrl=(typeof TOUR_MAP_ART!=='undefined'&&TOUR_MAP_ART[mapDef.art])||'';
+  if(artUrl){ const img=el('img'); img.src=artUrl; img.alt=mapDef.name; inner.appendChild(img); }
+
+  // Dashed connector line — same {x,y} points the nodes themselves use, so
+  // the line can never drift apart from them (spec §5). preserveAspectRatio
+  //="none" maps x/y through different scale factors since the art isn't
+  // square, hence vector-effect="non-scaling-stroke" (CSS, above) so the
+  // dash doesn't render thicker on one axis than the other.
+  const svgNS='http://www.w3.org/2000/svg';
+  const svg=document.createElementNS(svgNS,'svg');
+  svg.setAttribute('class','tourpath'); svg.setAttribute('viewBox','0 0 100 100'); svg.setAttribute('preserveAspectRatio','none');
+  const linePath=document.createElementNS(svgNS,'path');
+  linePath.setAttribute('d','M'+mapDef.tiles.map(t=>t.node.x+' '+t.node.y).join(' L'));
+  svg.appendChild(linePath);
+  inner.appendChild(svg);
+
+  let lastClaimedNode=null, lastClaimedT=0, nextNode=null, nextT=TOUR_T[9];
+  mapDef.tiles.forEach((t,idx)=>{
     const ck=tourClaimKey(mapIdx,t.i);
     const got=(META.tourClaimed||[]).includes(ck), ready=!got&&tourTileEligible(mapIdx,t);
-    const c=el('div','bpnode'+(t.landmark?' big':'')+(got?' got':ready?' ready':' lock'));
-    c.appendChild(el('div','bplv','Tile '+t.i));
+    const c=el('button','tournode'+(t.landmark?' landmark':'')+(got?' got':ready?' ready'+(wantsLessFlash()?'':' pulse'):' locked'));
+    c.style.left=t.node.x+'%'; c.style.top=t.node.y+'%';
     const item=tourItemDef(t.reward.cat,t.reward.key);
-    const body=el('div','bpbody');
-    const thumbSrc=item.src||item.img;
-    if((got||ready)&&thumbSrc){ const im=el('img','citem-thumb'); im.src=thumbSrc; body.appendChild(im); }
-    body.appendChild(el('div','bpn',(got||ready)?item.n:'???'));
-    body.appendChild(el('div','bpd',t.reward.cat.toUpperCase()));
-    if(t.landmark) body.appendChild(el('div','bpttl','LANDMARK: '+(t.landmark.type==='boss'?('Defeat '+t.landmark.boss):('Reach Ascension '+t.landmark.min))));
-    c.appendChild(body);
-    c.appendChild(el('div','bpstate',got?'CLAIMED':ready?'CLAIM':'LOCKED'));
+    if(t.landmark&&t.landmark.type==='boss'){
+      // Boss-landmark tiles reuse the real boss portrait already shipped for
+      // combat — no new asset, and it tells the player exactly which fight
+      // they're walking toward (spec §8).
+      const im=el('img'); im.src=sprMon(t.landmark.boss); c.appendChild(im);
+    } else if(got||ready){
+      const thumbSrc=item.src||item.img;
+      if(thumbSrc){ const im=el('img'); im.src=thumbSrc; c.appendChild(im); }
+    } else {
+      c.appendChild(el('div','tournode-lock','🔒'));
+    }
+    if(got) c.appendChild(el('div','tournode-badge','✓'));
+    else if(ready) c.appendChild(el('div','tournode-badge','!'));
+    const label=t.landmark?(t.landmark.type==='boss'?('Defeat '+t.landmark.boss):('Reach Ascension '+t.landmark.min)):((got||ready)?item.n:'Tile '+t.i);
+    c.title=label+(got?' — Claimed':ready?' — Ready to claim':' — Locked');
     if(ready){ c.onclick=()=>{ tourClaim(mapIdx,t.i); SFX.passClaim(); flashScreen('gold'); render(); }; kbAct(c); }
-    tr.appendChild(c);
+    inner.appendChild(c);
+    if(got){ lastClaimedNode=t.node; lastClaimedT=TOUR_T[idx]; }
+    if(!got && !nextNode){ nextNode=t.node; nextT=TOUR_T[idx]; }
   });
-  w.appendChild(tr);
-  w.appendChild(btn('','BACK TO WORLD MAP',()=>{ tourView='select'; render(); }));
+
+  // "You are here" pawn (spec §7) — interpolated between the last-claimed
+  // tile and the next tile per current progress; snaps to the last-claimed
+  // tile (or tile 1, pre-claim) once every tile is claimed.
+  {
+    let pawnX, pawnY;
+    if(lastClaimedNode && nextNode){
+      const span=nextT-lastClaimedT;
+      const frac=span>0?Math.max(0,Math.min(1,(p-lastClaimedT)/span)):0;
+      pawnX=lastClaimedNode.x+(nextNode.x-lastClaimedNode.x)*frac;
+      pawnY=lastClaimedNode.y+(nextNode.y-lastClaimedNode.y)*frac;
+    } else {
+      const anchor=lastClaimedNode||mapDef.tiles[0].node;
+      pawnX=anchor.x; pawnY=anchor.y;
+    }
+    const pawn=el('div','tourpawn','📍'); pawn.style.left=pawnX+'%'; pawn.style.top=pawnY+'%';
+    inner.appendChild(pawn);
+  }
+
+  board.appendChild(inner);
+  w.appendChild(board);
+  // Auto-scroll the pawn into view once mounted — otherwise a returning
+  // player is dropped at the board's literal left edge every time (spec §7).
+  setTimeout(()=>{ const pw=inner.querySelector('.tourpawn'); if(pw) pw.scrollIntoView({inline:'center',block:'nearest'}); },0);
   return w;
 }
 
