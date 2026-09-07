@@ -381,11 +381,17 @@ small{font-size:var(--t1)}
 .menu-group .menu-grid{margin-top:0}
 .menu-grid--3{grid-template-columns:repeat(3,152px);gap:var(--s1)}
 .menu-grid--4{grid-template-columns:repeat(4,112px);gap:var(--s1)}
+/* PROGRESS grew from 4 to 5 tiles (added ECHO BOX) — fixed-column grids
+   (unlike auto-fit ones elsewhere) don't reflow, so a 5th tile in a
+   4-column grid just wraps to its own half-empty row. A dedicated 5-column
+   variant keeps the row whole instead of forcing a callsite to guess. */
+.menu-grid--5{grid-template-columns:repeat(5,112px);gap:var(--s1)}
 @media (max-width:599px){
   .menu-grid{grid-template-columns:repeat(2,1fr);width:100%}
   .menu-group{width:100%}
   .menu-grid--3{grid-template-columns:repeat(2,1fr);width:100%}
   .menu-grid--4{grid-template-columns:repeat(4,1fr);gap:6px;width:100%}
+  .menu-grid--5{grid-template-columns:repeat(2,1fr);gap:6px;width:100%}
   .menu-group-label{text-align:center}
   .btn.cta,.btn.cta2{width:100%}
 }
@@ -463,7 +469,7 @@ small{font-size:var(--t1)}
 .screen.echobox{max-width:640px;margin:0 auto;text-align:center;padding-bottom:var(--s6)}
 .echohero{margin:0 auto var(--s4);max-width:1050px}
 .echohero-strip{display:flex;flex-wrap:wrap;justify-content:center;gap:var(--s2)}
-.echoshow{width:72px;display:flex;flex-direction:column;align-items:center;gap:4px;
+.echoshow{width:88px;display:flex;flex-direction:column;align-items:center;gap:4px;
   padding:6px 4px;border-radius:var(--rad-sm);border:1px solid var(--line)}
 .echoshow.r0{border-color:var(--r0)} .echoshow.r1{border-color:var(--r1)}
 .echoshow.r2{border-color:var(--r2)} .echoshow.r3{border-color:var(--r3)}
@@ -472,10 +478,11 @@ small{font-size:var(--t1)}
 .echoshow-swatch{width:40px;height:40px;border-radius:50%;background:var(--pan2)}
 .echoshow-pill{font-size:var(--t1);letter-spacing:1px;padding:10px 4px;color:var(--txt)}
 .echoshow-n{font-size:9px;color:var(--dim);text-align:center;line-height:1.2;
-  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%}
+  overflow:hidden;text-overflow:ellipsis;white-space:normal;max-width:100%;
+  display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical}
 .echoshow.locked .citem-thumb,.echoshow.locked .echoshow-swatch,.echoshow.locked .echoshow-pill{
-  filter:grayscale(1) brightness(.9) contrast(.85);opacity:.65}
-.echoshow.locked .echoshow-n{opacity:.5}
+  filter:grayscale(.65) brightness(.6);opacity:.55}
+.echoshow.locked .echoshow-n{opacity:.55}
 .echohero-cap{font-size:var(--t1);color:var(--dim);margin-top:6px}
 
 .echorank{max-width:420px;margin:0 auto var(--s3)}
@@ -3275,7 +3282,7 @@ function scMenu(){
 
   const progGroup=el('div','menu-group');
   progGroup.appendChild(el('div','menu-group-label','PROGRESS'));
-  const progGrid=el('div','menu-grid menu-grid--4');
+  const progGrid=el('div','menu-grid menu-grid--5');
   progGrid.appendChild(menuTile('PASS','Lv '+pr.lv,()=>{ screen='bp'; render(); }, nb>0));
   progGrid.appendChild(menuTile('COLLECTION',faces+' faces · '+relics+' relics',()=>{ screen='collection'; render(); }));
   progGrid.appendChild(menuTile('UNLOCKS',(META.unlocks||[]).length+'/'+UNLOCKS.length,()=>{ screen='unlocks'; render(); }));

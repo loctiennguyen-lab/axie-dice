@@ -2,8 +2,8 @@
 
 <!-- STATUS -->
 Epic: Real-art overhaul + World Tour + Echo Box UX + QA rà soát pixel toàn diện
-Feature: (xem lịch sử) + đổi 6 Boss art mới, bỏ filter đỏ ảnh thật, sửa layout Echo Box
-Task: Tất cả DONE, verify browser + t_import/t_vault (43/0, 8/0) — chưa build.py public + deploy, chưa commit
+Feature: (xem lịch sử) + Blood Pact relic fix + leaderboard save bug fix + icon audit
+Task: node tools/ci.mjs 11/11 GREEN. build.py public + git commit + vercel deploy --prod đang tiến hành.
 <!-- /STATUS -->
 
 > **Giữ file này DƯỚI 100 DÒNG.** `session-start.sh` đọc `tail -20`,
@@ -19,44 +19,59 @@ file HTML. `build.py` chèn `<div id="bgLayer">` NGAY TRƯỚC `<div id="app">`
 `src/engine.js`/`src/data.js` không gộp vì `api/_engine.js` đọc từ đĩa chống
 gian lận Leaderboard; `src/devtools.js` riêng vì `build.py public` strip nó.
 
-## Trạng thái 2026-09-07 (TẤT CẢ đã verify browser + test 43/0, 8/0; CHƯA commit/deploy)
+## Trạng thái tổng — phiên 2026-09-05/07, SHIPPING (commit + deploy đang chạy)
 
-1. Hero/Boss/monster real art cơ bản: `HOUSE_ART`/`BOSS_ART`/`monArt2()`/`sprMon()`.
-2. Echo Box economy: bỏ gate collection, `chestGradeFor()` xác định (không đổi tỉ lệ).
-3. World Tour v4 đầy đủ (`design/gdd/world-tour.md`) — xem "Việc còn mở".
-4. Game-wide bg art trên `#bgLayer` (sibling #app, tránh bug zoom).
-5. Echo Box tách màn riêng (`design/ux/echo-box.md`), bỏ dòng Mythic khỏi Fuse.
-6. **Hero rename** → tên Axie thật (Olek/Buba/Puffy/Machito/Pomodoro/Momo).
-7. **Rà soát TOÀN DIỆN 2 vòng** (tay + agent QA) mọi nơi vẽ Hero/Boss/quái vật,
-   sửa **6+ chỗ sót dùng pixel trực tiếp** (Choose Your Team, Vault×2, History,
-   Leaderboard, Sample Teams, Reward "LEVEL UP" — tra sai cả tier cũ/mới).
-   Helper mới: `heroArtWrap(cls,tier,artIdx,cls)` cho nơi chỉ có snapshot
-   {cls,tier} phẳng (History/Leaderboard/Sample Teams), không có `.key`.
-8. **Fix gốc rễ quan trọng nhất**: `.unit .spr.mut` có filter CSS
-   (`grayscale+sepia+hue-rotate...`) nhuộm ĐỎ ĐỒNG LOẠT mọi quái/boss — kể cả
-   ảnh THẬT, xoá sạch màu sắc riêng biệt (lý do art thật "trông như chưa đổi"
-   dù nguồn ảnh đã đúng). Đã thêm `sprMonIsReal(k,phase)` + class `.real` ở
-   MỌI nơi gọi `sprMon()` (5 chỗ) + CSS `.spr.mut.real{filter:none}` — pixel
-   fallback thuần vẫn giữ filter cũ, chỉ ảnh thật mới bỏ.
-9. **Thay mới cả 6 Boss** (product owner tự chọn từ Drive "Origins-WIP" +
-   "Classic"): gooey_king←Acro Beast, mecha←Untitled80, frost_lord←Untitled82,
-   plague_mother←Ginger, mirror←Untitled79, agony←Kotaro. `agony2` (phase 2)
-   KHÔNG đổi. Cũng thêm `object-position:center` cho `.spr.mut` (tránh lệch
-   khung như đã gặp với Hero — ảnh nguồn không đồng nhất tỉ lệ).
-10. Profile: thêm preview thật cho Decor (ring/frame)/Background (màu) —
-    trước đó chỉ hiện chữ suông; tự sửa thêm 1 lỗi CSS mình gây ra (đè mất
-    màu background do thứ tự source).
-11. Sửa layout card kết quả Echo Box (`.rcard.echoresult{min-height:0}`) —
-    `.rcard` gốc có `min-height:180px` (thiết kế cho reward card có icon to),
-    gây khoảng trắng thừa lớn cho card chỉ 2 dòng text.
+Real-art overhaul (Hero/Boss/monster, `HOUSE_ART`/`BOSS_ART`/`sprMon()`), fix gốc
+rễ filter CSS nhuộm đỏ ảnh thật (`sprMonIsReal()`+class `.real`), thay mới 6 Boss,
+Echo Box tách màn riêng + economy rework, Hero rename, World Tour v4, Profile
+preview Decor/Background. Chi tiết đầy đủ: `git log` (commit sắp tạo) +
+`design/ux/echo-box.md` + `design/gdd/world-tour.md`. Không lặp lại ở đây nữa —
+mục đích của mục này chỉ còn là index, không phải nhật ký.
+
+## Phiên 2026-09-07 (tiếp) — 6 việc do product owner giao, tất cả verify xong
+
+12. **Fix "PROGRESS" xuống dòng**: `.menu-grid--5` 96px→112px (tile "TOUR" sub
+    "Lovely Forest II" wrap 2 dòng, lệch chiều cao 5 tile). Verify: cả 5 tile
+    `offsetHeight` bằng nhau (72px), 1 dòng, ở 1199/899/1440px.
+13. **Fix tên vật phẩm Echo Box bị cắt chữ**: `.echoshow` 72px→88px,
+    `.echoshow-n` đổi `white-space:nowrap` (ellipsis 1 dòng) → 2-dòng
+    `-webkit-line-clamp:2`. "Eclipse T_" giờ đọc đủ "Eclipse Tofu".
+14. **Echo Box locked-chip dimming** — art-director chốt
+    `grayscale(.65) brightness(.6);opacity:.55` (spec ở `design/ux/echo-box.md`
+    Open Q#1, lý do đầy đủ ở đó), ĐÃ áp vào `src/client.html`.
+15. **Relic Blood Pact** (`design/gdd/relic-rebalance-2026-09-07.md`, product
+    owner đã duyệt): mất Max HP 25%→15% (`data.js` dòng ~634,
+    `u.maxHp*0.75`→`*0.85`), giữ `dmgMult:1.6`. `t_relic.mjs` 94/94,
+    `t_relic_behaviour.mjs` 38/38 — không cần sửa test (không hardcode RP).
+16. **Fix bug Leaderboard không lưu điểm** — root cause: `api/submit-run.js`
+    hàm `upstash()` không check field `.error` trong response Upstash REST
+    (Upstash trả HTTP 200 + `{error:...}` khi ghi thất bại — code cũ coi MỌI
+    response non-null là `stored:true`). Cũng đổi GET-path-encode → POST
+    JSON-body (tránh giới hạn độ dài path với payload team+relic lớn) và bọc
+    try/catch quanh `fetch`/`.json()` (trước đây network fail = uncaught
+    exception). Verify: script thay thế `global.fetch` giả lập cả 3 case
+    (success/Upstash-error/network-fail) qua 1 replay thật (13 action, seed
+    12345) — case success `stored:true`, 2 case còn lại `stored:false` kèm lý
+    do thay vì báo nhầm thành công như code cũ.
+17. **Icon pixel audit** (`docs/art/icon-system-redesign-2026-09-07.md`,
+    art-director) — kiểm kê đủ 25 icon `IC_G`, hướng thay thế, tận dụng lại
+    folder Drive "Battle Status Icon" đã tìm thấy từ
+    `design/quick-specs/real-art-adoption-plan-2026-09-07.md` (6/9 ST_IC đã
+    có match). BLOCKED thực thi: chưa có ảnh loại-trừ + quyền Drive — product
+    owner đã chọn "bỏ qua ảnh, rà soát toàn bộ" nên spec không loại trừ gì.
+
+`node tools/ci.mjs` 11/11 GREEN sau tất cả thay đổi trên (chạy 2026-09-07).
 
 ## Việc còn mở (không chặn)
 
 - [ ] Test tự động "3 item World Tour không lọt COSMETIC_POOLS" chưa vào `ci.mjs`.
 - [ ] World-tour.md Câu hỏi mở #2/#3 chưa chốt (xem file đó).
-- [ ] Chưa build.py public + deploy — TOÀN BỘ việc trong phiên 09-07 CHƯA lên prod.
-- [ ] Echo Box locked-chip dimming màu là placeholder, art-director chưa chốt.
-- [ ] `data.js:765` comment `+25%` sai, thực là `+15%`.
+- [ ] `data.js:765` comment `+25%` sai (KHÔNG liên quan Blood Pact — relic/dòng
+      khác), thực là `+15%`.
+- [ ] Icon pixel — spec xong, thực thi (sourcing asset thật từ Drive) BLOCKED,
+      cần product owner cấp quyền Drive hoặc gửi ảnh loại trừ.
+- [ ] icon-system-redesign §7: `ARCH_IC`/`EV_IC` tách art riêng khỏi
+      `FT_IC`/`ST_IC`? — quyết định trước khi sourcing mở rộng ngoài 25 icon.
 
 ## Build / verify / deploy
 

@@ -38,10 +38,34 @@ async function upstash(...args) {
   const url = process.env.UPSTASH_REDIS_REST_URL;
   const token = process.env.UPSTASH_REDIS_REST_TOKEN;
   if (!url || !token) return null; // caller decides how to handle "not configured"
-  const r = await fetch(url + '/' + args.map(encodeURIComponent).join('/'), {
-    headers: { Authorization: 'Bearer ' + token },
-  });
-  return r.json();
+  // POST the command as a JSON array body (Upstash's documented format for
+  // arbitrary-length values) instead of GET-with-path-encoded-args. A Ranked
+  // Run's `entry` payload (team + full relic list, see below) commonly
+  // encodes past 4-5KB by end-game — well into the range where a GET command
+  // path risks silent truncation/rejection. POST has no such ceiling.
+  let r;
+  try {
+    r = await fetch(url, {
+      method: 'POST',
+      headers: { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' },
+      body: JSON.stringify(args),
+    });
+  } catch (e) {
+    return { error: 'upstash request failed: ' + e.message };
+  }
+  let data;
+  try { data = await r.json(); }
+  catch (e) { return { error: 'upstash returned a non-JSON response (status ' + r.status + ')' }; }
+  // Upstash's REST contract is {result: ...} on success, {error: "..."} on
+  // failure — both arrive as normal JSON bodies (often even HTTP 200), so a
+  // non-null response is NOT the same as a successful write. Callers must
+  // check `.error` themselves; this was previously unchecked, which meant a
+  // rejected write (oversized/malformed command, WRONGTYPE, OOM, etc.) was
+  // silently reported to the player as a successful leaderboard submission.
+  if (data && data.error) {
+    console.error('[submit-run] upstash command failed', JSON.stringify({ cmd: args[0], key: args[1], error: data.error }));
+  }
+  return data;
 }
 
 module.exports = async (req, res) => {
@@ -157,6 +181,13 @@ module.exports = async (req, res) => {
   const zres = await upstash('zadd', board, String(score), entry);
   if (zres === null) {
     res.status(200).json({ accepted: true, score, stored: false, reason: 'Leaderboard storage not configured on the server (UPSTASH_REDIS_REST_URL/TOKEN missing) — score computed but not saved.' });
+    return;
+  }
+  // zres is a parsed JSON body, not a success flag — Upstash reports write
+  // failures (oversized command, WRONGTYPE, OOM, etc.) as a normal {error}
+  // body, which used to fall through to `stored: true` below unexamined.
+  if (!zres || zres.error || typeof zres.result === 'undefined') {
+    res.status(200).json({ accepted: true, score, stored: false, reason: 'Score computed but the leaderboard write failed on the server — please try submitting again.' });
     return;
   }
   res.status(200).json({ accepted: true, score, stored: true });
