@@ -1,0 +1,3 @@
+- [No direct edit when user is editing](feedback_no-direct-edit-when-user-editing.md) — hand over code as text, don't Write/Edit src/client.html when user is hand-editing it concurrently
+- [Procedural audio only](project_procedural-audio-only.md) — SFX still procedural (Web Audio); MUSIC reversed 2026-09-04, real .ogg/.mp3 files now approved
+- [Music design rejection 2026-09-04](feedback_music-design-rejection.md) — no melody/harsh timbre/no groove/wrong "avoid loop" premise; rules for next brief

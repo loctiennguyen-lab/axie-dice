@@ -15,9 +15,11 @@
          META.shards=900 + relic/legendary. Gộp vào đây là không strip được
          nữa, tức bản production ship kèm bộ cheat trong khi Leaderboard
          ranked đang chạy. Đây là lý do bảo mật, không thương lượng.
-       src/art.js, src/cosmetics.js — 1,8MB base64 thuần (art.js nằm trong
-         ĐÚNG 1 dòng dài 232.878 ký tự). Không ai sửa tay; nhét vào đây chỉ
-         làm mọi lần đọc/sửa file này tốn context vô ích.
+       src/art.js, src/art2.js, src/cosmetics.js — base64 thuần (art.js nằm
+         trong ĐÚNG 1 dòng dài 232.878 ký tự). Không ai sửa tay; nhét vào đây
+         chỉ làm mọi lần đọc/sửa file này tốn context vô ích. art2.js
+         (2026-09-07) là HOUSE_ART — art Axie thật cho Hero (không phải NFT
+         người chơi sở hữu, xem houseArtWrap() bên dưới, khác realArtWrap()).
      ═══════════════════════════════════════════════════════════════════════ -->
 <style>
 /* ============================================================
@@ -122,8 +124,52 @@ html,body{font-size:var(--t3);font-family:var(--font)}
 /* Stop the body's gradient from tearing/shifting during pull-to-refresh /
    rubber-band overscroll on mobile — the page itself never needs that bounce. */
 html,body{overscroll-behavior-y:none}
-body{background:linear-gradient(180deg,var(--bg-top) 0%,var(--bg) 480px);background-color:var(--bg);color:var(--txt);
+body{background-color:var(--bg);color:var(--txt);
   font-weight:700;letter-spacing:.2px;overflow-x:hidden;-webkit-font-smoothing:none}
+/* Game-wide background art (art6.js MENU_BG, --menu-bg custom prop set once
+   at load — see ui.js header) lives on `#bgLayer`, a `position:fixed` div
+   that is a SIBLING of `#app` in the DOM (build.py's template), never a
+   descendant — deliberately, after a real rendering bug: `#app` carries a
+   CSS `zoom:var(--ui-scale)` for the UI-scale feature, and a background
+   painted on `body`/any #app ANCESTOR visibly desyncs from the true
+   viewport wherever it shows through #app's transparent areas once zoom is
+   anything but 1 — the zoomed subtree's own compositing pass rounds
+   slightly differently, painting a faint rectangle at #app's exact bounds
+   (the "white box" the login screen showed; switching
+   background-attachment alone did not fix it, only moving the art fully
+   outside the zoomed subtree did). `#bgLayer{z-index:-1}` sits behind #app
+   and every other sibling but above body's own flat color, is
+   `pointer-events:none` (purely decorative), and covers the FULL viewport
+   via `inset:0` regardless of #app's own max-width:1240px column — the old
+   per-screen approach before that left plain var(--bg)-colored bars down
+   both sides on any window wider than that column, the original "ugly
+   black letterbox" complaint. Applies to every screen, combat included
+   (explicit product decision). var(--menu-bg,none) degrades to nothing on
+   a build missing art6.js, which still leaves the plain scrim+var(--bg)
+   look below, never a broken image. */
+#bgLayer{position:fixed;inset:0;z-index:-1;pointer-events:none;background:
+  linear-gradient(180deg, rgba(10,6,20,.55) 0%, rgba(10,6,20,.82) 480px, var(--bg) 900px),
+  var(--menu-bg, none);
+  background-color:var(--bg);
+  background-size:auto,cover;
+  background-position:0 0,center;
+  background-repeat:no-repeat,no-repeat;
+}
+/* Title/gate screen only (render() toggles this class on #bgLayer — see
+   ui.js): 2 extra drifting glow layers ON TOP of the same scrim+image,
+   listed here as a full 4-layer override (not a second `background` rule —
+   those don't stack). menuDrift only animates the first 2 positions; the
+   scrim/image position is repeated per-frame so it never drifts with them. */
+#bgLayer.bg-glow{background:
+  radial-gradient(circle at 20% 15%, rgba(179,136,255,.12), transparent 55%),
+  radial-gradient(circle at 80% 75%, rgba(255,200,87,.08), transparent 60%),
+  linear-gradient(180deg, rgba(10,6,20,.55) 0%, rgba(10,6,20,.82) 480px, var(--bg) 900px),
+  var(--menu-bg, none);
+  background-color:var(--bg);
+  background-size:140% 140%,140% 140%,auto,cover;
+  background-repeat:no-repeat,no-repeat,no-repeat,no-repeat;
+  animation:menuDrift 40s ease-in-out infinite alternate;
+}
 /* Active-run lock (screen==='combat' covers map/event/shop/reward/combat/
    win-lose — see render() in ui.js): only suppress touch-driven page drag
    (which fights the dice drag-and-drop on mobile) via touch-action:none.
@@ -144,12 +190,31 @@ img.spr{image-rendering:pixelated;display:block;
    this only adds the frame/glow on top. `.axie-id:not(.real)` (the sprite
    fallback path, incl. after an onerror) is intentionally unstyled. */
 .axie-id{position:relative;display:inline-block;line-height:0}
-.axie-id.real img{image-rendering:auto;border-radius:8px;
+/* object-position:center (NOT the inherited img.spr "center bottom") — real
+   art PNGs don't share one fixed aspect ratio the way procedurally-generated
+   pixel sprites do (each Hero/Vault portrait is whatever size the source
+   asset happens to be), so bottom-anchoring inside the shared square
+   .spr box left a different amount of empty headroom above each one,
+   reading as "every Hero's frame sits at a slightly different height" —
+   centering is the one anchor that stays correct regardless of the
+   source image's own aspect ratio. */
+.axie-id.real img{image-rendering:auto;border-radius:8px;object-position:center;
   box-shadow:0 0 0 2px var(--acc),0 0 10px #ffc85766}
 .axie-id-badge{position:absolute;bottom:-3px;right:-3px;width:15px;height:15px;
   background:var(--acc);color:#1a1503;border-radius:50%;display:flex;align-items:center;
   justify-content:center;font-size:8px;font-weight:900;box-shadow:0 0 0 2px var(--pan);
   pointer-events:none}
+/* House art (real, official, non-NFT Axie art) — deliberately NO badge, see
+   houseArtWrap(). Frame colour is per-unit (--hc, set inline from
+   CLASS_COLOR), quieter than the NFT gold glow so the two never look
+   interchangeable at a glance. */
+.house-art{position:relative;display:inline-block;line-height:0}
+/* object-position:center — same fix/reasoning as .axie-id.real img above:
+   the 6 Hero portraits (and their tier1-vs-awaken variants) are 10
+   differently-proportioned source PNGs, not one consistent canvas like the
+   pixel sprites this box was originally sized for. */
+.house-art.real img{image-rendering:auto;border-radius:8px;object-position:center;
+  box-shadow:0 0 0 2px var(--hc,var(--line2))}
 button{font-family:inherit;font-weight:700;cursor:pointer;color:var(--txt);letter-spacing:.5px}
 #app{max-width:1240px;margin:0 auto;padding:8px 12px 16px;transition:filter .06s;zoom:var(--ui-scale)}
 #app.hstop{filter:brightness(1.8) contrast(1.3)}
@@ -259,20 +324,16 @@ h1,h2,h3,h4{font-weight:700}
    on touch, so the whole pattern was unreachable on a phone. */
 small{font-size:var(--t1)}
 .screen.menu.title{display:grid;place-items:center;min-height:100dvh;position:relative}
-/* Menu-only animated background: subtle drifting glows behind the logo/CTA.
-   Scoped to .screen.menu.title (not the broader .screen.menu, which is also
-   shared by Profile/Codex/Vault/etc.) so only the actual title screen (and
-   the pre-login gate, which shares this exact class combo) gets it — combat
-   and every other screen keep the static body{background:...} gradient. */
-.screen.menu.title{background:
-  radial-gradient(circle at 20% 15%, rgba(179,136,255,.12), transparent 55%),
-  radial-gradient(circle at 80% 75%, rgba(255,200,87,.08), transparent 60%),
-  linear-gradient(180deg,var(--bg-top) 0%,var(--bg) 480px);
-  background-color:var(--bg);
-  background-size:140% 140%,140% 140%,auto;
-  animation:menuDrift 40s ease-in-out infinite alternate;
-}
-@keyframes menuDrift{0%{background-position:0% 0%,100% 100%,0 0}100%{background-position:15% 10%,85% 85%,0 0}}
+/* The real background art + drifting glows live entirely on `#bgLayer`
+   now (a fixed div OUTSIDE #app — see the big comment on #bgLayer above for
+   why: a background painted on anything inside #app's zoomed subtree, even
+   2 faint radial-gradients with no image, visibly seams at #app's own
+   bounds once --ui-scale zoom isn't exactly 1). This rule intentionally
+   carries NO background of its own anymore — #bgLayer shows through the
+   transparent parts unchanged. (A duplicate background here, left over
+   from an earlier pass before #bgLayer existed, was the actual cause of a
+   reported "white box" artifact — don't reintroduce one.) */
+@keyframes menuDrift{0%{background-position:0% 0%,100% 100%}100%{background-position:15% 10%,85% 85%}}
 .menu-inner{width:min(640px,100% - 32px);display:flex;flex-direction:column;align-items:center}
 .menu-inner .logo{font-size:var(--t6);letter-spacing:8px;color:var(--acc)}
 .menu-inner .sub{font-size:var(--t2);letter-spacing:3px;color:var(--dim);margin:var(--s2) 0 0}
@@ -379,6 +440,83 @@ small{font-size:var(--t1)}
 .echosec{background:var(--pan);border:var(--bd) solid var(--line);border-radius:var(--radius);padding:var(--card-pad)}
 .echosec .ud{font-size:var(--t3);font-weight:var(--fw-prose);color:var(--dim);margin:6px 0;line-height:1.6}
 .echosec .cta{margin-top:8px}
+/* Echo Box chest-roll reveal (design/quick-specs/echo-box-double-gacha-ux.md
+   §3) — the step shown before the existing .rcard cosmetic card. Deliberately
+   its own 6-colour ladder, distinct from .rcard.r0-r4's 5 rarity colours, so
+   a chest grade is never visually mistaken for a cosmetic rarity (§3/§37-60
+   of that doc — "Chest", never bare "Tier"). */
+.chestreveal{display:flex;flex-direction:column;align-items:center;gap:6px;
+  width:100%;margin-top:10px;padding:14px;background:var(--pan2);
+  border:var(--bd) solid var(--cc,var(--line));border-radius:var(--radius);
+  font-family:inherit;cursor:pointer;color:var(--txt)}
+.chestreveal:hover{background:var(--pan3)}
+.chestreveal .chestimg{width:88px;height:88px;object-fit:contain}
+.chestreveal .rt{font-size:var(--t3);letter-spacing:1px;color:var(--cc,var(--txt))}
+.chestreveal .rd{font-size:var(--t2);font-weight:var(--fw-prose);color:var(--dim);text-align:center}
+.chest-bronze{--cc:#cd7f32} .chest-silver{--cc:#c0c0c0} .chest-gold{--cc:#ffd700}
+.chest-platinum{--cc:#e5e4e2} .chest-diamond{--cc:#7fdfff} .chest-lunacian{--cc:#c78cff}
+@keyframes chestenter{0%{opacity:0;transform:scale(.85)}100%{opacity:1;transform:scale(1)}}
+.chestenter{animation:chestenter .2s ease-out}
+@media (prefers-reduced-motion:reduce){ .chestenter{animation:none} }
+
+/* ================= ECHO BOX (standalone screen, design/ux/echo-box.md) ================= */
+.screen.echobox{max-width:640px;margin:0 auto;text-align:center;padding-bottom:var(--s6)}
+.echohero{margin:0 auto var(--s4);max-width:1050px}
+.echohero-strip{display:flex;flex-wrap:wrap;justify-content:center;gap:var(--s2)}
+.echoshow{width:72px;display:flex;flex-direction:column;align-items:center;gap:4px;
+  padding:6px 4px;border-radius:var(--rad-sm);border:1px solid var(--line)}
+.echoshow.r0{border-color:var(--r0)} .echoshow.r1{border-color:var(--r1)}
+.echoshow.r2{border-color:var(--r2)} .echoshow.r3{border-color:var(--r3)}
+.echoshow.r4{border-color:var(--r4);box-shadow:0 0 12px #ff5f8f33}
+.echoshow .citem-thumb{width:40px;height:40px;border-radius:50%}
+.echoshow-swatch{width:40px;height:40px;border-radius:50%;background:var(--pan2)}
+.echoshow-pill{font-size:var(--t1);letter-spacing:1px;padding:10px 4px;color:var(--txt)}
+.echoshow-n{font-size:9px;color:var(--dim);text-align:center;line-height:1.2;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%}
+.echoshow.locked .citem-thumb,.echoshow.locked .echoshow-swatch,.echoshow.locked .echoshow-pill{
+  filter:grayscale(1) brightness(.9) contrast(.85);opacity:.65}
+.echoshow.locked .echoshow-n{opacity:.5}
+.echohero-cap{font-size:var(--t1);color:var(--dim);margin-top:6px}
+
+.echorank{max-width:420px;margin:0 auto var(--s3)}
+.echorank-head{display:flex;justify-content:space-between;align-items:baseline;gap:var(--s2)}
+.echorank-name{font-size:var(--t4);letter-spacing:1px;color:var(--acc);font-weight:900}
+.echorank-chip{font-size:var(--t1);color:var(--dim)}
+.echorank-cap{font-size:var(--t1);color:var(--dim);margin-top:2px}
+
+.echopull{display:block;width:100%;max-width:420px;margin:0 auto var(--s4);min-height:68px;
+  background:var(--pan2);border:var(--bd) solid var(--acc);border-radius:var(--radius);
+  color:var(--txt);cursor:pointer;font-family:inherit;padding:10px}
+.echopull-t1{font-size:var(--t4);letter-spacing:2px;color:var(--acc);font-weight:900}
+.echopull-t2{font-size:var(--t2);color:var(--dim);margin-top:2px}
+.echopull:hover{background:var(--pan3)}
+.echopull.dis{opacity:.45;cursor:default;border-color:var(--line)}
+.echopull.dis .echopull-t1{color:var(--dim)}
+.echopull.glow{animation:echopullGlow 2.2s ease-in-out infinite}
+@keyframes echopullGlow{0%,100%{box-shadow:0 0 6px #ffc85744}50%{box-shadow:0 0 22px #ffc85799}}
+@media (prefers-reduced-motion:reduce){ .echopull.glow{animation:none;box-shadow:0 0 10px #ffc85766} }
+
+.fusepanel{max-width:520px;margin:var(--s4) auto 0;text-align:left;background:var(--pan);
+  border:1px solid var(--line);border-radius:var(--radius);padding:var(--s3)}
+.fusepanel h3{font-size:var(--t2);color:var(--dim);letter-spacing:2px;margin-bottom:4px}
+.fusepanel .fuserow{margin-top:8px}
+.fuserow{display:flex;align-items:center;gap:10px}
+.fuserow.dis{opacity:.5}
+.fuserow .bpbar{width:80px;margin:0}
+
+.echoptr{display:flex;align-items:center;gap:var(--s2);padding:8px 4px;cursor:pointer;border-radius:var(--rad-sm)}
+.echoptr:hover{background:var(--pan2)}
+.echoptr-txt{flex:1}
+.echoptr-t{font-size:var(--t2);color:var(--txt)}
+.echoptr-s{font-size:var(--t1);color:var(--dim);margin-top:2px}
+.echoptr-arrow{font-size:var(--t4);color:var(--acc)}
+
+.echologlist{display:flex;flex-direction:column;gap:4px;max-width:520px;margin:0 auto}
+.echologrow{display:flex;align-items:center;gap:8px;padding:4px 8px;background:var(--pan2);
+  border-radius:var(--rad-sm);font-size:var(--t1)}
+.echologimg{width:22px;height:22px;object-fit:contain;flex:none}
+.echologn{flex:1;text-align:left;color:var(--txt)}
+.echologt{color:var(--dim);font-size:9px}
 .echotier{color:var(--acc);font-size:var(--t1);letter-spacing:2px;margin:-14px 0 14px}
 
 /* ================= TEAM ================= */
@@ -436,6 +574,10 @@ small{font-size:var(--t1)}
 .vchip-info{display:flex;flex-direction:column;line-height:1.25;max-width:110px}
 .vchip-nm{font-size:var(--t2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .vchip-cls{font-size:var(--t1);color:var(--dim);letter-spacing:.5px}
+/* §3.10 — dawn/dusk/mech map to a game class (beast/reptile/bug) for passive/color/HP,
+   but a player who owns a real secret-class Axie should still be told so somewhere:
+   this chip is the `◈ SECRET` label the GDD specifies, never shown before this fix. */
+.seccls{color:var(--acc);font-size:var(--t1);letter-spacing:.5px;margin-left:4px}
 .vchip-i{flex:none;width:18px;height:18px;border-radius:50%;background:var(--pan2);
   border:1px solid var(--line);color:var(--dim);font-size:10px;font-style:italic;cursor:pointer;
   display:flex;align-items:center;justify-content:center;padding:0}
@@ -640,9 +782,25 @@ small{font-size:var(--t1)}
 .unit .spr{margin:0 auto var(--s1)}
 .unit.big .spr{width:var(--spr-big);height:var(--spr-big)}
 .unit.p.token .spr{width:calc(var(--spr-w)*.6);height:calc(var(--spr-w)*.6)}
-.unit .spr.mut{transform:scaleX(-1);filter:grayscale(1) sepia(1) hue-rotate(-38deg) saturate(3.6) contrast(1.1) brightness(.86)}
+/* object-position:center — same fix/reasoning as .axie-id.real/.house-art.real
+   img (see those comments): BOSS_ART/monArt2() real art isn't one consistent
+   canvas the way procedurally-generated pixel monsters are, so bottom-
+   anchoring (img.spr's default) would misalign real-art bosses of different
+   source aspect ratios inside this box exactly like it did for Heroes. */
+.unit .spr.mut{transform:scaleX(-1);object-position:center;filter:grayscale(1) sepia(1) hue-rotate(-38deg) saturate(3.6) contrast(1.1) brightness(.86)}
 .unit.big .spr.mut{filter:grayscale(1) sepia(1) hue-rotate(-50deg) saturate(4.4) contrast(1.16) brightness(.78);
   animation:breathe 2.6s ease-in-out infinite}
+/* .real (set at the img element by every el('img','spr mut') call site, via
+   sprMonIsReal() — see that function's comment) drops the enemy-tint filter
+   entirely for real BOSS_ART/monArt2() art: that filter was designed to
+   recolor a flat, single-tone pixel silhouette into a uniform "this is an
+   enemy" red, but applied to a real painted Chimera card art it flattens
+   every boss into the SAME red blob, destroying the actual per-boss color
+   identity the art swap was for. Pixel-fallback monsters (no .real class)
+   keep the original tint unchanged — same specificity (4 classes) as the
+   rules above, placed after them so it wins both the plain and .big case. */
+.unit .spr.mut.real{filter:none}
+.unit.big .spr.mut.real{filter:none}
 .unit.p .spr{animation:breathe 3.4s ease-in-out infinite}
 @keyframes breathe{0%,100%{transform:translateY(0) scaleX(var(--fx,1))}50%{transform:translateY(-3px) scaleX(var(--fx,1))}}
 .unit.e .spr.mut{--fx:-1}
@@ -1355,7 +1513,12 @@ body.clog-open .clog-inner{ clip-path:inset(0 0 0 0); opacity:1; }
    rgba(179,136,255,x) purple pairing already used by .unit.p.echo5). */
 .fusewrap{display:flex;flex-direction:column;gap:6px;margin-top:10px}
 .fuserow{display:flex;align-items:center;gap:10px}
-.echoresult{max-width:280px;margin:14px 0 0}
+/* .rcard's shared min-height:180px is sized for the COMBAT reward card
+   (big .ricon + long .rd description + .rcost) — Echo Box's result card only
+   ever holds a badge + 1-2 short lines, so that same fixed height left a
+   large dead-space gap below the text, reading as "lệch"/sloppy rather than
+   deliberate. This variant lets the card size to its actual content. */
+.rcard.echoresult{max-width:280px;margin:14px 0 0;min-height:0}
 .citem.on{box-shadow:0 0 0 2px var(--acc)}
 
 /* ---------- Decor: 9 rings/halos/frames, escalating visual weight with rarity ---------- */
@@ -1403,10 +1566,48 @@ body.clog-open .clog-inner{ clip-path:inset(0 0 0 0); opacity:1; }
 .decor-badge-img{width:100%;height:100%;object-fit:contain}
 
 /* Collection/Profile grid chips: a small thumbnail for items with real art
-   (avatar portraits/cards, land-item decor) — text-only chips (backgrounds,
-   gacha titles, the original CSS-only decor) are unaffected. */
+   (avatar portraits/cards, land-item decor). */
 .citem.has-thumb{display:flex;align-items:center;gap:6px;padding:4px 8px 4px 4px}
 .citem-thumb{width:22px;height:22px;border-radius:50%;object-fit:cover;flex:none;background:var(--pan2)}
+/* CSS-only decor (ring/frame — no source image, just a box-shadow style
+   already defined as .decor-<style> for buildAvatarWrap()) and backgrounds
+   (a plain gradient/color already defined as .bg-<style>) used to render as
+   BARE TEXT here — a locked item reasonably shows "???", but an OWNED one
+   with nothing to look at read as broken/undercooked. These 2 swatches
+   reuse those exact same classes (no new palette) so what you see in this
+   list is pixel-for-pixel the same ring/glow or color the item actually
+   applies once equipped. */
+.citem-swatch-decor{width:22px;height:22px;border-radius:50%;background:var(--pan2);flex:none}
+/* No background here (unlike -decor above) — this element ALWAYS carries a
+   .bg-<style> class alongside this one, and that class is the one that must
+   win the `background` property. .bg-plant/.bg-aqua/etc are declared earlier
+   in this file, so if this rule also set `background`, being later in
+   source order it would silently overwrite their gradient with nothing
+   (exactly the bug that shipped: swatches all rendered as the same flat
+   panel color). Size/shape only, no color of its own. */
+.citem-swatch-bg{width:22px;height:22px;border-radius:5px;flex:none}
+
+/* ================= WORLD TOUR (design/gdd/world-tour.md) =================
+   Track list (.tourtrack) reuses .bpnode/.bpbar/.bptrack from Lunacia Pass
+   as-is (same "row of cards, ready/got/lock state" language) — only the
+   chapter-select grid below is genuinely new UI. */
+.tourmapgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:var(--s2);max-width:900px;margin:0 auto var(--s3)}
+.tourmaptile{position:relative;aspect-ratio:16/10;border-radius:var(--radius);border:var(--bd) solid var(--line);
+  background:var(--pan2) center/cover no-repeat;display:flex;flex-direction:column;justify-content:flex-end;
+  padding:var(--s2);cursor:pointer;overflow:hidden}
+.tourmaptile::before{content:'';position:absolute;inset:0;background:linear-gradient(to top,#000c,transparent 60%)}
+.tourmaptile.locked{cursor:default;filter:grayscale(.7)}
+.tourmaptile.locked::before{background:#0009}
+.tourmaptile.comingsoon{filter:grayscale(1);opacity:.6;align-items:center;justify-content:center;text-align:center}
+.tourmapname,.tourmapsub{position:relative;z-index:1}
+.tourmapname{font-size:var(--t3);color:#fff;font-weight:700;letter-spacing:1px}
+.tourmapsub{font-size:var(--t1);color:#ddd}
+.tourmapsub.locktxt{color:var(--r3,#f0a)}
+.tourbadge{position:absolute;top:8px;left:8px;z-index:1;font-size:var(--t1);letter-spacing:1px;padding:2px 7px;border-radius:10px;font-weight:700}
+.tourbadge-silver{background:#c8ccd0;color:#222}
+.tourbadge-gold{background:#e8c34a;color:#3a2a00}
+.tourflag{position:absolute;top:8px;right:8px;z-index:1;font-size:var(--t3)}
+.tourmap.has-bgart{background-size:cover;background-position:center;background-repeat:no-repeat}
 </style>
 <script>
 /* ─────────── audio.js ─────────── */
@@ -2075,6 +2276,12 @@ function clogRefreshDom(e){
 }
 /* ─────────── ui.js ─────────── */
 /* ============ AXIE DICE TACTICS v0.2 — UI ============ */
+// MENU_BG (src/art6.js) is a data: URI, not something a static <style> block
+// can reference — stash it in a CSS custom property once at load, same
+// pattern as --ui-scale below, so body's CSS (game-wide background, see the
+// comment there) can just use var(--menu-bg). Guarded for the (rare) build
+// that strips/omits art6.js.
+if(typeof MENU_BG!=='undefined') document.documentElement.style.setProperty('--menu-bg',"url('"+MENU_BG+"')");
 const $=q=>document.querySelector(q), $$=q=>[...document.querySelectorAll(q)];
 const el=(t,c,x)=>{ const e=document.createElement(t); if(c)e.className=c; if(x!=null)e.textContent=x; return e; };
 const btn=(c,x,fn)=>{ const b=el('button','btn '+(c||''),x); b.onclick=e=>{ SFX.ui(); fn(e); }; b.onmouseenter=()=>SFX.hover(); return b; };
@@ -2131,7 +2338,21 @@ const DEF_META={vol:0.28,mute:false,spd:1,shards:0,unlocks:[],ascMax:0,best:0,ru
      leak it into B's cloud save. See pullSyncAfterLogin()/doAuth() below —
      any account other than `owner` must never see a merge/keep-device
      choice, only ever the truth from its own cloud save. */
-  owner:''};
+  owner:'',
+  /* Daily Mission (economy-progression.md §10.3) — UTC date string ('' =
+     never claimed) of the last +DAILY_MISSION_SHARD grant. Comparing against
+     todayUTC() is both the "already claimed today?" check and the reset —
+     no cron/cleanup job needed, no streak counter (see data.js comment). */
+  dailyDate:'',
+  /* World Tour (design/gdd/world-tour.md) — tourClaimed holds composite
+     "map:tile" strings (e.g. "1:4"), never a bare tile index, so Map 1 tile 4
+     and Map 2 tile 4 can't collide (§Edge Cases). tourMap2Base is a nullable
+     one-time snapshot of META.runs taken the instant the Map1<->Map2 gate
+     first clears (§Formulas #2) — null means "not yet snapshotted", not 0.
+     fullAscMax mirrors ascMax (§Detailed Rules/Tầng 2) but only advances on a
+     S.mode==='full' win — see the branch next to the ascMax update in
+     onRunEnd(). */
+  tourClaimed:[], tourMap2Base:null, fullAscMax:0};
 let META={...DEF_META};
 /* design/gdd/relic-system.md §7 E7 — roster relic 44 -> 94 khiến MỌI người chơi đang 44/44
    tụt xuống 44/94 và MẤT quyền vào Echo Box, một sink cuối game họ đã mở khoá. Đó là mất
@@ -2184,6 +2405,16 @@ const HK='axiedice_history_v1';
 const HISTORY_MAX_RUNS=20;
 function loadHistory(){ try{ const j=localStorage.getItem(HK); if(j) return JSON.parse(j); }catch(e){} return []; }
 function saveHistory(list){ try{ localStorage.setItem(HK,JSON.stringify(list)); }catch(e){} }
+
+/* Echo Box pull-history log (design/ux/echo-box.md §6) — same local-only,
+   trim-on-write shape as match history above, distinct key/cap since pulls
+   happen far more often than runs. Entries are captured at the exact moment
+   a pull fully resolves (see revealCosmetic() below), reusing fields already
+   present on echoBoxOpen()'s result — no new roll data invented. */
+const EK='axiedice_echolog_v1';
+const ECHOLOG_MAX=30;
+function loadEchoLog(){ try{ const j=localStorage.getItem(EK); if(j) return JSON.parse(j); }catch(e){} return []; }
+function saveEchoLog(list){ try{ localStorage.setItem(EK,JSON.stringify(list)); }catch(e){} }
 
 /* ---------- ACCOUNT SYNC (design/gdd/player-accounts.md, ADR-0002) ----------
    Entirely additive to guest play: no token in localStorage = no server calls,
@@ -2361,14 +2592,15 @@ function rollEchoRarity(){
    whole cell is already owned. Returns a result object for the caller to
    render (scEchoBox()), or null if the purchase itself couldn't happen. */
 function echoBoxOpen(){
-  if(!collectionComplete()) return null;
-  const cost=echoCost((META.echoBoxesOpened||0)+1);
+  const opened=META.echoBoxesOpened||0;
+  const cost=opened===0?ECHO.introCost:echoCost(opened+1);
   if(META.shards<cost) return null;
   const beforeTier=echoTier();
   META.shards-=cost; META.echoBoxesOpened=(META.echoBoxesOpened||0)+1;
   let tierTitle=null;
   if(echoTier()>beforeTier){ tierTitle=ECHO_TITLES[echoTier()]; grantTitle(tierTitle); }
   const rar=rollEchoRarity();
+  const chest=chestGradeFor(rar);
   const cat=ECHO_BOX_CATEGORIES[Math.floor(Math.random()*ECHO_BOX_CATEGORIES.length)];
   const pool=COSMETIC_POOLS[cat], owned=ownedArrFor(cat);
   const candidates=Object.keys(pool).filter(k=>pool[k].rar===rar && !owned.includes(k));
@@ -2376,10 +2608,10 @@ function echoBoxOpen(){
   if(candidates.length){
     const key=candidates[Math.floor(Math.random()*candidates.length)];
     owned.push(key);
-    result={dup:false,cat,rar,key,n:pool[key].n,tierTitle};
+    result={dup:false,cat,rar,key,n:pool[key].n,tierTitle,chest};
   } else {
     META.dupeCounts[rar]=(META.dupeCounts[rar]||0)+1;
-    result={dup:true,cat,rar,dupeCount:META.dupeCounts[rar],tierTitle};
+    result={dup:true,cat,rar,dupeCount:META.dupeCounts[rar],tierTitle,chest};
   }
   saveMeta();
   return result;
@@ -2509,12 +2741,17 @@ function scImportAxie(){
     const die=axieToDie(importPreview);
     const pv=el('div','vpreview');
     if(die.image) pv.appendChild(realArtWrap(die.image,'','vpreview-art'));
-    pv.appendChild(el('div','vpn',die.n+'  ·  '+die.cls.toUpperCase()));
+    const vpn=el('div','vpn',die.n+'  ·  '+(die.secretCls||die.cls).toUpperCase());
+    if(die.secretCls){ const sc=el('span','seccls','◈ SECRET'); sc.title='Mapped to '+die.cls.toUpperCase()+' for passive.'; vpn.appendChild(sc); }
+    pv.appendChild(vpn);
     const parts=el('div','vparts');
     (importPreview.parts||[]).forEach(p=>parts.appendChild(el('span','vpart',(p.type||'?').toUpperCase()+': '+(p.name||'?'))));
     pv.appendChild(parts);
     const dv=el('div','minidie'); die.die.forEach(f=>{ const c=el('span','mf r'+(f.r||0)+' t_'+f.t); c.appendChild(ico(FT_IC[f.t],'t')); if(f.v)c.appendChild(el('span','mfv',String(f.v))); dv.appendChild(c); });
     pv.appendChild(dv);
+    const displayCls=die.secretCls||die.cls;
+    pv.appendChild(el('div','cnote',
+      `This is a real ${displayCls.charAt(0).toUpperCase()+displayCls.slice(1)} Axie — it already carries full ${PASSIVE[die.cls].n}.`));
     const full=(META.vault||[]).length>=VAULT_MAX;
     const already=(META.vault||[]).some(v=>v.axieId===die.axieId);
     const addB=btn('sm go',full&&!already?'VAULT FULL':already?'UPDATE VAULT ENTRY':'ADD TO VAULT',()=>{
@@ -2534,10 +2771,19 @@ function scImportAxie(){
     vlist.forEach(v=>{
       ensureVaultArt(v);
       const c=el('div','vchip'); c.style.setProperty('--cc',CLASS_COLOR[v.cls]);
-      c.appendChild(realArtWrap(v.image,sprOf(v.cls,v.art||0),'vchip-thumb'));
+      // Same 3-tier fallback as the Vault chip in scTeam() — a Vault NFT's
+      // OWN art (v.image) still wins when present, but a broken/never-
+      // fetched image now lands on the class's real Hero art instead of
+      // straight to the pixel sprite.
+      const vh=HEROES[v.cls+'1'];
+      c.appendChild(v.image?realArtWrap(v.image,sprOf(v.cls,v.art||0),'vchip-thumb')
+        :(vh&&vh.art2?houseArtWrap(HOUSE_ART[vh.art2],sprOf(v.cls,v.art||0),'vchip-thumb',CLASS_COLOR[v.cls])
+                     :realArtWrap(null,sprOf(v.cls,v.art||0),'vchip-thumb')));
       const info=el('div','vchip-info');
       info.appendChild(el('div','vchip-nm',v.n));
-      info.appendChild(el('div','vchip-cls',v.cls.toUpperCase()+' · HP '+v.hp));
+      const vcls=el('div','vchip-cls',(v.secretCls||v.cls).toUpperCase()+' · HP '+v.hp);
+      if(v.secretCls){ const sc=el('span','seccls','◈'); sc.title='Mapped to '+v.cls.toUpperCase()+' for passive.'; vcls.appendChild(sc); }
+      info.appendChild(vcls);
       c.appendChild(info);
       c.appendChild(btn('ghost xs','REMOVE',()=>{ removeFromVault(v.axieId); render(); }));
       g.appendChild(c);
@@ -2577,6 +2823,19 @@ const MON_SPR={slime:['plant',2],chomper:['beast',1],spikelet:['reptile',2],bugl
   e_ravager:['beast',8],e_plague:['bug',8],e_bulwark:['plant',8],e_archon:['aqua',8],
   gooey_king:['plant',5],mecha:['reptile',8],frost_lord:['aqua',5],plague_mother:['bug',6],mirror:['reptile',4],agony:['bird',8]};
 const sprOf=(cls,i)=>(AXIE_PIX[cls]&&AXIE_PIX[cls][((i%9)+9)%9])?AXIE_PIX[cls][((i%9)+9)%9].src:'';
+/* Field-monster real art (§3b of the art-adoption plan) — bucket MON_SPR's
+   existing [class, artIdx] tuple exactly like a Hero's own tier (0-2 ->
+   normal, 3-5/6-8 -> awaken), then reuse the SAME house-art portrait a Hero
+   of that class/tier already shows. Classes with only a Normal portrait
+   (Bug/Bird - see art2.js) fall through to it for every bucket, same as
+   Hero tier2/3 already does. Returns '' (falsy) if the class has no house
+   art at all yet, so callers keep falling back to the pixel sprite. */
+const monArt2=(cls,i)=>{
+  if(typeof HOUSE_ART==='undefined') return '';
+  const bucket=Math.floor((((i%9)+9)%9)/3);
+  const key=cls+'_'+(bucket===0?'normal':'awaken');
+  return HOUSE_ART[key]||HOUSE_ART[cls+'_normal']||'';
+};
 /* Real Axie art in combat/inspector views for a Vault (Import Axie) unit —
    buildUnit() carries the roster entry's `key` onto every built unit, and for
    a vault_<id> key that's exactly the HEROES[key] record axieToDie() made
@@ -2604,11 +2863,70 @@ function realArtWrap(realSrc,fallbackSrc,imgClass){
   }
   return wrap;
 }
+/* House art (real Axie art, official — NOT a player-owned NFT): same "don't
+   blend two incompatible renderings in one unmarked slot" fix as
+   realArtWrap(), but deliberately WITHOUT the "⛓ Real Axie NFT art" badge —
+   applying that badge here would be a false ownership claim (design/quick-
+   specs/real-art-adoption-plan-2026-09-07.md §1). Frame colour follows the
+   unit's class (CLASS_COLOR) rather than a fixed gold, since the portrait's
+   own painted colours (e.g. Machito's purple) are not required to match the
+   class palette — see the "Color-identity note" in the same doc. */
+function houseArtWrap(realSrc,fallbackSrc,imgClass,clsColor){
+  const wrap=el('div','house-art'+(realSrc?' real':''));
+  if(clsColor) wrap.style.setProperty('--hc',clsColor);
+  const im=el('img',imgClass||''); im.src=realSrc||fallbackSrc;
+  wrap.appendChild(im);
+  if(realSrc) im.onerror=()=>{ im.onerror=null; im.src=fallbackSrc; wrap.classList.remove('real'); };
+  return wrap;
+}
 function unitArtImg(u,cls){
   const h=u.key&&HEROES[u.key];
-  return realArtWrap(h&&h.image,sprOf(u.cls,u.artIdx),cls||'spr');
+  if(h&&h.image) return realArtWrap(h.image,sprOf(u.cls,u.artIdx),cls||'spr');
+  if(h&&h.art2) return houseArtWrap(HOUSE_ART[h.art2],sprOf(u.cls,u.artIdx),cls||'spr',CLASS_COLOR[u.cls]);
+  return realArtWrap(null,sprOf(u.cls,u.artIdx),cls||'spr');
 }
-const sprMon=k=>{ const m=MON_SPR[k]||['beast',0]; return sprOf(m[0],m[1]); };
+/* Same real-art-first logic as unitArtImg(), for every place that only has
+   a plain {cls,tier} pair instead of a live roster entry with `.key` —
+   History/Leaderboard entries (teamRelicsSec(), scHistory()'s own team-
+   portraits row) are flat saved/replayed snapshots with no `key` field, and
+   Sample Teams/the Team-Select T1 cards work from HEROES directly but were
+   still calling sprOf() straight, never picking up Hero art at all. Since
+   each class carries exactly one character across all 3 tiers (real-art-
+   adoption-plan-2026-09-07.md §2), the key is always deterministically
+   cls+tier — this is the ONE missing piece that let all of these silently
+   keep rendering the old pixel sprite after unitArtImg() shipped everywhere
+   else. */
+function heroArtWrap(cls,tier,artIdx,imgClass){
+  const h=HEROES[cls+tier];
+  const fallback=sprOf(cls,artIdx);
+  if(h&&h.art2) return houseArtWrap(HOUSE_ART[h.art2],fallback,imgClass||'spr',CLASS_COLOR[cls]);
+  return realArtWrap(null,fallback,imgClass||'spr');
+}
+/* Boss reveal art (real Chimera card-art, §3a of the art-adoption plan) —
+   `phase` picks Nightmare Agony's die2 transformation art (BOSS_ART.agony2)
+   when the fight has flipped to its second phase; every other boss/monster
+   key falls straight through to BOSS_ART[k] or the pixel-sprite fallback. */
+const sprMon=(k,phase)=>{
+  const bk=(k==='agony'&&phase===2)?'agony2':k;
+  if(typeof BOSS_ART!=='undefined'&&BOSS_ART[bk]) return BOSS_ART[bk];
+  const m=MON_SPR[k]||['beast',0];
+  return monArt2(m[0],m[1])||sprOf(m[0],m[1]);
+};
+/* True when sprMon(k,phase) is about to return real art (BOSS_ART or
+   monArt2()), not the pixel-sprite fallback — every `el('img','spr mut')`
+   call site needs this to add the `.real` class so the enemy-tint filter
+   (see `.unit .spr.mut` in style.css) can be skipped for real art. Without
+   it, that filter (grayscale+sepia+hue-rotate, tuned to recolor a flat
+   pixel silhouette a uniform blood-red) was flattening every boss's real,
+   individually-painted Chimera card art into the exact same red silhouette
+   — the actual reason swapped-in boss art kept reading as "still not
+   changed" despite the source image being correct all along. */
+function sprMonIsReal(k,phase){
+  const bk=(k==='agony'&&phase===2)?'agony2':k;
+  if(typeof BOSS_ART!=='undefined'&&BOSS_ART[bk]) return true;
+  const m=MON_SPR[k]||['beast',0];
+  return !!monArt2(m[0],m[1]);
+}
 
 
 const PARTN={mouth:'MOUTH',horn:'HORN',back:'BACK',tail:'TAIL',eyes:'EYES',ears:'EARS',blank:'',m:''};
@@ -2740,6 +3058,11 @@ function render(){
   // (menu/unlocks/collection/vault/leaderboard/bp/codex/guide/team) never
   // get this class and keep scrolling normally.
   document.body.classList.toggle('locked-scroll', screen==='combat');
+  // Drifting glow layers (#bgLayer.bg-glow, style.css) are exclusive to the
+  // title/gate screen — see the comment on that rule for why they (and the
+  // whole background image) live on the #bgLayer sibling div, not on body
+  // or .screen.menu.title.
+  { const bgl=document.getElementById('bgLayer'); if(bgl) bgl.classList.toggle('bg-glow', screen==='menu'||screen==='gate'); }
   root.innerHTML=''; root.className='';
   // Mandatory login gate (design/gdd/player-accounts.md §3 "App gate") — checked
   // first, before any other screen dispatch, so there is no ordering accident
@@ -2749,12 +3072,14 @@ function render(){
   else if(screen==='team') root.appendChild(scTeam());
   else if(screen==='unlocks') root.appendChild(scUnlocks());
   else if(screen==='collection') root.appendChild(scCollection());
+  else if(screen==='echobox') root.appendChild(scEchoBox());
   else if(screen==='profile') root.appendChild(scProfile());
   else if(screen==='vault') root.appendChild(scImportAxie());
   else if(screen==='leaderboard') root.appendChild(scLeaderboard());
   else if(screen==='history') root.appendChild(scHistory());
   else if(screen==='account') root.appendChild(scAccount());
   else if(screen==='bp') root.appendChild(scBP());
+  else if(screen==='tour') root.appendChild(scTour());
   else if(screen==='codex') root.appendChild(scCodex());
   else if(screen==='guide') root.appendChild(scGuide());
   else if(S){
@@ -2880,7 +3205,10 @@ function readAvatarFile(file, cb){
    badges a small `<img>` in the corner instead — the two kinds coexist in
    the same pool, this renders whichever the equipped item has. */
 function buildAvatarWrap(eq){
-  const eqDecor=eq.decor&&COSMETIC_DECOR[eq.decor];
+  // tourItemDef() (defined below, hoisted) falls back to TOUR_EXCLUSIVE_DECOR
+  // for a World Tour landmark decor key (e.g. 'tour_gooeytrophy') that isn't
+  // in COSMETIC_DECOR by design — see cosmetics.js.
+  const eqDecor=eq.decor&&tourItemDef('decor',eq.decor);
   const avWrap=el('div','profile-avatar-wrap'+(eqDecor&&eqDecor.style?(' decor-'+eqDecor.style):''));
   const av=el('div','profile-avatar');
   if(META.avatarSource==='custom'&&META.customAvatar){
@@ -2932,7 +3260,7 @@ function scMenu(){
   }
   inner.appendChild(el('h1','logo','AXIE DICE TACTICS'));
   inner.appendChild(el('div','sub','LUNACIA MUTANTS · v1.0'));
-  if(echoTier()>0) inner.appendChild(el('div','sub echotier','Echo Tier: '+ECHO_TIER_NAMES[echoTier()]));
+  if(echoTier()>0) inner.appendChild(el('div','sub echotier','Echo Rank: '+ECHO_TIER_NAMES[echoTier()]));
   if(saved){
     inner.appendChild(btn('go cta btn--lg','CONTINUE RUN',()=>{ S=saved.s; screen='combat'; render(); }));
     inner.appendChild(btn('ghost cta2 btn--lg','NEW RUN',()=>{ teamPick=['plant1','beast1','aqua1','reptile1','bug1']; screen='team'; render(); }));
@@ -2947,10 +3275,17 @@ function scMenu(){
 
   const progGroup=el('div','menu-group');
   progGroup.appendChild(el('div','menu-group-label','PROGRESS'));
-  const progGrid=el('div','menu-grid menu-grid--3');
+  const progGrid=el('div','menu-grid menu-grid--4');
   progGrid.appendChild(menuTile('PASS','Lv '+pr.lv,()=>{ screen='bp'; render(); }, nb>0));
   progGrid.appendChild(menuTile('COLLECTION',faces+' faces · '+relics+' relics',()=>{ screen='collection'; render(); }));
   progGrid.appendChild(menuTile('UNLOCKS',(META.unlocks||[]).length+'/'+UNLOCKS.length,()=>{ screen='unlocks'; render(); }));
+  progGrid.appendChild(menuTile('TOUR',tourGateCleared()?'Lovely Forest II':'Lovely Forest I',()=>{ screen='tour'; tourView='select'; render(); }));
+  {
+    const eop=META.echoBoxesOpened||0, etier=echoTier();
+    const ecost=eop===0?ECHO.introCost:echoCost(eop+1);
+    progGrid.appendChild(menuTile('ECHO BOX', etier>0?('Rank '+ECHO_TIER_NAMES[etier]):'New!',
+      ()=>{ screen='echobox'; render(); }, META.shards>=ecost));
+  }
   progGroup.appendChild(progGrid);
   groups.appendChild(progGroup);
 
@@ -3029,76 +3364,203 @@ function scCollection(){
   w.appendChild(mk('RELIC', RELICS.map(r=>({n:r.n,r:r.rar,owned:META.relics.includes(r.id)}))));
   w.appendChild(mk('DIE FACES', FACE_POOL.map(f=>{ const n=faceText(f); return {n,r:f.r,owned:META.faces.includes(n)}; })));
   w.appendChild(mk('BOSSES DEFEATED', BOSSES.map(b=>({n:b.n,r:4,owned:META.bosses.includes(b.k)}))));
-  w.appendChild(scEchoBox());
+  w.appendChild(scEchoBoxPointer());
   w.appendChild(btn('','BACK',()=>{ screen='menu'; render(); }));
   return w;
 }
-/* ---------- ECHO BOX panel (part of Collection screen) ----------
+/* ---------- ECHO BOX (standalone screen, design/ux/echo-box.md) ----------
    design/gdd/economy-progression.md §10.3 amendment: was "Echo Forge", a
    deterministic point-buy. Now a cosmetic gacha (avatars/decor/backgrounds/
    titles from cosmetics.js) with the same underlying Shard-cost/tier-meter
-   curve. Reveal cards reuse .rcard/rbadge (scReward()'s visual language). */
-let echoBoxResult=null, echoFuseResult=null;
-function scEchoBox(){
-  const s=el('div','colsec echosec');
+   curve. Reveal cards reuse .rcard/rbadge (scReward()'s visual language).
+   2026-09-07: pulled out of scCollection() into its own screen+menu tile
+   per product-owner feedback that the old nested placement (buried under 3
+   walls of Collection's "???" placeholders) was undiscoverable — see the
+   spec for the full rationale. scCollection() keeps only scEchoBoxPointer()
+   below, a read-only teaser row. Odds/cost/chest-mapping are UNCHANGED —
+   this is presentation-layer only. */
+let echoBoxResult=null, echoFuseResult=null, echoChestRevealed=false;
+/* Hero banner picks (§2): auto-selected, highest-rarity-per-pool, zero
+   maintenance as new cosmetics ship — the spec's own leaning over a hand-
+   curated rotation (flagged there as an open question, not blocking). */
+function echoHeroPicks(){
+  const picks=[];
+  ECHO_BOX_CATEGORIES.forEach(cat=>{
+    const pool=COSMETIC_POOLS[cat];
+    Object.keys(pool).sort((a,b)=>(pool[b].rar||0)-(pool[a].rar||0)).slice(0,3)
+      .forEach(k=>picks.push({cat,key:k,item:pool[k]}));
+  });
+  return picks;
+}
+function echoShowChip(cat,key,item){
+  const owned=ownedArrFor(cat).includes(key);
+  const c=el('div','echoshow r'+item.rar+(owned?'':' locked'));
+  const thumbSrc=item.src||item.img;
+  if(thumbSrc){ const im=el('img','citem-thumb'); im.src=thumbSrc; c.appendChild(im); c.appendChild(el('div','echoshow-n',item.n)); }
+  else if(item.style){ c.appendChild(el('div','echoshow-swatch '+(cat==='decor'?'decor-':'')+item.style)); c.appendChild(el('div','echoshow-n',item.n)); }
+  else { c.appendChild(el('div','echoshow-pill',item.n)); } // titles: text-only, no thumb/swatch
+  return c;
+}
+/* Chest-grade drama (§4 step 1) — mirrors the existing top-rarity precedent
+   (MYTHIC cosmetic reveal below) rather than inventing a 3rd FX convention.
+   Bronze/Silver get no flash/shake at all (deliberately — see §5's "if
+   everything shakes, nothing feels rare"); Lunacian gets its own combo using
+   SFX.boss(), never SFX.mythic() (that's reserved for the COSMETIC reveal —
+   keeps "Chest Grade" and cosmetic "Rarity" legible as 2 different systems,
+   per design/quick-specs/echo-box-double-gacha-ux.md §2). */
+function chestGradeFx(r){
+  const k=r.chest.k, grand=k==='gold'||k==='platinum'||k==='diamond'||k==='lunacian';
+  if(k==='lunacian'){ SFX.boss(); hitstop(120); flashScreen('myth'); shake(3); bigText('LUNACIAN!!','myth'); }
+  else { SFX[grand?'legend':'coin'](); if(grand){ flashScreen('gold'); shake(2); } }
+}
+/* Cosmetic-rarity drama (§5 matrix) — fires once, at the moment the .rcard
+   reveal actually mounts (both the manual chest-click skip path and the
+   auto-chain timeout funnel through here, so neither can double-fire or
+   diverge in behavior). */
+function cosmeticRevealFx(r){
+  if(r.rar>=4){ SFX.mythic(); hitstop(140); flashScreen('myth'); bigText('MYTHIC',''); shake(3); }
+  else if(r.rar===3){ SFX.legend(); flashScreen('gold'); shake(1); }
+  else if(r.rar===2){ SFX.legend(); flashScreen('gold'); }
+  else { SFX.coin(); }
+}
+function revealCosmetic(r){
+  echoChestRevealed=true;
+  cosmeticRevealFx(r);
+  const log=loadEchoLog();
+  log.unshift({ts:Date.now(),chestK:r.chest.k,chestN:r.chest.n,rar:r.rar,dup:r.dup,
+    itemName:r.n||null,cat:r.cat||null,tierTitle:r.tierTitle||null});
+  if(log.length>ECHOLOG_MAX) log.length=ECHOLOG_MAX;
+  saveEchoLog(log);
+  render();
+}
+/* Slim teaser row left behind in scCollection() (§1) — read-only status +
+   a single click-through, no pull action/chest art/fuse rows here (those
+   live ONLY on the standalone screen, keeping "what have I collected" and
+   "pull more" as two separate jobs instead of doing both halfway twice). */
+function scEchoBoxPointer(){
+  const s=el('div','colsec');
   s.appendChild(el('h3',null,'ECHO BOX'));
-  if(!collectionComplete()){
-    s.appendChild(el('div','iempty','Complete every Relic, Die Face and Boss above to unlock the Echo Box.'));
-    return s;
-  }
-  s.appendChild(el('div','ud','Spend leftover Gene Shard on Echo Boxes — gacha pulls for avatars, decor, backgrounds and titles.'));
+  const tier=echoTier(), tierName=tier>0?ECHO_TIER_NAMES[tier]:'—';
+  const opened=META.echoBoxesOpened||0, inTier=opened%ECHO.tierSize;
+  const row=el('div','echoptr');
+  const txt=el('div','echoptr-txt');
+  txt.appendChild(el('div','echoptr-t','Spend leftover Gene Shard on cosmetics'));
+  txt.appendChild(el('div','echoptr-s','Rank: '+tierName+' · '+inTier+'/'+ECHO.tierSize+' to next rank'));
+  row.appendChild(txt);
+  row.appendChild(el('div','echoptr-arrow','→'));
+  row.onclick=()=>{ SFX.ui(); screen='echobox'; render(); };
+  kbAct(row);
+  s.appendChild(row);
+  return s;
+}
+function scEchoBox(){
+  const w=el('div','screen menu echobox');
+  w.appendChild(el('h1','logo sm','ECHO BOX'));
+  w.appendChild(el('div','sub','Spend leftover Gene Shard on gacha pulls — avatars, decor, backgrounds and titles.'));
+
+  // §2 hero banner — real art, no new assets; unowned chips show the same
+  // real thumbnail dimmed (.echoshow.locked), never a "???" blackout.
+  const hero=el('div','echohero');
+  const strip=el('div','echohero-strip');
+  echoHeroPicks().forEach(p=>strip.appendChild(echoShowChip(p.cat,p.key,p.item)));
+  hero.appendChild(strip);
+  const ownedTotal=ECHO_BOX_CATEGORIES.reduce((s,c)=>s+(ownedArrFor(c)||[]).length,0);
+  const poolTotal=ECHO_BOX_CATEGORIES.reduce((s,c)=>s+Object.keys(COSMETIC_POOLS[c]).length,0);
+  hero.appendChild(el('div','echohero-cap',ECHO_BOX_CATEGORIES.length+' pools · '+ownedTotal+'/'+poolTotal+' collected'));
+  w.appendChild(hero);
+
+  // §7 Rank/pity meter — promoted from a plain sentence to a .bpbar readout.
   const opened=META.echoBoxesOpened||0;
-  const tier=echoTier();
-  const tierName=tier>0?ECHO_TIER_NAMES[tier]:'—';
+  const tier=echoTier(), tierName=tier>0?ECHO_TIER_NAMES[tier]:'—';
   const inTier=opened%ECHO.tierSize;
-  const cost=echoCost(opened+1);
-  s.appendChild(el('div','ud',`Echo Boxes Opened: ${opened}  ·  Tier: ${tierName}  ·  ${inTier}/${ECHO.tierSize} to next tier`));
-  s.appendChild(el('div','ud',`Next Echo Box costs ${cost} Shard.`));
+  const cost=opened===0?ECHO.introCost:echoCost(opened+1);
+  const rankBox=el('div','echorank');
+  const rankHead=el('div','echorank-head');
+  rankHead.appendChild(el('div','echorank-name','RANK: '+tierName));
+  rankHead.appendChild(el('div','echorank-chip',opened+' box'+(opened===1?'':'es')+' opened'));
+  rankBox.appendChild(rankHead);
+  const rbar=el('div','bpbar big'); const rfill=el('div','bpfill'); rfill.style.width=(inTier/ECHO.tierSize*100)+'%'; rbar.appendChild(rfill);
+  rankBox.appendChild(rbar);
+  rankBox.appendChild(el('div','echorank-cap',inTier+'/'+ECHO.tierSize+' to next rank'));
+  w.appendChild(rankBox);
+
+  // §3 primary pull action — real visual weight, cost lives on the button
+  // itself, disabled state still tells the player what to do next.
   const can=META.shards>=cost;
-  const ob=el('button','btn cta'+(can?'':' dis'),'OPEN BOX');
+  const pull=el('button','echopull'+(can?'':' dis')+(can&&!wantsLessFlash()?' glow':''));
+  pull.appendChild(el('div','echopull-t1','OPEN ECHO BOX'));
+  pull.appendChild(el('div','echopull-t2',can?(cost+' SHARD'):('Need '+(cost-META.shards)+' more Shard')));
   if(can){
-    ob.onclick=()=>{
-      const beforeTier=echoTier();
+    pull.onclick=()=>{
       const r=echoBoxOpen();
       if(r){
-        echoBoxResult=r;
-        SFX[(r.rar>=3||r.tierTitle)?'legend':'coin']();
+        echoBoxResult=r; echoChestRevealed=false;
+        hitstop(60); // step-0 click punch, before the chest even mounts
+        chestGradeFx(r);
         render();
+        /* auto-chain to the cosmetic reveal (echo-box-double-gacha-ux.md §3) —
+           re-checks `echoBoxResult===r` so a stale timer from a PRIOR box
+           can never reveal on top of one the player has since re-rolled.
+           Diamond/Lunacian hold the beat slightly longer (§4) — a feel tune,
+           not a frozen economy constant, safe to adjust without sign-off. */
+        const holdMs=(r.chest.k==='diamond'||r.chest.k==='lunacian')?1100:850;
+        setTimeout(()=>{ if(echoBoxResult===r && !echoChestRevealed) revealCosmetic(r); },holdMs);
       }
     };
-    ob.onmouseenter=()=>SFX.hover();
+    pull.onmouseenter=()=>SFX.hover();
   } else {
-    ob.disabled=true;
+    pull.disabled=true;
   }
-  s.appendChild(ob);
+  w.appendChild(pull);
 
-  if(echoBoxResult){
+  // §4/§5 reveal area — same 2-step mechanic/data as before, re-staged FX only.
+  if(echoBoxResult && !echoChestRevealed){
+    const r=echoBoxResult;
+    const chestBox=el('button','chestreveal chest-'+r.chest.k+' chestenter');
+    const im=el('img','chestimg'); im.src=CHEST_ART[r.chest.k]; chestBox.appendChild(im);
+    chestBox.appendChild(el('div','rt',r.chest.n));
+    chestBox.appendChild(el('div','rd',r.chest.d));
+    chestBox.onclick=()=>{ if(!echoChestRevealed) revealCosmetic(r); };
+    w.appendChild(chestBox);
+  } else if(echoBoxResult){
     const r=echoBoxResult;
     const card=el('div','rcard r'+r.rar+' echoresult');
     card.appendChild(el('div','rbadge',RARITY[r.rar]));
     card.appendChild(el('div','rt',r.dup?'DUPLICATE':(r.n||'')));
     card.appendChild(el('div','rd',r.dup?('Fusion progress: '+r.dupeCount+'/'+ECHO_FUSE_COST+' at '+RARITY[r.rar]):(r.cat||'').toUpperCase()));
-    if(r.tierTitle) card.appendChild(el('div','rsub','Tier title unlocked: '+r.tierTitle));
-    s.appendChild(card);
+    if(r.tierTitle) card.appendChild(el('div','rsub','Rank title unlocked: '+r.tierTitle));
+    w.appendChild(card);
   }
 
-  const fs=el('div','fusewrap');
-  for(let r=0;r<5;r++){
-    const dc=(META.dupeCounts&&META.dupeCounts[r])||0;
-    const row=el('div','fuserow');
+  // §8 fuse panel — demoted to a clean secondary panel (small .bpbar per
+  // row instead of raw text; empty rows stay visible at reduced opacity,
+  // never hidden — the mechanic should always be legible, just not compete
+  // for attention when there's nothing to act on).
+  const fp=el('div','fusepanel');
+  fp.appendChild(el('h3',null,'FUSE DUPLICATES'));
+  fp.appendChild(el('div','ud',ECHO_FUSE_COST+' duplicates of a rarity → 1 upgrade.'));
+  // r<4 only (Common/Rare/Epic/Legendary) — product owner: Mythic is the top
+  // rarity, there's nothing above it to fuse UP into, so the row doesn't
+  // belong in this panel (fuseCosmetics(4)'s Shard-refund branch is left
+  // intact in case a future UI wants it — just no longer wired to a button).
+  for(let r=0;r<4;r++){
+    const dc=(META.dupeCounts&&META.dupeCounts[r])||0, ready=dc>=ECHO_FUSE_COST;
+    const row=el('div','fuserow'+(ready?'':' dis'));
     row.appendChild(el('span','rchip r'+r,RARITY[r]));
+    const mini=el('div','bpbar'); const mf=el('div','bpfill'); mf.style.width=Math.min(100,dc/ECHO_FUSE_COST*100)+'%'; mini.appendChild(mf);
+    row.appendChild(mini);
     row.appendChild(el('span','ud',dc+'/'+ECHO_FUSE_COST));
-    const fb=el('button','btn sm'+(dc>=ECHO_FUSE_COST?'':' dis'),r>=4?'FUSE (SHARD REFUND)':'FUSE');
-    if(dc>=ECHO_FUSE_COST){
+    const fb=el('button','btn sm'+(ready?'':' dis'),r>=4?'FUSE (SHARD REFUND)':'FUSE');
+    if(ready){
       fb.onclick=()=>{ const res=fuseCosmetics(r); if(res){ echoFuseResult=res; SFX.legend(); render(); } };
       fb.onmouseenter=()=>SFX.hover();
     } else {
       fb.disabled=true;
     }
     row.appendChild(fb);
-    fs.appendChild(row);
+    fp.appendChild(row);
   }
-  s.appendChild(fs);
+  w.appendChild(fp);
   if(echoFuseResult){
     const r=echoFuseResult;
     const card=el('div','rcard'+(r.refund?'':(' r'+r.rar))+' echoresult');
@@ -3108,9 +3570,36 @@ function scEchoBox(){
       card.appendChild(el('div','rt',r.n));
       card.appendChild(el('div','rd',(r.cat||'').toUpperCase()));
     }
-    s.appendChild(card);
+    w.appendChild(card);
   }
-  return s;
+
+  // §6 pull-history log — passive reference, sits after the actionable stuff.
+  const logSec=el('div','colsec');
+  logSec.appendChild(el('h3',null,'PULL LOG'));
+  const log=loadEchoLog();
+  if(!log.length){
+    logSec.appendChild(el('div','iempty','No pulls yet — open your first Echo Box above.'));
+  } else {
+    const toolrow=el('div','trow');
+    toolrow.appendChild(btn('sm danger','CLEAR LOG',()=>{
+      if(confirm('Clear pull history? This cannot be undone.')){ saveEchoLog([]); render(); }
+    }));
+    logSec.appendChild(toolrow);
+    const list=el('div','echologlist');
+    log.forEach(e=>{
+      const row=el('div','echologrow');
+      const im=el('img','echologimg'); im.src=CHEST_ART[e.chestK]; row.appendChild(im);
+      row.appendChild(el('span','rchip r'+e.rar,RARITY[e.rar]));
+      row.appendChild(el('span','echologn',e.dup?'Duplicate':(e.itemName||'')));
+      row.appendChild(el('span','echologt',new Date(e.ts).toLocaleString()));
+      list.appendChild(row);
+    });
+    logSec.appendChild(list);
+  }
+  w.appendChild(logSec);
+
+  w.appendChild(btn('','BACK',()=>{ screen='menu'; render(); }));
+  return w;
 }
 
 /* ================= PROFILE ================= */
@@ -3126,7 +3615,8 @@ function scProfile(){
   w.appendChild(el('div','sub','Signed in as '+(authUsername||'?')));
 
   const eq=META.equipped||{title:'',avatar:'',decor:'',background:''};
-  const prevCls='profile-preview'+(eq.background&&COSMETIC_BACKGROUNDS[eq.background]?(' '+COSMETIC_BACKGROUNDS[eq.background].style):'');
+  const eqBg=eq.background&&tourItemDef('background',eq.background);
+  const prevCls='profile-preview'+(eqBg&&eqBg.style?(' '+eqBg.style):'');
   const prev=el('div',prevCls);
   // Avatar+decor composition shared with the menu corner — see
   // buildAvatarWrap() above scMenu().
@@ -3149,8 +3639,13 @@ function scProfile(){
     keys.forEach(k=>{
       const item=pool[k], has=owned.includes(k), isEq=eq[cat]===k;
       const thumbSrc=item.src||item.img; // real art (avatar portraits/cards, land-item decor) vs. CSS-only entries
-      const c=el('div','citem r'+item.rar+(has?'':' locked')+(isEq?' on':'')+(thumbSrc?' has-thumb':''));
+      const swatchable=has&&!thumbSrc&&item.style&&(cat==='decor'||cat==='background');
+      const c=el('div','citem r'+item.rar+(has?'':' locked')+(isEq?' on':'')+(thumbSrc||swatchable?' has-thumb':''));
       if(has&&thumbSrc){ const t=el('img','citem-thumb'); t.src=thumbSrc; c.appendChild(t); c.appendChild(el('span',null,item.n)); }
+      else if(swatchable){
+        const sw=el('div',cat==='decor'?('citem-swatch-decor decor-'+item.style):('citem-swatch-bg '+item.style));
+        c.appendChild(sw); c.appendChild(el('span',null,item.n));
+      }
       else c.textContent=has?item.n:'???';
       if(has){
         c.onclick=()=>{ META.equipped[cat]=k; if(cat==='avatar') META.avatarSource='gacha'; saveMeta(); render(); };
@@ -3182,8 +3677,17 @@ function scProfile(){
   (META.ownedTitles||[]).forEach(t=>{ if(!titlePool[t]) titlePool[t]={n:t,rar:4}; });
   w.appendChild(mkSec('TITLES','title',titlePool));
   w.appendChild(mkSec('AVATARS','avatar',COSMETIC_AVATARS));
-  w.appendChild(mkSec('DECOR','decor',COSMETIC_DECOR));
-  w.appendChild(mkSec('BACKGROUNDS','background',COSMETIC_BACKGROUNDS));
+  // Same fallback-merge shape as titlePool above, for the 2 non-title World
+  // Tour exclusives (design/gdd/world-tour.md) — they live in
+  // TOUR_EXCLUSIVE_DECOR/_BACKGROUNDS (cosmetics.js), never in
+  // COSMETIC_DECOR/BACKGROUNDS, so they'd otherwise never appear as a
+  // selectable chip once owned.
+  const decorPool={...COSMETIC_DECOR};
+  (META.ownedDecor||[]).forEach(k=>{ if(!decorPool[k]&&TOUR_EXCLUSIVE_DECOR[k]) decorPool[k]=TOUR_EXCLUSIVE_DECOR[k]; });
+  w.appendChild(mkSec('DECOR','decor',decorPool));
+  const bgPool={...COSMETIC_BACKGROUNDS};
+  (META.ownedBackgrounds||[]).forEach(k=>{ if(!bgPool[k]&&TOUR_EXCLUSIVE_BACKGROUNDS[k]) bgPool[k]=TOUR_EXCLUSIVE_BACKGROUNDS[k]; });
+  w.appendChild(mkSec('BACKGROUNDS','background',bgPool));
   w.appendChild(btn('','BACK',()=>{ screen='menu'; render(); }));
   return w;
 }
@@ -3227,7 +3731,7 @@ function scTeam(){
   T1.forEach(k=>{
     const h=HEROES[k], n=teamPick.filter(x=>x===k).length, pa=PASSIVE[h.cls];
     const c=el('div','pick'+(n?' on':'')+(full&&!n?' full':'')); c.style.setProperty('--cc',CLASS_COLOR[h.cls]);
-    const im=el('img','spr'); im.src=sprOf(h.cls,h.art+(n%3)); c.appendChild(im);
+    c.appendChild(heroArtWrap(h.cls,h.tier,h.art+(n%3),'spr'));
     c.appendChild(el('div','nm',h.n));
     c.appendChild(el('div','cls',h.cls.toUpperCase()+' · HP '+h.hp));
     const p=el('div','pasbox'); p.appendChild(el('span','pn',pa.n)); p.appendChild(el('span','pd',pa.d)); c.appendChild(p);
@@ -3251,7 +3755,14 @@ function scTeam(){
       const open=vaultExpanded.has(key);
       const stale=vaultStale(v);   /* E13 — die resolve theo luật cũ, phải quét lại */
       const c=el('div','vchip'+(n?' on':'')+(full&&!n?' full':'')+(stale?' stale':'')); c.style.setProperty('--cc',CLASS_COLOR[h.cls]);
-      c.appendChild(realArtWrap(v.image,sprOf(h.cls,h.art),'vchip-thumb'));
+      // 3-tier fallback: v.image (this specific Vault NFT's own real art,
+      // earns the "⛓ Real Axie NFT art" badge — realArtWrap only badges
+      // when its first arg is non-null) → h.art2 (the mapped class's real
+      // Hero art, no badge — that would be a false ownership claim for art
+      // that isn't this NFT's own) → pixel sprite.
+      c.appendChild(v.image?realArtWrap(v.image,sprOf(h.cls,h.art),'vchip-thumb')
+        :(h.art2?houseArtWrap(HOUSE_ART[h.art2],sprOf(h.cls,h.art),'vchip-thumb',CLASS_COLOR[h.cls])
+                :realArtWrap(null,sprOf(h.cls,h.art),'vchip-thumb')));
       const info=el('div','vchip-info');
       info.appendChild(el('div','vchip-nm',h.n));
       info.appendChild(el('div','vchip-cls',h.cls.toUpperCase()+' · HP '+h.hp));
@@ -3416,7 +3927,7 @@ function scMap(){
     c.appendChild(ico(inf.ic,'nic',inf.c));
     c.appendChild(el('div','nn',inf.n));
     if(nd.type==='boss'){ const bk=S.bossPlan[S.bossSteps.indexOf(S.step)]||'agony'; const b=BOSS_BY_K[bk];
-      const im=el('img','spr mut'); im.src=sprMon(bk); c.appendChild(im);
+      const im=el('img','spr mut'+(sprMonIsReal(bk)?' real':'')); im.src=sprMon(bk); c.appendChild(im);
       c.appendChild(el('div','nbn',b.n)); c.appendChild(el('div','nd',b.desc)); }
     else {
       c.appendChild(el('div','nd',inf.d));
@@ -3656,7 +4167,7 @@ function unitCard(u){
   if(incoming) c.classList.add('threat');
 
   const spw=el('div','sprwrap');
-  if(isE){ const im=el('img','spr mut'); im.src=sprMon(u.key); spw.appendChild(im); }
+  if(isE){ const im=el('img','spr mut'+(sprMonIsReal(u.key)?' real':'')); im.src=sprMon(u.key); spw.appendChild(im); }
   else spw.appendChild(unitArtImg(u));
   if(!isE&&u.pas) { const p=el('div','pasdot',u.pas.n[0]); p.title=u.pas.n+': '+u.pas.d; spw.appendChild(p); }
   c.appendChild(spw);
@@ -3850,19 +4361,119 @@ function onCombatEnd(){
   if(S.bossSteps.includes(S.step)){ const bk=S.bossPlan[S.bossSteps.indexOf(S.step)]; if(bk&&!META.bosses.includes(bk)){ META.bosses.push(bk); saveMeta(); } }
   if(S.phase==='won') onRunEnd();
 }
+/* Daily Mission (economy-progression.md §10.3, data.js DAILY_MISSION_SHARD) —
+   same 'YYYY-MM-DD' UTC string already used by the DAILY SEED button, so a
+   player's day boundary is identical across both features. Idempotent: safe
+   to call every run-end, only ever grants once per calendar day. */
+const todayUTC=()=>new Date().toISOString().slice(0,10);
+function claimDailyMission(){
+  const today=todayUTC();
+  if(META.dailyDate===today) return false;
+  META.dailyDate=today; META.shards+=DAILY_MISSION_SHARD;
+  return true;
+}
 function onRunEnd(){
   META.shards+=S.shards;
   if(S.step>META.best) META.best=S.step;
   S.seen.faces.forEach(f=>{ if(!META.faces.includes(f)) META.faces.push(f); });
   S.seen.relics.forEach(r=>{ if(!META.relics.includes(r)) META.relics.push(r); });
-  if(S.phase==='won'){ META.wins++; if(S.asc>=META.ascMax&&META.ascMax<10) META.ascMax=Math.min(10,S.asc+1); }
+  if(S.phase==='won'){ META.wins++; if(S.asc>=META.ascMax&&META.ascMax<10) META.ascMax=Math.min(10,S.asc+1);
+    // World Tour questStep() gate (world-tour.md §Detailed Rules/Tầng 2) — exact
+    // mirror of the ascMax update above, scoped to S.mode==='full' only: a Short
+    // Run win at any Ascension must never advance this (AC 3b negative test).
+    if(S.mode==='full'){ if(S.asc>=META.fullAscMax&&META.fullAscMax<10) META.fullAscMax=Math.min(10,S.asc+1); } }
   S.xpGain=runXp(S,S.phase==='won'); META.xp+=S.xpGain;
+  S.dailyMissionGranted=claimDailyMission();
   saveMeta();
   const outcome=S.phase==='won'?'win':(S.abandoned?'quit':'loss');
   sendTelemetry('run.ended',{mode:S.mode,ascension:S.asc,ranked:!!S.ranked,outcome,wave:S.step,
     durationMs:S.startedAt?(Date.now()-S.startedAt):0});
   saveRunHistory(); // reads S — must run before clearRun() discards it
   clearRun();
+}
+/* ================= WORLD TOUR ("Lunacia Atlas") — design/gdd/world-tour.md =================
+   progress()/questStep()/gateCleared()/badgeTier() are pure functions of
+   META, recomputed on every render — none of their outputs are stored
+   (§Formulas #3/#6 explicitly reject caching these as fields, same
+   philosophy as echoTier()/badgeTier() elsewhere in this file). Only
+   tourClaimed/tourMap2Base/fullAscMax are real, persisted state. */
+// progress(map) §Formulas #2 — Map 1's baseline is fixed at 0; Map 2's is the
+// one-time META.tourMap2Base snapshot (null until the gate first clears).
+function tourProgress(mapIdx){
+  if(mapIdx===1) return Math.max(0, META.runs||0);
+  tourMaybeSnapshotMap2Base();
+  if(META.tourMap2Base==null) return 0;
+  return Math.max(0, (META.runs||0) - META.tourMap2Base);
+}
+// questStep() §Formulas #3 — participation (Map 1 fully progressed) always
+// gates first, independent of fullAscMax; then 3 further fullAscMax rungs.
+function tourQuestStep(){
+  if(tourProgress(1) < TOUR_T[9]) return 0;
+  const fam=META.fullAscMax||0;
+  if(fam<1) return 1;
+  if(fam===1) return 2;
+  if(fam===2) return 3;
+  return 4; // fam>=3
+}
+function tourGateCleared(){ return tourQuestStep()>=4; }
+// Snapshot base(map2) the instant the gate is first observed clear — safe to
+// call from any read path: META.runs only changes at run start and
+// fullAscMax only at run end, so no run can complete between the gate
+// flipping true and the next time anything reads tourProgress(2), meaning
+// whichever call happens to notice first still captures the correct value
+// (world-tour.md §Formulas #2 "lưu 1 lần").
+function tourMaybeSnapshotMap2Base(){
+  if(META.tourMap2Base==null && tourQuestStep()>=4){ META.tourMap2Base=META.runs||0; saveMeta(); }
+}
+// badgeTier(map) §Formulas #6 — deliberately reads ascMax (not fullAscMax);
+// see the TOUR_GOLD_THRESHOLD comment in data.js for why this keeps the
+// GDD's own open Question #3 mismatch rather than silently resolving it.
+function tourBadgeTier(mapIdx){
+  if(tourProgress(mapIdx) < TOUR_T[9]) return 'none';
+  return (META.ascMax||0) >= TOUR_GOLD_THRESHOLD[mapIdx] ? 'gold' : 'silver';
+}
+function tourLandmarkOk(cond){
+  if(!cond) return true;
+  if(cond.type==='boss') return (META.bosses||[]).includes(cond.boss);
+  if(cond.type==='ascMax') return (META.ascMax||0)>=cond.min;
+  return true;
+}
+function tourMapDef(mapIdx){ return TOUR_MAPS.find(m=>m.map===mapIdx); }
+function tourTileEligible(mapIdx,tile){
+  return tourProgress(mapIdx)>=TOUR_T[tile.i-1] && tourLandmarkOk(tile.landmark);
+}
+function tourClaimKey(mapIdx,tileIdx){ return mapIdx+':'+tileIdx; }
+// Resolves a tile's reward definition across the real pools AND the 2
+// non-title Tour-exclusive registries (never merged into COSMETIC_POOLS —
+// see the cosmetics.js comment on TOUR_EXCLUSIVE_DECOR/_BACKGROUNDS).
+function tourItemDef(cat,key){
+  if(cat==='title') return {n:key};
+  const pool=(COSMETIC_POOLS[cat]||{})[key]; if(pool) return pool;
+  if(cat==='decor'&&TOUR_EXCLUSIVE_DECOR[key]) return TOUR_EXCLUSIVE_DECOR[key];
+  if(cat==='background'&&TOUR_EXCLUSIVE_BACKGROUNDS[key]) return TOUR_EXCLUSIVE_BACKGROUNDS[key];
+  return {n:key};
+}
+// Grants a tile's reward directly into the owned collection — same
+// deterministic, no-RNG path Battle Pass uses, never through
+// echoBoxOpen()'s roll. No-op (returns false) if already claimed or not yet
+// eligible; never grants twice (§Edge Cases "Claim hai lần cùng một ô").
+function tourClaim(mapIdx,tileIdx){
+  const mapDef=tourMapDef(mapIdx); if(!mapDef) return false;
+  const tile=mapDef.tiles.find(t=>t.i===tileIdx); if(!tile) return false;
+  const ck=tourClaimKey(mapIdx,tileIdx);
+  if((META.tourClaimed||[]).includes(ck)) return false;
+  if(!tourTileEligible(mapIdx,tile)) return false;
+  const r=tile.reward;
+  if(r.cat==='title'){ if(!META.ownedTitles.includes(r.key)) META.ownedTitles.push(r.key); }
+  else { const arr=ownedArrFor(r.cat); if(!arr.includes(r.key)) arr.push(r.key); }
+  META.tourClaimed.push(ck);
+  saveMeta();
+  return true;
+}
+function tourClaimAll(mapIdx){
+  const mapDef=tourMapDef(mapIdx); if(!mapDef) return 0;
+  let n=0; mapDef.tiles.forEach(t=>{ if(tourClaim(mapIdx,t.i)) n++; });
+  return n;
 }
 /* ---------- MATCH HISTORY entry (see HK comment above for local-only scope
    decision). Runs once per finished (won OR lost, including an ABANDON RUN
@@ -3912,9 +4523,21 @@ function scReward(){
     c.appendChild(el('div','rbadge',RARITY[r.rar||0]));
     c.appendChild(el('div','rt',r.title));
     if(r.cls){ const ent=r.uid!=null?S.roster.find(x=>x.uid===r.uid):null;
-      const vh=ent&&HEROES[ent.key];
+      // r.key (only set by the 'level' reward, engine.js mkReward) is the
+      // TIER-UP TARGET's key — this card previews what the Axie becomes,
+      // not what it currently is, so it must win over ent.key (the roster
+      // entry's current, pre-upgrade key) whenever it's present. Every
+      // other reward type ('ascend'/'face'/'gene') has no r.key and falls
+      // back to ent.key exactly as before.
+      const heroKey=r.key||(ent&&ent.key), vh=heroKey&&HEROES[heroKey];
       const fallback=sprOf(r.cls,(r.tier===4?6:(r.tier-1)*3)+((ent&&ent.vr||0)%3));
-      c.appendChild(realArtWrap(vh&&vh.image,fallback,'spr')); }
+      // Was realArtWrap(vh&&vh.image,...) only — missed the vh.art2 (real,
+      // non-NFT Hero art) branch entirely, so every reward preview without
+      // a Vault NFT silently fell back to the old pixel sprite forever,
+      // even after Hero art was adopted everywhere else (unitArtImg()).
+      if(vh&&vh.image) c.appendChild(realArtWrap(vh.image,fallback,'spr'));
+      else if(vh&&vh.art2) c.appendChild(houseArtWrap(HOUSE_ART[vh.art2],fallback,'spr',CLASS_COLOR[r.cls]));
+      else c.appendChild(realArtWrap(null,fallback,'spr')); }
     else c.appendChild(ico(r.t==='relic'||r.t==='chaos'?'chest':r.t==='curse'?'poison':r.t==='reroll'?'reroll':'shard','ricon'));
     c.appendChild(el('div','rd',r.desc));
     if(r.sub) c.appendChild(el('div','rsub',r.sub));
@@ -4087,7 +4710,7 @@ function scHistory(){
       row.appendChild(el('div','histwave','Wave '+r.wave+'/'+r.len));
       row.appendChild(el('div','histdate',new Date(r.ts).toLocaleString()));
       const portraits=el('div','histteam');
-      (r.team||[]).forEach(u=>{ const im=el('img','spr histspr'); im.src=sprOf(u.cls,u.artIdx); im.title=u.n+' T'+u.tier; portraits.appendChild(im); });
+      (r.team||[]).forEach(u=>{ const wrap=heroArtWrap(u.cls,u.tier,u.artIdx,'spr histspr'); wrap.title=u.n+' T'+u.tier; portraits.appendChild(wrap); });
       row.appendChild(portraits);
       const chips=el('div','histarch');
       (r.archetypes||[]).slice(0,2).forEach(a=>{ const def=ARCH[a.key]; if(!def) return;
@@ -4124,7 +4747,7 @@ function teamRelicsSec(r){
   const tgrid=el('div','pstrip');
   (r.team||[]).forEach(u=>{
     const c=el('div','psc'); c.style.setProperty('--cc',CLASS_COLOR[u.cls]||'#888');
-    const im=el('img','spr'); im.src=sprOf(u.cls,u.artIdx); c.appendChild(im);
+    c.appendChild(heroArtWrap(u.cls,u.tier,u.artIdx,'spr'));
     c.appendChild(el('div','nm',u.n+' T'+u.tier));
     const dv=el('div','minidie');
     (u.die||[]).forEach(fx=>dv.appendChild(el('span','mf',fx)));
@@ -4316,10 +4939,11 @@ function scEnd(){
   rc.appendChild(mk('Enemies killed',S.stat.kills)); rc.appendChild(mk('Turns played',S.stat.turns));
   rc.appendChild(mk('Shard earned',S.shards));
   if(S.xpGain!=null) rc.appendChild(mk('Lunacia XP',+S.xpGain));
+  if(S.dailyMissionGranted) rc.appendChild(mk('Daily Mission','+'+DAILY_MISSION_SHARD));
   bx.appendChild(rc);
   if(!won&&S.enemies.length){
     const killer=S.enemies.filter(e=>e.hp>0).sort((a,b)=>b.maxHp-a.maxHp)[0];
-    if(killer){ const k=el('div','killer'); const im=el('img','spr mut'); im.src=sprMon(killer.key);
+    if(killer){ const k=el('div','killer'); const im=el('img','spr mut'+(sprMonIsReal(killer.key)?' real':'')); im.src=sprMon(killer.key);
       k.appendChild(im); k.appendChild(el('div',null,'Killed by '+killer.n+(killer.boss?' (BOSS)':'')));
       bx.appendChild(k); }
   }
@@ -4444,6 +5068,102 @@ function scBP(){
   <br><b>Five exclusive die faces</b> at levels 5, 12, 19, 26 and 30, each one built around a different playstyle.`;
   w.appendChild(info);
   w.appendChild(btn('','BACK',()=>{ screen='menu'; render(); }));
+  return w;
+}
+
+/* ================= WORLD TOUR (design/gdd/world-tour.md) =================
+   Two views under one `screen==='tour'`: `tourView==='select'` (chapter
+   grid, WorldMapSelection.png) and `'map'` (in-map tile track, `tourMapIdx`
+   picks which). Map 1 is always unlocked; Map 2 requires tourGateCleared(). */
+let tourView='select', tourMapIdx=1;
+function tourMapUnlocked(mapIdx){ return mapIdx===1 || tourGateCleared(); }
+function tourMapAllClaimed(mapIdx){
+  const mapDef=tourMapDef(mapIdx); if(!mapDef) return false;
+  return mapDef.tiles.every(t=>(META.tourClaimed||[]).includes(tourClaimKey(mapIdx,t.i)));
+}
+// §Edge Cases "Người chơi đang ở GIỮA chuỗi nhiệm vụ" — always names the
+// CURRENT step's specific requirement, never a jumbled multi-step summary.
+function tourLockReason(mapIdx){
+  if(mapIdx!==2) return '';
+  const step=tourQuestStep();
+  if(step===0){ const need=TOUR_T[9]-tourProgress(1); return 'Finish Lovely Forest I ('+need+' more run'+(need===1?'':'s')+')'; }
+  if(step===1) return 'Step 1/3 done. Need: win 1 Full Run (any Ascension)';
+  if(step===2) return 'Step 2/3 done. Need: win 1 Full Run at Ascension 1+';
+  return 'Step 3/3 done. Need: win 1 Full Run at Ascension 2+ — unlocks Map 2!';
+}
+function scTour(){ return tourView==='map' ? scTourMap(tourMapIdx) : scTourMapSelect(); }
+function scTourMapSelect(){
+  const w=el('div','screen menu tourselect');
+  w.appendChild(el('h1','logo sm','WORLD MAP'));
+  w.appendChild(el('div','sub','Lunacia Atlas — every run moves you forward'));
+  // The lowest unlocked map that still has an unclaimed tile gets the flag
+  // pin (§Detailed Rules "Tương tác UI", item 2) — a fully-claimed map (even
+  // Silver, not just Gold) is "done", no pin needed.
+  const activeDef=TOUR_MAPS.find(m=>tourMapUnlocked(m.map)&&!tourMapAllClaimed(m.map));
+  const grid=el('div','tourmapgrid');
+  TOUR_MAPS.forEach(m=>{
+    const unlocked=tourMapUnlocked(m.map), badge=tourBadgeTier(m.map);
+    const tile=el('div','tourmaptile'+(unlocked?'':' locked'));
+    const artUrl=(typeof TOUR_MAP_ART!=='undefined'&&TOUR_MAP_ART[m.art])||'';
+    if(artUrl) tile.style.backgroundImage="url('"+artUrl+"')";
+    if(badge!=='none') tile.appendChild(el('div','tourbadge tourbadge-'+badge, badge==='gold'?'★ GOLD':'★ SILVER'));
+    if(activeDef&&activeDef.map===m.map) tile.appendChild(el('div','tourflag','📍'));
+    tile.appendChild(el('div','tourmapname',m.name));
+    if(unlocked){
+      const claimedN=m.tiles.filter(t=>(META.tourClaimed||[]).includes(tourClaimKey(m.map,t.i))).length;
+      tile.appendChild(el('div','tourmapsub',claimedN+'/'+m.tiles.length+' claimed · '+Math.min(tourProgress(m.map),TOUR_T[9])+'/'+TOUR_T[9]+' runs'));
+      tile.onclick=()=>{ tourMapIdx=m.map; tourView='map'; render(); };
+      kbAct(tile);
+    } else {
+      tile.appendChild(el('div','tourmapsub locktxt',tourLockReason(m.map)));
+    }
+    grid.appendChild(tile);
+  });
+  // Always-present locked placeholder for a future 3rd chapter — the
+  // WorldMapSelection.png wireframe bakes this into the same screen rather
+  // than a separate "completed" state (§Edge Cases).
+  const nxt=el('div','tourmaptile locked comingsoon');
+  nxt.appendChild(el('div','tourmapname','Next Chapter'));
+  nxt.appendChild(el('div','tourmapsub','Coming in a future update.'));
+  grid.appendChild(nxt);
+  w.appendChild(grid);
+  w.appendChild(btn('','BACK',()=>{ screen='menu'; render(); }));
+  return w;
+}
+function scTourMap(mapIdx){
+  const mapDef=tourMapDef(mapIdx);
+  const w=el('div','screen menu tourmap');
+  const artUrl=(typeof TOUR_MAP_ART!=='undefined'&&TOUR_MAP_ART[mapDef.art])||'';
+  if(artUrl){ w.style.backgroundImage="url('"+artUrl+"')"; w.classList.add('has-bgart'); }
+  w.appendChild(el('h1','logo sm',mapDef.name));
+  const p=tourProgress(mapIdx);
+  const bar=el('div','bpbar big'); const f=el('div','bpfill'); f.style.width=Math.min(100,p/TOUR_T[9]*100)+'%'; bar.appendChild(f);
+  bar.appendChild(el('div','bptxt',Math.min(p,TOUR_T[9])+' / '+TOUR_T[9]+' runs'));
+  w.appendChild(bar);
+  const readyTiles=mapDef.tiles.filter(t=>tourTileEligible(mapIdx,t)&&!(META.tourClaimed||[]).includes(tourClaimKey(mapIdx,t.i)));
+  if(readyTiles.length){
+    w.appendChild(btn('big go','CLAIM ALL ('+readyTiles.length+')',()=>{ tourClaimAll(mapIdx); SFX.passClaim(); flashScreen('gold'); render(); }));
+  }
+  const tr=el('div','bptrack tourtrack');
+  mapDef.tiles.forEach(t=>{
+    const ck=tourClaimKey(mapIdx,t.i);
+    const got=(META.tourClaimed||[]).includes(ck), ready=!got&&tourTileEligible(mapIdx,t);
+    const c=el('div','bpnode'+(t.landmark?' big':'')+(got?' got':ready?' ready':' lock'));
+    c.appendChild(el('div','bplv','Tile '+t.i));
+    const item=tourItemDef(t.reward.cat,t.reward.key);
+    const body=el('div','bpbody');
+    const thumbSrc=item.src||item.img;
+    if((got||ready)&&thumbSrc){ const im=el('img','citem-thumb'); im.src=thumbSrc; body.appendChild(im); }
+    body.appendChild(el('div','bpn',(got||ready)?item.n:'???'));
+    body.appendChild(el('div','bpd',t.reward.cat.toUpperCase()));
+    if(t.landmark) body.appendChild(el('div','bpttl','LANDMARK: '+(t.landmark.type==='boss'?('Defeat '+t.landmark.boss):('Reach Ascension '+t.landmark.min))));
+    c.appendChild(body);
+    c.appendChild(el('div','bpstate',got?'CLAIMED':ready?'CLAIM':'LOCKED'));
+    if(ready){ c.onclick=()=>{ tourClaim(mapIdx,t.i); SFX.passClaim(); flashScreen('gold'); render(); }; kbAct(c); }
+    tr.appendChild(c);
+  });
+  w.appendChild(tr);
+  w.appendChild(btn('','BACK TO WORLD MAP',()=>{ tourView='select'; render(); }));
   return w;
 }
 
@@ -4683,6 +5403,8 @@ const CX_BODY={
   d.appendChild(cxP('A passive is what defines a playstyle. It is always on, needs no activation, and acts as the <b>engine</b> of its matching archetype.'));
   d.appendChild(cxTable(['CLASS','PASSIVE','EFFECT'],
     CLASSES.map(c=>[chip(c.toUpperCase(),CLASS_COLOR[c]),chip(PASSIVE[c].n,CLASS_COLOR[c]),PASSIVE[c].d])));
+  d.appendChild(cxP(`<span class="cnote">A passive belongs to the class, not to a specific Axie — any Axie of
+   that class carries it, including a real Axie NFT you bring in through the Vault.</span>`));
   d.appendChild(cxH('THREE TIERS PER CLASS'));
   d.appendChild(cxTable(['CLASS','T1','T2','T3'],
     CLASSES.map(c=>{ const k1=c+'1',k2=c+'2',k3=c+'3';
@@ -4813,8 +5535,8 @@ function scGuide(){
     const tm=el('div','gteam');
     G.team.forEach((k,i)=>{ const h=HEROES[k];
       const u=el('div','gu'); u.style.setProperty('--cc',CLASS_COLOR[h.cls]);
-      const im=el('img','spr'); im.src=sprOf(h.cls,h.art+(G.team.slice(0,i).filter(x=>x===k).length%3));
-      u.appendChild(im); u.appendChild(el('div','gn',h.n)); tm.appendChild(u); });
+      u.appendChild(heroArtWrap(h.cls,h.tier,h.art+(G.team.slice(0,i).filter(x=>x===k).length%3),'spr'));
+      u.appendChild(el('div','gn',h.n)); tm.appendChild(u); });
     c.appendChild(tm);
     c.appendChild(el('div','gwhy',G.why));
     const ul=el('div','ghow');
@@ -4880,7 +5602,7 @@ function scUnitInfo(){
   return modalShell(u.n.toUpperCase(), sub, null, ()=>{
     const d=el('div','uinsp');
     const h=el('div','ic2h');
-    if(isE){ const im=el('img','spr mut'); im.src=sprMon(u.key); h.appendChild(im); }
+    if(isE){ const im=el('img','spr mut'+(sprMonIsReal(u.key)?' real':'')); im.src=sprMon(u.key); h.appendChild(im); }
     else h.appendChild(unitArtImg(u));
     const t=el('div','ic2t');
     if(!isE&&u.pas){ const p=el('div','ic2p'); p.appendChild(el('b',null,u.pas.n+': ')); p.appendChild(el('span',null,u.pas.d)); t.appendChild(p); }
@@ -4955,7 +5677,7 @@ function scInfo(){
       S.enemies.forEach(e=>{
         const c=el('div','icard2 en'+(e.hp<=0?' dead':''));
         const h=el('div','ic2h');
-        const im=el('img','spr mut'); im.src=sprMon(e.key); h.appendChild(im);
+        const im=el('img','spr mut'+(sprMonIsReal(e.key)?' real':'')); im.src=sprMon(e.key); h.appendChild(im);
         const t=el('div','ic2t');
         t.appendChild(el('div','ic2n',e.n+(e.boss?'  [BOSS]':e.elite?'  [ELITE]':'')+(e.hp<=0?'  [DEAD]':'')));
         t.appendChild(el('div','ic2s','HP '+e.hp+'/'+e.maxHp+(e.shield?'  ·  Shield '+e.shield:'')+'  ·  role: '+(e.role||'-')));

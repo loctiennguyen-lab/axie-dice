@@ -81,59 +81,67 @@ const ARCH = {
 };
 
 /* ================= HEROES: 6 class × 3 tier ================= */
+/* Hero display names (design/quick-specs/real-art-adoption-plan-2026-09-07.md
+   §2, 2026-09-07 follow-up): renamed from generic gameplay names (Sprout/
+   Cub/Fry/...) to the real Axie character each class's art actually shows —
+   Olek/Buba/Puffy/Machito/Pomodoro/Momo. Matches the plan's own "one
+   character carries all 3 tiers of its class" design: the UI already
+   appends ' T'+tier separately (see client.html, grep "u.n+' T'+u.tier"), so
+   e.g. plant1/2/3 render as "Olek T1"/"Olek T2"/"Olek T3" — the SAME
+   character leveling up, not three unrelated names. */
 const HEROES = {
-  plant1:{n:'Sprout',cls:'plant',tier:1,hp:17,art:0,die:[
+  plant1:{n:'Olek',cls:'plant',tier:1,hp:17,art:0,art2:'olek_normal',die:[
     F('back','shield',4), F('back','shield',3), F('mouth','dmg',2), F('back','shield',2), F('horn','dmg',3), F('ears','mana',1,'cantrip')]},
-  plant2:{n:'Bracken',cls:'plant',tier:2,hp:25,art:3,die:[
+  plant2:{n:'Olek',cls:'plant',tier:2,hp:25,art:3,art2:'olek_awaken',die:[
     F('back','shield',6), F('back','shield',5,'aoe'), F('mouth','dmg',4,'lifesteal'), F('eyes','heal',4),
     F('horn','dmg',5), F('ears','mana',1,'cantrip')]},
-  plant3:{n:'Elder Bramble',cls:'plant',tier:3,hp:37,art:6,die:[
+  plant3:{n:'Olek',cls:'plant',tier:3,hp:37,art:6,art2:'olek_awaken',die:[
     F('back','shield',9), F('back','shield',7,'aoe'), F('mouth','dmg',6,'lifesteal'), F('eyes','heal',6,'aoe'),
     F('horn','dmg',8,'cleave'), F('ears','mana',2,'cantrip')]},
 
-  beast1:{n:'Cub',cls:'beast',tier:1,hp:12,art:0,die:[
+  beast1:{n:'Buba',cls:'beast',tier:1,hp:12,art:0,art2:'buba_normal',die:[
     F('horn','dmg',5,'heavy'), F('horn','dmg',3), F('mouth','dmg',3), F('mouth','dmg',2,'growth'), F('back','shield',2), F('mouth','dmg',2)]},
-  beast2:{n:'Ravager',cls:'beast',tier:2,hp:18,art:3,die:[
+  beast2:{n:'Buba',cls:'beast',tier:2,hp:18,art:3,art2:'buba_awaken',die:[
     F('horn','dmg',8,'heavy'), F('horn','dmg',5), F('mouth','dmg',4,'growth'), F('mouth','dmg',6,'selfharm:2'),
     F('tail','dmg',3,'cleave'), F('back','shield',3)]},
-  beast3:{n:'Alpha Fang',cls:'beast',tier:3,hp:26,art:6,die:[
+  beast3:{n:'Buba',cls:'beast',tier:3,hp:26,art:6,art2:'buba_awaken',die:[
     F('horn','dmg',13,'heavy'), F('horn','dmg',8,'vital'), F('mouth','dmg',6,'growth'), F('mouth','dmg',10,'selfharm:3'),
     F('tail','dmg',5,'cleave'), F('back','shield',5)]},
 
-  aqua1:{n:'Fry',cls:'aqua',tier:1,hp:13,art:0,die:[
+  aqua1:{n:'Puffy',cls:'aqua',tier:1,hp:13,art:0,art2:'puffy_normal',die:[
     F('ears','mana',1,'cantrip'), F('ears','mana',1,'cantrip'), F('eyes','heal',3), F('mouth','dmg',3),
     F('horn','dmg',4), F('mouth','dmg',2)]},
-  aqua2:{n:'Tidecaller',cls:'aqua',tier:2,hp:19,art:3,die:[
+  aqua2:{n:'Puffy',cls:'aqua',tier:2,hp:19,art:3,art2:'puffy_awaken',die:[
     F('ears','mana',2,'cantrip'), F('ears','mana',1,'cantrip','rerollup'), F('eyes','heal',5), F('mouth','dmg',5),
     F('horn','dmg',6,'pierce'), F('tail','dmg',3,'aoe')]},
-  aqua3:{n:'Abyss Herald',cls:'aqua',tier:3,hp:27,art:6,die:[
+  aqua3:{n:'Puffy',cls:'aqua',tier:3,hp:27,art:6,art2:'puffy_awaken',die:[
     F('ears','mana',3,'cantrip'), F('ears','mana',2,'cantrip','rerollup'), F('eyes','heal',8,'aoe'), F('mouth','dmg',8),
     F('horn','dmg',9,'pierce'), F('tail','dmg',5,'aoe')]},
 
-  reptile1:{n:'Hatchling',cls:'reptile',tier:1,hp:16,art:0,die:[
+  reptile1:{n:'Machito',cls:'reptile',tier:1,hp:16,art:0,art2:'machito_normal',die:[
     F('back','shield',4), F('tail','poison',2), F('mouth','dmg',3), F('eyes','buff',0,'thorns:2'), F('back','shield',2), F('horn','dmg',3)]},
-  reptile2:{n:'Scaleguard',cls:'reptile',tier:2,hp:23,art:3,die:[
+  reptile2:{n:'Machito',cls:'reptile',tier:2,hp:23,art:3,art2:'machito_awaken',die:[
     F('back','shield',6), F('tail','poison',3,'aoe'), F('mouth','dmg',4), F('eyes','buff',0,'thorns:3'),
     F('back','shield',4,'thorns:2'), F('horn','dmg',5,'pierce')]},
-  reptile3:{n:'Basilisk',cls:'reptile',tier:3,hp:33,art:6,die:[
+  reptile3:{n:'Machito',cls:'reptile',tier:3,hp:33,art:6,art2:'machito_awaken',die:[
     F('back','shield',9), F('tail','poison',5,'aoe'), F('mouth','dmg',7), F('eyes','debuff',0,'stun'),
     F('back','shield',6,'thorns:4'), F('horn','dmg',8,'pierce')]},
 
-  bug1:{n:'Grub',cls:'bug',tier:1,hp:14,art:0,die:[
+  bug1:{n:'Pomodoro',cls:'bug',tier:1,hp:14,art:0,art2:'pomodoro_normal',die:[
     F('eyes','debuff',0,'weaken:2'), F('tail','poison',2), F('mouth','dmg',3), F('back','shield',3), F('tail','poison',1), F('horn','dmg',3)]},
-  bug2:{n:'Swarmling',cls:'bug',tier:2,hp:20,art:3,die:[
+  bug2:{n:'Pomodoro',cls:'bug',tier:2,hp:20,art:3,art2:'pomodoro_normal',die:[
     F('eyes','debuff',0,'weaken:3'), F('eyes','debuff',0,'vulnerable:2'), F('tail','poison',3), F('mouth','dmg',4,'multi:2'),
     F('back','shield',4), F('horn','dmg',6)]},
-  bug3:{n:'Hive Tyrant',cls:'bug',tier:3,hp:28,art:6,die:[
+  bug3:{n:'Pomodoro',cls:'bug',tier:3,hp:28,art:6,art2:'pomodoro_normal',die:[
     F('eyes','debuff',0,'weaken:4','aoe'), F('eyes','debuff',0,'vulnerable:3'), F('tail','poison',4,'aoe'),
     F('mouth','dmg',5,'multi:3'), F('eyes','debuff',0,'blind:2'), F('horn','dmg',9)]},
 
-  bird1:{n:'Chick',cls:'bird',tier:1,hp:11,art:0,die:[
+  bird1:{n:'Momo',cls:'bird',tier:1,hp:11,art:0,art2:'momo_normal',die:[
     F('horn','dmg',3,'pierce'), F('mouth','dmg',4), F('tail','dmg',2,'aoe'), F('ears','mana',1,'cantrip'), F('mouth','dmg',2), F('horn','dmg',2,'pierce')]},
-  bird2:{n:'Skirmisher',cls:'bird',tier:2,hp:16,art:3,die:[
+  bird2:{n:'Momo',cls:'bird',tier:2,hp:16,art:3,art2:'momo_normal',die:[
     F('horn','dmg',5,'pierce'), F('mouth','dmg',6), F('tail','dmg',3,'aoe'), F('ears','mana',1,'cantrip'),
     F('mouth','dmg',3,'chain:3'), F('tail','dmg',2,'aoe')]},
-  bird3:{n:'Storm Talon',cls:'bird',tier:3,hp:23,art:6,die:[
+  bird3:{n:'Momo',cls:'bird',tier:3,hp:23,art:6,art2:'momo_normal',die:[
     F('horn','dmg',8,'pierce'), F('mouth','dmg',9,'pierce'), F('tail','dmg',5,'aoe'), F('ears','mana',2,'cantrip'),
     F('mouth','dmg',4,'chain:4'), F('tail','dmg',4,'aoe','pierce')]},
 };
@@ -844,12 +852,106 @@ const UNLOCKS = [
    đang chạy) sang "Collection Log đầy đủ cả 3 mục" (Faces/Relics/Bosses), vì đó là hoàn
    thành-qua-chơi thật duy nhất hiện có trong game. Xem economy-progression.md §10.3 ghi
    chú 2026-09-01 phần 9. */
-const ECHO = { base: 500, growth: 1.035, tierSize: 25 };
+/* economy-progression.md §10.3 amendment (2026-09-07): Echo Box no longer
+   gates on collectionComplete() — box #1 costs `introCost` (a deliberately
+   tiny Shard price, reachable within the first run or two), every box after
+   that reverts to the original `base`/`growth` curve unchanged. */
+const ECHO = { base: 500, growth: 1.035, tierSize: 25, introCost: 50 };
+/* Daily Mission (economy-progression.md §10.3, the "+60/ngày" faucet row —
+   documented since the original economy pass but never implemented until
+   now). One flat grant per UTC calendar day for completing any run (win or
+   lose both count, matching this project's "losing still gets you closer"
+   philosophy elsewhere) - no streak, no per-mission variety, by design: this
+   is meant to be the smallest possible reason to open the game once a day,
+   not a second progression system competing with World Tour/Battle Pass. */
+const DAILY_MISSION_SHARD = 60;
+
+/* Echo Box "double gacha" reveal (design/quick-specs/echo-box-double-gacha-
+   ux.md) — a chest-grade reveal step shown BEFORE the existing cosmetic
+   rarity card. Deliberately DETERMINISTIC from the rarity `rollEchoRarity()`
+   already rolled (r0..r4), not an independent second RNG roll: the ux-
+   designer's spec proposed an independent 6-way pre-roll with rarity floors
+   on the top grades, which raises the system-wide Mythic rate ~4.5× — a real
+   economy change that needs `economy-designer`/PM sign-off before it ships
+   (see that doc's §6). This mapping ships the full visual "which chest did
+   I get" beat now, at ZERO odds change, so the feature doesn't have to wait
+   on that sign-off. Swapping to the independent-roll table later only means
+   replacing chestGradeFor()'s body — nothing else in the reveal UI changes. */
+const CHEST_GRADES=[
+  {k:'bronze',n:'Bronze Chest',d:'A Bronze Chest. Steady odds inside.'},
+  {k:'silver',n:'Silver Chest',d:'Silver Chest. Getting warmer.'},
+  {k:'gold',n:'Gold Chest',d:'Gold Chest! A cut above.'},
+  {k:'platinum',n:'Platinum Chest',d:'Platinum Chest — the good stuff.'},
+  {k:'diamond',n:'Diamond Chest',d:'Diamond Chest! Rare air.'},
+  {k:'lunacian',n:'Lunacian Chest',d:'LUNACIAN CHEST!! Rarest pull in the game.'},
+];
+/* r0..r4 (Common..Mythic) -> a CHEST_GRADES index. r2 (Epic) splits Gold/
+   Platinum on a coin flip so all 6 chest arts see play, not just 5 of 6 —
+   still zero odds impact, the coin flip only picks which PICTURE represents
+   the same already-rolled Epic result. */
+function chestGradeFor(rar){
+  if(rar<=0) return CHEST_GRADES[0];
+  if(rar===1) return CHEST_GRADES[1];
+  if(rar===2) return CHEST_GRADES[Math.random()<0.5?2:3];
+  if(rar===3) return CHEST_GRADES[4];
+  return CHEST_GRADES[5];
+}
 const ECHO_TIER_NAMES = ['','Waning','Crescent','Gibbous','Full','Eclipse'];
 /* Profile titles unlocked when echoTier() crosses each boundary (economy-progression.md
    §10.3). Index-matched to ECHO_TIER_NAMES; index 0 unused (tier 0 = no Echo title yet).
    ALL-CAPS to match the existing title voice (see BP max-level title 'LUNACIA SOVEREIGN'). */
 const ECHO_TITLES = ['','WANING WANDERER','CRESCENT ADEPT','GIBBOUS HERALD','FULLMOON MUTANT','ECLIPSE SOVEREIGN'];
+
+/* ================= WORLD TOUR ("Lunacia Atlas") — design/gdd/world-tour.md =================
+   Two independent, linear 10-tile chapters. `TOUR_T[i-1]` is T(i)=i*(i+1)
+   (§Formulas #1) — the map-RELATIVE run count (see tourProgress() in
+   client.html, which subtracts each map's own baseline) needed to open tile
+   `i`. Landmark tiles (§Detailed Rules "Ô mốc") gate on a field with no RNG
+   branch, per that section's explicit rule — never frost_lord/mirror
+   (BOSS_ALT). Regular-tile rewards implement the doc's own placeholder
+   default ("toàn bộ ô thường tái dùng pool Echo Box" — explicitly left
+   un-finalized, §Detailed Rules "Phần thưởng"): each reuses an existing,
+   already-Echo-Box-reachable cosmetic key, so granting it here is a
+   convenience unlock, not a new exclusive. Only the 3 landmark tiles grant
+   the actual Tour-exclusive items (TOUR_EXCLUSIVE_DECOR/_BACKGROUNDS in
+   cosmetics.js + the literal 'TOUR CHAMPION' title). */
+const TOUR_T=[2,6,12,20,30,42,56,72,90,110]; // T(i), i=1..10, index i-1
+const TOUR_MAPS=[
+  { map:1, name:'Lovely Forest I', art:'1',
+    tiles:[
+      {i:1, reward:{cat:'avatar',key:'slime'}},
+      {i:2, reward:{cat:'decor',key:'ring_plain'}},
+      {i:3, reward:{cat:'background',key:'bg_plant'}},
+      {i:4, landmark:{type:'boss',boss:'gooey_king'}, reward:{cat:'decor',key:'tour_gooeytrophy'}},
+      {i:5, reward:{cat:'avatar',key:'gray_wolf'}},
+      {i:6, reward:{cat:'decor',key:'ring_dashed'}},
+      {i:7, reward:{cat:'background',key:'bg_beast'}},
+      {i:8, reward:{cat:'avatar',key:'treant'}},
+      {i:9, reward:{cat:'decor',key:'ring_twin'}},
+      {i:10, landmark:{type:'ascMax',min:1}, reward:{cat:'background',key:'tour_ascthreshold'}},
+    ] },
+  { map:2, name:'Lovely Forest II', art:'2',
+    tiles:[
+      {i:1, reward:{cat:'avatar',key:'aqua_wolf'}},
+      {i:2, reward:{cat:'decor',key:'halo_dotted'}},
+      {i:3, reward:{cat:'background',key:'bg_aqua'}},
+      {i:4, reward:{cat:'avatar',key:'dryad_fighter'}},
+      {i:5, reward:{cat:'decor',key:'frame_vine'}},
+      {i:6, reward:{cat:'background',key:'bg_reptile'}},
+      {i:7, reward:{cat:'avatar',key:'dryad_mage'}},
+      {i:8, reward:{cat:'decor',key:'frame_shard'}},
+      {i:9, reward:{cat:'background',key:'bg_bug'}},
+      {i:10, landmark:{type:'boss',boss:'agony'}, reward:{cat:'title',key:'TOUR CHAMPION'}},
+    ] },
+];
+/* badgeTier() §Formulas #6 — implemented literally against ascMax (not the
+   questStep() gate's fullAscMax) per Acceptance Criteria #8's own test
+   vectors, which are written in terms of ascMax. The GDD's still-open
+   Question #3 flags that this can let a Short-Run-only player see Gold on
+   Map1 while Map2 stays locked (gate reads fullAscMax) — a known, named
+   inconsistency the doc leaves for product owner to resolve, not a bug to
+   silently "fix" by picking the other option unilaterally. */
+const TOUR_GOLD_THRESHOLD={1:3,2:5};
 
 if (typeof module!=='undefined') module.exports={B,F,FR,RARITY,RAR_COL,RELIC_SHOP_COST,RELIC_COUNT_PRE_EXPANSION,RELIC_MLOAD_CAP,RELIC_CAP,THORNS_CAP,IRONMAIDEN_CAP,GROWTH_KEEP_CAP,
   MF_PHASE_RANK,KW_EX,RELIC_INDEX,CLASSES,CLASS_COLOR,PASSIVE,ARCH,

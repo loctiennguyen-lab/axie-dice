@@ -11,41 +11,99 @@
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-blue.svg" alt="MIT License"></a>
   <img src="https://img.shields.io/badge/stack-vanilla%20JS%2FHTML%2FCSS-yellow" alt="Vanilla JS/HTML/CSS">
   <img src="https://img.shields.io/badge/deploy-Vercel-black?logo=vercel" alt="Deploys to Vercel">
+  <img src="https://img.shields.io/badge/CI-11%2F11%20gates-brightgreen" alt="11/11 CI gates">
+</p>
+
+<p align="center">
+  <b><a href="https://axiedice.vercel.app">Play it now →</a></b>
 </p>
 
 ---
 
 ## What this is
 
-Pick 5 Axies. Each Axie is a die with 6 faces — one per body part (Eyes, Ears, Mouth, Horn, Back,
-Tail). Roll all five dice at once, reroll what you don't like, then commit each face to a target.
-Enemies show their intent before you act — nothing in this game hides information from the player.
+Axie genetics map onto this game almost exactly: **1 Axie = 6 body parts, 1 die = 6 faces**
+(Eyes, Ears, Mouth, Horn, Back, Tail). Pick 5 Axies, roll all five dice at once, reroll what you
+don't like, then commit each face to a target. **Enemies roll and telegraph their move first** —
+you always see exactly who they'll hit and for how much before you act. Nothing in combat is
+hidden. That's a deliberate departure from the genre: Slay the Spire and Dicey Dungeons both build
+tension out of *hidden* information; this game bets the other way — tension from calculating a
+known outcome, not guessing an unknown one.
 
-Runs are 12 waves (Short) or 20 waves (Full), map-based with battle/elite/boss/event/shop nodes.
-Losing ends the run but keeps every Gene Shard and point of Lunacia XP you earned — the loop is
-built around "lost, try again," not attrition.
+Runs are 12 waves (Short, ~15 min) or 20 waves (Full, ~35 min), map-based with
+battle/elite/boss/event/shop nodes. Losing ends the run but keeps every Gene Shard and point of
+progression you earned — the loop is built around "lost, try again," not attrition.
+
+## Play now
+
+**[axiedice.vercel.app](https://axiedice.vercel.app)** — single URL, nothing to install.
+
+An account is required before you can play (this is a deliberate design choice for save-sync and
+the ranked Leaderboard, not a bug — see [Known limitations](#known-limitations)).
 
 ## Features
 
-- **6 classes, 3 tiers each** — Plant/Beast/Aqua/Reptile/Bug/Bird, each with a passive that defines
-  its playstyle (Bulwark, Feral, Conduit, Scales, Virulent, Talon).
-- **396-part catalog** — 285 regular parts + 111 rarest "Origin" parts, all with real Axie Infinity
-  names.
-- **Formation Resonance** — two adjacent Axies in your formation rolling the same face type in one
-  turn grant the second executor a value bonus. The first mechanic where formation order and
-  execution order actually matter.
-- **Import Axie** — paste a real Axie NFT's ID and its 6 actual body parts become a playable die,
-  stored in your local Vault and usable in any team. See [Import Axie](#import-axie) below.
-- **Battle Log** — every action this combat, compiled into readable lines, frozen and reopenable as
-  a "Battle Report" after a loss.
-- **Ranked Run + Leaderboard** — an opt-in run mode that plays with every Unlock/Pass bonus zeroed
-  out (so every submission is on the same baseline) and submits your result to a real leaderboard.
-  The server never trusts a client-sent score — it replays your exact recorded actions through
-  `src/engine.js` and computes the score itself. See [Leaderboard](#leaderboard--ranked-run) below.
-- **Deterministic & seeded** — every run can be replayed exactly from its seed; a Daily Seed mode is
-  built in.
-- **Accessible** — full keyboard navigation, reduced-motion/reduced-flash settings, WCAG AA contrast
-  throughout.
+- **9 classes** (6 playable — Plant/Beast/Aqua/Reptile/Bug/Bird — plus 3 secret classes that map
+  onto them at battle time), each with a passive that defines its playstyle.
+- **285-part catalog, 0 duplicate dice** — every part maps to its own distinct face (81
+  signature faces + 204 family-variant faces), so two Axies of the same class no longer roll
+  identical dice, unlike an earlier build where 36 slot×class combinations collapsed to 19
+  effective faces.
+- **94 relics that change rules, not just numbers** — passives and actives that rewrite how a face
+  resolves (`modFace`/`onKill`/`onHit`/`onDmgTaken`), verified to have zero rarity-band
+  violations across all 94.
+- **Formation Resonance** — two Axies adjacent in your formation rolling the same face *type* in
+  one turn grant the second executor a **+15%** value bonus. The first mechanic where formation
+  order and execution order both matter.
+- **Import Axie (Vault)** — paste a real Axie NFT's ID and its 6 actual body parts become a
+  playable die, usable in any team. Prototype scope: any public Axie ID works, no wallet-signature
+  ownership gating yet.
+- **Ranked Run + Leaderboard** — an opt-in mode that zeroes every Unlock/Pass bonus (so every
+  submission plays the same baseline) and submits your result. The server never trusts a
+  client-sent score — it replays your exact recorded action log through `src/engine.js` and
+  computes the score itself, deterministically.
+- **Deterministic & seeded** — every run can be replayed exactly from its seed.
+- **Free undo within a turn** — try a face on a target, take it back, decide again, before you
+  commit to ending the turn.
+- **Background music** (optional, external asset, graceful no-op if it fails to load) plus 26
+  synthesized SFX (zero audio bytes — generated in real time via Web Audio).
+
+## Known limitations
+
+Honesty over polish — these are real, current gaps, not hidden:
+
+- **Mandatory account gate, no password recovery yet.** The very first screen is Log In /
+  Register — there's no guest/demo mode. This is intentional (see
+  `design/gdd/player-accounts.md`), but it does mean the biggest single UX risk right now is
+  losing access to a forgotten password before recovery ships.
+- **Landscape-only.** Phone portrait shows a "rotate your device" prompt; the board is fixed at
+  five columns wide.
+- **Mouse/touch is click-click, not drag-and-drop.** Click a rolled face, then click a legal
+  target. Full keyboard play (Tab to a die/target, Enter/Space to act) works end-to-end as of
+  2026-09-05.
+- **Automated UI scanning covers 6 of 27 screens** (menu, combat, shop, event, vault, leaderboard).
+  The rest are covered by manual QA only.
+
+## Engineering rigor
+
+This is a prototype, but it isn't undertested. `node tools/ci.mjs` is the single entry point —
+**11/11 gates**, every one of them a real check against the actual served build, not a smoke test:
+
+| Gate | Current floor |
+|---|---|
+| Relic invariant (all 94 relics, correct rarity band) | 94 / 94 |
+| Relic behaviour proofs | 38 / 38 |
+| Part→face generator (0 duplicate dice, both budget profiles) | GREEN |
+| Part-skill face pins | 44 / 44 |
+| Import-Axie mapping unit tests | 43 / 43 |
+| Vault (NFT import) migration | 8 / 8 |
+| UI rules (contrast, tap-target size, layout shift, no `undefined`/`NaN` leaks) across 6 screens | 65 / 65 |
+| Viewport fit (4 desktop sizes + a dedicated boss-screen case) | PASS |
+| Headless balance sim | winrate 19.8% (Short, Ascension 0) / 8.0% (Full, Ascension 0) over 500 runs — informational, not a gate |
+
+Balance numbers are **measured, not guessed**: `node tools/sim.js 500` runs real games against a
+heuristic bot and reports winrate/archetype breakdown, which is what tuning decisions are made
+against (see `design/gdd/game-concept.md`).
 
 ## Playing locally
 
@@ -56,23 +114,34 @@ python3 build.py          # writes AxieDiceTactics.html (includes dev tools)
 python3 build.py public   # writes index.html (public build, dev tools stripped)
 ```
 
-Open the generated HTML file directly in a browser — it's a single self-contained file.
+Open the generated HTML file directly in a browser — it's a single self-contained file. The
+**Import Axie** feature needs the Vercel serverless proxy and won't fetch real NFT data when the
+file is opened standalone; everything else works fully offline.
 
-The **Import Axie** feature needs the Vercel serverless proxy (see below) and won't fetch real NFT
-data when the HTML file is opened standalone or served with a plain static server; everything else
-works fully offline.
+## Testing
+
+```bash
+npm install && npx playwright install chromium   # needed once, for verify.mjs/soak.mjs/t_*.mjs
+node tools/ci.mjs            # the only command you need — runs all 11 gates
+node tools/ci.mjs --fast     # 7 logic-only gates, skips the browser-driven ones
+```
+
+Run `tools/ci.mjs` rather than any individual script — this project's own history includes real
+regressions that slipped through because a suite was invoked standalone and its result silently
+went stale.
 
 ## Deploying
 
 ```bash
-git push origin <branch>
+vercel deploy --prod --yes --scope axielatro
 ```
 
-then import the repo into Vercel (not just the built HTML file — the `api/*.js` serverless
-functions need to deploy alongside the static build for Import Axie and the Leaderboard to work).
-`vercel.json` already points Vercel at the right build command and output directory.
+`--scope` is required (the project belongs to the `axielatro` Vercel team, not a personal
+account). This uploads the local working tree directly — no push or GitHub import needed.
+`vercel.json` points Vercel at `tools/vercel-build.sh`, which runs `build.py public` and copies
+`assets/audio/` into the output.
 
-For the Leaderboard to actually save scores (not just compute them), also set these two
+For the Leaderboard to persist scores (it computes them correctly either way), set two
 environment variables in the Vercel project (Settings → Environment Variables) from a free
 [Upstash Redis](https://upstash.com) database:
 
@@ -81,97 +150,59 @@ UPSTASH_REDIS_REST_URL=...
 UPSTASH_REDIS_REST_TOKEN=...
 ```
 
-Without them the game still works fully — Ranked Run scores are computed correctly, the API just
-responds `stored:false` instead of erroring.
-
-For the admin telemetry dashboard (`/admin-dashboard`, see
-`docs/architecture/telemetry-dashboard-design.md`) to work, also set:
-
-```
-ADMIN_DASHBOARD_TOKEN=<any long random string you pick>
-```
-
-Without it `/api/admin-stats` responds "not configured" and the dashboard page shows nothing
-sensitive — it's a separate secret from player login, never a player's own session token.
+Without them, Ranked Run scores are still computed correctly — the API just responds
+`stored:false` instead of erroring.
 
 ## Tech stack
 
-Vanilla JavaScript (ES6+), no framework, no bundler. `build.py` assembles `src/*.js`/`src/style.css`
-into one HTML file by string concatenation. Rendering is DOM + CSS — no `<canvas>`, no WebGL. The
-only network call in the project is the Import Axie proxy (`api/axie.js`, a Vercel serverless
-function); everything else is 100% client-side.
+Vanilla JavaScript (ES6+), no framework, no bundler. `build.py` assembles everything below into
+one HTML file by string concatenation. Rendering is DOM + CSS — no `<canvas>`, no WebGL.
 
 ```
 src/
-  engine.js    combat rules, run/wave state — pure functions over plain data
-  data.js      classes, parts, relics, tuning constants
-  ui.js        every screen (menu, team select, combat, codex, ...)
-  fx.js        replays engine.js's event stream for animation
-  log.js       Battle Log — compiles the same event stream into readable lines
-  audio.js     procedural SFX (no audio files)
-  icons.js     inline-SVG icon set
-  art.js       base64-embedded sprite data
-  devtools.js  dev-only in-game inspector (stripped from public builds)
-  style.css    all styling — design tokens in :root
+  client.html    ALL client code in one file: CSS, UI screens, FX/animation, audio, icons,
+                 battle log — see the comment at the top of the file for why
+  engine.js      combat rules, run/wave state — pure functions over plain data
+  data.js        classes, parts, relics, tuning constants
+  part_faces.js  GENERATED by tools/gen_faces.mjs — never hand-edited
+  devtools.js    dev-only in-game inspector; build.py public strips this out
+  art.js         base64-embedded sprite data (~1.8MB, one line — don't open in an editor)
+  cosmetics.js   base64-embedded cosmetic assets
 api/
-  axie.js        Vercel serverless proxy for Import Axie (Axie Infinity GraphQL → JSON)
-  submit-run.js  Leaderboard: replays a submitted action log through engine.js, computes the score
-  leaderboard.js Leaderboard: read-only top-100 per (mode, ascension)
-  _engine.js     shared helper — loads data.js+engine.js into a Node vm context for replay
+  auth.js / _auth.js       account creation, login, token verification
+  axie.js                  Import Axie proxy (Axie Infinity GraphQL → JSON; the game's only
+                            outbound network call besides the game files themselves)
+  submit-run.js / _engine.js / leaderboard.js   Leaderboard: replays a submitted action log
+                            through engine.js/data.js in a Node VM and computes the score itself
+  sync-save.js             cross-device save sync
+  telemetry.js / admin-stats.js   anonymous play telemetry + an admin-only dashboard
 tools/
-  sim.js       headless balance simulator (node tools/sim.js 500)
-  verify.mjs   UI/UX rule checker, needs Playwright (node tools/verify.mjs)
-  soak.mjs / soakm.mjs   extended-play regression soak (desktop/mobile)
-  t_import.mjs   unit tests for the Import Axie part→face mapping (node tools/t_import.mjs)
+  ci.mjs         single entry point — all 11 gates
+  sim.js         headless balance simulator
+  verify.mjs     UI/UX rule checker (Playwright)
+  soak.mjs / soakm.mjs   extended-play regression soak (keyboard-driven / real-mouse-driven)
+  gen_faces.mjs  generates src/part_faces.js from assets/data/part_faces.json
+  t_*.mjs        unit/invariant tests (relics, part-skill, import mapping, vault, AoE, viewport)
 ```
 
-## Testing
-
-```bash
-npm install                # playwright, for verify.mjs/soak.mjs only
-node tools/sim.js 500      # balance sim — winrate, archetype breakdown
-node tools/verify.mjs      # 8 UI rules (contrast, tap targets, no layout shift, ...)
-node tools/soak.mjs 10     # extended play, checks for crashes/stalls
-```
-
-## Import Axie
-
-Axie genetics map onto this game almost exactly: 1 Axie = 6 body parts, 1 die = 6 faces. Paste a
-real Axie's ID and the game fetches its 6 parts from the Axie Infinity API (proxied through
-`api/axie.js` since the API itself blocks CORS), maps each part to a face by `(slot, part's own
-class)`, and adds it to your Vault. This is the **prototype scope** — anyone can import any public
-Axie ID, no wallet signature or ownership gating. See `design/gdd/economy-progression.md` §10.2b for
-the full NFT-vs-free economy design this could grow into.
-
-## Leaderboard / Ranked Run
-
-Toggle **RANKED RUN** in Team Select before starting. It forces every Unlock/Battle-Pass bonus to
-zero and blocks Vault (Import Axie) picks from your team, so every submitted run plays against the
-exact same baseline no matter how much local progression a player has — the server has no way to
-verify per-player Unlocks/Shard state (it's never synced anywhere), so this sidesteps that instead
-of trusting it. Win or lose, the end screen lets you enter a display name (and optionally connect a
-Ronin wallet for a badge next to it) and submit. View standings from the **LEADERBOARD** tile on the
-main menu, filterable by Mode and Ascension.
-
-This ships as an MVP: one board per (mode, ascension) rather than the full Standard/Collector split
-in `design/gdd/leaderboard-system.md`, and no Daily-seed view yet — see
-`docs/architecture/adr-0001-leaderboard-backend-infrastructure.md` for why and what a full
-implementation would still need (syncing meta-progression to a server).
+Engine/data are kept out of `client.html` on purpose: `api/_engine.js` loads them straight off
+disk into a Node VM to replay-verify Leaderboard scores server-side — merging them into the
+client bundle would break that anti-cheat path.
 
 ## Controls
 
-Mouse/touch drag-and-drop is primary; keyboard works throughout.
+Mouse/touch: click a rolled face, then click a legal target — no drag-and-drop.
 
 | Key | Action |
 |---|---|
-| `1`–`5` | Select a die by position |
+| `Tab` | Move keyboard focus between dice, targets, and other interactive elements |
+| `Enter` / `Space` | Activate whatever is focused (select a die, confirm a target) — or, with nothing focused, end the turn |
+| `1`–`5` | Select a die by party position directly |
 | `R` | Reroll marked dice |
-| `Space` / `Enter` | End turn |
 | `Ctrl`/`Cmd`+`Z` | Undo (cleared on reroll and end turn) |
 | `I` | Toggle the info panel |
 | `L` | Toggle the Battle Log |
 | `Esc` | Close a modal / deselect |
-| `Tab` | Move focus between interactive elements |
 
 ## License
 

@@ -245,6 +245,12 @@ function scarcityManifest(parts){
 function axieToDie(axieData,geneTier){
   const raw=(axieData&&axieData.parts)||[];
   const bodyCls=mapAxieClass(axieData&&axieData.class);
+  /* §3.10 — body class thật là dawn/dusk/mech (nếu có) trước khi bị ORIGIN_CLASS_MAP
+     collapse về beast/reptile/bug. Giữ lại riêng để UI có thể hiện đúng danh tính
+     ("real Dawn Axie") thay vì nói theo class đã map — mapping vẫn quyết định
+     passive/màu/HP nền, chỉ display mới cần biết sự thật này. */
+  const rawBodyCls=String((axieData&&axieData.class)||'').trim().toLowerCase();
+  const secretCls=ORIGIN_CLASS_MAP[rawBodyCls]?rawBodyCls:null;
   /* N3/E2 — sort TRƯỚC khi cắt 6, nếu không viên dice phụ thuộc thứ tự API trả về. Sort ổn định
      theo (SLOT_ORDER, partKey) để hai part cùng slot cũng có thứ tự tất định (E5). */
   const parts=raw.slice().sort((a,b)=>{
@@ -261,7 +267,7 @@ function axieToDie(axieData,geneTier){
   const baseHp=(HEROES[bodyCls+'1']&&HEROES[bodyCls+'1'].hp)||14;
   const hpStep=(PFK.HP_STEP||[0])[Math.max(0,Math.min(6,geneTier||0))]||0;
   const hp=Math.max(1,Math.round(baseHp*coh)+hpStep);
-  return {n:'Axie #'+(axieData&&axieData.id), cls:bodyCls, tier:1, hp, art:0, die, imported:true,
+  return {n:'Axie #'+(axieData&&axieData.id), cls:bodyCls, secretCls, tier:1, hp, art:0, die, imported:true,
     axieId:axieData&&axieData.id, image:(axieData&&axieData.image)||null,
     purity:diePurity(parts,bodyCls), coh, geneTier:geneTier||0, scarcity:scarcityManifest(parts)};
 }

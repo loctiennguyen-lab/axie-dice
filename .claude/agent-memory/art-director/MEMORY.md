@@ -1,5 +1,6 @@
 # Art Director Memory Index
 
-- [Axie Dice Tactics project context](project_axie-dice-tactics.md) — browser DOM/CSS game, pixel icon system in `src/icons.js`; 2026-09-01 "Lunacia Void" redesign spec written after 3rd UI complaint.
+- [Axie Dice Tactics project context](project_axie-dice-tactics.md) — browser DOM/CSS game; DOES embed real bitmap art (base64) alongside pixel sprites and an SVG icon system — see 2026-09-07 correction inside.
 - [Icon system technical pattern](reference_icon-system-pattern.md) — how `IC_G`/`FT_IC`/`icoSvg` work, so new icon proposals stay implementation-compatible.
+- [Real-art integration pattern](reference_real-art-integration-pattern.md) — `realArtWrap()`/`⛓ NFT` badge is scoped to player-owned Vault Axies only; don't reuse it for a general art reskin.
 - [Orchestrator background-task collaboration mode](feedback_orchestrator-collaboration-mode.md) — when a subagent invocation waives the file-write approval pause, and when it doesn't.

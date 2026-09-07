@@ -85,6 +85,24 @@ const COSMETIC_POOLS={avatar:COSMETIC_AVATARS,decor:COSMETIC_DECOR,background:CO
 const ECHO_FUSE_COST=3;
 const ECHO_FUSE_MYTHIC_REFUND=250;
 
+/* World Tour exclusive landmark rewards (design/gdd/world-tour.md §Detailed
+   Rules "Phần thưởng"). Granted only via tourClaim() in client.html, never
+   via Echo Box RNG — kept OUT of COSMETIC_POOLS by construction (their own
+   objects, never merged in) so the exclusivity boundary can't regress by a
+   future pack-3 edit accidentally spreading into COSMETIC_DECOR/BACKGROUNDS.
+   client.html's decorDef()/bgDef() check these as a fallback after the real
+   pools when resolving an equipped/owned key for display. The third
+   exclusive ("Tour Champion") is a plain title string, following the exact
+   ECHO_TITLES precedent (data.js) — granted straight into META.ownedTitles,
+   never registered as a COSMETIC_TITLES key, so it needs no parallel object
+   here at all. */
+const TOUR_EXCLUSIVE_DECOR={
+  tour_gooeytrophy:{n:'Gooey King Trophy',rar:4,style:'tour-gooey'},
+};
+const TOUR_EXCLUSIVE_BACKGROUNDS={
+  tour_ascthreshold:{n:'Ascension Threshold',rar:4,style:'bg-tour-asc'},
+};
+
 /* ---------- Cosmetic pack 2 (2026-09-02): more avatars via Chimera
    'card' art (same creatures, second distinct art style — real Axie
    Origins asset kit) + real Land Item art as decor (rings/necklaces/

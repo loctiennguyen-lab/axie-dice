@@ -342,6 +342,32 @@ HP_bonus_% = base × ownership_mult × rarity_mult, cap tại BONUS_CAP
 
 Trung tâm dải: **~156 Shard/run**.
 
+> **Amendment (2026-09-07) — Nhiệm vụ ngày: spec CỤ THỂ, hiện thực hoá dòng faucet trên (mới, chưa từng có code).** Xác nhận bởi lead 2026-09-07: hiện KHÔNG có cách kiếm Gene Shard nào ngoài chơi run — dòng "+60/ngày" ở bảng trên đã được dùng để tính baseline ~156 Shard/run từ trước nhưng chưa bao giờ implement. Spec dưới đây hiện thực hoá **đúng con số đã duyệt, không đổi +60/ngày**.
+>
+> **1. Nhiệm vụ — một mục duy nhất, không phải danh sách**: *"Hoàn thành 1 run hôm nay"* (thắng hoặc thua đều tính, cùng triết lý "thua vẫn phải có tiến bộ" đã áp dụng cho +40 Shard thua-run ở bảng trên). **Không** dùng danh sách nhiều nhiệm vụ nhỏ (vd "hạ 1 Elite", "dùng X mana trong 1 trận") vì hai lý do: (a) bảng đã duyệt ghi đúng MỘT dòng +60/ngày — chia nhỏ rồi cộng lại vừa đủ 60 chỉ tạo rủi ro round-off/vượt ngân sách khi mở rộng sau này mà quên trừ mục khác; (b) các điều kiện kiểu "hạ 1 Elite" đòi hỏi bộ đếm mới theo-ngày không tồn tại trong `META` — vi phạm nguyên tắc tái dùng field có sẵn khi tránh được. "Hoàn thành 1 run" tái dùng đúng hook run-end đã có (`META.runs++`/`META.wins++`), không cần bộ đếm nào ngoài 1 field ngày (mục 3).
+>
+> **2. Reset**: theo **ngày UTC** (`YYYY-MM-DD`, không theo giờ local) — tránh khai thác đổi múi giờ thiết bị để "qua ngày" nhiều lần trong vài phút (cùng nhóm rủi ro gian lận client-side đã ghi ở §15 rủi ro #8). **Không streak bonus** — giữ đúng +60 cố định/ngày như đã duyệt; streak là mở rộng v2 hợp lý (cần field + cân bằng riêng) nhưng KHÔNG cần để đóng khoảng trống hiện tại, để dành lần sau. **Không cộng dồn ngày bỏ lỡ** — nghỉ N ngày mất N lần +60, không có bù; hệ chỉ so ngày-hôm-nay với ngày-lần-cuối-nhận, không lưu lịch sử.
+>
+> **3. Field `META` mới — tối thiểu 1 field**: `dailyDate` (string, mặc định `''`) — ngày UTC của lần nhận +60 gần nhất. Không cần field "đã nhận hôm nay" riêng: `dailyDate !== todayUTC()` tự thân vừa là điều kiện vừa là hành động "reset", không cần job/cron dọn dẹp. Không cần field đếm streak (mục 2 đã bỏ streak).
+>
+> **4. Logic (đặc tả, không phải code)** — gắn cùng chỗ với `META.runs++`/`META.wins++`/`META.ascMax` hiện có ở run-end (tham chiếu vị trí theo `world-tour.md`: khu vực `client.html` ~3402/~3861):
+> ```
+> onRunEnd(s):
+>   ...(logic +120 thắng / +40 thua đã có, không đổi)...
+>   today = todayUTC()
+>   if META.dailyDate != today:
+>     META.shards += 60
+>     META.dailyDate = today
+>     emit event "DAILY +60 SHARD" vào s.ev   // bắt buộc theo technical-preferences.md:
+>                                              // cơ chế mới không emit event thì đúng số
+>                                              // nhưng vô hình với người chơi
+> ```
+> Auto-grant tại thời điểm hoàn thành run — không màn hình/nút "claim" riêng (khác Battle Pass `bpClaimed`, vốn cần bấm), đúng tinh thần "chơi là nhận", không thêm ma sát UI.
+>
+> **5. Rào chắn**: so sánh ngày hiện dùng **client-side, đồng bộ với mô hình tin cậy Shard hiện tại** (server replay-verify xác nhận kết quả run, chưa xác nhận ranh giới ngày) — cùng nhóm rủi ro §15 #8, không phải blocker cho spec này, nhưng cần review cùng lúc nếu sau này siết anti-cheat.
+>
+> **6. Ngưỡng — KHÔNG đổi**: **+60/ngày giữ nguyên 100% theo bảng đã duyệt**; đây chỉ là hiện thực hoá logic, không sửa số.
+
 | Tiêu | Shard | Quy ra |
 |---|---|---|
 | Mở 1 part α | ~700 | 4,5 run |
@@ -364,6 +390,14 @@ Trung tâm dải: **~156 Shard/run**.
 > **Gate (SỬA 2026-09-01 — implement thật, phiên tiếp theo)**: thanh "111/111 part α" giả định 1 catalog part tách biệt (free vs NFT-gated) **chưa hề tồn tại trong code** — catalog 396-part (285+111) chỉ dùng cho Import Axie (`SLOT_CLASS_TEMPLATE`), không phải pool phần thưởng Gene Mutation thật đang chạy trong game (`FACE_POOL`, chỉ có 55 mặt). Gate thật đã implement (`src/data.js` `ECHO`, `src/ui.js` Echo Forge) dùng **Collection Log đầy đủ cả 3 mục** — `META.faces.length>=FACE_POOL.length` (55) **và** `META.relics.length>=RELICS.length` (44) **và** `META.bosses.length>=BOSSES.length` (6) — vì đây là "hoàn thành qua chơi thật" duy nhất tồn tại trong game hiện tại, không cần Mastery M4 (chưa code), không cần sở hữu NFT. Công thức `cost(n)`/`cumulative(n)` và hằng số `base=500`/`growth=1.035` giữ nguyên 100% theo thiết kế gốc bên dưới — chỉ điều kiện gate được thực tế hoá.
 >
 > **Rào chắn P2W (bắt buộc)**: (1) Echo Rank/Tier **không được hiện trên Gauntlet leaderboard** hay bất kỳ UI matchmaking-adjacent nào — chỉ hiện ở profile cá nhân, đúng cách §12.2 đã tách Ascension khỏi winrate thô; (2) không SKU nào được tăng Shard/giờ trực tiếp hay gián tiếp (kể cả SKU tăng tốc Mastery ở §11 mục 4) — nếu không, Echo Point âm thầm biến thành làn mua-tắt-grind. (3) Moon Dust không được mua/quy đổi ra EP hoặc Shard trực tiếp — giữ đúng luật 3 của D12.
+>
+> **Amendment (2026-09-07) — Gate Echo Box SỬA LẠI theo quyết định product owner: bỏ `collectionComplete()`, KHÔNG dùng currency mới.** Bốn phương án A/B/C/D đã đề xuất trong phiên trước (A: mốc nhẹ "hoàn thành run đầu tiên" · B/C: biến thể mốc khác · D: currency riêng "Echo Fragment", khuyến nghị cũ của tôi) — **product owner bác D**, nguyên văn: *"tiền mở unlock cần rất ít Gene Shard. tuy nhiên cách làm của bạn là currency cũng hay nhưng chưa phù hợp với playtest. Hiện cứ dùng Gene shard, sau này tôi sẽ làm cơ chế để vừa dùng gene shard và currency mới."* Ý tưởng Echo Fragment **không bị xoá, chỉ hoãn** sang một cơ chế lai tương lai (ngoài scope amendment này). Quyết định cuối, chỉ dùng Gene Shard:
+>
+> - **Bỏ hoàn toàn điều kiện `collectionComplete()`** (100% Relic+Face+Boss) làm gate Echo Box. Hàm `collectionComplete()` vẫn giữ nguyên (đang dùng cho mục đích khác nếu có); chỉ `echoBoxOpen()` (`client.html:2368`) và `scEchoBox()` (`client.html:3056`) **không còn gọi nó**.
+> - **Gate mới = không có gate riêng.** Echo Box hiện diện ngay từ lần đầu người chơi mở màn Collection, kể cả 0 Shard — đúng phương án "mở ngay từ đầu" mà product owner nêu như lựa chọn chấp nhận được. Điều kiện DUY NHẤT còn lại là đủ Shard cho giá box hiện tại (check đã có sẵn: `if(META.shards<cost) return null;`) — không cần field/logic gate mới nào (**tái dùng nguyên tắc "không bịa cơ chế nếu tránh được"**, đúng cách `world-tour.md` tái dùng `ascMax` thay vì field riêng).
+> - **Giá box #1 giảm còn "rất ít Gene Shard": `ECHO.introCost = 50`** (so với `echoCost(1)=500` cũ) — dưới 1/3 phần thưởng thắng-1-run (+120), mở được gần như ngay sau run đầu tiên kể cả run **thua** (+40). **Box #2 trở đi quay lại đúng công thức `echoCost(n)` cũ, không đổi** (`base=500`, `growth=1.035`) — chỉ box đầu tiên có giá ưu đãi, nên KHÔNG cần tính lại bảng nhịp giờ-tới-Tier ở trên (chỉ số đó tính trên hàng trăm box; sai lệch do 1 box giảm giá là không đáng kể).
+> - **Vì sao không vi phạm nguyên tắc "không cạnh tranh với Merchant đầu game"** (nguyên tắc tôi tự nêu ở phiên trước): Echo Box là màn meta (Collection), không xuất hiện trong-run, nên không có xung đột THỜI ĐIỂM với "reroll cửa hàng" trong-run. Xung đột khả dĩ duy nhất là người chơi dồn Shard sau-run vào Echo Box thay vì mở part (~700 Shard/part, §10.3). Với giá 50 Shard cho box đầu, số Shard "rút" khỏi tiến trình mở part chỉ ~7% một part — không đáng kể, không tạo áp lực đánh đổi thật ở giai đoạn đầu.
+> - **Cờ hiệu đối chiếu về sau**: đây là lần thứ hai gate Echo Box đổi triết lý (lần 1, 2026-09-01/02: 100% collection = "phần thưởng cuối game"; lần 2 — lần này: mở gần như ngay từ đầu, chiều sâu chỉ tới từ giá tăng luỹ tiến + Tier Prestige dài hạn đã có, không đổi).
 >
 > **Amendment (2026-09-02) — đổi tên "Echo Forge" → "Echo Box", cơ chế gacha cosmetic (product owner yêu cầu).** Bộ đếm Tier/viền phát sáng deterministic (`echoTier()`, `.echo1-5`) **giữ nguyên 100%, không random** — chỉ phần THƯỞNG mỗi lần mở hộp mới ngẫu nhiên. Mỗi lần mở (cost theo đúng `echoCost(n)` cũ) roll 1 trong 4 loại cosmetic (avatar/decor/background/title) ở 1 trong 5 bậc hiếm, tỉ lệ **[62%, 27%, 9%, 1.7%, 0.3%]** (r0→r4 — Mythic cố tình cực hiếm theo yêu cầu). Trúng vật phẩm đã sở hữu → cộng dồn "duplicate" theo bậc hiếm đó; đủ 3 duplicate cùng bậc (bất kỳ loại nào) → ghép (fuse) thành 1 vật phẩm CHƯA sở hữu ở bậc cao hơn kế tiếp; duplicate Mythic (không còn bậc cao hơn) → hoàn 250 Shard. Pool: 22 avatar (ảnh chân dung Axie Origins thật, từ asset kit nội bộ Sky Mavis người chơi có quyền truy cập), 9 decor + 11 background (CSS thuần, tái dùng token màu sẵn có), 18 title — tổng 60 vật phẩm, xem `src/cosmetics.js`. Trang bị/xem qua màn **Profile** mới (`scProfile()`), không còn 1-slot ghi đè như `META.title` cũ. Rào chắn P2W ở trên **không đổi, vẫn áp dụng nguyên vẹn** (gacha chỉ dùng Shard trong-game, không có SKU nào chạm vào, cosmetic thuần tuý không ảnh hưởng sức mạnh/leaderboard).
 

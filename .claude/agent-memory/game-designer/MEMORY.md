@@ -1,0 +1,4 @@
+- [Class passive already universal](project_class-passive-already-universal.md) — PASSIVE already applies to Vault/import axies via buildUnit/archScore, not Hero-only as commonly assumed.
+- [Lead relays design asks in Vietnamese, discuss-only gate](feedback_lead-vietnamese-design-consult.md) — requester is "the lead," not the end user; sometimes wants Question/Options only, no file writes, verify code claims before accepting them.
+- [Dawn/Dusk/Mech identity gap](project_dawn-dusk-mech-identity-gap.md) — §3.10 already decided keep-mapped-passive as hard constraint; real gap is an unshipped UI badge + a misleading client.html:2519 line, not a missing passive.
+- [World Tour milestone design](project_world-tour-milestone-design.md) — milestone axis = META.runs (not wins); landmarks must avoid BOSS_ALT RNG bosses; 3 rewards must stay out of Echo Box's COSMETIC_POOLS.

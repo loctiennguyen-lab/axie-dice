@@ -6,9 +6,26 @@ metadata:
 ---
 
 "Axie Dice Tactics: Lunacia Mutants" is a browser game rendered via DOM/CSS
-(no canvas/WebGL) — all visual assets must be inline SVG or CSS, not sprite
-sheets or bitmap art. Source lives in `src/` (`icons.js`, `ui.js`, `style.css`,
-`data.js`).
+(no canvas/WebGL). Source lives in `src/`.
+
+**2026-09-07 correction — the "SVG/CSS-only, no bitmap art" line above is
+STALE, do not repeat it.** As of the 2026-09-03 file merge, per-file source is
+now `src/client.html` (CSS+UI+FX+audio+icons+log, one file), plus 4 files kept
+separate on purpose: `src/engine.js`, `src/data.js` (read server-side for
+anti-cheat), `src/devtools.js` (stripped from public builds), and
+`src/art.js`/`src/cosmetics.js` — **1.8MB of base64-embedded real bitmap
+PNG/JPG art**, not SVG. `art.js` holds `AXIE_PIX` (64×66px pixel-art sprites,
+6 classes). `cosmetics.js` holds `COSMETIC_AVATARS`, 59 **real Sky Mavis Axie
+Origins asset-kit** portraits/card-art (product owner has internal access to
+this IP), used today only for the player's Profile avatar. So: this project
+DOES ship bitmap art, embedded as base64 data URIs in `<img>` tags — the old
+"inline SVG only" framing only ever applied to the small icon system
+(`IC_G`/`icoSvg`, see [[reference_icon-system-pattern]]), not to portraits/
+character art. Full asset-kit review + a plan to extend real art from
+Profile-only to Hero/Boss/field-monster is at
+`design/quick-specs/real-art-adoption-plan-2026-09-07.md` — see
+[[reference_real-art-integration-pattern]] for the reusable technical finding
+from that pass.
 
 The full cross-agent review is at `docs/review-2026-08-31.md` (5 subagents:
 game-designer, economy-designer, art-director, ux-designer, qa-lead, each
@@ -39,6 +56,25 @@ Other art findings from that review, not yet actioned:
 See [[reference_icon-system-pattern]] for the technical shape of the icon
 system these fixes must slot into.
 
+**2026-09-07 update — Hero mapping in the real-art plan revised to ground
+truth.** The original §2 HEROES table in `real-art-adoption-plan-2026-09-07.md`
+was a color/icon guess against unlabeled numeric filenames (no class
+metadata). Lead later found the official `starter_axies_info` roster
+(Sky Mavis internal spreadsheet) with CONFIRMED classes for all 19 starters.
+Rewrote §2 around it: one character now carries all 3 tiers of its class
+(Buba=Beast, Olek=Plant, Puffy=Aqua, Machito=Reptile, Momo=Bird,
+Pomodoro=Bug) — tier1 uses the character's Normal portrait, tier2/3 use its
+"Awaken" evolved portrait where one exists (Beast/Plant/Aqua/Reptile only;
+Bird/Bug have no clean Awaken asset, so tier2/3 reuse the Normal portrait
+with CSS-only escalation). This closed the prior "no Bird art" coverage gap
+(Momo) and retired the Low-confidence `reptile3`/`bug3` picks entirely.
+Machito (Reptile) renders purple — that's the character's real canonical
+color per the ground-truth data, not a misclassification; do not recolor it,
+let `CLASS_COLOR` drive the frame instead (same pattern as Vault Axie art).
+Flagged but NOT fixed in this pass: §3b (MON_SPR bucketed reuse) still
+references the superseded numeric-kit filenames from the old §2 and needs
+re-pointing to the new character filenames in the same implementation pass.
+
 **2026-09-01 update — third-round UI complaint, escalated to a full redesign spec.**
 Two prior rounds of point-fixes (layout bugs, contrast, class-tint gradient, acting-unit glow)
 were not enough — user confirmed via survey the issue is systemic across all four of
@@ -56,3 +92,19 @@ overlays into one top accent strip, drop the redundant "HP" text label, grow `--
 modestly at ≥1200px only). Also flagged (not fixed): `RAR_COL` (data.js) / `--r0..r4` (CSS) are
 still two hand-kept copies of the same 5 values, still in sync today but a real unification task.
 See [[feedback_orchestrator-collaboration-mode]] for how this task was delegated.
+
+**2026-09-07 update — §6 "keep pixel icons as-is" partially reversed; §8/§9
+added to the real-art plan.** A real Drive icon set ("Battle Status Icon",
+~50 files, 3-12KB each) was found that plausibly replaces `ST_IC` (status
+badges) specifically — `FT_IC` (die-face effect types) and `ARCH` (playstyle
+glyphs) are unaffected and still keep the §6 "do not touch" call, the
+legibility argument there still holds for those two. Added §8 (9-keyword
+`ST_IC`→Drive-filename mapping, 5 High-confidence by exact/near name match:
+poison/regen/weaken/vulnerable/stun; 4 unresolved — blind/thorns/burn/
+undying have no confirmed name match, do not force `Zz.png` onto `blind`
+without a visual check, it reads as sleep not blind) and §9 (small, optional:
+"Icon Cosmetic types" folder has avatar/background/border category icons for
+3 of 4 `COSMETIC_POOLS` categories, missing a `title` icon — asymmetry
+decision deferred to lead/product owner). Neither section has been visually
+verified — see [[reference_real-art-integration-pattern]] and the plan file
+itself for the exact fetch-list of files still needed before locking in.
