@@ -1234,6 +1234,7 @@ body.dragging{cursor:grabbing} body.dragging .die{cursor:grabbing}
   display:flex;align-items:center}
 .cxtr:first-child .cxtd{background:var(--pan3);color:var(--dim);font-size:var(--t1);letter-spacing:2px}
 .cxtd:first-child{color:var(--txt)}
+.cxtable.iconrow .cxtd:first-child{justify-content:center;padding:10px 6px}
 .cxfilter{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:12px}
 .cxfb{background:var(--pan2);border:1px solid var(--line2);border-radius:var(--rad-sm);color:var(--dim);
   padding:4px 10px;font-size:var(--t1);letter-spacing:1px;cursor:pointer}
@@ -5605,7 +5606,14 @@ function cxTable(head,rows,cls){
   // the bug this was fixing — every column collapsed to one). Plain
   // minmax(x,max-content) alone IS supported; skip the cap.
   const n=head.length;
-  const gtc = n<=2 ? 'minmax(120px,max-content) 1fr'
+  // 'iconrow' (STATUS EFFECTS glossary) — column 1 holds ONLY a 36px icon,
+  // never text, so max-content sizing (built for text-heavy columns like
+  // relic/part names) left a 110px+ column around a much smaller icon —
+  // reported by the product owner as icon-vs-cell looking wildly
+  // unbalanced. Fix column 1 to just fit the icon, not the text columns'
+  // sizing rule.
+  const gtc = cls==='iconrow' ? '64px repeat('+(n-1)+',1fr)'
+    : n<=2 ? 'minmax(120px,max-content) 1fr'
     : 'minmax(110px,max-content) repeat('+(n-1)+',1fr)';
   const t=el('div','cxtable '+(cls||''));
   t.style.gridTemplateColumns=gtc;
@@ -5796,21 +5804,21 @@ const CX_BODY={
  st:()=>{ const d=el('div');
   d.appendChild(cxH('HELPFUL EFFECTS'));
   d.appendChild(cxTable(['','EFFECT','RULE'],[
-    [ico('shield','t'),'Shield','Absorbs damage before HP. It does NOT expire at the end of a turn, it stays until it is broken. Pierce ignores it entirely.'],
-    [ico('regen','t'),'Regen N','Heals N at the end of the turn, then N drops by 1.'],
-    [ico('thorns','t'),'Thorns N','Anything that attacks this unit takes N damage back. Reptile always has Thorns 2.'],
-    [ico('undying','t'),'Undying','Survives one lethal hit at 1 HP.'],
-  ]));
+    [ico('shield','nic'),'Shield','Absorbs damage before HP. It does NOT expire at the end of a turn, it stays until it is broken. Pierce ignores it entirely.'],
+    [ico('regen','nic'),'Regen N','Heals N at the end of the turn, then N drops by 1.'],
+    [ico('thorns','nic'),'Thorns N','Anything that attacks this unit takes N damage back. Reptile always has Thorns 2.'],
+    [ico('undying','nic'),'Undying','Survives one lethal hit at 1 HP.'],
+  ],'iconrow'));
   d.appendChild(cxH('HARMFUL EFFECTS'));
   d.appendChild(cxTable(['','EFFECT','RULE'],[
-    [ico('poison','t'),'Poison N','Deals N piercing damage at the end of the turn, then N drops by 1. This is cumulative damage, so the more stacks the deadlier it gets.'],
-    [ico('burn','t'),'Burn N','Deals N damage at the end of the turn, then N is halved. Faster than Poison up front, but it burns out quickly.'],
-    [ico('weaken','t'),'Weaken N','That unit deals N less damage per hit.'],
-    [ico('vuln','t'),'Vulnerable N','That unit takes 50% more damage.'],
-    [ico('blind','t'),'Blind N','All of that unit\\u2019s damage faces deal 0 for N turns. Devastating against a single-target boss.'],
-    [ico('stun','t'),'Stun','The unit skips its turn entirely.'],
-    [ico('freeze','t'),'Frozen','The die cannot be rerolled, but it can still be used. This constrains you rather than taking something away.'],
-  ]));
+    [ico('poison','nic'),'Poison N','Deals N piercing damage at the end of the turn, then N drops by 1. This is cumulative damage, so the more stacks the deadlier it gets.'],
+    [ico('burn','nic'),'Burn N','Deals N damage at the end of the turn, then N is halved. Faster than Poison up front, but it burns out quickly.'],
+    [ico('weaken','nic'),'Weaken N','That unit deals N less damage per hit.'],
+    [ico('vuln','nic'),'Vulnerable N','That unit takes 50% more damage.'],
+    [ico('blind','nic'),'Blind N','All of that unit\\u2019s damage faces deal 0 for N turns. Devastating against a single-target boss.'],
+    [ico('stun','nic'),'Stun','The unit skips its turn entirely.'],
+    [ico('freeze','nic'),'Frozen','The die cannot be rerolled, but it can still be used. This constrains you rather than taking something away.'],
+  ],'iconrow'));
   d.appendChild(cxP(`<span class="cnote">Poison and Burn both <b>pierce</b>, so Shield does not stop them. That is why even a Shield build
    has to deal with Poisoners quickly.</span>`));
   return d; },
