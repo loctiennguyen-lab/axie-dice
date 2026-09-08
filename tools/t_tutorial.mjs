@@ -123,6 +123,10 @@ const b = await chromium.launch({ args: ['--no-sandbox'] });
   await pg.waitForTimeout(200);
   check('gate lands a brand-new account on the tutorial screen', await pg.evaluate(() => screen) === 'tutorial');
 
+  await pg.click('.tutcoach-big-bx .btn'); // WELCOME (0) -> step 1
+  await pg.waitForTimeout(150);
+  check('WELCOME "START" advances to step 1 (roll)', await pg.evaluate(() => tutStep) === 1);
+
   await pg.click('.tutcoach-bx .btn'); // step 1 -> 2
   await pg.waitForTimeout(150);
   check('step 1 "GOT IT" advances to step 2 (intent)', await pg.evaluate(() => tutStep) === 2);
@@ -199,8 +203,12 @@ const b = await chromium.launch({ args: ['--no-sandbox'] });
   check('fight resolves to reward phase', await pg.evaluate(() => S.phase) === 'reward');
   await pg.click('.rcard');
   await pg.waitForTimeout(200);
-  check('taking a reward finishes onboarding: META.tut=1', await pg.evaluate(() => META.tut) === 1);
-  check('taking a reward finishes onboarding: screen=menu', await pg.evaluate(() => screen) === 'menu');
+  check('taking a reward reaches the DONE beat (not straight to menu)', await pg.evaluate(() => tutStep) === 8);
+  check('taking a reward does NOT finish onboarding yet (screen still tutorial)', await pg.evaluate(() => screen) === 'tutorial');
+  await pg.click('.tutcoach-big-bx .btn'); // DONE (8) -> "START PLAYING"
+  await pg.waitForTimeout(150);
+  check('DONE "START PLAYING" finishes onboarding: META.tut=1', await pg.evaluate(() => META.tut) === 1);
+  check('DONE "START PLAYING" finishes onboarding: screen=menu', await pg.evaluate(() => screen) === 'menu');
   await pg.close();
 }
 

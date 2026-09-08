@@ -981,7 +981,7 @@ small{font-size:var(--t1)}
 /* docs/art/icon-spec-body-parts.md §Layout change — part icon now owns the
    primary 22px (.di) slot; the effect-type icon shrinks to the 't' (11px)
    size class and becomes a secondary corner badge instead. */
-.die .effbadge{position:absolute;top:4px;right:4px}
+.die .partbadge{position:absolute;top:4px;right:4px}
 .die .di{font-size:20px;line-height:22px}
 .die .dv{font-size:var(--die-num);line-height:1.05}
 .die .dk{font-size:var(--die-kw);color:var(--dim);letter-spacing:.5px}
@@ -1110,7 +1110,7 @@ small{font-size:var(--t1)}
    small since real art/illustration replaced flat pixel glyphs; a detailed
    image reads meaningfully smaller than a bold flat-color shape at the same
    px box). .t stays closest to its old size since it is always a SECONDARY
-   corner badge (.effbadge on dice, reroll marker) next to a bigger primary
+   corner badge (.partbadge on dice, reroll marker) next to a bigger primary
    icon — bumping it much would fight for attention with what it's a footnote to. */
 .icow.t svg{width:13px;height:13px} .icow.tn svg{width:14px;height:14px}
 .icow.ii svg{width:19px;height:19px} .icow.di svg{width:28px;height:28px}
@@ -1322,6 +1322,16 @@ input[type=range]{accent-color:var(--acc);width:100%}
 .tc-t{font-size:var(--t3);color:var(--txt);font-weight:600;margin-bottom:4px}
 .tc-d{font-size:var(--t2);color:var(--dim)}
 .tutcoach-bx .btn{margin-top:10px}
+/* Full-screen welcome/done beat (tutBigOverlay()) — opaque backdrop, unlike
+   the transparent bottom bar above, since it's meant to fully replace the
+   view rather than sit as a hint over it. */
+.tutcoach-big{position:fixed;inset:0;z-index:131;background:#080a0cf2;
+  display:flex;align-items:center;justify-content:center;padding:24px}
+.tutcoach-big-bx{background:var(--pan);border:var(--bd) solid var(--acc);border-radius:var(--radius);
+  padding:var(--s3) var(--card-pad);box-shadow:var(--sh-hero);text-align:center;max-width:520px}
+.tutcoach-big-bx h2{font-size:var(--t5);color:var(--acc);margin-bottom:10px}
+.tutcoach-big-bx .tc-d{font-size:var(--t3);line-height:1.5;color:var(--txt)}
+.tutcoach-big-bx .btn{margin-top:18px}
 .tc-undo{position:fixed;left:50%;bottom:120px;transform:translateX(-50%);z-index:130;
   background:var(--pan-hi);border:var(--bd) solid var(--line2);border-radius:var(--radius);
   padding:8px 14px;font-size:var(--t1);color:var(--dim);pointer-events:none;
@@ -1400,7 +1410,7 @@ body.devmode{cursor:crosshair}
   /* icon-spec-body-parts.md §Layout change item 4 — hide the small effect
      corner badge at the narrowest (64px die) breakpoint only; the part
      icon (.di slot) stays, it's the primary identity signal at every size. */
-  .die .effbadge{ display:none; }
+  .die .partbadge{ display:none; }
   .bottombar{ position:sticky; bottom:0; height:60px; z-index:20; }
   .btn--lg,.btn.big,.btn.cta{ --btn-h:52px; }
   .pickgrid{ grid-template-columns:repeat(2,1fr); }
@@ -2631,7 +2641,11 @@ function startTutorial(){
   // ≤3 turns the doc requires, regardless of which faces later free-play
   // turns happen to roll — never left to the naturally-generated encounter.
   S.enemies.forEach(e=>{ e.hp=TUT_ENEMY_HP; e.maxHp=TUT_ENEMY_HP; });
-  tutStep=1; tutIntentSeen=false;
+  // Starts at the WELCOME beat (0), not straight at ROLL (1) — the board
+  // above is already fully built and rolled, but tutPhase()===WELCOME keeps
+  // it fully covered/locked until the player dismisses the welcome screen,
+  // so nothing feels like it's happening "at" them before they're ready.
+  tutStep=0; tutIntentSeen=false;
 }
 /* Which party member step 4 teaches is deliberately NOT fixed at fixture
    build time — REROLL (step 3) can reroll every die, including whichever
@@ -2859,16 +2873,16 @@ async function connectRonin(){
 const shortAddr=a=>a?(a.slice(0,9)+'…'+a.slice(-4)):'';
 async function doAxieLookup(){
   const id=(importIdInput||'').trim();
-  if(!id||isNaN(Number(id))||Number(id)<=0){ importState='error'; importMsg='Nhập Axie ID hợp lệ'; render(); return; }
+  if(!id||isNaN(Number(id))||Number(id)<=0){ importState='error'; importMsg='Enter a valid Axie ID'; render(); return; }
   importState='loading'; importMsg=''; importPreview=null; render();
   let res;
   try{ res=await fetch('/api/axie?id='+encodeURIComponent(id)); }
-  catch(e){ importState='error'; importMsg='Không kết nối được, thử lại sau'; render(); return; }
-  if(res.status===404){ importState='error'; importMsg='Không tìm thấy Axie #'+id; render(); return; }
-  if(!res.ok){ importState='error'; importMsg='Không kết nối được, thử lại sau'; render(); return; }
+  catch(e){ importState='error'; importMsg='Could not connect — try again later'; render(); return; }
+  if(res.status===404){ importState='error'; importMsg='Axie #'+id+' not found'; render(); return; }
+  if(!res.ok){ importState='error'; importMsg='Could not connect — try again later'; render(); return; }
   let data;
   try{ data=await res.json(); }
-  catch(e){ importState='error'; importMsg='Không kết nối được, thử lại sau'; render(); return; }
+  catch(e){ importState='error'; importMsg='Could not connect — try again later'; render(); return; }
   importPreview=data; importState='preview'; render();
 }
 function scImportAxie(){
@@ -2894,7 +2908,7 @@ function scImportAxie(){
   form.appendChild(goB);
   w.appendChild(form);
 
-  if(importState==='loading') w.appendChild(el('div','vmsg vmsg-info','Đang tra cứu…'));
+  if(importState==='loading') w.appendChild(el('div','vmsg vmsg-info','Looking up…'));
   if(importState==='error') w.appendChild(el('div','vmsg vmsg-bad',importMsg));
 
   if(importState==='preview'&&importPreview){
@@ -2917,7 +2931,7 @@ function scImportAxie(){
     const addB=btn('sm go',full&&!already?'VAULT FULL':already?'UPDATE VAULT ENTRY':'ADD TO VAULT',()=>{
       const r=importAxieToVault(importPreview);
       if(r.ok){ importState='idle'; importPreview=null; importIdInput=''; render(); }
-      else { importState='error'; importMsg=(r.err==='vault_full')?('Vault đã đầy ('+r.max+'/'+r.max+')'):'Không thể thêm Axie này'; render(); }
+      else { importState='error'; importMsg=(r.err==='vault_full')?('Vault is full ('+r.max+'/'+r.max+')'):'Could not add this Axie'; render(); }
     });
     if(full&&!already) addB.classList.add('dis');
     pv.appendChild(addB);
@@ -3205,13 +3219,15 @@ function paintDieFace(d,u,fi,temp){
   const strip=el('div','ractag'); if(hasKw(f,'heavy')) strip.appendChild(el('span','ractag-hv','⚖'));
   d.appendChild(strip);
   d.appendChild(el('div','dp',f.name||PARTN[f.p]||''));
-  /* icon-spec-body-parts.md §Layout change — part icon promoted into the
-     primary 22px (.di) slot; effect-type icon demoted to an 11px ('t')
-     corner badge (.effbadge, positioned via CSS) since icon=part / badge
-     +number-color=effect are the two independent signals now (§Color rule). */
-  d.appendChild(partIco(f.p,u.cls,'di'));
-  const effBadge=ico(FT_IC[f.t],'t'); effBadge.classList.add('effbadge');
-  d.appendChild(effBadge);
+  /* 2026-09-08 reversal (product owner, after seeing icon-spec-body-parts.md's
+     original part-primary/effect-secondary layout live): effect type (what
+     this face DOES — dmg/shield/heal/poison/...) is the decision-relevant
+     read every turn, so it now owns the primary 28px (.di) slot; the body-
+     part icon (which part this face lives on — flavor/identity, not a
+     per-turn decision) is demoted to a 13px ('t') corner badge instead. */
+  d.appendChild(ico(FT_IC[f.t],'di'));
+  const partBadge=partIco(f.p,u.cls,'t'); partBadge.classList.add('partbadge');
+  d.appendChild(partBadge);
   if(f.t==='blank') d.appendChild(el('div','dv blanktxt','BLANK'));
   else if(f.v>0||f.t==='dmg') d.appendChild(el('div','dv',String(temp?f.v:faceValue(S,u,fi))));
   /* §3.3 interim fix — compact die face only shows combat-decision-critical
@@ -3230,7 +3246,7 @@ function render(){
   if(typeof clogInit==='function'&&!clogPanel) clogInit();
   if(typeof clogFreeze==='function'&&S&&S.phase==='lost') clogFreeze();
   if(typeof clogSetOpen==='function'&&screen!=='combat'&&clogOpen) clogSetOpen(false,false);
-  $$('.tutcoach-ov').forEach(n=>n.remove());
+  $$('.tutcoach-ov,.tutcoach-big,.tc-undo').forEach(n=>n.remove());
   // screen==='combat' covers the entire active run (map/event/shop/reward/
   // combat/win-lose all render under this value via the `else if(S){...}`
   // branch below) — the board is a fixed single-viewport during a run, so
@@ -4265,7 +4281,7 @@ function scCombat(frozen){
     if(pair){
       const link=el('div','reslink');
       link.appendChild(ico(FT_IC[pair.type],'ii'));
-      const tip='Formation Resonance: cặp Axie liền kề cùng roll mặt '+pair.type+' — Axie thực thi SAU nhận +'+Math.round((RESONANCE.mult-1)*100)+'%.';
+      const tip='Formation Resonance: adjacent Axie pair both rolled a '+pair.type+' face — whichever executes SECOND gets +'+Math.round((RESONANCE.mult-1)*100)+'%.';
       link.title=tip; link.dataset.tip=tip; kbAct(link);
       pz.appendChild(link);
     }
@@ -5159,16 +5175,22 @@ function scEnd(){
    this file only decides which single element(s) stay clickable and shows
    a small hint box, appended to document.body (a sibling of #app, so it is
    never itself affected by the #app.tut-locking pointer-events lock below). */
-const TUT_PHASE_ROLL='roll', TUT_PHASE_INTENT='intent', TUT_PHASE_REROLL='reroll',
+const TUT_PHASE_WELCOME='welcome', TUT_PHASE_ROLL='roll', TUT_PHASE_INTENT='intent', TUT_PHASE_REROLL='reroll',
       TUT_PHASE_DIE='die', TUT_PHASE_TARGET='target', TUT_PHASE_ENDTURN='endturn',
-      TUT_PHASE_FREE='free', TUT_PHASE_REWARD='reward';
+      TUT_PHASE_FREE='free', TUT_PHASE_REWARD='reward', TUT_PHASE_DONE='done';
 /* Steps 3-6 are deliberately NOT separate manual-advance flags — they are
    derived fresh from live S/sel state on every render, so there is nothing
-   to get out of sync with the actual game. Only steps 1->2 (§3.4 "GOT IT")
-   and 2->3 (open-then-close the intent modal, handled in tutCoachOverlay())
-   need an explicit tutStep write; see the `let tutStep` comment above. */
+   to get out of sync with the actual game. Only steps 0->1 (welcome ->
+   "START"), 1->2 (§3.4 "GOT IT"), 2->3 (open-then-close the intent modal,
+   handled in tutCoachOverlay()), and reward-taken->8 ("done") need an
+   explicit tutStep write; see the `let tutStep` comment above. Steps 0 and
+   8 are a deliberately soft entry/exit (product feedback: the tutorial felt
+   too abrupt dropping straight into a rolled board, and too abrupt ending
+   the instant a reward was taken — casual-game onboarding almost always
+   frames the lesson with a short welcome and a short "you're ready" beat). */
 function tutPhase(){
-  if(!S) return TUT_PHASE_ROLL;
+  if(!S||tutStep===0) return TUT_PHASE_WELCOME;
+  if(tutStep>=8) return TUT_PHASE_DONE;
   if(tutStep<2) return TUT_PHASE_ROLL;
   if(tutStep<3) return TUT_PHASE_INTENT;
   if(S.phase!=='combat') return TUT_PHASE_REWARD;
@@ -5188,6 +5210,20 @@ function tutLock(allowedEls){
   root.classList.add('tut-locking');
   allowedEls.filter(Boolean).forEach(e=>e.classList.add('tut-allow'));
 }
+/* Full-screen welcome/done beat — distinct from the small bottom coaching
+   bar tutCoachOverlay() uses for the 6 in-battle steps. Opaque backdrop
+   (unlike the transparent-background bottom bar) since there is nothing
+   underneath worth showing yet (welcome) or worth lingering on (done). */
+function tutBigOverlay(title,body,btnLabel,onClick){
+  const ov=el('div','tutcoach-big');
+  const bx=el('div','tutcoach-big-bx');
+  bx.appendChild(el('div','tc-k','TUTORIAL'));
+  bx.appendChild(el('h2',null,title));
+  bx.appendChild(el('div','tc-d',body));
+  bx.appendChild(btn('big go',btnLabel,onClick));
+  ov.appendChild(bx);
+  return ov;
+}
 function tutCoachOverlay(){
   if(!S) return null;
   // Intent-seen tracking must run BEFORE the "modal open -> don't lock"
@@ -5203,17 +5239,32 @@ function tutCoachOverlay(){
   if(modal) return null; // never lock while any modal (incl. the one above) is open
   const phase=tutPhase();
   if(phase===TUT_PHASE_FREE) return null; // fully unlocked free play until the fight ends
+  // Soft entry/exit (see the phase-constants comment above): a full-screen
+  // beat, not the small bottom coaching bar, and the board underneath stays
+  // fully locked (empty allow-list) since there's nothing to interact with yet.
+  if(phase===TUT_PHASE_WELCOME){
+    tutLock([]);
+    return tutBigOverlay('Welcome to Axie Dice Tactics!',
+      'Every Axie is a die, and every face is a real body part. Let\'s play one battle together before you\'re on your own.',
+      'START', ()=>{ tutStep=1; render(); });
+  }
+  if(phase===TUT_PHASE_DONE){
+    tutLock([]);
+    return tutBigOverlay('Nice work — you\'re ready.',
+      'That\'s the whole loop: roll, read the enemy, reroll if you need to, act, then pick a reward. Everything else you\'ll pick up as you play.',
+      'START PLAYING', ()=>{ META.tut=1; saveMeta(); screen='menu'; render(); });
+  }
   let title='', body='', allow=[], showUndoHint=false;
   if(phase===TUT_PHASE_ROLL){
-    title='5 Axie của bạn vừa roll';
-    body='Mỗi mặt là một bộ phận thật trên cơ thể Axie đó.';
+    title='Your 5 Axies just rolled';
+    body='Every face is a real body part on that Axie.';
   } else if(phase===TUT_PHASE_INTENT){
-    title='Địch để lộ hết bài';
-    body='Click một thẻ địch — bạn sẽ thấy chính xác nó sắp đánh ai, bao nhiêu.';
+    title='The enemy shows its hand';
+    body='Click an enemy card — you\'ll see exactly who it\'s about to hit, and for how much.';
     allow=$$('.unit.e');
   } else if(phase===TUT_PHASE_REROLL){
-    title='Không ưng mặt vừa roll?';
-    body='Bấm REROLL — không đánh dấu die nào nghĩa là đổi cả 5.';
+    title='Not happy with that roll?';
+    body='Press REROLL — marking nothing means all 5 get rerolled.';
     allow=[$('.btn.reroll')];
   } else if(phase===TUT_PHASE_DIE||phase===TUT_PHASE_TARGET){
     // Both the taught die and its target stay unlocked through this whole
@@ -5226,21 +5277,21 @@ function tutCoachOverlay(){
     const tgts=validTargets(actor), isAttack=actor.die[actor.rolled].t==='dmg';
     const dieEl=$('.diebox[data-uid="'+actor.uid+'"] .die'), tgtEl=tgts[0]!=null?$('.unit[data-uid="'+tgts[0]+'"]'):null;
     allow=[dieEl,tgtEl];
-    const tgtWord=isAttack?'địch':'đồng đội';
-    if(phase===TUT_PHASE_DIE){ title='Click die này'; body='Click để chọn (hoặc kéo-thả thẳng vào '+tgtWord+').'; }
-    else { title='Giờ chọn mục tiêu'; body='Click (hoặc kéo-thả) vào '+tgtWord+' này để thực thi.'; showUndoHint=true; }
+    const tgtWord=isAttack?'the enemy':'your ally';
+    if(phase===TUT_PHASE_DIE){ title='Click this die'; body='Click to select it (or drag it straight onto '+tgtWord+').'; }
+    else { title='Now pick a target'; body='Click (or drag) onto '+tgtWord+' to use it.'; showUndoHint=true; }
   } else if(phase===TUT_PHASE_ENDTURN){
-    title='Địch giờ thực hiện đúng điều đã báo trước';
-    body='Bấm END TURN.';
+    title='The enemy acts out exactly what it showed';
+    body='Press END TURN.';
     allow=[$('.btn.end')];
   } else if(phase===TUT_PHASE_REWARD){
-    title='Chọn 1 trong 3';
-    body='Cả 3 đều tốt — đây là lúc bạn định hình lối chơi.';
+    title='Pick 1 of 3';
+    body='All three are good picks — this is where you start shaping your build.';
     const cards=$$('.rcard'); allow=cards;
     // Wrap rather than replace: the card's own onclick (takeReward + render)
     // must still run first; only after it returns do we finish onboarding
     // and leave the fixture behind for good.
-    cards.forEach(c=>{ const orig=c.onclick; c.onclick=ev=>{ if(orig) orig(ev); META.tut=1; saveMeta(); screen='menu'; render(); }; });
+    cards.forEach(c=>{ const orig=c.onclick; c.onclick=ev=>{ if(orig) orig(ev); tutStep=8; render(); }; });
   }
   tutLock(allow);
   const ov=el('div','tutcoach-ov');
@@ -5248,11 +5299,11 @@ function tutCoachOverlay(){
   bx.appendChild(el('div','tc-k','TUTORIAL'));
   bx.appendChild(el('div','tc-t',title));
   bx.appendChild(el('div','tc-d',body));
-  if(phase===TUT_PHASE_ROLL) bx.appendChild(btn('big go','ĐÃ HIỂU →',()=>{ tutStep=2; render(); }));
+  if(phase===TUT_PHASE_ROLL) bx.appendChild(btn('big go','GOT IT →',()=>{ tutStep=2; render(); }));
   ov.appendChild(bx);
   // §3.4 step "4c" — a passing, non-blocking Undo reminder; auto-fades via
   // CSS alone (no JS timer to babysit across re-renders).
-  if(showUndoHint) ov.appendChild(el('div','tc-undo','Lỡ tay? Ctrl+Z hoàn tác — miễn phí tới khi bạn Reroll hoặc End Turn.'));
+  if(showUndoHint) ov.appendChild(el('div','tc-undo','Made a mistake? Ctrl+Z undoes it — free until you Reroll or End Turn.'));
   return ov;
 }
 
