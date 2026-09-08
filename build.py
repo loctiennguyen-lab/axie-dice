@@ -18,7 +18,7 @@ def audio_manifest():
     except OSError: names = []
     return 'const AUDIO_MANIFEST=' + repr(names).replace("'", '"') + ';'
 
-FILES=[('%ART%','src/art.js'),('%ART2%','src/art2.js'),('%ART3%','src/art3.js'),('%ART4%','src/art4.js'),('%ART5%','src/art5.js'),('%ART6%','src/art6.js'),('%COS%','src/cosmetics.js'),('%DATA%','src/data.js'),
+FILES=[('%ART%','src/art.js'),('%ART2%','src/art2.js'),('%ART3%','src/art3.js'),('%ART4%','src/art4.js'),('%ART5%','src/art5.js'),('%ART6%','src/art6.js'),('%ART7%','src/art7.js'),('%COS%','src/cosmetics.js'),('%DATA%','src/data.js'),
        ('%PARTFACES%','src/part_faces.js'),
        ('%ENGINE%','src/engine.js'),('%CLIENT%','src/client.html'),('%DEV%','src/devtools.js')]
 html = """<!DOCTYPE html>
@@ -47,6 +47,7 @@ html = """<!DOCTYPE html>
 %ART4%
 %ART5%
 %ART6%
+%ART7%
 %COS%
 %DATA%
 %PARTFACES%

@@ -968,6 +968,10 @@ small{font-size:var(--t1)}
 @keyframes land{0%{transform:translateY(-13px) scaleY(1.18) scaleX(.86)}45%{transform:translateY(3px) scaleY(.8) scaleX(1.16)}
   70%{transform:translateY(-2px) scaleY(1.06)}100%{transform:translateY(0) scale(1)}}
 .die .dp{font-size:var(--t1);color:var(--dim);letter-spacing:2px}
+/* docs/art/icon-spec-body-parts.md §Layout change — part icon now owns the
+   primary 22px (.di) slot; the effect-type icon shrinks to the 't' (11px)
+   size class and becomes a secondary corner badge instead. */
+.die .effbadge{position:absolute;top:4px;right:4px}
 .die .di{font-size:20px;line-height:22px}
 .die .dv{font-size:var(--die-num);line-height:1.05}
 .die .dk{font-size:var(--die-kw);color:var(--dim);letter-spacing:.5px}
@@ -1360,6 +1364,10 @@ body.devmode{cursor:crosshair}
   #app{ padding:var(--s2) var(--s2) var(--s3); }
   .nm,.dp,.pips,.dlbl{ display:none; }
   .die{ padding:6px 4px; }
+  /* icon-spec-body-parts.md §Layout change item 4 — hide the small effect
+     corner badge at the narrowest (64px die) breakpoint only; the part
+     icon (.di slot) stays, it's the primary identity signal at every size. */
+  .die .effbadge{ display:none; }
   .bottombar{ position:sticky; bottom:0; height:60px; z-index:20; }
   .btn--lg,.btn.big,.btn.cta{ --btn-h:52px; }
   .pickgrid{ grid-template-columns:repeat(2,1fr); }
@@ -1930,6 +1938,18 @@ const IC_COL={dmg:'#ff6b6b',shield:'#7ac8ff',heal:'#77e895',mana:'#c78cff',poiso
   shop:'#ffd76a',chest:'#5fb8ff'};
 const IC_CACHE={};
 function icoSvg(name,col){
+  if(ICON_PNG_ART[name]){
+    const key='png|'+name;
+    if(IC_CACHE[key]) return IC_CACHE[key];
+    const out=`<svg class="ico" viewBox="0 0 128 128" xmlns="http://www.w3.org/2000/svg"><image href="${ICON_PNG_ART[name]}" width="128" height="128"/></svg>`;
+    IC_CACHE[key]=out; return out;
+  }
+  if(ICON_SVG_RAW[name]){
+    const key='vec|'+name;
+    if(IC_CACHE[key]) return IC_CACHE[key];
+    const out=`<svg class="ico" viewBox="0 0 128 128" xmlns="http://www.w3.org/2000/svg">${ICON_SVG_RAW[name]}</svg>`;
+    IC_CACHE[key]=out; return out;
+  }
   const g=IC_G[name]; if(!g) return '';
   const key=name+'|'+(col||'');
   if(IC_CACHE[key]) return IC_CACHE[key];
@@ -1948,6 +1968,22 @@ function icoSvg(name,col){
 }
 function ico(name,cls,col){
   const s=el('span','icow '+(cls||'')); s.innerHTML=icoSvg(name,col); return s;
+}
+/* docs/art/icon-spec-body-parts.md §7.3 — PART_ICON_SVG (src/art7.js) holds
+   already-complete <svg> markup per slot+class, not an IC_G 8x8 grid, so it
+   renders through its own path rather than icoSvg()/ico(). Falls back to
+   PART_ICON_BLANK for the no-part case (f.p is 'blank'/'m'/unset) or an
+   unrecognized class. */
+const PART_ICO_CACHE={};
+function partIcoSvg(partKey,clsKey){
+  const key=partKey+'|'+clsKey;
+  if(PART_ICO_CACHE[key]) return PART_ICO_CACHE[key];
+  const g=PART_ICON_SVG[partKey];
+  const raw=(g&&g[clsKey])||PART_ICON_BLANK;
+  PART_ICO_CACHE[key]=raw; return raw;
+}
+function partIco(partKey,clsKey,cls){
+  const s=el('span','icow '+(cls||'')); s.innerHTML=partIcoSvg(partKey,clsKey); return s;
 }
 const FT_IC={dmg:'dmg',shield:'shield',heal:'heal',mana:'mana',poison:'poison',
   buff:'buff',debuff:'debuff',summon:'summon',blank:'blank'};
@@ -3084,7 +3120,13 @@ function paintDieFace(d,u,fi,temp){
   const strip=el('div','ractag'); if(hasKw(f,'heavy')) strip.appendChild(el('span','ractag-hv','⚖'));
   d.appendChild(strip);
   d.appendChild(el('div','dp',f.name||PARTN[f.p]||''));
-  d.appendChild(ico(FT_IC[f.t],'di'));
+  /* icon-spec-body-parts.md §Layout change — part icon promoted into the
+     primary 22px (.di) slot; effect-type icon demoted to an 11px ('t')
+     corner badge (.effbadge, positioned via CSS) since icon=part / badge
+     +number-color=effect are the two independent signals now (§Color rule). */
+  d.appendChild(partIco(f.p,u.cls,'di'));
+  const effBadge=ico(FT_IC[f.t],'t'); effBadge.classList.add('effbadge');
+  d.appendChild(effBadge);
   if(f.t==='blank') d.appendChild(el('div','dv blanktxt','BLANK'));
   else if(f.v>0||f.t==='dmg') d.appendChild(el('div','dv',String(temp?f.v:faceValue(S,u,fi))));
   /* §3.3 interim fix — compact die face only shows combat-decision-critical
@@ -3962,7 +4004,7 @@ function startRun(){
 const pick0=a=>a[Math.floor(Math.random()*a.length)];
 
 /* ================= MAP ================= */
-const NODE_INFO={battle:{n:'BATTLE',ic:'dmg',d:'Regular Chimeras. Standard reward.',c:'#ff7a7a'},
+const NODE_INFO={battle:{n:'BATTLE',ic:'battle',d:'Regular Chimeras. Standard reward.',c:'#ff7a7a'},
   elite:{n:'ELITE',ic:'elite',d:'Much more dangerous. Bigger reward and more Shard.',c:'#ffa94d'},
   boss:{n:'BOSS',ic:'boss',d:'A boss with its own mechanic. Huge reward.',c:'#ff5f5f'},
   event:{n:'EVENT',ic:'event',d:'A risk-and-reward choice. No combat.',c:'#c78cff'},

@@ -1,0 +1,191 @@
+{
+  "name": "axie-roguelike-icons",
+  "version": "1.0.0",
+  "generated": "2026-09-08",
+  "note": "23 of 25 icons are shipped Axie art copied from source. 2 are new SVGs (energy, blank).",
+  "sources": {
+    "parts": "@axieinfinity/dango-icons",
+    "kit": "axie-origins-asset-kit / Assets/OriginsKit/Textures/StatusIcons"
+  },
+  "groups": {
+    "part": [
+      {
+        "slot": "MOUTH",
+        "file": "part/MouthBugIcon.svg",
+        "origin": "dango-icons",
+        "export": "MouthBugIcon"
+      },
+      {
+        "slot": "HORN",
+        "file": "part/HornBugIcon.svg",
+        "origin": "dango-icons",
+        "export": "HornBugIcon"
+      },
+      {
+        "slot": "BACK",
+        "file": "part/BackAquaticIcon.svg",
+        "origin": "dango-icons",
+        "export": "BackAquaticIcon"
+      },
+      {
+        "slot": "TAIL",
+        "file": "part/TailPlantIcon.svg",
+        "origin": "dango-icons",
+        "export": "TailPlantIcon"
+      },
+      {
+        "slot": "EYES",
+        "file": "part/EyesPlantIcon.svg",
+        "origin": "dango-icons",
+        "export": "EyesPlantIcon"
+      },
+      {
+        "slot": "EARS",
+        "file": "part/EarsReptileIcon.svg",
+        "origin": "dango-icons",
+        "export": "EarsReptileIcon"
+      },
+      {
+        "slot": "BLANK",
+        "file": "part/blank.svg",
+        "origin": "new"
+      }
+    ],
+    "node": [
+      {
+        "slot": "BATTLE",
+        "file": "node/battle.png",
+        "origin": "kit",
+        "asset": "wolf_pack.png"
+      },
+      {
+        "slot": "ELITE",
+        "file": "node/elite.png",
+        "origin": "kit",
+        "asset": "bloodmoon.png"
+      },
+      {
+        "slot": "BOSS",
+        "file": "node/boss.png",
+        "origin": "kit",
+        "asset": "buff_fury.png"
+      },
+      {
+        "slot": "EVENT",
+        "file": "node/event.png",
+        "origin": "kit",
+        "asset": "secret_card.png"
+      },
+      {
+        "slot": "MERCHANT",
+        "file": "node/merchant.png",
+        "origin": "kit",
+        "asset": "snake_jar.png"
+      },
+      {
+        "slot": "TREASURE",
+        "file": "node/treasure.png",
+        "origin": "kit",
+        "asset": "rune_neutral_hybrid_1.png"
+      }
+    ],
+    "effect": [
+      {
+        "slot": "SHIELD",
+        "file": "effect/shield.png",
+        "origin": "kit",
+        "asset": "buff_shield_boost.png"
+      },
+      {
+        "slot": "REGEN",
+        "file": "effect/regen.png",
+        "origin": "kit",
+        "asset": "regrow.png"
+      },
+      {
+        "slot": "THORNS",
+        "file": "effect/thorns.png",
+        "origin": "kit",
+        "asset": "buff_spike.png"
+      },
+      {
+        "slot": "UNDYING",
+        "file": "effect/undying.png",
+        "origin": "kit",
+        "asset": "goo_revival.png"
+      },
+      {
+        "slot": "POISON",
+        "file": "effect/poison.png",
+        "origin": "kit",
+        "asset": "debuff_poison.png"
+      },
+      {
+        "slot": "BURN",
+        "file": "effect/burn.png",
+        "origin": "kit",
+        "asset": "burn.png"
+      },
+      {
+        "slot": "WEAKEN",
+        "file": "effect/weaken.png",
+        "origin": "kit",
+        "asset": "debuff_weak.png"
+      },
+      {
+        "slot": "VULNERABLE",
+        "file": "effect/vulnerable.png",
+        "origin": "kit",
+        "asset": "debuff_vulnerable.png"
+      },
+      {
+        "slot": "BLIND",
+        "file": "effect/blind.png",
+        "origin": "kit",
+        "asset": "debuff_fear.png",
+        "placeholder": "kit has no blind art"
+      },
+      {
+        "slot": "STUN",
+        "file": "effect/stun.png",
+        "origin": "kit",
+        "asset": "debuff_stunned.png"
+      },
+      {
+        "slot": "FROZEN",
+        "file": "effect/frozen.png",
+        "origin": "kit",
+        "asset": "debuff_sleep.png",
+        "placeholder": "kit has no freeze art"
+      }
+    ],
+    "cost": [
+      {
+        "slot": "ENERGY",
+        "file": "cost/energy.svg",
+        "origin": "new"
+      }
+    ]
+  },
+  "partVariants": {
+    "note": "All 8 class variants of each of the 6 part slots are in part/ — swap the suffix to follow the Axie class.",
+    "slots": [
+      "Mouth",
+      "Horn",
+      "Back",
+      "Tail",
+      "Eyes",
+      "Ears"
+    ],
+    "classes": [
+      "Aquatic",
+      "Beast",
+      "Bird",
+      "Bug",
+      "Neutral",
+      "NeutralActive",
+      "Plant",
+      "Reptile"
+    ]
+  }
+}

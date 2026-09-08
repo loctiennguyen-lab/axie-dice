@@ -1,12 +1,29 @@
 # Icon Spec — Body Part Icons (6 slots)
 
-> **Status**: Designed, pending implementation
-> **Author**: art-director (2026-09-01)
+> **Status**: Designed; real asset now available — **ready for implementation**
+> as of 2026-09-08, with one feasibility flag for `technical-artist` (§7).
+> **Author**: art-director (2026-09-01, updated 2026-09-08)
 > **Addresses**: `docs/review-2026-08-31.md` art finding #1 — die faces currently show only a text label for the body part, no icon; "lắp ráp bộ phận quái vật lên xúc xắc" is the game's central premise but is currently text-only.
 
 ## Grounding
 
-Read before writing this spec: `src/icons.js` (8x8 `IC_G` grid → `icoSvg()` → inline SVG; `IC_COL` bakes fill color directly into the SVG — CSS `color` does **not** recolor it), `src/ui.js:129-143` (`paintDieFace`, current face layout), `src/ui.js:1322-1331` (`faceRow`, info-panel row layout), `src/style.css:385-411` (die box sizing), `:505-510` (`.icow` size variants), `design/gdd/game-concept.md` (part table), `design/gdd/part-tier-system.md` §2 (per-class slot flavor).
+Read before writing this spec: `IC_G`/`icoSvg()`/`IC_COL` (8x8 grid → inline
+SVG; `IC_COL` bakes fill color directly into the SVG — CSS `color` does
+**not** recolor it), `paintDieFace` (current face layout), `faceRow`
+(info-panel row layout), die box sizing and `.icow` size variants,
+`design/gdd/game-concept.md` (part table), `design/gdd/part-tier-system.md`
+§2 (per-class slot flavor).
+
+**2026-09-08 path correction**: all `src/icons.js`/`src/ui.js`/`src/style.css`
+references above and elsewhere in this doc are **stale** — the 2026-09-03
+file merge folded CSS+UI+FX+icons into one file, `src/client.html`. Current
+locations, reverified 2026-09-08: `IC_G`/`IC_COL`/`icoSvg`/`ico`/`FT_IC`/
+`ST_IC` at `client.html:1899-1955`; `paintDieFace` at `client.html:3075`;
+`faceRow` at `client.html:5702`. Both functions still exist with the same
+names and the layout this spec assumes (`.dp` text → `ico(FT_IC[f.t],'di')`
+→ value, in that order, confirmed unchanged at `client.html:3086-3087`) — no
+part icon has been wired in yet, so §"Layout change" below is still fully
+valid, only the file path needed fixing.
 
 **Key finding that shapes this spec**: `.die`'s `border-bottom:3px solid var(--cc)` is the unit's **class** color, not effect type — so "icon=part, color/border=effect" cannot repurpose the border (already spoken for). Effect type must stay on the existing channels (icon fill color, `.dv` number color).
 
@@ -82,9 +99,10 @@ Three independent, non-colliding channels:
 - **Icon color** → always neutral/bone (identity, never varies)
 - **Number color** (`.dv`, existing `.die.t_TYPE .dv{color:...}`) + **small effect badge icon** → effect type. Both, not just color alone — color-only encoding of effect type would regress the still-open colorblind-mode accessibility item.
 
-## Layout change (`ui.js` / `style.css`)
+## Layout change (`src/client.html` — was `ui.js`/`style.css` before the 2026-09-03 merge)
 
-Current `paintDieFace` order: `.dp` part-name text → 22px effect icon (`ico(FT_IC[f.t],'di')`) → value number → keyword text.
+Current `paintDieFace` order (verified at `client.html:3075-3094`, 2026-09-08):
+`.dp` part-name text → 22px effect icon (`ico(FT_IC[f.t],'di')`) → value number → keyword text.
 
 1. Promote the new part icon into the primary 22px slot: `ico(PART_IC[f.p], 'di')`.
 2. **Keep the existing `.dp` text label** — icon+text redundancy is deliberate until players learn the new icon vocabulary (same colorblind/redundancy reasoning as above).
@@ -92,6 +110,97 @@ Current `paintDieFace` order: `.dp` part-name text → 22px effect icon (`ico(FT
 4. At the two narrowest breakpoints (104px, 64px), hide the small effect badge at 64px specifically — precedent exists (`.tnode .icow{display:none}` already hides icons at a small breakpoint). Whether `.dp` text also needs hiding at 64px should be decided from an actual rendered screenshot, not blind.
 5. Add a `PART_IC` lookup map next to `FT_IC`/`ST_IC` (same pattern). Prefix the six new `IC_G` keys (`p_mouth`, `p_horn`, `p_back`, `p_tail`, `p_eyes`, `p_ears`) as a distinct namespace from effect/status icon keys.
 
+## 7. Real asset arrival (2026-09-08) — supersedes hand-drawn `IC_G` grids
+
+The product owner supplied real part art directly into the repo:
+`assets/_incoming/icon-set-2026-09-08/part/` — 6 slots × 8 class variants
+(48 SVGs) plus `blank.svg`, sourced from `@axieinfinity/dango-icons`. This
+is full illustrative SVG art (48×48 viewBox, multi-path, shaded — verified
+by reading `part/HornBugIcon.svg` directly), not a shape simple enough to
+re-encode as an 8×8 `IC_G` grid. **This changes the "out of scope" note
+below**: hand-authoring `IC_G` grids for these 6 slots is no longer the
+implementation task — wiring up the real files is.
+
+### 7.1 Slot × class mapping confirmed
+
+The 6 slots (Mouth/Horn/Back/Tail/Eyes/Ears) match this spec 1:1. Each has
+8 class-suffixed files on disk (e.g. `MouthAquaticIcon.svg`,
+`MouthBeastIcon.svg`, … `MouthReptileIcon.svg`) — swap the suffix per the
+Axie's class to pick the file.
+
+**Class-name mismatch to resolve at implementation**: this game's actual
+class keys (`CLASS_COLOR` in `data.js`) are lowercase `plant`, `beast`,
+`aqua`, `reptile`, `bug`, `bird` — 6 classes, no `neutral`. The asset set's
+8 suffixes are `Aquatic`, `Beast`, `Bird`, `Bug`, `Neutral`, `NeutralActive`,
+`Plant`, `Reptile`. Mapping for the 6 real classes is a simple table, only
+`aqua` needs a name change, not a slot logic change:
+
+| Game class key | Asset suffix |
+|---|---|
+| `plant` | `Plant` |
+| `beast` | `Beast` |
+| `aqua` | `Aquatic` |
+| `reptile` | `Reptile` |
+| `bug` | `Bug` |
+| `bird` | `Bird` |
+
+`Neutral` and `NeutralActive` have **no corresponding game class** — this
+game has no "Neutral" class. Two options, neither blocking:
+- Leave both unused for now (simplest — no code path needs them).
+- `NeutralActive` is plausibly intended as a "this die/part is currently
+  selected" accent variant (the naming pattern matches how `.unit.acting`
+  already has a distinct visual treatment, `client.html:783`, for the
+  currently-acting unit) — but no existing code path swaps a part icon
+  based on selection state today, so wiring this in is new scope, not a
+  drop-in reuse. Flag for `ux-designer`/`ui-programmer` as an optional
+  future enhancement, not part of this pass.
+
+`part/blank.svg` maps to the existing `blank`/`m` part-slot codes already
+in `PARTN` (`client.html:2985`) — this is a **different** icon from the
+general-purpose `IC_G.blank` ("no effect" glyph, still pixel per the
+sibling spec's §5.5) since it lives in a new, separate `PART_IC`-style
+lookup, not `IC_G`. No naming collision, but call it out explicitly during
+implementation so the two "blank"s aren't merged by mistake.
+
+### 7.2 Feasibility flag — do NOT add `@axieinfinity/dango-icons` as an npm dependency
+
+The set's own `README.md` says "Import from the package in code; the
+copies in `icons/part/` are for reference and previews." **That guidance is
+incompatible with this project and must not be followed literally.**
+`.claude/docs/technical-preferences.md` is explicit: no bundler, no
+`node_modules` for the game itself, single self-contained HTML file
+assembled by `build.py` string concatenation. Adding a real npm import
+would require a module resolution/bundling step this project has
+deliberately never had. **Use the on-disk copies as the actual source of
+truth instead** — treat
+`assets/_incoming/icon-set-2026-09-08/part/*.svg` as the asset, inline each
+file's SVG markup as a string constant (same mechanism `art.js`/
+`cosmetics.js` already use for other embedded art, coordinated with
+`technical-artist` on which file receives them — see the sibling icon
+redesign spec's §5.6 for the same "don't bloat `client.html`" reasoning).
+
+**Before embedding, strip each file's `<metadata>...</metadata>` block** —
+every file in this delivery (`part/`, `node/`, `effect/`, `cost/` alike)
+carries a several-KB C2PA/provenance metadata blob with zero visual
+contribution; embedding it verbatim 48 times would add real, avoidable
+bloat to whichever file receives these.
+
+### 7.3 Rendering path is separate from `icoSvg()`
+
+These files render through a **different mechanism** than `IC_G`/`icoSvg()`
+— they're already complete `<svg>` markup, not an 8×8 grid to walk into
+`<rect>` runs. A `PART_IC`-style lookup (slot+class → raw SVG string) sits
+alongside `IC_G`/`FT_IC`/`ST_IC` as its own small table, per this spec's
+"Layout change" step 5 above (`PART_IC` naming, `p_mouth` etc.) — just note
+that `PART_IC`'s values are now literal SVG markup strings, not `IC_G` keys,
+since there is no shared grid format to key into.
+
 ## Out of scope for this spec
 
-Hand-authoring the actual `IC_G`-format pixel grid data for each icon — that's an implementation task for whoever codes against this spec. This document describes each silhouette precisely enough that implementation should not require further design decisions, only translation into the grid format.
+Hand-authoring `IC_G`-format pixel grid data for these 6 slots is now
+**superseded by §7** — real art exists, use it. What remains genuinely out
+of scope: the `PART_IC` lookup wiring itself, the `NeutralActive`
+selected-state question (§7.1), and choosing which base64/string-constant
+file receives the embedded markup (§7.2) — all implementation-detail or
+deferred-scope calls for `ui-programmer`/`technical-artist`, not further
+design decisions.

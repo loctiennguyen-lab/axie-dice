@@ -1,9 +1,12 @@
 # Icon System Redesign — Pixel Icon Replacement Spec
 
-Status: DRAFT — visual direction, inventory, and format spec are decision-ready;
-final per-icon asset sourcing is **BLOCKED** on two inputs not yet in this
-session (see §5). Do not start swapping individual icons until §5 clears.
-Author: art-director (2026-09-07)
+Status: **READY FOR IMPLEMENTATION** as of 2026-09-08 — both §5 blockers
+cleared (see §5 changelog below). 17 of 25 `IC_G` icons plus 1 new icon
+(`battle`, see §5) have a real-art source now; the remaining 8 stay
+procedural pixel with a documented reason. No code has been changed in this
+pass — this is a spec update only, handing off to `ui-programmer`/
+`technical-artist`.
+Author: art-director (2026-09-07, updated 2026-09-08)
 Trigger: product owner — *"các icon trong game này vẫn là dạng pixel... hãy
 tiến hành rà soát lại để biến chúng thành icon bình thường, dùng art phù hợp
 có trong Drive"* (the icons in this game are still pixel-style — review them
@@ -209,78 +212,250 @@ file inspection to close):**
 **Naming convention** (per this project's asset-naming rule): `ui_icon_
 <name>_<size>.svg` / `.png`, e.g. `ui_icon_poison_22.png`.
 
-## 5. BLOCKING dependencies — asset-selection phase cannot start without these
+## 5. Asset sourcing — RESOLVED 2026-09-08
 
-This spec is decision-ready (inventory, direction, size/format target are all
-locked); **picking the actual final file per icon is blocked** on two inputs
-that have not reached this session:
+**What changed**: the product owner supplied a real icon set directly into
+the repo (`assets/_incoming/icon-set-2026-09-08/`, manifest + README +
+files), bypassing the Drive-access blocker entirely. No exclusion reference
+image was ever provided, before or with this delivery.
 
-1. **Exclusion reference image.** Product owner separately mentioned an image
-   showing which icons should be **excluded** from this replacement (kept as
-   the current pixel style) — that image has not been shared in this session.
-   Do not assume "all 25" is the final scope until this is seen; it may carve
-   out a subset the same way §8 already carved out `blind`/`burn`/`undying`
-   from `ST_IC` for a *different* reason (no matching art existed, not a
-   deliberate style choice).
-2. **Drive folder access.** `art-director` has no Drive access in this
-   session (per standing note in this agent's memory) — `lead`/product owner
-   needs to fetch candidate files. Two folders are already known-good
-   starting points from the prior pass, both flat-icon-style (Option B),
-   not character art:
-   - "Battle Status Icon" (`1OPxS21x_0miVFkEUcUM6kkssqsQ8_yQ5` → PNG subfolder
-     `1vnmfXmaUfMhpXulkPWeNBp9CFi-bLACK`) — **head start, not new work**:
-     6 of 9 `ST_IC` keys already have a High/Medium-confidence name match
-     (`poison→Poison.png`, `regen→Regen.png`, `weaken→Weak.png`,
-     `vuln→Vulnerable.png`, `stun→Stunned.png`, `thorns→Spike.png`,
-     medium confidence) — see full table and reasoning in
-     `real-art-adoption-plan-2026-09-07.md` §8, not repeated here. That
-     folder's complete 48-title listing has already been enumerated and
-     confirmed to have **no** match for `blind`/`burn`/`undying` — keep the
-     procedural pixel icon for those 3 permanently unless a different folder
-     turns up a real match; do not force a mismatched icon onto a status
-     just to hit 25-for-25.
-   - "Icon Cosmetic types" (`1Velct3Q5kKHrNFbbYKG24IlbcjZG_vKj`) — not
-     applicable to this spec's 25 icons (it's category glyphs for the
-     cosmetic wardrobe, see §9 of the same prior-pass doc); noted here only
-     so it isn't confused with a source for this task.
-   - The remaining 16 icons (all of `FT_IC` plus `reroll`/`shard`/`boss`/
-     `elite`/`event`/`shop`/`chest`) have **not** been searched against
-     Drive yet — this is the bulk of the remaining work, and needs the same
-     name-match-plus-confidence-flag pass §8 already modeled, run against
-     whatever folder(s) the exclusion image and Drive access reveal.
+**Blocker 1 (exclusion image) — resolved by absence, not by seeing it.**
+Treat "no exclusion image was shared" as "no icon is deliberately excluded by
+product-owner intent." This is a different situation from the 8 icons that
+still stay pixel below — those are unswapped because **no source art for
+them arrived**, not because anyone marked them "keep as pixel." If an
+exclusion image turns up later naming one of the 17 icons below as
+"keep pixel," that overrides this spec's call for that one icon; nothing
+else in this pass assumed an exclusion.
 
-**Recommended next step once both unblock**: re-run §8's exact methodology
-(name/visual match, confidence flag, explicit "keep procedural icon"
-fallback when no confident match exists) against the 16 not-yet-searched
-icons, then a single visual-confirmation pass (view the actual candidate
-files, not just filenames) across all 25 before any implementation starts.
+**Blocker 2 (Drive access) — moot.** The delivered set did not come from the
+two Drive folders named in the original §5 (Battle Status Icon / Icon
+Cosmetic types) — it traces to `@axieinfinity/dango-icons` (part icons) and
+the `axie-origins-asset-kit` (`Assets/OriginsKit/Textures/StatusIcons/`,
+node + effect icons), per `assets/_incoming/icon-set-2026-09-08/README.md`.
+The §8 pre-work (6 partial `ST_IC` name-matches against Battle Status Icon)
+is superseded by this delivery for the same 9 `ST_IC` keys and is not carried
+forward — this set covers all 9 directly.
 
-## 6. Implementation notes (for `technical-artist` / `ui-programmer`, not scoped here)
+### 5.1 Coverage — 17 of 25 `IC_G` names get real art, plus 1 new name
 
-- Keep `ico(name, cls, col)` / `icoSvg(name, col)`'s call signature
-  unchanged — swap only what happens inside them. Zero edits needed at any
-  of the ~35 call sites listed in §1/§2.
-- Rollout can be incremental, one icon at a time, since nothing else depends
-  on all 25 shipping together — there's no reason to block this behind a
-  single big-bang swap.
-- Per-icon fallback rule (already established by §8, restated for the full
-  set): if no confident Drive match exists for a given icon, **keep its
-  current procedural `IC_G` grid** rather than substituting a mismatched
-  image. A wrong-semantic icon actively misleads the player about what a
-  status/effect does — worse than a consistent legacy pixel icon standing
-  out among newer flat ones for a handful of hold-outs.
-- `freeze` is not in `ST_IC` (hardcoded literal call sites, §1) — don't miss
-  it when auditing coverage; it's still one of the 25.
-- Re-verify `tools/verify.mjs`'s icon/contrast checks after any swap — this
-  is the same UI-rule gate every other visual change in this project runs
-  through.
+| `IC_G` name | Source file | New render format | Notes |
+|---|---|---|---|
+| `shield` | `effect/shield.png` (kit `buff_shield_boost.png`) | PNG | also feeds `FT_IC.shield`/`ARCH_IC.shield` — same concept (a shield), safe to share |
+| `regen` | `effect/regen.png` (kit `regrow.png`) | PNG | |
+| `thorns` | `effect/thorns.png` (kit `buff_spike.png`) | PNG | also feeds `ARCH_IC.thorns` |
+| `undying` | `effect/undying.png` (kit `goo_revival.png`) | PNG | |
+| `poison` | `effect/poison.png` (kit `debuff_poison.png`) | PNG | also feeds `FT_IC.poison` (face effect) and `ARCH_IC.poison` — all three are "poison," no conflict |
+| `burn` | `effect/burn.png` (kit `burn.png`) | PNG | also feeds `ARCH_IC.burn`, `EV_IC.campfire` |
+| `weaken` | `effect/weaken.png` (kit `debuff_weak.png`) | PNG | |
+| `vuln` | `effect/vulnerable.png` (kit `debuff_vulnerable.png`) | PNG | **key name check**: `ST_IC.vulnerable` resolves to icon name `'vuln'` (`client.html:1954`) — swap the asset under the `vuln` key, not a literal `vulnerable` key, or it silently no-ops |
+| `blind` | `effect/blind.png` (kit `debuff_fear.png`, **placeholder**) | PNG | see §5.3 — adopted, not held back |
+| `stun` | `effect/stun.png` (kit `debuff_stunned.png`) | PNG | |
+| `freeze` | `effect/frozen.png` (kit `debuff_sleep.png`, **placeholder**) | PNG | see §5.3; `freeze` is hardcoded outside `ST_IC` (`client.html:4265,4370`) — don't miss these 2 call sites when swapping |
+| `elite` | `node/elite.png` (kit `bloodmoon.png`) | PNG | `NODE_INFO.elite.ic` only, no other consumer — safe |
+| `boss` | `node/boss.png` (kit `buff_fury.png`) | PNG | `NODE_INFO.boss.ic` only — safe |
+| `event` | `node/event.png` (kit `secret_card.png`) | PNG | feeds `NODE_INFO.event.ic` + `EV_IC` fallback — same "unknown event" concept at two sizes, safe |
+| `shop` | `node/merchant.png` (kit `snake_jar.png`) | PNG | feeds `NODE_INFO.shop.ic`, `EV_IC.merchant`, shop-screen header — same "merchant" concept everywhere, safe |
+| `chest` | `node/treasure.png` (kit `rune_neutral_hybrid_1.png`) | PNG | feeds `NODE_INFO.treasure.ic`, reward-ternary, `ucicow` fallback — same "treasure/chest" concept everywhere, safe |
+| `mana` | `cost/energy.svg` (new, hand-drawn to kit rules) | SVG | see §5.2 — feeds `FT_IC.mana`, `ARCH_IC.mana`, **and** the literal `iconChip('mana',...)` MP-cost badges (`client.html:4155,5458,5787`) |
+| **`battle`** *(new name, not one of the original 25)* | `node/battle.png` (kit `wolf_pack.png`) | PNG | see §5.4 — **do not** wire this to the existing `dmg` key |
+
+That is 11 (`effect/`, minus `shield`+`freeze` already counted, i.e. the
+full 11-file folder) + 5 (`node/`, excluding the new `battle`) + 1 (`mana`)
+= **17 of the original 25**, plus 1 new name (`battle`) = 18 icon slots
+touched total.
+
+### 5.2 `mana` ← `cost/energy.svg` — full reuse, with a recolor caveat
+
+The manifest's `cost/energy.svg` slot is named "ENERGY" and the README calls
+it a from-scratch SVG (no shipped Axie asset matched "mana cost"). But
+tracing where a lightning-bolt-shaped mana glyph is actually *used* in this
+codebase shows it already is this exact concept: `IC_G.mana` is described
+in `icon-spec-body-parts.md` as "a single diagonal zigzag bolt," its
+`IC_COL.mana` is `#c78cff` (purple), and `energy.svg`'s two flat tones are
+`#9970F7`/`#C3A7FF` — also purple, a close match. And the die-face Mana
+effect and the Lunacia Card MP cost are **the same game resource** per
+`design/gdd/game-concept.md` ("Mana is a shared party resource... you spend
+it on active cards... some faces grant Mana"), not two different resources
+that happen to share a color. **Decision: `energy.svg` replaces the `mana`
+`IC_G` entry outright**, covering all 3 of its current reuse sites
+(`FT_IC.mana` die-face icon at `di` 22px, `ARCH_IC.mana` playstyle badge,
+and the literal `ico('mana',...)`/`iconChip('mana',...)` MP-cost badges at
+`t` 11px) — not a separate new icon key.
+
+**Recolor caveat — flag for `technical-artist`/`ui-programmer`, not a
+blocker:** `energy.svg`'s two fills (`#9970F7`/`#C3A7FF`) are baked into the
+file as literal hex, not `currentColor`. The MP-cost badge currently uses
+`icoSvg`'s per-call `col` override for a real gameplay signal — green
+(`#66e08a`) when the player can afford the active card, red (`#ff8f8f`)
+when they can't (`client.html:5787`). Two ways to handle this, either is
+acceptable:
+- **Option A (simplest, recommended for first pass)**: accept that the
+  icon *shape* stays fixed purple; the afford/can't-afford signal still
+  reads via `iconChip`'s independent `s2.style.borderColor`/`color` on the
+  chip's border and cost number (`client.html:5340`) — that styling is
+  separate from the SVG fill and is untouched by this swap. Net effect:
+  slightly less redundant signaling than today, not a broken one.
+- **Option B (preserves the mechanic exactly, small extra work)**: since
+  `energy.svg` is SVG text (not a raster PNG), a thin wrapper can do a
+  string substitution of the 2 literal hex values for a requested
+  `(base, light)` color pair before inlining — 2 known-fixed strings to
+  replace, not a generic recolor system. Worth doing if `technical-artist`
+  has ~20 minutes; not required to ship.
+Recommendation: ship Option A first (zero extra engineering, no regression
+in practice), revisit Option B only if a playtest shows the afford/deny
+signal got harder to read.
+
+### 5.3 `blind`/`frozen` placeholders — ADOPT, do not hold back to pixel
+
+`effect/blind.png` borrows `debuff_fear.png` and `effect/frozen.png` borrows
+`debuff_sleep.png` — both flagged by the README itself as "the right look
+for the wrong mechanic" (fear ≠ blind, sleep ≠ freeze). §6's existing
+fallback rule says: *if no confident match exists, keep the procedural
+icon rather than substitute a mismatched image, because a wrong-semantic
+icon actively misleads the player.* That rule was written for the case of
+**zero candidates** (force-fitting an unrelated shape just to hit 25-for-25).
+This is a different case: a real character-emotion asset that is visually
+*in the right neighborhood* (fear → wide/distressed eyes reads as
+"perception impaired," adjacent to blind; sleep → closed eyes/Zzz reads as
+"incapacitated," adjacent to frozen) and, more importantly, both statuses
+sit in the same UI row as the other 9 status pills that **are** getting the
+new flat-art treatment (§1 status row). Leaving 2 of 11 status icons as the
+old blocky pixel style right next to 9 new flat ones is its own legibility
+problem — Gestalt similarity says a broken pattern in one shared row reads
+worse to the player than one icon being a slightly loose metaphor for its
+mechanic. **Decision: adopt both placeholders now.** Track them as flagged
+debt (the README's own "Open items" §1 already does this) — swap to
+purpose-built blind/freeze art the moment it exists, no design sign-off
+needed to do that swap later since it's a pure asset substitution under an
+unchanged key.
+
+### 5.4 `battle` — new key, NOT a reuse of `dmg`
+
+`NODE_INFO.battle.ic` currently resolves to `'dmg'` (`client.html:3965`) —
+the BATTLE map-node icon and the "this die face deals damage" icon are
+today, incidentally, the *same* pixel shape. `node/battle.png` (kit
+`wolf_pack.png`) is real, detailed scene art sized for a 30px map-node
+thumbnail — exactly the kind of asset Option A (§3) already rejected for
+small die-face icons on legibility grounds, and `dmg` is one of the
+**highest-frequency** icons in the game (`FT_IC.dmg` renders on every
+damage die face at 22px, `ARCH_IC.pierce` also aliases it). Reusing
+`node/battle.png` for `dmg` would silently replace the crosshair "you deal
+damage" glyph everywhere with a wolf-pack illustration — a legibility
+regression at high frequency, for a context this asset was never meant to
+serve. **Decision: introduce a new icon key, `battle`,** used only for
+`NODE_INFO.battle.ic`; change that one table entry from `ic:'dmg'` to
+`ic:'battle'`. `dmg` itself is untouched and stays procedural pixel (it's
+already one of the 8 in §5.5, for the same "no source art for *this*
+context" reason). This is the one place this pass breaks §2's shape-reuse
+pattern — flagged here rather than silently decided, since §7's open
+question about giving `NODE_INFO`/`EV_IC`/`ARCH_IC` distinct art is
+otherwise still open and non-blocking everywhere else.
+
+### 5.5 The 8 that stay pixel — no source yet, not excluded on purpose
+
+`dmg`, `heal`, `buff`, `debuff`, `summon`, `blank`, `reroll`, `shard`. No
+file in this delivery targets any of these 9 names (`dmg` is spoken for
+only in its new `battle`-node role, §5.4 — its `FT_IC`/`ARCH_IC` role is
+still unsourced). Reason: **no matching art exists yet in this delivery**,
+not a deliberate "keep these pixel" call — the distinction matters because
+if a future delivery brings matching art for any of these 8, swapping it in
+needs no new design discussion, just the same mechanical process this spec
+already used for the 17. Do not read this list as final/permanent the way
+§5.3's placeholder decision is.
+
+### 5.6 Format fork — resolved
+
+Per §4's already-anticipated fork: the 17 `node`/`effect` files are **PNG**
+(confirmed via `assets/_incoming/icon-set-2026-09-08/README.md`, ~128×135px
+source, comfortably over the 90–120px minimums §4 set for the `nic`/`evic`
+tiers) → **accept losing per-instance `IC_COL` recolor** for all 17; each
+must render pre-colored close to its current `IC_COL` hex, and any context
+that currently recolors one of these 17 names differently via an explicit
+`col` override (mainly `ARCH_IC` badges) either gets its own pre-baked
+variant or accepts the shared color — `technical-artist` to confirm per
+name, not a blocker. `cost/energy.svg` and all `part/*.svg` files are true
+SVG (verified by reading the files directly) → keep as recolorable/parametric
+SVG per §5.2's Option B where worth the effort, plain inline SVG otherwise.
+
+**Embedding location — do not inline these into `client.html` directly.**
+This project deliberately keeps large base64 payloads (`art.js`,
+`cosmetics.js`) out of the hand-edited `client.html` specifically so that
+file stays cheap to read/edit (`.claude/docs/technical-preferences.md`).
+The 17 new PNGs (base64) should follow that same precedent — land in a new
+or existing base64-payload file alongside `art.js`/`cosmetics.js`, not as
+inline data URIs inside `client.html`'s icon section. `ico()`'s call
+signature stays unchanged either way (§6); only where the encoded bytes
+physically live changes. Exact file choice (new file vs. appending to
+`cosmetics.js`) is `technical-artist`'s call, coordinated with whoever owns
+`build.py`'s file-concatenation order.
+
+**Recommended next step**: hand this spec + `assets/_incoming/icon-set-2026-09-08/`
+to `ui-programmer`/`technical-artist` for implementation. No further
+design decisions are needed for the 17+1 covered names; §7's broader
+`ARCH_IC`/`EV_IC` distinct-art question remains open and non-blocking as
+before.
+
+## 6. Implementation notes (for `technical-artist` / `ui-programmer`)
+
+This spec is now implementation-ready for the 17+1 names in §5. Concrete
+steps:
+
+1. **Source files**: read directly from
+   `assets/_incoming/icon-set-2026-09-08/` (`node/`, `effect/`, `cost/`) —
+   see §5.1's table for the exact per-name file. Do not move/delete
+   anything in that folder; this pass doesn't touch it.
+2. **Keep `ico(name, cls, col)` / `icoSvg(name, col)`'s call signature
+   unchanged** — swap only what happens inside them. Zero edits needed at
+   any of the ~35 existing call sites, **except** the one described in
+   §5.4 (`NODE_INFO.battle.ic:'dmg'` → `NODE_INFO.battle.ic:'battle'`,
+   `client.html:3965`) — that is the single required call-site/data edit
+   this pass introduces.
+3. **PNG names (17, §5.1)**: base64-embed following the `cosmetics.js`
+   `COSMETIC_AVATARS` precedent, landing in a separate base64-payload file
+   per §5.6 — not inlined into `client.html` directly. `ico()`'s internals
+   change from "emit inline `<svg>` from `IC_G`" to "emit `<img
+   src="data:image/png;base64,...">`" for these 17 names specifically;
+   `IC_G`/`IC_COL` entries for names not yet covered (§5.5) are untouched.
+4. **`mana` (§5.2)**: swap to `cost/energy.svg`, inlined as raw SVG markup
+   (small file, no need to base64 it — it's already text). **Strip the
+   `<metadata>...</metadata>` C2PA/provenance block first** — every file in
+   this delivery (PNG and SVG alike) carries one; it's several KB of inert
+   provenance data with zero visual contribution and would otherwise bloat
+   whichever file receives the embed for nothing.
+5. **Rollout can be incremental**, one icon at a time — nothing else
+   depends on all 18 shipping together.
+6. **Fallback rule for anything not in §5.1's table** (i.e. the 8 in
+   §5.5): keep the current procedural `IC_G` grid. Do not force a
+   mismatched image onto these just because §5.3 accepted 2 imprecise
+   placeholders elsewhere — §5.3's reasoning (same-row consistency) doesn't
+   apply to `dmg`/`heal`/`buff`/`debuff`/`summon`/`blank`/`reroll`/`shard`,
+   none of which sit in a row where the other members just went flat.
+7. `freeze` is not in `ST_IC` (hardcoded literal call sites at
+   `client.html:4265` and `client.html:4370`) — both need the same swap as
+   any `ST_IC` member; don't miss them auditing coverage.
+8. Re-verify `tools/verify.mjs`'s icon/contrast checks after any swap — the
+   same UI-rule gate every other visual change in this project runs
+   through. Pay particular attention to the `vuln`/`vulnerable` key-name
+   mismatch (§5.1) and the `battle`/`dmg` split (§5.4) — both are easy to
+   get backwards during implementation.
 
 ## 7. Open question, non-blocking (flag for game-designer / product owner)
 
+**Partially resolved 2026-09-08**: §5.4 already forced this exact call for
+one pair (`NODE_INFO.battle` vs. `FT_IC.dmg`/`ARCH_IC.pierce`) because real
+art arrived that made the existing 1:1 reuse actively harmful — that one
+split is decided, not open. The broader question below is otherwise
+untouched by this delivery; none of the other 16 covered names needed a
+similar split (§5.1's per-name notes confirm each reused context is still
+the same underlying concept, e.g. `shop`/`chest`/`event` across `NODE_INFO`
+and `EV_IC`).
+
 Should `ARCH_IC` (playstyle badges) and `EV_IC`/`NODE_INFO` (event/map-node
-icons) keep reusing the same 25 shapes 1:1 with `FT_IC`/`ST_IC`, or should
-some of them get **distinct** art now that hand-drawing a new pixel grid is
-no longer the cost constraint that originally justified the reuse (§2)? For
+icons) keep reusing the same 25 shapes 1:1 with `FT_IC`/`ST_IC` everywhere
+else, or should some of them get **distinct** art now that hand-drawing a
+new pixel grid is no longer the cost constraint that originally justified
+the reuse (§2)? For
 example, a "poison-build" playstyle trophy badge could look meaningfully
 different from the in-combat "poison" status pill once both are sourced from
 a large Drive library instead of hand-authored. **Not a blocker for this
