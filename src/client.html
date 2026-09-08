@@ -853,10 +853,10 @@ small{font-size:var(--t1)}
 .shbar{height:5px;margin-top:var(--s1);background:var(--shd);border-radius:3px;position:relative;min-width:16px}
 .shbar span{position:absolute;left:0;top:-13px;font-size:var(--t1);color:var(--shd)}
 .shbar.brk{opacity:0;transition:opacity .2s}
-.stats{display:flex;gap:3px;justify-content:center;flex-wrap:wrap;min-height:14px;margin-top:var(--s1)}
-.stats span{font-size:var(--t1);padding:1px 4px;border-radius:3px;background:var(--pan2);color:var(--dim)}
+.stats{display:flex;gap:4px;justify-content:center;flex-wrap:wrap;min-height:18px;margin-top:var(--s1)}
+.stats span{font-size:var(--t1);padding:2px 5px;border-radius:3px;background:var(--pan2);color:var(--dim);display:inline-flex;align-items:center;gap:2px}
 .stats span.more{color:var(--dim)}
-.stats .icow.ii svg{width:15px;height:15px}
+.stats .icow.ii svg{width:19px;height:19px} /* kept in sync with the base .icow.ii rule above */
 .stats .poison{color:var(--poi)} .stats .burn{color:var(--burn)} .stats .regen{color:var(--heal)}
 .stats .thorns{color:var(--acc)} .stats .blind{color:#b0a8d0} .stats .weaken{color:var(--shd)}
 .stats .vulnerable{color:var(--deb)} .stats .stun{color:var(--txt)} .stats .undying{color:var(--r3)}
@@ -1106,10 +1106,20 @@ small{font-size:var(--t1)}
 /* ---------- pixel icons ---------- */
 .icow{display:inline-flex;align-items:center;justify-content:center;vertical-align:-2px}
 .icow svg{display:block}
-.icow.t svg{width:11px;height:11px} .icow.tn svg{width:12px;height:12px}
-.icow.ii svg{width:15px;height:15px} .icow.di svg{width:22px;height:22px}
-.icow.ricon svg{width:38px;height:38px} .icow.evic svg{width:40px;height:40px}
-.icow.nic svg{width:30px;height:30px} .icow.ific svg{width:14px;height:14px}
+/* Sizes bumped across the board (2026-09-08 — product owner: icons read too
+   small since real art/illustration replaced flat pixel glyphs; a detailed
+   image reads meaningfully smaller than a bold flat-color shape at the same
+   px box). .t stays closest to its old size since it is always a SECONDARY
+   corner badge (.effbadge on dice, reroll marker) next to a bigger primary
+   icon — bumping it much would fight for attention with what it's a footnote to. */
+.icow.t svg{width:13px;height:13px} .icow.tn svg{width:14px;height:14px}
+.icow.ii svg{width:19px;height:19px} .icow.di svg{width:28px;height:28px}
+.icow.ricon svg{width:44px;height:44px} .icow.evic svg{width:46px;height:46px}
+.icow.nic svg{width:36px;height:36px} .icow.ific svg{width:17px;height:17px}
+.icow.chip svg{width:24px;height:24px}
+/* iconChip()/partIconChip() glossary rows (CODEX) — was a bare 11px icon
+   crammed against text with no gap; real art needs room to read. */
+.cchip.ic{display:inline-flex;align-items:center;gap:7px;padding:4px 10px 4px 6px}
 
 /* ================= COMBAT ANIMATION ================= */
 body.playing #app{pointer-events:none}
@@ -5558,8 +5568,20 @@ function cxTable(head,rows,cls){
   return t;
 }
 const chip=(txt,col)=>{ const s2=el('span','cchip',txt); if(col){ s2.style.borderColor=col; s2.style.color=col; } return s2; };
-const iconChip=(ic,txt,col)=>{ const s2=el('span','cchip ic'); s2.appendChild(ico(ic,'t',col)); s2.appendChild(el('span',null,txt));
+/* 'chip' icon size (24px, see .icow.chip) — was 't' (11px), unreadable now
+   that these render real art instead of a crisp pixel glyph (detailed
+   illustration reads much smaller than a bold flat-color glyph at the same
+   px size). Reported by the product owner against the icon-set-2026-09-08
+   mockup, which shows this exact glossary row at a much larger, clearer size. */
+const iconChip=(ic,txt,col)=>{ const s2=el('span','cchip ic'); s2.appendChild(ico(ic,'chip',col)); s2.appendChild(el('span',null,txt));
   if(col){ s2.style.borderColor=col; s2.style.color=col; } return s2; };
+/* Same chip, but for the 6 body-part icons (docs/art/icon-spec-body-parts.md
+   §7) — these are keyed by slot+class, not an IC_G name, so they render
+   through partIco() instead of ico(). No single class is "the" Mouth/Horn/
+   etc (part art is class-tinted), so this glossary — a class-agnostic
+   reference, not any one Axie — rotates through one example class per row
+   purely for visual variety; it is not claiming Mouth "is" Bug's colour. */
+const partIconChip=(partKey,clsKey,txt)=>{ const s2=el('span','cchip ic'); s2.appendChild(partIco(partKey,clsKey,'chip')); s2.appendChild(el('span',null,txt)); return s2; };
 
 const CX_TABS=[
   ['basic','THE BASICS'],['dice','DICE & BODY PARTS'],['mana','MANA & CARDS'],
@@ -5622,13 +5644,13 @@ const CX_BODY={
    The border colour tells you its rarity.`));
   d.appendChild(cxH('THE SIX PARTS'));
   d.appendChild(cxTable(['PART','ROLE'],[
-    [iconChip('dmg','MOUTH'),'Single-target damage. Often carries Lifesteal.'],
-    [iconChip('dmg','HORN'),'Your heaviest hits. Often carries Pierce or Heavy.'],
-    [iconChip('shield','BACK'),'Shield for itself or an ally.'],
-    [iconChip('poison','TAIL'),'Multi-target work: Cleave, area damage and Poison.'],
-    [iconChip('heal','EYES'),'Utility: healing, debuffs and summoning.'],
-    [iconChip('mana','EARS'),'Mana. Always triggers on its own without using your action.'],
-    [iconChip('blank','BLANK'),'A dead face. Reroll it, or overwrite it with a Gene Mutation.'],
+    [partIconChip('mouth','beast','MOUTH'),'Single-target damage. Often carries Lifesteal.'],
+    [partIconChip('horn','bug','HORN'),'Your heaviest hits. Often carries Pierce or Heavy.'],
+    [partIconChip('back','plant','BACK'),'Shield for itself or an ally.'],
+    [partIconChip('tail','reptile','TAIL'),'Multi-target work: Cleave, area damage and Poison.'],
+    [partIconChip('eyes','bird','EYES'),'Utility: healing, debuffs and summoning.'],
+    [partIconChip('ears','aqua','EARS'),'Mana. Always triggers on its own without using your action.'],
+    [partIconChip('blank','plant','BLANK'),'A dead face. Reroll it, or overwrite it with a Gene Mutation.'],
   ]));
   d.appendChild(cxH('RARITY LIVES ON THE FACE'));
   d.appendChild(cxP(`This is the biggest difference between this game and others like it: rarity is <b>not</b> a property of the die,
