@@ -1,0 +1,1 @@
+- [Onboarding tutorial QA review](project_onboarding-tutorial-qa-review.md) — 2026-09-08 pre-impl review of onboarding-tutorial.md, verdict READY WITH FIXES, list of verified gaps

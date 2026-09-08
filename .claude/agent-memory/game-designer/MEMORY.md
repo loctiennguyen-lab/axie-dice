@@ -3,3 +3,5 @@
 - [Dawn/Dusk/Mech identity gap](project_dawn-dusk-mech-identity-gap.md) — §3.10 already decided keep-mapped-passive as hard constraint; real gap is an unshipped UI badge + a misleading client.html:2519 line, not a missing passive.
 - [World Tour milestone design](project_world-tour-milestone-design.md) — milestone axis = META.runs (not wins); landmarks must avoid BOSS_ALT RNG bosses; 3 rewards must stay out of Echo Box's COSMETIC_POOLS.
 - [Relic rebalance already shipped](project_relic-rebalance-already-shipped.md) — the "94 relics are messy" complaint was already fixed by relic-system.md (2026-09-03), implemented in data.js, verified by t_relic.mjs 94/94. systems-index.md status label is stale.
+- [Dead tutorial code in client.html](project_dead-tutorial-code-in-client.md) — TUT/tutOverlay/tut exist but unreachable (nothing sets tut=1); META.tut already exists in DEF_META, reusable for new mandatory-tutorial flag.
+- [Drag-drop exists via pointer events](project_drag-drop-exists-via-pointer-events.md) — technical-preferences.md's "no drag-drop, grep=0" claim is stale; bindDrag/pointerup->doTarget is a real, working alt input path alongside click-click.

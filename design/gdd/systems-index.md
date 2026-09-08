@@ -17,6 +17,7 @@
 | Player Accounts | `player-accounts.md` | Player Accounts & Progression Sync | Không rõ — xem file |
 | Leaderboard System | `leaderboard-system.md` | Bảng xếp hạng, anti-cheat qua deterministic replay | MVP implemented (2026-09-01) |
 | **World Tour ("Lunacia Atlas")** | `world-tour.md` | Bản đồ tiến trình meta persistent, milestone deterministic dựa trên `META.runs`, phân biệt rõ với Lunacia Pass (XP) và Echo Box (gacha) | **Draft — chờ product owner xác nhận 3 câu hỏi mở cuối file** |
+| **Onboarding Tutorial (Mandatory)** | `onboarding-tutorial.md` | Tutorial bắt buộc 6 bước (~90-120s) sau lần đăng ký/đăng nhập đầu tiên, dùng `newGame(seed,...)` dựng mock battle 5-Axie deterministic; xóa code `TUT[]`/`tutOverlay()` cũ đã chết | **Draft — chờ implement** |
 
 ## Ghi chú
 
