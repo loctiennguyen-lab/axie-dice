@@ -45,12 +45,12 @@ const DEV_SCREENS=[
   ['bp','LUNACIA PASS'],['unlocks','UNLOCK'],['collection','COLLECTION'],
   ['map','MAP'],['combat','NORMAL FIGHT'],['boss','BOSS FIGHT'],
   ['reward','REWARD'],['event','EVENT'],['shop','MERCHANT'],
-  ['win','VICTORY'],['lose','DEFEAT'],
+  ['win','VICTORY'],['lose','DEFEAT'],['tutorial','ONBOARDING TUTORIAL'],
 ];
 function devDemoRun(rich){
   teamPick=['plant1','beast1','aqua1','reptile1','bird1'];
   pickSeed='DEV'; pickMode='short'; pickAsc=2;
-  META.tut=1; startRun(); tut=0;
+  META.tut=1; startRun();
   if(rich){
     S.roster[0].key='plant3'; S.roster[1].key='beast3'; S.roster[2].key='aqua3';
     S.roster[3].key='reptile2'; S.roster[4].key='bird2';
@@ -68,6 +68,10 @@ function devGo(k){
     if(!META.runs){ META.runs=18; META.wins=3; META.best=12; META.ascMax=4; META.shards=900; META.xp=5200; }
     screen=k; render(); return;
   }
+  // design/gdd/onboarding-tutorial.md — jump straight to the mock-battle
+  // fixture without touching META (a real needsTutorial() check has no part
+  // in this dev shortcut; startTutorial() unconditionally builds the fixture).
+  if(k==='tutorial'){ startTutorial(); screen='tutorial'; render(); return; }
   devDemoRun(true);
   screen='combat';
   if(k==='map'){ S.phase='map'; S.step=6; nextStep(S); S.step=6; }

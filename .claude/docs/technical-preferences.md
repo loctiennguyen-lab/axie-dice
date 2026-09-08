@@ -24,10 +24,15 @@
 
 - **Target Platforms**: Web / Browser (desktop-first; deploys as a single static HTML file to Vercel/Netlify/S3)
 - **Input Methods**: Mouse/touch **click-click** — click a rolled face, then click a legal
-  target (`design/gdd/game-concept.md`, EXECUTE step 3). There is **no drag-and-drop**:
-  `grep -c "dragstart\|draggable" src/client.html` returns 0. This line claimed
-  drag-and-drop until 2026-09-04 and, because `CLAUDE.md` loads this file into every
-  session, it kept handing agents a wrong premise about the core interaction.
+  target (`design/gdd/game-concept.md`, EXECUTE step 3) — **and drag-and-drop**, a real
+  second input path (`bindDrag()`, `client.html` ~6264+: `pointerdown`/`pointermove`/
+  `pointerup` calling straight into the same `clickDie()`/`doTarget()` the click path
+  uses). This line said "no drag-and-drop, `grep -c "dragstart\|draggable"` returns 0"
+  until 2026-09-08 — true only for the HTML5 native drag API, which this game doesn't
+  use; it missed the pointer-events implementation entirely (confirmed while building
+  design/gdd/onboarding-tutorial.md, whose step-lock has to block both paths at once).
+  `scCodex()`'s own in-game help text already said "Click a die then click a target, or
+  drag it straight onto the target" — more accurate than this file was.
 - **Keyboard**: Die-select and target-confirm **are now playable by keyboard** (fixed
   2026-09-05). `kbAct()` (`client.html` ~2069) gives `.die`/`.unit`/`.rsel`/`.nodecard`/etc.
   real `tabIndex=0` plus an Enter/Space keydown handler that invokes the element's
@@ -78,7 +83,7 @@
 ## Testing
 
 - **Framework**: Custom Node scripts in `tools/` — no test runner framework (no Jest/Vitest). **`tools/ci.mjs` is the single entry point** — it runs all 11 gates; use it rather than invoking suites individually, which is how three suites once rotted unnoticed. `tools/verify.mjs` checks the UI rules; `tools/gen_faces.mjs` derives every part-face value and enforces its invariants; `t_relic.mjs`, `t_partskill.mjs`, `t_vault.mjs`, `t_relic_behaviour.mjs` cover the relic and vault systems; `soak.mjs`/`soakm.mjs` run extended-play soaks; `sim.js` is a headless balance probe.
-- **Minimum Coverage** *(measured 2026-09-04, not copied)*: `node tools/ci.mjs` must be **11/11**. `verify.mjs` **37/37** · `t_partskill` 44/0 · `t_import` 43/0 · `t_vault` 8/0 · `t_relic_behaviour` 38 proofs · `t_relic` 94/94 INV-1 · `gen_faces --check --strict` GREEN on both profiles. Never regress.
+- **Minimum Coverage** *(measured 2026-09-08, not copied)*: `node tools/ci.mjs` must be **12/12**. `verify.mjs` **72/72** (grew from 65 when `docs/gdd/onboarding-tutorial.md`'s `devGo('tutorial')` screen coverage was added) · `t_partskill` 44/0 · `t_import` 43/0 · `t_vault` 8/0 · `t_tutorial` 28/0 (new gate, design/gdd/onboarding-tutorial.md) · `t_relic_behaviour` 38 proofs · `t_relic` 94/94 INV-1 · `gen_faces --check --strict` GREEN on both profiles. Never regress.
   > ⚠️ The figure here was **29/30 and wrong** until 2026-09-04 — the suite had grown to 32 and then 37 while the doc stood still. A stale floor does not merely misinform; it **authorises a real regression to pass review**. If you change the suite, change this line in the same commit.
 - **Prerequisites** (both have cost hours before): `npm install` is required — without it `verify`/`t_aoe`/`t_fit` fail on `import { chromium } from 'playwright'`, which reads like three broken suites rather than one missing dependency. And `verify.mjs` needs a **served build**: `python3 build.py`, serve the repo root on port 5173, then pass `--url http://localhost:5173/AxieDiceTactics.html`. Run bare it gives `ERR_CONNECTION_REFUSED`, which looks like a code failure and is not.
 - **Required Tests**: Balance formulas (engine.js combat math), UI rule compliance (contrast, tap targets, no layout shift, no `undefined`/`NaN` leaks — see the 8 UI rules in `docs/axiedice-source/ORIGINAL_PROJECT_CLAUDE.md`), soak tests after any change touching `.die`/`.unit` element lifecycle (known regression source for drag/drop)

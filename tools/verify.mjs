@@ -987,6 +987,16 @@ async function run() {
   // gate/auth-form UI itself — that needs its own check against a real
   // deployment with Upstash configured, not this offline suite.
   await ctx.addInitScript(() => { try { localStorage.setItem('axiedice_token_v1', 'verify-mjs-test-token'); } catch (e) {} });
+  // design/gdd/onboarding-tutorial.md gates a brand-new account (META.tut=0
+  // && META.runs=0) into a mock-battle tutorial screen instead of straight to
+  // menu. A cached token with NO cached META (a fresh browser context, as
+  // above) is exactly that brand-new-account shape, so without also seeding
+  // META this suite's "returning player" simulation was actually incomplete
+  // in a way that only started mattering once the tutorial gate existed —
+  // every check below assumes it lands on menu/combat, not the tutorial
+  // fixture. Seed a played-some-runs META so the simulated player matches
+  // what a real cached-token returning player's localStorage would hold.
+  await ctx.addInitScript(() => { try { localStorage.setItem('axiedice_meta_v2', JSON.stringify({tut:1, runs:5})); } catch (e) {} });
   // This suite serves the build over a bare `python -m http.server` (see
   // .claude/launch.json) — there is no /api/* backend at all locally, so any
   // real fetch() to it 404s/501s and Chromium logs that resource failure as
@@ -1143,6 +1153,13 @@ async function run() {
     const lb = await reachStaticScreen(page, 'leaderboard');
     record('N2.leaderboard', 'A', "Vào được màn Leaderboard — screen='leaderboard'", lb.ok, lb.err || '');
     if (lb.ok) { await page.waitForTimeout(500); await checkNewScreen(page, 'leaderboard'); }
+
+    // design/gdd/onboarding-tutorial.md §5 (QA fix) — a new screen never gets
+    // 8-UI-rule coverage for free just by existing; devGo('tutorial') is the
+    // src/devtools.js case added alongside it for exactly this purpose.
+    const tut = await reachViaDevGo(page, 'tutorial');
+    record('N2.tutorial', 'A', "Vào được màn Tutorial qua devGo('tutorial')", tut.ok, tut.err || '');
+    if (tut.ok) { await page.waitForTimeout(500); await checkNewScreen(page, 'tutorial'); }
   }
 
   if (want('B')) {

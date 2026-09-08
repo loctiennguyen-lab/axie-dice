@@ -132,6 +132,12 @@ if (!FAST) {
     ({ code, out }) => code === 0 ? okWith((out.match(/(\d+ passed, \d+ failed)/) || [, ''])[1])
       : 't_vault exited ' + code);
 
+  /* Same file:// / build-freshness reasoning as t_vault above — must stay
+     below the build step. design/gdd/onboarding-tutorial.md §8. */
+  step('onboarding tutorial', 'node', ['tools/t_tutorial.mjs'],
+    ({ code, out }) => code === 0 ? okWith((out.match(/(\d+ passed, \d+ failed)/) || [, ''])[1])
+      : 't_tutorial exited ' + code);
+
   /* t_fit reads AxieDiceTactics.html over file://, so it needs no server. It exits 0 even when
      a viewport is broken, so count the "OFF SCREEN" markers and diff against the allowlist. */
   step('viewport fit', 'node', ['tools/t_fit.mjs'], ({ out }) => {

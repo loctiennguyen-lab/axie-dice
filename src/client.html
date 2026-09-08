@@ -746,8 +746,13 @@ small{font-size:var(--t1)}
   background:radial-gradient(ellipse 70% 60% at 50% 30%,#161b22 0%,transparent 72%);pointer-events:none}
 .divider{display:none}
 
+/* --line2, not --line (WCAG 1.4.11 border contrast) — same fix already
+   applied to .track above: --line alone fails 3:1 on this background.
+   design/gdd/onboarding-tutorial.md's new devGo('tutorial')/verify.mjs
+   coverage is what caught this one — no previous check ever measured a
+   live .unit/.bottombar border, only .track's. */
 .unit{position:relative;width:var(--unit-w);border-radius:var(--radius);overflow:visible;
-  background:var(--pan-hi);border:var(--bd) solid var(--line);padding:6px;text-align:center;transition:.1s;
+  background:var(--pan-hi);border:var(--bd) solid var(--line2);padding:6px;text-align:center;transition:.1s;
   box-shadow:var(--sh-card);
   display:flex;flex-direction:column}
 /* Visual hierarchy pass: a party unit's class colour now washes the whole
@@ -777,7 +782,7 @@ small{font-size:var(--t1)}
 .unit.dead{opacity:.2;filter:grayscale(1)}
 .unit.tgt{cursor:pointer;border-color:var(--acc);box-shadow:0 0 0 1px var(--acc),0 0 22px #ffc85755;z-index:6}
 .unit.hovtgt{box-shadow:0 0 0 2px var(--acc),0 0 30px #ffc85788}
-.unit.threat{border-color:#7a4a4a}
+.unit.threat{border-color:#9a6060} /* lightened from #7a4a4a — same fix as .unit above */
 /* Whoever is currently acting must be unmissable — a colour swap alone (the
    previous .acting rule) was too close to the .threat/.e border treatment. */
 .unit.acting{border-color:var(--dmg);box-shadow:0 0 0 2px var(--dmg),0 0 24px #ff5f5f77;transform:scale(1.04);z-index:7}
@@ -813,8 +818,13 @@ small{font-size:var(--t1)}
 .unit.e .spr.mut{--fx:-1}
 /* 2026-09-01: to hơn (16px→24px) và nằm hẳn trên bề mặt card thay vì đè viền —
    đây là tín hiệu chiến thuật (archetype), không phải icon trang trí */
+/* Fixed dark background + white text, not var(--cc): dark text on the raw
+   class colour only clears WCAG AA (4.5:1) for 5 of 6 classes — bird
+   (#5c6bc0) measured 3.92:1. Class colour still reads via the border ring;
+   design/gdd/onboarding-tutorial.md's new devGo('tutorial') coverage is
+   what caught this (Momo/bird is one of its 5 fixed party members). */
 .pasdot{position:absolute;top:var(--s1);left:var(--s1);width:var(--icon-md);height:var(--icon-md);line-height:22px;font-size:var(--t2);
-  background:var(--cc);color:#0d1013;border:1px solid #0007;border-radius:50%;z-index:2;font-weight:700}
+  background:var(--pan-hi);color:var(--txt);border:2px solid var(--cc);border-radius:50%;z-index:2;font-weight:700}
 .unit .nm{font-size:var(--t1);color:var(--dim);margin-bottom:var(--s1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;letter-spacing:.5px}
 /* Duplicate-name disambiguation suffix — same dim tone as .nm itself, just
    slightly de-emphasized so "Sprout (1)" doesn't read as a stat. */
@@ -1025,7 +1035,8 @@ small{font-size:var(--t1)}
 .dlbl{display:none}
 
 /* ---------- bottom bar ---------- */
-.bottombar{display:flex;align-items:center;gap:10px;background:var(--pan);border:var(--bd) solid var(--line);
+/* --line2, not --line — same WCAG 1.4.11 fix as .unit/.track above. */
+.bottombar{display:flex;align-items:center;gap:10px;background:var(--pan);border:var(--bd) solid var(--line2);
   border-radius:var(--radius);padding:8px 10px;margin-top:12px}
 .manaorb{position:relative;display:flex;flex-direction:row-reverse;align-items:center;gap:7px;
   padding:7px 13px;border:var(--bd) solid var(--line2);border-radius:var(--radius);background:var(--pan2);flex-shrink:0}
@@ -1288,12 +1299,24 @@ body.dragging{cursor:grabbing} body.dragging .die{cursor:grabbing}
 .sethint.danger{color:var(--dmg)}
 input[type=range]{accent-color:var(--acc);width:100%}
 
-/* tutorial */
-.tutov{position:fixed;inset:0;background:#080a0cf2;z-index:120;display:flex;align-items:center;justify-content:center;padding:18px}
-.tutbox{background:var(--pan);border:var(--bd) solid var(--acc);border-radius:var(--radius);
-  padding:var(--card-pad);max-width:680px;text-align:center}
-.tutbox h4{font-size:var(--t4);color:var(--acc);letter-spacing:3px;margin-bottom:12px}
-.tutbox .pre{font-size:var(--t3);color:var(--dim);line-height:2;white-space:pre-line;text-align:left}
+/* onboarding tutorial (design/gdd/onboarding-tutorial.md §3.5) — the coach
+   box is appended to document.body (a sibling of #app), so it never itself
+   gets caught by the #app.tut-locking rule just below. */
+#app.tut-locking *{pointer-events:none}
+#app.tut-locking .tut-allow,#app.tut-locking .tut-allow *{pointer-events:auto}
+.tutcoach-ov{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);z-index:130;
+  max-width:520px;width:calc(100% - 36px);pointer-events:none}
+.tutcoach-bx{background:var(--pan);border:var(--bd) solid var(--acc);border-radius:var(--radius);
+  padding:var(--s2) var(--s3);box-shadow:var(--sh-hero);text-align:center;pointer-events:auto}
+.tc-k{font-size:var(--t1);color:var(--acc);letter-spacing:3px;margin-bottom:4px}
+.tc-t{font-size:var(--t3);color:var(--txt);font-weight:600;margin-bottom:4px}
+.tc-d{font-size:var(--t2);color:var(--dim)}
+.tutcoach-bx .btn{margin-top:10px}
+.tc-undo{position:fixed;left:50%;bottom:120px;transform:translateX(-50%);z-index:130;
+  background:var(--pan-hi);border:var(--bd) solid var(--line2);border-radius:var(--radius);
+  padding:8px 14px;font-size:var(--t1);color:var(--dim);pointer-events:none;
+  animation:tcUndoFade 4s ease forwards}
+@keyframes tcUndoFade{0%{opacity:1}75%{opacity:1}100%{opacity:0}}
 
 /* ================= DEV TOOLS ================= */
 body.devmode{cursor:crosshair}
@@ -1890,7 +1913,7 @@ var MUS=(()=>{
   function sync(){
     try{
       let key='menu';
-      if(screen==='combat'&&S){
+      if((screen==='combat'||screen==='tutorial')&&S){
         if(S.phase==='won'||S.phase==='lost') key='menu';
         else if(S.kind==='boss') key='boss';
         else key='combat';
@@ -2388,7 +2411,13 @@ const kbAct=e2=>{ e2.tabIndex=0;
     if(!playing) ev.stopPropagation(); } });
   return e2; };
 
-let S=null, screen='menu', sel=null, selRelic=null, teamPick=[], msg='', SPD=1, tut=0;
+let S=null, screen='menu', sel=null, selRelic=null, teamPick=[], msg='', SPD=1;
+/* Mandatory onboarding tutorial (design/gdd/onboarding-tutorial.md) — replaces
+   the old passive TUT[]/tutOverlay()/`tut` slideshow (never actually reachable:
+   nothing ever set `tut` to a nonzero value). tutStep only ever needs to hold
+   1 (ROLL, "GOT IT" button gate) or 2 (INTENT, click-an-enemy gate); every
+   later stage is derived live from S/sel each render — see tutPhase(). */
+let tutStep=0, tutIntentSeen=false;
 let rollAnim=null, pendFloats=[], hoverT=null;
 
 /* ---------- META (localStorage, degrade gracefully) ---------- */
@@ -2445,6 +2474,10 @@ function migrateMeta(){
   if(!META.collectionGrandfathered && (META.relics||[]).length>=RELIC_COUNT_PRE_EXPANSION){
     META.collectionGrandfathered=true;
   }
+  /* design/gdd/onboarding-tutorial.md §5 "Migration save cũ" — a save that
+     already has real runs predates the mandatory tutorial gate and must
+     never be forced through it retroactively. */
+  if(!META.tut && META.runs>0) META.tut=1;
 }
 function loadMeta(){
   try{ const j=localStorage.getItem(MK); if(j) META={...DEF_META,...JSON.parse(j)}; }catch(e){}
@@ -2570,32 +2603,67 @@ async function pushSync(){
    navigateOnDone controls whether we jump back to the menu when this resolves
    without a conflict (true from the login form; false from the boot-time pull,
    which should leave the player wherever they already are). */
+/* ============ ONBOARDING TUTORIAL — gate + fixture ============
+   design/gdd/onboarding-tutorial.md. enterMenu() is the single consolidation
+   point every post-auth code path below must call instead of assigning
+   screen='menu' directly — §3.2 flags this as the riskiest part of the
+   implementation precisely because it used to be ~9 separate assignments
+   across 4 functions, any one of which could be missed. */
+const TUT_SEED=3, TUT_TEAM=['plant1','beast1','aqua1','reptile1','bird1'], TUT_ENEMY_HP=6;
+function enterMenu(){
+  if(needsTutorial(META)){ startTutorial(); screen='tutorial'; }
+  else screen='menu';
+}
+function startTutorial(){
+  S=newGame(TUT_SEED,TUT_TEAM,{mode:'short'});
+  chooseNode(S,0); // the only step-1 node is {type:'battle'} — starts combat, rolls turn 1
+  // Fixed low HP (tuning knob, §4/§7) so the fight always ends within the
+  // ≤3 turns the doc requires, regardless of which faces later free-play
+  // turns happen to roll — never left to the naturally-generated encounter.
+  S.enemies.forEach(e=>{ e.hp=TUT_ENEMY_HP; e.maxHp=TUT_ENEMY_HP; });
+  tutStep=1; tutIntentSeen=false;
+}
+/* Which party member step 4 teaches is deliberately NOT fixed at fixture
+   build time — REROLL (step 3) can reroll every die, including whichever
+   one would have been taught, onto a completely different face type (e.g.
+   a dmg face rerolling into a shield face, which targets allies instead of
+   the enemy — this actually happened during t_tutorial.mjs authoring: a
+   fixed tutDieUid/tutTargetUid pointed the "click this enemy" hint at a
+   unit that could no longer legally be targeted). Recomputing this fresh
+   every render, AFTER whatever reroll already happened, is what keeps the
+   coached die/target pair always valid. Prefers a `dmg` face for the more
+   illustrative "attack" framing, falling back to any actionable face in
+   the rare case none survived the reroll. */
+function tutActor(){
+  const usable=u=>u.hp>0&&u.rolled>=0&&!u.used&&needsTarget(u);
+  return S.party.find(u=>usable(u)&&u.die[u.rolled].t==='dmg') || S.party.find(usable) || null;
+}
 async function pullSyncAfterLogin(navigateOnDone){
   try{
     const r=await fetch('/api/sync-save',{headers:{'Authorization':'Bearer '+authToken}});
     if(r.status===401){ clearToken(); authToken=null; authUsername=null; screen='gate'; gateMsg='Session expired — please log in again.'; render(); return; }
     const data=await r.json();
-    if(!data||typeof data!=='object'){ if(navigateOnDone) screen='menu'; render(); return; }
+    if(!data||typeof data!=='object'){ if(navigateOnDone) enterMenu(); render(); return; }
     const serverMeta=data.meta;
     const sameOwner=META.owner&&META.owner===authUsername;
     if(!serverMeta){
       // This account has never synced from any device yet.
       if(!sameOwner){ META={...DEF_META,owner:authUsername}; } else { META.owner=authUsername; }
       saveMeta();
-      if(navigateOnDone) screen='menu'; render(); return;
+      if(navigateOnDone) enterMenu(); render(); return;
     }
     if(!sameOwner){
       // Local data (if any) isn't this account's — never prompt, just adopt the cloud truth.
       META={...DEF_META,...serverMeta,owner:authUsername}; migrateMeta(); saveMeta();
-      if(navigateOnDone) screen='menu'; render(); return;
+      if(navigateOnDone) enterMenu(); render(); return;
     }
     const localSavedAt=META.savedAt||0, serverSavedAt=serverMeta.savedAt||0;
     if(localSavedAt>serverSavedAt){
       acctConflict={server:serverMeta}; screen='account'; render(); return;
     }
     META={...DEF_META,...serverMeta,owner:authUsername}; migrateMeta(); saveMeta();
-    if(navigateOnDone) screen='menu'; render();
-  }catch(e){ if(navigateOnDone) screen='menu'; render(); }
+    if(navigateOnDone) enterMenu(); render();
+  }catch(e){ if(navigateOnDone) enterMenu(); render(); }
 }
 async function doAuth(action){
   if(acctState==='busy') return;
@@ -2622,7 +2690,7 @@ async function doAuth(action){
       // (see localIsForeign above) — mirror that choice locally, stamp
       // ownership, then let debounced sync take over from here.
       if(localIsForeign) META={...DEF_META};
-      META.owner=authUsername; saveMeta(); screen='menu'; render(); return;
+      META.owner=authUsername; saveMeta(); enterMenu(); render(); return;
     }
     await pullSyncAfterLogin(true);
   }catch(e){ acctState='error'; acctMsg='Network error — could not reach the server. Try again.'; render(); }
@@ -2634,8 +2702,8 @@ function doLogout(){
   // session to land but the gate. Local META is left untouched (not wiped).
   gateMsg=''; screen='gate'; render();
 }
-function resolveConflictKeepLocal(){ acctConflict=null; saveMeta(); screen='menu'; render(); }
-function resolveConflictUseCloud(){ if(acctConflict) META={...DEF_META,...acctConflict.server}; acctConflict=null; saveMeta(); screen='menu'; render(); }
+function resolveConflictKeepLocal(){ acctConflict=null; saveMeta(); enterMenu(); render(); }
+function resolveConflictUseCloud(){ if(acctConflict) META={...DEF_META,...acctConflict.server}; acctConflict=null; saveMeta(); enterMenu(); render(); }
 /* ---------- ECHO BOX (design/gdd/economy-progression.md §10.3, amended
    2026-09-02: Echo Forge -> Echo Box, deterministic point-buy -> gacha) ----------
    End-game Gene Shard sink, unlocked once the Collection Log (Faces + Relics +
@@ -2877,7 +2945,14 @@ function scImportAxie(){
   w.appendChild(btn('','BACK',()=>{ importState='idle'; importMsg=''; importPreview=null; screen='menu'; render(); }));
   return w;
 }
-function saveRun(){ try{ if(S&&S.phase!=='won'&&S.phase!=='lost') localStorage.setItem(RK,JSON.stringify({s:S,screen})); else localStorage.removeItem(RK); }catch(e){} }
+function saveRun(){
+  // The onboarding tutorial (design/gdd/onboarding-tutorial.md §3.1) reuses
+  // scCombat()/scReward() unmodified, which means every existing action
+  // handler in there calls this same saveRun() — without this guard the
+  // tutorial's throwaway fixture would silently overwrite the real
+  // Continue-run save slot for a brand-new account that has none yet.
+  if(screen==='tutorial') return;
+  try{ if(S&&S.phase!=='won'&&S.phase!=='lost') localStorage.setItem(RK,JSON.stringify({s:S,screen})); else localStorage.removeItem(RK); }catch(e){} }
 function loadRun(){ try{ const j=localStorage.getItem(RK); if(!j) return null; return JSON.parse(j); }catch(e){ return null; } }
 function clearRun(){ try{ localStorage.removeItem(RK); }catch(e){} }
 const unlocked=id=>META.unlocks.includes(id);
@@ -3145,14 +3220,16 @@ function render(){
   if(typeof clogInit==='function'&&!clogPanel) clogInit();
   if(typeof clogFreeze==='function'&&S&&S.phase==='lost') clogFreeze();
   if(typeof clogSetOpen==='function'&&screen!=='combat'&&clogOpen) clogSetOpen(false,false);
-  $$('.tutov').forEach(n=>n.remove());
+  $$('.tutcoach-ov').forEach(n=>n.remove());
   // screen==='combat' covers the entire active run (map/event/shop/reward/
   // combat/win-lose all render under this value via the `else if(S){...}`
   // branch below) — the board is a fixed single-viewport during a run, so
   // the page itself must not scroll or rubber-band drag. Menu/list screens
   // (menu/unlocks/collection/vault/leaderboard/bp/codex/guide/team) never
-  // get this class and keep scrolling normally.
-  document.body.classList.toggle('locked-scroll', screen==='combat');
+  // get this class and keep scrolling normally. screen==='tutorial' reuses
+  // the same combat board (design/gdd/onboarding-tutorial.md §3.5) so it
+  // needs the same lock.
+  document.body.classList.toggle('locked-scroll', screen==='combat'||screen==='tutorial');
   // Drifting glow layers (#bgLayer.bg-glow, style.css) are exclusive to the
   // title/gate screen — see the comment on that rule for why they (and the
   // whole background image) live on the #bgLayer sibling div, not on body
@@ -3203,7 +3280,7 @@ function render(){
 function postRender(){
   if(rollAnim) runRollAnim();
   if(typeof bindDrag==='function') bindDrag();
-  if(tut&&screen!=='menu') document.body.appendChild(tutOverlay());
+  if(screen==='tutorial'){ const ov=tutCoachOverlay(); if(ov) document.body.appendChild(ov); }
   autoFit();
 }
 /* Shrink the board just enough that the dice tray, REROLL and END TURN are
@@ -5066,25 +5143,106 @@ function scEnd(){
   return ov;
 }
 
-/* ================= TUTORIAL ================= */
-const TUT=[
-  {t:'A DIE IS AN AXIE',d:'Each Axie carries one six-sided die, and those six faces are its six body parts: Mouth, Horn, Back, Tail, Eyes and Ears. All five dice roll at the start of every turn.'},
-  {t:'THE ENEMY SHOWS ITS HAND',d:'Enemies roll dice too, and whatever they roll is printed on their card: the number is the damage, the arrow is the target. You always see everything before you decide.'},
-  {t:'USING A DIE',d:'Click a die, then click a target with a gold outline. You can also drag it straight onto the target. The preview shows exactly how much HP will be left. Made a mistake? Ctrl+Z undoes it.'},
-  {t:'REROLLING',d:'Use the small button on a die to mark it, then press REROLL. Mark nothing and all of them are rerolled. Rerolling clears your undo history, so use it before you commit.'},
-  {t:'RARITY LIVES ON THE FACE',d:'Rewards give you a new FACE, from Common all the way up to Mythic, and you choose which of the six faces it replaces. Collect Legendary faces and the die turns GOLDEN; a single Mythic face makes it COSMIC.'},
-];
-function tutOverlay(){
-  const i=tut-1, t=TUT[i];
-  const ov=el('div','overlay tutov');
-  const bx=el('div','tutbox');
-  bx.appendChild(el('div','tstep',(tut)+'/'+TUT.length));
-  bx.appendChild(el('h2',null,t.t));
-  bx.appendChild(el('div','td',t.d));
-  const r=el('div','trow');
-  r.appendChild(btn('sm ghost','SKIP',()=>{ tut=0; META.tut=1; saveMeta(); render(); }));
-  r.appendChild(btn('big go',tut<TUT.length?'NEXT':'PLAY',()=>{ tut++; if(tut>TUT.length){ tut=0; META.tut=1; saveMeta(); } render(); }));
-  bx.appendChild(r); ov.appendChild(bx);
+/* ================= ONBOARDING TUTORIAL COACH OVERLAY =================
+   design/gdd/onboarding-tutorial.md §3.4/§3.5. Renders on top of the exact
+   same production scCombat()/scReward() DOM (no separate UI to maintain) —
+   this file only decides which single element(s) stay clickable and shows
+   a small hint box, appended to document.body (a sibling of #app, so it is
+   never itself affected by the #app.tut-locking pointer-events lock below). */
+const TUT_PHASE_ROLL='roll', TUT_PHASE_INTENT='intent', TUT_PHASE_REROLL='reroll',
+      TUT_PHASE_DIE='die', TUT_PHASE_TARGET='target', TUT_PHASE_ENDTURN='endturn',
+      TUT_PHASE_FREE='free', TUT_PHASE_REWARD='reward';
+/* Steps 3-6 are deliberately NOT separate manual-advance flags — they are
+   derived fresh from live S/sel state on every render, so there is nothing
+   to get out of sync with the actual game. Only steps 1->2 (§3.4 "GOT IT")
+   and 2->3 (open-then-close the intent modal, handled in tutCoachOverlay())
+   need an explicit tutStep write; see the `let tutStep` comment above. */
+function tutPhase(){
+  if(!S) return TUT_PHASE_ROLL;
+  if(tutStep<2) return TUT_PHASE_ROLL;
+  if(tutStep<3) return TUT_PHASE_INTENT;
+  if(S.phase!=='combat') return TUT_PHASE_REWARD;
+  if(S.turn>1) return TUT_PHASE_FREE; // coached actions are turn-1 only; free play until reward
+  if(S.rerolls===S.maxRerolls) return TUT_PHASE_REROLL;
+  // Nobody is `.used` this early in turn 1 except via the one coached
+  // execute action — simpler and just as correct as tracking a specific
+  // unit, and it stays correct even though WHICH unit gets taught (tutActor())
+  // is itself recomputed fresh every render (see its own comment above).
+  if(S.party.some(u=>u.used)) return TUT_PHASE_ENDTURN;
+  const actor=tutActor();
+  if(!actor) return TUT_PHASE_FREE;
+  return sel===actor.uid ? TUT_PHASE_TARGET : TUT_PHASE_DIE;
+}
+function tutLock(allowedEls){
+  const root=$('#app'); if(!root) return;
+  root.classList.add('tut-locking');
+  allowedEls.filter(Boolean).forEach(e=>e.classList.add('tut-allow'));
+}
+function tutCoachOverlay(){
+  if(!S) return null;
+  // Intent-seen tracking must run BEFORE the "modal open -> don't lock"
+  // early-return below, and must run every render while at step 2, since
+  // it is what actually advances past step 2 once the player closes the
+  // modal — not the click that opened it (closing it is the real "I read
+  // this" signal, and it must never leave the modal's own close affordance
+  // fighting a lock — see the modal-open early-return just below).
+  if(tutStep===2){
+    if(modal==='unit'){ const mu=byUid(S,modalUid); if(mu&&mu.side==='e') tutIntentSeen=true; }
+    if(!modal&&tutIntentSeen) tutStep=3;
+  }
+  if(modal) return null; // never lock while any modal (incl. the one above) is open
+  const phase=tutPhase();
+  if(phase===TUT_PHASE_FREE) return null; // fully unlocked free play until the fight ends
+  let title='', body='', allow=[], showUndoHint=false;
+  if(phase===TUT_PHASE_ROLL){
+    title='5 Axie của bạn vừa roll';
+    body='Mỗi mặt là một bộ phận thật trên cơ thể Axie đó.';
+  } else if(phase===TUT_PHASE_INTENT){
+    title='Địch để lộ hết bài';
+    body='Click một thẻ địch — bạn sẽ thấy chính xác nó sắp đánh ai, bao nhiêu.';
+    allow=$$('.unit.e');
+  } else if(phase===TUT_PHASE_REROLL){
+    title='Không ưng mặt vừa roll?';
+    body='Bấm REROLL — không đánh dấu die nào nghĩa là đổi cả 5.';
+    allow=[$('.btn.reroll')];
+  } else if(phase===TUT_PHASE_DIE||phase===TUT_PHASE_TARGET){
+    // Both the taught die and its target stay unlocked through this whole
+    // stage (not narrowed die-then-target) so a single drag-and-drop
+    // gesture — starting on the die, dropping on the target — keeps
+    // working even before a plain click has set `sel` (see design doc §3.5
+    // on accepting both input paths).
+    const actor=tutActor();
+    if(!actor) return null; // defensive — tutPhase() already checked this, but never lock on a null actor
+    const tgts=validTargets(actor), isAttack=actor.die[actor.rolled].t==='dmg';
+    const dieEl=$('.diebox[data-uid="'+actor.uid+'"] .die'), tgtEl=tgts[0]!=null?$('.unit[data-uid="'+tgts[0]+'"]'):null;
+    allow=[dieEl,tgtEl];
+    const tgtWord=isAttack?'địch':'đồng đội';
+    if(phase===TUT_PHASE_DIE){ title='Click die này'; body='Click để chọn (hoặc kéo-thả thẳng vào '+tgtWord+').'; }
+    else { title='Giờ chọn mục tiêu'; body='Click (hoặc kéo-thả) vào '+tgtWord+' này để thực thi.'; showUndoHint=true; }
+  } else if(phase===TUT_PHASE_ENDTURN){
+    title='Địch giờ thực hiện đúng điều đã báo trước';
+    body='Bấm END TURN.';
+    allow=[$('.btn.end')];
+  } else if(phase===TUT_PHASE_REWARD){
+    title='Chọn 1 trong 3';
+    body='Cả 3 đều tốt — đây là lúc bạn định hình lối chơi.';
+    const cards=$$('.rcard'); allow=cards;
+    // Wrap rather than replace: the card's own onclick (takeReward + render)
+    // must still run first; only after it returns do we finish onboarding
+    // and leave the fixture behind for good.
+    cards.forEach(c=>{ const orig=c.onclick; c.onclick=ev=>{ if(orig) orig(ev); META.tut=1; saveMeta(); screen='menu'; render(); }; });
+  }
+  tutLock(allow);
+  const ov=el('div','tutcoach-ov');
+  const bx=el('div','tutcoach-bx');
+  bx.appendChild(el('div','tc-k','TUTORIAL'));
+  bx.appendChild(el('div','tc-t',title));
+  bx.appendChild(el('div','tc-d',body));
+  if(phase===TUT_PHASE_ROLL) bx.appendChild(btn('big go','ĐÃ HIỂU →',()=>{ tutStep=2; render(); }));
+  ov.appendChild(bx);
+  // §3.4 step "4c" — a passing, non-blocking Undo reminder; auto-fades via
+  // CSS alone (no JS timer to babysit across re-renders).
+  if(showUndoHint) ov.appendChild(el('div','tc-undo','Lỡ tay? Ctrl+Z hoàn tác — miễn phí tới khi bạn Reroll hoặc End Turn.'));
   return ov;
 }
 
@@ -5105,10 +5263,27 @@ document.addEventListener('keydown',e=>{
   if((e.key==='l'||e.key==='L')&&S&&screen==='combat'&&typeof clogSetOpen==='function'){ clogSetOpen(!clogOpen); render(); return; }
   if(modal) return;
   if(!S||S.phase!=='combat'||playing) return;
+  // Onboarding tutorial (design/gdd/onboarding-tutorial.md §3.5): these
+  // global shortcuts call .click() directly on the DOM button, which
+  // bypasses the CSS pointer-events lock entirely (pointer-events only
+  // affects mouse/touch hit-testing, not a scripted click()) — so each one
+  // needs its own explicit phase check here, not just the CSS lock above.
   if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='z'){ e.preventDefault(); if(undo(S)){ logAction('undo',[]); sel=null; render(); } }
-  else if(e.key==='r'||e.key==='R'){ const b=$('.btn.reroll'); if(b&&!b.classList.contains('dis')) b.click(); }
-  else if(e.key===' '||e.key==='Enter'){ e.preventDefault(); const b=$('.btn.end'); if(b) b.click(); }
-  else if(e.key>='1'&&e.key<='5'){ const u=S.party.filter(x=>x.side==='p')[+e.key-1]; if(u) clickDie(u); }
+  else if(e.key==='r'||e.key==='R'){
+    if(screen==='tutorial'&&tutPhase()!==TUT_PHASE_REROLL) return;
+    const b=$('.btn.reroll'); if(b&&!b.classList.contains('dis')) b.click(); }
+  else if(e.key===' '||e.key==='Enter'){
+    e.preventDefault();
+    if(screen==='tutorial'&&tutPhase()!==TUT_PHASE_ENDTURN) return;
+    const b=$('.btn.end'); if(b) b.click(); }
+  else if(e.key>='1'&&e.key<='5'){
+    const idx=+e.key-1;
+    if(screen==='tutorial'){
+      const phase=tutPhase(); const actor=tutActor();
+      const taughtIdx=actor?S.party.findIndex(u=>u.uid===actor.uid):-1;
+      if(!(phase===TUT_PHASE_DIE||phase===TUT_PHASE_TARGET)||idx!==taughtIdx) return;
+    }
+    const u=S.party.filter(x=>x.side==='p')[idx]; if(u) clickDie(u); }
 });
 document.addEventListener('mousedown',e=>{ if(e.button===0&&rollAnim){ rollAnim.t0-=400; } });
 window.addEventListener('load',()=>{ loadMeta();
@@ -5116,11 +5291,16 @@ window.addEventListener('load',()=>{ loadMeta();
   if(META.mvol!=null) AU.mvol=META.mvol;
   if(META.mute) AU.on=false;
   if(META.spd) SPD=META.spd;
-  if(META.tut)tut=0;
   // Mandatory login gate: no cached token -> show ONLY the gate, never the menu
   // (design/gdd/player-accounts.md §3). A cached token renders normally,
-  // optimistically, while pullSyncAfterLogin verifies it server-side below.
-  if(!authToken) screen='gate';
+  // optimistically (from the LOCALLY cached META — including the tutorial
+  // gate decision, computed the same optimistic way as everything else here;
+  // see design/gdd/onboarding-tutorial.md §5 for why this is an accepted,
+  // not overlooked, edge case), while pullSyncAfterLogin verifies it
+  // server-side below. Without routing through enterMenu() here too, a
+  // brand-new account that refreshes right after the gate would default
+  // straight back to screen='menu' and skip the tutorial entirely.
+  if(!authToken) screen='gate'; else enterMenu();
   render();
   if(authToken) pullSyncAfterLogin(false); });
 

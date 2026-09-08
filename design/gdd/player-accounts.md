@@ -12,6 +12,7 @@ Beta-scope account system: username + password login, letting players sync their
 - On launch, before rendering the menu (or any other screen), the app checks for a cached, non-expired session token.
 - No valid token → the app shows ONLY the login/register form. PLAY and every menu tile are unreachable — there is no "skip for now" path.
 - A valid, but not-yet-verified-with-the-server token still lets the app render normally optimistically (avoids a network round-trip blocking every launch); if the server later rejects it (401 on the first authenticated call), the app drops back to the gate rather than silently continuing in a half-authenticated state.
+- **Amended by `design/gdd/onboarding-tutorial.md`**: every place this rule (and Registration/Login below) used to land the player on `screen='menu'` now calls a single `enterMenu()` gate function instead, which sends a brand-new account (`!META.tut && META.runs===0`) to `screen='tutorial'` first. A returning account (`META.runs>0` or `META.tut` already `1`) still goes straight to menu exactly as described below — this only inserts one extra one-time stop for accounts that have never played a real run.
 
 ### Registration
 - Reached only from the login gate (first launch) or an explicit "switch account" action later. Same form either way.
@@ -52,6 +53,7 @@ No gameplay-numeric formulas. The only computed value is the password hash: `cry
 - `docs/architecture/adr-0002-player-accounts.md` — technical decision record for this system.
 - `src/ui.js` `META`/`DEF_META`/`saveMeta()`/`loadMeta()` — existing progression state this system syncs.
 - `design/gdd/leaderboard-system.md` — leaderboard display-name integration for logged-in players.
+- `design/gdd/onboarding-tutorial.md` — inserts the mandatory tutorial screen between this system's gate and `screen='menu'` for a brand-new account; see the App gate amendment above.
 
 ## 7. Tuning Knobs
 - Minimum password length (currently 8).

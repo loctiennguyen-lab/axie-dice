@@ -8,6 +8,15 @@
    replay if it can run the matching engine version. */
 const ENGINE_VERSION = '2026-09-04-relic94';
 
+/* design/gdd/onboarding-tutorial.md §4 — pure gate function, kept here (not
+   inline in client.html's enterMenu()) specifically so tools/t_tutorial.mjs
+   can unit-test it headlessly, the same way this file already exports
+   everything tools/sim.js and tools/t_relic.mjs need. runs===0 is a second,
+   independent guard: it means a save whose `tut` flag is missing/corrupted
+   by some future bug can never re-trap a player who has already played a
+   real run — see the doc's Formulas §4 for the worked truth-table examples. */
+function needsTutorial(meta){ return !meta.tut && meta.runs===0; }
+
 function mkRng(seed){ let a=seed>>>0; return function(){ a=(a+0x6D2B79F5)>>>0; let t=a; t=Math.imul(t^t>>>15,t|1); t^=t+Math.imul(t^t>>>7,t|61); return ((t^t>>>14)>>>0)/4294967296; }; }
 let RNG=mkRng(12345);
 const rnd=()=>RNG(), ri=n=>Math.floor(rnd()*n), pick=a=>a[ri(a.length)];
@@ -1243,4 +1252,4 @@ if(typeof module!=='undefined') module.exports={facePool,rerollRewards,mkRng,new
   anyRerollable,playerUseDie,playerUseRelic,endTurn,undo,takeReward,genRewards,buildUnit,dieRarity,aliveP,aliveE,realP,
   byUid,faceValue,hasKw,kwVal,genEncounter,eventChoose,eventDone,genShop,shopBuy,shopDone,archScore,
   faceText,kwText,faceArch,RELIC_BY_ID,rlist,critChance,nftHpBonusPct,resonancePairs,axieToDie,mapAxieClass,
-  ENGINE_VERSION};
+  ENGINE_VERSION,needsTutorial};
