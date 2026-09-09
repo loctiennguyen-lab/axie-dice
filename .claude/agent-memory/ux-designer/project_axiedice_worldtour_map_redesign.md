@@ -1,11 +1,24 @@
 ---
 name: project-axiedice-worldtour-map-redesign
-description: World Tour in-map screen (scTourMap) node-on-path redesign — spec at design/ux/world-tour-map.md, DRAFT pending product-owner approval, not yet implemented
+description: World Tour in-map screen (scTourMap) node-on-path redesign — spec at design/ux/world-tour-map.md; v1 SHIPPED 2026-09-08, a further Candy-Crush-style pass is now under research (see project_axiedice_worldtour_candycrush_pass)
 metadata:
   type: project
 ---
 
-**Status (2026-09-08): DRAFT spec written to file, NOT yet implemented/approved.**
+**UPDATE 2026-09-09: this spec's v1 (node-on-path, per §4-§8) is IMPLEMENTED,
+not just drafted** — confirmed by reading `scTourMap()` directly
+(`src/client.html:5506-5597`, CSS `.tournode`/`.tourboard`/`.tourpath`/
+`.tourpawn` ~1702-1730) and `production/session-state/active.md`'s 2026-09-08
+entry #19. Full-bleed board, dashed SVG path, circular reward-thumbnail/boss-
+portrait pins, lock/ready/got states, interpolated pawn — all real. Don't
+re-derive this from scratch next time; only the items still flagged open below
+(node coordinate fine-tuning, ascMax landmark icon) remain outstanding. A
+*second*, later redesign pass (product owner now wants Candy-Crush/Homescapes
+style: numbered zone-colored circles, stars, persistent currency HUD) is
+tracked separately in [[project_axiedice_worldtour_candycrush_pass]] — do not
+conflate the two asks.
+
+**Status (2026-09-08, historical — see update above): DRAFT spec written to file, NOT yet implemented/approved.**
 Full spec: `design/ux/world-tour-map.md`. Product owner (translated complaint):
 current `scTourMap()` UI is "bad and ugly," wants tiles turned into nodes
 positioned along the actual painted path in the map art (war-map style),

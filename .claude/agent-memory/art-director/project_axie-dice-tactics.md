@@ -56,6 +56,63 @@ Other art findings from that review, not yet actioned:
 See [[reference_icon-system-pattern]] for the technical shape of the icon
 system these fixes must slot into.
 
+**2026-09-09 finding — Echo Box gacha screen (`scEchoBox()`, `src/client.html`
+~3678) already has more real treatment than the product owner's framing
+implied; the actual gap is horizontal grouping, not "generic icons" or "no
+glow".** Confirmed: `.echoshow` chips already render real cosmetic thumbnails
+(`item.src||item.img`) with rarity-bordered frames (`--r0..--r4`), not
+placeholder icons; `.echorank` already uses `--acc` gold + the shared
+`.bpbar` component; `.echopull.glow`/`echopullGlow` already pulses the pull
+button (2.2s, same timing as `.unit.p.echo5`'s `echo-eclipse-pulse`, but a
+thinner single-shadow effect vs echo5's ring+dual-color layering) and is
+already gated by both `wantsLessFlash()` (JS) and `prefers-reduced-motion`
+(CSS). What's actually missing is horizontal/grouped layout — everything
+(`hero` strip, `rankBox`, `pull` button, `fusepanel`, pull-log `colsec`) is
+still appended as one full-width vertical stack. Options (hero-moment
+treatment for the pull button + demotion options for fuse/log via reusing
+[[reference_ui-switch-patterns]]) written to
+`production/session-state/echobox-redesign-art-options.md` (scratch, no
+decision made).
+
+**2026-09-09 finding — combat-card faction/boss visual distinction gap,
+options drafted, no decision yet.** Confirmed via grep that audit finding
+P0-3 (HP bar color encoding phe/faction, not danger) is not just historical —
+it was FIXED and is live and intentional: `--hp-full/low/crit` is %-based,
+identical both sides, per the CSS comment "mã hoá % HP, không mã hoá phe" and
+`UIUX_AUDIT_v0.9.md`'s P0-3 fix (removed a fixed enemy-red fill that masked
+real HP%). **Do not recommend re-coupling HP fill to faction** — that would
+regress a deliberately-fixed readability bug; faction must be encoded via
+border/frame/badge/icon instead. Also confirmed live: `.unit.big` (boss) uses
+the exact same `--dmg` crimson border as any regular `.unit.e`, and the
+map-node boss preview (`.n_boss`) does too — bosses have zero distinct visual
+escalation today beyond card width. Full options (4 faction-distinction CSS
+approaches + 4 boss-escalation CSS approaches, cost/a11y-risk table, no
+single recommendation forced) written to
+`production/session-state/artdirection-faction-boss-visual-options.md`
+(scratch, gitignored — not a durable design doc, re-derive from client.html
+if this file is gone by the time it's needed again).
+
+**2026-09-09 finding — World Tour map node/path redesign, options drafted,
+no decision.** Product owner wants `scTourMap()` nodes (`src/client.html`
+~5506) to look like a Candy Crush/Homescapes map (bold numbered circular
+badges, zone color, thicker path). Confirmed: `.tournode` is a plain 52px
+circle today, no printed number anywhere (only lock emoji/thumbnail/✓!
+corner badge); states are `locked`/`ready`/`got` colored via existing
+`--line`/`--acc`/`--heal` tokens, no zone-color concept exists. **Only 2
+`TOUR_MAP_ART` images exist today (`'1'`,`'2'`), both single-biome
+("Lovely Forest I/II") — the background art has no baked-in multi-zone
+coloring to key redesign off; a "zone palette" would have to be invented
+(arbitrary tile-index banding), not read from the art.** `t.i` (tile step
+index, 1-10) already exists in `TOUR_MAPS` data — free number source, no
+data-authoring change needed for a numbered-badge redesign. Reusable
+precedent found: `nodecard` (run's node-select screen, different from
+tourmap) already sets a per-node color via inline `--nc` custom property
+(`inf.c`) — same technique would work for tourmap state/zone coloring.
+4 node options + 3 path options with cost flags (CSS-only vs needs a new
+badge-frame/footprint asset) written to
+`production/session-state/worldmap-redesign-art-options.md` (scratch,
+gitignored, no decision forced — re-derive from `scTourMap()`/CSS if gone).
+
 **2026-09-07 update — Hero mapping in the real-art plan revised to ground
 truth.** The original §2 HEROES table in `real-art-adoption-plan-2026-09-07.md`
 was a color/icon guess against unlabeled numeric filenames (no class

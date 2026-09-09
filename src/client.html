@@ -102,6 +102,7 @@
   --man: #b388ff;
   --dmg: #ff6b6b;
   --poi: #a8d84a; --burn:#ff9a4d; --deb:#ff8fc7;
+  --ally: #4fd1c5; /* faction identity only — never reused for HP/status meaning */
 
   /* ═══ HP — mã hoá % HP, không mã hoá phe (L6) ═══ */
   --hp-full:#5fd68a;
@@ -369,6 +370,14 @@ small{font-size:var(--t1)}
 .menu-corner-name{font-size:var(--t2);color:var(--txt);line-height:1.3;font-weight:700}
 .menu-corner-title{font-size:var(--t1);color:var(--dim);letter-spacing:1px}
 .menu-corner-title.has{color:var(--acc)}
+/* Symmetric counterpart to .menu-corner (top-left identity) — Shard was
+   previously only readable buried in the plain-text stat footer, not as a
+   persistent currency HUD chip like the rest of this genre uses. */
+.menu-corner-r{position:absolute;top:var(--s4);right:var(--s4);display:flex;align-items:center;
+  gap:6px;background:var(--pan);border:1px solid var(--line2);border-radius:999px;padding:6px 14px;
+  cursor:pointer}
+.menu-corner-r .icow{width:18px;height:18px}
+.menu-corner-r .mc-shard{font-size:var(--t2);color:var(--txt);font-weight:700}
 /* T19 · grouped tiles replace the old flat 4-per-row grid: each .menu-group
    is a labeled cluster (PROGRESS / REFERENCE) so relationship reads at a
    glance instead of every tile carrying identical visual weight.
@@ -503,6 +512,8 @@ small{font-size:var(--t1)}
 @keyframes echopullGlow{0%,100%{box-shadow:0 0 6px #ffc85744}50%{box-shadow:0 0 22px #ffc85799}}
 @media (prefers-reduced-motion:reduce){ .echopull.glow{animation:none;box-shadow:0 0 10px #ffc85766} }
 
+.echotabs{display:flex;gap:8px;max-width:520px;margin:var(--s4) auto 0}
+.echotabs .btn{flex:1}
 .fusepanel{max-width:520px;margin:var(--s4) auto 0;text-align:left;background:var(--pan);
   border:1px solid var(--line);border-radius:var(--radius);padding:var(--s3)}
 .fusepanel h3{font-size:var(--t2);color:var(--dim);letter-spacing:2px;margin-bottom:4px}
@@ -724,8 +735,17 @@ small{font-size:var(--t1)}
 .combat.frozen{filter:saturate(.4) brightness(.5)}
 .msg{text-align:center;font-size:var(--t2);color:var(--acc);min-height:15px;margin-bottom:2px}
 .zone{display:flex;justify-content:center;align-items:flex-end;gap:var(--zone-gap);flex-wrap:wrap}
-.zone.enemies{min-height:150px;padding-top:14px;position:relative}
-.zone.party{margin-top:22px;position:relative}
+.zone.enemies{min-height:150px;padding-top:30px;position:relative}
+.zone.party{margin-top:38px;position:relative}
+.zonetag{position:absolute;top:0;left:50%;transform:translateX(-50%);font-size:var(--t1);font-weight:700;
+  letter-spacing:.08em;padding:2px 12px;border-radius:0 0 8px 8px;z-index:2;white-space:nowrap}
+.zone.enemies .zonetag{background:var(--dmg);color:#2a0d0d}
+.zone.party .zonetag{background:var(--ally);color:#0a2320}
+/* Enemy waves can carry up to 6 mobs (elite/boss adds); .zone.enemies never
+   had party's swarm-safe shrink, so a 6th card dropped to its own centered
+   row. 130px mirrors the existing <=899px breakpoint's proven-legible size
+   (104px) closely enough while staying readable at desktop viewing distance. */
+.zone.enemies.compact{--unit-w:130px;--zone-gap:8px}
 /* Swarm builds (living Axie Eggs push the party past 5, up to 9 — see the
    'compact' class comment in ui.js scCombat()). Shrink locally so up to 9
    columns (9*112 + 8*8 = 1072px) fit inside #app's ~1160px content width
@@ -758,7 +778,7 @@ small{font-size:var(--t1)}
 /* Visual hierarchy pass: a party unit's class colour now washes the whole
    card (not just a 3px edge) so PLANT/BEAST/AQUA/REPTILE/BUG/BIRD read at a
    glance instead of every card looking like the same flat grey panel. */
-.unit.p{border-bottom:3px solid var(--cc);background:linear-gradient(180deg,color-mix(in srgb,var(--cc) 10%,var(--pan-hi)) 0%,var(--pan-hi) 60%)}
+.unit.p{border:2px solid var(--ally);border-bottom:3px solid var(--cc);background:linear-gradient(180deg,color-mix(in srgb,var(--cc) 10%,var(--pan-hi)) 0%,var(--pan-hi) 60%)}
 /* Echo Tier prestige frame (economy-progression.md §10.3) — a full ring layered
    via box-shadow so it never fights the class-colour --cc bottom border above.
    Tier 0 (echoTier()===0, the default for ~everyone) adds no class at all, so
@@ -776,9 +796,21 @@ small{font-size:var(--t1)}
   50%{box-shadow:0 0 0 3px var(--acc),0 0 30px rgba(255,200,87,.9),0 0 46px rgba(179,136,255,.6)}
 }
 .unit.p.token{width:calc(var(--unit-w)*.72);opacity:.85;border-style:dashed}
-.unit.e{background:var(--pan-hi);border-color:var(--line2);border-top:3px solid var(--dmg)}
+.unit.e{background:var(--pan-hi);border:2px solid var(--dmg)}
 .unit.e.elite{border-color:var(--burn)}
-.unit.big{width:290px;border-color:var(--dmg)}
+.unit.big{width:290px;border:3px solid transparent;border-radius:var(--radius);
+  background-image:linear-gradient(var(--pan-hi),var(--pan-hi)),linear-gradient(135deg,var(--acc),var(--dmg));
+  background-origin:border-box;background-clip:padding-box,border-box;
+  animation:boss-glow 1.8s ease-in-out infinite}
+@keyframes boss-glow{
+  0%,100%{box-shadow:0 0 8px 1px rgba(255,107,107,.45)}
+  50%{box-shadow:0 0 20px 5px rgba(255,200,87,.6)}
+}
+.bossbanner{position:absolute;top:-13px;left:50%;transform:translateX(-50%);z-index:3;white-space:nowrap;
+  background:linear-gradient(90deg,var(--dmg),var(--acc));color:#2a0d0d;font-size:var(--t1);font-weight:700;
+  letter-spacing:.05em;padding:2px 12px;border-radius:6px;box-shadow:0 2px 6px rgba(0,0,0,.5)}
+.bosstag{display:inline-block;margin-left:5px;background:var(--acc);color:#2a1600;font-size:.7em;font-weight:700;
+  padding:1px 5px;border-radius:3px;vertical-align:middle}
 .unit.dead{opacity:.2;filter:grayscale(1)}
 .unit.tgt{cursor:pointer;border-color:var(--acc);box-shadow:0 0 0 1px var(--acc),0 0 22px #ffc85755;z-index:6}
 .unit.hovtgt{box-shadow:0 0 0 2px var(--acc),0 0 30px #ffc85788}
@@ -825,6 +857,8 @@ small{font-size:var(--t1)}
    what caught this (Momo/bird is one of its 5 fixed party members). */
 .pasdot{position:absolute;top:var(--s1);left:var(--s1);width:var(--icon-md);height:var(--icon-md);line-height:22px;font-size:var(--t2);
   background:var(--pan-hi);color:var(--txt);border:2px solid var(--cc);border-radius:50%;z-index:2;font-weight:700}
+.factionbadge{position:absolute;top:2px;right:2px;width:16px;height:16px;z-index:2;
+  filter:drop-shadow(0 1px 1px rgba(0,0,0,.7))}
 .unit .nm{font-size:var(--t1);color:var(--dim);margin-bottom:var(--s1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;letter-spacing:.5px}
 /* Duplicate-name disambiguation suffix — same dim tone as .nm itself, just
    slightly de-emphasized so "Sprout (1)" doesn't read as a stat. */
@@ -1057,6 +1091,9 @@ small{font-size:var(--t1)}
 .icard:hover{background:var(--pan3);color:var(--txt)}
 .icard.sel{border-color:var(--acc);color:var(--acc)}
 .icard.dis{opacity:.28;pointer-events:none}
+.icard.passive{cursor:default;opacity:.85}
+.icard.passive:hover{background:var(--pan2);color:var(--dim)}
+.items.passives{margin-top:var(--s1)}
 .icard.r1{border-color:var(--r1)} .icard.r2{border-color:var(--r2)} .icard.r3{border-color:var(--r3)}
 .icard .ic-n{color:var(--txt)}
 .icard .ic-c{font-size:var(--t1);color:var(--man)}
@@ -1709,19 +1746,28 @@ body.clog-open .clog-inner{ clip-path:inset(0 0 0 0); opacity:1; }
 .tourpath{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
 .tourpath path{fill:none;stroke:#fef6d8;stroke-width:2.5;stroke-dasharray:7 7;stroke-linecap:round;
   vector-effect:non-scaling-stroke;filter:drop-shadow(0 0 2px #000b)}
+/* Candy-Crush-style pass (product owner reference, 2026-09-09): the number
+   badge is now the node's PRIMARY read, same as the reference art — the
+   reward/boss thumbnail that used to fill the whole circle is demoted to a
+   small corner badge instead (still real art, never invented). */
 .tournode{position:absolute;transform:translate(-50%,-50%);width:52px;height:52px;border-radius:50%;
-  background:var(--pan);border:var(--bd) solid var(--line);padding:0;display:flex;align-items:center;justify-content:center;
-  cursor:default}
+  overflow:visible;background:linear-gradient(160deg,#8a8296,#5a5468);border:3px solid #ffffff88;padding:0;
+  display:flex;align-items:center;justify-content:center;cursor:default}
 .tournode.landmark{width:72px;height:72px}
-.tournode img{width:100%;height:100%;object-fit:cover;border-radius:50%}
-.tournode-lock{font-size:20px;filter:grayscale(1)}
-.tournode.locked{opacity:.5}
-.tournode.ready{border-color:var(--acc);cursor:pointer}
+.tournode-num{color:#fff;font-size:20px;font-weight:900;text-shadow:0 2px 2px rgba(0,0,0,.5)}
+.tournode.landmark .tournode-num{font-size:26px}
+.tournode-thumb{position:absolute;bottom:-6px;right:-6px;width:22px;height:22px;border-radius:50%;
+  border:2px solid #fff;overflow:hidden;background:var(--pan)}
+.tournode-thumb img{display:block;width:100%;height:100%;object-fit:cover}
+.tournode-lock{position:absolute;bottom:-6px;right:-6px;font-size:14px;filter:grayscale(1)}
+.tournode.locked{background:linear-gradient(160deg,#6a6478,#403c4c);opacity:.7}
+.tournode.ready{background:linear-gradient(160deg,#ffd76a,#e8a63a);border-color:var(--acc);cursor:pointer}
 .tournode.ready.pulse{animation:tournodePulse 2.2s ease-in-out infinite}
 @keyframes tournodePulse{0%,100%{box-shadow:0 0 6px #ffc85744}50%{box-shadow:0 0 22px #ffc85799}}
-.tournode.got{border-color:var(--heal);opacity:.85}
-.tournode-badge{position:absolute;bottom:-4px;right:-4px;width:20px;height:20px;border-radius:50%;
-  display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;line-height:1}
+.tournode.got{background:linear-gradient(160deg,#7dd35a,#4a9e3a);border-color:var(--heal)}
+.tournode-badge{position:absolute;top:-4px;right:-4px;width:18px;height:18px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;line-height:1;
+  border:2px solid var(--pan-hi)}
 .tournode.ready .tournode-badge{background:var(--acc);color:#000}
 .tournode.got .tournode-badge{background:var(--heal);color:#000}
 .tourpawn{position:absolute;transform:translate(-50%,-100%);font-size:26px;pointer-events:none;
@@ -1994,6 +2040,10 @@ const IC_G={
  shard:[ '...##...','..####..','.######.','########','.######.','..####..','...##...','........' ],
  boss:[ '#.#..#.#','#######.','.######.','.######.','..####..','.######.','########','########' ],
  elite:[ '...##...','..####..','.##..##.','##....##','##....##','.##..##.','..####..','...##...' ],
+ /* Faction badges — deliberately shape-coded (circle=ally, diamond=foe), not
+    just color, so they still read for colorblind players (WCAG 1.4.1). */
+ ally:[ '..####..','.######.','########','########','########','########','.######.','..####..' ],
+ foe:[ '...##...','..####..','.######.','########','########','.######.','..####..','...##...' ],
  event:[ '..####..','.##..##.','##.##.##','##.##.##','##....##','.##..##.','..####..','...##...' ],
  shop:[ '...##...','########','.#....#.','##....##','.#....#.','..#..#..','...##...','..####..' ],
  chest:[ '########','##.##.##','########','...##...','########','##....##','##....##','########' ],
@@ -2456,6 +2506,13 @@ const kbAct=e2=>{ e2.tabIndex=0;
   return e2; };
 
 let S=null, screen='menu', sel=null, selRelic=null, teamPick=[], msg='', SPD=1;
+/* One-shot "boss incoming" flash — keyed by S.step so it fires exactly once
+   per encounter regardless of how many times render()/scCombat() re-runs
+   during it, without needing engine.js (a pure state module) to know about
+   UI concerns like flash(). Resets on page reload, same accepted tradeoff
+   as this project's other client-only UI state (sel/selRelic above). */
+let bossAnnouncedStep=null;
+let echoTab='fuse';
 /* Mandatory onboarding tutorial (design/gdd/onboarding-tutorial.md) — replaces
    the old passive TUT[]/tutOverlay()/`tut` slideshow (never actually reachable:
    nothing ever set `tut` to a nonzero value). tutStep only ever needs to hold
@@ -3254,10 +3311,12 @@ function paintDieFace(d,u,fi,temp){
   d.appendChild(partBadge);
   if(f.t==='blank') d.appendChild(el('div','dv blanktxt','BLANK'));
   else if(f.v>0||f.t==='dmg') d.appendChild(el('div','dv',String(temp?f.v:faceValue(S,u,fi))));
-  /* §3.3 interim fix — compact die face only shows combat-decision-critical
-     keywords (aoe/heavy/exec); the rest (multi/chain/pierce/cleave/cantrip)
-     remain visible via the existing unit-inspect modal (modal='unit'). */
-  const kws=f.k.filter(k=>k==='aoe'||k==='exec');
+  /* §3.3 reversed per product review — the old allowlist (aoe/exec only) hid
+     the one thing a debuff/buff face actually DOES (e.g. 'blind:2') behind a
+     modal click, leaving a 0-value face reading as blank. Show every keyword
+     except 'heavy', which already has its own ⚖ strip above (matches the
+     denylist the unit-inspect modal already uses, ~line 6096). */
+  const kws=f.k.filter(k=>k!=='heavy');
   if(kws.length) d.appendChild(el('div','dk',kws.map(kwText).join(' · ')));
   if(!temp&&u.critNow) d.appendChild(el('div','critbadge','CRIT x'+rcritMult()));
 }
@@ -3479,6 +3538,12 @@ function scMenu(){
     corner.onclick=()=>{ screen='profile'; render(); };
     kbAct(corner);
     w.appendChild(corner);
+    const shardCorner=el('div','menu-corner-r');
+    shardCorner.appendChild(ico('shard','',null));
+    shardCorner.appendChild(el('span','mc-shard',String(META.shards||0)));
+    shardCorner.onclick=()=>{ screen='echobox'; render(); };
+    kbAct(shardCorner);
+    w.appendChild(shardCorner);
   }
   inner.appendChild(el('h1','logo','AXIE DICE TACTICS'));
   inner.appendChild(el('div','sub','LUNACIA MUTANTS · v1.0'));
@@ -3754,6 +3819,17 @@ function scEchoBox(){
     w.appendChild(card);
   }
 
+  // Fuse Duplicates and Pull Log used to both render fully expanded, stacked
+  // in one long column — a tab switch (same pattern as the login/register
+  // toggle, scAccount's .cfgrow) demotes whichever isn't active instead of
+  // making the player scroll past both every time.
+  const tabs=el('div','echotabs');
+  const fuseTab=btn('sm'+(echoTab==='fuse'?' on':''),'FUSE DUPLICATES',()=>{ echoTab='fuse'; render(); });
+  const logTab=btn('sm'+(echoTab==='log'?' on':''),'PULL LOG',()=>{ echoTab='log'; render(); });
+  tabs.appendChild(fuseTab); tabs.appendChild(logTab);
+  w.appendChild(tabs);
+
+  if(echoTab==='fuse'){
   // §8 fuse panel — demoted to a clean secondary panel (small .bpbar per
   // row instead of raw text; empty rows stay visible at reduced opacity,
   // never hidden — the mechanic should always be legible, just not compete
@@ -3794,8 +3870,11 @@ function scEchoBox(){
     }
     w.appendChild(card);
   }
+  } // echoTab==='fuse'
 
-  // §6 pull-history log — passive reference, sits after the actionable stuff.
+  if(echoTab==='log'){
+  // §6 pull-history log — passive reference, its own tab now instead of
+  // always sitting expanded after the actionable stuff.
   const logSec=el('div','colsec');
   logSec.appendChild(el('h3',null,'PULL LOG'));
   const log=loadEchoLog();
@@ -3819,6 +3898,7 @@ function scEchoBox(){
     logSec.appendChild(list);
   }
   w.appendChild(logSec);
+  } // echoTab==='log'
 
   w.appendChild(btn('','BACK',()=>{ screen='menu'; render(); }));
   return w;
@@ -4278,10 +4358,15 @@ function scCombat(frozen){
   const fs=focusState();
   const w=el('div','screen combat f_'+fs+(frozen?' frozen':''));
   w.appendChild(track(true));
+  const bossUnit=S.enemies.find(e=>e.boss);
+  if(bossUnit&&bossAnnouncedStep!==S.step){ bossAnnouncedStep=S.step; flash('BOSS: '+bossUnit.n+' — '+bossUnit.desc); }
   if(msg) w.appendChild(el('div','msg',msg));
 
-  /* enemies */
-  const ez=el('div','zone enemies');
+  /* enemies — wave can carry up to 6 mobs (elite/boss adds); .compact mirrors
+     the party zone's own swarm-safe shrink below so a 6th card never wraps
+     to its own centered row (see .zone.enemies.compact, style.css). */
+  const ez=el('div','zone enemies'+(S.enemies.length>5?' compact':''));
+  ez.appendChild(el('div','zonetag','ENEMY'));
   S.enemies.forEach(e=>ez.appendChild(unitCard(e)));
   w.appendChild(ez);
   /* party — mỗi Axie ghép chung 1 cột với đúng die của nó (2026-09-01: trước đây
@@ -4294,6 +4379,7 @@ function scCombat(frozen){
      actually broken), but easy to mistake for "abilities stopped working"
      mid-combat. Shrink the whole zone at >6 so it fits without hunting. */
   const pz=el('div','zone party'+(S.party.length>6?' compact':''));
+  pz.appendChild(el('div','zonetag','YOUR TEAM'));
   /* Formation Resonance (design/quick-specs/formation-resonance-2026-09-01.md):
      hiển thị cặp "đang mở" TRƯỚC khi người chơi click — bắt buộc theo pillar
      minh bạch triệt để. cols[i] tương ứng roster/pos i cho các Axie thật vì
@@ -4331,6 +4417,22 @@ function scCombat(frozen){
   });
   if(!items.children.length) items.appendChild(el('div','nothing','no active cards yet'));
   bb.appendChild(items);
+  /* Passive relics never showed anywhere in combat before — S.relics.forEach
+     above skips every relic without .act, so equipped passives (the whole
+     other half of a build) were invisible mid-run. Read-only strip, no
+     click action (passives don't activate), reusing the existing per-relic
+     tooltip pattern (c.title=r.d) rather than a new component. */
+  const passives=S.relics.map(id=>RELIC_BY_ID[id]).filter(r=>r&&!r.act);
+  if(passives.length){
+    const pw=el('div','items passives');
+    passives.forEach(r=>{
+      const c=el('div','icard r'+r.rar+' passive');
+      c.appendChild(el('div','ic-n',r.n));
+      c.title=r.d;
+      pw.appendChild(c);
+    });
+    bb.appendChild(pw);
+  }
   const rb=btn('reroll','REROLL '+S.rerolls,()=>{
     const pickd=S.party.filter(u=>u.rsel&&u.hp>0&&!u.used&&!u.heavy&&!u.frozen).map(u=>u.uid);
     const use=pickd.length?pickd:S.party.filter(u=>u.hp>0&&!u.used&&!u.heavy&&!u.frozen).map(u=>u.uid);
@@ -4388,14 +4490,17 @@ function unitCard(u){
   const incoming = !isE && S.enemies.some(e=>e.hp>0&&e.intent&&e.intent.tgt===u.uid&&['dmg','poison','debuff'].includes(e.intent.face.t));
   if(incoming) c.classList.add('threat');
 
+  if(u.boss){ const bn=el('div','bossbanner'); bn.appendChild(ico('boss','ii','#2a0d0d')); bn.appendChild(el('span',null,' '+u.n)); c.appendChild(bn); }
   const spw=el('div','sprwrap');
   if(isE){ const im=el('img','spr mut'+(sprMonIsReal(u.key)?' real':'')); im.src=sprMon(u.key); spw.appendChild(im); }
   else spw.appendChild(unitArtImg(u));
   if(!isE&&u.pas) { const p=el('div','pasdot',u.pas.n[0]); p.title=u.pas.n+': '+u.pas.d; spw.appendChild(p); }
+  spw.appendChild(ico(isE?'foe':'ally','factionbadge',isE?'#ff6b6b':'#4fd1c5'));
   c.appendChild(spw);
   const dupeI=dupeIndex(u);
   const nm=el('div','nm',(isE?u.n:u.n+' T'+u.tier)+(u.token?' *':''));
   if(dupeI) nm.appendChild(el('span','dupe-tag',' ('+dupeI+')'));
+  if(u.boss) nm.appendChild(el('span','bosstag','BOSS'));
   c.appendChild(nm);
   /* hp bar + ghost preview */
   /* T05 · the number sits above the bar, so no fill colour can ever make it
@@ -5503,6 +5608,21 @@ function scTourMapSelect(){
 // percent node coordinates can anchor to the image's own rendered box, see
 // spec §2), horizontally scrollable, nodes threaded along the real path via
 // TOUR_MAPS[].tiles[].node {x,y} (data.js).
+// Catmull-Rom -> cubic Bezier through the same tile node points already used
+// to place the nodes themselves (never a second, driftable coordinate set).
+// Straight "L" segments between waypoints read as an angular zigzag; this
+// keeps identical routing but renders it as a continuous curve, closer to
+// the painted road underneath without hand-authoring new control points.
+function tourPathD(points){
+  let d='M'+points[0][0]+' '+points[0][1];
+  for(let i=0;i<points.length-1;i++){
+    const p0=points[i-1]||points[i], p1=points[i], p2=points[i+1], p3=points[i+2]||p2;
+    const c1x=p1[0]+(p2[0]-p0[0])/6, c1y=p1[1]+(p2[1]-p0[1])/6;
+    const c2x=p2[0]-(p3[0]-p1[0])/6, c2y=p2[1]-(p3[1]-p1[1])/6;
+    d+=' C'+c1x+' '+c1y+' '+c2x+' '+c2y+' '+p2[0]+' '+p2[1];
+  }
+  return d;
+}
 function scTourMap(mapIdx){
   const mapDef=tourMapDef(mapIdx);
   const w=el('div','screen menu tourmap');
@@ -5538,7 +5658,7 @@ function scTourMap(mapIdx){
   const svg=document.createElementNS(svgNS,'svg');
   svg.setAttribute('class','tourpath'); svg.setAttribute('viewBox','0 0 100 100'); svg.setAttribute('preserveAspectRatio','none');
   const linePath=document.createElementNS(svgNS,'path');
-  linePath.setAttribute('d','M'+mapDef.tiles.map(t=>t.node.x+' '+t.node.y).join(' L'));
+  linePath.setAttribute('d',tourPathD(mapDef.tiles.map(t=>[t.node.x,t.node.y])));
   svg.appendChild(linePath);
   inner.appendChild(svg);
 
@@ -5549,17 +5669,19 @@ function scTourMap(mapIdx){
     const c=el('button','tournode'+(t.landmark?' landmark':'')+(got?' got':ready?' ready'+(wantsLessFlash()?'':' pulse'):' locked'));
     c.style.left=t.node.x+'%'; c.style.top=t.node.y+'%';
     const item=tourItemDef(t.reward.cat,t.reward.key);
+    c.appendChild(el('div','tournode-num',String(t.i)));
+    let thumbSrc=null;
     if(t.landmark&&t.landmark.type==='boss'){
       // Boss-landmark tiles reuse the real boss portrait already shipped for
       // combat — no new asset, and it tells the player exactly which fight
-      // they're walking toward (spec §8).
-      const im=el('img'); im.src=sprMon(t.landmark.boss); c.appendChild(im);
+      // they're walking toward (spec §8). Demoted to the corner-badge slot
+      // now that the number owns the node's primary read (§Candy-Crush pass).
+      thumbSrc=sprMon(t.landmark.boss);
     } else if(got||ready){
-      const thumbSrc=item.src||item.img;
-      if(thumbSrc){ const im=el('img'); im.src=thumbSrc; c.appendChild(im); }
-    } else {
-      c.appendChild(el('div','tournode-lock','🔒'));
+      thumbSrc=item.src||item.img||null;
     }
+    if(thumbSrc){ const tw=el('div','tournode-thumb'); const im=el('img'); im.src=thumbSrc; tw.appendChild(im); c.appendChild(tw); }
+    if(!got&&!ready) c.appendChild(el('div','tournode-lock','🔒'));
     if(got) c.appendChild(el('div','tournode-badge','✓'));
     else if(ready) c.appendChild(el('div','tournode-badge','!'));
     const label=t.landmark?(t.landmark.type==='boss'?('Defeat '+t.landmark.boss):('Reach Ascension '+t.landmark.min)):((got||ready)?item.n:'Tile '+t.i);

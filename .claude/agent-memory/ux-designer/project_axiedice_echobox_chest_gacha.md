@@ -5,6 +5,22 @@ metadata:
   type: project
 ---
 
+**Status (2026-09-09, fourth pass — layout-only, no decision yet):** The
+2026-09-07 screen/ceremony spec below (`design/ux/echo-box.md`) IS live in
+`scEchoBox()` (`src/client.html:3678+`) — confirmed by reading the current
+code, not just the spec doc. But every block it introduced
+(`.echohero`/`.echorank`/`.echopull`/`.fusepanel`/log) is CSS
+`margin:0 auto;max-width:420-1050px` — a centered single-column rail, same
+problem as before just with nicer components. PM reviewed the live screen
+2026-09-09 and called it "one long, uncomfortable vertical column," asked for
+a Genshin-Wish-inspired vertical+horizontal hybrid (not a copy). Produced 4
+layout OPTIONS (A: two-col hero banner+pull, B: +tabbed fuse/log, C:
+persistent sidebar+swappable views, D: two-col secondary row) at
+`production/session-state/echobox-redesign-options.md` — no winner picked,
+PM/art-director decision pending. Key risk flagged: Option C (persistent
+sidebar) is the worst mobile fit given this project's landscape-only,
+rotate-gated phone constraint.
+
 **Status (2026-09-07, third pass): DONE, written to file.** A second spec now
 exists: `design/ux/echo-box.md` — full screen-and-ceremony redesign (PM called
 the current UI "cực kì xấu", asked for Genshin-wish-style ceremony). Covers:
