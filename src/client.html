@@ -949,6 +949,13 @@ small{font-size:var(--t1)}
   width:24px;height:24px;border-radius:50%;border:2px solid var(--acc);position:relative;
   box-shadow:0 0 8px var(--acc);animation:reslink-pulse 1.4s ease-in-out infinite;flex:none;cursor:help}
 @keyframes reslink-pulse{0%,100%{box-shadow:0 0 6px var(--acc)}50%{box-shadow:0 0 14px var(--acc)}}
+/* 2026-09-09 (product owner feedback): the FT_IC glyph inside this badge
+   (.icow.ii, 19px) sat in a 24px circle with ~2.5px margin per side — small
+   enough that the icon's own uneven silhouette (e.g. the dmg sword's wide
+   guard vs. its narrow blade tip) read as off-centre even though the box
+   itself is flex-centred. Filling more of the circle removes that illusion. */
+.reslink .icow.ii{width:20px;height:20px}
+.reslink .icow.ii svg{width:20px;height:20px}
 /* The native title= tooltip everywhere else in this file has a long hover
    delay and never appears on touch at all — fine for incidental info, but
    this badge IS the only place Formation Resonance explains itself before
@@ -1315,6 +1322,22 @@ input[type=range]{accent-color:var(--acc);width:100%}
    gets caught by the #app.tut-locking rule just below. */
 #app.tut-locking *{pointer-events:none}
 #app.tut-locking .tut-allow,#app.tut-locking .tut-allow *{pointer-events:auto}
+/* 2026-09-09: .tut-allow only restored pointer-events — nothing told the
+   player WHICH element that was (the "click this die" step's literal
+   complaint). Outline+box-shadow ring (not border) so it never shifts
+   sibling layout and works regardless of the target's own shape/background
+   (buttons, .unit cards, .die faces, .rcard reward cards all qualify for
+   .tut-allow at different steps — see tutCoachOverlay()'s `allow` arrays).
+   Reuses the .reslink-pulse pacing/colour (var(--acc)) already established
+   above for a consistent "this is interactive" language. */
+#app.tut-locking .tut-allow{outline:3px solid var(--acc);
+  outline-offset:3px;border-radius:var(--radius);box-shadow:0 0 0 3px var(--acc),0 0 22px var(--acc);
+  animation:tut-allow-pulse 1.2s ease-in-out infinite}
+@keyframes tut-allow-pulse{0%,100%{box-shadow:0 0 0 3px var(--acc),0 0 10px var(--acc)}
+  50%{box-shadow:0 0 0 3px var(--acc),0 0 26px var(--acc)}}
+@media (prefers-reduced-motion:reduce){
+  #app.tut-locking .tut-allow{animation:none;box-shadow:0 0 0 3px var(--acc),0 0 14px var(--acc)}
+}
 .tutcoach-ov{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);z-index:130;
   max-width:520px;width:calc(100% - 36px);pointer-events:none}
 .tutcoach-bx{background:var(--pan);border:var(--bd) solid var(--acc);border-radius:var(--radius);
