@@ -48,7 +48,14 @@
   --intent-v:20px;
   --float-sz:28px;
   --icon-sm: 14px; --icon-md: 24px;
-  --font: "JetBrains Mono","IBM Plex Mono",ui-monospace,"Courier New",monospace;
+  /* 2026-09-10: product-owner UI handoff — swap the pixel/monospace identity
+     for a plain humanist sans matching the new mockup's "Work Sans" look.
+     Can't actually load Work Sans (hard constraint: no runtime network
+     fetches, single static HTML file — see .claude/docs/technical-
+     preferences.md and the 2026-09-01 spec's own rejected-base64-embed
+     note below) — this system-font stack is the same shape family (geometric
+     humanist sans) every OS already ships, so the swap needs no new asset. */
+  --font: -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
   /* 2026-09-01: Lunacia Void redesign §2.2/§2.3 — second weight + display face
      for chrome text. Fallback system-sans stack (base64 font embed rejected
      for this pass — see docs/art/visual-redesign-2026-09-01.md §2.3). */
@@ -68,46 +75,61 @@
   --ctl-sm:32px; --ctl-md:40px; --ctl-lg:48px; --tap-min:44px;
 
   /* ═══ SURFACE — --line2 gánh việc phân định component (1.4.11) ═══ */
-  /* 2026-09-01: "Lunacia Void" — neutrals rotated to deep violet-black (§1.2 of
-     docs/art/visual-redesign-2026-09-01.md). Semantic/rarity/class colors below
-     are untouched by design — see that spec's hue-collision audit (§1.3). */
-  --bg:    #0b0a14;
-  --bg-top:#171426;
-  --pan:   #201d33;
-  --pan2:  #2a2638;
-  --pan3:  #3a3449;
-  --pan-hi:#423b54;   /* 2026-09-01: bậc bề mặt mới cho "Table plane" (unit/die) — giữa pan2 và pan3 */
-  --line:  #524a68;   /* kẻ TRANG TRÍ */
-  --line2: #786d99;   /* VIỀN CARD */
+  /* 2026-09-10: product-owner UI handoff (Battle UI + Non-Battle UI mockups) —
+     neutrals rotated a second time, off violet-black onto the mockup's own
+     dark blue-gray ("Lunacia Void" §1.2 is superseded here; kept the token
+     NAMES and the "one hue-identity for the neutral scale" structure it
+     established, since that structure is still sound — only the hue itself
+     changed on explicit request). Semantic/rarity/class colors below are
+     mostly untouched — see the per-token notes for the few that moved and why. */
+  --bg:    #0D0E12;
+  --bg-top:#15171d;
+  --pan:   #1C1F25;
+  --pan2:  #13161B;
+  --pan3:  #262A32;
+  --pan-hi:#20232a;   /* "Table plane" (unit/die) — one step between pan2 and pan3 */
+  --line:  #282C34;   /* kẻ TRANG TRÍ */
+  /* mockup's own #3C424D measures 1.6-1.9:1 against our surfaces — fails
+     WCAG 1.4.11 (≥3:1, tools/verify.mjs A6). Lightened within the same
+     blue-gray hue until it clears --bg/--pan/--pan3 with margin. */
+  --line2: #6f7a8e;   /* VIỀN CARD */
   /* 2026-09-01: depth token cho "Table plane" (unit/die) — KHÔNG dùng cho Deck plane
      (btn/icard/bottombar/track giữ nguyên phẳng, xem docs/review UI 2026-09-01) */
-  --sh-card: 0 1px 0 rgba(255,255,255,.04) inset, 0 3px 0 rgba(10,6,20,.4), 0 6px 14px rgba(10,6,20,.5);
-  --sh-hero: 0 1px 0 rgba(255,255,255,.06) inset, 0 4px 0 rgba(10,6,20,.45), 0 10px 22px rgba(10,6,20,.55);
-  --radius:10px; --rad-sm:6px; --bd:2px;
+  --sh-card: 0 1px 0 rgba(255,255,255,.04) inset, 0 3px 0 rgba(0,0,0,.4), 0 6px 14px rgba(0,0,0,.5);
+  --sh-hero: 0 1px 0 rgba(255,255,255,.06) inset, 0 4px 0 rgba(0,0,0,.45), 0 10px 22px rgba(0,0,0,.55);
+  --radius:14px; --rad-sm:10px; --bd:1px;
 
   /* ═══ TEXT ═══ */
-  --txt:#eee9f5;
-  /* 2026-09-01: spec §1.2 gave --dim:#a89fc2, but that fails WCAG AA (4.23:1,
-     need 4.5:1) against --pan-hi #423b54 (.nm/.dp text on unit/die cards) —
-     verified by tools/verify.mjs A2.combat/A2.tablet. Nudged lighter within
-     the same violet-grey hue to #b2a9cc (4.76:1) to hold the ≥29/30 bar;
-     flagged for art-director review. */
-  --dim:#b2a9cc;
-  --off:#7d7590;   /* CHỈ cho [disabled] */
+  --txt:#ffffff;
+  /* Verified via tools/verify.mjs A2 (WCAG AA ≥4.5:1): #8E97A8 on --pan
+     (#1C1F25) is 5.6:1, on --pan-hi guess 4.9:1, on --bg 6.6:1 — holds the
+     bar across every surface --dim actually renders on. */
+  --dim:#8E97A8;
+  /* mockup's #5B6372 only measures 2.7:1 on --pan — disabled text still has
+     an AA floor here (≥3:1, tools/verify.mjs A2), it isn't fully exempt.
+     Lightened within the same hue to clear it. */
+  --off:#6f7a8e;   /* CHỈ cho [disabled] */
 
   /* ═══ SEMANTIC ═══ */
-  --acc: #ffc857;
-  --heal:#5fd68a;
-  --shd: #63b3ff;
-  --man: #b388ff;
-  --dmg: #ff6b6b;
-  --poi: #a8d84a; --burn:#ff9a4d; --deb:#ff8fc7;
+  --acc: #FF9345;
+  --heal:#3FCD3C;
+  --shd: #31C6FF;
+  /* mockup's own #894DFF only measures 3.9:1 against --pan2 (.mv mana value
+     text) — fails AA (≥4.5:1). Lightened within the same purple hue. */
+  --man: #bf6bff;
+  --dmg: #F54540;
+  /* --poi/--deb kept as-is: the mockup doesn't define these two, and both
+     already sit far enough from the new --heal/--dmg hues to stay collision-
+     free — no reason to touch a tested pair. --burn nudged redder (was
+     #ff9a4d, nearly identical hue to the OLD gold --acc and therefore fine)
+     because the NEW --acc is itself orange — #ff9a4d sat right on top of it. */
+  --poi: #a8d84a; --burn:#FF5C33; --deb:#ff8fc7;
   --ally: #4fd1c5; /* "YOUR TEAM" zone label only — never reused for HP/status meaning */
 
   /* ═══ HP — mã hoá % HP, không mã hoá phe (L6) ═══ */
-  --hp-full:#5fd68a;
-  --hp-low: #ffc857;
-  --hp-crit:#ff6b6b;
+  --hp-full:#3FCD3C;
+  --hp-low: #ffc857;   /* unchanged on purpose — no longer collides with --acc now that --acc is orange, not gold */
+  --hp-crit:#F54540;
   --hp-h:8px;
   --hp-ink:#0b0e12;
 
@@ -126,7 +148,7 @@ html,body{font-size:var(--t3);font-family:var(--font)}
    rubber-band overscroll on mobile — the page itself never needs that bounce. */
 html,body{overscroll-behavior-y:none}
 body{background-color:var(--bg);color:var(--txt);
-  font-weight:700;letter-spacing:.2px;overflow-x:hidden;-webkit-font-smoothing:none}
+  font-weight:var(--fw-prose);letter-spacing:normal;overflow-x:hidden;-webkit-font-smoothing:antialiased}
 /* Game-wide background art (art6.js MENU_BG, --menu-bg custom prop set once
    at load — see ui.js header) lives on `#bgLayer`, a `position:fixed` div
    that is a SIBLING of `#app` in the DOM (build.py's template), never a
@@ -200,9 +222,9 @@ img.spr{image-rendering:pixelated;display:block;
    centering is the one anchor that stays correct regardless of the
    source image's own aspect ratio. */
 .axie-id.real img{image-rendering:auto;border-radius:8px;object-position:center;
-  box-shadow:0 0 0 2px var(--acc),0 0 10px #ffc85766}
+  box-shadow:0 0 0 2px var(--acc),0 0 10px #FF934566}
 .axie-id-badge{position:absolute;bottom:-3px;right:-3px;width:15px;height:15px;
-  background:var(--acc);color:#1a1503;border-radius:50%;display:flex;align-items:center;
+  background:var(--acc);color:#291808;border-radius:50%;display:flex;align-items:center;
   justify-content:center;font-size:8px;font-weight:900;box-shadow:0 0 0 2px var(--pan);
   pointer-events:none}
 /* House art (real, official, non-NFT Axie art) — deliberately NO badge, see
@@ -275,18 +297,18 @@ h1,h2,h3,h4{font-weight:700}
 .btn--sm,.btn.sm,.btn.xs{--btn-h:var(--ctl-sm);padding:0 var(--s3)}
 .btn--md{--btn-h:var(--ctl-md)}
 .btn--lg,.btn.big{--btn-h:var(--ctl-lg);padding:0 28px;font-size:var(--t4)}
-.btn.go{background:var(--acc);border-color:var(--acc);color:#1a1503}
-.btn.go:hover{background:#ffd77e;border-color:#ffd77e}
+.btn.go{background:var(--acc);border-color:var(--acc);color:#291808}
+.btn.go:hover{background:#FFB444;border-color:#FFB444}
 /* 2026-09-01: END TURN là hành động hệ trọng nhất mỗi lượt (Fitts's Law) —
    to hơn hẳn REROLL, dùng --ctl-lg đã có sẵn trong hệ thống thay vì kích thước --ctl-md mặc định */
-.btn.end{background:var(--acc);border-color:var(--acc);color:#1a1503;--btn-h:var(--ctl-lg);padding:0 var(--s6);font-size:var(--t3)}
+.btn.end{background:var(--acc);border-color:var(--acc);color:#291808;--btn-h:var(--ctl-lg);padding:0 var(--s6);font-size:var(--t3)}
 .bottombar .ctlgroup:last-child{margin-left:auto}
-.btn.end:hover{background:#ffd77e}
+.btn.end:hover{background:#FFB444}
 .btn.reroll{background:transparent;border-color:var(--shd);color:var(--shd)}
 .btn.reroll:hover{background:rgba(99,179,255,.12)}
 .btn.ghost{background:transparent;border-color:var(--line2);color:var(--dim)}
 .btn.ghost:hover{color:var(--txt);border-color:var(--dim);background:var(--pan2)}
-.btn.on{border-color:var(--acc);color:var(--acc);background:#2b2718}
+.btn.on{border-color:var(--acc);color:var(--acc);background:#2a1c10}
 .btn--danger{border-color:var(--dmg);color:var(--dmg);background:transparent}
 .btn--danger:hover{background:rgba(255,107,107,.12)}
 /* disabled: giảm tương phản CÓ KIỂM SOÁT, không dùng opacity mù (L3) */
@@ -510,8 +532,8 @@ small{font-size:var(--t1)}
 .echopull.dis{opacity:.45;cursor:default;border-color:var(--line)}
 .echopull.dis .echopull-t1{color:var(--dim)}
 .echopull.glow{animation:echopullGlow 2.2s ease-in-out infinite}
-@keyframes echopullGlow{0%,100%{box-shadow:0 0 6px #ffc85744}50%{box-shadow:0 0 22px #ffc85799}}
-@media (prefers-reduced-motion:reduce){ .echopull.glow{animation:none;box-shadow:0 0 10px #ffc85766} }
+@keyframes echopullGlow{0%,100%{box-shadow:0 0 6px #FF934544}50%{box-shadow:0 0 22px #FF934599}}
+@media (prefers-reduced-motion:reduce){ .echopull.glow{animation:none;box-shadow:0 0 10px #FF934566} }
 
 .echotabs{display:flex;gap:8px;max-width:520px;margin:var(--s4) auto 0}
 .echotabs .btn{flex:1}
@@ -554,7 +576,7 @@ small{font-size:var(--t1)}
 .pasbox{margin:6px 0;padding:5px 0;border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
 .pasbox .pn{display:block;font-size:var(--t1);color:var(--acc);letter-spacing:1px}
 .pasbox .pd{display:block;font-size:var(--t3);color:var(--dim);line-height:22px;margin-top:4px}
-.pick .cnt{position:absolute;top:-8px;right:-8px;background:var(--acc);color:#1a1503;border-radius:50%;
+.pick .cnt{position:absolute;top:-8px;right:-8px;background:var(--acc);color:#291808;border-radius:50%;
   width:22px;height:22px;line-height:22px;font-size:var(--t2)}
 .minidie{display:flex;gap:2px;justify-content:center;flex-wrap:wrap}
 .mf{font-size:var(--t1);background:var(--pan2);border:1px solid var(--line);border-radius:3px;padding:1px 3px;min-width:20px;color:var(--dim)}
@@ -604,7 +626,7 @@ small{font-size:var(--t1)}
   border:1px solid var(--line);color:var(--dim);font-size:10px;font-style:italic;cursor:pointer;
   display:flex;align-items:center;justify-content:center;padding:0}
 .vchip-i:hover{border-color:var(--line2);color:var(--txt)}
-.vchip .cnt{position:absolute;top:-8px;right:-8px;background:var(--acc);color:#1a1503;border-radius:50%;
+.vchip .cnt{position:absolute;top:-8px;right:-8px;background:var(--acc);color:#291808;border-radius:50%;
   width:20px;height:20px;line-height:20px;font-size:var(--t1);text-align:center}
 .vdetail{flex:1 1 100%;background:var(--pan2);border:1px solid var(--line);border-radius:var(--rad-sm);
   padding:8px 10px}
@@ -835,8 +857,8 @@ small{font-size:var(--t1)}
 .bosstag{display:inline-block;margin-left:5px;background:var(--acc);color:#2a1600;font-size:.7em;font-weight:700;
   padding:1px 5px;border-radius:3px;vertical-align:middle}
 .unit.dead{opacity:.2;filter:grayscale(1)}
-.unit.tgt{cursor:pointer;border-color:var(--acc);box-shadow:0 0 0 1px var(--acc),0 0 22px #ffc85755;z-index:6}
-.unit.hovtgt{box-shadow:0 0 0 2px var(--acc),0 0 30px #ffc85788}
+.unit.tgt{cursor:pointer;border-color:var(--acc);box-shadow:0 0 0 1px var(--acc),0 0 22px #FF934555;z-index:6}
+.unit.hovtgt{box-shadow:0 0 0 2px var(--acc),0 0 30px #FF934588}
 .unit.threat{border-color:#9a6060} /* lightened from #7a4a4a — same fix as .unit above */
 /* Battle UI handoff (2026-09-10) §5 — reciprocal of the enemy's own "→ Name"
    strip: names the actual attacker so the pairing reads in both directions
@@ -1040,7 +1062,7 @@ small{font-size:var(--t1)}
   box-shadow:var(--sh-hero);
   display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px}
 .die:hover{background:var(--pan3);border-color:var(--dim)}
-.die.sel{border-color:var(--acc);box-shadow:0 0 0 2px var(--acc),0 0 26px #ffc85777}
+.die.sel{border-color:var(--acc);box-shadow:0 0 0 2px var(--acc),0 0 26px #FF934577}
 .die.used{opacity:.2;pointer-events:none;filter:grayscale(1)}
 .die.blank{opacity:.45}
 .die.out{opacity:.15;justify-content:center;font-size:var(--t4);cursor:default}
@@ -1085,8 +1107,11 @@ small{font-size:var(--t1)}
    suite lúc 30/32, lúc 32/32. Position absolute nên đổi cỡ không đẩy layout die. */
 /* bottom:100%, KHÔNG phải top:-7px. Đo bằng pixel thật (verify.mjs A2px): với
    top:-7px thì hộp chữ 11px trải từ y=-7 đến y=+4 trong .ractag, tức 3px cuối
-   ĐÈ LÊN chính thanh rarity — và --acc (#ffc857) trùng đúng --r3 (#ffc857), nên
-   phần ink nằm trên thanh đo được 1.63:1 (ngưỡng AA 4.5). Không thang màu nào
+   ĐÈ LÊN chính thanh rarity — lúc đó --acc (khi đó #ffc857) trùng đúng --r3
+   (#ffc857), nên phần ink nằm trên thanh đo được 1.63:1 (ngưỡng AA 4.5).
+   2026-09-10: --acc đổi sang #FF9345, không còn trùng --r3 nữa, nhưng fix vị
+   trí bottom:calc(100%+bd) bên dưới vẫn giữ nguyên — vẫn là cách đúng để né
+   chồng lấn bất kể --acc là màu gì. Không thang màu nào
    cứu được: --acc trên r1 1.45:1, r2 1.73:1, r3 1.00:1, r4 1.87:1 — glyph sáng
    trên thanh sáng luôn hỏng. Trên mặt die thì 10.62:1. bottom:calc(100% + var(--bd)) ghim đáy hộp
    chữ lên trên CẢ thanh lẫn viền die (viền cũng tô --r3 ở die Epic) nên không còn chồng lấn, và không phụ thuộc
@@ -1099,7 +1124,7 @@ small{font-size:var(--t1)}
 @keyframes mythg{0%,100%{box-shadow:0 0 14px #ff5f8f55}50%{box-shadow:0 0 28px #ff5f8fbb}}
 .die.dr3{border-left-color:var(--r3)} .die.dr4{border-left-color:var(--r4)}
 .critbadge{pointer-events:none;position:absolute;top:-8px;left:50%;transform:translateX(-50%);font-size:var(--t1);
-  background:var(--acc);color:#1a1503;padding:1px 7px;border-radius:var(--rad-sm);letter-spacing:1px;white-space:nowrap}
+  background:var(--acc);color:#291808;padding:1px 7px;border-radius:var(--rad-sm);letter-spacing:1px;white-space:nowrap}
 .die.critready{border-color:var(--acc)}
 .pips{display:flex;gap:3px;justify-content:center;margin-top:6px}
 .pip{width:9px;height:9px;border-radius:2px;background:var(--line);border:1px solid transparent}
@@ -1155,7 +1180,7 @@ small{font-size:var(--t1)}
 .icard.r1{border-color:var(--r1)} .icard.r2{border-color:var(--r2)} .icard.r3{border-color:var(--r3)}
 .icard .ic-n{color:var(--txt)}
 .icard .ic-c{font-size:var(--t1);color:var(--man)}
-.f_end .btn.end{background:var(--acc);color:#1a1503;border-color:var(--acc)}
+.f_end .btn.end{background:var(--acc);color:#291808;border-color:var(--acc)}
 .hintbar{text-align:center;font-size:var(--t2);color:var(--dim);margin-top:var(--s2);letter-spacing:.5px;min-height:16px}
 
 /* ================= OVERLAYS ================= */
@@ -1644,7 +1669,7 @@ body.clog-open .clog-inner{ clip-path:inset(0 0 0 0); opacity:1; }
 .clog-ban{ font-size:var(--t2); color:var(--acc); text-align:center; font-weight:700; padding:8px 0;
   border-top:2px solid var(--acc); border-bottom:2px solid var(--acc); margin:6px 0; }
 .clog-unread{ position:sticky; top:0; z-index:2; align-self:center; margin:4px auto;
-  background:var(--acc); color:#1a1503; font-size:var(--t1); letter-spacing:1px;
+  background:var(--acc); color:#291808; font-size:var(--t1); letter-spacing:1px;
   padding:3px 10px; border-radius:12px; cursor:pointer; display:none; }
 .clog-unread.on{ display:block; }
 .clog-scrim{ position:fixed; inset:0; z-index:59; background:#080a0caa; opacity:0; pointer-events:none;
@@ -1822,7 +1847,7 @@ body.clog-open .clog-inner{ clip-path:inset(0 0 0 0); opacity:1; }
 .tournode.ready{border-color:var(--acc);cursor:pointer}
 .tournode.ready .tournode-num{border-color:var(--acc);color:var(--acc)}
 .tournode.ready.pulse{animation:tournodePulse 2.2s ease-in-out infinite}
-@keyframes tournodePulse{0%,100%{box-shadow:0 0 6px #ffc85744}50%{box-shadow:0 0 22px #ffc85799}}
+@keyframes tournodePulse{0%,100%{box-shadow:0 0 6px #FF934544}50%{box-shadow:0 0 22px #FF934599}}
 .tournode.got{border-color:var(--heal)}
 .tournode.got .tournode-num{border-color:var(--heal);color:var(--heal)}
 .tournode-badge{position:absolute;bottom:-4px;right:-4px;width:18px;height:18px;border-radius:50%;
@@ -6723,7 +6748,7 @@ function relicFxInfo(id){
   let hit=null;
   try{ for(const r of rlist(S)){ if(fields.some(f=>r[f]!=null)){ hit=r; break; } } }catch(e){}
   const arch=ARCH[hit?hit.a:'']||null;
-  const c=arch?arch.c:'#ffc857';   /* fallback = --acc, hex phẳng để đo được */
+  const c=arch?arch.c:'#FF9345';   /* fallback = --acc, hex phẳng để đo được */
   return { n:(hit?hit.n:(RELIC_FX_LABEL[id]||id)).toUpperCase(),
            ic:arch?arch.ic:'◆', c, ctx:relicFxLighten(c,0.22) };
 }
