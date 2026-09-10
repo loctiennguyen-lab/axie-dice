@@ -280,7 +280,7 @@ h1,h2,h3,h4{font-weight:700}
 /* 2026-09-01: END TURN là hành động hệ trọng nhất mỗi lượt (Fitts's Law) —
    to hơn hẳn REROLL, dùng --ctl-lg đã có sẵn trong hệ thống thay vì kích thước --ctl-md mặc định */
 .btn.end{background:var(--acc);border-color:var(--acc);color:#1a1503;--btn-h:var(--ctl-lg);padding:0 var(--s6);font-size:var(--t3)}
-.bottombar .btn.end{margin-left:auto}
+.bottombar .ctlgroup:last-child{margin-left:auto}
 .btn.end:hover{background:#ffd77e}
 .btn.reroll{background:transparent;border-color:var(--shd);color:var(--shd)}
 .btn.reroll:hover{background:rgba(99,179,255,.12)}
@@ -738,15 +738,32 @@ small{font-size:var(--t1)}
 .combat{min-height:calc(100vh - 30px);display:flex;flex-direction:column;justify-content:center}
 .combat.frozen{filter:saturate(.4) brightness(.5)}
 .msg{text-align:center;font-size:var(--t2);color:var(--acc);min-height:15px;margin-bottom:2px}
-.zone{display:flex;justify-content:center;align-items:flex-end;gap:var(--zone-gap);flex-wrap:wrap}
-.zone.enemies{min-height:150px;padding-top:30px;position:relative}
-.zone.party{margin-top:38px;position:relative}
-.zonetag{position:absolute;top:0;left:50%;transform:translateX(-50%);font-size:var(--t1);font-weight:700;
-  letter-spacing:.08em;padding:2px 12px;border-radius:0 0 8px 8px;z-index:2;white-space:nowrap}
+.objbanner{display:flex;align-items:center;justify-content:space-between;gap:14px;
+  background:color-mix(in srgb,var(--acc) 12%,var(--pan));border:1px solid color-mix(in srgb,var(--acc) 35%,var(--line));
+  border-radius:12px;padding:7px 16px;margin-bottom:6px}
+.objtxt{font-size:var(--t2);font-weight:700;color:var(--acc)}
+.objcount{font-size:var(--t1);font-weight:600;color:var(--acc);white-space:nowrap}
+/* Battle UI handoff (2026-09-10) §3/§5 — a zone is now a header row (pill +
+   plain-language subcopy, both in normal flow) stacked above the actual
+   card row, instead of the old absolutely-positioned pill floating over
+   the first row of cards. */
+.zone{display:flex;flex-direction:column;gap:6px;position:relative}
+.zone.party{margin-top:8px}
+.zonehead{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.zonetag{font-size:var(--t1);font-weight:700;letter-spacing:.08em;padding:3px 12px;
+  border-radius:20px;white-space:nowrap}
 .zone.enemies .zonetag{background:var(--dmg);color:#2a0d0d}
 .zone.party .zonetag{background:var(--ally);color:#0a2320}
-.teamdivider{width:100%;max-width:900px;margin:14px auto;height:2px;border-radius:1px;flex-shrink:0;
-  background:linear-gradient(90deg,transparent,var(--dmg) 15%,var(--line2) 50%,var(--ally) 85%,transparent)}
+.zonesub{font-size:var(--t2)}
+.zone.enemies .zonesub{color:var(--dmg)}
+.zone.party .zonesub{color:var(--ally)}
+.zonecards{display:flex;justify-content:center;align-items:flex-end;gap:var(--zone-gap);
+  flex-wrap:wrap;min-height:150px}
+.teamdivider{width:100%;max-width:900px;margin:8px auto;display:flex;align-items:center;gap:14px;flex-shrink:0}
+.vsline{flex:1;height:2px;border-radius:1px}
+.vsline-e{background:linear-gradient(90deg,transparent,var(--dmg))}
+.vsline-p{background:linear-gradient(90deg,var(--ally),transparent)}
+.vslbl{font-size:var(--t1);font-weight:700;letter-spacing:.1em;color:var(--dim)}
 /* Enemy waves can carry up to 6 mobs (elite/boss adds); .zone.enemies never
    had party's swarm-safe shrink, so a 6th card dropped to its own centered
    row. 130px mirrors the existing <=899px breakpoint's proven-legible size
@@ -821,6 +838,12 @@ small{font-size:var(--t1)}
 .unit.tgt{cursor:pointer;border-color:var(--acc);box-shadow:0 0 0 1px var(--acc),0 0 22px #ffc85755;z-index:6}
 .unit.hovtgt{box-shadow:0 0 0 2px var(--acc),0 0 30px #ffc85788}
 .unit.threat{border-color:#9a6060} /* lightened from #7a4a4a — same fix as .unit above */
+/* Battle UI handoff (2026-09-10) §5 — reciprocal of the enemy's own "→ Name"
+   strip: names the actual attacker so the pairing reads in both directions
+   without a modal. Reuses --dmg (already this project's threat/danger
+   color, same family as .unit.threat's border above), no new hex. */
+.targetedchip{display:inline-flex;align-items:center;margin:0 0 var(--s1);padding:3px 8px;
+  border-radius:7px;background:var(--dmg);font-size:var(--t1);font-weight:700;color:#2a0d0d}
 /* Whoever is currently acting must be unmissable — a colour swap alone (the
    previous .acting rule) was too close to the .threat/.e border treatment. */
 .unit.acting{border-color:var(--dmg);box-shadow:0 0 0 2px var(--dmg),0 0 24px #ff5f5f77;transform:scale(1.04);z-index:7}
@@ -904,7 +927,12 @@ small{font-size:var(--t1)}
    là "chip phụ" đóng khung riêng dưới card mà hoà vào bề mặt card, đậm hơn hẳn. */
 .intent{order:-1;margin:-6px -6px 6px -6px;padding:6px;display:flex;gap:5px;
   align-items:center;justify-content:center;flex-wrap:wrap;font-size:var(--t3);
-  background:var(--pan2);border-radius:var(--radius) var(--radius) 0 0;border-bottom:1px solid var(--line)}
+  /* Battle UI handoff (2026-09-10) §3 — tinted by currentColor so the strip
+     itself reads as "this is what's coming", not just the text inside it;
+     each .t_* rule below already sets `color`, so no new per-type rule
+     needed and no new hex introduced. */
+  background:color-mix(in srgb,currentColor 10%,var(--pan2));
+  border-radius:var(--radius) var(--radius) 0 0;border-bottom:1px solid var(--line)}
 .intent .ii{font-size:16px} .intent .iv{font-size:var(--intent-v);font-weight:700} .intent .itg{font-size:var(--t2);color:var(--dim)}
 .intent .ik{font-size:var(--t1);color:var(--dim)}
 .intent.t_dmg{color:var(--dmg)} .intent.t_shield{color:var(--shd)}
@@ -1029,7 +1057,13 @@ small{font-size:var(--t1)}
 .die .partbadge{position:absolute;top:4px;right:4px}
 .die .di{font-size:20px;line-height:22px}
 .die .dv{font-size:var(--die-num);line-height:1.05}
-.die .dk{font-size:var(--die-kw);color:var(--dim);letter-spacing:.5px}
+/* min-height reserves room for 2 lines even when a face's caption only
+   wraps to 1 — C1 requires all 5 die boxes stay the exact same height,
+   and .die's own height is min-height (content-driven), so a die whose
+   caption happens to be one word longer must not grow taller than its
+   neighbors. */
+.die .dcap{font-size:var(--die-kw);color:var(--dim);letter-spacing:.2px;text-align:center;line-height:1.25;
+  max-width:100%;padding:0 2px;min-height:calc(var(--die-kw) * 2.5)}
 .dv.blanktxt{font-size:var(--t2);color:var(--dim);letter-spacing:2px}
 .die.t_dmg .di,.die.t_dmg .dv{color:var(--dmg)}
 .die.t_shield .di,.die.t_shield .dv{color:var(--shd)}
@@ -1082,7 +1116,7 @@ small{font-size:var(--t1)}
 /* ---------- bottom bar ---------- */
 /* --line2, not --line — same WCAG 1.4.11 fix as .unit/.track above. */
 .bottombar{display:flex;align-items:center;gap:10px;background:var(--pan);border:var(--bd) solid var(--line2);
-  border-radius:var(--radius);padding:8px 10px;margin-top:12px}
+  border-radius:var(--radius);padding:8px 10px;margin-top:8px}
 .manaorb{position:relative;display:flex;flex-direction:row-reverse;align-items:center;gap:7px;
   padding:7px 13px;border:var(--bd) solid var(--line2);border-radius:var(--radius);background:var(--pan2);flex-shrink:0}
 .manaorb .mfill{display:none}
@@ -1095,20 +1129,29 @@ small{font-size:var(--t1)}
   border-radius:var(--radius);border:1px solid var(--line2);background:var(--pan2);color:var(--dim);
   cursor:pointer;font-size:var(--t2);font-weight:700;letter-spacing:.05em}
 .relicbtn:hover{background:var(--pan3);color:var(--txt)}
-.relicbtn.on{border-color:var(--acc);color:var(--acc)}
-.relicbtn-n{background:var(--acc);color:#1a1503;border-radius:999px;padding:1px 7px;font-size:var(--t1)}
-.relicpop{position:absolute;bottom:calc(100% + 8px);left:0;min-width:260px;max-width:420px;
+.relicbtn-chev{font-size:var(--t1);color:var(--dim);transition:transform .12s}
+.relicwrap.open .relicbtn-chev,.relicwrap:hover .relicbtn-chev{transform:rotate(180deg)}
+/* Battle UI handoff §6 — always in the DOM; visibility is pure CSS so a
+   mouse hover never has to go through render() (see the JS-side comment
+   at the relicWrap construction for why that would break hover-during-
+   rebuild). relicsOpen only ever adds/removes the .open class. */
+.relicpop{position:absolute;bottom:calc(100% + 8px);left:0;min-width:220px;max-width:320px;
   max-height:260px;overflow-y:auto;background:var(--pan);border:1px solid var(--line2);
-  border-radius:var(--radius);padding:10px;box-shadow:0 8px 24px rgba(0,0,0,.5);z-index:30}
-.relicpop .items{margin-bottom:6px}
+  border-radius:var(--radius);padding:10px;box-shadow:0 8px 24px rgba(0,0,0,.5);z-index:30;
+  display:none}
+.relicwrap.open .relicpop,.relicwrap:hover .relicpop{display:block}
+.relicpop-h{font-size:var(--t1);letter-spacing:.06em;color:var(--dim);font-weight:700;margin-bottom:8px}
+.relicpop-row{display:flex;align-items:center;padding:6px 0;border-bottom:1px solid var(--line);
+  font-size:var(--t2);color:var(--txt)}
+.relicpop-row:last-child{border-bottom:none}
+.items.activerelics{flex:1}
+.ctlgroup{text-align:center}
+.ctlcap{font-size:var(--t1);color:var(--dim);margin-top:4px}
 .icard{background:var(--pan2);border:1px solid var(--line2);border-radius:var(--rad-sm);padding:5px 9px;
   cursor:pointer;font-size:var(--t2);transition:.1s;color:var(--dim)}
 .icard:hover{background:var(--pan3);color:var(--txt)}
 .icard.sel{border-color:var(--acc);color:var(--acc)}
 .icard.dis{opacity:.28;pointer-events:none}
-.icard.passive{cursor:default;opacity:.85}
-.icard.passive:hover{background:var(--pan2);color:var(--dim)}
-.items.passives{margin-top:var(--s1)}
 .icard.r1{border-color:var(--r1)} .icard.r2{border-color:var(--r2)} .icard.r3{border-color:var(--r3)}
 .icard .ic-n{color:var(--txt)}
 .icard .ic-c{font-size:var(--t1);color:var(--man)}
@@ -3302,6 +3345,49 @@ function runRollAnim(){
   };
   requestAnimationFrame(step);
 }
+// Battle UI handoff (2026-09-10, product owner's own design pass) §5 —
+// "an 11px plain-language caption under the value translating the icon+
+// number" (e.g. "Blocks 3 damage") — the fix for players not understanding
+// icon meaning without hovering. Falls back to kwText() (already used
+// throughout this file) for any keyword without a hand-written sentence,
+// so nothing is ever left silently unexplained.
+function faceCaption(f,v){
+  if(f.t==='blank') return 'No effect — try rerolling';
+  if(f.t==='dmg'){
+    let s='Deals '+v+' damage';
+    if(hasKw(f,'aoe')) s+=' to all enemies';
+    else if(hasKw(f,'cleave')) s+=', hits 2 targets';
+    if(hasKw(f,'pierce')) s+=', ignores Shield';
+    if(hasKw(f,'exec')) s+=', more vs. low HP';
+    const m=kwVal(f,'multi'); if(m) s+=' x'+m+' hits';
+    const ch=kwVal(f,'chain'); if(ch) s+=', chains to '+ch+' more';
+    return s;
+  }
+  if(f.t==='shield') return 'Blocks '+v+' damage'+(hasKw(f,'aoe')?' for the whole team':'');
+  if(f.t==='heal') return 'Heals '+v+' HP'+(hasKw(f,'aoe')?' for the whole team':'');
+  if(f.t==='poison') return 'Poisons for '+v+' damage/turn';
+  if(f.t==='mana') return 'Generates '+v+' Mana';
+  if(f.t==='summon') return 'Summons a Nest token';
+  if(f.t==='buff'||f.t==='debuff'){
+    const parts=[];
+    for(const k of f.k){
+      if(k==='aoe'||k==='cantrip') continue;
+      const [name,mag]=k.split(':'); const n=mag?parseInt(mag,10):0;
+      if(name==='blind') parts.push('Blinds enemy'+(n?' '+n+' turns':'')+' (lower hit chance)');
+      else if(name==='vulnerable') parts.push('Vulnerable'+(n?' '+n:'')+' (takes more damage)');
+      else if(name==='weaken') parts.push('Cuts enemy attack by '+(n||v));
+      else if(name==='freeze') parts.push('Freezes (cannot reroll)'+(n?' '+n+' turns':''));
+      else if(name==='stun') parts.push('Stuns (skips next turn)');
+      else if(name==='thorns') parts.push('Reflects '+(n||v)+' damage back');
+      else if(name==='regen') parts.push('Regenerates '+(n||v)+' HP/turn');
+      else if(name==='undying') parts.push("Can't drop below 1 HP");
+      else if(name==='burn') parts.push('Burns for '+(n||v)+' damage/turn');
+      else parts.push(kwText(k));
+    }
+    return parts.length?parts.join(', '):'Applies an effect';
+  }
+  return '';
+}
 function paintDieFace(d,u,fi,temp){
   const f=u.die[fi]||u.die[0];
   d.className=d.className.replace(/t_\w+/g,'')+' t_'+f.t;
@@ -3325,13 +3411,13 @@ function paintDieFace(d,u,fi,temp){
   d.appendChild(partBadge);
   if(f.t==='blank') d.appendChild(el('div','dv blanktxt','BLANK'));
   else if(f.v>0||f.t==='dmg') d.appendChild(el('div','dv',String(temp?f.v:faceValue(S,u,fi))));
-  /* §3.3 reversed per product review — the old allowlist (aoe/exec only) hid
-     the one thing a debuff/buff face actually DOES (e.g. 'blind:2') behind a
-     modal click, leaving a 0-value face reading as blank. Show every keyword
-     except 'heavy', which already has its own ⚖ strip above (matches the
-     denylist the unit-inspect modal already uses, ~line 6096). */
-  const kws=f.k.filter(k=>k!=='heavy');
-  if(kws.length) d.appendChild(el('div','dk',kws.map(kwText).join(' · ')));
+  /* §3.3 reversed per product review, then superseded 2026-09-10 by the
+     Battle UI handoff's plain-language caption (faceCaption() above) —
+     that sentence already folds in every keyword this raw tag list used
+     to show (aoe/multi/chain/pierce/exec for dmg, blind/vulnerable/weaken/
+     freeze/stun/etc. for buff/debuff), so showing both would just repeat
+     the same information twice in two formats. */
+  d.appendChild(el('div','dcap',faceCaption(f,temp?f.v:faceValue(S,u,fi))));
   if(!temp&&u.critNow) d.appendChild(el('div','critbadge','CRIT x'+rcritMult()));
 }
 function rcritMult(){ let m=2; for(const id of S.relics){ const r=RELIC_BY_ID[id]; if(r&&r.critMult&&r.critMult>m)m=r.critMult; } return m; }
@@ -4368,6 +4454,21 @@ function focusState(){
 }
 function scCombatShell(){ const w=el('div','screen combat frozen'); w.appendChild(track()); w.appendChild(partyStrip()); return w; }
 
+// Battle UI handoff (2026-09-10) §2, "Objective banner" — states the win
+// condition in plain language up front (their words: "the #1 fix for 'why
+// am I fighting'"). Form/copy only, per product-owner follow-up — no new
+// icon, no new color token, reuses --acc (already this project's amber
+// accent) the same way the existing .msg banner already does.
+function combatGoalText(){
+  const isB=S.bossSteps.includes(S.step), isE=S.eliteSteps.includes(S.step);
+  const n=aliveE(S).length;
+  const who=isB?'the boss':isE?(n>1?'the elite enemies':'the elite enemy'):(n>1?'all enemies':'the enemy');
+  return 'Goal: defeat '+who+' below to clear this wave.';
+}
+function combatRemainingText(){
+  const n=aliveE(S).length;
+  return n+' '+(n===1?'enemy':'enemies')+' remaining';
+}
 function scCombat(frozen){
   const fs=focusState();
   const w=el('div','screen combat f_'+fs+(frozen?' frozen':''));
@@ -4376,18 +4477,32 @@ function scCombat(frozen){
   if(bossUnit&&bossAnnouncedStep!==S.step){ bossAnnouncedStep=S.step; flash('BOSS: '+bossUnit.n+' — '+bossUnit.desc); }
   if(msg) w.appendChild(el('div','msg',msg));
 
+  const goal=el('div','objbanner');
+  goal.appendChild(el('div','objtxt',combatGoalText()));
+  goal.appendChild(el('div','objcount',combatRemainingText()));
+  w.appendChild(goal);
+
   /* enemies — wave can carry up to 6 mobs (elite/boss adds); .compact mirrors
      the party zone's own swarm-safe shrink below so a 6th card never wraps
      to its own centered row (see .zone.enemies.compact, style.css). */
   const ez=el('div','zone enemies'+(S.enemies.length>5?' compact':''));
-  ez.appendChild(el('div','zonetag','Enemy'));
-  S.enemies.forEach(e=>ez.appendChild(unitCard(e)));
+  const ezHead=el('div','zonehead');
+  ezHead.appendChild(el('div','zonetag','Enemy'));
+  ezHead.appendChild(el('div','zonesub','Defeat all enemies to win this wave'));
+  ez.appendChild(ezHead);
+  const ezCards=el('div','zonecards');
+  S.enemies.forEach(e=>ezCards.appendChild(unitCard(e)));
+  ez.appendChild(ezCards);
   w.appendChild(ez);
   // Product owner, 2026-09-10: dropped the per-card border/icon faction
   // treatment (read as pixel-style, off-brand for this project's real-art
-  // direction) in favor of exactly this — one divider bar between the two
+  // direction) in favor of exactly this — a VS divider between the two
   // rows, with the zone label doing all the identification work.
-  w.appendChild(el('div','teamdivider'));
+  const vs=el('div','teamdivider');
+  vs.appendChild(el('div','vsline vsline-e'));
+  vs.appendChild(el('span','vslbl','VS'));
+  vs.appendChild(el('div','vsline vsline-p'));
+  w.appendChild(vs);
   /* party — mỗi Axie ghép chung 1 cột với đúng die của nó (2026-09-01: trước đây
      là 2 hàng riêng, chỉ thẳng cột nhờ trùng width tình cờ; giờ ghép rõ ràng bằng cấu trúc) */
   /* Swarm builds (Primal Nest cantrip, Swarm Nest/Hive Mind relics) can push
@@ -4398,23 +4513,28 @@ function scCombat(frozen){
      actually broken), but easy to mistake for "abilities stopped working"
      mid-combat. Shrink the whole zone at >6 so it fits without hunting. */
   const pz=el('div','zone party'+(S.party.length>6?' compact':''));
-  pz.appendChild(el('div','zonetag','Your Team'));
+  const pzHead=el('div','zonehead');
+  pzHead.appendChild(el('div','zonetag','Your Team'));
+  pzHead.appendChild(el('div','zonesub','Keep these Axies alive'));
+  pz.appendChild(pzHead);
+  const pzCards=el('div','zonecards');
   /* Formation Resonance (design/quick-specs/formation-resonance-2026-09-01.md):
      hiển thị cặp "đang mở" TRƯỚC khi người chơi click — bắt buộc theo pillar
      minh bạch triệt để. cols[i] tương ứng roster/pos i cho các Axie thật vì
      s.party = roster.map(buildUnit) rồi mới push token ở cuối. */
   const resPairs=resonancePairs(S);
   S.party.forEach((u,i)=>{
-    const col=el('div','pcol'); col.appendChild(unitCard(u)); col.appendChild(dieBox(u)); pz.appendChild(col);
+    const col=el('div','pcol'); col.appendChild(unitCard(u)); col.appendChild(dieBox(u)); pzCards.appendChild(col);
     const pair=resPairs.find(p=>p.posA===i);
     if(pair){
       const link=el('div','reslink');
       link.appendChild(ico(FT_IC[pair.type],'ii'));
       const tip='Formation Resonance: adjacent Axie pair both rolled a '+pair.type+' face — whichever executes SECOND gets +'+Math.round((RESONANCE.mult-1)*100)+'%.';
       link.title=tip; link.dataset.tip=tip; kbAct(link);
-      pz.appendChild(link);
+      pzCards.appendChild(link);
     }
   });
+  pz.appendChild(pzCards);
   w.appendChild(pz);
   /* bottom */
   const bb=el('div','bottombar');
@@ -4422,61 +4542,64 @@ function scCombat(frozen){
   mo.appendChild(el('div','mv',String(S.mana))); mo.appendChild(el('div','ml','MANA'));
   const fill=el('div','mfill'); fill.style.height=Math.min(100,S.mana*10)+'%'; mo.appendChild(fill);
   bb.appendChild(mo);
-  // Product owner, 2026-09-10: the always-expanded active/passive rows ate
-  // too much of the bottombar. Collapsed into one "RELICS" chip next to
-  // REROLL — click opens a popover with the exact same cards/behavior
-  // (active cards still activate/select-target on click, passives are
-  // still read-only with the same tooltip), click a relic to close it back
-  // down since selecting a target-relic needs the board visible again.
-  const relicWrap=el('div','relicwrap');
-  const relicCount=S.relics.length;
-  const rbtn=el('button','relicbtn'+(relicsOpen?' on':''));
-  rbtn.appendChild(el('span',null,'RELICS'));
-  if(relicCount) rbtn.appendChild(el('span','relicbtn-n',String(relicCount)));
+  // Battle UI handoff (2026-09-10) §6 — active relics (cost mana, spend a
+  // turn) are always visible now, never hidden behind a click. Passive
+  // relics (always-on, no cost) collapse into one small chip. The handoff
+  // asks for hover-to-reveal on desktop but flags touch as a real gap for
+  // this project — since render() rebuilds the whole screen on every JS
+  // state change, wiring hover through relicsOpen+render() would destroy
+  // the hovered element out from under the pointer. So hover is pure CSS
+  // (.relicwrap:hover, no re-render involved) and relicsOpen only drives
+  // the click/tap-toggle path (.relicwrap.open) — both control the exact
+  // same popover, neither can break the other.
+  const actives=S.relics.map(id=>RELIC_BY_ID[id]).filter(r=>r&&r.act);
+  const actRow=el('div','items activerelics');
+  S.relics.forEach(id=>{ const r=RELIC_BY_ID[id]; if(!r||!r.act) return;
+    const used=S.usedActives.includes(id), can=S.mana>=r.act.cost&&!used;
+    const c=el('div','icard r'+r.rar+(can?'':' dis')+(selRelic===id?' sel':''));
+    c.appendChild(el('div','ic-n',r.n)); c.appendChild(el('div','ic-c','MP '+r.act.cost));
+    c.title=r.d;
+    c.onclick=()=>{ if(!can)return; SFX.ui(); sel=null;
+      if(r.act.tgt==='self'){ if(playerUseRelic(S,id,null)){ logAction('playerUseRelic',[id,null]); afterAct(); } else render(); }
+      else { selRelic=id; render(); } };
+    if(can) kbAct(c);
+    actRow.appendChild(c);
+  });
+  if(!actRow.children.length) actRow.appendChild(el('div','nothing','no active cards yet'));
+  bb.appendChild(actRow);
+
+  const passives=S.relics.map(id=>RELIC_BY_ID[id]).filter(r=>r&&!r.act);
+  const relicWrap=el('div','relicwrap'+(relicsOpen?' open':''));
+  const rbtn=el('button','relicbtn');
+  rbtn.appendChild(el('span',null,passives.length+' equipped'));
+  rbtn.appendChild(el('span','relicbtn-chev','▾'));
   rbtn.onclick=()=>{ SFX.ui(); relicsOpen=!relicsOpen; render(); };
   kbAct(rbtn);
   relicWrap.appendChild(rbtn);
-  if(relicsOpen){
-    const pop=el('div','relicpop');
-    const actives=S.relics.map(id=>RELIC_BY_ID[id]).filter(r=>r&&r.act);
-    if(actives.length){
-      const row=el('div','items');
-      S.relics.forEach(id=>{ const r=RELIC_BY_ID[id]; if(!r||!r.act) return;
-        const used=S.usedActives.includes(id), can=S.mana>=r.act.cost&&!used;
-        const c=el('div','icard r'+r.rar+(can?'':' dis')+(selRelic===id?' sel':''));
-        c.appendChild(el('div','ic-n',r.n)); c.appendChild(el('div','ic-c','MP '+r.act.cost));
-        c.title=r.d;
-        c.onclick=()=>{ if(!can)return; SFX.ui(); sel=null; relicsOpen=false;
-          if(r.act.tgt==='self'){ if(playerUseRelic(S,id,null)){ logAction('playerUseRelic',[id,null]); afterAct(); } else render(); }
-          else { selRelic=id; render(); } };
-        if(can) kbAct(c);
-        row.appendChild(c);
-      });
+  const pop=el('div','relicpop');
+  pop.appendChild(el('div','relicpop-h','Always active · no mana cost'));
+  if(passives.length){
+    passives.forEach(r=>{
+      const row=el('div','relicpop-row');
+      row.appendChild(el('span',null,r.n));
+      row.title=r.d;
       pop.appendChild(row);
-    }
-    const passives=S.relics.map(id=>RELIC_BY_ID[id]).filter(r=>r&&!r.act);
-    if(passives.length){
-      const pw=el('div','items passives');
-      passives.forEach(r=>{
-        const c=el('div','icard r'+r.rar+' passive');
-        c.appendChild(el('div','ic-n',r.n));
-        c.title=r.d;
-        pw.appendChild(c);
-      });
-      pop.appendChild(pw);
-    }
-    if(!actives.length&&!passives.length) pop.appendChild(el('div','nothing','No relics equipped yet.'));
-    relicWrap.appendChild(pop);
-  }
+    });
+  } else pop.appendChild(el('div','nothing','No passive relics yet.'));
+  relicWrap.appendChild(pop);
   const rb=btn('reroll','REROLL '+S.rerolls,()=>{
     const pickd=S.party.filter(u=>u.rsel&&u.hp>0&&!u.used&&!u.heavy&&!u.frozen).map(u=>u.uid);
     const use=pickd.length?pickd:S.party.filter(u=>u.hp>0&&!u.used&&!u.heavy&&!u.frozen).map(u=>u.uid);
     if(doReroll(S,use)){ logAction('doReroll',[use]); SFX.reroll(); S.party.forEach(u=>u.rsel=false); sel=null;
       flash('Rerolled. Undo history cleared.'); triggerRollAnim(use); collectFloats(); render(); } });
   if(!(S.rerolls>0&&anyRerollable(S))) rb.classList.add('dis');
+  const rbWrap=el('div','ctlgroup'); rbWrap.appendChild(rb); rbWrap.appendChild(el('div','ctlcap','New options'));
+  const endWrap=el('div','ctlgroup');
+  endWrap.appendChild(btn('end','END TURN',()=>doEndTurn()));
+  endWrap.appendChild(el('div','ctlcap','Resolves the fight'));
   bb.appendChild(relicWrap);
-  bb.appendChild(rb);
-  bb.appendChild(btn('end','END TURN',()=>doEndTurn()));
+  bb.appendChild(rbWrap);
+  bb.appendChild(endWrap);
   w.appendChild(bb);
   /* One line, and only when it earns its place. The generic controls hint
      retires after the first wave so the board stays quiet. */
@@ -4523,10 +4646,31 @@ function unitCard(u){
   if(sel!=null){ const su=byUid(S,sel); if(su) tgtable=validTargets(su).includes(u.uid); }
   if(selRelic){ const a=RELIC_BY_ID[selRelic].act; tgtable=((a.tgt==='enemy')===isE)&&u.hp>0; }
   if(tgtable) c.classList.add('tgt');
-  const incoming = !isE && S.enemies.some(e=>e.hp>0&&e.intent&&e.intent.tgt===u.uid&&['dmg','poison','debuff'].includes(e.intent.face.t));
-  if(incoming) c.classList.add('threat');
+  // Battle UI handoff (2026-09-10) §5 — the reciprocal of the enemy's own
+  // "→ Name" intent strip: name the actual threatening enemy here (not
+  // just a boolean .threat border) so the attack pairing reads in both
+  // directions without opening the inspect modal.
+  const threatEnemy = !isE ? S.enemies.find(e=>e.hp>0&&e.intent&&e.intent.tgt===u.uid&&['dmg','poison','debuff'].includes(e.intent.face.t)) : null;
+  if(threatEnemy) c.classList.add('threat');
 
   if(u.boss){ const bn=el('div','bossbanner'); bn.appendChild(ico('boss','ii','#2a0d0d')); bn.appendChild(el('span',null,' '+u.n)); c.appendChild(bn); }
+  // Battle UI handoff §3 — enemy intent moves to a mini header strip ABOVE
+  // the portrait (was below the HP bar) so "who this enemy will attack" is
+  // the first thing read on the card, not the last.
+  if(isE&&u.hp>0&&u.intent){
+    const f=u.intent.face, v=faceValue(S,u,u.rolled);
+    const danger = f.t==='dmg' && v>=(u.big?14:10);
+    const it=el('div','intent t_'+f.t+(danger?' danger':''));
+    it.appendChild(ico(FT_IC[f.t],'ii'));
+    it.appendChild(el('span','iv', (f.t==='debuff'||f.t==='buff')? f.k.filter(x=>x!=='aoe').map(kwText).join(' ') : String(v)));
+    const tg=u.intent.tgt!=null?byUid(S,u.intent.tgt):null;
+    const tgDupe=tg?dupeIndex(tg):null;
+    let tl=hasKw(f,'aoe')?'ALL':(tg?(tg.side==='p'?tg.n:(tg.uid===u.uid?'itself':tg.n)):'');
+    if(tl&&tgDupe&&tl!=='ALL'&&tl!=='itself') tl+=' ('+tgDupe+')';
+    if(tl) it.appendChild(el('span','itg','→ '+tl));
+    ['cleave','pierce','exec'].forEach(k=>{ if(hasKw(f,k)) it.appendChild(el('span','ik',kwText(k).toUpperCase())); });
+    c.appendChild(it);
+  }
   const spw=el('div','sprwrap');
   if(isE){ const im=el('img','spr mut'+(sprMonIsReal(u.key)?' real':'')); im.src=sprMon(u.key); spw.appendChild(im); }
   else spw.appendChild(unitArtImg(u));
@@ -4537,6 +4681,7 @@ function unitCard(u){
   if(dupeI) nm.appendChild(el('span','dupe-tag',' ('+dupeI+')'));
   if(u.boss) nm.appendChild(el('span','bosstag','BOSS'));
   c.appendChild(nm);
+  if(threatEnemy){ const wc=el('div','targetedchip'); wc.appendChild(el('span',null,'Targeted by '+threatEnemy.n)); c.appendChild(wc); }
   /* hp bar + ghost preview */
   /* T05 · the number sits above the bar, so no fill colour can ever make it
      unreadable.  T06 · the class encodes how close to death the unit is —
@@ -4582,20 +4727,6 @@ function unitCard(u){
     row.appendChild(more);
   }
   c.appendChild(row);
-  if(isE&&u.hp>0&&u.intent){
-    const f=u.intent.face, v=faceValue(S,u,u.rolled);
-    const danger = f.t==='dmg' && v>=(u.big?14:10);
-    const it=el('div','intent t_'+f.t+(danger?' danger':''));
-    it.appendChild(ico(FT_IC[f.t],'ii'));
-    it.appendChild(el('span','iv', (f.t==='debuff'||f.t==='buff')? f.k.filter(x=>x!=='aoe').map(kwText).join(' ') : String(v)));
-    const tg=u.intent.tgt!=null?byUid(S,u.intent.tgt):null;
-    const tgDupe=tg?dupeIndex(tg):null;
-    let tl=hasKw(f,'aoe')?'ALL':(tg?(tg.side==='p'?tg.n:(tg.uid===u.uid?'itself':tg.n)):'');
-    if(tl&&tgDupe&&tl!=='ALL'&&tl!=='itself') tl+=' ('+tgDupe+')';
-    if(tl) it.appendChild(el('span','itg','→ '+tl));
-    ['cleave','pierce','exec'].forEach(k=>{ if(hasKw(f,k)) it.appendChild(el('span','ik',kwText(k).toUpperCase())); });
-    c.appendChild(it);
-  }
   if(u.boss){ c.appendChild(el('div','bossdesc',u.desc+(u.phase===2?' · PHASE 2':''))); }
   if(pv) c.appendChild(el('div','preview '+pv.cls,pv.txt));
   if(tgtable){ c.onclick=()=>doTarget(u.uid); kbAct(c); }
