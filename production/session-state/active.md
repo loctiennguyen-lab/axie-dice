@@ -1,9 +1,14 @@
 # Session State
 
 <!-- STATUS -->
-Epic: Real-art overhaul + World Tour v6 + World Map redesign + Chimera monster art
-Feature: (xem lịch sử) + World Map node-path + Chimera art 22 quái + World Tour quest chain 3-trục
-Task: node tools/ci.mjs 11/11 GREEN. build.py public + git commit + vercel deploy --prod đang tiến hành.
+Epic: Non-battle UI redesign (design_handoff_non_battle_ui, 12 screens, structure-only per its README)
+Feature: Đã audit cả 12 màn — 9/12 đã khớp sẵn với mockup (Battle UI, Profile, Battle Pass,
+  World Tour, Team Pick, Map, Main Menu, Gate/Login, Tutorial Overlay — KHÔNG cần sửa).
+  3 màn thực sự cần merge thành tab-group đã làm xong: Codex+Sample Teams (scCodex, colOuter
+  pattern), Collection+Unlocks+EchoBox (scCollection/colOuter, scEchoBoxBody), Vault+Leaderboard+
+  History (scVaultHub/vaultOuter, scImportBody/scLeaderboardBody/scHistoryBody).
+Task: node tools/ci.mjs 11/12 GREEN (t_tutorial fail = pre-existing trên main sạch, đã confirm
+  bằng git stash, KHÔNG phải regression). CHƯA commit — src/client.html đang unstaged, chờ user duyệt.
 <!-- /STATUS -->
 
 > **Giữ file này DƯỚI 100 DÒNG.** `session-start.sh` đọc `tail -20`,

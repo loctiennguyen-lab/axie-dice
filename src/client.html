@@ -2512,7 +2512,7 @@ function clogCreateEntry(e){
   /* Match History accumulator — see runLogEntries comment above. Pushed in
      chronological (oldest-first) order via push()/shift(), the opposite of
      clogEntries' newest-first unshift() above, because a saved run's log is
-     read top-to-bottom like a story (see ui.js scHistory()), not like a
+     read top-to-bottom like a story (see ui.js scHistoryBody()), not like a
      live panel. */
   runLogEntries.push(e);
   if(runLogEntries.length>RUN_LOG_CAP) runLogEntries.shift();
@@ -2872,7 +2872,7 @@ function resolveConflictUseCloud(){ if(acctConflict) META={...DEF_META,...acctCo
    Bosses) is 100% complete. The tier meter/glow-border math (ECHO/echoTier/
    echoCost) is UNCHANGED from the original Echo Forge — only what a purchase
    GRANTS changed, from a deterministic point to a cosmetic gacha pull. See
-   COSMETIC_POOLS/ECHO_BOX_* in cosmetics.js and scEchoBox()/scProfile() below. */
+   COSMETIC_POOLS/ECHO_BOX_* in cosmetics.js and scEchoBoxBody()/scProfile() below. */
 function collectionComplete(){
   if(META.collectionGrandfathered) return true;   /* §7 E7 */
   return META.faces.length>=FACE_POOL.length && META.relics.length>=RELICS.length && META.bosses.length>=BOSSES.length;
@@ -2902,7 +2902,7 @@ function rollEchoRarity(){
    a cosmetic reward by rarity then category, granting an unowned item in that
    exact rarity+category cell, or recording a duplicate toward fusion if the
    whole cell is already owned. Returns a result object for the caller to
-   render (scEchoBox()), or null if the purchase itself couldn't happen. */
+   render (scEchoBoxBody()), or null if the purchase itself couldn't happen. */
 function echoBoxOpen(){
   const opened=META.echoBoxesOpened||0;
   const cost=opened===0?ECHO.introCost:echoCost(opened+1);
@@ -3023,10 +3023,34 @@ async function doAxieLookup(){
   catch(e){ importState='error'; importMsg='Could not connect — try again later'; render(); return; }
   importPreview=data; importState='preview'; render();
 }
-function scImportAxie(){
+// Vault / Leaderboard / History hub — 3 previously-separate screens merged
+// under one pill-tab row (same pattern as scCodex()'s Codex/Sample Teams and
+// scCollection()'s Collection/Unlocks/Echo Box merges). vaultOuter picks the
+// sub-view; 'vault'/'leaderboard'/'history' all still work as direct screen
+// values (normalized in render()'s dispatcher) for any existing deep link.
+let vaultOuter='vault';
+function scVaultHub(){
   const w=el('div','screen menu vaultscreen');
-  w.appendChild(el('h1','logo sm','IMPORT AXIE'));
-  w.appendChild(el('div','sub','Manual Axie ID lookup · optional wallet connect for trust signal'));
+  w.appendChild(el('h1','logo sm',vaultOuter==='leaderboard'?'LEADERBOARD':vaultOuter==='history'?'HISTORY':'VAULT'));
+  w.appendChild(el('div','sub',vaultOuter==='leaderboard'?'Ranked Run scores · replayed and verified server-side, never trusted from the client'
+    :vaultOuter==='history'?(loadHistory().length+' run'+(loadHistory().length===1?'':'s')+' recorded on this device')
+    :'Manual Axie ID lookup · optional wallet connect for trust signal'));
+
+  const otabs=el('div','echotabs');
+  otabs.appendChild(btn('sm'+(vaultOuter==='vault'?' on':''),'VAULT',()=>{ SFX.ui(); vaultOuter='vault'; render(); }));
+  otabs.appendChild(btn('sm'+(vaultOuter==='leaderboard'?' on':''),'LEADERBOARD',()=>{ SFX.ui(); vaultOuter='leaderboard'; render(); }));
+  otabs.appendChild(btn('sm'+(vaultOuter==='history'?' on':''),'HISTORY',()=>{ SFX.ui(); vaultOuter='history'; render(); }));
+  w.appendChild(otabs);
+
+  if(vaultOuter==='leaderboard') w.appendChild(scLeaderboardBody());
+  else if(vaultOuter==='history') w.appendChild(scHistoryBody());
+  else w.appendChild(scImportBody());
+
+  w.appendChild(btn('','BACK',()=>{ importState='idle'; importMsg=''; importPreview=null; screen='menu'; render(); }));
+  return w;
+}
+function scImportBody(){
+  const w=el('div');
 
   if(typeof window!=='undefined'&&typeof window.ronin!=='undefined'){
     const wrow=el('div','vwrow');
@@ -3104,7 +3128,6 @@ function scImportAxie(){
     w.appendChild(sec);
   }
 
-  w.appendChild(btn('','BACK',()=>{ importState='idle'; importMsg=''; importPreview=null; screen='menu'; render(); }));
   return w;
 }
 function saveRun(){
@@ -3206,7 +3229,7 @@ function unitArtImg(u,cls){
 }
 /* Same real-art-first logic as unitArtImg(), for every place that only has
    a plain {cls,tier} pair instead of a live roster entry with `.key` —
-   History/Leaderboard entries (teamRelicsSec(), scHistory()'s own team-
+   History/Leaderboard entries (teamRelicsSec(), scHistoryBody()'s own team-
    portraits row) are flat saved/replayed snapshots with no `key` field, and
    Sample Teams/the Team-Select T1 cards work from HEROES directly but were
    still calling sprOf() straight, never picking up Hero art at all. Since
@@ -3451,18 +3474,18 @@ function render(){
   if(screen==='gate') root.appendChild(scGate());
   else if(screen==='menu') root.appendChild(scMenu());
   else if(screen==='team') root.appendChild(scTeam());
-  else if(screen==='unlocks') root.appendChild(scUnlocks());
+  else if(screen==='unlocks'){ colOuter='unlocks'; screen='collection'; root.appendChild(scCollection()); }
   else if(screen==='collection') root.appendChild(scCollection());
-  else if(screen==='echobox') root.appendChild(scEchoBox());
+  else if(screen==='echobox'){ colOuter='echobox'; screen='collection'; root.appendChild(scCollection()); }
   else if(screen==='profile') root.appendChild(scProfile());
-  else if(screen==='vault') root.appendChild(scImportAxie());
-  else if(screen==='leaderboard') root.appendChild(scLeaderboard());
-  else if(screen==='history') root.appendChild(scHistory());
+  else if(screen==='vault') root.appendChild(scVaultHub());
+  else if(screen==='leaderboard'){ vaultOuter='leaderboard'; screen='vault'; root.appendChild(scVaultHub()); }
+  else if(screen==='history'){ vaultOuter='history'; screen='vault'; root.appendChild(scVaultHub()); }
   else if(screen==='account') root.appendChild(scAccount());
   else if(screen==='bp') root.appendChild(scBP());
   else if(screen==='tour') root.appendChild(scTour());
   else if(screen==='codex') root.appendChild(scCodex());
-  else if(screen==='guide') root.appendChild(scGuide());
+  else if(screen==='guide'){ cxOuter='guide'; screen='codex'; root.appendChild(scCodex()); }
   else if(S){
     if(S.phase==='map') root.appendChild(scMap());
     else if(S.phase==='event'){ root.appendChild(scCombatShell()); root.appendChild(scEvent()); }
@@ -3702,10 +3725,54 @@ function scMenu(){
   w.appendChild(inner);
   return w;
 }
-function scUnlocks(){
-  const w=el('div','screen menu unlocks');
-  w.appendChild(el('h1','logo sm','UNLOCKS'));
-  w.appendChild(el('div','sub',META.shards+' GENE SHARD'));
+/* ================= COLLECTION HUB (merged Collection / Unlocks / Echo Box) =
+   2026-09-10: three previously-separate screens merged into one screen with
+   an outer pill-tab row — same pattern as the Codex/Sample Teams merge above
+   scCodex() (echotabs pill row of plain .btn.sm + 'on' state, one outer-tab
+   state variable, BACK hoisted to the shared wrapper). colOuter defaults to
+   'collection'; screen==='unlocks'/'echobox' are still valid entry points —
+   the render() dispatcher normalizes them to colOuter+screen='collection',
+   the same alias trick used for screen==='guide'.
+   Deviation from the Codex/Guide precedent: that merge kept the wrapper's
+   CSS class fixed to 'codex' for both tabs because Codex/Guide shared
+   identical .screen.menu.* treatment. Here Echo Box has its own distinct
+   .screen.echobox rule (max-width:640/centered, no flex-start/padding-top —
+   see CSS near .screen.echobox) that Collection/Unlocks don't share, so the
+   wrapper class below stays per-tab to avoid changing Echo Box's layout. */
+let colOuter='collection';
+function scCollection(){
+  const w=el('div','screen menu '+(colOuter==='unlocks'?'unlocks':colOuter==='echobox'?'echobox':'collection'));
+
+  if(colOuter==='unlocks'){
+    w.appendChild(el('h1','logo sm','UNLOCKS'));
+    w.appendChild(el('div','sub',META.shards+' GENE SHARD'));
+  } else if(colOuter==='echobox'){
+    w.appendChild(el('h1','logo sm','ECHO BOX'));
+    w.appendChild(el('div','sub','Spend leftover Gene Shard on gacha pulls — avatars, decor, backgrounds and titles.'));
+  } else {
+    w.appendChild(el('h1','logo sm','COLLECTION'));
+    /* §7 E7: thanh tiến độ KHÔNG nói dối — vẫn hiện 44/94 thật; cờ grandfather chỉ giữ quyền
+       vào Echo Box, và được nói rõ bằng nhãn riêng thay vì bằng một con số sai. */
+    w.appendChild(el('div','sub',`Faces ${META.faces.length}/${FACE_POOL.length} · Relics ${META.relics.length}/${RELICS.length} · Bosses ${META.bosses.length}/${BOSSES.length}`));
+    if(META.collectionGrandfathered && META.relics.length<RELICS.length){
+      w.appendChild(el('div','sub','Completed before the expansion — Echo Box stays unlocked'));
+    }
+  }
+
+  const otabs=el('div','echotabs');
+  otabs.appendChild(btn('sm'+(colOuter==='collection'?' on':''),'COLLECTION',()=>{ SFX.ui(); colOuter='collection'; render(); }));
+  otabs.appendChild(btn('sm'+(colOuter==='unlocks'?' on':''),'UNLOCKS',()=>{ SFX.ui(); colOuter='unlocks'; render(); }));
+  otabs.appendChild(btn('sm'+(colOuter==='echobox'?' on':''),'ECHO BOX',()=>{ SFX.ui(); colOuter='echobox'; render(); }));
+  w.appendChild(otabs);
+
+  if(colOuter==='unlocks') w.appendChild(scUnlocksBody());
+  else if(colOuter==='echobox') w.appendChild(scEchoBoxBody());
+  else w.appendChild(scCollectionBody());
+
+  w.appendChild(btn('','BACK',()=>{ screen='menu'; render(); }));
+  return w;
+}
+function scUnlocksBody(){
   const g=el('div','unlockgrid');
   UNLOCKS.forEach(u=>{
     const has=unlocked(u.id), can=!has&&META.shards>=u.cost;
@@ -3722,19 +3789,10 @@ function scUnlocks(){
     if(can){ c.onclick=()=>{ SFX.coin(); META.shards-=u.cost; META.unlocks.push(u.id); saveMeta(); render(); }; kbAct(c); }
     g.appendChild(c);
   });
-  w.appendChild(g);
-  w.appendChild(btn('','BACK',()=>{ screen='menu'; render(); }));
-  return w;
+  return g;
 }
-function scCollection(){
-  const w=el('div','screen menu collection');
-  w.appendChild(el('h1','logo sm','COLLECTION'));
-  /* §7 E7: thanh tiến độ KHÔNG nói dối — vẫn hiện 44/94 thật; cờ grandfather chỉ giữ quyền
-     vào Echo Box, và được nói rõ bằng nhãn riêng thay vì bằng một con số sai. */
-  w.appendChild(el('div','sub',`Faces ${META.faces.length}/${FACE_POOL.length} · Relics ${META.relics.length}/${RELICS.length} · Bosses ${META.bosses.length}/${BOSSES.length}`));
-  if(META.collectionGrandfathered && META.relics.length<RELICS.length){
-    w.appendChild(el('div','sub','Completed before the expansion — Echo Box stays unlocked'));
-  }
+function scCollectionBody(){
+  const d=el('div');
   // Render the FULL pool per section (not just owned items) so players can see
   // what's still missing. Unowned entries render as a rarity-tinted "???"
   // placeholder instead of being omitted, keeping progress-by-rarity visible.
@@ -3748,24 +3806,26 @@ function scCollection(){
     });
     s.appendChild(g); return s;
   };
-  w.appendChild(mk('RELIC', RELICS.map(r=>({n:r.n,r:r.rar,owned:META.relics.includes(r.id)}))));
-  w.appendChild(mk('DIE FACES', FACE_POOL.map(f=>{ const n=faceText(f); return {n,r:f.r,owned:META.faces.includes(n)}; })));
-  w.appendChild(mk('BOSSES DEFEATED', BOSSES.map(b=>({n:b.n,r:4,owned:META.bosses.includes(b.k)}))));
-  w.appendChild(scEchoBoxPointer());
-  w.appendChild(btn('','BACK',()=>{ screen='menu'; render(); }));
-  return w;
+  d.appendChild(mk('RELIC', RELICS.map(r=>({n:r.n,r:r.rar,owned:META.relics.includes(r.id)}))));
+  d.appendChild(mk('DIE FACES', FACE_POOL.map(f=>{ const n=faceText(f); return {n,r:f.r,owned:META.faces.includes(n)}; })));
+  d.appendChild(mk('BOSSES DEFEATED', BOSSES.map(b=>({n:b.n,r:4,owned:META.bosses.includes(b.k)}))));
+  d.appendChild(scEchoBoxPointer());
+  return d;
 }
-/* ---------- ECHO BOX (standalone screen, design/ux/echo-box.md) ----------
+/* ---------- ECHO BOX (now the 3rd tab of the Collection hub, design/ux/
+   echo-box.md) ----------
    design/gdd/economy-progression.md §10.3 amendment: was "Echo Forge", a
    deterministic point-buy. Now a cosmetic gacha (avatars/decor/backgrounds/
    titles from cosmetics.js) with the same underlying Shard-cost/tier-meter
    curve. Reveal cards reuse .rcard/rbadge (scReward()'s visual language).
-   2026-09-07: pulled out of scCollection() into its own screen+menu tile
-   per product-owner feedback that the old nested placement (buried under 3
-   walls of Collection's "???" placeholders) was undiscoverable — see the
-   spec for the full rationale. scCollection() keeps only scEchoBoxPointer()
-   below, a read-only teaser row. Odds/cost/chest-mapping are UNCHANGED —
-   this is presentation-layer only. */
+   2026-09-07: pulled out of scCollection() into its own screen+menu tile per
+   product-owner feedback that the old nested placement (buried under 3 walls
+   of Collection's "???" placeholders) was undiscoverable. 2026-09-10: folded
+   back into the Collection hub as its own pill tab (not nested again — still
+   its own dedicated tab, just no longer a separate top-level screen).
+   scCollectionBody() keeps only scEchoBoxPointer() below, a read-only
+   teaser row that jumps straight to this tab. Odds/cost/chest-mapping are
+   UNCHANGED — this is presentation-layer only. */
 let echoBoxResult=null, echoFuseResult=null, echoChestRevealed=false;
 /* Hero banner picks (§2): auto-selected, highest-rarity-per-pool, zero
    maintenance as new cosmetics ship — the spec's own leaning over a hand-
@@ -3840,10 +3900,11 @@ function scEchoBoxPointer(){
   s.appendChild(row);
   return s;
 }
-function scEchoBox(){
-  const w=el('div','screen menu echobox');
-  w.appendChild(el('h1','logo sm','ECHO BOX'));
-  w.appendChild(el('div','sub','Spend leftover Gene Shard on gacha pulls — avatars, decor, backgrounds and titles.'));
+// Body-only version of the old standalone Echo Box screen — title/sub are
+// now shared chrome owned by scCollection() (see colOuter==='echobox'
+// branch above), same pattern as scGuideBody() inside the merged Codex tab.
+function scEchoBoxBody(){
+  const w=el('div');
 
   // §2 hero banner — real art, no new assets; unowned chips show the same
   // real thumbnail dimmed (.echoshow.locked), never a "???" blackout.
@@ -4000,7 +4061,6 @@ function scEchoBox(){
   w.appendChild(logSec);
   } // echoTab==='log'
 
-  w.appendChild(btn('','BACK',()=>{ screen='menu'; render(); }));
   return w;
 }
 
@@ -5138,10 +5198,8 @@ async function loadLeaderboard(){
   }catch(e){ lbState='error'; lbRows=[]; }
   render();
 }
-function scLeaderboard(){
-  const w=el('div','screen menu leaderboard');
-  w.appendChild(el('h1','logo sm','LEADERBOARD'));
-  w.appendChild(el('div','sub','Ranked Run scores · replayed and verified server-side, never trusted from the client'));
+function scLeaderboardBody(){
+  const w=el('div');
   const cfg=el('div','cfg');
   const modeBox=el('div','cfgrow'); modeBox.appendChild(el('span','cl','MODE'));
   ['short','full'].forEach(m=>{ const b=el('button','btn sm'+(lbMode===m?' on':''),m==='short'?'SHORT RUN':'FULL RUN');
@@ -5179,7 +5237,6 @@ function scLeaderboard(){
     });
     w.appendChild(tbl);
   }
-  w.appendChild(btn('','BACK',()=>{ screen='menu'; render(); }));
   return w;
 }
 
@@ -5190,11 +5247,9 @@ function scLeaderboard(){
    detail view would need its own back-target and Esc handling; an expand
    toggle needs neither). */
 let historyExpanded=new Set(); /* Set of entry.ts (unique per run) currently expanded */
-function scHistory(){
-  const w=el('div','screen menu history');
-  w.appendChild(el('h1','logo sm','HISTORY'));
+function scHistoryBody(){
+  const w=el('div');
   const list=loadHistory();
-  w.appendChild(el('div','sub',list.length+' run'+(list.length===1?'':'s')+' recorded on this device'));
   if(!list.length){
     w.appendChild(el('div','iempty','No runs yet — finish a run to see it here.'));
   } else {
@@ -5226,7 +5281,6 @@ function scHistory(){
     });
     w.appendChild(tbl);
   }
-  w.appendChild(btn('','BACK',()=>{ screen='menu'; render(); }));
   return w;
 }
 /* Dedicated small renderers from the saved plain data, rather than forcing
@@ -5302,7 +5356,7 @@ function histDetail(r){
 /* ================= ACCOUNT (register/login/sync) ================= */
 /* design/gdd/player-accounts.md, docs/architecture/adr-0002-player-accounts.md.
    Entirely additive — guests never see server calls from this screen unless
-   they submit the form. Follows scImportAxie()'s form pattern (cfgrow+vform
+   they submit the form. Follows scImportBody()'s form pattern (cfgrow+vform
    input row, vmsg status line). */
 /* Shared login/register form body — used by both the mandatory gate (scGate,
    reached pre-auth) and the post-auth conflict/account screen (scAccount).
@@ -5898,6 +5952,11 @@ function scTourMap(mapIdx){
 
 /* ================= CODEX (tab layout) ================= */
 let cxTab='basic', cxFilter='';
+// cxOuter: which half of the merged Codex/Sample Teams screen is showing.
+// 'guide' is kept as an alias screen value in render()'s dispatcher for any
+// deep-link that still sets screen='guide' directly — it normalizes to
+// screen='codex'+cxOuter='guide' on first render (see dispatcher).
+let cxOuter='codex';
 function cxH(t){ return el('h4','cxh',t); }
 function cxP(html){ const d=el('div','cxp'); d.innerHTML=html; return d; }
 function cxTable(head,rows,cls){
@@ -5974,19 +6033,35 @@ const CX_TABS=[
 function scCodex(){
   const w=el('div','screen menu codex');
   const top=el('div','cxtop');
-  top.appendChild(el('h1','logo sm','CODEX'));
-  top.appendChild(el('div','sub','Every rule in the game. Nothing is hidden.'));
+  top.appendChild(el('h1','logo sm',cxOuter==='guide'?'SAMPLE TEAMS':'CODEX'));
+  top.appendChild(el('div','sub',cxOuter==='guide'
+    ?'Four proven playstyles. Pick one to load it straight into team select.'
+    :'Every rule in the game. Nothing is hidden.'));
   w.appendChild(top);
-  const shell=el('div','cxshell');
-  const nav=el('div','cxnav');
-  CX_TABS.forEach(([k,n])=>{ const b=el('button','cxtab'+(cxTab===k?' on':''),n);
-    b.onclick=()=>{ SFX.ui(); cxTab=k; render(); }; nav.appendChild(b); });
-  nav.appendChild(btn('sm ghost','BACK',()=>{ screen='menu'; render(); }));
-  shell.appendChild(nav);
-  const pane=el('div','cxpane');
-  pane.appendChild(CX_BODY[cxTab]());
-  shell.appendChild(pane);
-  w.appendChild(shell);
+
+  // Outer pill-tab row — same pattern as scEchoBox's .echotabs (FUSE
+  // DUPLICATES / PULL LOG): plain .btn.sm buttons with an .on state, no new
+  // CSS class needed.
+  const otabs=el('div','echotabs');
+  otabs.appendChild(btn('sm'+(cxOuter==='codex'?' on':''),'CODEX',()=>{ SFX.ui(); cxOuter='codex'; render(); }));
+  otabs.appendChild(btn('sm'+(cxOuter==='guide'?' on':''),'SAMPLE TEAMS',()=>{ SFX.ui(); cxOuter='guide'; render(); }));
+  w.appendChild(otabs);
+
+  if(cxOuter==='guide'){
+    w.appendChild(scGuideBody());
+  } else {
+    const shell=el('div','cxshell');
+    const nav=el('div','cxnav');
+    CX_TABS.forEach(([k,n])=>{ const b=el('button','cxtab'+(cxTab===k?' on':''),n);
+      b.onclick=()=>{ SFX.ui(); cxTab=k; render(); }; nav.appendChild(b); });
+    shell.appendChild(nav);
+    const pane=el('div','cxpane');
+    pane.appendChild(CX_BODY[cxTab]());
+    shell.appendChild(pane);
+    w.appendChild(shell);
+  }
+
+  w.appendChild(btn('sm ghost','BACK',()=>{ screen='menu'; render(); }));
   return w;
 }
 
@@ -6270,10 +6345,10 @@ const CX_BODY={
 };
 
 /* ================= GUIDE — đội hình mẫu ================= */
-function scGuide(){
-  const w=el('div','screen menu guide');
-  w.appendChild(el('h1','logo sm','SAMPLE TEAMS'));
-  w.appendChild(el('div','sub','Four proven playstyles. Pick one to load it straight into team select.'));
+// Sample Teams body — merged into scCodex() as the 'guide' outer tab
+// (was previously its own full screen, scGuide()); returns just the card
+// grid, the title/sub/BACK are now shared chrome owned by scCodex().
+function scGuideBody(){
   const g=el('div','guidegrid');
   GUIDES.forEach(G=>{
     const a=ARCH[G.arch];
@@ -6293,9 +6368,7 @@ function scGuide(){
     c.appendChild(btn('sm go gbtn','USE THIS TEAM',()=>{ teamPick=G.team.slice(); screen='team'; render(); }));
     g.appendChild(c);
   });
-  w.appendChild(g);
-  w.appendChild(btn('','BACK',()=>{ screen='menu'; render(); }));
-  return w;
+  return g;
 }
 
 /* ================= [4] SETTINGS + [MỚI] BẢNG THÔNG TIN TRONG TRẬN ================= */
