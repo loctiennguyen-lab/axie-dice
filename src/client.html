@@ -376,7 +376,11 @@ small{font-size:var(--t1)}
 .btn.menu-tile.hasnew{border-color:var(--acc)}
 .mt-n{font-size:var(--t2);letter-spacing:1px}
 .mt-s{font-size:var(--t1);color:var(--acc);line-height:1.3}
-.menu .stats{margin-top:var(--s5);font-size:var(--t2);color:var(--dim);letter-spacing:1px}
+/* T20 · own class, NOT .stats — .stats is also the combat status-chip row
+   (statusChipsEl(), position:absolute) and the two bled together: this line's
+   text rendered absolutely-positioned and overlapped the logo title instead
+   of flowing after the button groups (bug report 2026-09-16). */
+.menu-stats{margin-top:var(--s5);font-size:var(--t2);color:var(--dim);letter-spacing:1px}
 /* T20 · utility/meta links tucked into the bottom-right corner, mirroring
    .menu-corner top-left. Still .btn.ghost.btn--sm — that's already the
    lightest-weight control in the system (transparent bg, dim border/text),
@@ -1211,7 +1215,12 @@ small{font-size:var(--t1)}
    fallback shown while nothing is hovered. 20 pairs covers every relic
    list — .relicpop-list itself scrolls past that, same as before. */
 .relicpop-detailwrap{flex:1;position:relative}
-.relicpop-detail{position:absolute;inset:0;padding:12px;display:none;flex-direction:column;gap:8px}
+/* overflow-y:auto — a long relic description had nowhere to go: this box is
+   position:absolute;inset:0 inside .relicpop-detailwrap, and .relicpop itself
+   clips (overflow:hidden), so text past the bottom edge was silently cut off
+   instead of wrapping into view (bug report 2026-09-16). Same visible box
+   size, just scrollable now. */
+.relicpop-detail{position:absolute;inset:0;padding:12px;display:none;flex-direction:column;gap:8px;overflow-y:auto}
 .relicpop:not(:has(.relicpop-row:hover)) .relicpop-detail.primary{display:flex}
 .relicpop-dh{display:flex;align-items:center;gap:8px}
 .relicpop-dn{font-size:var(--t2);font-weight:800}
@@ -3208,6 +3217,33 @@ function ensureVaultHero(v){
   if(!HEROES[key]) HEROES[key]=v;
   return key;
 }
+/* Bug report 2026-09-16 — "wave clear doesn't advance": CONTINUE RUN resumes
+   straight into screen='combat' (S=saved.s; render()) and never visits
+   scTeam()/scVaultHub()/scCollection(), the only places that call
+   ensureVaultHero() above. Mid-combat rendering never notices — S.party is
+   already-built live units, buildUnit() is never re-run on them — but
+   partyStrip() (scReward(), also read by scEnd()/history) rebuilds every
+   S.roster member fresh via buildUnit(e,S), which does HEROES[re.key].hp.
+   For a roster member that's an imported Vault Axie, re.key is 'vault_<id>'
+   and HEROES[re.key] was never registered in THIS page load — buildUnit()
+   throws (uncaught, no visible error banner), scReward() never finishes
+   building its DOM, and the reward screen simply never appears: S.phase had
+   already correctly flipped to 'reward', so the run looks permanently stuck
+   on the combat board with 0 HP enemies, and reloading resumes the same
+   saved state and hits the exact same crash again. Re-derives the key ->
+   vault-record mapping ensureVaultHero() itself never stores, so it must
+   search META.vault by axieId — cheap (run-length roster, not the full
+   vault) and safe to call every render (same idempotence contract above). */
+function ensureRosterVaultHeroes(){
+  if(!S||!S.roster) return;
+  for(const re of S.roster){
+    if(re.key&&re.key.startsWith('vault_')&&!HEROES[re.key]){
+      const axieId=re.key.slice(6);
+      const v=(META.vault||[]).find(x=>vaultKey(x)===re.key||String(x.axieId)===axieId);
+      if(v) ensureVaultHero(v);
+    }
+  }
+}
 /* ---------- IMPORT AXIE screen state ---------- */
 let importIdInput='', importState='idle', importMsg='', importPreview=null, roninAddr=null;
 async function connectRonin(){
@@ -3681,6 +3717,7 @@ function rcritMult(){ let m=2; for(const id of S.relics){ const r=RELIC_BY_ID[id
 /* ================= RENDER ================= */
 function render(){
   const root=$('#app'); if(!root) return;
+  ensureRosterVaultHeroes();
   if(typeof MUS!=='undefined') MUS.sync();   /* every screen/phase change already lands here */
   if(typeof clogInit==='function'&&!clogPanel) clogInit();
   if(typeof clogFreeze==='function'&&S&&S.phase==='lost') clogFreeze();
@@ -3771,6 +3808,15 @@ const BOARD_H = 985;   /* header + enemies + party + tray + bar + gaps —
   .combat').scrollHeight at --ui-scale:1 if combat's vertical content changes
   again — don't just bump this number blind. */
 function fitUI(){
+  // T20 · this scale is derived ENTIRELY from the combat board's own
+  // measurements (BOARD_W/BOARD_H above) — postRender() calls this on every
+  // render though, on every screen, so a wide+tall desktop window silently
+  // zoomed the MENU (and every other non-combat screen) up to 1.20x too,
+  // pushing content taller than the viewport and hiding SAMPLE TEAMS/
+  // SETTINGS/LOGOUT below the fold (bug report 2026-09-16). Only combat (and
+  // tutorial, which reuses the combat board — see the locked-scroll toggle
+  // right above screen dispatch) should ever get a non-1 scale.
+  if(screen!=='combat'&&screen!=='tutorial'){ document.documentElement.style.setProperty('--ui-scale','1'); return; }
   const raw = Math.min(innerWidth / BOARD_W, innerHeight / BOARD_H);
   const s = innerWidth >= 1200 ? Math.min(raw, 1.20) : 1;
   // Floor raised 0.85 -> 1.0: text must never be shrunk below its authored
@@ -3953,7 +3999,7 @@ function scMenu(){
   if(META.wins) line.push(META.wins+(META.wins===1?' win':' wins'));
   if(META.best) line.push('best wave '+META.best);
   if(META.shards) line.push(META.shards+' Shard');
-  if(line.length) inner.appendChild(el('div','stats',line.join('  ·  ')));
+  if(line.length) inner.appendChild(el('div','menu-stats',line.join('  ·  ')));
   const row=el('div','menu-mini');
   row.appendChild(btn('ghost btn--sm','SAMPLE TEAMS',()=>{ screen='guide'; render(); }));
   row.appendChild(btn('ghost btn--sm','SETTINGS',()=>{ modal='set'; render(); }));
@@ -4888,7 +4934,7 @@ function scCombat(frozen){
 
   /* bottom bar */
   const bb=el('div','bottombar');
-  bb.appendChild(el('div','bb-label','ACTIVE CARDS'));
+  bb.appendChild(el('div','bb-label','ACTIVE RELICS'));
   // Battle UI handoff §6 — active relics (cost mana, spend a turn) are
   // always visible, never hidden behind a click.
   const actRow=el('div','items');
@@ -4904,7 +4950,7 @@ function scCombat(frozen){
     if(can) kbAct(c);
     actRow.appendChild(c);
   });
-  if(!actRow.children.length) actRow.appendChild(el('div','nothing','No active cards'));
+  if(!actRow.children.length) actRow.appendChild(el('div','nothing','No active relics'));
   bb.appendChild(actRow);
 
   // Battle UI handoff §6 — the "n relics equipped" popover is the full
@@ -5162,8 +5208,14 @@ function partyCard(u,cardW,threatMap,linkL,linkR){
   const pv=previewOn(u);
   if(pv) spw.appendChild(el('div','preview '+pv.cls,pv.txt));
   pp.appendChild(spw);
-  pp.onclick=()=>{ if(Date.now()-lastDragEnd<200) return; SFX.ui(); modal='unit'; modalUid=u.uid; render(); };
-  kbAct(pp);
+  // Bug report 2026-09-16: this used to fire unconditionally, so clicking a
+  // legal shield/heal/buff target (self OR an ally) opened the inspect modal
+  // instead of confirming the target — the card had no click-to-target
+  // handler at all (contrast unitCard() below, which does exactly this via
+  // c.onclick). Inspect now only wins when the card ISN'T a valid target;
+  // the tgtable branch (near the end of this function, once `c` is fully
+  // built) makes the whole card call doTarget() instead.
+  if(!tgtable){ pp.onclick=()=>{ if(Date.now()-lastDragEnd<200) return; SFX.ui(); modal='unit'; modalUid=u.uid; render(); }; kbAct(pp); }
   c.appendChild(pp);
 
   const idb=el('div','idband');
@@ -5206,7 +5258,11 @@ function partyCard(u,cardW,threatMap,linkL,linkR){
   const resb=el('div','resband'+(linkL?' ll':'')+(linkR?' lr':''));
   if(linkL) resb.appendChild(ico(FT_IC[linkL.type],'ii'));
   const resPct=Math.round((RESONANCE.mult-1)*100);
-  resb.appendChild(el('span','reslbl',cardW<=170?'+'+resPct+'%':'RESONANCE +'+resPct+'%'));
+  // Bug report 2026-09-16: the label used to render unconditionally, so a
+  // card with no adjacent matching die still announced "RESONANCE +15%".
+  // The band itself stays in the DOM either way (reserved 26px, see above) —
+  // only the text is conditional on an actual link.
+  if(linkL||linkR) resb.appendChild(el('span','reslbl',cardW<=170?'+'+resPct+'%':'RESONANCE +'+resPct+'%'));
   if(linkR) resb.appendChild(ico(FT_IC[linkR.type],'ii'));
   if(linkL||linkR){
     const names=[];
@@ -5258,6 +5314,13 @@ function partyCard(u,cardW,threatMap,linkL,linkR){
   c.appendChild(b);
 
   const fl=el('div','floats'); fl.dataset.uid=u.uid; c.appendChild(fl);
+  // Bug report 2026-09-16 (cont'd from pp.onclick above) — mirrors unitCard()'s
+  // own `if(tgtable){ c.onclick=()=>doTarget(u.uid); ... }`: the whole card
+  // (portrait included) confirms the target when this Axie is a legal one,
+  // covering self-targeted shield/heal/buff too. Safe alongside the die's own
+  // onclick (clickDie) and the reroll marker's (both already run first and
+  // either stopPropagation or null out `sel`, which doTarget checks).
+  if(tgtable){ c.onclick=()=>doTarget(u.uid); kbAct(c); }
   return c;
 }
 
@@ -6637,7 +6700,7 @@ const CX_BODY={
   const tot=RELICS.length, act=RELICS.filter(r=>r.act).length;
   d.appendChild(cxH('THE FULL RELIC TABLE'));
   d.appendChild(cxP(`There are <b>${tot} relics</b> in total: <b>${tot-act} passives</b> that are always on and change a rule of the game,
-   and <b>${act} active cards</b> that cost Mana. Relics apply to your <b>whole party</b>, never to a single Axie.
+   and <b>${act} active relics</b> that cost Mana. Relics apply to your <b>whole party</b>, never to a single Axie.
    You find them in rewards, at the Merchant, in Treasure nodes and through events.`));
   const cnt=[0,1,2,3].map(r=>RELICS.filter(x=>x.rar===r).length);
   const sum=el('div','cxsum');
