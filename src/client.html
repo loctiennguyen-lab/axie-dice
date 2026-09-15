@@ -955,16 +955,29 @@ small{font-size:var(--t1)}
 .bossdesc{flex:none;padding:0 14px 8px;font-size:var(--t2);line-height:1.4;color:var(--dim);text-align:center}
 
 /* identity + hp band */
-.idband{flex:none;padding:0 12px 12px;display:flex;flex-direction:column;justify-content:flex-end;gap:6px}
-.unit.p .idband{padding:0 12px 10px}
+/* Delta 4 (2026-09-16) — was gap:6px/no explicit height; a reserved shield
+   track is now a permanent 3rd row, so the block gets an explicit height
+   (68px enemy / 60px party, was 60px/52px) and the gap tightens to 4px.
+   Sprite area above (flex:1) absorbs the difference — card height (.unit.e/
+   .unit.p) is unchanged. */
+.idband{flex:none;padding:0 12px 12px;display:flex;flex-direction:column;justify-content:flex-end;gap:4px}
+.unit.e .idband{height:68px}
+.unit.p .idband{padding:0 12px 10px;height:60px}
 .idrow{display:flex;align-items:baseline;justify-content:space-between;gap:4px}
 .unit .nm{font-size:var(--t2);color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .dupe-tag{color:var(--dim)}
 .hpval{font-size:var(--t3);font-weight:800;font-variant-numeric:tabular-nums;flex:none;display:inline-flex;
   align-items:baseline;gap:6px;white-space:nowrap}
 .hpval .hpmax{color:var(--dim);font-weight:500}
-.hpval .shieldchip{display:inline-flex;align-items:center;gap:2px;font-size:var(--t1);font-weight:700;color:var(--shd)}
-.hpval .shieldchip .icow.ii{width:12px;height:12px}
+/* Delta 4 — exact-value shield chip, immediately left of the HP number.
+   Was a plain unstyled inline group appended AFTER the HP number on party
+   cards only; enemy cards had no shield indicator at all (design/quick-
+   specs/DELTA-shield-2026-09-16.md). Now a real chip (own background/
+   padding), shared by both card types, always rendered before HP. */
+.shieldchip{display:inline-flex;align-items:center;gap:3px;padding:1px 5px;border-radius:4px;
+  background:#0a0c0f;font-size:var(--t1);font-weight:800;color:var(--shd);
+  font-variant-numeric:tabular-nums;cursor:help}
+.shieldchip .icow.ii{width:12px;height:12px}
 .hpbar{position:relative;height:6px;border-radius:3px;background:#0a0c0f;overflow:hidden}
 .hpfill{height:100%;background:var(--hp-full);transition:width .22s ease-out}
 .hpbar.low  .hpfill{background:var(--hp-low)}
@@ -972,6 +985,16 @@ small{font-size:var(--t1)}
 @keyframes hp-pulse{50%{opacity:.55}}
 @media (prefers-reduced-motion: reduce){.hpbar.crit .hpfill{animation:none}}
 .hpghost{pointer-events:none;position:absolute;top:0;bottom:0;right:0;background:rgba(255,255,255,.3)}
+/* Delta 4 — shield track: a 3rd row under the HP bar, ALWAYS in the DOM
+   with its height always reserved (transparent background, never
+   display:none) so one card gaining Shield never shifts its neighbours'
+   HP rows by the track's height — same reserved-space principle as
+   .resband above. Only the .on background (a visible groove) and the
+   fill width are conditional. No min-width on the fill: the old .shbar's
+   min-width:16px made a small Shield read wider than its true proportion. */
+.shtrack{height:4px;border-radius:2px;overflow:hidden;background:transparent}
+.shtrack.on{background:#0a0c0f}
+.shtrack .shfill{height:100%;background:var(--shd)}
 .unit.p .hpghost{background:rgba(245,69,64,.75)}
 
 .floats{position:absolute;left:0;right:0;top:4px;height:0;pointer-events:none;z-index:9}
@@ -1341,6 +1364,12 @@ small{font-size:var(--t1)}
 .uip-dr{font-size:var(--t1);font-weight:800;letter-spacing:.06em;padding:2px 8px;border-radius:4px;background:#0a0c0f}
 .uip-dr.r4{color:var(--r4)} .uip-dr.r3{color:var(--r3)}
 .uip-sub{font-size:var(--t2);color:var(--dim);font-variant-numeric:tabular-nums}
+/* Delta 4 — Shield's own icon+value group inside .uip-sub, sized up a
+   notch (14px icon vs the board chip's 12px) since this header runs at
+   13px rather than the board's 11px. */
+.uip-sh{display:inline-flex;align-items:center;gap:4px;font-weight:800;color:var(--shd);cursor:help;
+  font-variant-numeric:tabular-nums}
+.uip-sh .icow.ii{width:14px;height:14px}
 .uip-x{flex:none;width:32px;height:32px;border-radius:8px;border:1px solid var(--line);background:transparent;
   color:var(--dim);cursor:pointer;font-size:var(--t2);display:flex;align-items:center;justify-content:center;font-family:inherit}
 .uip-x:hover{color:var(--txt);border-color:var(--line2)}
@@ -5053,6 +5082,28 @@ function statusChipsEl(u){
   }
   return row;
 }
+/* Delta 4 (2026-09-16, design/quick-specs/DELTA-shield-2026-09-16.md) —
+   Shield display, identical treatment on enemy and party cards. Two parts:
+   an exact-value chip (immediately left of the HP number, only when
+   u.shield>0) and a reserved shield track (a 3rd row under the HP bar,
+   always in the DOM — see .shtrack above for why). Shared here so both
+   card builders and setBars()'s live-animation path stay in lockstep. */
+function shieldTip(v){ return 'Shield '+v+' — absorbs the next '+v+' damage before HP'; }
+function shieldChip(u){
+  const sc=el('span','shieldchip');
+  sc.appendChild(ico('shield','ii'));
+  sc.appendChild(el('span',null,String(u.shield)));
+  sc.dataset.tip=shieldTip(u.shield);
+  kbAct(sc);
+  return sc;
+}
+function shieldTrack(u){
+  const st=el('div','shtrack'+(u.shield>0?' on':''));
+  const fill=el('div','shfill'); fill.style.width=Math.min(100,u.maxHp?100*u.shield/u.maxHp:0)+'%';
+  st.appendChild(fill);
+  if(u.shield>0){ st.dataset.tip=shieldTip(u.shield); kbAct(st); }
+  return st;
+}
 /* Battle UI redesign (2026-09-16) — enemy card only now; the party card is
    built by partyCard() below (merged with the old dieBox()). Fixed bands
    top to bottom: boss banner (boss only) / intent / portrait (flex:1,
@@ -5101,6 +5152,7 @@ function unitCard(u){
   if(dupeI) nm.appendChild(el('span','dupe-tag',' ('+dupeI+')'));
   idr.appendChild(nm);
   const hv=el('span','hpval');
+  if(u.shield>0) hv.appendChild(shieldChip(u));
   hv.appendChild(el('b',null,String(u.hp))); hv.appendChild(el('span','hpmax','/'+u.maxHp));
   idr.appendChild(hv);
   idb.appendChild(idr);
@@ -5112,6 +5164,7 @@ function unitCard(u){
   const fill=el('div','hpfill'); fill.style.width=Math.max(0,100*pct)+'%'; bar.appendChild(fill);
   if(pv&&pv.hpAfter!=null){ const gh=el('div','hpghost'); gh.style.left=(100*pv.hpAfter/u.maxHp)+'%'; bar.appendChild(gh); }
   idb.appendChild(bar);
+  idb.appendChild(shieldTrack(u));
   c.appendChild(idb);
 
   if(tgtable){ c.onclick=()=>doTarget(u.uid); kbAct(c); }
@@ -5225,8 +5278,8 @@ function partyCard(u,cardW,threatMap,linkL,linkR){
   if(dupeI) nm.appendChild(el('span','dupe-tag',' ('+dupeI+')'));
   idr.appendChild(nm);
   const hv=el('span','hpval');
+  if(u.shield>0) hv.appendChild(shieldChip(u));
   hv.appendChild(el('b',null,String(u.hp))); hv.appendChild(el('span','hpmax','/'+u.maxHp));
-  if(u.shield>0){ const sc=el('span','shieldchip'); sc.appendChild(ico('shield','t')); sc.appendChild(el('span',null,String(u.shield))); hv.appendChild(sc); }
   idr.appendChild(hv);
   idb.appendChild(idr);
   const pct=u.maxHp?u.hp/u.maxHp:0;
@@ -5237,6 +5290,7 @@ function partyCard(u,cardW,threatMap,linkL,linkR){
   const fill=el('div','hpfill'); fill.style.width=Math.max(0,100*pct)+'%'; bar.appendChild(fill);
   if(inc>0){ const gh=el('div','hpghost'); gh.style.left=(100*Math.max(0,u.hp-inc)/u.maxHp)+'%'; bar.appendChild(gh); }
   idb.appendChild(bar);
+  idb.appendChild(shieldTrack(u));
   c.appendChild(idb);
 
   c.appendChild(el('div','uniddiv'));
@@ -6912,11 +6966,21 @@ function scUnitInfo(){
     if(dr>=3) nr.appendChild(el('span','uip-dr r'+dr,dr>=4?'COSMIC DIE':'GOLDEN DIE'));
   }
   hb.appendChild(nr);
-  let subTxt=u.hp+'/'+u.maxHp+' HP';
-  if(u.shield>0) subTxt+='  ·  Shield '+u.shield;
-  if(!isE) subTxt+='  ·  Tier '+u.tier;
-  if(ascCount) subTxt+='  ·  Ascended ×'+ascCount;
-  hb.appendChild(el('div','uip-sub',subTxt));
+  // Delta 4 (2026-09-16) — Shield gets the icon treatment (matching the
+  // board's shield chip) instead of being folded into the plain-text
+  // "7/16 HP · Shield 5" string; Tier/Ascended stay as plain text either
+  // side of it.
+  const sub=el('div','uip-sub');
+  sub.appendChild(document.createTextNode(u.hp+'/'+u.maxHp+' HP'));
+  if(u.shield>0){
+    sub.appendChild(document.createTextNode('  ·  '));
+    const sh=el('span','uip-sh'); sh.appendChild(ico('shield','ii')); sh.appendChild(el('span',null,String(u.shield)));
+    sh.dataset.tip=shieldTip(u.shield); kbAct(sh);
+    sub.appendChild(sh);
+  }
+  if(!isE) sub.appendChild(document.createTextNode('  ·  Tier '+u.tier));
+  if(ascCount) sub.appendChild(document.createTextNode('  ·  Ascended ×'+ascCount));
+  hb.appendChild(sub);
   hd.appendChild(hb);
   const x=el('button','uip-x','✕'); x.title='Close'; x.onclick=closeModal; kbAct(x); hd.appendChild(x);
   bx.appendChild(hd);
@@ -7168,23 +7232,42 @@ function centerOf(n){ const r=n.getBoundingClientRect(); return {x:r.left+r.widt
 function setBars(uid,hp,maxHp,shield){
   const n=unitEl(uid); if(!n) return;
   const pct=Math.max(0,100*hp/maxHp);
-  const fill=n.querySelector('.hpfill'), txt=n.querySelector('.hpnum b');
+  // Bug found 2026-09-16 while wiring up shield display: this selector
+  // ('.hpnum b') matched nothing — the markup is <span class="hpval"><b>hp</b>
+  // <span class="hpmax">/max</span></span>, no ".hpnum" anywhere — so the HP
+  // digits never actually updated during combat animation, only the bar's
+  // width did; a full render() afterward masked it by redrawing correct
+  // numbers from scratch. maxHp doesn't change mid-fight, so only the <b>
+  // (current HP) needs a live update, not the whole "cur/max" string.
+  const fill=n.querySelector('.hpfill'), txt=n.querySelector('.hpval b');
   if(fill) fill.style.width=pct+'%';
-  if(txt) txt.textContent=Math.max(0,hp)+'/'+maxHp;
+  if(txt) txt.textContent=String(Math.max(0,hp));
   /* keep the danger class in sync during playback, not only on re-render */
   const bar=n.querySelector('.hpbar');
   if(bar){ const p=maxHp?hp/maxHp:0;
     bar.classList.toggle('low', p<=0.50 && p>0.25);
     bar.classList.toggle('crit', p<=0.25 && p>0);
     bar.setAttribute('aria-valuenow',String(Math.max(0,hp))); }
-  let sb=n.querySelector('.shbar');
-  if(shield>0){
-    if(!sb){ sb=el('div','shbar'); const sl=el('span'); sl.appendChild(ico('shield','t'));
-      sl.appendChild(el('span','stv','0')); sb.appendChild(sl); n.querySelector('.hpbar').after(sb); }
-    sb.style.width=Math.min(100,100*shield/maxHp)+'%';
-    const v=sb.querySelector('.stv'); if(v) v.textContent=String(shield);
-    sb.classList.remove('brk');
-  } else if(sb){ sb.classList.add('brk'); setTimeout(()=>sb.remove(),260/SPD); }
+  // Delta 4 (2026-09-16) — replaces the old .shbar (dead: no CSS rule drew
+  // it any more, see the CSS comment on .shtrack) with the real chip+track
+  // pair partyCard()/unitCard() now build. Chip is created/removed on the
+  // fly since it's absent from the DOM whenever shield<=0; the track is
+  // always present (idband appends it unconditionally) so it only needs
+  // its .on class and fill width kept in sync.
+  const hv=n.querySelector('.hpval');
+  if(hv){
+    let chip=hv.querySelector('.shieldchip');
+    if(shield>0){
+      if(!chip){ chip=shieldChip({shield}); hv.insertBefore(chip,hv.firstChild); }
+      else { const v=chip.querySelector('span:last-child'); if(v) v.textContent=String(shield); chip.dataset.tip=shieldTip(shield); }
+    } else if(chip) chip.remove();
+  }
+  const st=n.querySelector('.shtrack');
+  if(st){
+    st.classList.toggle('on', shield>0);
+    const sf=st.querySelector('.shfill'); if(sf) sf.style.width=Math.min(100,maxHp?100*shield/maxHp:0)+'%';
+    if(shield>0) st.dataset.tip=shieldTip(shield); else delete st.dataset.tip;
+  }
 }
 function floatOn(uid,txt,cls,big){
   const host=document.querySelector('.floats[data-uid="'+uid+'"]'); if(!host) return;
