@@ -137,7 +137,15 @@
   --r0:#9aa4b2; --r1:#63b3ff; --r2:#b388ff; --r3:#ffc857; --r4:#ff5f8f;
 
   /* ═══ LAYOUT ═══ */
-  --unit-w:172px; --die-w:176px; --die-h:128px;
+  --unit-w:172px; --die-w:176px; --die-h:164px;
+  /* Battle UI redesign — party card width is computed in JS from the live
+     party count (scCombat(): cardW = floor((board-w - gap*(n-1))/n)), not
+     a fixed per-breakpoint token like --unit-w above. --board-w is that
+     formula's "usable width" input, read via getComputedStyle at render
+     time; it tracks #app's real content width (max-width:1240px, 12px
+     side padding, see #app below) at each of the same breakpoints T10
+     already defines for everything else, so it never needs its own. */
+  --board-w:1204px;
   --spr-w:100px; --spr-big:164px; --spr-guide:64px;
   --zone-gap:12px;
   --ui-scale:1;
@@ -757,216 +765,211 @@ small{font-size:var(--t1)}
 }
 
 /* ================= COMBAT ================= */
-.combat{min-height:calc(100vh - 30px);display:flex;flex-direction:column;justify-content:center}
+/* Battle UI redesign (2026-09-16, Battle-UI-A-Grid-v2 handoff). Replaces the
+   whole combat board. Rules this pass follows (product owner's brief):
+   fixed card geometry everywhere — no card can be taller/shorter than its
+   neighbours in ANY state; one shadow token; glow marks selection and legal
+   target only (nothing else glows); spacing on 8/16px for layout, 12px card
+   padding; radii on 12px (cards/bars) and 6px (chips/inner buttons) only. */
+.combat{min-height:calc(100vh - 30px);display:flex;flex-direction:column;justify-content:center;gap:16px}
 .combat.frozen{filter:saturate(.4) brightness(.5)}
-.msg{text-align:center;font-size:var(--t2);color:var(--acc);min-height:15px;margin-bottom:2px}
-.objbanner{display:flex;align-items:center;justify-content:space-between;gap:14px;
-  background:color-mix(in srgb,var(--acc) 12%,var(--pan));border:1px solid color-mix(in srgb,var(--acc) 35%,var(--line));
-  border-radius:12px;padding:7px 16px;margin-bottom:6px}
-.objtxt{font-size:var(--t2);font-weight:700;color:var(--acc)}
-.objcount{font-size:var(--t1);font-weight:600;color:var(--acc);white-space:nowrap}
-/* Battle UI handoff (2026-09-10) §3/§5 — a zone is now a header row (pill +
-   plain-language subcopy, both in normal flow) stacked above the actual
-   card row, instead of the old absolutely-positioned pill floating over
-   the first row of cards. */
-.zone{display:flex;flex-direction:column;gap:6px;position:relative}
-.zone.party{margin-top:8px}
-.zonehead{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
-.zonetag{font-size:var(--t1);font-weight:700;letter-spacing:.08em;padding:3px 12px;
-  border-radius:20px;white-space:nowrap}
-.zone.enemies .zonetag{background:var(--dmg);color:#2a0d0d}
-.zone.party .zonetag{background:var(--ally);color:#0a2320}
-.zonesub{font-size:var(--t2)}
-.zone.enemies .zonesub{color:var(--dmg)}
-.zone.party .zonesub{color:var(--ally)}
-.zonecards{display:flex;justify-content:center;align-items:flex-end;gap:var(--zone-gap);
-  flex-wrap:wrap;min-height:150px}
-.teamdivider{width:100%;max-width:900px;margin:8px auto;display:flex;align-items:center;gap:14px;flex-shrink:0}
-.vsline{flex:1;height:2px;border-radius:1px}
-.vsline-e{background:linear-gradient(90deg,transparent,var(--dmg))}
-.vsline-p{background:linear-gradient(90deg,var(--ally),transparent)}
-.vslbl{font-size:var(--t1);font-weight:700;letter-spacing:.1em;color:var(--dim)}
-/* Enemy waves can carry up to 6 mobs (elite/boss adds); .zone.enemies never
-   had party's swarm-safe shrink, so a 6th card dropped to its own centered
-   row. 130px mirrors the existing <=899px breakpoint's proven-legible size
-   (104px) closely enough while staying readable at desktop viewing distance. */
-.zone.enemies.compact{--unit-w:130px;--zone-gap:8px}
-/* Swarm builds (living Axie Eggs push the party past 5, up to 9 — see the
-   'compact' class comment in ui.js scCombat()). Shrink locally so up to 9
-   columns (9*112 + 8*8 = 1072px) fit inside #app's ~1160px content width
-   without wrapping to a hard-to-reach second row on an ordinary desktop
-   window. Values match the existing <=899px breakpoint's sizing (style.css
-   already proves that size is legible/tappable there), just applied earlier
-   based on party count instead of viewport width. */
-.zone.party.compact{--unit-w:112px;--die-w:112px;--die-h:96px;--zone-gap:8px}
-/* 2026-09-01: "vùng sáng" trung tính dưới mỗi zone — cảm giác bàn, không phải khoảng trống.
-   Chỉ đổi lightness, không thêm hue/saturation — không phá nguyên tắc nền trung tính (rule 1) */
-/* Horizontal bleed was -20px — at tablet width the zone sits only ~8px from
-   the viewport edge (#app's own padding), so a 20px bleed pushed 12px past
-   it and silently inflated document.scrollWidth (invisible to the player,
-   since body has overflow-x:hidden, but tools/verify.mjs B2 measures
-   scrollWidth directly, not visible clipping). -8px keeps the same glow
-   at every breakpoint without ever exceeding #app's own edge padding. */
-.zone.enemies::before,.zone.party::before{content:"";position:absolute;inset:-14px -8px;z-index:-1;
-  background:radial-gradient(ellipse 70% 60% at 50% 30%,#161b22 0%,transparent 72%);pointer-events:none}
-.divider{display:none}
+.msg{text-align:center;font-size:var(--t2);color:var(--acc);min-height:15px}
 
-/* --line2, not --line (WCAG 1.4.11 border contrast) — same fix already
-   applied to .track above: --line alone fails 3:1 on this background.
-   design/gdd/onboarding-tutorial.md's new devGo('tutorial')/verify.mjs
-   coverage is what caught this one — no previous check ever measured a
-   live .unit/.bottombar border, only .track's. */
-.unit{position:relative;width:var(--unit-w);border-radius:var(--radius);overflow:visible;
-  background:var(--pan-hi);border:var(--bd) solid var(--line2);padding:6px;text-align:center;transition:.1s;
-  box-shadow:var(--sh-card);
-  display:flex;flex-direction:column}
-/* Visual hierarchy pass: a party unit's class colour now washes the whole
-   card (not just a 3px edge) so PLANT/BEAST/AQUA/REPTILE/BUG/BIRD read at a
-   glance instead of every card looking like the same flat grey panel. */
-.unit.p{border-bottom:3px solid var(--cc);background:linear-gradient(180deg,color-mix(in srgb,var(--cc) 10%,var(--pan-hi)) 0%,var(--pan-hi) 60%)}
-/* Echo Tier prestige frame (economy-progression.md §10.3) — a full ring layered
-   via box-shadow so it never fights the class-colour --cc bottom border above.
-   Tier 0 (echoTier()===0, the default for ~everyone) adds no class at all, so
-   this is fully invisible until the end-game Echo Forge is unlocked. Escalates
-   cool→warm, thin→thick across tiers 1-5; only the top tier (Eclipse) pulses,
-   to keep the "glow means something rare" rule meaningful. */
-.unit.p.echo1{box-shadow:0 0 0 1px rgba(154,164,178,.45),0 0 5px rgba(154,164,178,.3)}
-.unit.p.echo2{box-shadow:0 0 0 1px rgba(99,179,255,.55),0 0 8px rgba(99,179,255,.4)}
-.unit.p.echo3{box-shadow:0 0 0 1.5px rgba(179,136,255,.6),0 0 12px rgba(179,136,255,.45)}
-.unit.p.echo4{box-shadow:0 0 0 2px rgba(255,200,87,.65),0 0 16px rgba(255,200,87,.5),0 0 10px rgba(179,136,255,.3)}
-.unit.p.echo5{box-shadow:0 0 0 2.5px var(--acc),0 0 20px rgba(255,200,87,.75),0 0 32px rgba(179,136,255,.45);
-  animation:echo-eclipse-pulse 2.2s ease-in-out infinite}
-@keyframes echo-eclipse-pulse{
-  0%,100%{box-shadow:0 0 0 2.5px var(--acc),0 0 20px rgba(255,200,87,.75),0 0 32px rgba(179,136,255,.45)}
-  50%{box-shadow:0 0 0 3px var(--acc),0 0 30px rgba(255,200,87,.9),0 0 46px rgba(179,136,255,.6)}
-}
-.unit.p.token{width:calc(var(--unit-w)*.72);opacity:.85;border-style:dashed}
-.unit.e{background:var(--pan-hi);border-color:var(--line2);border-top:3px solid var(--dmg)}
-.unit.e.elite{border-color:var(--burn)}
-.unit.big{width:290px;border:3px solid transparent;border-radius:var(--radius);
-  background-image:linear-gradient(var(--pan-hi),var(--pan-hi)),linear-gradient(135deg,var(--acc),var(--dmg));
-  background-origin:border-box;background-clip:padding-box,border-box;
-  animation:boss-glow 1.8s ease-in-out infinite}
-@keyframes boss-glow{
-  0%,100%{box-shadow:0 0 8px 1px rgba(255,107,107,.45)}
-  50%{box-shadow:0 0 20px 5px rgba(255,200,87,.6)}
-}
-.bossbanner{position:absolute;top:-13px;left:50%;transform:translateX(-50%);z-index:3;white-space:nowrap;
-  background:linear-gradient(90deg,var(--dmg),var(--acc));color:#2a0d0d;font-size:var(--t1);font-weight:700;
-  letter-spacing:.05em;padding:2px 12px;border-radius:6px;box-shadow:0 2px 6px rgba(0,0,0,.5)}
+/* ---------- 1. top bar (was track()) ---------- */
+.topbar{height:48px;display:flex;align-items:stretch;background:var(--pan);
+  border:var(--bd) solid var(--line2);border-radius:12px;overflow:hidden}
+.topbar>*{display:flex;align-items:center;flex:none;border-right:1px solid var(--line)}
+.tb-wave{gap:8px;padding:0 16px}
+.tb-wave .tb-wavelabel{font-size:var(--t1);font-weight:700;letter-spacing:.14em;color:var(--dim)}
+.tb-wave b{font-size:var(--t3);font-weight:800;font-variant-numeric:tabular-nums}
+.tb-map{gap:2px;padding:0 14px;cursor:help}
+.tb-cell{width:14px;border-radius:1px;flex:none}
+.tb-stats{gap:16px;padding:0 16px;font-size:var(--t2);font-variant-numeric:tabular-nums}
+.tb-stat{display:flex;align-items:center;gap:6px;color:var(--dim);cursor:help}
+.tb-stat b{font-weight:800}
+.tb-util{margin-left:auto;border-right:none;gap:4px;padding:0 12px}
+.tb-btn{height:32px;padding:0 12px;font-size:var(--t1);font-weight:700;letter-spacing:.08em;
+  border:0;border-radius:6px;background:transparent;color:var(--dim);cursor:pointer;font-family:inherit;position:relative}
+.tb-btn:hover{color:var(--txt)}
+.tb-btn.dis{color:var(--off);cursor:not-allowed}
+.tb-spd{display:flex;background:#0a0c0f;border-radius:6px;padding:2px}
+.tb-spd button{height:28px;width:34px;font-size:var(--t1);border:0;border-radius:4px;background:transparent;
+  color:var(--dim);font-weight:700;cursor:pointer;font-family:inherit;position:relative}
+.tb-spd button.on{background:var(--acc);color:#291808;font-weight:800}
+/* height:32/28 is the handoff's literal spec, under this project's 44px
+   tap-target floor (tools/verify.mjs B1, --tap-min) — same fix as .btn's
+   own ::before below: expand the HIT area, not the visible chrome. */
+.tb-btn::before,.tb-spd button::before{content:"";position:absolute;inset:50% 50%;
+  width:max(100%,var(--tap-min));height:max(100%,var(--tap-min));transform:translate(-50%,-50%)}
+
+/* ---------- 2. zone headers ---------- */
+.zone{display:flex;flex-direction:column;gap:8px;position:relative}
+.zonehead{display:flex;align-items:center;gap:8px;height:16px}
+.zonedot{width:6px;height:6px;border-radius:50%;flex:none;background:currentColor}
+.zonetag{font-size:var(--t1);font-weight:800;letter-spacing:.16em}
+.zone.enemies .zonehead{color:var(--dmg)}
+.zone.party .zonehead{color:var(--ally)}
+.zonecount{margin-left:auto;font-size:var(--t1);font-weight:700;font-variant-numeric:tabular-nums}
+.zonehint{margin-left:auto;font-size:var(--t1);font-weight:500;color:var(--dim)}
+.zonediv{height:1px;background:var(--line);flex:none}
+/* Enemy waves can carry up to 6 mobs (elite/boss adds) — shrink+wrap rather
+   than overflow the board. Swarm builds (Axie Eggs) never wrap: partyCard()
+   computes cardW from the live party count instead, see scCombat(). */
+.zone.enemies.compact .unit.e{width:180px;height:190px}
+.zone.enemies.compact .unit.e .sprwrap img{width:76px!important;height:76px!important}
+.zonecards{position:relative;display:flex;justify-content:center;align-items:flex-start;gap:16px;flex-wrap:wrap}
+.zone.party .zonecards{flex-wrap:nowrap}
+
+/* ---------- 3/4. card shell — shared by enemy card and party card ---------- */
+.unit{position:relative;border-radius:12px;background:var(--pan-hi);border:1px solid var(--line2);
+  box-shadow:0 8px 20px rgba(0,0,0,.45);display:flex;flex-direction:column;overflow:hidden;flex:none}
+.unit.tgt{cursor:pointer;border-color:var(--acc);box-shadow:0 0 0 1px var(--acc),0 0 22px rgba(255,147,69,.3)}
+.unit.hovtgt{box-shadow:0 0 0 2px var(--acc),0 0 26px rgba(255,147,69,.4)}
+/* Picked-die glow lives on the OUTER card now — a die is no longer a
+   separate floating object, it is the lower half of its Axie's card. */
+.unit.sel{border-color:var(--shd);box-shadow:0 0 0 2px var(--shd),0 0 26px rgba(49,198,255,.4)}
+.unit.threat{border-color:#9a6060}
+.unit.dead{opacity:.2;filter:grayscale(1)}
+.unit.acting{border-color:var(--dmg);box-shadow:0 0 0 2px var(--dmg),0 0 24px rgba(255,95,95,.45);z-index:7}
+.unit.elite{border-color:var(--burn)}
+/* Axie Egg (summon token): cardW already sizes it the same as every other
+   party card (the swarm mockup state treats all 9 uniformly) — only the
+   dashed/dim treatment carries over from the old .unit.p.token rule. */
+.unit.p.token{opacity:.85;border-style:dashed}
+/* Height is the one dimension every party card ALWAYS shares — this is
+   the actual fix for the original bug report ("các ô nhấp nhô không đều").
+   Width is set inline per-card by partyCard() (the computed cardW). */
+.unit.p{height:360px}
+
+.unit.e{width:228px;height:224px}
+.unit.e.big{width:340px;height:300px}
+
+/* boss banner — now in normal flow (was position:absolute;top:-13px), so it
+   cannot overlap anything and never needs the card taller to fit it. */
+.ubanner{height:28px;flex:none;display:flex;align-items:center;justify-content:center;gap:8px;
+  background:linear-gradient(90deg,var(--dmg),var(--acc));color:#2a0d0d;font-size:var(--t1);font-weight:800;
+  letter-spacing:.16em}
 .bosstag{display:inline-block;margin-left:5px;background:var(--acc);color:#2a1600;font-size:.7em;font-weight:700;
   padding:1px 5px;border-radius:3px;vertical-align:middle}
-.unit.dead{opacity:.2;filter:grayscale(1)}
-.unit.tgt{cursor:pointer;border-color:var(--acc);box-shadow:0 0 0 1px var(--acc),0 0 22px #FF934555;z-index:6}
-.unit.hovtgt{box-shadow:0 0 0 2px var(--acc),0 0 30px #FF934588}
-.unit.threat{border-color:#9a6060} /* lightened from #7a4a4a — same fix as .unit above */
-/* Battle UI handoff (2026-09-10) §5 — reciprocal of the enemy's own "→ Name"
-   strip: names the actual attacker so the pairing reads in both directions
-   without a modal. Reuses --dmg (already this project's threat/danger
-   color, same family as .unit.threat's border above), no new hex. */
-.targetedchip{display:inline-flex;align-items:center;margin:0 0 var(--s1);padding:3px 8px;
-  border-radius:7px;background:var(--dmg);font-size:var(--t1);font-weight:700;color:#2a0d0d}
-/* Whoever is currently acting must be unmissable — a colour swap alone (the
-   previous .acting rule) was too close to the .threat/.e border treatment. */
-.unit.acting{border-color:var(--dmg);box-shadow:0 0 0 2px var(--dmg),0 0 24px #ff5f5f77;transform:scale(1.04);z-index:7}
-.sprwrap{position:relative}
-/* 2026-09-01: bóng đổ chân sprite — gắn sprite vào mặt bàn thay vì lơ lửng trong khung */
-.sprwrap::after{content:"";position:absolute;left:50%;bottom:-2px;transform:translateX(-50%);
+
+/* intent band — fixed height:36px, no longer able to change the card's
+   height when it wraps to 2 lines (one of the two causes of the old
+   uneven row; the other was the status-chip count, fixed below). */
+.intent{height:36px;flex:none;display:flex;align-items:center;justify-content:center;gap:8px;
+  overflow:hidden;border-bottom:1px solid var(--line);
+  background:color-mix(in srgb,currentColor 16%,var(--pan-hi))}
+.intent .ii{font-size:16px;flex:none}
+.intent .iv{font-size:var(--intent-v);font-weight:800;line-height:1;font-variant-numeric:tabular-nums;flex:none}
+/* --dim measured 3.7-3.87:1 here (tools/verify.mjs A2) — the intent band's
+   background is tinted by the intent's OWN colour (color-mix 16%), and on
+   the poison/shield tints that leaves --dim just under AA. --txt has
+   margin to spare on every tint this band can have. */
+.intent .ia{font-size:var(--t2);color:var(--txt);flex:none}
+.intent .itg{font-size:var(--t2);font-weight:700;color:var(--txt);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.intent .ik{font-size:var(--t1);color:var(--dim);flex:none}
+.intent.t_dmg{color:var(--dmg)} .intent.t_shield{color:var(--shd)}
+.intent.t_heal{color:var(--heal)} .intent.t_poison{color:var(--poi)}
+.intent.t_debuff,.intent.t_buff{color:var(--deb)} .intent.t_summon{color:var(--man)}
+.intent.danger{box-shadow:inset 0 0 0 1px var(--dmg)}
+
+/* portrait band */
+/* Party card only: the clickable "portrait block" (click = inspect) is a
+   152px-tall band of its own, holding the class bar (top edge) and the
+   .sprwrap sprite area (the rest) — enemy cards have no such wrapper, the
+   class bar and the inspect-click region, since only Axies have either. */
+.pportrait{height:152px;flex:none;position:relative;display:flex;flex-direction:column;cursor:pointer}
+.sprwrap{flex:1;min-height:0;position:relative;display:flex;align-items:center;justify-content:center}
+.sprwrap::after{content:"";position:absolute;left:50%;bottom:2px;transform:translateX(-50%);
   width:60%;height:8px;border-radius:50%;background:radial-gradient(ellipse,rgba(0,0,0,.5),transparent 72%);
   pointer-events:none;z-index:-1}
-.unit .spr{margin:0 auto var(--s1)}
-.unit.big .spr{width:var(--spr-big);height:var(--spr-big)}
-.unit.p.token .spr{width:calc(var(--spr-w)*.6);height:calc(var(--spr-w)*.6)}
-/* object-position:center — same fix/reasoning as .axie-id.real/.house-art.real
-   img (see those comments): BOSS_ART/monArt2() real art isn't one consistent
-   canvas the way procedurally-generated pixel monsters are, so bottom-
-   anchoring (img.spr's default) would misalign real-art bosses of different
-   source aspect ratios inside this box exactly like it did for Heroes. */
+.unit .spr{display:block;object-fit:contain}
 .unit .spr.mut{transform:scaleX(-1);object-position:center;filter:grayscale(1) sepia(1) hue-rotate(-38deg) saturate(3.6) contrast(1.1) brightness(.86)}
 .unit.big .spr.mut{filter:grayscale(1) sepia(1) hue-rotate(-50deg) saturate(4.4) contrast(1.16) brightness(.78);
   animation:breathe 2.6s ease-in-out infinite}
-/* .real (set at the img element by every el('img','spr mut') call site, via
-   sprMonIsReal() — see that function's comment) drops the enemy-tint filter
-   entirely for real BOSS_ART/monArt2() art: that filter was designed to
-   recolor a flat, single-tone pixel silhouette into a uniform "this is an
-   enemy" red, but applied to a real painted Chimera card art it flattens
-   every boss into the SAME red blob, destroying the actual per-boss color
-   identity the art swap was for. Pixel-fallback monsters (no .real class)
-   keep the original tint unchanged — same specificity (4 classes) as the
-   rules above, placed after them so it wins both the plain and .big case. */
 .unit .spr.mut.real{filter:none}
-.unit.big .spr.mut.real{filter:none}
 .unit.p .spr{animation:breathe 3.4s ease-in-out infinite}
 @keyframes breathe{0%,100%{transform:translateY(0) scaleX(var(--fx,1))}50%{transform:translateY(-3px) scaleX(var(--fx,1))}}
 .unit.e .spr.mut{--fx:-1}
-/* 2026-09-01: to hơn (16px→24px) và nằm hẳn trên bề mặt card thay vì đè viền —
-   đây là tín hiệu chiến thuật (archetype), không phải icon trang trí */
-/* Fixed dark background + white text, not var(--cc): dark text on the raw
-   class colour only clears WCAG AA (4.5:1) for 5 of 6 classes — bird
-   (#5c6bc0) measured 3.92:1. Class colour still reads via the border ring;
-   design/gdd/onboarding-tutorial.md's new devGo('tutorial') coverage is
-   what caught this (Momo/bird is one of its 5 fixed party members). */
-.pasdot{position:absolute;top:var(--s1);left:var(--s1);width:var(--icon-md);height:var(--icon-md);line-height:22px;font-size:var(--t2);
-  background:var(--pan-hi);color:var(--txt);border:2px solid var(--cc);border-radius:50%;z-index:2;font-weight:700}
-.unit .nm{font-size:var(--t1);color:var(--dim);margin-bottom:var(--s1);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;letter-spacing:.5px}
-/* Duplicate-name disambiguation suffix — same dim tone as .nm itself, just
-   slightly de-emphasized so "Sprout (1)" doesn't read as a stat. */
-/* color:var(--dim), not opacity — opacity on already-small 11px text failed
-   the AA contrast check (tools/verify.mjs A2), --dim is already used at full
-   opacity elsewhere in this same card and passes. */
+
+/* class bar — the ONLY carrier of class identity now (the old full-card
+   gradient wash is gone: it's decoration competing with the card border's
+   own state colours, and the redesign's rule is "the background is
+   neutral"). Echo Tier prestige (opt-in, end-game) also lives here instead
+   of a 5th ring around the whole card. */
+.classbar{position:absolute;top:0;left:0;right:0;height:3px;z-index:2;background:var(--cc)}
+.unit.echo1 .classbar{height:4px}
+.unit.echo2 .classbar{height:5px;box-shadow:0 0 6px rgba(99,179,255,.6)}
+.unit.echo3 .classbar{height:6px;box-shadow:0 0 8px rgba(179,136,255,.65)}
+.unit.echo4 .classbar{height:7px;box-shadow:0 0 10px rgba(255,200,87,.7)}
+.unit.echo5 .classbar{height:8px;box-shadow:0 0 12px rgba(255,200,87,.8);animation:hp-pulse 1.6s ease-in-out infinite}
+
+/* passive badge (was .pasdot, a 24px circle) */
+.pasdot{position:absolute;top:10px;left:10px;width:22px;height:22px;border-radius:6px;z-index:2;
+  background:#0a0c0f;color:var(--txt);border:1px solid var(--cc);font-size:var(--t1);font-weight:800;
+  display:flex;align-items:center;justify-content:center;cursor:help}
+
+/* incoming-damage badge (was .targetedchip, a text row that cost height).
+   Absolutely positioned like every other card badge now, so 0 or 1 of it
+   never changes the card's height. The number is the summed incoming `dmg`
+   across every enemy targeting this Axie — the decision-relevant figure. */
+.dmgbadge{position:absolute;top:10px;right:10px;z-index:2;display:inline-flex;align-items:center;gap:4px;
+  padding:3px 7px;border-radius:6px;background:var(--dmg);color:#2a0d0d;font-size:var(--t1);font-weight:800;
+  font-variant-numeric:tabular-nums}
+.dmgbadge .icow.ii{width:11px;height:11px}
+.dmgbadge .icow.ii svg{width:11px;height:11px}
+
+/* action preview chip — "-6" / "+7 SH" while a die/relic is selected and
+   this card is a legal target. Was position:absolute;top:-14px (floating
+   above the card edge); the redesign keeps it, just inside the card. */
+.preview{pointer-events:none;position:absolute;top:8px;left:50%;transform:translateX(-50%);z-index:5;
+  display:inline-flex;align-items:center;gap:5px;font-size:var(--t2);font-weight:800;
+  background:#0a0c0f;border:1px solid var(--acc);border-radius:6px;padding:4px 10px;white-space:nowrap;
+  font-variant-numeric:tabular-nums;color:var(--acc)}
+.preview.dmg{color:var(--dmg);border-color:var(--dmg)} .preview.shd{color:var(--shd);border-color:var(--shd)}
+.preview.heal{color:var(--heal);border-color:var(--heal)} .preview.poi{color:var(--poi);border-color:var(--poi)}
+.preview.deb{color:var(--deb);border-color:var(--deb);font-size:var(--t1)}
+
+/* status chips (poison/burn/stun/...) — absolutely positioned (was an
+   in-flow row that added 0-18px depending on chip count: the other of the
+   two original causes of uneven card heights, together with the intent
+   band above). */
+.stats{position:absolute;z-index:2;display:flex;gap:4px;pointer-events:none}
+.unit.e .stats{bottom:4px;left:8px}
+.unit.p .stats{bottom:0;left:10px}
+.stats span{pointer-events:auto;font-size:var(--t1);font-weight:700;padding:2px 6px;border-radius:6px;
+  background:#0a0c0f;color:var(--dim);display:inline-flex;align-items:center;gap:3px;
+  font-variant-numeric:tabular-nums;cursor:help}
+.stats span.more{color:var(--dim)}
+.stats .icow.ii{width:13px;height:13px}
+.stats .icow.ii svg{width:13px;height:13px}
+.stats .poison{color:var(--poi)} .stats .burn{color:var(--burn)} .stats .regen{color:var(--heal)}
+.stats .thorns{color:var(--acc)} .stats .blind{color:#b0a8d0} .stats .weaken{color:var(--shd)}
+.stats .vulnerable{color:var(--deb)} .stats .stun{color:var(--txt)} .stats .undying{color:var(--r3)}
+.stats .frz{color:#9fe8ff} .stats .sh{color:var(--shd)}
+
+/* boss rule line */
+.bossdesc{flex:none;padding:0 14px 8px;font-size:var(--t2);line-height:1.4;color:var(--dim);text-align:center}
+
+/* identity + hp band */
+.idband{flex:none;padding:0 12px 12px;display:flex;flex-direction:column;justify-content:flex-end;gap:6px}
+.unit.p .idband{padding:0 12px 10px}
+.idrow{display:flex;align-items:baseline;justify-content:space-between;gap:4px}
+.unit .nm{font-size:var(--t2);color:var(--dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .dupe-tag{color:var(--dim)}
-/* T05 · số HP ra khỏi thanh — bài toán contrast biến mất hoàn toàn */
-.hpbar{position:relative;height:var(--hp-h);margin-top:var(--hp-num-offset)}
-.hpnum{position:absolute;bottom:calc(100% + 3px);left:0;right:0;display:flex;
-  justify-content:space-between;align-items:baseline;
-  font-size:var(--t1);letter-spacing:.5px;color:var(--dim)}
-/* Numbers you decide on (HP, damage) must be easier to scan than the label
-   text around them — bump weight+size instead of only colour. */
-.hpnum b{color:var(--txt);font-size:var(--t3);font-weight:800}
-.hptrack{height:100%;background:#0a0c0f;border-radius:4px;overflow:hidden;position:relative}
-/* T06 · fill mã hoá % HP, giống nhau cho cả hai phe (L6) */
+.hpval{font-size:var(--t3);font-weight:800;font-variant-numeric:tabular-nums;flex:none;display:inline-flex;
+  align-items:baseline;gap:6px;white-space:nowrap}
+.hpval .hpmax{color:var(--dim);font-weight:500}
+.hpval .shieldchip{display:inline-flex;align-items:center;gap:2px;font-size:var(--t1);font-weight:700;color:var(--shd)}
+.hpval .shieldchip .icow.ii{width:12px;height:12px}
+.hpbar{position:relative;height:6px;border-radius:3px;background:#0a0c0f;overflow:hidden}
 .hpfill{height:100%;background:var(--hp-full);transition:width .22s ease-out}
 .hpbar.low  .hpfill{background:var(--hp-low)}
 .hpbar.crit .hpfill{background:var(--hp-crit);animation:hp-pulse 1.2s infinite}
 @keyframes hp-pulse{50%{opacity:.55}}
 @media (prefers-reduced-motion: reduce){.hpbar.crit .hpfill{animation:none}}
-.hpchip{display:none}
-.hpghost{pointer-events:none;position:absolute;top:0;height:100%;background:#ffffff44}
-.hptxt{display:none}
-.shbar{height:5px;margin-top:var(--s1);background:var(--shd);border-radius:3px;position:relative;min-width:16px}
-.shbar span{position:absolute;left:0;top:-13px;font-size:var(--t1);color:var(--shd)}
-.shbar.brk{opacity:0;transition:opacity .2s}
-.stats{display:flex;gap:4px;justify-content:center;flex-wrap:wrap;min-height:18px;margin-top:var(--s1)}
-.stats span{font-size:var(--t1);padding:2px 5px;border-radius:3px;background:var(--pan2);color:var(--dim);display:inline-flex;align-items:center;gap:2px}
-.stats span.more{color:var(--dim)}
-.stats .icow.ii svg{width:19px;height:19px} /* kept in sync with the base .icow.ii rule above */
-.stats .poison{color:var(--poi)} .stats .burn{color:var(--burn)} .stats .regen{color:var(--heal)}
-.stats .thorns{color:var(--acc)} .stats .blind{color:#b0a8d0} .stats .weaken{color:var(--shd)}
-.stats .vulnerable{color:var(--deb)} .stats .stun{color:var(--txt)} .stats .undying{color:var(--r3)}
-.stats .frz{color:#9fe8ff} .stats .sh{color:var(--shd)}
-/* 2026-09-01: intent lên ĐẦU card (order:-1, xem .unit display:flex ở trên) —
-   đây là thông tin quan trọng nhất mỗi lượt (đúng pillar minh bạch), không còn
-   là "chip phụ" đóng khung riêng dưới card mà hoà vào bề mặt card, đậm hơn hẳn. */
-.intent{order:-1;margin:-6px -6px 6px -6px;padding:6px;display:flex;gap:5px;
-  align-items:center;justify-content:center;flex-wrap:wrap;font-size:var(--t3);
-  /* Battle UI handoff (2026-09-10) §3 — tinted by currentColor so the strip
-     itself reads as "this is what's coming", not just the text inside it;
-     each .t_* rule below already sets `color`, so no new per-type rule
-     needed and no new hex introduced. */
-  background:color-mix(in srgb,currentColor 10%,var(--pan2));
-  border-radius:var(--radius) var(--radius) 0 0;border-bottom:1px solid var(--line)}
-.intent .ii{font-size:16px} .intent .iv{font-size:var(--intent-v);font-weight:700} .intent .itg{font-size:var(--t2);color:var(--dim)}
-.intent .ik{font-size:var(--t1);color:var(--dim)}
-.intent.t_dmg{color:var(--dmg)} .intent.t_shield{color:var(--shd)}
-.intent.t_heal{color:var(--heal)} .intent.t_poison{color:var(--poi)}
-.intent.t_debuff,.intent.t_buff{color:var(--deb)} .intent.t_summon{color:var(--man)}
-.intent.danger{background:#3a1f1f;box-shadow:inset 0 0 0 1px var(--dmg)}
-.bossdesc{font-size:var(--t1);color:var(--dim);margin-top:5px;line-height:1.55}
-.preview{pointer-events:none;position:absolute;top:-14px;left:50%;transform:translateX(-50%);font-size:var(--t3);
-  background:var(--bg);border:1px solid var(--acc);border-radius:var(--rad-sm);padding:2px 8px;white-space:nowrap;z-index:8}
-.preview.dmg{color:var(--dmg);border-color:var(--dmg)} .preview.shd{color:var(--shd);border-color:var(--shd)}
-.preview.heal{color:var(--heal);border-color:var(--heal)} .preview.poi{color:var(--poi);border-color:var(--poi)}
-.preview.deb{color:var(--deb);border-color:var(--deb);font-size:var(--t2)}
+.hpghost{pointer-events:none;position:absolute;top:0;bottom:0;right:0;background:rgba(255,255,255,.3)}
+.unit.p .hpghost{background:rgba(245,69,64,.75)}
+
 .floats{position:absolute;left:0;right:0;top:4px;height:0;pointer-events:none;z-index:9}
 .ftx{pointer-events:none;position:absolute;transform:translateX(-50%);font-size:var(--float-sz);
   animation:fly 1.2s ease-out forwards;text-shadow:0 2px 0 #000,0 0 10px #000}
@@ -978,37 +981,21 @@ small{font-size:var(--t1)}
   100%{opacity:0;transform:translate(-50%,-46px) scale(1)}}
 
 /* ---------- relic badge (relic-system.md §3.9 + §10 E1) ----------
-   fx.js relicBadge() dựng phần tử này khi engine phát {t:'relic'}. Trước đây 14
-   relic đúng số nhưng KHÔNG có cách nào hiện ra. Badge tái dùng đúng khung ngôn
-   ngữ có sẵn: neo trong .floats (cùng host với .ftx), nền tối đặc + viền màu
-   archetype giống .preview, cỡ chữ lấy từ thang --t1/--t2 — KHÔNG px rời, vì
-   một `font-size:9px` cứng trong .ractag-hv là thứ làm verify.mjs flap.
-   Chữ tên dùng --txt (AA chắc chắn); màu archetype (--rbc) chỉ dùng cho viền +
-   icon, nơi nó nằm trên nền --bg nên vẫn vượt 4.5:1 cho mọi giá trị trong ARCH.
-   --rbi là bậc thang xếp chồng khi nhiều relic KHÁC nhau nổ cùng lúc. */
-/* Neo trong .sprwrap: top tính theo % chiều cao khối tranh nên badge luôn nằm
-   giữa vùng art ở mọi breakpoint, không đè intent địch / HP / chip class. */
+   fx.js relicBadge() dựng phần tử này khi engine phát {t:'relic'}. Badge tái
+   dùng đúng khung ngôn ngữ có sẵn: neo trong .floats (cùng host với .ftx),
+   nền tối đặc + viền màu archetype giống .preview, cỡ chữ lấy từ thang
+   --t1/--t2. --rbi là bậc thang xếp chồng khi nhiều relic KHÁC nhau nổ
+   cùng lúc. Neo trong .sprwrap: top tính theo % chiều cao khối tranh nên
+   badge luôn nằm giữa vùng art ở mọi breakpoint. */
 .rbadge{pointer-events:none;position:absolute;left:50%;top:calc(24% + var(--rbi,0) * 24px);
   transform:translateX(-50%);display:flex;align-items:center;gap:5px;z-index:11;
   background:var(--bg);border:1px solid var(--rbc,var(--acc));border-radius:var(--rad-sm);
   padding:2px 7px;max-width:min(150px,calc(var(--unit-w) + 28px));white-space:nowrap;
   box-shadow:0 0 10px #000c,0 0 6px var(--rbc,var(--acc));
   animation:rb-in .18s ease-out both}
-/* Màu archetype trong ARCH được chọn cho chip/nhãn trên panel mid-tone, KHÔNG
-   phải cho chữ nhỏ ở opacity giảm trên nền gần đen. Đo thật: ✜ AEGIS #a86fd8 đạt
-   5.55:1 ở opacity 1 nhưng chỉ 4.29:1 khi badge nằm trên Axie Egg
-   (.unit.p.token{opacity:.85}) — DƯỚI ngưỡng AA 4.5, và Egg chính là nơi
-   startSummon/eggInherit bắn. Pha 22% trắng nâng sàn lên 5.70:1 ở cùng điều kiện
-   mà vẫn giữ nhận dạng hue. Viền/glow giữ --rbc nguyên bản: chúng là non-text,
-   chỉ cần 3:1 (WCAG 1.4.11) và #a86fd8@.85 = 4.29:1 vẫn dư.
-   --rbc-tx do fx.js relicFxLighten() set sẵn dưới dạng hex phẳng, KHÔNG dùng
-   color-mix() ở đây: color-mix serialise thành color(srgb ...) mà parser contrast
-   của verify.mjs không đọc được ⇒ check sẽ pass giả. */
 .rbadge .rbi{font-size:var(--t2);line-height:1;color:var(--rbc-tx);flex:none}
 .rbadge .rbn{font-size:var(--t1);line-height:1.2;letter-spacing:1px;color:var(--txt);
   overflow:hidden;text-overflow:ellipsis}
-/* Bộ đếm gộp: relic bắn lại trong cửa sổ throttle chỉ cập nhật "×N" ở đây,
-   không sinh badge mới (xem relicBadge() — coalesce theo id). */
 .rbadge .rbx{font-size:var(--t1);line-height:1.2;color:var(--rbc-tx);flex:none;font-weight:700}
 .rbadge.rb-pop{animation:rb-pop .18s ease-out}
 .rbadge.rb-out{animation:rb-out .2s ease-in forwards}
@@ -1018,37 +1005,50 @@ small{font-size:var(--t1)}
   100%{transform:translateX(-50%) scale(1)}}
 @keyframes rb-out{0%{opacity:1;transform:translateX(-50%) translateY(0)}
   100%{opacity:0;transform:translateX(-50%) translateY(-10px)}}
-/* Cùng hợp đồng photosensitivity với flashScreen/hitstop: bỏ chuyển động, GIỮ
-   thông tin — badge vẫn hiện đủ lâu để đọc, chỉ không trượt/nảy. */
 @media (prefers-reduced-motion:reduce){
   .rbadge,.rbadge.rb-pop{animation:none}
   .rbadge.rb-out{animation:rb-fade .2s linear forwards}
   @keyframes rb-fade{to{opacity:0}}
 }
 
-/* ---------- dice tray: the hero object ---------- */
-/* 2026-09-01: mỗi Axie + die của nó giờ là 1 cột (.pcol), thay vì 2 hàng riêng
-   (zone.party + tray cũ) — .zone{display:flex} có sẵn xử lý layout hàng ngang cho .pcol */
-.pcol{display:flex;flex-direction:column;align-items:center;gap:10px}
-/* Formation Resonance (design/quick-specs/formation-resonance-2026-09-01.md):
-   badge nối 2 chân dung liền kề đang có cặp "mở" — bắt buộc hiện TRƯỚC khi click,
-   tái dùng màu buff (--acc) đã có, không thêm màu/art mới. */
-.reslink{align-self:center;display:flex;align-items:center;justify-content:center;
-  width:24px;height:24px;border-radius:50%;border:2px solid var(--acc);position:relative;
-  box-shadow:0 0 8px var(--acc);animation:reslink-pulse 1.4s ease-in-out infinite;flex:none;cursor:help}
-@keyframes reslink-pulse{0%,100%{box-shadow:0 0 6px var(--acc)}50%{box-shadow:0 0 14px var(--acc)}}
-/* 2026-09-09 (product owner feedback): the FT_IC glyph inside this badge
-   (.icow.ii, 19px) sat in a 24px circle with ~2.5px margin per side — small
-   enough that the icon's own uneven silhouette (e.g. the dmg sword's wide
-   guard vs. its narrow blade tip) read as off-centre even though the box
-   itself is flex-centred. Filling more of the circle removes that illusion. */
-.reslink .icow.ii{width:20px;height:20px}
-.reslink .icow.ii svg{width:20px;height:20px}
-/* The native title= tooltip everywhere else in this file has a long hover
-   delay and never appears on touch at all — fine for incidental info, but
-   this badge IS the only place Formation Resonance explains itself before
-   the player acts, so it needs to show immediately on hover AND on tap
-   (kbAct() in ui.js gives it tabIndex, so a touch tap focuses it → :focus). */
+/* Formation Resonance band (Battle-UI-A-Grid-v2 handoff §4b, 2026-09-16) —
+   replaces the old .reslink floating circle + reslink-pulse glow. That
+   badge was a DOM child of .zonecards positioned by measuring live rects
+   after render (placeResLinks(), now deleted) — exactly the pattern this
+   handoff calls out twice as wrong: (1) a connector outside a card's own
+   box competes with the party row's cardW formula the moment it's a real
+   flex child, and needs a render-after-layout pass the moment it isn't;
+   (2) one badge per PAIR can't express a card that is in TWO pairs (the
+   middle of a 3-in-a-row chain), because it has nowhere on that card to
+   anchor a second badge. The band fixes both: it lives INSIDE the die
+   block (reserved 26px on every card, pairs or not, so geometry never
+   moves) and tracks linkL/linkR as two independent lookups per card.
+   One thing the handoff's literal spec assumes that this codebase's
+   .unit{overflow:hidden} does not allow: a 2px "bridge" element bleeding
+   past the card's own edge into the gap. Rather than punch a hole in the
+   clip that every other absolutely-positioned card badge (.pasdot,
+   .dmgbadge, .classbar) relies on for its rounded corners, the two edge
+   rails below stop flush at the card border — right next to each other
+   across an 8-16px gap, which reads as connected without needing a literal
+   bridge pixel. */
+.resband{height:26px;flex:none;margin:-12px -12px 6px;padding:0 12px;
+  display:flex;align-items:center;gap:6px;overflow:hidden;background:transparent}
+.resband.ll{justify-content:flex-start;background:linear-gradient(270deg,transparent 20%,rgba(255,147,69,.16))}
+.resband.lr{justify-content:flex-end;background:linear-gradient(90deg,transparent 20%,rgba(255,147,69,.16))}
+.resband.ll.lr{justify-content:space-between;
+  background:linear-gradient(90deg,rgba(255,147,69,.16),transparent 45%,rgba(255,147,69,.16))}
+.resband .icow{flex:none;width:14px;height:14px}
+.resband .icow svg{width:14px;height:14px}
+.reslbl{font-size:var(--t1);font-weight:800;letter-spacing:.08em;color:var(--acc);white-space:nowrap}
+/* Edge rails — always in the DOM (both sides, every card), lit only on the
+   linked side. Flush with the die block's own edges (not the handoff's
+   literal "bleed past the card"), so .unit's overflow:hidden never clips
+   them; two lit rails from adjacent cards sit right next to each other
+   across the gap and read as one connection. */
+.resrail{position:absolute;top:0;bottom:0;width:2px;z-index:2;background:transparent}
+.resrail.l{left:0} .resrail.r{right:0}
+.resrail.on.l{background:linear-gradient(180deg,var(--acc),transparent 70%)}
+.resrail.on.r{background:linear-gradient(180deg,var(--acc),transparent 70%)}
 [data-tip]{position:relative}
 [data-tip]::after{content:attr(data-tip);position:absolute;bottom:calc(100% + 8px);left:50%;
   transform:translateX(-50%);background:var(--pan2);border:1px solid var(--line2);border-radius:var(--rad-sm);
@@ -1056,132 +1056,195 @@ small{font-size:var(--t1)}
   white-space:normal;width:max-content;max-width:220px;text-align:center;
   opacity:0;pointer-events:none;transition:opacity .1s;z-index:50}
 [data-tip]:hover::after,[data-tip]:focus::after{opacity:1}
-.diebox{width:var(--die-w);text-align:center;position:relative}
-.diebox .die{background:var(--pan-hi);border:var(--bd) solid var(--line2);border-bottom:3px solid var(--cc);
-  padding:8px 6px;min-height:var(--die-h);cursor:pointer;transition:.1s;position:relative;border-radius:12px;
-  box-shadow:var(--sh-hero);
-  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px}
-.die:hover{background:var(--pan3);border-color:var(--dim)}
-.die.sel{border-color:var(--acc);box-shadow:0 0 0 2px var(--acc),0 0 26px #FF934577}
-.die.used{opacity:.2;pointer-events:none;filter:grayscale(1)}
-.die.blank{opacity:.45}
-.die.out{opacity:.15;justify-content:center;font-size:var(--t4);cursor:default}
-.die.heavy{border-top:3px solid var(--acc)}
-.die.tumble{animation:tum .12s linear infinite}
+
+/* ---------- party card lower half: the die block ---------- */
+/* .diebox is a structural wrapper only (data-uid anchor for bindDrag()/
+   dieBoxEl()/runRollAnim() — none of them care how it looks). It carries
+   no border/background of its own: the merged card's OWN border above is
+   the only visible box now — "a die is no longer a separate floating
+   object, it is the lower half of its Axie's card." */
+.diebox{flex:1;min-height:0;display:flex;flex-direction:column;width:auto}
+.uniddiv{height:1px;flex:none;background:var(--line)}
+.die{flex:1;min-height:0;display:flex;flex-direction:column;padding:12px;cursor:pointer;position:relative}
+.die.used{opacity:.45;pointer-events:none}
+.die.out{flex:1;display:flex;align-items:center;justify-content:center;opacity:.15;font-size:var(--t4)}
+.die.tumble .di{animation:tum .12s linear infinite}
 @keyframes tum{0%{transform:translateY(0) rotate(-3deg)}50%{transform:translateY(-8px) rotate(4deg)}100%{transform:translateY(0) rotate(-3deg)}}
-.die.landed{animation:land .3s cubic-bezier(.3,1.7,.5,1)}
+.die.landed .di{animation:land .3s cubic-bezier(.3,1.7,.5,1)}
 @keyframes land{0%{transform:translateY(-13px) scaleY(1.18) scaleX(.86)}45%{transform:translateY(3px) scaleY(.8) scaleX(1.16)}
   70%{transform:translateY(-2px) scaleY(1.06)}100%{transform:translateY(0) scale(1)}}
-.die .dp{font-size:var(--t1);color:var(--dim);letter-spacing:2px}
-/* docs/art/icon-spec-body-parts.md §Layout change — part icon now owns the
-   primary 22px (.di) slot; the effect-type icon shrinks to the 't' (11px)
-   size class and becomes a secondary corner badge instead. */
-.die .partbadge{position:absolute;top:4px;right:4px}
-.die .di{font-size:20px;line-height:22px}
-.die .dv{font-size:var(--die-num);line-height:1.05}
-/* min-height reserves room for 2 lines even when a face's caption only
-   wraps to 1 — C1 requires all 5 die boxes stay the exact same height,
-   and .die's own height is min-height (content-driven), so a die whose
-   caption happens to be one word longer must not grow taller than its
-   neighbors. */
-.die .dcap{font-size:var(--die-kw);color:var(--dim);letter-spacing:.2px;text-align:center;line-height:1.25;
-  max-width:100%;padding:0 2px;min-height:calc(var(--die-kw) * 2.5)}
-.dv.blanktxt{font-size:var(--t2);color:var(--dim);letter-spacing:2px}
-.die.t_dmg .di,.die.t_dmg .dv{color:var(--dmg)}
-.die.t_shield .di,.die.t_shield .dv{color:var(--shd)}
-.die.t_heal .di,.die.t_heal .dv{color:var(--heal)}
-.die.t_mana .di,.die.t_mana .dv{color:var(--man)}
-.die.t_poison .di,.die.t_poison .dv{color:var(--poi)}
-.die.t_debuff .di,.die.t_buff .di,.die.t_debuff .dv,.die.t_buff .dv{color:var(--deb)}
-.die.t_summon .di,.die.t_summon .dv{color:var(--man)}
-/* §3.4 — merged top accent strip: replaces the old separate .heavytag banner
-   and .rartag dot with one full-width 3px bar, coloured by rarity, with an
-   inset weight glyph only when the face is `heavy`. */
-.ractag{pointer-events:none;position:absolute;top:0;left:0;right:0;height:3px;
-  border-radius:8px 8px 0 0;background:transparent;display:flex;align-items:center}
-.die[data-r="1"] .ractag{background:var(--r1)} .die[data-r="2"] .ractag{background:var(--r2)}
-.die[data-r="3"] .ractag{background:var(--r3)} .die[data-r="4"] .ractag{background:var(--r4)}
-/* font-size phải nằm trong thang type (--t1:11px là sàn a11y, tools/verify.mjs
-   A1 hardcode 11px). Trước đây là 9px cứng: glyph ⚖ chỉ render khi mặt xúc xắc
-   có keyword `heavy`, nên A1 chỉ trượt ở những run RNG tình cờ sinh ra mặt đó —
-   suite lúc 30/32, lúc 32/32. Position absolute nên đổi cỡ không đẩy layout die. */
-/* bottom:100%, KHÔNG phải top:-7px. Đo bằng pixel thật (verify.mjs A2px): với
-   top:-7px thì hộp chữ 11px trải từ y=-7 đến y=+4 trong .ractag, tức 3px cuối
-   ĐÈ LÊN chính thanh rarity — lúc đó --acc (khi đó #ffc857) trùng đúng --r3
-   (#ffc857), nên phần ink nằm trên thanh đo được 1.63:1 (ngưỡng AA 4.5).
-   2026-09-10: --acc đổi sang #FF9345, không còn trùng --r3 nữa, nhưng fix vị
-   trí bottom:calc(100%+bd) bên dưới vẫn giữ nguyên — vẫn là cách đúng để né
-   chồng lấn bất kể --acc là màu gì. Không thang màu nào
-   cứu được: --acc trên r1 1.45:1, r2 1.73:1, r3 1.00:1, r4 1.87:1 — glyph sáng
-   trên thanh sáng luôn hỏng. Trên mặt die thì 10.62:1. bottom:calc(100% + var(--bd)) ghim đáy hộp
-   chữ lên trên CẢ thanh lẫn viền die (viền cũng tô --r3 ở die Epic) nên không còn chồng lấn, và không phụ thuộc
-   font-size như một magic number âm. Ba lớp che khiến lỗi này vô hình trước đây:
-   nền thật là ANH EM (không nằm trong chuỗi ancestor mà effBg đi), glyph chỉ tồn
-   tại khi có mặt heavy trên bàn, và mô hình DOM không composite được pixel. */
-.ractag-hv{position:absolute;left:2px;bottom:calc(100% + var(--bd));font-size:var(--t1);line-height:1;color:var(--acc)}
-.die[data-r="3"]{border-color:var(--r3)}
-.die[data-r="4"]{border-color:var(--r4);box-shadow:0 0 20px #ff5f8f66;animation:mythg 1.8s infinite}
-@keyframes mythg{0%,100%{box-shadow:0 0 14px #ff5f8f55}50%{box-shadow:0 0 28px #ff5f8fbb}}
-.die.dr3{border-left-color:var(--r3)} .die.dr4{border-left-color:var(--r4)}
-.critbadge{pointer-events:none;position:absolute;top:-8px;left:50%;transform:translateX(-50%);font-size:var(--t1);
-  background:var(--acc);color:#291808;padding:1px 7px;border-radius:var(--rad-sm);letter-spacing:1px;white-space:nowrap}
-.die.critready{border-color:var(--acc)}
-.pips{display:flex;gap:3px;justify-content:center;margin-top:6px}
-.pip{width:9px;height:9px;border-radius:2px;background:var(--line);border:1px solid transparent}
-.pip.r1{border-color:var(--r1)} .pip.r2{border-color:var(--r2)}
-.pip.r3{border-color:var(--r3)} .pip.r4{border-color:var(--r4)}
-.pip.on{background:var(--acc)}
-.rsel{position:relative;width:28px;height:28px;line-height:24px;font-size:var(--t2);background:var(--pan);border:1px solid var(--line2);border-radius:50%;cursor:pointer;z-index:4;color:var(--dim)}
-.rsel::before{content:"";position:absolute;left:-10px;right:-10px;top:-10px;bottom:-10px}
+
+.diehd{height:20px;flex:none;display:flex;align-items:center;justify-content:space-between}
+.diehd .dp{font-size:var(--t1);font-weight:800;letter-spacing:.16em;color:var(--dim);
+  min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* flex:none — .diehd is a space-between row and, without it, a long part
+   label (.dp, allowed to shrink/ellipsis) could squeeze this control down
+   from 24px, taking its ::before hit-area under the 44px floor with it
+   (tools/verify.mjs B1 caught exactly that: 42×42, not 44×44). */
+.rsel{position:relative;flex:none;width:24px;height:24px;border-radius:6px;border:1px solid var(--line);
+  background:transparent;cursor:pointer;color:var(--dim);display:flex;align-items:center;justify-content:center}
+.rsel::before{content:"";position:absolute;left:-12px;right:-12px;top:-12px;bottom:-12px}
 .rsel:hover{border-color:var(--shd);color:var(--shd)}
 .rsel.on{background:var(--shd);color:#0a141d;border-color:var(--shd)}
-.rsel.frz{background:var(--pan);color:#9fe8ff;border-color:#9fe8ff;pointer-events:none}
-.dlbl{display:none}
+.rsel.frz{background:transparent;color:#9fe8ff;border-color:#9fe8ff;pointer-events:none}
+.rsel .icow.t{width:12px;height:12px}
+.rsel .icow.t svg{width:12px;height:12px}
 
-/* ---------- bottom bar ---------- */
-/* --line2, not --line — same WCAG 1.4.11 fix as .unit/.track above. */
-.bottombar{display:flex;align-items:center;gap:10px;background:var(--pan);border:var(--bd) solid var(--line2);
-  border-radius:var(--radius);padding:8px 10px;margin-top:8px}
-.manaorb{position:relative;display:flex;flex-direction:row-reverse;align-items:center;gap:7px;
-  padding:7px 13px;border:var(--bd) solid var(--line2);border-radius:var(--radius);background:var(--pan2);flex-shrink:0}
-.manaorb .mfill{display:none}
-.manaorb .mv{font-size:var(--t4);color:var(--man);line-height:1}
-.manaorb .ml{font-size:var(--t1);color:var(--dim);letter-spacing:2px}
-.manaorb.full{border-color:var(--man)}
-.items{display:flex;gap:6px;flex:1;flex-wrap:wrap}
-.relicwrap{position:relative;flex-shrink:0}
-.relicbtn{display:flex;align-items:center;justify-content:center;gap:6px;min-height:44px;padding:8px 16px;
-  border-radius:var(--radius);border:1px solid var(--line2);background:var(--pan2);color:var(--dim);
-  cursor:pointer;font-size:var(--t2);font-weight:700;letter-spacing:.05em}
-.relicbtn:hover{background:var(--pan3);color:var(--txt)}
-.relicbtn-chev{font-size:var(--t1);color:var(--dim);transition:transform .12s}
-.relicwrap.open .relicbtn-chev,.relicwrap:hover .relicbtn-chev{transform:rotate(180deg)}
-/* Battle UI handoff §6 — always in the DOM; visibility is pure CSS so a
-   mouse hover never has to go through render() (see the JS-side comment
-   at the relicWrap construction for why that would break hover-during-
-   rebuild). relicsOpen only ever adds/removes the .open class. */
-.relicpop{position:absolute;bottom:calc(100% + 8px);left:0;min-width:220px;max-width:320px;
-  max-height:260px;overflow-y:auto;background:var(--pan);border:1px solid var(--line2);
-  border-radius:var(--radius);padding:10px;box-shadow:0 8px 24px rgba(0,0,0,.5);z-index:30;
-  display:none}
-.relicwrap.open .relicpop,.relicwrap:hover .relicpop{display:block}
-.relicpop-h{font-size:var(--t1);letter-spacing:.06em;color:var(--dim);font-weight:700;margin-bottom:8px}
-.relicpop-row{display:flex;align-items:center;padding:6px 0;border-bottom:1px solid var(--line);
-  font-size:var(--t2);color:var(--txt)}
-.relicpop-row:last-child{border-bottom:none}
-.items.activerelics{flex:1}
-.ctlgroup{text-align:center}
-.ctlcap{font-size:var(--t1);color:var(--dim);margin-top:4px}
-.icard{background:var(--pan2);border:1px solid var(--line2);border-radius:var(--rad-sm);padding:5px 9px;
-  cursor:pointer;font-size:var(--t2);transition:.1s;color:var(--dim)}
-.icard:hover{background:var(--pan3);color:var(--txt)}
-.icard.sel{border-color:var(--acc);color:var(--acc)}
+.diefx{flex:1;min-height:0;display:flex;align-items:center;gap:10px}
+.diefx .icow.di{flex:none}
+.diefx .icow.di svg{width:30px;height:30px}
+.diefx-body{min-width:0;flex:1;display:flex;flex-direction:column;gap:2px;overflow:hidden}
+.diefx-vl{display:flex;align-items:baseline;gap:6px;flex-wrap:wrap}
+.dv{font-size:var(--die-num);font-weight:800;line-height:1;font-variant-numeric:tabular-nums}
+/* --dmg (#F54540) measured 4.35:1 on --pan-hi (tools/verify.mjs A2) — just
+   under the 4.5 AA floor. A small dark scrim under the label (not a new
+   colour, and a normal "type label chip" look) closes the gap regardless
+   of which effect colour lands here, instead of hand-tuning --dmg alone
+   and risking every OTHER place that token is already passing. */
+.dvl{font-size:var(--t1);font-weight:800;letter-spacing:.1em;padding:1px 5px;border-radius:4px;background:rgba(0,0,0,.32)}
+.die.t_dmg .dv,.die.t_dmg .dvl{color:var(--dmg)}
+.die.t_shield .dv,.die.t_shield .dvl{color:var(--shd)}
+.die.t_heal .dv,.die.t_heal .dvl{color:var(--heal)}
+.die.t_mana .dv,.die.t_mana .dvl{color:var(--man)}
+.die.t_poison .dv,.die.t_poison .dvl{color:var(--poi)}
+.die.t_debuff .dv,.die.t_debuff .dvl{color:var(--deb)}
+.die.t_buff .dv,.die.t_buff .dvl{color:var(--acc)}
+.die.t_summon .dv,.die.t_summon .dvl{color:var(--man)}
+.die.t_blank .dv,.die.t_blank .dvl{color:var(--dim)}
+/* keyword tag band (§4 band 3) — replaces the retired .dcap prose caption.
+   Reserves its 20px height with zero chips so a face with no keywords
+   cannot shift the row below it. Border/text colour follows the FACE's own
+   effect colour, same palette as .dv/.dvl above. */
+.kwtags{height:20px;flex:none;display:flex;align-items:center;gap:4px;flex-wrap:nowrap;overflow:hidden}
+.kwtag{padding:2px 6px;border-radius:4px;background:#0a0c0f;border:1px solid var(--line);
+  font-size:var(--t1);font-weight:800;letter-spacing:.06em;white-space:nowrap;color:var(--dim)}
+.die.t_dmg .kwtag{color:var(--dmg);border-color:color-mix(in srgb,var(--dmg) 45%,var(--line))}
+.die.t_shield .kwtag{color:var(--shd);border-color:color-mix(in srgb,var(--shd) 45%,var(--line))}
+.die.t_heal .kwtag{color:var(--heal);border-color:color-mix(in srgb,var(--heal) 45%,var(--line))}
+.die.t_mana .kwtag{color:var(--man);border-color:color-mix(in srgb,var(--man) 45%,var(--line))}
+.die.t_poison .kwtag{color:var(--poi);border-color:color-mix(in srgb,var(--poi) 45%,var(--line))}
+.die.t_debuff .kwtag{color:var(--deb);border-color:color-mix(in srgb,var(--deb) 45%,var(--line))}
+.die.t_buff .kwtag{color:var(--acc);border-color:color-mix(in srgb,var(--acc) 45%,var(--line))}
+.die.t_summon .kwtag{color:var(--man);border-color:color-mix(in srgb,var(--man) 45%,var(--line))}
+.critbadge{pointer-events:none;position:absolute;top:-8px;left:50%;transform:translateX(-50%);font-size:var(--t1);
+  background:var(--acc);color:#291808;padding:1px 7px;border-radius:6px;letter-spacing:1px;white-space:nowrap;z-index:3}
+
+/* six-face strip — restores, as data, the one piece of information the old
+   pip row used to imply: all six faces at a glance, the rolled one lit. */
+.faces{height:14px;flex:none;display:flex;align-items:center;gap:2px;margin-bottom:6px;cursor:help}
+.facecell{flex:1;height:14px;border-radius:2px;background:var(--line);display:flex;align-items:center;justify-content:center}
+.facecell .icow{width:11px;height:11px}
+.facecell .icow svg{width:11px;height:11px}
+
+/* state band — replaces .diestate's old sentence copy with the 3-state
+   model the redesign uses everywhere else on the card (dot + label). */
+.diestate{height:16px;flex:none;display:flex;align-items:center;gap:6px}
+.diestate .dsdot{flex:none;width:6px;height:6px;border-radius:50%;background:currentColor}
+.diestate .dslabel{font-size:var(--t1);font-weight:700;letter-spacing:.08em}
+.die.ready .diestate{color:var(--heal)}
+.die.sel .diestate{color:var(--shd)}
+.die.used .diestate{color:var(--dim)}
+/* the flying die clone (fx.js) is a fading snapshot of a card that no
+   longer exists in the current state — its footer text would otherwise
+   cross below AA contrast partway through the opacity fade. .resband joins
+   .diestate here for the same reason (tools/verify.mjs A2.transient caught
+   "RESONANCE +15%" at 1.54:1 mid-fade, 2026-09-16). */
+.die.flyer .diestate,.die.flyer .resband{visibility:hidden}
+.die.flyer{position:fixed;z-index:90;pointer-events:none;transition:transform .23s ease-in,opacity .23s ease-in}
+.die.spent{opacity:.25}
+
+/* ---------- 5. bottom bar ---------- */
+.bottombar{height:64px;flex:none;display:flex;align-items:center;gap:16px;background:var(--pan);
+  border:var(--bd) solid var(--line2);border-radius:12px;padding:0 16px;position:relative}
+.bb-label{font-size:var(--t1);font-weight:800;letter-spacing:.14em;color:var(--dim);flex:none}
+.items{display:flex;gap:8px;flex:1;align-items:center;overflow:hidden}
+.icard{position:relative;flex:none;height:40px;padding:0 12px;border-radius:8px;border:1px solid var(--line2);background:var(--pan2);
+  cursor:pointer;font-size:var(--t2);transition:.1s;color:var(--txt);display:flex;align-items:center;gap:8px;font-family:inherit}
+.icard:hover{background:var(--pan3)}
+/* height:40 (handoff spec) is under the 44px tap floor — expand the HIT
+   area via ::before, same pattern as .btn's own (shared style, top of
+   this file) and .tb-btn/.rsel above; visible chrome stays 40px. */
+.icard::before,.relicbtn::before,.btn.reroll::before{content:"";position:absolute;inset:50% 50%;
+  width:max(100%,var(--tap-min));height:max(100%,var(--tap-min));transform:translate(-50%,-50%)}
+.icard.sel{border-color:var(--acc)}
 .icard.dis{opacity:.28;pointer-events:none}
 .icard.r1{border-color:var(--r1)} .icard.r2{border-color:var(--r2)} .icard.r3{border-color:var(--r3)}
-.icard .ic-n{color:var(--txt)}
-.icard .ic-c{font-size:var(--t1);color:var(--man)}
-.f_end .btn.end{background:var(--acc);color:#291808;border-color:var(--acc)}
-.hintbar{text-align:center;font-size:var(--t2);color:var(--dim);margin-top:var(--s2);letter-spacing:.5px;min-height:16px}
+.icard .ic-n{color:var(--txt);font-weight:700}
+.icard .ic-c{font-size:var(--t1);font-weight:800;color:var(--man);display:inline-flex;align-items:center;gap:3px}
+.icard .ic-c .icow.t{width:12px;height:12px}
+.icard .ic-c .icow.t svg{width:12px;height:12px}
+.items .nothing{font-size:var(--t2);color:var(--dim)}
+.relicwrap{position:relative;flex:none}
+.relicbtn{position:relative;height:40px;padding:0 16px;border-radius:8px;border:1px solid var(--line);background:transparent;
+  color:var(--dim);cursor:pointer;font-size:var(--t2);font-weight:700;display:flex;align-items:center;gap:8px;font-family:inherit}
+.relicwrap.open .relicbtn,.relicwrap:hover .relicbtn{border-color:var(--line2)}
+.relicbtn-chev{font-size:var(--t1);transition:transform .12s}
+.relicwrap.open .relicbtn-chev,.relicwrap:hover .relicbtn-chev{transform:rotate(180deg)}
+/* Battle UI handoff §6 — always in the DOM; visibility is pure CSS so a
+   mouse hover never has to go through render() (see the JS-side comment at
+   the relicWrap construction for why that would break hover-during-
+   rebuild). relicsOpen only ever adds/removes the .open class, for the
+   click/tap path. The left-list/right-detail split inside is the same
+   trick one level deeper: both panes for every relic are in the DOM at
+   once, and :hover/:focus-within pick which detail pane shows. */
+.relicpop{position:absolute;bottom:calc(100% + 8px);right:0;width:520px;display:none;
+  background:var(--pan2);border:1px solid var(--line2);border-radius:10px;
+  box-shadow:0 16px 40px rgba(0,0,0,.6);overflow:hidden;z-index:30}
+.relicwrap.open .relicpop,.relicwrap:hover .relicpop{display:flex}
+.relicpop-list{width:230px;flex:none;border-right:1px solid var(--line);display:flex;flex-direction:column;
+  max-height:260px;overflow-y:auto}
+.relicpop-h{height:30px;flex:none;display:flex;align-items:center;padding:0 12px;border-bottom:1px solid var(--line);
+  font-size:var(--t1);font-weight:800;letter-spacing:.14em;color:var(--dim)}
+.relicpop-row{height:38px;flex:none;display:flex;align-items:center;gap:8px;padding:0 12px;
+  border-bottom:1px solid var(--line);font-size:var(--t2);color:var(--txt);cursor:default}
+.relicpop-row:last-child{border-bottom:none}
+.relicpop-row:hover,.relicpop-row:focus-within{background:var(--pan-hi)}
+.relicpop-sw{width:4px;height:18px;border-radius:2px;flex:none}
+.relicpop-row .rpn{flex:1;font-weight:700}
+.relicpop-row .rpk{font-size:var(--t1);color:var(--dim)}
+/* Row-to-detail hover, CSS-only (no render() involved, per the handoff's
+   implementation note — render() tears down #app on every state change,
+   which would destroy the hovered node out from under the pointer). Every
+   relic's detail pane is stacked in the DOM (position:absolute;inset:0)
+   and hidden by default; :has() + paired :nth-child lets hovering row N
+   reveal detail N without any JS state. .primary (the first relic) is the
+   fallback shown while nothing is hovered. 20 pairs covers every relic
+   list — .relicpop-list itself scrolls past that, same as before. */
+.relicpop-detailwrap{flex:1;position:relative}
+.relicpop-detail{position:absolute;inset:0;padding:12px;display:none;flex-direction:column;gap:8px}
+.relicpop:not(:has(.relicpop-row:hover)) .relicpop-detail.primary{display:flex}
+.relicpop-dh{display:flex;align-items:center;gap:8px}
+.relicpop-dn{font-size:var(--t2);font-weight:800}
+.relicpop-dr{font-size:var(--t1);font-weight:700;letter-spacing:.08em;padding:2px 6px;border-radius:4px;background:#0a0c0f}
+.relicpop-dd{font-size:var(--t2);line-height:1.5;color:var(--txt)}
+.relicpop-dnote{margin-top:auto;font-size:var(--t1);color:var(--dim)}
+.ctlgroup{flex:none;display:flex;align-items:center;gap:8px}
+.btn.reroll{height:40px;padding:0 20px;border-radius:8px;border:1px solid var(--shd);background:transparent;
+  color:var(--shd);font-size:var(--t2);font-weight:800;letter-spacing:.06em;display:flex;align-items:center;gap:8px}
+.btn.reroll .icow.t{width:14px;height:14px}
+.btn.reroll .icow.t svg{width:14px;height:14px}
+.btn.end{height:48px;padding:0 32px;border-radius:8px;border:0;background:var(--acc);color:#291808;
+  font-size:var(--t3);font-weight:800;letter-spacing:.06em}
+.relicpop:has(.relicpop-row:nth-child(1):hover) .relicpop-detail:nth-child(1){display:flex}
+.relicpop:has(.relicpop-row:nth-child(2):hover) .relicpop-detail:nth-child(2){display:flex}
+.relicpop:has(.relicpop-row:nth-child(3):hover) .relicpop-detail:nth-child(3){display:flex}
+.relicpop:has(.relicpop-row:nth-child(4):hover) .relicpop-detail:nth-child(4){display:flex}
+.relicpop:has(.relicpop-row:nth-child(5):hover) .relicpop-detail:nth-child(5){display:flex}
+.relicpop:has(.relicpop-row:nth-child(6):hover) .relicpop-detail:nth-child(6){display:flex}
+.relicpop:has(.relicpop-row:nth-child(7):hover) .relicpop-detail:nth-child(7){display:flex}
+.relicpop:has(.relicpop-row:nth-child(8):hover) .relicpop-detail:nth-child(8){display:flex}
+.relicpop:has(.relicpop-row:nth-child(9):hover) .relicpop-detail:nth-child(9){display:flex}
+.relicpop:has(.relicpop-row:nth-child(10):hover) .relicpop-detail:nth-child(10){display:flex}
+.relicpop:has(.relicpop-row:nth-child(11):hover) .relicpop-detail:nth-child(11){display:flex}
+.relicpop:has(.relicpop-row:nth-child(12):hover) .relicpop-detail:nth-child(12){display:flex}
+.relicpop:has(.relicpop-row:nth-child(13):hover) .relicpop-detail:nth-child(13){display:flex}
+.relicpop:has(.relicpop-row:nth-child(14):hover) .relicpop-detail:nth-child(14){display:flex}
+.relicpop:has(.relicpop-row:nth-child(15):hover) .relicpop-detail:nth-child(15){display:flex}
+.relicpop:has(.relicpop-row:nth-child(16):hover) .relicpop-detail:nth-child(16){display:flex}
+.relicpop:has(.relicpop-row:nth-child(17):hover) .relicpop-detail:nth-child(17){display:flex}
+.relicpop:has(.relicpop-row:nth-child(18):hover) .relicpop-detail:nth-child(18){display:flex}
+.relicpop:has(.relicpop-row:nth-child(19):hover) .relicpop-detail:nth-child(19){display:flex}
+.relicpop:has(.relicpop-row:nth-child(20):hover) .relicpop-detail:nth-child(20){display:flex}
 
 /* ================= OVERLAYS ================= */
 .overlay{position:fixed;inset:0;background:#080a0ceb;display:flex;align-items:center;justify-content:center;
@@ -1248,6 +1311,49 @@ small{font-size:var(--t1)}
    crammed against text with no gap; real art needs room to read. */
 .cchip.ic{display:inline-flex;align-items:center;gap:7px;padding:4px 10px 4px 6px}
 
+/* ---------- Axie inspect modal (Battle UI redesign §7, 2026-09-16) ----------
+   Bespoke panel on the shared .overlay backdrop (NOT modalShell()/.modalbox,
+   which always renders its own generic title bar above whatever bodyFn
+   returns — this design's header IS the top section: sprite, name, pill,
+   HP and the close button all on one row). scUnitInfo() also serves the
+   enemy-inspect path (unitCard()'s "not a legal target" click), which §7's
+   own text doesn't cover — isE swaps the class pill for a BOSS/ELITE tag
+   and PASSIVE for the enemy's own description; the six-face list is shared. */
+.uip-panel{width:560px;max-width:100%;background:var(--pan2);border:1px solid var(--line2);
+  border-radius:14px;overflow:hidden;box-shadow:0 24px 60px rgba(0,0,0,.7);max-height:88vh;
+  display:flex;flex-direction:column}
+.uip-head{flex:none;display:flex;align-items:center;gap:14px;padding:16px;border-bottom:1px solid var(--line)}
+.uip-head img,.uip-head .spr{width:64px;height:64px;object-fit:contain;flex:none}
+.uip-hbody{flex:1;min-width:0;display:flex;flex-direction:column;gap:4px}
+.uip-nr{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.uip-name{font-size:var(--t4);font-weight:800;color:var(--txt)}
+.uip-pill{font-size:var(--t1);font-weight:800;letter-spacing:.1em;padding:2px 8px;border-radius:4px;color:#0a0c0f}
+.uip-pill.boss{background:var(--dmg)} .uip-pill.elite{background:var(--burn)}
+.uip-dr{font-size:var(--t1);font-weight:800;letter-spacing:.06em;padding:2px 8px;border-radius:4px;background:#0a0c0f}
+.uip-dr.r4{color:var(--r4)} .uip-dr.r3{color:var(--r3)}
+.uip-sub{font-size:var(--t2);color:var(--dim);font-variant-numeric:tabular-nums}
+.uip-x{flex:none;width:32px;height:32px;border-radius:8px;border:1px solid var(--line);background:transparent;
+  color:var(--dim);cursor:pointer;font-size:var(--t2);display:flex;align-items:center;justify-content:center;font-family:inherit}
+.uip-x:hover{color:var(--txt);border-color:var(--line2)}
+.uip-sec{flex:none;padding:14px 16px;border-bottom:1px solid var(--line)}
+.uip-sec-label{font-size:var(--t1);font-weight:800;letter-spacing:.14em;color:var(--dim)}
+.uip-sec-body{margin-top:6px;font-size:var(--t2);line-height:1.5;color:var(--txt);text-wrap:pretty}
+.uip-st{display:flex;flex-wrap:wrap;gap:6px}
+.uip-faces{flex:1;min-height:0;overflow:auto;padding:14px 16px 16px}
+.uip-faces .uip-sec-label{margin-bottom:10px}
+.uip-flist{display:flex;flex-direction:column;gap:2px}
+.uip-frow{min-height:38px;padding:8px 10px;border-radius:6px;display:flex;align-items:center;gap:12px;background:#1b1e24}
+.uip-frow.cur{background:rgba(255,147,69,.12)}
+.uip-fp{width:52px;flex:none;font-size:var(--t1);font-weight:800;letter-spacing:.12em;color:var(--dim)}
+.uip-fic{flex:none}
+.uip-fic .icow{width:20px;height:20px} .uip-fic .icow svg{width:20px;height:20px}
+.uip-fv{width:26px;flex:none;font-size:var(--t3);font-weight:800;font-variant-numeric:tabular-nums}
+.uip-fcap{flex:1;min-width:0;display:flex;flex-direction:column;gap:4px}
+.uip-fcap>div:first-child{font-size:var(--t2);color:var(--txt);text-wrap:pretty}
+.uip-fkw{display:flex;flex-wrap:wrap;gap:4px}
+.uip-frar{flex:none;font-size:var(--t1);font-weight:800;letter-spacing:.08em}
+.uip-frolled{flex:none;font-size:var(--t1);font-weight:800;padding:2px 7px;border-radius:4px;background:var(--acc);color:#291808}
+
 /* ================= COMBAT ANIMATION ================= */
 body.playing #app{pointer-events:none}
 body.playing::after{content:'HOLD MOUSE OR SPACE TO FAST FORWARD';position:fixed;bottom:8px;left:0;right:0;
@@ -1265,6 +1371,11 @@ body.dragging{cursor:grabbing} body.dragging .die{cursor:grabbing}
   animation:pf .4s ease-out forwards}
 @keyframes pf{0%{opacity:.9;transform:scale(.5)}100%{opacity:0;transform:scale(1.5)}}
 .die.flyer{position:fixed;z-index:90;pointer-events:none;transition:transform .23s ease-in,opacity .23s ease-in}
+/* verify.mjs A2.transient caught this: the flying clone fades its opacity
+   to 0 over .23s, and --dim gray footer text crosses below AA contrast
+   partway through that fade (a fading clone mid-flight isn't meant to be
+   read anyway — the live die box already shows the up-to-date status). */
+.die.flyer .diestate{visibility:hidden}
 .die.spent{opacity:.25}
 #aim{position:fixed;inset:0;width:100vw;height:100vh;pointer-events:none;z-index:70;opacity:0;transition:opacity .1s}
 #aim.on{opacity:1}
@@ -1448,8 +1559,8 @@ input[type=range]{accent-color:var(--acc);width:100%}
    sibling layout and works regardless of the target's own shape/background
    (buttons, .unit cards, .die faces, .rcard reward cards all qualify for
    .tut-allow at different steps — see tutCoachOverlay()'s `allow` arrays).
-   Reuses the .reslink-pulse pacing/colour (var(--acc)) already established
-   above for a consistent "this is interactive" language. */
+   Reuses the same pacing/colour (var(--acc)) as the board's other glow cues
+   for a consistent "this is interactive" language. */
 #app.tut-locking .tut-allow{outline:3px solid var(--acc);
   outline-offset:3px;border-radius:var(--radius);box-shadow:0 0 0 3px var(--acc),0 0 22px var(--acc);
   animation:tut-allow-pulse 1.2s ease-in-out infinite}
@@ -1525,41 +1636,81 @@ body.devmode{cursor:crosshair}
    sẽ render ở 4.1px. Ở đây ta đổi KÍCH THƯỚC COMPONENT thay vì zoom.
    Bề rộng tối thiểu của bàn chơi = 5×unit + 4×gap + 2×padding. */
 
-/* 900–1199px — laptop hẹp / tablet landscape: 5×140 + 4×10 + 24 = 764px */
+/* 900–1199px — laptop hẹp / tablet landscape: 5×140 + 4×10 + 24 = 764px.
+   --board-w:874 (was 1175, 2026-09-16 fix): partyCard()'s cardW formula is
+   floor((--board-w - gap*(n-1))/n) with gap=16 at n≤6 (Battle UI redesign
+   §4) — 1175 assumed the DESKTOP-tier gap/padding math and, at this tier's
+   own worst case (900px, #app's default 12px×2 padding, usable 876px),
+   produced a 5-card row 1174px wide — 298px past the actual 876px available.
+   874 is the largest value that still fits at 900px (floor((874-64)/5)=162,
+   row=874 ≤ 876). --unit-w/--die-w above are unrelated legacy tokens (the
+   old .pcol layout, kept for any non-combat consumer) — not what sizes the
+   party card row any more. */
 @media (max-width:1199px){
-  :root{ --unit-w:140px; --die-w:140px; --die-h:112px; --zone-gap:10px; --ui-scale:1; }
+  :root{ --unit-w:140px; --die-w:140px; --die-h:164px; --zone-gap:10px; --ui-scale:1;
+         --board-w:874px; }
+  .unit.e{ width:180px; height:190px; }
+  .unit.e.big{ width:280px; height:250px; }
 }
 
-/* 600–899px — tablet portrait. Kiểm ở cận dưới 600: 5×104 + 4×8 + 16 = 568 ≤ 600 */
+/* 600–899px — tablet portrait. Kiểm ở cận dưới 600: 5×104 + 4×8 + 16 = 568 ≤ 600
+   (that arithmetic is the OLD --unit-w-driven layout's own verification — see
+   the --board-w comment below for the CURRENT formula this tier actually uses). */
 @media (max-width:899px){
-  :root{ --unit-w:104px; --die-w:104px; --die-h:100px; --zone-gap:8px;
-         --die-num:24px; --spr-w:76px; --ui-scale:1; }
+  :root{ --unit-w:104px; --die-w:104px; --die-h:136px; --zone-gap:8px;
+         --die-num:24px; --spr-w:76px; --ui-scale:1;
+         /* --board-w:584 (was 875, 2026-09-16 fix) — same bug as the 1199px
+            tier above, one tier down: worst case here is 600px width, #app
+            padding 8px×2 (line below), usable 584px. 875 produced an 874px
+            row — verify.mjs B2.tablet/B2.phone caught this at their own
+            744px/852px test widths, which are inside this same tier and
+            already too narrow for 875. floor((584-64)/5)=104 — the exact
+            --unit-w this tier already used before the cardW formula existed,
+            so cards land at their pre-redesign size here, just via the new
+            formula instead of a fixed width. */
+         --board-w:584px; }
   #app{ padding:var(--s2) var(--s2) var(--s3); }
-  .dp{ display:none; }
   .track{ flex-wrap:wrap; row-gap:var(--s2); }
   .menu-grid{ grid-template-columns:repeat(2,1fr); }
   .pickgrid{ grid-template-columns:repeat(3,1fr); }
   .cxshell{ flex-direction:column; }
   .cxnav{ flex:0 0 auto; flex-direction:row; flex-wrap:wrap; position:static; }
   .cxtab.on{ border-left-color:transparent; border-bottom:2px solid var(--acc); }
+  .unit.e{ width:140px; height:150px; }
+  .unit.e.big{ width:220px; height:200px; }
+  /* Battle UI redesign — the 4-segment top bar's fixed height:48px
+     (tools/verify.mjs B2: scrollWidth was overflowing 744px/852px by 300-
+     700px, the segments simply don't fit in one row this narrow) wraps to
+     multiple rows instead; each segment keeps its own border as a visual
+     row divider. */
+  .topbar{ height:auto; flex-wrap:wrap; }
+  .topbar>*{ border-right:none; border-bottom:1px solid var(--line); }
+  .tb-util{ border-bottom:none; }
 }
 
-/* <600px — phone. Kiểm ở 393px: 16 + 5×64 + 4×6 = 360 ≤ 393 */
+/* <600px — phone. Kiểm ở 393px: 16 + 5×64 + 4×6 = 360 ≤ 393 (old --unit-w
+   arithmetic; see the --board-w comment below for what the row actually
+   uses now). Not hit by verify.mjs's own B2 checks today (its rotated
+   "phone" landscape width is 852px, inside the 899px tier above) but a
+   real small-landscape phone (e.g. 568px-wide) does reach this tier. */
 @media (max-width:599px){
-  :root{ --unit-w:64px; --die-w:64px; --die-h:88px; --zone-gap:6px;
-         --die-num:24px; --spr-w:56px; --hp-h:6px; --ui-scale:1; }
+  :root{ --unit-w:64px; --die-w:64px; --die-h:136px; --zone-gap:6px;
+         --die-num:24px; --spr-w:56px; --hp-h:6px; --ui-scale:1;
+         /* --board-w:375 (was 575, 2026-09-16 fix) — same bug, one tier
+            further down: worst case 393px width, usable 377px. 575 would
+            floor to a 574px row here, same class of failure as the two
+            tiers above. floor((375-64)/5)=62, row=5×62+64=374 ≤ 377. */
+         --board-w:375px; }
   #app{ padding:var(--s2) var(--s2) var(--s3); }
-  .nm,.dp,.pips,.dlbl{ display:none; }
+  .nm{ display:none; }
   .die{ padding:6px 4px; }
-  /* icon-spec-body-parts.md §Layout change item 4 — hide the small effect
-     corner badge at the narrowest (64px die) breakpoint only; the part
-     icon (.di slot) stays, it's the primary identity signal at every size. */
-  .die .partbadge{ display:none; }
   .bottombar{ position:sticky; bottom:0; height:60px; z-index:20; }
   .btn--lg,.btn.big,.btn.cta{ --btn-h:52px; }
   .pickgrid{ grid-template-columns:repeat(2,1fr); }
   .guidegrid{ grid-template-columns:1fr; }
   .bptrack{ grid-template-columns:repeat(auto-fill,minmax(120px,1fr)); }
+  .unit.e{ width:110px; height:130px; }
+  .unit.e.big{ width:180px; height:170px; }
 }
 
 /* ═══════════════════ T10b · SHORT-WINDOW BREAKPOINT (chiều CAO) ═══════════════════
@@ -1579,9 +1730,18 @@ body.devmode{cursor:crosshair}
    còn headroom. 900px (viewport desktop của verify.mjs) nằm ngoài, cố ý — bản
    render desktop đã được verify không đổi một pixel nào.
 
-   min-width:900px: dưới mức đó T10 đã thu nhỏ component rồi (--spr-w:76px,
-   --die-h:100px — đã nhỏ hơn các giá trị ở đây), nên khối này sẽ chỉ làm TO ra.
-   Điện thoại xoay ngang (852×393, verify.mjs có kiểm) vì thế không bị đụng tới.
+   min-width:900px: dưới mức đó T10 đã thu nhỏ component rồi. Điện thoại xoay
+   ngang (852×393, verify.mjs có kiểm) vì thế không bị đụng tới.
+
+   2026-09-15 (Battle UI handoff, die-card fixed-height rewrite): --die-h ở
+   MỌI breakpoint tăng đáng kể (die-card giờ cao cố định) — số "~808px" ở
+   trên KHÔNG còn đúng, chưa đo lại con số mới. 2026-09-16: .dcap (caption
+   4 dòng clamp) đã bị xoá hẳn (thay bằng .kwtags + .resband, xem style
+   block), nên con số thật đã đổi THÊM một lần nữa — vẫn CHƯA đo lại. Khối
+   này vẫn giữ đúng chức năng
+   "chỉ thu nhỏ, không phóng to" vì --die-num:24px kéo --die-h xuống lại
+   150px — thấp hơn tier 164px của desktop (T10b vẫn giữ .dp hiển thị, không
+   ẩn như breakpoint ≤899px, nên không xuống tới tier 136px của khối đó).
 
    Các giá trị lấy lại từ breakpoint ≤899px sẵn có (--spr-w:76px) và từ
    .zone.party.compact — style.css đã tự chứng minh cỡ đó đọc/chạm được. */
@@ -1591,7 +1751,12 @@ body.devmode{cursor:crosshair}
      giữ --spr-big thì tỉ lệ thành 164/76 = 2.16 — con boss ĐÈ TO HƠN chủ đích,
      và chính nó là thứ duy nhất làm trận boss còn tràn. 76*1.64 ≈ 124px giữ
      nguyên đúng tỉ lệ 1.63, nên boss vẫn áp đảo y như trên desktop. */
-  :root{ --spr-w:76px; --spr-big:124px; --die-h:104px; }
+  /* --die-num:24px shrinks the face-value digit (the tallest single glyph
+     in the card) back down to the ≤899px tier — without it, the fixed-
+     height card needed to fit a 2-line caption under the default 34px
+     value digit is the SAME height as full desktop (164px), which defeats
+     this block's whole point of shrinking things for a short window. */
+  :root{ --spr-w:76px; --spr-big:124px; --die-h:150px; --die-num:24px; }
   #app{ padding-bottom:var(--s2); }
   .track{ padding:4px 10px; margin-bottom:6px; }
   .zone.enemies{ padding-top:8px; }
@@ -2185,6 +2350,16 @@ function partIco(partKey,clsKey,cls){
 }
 const FT_IC={dmg:'dmg',shield:'shield',heal:'heal',mana:'mana',poison:'poison',
   buff:'buff',debuff:'debuff',summon:'summon',blank:'blank'};
+/* Battle UI redesign — die-face effect colours (die block + six-face
+   strip). Deliberately its own map, not FT_IC/TYPEN: buff and debuff share
+   one colour (--deb) everywhere else in this file (.intent.t_buff, kept
+   as-is per the handoff — "Intent colours follow the existing .intent.t_*
+   rules"), but the handoff's own FT table gives the die-face card a
+   DIFFERENT split — buff reads as --acc there, debuff stays --deb. */
+const FT_COLOR={dmg:'var(--dmg)',shield:'var(--shd)',heal:'var(--heal)',mana:'var(--man)',
+  poison:'var(--poi)',debuff:'var(--deb)',buff:'var(--acc)',summon:'var(--man)',blank:'var(--dim)'};
+const DIE_LABEL={dmg:'ATTACK',shield:'SHIELD',poison:'POISON',heal:'HEAL',debuff:'WEAKEN',
+  buff:'BUFF',mana:'MANA',summon:'SUMMON',blank:'BLANK'};
 const ST_IC={poison:'poison',burn:'burn',regen:'regen',thorns:'thorns',blind:'blind',
   weaken:'weaken',vulnerable:'vuln',stun:'stun',undying:'undying'};
 /* ─────────── log.js ─────────── */
@@ -2392,9 +2567,16 @@ function clogStatusPhrase(txt){
 function clogUnitName(uid){ const u=S&&byUid(S,uid); return u?u.n:('#'+uid); }
 function clogOpenFromUse(e){
   const u=S&&byUid(S,e.uid);
-  const rolled = u&&u.rolled>=0? u.die[u.rolled] : null;
-  const part = (u&&u.side==='p'&&rolled) ? (rolled.name||PARTN[rolled.p]||rolled.p||null) : null;
-  const faceT = rolled? rolled.t : null;
+  /* Read the face that actually triggered THIS event from the event's own
+     snapshot (facePart/faceName/faceT), not u.rolled — resolveCantrips()
+     (engine.js) can fire several 'use' events for the same unit back-to-back,
+     re-rolling u.rolled after each one, before the client ever compiles a
+     log line. Reading live u.rolled here showed every queued line with
+     whatever face the die finally landed on instead of its own face (e.g.
+     4 mana procs off an 'ears' face all logged as the die's final 'mouth'
+     face). */
+  const part = (u&&u.side==='p'&&e.facePart) ? (e.faceName||PARTN[e.facePart]||e.facePart||null) : null;
+  const faceT = e.faceT!=null ? e.faceT : null;
   let tgt;
   if(faceT==='mana'||faceT==='summon') tgt='self';
   else if(e.tgt==null) tgt=e.aoe?'all':'self';
@@ -3436,37 +3618,63 @@ function faceCaption(f,v){
   }
   return '';
 }
+/* Battle UI redesign (2026-09-16) — repaints the parts of the die block that
+   depend on WHICH face is showing (part label, effect icon/value/caption,
+   six-face strip), leaving the parts partyCard() built once alone: the
+   reroll button in .diehd, and the .diestate footer (state is a property of
+   the Axie/turn, not of the face). This is also called every ~34-90ms
+   during the roll tumble (runRollAnim(), temp=true) so it must NOT rebuild
+   the whole card — only the frame-varying content. Rarity/heavy are no
+   longer painted on the board at all (handoff §4: "belong in the inspect
+   modal now" — scUnitInfo() already shows both per face). */
 function paintDieFace(d,u,fi,temp){
   const f=u.die[fi]||u.die[0];
   d.className=d.className.replace(/t_\w+/g,'')+' t_'+f.t;
-  d.dataset.r=f.r||0;
-  d.innerHTML='';
-  /* §3.4 — merge the heavy banner + rarity dot into one top accent strip:
-     3px-tall, full-width, coloured by rarity (data-r drives the CSS colour,
-     same --r1..r4 mapping as before); a small weight glyph insets at the
-     left edge only when the face has the `heavy` keyword. */
-  const strip=el('div','ractag'); if(hasKw(f,'heavy')) strip.appendChild(el('span','ractag-hv','⚖'));
-  d.appendChild(strip);
-  d.appendChild(el('div','dp',f.name||PARTN[f.p]||''));
-  /* 2026-09-08 reversal (product owner, after seeing icon-spec-body-parts.md's
-     original part-primary/effect-secondary layout live): effect type (what
-     this face DOES — dmg/shield/heal/poison/...) is the decision-relevant
-     read every turn, so it now owns the primary 28px (.di) slot; the body-
-     part icon (which part this face lives on — flavor/identity, not a
-     per-turn decision) is demoted to a 13px ('t') corner badge instead. */
-  d.appendChild(ico(FT_IC[f.t],'di'));
-  const partBadge=partIco(f.p,u.cls,'t'); partBadge.classList.add('partbadge');
-  d.appendChild(partBadge);
-  if(f.t==='blank') d.appendChild(el('div','dv blanktxt','BLANK'));
-  else if(f.v>0||f.t==='dmg') d.appendChild(el('div','dv',String(temp?f.v:faceValue(S,u,fi))));
-  /* §3.3 reversed per product review, then superseded 2026-09-10 by the
-     Battle UI handoff's plain-language caption (faceCaption() above) —
-     that sentence already folds in every keyword this raw tag list used
-     to show (aoe/multi/chain/pierce/exec for dmg, blind/vulnerable/weaken/
-     freeze/stun/etc. for buff/debuff), so showing both would just repeat
-     the same information twice in two formats. */
-  d.appendChild(el('div','dcap',faceCaption(f,temp?f.v:faceValue(S,u,fi))));
-  if(!temp&&u.critNow) d.appendChild(el('div','critbadge','CRIT x'+rcritMult()));
+  const dp=d.querySelector('.diehd .dp'); if(dp) dp.textContent=f.name||PARTN[f.p]||'';
+  const fx=d.querySelector('.diefx');
+  if(fx){
+    fx.innerHTML='';
+    fx.appendChild(ico(FT_IC[f.t],'di'));
+    const body=el('div','diefx-body');
+    const v=temp?f.v:faceValue(S,u,fi);
+    // "The label is dropped entirely when cardW ≤ 160 (swarm)" — d.dataset.showlabel
+    // is set once by partyCard()/unitCard() from the actual cardW at creation
+    // time (checking a live rect here would read 0 on the still-detached tree).
+    const lbl=d.dataset.showlabel==='0'?null:DIE_LABEL[f.t];
+    if(f.t==='blank'||v>0||f.t==='dmg'||lbl){
+      const vl=el('div','diefx-vl');
+      if(f.t!=='blank'&&(v>0||f.t==='dmg')){ const dv=el('div','dv',String(v));
+        // 24px, not the handoff's literal 26px — this project's type scale is
+        // a hard allow-list (tools/verify.mjs A1), and 24px is already on it
+        // (the same value --die-num takes at the ≤899px breakpoint).
+        if(d.dataset.smallval==='1') dv.style.fontSize='24px'; vl.appendChild(dv); }
+      if(lbl) vl.appendChild(el('div','dvl',lbl));
+      body.appendChild(vl);
+    }
+    fx.appendChild(body);
+  }
+  /* §3.3's raw keyword-tag list was tried, reversed once, then superseded
+     2026-09-10 by a plain-language caption (faceCaption()) — sound at the
+     time, because the board only ever showed ONE of {tags, caption} and the
+     sentence already folded in every keyword a tag list would (aoe/multi/
+     chain/pierce/exec for dmg, blind/vulnerable/weaken/freeze/stun/etc. for
+     buff/debuff). The 2026-09-16 handoff (Battle-UI-A-Grid-v2 §4 band 3)
+     changes that premise: the full caption now lives one click away in the
+     inspect modal (scUnitInfo(), §7), so dropping it from the board loses
+     nothing. faceCaption() itself stays — the modal still calls it — this
+     is only the third reversal of where its text is shown, not a fourth
+     function. One chip per `f.k` entry, `heavy` included (it used to be a
+     separate `.ractag-hv` glyph — see the "Retired from the die card" note
+     in §4). Reserves its 20px height even with zero keywords. */
+  const kwt=d.querySelector('.kwtags');
+  if(kwt){ kwt.innerHTML=''; f.k.forEach(k=>kwt.appendChild(el('span','kwtag',kwText(k).toUpperCase()))); }
+  const faces=d.querySelector('.faces');
+  if(faces) [...faces.children].forEach((cell,i)=>{
+    cell.innerHTML=''; cell.style.background='';
+    if(i===fi){ const ft=u.die[i].t; cell.style.background=FT_COLOR[ft]||'var(--dim)'; cell.appendChild(ico(FT_IC[ft])); }
+  });
+  const oldCrit=d.querySelector('.critbadge'); if(oldCrit) oldCrit.remove();
+  if(!temp&&u.critNow&&fx) fx.appendChild(el('div','critbadge','CRIT x'+rcritMult()));
 }
 function rcritMult(){ let m=2; for(const id of S.relics){ const r=RELIC_BY_ID[id]; if(r&&r.critMult&&r.critMult>m)m=r.critMult; } return m; }
 
@@ -3540,6 +3748,11 @@ function postRender(){
   if(screen==='tutorial'){ const ov=tutCoachOverlay(); if(ov) document.body.appendChild(ov); }
   autoFit();
 }
+// placeResLinks() (measured .reslink's midpoint via getBoundingClientRect()
+// after every render) is deleted along with .reslink itself — the §4b
+// resonance band is laid out by flow, inside each card's own die block, so
+// it needs no post-render measurement pass. See the CSS comment above
+// .resband for the two mistakes that approach made.
 /* Shrink the board just enough that the dice tray, REROLL and END TURN are
    always on screen. Laptops with short windows used to push them below the
    fold, which made the game look unresponsive. Never scales above the user's
@@ -4539,110 +4752,151 @@ function focusState(){
 }
 function scCombatShell(){ const w=el('div','screen combat frozen'); w.appendChild(track()); w.appendChild(partyStrip()); return w; }
 
-// Battle UI handoff (2026-09-10) §2, "Objective banner" — states the win
-// condition in plain language up front (their words: "the #1 fix for 'why
-// am I fighting'"). Form/copy only, per product-owner follow-up — no new
-// icon, no new color token, reuses --acc (already this project's amber
-// accent) the same way the existing .msg banner already does.
-function combatGoalText(){
+/* Battle UI redesign (2026-09-16) — the new 4-segment top bar, combat only.
+   track() (above, shared with scMap()/scCombatShell()) is untouched on
+   purpose: this redesign's brief is the combat board specifically, and
+   track()'s old markup/CSS (.track/.tnode/.trk-right, ~line 663) still has
+   to serve the Map screen's own top bar exactly as before. combatGoalText()/
+   combatRemainingText() (the old .objbanner copy) are gone — the enemy
+   count moves into the zone header below, and the win condition is once
+   again implicit (defeat every enemy card on the board), same as the
+   mockup's own copy call. */
+function combatTopbar(){
+  const t=el('div','topbar');
   const isB=S.bossSteps.includes(S.step), isE=S.eliteSteps.includes(S.step);
-  const n=aliveE(S).length;
-  const who=isB?'the boss':isE?(n>1?'the elite enemies':'the elite enemy'):(n>1?'all enemies':'the enemy');
-  return 'Goal: defeat '+who+' below to clear this wave.';
+
+  const wv=el('div','tb-wave');
+  wv.appendChild(el('span','tb-wavelabel','WAVE'));
+  const wn=el('b',null);
+  wn.appendChild(el('span',null,String(S.step)));
+  wn.appendChild(el('span',null,'/'+S.len));
+  if(isB||isE) wn.appendChild(el('span',null,' '+(isB?'BOSS':'ELITE')));
+  wv.appendChild(wn);
+  t.appendChild(wv);
+
+  const mp=el('div','tb-map');
+  mp.title='Run map — square is an elite wave, tall bar is a boss';
+  for(let i=1;i<=S.len;i++){
+    const isBi=S.bossSteps.includes(i), isEi=S.eliteSteps.includes(i);
+    const cell=el('span','tb-cell');
+    cell.style.height=(isBi?8:isEi?6:4)+'px';
+    cell.style.background = i===S.step ? 'var(--acc)' : i<S.step ? 'var(--dim)'
+      : isBi ? 'rgba(245,69,64,.55)' : isEi ? 'rgba(255,92,51,.55)' : 'var(--line)';
+    cell.title='Wave '+i+(isBi?' · Boss':isEi?' · Elite':'');
+    mp.appendChild(cell);
+  }
+  t.appendChild(mp);
+
+  const st=el('div','tb-stats');
+  const tu=el('span','tb-stat'); tu.appendChild(el('span',null,'TURN ')); tu.appendChild(el('b',null,String(S.turn||1))); st.appendChild(tu);
+  const rr=el('span','tb-stat'); rr.title='Rerolls left this turn'; rr.appendChild(ico('reroll','t'));
+  rr.appendChild(el('span',null,'REROLL ')); const rb=el('b',null,S.rerolls+'/'+S.maxRerolls); rb.style.color='var(--shd)'; rr.appendChild(rb);
+  st.appendChild(rr);
+  const sh=el('span','tb-stat'); sh.title='Gene Shards earned this run'; sh.appendChild(ico('shard','t'));
+  sh.appendChild(el('span',null,'SHARD ')); const shb=el('b',null,String(S.shards)); shb.style.color='var(--acc)'; sh.appendChild(shb);
+  st.appendChild(sh);
+  const mv=el('span','tb-stat'); mv.title='Mana — spend it on active relic cards'; mv.appendChild(ico('mana','t'));
+  mv.appendChild(el('span',null,'MANA ')); const mb=el('b',null,String(S.mana)); mb.style.color='var(--man)'; mv.appendChild(mb);
+  st.appendChild(mv);
+  if(S.asc){ const ab=el('span','tb-stat'); ab.appendChild(el('b',null,'A'+S.asc)); ab.title='Ascension level'; st.appendChild(ab); }
+  t.appendChild(st);
+
+  const ut=el('div','tb-util');
+  const ub=el('button','tb-btn','UNDO');
+  if(!S.undo.length) ub.classList.add('dis'); else{ ub.onclick=()=>{ if(undo(S)){ logAction('undo',[]); sel=null;selRelic=null;flash('Undone.'); render(); } }; kbAct(ub); }
+  ut.appendChild(ub);
+  const sp=el('div','tb-spd');
+  [1,2,3].forEach(v=>{ const b=el('button',SPD===v?'on':'',v+'x'); b.onclick=()=>{SPD=v;render();}; sp.appendChild(b); });
+  ut.appendChild(sp);
+  const ib=el('button','tb-btn','INFO'); ib.title='Every relic, stat and die face — yours and the enemy’s  (press I)';
+  ib.onclick=()=>{ modal='info'; render(); }; kbAct(ib); ut.appendChild(ib);
+  if(typeof clogToggleBtn==='function') ut.appendChild(clogToggleBtn());
+  const setb=el('button','tb-btn','SET'); setb.onclick=()=>{ modal='set'; render(); }; kbAct(setb); ut.appendChild(setb);
+  t.appendChild(ut);
+  return t;
 }
-function combatRemainingText(){
-  const n=aliveE(S).length;
-  return n+' '+(n===1?'enemy':'enemies')+' remaining';
-}
+/* Battle UI redesign (2026-09-16, Battle-UI-A-Grid-v2 handoff) — full
+   combat board rewrite. .objbanner/.zonesub/.teamdivider/.hintbar/.ctlcap/
+   .manaorb/.pcol are all gone; see combatTopbar() for the new top bar and
+   the style block's §1-§5 comments for where each piece landed. */
 function scCombat(frozen){
   const fs=focusState();
   const w=el('div','screen combat f_'+fs+(frozen?' frozen':''));
-  w.appendChild(track(true));
+  w.appendChild(combatTopbar());
   const bossUnit=S.enemies.find(e=>e.boss);
   if(bossUnit&&bossAnnouncedStep!==S.step){ bossAnnouncedStep=S.step; flash('BOSS: '+bossUnit.n+' — '+bossUnit.desc); }
   if(msg) w.appendChild(el('div','msg',msg));
 
-  const goal=el('div','objbanner');
-  goal.appendChild(el('div','objtxt',combatGoalText()));
-  goal.appendChild(el('div','objcount',combatRemainingText()));
-  w.appendChild(goal);
-
-  /* enemies — wave can carry up to 6 mobs (elite/boss adds); .compact mirrors
-     the party zone's own swarm-safe shrink below so a 6th card never wraps
-     to its own centered row (see .zone.enemies.compact, style.css). */
+  /* enemies */
+  const nAlive=aliveE(S).length;
   const ez=el('div','zone enemies'+(S.enemies.length>5?' compact':''));
   const ezHead=el('div','zonehead');
-  ezHead.appendChild(el('div','zonetag','Enemy'));
-  ezHead.appendChild(el('div','zonesub','Defeat all enemies to win this wave'));
+  ezHead.appendChild(el('span','zonedot'));
+  ezHead.appendChild(el('span','zonetag',bossUnit?'BOSS':'ENEMY'));
+  ezHead.appendChild(el('span','zonecount',nAlive+' alive'));
   ez.appendChild(ezHead);
   const ezCards=el('div','zonecards');
   S.enemies.forEach(e=>ezCards.appendChild(unitCard(e)));
   ez.appendChild(ezCards);
   w.appendChild(ez);
-  // Product owner, 2026-09-10: dropped the per-card border/icon faction
-  // treatment (read as pixel-style, off-brand for this project's real-art
-  // direction) in favor of exactly this — a VS divider between the two
-  // rows, with the zone label doing all the identification work.
-  const vs=el('div','teamdivider');
-  vs.appendChild(el('div','vsline vsline-e'));
-  vs.appendChild(el('span','vslbl','VS'));
-  vs.appendChild(el('div','vsline vsline-p'));
-  w.appendChild(vs);
-  /* party — mỗi Axie ghép chung 1 cột với đúng die của nó (2026-09-01: trước đây
-     là 2 hàng riêng, chỉ thẳng cột nhờ trùng width tình cờ; giờ ghép rõ ràng bằng cấu trúc) */
-  /* Swarm builds (Primal Nest cantrip, Swarm Nest/Hive Mind relics) can push
-     the party past 5 with living Axie Eggs (engine.js applyFace 'summon',
-     capped at 4 tokens => up to 9 total). .pcol's default --unit-w never
-     shrank for this, so a 7-9-unit party wrapped to a 2nd row that landed
-     far below the fold — technically reachable by scrolling (nothing was
-     actually broken), but easy to mistake for "abilities stopped working"
-     mid-combat. Shrink the whole zone at >6 so it fits without hunting. */
-  const pz=el('div','zone party'+(S.party.length>6?' compact':''));
+  w.appendChild(el('div','zonediv'));
+
+  /* party — portrait and die are now ONE card (partyCard()); cardW is
+     computed from the live party count so Axie Eggs (up to 9 total, see
+     the summon-token comment in engine.js applyFace) never wrap to a 2nd
+     row, they just get narrower, same geometry, exactly like every other
+     card. Formation Resonance's band is built inside each card by
+     partyCard() itself (§4b) — no post-render measurement pass needed. */
+  const pz=el('div','zone party');
   const pzHead=el('div','zonehead');
-  pzHead.appendChild(el('div','zonetag','Your Team'));
-  pzHead.appendChild(el('div','zonesub','Keep these Axies alive'));
+  pzHead.appendChild(el('span','zonedot'));
+  pzHead.appendChild(el('span','zonetag','YOUR TEAM'));
+  pzHead.appendChild(el('span','zonehint', sel!=null
+    ? 'Pick a target — amber ring means legal · Esc cancels'
+    : 'Click a die to use it · click an Axie to see all six faces'));
   pz.appendChild(pzHead);
   const pzCards=el('div','zonecards');
-  /* Formation Resonance (design/quick-specs/formation-resonance-2026-09-01.md):
-     hiển thị cặp "đang mở" TRƯỚC khi người chơi click — bắt buộc theo pillar
-     minh bạch triệt để. cols[i] tương ứng roster/pos i cho các Axie thật vì
-     s.party = roster.map(buildUnit) rồi mới push token ở cuối. */
+  const n=S.party.length, gapPx=n>6?8:16;
+  const boardW=parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--board-w'))||1204;
+  const cardW=Math.floor((boardW-gapPx*(n-1))/Math.max(1,n));
+  pzCards.style.gap=gapPx+'px';
+  // Incoming enemy damage this turn, summed per target — poison/debuff
+  // intents deliberately excluded (this figure means "HP you will lose",
+  // not "you'll be affected somehow"). AOE dmg intents hit every alive Axie.
+  const threatMap={};
+  S.enemies.forEach(e=>{
+    if(e.hp<=0||!e.intent) return;
+    const ef=e.intent.face; if(ef.t!=='dmg') return;
+    const ev=faceValue(S,e,e.rolled);
+    if(hasKw(ef,'aoe')) aliveP(S).forEach(p=>{ threatMap[p.uid]=(threatMap[p.uid]||0)+ev; });
+    else if(e.intent.tgt!=null) threatMap[e.intent.tgt]=(threatMap[e.intent.tgt]||0)+ev;
+  });
+  // Formation Resonance (§4b) — posA/posB are ROSTER positions (engine.js
+  // resonancePairs()), which this loop's own index `i` already matches
+  // (S.party is built in roster order and never reorders). linkL/linkR are
+  // two independent lookups, not one "side" flag, so partyCard() can render
+  // BOTH on the middle card of a 3-in-a-row chain.
   const resPairs=resonancePairs(S);
   S.party.forEach((u,i)=>{
-    const col=el('div','pcol'); col.appendChild(unitCard(u)); col.appendChild(dieBox(u)); pzCards.appendChild(col);
-    const pair=resPairs.find(p=>p.posA===i);
-    if(pair){
-      const link=el('div','reslink');
-      link.appendChild(ico(FT_IC[pair.type],'ii'));
-      const tip='Formation Resonance: adjacent Axie pair both rolled a '+pair.type+' face — whichever executes SECOND gets +'+Math.round((RESONANCE.mult-1)*100)+'%.';
-      link.title=tip; link.dataset.tip=tip; kbAct(link);
-      pzCards.appendChild(link);
-    }
+    const pr=resPairs.find(p=>p.posA===i), pl=resPairs.find(p=>p.posA===i-1);
+    pzCards.appendChild(partyCard(u,cardW,threatMap,
+      pl?{type:pl.type,partner:S.party[i-1]}:null,
+      pr?{type:pr.type,partner:S.party[i+1]}:null));
   });
   pz.appendChild(pzCards);
   w.appendChild(pz);
-  /* bottom */
+
+  /* bottom bar */
   const bb=el('div','bottombar');
-  const mo=el('div','manaorb'+(S.mana>=10?' full':''));
-  mo.appendChild(el('div','mv',String(S.mana))); mo.appendChild(el('div','ml','MANA'));
-  const fill=el('div','mfill'); fill.style.height=Math.min(100,S.mana*10)+'%'; mo.appendChild(fill);
-  bb.appendChild(mo);
-  // Battle UI handoff (2026-09-10) §6 — active relics (cost mana, spend a
-  // turn) are always visible now, never hidden behind a click. Passive
-  // relics (always-on, no cost) collapse into one small chip. The handoff
-  // asks for hover-to-reveal on desktop but flags touch as a real gap for
-  // this project — since render() rebuilds the whole screen on every JS
-  // state change, wiring hover through relicsOpen+render() would destroy
-  // the hovered element out from under the pointer. So hover is pure CSS
-  // (.relicwrap:hover, no re-render involved) and relicsOpen only drives
-  // the click/tap-toggle path (.relicwrap.open) — both control the exact
-  // same popover, neither can break the other.
-  const actives=S.relics.map(id=>RELIC_BY_ID[id]).filter(r=>r&&r.act);
-  const actRow=el('div','items activerelics');
+  bb.appendChild(el('div','bb-label','ACTIVE CARDS'));
+  // Battle UI handoff §6 — active relics (cost mana, spend a turn) are
+  // always visible, never hidden behind a click.
+  const actRow=el('div','items');
   S.relics.forEach(id=>{ const r=RELIC_BY_ID[id]; if(!r||!r.act) return;
     const used=S.usedActives.includes(id), can=S.mana>=r.act.cost&&!used;
-    const c=el('div','icard r'+r.rar+(can?'':' dis')+(selRelic===id?' sel':''));
-    c.appendChild(el('div','ic-n',r.n)); c.appendChild(el('div','ic-c','MP '+r.act.cost));
+    const c=el('button','icard r'+r.rar+(can?'':' dis')+(selRelic===id?' sel':''));
+    c.appendChild(el('span','ic-n',r.n));
+    const cc=el('span','ic-c'); cc.appendChild(ico('mana','t')); cc.appendChild(el('span',null,String(r.act.cost))); c.appendChild(cc);
     c.title=r.d;
     c.onclick=()=>{ if(!can)return; SFX.ui(); sel=null;
       if(r.act.tgt==='self'){ if(playerUseRelic(S,id,null)){ logAction('playerUseRelic',[id,null]); afterAct(); } else render(); }
@@ -4650,51 +4904,56 @@ function scCombat(frozen){
     if(can) kbAct(c);
     actRow.appendChild(c);
   });
-  if(!actRow.children.length) actRow.appendChild(el('div','nothing','no active cards yet'));
+  if(!actRow.children.length) actRow.appendChild(el('div','nothing','No active cards'));
   bb.appendChild(actRow);
 
-  const passives=S.relics.map(id=>RELIC_BY_ID[id]).filter(r=>r&&!r.act);
+  // Battle UI handoff §6 — the "n relics equipped" popover is the full
+  // equipped inventory (active + passive), a browsable reference distinct
+  // from the quick-cast buttons above. Hover is pure CSS (:has(), see the
+  // style block) so it never has to go through render(), which would
+  // destroy the hovered row out from under the pointer mid-hover.
   const relicWrap=el('div','relicwrap'+(relicsOpen?' open':''));
   const rbtn=el('button','relicbtn');
-  rbtn.appendChild(el('span',null,passives.length+' equipped'));
+  rbtn.appendChild(el('span',null,S.relics.length+' relics equipped'));
   rbtn.appendChild(el('span','relicbtn-chev','▾'));
   rbtn.onclick=()=>{ SFX.ui(); relicsOpen=!relicsOpen; render(); };
   kbAct(rbtn);
   relicWrap.appendChild(rbtn);
   const pop=el('div','relicpop');
-  pop.appendChild(el('div','relicpop-h','Always active · no mana cost'));
-  if(passives.length){
-    passives.forEach(r=>{
-      const row=el('div','relicpop-row');
-      row.appendChild(el('span',null,r.n));
-      row.title=r.d;
-      pop.appendChild(row);
-    });
-  } else pop.appendChild(el('div','nothing','No passive relics yet.'));
+  const list=el('div','relicpop-list');
+  list.appendChild(el('div','relicpop-h','EQUIPPED'));
+  const detailWrap=el('div','relicpop-detailwrap');
+  S.relics.forEach((id,i)=>{ const r=RELIC_BY_ID[id]; if(!r) return;
+    const row=el('div','relicpop-row');
+    const sw=el('span','relicpop-sw'); sw.style.background='var(--r'+r.rar+')'; row.appendChild(sw);
+    row.appendChild(el('span','rpn',r.n));
+    row.appendChild(el('span','rpk',r.act?'active':'passive'));
+    list.appendChild(row);
+    const det=el('div','relicpop-detail'+(i===0?' primary':''));
+    const dh=el('div','relicpop-dh');
+    dh.appendChild(el('span','relicpop-dn',r.n)); dh.style.color='var(--r'+r.rar+')';
+    const pill=el('span','relicpop-dr',RARITY[r.rar]); pill.style.color='var(--r'+r.rar+')'; dh.appendChild(pill);
+    det.appendChild(dh);
+    det.appendChild(el('div','relicpop-dd',r.d));
+    det.appendChild(el('div','relicpop-dnote',r.act?'Costs mana · spends your turn':'Always active · no mana cost'));
+    detailWrap.appendChild(det);
+  });
+  if(!S.relics.length){ list.appendChild(el('div','nothing','No relics yet')); detailWrap.appendChild(el('div','relicpop-detail primary')); }
+  pop.appendChild(list); pop.appendChild(detailWrap);
   relicWrap.appendChild(pop);
-  const rb=btn('reroll','REROLL '+S.rerolls,()=>{
+  bb.appendChild(relicWrap);
+
+  const rb=el('button','btn reroll');
+  rb.appendChild(ico('reroll','t')); rb.appendChild(el('span',null,'REROLL '+S.rerolls));
+  rb.onclick=()=>{ SFX.ui();
     const pickd=S.party.filter(u=>u.rsel&&u.hp>0&&!u.used&&!u.heavy&&!u.frozen).map(u=>u.uid);
     const use=pickd.length?pickd:S.party.filter(u=>u.hp>0&&!u.used&&!u.heavy&&!u.frozen).map(u=>u.uid);
     if(doReroll(S,use)){ logAction('doReroll',[use]); SFX.reroll(); S.party.forEach(u=>u.rsel=false); sel=null;
-      flash('Rerolled. Undo history cleared.'); triggerRollAnim(use); collectFloats(); render(); } });
+      flash('Rerolled. Undo history cleared.'); triggerRollAnim(use); collectFloats(); render(); } };
   if(!(S.rerolls>0&&anyRerollable(S))) rb.classList.add('dis');
-  const rbWrap=el('div','ctlgroup'); rbWrap.appendChild(rb); rbWrap.appendChild(el('div','ctlcap','New options'));
-  const endWrap=el('div','ctlgroup');
-  endWrap.appendChild(btn('end','END TURN',()=>doEndTurn()));
-  endWrap.appendChild(el('div','ctlcap','Resolves the fight'));
-  bb.appendChild(relicWrap);
-  bb.appendChild(rbWrap);
-  bb.appendChild(endWrap);
+  bb.appendChild(rb);
+  bb.appendChild(btn('end','END TURN',()=>doEndTurn()));
   w.appendChild(bb);
-  /* One line, and only when it earns its place. The generic controls hint
-     retires after the first wave so the board stays quiet. */
-  const hint = sel!=null ? 'Pick a target — gold outline means legal. Esc to cancel.'
-    : selRelic ? 'Pick a target for the card.'
-    : fs==='end' ? 'No dice left — press END TURN or Space.'
-    : S.step<=1 ? 'Click or drag a die to use it · corner button marks it for reroll · Ctrl+Z undoes'
-    : '';
-  if(hint) w.appendChild(el('div','hintbar',hint));
-  else w.appendChild(el('div','hintbar',''));
   return w;
 }
 
@@ -4722,27 +4981,50 @@ function dupeIndex(u){
   pool.sort((a,b)=>a.uid-b.uid);
   return pool.findIndex(x=>x.uid===u.uid)+1;
 }
+/* §3.2 — cap visible status chips: priority-sort (stun/undying > poison/burn >
+   everything else), render top 3 + a "+N" overflow chip whose title= lists
+   the rest. Shared by unitCard() (enemy) and partyCard() (party) — both
+   just position the returned row differently in CSS (.unit.e .stats vs
+   .unit.p .stats). */
+function statusChipsEl(u){
+  const row=el('div','stats');
+  const stChips=[];
+  for(const k in ST_IC){ const v=u.st[k]; if(v>0) stChips.push({k,v}); }
+  if(u.frozen) stChips.push({k:'frz',v:0,frozen:true});
+  const stPriority=k=>(k==='stun'||k==='undying')?0:(k==='poison'||k==='burn')?1:2;
+  stChips.sort((a,b)=>stPriority(a.k)-stPriority(b.k));
+  const shown=stChips.slice(0,3), overflow=stChips.slice(3);
+  shown.forEach(({k,v,frozen})=>{
+    if(frozen){ const sp=el('span','st frz'); sp.appendChild(ico('freeze','t')); sp.title='Frozen: cannot be rerolled'; row.appendChild(sp); return; }
+    const sp=el('span','st '+k); sp.appendChild(ico(ST_IC[k],'t'));
+    if(k!=='stun'&&k!=='undying') sp.appendChild(el('span',null,String(v)));
+    sp.title=ST_NAME[k]+' '+v; row.appendChild(sp);
+  });
+  if(overflow.length){
+    const more=el('span','st more','+'+overflow.length);
+    more.title=overflow.map(({k,v,frozen})=>frozen?'Frozen: cannot be rerolled':(ST_NAME[k]+' '+v)).join(', ');
+    row.appendChild(more);
+  }
+  return row;
+}
+/* Battle UI redesign (2026-09-16) — enemy card only now; the party card is
+   built by partyCard() below (merged with the old dieBox()). Fixed bands
+   top to bottom: boss banner (boss only) / intent / portrait (flex:1,
+   status chips + preview chip absolutely positioned inside it so their
+   count can never change the card's height) / boss rule line (boss only) /
+   identity+hp. Fixed 228×224 (340×300 boss) — see .unit.e in the style
+   block. */
 function unitCard(u){
-  const isE=u.side==='e';
-  const c=el('div','unit'+(isE?' e':' p')+(u.hp<=0?' dead':'')+(u.big?' big':'')+(u.elite?' elite':'')+(u.token?' token':'')+(!isE&&echoTier()>0?' echo'+echoTier():''));
+  const c=el('div','unit e'+(u.hp<=0?' dead':'')+(u.big?' big':'')+(u.elite?' elite':''));
   c.dataset.uid=u.uid;
-  if(!isE) c.style.setProperty('--cc',CLASS_COLOR[u.cls]||'#888');
   let tgtable=false;
   if(sel!=null){ const su=byUid(S,sel); if(su) tgtable=validTargets(su).includes(u.uid); }
-  if(selRelic){ const a=RELIC_BY_ID[selRelic].act; tgtable=((a.tgt==='enemy')===isE)&&u.hp>0; }
+  if(selRelic){ const a=RELIC_BY_ID[selRelic].act; tgtable=(a.tgt==='enemy')&&u.hp>0; }
   if(tgtable) c.classList.add('tgt');
-  // Battle UI handoff (2026-09-10) §5 — the reciprocal of the enemy's own
-  // "→ Name" intent strip: name the actual threatening enemy here (not
-  // just a boolean .threat border) so the attack pairing reads in both
-  // directions without opening the inspect modal.
-  const threatEnemy = !isE ? S.enemies.find(e=>e.hp>0&&e.intent&&e.intent.tgt===u.uid&&['dmg','poison','debuff'].includes(e.intent.face.t)) : null;
-  if(threatEnemy) c.classList.add('threat');
 
-  if(u.boss){ const bn=el('div','bossbanner'); bn.appendChild(ico('boss','ii','#2a0d0d')); bn.appendChild(el('span',null,' '+u.n)); c.appendChild(bn); }
-  // Battle UI handoff §3 — enemy intent moves to a mini header strip ABOVE
-  // the portrait (was below the HP bar) so "who this enemy will attack" is
-  // the first thing read on the card, not the last.
-  if(isE&&u.hp>0&&u.intent){
+  if(u.boss){ const bn=el('div','ubanner'); bn.appendChild(ico('boss','ii','#2a0d0d'));
+    bn.appendChild(el('span',null,'BOSS · '+u.n.toUpperCase())); c.appendChild(bn); }
+  if(u.hp>0&&u.intent){
     const f=u.intent.face, v=faceValue(S,u,u.rolled);
     const danger = f.t==='dmg' && v>=(u.big?14:10);
     const it=el('div','intent t_'+f.t+(danger?' danger':''));
@@ -4752,68 +5034,40 @@ function unitCard(u){
     const tgDupe=tg?dupeIndex(tg):null;
     let tl=hasKw(f,'aoe')?'ALL':(tg?(tg.side==='p'?tg.n:(tg.uid===u.uid?'itself':tg.n)):'');
     if(tl&&tgDupe&&tl!=='ALL'&&tl!=='itself') tl+=' ('+tgDupe+')';
-    if(tl) it.appendChild(el('span','itg','→ '+tl));
+    if(tl){ it.appendChild(el('span','ia','→')); it.appendChild(el('span','itg',tl)); }
     ['cleave','pierce','exec'].forEach(k=>{ if(hasKw(f,k)) it.appendChild(el('span','ik',kwText(k).toUpperCase())); });
     c.appendChild(it);
   }
   const spw=el('div','sprwrap');
-  if(isE){ const im=el('img','spr mut'+(sprMonIsReal(u.key)?' real':'')); im.src=sprMon(u.key); spw.appendChild(im); }
-  else spw.appendChild(unitArtImg(u));
-  if(!isE&&u.pas) { const p=el('div','pasdot',u.pas.n[0]); p.title=u.pas.n+': '+u.pas.d; spw.appendChild(p); }
+  const im=el('img','spr mut'+(sprMonIsReal(u.key)?' real':'')); im.src=sprMon(u.key);
+  const sprW=(u.big?150:104); im.style.width=sprW+'px'; im.style.height=sprW+'px';
+  spw.appendChild(im);
+  spw.appendChild(statusChipsEl(u));
+  const pv=previewOn(u);
+  if(pv) spw.appendChild(el('div','preview '+pv.cls,pv.txt));
   c.appendChild(spw);
+  if(u.boss) c.appendChild(el('div','bossdesc',u.desc+(u.phase===2?' · PHASE 2':'')));
+
+  const idb=el('div','idband');
+  const idr=el('div','idrow');
   const dupeI=dupeIndex(u);
-  const nm=el('div','nm',(isE?u.n:u.n+' T'+u.tier)+(u.token?' *':''));
+  const nm=el('span','nm',u.n);
   if(dupeI) nm.appendChild(el('span','dupe-tag',' ('+dupeI+')'));
-  if(u.boss) nm.appendChild(el('span','bosstag','BOSS'));
-  c.appendChild(nm);
-  if(threatEnemy){ const wc=el('div','targetedchip'); wc.appendChild(el('span',null,'Targeted by '+threatEnemy.n)); c.appendChild(wc); }
-  /* hp bar + ghost preview */
-  /* T05 · the number sits above the bar, so no fill colour can ever make it
-     unreadable.  T06 · the class encodes how close to death the unit is —
-     identical for both sides, because position already says which side. */
+  idr.appendChild(nm);
+  const hv=el('span','hpval');
+  hv.appendChild(el('b',null,String(u.hp))); hv.appendChild(el('span','hpmax','/'+u.maxHp));
+  idr.appendChild(hv);
+  idb.appendChild(idr);
   const pct = u.maxHp ? u.hp/u.maxHp : 0;
   const hpState = pct<=0.25 ? ' crit' : pct<=0.50 ? ' low' : '';
   const bar=el('div','hpbar'+hpState);
-  const num=el('div','hpnum');
-  num.appendChild(el('b',null,u.hp+'/'+u.maxHp)); bar.appendChild(num);
-  const track=el('div','hptrack');
-  bar.setAttribute('role','progressbar');
-  bar.setAttribute('aria-valuenow',String(Math.max(0,u.hp)));
-  bar.setAttribute('aria-valuemin','0'); bar.setAttribute('aria-valuemax',String(u.maxHp));
-  bar.setAttribute('aria-label','Health');
-  const f1=el('div','hpfill'); f1.style.width=Math.max(0,100*pct)+'%'; track.appendChild(f1);
-  const pv=previewOn(u);
-  if(pv&&pv.hpAfter!=null){ const gh=el('div','hpghost');
-    gh.style.left=(100*pv.hpAfter/u.maxHp)+'%'; gh.style.width=(100*(u.hp-pv.hpAfter)/u.maxHp)+'%'; track.appendChild(gh); }
-  bar.appendChild(track);
-  c.appendChild(bar);
-  if(u.shield>0){ const sb=el('div','shbar'); sb.style.width=Math.min(100,100*u.shield/u.maxHp)+'%';
-    const sl=el('span'); sl.appendChild(ico('shield','t')); sl.appendChild(el('span','stv',String(u.shield)));
-    sb.appendChild(sl); c.appendChild(sb); }
-  const row=el('div','stats');
-  /* §3.2 — cap visible status chips: priority-sort (stun/undying > poison/burn >
-     everything else), render top 3 + a "+N" overflow chip whose title= lists
-     the rest (reuses the existing per-chip title= tooltip pattern). */
-  const stChips=[];
-  for(const k in ST_IC){ const v=u.st[k]; if(v>0) stChips.push({k,v}); }
-  if(u.frozen) stChips.push({k:'frz',v:0,frozen:true});
-  const stPriority=k=>(k==='stun'||k==='undying')?0:(k==='poison'||k==='burn')?1:2;
-  stChips.sort((a,b)=>stPriority(a.k)-stPriority(b.k));
-  const shown=stChips.slice(0,3), overflow=stChips.slice(3);
-  shown.forEach(({k,v,frozen})=>{
-    if(frozen){ const sp=el('span','st frz'); sp.appendChild(ico('freeze','ii')); sp.title='Frozen: cannot be rerolled'; row.appendChild(sp); return; }
-    const sp=el('span','st '+k); sp.appendChild(ico(ST_IC[k],'ii'));
-    if(k!=='stun'&&k!=='undying') sp.appendChild(el('span','stv',String(v)));
-    sp.title=ST_NAME[k]+' '+v; row.appendChild(sp);
-  });
-  if(overflow.length){
-    const more=el('span','st more','+'+overflow.length);
-    more.title=overflow.map(({k,v,frozen})=>frozen?'Frozen: cannot be rerolled':(ST_NAME[k]+' '+v)).join(', ');
-    row.appendChild(more);
-  }
-  c.appendChild(row);
-  if(u.boss){ c.appendChild(el('div','bossdesc',u.desc+(u.phase===2?' · PHASE 2':''))); }
-  if(pv) c.appendChild(el('div','preview '+pv.cls,pv.txt));
+  bar.setAttribute('role','progressbar'); bar.setAttribute('aria-valuenow',String(Math.max(0,u.hp)));
+  bar.setAttribute('aria-valuemin','0'); bar.setAttribute('aria-valuemax',String(u.maxHp)); bar.setAttribute('aria-label','Health');
+  const fill=el('div','hpfill'); fill.style.width=Math.max(0,100*pct)+'%'; bar.appendChild(fill);
+  if(pv&&pv.hpAfter!=null){ const gh=el('div','hpghost'); gh.style.left=(100*pv.hpAfter/u.maxHp)+'%'; bar.appendChild(gh); }
+  idb.appendChild(bar);
+  c.appendChild(idb);
+
   if(tgtable){ c.onclick=()=>doTarget(u.uid); kbAct(c); }
   else if(u.hp>0){
     /* Not a legal target right now, so a click is a question rather than an
@@ -4864,37 +5118,147 @@ function previewOn(t){
   return null;
 }
 
-function dieBox(u){
+/* Battle UI redesign (2026-09-16) — party card. Merges the old unitCard()
+   party path with dieBox(): "portrait and die are now ONE card. No .pcol
+   wrapper, no second box" — this is what makes the row structurally
+   incapable of being uneven again. Fixed height 360px (--? no, literal
+   360, see .unit.p below); cardW is computed by scCombat() from the live
+   party count (cardW = floor((boardW - gap*(n-1))/n)) and passed in.
+   threatMap[uid] is the summed incoming `dmg` from every enemy targeting
+   this Axie this turn (poison/debuff excluded — see scCombat()). linkL/
+   linkR (§4b, each either null or {type,partner}) are this card's two
+   INDEPENDENT Formation Resonance lookups, computed by scCombat() from
+   resonancePairs(S) — a card can hold both at once (middle of a 3-chain). */
+function partyCard(u,cardW,threatMap,linkL,linkR){
+  const c=el('div','unit p'+(u.hp<=0?' dead':'')+(u.token?' token':'')+(echoTier()>0?' echo'+echoTier():''));
+  c.dataset.uid=u.uid;
+  c.style.width=cardW+'px';
+  c.style.setProperty('--cc',CLASS_COLOR[u.cls]||'#888');
+  let tgtable=false;
+  if(sel!=null){ const su=byUid(S,sel); if(su) tgtable=validTargets(su).includes(u.uid); }
+  if(selRelic){ const a=RELIC_BY_ID[selRelic].act; tgtable=(a.tgt!=='enemy')&&u.hp>0; }
+  const dieSel=sel===u.uid;
+  const inc=threatMap[u.uid]||0;
+  // Border/glow state is mutually exclusive by construction (see .unit.sel/
+  // .tgt/.threat in the style block — equal specificity, so whichever class
+  // ends up on the element wins outright, no cascade-order guessing needed).
+  if(dieSel) c.classList.add('sel');
+  else if(tgtable) c.classList.add('tgt');
+  else if(inc>0) c.classList.add('threat');
+
+  const pp=el('div','pportrait');
+  pp.appendChild(el('div','classbar'));
+  const spw=el('div','sprwrap');
+  const artEl=unitArtImg(u); const img=artEl.querySelector('img');
+  const sprW=cardW>180?96:cardW>140?80:64;
+  if(img){ img.style.width=sprW+'px'; img.style.height=sprW+'px'; }
+  if(u.pas){ const p=el('div','pasdot',u.pas.n[0]); p.title=u.pas.n+' — '+u.pas.d; spw.appendChild(p); }
+  // Replaces .targetedchip ("Targeted by Chomper"): the number is the
+  // decision-relevant figure (how much HP you stand to lose this turn),
+  // absolutely positioned so 0 or 1 of it never changes the card height.
+  if(inc>0){ const db=el('div','dmgbadge'); db.appendChild(ico('dmg','t')); db.appendChild(el('span',null,'−'+inc)); spw.appendChild(db); }
+  spw.appendChild(artEl);
+  spw.appendChild(statusChipsEl(u));
+  const pv=previewOn(u);
+  if(pv) spw.appendChild(el('div','preview '+pv.cls,pv.txt));
+  pp.appendChild(spw);
+  pp.onclick=()=>{ if(Date.now()-lastDragEnd<200) return; SFX.ui(); modal='unit'; modalUid=u.uid; render(); };
+  kbAct(pp);
+  c.appendChild(pp);
+
+  const idb=el('div','idband');
+  const idr=el('div','idrow');
+  const dupeI=dupeIndex(u);
+  const nm=el('span','nm',u.n+' T'+u.tier+(u.token?' *':''));
+  if(dupeI) nm.appendChild(el('span','dupe-tag',' ('+dupeI+')'));
+  idr.appendChild(nm);
+  const hv=el('span','hpval');
+  hv.appendChild(el('b',null,String(u.hp))); hv.appendChild(el('span','hpmax','/'+u.maxHp));
+  if(u.shield>0){ const sc=el('span','shieldchip'); sc.appendChild(ico('shield','t')); sc.appendChild(el('span',null,String(u.shield))); hv.appendChild(sc); }
+  idr.appendChild(hv);
+  idb.appendChild(idr);
+  const pct=u.maxHp?u.hp/u.maxHp:0;
+  const hpState=pct<=0.25?' crit':pct<=0.50?' low':'';
+  const bar=el('div','hpbar'+hpState);
+  bar.setAttribute('role','progressbar'); bar.setAttribute('aria-valuenow',String(Math.max(0,u.hp)));
+  bar.setAttribute('aria-valuemin','0'); bar.setAttribute('aria-valuemax',String(u.maxHp)); bar.setAttribute('aria-label','Health');
+  const fill=el('div','hpfill'); fill.style.width=Math.max(0,100*pct)+'%'; bar.appendChild(fill);
+  if(inc>0){ const gh=el('div','hpghost'); gh.style.left=(100*Math.max(0,u.hp-inc)/u.maxHp)+'%'; bar.appendChild(gh); }
+  idb.appendChild(bar);
+  c.appendChild(idb);
+
+  c.appendChild(el('div','uniddiv'));
+
   const b=el('div','diebox'); b.dataset.uid=u.uid;
-  if(u.hp<=0||u.rolled<0){ b.appendChild(el('div','die out','X')); b.appendChild(el('div','dlbl','')); return b; }
+  if(u.hp<=0||u.rolled<0){ b.appendChild(el('div','die out','X')); c.appendChild(b);
+    const fl=el('div','floats'); fl.dataset.uid=u.uid; c.appendChild(fl); return c; }
   const f=u.die[u.rolled];
-  const dr=dieRarity(u);
-  const d=el('div','die dr'+dr+(u.used?' used':'')+(sel===u.uid?' sel':'')+(f.t==='blank'?' blank':'')+(u.critNow?' critready':''));
-  d.style.setProperty('--cc',CLASS_COLOR[u.cls]||'#888');
-  paintDieFace(d,u,u.rolled,false);
-  /* Formation Resonance is deliberately NOT annotated on the die face. The
+  const d=el('div','die'+(dieSel?' sel':u.used?' used':' ready'));
+  d.dataset.showlabel=cardW>160?'1':'0';
+  d.dataset.smallval=cardW<=180?'1':'0';
+  /* Formation Resonance band (§4b) — first child of the die block, present
+     on EVERY card (reserved 26px whether linked or not) so a pair forming
+     or breaking never changes the row's geometry. linkL/linkR are checked
+     independently — never folded into one "side" flag — because the middle
+     card of a 3-in-a-row chain has both at once. The edge rails repeat the
+     same two directions so the linked side stays legible even when the
+     label itself shrinks to "+15%" on narrow (swarm) cards. */
+  const resb=el('div','resband'+(linkL?' ll':'')+(linkR?' lr':''));
+  if(linkL) resb.appendChild(ico(FT_IC[linkL.type],'ii'));
+  const resPct=Math.round((RESONANCE.mult-1)*100);
+  resb.appendChild(el('span','reslbl',cardW<=170?'+'+resPct+'%':'RESONANCE +'+resPct+'%'));
+  if(linkR) resb.appendChild(ico(FT_IC[linkR.type],'ii'));
+  if(linkL||linkR){
+    const names=[];
+    if(linkL&&linkL.partner) names.push('← '+linkL.partner.n+' ('+linkL.type+')');
+    if(linkR&&linkR.partner) names.push(linkR.partner.n+' ('+linkR.type+') →');
+    resb.dataset.tip='Formation Resonance — linked with '+names.join(' and ')+
+      '. Whichever of a linked pair you execute SECOND gets +'+resPct+'%.';
+    kbAct(resb);
+  }
+  d.appendChild(resb);
+  d.appendChild(el('div','resrail l'+(linkL?' on':'')));
+  d.appendChild(el('div','resrail r'+(linkR?' on':'')));
+  const hd=el('div','diehd'); hd.appendChild(el('span','dp'));
+  if(!u.used&&!u.heavy&&!u.frozen){
+    const rs=el('div','rsel'+(u.rsel?' on':'')); rs.appendChild(ico('reroll','t'));
+    rs.title='Mark this die for reroll';
+    /* bindDrag()'s pointerdown on the whole .die (needed so a drag toward a
+       target starts immediately, not just on click) bubbles up from any
+       descendant, this marker included. When the rolled face needs a target
+       that handler does `sel=uid; render()` on pointerdown itself — see its
+       own comment on why — which rebuilds this exact node before the mouse
+       ever reaches pointerup/click, so the reroll click never lands (bug:
+       "nút reroll không bấm được", 2026-09-16). Stop it here at the source,
+       same pattern .onclick below already uses for the click event. */
+    rs.onpointerdown=e=>e.stopPropagation();
+    rs.onclick=e=>{ e.stopPropagation(); SFX.ui(); u.rsel=!u.rsel; render(); }; kbAct(rs); hd.appendChild(rs);
+  } else if(u.frozen){ const fz=el('div','rsel frz'); fz.appendChild(ico('freeze','t')); hd.appendChild(fz); }
+  d.appendChild(hd);
+  d.appendChild(el('div','diefx'));
+  d.appendChild(el('div','kwtags'));
+  const faces=el('div','faces'); faces.title='All six faces of this die — the lit one is what you rolled';
+  for(let i=0;i<6;i++) faces.appendChild(el('div','facecell'));
+  d.appendChild(faces);
+  const st=el('div','diestate'); st.appendChild(el('span','dsdot'));
+  st.appendChild(el('span','dslabel',dieSel?'PICKED':u.used?'SPENT':'READY'));
+  d.appendChild(st);
+  /* Formation Resonance is deliberately NOT annotated on the die FACE. The
      die shows its own base number; the +N% is reported at the moment it is
      actually earned, by the "LINK -N" damage float on the target (engine.js
-     dealDamage) plus the "LINK x1.15" float on the executor. A badge here
-     had to hedge ("IF 2ND") because the order isn't known before the click,
-     and that hedge was noise on every die of an open pair. The .reslink
-     connector between the two portraits still announces the pair up front. */
+     dealDamage) plus the "LINK x1.15" float on the executor. The band above
+     (this card's own reserved space, not a floating connector between
+     cards) still announces the pair up front. */
+  paintDieFace(d,u,u.rolled,false);
   if(hasKw(f,'heavy')) d.classList.add('heavy');
   d.onclick=()=>clickDie(u);
   d.onmouseenter=()=>SFX.hover();
   kbAct(d);
   b.appendChild(d);
-  const pips=el('div','pips');
-  for(let i=0;i<6;i++){ const p=el('span','pip r'+(u.die[i].r||0)+(i===u.rolled?' on':''));
-    p.title='Face '+(i+1)+': '+faceText(u.die[i]); pips.appendChild(p); }
-  b.appendChild(pips);
-  if(!u.used&&!u.heavy&&!u.frozen){
-    const rs=el('div','rsel'+(u.rsel?' on':'')); rs.appendChild(ico('reroll','t'));
-    rs.title='Mark this die for reroll';
-    rs.onclick=e=>{ e.stopPropagation(); SFX.ui(); u.rsel=!u.rsel; render(); }; kbAct(rs); b.appendChild(rs);
-  } else if(u.frozen){ const fz=el('div','rsel frz'); fz.appendChild(ico('freeze','t')); b.appendChild(fz); }
-  b.appendChild(el('div','dlbl',u.n));
-  return b;
+  c.appendChild(b);
+
+  const fl=el('div','floats'); fl.dataset.uid=u.uid; c.appendChild(fl);
+  return c;
 }
 
 /* ---------- actions ---------- */
@@ -6434,42 +6798,94 @@ function faceRow(u,f,i){
   if(f.r>=1) r.appendChild(el('div','ifr',RARITY[f.r]));
   return r;
 }
+/* Battle UI redesign §7 (2026-09-16) — new row renderer for the inspect
+   modal below. Do NOT fold this into faceRow(): that function has two OTHER
+   call sites in scInfo() (party tab + enemy tab of the general info modal,
+   `I` key) which this design never covered — restyling faceRow() in place
+   would silently reskin two screens outside this change's scope. Adds what
+   the board no longer shows once §4 dropped rarity/heavy from the die card:
+   each face's rarity pill and its keyword chips (reusing .kwtag). */
+function inspFaceRow(u,f,i){
+  const cur=u&&u.rolled===i;
+  const r=el('div','uip-frow'+(cur?' cur':''));
+  r.appendChild(el('div','uip-fp',f.name||PARTN[f.p]||TYPEN[f.t]||'—'));
+  const ic=el('div','uip-fic'); ic.appendChild(ico(FT_IC[f.t],'t')); r.appendChild(ic);
+  const v=f.t==='blank'?null:(u?faceValue(S,u,i):f.v);
+  const val=el('div','uip-fv',v==null?'—':String(v)); val.style.color=FT_COLOR[f.t]||'var(--dim)'; r.appendChild(val);
+  const cap=el('div','uip-fcap');
+  cap.appendChild(el('div',null,faceCaption(f,v||0)));
+  if(f.k.length){ const kw=el('div','uip-fkw'); f.k.forEach(k=>kw.appendChild(el('span','kwtag',kwText(k).toUpperCase()))); cap.appendChild(kw); }
+  r.appendChild(cap);
+  if(f.r>=1){ const rp=el('span','uip-frar',RARITY[f.r]); rp.style.color='var(--r'+f.r+')'; r.appendChild(rp); }
+  if(cur) r.appendChild(el('span','uip-frolled','ROLLED'));
+  return r;
+}
 /* Click any Axie on the board — yours or the enemy's — to read its whole die.
    The face it is showing right now is marked, so you can judge what it might
-   roll next instead of memorising twenty monsters. */
+   roll next instead of memorising twenty monsters. Bespoke overlay, not
+   modalShell() — see the CSS comment above .uip-panel for why. */
 function scUnitInfo(){
   const u = S && byUid(S,modalUid);
   if(!u) return el('div');
   const isE = u.side==='e';
   const re = !isE && S.roster.find(r=>r.uid===u.uid);
   const ascCount = re? (re.muts||[]).filter(m=>m.type==='oc').length : 0;
-  const sub = 'HP '+u.hp+'/'+u.maxHp + (u.shield?'  ·  Shield '+u.shield:'') + (isE?'':'  ·  Tier '+u.tier)
-    + (ascCount?'  ·  Ascended ×'+ascCount:'');
-  return modalShell(u.n.toUpperCase(), sub, null, ()=>{
-    const d=el('div','uinsp');
-    const h=el('div','ic2h');
-    if(isE){ const im=el('img','spr mut'+(sprMonIsReal(u.key)?' real':'')); im.src=sprMon(u.key); h.appendChild(im); }
-    else h.appendChild(unitArtImg(u));
-    const t=el('div','ic2t');
-    if(!isE&&u.pas){ const p=el('div','ic2p'); p.appendChild(el('b',null,u.pas.n+': ')); p.appendChild(el('span',null,u.pas.d)); t.appendChild(p); }
-    if(isE&&u.desc) t.appendChild(el('div','ic2s',u.desc));
-    if(isE&&u.role) t.appendChild(el('div','ic2t','ROLE: '+u.role.toUpperCase()));
-    const stx=Object.keys(ST_IC).filter(k=>u.st[k]>0);
-    if(stx.length){ const sr=el('div','ic2st');
-      stx.forEach(k=>{ const sp=el('span','st '+k); sp.appendChild(ico(ST_IC[k],'t'));
-        sp.appendChild(el('span','stv',String(u.st[k]))); sp.title=ST_NAME[k]; sr.appendChild(sp); });
-      t.appendChild(sr); }
+  const ov=el('div','overlay');
+  ov.onclick=e=>{ if(e.target===ov) closeModal(); };
+  const bx=el('div','uip-panel');
+
+  const hd=el('div','uip-head');
+  if(isE){ const im=el('img','spr mut'+(sprMonIsReal(u.key)?' real':'')); im.src=sprMon(u.key); hd.appendChild(im); }
+  else hd.appendChild(unitArtImg(u));
+  const hb=el('div','uip-hbody');
+  const nr=el('div','uip-nr');
+  nr.appendChild(el('span','uip-name',u.n.toUpperCase()));
+  if(isE){
+    if(u.boss) nr.appendChild(el('span','uip-pill boss','BOSS'));
+    else if(u.elite) nr.appendChild(el('span','uip-pill elite','ELITE'));
+  } else {
+    const pill=el('span','uip-pill',u.cls.toUpperCase()); pill.style.background=CLASS_COLOR[u.cls]||'#888'; nr.appendChild(pill);
     const dr=dieRarity(u);
-    if(!isE&&dr>=3) t.appendChild(el('div','ic2dr'+dr,dr>=4?'COSMIC DIE':'GOLDEN DIE'));
-    h.appendChild(t); d.appendChild(h);
-    d.appendChild(cxP(isE
-      ? 'Each face is one in six. Values are already scaled to this wave.'
-      : 'Each face is one in six. Values already include buffs, relics and Growth.'));
-    const fl=el('div','iflist');
-    u.die.forEach((f,i)=>fl.appendChild(faceRow(u,f,i)));
-    d.appendChild(fl);
-    return d;
-  });
+    if(dr>=3) nr.appendChild(el('span','uip-dr r'+dr,dr>=4?'COSMIC DIE':'GOLDEN DIE'));
+  }
+  hb.appendChild(nr);
+  let subTxt=u.hp+'/'+u.maxHp+' HP';
+  if(u.shield>0) subTxt+='  ·  Shield '+u.shield;
+  if(!isE) subTxt+='  ·  Tier '+u.tier;
+  if(ascCount) subTxt+='  ·  Ascended ×'+ascCount;
+  hb.appendChild(el('div','uip-sub',subTxt));
+  hd.appendChild(hb);
+  const x=el('button','uip-x','✕'); x.title='Close'; x.onclick=closeModal; kbAct(x); hd.appendChild(x);
+  bx.appendChild(hd);
+
+  if(!isE&&u.pas){
+    const ps=el('div','uip-sec');
+    ps.appendChild(el('div','uip-sec-label','PASSIVE · '+u.pas.n.toUpperCase()));
+    ps.appendChild(el('div','uip-sec-body',u.pas.d));
+    bx.appendChild(ps);
+  } else if(isE&&(u.desc||u.role)){
+    const ps=el('div','uip-sec');
+    ps.appendChild(el('div','uip-sec-label',(u.role?u.role.toUpperCase()+' · ':'')+'ENEMY'));
+    if(u.desc) ps.appendChild(el('div','uip-sec-body',u.desc));
+    bx.appendChild(ps);
+  }
+  const stx=Object.keys(ST_IC).filter(k=>u.st[k]>0);
+  if(stx.length){
+    const sr=el('div','uip-sec uip-st');
+    stx.forEach(k=>{ const sp=el('span','st '+k); sp.appendChild(ico(ST_IC[k],'t'));
+      sp.appendChild(el('span',null,String(u.st[k]))); sp.title=ST_NAME[k]; sr.appendChild(sp); });
+    bx.appendChild(sr);
+  }
+
+  const fs=el('div','uip-faces');
+  fs.appendChild(el('div','uip-sec-label','ALL SIX FACES'));
+  const fl=el('div','uip-flist');
+  u.die.forEach((f,i)=>fl.appendChild(inspFaceRow(u,f,i)));
+  fs.appendChild(fl);
+  bx.appendChild(fs);
+
+  ov.appendChild(bx);
+  return ov;
 }
 function scInfo(){
   return modalShell('INFORMATION','Wave '+S.step+' of '+S.len+' · turn '+S.turn, INFO_TABS, ()=>{

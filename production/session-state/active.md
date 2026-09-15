@@ -1,14 +1,26 @@
 # Session State
 
 <!-- STATUS -->
-Epic: Non-battle UI redesign (design_handoff_non_battle_ui, 12 screens, structure-only per its README)
-Feature: Đã audit cả 12 màn — 9/12 đã khớp sẵn với mockup (Battle UI, Profile, Battle Pass,
-  World Tour, Team Pick, Map, Main Menu, Gate/Login, Tutorial Overlay — KHÔNG cần sửa).
-  3 màn thực sự cần merge thành tab-group đã làm xong: Codex+Sample Teams (scCodex, colOuter
-  pattern), Collection+Unlocks+EchoBox (scCollection/colOuter, scEchoBoxBody), Vault+Leaderboard+
-  History (scVaultHub/vaultOuter, scImportBody/scLeaderboardBody/scHistoryBody).
-Task: node tools/ci.mjs 11/12 GREEN (t_tutorial fail = pre-existing trên main sạch, đã confirm
-  bằng git stash, KHÔNG phải regression). CHƯA commit — src/client.html đang unstaged, chờ user duyệt.
+Epic: Battle UI redesign (design_handoff_battle_ui, Battle-UI-A-Grid-v2 handoff)
+Feature: 3 gap còn lại so với README (bản sửa 2, 2 thiếu sót của chính README đã được sửa
+  trong bản đó) đã implement xong trong src/client.html: (1) die block bỏ faceCaption()/.dcap,
+  thêm .kwtags chip band; (2) Formation Resonance viết lại thành .resband+.resrail trong mỗi
+  die block (bỏ .reslink circle+placeResLinks() đo DOM cũ) — bridge nối 2 rail qua gap bị BỎ
+  (không làm theo literal spec) vì .unit{overflow:hidden} sẽ clip nó, xem comment tại .resband;
+  (3) scUnitInfo() viết lại thành panel 560px riêng (§7), KHÔNG đụng faceRow() (còn 2 chỗ dùng
+  khác trong scInfo()) — dùng inspFaceRow() mới.
+  Bonus fix ngoài scope: --board-w sai ở cả 3 breakpoint hẹp (1199/899/599px — công thức cardW
+  mới không khớp giá trị --board-w cũ, tràn ngang 300-700px) — đã tính lại đúng theo padding
+  thật của #app tại từng ngưỡng, xem comment cạnh mỗi --board-w.
+  Bug fix thêm (báo bởi user sau khi xong 3 gap): nút reroll (.rsel) trong die
+  không bấm được — bindDrag()'s pointerdown trên cả .die (7395) bubble từ .rsel
+  lên, needsTarget()=true thì gọi render() NGAY trên pointerdown (comment tại
+  chỗ đó tự giải thích lý do), render() phá DOM node .rsel trước khi click kịp
+  bắn. Fix: rs.onpointerdown=e=>e.stopPropagation() (partyCard(), cạnh rs.onclick
+  đã có). Bug này KHÔNG do 3 fix trên gây ra — bindDrag()/.rsel có từ trước,
+  verify bằng real mouse click qua Browser tool, u.rsel toggle đúng, sel không bị set nhầm.
+Task: node tools/ci.mjs 12/12 GREEN (kể cả t_tutorial, đã hết fail). Sim winrate 19.0% không đổi.
+  CHƯA commit — src/client.html/engine.js/t_tutorial.mjs đang unstaged, chờ user duyệt.
 <!-- /STATUS -->
 
 > **Giữ file này DƯỚI 100 DÒNG.** `session-start.sh` đọc `tail -20`,
@@ -33,36 +45,14 @@ preview Decor/Background. Chi tiết đầy đủ: `git log` (commit sắp tạo
 `design/ux/echo-box.md` + `design/gdd/world-tour.md`. Không lặp lại ở đây nữa —
 mục đích của mục này chỉ còn là index, không phải nhật ký.
 
-## Phiên 2026-09-07 (tiếp, ĐÃ COMMIT `5ac6a22`+deploy) — tóm tắt, chi tiết xem git log
+## Lịch sử phiên trước — chỉ là index, chi tiết xem git log
 
-Fix PROGRESS xuống dòng + Echo Box tên bị cắt chữ + locked-chip dimming
-(art-director) + Relic Blood Pact 25%→15% + bug Leaderboard không lưu điểm
-(`upstash()` thiếu check `.error`) + icon pixel audit (`docs/art/icon-system-
-redesign-2026-09-07.md`, BLOCKED sourcing thật).
-
-## Phiên 2026-09-08 — World Tour v6 + World Map redesign + Chimera art (IMPLEMENT xong)
-
-18. **World Tour v6** (`design/gdd/world-tour.md`) — badge Map1 dùng `fullAscMax`
-    (câu hỏi mở #3), chuỗi mở Map2 đổi sang 3 TRỤC (`wins>=5`/`ascMax>=2`/
-    `fullAscMax>=3`, câu hỏi mở #2, game-designer thiết kế lại sau khi bản
-    4-bước-1-trục cũ bị từ chối vì có thể "nhảy cóc" bỏ qua cả chuỗi).
-    `tourQuestStep()`/`tourLockReason()` (`client.html`) đã sửa khớp — verify
-    bằng test vector trong browser console, đúng cả 4 mốc biên trong spec.
-19. **World Map redesign** (`design/ux/world-tour-map.md`) — `scTourMap()` viết
-    lại hoàn toàn: art thật full-bleed (CSS breakout `100vw`, KHÔNG cần
-    `#bgLayer`), 10 node tròn bám đúng đường mòn (`TOUR_MAPS[].tiles[].node`,
-    `data.js`), path SVG nét đứt, pawn "vị trí hiện tại" nội suy, boss-landmark
-    dùng thẳng `sprMon()`. Cũng nâng cấp `TOUR_MAP_ART` (`art5.js`) lên bản nét
-    hơn (1770×578, JPEG q88, ~415KB/ảnh — không dùng bản gốc PNG 2MB/ảnh vì quá
-    nặng cho lợi ích thấy được). Verify: chụp màn hình ở 899/1440px VÀ với
-    `--ui-scale:1.2` (giả lập zoom) — không seam, không crop.
-20. **Chimera monster art** (`docs/art/chimera-monster-art-mapping-2026-09-08.md`)
-    — `MON_ART` mới trong `art3.js` (22 key), wire vào `sprMon()`/`sprMonIsReal()`
-    (ưu tiên BOSS_ART → MON_ART → monArt2() Hero-reskin cũ), KHÔNG qua
-    `realArtWrap()`/badge NFT (quái không phải Vault Axie sở hữu). Verify bằng
-    browser: quái thường giờ có art riêng biệt hẳn với Hero, không đỏ.
-
-`node tools/ci.mjs` 11/11 GREEN sau tất cả (chạy 2026-09-08). CHƯA commit/deploy.
+- 2026-09-07 (`5ac6a22`+deploy): PROGRESS xuống dòng, Echo Box tên bị cắt,
+  locked-chip dimming, Relic Blood Pact 25%→15%, Leaderboard `upstash()` lỗi
+  không check `.error`, icon pixel audit (BLOCKED sourcing thật).
+- 2026-09-08 (implement xong, CHƯA commit lúc đó): World Tour v6
+  (`design/gdd/world-tour.md`), World Map redesign (`design/ux/world-tour-map.md`,
+  `scTourMap()`), Chimera monster art (`MON_ART` trong `art3.js`, 22 key).
 
 ## Việc còn mở (không chặn)
 

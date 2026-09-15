@@ -155,6 +155,15 @@ const b = await chromium.launch({ args: ['--no-sandbox'] });
   await pg.click('.btn.reroll');
   await pg.waitForTimeout(150);
   check('REROLL is clickable at step 3 and consumes a reroll', await pg.evaluate(() => S.rerolls < S.maxRerolls));
+  // A reroll re-triggers the same tumble/land roll animation as the initial
+  // roll (runRollAnim(), client.html ~3369: DUR=430/SPD staggered 70/SPD per
+  // die — ~710ms for 5 dice at SPD=1) and clickDie() intentionally refuses
+  // all input while `rollAnim` is truthy (client.html:4915). The 150ms wait
+  // above is only enough for the rerolls-counter assertion; without waiting
+  // out the animation here too, the next die click below lands while still
+  // locked and is silently swallowed. Poll instead of guessing a fixed delay
+  // (same pattern already used after acting, further down).
+  await pg.waitForFunction(() => !playing && !rollAnim, null, { timeout: 5000 });
 
   // tutActor()/its target are recomputed AFTER the reroll (see client.html's
   // comment on tutActor() — this is exactly the bug that comment documents:

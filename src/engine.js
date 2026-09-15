@@ -693,7 +693,8 @@ function execFace(s,u,tgtUid){
   if(isResonant) ft(s,u,'LINK ×'+RESONANCE.mult,'buf');
   let reps = hasKw(f,'echo')?2:1;
   if(u.side==='p'&&rhas(s,'firstEcho')&&!s._firstUsed) reps=Math.max(reps,2);
-  EV(s,{t:'use',uid:u.uid,side:u.side,tgt:tgtUid,aoe:hasKw(f,'aoe')||f.t==='mana'||f.t==='summon'});
+  EV(s,{t:'use',uid:u.uid,side:u.side,tgt:tgtUid,aoe:hasKw(f,'aoe')||f.t==='mana'||f.t==='summon',
+    facePart:f.p,faceName:f.name||null,faceT:f.t});
   const ok=doFace(s,u,tgtUid,f,fi);
   if(!ok){ u.resonantNow=false; return false; }
   if(u.side==='p') s._firstUsed=1;
