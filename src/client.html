@@ -697,7 +697,6 @@ small{font-size:var(--t1)}
 .ascbadge{font-size:var(--t1);border:1px solid var(--deb);border-radius:var(--rad-sm);color:var(--deb);padding:2px 6px}
 .turn{font-size:var(--t2);color:var(--dim)}
 .rr{font-size:var(--t2);color:var(--shd);display:flex;align-items:center;gap:3px}
-.spd{display:flex;gap:2px}
 
 /* ================= MAP ================= */
 .screen.map{min-height:calc(100vh - 30px);display:flex;flex-direction:column;justify-content:center}
@@ -796,14 +795,10 @@ small{font-size:var(--t1)}
   border:0;border-radius:6px;background:transparent;color:var(--dim);cursor:pointer;font-family:inherit;position:relative}
 .tb-btn:hover{color:var(--txt)}
 .tb-btn.dis{color:var(--off);cursor:not-allowed}
-.tb-spd{display:flex;background:#0a0c0f;border-radius:6px;padding:2px}
-.tb-spd button{height:28px;width:34px;font-size:var(--t1);border:0;border-radius:4px;background:transparent;
-  color:var(--dim);font-weight:700;cursor:pointer;font-family:inherit;position:relative}
-.tb-spd button.on{background:var(--acc);color:#291808;font-weight:800}
-/* height:32/28 is the handoff's literal spec, under this project's 44px
+/* height:32 is the handoff's literal spec, under this project's 44px
    tap-target floor (tools/verify.mjs B1, --tap-min) — same fix as .btn's
    own ::before below: expand the HIT area, not the visible chrome. */
-.tb-btn::before,.tb-spd button::before{content:"";position:absolute;inset:50% 50%;
+.tb-btn::before{content:"";position:absolute;inset:50% 50%;
   width:max(100%,var(--tap-min));height:max(100%,var(--tap-min));transform:translate(-50%,-50%)}
 
 /* ---------- 2. zone headers ---------- */
@@ -1142,8 +1137,16 @@ small{font-size:var(--t1)}
    Reserves its 20px height with zero chips so a face with no keywords
    cannot shift the row below it. Border/text colour follows the FACE's own
    effect colour, same palette as .dv/.dvl above. */
-.kwtags{height:20px;flex:none;display:flex;align-items:center;gap:4px;flex-wrap:nowrap;overflow:hidden}
-.kwtag{padding:2px 6px;border-radius:4px;background:#0a0c0f;border:1px solid var(--line);
+/* DELTA-statusbar-chips.md (2026-09-16) — chips ~15% smaller (20/2px6px/4px ->
+   17/1px5px/3px); the 3px the row gives back goes to the die-value row above
+   it, which is flex:1 — card height is unaffected. Deviation from the delta's
+   literal spec: font-size stays at var(--t1)/11px rather than dropping to
+   9.5px — this project hard-floors all text at 11px (tools/verify.mjs gate
+   A1, tested across phone/tablet/tutorial/transient); 9.5px regressed that
+   gate to 68/72 (2 words flagged: GROWTH, WEAKEN 2). Every other shrink
+   applies as specified. */
+.kwtags{height:17px;flex:none;display:flex;align-items:center;gap:4px;flex-wrap:nowrap;overflow:hidden}
+.kwtag{padding:1px 5px;border-radius:3px;background:#0a0c0f;border:1px solid var(--line);
   font-size:var(--t1);font-weight:800;letter-spacing:.06em;white-space:nowrap;color:var(--dim)}
 .die.t_dmg .kwtag{color:var(--dmg);border-color:color-mix(in srgb,var(--dmg) 45%,var(--line))}
 .die.t_shield .kwtag{color:var(--shd);border-color:color-mix(in srgb,var(--shd) 45%,var(--line))}
@@ -2806,6 +2809,11 @@ const kbAct=e2=>{ e2.tabIndex=0;
     if(!playing) ev.stopPropagation(); } });
   return e2; };
 
+// DELTA-statusbar-chips.md (2026-09-16) — the 1x/2x/3x speed toggle (status bar
+// and Settings) is removed; nothing writes SPD any more, so every existing
+// `/SPD` timing expression below is now permanently at its 1x value without
+// having to touch each call site individually. skipHold (hold-to-fast-forward)
+// is a separate, still-live mechanic and is untouched.
 let S=null, screen='menu', sel=null, selRelic=null, teamPick=[], msg='', SPD=1;
 /* One-shot "boss incoming" flash — keyed by S.step so it fires exactly once
    per encounter regardless of how many times render()/scCombat() re-runs
@@ -4762,9 +4770,6 @@ function track(withCtl){
   if(withCtl){
     const ub=btn('xs ghost','UNDO',()=>{ if(undo(S)){ logAction('undo',[]); sel=null;selRelic=null;flash('Undone.'); render(); } });
     if(!S.undo.length) ub.classList.add('dis'); r.appendChild(ub);
-    const sp=el('div','spd');
-    [1,2,3].forEach(v=>{ const b=el('button','btn xs'+(SPD===v?' on':''),v+'x'); b.onclick=()=>{SPD=v;render();}; sp.appendChild(b); });
-    r.appendChild(sp);
     const ib=btn('xs ghost','INFO',()=>{ modal='info'; render(); });
     ib.title='Every relic, stat and die face — yours and the enemy’s  (press I)';
     r.appendChild(ib);
@@ -4880,9 +4885,6 @@ function combatTopbar(){
   const ub=el('button','tb-btn','UNDO');
   if(!S.undo.length) ub.classList.add('dis'); else{ ub.onclick=()=>{ if(undo(S)){ logAction('undo',[]); sel=null;selRelic=null;flash('Undone.'); render(); } }; kbAct(ub); }
   ut.appendChild(ub);
-  const sp=el('div','tb-spd');
-  [1,2,3].forEach(v=>{ const b=el('button',SPD===v?'on':'',v+'x'); b.onclick=()=>{SPD=v;render();}; sp.appendChild(b); });
-  ut.appendChild(sp);
   const ib=el('button','tb-btn','INFO'); ib.title='Every relic, stat and die face — yours and the enemy’s  (press I)';
   ib.onclick=()=>{ modal='info'; render(); }; kbAct(ib); ut.appendChild(ib);
   if(typeof clogToggleBtn==='function') ut.appendChild(clogToggleBtn());
@@ -6206,7 +6208,6 @@ window.addEventListener('load',()=>{ loadMeta();
   if(META.vol!=null) AU.vol=META.vol;
   if(META.mvol!=null) AU.mvol=META.mvol;
   if(META.mute) AU.on=false;
-  if(META.spd) SPD=META.spd;
   // Mandatory login gate: no cached token -> show ONLY the gate, never the menu
   // (design/gdd/player-accounts.md §3). A cached token renders normally,
   // optimistically (from the LOCALLY cached META — including the tutorial
@@ -7117,11 +7118,6 @@ function scSettings(){
       mvw.appendChild(mvi); mvw.appendChild(mvv);
       row('MUSIC',mvw);
     }
-    /* tốc độ */
-    const sw=el('div','setctl');
-    [1,2,3].forEach(v=>{ const b=el('button','btn sm'+(SPD===v?' on':''),v+'x');
-      b.onclick=()=>{ SPD=v; META.spd=v; saveMeta(); render(); }; sw.appendChild(b); });
-    row('ANIMATION SPEED',sw);
     /* photosensitivity: crit/Mythic flashScreen() + hitstop() screen punch */
     const flw=el('div','setctl');
     const fb=el('button','btn sm'+(META.reduceFlash?' on':''),META.reduceFlash?'FLASH: REDUCED':'FLASH: NORMAL');
