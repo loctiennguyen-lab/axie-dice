@@ -3985,7 +3985,7 @@ function scMenu(){
   inner.appendChild(el('div','sub','LUNACIA MUTANTS · v1.0'));
   if(echoTier()>0) inner.appendChild(el('div','sub echotier','Echo Rank: '+ECHO_TIER_NAMES[echoTier()]));
   if(saved){
-    inner.appendChild(btn('go cta btn--lg','CONTINUE RUN',()=>{ S=saved.s; screen='combat'; render(); }));
+    inner.appendChild(btn('go cta btn--lg','CONTINUE RUN',()=>{ S=saved.s; resyncUid(S); screen='combat'; render(); }));
     inner.appendChild(btn('ghost cta2 btn--lg','NEW RUN',()=>{ teamPick=['plant1','beast1','aqua1','reptile1','bug1']; screen='team'; render(); }));
   } else {
     inner.appendChild(btn('go cta btn--lg','PLAY',()=>{ teamPick=['plant1','beast1','aqua1','reptile1','bug1']; screen='team'; render(); }));

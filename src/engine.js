@@ -52,6 +52,27 @@ function modFaceOrder(s){
 /* ================= ROSTER → UNIT ================= */
 let UID=1;
 function newRosterEntry(key,vr,nftBonusPct){ return {uid:UID++,key,vr:vr||0,muts:[],bonusHp:0,nftBonusPct:nftBonusPct||0}; }
+/* Bug report 2026-09-16 — "click a die, click the boss, nothing happens":
+   UID is a plain in-memory counter, reset to 1 by every page load/reload.
+   A saved run's roster/party/enemies keep whatever uids they were given
+   in the session that created them (often starting at 1 too, since the
+   roster is built first). CONTINUE RUN restores that saved `s` wholesale
+   but never told THIS session's UID counter about the uids already in use
+   — so the next unit created after resuming (a boss, a SPLIT add, a
+   summon token) can get an uid that collides with an existing party
+   member's. byUid(s,uid) checks s.party before s.enemies, so any action
+   targeting that boss silently resolves to the colliding ally instead,
+   fails the "tgt.side===u.side" same-side check in doFace(), and returns
+   false — no error, no visible effect, exactly the reported symptom.
+   Call this right after restoring a saved run (see CONTINUE RUN in
+   client.html) so every uid allocated from here on is guaranteed clear of
+   whatever the save already contains. */
+function resyncUid(s){
+  let max=0;
+  const scan=arr=>{ if(!arr) return; for(const u of arr) if(u&&typeof u.uid==='number'&&u.uid>max) max=u.uid; };
+  scan(s.roster); scan(s.party); scan(s.enemies);
+  if(max>=UID) UID=max+1;
+}
 
 /* NFT HP Bonus (design/gdd/economy-progression.md §10.2a — ngoại lệ có phạm vi của D12).
    Chỉ áp dụng cho Axie NFT được CHỌN TRƯỚC vào đội hình (không áp dụng Axie tuyển ngẫu nhiên).
