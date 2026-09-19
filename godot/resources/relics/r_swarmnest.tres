@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="RelicDef" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data_models/relic_def.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "r_swarmnest"
+name = "Swarm Nest"
+description = "RULE: start every fight with 2 Axie Eggs on your side."
+rarity = 2
+archetype = "summon"
+mload = 0
+sort_index = 102044
+hook_key = ""
+startSummon = 2.0

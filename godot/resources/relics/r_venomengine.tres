@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="RelicDef" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data_models/relic_def.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "r_venomengine"
+name = "Venom Engine"
+description = "RULE: Poison deals its damage twice per turn."
+rarity = 3
+archetype = "poison"
+mload = 1
+sort_index = 103062
+hook_key = ""
+poisonTicks = 2.0

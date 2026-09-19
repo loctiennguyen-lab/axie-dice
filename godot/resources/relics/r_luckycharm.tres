@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="RelicDef" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data_models/relic_def.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "r_luckycharm"
+name = "Lucky Scale"
+description = "RULE: every attack has a 35% higher chance to crit."
+rarity = 1
+archetype = "crit"
+mload = 1
+sort_index = 101017
+hook_key = ""
+critBonus = 35.0

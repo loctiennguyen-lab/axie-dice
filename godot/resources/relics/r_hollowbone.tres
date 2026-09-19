@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="RelicDef" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data_models/relic_def.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "r_hollowbone"
+name = "Hollow Bone"
+description = "RULE: Pierce attacks ignore Thorns and deal 3 more damage."
+rarity = 2
+archetype = "pierce"
+mload = 1
+sort_index = 102040
+hook_key = ""
+piercePlus = 3.0

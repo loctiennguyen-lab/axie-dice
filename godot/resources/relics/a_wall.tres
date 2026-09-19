@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="RelicDef" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data_models/relic_def.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "a_wall"
+name = "Lunacia Wall"
+description = "[MP 6] Grant 5 Shield to the whole party."
+rarity = 1
+archetype = "shield"
+mload = 0
+sort_index = 101081
+hook_key = ""
+act_cost = 6
+act = {
+"kind": "shieldall",
+"v": 5
+}

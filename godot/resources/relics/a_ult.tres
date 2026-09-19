@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="RelicDef" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data_models/relic_def.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "a_ult"
+name = "LUNACIA ULTIMA"
+description = "[MP 18] Deal 40 piercing damage to one target and grant 10 Shield to the whole party."
+rarity = 3
+archetype = "mana"
+mload = 0
+sort_index = 103093
+hook_key = ""
+act_cost = 18
+act = {
+"kind": "ult",
+"v": 40
+}

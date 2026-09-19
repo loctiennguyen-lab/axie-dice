@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="RelicDef" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data_models/relic_def.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "r_plaguelord"
+name = "Plague Lord"
+description = "RULE: Poison never loses stacks. All Poison faces apply 1 more stack."
+rarity = 3
+archetype = "poison"
+mload = 1
+sort_index = 103063
+hook_key = "r_plaguelord"
+plague = true
+mf_phase = "add"

@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="RelicDef" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data_models/relic_def.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "r_keeneye"
+name = "Keen Eye"
+description = "RULE: if no Axie rolled a critical hit this turn, your first attack this turn crits. Critical hits deal 4 more damage."
+rarity = 2
+archetype = "crit"
+mload = 0
+sort_index = 102056
+hook_key = "r_keeneye"
+critFlatPity = 4.0

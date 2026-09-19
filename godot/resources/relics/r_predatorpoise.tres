@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="RelicDef" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data_models/relic_def.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "r_predatorpoise"
+name = "Predator's Poise"
+description = "RULE: rerolling an Axie no longer cancels a critical hit it had already rolled."
+rarity = 0
+archetype = "crit"
+mload = 0
+sort_index = 100012
+hook_key = ""
+critKeep = true

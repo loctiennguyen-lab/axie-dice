@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="RelicDef" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data_models/relic_def.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "a_freeze"
+name = "Cryo Spore"
+description = "[MP 4] Stun one enemy."
+rarity = 0
+archetype = "mana"
+mload = 0
+sort_index = 100079
+hook_key = ""
+act_cost = 4
+act = {
+"kind": "stun"
+}

@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="RelicDef" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data_models/relic_def.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "r_scentofblood"
+name = "Scent of Blood"
+description = "RULE: enemies below half HP take 4 more damage from every attack."
+rarity = 1
+archetype = "exec"
+mload = 0
+sort_index = 101032
+hook_key = "r_scentofblood"

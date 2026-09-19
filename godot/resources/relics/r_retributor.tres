@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="RelicDef" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data_models/relic_def.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "r_retributor"
+name = "Retributor"
+description = "RULE: when a shielded Axie Thorns an attacker, the two enemies beside it take a third as much."
+rarity = 2
+archetype = "thorns"
+mload = 0
+sort_index = 102050
+hook_key = "r_retributor"

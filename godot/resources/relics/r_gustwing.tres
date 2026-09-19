@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="RelicDef" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data_models/relic_def.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "r_gustwing"
+name = "Gustwing"
+description = "RULE: Cleave attacks deal 75% damage to neighbours instead of 50%."
+rarity = 1
+archetype = "aoe"
+mload = 1
+sort_index = 101035
+hook_key = ""
+cleaveRatio = 0.75

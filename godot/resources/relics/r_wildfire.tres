@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="RelicDef" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data_models/relic_def.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "r_wildfire"
+name = "Wildfire"
+description = "RULE: Burn loses only 1 stack per turn instead of half. Every Horn damage face also applies Burn 6."
+rarity = 1
+archetype = "burn"
+mload = 1
+sort_index = 1023
+hook_key = "r_wildfire"
+burnSlow = true
+mf_phase = "kw"

@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="RelicDef" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data_models/relic_def.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "r_worldpiercer"
+name = "World Piercer"
+description = "RULE: every damage face gains Pierce, and your Pierce no longer triggers Thorns."
+rarity = 3
+archetype = "pierce"
+mload = 1
+sort_index = 3070
+hook_key = "r_worldpiercer"
+piercePlus = 1.0
+mf_phase = "kw"

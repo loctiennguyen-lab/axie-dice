@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="RelicDef" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data_models/relic_def.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "r_infinitedie"
+name = "Infinite Die"
+description = "Gain 2 maximum Rerolls, 1 Mana at the start of every fight, and rerolling no longer clears your undo history."
+rarity = 2
+archetype = "mana"
+mload = 0
+sort_index = 102045
+hook_key = "r_infinitedie"
+rerollUp = 2.0
+safeReroll = true

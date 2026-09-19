@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="RelicDef" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data_models/relic_def.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "r_marrowdrill"
+name = "Marrow Drill"
+description = "RULE: every Pierce damage face also applies Weaken 2."
+rarity = 1
+archetype = "pierce"
+mload = 0
+sort_index = 1026
+hook_key = "r_marrowdrill"
+mf_phase = "kw"

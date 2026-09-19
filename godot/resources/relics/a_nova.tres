@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="RelicDef" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data_models/relic_def.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "a_nova"
+name = "Gene Nova"
+description = "[MP 8] Deal 10 damage to every enemy."
+rarity = 3
+archetype = "aoe"
+mload = 0
+sort_index = 103092
+hook_key = ""
+act_cost = 8
+act = {
+"kind": "dmgall",
+"v": 10
+}

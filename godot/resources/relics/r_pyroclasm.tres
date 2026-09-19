@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="RelicDef" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data_models/relic_def.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "r_pyroclasm"
+name = "Pyroclasm"
+description = "RULE: when Burn deals damage, it spreads half its stacks to adjacent targets. Every Horn damage face deals 1 more."
+rarity = 2
+archetype = "burn"
+mload = 1
+sort_index = 102041
+hook_key = "r_pyroclasm"
+burnSpread = true
+mf_phase = "add"

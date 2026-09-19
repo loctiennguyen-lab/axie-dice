@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="RelicDef" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data_models/relic_def.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "a_plague"
+name = "Spore Bloom"
+description = "[MP 6] Apply Poison 3 to every enemy."
+rarity = 2
+archetype = "poison"
+mload = 0
+sort_index = 102086
+hook_key = ""
+act_cost = 6
+act = {
+"kind": "poisonall",
+"v": 3
+}

@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="RelicDef" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data_models/relic_def.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "r_worldtree"
+name = "World Tree"
+description = "RULE: your Axie keep half of everything they grew, up to +3 per face, for the rest of the run."
+rarity = 3
+archetype = "growth"
+mload = 1
+sort_index = 103072
+hook_key = ""
+growthKeep = true

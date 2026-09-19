@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="RelicDef" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data_models/relic_def.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "r_quickenroot"
+name = "Quickenroot"
+description = "RULE: from the second turn on, the face each Axie has rolled grows by 1 permanently."
+rarity = 2
+archetype = "growth"
+mload = 0
+sort_index = 102047
+hook_key = "r_quickenroot"

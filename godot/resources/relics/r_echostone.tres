@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="RelicDef" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data_models/relic_def.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "r_echostone"
+name = "Echo Stone"
+description = "RULE: the first face you use each turn triggers twice."
+rarity = 3
+archetype = "crit"
+mload = 0
+sort_index = 103059
+hook_key = ""
+firstEcho = true

@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="RelicDef" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data_models/relic_def.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "r_bloodhymn"
+name = "Blood Hymn"
+description = "RULE: critical hits grant 2 Mana."
+rarity = 1
+archetype = "crit"
+mload = 0
+sort_index = 101034
+hook_key = "r_bloodhymn"

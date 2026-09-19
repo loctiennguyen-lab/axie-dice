@@ -1,0 +1,15 @@
+[gd_resource type="Resource" script_class="RelicDef" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data_models/relic_def.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "r_manaflood"
+name = "Mana Flood"
+description = "RULE: unspent Mana at the end of your turn deals that much damage to every enemy. Gain 3 Mana at the start of every fight."
+rarity = 3
+archetype = "mana"
+mload = 0
+sort_index = 103068
+hook_key = "r_manaflood"
+manaOverflow = true

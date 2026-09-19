@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="RelicDef" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data_models/relic_def.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "r_thousandcuts"
+name = "Thousand Cuts"
+description = "RULE: every Pierce face strikes twice, each strike for half damage plus 2."
+rarity = 2
+archetype = "pierce"
+mload = 1
+sort_index = 2046
+hook_key = "r_thousandcuts"
+mf_phase = "kw"
+mf_phase2 = "add"

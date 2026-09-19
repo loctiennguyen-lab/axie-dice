@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="RelicDef" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data_models/relic_def.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "r_seedling"
+name = "Seedling Core"
+description = "Every face grows by 1 each turn. Growth faces grow by 2 instead of 1."
+rarity = 0
+archetype = "growth"
+mload = 0
+sort_index = 100013
+hook_key = ""
+growthPlus = 1.0
+growthAll = 1.0

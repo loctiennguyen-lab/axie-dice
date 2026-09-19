@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="RelicDef" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data_models/relic_def.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "r_bloomscale"
+name = "Bloomscale"
+description = "RULE: every Back and Eyes face gains Growth, and Growth faces grow by 4 instead of 1."
+rarity = 1
+archetype = "growth"
+mload = 0
+sort_index = 1028
+hook_key = "r_bloomscale"
+growthPlus = 3.0
+mf_phase = "kw"

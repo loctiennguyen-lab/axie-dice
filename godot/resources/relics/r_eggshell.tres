@@ -1,0 +1,14 @@
+[gd_resource type="Resource" script_class="RelicDef" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data_models/relic_def.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "r_eggshell"
+name = "Eggshell Ward"
+description = "RULE: every Axie Egg gains 2 Shield at the start of each turn."
+rarity = 1
+archetype = "summon"
+mload = 0
+sort_index = 101029
+hook_key = "r_eggshell"

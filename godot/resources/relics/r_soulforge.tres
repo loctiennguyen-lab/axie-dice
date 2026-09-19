@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="RelicDef" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data_models/relic_def.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "r_soulforge"
+name = "Soul Forge"
+description = "RULE: Shield has no cap, you take 30% less damage, and all Shield faces give 2 more."
+rarity = 3
+archetype = "shield"
+mload = 2
+sort_index = 103066
+hook_key = "r_soulforge"
+dr = 0.3
+noShieldCap = true
+mf_phase = "add"
