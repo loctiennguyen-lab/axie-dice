@@ -211,6 +211,10 @@ static var disable_juice_for_tests: bool = false
 @onready var _die_slot_buttons: Array = [%DieSlot0, %DieSlot1, %DieSlot2, %DieSlot3, %DieSlot4]
 
 var _combat: CombatEngine
+## The six-tab info panel while it is open, or null. Held so the Info button stays a TOGGLE:
+## opening a second copy would stack two panels over each other, and the one underneath would
+## be showing a turn that has since moved on.
+var _info_overlay: CanvasLayer = null
 var _setup: Dictionary = {}
 var _portraits: Dictionary = {}     # uid -> UnitPortrait (feet nameplate)
 var _head_huds: Dictionary = {}     # uid -> UnitHeadHUD (above-head status/intent stack)
@@ -1527,7 +1531,27 @@ func _on_undo_pressed() -> void:
 ## that too, at no extra cost, since it's the same static text). No engine call, no state read
 ## beyond what's already true of this input model (file-header "INPUT MODEL" comment).
 func _on_info_toggle_pressed() -> void:
-	_info_panel.visible = not _info_panel.visible
+	# ui-programmer, godot-port-gap-inventory.md §2.1 "scInfo" — opens the real six-tab panel
+	# (InfoPanelView.tscn, a NEW scene, not part of this file's node tree) instead of just
+	# toggling the old static how-to-play hint. Smallest possible hook per task brief: this
+	# function body is the only change made to CombatView.gd for that feature.
+	#
+	# A TOGGLE, not an opener. The button is labelled Info and was a toggle before; opening a
+	# second copy on the second press would stack two panels the player then has to close twice,
+	# and the one underneath would be showing a snapshot of a turn that has since moved on.
+	if is_instance_valid(_info_overlay):
+		_info_overlay.queue_free()
+		_info_overlay = null
+		return
+	var panel := preload("res://scenes/combat/InfoPanelView.tscn").instantiate()
+	panel.setup(_combat, RunState.owned_relic_ids)
+	panel.closed.connect(panel.queue_free)
+	var layer := CanvasLayer.new()
+	layer.layer = 29
+	add_child(layer)
+	layer.add_child(panel)
+	panel.tree_exited.connect(layer.queue_free)
+	_info_overlay = layer
 
 
 ## Damage-preview hover, path 1/2 (review P0 #2): hovering a currently-playable ATTACK die
