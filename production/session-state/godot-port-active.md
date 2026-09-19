@@ -35,6 +35,42 @@ Task: **Vault/Import Axie: bước (a)(b)(c) XONG. Bước (d) lớp mạng BỊ
 
 # ⇢ BẮT ĐẦU TỪ ĐÂY (phiên mới đọc mục này trước, phần dưới là lịch sử)
 
+## ⓷ 2026-09-20 — TRỌNG TÀI CHẠY TRÊN GITHUB ACTIONS (miễn phí, không máy chủ)
+
+Chủ dự án muốn nơi host **miễn phí**. Đo trước khi chọn: một ván đầy đủ 391 nước đi được chấm
+xong trong **0,6–0,85 giây** (đã tính khởi động Godot). Tức bài toán không phải tài nguyên, mà
+là cần một chỗ chạy được **tiến trình thật** — Vercel/Netlify không chạy Godot được.
+
+Chọn: **chấm theo lô bằng GitHub Actions.** Không máy chủ, không thẻ thanh toán, không hoá đơn.
+
+| File | Vai trò |
+|---|---|
+| `tools/verify_runs.sh` | Chấm bản ghi. **Chạy y hệt nhau ở máy local và trên CI** — một đường xác minh chỉ tồn tại trong file workflow là đường không ai tái hiện được khi nó cãi nhau với người chơi. |
+| `.github/workflows/verify-runs.yml` | Cài Godot 4.7.2 Linux (ghim đúng phiên bản dự án — engine là một phần của luật), cache import, chấm, dựng lại bảng, in verdict vào job summary. |
+| `tools/build_leaderboard.mjs` | Dựng `LEADERBOARD.md` **chỉ từ verdict**, không bao giờ từ bản ghi gửi lên. |
+| `production/leaderboard/records/` | Bản ghi người chơi nộp (file từ nút SAVE RUN RECORD). |
+| `production/leaderboard/golden/` | Ván thật + điểm đã ghi lại **trên máy đã chơi nó**. |
+
+> **Golden record là thứ quan trọng nhất ở đây, và trông như thứ tầm thường nhất.** Game được
+> ghi trên một máy (Mac arm64) và chấm lại trên máy khác (Linux x86 của CI). Nếu cùng một ván ra
+> hai điểm khác nhau thì người chơi trung thực bị trọng tài ở nơi khác gọi là gian lận — và
+> không cơ chế chống gian lận nào cứu được, vì chính nó đang cãi nhau. `verify_runs.sh` chấm
+> golden TRƯỚC và **từ chối chấm bất kỳ bản ghi nào** khi golden còn lệch.
+
+**Đã đo đầu-cuối tại máy**: golden 500 khớp · bản ghi trung thực → `ok, score 500` · bản ghi bị
+chèn thêm một lượt nhận thưởng → `REFUSED: action_rejected` + **thoát mã 1** (PR sẽ đỏ kèm lý do)
+· không có bản ghi nào → thoát 0.
+
+> **GIỚI HẠN, đừng đọc thành "đã có bảng xếp hạng":** đây **không phải** endpoint nộp điểm.
+> Client không thể tự đẩy lên repo mà không mang theo credential, và credential nhét trong game
+> là credential ai cũng có. Đường này đủ cho **beta kín** (nộp qua pull request) và chứng minh
+> toàn bộ pipeline chạy thật. Bảng xếp hạng công khai vẫn cần một endpoint nhỏ luôn bật — quyết
+> định riêng, không chặn bất cứ việc nào ở trên.
+
+**Chưa chạy lần nào trên CI thật** — workflow chỉ chạy sau khi push. YAML đã kiểm cú pháp, URL
+tải Godot 4.7.2 Linux đã kiểm trả HTTP 200.
+
+
 ## ⓶ 2026-09-20 — scEnd / scTeam / scSettings XONG. Suite **41/41**, commit `d525704`.
 
 - **scEnd**: thống kê cả ván (sát thương gây/nhận, số lượt, số kill, cú đánh lớn nhất) — ghi chú

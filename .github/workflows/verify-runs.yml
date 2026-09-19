@@ -1,0 +1,93 @@
+name: Verify run records
+
+# The referee, as CI. ADR-0004 settles that a headless Godot build scores a submitted run, and
+# this is that referee with no server to pay for: it wakes when there is something to check.
+#
+# WHAT IT IS NOT: a live submit endpoint. A game client cannot push here without carrying a
+# credential, and a credential shipped inside a game is a credential everyone has. So this
+# verifies records that reach the repository — a pull request, or a manual run — which covers a
+# closed beta and proves the whole pipeline end to end. A public ranked board still needs a
+# small endpoint in front of it one day; that is a separate decision, not a prerequisite for
+# any of this.
+
+on:
+  push:
+    paths:
+      - 'production/leaderboard/**'
+      - 'godot/**'
+      - 'tools/verify_runs.sh'
+      - '.github/workflows/verify-runs.yml'
+  pull_request:
+    paths:
+      - 'production/leaderboard/**'
+      - 'godot/**'
+  workflow_dispatch:
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # Pinned to the version the project is pinned to (docs/engine-reference/godot/VERSION.md).
+      # A referee running different rules than the game is the one failure this whole system
+      # exists to prevent, and the engine is part of the rules.
+      - name: Install Godot 4.7.2 (headless)
+        run: |
+          set -euo pipefail
+          VERSION=4.7.2-stable
+          URL="https://github.com/godotengine/godot/releases/download/${VERSION}/Godot_v${VERSION}_linux.x86_64.zip"
+          curl -fsSL "$URL" -o /tmp/godot.zip
+          mkdir -p "$GITHUB_WORKSPACE/.godot-bin"
+          unzip -q /tmp/godot.zip -d "$GITHUB_WORKSPACE/.godot-bin"
+          mv "$GITHUB_WORKSPACE"/.godot-bin/Godot_v* "$GITHUB_WORKSPACE/.godot-bin/godot"
+          chmod +x "$GITHUB_WORKSPACE/.godot-bin/godot"
+          "$GITHUB_WORKSPACE/.godot-bin/godot" --version
+
+      # Importing 370MB of assets takes minutes and the result only changes when the assets do.
+      # The referee needs none of that art — it replays rules and draws nothing — but the import
+      # still runs today because the project is imported as a whole. Caching keeps that cost off
+      # every submission; trimming a verify-only export is the real fix, later.
+      - name: Cache Godot import data
+        uses: actions/cache@v4
+        with:
+          path: godot/.godot
+          key: godot-import-${{ hashFiles('godot/assets/**', 'godot/addons/**', 'godot/project.godot') }}
+
+      - name: Verify golden records and submissions
+        id: verify
+        run: |
+          GODOT="$GITHUB_WORKSPACE/.godot-bin/godot" tools/verify_runs.sh | tee /tmp/verify.log
+          exit ${PIPESTATUS[0]}
+
+      - name: Rebuild the leaderboard
+        if: success()
+        run: node tools/build_leaderboard.mjs
+
+      # The report goes in the job summary so a submitter reads the verdict without digging
+      # through logs — including WHY a record was refused, which is the part that tells an
+      # honest player what went wrong.
+      - name: Report
+        if: always()
+        run: |
+          {
+            echo '## Run verification'
+            echo
+            echo '```'
+            cat /tmp/verify.log || echo 'the verifier produced no output'
+            echo '```'
+            echo
+            if [ -f production/leaderboard/LEADERBOARD.md ]; then
+              cat production/leaderboard/LEADERBOARD.md
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload verdicts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: run-verdicts
+          path: production/leaderboard/verdicts/
+          if-no-files-found: ignore

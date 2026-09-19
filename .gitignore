@@ -170,3 +170,4 @@ third_party/godot-axie-mixer-3d-main/*
 !third_party/godot-axie-mixer-3d-main/tests/
 third_party/godot-axie-mixer-3d-main/tests/*
 !third_party/godot-axie-mixer-3d-main/tests/goldens/
+production/leaderboard/verdicts/

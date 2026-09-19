@@ -1,0 +1,7 @@
+{
+  "why": "A real run recorded on 2026-09-19 (macOS, arm64) by tools/record_sample_run.tscn. The referee must reach EXACTLY this score on every machine it ever runs on. If CI disagrees with this file, the port's determinism does not survive crossing an operating system or a CPU architecture — which would mean an honest player on one platform is called a cheat by a referee on another. That is a release blocker, not a flaky test.",
+  "recorded_on": "macOS arm64, Godot 4.7.2",
+  "actions": 391,
+  "score": 500,
+  "won": true
+}
