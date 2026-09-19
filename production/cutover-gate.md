@@ -20,8 +20,37 @@ Trạng thái lần cập nhật cuối: **2026-09-19**. Suite Godot **37/37**.
       trong cùng commit — mức sàn cũ không chỉ sai thông tin, nó **cho phép một regression
       đi qua review**.
 - [ ] `node tools/ci.mjs` vẫn **12/12** cho bản JS. Cutover không được làm hỏng thứ đang sống.
-- [ ] Web export build sạch. ⚠️ Lỗi cú pháp GDScript làm Godot **treo im lặng**, không báo lỗi —
-      nên "build không xong" và "build lỗi" trông giống hệt nhau. Chạy `--import` trước.
+- [x] `node tools/ci.mjs` — **đo 2026-09-20: 12/12 XANH**, bản JS đang live không bị ảnh hưởng.
+- [ ] Web export build sạch **VÀ CHẠY ĐƯỢC**. ⚠️ Lỗi cú pháp GDScript làm Godot **treo im lặng**
+      — "build không xong" và "build lỗi" trông giống hệt nhau. Chạy `--import` trước.
+
+> ### 🚨 CHẶN PHÁT HÀNH — tìm ra 2026-09-20: **mọi bản export đều KHÔNG dựng được một con Axie nào**
+>
+> Dự án chưa từng có `export_presets.cfg`, nên chưa ai từng export lần nào. Lần đầu tiên làm:
+> **build sạch ngay**, 41MB pck + 39MB wasm, **và bản web thật sự khởi động trong trình duyệt**
+> (ảnh: màn tutorial hiện đúng). Nghe như tin tốt — cho đến khi đọc console:
+>
+> ```
+> ERROR: AxieCatalog: catalog not found at res://addons/axie_mixer_3d_assets/catalog.json
+> ```
+>
+> **Nguyên nhân**: `godot/addons/axie_mixer_3d_assets/.gdignore` — một file RỖNG khiến Godot coi
+> như cả thư mục không tồn tại. Thư mục đó là **249MB, 2.211 file, 744 file GLB**: toàn bộ bộ
+> phận cơ thể Axie. Trong EDITOR nó chạy vì `res://` trỏ vào đĩa thật. Trong bản EXPORT, `res://`
+> chỉ có nội dung pck — mà thư mục này chưa bao giờ vào pck.
+>
+> **Hệ quả**: đội hình người chơi, quái dựng từ gene, preview Vault — không cái nào render được.
+> Game vẫn boot (màn tutorial là chữ nên hiện bình thường), và đó chính là chỗ nguy hiểm:
+> **"build thành công" là thật và hoàn toàn vô nghĩa.** Lỗi này áp cho **cả desktop lẫn web**,
+> vì cùng một cơ chế pck. `include_filter` không cứu được — `.gdignore` ẩn thư mục khỏi hệ thống
+> tài nguyên trước khi bộ lọc kịp nhìn thấy.
+>
+> Nhà cung cấp addon đặt `.gdignore` có lý do: bắt Godot import 744 file GLB là chậm và phình
+> cache. Tức đây **không phải bug của họ, mà là một kiến trúc không tương thích với việc export**,
+> và cần một quyết định — xem `production/wayfinder/tickets/J-axie-assets-are-not-exportable.md`.
+>
+> Chỉ một lần export thật + một lần mở thật trong trình duyệt mới lộ ra điều này. 41 gate xanh
+> không hề đụng tới nó, vì gate nào cũng chạy trong editor, nơi đĩa thật luôn ở đó.
 - [ ] `t_rules_version` xanh — tức `RULES_VERSION` đã được cân nhắc cho mọi thay đổi luật.
 
 ## 1. Ngang bằng tính năng — BẮT BUỘC
