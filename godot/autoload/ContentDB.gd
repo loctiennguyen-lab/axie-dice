@@ -767,7 +767,9 @@ func playable_event_keys() -> Array:
 ## built out yet, so they are sold but inert, and `t_meta_progression` asserts exactly which
 ## ids are allowed to be in that state rather than letting the set grow quietly.
 const UNLOCKS := [
-	{"id": "u_full", "n": "FULL RUN (20 waves)", "cost": 120, "d": "Unlocks the 20-wave mode with 4 bosses."},
+	# "20 waves" was wrong twice over: the full map is 30 ROWS and it branches (see
+	# RunMapGenerator.MODE_CONFIG). Display copy only — the id `u_full` is what everything keys on.
+	{"id": "u_full", "n": "FULL RUN (30 rows)", "cost": 120, "d": "Unlocks the 30-row mode with 4 bosses."},
 	{"id": "u_relic1", "n": "Relic Pool II", "cost": 150, "d": "Adds Epic relics to the reward pool."},
 	{"id": "u_face1", "n": "Gene Pool II", "cost": 180, "d": "Adds Legendary faces to the mutation pool."},
 	{"id": "u_reroll", "n": "Survival Instinct", "cost": 220, "d": "Start every run with 1 extra maximum Reroll."},
@@ -930,7 +932,9 @@ const BP_TRACK := [
 	{"lv": 25, "type": "perk", "value": "relic1", "note": "Starting relic upgraded to Rare", "big": true},
 	{"lv": 26, "type": "face", "value": "bp_conduit", "big": true},
 	{"lv": 27, "type": "shard", "value": 600},
-	{"lv": 28, "type": "perk", "value": "rrw", "note": "Reroll rewards twice per wave"},
+	# "per wave" — fifth copy of the JS build's linear-run wording, found by t_mainmenu_ui's
+	# gate rather than by reading. A reward offer happens per NODE here; there are no waves.
+	{"lv": 28, "type": "perk", "value": "rrw", "note": "Reroll rewards twice per node"},
 	{"lv": 29, "type": "shard", "value": 700},
 	{"lv": 30, "type": "face", "value": "bp_swarm", "big": true, "title": "LUNACIA SOVEREIGN"},
 ]

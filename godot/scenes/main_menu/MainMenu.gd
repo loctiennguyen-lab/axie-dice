@@ -96,6 +96,7 @@ func _build_ui() -> void:
 	_build_continue_button()
 	_build_how_to_play_button()
 	_build_codex_button()
+	_build_settings_button()
 	_build_guides_button()
 	_build_vault_button()
 	_build_pass_section()
@@ -150,6 +151,20 @@ func _build_continue_button() -> void:
 	btn.add_theme_font_size_override("font_size", 22)
 	DangoTheme.style_button(btn, true)
 	btn.pressed.connect(_on_continue_run_pressed)
+	_content_root.add_child(btn)
+
+
+## Settings (volume, reduce-flashing, abandon run). Its own screen rather than a panel here:
+## ABANDON RUN destroys a save, and a destructive control does not belong on the screen whose
+## other buttons all start something.
+func _build_settings_button() -> void:
+	var btn := Button.new()
+	btn.name = "SettingsButton"
+	btn.text = "SETTINGS"
+	btn.custom_minimum_size = Vector2(0, 44)
+	DangoTheme.style_button(btn, false)
+	btn.pressed.connect(func() -> void:
+		get_tree().change_scene_to_file("res://scenes/settings/Settings.tscn"))
 	_content_root.add_child(btn)
 
 
@@ -256,7 +271,10 @@ func _build_mode_section() -> void:
 	section.add_child(row)
 
 	var group := ButtonGroup.new()
-	_mode_short_btn = _build_toggle_button("SHORT — 12 waves", group)
+	# "waves" is a word from the JS build's LINEAR run. This map branches, and the counts were
+	# wrong on top of that (12/20 vs the real 18/30) — read them from the generator so the menu
+	# cannot promise a shape the map does not have.
+	_mode_short_btn = _build_toggle_button("SHORT — %d rows" % _rows_for("short"), group)
 	_mode_short_btn.button_pressed = true
 	_mode_short_btn.toggled.connect(func(pressed: bool) -> void:
 		if pressed:
@@ -264,7 +282,7 @@ func _build_mode_section() -> void:
 			_refresh_mode_buttons())
 	row.add_child(_mode_short_btn)
 
-	_mode_full_btn = _build_toggle_button("FULL — 20 waves", group)
+	_mode_full_btn = _build_toggle_button("FULL — %d rows" % _rows_for("full"), group)
 	_mode_full_btn.toggled.connect(func(pressed: bool) -> void:
 		if pressed:
 			_mode = "full"
@@ -291,6 +309,12 @@ func _build_mode_section() -> void:
 		var note := _add_body_label("FULL mode is locked. Unlock it for %d Gene Shard below, "
 			% int(def.get("cost", 120)) + "or reach Lunacia Pass level 20.", section)
 		note.add_theme_color_override("font_color", DangoTheme.TEXT_DIM)
+
+
+## The authoritative row count for a mode, from the map generator itself.
+static func _rows_for(mode: String) -> int:
+	var cfg: Dictionary = RunMapGenerator.MODE_CONFIG.get(mode, {})
+	return int(cfg.get("total_rows", 0))
 
 
 func _build_toggle_button(text: String, group: ButtonGroup) -> Button:
@@ -433,6 +457,15 @@ func _build_hero_slot_card(index: int) -> PanelContainer:
 	meta_lbl.add_theme_font_size_override("font_size", 14)
 	col.add_child(meta_lbl)
 
+	# The class passive. A player picking a team is choosing five always-on rules, and until
+	# now this screen showed the six faces and hid the rule — so the single most build-defining
+	# thing about a class was learnable only by playing a run with it, or by opening the Codex
+	# that did not exist. Wrapped, because the longest of the six is two lines wide.
+	var passive_lbl := Label.new()
+	passive_lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	passive_lbl.add_theme_font_size_override("font_size", 13)
+	col.add_child(passive_lbl)
+
 	var faces_grid := GridContainer.new()
 	faces_grid.columns = 2
 	faces_grid.add_theme_constant_override("h_separation", 6)
@@ -441,6 +474,7 @@ func _build_hero_slot_card(index: int) -> PanelContainer:
 
 	_hero_cards.append({
 		"option": option, "name_lbl": name_lbl, "meta_lbl": meta_lbl, "faces_grid": faces_grid,
+		"passive_lbl": passive_lbl,
 	})
 	return panel
 
@@ -455,6 +489,21 @@ func _refresh_hero_card(index: int) -> void:
 	(card["meta_lbl"] as Label).text = "%s  ·  %d HP" % [
 		_CLASS_LABEL.get(cls, cls), int(hero_def.get("max_hp", 0)),
 	]
+
+	# Straight from ContentDB.CLASS_PASSIVE (src/data.js PASSIVE, verbatim) — never retyped
+	# here. A passive description rewritten from memory is how a menu ends up promising
+	# something the engine does not do.
+	var passive: Dictionary = ContentDB.CLASS_PASSIVE.get(cls, {})
+	var passive_lbl: Label = card["passive_lbl"]
+	if passive.is_empty():
+		# No passive for this class would be a content gap, not a blank line: say so rather
+		# than leaving the player to wonder whether the class simply has none.
+		passive_lbl.text = "Passive: not defined for this class"
+		passive_lbl.add_theme_color_override("font_color", DangoTheme.TEXT_DIM)
+	else:
+		passive_lbl.text = "%s — %s" % [String(passive.get("n", "")), String(passive.get("d", ""))]
+		passive_lbl.add_theme_color_override("font_color", DangoTheme.die_type_color(
+			String(passive.get("a", ""))))
 
 	var grid: GridContainer = card["faces_grid"]
 	for c in grid.get_children():

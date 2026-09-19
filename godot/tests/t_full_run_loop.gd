@@ -166,6 +166,25 @@ func _run_one(seed_value: int, force_win: bool) -> void:
 		_check(elite_budget > battle_budget,
 			"%s: elite budget (%.2f) should exceed battle budget (%.2f)" % [tag, elite_budget, battle_budget])
 
+	# --- Property 9: the run counted what happened in it. ---
+	# The end screen reports damage, turns, kills and the biggest hit. Those numbers were
+	# counted per-fight from the start and never folded into the run, so the screen documented
+	# them as untracked and printed nothing. A staged screenshot cannot prove they are wired —
+	# it shows zeroes either way — but a walk that actually fought can.
+	if not force_win:
+		var rs := RunState.run_stats
+		_check(int(rs.get("dmg", 0)) > 0,
+			"%s: the walk fought real combats and the run's damage total is %s"
+				% [tag, str(rs.get("dmg", 0))])
+		_check(int(rs.get("turns", 0)) > 0,
+			"%s: turns played came out as %s after a real walk" % [tag, str(rs.get("turns", 0))])
+		_check(int(rs.get("max_hit", 0)) > 0,
+			"%s: the biggest hit of the run came out as %s" % [tag, str(rs.get("max_hit", 0))])
+		_check(int(rs.get("max_hit", 0)) <= int(rs.get("dmg", 0)),
+			"%s: biggest single hit (%s) exceeds total damage dealt (%s) — max_hit is being "
+				% [tag, str(rs.get("max_hit", 0)), str(rs.get("dmg", 0))]
+			+ "summed instead of maximised")
+
 	# --- Property 8: the run wrote down what the player did. ---
 	# This walk drives RunState the way the real screens do, so it is the only place that shows
 	# whether the run-level half of the action log is actually wired. t_replay proves a COMBAT

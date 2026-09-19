@@ -33,6 +33,8 @@ const EXPECTED_TESTS: Array[String] = [
 	"test_seed_field_width_is_capped",
 	"test_content_root_has_a_max_width_wrapper",
 	"test_locked_mode_button_signals_beyond_caption",
+	"test_nothing_promises_waves_on_a_map_made_of_rows",
+	"test_every_team_slot_shows_its_class_passive",
 ]
 
 var _failures: Array[String] = []
@@ -50,6 +52,8 @@ func _ready() -> void:
 	await test_seed_field_width_is_capped()
 	await test_content_root_has_a_max_width_wrapper()
 	await test_locked_mode_button_signals_beyond_caption()
+	await test_nothing_promises_waves_on_a_map_made_of_rows()
+	await test_every_team_slot_shows_its_class_passive()
 
 	for name in EXPECTED_TESTS:
 		if not _completed.has(name):
@@ -231,7 +235,7 @@ func test_locked_mode_button_signals_beyond_caption() -> void:
 	if full_btn != null:
 		_assert(full_btn.disabled, "test setup did not lock FULL mode — u_full still unlocked")
 		var has_icon_child := full_btn.get_child_count() > 0
-		var caption_text_only := full_btn.text.strip_edges() == "FULL — 20 waves"
+		var caption_text_only := full_btn.text.strip_edges() == "FULL — %d rows" % MainMenu._rows_for("full")
 		_assert(has_icon_child or not caption_text_only,
 			"locked FULL button text is exactly '%s' with no child icon — the only lock signal "
 			% full_btn.text + "is the separate caption Label below it, same as the original bug")
@@ -242,3 +246,91 @@ func test_locked_mode_button_signals_beyond_caption() -> void:
 	if had_u_full:
 		MetaState.unlocks.append("u_full")
 	_done("test_locked_mode_button_signals_beyond_caption")
+
+
+## "12 waves" / "20 waves" has now been found wrong in FOUR player-facing places: the Codex,
+## the end screen, these mode buttons and the Unlocks list. It is a word from the JS build's
+## LINEAR run, and the counts were wrong on top of that — the real map branches and is 18 or
+## 30 rows. Four independent fixes do not stop a fifth copy appearing; a gate does.
+func test_nothing_promises_waves_on_a_map_made_of_rows() -> void:
+	var menu := _instantiate_menu()
+	await get_tree().process_frame
+
+	var offenders: Array[String] = []
+	for node in _descendants(menu):
+		var texts: Array[String] = []
+		var lbl := node as Label
+		if lbl != null:
+			texts.append(lbl.text)
+		var btn := node as Button
+		if btn != null:
+			texts.append(btn.text)
+		for t in texts:
+			if t.to_lower().contains("wave"):
+				offenders.append(t)
+	_assert(offenders.is_empty(),
+		"the menu still describes this map in waves: %s" % str(offenders))
+
+	# And the counts it DOES show must be the generator's, not a second copy of them.
+	var short_rows := MainMenu._rows_for("short")
+	_assert(short_rows == 18,
+		"RunMapGenerator says Short is %d rows; this gate was written against 18, so one of "
+		% short_rows + "the two is out of date — check which before changing the number here")
+	_assert((menu._mode_short_btn as Button).text.contains(str(short_rows)),
+		"the SHORT button reads '%s' and the generator says %d rows"
+		% [(menu._mode_short_btn as Button).text, short_rows])
+
+	# The Unlocks list is content, not layout, so it is checked at the source.
+	for unlock in ContentDB.UNLOCKS:
+		var u: Dictionary = unlock
+		for field in ["n", "d"]:
+			_assert(not String(u.get(field, "")).to_lower().contains("wave"),
+				"unlock '%s' still says waves: %s" % [String(u.get("id", "?")), u.get(field, "")])
+
+	menu.queue_free()
+	await get_tree().process_frame
+	_done("test_nothing_promises_waves_on_a_map_made_of_rows")
+
+
+## Picking a team is picking five always-on rules. This screen showed the six faces and hid
+## the rule, so the most build-defining thing about a class was learnable only by playing a run
+## with it. The text must come from ContentDB.CLASS_PASSIVE — a passive retyped into the menu
+## is a menu that can promise something the engine does not do.
+func test_every_team_slot_shows_its_class_passive() -> void:
+	var menu := _instantiate_menu()
+	await get_tree().process_frame
+
+	var all_text := ""
+	for node in _descendants(menu):
+		var lbl := node as Label
+		if lbl != null:
+			all_text += lbl.text + "\n"
+
+	var seen := 0
+	for hero_key in menu._team_selection:
+		var hero_def: Dictionary = ContentDB.heroes.get(String(hero_key), {})
+		var passive: Dictionary = ContentDB.CLASS_PASSIVE.get(String(hero_def.get("cls", "")), {})
+		_assert(not passive.is_empty(),
+			"hero '%s' has a class with no passive defined" % hero_key)
+		if passive.is_empty():
+			continue
+		seen += 1
+		_assert(all_text.contains(String(passive.get("n", ""))),
+			"the team slot for '%s' does not name its passive (%s)"
+			% [hero_key, passive.get("n", "")])
+		# The DESCRIPTION, not just the name: a name alone tells a new player nothing.
+		_assert(all_text.contains(String(passive.get("d", "")).substr(0, 24)),
+			"the team slot for '%s' names %s but does not say what it does"
+			% [hero_key, passive.get("n", "")])
+	_assert(seen == 5, "checked %d team slots, expected 5" % seen)
+
+	menu.queue_free()
+	await get_tree().process_frame
+	_done("test_every_team_slot_shows_its_class_passive")
+
+
+func _descendants(node: Node) -> Array[Node]:
+	var out: Array[Node] = [node]
+	for child in node.get_children():
+		out.append_array(_descendants(child))
+	return out

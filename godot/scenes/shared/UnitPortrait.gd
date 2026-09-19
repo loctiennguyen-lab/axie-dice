@@ -264,7 +264,7 @@ func spawn_float_text(text: String, css_class: String, big: int) -> void:
 ## set_selected()/set_targetable() communicate via stylebox swaps instead of a self_modulate
 ## tint). Respects whatever alpha update_stats()/play_death_fade() currently has it at.
 func flash_resonance() -> void:
-	if CombatView.disable_juice_for_tests or not is_inside_tree():
+	if CombatView.flashes_suppressed() or not is_inside_tree():
 		return
 	var base := modulate
 	var flash := _RESONANCE_FLASH_COLOR

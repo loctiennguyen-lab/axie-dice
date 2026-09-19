@@ -189,6 +189,14 @@ const _PART_VERB := {
 ## HEADLESS TEST MODE file-header comment above.
 static var disable_juice_for_tests: bool = false
 
+
+## True when the impact effects must not play: a test asked for silence, or the PLAYER did
+## (Settings -> Reduce flashing). Kept as one function so the two reasons can never drift into
+## two different sets of suppressed effects — a setting that turns off some of the flashing is
+## worse than one that turns off none, because the player believes it worked.
+static func flashes_suppressed() -> bool:
+	return disable_juice_for_tests or MetaState.reduce_flash
+
 @onready var _log_toggle_button: Button = %LogToggleButton
 @onready var _debug_log_container: PanelContainer = %DebugLogPanelContainer
 @onready var _log_panel: RichTextLabel = %LogPanel
@@ -2101,7 +2109,7 @@ func _play_die_roll_bounce(btn: Button) -> void:
 
 ## Hit-stop + screen shake (unchanged from the pre-review pass).
 func _play_hit_juice() -> void:
-	if disable_juice_for_tests:
+	if flashes_suppressed():
 		return
 	var end_anim := _begin_hit_animation()
 	if is_inside_tree():

@@ -44,6 +44,10 @@ func _ready() -> void:
 		"shards_this_run": RunState.shards_this_run,
 		"relic_ids": RunState.owned_relic_ids.duplicate(),
 		"roster": RunState.roster.duplicate(true),
+		"run_stats": RunState.run_stats.duplicate(true),
+		"ranked": RunState.ranked,
+		"score": RunState.compute_run_xp(won),
+		"action_log": RunState.action_log,
 	}
 
 	# end_run() BEFORE the UI, snapshot already taken. The architecture rule is "read the
@@ -70,6 +74,8 @@ func _ready() -> void:
 func _build_ui(s: Dictionary) -> void:
 	_build_outcome_banner(s["won"])
 	_build_relics_section(s["relic_ids"])
+	_build_stats_section(s)
+	_build_ranked_section(s)
 	_build_run_summary_section(s)
 	_build_shards_section(s)
 	_build_pass_section(s)
@@ -118,8 +124,13 @@ func _build_outcome_banner(won: bool) -> void:
 
 func _build_run_summary_section(s: Dictionary) -> void:
 	_add_section_label("RUN")
-	_add_body_label("Mode: %s  ·  Ascension: A%d  ·  Seed: %d" % [
-		"Full (20 waves)" if String(s["mode"]) == "full" else "Short (12 waves)",
+	# "12 waves"/"20 waves" was wrong here too — the same stale number the Codex had to correct,
+	# and it is a LINEAR-run word for a map that branches. Read from the generator's own config
+	# so it cannot drift a fourth time.
+	var cfg: Dictionary = RunMapGenerator.MODE_CONFIG.get(String(s["mode"]),
+		RunMapGenerator.MODE_CONFIG["short"])
+	_add_body_label("Mode: %s (%d rows)  ·  Ascension: A%d  ·  Seed: %d" % [
+		"Full" if String(s["mode"]) == "full" else "Short", int(cfg.get("total_rows", 0)),
 		int(s["ascension"]), int(s["seed"]),
 	])
 
@@ -140,6 +151,81 @@ func _build_run_summary_section(s: Dictionary) -> void:
 	# path-independent stand-in.)
 	var nodes_done := int(s["power_level"])
 	_add_body_label("%d node%s completed this run" % [nodes_done, "" if nodes_done == 1 else "s"])
+
+
+## The five numbers the JS end screen shows and this one could not: damage dealt and taken,
+## turns played, kills, and the biggest single hit.
+##
+## This file used to carry a note saying they were "not tracked anywhere reachable from
+## RunState/MetaState". That was true of the RUN and false of the game: CombatEngine had
+## counted all five from the beginning and nothing outside a fight ever read them.
+## RunState.run_stats folds them in as each fight ends, so these are measured, not estimated.
+func _build_stats_section(s: Dictionary) -> void:
+	var stats: Dictionary = s.get("run_stats", {})
+	_add_section_label("THIS RUN")
+	_add_body_label("Damage dealt: %d  ·  Damage taken: %d" % [
+		int(stats.get("dmg", 0)), int(stats.get("taken", 0))])
+	_add_body_label("Turns played: %d  ·  Enemies defeated: %d  ·  Biggest hit: %d" % [
+		int(stats.get("turns", 0)), int(stats.get("kills", 0)), int(stats.get("max_hit", 0))])
+
+
+## The ranked box (JS scSubmitBox). It says three different things depending on what is
+## actually true, and never shows a button that does nothing — the reason a run cannot be
+## submitted goes ON SCREEN, which is this project's standing rule for disabled controls.
+##
+## No leaderboard exists for this build yet: ADR-0004 settles that a headless Godot referee
+## scores a submitted run, and that referee is not deployed. Rather than a dead SUBMIT button
+## or a fake "submitted!", the honest action available today is to EXPORT the run record —
+## the same JSON `godot/tools/verify_run.tscn` verifies, which is what a submission would
+## carry. That makes the score checkable by the person who ran it, today, by hand.
+func _build_ranked_section(s: Dictionary) -> void:
+	_add_section_label("RANKED")
+	_add_body_label("Score: %d" % int(s.get("score", 0)))
+
+	if not bool(s.get("ranked", false)):
+		_add_body_label("This run was not Ranked, so it has no verifiable score. A Ranked run "
+			+ "starts from the same baseline for everyone — no unlocks, no imported Axie.")
+		return
+
+	var log: ActionLog = s.get("action_log")
+	if log == null or not log.is_complete():
+		# An incomplete record is refused by the referee before it is even replayed
+		# (RunVerifier.ERR_INCOMPLETE), so saying so here is the same verdict, earlier.
+		_add_body_label("This run's record is incomplete, so its score cannot be verified. "
+			+ "Nothing to submit.")
+		return
+
+	_add_body_label("A leaderboard for this build is not live yet. You can save this run's "
+		+ "record — the same file the verifier reads — and check the score yourself.")
+	var btn := Button.new()
+	btn.text = "SAVE RUN RECORD"
+	btn.custom_minimum_size = Vector2(0, 40)
+	DangoTheme.style_button(btn, false)
+	var status := _add_body_label("")
+	status.visible = false
+	btn.pressed.connect(func() -> void:
+		var path := _save_run_record(log)
+		status.text = ("Saved to %s" % path) if path != "" else \
+			"Could not write the run record to disk."
+		status.visible = true
+		btn.disabled = true)
+	_content_root.add_child(btn)
+	# The status line is created before the button so the closure can capture it; move it back
+	# underneath, where a reader expects the result of pressing a button to appear.
+	_content_root.move_child(status, btn.get_index() + 1)
+
+
+## Writes the action log beside the save file. `user://` because it is the one directory a
+## packaged build can always write to — the project directory is read-only in an export.
+func _save_run_record(log: ActionLog) -> String:
+	var stamp := Time.get_datetime_string_from_system().replace(":", "-")
+	var path := "user://run_record_%s.json" % stamp
+	var f := FileAccess.open(path, FileAccess.WRITE)
+	if f == null:
+		return ""
+	f.store_string(JSON.stringify(log.to_data()))
+	f.close()
+	return ProjectSettings.globalize_path(path)
 
 
 # ===========================================================================

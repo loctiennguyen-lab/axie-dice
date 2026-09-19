@@ -269,6 +269,10 @@ func get_result() -> Dictionary:
 		"roster_updates": {},
 		"kind": kind,
 		"pw": pw,
+		# The fight's own counters, so the RUN can total them. They were tracked here from the
+		# start and read by nothing outside this object, which is why the end-of-run screen had
+		# to say "not tracked" about numbers the engine had been counting all along.
+		"stat": stat.duplicate(true),
 	}
 
 

@@ -33,6 +33,15 @@ var visited_node_ids: Array[String] = []
 
 # --- Progression (in-run, ~= JS S.shards/pw/owned relics) ---
 var shards_this_run: int = 0
+
+## The whole run's combat totals, folded in from every fight as it ends — damage dealt and
+## taken, turns played, kills, and the single biggest hit. `max_hit` is a MAXIMUM, not a sum;
+## the rest add up.
+##
+## CombatEngine has counted all five since the beginning, and nothing outside that object ever
+## read them, so the end-of-run screen documented them as "not tracked anywhere reachable" and
+## showed nothing. They were tracked; they just never left the fight they happened in.
+var run_stats: Dictionary = {"dmg": 0, "taken": 0, "turns": 0, "kills": 0, "max_hit": 0}
 var power_level: int = 0           # "pw" — increments on every node completed regardless of
                                     # type (verified against engine.js takeReward/eventDone/shopDone)
 var owned_relic_ids: Array[String] = []
@@ -151,6 +160,7 @@ func reset() -> void:
 	current_node_id = ""
 	visited_node_ids = []
 	shards_this_run = 0
+	run_stats = {"dmg": 0, "taken": 0, "turns": 0, "kills": 0, "max_hit": 0}
 	power_level = 0
 	owned_relic_ids = []
 	bonus_reroll = 0
@@ -362,6 +372,10 @@ func after_node() -> void:
 ## directly). res is a CombatResult-shaped Dictionary from CombatEngine.get_result():
 ## {won, shards_earned, growth_keep, roster_updates, kind, pw}.
 func apply_combat_result(res: Dictionary) -> void:
+	# Folded in BEFORE the won/lost branch: a run that ended in defeat still fought, and a
+	# result screen that showed zeroes after a long losing run would be reporting the loss
+	# twice.
+	_fold_combat_stats(res.get("stat", {}))
 	if res.get("won", false):
 		shards_this_run += int(res.get("shards_earned", 0))
 		_apply_growth_keep(res.get("growth_keep", {}))
@@ -382,6 +396,18 @@ func apply_combat_result(res: Dictionary) -> void:
 	else:
 		set_phase(RunPhase.LOST)
 		EventBus.run_ended.emit(false)
+
+
+## Adds one fight's counters onto the run's. `max_hit` takes the larger of the two — summing
+## it would invent a hit nobody landed, which is exactly the kind of number a player would
+## screenshot.
+func _fold_combat_stats(raw) -> void:
+	if not (raw is Dictionary):
+		return
+	var stat: Dictionary = raw
+	for key in ["dmg", "taken", "turns", "kills"]:
+		run_stats[key] = int(run_stats.get(key, 0)) + int(stat.get(key, 0))
+	run_stats["max_hit"] = maxi(int(run_stats.get("max_hit", 0)), int(stat.get("max_hit", 0)))
 
 
 ## src/engine.js finishCombat()'s ENG-3 block (engine.js:986-994) write-back half. The
@@ -836,6 +862,7 @@ func to_data() -> Dictionary:
 		"current_node_id": current_node_id,
 		"visited_node_ids": visited_node_ids.duplicate(),
 		"shards_this_run": shards_this_run,
+		"run_stats": run_stats.duplicate(true),
 		"power_level": power_level,
 		"owned_relic_ids": owned_relic_ids.duplicate(),
 		"bonus_reroll": bonus_reroll,
@@ -892,6 +919,10 @@ func from_data(d: Dictionary) -> void:
 	_event_rng = Rng.new(int(d.get("event_rng_state", 0)))
 
 	shards_this_run = int(d.get("shards_this_run", 0))
+	var saved_stats: Dictionary = (d.get("run_stats", {}) as Dictionary)
+	run_stats = {}
+	for key in ["dmg", "taken", "turns", "kills", "max_hit"]:
+		run_stats[key] = int(saved_stats.get(key, 0))
 	power_level = int(d.get("power_level", 0))
 	owned_relic_ids.assign(d.get("owned_relic_ids", []))
 	bonus_reroll = int(d.get("bonus_reroll", 0))

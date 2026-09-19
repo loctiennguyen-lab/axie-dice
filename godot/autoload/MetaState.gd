@@ -43,6 +43,13 @@ var audio_music_volume: float = 1.0
 var audio_sfx_volume: float = 1.0
 var audio_muted: bool = false
 
+## Suppresses the two effects that FLASH or SHAKE — the screen shake on a landed hit and the
+## colour flash on a resonant portrait. Not a general "less animation" switch: dice still roll
+## and Axies still play their actions, because those carry information the player needs. This
+## only removes the effects that exist purely for impact, which are also the ones that make a
+## game unplayable for someone sensitive to them.
+var reduce_flash: bool = false
+
 ## Daily Mission (economy-progression.md §10.3, src/client.html:5425). The UTC date string
 ## 'YYYY-MM-DD' of the last grant; "" means never claimed.
 var daily_date: String = ""
@@ -108,6 +115,7 @@ func load_from_disk() -> void:
 	audio_music_volume = clampf(float(parsed.get("audio_music_volume", 1.0)), 0.0, 1.0)
 	audio_sfx_volume = clampf(float(parsed.get("audio_sfx_volume", 1.0)), 0.0, 1.0)
 	audio_muted = bool(parsed.get("audio_muted", false))
+	reduce_flash = bool(parsed.get("reduce_flash", false))
 	daily_date = str(parsed.get("daily_date", ""))
 	tutorial_seen = bool(parsed.get("tutorial_seen", false))
 	# Migration backfill (design/gdd/onboarding-tutorial.md §5 "Migration save cũ", ported):
@@ -133,6 +141,7 @@ func save_to_disk() -> void:
 		"audio_music_volume": audio_music_volume,
 		"audio_sfx_volume": audio_sfx_volume,
 		"audio_muted": audio_muted,
+		"reduce_flash": reduce_flash,
 		"daily_date": daily_date,
 		"tutorial_seen": tutorial_seen,
 	}

@@ -21,11 +21,18 @@ const WATCHED_FILES: Array[String] = ["res://assets/data/part_faces.json"]
 ## Recorded when RULES_VERSION was last considered. Update it in the same commit that changes
 ## anything above — and bump RULES_VERSION too if the change can alter an outcome.
 ##
-## Last moved 2026-09-19 by `MetaState.tutorial_seen` + `needs_tutorial()`. RULES_VERSION was
+## Last moved 2026-09-20 by the end-screen work: `CombatEngine.get_result()` now carries the
+## fight's `stat` counters, `RunState.run_stats` totals them, `MetaState.reduce_flash` arrived,
+## and two pieces of ContentDB display copy stopped saying "waves". RULES_VERSION was NOT
+## bumped — none of it can change what a run does. The counters are written and never read by
+## a rule; `reduce_flash` is a visual setting; and the unlock text is display only, keyed by
+## `id`. `t_replay` re-verifies a full run after every one of these, and still agrees.
+##
+## Moved before that, 2026-09-19, by `MetaState.tutorial_seen` + `needs_tutorial()`. RULES_VERSION was
 ## NOT bumped, and the reason is the whole point of asking: that flag decides whether a player
 ## is shown the tutorial. It cannot change what a run does, because a ranked run reads
 ## `MetaState.run_bonuses(true)`, which returns zeroes for everything the meta holds.
-const FINGERPRINT := "8d803f8e6878e2ddb0ca3ead68c2567c8487850078ea125d456957b5a4ff0c2b"
+const FINGERPRINT := "25369214a2e53dce946aac72ef24c5a3e95da82d2ddd9d612637011af336fcec"
 
 
 func _ready() -> void:
