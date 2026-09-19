@@ -1,0 +1,1579 @@
+{
+ "note": "GENERATED from src/engine.js axieToDie() — regenerate, never hand-edit",
+ "fixtures": [
+  {
+   "label": "pure-plant-signature",
+   "axie": {
+    "id": "1001",
+    "class": "Plant",
+    "parts": [
+     {
+      "id": "x",
+      "name": "Zigzag",
+      "class": "Plant",
+      "type": "Mouth"
+     },
+     {
+      "id": "x",
+      "name": "Cactus",
+      "class": "Plant",
+      "type": "Horn"
+     },
+     {
+      "id": "x",
+      "name": "Pumpkin",
+      "class": "Plant",
+      "type": "Back"
+     },
+     {
+      "id": "x",
+      "name": "Hot Butt",
+      "class": "Plant",
+      "type": "Tail"
+     },
+     {
+      "id": "x",
+      "name": "Blossom",
+      "class": "Plant",
+      "type": "Eyes"
+     },
+     {
+      "id": "x",
+      "name": "Clover",
+      "class": "Plant",
+      "type": "Ears"
+     }
+    ]
+   },
+   "geneTier": 0,
+   "expected": {
+    "n": "Axie #1001",
+    "cls": "plant",
+    "secretCls": null,
+    "tier": 1,
+    "hp": 13,
+    "art": 0,
+    "die": [
+     {
+      "p": "mouth",
+      "t": "dmg",
+      "v": 3,
+      "k": [],
+      "r": 0,
+      "src": "sig",
+      "name": "Zigzag"
+     },
+     {
+      "p": "horn",
+      "t": "dmg",
+      "v": 2,
+      "k": [
+       "pierce"
+      ],
+      "r": 1,
+      "src": "sig",
+      "name": "Cactus"
+     },
+     {
+      "p": "back",
+      "t": "shield",
+      "v": 2,
+      "k": [],
+      "r": 0,
+      "src": "sig",
+      "name": "Pumpkin"
+     },
+     {
+      "p": "tail",
+      "t": "shield",
+      "v": 2,
+      "k": [
+       "regen:2"
+      ],
+      "r": 1,
+      "src": "sig",
+      "name": "Hot Butt"
+     },
+     {
+      "p": "eyes",
+      "t": "heal",
+      "v": 2,
+      "k": [],
+      "r": 0,
+      "src": "sig",
+      "name": "Blossom"
+     },
+     {
+      "p": "ears",
+      "t": "mana",
+      "v": 2,
+      "k": [
+       "rerollup"
+      ],
+      "r": 0,
+      "src": "sig",
+      "name": "Clover"
+     }
+    ],
+    "imported": true,
+    "axieId": "1001",
+    "image": null,
+    "purity": 6,
+    "coh": 0.78,
+    "geneTier": 0,
+    "scarcity": [
+     {
+      "k": "plant|mouth|Zigzag",
+      "b": "C",
+      "g": 0
+     },
+     {
+      "k": "plant|horn|Cactus",
+      "b": "C",
+      "g": 0
+     },
+     {
+      "k": "plant|back|Pumpkin",
+      "b": "C",
+      "g": 0
+     },
+     {
+      "k": "plant|tail|Hot Butt",
+      "b": "C",
+      "g": 0
+     },
+     {
+      "k": "plant|eyes|Blossom",
+      "b": "C",
+      "g": 0
+     },
+     {
+      "k": "plant|ears|Clover",
+      "b": "C",
+      "g": 0
+     }
+    ]
+   }
+  },
+  {
+   "label": "pure-beast-variant",
+   "axie": {
+    "id": "1002",
+    "class": "Beast",
+    "parts": [
+     {
+      "id": "x",
+      "name": "Foxy",
+      "class": "Beast",
+      "type": "Mouth"
+     },
+     {
+      "id": "x",
+      "name": "Arco",
+      "class": "Beast",
+      "type": "Horn"
+     },
+     {
+      "id": "x",
+      "name": "Furball",
+      "class": "Beast",
+      "type": "Back"
+     },
+     {
+      "id": "x",
+      "name": "Buba Brush",
+      "class": "Beast",
+      "type": "Tail"
+     },
+     {
+      "id": "x",
+      "name": "Chubby",
+      "class": "Beast",
+      "type": "Eyes"
+     },
+     {
+      "id": "x",
+      "name": "Belieber",
+      "class": "Beast",
+      "type": "Ears"
+     }
+    ]
+   },
+   "geneTier": 0,
+   "expected": {
+    "n": "Axie #1002",
+    "cls": "beast",
+    "secretCls": null,
+    "tier": 1,
+    "hp": 9,
+    "art": 0,
+    "die": [
+     {
+      "p": "mouth",
+      "t": "dmg",
+      "v": 3,
+      "k": [
+       "exec",
+       "heavy"
+      ],
+      "r": 1,
+      "src": "var",
+      "name": "Foxy",
+      "variant": "E",
+      "bucket": "O"
+     },
+     {
+      "p": "horn",
+      "t": "dmg",
+      "v": 1,
+      "k": [
+       "pierce",
+       "vulnerable:2"
+      ],
+      "r": 0,
+      "src": "var",
+      "name": "Arco",
+      "variant": "C",
+      "bucket": "C"
+     },
+     {
+      "p": "back",
+      "t": "dmg",
+      "v": 1,
+      "k": [
+       "aoe",
+       "selfharm:1"
+      ],
+      "r": 0,
+      "src": "var",
+      "name": "Furball",
+      "variant": "D",
+      "bucket": "C"
+     },
+     {
+      "p": "tail",
+      "t": "dmg",
+      "v": 1,
+      "k": [
+       "chain:3",
+       "vulnerable:1"
+      ],
+      "r": 1,
+      "src": "var",
+      "name": "Buba Brush",
+      "variant": "C",
+      "bucket": "O"
+     },
+     {
+      "p": "eyes",
+      "t": "debuff",
+      "v": 0,
+      "k": [
+       "weaken:2"
+      ],
+      "r": 0,
+      "src": "var",
+      "name": "Chubby",
+      "variant": "B",
+      "bucket": "C"
+     },
+     {
+      "p": "ears",
+      "t": "mana",
+      "v": 2,
+      "k": [
+       "cantrip",
+       "heavy"
+      ],
+      "r": 2,
+      "src": "var",
+      "name": "Belieber",
+      "variant": "A",
+      "bucket": "P"
+     }
+    ],
+    "imported": true,
+    "axieId": "1002",
+    "image": null,
+    "purity": 6,
+    "coh": 0.78,
+    "geneTier": 0,
+    "scarcity": [
+     {
+      "k": "beast|mouth|Foxy",
+      "b": "O",
+      "g": 0
+     },
+     {
+      "k": "beast|horn|Arco",
+      "b": "C",
+      "g": 0
+     },
+     {
+      "k": "beast|back|Furball",
+      "b": "C",
+      "g": 0
+     },
+     {
+      "k": "beast|tail|Buba Brush",
+      "b": "O",
+      "g": 0
+     },
+     {
+      "k": "beast|eyes|Chubby",
+      "b": "C",
+      "g": 0
+     },
+     {
+      "k": "beast|ears|Belieber",
+      "b": "P",
+      "g": 0
+     }
+    ]
+   }
+  },
+  {
+   "label": "mixed-low-purity",
+   "axie": {
+    "id": "1003",
+    "class": "Aquatic",
+    "parts": [
+     {
+      "id": "x",
+      "name": "Beetroot",
+      "class": "Plant",
+      "type": "Mouth"
+     },
+     {
+      "id": "x",
+      "name": "Acorn Cap",
+      "class": "Plant",
+      "type": "Horn"
+     },
+     {
+      "id": "x",
+      "name": "Bidens",
+      "class": "Plant",
+      "type": "Back"
+     },
+     {
+      "id": "x",
+      "name": "Buba Brush",
+      "class": "Beast",
+      "type": "Tail"
+     },
+     {
+      "id": "x",
+      "name": "Chubby",
+      "class": "Beast",
+      "type": "Eyes"
+     },
+     {
+      "id": "x",
+      "name": "Belieber",
+      "class": "Beast",
+      "type": "Ears"
+     }
+    ]
+   },
+   "geneTier": 0,
+   "expected": {
+    "n": "Axie #1003",
+    "cls": "aqua",
+    "secretCls": null,
+    "tier": 1,
+    "hp": 8,
+    "art": 0,
+    "die": [
+     {
+      "p": "mouth",
+      "t": "dmg",
+      "v": 2,
+      "k": [
+       "growth",
+       "vital"
+      ],
+      "r": 1,
+      "src": "var",
+      "name": "Beetroot",
+      "variant": "B",
+      "bucket": "O"
+     },
+     {
+      "p": "horn",
+      "t": "dmg",
+      "v": 3,
+      "k": [
+       "heavy",
+       "growth"
+      ],
+      "r": 1,
+      "src": "var",
+      "name": "Acorn Cap",
+      "variant": "C",
+      "bucket": "O"
+     },
+     {
+      "p": "back",
+      "t": "shield",
+      "v": 1,
+      "k": [
+       "thorns:2"
+      ],
+      "r": 0,
+      "src": "var",
+      "name": "Bidens",
+      "variant": "C",
+      "bucket": "C"
+     },
+     {
+      "p": "tail",
+      "t": "dmg",
+      "v": 1,
+      "k": [
+       "multi:2",
+       "vulnerable:1"
+      ],
+      "r": 1,
+      "src": "var",
+      "name": "Buba Brush",
+      "variant": "C",
+      "bucket": "O"
+     },
+     {
+      "p": "eyes",
+      "t": "debuff",
+      "v": 0,
+      "k": [
+       "weaken:2"
+      ],
+      "r": 0,
+      "src": "var",
+      "name": "Chubby",
+      "variant": "B",
+      "bucket": "C"
+     },
+     {
+      "p": "ears",
+      "t": "mana",
+      "v": 2,
+      "k": [
+       "cantrip",
+       "heavy"
+      ],
+      "r": 2,
+      "src": "var",
+      "name": "Belieber",
+      "variant": "A",
+      "bucket": "P"
+     }
+    ],
+    "imported": true,
+    "axieId": "1003",
+    "image": null,
+    "purity": 0,
+    "coh": 0.64,
+    "geneTier": 0,
+    "scarcity": [
+     {
+      "k": "plant|mouth|Beetroot",
+      "b": "O",
+      "g": 0
+     },
+     {
+      "k": "plant|horn|Acorn Cap",
+      "b": "O",
+      "g": 0
+     },
+     {
+      "k": "plant|back|Bidens",
+      "b": "C",
+      "g": 0
+     },
+     {
+      "k": "beast|tail|Buba Brush",
+      "b": "O",
+      "g": 0
+     },
+     {
+      "k": "beast|eyes|Chubby",
+      "b": "C",
+      "g": 0
+     },
+     {
+      "k": "beast|ears|Belieber",
+      "b": "P",
+      "g": 0
+     }
+    ]
+   }
+  },
+  {
+   "label": "dawn-origin-class",
+   "axie": {
+    "id": "1004",
+    "class": "Dawn",
+    "parts": [
+     {
+      "id": "x",
+      "name": "Foxy",
+      "class": "Beast",
+      "type": "Mouth"
+     },
+     {
+      "id": "x",
+      "name": "Arco",
+      "class": "Beast",
+      "type": "Horn"
+     },
+     {
+      "id": "x",
+      "name": "Furball",
+      "class": "Beast",
+      "type": "Back"
+     },
+     {
+      "id": "x",
+      "name": "Buba Brush",
+      "class": "Beast",
+      "type": "Tail"
+     },
+     {
+      "id": "x",
+      "name": "Chubby",
+      "class": "Beast",
+      "type": "Eyes"
+     },
+     {
+      "id": "x",
+      "name": "Belieber",
+      "class": "Beast",
+      "type": "Ears"
+     }
+    ]
+   },
+   "geneTier": 2,
+   "expected": {
+    "n": "Axie #1004",
+    "cls": "beast",
+    "secretCls": "dawn",
+    "tier": 1,
+    "hp": 14,
+    "art": 0,
+    "die": [
+     {
+      "p": "mouth",
+      "t": "dmg",
+      "v": 3,
+      "k": [
+       "exec",
+       "heavy"
+      ],
+      "r": 1,
+      "src": "var",
+      "name": "Foxy",
+      "variant": "E",
+      "bucket": "O"
+     },
+     {
+      "p": "horn",
+      "t": "dmg",
+      "v": 2,
+      "k": [
+       "pierce",
+       "vulnerable:2"
+      ],
+      "r": 0,
+      "src": "var",
+      "name": "Arco",
+      "variant": "C",
+      "bucket": "C"
+     },
+     {
+      "p": "back",
+      "t": "dmg",
+      "v": 2,
+      "k": [
+       "aoe",
+       "selfharm:1"
+      ],
+      "r": 0,
+      "src": "var",
+      "name": "Furball",
+      "variant": "D",
+      "bucket": "C"
+     },
+     {
+      "p": "tail",
+      "t": "dmg",
+      "v": 2,
+      "k": [
+       "chain:3",
+       "vulnerable:1"
+      ],
+      "r": 1,
+      "src": "var",
+      "name": "Buba Brush",
+      "variant": "C",
+      "bucket": "O"
+     },
+     {
+      "p": "eyes",
+      "t": "debuff",
+      "v": 0,
+      "k": [
+       "weaken:4"
+      ],
+      "r": 0,
+      "src": "var",
+      "name": "Chubby",
+      "variant": "B",
+      "bucket": "C"
+     },
+     {
+      "p": "ears",
+      "t": "mana",
+      "v": 3,
+      "k": [
+       "cantrip",
+       "heavy"
+      ],
+      "r": 2,
+      "src": "var",
+      "name": "Belieber",
+      "variant": "A",
+      "bucket": "P"
+     }
+    ],
+    "imported": true,
+    "axieId": "1004",
+    "image": null,
+    "purity": 6,
+    "coh": 0.78,
+    "geneTier": 2,
+    "scarcity": [
+     {
+      "k": "beast|mouth|Foxy",
+      "b": "O",
+      "g": 0
+     },
+     {
+      "k": "beast|horn|Arco",
+      "b": "C",
+      "g": 0
+     },
+     {
+      "k": "beast|back|Furball",
+      "b": "C",
+      "g": 0
+     },
+     {
+      "k": "beast|tail|Buba Brush",
+      "b": "O",
+      "g": 0
+     },
+     {
+      "k": "beast|eyes|Chubby",
+      "b": "C",
+      "g": 0
+     },
+     {
+      "k": "beast|ears|Belieber",
+      "b": "P",
+      "g": 0
+     }
+    ]
+   }
+  },
+  {
+   "label": "unknown-parts",
+   "axie": {
+    "id": "1005",
+    "class": "Bird",
+    "parts": [
+     {
+      "id": "z",
+      "name": "Totally Made Up mouth",
+      "class": "Bird",
+      "type": "Mouth"
+     },
+     {
+      "id": "z",
+      "name": "Totally Made Up horn",
+      "class": "Bird",
+      "type": "Horn"
+     },
+     {
+      "id": "z",
+      "name": "Totally Made Up back",
+      "class": "Bird",
+      "type": "Back"
+     },
+     {
+      "id": "z",
+      "name": "Totally Made Up tail",
+      "class": "Bird",
+      "type": "Tail"
+     },
+     {
+      "id": "z",
+      "name": "Totally Made Up eyes",
+      "class": "Bird",
+      "type": "Eyes"
+     },
+     {
+      "id": "z",
+      "name": "Totally Made Up ears",
+      "class": "Bird",
+      "type": "Ears"
+     }
+    ]
+   },
+   "geneTier": 0,
+   "expected": {
+    "n": "Axie #1005",
+    "cls": "bird",
+    "secretCls": null,
+    "tier": 1,
+    "hp": 9,
+    "art": 0,
+    "die": [
+     {
+      "p": "mouth",
+      "t": "dmg",
+      "v": 1,
+      "k": [
+       "pierce"
+      ],
+      "r": 0,
+      "src": "fallback",
+      "name": "Totally Made Up mouth",
+      "variant": "A",
+      "bucket": "C"
+     },
+     {
+      "p": "horn",
+      "t": "dmg",
+      "v": 1,
+      "k": [
+       "pierce",
+       "crit:15"
+      ],
+      "r": 0,
+      "src": "fallback",
+      "name": "Totally Made Up horn",
+      "variant": "A",
+      "bucket": "C"
+     },
+     {
+      "p": "back",
+      "t": "dmg",
+      "v": 1,
+      "k": [
+       "pierce",
+       "aoe"
+      ],
+      "r": 0,
+      "src": "fallback",
+      "name": "Totally Made Up back",
+      "variant": "A",
+      "bucket": "C"
+     },
+     {
+      "p": "blank",
+      "t": "blank",
+      "v": 0,
+      "k": [],
+      "r": 0,
+      "src": "fallback-blank",
+      "name": "Totally Made Up tail"
+     },
+     {
+      "p": "eyes",
+      "t": "debuff",
+      "v": 0,
+      "k": [
+       "blind:1",
+       "vulnerable:1"
+      ],
+      "r": 0,
+      "src": "fallback",
+      "name": "Totally Made Up eyes",
+      "variant": "A",
+      "bucket": "C"
+     },
+     {
+      "p": "ears",
+      "t": "mana",
+      "v": 1,
+      "k": [
+       "rerollup"
+      ],
+      "r": 0,
+      "src": "fallback",
+      "name": "Totally Made Up ears",
+      "variant": "A",
+      "bucket": "C"
+     }
+    ],
+    "imported": true,
+    "axieId": "1005",
+    "image": null,
+    "purity": 6,
+    "coh": 0.78,
+    "geneTier": 0,
+    "scarcity": [
+     {
+      "k": "bird|mouth|Totally Made Up mouth",
+      "b": "?",
+      "g": 0
+     },
+     {
+      "k": "bird|horn|Totally Made Up horn",
+      "b": "?",
+      "g": 0
+     },
+     {
+      "k": "bird|back|Totally Made Up back",
+      "b": "?",
+      "g": 0
+     },
+     {
+      "k": "bird|tail|Totally Made Up tail",
+      "b": "?",
+      "g": 0
+     },
+     {
+      "k": "bird|eyes|Totally Made Up eyes",
+      "b": "?",
+      "g": 0
+     },
+     {
+      "k": "bird|ears|Totally Made Up ears",
+      "b": "?",
+      "g": 0
+     }
+    ]
+   }
+  },
+  {
+   "label": "missing-parts",
+   "axie": {
+    "id": "1006",
+    "class": "Reptile",
+    "parts": [
+     {
+      "id": "x",
+      "name": "Chemical Fang",
+      "class": "Reptile",
+      "type": "Mouth"
+     },
+     {
+      "id": "x",
+      "name": "Bumpy",
+      "class": "Reptile",
+      "type": "Horn"
+     },
+     {
+      "id": "x",
+      "name": "Bone Sail",
+      "class": "Reptile",
+      "type": "Back"
+     }
+    ]
+   },
+   "geneTier": 0,
+   "expected": {
+    "n": "Axie #1006",
+    "cls": "reptile",
+    "secretCls": null,
+    "tier": 1,
+    "hp": 12,
+    "art": 0,
+    "die": [
+     {
+      "p": "mouth",
+      "t": "dmg",
+      "v": 2,
+      "k": [
+       "blind:1"
+      ],
+      "r": 1,
+      "src": "var",
+      "name": "Chemical Fang",
+      "variant": "B",
+      "bucket": "O"
+     },
+     {
+      "p": "horn",
+      "t": "dmg",
+      "v": 4,
+      "k": [
+       "heavy",
+       "vulnerable:2"
+      ],
+      "r": 2,
+      "src": "var",
+      "name": "Bumpy",
+      "variant": "D",
+      "bucket": "P"
+     },
+     {
+      "p": "back",
+      "t": "shield",
+      "v": 1,
+      "k": [
+       "thorns:2",
+       "regen:1"
+      ],
+      "r": 0,
+      "src": "var",
+      "name": "Bone Sail",
+      "variant": "B",
+      "bucket": "C"
+     },
+     {
+      "p": "blank",
+      "t": "blank",
+      "v": 0,
+      "k": [],
+      "r": 0
+     },
+     {
+      "p": "blank",
+      "t": "blank",
+      "v": 0,
+      "k": [],
+      "r": 0
+     },
+     {
+      "p": "blank",
+      "t": "blank",
+      "v": 0,
+      "k": [],
+      "r": 0
+     }
+    ],
+    "imported": true,
+    "axieId": "1006",
+    "image": null,
+    "purity": 6,
+    "coh": 0.78,
+    "geneTier": 0,
+    "scarcity": [
+     {
+      "k": "reptile|mouth|Chemical Fang",
+      "b": "O",
+      "g": 0
+     },
+     {
+      "k": "reptile|horn|Bumpy",
+      "b": "P",
+      "g": 0
+     },
+     {
+      "k": "reptile|back|Bone Sail",
+      "b": "C",
+      "g": 0
+     }
+    ]
+   }
+  },
+  {
+   "label": "stage-suffix",
+   "axie": {
+    "id": "1007",
+    "class": "Bug",
+    "parts": [
+     {
+      "id": "x",
+      "name": "Cute Bunny α",
+      "class": "Bug",
+      "type": "Mouth"
+     },
+     {
+      "id": "x",
+      "name": "Antenna α",
+      "class": "Bug",
+      "type": "Horn"
+     },
+     {
+      "id": "x",
+      "name": "Buzz Buzz α",
+      "class": "Bug",
+      "type": "Back"
+     },
+     {
+      "id": "x",
+      "name": "Ant α",
+      "class": "Bug",
+      "type": "Tail"
+     },
+     {
+      "id": "x",
+      "name": "Bookworm α",
+      "class": "Bug",
+      "type": "Eyes"
+     },
+     {
+      "id": "x",
+      "name": "Beetle Spike α",
+      "class": "Bug",
+      "type": "Ears"
+     }
+    ]
+   },
+   "geneTier": 0,
+   "expected": {
+    "n": "Axie #1007",
+    "cls": "bug",
+    "secretCls": null,
+    "tier": 1,
+    "hp": 11,
+    "art": 0,
+    "die": [
+     {
+      "p": "mouth",
+      "t": "dmg",
+      "v": 2,
+      "k": [
+       "weaken:2"
+      ],
+      "r": 0,
+      "src": "var",
+      "name": "Cute Bunny",
+      "variant": "C",
+      "bucket": "C"
+     },
+     {
+      "p": "horn",
+      "t": "dmg",
+      "v": 1,
+      "k": [
+       "weaken:2",
+       "poison:1"
+      ],
+      "r": 0,
+      "src": "var",
+      "name": "Antenna",
+      "variant": "E",
+      "bucket": "C"
+     },
+     {
+      "p": "back",
+      "t": "shield",
+      "v": 1,
+      "k": [
+       "aoe",
+       "thorns:2"
+      ],
+      "r": 0,
+      "src": "var",
+      "name": "Buzz Buzz",
+      "variant": "B",
+      "bucket": "C"
+     },
+     {
+      "p": "tail",
+      "t": "poison",
+      "v": 1,
+      "k": [
+       "multi:2"
+      ],
+      "r": 0,
+      "src": "var",
+      "name": "Ant",
+      "variant": "A",
+      "bucket": "C"
+     },
+     {
+      "p": "eyes",
+      "t": "debuff",
+      "v": 0,
+      "k": [
+       "poison:1"
+      ],
+      "r": 0,
+      "src": "var",
+      "name": "Bookworm",
+      "variant": "A",
+      "bucket": "C"
+     },
+     {
+      "p": "ears",
+      "t": "mana",
+      "v": 1,
+      "k": [
+       "decay"
+      ],
+      "r": 0,
+      "src": "var",
+      "name": "Beetle Spike",
+      "variant": "D",
+      "bucket": "C"
+     }
+    ],
+    "imported": true,
+    "axieId": "1007",
+    "image": null,
+    "purity": 6,
+    "coh": 0.78,
+    "geneTier": 0,
+    "scarcity": [
+     {
+      "k": "bug|mouth|Cute Bunny",
+      "b": "C",
+      "g": 0
+     },
+     {
+      "k": "bug|horn|Antenna",
+      "b": "C",
+      "g": 0
+     },
+     {
+      "k": "bug|back|Buzz Buzz",
+      "b": "C",
+      "g": 0
+     },
+     {
+      "k": "bug|tail|Ant",
+      "b": "C",
+      "g": 0
+     },
+     {
+      "k": "bug|eyes|Bookworm",
+      "b": "C",
+      "g": 0
+     },
+     {
+      "k": "bug|ears|Beetle Spike",
+      "b": "C",
+      "g": 0
+     }
+    ]
+   }
+  },
+  {
+   "label": "gene-tier-6",
+   "axie": {
+    "id": "1008",
+    "class": "Plant",
+    "parts": [
+     {
+      "id": "x",
+      "name": "Beetroot",
+      "class": "Plant",
+      "type": "Mouth"
+     },
+     {
+      "id": "x",
+      "name": "Acorn Cap",
+      "class": "Plant",
+      "type": "Horn"
+     },
+     {
+      "id": "x",
+      "name": "Bidens",
+      "class": "Plant",
+      "type": "Back"
+     },
+     {
+      "id": "x",
+      "name": "Carrot",
+      "class": "Plant",
+      "type": "Tail"
+     },
+     {
+      "id": "x",
+      "name": "Confusion",
+      "class": "Plant",
+      "type": "Eyes"
+     },
+     {
+      "id": "x",
+      "name": "Greenwood Rhythm",
+      "class": "Plant",
+      "type": "Ears"
+     }
+    ]
+   },
+   "geneTier": 6,
+   "expected": {
+    "n": "Axie #1008",
+    "cls": "plant",
+    "secretCls": null,
+    "tier": 1,
+    "hp": 28,
+    "art": 0,
+    "die": [
+     {
+      "p": "mouth",
+      "t": "dmg",
+      "v": 5,
+      "k": [
+       "growth",
+       "vital"
+      ],
+      "r": 1,
+      "src": "var",
+      "name": "Beetroot",
+      "variant": "B",
+      "bucket": "O"
+     },
+     {
+      "p": "horn",
+      "t": "dmg",
+      "v": 6,
+      "k": [
+       "heavy",
+       "growth"
+      ],
+      "r": 1,
+      "src": "var",
+      "name": "Acorn Cap",
+      "variant": "C",
+      "bucket": "O"
+     },
+     {
+      "p": "back",
+      "t": "shield",
+      "v": 4,
+      "k": [
+       "thorns:2"
+      ],
+      "r": 0,
+      "src": "var",
+      "name": "Bidens",
+      "variant": "C",
+      "bucket": "C"
+     },
+     {
+      "p": "tail",
+      "t": "shield",
+      "v": 3,
+      "k": [
+       "cantrip",
+       "regen:2"
+      ],
+      "r": 0,
+      "src": "var",
+      "name": "Carrot",
+      "variant": "D",
+      "bucket": "C"
+     },
+     {
+      "p": "eyes",
+      "t": "heal",
+      "v": 3,
+      "k": [
+       "cantrip",
+       "growth"
+      ],
+      "r": 0,
+      "src": "var",
+      "name": "Confusion",
+      "variant": "D",
+      "bucket": "C"
+     },
+     {
+      "p": "ears",
+      "t": "mana",
+      "v": 3,
+      "k": [
+       "rerollup",
+       "growth"
+      ],
+      "r": 1,
+      "src": "var",
+      "name": "Greenwood Rhythm",
+      "variant": "C",
+      "bucket": "O"
+     }
+    ],
+    "imported": true,
+    "axieId": "1008",
+    "image": null,
+    "purity": 6,
+    "coh": 0.78,
+    "geneTier": 6,
+    "scarcity": [
+     {
+      "k": "plant|mouth|Beetroot",
+      "b": "O",
+      "g": 0
+     },
+     {
+      "k": "plant|horn|Acorn Cap",
+      "b": "O",
+      "g": 0
+     },
+     {
+      "k": "plant|back|Bidens",
+      "b": "C",
+      "g": 0
+     },
+     {
+      "k": "plant|tail|Carrot",
+      "b": "C",
+      "g": 0
+     },
+     {
+      "k": "plant|eyes|Confusion",
+      "b": "C",
+      "g": 0
+     },
+     {
+      "k": "plant|ears|Greenwood Rhythm",
+      "b": "O",
+      "g": 0
+     }
+    ]
+   }
+  },
+  {
+   "label": "unknown-class",
+   "axie": {
+    "id": "1009",
+    "class": "Wibble",
+    "parts": [
+     {
+      "id": "x",
+      "name": "Foxy",
+      "class": "Beast",
+      "type": "Mouth"
+     },
+     {
+      "id": "x",
+      "name": "Arco",
+      "class": "Beast",
+      "type": "Horn"
+     },
+     {
+      "id": "x",
+      "name": "Furball",
+      "class": "Beast",
+      "type": "Back"
+     },
+     {
+      "id": "x",
+      "name": "Buba Brush",
+      "class": "Beast",
+      "type": "Tail"
+     },
+     {
+      "id": "x",
+      "name": "Chubby",
+      "class": "Beast",
+      "type": "Eyes"
+     },
+     {
+      "id": "x",
+      "name": "Belieber",
+      "class": "Beast",
+      "type": "Ears"
+     }
+    ]
+   },
+   "geneTier": 0,
+   "expected": {
+    "n": "Axie #1009",
+    "cls": "beast",
+    "secretCls": null,
+    "tier": 1,
+    "hp": 9,
+    "art": 0,
+    "die": [
+     {
+      "p": "mouth",
+      "t": "dmg",
+      "v": 3,
+      "k": [
+       "exec",
+       "heavy"
+      ],
+      "r": 1,
+      "src": "var",
+      "name": "Foxy",
+      "variant": "E",
+      "bucket": "O"
+     },
+     {
+      "p": "horn",
+      "t": "dmg",
+      "v": 1,
+      "k": [
+       "pierce",
+       "vulnerable:2"
+      ],
+      "r": 0,
+      "src": "var",
+      "name": "Arco",
+      "variant": "C",
+      "bucket": "C"
+     },
+     {
+      "p": "back",
+      "t": "dmg",
+      "v": 1,
+      "k": [
+       "aoe",
+       "selfharm:1"
+      ],
+      "r": 0,
+      "src": "var",
+      "name": "Furball",
+      "variant": "D",
+      "bucket": "C"
+     },
+     {
+      "p": "tail",
+      "t": "dmg",
+      "v": 1,
+      "k": [
+       "chain:3",
+       "vulnerable:1"
+      ],
+      "r": 1,
+      "src": "var",
+      "name": "Buba Brush",
+      "variant": "C",
+      "bucket": "O"
+     },
+     {
+      "p": "eyes",
+      "t": "debuff",
+      "v": 0,
+      "k": [
+       "weaken:2"
+      ],
+      "r": 0,
+      "src": "var",
+      "name": "Chubby",
+      "variant": "B",
+      "bucket": "C"
+     },
+     {
+      "p": "ears",
+      "t": "mana",
+      "v": 2,
+      "k": [
+       "cantrip",
+       "heavy"
+      ],
+      "r": 2,
+      "src": "var",
+      "name": "Belieber",
+      "variant": "A",
+      "bucket": "P"
+     }
+    ],
+    "imported": true,
+    "axieId": "1009",
+    "image": null,
+    "purity": 6,
+    "coh": 0.78,
+    "geneTier": 0,
+    "scarcity": [
+     {
+      "k": "beast|mouth|Foxy",
+      "b": "O",
+      "g": 0
+     },
+     {
+      "k": "beast|horn|Arco",
+      "b": "C",
+      "g": 0
+     },
+     {
+      "k": "beast|back|Furball",
+      "b": "C",
+      "g": 0
+     },
+     {
+      "k": "beast|tail|Buba Brush",
+      "b": "O",
+      "g": 0
+     },
+     {
+      "k": "beast|eyes|Chubby",
+      "b": "C",
+      "g": 0
+     },
+     {
+      "k": "beast|ears|Belieber",
+      "b": "P",
+      "g": 0
+     }
+    ]
+   }
+  },
+  {
+   "label": "empty-parts",
+   "axie": {
+    "id": "1010",
+    "class": "Plant",
+    "parts": []
+   },
+   "geneTier": 0,
+   "expected": {
+    "n": "Axie #1010",
+    "cls": "plant",
+    "secretCls": null,
+    "tier": 1,
+    "hp": 13,
+    "art": 0,
+    "die": [
+     {
+      "p": "blank",
+      "t": "blank",
+      "v": 0,
+      "k": [],
+      "r": 0
+     },
+     {
+      "p": "blank",
+      "t": "blank",
+      "v": 0,
+      "k": [],
+      "r": 0
+     },
+     {
+      "p": "blank",
+      "t": "blank",
+      "v": 0,
+      "k": [],
+      "r": 0
+     },
+     {
+      "p": "blank",
+      "t": "blank",
+      "v": 0,
+      "k": [],
+      "r": 0
+     },
+     {
+      "p": "blank",
+      "t": "blank",
+      "v": 0,
+      "k": [],
+      "r": 0
+     },
+     {
+      "p": "blank",
+      "t": "blank",
+      "v": 0,
+      "k": [],
+      "r": 0
+     }
+    ],
+    "imported": true,
+    "axieId": "1010",
+    "image": null,
+    "purity": 6,
+    "coh": 0.78,
+    "geneTier": 0,
+    "scarcity": []
+   }
+  }
+ ]
+}
