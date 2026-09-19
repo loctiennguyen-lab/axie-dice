@@ -28,15 +28,27 @@ Trạng thái lần cập nhật cuối: **2026-09-19**. Suite Godot **37/37**.
 
 Godot đang phủ **13/22** màn của bản JS. Để cutover cần đủ những mục dưới đây:
 
-- [ ] `scMenu` — có lối vào mọi hệ đã ship (hiện thiếu vì các hệ đó chưa tồn tại)
-- [ ] `scTeam` — chữ mô tả class passive + xoá ô đã chọn
-- [ ] `scEnd` — thống kê cả ván (sát thương / số lượt / số kill / cú đánh lớn nhất) + ô nộp Ranked
-- [ ] `scInfo` — bảng 6 tab thật trong trận
-- [ ] `scCodex` — sách luật, **audit lại theo luật Godot**, không chép từ JS (bản JS nói "12
-      waves" và mô tả undo kiểu JS — **cả hai đều sai** với build này)
-- [ ] Tutorial/onboarding — kích hoạt bằng "lần chạy đầu trên máy này" (vì màn đăng nhập đã bị
-      bỏ, không còn "sau lần đăng nhập đầu")
-- [ ] `scSettings` — thanh trượt âm lượng, giảm hiệu ứng chớp, ABANDON RUN
+> **Cập nhật 2026-09-20: mục §1 coi như ĐẠT, trừ hai điểm ghi rõ bên dưới.** Mỗi ô tick đều có
+> gate tự động + ảnh chụp, không tick bằng cảm tính.
+
+- [x] `scMenu` — CONTINUE RUN · GUIDES · VAULT · CODEX · SETTINGS · HOW TO PLAY. Không còn hệ
+      nào đã ship mà thiếu lối vào. (Collection chưa có lối vào vì **chưa tồn tại** — đã hoãn
+      sang polish, xem dưới.)
+- [x] `scTeam` — class passive hiện ở cả 5 ô, đọc từ `ContentDB.CLASS_PASSIVE`
+      (`t_mainmenu_ui`). **"Xoá ô đã chọn" KHÔNG port, và đây là lý do chứ không phải bỏ quên**:
+      bản JS là lưới bấm-để-thêm nên có ô trống để xoá; bản này là 5 ô chọn sẵn, không có ô
+      trống nào tồn tại. Yêu cầu này mất nghĩa cùng với mô hình cũ.
+- [x] `scEnd` — 5 thống kê cả ván + ô RANKED ba trạng thái (`t_result_screen`, 23 check)
+- [x] `scInfo` — bảng 6 tab thật trong trận (`t_codex`)
+- [x] `scCodex` — 10 tab, **audit lại theo luật Godot**: 8 chỗ sai của bản JS đã sửa, trong đó
+      có đúng hai chỗ file này dự đoán. Tab CLASSES/RELIC/BOSSES đọc dữ liệu lúc chạy.
+- [x] Tutorial/onboarding — chạy ở lần mở đầu trên máy (`t_tutorial_flow`, 43 check).
+      ⚠️ **NHƯNG nó là sân tập riêng, không phải màn combat thật bị khoá từng bước.** Luật thật,
+      bàn chơi rút gọn. Người chơi mới học trên một bố cục họ sẽ không gặp lại. Chủ dự án đã
+      **chủ động hoãn** phần step-lock trên `CombatView` sang polish (2026-09-20). Tick ở đây là
+      "có tutorial chạy được", **không phải** "tutorial đạt chất lượng bản JS".
+- [x] `scSettings` — thanh trượt có %, tắt tiếng, giảm chớp (nối thật), ABANDON RUN
+      (`t_settings`, 19 check)
 
 **Đã xong, không cần làm lại**: Vault/Import Axie · part_faces · Daily Mission · GUIDES ·
 `scUnitInfo` · save/CONTINUE RUN · battle pass + unlock ladder.
@@ -68,8 +80,12 @@ Kiến trúc đã chốt: ADR-0004 (Godot headless làm trọng tài).
 - [x] Từ chối log `is_complete() == false` ở **phía server**, không tin client tự khai
 - [x] Lệch `rules_version`/`content_version` → từ chối với thông điệp "chơi trên phiên bản
       khác", KHÔNG phải cáo buộc gian lận
-- [ ] **Hộp verifier đã dựng thật** (Fly.io/Hetzner, ~4–6 USD/tháng) và đo được thời gian
-      verify p95
+- [x] **Trọng tài chạy được, miễn phí, không máy chủ** — `.github/workflows/verify-runs.yml`
+      chấm theo lô. Đo tại máy: **0,6–0,85 giây/ván** (391 nước đi). Đủ cho **beta kín** nộp
+      qua pull request. ⚠️ Chưa chạy lần nào trên CI thật (chỉ chạy sau lần push đầu).
+- [ ] **Endpoint nộp điểm luôn bật** — chỉ cần khi mở bảng xếp hạng CÔNG KHAI. Client không tự
+      đẩy lên repo được nếu không mang credential, mà credential nhét trong game là credential
+      ai cũng có. Đây là thứ duy nhất trong §2 còn cần tiền/hạ tầng.
 - [ ] `api/submit-run-godot.js` chuyển tiếp sang verifier bằng secret chung; Vercel giữ quyền
       ghi Upstash và **chỉ tin điểm verifier trả về**
 - [ ] Bảng xếp hạng Godot dùng **khoá riêng** (`lb:godot:*`) — 18 hàng so với 12 hàng nghĩa là
