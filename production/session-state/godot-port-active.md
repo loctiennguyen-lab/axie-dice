@@ -968,8 +968,10 @@ Kiểm chứng bằng mắt: `production/qa/evidence/2026-09-18_node-bg-{shop,ev
   > `RUNES` nhỏ hơn hẳn. Comment trong `reward_generator.gd:41` vốn đã ghi đúng.
 - Relic: **ĐÃ XONG 94/94** (2026-09-18) — xem §1(A2).
 - (Save run, battle pass XP, unlock ladder, `ascMax`: ĐÃ XONG — xem §1(E) và §1(F).)
-- Vault/import Axie NFT — yêu cầu Phase 2 của user, hiện **0%**.
+- ~~Vault/import Axie NFT — hiện 0%~~ → **XONG 2026-09-19 cả 4 lớp** (mục A ở đầu file).
 - ADR anti-cheat/replay-verify trước khi cân nhắc merge `godot-port` vào `main`.
+  → **đã bắt đầu 2026-09-19**: nhật ký hành động + cổng tự-phát-lại (mục ⓪ ở đầu file).
+  Quyết định "ai là trọng tài" vẫn treo ở wayfinder ticket A.
 
 ## 3. Luật bất biến — đừng hỏi lại, đừng làm ngược
 
@@ -984,10 +986,12 @@ Kiểm chứng bằng mắt: `production/qa/evidence/2026-09-18_node-bg-{shop,ev
 5. RunMap: node ≥2 hàng xa bị mờ "?" (ưu tiên bí ẩn) — chỉ áp dụng RunMap.
 6. Không commit khi user chưa bảo.
 
-## 4. Chưa commit gì
+## 4. ~~Chưa commit gì~~ — HẾT HẠN 2026-09-19
 
-Toàn bộ `godot/` vẫn là untracked. `git status` sẽ thấy `?? godot/`. Đó là bình thường —
-chưa có lệnh commit từ user.
+Đoạn này đúng vào 2026-09-18 và **sai từ 2026-09-19**: user đã cho lệnh lưu, `godot/` đã nằm
+trong git (tới `3345539`), `git status` sạch. Giữ lại đầu mục thay vì xoá, vì một phiên đọc
+lướt thấy "chưa commit gì" sẽ đi commit lại từ đầu hoặc tưởng mình vừa mất việc.
+Luật "không commit khi user chưa bảo" (mục 3.6) thì **vẫn nguyên**.
 
 ---
 
