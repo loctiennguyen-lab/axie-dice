@@ -121,7 +121,7 @@ func _save_frame(tag: String, i: int) -> void:
 	if vp == null:
 		return
 	var img := vp.get_texture().get_image()
-	var path := "%s/2026-09-18_anim-%s_%02d.png" % [_EVIDENCE_DIR, tag, i]
+	var path := "%s/%s_anim-%s_%02d.png" % [_EVIDENCE_DIR, _today(), tag, i]
 	img.save_png(path)
 	_shot_index += 1
 	print("qa_anim_capture: saved %s" % path)
@@ -194,3 +194,14 @@ func _synthetic_roster() -> Array:
 			"bonus_hp": 0,
 		})
 	return out
+
+
+## Today, as `YYYY-MM-DD`, for naming the files this capture writes.
+##
+## The date used to be typed into the filename by hand. That makes a screenshot LIE the moment
+## the capture is re-run: the picture is regenerated, the name still says the day it was first
+## written, and anyone reading the folder — or a report linking to it — concludes the evidence is
+## stale when it is current. Stamping it at run time means a filename can only ever be right.
+func _today() -> String:
+	var d := Time.get_datetime_dict_from_system()
+	return "%04d-%02d-%02d" % [int(d["year"]), int(d["month"]), int(d["day"])]

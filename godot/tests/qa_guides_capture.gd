@@ -52,9 +52,20 @@ func _shot_scene(path: String, label: String) -> void:
 	for _i in 10:
 		await get_tree().process_frame
 	await RenderingServer.frame_post_draw
-	var out := "%s/2026-09-19_%s.png" % [_EVIDENCE_DIR, label]
+	var out := "%s/%s_%s.png" % [_EVIDENCE_DIR, _today(), label]
 	get_tree().root.get_texture().get_image().save_png(out)
 	print("qa_guides_capture: saved ", out)
 	scene.queue_free()
 	await get_tree().process_frame
 
+
+
+## Today, as `YYYY-MM-DD`, for naming the files this capture writes.
+##
+## The date used to be typed into the filename by hand. That makes a screenshot LIE the moment
+## the capture is re-run: the picture is regenerated, the name still says the day it was first
+## written, and anyone reading the folder — or a report linking to it — concludes the evidence is
+## stale when it is current. Stamping it at run time means a filename can only ever be right.
+func _today() -> String:
+	var d := Time.get_datetime_dict_from_system()
+	return "%04d-%02d-%02d" % [int(d["year"]), int(d["month"]), int(d["day"])]

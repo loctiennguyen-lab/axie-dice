@@ -16,7 +16,7 @@ extends Node
 ## Run: /path/to/Godot --path godot res://tests/qa_vault_preview_capture.tscn
 
 const _EVIDENCE_DIR := "/Users/loc.tien.nguyen/my-game/production/qa/evidence"
-const _OUT := "2026-09-19_vault-preview-from-genes.png"
+const _OUT := "%s_vault-preview-from-genes.png"
 const GOLDEN_REL := "../third_party/godot-axie-mixer-3d-main/tests/goldens/sample_axies.json"
 const PREVIEW_SCENE := "res://scenes/shared/AxiePreview3D.tscn"
 
@@ -84,7 +84,7 @@ func _ready() -> void:
 			+ "a blank PNG over the previous evidence")
 		get_tree().quit(1)
 		return
-	var path := "%s/%s" % [_EVIDENCE_DIR, _OUT]
+	var path := "%s/%s" % [_EVIDENCE_DIR, _OUT % _today()]
 	img.save_png(path)
 	print("qa_vault_preview_capture: saved ", path)
 	get_tree().quit(0)
@@ -117,3 +117,14 @@ func _has_visible_pixels(img: Image) -> bool:
 			if absf(c.r - bg.r) + absf(c.g - bg.g) + absf(c.b - bg.b) > 0.06:
 				lit += 1
 	return lit > 500
+
+
+## Today, as `YYYY-MM-DD`, for naming the files this capture writes.
+##
+## The date used to be typed into the filename by hand. That makes a screenshot LIE the moment
+## the capture is re-run: the picture is regenerated, the name still says the day it was first
+## written, and anyone reading the folder — or a report linking to it — concludes the evidence is
+## stale when it is current. Stamping it at run time means a filename can only ever be right.
+func _today() -> String:
+	var d := Time.get_datetime_dict_from_system()
+	return "%04d-%02d-%02d" % [int(d["year"]), int(d["month"]), int(d["day"])]

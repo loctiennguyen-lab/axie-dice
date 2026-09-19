@@ -62,7 +62,7 @@ func _shot_screen(label: String) -> void:
 	await RenderingServer.frame_post_draw
 
 	var img := get_tree().root.get_texture().get_image()
-	var path := "%s/2026-09-19_vault-screen-%s.png" % [_EVIDENCE_DIR, label]
+	var path := "%s/%s_vault-screen-%s.png" % [_EVIDENCE_DIR, _today(), label]
 	img.save_png(path)
 	_shots += 1
 	print("qa_vault_screen_capture: saved ", path)
@@ -87,3 +87,14 @@ func _genes_for(id: String) -> String:
 		if str((e as Dictionary).get("id", "")) == id:
 			return str((e as Dictionary).get("genes", ""))
 	return ""
+
+
+## Today, as `YYYY-MM-DD`, for naming the files this capture writes.
+##
+## The date used to be typed into the filename by hand. That makes a screenshot LIE the moment
+## the capture is re-run: the picture is regenerated, the name still says the day it was first
+## written, and anyone reading the folder — or a report linking to it — concludes the evidence is
+## stale when it is current. Stamping it at run time means a filename can only ever be right.
+func _today() -> String:
+	var d := Time.get_datetime_dict_from_system()
+	return "%04d-%02d-%02d" % [int(d["year"]), int(d["month"]), int(d["day"])]

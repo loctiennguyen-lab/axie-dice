@@ -10,10 +10,10 @@ nguyên nhân chính xác thay vì đoán. Không file code nào bị sửa tron
 **Ảnh dùng để audit**:
 - Combat: `production/qa/evidence/2026-09-18_real-flow-check.png`,
   `2026-09-18_real-flow-varied-enemies.png`, `2026-09-18_combat-die-tray-and-lines.png`
-- RunMap: `production/qa/evidence/2026-09-18_reward-loop_01_map_start.png`,
+- RunMap: `production/qa/evidence/2026-09-19_reward-loop_01_map_start.png`,
   `2026-09-18_runmap-graph-after-advance.png`
-- Main Menu: `production/qa/evidence/2026-09-18_menu-result_01_mainmenu_default.png`,
-  `2026-09-18_menu-result_03_mainmenu_team_and_button.png`
+- Main Menu: `production/qa/evidence/2026-09-19_menu-result_01_mainmenu_default.png`,
+  `2026-09-19_menu-result_03_mainmenu_team_and_button.png`
 
 **Thang đo effort**: S = sửa trong 1 hàm/1 chuỗi, dưới 1 ngày · M = vài ngày, chạm nhiều điểm hoặc
 cần nội dung/asset đã có sẵn · L = nhiều ngày/1 tuần, cần asset mới hoặc thiết kế lại.

@@ -38,7 +38,18 @@ func _ready() -> void:
 	print("QA: CombatView._combat.enemies.size()=", combat_view._combat.enemies.size())
 
 	var img := get_tree().root.get_texture().get_image()
-	img.save_png("/Users/loc.tien.nguyen/my-game/production/qa/evidence/2026-09-18_real-flow-varied-enemies.png")
+	img.save_png("/Users/loc.tien.nguyen/my-game/production/qa/evidence/%s_real-flow-varied-enemies.png")
 	print("QA: saved real-flow screenshot")
 	_guard.restore()
 	get_tree().quit(0)
+
+
+## Today, as `YYYY-MM-DD`, for naming the files this capture writes.
+##
+## The date used to be typed into the filename by hand. That makes a screenshot LIE the moment
+## the capture is re-run: the picture is regenerated, the name still says the day it was first
+## written, and anyone reading the folder — or a report linking to it — concludes the evidence is
+## stale when it is current. Stamping it at run time means a filename can only ever be right.
+func _today() -> String:
+	var d := Time.get_datetime_dict_from_system()
+	return "%04d-%02d-%02d" % [int(d["year"]), int(d["month"]), int(d["day"])]

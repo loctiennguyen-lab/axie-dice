@@ -58,6 +58,17 @@ func _settle(frames: int) -> void:
 
 
 func _shot(label: String) -> void:
-	var path := "%s/2026-09-19_vault-import-%s.png" % [_EVIDENCE_DIR, label]
+	var path := "%s/%s_vault-import-%s.png" % [_EVIDENCE_DIR, _today(), label]
 	get_tree().root.get_texture().get_image().save_png(path)
 	print("qa_vault_import_capture: saved ", path)
+
+
+## Today, as `YYYY-MM-DD`, for naming the files this capture writes.
+##
+## The date used to be typed into the filename by hand. That makes a screenshot LIE the moment
+## the capture is re-run: the picture is regenerated, the name still says the day it was first
+## written, and anyone reading the folder — or a report linking to it — concludes the evidence is
+## stale when it is current. Stamping it at run time means a filename can only ever be right.
+func _today() -> String:
+	var d := Time.get_datetime_dict_from_system()
+	return "%04d-%02d-%02d" % [int(d["year"]), int(d["month"]), int(d["day"])]
