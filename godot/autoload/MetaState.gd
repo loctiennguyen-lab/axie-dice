@@ -84,14 +84,12 @@ func add_shards(amount: int) -> void:
 	save_to_disk()
 
 func load_from_disk() -> void:
-	if not FileAccess.file_exists(SAVE_PATH):
+	# Through SaveStore, not FileAccess: on a web build `user://` does not reliably survive a
+	# page reload, and the failure is silent on both sides. See save_store.gd's header for the
+	# measurement.
+	var text := SaveStore.read_text(SAVE_PATH)
+	if text.is_empty():
 		return
-	var f := FileAccess.open(SAVE_PATH, FileAccess.READ)
-	if f == null:
-		push_warning("MetaState: could not open %s for reading" % SAVE_PATH)
-		return
-	var text := f.get_as_text()
-	f.close()
 	var parsed = JSON.parse_string(text)
 	if typeof(parsed) != TYPE_DICTIONARY:
 		push_warning("MetaState: save file did not contain a JSON object, ignoring")
@@ -145,12 +143,9 @@ func save_to_disk() -> void:
 		"daily_date": daily_date,
 		"tutorial_seen": tutorial_seen,
 	}
-	var f := FileAccess.open(SAVE_PATH, FileAccess.WRITE)
-	if f == null:
-		push_error("MetaState: could not open %s for writing" % SAVE_PATH)
-		return
-	f.store_string(JSON.stringify(data, "\t"))
-	f.close()
+	if not SaveStore.write_text(SAVE_PATH, JSON.stringify(data, "\t")):
+		push_error("MetaState: could not write %s — this player's progress is not being saved"
+			% SAVE_PATH)
 
 
 # ===========================================================================

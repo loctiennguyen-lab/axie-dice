@@ -21,7 +21,12 @@ const WATCHED_FILES: Array[String] = ["res://assets/data/part_faces.json"]
 ## Recorded when RULES_VERSION was last considered. Update it in the same commit that changes
 ## anything above — and bump RULES_VERSION too if the change can alter an outcome.
 ##
-## Last moved 2026-09-20 by the end-screen work: `CombatEngine.get_result()` now carries the
+## Last moved 2026-09-20 by SaveStore: MetaState and RunState now persist through it instead
+## of FileAccess, because `user://` does not survive a page reload in a web build. RULES_VERSION
+## was NOT bumped — where a save is written cannot change what a run does, and `t_replay` still
+## verifies a full run to the same score.
+##
+## Moved before that, same day, by the end-screen work: `CombatEngine.get_result()` now carries the
 ## fight's `stat` counters, `RunState.run_stats` totals them, `MetaState.reduce_flash` arrived,
 ## and two pieces of ContentDB display copy stopped saying "waves". RULES_VERSION was NOT
 ## bumped — none of it can change what a run does. The counters are written and never read by
@@ -32,7 +37,7 @@ const WATCHED_FILES: Array[String] = ["res://assets/data/part_faces.json"]
 ## NOT bumped, and the reason is the whole point of asking: that flag decides whether a player
 ## is shown the tutorial. It cannot change what a run does, because a ranked run reads
 ## `MetaState.run_bonuses(true)`, which returns zeroes for everything the meta holds.
-const FINGERPRINT := "25369214a2e53dce946aac72ef24c5a3e95da82d2ddd9d612637011af336fcec"
+const FINGERPRINT := "fcac523233c53cedc4e83d6baca125d2ae4f59dd479ae93dfb580f33d85f8136"
 
 
 func _ready() -> void:

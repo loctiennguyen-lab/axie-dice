@@ -109,7 +109,7 @@
 
 ## Test Floor — Godot port (`godot-port` branch)
 
-- **`godot/tools/run_tests.sh` must be 41/41.** Measured 2026-09-20, not copied. It runs every
+- **`godot/tools/run_tests.sh` must be 42/42.** Measured 2026-09-20, not copied. It runs every
   `godot/tests/t_*.tscn` headless and fails on a non-zero exit, a `SCRIPT ERROR`, a `Parse
   Error`, an explicit FAIL, or a missing PASS.
 - Notable gates and their sizes: `t_replay` **47 checks** (action log + combat replay + full-run

@@ -978,30 +978,24 @@ func save_run(combat_state: Dictionary = {}) -> void:
 		"run": to_data(),
 		"combat": combat_state.duplicate(true),
 	}
-	var f := FileAccess.open(SAVE_PATH, FileAccess.WRITE)
-	if f == null:
-		push_error("RunState: could not open %s for writing" % SAVE_PATH)
-		return
-	f.store_string(JSON.stringify(payload))
-	f.close()
+	# Through SaveStore: on a web build `user://` does not reliably survive a page reload, and
+	# a half-finished run is exactly what a player expects to still be there tomorrow. See
+	# save_store.gd's header for the measurement.
+	if not SaveStore.write_text(SAVE_PATH, JSON.stringify(payload)):
+		push_error("RunState: could not write %s — this run is not being saved" % SAVE_PATH)
 
 
 func has_saved_run() -> bool:
-	return FileAccess.file_exists(SAVE_PATH)
+	return SaveStore.exists(SAVE_PATH)
 
 
 ## Restores a saved run into this autoload and returns true on success. Returns false — having
 ## changed nothing — for a missing, unreadable, malformed or wrong-version file, so a caller
 ## can fall back to the main menu instead of dropping the player into a half-built run.
 func load_run() -> bool:
-	if not has_saved_run():
+	var text := SaveStore.read_text(SAVE_PATH)
+	if text.is_empty():
 		return false
-	var f := FileAccess.open(SAVE_PATH, FileAccess.READ)
-	if f == null:
-		push_warning("RunState: could not open %s for reading" % SAVE_PATH)
-		return false
-	var text := f.get_as_text()
-	f.close()
 	var parsed = JSON.parse_string(text)
 	if typeof(parsed) != TYPE_DICTIONARY:
 		push_warning("RunState: save file is not a JSON object — ignoring it")
@@ -1026,6 +1020,7 @@ func load_run() -> bool:
 func clear_saved_run() -> void:
 	if not has_saved_run():
 		return
-	var err := DirAccess.remove_absolute(ProjectSettings.globalize_path(SAVE_PATH))
-	if err != OK:
-		push_warning("RunState: could not delete %s (error %d)" % [SAVE_PATH, err])
+	# SaveStore, so ABANDON RUN deletes BOTH copies on a web build. Deleting only the file
+	# there would leave the localStorage copy behind, and the next launch would offer to
+	# continue a run the player had just abandoned.
+	SaveStore.erase(SAVE_PATH)

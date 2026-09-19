@@ -39,7 +39,35 @@ dạng gói rời".)
 
 ## ⚠️ B. Chưa kiểm — phải thử trước khi cho người chơi vào
 
-### B1. Bản web có LƯU được tiến trình không — **rủi ro lớn nhất trong nhóm này**
+### ~~B1. Bản web có LƯU được tiến trình không~~ — **ĐÃ KIỂM, ĐÃ HỎNG, ĐÃ SỬA (2026-09-20)**
+
+**Nó hỏng thật, và hỏng theo kiểu tệ nhất.** Đo trên bản export thật trong trình duyệt, xoá sạch
+dữ liệu rồi tải lại ba lần:
+
+| Lần tải | `user://` của engine | localStorage |
+|---|---|---|
+| 1 | ghi 1 | ghi 1 |
+| 2 | đọc **0** ✗ | đọc **1** ✓ |
+| 3 | đọc **0** ✗ | đọc **2** ✓ |
+
+Ghi thành công, đọc lại trong cùng phiên cũng đúng, không chỗ nào báo lỗi — người chơi chỉ đơn
+giản mất sạch tiến trình vào hôm sau, và không log nào nói tại sao. File `meta_save.json` có xuất
+hiện trong IndexedDB đúng một lần rồi thôi cập nhật, trong khi game vẫn ghi đều.
+
+Đã thử ép Emscripten tự flush trước: **không với tới được** — `JavaScriptBridge.eval` chạy trong
+scope của trang, còn `FS` nằm trong closure của module (`ReferenceError: FS is not defined`).
+
+**Đã sửa**: `godot/scripts/core/save_store.gd`. Trên web, save đi vào `localStorage` qua
+`JavaScriptBridge.get_interface()` — đồng bộ, không có flush nào để lỡ, và truyền giá trị thay vì
+ghép chuỗi JavaScript nên một dấu nháy trong save không thể làm hỏng lời gọi. File vẫn được ghi
+song song, không tốn gì, phòng khi engine sửa được phần đồng bộ của nó.
+
+Đo lại sau khi sửa, cùng cách: **loaded=0 → 1 → 2**, ba lần tải liên tiếp. Gate: `t_save_store`
+(18 check), trong đó có chốt chặn không cho `MetaState`/`RunState` quay lại gọi thẳng
+`FileAccess` trên file save của chúng. Probe để chạy lại trong trình duyệt:
+`godot/tools/probe_web_save.gd`.
+
+### ~~B1 cũ~~ (giữ lại cách kiểm để chạy lại khi cần)
 Đo được: IndexedDB `/userfs` **có** được tạo, nhưng store `FILE_DATA` **RỖNG** sau khi boot và
 vào tutorial — tức chưa có gì được ghi. Chưa chứng minh được một lần lưu/đọc lại trọn vẹn.
 
@@ -77,8 +105,7 @@ telemetry · FACE_POOL 55 mặt. Tất cả đã được chủ dự án xếp v
 ---
 
 ## Thứ tự đề xuất
-1. **B1** trước tiên — rẻ nhất mà rủi ro cao nhất. Không ai muốn phát hiện game không lưu được
-   sau khi đã có người chơi.
+1. ~~**B1**~~ — **xong 2026-09-20**: đã tìm ra hỏng, đã sửa, đã đo lại trong trình duyệt.
 2. **A1** — việc nặng nhất, và mọi thứ nhìn thấy trên màn hình phụ thuộc vào nó.
 3. **A3** — một câu xác nhận nội bộ, nhưng phải có trước khi mở công khai.
 4. **A2 + C** — chọn nơi host và đo kích thước sau nén cùng lúc, vì cùng một quyết định.
