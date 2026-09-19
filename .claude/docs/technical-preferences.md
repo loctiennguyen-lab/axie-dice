@@ -5,17 +5,36 @@
 
 ## Engine & Language
 
-- **Engine**: Custom — no game engine/framework. Single self-contained HTML file, assembled by string concatenation (`build.py`), no bundler, no `node_modules` for the game itself.
-- **Language**: Vanilla JavaScript (ES6+), no TypeScript, no framework (no React/Vue/etc.)
-- **Rendering**: DOM + CSS (no `<canvas>`, no WebGL)
-- **Physics**: N/A — deterministic, turn-based dice-combat roguelike; no physics simulation
+- **Engine (current/primary, since 2026-09-18)**: **Godot 4.7.2**, GDScript. All new gameplay/
+  UI/content work happens under `godot/` on branch `godot-port`. Architecture:
+  `/Users/loc.tien.nguyen/.claude/plans/mellow-scribbling-mochi.md`. Rule spec (ported-from
+  game rules, verified against the legacy JS source):
+  `design/gdd/godot-port-rule-spec.md`. Current status/backlog:
+  `production/session-state/godot-port-active.md`.
+- **Engine (legacy, still live in production)**: Custom — no game engine/framework. Single
+  self-contained HTML file, assembled by string concatenation (`build.py`), no bundler, no
+  `node_modules` for the game itself. Vanilla JavaScript (ES6+), DOM+CSS rendering. This is
+  the build **currently deployed and serving real players** (ranked leaderboard, etc.) — kept
+  running as-is, `main` branch, until the Godot port reaches feature parity and an
+  anti-cheat/replay-verify equivalent exists (see the Godot backlog file above). Bugfixes to
+  the *live* game, or anything explicitly scoped to `src/`, still target this stack.
+- **Rendering (Godot)**: 3D via `godot/addons/axie_mixer_3d*` (Axie/Sapidae characters,
+  glTF/GLB), 2D UI/HUD/backgrounds via Control nodes + painted Lunacia art.
+- **Rendering (legacy JS)**: DOM + CSS (no `<canvas>`, no WebGL).
+- **Physics**: N/A in both — deterministic, turn-based dice-combat roguelike; no physics
+  simulation beyond incidental Godot node transforms (no `RigidBody`/collision gameplay).
 
-> **Deviation from template default**: this project predates the Godot/Unity/Unreal
-> assumption baked into this template's engine-specialist agents. There is no
-> `docs/engine-reference/` for it and no engine-specialist subagent applies. Route
-> code work to generic agents (`gameplay-programmer`, `ui-programmer`, `lead-programmer`)
-> instead of `godot-*`/`unity-*`/`ue-*` specialists. See `docs/axiedice-source/ORIGINAL_PROJECT_CLAUDE.md`
-> for the authoritative build/architecture rules (source-of-truth import).
+> **Routing**: default to Godot engine-specialist agents (`godot-gdscript-specialist`,
+> `godot-specialist`, plus generic `gameplay-programmer`/`ui-programmer`/`lead-programmer` for
+> work that isn't engine-specific) for anything new. Only route to the legacy-JS pattern below
+> when a task explicitly targets the live `src/` build.
+>
+> **Legacy note (pre-2026-09-18, kept for context)**: this project long predated the
+> Godot/Unity/Unreal assumption baked into this template's engine-specialist agents, and had no
+> `docs/engine-reference/` populated for any engine. That gap is now closed for Godot
+> (`docs/engine-reference/godot/`, pinned 4.7.2). See
+> `docs/axiedice-source/ORIGINAL_PROJECT_CLAUDE.md` for the legacy JS build/architecture rules
+> (still authoritative for `src/` work only).
 
 ## Input & Platform
 

@@ -18,6 +18,11 @@ production/session-logs/
 
 expansions/
 
+# === Incoming asset drops (temp staging — useful files already copied into
+#     godot/assets/ or assets/; the raw dumps here are re-downloadable from source
+#     and should never be committed, see production/session-state/godot-port-active.md) ===
+assets/_incoming/
+
 # === Marrow (eval tooling — never commit) ===
 marrow/
 
@@ -145,3 +150,23 @@ $RECYCLE.BIN/
 *.lnk
 .vercel
 .env*
+
+# === Vendored upstream packages (third_party/) ===
+# These are the packages as delivered by upstream, kept on disk for reference. They are NOT
+# committed, for one measured reason: `godot/addons/axie_mixer_3d*` already holds the copy the
+# game actually loads, and on 2026-09-19 `diff -rq` showed the two are byte-for-byte identical.
+# Committing both would put ~391MB of duplicate data into history permanently — and history is
+# the one thing that is painful to take back.
+#
+# The single exception is the golden fixture below: four gates read it
+# (t_axie_gene_preview, t_axie_api, qa_vault_preview_capture, qa_vault_screen_capture), so a
+# fresh clone without it has four failing tests and no obvious reason why. It is 9.9 KB.
+# NOTE ON THE PATTERN SHAPE: a bare `third_party/` would make git skip the directory entirely,
+# and a `!` exception under an excluded directory is never even looked at. Each level has to be
+# opened with `dir/*` and then re-included, which is why this is five lines instead of one.
+third_party/*
+!third_party/godot-axie-mixer-3d-main/
+third_party/godot-axie-mixer-3d-main/*
+!third_party/godot-axie-mixer-3d-main/tests/
+third_party/godot-axie-mixer-3d-main/tests/*
+!third_party/godot-axie-mixer-3d-main/tests/goldens/
