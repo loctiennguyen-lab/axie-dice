@@ -35,6 +35,37 @@ Task: **Vault/Import Axie: bước (a)(b)(c) XONG. Bước (d) lớp mạng BỊ
 
 # ⇢ BẮT ĐẦU TỪ ĐÂY (phiên mới đọc mục này trước, phần dưới là lịch sử)
 
+## ⓶ 2026-09-20 — scEnd / scTeam / scSettings XONG. Suite **41/41**, commit `d525704`.
+
+- **scEnd**: thống kê cả ván (sát thương gây/nhận, số lượt, số kill, cú đánh lớn nhất) — ghi chú
+  cũ trong `ResultView.gd` nói "không nơi nào theo dõi" là **sai**: `CombatEngine` đếm đủ 5 từ
+  đầu, chỉ là không ai đem ra khỏi trận đấu. `get_result()` nay mang `stat` ra,
+  `RunState.run_stats` cộng dồn (`max_hit` lấy MAX, không cộng). Cộng **trước** nhánh thắng/thua
+  để ván thua vẫn có số.
+- **Ô RANKED**: nói một trong ba câu, **không bao giờ có nút bấm mà không làm gì**. Chưa có
+  bảng xếp hạng (trọng tài ADR-0004 chưa deploy) ⇒ run ranked có bản ghi đầy đủ thì
+  **xuất được file** — đúng file `godot/tools/verify_run.tscn` đọc, tự kiểm điểm được ngay.
+- **scTeam**: mỗi ô đội hình hiện class passive, đọc từ `ContentDB.CLASS_PASSIVE`.
+  *Right-click-to-clear của bản JS KHÔNG port*: bên đó là lưới bấm-để-thêm, bên này là 5 ô
+  chọn sẵn — không có ô trống nào để xoá.
+- **scSettings** (`godot/scenes/settings/`): thanh trượt nhạc/SFX có hiện %, tắt tiếng,
+  **giảm chớp + rung** (nối thật vào `CombatView.flashes_suppressed()`, không phải nút giả),
+  và **ABANDON RUN** — hỏi hai lần, nói rõ xoá cái gì, và **ẩn** khi không có run để xoá.
+
+> **"12 waves"/"20 waves" có ở NĂM chỗ, không phải hai.** Ngoài Codex và màn kết còn: nút chọn
+> chế độ, danh sách Unlocks, và một phần thưởng battle pass. Đó là chữ của bản JS chạy **tuyến
+> tính**; bản đồ ở đây **phân nhánh**, 18 hoặc 30 HÀNG. Sửa tay 4 chỗ không ngăn được chỗ thứ 6
+> xuất hiện, nên `t_mainmenu_ui` giờ **đánh trượt khi thấy chữ "wave"** — và chính nó tìm ra
+> chỗ thứ năm.
+
+Gate mới: `t_result_screen` (23), `t_settings` (19). `t_mainmenu_ui` 31→51,
+`t_full_run_loop` 197→209 (Property 9: một ván THẬT phải ra số khác 0, và `max_hit <= dmg`).
+
+**Việc tiếp theo** (theo thứ tự chủ dự án chốt): step-lock thật trên `CombatView` để tutorial
+dạy trên bàn chơi thật — **đã dời sang phase polish**. Còn lại: dựng hộp verifier (cần chủ dự
+án chọn nơi host), rồi `scCollection` + polish ở phase 3.
+
+
 ## ⓵ 2026-09-19 (chiều) — ART BOSS, ART THẺ, CODEX, TUTORIAL
 
 Chủ dự án trả lời 5 quyết định đang treo và ra lệnh làm tiếp. Trạng thái sau đợt này:
