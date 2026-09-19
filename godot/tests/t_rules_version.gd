@@ -20,7 +20,12 @@ const WATCHED_FILES: Array[String] = ["res://assets/data/part_faces.json"]
 
 ## Recorded when RULES_VERSION was last considered. Update it in the same commit that changes
 ## anything above — and bump RULES_VERSION too if the change can alter an outcome.
-const FINGERPRINT := "1a9bb80e4c9ae3a8c932806bcc447f10578137f1408818a4c08eb00c60a3aaa1"
+##
+## Last moved 2026-09-19 by `MetaState.tutorial_seen` + `needs_tutorial()`. RULES_VERSION was
+## NOT bumped, and the reason is the whole point of asking: that flag decides whether a player
+## is shown the tutorial. It cannot change what a run does, because a ranked run reads
+## `MetaState.run_bonuses(true)`, which returns zeroes for everything the meta holds.
+const FINGERPRINT := "8d803f8e6878e2ddb0ca3ead68c2567c8487850078ea125d456957b5a4ff0c2b"
 
 
 func _ready() -> void:

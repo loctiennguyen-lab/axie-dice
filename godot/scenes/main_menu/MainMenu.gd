@@ -58,6 +58,14 @@ var _seed_value: int = 0
 
 
 func _ready() -> void:
+	# Onboarding tutorial gate (design/gdd/onboarding-tutorial.md, ported — see
+	# MetaState.needs_tutorial()'s own comment for why one check here is enough in this port,
+	# unlike the JS build's two gate points). MainMenu.tscn is both the boot scene
+	# (project.godot run/main_scene) and the literal destination of every "return to menu"
+	# button in this codebase, so this is the single choke point every entry funnels through.
+	if MetaState.needs_tutorial():
+		get_tree().change_scene_to_file("res://scenes/tutorial/Tutorial.tscn")
+		return
 	_seed_value = int(randi())
 	if not pending_team.is_empty():
 		_team_selection = pending_team.duplicate()
@@ -86,6 +94,8 @@ func _build_ui() -> void:
 	_build_team_section()
 
 	_build_continue_button()
+	_build_how_to_play_button()
+	_build_codex_button()
 	_build_guides_button()
 	_build_vault_button()
 	_build_pass_section()
@@ -140,6 +150,35 @@ func _build_continue_button() -> void:
 	btn.add_theme_font_size_override("font_size", 22)
 	DangoTheme.style_button(btn, true)
 	btn.pressed.connect(_on_continue_run_pressed)
+	_content_root.add_child(btn)
+
+
+## The rule book (scenes/codex/Codex.tscn — ten tabs, re-audited against this build's own
+## rules rather than copied from the JS one). Sits next to HOW TO PLAY on purpose: the tutorial
+## teaches the loop, the Codex answers "what exactly does Burn do", and a player who wants one
+## usually wants to know the other exists.
+func _build_codex_button() -> void:
+	var btn := Button.new()
+	btn.name = "CodexButton"
+	btn.text = "CODEX"
+	btn.custom_minimum_size = Vector2(0, 44)
+	DangoTheme.style_button(btn, false)
+	btn.pressed.connect(func() -> void:
+		get_tree().change_scene_to_file("res://scenes/codex/Codex.tscn"))
+	_content_root.add_child(btn)
+
+
+## Voluntary replay of the onboarding tutorial (task requirement: a menu entry point,
+## independent of the first-launch gate above) — always available, unlike CONTINUE RUN, since
+## "I want to see that again" is not conditioned on any save-file state.
+func _build_how_to_play_button() -> void:
+	var btn := Button.new()
+	btn.name = "HowToPlayButton"
+	btn.text = "HOW TO PLAY"
+	btn.custom_minimum_size = Vector2(0, 44)
+	DangoTheme.style_button(btn, false)
+	btn.pressed.connect(func() -> void:
+		get_tree().change_scene_to_file("res://scenes/tutorial/Tutorial.tscn"))
 	_content_root.add_child(btn)
 
 

@@ -47,6 +47,23 @@ var audio_muted: bool = false
 ## 'YYYY-MM-DD' of the last grant; "" means never claimed.
 var daily_date: String = ""
 
+## Onboarding tutorial (design/gdd/onboarding-tutorial.md), ported trigger. The JS gate is
+## "after first login" (`!META.tut && META.runs===0`) — this port has no login screen (a
+## deliberate, permanent waiver, not a gap to fill later), so the equivalent trigger is FIRST
+## LAUNCH ON THIS MACHINE: false on a save that has never been through Tutorial.tscn's
+## completion, checked once at MainMenu.gd's _ready(), the single scene every "return to menu"
+## path in this project already funnels through (boot IS MainMenu.tscn per project.godot's
+## run/main_scene — unlike the JS build, this port does not need a second gate point).
+var tutorial_seen: bool = false
+
+
+## `needs_tutorial()` mirrors the JS `needsTutorial` formula's belt-and-suspenders shape
+## (design doc §3.2/§4): `runs == 0` is a second, independent guard so a save whose
+## `tutorial_seen` flag is wrong for any reason (bug, hand-edited save) can never force a
+## player who has already completed real runs back into the tutorial.
+func needs_tutorial() -> bool:
+	return not tutorial_seen and runs == 0
+
 func _ready() -> void:
 	load_from_disk()
 	# DEFERRED on purpose. Autoloads are constructed in the order project.godot lists them, and
@@ -92,6 +109,12 @@ func load_from_disk() -> void:
 	audio_sfx_volume = clampf(float(parsed.get("audio_sfx_volume", 1.0)), 0.0, 1.0)
 	audio_muted = bool(parsed.get("audio_muted", false))
 	daily_date = str(parsed.get("daily_date", ""))
+	tutorial_seen = bool(parsed.get("tutorial_seen", false))
+	# Migration backfill (design/gdd/onboarding-tutorial.md §5 "Migration save cũ", ported):
+	# a save with real runs already on it predates this feature and must never be forced
+	# through the tutorial retroactively.
+	if not tutorial_seen and runs > 0:
+		tutorial_seen = true
 
 func save_to_disk() -> void:
 	var data := {
@@ -111,6 +134,7 @@ func save_to_disk() -> void:
 		"audio_sfx_volume": audio_sfx_volume,
 		"audio_muted": audio_muted,
 		"daily_date": daily_date,
+		"tutorial_seen": tutorial_seen,
 	}
 	var f := FileAccess.open(SAVE_PATH, FileAccess.WRITE)
 	if f == null:
