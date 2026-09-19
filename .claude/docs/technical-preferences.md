@@ -109,13 +109,14 @@
 
 ## Test Floor — Godot port (`godot-port` branch)
 
-- **`godot/tools/run_tests.sh` must be 37/37.** Measured 2026-09-19, not copied. It runs every
+- **`godot/tools/run_tests.sh` must be 39/39.** Measured 2026-09-19, not copied. It runs every
   `godot/tests/t_*.tscn` headless and fails on a non-zero exit, a `SCRIPT ERROR`, a `Parse
   Error`, an explicit FAIL, or a missing PASS.
 - Notable gates and their sizes: `t_replay` **47 checks** (action log + combat replay + full-run
   replay through `RunVerifier` + seven tamper injections) · `t_rules_version` (fingerprints the
   17 rule files so `ActionLog.RULES_VERSION` cannot be silently left behind) · `t_full_run_loop`
-  **197 checks** across 8 seed-walks · `t_vault` 275 · `t_axie_api` 98.
+  **197 checks** across 8 seed-walks · `t_assets` 457 · `t_codex` 71 ·
+  `t_tutorial_flow` 43 · `t_vault` 275 · `t_axie_api` 98.
 - Change the suite, change this number **in the same commit**. The JS half of this document
   already records what a stale floor costs: it does not merely misinform, it **authorises a
   real regression to pass review**.

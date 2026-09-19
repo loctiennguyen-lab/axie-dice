@@ -35,6 +35,69 @@ Task: **Vault/Import Axie: bước (a)(b)(c) XONG. Bước (d) lớp mạng BỊ
 
 # ⇢ BẮT ĐẦU TỪ ĐÂY (phiên mới đọc mục này trước, phần dưới là lịch sử)
 
+## ⓵ 2026-09-19 (chiều) — ART BOSS, ART THẺ, CODEX, TUTORIAL
+
+Chủ dự án trả lời 5 quyết định đang treo và ra lệnh làm tiếp. Trạng thái sau đợt này:
+**suite 39/39**, cây làm việc sạch, commit tới `98097bd`.
+
+### Art boss — luật bất biến ĐÃ ĐƯỢC CHỦ DỰ ÁN SỬA
+Luật cũ: "quái và boss CHỈ lấy art từ kho Chimera". Luật mới: **được dùng model Starter Axie
+cho boss, miễn KHÔNG trùng với hero của người chơi.** `pomodoro`/`machito` vẫn cấm vĩnh viễn
+(là tên hero). `t_assets` giờ kiểm **DANH TÍNH**, không kiểm xuất xứ, và phủ cả model 3D — chỗ
+lỗi cũ thực sự nằm.
+
+4/6 boss trước đây chỉ là sprite quái thường phóng to 2.15×. Nay cả 6 có art riêng:
+`gooey_king`→aqua-slime-boss · `mecha`→**shilin** · `agony`→paladill(3D) ·
+`frost_lord`→kotaro(3D) · `plague_mother`→kibo(3D) · `mirror`→xia(3D). `bing`/`tripp` **cố ý
+không dùng** — trông như thú cưng.
+
+> **Kit đang GIẤU một Chimera.** `shilin` ship dạng Spine **JSON**, 21 con còn lại dạng `.skel`
+> nhị phân, và `tools/spine_to_sprites.py` chỉ đọc nhị phân — nên nó báo "missing
+> .skel/.atlas/.png", đọc như asset hỏng chứ không phải định dạng chưa đọc được. Công cụ nay
+> đọc cả hai. Con slime đỏ có nanh và càng máy đó giờ là boss RETALIATE.
+
+Ảnh: `2026-09-19_boss-lineup.png` (cả 6 đứng cạnh nhau), `2026-09-19_boss-chimera.png`.
+
+### Art thẻ bài
+`godot/assets/cards/` — 16 minh hoạ từ `PvE/Cards/Tools` của kit. **Ghép bằng cách NHÌN, không
+theo tên file** (tên kit mô tả skill của game khác). Relic lấy art **theo độ hiếm** (5 bậc), vì
+một shop luôn bày 2 relic cạnh nhau và một ảnh dùng chung làm hai thẻ trông như một món.
+Thiếu art KHÔNG phải lỗi: `CardArt` trả null, thẻ về lại dạng chữ như cũ.
+
+### Codex + bảng thông tin trong trận — `t_codex` 71 check
+10 tab + 6 tab. **KHÔNG chép từ bản JS**: 8 chỗ sai đã sửa, đáng chú ý —
+(1) "12 waves" → thật ra Short **18 hàng**, Full **30 hàng**, và là đồ thị phân nhánh;
+(2) undo của Godot cuộn lại cả con trỏ RNG nên KHÔNG cho câu roll lại;
+(3) Gene Mutation/Rune Imbue **không có** trong bản này — bảng JS hứa thứ người chơi không bao
+giờ nhận được; (6) bảng phím tắt JS liệt kê 8 phím, thực tế **đúng 1 phím** (Space) — đây là chỗ
+duy nhất phải XOÁ nội dung thay vì viết lại, vì cách còn lại là ship thông tin sai trong một
+cuốn sách luật. Tab CLASSES/RELIC/BOSSES đọc `ContentDB`/`RelicRegistry` **lúc chạy** nên không
+lệch được nữa.
+
+### Tutorial — `t_tutorial_flow` 43 check
+Chạy ở **lần mở game đầu tiên trên máy** (bản JS dùng "sau lần đăng nhập đầu" — port này không
+có màn đăng nhập và sẽ không bao giờ có). Save đã có run cũ được backfill "đã xem", nên tính
+năng mới không thể ép người chơi lâu năm xem lại.
+
+> ⚠️ **GIỚI HẠN PHẢI BIẾT, đừng đọc thành "tutorial xong":** đây là một **sân tập riêng**, không
+> phải màn combat thật bị khoá từng bước. Luật là thật (chạy `CombatEngine` thật), nhưng bàn
+> chơi là bản rút gọn — nút chữ ở chỗ game thật có Axie 3D, mặt xúc xắc và nền. Bản JS khoá
+> thẳng trên màn production; muốn bằng vậy phải nhét API coach/step-lock vào `CombatView`, là
+> thay đổi kiến trúc xuyên màn hình. **Đó là việc tiếp theo của mục này.**
+> Fixture **không đụng `RunState`** — không `enter_node`, không action log, không shard — nên
+> không gì trong đó bị hệ replay-verify hiểu nhầm là một run thật.
+
+Một giả định trong đề bài của tôi SAI và agent đã kiểm chứng thay vì làm theo: tôi nói phải khoá
+2 đường nhập liệu (click + kéo-thả) vì bản JS có cả hai. Port này **chưa có kéo-thả** —
+`CombatView.gd` tự ghi thế — nên khoá một đường là đủ.
+
+### Còn lại (theo thứ tự chủ dự án đã chốt)
+1. Step-lock thật trên `CombatView` để tutorial dạy trên màn thật (xem cảnh báo trên).
+2. `scEnd` thiếu thống kê cả ván + ô nộp Ranked · `scTeam` thiếu class passive · `scSettings`.
+3. Dựng hộp verifier + `api/submit-run-godot.js` (cần chủ dự án chọn nơi host).
+4. `scCollection` + polish → **phase 3**, theo đúng quyết định của chủ dự án.
+
+
 ## ⓪ 2026-09-19 — CHỐNG GIAN LẬN ĐÃ XONG PHẦN CỐT LÕI (ticket A + H đóng)
 
 Cả ba chuyên gia (technical-director / producer / security-engineer) xếp việc này #1 vì nó cần
