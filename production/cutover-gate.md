@@ -51,6 +51,15 @@ Trạng thái lần cập nhật cuối: **2026-09-19**. Suite Godot **37/37**.
 >
 > Chỉ một lần export thật + một lần mở thật trong trình duyệt mới lộ ra điều này. 41 gate xanh
 > không hề đụng tới nó, vì gate nào cũng chạy trong editor, nơi đĩa thật luôn ở đó.
+>
+> **ĐO 2026-09-20: cách sửa hiển nhiên nhất (gỡ `.gdignore`) KHÔNG chạy.** Nó chỉ làm lỗi đổi
+> chỗ: `catalog.json` vào được pck, nhưng **file .glb gốc thì không** — addon parse glTF lúc
+> chạy bằng `GLTFDocument.append_from_file()`, cần file GỐC, trong khi Godot export ra bản
+> `.scn` đã import và bỏ file gốc đi. Hỏi thẳng gói đã export: `glb_exists=false`,
+> `axie_built=false`. Chi tiết + các hướng còn lại: ticket J.
+>
+> **Phần vẫn chạy trong bản export**: `part_faces.json` có trong gói và `AxieToDie.build()` ra
+> đúng `faces=6 hp=12 purity=3` — tức Axie import vào sẽ **đúng về số liệu và không có hình**.
 - [ ] `t_rules_version` xanh — tức `RULES_VERSION` đã được cân nhắc cho mọi thay đổi luật.
 
 ## 1. Ngang bằng tính năng — BẮT BUỘC
