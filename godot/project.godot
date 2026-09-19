@@ -1,0 +1,55 @@
+; Engine configuration file.
+; It's best edited using the editor UI and not directly,
+; since the parameters that go here are not all obvious.
+;
+; Format:
+;   [section] ; section goes as script root
+;   param=value ; assign values to parameters
+
+config_version=5
+
+[application]
+
+config/name="Axie Dice Tactics (Godot port)"
+run/main_scene="res://scenes/main_menu/MainMenu.tscn"
+config/features=PackedStringArray("4.7", "Forward Plus")
+config/icon=""
+
+[autoload]
+
+EventBus="*res://autoload/EventBus.gd"
+MetaState="*res://autoload/MetaState.gd"
+ContentDB="*res://autoload/ContentDB.gd"
+RunState="*res://autoload/RunState.gd"
+RelicRegistry="*res://autoload/RelicRegistry.gd"
+AxieMixerBoot="*res://autoload/AxieMixerBoot.tscn"
+
+[editor_plugins]
+
+enabled=PackedStringArray("res://addons/axie_mixer_3d/plugin.cfg", "res://addons/axie_mixer_3d_weapon_anims/plugin.cfg")
+
+[display]
+
+; No [display] section existed before this — the project ran at the engine default
+; 1152x648 viewport with stretch mode "disabled". Any real window bigger than that
+; (e.g. ~2000x1400, a normal desktop) just showed MORE raw canvas at 1:1 pixel scale
+; instead of scaling UI/backgrounds to fill it — this is why Combat.tscn's background
+; sprite (sized/positioned for the old assumed 1152x648) only covered a small
+; top-left rectangle of the real window (bug report: background not covering screen).
+; canvas_items stretch mode scales the whole 2D canvas (Controls AND plain Node2D/
+; Sprite2D content, not just CanvasLayers) to fill the actual window; aspect="expand"
+; lets the percentage-anchored HUD bands (EnemyBand/MidStage/BottomBand, all anchored
+; 0..1) fill the full window on any aspect ratio without letterbox bars.
+window/size/viewport_width=1920
+window/size/viewport_height=1080
+window/stretch/mode="canvas_items"
+window/stretch/aspect="expand"
+
+[rendering]
+
+; Forward+ required by Axie Mixer 3D (mystic glow / outline shaders target it — see
+; third_party/godot-axie-mixer-3d-main/README.md "Godot 4.7 (Forward+) port"). Combat
+; is still 2D-composited UI/layout (architecture plan §2-§3); this only affects how the
+; 3D Axie renderer sub-viewport draws.
+renderer/rendering_method="forward_plus"
+renderer/rendering_method.mobile="gl_compatibility"

@@ -1,0 +1,87 @@
+{
+ "class": {
+  "aqua": [
+   1920,
+   1080
+  ],
+  "beast": [
+   1920,
+   1080
+  ],
+  "bird": [
+   1920,
+   1080
+  ],
+  "bug": [
+   1920,
+   1080
+  ],
+  "plant": [
+   1920,
+   1080
+  ],
+  "reptile": [
+   1920,
+   1080
+  ],
+  "shop": [
+   1920,
+   1080
+  ]
+ },
+ "parallax": {
+  "10-rocky-mountain-2": [
+   "10_FOG-3.png",
+   "10_RIVER.png",
+   "10_ROCK.png",
+   "10_TREE1.png",
+   "10_TREE2.png"
+  ],
+  "4-entrance": [
+   "4_BG.png",
+   "4_BUSH - BLUR.png",
+   "4_FOREST1.png",
+   "4_FOREST3.png",
+   "4_Ground.png",
+   "4_TREES.png"
+  ],
+  "5-crossroad": [
+   "5_FOREST2.png",
+   "5_FRONT.png",
+   "5_Ground.png",
+   "5_TREE1.png",
+   "5_TREE2.png",
+   "5_TREE3.png"
+  ],
+  "6-river": [
+   "6_Ground.png",
+   "6_TREES.png",
+   "6_WATER.png"
+  ],
+  "7-deep-forest": [
+   "7_BG-FOREST.png",
+   "7_FRONT-BOT.png",
+   "7_FRONT-TOP.png",
+   "7_Ground.png",
+   "7_MANY-TREES.png",
+   "7_ROCK.png"
+  ],
+  "8-temple": [
+   "8_Ground.png",
+   "8_ROCK.png",
+   "8_TEMPLE.png"
+  ],
+  "9-rocky-mountain-1": [
+   "9_BG.png",
+   "9_CLOUD-1.png",
+   "9_CLOUD-2.png",
+   "9_CLOUD-3.png",
+   "9_FOG.png",
+   "9_FRONT-1.png",
+   "9_FRONT-2.png",
+   "9_Ground.png",
+   "9_MOUNTAIN.png",
+   "9_ROCK.png"
+  ]
+ }
+}
