@@ -5,3 +5,4 @@
 - [World Tour map node-on-path redesign](project_axiedice_worldtour_map_redesign.md) — v1 SHIPPED 2026-09-08 (was DRAFT); #bgLayer-fix-doesn't-auto-transfer lesson
 - [World Tour Candy-Crush-style pass](project_axiedice_worldtour_candycrush_pass.md) — options doc 2026-09-09, no decision; no stars/lives data exist, Shard-HUD-chip dependency
 - [Faction & boss legibility research 2026-09-09](project_axiedice_faction_boss_legibility.md) — P0-3 HP-color-not-faction still unresolved; options doc at production/session-state/uiux-faction-clarity-options.md, no decision made yet
+- [Godot run-loop UX backlog 2026-09-19](project_axiedice_runloop_ux_backlog_2026-09.md) — event/shop/treasure/reward/result audit, backlog at production/qa/2026-09-19_runloop-ux-backlog.md

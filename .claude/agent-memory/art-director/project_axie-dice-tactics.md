@@ -1,6 +1,6 @@
 ---
 name: project-axie-dice-tactics
-description: Axie Dice Tactics Lunacia Mutants — browser DOM/CSS game (no canvas/WebGL), art findings from the 2026-08-31 cross-agent review
+description: Axie Dice Tactics Lunacia Mutants — browser DOM/CSS game (no canvas/WebGL) AND its in-progress Godot 4.7.2 port (`godot-port` branch); art findings from the 2026-08-31 cross-agent review plus Godot port UI decisions
 metadata:
   type: project
 ---
@@ -55,6 +55,63 @@ Other art findings from that review, not yet actioned:
 
 See [[reference_icon-system-pattern]] for the technical shape of the icon
 system these fixes must slot into.
+
+**2026-09-19 update — first full visual-polish audit of the Godot port's 3 core screens
+(Combat/RunMap/MainMenu), backlog at `production/qa/2026-09-19_visual-polish-backlog.md`.**
+Triggered by the user's blunt "UI/UX cực kì xấu" feedback after playtesting. Top findings, all
+grounded against code (not just screenshots) before writing them up:
+- **RunMap is the worst-offending screen**: `RunMapController._update_camera()`
+  (`godot/scenes/run_map/RunMapController.gd:457-497`) only fits `current_node_id` + the
+  reachable-now row into its camera box — fogged future-row nodes (rendered per the approved
+  Shroom&Gloom spec, see below) are excluded from that fit, so they render outside/clipped by the
+  viewport as the run advances (confirmed visually: a node cut off by the top edge in
+  `runmap-graph-after-advance.png`). Also `RunMapController.gd:347` prints the raw internal
+  `node.id` (e.g. `"r1_c0"`) as player-facing button text — a debug-string leak, not a display
+  name. Both are cheap (S effort) fixes with an exact line cited, not vague "layout feels off"
+  complaints.
+- **`MainMenu.gd:536`** has a hardcoded dev-facing string ending in `"(needs the mutation pool,
+  not in this build)"` that renders verbatim in the Lunacia Pass reward list — same category of
+  bug as the RunMap ID leak (internal commentary shipped as player copy).
+- **Confirmed at the code level** (`CombatStage3D._make_placeholder()`, `godot/scenes/shared/
+  CombatStage3D.gd:461-471`, fed by `_build_parts()` returning empty for `cls==""`) that any
+  monster without `_CLASS_PART_CLASS` data (e.g. "Gooey Slime") renders as a flat, faceless
+  `CapsuleMesh` in `_ENEMY_PLACEHOLDER_COLOR` (a muted brick-red that reads as gray in-game) — this
+  is the single worst-looking element on the actual combat screen, and it's a *systemic fallback*
+  (will keep recurring for any future monster shipped without a Chimera mapping), not a one-off.
+  Ties directly to the still-DRAFT `docs/art/chimera-monster-art-mapping-2026-09-08.md` — finishing
+  that mapping is the real fix, not a new art ask.
+- **Main Menu / Lunacia Pass have zero art direction** — flat `DangoTheme.BG` black, no panel
+  grouping, no icons anywhere, reads as a config form/spreadsheet rather than a game's front door.
+  Cheapest high-value fix identified: wrap each section in `DangoTheme.panel_style(BG_PANEL, 2, 8,
+  16.0)` — the exact pattern already used for hero-slot cards (`MainMenu.gd:344-345`), just not
+  extended to the rest of the screen yet. This is the single highest "cheap but looks less ugly"
+  win on the whole menu, cited as such in the backlog.
+- **Evidence-staleness catch, worth remembering as a general lesson**: two of the three supplied
+  Combat screenshots (`real-flow-check.png`, `combat-die-tray-and-lines.png`) show a lone
+  turn-banner pill + an unlabeled bottom-left counter — but `CombatView.gd:597-598`'s own comment
+  says that exact pattern ("the old lone turn-banner pill plus the mana orb / reroll dots that
+  used to sit unlabelled") was already superseded by a unified top resource bar, which the third
+  screenshot (`real-flow-varied-enemies.png`) actually shows. **Always cross-check a screenshot's
+  claimed-current UI against the current code's own comments/history before backlogging a fix for
+  it** — otherwise the recommendation targets a screen that no longer exists in the codebase.
+  Flagged in the backlog as "needs verification with ui-programmer," not fixed outright.
+- Confirmed still valid, don't re-litigate: the enemy intent bubble + `TargetLinesLayer` bezier
+  attack-direction line are explicitly called "already meets the brief, no change proposed" in
+  `design/ux/combat-screen-shroom-gloom-inspired.md` §0 — do not flag their sparse/thin look as a
+  bug in a future pass, it's deliberate.
+
+**2026-09-19 update — Godot port exists (`godot/`, branch `godot-port`, engine
+Godot 4.7.2, see project CLAUDE.md).** New UI work there uses a design-token
+system, `godot/scenes/shared/DangoTheme.gd` ("Dango" palette, applied
+2026-09-17), not the legacy CSS custom properties above — different file, same
+underlying game/data (`ContentDB.gd` mirrors `src/data.js` verbatim, including
+the `ARCH` archetype-color table, which must NOT have its hex values changed
+since the live JS build uses the same values). First art decision on this new
+system: SAMPLE TEAMS guide cards (`godot/scenes/guides/GuidesView.gd`) carry
+archetype identity via an inset left-edge color stripe, not a full colored
+border or tinted background — full rationale and the semantic rule behind it
+(card border color is reserved for state alerts, not category tagging) is in
+[[reference_dangotheme-border-semantics]].
 
 **2026-09-09 finding — Echo Box gacha screen (`scEchoBox()`, `src/client.html`
 ~3678) already has more real treatment than the product owner's framing

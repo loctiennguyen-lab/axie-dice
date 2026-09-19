@@ -1,7 +1,10 @@
 # Art Director Memory Index
 
 - [Axie Dice Tactics project context](project_axie-dice-tactics.md) — browser DOM/CSS game; DOES embed real bitmap art (base64) alongside pixel sprites and an SVG icon system. See 2026-09-07 correction, 2026-09-08 Chimera kit duplicate-file warning, 2026-09-09 faction/boss visual-gap finding (HP-fill-is-%-based-not-faction is intentional, don't undo it), 2026-09-09 World Tour map finding, and 2026-09-09 Echo Box gacha-screen finding, inside.
+- **2026-09-19 Godot-port visual-polish audit** (same file, top entry): RunMap camera-clip bug + debug-ID/dev-note UI leaks (exact line cites), enemy-placeholder-capsule root cause, MainMenu zero-art-direction finding, and an evidence-staleness catch (cross-check screenshots against code comments before backlogging). Full backlog: `production/qa/2026-09-19_visual-polish-backlog.md`.
 - [Icon system technical pattern](reference_icon-system-pattern.md) — how `IC_G`/`FT_IC`/`icoSvg` work, so new icon proposals stay implementation-compatible.
 - [Real-art integration pattern](reference_real-art-integration-pattern.md) — `realArtWrap()`/`⛓ NFT` badge is scoped to player-owned Vault Axies only; don't reuse it for a general art reskin.
 - [Reusable UI switch patterns](reference_ui-switch-patterns.md) — existing tab-switch (`.cfgrow`+`.on`) and inline-expand accordion (Set-based) patterns; check before proposing a new toggle/collapse UI.
 - [Orchestrator background-task collaboration mode](feedback_orchestrator-collaboration-mode.md) — when a subagent invocation waives the file-write approval pause, and when it doesn't.
+- [DangoTheme border-color semantics](reference_dangotheme-border-semantics.md) — card border color = state alerts only; category/archetype identity uses an inset left-edge stripe instead (Godot port, SAMPLE TEAMS decision).
+- [DangoTheme button hover/pressed/disabled spec](reference_dangotheme-button-state-spec.md) — decided formulas (lighten=hover, darken+thicken+shift=pressed) + flagged primary-button text-contrast bug found alongside it.

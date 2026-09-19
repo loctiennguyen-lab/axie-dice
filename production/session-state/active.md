@@ -1,5 +1,13 @@
 # Session State
 
+> ## ⚠️ ĐANG Ở NHÁNH `godot-port`? ĐỌC FILE KHÁC.
+> File này track nhánh **`main`** (bản JS đang live). Nếu `git branch` ra `godot-port`,
+> file bạn cần là **`production/session-state/godot-port-active.md`** — mở nó và đọc mục
+> "⇢ BẮT ĐẦU TỪ ĐÂY" ở đầu.
+>
+> (Hook mở phiên chỉ đọc file NÀY, nên con trỏ này là cách duy nhất phiên mới trên nhánh
+> `godot-port` tìm được trạng thái của nó.)
+
 <!-- STATUS -->
 Epic: Battle UI redesign (design_handoff_battle_ui, Battle-UI-A-Grid-v2 handoff)
 Feature: 3 gap còn lại so với README (bản sửa 2, 2 thiếu sót của chính README đã được sửa
@@ -87,3 +95,20 @@ Deploy: `vercel deploy --prod --yes` (Vercel tự chạy `build.py public`).
    thể phục vụ bản cache cũ — luôn thêm `?nocache=`+Date.now() khi cần chắc
    chắn thấy code mới.
 4. Cập nhật file này khi xong mốc, giữ dưới 100 dòng.
+
+---
+
+# ⚠️ ĐANG Ở NHÁNH `godot-port`? FILE NÀY KHÔNG PHẢI THỨ BẠN CẦN.
+
+Mọi thứ phía trên track nhánh **`main`** (bản JS đang live). Hook mở phiên chỉ hiện
+20 dòng CUỐI của file này, nên khối này phải nằm ở đây — biển báo ở đầu file hook
+không bao giờ hiện, và một phiên mới trên `godot-port` từng bị chỉ thẳng sang
+`src/client.html` và nhánh `main`, tức sai cả file lẫn nhánh.
+
+```bash
+git branch --show-current     # ra `godot-port`? -> đọc file dưới, BỎ QUA phần trên
+```
+
+→ **`production/session-state/godot-port-active.md`**, mục "⇢ BẮT ĐẦU TỪ ĐÂY".
+→ Kiểm kê việc còn thiếu (đo thật): **`docs/godot-port-gap-inventory.md`**.
+→ Quyết định còn treo: `production/wayfinder/map.md`.
