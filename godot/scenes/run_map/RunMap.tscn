@@ -1,0 +1,57 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scenes/run_map/RunMapController.gd" id="1"]
+[ext_resource type="Texture2D" path="res://assets/backgrounds/plant_landscape.png" id="2"]
+
+[node name="RunMap" type="Node2D"]
+script = ExtResource("1")
+
+[node name="BackgroundLayer" type="CanvasLayer" parent="."]
+layer = -1
+
+[node name="Background" type="TextureRect" parent="BackgroundLayer"]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 2
+texture = ExtResource("2")
+expand_mode = 1
+stretch_mode = 6
+
+[node name="MapCamera" type="Camera2D" parent="."]
+unique_name_in_owner = true
+position = Vector2(0, -190)
+current = true
+
+[node name="MapWorld" type="Node2D" parent="."]
+unique_name_in_owner = true
+
+[node name="CanvasLayer" type="CanvasLayer" parent="."]
+
+[node name="Root" type="Control" parent="CanvasLayer"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+mouse_filter = 2
+
+[node name="TopBarDim" type="ColorRect" parent="CanvasLayer/Root"]
+layout_mode = 1
+anchors_preset = 10
+anchor_right = 1.0
+offset_bottom = 56.0
+mouse_filter = 2
+color = Color(0.0745098, 0.0862745, 0.105882, 0.94)
+
+[node name="StatusLabel" type="Label" parent="CanvasLayer/Root"]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 10
+anchor_right = 1.0
+offset_left = 24.0
+offset_top = 14.0
+offset_right = -24.0
+offset_bottom = 42.0
+mouse_filter = 2
+text = "Power level: 0 — visited: 0"
