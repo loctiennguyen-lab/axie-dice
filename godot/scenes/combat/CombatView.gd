@@ -293,6 +293,10 @@ func _ready() -> void:
 		# starts calling register_unit() below
 
 	_combat = CombatEngine.new()
+	# The run owns the log; the combat only writes into it. Set before any action can be taken,
+	# and on the resume path too — a fight resumed from a save is the same run, and a log with a
+	# hole in the middle is not evidence of anything.
+	_combat.action_log = RunState.action_log
 	# CONTINUE RUN: a run saved mid-fight carries the whole CombatEngine snapshot, and restoring
 	# it is not the same thing as starting the node again — setup_new() would re-roll the
 	# encounter and hand the player a fresh, full-health enemy line-up for a fight they were

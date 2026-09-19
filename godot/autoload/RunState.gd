@@ -103,6 +103,12 @@ var resume_combat: Dictionary = {}
 # --- Gameplay RNG (architecture plan §5: owned here, never an autoload, never used for VFX) ---
 var _rng: Rng = null
 
+## Every decision this run, in order, for the replay-verify gate the port still owes
+## (`scripts/core/action_log.gd` explains why it is recorded here and not in the UI).
+## Always present, never null: a run whose log is missing cannot be told apart from a run whose
+## log is empty, and only one of those is honest.
+var action_log: ActionLog = ActionLog.new()
+
 func _ready() -> void:
 	reset()
 
@@ -139,6 +145,7 @@ func reset() -> void:
 	pending_combat = {}
 	resume_combat = {}
 	_rng = null
+	action_log = ActionLog.new()
 
 func start_new_run(p_seed: int, team_hero_keys: Array[String], p_mode: String,
 		p_ascension: int, p_ranked: bool) -> void:
@@ -209,6 +216,12 @@ func start_new_run(p_seed: int, team_hero_keys: Array[String], p_mode: String,
 	# push_error, architecture plan §7 "fail cứng, không âm thầm nhả map xấu") — calling
 	# .to_data() on that null is a deliberate crash, not a bug, if it ever happens.
 	map_graph = RunMapGenerator.generate(_rng, mode, ascension).to_data()
+	# Opened AFTER the map exists, so a log never describes a run that failed to start. The
+	# content version comes from part_faces.json's own stamp: the same actions against different
+	# face values produce a different run, so a verifier has to refuse the mismatch rather than
+	# replay it and disbelieve the score.
+	action_log.begin(run_seed, team_hero_keys, mode, ascension,
+		String(ContentDB.part_faces.get("engineVersion", "")))
 	set_phase(RunPhase.MAP)
 
 
@@ -264,6 +277,7 @@ func set_phase(new_phase: int) -> void:
 ## Called by RunMapController when the player picks a valid node. Builds the CombatSetup
 ## data (not a live CombatEngine) and stores it in pending_combat for Combat.tscn to consume.
 func enter_node(node_id: String, node_kind: String) -> void:
+	action_log.record("enter_node", [node_id, node_kind])
 	current_node_id = node_id
 	match node_kind:
 		"battle", "elite", "boss":
@@ -486,6 +500,7 @@ func _set_pending_rewards(tier: int, pw: int, salt: int) -> void:
 func reroll_pending_rewards() -> bool:
 	if reward_reroll_charges <= 0 or pending_rewards.is_empty():
 		return false
+	action_log.record("reroll_rewards", [])
 	reward_reroll_charges -= 1
 	_reward_reroll_salt += 1
 	var reward_rng := Rng.new(Rng.derive_combat_seed(run_seed, current_node_id, _reward_reroll_salt))
@@ -500,6 +515,16 @@ func reroll_pending_rewards() -> bool:
 ## and treasure flows) calls after_node() itself right after this, exactly like it already
 ## does for event/shop nodes.
 func apply_chosen_reward(reward: Dictionary) -> void:
+	# The INDEX into the offer, not the reward itself. A log carrying the reward would be the
+	# client telling the verifier what it was given; the verifier re-derives the offer from the
+	# seed and only needs to know which one was taken. A reward that is not in `pending_rewards`
+	# has no index, so it is recorded as a hole in the log rather than silently omitted —
+	# `action_log.is_complete()` is what any caller must check before trusting the record.
+	var offer_index := pending_rewards.find(reward)
+	if offer_index >= 0:
+		action_log.record("take_reward", [offer_index])
+	else:
+		action_log.rejected.append("take_reward: chosen reward was not in pending_rewards")
 	match String(reward.get("t", "")):
 		"level":
 			# src/engine.js applyReward() 'level' (engine.js:1176): `ent(r.uid).key=r.key`.
@@ -563,6 +588,9 @@ func apply_chosen_reward(reward: Dictionary) -> void:
 ## reachable from ContentDB.events' two implemented event defs (shrine/campfire). Returns
 ## the same kind of human-readable result message the JS version shows before eventDone().
 func apply_event_effect(fx: String, rng: Rng) -> String:
+	# `fx` names the option the player picked. It is an identifier, not an outcome — the verifier
+	# re-derives the event's options from the seed and checks this one was among them.
+	action_log.record("event_choose", [fx])
 	match fx:
 		"bless_reroll":
 			bonus_reroll += 1
@@ -642,6 +670,9 @@ func try_buy_shop_item(item: Dictionary, rng: Rng) -> bool:
 	var cost := int(item.get("cost", 0))
 	if shards_this_run < cost:
 		return false
+	# kind + key identifies WHICH item, the same way the JS log's shop index does, without
+	# carrying the price the client claims it paid.
+	action_log.record("shop_buy", [String(item.get("kind", "")), String(item.get("key", ""))])
 	shards_this_run -= cost
 	match String(item.get("kind", "")):
 		"relic":

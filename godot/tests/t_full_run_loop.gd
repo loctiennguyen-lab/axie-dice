@@ -166,6 +166,28 @@ func _run_one(seed_value: int, force_win: bool) -> void:
 		_check(elite_budget > battle_budget,
 			"%s: elite budget (%.2f) should exceed battle budget (%.2f)" % [tag, elite_budget, battle_budget])
 
+	# --- Property 8: the run wrote down what the player did. ---
+	# This walk drives RunState the way the real screens do, so it is the only place that shows
+	# whether the run-level half of the action log is actually wired. t_replay proves a COMBAT
+	# replays from its log; this proves a RUN records one at all. A log that quietly stayed
+	# empty would leave the replay gate testing a feature nothing feeds.
+	var log := RunState.action_log
+	_check(log.is_complete(),
+		"%s: the run's action log reports itself incomplete (overflow=%s, rejected=%s)"
+			% [tag, log.overflowed, str(log.rejected)])
+	_check(int(log.header.get("seed", -1)) == seed_value,
+		"%s: the log's header carries seed %s, not the seed this run was started with"
+			% [tag, str(log.header.get("seed", "?"))])
+	var kinds := {}
+	for e in log.entries:
+		kinds[String((e as Dictionary).get("fn", ""))] = true
+	_check(kinds.has("enter_node"),
+		"%s: %d nodes were entered and none was recorded — RunState.enter_node() is not logging"
+			% [tag, nodes_walked])
+	_check(kinds.has("use_die") or force_win,
+		"%s: a played walk fought real combats and recorded no die use — CombatView wires the "
+			% tag + "log into CombatEngine, and a test that builds the engine itself must too")
+
 
 ## Picks the reward a real player would take. Taking `pending_rewards[0]` blindly — the
 ## previous behaviour — means the walk almost never takes a hero tier-up, which is the single
@@ -197,6 +219,10 @@ func _resolve_node(node: RunMapNode, tag: String, force_win: bool) -> bool:
 		"battle", "elite", "boss":
 			var engine := CombatEngine.new()
 			engine.setup_new(RunState.pending_combat)
+			# What CombatView.gd does when the real game opens a fight. A driver that skips this
+			# plays a combat the run never hears about, which is precisely the hole Property 8
+			# below is there to notice.
+			engine.action_log = RunState.action_log
 
 			for e in engine.enemies:
 				_seen_enemy_keys[String((e as Unit).key)] = true

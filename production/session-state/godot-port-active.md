@@ -33,6 +33,46 @@ Task: **Vault/Import Axie: bước (a)(b)(c) XONG. Bước (d) lớp mạng BỊ
 
 # ⇢ BẮT ĐẦU TỪ ĐÂY (phiên mới đọc mục này trước, phần dưới là lịch sử)
 
+## ⓪ MỚI 2026-09-19 — NHẬT KÝ HÀNH ĐỘNG + CỔNG TỰ-PHÁT-LẠI (bước 1 của anti-cheat)
+
+Cả ba chuyên gia (technical-director / producer / security-engineer) xếp việc này #1 vì nó cần
+cho **cả 6 phương án** anti-cheat trong `docs/godot-port-gap-inventory.md` §3 — làm trước là
+không thể phí, dù sau này chọn phương án nào.
+
+**Đã có gì**
+- `godot/scripts/core/action_log.gd` — `ActionLog`: danh sách QUYẾT ĐỊNH của người chơi (không
+  bao giờ là kết quả), allow-list 12 hành động khớp `ALLOWED_FNS` của `api/submit-run.js`, trần
+  3000, cờ `overflowed`/`rejected` + `is_complete()`, `replaying` để không tự ghi đè khi phát lại.
+- Ghi **bên trong hàm đổi trạng thái**, không ở UI: `CombatEngine.use_die/play_active/
+  reroll_dice/undo_last/end_turn` và `RunState.enter_node/apply_chosen_reward/
+  reroll_pending_rewards/apply_event_effect/try_buy_shop_item`. Bản JS gọi `logAction()` ở ~13
+  chỗ trên UI — mỗi màn mới là một cơ hội quên, và quên thì KHÔNG lỗi gì, chỉ ra một log phát lại
+  thành một ván khác.
+- `godot/tests/t_replay.gd` (**20 check**, suite 35→**36**) — chơi hết một trận rồi dựng lại trận
+  đó CHỈ từ seed + log, so sánh toàn bộ `to_data()` kể cả `rng_state`. Kèm 3 phép tiêm hỏng log
+  (bỏ 1 hành động / đổi mục tiêu / hoán vị 2 hành động) — mỗi phép BẮT BUỘC phải ra kết quả khác.
+- `t_full_run_loop` thêm Property 8: một RUN thật có ghi log và log tự nhận là đầy đủ (197 check).
+
+**Đã chứng minh cổng biết trượt**: tiêm một lỗi tất định vào `CombatEngine` (mỗi trận lệch seed đi
+1) ⇒ t_replay ĐỎ 3 chỗ, chỉ đúng hành động số 0 và in ra hai con trỏ RNG khác nhau. Đã gỡ tiêm.
+
+**BẪY ĐÃ MẮC VÀ ĐÃ SỬA — JSON biến số nguyên thành số thực.** `record()` ban đầu lưu lại chính
+giá trị JSON trả về, nên uid `11` nằm trong bộ nhớ dưới dạng `11.0`: replay vẫn chạy (có `int()`),
+nhưng **log trong bộ nhớ không còn bằng log trên đường truyền** — tức mọi cơ chế ký/băm log sau
+này sẽ từ chối một người chơi trung thực. Test bắt được, không phải suy đoán. Nay `record()` chỉ
+DÙNG vòng JSON để kiểm tra, còn lưu giá trị gốc; `from_data()` khôi phục lại kiểu số nguyên.
+
+**Còn thiếu (việc tiếp theo của chính mục này)**
+1. **Phát lại ở mức RUN** chưa làm — mới ở mức TRẬN. Vướng: `try_buy_shop_item`/`apply_event_effect`
+   nhận `rng` do màn hình tự tạo (`RunMapController._shop_rng`), nên người xác minh không dựng lại
+   được cùng dòng ngẫu nhiên. Phải cho RunState sở hữu rng của shop/event trước.
+2. `apply_chosen_reward(reward)` phải dò `pending_rewards.find(reward)` để suy ra chỉ số; nếu
+   caller đưa một reward lạ thì log ghi nhận **một lỗ hổng** (`rejected`) thay vì im lặng. API
+   nhận thẳng chỉ số sẽ sạch hơn, nhưng đổi chữ ký là đụng UI nên chưa làm.
+3. Chưa có ai ĐỌC log: chưa gửi lên server, chưa lưu vào save. Đúng thứ tự — không ký một thứ
+   chưa chứng minh được là phát lại đúng.
+
+
 > **BÀN GIAO 2026-09-19.** User sẽ mở phiên mới và gõ *"tiếp tục làm Axie Dice trên Godot"*.
 > Mục A dưới đây là thứ cần làm ngay; mục B là nợ; mục C là hàng đợi. Đọc hết 3 mục rồi
 > **hỏi user trước khi ghi file đầu tiên** (giao thức bắt buộc, xem mục 3 "Luật bất biến").

@@ -73,6 +73,15 @@ var result_shards_earned: int = 0
 
 var undo_stack: Array = []
 
+## Where player decisions are written down, or null when nobody is recording (every existing
+## test, and any tool driving a combat for its own reasons). RunState hands the run's one log
+## in when it builds the combat, so a combat never owns or creates one — a per-combat log
+## could not express "this run", which is the unit the verifier cares about.
+##
+## Recorded HERE rather than in the UI on purpose: a new screen cannot forget to call it, and a
+## headless bot produces exactly the log a player's hands would. See action_log.gd's header.
+var action_log: ActionLog = null
+
 var _rng: Rng = null
 var _next_token_uid: int = TOKEN_UID_BASE
 
@@ -461,6 +470,10 @@ func reroll_dice(uids: Array) -> bool:
 	if not RelicHooks.has(self, "safeReroll"):
 		undo_stack = []
 	_set_turn_phase(CombatPhase.EXECUTE)
+	# The uids the CALLER asked for, not the filtered `list`: the filter is a rule, and a replay
+	# re-applies it. Logging the filtered set would bake today's filter into the record and hide
+	# a future change to it.
+	_log("reroll_dice", [uids.duplicate()])
 	return true
 
 
@@ -612,6 +625,7 @@ func play_active(relic_id: String, target_uid: int = -1) -> bool:
 	_grant_conduit_rerolls()
 	EventBus.relic_pulsed.emit(relic_id, (src.uid if src != null else 0))
 	_check_end()
+	_log("play_active", [relic_id, target_uid])
 	return true
 
 
@@ -651,7 +665,16 @@ func use_die(unit_uid: int, target_uid: int) -> bool:
 		undo_stack.pop_back()
 		return false
 	_check_end()
+	# Only the calls that CHANGED something are recorded — an illegal move is a misclick, not a
+	# decision, and replaying one would be evaluated in a state where it might be legal.
+	_log("use_die", [unit_uid, target_uid])
 	return true
+
+
+## No-op without a log, so nothing in combat has to know whether anyone is recording.
+func _log(fn: String, args: Array = []) -> void:
+	if action_log != null:
+		action_log.record(fn, args)
 
 
 func _push_undo() -> void:
@@ -667,6 +690,7 @@ func undo_last() -> bool:
 		return false
 	var snap: Dictionary = undo_stack.pop_back()
 	_apply_state_dict(snap)
+	_log("undo_last", [])
 	return true
 
 
@@ -954,6 +978,7 @@ func end_turn() -> void:
 		return
 	if phase == CombatPhase.END_TURN:
 		return
+	_log("end_turn", [])
 	_set_turn_phase(CombatPhase.END_TURN)
 	undo_stack = []
 	first_used = false
