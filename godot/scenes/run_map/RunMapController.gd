@@ -711,8 +711,17 @@ func _add_overlay_body(text: String) -> void:
 ## (permanent, a success) must not read identically to "can't afford it yet" (temporary).
 ## `owned` cards still pass button_disabled=true from the caller (nothing to re-buy), only the
 ## STYLE differs.
+## Card illustration size. Big enough to read at a glance, small enough that the title and
+## the text stay the thing the eye lands on first.
+const _CARD_ART_PX := 72.0
+
+
+## `art` is optional and NULL IS NORMAL. A reward the player can take must never depend on an
+## image existing — an unmapped or missing illustration leaves the card exactly as it was, text
+## only, rather than leaving a hole or refusing to draw the card at all.
 func _add_card(title: String, desc: String, sub: String, button_text: String,
-		button_disabled: bool, on_pressed: Callable, rar: int = -1, owned: bool = false) -> Button:
+		button_disabled: bool, on_pressed: Callable, rar: int = -1, owned: bool = false,
+		art: Texture2D = null) -> Button:
 	var card := PanelContainer.new()
 	card.add_theme_stylebox_override("panel", DangoTheme.panel_style(DangoTheme.BG_PANEL_SOFT, 2, 8, 12.0))
 	_overlay_vbox.add_child(card)
@@ -720,6 +729,18 @@ func _add_card(title: String, desc: String, sub: String, button_text: String,
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 16)
 	card.add_child(row)
+
+	if art != null:
+		var thumb := TextureRect.new()
+		thumb.texture = art
+		thumb.custom_minimum_size = Vector2(_CARD_ART_PX, _CARD_ART_PX)
+		# KEEP_ASPECT_COVERED, not STRETCH: these illustrations are square and painted to the
+		# edge, so covering crops nothing meaningful, while stretching would distort every one
+		# of them the moment the card's height changes.
+		thumb.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+		thumb.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		thumb.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		row.add_child(thumb)
 
 	var text_col := VBoxContainer.new()
 	text_col.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -806,7 +827,8 @@ func _show_reward_overlay(title: String, backdrop: Texture2D = null) -> void:
 	for reward in RunState.pending_rewards:
 		var r: Dictionary = reward
 		_add_card(String(r.get("title", "")), String(r.get("desc", "")), String(r.get("sub", "")),
-			"TAKE", false, func(): _on_reward_chosen(r), int(r.get("rar", 0)))
+			"TAKE", false, func(): _on_reward_chosen(r), int(r.get("rar", 0)), false,
+			CardArt.texture_for_reward(String(r.get("t", "")), int(r.get("rar", -1))))
 	if RunState.reward_reroll_charges > 0:
 		_add_continue_button("REROLL (%d left)" % RunState.reward_reroll_charges,
 			func(): _on_reward_reroll(title))
@@ -885,7 +907,8 @@ func _render_shop() -> void:
 		# (temporary). button_disabled stays the same OR (nothing to press either way); only
 		# the STYLE now branches via _add_card's `owned` param.
 		_add_card(String(it.get("title", "")), String(it.get("desc", "")), "",
-			label, bought or not afford, func(): _on_shop_buy(index), int(it.get("rar", 0)), bought)
+			label, bought or not afford, func(): _on_shop_buy(index), int(it.get("rar", 0)), bought,
+			CardArt.texture_for_shop(String(it.get("kind", "")), int(it.get("rar", -1))))
 	_add_continue_button("DONE", func(): _finish_node())
 
 

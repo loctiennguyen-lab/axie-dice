@@ -52,6 +52,7 @@ func _ready() -> void:
 	test_music_exists_for_every_situation()
 	test_no_monster_or_boss_wears_a_hero_identity()
 	test_every_boss_model_is_on_disk()
+	test_every_mapped_card_illustration_loads()
 	test_raw_svg_icons_use_the_web_builds_viewbox()
 	test_every_hero_class_has_a_portrait()
 	test_shop_and_crypt_backdrops_exist()
@@ -325,6 +326,42 @@ func test_no_monster_or_boss_wears_a_hero_identity() -> void:
 ## Every boss that claims a 3D model must actually have one on disk. A missing .glb does not
 ## crash — CombatStage3D falls through to the sprite — so the boss would simply be a flat
 ## billboard again, which is the exact thing the models were added to stop, and silently.
+## Card illustrations. A missing one is not fatal — CardArt returns null and the card renders
+## text-only — which is exactly why it needs a gate: a reward that quietly lost its picture
+## looks like a design choice, not like a broken path.
+func test_every_mapped_card_illustration_loads() -> void:
+	var maps := {
+		"reward": CardArt.REWARD_ART,
+		"shop": CardArt.SHOP_ART,
+		"node": CardArt.NODE_ART,
+	}
+	for group in maps:
+		var table: Dictionary = maps[group]
+		for key in table:
+			var path: String = CardArt.DIR + String(table[key]) + ".png"
+			_assert(ResourceLoader.exists(path),
+				"%s card '%s' maps to %s, which is not on disk" % [group, key, path])
+			_assert(load(path) as Texture2D != null,
+				"%s card '%s' maps to %s, which exists but does not load as a texture"
+					% [group, key, path])
+
+	for i in CardArt.RELIC_ART_BY_RARITY.size():
+		var relic_path: String = CardArt.DIR + CardArt.RELIC_ART_BY_RARITY[i] + ".png"
+		_assert(ResourceLoader.exists(relic_path),
+			"relic rarity %d maps to %s, which is not on disk" % [i, relic_path])
+	_assert(CardArt.RELIC_ART_BY_RARITY.size() == DangoTheme.RARITY_NAMES.size(),
+		"there are %d relic illustrations for %d rarities — the tiers no longer line up, so "
+			% [CardArt.RELIC_ART_BY_RARITY.size(), DangoTheme.RARITY_NAMES.size()]
+		+ "some rarity silently falls back to Common art")
+
+	# Every reward type the game can actually offer must have art. reward_generator.gd is the
+	# authority on which those are; a type added there and forgotten here would ship a card that
+	# is visibly plainer than the ones beside it, for no reason a player could work out.
+	for reward_type in ["level", "ascend", "relic", "hp", "reroll", "chaos", "curse"]:
+		_assert(CardArt.REWARD_ART.has(reward_type),
+			"reward type '%s' has no illustration" % reward_type)
+
+
 func test_every_boss_model_is_on_disk() -> void:
 	for boss_key in CombatStage3D.BOSS_MODELS:
 		var path := "res://assets/bosses/%s.glb" % String(CombatStage3D.BOSS_MODELS[boss_key])
