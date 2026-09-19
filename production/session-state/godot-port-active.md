@@ -35,6 +35,26 @@ Task: **Vault/Import Axie: bước (a)(b)(c) XONG. Bước (d) lớp mạng BỊ
 
 # ⇢ BẮT ĐẦU TỪ ĐÂY (phiên mới đọc mục này trước, phần dưới là lịch sử)
 
+## ⓸ 2026-09-20 — MUỐN ĐƯA GAME LÊN WEB? ĐỌC `production/web-launch-checklist.md`
+
+Chủ dự án chuyển sang phiên khác làm **giao diện**, và muốn biết còn gì phải làm trước khi đưa
+game lên web. Toàn bộ danh sách (đã đo, có ghi rõ chỗ nào CHƯA kiểm và cách kiểm) nằm ở
+**`production/web-launch-checklist.md`**.
+
+Ba điều một phiên mới dễ hiểu sai nhất:
+
+1. **Lỗi asset (ticket J) KHÔNG phải lỗi Vault.** Nó làm MỌI Axie không hiện trong mọi bản
+   export — đội hình, quái, preview Vault. Chủ dự án nói "để Vault sửa sau"; đừng đọc thành
+   "vấn đề này nhỏ và chỉ ảnh hưởng Vault".
+2. **Gỡ `.gdignore` KHÔNG sửa được** — đã đo, lỗi chỉ dời chỗ. Addon parse glTF lúc chạy nên
+   cần file GỐC; Godot export bản `.scn` đã import rồi bỏ file gốc đi.
+3. **Vault hiện CHẠY ĐƯỢC** khi chạy từ editor (đã kiểm Axie thật #123, #11778888). Chỉ bản
+   export mới mất phần hình.
+
+Rủi ro rẻ-nhưng-lớn chưa ai kiểm: **bản web có lưu được tiến trình không** (IndexedDB `/userfs`
+được tạo nhưng còn rỗng). Cách kiểm nằm ở mục B1 của checklist.
+
+
 ## ⓷ 2026-09-20 — TRỌNG TÀI CHẠY TRÊN GITHUB ACTIONS (miễn phí, không máy chủ)
 
 Chủ dự án muốn nơi host **miễn phí**. Đo trước khi chọn: một ván đầy đủ 391 nước đi được chấm
