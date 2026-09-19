@@ -46,6 +46,7 @@ Usage:
 from __future__ import annotations
 
 import argparse
+import json
 import math
 import pathlib
 import struct
@@ -167,6 +168,106 @@ class MeshAttachment:
     def __init__(self, **kw):
         for k, v in kw.items():
             setattr(self, k, v)
+
+
+# ---------------------------------------------------------------------------
+# .json — Spine's text skeleton
+#
+# The kit ships MOST Chimeras as binary `.skel` and a couple as `.json` instead. The old
+# converter only looked for `.skel`, so those creatures were reported as "missing
+# .skel/.atlas/.png" and silently never converted — which read as a broken asset rather than
+# as an unread format, and cost the project a boss-grade sprite (`shilin`, a red slime with
+# claws and fangs) that was sitting in the kit the whole time.
+#
+# Same geometry, same atlas, same output — only the container differs, so this produces the
+# exact structures parse_skel() does and everything downstream is shared.
+# ---------------------------------------------------------------------------
+
+def parse_json_skel(path: pathlib.Path) -> tuple[list[Bone], list[Slot], dict]:
+    doc = json.loads(path.read_text(encoding="utf-8"))
+    version = str(doc.get("skeleton", {}).get("spine", ""))
+    if not version.startswith("3.8"):
+        raise ValueError(f"{path.name}: expected Spine 3.8, got {version!r} — this reader "
+                         "implements the 3.8 layout only and would mis-parse anything else")
+
+    bones: list[Bone] = []
+    by_name: dict[str, Bone] = {}
+    for b in doc.get("bones", []):
+        # Every field has a default in the JSON form and is simply absent when unset — reading
+        # a missing "scaleX" as 0 instead of 1 collapses the whole skeleton to a point.
+        bone = Bone(
+            name=b["name"],
+            parent=by_name.get(b.get("parent")) if b.get("parent") else None,
+            rotation=float(b.get("rotation", 0.0)),
+            x=float(b.get("x", 0.0)), y=float(b.get("y", 0.0)),
+            scale_x=float(b.get("scaleX", 1.0)), scale_y=float(b.get("scaleY", 1.0)),
+            shear_x=float(b.get("shearX", 0.0)), shear_y=float(b.get("shearY", 0.0)),
+            length=float(b.get("length", 0.0)),
+            transform_mode=0,   # only "normal" is honoured; see update_world_transforms()
+        )
+        bones.append(bone)
+        by_name[bone.name] = bone
+
+    slots: list[Slot] = []
+    for sl in doc.get("slots", []):
+        # A slot with no "attachment" shows nothing in the setup pose. That is not an error:
+        # it is how the artist hides a part until an animation reveals it.
+        slots.append(Slot(sl["name"], by_name[sl["bone"]], sl.get("attachment")))
+    slot_index = {sl.name: i for i, sl in enumerate(slots)}
+
+    raw_skins = doc.get("skins", [])
+    skins = (raw_skins if isinstance(raw_skins, list)
+             else [{"name": k, "attachments": v} for k, v in raw_skins.items()])
+
+    attachments: dict = {}
+    for skin in skins:
+        for slot_name, by_att in (skin.get("attachments") or {}).items():
+            idx = slot_index.get(slot_name)
+            if idx is None:
+                continue
+            for att_name, a in by_att.items():
+                att = _json_attachment(att_name, a)
+                if att is not None:
+                    attachments[(idx, att_name)] = att
+    return bones, slots, attachments
+
+
+def _json_attachment(att_name: str, a: dict):
+    att_type = a.get("type", "region")
+    # `path` is the ATLAS region name and defaults to the attachment's own name. Everything
+    # else that carries no pixels (boundingbox, path, point, clipping) is skipped — unlike the
+    # binary reader, there is no stream to keep in sync, so skipping is free.
+    if att_type == "region":
+        return RegionAttachment(
+            name=att_name, path=a.get("path", att_name),
+            rotation=float(a.get("rotation", 0.0)),
+            x=float(a.get("x", 0.0)), y=float(a.get("y", 0.0)),
+            scale_x=float(a.get("scaleX", 1.0)), scale_y=float(a.get("scaleY", 1.0)),
+            width=float(a.get("width", 0.0)), height=float(a.get("height", 0.0)))
+
+    if att_type == "mesh":
+        flat_uvs = a.get("uvs", [])
+        uvs = [(flat_uvs[i], flat_uvs[i + 1]) for i in range(0, len(flat_uvs), 2)]
+        raw = a.get("vertices", [])
+        # Spine packs weighted and unweighted meshes into the same "vertices" array and gives
+        # no flag: a plain mesh has exactly 2 numbers per vertex, a weighted one is a run of
+        # (boneCount, [bone, x, y, weight] * boneCount) per vertex. Length is the only tell.
+        if len(raw) == len(uvs) * 2:
+            verts = [(raw[i], raw[i + 1]) for i in range(0, len(raw), 2)]
+            weighted = False
+        else:
+            verts, weighted, i = [], True, 0
+            for _ in range(len(uvs)):
+                count = int(raw[i]); i += 1
+                influences = []
+                for _ in range(count):
+                    influences.append((int(raw[i]), raw[i + 1], raw[i + 2], raw[i + 3]))
+                    i += 4
+                verts.append(influences)
+        return MeshAttachment(name=att_name, path=a.get("path", att_name), uvs=uvs,
+                              triangles=a.get("triangles", []), vertices=verts,
+                              weighted=weighted)
+    return None
 
 
 # ---------------------------------------------------------------------------
@@ -566,12 +667,16 @@ def is_effect_slot(slot_name: str) -> bool:
 def convert(skel_dir: pathlib.Path, out_dir: pathlib.Path, scale: float = 1.0) -> dict:
     name = skel_dir.name
     skel = skel_dir / f"{name}.skel"
+    skel_json = skel_dir / f"{name}.json"
     atlas = skel_dir / f"{name}.atlas"
     page_path = skel_dir / f"{name}.png"
-    if not (skel.exists() and atlas.exists() and page_path.exists()):
-        return {"name": name, "ok": False, "why": "missing .skel/.atlas/.png"}
+    if not (atlas.exists() and page_path.exists()) or not (skel.exists() or skel_json.exists()):
+        return {"name": name, "ok": False, "why": "missing .skel/.json, .atlas or .png"}
 
-    bones, slots, attachments = parse_skel(skel)
+    if skel.exists():
+        bones, slots, attachments = parse_skel(skel)
+    else:
+        bones, slots, attachments = parse_json_skel(skel_json)
     regions = parse_atlas(atlas)
     page = Image.open(page_path).convert("RGBA")
     update_world_transforms(bones)

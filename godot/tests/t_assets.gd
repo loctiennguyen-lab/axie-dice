@@ -51,6 +51,7 @@ func _ready() -> void:
 	test_every_status_maps_to_a_real_sound()
 	test_music_exists_for_every_situation()
 	test_no_monster_or_boss_wears_a_hero_identity()
+	test_every_boss_model_is_on_disk()
 	test_raw_svg_icons_use_the_web_builds_viewbox()
 	test_every_hero_class_has_a_portrait()
 	test_shop_and_crypt_backdrops_exist()
@@ -272,35 +273,69 @@ func test_music_exists_for_every_situation() -> void:
 ## one of the player's characters, and nothing caught it because the code only ever compared
 ## KEYS (`gooey_king` vs `bug1`), never the identities behind them.
 ##
-## So this compares identities: no monster or boss sprite may be named after any hero.
+## RULE AMENDED BY THE OWNER, 2026-09-19. The rule used to be "monsters and bosses come only
+## from the Chimera library", which banned every Axie model outright. With no new Chimera art
+## available, the owner allows Starter Axie models for bosses **as long as they are not one of
+## the player's heroes**. So this test now checks the thing that was actually wrong — IDENTITY
+## COLLISION — and nothing wider. `pomodoro` and `machito` stay banned because they are hero
+## display names; `paladill`, `kotaro`, `xia` and `kibo` are now legitimate boss art.
+##
+## Two corrections to what this test used to assert, both measured rather than reasoned:
+##   * `shilin` was listed here as "an Axie mascot, not a Chimera". It is not. It ships inside
+##     the kit's own `PvE/Chimeras/` folder beside werewolf and treant; it had merely never
+##     been converted, because it is the one creature stored as Spine JSON rather than binary.
+##   * `machito` is likewise a Chimera folder in the kit AND a hero name. The hero name is what
+##     makes it unusable, not the folder.
 func test_no_monster_or_boss_wears_a_hero_identity() -> void:
-	# Arrange — every hero's display name, lowercased, plus the Axie mascots the kit ships
-	# that are characters rather than Chimeras.
+	# Arrange — every hero's display name, lowercased. Nothing else: art is banned for
+	# colliding with a character the player controls, not for coming from the wrong folder.
 	var forbidden := {}
 	for key in ContentDB.heroes.keys():
 		var hero_name := String((ContentDB.heroes[key] as Dictionary).get("n", "")).to_lower()
 		if hero_name != "":
-			forbidden[hero_name] = "hero '%s'" % key
-	for mascot in ["paladill", "shilin"]:
-		forbidden[mascot] = "an Axie mascot, not a Chimera"
+			forbidden[hero_name] = "the display name of hero '%s'" % key
 
-	# Act / Assert
+	# Act / Assert — sprites AND 3D models. The models are where the original bug lived, and
+	# checking only sprites would leave exactly that hole open again.
 	var mapped: Array = []
 	mapped.append_array(MonsterArt.MONSTER_SPRITES.values())
 	mapped.append_array(MonsterArt.BOSS_SPRITES.values())
-	for sprite in mapped:
-		var sprite_id := String(sprite).to_lower()
-		_assert(not forbidden.has(sprite_id),
-			"monster/boss art '%s' is %s — monsters and bosses must come only from the "
-				% [sprite_id, forbidden.get(sprite_id, "")]
-			+ "Chimera library")
+	mapped.append_array(CombatStage3D.BOSS_MODELS.values())
+	for art in mapped:
+		var art_id := String(art).to_lower()
+		_assert(not forbidden.has(art_id),
+			"monster/boss art '%s' is %s — the player would be fighting their own character"
+				% [art_id, forbidden.get(art_id, "")])
 
-	# The reverse guard: no hero-named art may even be present in the monster folder, so a
-	# future mapping cannot quietly reach for one.
+	# The reverse guard: no hero-named art may even be PRESENT in the art folders, so a future
+	# mapping cannot quietly reach for one.
 	for basename in _png_basenames(MonsterArt.SPRITE_DIR).keys():
 		_assert(not forbidden.has(String(basename).to_lower()),
 			"'%s.png' sits in the monster sprite folder but is %s"
 				% [basename, forbidden.get(String(basename).to_lower(), "")])
+	var model_dir := DirAccess.open("res://assets/bosses")
+	if model_dir != null:
+		for file_name in model_dir.get_files():
+			var stem := String(file_name).get_basename().to_lower()
+			_assert(not forbidden.has(stem),
+				"'%s' sits in the boss model folder but is %s"
+					% [file_name, forbidden.get(stem, "")])
+
+
+## Every boss that claims a 3D model must actually have one on disk. A missing .glb does not
+## crash — CombatStage3D falls through to the sprite — so the boss would simply be a flat
+## billboard again, which is the exact thing the models were added to stop, and silently.
+func test_every_boss_model_is_on_disk() -> void:
+	for boss_key in CombatStage3D.BOSS_MODELS:
+		var path := "res://assets/bosses/%s.glb" % String(CombatStage3D.BOSS_MODELS[boss_key])
+		_assert(ResourceLoader.exists(path),
+			"boss '%s' maps to %s, which is not there — the fight silently falls back to a "
+				% [boss_key, path] + "2D sprite")
+	# And the fallback itself must stay intact: BOSS_SPRITES still has to cover every boss,
+	# models or not.
+	for boss_key in ContentDB.bosses.keys():
+		_assert(MonsterArt.BOSS_SPRITES.has(String(boss_key)),
+			"boss '%s' has no sprite fallback" % boss_key)
 
 
 ## The five `ICON_SVG_RAW` icons are FRAGMENTS in src/art7.js, not documents — src/client.html's

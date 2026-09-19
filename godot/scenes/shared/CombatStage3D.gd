@@ -88,13 +88,23 @@ const _EYE_LIGHT_SPAWN_DURATION := 0.15   # spec §10 "Eye-glow spawn: fade 0->t
 ## MonsterArt.BOSS_SPRITES maps all six ContentDB boss keys, and `is_boss` only changes SCALE
 ## (_BOSS_SCALE), never the source of the art.
 ##
-## A previous pass gave `agony` and `gooey_king` dedicated 3D models from
-## `third_party/axie-3d-assets` (Paladill and Pomodoro). That was removed on the user's explicit
-## rule: monsters and bosses come only from the Chimera library. It was not merely an art
-## preference — "Pomodoro" is the display name of the Bug-class HERO in the player's own party
-## (ContentDB._hero("Pomodoro", "bug", ...)), so the game was fielding a boss that was one of the
-## player's own characters. tests/t_assets.gd now asserts no monster or boss art may share a
-## hero's identity, so this cannot come back silently.
+## 3D MODELS FOR FOUR BOSSES — restored 2026-09-19, under a rule the owner AMENDED.
+##
+## The old rule was "monsters and bosses come only from the Chimera library", written after a
+## boss shipped wearing `pomodoro` — which is the display name of the Bug-class HERO in the
+## player's own party, so the game was fielding one of the player's own characters as a boss.
+## That specific failure is still forbidden and still gated (`t_assets`, by IDENTITY not by
+## filename). What the owner changed is the blanket part: with no new Chimera art available,
+## Starter Axie models MAY be used for bosses **provided they do not collide with a hero**.
+##
+## Four do not: paladill, kotaro, xia, kibo. Two never will: `pomodoro` and `machito` are hero
+## names. The remaining two (bing, tripp) are deliberately unused — they read as friendly pets,
+## and a boss that looks like a pet is the same mistake in a different costume.
+##
+## Why models rather than more sprites: the kit has 21 usable Chimeras for 17 monsters, 4 elites
+## and 6 bosses. Somebody has to share, and the boss is the worst candidate — the fight a run
+## builds toward should not look like the thing you already killed twice, only bigger. A model
+## is also animated, so a boss breathes while the rank and file are flat billboards.
 ##
 ## --- Fallback-tier constants below (unmapped boss keys only) ---
 ## STATUS as of the enemy-sprite pass (ui-programmer, real-monster-art follow-up): this
@@ -111,6 +121,23 @@ const _EYE_LIGHT_SPAWN_DURATION := 0.15   # spec §10 "Eye-glow spawn: fade 0->t
 ## _ENEMY_COLOR_VARIANT above already read from — verified directly against the file, not
 ## guessed), picked to be a clearly MORE saturated/darker shade than the hero-class swatch of the
 ## same family already in use above, so a boss never reads as "an oversized party member":
+## Boss key -> a .glb in res://assets/bosses/. Checked BEFORE the Chimera-sprite branch;
+## MonsterArt.BOSS_SPRITES still maps all six keys, so a model that fails to load falls through
+## to a sprite rather than to nothing.
+const BOSS_MODELS := {
+	"agony": "paladill",
+	"frost_lord": "kotaro",
+	"mirror": "xia",
+	"plague_mother": "kibo",
+}
+const _BOSS_MODEL_DIR := "res://assets/bosses/"
+
+## What a boss model should stand at, in metres. Deliberately the same number the sprite branch
+## lands on (_ENEMY_SPRITE_HEIGHT_M * _BOSS_SCALE) so the two kinds of boss read as the same
+## size on screen — a model that arrived in its own units would otherwise be either a speck or
+## a wall, and which one is pure luck.
+const _BOSS_MODEL_HEIGHT_M := _ENEMY_SPRITE_HEIGHT_M * _BOSS_SCALE
+
 const _BOSS_COLOR_VARIANT := {
 	"agony": 21,       # bug-04, primary=df2e54 (deep blood-red) — CHIMERA_NOTES.md's retired
 		# portrait for this boss was a werewolf/agony-themed fierce red brute; darker/deeper than
@@ -434,7 +461,13 @@ func spawn_unit(uid: int, cls: String, is_enemy: bool, slot_index: int, slot_cou
 	var is_named_boss := is_enemy and is_boss
 	var shadow_width := _CHARACTER_SHADOW_WIDTH_M   # overwritten by whichever branch below runs
 
-	if is_enemy and MonsterArt.texture_for(unit_key, is_boss) != null:
+	var boss_model: Node3D = (_make_boss_model(unit_key) if is_named_boss else null)
+	if boss_model != null:
+		slot.add_child(boss_model)
+		visual = boss_model
+		shadow_width = _CHARACTER_SHADOW_WIDTH_M * _BOSS_SCALE
+		_play_model_idle(boss_model)
+	elif is_enemy and MonsterArt.texture_for(unit_key, is_boss) != null:
 		# Real Chimera sprite branch (ui-programmer, real-monster-art follow-up — bug report:
 		# "4 quái là 4 bóng đen giống hệt nhau", production/qa/evidence/
 		# 2026-09-18_real-flow-varied-enemies.png). Covers every rank-and-file enemy (all 21
@@ -511,6 +544,92 @@ func spawn_unit(uid: int, cls: String, is_enemy: bool, slot_index: int, slot_cou
 ## _start_death_fade()'s scale-to-zero on `slot`, run from play_death()) collapses toward the
 ## origin alongside the death fade, independent of whether `visual` is a real rig, a capsule, or
 ## a billboard sprite.
+## Instantiates a boss's .glb and scales it to _BOSS_MODEL_HEIGHT_M. Returns null when this
+## boss has no model, or the file is missing — the caller then falls through to the sprite
+## branch, which is why this never pushes an error for a boss that simply is not modelled.
+func _make_boss_model(unit_key: String) -> Node3D:
+	if not BOSS_MODELS.has(unit_key):
+		return null
+	var path := _BOSS_MODEL_DIR + String(BOSS_MODELS[unit_key]) + ".glb"
+	if not ResourceLoader.exists(path):
+		push_warning("CombatStage3D: boss '%s' maps to %s, which is missing" % [unit_key, path])
+		return null
+	var packed := load(path) as PackedScene
+	if packed == null:
+		return null
+	var model := packed.instantiate() as Node3D
+	if model == null:
+		return null
+
+	# Scale from the model's OWN measured height, not from a number typed here. These models
+	# come from a different pipeline than anything else on this stage and there is no promise
+	# about their units; measuring is the only way the boss is the size it was asked to be.
+	#
+	# And STAND IT ON THE GROUND. The slot's origin is the floor, but a .glb's origin is
+	# wherever its author left it — these mascots are authored around their middle, so a model
+	# dropped in unadjusted hovers with its shadow under its waist. Measured, then corrected,
+	# rather than nudged by a hand-tuned constant per model.
+	var bounds := _visual_bounds(model)
+	var extent: float = bounds.y - bounds.x
+	if extent > 0.001:
+		var factor := _BOSS_MODEL_HEIGHT_M / extent
+		model.scale = Vector3.ONE * factor
+		model.position.y = -bounds.x * factor
+	return model
+
+
+## The vertical extent of every VisualInstance3D in the tree, in the model's own space, as
+## (bottom, top). Both ends are needed: the size to scale by, and the floor to stand on.
+static func _visual_bounds(root: Node3D) -> Vector2:
+	var top := -INF
+	var bottom := INF
+	for node in _descendants(root):
+		var vi := node as VisualInstance3D
+		if vi == null:
+			continue
+		var aabb := vi.get_aabb()
+		# The mesh's own transform relative to the model root matters: a head mesh parented to
+		# a neck bone reports an AABB around its own origin, not around the model's.
+		var offset := (vi.global_transform.origin - root.global_transform.origin
+			if vi.is_inside_tree() else vi.position)
+		top = maxf(top, offset.y + aabb.position.y + aabb.size.y)
+		bottom = minf(bottom, offset.y + aabb.position.y)
+	return Vector2.ZERO if top == -INF else Vector2(bottom, top)
+
+
+static func _descendants(node: Node) -> Array[Node]:
+	var out: Array[Node] = [node]
+	for child in node.get_children():
+		out.append_array(_descendants(child))
+	return out
+
+
+## Starts whatever looping clip the model ships with, so a boss breathes instead of standing
+## frozen next to enemies that bob. Clip names differ between models, so the first looping
+## animation is used rather than a hardcoded name.
+func _play_model_idle(model: Node3D) -> void:
+	if CombatView.disable_juice_for_tests:
+		return
+	for node in _descendants(model):
+		var player := node as AnimationPlayer
+		if player == null:
+			continue
+		var preferred := ""
+		for clip in player.get_animation_list():
+			var lower := String(clip).to_lower()
+			if lower.contains("idle"):
+				preferred = String(clip)
+				break
+			if preferred.is_empty():
+				preferred = String(clip)
+		if not preferred.is_empty():
+			var anim := player.get_animation(preferred)
+			if anim != null:
+				anim.loop_mode = Animation.LOOP_LINEAR
+			player.play(preferred)
+		return
+
+
 func _make_eye_light(cls: String) -> OmniLight3D:
 	var light := OmniLight3D.new()
 	light.light_color = _EYE_GLOW_COLOR.get(cls, _ENEMY_EYE_GLOW_COLOR)

@@ -70,18 +70,32 @@ const MONSTER_SPRITES := {
 ## NOTE ON BOSS ART: the user has said the JS build's boss images were makeshift and that
 ## better Chimera art may be supplied later. These are real Chimeras, not placeholders, but
 ## they are the pairing most open to being revisited.
+## UPDATED 2026-09-19 on the owner's decision. Four of these six used to be a monster's sprite
+## at 2.15x scale, which is the weakest thing a boss can be: the fight the run builds toward
+## looked like the thing you already killed twice, only bigger. The kit ships no more Chimeras
+## — the owner said so and offered two ways out instead: Starter Axie 3D models that do not
+## collide with the player's own heroes, and any suitable Chimera art already on hand.
+##
+## Both were used. `shilin` was ALREADY IN THE KIT and had never been converted, because it
+## ships as Spine JSON while the other 21 ship as binary `.skel` and `tools/spine_to_sprites.py`
+## only read the binary. It reported that creature as "missing .skel/.atlas/.png", which reads
+## as a broken asset rather than as an unread format. The tool now reads both, and the red
+## slime it was hiding is a boss-grade silhouette.
+##
+## The other four are 3D models, mapped in CombatStage3D.BOSS_MODELS — kept as sprite entries
+## here too so that a boss still has art if a model ever fails to load. The banned names are
+## still banned: `pomodoro` and `machito` are the display names of the Bug- and Beast-class
+## HEROES in the player's own party, and fielding either as a boss means fighting your own
+## character. `t_assets` checks identity, not filename, so this cannot come back quietly.
 const BOSS_SPRITES := {
 	"gooey_king": "aqua-slime-boss",        # the kit's own boss slime — an exact fit
-	"agony": "werewolf",                    # the final boss: the most monstrous thing here
-	"mecha": "alpha-wolf",                  # RETALIATE: heavy quadruped behind a bone mask
-	"frost_lord": "gray-wolf",              # DEEP FREEZE: pale grey-white and horned. Moved
-	                                         # off aqua-alpha-wolf, which is one of the three
-	                                         # sprites whose Spine SETUP POSE reads as a splayed
-	                                         # T-pose rather than a stance — acceptable on a
-	                                         # rank-and-file monster, not on a boss the whole
-	                                         # fight is built around.
-	"plague_mother": "mommy-bear",          # BROOD: the only overtly maternal figure
-	"mirror": "dryad-fighter",              # MIRROR: tall, still and blank-faced
+	"mecha": "shilin",                      # RETALIATE: a steel helm and a blue mechanical claw,
+	                                         # grafted onto a red blob. Exclusive to this boss.
+	# --- the four below are 3D models first (CombatStage3D.BOSS_MODELS); these are fallbacks ---
+	"agony": "werewolf",                    # model: paladill — red, horned war-helm, fanged
+	"frost_lord": "gray-wolf",              # model: kotaro — white, icy, yellow glare, sword
+	"plague_mother": "mommy-bear",          # model: kibo — spore-pods hanging off its cap, BROOD
+	"mirror": "dryad-fighter",              # model: xia — armoured, spiked, sullen and still
 }
 
 const SPRITE_DIR := "res://assets/monsters/"
