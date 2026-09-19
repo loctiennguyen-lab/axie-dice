@@ -15,7 +15,8 @@ Task: **Vault/Import Axie: bước (a)(b)(c) XONG. Bước (d) lớp mạng BỊ
   save/CONTINUE RUN (E), battle pass + unlock ladder + `ascMax` (F), cân bằng lại độ khó
   (ticket B), xem die đối thủ (G), part_faces (H), `axie_to_die.gd` bit-exact (I bước a),
   **preview gene→3D (I bước b)**, **vault store + màn Vault + chốt chặn ranked (I bước c)**,
-  **Daily Mission + SAMPLE TEAMS (hàng đợi C #1)**. Suite **30/30**. CHƯA COMMIT GÌ.
+  **Daily Mission + SAMPLE TEAMS (hàng đợi C #1)**, và **nhật ký hành động + cổng tự-phát-lại**
+  (mục ⓪ ngay dưới). Suite **36/36**. Đã commit tới `2ccf7ba` — không còn việc nào chưa lưu.
   ⚠️ **ĐỪNG đọc câu này thành "hết việc".** Cạn ở đây CHỈ có nghĩa là danh sách đánh số trong
   chính file này đã làm hết — nó chưa bao giờ là bản đồ của cả bản port. Việc còn lại nằm ở
   **`docs/godot-port-gap-inventory.md`** (đo 2026-09-19): Godot phủ 11/22 màn của bản JS, và
