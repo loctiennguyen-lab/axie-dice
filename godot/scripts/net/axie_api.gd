@@ -160,10 +160,15 @@ static func parse_response(exit_code: int, body: String) -> Dictionary:
 		return _fail("bad_json", "The Axie service sent something unreadable.")
 	var doc: Dictionary = parsed
 
-	if doc.has("errors"):
-		return _fail("graphql", "The Axie service rejected the request.")
+	# `data` decides, NOT `errors`. An id that does not exist comes back with a null axie AND an
+	# `errors` entry (INTERNAL_SERVER_ERROR, path ["axie"]) in the SAME body — measured against the
+	# live gateway 2026-09-19. Reading `errors` first renamed a one-digit typo into "the service
+	# rejected the request", which is a different problem with a different fix. `errors` speaks
+	# only when `data` carries no axie field to speak for itself.
 	var data = doc.get("data")
-	if not (data is Dictionary):
+	if not (data is Dictionary) or not (data as Dictionary).has("axie"):
+		if doc.has("errors"):
+			return _fail("graphql", "The Axie service rejected the request.")
 		return _fail("bad_json", "The Axie service sent something unreadable.")
 	var axie = (data as Dictionary).get("axie")
 	# A non-existent or unminted id comes back as a NULL axie, or as one with a null class and no

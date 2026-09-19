@@ -45,6 +45,7 @@ const EXPECTED_TESTS: Array[String] = [
 	"test_the_gene_it_returns_is_the_one_the_3d_kit_can_actually_decode",
 	"test_a_cloudflare_challenge_is_named_as_a_block_not_as_bad_json",
 	"test_a_missing_axie_is_not_mistaken_for_a_valid_one",
+	"test_a_typo_is_named_a_typo_even_though_the_gateway_also_reports_an_error",
 	"test_every_failure_mode_has_its_own_key_and_a_sentence_for_the_player",
 	"test_availability_is_reported_rather_than_assumed",
 	"test_the_proxy_transport_produces_the_same_shape_as_curl",
@@ -66,6 +67,7 @@ func _ready() -> void:
 	test_the_gene_it_returns_is_the_one_the_3d_kit_can_actually_decode()
 	test_a_cloudflare_challenge_is_named_as_a_block_not_as_bad_json()
 	test_a_missing_axie_is_not_mistaken_for_a_valid_one()
+	test_a_typo_is_named_a_typo_even_though_the_gateway_also_reports_an_error()
 	test_every_failure_mode_has_its_own_key_and_a_sentence_for_the_player()
 	test_availability_is_reported_rather_than_assumed()
 	test_the_proxy_transport_produces_the_same_shape_as_curl()
@@ -236,6 +238,44 @@ func test_a_missing_axie_is_not_mistaken_for_a_valid_one() -> void:
 		_assert(str(res["err"]) == "not_found",
 			"an unminted Axie reported '%s', expected 'not_found'" % str(res["err"]))
 	_done("test_a_missing_axie_is_not_mistaken_for_a_valid_one")
+
+
+## MEASURED against the live gateway 2026-09-19: an id that does not exist answers with a NULL
+## axie AND an `errors` entry (`INTERNAL_SERVER_ERROR`, path ["axie"]) in the SAME body. Reading
+## `errors` first renames "no Axie with that ID" into "the service rejected the request" — which
+## sends a player who mistyped one digit off to check their connection, and the next person
+## debugging off to look for an outage that never happened. `data` decides; `errors` only speaks
+## when `data` carries no axie field to speak for itself.
+func test_a_typo_is_named_a_typo_even_though_the_gateway_also_reports_an_error() -> void:
+	var gateway_body := JSON.stringify({
+		"data": {"axie": null},
+		"errors": [{
+			"message": "Internal Server Error",
+			"locations": [{"line": 1, "column": 20}],
+			"path": ["axie"],
+			"extensions": {"type": "INTERNAL_SERVER_ERROR"},
+		}],
+	})
+	var res := AxieApi.parse_response(0, gateway_body)
+	_assert(not bool(res["ok"]), "a null axie was accepted as a real one")
+	_assert(str(res["err"]) == "not_found",
+		"the gateway's real 'no such Axie' body reported '%s'; expected 'not_found'"
+		% str(res["err"]))
+	_assert(str(res["message"]).to_lower().contains("no axie"),
+		"a mistyped ID tells the player '%s'" % str(res["message"]))
+
+	# The other half of the rule. Without this, the line above could be satisfied by ignoring
+	# `errors` altogether, and a real outage would be reported to the player as a typo.
+	for broken in [
+		JSON.stringify({"errors": [{"message": "nope"}]}),
+		JSON.stringify({"data": null, "errors": [{"message": "nope"}]}),
+		JSON.stringify({"data": {}, "errors": [{"message": "nope"}]}),
+	]:
+		var bad := AxieApi.parse_response(0, broken)
+		_assert(str(bad["err"]) == "graphql",
+			"a gateway error with no axie field reported '%s'; expected 'graphql'"
+			% str(bad["err"]))
+	_done("test_a_typo_is_named_a_typo_even_though_the_gateway_also_reports_an_error")
 
 
 ## Every branch has to be distinguishable by machine AND explainable to a person. A shared error

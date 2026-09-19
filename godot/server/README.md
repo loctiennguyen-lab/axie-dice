@@ -51,12 +51,42 @@ Expect `genes` to be **130 characters** (`0x` + 128 hex digits). If it comes bac
 the query is reading `genes` instead of `newGenes` — Godot's decoder will not error on that, it
 will build a wrong Axie in silence.
 
-### A 502 usually means "no such Axie"
+### A wrong ID answers 404, not 502
 
-Measured 2026-09-19: an out-of-range id (`999999999`) does **not** come back as a null axie. The
-gateway answers with `INTERNAL_SERVER_ERROR`, which this proxy reports as HTTP 502. So a 502 is
-most often a wrong ID and occasionally a real outage, and nothing here can tell the two apart —
-the game says both rather than guessing.
+Re-measured 2026-09-19 against the live gateway, correcting what this file said earlier. An
+out-of-range id (`999999999`) comes back like this:
+
+```json
+{"data":{"axie":null},"errors":[{"message":"Internal Server Error","path":["axie"], …}]}
+```
+
+`data.axie` is present and null **in the same body** as the error, so the two cases ARE
+distinguishable — this proxy used to bail on `errors` before looking at `data` and answered a
+typo with 502, which reads as "the service is down". Now: `123` → 200, `999999999` → **404
+"Axie #999999999 not found"**, `abc`/`0` → 400, and 502 means what it says.
+
+## CORS — set this only for a cross-origin deploy
+
+By default the proxy sends **no CORS header at all**. That is correct and sufficient when the game
+and the proxy sit on the same domain (`https://yourgame.example` serving both the export and
+`/api/axie-godot`) — a browser never asks permission to read its own origin. Deploy it that way if
+you can; it is the simplest and the tightest.
+
+Serving the web export from a *different* origin than the proxy? Name the allowed origins:
+
+```bash
+AXIE_PROXY_ALLOWED_ORIGIN="https://yourgame.example,https://staging.yourgame.example"
+```
+
+(On Vercel: Project Settings → Environment Variables.) Only those origins are echoed back, with
+`Vary: Origin`. Anything else gets no header and the browser refuses the read.
+
+It deliberately does **not** send `Access-Control-Allow-Origin: *`. Axie data is public, so `*`
+leaks nothing — but it turns this into an open relay: any website could embed a `fetch()` to it and
+use your box's Cloudflare-passing `curl` on your rate limit and your invocation bill.
+
+**Symptom of a missing setting**: the game reports a network error on a proxy that answers 200 to
+`curl`. That is the browser blocking the read, not the proxy failing — check `AXIE_PROXY_ALLOWED_ORIGIN`.
 
 ## What the game does when it is missing
 

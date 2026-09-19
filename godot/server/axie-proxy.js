@@ -64,9 +64,31 @@ function isRateLimited(ip) {
   return arr.length > RATE_LIMIT_MAX;
 }
 
+/**
+ * Origins allowed to read this from a DIFFERENT origin, comma-separated, e.g.
+ * `AXIE_PROXY_ALLOWED_ORIGIN="https://axiedice.example,https://staging.axiedice.example"`.
+ *
+ * Unset is the intended default: the proxy then sends NO CORS header, which is all a same-origin
+ * deploy needs (game and proxy on one domain — a browser asks no permission to read its own
+ * origin). Set it only when the web build is served from somewhere else.
+ */
+const ALLOWED_ORIGINS = (process.env.AXIE_PROXY_ALLOWED_ORIGIN || '')
+  .split(',')
+  .map((o) => o.trim())
+  .filter(Boolean);
+
 module.exports = async (req, res) => {
-  // A Godot web export is served from its own origin, so CORS has to be open for it to read this.
-  res.setHeader('Access-Control-Allow-Origin', '*');
+  // NOT `*`. This endpoint has no secret to leak — Axie data is public — but a blanket `*` makes
+  // it an open relay: any site could embed a fetch() to it and ride this box's Cloudflare-passing
+  // `curl` on our rate limit and our invocation bill. Same-origin (no header at all) is what a
+  // normal deploy wants; a cross-origin deploy names its origins in AXIE_PROXY_ALLOWED_ORIGIN.
+  const origin = req.headers && req.headers.origin;
+  if (origin && ALLOWED_ORIGINS.includes(origin)) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+    // The answer differs per Origin now, so a cache must key on it or it will serve one site's
+    // permission to another.
+    res.setHeader('Vary', 'Origin');
+  }
   res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
   res.setHeader('Content-Type', 'application/json');
@@ -107,12 +129,19 @@ module.exports = async (req, res) => {
     console.error('bad JSON from gateway:', responseText.slice(0, 200));
     return res.status(502).json({ error: 'Invalid response from Axie API' });
   }
-  if (data.errors) {
-    console.error('GraphQL errors:', JSON.stringify(data.errors).slice(0, 300));
+  // `data` decides, NOT `errors`. An id that does not exist comes back with a null axie AND an
+  // `errors` entry (INTERNAL_SERVER_ERROR, path ["axie"]) in the SAME body — measured against the
+  // live gateway 2026-09-19. Bailing on `errors` first answered a one-digit typo with a 502, which
+  // reads as "the service is down" and sends the player somewhere with nothing to fix. `errors`
+  // decides only when `data` carries no axie field to speak for itself.
+  const envelope = data.data;
+  const hasAxieField = envelope !== null && typeof envelope === 'object' && 'axie' in envelope;
+  if (!hasAxieField) {
+    console.error('GraphQL errors:', JSON.stringify(data.errors || data).slice(0, 300));
     return res.status(502).json({ error: 'Axie API returned an error' });
   }
 
-  const axie = data.data && data.data.axie;
+  const axie = envelope.axie;
   // An unminted or non-existent id comes back as a null axie, or with a null class and no parts.
   if (!axie || axie.class === null || !axie.parts || axie.parts.length === 0) {
     return res.status(404).json({ error: `Axie #${id} not found` });

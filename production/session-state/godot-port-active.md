@@ -39,6 +39,20 @@ Task: **Vault/Import Axie: bước (a)(b)(c) XONG. Bước (d) lớp mạng BỊ
 
 ## A. Vault/Import Axie — **XONG CẢ 4 BƯỚC 2026-09-19**. Việc tiếp theo: polish UI/UX.
 
+> **CHỐT 2026-09-19 — ĐỪNG làm đường "dán gene code". Đã hỏi, đã đo, đã đóng:
+> `docs/architecture/adr-0003-axie-import-stays-id-only.md`.**
+> Game projectrogue.fun (cũng là Godot web export) có 2 đường nhập: ID **và** dán gene 512-bit.
+> Đo thử xem mình có làm được không: `probe_part_map.gd` trên 16 Axie thật → 96 dòng, 66 khoá,
+> **0 xung đột theo tên part** ⇒ *làm được về mặt kỹ thuật*. Vẫn KHÔNG làm, vì bảng ánh xạ phải phủ
+> **285** mục mà chỉ harvest được dần: một bảng thiếu sẽ đẩy part chưa có vào `fallback_face()`, tức
+> **cùng một con Axie nhập bằng ID và bằng gene ra hai bộ xúc xắc khác nhau, không lỗi gì cả** —
+> đúng loại sai lệch tất định mà hệ replay-verify (điều kiện merge vào `main`) phải bác bỏ.
+> `technical-director` / `producer` / `security-engineer` đều kết luận như nhau: dồn sức vào
+> **anti-cheat (frontier A)** và các màn còn thiếu. Việc tiếp theo được cả ba xếp #1:
+> **nhật ký action cho ranked + test tự-replay** (hàng đợi C #2) — nó cần cho CẢ 6 phương án
+> anti-cheat nên làm trước là không thể phí.
+
+
 Import Axie thật đã chạy đầu-cuối, **không đụng một dòng nào của bản JS**.
 
 | Bước | Trạng thái |
@@ -91,15 +105,33 @@ không tự deploy kèm bản JS; user chủ động chọn bỏ vào đâu. C�
 `axie/proxy_url` hoặc `AxieApi.set_proxy_url()`.
 
 **Đã kiểm chứng proxy chạy thật** (gọi thẳng handler bằng Node, không chỉ đọc code): #123 và
-#11778888 → HTTP 200, `genes` **130 ký tự**, CORS `*`; `abc`/`0` → 400.
+#11778888 → HTTP 200, `genes` **130 ký tự**; `abc`/`0` → 400. (CORS: từ 2026-09-19 proxy
+**không** gửi `*` nữa — mặc định không header, cross-origin thì khai báo qua biến môi trường
+`AXIE_PROXY_ALLOWED_ORIGIN`. Xem `godot/server/README.md` mục CORS và ADR-0003.)
 
-> **Phát hiện chỉ lộ ra khi chạy thật:** ID không tồn tại (`999999999`) **KHÔNG** trả axie null —
-> gateway trả `INTERNAL_SERVER_ERROR` ⇒ proxy ra **502**. Nên 502 thường nghĩa là "sai ID" và thỉnh
-> thoảng nghĩa là "dịch vụ hỏng", và **không có cách nào phân biệt từ phía client**. Thông điệp nói
-> cả hai khả năng; chọn một rồi nói như sự thật mới là bịa.
+> **ĐÍNH CHÍNH 2026-09-19 (đo lại trên gateway thật) — đoạn cũ ở đây SAI, và cái sai đó đã sinh ra
+> một lỗi thật.** Nó ghi: ID không tồn tại "KHÔNG trả axie null", nên 502 vừa nghĩa là sai ID vừa
+> nghĩa là dịch vụ hỏng, "không có cách nào phân biệt từ phía client". Thân phản hồi thật:
+>
+> ```json
+> {"data":{"axie":null},"errors":[{"message":"Internal Server Error","path":["axie"],
+>  "extensions":{"type":"INTERNAL_SERVER_ERROR"}}]}
+> ```
+>
+> `data.axie` **có mặt và bằng null** ngay trong cùng response — phân biệt được hoàn toàn. Cả hai
+> lớp của mình chỉ đơn giản đọc phong bì sai thứ tự: `axie_api.gd` và `axie-proxy.js` đều thoát ở
+> `errors` TRƯỚC khi nhìn `data`, nên gõ nhầm một chữ số thì người chơi nhận "The Axie service
+> rejected the request" / 502 thay vì "No Axie with that ID". **Đã sửa cả hai**: `data` quyết định,
+> `errors` chỉ lên tiếng khi `data` không mang trường `axie` nào. Đo lại sau khi sửa (gọi handler
+> thật, không đọc code): `123` → 200 Plant · `11778888` → 200 Dusk · `999999999` → **404** ·
+> `abc` → 400. Gate mới: `test_a_typo_is_named_a_typo_even_though_the_gateway_also_reports_an_error`
+> — chạy trước khi sửa thì ĐỎ đúng 2 chỗ.
+>
+> Lỗi này lộ ra khi đối chiếu với projectrogue.fun (bản Godot web export của Jaastster): proxy của
+> họ trả `{"data":{"axie":null}}` HTTP 200 cho ID không tồn tại, tức họ đọc `data` trước.
 
 `AxieApi.is_available()` báo tình trạng và màn Vault ghi lý do **lên màn hình** thay vì im lặng
-hỏng. `t_axie_api` **92 check**, phủ cả hai transport và ghim rằng chúng cho ra **bản ghi giống
+hỏng. `t_axie_api` **98 check**, phủ cả hai transport và ghim rằng chúng cho ra **bản ghi giống
 hệt nhau** — để màn hình không bao giờ phải biết Axie đến từ đường nào.
 
 > **BẪY: truyền payload qua argv làm `OS.execute` hỏng** (curl exit 2), lặp lại 100%, trong khi
