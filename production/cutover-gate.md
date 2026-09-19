@@ -1,0 +1,130 @@
+# Cổng Cutover — `godot-port` → `main`
+
+> Chạy từ trên xuống trong một phiên. **Bất kỳ ô BẮT BUỘC nào chưa tick = KHÔNG ĐƯỢC CUTOVER.**
+> Nguồn phạm vi có thẩm quyền: `docs/godot-port-gap-inventory.md`. Muốn hạ một tiêu chí thì
+> **sửa chính file này trong cùng commit** — không hạ bằng lời.
+>
+> Vì sao file này tồn tại: "sẵn sàng thay bản live" trước đây chỉ là một câu định tính. Bản JS
+> có `tools/ci.mjs` 12/12 để trả lời pass/fail; bản port thì không có gì tương đương.
+> (Wayfinder ticket H. Bị chặn bởi ticket A cho tới 2026-09-19, nay đã mở khoá bởi
+> `docs/architecture/adr-0004-headless-godot-is-the-referee.md`.)
+
+Trạng thái lần cập nhật cuối: **2026-09-19**. Suite Godot **37/37**.
+
+---
+
+## 0. Tự động — BẮT BUỘC
+
+- [ ] `godot/tools/run_tests.sh` xanh, và số gate **không thấp hơn** mức sàn ghi ở
+      `.claude/docs/technical-preferences.md` (hôm nay **37**). Sửa suite thì sửa mức sàn
+      trong cùng commit — mức sàn cũ không chỉ sai thông tin, nó **cho phép một regression
+      đi qua review**.
+- [ ] `node tools/ci.mjs` vẫn **12/12** cho bản JS. Cutover không được làm hỏng thứ đang sống.
+- [ ] Web export build sạch. ⚠️ Lỗi cú pháp GDScript làm Godot **treo im lặng**, không báo lỗi —
+      nên "build không xong" và "build lỗi" trông giống hệt nhau. Chạy `--import` trước.
+- [ ] `t_rules_version` xanh — tức `RULES_VERSION` đã được cân nhắc cho mọi thay đổi luật.
+
+## 1. Ngang bằng tính năng — BẮT BUỘC
+
+Godot đang phủ **13/22** màn của bản JS. Để cutover cần đủ những mục dưới đây:
+
+- [ ] `scMenu` — có lối vào mọi hệ đã ship (hiện thiếu vì các hệ đó chưa tồn tại)
+- [ ] `scTeam` — chữ mô tả class passive + xoá ô đã chọn
+- [ ] `scEnd` — thống kê cả ván (sát thương / số lượt / số kill / cú đánh lớn nhất) + ô nộp Ranked
+- [ ] `scInfo` — bảng 6 tab thật trong trận
+- [ ] `scCodex` — sách luật, **audit lại theo luật Godot**, không chép từ JS (bản JS nói "12
+      waves" và mô tả undo kiểu JS — **cả hai đều sai** với build này)
+- [ ] Tutorial/onboarding — kích hoạt bằng "lần chạy đầu trên máy này" (vì màn đăng nhập đã bị
+      bỏ, không còn "sau lần đăng nhập đầu")
+- [ ] `scSettings` — thanh trượt âm lượng, giảm hiệu ứng chớp, ABANDON RUN
+
+**Đã xong, không cần làm lại**: Vault/Import Axie · part_faces · Daily Mission · GUIDES ·
+`scUnitInfo` · save/CONTINUE RUN · battle pass + unlock ladder.
+
+**HOÃN sang phase polish — KHÔNG chặn cutover**: `scCollection`, lịch sử run.
+
+**ĐÃ BỎ — không mở lại nếu không có ADR mới**: Cosmetics/Echo Box · World Tour · màn đăng nhập
+`scGate` · NFT HP bonus (code chết trong bản live) · hiển thị ví Ronin · đồng bộ lịch sử run
+lên server.
+
+## 2. Ngang bằng chống gian lận — BẮT BUỘC nếu bản Godot có bảng xếp hạng
+
+Kiến trúc đã chốt: ADR-0004 (Godot headless làm trọng tài).
+
+- [x] Client gửi seed + team + nhật ký hành động, **không bao giờ gửi điểm** — `ActionLog` ghi
+      quyết định, không ghi kết quả
+- [x] Chơi lại được ở mức **CẢ VÁN**: `RunState` sở hữu RNG của shop/event; `RunVerifier` dựng
+      lại toàn bộ `to_data()` kể cả `rng_state` (đo: seed 991237, 391 hành động, điểm 500)
+- [x] Trọng tài tự tính điểm bằng **đúng hàm** game dùng (`compute_run_xp`, ngang
+      `api/submit-run.js:158`)
+- [x] Chạy được qua ranh giới tiến trình: `tools/record_sample_run.tscn` →
+      `tools/verify_run.tscn` (tiến trình khác, chỉ đọc file JSON)
+- [x] Các phép tiêm hỏng log đều bị bắt, và **ở lại làm gate vĩnh viễn**: bỏ 1 hành động / đổi
+      mục tiêu / hoán vị 2 hành động / đổi phần thưởng đã lấy / sửa seed / chèn thêm lượt nhận
+      thưởng / sửa dấu phiên bản
+- [x] Danh sách hành động của log **và** của verifier khớp nhau, có test giữ (bản JS để hai
+      danh sách "đồng bộ thủ công" và đã lệch một mục — `eventDone` — nghĩa là mọi lần nộp của
+      người dính lỗi đó đều hỏng)
+- [x] Từ chối log `is_complete() == false` ở **phía server**, không tin client tự khai
+- [x] Lệch `rules_version`/`content_version` → từ chối với thông điệp "chơi trên phiên bản
+      khác", KHÔNG phải cáo buộc gian lận
+- [ ] **Hộp verifier đã dựng thật** (Fly.io/Hetzner, ~4–6 USD/tháng) và đo được thời gian
+      verify p95
+- [ ] `api/submit-run-godot.js` chuyển tiếp sang verifier bằng secret chung; Vercel giữ quyền
+      ghi Upstash và **chỉ tin điểm verifier trả về**
+- [ ] Bảng xếp hạng Godot dùng **khoá riêng** (`lb:godot:*`) — 18 hàng so với 12 hàng nghĩa là
+      điểm hai bản chưa bao giờ so sánh được
+- [ ] Ghi nhận thành văn bản: undo cuộn lại RNG (khác JS) và bản đồ 18 hàng — **đã ghi ở
+      ADR-0004**, tick khi đã được đọc và chấp nhận
+
+> **Rủi ro CÒN LẠI, chấp nhận có ý thức** (security-engineer xếp hạng; bản JS live cũng y hệt):
+> log do bot/giải tối ưu nộp nguội · chọn seed đẹp · nộp lại log người khác · lạm dụng tần suất.
+> Mức cần đạt của lần cutover này là **ngang bằng bản đang live**, không phải hoàn hảo.
+
+## 3. QA ký duyệt — BẮT BUỘC
+
+Bản port cần **biến thể riêng**, không dùng nguyên `/launch-checklist` (cửa hàng/marketing/pháp
+lý — không liên quan) và không chỉ `/release-checklist`. Cụ thể:
+
+- [ ] `/release-checklist pc` — chỉ phần sức khoẻ bản build
+- [ ] `/regression-suite` — ánh xạ test với đường đi then chốt trong GDD
+- [ ] `/soak-test` — một phiên chơi dài
+- [ ] `/smoke-check` — cổng trước khi bàn giao QA
+- [ ] `/team-qa` ra kết luận **APPROVED** hoặc **APPROVED WITH CONDITIONS**
+
+Lý do cần biến thể riêng: **không skill nào có sẵn kiểm "ngang bằng với bản tiền nhiệm" và
+"liên tục dữ liệu người chơi thật"** — hai thứ duy nhất thực sự nguy hiểm ở lần cutover này.
+Chính file này là biến thể đó.
+
+## 4. Kế hoạch lùi — BẮT BUỘC
+
+- [ ] Gắn tag `pre-godot-cutover` trên `main`; bản deploy cũ giữ nguyên, khôi phục được bằng
+      một cú bấm
+- [ ] **Không xoá `src/` và `api/` khi cutover.** Xoá là một PR riêng, sau này
+- [ ] **Merge ≠ deploy**: merge trước, deploy bản Godot là bước riêng
+- [ ] Bảng xếp hạng: điểm Godot vào **mùa/bảng mới** khoá theo phiên bản; lịch sử JS đóng băng
+      ở chế độ chỉ đọc. Lùi = deploy lại bản JS + ẩn mùa mới. **Không xoá, không ghi đè dòng
+      nào** — đây là thứ duy nhất trong danh sách này không thể hoàn tác
+- [ ] Ghi rõ **điều kiện kích hoạt lùi** và **ai được quyết**, trước khi merge
+
+## 5. Ai ký
+
+Theo `.claude/docs/coordination-rules.md`:
+
+- [ ] `technical-director` — trọng tài + kiến trúc
+- [ ] `qa-lead` — bằng chứng kiểm thử
+- [ ] `creative-director` — ngang bằng trải nghiệm & phần dạy người chơi
+- [ ] `producer` — tổng hợp
+- [ ] **Chủ dự án ký — BẮT BUỘC.** Lần này không phải một bản phát hành thông thường: nó **cho
+      nghỉ hưu một build đang phục vụ người chơi thật**. Không uỷ quyền nào bao được việc đó.
+
+---
+
+## Ba cái bẫy đã biết
+
+1. **Bỏ màn đăng nhập = bỏ luôn danh tính** — mà bảng xếp hạng thì cần danh tính. Nếu bản Godot
+   ship kèm ranked, hệ Account (đang 0%) quay lại thành BẮT BUỘC. Nếu không ship ranked, toàn
+   bộ mục §2 được miễn — nhưng **đó là bỏ một tính năng người chơi đang có, và cần chủ dự án
+   ký**.
+2. **Không hẹn ngày cho §2** khi hộp verifier chưa dựng.
+3. **Liên tục dữ liệu bảng xếp hạng là mục duy nhất không thể hoàn tác.** Mọi thứ khác lùi được.

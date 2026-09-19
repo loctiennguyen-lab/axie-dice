@@ -1,6 +1,6 @@
 ---
 label: wayfinder:grilling
-status: open
+status: resolved
 claimed_by: null
 blocks: []
 blocked_by: [A-anti-cheat-replay-verify-strategy]
@@ -34,3 +34,18 @@ replay-verify approach, define the actual cutover gate:
 
 This ticket's resolution is effectively the map's destination made testable — treat it
 as the capstone, not routine paperwork.
+
+---
+
+## Resolution (2026-09-19)
+
+Written as **`production/cutover-gate.md`** — a checklist that runs top to bottom and gives
+pass/fail, the way `tools/ci.mjs` does for the live JS build.
+
+It answers all five questions this ticket asked: the parity list (authoritative, with what is
+deferred to polish and what is waived), the anti-cheat criterion (from ADR-0004 — most of it
+already ticked and measured), the QA route (a port-specific variant, because neither
+`/launch-checklist` nor `/release-checklist` checks parity-against-a-predecessor or live-data
+continuity), the rollback plan (merge ≠ deploy; leaderboard continuity is the only irreversible
+item), and sign-off (including the owner's own, because this retires a build serving real
+players).

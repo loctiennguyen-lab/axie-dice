@@ -109,6 +109,30 @@ var _rng: Rng = null
 ## log is empty, and only one of those is honest.
 var action_log: ActionLog = ActionLog.new()
 
+# ---------------------------------------------------------------------------
+# Shop / event offers — OWNED HERE, not by the map screen.
+#
+# They used to live in RunMapController, which created their Rng itself. Nothing about that
+# was random-by-accident (the seed was always `derive_combat_seed(run_seed, node_id, salt)`),
+# but a verifier replaying an action log cannot reach into a scene to rebuild a stream. Owning
+# them here is what makes a RUN replayable rather than only a combat: the same seed and the
+# same decisions now rebuild the same shop, the same event, and the same purchases.
+#
+# It also fixes what the log could honestly say. `try_buy_shop_item(item)` took the item
+# itself, so the log had to record the client's description of what was on sale; it now takes
+# an INDEX into an offer the verifier re-derives.
+# ---------------------------------------------------------------------------
+
+## Salts that separate the two streams at one node. Same values the map screen used, kept so
+## an in-flight save from before this move still resolves to the same offer.
+const EVENT_SALT := 501
+const SHOP_SALT := 502
+
+var shop_items: Array[Dictionary] = []
+var event_key: String = ""
+var _shop_rng: Rng = null
+var _event_rng: Rng = null
+
 func _ready() -> void:
 	reset()
 
@@ -146,6 +170,10 @@ func reset() -> void:
 	resume_combat = {}
 	_rng = null
 	action_log = ActionLog.new()
+	shop_items = []
+	event_key = ""
+	_shop_rng = null
+	_event_rng = null
 
 func start_new_run(p_seed: int, team_hero_keys: Array[String], p_mode: String,
 		p_ascension: int, p_ranked: bool) -> void:
@@ -220,8 +248,11 @@ func start_new_run(p_seed: int, team_hero_keys: Array[String], p_mode: String,
 	# content version comes from part_faces.json's own stamp: the same actions against different
 	# face values produce a different run, so a verifier has to refuse the mismatch rather than
 	# replay it and disbelieve the score.
+	# `ranked`, not `p_ranked` — the vault guard above may have downgraded the run, and a log
+	# that claimed ranked while the run is not would be refused by the verifier for the wrong
+	# reason (it would look like tampering rather than like an unranked run).
 	action_log.begin(run_seed, team_hero_keys, mode, ascension,
-		String(ContentDB.part_faces.get("engineVersion", "")))
+		String(ContentDB.part_faces.get("engineVersion", "")), ranked)
 	set_phase(RunPhase.MAP)
 
 
@@ -298,9 +329,11 @@ func enter_node(node_id: String, node_kind: String) -> void:
 				pending_combat["boss_key"] = _boss_key_for_node(node_id)
 			EventBus.node_entered.emit(node_kind, node_id)
 		"event":
+			_open_event(node_id)
 			set_phase(RunPhase.EVENT)
 			EventBus.node_entered.emit(node_kind, node_id)
 		"shop":
+			_open_shop(node_id)
 			set_phase(RunPhase.SHOP)
 			EventBus.node_entered.emit(node_kind, node_id)
 		"treasure":
@@ -584,13 +617,53 @@ func apply_chosen_reward(reward: Dictionary) -> void:
 	pending_rewards = []
 
 
+## Builds this node's shop offer. Called from enter_node(), so a replay that applies the same
+## `enter_node` action gets the same three items in the same order without being told them.
+func _open_shop(node_id: String) -> void:
+	_shop_rng = Rng.new(Rng.derive_combat_seed(run_seed, node_id, SHOP_SALT))
+	shop_items = []
+	for raw in RewardGenerator.generate_shop_items(_shop_rng, owned_relic_ids):
+		shop_items.append((raw as Dictionary).duplicate(true))
+
+
+## Picks which event this node runs. Only events whose options actually DO something are
+## eligible (ContentDB.playable_event_keys) — offering an unported option means the player
+## chooses and nothing happens, which is indistinguishable from a bug.
+func _open_event(node_id: String) -> void:
+	_event_rng = Rng.new(Rng.derive_combat_seed(run_seed, node_id, EVENT_SALT))
+	var keys := ContentDB.playable_event_keys()
+	event_key = "" if keys.is_empty() else String(keys[_event_rng.next_int(keys.size())])
+
+
+## The options on offer at this event node, in the order the player sees them — which is the
+## order `choose_event_option()` indexes into.
+func event_options() -> Array:
+	return [] if event_key.is_empty() else ContentDB.playable_event_options(event_key)
+
+
+## The replayable way to resolve an event: an INDEX into the offer this run generated. Nothing
+## about the option travels in the log, so a verifier re-derives the offer and checks the index
+## against it.
+func choose_event_option(index: int) -> String:
+	var opts := event_options()
+	if index < 0 or index >= opts.size():
+		push_error("RunState.choose_event_option: index %d outside an offer of %d"
+			% [index, opts.size()])
+		return ""
+	action_log.record("event_choose", [index])
+	var fx := String((opts[index] as Dictionary).get("fx", ""))
+	return apply_event_fx(fx, _event_rng if _event_rng != null else Rng.new(run_seed))
+
+
 ## Ported subset of src/engine.js applyEventFx() (rule spec §9/§10) — only the fx values
 ## reachable from ContentDB.events' two implemented event defs (shrine/campfire). Returns
 ## the same kind of human-readable result message the JS version shows before eventDone().
-func apply_event_effect(fx: String, rng: Rng) -> String:
-	# `fx` names the option the player picked. It is an identifier, not an outcome — the verifier
-	# re-derives the event's options from the seed and checks this one was among them.
-	action_log.record("event_choose", [fx])
+##
+## PURE APPLICATION, AND DELIBERATELY UNLOGGED. `choose_event_option()` is the entry point a
+## player's click goes through and the one that writes to the action log; this is the half that
+## t_event_effects walks exhaustively to prove every `fx` in ContentDB has a handler, which it
+## cannot do through an index into an offer it would first have to conjure.
+func apply_event_fx(fx: String, rng: Rng) -> String:
 	match fx:
 		"bless_reroll":
 			bonus_reroll += 1
@@ -658,21 +731,27 @@ func apply_event_effect(fx: String, rng: Rng) -> String:
 	# An fx with no branch here would silently do nothing, which reads as a bug to the
 	# player. ContentDB.playable_event_keys() filters unported options out of the offer,
 	# so reaching this line means an option was offered that should not have been.
-	push_error("RunState.apply_event_effect: no handler for fx '%s' — the option should not "
+	push_error("RunState.apply_event_fx: no handler for fx '%s' — the option should not "
 		% fx + "have been offered (see ContentDB.playable_event_options)")
 	return ""
 
 
-## src/data.js shopBuy() ported subset. `rng` is the same Rng the shop overlay generated its
-## items with (RunMapController owns it) — reused here only for the "heal" item's random
-## target pick, matching src/engine.js's `pick(s.roster)`.
-func try_buy_shop_item(item: Dictionary, rng: Rng) -> bool:
+## src/data.js shopBuy() ported subset. Takes an INDEX into `shop_items` — the offer this run
+## generated — so the action log records a choice rather than a description of the goods.
+## `_shop_rng` is the same stream the offer was generated from, continued here for the "heal"
+## item's random target pick (src/engine.js's `pick(s.roster)`); continuing it rather than
+## starting a fresh one is what makes the purchase order part of the replay.
+func try_buy_shop_item(index: int) -> bool:
+	if index < 0 or index >= shop_items.size():
+		return false
+	var item: Dictionary = shop_items[index]
+	if bool(item.get("bought", false)):
+		return false
 	var cost := int(item.get("cost", 0))
 	if shards_this_run < cost:
 		return false
-	# kind + key identifies WHICH item, the same way the JS log's shop index does, without
-	# carrying the price the client claims it paid.
-	action_log.record("shop_buy", [String(item.get("kind", "")), String(item.get("key", ""))])
+	var rng: Rng = _shop_rng if _shop_rng != null else Rng.new(run_seed)
+	action_log.record("shop_buy", [index])
 	shards_this_run -= cost
 	match String(item.get("kind", "")):
 		"relic":
@@ -685,6 +764,9 @@ func try_buy_shop_item(item: Dictionary, rng: Rng) -> bool:
 				e["bonus_hp"] = int(e.get("bonus_hp", 0)) + int(item.get("v", 10))
 		"reroll":
 			bonus_reroll += 1
+	# Marked here, not by the caller. The screen used to set it after the fact, which meant a
+	# replay — which has no screen — left every item buyable forever.
+	item["bought"] = true
 	return true
 
 
@@ -773,6 +855,15 @@ func to_data() -> Dictionary:
 		# which does use it mid-run cannot make a resumed run diverge from an unsaved one
 		# without anybody noticing.
 		"rng_state": _rng.get_state() if _rng != null else 0,
+		# The shop/event offer, and the shop stream's POSITION. The offer itself is re-derivable
+		# from (run_seed, node_id, salt), but `bought` flags and how far the stream has been
+		# drawn are not: resuming a half-shopped node without them hands the player the same
+		# three items to buy a second time, and moves the "heal" pick onto a different Axie
+		# than the unsaved run would have.
+		"shop_items": shop_items.duplicate(true),
+		"event_key": event_key,
+		"shop_rng_state": _shop_rng.get_state() if _shop_rng != null else 0,
+		"event_rng_state": _event_rng.get_state() if _event_rng != null else 0,
 	}
 
 
@@ -788,6 +879,17 @@ func from_data(d: Dictionary) -> void:
 	map_graph = (d.get("map_graph", {}) as Dictionary).duplicate(true)
 	current_node_id = String(d.get("current_node_id", ""))
 	visited_node_ids.assign(d.get("visited_node_ids", []))
+
+	var saved_shop: Array = d.get("shop_items", []) as Array
+	shop_items = []
+	for raw in saved_shop:
+		if raw is Dictionary:
+			shop_items.append((raw as Dictionary).duplicate(true))
+	event_key = String(d.get("event_key", ""))
+	# `Rng.new(get_state())` is an exact position-in-stream restore, not a reseed — rng.gd's
+	# own header says so, because _init() assigns the state with no extra math.
+	_shop_rng = Rng.new(int(d.get("shop_rng_state", 0)))
+	_event_rng = Rng.new(int(d.get("event_rng_state", 0)))
 
 	shards_this_run = int(d.get("shards_this_run", 0))
 	power_level = int(d.get("power_level", 0))

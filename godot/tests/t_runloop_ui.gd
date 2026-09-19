@@ -198,7 +198,8 @@ func test_shop_bought_and_unaffordable_buttons_use_different_styleboxes() -> voi
 	await get_tree().process_frame
 
 	RunState.shards_this_run = 10
-	runmap.set("_shop_items", [
+	# The offer lives on RunState now, not on the screen — the screen only draws it.
+	RunState.shop_items.assign([
 		{"kind": "relic", "key": "bought_one", "title": "Bought Relic", "desc": "", "rar": 1,
 			"cost": 5, "bought": true},
 		{"kind": "relic", "key": "too_pricey", "title": "Pricey Relic", "desc": "", "rar": 1,
@@ -271,7 +272,8 @@ func test_reward_and_shop_cards_show_a_rarity_chip_matching_rar() -> void:
 	runmap.call("_close_overlay")
 	await get_tree().process_frame
 	RunState.shards_this_run = 500
-	runmap.set("_shop_items", [
+	# The offer lives on RunState now, not on the screen — the screen only draws it.
+	RunState.shop_items.assign([
 		{"kind": "relic", "key": "k1", "title": "Shop Relic", "desc": "", "rar": 2, "cost": 5, "bought": false},
 	])
 	runmap.call("_render_shop")

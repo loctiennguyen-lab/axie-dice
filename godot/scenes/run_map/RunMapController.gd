@@ -591,8 +591,6 @@ var _overlay_dim: ColorRect
 var _overlay_bg: TextureRect     # painted scene behind the dim — see _build_overlay_ui()
 var _event_node_id: String = ""   # so the RESULT screen reuses the offer's own backdrop
 var _overlay_vbox: VBoxContainer
-var _shop_items: Array = []
-var _shop_rng: Rng = null
 
 
 func _build_overlay_ui() -> void:
@@ -772,14 +770,6 @@ func _add_continue_button(text: String, on_pressed: Callable) -> void:
 	_overlay_vbox.add_child(btn)
 
 
-## Deterministic per-node RNG salt scheme: each of the 4 overlay flows below uses a
-## different constant (601 is reserved for RunState._generate_post_combat_rewards()'s own
-## reward roll) so a node that could theoretically be re-entered never draws the same
-## stream twice from the same run_seed.
-func _node_rng(node_id: String, salt: int) -> Rng:
-	return Rng.new(Rng.derive_combat_seed(RunState.run_seed, node_id, salt))
-
-
 ## Shown once, right after a won combat, before the player can interact with the map at all
 ## (RunState.pending_rewards was populated by apply_combat_result() before CombatView even
 ## changed scene to this one). If pending_rewards is somehow empty on arrival (e.g. an empty
@@ -833,32 +823,31 @@ func _on_reward_reroll(title: String) -> void:
 
 
 ## Event node: pick one of ContentDB.events at random, let the player choose 1 of its
-## 2-3 options, apply the real effect (RunState.apply_event_effect()), show the result
+## 2-3 options, apply the real effect (RunState.apply_event_fx()), show the result
 ## message, then finish the node (src/engine.js chooseNode() 'event' branch / eventDone()).
 func _on_event_node(node_id: String) -> void:
-	var rng := _node_rng(node_id, 501)
-	# Only events whose options actually DO something — see ContentDB.playable_event_keys().
-	# Offering an option whose effect is unported means the player chooses and nothing
-	# happens, which is indistinguishable from a bug.
-	var keys := ContentDB.playable_event_keys()
-	if keys.is_empty():
+	# WHICH event, and its stream, are RunState's (opened by enter_node). This screen only
+	# draws the offer and reports which option was clicked — an index, never the option
+	# itself, because the verifier re-derives the offer from the seed.
+	if RunState.event_key.is_empty():
 		push_error("RunMapController: no playable events in ContentDB — cannot resolve event node")
 		_finish_node()
 		return
-	var key: String = keys[rng.next_int(keys.size())]
-	var ev: Dictionary = ContentDB.events[key]
+	var ev: Dictionary = ContentDB.events[RunState.event_key]
 	_event_node_id = node_id
 	_open_overlay(_event_backdrop(node_id))
 	_add_overlay_title("%s  %s" % [String(ev.get("icon", "")), String(ev.get("n", "EVENT"))])
 	_add_overlay_body(String(ev.get("desc", "")))
-	for opt in ContentDB.playable_event_options(key):
-		var o: Dictionary = opt
+	var opts := RunState.event_options()
+	for i in opts.size():
+		var o: Dictionary = opts[i]
+		var index := i
 		_add_card(String(o.get("text", "")), String(o.get("desc", "")), "", "CHOOSE", false,
-			func(): _on_event_choice(o, rng), RewardGenerator.event_option_rarity(o))
+			func(): _on_event_choice(index), RewardGenerator.event_option_rarity(o))
 
 
-func _on_event_choice(opt: Dictionary, rng: Rng) -> void:
-	var msg := RunState.apply_event_effect(String(opt.get("fx", "")), rng)
+func _on_event_choice(index: int) -> void:
+	var msg := RunState.choose_event_option(index)
 	# Same backdrop as the offer that led here: the player has not moved, and a scene change
 	# between choosing and seeing the outcome would read as a second, unrelated node.
 	_save_map_progress()   # the effect is already applied; quitting on the RESULT screen must
@@ -872,9 +861,8 @@ func _on_event_choice(opt: Dictionary, rng: Rng) -> void:
 ## Shop node: src/data.js genShop()/shopBuy() ported subset (RewardGenerator.
 ## generate_shop_items(), real src/data.js prices). Items can be bought 0..N times each
 ## (never twice — `bought` flag), gated on RunState.shards_this_run.
-func _on_shop_node(node_id: String) -> void:
-	_shop_rng = _node_rng(node_id, 502)
-	_shop_items = RewardGenerator.generate_shop_items(_shop_rng, RunState.owned_relic_ids)
+func _on_shop_node(_node_id: String) -> void:
+	# The offer was built by RunState.enter_node(); this screen does not generate goods.
 	_render_shop()
 
 
@@ -885,8 +873,9 @@ func _render_shop() -> void:
 	_open_overlay(BattleBackdrop.class_background("shop"))
 	_add_overlay_title("CHIMERA MERCHANT")
 	_add_overlay_body("Gene Shard: %d" % RunState.shards_this_run)
-	for item in _shop_items:
-		var it: Dictionary = item
+	for i in RunState.shop_items.size():
+		var it: Dictionary = RunState.shop_items[i]
+		var index := i
 		var bought: bool = bool(it.get("bought", false))
 		var afford: bool = RunState.shards_this_run >= int(it.get("cost", 0))
 		var label := "BOUGHT" if bought else "BUY (%d)" % int(it.get("cost", 0))
@@ -896,13 +885,14 @@ func _render_shop() -> void:
 		# (temporary). button_disabled stays the same OR (nothing to press either way); only
 		# the STYLE now branches via _add_card's `owned` param.
 		_add_card(String(it.get("title", "")), String(it.get("desc", "")), "",
-			label, bought or not afford, func(): _on_shop_buy(it), int(it.get("rar", 0)), bought)
+			label, bought or not afford, func(): _on_shop_buy(index), int(it.get("rar", 0)), bought)
 	_add_continue_button("DONE", func(): _finish_node())
 
 
-func _on_shop_buy(item: Dictionary) -> void:
-	if RunState.try_buy_shop_item(item, _shop_rng):
-		item["bought"] = true
+func _on_shop_buy(index: int) -> void:
+	# `bought` is marked inside try_buy_shop_item() now. Marking it here meant a replay, which
+	# has no screen, left every item buyable forever.
+	RunState.try_buy_shop_item(index)
 	_render_shop()   # rebuild so shard total / afford/bought states stay in sync
 
 

@@ -21,6 +21,11 @@ extends Node
 
 const COMBAT_SEED := 424242
 const MAX_TURNS := 200
+## A seed t_full_run_loop walks to the final row, so the recorded run covers combats, rewards,
+## and whatever events/shops/treasures the map lays out rather than three fights and a death.
+const RUN_SEED := 991237
+const MAX_NODES := 40
+const TEAM: Array[String] = ["plant1", "beast1", "aqua1", "reptile1", "bug1"]
 
 const EXPECTED_TESTS: Array[String] = [
 	"test_the_same_decisions_replay_into_the_same_run",
@@ -28,6 +33,9 @@ const EXPECTED_TESTS: Array[String] = [
 	"test_the_log_survives_the_json_round_trip_it_will_travel_as",
 	"test_the_log_refuses_what_a_verifier_could_not_replay",
 	"test_recording_is_off_while_replaying",
+	"test_an_undone_move_replays_like_it_never_happened",
+	"test_a_whole_run_is_rebuilt_from_its_log_by_the_referee",
+	"test_the_referee_knows_every_action_the_log_can_hold",
 ]
 
 var _failures: Array[String] = []
@@ -44,6 +52,9 @@ func _ready() -> void:
 	test_the_log_survives_the_json_round_trip_it_will_travel_as()
 	test_the_log_refuses_what_a_verifier_could_not_replay()
 	test_recording_is_off_while_replaying()
+	test_an_undone_move_replays_like_it_never_happened()
+	test_a_whole_run_is_rebuilt_from_its_log_by_the_referee()
+	test_the_referee_knows_every_action_the_log_can_hold()
 
 	for test_name in EXPECTED_TESTS:
 		if not _completed.has(test_name):
@@ -202,6 +213,150 @@ func test_recording_is_off_while_replaying() -> void:
 	_done("test_recording_is_off_while_replaying")
 
 
+## Undo is the one move where a snapshot and an action-replay could disagree without anyone
+## noticing, because Godot's undo restores the RNG cursor and the JS build's does not. Nothing
+## exercised it: the bot never presses undo, so the whole path was asserted by comment only —
+## found by a security review of this file, not by the file itself.
+func test_an_undone_move_replays_like_it_never_happened() -> void:
+	var log := ActionLog.new()
+	log.begin(COMBAT_SEED, ["plant1", "beast1", "aqua1", "reptile1", "bug1"], "short", 0, "test")
+	var engine := _fresh_engine()
+	engine.action_log = log
+
+	# Use a die, take it back, then use a DIFFERENT die. The first move consumed randomness and
+	# the undo has to give it back, or the second move lands on a stream the replay cannot find.
+	#
+	# The moves are chosen the way the bot chooses them — a blank face cannot be spent at all,
+	# and a heal aimed at an enemy is refused — so this tests undo rather than accidentally
+	# testing targeting rules.
+	var moves := _legal_moves(engine)
+	_assert(moves.size() >= 2,
+		"need two usable party dice to test undo; this roll offered %d" % moves.size())
+	if moves.size() < 2:
+		_done("test_an_undone_move_replays_like_it_never_happened")
+		return
+
+	_assert(engine.use_die(int(moves[0][0]), int(moves[0][1])),
+		"the first die refused a target the bot's own rule picked")
+	_assert(engine.undo_last(), "undo did nothing after a die was used")
+	_assert(engine.use_die(int(moves[1][0]), int(moves[1][1])),
+		"the second die refused a target the bot's own rule picked")
+	engine.end_turn()
+	var played := engine.to_data()
+
+	var kinds: Array[String] = []
+	for e in log.entries:
+		kinds.append(String((e as Dictionary).get("fn", "")))
+	_assert(kinds.has("undo_last"),
+		"the undo was not recorded, so a replay would repeat the move it took back: %s"
+		% str(kinds))
+
+	var replay := _replay(log)
+	_assert(bool(replay["ok"]), str(replay.get("why", "")))
+	_assert(_digest(replay["snapshot"]) == _digest(played),
+		"a combat containing an undo did not replay to the same state.\n  played: %s\n  replayed: %s"
+		% [_brief(played), _brief(replay["snapshot"])])
+	_done("test_an_undone_move_replays_like_it_never_happened")
+
+
+## The whole point, end to end: a RUN — map, combats, rewards, events, shops — rebuilt by
+## `RunVerifier` from nothing but the seed and the decisions, scoring itself the way the live
+## JS server scores a submitted run today.
+func test_a_whole_run_is_rebuilt_from_its_log_by_the_referee() -> void:
+	var played := _play_recorded_run(RUN_SEED)
+	var log: ActionLog = played["log"]
+	_assert(log.size() > 10,
+		"the walk recorded only %d actions; a run that short proves nothing" % log.size())
+	_assert(log.is_complete(),
+		"the run's log reports itself incomplete (overflow=%s, rejected=%s)"
+		% [log.overflowed, str(log.rejected)])
+
+	var verdict := RunVerifier.verify(log)
+	_assert(bool(verdict["ok"]),
+		"the referee refused an honest run: %s — %s (action %s)"
+		% [str(verdict["error"]), str(verdict["message"]), str(verdict["action_index"])])
+	if not bool(verdict["ok"]):
+		_done("test_a_whole_run_is_rebuilt_from_its_log_by_the_referee")
+		return
+
+	_assert(int(verdict["score"]) == int(played["score"]),
+		"the referee scored %d for a run the game scored %d. This IS the anti-cheat: the score "
+		% [int(verdict["score"]), int(played["score"])]
+		+ "the server writes to a leaderboard is the one this replay computes.")
+	_assert(bool(verdict["won"]) == bool(played["won"]),
+		"the referee disagrees about whether the run was won")
+	_assert(_run_digest(verdict["state"]) == _run_digest(played["state"]),
+		"the rebuilt run differs from the played one somewhere outside the score:\n  played:  %s\n  rebuilt: %s"
+		% [_run_brief(played["state"]), _run_brief(verdict["state"])])
+
+	# A tampered run-level log must not score. Bumping a reward pick is the cheapest possible
+	# lie — "I took the strong one" — and the referee re-derives the offer, so it either lands
+	# on a different reward or on nothing.
+	var tampered := _clone(log)
+	var bumped := false
+	for i in tampered.entries.size():
+		var e: Dictionary = tampered.entries[i]
+		if String(e.get("fn", "")) == "take_reward":
+			e["args"] = [int((e.get("args", []) as Array)[0]) + 1]
+			tampered.entries[i] = e
+			bumped = true
+			break
+	if bumped:
+		var bad := RunVerifier.verify(tampered)
+		_assert((not bool(bad["ok"])) or int(bad["score"]) != int(verdict["score"]),
+			"editing which reward was taken changed nothing the referee could see")
+
+	# And a log that admits it is incomplete must be refused before it is even replayed.
+	var holed := _clone(log)
+	holed.rejected.append("a deliberate hole")
+	var refused := RunVerifier.verify(holed)
+	_assert(not bool(refused["ok"]) and String(refused["error"]) == RunVerifier.ERR_INCOMPLETE,
+		"an incomplete log was accepted (error was '%s')" % str(refused["error"]))
+
+	print("  run seed %d: %d actions, score %d, won=%s — referee agreed"
+		% [RUN_SEED, log.size(), int(verdict["score"]), str(verdict["won"])])
+	_done("test_a_whole_run_is_rebuilt_from_its_log_by_the_referee")
+
+
+## An action the log can record but the referee cannot replay is a run that can never be
+## scored — and the player would never find out why. The live JS build has exactly this bug
+## today: `client.html:4624` lists ten logged verbs in a comment that calls itself "kept in sync
+## manually", and there are eleven. `eventDone` is missing from it.
+##
+## Two lists, one commit apart, is all it takes. This gate refuses to let them separate.
+func test_the_referee_knows_every_action_the_log_can_hold() -> void:
+	for fn in ActionLog.ALLOWED_FNS:
+		var probe := ActionLog.new()
+		probe.begin(RUN_SEED, TEAM, "short", 0,
+			String(ContentDB.part_faces.get("engineVersion", "")), true)
+		# One action, in a state where it is almost certainly illegal. Being REFUSED is fine and
+		# expected; being UNKNOWN is the failure — that is the referee saying it has never heard
+		# of a move the game can write down.
+		probe.entries = [{"fn": fn, "args": _sample_args(fn)}]
+		var verdict := RunVerifier.verify(probe)
+		_assert(String(verdict["error"]) != RunVerifier.ERR_UNKNOWN_ACTION,
+			"the log can record '%s' and the referee does not know what it is. Any run "
+			% fn + "containing it can never be scored, and the player is told nothing.")
+	_done("test_the_referee_knows_every_action_the_log_can_hold")
+
+
+## Shapes that match what each action really records, so the probe above fails on "unknown",
+## never on "args were the wrong shape".
+func _sample_args(fn: String) -> Array:
+	match fn:
+		"enter_node":
+			return ["r0n0", "battle"]
+		"use_die":
+			return [1, 2]
+		"play_active":
+			return ["a_bolt", -1]
+		"reroll_dice":
+			return [[1]]
+		"take_reward", "event_choose", "shop_buy":
+			return [0]
+	return []
+
+
 # ===========================================================================
 # Harness
 # ===========================================================================
@@ -261,6 +416,13 @@ func _apply(engine: CombatEngine, fn: String, args: Array) -> bool:
 			return false
 
 
+## The run walker lives in `RunBot` (godot/tools/run_bot.gd) so that this gate and the fixture
+## recorder drive the game identically — two bots would be two behaviours, and the day they
+## drift this gate passes on a sequence nothing can reproduce.
+func _play_recorded_run(seed_value: int) -> Dictionary:
+	return RunBot.play_run(seed_value, TEAM)
+
+
 func _fresh_engine() -> CombatEngine:
 	var engine := CombatEngine.new()
 	engine.setup_new({
@@ -275,27 +437,12 @@ func _fresh_engine() -> CombatEngine:
 	return engine
 
 
+func _legal_moves(engine: CombatEngine) -> Array:
+	return RunBot.legal_moves(engine)
+
+
 func _play_one_turn(engine: CombatEngine) -> void:
-	var guard := 0
-	while guard < 64:
-		guard += 1
-		var acted := false
-		for u in engine.party.duplicate():
-			if u.hp <= 0 or not u.has_rolled() or u.roll_used():
-				continue
-			var fi: int = u.roll_face_index()
-			var f: Dictionary = u.die[fi]
-			var face_type := String(f.get("type", ""))
-			var tgt_uid: int = u.uid
-			if face_type in ["dmg", "poison", "debuff"]:
-				var es: Array = engine.alive_enemies()
-				if es.size() > 0:
-					tgt_uid = es[0].uid
-			if engine.use_die(u.uid, tgt_uid):
-				acted = true
-		if not acted:
-			break
-	engine.end_turn()
+	RunBot.play_turn(engine)
 
 
 func _synthetic_roster() -> Array:
@@ -355,6 +502,21 @@ func _digest(snapshot) -> String:
 	var d: Dictionary = (snapshot as Dictionary).duplicate(true)
 	d.erase("undo_stack")
 	return JSON.stringify(d)
+
+
+## A run's end state, minus the things that are not outcomes. `action_log` is not in to_data()
+## at all; `shop_items` carries `bought` flags that ARE outcomes and stay in.
+func _run_digest(state) -> String:
+	return JSON.stringify(state)
+
+
+func _run_brief(state) -> String:
+	var d: Dictionary = state as Dictionary
+	return "phase=%s pw=%s shards=%s relics=%s visited=%s" % [
+		str(d.get("phase", "?")), str(d.get("power_level", "?")),
+		str(d.get("shards_this_run", "?")),
+		str((d.get("owned_relic_ids", []) as Array).size()),
+		str((d.get("visited_node_ids", []) as Array).size())]
 
 
 func _brief(snapshot) -> String:

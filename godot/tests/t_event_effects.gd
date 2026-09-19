@@ -5,7 +5,7 @@ extends Node
 ##
 ## This exists because of a specific near-miss. The content pass added `casino` and `mutant`
 ## to ContentDB.events, which immediately made them reachable at a real event node — but six
-## of their fourteen `fx` values had no handler in RunState.apply_event_effect(). The result
+## of their fourteen `fx` values had no handler in RunState.apply_event_fx(). The result
 ## was not a crash and not an error: the player read "40%: a Mythic face", clicked it, and
 ## nothing whatsoever happened. Silent no-ops are worse than missing content, because they are
 ## indistinguishable from a bug at play time and invisible at review time.
@@ -63,9 +63,9 @@ func test_every_offerable_option_has_an_effect() -> void:
 			var fx := String((opt as Dictionary).get("fx", ""))
 			_assert(fx != "",
 				"event '%s' offers an option with no fx at all: %s" % [key, opt])
-			var msg := RunState.apply_event_effect(fx, Rng.new(7))
+			var msg := RunState.apply_event_fx(fx, Rng.new(7))
 			_assert(msg != "",
-				"event '%s' offers '%s' (fx '%s') but RunState.apply_event_effect() has no "
+				"event '%s' offers '%s' (fx '%s') but RunState.apply_event_fx() has no "
 					% [key, (opt as Dictionary).get("text", "?"), fx]
 				+ "handler for it — the player would pick this and nothing would happen")
 
@@ -126,7 +126,7 @@ func test_bet_small_both_outcomes_are_reachable_and_real() -> void:
 		_fresh_run(1000 + i)
 		var hp_before: int = int(RunState.roster[0].get("bonus_hp", 0))
 		var relics_before: int = RunState.owned_relic_ids.size()
-		var msg := RunState.apply_event_effect("bet_small", Rng.new(i * 31 + 5))
+		var msg := RunState.apply_event_fx("bet_small", Rng.new(i * 31 + 5))
 		_assert(msg != "", "bet_small returned no result message at iteration %d" % i)
 		if msg.begins_with("YOU WIN"):
 			wins += 1
@@ -150,7 +150,7 @@ func test_shards30_grants_shards() -> void:
 	var before := RunState.shards_this_run
 
 	# Act
-	var msg := RunState.apply_event_effect("shards30", Rng.new(1))
+	var msg := RunState.apply_event_fx("shards30", Rng.new(1))
 
 	# Assert
 	_assert(RunState.shards_this_run == before + 30,

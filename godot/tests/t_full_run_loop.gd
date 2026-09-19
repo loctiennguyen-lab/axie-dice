@@ -258,18 +258,23 @@ func _resolve_node(node: RunMapNode, tag: String, force_win: bool) -> bool:
 			RunState.after_node()
 
 		"event":
-			var ev_keys: Array = ContentDB.events.keys()
-			_check(not ev_keys.is_empty(), "%s: event node but ContentDB.events is empty" % tag)
-			if not ev_keys.is_empty():
-				var ev: Dictionary = ContentDB.events[ev_keys[0]]
-				var opts: Array = ev.get("opts", [])
-				_check(not opts.is_empty(), "%s: event '%s' has no options" % [tag, ev_keys[0]])
-				if not opts.is_empty():
-					RunState.apply_event_effect(String((opts[0] as Dictionary).get("fx", "")),
-						Rng.new(RunState.run_seed + node.row))
+			# The offer is RunState's now (opened by enter_node), so this walks the SAME event
+			# a player would get at this node instead of reaching into ContentDB for the first
+			# key it finds — which also means the action log it writes is replayable.
+			var opts := RunState.event_options()
+			_check(not RunState.event_key.is_empty(),
+				"%s: event node but RunState picked no event" % tag)
+			_check(not opts.is_empty(),
+				"%s: event '%s' offered no options" % [tag, RunState.event_key])
+			if not opts.is_empty():
+				RunState.choose_event_option(0)
 			RunState.after_node()
 
 		"shop":
+			# Buy whatever is affordable, so purchases appear in the log and the shop's RNG
+			# stream actually advances — an untouched shop proves nothing about replay.
+			for i in RunState.shop_items.size():
+				RunState.try_buy_shop_item(i)
 			RunState.after_node()
 
 		"treasure":

@@ -99,12 +99,18 @@ var rejected: Array[String] = []
 ## part_faces.json carries its own `engineVersion`, and a log replayed against different face
 ## values is as wrong as one replayed against different rules.
 func begin(seed_value: int, team_keys: Array, mode: String, ascension: int,
-		content_version: String = "") -> void:
+		content_version: String = "", is_ranked: bool = false) -> void:
 	header = {
 		"seed": seed_value,
 		"team_keys": Array(team_keys).duplicate(),
 		"mode": mode,
 		"ascension": ascension,
+		# A verifier can only rebuild a RANKED run. An unranked one starts with whatever the
+		# player has unlocked (extra rerolls, bonus HP, a starting relic), which lives in their
+		# local save and nowhere else — replaying it elsewhere would produce a different run and
+		# call an honest player a cheat. `MetaState.run_bonuses(true)` returns all zeroes for
+		# exactly this reason, which is what makes a ranked run reproducible from its seed alone.
+		"ranked": is_ranked,
 		"rules_version": RULES_VERSION,
 		"content_version": content_version,
 	}
@@ -186,6 +192,7 @@ static func from_data(data: Dictionary) -> ActionLog:
 	out_log.header = (data.get("header", {}) as Dictionary).duplicate(true)
 	out_log.header["seed"] = int(out_log.header.get("seed", 0))
 	out_log.header["ascension"] = int(out_log.header.get("ascension", 0))
+	out_log.header["ranked"] = bool(out_log.header.get("ranked", false))
 	var raw: Array = data.get("entries", []) as Array
 	var out: Array[Dictionary] = []
 	for e in raw:

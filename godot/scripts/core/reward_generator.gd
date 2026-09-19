@@ -281,7 +281,7 @@ static func _hero_name(entry: Dictionary) -> String:
 	return String(hero_def.get("n", entry.get("hero_key", "?")))
 
 
-## Shared by reward generation, event effects (RunState.apply_event_effect), and the shop —
+## Shared by reward generation, event effects (RunState.apply_event_fx), and the shop —
 ## every place src/engine.js's relicPool()/pick() picked a random not-yet-owned relic.
 ## Simplification vs. src/engine.js relicConflict(): does NOT enforce RELIC_MLOAD_CAP,
 ## RELIC_CAP, or the ex/exSub keyword-conflict exclusion (rule spec §5) — those need the

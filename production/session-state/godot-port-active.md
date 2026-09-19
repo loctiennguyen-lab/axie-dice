@@ -16,7 +16,8 @@ Task: **Vault/Import Axie: bước (a)(b)(c) XONG. Bước (d) lớp mạng BỊ
   (ticket B), xem die đối thủ (G), part_faces (H), `axie_to_die.gd` bit-exact (I bước a),
   **preview gene→3D (I bước b)**, **vault store + màn Vault + chốt chặn ranked (I bước c)**,
   **Daily Mission + SAMPLE TEAMS (hàng đợi C #1)**, và **nhật ký hành động + cổng tự-phát-lại**
-  (mục ⓪ ngay dưới). Suite **36/36**. Đã commit tới `2ccf7ba` — không còn việc nào chưa lưu.
+  (mục ⓪ ngay dưới) + **chống gian lận replay-verify đủ bộ, ticket A và H đã đóng**. Suite
+  **37/37**.
   ⚠️ **ĐỪNG đọc câu này thành "hết việc".** Cạn ở đây CHỈ có nghĩa là danh sách đánh số trong
   chính file này đã làm hết — nó chưa bao giờ là bản đồ của cả bản port. Việc còn lại nằm ở
   **`docs/godot-port-gap-inventory.md`** (đo 2026-09-19): Godot phủ 11/22 màn của bản JS, và
@@ -34,7 +35,7 @@ Task: **Vault/Import Axie: bước (a)(b)(c) XONG. Bước (d) lớp mạng BỊ
 
 # ⇢ BẮT ĐẦU TỪ ĐÂY (phiên mới đọc mục này trước, phần dưới là lịch sử)
 
-## ⓪ MỚI 2026-09-19 — NHẬT KÝ HÀNH ĐỘNG + CỔNG TỰ-PHÁT-LẠI (bước 1 của anti-cheat)
+## ⓪ 2026-09-19 — CHỐNG GIAN LẬN ĐÃ XONG PHẦN CỐT LÕI (ticket A + H đóng)
 
 Cả ba chuyên gia (technical-director / producer / security-engineer) xếp việc này #1 vì nó cần
 cho **cả 6 phương án** anti-cheat trong `docs/godot-port-gap-inventory.md` §3 — làm trước là
@@ -63,15 +64,46 @@ nhưng **log trong bộ nhớ không còn bằng log trên đường truyền** 
 này sẽ từ chối một người chơi trung thực. Test bắt được, không phải suy đoán. Nay `record()` chỉ
 DÙNG vòng JSON để kiểm tra, còn lưu giá trị gốc; `from_data()` khôi phục lại kiểu số nguyên.
 
-**Còn thiếu (việc tiếp theo của chính mục này)**
-1. **Phát lại ở mức RUN** chưa làm — mới ở mức TRẬN. Vướng: `try_buy_shop_item`/`apply_event_effect`
-   nhận `rng` do màn hình tự tạo (`RunMapController._shop_rng`), nên người xác minh không dựng lại
-   được cùng dòng ngẫu nhiên. Phải cho RunState sở hữu rng của shop/event trước.
-2. `apply_chosen_reward(reward)` phải dò `pending_rewards.find(reward)` để suy ra chỉ số; nếu
-   caller đưa một reward lạ thì log ghi nhận **một lỗ hổng** (`rejected`) thay vì im lặng. API
-   nhận thẳng chỉ số sẽ sạch hơn, nhưng đổi chữ ký là đụng UI nên chưa làm.
-3. Chưa có ai ĐỌC log: chưa gửi lên server, chưa lưu vào save. Đúng thứ tự — không ký một thứ
-   chưa chứng minh được là phát lại đúng.
+**ĐÃ LÀM NỐT trong cùng phiên (sau khi hỏi technical-director + security-engineer + producer)**
+
+- **Kiến trúc chốt: `docs/architecture/adr-0004-headless-godot-is-the-referee.md`** — một bản
+  Godot headless chạy trên server làm trọng tài (phương án A). Vercel vẫn là cửa trước, giữ
+  quyền ghi Upstash, **chỉ tin điểm verifier trả về**. Chi phí thật: ~4–6 USD/tháng một máy nhỏ.
+- **Rào cản "replay cả ván" hoá ra nhỏ hơn hồ sơ ghi**: RNG shop/event vốn đã là
+  `derive_combat_seed(run_seed, node_id, salt)` — hàm thuần của seed, chỉ **nằm sai chỗ**. Đã
+  chuyển quyền sở hữu về `RunState` (`shop_items`, `event_key`, `_shop_rng`, `_event_rng`,
+  `choose_event_option(index)`, `try_buy_shop_item(index)`). Tiện thể sửa luôn một chỗ log nói
+  dối: trước đây log phải ghi MÔ TẢ món hàng do client đưa, giờ ghi **chỉ số** vào một offer mà
+  verifier tự dựng lại.
+- `godot/scripts/core/run_verifier.gd` — trọng tài, dùng chung cho test và server.
+- `godot/tools/verify_run.tscn` (CLI, đọc log JSON → in verdict) và
+  `godot/tools/record_sample_run.tscn` (ghi log mẫu). `godot/tools/run_bot.gd` — MỘT con bot
+  dùng chung cho cả gate lẫn công cụ ghi, để không có hai con bot trôi lệch nhau.
+- `t_rules_version` — vân tay 17 file luật; đổi luật mà quên bump `RULES_VERSION` thì đỏ, kèm
+  đúng một câu hỏi con người phải tự trả lời.
+- **Cổng cutover: `production/cutover-gate.md`** (ticket H) — chạy từ trên xuống ra pass/fail.
+
+**Đo được, không phải dự định**
+- `t_replay` **47 check**; suite **37/37**.
+- Cả một ván: seed 991237, **391 hành động**, điểm **500**, trọng tài ra đúng 500.
+- **Qua ranh giới tiến trình**: `record_sample_run` → file JSON 13KB → một tiến trình Godot khác
+  → `{"ok":true,"score":500,"won":true}`.
+- **7 phép tiêm gian lận đều bị chặn**: bỏ hành động / đổi mục tiêu / hoán vị / đổi phần thưởng
+  đã lấy / sửa seed → `action_rejected` ngay nước 1 / chèn lượt nhận thưởng →
+  "Reward 0 was taken from an offer of 0" / sửa dấu phiên bản → `rules_version_mismatch`.
+- **Hai cổng tự chứng minh biết trượt**: tiêm lệch seed vào CombatEngine ⇒ t_replay đỏ; thêm một
+  hành động vào allow-list mà verifier chưa biết ⇒ đỏ đúng câu "any run containing it can never
+  be scored".
+- Đường **undo** giờ có test riêng — trước đó không test nào chạm vào, và đó là chỗ duy nhất
+  ảnh-chụp và phát-lại có thể lệch nhau mà không ai biết (security-engineer chỉ ra, không phải
+  test tự thấy).
+
+**CÒN LẠI của hệ này (cần chủ dự án, không phải code)**
+1. Dựng hộp verifier thật (Fly.io / Hetzner) + `api/submit-run-godot.js` chuyển tiếp.
+2. Bảng xếp hạng Godot dùng khoá riêng — 18 hàng vs 12 hàng, điểm hai bản không so được.
+3. Danh tính người nộp: hệ Account vẫn 0%. Nếu bản Godot ship kèm ranked thì Account quay lại
+   thành BẮT BUỘC (bẫy #1 trong cutover-gate.md).
+
 
 
 > **BÀN GIAO 2026-09-19.** User sẽ mở phiên mới và gõ *"tiếp tục làm Axie Dice trên Godot"*.

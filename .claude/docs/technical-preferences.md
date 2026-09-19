@@ -107,6 +107,22 @@
 - **Prerequisites** (both have cost hours before): `npm install` is required — without it `verify`/`t_aoe`/`t_fit` fail on `import { chromium } from 'playwright'`, which reads like three broken suites rather than one missing dependency. And `verify.mjs` needs a **served build**: `python3 build.py`, serve the repo root on port 5173, then pass `--url http://localhost:5173/AxieDiceTactics.html`. Run bare it gives `ERR_CONNECTION_REFUSED`, which looks like a code failure and is not.
 - **Required Tests**: Balance formulas (engine.js combat math), UI rule compliance (contrast, tap targets, no layout shift, no `undefined`/`NaN` leaks — see the 8 UI rules in `docs/axiedice-source/ORIGINAL_PROJECT_CLAUDE.md`), soak tests after any change touching `.die`/`.unit` element lifecycle (known regression source for drag/drop)
 
+## Test Floor — Godot port (`godot-port` branch)
+
+- **`godot/tools/run_tests.sh` must be 37/37.** Measured 2026-09-19, not copied. It runs every
+  `godot/tests/t_*.tscn` headless and fails on a non-zero exit, a `SCRIPT ERROR`, a `Parse
+  Error`, an explicit FAIL, or a missing PASS.
+- Notable gates and their sizes: `t_replay` **47 checks** (action log + combat replay + full-run
+  replay through `RunVerifier` + seven tamper injections) · `t_rules_version` (fingerprints the
+  17 rule files so `ActionLog.RULES_VERSION` cannot be silently left behind) · `t_full_run_loop`
+  **197 checks** across 8 seed-walks · `t_vault` 275 · `t_axie_api` 98.
+- Change the suite, change this number **in the same commit**. The JS half of this document
+  already records what a stale floor costs: it does not merely misinform, it **authorises a
+  real regression to pass review**.
+- ⚠️ A GDScript parse error makes a headless run **hang** instead of failing. Run
+  `Godot --headless --path godot --import` first; a new `class_name` is also invisible until
+  that import registers it.
+
 ## Forbidden Patterns
 
 <!-- Add patterns that should never appear in this project's codebase -->

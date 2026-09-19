@@ -545,8 +545,8 @@ func _load_bosses() -> void:
 ## FACE_POOL is NOT ported to this file. Those 3 options carry `"needs_face_pool": true` so
 ## whatever eventually consumes ContentDB.events (RunMapController today just iterates every
 ## `opts` entry unconditionally — see RunMapController._on_event_node()) can filter them out
-## rather than call into RunState.apply_event_effect() with an fx it can't resolve. As of
-## this pass RunState.apply_event_effect() (owned by another workstream, not edited here)
+## rather than call into RunState.apply_event_fx() with an fx it can't resolve. As of
+## this pass RunState.apply_event_fx() (owned by another workstream, not edited here)
 ## has no case for ANY of casino's/mutant's fx values yet (bet_small/bet_big/shards30/dip/
 ## drink/leave all fall through to its `return ""` default) — so today picking "casino" or
 ## "mutant" at a real event node is a silent no-op for every option, not just the 3 marked
@@ -737,7 +737,7 @@ func avg_face_value(die: Array) -> float:
 ## than presented as a decision with one button.
 ##
 ## Delete this filter — do not work around it — once FACE_POOL lands and the `fx` handlers
-## in RunState.apply_event_effect() cover bet_big/dip/drink.
+## in RunState.apply_event_fx() cover bet_big/dip/drink.
 func playable_event_options(event_key: String) -> Array:
 	var out: Array = []
 	for opt in ((events.get(event_key, {}) as Dictionary).get("opts", []) as Array):
