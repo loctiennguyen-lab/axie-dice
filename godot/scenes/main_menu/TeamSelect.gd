@@ -480,7 +480,15 @@ func _build_card(index: int) -> PanelContainer:
 	# godot/CLAUDE.md puts the mockup above a superseded prose pass.
 	for hero_key in _pick_keys:
 		option.add_item(_pick_label(hero_key))
-	option.select(max(0, _pick_keys.find(_team_selection[index])))
+	# A key the picker cannot show must not stay in the roster: a vault Axie removed between
+	# two screens, or a record that went stale, would otherwise sit invisibly in `_team_selection`
+	# while the dropdown displayed slot 0's hero — and CONFIRM would hand the run a key
+	# `ContentDB.heroes` no longer has, which builds a 0 HP unit.
+	var sel := _pick_keys.find(_team_selection[index])
+	if sel < 0:
+		sel = 0
+		_team_selection[index] = _pick_keys[0]
+	option.select(sel)
 	option.item_selected.connect(func(idx: int) -> void:
 		_team_selection[index] = _pick_keys[idx]
 		_refresh_card(index)
