@@ -1699,10 +1699,13 @@ func _show_reward_overlay(title: String, backdrop: Texture2D = null) -> void:
 		_add_reward_card(r)
 
 	# Mockup: the footer row sits at `bottom:96px`, centred, `gap:13px`.
-	# FLAGGED: the mockup also draws a SKIP button beside REROLL. This build has no
-	# skip-a-reward path - RunState.after_node() is only ever reached through
-	# _on_reward_chosen(), so a SKIP button would either do nothing or need a new engine rule -
-	# so it is NOT drawn. Reported rather than shipped inert.
+	# DECIDED 2026-09-21 by the project owner: NO SKIP BUTTON. Choosing a reward stays
+	# mandatory. This was flagged as a gap - the mockup draws SKIP beside REROLL and this build
+	# has no skip-a-reward path, because `RunState.after_node()` is only ever reached through
+	# `_on_reward_chosen()`. The answer is that the mockup is wrong here, not the build: a skip
+	# would need a new engine rule, and the owner does not want one. The button is not drawn,
+	# and this is now a recorded decision rather than an open question - do not "restore" it
+	# from the mockup on a later pass.
 	if RunState.reward_reroll_charges > 0:
 		var footer := HBoxContainer.new()
 		footer.name = "RewardFooter"
