@@ -10,7 +10,7 @@ extends Node
 ##
 ## Run: /path/to/Godot --path godot res://tests/qa_vault_screen_capture.tscn
 
-const _EVIDENCE_DIR := "/Users/loc.tien.nguyen/my-game/production/qa/evidence"
+var _EVIDENCE_DIR := QaPaths.evidence_dir()
 const GOLDEN_REL := "../third_party/godot-axie-mixer-3d-main/tests/goldens/sample_axies.json"
 
 ## Real genes from the vendor's pinned samples, so the previews in the shot are the same four

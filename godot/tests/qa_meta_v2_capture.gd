@@ -7,7 +7,7 @@ extends Node
 ##
 ## Run: /path/to/Godot --path godot res://tests/qa_meta_v2_capture.tscn
 
-const _EVIDENCE_DIR := "/Users/loc.tien.nguyen/my-game/production/qa/evidence"
+var _EVIDENCE_DIR := QaPaths.evidence_dir()
 
 var _save_guard := SaveGuard.new()
 

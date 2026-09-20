@@ -27,8 +27,15 @@ const RESULT_SCENE := "res://scenes/result/Result.tscn"
 ##
 ## The RULE itself has NOT moved and is still checked below, just against band NAMES instead
 ## of header text: PartyRow (this run's build) reads above StatRibbon (this run's performance)
-## reads above CardRow (shard/pass/relics) reads above CtaRow — outcome, then build, then
+## reads above CardRow (shard/pass/relics) reads above the CTAs — outcome, then build, then
 ## currency, top to bottom.
+##
+## UPDATED (routing task, FIX-PASS-02 §1 item 4): the CTA row ("RUN IT AGAIN" / "MAIN MENU")
+## used to be its own `CtaRow` Control anchored to the bottom of the raw viewport; it is now
+## folded into the shared shell's `Footer` bar (DangoScreen.build()/add_back_button()/
+## add_footer_action(), the same BACK + primary-action convention Pass/Unlocks/Vault/Guides
+## already use) — see ResultView.gd's `_build_cta_row()`. `Footer` is what now stands in for
+## "the CTAs" at the bottom of the reading order.
 ##
 ## One piece of the old rule DID get overridden, on purpose, by the mockup: v1 deliberately put
 ## "RELICS COLLECTED" ABOVE the shard/pass totals ("the relics are the story of THIS run and
@@ -37,7 +44,7 @@ const RESULT_SCENE := "res://scenes/result/Result.tscn"
 ## ("where the spec and a mockup disagree, the mockup is right") that literal order is what
 ## ResultView.gd now builds — see that file's `_build_card_row()` comment. So this file no
 ## longer asserts relics-before-currency; it only checks that all three cards are still present.
-const EXPECTED_BAND_ORDER: Array[String] = ["PartyRow", "StatRibbon", "CardRow", "CtaRow"]
+const EXPECTED_BAND_ORDER: Array[String] = ["PartyRow", "StatRibbon", "CardRow", "Footer"]
 const EXPECTED_CARD_ROW_CAPTIONS: Array[String] = ["GENE SHARD", "LUNACIA PASS", "RELICS CARRIED"]
 
 const EXPECTED_TESTS: Array[String] = [

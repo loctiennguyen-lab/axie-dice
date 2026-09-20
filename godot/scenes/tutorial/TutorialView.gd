@@ -81,6 +81,14 @@ var _big_title: Label
 var _big_body: Label
 var _big_button: Button
 
+var _content: Control
+
+## FLAGGED (routing task): no background art was ever specified for this fixture screen (it
+## painted flat DangoTheme.BG before this pass). Reusing MainMenu's plate — thematically
+## "entering the game" fits an onboarding rehearsal — rather than leaving the shell's plate
+## argument to a made-up asset with no design reference.
+const BG_TEXTURE := "res://assets/backgrounds/origins/scene/4-entrance.jpg"
+
 
 func _ready() -> void:
 	custom_minimum_size = Vector2(0, 0)
@@ -88,6 +96,20 @@ func _ready() -> void:
 	_build_ui()
 	_setup_combat()
 	_render()
+
+
+## Shell (godot/CLAUDE.md rule 2). NO footer — changed 2026-09-20.
+##
+## The routing task's scene list said "footer", and this screen duly built one and then added
+## nothing to it: a 72px bar of chrome with no control in it, sitting across the bottom of every
+## tutorial step. FIX-PASS-03 §1 is explicit that empty painted background is fine and an empty
+## PANEL is not, and §8's footer rule exists to hold a BACK — which this mandatory fixture
+## deliberately does not have (see the file header's ISOLATION note; the flow exits through its
+## own DONE overlay). A bar with nothing in it satisfies neither rule, so it goes; the content
+## column keeps the height back.
+func _build_shell() -> Control:
+	var built := DangoScreen.build(self, load(BG_TEXTURE), DangoTheme.Scrim.DEFAULT, false, false)
+	return built["content"]
 
 
 # ===========================================================================
@@ -189,23 +211,18 @@ func _all_rollable_uids() -> Array:
 # ===========================================================================
 
 func _build_ui() -> void:
-	var bg := ColorRect.new()
-	bg.color = DangoTheme.BG
-	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
-	add_child(bg)
+	_content = _build_shell()   # first statement in effect — see _build_shell()'s own doc comment
 
 	_board = VBoxContainer.new()
 	_board.set_anchors_preset(Control.PRESET_FULL_RECT)
 	_board.add_theme_constant_override("separation", 16)
-	add_child(_board)
 
 	var margin := MarginContainer.new()
 	for side in ["left", "right", "top", "bottom"]:
 		margin.add_theme_constant_override("margin_" + side, 24)
 	margin.set_anchors_preset(Control.PRESET_FULL_RECT)
-	remove_child(_board)
 	margin.add_child(_board)
-	add_child(margin)
+	_content.add_child(margin)
 
 	var header := Label.new()
 	header.text = "TUTORIAL"
@@ -226,7 +243,7 @@ func _build_ui() -> void:
 
 	_intent_panel = PanelContainer.new()
 	_intent_panel.visible = false
-	_intent_panel.add_theme_stylebox_override("panel", DangoTheme.panel_style(DangoTheme.BG_PANEL, 2, 10, 12.0))
+	_intent_panel.add_theme_stylebox_override("panel", DangoTheme.surface_style(DangoTheme.Surface.PANEL, 10, 3, 4.0, Vector2(12, 8)))
 	_board.add_child(_intent_panel)
 	var intent_col := VBoxContainer.new()
 	intent_col.add_theme_constant_override("separation", 8)
@@ -283,7 +300,7 @@ func _build_ui() -> void:
 		_reward_buttons.append(rb)
 
 	_coach_panel = PanelContainer.new()
-	_coach_panel.add_theme_stylebox_override("panel", DangoTheme.panel_style(DangoTheme.BG_PANEL, 2, 10, 14.0))
+	_coach_panel.add_theme_stylebox_override("panel", DangoTheme.surface_style(DangoTheme.Surface.PANEL, 10, 3, 4.0, Vector2(14, 9)))
 	_board.add_child(_coach_panel)
 	var coach_col := VBoxContainer.new()
 	coach_col.add_theme_constant_override("separation", 6)
@@ -306,7 +323,7 @@ func _build_ui() -> void:
 	_big_overlay = ColorRect.new()
 	(_big_overlay as ColorRect).color = DangoTheme.BG
 	_big_overlay.set_anchors_preset(Control.PRESET_FULL_RECT)
-	add_child(_big_overlay)
+	_content.add_child(_big_overlay)
 	var big_center := CenterContainer.new()
 	big_center.set_anchors_preset(Control.PRESET_FULL_RECT)
 	_big_overlay.add_child(big_center)

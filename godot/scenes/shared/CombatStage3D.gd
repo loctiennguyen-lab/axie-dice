@@ -156,7 +156,24 @@ const _BOSS_COLOR_VARIANT := {
 ## NO LARGER than a party Axie, because the enemy row sits further from the camera
 ## (_POS_Z_ENEMY) and perspective already shrinks it. The multiplier has to beat that
 ## foreshortening before it starts reading as "boss".
-const _BOSS_SCALE := 2.15
+## 2.15 -> 1.85 on 20 Sep 2026, and the multiplier going DOWN is how the boss gets BIGGER.
+##
+## _ENEMY_SPRITE_HEIGHT_M just rose 1.7 -> 2.55, and this multiplies it. Left at 2.15 a boss
+## would be 5.48m, projecting ~311px, with its top at y = 469 - 311 = 158. The enemy nameplate
+## is now pinned at y=125 and runs to y=189 (CombatView._ENEMY_PLATE_TOP, from combat-v2.html's
+## absolutely-positioned enemy column), so the boss's head would come up THROUGH its own
+## nameplate by about 31px. That is the exact failure an earlier pass wrote a warning about in
+## this file: raising the sprite height "is NOT safe to do alone".
+##
+## 1.85 keeps the boss's top clear of the plate with a margin: 2.55 * 1.85 = 4.72m, ~268px,
+## top at y ~= 201, twelve pixels below the plate. In absolute terms the boss still grew —
+## ~208px before this change, ~268px after — it is only the RATIO to a rank-and-file monster
+## that fell, from 2.15 to 1.85. A boss still reads as a boss; it just no longer wears its
+## nameplate as a hat.
+##
+## These figures come from the projection arithmetic above, not from a capture. Measure a real
+## boss encounter before trusting the 12px margin.
+const _BOSS_SCALE := 1.85
 
 ## Target on-screen height (meters) for a rank-and-file enemy's Chimera Sprite3D (see
 ## spawn_unit()'s `elif is_enemy and MonsterArt.texture_for(...)` branch and
@@ -170,7 +187,19 @@ const _BOSS_SCALE := 2.15
 ## real screenshot afterward, not just computed (this file's own recurring note: --headless
 ## cannot render real pixels). Bosses multiply this by _BOSS_SCALE, same as every other boss
 ## up-sizing path in this file.
-const _ENEMY_SPRITE_HEIGHT_M := 1.7
+## 1.7 -> 2.55 on 20 Sep 2026: the owner's "monsters 1.5x bigger".
+##
+## The design review measured the gap this closes. At _POS_Z_ENEMY the enemy row sits about
+## 20.2 world units from the camera, so one metre projects to roughly 1148.06 / 20.2 = 56.8px:
+## a 1.7m sprite rendered ~97px against the 166-196px combat-v2.html draws, leaving ~147px of
+## empty air between a pinned nameplate and the creature under it. 2.55m renders ~145px and
+## closes most of that.
+##
+## This does NOT fully reach the mockup, and that is not a rounding error. The mockup is flat
+## 2D and draws both rows at one scale; a single perspective camera over one ground plane
+## cannot give two rows equal apparent size AND vertical separation. Going further means a
+## per-row scale compensation or a second camera — a design decision, not a constant.
+const _ENEMY_SPRITE_HEIGHT_M := 2.55
 
 ## Ground-contact shadow (visual-polish backlog P1-1, 2026-09-19 QA audit —
 ## production/qa/2026-09-19_visual-polish-backlog.md: "cả 5 Axie phe ta lẫn quái đứng trên cát
@@ -249,11 +278,39 @@ const _PART_TYPES: Array[int] = [
 ## independently without moving the party row (already tuned) — value picked empirically against
 ## real screenshots (this file's own long-standing note above: --headless cannot render real
 ## pixels, so this was verified the same way the camera framing pass above was).
-const _ROW_SPACING_PARTY := 1.9
-const _ROW_SPACING_ENEMY := 2.6
+## RETUNED 2026-09-20 against `docs/design-handoff-v2/mockups-v2/combat-v2.html` — the only way
+## to move this screen's LAYOUT BOXES, since the party keeps the 3D gene rig and the monsters
+## keep their sprites (user decision; godot/CLAUDE.md "Art that is NOT taken from the mockups").
+##
+## The four numbers below are solved, not guessed. The stage is a SubViewportContainer with
+## `stretch = true`, so the SubViewport is the Control's own rect — 1920 x 702 at the 1080-tall
+## canvas (Combat.tscn anchors it 0.13 .. 0.78) — and with `fov = 34` vertical the projection is
+## a flat `px_per_world_unit = (702/2)/tan(17°) / depth = 1148.06 / depth`, the same on both axes.
+##
+##   * The mockup's ENEMY column pitch is 186 + 104 = 290px and its band bottoms out at y≈445.
+##   * The mockup's PARTY column pitch is 180 + 14 = 194px and its band bottoms out at y≈824.
+##
+## At the old values the enemy row projected to a 167px pitch — NARROWER than the 176px nameplate
+## every enemy carries, which is exactly the "two enemy nameplates sit flush against each other"
+## defect. CB-09 forbids fixing that on the plate's side (no text-measured, no capped widths), so
+## it is fixed here, where the relationship actually lives.
+##
+## Depth also had to move, and for a second reason: combat-v2.html stacks BOTH columns as
+## status -> nameplate -> model, so the party's plate is now ABOVE its model. At the old row
+## depths the two rows were only ~187px apart vertically and a party plate would have landed on
+## top of the enemy models. z_party 5.45 / z_enemy -6.5 puts the enemy feet at y≈469 and the
+## party feet at y≈824, i.e. 42px of clear air either side of the front line's fixed y=480.
+##
+## KNOWN CONSEQUENCE, flagged rather than compensated: the enemy row is 1.13x further from the
+## camera than it was, so every monster sprite renders ~11% smaller (a 1.7m sprite goes 109px ->
+## 97px). Compensating would mean raising `_ENEMY_SPRITE_HEIGHT_M`, and that is NOT safe to do
+## alone — `HEAD_HEIGHT` (1.55, shared with the party rig) is what the nameplate anchors to, so a
+## taller sprite would push its own head through its plate. See the task report.
+const _ROW_SPACING_PARTY := 1.455
+const _ROW_SPACING_ENEMY := 5.103
 const _POS_Y := 0.0
-const _POS_Z_PARTY := 3.0    # near row (camera-facing) — party
-const _POS_Z_ENEMY := -4.1   # far row — enemies, reads as "further back" per JRPG convention
+const _POS_Z_PARTY := 5.45    # near row (camera-facing) — party
+const _POS_Z_ENEMY := -6.5    # far row — enemies, reads as "further back" per JRPG convention
 
 ## Facing fix (bug report: "Axie đang quay mặt về camera, muốn quay lưng lại tiến lên đánh
 ## boss"). AxieCharacter3D's default forward is NOT documented in this addon's own README, so

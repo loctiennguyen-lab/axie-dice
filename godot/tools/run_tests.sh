@@ -5,9 +5,35 @@
 # a line containing "FAIL" (tests also set exit codes via quit(1) where they can).
 set -uo pipefail
 
-GODOT="${1:-/Users/loc.tien.nguyen/Desktop/Godot.app/Contents/MacOS/Godot}"
+# Godot binary: the Mac editor build when present, otherwise the Linux build vendored in
+# tools/bin/ (container, CI, headless box). Override with GODOT=/path/to/godot.
+_default_godot() {
+  local root
+  root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+  local c
+  for c in "/Users/loc.tien.nguyen/Desktop/Godot.app/Contents/MacOS/Godot" \
+           "$root/tools/bin/Godot_v4.7.2-stable_linux.arm64" \
+           "$root/tools/bin/Godot_v4.7.2-stable_linux.x86_64"; do
+    [[ -x "$c" ]] && { printf '%s' "$c"; return; }
+  done
+  command -v godot 2>/dev/null || true
+}
+GODOT="${1:-${GODOT:-$(_default_godot)}}"
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 PROJ="$ROOT/godot"
+
+# Godot chỉ đăng ký `class_name` cho script nó đã quét. Một file .gd mới chưa quét làm
+# MỌI test tham chiếu tới nó đỏ bằng "Identifier ... not declared in the current scope",
+# tức là một lỗi hạ tầng đội lốt 20 lỗi code. Dấu hiệu: .gd không có .uid đi kèm.
+unscanned=0
+while IFS= read -r f; do
+  [[ -f "$f.uid" ]] || unscanned=$((unscanned+1))
+done < <(find "$PROJ" -name '*.gd' -not -path '*/addons/*' -not -path '*/.godot/*')
+if [[ $unscanned -gt 0 ]]; then
+  echo "$unscanned script chưa được Godot quét — nhập lại project trước khi chạy test..."
+  "$GODOT" --headless --path "$PROJ" --import >/dev/null 2>&1 \
+    || "$GODOT" --headless --path "$PROJ" --editor --quit >/dev/null 2>&1 || true
+fi
 
 pass=0; fail=0; failed_names=()
 

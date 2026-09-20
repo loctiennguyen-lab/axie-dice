@@ -38,7 +38,7 @@ func _ready() -> void:
 	print("QA: CombatView._combat.enemies.size()=", combat_view._combat.enemies.size())
 
 	var img := get_tree().root.get_texture().get_image()
-	img.save_png("/Users/loc.tien.nguyen/my-game/production/qa/evidence/%s_real-flow-varied-enemies.png"
+	img.save_png(QaPaths.evidence_dir() + "/%s_real-flow-varied-enemies.png"
 		% _today())
 	print("QA: saved real-flow screenshot")
 	_guard.restore()

@@ -22,51 +22,73 @@ const MAIN_MENU_SCENE := "res://scenes/main_menu/MainMenu.tscn"
 # images were missing; they never were. Look in that directory before concluding a background
 # does not exist, and do not copy the handoff's copies in — that is how a project ends up with
 # two of every background and no rule about which one is canonical.
-const BG_TEXTURE := "res://assets/backgrounds/origins/scene/8-temple.jpg"
-
-const SHARD_ICON := "res://assets/icons/web/shard.png"
+const BG_MOCKUP_PLATE := "assets/bg/temple.jpg"
 
 var _grid: GridContainer
 var _level_label: Label
+var _level_max_label: Label
 var _xp_label: Label
 var _xp_fill: Control
 var _status_label: Label
+var _track_panel: PanelContainer
+var _track_scroll: ScrollContainer
+var _track_fade: TextureRect
+
+## FIX-PASS-02 §1 item 4: every child goes into the shell's `content`, never `self` — `content`
+## is already inside the safe area and the 84px rail (`DangoScreen.RAIL_X`), and re-centres on
+## resize. Screens built before this pass hand-rolled that same 84px rail themselves; now that
+## `content` supplies it, this screen's own left/right offsets against it are 0, not 84 again.
+var _content: Control
+
+## Vertical space the grid may use before scrolling kicks in: viewport height, minus the panel's
+## own top offset, minus the shared footer's safe area, minus the panel's own top+bottom content
+## margin (20 + 20 from `_build_track_panel()`'s `surface_style` pad). Computed rather than
+## hand-picked so a future change to `BP_MAX_LEVEL` or the footer height cannot silently reopen
+## the 400px-empty-panel bug (FIX-PASS-01 P2) from the other direction (a grid that no longer fits
+## and clips with no scrollbar, FIX-PASS-01 L2).
+##
+## FIXED 2026-09-20 (mockup pass): this was 202 on the belief that "a redline's offset_top = 202
+## stays 202" against `content`. It does not — `DangoScreen.build()` sets `content.offset_top =
+## SAFE`, so a child at 202 lands at 250 on the 1080 canvas. The mockup's `top:202` is 154 here.
+const TRACK_PANEL_TOP := 202.0 - 48.0
+const TRACK_PANEL_PAD_V := 20.0
 
 
 func _ready() -> void:
-	var plate_host := Control.new()
-	plate_host.name = "PlateHost"
-	plate_host.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	plate_host.set_anchors_preset(Control.PRESET_FULL_RECT)
-	add_child(plate_host)
-	DangoTheme.build_plate(plate_host, load(BG_TEXTURE), DangoTheme.Scrim.DEFAULT)
+	var shell := DangoScreen.build(self, MockupAssets.tex(BG_MOCKUP_PLATE),
+		DangoTheme.Scrim.DEFAULT, true)
+	_content = shell["content"]
 
 	_build_header()
 	_build_track_panel()
-	_build_back_button()
+	_build_footer(shell["footer"])
 	refresh()
 
 
-# ── Header: eyebrow + title left, level card right (redline: top 50, left/right 84) ───────────
+# ── Header: eyebrow + title left, level card right (redline: top 50, left/right 84 — the 84 is
+# now supplied by `content`'s own rail, so this row sits flush against it) ─────────────────────
 func _build_header() -> void:
 	var row := HBoxContainer.new()
 	row.name = "HeaderRow"
 	row.set_anchors_preset(Control.PRESET_TOP_WIDE)
-	row.offset_left = 84.0
-	row.offset_right = -84.0
-	row.offset_top = 50.0
+	row.offset_left = 0.0
+	row.offset_right = 0.0
+	# Mockup `top:50`, measured against `content`'s own top edge (the 48px safe line).
+	row.offset_top = 50.0 - 48.0
 	row.alignment = BoxContainer.ALIGNMENT_BEGIN
-	add_child(row)
+	_content.add_child(row)
 
 	var title_col := VBoxContainer.new()
 	title_col.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
 	title_col.add_theme_constant_override("separation", 10)
 	row.add_child(title_col)
 
-	var eyebrow := _eyebrow_chip("PERMANENT PROGRESSION")
+	# Mockup: `letter-spacing:.18em` on this chip.
+	var eyebrow := _eyebrow_chip("PERMANENT PROGRESSION", 0.18)
 	title_col.add_child(eyebrow)
 
-	var title := DangoTheme.display_label("LUNACIA PASS", 56, DangoTheme.CREAM_RAISED)
+	var title := DangoTheme.display_label("LUNACIA PASS", 56, DangoTheme.CREAM_RAISED,
+		800, 0.02)
 	title_col.add_child(title)
 
 	var spacer := Control.new()
@@ -76,13 +98,13 @@ func _build_header() -> void:
 	row.add_child(_build_level_card())
 
 
-func _eyebrow_chip(text: String) -> PanelContainer:
+func _eyebrow_chip(text: String, tracking_em: float = 0.0) -> PanelContainer:
 	var chip := PanelContainer.new()
 	chip.custom_minimum_size = Vector2(0, 34)
 	chip.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
 	var sb := DangoTheme.solid_chip_style(DangoTheme.PRIMARY, 9, 3, Vector2(14, 6))
 	chip.add_theme_stylebox_override("panel", sb)
-	var lbl := DangoTheme.display_label(text, 14, DangoTheme.INK_ON_PRIMARY, 800)
+	var lbl := DangoTheme.display_label(text, 14, DangoTheme.INK_ON_PRIMARY, 800, tracking_em)
 	lbl.add_theme_constant_override("line_spacing", 0)
 	chip.add_child(lbl)
 	return chip
@@ -102,10 +124,17 @@ func _build_level_card() -> PanelContainer:
 	var top_row := HBoxContainer.new()
 	col.add_child(top_row)
 
-	_level_label = DangoTheme.display_label("LEVEL 1 / %d" % ContentDB.BP_MAX_LEVEL, 38,
-		DangoTheme.CREAM_RAISED)
+	_level_label = DangoTheme.display_label("LEVEL 1", 38, DangoTheme.CREAM_RAISED)
 	_level_label.name = "LevelLabel"
 	top_row.add_child(_level_label)
+
+	# The mockup's "/ 30" is a 22px run in #5C6573 on the same baseline, not part of the 38px
+	# number. Two Labels, bottom-aligned in the row, rather than one flattened string.
+	_level_max_label = DangoTheme.display_label(" / %d" % ContentDB.BP_MAX_LEVEL, 22,
+		DangoTheme.FAINT_TEXT)
+	_level_max_label.name = "LevelMaxLabel"
+	_level_max_label.size_flags_vertical = Control.SIZE_SHRINK_END
+	top_row.add_child(_level_max_label)
 
 	var xp_spacer := Control.new()
 	xp_spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -140,18 +169,23 @@ func _build_level_card() -> PanelContainer:
 
 
 # ── Reward grid panel: PANEL surface, radius 18 / border 5 / shelf 7 (redline) ─────────────────
+##
+## FIX-PASS-01 L3: this panel used to be `anchor_bottom = 1.0` / `offset_bottom = -96.0` — pinned
+## to the viewport regardless of how tall the grid actually was, which is exactly the "400px of
+## empty PANEL under a short list" case the audit names this function for. It now only anchors
+## its TOP; the height comes from the grid, computed in `refresh()` (the grid's contents, and
+## therefore its natural height, are not known until `BP_TRACK` is populated into it there).
 func _build_track_panel() -> void:
 	var panel := PanelContainer.new()
 	panel.name = "TrackPanel"
 	panel.set_anchors_preset(Control.PRESET_TOP_WIDE)
-	panel.offset_left = 84.0
-	panel.offset_right = -84.0
-	panel.offset_top = 202.0
-	panel.offset_bottom = -96.0
-	panel.anchor_bottom = 1.0
+	panel.offset_left = 0.0
+	panel.offset_right = 0.0
+	panel.offset_top = TRACK_PANEL_TOP
 	panel.add_theme_stylebox_override("panel",
-		DangoTheme.surface_style(DangoTheme.Surface.PANEL, 18, 5, 7.0, Vector2(20, 20)))
-	add_child(panel)
+		DangoTheme.surface_style(DangoTheme.Surface.PANEL, 18, 5, 7.0, Vector2(20, TRACK_PANEL_PAD_V)))
+	_content.add_child(panel)
+	_track_panel = panel
 
 	var scroll := ScrollContainer.new()
 	scroll.name = "TrackScroll"
@@ -163,6 +197,7 @@ func _build_track_panel() -> void:
 	# over the BACK button).
 	scroll.clip_contents = true
 	panel.add_child(scroll)
+	_track_scroll = scroll
 
 	_grid = GridContainer.new()
 	_grid.name = "RewardGrid"
@@ -172,25 +207,39 @@ func _build_track_panel() -> void:
 	_grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	scroll.add_child(_grid)
 
+	# L2's 24px "there is more below" fade — only shown when `refresh()` finds the grid taller
+	# than the room it has (see `_apply_track_height()`); on the normal 30-level track this never
+	# triggers, and an always-visible fade over the last, complete row would be its own lie.
+	#
+	# Added as a sibling of `panel`, not a child of it: `PanelContainer` fits EVERY child to its
+	# full content rect (it is built for exactly one), so a second child cannot be positioned as a
+	# thin strip inside it. `_apply_track_height()` places this in the PassView root's own
+	# coordinate space instead, once the panel's real (content-driven) height is known.
+	_track_fade = DangoTheme.scroll_fade(DangoTheme.PANEL)
+	_track_fade.name = "TrackScrollFade"
+	_track_fade.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_track_fade.visible = false
+	_track_fade.anchor_left = 0.0
+	_track_fade.anchor_right = 1.0
+	_track_fade.anchor_top = 0.0
+	_track_fade.anchor_bottom = 0.0
+	_track_fade.offset_left = 0.0
+	_track_fade.offset_right = 0.0
+	_content.add_child(_track_fade)
+
 	_status_label = Label.new()
 	_status_label.name = "StatusLabel"
 	_status_label.visible = false
 	_status_label.add_theme_font_size_override("font_size", 13)
 	_status_label.add_theme_color_override("font_color", DangoTheme.DANGER)
-	add_child(_status_label)
+	_content.add_child(_status_label)
 
 
-func _build_back_button() -> void:
-	var back := Button.new()
-	back.name = "BackButton"
-	back.text = "BACK"
-	back.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
-	back.position = Vector2(84, -44 - 28)
-	back.custom_minimum_size = Vector2(0, 44)
-	DangoTheme.style_button(back, false)
-	back.pressed.connect(func() -> void:
+## FIX-PASS-01 L4/P3: BACK lives in the shared footer bar, not floating on the art.
+## §1 item 4: the footer itself is now `DangoScreen.build()`'s, not a screen-built one.
+func _build_footer(footer: HBoxContainer) -> void:
+	DangoScreen.add_back_button(footer, func() -> void:
 		get_tree().change_scene_to_file(MAIN_MENU_SCENE))
-	add_child(back)
 
 
 ## Rebuilds the level card and the 30-tile grid from live state. Public so a test can drive it
@@ -198,10 +247,8 @@ func _build_back_button() -> void:
 func refresh() -> void:
 	var prog := MetaState.bp_progress()
 	var level: int = int(prog.get("level", 0))
-	# Redline sets "/ 30" in a smaller, dimmer run inside the same line; Label has no inline
-	# rich-text sizing without switching to RichTextLabel, so this keeps one size and one colour
-	# rather than faking it — a legibility rule (§ Contrast), not a decoration, is what's binding.
-	_level_label.text = "LEVEL %d / %d" % [level, ContentDB.BP_MAX_LEVEL]
+	_level_label.text = "LEVEL %d" % level
+	_level_max_label.text = " / %d" % ContentDB.BP_MAX_LEVEL
 
 	var needed: int = int(prog.get("needed", 0))
 	if needed <= 0:
@@ -216,6 +263,41 @@ func refresh() -> void:
 		_grid.remove_child(child)
 	for entry in ContentDB.BP_TRACK:
 		_grid.add_child(_build_tile(entry))
+
+	# `queue_free()`'d tiles are still in the tree (and counted by `get_combined_minimum_size()`)
+	# until the end of this frame — measure next frame, once they are actually gone, or a refresh
+	# after a claim briefly "sees" 54 tiles instead of 30 and mis-sizes the panel for one frame.
+	call_deferred("_apply_track_height")
+
+
+## FIX-PASS-01 L3 + L2, done together because they are the same measurement: ask the grid how
+## tall it actually wants to be, and either let the panel hug that (the normal case — 30 levels in
+## 6 columns is 5 rows, comfortably under the safe area) or cap it and let the ScrollContainer
+## take over, with the L2 fade to say there is more. This is what replaces the old
+## `anchor_bottom = 1.0` / `offset_bottom = -96.0`, which sized the panel to the VIEWPORT
+## regardless of the grid, and is exactly the "P2: 400px of empty panel" defect.
+func _apply_track_height() -> void:
+	if _grid == null or _track_scroll == null or _track_panel == null:
+		return
+	var natural := _grid.get_combined_minimum_size().y
+	var viewport_h := get_viewport_rect().size.y
+	# §1 shell pass: `content`'s own height already excludes BOTH safe-area edges (top AND
+	# bottom-plus-footer) — TRACK_PANEL_TOP is now measured from content's top, so this must
+	# subtract content's full top+bottom budget, not only the bottom half as before.
+	var max_scroll_h := viewport_h - DangoScreen.SAFE * 2.0 - DangoScreen.FOOTER_H \
+		- TRACK_PANEL_TOP - TRACK_PANEL_PAD_V * 2.0
+	var overflow := natural > max_scroll_h
+	var scroll_h: float = minf(natural, max_scroll_h) if max_scroll_h > 0.0 else natural
+	_track_scroll.custom_minimum_size.y = scroll_h
+
+	_track_fade.visible = overflow
+	if overflow:
+		# The panel is now pinned at `max_scroll_h` (it cannot grow further), so its bottom edge
+		# is at a fixed, known Y — TRACK_PANEL_TOP + the panel's own top+bottom content margin +
+		# the scroll's height.
+		var panel_bottom := TRACK_PANEL_TOP + TRACK_PANEL_PAD_V * 2.0 + scroll_h
+		_track_fade.offset_top = panel_bottom - DangoTheme.SCROLL_FADE_HEIGHT
+		_track_fade.offset_bottom = panel_bottom
 
 
 func _build_tile(entry: Dictionary) -> Button:
@@ -251,6 +333,12 @@ func _build_tile(entry: Dictionary) -> Button:
 		title_fg = DangoTheme.INK_ON_CREAM_SOFT
 		state_fg = DangoTheme.INK_ON_CREAM_MUTED
 		state_text = "CLAIMED"
+	# FIX-PASS-01 P1, checked against `production/qa/evidence/2026-09-20_meta-v2_pass.png`
+	# (settled by state, not by eye — see the ui-programmer session's report for the check): the
+	# evidence's "24 identical green tiles" is a real `xp`-maxed / `bp_claimed == []` save (
+	# `MetaState.bp_level()` reads only `xp`, entirely independent of `bp_claimed`), not a broken
+	# predicate. This ladder already matches L5 exactly (claimed -> CREAM/"CLAIMED", claimable ->
+	# SUCCESS/"CLAIM NOW", locked -> WELL/"NEEDS LV n") and needed no change.
 	elif claimable:
 		tile_bg = DangoTheme.SUCCESS
 		lv_bg = DangoTheme.CREAM_RAISED
@@ -283,8 +371,13 @@ func _build_tile(entry: Dictionary) -> Button:
 	btn.add_child(content)
 
 	var lv_badge := PanelContainer.new()
+	# Fixed square, so a two-digit level cannot widen the badge and shift the title column's
+	# baseline next to it (FIX-PASS-01 P4). RESTORED to the mockup's 38 from the 32 that fix
+	# used — "30" at 18px is ~22px wide, well inside 38 minus the 3px outline.
 	lv_badge.custom_minimum_size = Vector2(38, 38)
 	lv_badge.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	lv_badge.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	lv_badge.clip_contents = true
 	var badge_sb := StyleBoxFlat.new()
 	badge_sb.bg_color = lv_bg
 	badge_sb.border_color = Color.BLACK
@@ -302,13 +395,13 @@ func _build_tile(entry: Dictionary) -> Button:
 	text_col.add_theme_constant_override("separation", 2)
 	content.add_child(text_col)
 
-	var reward_lbl := DangoTheme.display_label(_reward_label(entry), 14, title_fg, 800)
+	var reward_lbl := DangoTheme.display_label(_reward_label(entry), 14, title_fg, 800, 0.02)
 	reward_lbl.clip_text = true
 	reward_lbl.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	reward_lbl.add_theme_constant_override("line_spacing", 0)
 	text_col.add_child(reward_lbl)
 
-	var state_lbl := DangoTheme.display_label(state_text, 12, state_fg, 800)
+	var state_lbl := DangoTheme.display_label(state_text, 12, state_fg, 800, 0.08)
 	state_lbl.add_theme_constant_override("line_spacing", 0)
 	text_col.add_child(state_lbl)
 

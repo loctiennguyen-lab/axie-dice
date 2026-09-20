@@ -28,7 +28,7 @@ const _BURST_FRAMES := 4          # ~1.0s per burst — deliberately short enoug
 	# ~1.2s march duration, before CombatView._finish() calls change_scene_to_file() and tears
 	# down this script's own node (it IS the loaded main scene here, same situation
 	# t_combatview_smoke.gd's file-header comment already documents for the exact same reason).
-const _EVIDENCE_DIR := "/Users/loc.tien.nguyen/my-game/production/qa/evidence"
+var _EVIDENCE_DIR := QaPaths.evidence_dir()
 
 var _view: Node2D
 var _combat: CombatEngine

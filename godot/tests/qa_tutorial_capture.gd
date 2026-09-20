@@ -37,7 +37,7 @@ func _ready() -> void:
 
 
 func _shoot(tag: String) -> void:
-	var path := "/Users/loc.tien.nguyen/my-game/production/qa/evidence/%s_%s.png" % [_today(), tag]
+	var path := QaPaths.evidence_dir() + "/%s_%s.png" % [_today(), tag]
 	get_tree().root.get_texture().get_image().save_png(path)
 	print("QA: saved ", path)
 

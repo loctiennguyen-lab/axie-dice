@@ -22,6 +22,23 @@ const TABS: Array = [
 	["diff", "DIFFICULTY & KEYS"],
 ]
 
+## X4 — the one-line lede under each tab's title in the Codex panel header.
+##
+## The mockup draws the slot; this is the build's own copy for it, written off what each tab
+## actually says rather than invented. It lives beside TABS so the two cannot fall out of step.
+const TAB_LEDE: Dictionary = {
+	"basic": "One run, one turn, one action — the loop everything else sits inside.",
+	"dice": "Every Axie is a six-sided die, and its six faces are its six body parts.",
+	"mana": "The shared party resource, where it comes from, and the only thing it buys.",
+	"kw": "Every keyword a face can carry, and exactly what it does when it lands.",
+	"st": "Every status a unit can be carrying — what applies it, and when it wears off.",
+	"cls": "The six classes and the always-on passive that gives each one its archetype.",
+	"relic": "The full relic pool, by rarity, with what each one hooks into.",
+	"reward": "What each node type puts in front of you, and what it costs to take it.",
+	"boss": "Six bosses, six mechanics. Three or four of them per run, in a random order.",
+	"diff": "Ascension — what each level stacks on top of the run before it.",
+}
+
 ## In-combat InfoPanel tabs: 3 live (built by InfoPanelView.gd itself) + 3 shared with Codex.
 const INFO_TABS: Array = [
 	["party", "YOUR TEAM"], ["relic", "YOUR RELICS"], ["enemy", "ENEMIES"],
@@ -164,24 +181,62 @@ static func _kw() -> String:
 	return s
 
 
+## X3 — the eleven statuses as DATA, so the Codex can lay them out as the mockup's card grid
+## instead of as a BBCode table.
+##
+## ONE SOURCE. `_st()` below still returns BBCode, because the in-combat InfoPanel renders this
+## same content on a dark panel and has no grid — but it now builds its two tables FROM this
+## list rather than repeating the copy. Edit a rule here and both screens change.
+##
+## `tone` is the key DangoTheme.status_color() knows. Shield is the one entry it has no case
+## for (it is not a stack in Unit.status; CB-13 draws it as an INFO chip), so it carries its
+## colour directly. `icon` is the mockup-side name — MockupAssets maps it to assets/icons/web/.
+## "vulnerable" is the one key whose icon file is spelled differently, which is why the two
+## fields are separate rather than one name used for both.
+static func statuses() -> Array:
+	return [
+		{"name": "Shield", "tone": "", "icon": "shield", "good": true,
+			"rule": "Absorbs damage before HP. Does not expire at end of turn. Pierce ignores it."},
+		{"name": "Regen N", "tone": "regen", "icon": "regen", "good": true,
+			"rule": "Heals N at the end of the turn, then N drops by 1."},
+		{"name": "Thorns N", "tone": "thorns", "icon": "thorns", "good": true,
+			"rule": "Anything that attacks this unit takes N damage back. Hard cap %d. Reptile always has Thorns 2." % StatusEngine.THORNS_CAP},
+		{"name": "Undying", "tone": "undying", "icon": "undying", "good": true,
+			"rule": "Survives one lethal hit at 1 HP."},
+		{"name": "Poison N", "tone": "poison", "icon": "poison", "good": false,
+			"rule": "Deals N piercing damage at end of turn, then N drops by 1. Pierces Shield."},
+		{"name": "Burn N", "tone": "burn", "icon": "burn", "good": false,
+			"rule": "Deals N damage at end of turn, then N is HALVED. Pierces Shield."},
+		{"name": "Weaken N", "tone": "weaken", "icon": "weaken", "good": false,
+			"rule": "That unit deals N less damage per hit."},
+		{"name": "Vulnerable N", "tone": "vulnerable", "icon": "vuln", "good": false,
+			"rule": "That unit takes 50% more damage."},
+		{"name": "Blind N", "tone": "blind", "icon": "blind", "good": false,
+			"rule": "All of that unit's damage faces deal 0, for N turns."},
+		{"name": "Stun", "tone": "stun", "icon": "stun", "good": false,
+			"rule": "The unit skips its next turn entirely."},
+		{"name": "Frozen", "tone": "freeze", "icon": "freeze", "good": false,
+			"rule": "The die cannot be rerolled, but it can still be used."},
+	]
+
+
+## The BBCode form, for the in-combat InfoPanel. The Codex panel uses statuses() directly.
+## The helpful/harmful split stays HERE and only here: X3 puts all eleven in one grid on the
+## Codex, but the InfoPanel is a mid-fight lookup where "is this good or bad for me" is the
+## first thing being asked, and it has no grid to group them any other way.
 static func _st() -> String:
+	var good: Array = []
+	var bad: Array = []
+	for st in statuses():
+		var row := [String(st["name"]), String(st["rule"])]
+		if bool(st["good"]):
+			good.append(row)
+		else:
+			bad.append(row)
 	var s := _H % "HELPFUL EFFECTS"
-	s += _table(["EFFECT", "RULE"], [
-		["Shield", "Absorbs damage before HP. Does not expire at end of turn. Pierce ignores it."],
-		["Regen N", "Heals N at the end of the turn, then N drops by 1."],
-		["Thorns N", "Anything that attacks this unit takes N damage back. Hard cap %d. Reptile always has Thorns 2." % StatusEngine.THORNS_CAP],
-		["Undying", "Survives one lethal hit at 1 HP."],
-	])
+	s += _table(["EFFECT", "RULE"], good)
 	s += "\n" + (_H % "HARMFUL EFFECTS")
-	s += _table(["EFFECT", "RULE"], [
-		["Poison N", "Deals N piercing damage at end of turn, then N drops by 1. Pierces Shield."],
-		["Burn N", "Deals N damage at end of turn, then N is HALVED. Pierces Shield."],
-		["Weaken N", "That unit deals N less damage per hit."],
-		["Vulnerable N", "That unit takes 50% more damage."],
-		["Blind N", "All of that unit's damage faces deal 0, for N turns."],
-		["Stun", "The unit skips its next turn entirely."],
-		["Frozen", "The die cannot be rerolled, but it can still be used."],
-	])
+	s += _table(["EFFECT", "RULE"], bad)
 	return s
 
 

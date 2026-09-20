@@ -114,21 +114,31 @@ const _VICTORY_MARCH_DURATION := 1.2   # seconds — "ngắn ~1-1.5s" per task s
 ## as a stand-in, flagged at the time as "a deliberate adaptation" because this project had no
 ## asset equivalent for src/client.html's own FT_IC table. That gap is closed —
 ## godot/assets/icons/web/*.png|svg are the web build's own icons, extracted verbatim from
-## src/art7.js (godot/tests/t_assets.gd gates their presence) — so _FACE_TYPE_ICON below now maps
-## 1:1 onto FT_IC, "unchanged" per the task's explicit requirement, with no more value-based
-## tiering (that tiering was a Godot-only artifact of reusing the 3-tier attack-intent icons).
-const _FACE_TYPE_ICON := {
-	"dmg": preload("res://assets/icons/web/dmg.png"),
-	"shield": preload("res://assets/icons/web/shield.png"),
-	"heal": preload("res://assets/icons/web/heal.png"),
-	"poison": preload("res://assets/icons/web/poison.png"),
-	"summon": preload("res://assets/icons/web/summon.png"),
-	"mana": preload("res://assets/icons/web/mana.svg"),
-	"buff": preload("res://assets/icons/web/buff.svg"),
-	"debuff": preload("res://assets/icons/web/debuff.svg"),
-	"blank": preload("res://assets/icons/web/blank.svg"),
-}
+## src/art7.js (godot/tests/t_assets.gd gates their presence) — mapping 1:1 onto FT_IC,
+## "unchanged" per the task's explicit requirement, with no more value-based tiering (that
+## tiering was a Godot-only artifact of reusing the 3-tier attack-intent icons).
+##
+## MOVED 2026-09-20 (FIX-PASS-03 G-01): the table itself now lives in
+## `DangoTheme.FACE_TYPE_ICON`, because Team Select and the Vault need the same glyphs to stop
+## drawing bare colour blocks and a second copy here is how the two drift apart.
 const _ICON_SHARD := preload("res://assets/icons/web/shard.png")
+## Relic glyph, by the relic's own `archetype` field (relic_def.gd). FLAGGED, and the report
+## says so out loud: `RelicDef` still has no `icon` field, and combat-v2.html draws the top-bar
+## relic chips as 33x33 tiles carrying a real glyph — a tile with a single letter in it reads as
+## a placeholder, and an empty tile is forbidden outright. `archetype` is the one field on the
+## def that actually describes what the relic DOES, and six of its twelve values name a web icon
+## outright (burn/mana/poison/shield/summon/thorns); the rest fall back to the damage glyph,
+## which is honest for aoe/crit/exec/pierce. Replace this whole table the day RelicDef grows a
+## real icon field.
+const _RELIC_ARCHETYPE_ICON := {
+	"burn": preload("res://assets/icons/web/burn.png"),
+	"mana": preload("res://assets/icons/web/mana.svg"),
+	"poison": preload("res://assets/icons/web/poison.png"),
+	"shield": preload("res://assets/icons/web/shield.png"),
+	"summon": preload("res://assets/icons/web/summon.png"),
+	"thorns": preload("res://assets/icons/web/thorns.png"),
+	"growth": preload("res://assets/icons/web/buff.svg"),
+}
 const _ICON_MANA := preload("res://assets/icons/web/mana.svg")
 const _ICON_REROLL := preload("res://assets/icons/web/reroll.svg")
 
@@ -216,7 +226,24 @@ static func flashes_suppressed() -> bool:
 @onready var _result_overlay: Control = %ResultOverlay
 @onready var _result_label: Label = %ResultLabel
 @onready var _deck_left_column: VBoxContainer = %DeckLeftColumn
+@onready var _front_line_rule: Panel = %Rule       # C6 — a Panel, not a ColorRect: the rule
+	# carries combat-v2.html's `border-radius:3px` and a ColorRect cannot round a corner.
+@onready var _front_line: Control = %FrontLine     # coordinator fix #3 — see _update_front_line()
 @onready var _die_slot_buttons: Array = [%DieSlot0, %DieSlot1, %DieSlot2, %DieSlot3, %DieSlot4]
+## ROUTING TASK (FIX-PASS-02 §1 item 4 / godot/CLAUDE.md rule 2): Combat.tscn's scene ROOT is a
+## Node2D (`t_combatview_smoke.gd`/`t_unit_inspect.gd`/etc. all type their loaded instance as
+## `var _view: Node2D` — changing the root to Control would break every one of those at parse
+## time), so `DangoScreen.build()`, which requires a Control host, is called on `%Root`
+## (CanvasLayer/Root — newly given `unique_name_in_owner`) rather than literally on `self`.
+## Functionally this is the same call the routing task asks for (with_footer=false, combat=true,
+## the first UI-building statement in _ready()) — see that call in _ready() below. `PlateHost`
+## itself is a separate, empty direct child of `self` in Combat.tscn (t_ui_laws.gd's PlateHost
+## check is direct-child-of-scene-root only and does not recurse — verified empirically); the
+## real plate stays BattleBackdrop-driven (`%Background`), which this pass does not own or edit.
+@onready var _shell_root: Control = %Root
+@onready var _deck_bar_panel: PanelContainer = %DeckBar
+@onready var _banner_eyebrow: Label = %Eyebrow
+@onready var _banner_phase: Label = %Phase
 
 var _combat: CombatEngine
 ## The six-tab info panel while it is open, or null. Held so the Info button stays a TOGGLE:
@@ -239,10 +266,17 @@ var _max_rerolls: int = 0
 var _node_caption_label: Label
 var _wave_label: Label
 var _wave_track: HBoxContainer
+## combat-v2.html draws ONE pill: radius 999, a single PRIMARY fill, a blinking 9px dot, the
+## label, a 2px divider and "TURN n". FIX-PASS-01 C8's two adjoined segments (a PRIMARY left and
+## a PANEL_RAISED right sharing an outline) are gone — that was a prose restatement's shape, and
+## godot/CLAUDE.md is explicit that the screen mockup outranks it.
 var _turn_pill_style: StyleBoxFlat
-var _turn_dot: ColorRect
+var _turn_dot: PanelContainer
+var _turn_divider: ColorRect
+var _turn_dot_tween: Tween = null
 var _turn_label: Label
 var _turn_number_label: Label
+var _wave_total_label: Label
 var _relic_strip: HBoxContainer
 var _shard_value_label: Label
 var _mana_value_label: Label
@@ -272,6 +306,11 @@ var _audio: CombatAudioDirector = null    # combat sound; see CombatAudioDirecto
 	# EventBus on its own — this file never calls it per event, only sets it up and starts/stops
 	# the music, so the "every handler funnels into _rebuild_all()" rule below stays intact.
 var _sound_button: Button = null
+## N32 — VERIFIED ALREADY CORRECT 20 Sep 2026, no change made. The owner's capture showed the
+## utility chips as three borderless slabs; that capture predates the current code. They carry
+## a 3px black outline (_utility_chip_style) and already live in their own `ButtonsRow` at the
+## mockup's gap of 5, built in _build_top_bar() — not loose in the bar's own 14px row.
+var _settings_button: Button = null   ## N33 — added to the mockup 20 Sep 2026
 var _quit_confirm: Control = null     # built lazily by _on_quit_pressed()
 var _inspect_panel: Control = null    # built lazily by _open_unit_inspect()
 	# during the current END_TURN phase — see _on_enemy_intent_executed()
@@ -297,11 +336,33 @@ func _ready() -> void:
 	assert(not _setup.is_empty(), "Combat.tscn entered with no pending_combat set — " +
 		"RunMapController must call RunState.enter_node() with a combat node_kind first")
 
+	# Shell (FIX-PASS-02 §1 item 4 / godot/CLAUDE.md rule 2) — the first UI-building statement,
+	# right after the setup/assert above, which has to run first regardless. `plate=null`:
+	# Combat's real plate is BattleBackdrop's own art (`%Background`, `_build_stage_background()`
+	# below), not a static texture known at this point — see `_shell_root`'s doc comment for why
+	# this targets `%Root` rather than `self`, and why `plate=null` is intentional here rather
+	# than fighting BattleBackdrop for the same visual with a second background. No footer
+	# (Combat owns its own chrome); `combat=true` so any future plate this shell draws grades at
+	# combat's darker/less-saturated brightness, matching `_grade_stage_art()` below.
+	DangoScreen.build(_shell_root, null, DangoTheme.Scrim.DEFAULT, false, true)
+	# build() APPENDS its new children to `_shell_root` (Combat.tscn's pre-existing Background/
+	# Scrim/Stage3D/TopBar/DeckBar/etc. are already there, added at scene-load time before this
+	# runs) — left where it lands, the new PlateHost's scrim gradient would paint as the LAST
+	# (topmost) sibling, over the entire screen. Moved behind everything real instead.
+	var _shell_plate_host := _shell_root.get_node("PlateHost")
+	if _shell_plate_host != null:
+		_shell_root.move_child(_shell_plate_host, 0)
+
 	_build_stage_background()
 	_connect_event_bus()
 	_build_top_bar()
 	_build_bottom_deck()
+	_style_turn_banner()
 	_connect_ui_buttons()
+	_layout_stage_bands()
+	# `expand` lets the canvas grow vertically, so the enemy/party bands and the front line
+	# between them have to be re-derived whenever the window changes shape.
+	get_viewport().size_changed.connect(_layout_stage_bands)
 
 	_audio = CombatAudioDirector.new()
 	_audio.name = "CombatAudioDirector"
@@ -385,8 +446,13 @@ func _exit_tree() -> void:
 
 func _unhandled_key_input(event: InputEvent) -> void:
 	if event is InputEventKey and event.pressed and not (event as InputEventKey).echo:
-		if (event as InputEventKey).keycode == KEY_SPACE and not _end_turn_button.disabled and not _is_animating:
+		var code := (event as InputEventKey).keycode
+		if code == KEY_SPACE and not _end_turn_button.disabled and not _is_animating:
 			_on_end_turn_pressed()
+		elif code == KEY_ESCAPE:
+			# The only way out of a fight now that combat-v2.html's four-chip utility row has no
+			# Quit button — the confirm dialog itself is unchanged.
+			_on_quit_pressed()
 
 
 # ===========================================================================
@@ -429,11 +495,43 @@ func _grade_stage_art() -> void:
 		(art as CanvasItem).material = DangoTheme.plate_material(true)
 
 
+## The top bar's four utility chips share one box. combat-v2.html draws them as a fixed row of
+## `UNDO · INFO · LOG · ♪`, and every one of them is the same 33px chip; a helper keeps the four
+## call sites from drifting the way the five call sites before them did.
+func _utility_chip_style(fill: Color, border_w: int = 3) -> StyleBoxFlat:
+	return DangoTheme.solid_chip_style(fill, 9, border_w, Vector2(11, 0))
+
+
+## Top-bar utility chip, per combat-v2.html's `utils` row: height 33, min-width 33, padding
+## 0 11, radius 9, PANEL_RAISED on a 3px black outline, NO shelf (these sit IN the bar, they do
+## not float above it), label at Baloo 13/800. Hover fills PRIMARY and re-inks.
+##
+## Supersedes the 40px-tall `style_button(secondary)` chrome this used to wear: that helper's
+## radius (12), padding (14/7) and shelf (4) are the REROLL button's shape, not this one's.
+func _style_utility_button(btn: Button) -> void:
+	btn.custom_minimum_size = Vector2(33, 33)
+	btn.focus_mode = Control.FOCUS_NONE
+	# Baloo 13/800 at the mockup's `letter-spacing:.05em` — one call sets face, size and tracking.
+	DangoTheme.apply_tracking(btn, 0.05, 13, 800)
+	btn.add_theme_stylebox_override("normal", _utility_chip_style(DangoTheme.PANEL_RAISED))
+	btn.add_theme_stylebox_override("focus", _utility_chip_style(DangoTheme.PANEL_RAISED))
+	btn.add_theme_stylebox_override("hover", _utility_chip_style(DangoTheme.PRIMARY))
+	btn.add_theme_stylebox_override("pressed",
+		_utility_chip_style(DangoTheme.PRIMARY.darkened(0.22), 4))
+	btn.add_theme_stylebox_override("disabled",
+		_utility_chip_style(DangoTheme.PANEL_RAISED.darkened(0.38)))
+	btn.add_theme_color_override("font_color", DangoTheme.TEXT)
+	btn.add_theme_color_override("font_hover_color", DangoTheme.INK_ON_PRIMARY)
+	btn.add_theme_color_override("font_pressed_color", DangoTheme.INK_ON_PRIMARY)
+	btn.add_theme_color_override("font_disabled_color",
+		Color(DangoTheme.TEXT.r, DangoTheme.TEXT.g, DangoTheme.TEXT.b, 0.45))
+
+
 func _connect_ui_buttons() -> void:
 	_reroll_button.pressed.connect(_on_reroll_pressed)
 	_end_turn_button.pressed.connect(_on_end_turn_pressed)
 	_log_toggle_button.pressed.connect(_on_log_toggle_pressed)
-	DangoTheme.style_button(_log_toggle_button, false)
+	_style_utility_button(_log_toggle_button)
 	# Reroll/End Turn's own visual content (icon+label+count chip / label+SPACE chip) is built
 	# once by _build_bottom_deck() -> _style_reroll_button()/_style_end_turn_button(), called from
 	# _ready() before this function runs — style_button() itself is called there too, so this
@@ -445,11 +543,14 @@ func _connect_ui_buttons() -> void:
 	# the reroll/end-turn buttons already do. Info just toggles a static how-to-play panel (no
 	# engine call) — see _on_info_toggle_pressed().
 	_undo_button.pressed.connect(_on_undo_pressed)
-	DangoTheme.style_button(_undo_button, false, false, DangoTheme.TEXT)
+	_style_utility_button(_undo_button)
 	_info_button.pressed.connect(_on_info_toggle_pressed)
-	DangoTheme.style_button(_info_button, false, false, DangoTheme.TEXT)
+	_style_utility_button(_info_button)
 	_build_sound_button()
-	_build_quit_button()
+	# NO CHIP LABELLED "QUIT". combat-v2.html's `utils` row is five chips — UNDO, INFO, LOG, ♪
+	# and (since 20 Sep) ⚙ — and a worded "Quit" is not one of them; see Q3 in the fix list.
+	# The quit CONFIRM flow is untouched and now has two ways in: ESC (_unhandled_key_input())
+	# and the ⚙ chip (_build_utility_row's N33 note on why it opens that and not a scene).
 	_info_panel.visible = false
 
 	for i in _die_slot_buttons.size():
@@ -459,6 +560,19 @@ func _connect_ui_buttons() -> void:
 		btn.mouse_entered.connect(func(): _on_die_slot_hover(idx, true))
 		btn.mouse_exited.connect(func(): _on_die_slot_hover(idx, false))
 
+	# CB-21 / D1 — THE CARD IS 180x158 OUTER. Combat.tscn sets that on all five slots.
+	#
+	# It was 188x166 here for one pass, on the reading that the mockup's 180/158 were a content
+	# box with the 4px border outside them. They are not: the card div in `combat-v2.html` carries
+	# `box-sizing:border-box` explicitly, and its width comes from a wrapper at `width:180px` with
+	# no border of its own. Measured off the reference capture the cards are 180 outer on a 194
+	# pitch (gap 14), not 188 on 202. FIX-PASS-03 CB-21 says the same: "180 wide x 158 tall".
+	#
+	# The inner boxes are NOT all content numbers either — each one has to be read on its own.
+	# The header is the one that genuinely needs the +3: `height:36px` with `border-bottom:3px`
+	# and no `box-sizing`, so it renders 39 tall, which is what _build_die_slot_content() sets.
+	# The face row (62) and keyword row (24) carry `box-sizing:border-box` or no border at all.
+	#
 	# v2 "Die card" redline: CARD_CREAM, 4px black, radius 15, shelf 0 6px 0 — the card is a
 	# reading surface (cream), not chrome, in every state. Selection/disabled/spent no longer
 	# swap the card to a different dark fill (that was the v1 look); they only change the SEL RING
@@ -488,6 +602,11 @@ func _connect_ui_buttons() -> void:
 		# pressed look (square corners, no border) instead of _die_slot_selected_style below.
 		btn.add_theme_stylebox_override("pressed", _die_slot_base_style)
 		btn.add_theme_stylebox_override("focus", _die_slot_base_style)
+		# G3. The header band already carries matching 11px TOP corners (card radius 15 minus
+		# the 4px border), which fixes the two corners it touches; the cream body under it still
+		# squared off the bottom two. Clipping the frame covers all four, and keeps holding if
+		# D1 changes either radius.
+		DangoTheme.clip_to_frame(btn)
 		btn.text = ""   # every state now renders through _die_slot_content children instead —
 			# see _build_die_slot_content()/_update_die_slot_content(); "used"/"dead"/"not
 			# rolled" states still set a plain Label inside that same content tree, not btn.text.
@@ -507,10 +626,55 @@ func _build_sound_button() -> void:
 	_sound_button = Button.new()
 	_sound_button.name = "SoundButton"
 	_sound_button.focus_mode = Control.FOCUS_NONE
-	DangoTheme.style_button(_sound_button, false, false, DangoTheme.TEXT)
+	_style_utility_button(_sound_button)
 	_sound_button.pressed.connect(_on_sound_toggle_pressed)
 	_log_toggle_button.get_parent().add_child(_sound_button)
 	_refresh_sound_button()
+	_build_settings_button()
+
+
+## N33 — the ⚙ chip, last in the `utils` row so it lands in the screen's top-right corner.
+##
+## NEW 20 Sep 2026. Combat had no settings control and neither did the mockup; the owner
+## flagged the gap and `combat-v2.html`'s `utils` row went from four chips to five the same
+## day. Everything about the chip is its four neighbours' — _style_utility_button() — and it
+## joins the same `ButtonsRow` (gap 5) they already live in.
+##
+## WHAT IT OPENS (owner decision): the existing quit-confirm dialog, the one ESC already opens.
+## Combat has no settings panel of its own, and `Settings.tscn` is a SCENE — changing to it
+## mid-fight would destroy the run. Reusing the confirm keeps the fight alive and is the only
+## honest thing the chip can do today; when combat grows a real settings overlay, the
+## `pressed` connection below is the one line that moves.
+##
+## WHY AN ICON AND NOT THE "⚙" CHARACTER. None of this project's six fonts carries U+2699 —
+## their cmaps were read directly, the same check that found U+2713 missing for the map's
+## visited badge — and no fallback font is configured, so the glyph would draw as a tofu box.
+## `assets/icons/web/settings.svg` was added for this, in the same 128-box, black-outlined
+## style as the other web icons.
+##
+## FLAGGED, same cause, NOT fixed here: the ♪ sound chip beside it has the identical problem
+## — U+266A is missing from all six fonts too. It is pre-existing and shipping, so it is
+## reported rather than quietly changed under a task about the settings chip. If it renders as
+## a box on your machine, say so and it gets the same treatment.
+func _build_settings_button() -> void:
+	_settings_button = Button.new()
+	_settings_button.name = "SettingsButton"
+	_settings_button.tooltip_text = "Leave the fight"
+	_settings_button.focus_mode = Control.FOCUS_NONE
+	_style_utility_button(_settings_button)
+	_settings_button.icon = MockupAssets.tex("assets/fx/settings.svg")
+	_settings_button.expand_icon = true
+	_settings_button.add_theme_constant_override("icon_max_width", 19)
+	# The icon stands in for a label, so it takes the label's colours in every state rather
+	# than drawing at full white on a chip whose text is TEXT. The svg is pure white for
+	# exactly this reason - the tint is what gives it its colour.
+	_settings_button.add_theme_color_override("icon_normal_color", DangoTheme.TEXT)
+	_settings_button.add_theme_color_override("icon_focus_color", DangoTheme.TEXT)
+	_settings_button.add_theme_color_override("icon_hover_color", DangoTheme.INK_ON_PRIMARY)
+	_settings_button.add_theme_color_override("icon_pressed_color", DangoTheme.INK_ON_PRIMARY)
+	_settings_button.add_theme_color_override("icon_disabled_color", DangoTheme.FAINT_TEXT)
+	_settings_button.pressed.connect(_on_quit_pressed)
+	_log_toggle_button.get_parent().add_child(_settings_button)
 
 
 func _on_sound_toggle_pressed() -> void:
@@ -521,8 +685,13 @@ func _on_sound_toggle_pressed() -> void:
 func _refresh_sound_button() -> void:
 	if _sound_button == null:
 		return
+	# The mockup labels this chip "♪" and gives it no second state, so mute reads as the glyph
+	# dimming rather than as a different word — the row is four fixed-width chips and a label
+	# that changes length would shuffle the whole group sideways on every press.
 	var muted := CombatAudioDirector.is_muted()
-	_sound_button.text = "Sound: off" if muted else "Sound: on"
+	_sound_button.text = "♪"
+	_sound_button.add_theme_color_override("font_color",
+		DangoTheme.FAINT_TEXT if muted else DangoTheme.TEXT)
 	_sound_button.tooltip_text = "Turn sound back on" if muted else "Mute sound"
 
 
@@ -531,17 +700,6 @@ func _refresh_sound_button() -> void:
 ## JS puts the same control behind a modal (client.html:7135) and so does this: a stray click on
 ## a bare "Quit" during a boss fight would cost a whole run, and the button sits next to
 ## Undo/Info/Log, which are all safe to press.
-func _build_quit_button() -> void:
-	var btn := Button.new()
-	btn.name = "QuitButton"
-	btn.text = "Quit"
-	btn.tooltip_text = "Save and return to the main menu"
-	btn.focus_mode = Control.FOCUS_NONE
-	DangoTheme.style_button(btn, false, false, DangoTheme.TEXT)
-	btn.pressed.connect(_on_quit_pressed)
-	_log_toggle_button.get_parent().add_child(btn)
-
-
 func _on_quit_pressed() -> void:
 	if _quit_confirm != null and is_instance_valid(_quit_confirm):
 		_quit_confirm.visible = true
@@ -565,12 +723,12 @@ func _build_quit_confirm() -> Control:
 	dim.add_child(center)
 
 	var panel := PanelContainer.new()
-	# DangoTheme.BG, not BG_PANEL: the panel colour used everywhere else is 0.82 alpha, which is
+	# PANEL_DEEP, not PANEL: this sits on the painted plate with artwork around it, which is the
 	# right for a HUD panel sitting over its own scene and wrong here — the board read straight
 	# through this dialog, enemy nameplates and all (production/qa/evidence/
 	# 2026-09-18_quit-confirm.png, before this line). A question the player must read needs an
 	# opaque answer behind it.
-	panel.add_theme_stylebox_override("panel", DangoTheme.panel_style(DangoTheme.BG, 3, 12, 20.0))
+	panel.add_theme_stylebox_override("panel", DangoTheme.surface_style(DangoTheme.Surface.PANEL_DEEP, 12, 4, 7.0, Vector2(20, 13)))
 	center.add_child(panel)
 
 	var margin := MarginContainer.new()
@@ -637,7 +795,7 @@ func _on_quit_confirmed() -> void:
 ## of truth per this bundle's own rule) sets `height:60px` on the bar — Combat.tscn/_ready() use
 ## 60, per "where the spec and the mockup disagree, the mockup is right."
 func _build_top_bar() -> void:
-	_stats_row.get_parent().add_theme_stylebox_override("panel", _top_bar_panel_style())
+	_stats_row.get_parent().add_theme_stylebox_override("panel", _top_bar_frame_style())
 
 	_build_node_chip()
 	_build_wave_track()
@@ -647,6 +805,11 @@ func _build_top_bar() -> void:
 	spacer.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_stats_row.add_child(spacer)
 
+	# CB-04 puts the turn pill in the CENTRE OF THE BAR, "independent of the widths either side
+	# of it". In the flow it cannot be: sitting between the spacer and the relic strip, it is
+	# pushed by whatever the right-hand cluster happens to weigh, and the 20 Sep capture had it
+	# hard against UNDO with the middle of the bar empty. It is built into an overlay centred on
+	# the bar instead — see _build_turn_pill().
 	_build_turn_pill()
 	_build_relic_strip()
 	_build_shard_chip()
@@ -654,7 +817,7 @@ func _build_top_bar() -> void:
 	# %UndoButton/%InfoButton/%LogToggleButton are static children of %StatsRow in Combat.tscn
 	# (unique names are scene-wide, not depth-limited, so re-parenting them is safe) — moved here
 	# into their own trailing group so the five plate groups the redline calls for land in order.
-	# _build_sound_button()/_build_quit_button() (called later, from _connect_ui_buttons()) already
+	# _build_sound_button() (called later, from _connect_ui_buttons()) already
 	# add their buttons via `_log_toggle_button.get_parent().add_child(...)`, which resolves to
 	# THIS group once Log lives here, so neither needed a change.
 	var buttons_row := HBoxContainer.new()
@@ -669,31 +832,32 @@ func _build_top_bar() -> void:
 		buttons_row.add_child(btn)
 
 
-## TopBar's own chrome — PANEL fill, 4px BLACK BOTTOM BORDER ONLY (edge-to-edge, "the bar IS the
-## top of the frame", not an inset floating rail with a border all round like v1's had). Not a
-## DangoTheme.surface_style() call: every v2 surface helper sets a border on all four sides via
-## set_border_width_all(), and this is the one surface in the whole redesign that deliberately
-## does not want that — a one-off StyleBoxFlat here is simpler than growing a new DangoTheme
-## helper for a shape used exactly once.
-func _top_bar_panel_style() -> StyleBoxFlat:
-	var sb := StyleBoxFlat.new()
-	sb.bg_color = DangoTheme.PANEL
-	sb.border_color = Color.BLACK
-	sb.border_width_bottom = 4
-	sb.content_margin_left = 20.0
-	sb.content_margin_right = 20.0
-	sb.content_margin_top = 0.0
-	sb.content_margin_bottom = 0.0
-	return sb
+## TopBar's own chrome. Edge to edge with a black rule along its bottom only — the bar IS the
+## top of the frame, not an inset floating rail with a border all round like v1 had.
+## `DangoTheme.frame_bar_style()` is the shared shape; the footer on every meta screen is the
+## same object mirrored, and this used to be a local StyleBoxFlat that duplicated it.
+func _top_bar_frame_style() -> StyleBoxFlat:
+	return DangoTheme.frame_bar_style(SIDE_BOTTOM, DangoTheme.Surface.PANEL, 4, Vector2(20, 0))
 
 
 ## NodeChip — 31px icon tile (DANGER fill, per the mockup's own literal value — it does not vary
 ## the tile colour by node kind) + "<KIND> NODE" caption + "WAVE n" value (repainted, see
 ## _update_top_bar()).
+## combat-v2.html: a FIXED 155x36 chip, padding `0 12px 0 6px`, radius 11, PANEL_RAISED on 3px
+## black, gap 9. The 31px DANGER icon tile (radius 9, 3px, 20px glyph), then a two-line text
+## column: the "<KIND> NODE" eyebrow and "WAVE n / total" — the `/ total` half is its own label
+## in a dimmer ink, exactly as the mockup's `<span style="color:#7C8695"> / 12</span>` is.
 func _build_node_chip() -> void:
 	var chip := PanelContainer.new()
-	chip.add_theme_stylebox_override("panel",
-		DangoTheme.surface_style(DangoTheme.Surface.PANEL_RAISED, 11, 3, 0.0, Vector2(9, 6)))
+	chip.custom_minimum_size = Vector2(155, 36)
+	chip.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	var chip_style := DangoTheme.surface_style(
+		DangoTheme.Surface.PANEL_RAISED, 11, 3, 0.0, Vector2(-1, -1))
+	chip_style.content_margin_left = 6.0
+	chip_style.content_margin_right = 12.0
+	chip_style.content_margin_top = 0.0
+	chip_style.content_margin_bottom = 0.0
+	chip.add_theme_stylebox_override("panel", chip_style)
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 9)
 	chip.add_child(row)
@@ -702,19 +866,25 @@ func _build_node_chip() -> void:
 	var icon_path := "res://assets/icons/node/%s.png" % kind
 	var icon_tex: Texture2D = load(icon_path) if ResourceLoader.exists(icon_path) \
 		else load("res://assets/icons/node/battle.png")
-	row.add_child(_icon_tile(icon_tex, 31.0, 20.0,
-		DangoTheme.solid_chip_style(DangoTheme.DANGER, 9, 3, Vector2.ZERO)))
+	var tile := _icon_tile(icon_tex, 31.0, 20.0,
+		DangoTheme.solid_chip_style(DangoTheme.DANGER, 9, 3, Vector2.ZERO))
+	tile.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	row.add_child(tile)
 
 	var text_col := VBoxContainer.new()
-	text_col.add_theme_constant_override("separation", 1)
+	text_col.add_theme_constant_override("separation", 0)
+	text_col.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	row.add_child(text_col)
 	_node_caption_label = _make_caption_label("%s NODE" % kind.to_upper())
 	text_col.add_child(_node_caption_label)
-	_wave_label = Label.new()
-	_wave_label.add_theme_font_size_override("font_size", 19)
-	_wave_label.add_theme_color_override("font_color", DangoTheme.CREAM_RAISED)
-	_wave_label.text = "WAVE 1"
-	text_col.add_child(_wave_label)
+
+	var wave_row := HBoxContainer.new()
+	wave_row.add_theme_constant_override("separation", 0)
+	text_col.add_child(wave_row)
+	_wave_label = DangoTheme.display_label("WAVE 1", 19, DangoTheme.CREAM_RAISED, 800)
+	wave_row.add_child(_wave_label)
+	_wave_total_label = DangoTheme.display_label(" / 1", 19, DangoTheme.MUTED_TEXT, 800)
+	wave_row.add_child(_wave_total_label)
 
 	_stats_row.add_child(chip)
 
@@ -762,52 +932,107 @@ func _icon_tile(icon_tex: Texture2D, tile_size: float, icon_size: float,
 ## Wave track — one pip per wave in a WELL_TRACK well (redline "Wave track"). Built once as an
 ## empty HBoxContainer; _update_wave_track() grows/shrinks the pip count to match the run's real
 ## length and repaints every pip's colour/width per rebuild.
+## combat-v2.html: a 33px-tall WELL_TRACK well, padding `0 8px`, radius 10, 3px black, gap 4.
 func _build_wave_track() -> void:
 	var well := PanelContainer.new()
-	well.add_theme_stylebox_override("panel",
-		DangoTheme.surface_style(DangoTheme.Surface.WELL_TRACK, 10, 3, 0.0, Vector2(8, 6)))
+	well.custom_minimum_size = Vector2(0, 33)
+	well.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	var well_style := DangoTheme.surface_style(
+		DangoTheme.Surface.WELL_TRACK, 10, 3, 0.0, Vector2(-1, -1))
+	well_style.content_margin_left = 8.0
+	well_style.content_margin_right = 8.0
+	well_style.content_margin_top = 0.0
+	well_style.content_margin_bottom = 0.0
+	well.add_theme_stylebox_override("panel", well_style)
 	_wave_track = HBoxContainer.new()
 	_wave_track.add_theme_constant_override("separation", 4)
+	_wave_track.alignment = BoxContainer.ALIGNMENT_CENTER
 	well.add_child(_wave_track)
 	_stats_row.add_child(well)
 
 
-## Turn pill — PRIMARY fill for the player's own phase, DANGER for the enemy phase (redline "Turn
-## pill"). `_turn_pill_style` is kept as a StyleBoxFlat instance so _update_top_bar() can flip its
-## `bg_color` in place rather than rebuilding the whole PanelContainer every rebuild.
+## The turn pill, per combat-v2.html: ONE capsule — height 40, padding `0 18px`, radius 999, a
+## solid PRIMARY fill on a 3px black outline, shelf `0 4px 0`, gap 10 — carrying a blinking 9px
+## dot, "YOUR TURN" at Baloo 16/800, a 2px divider and "TURN n" at Baloo 15/700.
+##
+## REPLACES FIX-PASS-01 §2.1 C8's two adjoined segments (a PRIMARY left half and a PANEL_RAISED
+## right half sharing an outline). That shape is nowhere in the mockup, and godot/CLAUDE.md
+## settles the disagreement in the mockup's favour. The stray-dot defect C8 was fixing is fixed
+## differently here: the dot is a real child of the pill's own row, so it cannot bleed past an
+## edge it is laid out inside.
 func _build_turn_pill() -> void:
 	var pill := PanelContainer.new()
+	pill.name = "TurnPill"
 	pill.custom_minimum_size = Vector2(0, 40)
-	_turn_pill_style = DangoTheme.surface_style(DangoTheme.Surface.PANEL, 999, 3, 4.0, Vector2(18, 0))
+	pill.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	_turn_pill_style = DangoTheme.solid_chip_style(DangoTheme.PRIMARY, 999, 3, Vector2(18, 0))
+	_turn_pill_style.shadow_color = DangoTheme.SHELF
+	_turn_pill_style.shadow_size = 0
+	_turn_pill_style.shadow_offset = Vector2(0, 4)
 	pill.add_theme_stylebox_override("panel", _turn_pill_style)
+
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 10)
+	row.alignment = BoxContainer.ALIGNMENT_CENTER
+	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	pill.add_child(row)
 
-	_turn_dot = ColorRect.new()
+	_turn_dot = PanelContainer.new()
 	_turn_dot.custom_minimum_size = Vector2(9, 9)
+	_turn_dot.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	_turn_dot.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_turn_dot.add_theme_stylebox_override("panel",
+		DangoTheme.solid_chip_style(DangoTheme.INK_ON_PRIMARY, 5, 0, Vector2.ZERO))
 	row.add_child(_turn_dot)
 
-	_turn_label = Label.new()
-	_turn_label.add_theme_font_size_override("font_size", 16)
+	_turn_label = DangoTheme.display_label("", 16, DangoTheme.INK_ON_PRIMARY, 800, 0.1)
+	_turn_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	_turn_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	row.add_child(_turn_label)
 
-	var divider := ColorRect.new()
-	divider.custom_minimum_size = Vector2(2, 16)
-	divider.color = Color(0, 0, 0, 0.35)
-	row.add_child(divider)
+	_turn_divider = ColorRect.new()
+	_turn_divider.custom_minimum_size = Vector2(2, 16)
+	_turn_divider.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	_turn_divider.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_turn_divider.color = Color(DangoTheme.INK_ON_PRIMARY.r, DangoTheme.INK_ON_PRIMARY.g,
+		DangoTheme.INK_ON_PRIMARY.b, 0.35)
+	row.add_child(_turn_divider)
 
-	_turn_number_label = Label.new()
-	_turn_number_label.add_theme_font_size_override("font_size", 15)
+	_turn_number_label = DangoTheme.display_label("", 15, DangoTheme.INK_ON_PRIMARY, 700, 0.04)
+	_turn_number_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	_turn_number_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	row.add_child(_turn_number_label)
 
-	_stats_row.add_child(pill)
+	# CB-04 — centred on the BAR, not on what is left over between the two clusters. The host is
+	# a full-rect, click-through overlay on the bar panel, so the pill's position does not move
+	# when a relic is picked up or the shard count gains a digit.
+	var pill_host := CenterContainer.new()
+	pill_host.name = "TurnPillHost"
+	pill_host.set_anchors_preset(Control.PRESET_FULL_RECT)
+	pill_host.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_stats_row.get_parent().add_child(pill_host)
+	pill_host.add_child(pill)
+	_start_turn_dot_blink()
 
 
-## Relic strip — one 33px rarity-coloured chip per equipped relic (redline "relics, shard,
-## utilities"). RelicDef carries no icon field yet (content gap, not a bug this pass introduces —
-## see task report), so each chip shows the relic's own first initial on its rarity colour rather
-## than a generic/wrong icon; DangoTheme.ink_on() keeps the initial readable on every rarity.
+## The mockup's `@keyframes blink` on the pill's dot — 1.6s, opacity 1 -> .35 -> 1. A looping
+## Tween rather than an AnimationPlayer so the headless test mode can skip it the same way every
+## other juice entry point on this screen does.
+func _start_turn_dot_blink() -> void:
+	if disable_juice_for_tests or _turn_dot == null:
+		return
+	if _turn_dot_tween != null and _turn_dot_tween.is_valid():
+		_turn_dot_tween.kill()
+	_turn_dot_tween = create_tween().set_loops()
+	_turn_dot_tween.tween_property(_turn_dot, "modulate:a", 0.35, 0.8) \
+		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+	_turn_dot_tween.tween_property(_turn_dot, "modulate:a", 1.0, 0.8) \
+		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+
+
+## Relic strip — combat-v2.html draws these as fixed 33x33 tiles (radius 9, 3px black, an 18px
+## glyph on a solid fill), gap 6. See `_RELIC_ARCHETYPE_ICON` for where the glyph comes from and
+## why, and the task report for the RelicDef field that would replace that table.
 func _build_relic_strip() -> void:
 	_relic_strip = HBoxContainer.new()
 	_relic_strip.add_theme_constant_override("separation", 6)
@@ -817,32 +1042,51 @@ func _build_relic_strip() -> void:
 ## Shard chip — the one CREAM surface on the bar (redline: shard readout is a cream pill, same
 ## reading-surface rule as everywhere else a number must be legible against chrome).
 func _build_shard_chip() -> void:
+	# combat-v2.html: height 33, padding `0 11px 0 7px`, radius 9, 3px black, gap 7, 19px glyph.
 	var chip := PanelContainer.new()
-	chip.add_theme_stylebox_override("panel",
-		DangoTheme.surface_style(DangoTheme.Surface.CREAM, 9, 3, 0.0, Vector2(11, 7)))
+	chip.custom_minimum_size = Vector2(0, 33)
+	chip.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	var chip_style := DangoTheme.surface_style(
+		DangoTheme.Surface.CREAM, 9, 3, 0.0, Vector2(-1, -1))
+	chip_style.content_margin_left = 7.0
+	chip_style.content_margin_right = 11.0
+	chip_style.content_margin_top = 0.0
+	chip_style.content_margin_bottom = 0.0
+	chip.add_theme_stylebox_override("panel", chip_style)
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 7)
+	row.alignment = BoxContainer.ALIGNMENT_CENTER
 	chip.add_child(row)
 	var icon := TextureRect.new()
 	icon.custom_minimum_size = Vector2(19, 19)
+	icon.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	icon.texture = _ICON_SHARD
 	row.add_child(icon)
-	_shard_value_label = Label.new()
-	_shard_value_label.add_theme_font_size_override("font_size", 18)
-	_shard_value_label.add_theme_color_override("font_color", DangoTheme.INK)
+	_shard_value_label = DangoTheme.display_label("", 18, DangoTheme.INK, 800)
+	_shard_value_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	row.add_child(_shard_value_label)
 	_stats_row.add_child(chip)
 
 
 ## Small uppercase caption Label (NodeChip/RELIC ACTIVES etc.) — one place so every caption in the
 ## bar/deck shares the same size/colour per DangoTheme.
+## The node chip's eyebrow. combat-v2.html draws this ONE caption in the body face (Work Sans
+## 700) at 9px — it is the only label on the bar that is not Baloo, and the 9px is the mockup's
+## own number, which godot/CLAUDE.md rule 5 says outranks the project's 12px floor. The deck's
+## "RELIC ACTIVES" caption used to share this helper and no longer does: the mockup draws that
+## one at Baloo 13/800, a different object entirely.
 func _make_caption_label(text: String) -> Label:
 	var lbl := Label.new()
 	lbl.text = text
-	lbl.add_theme_font_size_override("font_size", 12)
-	lbl.add_theme_color_override("font_color", Color(0.596, 0.635, 0.694))
+	# combat-v2.html: `letter-spacing:.15em`. This is the one tracked label on the screen that
+	# is NOT Baloo, so it cannot go through `apply_tracking()` (that helper always resolves to a
+	# display face) — `tracked_font()` is the same conversion with the body face kept.
+	lbl.add_theme_font_override("font",
+		DangoTheme.tracked_font(DangoTheme.FONT_UI_BOLD, 0.15, 9))
+	lbl.add_theme_font_size_override("font_size", 9)
+	lbl.add_theme_color_override("font_color", DangoTheme.MUTED_TEXT)
 	return lbl
 
 
@@ -852,84 +1096,109 @@ func _make_caption_label(text: String) -> Label:
 # end turn (right). Built once from _ready(); repainted every rebuild by _update_bottom_deck().
 # ===========================================================================
 
+## combat-v2.html's deck is a FULL-BLEED SOLID BAR, not a floating card, and the current build
+## had no bar at all — the mana card and the die cards sat straight on the painted battlefield.
+## `position:absolute; bottom:0; left:0; right:0; height:216; background:#171A21;
+## border-top:4px solid #000` — no radius, no shelf. Combat.tscn's `%DeckBar` IS that bar (a
+## PanelContainer since this pass), and its own content margins are the mockup's inner inset:
+## 24 left/right, 16 bottom, and 16 BELOW the 4px top rule, i.e. 20 from the bar's own top edge.
 func _build_bottom_deck() -> void:
-	_build_mana_card()
-	_build_actives_card()
+	var bar := DangoTheme.frame_bar_style(SIDE_TOP, DangoTheme.Surface.DECK, 4, Vector2(24, 16))
+	bar.content_margin_top = 20.0
+	_deck_bar_panel.add_theme_stylebox_override("panel", bar)
+	_build_deck_bar()
 	_style_reroll_button()
 	_style_end_turn_button()
 
 
-## Mana card — WELL surface, a MANA_PURPLE orb carrying the value (redline "Mana + actives").
-func _build_mana_card() -> void:
-	var card := PanelContainer.new()
-	card.add_theme_stylebox_override("panel",
-		DangoTheme.surface_style(DangoTheme.Surface.WELL, 13, 2, 0.0, Vector2(12, 7)))
-	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", 11)
-	card.add_child(row)
+## The deck's left rail: TWO stacked WELL cards, gap 9 — a 54px mana row and the relic-actives
+## rack below it, exactly as combat-v2.html's left column draws them.
+##
+## REVERTS FIX-PASS-01 §2.1 C6, which merged the two into one DECK-surface card on the reasoning
+## that "two v1 floating panels" were the defect. They are not floating any more — they sit on
+## the deck BAR this pass finally builds, and against that bar the mockup's own two wells read as
+## two wells. godot/CLAUDE.md: the screen mockup outranks the prose restatement.
+func _build_deck_bar() -> void:
+	# --- Mana row: height 54, padding 0 12, radius 13, WELL on a 2px black outline, gap 11 ---
+	var mana_card := PanelContainer.new()
+	mana_card.name = "ManaCard"
+	mana_card.custom_minimum_size = Vector2(0, 54)
+	var mana_style := DangoTheme.surface_style(
+		DangoTheme.Surface.WELL, 13, 2, 0.0, Vector2(-1, -1))
+	mana_style.content_margin_left = 12.0
+	mana_style.content_margin_right = 12.0
+	mana_style.content_margin_top = 0.0
+	mana_style.content_margin_bottom = 0.0
+	mana_card.add_theme_stylebox_override("panel", mana_style)
+	var mana_row := HBoxContainer.new()
+	mana_row.add_theme_constant_override("separation", 11)
+	mana_row.alignment = BoxContainer.ALIGNMENT_CENTER
+	mana_card.add_child(mana_row)
 
 	var orb := PanelContainer.new()
 	orb.custom_minimum_size = Vector2(40, 40)
+	orb.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	orb.add_theme_stylebox_override("panel",
 		DangoTheme.solid_chip_style(DangoTheme.MANA_PURPLE, 20, 2, Vector2.ZERO))
 	var orb_center := CenterContainer.new()
 	orb.add_child(orb_center)
-	_mana_value_label = Label.new()
-	_mana_value_label.add_theme_font_size_override("font_size", 21)
-	_mana_value_label.add_theme_color_override("font_color", DangoTheme.INK)
+	_mana_value_label = DangoTheme.display_label("", 21, DangoTheme.INK, 800)
 	orb_center.add_child(_mana_value_label)
-	row.add_child(orb)
+	mana_row.add_child(orb)
 
-	var mana_label := Label.new()
-	mana_label.text = "MANA"
-	mana_label.add_theme_font_size_override("font_size", 17)
-	mana_label.add_theme_color_override("font_color", DangoTheme.CREAM)
+	var mana_label := DangoTheme.display_label("MANA", 17, DangoTheme.CREAM, 800, 0.1)
+	mana_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	mana_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	row.add_child(mana_label)
+	mana_row.add_child(mana_label)
 
+	# The mockup sets this one in the body face (Work Sans 600/11) — it is prose, not a chip
+	# label, and it is the only string in the whole deck that is.
 	var hint := Label.new()
 	hint.text = "only spent\non actives"
+	hint.add_theme_font_override("font", DangoTheme.FONT_UI_SEMI)
 	hint.add_theme_font_size_override("font_size", 11)
-	hint.add_theme_color_override("font_color", DangoTheme.TEXT_DIM)
+	hint.add_theme_color_override("font_color", DangoTheme.MUTED_TEXT)
 	hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	row.add_child(hint)
+	hint.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	mana_row.add_child(hint)
+	_deck_left_column.add_child(mana_card)
 
-	_deck_left_column.add_child(card)
-
-
-## Relic actives card — up to 4 slots (redline: "Four slots, so the rack keeps its shape from one
-## active to a full hand"). Structure built once here; _update_actives() (called from
-## _update_bottom_deck()) rebuilds the slot children every rebuild, since which relics are
-## affordable changes with `_combat.mana`.
-##
-## SCOPE NOTE: this renders relic-active STATE only (icon/cost/affordable-or-not), matching the
-## redline. CombatEngine.play_active() already exists but has no caller anywhere in this file
-## today (mana is, in its own words, "a dead resource") — wiring an actual click-to-play + target
-## flow for it is a new interaction, not a v2 restyle of an existing one (unlike Reroll/End Turn,
-## which were already wired), so it is out of this pass's scope; see the task report.
-func _build_actives_card() -> void:
-	var card := PanelContainer.new()
-	card.add_theme_stylebox_override("panel",
-		DangoTheme.surface_style(DangoTheme.Surface.WELL, 13, 2, 0.0, Vector2(11, 9)))
+	# --- Relic-actives rack: padding 9 top / 11 sides / 11 bottom, radius 13, WELL, 2px black --
+	var rack := PanelContainer.new()
+	rack.name = "ActivesRack"
+	var rack_style := DangoTheme.surface_style(
+		DangoTheme.Surface.WELL, 13, 2, 0.0, Vector2(11, 9))
+	rack_style.content_margin_bottom = 11.0
+	rack.add_theme_stylebox_override("panel", rack_style)
 	var col := VBoxContainer.new()
 	col.add_theme_constant_override("separation", 8)
-	card.add_child(col)
+	rack.add_child(col)
 
 	var header := HBoxContainer.new()
 	col.add_child(header)
-	var cap := _make_caption_label("RELIC ACTIVES")
+	var cap := DangoTheme.display_label("RELIC ACTIVES", 13, DangoTheme.MUTED_TEXT, 800, 0.14)
 	cap.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	header.add_child(cap)
-	_active_count_label = Label.new()
-	_active_count_label.add_theme_font_size_override("font_size", 13)
-	_active_count_label.add_theme_color_override("font_color", Color(0.78, 0.733, 0.839))
+	_active_count_label = DangoTheme.display_label("", 13, DangoTheme.INFO_TEXT_ON_WELL, 800)
 	header.add_child(_active_count_label)
 
 	_actives_row = HBoxContainer.new()
 	_actives_row.add_theme_constant_override("separation", 7)
 	col.add_child(_actives_row)
 
-	_deck_left_column.add_child(card)
+	_deck_left_column.add_child(rack)
+
+
+## One right-rail button box. combat-v2.html gives REROLL its own shape (height 56, padding
+## `0 16px`, radius 14, PANEL_RAISED on 3px black, shelf `0 4px 0`, hover PRIMARY, press drops
+## the shelf to 2) which is NOT `secondary_button_style()`'s shape (radius 12, padding 14/7).
+func _rail_button_style(fill: Color, radius: int, border_w: int, shelf: float) -> StyleBoxFlat:
+	var sb := DangoTheme.solid_chip_style(fill, radius, border_w, Vector2(16, 0))
+	if shelf > 0.0:
+		sb.shadow_color = DangoTheme.SHELF_DEEP if shelf >= 6.0 else DangoTheme.SHELF
+		sb.shadow_size = 0
+		sb.shadow_offset = Vector2(0, shelf)
+	return sb
 
 
 ## Reroll button content — icon + "REROLL" label + a "×n" count chip (NOT three pips: the
@@ -939,11 +1208,25 @@ func _build_actives_card() -> void:
 ## rule the mockup wins). `_reroll_count_style`'s bg_color/`_reroll_count_label`'s text+colour are
 ## repainted every rebuild by _update_reroll_count().
 func _style_reroll_button() -> void:
-	DangoTheme.style_button(_reroll_button, false)
+	_reroll_button.focus_mode = Control.FOCUS_NONE
 	_reroll_button.text = ""
+	_reroll_button.add_theme_stylebox_override("normal",
+		_rail_button_style(DangoTheme.PANEL_RAISED, 14, 3, 4.0))
+	_reroll_button.add_theme_stylebox_override("focus",
+		_rail_button_style(DangoTheme.PANEL_RAISED, 14, 3, 4.0))
+	_reroll_button.add_theme_stylebox_override("hover",
+		_rail_button_style(DangoTheme.PRIMARY, 14, 3, 4.0))
+	_reroll_button.add_theme_stylebox_override("pressed",
+		_rail_button_style(DangoTheme.PRIMARY.darkened(0.22), 14, 4, 2.0))
+	_reroll_button.add_theme_stylebox_override("disabled",
+		_rail_button_style(DangoTheme.PANEL_RAISED.darkened(0.38), 14, 3, 0.0))
 
 	var row := HBoxContainer.new()
 	row.set_anchors_preset(Control.PRESET_FULL_RECT)
+	# `padding: 0 16px`. A Button is not a Container, so its stylebox content margins do not
+	# move an anchored child — the inset has to be spelled on the child itself.
+	row.offset_left = 16.0
+	row.offset_right = -16.0
 	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	row.add_theme_constant_override("separation", 9)
 	_reroll_button.add_child(row)
@@ -956,10 +1239,8 @@ func _style_reroll_button() -> void:
 	icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	row.add_child(icon)
 
-	var label := Label.new()
-	label.text = "REROLL"
-	label.add_theme_font_size_override("font_size", 20)
-	label.add_theme_color_override("font_color", DangoTheme.CREAM)
+	var label := DangoTheme.display_label("REROLL", 20, DangoTheme.CREAM, 800, 0.06)
+	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	row.add_child(label)
@@ -972,12 +1253,14 @@ func _style_reroll_button() -> void:
 	_reroll_count_style.set_corner_radius_all(9)
 	_reroll_count_style.content_margin_left = 10.0
 	_reroll_count_style.content_margin_right = 10.0
-	_reroll_count_style.content_margin_top = 4.0
-	_reroll_count_style.content_margin_bottom = 4.0
+	_reroll_count_style.content_margin_top = 0.0
+	_reroll_count_style.content_margin_bottom = 0.0
 	count_chip.add_theme_stylebox_override("panel", _reroll_count_style)
-	_reroll_count_label = Label.new()
+	count_chip.custom_minimum_size = Vector2(0, 28)   # mockup: the count chip is 28 tall
+	count_chip.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	_reroll_count_label = DangoTheme.display_label("", 17, DangoTheme.INK_ON_PRIMARY, 800, 0.02)
 	_reroll_count_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_reroll_count_label.add_theme_font_size_override("font_size", 17)
+	_reroll_count_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	count_chip.add_child(_reroll_count_label)
 	row.add_child(count_chip)
 
@@ -999,10 +1282,8 @@ func _style_end_turn_button() -> void:
 	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	wrap.add_child(row)
 
-	var label := Label.new()
-	label.text = "END TURN"
-	label.add_theme_font_size_override("font_size", 26)
-	label.add_theme_color_override("font_color", DangoTheme.INK_ON_PRIMARY)
+	var label := DangoTheme.display_label("END TURN", 26, DangoTheme.INK_ON_PRIMARY, 800, 0.08)
+	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	row.add_child(label)
 
@@ -1013,16 +1294,69 @@ func _style_end_turn_button() -> void:
 	chip_style.set_corner_radius_all(7)
 	chip_style.content_margin_left = 8.0
 	chip_style.content_margin_right = 8.0
-	chip_style.content_margin_top = 3.0
-	chip_style.content_margin_bottom = 3.0
+	chip_style.content_margin_top = 0.0
+	chip_style.content_margin_bottom = 0.0
 	chip.add_theme_stylebox_override("panel", chip_style)
-	var space_label := Label.new()
-	space_label.text = "SPACE"
+	chip.custom_minimum_size = Vector2(0, 24)   # mockup: the SPACE chip is 24 tall
+	chip.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	var space_label := DangoTheme.display_label("SPACE", 13, DangoTheme.CREAM_HI, 800, 0.05)
+	space_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	space_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	space_label.add_theme_font_size_override("font_size", 13)
-	space_label.add_theme_color_override("font_color", DangoTheme.CREAM_HI)
 	chip.add_child(space_label)
 	row.add_child(chip)
+
+
+## The turn banner's own type. combat-v2.html: eyebrow at Baloo 16/800 on #3A0A08, phase at
+## Baloo 56/800 on #FFF8EA with a HARD `0 4px 0` shadow (offset, no blur — same shelf rule every
+## surface on this screen follows). Combat.tscn carries the plate, the two sizes and the two
+## colours; the FACE and the leading have to be set here, because a .tscn cannot reach
+## DangoTheme's preloaded fonts without a second ext_resource per weight.
+func _style_turn_banner() -> void:
+	_banner_eyebrow.add_theme_font_override("font", DangoTheme.FONT_DISPLAY)
+	_banner_eyebrow.add_theme_constant_override("line_spacing",
+		DangoTheme.leading_for(DangoTheme.FONT_DISPLAY, 16))
+	# combat-v2.html: `letter-spacing:.3em` on the eyebrow, `.04em` on the phase. Applied after
+	# each plain face override above, which it replaces with the tracked FontVariation.
+	DangoTheme.apply_tracking(_banner_eyebrow, 0.3, 16, 800)
+	_banner_phase.add_theme_font_override("font", DangoTheme.FONT_DISPLAY)
+	_banner_phase.add_theme_constant_override("line_spacing",
+		DangoTheme.leading_for(DangoTheme.FONT_DISPLAY, 56))
+	DangoTheme.apply_tracking(_banner_phase, 0.04, 56, 800)
+	_banner_phase.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.35))
+	_banner_phase.add_theme_constant_override("shadow_offset_x", 0)
+	_banner_phase.add_theme_constant_override("shadow_offset_y", 4)
+	_banner_phase.add_theme_constant_override("shadow_outline_size", 0)
+
+
+## The mockup's `bannerIn` keyframe: 1.5s total, scale .9 -> 1 at 26%, hold, then out at 1.04.
+## Combat.tscn ships the banner plate and nothing in this file ever showed it — it has been dead
+## UI. It is the enemy phase's own announcement, which is the one moment on this screen where
+## control leaves the player and nothing else says so.
+func _show_turn_banner(eyebrow: String, phase_text: String) -> void:
+	var banner: Control = _banner_phase.get_parent().get_parent() as Control
+	if banner == null:
+		return
+	_banner_eyebrow.text = eyebrow
+	_banner_phase.text = phase_text
+	banner.visible = true
+	if disable_juice_for_tests or not is_inside_tree():
+		banner.visible = false
+		return
+	banner.pivot_offset = banner.get_combined_minimum_size() * 0.5
+	banner.scale = Vector2(0.9, 0.9)
+	banner.modulate = Color(1, 1, 1, 0)
+	var tw := create_tween()
+	tw.set_parallel(true)
+	tw.tween_property(banner, "modulate:a", 1.0, 0.39)
+	tw.tween_property(banner, "scale", Vector2.ONE, 0.39).set_trans(Tween.TRANS_BACK) \
+		.set_ease(Tween.EASE_OUT)
+	tw.set_parallel(false)
+	tw.tween_interval(0.75)
+	tw.set_parallel(true)
+	tw.tween_property(banner, "modulate:a", 0.0, 0.36)
+	tw.tween_property(banner, "scale", Vector2(1.04, 1.04), 0.36)
+	tw.set_parallel(false)
+	tw.tween_callback(func(): banner.visible = false)
 
 
 func _connect_event_bus() -> void:
@@ -1072,7 +1406,11 @@ func _build_die_slot_content(btn: Button) -> Dictionary:
 	# own rounded top edge instead of showing a cream sliver in the corners.
 	var header_bg := PanelContainer.new()
 	header_bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	header_bg.custom_minimum_size = Vector2(0, 36)
+	# C7 — 39, not 36. combat-v2.html gives the header `height:36px` with no `box-sizing`, so
+	# the 36 is its CONTENT box and `border-bottom:3px solid #000` sits outside it: 39 rendered
+	# pixels. Godot draws the border INSIDE the Control's rect, so a PanelContainer set to 36
+	# renders a 33px header and eats 3px off the portrait and name row inside it.
+	header_bg.custom_minimum_size = Vector2(0, 39)
 	header_bg.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
 	var header_style := StyleBoxFlat.new()
 	header_style.border_width_bottom = 3
@@ -1105,7 +1443,7 @@ func _build_die_slot_content(btn: Button) -> Dictionary:
 	portrait_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	portrait_center.add_child(portrait_rect)
 
-	var name_label := DangoTheme.display_label("", 18, DangoTheme.INK, 800)
+	var name_label := DangoTheme.display_label("", 18, DangoTheme.INK, 800, 0.01)
 	name_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
 	name_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
@@ -1169,14 +1507,25 @@ func _build_die_slot_content(btn: Button) -> Dictionary:
 	value_row.add_theme_constant_override("separation", 6)
 	value_col.add_child(value_row)
 
+	# CB-23's `line-height:.9` on a 38px numeral. Baloo 2 reports a 61px font box at that size,
+	# so the bare Label forced the 62px face row to 88 and shoved the six-face track through the
+	# bottom of the card — `line_box()` puts it back on the mockup's 34px line.
 	var value_label := DangoTheme.display_label("", 38, DangoTheme.INK, 800)
 	value_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	value_row.add_child(value_label)
+	value_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	value_row.add_child(DangoTheme.line_box(value_label, 38, 0.9))
 
+	# CB-23: 26x26, radius 8, 3px black, filled with the type colour, holding the 16px type icon.
+	# BUG FIXED 2026-09-20 (FIX-PASS-03 G-01): this PanelContainer had NO stylebox override, so
+	# the per-roll repaint below (`get_theme_stylebox("panel").bg_color = col`) was reaching past
+	# it and mutating the SHARED theme StyleBox in place — every themed PanelContainer in the
+	# game inherited the last-rolled die face's colour. It needs its own box to repaint.
 	var type_tile := PanelContainer.new()
 	type_tile.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	type_tile.custom_minimum_size = Vector2(26, 26)
 	type_tile.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	type_tile.add_theme_stylebox_override("panel",
+		DangoTheme.solid_chip_style(DangoTheme.die_type_color("blank"), 8, 3, Vector2.ZERO))
 	value_row.add_child(type_tile)
 	var type_center := CenterContainer.new()
 	type_tile.add_child(type_center)
@@ -1189,10 +1538,11 @@ func _build_die_slot_content(btn: Button) -> Dictionary:
 
 	# Caption is the redline's one deliberate exception to the 12px display-type floor (9px,
 	# "sits on cream at 5.8:1 and was taken down on purpose so it can never wrap" — typeScale).
-	var caption_label := DangoTheme.display_label("", 9, DangoTheme.INK_ON_CREAM_MUTED, 700)
+	var caption_label := DangoTheme.display_label("", 9, DangoTheme.INK_ON_CREAM_MUTED, 700, 0.06)
 	caption_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	caption_label.clip_text = true
-	value_col.add_child(caption_label)
+	caption_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	value_col.add_child(DangoTheme.line_box(caption_label, 9, 1.2))
 
 	# KeywordRow (redline: "Keyword row at a FIXED 24px"). Fixed height so a 0/1/2-keyword face
 	# never reflows the rows below it. `kw_row`'s children are rebuilt per repaint (see
@@ -1304,12 +1654,10 @@ func _build_die_slot_content(btn: Button) -> Dictionary:
 		"sel_ring_inner": sel_ring_inner}
 
 
-## Per-type icon — direct 1:1 lookup into _FACE_TYPE_ICON (see that const's header comment).
-## No value-based tiering: the web build's own FT_IC table has exactly one icon per face type,
-## unlike the Origins intent-icon set this used to borrow, which only had 3 dmg tiers to fake it
-## from.
+## Per-type icon. Thin alias kept so this file's many call sites read locally; the table is
+## `DangoTheme.FACE_TYPE_ICON` (see the ICON SOURCE comment at the top of this file).
 func _face_icon_for(face_type: String) -> Texture2D:
-	return _FACE_TYPE_ICON.get(face_type, _FACE_TYPE_ICON["blank"])
+	return DangoTheme.face_type_icon(face_type)
 
 
 ## Body-part icon for the die tray (review-uiux-godot-vs-web.md P1 #3) — web/part/<slot>_<class>
@@ -1377,13 +1725,30 @@ func _close_unit_inspect() -> void:
 	_inspect_panel = null
 
 
+## The unit inspector, rebuilt to combat-v2.html's own markup: a 500-wide CREAM card (radius 20,
+## 5px black, shelf 8) whose HEADER is a solid band in the unit's class colour with a 4px black
+## underline, over a cream body holding the passive card, the six-face list and CLOSE.
+##
+## It used to be a 560-wide PANEL_DEEP panel of small grey text — chrome, where the mockup draws
+## a reading surface. Rule 4 of godot/CLAUDE.md is the reason that matters: text the player has
+## to read gets its own cream plate, never a darker background.
+##
+## TWO DELIBERATE DEPARTURES FROM THE MOCKUP, both stated here rather than left to be discovered:
+##   * The mockup gives an ENEMY `faces: []` — no face list at all, just a "TELEGRAPH" paragraph.
+##     This build keeps the six-face list for enemies. `tests/t_unit_inspect.gd` asserts it
+##     (`test_clicking_an_enemy_with_no_die_selected_opens_the_inspector`, `_count_face_rows()`
+##     == 6) and the rule spec's "minh bạch triệt để" is that an enemy's die is public. The
+##     mockup's static fixture is the weaker authority here; flagged in the report.
+##   * The mockup has no status row. Statuses live on the nameplate's own strip, so the stacks
+##     are folded into the header's meta line rather than getting a row of their own.
 func _build_unit_inspect(u: Unit) -> Control:
 	var layer := CanvasLayer.new()
 	layer.layer = 28          # under the quit confirm (30), over the HUD
 	add_child(layer)
 
 	var dim := ColorRect.new()
-	dim.color = Color(0, 0, 0, 0.66)
+	# The mockup's own scrim: rgba(11,13,18,.82) — WELL_DEEP at 82%, not flat black.
+	dim.color = Color(DangoTheme.WELL_DEEP.r, DangoTheme.WELL_DEEP.g, DangoTheme.WELL_DEEP.b, 0.82)
 	dim.set_anchors_preset(Control.PRESET_FULL_RECT)
 	dim.mouse_filter = Control.MOUSE_FILTER_STOP
 	dim.gui_input.connect(func(ev: InputEvent):
@@ -1397,199 +1762,282 @@ func _build_unit_inspect(u: Unit) -> Control:
 	center.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	dim.add_child(center)
 
-	var panel := PanelContainer.new()
-	# Opaque, for the same reason the quit dialog is: a panel of small text over a lit
-	# battlefield is unreadable at 0.82 alpha.
-	panel.add_theme_stylebox_override("panel", DangoTheme.panel_style(DangoTheme.BG, 3, 12, 18.0))
-	panel.custom_minimum_size = Vector2(560, 0)
-	center.add_child(panel)
-
-	var margin := MarginContainer.new()
-	for side in ["left", "right", "top", "bottom"]:
-		margin.add_theme_constant_override("margin_" + side, 16)
-	panel.add_child(margin)
+	var card := PanelContainer.new()
+	card.custom_minimum_size = Vector2(500, 0)
+	card.add_theme_stylebox_override("panel",
+		DangoTheme.cream_card_style(Color.TRANSPARENT, 20, 5, 8.0))
+	DangoTheme.clip_to_frame(card)   # G3
+	center.add_child(card)
 
 	var col := VBoxContainer.new()
-	col.add_theme_constant_override("separation", 10)
-	margin.add_child(col)
+	col.add_theme_constant_override("separation", 0)
+	card.add_child(col)
 
 	_inspect_header(col, u)
-	_inspect_context(col, u)
-	_inspect_status(col, u)
-	_inspect_faces(col, u)
 
+	var body := MarginContainer.new()
+	body.add_theme_constant_override("margin_left", 18)
+	body.add_theme_constant_override("margin_right", 18)
+	body.add_theme_constant_override("margin_top", 16)
+	body.add_theme_constant_override("margin_bottom", 18)
+	col.add_child(body)
+
+	var body_col := VBoxContainer.new()
+	body_col.add_theme_constant_override("separation", 0)
+	body.add_child(body_col)
+
+	_inspect_context(body_col, u)
+	_inspect_faces(body_col, u)
+
+	# CLOSE — mockup: margin-top 16, height 50, radius 13, PRIMARY on 4px black, shelf 4.
+	var close_pad := Control.new()
+	close_pad.custom_minimum_size = Vector2(0, 16)
+	close_pad.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	body_col.add_child(close_pad)
 	var close := Button.new()
-	close.text = "Close"
-	close.custom_minimum_size = Vector2(0, 40)
-	DangoTheme.style_button(close, false, false, DangoTheme.TEXT)
+	close.text = "CLOSE"
+	close.focus_mode = Control.FOCUS_NONE
+	close.custom_minimum_size = Vector2(0, 50)
+	# Baloo 19/800 at the mockup's `letter-spacing:.12em`.
+	DangoTheme.apply_tracking(close, 0.12, 19, 800)
+	# The hover/press FILLS are read back off DangoTheme's own primary button rather than
+	# re-typed as hex here — this button borrows that state ladder, it does not define one.
+	var hover_fill := DangoTheme.primary_button_style(
+		false, DangoTheme.ButtonState.HOVER).bg_color
+	var press_fill := DangoTheme.primary_button_style(
+		false, DangoTheme.ButtonState.PRESSED).bg_color
+	close.add_theme_stylebox_override("normal", _rail_button_style(DangoTheme.PRIMARY, 13, 4, 4.0))
+	close.add_theme_stylebox_override("focus", _rail_button_style(DangoTheme.PRIMARY, 13, 4, 4.0))
+	close.add_theme_stylebox_override("hover", _rail_button_style(hover_fill, 13, 4, 4.0))
+	close.add_theme_stylebox_override("pressed", _rail_button_style(press_fill, 13, 5, 2.0))
+	for key in ["font_color", "font_hover_color", "font_pressed_color"]:
+		close.add_theme_color_override(key, DangoTheme.INK_ON_PRIMARY)
 	close.pressed.connect(_close_unit_inspect)
-	col.add_child(close)
+	body_col.add_child(close)
 
 	return dim
 
 
+## Header band — the class colour (DANGER for an enemy, which is what the mockup uses), a 4px
+## black underline, padding 13/18, gap 12. Its top corners are the card's radius minus the card's
+## border so it nests flush instead of showing a cream sliver in the corners.
 func _inspect_header(col: VBoxContainer, u: Unit) -> void:
-	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", 10)
-	col.add_child(row)
+	var fill := DangoTheme.DANGER if u.side == "e" else DangoTheme.class_color(u.cls)
+	var ink := DangoTheme.ink_on(fill)
+	var band := PanelContainer.new()
+	var band_style := StyleBoxFlat.new()
+	band_style.bg_color = fill
+	band_style.border_color = Color.BLACK
+	band_style.border_width_bottom = 4
+	band_style.corner_radius_top_left = 15
+	band_style.corner_radius_top_right = 15
+	band_style.content_margin_left = 18.0
+	band_style.content_margin_right = 18.0
+	band_style.content_margin_top = 13.0
+	band_style.content_margin_bottom = 13.0
+	band.add_theme_stylebox_override("panel", band_style)
+	col.add_child(band)
 
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 12)
+	band.add_child(row)
+
+	var frame := PanelContainer.new()
+	frame.custom_minimum_size = Vector2(54, 54)
+	frame.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	frame.add_theme_stylebox_override("panel",
+		DangoTheme.solid_chip_style(DangoTheme.CREAM_RAISED, 27, 3, Vector2.ZERO))
+	var frame_center := CenterContainer.new()
+	frame.add_child(frame_center)
 	var portrait := TextureRect.new()
-	portrait.custom_minimum_size = Vector2(44, 44)
+	portrait.custom_minimum_size = Vector2(46, 46)
 	portrait.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	portrait.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	# Party Axies have a rendered portrait; enemies wear their Chimera sprite. Both already
 	# exist, so the header shows the same creature the board does.
 	portrait.texture = (MonsterArt.texture_for(u.key, u.is_boss) if u.side == "e"
 		else _class_portrait(u.cls))
-	row.add_child(portrait)
+	frame_center.add_child(portrait)
+	row.add_child(frame)
 
 	var text_col := VBoxContainer.new()
 	text_col.add_theme_constant_override("separation", 0)
 	text_col.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	text_col.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	row.add_child(text_col)
 
-	var name_row := HBoxContainer.new()
-	name_row.add_theme_constant_override("separation", 8)
-	text_col.add_child(name_row)
+	var name_label := DangoTheme.display_label(u.n.to_upper(), 27, ink, 800, 0.01)
+	name_label.clip_text = true
+	name_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	text_col.add_child(name_label)
 
-	var name_label := Label.new()
-	name_label.text = u.n.to_upper()
-	name_label.add_theme_font_size_override("font_size", 20)
-	name_label.add_theme_color_override("font_color", DangoTheme.TEXT)
-	name_row.add_child(name_label)
-
-	var tag := ""
-	if u.side == "e":
-		tag = "BOSS" if u.is_boss else ("TOKEN" if u.is_token else "")
-	else:
-		tag = String(u.cls).to_upper()
-	if tag != "":
-		var pill := Label.new()
-		pill.text = tag
-		pill.add_theme_font_size_override("font_size", 12)
-		pill.add_theme_color_override("font_color", DangoTheme.PRIMARY)
-		name_row.add_child(pill)
-
-	var sub := Label.new()
+	# The mockup's meta line is body copy (Work Sans 600/13) at 74% ink on the class fill.
 	var bits: Array = ["%d/%d HP" % [maxi(u.hp, 0), maxi(u.max_hp, 1)]]
-	if u.shield > 0:
-		bits.append("Shield %d" % u.shield)
 	if u.side == "p":
 		bits.append("Tier %d" % u.tier)
+	bits.append("Shield %d" % maxi(u.shield, 0))
+	for key in u.status.keys():
+		if int(u.status[key]) > 0:
+			bits.append("%s %d" % [String(key).capitalize(), int(u.status[key])])
+	var sub := Label.new()
 	sub.text = "  ·  ".join(PackedStringArray(bits))
-	sub.add_theme_font_size_override("font_size", 14)
-	sub.add_theme_color_override("font_color", DangoTheme.TEXT_DIM)
+	sub.add_theme_font_override("font", DangoTheme.FONT_UI_SEMI)
+	sub.add_theme_font_size_override("font_size", 13)
+	sub.add_theme_color_override("font_color", Color(ink.r, ink.g, ink.b, 0.74))
+	sub.clip_text = true
+	sub.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	text_col.add_child(sub)
 
+	# Class pill — height 24, padding 0 10, radius 999, an INK fill with cream on it.
+	var tag := "ENEMY" if u.side == "e" else String(u.cls).to_upper()
+	if u.side == "e" and u.is_boss:
+		tag = "BOSS"
+	var pill := PanelContainer.new()
+	pill.custom_minimum_size = Vector2(0, 24)
+	pill.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	pill.add_theme_stylebox_override("panel",
+		DangoTheme.solid_chip_style(DangoTheme.INK, 999, 0, Vector2(10, 0)))
+	var pill_label := DangoTheme.display_label(tag, 12, DangoTheme.CREAM, 800, 0.1)
+	pill_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	pill.add_child(pill_label)
+	row.add_child(pill)
 
-## Class passive for a party Axie, AI role for an enemy. The passive text comes from
-## ContentDB.CLASS_PASSIVE — the engine has always applied these, and the player has never been
-## told what they are.
+
+## The passive card — CREAM_RAISED, radius 12, 3px black, padding 11/13. A party Axie gets its
+## class passive; an enemy gets the mockup's own TELEGRAPH paragraph, which is the one thing a
+## player actually needs told about an enemy's plate.
 func _inspect_context(col: VBoxContainer, u: Unit) -> void:
 	var label := ""
 	var body := ""
 	if u.side == "p" and ContentDB.CLASS_PASSIVE.has(u.cls):
 		var pas: Dictionary = ContentDB.CLASS_PASSIVE[u.cls]
-		label = "PASSIVE · %s" % String(pas.get("n", ""))
+		label = "PASSIVE · %s" % String(pas.get("n", "")).to_upper()
 		body = String(pas.get("d", ""))
-	elif u.side == "e" and String(u.role) != "":
-		label = "%s · ENEMY" % String(u.role).to_upper()
+	elif u.side == "e":
+		label = "PASSIVE · TELEGRAPH"
+		body = ("Enemies roll and commit before you act. The plate above its head is exactly "
+			+ "what it will do this turn.")
+		if String(u.role) != "":
+			label = "%s · TELEGRAPH" % String(u.role).to_upper()
 	if label == "":
 		return
-	var l := Label.new()
-	l.text = label
-	l.add_theme_font_size_override("font_size", 12)
-	l.add_theme_color_override("font_color", DangoTheme.PRIMARY)
-	col.add_child(l)
+
+	var card := PanelContainer.new()
+	var card_style := DangoTheme.surface_style(
+		DangoTheme.Surface.CREAM_RAISED, 12, 3, 0.0, Vector2(13, 11))
+	card.add_theme_stylebox_override("panel", card_style)
+	col.add_child(card)
+
+	var inner := VBoxContainer.new()
+	inner.add_theme_constant_override("separation", 4)
+	card.add_child(inner)
+
+	# FLAGGED: the mockup inks this eyebrow #B4600C, a burnt orange that exists nowhere else and
+	# has no DangoTheme token; PRIMARY itself is only ~1.9:1 on cream and is not a substitute.
+	# INK_ON_CREAM_MUTED is the nearest sanctioned token. See the task report.
+	inner.add_child(DangoTheme.display_label(label, 13, DangoTheme.INK_ON_CREAM_MUTED, 800, 0.12))
 	if body != "":
 		var b := Label.new()
 		b.text = body
 		b.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		b.custom_minimum_size = Vector2(520, 0)
-		b.add_theme_font_size_override("font_size", 14)
-		b.add_theme_color_override("font_color", DangoTheme.TEXT_DIM)
-		col.add_child(b)
-
-
-func _inspect_status(col: VBoxContainer, u: Unit) -> void:
-	var active: Array = []
-	for key in u.status.keys():
-		if int(u.status[key]) > 0:
-			active.append("%s %d" % [String(key).to_upper(), int(u.status[key])])
-	if active.is_empty():
-		return
-	var l := Label.new()
-	l.text = "  ".join(PackedStringArray(active))
-	l.add_theme_font_size_override("font_size", 14)
-	l.add_theme_color_override("font_color", DangoTheme.TEXT)
-	col.add_child(l)
+		b.add_theme_font_override("font", DangoTheme.FONT_UI_SEMI)
+		b.add_theme_font_size_override("font_size", 13)
+		b.add_theme_color_override("font_color", DangoTheme.INK_ON_CREAM_SOFT)
+		inner.add_child(b)
 
 
 ## All six faces. Values come from CombatEngine._face_value(), NOT the raw face data: growth,
 ## weaken, blind, vital and overdrive all change what a face is worth right now, and a panel
 ## that showed the base number would be lying at exactly the moment the player consults it.
+##
+## Row geometry is the mockup's: height 44, padding 0 11, radius 11, CREAM_RAISED on 3px black,
+## gap 10 — a 32px part tile (22px glyph), the value at Baloo 24/800 in a fixed 30px column, the
+## 22px type swatch (14px glyph), the caption, and the ROLLED tag.
 func _inspect_faces(col: VBoxContainer, u: Unit) -> void:
-	var heading := Label.new()
-	heading.text = "ALL SIX FACES"
-	heading.add_theme_font_size_override("font_size", 12)
-	heading.add_theme_color_override("font_color", DangoTheme.PRIMARY)
-	col.add_child(heading)
+	var heading_pad := Control.new()
+	heading_pad.custom_minimum_size = Vector2(0, 15)
+	heading_pad.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	col.add_child(heading_pad)
+	col.add_child(DangoTheme.display_label(
+		"ALL SIX FACES · LIVE VALUES", 13, DangoTheme.INK_ON_CREAM_MUTED, 800, 0.14))
+
+	var list_pad := Control.new()
+	list_pad.custom_minimum_size = Vector2(0, 8)
+	list_pad.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	col.add_child(list_pad)
+
+	var list := VBoxContainer.new()
+	list.add_theme_constant_override("separation", 6)
+	col.add_child(list)
 
 	var rolled_index: int = u.roll_face_index()
 	for i in u.die.size():
 		var f: Dictionary = u.die[i]
 		var face_type := String(f.get("type", ""))
+		var row_panel := PanelContainer.new()
+		row_panel.custom_minimum_size = Vector2(0, 44)
+		var row_style := DangoTheme.surface_style(
+			DangoTheme.Surface.CREAM_RAISED, 11, 3, 0.0, Vector2(-1, -1))
+		row_style.content_margin_left = 11.0
+		row_style.content_margin_right = 11.0
+		row_style.content_margin_top = 0.0
+		row_style.content_margin_bottom = 0.0
+		row_panel.add_theme_stylebox_override("panel", row_style)
+		list.add_child(row_panel)
+
 		var row := HBoxContainer.new()
-		row.add_theme_constant_override("separation", 8)
-		col.add_child(row)
+		row.add_theme_constant_override("separation", 10)
+		row.alignment = BoxContainer.ALIGNMENT_CENTER
+		row_panel.add_child(row)
 
-		var icon := TextureRect.new()
-		icon.custom_minimum_size = Vector2(20, 20)
-		icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-		icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-		icon.texture = _FACE_TYPE_ICON.get(face_type, null)
-		row.add_child(icon)
+		var raw_part := String(f.get("part", ""))
+		var part_tex := _part_icon_for(raw_part, u.cls)
+		if part_tex == null:
+			# Non-hero enemies carry cls == "" and part "m", so no body-part SVG exists for them.
+			# The face's own type glyph is the honest fallback — never an empty tile.
+			part_tex = DangoTheme.face_type_icon(face_type)
+		var tile := _icon_tile(part_tex, 32.0, 22.0,
+			DangoTheme.solid_chip_style(DangoTheme.CREAM, 9, 3, Vector2.ZERO))
+		tile.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		row.add_child(tile)
 
-		var value := Label.new()
-		value.custom_minimum_size = Vector2(34, 0)
-		value.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-		value.text = "—" if face_type == "blank" else str(_combat._face_value(u, i))
-		value.add_theme_font_size_override("font_size", 17)
-		value.add_theme_color_override("font_color", DangoTheme.TEXT)
+		var value := DangoTheme.display_label(
+			"—" if face_type == "blank" else str(_combat._face_value(u, i)),
+			24, DangoTheme.INK, 800)
+		value.custom_minimum_size = Vector2(30, 0)
+		value.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 		row.add_child(value)
 
-		var caption := Label.new()
-		var raw_part := String(f.get("part", ""))
+		# G-01 / L7 — the mechanic's own glyph inside the swatch, built by the one shared helper.
+		row.add_child(DangoTheme.type_swatch(face_type, 22, 14, 7, 3))
+
+		var caption := DangoTheme.display_label("", 14, DangoTheme.INK_ON_CREAM_SOFT, 700, 0.03)
 		# Same fallback the die card uses. Enemy faces all carry part "m", which is not a real
 		# body part and correctly yields no part label; anything else shows its own name even if
 		# _PART_LABEL has not heard of it yet.
 		var part_name := String(_PART_LABEL.get(raw_part, raw_part.to_upper())) if _PART_LABEL.has(raw_part) else ""
 		var type_name := String(_DIE_TYPE_LABEL.get(face_type, face_type.to_upper()))
-		caption.text = ("%s · %s" % [part_name, type_name]) if part_name != "" else type_name
+		var text := ("%s · %s" % [part_name, type_name]) if part_name != "" else type_name
+		var names: Array = []
+		for k in (f.get("keywords", []) as Array):
+			# Value-carrying keywords are stored as "burn:6"; show the family name.
+			var base_kw := String(k).split(":")[0]
+			names.append(String(_KEYWORD_LABEL.get(base_kw, base_kw.to_upper())))
+		if not names.is_empty():
+			text += "  ·  " + " ".join(PackedStringArray(names))
+		caption.text = text
 		caption.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		caption.add_theme_font_size_override("font_size", 14)
-		caption.add_theme_color_override("font_color", DangoTheme.TEXT)
+		caption.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		caption.clip_text = true
+		caption.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 		row.add_child(caption)
 
-		var keywords: Array = f.get("keywords", [])
-		if not keywords.is_empty():
-			var kw := Label.new()
-			var names: Array = []
-			for k in keywords:
-				# Value-carrying keywords are stored as "burn:6"; show the family name.
-				var base_kw := String(k).split(":")[0]
-				names.append(String(_KEYWORD_LABEL.get(base_kw, base_kw.to_upper())))
-			kw.text = " ".join(PackedStringArray(names))
-			kw.add_theme_font_size_override("font_size", 11)
-			kw.add_theme_color_override("font_color", DangoTheme.TEXT_DIM)
-			row.add_child(kw)
-
-		if i == rolled_index:
-			var mark := Label.new()
-			mark.text = "ROLLED"
-			mark.add_theme_font_size_override("font_size", 11)
-			mark.add_theme_color_override("font_color", DangoTheme.SUCCESS)
-			row.add_child(mark)
+		# FLAGGED: the mockup inks ROLLED #2E7D2B — a dark green readable on cream, which SUCCESS
+		# (#3FCD3C) is not. INK_ON_SUCCESS is the nearest token DangoTheme has. See the report.
+		var mark := DangoTheme.display_label(
+			"ROLLED" if i == rolled_index else "", 12, DangoTheme.INK_ON_SUCCESS, 800, 0.07)
+		mark.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		row.add_child(mark)
 
 
 ## A unit joined the fight. Goes through the full rebuild, not just the reconcile: building the
@@ -1676,6 +2124,90 @@ func _spawn_portrait(u: Unit, is_enemy: bool, slot_index: int, slot_count: int) 
 # needs.
 # ===========================================================================
 
+## Enemy nameplate spacing. The per-plate WIDTH CAP that used to live here is GONE (FIX-PASS-03
+## CB-09): every nameplate in combat is exactly 176 wide, both sides, "regardless of how long the
+## name is. No text-measured widths." A cap that shrinks a plate when its neighbour is close is a
+## variable width by another name.
+##
+## ⚠ FLAGGED FOR DESIGN — this is FIX-PASS-03 §11.2 territory, please read. The cap was not
+## decorative: ENEMY_WIDTH=176 can exceed this fight's REAL projected on-screen slot pitch, which
+## is NOT the same number as CombatStage3D's `_ROW_SPACING_ENEMY` world-space constant, because
+## perspective projection does not map world spacing to screen pixels 1:1. With the cap removed,
+## a fight whose enemies project closer together than 176 + a gap will have TOUCHING OR
+## OVERLAPPING nameplates. CB-09 is unambiguous that the width may not move, so the remedy has to
+## be on the other side of the relationship — the stage's slot pitch, or the anchor rule — and
+## that is a design decision, not something to quietly re-cap here.
+## `_ENEMY_PLATE_GAP` is retained: it is a real screen-pixel gap, still used for spacing checks,
+## and is deliberately NOT the v2 mockup's 104 (that number lives in the mockup's flat 2D space,
+## which this 3D-projected layout does not share).
+const _ENEMY_PLATE_GAP := 16.0
+
+
+# ── The combat band frame (CB-01 / CB-06 / CB-18) ──────────────────────────────
+# combat-v2.html's vertical structure is: top bar (60, anchored top) · enemy band · front line ·
+# party band · deck (216, anchored bottom). The two bars are full-bleed and already anchored to
+# a real viewport edge in Combat.tscn. Everything BETWEEN them was not: `%FrontLine` sat at a
+# literal `offset_top = 480` and `%Stage3D` at fractional `anchor_top = 0.13 / bottom = 0.78`.
+#
+# Both are wrong under `window/stretch/aspect="expand"`, and wrong in different directions: the
+# canvas grows vertically (a 2387x1540 window lays out in ~1920x1238), so the absolute 480 stays
+# put while the fractional stage slides down past it, and the front line ends up floating inside
+# the enemy band instead of sitting on the boundary between the two.
+#
+# The mockup's three numbers are kept, but as fractions of the band BETWEEN the two bars rather
+# than of the whole canvas. At 1080 this reproduces the mockup exactly, by construction; on a
+# taller canvas the band absorbs the slack and the three keep their relationship.
+const _TOP_BAR_H := 60.0        ## CB-01, and Combat.tscn's %TopBar offset_bottom
+const _DECK_H := 216.0          ## CB-18, and Combat.tscn's %DeckBar offset_top
+## Reference frame only — the canvas the mockup was authored on. NOT a layout position: nothing
+## below uses it except to convert one of the mockup's own y values into a band fraction.
+const _MOCK_CANVAS_H := 1080.0
+const _MOCK_BAND_H := _MOCK_CANVAS_H - _TOP_BAR_H - _DECK_H          ## 804
+const _FRONT_LINE_F := (480.0 - _TOP_BAR_H) / _MOCK_BAND_H           ## mockup FrontLine top
+const _STAGE_TOP_F := (0.13 * _MOCK_CANVAS_H - _TOP_BAR_H) / _MOCK_BAND_H
+const _STAGE_BOTTOM_F := (0.78 * _MOCK_CANVAS_H - _TOP_BAR_H) / _MOCK_BAND_H
+
+
+## Places the two things that live between the top bar and the deck. Idempotent; runs once at
+## build and again on every viewport resize. See the band-frame block above.
+func _layout_stage_bands() -> void:
+	var canvas_h: float = get_viewport_rect().size.y
+	var band: float = maxf(canvas_h - _TOP_BAR_H - _DECK_H, 1.0)
+	if _front_line != null:
+		# CB-06: the rule sits ON the boundary, so top and bottom are the same y — its children
+		# (Rule, RuleHighlight, the two caps) carry the 6px thickness themselves.
+		var y: float = _TOP_BAR_H + band * _FRONT_LINE_F
+		_front_line.offset_top = y
+		_front_line.offset_bottom = y
+	if _stage3d != null:
+		# Anchored to the TOP edge at both ends and driven by offsets, so the band arithmetic is
+		# the single place the stage's height is decided - not a second fraction of the canvas
+		# that would drift away from the front line it has to agree with.
+		_stage3d.anchor_top = 0.0
+		_stage3d.anchor_bottom = 0.0
+		_stage3d.offset_top = _TOP_BAR_H + band * _STAGE_TOP_F
+		_stage3d.offset_bottom = _TOP_BAR_H + band * _STAGE_BOTTOM_F
+
+
+## C1 — where the enemy HUD column starts, in CANVAS pixels.
+##
+## combat-v2.html does not hang the enemy row off its creatures. The row is an absolutely
+## positioned container — `top:69px; left:490px; height:376px` with `align-items:flex-end` — and
+## the column inside it is `height:370px`, so the column's top edge is 69 + (376 - 370) = 75 and
+## the intent badge is the first thing in it. Badge, status strip and nameplate therefore sit at
+## FIXED y in the mockup; only the creature at the bottom of the column moves.
+##
+## The build anchored all three to `get_unit_screen_pos(uid, HEAD_HEIGHT)` instead, which is what
+## dropped the stack 185px (review C1: "the intent badge's top should be y=75, the build has
+## y=260"), and no head offset fixes it — see _layout_unit_visuals() for the arithmetic.
+##
+## 125 = 75 + UnitHeadHUD.HEIGHT (42) + the column's own `gap:8`. Written out rather than
+## computed from UnitHeadHUD.HEIGHT so this stays a plain constant expression; the two are
+## checked against each other in _layout_unit_visuals(), which uses the const from that file.
+const _ENEMY_COLUMN_TOP := 75.0
+const _ENEMY_PLATE_TOP := 125.0
+
+
 func _layout_unit_visuals() -> void:
 	if _combat == null:
 		return
@@ -1683,20 +2215,102 @@ func _layout_unit_visuals() -> void:
 		# (anchored to an inset "playfield" band in Combat.tscn) but UnitVisualsRoot DOES fill the
 		# whole Root — get_unit_screen_pos() returns Stage3D-LOCAL coordinates, so every result
 		# here must be re-based into the shared full-Root overlay space.
+
+	var party_min_x := INF
+	var party_max_x := -INF
+	var enemy_max_bottom := -INF
 	for uid in _portraits.keys():
 		var p: UnitPortrait = _portraits[uid]
+		var is_enemy := _combat_is_enemy_uid(uid)
 		var feet := _stage3d.get_unit_screen_pos(uid, CombatStage3D.FEET_HEIGHT)
 		if feet.x >= 0.0:
-			p.position = stage_offset + Vector2(feet.x - UnitPortrait.WIDTH * 0.5, feet.y + 6.0)
+			if is_enemy:
+				# C1, vertical — the column top is a CONSTANT, not a projection. See
+				# _ENEMY_COLUMN_TOP above for what the mockup does; here is why the projection
+				# cannot be made to agree with it. The enemy row sits at z=-6.5, which is depth
+				# ~20.2 from this camera, where the focal length of 1148px puts one world metre
+				# at ~57 screen px. HEAD_HEIGHT (1.55) therefore lands ~87px above the feet, and
+				# the badge — 8 + the 100px nameplate column + 8 + its own 42 — lands ~229. To
+				# pull it to 75 the head anchor would have to be ~4.15m, floating the plate
+				# 147px above a creature that only renders ~97px tall, because the real gap is
+				# that the mockup draws its monsters at ~190px and this stage renders them at
+				# ~97px. That is a stage-scale question, not an anchor question — reported, not
+				# guessed at here. Pinning the column is the half that IS the mockup's own
+				# behaviour, and it is the half the review measured.
+				p.position = Vector2(stage_offset.x + feet.x - p.size.x * 0.5,
+					_ENEMY_PLATE_TOP)
+				# The enemy "row" now bottoms out at the MODEL's own feet (the nameplate/badge
+				# sit above the head, not below), so that — not the nameplate — is what the
+				# front-line rule must clear.
+				enemy_max_bottom = maxf(enemy_max_bottom, stage_offset.y + feet.y)
+			else:
+				# combat-v2.html stacks a PARTY column the same way it stacks an enemy one:
+				# status strip, then nameplate, then MODEL, top to bottom (gap 5, against the
+				# enemy column's 8). The plate sits ABOVE the model, not under its feet — the
+				# `feet.y + 6.0` anchor this replaces put every party plate down inside the deck
+				# bar's own band, which is also why the party plates had no room to be 68 tall.
+				# Centres on the portrait's own measured width; since CB-09 that is always
+				# UnitPortrait.WIDTH (176) on both sides, so the two agree by construction.
+				var party_head := _stage3d.get_unit_screen_pos(uid, CombatStage3D.HEAD_HEIGHT)
+				# C5, the pitch half — the plate centres on the unit's FEET, not its head. Both
+				# rows' world spacings were solved against the feet plane and then read off the
+				# head plane, which is a different depth and so a different scale: the party row
+				# is at depth 8.608 at the feet and 8.233 at the head, so `_ROW_SPACING_PARTY`
+				# (1.455) projects to 1.455 * 1148.07 / 8.608 = 194.0px at the feet — exactly
+				# combat-v2.html's `width:180 + gap:14` — and to 203px at the head, which is the
+				# 198px pitch the review measured. The enemy row does the same thing: 5.103 *
+				# 1148.07 / 20.204 = 290.0px at the feet, exactly `width:186 + gap:104`.
+				#
+				# NOT changed, deliberately: the row stays centred on x=960. The mockup's
+				# `left:402` implies x=880, and the review flags that 80px shift as uncertain
+				# rather than asserting it — see the task report.
+				p.position = Vector2(stage_offset.x + feet.x - p.size.x * 0.5,
+					stage_offset.y + party_head.y - 5.0 - p.size.y)
+				party_min_x = minf(party_min_x, p.position.x)
+				party_max_x = maxf(party_max_x, p.position.x + p.size.x)
 
 		var hud: UnitHeadHUD = _head_huds.get(uid)
 		if hud == null:
 			continue
-		var head := _stage3d.get_unit_screen_pos(uid, CombatStage3D.HEAD_HEIGHT)
-		if head.x >= 0.0:
-			var h := hud.total_height()
-			hud.position = stage_offset + Vector2(head.x - UnitHeadHUD.WIDTH * 0.5, head.y - h)
+		if feet.x >= 0.0:
+			# The intent badge sits one `gap:8` above its own nameplate — the enemy column's
+			# separation in combat-v2.html. With the plate pinned at _ENEMY_PLATE_TOP (125) this
+			# resolves to y = 125 - 8 - 42 = 75, the mockup's own column top.
+			#
+			# The slot is UnitHeadHUD.HEIGHT, a CONSTANT, and never `hud.total_height()`. Q3's
+			# no-intent enemies hide the badge entirely, a hidden badge measures zero, and
+			# measuring it here would slide that one enemy's nameplate 42px up out of the row —
+			# the same defect the fixed 28px status strip (UnitPortrait.STATUS_STRIP_H) exists
+			# to prevent one row further down.
+			hud.position = Vector2(p.position.x + (p.size.x - UnitHeadHUD.WIDTH) * 0.5,
+				p.position.y - 8.0 - UnitHeadHUD.HEIGHT)
+	_update_front_line(party_min_x, party_max_x, enemy_max_bottom)
 	_backdrop.apply_parallax(stage_offset)
+
+
+## C5: true only while iterating _portraits in _layout_unit_visuals() above — kept as a tiny
+## helper rather than inlining `_combat.enemies` lookup twice (min/max tracking above, this call).
+func _combat_is_enemy_uid(uid: int) -> bool:
+	for e in _combat.enemies:
+		if e.uid == uid:
+			return true
+	return false
+
+
+## combat-v2.html draws the front line at a FIXED y=480, full-bleed and STATIC: a 6px pure-black
+## rule inset 40 each side, a 2px cream-at-16% highlight one pixel below it inset 44, and a 14px
+## black square rotated 45° at each end, 32 in from each edge. All four now live as real geometry
+## in Combat.tscn (`FrontLine/Rule`, `RuleHighlight`, `CapL`, `CapR`) and nothing here moves them.
+##
+## THIS REVERTS FIX-PASS-01 §2.1 C5 and its round-3 follow-up, which between them shrank the rule
+## to the party's own bounding box, dropped it to 3px at 55% black, HID both end caps and the
+## highlight, and then re-anchored the whole band vertically off the live enemy feet. None of that
+## is in the mockup, and godot/CLAUDE.md is explicit that the screen mockup outranks a prose
+## restatement of it. The caller still passes the measured bounds so a future pass that wants a
+## live-anchored variant has them to hand; this one deliberately ignores them.
+func _update_front_line(_min_x: float, _max_x: float, _enemy_bottom_y: float) -> void:
+	if _front_line == null or _front_line_rule == null:
+		return
 
 
 # ===========================================================================
@@ -1978,10 +2592,15 @@ func _on_status_tick(statuses: PackedStringArray) -> void:
 		"" if statuses.is_empty() else ": " + ", ".join(statuses)))
 	_rebuild_all()
 
-func _on_turn_phase_changed(_old_phase: int, new_phase: int) -> void:
+func _on_turn_phase_changed(old_phase: int, new_phase: int) -> void:
 	if new_phase != CombatPhase.END_TURN:
 		_end_turn_acting_uid = -1   # next END_TURN starts from the "even lighting" fallback
 			# again (§5.1a) until the first enemy_intent_executed(uid) of that phase arrives
+	elif _combat != null and old_phase != CombatPhase.END_TURN \
+			and not (_combat.won or _combat.lost):
+		var graph := RunMapGraph.from_data(RunState.map_graph)
+		var total := maxi(graph.rows.size(), 1)
+		_show_turn_banner("WAVE %d" % clampi(RunState.power_level + 1, 1, total), "ENEMY TURN")
 	_rebuild_all()
 
 func _on_combat_finished(won: bool) -> void:
@@ -2058,56 +2677,93 @@ func _update_top_bar() -> void:
 ## map_graph is empty (e.g. t_combatview_smoke's synthetic setup, which sets
 ## RunState.pending_combat directly and never calls RunState.start_new_run()).
 ##
-## Pip colouring per the redline ("Wave track"): cleared = PRIMARY, current = CREAM_HI (and one
-## pip wider), future = FUTURE, the final (boss) pip = DANGER regardless of state.
+## Pip geometry and colour come straight from combat-v2.html's own `waveTrack` builder: every
+## pip is 10 tall, radius 4, on a 2px black outline, and its WIDTH is 17 for the current wave,
+## 14 for the boss and 11 otherwise; its FILL is PRIMARY behind you, CREAM_HI for the wave you
+## are on, DANGER for the boss pip and FUTURE ahead — in that precedence order (current beats
+## boss, for both width and fill).
+##
+## This REVERTS FIX-PASS-01 §2.1 C7, which recoloured cleared pips CREAM_TRACK on the grounds
+## that it outranked the v2 handoff. godot/CLAUDE.md now settles that the other way: the screen
+## mockup wins, and the FIX-PASS docs are historical.
 func _update_wave_track() -> void:
 	var graph := RunMapGraph.from_data(RunState.map_graph)
 	var total := maxi(graph.rows.size(), 1)
 	var current := clampi(RunState.power_level + 1, 1, total)
 	_wave_label.text = "WAVE %d" % current
+	_wave_total_label.text = " / %d" % total
 
 	while _wave_track.get_child_count() < total:
-		var seg := ColorRect.new()
+		var seg := PanelContainer.new()
+		seg.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		seg.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 		_wave_track.add_child(seg)
 	while _wave_track.get_child_count() > total:
 		var c := _wave_track.get_child(_wave_track.get_child_count() - 1)
 		_wave_track.remove_child(c)
 		c.queue_free()
 	for i in _wave_track.get_child_count():
-		var seg: ColorRect = _wave_track.get_child(i)
+		var seg: PanelContainer = _wave_track.get_child(i)
 		var n := i + 1
 		var is_boss := n == total
-		if n == current:
-			seg.custom_minimum_size = Vector2(17, 12)
-			seg.color = DangoTheme.CREAM_HI
+		var pip_w := 17 if n == current else (14 if is_boss else 11)
+		var pip_col: Color
+		if n < current:
+			pip_col = DangoTheme.PRIMARY
+		elif n == current:
+			pip_col = DangoTheme.CREAM_HI
+		elif is_boss:
+			pip_col = DangoTheme.DANGER
 		else:
-			seg.custom_minimum_size = Vector2(14 if is_boss else 11, 12)
-			if is_boss:
-				seg.color = DangoTheme.DANGER
-			elif n < current:
-				seg.color = DangoTheme.PRIMARY
-			else:
-				seg.color = DangoTheme.FUTURE
+			pip_col = DangoTheme.FUTURE
+		seg.custom_minimum_size = Vector2(pip_w, 10)
+		seg.add_theme_stylebox_override("panel",
+			DangoTheme.solid_chip_style(pip_col, 4, 2, Vector2.ZERO))
 
 
-## Turn pill — PRIMARY/ink for the player's own phase, DANGER/cream for the enemy phase (redline
-## "Turn pill": "Dark ink #2A1505 on the Kam fill ... never white ... Flips to a DANGER fill for
-## the enemy phase"). DangoTheme.ink_on() picks the right ink for either fill automatically.
+## Turn pill — ONE fill, and the dot, divider and "TURN n" all take their ink from it. PRIMARY
+## for the player's own phase, DANGER for the enemy phase (the mockup's static fixture only ever
+## shows the player's turn; the DANGER flip is real game state it does not cover, kept from the
+## previous pass). `ink_on()` picks black-or-cream for either fill.
+##
+## FLAGGED: combat-v2.html inks "TURN n" at a literal #5A3310, a mid-brown that exists only on
+## the Kam fill. DangoTheme has no token for it, and inlining a hex is forbidden, so this uses
+## INK_ON_PRIMARY at 0.72 alpha — which composites to ≈#663817 on PRIMARY. See the task report.
 func _update_turn_pill() -> void:
 	var acting := _combat.phase != CombatPhase.END_TURN
 	var bg := DangoTheme.PRIMARY if acting else DangoTheme.DANGER
 	_turn_pill_style.bg_color = bg
 	var ink := DangoTheme.ink_on(bg)
-	_turn_dot.color = ink
 	_turn_label.text = "YOUR TURN" if acting else "ENEMY TURN"
 	_turn_label.add_theme_color_override("font_color", ink)
+	(_turn_dot.get_theme_stylebox("panel") as StyleBoxFlat).bg_color = ink
+	_turn_divider.color = Color(ink.r, ink.g, ink.b, 0.35)
 	_turn_number_label.text = "TURN %d" % _combat.turn
-	_turn_number_label.add_theme_color_override("font_color", Color(ink.r, ink.g, ink.b, 0.7))
+	_turn_number_label.add_theme_color_override("font_color",
+		Color(ink.r, ink.g, ink.b, 0.72))
+
+
+## The glyph on a relic chip. FLAGGED — see `_RELIC_ARCHETYPE_ICON`: `RelicDef` has no `icon`
+## field, so this reads the relic's `archetype` (a real data field describing what it does) and
+## falls back to the damage glyph for the offence-shaped archetypes that have no icon of their
+## own (aoe/crit/exec/pierce). The relic's NAME is still on the tooltip.
+func _relic_icon_for(def: RelicDef) -> Texture2D:
+	var key := String(def.archetype)
+	if _RELIC_ARCHETYPE_ICON.has(key):
+		return _RELIC_ARCHETYPE_ICON[key]
+	return DangoTheme.face_type_icon("dmg")
 
 
 ## Relic strip — rebuilt every rebuild (relic_ids essentially never changes mid-combat, but a
 ## relic reward/purchase mid-run means this scene is re-entered fresh each fight anyway, so a
 ## from-scratch rebuild here costs nothing and can never drift from `_combat.relic_ids`).
+##
+## REVERTS the "coordinator follow-up fix #1" name-pill version (2026-09-20). That fix made the
+## chip hug the relic's own NAME, which is a text-measured width and is exactly what
+## combat-v2.html does not draw: `relics` there is a row of fixed 33x33 tiles, each a solid fill
+## with an 18px glyph. godot/CLAUDE.md is explicit that the screen mockup outranks a prose
+## restatement, and that a plate whose width depends on its text is the defect this screen keeps
+## re-acquiring.
 func _update_relic_strip() -> void:
 	for c in _relic_strip.get_children():
 		c.queue_free()
@@ -2116,14 +2772,10 @@ func _update_relic_strip() -> void:
 		if def == null:
 			continue
 		var color := DangoTheme.rarity_color(int(def.rarity))
-		var chip := _icon_tile(null, 33.0, 0.0, DangoTheme.solid_chip_style(color, 9, 3, Vector2.ZERO))
+		var chip := _icon_tile(_relic_icon_for(def), 33.0, 18.0,
+			DangoTheme.solid_chip_style(color, 9, 3, Vector2.ZERO))
+		chip.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 		chip.tooltip_text = String(def.name)
-		var letter := Label.new()
-		letter.text = String(def.name).left(1).to_upper()
-		letter.add_theme_font_size_override("font_size", 16)
-		letter.add_theme_color_override("font_color", DangoTheme.ink_on(color))
-		letter.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		(chip.get_child(0) as CenterContainer).add_child(letter)
 		_relic_strip.add_child(chip)
 
 
@@ -2177,7 +2829,7 @@ func _update_actives() -> void:
 		icon.custom_minimum_size = Vector2(22, 22)
 		icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 		icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-		icon.texture = _ICON_MANA   # relics have no per-active icon field yet — see task report
+		icon.texture = _relic_icon_for(def)   # see _RELIC_ARCHETYPE_ICON / the task report
 		icon.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 		col.add_child(icon)
 		var cost := Label.new()
@@ -2199,10 +2851,13 @@ func _update_actives() -> void:
 		_actives_row.add_child(more)
 	else:
 		for _i in range(shown.size(), _ACTIVE_SLOT_CAP):
+			# FIX-PASS-01 C6: was a near-black fill with a 2px border that read as a "pure-black
+			# hole" — WELL (the token for "holds something else, currently empty") + the L7 chip
+			# outline width (3px), so an empty slot reads as an empty SOCKET, not missing art.
 			var empty := PanelContainer.new()
 			empty.custom_minimum_size = Vector2(55, 55)
-			empty.add_theme_stylebox_override("panel", DangoTheme.solid_chip_style(
-				Color(0x16 / 255.0, 0x1A / 255.0, 0x22 / 255.0), 12, 2, Vector2.ZERO))
+			empty.add_theme_stylebox_override("panel",
+				DangoTheme.solid_chip_style(DangoTheme.WELL, 12, 3, Vector2.ZERO))
 			_actives_row.add_child(empty)
 
 
@@ -2235,10 +2890,54 @@ func _update_end_turn_ui() -> void:
 	_end_turn_button.disabled = _combat.won or _combat.lost
 
 
+## CB-11 / CB-12 — committed incoming damage on a party member: what the enemies have ALREADY
+## declared they will do to this unit this turn, which is what makes the at-risk slice and the
+## incoming chip a telegraph rather than a guess.
+##
+## Faithfulness matters more here than anywhere else on the screen, because a telegraph that
+## under-reports is worse than none: the player plans a turn around surviving it. This therefore
+## walks the SAME order DamagePipeline.apply_damage() does, and takes only its DETERMINISTIC
+## steps:
+##   * attacker side — `CombatEngine._face_value()`, which already folds in growth, vital,
+##     blind, weaken, overdrive, hiveMind and resonance;
+##   * step 6, target-side `vulnerable` (x1.5);
+##   * step 7, target-side relic damage reduction, party only.
+## CRIT (step 5) is deliberately EXCLUDED — it is an RNG roll, and a telegraph that assumes a
+## crit would over-report every turn it does not happen.
+##
+## KNOWN GAP, deliberate and small: `pierce` bypasses shield (step 8), and CB-11's formula
+## subtracts shield unconditionally. A piercing intent against a shielded party member will
+## therefore show a slightly SHORTER at-risk block than it should. Flagged rather than
+## silently modelled, because CB-11 states its formula literally.
+func _incoming_damage_for(target: Unit) -> int:
+	if _combat == null or target.side != "p" or target.hp <= 0:
+		return 0
+	var total := 0.0
+	for e in _combat.enemies:
+		if e.hp <= 0 or e.intent.is_empty():
+			continue
+		if int(e.intent.get("target_uid", -1)) != target.uid:
+			continue
+		var fi := int(e.intent.get("face_index", -1))
+		if fi < 0 or fi >= e.die.size():
+			continue
+		if String((e.die[fi] as Dictionary).get("type", "")) != "dmg":
+			continue
+		var v := float(_combat._face_value(e, fi))
+		if int(target.status.get("vulnerable", 0)) > 0:
+			v = ceil(v * 1.5)                                   # pipeline step 6
+		var dr := RelicHooks.sum(_combat, "dr")
+		if dr > 0.0:
+			v = max(1.0, ceil(v * (1.0 - dr)))                  # pipeline step 7
+		total += v
+	return int(total)
+
+
 func _update_portrait(u: Unit) -> void:
 	var p: UnitPortrait = _portraits.get(u.uid)
 	if p == null:
 		return
+	p.set_incoming(_incoming_damage_for(u))
 	p.update_stats(u.hp, u.max_hp, u.shield, u.status)
 	_stage3d.set_alive(u.uid, u.hp > 0)
 
@@ -2357,7 +3056,14 @@ func _update_die_slot_header(content: Dictionary, u: Unit) -> void:
 
 	var header_bg: PanelContainer = content.header_bg
 	var style := header_bg.get_theme_stylebox("panel") as StyleBoxFlat
-	style.bg_color = DangoTheme.class_color(u.cls)
+	var cls_color := DangoTheme.class_color(u.cls)
+	style.bg_color = cls_color
+	# FIX-PASS-01 §2.1 C10 / L6 (2026-09-20): header ink now tracks the class fill via
+	# ink_on(class_color(cls)) instead of the fixed DangoTheme.INK constant it built with — INK
+	# happens to already be correct for all six current CLASS_COLORS (verified: every one is
+	# >0.42 luma), so this was not visibly wrong today, but a future dark class colour would have
+	# silently reintroduced white/near-white-on-dark with no call site left to fix.
+	name_label.add_theme_color_override("font_color", DangoTheme.ink_on(cls_color))
 
 
 ## Six-face track repaint — `Unit.die` is the fixed 6-face composition (set once at spawn, never
@@ -2440,7 +3146,8 @@ func _update_die_slot_content(content: Dictionary, u: Unit) -> void:
 		chip.add_theme_stylebox_override("panel",
 			DangoTheme.solid_chip_style(col, 999, 3, Vector2(7, 0)))
 		var lbl := DangoTheme.display_label(
-			String(_KEYWORD_LABEL.get(kw_name, kw_name.to_upper())), 12, DangoTheme.ink_on(col), 800)
+			String(_KEYWORD_LABEL.get(kw_name, kw_name.to_upper())),
+			12, DangoTheme.ink_on(col), 800, 0.03)
 		lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		chip.add_child(lbl)
 		kw_row.add_child(chip)

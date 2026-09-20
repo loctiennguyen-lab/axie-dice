@@ -7,7 +7,7 @@ extends Node
 ##
 ## Run: /path/to/Godot --path godot res://tests/qa_vault_import_capture.tscn
 
-const _EVIDENCE_DIR := "/Users/loc.tien.nguyen/my-game/production/qa/evidence"
+var _EVIDENCE_DIR := QaPaths.evidence_dir()
 const IDS: PackedStringArray = ["123", "11778888"]
 
 var _guard := SaveGuard.new()

@@ -15,7 +15,7 @@ func _ready() -> void:
 	get_tree().root.add_child.call_deferred(view)
 	for _i in 30:
 		await get_tree().process_frame
-	var path := "/Users/loc.tien.nguyen/my-game/production/qa/evidence/%s_settings.png" % _today()
+	var path := QaPaths.evidence_dir() + "/%s_settings.png" % _today()
 	get_tree().root.get_texture().get_image().save_png(path)
 	print("QA: saved ", path)
 	RunState.clear_saved_run()

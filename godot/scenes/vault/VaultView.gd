@@ -49,14 +49,17 @@ const MAIN_MENU_SCENE := "res://scenes/main_menu/MainMenu.tscn"
 # images were missing; they never were. Look in that directory before concluding a background
 # does not exist, and do not copy the handoff's copies in — that is how a project ends up with
 # two of every background and no rule about which one is canonical.
-const BG_TEXTURE := "res://assets/backgrounds/origins/scene/9-rocky-mountain-1.jpg"
+const BG_MOCKUP_PLATE := "assets/bg/rocky.jpg"
 
 ## Shown under the ID field when importing cannot work on this build at all. The concrete reason
 ## comes from `AxieApi.unavailable_reason()`; this is the lead-in sentence.
 const IMPORT_UNAVAILABLE_PREFIX := "Import is unavailable on this build. "
 
-var _list: HFlowContainer
+var _list: GridContainer
+var _record_scroll: ScrollContainer
+var _record_fade: TextureRect
 var _count_label: Label
+var _count_caption: Label
 var _empty_label: Label
 
 var _api: AxieApi
@@ -69,20 +72,80 @@ var _preview_box: PanelContainer
 ## so the record that gets stored is provably the one that was shown.
 var _pending_axie: Dictionary = {}
 
+## FIX-PASS-02 §1 item 4: `content` already supplies the safe area and the 84px rail
+## (`DangoScreen.RAIL_X`). This screen's columns sit at absolute margins narrower than the rail
+## (64px, not 84), so their offsets against `content` are `old_absolute_margin - RAIL_X` —
+## preserving the same distance from the real screen edge the mockup asked for.
+var _content: Control
+const HEADER_INSET := 64.0 - 84.0     # -20: 20px INSIDE the standard rail
+const IMPORT_LEFT := 64.0 - 84.0      # same column as the header
+## Mockup: `left:620` for the record column (was 592 here, a 28px drift).
+const RECORD_LEFT := 620.0 - 84.0
+const RECORD_RIGHT := -64.0 + 84.0
+## FIXED 2026-09-20 (mockup pass): `content`'s top edge is already the 48px safe line, so a
+## mockup `top:256` is 208 here. These were being added ON TOP of the shell's inset, which put
+## the header at 96 and both columns at 304 — every vertical measurement on this screen was 48
+## low.
+const HEADER_TOP := 48.0 - 48.0
+const RECORD_TOP := 256.0 - 48.0
+
+## V3 — SETTLED BY THE MOCKUP, so the panel does not move. The review flagged the import
+## panel's outer edge at x=66 as "confirm against the mockup's own value before moving", and
+## `meta-screens-v2.html`'s Vault draws it at `left:64` (its header row is `left:64; right:64`
+## too). `IMPORT_LEFT` above already resolves to 64. Vault does NOT take Team Select's 56 or
+## the shell's 84 — it has its own inset and this is it.
+##
+## BOX MODEL (design review 2026-09-20). Every fixed size below is the mockup's CONTENT box and
+## the black border adds OUTSIDE it, so an outer size is the mockup's number plus its border on
+## each edge that has one. This is the single error the review found across all three meta
+## screens, and these constants are the whole of it on this one.
+const IMPORT_PANEL_W := 528.0      ## width:520 + border:4 each side
+const EYEBROW_CHIP_H := 40.0       ## height:34 + border:3
+const COUNT_CHIP_H := 64.0         ## height:56 + border:4
+const ID_FIELD_H := 56.0           ## height:50 + border:3
+const SCAN_SIZE := Vector2(118, 56)  ## width:112; height:50 + border:3
+const CARD_BAND_H := 48.0          ## height:44 + border-bottom:4
+const CARD_FLAG_H := 28.0          ## height:24 + border:2
+const PREVIEW_BOX_H := 230.0       ## height:224 + border:3
+const REMOVE_BTN_H := 56.0         ## height:50 + border:3
+
 
 func _ready() -> void:
-	var plate_host := Control.new()
-	plate_host.name = "PlateHost"
-	plate_host.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	plate_host.set_anchors_preset(Control.PRESET_FULL_RECT)
-	add_child(plate_host)
-	DangoTheme.build_plate(plate_host, load(BG_TEXTURE), DangoTheme.Scrim.DEFAULT)
+	# G1, RESOLVED BY THE OWNER (20 Sep 2026): the meta screens keep a BACK button.
+	#
+	# The design review was right that no v2 mockup draws a footer bar — in `meta-screens-v2.html`
+	# all seven meta screens are closed by a shared `META` tab strip across the top, which this
+	# build does not have. So this pass removed the bar, and that left the Vault with no on-screen
+	# way out at all: Esc worked, a mouse did not. The owner's call is to keep a back control on
+	# the meta screens rather than build the tab strip, so the footer stays here.
+	#
+	# Scoped deliberately. This is the META screens only — Run Map and Result still pass `false`,
+	# because unlike the Vault their mockups DO draw their own closing controls (SAVE & QUIT at
+	# the foot of the map's rail; RUN IT AGAIN and MAIN MENU centred at `bottom:52`), and the bar
+	# was actively displacing them. Pass, Unlocks, Guides, Codex and Team Select already keep
+	# theirs, so the Vault matches its siblings again.
+	var shell := DangoScreen.build(self, MockupAssets.tex(BG_MOCKUP_PLATE),
+		DangoTheme.Scrim.DEFAULT, true)
+	_content = shell["content"]
+	# FIXED 2026-09-20: the bar above was being built and then left EMPTY - `shell["footer"]`
+	# was never read. So the screen carried a 72px chrome bar with nothing in it and still had
+	# no mouse way out, which is the exact defect the comment above says the owner asked to
+	# close. FIX-PASS-03 §8: BACK lives in the footer on all seven meta screens, never on art.
+	DangoScreen.add_back_button(shell["footer"] as HBoxContainer, func() -> void:
+		get_tree().change_scene_to_file(MAIN_MENU_SCENE))
 
 	_build_header()
 	_build_import_panel()
 	_build_record_panel()
-	_build_back_button()
 	refresh()
+
+
+## Esc closes the screen too. Kept now that the footer is back — it costs nothing and a
+## keyboard player should not have to reach for the mouse to leave.
+func _unhandled_input(event: InputEvent) -> void:
+	if event.is_action_pressed("ui_cancel"):
+		get_viewport().set_input_as_handled()
+		get_tree().change_scene_to_file(MAIN_MENU_SCENE)
 
 
 func _build_header() -> void:
@@ -94,10 +157,10 @@ func _build_header() -> void:
 	var row := HBoxContainer.new()
 	row.name = "HeaderRow"
 	row.set_anchors_preset(Control.PRESET_TOP_WIDE)
-	row.offset_left = 64.0
-	row.offset_right = -64.0
-	row.offset_top = 48.0
-	add_child(row)
+	row.offset_left = HEADER_INSET
+	row.offset_right = -HEADER_INSET
+	row.offset_top = HEADER_TOP
+	_content.add_child(row)
 
 	var col := VBoxContainer.new()
 	col.name = "HeaderCol"
@@ -106,21 +169,25 @@ func _build_header() -> void:
 	row.add_child(col)
 
 	var chip := PanelContainer.new()
-	chip.custom_minimum_size = Vector2(0, 34)
+	chip.custom_minimum_size = Vector2(0, EYEBROW_CHIP_H)
 	chip.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
 	chip.add_theme_stylebox_override("panel",
 		DangoTheme.solid_chip_style(DangoTheme.SHIELD_BLUE, 9, 3, Vector2(14, 6)))
 	var eyebrow := DangoTheme.display_label("IMPORT A REAL AXIE NFT", 14,
-		DangoTheme.INK_ON_SHIELD, 800)
+		DangoTheme.INK_ON_SHIELD, 800, 0.16)
 	eyebrow.add_theme_constant_override("line_spacing", 0)
 	chip.add_child(eyebrow)
 	col.add_child(chip)
 
-	col.add_child(DangoTheme.display_label("THE VAULT", 56, DangoTheme.CREAM_RAISED))
+	col.add_child(DangoTheme.display_label("THE VAULT", 56, DangoTheme.CREAM_RAISED,
+		800, 0.02))
 
 	var sub := _body_label("Its six real body parts become a playable die. The 3D model is built"
 		+ " from the same genes, on the same rig your party uses.")
-	sub.add_theme_color_override("font_color", DangoTheme.TEXT_DIM)
+	# CORRECTED 2026-09-20 (mockup pass): `SUBTITLE_TEXT` IS `#A6B0BF` and names this exact
+	# label in its own docstring. MUTED_TEXT (`#8C95A4`) was a near-miss standing in for it.
+	sub.add_theme_color_override("font_color", DangoTheme.SUBTITLE_TEXT)
+	sub.custom_minimum_size.x = 900   # mockup: max-width 900
 	col.add_child(sub)
 
 	var spacer := Control.new()
@@ -129,7 +196,7 @@ func _build_header() -> void:
 
 	var count_chip := PanelContainer.new()
 	count_chip.name = "ImportCountChip"
-	count_chip.custom_minimum_size = Vector2(0, 56)
+	count_chip.custom_minimum_size = Vector2(0, COUNT_CHIP_H)
 	count_chip.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
 	var chip_sb := DangoTheme.surface_style(DangoTheme.Surface.PANEL, 13, 4, 5.0, Vector2(18, 0))
 	chip_sb.bg_color = DangoTheme.SHIELD_BLUE
@@ -145,17 +212,22 @@ func _build_header() -> void:
 	_count_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	count_row.add_child(_count_label)
 
+	_count_caption = DangoTheme.display_label("IMPORTED", 13, DangoTheme.INK_ON_SHIELD, 800, 0.1)
+	_count_caption.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	_count_caption.add_theme_constant_override("line_spacing", 0)
+	count_row.add_child(_count_caption)
+
 
 func _build_import_panel() -> void:
 	var panel := PanelContainer.new()
 	panel.name = "ImportPanel"
 	panel.set_anchors_preset(Control.PRESET_TOP_LEFT)
-	panel.offset_left = 64.0
-	panel.offset_top = 256.0
-	panel.custom_minimum_size = Vector2(500, 0)
+	panel.offset_left = IMPORT_LEFT
+	panel.offset_top = RECORD_TOP
+	panel.custom_minimum_size = Vector2(IMPORT_PANEL_W, 0)
 	panel.add_theme_stylebox_override("panel",
-		DangoTheme.surface_style(DangoTheme.Surface.PANEL, 16, 4, 5.0, Vector2(18, 16)))
-	add_child(panel)
+		DangoTheme.surface_style(DangoTheme.Surface.PANEL, 16, 4, 5.0, Vector2(20, 18)))
+	_content.add_child(panel)
 
 	var col := VBoxContainer.new()
 	col.add_theme_constant_override("separation", 10)
@@ -163,7 +235,7 @@ func _build_import_panel() -> void:
 
 	var available := AxieApi.is_available()
 
-	var eyebrow := DangoTheme.display_label("IMPORT BY AXIE ID", 13, DangoTheme.MUTED_TEXT, 800)
+	var eyebrow := DangoTheme.display_label("IMPORT BY AXIE ID", 13, DangoTheme.MUTED_TEXT, 800, 0.16)
 	col.add_child(eyebrow)
 
 	var row := HBoxContainer.new()
@@ -174,7 +246,7 @@ func _build_import_panel() -> void:
 	_id_field.name = "AxieIdField"
 	_id_field.placeholder_text = "e.g. 11778888"
 	_id_field.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_id_field.custom_minimum_size = Vector2(0, 50)
+	_id_field.custom_minimum_size = Vector2(0, ID_FIELD_H)
 	_id_field.editable = available
 	_id_field.add_theme_stylebox_override("normal",
 		DangoTheme.surface_style(DangoTheme.Surface.WELL, 11, 3, 0.0, Vector2(14, 0)))
@@ -187,8 +259,20 @@ func _build_import_panel() -> void:
 	_scan_button = Button.new()
 	_scan_button.name = "ScanButton"
 	_scan_button.text = "SCAN"
-	_scan_button.custom_minimum_size = Vector2(112, 50)
+	_scan_button.custom_minimum_size = SCAN_SIZE
+	DangoTheme.apply_tracking(_scan_button, 0.08, 15)
 	DangoTheme.style_button(_scan_button, true)
+	# FLAGGED V2: `style_button(primary=true)`'s DISABLED variant desaturates PRIMARY toward grey
+	# (`primary_button_style()`'s DISABLED branch) — correct for a list row that is "unaffordable"
+	# or "locked", but SCAN's disabled state here means only "no ID typed yet", an input gate, not
+	# an L5 list state. That blend read as a muddy off-palette brown on the QA capture. Per the
+	# audit's literal instruction ("PRIMARY + INK_ON_PRIMARY") this button stays fully PRIMARY-lit
+	# in every state, including disabled — it just isn't clickable until the field holds a valid
+	# ID. A future pass could give "no input yet" its own token in the L5 vocabulary instead of
+	# reusing (or here, overriding) the generic button DISABLED look.
+	var scan_lit_sb := DangoTheme.primary_button_style(false, DangoTheme.ButtonState.NORMAL)
+	_scan_button.add_theme_stylebox_override("disabled", scan_lit_sb)
+	_scan_button.add_theme_color_override("font_disabled_color", DangoTheme.INK_ON_PRIMARY)
 	_scan_button.pressed.connect(_on_scan_pressed)
 	row.add_child(_scan_button)
 
@@ -199,10 +283,30 @@ func _build_import_panel() -> void:
 		plate_sb.bg_color = DangoTheme.DANGER
 		plate.add_theme_stylebox_override("panel", plate_sb)
 		col.add_child(plate)
+		var plate_row := HBoxContainer.new()
+		plate_row.add_theme_constant_override("separation", 10)
+		plate.add_child(plate_row)
+		var plate_icon := TextureRect.new()
+		plate_icon.custom_minimum_size = Vector2(20, 20)
+		plate_icon.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+		plate_icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		plate_icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		plate_icon.texture = MockupAssets.tex("assets/fx/blind.png")
+		plate_row.add_child(plate_icon)
 		var plate_lbl := _body_label(IMPORT_UNAVAILABLE_PREFIX + AxieApi.unavailable_reason())
+		plate_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		plate_lbl.add_theme_font_size_override("font_size", 13)
 		plate_lbl.add_theme_color_override("font_color", DangoTheme.INK_ON_DANGER)
-		plate.add_child(plate_lbl)
+		plate_row.add_child(plate_lbl)
+
+		# The mockup draws SCAN in its inert state on this screen, because the network layer is
+		# what is missing. Match that exactly when the build agrees it is unavailable.
+		var scan_inert := DangoTheme.surface_style(DangoTheme.Surface.PANEL_RAISED, 11, 3, 0.0,
+			Vector2(-1, -1))
+		for state_key in ["normal", "hover", "pressed", "disabled"]:
+			_scan_button.add_theme_stylebox_override(state_key, scan_inert)
+		_scan_button.add_theme_color_override("font_disabled_color", DangoTheme.FAINT_TEXT)
+		_scan_button.add_theme_color_override("font_color", DangoTheme.FAINT_TEXT)
 
 	_status_label = _body_label("")
 	_status_label.name = "ImportStatus"
@@ -217,7 +321,8 @@ func _build_import_panel() -> void:
 	rule.color = Color.BLACK
 	col.add_child(rule)
 
-	col.add_child(DangoTheme.display_label("RANKED RUN", 13, DangoTheme.MUTED_TEXT, 800))
+	col.add_child(DangoTheme.display_label("RANKED RUN", 13, DangoTheme.MUTED_TEXT, 800,
+		0.16))
 	var ranked_note := PanelContainer.new()
 	ranked_note.add_theme_stylebox_override("panel",
 		DangoTheme.surface_style(DangoTheme.Surface.WELL, 11, 3, 0.0, Vector2(13, 11)))
@@ -238,50 +343,53 @@ func _build_import_panel() -> void:
 	_refresh_scan_enabled()
 
 
+## FIX-PASS-02 §1 item 4: the old `anchor_bottom = 1.0` + hand-computed
+## `-(SAFE_AREA + FOOTER_HEIGHT)` offset is exactly the pattern the shell's `fit_or_scroll()`
+## replaces — `content` already excludes the footer, so nothing here needs to know its height.
 func _build_record_panel() -> void:
-	var scroll := ScrollContainer.new()
-	scroll.name = "RecordScroll"
-	scroll.set_anchors_preset(Control.PRESET_TOP_WIDE)
-	scroll.offset_left = 592.0
-	scroll.offset_right = -64.0
-	scroll.offset_top = 256.0
-	scroll.offset_bottom = -30.0
-	scroll.anchor_bottom = 1.0
-	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	DangoTheme.style_scrollbars(scroll)
-	# ScrollContainer does not clip its content by default in this Godot version — without
-	# this, a list longer than the container's rect draws straight through it and over
-	# whatever sits below (found on the Unlocks QA capture: row 10 bled past the panel and
-	# over the BACK button).
-	scroll.clip_contents = true
-	add_child(scroll)
-
-	# HFlowContainer, not a fixed HBox: up to VAULT_MAX (20) records must wrap onto more than one
-	# row rather than being squeezed to zero width or spilling off the right edge, which a straight
-	# left-to-right row (the mockup's own layout, drawn for exactly 2 records) cannot do.
-	_list = HFlowContainer.new()
+	# FIX-PASS-01 V1: was an `HFlowContainer` — measured on the QA capture to lay out as ONE
+	# 355px column (each card's own `SIZE_EXPAND_FILL` claims the whole remaining line width
+	# before the flow's wrap decision runs, so a second card never fits on the same line no
+	# matter how much room is actually free). A `GridContainer` with a fixed column count has no
+	# such ambiguity: 3 columns, filling the content region, still scrolling per L2 once the
+	# (up to 20) records overflow it vertically.
+	_list = GridContainer.new()
 	_list.name = "RecordList"
+	_list.columns = 3
 	_list.add_theme_constant_override("h_separation", 16)
 	_list.add_theme_constant_override("v_separation", 16)
-	scroll.add_child(_list)
+
+	_record_scroll = DangoScreen.fit_or_scroll(_list, _record_max_height())
+	_record_scroll.name = "RecordScroll"
+	_record_scroll.set_anchors_preset(Control.PRESET_TOP_WIDE)
+	_record_scroll.offset_left = RECORD_LEFT
+	_record_scroll.offset_right = RECORD_RIGHT
+	_record_scroll.offset_top = RECORD_TOP
+	_content.add_child(_record_scroll)
+
+	var fade := DangoTheme.scroll_fade(DangoTheme.PANEL)
+	fade.name = "RecordScrollFade"
+	fade.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	fade.visible = false
+	fade.anchor_left = 0.0
+	fade.anchor_right = 1.0
+	fade.anchor_top = 0.0
+	fade.anchor_bottom = 0.0
+	fade.offset_left = RECORD_LEFT
+	fade.offset_right = RECORD_RIGHT
+	_content.add_child(fade)
+	_record_fade = fade
 
 	_empty_label = _body_label("")
 	_empty_label.name = "EmptyLabel"
 	_empty_label.add_theme_color_override("font_color", DangoTheme.TEXT_DIM)
-	add_child(_empty_label)
+	_content.add_child(_empty_label)
 
 
-func _build_back_button() -> void:
-	var back := Button.new()
-	back.name = "BackButton"
-	back.text = "BACK"
-	back.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
-	back.position = Vector2(64, -44 - 24)
-	back.custom_minimum_size = Vector2(0, 44)
-	DangoTheme.style_button(back, false)
-	back.pressed.connect(func() -> void:
-		get_tree().change_scene_to_file(MAIN_MENU_SCENE))
-	add_child(back)
+func _record_max_height() -> float:
+	# The footer is back (see `_ready()`), so the list stops above it. `RECORD_TOP` is already
+	# relative to `_content`, whose height is the canvas less the two safe insets AND the footer.
+	return get_viewport_rect().size.y - DangoScreen.SAFE * 2.0 - DangoScreen.FOOTER_H - RECORD_TOP
 
 
 ## Rebuilds the list from `MetaState.vault`. Public so a test can drive it after changing the
@@ -303,9 +411,11 @@ func refresh() -> void:
 	# player does not get — and once the network layer lands this is the only thing telling
 	# someone why their next import was refused.
 	var full := MetaState.vault_is_full()
-	_count_label.text = "%d / %d%s" % [
-		entries.size(), MetaState.VAULT_MAX, "  ·  FULL" if full else "  IMPORTED"]
+	_count_label.text = "%d / %d" % [entries.size(), MetaState.VAULT_MAX]
 	_count_label.add_theme_color_override("font_color",
+		DangoTheme.DANGER if full else DangoTheme.INK_ON_SHIELD)
+	_count_caption.text = "FULL" if full else "IMPORTED"
+	_count_caption.add_theme_color_override("font_color",
 		DangoTheme.DANGER if full else DangoTheme.INK_ON_SHIELD)
 	_empty_label.visible = entries.is_empty()
 	# Just the state, not the reason — the reason is already on screen two lines above, under the
@@ -314,6 +424,24 @@ func refresh() -> void:
 
 	for entry in entries:
 		_list.add_child(_build_row(entry))
+
+	# L2 fade: only when the list actually overflows its region — 0-2 records is the common case
+	# and does not need one. Deferred because `get_combined_minimum_size()` on the just-populated
+	# grid is only accurate once this frame's layout pass has run.
+	call_deferred("_update_record_fade")
+
+
+func _update_record_fade() -> void:
+	if _list == null or _record_scroll == null or _record_fade == null:
+		return
+	var natural := _list.get_combined_minimum_size().y
+	var max_h := _record_max_height()
+	var overflow := natural > max_h
+	_record_fade.visible = overflow
+	if overflow:
+		var bottom := RECORD_TOP + minf(natural, max_h)
+		_record_fade.offset_top = bottom - DangoTheme.SCROLL_FADE_HEIGHT
+		_record_fade.offset_bottom = bottom
 
 
 ## SCAN is enabled only for something that could actually be an Axie ID. Letting it fire on "abc"
@@ -424,11 +552,34 @@ func _build_import_preview(axie: Dictionary) -> void:
 func _on_add_pressed() -> void:
 	if _pending_axie.is_empty():
 		return
+
+	# A record with no usable gene string must never reach the vault. 20 Sep 2026.
+	#
+	# The owner reported both saved records rendering a large flat black box reading "No gene
+	# data for this Axie." That string is `AxieGenePreview.REASON_EMPTY` — the genes field is an
+	# empty string, not corrupt and not undecodable. The import path itself is sound
+	# (`axie_api.gd` reads the API's `newGenes` and republishes it as `genes`;
+	# `axie_to_die.gd` carries it into the record; `MetaState._vault_entry_from_json()`
+	# `duplicate(true)`s before overwriting, so the save round-trip preserves it), which means
+	# those two records were written empty in the first place and have been unusable on disk
+	# ever since.
+	#
+	# Nothing stopped that, and that is the actual defect: a vault record's whole purpose is to
+	# rebuild the 3D rig from its genes — no image is cached and nothing is re-fetched — so
+	# storing one without them produces a permanent dead card that no amount of UI work fixes.
+	# Refusing the import is recoverable; a silently broken record is not. Existing broken
+	# records are NOT repaired by this guard; they have to be removed and re-imported.
+	var genes := str(_pending_axie.get("genes", "")).strip_edges()
+	if genes.is_empty():
+		_status_label.text = "This Axie came back without gene data — nothing to build a die from."
+		_status_label.add_theme_color_override("font_color", DangoTheme.DANGER)
+		return
+
 	var res := MetaState.vault_import({
 		"id": _pending_axie.get("id", ""),
 		"class": _pending_axie.get("class", ""),
 		"parts": _pending_axie.get("parts", []),
-		"genes": _pending_axie.get("genes", ""),
+		"genes": genes,
 	})
 	if not bool(res.get("ok", false)):
 		_status_label.text = ("Vault is full (%d/%d)." % [MetaState.vault.size(),
@@ -452,7 +603,9 @@ func _build_row(entry: Dictionary) -> PanelContainer:
 	card.name = "Row_" + str(entry.get("axie_id", ""))
 	card.custom_minimum_size = Vector2(360, 0)
 	card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	card.add_theme_stylebox_override("panel", DangoTheme.cream_card_style(Color.TRANSPARENT))
+	card.add_theme_stylebox_override("panel",
+		DangoTheme.cream_card_style(Color.TRANSPARENT, 17, 5, 7.0))
+	DangoTheme.clip_to_frame(card)   # G3
 
 	var outer := VBoxContainer.new()
 	outer.add_theme_constant_override("separation", 0)
@@ -467,7 +620,7 @@ func _build_row(entry: Dictionary) -> PanelContainer:
 	# a twenty-row list, a small red sentence is easy to pass; a differently-coloured header is
 	# not.
 	var band := PanelContainer.new()
-	band.custom_minimum_size = Vector2(0, 44)
+	band.custom_minimum_size = Vector2(0, CARD_BAND_H)
 	var band_sb := StyleBoxFlat.new()
 	band_sb.bg_color = DangoTheme.DANGER if stale_card else DangoTheme.class_color(shown_class)
 	band_sb.border_width_bottom = 4
@@ -483,25 +636,37 @@ func _build_row(entry: Dictionary) -> PanelContainer:
 	band_row.alignment = BoxContainer.ALIGNMENT_CENTER
 	band.add_child(band_row)
 
-	var nm := DangoTheme.display_label(str(entry.get("n", "Axie")), 20, DangoTheme.INK)
+	var nm := DangoTheme.display_label(str(entry.get("n", "Axie")), 20, DangoTheme.INK,
+		800, 0.02)
+	nm.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	# V2: the mockup's name group is `min-width:0` with `overflow:hidden; text-overflow:
+	# ellipsis`, and the flag chip beside it is `flex:0 0 auto`. In Godot a Label's minimum
+	# width is its WHOLE text unless an overrun behaviour is set, so a long Axie name made the
+	# header row wider than the card and pushed the chip straight through the band's 14px
+	# right padding — which is exactly what the review measured on the second card. Trimming
+	# to an ellipsis collapses that minimum to 1px, so the name yields and the chip cannot.
+	nm.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	nm.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	band_row.add_child(nm)
-
-	var spacer := Control.new()
-	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	band_row.add_child(spacer)
 
 	var flag_text := "RE-SCAN NEEDED" if stale_card else "READY"
 	var flag_bg := DangoTheme.WARN_YELLOW if stale_card else DangoTheme.SUCCESS
 	var flag := PanelContainer.new()
+	# `height:24` + `border:2` = 28 outer, `padding:0 9px`, and it never shrinks or grows.
+	flag.custom_minimum_size = Vector2(0, CARD_FLAG_H)
+	flag.size_flags_horizontal = Control.SIZE_SHRINK_END
+	flag.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	flag.add_theme_stylebox_override("panel", DangoTheme.solid_chip_style(flag_bg, 7, 2, Vector2(9, 2)))
-	var flag_lbl := DangoTheme.display_label(flag_text, 12, DangoTheme.INK, 800)
+	var flag_lbl := DangoTheme.display_label(flag_text, 12, DangoTheme.INK, 800, 0.08)
 	flag_lbl.add_theme_constant_override("line_spacing", 0)
 	flag.add_child(flag_lbl)
 	band_row.add_child(flag)
 
 	var margin := MarginContainer.new()
-	for side in ["left", "right", "top", "bottom"]:
-		margin.add_theme_constant_override("margin_" + side, 14)
+	margin.add_theme_constant_override("margin_left", 16)
+	margin.add_theme_constant_override("margin_right", 16)
+	margin.add_theme_constant_override("margin_top", 14)
+	margin.add_theme_constant_override("margin_bottom", 16)
 	outer.add_child(margin)
 
 	var info := VBoxContainer.new()
@@ -526,19 +691,17 @@ func _build_row(entry: Dictionary) -> PanelContainer:
 		info.add_child(badge)
 
 	var preview_box := PanelContainer.new()
-	preview_box.custom_minimum_size = Vector2(0, 224)
+	preview_box.custom_minimum_size = Vector2(0, PREVIEW_BOX_H)
 	preview_box.add_theme_stylebox_override("panel",
 		DangoTheme.surface_style(DangoTheme.Surface.CREAM_RAISED, 14, 3, 0.0, Vector2(-1, -1)))
 	preview_box.clip_contents = true
 	info.add_child(preview_box)
 
-	var caption := DangoTheme.display_label("AxieCharacter3D · FROM GENES", 11,
-		DangoTheme.INK_ON_CREAM_MUTED, 800)
-	caption.set_anchors_preset(Control.PRESET_TOP_LEFT)
-	caption.position = Vector2(11, 9)
-	caption.add_theme_constant_override("line_spacing", 0)
-	preview_box.add_child(caption)
-
+	# FIX-PASS-01 V3: the "AxieCharacter3D · FROM GENES" caption is gone — a developer-facing
+	# class name has no reason to be on a player-facing screen, and it was also under the L8 type
+	# floor at 11px. `AxiePreview3D`'s own empty-state styling (WELL fill + one centred 15px line)
+	# now carries the "nothing to show yet" case; a populated preview needs no caption at all.
+	#
 	# The 3D preview, rebuilt from the genes stored with the record. This is why the record keeps
 	# `genes` at all — no image is cached, and nothing is fetched.
 	var preview := (load(PREVIEW_SCENE) as PackedScene).instantiate() as AxiePreview3D
@@ -548,9 +711,9 @@ func _build_row(entry: Dictionary) -> PanelContainer:
 	preview.set_genes(str(entry.get("genes", "")))
 
 	var die_caption := DangoTheme.display_label("DIE FROM ITS SIX REAL PARTS", 12,
-		DangoTheme.INK_ON_CREAM_MUTED, 800)
+		DangoTheme.INK_ON_CREAM_MUTED, 800, 0.14)
 	info.add_child(die_caption)
-	info.add_child(_build_die_strip(entry.get("die", [])))
+	info.add_child(_build_die_strip(entry.get("die", []), cls))
 
 	if stale_card:
 		var stale := Label.new()
@@ -571,7 +734,10 @@ func _build_row(entry: Dictionary) -> PanelContainer:
 	var remove := Button.new()
 	remove.name = "RemoveButton"
 	remove.text = "REMOVE"
-	remove.custom_minimum_size = Vector2(0, 46)
+	remove.custom_minimum_size = Vector2(0, REMOVE_BTN_H)
+	remove.add_theme_font_override("font", DangoTheme.FONT_DISPLAY)
+	remove.add_theme_font_size_override("font_size", 16)
+	DangoTheme.apply_tracking(remove, 0.08, 16)
 	# Flat DANGER fill with ink on it, not `style_button(primary, warning=true)` — that helper's
 	# `warning` flag only recolours the BORDER to DANGER and keeps the PRIMARY orange fill (it
 	# exists for the End Turn button's "this ends the turn" accent, a different job). REMOVE needs
@@ -592,7 +758,11 @@ func _build_row(entry: Dictionary) -> PanelContainer:
 
 ## The six faces, as value + type, in slot order. Deliberately the same numbers the die card in
 ## combat shows: a player comparing an import against a starter hero is comparing these.
-func _build_die_strip(die: Array) -> GridContainer:
+## `cls` is the Axie's class, needed for the per-slot part icon the mockup puts in every face
+## cell (`assets/part/<slot>-<class>.svg`). Empty means "no class to draw an icon from" — the
+## import preview builds its strip before a class is committed — and the icon is left out rather
+## than drawn as a hole.
+func _build_die_strip(die: Array, cls: String = "") -> GridContainer:
 	var grid := GridContainer.new()
 	grid.name = "DieStrip"
 	grid.columns = 3
@@ -602,7 +772,6 @@ func _build_die_strip(die: Array) -> GridContainer:
 		var face: Dictionary = f
 		var value := int(face.get("v", 0))
 		var ftype := str(face.get("t", "blank"))
-		var accent := DangoTheme.die_type_color(ftype)
 
 		var chip := PanelContainer.new()
 		# FIXED 2026-09-20 consistency sweep: without an expand flag, GridContainer sizes each
@@ -620,21 +789,33 @@ func _build_die_strip(die: Array) -> GridContainer:
 		var row := HBoxContainer.new()
 		row.add_theme_constant_override("separation", 7)
 		col.add_child(row)
+
+		var slot := str(face.get("p", ""))
+		if not cls.is_empty() and not slot.is_empty() and slot != "blank":
+			var part_icon := TextureRect.new()
+			part_icon.custom_minimum_size = Vector2(21, 21)
+			part_icon.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+			part_icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+			part_icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+			part_icon.texture = MockupAssets.part_icon(slot, cls)
+			row.add_child(part_icon)
+
 		var value_lbl := DangoTheme.display_label(
 			"—" if ftype == "blank" else str(value), 22, DangoTheme.INK)
 		row.add_child(value_lbl)
-		var swatch := PanelContainer.new()
-		swatch.custom_minimum_size = Vector2(17, 17)
-		swatch.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-		var swatch_sb := StyleBoxFlat.new()
-		swatch_sb.bg_color = accent
-		swatch_sb.border_color = Color.BLACK
-		swatch_sb.set_border_width_all(2)
-		swatch_sb.set_corner_radius_all(5)
-		swatch.add_theme_stylebox_override("panel", swatch_sb)
-		row.add_child(swatch)
+		# VLT-05 / G-01: 21+2*2 swatch holding its 13px type glyph. Was a bare 17px colour block —
+		# the exact "colour standing alone for a mechanic" G-01 removes. Shared builder.
+		# `width:21;height:21` + `border:2` = 25 outer, holding its 13px type glyph.
+		row.add_child(DangoTheme.type_swatch(ftype, 25, 13, 6, 2))
 
-		var caption := DangoTheme.display_label(ftype.to_upper(), 10, DangoTheme.INK_ON_CREAM_MUTED, 800)
+		# Mockup caption is "SLOT · TYPE" at `font-size:10px;letter-spacing:.05em`.
+		# RESTORED 2026-09-20: it was held at 12 by the old project type floor, which the
+		# project owner has removed in favour of the mockups (godot/CLAUDE.md rule 5).
+		var caption_text := ftype.to_upper()
+		if not slot.is_empty() and slot != "blank":
+			caption_text = "%s · %s" % [slot.to_upper(), ftype.to_upper()]
+		var caption := DangoTheme.display_label(
+			caption_text, 10, DangoTheme.INK_ON_CREAM_MUTED, 800, 0.05)
 		caption.add_theme_constant_override("line_spacing", 0)
 		col.add_child(caption)
 

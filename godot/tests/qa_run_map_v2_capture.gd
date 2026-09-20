@@ -15,7 +15,7 @@ extends Node
 ## Run: /path/to/Godot --path godot tests/qa_run_map_v2_capture.tscn
 ## Do not point this at a terminal/window the user (or another agent) is actively using.
 
-const _EVIDENCE_DIR := "/Users/loc.tien.nguyen/my-game/production/qa/evidence"
+var _EVIDENCE_DIR := QaPaths.evidence_dir()
 const _TEAM: Array[String] = ["plant1", "beast1", "aqua1", "reptile1", "bug1"]
 const _SEED := 555001
 

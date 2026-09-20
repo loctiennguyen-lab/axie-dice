@@ -85,6 +85,14 @@ const REFRESH_HZ := 12.0
 @onready var _warning: PanelContainer = $Warning
 @onready var _warning_label: Label = $Warning/Margin/WarningLabel
 
+## FIX-PASS-01 V3: built in code, not the .tscn — this node exists purely to give the fully-bare
+## case (no rig at all) a `WELL` backing instead of whatever cream/panel surface the host screen
+## put behind this control, and it must not exist as a second competing text element next to
+## `_warning`. `t_axie_gene_preview.gd` pins `Warning`'s visibility/text/node-path behaviour for
+## both the "bare" and "some parts missing" cases, so this restyles `_warning` in place rather
+## than replacing it — see `_apply_bare_style()`.
+var _empty_bg: PanelContainer
+
 var _stage: Node3D
 var _sun: DirectionalLight3D
 var _character: AxieCharacter3D
@@ -127,6 +135,16 @@ func _ready() -> void:
 	_warning.visible = false
 	set_process(false)
 	_clip_rect_source = _find_scroll_ancestor()
+
+	_empty_bg = PanelContainer.new()
+	_empty_bg.name = "EmptyBg"
+	_empty_bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_empty_bg.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_empty_bg.add_theme_stylebox_override("panel",
+		DangoTheme.surface_style(DangoTheme.Surface.WELL, 0, 0, 0.0, Vector2(-1, -1)))
+	_empty_bg.visible = false
+	add_child(_empty_bg)
+	move_child(_empty_bg, _frame.get_index() + 1)   # behind Warning, in front of the (empty) Frame
 
 	# A caller that configured this preview while building a row — before the row was added to
 	# anything — gets its Axie now. Without this the call lands on a node whose `_ready()` has not
@@ -192,9 +210,32 @@ func set_genes(genes: String) -> Dictionary:
 	var warning := AxieGenePreview.warning_text(_report)
 	_warning.visible = not warning.is_empty()
 	_warning_label.text = warning
+	_apply_bare_style(_character == null)
 
 	preview_updated.emit(_report)
 	return _report
+
+
+## FIX-PASS-01 V3. `bare` is the "nothing to draw at all" case (junk/empty genes, or a catalogue
+## miss) — as opposed to a character that built but is missing some parts, which keeps the small
+## bottom warning strip over its (real) picture unchanged. `t_axie_gene_preview.gd` requires
+## `Warning`'s VISIBILITY to stay driven only by "is there warning text" (both cases show it), so
+## this only restyles the same node/label rather than swapping in a second one.
+func _apply_bare_style(bare: bool) -> void:
+	if _empty_bg == null or _warning == null or _warning_label == null:
+		return
+	_empty_bg.visible = bare
+	if bare:
+		_warning.set_anchors_preset(Control.PRESET_FULL_RECT)
+		_warning.add_theme_stylebox_override("panel", StyleBoxEmpty.new())
+		_warning_label.add_theme_font_size_override("font_size", DangoTheme.TYPE_COMBAT_MIN)
+		_warning_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	else:
+		_warning.set_anchors_preset(Control.PRESET_BOTTOM_WIDE)
+		_warning.offset_top = -46.0
+		_warning.remove_theme_stylebox_override("panel")
+		_warning_label.remove_theme_font_size_override("font_size")
+		_warning_label.vertical_alignment = VERTICAL_ALIGNMENT_TOP
 
 
 ## The last report, for a caller that wants to re-read it (the Vault list deciding whether an
@@ -213,6 +254,7 @@ func clear_preview() -> void:
 		_frame.texture = null
 	if _warning != null:
 		_warning.visible = false
+	_apply_bare_style(false)
 
 
 func _process(delta: float) -> void:

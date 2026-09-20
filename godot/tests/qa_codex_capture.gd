@@ -19,7 +19,7 @@ func _ready() -> void:
 		codex.call("_select_tab", tab)
 		for _i in 20:
 			await get_tree().process_frame
-		var path := "/Users/loc.tien.nguyen/my-game/production/qa/evidence/%s_codex-%s.png" % [
+		var path := QaPaths.evidence_dir() + "/%s_codex-%s.png" % [
 			_today(), tab]
 		get_tree().root.get_texture().get_image().save_png(path)
 		print("QA: saved ", path)

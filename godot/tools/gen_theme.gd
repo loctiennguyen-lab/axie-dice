@@ -32,6 +32,9 @@ func _initialize() -> void:
 	_inputs(theme)
 	_scrollbars(theme)
 	_progress(theme)
+	_tabs(theme)
+	_dropdown(theme)
+	_checkbox(theme)
 
 	var err := ResourceSaver.save(theme, OUT)
 	if err != OK:
@@ -109,8 +112,6 @@ func _inputs(theme: Theme) -> void:
 	theme.set_color("font_placeholder_color", "LineEdit", DangoTheme.TEXT_DIM)
 	theme.set_color("caret_color", "LineEdit", DangoTheme.PRIMARY)
 
-	theme.set_font("font", "CheckBox", DangoTheme.FONT_DISPLAY_SEMI)
-	theme.set_font("font", "OptionButton", DangoTheme.FONT_DISPLAY_SEMI)
 	theme.set_font("font", "Label", DangoTheme.FONT_UI)
 
 
@@ -137,3 +138,82 @@ func _progress(theme: Theme) -> void:
 	theme.set_stylebox("fill", "ProgressBar", fill)
 	theme.set_font("font", "ProgressBar", DangoTheme.FONT_DISPLAY)
 	theme.set_font_size("font_size", "ProgressBar", 13)
+
+
+# ── FIX-PASS-02 RC5 ─────────────────────────────────────────────────────────────────────────
+#
+# The theme did not define defaults for TabBar, OptionButton or CheckBox, so any screen that did
+# not call `style_button()` by hand rendered stock Godot chrome — the Codex tab row and the
+# Vault's `Olek (Plant)` dropdown are the two that shipped that way. A widget nobody styled must
+# be visually IMPOSSIBLE, not merely discouraged, and the only place that can be guaranteed is
+# here: a screen can forget, a generated theme cannot.
+
+
+func _tabs(theme: Theme) -> void:
+	# Selected tab is the Kam fill with ink on it; the others are raised utility objects. Same
+	# vocabulary as a button, because to a player a tab IS a button.
+	theme.set_stylebox("tab_selected", "TabBar", DangoTheme.primary_button_style(
+		false, DangoTheme.ButtonState.NORMAL))
+	theme.set_stylebox("tab_hovered", "TabBar", DangoTheme.secondary_button_style(
+		DangoTheme.ButtonState.HOVER))
+	theme.set_stylebox("tab_unselected", "TabBar", DangoTheme.secondary_button_style(
+		DangoTheme.ButtonState.NORMAL))
+	theme.set_stylebox("tab_disabled", "TabBar", DangoTheme.secondary_button_style(
+		DangoTheme.ButtonState.DISABLED))
+	theme.set_stylebox("panel", "TabContainer", DangoTheme.surface_style(
+		DangoTheme.Surface.PANEL, 14, 4, 0.0))
+	theme.set_font("font", "TabBar", DangoTheme.FONT_DISPLAY_BOLD)
+	theme.set_font_size("font_size", "TabBar", 15)
+	theme.set_color("font_selected_color", "TabBar", DangoTheme.INK_ON_PRIMARY)
+	theme.set_color("font_unselected_color", "TabBar", DangoTheme.TEXT)
+	theme.set_color("font_hovered_color", "TabBar", DangoTheme.INK_ON_PRIMARY)
+	theme.set_constant("h_separation", "TabBar", 8)
+
+
+func _dropdown(theme: Theme) -> void:
+	for state in [
+			["normal", DangoTheme.ButtonState.NORMAL],
+			["hover", DangoTheme.ButtonState.HOVER],
+			["pressed", DangoTheme.ButtonState.PRESSED],
+			["disabled", DangoTheme.ButtonState.DISABLED],
+			["focus", DangoTheme.ButtonState.HOVER]]:
+		theme.set_stylebox(String(state[0]), "OptionButton",
+			DangoTheme.secondary_button_style(state[1]))
+	theme.set_font("font", "OptionButton", DangoTheme.FONT_DISPLAY_SEMI)
+	theme.set_font_size("font_size", "OptionButton", 15)
+	theme.set_color("font_color", "OptionButton", DangoTheme.TEXT)
+	theme.set_color("font_hover_color", "OptionButton", DangoTheme.INK_ON_PRIMARY)
+	theme.set_color("font_pressed_color", "OptionButton", DangoTheme.INK_ON_PRIMARY)
+
+	# The POPUP is the half everyone forgets: an OptionButton styled through its Button states
+	# still drops a stock grey list when you click it, which is exactly what shipped on Vault.
+	theme.set_stylebox("panel", "PopupMenu", DangoTheme.surface_style(
+		DangoTheme.Surface.PANEL_DEEP, 12, 3, 7.0, Vector2(6, 6)))
+	var hover := DangoTheme.surface_style(DangoTheme.Surface.PANEL_RAISED, 8, 0, 0.0, Vector2(8, 4))
+	hover.bg_color = DangoTheme.PRIMARY
+	theme.set_stylebox("hover", "PopupMenu", hover)
+	theme.set_font("font", "PopupMenu", DangoTheme.FONT_DISPLAY_SEMI)
+	theme.set_font_size("font_size", "PopupMenu", 15)
+	theme.set_color("font_color", "PopupMenu", DangoTheme.TEXT)
+	theme.set_color("font_hover_color", "PopupMenu", DangoTheme.INK_ON_PRIMARY)
+	theme.set_constant("v_separation", "PopupMenu", 4)
+
+
+func _checkbox(theme: Theme) -> void:
+	# Godot draws a CheckBox's tick from an ICON, and there is no tick in this project's art. So
+	# the box is built as a StyleBox instead: an unchecked box is a WELL (it holds something), a
+	# checked box is a solid SUCCESS fill. That reads at a glance and needs no new asset.
+	for cls in ["CheckBox", "CheckButton"]:
+		for state in [
+				["normal", DangoTheme.ButtonState.NORMAL],
+				["hover", DangoTheme.ButtonState.HOVER],
+				["pressed", DangoTheme.ButtonState.PRESSED],
+				["disabled", DangoTheme.ButtonState.DISABLED]]:
+			theme.set_stylebox(String(state[0]), cls,
+				DangoTheme.secondary_button_style(state[1]))
+		theme.set_font("font", cls, DangoTheme.FONT_DISPLAY_SEMI)
+		theme.set_font_size("font_size", cls, 15)
+		theme.set_color("font_color", cls, DangoTheme.TEXT)
+		theme.set_color("font_hover_color", cls, DangoTheme.INK_ON_PRIMARY)
+		theme.set_color("font_pressed_color", cls, DangoTheme.INK_ON_PRIMARY)
+		theme.set_constant("h_separation", cls, 10)

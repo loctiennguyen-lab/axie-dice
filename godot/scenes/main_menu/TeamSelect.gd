@@ -34,6 +34,7 @@ extends Control
 
 const _CLASS_ORDER: Array[String] = ["plant", "beast", "aqua", "reptile", "bug", "bird"]
 
+var _content: Control
 var _team_selection: Array[String] = []
 
 # One entry per slot: option (OptionButton), header_panel/header_name/header_cls,
@@ -51,40 +52,72 @@ func _ready() -> void:
 
 
 func _build_ui() -> void:
-	var plate_host := Control.new()
-	plate_host.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	plate_host.set_anchors_preset(Control.PRESET_FULL_RECT)
-	add_child(plate_host)
-	DangoTheme.build_plate(plate_host, load("res://assets/backgrounds/origins/scene/5-crossroad.jpg"), DangoTheme.Scrim.DEFAULT)
+	# Shell first (FIX-PASS-02 §1 item 4 / godot/CLAUDE.md rule 2). TeamSelect owns its own
+	# chrome (SAMPLE TEAMS / CONFIRM TEAM live in its own header, not a shared footer) — no
+	# footer, per the routing task's own scene list (Combat/MainMenu/TeamSelect take none).
+	#
+	# G2 NOTE — why this does NOT pass `side_inset = _RAIL`. `DangoScreen.build()` grew a
+	# `side_inset` argument for exactly this screen, but the shell clamps its column to
+	# `CONTENT_MAX` (1800) BEFORE centring it: at 1920 wide, `side_inset = 56` gives
+	# `min(1920 - 112, 1800) = 1800`, so the content lands at x=60, not the mockup's 56.
+	# Anything under 60 is unreachable through that argument until `CONTENT_MAX` changes, and
+	# `scenes/shared/` is not this pass's to edit. The shell therefore keeps its own 84 rail and
+	# the two blocks below reclaim the 28px difference, which lands on 56 exactly. Flagged in
+	# the task report — if `CONTENT_MAX` is raised to >= 1808, switch to `side_inset` and drop
+	# the reclaim from both blocks.
+	var built := DangoScreen.build(self,
+		MockupAssets.tex("assets/bg/crossroad.jpg"), DangoTheme.Scrim.DEFAULT,
+		false, false)
+	_content = built["content"]
 
 	_build_header()
 
 	var row := HBoxContainer.new()
 	row.name = "TeamSlots"
 	row.set_anchors_preset(Control.PRESET_TOP_WIDE)
-	row.offset_left = 56
-	row.offset_right = -56
-	row.offset_top = 150
+	# The mockup's rail on THIS screen is 56, not the shell's 84 — the five cards are sized by
+	# what is left over, so the difference is not cosmetic. `_content` starts at the 84 rail, so
+	# the row reclaims the 28px on each side. 56 is still outside the 48px safe area (L1).
+	row.offset_left = _RAIL - DangoScreen.RAIL_X
+	row.offset_right = DangoScreen.RAIL_X - _RAIL
+	row.offset_top = 150 - DangoScreen.SAFE
 	row.add_theme_constant_override("separation", 14)
-	add_child(row)
+	_content.add_child(row)
 
 	_cards.clear()
 	for i in MainMenu.TEAM_SIZE:
 		row.add_child(_build_card(i))
 
 
-func _build_header() -> void:
-	var wrap := Control.new()
-	wrap.set_anchors_preset(Control.PRESET_TOP_WIDE)
-	wrap.offset_left = 56
-	wrap.offset_right = -56
-	wrap.offset_top = 42
-	wrap.custom_minimum_size = Vector2(0, 54)
-	add_child(wrap)
+## The mockup's left/right rail for this screen (the shell's own is 84).
+const _RAIL := 56.0
 
+## BOX MODEL (design review 2026-09-20). Every fixed size in this mockup is the CONTENT box and
+## the black border adds OUTSIDE it, so an outer size is the mockup's number plus its border on
+## each edge it has one. `height:54` + `border:4` = 62 for the two header buttons.
+const _HEADER_BTN_H := 62
+
+
+func _build_header() -> void:
+	# T4: the mockup's header is ONE row at `top:42` with `align-items:flex-end` and `gap:18`,
+	# so the two buttons' bottom edges line up with the bottom of the title block — they are
+	# not pinned to the top of a 54px strip. The strip was the bug: a `Control` shell with
+	# `custom_minimum_size.y = 54` held the row at 54 while the title column's own two lines
+	# measure ~96, so the buttons sat against the top edge with the title running out below
+	# them. The HBoxContainer is now the anchored node and takes its height from its own
+	# content, exactly as the flex row does.
 	var row := HBoxContainer.new()
-	row.set_anchors_preset(Control.PRESET_FULL_RECT)
-	wrap.add_child(row)
+	row.name = "HeaderRow"
+	row.set_anchors_preset(Control.PRESET_TOP_WIDE)
+	row.offset_left = _RAIL - DangoScreen.RAIL_X
+	row.offset_right = DangoScreen.RAIL_X - _RAIL
+	# RESTORED 2026-09-20: the mockup draws this header at `top:42`. It used to be clamped to
+	# the old uniform 48px safe-area law; that law is gone (it now only checks that nothing is
+	# clipped by the 1920x1080 canvas edge), so the mockup's own inset is back. `_content`
+	# starts at the shell's 48px line, so 42 is 6px above it.
+	row.offset_top = 42 - DangoScreen.SAFE
+	row.add_theme_constant_override("separation", 18)
+	_content.add_child(row)
 
 	var title_col := VBoxContainer.new()
 	title_col.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -95,26 +128,46 @@ func _build_header() -> void:
 	title.add_theme_font_override("font", DangoTheme.FONT_DISPLAY)
 	title.add_theme_font_size_override("font_size", 46)
 	title.add_theme_color_override("font_color", DangoTheme.CREAM_RAISED)
+	DangoTheme.apply_tracking(title, 0.02, 46)
 	title_col.add_child(title)
 
 	var subtitle := Label.new()
 	subtitle.text = "5 Tier-1 Axies · duplicates allowed · every run starts at Tier 1"
 	subtitle.add_theme_font_override("font", DangoTheme.FONT_UI_SEMI)
 	subtitle.add_theme_font_size_override("font_size", 14)
-	subtitle.add_theme_color_override("font_color", DangoTheme.TEXT_DIM)
+	# CORRECTED 2026-09-20 (mockup pass): the note here claimed DangoTheme had no token for the
+	# mockup's `#A6B0BF` and settled for MUTED_TEXT (`#8C95A4`). It does — `SUBTITLE_TEXT`, whose
+	# own docstring names this very label ("a subtitle under a screen title, on open artwork
+	# (Team Select, Vault, Reward)"). Exact hex, no approximation.
+	subtitle.add_theme_color_override("font_color", DangoTheme.SUBTITLE_TEXT)
 	title_col.add_child(subtitle)
 
 	var buttons := HBoxContainer.new()
 	buttons.add_theme_constant_override("separation", 11)
 	buttons.alignment = BoxContainer.ALIGNMENT_END
+	# `align-items:flex-end` on the outer row: the pair hugs the BOTTOM of the header row
+	# rather than stretching over its whole height.
+	buttons.size_flags_vertical = Control.SIZE_SHRINK_END
 	row.add_child(buttons)
 
 	var sample_btn := Button.new()
 	sample_btn.name = "SampleTeamsButton"
 	sample_btn.text = "SAMPLE TEAMS"
-	sample_btn.custom_minimum_size = Vector2(0, 54)
-	DangoTheme.style_button(sample_btn, false)
+	# T4: `height:54` + `border:4` = 62 outer — the same off-by-the-border as M2.
+	sample_btn.custom_minimum_size = Vector2(0, _HEADER_BTN_H)
+	var sample_sb := DangoTheme.surface_style(DangoTheme.Surface.PANEL, 13, 4, 5.0,
+		Vector2(20, 0))
+	var sample_hover := sample_sb.duplicate() as StyleBoxFlat
+	sample_btn.add_theme_stylebox_override("normal", sample_sb)
+	sample_btn.add_theme_stylebox_override("hover", sample_hover)
+	sample_btn.add_theme_stylebox_override("pressed", sample_hover)
+	sample_btn.add_theme_stylebox_override("disabled", sample_sb)
+	sample_btn.add_theme_color_override("font_color", DangoTheme.MUTED_TEXT)
+	sample_btn.add_theme_color_override("font_hover_color", DangoTheme.CREAM)
+	sample_btn.add_theme_color_override("font_pressed_color", DangoTheme.CREAM)
 	sample_btn.add_theme_font_override("font", DangoTheme.FONT_DISPLAY)
+	sample_btn.add_theme_font_size_override("font_size", 16)
+	DangoTheme.apply_tracking(sample_btn, 0.1, 16)
 	sample_btn.pressed.connect(func() -> void:
 		get_tree().change_scene_to_file("res://scenes/guides/Guides.tscn"))
 	buttons.add_child(sample_btn)
@@ -122,12 +175,28 @@ func _build_header() -> void:
 	var confirm_btn := Button.new()
 	confirm_btn.name = "ConfirmTeamButton"
 	confirm_btn.text = "CONFIRM TEAM"
-	confirm_btn.custom_minimum_size = Vector2(0, 54)
+	confirm_btn.custom_minimum_size = Vector2(0, _HEADER_BTN_H)
 	DangoTheme.style_button(confirm_btn, true)
 	confirm_btn.add_theme_font_override("font", DangoTheme.FONT_DISPLAY)
 	confirm_btn.add_theme_font_size_override("font_size", 20)
+	DangoTheme.apply_tracking(confirm_btn, 0.12, 20)
 	confirm_btn.pressed.connect(_on_confirm_pressed)
 	buttons.add_child(confirm_btn)
+
+	# The mockup draws this pair at radius 13 / 4px outline / 5px shelf and 0 28 padding, which
+	# is not the shared primary geometry (15 / 4 / 6 at 18 10). Re-cut here from the states
+	# style_button() just installed so the hover/pressed colours stay the system's.
+	# REPLACES FIX-PASS-01 T3's 7px shelf: the mockup says 5.
+	for state_key in ["normal", "hover", "pressed", "disabled"]:
+		var box := confirm_btn.get_theme_stylebox(state_key).duplicate() as StyleBoxFlat
+		box.set_corner_radius_all(13)
+		box.content_margin_left = 28.0
+		box.content_margin_right = 28.0
+		box.content_margin_top = 0.0
+		box.content_margin_bottom = 0.0
+		if box.shadow_offset.y > 0.0:
+			box.shadow_offset = Vector2(0, 5)
+		confirm_btn.add_theme_stylebox_override(state_key, box)
 
 
 func _on_confirm_pressed() -> void:
@@ -136,23 +205,45 @@ func _on_confirm_pressed() -> void:
 
 
 # ===========================================================================
-# One team card — mockup box: flex, header 40, hero band 186 (art 164),
-# HP badge h 32, face cell pad 8/9, face value 24.
+# One team card — mockup box: flex:1 1 0, header 40+4, hero band 186+3*2 (art 164),
+# HP badge 32+3*2, face cell pad 8/9, face value 24. Every one of those fixed numbers is the
+# CONTENT box; the black border adds outside it (design review 2026-09-20).
 # ===========================================================================
+
+## T2: `height:40` + `border-bottom:4` = 44 outer. The build measured ~46 because the header
+## was pinned to 40 and then grown by the 21px name label's own line box.
+const _CARD_HEADER_H := 44
+## `height:36` + `border:3` = 42 outer.
+const _PICK_ROW_H := 42
+## `height:186` + `border:3` = 192 outer.
+const _HERO_BAND_H := 192
+## `height:26` + `border:2` = 30 outer.
+const _TIER_BADGE_H := 30.0
+## `height:32` + `border:3` = 38 outer.
+const _HP_BADGE_H := 38.0
+## T3: the keyword line's `min-height:12px` is what keeps the six face cells — and therefore
+## the five card bottoms — the same height when a face has no keyword. It only bites if the
+## line box is the mockup's own `line-height:1.2` (12px at 10px type); Baloo 2's natural line
+## box is ~1.6em, which is taller than the floor and makes the floor inert.
+const _FACE_LINE_RATIO := 1.2
+
 
 func _build_card(index: int) -> PanelContainer:
 	var card := PanelContainer.new()
 	card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	card.add_theme_stylebox_override("panel",
 		DangoTheme.cream_card_style(Color.TRANSPARENT, 17, 5, 7.0))
+	DangoTheme.clip_to_frame(card)   # G3
 
 	var col := VBoxContainer.new()
 	col.add_theme_constant_override("separation", 0)
 	card.add_child(col)
 
 	var header := PanelContainer.new()
-	header.custom_minimum_size = Vector2(0, 40)
+	header.custom_minimum_size = Vector2(0, _CARD_HEADER_H)
 	col.add_child(header)
+	# The band is 40 + a 4px bottom border in the mockup — its ink is centred in it, not padded
+	# to whatever the 21px name label happens to measure (53 with Baloo 2's 1.61em line box).
 	var header_row := HBoxContainer.new()
 	header.add_child(header_row)
 	var header_name := Label.new()
@@ -160,17 +251,22 @@ func _build_card(index: int) -> PanelContainer:
 	header_name.add_theme_font_override("font", DangoTheme.FONT_DISPLAY)
 	header_name.add_theme_font_size_override("font_size", 21)
 	header_name.add_theme_color_override("font_color", DangoTheme.INK)
+	DangoTheme.apply_tracking(header_name, 0.02, 21)
+	header_name.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	header_row.add_child(header_name)
 	var header_cls := Label.new()
 	header_cls.add_theme_font_override("font", DangoTheme.FONT_DISPLAY)
 	header_cls.add_theme_font_size_override("font_size", 14)
 	header_cls.add_theme_color_override("font_color", DangoTheme.INK)
+	DangoTheme.apply_tracking(header_cls, 0.08, 14)
+	header_cls.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	header_row.add_child(header_cls)
 
 	var body_margin := MarginContainer.new()
-	for side in ["left", "right", "bottom"]:
-		body_margin.add_theme_constant_override("margin_%s" % side, 13)
+	body_margin.add_theme_constant_override("margin_left", 13)
+	body_margin.add_theme_constant_override("margin_right", 13)
 	body_margin.add_theme_constant_override("margin_top", 12)
+	body_margin.add_theme_constant_override("margin_bottom", 14)
 	col.add_child(body_margin)
 
 	var body := VBoxContainer.new()
@@ -178,7 +274,7 @@ func _build_card(index: int) -> PanelContainer:
 	body_margin.add_child(body)
 
 	var option := OptionButton.new()
-	option.custom_minimum_size = Vector2(0, 36)
+	option.custom_minimum_size = Vector2(0, _PICK_ROW_H)
 	var pick_sb := StyleBoxFlat.new()
 	pick_sb.bg_color = DangoTheme.CREAM_RAISED
 	pick_sb.border_color = Color.BLACK
@@ -191,18 +287,45 @@ func _build_card(index: int) -> PanelContainer:
 	option.add_theme_color_override("font_color", DangoTheme.INK)
 	option.add_theme_font_override("font", DangoTheme.FONT_DISPLAY)
 	option.add_theme_font_size_override("font_size", 14)
+	DangoTheme.apply_tracking(option, 0.04, 14)
+	# RESTORED 2026-09-20 (mockup pass): FIX-PASS-01 T1 dropped the "(Class)" suffix as
+	# redundant. meta-screens-v2.html's own `pickLabel` is `${name} (${Class})`, and
+	# godot/CLAUDE.md puts the mockup above a superseded prose pass.
 	for hero_key in MainMenu.T1_HERO_KEYS:
 		var hero_def: Dictionary = ContentDB.heroes.get(hero_key, {})
-		option.add_item("%s (%s)" % [String(hero_def.get("n", hero_key)),
-			String(hero_def.get("cls", "")).capitalize()])
+		option.add_item("%s (%s)" % [
+			String(hero_def.get("n", hero_key)), String(hero_def.get("cls", "")).capitalize()])
 	option.select(max(0, MainMenu.T1_HERO_KEYS.find(_team_selection[index])))
 	option.item_selected.connect(func(idx: int) -> void:
 		_team_selection[index] = MainMenu.T1_HERO_KEYS[idx]
 		_refresh_card(index))
 	body.add_child(option)
 
+	# FIX-PASS-01 T1: the Button-state overrides above only reach the OptionButton's own face —
+	# its popup (the actual dropdown list) is a separate PopupMenu that otherwise opens as the
+	# engine's default dark chrome sitting on top of this cream card. Themed to match.
+	var popup := option.get_popup()
+	var popup_sb := StyleBoxFlat.new()
+	popup_sb.bg_color = DangoTheme.CREAM_RAISED
+	popup_sb.border_color = Color.BLACK
+	popup_sb.set_border_width_all(3)
+	popup_sb.set_corner_radius_all(10)
+	popup_sb.content_margin_left = 6.0
+	popup_sb.content_margin_right = 6.0
+	popup_sb.content_margin_top = 6.0
+	popup_sb.content_margin_bottom = 6.0
+	popup.add_theme_stylebox_override("panel", popup_sb)
+	popup.add_theme_color_override("font_color", DangoTheme.INK)
+	popup.add_theme_color_override("font_color_hover", DangoTheme.ink_on(DangoTheme.PRIMARY))
+	popup.add_theme_color_override("font_color_pressed", DangoTheme.INK)
+	popup.add_theme_font_override("font", DangoTheme.FONT_DISPLAY)
+	var popup_hover_sb := StyleBoxFlat.new()
+	popup_hover_sb.bg_color = DangoTheme.PRIMARY
+	popup_hover_sb.set_corner_radius_all(6)
+	popup.add_theme_stylebox_override("hover", popup_hover_sb)
+
 	var band := Control.new()
-	band.custom_minimum_size = Vector2(0, 186)
+	band.custom_minimum_size = Vector2(0, _HERO_BAND_H)
 	body.add_child(band)
 
 	var band_panel := Panel.new()
@@ -224,10 +347,16 @@ func _build_card(index: int) -> PanelContainer:
 	portrait.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	portrait_wrap.add_child(portrait)
 
-	var tier_badge := _make_overlay_badge(band, Control.PRESET_BOTTOM_LEFT, Vector2(9, -9 - 26),
-		Color(0, 0, 0, 0.36), DangoTheme.CREAM_RAISED, 12)
-	var hp_badge := _make_overlay_badge(band, Control.PRESET_BOTTOM_RIGHT, Vector2(-9 - 70, -9 - 32),
-		DangoTheme.CREAM_RAISED, DangoTheme.INK, 20)
+	# Mockup: TIER pill `height:26` + `border:2` = 30 outer, radius 7, 9px in from the band's
+	# bottom-LEFT; HP badge `height:32` + `border:3` = 38 outer, radius 9, 9px in from the
+	# bottom-RIGHT.
+	# CORRECTED 2026-09-20 (mockup pass): the note here claimed DangoTheme had no token at the
+	# mockup's `rgba(0,0,0,.36)` and settled for SHELF (.50, visibly heavier). It does —
+	# `SHELF_SOFT`, whose own docstring names this very pill.
+	var tier_badge := _make_overlay_badge(band, false, DangoTheme.SHELF_SOFT,
+		DangoTheme.CREAM_RAISED, 12, _TIER_BADGE_H, 7, 2, 9.0, 0.1)
+	var hp_badge := _make_overlay_badge(band, true, DangoTheme.CREAM_RAISED,
+		DangoTheme.INK, 20, _HP_BADGE_H, 9, 3, 11.0)
 
 	var passive_panel := PanelContainer.new()
 	var passive_sb := StyleBoxFlat.new()
@@ -249,26 +378,34 @@ func _build_card(index: int) -> PanelContainer:
 	passive_name.add_theme_font_override("font", DangoTheme.FONT_DISPLAY)
 	passive_name.add_theme_font_size_override("font_size", 13)
 	passive_name.add_theme_color_override("font_color", DangoTheme.INK_ON_PRIMARY)
+	DangoTheme.apply_tracking(passive_name, 0.1, 13)
 	passive_col.add_child(passive_name)
 	var passive_text := Label.new()
 	passive_text.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	passive_text.add_theme_font_override("font", DangoTheme.FONT_UI_SEMI)
 	passive_text.add_theme_font_size_override("font_size", 12)
-	passive_text.add_theme_color_override("font_color", Color(0x3A / 255.0, 0x1E / 255.0, 0x07 / 255.0))
+	passive_text.add_theme_color_override("font_color", DangoTheme.INK_ON_PRIMARY)
 	passive_col.add_child(passive_text)
+
+	# The mockup's gap between this caption and the grid is 8, not the body column's 12, so the
+	# pair is its own block.
+	var faces_block := VBoxContainer.new()
+	faces_block.add_theme_constant_override("separation", 8)
+	body.add_child(faces_block)
 
 	var faces_caption := Label.new()
 	faces_caption.text = "SIX FACES"
 	faces_caption.add_theme_font_override("font", DangoTheme.FONT_DISPLAY)
 	faces_caption.add_theme_font_size_override("font_size", 12)
 	faces_caption.add_theme_color_override("font_color", DangoTheme.INK_ON_CREAM_MUTED)
-	body.add_child(faces_caption)
+	DangoTheme.apply_tracking(faces_caption, 0.14, 12)
+	faces_block.add_child(faces_caption)
 
 	var faces_grid := GridContainer.new()
 	faces_grid.columns = 2
 	faces_grid.add_theme_constant_override("h_separation", 8)
 	faces_grid.add_theme_constant_override("v_separation", 8)
-	body.add_child(faces_grid)
+	faces_block.add_child(faces_grid)
 
 	_cards.append({
 		"option": option, "header_panel": header, "header_name": header_name,
@@ -280,27 +417,42 @@ func _build_card(index: int) -> PanelContainer:
 	return card
 
 
-func _make_overlay_badge(band: Control, corner: Control.LayoutPreset, offset: Vector2,
-		bg: Color, ink: Color, font_size: int) -> Label:
+## A pill pinned into one bottom corner of the hero band. `right` picks the corner.
+##
+## It is anchored by its OWN edges (anchor to the corner, grow away from it) rather than by a
+## `.position` computed from a guessed pill width — the previous version subtracted a literal
+## 70 for the HP badge, which is only correct while "17 HP" is exactly that wide.
+func _make_overlay_badge(band: Control, right: bool, bg: Color, ink: Color, font_size: int,
+		height: float, radius: int, border_w: int, pad_x: float,
+		tracking_em: float = 0.0) -> Label:
 	var badge := PanelContainer.new()
-	badge.set_anchors_preset(corner)
-	badge.position = offset
-	var sb := StyleBoxFlat.new()
-	sb.bg_color = bg
-	sb.border_color = Color.BLACK
-	sb.set_border_width_all(2)
-	sb.set_corner_radius_all(8)
-	sb.content_margin_left = 9.0
-	sb.content_margin_right = 9.0
-	sb.content_margin_top = 3.0
-	sb.content_margin_bottom = 3.0
+	badge.anchor_top = 1.0
+	badge.anchor_bottom = 1.0
+	badge.anchor_left = 1.0 if right else 0.0
+	badge.anchor_right = 1.0 if right else 0.0
+	badge.grow_horizontal = (Control.GROW_DIRECTION_BEGIN if right
+		else Control.GROW_DIRECTION_END)
+	badge.grow_vertical = Control.GROW_DIRECTION_BEGIN
+	badge.offset_bottom = -9.0
+	if right:
+		badge.offset_right = -9.0
+		badge.offset_left = -9.0
+	else:
+		badge.offset_left = 9.0
+		badge.offset_right = 9.0
+	badge.offset_top = badge.offset_bottom - height
+	badge.custom_minimum_size.y = height
+
+	var sb := DangoTheme.solid_chip_style(bg, radius, border_w, Vector2(pad_x, 0))
 	badge.add_theme_stylebox_override("panel", sb)
 	band.add_child(badge)
 
 	var lbl := Label.new()
+	lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	lbl.add_theme_font_override("font", DangoTheme.FONT_DISPLAY)
 	lbl.add_theme_font_size_override("font_size", font_size)
 	lbl.add_theme_color_override("font_color", ink)
+	DangoTheme.apply_tracking(lbl, tracking_em, font_size)
 	badge.add_child(lbl)
 	return lbl
 
@@ -318,17 +470,23 @@ func _refresh_card(index: int) -> void:
 	header_sb.set_border_width(SIDE_BOTTOM, 4)
 	header_sb.content_margin_left = 13.0
 	header_sb.content_margin_right = 13.0
-	header_sb.content_margin_top = 8.0
-	header_sb.content_margin_bottom = 8.0
+	header_sb.content_margin_top = 0.0
+	header_sb.content_margin_bottom = 0.0
 	(card["header_panel"] as PanelContainer).add_theme_stylebox_override("panel", header_sb)
+	# FIX-PASS-01 T2: ink_on(class_color(cls)), not a hardcoded INK. Every CLASS_COLORS entry
+	# happens to be light enough today that hardcoded dark INK looked correct in every
+	# screenshot — but that was luck, not a guarantee, and the whole point of ink_on() existing
+	# is that a header never has to be re-audited if a class colour changes later.
+	var header_ink := DangoTheme.ink_on(accent)
+	(card["header_name"] as Label).add_theme_color_override("font_color", header_ink)
 	(card["header_name"] as Label).text = String(hero_def.get("n", hero_key))
+	(card["header_cls"] as Label).add_theme_color_override("font_color", header_ink)
 	(card["header_cls"] as Label).text = cls.to_upper()
 
 	((card["band_panel"] as Panel).get_theme_stylebox("panel") as StyleBoxFlat).bg_color = accent
 
 	var portrait: TextureRect = card["portrait"]
-	var portrait_path := "res://assets/portraits/%s.png" % cls
-	portrait.texture = load(portrait_path) if ResourceLoader.exists(portrait_path) else null
+	portrait.texture = MockupAssets.tex("assets/portrait/%s.png" % cls)
 
 	(card["tier_badge"] as Label).text = "TIER %d" % int(hero_def.get("tier", 1))
 	(card["hp_badge"] as Label).text = "%d HP" % int(hero_def.get("max_hp", 0))
@@ -354,14 +512,20 @@ func _refresh_card(index: int) -> void:
 		grid.add_child(_build_face_cell(face as Dictionary, cls))
 
 
-## Cream face cell — mockup box: pad 8/9, icon 22, value 24, swatch 18x18, caption 10px,
-## keyword 10px. Icon path mirrors CombatView._face_icon_for()'s convention
-## (`res://assets/icons/web/part/<slot>_<class>.svg`); falls back to no icon rather than
-## crashing if a slot/class combination has no art yet.
+## Cream face cell — mockup: pad 8/9, part icon 22, value 24, type swatch 22x22 WITH its
+## type glyph inside (G-01/L7 — it was a bare coloured square), caption and keyword line 10px.
+##
+## RESTORED 2026-09-20: both lines were held at 12 by the old project type floor. The project
+## owner has removed that floor in favour of the mockups (godot/CLAUDE.md rule 5 — "use the
+## size the mockup uses, including where that is 9px or 11px"), and meta-screens-v2.html draws
+## `font-size:10px;letter-spacing:.06em` on both. That is what they are now.
+##
+## The part icon comes through `MockupAssets.part_icon()` — the mockup writes
+## `assets/part/<slot>-<class>.svg` and that translator owns the mapping to this repo's own
+## naming. Never a hand-written res:// string (godot/CLAUDE.md, Asset paths).
 func _build_face_cell(face: Dictionary, cls: String) -> PanelContainer:
 	var face_type := String(face.get("type", ""))
 	var part := String(face.get("part", ""))
-	var accent := DangoTheme.die_type_color(face_type)
 
 	var cell := PanelContainer.new()
 	var sb := StyleBoxFlat.new()
@@ -387,9 +551,7 @@ func _build_face_cell(face: Dictionary, cls: String) -> PanelContainer:
 	icon.custom_minimum_size = Vector2(22, 22)
 	icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	var icon_path := "res://assets/icons/web/part/%s_%s.svg" % [part, cls]
-	if ResourceLoader.exists(icon_path):
-		icon.texture = load(icon_path)
+	icon.texture = MockupAssets.part_icon(part, cls)
 	top_row.add_child(icon)
 
 	var value_lbl := Label.new()
@@ -400,21 +562,19 @@ func _build_face_cell(face: Dictionary, cls: String) -> PanelContainer:
 	value_lbl.add_theme_color_override("font_color", DangoTheme.INK)
 	top_row.add_child(value_lbl)
 
-	var swatch := PanelContainer.new()
-	swatch.custom_minimum_size = Vector2(18, 18)
-	var swatch_sb := StyleBoxFlat.new()
-	swatch_sb.bg_color = accent
-	swatch_sb.border_color = Color.BLACK
-	swatch_sb.set_border_width_all(2)
-	swatch_sb.set_corner_radius_all(6)
-	swatch.add_theme_stylebox_override("panel", swatch_sb)
-	top_row.add_child(swatch)
+	# G-01/L7: the type is a fill AND a glyph, never a fill alone. One shared builder — see
+	# DangoTheme.type_swatch()'s comment for why this is not four inline squares.
+	# `width:22;height:22` + `border:2` = 26 outer, with the 14px type glyph inside it.
+	top_row.add_child(DangoTheme.type_swatch(face_type, 26, 14, 6, 2))
 
 	var caption := Label.new()
 	caption.text = "%s · %s" % [part.to_upper(), face_type.to_upper()]
 	caption.add_theme_font_override("font", DangoTheme.FONT_DISPLAY)
 	caption.add_theme_font_size_override("font_size", 10)
 	caption.add_theme_color_override("font_color", DangoTheme.INK_ON_CREAM_MUTED)
+	DangoTheme.apply_tracking(caption, 0.06, 10)
+	caption.add_theme_constant_override("line_spacing",
+		DangoTheme.leading_for(DangoTheme.FONT_DISPLAY, 10, _FACE_LINE_RATIO))
 	col.add_child(caption)
 
 	var kw_lbl := Label.new()
@@ -422,7 +582,14 @@ func _build_face_cell(face: Dictionary, cls: String) -> PanelContainer:
 	kw_lbl.custom_minimum_size = Vector2(0, 12)
 	kw_lbl.add_theme_font_override("font", DangoTheme.FONT_DISPLAY)
 	kw_lbl.add_theme_font_size_override("font_size", 10)
-	kw_lbl.add_theme_color_override("font_color", Color(0xB4 / 255.0, 0x60 / 255.0, 0x0C / 255.0))
+	# `#B4600C` — DangoTheme.ACCENT_ON_CREAM is that exact colour and names this very label
+	# ("Team Select's face-keyword line"). The inline literal here was a rule-1 violation.
+	kw_lbl.add_theme_color_override("font_color", DangoTheme.ACCENT_ON_CREAM)
+	DangoTheme.apply_tracking(kw_lbl, 0.06, 10)
+	# T3: with the mockup's own 1.2 line box, the 12px floor above is the real height of this
+	# line whether or not the face has a keyword — which is what keeps the five cards level.
+	kw_lbl.add_theme_constant_override("line_spacing",
+		DangoTheme.leading_for(DangoTheme.FONT_DISPLAY, 10, _FACE_LINE_RATIO))
 	col.add_child(kw_lbl)
 
 	return cell

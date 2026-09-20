@@ -14,7 +14,7 @@ extends Node
 ## Run: /path/to/Godot --path godot tests/qa_menu_result_capture.tscn
 ## Do not point this at a terminal/window the user (or another agent) is actively using.
 
-const _EVIDENCE_DIR := "/Users/loc.tien.nguyen/my-game/production/qa/evidence"
+var _EVIDENCE_DIR := QaPaths.evidence_dir()
 
 var _shot_index := 0
 

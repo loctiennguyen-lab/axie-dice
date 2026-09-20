@@ -21,26 +21,42 @@ const MAIN_MENU_SCENE := "res://scenes/main_menu/MainMenu.tscn"
 # images were missing; they never were. Look in that directory before concluding a background
 # does not exist, and do not copy the handoff's copies in — that is how a project ends up with
 # two of every background and no rule about which one is canonical.
-const BG_TEXTURE := "res://assets/backgrounds/origins/scene/7-deep-forest.jpg"
+const BG_MOCKUP_PLATE := "assets/bg/deep-forest.jpg"
 
-const SHARD_ICON := "res://assets/icons/web/shard.png"
+## Mockup path, resolved through MockupAssets — never a hand-written res:// string (rule 2).
+const SHARD_ICON := "assets/fx/shard.png"
 
 var _list: VBoxContainer
 var _shard_label: Label
 var _status_label: Label
+var _list_scroll: ScrollContainer
+var _list_fade: TextureRect
+
+## FIX-PASS-02 §1 item 4: `content` already supplies the safe area and the 84px rail, so this
+## screen's own left/right offsets against it drop the extra 84 they used to add on top of it.
+var _content: Control
+
+## Absolute margin (from the viewport edge) the mockup wants for the reading column: 360px, wider
+## than the standard 84px rail. `content`'s left/right edges already sit 84px in, so the same
+## visual margin from here is 360 - 84 = 276.
+const LIST_INSET := 276.0
+## FIXED 2026-09-20 (mockup pass): `content`'s top edge already IS the 48px safe line, so the
+## mockup's `top:196` is 148 here. It was being added on top of the shell's inset (rendering at
+## 244) — the same +48 drift the Pass and Vault screens carried.
+const LIST_TOP := 196.0 - 48.0
+## The mockup's header is the SAME 1200-wide centred column as the list, not the full content
+## width — the shard chip's right edge lines up with the price buttons below it.
+const HEADER_TOP := 54.0 - 48.0
 
 
 func _ready() -> void:
-	var plate_host := Control.new()
-	plate_host.name = "PlateHost"
-	plate_host.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	plate_host.set_anchors_preset(Control.PRESET_FULL_RECT)
-	add_child(plate_host)
-	DangoTheme.build_plate(plate_host, load(BG_TEXTURE), DangoTheme.Scrim.DEFAULT)
+	var shell := DangoScreen.build(self, MockupAssets.tex(BG_MOCKUP_PLATE),
+		DangoTheme.Scrim.DEFAULT, true)
+	_content = shell["content"]
 
 	_build_header()
 	_build_list_panel()
-	_build_back_button()
+	_build_footer(shell["footer"])
 	refresh()
 
 
@@ -48,10 +64,10 @@ func _build_header() -> void:
 	var row := HBoxContainer.new()
 	row.name = "HeaderRow"
 	row.set_anchors_preset(Control.PRESET_TOP_WIDE)
-	row.offset_left = 84.0
-	row.offset_right = -84.0
-	row.offset_top = 54.0
-	add_child(row)
+	row.offset_left = LIST_INSET
+	row.offset_right = -LIST_INSET
+	row.offset_top = HEADER_TOP
+	_content.add_child(row)
 
 	var title_col := VBoxContainer.new()
 	title_col.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
@@ -64,12 +80,13 @@ func _build_header() -> void:
 	chip.add_theme_stylebox_override("panel",
 		DangoTheme.solid_chip_style(DangoTheme.PRIMARY, 9, 3, Vector2(14, 6)))
 	var eyebrow_lbl := DangoTheme.display_label("SPEND ONCE · KEEP FOREVER", 14,
-		DangoTheme.INK_ON_PRIMARY, 800)
+		DangoTheme.INK_ON_PRIMARY, 800, 0.16)
 	eyebrow_lbl.add_theme_constant_override("line_spacing", 0)
 	chip.add_child(eyebrow_lbl)
 	title_col.add_child(chip)
 
-	title_col.add_child(DangoTheme.display_label("UNLOCKS", 56, DangoTheme.CREAM_RAISED))
+	title_col.add_child(DangoTheme.display_label("UNLOCKS", 56, DangoTheme.CREAM_RAISED,
+		800, 0.02))
 
 	var spacer := Control.new()
 	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -79,21 +96,23 @@ func _build_header() -> void:
 	shard_chip.name = "ShardChip"
 	shard_chip.custom_minimum_size = Vector2(0, 56)
 	shard_chip.size_flags_vertical = Control.SIZE_SHRINK_END
-	shard_chip.add_theme_stylebox_override("panel",
-		DangoTheme.surface_style(DangoTheme.Surface.CREAM, 13, 4, 5.0, Vector2(18, 0)))
+	var shard_sb := DangoTheme.surface_style(DangoTheme.Surface.CREAM, 13, 4, 5.0,
+		Vector2(18, 0))
+	shard_sb.content_margin_left = 12.0   # mockup: padding 0 18px 0 12px
+	shard_chip.add_theme_stylebox_override("panel", shard_sb)
 	row.add_child(shard_chip)
 
 	var shard_row := HBoxContainer.new()
 	shard_row.add_theme_constant_override("separation", 10)
 	shard_chip.add_child(shard_row)
 
-	if ResourceLoader.exists(SHARD_ICON):
-		var icon := TextureRect.new()
-		icon.custom_minimum_size = Vector2(30, 30)
-		icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-		icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-		icon.texture = load(SHARD_ICON)
-		shard_row.add_child(icon)
+	var icon := TextureRect.new()
+	icon.custom_minimum_size = Vector2(30, 30)
+	icon.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	icon.texture = MockupAssets.tex(SHARD_ICON)
+	shard_row.add_child(icon)
 
 	_shard_label = DangoTheme.display_label("0", 34, DangoTheme.INK)
 	_shard_label.name = "ShardLabel"
@@ -101,49 +120,68 @@ func _build_header() -> void:
 	shard_row.add_child(_shard_label)
 
 
+## FIX-PASS-02 §1 item 4: the old `anchor_bottom = 1.0` + hand-computed
+## `-(SAFE_AREA + FOOTER_HEIGHT)` offset is exactly the pattern the shell's `fit_or_scroll()`
+## replaces — `content` already excludes the footer, so nothing here needs to know its height.
 func _build_list_panel() -> void:
-	var scroll := ScrollContainer.new()
-	scroll.name = "ListScroll"
-	scroll.set_anchors_preset(Control.PRESET_TOP_WIDE)
-	scroll.offset_left = 360.0
-	scroll.offset_right = -360.0
-	scroll.offset_top = 196.0
-	scroll.offset_bottom = -100.0
-	scroll.anchor_bottom = 1.0
-	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	DangoTheme.style_scrollbars(scroll)
-	# ScrollContainer does not clip its content by default in this Godot version — without
-	# this, a list longer than the container's rect draws straight through it and over
-	# whatever sits below (found on the Unlocks QA capture: row 10 bled past the panel and
-	# over the BACK button).
-	scroll.clip_contents = true
-	add_child(scroll)
-
 	_list = VBoxContainer.new()
 	_list.name = "UnlockList"
 	_list.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_list.add_theme_constant_override("separation", 10)
-	scroll.add_child(_list)
+
+	_list_scroll = DangoScreen.fit_or_scroll(_list, _list_max_height())
+	_list_scroll.name = "ListScroll"
+	_list_scroll.set_anchors_preset(Control.PRESET_TOP_WIDE)
+	_list_scroll.offset_left = LIST_INSET
+	_list_scroll.offset_right = -LIST_INSET
+	_list_scroll.offset_top = LIST_TOP
+	_content.add_child(_list_scroll)
+
+	# L2: a scrollbar the player can see is only half of "there is more below" — the 24px fade is
+	# the other half. Visibility is now computed in `_update_list_fade()` against the real
+	# available height, rather than assumed unconditionally true.
+	_list_fade = DangoTheme.scroll_fade(DangoTheme.PANEL)
+	_list_fade.name = "ListScrollFade"
+	_list_fade.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_list_fade.visible = false
+	_list_fade.anchor_left = 0.0
+	_list_fade.anchor_right = 1.0
+	_list_fade.anchor_top = 0.0
+	_list_fade.anchor_bottom = 0.0
+	_list_fade.offset_left = LIST_INSET
+	_list_fade.offset_right = -LIST_INSET
+	_content.add_child(_list_fade)
 
 	_status_label = Label.new()
 	_status_label.name = "StatusLabel"
 	_status_label.visible = false
 	_status_label.add_theme_font_size_override("font_size", 13)
 	_status_label.add_theme_color_override("font_color", DangoTheme.DANGER)
-	add_child(_status_label)
+	_content.add_child(_status_label)
 
 
-func _build_back_button() -> void:
-	var back := Button.new()
-	back.name = "BackButton"
-	back.text = "BACK"
-	back.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
-	back.position = Vector2(84, -44 - 28)
-	back.custom_minimum_size = Vector2(0, 44)
-	DangoTheme.style_button(back, false)
-	back.pressed.connect(func() -> void:
+func _list_max_height() -> float:
+	return get_viewport_rect().size.y - DangoScreen.SAFE * 2.0 - DangoScreen.FOOTER_H - LIST_TOP
+
+
+func _update_list_fade() -> void:
+	if _list == null or _list_scroll == null or _list_fade == null:
+		return
+	var natural := _list.get_combined_minimum_size().y
+	var max_h := _list_max_height()
+	var overflow := natural > max_h
+	_list_fade.visible = overflow
+	if overflow:
+		var bottom := LIST_TOP + minf(natural, max_h)
+		_list_fade.offset_top = bottom - DangoTheme.SCROLL_FADE_HEIGHT
+		_list_fade.offset_bottom = bottom
+
+
+## FIX-PASS-01 L4/U4: BACK lives in the shared footer bar, not floating on the art over the
+## (now correctly scrolling) list. §1 item 4: the footer is `DangoScreen.build()`'s.
+func _build_footer(footer: HBoxContainer) -> void:
+	DangoScreen.add_back_button(footer, func() -> void:
 		get_tree().change_scene_to_file(MAIN_MENU_SCENE))
-	add_child(back)
 
 
 func refresh() -> void:
@@ -153,6 +191,9 @@ func refresh() -> void:
 		_list.remove_child(child)
 	for def in ContentDB.UNLOCKS:
 		_list.add_child(_build_row(def))
+	# `queue_free()`'d rows are still in the tree (and counted by `get_combined_minimum_size()`)
+	# until the end of this frame — same reasoning as PassView.refresh()'s own deferred call.
+	call_deferred("_update_list_fade")
 
 
 ## State priority is OWNED > TOO EXPENSIVE > NO EFFECT YET > AVAILABLE.
@@ -215,11 +256,17 @@ func _build_row(def: Dictionary) -> PanelContainer:
 	info.add_child(name_row)
 
 	var name_lbl := DangoTheme.display_label(String(def.get("n", "")), 20,
-		DangoTheme.INK if owned else DangoTheme.CREAM_RAISED)
+		DangoTheme.INK if owned else DangoTheme.CREAM_RAISED, 800, 0.01)
 	name_row.add_child(name_lbl)
 
-	var tag_text: String
-	var tag_bg: Color
+	# RESTORED 2026-09-20 (mockup pass): FIX-PASS-01 U3 deleted the "AVAILABLE" chip as
+	# redundant with the price button. meta-screens-v2.html renders a tag on EVERY row
+	# (`tag: owned ? "OWNED" : inert ? "NO EFFECT YET" : locked ? "TOO EXPENSIVE" : "AVAILABLE"`)
+	# and godot/CLAUDE.md puts the mockup above a superseded prose pass. The row's state
+	# PRIORITY below is this build's own (see the note on this function) — only the missing
+	# fourth tag came back.
+	var tag_text := "AVAILABLE"
+	var tag_bg := DangoTheme.PRIMARY
 	if owned:
 		tag_text = "OWNED"
 		tag_bg = DangoTheme.SUCCESS
@@ -229,20 +276,19 @@ func _build_row(def: Dictionary) -> PanelContainer:
 	elif inert:
 		tag_text = "NO EFFECT YET"
 		tag_bg = DangoTheme.WARN_YELLOW
-	else:
-		tag_text = "AVAILABLE"
-		tag_bg = DangoTheme.PRIMARY
-	var tag := PanelContainer.new()
-	tag.custom_minimum_size = Vector2(0, 22)
-	tag.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	tag.add_theme_stylebox_override("panel", DangoTheme.solid_chip_style(tag_bg, 6, 2, Vector2(8, 0)))
-	# One ink for every tag colour on this row (matches the mockup literally — its tag colour is
-	# `#1A1206` regardless of which fill it sits on), because SUCCESS/PRIMARY/WARN_YELLOW/
-	# RARITY_COLORS[0] are all light enough for dark ink to clear 4.5:1.
-	var tag_lbl := DangoTheme.display_label(tag_text, 12, DangoTheme.INK, 800)
-	tag_lbl.add_theme_constant_override("line_spacing", 0)
-	tag.add_child(tag_lbl)
-	name_row.add_child(tag)
+	if not tag_text.is_empty():
+		var tag := PanelContainer.new()
+		tag.custom_minimum_size = Vector2(0, 22)
+		tag.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		tag.add_theme_stylebox_override("panel",
+			DangoTheme.solid_chip_style(tag_bg, 6, 2, Vector2(8, 0)))
+		# One ink for every tag colour on this row (matches the mockup literally — its tag colour
+		# is `#1A1206` regardless of which fill it sits on), because SUCCESS/WARN_YELLOW/
+		# RARITY_COLORS[0] are all light enough for dark ink to clear 4.5:1.
+		var tag_lbl := DangoTheme.display_label(tag_text, 12, DangoTheme.INK, 800, 0.08)
+		tag_lbl.add_theme_constant_override("line_spacing", 0)
+		tag.add_child(tag_lbl)
+		name_row.add_child(tag)
 
 	var desc_lbl := Label.new()
 	desc_lbl.text = String(def.get("d", ""))
@@ -255,27 +301,70 @@ func _build_row(def: Dictionary) -> PanelContainer:
 	buy.name = "BuyButton"
 	buy.custom_minimum_size = Vector2(176, 46)
 	buy.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	buy.add_theme_font_override("font", DangoTheme.FONT_DISPLAY)
+	buy.add_theme_font_size_override("font_size", 21)
 	if owned:
 		buy.text = "OWNED"
 		buy.disabled = true
 		DangoTheme.style_button(buy, true, false, null, true)
 	else:
 		buy.text = str(cost)
-		if ResourceLoader.exists(SHARD_ICON):
-			buy.icon = load(SHARD_ICON)
-			buy.expand_icon = false
-			# Without this the button's minimum size balloons to the icon's native pixel
-			# dimensions (the shard art is a large source image) instead of the 176x50 the
-			# redline calls for — found by screenshot, not by the gate, since no test measures a
-			# button's rect in pixels.
-			buy.add_theme_constant_override("icon_max_width", 19)
-		DangoTheme.style_button(buy, true)
-		buy.disabled = too_expensive
-		if not too_expensive:
+		buy.icon = MockupAssets.tex(SHARD_ICON)
+		buy.expand_icon = false
+		# Without this the button's minimum size balloons to the icon's native pixel
+		# dimensions (the shard art is a large source image) instead of the 176x46 the
+		# mockup calls for.
+		buy.add_theme_constant_override("icon_max_width", 19)
+		buy.add_theme_constant_override("h_separation", 8)
+		if too_expensive:
+			# CHANGED 2026-09-20 (mockup pass): FIX-PASS-01 U2 gave this `DISABLED_FILL`
+			# (#4A3F58) under L5's UNAFFORDABLE reading. meta-screens-v2.html draws the
+			# too-expensive price as a WELL fill with #5C6573 ink — which is exactly
+			# `ListState.LOCKED`'s own fill and ink, so it is still the system's vocabulary,
+			# just the other rung of it. Called out in the task report because it also softens
+			# the "never dim the price" rule DangoTheme states for UNAFFORDABLE.
+			var unafford_sb := _price_button_style(
+				DangoTheme.list_state_fill(DangoTheme.ListState.LOCKED))
+			for state_key in ["normal", "hover", "pressed", "disabled"]:
+				buy.add_theme_stylebox_override(state_key, unafford_sb)
+			var unafford_ink := DangoTheme.list_state_ink(DangoTheme.ListState.LOCKED)
+			for color_key in ["font_color", "font_hover_color", "font_pressed_color",
+					"font_disabled_color"]:
+				buy.add_theme_color_override(color_key, unafford_ink)
+			buy.disabled = true
+		else:
+			DangoTheme.style_button(buy, true)
+			# Re-cut to the mockup's own price-button geometry: radius 12, 3px outline, 16px
+			# side padding and NO shelf (the row it sits on carries the only shelf here).
+			for state_key in ["normal", "hover", "pressed", "disabled"]:
+				var lit := buy.get_theme_stylebox(state_key).duplicate() as StyleBoxFlat
+				lit.set_corner_radius_all(12)
+				lit.set_border_width_all(3)
+				lit.content_margin_left = 16.0
+				lit.content_margin_right = 16.0
+				lit.content_margin_top = 0.0
+				lit.content_margin_bottom = 0.0
+				lit.shadow_offset = Vector2.ZERO
+				buy.add_theme_stylebox_override(state_key, lit)
 			buy.pressed.connect(_on_buy_pressed.bind(id))
 	hbox.add_child(buy)
 
 	return row
+
+
+## The mockup's price button: 176x46, radius 12, 3px black outline, 16px side padding, no
+## shelf of its own. One builder so the lit and the too-expensive variants cannot drift apart.
+func _price_button_style(fill: Color) -> StyleBoxFlat:
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = fill
+	sb.border_color = Color.BLACK
+	sb.set_border_width_all(3)
+	sb.set_corner_radius_all(12)
+	sb.content_margin_left = 16.0
+	sb.content_margin_right = 16.0
+	sb.content_margin_top = 0.0
+	sb.content_margin_bottom = 0.0
+	return sb
 
 
 func _on_buy_pressed(id: String) -> void:

@@ -28,26 +28,38 @@ const MAIN_MENU_SCENE := "res://scenes/main_menu/MainMenu.tscn"
 
 # Matches the mockup exactly — this is the one background of the four meta screens that already
 # exists on disk under the name the mockup itself uses.
-const BG_TEXTURE := "res://assets/backgrounds/origins/scene/5-crossroad.jpg"
+const BG_MOCKUP_PLATE := "assets/bg/crossroad.jpg"
+
+## FIX-PASS-02 §1 item 4: `content` already supplies the safe area and the 84px rail
+## (`DangoScreen.RAIL_X`). The absolute margin this screen wants is narrower (52px), so the
+## offset against `content` is `52 - 84 = -32` — preserving the same distance from the real
+## screen edge the mockup asked for.
+const SIDE_INSET := 52.0 - 84.0
 
 
 func _ready() -> void:
-	var plate_host := Control.new()
-	plate_host.name = "PlateHost"
-	plate_host.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	plate_host.set_anchors_preset(Control.PRESET_FULL_RECT)
-	add_child(plate_host)
-	DangoTheme.build_plate(plate_host, load(BG_TEXTURE), DangoTheme.Scrim.DEFAULT)
+	var shell := DangoScreen.build(self, MockupAssets.tex(BG_MOCKUP_PLATE),
+		DangoTheme.Scrim.DEFAULT, true)
+	var content: Control = shell["content"]
 
-	_build_header()
+	_build_header(content)
 
+	# NOT routed through `DangoScreen.fit_or_scroll()`: this ScrollContainer's job is the
+	# OPPOSITE of that helper's — it is a horizontal carousel of up to 4 variable-height cards
+	# (vertical scrolling is deliberately disabled; see the G1 comment below), and
+	# `fit_or_scroll()` hard-disables horizontal scrolling to do its own vertical cap-and-scroll.
+	# Applying it here would remove the only scroll axis this region actually needs. What DOES
+	# change under the shell: `anchor_bottom = 1.0` no longer needs `SAFE_AREA + FOOTER_HEIGHT`
+	# hand-computed against the raw viewport — `content`'s own bottom edge already excludes the
+	# footer, so a plain `offset_bottom = 0` lands in the same place with no shared-constant
+	# knowledge duplicated here.
 	var scroll := ScrollContainer.new()
 	scroll.name = "CardScroll"
 	scroll.set_anchors_preset(Control.PRESET_TOP_WIDE)
-	scroll.offset_left = 52.0
-	scroll.offset_right = -52.0
-	scroll.offset_top = 166.0
-	scroll.offset_bottom = -30.0
+	scroll.offset_left = SIDE_INSET
+	scroll.offset_right = -SIDE_INSET
+	scroll.offset_top = 166.0 - 48.0   # mockup top:166, measured against `content`'s own top
+	scroll.offset_bottom = 0.0
 	scroll.anchor_bottom = 1.0
 	scroll.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	DangoTheme.style_scrollbars(scroll)
@@ -56,32 +68,53 @@ func _ready() -> void:
 	# whatever sits below (found on the Unlocks QA capture: row 10 bled past the panel and
 	# over the BACK button).
 	scroll.clip_contents = true
-	add_child(scroll)
+	content.add_child(scroll)
 
 	var row := HBoxContainer.new()
 	row.name = "CardRow"
 	row.add_theme_constant_override("separation", 14)
-	row.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	# GDE-01: the row hugs the TALLEST card rather than being stretched to the scroll's own
+	# height. That is what stops the old "350-400px of empty cream below the CTA" without
+	# giving up equal heights — see the card's own size_flags below.
+	row.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
 	scroll.add_child(row)
 
 	for guide in ContentDB.GUIDES:
 		var card := _build_card(guide)
 		card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		# GDE-01: "four equal cards ... equal height with the CTA bottom-aligned across all
+		# four". SIZE_FILL against a row that now hugs its tallest child gives exactly that —
+		# every card is as tall as the longest one, and no taller.
+		#
+		# This reverses FIX-PASS-01 G1/L3, which set SHRINK_BEGIN and let the four cards end at
+		# four different heights. That was the right call at the time: the ScrollContainer
+		# (vertical scrolling disabled) forced the row to its own full height, that flowed onto
+		# every card, and the slack piled up as 350-400px of empty cream under the CTA. The
+		# slack had nowhere to go because the card's body was not flexible. It is now —
+		# `how_col` is SIZE_EXPAND_FILL (see _build_card) — so the extra height lands in the
+		# bullet list where GDE-01 puts it, and the row no longer inherits the scroll's height.
+		# Both halves of that had to change together, which is why the old fix could only opt
+		# out instead.
+		card.size_flags_vertical = Control.SIZE_FILL
 		card.custom_minimum_size = Vector2(420, 0)
 		row.add_child(card)
 
-	_build_back_button()
+	_build_footer(shell["footer"])
 
 
-func _build_header() -> void:
+func _build_header(content: Control) -> void:
 	var col := VBoxContainer.new()
 	col.name = "HeaderCol"
 	col.set_anchors_preset(Control.PRESET_TOP_WIDE)
-	col.offset_left = 52.0
-	col.offset_right = -52.0
-	col.offset_top = 44.0
+	col.offset_left = SIDE_INSET
+	col.offset_right = -SIDE_INSET
+	# RESTORED 2026-09-20: the mockup draws this header at `top:44`. It used to be clamped to
+	# the old uniform 48px safe-area law; that law is gone (it now only checks that nothing is
+	# clipped by the 1920x1080 canvas edge), so the mockup's own inset is back. `content`
+	# starts at the shell's 48px line, so 44 is 4px above it.
+	col.offset_top = 44.0 - 48.0
 	col.add_theme_constant_override("separation", 9)
-	add_child(col)
+	content.add_child(col)
 
 	var chip := PanelContainer.new()
 	chip.custom_minimum_size = Vector2(0, 34)
@@ -89,12 +122,13 @@ func _build_header() -> void:
 	chip.add_theme_stylebox_override("panel",
 		DangoTheme.solid_chip_style(DangoTheme.PRIMARY, 9, 3, Vector2(14, 6)))
 	var eyebrow := DangoTheme.display_label("FOUR COMPOSITIONS THAT WORK", 14,
-		DangoTheme.INK_ON_PRIMARY, 800)
+		DangoTheme.INK_ON_PRIMARY, 800, 0.16)
 	eyebrow.add_theme_constant_override("line_spacing", 0)
 	chip.add_child(eyebrow)
 	col.add_child(chip)
 
-	col.add_child(DangoTheme.display_label("SAMPLE TEAMS", 52, DangoTheme.CREAM_RAISED))
+	col.add_child(DangoTheme.display_label("SAMPLE TEAMS", 52, DangoTheme.CREAM_RAISED,
+		800, 0.02))
 
 
 func _build_card(guide: Dictionary) -> PanelContainer:
@@ -106,7 +140,9 @@ func _build_card(guide: Dictionary) -> PanelContainer:
 
 	var card := PanelContainer.new()
 	card.name = "Guide_" + str(guide.get("id", ""))
-	card.add_theme_stylebox_override("panel", DangoTheme.cream_card_style(Color.TRANSPARENT))
+	card.add_theme_stylebox_override("panel",
+		DangoTheme.cream_card_style(Color.TRANSPARENT, 17, 5, 7.0))
+	DangoTheme.clip_to_frame(card)   # G3
 
 	var outer := VBoxContainer.new()
 	outer.add_theme_constant_override("separation", 0)
@@ -116,17 +152,17 @@ func _build_card(guide: Dictionary) -> PanelContainer:
 	# CLASSES cards rather than the pre-v2 left-edge stripe (see the class doc comment above).
 	var band := PanelContainer.new()
 	band.name = "ArchBand"
-	band.custom_minimum_size = Vector2(0, 66)
+	band.custom_minimum_size = Vector2(0, 0)
 	var band_sb := StyleBoxFlat.new()
 	band_sb.bg_color = accent
 	band_sb.border_width_bottom = 4
 	band_sb.border_color = Color.BLACK
-	band_sb.corner_radius_top_left = 11
-	band_sb.corner_radius_top_right = 11
+	band_sb.corner_radius_top_left = 12
+	band_sb.corner_radius_top_right = 12
 	band_sb.content_margin_left = 15.0
 	band_sb.content_margin_right = 15.0
-	band_sb.content_margin_top = 10.0
-	band_sb.content_margin_bottom = 10.0
+	band_sb.content_margin_top = 12.0
+	band_sb.content_margin_bottom = 12.0
 	band.add_theme_stylebox_override("panel", band_sb)
 	outer.add_child(band)
 
@@ -157,32 +193,39 @@ func _build_card(guide: Dictionary) -> PanelContainer:
 	band_text.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	band_row.add_child(band_text)
 
-	var name_lbl := DangoTheme.display_label(str(guide.get("n", "")), 22, DangoTheme.INK)
+	var name_lbl := DangoTheme.display_label(str(guide.get("n", "")), 22, DangoTheme.INK,
+		800, 0.01)
 	band_text.add_child(name_lbl)
 
 	var arch_lbl := DangoTheme.display_label(str(arch.get("n", arch_key.to_upper())), 12,
-		DangoTheme.INK, 800)
+		DangoTheme.INK, 800, 0.1)
 	arch_lbl.name = "ArchLabel"
 	arch_lbl.add_theme_constant_override("line_spacing", 0)
 	band_text.add_child(arch_lbl)
 
 	var margin := MarginContainer.new()
-	for side in ["left", "right", "top", "bottom"]:
+	for side in ["left", "right", "bottom"]:
 		margin.add_theme_constant_override("margin_" + side, 15)
+	margin.add_theme_constant_override("margin_top", 13)   # mockup: padding 13px 15px 15px
 	outer.add_child(margin)
 
 	var col := VBoxContainer.new()
-	col.add_theme_constant_override("separation", 10)
+	col.add_theme_constant_override("separation", 12)
 	margin.add_child(col)
 
+	# REVERSED 2026-09-20 (mockup pass): FIX-PASS-01 G4 pushed this to 13 on a type-floor
+	# argument. The mockup draws 12, which is still exactly t_ui_laws' L8 floor, and
+	# godot/CLAUDE.md rule 5 puts a mockup number above the old project floor.
 	var diff_lbl := DangoTheme.display_label(str(guide.get("diff", "")), 12,
-		DangoTheme.INK_ON_CREAM_MUTED, 800)
+		DangoTheme.INK_ON_CREAM_MUTED, 800, 0.1)
 	diff_lbl.add_theme_constant_override("line_spacing", 0)
 	col.add_child(diff_lbl)
 
 	col.add_child(_build_team_strip(guide.get("team", []), accent))
 
 	var why := _cream_body_label(str(guide.get("why", "")))
+	why.add_theme_constant_override("line_spacing",
+		DangoTheme.leading_for(DangoTheme.FONT_UI_SEMI, 13, 1.5))
 	col.add_child(why)
 
 	var how_col := VBoxContainer.new()
@@ -204,6 +247,8 @@ func _build_card(guide: Dictionary) -> PanelContainer:
 		row.add_child(bullet)
 		var text := _cream_body_label(str(line))
 		text.add_theme_font_size_override("font_size", 12)
+		text.add_theme_constant_override("line_spacing",
+			DangoTheme.leading_for(DangoTheme.FONT_UI_SEMI, 12, 1.5))
 		text.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		row.add_child(text)
 		how_col.add_child(row)
@@ -213,6 +258,18 @@ func _build_card(guide: Dictionary) -> PanelContainer:
 	use.text = "USE THIS TEAM"
 	use.custom_minimum_size = Vector2(0, 50)
 	DangoTheme.style_button(use, true)
+	use.add_theme_font_override("font", DangoTheme.FONT_DISPLAY)
+	use.add_theme_font_size_override("font_size", 17)
+	DangoTheme.apply_tracking(use, 0.1, 17)
+	# Re-cut to the mockup's own geometry (radius 12 / 3px outline / 4px shelf), which is not
+	# the shared primary's 15 / 4 / 6.
+	for state_key in ["normal", "hover", "pressed", "disabled"]:
+		var box := use.get_theme_stylebox(state_key).duplicate() as StyleBoxFlat
+		box.set_corner_radius_all(12)
+		box.set_border_width_all(3)
+		if box.shadow_offset.y > 0.0:
+			box.shadow_offset = Vector2(0, 4)
+		use.add_theme_stylebox_override(state_key, box)
 	use.pressed.connect(_on_use_pressed.bind(guide))
 	col.add_child(use)
 	return card
@@ -238,12 +295,12 @@ func _build_team_strip(team: Array, accent: Color) -> HBoxContainer:
 		slot_sb.set_corner_radius_all(10)
 		slot.add_theme_stylebox_override("panel", slot_sb)
 
+		slot.clip_contents = true
 		var portrait := TextureRect.new()
 		portrait.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-		portrait.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-		var portrait_path := "res://assets/portraits/%s.png" % cls
-		if ResourceLoader.exists(portrait_path):
-			portrait.texture = load(portrait_path)
+		# `object-fit: cover` in the mockup, not contain.
+		portrait.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+		portrait.texture = MockupAssets.tex("assets/portrait/%s.png" % cls)
 		slot.add_child(portrait)
 		strip.add_child(slot)
 	return strip
@@ -272,23 +329,18 @@ func _on_use_pressed(guide: Dictionary) -> void:
 	get_tree().change_scene_to_file(MAIN_MENU_SCENE)
 
 
-func _build_back_button() -> void:
-	var back := Button.new()
-	back.name = "BackButton"
-	back.text = "BACK"
-	back.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
-	back.position = Vector2(52, -44 - 24)
-	back.custom_minimum_size = Vector2(0, 44)
-	DangoTheme.style_button(back, false)
-	back.pressed.connect(func() -> void:
+## FIX-PASS-01 L4/G3: BACK lives in the shared footer bar — it used to overlap card 1.
+## §1 item 4: the footer is `DangoScreen.build()`'s.
+func _build_footer(footer: HBoxContainer) -> void:
+	DangoScreen.add_back_button(footer, func() -> void:
 		get_tree().change_scene_to_file(MAIN_MENU_SCENE))
-	add_child(back)
 
 
 func _cream_body_label(text: String) -> Label:
 	var lbl := Label.new()
 	lbl.text = text
 	lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	lbl.add_theme_font_override("font", DangoTheme.FONT_UI_SEMI)
 	lbl.add_theme_font_size_override("font_size", 13)
 	lbl.add_theme_color_override("font_color", DangoTheme.INK_ON_CREAM_SOFT)
 	return lbl

@@ -38,12 +38,30 @@ enabled=PackedStringArray("res://addons/axie_mixer_3d/plugin.cfg", "res://addons
 ; sprite (sized/positioned for the old assumed 1152x648) only covered a small
 ; top-left rectangle of the real window (bug report: background not covering screen).
 ; canvas_items stretch mode scales the whole 2D canvas (Controls AND plain Node2D/
-; Sprite2D content, not just CanvasLayers) to fill the actual window; aspect="expand"
-; lets the percentage-anchored HUD bands (EnemyBand/MidStage/BottomBand, all anchored
-; 0..1) fill the full window on any aspect ratio without letterbox bars.
+; Sprite2D content, not just CanvasLayers) to fill the actual window. The aspect mode
+; that pairs with it is decided in the block below.
 window/size/viewport_width=1920
 window/size/viewport_height=1080
 window/stretch/mode="canvas_items"
+; ── aspect: back to expand, 20 Sep 2026 (user decision, reversing this morning's) ──
+; This block previously read "expand → keep". That has been reversed. The reasoning
+; for "keep" was that the four v2 mockups are authored at a fixed 1920x1080 and place
+; every element by absolute coordinate, so pixel-exactness is only well-defined if the
+; logical canvas is exactly 1920x1080. True — but the price was letterbox bars on every
+; window that is not 16:9, which is most of them.
+;
+; The reconciliation, and the rule that now holds:
+;   * The mockups remain the source of truth for every INTRINSIC number — width,
+;     height, padding, radius, border, gap, font size, colour. Type those in as drawn.
+;   * The mockups are NOT a source of ABSOLUTE POSITION. A y coordinate read off a
+;     1080-tall mockup is not portable, because under "expand" the logical viewport
+;     keeps its horizontal scale and grows vertically (a 2387x1540 window lays out in
+;     roughly 1920x1238). 1920x1080 is the MINIMUM canvas, not the design canvas.
+;   * So: full-bleed bands anchor to a real viewport edge; everything else lives in a
+;     centred content column and stacks by relationship ("28px below the ribbon"),
+;     never by an absolute offset_top copied from a mockup.
+;
+; This restores the 2026-09-18 arbitration and matches FIX-PASS-03 §1 and §10.
 window/stretch/aspect="expand"
 
 [gui]

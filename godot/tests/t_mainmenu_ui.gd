@@ -38,10 +38,22 @@ const EXPECTED_TESTS: Array[String] = [
 var _failures: Array[String] = []
 var _checks := 0
 var _completed: Array[String] = []
+var _tutorial_seen_was := false
 
 
 func _ready() -> void:
 	print("=== t_mainmenu_ui: start ===")
+	# MainMenu._ready() is the onboarding choke point: on a save that has never seen the tutorial
+	# it calls `change_scene_to_file()` and returns, which frees THIS node — every `get_tree()`
+	# after that is null and all eight tests abort with "Parameter data.tree is null".
+	#
+	# That is not a menu bug and not a tutorial bug. It is this file assuming the machine it runs
+	# on already has a played save, which is true on the author's Mac and false on a fresh
+	# checkout, in a container and in CI — so the gate reported eight failures that had nothing
+	# to do with what it tests. The flag is set in memory only and put back below, which is the
+	# same no-disk-write pattern the header describes.
+	_tutorial_seen_was = MetaState.tutorial_seen
+	MetaState.tutorial_seen = true
 	await get_tree().process_frame
 
 	await test_no_technical_strings_leak_on_default_screen()
@@ -58,6 +70,7 @@ func _ready() -> void:
 			_failures.append(("test '%s' did not run to completion — a runtime error aborted "
 				+ "it part-way and every assertion after that point was skipped") % name)
 
+	MetaState.tutorial_seen = _tutorial_seen_was
 	print("=== t_mainmenu_ui: %d checks, %d failure(s) ===" % [_checks, _failures.size()])
 	if _failures.is_empty():
 		print("t_mainmenu_ui: PASS — %d checks OK" % _checks)
@@ -138,13 +151,19 @@ func test_no_technical_strings_leak_on_default_screen() -> void:
 ## (`scenes/pass/Pass.tscn`, `scenes/unlocks/Unlocks.tscn`) and route to them — see MainMenu.gd's
 ## `_build_nav_tiles()`, "GAP FLAGGED, RESOLVED 2026-09-20". This asserts the fix directly: the
 ## same tiles that used to be pinned disabled with a tooltip must now be enabled and routed,
-## which is the whole reason those two screens exist. `collection` is the only tile this test
-## still expects disabled — there is still no Collection system anywhere in the project.
+## which is the whole reason those two screens exist.
+##
+## UPDATED 2026-09-20 (FIX-PASS-01 M2 — "Remove any tile with no value: an empty tile is worse
+## than a missing one"): `collection` used to be this test's one still-expected-disabled tile.
+## It is not disabled-with-a-tooltip anymore, it is GONE — MainMenu.gd no longer builds it at
+## all, since there is still no Collection system anywhere in the project for it to point at.
+## `disabled_ids` is empty today on purpose (kept as a list, not deleted, so a future
+## intentionally-disabled tile has an obvious place to land).
 func test_disabled_nav_tiles_use_player_facing_tooltips() -> void:
 	var menu := _instantiate_menu()
 	await get_tree().process_frame
 
-	var disabled_ids := ["collection"]
+	var disabled_ids: Array[String] = []
 	for id in disabled_ids:
 		var tile: Button = menu._nav_tiles.get(id)
 		_assert(tile != null, "no nav tile registered for '%s'" % id)
@@ -154,6 +173,10 @@ func test_disabled_nav_tiles_use_player_facing_tooltips() -> void:
 			% id)
 		_assert(not tile.tooltip_text.is_empty(),
 			"disabled nav tile '%s' has no tooltip explaining why" % id)
+
+	_assert(not menu._nav_tiles.has("collection"),
+		"FIX-PASS-01 M2: 'collection' should be REMOVED, not merely disabled — an empty tile "
+		+ "is worse than a missing one")
 
 	var enabled_ids := ["pass", "unlocks", "vault", "guides", "codex"]
 	for id in enabled_ids:
@@ -210,7 +233,11 @@ func test_seed_field_is_bounded_by_its_panel_not_by_its_own_expansion() -> void:
 	var seed_edit: LineEdit = menu._seed_edit
 	_assert(seed_edit != null, "menu has no _seed_edit to check")
 	if seed_edit != null:
-		var panel: Node = menu.get_node("RunSetupPanel")
+		# ROUTING TASK (FIX-PASS-02 §1 item 4): RunSetupPanel is now a child of the shell's
+		# `Content` (DangoScreen.build()), not a direct child of the menu root — read through
+		# MainMenu's own stored reference rather than a name-based node lookup, which would
+		# silently break the next time this node is renamed or re-parented again.
+		var panel: Node = menu._run_setup_panel
 		_assert(panel != null, "no RunSetupPanel to bound the seed field's width")
 		if panel != null:
 			var min_w: float = (panel as Control).custom_minimum_size.x
@@ -228,13 +255,19 @@ func test_run_setup_panel_and_nav_tiles_and_team_row_all_exist() -> void:
 	var menu := _instantiate_menu()
 	await get_tree().process_frame
 
-	_assert(menu.get_node_or_null("RunSetupPanel") != null, "no RunSetupPanel")
-	var nav_tiles := menu.get_node_or_null("NavTiles")
+	# ROUTING TASK (FIX-PASS-02 §1 item 4): both now live under the shell's `Content`, not
+	# directly under the menu root — see the identical note above.
+	_assert(menu._run_setup_panel != null, "no RunSetupPanel")
+	var nav_tiles: Node = menu._nav_tiles_grid
 	_assert(nav_tiles != null, "no NavTiles grid")
 	if nav_tiles != null:
-		_assert(nav_tiles.get_child_count() == 6,
-			"NavTiles has %d tile(s), expected 6 (Pass/Unlocks/Vault/Sample Teams/Codex/"
-			% nav_tiles.get_child_count() + "Collection)")
+		# UPDATED 2026-09-20 (FIX-PASS-01 M2): 6 -> 5. COLLECTION was removed outright (see
+		# test_disabled_nav_tiles_use_player_facing_tooltips's own note on this same date) —
+		# "an empty tile is worse than a missing one" — so the grid legitimately has 5 tiles now,
+		# not a bug leaving one unbuilt.
+		_assert(nav_tiles.get_child_count() == 5,
+			"NavTiles has %d tile(s), expected 5 (Pass/Unlocks/Vault/Sample Teams/Codex — "
+			% nav_tiles.get_child_count() + "Collection removed, FIX-PASS-01 M2)")
 	var team_row: Node = menu._team_row
 	_assert(team_row != null, "no team row built")
 	if team_row != null:
@@ -307,9 +340,17 @@ func test_nothing_promises_waves_on_a_map_made_of_rows() -> void:
 	_assert(short_rows == 18,
 		"RunMapGenerator says Short is %d rows; this gate was written against 18, so one of "
 		% short_rows + "the two is out of date — check which before changing the number here")
-	_assert((menu._mode_short_btn as Button).text.contains(str(short_rows)),
-		"the SHORT button reads '%s' and the generator says %d rows"
-		% [(menu._mode_short_btn as Button).text, short_rows])
+	# Read the whole TILE, not just `Button.text`. MNU-05 splits the run-length card into a
+	# Baloo 19 name and a Work Sans 12 detail line under it, and the row count lives in the
+	# detail line — so asserting on `Button.text` alone measured a label the count was never in
+	# again and reported a copy bug that did not exist. What matters to the rule is that the
+	# number a player reads on that card is the generator's.
+	var short_btn := menu._mode_short_btn as Button
+	var short_sub := short_btn.get_node_or_null("Subtitle") as Label
+	var short_tile_text: String = short_btn.text + " " + (short_sub.text if short_sub != null else "")
+	_assert(short_tile_text.contains(str(short_rows)),
+		"the SHORT card reads '%s' and the generator says %d rows"
+		% [short_tile_text.strip_edges(), short_rows])
 
 	# The Unlocks list is content, not layout, so it is checked at the source (still true even
 	# though v2 no longer renders this list on Main Menu itself — see the GAP FLAGGED note).

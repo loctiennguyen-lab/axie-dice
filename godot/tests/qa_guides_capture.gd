@@ -9,7 +9,7 @@ extends Node
 ##
 ## Run: /path/to/Godot --path godot res://tests/qa_guides_capture.tscn
 
-const _EVIDENCE_DIR := "/Users/loc.tien.nguyen/my-game/production/qa/evidence"
+var _EVIDENCE_DIR := QaPaths.evidence_dir()
 
 ## The RAW save file, not a list of fields.
 ##

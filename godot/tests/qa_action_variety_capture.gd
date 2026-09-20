@@ -32,7 +32,7 @@ const _CAPTURE_INTERVAL := 0.12   # tighter than qa_anim_capture.gd's 0.25s — 
 	# total, so a denser sampling interval is needed to actually land frames mid-motion.
 const _BURST_FRAMES := 4
 const _ALL_TYPES := ["dmg", "shield", "heal", "poison", "mana", "buff", "debuff"]
-const _EVIDENCE_DIR := "/Users/loc.tien.nguyen/my-game/production/qa/evidence"
+var _EVIDENCE_DIR := QaPaths.evidence_dir()
 
 var _view: Node2D
 var _combat: CombatEngine

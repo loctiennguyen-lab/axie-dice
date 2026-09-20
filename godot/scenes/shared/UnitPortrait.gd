@@ -1,48 +1,68 @@
 extends Control
 class_name UnitPortrait
-## Feet-anchored Nameplate (review-uiux-battle-screen.md P0 #4: "bỏ hẳn hàng thẻ HP ... gắn
-## nameplate ngay dưới chân từng Axie"). Positioned every frame by CombatView using
-## CombatStage3D.get_unit_screen_pos(uid, CombatStage3D.FEET_HEIGHT) — this Control's
-## top-center sits at that point (own width is fixed, see WIDTH, so centering never has to wait
-## a frame on container layout).
+## Feet-anchored unit HUD column — CB-07 … CB-13 (FIX-PASS-03 §4). Positioned every frame by
+## CombatView using CombatStage3D.get_unit_screen_pos(uid, FEET_HEIGHT).
 ##
-## REBUILT (ui-programmer, nameplate-rebuild pass — bug report: name overlapped by the shield
-## badge, two enemy nameplates touching, a 3-4px misaligned HP bar, ~10px HP numbers on bright
-## sand; review-uiux-battle-screen.md P0 #5, P1 #6, P1 #10). Layout is now:
-##   header row: NameLabel (left, expand) + HPLabel (right, "hp/max", 17px bold-via-outline)
-##   HPBar: full width beneath the header, 14px
-##   StatusRow: a row of pills (icon + stack count) under the HP bar, ONE PER ACTIVE STATUS —
-##     hidden (0 height) when the unit has no active status, so a status-free unit's card stays
-##     at its compact base size. This is what review P1 #10 ("icon trạng thái trôi tự do") asked
-##     for: status now visibly belongs to this card instead of floating disconnected above the
-##     head (see UnitHeadHUD.gd, which no longer draws them at all).
-##   ShieldBadge: a small pill OVERLAPPING the top-right corner of the card (anchored outside
-##     the header row, not squeezed into it) — this is what used to collide with long names; it
-##     now overflows the corner instead of sharing the name's row.
-## `update_stats()`'s `status` param used to be discarded (`_status`, unused) — CombatView.gd
-## already passed it every frame, so wiring the status row up needed no CombatView.gd change.
+## Structure, top to bottom, per CB-07 (enemy) and CB-08 (party):
+##   StatusStrip  — CB-13. FIXED 28px tall whether or not it holds anything, so the nameplate
+##                  below it never moves as statuses come and go. Shield is the FIRST chip here.
+##   Card         — CB-09/CB-10. The nameplate proper.
+##     TopRow     — name (left, ellipsised) · incoming chip (party only) · HP cur/max (right)
+##     HPBar      — CB-10 row 2, plus CB-11's at-risk slice for the party
+##     ShieldBar  — CB-10 row 3, its OWN bar, fill INFO, width = shield / max_hp
+## The enemy's intent badge (CB-14) is a separate node above this one — see UnitHeadHUD.gd.
 ##
-## Icon source: assets/icons/web/ (the live web build's own icon set, src/art7.js) — the user's
-## explicit requirement is that both builds show the same icons, unchanged.
+## ── WHAT CHANGED, AND WHY IT MATTERS (FIX-PASS-03 G-04 / CB-09) ────────────────────────────
 ##
-## Class name kept as `UnitPortrait` (not renamed to e.g. `Nameplate`) to avoid an unrelated
-## rename touching every call site (CombatView.gd, tests) for a purely cosmetic reason — see
-## task report.
+## This file is the spec's named example of a failure it has seen twice. The previous version
+## carried this comment, verbatim:
+##
+##     "Party nameplates are unchanged — C1 is enemy-only, and the party row already reads
+##      correctly at its current size."
+##
+## That is how the build ended up with enemy plates at 176 wide and party plates at a
+## text-measured width floored at 132 — two nameplate systems in one screen. CB-09 states its
+## scope explicitly ("Applies to EVERY nameplate in combat — all five party plates and every
+## enemy plate. One width, one height per side, regardless of how long the name is. No
+## text-measured widths.") so both sides are built from the same constants here:
+##
+##     176 wide, both sides. Enemy 64 tall, party 68 — the extra 4 is the class edge.
+##
+## The per-plate text measuring is GONE. It existed to stop long names clipping, and the
+## replacement for that is `text_overrun_behavior = TRIM_ELLIPSIS` on the name label (CB-10
+## says "ellipsised"), which solves the same problem without letting a name decide a plate's
+## geometry. "Venomaw" now reads "Venomaw"; a name too long for 176px reads "Venoma…", which is
+## a truncation the player can see, not the corrupt-looking mid-glyph cut this used to produce.
+##
+## The SHIELD BADGE IS DELETED. It was a pill overlapping the plate's top-right corner, and
+## CB-10 forbids it twice over — shield "is never a segment inside the HP track and never a
+## badge overlapping the HP number". Shield now reads in two sanctioned places: its own bar
+## (CB-10 row 3) and the first chip of the status strip (CB-13).
+##
+## Icon source: assets/icons/web/ (the live web build's own icon set) — the user's explicit
+## requirement is that both builds show the same icons, unchanged.
 
 signal clicked(uid: int)
 
-## Minimum plate width. Only a floor for very short names — the actual width comes from the
-## name label's own measured text (see setup()), so a long name widens its plate and a short
-## one does not. Sizing every plate to the LONGEST possible name instead made neighbouring
-## enemy plates touch, which the UI review had already flagged once.
-const WIDTH := 132.0
+## CB-09 — ONE width for every nameplate in combat, both sides. Not a floor, not a minimum that
+## a long name may exceed: the width. See the class comment.
+const WIDTH := 176.0
+const ENEMY_HEIGHT := 64.0
+const PARTY_HEIGHT := 68.0          # +4 for the class edge
+const CLASS_EDGE_W := 6             # CB-09: the party plate's class-coloured top border —
+	# L1's first named exception to "one outline, pure black"
+const STATUS_STRIP_H := 28.0        # CB-13 — fixed, always
+
+## Back-compat alias: CombatView._layout_unit_visuals() and tests refer to ENEMY_WIDTH. There is
+## only one width now (CB-09), so it points at the same constant rather than being a second
+## number that can drift from it.
+const ENEMY_WIDTH := WIDTH
 
 ## status key -> web icon (assets/icons/web/, src/art7.js parity). Same 9 keys Unit.status can
-## ever hold (unit.gd's own field comment: "poison/burn/regen/blind/weaken/vulnerable/thorns/
-## stun/undying -> int stack count" — freeze is deliberately NOT one of them, it's the separate
-## `frozen`/`frozen_next` bool pair, see that file). "vulnerable" is the one key whose web icon
-## file is named differently ("vuln.png", not "vulnerable.png") — confirmed against
-## tests/t_assets.gd's own REQUIRED_PNG_ICONS list before relying on it here.
+## ever hold (unit.gd: "poison/burn/regen/blind/weaken/vulnerable/thorns/stun/undying -> int
+## stack count" — freeze is deliberately NOT one of them, it's the separate `frozen`/
+## `frozen_next` bool pair). "vulnerable" is the one key whose web icon file is named
+## differently ("vuln.png"), confirmed against tests/t_assets.gd's own list.
 const _STATUS_ICON := {
 	"poison": preload("res://assets/icons/web/poison.png"),
 	"burn": preload("res://assets/icons/web/burn.png"),
@@ -54,6 +74,8 @@ const _STATUS_ICON := {
 	"stun": preload("res://assets/icons/web/stun.png"),
 	"undying": preload("res://assets/icons/web/undying.png"),
 }
+const _ICON_SHIELD := preload("res://assets/icons/web/shield.png")
+const _ICON_DMG := preload("res://assets/icons/web/dmg.png")
 
 # --- Juice tuning (unchanged from the pre-review pass) ---
 ## Float-text color per EventBus.float_text `css_class` payload — see report for the original
@@ -76,71 +98,171 @@ const _RESONANCE_FLASH_OUT := 0.18
 const _DEATH_FADE_DURATION := 0.45
 
 @onready var _card: PanelContainer = %Card
+@onready var _inner: PanelContainer = %Inner
+@onready var _column: VBoxContainer = %Column
+@onready var _status_strip: CenterContainer = %StatusStrip
+@onready var _status_row: HBoxContainer = %StatusRow
 @onready var _name_label: Label = %NameLabel
 @onready var _hp_label: Label = %HPLabel
 @onready var _hp_bar: HPBar = %HPBar
-@onready var _status_row: HBoxContainer = %StatusRow
-@onready var _shield_badge: PanelContainer = %ShieldBadge
-@onready var _shield_icon: TextureRect = %ShieldIcon
-@onready var _shield_label: Label = %ShieldLabel
+@onready var _shield_bar: HPBar = %ShieldBar
+@onready var _incoming_chip: PanelContainer = %IncomingChip
+@onready var _incoming_icon: TextureRect = %IncomingIcon
+@onready var _incoming_label: Label = %IncomingLabel
 @onready var _click_catcher: Button = %ClickCatcher
 
 var uid: int = -1
 var _dying: bool = false   # true once play_death_fade() has been triggered — guards
-	# update_stats() from clobbering the fade Tween's modulate (see that function's comment)
+	# update_stats() from clobbering the fade Tween's modulate
 var _base_style: StyleBoxFlat
 var _selected_style: StyleBoxFlat
 var _targetable_style: StyleBoxFlat
+var _is_enemy: bool = false
+var _incoming: int = 0     # CB-11/CB-12 — committed incoming damage, party only
 
 
 func _ready() -> void:
 	custom_minimum_size.x = WIDTH
-	_shield_icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE   # web icon (shield.png) doesn't
-		# ship at exactly this 13x13 slot's size — see UnitHeadHUD._intent_icon's comment for
-		# the same TextureRect sizing gotcha
-	_shield_icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	_column.add_theme_constant_override("separation", 8 if _is_enemy else 5)   # CB-07 / CB-08
+	# C3 — combat-v2.html fills the shield track with #31C6FF, which is `SHIELD_BLUE`.
+	# `INFO` is #00B8FF: close enough to look deliberate and wrong enough to be a different
+	# blue from the shield chip beside it on the die card and in the status strip.
+	_shield_bar.use_fixed_fill(DangoTheme.SHIELD_BLUE)                        # CB-10 row 3
+	# CB-12's 12px dmg glyph. EXPAND_IGNORE_SIZE is NOT optional: the web icons do not ship at
+	# the slot sizes this UI asks for, and a TextureRect left on the default EXPAND_KEEP_SIZE
+	# reports the TEXTURE's natural size as its minimum. The QA capture of this pass showed
+	# exactly that — dmg.png at full size blew the incoming chip up into a block that covered
+	# two whole party nameplates. Same gotcha the status-chip icons already guard against.
+	_incoming_icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	_incoming_icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	_incoming_icon.texture = _ICON_DMG
 	_click_catcher.pressed.connect(func(): clicked.emit(uid))
 
-	_base_style = DangoTheme.panel_style(DangoTheme.BG_PANEL_SOFT, 2, 8, 5.0)
-	_selected_style = DangoTheme.panel_style(DangoTheme.BG_PANEL, 3, 8, 5.0)
-	_selected_style.border_color = DangoTheme.PRIMARY
-	_selected_style.shadow_color = Color(DangoTheme.PRIMARY.r, DangoTheme.PRIMARY.g, DangoTheme.PRIMARY.b, 0.6)
-	_selected_style.shadow_size = 8
-	_targetable_style = DangoTheme.panel_style(DangoTheme.BG_PANEL_SOFT, 2, 8, 5.0)
-	_targetable_style.border_color = DangoTheme.INFO
-	_card.add_theme_stylebox_override("panel", _base_style)
+
+## CB-09 — the one plate style, for both sides.
+##
+## The party plate's 6px class-coloured top edge is L1's first named exception to "one outline,
+## pure black", and a StyleBoxFlat carries exactly ONE border colour — so it cannot be a border.
+## It is built as TWO NESTED PANELS instead: the outer `Card` is filled with the class colour and
+## carries the black outline, radius and shelf; the inner panel is `PANEL_DEEP` and is inset from
+## the top by 6px, leaving exactly that much of the outer fill showing as the edge.
+##
+## The first attempt here made the edge a second CHILD of `Card` with `PRESET_TOP_WIDE` anchors.
+## That does not work and the QA capture showed why: `PanelContainer` is a Container, so it
+## overrides its children's anchors and offsets and stretches each one to its full rect — the
+## "6px edge" rendered as a full-card block of class colour over the whole nameplate. A Container
+## child cannot position itself; it has to be given a slot.
+func _apply_card_styles(cls: String) -> StyleBoxFlat:
+	# The outer's content margins ARE the border. `PanelContainer` lays its child out inside the
+	# stylebox's content margins and nowhere else, so with those at 0 the inner panel covered the
+	# 3px black outline completely — which is why the 20 Sep capture showed nameplates with no
+	# outline on any side while the die cards beside them had one. Each margin equals the border
+	# width on that side.
+	var outer := DangoTheme.surface_style(
+		DangoTheme.Surface.PANEL_DEEP, 12, 3, 4.0, Vector2(3, 3))   # radius 12, 3px black, shelf 4
+	var inner := StyleBoxFlat.new()
+	inner.bg_color = DangoTheme.surface_color(DangoTheme.Surface.PANEL_DEEP)
+	inner.set_corner_radius_all(9)          # plate radius 12 minus the 3px border
+	inner.content_margin_left = 10.0        # CB-09 padding 5/10, applied on the inner panel so
+	inner.content_margin_right = 10.0       # the class edge above sits flush against the border
+	inner.content_margin_top = 5.0
+	# Top-aligned, no bottom padding. The mockup's own rows (20 + 4 + 12 + 4 + 12 = 52) already
+	# exceed the 49px its 5px bottom padding would leave, so the plate reads with ~2px under the
+	# shield bar and the padding never gets to apply. Reserving 5 here instead pushes the shield
+	# bar out of a fixed-height plate.
+	inner.content_margin_bottom = 0.0
+	if not _is_enemy:
+		outer.bg_color = DangoTheme.class_color(cls)   # shows through as the top edge
+		# C4 / C8 — the edge measured 3px in the build, half of what combat-v2.html draws, and
+		# this is why. `surface_style()` puts a 3px black border on all four sides; a
+		# `content_margin_top` of 6 then inset the inner panel 6px from the CARD's top edge, so
+		# the black border ate the first 3 of those 6 and only 3px of class colour was ever
+		# visible. The mockup's party plate has NO black top border at all —
+		# `border:3px #000` followed by `border-top:6px solid {{ p.cls }}` REPLACES the top
+		# border with the class colour — so the top border goes to 0 and the full 6px of the
+		# outer fill shows. Left/right/bottom stay pure black at 3 (L1), and 68 = 6 + 59 + 3
+		# keeps PARTY_HEIGHT exactly where CLAUDE.md pins it.
+		outer.border_width_top = 0
+		outer.content_margin_top = float(CLASS_EDGE_W)   # the class edge replaces the top border
+		inner.corner_radius_top_left = 0
+		inner.corner_radius_top_right = 0
+	_inner.add_theme_stylebox_override("panel", inner)
+	return outer
 
 
 ## Called once per unit when a combat starts (CombatView._spawn_portrait).
-func setup(p_uid: int, display_name: String, _cls: String, _is_enemy: bool) -> void:
+func setup(p_uid: int, display_name: String, cls: String, is_enemy: bool) -> void:
 	uid = p_uid
+	_is_enemy = is_enemy
 	_name_label.text = display_name
-	# The label is EXPAND_FILL inside its row, so Godot lets it shrink to nothing and clip the
-	# text — which is how "Venomaw" once rendered as "Venon" and "FROST LORD" as "FRC". Telling
-	# the label its own text width makes the card's combined minimum account for the name, so
-	# every plate ends up exactly as wide as it needs and no wider. A blanket floor would fix
-	# the clipping too, but at the cost of padding short names out until neighbouring plates
-	# touch each other.
-	var font := _name_label.get_theme_font("font")
-	var font_size := _name_label.get_theme_font_size("font_size")
-	if font != null:
-		_name_label.custom_minimum_size.x = font.get_string_size(
-			display_name, HORIZONTAL_ALIGNMENT_LEFT, -1, font_size).x
-	_resync_size()
+
+	_column.add_theme_constant_override("separation", 8 if is_enemy else 5)
+
+	# CB-10 row 1 type. Both sides, one scale — the previous build gave the enemy 17/15 and left
+	# the party on the scene's own 15/17, which is the same enemy-only split CB-09 rejects.
+	# combat-v2.html draws the name at Baloo 17/700 with `letter-spacing:.02em` on BOTH sides —
+	# `apply_tracking()` sets the face, the size and the tracking in one call.
+	DangoTheme.apply_tracking(_name_label, 0.02, 17, 700)   # Baloo 700
+	# combat-v2.html inks the name #FFF8EA on both sides — CREAM_RAISED, not the generic TEXT
+	# grey-white the scene file shipped with.
+	_name_label.add_theme_color_override("font_color", DangoTheme.CREAM_RAISED)
+	_hp_label.add_theme_font_override("font", DangoTheme.FONT_DISPLAY)          # Baloo 800
+	_hp_label.add_theme_font_size_override("font_size", 18)
+	_incoming_label.add_theme_font_override("font", DangoTheme.FONT_DISPLAY)
+	_incoming_label.add_theme_font_size_override("font_size", 14)
+	_incoming_label.add_theme_color_override("font_color", DangoTheme.CREAM_RAISED)
+
+	# CB-12 — DANGER fill, radius 6, NO border.
+	_incoming_chip.add_theme_stylebox_override("panel",
+		DangoTheme.solid_chip_style(DangoTheme.DANGER, 6, 0, Vector2(5, 0)))
+
+	_base_style = _apply_card_styles(cls)
+	_selected_style = _base_style.duplicate()
+	_selected_style.border_color = DangoTheme.PRIMARY
+	_targetable_style = _base_style.duplicate()
+	_targetable_style.border_color = DangoTheme.INFO
+	_card.add_theme_stylebox_override("panel", _base_style)
+
+	# CB-09: fixed size, both sides. No text measuring — see the class comment.
+	_card.custom_minimum_size = Vector2(WIDTH, ENEMY_HEIGHT if is_enemy else PARTY_HEIGHT)
+	custom_minimum_size = Vector2(WIDTH, STATUS_STRIP_H
+		+ _column.get_theme_constant("separation")
+		+ (ENEMY_HEIGHT if is_enemy else PARTY_HEIGHT))
+	size = custom_minimum_size
+
+
+## CB-11 / CB-12 — committed incoming damage for this unit. Set by CombatView every rebuild;
+## party only, and 0 for everything else.
+func set_incoming(amount: int) -> void:
+	_incoming = maxi(amount, 0)
 
 
 ## Called from CombatView._rebuild_all() — the single "read model, redraw" entry point.
-## Deliberately does NOT force modulate/visibility while _dying is true — see play_death_fade().
-## `status` used to be discarded (`_status`, unused) — now drives _rebuild_status_pills(); see
-## class comment for why this needed no CombatView.gd change.
 func update_stats(hp: int, max_hp: int, shield: int, status: Dictionary) -> void:
-	_hp_bar.set_stats(hp, max_hp, shield)
-	_hp_label.text = "%d/%d" % [maxi(hp, 0), maxi(max_hp, 1)]
-	_shield_badge.visible = shield > 0
-	if shield > 0:
-		_shield_label.text = str(shield)
-	_rebuild_status_pills(status)
-	_resync_size()
+	var safe_max := maxi(max_hp, 1)
+	_hp_bar.set_stats(hp, safe_max)
+	_hp_label.text = "%d/%d" % [maxi(hp, 0), safe_max]
+	_hp_label.add_theme_color_override("font_color",
+		DangoTheme.hp_color(float(maxi(hp, 0)) / float(safe_max)))    # CB-10: hp_color(pct)
+
+	# CB-10 row 3 — shield as its own bar, width = shield / max_hp clamped to 100%.
+	#
+	# The bar is ALWAYS drawn, empty trough and all. combat-v2.html renders the shield row
+	# unconditionally (its `shieldPct` is simply "0%" on a unit with no shield), and hiding it
+	# was making the plate's two bars sit at two different heights depending on whether a unit
+	# happened to be shielded — inside a plate whose own height is fixed at 64/68.
+	_shield_bar.set_stats(mini(shield, safe_max), safe_max)
+
+	# CB-11 — the at-risk slice: min(hp, max(0, incoming - shield)). Party only; enemies never
+	# get an incoming value, so this is 0 for them and draws nothing.
+	_hp_bar.set_at_risk(mini(maxi(hp, 0), maxi(0, _incoming - shield)))
+
+	# CB-12 — hidden entirely when incoming is 0. Hidden, not dimmed.
+	_incoming_chip.visible = (not _is_enemy) and _incoming > 0
+	if _incoming_chip.visible:
+		_incoming_label.text = str(_incoming)
+
+	_rebuild_status_chips(status, shield)
 	if hp > 0:
 		_dying = false
 		visible = true
@@ -150,73 +272,67 @@ func update_stats(hp: int, max_hp: int, shield: int, status: Dictionary) -> void
 		visible = false
 
 
-## Status-effect pills — moved here from UnitHeadHUD.gd (see class comment). One pill per
-## active status (icon + stack count), hidden entirely when there are none so a status-free
-## unit's card doesn't grow past its base header+bar size.
-func _rebuild_status_pills(status: Dictionary) -> void:
+## CB-13 — the status strip. A centred row in a strip of FIXED 28px height, so the nameplate
+## below never moves as statuses come and go (the old row hid itself at 0 height, which made
+## every plate jump the moment a poison stack landed). Shield is the FIRST chip, on SHIELD_BLUE.
+func _rebuild_status_chips(status: Dictionary, shield: int) -> void:
 	for c in _status_row.get_children():
 		c.queue_free()
+	if shield > 0:
+		_status_row.add_child(_status_chip(_ICON_SHIELD, shield, DangoTheme.SHIELD_BLUE))
 	for key in _STATUS_ICON:
 		var v := int(status.get(key, 0))
-		if v <= 0:
-			continue
-		var chip := PanelContainer.new()
-		chip.add_theme_stylebox_override("panel", DangoTheme.panel_style(Color(0.04, 0.04, 0.06, 0.85), 1, 8, 3.0))
-		var row := HBoxContainer.new()
-		row.add_theme_constant_override("separation", 2)
-		var icon := TextureRect.new()
-		icon.texture = _STATUS_ICON[key]
-		icon.custom_minimum_size = Vector2(15, 15)
-		icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE   # see _ready()'s shield-icon comment —
-			# same web-icon-not-exactly-this-size gotcha applies to every status icon here
-		icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-		row.add_child(icon)
-		var lbl := Label.new()
-		lbl.text = str(v)
-		lbl.add_theme_font_size_override("font_size", 12)
-		lbl.add_theme_color_override("font_color", Color.WHITE)
-		lbl.add_theme_color_override("font_outline_color", Color.BLACK)
-		lbl.add_theme_constant_override("outline_size", 2)
-		row.add_child(lbl)
-		chip.add_child(row)
-		_status_row.add_child(chip)
-	_status_row.visible = _status_row.get_child_count() > 0
+		if v > 0:
+			_status_row.add_child(
+				_status_chip(_STATUS_ICON[key], v, DangoTheme.status_color(key)))
+	# The STRIP stays visible and 28 tall regardless; only its contents come and go.
 
 
-## `UnitPortrait` is a plain Control, not a Container, so it does not automatically grow to fit
-## `_card`'s own content (the status-pill row's visibility toggling above changes `_card`'s
-## combined minimum size every time it flips). Called after every content change
-## (update_stats() above) rather than relying on Godot to propagate a child's
-## minimum_size_changed signal up through a non-Container parent, which it does not do for
-## free. `size` is also set explicitly (not just custom_minimum_size) because CombatView.gd's
-## _layout_unit_visuals() reads `UnitPortrait.WIDTH` (a constant) for its own x-centering math,
-## not this control's live `size` — but ClickCatcher/anything anchored fill to THIS Control
-## still needs `size` itself to be correct, not just the minimum-size hint.
-func _resync_size() -> void:
-	var min_size := _card.get_combined_minimum_size()
-	# WIDTH is a FLOOR, not a suggestion. The name label is EXPAND_FILL inside its row, so its
-	# own minimum width is effectively zero — the card's combined minimum therefore does NOT
-	# account for the text, and taking it verbatim let the plate collapse until the name was
-	# clipped mid-glyph. That misreads badly: "Venomaw" clipped after the 'm' looks like
-	# "Venon", and "FROST LORD" looks like "FRC" — a corrupt name, not a truncated one.
-	min_size.x = maxf(min_size.x, WIDTH)
-	custom_minimum_size = min_size
-	size = min_size
+## One status chip — height 28, radius 9, 3px black, solid status colour, 16px icon + count in
+## Baloo 16 inked by ink_on(). Never a wash of the status colour (L4), never white-on-colour (L5).
+func _status_chip(icon_tex: Texture2D, count: int, fill: Color) -> PanelContainer:
+	var chip := PanelContainer.new()
+	chip.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	chip.custom_minimum_size = Vector2(0, STATUS_STRIP_H)
+	# combat-v2.html: padding `0 8px 0 4px` — the glyph sits tighter to the left edge than the
+	# count does to the right, which is what keeps a 1-digit and a 2-digit chip reading alike.
+	var chip_style := DangoTheme.solid_chip_style(fill, 9, 3, Vector2(-1, -1))
+	chip_style.content_margin_left = 4.0
+	chip_style.content_margin_right = 8.0
+	chip_style.content_margin_top = 0.0
+	chip_style.content_margin_bottom = 0.0
+	chip.add_theme_stylebox_override("panel", chip_style)
+	var row := HBoxContainer.new()
+	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	row.add_theme_constant_override("separation", 3)
+	row.alignment = BoxContainer.ALIGNMENT_CENTER
+	chip.add_child(row)
+	var icon := TextureRect.new()
+	icon.texture = icon_tex
+	icon.custom_minimum_size = Vector2(16, 16)
+	icon.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	row.add_child(icon)
+	var lbl := DangoTheme.display_label(str(count), 16, DangoTheme.ink_on(fill), 800)
+	lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	row.add_child(lbl)
+	return chip
 
 
 func set_selected(v: bool) -> void:
 	_card.add_theme_stylebox_override("panel", _selected_style if v else _base_style)
 
 
-## View-only "plausible click target" affordance — see CombatStage3D.gd's set_targetable() for
-## the full rationale. Never called for the currently-selected unit's own card (CombatView
-## guards this), so it never fights set_selected()'s style above.
+## View-only "plausible click target" affordance — see CombatStage3D.set_targetable(). Never
+## called for the currently-selected unit's own card (CombatView guards this).
 func set_targetable(v: bool) -> void:
 	_card.add_theme_stylebox_override("panel", _targetable_style if v else _base_style)
 
 
-## Damage-preview passthrough to the embedded HPBar — review P0 #2 ("vệt đỏ nhạt ngay trên
-## thanh"), driven by CombatView hover handlers (die-tray hover / enemy-intent hover).
+## Damage-preview passthrough to the HP bar — hover-driven (die-tray / enemy-intent hover).
+## Distinct from CB-11's at-risk block, which is committed rather than hypothetical.
 func set_preview_damage(dmg: int) -> void:
 	_hp_bar.set_preview(dmg)
 

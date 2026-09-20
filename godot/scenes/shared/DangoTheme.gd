@@ -24,8 +24,12 @@ class_name DangoTheme
 ## of every scene. A per-Label override is how a screen silently drifts off the type scale.
 
 const BG := Color(0x13 / 255.0, 0x16 / 255.0, 0x1B / 255.0)
-const BG_PANEL := Color(0x13 / 255.0, 0x16 / 255.0, 0x1B / 255.0, 0.82)
-const BG_PANEL_SOFT := Color(0x13 / 255.0, 0x16 / 255.0, 0x1B / 255.0, 0.55)
+# BG_PANEL and BG_PANEL_SOFT are DELETED (FIX-PASS-02 RC2). They were one translucent fill at
+# 0.82 / 0.55 alpha, and while they existed the combat HUD kept using them: a translucent plate,
+# a 2px non-black border and a blurred `shadow_size = 8` survived three redesign passes because
+# the old API was still callable. Deleting them is what forced every call site onto
+# `surface_style()`. If you need a dark surface, pick the one whose JOB matches — PANEL for
+# chrome, PANEL_DEEP for a plate on artwork, WELL for something that holds something else.
 const PRIMARY := Color(0xFF / 255.0, 0x93 / 255.0, 0x45 / 255.0)   # Kam — primary/selection/CTA
 const SUCCESS := Color(0x3F / 255.0, 0xCD / 255.0, 0x3C / 255.0)   # high HP / heal
 const DANGER := Color(0xF5 / 255.0, 0x45 / 255.0, 0x40 / 255.0)    # low HP / warning / invalid
@@ -68,6 +72,34 @@ const MANA_PURPLE := Color(0xBF / 255.0, 0x6B / 255.0, 0xFF / 255.0)
 const POISON_GREEN := Color(0xA8 / 255.0, 0xD8 / 255.0, 0x4A / 255.0)
 const DEBUFF_PINK := Color(0xFF / 255.0, 0x8F / 255.0, 0xC7 / 255.0)
 
+## Status colours — CB-13 (status chip) and CB-16 (status aura). Taken VERBATIM from the v2
+## combat mockup's own `AURA` table (docs/design-handoff-v2/mockups-v2/combat-v2.html), not
+## chosen here: poison #A8D84A, thorns #FFB23F, burn #FF9345, weaken #FF8FC7, vuln #F54540,
+## regen #3FCD3C, stun #FFD76A, freeze #8BDCFF. Six of those eight are already tokens and are
+## referenced as such rather than re-typed as a second literal.
+##
+## FLAGGED — `blind` and `undying` are real statuses in `Unit.status` (see unit.gd) but the
+## mockup's table has NO entry for either, so their two colours are the only ones on this list
+## I chose rather than read. `blind` borrows the debuff family's pink and `undying` the cream
+## highlight. Both are marked here so a design answer can replace them rather than having to
+## first discover that a guess was made.
+const STATUS_THORNS := Color(0xFF / 255.0, 0xB2 / 255.0, 0x3F / 255.0)
+const STATUS_FREEZE := Color(0x8B / 255.0, 0xDC / 255.0, 0xFF / 255.0)
+
+static func status_color(key: String) -> Color:
+	match key:
+		"poison": return POISON_GREEN       # #A8D84A
+		"thorns": return STATUS_THORNS      # #FFB23F
+		"burn": return PRIMARY              # #FF9345
+		"weaken": return DEBUFF_PINK        # #FF8FC7
+		"vulnerable": return DANGER         # #F54540 (mockup key "vuln")
+		"regen": return SUCCESS             # #3FCD3C
+		"stun": return WARN_YELLOW          # #FFD76A
+		"freeze": return STATUS_FREEZE      # #8BDCFF
+		"blind": return DEBUFF_PINK         # FLAGGED — not in the mockup table
+		"undying": return CREAM_HI          # FLAGGED — not in the mockup table
+		_: return MUTED_TEXT
+
 
 ## HP-bar / threat color per hp% — review P0 #2 ("tô xanh -> cam -> đỏ theo ngưỡng").
 static func hp_color(pct: float) -> Color:
@@ -92,6 +124,64 @@ static func die_type_color(face_type: String) -> Color:
 		_: return TEXT_DIM
 
 
+## Die-face TYPE icon lookup — G-01 / L7 (FIX-PASS-03 §3): a colour block never stands alone for
+## a mechanic, so every type swatch in the game carries this glyph inside it.
+##
+## SPEC DEVIATION, deliberate: FIX-PASS-03 §4/§8 and §11.6 name `assets/fx/` as the glyph source.
+## That directory has never existed in this repo. All seven face types plus `blank` DO ship, at
+## `assets/icons/web/` — the live web build's own icon set (src/art7.js parity), which
+## tests/t_assets.gd already gates. Nothing is missing and nothing is substituted; only the path
+## in the spec is wrong. See the task report for §11.6.
+const FACE_TYPE_ICON := {
+	"dmg": preload("res://assets/icons/web/dmg.png"),
+	"shield": preload("res://assets/icons/web/shield.png"),
+	"heal": preload("res://assets/icons/web/heal.png"),
+	"poison": preload("res://assets/icons/web/poison.png"),
+	"summon": preload("res://assets/icons/web/summon.png"),
+	"mana": preload("res://assets/icons/web/mana.svg"),
+	"buff": preload("res://assets/icons/web/buff.svg"),
+	"debuff": preload("res://assets/icons/web/debuff.svg"),
+	"blank": preload("res://assets/icons/web/blank.svg"),
+}
+
+
+## The glyph for a face type. Unknown types fall back to `blank` rather than returning null, so a
+## swatch is never a bare colour block by accident — which is the whole point of G-01.
+static func face_type_icon(face_type: String) -> Texture2D:
+	return FACE_TYPE_ICON.get(face_type, FACE_TYPE_ICON["blank"])
+
+
+## THE type-swatch builder — G-01 / L7. Every place that says "this face is of type X" builds it
+## here: the die card (CB-23, 26/16), the unit inspector (CB-30, 22/14), Team Select's face cell
+## (TEAM-04, 22/14) and the Vault's variant (VLT-05, 21/13).
+##
+## Three of those four used to build their own bare coloured square inline. That is exactly how
+## this codebase ends up with a mechanic encoded as colour-plus-glyph on one screen and colour
+## alone on another, which is the failure G-01 exists to close — so the swatch is a single
+## function and the per-screen difference is reduced to two integers.
+##
+## `size` is the outer square; `icon_size` should stay at ~60-65% of it (L7).
+static func type_swatch(face_type: String, size: int = 22, icon_size: int = 14,
+		radius: int = 6, border_w: int = 3) -> PanelContainer:
+	var swatch := PanelContainer.new()
+	swatch.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	swatch.custom_minimum_size = Vector2(size, size)
+	swatch.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	swatch.add_theme_stylebox_override("panel",
+		solid_chip_style(die_type_color(face_type), radius, border_w, Vector2.ZERO))
+	var center := CenterContainer.new()
+	center.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	swatch.add_child(center)
+	var icon := TextureRect.new()
+	icon.custom_minimum_size = Vector2(icon_size, icon_size)
+	icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	icon.texture = face_type_icon(face_type)
+	center.add_child(icon)
+	return swatch
+
+
 ## Small pill stylebox for a die face's keyword chips (review P0 §3.3 lineage — see
 ## CombatView._update_die_slot_rich()). `accent` is the face's own die_type_color() so a chip's
 ## border/text reads as "belonging to" its die, matching src/client.html's per-type `.kwtag`
@@ -109,22 +199,10 @@ static func kw_chip_style(accent: Color) -> StyleBoxFlat:
 	return sb
 
 
-## `border` defaults to BORDER, so every existing call is unchanged. It exists because a panel
-## sometimes has to carry a STATE — a vault record that needs re-scanning, say — and a coloured
-## border is a signal that survives being scrolled past, which a line of red text inside an
-## otherwise identical card does not.
-static func panel_style(bg: Color = BG_PANEL, border_w: int = 2, radius: int = 8,
-		margin: float = 6.0, border: Color = BORDER) -> StyleBoxFlat:
-	var sb := StyleBoxFlat.new()
-	sb.bg_color = bg
-	sb.border_color = border
-	sb.set_border_width_all(border_w)
-	sb.set_corner_radius_all(radius)
-	sb.content_margin_left = margin
-	sb.content_margin_right = margin
-	sb.content_margin_top = margin * 0.66
-	sb.content_margin_bottom = margin * 0.66
-	return sb
+# `panel_style()` is DELETED (FIX-PASS-02 RC2). It was the v1 surface API and it coexisted with
+# `surface_style()` for three passes, which is precisely how half the game kept the pre-redesign
+# look while the other half was migrated. There is now ONE surface API. See `surface_style()`
+# below, and `godot/CLAUDE.md` rule 1.
 
 
 ## Button visual state — see `reference_dangotheme-button-state-spec.md` (art-director,
@@ -211,25 +289,83 @@ static func rarity_chip(rar: int) -> PanelContainer:
 	return box
 
 
-## Themes a ScrollContainer's bars to the Dango palette. Godot's default bar is the one element
-## on an otherwise dark, themed screen that still looks like stock engine UI.
+## G3 — make a rounded frame actually CLIP its children to the rounded shape.
+##
+## `clip_contents = true` is NOT this. It clips children to the Control's RECT, which is square,
+## so a full-bleed child — a class-coloured header band, a cream body, an accent strip — paints
+## straight across the frame's corner radius. The card then reads pointed at the corners and
+## rounded along the edges, which is the defect the 20 Sep review logged as G3 on the Team
+## Select cards and the RUN SETUP panel, and which is latent anywhere a header sits on a body
+## inside a rounded frame: die cards, Result cards, Vault cards, Reward cards, the Codex panel.
+##
+## `clip_children = CLIP_CHILDREN_AND_DRAW` masks children by what the PARENT drew — the rounded
+## StyleBoxFlat — so the corners come back. `clip_contents` stays on with it: it is the cheap
+## rectangular pre-clip and it still does useful work on a long label.
+##
+## It must be AND_DRAW, never ONLY. `CLIP_CHILDREN_ONLY` uses the parent purely as a mask and
+## **does not draw the parent itself**, so every frame this was called on lost its own fill,
+## border and shelf while keeping its children — the die card, the Team Select card, the Result
+## and Vault cards, the Guides card, the Codex panel and the RUN SETUP panel all rendered as
+## loose content floating on the background. That reads as "the card is missing", not as a
+## clipping bug, which is why it survived a whole review pass.
+##
+## Call this on the FRAME, never on the header or body. Giving the child its own matching
+## top-left/top-right radii is the other way to do it, and it is the wrong way here: it has to
+## be repeated at every child, it has to be kept in step with the frame's radius by hand, and
+## it does nothing for the bottom two corners of the body.
+static func clip_to_frame(frame: Control) -> void:
+	frame.clip_contents = true
+	frame.clip_children = CanvasItem.CLIP_CHILDREN_AND_DRAW
+
+
+## Themes a ScrollContainer's bars, and — the part that actually matters — gives them a WIDTH.
+##
+## FIX-PASS-01 L2: several scenes already called this and still had an invisible scrollbar,
+## because styling a bar that is 0px wide styles nothing. A list clipped by the bottom of the
+## screen with no visible bar was called "the single worst defect in this build" and "reads as a
+## crash" — the player has no way to know there is more. So this now sets `custom_minimum_size`
+## on the real VScrollBar/HScrollBar nodes, which is where the bar's size comes from; the
+## colours come from the project Theme (`tools/gen_theme.gd`) and do not need overriding here.
+##
+## Pass `fade = true` on a panel whose content runs under its bottom edge to also get the 24px
+## fade the law asks for; it is a separate node, so the caller owns where it sits.
 static func style_scrollbars(node: Control) -> void:
-	var track := StyleBoxFlat.new()
-	track.bg_color = Color(BG_PANEL_SOFT.r, BG_PANEL_SOFT.g, BG_PANEL_SOFT.b, 0.35)
-	track.set_corner_radius_all(4)
-	track.content_margin_left = 2.0
-	track.content_margin_right = 2.0
-	var grabber := StyleBoxFlat.new()
-	grabber.bg_color = Color(PRIMARY.r, PRIMARY.g, PRIMARY.b, 0.5)
-	grabber.set_corner_radius_all(4)
-	var grabber_hi := StyleBoxFlat.new()
-	grabber_hi.bg_color = Color(PRIMARY.r, PRIMARY.g, PRIMARY.b, 0.8)
-	grabber_hi.set_corner_radius_all(4)
-	for axis in ["VScrollBar", "HScrollBar"]:
-		node.add_theme_stylebox_override("scroll", track)
-		node.add_theme_stylebox_override("grabber", grabber)
-		node.add_theme_stylebox_override("grabber_highlight", grabber_hi)
-		node.add_theme_stylebox_override("grabber_pressed", grabber_hi)
+	var vbar: VScrollBar = null
+	var hbar: HScrollBar = null
+	if node is ScrollContainer:
+		vbar = (node as ScrollContainer).get_v_scroll_bar()
+		hbar = (node as ScrollContainer).get_h_scroll_bar()
+	elif node is VScrollBar:
+		vbar = node as VScrollBar
+	elif node is HScrollBar:
+		hbar = node as HScrollBar
+	if vbar != null:
+		vbar.custom_minimum_size.x = SCROLLBAR_THICKNESS
+	if hbar != null:
+		hbar.custom_minimum_size.y = SCROLLBAR_THICKNESS
+
+
+## The 24px "there is more below" fade for a scrolled region (FIX-PASS-01 L2). Returns the node
+## so the caller can anchor it over the bottom edge of the panel that holds the scroll.
+static func scroll_fade(fill: Color = PANEL) -> TextureRect:
+	var grad := Gradient.new()
+	grad.offsets = PackedFloat32Array([0.0, 1.0])
+	grad.colors = PackedColorArray([Color(fill.r, fill.g, fill.b, 0.0), fill])
+	var tex := GradientTexture2D.new()
+	tex.width = 8
+	tex.height = 64
+	tex.fill = GradientTexture2D.FILL_LINEAR
+	tex.fill_from = Vector2(0.5, 0.0)
+	tex.fill_to = Vector2(0.5, 1.0)
+	tex.gradient = grad
+	var rect := TextureRect.new()
+	rect.name = "ScrollFade"
+	rect.texture = tex
+	rect.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	rect.stretch_mode = TextureRect.STRETCH_SCALE
+	rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	rect.custom_minimum_size.y = SCROLL_FADE_HEIGHT
+	return rect
 
 
 ## Primary CTA button look (End Turn) — filled Kam orange, per review P1 #8.
@@ -348,11 +484,13 @@ static func secondary_button_style(state: ButtonState = ButtonState.NORMAL) -> S
 ## reused, so a hover/press with no override falls back to Godot's default theme colour rather
 ## than the one this call site chose.
 ##
-## DELIBERATELY left null by every PRIMARY call site today: no call site sets a primary-button
-## font colour except `_end_turn_button` (already `Color.WHITE`, kept as-is), because the
-## existing white-on-orange text is a separate, already-flagged ~2.2:1 contrast failure
-## (see the state-spec doc) that is explicitly OUT OF SCOPE for this pass — fixing it here would
-## silently change primary buttons' NORMAL look, which was not asked for.
+## DELIBERATELY left null by every PRIMARY call site today, `_end_turn_button` included: END
+## TURN's label is not `Button.text`/a font-colour override at all any more — it's a real child
+## Label (`CombatView._style_end_turn_button()`) inked `INK_ON_PRIMARY` directly, and
+## `_update_end_turn_ui()` no longer touches a font colour on the Button itself. The white-on-
+## orange ~2.2:1 failure this paragraph used to call "explicitly OUT OF SCOPE" is fixed
+## (FIX-PASS-01 §2.1 C9, 2026-09-20) — this paragraph was left describing the old behaviour after
+## the fix landed, which is its own small bug; corrected in the same pass as C9.
 ## `owned` marks a button for something the player already has — see `owned_button_style()` for
 ## why that cannot be the same look as "disabled". It overrides every state (an owned button is
 ## not clickable, so hover and pressed never really happen; giving them the same box stops Godot
@@ -490,6 +628,45 @@ const CAPTION_MUTED := Color(0x6F / 255.0, 0x78 / 255.0, 0x87 / 255.0)
 ## used twice in that file with the same inline literal. One token so the two cannot drift apart.
 const CHIP_INK_ON_WELL := Color(0xA9 / 255.0, 0xB3 / 255.0, 0xC2 / 255.0)
 
+# ── Mockup colours that had no token, added 20 Sep 2026 ──────────────────────────────────────
+# Each of these appears verbatim in the v2 mockups and had no name here, so three separate
+# passes each reached for "the nearest sanctioned token" and landed on a different near-miss:
+# MUTED_TEXT stood in for two different greys, SHELF for a lighter black, STATUS_FREEZE for a
+# text colour. Approximating a colour is not matching a design, and a near-miss that lives in
+# code is indistinguishable from a deliberate choice six weeks later. These are the real values.
+
+## `#B4600C` — the accent heading on a cream card: the inspector's `PASSIVE ·` eyebrow and Team
+## Select's face-keyword line. PRIMARY is too light to sit on cream; this is its darker sibling.
+const ACCENT_ON_CREAM := Color(0xB4 / 255.0, 0x60 / 255.0, 0x0C / 255.0)
+
+## `#2E7D2B` — SUCCESS darkened for cream. The inspector's `ROLLED` tag. SUCCESS itself fails
+## contrast on `#F3E7D3`; INK_ON_SUCCESS is near-black and loses the "this one is live" signal.
+const SUCCESS_ON_CREAM := Color(0x2E / 255.0, 0x7D / 255.0, 0x2B / 255.0)
+
+## `#5A3310` — the secondary ink on a Kam-orange fill: `TURN n` in the turn pill, the BEGIN RUN
+## and mode-card subtitles, the shop panel's subtitle. INK_ON_PRIMARY at reduced alpha was the
+## previous stand-in, which composites differently over every fill it lands on.
+const INK_ON_PRIMARY_DIM := Color(0x5A / 255.0, 0x33 / 255.0, 0x10 / 255.0)
+
+## `#98A2B1` — an eyebrow on a raised panel (the combat node chip's `BATTLE NODE`).
+const EYEBROW_TEXT := Color(0x98 / 255.0, 0xA2 / 255.0, 0xB1 / 255.0)
+
+## `#7C8695` — the dimmed half of a paired numeral: the ` / 12` after `WAVE 3`. One step below
+## EYEBROW_TEXT, and a different colour from MUTED_TEXT despite three passes treating them alike.
+const MUTED_TEXT_DIM := Color(0x7C / 255.0, 0x86 / 255.0, 0x95 / 255.0)
+
+## `#DCE2EC` — the label on a PANEL_RAISED utility chip. Brighter than TEXT, because the chip
+## fill is lighter than the bar behind it.
+const CHIP_TEXT := Color(0xDC / 255.0, 0xE2 / 255.0, 0xEC / 255.0)
+
+## `#A6B0BF` — a subtitle under a screen title, on open artwork (Team Select, Vault, Reward).
+const SUBTITLE_TEXT := Color(0xA6 / 255.0, 0xB0 / 255.0, 0xBF / 255.0)
+
+## `rgba(0,0,0,.36)` — the softer of the two blacks the mockups fill small pills with (Team
+## Select's TIER pill, the intent badge's inner icon tile at .26). SHELF is .50 and reads heavier.
+const SHELF_SOFT := Color(0, 0, 0, 0.36)
+const SHELF_FAINT := Color(0, 0, 0, 0.26)
+
 
 ## Every Axie class, at full strength. These are semantic: a class colour may never be
 ## recoloured to pass a contrast check — put the text on ink instead, which is what the cream
@@ -582,6 +759,32 @@ static func surface_style(kind: Surface, radius: int = 13, border_w: int = 3,
 		sb.shadow_color = SHELF_DEEP if shelf >= 6.0 else SHELF
 		sb.shadow_size = 0
 		sb.shadow_offset = Vector2(0, shelf)
+	return sb
+
+
+## A FRAME bar: a full-bleed band with a black rule on ONE edge and no shelf.
+##
+## Every other surface helper puts a border on all four sides via `set_border_width_all()`, which
+## is right for an object sitting ON the page and wrong for a band that IS the edge of the page.
+## The combat top bar, the combat deck bar and the meta-screen footer are all this shape — a bar
+## with a shelf would read as floating above the screen, which is the opposite of what a frame
+## does. This exists so those three stop hand-rolling the same StyleBoxFlat.
+##
+## `edge` is SIDE_TOP for a footer, SIDE_BOTTOM for a top bar.
+static func frame_bar_style(edge: Side, kind: Surface = Surface.PANEL, width: int = 4,
+		pad: Vector2 = Vector2(20, 0)) -> StyleBoxFlat:
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = surface_color(kind)
+	sb.border_color = Color.BLACK
+	match edge:
+		SIDE_TOP: sb.border_width_top = width
+		SIDE_BOTTOM: sb.border_width_bottom = width
+		SIDE_LEFT: sb.border_width_left = width
+		SIDE_RIGHT: sb.border_width_right = width
+	sb.content_margin_left = pad.x
+	sb.content_margin_right = pad.x
+	sb.content_margin_top = pad.y
+	sb.content_margin_bottom = pad.y
 	return sb
 
 
@@ -772,8 +975,47 @@ static func leading_for(font: Font, size: int, ratio: float = DISPLAY_LEADING) -
 ##
 ## `weight` is 800 (default), 700 or 600; anything else falls back to 800 rather than silently
 ## picking a face nobody chose.
+## Letter-spacing, which Godot's `Label` has no property for.
+##
+## The v2 mockups set `letter-spacing` on nearly every display label — `.3em` on the turn
+## banner's eyebrow, `.2em` on the meta section headings, `.14em` on the deck's rack header,
+## down to `.01em` on titles. Dropping it is not a small loss: tracking is most of what makes
+## an all-caps Baloo chip read as a game label instead of a squashed word, and until now the
+## whole project dropped it silently on every screen.
+##
+## In CSS `letter-spacing` is em-relative; in Godot it is `FontVariation.spacing_glyph`, an
+## integer count of PIXELS added after each glyph. So the conversion is `round(em * size)`, and
+## it has to be redone per font size — which is why this is a function and not a constant.
+##
+## Godot also adds the spacing after the LAST glyph, where CSS does not. For a left-aligned
+## label nobody can see the difference; for a centred one the text sits `em * size / 2` px left
+## of true centre. At the sizes the mockups use that is at most ~2px, and correcting it would
+## mean a trailing negative margin on every centred label — not worth the complexity, but
+## written down here so the next person measuring a centred chip knows why it is off by one.
+static var _tracked_fonts: Dictionary = {}
+
+static func tracked_font(base: Font, tracking_em: float, size: int) -> Font:
+	var px := int(round(tracking_em * float(size)))
+	if px == 0:
+		return base
+	var key := "%s|%d" % [base.resource_path, px]
+	if _tracked_fonts.has(key):
+		return _tracked_fonts[key]
+	var fv := FontVariation.new()
+	fv.base_font = base
+	fv.spacing_glyph = px
+	_tracked_fonts[key] = fv
+	return fv
+
+
+## A display (Baloo 2) label at the mockup's own size, weight and tracking.
+##
+## `tracking_em` is the mockup's `letter-spacing` value verbatim: pass `.14` where the markup
+## says `letter-spacing:.14em`, and 0 (the default) where it sets none. Do not pre-convert it
+## to pixels — the conversion depends on `size` and is done here so one number in the mockup
+## stays one number at the call site.
 static func display_label(text: String, size: int, color: Color = TEXT,
-		weight: int = 800) -> Label:
+		weight: int = 800, tracking_em: float = 0.0) -> Label:
 	var font: Font = FONT_DISPLAY
 	if weight == 700:
 		font = FONT_DISPLAY_BOLD
@@ -781,8 +1023,223 @@ static func display_label(text: String, size: int, color: Color = TEXT,
 		font = FONT_DISPLAY_SEMI
 	var lbl := Label.new()
 	lbl.text = text
-	lbl.add_theme_font_override("font", font)
+	lbl.add_theme_font_override("font", tracked_font(font, tracking_em, size))
 	lbl.add_theme_font_size_override("font_size", size)
 	lbl.add_theme_color_override("font_color", color)
 	lbl.add_theme_constant_override("line_spacing", leading_for(font, size))
 	return lbl
+
+
+## Wraps a display Label so it takes up the mockup's LINE BOX instead of Baloo 2's font box.
+##
+## `line_spacing` fixes the SPACING BETWEEN lines and nothing else: Godot's `Label` still reports
+## a minimum height of one full font box, and Baloo 2's font box is enormous — 61px at
+## `font_size = 38`, against the 34px line the mockup draws. A `Label` is not a `Container`, so
+## that 61 propagates straight up through every row it sits in, and the row grows by 27px that
+## nothing in the design accounts for. On the die card this pushed the six-face track clean
+## through the bottom of a fixed-height card; the same thing is waiting in every fixed-height row
+## with a big numeral in it.
+##
+## `custom_minimum_size` cannot fix it (it is a floor, not a cap) and neither can a `Label`
+## subclass (`Label` overrides `get_minimum_size()` in C++, so a GDScript `_get_minimum_size()`
+## is never called). A `MarginContainer` with NEGATIVE vertical margins can: its minimum is the
+## child's minimum plus the margins, and it lets the glyphs overhang the box exactly the way a
+## CSS line box shorter than the font does.
+##
+## Use it wherever a display Label sits in a row whose height the design fixes. Where the row is
+## free to grow, the plain label is fine.
+static func line_box(lbl: Label, size: int, ratio: float = DISPLAY_LEADING) -> MarginContainer:
+	var font: Font = lbl.get_theme_font("font")
+	if font == null:
+		font = FONT_DISPLAY
+	var slack: float = font.get_height(size) - size * ratio
+	var box := MarginContainer.new()
+	box.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	if slack > 0.0:
+		var top := int(floor(slack * 0.5))
+		box.add_theme_constant_override("margin_top", -top)
+		box.add_theme_constant_override("margin_bottom", -(int(ceil(slack)) - top))
+	box.add_child(lbl)
+	return box
+
+
+## A prose (Work Sans) label at the mockup's own size, weight and tracking.
+##
+## Every body line in the v2 mockups is `font-weight:600` — the map subtitle, relic and reward
+## descriptions, the merchant quote, event copy, the Result seed line, the shard breakdown, the
+## XP line. The project theme's default `Label` font is `FONT_UI`, which is WorkSans-**Medium**
+## (500), and no file in the codebase referenced `FONT_UI_SEMI` at all until now. So every
+## paragraph in the game has been rendering a weight lighter than the design, everywhere, in a
+## way that reads as "slightly washed out" rather than as a bug — which is why it survived three
+## redesign passes. Route body copy through here and that stops being possible to forget.
+##
+## `weight` is the mockup's own number: 500, 600 (the default, because that is what the mockups
+## overwhelmingly use) or 700. `tracking_em` is its `letter-spacing`, verbatim.
+static func prose_label(text: String, size: int, color: Color = TEXT,
+		weight: int = 600, tracking_em: float = 0.0) -> Label:
+	var font: Font = FONT_UI_SEMI
+	if weight == 500:
+		font = FONT_UI
+	elif weight == 700:
+		font = FONT_UI_BOLD
+	var lbl := Label.new()
+	lbl.text = text
+	lbl.add_theme_font_override("font", tracked_font(font, tracking_em, size))
+	lbl.add_theme_font_size_override("font_size", size)
+	lbl.add_theme_color_override("font_color", color)
+	return lbl
+
+
+## The same tracking, applied to a Label or Button that already exists — for the cases where a
+## widget is built by a helper (`style_button()`, a `.tscn` node) and only needs its spacing
+## corrected afterwards.
+static func apply_tracking(node: Control, tracking_em: float, size: int,
+		weight: int = 800) -> void:
+	if tracking_em == 0.0:
+		return
+	var font: Font = FONT_DISPLAY
+	if weight == 700:
+		font = FONT_DISPLAY_BOLD
+	elif weight == 600:
+		font = FONT_DISPLAY_SEMI
+	node.add_theme_font_override("font", tracked_font(font, tracking_em, size))
+	node.add_theme_font_size_override("font_size", size)
+
+
+
+# ═══════════════════════════════════════════════════════════════════════════════════════════
+# SCREEN LAWS — FIX-PASS-01 §1
+# ═══════════════════════════════════════════════════════════════════════════════════════════
+#
+# These are NOT in the v2 handoff, and that is exactly why the first build missed them. The
+# handoff redlined ELEMENTS and never wrote down the laws governing the SCREEN those elements
+# sit on, so the build ended up with widgets that each match their redline and screens that are
+# collectively wrong — panels anchored to the viewport with 400px of empty fill under a short
+# list, lists sliced by the bottom edge with no scrollbar, a BACK button floating on the art.
+#
+# Each law below is stated where it can be enforced in code. The ones that cannot be (a screen
+# must still choose to top-align a short list) are stated as constants and comments so a future
+# screen has something to read.
+
+## L1 · SAFE AREA. 48px on all four sides. Nothing is positioned, anchored or clipped outside
+## it. Combat's top bar and bottom deck are the only full-bleed objects in the game.
+##
+## Left and right may stay at the 84px the screens already use — that is a wider margin, not a
+## violation. The BOTTOM is the one that was being treated as 0, and that is where every
+## clipped row in the build came from.
+const SAFE_AREA := 48.0
+const SAFE_AREA_SIDE := 84.0
+
+## L2 · A screen either FITS or SCROLLS — never both empty and clipped. If the content fits, the
+## container hugs it and the region is TOP-ALIGNED, leaving honest empty artwork below. Empty
+## painted background is fine; empty PANEL is not. If it does not fit: ScrollContainer,
+## `clip_contents = true`, and a bar the player can actually see — see `style_scrollbars()`.
+const SCROLLBAR_THICKNESS := 10.0
+const SCROLL_FADE_HEIGHT := 24.0
+
+## L4 · FOOTER. `BACK` never floats on the art. Every meta screen gets one shared footer bar.
+const FOOTER_HEIGHT := 72.0
+const FOOTER_BUTTON_MIN_HEIGHT := 44.0
+
+## L8 · TYPE FLOOR. 12px absolute minimum, and 12 ONLY for an all-caps chip label. Body captions
+## are 13. Anything a player reads mid-combat is 15 or more.
+const TYPE_MIN := 12
+const TYPE_CAPTION := 13
+const TYPE_COMBAT_MIN := 15
+
+
+## L4 · The one footer, built once and called from every meta screen (Pass, Unlocks, Guides,
+## Vault, Codex, Settings).
+##
+## It is FRAME, not an object: a full-width bar with a black top border only and NO shelf. A
+## shelf would make the page frame look like it floats above the page, which is the opposite of
+## what a frame is for.
+##
+## Returns the HBoxContainer inside it. `BACK` is already added at the left; add a screen's
+## primary action to the right of the same bar and it will sit correctly. The content region
+## above must stop at `-(SAFE_AREA + FOOTER_HEIGHT)`.
+static func build_footer(host: Control, back_text: String = "BACK") -> HBoxContainer:
+	var bar := PanelContainer.new()
+	bar.name = "Footer"
+	var sb := surface_style(Surface.PANEL, 0, 0, 0.0, Vector2(SAFE_AREA_SIDE, 12))
+	sb.border_color = Color.BLACK
+	sb.border_width_top = 3
+	bar.add_theme_stylebox_override("panel", sb)
+	bar.set_anchors_preset(Control.PRESET_BOTTOM_WIDE)
+	bar.offset_top = -(SAFE_AREA + FOOTER_HEIGHT)
+	bar.offset_bottom = -SAFE_AREA
+	host.add_child(bar)
+
+	var row := HBoxContainer.new()
+	row.name = "FooterRow"
+	row.add_theme_constant_override("separation", 12)
+	bar.add_child(row)
+
+	var back := Button.new()
+	back.name = "BackButton"
+	back.text = back_text
+	back.custom_minimum_size.y = FOOTER_BUTTON_MIN_HEIGHT
+	style_button(back, false)
+	row.add_child(back)
+
+	var spacer := Control.new()
+	spacer.name = "FooterSpacer"
+	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	row.add_child(spacer)
+	return row
+
+
+## L5 · ONE LOUD STATE PER LIST. In any repeated list, at most one state carries a saturated
+## fill; the others step down this ladder.
+##
+## This is not a styling preference. A Pass screen that paints "claimed" and "claimable" the
+## same green is not ugly — it is telling the player something false, and the audit called that
+## out as wrong INFORMATION rather than wrong style. On a maxed-out pass the screen should be
+## mostly calm cream with the few unclaimed tiles standing out.
+enum ListState {
+	ACTIONABLE,    # do this now — the one loud fill
+	DONE,          # already claimed / already owned
+	UNAFFORDABLE,  # available, but you cannot pay for it yet
+	LOCKED,        # not yet reachable
+}
+
+
+## The fill for a list row/tile in `state`. `accent` is the loud colour for ACTIONABLE, which
+## differs per screen (SUCCESS for a Pass tile, PRIMARY for a shop price).
+static func list_state_fill(state: ListState, accent: Color = SUCCESS) -> Color:
+	match state:
+		ListState.ACTIONABLE: return accent
+		ListState.DONE: return CREAM_TRACK
+		ListState.UNAFFORDABLE: return DISABLED_FILL
+		_: return WELL
+
+
+## The ink that goes on `list_state_fill()`. Never dims — under the DISABLED rule an
+## unaffordable row keeps its price at FULL strength, because the price is the whole reason
+## that row is on screen.
+static func list_state_ink(state: ListState, accent: Color = SUCCESS) -> Color:
+	match state:
+		ListState.ACTIONABLE: return ink_on(accent)
+		ListState.DONE: return INK_ON_CREAM_MUTED
+		ListState.UNAFFORDABLE: return TEXT
+		_: return FAINT_TEXT
+
+
+## The whole box for a list row/tile in `state`, outlined and shelved per L7.
+static func list_state_style(state: ListState, accent: Color = SUCCESS,
+		radius: int = 12, shelf: float = 4.0) -> StyleBoxFlat:
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = list_state_fill(state, accent)
+	sb.border_color = Color.BLACK
+	sb.set_border_width_all(3)
+	sb.set_corner_radius_all(radius)
+	sb.content_margin_left = 12.0
+	sb.content_margin_right = 12.0
+	sb.content_margin_top = 8.0
+	sb.content_margin_bottom = 8.0
+	if shelf > 0.0 and state != ListState.LOCKED:
+		# A LOCKED row is a hole in the page, not an object sitting on it, so it gets no shelf.
+		sb.shadow_color = SHELF
+		sb.shadow_size = 0
+		sb.shadow_offset = Vector2(0, shelf)
+	return sb

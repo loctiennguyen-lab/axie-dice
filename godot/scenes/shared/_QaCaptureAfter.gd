@@ -22,6 +22,6 @@ func _ready() -> void:
 		await get_tree().process_frame
 
 	var img := get_tree().root.get_texture().get_image()
-	img.save_png("/Users/loc.tien.nguyen/my-game/production/qa/evidence/2026-09-18_after-monster-sprites.png")
+	img.save_png(QaPaths.evidence_dir().path_join("2026-09-18_after-monster-sprites.png"))
 	print("QA: saved after-sprites screenshot")
 	get_tree().quit(0)

@@ -14,7 +14,20 @@
 # survives the filter is a genuine root-cause parse/compile error in THIS file.
 set -uo pipefail
 
-GODOT="${GODOT:-/Users/loc.tien.nguyen/Desktop/Godot.app/Contents/MacOS/Godot}"
+# Godot binary: the Mac editor build when present, otherwise the Linux build vendored in
+# tools/bin/ (container, CI, headless box). Override with GODOT=/path/to/godot.
+_default_godot() {
+  local root
+  root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
+  local c
+  for c in "/Users/loc.tien.nguyen/Desktop/Godot.app/Contents/MacOS/Godot" \
+           "$root/tools/bin/Godot_v4.7.2-stable_linux.arm64" \
+           "$root/tools/bin/Godot_v4.7.2-stable_linux.x86_64"; do
+    [[ -x "$c" ]] && { printf '%s' "$c"; return; }
+  done
+  command -v godot 2>/dev/null || true
+}
+GODOT="${GODOT:-$(_default_godot)}"
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 PROJ="$ROOT/godot"
 AUTOLOADS='EventBus|RunState|ContentDB|MetaState|RelicRegistry|AxieMixer'

@@ -12,25 +12,28 @@ extends Control
 
 const _ROW_SEP := 10
 
+const MAIN_MENU_SCENE := "res://scenes/main_menu/MainMenu.tscn"
+
+## FIX-PASS-02 §1 item 4: this screen had NO `DangoTheme` reference at all before this pass —
+## no plate, no scrim, no safe area, no shared footer (it rendered on whatever the previous scene
+## left behind). `DangoScreen.build()` requires a real plate texture and none is specified for
+## Settings anywhere in docs/design-handoff-v2 or the HTML handoff (no Settings mockup exists).
+## Picked an otherwise-unused background from the shared meta-screen set so the shell has
+## something to paint; this is a placeholder pending art-director sign-off, not a design choice.
+const BG_TEXTURE := "res://assets/backgrounds/origins/scene/4-entrance.jpg"
+
 var _content: VBoxContainer
 var _abandon_status: Label = null
 
 
 func _ready() -> void:
-	var margin := MarginContainer.new()
-	margin.set_anchors_preset(Control.PRESET_FULL_RECT)
-	for side in ["left", "right", "top", "bottom"]:
-		margin.add_theme_constant_override("margin_" + side, 28)
-	add_child(margin)
-
-	var scroll := ScrollContainer.new()
-	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	margin.add_child(scroll)
+	var shell := DangoScreen.build(self, load(BG_TEXTURE), DangoTheme.Scrim.DEFAULT, true)
+	var content: Control = shell["content"]
+	var footer: HBoxContainer = shell["footer"]
 
 	_content = VBoxContainer.new()
 	_content.add_theme_constant_override("separation", _ROW_SEP)
 	_content.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	scroll.add_child(_content)
 
 	_title("SETTINGS")
 	_section("AUDIO")
@@ -58,13 +61,17 @@ func _ready() -> void:
 	_section("RUN")
 	_build_abandon_section()
 
-	var back := Button.new()
-	back.text = "BACK"
-	back.custom_minimum_size = Vector2(0, 44)
-	DangoTheme.style_button(back, false)
-	back.pressed.connect(func() -> void:
-		get_tree().change_scene_to_file("res://scenes/main_menu/MainMenu.tscn"))
-	_content.add_child(back)
+	# §1 item 4: replaces the manual full-rect MarginContainer + ScrollContainer(EXPAND_FILL) —
+	# same "hug when short, cap and scroll when long" behaviour, now shared with every other
+	# meta screen instead of hand-rolled here.
+	content.add_child(DangoScreen.fit_or_scroll(_content, _settings_max_height()))
+
+	DangoScreen.add_back_button(footer, func() -> void:
+		get_tree().change_scene_to_file(MAIN_MENU_SCENE))
+
+
+func _settings_max_height() -> float:
+	return get_viewport_rect().size.y - DangoScreen.SAFE * 2.0 - DangoScreen.FOOTER_H
 
 
 ## Pushes the stored levels at the running audio buses immediately, so a slider is audible

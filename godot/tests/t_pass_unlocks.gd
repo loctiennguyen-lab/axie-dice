@@ -210,6 +210,19 @@ func test_unlocks_screen_renders_all_ten_ladder_rows() -> void:
 
 
 func test_buying_an_available_unlock_spends_shards_and_flips_the_row() -> void:
+	# Arrange: guarantee at least one non-inert unlock is not already owned, the same way
+	# `test_the_no_effect_yet_tag_appears_on_exactly_the_four_inert_ids` below defensively resets
+	# its own inert ids rather than trusting whatever `MetaState.unlocks` already holds. Without
+	# this the test depends on the machine's real save (`_save_guard` restores it afterward, but
+	# does not reset it beforehand) — a save that has legitimately bought every unlock, which this
+	# port's own save file can genuinely reach, would otherwise fail this test for a reason that
+	# has nothing to do with the screen under test. Found running the FIX-PASS-01 suite pass with
+	# exactly that save on disk (all 10 unlocks owned).
+	for def in ContentDB.UNLOCKS:
+		var reset_id := String((def as Dictionary).get("id", ""))
+		if not ContentDB.UNLOCKS_WITHOUT_EFFECT.has(reset_id):
+			MetaState.unlocks.erase(reset_id)
+
 	# Pick the first unlock the player does not already own, and fund exactly its cost. Skips
 	# the four inert ids on purpose — buying one here would leave it permanently owned for the
 	# rest of this file's run and quietly invalidate

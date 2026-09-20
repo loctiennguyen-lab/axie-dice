@@ -31,7 +31,7 @@ func _ready() -> void:
 	for e in scene._combat.enemies:
 		print("QA: enemy key=%s is_boss=%s hp=%d" % [e.key, e.is_boss, e.max_hp])
 	get_tree().root.get_texture().get_image().save_png(
-		"/Users/loc.tien.nguyen/my-game/production/qa/evidence/%s_boss-chimera.png" % _today())
+		QaPaths.evidence_dir() + "/%s_boss-chimera.png" % _today())
 	print("QA: saved boss screenshot")
 	_guard.restore()
 	get_tree().quit(0)

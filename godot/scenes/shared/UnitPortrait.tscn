@@ -1,104 +1,120 @@
-[gd_scene load_steps=4 format=3]
+[gd_scene load_steps=3 format=3]
 
 [ext_resource type="Script" path="res://scenes/shared/UnitPortrait.gd" id="1"]
 [ext_resource type="Script" path="res://scenes/shared/HPBar.gd" id="2"]
-[ext_resource type="Texture2D" path="res://assets/icons/web/shield.png" id="3"]
 
 [node name="UnitPortrait" type="Control"]
-custom_minimum_size = Vector2(132, 48)
+custom_minimum_size = Vector2(176, 96)
 layout_mode = 3
 anchors_preset = 0
 mouse_filter = 2
 script = ExtResource("1")
 
-[node name="Card" type="PanelContainer" parent="."]
+[node name="Column" type="VBoxContainer" parent="."]
 unique_name_in_owner = true
 layout_mode = 1
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 mouse_filter = 2
+theme_override_constants/separation = 5
 
-[node name="Content" type="VBoxContainer" parent="Card"]
+[node name="StatusStrip" type="CenterContainer" parent="Column"]
+unique_name_in_owner = true
+layout_mode = 2
+custom_minimum_size = Vector2(0, 28)
+mouse_filter = 2
+
+[node name="StatusRow" type="HBoxContainer" parent="Column/StatusStrip"]
+unique_name_in_owner = true
+layout_mode = 2
+mouse_filter = 2
+theme_override_constants/separation = 5
+
+[node name="Card" type="PanelContainer" parent="Column"]
+unique_name_in_owner = true
+layout_mode = 2
+custom_minimum_size = Vector2(176, 0)
+size_flags_horizontal = 4
+mouse_filter = 2
+
+[node name="Inner" type="PanelContainer" parent="Column/Card"]
+unique_name_in_owner = true
+layout_mode = 2
+mouse_filter = 2
+
+[node name="Content" type="VBoxContainer" parent="Column/Card/Inner"]
 layout_mode = 2
 mouse_filter = 2
 theme_override_constants/separation = 4
 
-[node name="TopRow" type="HBoxContainer" parent="Card/Content"]
+[node name="TopRow" type="HBoxContainer" parent="Column/Card/Inner/Content"]
 layout_mode = 2
+custom_minimum_size = Vector2(0, 20)
 mouse_filter = 2
 theme_override_constants/separation = 6
 
-[node name="NameLabel" type="Label" parent="Card/Content/TopRow"]
+[node name="NameLabel" type="Label" parent="Column/Card/Inner/Content/TopRow"]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
-mouse_filter = 2
-theme_override_font_sizes/font_size = 15
-theme_override_colors/font_color = Color(0.93, 0.94, 0.96, 1)
-theme_override_colors/font_shadow_color = Color(0, 0, 0, 0.9)
-theme_override_constants/shadow_offset_x = 1
-theme_override_constants/shadow_offset_y = 1
-clip_text = true
-text = "Name"
-
-[node name="HPLabel" type="Label" parent="Card/Content/TopRow"]
-unique_name_in_owner = true
-layout_mode = 2
+size_flags_vertical = 4
 mouse_filter = 2
 theme_override_font_sizes/font_size = 17
-theme_override_colors/font_color = Color(1, 1, 1, 1)
-theme_override_colors/font_outline_color = Color(0, 0, 0, 0.9)
-theme_override_constants/outline_size = 3
-horizontal_alignment = 2
-text = "0/0"
+theme_override_colors/font_color = Color(0.93, 0.94, 0.96, 1)
+clip_text = true
+text_overrun_behavior = 3
+text = "Name"
 
-[node name="HPBar" type="Control" parent="Card/Content"]
+[node name="IncomingChip" type="PanelContainer" parent="Column/Card/Inner/Content/TopRow"]
 unique_name_in_owner = true
 layout_mode = 2
-custom_minimum_size = Vector2(0, 14)
+custom_minimum_size = Vector2(0, 18)
+size_flags_vertical = 4
 mouse_filter = 2
-script = ExtResource("2")
+visible = false
 
-[node name="StatusRow" type="HBoxContainer" parent="Card/Content"]
-unique_name_in_owner = true
+[node name="IncomingRow" type="HBoxContainer" parent="Column/Card/Inner/Content/TopRow/IncomingChip"]
 layout_mode = 2
 mouse_filter = 2
 theme_override_constants/separation = 3
-visible = false
 
-[node name="ShieldBadge" type="PanelContainer" parent="."]
-unique_name_in_owner = true
-layout_mode = 1
-anchors_preset = 1
-anchor_left = 1.0
-anchor_right = 1.0
-offset_left = -34.0
-offset_top = -10.0
-offset_right = 8.0
-offset_bottom = 10.0
-mouse_filter = 2
-visible = false
-
-[node name="Row" type="HBoxContainer" parent="ShieldBadge"]
-layout_mode = 2
-mouse_filter = 2
-theme_override_constants/separation = 2
-
-[node name="ShieldIcon" type="TextureRect" parent="ShieldBadge/Row"]
+[node name="IncomingIcon" type="TextureRect" parent="Column/Card/Inner/Content/TopRow/IncomingChip/IncomingRow"]
 unique_name_in_owner = true
 layout_mode = 2
-custom_minimum_size = Vector2(13, 13)
+custom_minimum_size = Vector2(12, 12)
+size_flags_vertical = 4
 mouse_filter = 2
-texture = ExtResource("3")
 
-[node name="ShieldLabel" type="Label" parent="ShieldBadge/Row"]
+[node name="IncomingLabel" type="Label" parent="Column/Card/Inner/Content/TopRow/IncomingChip/IncomingRow"]
 unique_name_in_owner = true
 layout_mode = 2
 mouse_filter = 2
-theme_override_font_sizes/font_size = 12
-theme_override_colors/font_color = Color(0, 0.7215686559, 1, 1)
+theme_override_font_sizes/font_size = 14
 text = "0"
+
+[node name="HPLabel" type="Label" parent="Column/Card/Inner/Content/TopRow"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_vertical = 4
+mouse_filter = 2
+theme_override_font_sizes/font_size = 18
+horizontal_alignment = 2
+text = "0/0"
+
+[node name="HPBar" type="Control" parent="Column/Card/Inner/Content"]
+unique_name_in_owner = true
+layout_mode = 2
+custom_minimum_size = Vector2(0, 12)
+mouse_filter = 2
+script = ExtResource("2")
+
+[node name="ShieldBar" type="Control" parent="Column/Card/Inner/Content"]
+unique_name_in_owner = true
+layout_mode = 2
+custom_minimum_size = Vector2(0, 12)
+mouse_filter = 2
+script = ExtResource("2")
 
 [node name="ClickCatcher" type="Button" parent="."]
 unique_name_in_owner = true
