@@ -1196,6 +1196,11 @@ func _rule(margin_top: float, margin_bottom: float) -> Control:
 	return wrap
 
 
+## `line-height:1.1` — the ratio run-flow-v2.html states on the party name, the party HP number
+## and the relic name. Kept as one constant so the three cannot drift apart.
+const _RAIL_LINE_TIGHT := 1.1
+
+
 ## One party row - mockup: 46px portrait tile (radius 13, 3px black), name 17 and HP 16 on one
 ## line, a 9px HP bar 5px under it, and a tier chip 23px tall on the right. Row gap 11.
 func _build_party_row(entry: Dictionary) -> Control:
@@ -1242,9 +1247,15 @@ func _build_party_row(entry: Dictionary) -> Control:
 	var name_row := HBoxContainer.new()
 	name_row.add_theme_constant_override("separation", 8)
 	text_col.add_child(name_row)
+	# `line-height:1.1` — the mockup states it on BOTH labels in this row, and it is the whole
+	# difference between the rail the mockup draws and the loose one the build was drawing.
+	# Baloo 2 reports a ~1.61em line box, so an unclamped 17px name occupies 27px where the
+	# design asks for 19. Eight dead pixels a row, five rows, plus the same again in every relic
+	# row — that is the "wasted band" this rail was reported for (2026-09-21).
 	var name_lbl := DangoTheme.display_label(String(hero_def.get("n", hero_key)), 17, DangoTheme.CREAM_RAISED)
-	name_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	name_row.add_child(name_lbl)
+	var name_box := DangoTheme.line_box(name_lbl, 17, _RAIL_LINE_TIGHT)
+	name_box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	name_row.add_child(name_box)
 
 	# No live HP field persists on RunState.roster between nodes (the party rests fully between
 	# fights in this build - see report). max_hp is base + this run's permanent bonus_hp;
@@ -1255,7 +1266,7 @@ func _build_party_row(entry: Dictionary) -> Control:
 	var max_hp: int = base_hp + int(entry.get("bonus_hp", 0))
 	var hp_color := DangoTheme.hp_color(1.0)
 	var hp_lbl := DangoTheme.display_label("%d/%d" % [max_hp, max_hp], 16, hp_color)
-	name_row.add_child(hp_lbl)
+	name_row.add_child(DangoTheme.line_box(hp_lbl, 16, _RAIL_LINE_TIGHT))
 
 	var bar_wrap := Panel.new()
 	bar_wrap.custom_minimum_size = Vector2(0, 9)
@@ -1329,7 +1340,9 @@ func _build_relic_row(relic_id: String) -> Control:
 	row.add_child(text_col)
 	var name_lbl := DangoTheme.display_label(relic_name.to_upper(), 14,
 		DangoTheme.CREAM_RAISED, 800, 0.04)
-	text_col.add_child(name_lbl)
+	# `line-height:1.1`, same reason as the party row — unclamped this pushed the description
+	# 7px away from its own title and made every relic read as two unrelated lines.
+	text_col.add_child(DangoTheme.line_box(name_lbl, 14, _RAIL_LINE_TIGHT))
 	# R3, 20 Sep 2026. The mockup's row is `font-size:11px; font-weight:600; line-height:1.35;
 	# color:#6F7887` with NO width cap and NO ellipsis - it WRAPS. The claim in the note this
 	# replaces (that the mockup draws one clipped line) is not in the markup; the build shipped
