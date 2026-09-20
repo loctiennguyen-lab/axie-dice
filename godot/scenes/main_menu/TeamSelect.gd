@@ -399,6 +399,11 @@ func _build_arch_chip(key: String) -> PanelContainer:
 
 ## T2: `height:40` + `border-bottom:4` = 44 outer. The build measured ~46 because the header
 ## was pinned to 40 and then grown by the 21px name label's own line box.
+## The card frame itself. Named because the header band has to derive its own radius from
+## these two numbers, not repeat them as literals.
+const _CARD_RADIUS := 17
+const _CARD_BORDER := 5
+
 const _CARD_HEADER_H := 44
 ## `height:36` + `border:3` = 42 outer.
 const _PICK_ROW_H := 42
@@ -419,7 +424,7 @@ func _build_card(index: int) -> PanelContainer:
 	var card := PanelContainer.new()
 	card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	card.add_theme_stylebox_override("panel",
-		DangoTheme.cream_card_style(Color.TRANSPARENT, 17, 5, 7.0))
+		DangoTheme.cream_card_style(Color.TRANSPARENT, _CARD_RADIUS, _CARD_BORDER, 7.0))
 	DangoTheme.clip_to_frame(card)   # G3
 
 	var col := VBoxContainer.new()
@@ -663,6 +668,10 @@ func _refresh_card(index: int) -> void:
 	header_sb.bg_color = accent
 	header_sb.border_color = Color.BLACK
 	header_sb.set_border_width(SIDE_BOTTOM, 4)
+	# The band has to follow the card's own curve, or its square corners leave a black wedge in
+	# each top corner. The card is radius 17 on a 5px border, so its inner edge curves at 12.
+	# See DangoTheme.inner_radius() for why clipping does not do this job.
+	DangoTheme.round_top(header_sb, DangoTheme.inner_radius(_CARD_RADIUS, _CARD_BORDER))
 	header_sb.content_margin_left = 13.0
 	header_sb.content_margin_right = 13.0
 	header_sb.content_margin_top = 0.0

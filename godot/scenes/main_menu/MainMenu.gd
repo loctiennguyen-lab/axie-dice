@@ -429,6 +429,9 @@ func _build_run_setup_panel() -> void:
 	header_sb.bg_color = DangoTheme.PANEL_RAISED
 	header_sb.border_color = Color.BLACK
 	header_sb.set_border_width(SIDE_BOTTOM, 4)
+	# Follow the panel's curve: radius 18 on a 5px border, inner edge at 13. A square band in a
+	# rounded frame leaves a black wedge in both top corners — see DangoTheme.inner_radius().
+	DangoTheme.round_top(header_sb, DangoTheme.inner_radius(18, 5))
 	header_sb.content_margin_left = 22.0
 	header_sb.content_margin_right = 22.0
 	header_sb.content_margin_top = 16.0
@@ -1141,6 +1144,8 @@ func _build_team_card(hero_key: String) -> PanelContainer:
 	header_sb.bg_color = accent
 	header_sb.border_color = Color.BLACK
 	header_sb.set_border_width(SIDE_BOTTOM, 3)
+	# Card is radius 15 on a 4px border -> inner edge at 11.
+	DangoTheme.round_top(header_sb, DangoTheme.inner_radius(15, 4))
 	header_sb.content_margin_left = 11.0
 	header_sb.content_margin_right = 11.0
 	header_sb.content_margin_top = 0.0

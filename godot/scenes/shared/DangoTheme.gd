@@ -283,6 +283,46 @@ static func clip_to_frame(frame: Control) -> void:
 	frame.clip_children = CanvasItem.CLIP_CHILDREN_AND_DRAW
 
 
+## The radius a child band must carry to follow the frame it sits inside.
+##
+## A StyleBoxFlat's `corner_radius` is the OUTER radius and its border is drawn INSIDE that
+## curve, so the frame's inner edge curves at `radius - border_w` — the same arithmetic CSS
+## does. A child laid out within the frame's border (which is where `PanelContainer` puts it)
+## therefore has to round its own corners by that amount, on whichever corners touch the frame.
+##
+## CLIPPING IS NOT A SUBSTITUTE, and this is the bug that made the point (2026-09-21, reported
+## on Team Select and the Run Setup panel: a card with a beautifully rounded black outline and a
+## hard square colour band sitting inside it, leaving a thick black wedge in each top corner).
+## Two independent reasons:
+##
+##   1. `clip_to_frame()` sets `CLIP_CHILDREN_AND_DRAW`, which is a CANVAS GROUP — and canvas
+##      groups are not supported by the Compatibility (OpenGL3) renderer. This project runs
+##      Forward+, but every screenshot in `production/qa/evidence/` is taken through the
+##      software OpenGL3 path, so the clip is absent from the exact images the work is reviewed
+##      against. A visual rule that only holds under one renderer is not a rule.
+##   2. Even where it IS drawn, the mask is everything the frame painted — the black border
+##      included — so the band would run OVER the outline rather than stopping inside it. That
+##      is a different wrong picture, not the right one.
+##
+## Radii on the band are renderer-independent and land on the correct edge. `clip_to_frame()`
+## stays as a belt-and-braces guard for art and text that overflows; it is not what makes a
+## corner round.
+static func inner_radius(outer_radius: int, border_w: int) -> int:
+	return maxi(0, outer_radius - border_w)
+
+
+## Round only the two TOP corners of `sb` — a header band at the top of a frame.
+static func round_top(sb: StyleBoxFlat, radius: int) -> void:
+	sb.corner_radius_top_left = radius
+	sb.corner_radius_top_right = radius
+
+
+## Round only the two BOTTOM corners of `sb` — a footer band at the bottom of a frame.
+static func round_bottom(sb: StyleBoxFlat, radius: int) -> void:
+	sb.corner_radius_bottom_left = radius
+	sb.corner_radius_bottom_right = radius
+
+
 ## Themes a ScrollContainer's bars, and — the part that actually matters — gives them a WIDTH.
 ##
 ## FIX-PASS-01 L2: several scenes already called this and still had an invisible scrollbar,
