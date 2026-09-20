@@ -2948,7 +2948,10 @@ func _update_portrait(u: Unit) -> void:
 		if u.side == "e":
 			_apply_intent_to_hud(hud, u)
 		else:
-			hud.set_intent(false, "", 0, "")
+			# A party unit owns no intent slot at all — the one path that hides the badge.
+			# Empty States Spec §1: for an ENEMY the badge is never hidden, so the two cases
+			# cannot share a call any more.
+			hud.hide_intent()
 
 	var is_selected := (u.uid == _selected_die_uid)
 	p.set_selected(is_selected)

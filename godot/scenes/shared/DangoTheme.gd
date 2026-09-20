@@ -550,6 +550,13 @@ const FUTURE := Color(0x39 / 255.0, 0x40 / 255.0, 0x4E / 255.0)           # spen
 const AT_RISK := Color(0x7A / 255.0, 0x1F / 255.0, 0x1C / 255.0)          # HP the telegraph takes
 const DISABLED_FILL := Color(0x4A / 255.0, 0x3F / 255.0, 0x58 / 255.0)    # unaffordable active
 
+## The one fill that says "this is not an attack". Empty States Spec §1 puts the enemy's
+## NO MOVE / HIDDEN badge on #242A34 precisely because it is OUTSIDE the die-type palette
+## (red / blue / green / purple): the colour alone has to carry "there is no move here" before
+## the player reads a single letter. It is close to PANEL_RAISED (#262C36) and deliberately not
+## the same token — PANEL_RAISED is a surface you put things ON, this is the whole object.
+const INERT_FILL := Color(0x24 / 255.0, 0x2A / 255.0, 0x34 / 255.0)
+
 const SHELF := Color(0, 0, 0, 0.50)     # plates
 const SHELF_DEEP := Color(0, 0, 0, 0.55)  # hero objects
 
