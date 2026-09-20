@@ -11,7 +11,12 @@
 # KHÔNG đụng tới: src/ api/ production/leaderboard production/session-* third_party/
 # node_modules/ build/ AxieDiceTactics.html — bản JS vẫn đang live.
 set -uo pipefail
-cd "$(dirname "${BASH_SOURCE[0]}")/.."
+cd "$(dirname "${BASH_SOURCE[0]}")/.." || { echo "Không cd được vào gốc repo."; exit 1; }
+if [[ ! -d .git || ! -d godot ]]; then
+  echo "Đang đứng ở $(pwd) — không thấy .git và godot/."
+  echo "Chạy: bash ~/my-game/tools/cleanup-2026-09-20.sh --apply"
+  exit 1
+fi
 APPLY=0; [[ "${1:-}" == "--apply" ]] && APPLY=1
 run() { if [[ $APPLY -eq 1 ]]; then eval "$@"; else echo "    [dry-run] $*"; fi; }
 hr() { printf '\n%s\n' "── $* ──────────────────────────────────────────"; }
@@ -33,19 +38,29 @@ hr "2. Ảnh QA mồ côi (18-19/09)"
 # mockups-v2/combat-v2.html trỏ tới đích danh. Danh sách giữ lại được tính lại ngay đây, không
 # viết cứng — xoá cả cụm sẽ làm hỏng phần bằng chứng của chính tài liệu port.
 REFS=$(mktemp); ORPH=$(mktemp)
+# Tuyệt đối, vì đoạn dưới có cd vào thư mục ảnh.
+case "$ORPH" in /*) ;; *) ORPH="$PWD/$ORPH";; esac
 grep -rhoE '2026-09-[0-9]{2}[A-Za-z0-9_.-]*\.png' \
   docs production .github tools ./*.md 2>/dev/null \
   | sed 's|.*/||' | sort -u > "$REFS"
-find production/qa/evidence -maxdepth 1 -name '2026-09-1[89]*' -printf '%f\n' 2>/dev/null \
-  | sort > "$ORPH.all"
+# `find -printf` và `xargs -a` là GNU-only — macOS không có. Dùng glob + basename thay thế.
+: > "$ORPH.all"
+for f in production/qa/evidence/2026-09-1[89]*; do
+  [ -e "$f" ] || continue
+  basename "$f" >> "$ORPH.all"
+done
+sort -o "$ORPH.all" "$ORPH.all"
 comm -23 "$ORPH.all" "$REFS" > "$ORPH"
 n=$(wc -l < "$ORPH" | tr -d ' ')
 keep=$(( $(wc -l < "$ORPH.all" | tr -d ' ') - n ))
 echo "  xoá $n ảnh · giữ $keep ảnh còn được tài liệu trỏ tới"
 if [[ $n -gt 0 ]]; then
   if [[ $APPLY -eq 1 ]]; then
-    (cd production/qa/evidence && xargs -a "$ORPH" git rm --quiet -- 2>/dev/null \
-      || xargs -a "$ORPH" rm -f --)
+    ( cd production/qa/evidence || exit
+      while IFS= read -r f; do
+        [ -n "$f" ] || continue
+        git rm --quiet -- "$f" 2>/dev/null || rm -f -- "$f"
+      done < "$ORPH" )
   else
     echo "    [dry-run] git rm $n file trong production/qa/evidence/"
   fi

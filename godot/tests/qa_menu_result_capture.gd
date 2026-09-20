@@ -111,6 +111,48 @@ func _capture_team_select() -> void:
 	await _settle()
 	MainMenu.pending_team = []
 
+	await _capture_team_select_vault()
+
+
+## VLT-05. The dropdown now lists the player's imported Vault Axies after the six starters, and
+## picking one adds the "unranked" clause to the subtitle. Neither is visible on a save with an
+## empty vault, so this frame imports one record the same way qa_meta_v2_capture.gd does and
+## puts it in slot 0 — which is also exactly what the Vault's own USE IN TEAM button does.
+func _capture_team_select_vault() -> void:
+	var vault_was := MetaState.vault.duplicate(true)
+	MetaState.vault.clear()
+	MetaState.vault_import(_vault_payload("11778888", "aqua"))
+	MetaState.ensure_vault_heroes()
+
+	MainMenu.pending_team = MainMenu.DEFAULT_TEAM.duplicate()
+	var screen: Control = load("res://scenes/main_menu/TeamSelect.tscn").instantiate()
+	add_child(screen)
+	await _settle()
+
+	var slot0: OptionButton = screen._cards[0]["option"]
+	var vault_idx: int = screen._pick_keys.find("vault_11778888")
+	if vault_idx < 0:
+		push_error("qa_menu_result_capture: the vault key never reached the picker")
+	else:
+		slot0.select(vault_idx)
+		slot0.item_selected.emit(vault_idx)
+	await _settle()
+	_shot("07_teamselect_vault_pick")
+
+	screen.queue_free()
+	await _settle()
+	MainMenu.pending_team = []
+	MetaState.vault.assign(vault_was)
+	MetaState.ensure_vault_heroes()
+
+
+func _vault_payload(id: String, cls: String) -> Dictionary:
+	var parts: Array = []
+	for slot in ["eyes", "ears", "back", "mouth", "horn", "tail"]:
+		parts.append({"id": "%s-%s" % [cls, slot], "name": "Test %s" % slot,
+			"type": slot, "class": cls})
+	return {"id": id, "class": cls, "parts": parts, "genes": "0x0"}
+
 
 # ===========================================================================
 # Result.tscn — both outcomes, so the WON/LOST visual distinction is actually checked.

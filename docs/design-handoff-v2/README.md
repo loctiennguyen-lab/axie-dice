@@ -36,6 +36,26 @@ print(html.unescape('\n'.join(re.findall(r'(?is)<script[^>]*text/x-dc[^>]*>(.*?)
 …or just open the file in a browser. Every value in the three MOCKUPS is an inline style,
 so the DOM is a readable list of real numbers.
 
+## FIX PASS 01 — the audit, and it outranks everything here
+
+`FIX-PASS-01.md` (in this directory) is the 2026-09-20 audit of the built screens against the
+v2 handoff. **Where it and anything else disagree, it wins** — including this file and the
+handoff's own spec.
+
+Its central finding is worth repeating, because it is not what a reviewer usually says: the
+tokens are right, the colours are right, the fonts are right, and the individual widgets match
+their redlines. What is wrong is one level up — **how a screen is composed**. The v2 spec
+redlined elements and never wrote down the laws governing the screen those elements sit on, so
+the build ended up with elements that are individually correct and screens that are collectively
+wrong.
+
+Its §1 adds eight screen laws (L1–L8) that apply to EVERY scene: safe area, fits-or-scrolls,
+panels hug their content, `BACK` lives in a shared footer, one loud state per list, ink on fill
+instead of white on colour, outline and shelf are not optional, and a 12px type floor.
+
+**Do §1 before §2.** The audit says most of the per-screen list disappears once the laws are in,
+and that is the order to work in.
+
 ## Owner decisions that override the handoff
 
 | Date | Decision |

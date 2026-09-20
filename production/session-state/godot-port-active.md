@@ -35,6 +35,132 @@ Task: **Vault/Import Axie: bước (a)(b)(c) XONG. Bước (d) lớp mạng BỊ
 
 # ⇢ BẮT ĐẦU TỪ ĐÂY (phiên mới đọc mục này trước, phần dưới là lịch sử)
 
+## ⓼ 2026-09-20 — FIX PASS 03 — BLOCK 1 + BLOCK 2 XONG
+
+**TÀI LIỆU CAO NHẤT BÂY GIỜ LÀ `docs/design-handoff-v2/FIX-PASS-03.md`** (đã đưa vào repo).
+Nó *thay thế* FIX-PASS-01/02/02-START-HERE/consistency-sweep — ĐỪNG đọc mấy file đó để lấy ý
+định nữa. 4 mockup gốc cũng đã vào repo: `docs/design-handoff-v2/mockups-v2/` (combat-v2,
+run-flow-v2, meta-screens-v2, handoff-spec-v2). `godot/CLAUDE.md` đã cập nhật theo.
+
+### ĐO ĐƯỢC
+- Suite **44/45** — y hệt baseline, KHÔNG hồi quy. (`t_ui_laws` vẫn đỏ, đúng như trước.)
+- `t_ui_laws`: **150 → 83 vi phạm.** Sạch hẳn `TeamSelect L8 x 60` và `Vault L8 x 6`.
+
+### XONG — Block 1 (G-01…G-04) và Block 2 (CB-09…CB-13)
+- **G-01** — swatch loại mặt xúc xắc giờ LUÔN có icon bên trong. Một hàm dùng chung
+  `DangoTheme.type_swatch()`; 3/4 chỗ trước đây tự dựng ô màu trơn inline.
+  ⚠ Icon 7 loại nằm ở **`assets/icons/web/`**, KHÔNG phải `assets/fx/` như spec §11.6 ghi —
+  không thiếu file nào, chỉ sai đường dẫn trong spec.
+- **G-02** — Result: chân dung 152×152 r26, nameplate lùi lên 8px, padding trên 16,
+  `PANEL_OVER_CLASS`. Việc này **đảo ngược FIX-PASS-01 S1 và S2** một cách có chủ ý.
+- **G-03** — xoá hẳn Axie trang trí trên Run Map (và đóng luôn xung đột hình học 132px/118px
+  từng treo trong README).
+- **G-04 / CB-09** — nameplate **176 rộng CẢ HAI PHE**, enemy cao 64, party cao 68 + viền trên
+  6px màu class. Bỏ hoàn toàn kiểu đo chiều rộng theo độ dài tên.
+- **CB-10/11/12/13** — HP bar 8px r5 viền đen 2px; **shield thành thanh RIÊNG** (không còn là
+  vệt trong thanh máu, không còn badge đè lên số HP); vệt at-risk; chip sát thương sắp nhận;
+  dải status cao cố định 28px.
+
+### ⚠ HAI VIỆC CẦN NGƯỜI QUYẾT (đừng tự "sửa")
+1. **Nameplate có thể chạm nhau.** CB-09 cấm chiều rộng thay đổi, nên cái *width cap* đo
+   khoảng cách hàng xóm mỗi frame đã bị xoá. Trận nào enemy chiếu lên màn gần nhau hơn
+   176+gap thì hai plate sẽ chạm/đè. Đây đúng là **FIX-PASS-03 §11.2** — lời giải phải nằm ở
+   slot pitch của `CombatStage3D` hoặc ở luật anchor, KHÔNG phải cap lại chiều rộng.
+   Chi tiết ghi ngay tại chỗ trong `CombatView.gd` (`_ENEMY_PLATE_GAP`).
+2. **Màu status `blind` và `undying`** — bảng `AURA` của mockup không có hai key này. Tôi tạm
+   chọn (pink debuff / cream). Đã đánh dấu FLAGGED trong `DangoTheme.status_color()`.
+
+### CÒN LẠI — Block 3…7 của `FIX-PASS-03.md` §9
+3. Combat CB-18…CB-28 (deck bar) · 4. Run Map MAP-08…MAP-13 · 5. Result RES-01…RES-04
+(RES-03/04 vẫn đang pin toạ độ tuyệt đối — đã dịch -45 cho khớp, CHƯA chuyển sang quan hệ) ·
+6. Meta: TeamSelect → Vault → Pass → Unlocks → Menu → Guides → Codex · 7. MAP-13 + các mục
+`internal`. CB-14…CB-17 và CB-30 (inspector) cũng chưa làm.
+
+---
+
+
+## ⓻ 2026-09-20 — FIX PASS 02 — §1 XONG, §3/§5/§6 CHƯA LÀM
+
+**Tài liệu CAO NHẤT bây giờ là `docs/design-handoff-v2/FIX-PASS-02.md`** (thay thế FIX-PASS-01).
+**`godot/CLAUDE.md` MỚI** — năm luật UI, tự nạp mọi phiên, ĐỌC TRƯỚC khi sửa bất cứ gì trong
+`godot/scenes/`.
+
+### ĐÃ XONG — §1 cả bốn mục
+1. `aspect` **GIỮorigin `expand`** (xem mục mâu thuẫn ngay dưới).
+2. **API v1 đã xoá**: `panel_style()`, `BG_PANEL`, `BG_PANEL_SOFT` không còn. 20 điểm gọi đã
+   chuyển sang `surface_style()`. Lệnh kiểm của review trả về 0.
+3. `tools/gen_theme.gd` phủ thêm `TabBar`/`TabContainer`/`OptionButton`/**`PopupMenu`**/`CheckBox`.
+   Đã sinh lại `dango.tres`.
+4. **Cả 12 scene đã qua `DangoScreen.build()`**. Run Map bố cục 0..1 rồi khớp vùng.
+
+### ⚠️ MÂU THUẪN ĐÃ PHÂN XỬ — ĐỪNG MỞ LẠI
+FIX-PASS-02 §1 mục 1 ghi `aspect="keep"`. **RC1 của chính file đó và `START-HERE.md` đều nói
+giữ `expand`**, kèm lý do (letterbox vứt bỏ chiều rộng thật, sinh viền đen trên màn rộng).
+Đã giữ `expand`. `project.godot` KHÔNG đổi.
+
+### ĐO ĐƯỢC — `t_ui_laws` giờ CHẠY THẬT
+`Godot --headless --path godot res://tests/t_ui_laws.tscn` → **150 vi phạm**. Chi tiết và cách
+đọc hai con số lớn nhất: **`docs/design-handoff-v2/UI-LAWS-BASELINE.md`**.
+**0 vi phạm L7** (bóng mờ / viền không đen) — đó là thành quả đo được duy nhất của §1.2.
+
+⚠️ **`run_tests.sh` giờ ĐỬe** vì `t_ui_laws` báo 150 vi phạm — đó là hành vi ĐÚNG của một cổng,
+không phải hỏng. 44 test còn lại vẫn xanh.
+
+### CÒN LẠI
+§3 (nameplate 196×64 cho CẢ party và enemy) · §5 (Codex mới có vỏ; bảng vẫn BBCode, màu vàng
+viết cứng, dòng quá dài) · §6/§6b/§6c (Combat, Run Map, các modal reward/shop/event/treasure).
+Ảnh nền của Settings/Tutorial/Codex là TẠM — handoff không có mockup cho ba màn này.
+
+### ĐỂ LẦN BAN GIAO SAU KHÔNG LẶP LẠI
+**`docs/design-handoff-v2/FOR-CLAUDE-DESIGN.md`** — bản hợp đồng viết cho bên thiết kế
+(Claude Design): toạ độ theo quan hệ chứ không theo pixel tuyệt đối, phân biệt QUAN SÁT với SUY
+RA, gửi đặc tả chứ đừng gửi code, một tài liệu chuẩn duy nhất, và nói rõ mục nào người chơi
+NHÌN THẤY được. Chủ dự án yêu cầu file này sau khi §1 xong mà không thấy gì đổi trên màn hình.
+
+---
+
+## ⓺ 2026-09-20 — FIX PASS 01 (bản audit của chủ dự án) — ĐÃ THI CÔNG
+
+**`docs/design-handoff-v2/FIX-PASS-01.md` là tài liệu CAO NHẤT** — cao hơn cả spec v2. Nó
+chỉ ra rằng token/màu/font/widget đều đúng, cái sai nằm **một tầng cao hơn: cách bố cục một
+màn**, vì spec v2 chỉ redline PHẦN TỬ mà không viết ra luật của MÀN chứa phần tử đó.
+
+**§1 — tám luật màn hình (L1–L8) đã code vào `DangoTheme.gd`**, dùng chung cho mọi màn:
+`SAFE_AREA`/`SAFE_AREA_SIDE`, `build_footer()`, `list_state_style/fill/ink()` + `ListState`,
+`scroll_fade()`, `TYPE_MIN/TYPE_CAPTION/TYPE_COMBAT_MIN`. **`style_scrollbars()` đã được SỬA
+LỖI THẬT**: nó vẫn được gọi ở nhiều màn nhưng thanh cuộn rộng 0px, tức tô màu cho một thứ
+vô hình — đó là lý do có danh sách bị cắt mà không ai thấy thanh cuộn.
+
+**§2 — đã thi công hết 9 màn.** Suite **44/44** trên trạng thái gộp.
+
+### ⚠️ BỐN MỤC TRONG AUDIT LÀ BÁO ĐỘNG GIẢ — ĐỪNG "SỬA" LẠI
+
+Đã kiểm chứng bằng code và/hoặc pixel, không phải bằng phỏng đoán:
+
+1. **C2** (“mọi thanh HP đều xanh, hồi quy cơ chế”) — SAI. `HPBar._draw()` gọi
+   `DangoTheme.hp_color(pct)` VÔ ĐIỀU KIỆN từ commit đầu. Ảnh audit chụp ở lượt 1, mọi đơn vị
+   đều đầy máu — không có gì để đổi màu.
+2. **C9** (“END TURN chữ trắng trên cam”) — SAI. Đã ink `INK_ON_PRIMARY` (đo pixel: 42,21,5).
+   Chỉ có comment trong `DangoTheme.gd` là lỗi thời; đã cập nhật.
+3. **P1** (“24 ô Pass xanh y hệt nhau”) — không phải predicate hỏng. `MetaState.bp_level()` chỉ
+   đọc `xp`, độc lập với `bp_claimed`. Ảnh đó là trạng thái THẬT: xp max mà chưa nhận lần nào.
+4. **S5** (“chip relic toàn xanh dương”) — lượt chơi đó relic thật sự cùng bậc hiếm.
+   **R2 và R7 cũng đã đúng sẵn** trước khi sửa.
+
+### CÒN TREO (audit đã biết hoặc phát sinh)
+
+- **S6** — dải đen đáy màn Result KHÔNG phải lỗi phủ nền. Nền đã `STRETCH_KEEP_ASPECT_COVERED`
+  và ảnh nguồn đúng 1920×1080. Nguyên nhân là chặn cuối của `Scrim.RESULT` ở alpha 0.92 —
+  **cố ý**. Đổi nó là quyết định thiết kế, không phải sửa bug.
+- **R4** (nhãn loại node theo hover), **R6** (bo góc chân dung 13→10) — chưa làm.
+- **U2/U3 chưa kiểm được bằng ảnh** — save thật của máy này đã mua hết 10 unlock nên không
+  có dòng nào ở trạng thái “không đủ shard” để chụp. Chỉ xác minh được bằng đường code.
+- **Lớp juice (§05 spec v2) và Codex (§08)** vẫn chưa chạm tới.
+- **Xung đột hình học Run Map** (Axie 132px vs pitch 118px) vẫn treo — xem "Open questions"
+  trong `docs/design-handoff-v2/README.md`. Hiện Axie vẽ đầy đủ và node đè lên nó.
+
+---
+
 ## ⓹ 2026-09-20 — THI CÔNG BỘ GIAO DIỆN v2 (design handoff)
 
 Chủ dự án đưa vào một **bộ handoff thiết kế hoàn chỉnh cho cả 14 màn**, nằm NGOÀI repo:

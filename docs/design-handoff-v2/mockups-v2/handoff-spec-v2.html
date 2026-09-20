@@ -1,0 +1,559 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<script src="_ds/dango-design-system-b8da985f-efd5-488e-ae62-d508e48befe9/_ds_bundle.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Work+Sans:wght@400;500;600;700&family=Barlow+Condensed:wght@600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  body { margin:0; background:#0B0D11; }
+  a { color:#FF9345; }
+  a:hover { color:#FFB275; }
+</style>
+</helmet>
+
+<div style="max-width:1080px;margin:0 auto;padding:64px 48px 120px;font-family:'Work Sans',system-ui,sans-serif;color:#EDEFF5;background:#0B0D11;-webkit-font-smoothing:antialiased">
+
+  <div style="font-size:11px;font-weight:700;letter-spacing:.32em;color:#FF9345">AXIE DICE TACTICS · GODOT PORT</div>
+  <h1 style="font-family:'Barlow Condensed',sans-serif;font-size:62px;font-weight:700;letter-spacing:.02em;line-height:1.02;margin:12px 0 0">UI / UX HANDOFF SPEC</h1>
+  <div style="font-size:16px;line-height:1.6;color:rgba(237,239,245,.66);margin-top:14px;max-width:760px;text-wrap:pretty">Redlines, tokens, node trees and animation cues for the v2 redesign — <em>Godot Combat v2</em>, <em>Godot Run Flow v2</em> and <em>Godot Meta Screens v2</em>. Every number here is authored at 1920×1080. Every colour maps to a constant that already exists in <code style="font-family:'JetBrains Mono',monospace;font-size:14px;color:#FFC79B">DangoTheme.gd</code> or is a named addition to it.</div>
+
+  <div style="display:flex;gap:10px;margin-top:22px;flex-wrap:wrap">
+    <div style="padding:7px 13px;border-radius:8px;font-size:11px;font-weight:700;letter-spacing:.1em;background:rgba(255,147,69,.12);border:1px solid rgba(255,147,69,.45);color:#FFC79B">DESIGN RES 1920×1080</div>
+    <div style="padding:7px 13px;border-radius:8px;font-size:11px;font-weight:700;letter-spacing:.1em;background:rgba(237,239,245,.05);border:1px solid rgba(255,255,255,.12);color:rgba(237,239,245,.7)">STRETCH canvas_items · aspect expand</div>
+    <div style="padding:7px 13px;border-radius:8px;font-size:11px;font-weight:700;letter-spacing:.1em;background:rgba(237,239,245,.05);border:1px solid rgba(255,255,255,.12);color:rgba(237,239,245,.7)">UI LANGUAGE english only</div>
+  </div>
+
+  <!-- 0. READ FIRST -->
+  <div style="margin-top:44px;padding:26px 28px;border-radius:16px;background:rgba(255,147,69,.07);border:1px solid rgba(255,147,69,.45)">
+    <div style="font-size:11px;font-weight:700;letter-spacing:.24em;color:#FFC79B">00 · READ THIS FIRST</div>
+    <h2 style="font-family:'Barlow Condensed',sans-serif;font-size:34px;font-weight:700;letter-spacing:.03em;margin:8px 0 0">HOW TO BUILD FROM THIS FILE</h2>
+
+    <div style="display:flex;flex-direction:column;gap:9px;margin-top:18px">
+      <sc-for list="{{ howTo }}" as="h" hint-placeholder-count="5">
+        <div style="display:flex;gap:16px;padding:15px 18px;border-radius:13px;background:rgba(19,22,27,.92);border:1px solid rgba(255,255,255,.08)">
+          <div style="width:118px;flex:0 0 auto;font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:700;color:#FFC79B">{{ h.tag }}</div>
+          <div style="min-width:0;flex:1 1 auto;font-size:14px;line-height:1.65;color:rgba(237,239,245,.74);text-wrap:pretty">{{ h.body }}</div>
+        </div>
+      </sc-for>
+    </div>
+
+    <div style="margin-top:18px;padding:18px 20px;border-radius:13px;background:#07080B;border:1px solid rgba(255,255,255,.1)">
+      <div style="font-size:11px;font-weight:700;letter-spacing:.18em;color:rgba(237,239,245,.45)">THE BACKGROUND FORMULA · EVERY SCREEN</div>
+      <div style="font-family:'JetBrains Mono',monospace;font-size:12.5px;line-height:1.8;color:rgba(237,239,245,.82);white-space:pre-wrap;margin-top:10px">{{ bgFormula }}</div>
+    </div>
+  </div>
+
+  <!-- 1. DIAGNOSIS -->
+  <div style="margin-top:56px;padding-top:28px;border-top:1px solid rgba(255,255,255,.1)">
+    <div style="font-size:11px;font-weight:700;letter-spacing:.24em;color:rgba(237,239,245,.45)">01</div>
+    <h2 style="font-family:'Barlow Condensed',sans-serif;font-size:38px;font-weight:700;letter-spacing:.03em;margin:6px 0 0">WHAT IS ACTUALLY WRONG TODAY</h2>
+    <div style="font-size:15px;line-height:1.65;color:rgba(237,239,245,.62);margin-top:10px;text-wrap:pretty">Read off <code style="font-family:'JetBrains Mono',monospace;font-size:13px;color:#FFC79B">Combat.tscn</code>, <code style="font-family:'JetBrains Mono',monospace;font-size:13px;color:#FFC79B">CombatView.gd</code>, <code style="font-family:'JetBrains Mono',monospace;font-size:13px;color:#FFC79B">RunMapController.gd</code>, <code style="font-family:'JetBrains Mono',monospace;font-size:13px;color:#FFC79B">MainMenu.gd</code> and the 2026-09-18/19 QA captures — not from impressions.</div>
+
+    <div style="display:flex;flex-direction:column;gap:11px;margin-top:22px">
+      <sc-for list="{{ problems }}" as="p" hint-placeholder-count="8">
+        <div style="display:flex;gap:16px;padding:16px 18px;border-radius:13px;background:rgba(19,22,27,.9);border:1px solid rgba(255,255,255,.08)">
+          <div style="width:74px;flex:0 0 auto;font-size:9px;font-weight:700;letter-spacing:.1em;color:{{ p.sevColor }};padding-top:2px">{{ p.sev }}</div>
+          <div style="min-width:0">
+            <div style="font-size:15px;font-weight:700;letter-spacing:.02em">{{ p.title }}</div>
+            <div style="font-size:14px;line-height:1.6;color:rgba(237,239,245,.66);margin-top:5px;text-wrap:pretty">{{ p.body }}</div>
+            <div style="font-family:'JetBrains Mono',monospace;font-size:12px;color:rgba(255,199,155,.7);margin-top:7px">{{ p.src }}</div>
+          </div>
+        </div>
+      </sc-for>
+    </div>
+  </div>
+
+  <!-- 2. TOKENS -->
+  <div style="margin-top:56px;padding-top:28px;border-top:1px solid rgba(255,255,255,.1)">
+    <div style="font-size:11px;font-weight:700;letter-spacing:.24em;color:rgba(237,239,245,.45)">02</div>
+    <h2 style="font-family:'Barlow Condensed',sans-serif;font-size:38px;font-weight:700;letter-spacing:.03em;margin:6px 0 0">TOKENS</h2>
+    <div style="font-size:15px;line-height:1.65;color:rgba(237,239,245,.62);margin-top:10px;text-wrap:pretty">The colour set is unchanged from <code style="font-family:'JetBrains Mono',monospace;font-size:13px;color:#FFC79B">DangoTheme.gd</code> — that file was already right. What is new is the surface/elevation set, which the current build has no vocabulary for: every panel today is one flat <code style="font-family:'JetBrains Mono',monospace;font-size:13px;color:#FFC79B">BG_PANEL</code> at 0.82 alpha, so nothing reads as being in front of anything else.</div>
+
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(232px,1fr));gap:12px;margin-top:22px">
+      <sc-for list="{{ colors }}" as="c" hint-placeholder-count="12">
+        <div style="border-radius:12px;overflow:hidden;background:rgba(19,22,27,.9);border:1px solid rgba(255,255,255,.08)">
+          <div style="height:56px;background:{{ c.hex }}"></div>
+          <div style="padding:11px 13px 13px">
+            <div style="font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:600;color:#EDEFF5">{{ c.name }}</div>
+            <div style="font-family:'JetBrains Mono',monospace;font-size:12px;color:rgba(237,239,245,.5);margin-top:3px">{{ c.hex }}</div>
+            <div style="font-size:12px;line-height:1.45;color:rgba(237,239,245,.55);margin-top:6px">{{ c.use }}</div>
+          </div>
+        </div>
+      </sc-for>
+    </div>
+
+    <h3 style="font-size:13px;font-weight:700;letter-spacing:.16em;color:rgba(237,239,245,.5);margin:34px 0 12px">SURFACES · ADD TO DangoTheme.gd</h3>
+    <div style="display:flex;flex-direction:column;gap:10px">
+      <sc-for list="{{ surfaces }}" as="s" hint-placeholder-count="4">
+        <div style="display:flex;align-items:center;gap:18px;padding:15px 18px;border-radius:13px;background:rgba(19,22,27,.9);border:1px solid rgba(255,255,255,.08)">
+          <div style="width:120px;flex:0 0 auto;font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:600;color:#FFC79B">{{ s.name }}</div>
+          <div style="font-family:'JetBrains Mono',monospace;font-size:12px;color:rgba(237,239,245,.62);flex:1 1 auto;min-width:0;line-height:1.55">{{ s.value }}</div>
+          <div style="width:180px;flex:0 0 auto;font-size:12px;color:rgba(237,239,245,.55)">{{ s.use }}</div>
+        </div>
+      </sc-for>
+    </div>
+
+    <h3 style="font-size:13px;font-weight:700;letter-spacing:.16em;color:rgba(237,239,245,.5);margin:34px 0 12px">ART DIRECTION · THE GOVERNING RULE SET</h3>
+    <div style="font-size:15px;line-height:1.65;color:rgba(237,239,245,.62);margin-bottom:16px;text-wrap:pretty">Not invented here. These are the rules the project's own icon set was authored to, quoted from <code style="font-family:'JetBrains Mono',monospace;font-size:13px;color:#FFC79B">assets/_incoming/icon-set-2026-09-08/README.md</code>, extended from 128px glyphs to screen chrome. The first pass of this redesign broke all three and that is precisely why it read as a generic dark dashboard instead of as Axie.</div>
+    <div style="display:flex;flex-direction:column;gap:11px">
+      <sc-for list="{{ artRules }}" as="a" hint-placeholder-count="5">
+        <div style="padding:17px 19px;border-radius:13px;background:rgba(19,22,27,.9);border:1px solid rgba(255,255,255,.08)">
+          <div style="font-size:15px;font-weight:700;letter-spacing:.02em;color:#FFC79B">{{ a.rule }}</div>
+          <div style="font-size:14px;line-height:1.6;color:rgba(237,239,245,.7);margin-top:6px;text-wrap:pretty">{{ a.body }}</div>
+          <div style="font-family:'JetBrains Mono',monospace;font-size:12px;color:rgba(237,239,245,.45);margin-top:8px">{{ a.src }}</div>
+        </div>
+      </sc-for>
+    </div>
+
+    <h3 style="font-size:13px;font-weight:700;letter-spacing:.16em;color:rgba(237,239,245,.5);margin:34px 0 12px">TYPE SCALE · FONT IS THE SINGLE BIGGEST WIN</h3>
+    <div style="padding:20px 22px;border-radius:14px;background:rgba(255,147,69,.06);border:1px solid rgba(255,147,69,.3);font-size:14px;line-height:1.65;color:rgba(237,239,245,.78);text-wrap:pretty"><code style="font-family:'JetBrains Mono',monospace;font-size:13px;color:#FFC79B">DangoTheme.FONT</code> is <code style="font-family:'JetBrains Mono',monospace;font-size:13px;color:#FFC79B">null</code>, so every label in the game renders in Godot's built-in fallback. That single fact is most of "font mặc định trông rẻ". Ship the two files under <code style="font-family:'JetBrains Mono',monospace;font-size:13px;color:#FFC79B">assets/fonts/</code>, build one <code style="font-family:'JetBrains Mono',monospace;font-size:13px;color:#FFC79B">Theme</code> resource, assign it on the root <code style="font-family:'JetBrains Mono',monospace;font-size:13px;color:#FFC79B">Control</code> of every scene — then no screen needs a per-label font override ever again.</div>
+
+    <div style="margin-top:12px;padding:20px 22px;border-radius:14px;background:rgba(63,205,60,.07);border:1px solid rgba(63,205,60,.4)">
+      <div style="font-size:11px;font-weight:700;letter-spacing:.18em;color:#3FCD3C">✔ FONT DEVIATION APPROVED · 20 SEP 2026 · BUILD ON BALOO 2</div>
+      <div style="font-size:14px;line-height:1.7;color:rgba(237,239,245,.8);margin-top:9px;text-wrap:pretty">The mockups set <strong style="color:#FFD76A">Baloo 2</strong> on all display type, not Work Sans. Work Sans is what Dango specifies and what <code style="font-family:'JetBrains Mono',monospace;font-size:13px;color:#FFC79B">DangoTheme.gd</code>'s own header already flags as missing — so this deviation is recorded the same way that file records its own, rather than left to drift.<br><br>Why: Work Sans and Barlow Condensed are neutral grotesks. On a screen of black-outlined flat-tone cards they produce exactly the "sang nhưng vô hồn" read the first pass was rejected for — the letterforms belong to a dashboard, the artwork belongs to Lunacia. Baloo 2 is a rounded heavy face whose weight and terminals match the 9-unit black outline the kit draws with, which is what makes type and art look authored by the same hand.<br><br>Scope of the deviation: display only. Work Sans keeps every paragraph — log lines, passive text, relic and event descriptions — so Dango's reading face is intact. Approved as written — build on Baloo 2. The Work Sans 700 fallback is withdrawn and is not to be implemented; it stays recorded here only as the rejected alternative.</div>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:9px;margin-top:16px">
+      <sc-for list="{{ typeScale }}" as="t" hint-placeholder-count="8">
+        <div style="display:flex;align-items:baseline;gap:20px;padding:14px 18px;border-radius:12px;background:rgba(19,22,27,.9);border:1px solid rgba(255,255,255,.08)">
+          <div style="width:150px;flex:0 0 auto;font-family:'JetBrains Mono',monospace;font-size:12px;color:#FFC79B">{{ t.token }}</div>
+          <div style="width:210px;flex:0 0 auto;font-family:'JetBrains Mono',monospace;font-size:12px;color:rgba(237,239,245,.6)">{{ t.spec }}</div>
+          <div style="flex:1 1 auto;min-width:0;font-size:13px;color:rgba(237,239,245,.58)">{{ t.use }}</div>
+        </div>
+      </sc-for>
+    </div>
+  </div>
+
+  <!-- 3. COMBAT REDLINE -->
+  <div style="margin-top:56px;padding-top:28px;border-top:1px solid rgba(255,255,255,.1)">
+    <div style="font-size:11px;font-weight:700;letter-spacing:.24em;color:rgba(237,239,245,.45)">03</div>
+    <h2 style="font-family:'Barlow Condensed',sans-serif;font-size:38px;font-weight:700;letter-spacing:.03em;margin:6px 0 0">COMBAT REDLINE</h2>
+    <div style="font-size:15px;line-height:1.65;color:rgba(237,239,245,.62);margin-top:10px;text-wrap:pretty">Offsets are from the 1920×1080 root <code style="font-family:'JetBrains Mono',monospace;font-size:13px;color:#FFC79B">Control</code>. One hard constraint runs through the whole screen: <strong style="color:#FFC79B">the five party columns and the five die cards share one pitch of 228px, both centred on x=960</strong> — column width 212 + gap 16. That is what makes an Axie and its die read as one object without a connector line. If either side's width or gap changes, both change.</div>
+
+    <div style="display:flex;flex-direction:column;gap:10px;margin-top:22px">
+      <sc-for list="{{ redline }}" as="r" hint-placeholder-count="12">
+        <div style="padding:16px 18px;border-radius:13px;background:rgba(19,22,27,.9);border:1px solid rgba(255,255,255,.08)">
+          <div style="display:flex;align-items:baseline;gap:14px">
+            <div style="font-size:15px;font-weight:700;letter-spacing:.02em;flex:1 1 auto">{{ r.el }}</div>
+            <div style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#FFC79B;text-align:right">{{ r.box }}</div>
+          </div>
+          <div style="font-size:14px;line-height:1.6;color:rgba(237,239,245,.66);margin-top:6px;text-wrap:pretty">{{ r.note }}</div>
+        </div>
+      </sc-for>
+    </div>
+  </div>
+
+  <!-- 4. NODE TREE -->
+  <div style="margin-top:56px;padding-top:28px;border-top:1px solid rgba(255,255,255,.1)">
+    <div style="font-size:11px;font-weight:700;letter-spacing:.24em;color:rgba(237,239,245,.45)">04</div>
+    <h2 style="font-family:'Barlow Condensed',sans-serif;font-size:38px;font-weight:700;letter-spacing:.03em;margin:6px 0 0">COMBAT.TSCN · WHAT CHANGES</h2>
+    <div style="font-size:15px;line-height:1.65;color:rgba(237,239,245,.62);margin-top:10px;text-wrap:pretty">Nothing is deleted from the scene that <code style="font-family:'JetBrains Mono',monospace;font-size:13px;color:#FFC79B">CombatView.gd</code> looks up by unique name. Every existing <code style="font-family:'JetBrains Mono',monospace;font-size:13px;color:#FFC79B">%Name</code> survives; the work is re-parenting, re-anchoring, and giving the die slot a real child tree.</div>
+
+    <div style="margin-top:20px;padding:22px 24px;border-radius:14px;background:#07080B;border:1px solid rgba(255,255,255,.1);overflow-x:auto">
+      <div style="font-family:'JetBrains Mono',monospace;font-size:12.5px;line-height:1.85;color:rgba(237,239,245,.82);white-space:pre">{{ tree }}</div>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:10px;margin-top:20px">
+      <sc-for list="{{ treeNotes }}" as="n" hint-placeholder-count="6">
+        <div style="display:flex;gap:16px;padding:15px 18px;border-radius:13px;background:rgba(19,22,27,.9);border:1px solid rgba(255,255,255,.08)">
+          <div style="width:34px;flex:0 0 auto;font-family:'JetBrains Mono',monospace;font-size:12px;color:#FF9345;padding-top:2px">{{ n.tag }}</div>
+          <div style="font-size:14px;line-height:1.6;color:rgba(237,239,245,.72);min-width:0;text-wrap:pretty">{{ n.body }}</div>
+        </div>
+      </sc-for>
+    </div>
+  </div>
+
+  <!-- 5. ANIMATION -->
+  <div style="margin-top:56px;padding-top:28px;border-top:1px solid rgba(255,255,255,.1)">
+    <div style="font-size:11px;font-weight:700;letter-spacing:.24em;color:rgba(237,239,245,.45)">05</div>
+    <h2 style="font-family:'Barlow Condensed',sans-serif;font-size:38px;font-weight:700;letter-spacing:.03em;margin:6px 0 0">ANIMATION CUES</h2>
+    <div style="font-size:15px;line-height:1.65;color:rgba(237,239,245,.62);margin-top:10px;text-wrap:pretty">Every clip named here is one of the eleven the mixer addon actually ships (<code style="font-family:'JetBrains Mono',monospace;font-size:13px;color:#FFC79B">addons/axie_mixer_3d/animation/anim_names.gd</code>). No new clip is invented, and <code style="font-family:'JetBrains Mono',monospace;font-size:13px;color:#FFC79B">CombatStage3D._ACTION_ANIM_BY_TYPE</code> already maps eight face types onto them — that table is correct and stays. What is missing is the UI-side layer: the toss, the numbers, the flash, the banner.</div>
+
+    <div style="display:flex;flex-direction:column;gap:11px;margin-top:22px">
+      <sc-for list="{{ anims }}" as="a" hint-placeholder-count="9">
+        <div style="padding:16px 18px;border-radius:13px;background:rgba(19,22,27,.9);border:1px solid rgba(255,255,255,.08)">
+          <div style="display:flex;align-items:baseline;gap:14px;flex-wrap:wrap">
+            <div style="font-size:15px;font-weight:700;letter-spacing:.02em">{{ a.name }}</div>
+            <div style="font-size:9px;font-weight:700;letter-spacing:.1em;padding:3px 8px;border-radius:5px;color:{{ a.stateColor }};border:1px solid {{ a.stateColor }}">{{ a.state }}</div>
+            <div style="flex:1 1 auto"></div>
+            <div style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#FFC79B">{{ a.timing }}</div>
+          </div>
+          <div style="font-family:'JetBrains Mono',monospace;font-size:12px;color:rgba(237,239,245,.5);margin-top:7px">trigger &nbsp;{{ a.trigger }}</div>
+          <div style="font-size:14px;line-height:1.6;color:rgba(237,239,245,.68);margin-top:6px;text-wrap:pretty">{{ a.body }}</div>
+        </div>
+      </sc-for>
+    </div>
+
+    <div style="margin-top:20px;padding:20px 22px;border-radius:14px;background:rgba(245,69,64,.06);border:1px solid rgba(245,69,64,.3);font-size:14px;line-height:1.65;color:rgba(237,239,245,.78);text-wrap:pretty"><strong style="color:#FF9A96">Two rules that keep juice from becoming a bug source.</strong> Every cue above must no-op when <code style="font-family:'JetBrains Mono',monospace;font-size:13px;color:#FFC79B">CombatView.disable_juice_for_tests</code> is set — the headless gates depend on it, and <code style="font-family:'JetBrains Mono',monospace;font-size:13px;color:#FFC79B">play_death()</code>/<code style="font-family:'JetBrains Mono',monospace;font-size:13px;color:#FFC79B">_play_hit_juice()</code> already honour it. And nothing in this section may gate an input: the player must be able to select the next die while the previous hit is still animating, which is what <code style="font-family:'JetBrains Mono',monospace;font-size:13px;color:#FFC79B">_begin_hit_animation()</code>'s failsafe exists to guarantee.</div>
+  </div>
+
+  <!-- 6. OTHER SCREENS -->
+  <div style="margin-top:56px;padding-top:28px;border-top:1px solid rgba(255,255,255,.1)">
+    <div style="font-size:11px;font-weight:700;letter-spacing:.24em;color:rgba(237,239,245,.45)">06</div>
+    <h2 style="font-family:'Barlow Condensed',sans-serif;font-size:38px;font-weight:700;letter-spacing:.03em;margin:6px 0 0">THE OTHER NINE SCREENS</h2>
+    <div style="font-size:15px;line-height:1.65;color:rgba(237,239,245,.62);margin-top:10px;text-wrap:pretty">Key measurements only — the mockups are the source of truth for everything else.</div>
+
+    <div style="display:flex;flex-direction:column;gap:11px;margin-top:22px">
+      <sc-for list="{{ screens }}" as="s" hint-placeholder-count="9">
+        <div style="padding:17px 19px;border-radius:13px;background:rgba(19,22,27,.9);border:1px solid rgba(255,255,255,.08)">
+          <div style="display:flex;align-items:baseline;gap:12px">
+            <div style="font-family:'Barlow Condensed',sans-serif;font-size:24px;font-weight:700;letter-spacing:.03em;flex:1 1 auto">{{ s.name }}</div>
+            <div style="font-family:'JetBrains Mono',monospace;font-size:12px;color:rgba(237,239,245,.5)">{{ s.file }}</div>
+          </div>
+          <div style="font-size:14px;line-height:1.62;color:rgba(237,239,245,.7);margin-top:7px;text-wrap:pretty">{{ s.body }}</div>
+          <div style="font-family:'JetBrains Mono',monospace;font-size:12px;color:#FFC79B;margin-top:8px;line-height:1.6">{{ s.box }}</div>
+        </div>
+      </sc-for>
+    </div>
+  </div>
+
+  <!-- 7. ORDER -->
+  <div style="margin-top:56px;padding-top:28px;border-top:1px solid rgba(255,255,255,.1)">
+    <div style="font-size:11px;font-weight:700;letter-spacing:.24em;color:rgba(237,239,245,.45)">07</div>
+    <h2 style="font-family:'Barlow Condensed',sans-serif;font-size:38px;font-weight:700;letter-spacing:.03em;margin:6px 0 0">ORDER OF WORK</h2>
+    <div style="font-size:15px;line-height:1.65;color:rgba(237,239,245,.62);margin-top:10px;text-wrap:pretty">Sequenced so each step is visible on its own and nothing waits on a decision that has not been made.</div>
+
+    <div style="display:flex;flex-direction:column;gap:10px;margin-top:22px">
+      <sc-for list="{{ order }}" as="o" hint-placeholder-count="7">
+        <div style="display:flex;gap:18px;padding:16px 18px;border-radius:13px;background:rgba(19,22,27,.9);border:1px solid rgba(255,255,255,.08)">
+          <div style="width:34px;height:34px;flex:0 0 auto;border-radius:9px;display:grid;place-items:center;background:rgba(255,147,69,.12);border:1px solid rgba(255,147,69,.45);font-family:'Barlow Condensed',sans-serif;font-size:17px;font-weight:700;color:#FFC79B">{{ o.n }}</div>
+          <div style="min-width:0">
+            <div style="font-size:15px;font-weight:700;letter-spacing:.02em">{{ o.title }}</div>
+            <div style="font-size:14px;line-height:1.6;color:rgba(237,239,245,.66);margin-top:5px;text-wrap:pretty">{{ o.body }}</div>
+          </div>
+        </div>
+      </sc-for>
+    </div>
+
+    <div style="margin-top:24px;padding:20px 22px;border-radius:14px;background:rgba(19,22,27,.9);border:1px solid rgba(255,255,255,.1)">
+      <div style="font-size:11px;font-weight:700;letter-spacing:.18em;color:rgba(237,239,245,.45)">DELIBERATELY NOT IN THIS PASS</div>
+      <div style="font-size:14px;line-height:1.7;color:rgba(237,239,245,.66);margin-top:9px;text-wrap:pretty">Cosmetics and the Echo Box (20 of 46 decor items are CSS-only in the JS build and would have to be re-drawn), World Tour (17 of 20 rewards come from that same pool), the login gate, and the leaderboard — the last of which is an architecture decision about who referees a GDScript engine, not a UI task. All four are argued out in <code style="font-family:'JetBrains Mono',monospace;font-size:13px;color:#FFC79B">docs/godot-port-gap-inventory.md</code> §2.5 and §3, and nothing in this spec assumes any of them.</div>
+    </div>
+  </div>
+
+  <div style="margin-top:56px;padding-top:28px;border-top:1px solid rgba(255,255,255,.1)">
+    <div style="font-size:11px;font-weight:700;letter-spacing:.24em;color:rgba(237,239,245,.45)">08</div>
+    <h2 style="font-family:'Barlow Condensed',sans-serif;font-size:38px;font-weight:700;letter-spacing:.03em;margin:6px 0 0">CODEX · LAYOUT CONTRACT</h2>
+    <div style="font-size:15px;line-height:1.65;color:rgba(237,239,245,.62);margin-top:10px;text-wrap:pretty">Ten tabs, five layout archetypes, one filled. Copy is written later and is written against the Godot rules — the JS Codex is not a source: it says the run is “12 waves” and describes an undo that only the JS turn stack supports. Every tab in the mockup carries a <strong style="color:#EDEFF5">LAYOUT ONLY · CONTENT PENDING</strong> chip and the data path it binds to; the chip flips to <strong style="color:#3FCD3C">CONTENT IN</strong> when the array is populated.</div>
+
+    <div style="display:flex;flex-direction:column;gap:9px;margin-top:18px">
+      <sc-for list="{{ codexLayouts }}" as="c" hint-placeholder-count="5">
+        <div style="display:flex;gap:18px;padding:15px 18px;border-radius:13px;background:rgba(19,22,27,.9);border:1px solid rgba(255,255,255,.08)">
+          <div style="width:118px;flex:0 0 auto;font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:700;color:#FFC79B">{{ c.id }}</div>
+          <div style="min-width:0;flex:1 1 auto">
+            <div style="font-size:15px;font-weight:700;letter-spacing:.02em">{{ c.tabs }}</div>
+            <div style="font-size:14px;line-height:1.6;color:rgba(237,239,245,.66);margin-top:5px;text-wrap:pretty">{{ c.body }}</div>
+          </div>
+        </div>
+      </sc-for>
+    </div>
+
+    <div style="margin-top:18px;padding:20px 22px;border-radius:14px;background:rgba(19,22,27,.9);border:1px solid rgba(255,255,255,.1)">
+      <div style="font-size:11px;font-weight:700;letter-spacing:.18em;color:rgba(237,239,245,.45)">DATA SHAPE</div>
+      <div style="font-size:14px;line-height:1.7;color:rgba(237,239,245,.66);margin-top:9px;text-wrap:pretty">One resource per tab: <code style="font-family:'JetBrains Mono',monospace;font-size:13px;color:#FFC79B">res://data/codex/&lt;tab_id&gt;.tres</code>, each an array of the record the tab's chip names. <code style="font-family:'JetBrains Mono',monospace;font-size:13px;color:#FFC79B">CodexView.gd</code> reads the archetype off the tab definition and instantiates the matching row scene — no per-tab scene, five row scenes total. Icon fields are paths into the existing set; nothing new is drawn.</div>
+    </div>
+  </div>
+
+  <div style="margin-top:56px;padding-top:28px;border-top:1px solid rgba(255,255,255,.1)">
+    <div style="font-size:11px;font-weight:700;letter-spacing:.24em;color:rgba(237,239,245,.45)">09</div>
+    <h2 style="font-family:'Barlow Condensed',sans-serif;font-size:38px;font-weight:700;letter-spacing:.03em;margin:6px 0 0">RUNSTATS ACCUMULATOR</h2>
+    <div style="font-size:15px;line-height:1.65;color:rgba(237,239,245,.62);margin-top:10px;text-wrap:pretty">The Result screen's six tiles have no source in the port. Everything they need already passes through combat as a signal — nothing has to be recomputed, only counted. One autoload struct, reset when a run starts, read once on Result. Numbers in the mockup are placeholders.</div>
+
+    <div style="display:flex;flex-direction:column;gap:9px;margin-top:18px">
+      <sc-for list="{{ runStatFields }}" as="f" hint-placeholder-count="6">
+        <div style="display:flex;gap:18px;align-items:baseline;padding:15px 18px;border-radius:13px;background:rgba(19,22,27,.9);border:1px solid rgba(255,255,255,.08)">
+          <div style="width:150px;flex:0 0 auto;font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:700;color:#FFC79B">{{ f.field }}</div>
+          <div style="width:112px;flex:0 0 auto;font-size:12px;font-weight:700;letter-spacing:.12em;color:rgba(237,239,245,.45)">{{ f.tile }}</div>
+          <div style="min-width:0;flex:1 1 auto;font-size:14px;line-height:1.6;color:rgba(237,239,245,.7);text-wrap:pretty">{{ f.hook }}</div>
+        </div>
+      </sc-for>
+    </div>
+
+    <div style="margin-top:18px;padding:20px 22px;border-radius:14px;background:rgba(255,215,106,.07);border:1px solid rgba(255,215,106,.4)">
+      <div style="font-size:11px;font-weight:700;letter-spacing:.18em;color:#FFD76A">TWO RULES THAT DECIDE THE NUMBERS</div>
+      <div style="font-size:14px;line-height:1.7;color:rgba(237,239,245,.8);margin-top:9px;text-wrap:pretty">Damage counts what actually lands: after Shield absorption, after Weaken, clamped to the target's remaining HP so an overkill of 40 into a 6 HP enemy scores 6. Poison and Thorns count toward <code style="font-family:'JetBrains Mono',monospace;font-size:13px;color:#FFC79B">damage_dealt</code> but never toward <code style="font-family:'JetBrains Mono',monospace;font-size:13px;color:#FFC79B">biggest_hit</code> — biggest hit is one die resolution against one target, which is the number a player can recognise. Both rules live in the accumulator, not in the callers.<br><br>The label on the first tile is whatever the Godot run structure calls it. The mockup reads <strong style="color:#EDEFF5">WAVES CLEARED 12 / 12</strong> because that is what the JS build reported; if a Godot run is tiers of nodes rather than a fixed wave count, the tile becomes <strong style="color:#EDEFF5">NODES CLEARED</strong> against the run length and the accumulator field is renamed with it.</div>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{}">
+class Component extends DCLogic {
+  renderVals() {
+    return {
+      problems: [
+        { sev:"P0 · READ", sevColor:"#F54540", title:"HP is a 4px bar with no number on it",
+          body:"Nameplates carry a name Label and a ProgressBar. There is no HP figure on a party or enemy plate, so \"can this survive the telegraphed 9?\" is unanswerable without opening the inspector. The redesign puts hp/max as a 19px Barlow Condensed numeral on every plate, coloured by DangoTheme.hp_color().",
+          src:"Combat.tscn → UnitVisualsRoot · UnitHeadHUD.gd" },
+        { sev:"P0 · READ", sevColor:"#F54540", title:"The die tray is text in a grey box",
+          body:"DieSlot0..4 are 164×150 Buttons. The 285-part icon set (6 slots × 8 class variants), 11 status icons and 6 node icons are on disk and unused by the tray. Each die now leads with its part icon at 40px inside a 60px plate, the value at 52px, and keyword chips under it.",
+          src:"Combat.tscn → DiceTrayGrid · assets/_incoming/icon-set-2026-09-08/" },
+        { sev:"P0 · LAYOUT", sevColor:"#F54540", title:"HUD floats in four corners with no frame",
+          body:"Mana sits alone bottom-left at 0,0; Reroll and End Turn are in a 190px ActionCorner bottom-right; Log is a lone Button top-right; the turn banner is centred at the top. Four unrelated islands. The redesign builds two rails: a top rail for run context, a bottom deck for the turn's action surface, with mana+reroll+end-turn in one cluster.",
+          src:"Combat.tscn → TopBar / BottomBar / ActionCorner" },
+        { sev:"P1 · LAYOUT", sevColor:"#FF9345", title:"Stage3D spans 0.08→0.82 and the middle is empty",
+          body:"Enemies land near y=300 and the party near y=600, leaving a ~120px empty band above the bottom bar and a very tall empty sky. Enemy row moves to top:126 h:318, party to top:492 h:276, and the bottom deck grows to 296px so the dice can carry real content.",
+          src:"Combat.tscn → Stage3D anchors" },
+        { sev:"P1 · FEEDBACK", sevColor:"#FF9345", title:"No resting elevation, so nothing reads as an object",
+          body:"Every StyleBoxFlat in the build sets bg + border + radius and no shadow at all, so cards read as slightly lighter patches of background rather than objects on a table. Fixed with SH_SHELF: a hard offset shadow (0 4px 0 on plates, 0 6px 0 on cards and the CTA), zero blur, plus a 3–5px pure-black outline on everything. A blurred shadow was the first attempt and it is the tell of the dark-dashboard look this replaces.",
+          src:"DangoTheme.panel_style() · kw_chip_style()" },
+        { sev:"P1 · READ", sevColor:"#FF9345", title:"Run Map is pinned to the corner over bright art",
+          body:"Nodes are laid out in graph space and the camera fits only the current + reachable rows, so on a bright class background the whole map crowds the top-right and the captions sink into it. The redesign fixes the framing instead of the art: the whole board is laid out in screen space at a fixed pitch, the plate runs bright under a directional scrim (§00), and a 344px status rail holds the left edge. The boss is a right-aligned ribbon in the header row; there is no legend row and no banner across the board.",
+          src:"RunMapController.gd → _update_camera() · _node_wash_color()" },
+        { sev:"P1 · READ", sevColor:"#FF9345", title:"Main Menu is a scrolling form",
+          body:"MainMenu.gd stacks title → shard → SEED → MODE → ASCENSION → TEAM → buttons in one VBox inside a ScrollContainer. It reads like a settings dialog. The redesign is a title screen: identity and the primary CTA on the left, run setup as one right-hand panel, the team lineup and six nav tiles along the bottom. Nothing scrolls.",
+          src:"MainMenu.gd → _build_ui()" },
+        { sev:"P2 · POLISH", sevColor:"#FFD76A", title:"White text on Kam orange is ~2.2:1",
+          body:"_end_turn_button forces Color.WHITE on a #FF9345 fill. Already flagged in the button-state spec and still shipped. All primary buttons now use #2A1505 ink on the orange fill (11.4:1) — a dark-on-accent pair, which is also what the Dango primary intent expects.",
+          src:"CombatView.gd → _end_turn_button · reference_dangotheme-button-state-spec.md" },
+      ],
+
+      colors: [
+        { name:"BG", hex:"#13161B", use:"Dango canvas. Unchanged." },
+        { name:"BG_DEEP (new)", hex:"#07080B", use:"Behind the 3D stage and under scrims." },
+        { name:"PRIMARY · Kam", hex:"#FF9345", use:"Selection, CTA, current node, turn state." },
+        { name:"INK_ON_PRIMARY (new)", hex:"#2A1505", use:"Text on any Kam fill. Fixes the 2.2:1 pair." },
+        { name:"SUCCESS", hex:"#3FCD3C", use:"High HP, heal, claimed, owned." },
+        { name:"DANGER", hex:"#F54540", use:"Low HP, damage, enemy intent, abandon." },
+        { name:"SHIELD_BLUE", hex:"#31C6FF", use:"Shield face + shield badge." },
+        { name:"MANA_PURPLE", hex:"#BF6BFF", use:"Mana orb, relic actives." },
+        { name:"POISON_GREEN", hex:"#A8D84A", use:"Poison face and stacks." },
+        { name:"DEBUFF_PINK", hex:"#FF8FC7", use:"Debuff face, weaken." },
+        { name:"TEXT", hex:"#EDEFF5", use:"Body. 0.55 alpha for secondary." },
+        { name:"BORDER", hex:"#000000", use:"1px on every panel. Unchanged." },
+      ],
+
+      surfaces: [
+        { name:"PANEL", value:"bg #1B1F27 · border 3–4px #000 · radius 11–14 · shadow 0 4px 0 rgba(0,0,0,.5)", use:"CHROME tone. Surfaces that frame the screen rather than float on it: the combat top bar and bottom deck, utility and secondary buttons, the inspector. Unchanged from v1." },
+        { name:"PANEL_DEEP", value:"bg #161A21 · border 3–4px #000 · radius 12–18 · shadow 0 7px 0 rgba(0,0,0,.55)", use:"ART tone, new in v2. Any opaque panel that sits ON the painted plate with artwork visible around it: nameplates, the map run card, the Result stat ribbon, the payout and pass rows. One step darker and one step deeper than PANEL so it separates from bright art instead of blending into chrome." },
+        { name:"PANEL_ON_ART", value:"bg rgba(27,31,39,.92) · border, radius and shelf as PANEL_DEEP", use:"PANEL_DEEP's translucent variant, for panels that should let the plate read through — SAVE & QUIT on the map, the menu nav tiles" },
+        { name:"PANEL_RAISED", value:"bg #262C36 · border 3px #000 · radius 11–13", use:"Utility buttons, the wave-node chip, reroll" },
+        { name:"WELL", value:"bg #10131A · border 3px #000 · radius 13–14", use:"Anything that holds something else — the mana card, the wave track (#141820)" },
+        { name:"CARD_CREAM", value:"bg #F3E7D3 (raised #FFF8EA) · border 4–5px #000 · radius 15–20 · shadow 0 6px 0 rgba(0,0,0,.5) · ink #1A1206", use:"Die cards, the inspector — every surface a player READS" },
+        { name:"DECK", value:"bg #171A21 · border-top 4px #000 · h 216", use:"The bottom action bar. A solid panel with a hard top edge, never a gradient scrim" },
+        { name:"SH_SHELF", value:"0 4px 0 (plates) · 0 6px 0 (cards, CTA) · pressed 0 2px 0 + translateY(+2…4)", use:"The only shadow in the system. Offset, zero blur, zero spread" },
+        { name:"DISABLED", value:"flat desaturated fill (#4A3F58 for a mana cost) + ink at FULL strength", use:"Never a blanket opacity — that drops the text with the card, and the cost line is the whole point of a card you cannot afford" },
+      ],
+
+      anims: [
+        { name:"Idle breathe", state:"EXISTS", stateColor:"#3FCD3C", timing:"loop · 3.4–3.8s",
+          trigger:"CombatStage3D._spawn — playable.set_default(AnimNames.Idle)",
+          body:"Already wired and already correct. The only change: stagger the loop phase per slot by index × 0.22s so five party members do not breathe in lockstep, which is what makes a lineup look like a sprite sheet." },
+        { name:"Action clip on face use", state:"EXISTS", stateColor:"#3FCD3C", timing:"one-shot, auto-return to Idle",
+          trigger:"EventBus.face_used → CombatStage3D.play_action(uid, face_type)",
+          body:"_ACTION_ANIM_BY_TYPE already maps dmg→WalkAttack 1.0, poison→RunAttack 0.7, debuff→RunAttack 0.85, shield/buff→IdleCarryItem 1.05, heal→IdleCarryItem 0.8, mana→IdleCarryItem 1.35. Keep it as-is. Add only this: hold the selected die card's lifted state until the clip's on_complete fires, so the card and the model finish together." },
+        { name:"Hit reaction", state:"EXISTS", stateColor:"#3FCD3C", timing:"one-shot IdleGetHit",
+          trigger:"EventBus.hit_landed → play_hit_reaction(uid)",
+          body:"Fine as it stands. Pair it with the flash and the number below so a hit reads as one event instead of three." },
+        { name:"Death", state:"EXISTS", stateColor:"#3FCD3C", timing:"Dead clip → fade/scale to 0",
+          trigger:"EventBus.unit_died → play_death(uid)",
+          body:"Plays the real Dead clip before the fade, and clears set_default so Idle cannot replay over it. Add: the unit's die card crossfades to a DEAD state chip in DANGER over 220ms rather than vanishing, and its nameplate holds for 400ms at 30% opacity before hiding." },
+        { name:"Dice toss", state:"NEW", stateColor:"#FF9345", timing:"620ms · 3 tumbles",
+          trigger:"start of player phase, and _on_reroll_pressed → _start_reroll_toss(slot_indices)",
+          body:"Per card, staggered 70ms by slot: scale 0.86→1.06→1.0, rotate ±7°→0, and swap the face content twice mid-flight (at 180ms and 360ms) to two random faces from that Axie's own die before landing on the real one. Rerolled dice only — untouched dice must not move, or the player loses track of what they kept. _play_die_roll_bounce() and _play_die_flip() are the existing hooks." },
+        { name:"Damage / heal numbers", state:"NEW", stateColor:"#FF9345", timing:"1150ms ease-out",
+          trigger:"EventBus.float_text(uid, text, css_class, big) — already emitted, currently unrendered",
+          body:"A Label parented to the unit's HUD, FONT_NUM 56–60, coloured by the event class, 0 3 0 rgba(0,0,0,.85) outline plus a 0 0 24 glow in its own colour. Path: opacity 0→1 over the first 18% while rising 6→−6px and scaling to 1.08, then drifts to −72px and fades out. Crits use 1.35× size and a 40ms hold at peak. Stack multiple numbers on one unit by offsetting each new one +18px on x." },
+        { name:"Hit flash + shake", state:"NEW", stateColor:"#FF9345", timing:"flash 90ms · shake 180ms",
+          trigger:"EventBus.hit_landed, amplitude scaled by damage ÷ max_hp",
+          body:"Flash: the struck model's material modulate goes to white at 0.55 alpha for 90ms. Shake: the whole Root Control offsets on a decaying sine, 3–9px amplitude by damage fraction, capped at 9 — a boss hit shakes, a 2-damage poke does not. Respect a reduce-flash setting from scSettings; that toggle is listed as missing and this is the feature that needs it." },
+        { name:"Turn banner", state:"NEW", stateColor:"#FF9345", timing:"1500ms total",
+          trigger:"EventBus.turn_phase_changed(old, new)",
+          body:"Centre panel, 22/74 padding, radius 18, DANGER-bordered for the enemy phase and Kam for yours. Eyebrow WAVE n at 13/700/.30em over the phase name at FONT_NUM 60. In: 0→100% opacity with scale .92→1 over 30%; hold to 78%; out: fade while scaling to 1.03. Non-blocking — the enemy's first action starts underneath it." },
+        { name:"Victory march", state:"EXISTS", stateColor:"#3FCD3C", timing:"awaited before scene change",
+          trigger:"_play_victory_march() → CombatStage3D.play_victory_march(uids, distance, duration)",
+          body:"Swaps the default clip to Run and walks the party off. Keep it. Add a UI layer on top: the bottom deck slides down 296px and the top rail slides up 96px over 260ms as the march starts, so the screen hands itself to the reward screen instead of cutting." },
+      ],
+
+      screens: [
+        { name:"RUN MAP", file:"RunMap.tscn · RunMapController.gd",
+          body:"A node is a TOKEN, not a coloured square. Each one is a rounded plate in its type's base tone with one lighter block across the top 44% and one darker lip across the bottom 19%, a pure-black outline and a hard shelf; the icon sits on a cream disc with its own 3px edge, because the shipped glyphs are drawn with black outlines and vanish on a saturated fill. Tones: battle #D8342F/#F54540/#A32320 · elite #A353E8/#BF6BFF/#7B34B8 · event #1FA8DE/#31C6FF/#16789E · merchant #E8802F/#FF9345/#B35B15 · treasure #E5AC2A/#FFC445/#A97C12. Visited flips to parchment #C6B79B/#E2D5BC/#9A8B70 with the icon at 50% and a 30px SUCCESS tick stamped on the corner. Fogged is #161A22/#1F242E/#0F1218 with a cream ? on a #0B0D12 disc. The current node is 122px with a 5px edge, a 0 8px 0 shelf and a blinking PRIMARY ring — that ring's keyframe animates opacity, so it MUST be toggled with visibility, not modulate, or every node on the board lights up. Edges draw twice: a 14px pure-black casing under a 6px core, cream #FFC79B on branches open to you and dashed #242A34 on everything else. NEW IN v2: the party's lead Axie stands on the current node — the back-view sprite at 132px with a 104×20 shadow ellipse, feet planted on the token's top edge, bobbing on the same 3.6s loop the combat models use.",
+          box:"rail 344 @ left 28 · lanes x 780 / 1150 / 1520 · row pitch 118 · token 122 here / 106 open / 94 fog / 80 done · disc 74/64/56/48 · lead Axie 132 @ x 1150, feet y 566" },
+        { name:"RUN MAP · left rail and header", file:"RunMap.tscn · RunMapController.gd",
+          body:"v2 collapses four stacked panels into ONE card 344 wide, hugging its content — it must not stretch. Order inside: run name + mode chip on one row, seed line, then three stat figures laid out as flex cells divided by 2px rgba(255,147,69,.22) rules (no wells, no boxes); a full-width rule; PARTY as five rows of 46px portrait + name/HP + 9px bar + tier chip; a 17px gap; a rule; RELICS as three rows of 34px icon + name + effect. SAVE & QUIT is a separate button pinned to the bottom of the rail by a flex spacer, on a 92%-alpha panel so the art reads behind it. Deleted in v2, do not rebuild: the THIS RUN trail panel, the daily-mission line, and the five-chip node legend. The header is one row at top 30: THE PATH at 44/800 with its subline on the left, and the boss as a 66px ribbon pinned RIGHT — the old 1000×70 banner across the middle of the board is gone, which returns 100px of map height.",
+          box:"rail 344 @ left 28 · card auto-height · stat cell divider 2px · party portrait 46 · relic icon 34 · SAVE & QUIT h 52 @ bottom 28 · header h 66 @ top 30 · boss ribbon h 66, right-aligned" },
+        { name:"REWARD PICK", file:"RunMap.tscn overlay",
+          body:"Three cream cards, each with a 46px header band in its rarity colour carrying the kind on the left and the rarity on the right — the band IS the rarity chip, so there is no second badge. Icon in a 132px cream tile, name at FONT_DISPLAY 31, rule text at 14/600 on an 84px min-height so all three cards stay level. Reroll and skip sit 96px below the cards so neither is ever a mis-click for TAKE.",
+          box:"card 440 · gap 28 · row @ top 288 · header 46 · icon tile 132 · TAKE h 60 · footer @ bottom 96" },
+        { name:"SHOP", file:"RunMap.tscn overlay",
+          body:"The merchant is a character on the left with his own quote plate; stock is a cream list on the right under a PRIMARY header band. Each row is a cream card with the item's rarity as a 62px icon tile. Owned takes a SUCCESS button with a tick and no shard glyph; affordable takes PRIMARY. Those two must never share a look — DangoTheme.owned_button_style()'s own doc comment already argues why.",
+          box:"panel 1100 @ right 64 · row h 90 · icon tile 62 · buy button 178×56 · LEAVE h 60" },
+        { name:"EVENT", file:"RunMap.tscn overlay",
+          body:"Option rows are cream cards with a 74px colour tab on the left holding the option's glyph, and a risk chip beside the title — SAFE in SUCCESS, HIGH RISK in DANGER — so the wager is legible before it is taken. Options needing the unported FACE_POOL are filtered upstream by playable_event_options(); the UI never shows a choice that does nothing.",
+          box:"column 1040 centred @ top 398 · row h 96 · colour tab 74 · hover translateX 8" },
+        { name:"TREASURE", file:"RunMap.tscn overlay",
+          body:"A reveal, not a list: chest at 240px on the left, one cream relic card at 470px on the right under a rarity band, with smash-for-shards as a secondary cream button inside the same card.",
+          box:"chest 240 · card 470 · gap 44 · TAKE IT flex · SMASH 196×56" },
+        { name:"RESULT", file:"Result.tscn · ResultView.gd",
+          body:"v2 makes the surviving party the hero of the screen. Five columns centred: a 152px portrait tile in the class colour with a 5px black edge and a 0 8px 0 shelf, and under it — overlapping the tile by 16px — a 168px plate at rgba(11,13,18,.9) — PANEL_ON_ART one step darker, because it overlaps the class-coloured tile — with a 3px black edge carrying the name at 22/800, the tier and HP figure on one row, and a 138px HP bar. That plate is not decoration: the tier label and the green/orange HP figures sit on bright foliage and fail contrast without it. Below the party, run stats are ONE ribbon 106px tall — six figures at 38/800 in a single dark panel, divided by 2px rgba(255,147,69,.22) rules, not six wells in a box. Then one row of three: the shard payout as the only CREAM card on the screen (560 wide, the payout at 58/800), pass XP, and relics carried. The six stat figures need the run-level accumulator specified in §09.",
+          box:"party @ top 262, portrait 152, plate 168 overlapping −16, gap 28 · stat ribbon 106 @ top 558 · card row @ top 692, shard card 560 · CTAs 340/250 × 72 @ bottom 52" },
+        { name:"MAIN MENU", file:"MainMenu.tscn · MainMenu.gd",
+          body:"Identity block and the two run buttons on the left, the whole run setup as one 566px panel on the right, the team lineup along the bottom left, and the six nav tiles as a compact 3×2 block at bottom right. BEGIN RUN is the largest object on the screen at 530×86 with a 5px black edge and a 0 7px 0 shelf that collapses to 0 3px 0 on press. The nav tiles are the entry points the gap inventory lists as missing from scMenu — Pass, Unlocks, Vault, Sample Teams, Codex, Collection. v2 keeps them deliberately small: they are secondary navigation and must not compete with the team cards for the eye, and at their old 182×84 they crowded the Axie art. This screen is the one place the scrim runs horizontally (see §00) so the title has ink behind it while the art stays open on the right.",
+          box:"title block @ 84,78 · BEGIN RUN 530×86 · CONTINUE 530×68 · setup panel 566 @ right 84 · team card 220, art 124 · nav tile h 66 in 3 cols, block 452 @ right 84" },
+        { name:"TEAM SELECT", file:"MainMenu.tscn (own screen)",
+          body:"Five equal cream cards, each with a class-coloured header band carrying name and class. Inside: hero picker, then the v2 hero band — a 186px tile in the class colour with the Axie at 164px, TIER 1 as a dark badge bottom-left and the HP figure as a cream badge bottom-right, both overlaid on the art rather than set beside a thumbnail. Then the class passive in a PRIMARY block with dark ink, and all six faces in a 2-column grid with part icon, value, type swatch, PART · TYPE and keywords. The passive text is what the current screen is missing and it is already in ContentDB.CLASS_PASSIVE — the game applies FERAL today and never tells the player FERAL exists.",
+          box:"5 × flex, gap 14 @ top 150 · header 40 · hero band 186, art 164 · HP badge h 32 · face cell pad 8 9 · face value 24" },
+        { name:"PASS · UNLOCKS · VAULT · GUIDES · CODEX", file:"see mockup",
+          body:"Pass: 30 tiles in a 6-column grid, 72px tall, claimable in a SUCCESS fill with dark ink, claimed in cream, locked in a #10131A well — the tile's own fill states its status, so no extra badge. Unlocks: a numbered ladder of ten, owned rows flipped to cream with a SUCCESS button, and a NO EFFECT YET tag on u_relic1/u_relic2/u_face1/u_face2, which are sold but inert in this port. Vault: import field visibly disabled with the real reason on a DANGER plate, and each record is a cream card whose preview box is labelled AxieCharacter3D · FROM GENES next to the die those six real parts produce. Guides: the four sample teams with their prose copied, not rewritten, under archetype-coloured bands. Codex: see §08 — ten tabs, five layout archetypes, content authored later.",
+          box:"pass tile h 72 in 6 cols · unlock row h 74, buy 176×50 · vault card flex, preview 224 tall · guide card flex · codex rail 294 + cream pane" },
+      ],
+
+      order: [
+        { n:"1", title:"Ship the fonts and the Theme resource", body:"Baloo 2 (display) + Work Sans (prose) under assets/fonts/, one Theme applied at the root of all six scenes, DangoTheme.FONT wired to it. Nothing else in this spec looks right until this lands, and it changes every screen at once. See the flagged font deviation in §02 first." },
+        { n:"2", title:"Surfaces and outlines in DangoTheme.gd", body:"Add PANEL, PANEL_RAISED, WELL, CARD_CREAM, SH_SHELF, INK_ON_PRIMARY and the DISABLED rule; raise every border to 3–4px pure black; delete every gradient and blurred shadow; fix the white-on-orange primary ink. One file, every screen benefits, no layout risk." },
+        { n:"3", title:"Combat: the bar, the deck and the front line", body:"TopBar to full-width h 74 with five plate groups; BottomBar → BottomDeck h 216 with three zones (mana + actives · dice · reroll + end turn); the log panel deleted; the front-line rule with its two diamond caps added at y 480 — rule only, no threat plate and no row labels; the incoming total lives on the party nameplates. Do the stage background first (§03, first entry): every other value on this screen was tuned against it. The change the player feels most, and it touches no gameplay code." },
+        { n:"4", title:"Combat: die card and nameplate", body:"Die slot child tree at 180×158 — cream card, class-coloured header, real part icon, the face-type glyph in its coloured tile. Plus HP numerals, the at-risk bar slice and a fixed-height status strip on every nameplate. All pure presentation over data CombatView already has." },
+        { n:"5", title:"Combat: the juice layer", body:"Dice toss, float numbers, hit flash, shake, turn banner — in that order, each behind disable_juice_for_tests. float_text is already being emitted and thrown away, so the numbers are the cheapest of the five." },
+        { n:"6", title:"Run Map and Main Menu", body:"The two screens whose problem is layout rather than detail. Both are self-contained and neither blocks the other." },
+        { n:"7", title:"The overlays, then the meta screens", body:"Reward, shop, event, treasure share one overlay builder in RunMapController — restyle it once and all four land together. Then Result, Team Select, Pass, Unlocks, Vault, Guides, and Codex last, because its content needs a rules audit before it can be trusted." },
+      ],
+
+      redline: [
+        { el:"Stage background", box:"texture at saturate(1.02) brightness(.74) · scrim linear 180deg .62 / .20 @26% / .10 @52% / .50 @80% / .76", note:"The single biggest change in v2 and the one to do first, because every other value on this screen was tuned against it. The old stage ran the painted plate at brightness .50 under a flat rgba(14,16,22,.32) wash, which threw away the one asset that makes the screen look like Axie. The scrim is DIRECTIONAL: dark under the top bar, open through the middle band where the models stand, dark again under the deck. Never darken the whole plate again to fix a contrast failure — put a plate behind the text instead." },
+        { el:"TopBar", box:"full width · h 74 · PANEL (#1B1F27, chrome tone) · border-bottom 4px #000 · pad 0 20 · gap 14", note:"Edge to edge, not an inset floating rail — the bar IS the top of the frame. Five groups left to right: node chip (38px icon tile in DANGER + BATTLE NODE / WAVE n) · wave track · flexible spacer · turn pill · relics, shard, utilities. Every group is a 3px-outlined plate on the bar, so the bar reads as a shelf holding objects." },
+        { el:"Wave track", box:"h 40 well · pips 11×12 (current 17, boss 14) · border 2px #000 · gap 4", note:"One pip per wave inside a #141820 well. Cleared = PRIMARY, current = #FFC79B and wider, future = #39404E, final boss = DANGER. Chunky enough to count at a glance, which a 7px bar was not." },
+        { el:"Turn pill", box:"h 48 · pad 0 22 · radius 999 · PRIMARY fill · 3px #000 · shelf 0 4px 0", note:"Dark ink #2A1505 on the Kam fill (11.4:1) — never white, which was the old 2.2:1 pair. 11px ink dot blinking 1.6s, YOUR TURN at FONT_DISPLAY 20/800/.1em, 2px divider, TURN n at 18. Flips to a DANGER fill for the enemy phase." },
+        { el:"Front line", box:"y 480 · rule 6px #000 + 2px rgba(243,231,211,.16) · inset 40 each side · 14px diamond cap each end", note:"One rule across the arena: above it is theirs, below it is yours. v2 removed the ENEMIES and YOUR TEAM chips that used to hang off it — the two rows are separated by ground position and by the party being back-view, so the labels were chrome. The rule and its two diamond caps stay. The INCOMING total moved into the party nameplates as the per-Axie incoming chip; do not rebuild a centre threat plate." },
+        { el:"Enemy row", box:"top 150 · h 326 · col 186×320 · gap 104", note:"Stacked: intent plate 42 · status strip 28 · nameplate 64 · model 168. Sprite heights come from CombatStage3D's per-creature table (Chomper 190, Warden 166, Stalker 196) and overflow the 168 container upward, which is why the container is bottom-anchored." },
+        { el:"Intent plate", box:"h 42 · pad 0 10 0 6 · radius 12 · flat DANGER (dmg) or SHIELD_BLUE (shield) · 3px #000 · shelf 0 4px 0", note:"26px icon tile at rgba(0,0,0,.26) · numeral FONT_DISPLAY 24 · 2px divider · target name at 12/800. Numeral AND target both in ink #1A1206 — the numeral was cream, which measured 1.87:1 on the cyan fill and put an illegible number next to a legible label on the same plate. Target is folded into the plate rather than sitting under it: it saves 26px of stack and keeps attacker→target on one object." },
+        { el:"Status strip", box:"fixed h 28 · chip h 28 · pad 0 8 0 4 · radius 9 · 3px #000 · flat status colour · ink #1A1206", note:"Above the nameplate, always present even when empty — that is what keeps all five party HUDs and all three enemy HUDs on one line. 16px glyph from assets/fx + the count at FONT_DISPLAY 16/800." },
+        { el:"Nameplate", box:"enemy 176×64 · party 176×68 (border-box) · pad 5 10 · radius 12 · PANEL_DEEP (#161A21) · 3px #000 · party top border 6px class colour", note:"Fixed height so nothing moves. v2 grew both plates and their type one step, because the brightened stage means the plate is now the only dark object under the model and it has to hold the read on its own. Row 1 (h 20): name at 17/700, the incoming chip, hp/max at 18/800 in hp_color(). Row 2: the bar. The party plate's class colour lives in its top border — the model's own colour cannot be relied on for class identity." },
+        { el:"HP bar", box:"h 13 · radius 7 · well #0B0D12 · 3px #000 · three stacked fills", note:"Bottom fill = hp in hp_color(). Over it, from the right edge of that fill leftward, a #7A1F1C AT-RISK slice = min(hp, incoming − shield) ÷ max — so the bar shows what survives the telegraphed hit. Over both, from x=0, the #31C6FF shield segment with a 3px black right edge. One bar, read left to right: blue absorbs, green remains, dark red is gone." },
+        { el:"Incoming chip", box:"h 18 · pad 0 5 0 3 · radius 6 · DANGER · display:none at 0", note:"Inline between the name and the hp figure, not a pill hung off the plate corner — the corner version covered the name. It must be display:none rather than opacity 0, or it reserves 36px and truncates Machito and Pomodoro." },
+        { el:"Party row", box:"top 530 · h 318 · col 180×296 · gap 14 · model 200 container / 190 art", note:"Column pitch 194 (180 + 14) and centred on x=960 — identical to the die tray, which is what pairs an Axie with its die with no connector. Change one and change both. Models are BACK-VIEW: the party faces the enemy line, as the engine's camera shows it." },
+        { el:"Status ground decal", box:"party 142×28 · enemy 138×28 · radius 50% · 3px #000 · flat status colour, full opacity", note:"The in-world half of a status. Drawn UNDER the unit's own dark shadow ellipse so it reads as a rune the unit stands in. Not a disc behind the body: under the no-gradient rule a flat fill on a circle has a hard edge by definition, and that version composited to a muddy plate that fattened the silhouette." },
+        { el:"Shield bubble", box:"164×170 ellipse · 4px #31C6FF · 0 0 0 3px #000 inside and out", note:"The one status that gets a body treatment instead of a floor decal, because it is the one worth reading from across the board." },
+        { el:"Bottom deck", box:"h 216 · bg #171A21 · border-top 4px #000 · inner 16/24 · three zones 272 / flex / 272", note:"Left: mana card + relic actives. Centre: the five die cards. Right: Reroll + End Turn, nothing else. Mana sits with the actives because mana is only ever spent on them; Reroll and End Turn sit together because they are the two ways to finish a turn. The battle-log panel is gone — the LOG utility already holds the history." },
+        { el:"Die card", box:"180 × 158 · radius 15 · CARD_CREAM · 4px #000 · shelf 0 6px 0", note:"Header 36px in the class colour with a 3px black underline: 26px round portrait, name at FONT_DISPLAY 18/800 with the full width to itself. Face row 62: 41px part-icon tile (icon 28) · value at 38/800 in ink · 26px tile in the face-type colour carrying that type's real glyph. Caption PART · TYPE at 9px/700, nowrap. Keyword row fixed 24. Face track: six 10px bars, rolled one in its type colour, rest #D6C6A8. State pill hangs off the BOTTOM-right edge so it never crowds the name." },
+        { el:"Die card · selected", box:"translateY −16 · ring inset −6 · 4px PRIMARY + 0 0 0 3px #000", note:"160ms cubic-bezier(.2,.9,.3,1.3). SPENT drops to opacity .55 and ignores hover. One die selected at a time." },
+        { el:"Legal-target ring", box:"inset −10 · radius 18 · 4px PRIMARY (enemy) / SUCCESS (party) · 0 0 0 3px #000 in and out", note:"Solid ring, no glow — a glow is a gradient. Attack/poison/debuff faces light the enemies; shield/heal/buff faces light the party. Clicking an illegal target opens the inspector instead of erroring." },
+        { el:"Mana + actives", box:"mana card 272×72 · orb 52 · actives card 272×66", note:"Orb is a flat MANA_PURPLE circle with a 4px black edge and the value at FONT_DISPLAY 27 in ink. An unaffordable active takes a flat desaturated #4A3F58 fill with its ink at FULL strength (title #F3E7D3, cost #E7CEFF, NEED n in #FF9A96) — a blanket opacity drops the text with the card, and the cost line is the entire reason that card is on screen." },
+        { el:"Reroll", box:"272×56 · PANEL_RAISED · 3px #000 · shelf 0 4px 0 · hover fill PRIMARY", note:"Icon + REROLL at FONT_DISPLAY 20/800 on the left, three 13px pips on the right, black-outlined, spent ones #39404E." },
+        { el:"END TURN", box:"272×72 · radius 15 · PRIMARY · 4px #000 · shelf 0 6px 0", note:"Ink #2A1505 at FONT_DISPLAY 26/800 plus a SPACE key chip in #2A1505/#FFC79B. Hover lightens to #FFAC6B; active darkens to #E2761F, drops to 0 2px 0 and translates +4 — the shelf being taken away is the press." },
+        { el:"Turn banner", box:"centre 44% · pad 18 64 · radius 20 · DANGER · 5px #000 · shelf 0 7px 0", note:"WAVE n at 16/800/.3em over the phase at FONT_DISPLAY 56. 1500ms: in over 26%, hold to 76%, out scaling to 1.04. Non-blocking." },
+        { el:"Unit inspect", box:"500 wide · radius 20 · CARD_CREAM · 5px #000 · shelf 0 8px 0 · scrim rgba(11,13,18,.82)", note:"Class-coloured header band with a 4px black underline: 54px round portrait, name at FONT_DISPLAY 27, meta line, class tag as an ink pill. Body: passive in a #FFF8EA block, then six 44px face rows each with part icon, value, the type tile with its glyph, PART · TYPE · KEYWORDS, and ROLLED on the live face. Values are the LIVE ones." },
+      ],
+      tree: "CanvasLayer/Root (Control, 1920×1080)\n"
+        + "├── Background          BattleBackdrop.gd        brightness .50, no blur\n"
+        + "├── Scrim               ColorRect + GradientTexture2D   5-stop directional, see §00\n"
+        + "├── Stage3D             CombatStage3D.tscn       anchors top .13 / bottom .78\n"
+        + "├── UnitVisualsRoot     Control                  HUDs + decals per unit\n"
+        + "├── FrontLine           Control  y 480           ← new\n"
+        + "│   ├── Rule            ColorRect 6px #000 (+2px #F3E7D3 @16%)\n"
+        + "│   └── CapL / CapR     ColorRect 14px, rotated 45°   no labels, no threat plate\n"
+        + "├── TopBar              PanelContainer  h 74, edge to edge\n"
+        + "│   └── Row (HBox, sep 14)\n"
+        + "│       ├── NodeChip      PanelContainer        %WaveLabel\n"
+        + "│       ├── WaveTrack     HBox in a well        %WaveTrack\n"
+        + "│       ├── Spacer        Control  expand\n"
+        + "│       ├── TurnPill      PanelContainer        %TurnCaption %TurnValue\n"
+        + "│       ├── RelicStrip    HBox, sep 6           %RelicStrip\n"
+        + "│       ├── ShardChip     PanelContainer cream  %ShardValue\n"
+        + "│       └── ButtonsRow    HBox, sep 5           %Undo %Info %Log %Sound\n"
+        + "├── BottomDeck          PanelContainer  h 216, border-top 4px #000\n"
+        + "│   └── Row (HBox, sep 18, align end)\n"
+        + "│       ├── LeftColumn   VBox  w 272\n"
+        + "│       │   ├── ManaCard      PanelContainer  h 72   %ManaValue\n"
+        + "│       │   └── ActivesList   VBox            h 66   %ActivesList\n"
+        + "│       ├── DiceTrayGrid  GridContainer  columns 5, h_sep 14   %DiceTrayGrid\n"
+        + "│       │   └── DieSlot0..4  Button  180×158  toggle_mode\n"
+        + "│       │       ├── Header      HBox  h 36, class fill   portrait · name\n"
+        + "│       │       ├── FaceRow     HBox  h 62   part tile 41 · value · type tile\n"
+        + "│       │       ├── Caption     Label 9px  PART · TYPE\n"
+        + "│       │       ├── KeywordRow  HBox  fixed h 24\n"
+        + "│       │       ├── FaceTrack   HBox  six 10px bars\n"
+        + "│       │       ├── StatePill   PanelContainer  anchored bottom-right\n"
+        + "│       │       └── SelRing     Panel  inset −6, hidden\n"
+        + "│       └── RightColumn  VBox  w 272\n"
+        + "│           ├── RerollButton  Button  h 56   %RerollButton %RerollPips\n"
+        + "│           └── EndTurnButton Button  h 72   %EndTurnButton\n"
+        + "├── TurnBanner          PanelContainer  centre 44%, hidden   %TurnBanner\n"
+        + "├── UnitInspect         Control  hidden               %UnitInspect\n"
+        + "└── DebugLogPanel / InfoPanel   unchanged, anchored under TopBar",
+
+      treeNotes: [
+        { tag:"→", body:"TargetLines is REMOVED from the scene. The dashed curves are gone: the intent plate names the target and the target's own plate carries the number plus the at-risk slice on its bar, so the lines were a third copy of information already on screen twice — and at this row spacing they crossed the nameplates." },
+        { tag:"→", body:"PlayerLogPanel / PlayerLogStrip are REMOVED from the deck. The LOG utility button already owns the history; a three-line ghost of it was spending 272×120 of the action bar on something the player cannot act on." },
+        { tag:"→", body:"DieSlot0..4 stay Buttons with toggle_mode, so _on_die_slot_pressed(slot_index), keyboard focus and the 1–5 hotkeys keep working. custom_minimum_size goes 164×150 → 180×158, and _build_die_slot_content() builds the child tree above instead of setting btn.text." },
+        { tag:"→", body:"Tray pitch is 194 (180 + 14 separation) and the party row uses the same column width and separation. This is the one cross-scene constraint in the file: if either changes, both change, or an Axie stops lining up with its die." },
+        { tag:"→", body:"The mana cell moves OUT of %StatsRow and into the deck's left column beside the actives. _build_top_bar()/_add_stat_cell() keep generating the other cells; they just emit into the new group parents." },
+        { tag:"→", body:"Status decals are Decal nodes (or billboarded quads) on the floor plane under each unit, parented in the 3D scene and driven off EventBus.status_tick — not Control nodes, so the HUD always draws over them." },
+        { tag:"→", body:"Add DangoTheme.style_scrollbars() to every ScrollContainer on the meta screens, and give its grabber the same 3px black outline as everything else. Stock Godot scrollbars are the loudest remaining engine-default tell." },
+      ],
+
+      howTo: [
+        { tag:"SOURCE OF TRUTH", body:"Four HTML mockups in this project, all authored at 1920×1080: Godot Combat v2, Godot Run Flow v2 (map · reward · shop · event · treasure · result), Godot Meta Screens v2 (menu · team · pass · unlocks · vault · guides · codex), and this spec. Open them in a browser and read the DOM — every inline style is a real value. Where this spec and a mockup disagree, the MOCKUP wins and the spec is wrong; say so rather than guessing. The unsuffixed files are the superseded first pass, kept only for comparison — do not build from them." },
+        { tag:"THREE RULES", body:"Everything in v2 follows three rules, and a new screen that breaks one is wrong even if it matches its own redline. (1) THE ART LIVES: the painted plate runs bright under a directional scrim, never a flat black wash. (2) ONE HERO, ONE RAIL: each screen has exactly one dominant object and at most one consolidated rail — if a screen has four panels of equal weight, merge them. (3) AXIES AT SCALE: wherever an Axie can be shown at size, it is; portraits below ~120px are for lists only." },
+        { tag:"STILL FLAT", body:"Two opaque dark tones coexist on purpose and §02 names both: PANEL #1B1F27 for chrome that frames the screen, PANEL_DEEP #161A21 for panels sitting on open artwork. A #1B1F27 fill in a mockup is not a leftover — check which job the surface is doing. The brightened background does NOT loosen the surface rules. UI surfaces stay flat fills with 3–4px pure-black outlines and hard offset shelves — no gradients, no blurs, no glass, no soft shadows. The only gradients in the whole design are the background scrims described below. Display type is Baloo 2 (approved §02); prose is Work Sans. No colour that is not in §02." },
+        { tag:"CONTRAST", body:"Body-size text needs 4.5:1 against what is actually behind it, which on these screens means the composited artwork, not the panel colour you intended. Where text sits directly on art, give it a plate — the Result party block and the map rail are both built that way. Do not fix a contrast failure by darkening the whole background; that undoes rule 1. Semantic colours (HP green/amber/red, class colours) may not be recoloured to pass — move them onto ink." },
+        { tag:"ORDER", body:"Build in the sequence in §07. §04 is the Combat.tscn node tree, §05 the animation cues, §08 the Codex layout contract, §09 the RunStats accumulator the Result screen needs. Sections 03 and 06 are the redlines; every number in them is authored at 1920×1080 against a STRETCH canvas_items / aspect expand root." },
+      ],
+
+      bgFormula: `Every screen is: painted plate → directional scrim → UI.
+
+  texture   filter: saturate(1.05) brightness(.82)        (Combat: saturate(1.02) brightness(.74))
+
+  scrim     default  radial-gradient(125% 95% at 55% 8%,
+                       rgba(14,16,22,.04) 0%, rgba(14,16,22,.40) 52%, rgba(14,16,22,.84) 100%)
+
+            Result   linear-gradient(180deg, rgba(14,16,22,.80) 0%, rgba(14,16,22,.52) 22%,
+                       rgba(14,16,22,.34) 40%, rgba(14,16,22,.82) 88%, rgba(14,16,22,.92) 100%)
+                     — title band needs ink; the party row in the middle does not.
+
+            Menu     linear-gradient(100deg, rgba(14,16,22,.94) 0%, rgba(14,16,22,.80) 28%,
+                       rgba(14,16,22,.30) 52%, rgba(14,16,22,.52) 78%, rgba(14,16,22,.78) 100%)
+                     — the only horizontal scrim: ink under the title, art open on the right.
+
+            Combat   linear-gradient(180deg, rgba(14,16,22,.62) 0%, rgba(14,16,22,.20) 26%,
+                       rgba(14,16,22,.10) 52%, rgba(14,16,22,.50) 80%, rgba(14,16,22,.76) 100%)
+                     — dark under the top bar and the deck, open through the model band.
+
+In Godot: a TextureRect (STRETCH_KEEP_ASPECT_COVERED) with a CanvasItemMaterial doing the
+brightness/saturation, and a ColorRect above it with a GradientTexture2D matching the stops.`,
+
+      codexLayouts: [
+        { id:"steps", tabs:"HOW A TURN WORKS", body:"Numbered vertical rows, 40px orange step chip, title + body, optional 74×40 art slot on the right. Six steps fit without scroll." },
+        { id:"grid", tabs:"BODY PARTS · KEYWORDS · RELICS · THE MAP · STATUS EFFECTS", body:"Three-column cards, 88px fixed height so rows never jump: 46px icon plate, name at 16/800, body at 12/600. Relics take the rarity colour on the icon plate; map nodes reuse the three-tone node token from the Run Map." },
+        { id:"split", tabs:"DICE & FACES · FORMATION RESONANCE", body:"330px diagram panel pinned left with a caption under it, list of rows filling the rest. The diagram is one static illustration per tab — the only two places the Codex needs art that is not an icon." },
+        { id:"cards", tabs:"CLASSES & PASSIVES", body:"Six cards, three across, 9px class-colour band on top of each and the same colour on the 48px art plate. Class name is set in the layout; passive name and rule come from data." },
+        { id:"table", tabs:"SCORING", body:"2fr / 1fr / 1fr / 3fr columns, 52px rows alternating #FFF8EA and #F7EEDC, header band #E2D2B6. Head labels ship with the layout; rows come from the economy table." },
+      ],
+
+      runStatFields: [
+        { field:"waves_cleared", tile:"TILE 1", hook:"Incremented where the combat scene emits its own completion — one per cleared encounter, against the run length the map generated." },
+        { field:"turns_taken", tile:"TILE 2", hook:"+1 on every end-turn the player commits, summed across encounters. Rerolls do not count; an auto-passed turn does." },
+        { field:"damage_dealt", tile:"TILE 3", hook:"Sum of applied damage from every source the player owns — die faces, Thorns, Poison ticks. Post-Shield, post-modifier, clamped to remaining HP." },
+        { field:"kills", tile:"TILE 4", hook:"+1 whenever an enemy unit reaches 0 HP, regardless of source. Friendly deaths do not subtract." },
+        { field:"biggest_hit", tile:"TILE 5", hook:"max() of a single die resolution against a single target. Excludes damage-over-time and Thorns so the number matches what the player saw fly off the sprite." },
+        { field:"axies_lost", tile:"TILE 6", hook:"+1 per party unit that reaches 0 HP, counted once per unit per run even if a relic revives it." },
+      ],
+
+      typeScale: [
+        { token:"FONT_DISPLAY", spec:"Baloo 2 · 700/800  ✔ APPROVED 20 SEP 2026", use:"Titles, every numeral, unit names, die values, button labels. Not Work Sans — signed off 20 Sep 2026; the reason is recorded in the note below." },
+        { token:"FONT_UI", spec:"Work Sans · 500/600/700", use:"Prose only: log lines, passive and relic body text, descriptions. Dango's host font, unchanged." },
+        { token:"display", spec:"FONT_DISPLAY 56–104 · w800 · ls .04em", use:"Screen titles, RUN COMPLETE, AXIE DICE TACTICS" },
+        { token:"stat_xl", spec:"FONT_DISPLAY 52 · w800", use:"Die face value, on cream" },
+        { token:"stat_l", spec:"FONT_DISPLAY 36 · w800", use:"Enemy intent number, mana orb" },
+        { token:"stat_m", spec:"FONT_DISPLAY 19 · w800", use:"HP on a nameplate" },
+        { token:"label", spec:"FONT_DISPLAY 17–21 · w700/800 · ls .03em", use:"Unit names, item names, die card header" },
+        { token:"caption", spec:"FONT_DISPLAY 12–16 · w700/800 · ls .05–.14em", use:"Chips, eyebrows, keyword pills. 12px floor on dark panels. The die card's PART · TYPE caption is the one deliberate exception at 9px — it sits on cream at 5.8:1 and was taken down on purpose so it can never wrap." },
+      ],
+
+      artRules: [
+        { rule:"One outline: pure #000000", body:"4px on cards, rails and buttons; 3px on chips and bars; 5–6px on the hero objects (die cards, dialogs, the End Turn button). Never a translucent hairline, never rgba. In Godot: StyleBoxFlat.border_color = Color.BLACK with set_border_width_all().", src:"kit README · \"One outline: pure #000000, 9 units, round joins and caps\"" },
+        { rule:"Two flat tones per surface. No gradients.", body:"A base fill and at most one lighter block — a solid band, not a ramp. Panel base #1B1F27 as chrome and #161A21 over art, raised block #262C36, well #10131A. Every linear-gradient, radial-gradient, backdrop-filter and box-shadow glow from the previous pass is removed. The only remaining gradient in the whole screen is the painted background photograph itself.", src:"kit README · \"No gradients; there are none anywhere in the kit\"" },
+        { rule:"Shadows are hard shelves, not blur", body:"box-shadow 0 5px 0 rgba(0,0,0,.45) on plates, 0 7px 0 rgba(0,0,0,.5) on die cards and the CTA. A pressed button drops to 0 3px 0 and translates down 4px, so the shelf reads as depth being taken away. In Godot use StyleBoxFlat.shadow_offset with shadow_size = 0.", src:"derived — a blurred shadow is the tell of the dark-dashboard look this replaces" },
+        { rule:"Cream is the reading surface", body:"#F3E7D3 base, #FFF8EA raised, ink #1A1206 (12.9:1). Anything a player has to READ — a die card, the inspector, a tooltip — is a cream card with a class-coloured header, like the game's own card art. The dark panels carry chrome, not paragraphs.", src:"derived from Origins card art + the Dango dark canvas for chrome" },
+        { rule:"Colour is a solid fill, never a tint", body:"A status chip is the status colour at full strength with black ink on it, not an 8%-alpha wash of it. Same for intents, rarities and the class header. This is what makes the screen read as Axie rather than as a dark analytics panel — the previous pass tinted everything to 6–14% alpha and lost every one of these colours.", src:"Dango · \"intents, not colors\"" },
+      ],
+    };
+  }
+}
+</script>
+</body>
+</html>
