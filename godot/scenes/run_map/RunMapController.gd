@@ -1369,13 +1369,13 @@ func _finish_node() -> void:
 #
 # `_overlay_vbox` is the card host of whichever screen is open: the reward row, the shop's item
 # list, the event's option list, the treasure card column. It is a VBoxContainer laid out
-# horizontally (BoxContainer.vertical = false) on the REWARD screen, where the mockup puts the
+# horizontally (an HBoxContainer) on the REWARD screen, where the mockup puts the
 # three cards side by side.
 # ===========================================================================
 
 var _overlay_layer: CanvasLayer = null
 var _overlay_root: Control = null
-var _overlay_vbox: VBoxContainer = null
+var _overlay_vbox: BoxContainer = null
 
 ## Reward card, mockup: `width:440px`, radius 20, 5px black, shelf `0 8px 0`, on CREAM.
 const _REWARD_CARD_W := 440.0
@@ -1383,6 +1383,7 @@ const _REWARD_CARD_GAP := 28
 ## Shop panel, mockup: `top:58px; right:64px; width:1100px`.
 const _SHOP_PANEL_W := 1100.0
 const _SHOP_PANEL_TOP := 58.0
+const _SHOP_MERCHANT_H := 520.0   ## SHP-01, mockup `height:520px`
 const _SHOP_PANEL_RIGHT := 64.0
 ## Event option list, mockup: `top:398px; width:1040px`, centred, `gap:14px`.
 const _EVENT_LIST_W := 1040.0
@@ -1392,6 +1393,7 @@ const _EVENT_LIST_TOP := 398.0
 const _SCREEN_GUTTER := 80.0
 const _TREASURE_ART := 240.0
 const _TREASURE_CARD_W := 470.0
+const _TREASURE_ROW_TOP := 276.0   ## TRS-01, the mockup's own `top:276px` for the pair
 
 ## Reward `t` -> the card's header-band kind label, the mockup's `w.kind` slot ("RELIC",
 ## "TIER UP"). Derived from reward_generator.gd's own seven `t` values; an unlisted type falls
@@ -1505,7 +1507,15 @@ func _eyebrow_chip(text: String, fill: Color, height: float, font_px: int,
 ## A cream reading card - the shape the reward, shop-row, event-option and treasure cards all
 ## share: CREAM, pure-black outline, hard shelf, contents clipped so a full-bleed header band
 ## keeps the card's own corner radius.
-func _cream_card(radius: int, border_w: int, shelf: float) -> PanelContainer:
+## `clip` is G3's rounded-corner clip. Pass FALSE for a card that goes inside another clipped
+## frame: Godot's `clip_children` is a canvas group, and canvas groups DO NOT NEST — the inner
+## group's contents simply do not draw. The shop rows are the case in this file: they sit inside
+## the clipped shop panel and rendered as four empty cream bars with every icon, name, price and
+## BUY button missing. A card only needs the clip when it has a full-bleed child of its own (a
+## header band, an accent rail) whose square corners would otherwise cut the frame's radius; a
+## row whose children are all inset by the content margins does not.
+func _cream_card(radius: int, border_w: int, shelf: float,
+		clip: bool = true) -> PanelContainer:
 	var card := PanelContainer.new()
 	card.clip_contents = true
 	var sb := StyleBoxFlat.new()
@@ -1524,7 +1534,8 @@ func _cream_card(radius: int, border_w: int, shelf: float) -> PanelContainer:
 	sb.content_margin_top = float(border_w)
 	sb.content_margin_bottom = float(border_w)
 	card.add_theme_stylebox_override("panel", sb)
-	DangoTheme.clip_to_frame(card)   # G3
+	if clip:
+		DangoTheme.clip_to_frame(card)   # G3
 	return card
 
 
@@ -1663,9 +1674,16 @@ func _show_reward_overlay(title: String, backdrop: Texture2D = null) -> void:
 	# Mockup: the card row at `top:288px`, centred, `gap:28px`. `_overlay_vbox` is the card host
 	# on every one of these screens; here the mockup lays the cards out ACROSS, so the box runs
 	# horizontally (BoxContainer.vertical, which VBoxContainer only presets rather than seals).
-	_overlay_vbox = VBoxContainer.new()
+	# RWD-02 — the three cards sit ACROSS, not stacked.
+	#
+	# This was a `VBoxContainer` with `vertical = false` set after construction. Godot refuses
+	# that: `BoxContainer::set_vertical()` opens with `ERR_FAIL_COND_MSG(is_fixed, ...)`, and
+	# both HBoxContainer and VBoxContainer are fixed — the assignment prints an error and leaves
+	# the box vertical. The reward screen shipped as three full-width cards stacked down the
+	# page, two of them off the bottom of the screen, which is the single furthest any screen in
+	# this build was from its mockup. An HBoxContainer is a row by construction.
+	_overlay_vbox = HBoxContainer.new()
 	_overlay_vbox.name = "RewardRow"
-	_overlay_vbox.vertical = false
 	_overlay_vbox.alignment = BoxContainer.ALIGNMENT_CENTER
 	_overlay_vbox.add_theme_constant_override("separation", _REWARD_CARD_GAP)
 	_overlay_vbox.set_anchors_preset(Control.PRESET_TOP_WIDE)
@@ -1899,13 +1917,34 @@ func _on_shop_node(_node_id: String) -> void:
 ## that plate. Per this task's art rule the build keeps whatever creature its own merchant data
 ## chooses rather than the mockup's - and this build's merchant node has no creature at all
 ## (MonsterArt has no merchant entry; the shop is a node type, not an encounter). Drawing the
-## mockup's dryad here would be taking the mockup's art, which the rule forbids. The sprite is
-## therefore absent and reported; the speech plate beside it, which is UI, is built.
+## The merchant sprite IS drawn (SHP-01) — see the comment at its TextureRect below for why the
+## previous pass's reasoning for leaving it out did not hold.
 func _render_shop() -> void:
 	# Re-rendered after every purchase, so this doubles as the shop's save point: shards spent
 	# and a relic gained must survive a quit even though the node is not finished.
 	_save_map_progress()
 	var host := _open_screen(MockupAssets.tex("assets/bg/shop.jpg"))
+
+	# SHP-01's merchant. Mockup: `left:84px; bottom:110px; height:520px; object-fit:contain`.
+	#
+	# This was left out of the last pass on the reading that drawing it would be "taking the
+	# mockup's art". It is not: `assets/mon/dryad-mage.png` is a path into THIS repo's own set
+	# (`assets/monsters/dryad-mage.png`, which `MockupAssets` already resolves and
+	# `t_mockup_assets.gd` already gates). The shop had a speech bubble with nobody speaking it
+	# and 800px of empty plate beside it — which reads as a missing asset, which is what it was.
+	var merchant := TextureRect.new()
+	merchant.name = "MerchantArt"
+	merchant.texture = MockupAssets.tex("assets/mon/dryad-mage.png")
+	merchant.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	merchant.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	merchant.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	merchant.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
+	merchant.grow_vertical = Control.GROW_DIRECTION_BEGIN
+	merchant.offset_left = 84.0
+	merchant.offset_right = 84.0 + _SHOP_MERCHANT_H
+	merchant.offset_top = -(110.0 + _SHOP_MERCHANT_H)
+	merchant.offset_bottom = -110.0
+	host.add_child(merchant)
 
 	# Mockup: `left:78px; bottom:44px; width:372px; padding:14px 16px`, radius 14 on PANEL.
 	var speech := PanelContainer.new()
@@ -2063,7 +2102,9 @@ func _add_shop_row(raw: Dictionary, index: int) -> PanelContainer:
 	var cost := int(it.get("cost", 0))
 	var afford := RunState.shards_this_run >= cost
 
-	var card := _cream_card(14, 4, 4.0)
+	# No clip: this row lives inside the clipped ShopPanel, and it has no full-bleed child that
+	# would need one. See _cream_card()'s note on nested canvas groups.
+	var card := _cream_card(14, 4, 4.0, false)
 	var card_sb := card.get_theme_stylebox("panel") as StyleBoxFlat
 	card_sb.content_margin_left = 20.0   # mockup `padding:14px 16px` on a 4px border
 	card_sb.content_margin_right = 20.0
@@ -2395,7 +2436,8 @@ func _on_event_choice(index: int) -> void:
 ## FLAGGED: the mockup's card carries a second button, "SMASH" for 60 shard, beside TAKE IT.
 ## There is no smash-a-relic-for-shards rule in this port (RunState has no such call), so that
 ## button is not drawn. FLAGGED: the mockup shows exactly one relic; this build's treasure is a
-## CHOICE of rewards, so the column holds one card per pending reward.
+## CHOICE of rewards, so the column holds one card per pending reward — and is capped and
+## scrolled when three of them do not fit, rather than clipped by the bottom of the screen.
 func _on_treasure_node(node_id: String) -> void:
 	RunState.generate_treasure_rewards(node_id)
 	var host := _open_screen(MockupAssets.tex("assets/bg/temple.jpg"))
@@ -2410,16 +2452,19 @@ func _on_treasure_node(node_id: String) -> void:
 	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	head.add_child(title)
 
+	# TRS-01 centres the art and the card "as a pair". The row therefore FILLS the space under
+	# the header rather than hanging off a fixed `top:276`: with one card that is the mockup's
+	# own position, and with the three this build offers the pair stays on screen instead of
+	# running the third card off the bottom edge.
 	var row := HBoxContainer.new()
 	row.name = "TreasureRow"
 	row.alignment = BoxContainer.ALIGNMENT_CENTER
 	row.add_theme_constant_override("separation", 44)
-	row.set_anchors_preset(Control.PRESET_TOP_WIDE)
-	row.grow_vertical = Control.GROW_DIRECTION_END
+	row.set_anchors_preset(Control.PRESET_FULL_RECT)
 	row.offset_left = _SCREEN_GUTTER               # see _screen_header() on the inset
 	row.offset_right = -_SCREEN_GUTTER
-	row.offset_top = 276.0
-	row.offset_bottom = 276.0
+	row.offset_top = _TREASURE_ROW_TOP
+	row.offset_bottom = -DangoScreen.SAFE
 	host.add_child(row)
 
 	var art := _mockup_icon("assets/node/treasure.png", _TREASURE_ART)
@@ -2454,6 +2499,17 @@ func _on_treasure_node(node_id: String) -> void:
 
 	for reward in RunState.pending_rewards:
 		_add_treasure_card(reward)
+
+	# The mockup draws exactly one card, so it never has to answer this; this build's treasure
+	# is a real choice of three. A column that does not fit is capped and scrolls (CLAUDE.md
+	# rule 3) rather than being clipped by the screen edge with no bar to say so.
+	var avail: float = row.size.y if row.size.y > 0.0 \
+		else get_viewport_rect().size.y - _TREASURE_ROW_TOP - DangoScreen.SAFE
+	if _overlay_vbox.get_combined_minimum_size().y > avail:
+		row.remove_child(_overlay_vbox)
+		var capped := DangoScreen.fit_or_scroll(_overlay_vbox, avail)
+		capped.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		row.add_child(capped)
 
 
 ## One treasure card. Mockup: 470 wide, radius 20, 5px black, shelf `0 7px 0`; a 46px header

@@ -210,7 +210,10 @@ func _build_title_band(s: Dictionary) -> void:
 	title.add_theme_constant_override("shadow_offset_x", 0)
 	title.add_theme_constant_override("shadow_offset_y", 5)
 	title.add_theme_constant_override("shadow_outline_size", 0)
-	col.add_child(title)
+	# Baloo 2 reports a ~147px font box at `font_size = 92`, against the 92px line the mockup
+	# draws. Unboxed, the title band grew by ~55px and pushed the seed line straight down into
+	# the party row, where it rendered behind the portraits.
+	col.add_child(DangoTheme.line_box(title, 92, 1.0))
 
 	col.add_child(_spacer(8.0))
 	var subtitle := Label.new()

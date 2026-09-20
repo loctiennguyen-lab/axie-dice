@@ -136,7 +136,6 @@ func _build_ui() -> void:
 	_build_run_setup_panel()
 	_build_nav_tiles()
 	_build_team_row()
-	_build_utility_corner()
 
 
 # ===========================================================================
@@ -914,13 +913,22 @@ func _build_nav_tiles() -> void:
 		"%d COMPS" % ContentDB.GUIDES.size(),
 		DangoTheme.CREAM_RAISED, true, "",
 		func() -> void: get_tree().change_scene_to_file("res://scenes/guides/Guides.tscn"))
-	_nav_tiles["codex"] = _add_nav_tile(grid, "codex", "CODEX", "10 TABS",
+	_nav_tiles["codex"] = _add_nav_tile(grid, "codex", "CODEX",
+		"%d TABS" % CodexContent.TABS.size(),
 		DangoTheme.CREAM_RAISED, true, "",
 		func() -> void: get_tree().change_scene_to_file("res://scenes/codex/Codex.tscn"))
-	# FIX-PASS-01 M2: "Remove any tile with no value — an empty tile is worse than a missing
-	# one." COLLECTION has no backing system anywhere in this port (no data, no screen) and its
-	# tile only ever showed "—" for a value. Dropped rather than disabled; the grid simply has 5
-	# tiles now (3 + 2), which is the honest result of an incomplete row, not a bug to hide.
+	# MNU-06 names all six destinations of this grid, and Settings is the sixth. It used to be a
+	# 44px "⚙" floating in the screen's top-right corner next to a "?" — two pieces of chrome the
+	# mockup does not draw anywhere, sitting over the artwork, while the grid the mockup DOES
+	# draw was one tile short. Both corner buttons are gone; the tutorial they also carried is
+	# reachable from Settings (SET-tutorial), which is where a replay belongs.
+	#
+	# FIX-PASS-01 M2 dropped COLLECTION from this grid — "an empty tile is worse than a missing
+	# one", and COLLECTION has no backing system in this port. That still holds, and Settings
+	# takes the slot it left, so the grid is the full 3 x 2 the mockup draws.
+	_nav_tiles["settings"] = _add_nav_tile(grid, "settings", "SETTINGS", "AUDIO · SAVE",
+		DangoTheme.CREAM_RAISED, true, "",
+		func() -> void: get_tree().change_scene_to_file("res://scenes/settings/Settings.tscn"))
 
 
 func _owned_unlock_count() -> int:
@@ -1199,41 +1207,12 @@ func _build_team_card(hero_key: String) -> PanelContainer:
 # TopBar ButtonsRow (Undo/Info/Log/Sound).
 # ===========================================================================
 
-func _build_utility_corner() -> void:
-	var row := HBoxContainer.new()
-	row.name = "UtilityCorner"
-	row.add_theme_constant_override("separation", 8)
-	row.set_anchors_preset(Control.PRESET_TOP_RIGHT)
-	# FIX-PASS-01 M3: 36 (measured 40 in this file, still under the 44 floor) -> 44 minimum.
-	const _UTILITY_BTN := 44.0
-	# DEVIATION FLAGGED (routing task): this corner was deliberately closer to the true screen
-	# edge (24px) than the shell's 84px rail — now that it is a child of `_content`, it sits
-	# ~84px further from the true corner than before (108px total). Reparenting into `_content`
-	# is the routing task's explicit, unconditional rule ("every child the screen used to add to
-	# the scene root goes into content"); a corner-hugging exception would need a design call,
-	# not a UI-programmer one, so it is not made here.
-	row.position = Vector2(-24 - _UTILITY_BTN - 8 - _UTILITY_BTN, 24)
-	_content.add_child(row)
-
-	var how_to_play := Button.new()
-	how_to_play.name = "HowToPlayButton"
-	how_to_play.text = "?"
-	how_to_play.tooltip_text = "How to play"
-	how_to_play.custom_minimum_size = Vector2(_UTILITY_BTN, _UTILITY_BTN)
-	DangoTheme.style_button(how_to_play, false)
-	how_to_play.pressed.connect(func() -> void:
-		get_tree().change_scene_to_file("res://scenes/tutorial/Tutorial.tscn"))
-	row.add_child(how_to_play)
-
-	var settings_btn := Button.new()
-	settings_btn.name = "SettingsButton"
-	settings_btn.text = "⚙"
-	settings_btn.tooltip_text = "Settings"
-	settings_btn.custom_minimum_size = Vector2(_UTILITY_BTN, _UTILITY_BTN)
-	DangoTheme.style_button(settings_btn, false)
-	settings_btn.pressed.connect(func() -> void:
-		get_tree().change_scene_to_file("res://scenes/settings/Settings.tscn"))
-	row.add_child(settings_btn)
+# _build_utility_corner() — DELETED 2026-09-20 (MNU-06).
+#
+# A 44px "?" and a 44px "⚙" floated in the top-right corner over the artwork. Neither is in
+# meta-screens-v2.html, and MNU-06 lists Settings as one of the nav grid's six tiles rather than
+# as corner chrome. Settings is a tile now; the tutorial the "?" opened is reachable from the
+# Settings screen.
 
 
 # ===========================================================================

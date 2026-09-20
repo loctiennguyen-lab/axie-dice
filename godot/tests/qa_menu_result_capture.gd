@@ -26,6 +26,11 @@ var _guard := SaveGuard.new()
 
 func _ready() -> void:
 	_guard.capture()
+	# MainMenu._ready() routes straight to Tutorial.tscn while the save has never seen it, so on
+	# a fresh machine this capture photographed the tutorial instead of the menu — and, because
+	# the scene swap happens inside `add_child()`, printed "Parent node is busy adding/removing
+	# children" and produced nothing at all. The save is restored byte for byte by `_guard`.
+	MetaState.tutorial_seen = true
 	DirAccess.make_dir_recursive_absolute(_EVIDENCE_DIR)
 
 	await _capture_main_menu()

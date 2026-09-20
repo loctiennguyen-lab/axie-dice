@@ -229,7 +229,7 @@ func test_shop_bought_and_unaffordable_buttons_use_different_styleboxes() -> voi
 	])
 	runmap.call("_render_shop")
 
-	var vbox: VBoxContainer = runmap.get("_overlay_vbox")
+	var vbox: BoxContainer = runmap.get("_overlay_vbox")
 	var cards := _only_card_panels(vbox)
 	_assert(cards.size() == 2, "expected 2 shop item cards, found %d" % cards.size())
 	var bought_btn := _card_button(cards[0]) if cards.size() > 0 else null
@@ -263,10 +263,12 @@ func test_shop_bought_and_unaffordable_buttons_use_different_styleboxes() -> voi
 	_done("test_shop_bought_and_unaffordable_buttons_use_different_styleboxes")
 
 
-## runloop-ux-backlog P0-2. Every card built by _add_card() with a `rar` should carry a
-## "RarityChip" whose label colour matches DangoTheme.rarity_color(rar). Exercised directly
-## through reward cards (post-combat/treasure path) AND shop cards, the two real dictionaries
-## that already carry a `rar` field end to end.
+## runloop-ux-backlog P0-2, RE-STATED FOR v2. The rule has not changed — a card that has a
+## rarity must SHOW it — but where the colour lives has. v1 put it in a chip's font colour; v2
+## forbids that outright (L4 "colour is a solid fill, never a wash", L5 "ink is chosen per fill")
+## and gives each surface its own carrier: RWD-02 fills the reward card's 46px HEADER BAND with
+## the rarity colour, and SHP-03 gives the shop row a solid `RarityChip`. Asserting on a font
+## colour therefore failed on two screens that are both correct.
 func test_reward_and_shop_cards_show_a_rarity_chip_matching_rar() -> void:
 	var runmap := _new_runmap()
 	await get_tree().process_frame
@@ -278,22 +280,18 @@ func test_reward_and_shop_cards_show_a_rarity_chip_matching_rar() -> void:
 	RunState.reward_reroll_charges = 0
 	runmap.call("_show_reward_overlay", "CHOOSE A REWARD")
 
-	var vbox: VBoxContainer = runmap.get("_overlay_vbox")
+	var vbox: BoxContainer = runmap.get("_overlay_vbox")
 	var cards := _only_card_panels(vbox)
 	_assert(cards.size() == 2, "expected 2 reward cards, found %d" % cards.size())
 
 	var expected_rars := [0, 3]
 	for i in range(min(cards.size(), expected_rars.size())):
-		var chip := _find_rarity_chip(cards[i])
-		_assert(chip != null, "reward card %d has no RarityChip" % i)
-		if chip == null:
-			continue
-		var lbl: Label = chip.get_child(0)
 		var expected_color := DangoTheme.rarity_color(int(expected_rars[i]))
-		_assert(lbl.get_theme_color("font_color").is_equal_approx(expected_color),
-			"reward card %d rarity chip colour does not match rar=%d" % [i, expected_rars[i]])
+		_assert(_has_fill(cards[i], expected_color),
+			"reward card %d draws nothing filled with rarity_color(%d) — RWD-02 puts the rarity "
+			% [i, int(expected_rars[i])] + "in the header band's fill")
 
-	# Shop cards go through the same _add_card() call site with a different dict shape.
+	# Shop cards go through the same call site with a different dict shape.
 	# _close_overlay()'s _clear_overlay_content() only queue_free()s the old reward cards —
 	# they are still in the tree until the next frame, so a frame must pass before the
 	# freshly-rendered shop card is safely the only PanelContainer left in _overlay_vbox.
@@ -311,9 +309,14 @@ func test_reward_and_shop_cards_show_a_rarity_chip_matching_rar() -> void:
 		var shop_chip := _find_rarity_chip(shop_cards[0])
 		_assert(shop_chip != null, "shop card has no RarityChip")
 		if shop_chip != null:
+			var accent := DangoTheme.rarity_color(2)
+			var chip_sb := shop_chip.get_theme_stylebox("panel") as StyleBoxFlat
+			_assert(chip_sb != null and chip_sb.bg_color.is_equal_approx(accent),
+				"shop card's RarityChip is not FILLED with rarity_color(2)")
 			var shop_lbl: Label = shop_chip.get_child(0)
-			_assert(shop_lbl.get_theme_color("font_color").is_equal_approx(DangoTheme.rarity_color(2)),
-				"shop card rarity chip colour does not match rar=2")
+			_assert(shop_lbl.get_theme_color("font_color").is_equal_approx(
+					DangoTheme.ink_on(accent)),
+				"shop card's rarity label is not inked by ink_on() for its own fill")
 
 	runmap.queue_free()
 	_done("test_reward_and_shop_cards_show_a_rarity_chip_matching_rar")
@@ -350,7 +353,10 @@ func test_level_up_description_never_reads_as_x_arrow_x() -> void:
 ## add plain Labels and `_add_continue_button()` adds a bare Button directly into the same
 ## VBox, alongside the PanelContainer cards `_add_card()` builds. Filtering to PanelContainer
 ## isolates the actual cards regardless of how many labels/buttons a given screen also adds.
-func _only_card_panels(vbox: VBoxContainer) -> Array:
+## RWD-02: the reward screen lays its cards ACROSS, so this host is an HBoxContainer
+## there and a VBoxContainer on the shop, event and treasure screens. `BoxContainer` is
+## the type both share; pinning it to `VBoxContainer` made the reward case a hard error.
+func _only_card_panels(vbox: BoxContainer) -> Array:
 	var out: Array = []
 	for child in vbox.get_children():
 		if child is PanelContainer:
@@ -368,6 +374,20 @@ func _card_button(card: Node) -> Button:
 		if child is Button:
 			return child
 	return null
+
+
+## True when any StyleBoxFlat under `node` is filled with `fill` — the v2 way a card carries a
+## rarity, class or status: as a surface colour, not as coloured text.
+func _has_fill(node: Node, fill: Color) -> bool:
+	var ctrl := node as Control
+	if ctrl != null:
+		var sb := ctrl.get_theme_stylebox("panel") as StyleBoxFlat
+		if sb != null and sb.bg_color.is_equal_approx(fill):
+			return true
+	for child in node.get_children():
+		if _has_fill(child, fill):
+			return true
+	return false
 
 
 func _find_rarity_chip(card: Node) -> PanelContainer:

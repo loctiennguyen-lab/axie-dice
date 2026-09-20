@@ -1,5 +1,10 @@
 extends Control
-## Settings. Four controls, every one of them connected to something real.
+## Settings. Five controls, every one of them connected to something real.
+##
+## REPLAY THE TUTORIAL moved here on 2026-09-20 with MNU-06: Main Menu used to carry a "?" and a
+## "⚙" floating in its top-right corner, neither of which meta-screens-v2.html draws, while the
+## nav grid the mockup DOES draw was a tile short. Settings is that sixth tile now, and the
+## tutorial a player wants to see again belongs on the screen they go to to change things.
 ##
 ## The volume backend has existed since the audio pass (MetaState.audio_music_volume /
 ## audio_sfx_volume / audio_muted, already persisted and already read by CombatAudioDirector) —
@@ -57,6 +62,18 @@ func _ready() -> void:
 			MetaState.save_to_disk())
 	_body("Turns off the screen shake on a hit and the colour flash on a resonant Axie. "
 		+ "Dice, actions and damage numbers are untouched — those tell you what happened.")
+
+	_section("HOW TO PLAY")
+	_body("The tutorial teaches one turn end to end: roll, spend, target, end. It is the same "
+		+ "run the game opens with on a first launch, and replaying it changes nothing you own.")
+	var tutorial_btn := Button.new()
+	tutorial_btn.name = "ReplayTutorialButton"
+	tutorial_btn.text = "REPLAY THE TUTORIAL"
+	tutorial_btn.custom_minimum_size = Vector2(0, 44)
+	DangoTheme.style_button(tutorial_btn, false)
+	tutorial_btn.pressed.connect(func() -> void:
+		get_tree().change_scene_to_file("res://scenes/tutorial/Tutorial.tscn"))
+	_content.add_child(tutorial_btn)
 
 	_section("RUN")
 	_build_abandon_section()

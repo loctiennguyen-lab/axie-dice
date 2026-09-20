@@ -295,9 +295,28 @@ func _build_reading_panel(content: Control) -> void:
 	DangoTheme.clip_to_frame(_panel)   # G3
 	content.add_child(_panel)
 
+	# X5 / CDX-01: the panel runs "from under the header to the footer" and stops there.
+	#
+	# It did not. `PanelContainer` sizes itself to at least its child's minimum, and the child is
+	# a column ending in the body — so a long tab (STATUS EFFECTS is eleven cards) pushed the
+	# panel's minimum past its own anchored rect, and Godot will not shrink a Control below its
+	# minimum. The panel then ran off the bottom of the screen: no bottom edge, no radius, no
+	# outline, and the footer drawn underneath it. `clip_contents` hid nothing, because the panel
+	# itself was the thing overflowing.
+	#
+	# A plain `Control` breaks the chain: it does not propagate its children's minimum size, so
+	# the panel's minimum is its own and its ANCHORS decide its height. The body then does what
+	# CDX-03 says and scrolls inside it.
+	var frame := Control.new()
+	frame.name = "PanelFrame"
+	frame.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	frame.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_panel.add_child(frame)
+
 	var col := VBoxContainer.new()
 	col.add_theme_constant_override("separation", 0)
-	_panel.add_child(col)
+	col.set_anchors_preset(Control.PRESET_FULL_RECT)
+	frame.add_child(col)
 
 	# Header strip — CREAM_RAISED, one black rule along its bottom edge, 15px/24px padding.
 	_panel_header = PanelContainer.new()

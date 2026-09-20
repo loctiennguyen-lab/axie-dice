@@ -188,18 +188,32 @@ func test_the_panel_lists_all_six_faces_with_live_values() -> void:
 func _count_face_rows() -> int:
 	if _view._inspect_panel == null:
 		return 0
+	# CB-30 sizes the inspector's face row as "a 32px part tile" holding a 22px icon. This used
+	# to look for a 20x20 TextureRect, which was the pre-v2 size — the rows were all there and
+	# the gate reported zero of them.
 	var rows := 0
 	var stack: Array = [_view._inspect_panel]
 	while not stack.is_empty():
 		var n: Node = stack.pop_back()
 		if n is HBoxContainer:
 			for c in n.get_children():
-				if c is TextureRect and (c as TextureRect).custom_minimum_size == Vector2(20, 20):
+				if _is_face_part_tile(c):
 					rows += 1
 					break
 		for c in n.get_children():
 			stack.append(c)
 	return rows
+
+
+## The 32px part tile of a CB-30 face row: a PanelContainer that size, carrying a 22px icon.
+func _is_face_part_tile(n: Node) -> bool:
+	var panel := n as PanelContainer
+	if panel == null or panel.custom_minimum_size != Vector2(32, 32):
+		return false
+	for c in panel.find_children("*", "TextureRect", true, false):
+		if (c as TextureRect).custom_minimum_size == Vector2(22, 22):
+			return true
+	return false
 
 
 ## THE ONE THAT MATTERS. The inspector rides the same handler as targeting, reached from both

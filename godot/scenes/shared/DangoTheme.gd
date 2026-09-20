@@ -182,38 +182,20 @@ static func type_swatch(face_type: String, size: int = 22, icon_size: int = 14,
 	return swatch
 
 
-## Small pill stylebox for a die face's keyword chips (review P0 §3.3 lineage — see
-## CombatView._update_die_slot_rich()). `accent` is the face's own die_type_color() so a chip's
-## border/text reads as "belonging to" its die, matching src/client.html's per-type `.kwtag`
-## border-color rule (`.die.t_dmg .kwtag{border-color:color-mix(...var(--dmg)...)}` etc.).
-static func kw_chip_style(accent: Color) -> StyleBoxFlat:
-	var sb := StyleBoxFlat.new()
-	sb.bg_color = Color(0.04, 0.04, 0.06, 0.88)
-	sb.border_color = Color(accent.r, accent.g, accent.b, 0.6)
-	sb.set_border_width_all(1)
-	sb.set_corner_radius_all(3)
-	sb.content_margin_left = 4.0
-	sb.content_margin_right = 4.0
-	sb.content_margin_top = 0.0
-	sb.content_margin_bottom = 0.0
-	return sb
+# kw_chip_style() and rarity_chip() — DELETED 2026-09-20.
+#
+# Both were the v1 way of showing a mechanic: a dark pill with a 1px coloured border and the
+# colour repeated in the font. L4 forbids the first ("colour is a solid fill, never a wash") and
+# L5 the second ("ink is chosen per fill, never by desaturating the fill"). Every call site had
+# already moved to `solid_chip_style()` + `ink_on()` — the die card's keyword pills, the shop
+# row's rarity chip, the status strip — so these two were reachable and wrong, which is exactly
+# how the old look came back twice before (see RC2 in FIX-PASS-02, same story with panel_style).
+#
+# The replacement for a rarity chip is
+#     solid_chip_style(rarity_color(rar), radius, border_w, pad)
+# with its label at `ink_on(rarity_color(rar))` — see RunMapController._solid_rarity_chip().
 
 
-# `panel_style()` is DELETED (FIX-PASS-02 RC2). It was the v1 surface API and it coexisted with
-# `surface_style()` for three passes, which is precisely how half the game kept the pre-redesign
-# look while the other half was migrated. There is now ONE surface API. See `surface_style()`
-# below, and `godot/CLAUDE.md` rule 1.
-
-
-## Button visual state — see `reference_dangotheme-button-state-spec.md` (art-director,
-## decided 2026-09-19) for the full rule this encodes: HOVER changes colour only (never
-## geometry); PRESSED changes colour in the OPPOSITE direction from hover AND geometry
-## (border_width +1, content_margin_top +1.0 / content_margin_bottom -1.0 — net zero, so
-## minimum-size and the outer Control rect never move) AND drops any shadow; DISABLED never
-## uses the hover/pressed colour direction and never inherits `warning` — it only flattens via
-## reduced alpha/saturation. This NORMAL/HOVER asymmetry vs. PRESSED's colour+shape combo is
-## deliberate: it is what makes hover and pressed distinguishable from EACH OTHER, not just
-## each one individually distinguishable from normal.
 enum ButtonState { NORMAL, HOVER, PRESSED, DISABLED }
 
 
@@ -270,23 +252,6 @@ static func rarity_color(rar: int) -> Color:
 
 static func rarity_name(rar: int) -> String:
 	return RARITY_NAMES[clampi(rar, 0, RARITY_NAMES.size() - 1)]
-
-
-## The chip itself, ready to add to a card header. Built here so every screen that shows a
-## rarity shows the same thing.
-static func rarity_chip(rar: int) -> PanelContainer:
-	var accent := rarity_color(rar)
-	var box := PanelContainer.new()
-	box.name = "RarityChip"
-	box.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	box.add_theme_stylebox_override("panel", kw_chip_style(accent))
-	var lbl := Label.new()
-	lbl.text = rarity_name(rar).to_upper()
-	# 12px floor for anything a player has to read — see the visual backlog's P1 #2.
-	lbl.add_theme_font_size_override("font_size", 12)
-	lbl.add_theme_color_override("font_color", accent)
-	box.add_child(lbl)
-	return box
 
 
 ## G3 — make a rounded frame actually CLIP its children to the rounded shape.
@@ -804,9 +769,8 @@ static func cream_card_style(accent: Color = Color.TRANSPARENT, radius: int = 15
 ## 8%-alpha wash of it. The tinted-to-6–14% version is exactly what made the first pass read as
 ## an analytics panel — every one of these colours was there and none of them was visible.
 ##
-## Note this is a DIFFERENT object from `kw_chip_style()` above, which is the dark-panel keyword
-## pill (a dark fill with a coloured border). This one is the solid chip. Both ship because the
-## die card uses the solid chip on cream and the inspector uses the outlined pill on dark.
+## This is the ONLY chip builder in the system now: one solid fill, black outline, ink chosen by
+## `ink_on()`. The outlined dark pill it used to sit beside is deleted — see the note above.
 static func solid_chip_style(fill: Color, radius: int = 9, border_w: int = 3,
 		pad: Vector2 = Vector2(8, 1)) -> StyleBoxFlat:
 	var sb := StyleBoxFlat.new()
@@ -832,7 +796,7 @@ static func ink_on(fill: Color) -> Color:
 ## ADDED 2026-09-20 consistency sweep: a translucent PRIMARY wash for hairline dividers only —
 ## RunMapController and ResultView had each independently recomputed `Color(PRIMARY.r, .g, .b,
 ## 0.22)` at three call sites between them. NOT for a chip or card fill (those are solid, never a
-## wash — see `solid_chip_style()`/`rarity_chip()`); a divider is the one place in the system a
+## wash — see `solid_chip_style()`); a divider is the one place in the system a
 ## tint beats a block, because a solid-orange rule line would out-weigh the content it separates.
 static func primary_divider_alpha() -> Color:
 	return Color(PRIMARY.r, PRIMARY.g, PRIMARY.b, 0.22)

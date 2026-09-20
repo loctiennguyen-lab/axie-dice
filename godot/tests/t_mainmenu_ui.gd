@@ -261,12 +261,14 @@ func test_run_setup_panel_and_nav_tiles_and_team_row_all_exist() -> void:
 	var nav_tiles: Node = menu._nav_tiles_grid
 	_assert(nav_tiles != null, "no NavTiles grid")
 	if nav_tiles != null:
-		# UPDATED 2026-09-20 (FIX-PASS-01 M2): 6 -> 5. COLLECTION was removed outright (see
-		# test_disabled_nav_tiles_use_player_facing_tooltips's own note on this same date) —
-		# "an empty tile is worse than a missing one" — so the grid legitimately has 5 tiles now,
-		# not a bug leaving one unbuilt.
-		_assert(nav_tiles.get_child_count() == 5,
-			"NavTiles has %d tile(s), expected 5 (Pass/Unlocks/Vault/Sample Teams/Codex — "
+		# UPDATED 2026-09-20 (FIX-PASS-01 M2): 6 -> 5. COLLECTION was removed outright —
+		# "an empty tile is worse than a missing one".
+		# UPDATED AGAIN, same day (MNU-06): back to 6. The sixth is SETTINGS, which the spec
+		# lists as one of this grid's six destinations and which the build had floating over the
+		# artwork as a 44px "⚙" in the screen's top-right corner, next to a "?" — two pieces of
+		# chrome meta-screens-v2.html does not draw anywhere. Both corner buttons are gone.
+		_assert(nav_tiles.get_child_count() == 6,
+			"NavTiles has %d tile(s), expected 6 (Pass/Unlocks/Vault/Sample Teams/Codex/Settings — "
 			% nav_tiles.get_child_count() + "Collection removed, FIX-PASS-01 M2)")
 	var team_row: Node = menu._team_row
 	_assert(team_row != null, "no team row built")

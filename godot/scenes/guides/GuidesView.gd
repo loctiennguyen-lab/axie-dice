@@ -207,6 +207,11 @@ func _build_card(guide: Dictionary) -> PanelContainer:
 	for side in ["left", "right", "bottom"]:
 		margin.add_theme_constant_override("margin_" + side, 15)
 	margin.add_theme_constant_override("margin_top", 13)   # mockup: padding 13px 15px 15px
+	# GDE-01: the CTA is bottom-aligned across all four cards. `how_col` already expands, but it
+	# can only push the button down if THIS block is given the card's spare height first —
+	# without it the extra sat below the body as dead cream and each card's button landed
+	# wherever its own copy happened to end.
+	margin.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	outer.add_child(margin)
 
 	var col := VBoxContainer.new()

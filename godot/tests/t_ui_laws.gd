@@ -77,8 +77,18 @@ var _guard := SaveGuard.new()
 
 func _ready() -> void:
 	var root := get_tree().root
+	# `content_scale_size` alone is not the canvas a Control measures itself against — that is
+	# the VIEWPORT's size, which headless leaves at whatever the window happens to be. Every
+	# full-rect Control then reported a 1920x1920 rect and L1 flagged all twelve scenes as
+	# "clipped by the canvas edge", 375 violations of a law none of them was breaking. The
+	# window has to actually be the canvas for the measurement to mean anything.
 	root.content_scale_size = CANVAS
+	root.size = Vector2i(CANVAS)
+	DisplayServer.window_set_size(Vector2i(CANVAS))
+	for _w in 4:
+		await get_tree().process_frame
 	_guard.capture()
+	_seed_state_the_scenes_need()
 	for path in SCENES:
 		await _check_scene(path)
 	_guard.restore()
@@ -90,6 +100,29 @@ func _ready() -> void:
 		for line in _fail:
 			print("  " + line)
 		get_tree().quit(1)
+
+
+## Two of the twelve scenes below refuse to build out of nowhere, and both refusals are correct:
+## `MainMenu._ready()` routes to the tutorial while the save has never seen it, and `CombatView`
+## asserts that `RunState.pending_combat` was set by whoever sent the player into a fight. On a
+## machine with a played save the first is invisible and on the author's the second was never
+## hit, so this gate went red on a fresh checkout for reasons that had nothing to do with UI
+## laws. Both are seeded here, in memory; `_guard` puts the save file back byte for byte.
+func _seed_state_the_scenes_need() -> void:
+	MetaState.tutorial_seen = true
+	CombatView.disable_juice_for_tests = true
+	var roster: Array = []
+	var keys := ["plant1", "beast1", "aqua1", "reptile1", "bug1"]
+	for i in keys.size():
+		roster.append({
+			"persistent_id": i + 1, "hero_key": keys[i], "tier": 1,
+			"max_hp": ContentDB.heroes[keys[i]]["max_hp"],
+			"muts": [], "growth": {}, "bonus_hp": 0,
+		})
+	RunState.pending_combat = {
+		"node_id": "ui_laws_node", "kind": "battle", "pw": 2, "ascension": 0,
+		"roster_snapshot": roster, "relic_ids": [], "combat_seed": 13371337,
+	}
 
 
 ## Frees the scene under test. Called on EVERY exit path from `_check_scene()`.
@@ -109,8 +142,12 @@ func _check_scene(path: String) -> void:
 		return
 	var inst: Node = (load(path) as PackedScene).instantiate()
 	get_tree().root.add_child(inst)
-	await get_tree().process_frame
-	await get_tree().process_frame
+	# Six frames, not two. A screen that caps a region with `fit_or_scroll()` reports the
+	# UNCAPPED height until its container has resorted, and two frames is not always enough —
+	# the Codex read 431px taller than the canvas here while its own QA capture shows it
+	# sitting inside the footer line.
+	for _f in 6:
+		await get_tree().process_frame
 	# EVERY scene checked here is freed at the end of this function. It was not, and that is why
 	# this test HUNG rather than failed: twelve live scenes accumulate in the tree, and Combat in
 	# particular starts a combat loop, timers and audio that keep the tree busy so `quit()` never
@@ -167,15 +204,21 @@ func _check_control(c: Control, scene_root: Node) -> void:
 					% f.shadow_size)
 			var b := f.border_color
 			var is_black := b.r < 0.02 and b.g < 0.02 and b.b < 0.02 and b.a > 0.98
-			# The mockups draw exactly four non-black borders, and no others:
+			# The mockups draw exactly five non-black borders, and no others:
 			#   · the selection ring on a die card and a targetable enemy   → PRIMARY
 			#   · the targetable ring on a party member                     → SUCCESS
 			#   · the party nameplate's 6px top edge                        → the class colour
 			#   · shield/info accents                                       → INFO
-			# Anything else with a coloured border is drift.
+			#   · a WARNING BUTTON's outline                                → DANGER
+			# The last one was missing here and it is not drift: FIX-PASS-03 L1 names it as one
+			# of its two explicit exceptions ("a warning button's DANGER outline"), and
+			# `DangoTheme.primary_button_style(warning = true)` is the only thing that draws it —
+			# END TURN, while the player still has an unspent die. Flagging it made the gate
+			# demand that a sanctioned state be removed.
 			var is_state := b.is_equal_approx(DangoTheme.PRIMARY) \
 				or b.is_equal_approx(DangoTheme.INFO) \
 				or b.is_equal_approx(DangoTheme.SUCCESS) \
+				or (c is Button and b.is_equal_approx(DangoTheme.DANGER)) \
 				or _is_class_color(b) or b.a == 0.0
 			if f.get_border_width_min() > 0 and not is_black and not is_state:
 				_bad(c, "L7", "border_color %s — the mockups use pure black everywhere except "
@@ -216,7 +259,13 @@ func _check_control(c: Control, scene_root: Node) -> void:
 	# is that nothing is ever cut off by the edge of the canvas — so that is the law. CANVAS is
 	# 1920x1080, the MINIMUM under `aspect="expand"`: a layout that fits the minimum fits every
 	# larger one, so this is the tightest form of the check, not an assumption about the window.
-	if c.visible and c.size.x > 1.0 and c.size.y > 1.0 and not _is_full_bleed(c):
+	# Inside a scrolling region this law does not apply and cannot: a scroll viewport clips its
+	# content on purpose and hands the player a bar to reach the rest — which is L2's job, not
+	# this one. Measuring a scrolled card against the canvas reported the Codex's eleven status
+	# cards as eleven clipping bugs on a screen whose own capture shows every one of them inside
+	# the panel.
+	if c.visible and c.size.x > 1.0 and c.size.y > 1.0 \
+			and not _is_full_bleed(c) and not _inside_scroll(c):
 		var r := Rect2(c.global_position, c.size)
 		if r.position.x < -0.5 or r.position.y < -0.5 \
 				or r.end.x > CANVAS.x + 0.5 or r.end.y > CANVAS.y + 0.5:
@@ -235,7 +284,16 @@ func _check_control(c: Control, scene_root: Node) -> void:
 				_bad(c, "L2", "scrollable but the scrollbar has no width — invisible overflow")
 
 	# ── L3 · a panel does not leave a void under its last child ──────────────────────────────
-	if c is PanelContainer and c.get_child_count() > 0:
+	# Two things are NOT this defect and were being reported as it:
+	#   · a HIDDEN panel (the debug log, a die card's reroll overlay) — nobody sees its slack;
+	#   · a panel STRETCHED BY ITS ROW to match a taller sibling, which is RES-04's "all three
+	#     are the same height, the row stretches" said out loud. Slack there is the law working.
+	var stretched_by_row: bool = c.get_parent() is BoxContainer \
+		and (c.size_flags_vertical & Control.SIZE_FILL) != 0
+	# A panel whose body SCROLLS has no void under its last child — it has a viewport, and what
+	# is under the fold is reachable. CDX-02's reading panel fills the column by design.
+	if c is PanelContainer and c.visible and not stretched_by_row \
+			and not _inside_scroll(c) and not _wraps_a_scroll(c) and c.get_child_count() > 0:
 		var child := c.get_child(0)
 		if child is Control:
 			var slack: float = c.size.y - (child as Control).get_combined_minimum_size().y
@@ -285,6 +343,34 @@ func _is_saturated(fill: Variant) -> bool:
 
 ## Full-bleed chrome is allowed outside the safe area: the Combat top bar, the deck bar, the
 ## footer, and the plate/scrim stack.
+## True when `c` is inside a scroll viewport — its clipping is the feature, not the defect.
+func _inside_scroll(c: Control) -> bool:
+	var n: Node = c.get_parent()
+	while n != null:
+		if n is ScrollContainer:
+			return true
+		n = n.get_parent()
+	return false
+
+
+## True when `c` CONTAINS a vertically scrolling region, so its own height is a viewport.
+func _wraps_a_scroll(c: Control) -> bool:
+	for n in c.find_children("*", "ScrollContainer", true, false):
+		if (n as ScrollContainer).vertical_scroll_mode != ScrollContainer.SCROLL_MODE_DISABLED:
+			return true
+	return false
+
+
 func _is_full_bleed(c: Control) -> bool:
-	return c.name in ["PlateHost", "Plate", "Scrim", "Footer", "TopBar", "DeckBar", "Content"] \
-		or c.get_parent() == null
+	if c.name in ["PlateHost", "Plate", "Scrim", "Background", "Footer", "TopBar", "DeckBar",
+			"Content"] or c.get_parent() == null:
+		return true
+	# The plate itself is a cover-fit image: `build_plate()` scales it to fill the canvas on its
+	# long axis, so it over-scans on the other one BY DESIGN. Its whole subtree is exempt, which
+	# is not a loophole — nothing inside a plate host carries type or a control.
+	var n: Node = c.get_parent()
+	while n != null:
+		if n.name in ["PlateHost", "Background", "Scrim"]:
+			return true
+		n = n.get_parent()
+	return false

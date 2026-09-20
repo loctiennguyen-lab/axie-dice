@@ -107,6 +107,7 @@ const SCAN_SIZE := Vector2(118, 56)  ## width:112; height:50 + border:3
 const CARD_BAND_H := 48.0          ## height:44 + border-bottom:4
 const CARD_FLAG_H := 28.0          ## height:24 + border:2
 const PREVIEW_BOX_H := 230.0       ## height:224 + border:3
+const PREVIEW_BOX_RADIUS := 14   ## VLT-05
 const REMOVE_BTN_H := 56.0         ## height:50 + border:3
 
 
@@ -693,7 +694,8 @@ func _build_row(entry: Dictionary) -> PanelContainer:
 	var preview_box := PanelContainer.new()
 	preview_box.custom_minimum_size = Vector2(0, PREVIEW_BOX_H)
 	preview_box.add_theme_stylebox_override("panel",
-		DangoTheme.surface_style(DangoTheme.Surface.CREAM_RAISED, 14, 3, 0.0, Vector2(-1, -1)))
+		DangoTheme.surface_style(DangoTheme.Surface.CREAM_RAISED, PREVIEW_BOX_RADIUS, 3, 0.0,
+			Vector2(-1, -1)))
 	preview_box.clip_contents = true
 	info.add_child(preview_box)
 
@@ -707,6 +709,12 @@ func _build_row(entry: Dictionary) -> PanelContainer:
 	var preview := (load(PREVIEW_SCENE) as PackedScene).instantiate() as AxiePreview3D
 	preview.name = "Preview"
 	preview.set_anchors_preset(Control.PRESET_FULL_RECT)
+	# VLT-05: the well behind this is CREAM_RAISED at radius 14, so the no-rig state paints the
+	# same cream at the well's inner radius with ink that reads on it. Left at its default it
+	# painted a square `WELL` block — a flat black rectangle carrying an error message, and the
+	# largest single element on the card (V1 / Q4).
+	preview.set_empty_backing(DangoTheme.Surface.CREAM_RAISED, PREVIEW_BOX_RADIUS - 3,
+		DangoTheme.INK_ON_CREAM_MUTED)
 	preview_box.add_child(preview)
 	preview.set_genes(str(entry.get("genes", "")))
 
