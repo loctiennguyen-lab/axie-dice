@@ -52,7 +52,12 @@ var used_actives: Array = []
 var resonance_log: Array = []   # [{pos:int, t:String, used:bool}]
 var last_big: Dictionary = {}   # {} or {v:int, f:Dictionary}
 var first_used: bool = false
-var stat: Dictionary = {"dmg": 0, "taken": 0, "turns": 0, "kills": 0, "max_hit": 0}
+# "dmg_dealt_clamped" (RunStats accumulator, design-handoff-v2 §09): a SEPARATE, purely
+# additive counter from "dmg" — see damage_pipeline.gd's write sites for why "dmg" itself
+# could not be reused (it is unclamped and never counted poison/thorns). Nothing reads this
+# key to make a decision; it exists only to be folded into RunState.run_stats and displayed.
+var stat: Dictionary = {"dmg": 0, "taken": 0, "turns": 0, "kills": 0, "max_hit": 0,
+	"dmg_dealt_clamped": 0}
 
 var relic_ids: Array = []
 var node_id: String = ""
@@ -108,7 +113,7 @@ func setup_new(combat_setup: Dictionary) -> void:
 	won = false
 	lost = false
 	result_shards_earned = 0
-	stat = {"dmg": 0, "taken": 0, "turns": 0, "kills": 0, "max_hit": 0}
+	stat = {"dmg": 0, "taken": 0, "turns": 0, "kills": 0, "max_hit": 0, "dmg_dealt_clamped": 0}
 	resonance_log = []
 	last_big = {}
 	first_used = false

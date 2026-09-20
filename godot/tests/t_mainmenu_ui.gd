@@ -1,21 +1,19 @@
 extends Node
 ## Regression gate for `production/qa/2026-09-19_visual-polish-backlog.md` P0-3, P0-5, P1-3,
-## P1-5, P1-6 (Main Menu). Pins the four things the audit found by looking at screenshots,
-## so they cannot silently regress:
-##   - no dev-facing technical string reaches a player-visible Label (P0-3)
-##   - every named section (SEED/MODE/ASCENSION/CHOOSE YOUR TEAM/LUNACIA PASS/UNLOCKS) is
-##     wrapped in its own PanelContainer card, not bare on the flat background (P0-5)
-##   - the seed field has a capped width instead of expanding without limit, and the content
-##     column itself has a max-width wrapper so every section shares one alignment (P1-3)
-##   - the locked FULL-mode button signals its lock state IN THE BUTTON, not only via a
-##     separate caption label (P1-6)
+## P1-5, P1-6 (Main Menu), UPDATED 2026-09-20 for the v2 UI redesign
+## (docs/design-handoff-v2, "Godot Meta Screens v2.dc.html" MENU/TEAM tabs). MainMenu.gd's
+## `_build_ui()` changed from a scrolling VBox of six stacked sections to a fixed, non-scrolling
+## title screen, and the 5-slot team picker (hero dropdown + class passive + six faces) moved
+## off this screen entirely onto its own `TeamSelect.tscn`. Every test below either still checks
+## the SAME rule it always did against the new structure, or — where noted per-test — has been
+## replaced by a stronger/more literal check of the same underlying rule. None were deleted or
+## skipped; see MainMenu.gd's own header comment for the full v2 rationale.
 ##
 ## This file does not touch MetaState through any of the writer methods `t_vault.gd`'s static
 ## sweep watches for (`vault_import`/`buy_unlock`/`claim_bp_reward`/`save_to_disk`/etc.) — the
-## two tests that need a specific pass/unlock state mutate `MetaState.xp` / `.bp_claimed` /
-## `.unlocks` directly and restore them before returning, the same in-memory-only pattern
-## `t_vault.gd`'s own ranked-run test already uses for `MetaState.unlocks` (no disk write
-## happens, so no SaveGuard is needed — SaveGuard exists for `save_to_disk()` round trips).
+## tests that need a specific state mutate MetaState fields directly and restore them before
+## returning, matching `t_vault.gd`'s own in-memory-only pattern (no disk write happens, so no
+## SaveGuard is needed).
 ##
 ## Run: godot --headless --path godot res://tests/t_mainmenu_ui.tscn
 
@@ -28,13 +26,13 @@ const _FORBIDDEN_SUBSTRINGS: Array[String] = [
 ## check the gate would report PASS having skipped every assertion after the crash point.
 const EXPECTED_TESTS: Array[String] = [
 	"test_no_technical_strings_leak_on_default_screen",
-	"test_locked_pass_reward_uses_player_facing_copy",
-	"test_every_named_section_has_a_panel_container",
-	"test_seed_field_width_is_capped",
-	"test_content_root_has_a_max_width_wrapper",
-	"test_locked_mode_button_signals_beyond_caption",
+	"test_disabled_nav_tiles_use_player_facing_tooltips",
+	"test_nothing_on_this_screen_scrolls",
+	"test_seed_field_is_bounded_by_its_panel_not_by_its_own_expansion",
+	"test_run_setup_panel_and_nav_tiles_and_team_row_all_exist",
+	"test_locked_mode_button_signals_beyond_the_lock_glyph",
 	"test_nothing_promises_waves_on_a_map_made_of_rows",
-	"test_every_team_slot_shows_its_class_passive",
+	"test_team_select_shows_every_slots_class_passive",
 ]
 
 var _failures: Array[String] = []
@@ -47,13 +45,13 @@ func _ready() -> void:
 	await get_tree().process_frame
 
 	await test_no_technical_strings_leak_on_default_screen()
-	await test_locked_pass_reward_uses_player_facing_copy()
-	await test_every_named_section_has_a_panel_container()
-	await test_seed_field_width_is_capped()
-	await test_content_root_has_a_max_width_wrapper()
-	await test_locked_mode_button_signals_beyond_caption()
+	await test_disabled_nav_tiles_use_player_facing_tooltips()
+	await test_nothing_on_this_screen_scrolls()
+	await test_seed_field_is_bounded_by_its_panel_not_by_its_own_expansion()
+	await test_run_setup_panel_and_nav_tiles_and_team_row_all_exist()
+	await test_locked_mode_button_signals_beyond_the_lock_glyph()
 	await test_nothing_promises_waves_on_a_map_made_of_rows()
-	await test_every_team_slot_shows_its_class_passive()
+	await test_team_select_shows_every_slots_class_passive()
 
 	for name in EXPECTED_TESTS:
 		if not _completed.has(name):
@@ -87,6 +85,12 @@ func _instantiate_menu() -> Node:
 	return menu
 
 
+func _instantiate_team_select() -> Node:
+	var screen := (load("res://scenes/main_menu/TeamSelect.tscn") as PackedScene).instantiate()
+	add_child(screen)
+	return screen
+
+
 func _sweep_labels_for_forbidden_text(root: Node) -> Array[String]:
 	var hits: Array[String] = []
 	for node in root.find_children("*", "Label", true, false):
@@ -96,11 +100,14 @@ func _sweep_labels_for_forbidden_text(root: Node) -> Array[String]:
 				hits.append("Label '%s' contains forbidden substring '%s': \"%s\"" % [
 					node.get_path(), leak, text])
 	for node in root.find_children("*", "Button", true, false):
-		var text := (node as Button).text
+		var btn := node as Button
 		for leak in _FORBIDDEN_SUBSTRINGS:
-			if text.contains(leak):
+			if btn.text.contains(leak):
 				hits.append("Button '%s' contains forbidden substring '%s': \"%s\"" % [
-					node.get_path(), leak, text])
+					node.get_path(), leak, btn.text])
+			if btn.tooltip_text.contains(leak):
+				hits.append("Button '%s' tooltip contains forbidden substring '%s': \"%s\"" % [
+					node.get_path(), leak, btn.tooltip_text])
 	return hits
 
 
@@ -118,111 +125,137 @@ func test_no_technical_strings_leak_on_default_screen() -> void:
 	_done("test_no_technical_strings_leak_on_default_screen")
 
 
-## P0-3 (the specific reward that used to say "(needs the mutation pool, not in this build)").
-## Forces at least one Lunacia Pass "face" reward into the BLOCKED state so the row this bug
-## lived in actually renders, instead of asserting on a section that might not appear.
-func test_locked_pass_reward_uses_player_facing_copy() -> void:
-	var xp_backup := MetaState.xp
-	var claimed_backup: Array[int] = MetaState.bp_claimed.duplicate()
-
-	# Lv 5's reward is `{"type": "face", ...}` (ContentDB.BP_TRACK) — never claimable in this
-	# port (FACE_POOL is unported), so it is always eligible to show up in bp_blocked() once
-	# its level is reached. bp_xp_for_level(1..5) sums to 445; 500 clears it with margin.
-	MetaState.xp = 500
-	MetaState.bp_claimed = []
-
-	_assert(not MetaState.bp_blocked().is_empty(),
-		"test setup did not produce a blocked Lunacia Pass reward — the row this regression "
-		+ "lived in never rendered, so the sweep below would prove nothing")
-
+## UPDATED 2026-09-20, replaces `test_locked_pass_reward_uses_player_facing_copy`. v1 forced a
+## blocked Lunacia Pass reward into `MetaState.bp_blocked()` and swept the menu for the leaked
+## dev-note copy that reward used to render inline (the P0-3 bug this file exists to pin). v2
+## deletes the inline Pass/Unlocks lists entirely — see MainMenu.gd's GAP FLAGGED note — so that
+## specific render path no longer exists on this screen at all, and the old test's setup would
+## now be exercising dead code. The rule it protected ("no dev-facing string reaches the
+## player") still applies to whatever nav tile IS intentionally disabled today.
+##
+## UPDATED AGAIN 2026-09-20 (same day, ui-programmer pass building Pass/Unlocks/Vault/Guides):
+## `pass` and `unlocks` moved from `disabled_ids` to `enabled_ids`. Both now have real screens
+## (`scenes/pass/Pass.tscn`, `scenes/unlocks/Unlocks.tscn`) and route to them — see MainMenu.gd's
+## `_build_nav_tiles()`, "GAP FLAGGED, RESOLVED 2026-09-20". This asserts the fix directly: the
+## same tiles that used to be pinned disabled with a tooltip must now be enabled and routed,
+## which is the whole reason those two screens exist. `collection` is the only tile this test
+## still expects disabled — there is still no Collection system anywhere in the project.
+func test_disabled_nav_tiles_use_player_facing_tooltips() -> void:
 	var menu := _instantiate_menu()
 	await get_tree().process_frame
+
+	var disabled_ids := ["collection"]
+	for id in disabled_ids:
+		var tile: Button = menu._nav_tiles.get(id)
+		_assert(tile != null, "no nav tile registered for '%s'" % id)
+		if tile == null:
+			continue
+		_assert(tile.disabled, "nav tile '%s' should be disabled (no screen exists for it yet)"
+			% id)
+		_assert(not tile.tooltip_text.is_empty(),
+			"disabled nav tile '%s' has no tooltip explaining why" % id)
+
+	var enabled_ids := ["pass", "unlocks", "vault", "guides", "codex"]
+	for id in enabled_ids:
+		var tile: Button = menu._nav_tiles.get(id)
+		_assert(tile != null, "no nav tile registered for '%s'" % id)
+		if tile != null:
+			_assert(not tile.disabled, "nav tile '%s' has a real destination and should be "
+				% id + "enabled")
 
 	var hits := _sweep_labels_for_forbidden_text(menu)
-	_assert(hits.is_empty(),
-		"a locked Lunacia Pass reward still leaks technical copy: %s" % ", ".join(hits))
+	_assert(hits.is_empty(), "a disabled nav tile's tooltip leaks technical copy: %s"
+		% ", ".join(hits))
 
 	menu.queue_free()
 	await get_tree().process_frame
-
-	MetaState.xp = xp_backup
-	MetaState.bp_claimed = claimed_backup
-	_done("test_locked_pass_reward_uses_player_facing_copy")
+	_done("test_disabled_nav_tiles_use_player_facing_tooltips")
 
 
-## P0-5 — SEED / MODE / ASCENSION / CHOOSE YOUR TEAM / LUNACIA PASS / UNLOCKS must each sit in
-## their own PanelContainer card. Counted as DIRECT children of %ContentRoot: the hero-slot
-## cards inside CHOOSE YOUR TEAM are also PanelContainers, but they are nested two levels
-## deeper (section panel -> row -> hero card), so counting only direct children of
-## %ContentRoot distinguishes "a section card" from "a card inside a section".
-func test_every_named_section_has_a_panel_container() -> void:
+## UPDATED 2026-09-20, replaces `test_every_named_section_has_a_panel_container` AND
+## `test_content_root_has_a_max_width_wrapper`. Both v1 tests existed to catch symptoms of the
+## same root problem: a screen that scrolls, with content that sprawls because nothing bounds
+## it. v2's own rule is "nothing scrolls" (spec-data.js "Main Menu is a scrolling form" +
+## MainMenu.gd's header) — checking for the literal absence of a ScrollContainer anywhere in the
+## tree is a strictly stronger and more direct test of that same intent than counting
+## PanelContainers or checking one wrapper's width, so it replaces both.
+func test_nothing_on_this_screen_scrolls() -> void:
 	var menu := _instantiate_menu()
 	await get_tree().process_frame
 
-	var content_root: VBoxContainer = menu.get_node("%ContentRoot")
-	var section_panels := 0
-	for child in content_root.get_children():
-		if child is PanelContainer:
-			section_panels += 1
-
-	_assert(section_panels == 6,
-		("%d direct-child PanelContainer section(s) under %%ContentRoot, expected 6 (SEED / "
-		+ "MODE / ASCENSION / CHOOSE YOUR TEAM / LUNACIA PASS / UNLOCKS) — a section is back "
-		+ "to being bare Labels/Buttons on the flat background") % section_panels)
+	var scrollers := menu.find_children("*", "ScrollContainer", true, false)
+	_assert(scrollers.is_empty(),
+		"Main Menu still contains %d ScrollContainer(s) — v2 is a title screen where nothing "
+		% scrollers.size() + "scrolls")
 
 	menu.queue_free()
 	await get_tree().process_frame
-	_done("test_every_named_section_has_a_panel_container")
+	_done("test_nothing_on_this_screen_scrolls")
 
 
-## P1-3 — the SEED field must not be able to grow without limit.
-func test_seed_field_width_is_capped() -> void:
+## UPDATED 2026-09-20, replaces `test_seed_field_width_is_capped`. v1's seed field carried a
+## hardcoded `custom_minimum_size.x` cap and explicitly excluded `SIZE_EXPAND` because it sat
+## alone in an unbounded-width VBox column. v2's seed field DOES carry `SIZE_EXPAND_FILL` on
+## purpose — the mockup's own redline is `flex:1 1 auto` next to a fixed-width RANDOM button —
+## but the row it lives in is inside RUN SETUP, a panel with a fixed `custom_minimum_size.x`
+## (566, per the box measurement in MainMenu.gd). The field can only ever render as wide as
+## "panel width minus the fixed RANDOM button minus padding/gaps", which is the same rule
+## ("bounded, not unbounded") enforced through a different, v2-correct mechanism. This checks
+## the mechanism that now provides the bound, since checking `_seed_edit`'s own size flags would
+## fail on a legitimate v2 layout.
+func test_seed_field_is_bounded_by_its_panel_not_by_its_own_expansion() -> void:
 	var menu := _instantiate_menu()
 	await get_tree().process_frame
 
 	var seed_edit: LineEdit = menu._seed_edit
 	_assert(seed_edit != null, "menu has no _seed_edit to check")
 	if seed_edit != null:
-		_assert(seed_edit.custom_minimum_size.x > 0.0 and seed_edit.custom_minimum_size.x <= 500.0,
-			"seed field custom_minimum_size.x is %.1f — expected a bounded width (~360px), not "
-			% seed_edit.custom_minimum_size.x + "0 (unbounded) or an oversized value")
-		_assert((seed_edit.size_flags_horizontal & Control.SIZE_EXPAND) == 0,
-			("seed field size_flags_horizontal is %d, which still includes SIZE_EXPAND — it "
-			+ "will keep stretching to fill the row with no ceiling, same as the original bug")
-			% seed_edit.size_flags_horizontal)
+		var panel: Node = menu.get_node("RunSetupPanel")
+		_assert(panel != null, "no RunSetupPanel to bound the seed field's width")
+		if panel != null:
+			var min_w: float = (panel as Control).custom_minimum_size.x
+			_assert(min_w > 0.0 and min_w <= 700.0,
+				"RunSetupPanel custom_minimum_size.x is %.1f — expected a bounded width "
+				% min_w + "(~566px), not 0 (unbounded) or an oversized value")
 
 	menu.queue_free()
 	await get_tree().process_frame
-	_done("test_seed_field_width_is_capped")
+	_done("test_seed_field_is_bounded_by_its_panel_not_by_its_own_expansion")
 
 
-## P1-3 — every section shares one alignment column instead of each row picking its own
-## expansion rule. Checked structurally: %ContentRoot must carry a bounded minimum width and
-## sit inside a CenterContainer (MainMenu.tscn: Scroll -> ContentCenter -> ContentRoot).
-func test_content_root_has_a_max_width_wrapper() -> void:
+## New structural sanity check for the v2 layout's three major regions.
+func test_run_setup_panel_and_nav_tiles_and_team_row_all_exist() -> void:
 	var menu := _instantiate_menu()
 	await get_tree().process_frame
 
-	var content_root: VBoxContainer = menu.get_node("%ContentRoot")
-	_assert(content_root.custom_minimum_size.x >= 900.0
-			and content_root.custom_minimum_size.x <= 1200.0,
-		"%%ContentRoot custom_minimum_size.x is %.1f, expected ~1000-1100px per the backlog fix"
-		% content_root.custom_minimum_size.x)
-	_assert(content_root.get_parent() is CenterContainer,
-		"%%ContentRoot's parent is a %s, not a CenterContainer — the max-width column is no "
-		% content_root.get_parent().get_class() + "longer centered/bounded inside Scroll")
+	_assert(menu.get_node_or_null("RunSetupPanel") != null, "no RunSetupPanel")
+	var nav_tiles := menu.get_node_or_null("NavTiles")
+	_assert(nav_tiles != null, "no NavTiles grid")
+	if nav_tiles != null:
+		_assert(nav_tiles.get_child_count() == 6,
+			"NavTiles has %d tile(s), expected 6 (Pass/Unlocks/Vault/Sample Teams/Codex/"
+			% nav_tiles.get_child_count() + "Collection)")
+	var team_row: Node = menu._team_row
+	_assert(team_row != null, "no team row built")
+	if team_row != null:
+		_assert(team_row.get_child_count() == MainMenu.TEAM_SIZE,
+			"team row has %d card(s), expected %d" % [
+				team_row.get_child_count(), MainMenu.TEAM_SIZE])
 
 	menu.queue_free()
 	await get_tree().process_frame
-	_done("test_content_root_has_a_max_width_wrapper")
+	_done("test_run_setup_panel_and_nav_tiles_and_team_row_all_exist")
 
 
-## P1-6 — a locked FULL-mode button must carry a signal OUTSIDE the small caption label below
-## it: either its own button text differs from the plain unlocked caption (a lock glyph/marker
-## baked into `.text`), or it has a child icon node. Checking the caption Label's mere
-## existence would not have caught the original bug (the caption already existed; the button
-## itself carried nothing extra).
-func test_locked_mode_button_signals_beyond_caption() -> void:
+## UPDATED 2026-09-20, replaces `test_locked_mode_button_signals_beyond_caption`. v1's FULL-mode
+## button had a separate dim caption Label below it, and the bug was that button carried no
+## signal of its own beyond that caption. v2's mode buttons are two-line cards
+## ("FULL\nN rows · N bosses") with no separate caption Label at all — the lock glyph baked into
+## the button's own `.text` is now the ONLY lock signal, which trivially satisfies the original
+## rule (a locked button must signal beyond a caption that, in v2, does not exist to hide behind
+## in the first place) but is still checked explicitly so a future pass cannot silently drop the
+## glyph and leave a plain, indistinguishable button.
+func test_locked_mode_button_signals_beyond_the_lock_glyph() -> void:
 	var had_u_full := MetaState.unlocks.has("u_full")
 	if had_u_full:
 		MetaState.unlocks.erase("u_full")
@@ -234,18 +267,15 @@ func test_locked_mode_button_signals_beyond_caption() -> void:
 	_assert(full_btn != null, "menu has no _mode_full_btn to check")
 	if full_btn != null:
 		_assert(full_btn.disabled, "test setup did not lock FULL mode — u_full still unlocked")
-		var has_icon_child := full_btn.get_child_count() > 0
-		var caption_text_only := full_btn.text.strip_edges() == "FULL — %d rows" % MainMenu._rows_for("full")
-		_assert(has_icon_child or not caption_text_only,
-			"locked FULL button text is exactly '%s' with no child icon — the only lock signal "
-			% full_btn.text + "is the separate caption Label below it, same as the original bug")
+		_assert(full_btn.text.contains("🔒"),
+			"locked FULL button text '%s' carries no lock glyph" % full_btn.text)
 
 	menu.queue_free()
 	await get_tree().process_frame
 
 	if had_u_full:
 		MetaState.unlocks.append("u_full")
-	_done("test_locked_mode_button_signals_beyond_caption")
+	_done("test_locked_mode_button_signals_beyond_the_lock_glyph")
 
 
 ## "12 waves" / "20 waves" has now been found wrong in FOUR player-facing places: the Codex,
@@ -265,6 +295,7 @@ func test_nothing_promises_waves_on_a_map_made_of_rows() -> void:
 		var btn := node as Button
 		if btn != null:
 			texts.append(btn.text)
+			texts.append(btn.tooltip_text)
 		for t in texts:
 			if t.to_lower().contains("wave"):
 				offenders.append(t)
@@ -280,7 +311,8 @@ func test_nothing_promises_waves_on_a_map_made_of_rows() -> void:
 		"the SHORT button reads '%s' and the generator says %d rows"
 		% [(menu._mode_short_btn as Button).text, short_rows])
 
-	# The Unlocks list is content, not layout, so it is checked at the source.
+	# The Unlocks list is content, not layout, so it is checked at the source (still true even
+	# though v2 no longer renders this list on Main Menu itself — see the GAP FLAGGED note).
 	for unlock in ContentDB.UNLOCKS:
 		var u: Dictionary = unlock
 		for field in ["n", "d"]:
@@ -292,22 +324,26 @@ func test_nothing_promises_waves_on_a_map_made_of_rows() -> void:
 	_done("test_nothing_promises_waves_on_a_map_made_of_rows")
 
 
-## Picking a team is picking five always-on rules. This screen showed the six faces and hid
-## the rule, so the most build-defining thing about a class was learnable only by playing a run
-## with it. The text must come from ContentDB.CLASS_PASSIVE — a passive retyped into the menu
-## is a menu that can promise something the engine does not do.
-func test_every_team_slot_shows_its_class_passive() -> void:
-	var menu := _instantiate_menu()
+## UPDATED 2026-09-20, replaces `test_every_team_slot_shows_its_class_passive`. The 5-slot
+## picker this test used to check on MainMenu.tscn now lives entirely on TeamSelect.tscn (see
+## that file's header for why) — MainMenu's own team row is read-only and shows no passive text
+## at all, so re-running the old assertion against MainMenu would either false-fail or, worse,
+## silently pass on an empty sweep. The rule is unchanged (picking a team is picking five
+## always-on rules, so the passive must be on screen, straight from ContentDB.CLASS_PASSIVE,
+## never retyped) — only the screen under test moved.
+func test_team_select_shows_every_slots_class_passive() -> void:
+	MainMenu.pending_team = MainMenu.DEFAULT_TEAM.duplicate()
+	var screen := _instantiate_team_select()
 	await get_tree().process_frame
 
 	var all_text := ""
-	for node in _descendants(menu):
+	for node in _descendants(screen):
 		var lbl := node as Label
 		if lbl != null:
 			all_text += lbl.text + "\n"
 
 	var seen := 0
-	for hero_key in menu._team_selection:
+	for hero_key in MainMenu.DEFAULT_TEAM:
 		var hero_def: Dictionary = ContentDB.heroes.get(String(hero_key), {})
 		var passive: Dictionary = ContentDB.CLASS_PASSIVE.get(String(hero_def.get("cls", "")), {})
 		_assert(not passive.is_empty(),
@@ -318,15 +354,15 @@ func test_every_team_slot_shows_its_class_passive() -> void:
 		_assert(all_text.contains(String(passive.get("n", ""))),
 			"the team slot for '%s' does not name its passive (%s)"
 			% [hero_key, passive.get("n", "")])
-		# The DESCRIPTION, not just the name: a name alone tells a new player nothing.
 		_assert(all_text.contains(String(passive.get("d", "")).substr(0, 24)),
 			"the team slot for '%s' names %s but does not say what it does"
 			% [hero_key, passive.get("n", "")])
 	_assert(seen == 5, "checked %d team slots, expected 5" % seen)
 
-	menu.queue_free()
+	screen.queue_free()
 	await get_tree().process_frame
-	_done("test_every_team_slot_shows_its_class_passive")
+	MainMenu.pending_team = []
+	_done("test_team_select_shows_every_slots_class_passive")
 
 
 func _descendants(node: Node) -> Array[Node]:

@@ -21,6 +21,7 @@ EventBus="*res://autoload/EventBus.gd"
 MetaState="*res://autoload/MetaState.gd"
 ContentDB="*res://autoload/ContentDB.gd"
 RunState="*res://autoload/RunState.gd"
+RunStatsAccumulator="*res://autoload/RunStatsAccumulator.gd"
 RelicRegistry="*res://autoload/RelicRegistry.gd"
 AxieMixerBoot="*res://autoload/AxieMixerBoot.tscn"
 
@@ -44,6 +45,19 @@ window/size/viewport_width=1920
 window/size/viewport_height=1080
 window/stretch/mode="canvas_items"
 window/stretch/aspect="expand"
+
+[gui]
+
+; ONE theme, project-wide. The v2 UI handoff §07 step 1 asks for "one Theme applied at the
+; root of all six scenes"; setting it here instead reaches every Control in the project,
+; including the ones built at runtime by CombatView/RunMapController/MainMenu — which is most
+; of this game's UI and would each have had to remember to inherit it. It also means a scene
+; added later cannot forget.
+;
+; The file is GENERATED. Do not hand-edit it: run `Godot --headless --path godot --script
+; tools/gen_theme.gd`, which builds it from DangoTheme so the theme and the code-built widgets
+; cannot drift apart.
+theme/custom="res://resources/theme/dango.tres"
 
 [rendering]
 

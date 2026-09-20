@@ -41,7 +41,8 @@ var shards_this_run: int = 0
 ## CombatEngine has counted all five since the beginning, and nothing outside that object ever
 ## read them, so the end-of-run screen documented them as "not tracked anywhere reachable" and
 ## showed nothing. They were tracked; they just never left the fight they happened in.
-var run_stats: Dictionary = {"dmg": 0, "taken": 0, "turns": 0, "kills": 0, "max_hit": 0}
+var run_stats: Dictionary = {"dmg": 0, "taken": 0, "turns": 0, "kills": 0, "max_hit": 0,
+	"dmg_dealt_clamped": 0}
 var power_level: int = 0           # "pw" — increments on every node completed regardless of
                                     # type (verified against engine.js takeReward/eventDone/shopDone)
 var owned_relic_ids: Array[String] = []
@@ -160,7 +161,12 @@ func reset() -> void:
 	current_node_id = ""
 	visited_node_ids = []
 	shards_this_run = 0
-	run_stats = {"dmg": 0, "taken": 0, "turns": 0, "kills": 0, "max_hit": 0}
+	run_stats = {"dmg": 0, "taken": 0, "turns": 0, "kills": 0, "max_hit": 0, "dmg_dealt_clamped": 0}
+	# RunStats accumulator (design-handoff-v2 §09): reset() is the one place both a fresh
+	# start_new_run() (which calls reset() first) and a test/screen that just finished reading
+	# a completed run funnel through, so resetting RunStatsAccumulator here keeps it in lock
+	# step with run_stats without a second call site to remember.
+	RunStatsAccumulator.reset()
 	power_level = 0
 	owned_relic_ids = []
 	bonus_reroll = 0
@@ -405,7 +411,7 @@ func _fold_combat_stats(raw) -> void:
 	if not (raw is Dictionary):
 		return
 	var stat: Dictionary = raw
-	for key in ["dmg", "taken", "turns", "kills"]:
+	for key in ["dmg", "taken", "turns", "kills", "dmg_dealt_clamped"]:
 		run_stats[key] = int(run_stats.get(key, 0)) + int(stat.get(key, 0))
 	run_stats["max_hit"] = maxi(int(run_stats.get("max_hit", 0)), int(stat.get("max_hit", 0)))
 
@@ -921,7 +927,7 @@ func from_data(d: Dictionary) -> void:
 	shards_this_run = int(d.get("shards_this_run", 0))
 	var saved_stats: Dictionary = (d.get("run_stats", {}) as Dictionary)
 	run_stats = {}
-	for key in ["dmg", "taken", "turns", "kills", "max_hit"]:
+	for key in ["dmg", "taken", "turns", "kills", "max_hit", "dmg_dealt_clamped"]:
 		run_stats[key] = int(saved_stats.get(key, 0))
 	power_level = int(d.get("power_level", 0))
 	owned_relic_ids.assign(d.get("owned_relic_ids", []))

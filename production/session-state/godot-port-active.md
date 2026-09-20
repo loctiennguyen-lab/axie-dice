@@ -35,6 +35,61 @@ Task: **Vault/Import Axie: bước (a)(b)(c) XONG. Bước (d) lớp mạng BỊ
 
 # ⇢ BẮT ĐẦU TỪ ĐÂY (phiên mới đọc mục này trước, phần dưới là lịch sử)
 
+## ⓹ 2026-09-20 — THI CÔNG BỘ GIAO DIỆN v2 (design handoff)
+
+Chủ dự án đưa vào một **bộ handoff thiết kế hoàn chỉnh cho cả 14 màn**, nằm NGOÀI repo:
+
+    /Users/loc.tien.nguyen/Downloads/design_handoff_axie_dice_ui/
+
+Đọc `docs/design-handoff-v2/README.md` trước — nó chỉ đường vào bộ đó và ghi cái gì đã làm xong.
+
+**ĐÃ XONG (bước 1 và 2 trong build order của spec), suite 42/42 xanh:**
+
+- `godot/assets/fonts/` — Baloo 2 (display) + Work Sans (prose), OFL, xem LICENSE.md ở đó.
+  `DangoTheme.FONT` trước đây là `null`, tức **mọi chữ trong game đang dùng font mặc định của
+  Godot** — spec gọi đây là "the single biggest win" và nó đúng.
+- `godot/resources/theme/dango.tres`, SINH RA bởi `godot/tools/gen_theme.gd`. Đừng sửa tay file
+  .tres; sửa generator rồi chạy lại. Gắn vào `project.godot` → `gui/theme/custom` thay vì gắn
+  lên root từng scene, vì phần lớn UI game này được dựng lúc chạy bằng code.
+- `DangoTheme.gd` có thêm toàn bộ bộ surface v2 (PANEL / PANEL_DEEP / PANEL_ON_ART /
+  PANEL_RAISED / WELL / CARD_CREAM), bóng "shelf" cứng không blur, `INK_ON_PRIMARY`, màu theo
+  class, tone node bản đồ, và công thức nền (`build_plate()` / `scrim_texture()` /
+  `plate_material()`) + `resources/shaders/plate_grade.gdshader`.
+
+**HAI ĐIỂM MỘT PHIÊN MỚI DỄ HIỂU SAI:**
+
+1. **Spec bảo dùng `CanvasItemMaterial` cho saturate/brightness — không làm được.** Resource đó
+   chỉ có blend mode / light mode / particle anim, không có brightness và không có saturation.
+   Đã thay bằng một shader 10 dòng. Đừng "sửa lại cho đúng spec".
+2. **4 assertion cũ đã được SỬA, không phải bỏ** (3 trong `t_button_states.gd`, 1 trong
+   `t_runloop_ui.gd`). Chúng khẳng định đúng những giá trị mà v2 thay thế: viền 2px, disabled
+   bằng alpha, "không được đụng màu chữ nút primary" (mục này v2 ký duyệt sửa hẳn: chữ trắng
+   trên cam đo được 2.2:1). Mỗi chỗ sửa đều có comment `UPDATED 2026-09-20` nói rõ luật v2 nào
+   thay luật cũ và vì sao bản thay thế vẫn kiểm đúng thứ cũ kiểm.
+
+**ĐÃ XONG thêm (cùng ngày)**: Main Menu + Team Select (tách scene riêng) · Run Map · Result +
+bộ đếm RunStats §09 (autoload `RunStatsAccumulator`) · Pass + Unlocks (hai màn MỚI) · Vault +
+Guides · Combat bước 3 (nền, top bar, deck, front line) và thẻ die của bước 4 · một lượt rà
+chéo toàn bộ 8 màn (`docs/design-handoff-v2/consistency-sweep.md`).
+**Suite: 44/44** — đo trên trạng thái gộp, đã cập nhật ngưỡng trong `technical-preferences.md`.
+
+**CÒN LẠI — đã đo, không đoán:**
+1. **Combat: nameplate và bảng ý định vẫn là bản v1.** Chưa có viền trên màu class, chưa có dải
+   trạng thái cao 28px luôn hiện, chưa có lát AT_RISK trên thanh HP, chưa có chip sát thương sắp
+   nhận. `UnitPortrait.gd:108` còn `shadow_size = 8` — bóng mờ, vi phạm luật "chỉ có shelf cứng".
+2. **Lớp juice (§05)** — tung xúc xắc, số sát thương bay, chớp khi trúng, rung, banner lượt. Chưa
+   chạm tới. `EventBus.float_text` vẫn đang phát ra rồi bị vứt đi.
+3. **Codex (§08)** — 10 tab, 5 kiểu layout. Spec nói rõ nội dung phải viết theo luật của **bản
+   Godot này**; Codex bản JS là nguồn SAI (nó nói "12 waves" và mô tả undo mà bản này không có).
+4. **Xung đột hình học chưa ai quyết** — Axie dẫn đầu 132px vs khoảng cách hàng 118px trên Run
+   Map. Chi tiết ở `docs/design-handoff-v2/README.md`, mục "Open questions".
+
+⚠️ **Đừng tin báo cáo mà không nhìn ảnh.** Một luồng báo đội hình giãn 305px và đề xuất sửa
+`_ROW_SPACING_PARTY` 1.9 → 1.2066 "đã xác minh bằng phân tích". Ảnh chụp cho thấy giãn thật ~200px
+và đã thẳng hàng với thẻ die; áp dụng đề xuất đó sẽ **phá vỡ** sự thẳng hàng đang đúng.
+
+---
+
 ## ⓸ 2026-09-20 — MUỐN ĐƯA GAME LÊN WEB? ĐỌC `production/web-launch-checklist.md`
 
 Chủ dự án chuyển sang phiên khác làm **giao diện**, và muốn biết còn gì phải làm trước khi đưa

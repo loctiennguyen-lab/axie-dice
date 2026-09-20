@@ -41,22 +41,37 @@ func _ready() -> void:
 	get_tree().quit(1)
 
 
+## UPDATED 2026-09-20 for the v2 Result screen (docs/design-handoff-v2 §06/§09). v1 showed
+## these five numbers as prose lines ("Damage dealt: 137", ...); v2 replaces that with a
+## six-tile stat ribbon (RunStatsAccumulator.snapshot()) whose values render as bare numbers
+## next to a separate caption Label, so a single "Damage dealt: 137" string no longer exists
+## anywhere on screen. The RULE under test has not moved — a real run's statistics must reach
+## the screen — only the format has, so each check below now looks for the tile's VALUE text
+## instead of the old combined sentence. "taken" is dropped outright: v2's six tiles (§09) are
+## nodes_cleared/turns_taken/damage_dealt/kills/biggest_hit/axies_lost, and "damage taken" is
+## not one of them — this is a deliberate scope match to the spec, not an oversight.
+## `dmg_dealt_clamped` is what damage_dealt actually reads (see RunStatsAccumulator.gd); it is
+## seeded here alongside the legacy `dmg` key so the test still drives a real value through.
 func test_a_real_runs_statistics_reach_the_screen() -> void:
-	var view := await _build_result(true, {"dmg": 137, "taken": 44, "turns": 21, "kills": 9,
-		"max_hit": 26})
+	var view := await _build_result(true, {"dmg": 137, "dmg_dealt_clamped": 137, "taken": 44,
+		"turns": 21, "kills": 9, "max_hit": 26})
 	var text := _all_text(view)
-	for pair in [["Damage dealt: 137", "damage dealt"], ["Damage taken: 44", "damage taken"],
-			["Turns played: 21", "turns"], ["Enemies defeated: 9", "kills"],
-			["Biggest hit: 26", "biggest hit"]]:
+	for pair in [["137", "damage dealt"], ["21", "turns taken"], ["9", "kills"],
+			["26", "biggest hit"]]:
 		_assert(text.contains(String(pair[0])),
-			"the end screen does not show %s — expected '%s'" % [pair[1], pair[0]])
+			"the end screen does not show %s — expected the value '%s' somewhere on the "
+			% [pair[1], pair[0]] + "stat ribbon")
 	# The stale wave count, pinned so it cannot come back a fourth time.
 	_assert(not text.contains("waves"),
 		"the end screen still describes the map in 'waves'; this map is a branching graph of "
 		+ "rows, and the wave count it used to print was wrong for both modes")
-	_assert(text.contains("18 rows"),
-		"the end screen should read the row count from RunMapGenerator; it printed: %s"
-		% _line_containing(view, "Mode:"))
+	# UPDATED 2026-09-20: v1 printed "Mode: Short (18 rows)" as its own prose line; v2's
+	# NODES CLEARED tile carries the same row-count information as its denominator
+	# ("<power_level> / 18") instead of a separate sentence — same rule (read the row count
+	# from RunMapGenerator, never hardcode it), different tile.
+	_assert(text.contains("/ 18"),
+		"the end screen's NODES CLEARED tile should show the row count from RunMapGenerator "
+		+ "as its denominator; full screen text was: %s" % text.substr(0, 400))
 	view.queue_free()
 	await get_tree().process_frame
 

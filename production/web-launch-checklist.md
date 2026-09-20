@@ -98,9 +98,43 @@ asset không dùng. Chưa đo kích thước sau nén.
   cần nó, vì trình duyệt bị CORS chặn.
 - Endpoint nộp điểm luôn bật (ADR-0004). Đường CI hiện tại chỉ đủ cho beta kín.
 
-## ✅ E. Những thứ KHÔNG chặn — đừng để nó giữ chân bản phát hành
-Collection chưa có · tutorial còn là sân tập rút gọn · lịch sử run · Account/đồng bộ đám mây ·
-telemetry · FACE_POOL 55 mặt. Tất cả đã được chủ dự án xếp vào polish/phase 3.
+## ✅ E. KHÔNG chặn việc lên web — nhưng phải biết mình đang bỏ lại cái gì
+
+> **Sửa lỗi của chính file này (2026-09-20)**: bản đầu tiên chỉ liệt kê 6 mục và **bỏ sót cả
+> cụm cosmetic/hồ sơ** — Echo Box, Avatar, Profile, các modal đổi tên/đổi avatar, World Tour.
+> Chúng có trong mục "đã bỏ" của `production/cutover-gate.md` nhưng không được mang sang đây,
+> mà đây mới là file dùng để quyết định phát hành. Chủ dự án phát hiện, không phải tôi.
+
+### E1. Cụm COSMETIC / HỒ SƠ — cả cụm đang ở 0%
+
+Không phải một màn hình, mà là sáu thứ chồng lên nhau:
+
+| Thành phần | Trạng thái Godot | Ghi chú đo được 2026-09-20 |
+|---|---|---|
+| Theo dõi bộ sưu tập | **không tồn tại** | `MetaState` không ghi gì về relic/mặt/boss đã gặp. Đây là nền móng, thiếu nó thì 3 mục dưới vô nghĩa |
+| `scCollection` | 0% | 155 ô (94 relic + 55 mặt + 6 boss) |
+| `scProfile` | 0% | nơi xem/đeo cosmetic |
+| `scAvatarModal` / `scNameModal` | 0% | đổi avatar, đổi tên |
+| Cosmetic | 0% | **60 món**: 22 avatar (ảnh thật) · 9 decor + 11 background (**CSS thuần — phải VẼ LẠI**) · 18 title (chữ) |
+| **Echo Box** | 0% | gacha cosmetic. `ECHO = {base 500, growth 1.035, tierSize 25, introCost 50}` + 5 bậc danh hiệu |
+
+**Điều kiện mở Echo Box** là `collectionComplete()` = đủ **mặt** VÀ **relic** VÀ **boss**.
+Godot đã đủ relic (94/94) và boss (6/6) — **chỉ còn FACE_POOL 55 mặt chặn** (ticket I). Bên JS
+còn một lối thoát `collectionGrandfathered`.
+
+→ Nghĩa là thứ tự bắt buộc nếu muốn có Echo Box: **theo dõi bộ sưu tập → FACE_POOL →
+Collection → Profile → cosmetic (vẽ lại 20 món) → Echo Box.** Không có đường tắt.
+
+### E2. Các mục còn lại
+Tutorial vẫn là sân tập rút gọn · lịch sử run · Account/đồng bộ đám mây · telemetry ·
+World Tour (17/20 phần thưởng của nó là cosmetic nên nó nằm sau cả cụm E1) · màn đăng nhập
+(đã bỏ hẳn).
+
+### ⚠️ Điểm sắc nhất, đừng bỏ qua
+Bỏ những thứ này **không chặn việc lên web như một bản mới**. Nhưng nếu bản Godot **thay thế**
+bản JS đang live, thì người chơi hiện tại **MẤT** những tính năng họ đang có: hồ sơ, avatar,
+bộ sưu tập, Echo Box. Đó là chuyện khác hẳn "chưa làm" — và nó cần chủ dự án quyết một cách
+có ý thức, không phải mặc định trôi qua.
 
 ---
 

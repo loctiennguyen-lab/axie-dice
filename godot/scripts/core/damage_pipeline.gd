@@ -82,6 +82,7 @@ static func resolve(ctx: Dictionary) -> int:
 		if ab > 0:
 			EventBus.float_text.emit(tgt.uid, "-%d" % ab, "shd", 0)
 
+	var hp_before_hit := tgt.hp   # pre-clamp remaining HP, for the RunStats accumulator below
 	if iv > 0:                                                                   # 9. subtract HP
 		tgt.hp -= iv
 		dealt = iv
@@ -104,6 +105,21 @@ static func resolve(ctx: Dictionary) -> int:
 	if tgt.side == "p":
 		combat.stat["taken"] = int(combat.stat.get("taken", 0)) + dealt
 
+	# RunStats accumulator (design-handoff-v2 §09, "damage_dealt"). Deliberately a separate
+	# key from "dmg" above, not a fix to it: "dmg" feeds nothing rule-facing either, but
+	# changing what it counts mid-project felt riskier than adding a second counter, and
+	# `dealt` itself (which DOES feed relic hooks, e.g. an on_hit "dealt >= 4" check) is never
+	# touched here. Two differences from "dmg": (1) clamped to the HP that actually existed
+	# before this hit, so an overkill of 40 into a 6 HP enemy contributes 6, matching what a
+	# player watching the HP bar actually saw; (2) counted when src == null too — a poison/burn
+	# tick (StatusEngine.tick_status calls resolve() with src == null) landing on an enemy is
+	# still damage the player's own status effect caused, and the `src != null` guard above
+	# silently dropped all of it.
+	if (src != null and src.side == "p") or (src == null and tgt.side == "e"):
+		var clamped_hit := mini(dealt, maxi(hp_before_hit, 0))
+		if clamped_hit > 0:
+			combat.stat["dmg_dealt_clamped"] = int(combat.stat.get("dmg_dealt_clamped", 0)) + clamped_hit
+
 	if tgt.side == "p":                                                          # 10. onDmgTaken hook
 		RelicHooks.fire(combat, "on_dmg_taken", {"src": src, "tgt": tgt, "dealt": dealt, "attack": attack, "combat": combat})
 
@@ -119,8 +135,20 @@ static func resolve(ctx: Dictionary) -> int:
 				EventBus.relic_pulsed.emit("thorns", tgt.uid)
 		var ith := int(th)
 		EventBus.hit_landed.emit(tgt.uid, src.uid, ith, false)
+		var src_hp_before_thorns := src.hp
 		src.hp -= ith
 		EventBus.float_text.emit(src.uid, "-%d" % ith, "dmg", 0)
+		# RunStats accumulator, same "damage_dealt" counter as above: thorns is a party unit's
+		# OWN status reflecting damage onto whatever attacked it, so it counts as player-dealt
+		# damage exactly when the thorns belongs to a party member (tgt.side == "p") — the
+		# gate is unambiguous here because thorns damage only ever lands on `src`, the attacker,
+		# never on a bystander. Deliberately excluded from "max_hit"/biggest_hit (spec §09):
+		# nothing below touches combat.stat["max_hit"], matching the rule that biggest_hit is
+		# one die resolution against one target, not a reflected tick.
+		if tgt.side == "p":
+			var clamped_thorns := mini(ith, maxi(src_hp_before_thorns, 0))
+			if clamped_thorns > 0:
+				combat.stat["dmg_dealt_clamped"] = int(combat.stat.get("dmg_dealt_clamped", 0)) + clamped_thorns
 		if tgt.side == "p" and tgt.cls == "reptile":
 			StatusEngine.add_status(combat, src, ["poison:1"], tgt)
 		if src.hp <= 0 and src.status.get("undying", 0):

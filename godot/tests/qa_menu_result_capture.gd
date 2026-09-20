@@ -54,24 +54,22 @@ func _shot(name: String) -> void:
 # ===========================================================================
 
 func _capture_main_menu() -> void:
+	# v2: MainMenu.tscn is a fixed, non-scrolling title screen (docs/design-handoff-v2) — one
+	# capture of the default state is now enough to see the whole screen at once; the old
+	# scroll-to-bottom step no longer applies (there is nothing to scroll to). The team picker
+	# (hero dropdown/passive/faces) moved to its own screen, captured separately below.
 	var menu: Control = load("res://scenes/main_menu/MainMenu.tscn").instantiate()
 	add_child(menu)
 	await _settle()
 	_shot("01_mainmenu_default")
 
-	# Reconfigure away from defaults to prove every control actually drives state:
-	# Full mode, Ascension 7, a re-picked hero on slot 0 (bird1, the class the old
-	# hardcoded PLACEHOLDER_TEAM could never reach), and a custom seed.
+	# Reconfigure away from defaults to prove every control actually drives state: Full mode,
+	# Ascension 7, a custom seed.
 	menu._mode_full_btn.button_pressed = true
 	menu._mode_full_btn.toggled.emit(true)
 	for _i in 7:
 		menu._ascension = min(menu.ASCENSION_MAX, menu._ascension + 1)
 	menu._refresh_ascension()
-
-	var slot0_option: OptionButton = menu._hero_cards[0]["option"]
-	var bird_idx: int = menu.T1_HERO_KEYS.find("bird1")
-	slot0_option.select(bird_idx)
-	slot0_option.item_selected.emit(bird_idx)
 
 	menu._seed_edit.text = "123456789"
 	menu._seed_edit.text_changed.emit("123456789")
@@ -79,15 +77,34 @@ func _capture_main_menu() -> void:
 	await _settle()
 	_shot("02_mainmenu_reconfigured")
 
-	# Scroll to the bottom so the team-picker cards + BEGIN RUN button are also captured —
-	# %ContentRoot is taller than the 1080px viewport once all 6 sections are built.
-	var scroll: ScrollContainer = menu.get_node("Scroll")
-	scroll.scroll_vertical = 100000
-	await _settle()
-	_shot("03_mainmenu_team_and_button")
-
 	menu.queue_free()
 	await _settle()
+
+	await _capture_team_select()
+
+
+## TeamSelect.tscn — the screen the v2 team picker (hero dropdown, class passive, six faces)
+## moved to. Re-picks slot 0 to bird1 (the class the old hardcoded PLACEHOLDER_TEAM could never
+## reach) to prove the picker actually drives the hero band/passive/faces, same intent the old
+## MainMenu capture step had before the picker moved.
+func _capture_team_select() -> void:
+	MainMenu.pending_team = MainMenu.DEFAULT_TEAM.duplicate()
+	var screen: Control = load("res://scenes/main_menu/TeamSelect.tscn").instantiate()
+	add_child(screen)
+	await _settle()
+	_shot("03_teamselect_default")
+
+	var slot0_option: OptionButton = screen._cards[0]["option"]
+	var bird_idx: int = MainMenu.T1_HERO_KEYS.find("bird1")
+	slot0_option.select(bird_idx)
+	slot0_option.item_selected.emit(bird_idx)
+
+	await _settle()
+	_shot("04_teamselect_reconfigured")
+
+	screen.queue_free()
+	await _settle()
+	MainMenu.pending_team = []
 
 
 # ===========================================================================
@@ -95,8 +112,8 @@ func _capture_main_menu() -> void:
 # ===========================================================================
 
 func _capture_result_screens() -> void:
-	await _capture_one_result(true, ["r_bastionplate", "r_ember", "r_chainreact"], "04_result_victory")
-	await _capture_one_result(false, [], "05_result_defeat_no_relics")
+	await _capture_one_result(true, ["r_bastionplate", "r_ember", "r_chainreact"], "05_result_victory")
+	await _capture_one_result(false, [], "06_result_defeat_no_relics")
 
 
 func _capture_one_result(won: bool, relic_ids: Array[String], shot_name: String) -> void:

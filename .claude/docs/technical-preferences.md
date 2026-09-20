@@ -109,15 +109,21 @@
 
 ## Test Floor — Godot port (`godot-port` branch)
 
-- **`godot/tools/run_tests.sh` must be 42/42.** Measured 2026-09-20, not copied. It runs every
-  `godot/tests/t_*.tscn` headless and fails on a non-zero exit, a `SCRIPT ERROR`, a `Parse
-  Error`, an explicit FAIL, or a missing PASS.
+- **`godot/tools/run_tests.sh` must be 44/44.** Measured 2026-09-20 on the combined state of the
+  v2 UI pass, not copied. It runs every `godot/tests/t_*.tscn` headless and fails on a non-zero
+  exit, a `SCRIPT ERROR`, a `Parse Error`, an explicit FAIL, or a missing PASS.
+  Two files joined the suite in that pass: `t_run_stats_accumulator` (the §09 accumulator's two
+  deciding rules — the overkill clamp, and poison/thorns counting toward damage but never toward
+  biggest hit) and `t_pass_unlocks` (that Gene Shard can actually be spent and a Pass reward
+  actually claimed, which the v2 menu redesign briefly made unreachable).
 - Notable gates and their sizes: `t_replay` **47 checks** (action log + combat replay + full-run
   replay through `RunVerifier` + seven tamper injections) · `t_rules_version` (fingerprints the
-  17 rule files so `ActionLog.RULES_VERSION` cannot be silently left behind) · `t_full_run_loop`
-  **197 checks** across 8 seed-walks · `t_assets` 457 · `t_codex` 71 ·
-  `t_tutorial_flow` 43 · `t_vault` 275 · `t_axie_api` 98 · `t_result_screen` 23 ·
-  `t_settings` 19 · `t_mainmenu_ui` 51 · `t_full_run_loop` 209.
+  **19** rule files so `ActionLog.RULES_VERSION` cannot be silently left behind) ·
+  `t_full_run_loop` **197 checks** across 8 seed-walks · `t_assets` 457 · `t_codex` 71 ·
+  `t_tutorial_flow` 43 · `t_vault` **400** · `t_axie_api` 98 · `t_result_screen` **22** ·
+  `t_settings` 19 · `t_mainmenu_ui` **66** · `t_pass_unlocks` **783** ·
+  `t_result_and_stage` **175** · `t_run_stats_accumulator` **21** · `t_runloop_ui` **30** ·
+  `t_button_states` **72** · `t_guides_daily` **316**.
 - Change the suite, change this number **in the same commit**. The JS half of this document
   already records what a stale floor costs: it does not merely misinform, it **authorises a
   real regression to pass review**.

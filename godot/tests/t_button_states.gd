@@ -186,11 +186,24 @@ func test_primary_pressed_changes_color_and_geometry_opposite_of_hover() -> void
 	_assert(pressed_warn.shadow_size == 0,
 		"primary pressed (warning=true): shadow_size is %d, expected 0 — pressed must drop the "
 		% pressed_warn.shadow_size + "shadow per spec")
-	# ...while hover keeps it (hover only changes colour, the warning glow should not vanish).
+	# ...while hover keeps it (hover only changes colour, the chrome should not vanish).
+	#
+	# UPDATED 2026-09-20 for the v2 surface system. This used to assert `shadow_size > 0`,
+	# because v1 drew the warning state as a blurred DANGER glow. v2 has exactly one shadow in
+	# the whole design — a hard shelf, which is `shadow_size == 0` with a y-only
+	# `shadow_offset` — so `shadow_size > 0` now asserts the presence of the blurred shadow the
+	# redesign exists to remove. The RULE is unchanged and is what is checked here: hover keeps
+	# the button's depth, pressed takes it away.
 	var hover_warn := DangoTheme.primary_button_style(true, DangoTheme.ButtonState.HOVER)
-	_assert(hover_warn.shadow_size > 0,
-		"primary hover (warning=true): shadow_size is %d, expected > 0 — hover must not strip "
-		% hover_warn.shadow_size + "chrome, only pressed does")
+	_assert(hover_warn.shadow_offset.y > 0.0,
+		"primary hover (warning=true): shadow_offset.y is %f, expected > 0 — hover must not "
+		% hover_warn.shadow_offset.y + "strip the shelf, only pressed does")
+	_assert(hover_warn.shadow_size == 0,
+		"primary hover: shadow_size is %d, expected 0 — the only shadow in the v2 system is a "
+		% hover_warn.shadow_size + "hard offset shelf; any blur is the dark-dashboard tell")
+	_assert(pressed_warn.shadow_offset == Vector2.ZERO,
+		"primary pressed: shadow_offset is %s, expected (0, 0) — the shelf being taken away IS "
+		% pressed_warn.shadow_offset + "the press")
 	_done("test_primary_pressed_changes_color_and_geometry_opposite_of_hover")
 
 
@@ -216,23 +229,34 @@ func test_primary_disabled_ignores_warning_and_never_uses_hover_or_pressed_direc
 	var normal := DangoTheme.primary_button_style(false, DangoTheme.ButtonState.NORMAL)
 	var hover := DangoTheme.primary_button_style(false, DangoTheme.ButtonState.HOVER)
 	var pressed := DangoTheme.primary_button_style(false, DangoTheme.ButtonState.PRESSED)
-	# Disabled must not borrow hover's lighten or pressed's darken direction on bg_color — it
-	# flattens via alpha only (Color(PRIMARY.darkened(0.3), 0.45) per spec, a distinct rgb from
-	# all three of normal/hover/pressed).
+	# Disabled must not borrow hover's lighten or pressed's darken direction on bg_color — it is
+	# its own flattened tone, distinct from all three.
+	#
+	# UPDATED 2026-09-20 for the v2 surface system. v1 flattened by dropping bg alpha to 0.45;
+	# v2 forbids that outright, and says so in DangoTheme's own DISABLED note: a disabled surface
+	# is a flat DESATURATED FILL with its ink at FULL strength, because blanket transparency
+	# drops the label along with the card, and on the surface this rule was written for — a relic
+	# active you cannot afford — the cost line is the entire reason the card is on screen. So the
+	# alpha assertion is replaced by a saturation assertion in the same place, testing the same
+	# thing it always tested: that "disabled" is visibly its own state and not a dimmer normal.
 	_assert(disabled_off.bg_color.r != normal.bg_color.r
 			or disabled_off.bg_color.g != normal.bg_color.g
 			or disabled_off.bg_color.b != normal.bg_color.b,
-		"primary disabled: bg_color rgb identical to normal's — spec calls for "
-		+ "PRIMARY.darkened(0.3), a distinct flattened tone")
-	_assert(not is_equal_approx(disabled_off.bg_color.a, 1.0),
-		"primary disabled: bg_color alpha is opaque (%f) — spec calls for alpha 0.45, the "
-		% disabled_off.bg_color.a + "flatten signal a disabled control needs")
-	_assert(disabled_off.shadow_size == 0,
-		"primary disabled: shadow_size is %d, expected 0 (spec: 'không shadow')"
-		% disabled_off.shadow_size)
-	_assert(disabled_off.border_width_top == 2,
-		"primary disabled: border_width is %d, expected fixed 2 per spec regardless of warning"
-		% disabled_off.border_width_top)
+		"primary disabled: bg_color rgb identical to normal's — it must be a distinct "
+		+ "flattened tone")
+	_assert(disabled_off.bg_color.s < normal.bg_color.s * 0.8,
+		"primary disabled: saturation %f is not meaningfully below normal's %f — v2 flattens by "
+		% [disabled_off.bg_color.s, normal.bg_color.s] + "desaturating the fill, never by alpha")
+	_assert(is_equal_approx(disabled_off.bg_color.a, 1.0),
+		"primary disabled: bg_color alpha is %f — v2 requires an OPAQUE disabled fill so the ink "
+		% disabled_off.bg_color.a + "on top can stay at full strength")
+	_assert(disabled_off.shadow_offset == Vector2.ZERO and disabled_off.shadow_size == 0,
+		"primary disabled: has a shelf (offset %s, size %d) — a control that cannot be pressed "
+		% [disabled_off.shadow_offset, disabled_off.shadow_size] + "does not sit above the page")
+	_assert(disabled_off.border_width_top == normal.border_width_top,
+		"primary disabled: border_width is %d, expected normal's %d regardless of warning — "
+		% [disabled_off.border_width_top, normal.border_width_top]
+		+ "disabled changes colour, never geometry")
 	_done("test_primary_disabled_ignores_warning_and_never_uses_hover_or_pressed_direction")
 
 
@@ -259,18 +283,23 @@ func test_secondary_hover_changes_color_only_not_geometry() -> void:
 	var normal := DangoTheme.secondary_button_style(DangoTheme.ButtonState.NORMAL)
 	var hover := DangoTheme.secondary_button_style(DangoTheme.ButtonState.HOVER)
 
-	# Hover keeps BG_PANEL_SOFT's 0.55 alpha (per spec) but lightens rgb + brightens border.
-	_assert(is_equal_approx(hover.bg_color.a, normal.bg_color.a),
-		"secondary hover: alpha changed (%f -> %f) — spec says hover KEEPS the 0.55 alpha, only "
-		% [normal.bg_color.a, hover.bg_color.a] + "pressed changes alpha")
+	# UPDATED 2026-09-20 for the v2 surface system. v1 made this button a translucent outline and
+	# signalled its states through ALPHA; v2 makes it an opaque PANEL_RAISED object with a
+	# pure-black outline and signals through FILL, because an alpha change against a bright
+	# painted plate — which, after the background formula, is now every screen — is not a
+	# reliable signal, and the orange outline had started reading as a selection state. The rule
+	# being tested is the same one as before and has not moved: hover changes COLOUR ONLY.
+	_assert(is_equal_approx(normal.bg_color.a, 1.0) and is_equal_approx(hover.bg_color.a, 1.0),
+		"secondary: fill is translucent (normal a=%f, hover a=%f) — v2 secondary is an opaque "
+		% [normal.bg_color.a, hover.bg_color.a] + "PANEL_RAISED surface")
 	var normal_luma := normal.bg_color.r + normal.bg_color.g + normal.bg_color.b
 	var hover_luma := hover.bg_color.r + hover.bg_color.g + hover.bg_color.b
 	_assert(hover_luma > normal_luma,
-		"secondary hover: bg_color rgb (%s) is not lighter than normal (%s) — spec calls for "
-		% [hover.bg_color, normal.bg_color] + ".lightened(0.08)")
-	_assert(hover.border_color != normal.border_color,
-		"secondary hover: border_color unchanged — spec calls for PRIMARY.lightened(0.2), a "
-		+ "brighter border ('translucent glow')")
+		"secondary hover: bg_color (%s) is not brighter than normal (%s) — the REROLL redline "
+		% [hover.bg_color, normal.bg_color] + "calls for a PRIMARY fill on hover")
+	_assert(hover.border_color == Color.BLACK and normal.border_color == Color.BLACK,
+		"secondary: border is not pure black (normal %s, hover %s) — one outline, #000000, "
+		% [normal.border_color, hover.border_color] + "never a coloured or translucent hairline")
 
 	_assert(hover.border_width_top == normal.border_width_top,
 		"secondary hover: border_width changed (%d -> %d) — hover must only change colour"
@@ -287,23 +316,25 @@ func test_secondary_pressed_changes_color_and_geometry_opposite_of_hover() -> vo
 	var hover := DangoTheme.secondary_button_style(DangoTheme.ButtonState.HOVER)
 	var pressed := DangoTheme.secondary_button_style(DangoTheme.ButtonState.PRESSED)
 
-	# Pressed jumps alpha to 0.85 with UNCHANGED rgb (opaque, not lightened) — opposite
-	# alpha/lightness direction from hover, per spec ("solid, sunken" vs. "translucent glow").
-	_assert(pressed.bg_color.a > normal.bg_color.a and pressed.bg_color.a > hover.bg_color.a,
-		"secondary pressed: alpha (%f) is not higher than normal (%f) / hover (%f) — spec calls "
-		% [pressed.bg_color.a, normal.bg_color.a, hover.bg_color.a] + "for alpha 0.85")
-	_assert(is_equal_approx(pressed.bg_color.r, normal.bg_color.r)
-			and is_equal_approx(pressed.bg_color.g, normal.bg_color.g)
-			and is_equal_approx(pressed.bg_color.b, normal.bg_color.b),
-		"secondary pressed: rgb (%s) differs from normal's (%s) — spec says pressed keeps rgb "
-		% [pressed.bg_color, normal.bg_color] + "UNCHANGED (opaque, not lightened); only hover "
-		+ "lightens rgb")
-	_assert(pressed.border_color != normal.border_color and pressed.border_color != hover.border_color,
-		"secondary pressed: border_color must be its own darker tone (PRIMARY.darkened(0.15)) "
-		+ "distinct from both normal and hover's brighter border")
+	# UPDATED 2026-09-20 with the hover assertion above, and for the same reason. v1 put hover
+	# and pressed in opposite ALPHA directions; v2 puts them in opposite LUMA directions — hover
+	# fills PRIMARY, pressed darkens it — which is the same "translucent glow vs. solid sunken"
+	# contrast expressed in a channel that survives being drawn over artwork. Pressed also drops
+	# the shelf, which v1 had no shelf to drop.
+	var pressed_luma := pressed.bg_color.r + pressed.bg_color.g + pressed.bg_color.b
+	var hover_luma := hover.bg_color.r + hover.bg_color.g + hover.bg_color.b
+	_assert(pressed_luma < hover_luma,
+		"secondary pressed: bg_color (%s) is not darker than hover (%s) — hover and pressed must "
+		% [pressed.bg_color, hover.bg_color] + "move in opposite directions, not just both away "
+		+ "from normal")
+	_assert(pressed.bg_color != normal.bg_color,
+		"secondary pressed: fill is identical to normal's (%s)" % pressed.bg_color)
+	_assert(pressed.shadow_offset == Vector2.ZERO and normal.shadow_offset.y > 0.0,
+		"secondary: normal shelf %s / pressed shelf %s — the press is the shelf being taken away"
+		% [normal.shadow_offset, pressed.shadow_offset])
 
-	_assert(pressed.border_width_top == 3 and pressed.border_width_top == normal.border_width_top + 1,
-		"secondary pressed: border_width is %d, expected 3 (normal(%d) + 1)"
+	_assert(pressed.border_width_top == normal.border_width_top + 1,
+		"secondary pressed: border_width is %d, expected normal(%d) + 1"
 		% [pressed.border_width_top, normal.border_width_top])
 	_assert(is_equal_approx(pressed.content_margin_top, normal.content_margin_top + 1.0),
 		"secondary pressed: content_margin_top is %f, expected normal(%f) + 1.0"
@@ -329,18 +360,23 @@ func test_secondary_disabled_never_uses_hover_or_pressed_direction() -> void:
 			and _fingerprint(disabled) != _fingerprint(pressed),
 		"secondary disabled (%s) collides with another state — a disabled REMOVE/BACK button "
 		% _fingerprint(disabled) + "would be indistinguishable from an interactive one")
-	# NOTE ON SPEC GAP (flag per task instructions): the art-director spec gave a numeric
-	# disabled formula for the PRIMARY family only ("Color(PRIMARY.darkened(0.3), 0.45)"). No
-	# secondary-family disabled formula was specified. DangoTheme.secondary_button_style()'s
-	# DISABLED branch is this implementer's inferred analogue (alpha-only flatten, no
-	# hover/pressed colour direction, no geometry change, no shadow — same INTENT as primary's
-	# disabled, no matching numeric sign-off yet). This assertion only checks that inferred
-	# value is self-consistent and distinct from the other three states; it is not a
-	# reproduction of a designer-approved number the way the primary-family checks above are.
-	_assert(disabled.bg_color.a < normal.bg_color.a,
-		"secondary disabled: alpha (%f) is not lower than normal's (%f) — the inferred "
-		% [disabled.bg_color.a, normal.bg_color.a] + "disabled treatment is meant to flatten, "
-		+ "not raise, presence")
+	# The SPEC GAP this block used to flag is now closed. v1 had no numeric disabled formula for
+	# the secondary family, so the implementation inferred one (alpha-only flatten) and this
+	# assertion checked only that the inference was self-consistent. The v2 handoff states the
+	# rule for every surface in the system, not just the primary family: a disabled surface is a
+	# flat DESATURATED fill with its ink at FULL strength, never a blanket alpha. So the check
+	# is now against a stated rule rather than an inference.
+	_assert(is_equal_approx(disabled.bg_color.a, 1.0),
+		"secondary disabled: alpha is %f — v2 flattens by darkening an OPAQUE fill, never by "
+		% disabled.bg_color.a + "dropping alpha, so the label on top can stay readable")
+	var disabled_luma := disabled.bg_color.r + disabled.bg_color.g + disabled.bg_color.b
+	var normal_luma_d := normal.bg_color.r + normal.bg_color.g + normal.bg_color.b
+	_assert(disabled_luma < normal_luma_d,
+		"secondary disabled (%s) is not flatter than normal (%s) — disabled must reduce "
+		% [disabled.bg_color, normal.bg_color] + "presence, not raise it")
+	_assert(disabled.shadow_offset == Vector2.ZERO,
+		"secondary disabled: keeps a shelf (%s) — a control that cannot be pressed does not sit "
+		% disabled.shadow_offset + "above the page")
 	_done("test_secondary_disabled_never_uses_hover_or_pressed_direction")
 
 
@@ -354,15 +390,20 @@ func test_style_button_helper_applies_all_four_states_and_respects_font_color_sc
 	for key in ["normal", "hover", "pressed", "disabled"]:
 		_assert(primary_btn.has_theme_stylebox_override(key),
 			"style_button(primary=true): no '%s' StyleBox override applied" % key)
-	# DELIBERATE SCOPE BOUNDARY: no font_color argument was passed, so style_button() must not
-	# touch any font colour key. Every primary call site in the codebase that does not pass a
-	# font_color today relies on this — touching font colour here would silently start "fixing"
-	# the already-flagged white-on-orange ~2.2:1 contrast issue, which is explicitly out of
-	# scope for this pass (needs separate art-director/user sign-off).
-	for key in ["font_color", "font_hover_color", "font_pressed_color", "font_disabled_color"]:
-		_assert(not primary_btn.has_theme_color_override(key),
-			"style_button(primary=true, font_color=null) set a '%s' override — this must stay "
-			% key + "untouched, it would silently change primary buttons' normal look")
+	# REVERSED 2026-09-20, deliberately. This used to assert the OPPOSITE — that style_button()
+	# must not touch a font colour when none was passed — because the white-on-Kam-orange pair
+	# was a known ~2.2:1 failure that was explicitly out of scope and awaiting sign-off. The v2
+	# handoff signs it off (§02: "Never white ink on the orange fill... All primary buttons use
+	# #2A1505"), so the default is now the fix rather than the bug, and it is applied in
+	# style_button() rather than at each call site precisely so the bad pairing cannot come back
+	# one screen at a time.
+	for key in ["font_color", "font_hover_color", "font_pressed_color"]:
+		_assert(primary_btn.has_theme_color_override(key),
+			"style_button(primary=true, font_color=null) left '%s' unset — a primary button must "
+			% key + "ink itself at INK_ON_PRIMARY, never inherit white onto the orange fill")
+		_assert(primary_btn.get_theme_color(key).is_equal_approx(DangoTheme.INK_ON_PRIMARY),
+			"style_button(primary=true): '%s' is %s, expected INK_ON_PRIMARY #2A1505 (11.4:1); "
+			% [key, primary_btn.get_theme_color(key)] + "white on #FF9345 measures 2.2:1")
 
 	var secondary_btn := Button.new()
 	DangoTheme.style_button(secondary_btn, false, false, DangoTheme.TEXT)

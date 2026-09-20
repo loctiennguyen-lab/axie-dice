@@ -18,12 +18,27 @@ extends Node
 const STAGE_SCENE := "res://scenes/shared/CombatStage3D.tscn"
 const RESULT_SCENE := "res://scenes/result/Result.tscn"
 
-## The decided order. OUTCOME first, then the build the player assembled this run, THEN the
-## meta-currency they would have earned on any run at all. Listed as substrings of the section
-## headers so a wording tweak does not fail the test but a reorder does.
-const EXPECTED_SECTION_ORDER: Array[String] = [
-	"RELIC", "PROGRESS", "GENE SHARD", "LUNACIA PASS", "PARTY",
-]
+## UPDATED 2026-09-20 for the v2 Result screen (docs/design-handoff-v2, RESULT tab). v1 built
+## this screen as stacked text sections with literal headers ("RELICS COLLECTED", "PROGRESS",
+## "PARTY", ...) and this constant pinned their reading order. v2 replaces that with named
+## visual bands (party row / stat ribbon / card row / CTAs) that carry no such header text —
+## "PROGRESS" and "PARTY" do not appear anywhere on the v2 screen as strings, so the old
+## substring-order check cannot express the same rule any more.
+##
+## The RULE itself has NOT moved and is still checked below, just against band NAMES instead
+## of header text: PartyRow (this run's build) reads above StatRibbon (this run's performance)
+## reads above CardRow (shard/pass/relics) reads above CtaRow — outcome, then build, then
+## currency, top to bottom.
+##
+## One piece of the old rule DID get overridden, on purpose, by the mockup: v1 deliberately put
+## "RELICS COLLECTED" ABOVE the shard/pass totals ("the relics are the story of THIS run and
+## belong above the shard/XP totals, which look the same after every run"). The v2 mockup's
+## card row is Shard / Pass / Relics, left to right, and per this project's own standing rule
+## ("where the spec and a mockup disagree, the mockup is right") that literal order is what
+## ResultView.gd now builds — see that file's `_build_card_row()` comment. So this file no
+## longer asserts relics-before-currency; it only checks that all three cards are still present.
+const EXPECTED_BAND_ORDER: Array[String] = ["PartyRow", "StatRibbon", "CardRow", "CtaRow"]
+const EXPECTED_CARD_ROW_CAPTIONS: Array[String] = ["GENE SHARD", "LUNACIA PASS", "RELICS CARRIED"]
 
 const EXPECTED_TESTS: Array[String] = [
 	"test_every_spawned_unit_gets_a_ground_shadow",
@@ -137,8 +152,8 @@ func test_a_bigger_unit_gets_a_bigger_shadow() -> void:
 	_done("test_a_bigger_unit_gets_a_bigger_shadow")
 
 
-## The reorder itself. Nothing else can see it: every section still renders and nothing errors if
-## the order reverts.
+## The reorder itself, expressed against v2's band structure — see EXPECTED_BAND_ORDER's
+## comment for why this no longer reads section-header text.
 func test_the_result_screen_reads_build_before_currency() -> void:
 	RunState.start_new_run(5150, ["plant1", "beast1", "aqua1", "reptile1", "bug1"],
 		"short", 0, false)
@@ -148,24 +163,55 @@ func test_the_result_screen_reads_build_before_currency() -> void:
 	add_child(screen)
 	await get_tree().process_frame
 
-	# Section headers, in the order they actually appear on screen.
+	# Bands, in the order they actually appear as children of the screen root.
 	var seen: Array[String] = []
-	for node in screen.find_children("*", "Label", true, false):
-		var text := (node as Label).text.to_upper()
-		for want in EXPECTED_SECTION_ORDER:
-			if text.contains(want) and not seen.has(want):
-				seen.append(want)
-	_assert(seen.size() == EXPECTED_SECTION_ORDER.size(),
-		"found %d of the %d expected sections on the Result screen: %s"
-		% [seen.size(), EXPECTED_SECTION_ORDER.size(), str(seen)])
-	_assert(seen == EXPECTED_SECTION_ORDER,
-		("the Result screen reads in the order %s.\nExpected %s — the relics are the story of THIS "
-		+ "run and belong above the shard/XP totals, which look the same after every run.")
-		% [str(seen), str(EXPECTED_SECTION_ORDER)])
+	for want in EXPECTED_BAND_ORDER:
+		var node := screen.find_child(want, true, false)
+		if node != null:
+			seen.append(want)
+	_assert(seen.size() == EXPECTED_BAND_ORDER.size(),
+		"found %d of the %d expected bands on the Result screen: %s"
+		% [seen.size(), EXPECTED_BAND_ORDER.size(), str(seen)])
+	# Compare by on-screen Y position (top offset), not by tree/add_child order — a band that
+	# is reparented under an intermediate host still has to actually READ top-to-bottom.
+	var tops: Array[float] = []
+	for want in EXPECTED_BAND_ORDER:
+		var node := screen.find_child(want, true, false) as Control
+		tops.append(node.global_position.y if node != null else -1.0)
+	var ordered := true
+	for i in range(1, tops.size()):
+		if tops[i] <= tops[i - 1]:
+			ordered = false
+	_assert(ordered,
+		("the Result screen's bands do not read top to bottom in the order %s (Y offsets %s) "
+		+ "— outcome, then this run's build (party/stats), then meta-currency (shard/pass/"
+		+ "relics), then the CTAs")
+		% [str(EXPECTED_BAND_ORDER), str(tops)])
+
+	# The card row's three captions are all present — see EXPECTED_CARD_ROW_CAPTIONS' comment
+	# for why their RELATIVE order is no longer asserted here.
+	var card_text := ""
+	var card_row := screen.find_child("CardRow", true, false)
+	if card_row != null:
+		for node in _descendants_for_text(card_row):
+			var lbl := node as Label
+			if lbl != null:
+				card_text += lbl.text.to_upper() + "\n"
+	for caption in EXPECTED_CARD_ROW_CAPTIONS:
+		_assert(card_text.contains(caption),
+			"the Result screen's card row is missing '%s' — full card row text: %s"
+			% [caption, card_text])
 
 	screen.queue_free()
 	RunState.reset()
 	_done("test_the_result_screen_reads_build_before_currency")
+
+
+func _descendants_for_text(node: Node) -> Array[Node]:
+	var out: Array[Node] = [node]
+	for child in node.get_children():
+		out.append_array(_descendants_for_text(child))
+	return out
 
 
 ## The project's standing UI rule, applied to the screen that shows the most derived numbers.

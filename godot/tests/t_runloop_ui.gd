@@ -24,7 +24,7 @@ extends Node
 ## Run: godot --headless --path godot res://tests/t_runloop_ui.tscn
 
 const EXPECTED_TESTS: Array[String] = [
-	"test_camera_fit_covers_every_rendered_node_not_just_reachable",
+	"test_map_window_renders_nearby_rows_onscreen_and_excludes_far_rows",
 	"test_node_label_never_contains_a_technical_graph_id",
 	"test_shop_bought_and_unaffordable_buttons_use_different_styleboxes",
 	"test_reward_and_shop_cards_show_a_rarity_chip_matching_rar",
@@ -42,7 +42,7 @@ func _ready() -> void:
 	print("=== t_runloop_ui: start ===")
 	await get_tree().process_frame
 
-	await test_camera_fit_covers_every_rendered_node_not_just_reachable()
+	await test_map_window_renders_nearby_rows_onscreen_and_excludes_far_rows()
 	await test_node_label_never_contains_a_technical_graph_id()
 	await test_shop_bought_and_unaffordable_buttons_use_different_styleboxes()
 	await test_reward_and_shop_cards_show_a_rarity_chip_matching_rar()
@@ -126,50 +126,67 @@ func _new_runmap() -> Node:
 
 # ---------------------------------------------------------------------------------------
 
-## visual-polish-backlog P0-1. Builds the fixture above (6 rows, up to 2 columns), lets
-## RunMapController run its normal _ready()/_refresh(false) pass, then reads back the
-## camera's own position/zoom and checks EVERY node's world position — including the
-## far/fogged rows the bug used to exclude — falls inside the framed viewport rect.
-func test_camera_fit_covers_every_rendered_node_not_just_reachable() -> void:
+## UPDATED 2026-09-20 for the v2 UI redesign (docs/design-handoff-v2, RUN MAP screen). v1 laid
+## the graph out in WORLD space and auto-framed a Camera2D around it — this test used to pin
+## "the camera fit covers every rendered node, not just the reachable row" (the literal P0-1
+## bug: a Camera2D that only fit current+reachable clipped every row beyond it).
+##
+## v2 deletes the camera entirely: the board is now laid out directly in the fixed 1920x1080
+## screen space (RunMapController._node_screen_pos()), windowed to a fixed 7 rows around the
+## player (_ROWS_BEHIND=3.._ROWS_AHEAD=3) rather than framed dynamically. There is nothing left
+## to "clip" — a row either falls inside the window and is drawn on-screen, or falls outside it
+## and is not rendered at all. This test now asserts the SAME underlying rule the old one did
+## ("nothing the player can see is cut off/off-screen") against the new mechanism: every
+## rendered node's on-screen rect must lie fully inside the viewport, and a row far enough
+## outside the window (the fixture's r6, 5 rows beyond current) must be excluded from
+## _node_visuals altogether rather than merely mispositioned.
+func test_map_window_renders_nearby_rows_onscreen_and_excludes_far_rows() -> void:
 	var runmap := _new_runmap()
 	await get_tree().process_frame
 
-	var camera: Camera2D = runmap.get_node("%MapCamera")
 	var vp_size: Vector2 = runmap.get_viewport().get_visible_rect().size
-	var half_visible: Vector2 = vp_size * 0.5 * camera.zoom
-	var cam_min: Vector2 = camera.position - half_visible
-	var cam_max: Vector2 = camera.position + half_visible
+	var viewport_rect := Rect2(Vector2.ZERO, vp_size)
 
 	var node_visuals: Dictionary = runmap.get("_node_visuals")
-	_assert(node_visuals.size() == 8, "fixture expected 8 rendered nodes, found %d" % node_visuals.size())
+	# Window = current_row (1) +/- 3: rows 1..4 are in range (r1_c0, r2_c0, r2_c1, r3_c0, r4_c0
+	# = 5 nodes); rows 5..6 (4-5 rows beyond current) fall outside it.
+	_assert(node_visuals.size() == 5,
+		"fixture expected 5 nodes inside the +/-3 row window, found %d" % node_visuals.size())
 
-	var all_covered := true
+	var all_onscreen := true
 	var first_miss := ""
 	for id in node_visuals.keys():
 		var entry: Dictionary = node_visuals[id]
-		var n: RunMapNode = entry["node"]
-		var world_pos: Vector2 = runmap.call("_node_world_pos", n)
-		var inside := world_pos.x >= cam_min.x and world_pos.x <= cam_max.x \
-			and world_pos.y >= cam_min.y and world_pos.y <= cam_max.y
-		if not inside:
-			all_covered = false
+		var root: Control = entry["root"]
+		var rect := Rect2(root.position, root.size)
+		if not viewport_rect.encloses(rect):
+			all_onscreen = false
 			if first_miss == "":
-				first_miss = "%s at %s (camera frame %s..%s)" % [id, world_pos, cam_min, cam_max]
-	_assert(all_covered, "camera fit does not cover every rendered node — first miss: %s" % first_miss)
+				first_miss = "%s at %s (viewport %s)" % [id, rect, viewport_rect]
+	_assert(all_onscreen, "a rendered node's token falls outside the viewport — first miss: %s" % first_miss)
 
-	# Regression guard for the literal reported symptom: the row furthest from current/reachable
-	# (r6, the boss/elite row) must be inside the frame, not just the reachable r2 row.
-	var far_entry: Dictionary = node_visuals.get("r6_c1", {})
-	if not far_entry.is_empty():
-		var far_pos: Vector2 = runmap.call("_node_world_pos", far_entry["node"])
-		_assert(far_pos.y >= cam_min.y, "far row r6 is still clipped above the camera's top edge")
+	# Regression guard for the literal v1 symptom, restated for v2: the row furthest from
+	# current (r6, the boss/elite row, 5 rows beyond current_row=1) must not be rendered at
+	# all — it is windowed out cleanly rather than drawn off-camera/clipped.
+	_assert(not node_visuals.has("r6_c1"),
+		"row r6 (5 rows beyond current) must be excluded by the row window, not merely offscreen")
+	_assert(not node_visuals.has("r5_c0"),
+		"row r5 (4 rows beyond current) must be excluded by the row window, not merely offscreen")
 
 	runmap.queue_free()
-	_done("test_camera_fit_covers_every_rendered_node_not_just_reachable")
+	_done("test_map_window_renders_nearby_rows_onscreen_and_excludes_far_rows")
 
 
-## visual-polish-backlog P0-2. Every node button's visible text, across every tier
-## (current/reachable/dim/fog), must never contain a technical "r<row>_c<col>" id.
+## visual-polish-backlog P0-2. Every node's visible text — across every tier
+## (current/reachable/dim/fog) — must never contain a technical "r<row>_c<col>" id.
+##
+## UPDATED 2026-09-20 for the v2 UI redesign: v1 put the caption directly on the node Button's
+## own `.text`. v2's token button is deliberately chromeless/textless (DangoTheme's blank
+## StyleBoxEmpty override plus `btn.flat = true` — see RunMapController._build_token()); the
+## caption is now a separate Label inside a chip control below the token, stored in
+## `_node_visuals[id]["caption"]`, and is only present at all for the "here"/"open" tiers. This
+## still tests the exact same rule (no technical id ever reaches the player) against wherever
+## that text now actually lives.
 func test_node_label_never_contains_a_technical_graph_id() -> void:
 	var runmap := _new_runmap()
 	await get_tree().process_frame
@@ -181,9 +198,14 @@ func test_node_label_never_contains_a_technical_graph_id() -> void:
 	_assert(node_visuals.size() > 0, "fixture rendered no nodes to check")
 	for id in node_visuals.keys():
 		var entry: Dictionary = node_visuals[id]
-		var btn: Button = entry["button"]
+		var btn: Button = entry["root"]
 		var leaked := re.search(btn.text) != null
 		_assert(not leaked, "node '%s' button text leaks a technical id: '%s'" % [id, btn.text])
+		var caption: Label = entry.get("caption")
+		if caption != null:
+			var caption_leaked := re.search(caption.text) != null
+			_assert(not caption_leaked,
+				"node '%s' caption leaks a technical id: '%s'" % [id, caption.text])
 
 	runmap.queue_free()
 	_done("test_node_label_never_contains_a_technical_graph_id")
@@ -228,8 +250,14 @@ func test_shop_bought_and_unaffordable_buttons_use_different_styleboxes() -> voi
 		"'bought' and 'can't afford' shop buttons still share the identical disabled stylebox")
 
 	var sbf_bought := sb_bought as StyleBoxFlat
-	_assert(sbf_bought != null and sbf_bought.border_color.is_equal_approx(DangoTheme.SUCCESS),
-		"'bought' button does not use the SUCCESS-tinted owned style")
+	# UPDATED 2026-09-20 for the v2 surface system. v1's owned style was an 18%-alpha SUCCESS
+	# wash with a SUCCESS border, so the border was where the colour lived and this asserted on
+	# it. v2 forbids tints outright ("colour is a solid fill, never a tint") and every outline in
+	# the system is pure black, so the colour moved to the FILL — which is a stronger version of
+	# what this check has always been for: a bought item must read as a SUCCESS, not as a
+	# disabled control.
+	_assert(sbf_bought != null and sbf_bought.bg_color.is_equal_approx(DangoTheme.SUCCESS),
+		"'bought' button does not use the solid-SUCCESS owned style")
 
 	runmap.queue_free()
 	_done("test_shop_bought_and_unaffordable_buttons_use_different_styleboxes")

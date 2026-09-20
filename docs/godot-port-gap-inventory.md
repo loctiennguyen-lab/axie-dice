@@ -86,7 +86,7 @@ not belong in this comparison in either direction.
 | System | Size | Note |
 |---|---|---|
 | **Run history** | MEDIUM | Local-only by deliberate JS decision (`client.html:2915-2923`) — do not "fix" that by adding sync. Needs a run-level stat accumulator Godot lacks. |
-| **scCollection** | MEDIUM | 155 cells (94 relics + 55 faces + 6 bosses). Cannot reach 100% while FACE_POOL is unported, which matters because Echo Box unlocks on completion. |
+| **scCollection** | MEDIUM | 155 cells (94 relics + 55 faces + 6 bosses). Cannot reach 100% while FACE_POOL is unported, which matters because Echo Box unlocks on completion. **Measured 2026-09-20: Godot's `MetaState` tracks NOTHING about collection** — no faces, no relics, no bosses list. So this is not one screen; the substrate it reads does not exist either, and every relic gained / boss killed would have to start being recorded first. |
 | **Telemetry** | SMALL | Two fire-and-forget calls. Needs an auth token, so it follows Account. |
 | ~~**Daily mission**~~ | ✅ **DONE 2026-09-19** | 60 shards on the first run FINISHED each UTC day — win, loss or quit, as the JS does it. `MetaState.daily_date`/`claim_daily_mission()`, shown on Result only on the day it lands. Gated by `t_guides_daily`. |
 | **scSettings** | SMALL | Volume backend exists; missing sliders, reduce-flash, ABANDON RUN. |
@@ -95,7 +95,7 @@ not belong in this comparison in either direction.
 
 | System | Why not |
 |---|---|
-| **Cosmetics + Echo Box** | 97 items across four pools. Touches no gameplay; **20 of the 46 decor/background items are CSS-only and would have to be re-drawn, not ported**; and its unlock gate is `collectionComplete()`, which requires all 55 FACE_POOL faces — deferred by the user. Even fully built, no Godot player could open the box. |
+| **Cosmetics + Echo Box** | **RE-MEASURED 2026-09-20: 60 items, not 97** — 22 avatars (real images, data URIs from the Origins kit), 9 decor, 11 backgrounds, 18 titles. And the CSS claim was garbled: it is not "20 of 46", it is **all 20 decor+background items**, every one defined by a CSS `style:` key with no art behind it — those must be re-drawn in Godot, not ported. The 18 titles are plain text. Touches no gameplay. Its unlock gate is `collectionComplete()` = all faces **and** all relics **and** all bosses; Godot can already reach relics (94/94) and bosses (6/6), so **FACE_POOL is the only thing that makes the box unopenable** (ticket I). There is also a `collectionGrandfathered` escape hatch in the JS gate. |
 | **World Tour** | 2 chapters × 10 tiles, but 17 of 20 rewards are cosmetics from the pool above, so it is blocked behind a system that should not be built. Also needs two META fields Godot lacks (`full_asc_max`, `bosses[]`). |
 | **scGate (login)** | Not a teaching screen; it is authentication, and it needs the whole server stack. **Consequence: the tutorial's trigger must change** from "after first login" to "first launch on this machine". That is a design decision, not an implementation detail. |
 | **NFT HP bonus** | Listed as missing in the project docs, but it is **dead code in the live JS build**: `nftHpBonusPct()` is only reachable via `opt.nftPreselect`, and the only caller is `tools/sim.js` — a headless balance probe. No real player has ever received a point of HP from it. Porting it would be porting a feature that has never existed for players. |

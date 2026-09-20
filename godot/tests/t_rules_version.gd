@@ -21,6 +21,17 @@ const WATCHED_FILES: Array[String] = ["res://assets/data/part_faces.json"]
 ## Recorded when RULES_VERSION was last considered. Update it in the same commit that changes
 ## anything above — and bump RULES_VERSION too if the change can alter an outcome.
 ##
+## Moved 2026-09-20 by the RunStats accumulator (design-handoff-v2 §09, Result screen v2):
+## a new autoload (`RunStatsAccumulator.gd`) joined `res://autoload`, and `damage_pipeline.gd`
+## gained a second, purely-additive stat key ("dmg_dealt_clamped") written alongside the
+## existing "dmg"/"taken"/"turns"/"kills"/"max_hit" — plus matching default-dict/fold-loop
+## entries in `combat_engine.gd` and `RunState.gd`. RULES_VERSION was NOT bumped — every new
+## line only READS already-computed values (`dealt`, `iv`, `ith`, `hp_before_*`) into a
+## Dictionary key that nothing branches on; `dealt`/`iv`/`ith` themselves, and every value
+## passed to a relic hook, are byte-for-byte unchanged. `t_run_stats_accumulator.gd` (new)
+## exercises the two rules this key exists for directly against DamagePipeline.resolve();
+## `t_replay` still verifies a full run to the same score.
+##
 ## Last moved 2026-09-20 by SaveStore: MetaState and RunState now persist through it instead
 ## of FileAccess, because `user://` does not survive a page reload in a web build. RULES_VERSION
 ## was NOT bumped — where a save is written cannot change what a run does, and `t_replay` still
@@ -37,7 +48,7 @@ const WATCHED_FILES: Array[String] = ["res://assets/data/part_faces.json"]
 ## NOT bumped, and the reason is the whole point of asking: that flag decides whether a player
 ## is shown the tutorial. It cannot change what a run does, because a ranked run reads
 ## `MetaState.run_bonuses(true)`, which returns zeroes for everything the meta holds.
-const FINGERPRINT := "fcac523233c53cedc4e83d6baca125d2ae4f59dd479ae93dfb580f33d85f8136"
+const FINGERPRINT := "e0b6a259cb305527c73af1fb8383cd8843f9de3b7af2ed5e09c7ef4b6ea89383"
 
 
 func _ready() -> void:
