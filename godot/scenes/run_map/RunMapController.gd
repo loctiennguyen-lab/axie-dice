@@ -61,8 +61,19 @@ const _MAP_BG_PATH := "assets/bg/crossroad.jpg"
 # canvas width is constant under `expand`, so horizontal placement is already invariant).
 const _MOCK_CANVAS := Vector2(1920.0, 1080.0)
 const _MOCK_LANE_X: Array[float] = [780.0, 1150.0, 1520.0]
-const _MOCK_HERE_Y := 592.0       ## mockup ROWS.r4 - the row the player is standing on
-const _MOCK_ROW_PITCH := 118.0    ## mockup ROWS, r1..r7 at a flat 118px pitch
+## Empty States Spec §2C (Claude Design, 2026-09-21) re-cuts the rows: r1 946 · r2 822 · r3 698
+## · r4 574 · r5 450 · r6 326 · r7 202 — a flat 124px pitch, r4 still the row the player stands
+## on. The lanes do not move.
+##
+## The old 118 pitch did not fit its own contents. Two tokens on a straight lane overlapped by
+## 16px even with the caption chip deleted entirely: 53 (half an open token) + 6 (its shelf)
+## + 61 (half the here token) + 14 (the ring's outside footprint) = 134 > 118. With the chip in
+## the vertical channel the overlap was 52px. 124 clears it — 53 + 6 + 61 + 0 = 120 — but ONLY
+## together with §2A and §2B below: the chip has to leave the vertical channel and the ring has
+## to stop sticking out. Raising the pitch alone cannot work, because keeping the chip under the
+## token needs 170px a row and seven of those do not fit under 1080.
+const _MOCK_HERE_Y := 574.0       ## mockup ROWS.r4 - the row the player is standing on
+const _MOCK_ROW_PITCH := 124.0    ## r1..r7 at a flat 124px pitch
 const _ROWS_BEHIND := 3           ## rows shown below/behind current (mockup r1..r3)
 const _ROWS_AHEAD := 3            ## rows shown above/ahead of current (mockup r5..r7)
 
@@ -75,14 +86,22 @@ const _ICON_SIZE := {"here": 50.0, "open": 44.0, "done": 30.0}
 const _TOKEN_RADIUS := {"here": 24, "open": 18, "fog": 18, "done": 18}
 const _TOKEN_BORDER := {"here": 5, "open": 4, "fog": 4, "done": 4}
 const _TOKEN_SHELF := {"here": 8.0, "open": 6.0, "fog": 4.0, "done": 4.0}
-const _RING_INSET := 11.0
-const _RING_BORDER := 5.0
-## The mockup's ring is a flat `border-radius:26px` - NOT the token radius plus the inset - and
-## it carries `box-shadow: 0 0 0 3px #000`, a hard 3px black ring immediately outside the orange
-## one. A StyleBoxFlat cannot carry two borders and `shadow_size` must stay 0 (UI law L7), so
-## that outer ring is its own Panel wrapped around the orange one.
-const _RING_RADIUS := 26
-const _RING_OUTLINE := 3.0
+## Empty States Spec §2A — the node label chip: 30 tall, 10px clear of the token's right edge.
+const _CHIP_H := 30.0
+const _CHIP_GAP := 10.0
+## Empty States Spec §2B: the ring is drawn INSIDE the token now. It used to sit at inset -11
+## with a 3px black halo outside it, so it added 14px of footprint on every side — half of the
+## row overlap the spec measured. Pulled in to +5, radius 19, border 4, and the black halo is
+## deleted: the token's own 5px outline already is one, so the halo was a second black ring
+## around a black ring.
+##
+## It loses nothing by moving in. The `here` token is already 16px bigger than an open one, with
+## radius 24, a 5px outline and an 8px shelf — the orange ring only has to confirm which node
+## you are on, not claim space to do it.
+const _RING_INSET := -5.0         ## NEGATIVE = inside the token edge (was 11.0 = outside)
+const _RING_BORDER := 4.0
+const _RING_RADIUS := 19
+const _RING_OUTLINE := 0.0        ## the black halo is gone; the token's own outline is it
 
 # FLAGGED: the mockup's TONE_SKIP (an inert, never-visited sibling node - e.g. a branch the
 # player didn't take) has no entry in DangoTheme.NODE_TONES (only battle/elite/event/merchant/
@@ -501,14 +520,12 @@ func _rebuild_nodes(current_row: int, reachable: Array) -> void:
 	_node_visuals.clear()
 	if _graph == null:
 		return
-	# The CURRENT node is built LAST (drawn on top of every other token) — FIXED 2026-09-20: on
-	# a straight, non-branching lane, the row directly above/below current shares its lane, and
-	# that neighbour's caption chip (which sits just below ITS OWN token) lands inside the
-	# current token's rect (row pitch 118px is tighter than an open token's half-height + its
-	# caption's height+gap). Building rows in plain ascending order let whichever row happened
-	# to be iterated later win that overlap — usually NOT current — which read as a caption
-	# belonging to the wrong node. Current's own plate/ring/caption must always be the thing on
-	# top at its own position.
+	# The CURRENT node is built LAST (drawn on top of every other token). This was FIXED
+	# 2026-09-20 for a specific overlap — a neighbour's caption chip sitting below its own token
+	# landed inside the current token's rect, and whichever row was iterated later won — and
+	# that overlap is GONE as of Empty States Spec §2A: the chip now sits beside its token, out
+	# of the vertical channel entirely. The ordering stays anyway, because "the node you are
+	# standing on is the thing on top" is the right rule on its own merits and costs nothing.
 	var current_node: RunMapNode = null
 	for row in _graph.rows:
 		for raw_node in row:
@@ -606,11 +623,10 @@ func _build_token(node: RunMapNode, current_row: int, reachable: Array) -> void:
 	lip_band.add_theme_stylebox_override("panel", lip_sb)
 	plate.add_child(lip_band)
 
-	# Ring - the mockup's `inset:-11px; border-radius:26px; border:5px solid #FF9345;
-	# box-shadow:0 0 0 3px #000`. Two nested Panels because a StyleBoxFlat carries one border and
-	# `shadow_size` has to stay 0 (UI law L7): `ring_wrap` is the outer 3px black ring, `ring`
-	# the 5px orange one inside it. Note the radius is the mockup's flat 26, not the token's own
-	# radius plus the inset.
+	# Ring - Empty States Spec §2B: `inset:5px; border-radius:19px; border:4px solid #FF9345`,
+	# no black halo. `ring_wrap` is kept as the node the blink tween drives (and as the seam for
+	# an outline should one ever come back) but is now a zero-width pass-through, so the orange
+	# ring lands 5px INSIDE the token edge and the whole thing has no footprint outside it.
 	#
 	# This MUST be toggled with `visible`, not modulate, because the blink tween animates
 	# modulate:a continuously; hiding it via modulate alone would leave the tween fighting a
@@ -642,11 +658,11 @@ func _build_token(node: RunMapNode, current_row: int, reachable: Array) -> void:
 	ring_wrap.add_child(ring)
 
 	if ring_wrap.visible:
-		# The mockup's `blink` keyframe is 1 -> .4 -> 1 over 1.8s; both rings blink together,
-		# which is why the tween drives the WRAPPER's modulate rather than each ring's.
+		# Empty States Spec §2B: `1.8s ease-in-out`, opacity 1 <-> .35. Driven on the WRAPPER so
+		# a future outline would blink with it rather than against it.
 		var tw := create_tween()
 		tw.set_loops()
-		tw.tween_property(ring_wrap, "modulate:a", 0.4, 0.9).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+		tw.tween_property(ring_wrap, "modulate:a", 0.35, 0.9).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
 		tw.tween_property(ring_wrap, "modulate:a", 1.0, 0.9).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
 		_ring_tweens.append(tw)
 
@@ -738,18 +754,28 @@ func _build_token(node: RunMapNode, current_row: int, reachable: Array) -> void:
 		chip_sb.shadow_color = Color(0, 0, 0, 0.45)
 		chip_sb.shadow_size = 0
 		chip_sb.shadow_offset = Vector2(0, 3)
-		chip_sb.content_margin_left = 15.0   # mockup `padding:0 12px` on a 3px border
+		chip_sb.content_margin_left = 15.0   # `padding:0 12px` on a 3px border
 		chip_sb.content_margin_right = 15.0
 		chip_sb.content_margin_top = 4.0
 		chip_sb.content_margin_bottom = 4.0
 		chip.add_theme_stylebox_override("panel", chip_sb)
-		chip.custom_minimum_size.y = 30.0   # mockup: the label chip is a fixed 30px tall
+		chip.custom_minimum_size.y = _CHIP_H
 		caption = DangoTheme.display_label(text, 14,
 			DangoTheme.INK_ON_PRIMARY if bucket == "here" else DangoTheme.INK, 800, 0.08)
 		chip.add_child(caption)
 		_nodes_layer.add_child(chip)
+		# Empty States Spec §2A: the chip moves OUT of the vertical channel to the token's right
+		# edge, vertically centred, 10px from that edge (border included). Under the token it
+		# cost 30 + 3 shelf + 9 gap of the row pitch and was the single largest contributor to
+		# the 52px overlap; beside it, it costs none.
+		#
+		# It fits horizontally by measurement, not by hope: lanes are 370px apart, the widest
+		# token is 122, leaving 248px of clear width. The widest chip ("YOU ARE HERE") is ~152px
+		# and starts 71px from the token's centre, so it ends ~223px out — 94px short of the
+		# next lane's token.
 		var min_size := chip.get_combined_minimum_size()
-		chip.position = Vector2(center.x - min_size.x * 0.5, center.y + size * 0.5 + 9.0)
+		chip.position = Vector2(center.x + size * 0.5 + _CHIP_GAP,
+			center.y - min_size.y * 0.5)
 
 	_node_visuals[node.id] = {"node": node, "root": btn, "caption": caption}
 

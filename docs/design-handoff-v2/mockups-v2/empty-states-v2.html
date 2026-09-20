@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<script src="_ds/dango-design-system-b8da985f-efd5-488e-ae62-d508e48befe9/_ds_bundle.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&amp;family=Work+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+  body { margin:0; background:#0E1016; }
+  a { color:#FF9345; text-decoration:none; }
+  a:hover { color:#FFB275; }
+  @keyframes blink { 0%,100%{opacity:1} 50%{opacity:.35} }
+</style>
+</helmet>
+
+<div style="width:1520px;margin:0 auto;padding:56px 48px 96px;box-sizing:border-box;background:#0E1016;font-family:'Work Sans',system-ui,sans-serif;color:#EDF1F6;-webkit-font-smoothing:antialiased">
+
+  <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:24px;padding-bottom:20px;border-bottom:3px solid #242A34">
+    <div>
+      <div style="font-family:'Baloo 2',cursive;font-size:42px;font-weight:800;line-height:1;color:#FFF8EA">EMPTY STATES — 2 CÂU HỎI</div>
+      <div style="font-size:14px;font-weight:500;color:#A6B0BF;margin-top:8px">Bổ sung cho mockups-v2. Luật giữ nguyên: viền đen thuần, shelf cứng (shadow_size 0 + offset y), fill đặc, ink chọn theo fill.</div>
+    </div>
+    <div style="display:flex;gap:10px">
+      <div style="height:30px;padding:0 13px;display:flex;align-items:center;border-radius:9px;background:#1B1F27;border:3px solid #000;font-family:'Baloo 2',cursive;font-size:12px;font-weight:800;letter-spacing:.14em;color:#8C95A4">combat-v2</div>
+      <div style="height:30px;padding:0 13px;display:flex;align-items:center;border-radius:9px;background:#1B1F27;border:3px solid #000;font-family:'Baloo 2',cursive;font-size:12px;font-weight:800;letter-spacing:.14em;color:#8C95A4">run-flow-v2</div>
+    </div>
+  </div>
+
+  <!-- ══════════════════ 1 · INTENT BADGE ══════════════════ -->
+  <div style="margin-top:44px;display:flex;align-items:center;gap:14px">
+    <div style="width:40px;height:40px;border-radius:11px;background:#FF9345;border:3px solid #000;box-shadow:0 4px 0 rgba(0,0,0,.5);display:grid;place-items:center;font-family:'Baloo 2',cursive;font-size:22px;font-weight:800;color:#2A1505">1</div>
+    <div style="font-family:'Baloo 2',cursive;font-size:30px;font-weight:800;line-height:1;color:#FFF8EA">INTENT BADGE RỖNG</div>
+  </div>
+
+  <div style="margin-top:18px;display:flex;align-items:flex-start;gap:12px;padding:18px 20px;border-radius:14px;background:#1B1F27;border:3px solid #000;box-shadow:0 5px 0 rgba(0,0,0,.5)">
+    <div style="flex:0 0 auto;height:26px;padding:0 11px;display:flex;align-items:center;border-radius:8px;background:#3FCD3C;border:3px solid #000;font-family:'Baloo 2',cursive;font-size:12px;font-weight:800;letter-spacing:.14em;color:#07260A">ĐÁP ÁN</div>
+    <div style="font-size:16px;font-weight:600;line-height:1.55;color:#EDF1F6;text-wrap:pretty">Giữ badge, không bao giờ ẩn. Nhưng badge rỗng <strong style="color:#FFF8EA">bỏ hết cấu trúc mang số</strong>: không ô icon, không số, không gạch phân cách, không dòng “→ TÊN”. Ruột là một <strong style="color:#FFF8EA">chữ</strong> — <strong style="color:#FFF8EA">NO MOVE</strong> — chứ không phải dấu gạch hay dấu “?”. Dấu “?” được giữ riêng cho state “giấu intent”, là chuyện khác.</div>
+  </div>
+
+  <div style="margin-top:26px;display:grid;grid-template-columns:repeat(4,1fr);gap:18px">
+
+    <div style="padding:22px 20px 20px;border-radius:14px;background:#161A21;border:3px solid #242A34">
+      <div style="font-family:'Baloo 2',cursive;font-size:12px;font-weight:800;letter-spacing:.16em;color:#8C95A4">THAM CHIẾU · DMG</div>
+      <div style="height:78px;display:flex;align-items:center;margin-top:12px">
+        <div style="display:flex;align-items:center;gap:7px;height:36px;padding:0 9px 0 5px;border-radius:10px;background:#F54540;border:3px solid #000;box-shadow:0 4px 0 rgba(0,0,0,.5)">
+          <div style="width:22px;height:22px;border-radius:7px;background:rgba(0,0,0,.26);display:grid;place-items:center;flex:0 0 auto">
+            <img src="assets/fx/dmg.png" alt="" style="width:16px;height:16px;object-fit:contain">
+          </div>
+          <div style="font-family:'Baloo 2',cursive;font-size:20px;font-weight:800;line-height:1;color:#1A1206">11</div>
+          <div style="width:2px;height:18px;background:rgba(0,0,0,.28)"></div>
+          <div style="font-family:'Baloo 2',cursive;font-size:11px;font-weight:800;letter-spacing:.04em;line-height:1;color:#2A0806;white-space:nowrap">→ OLEK</div>
+        </div>
+      </div>
+      <div style="font-size:13px;font-weight:500;color:#8C95A4;margin-top:4px;line-height:1.5">Hiện có. 5 phần tử, rộng ~148px.</div>
+    </div>
+
+    <div style="padding:22px 20px 20px;border-radius:14px;background:#161A21;border:3px solid #242A34">
+      <div style="font-family:'Baloo 2',cursive;font-size:12px;font-weight:800;letter-spacing:.16em;color:#8C95A4">THAM CHIẾU · BLOCK</div>
+      <div style="height:78px;display:flex;align-items:center;margin-top:12px">
+        <div style="display:flex;align-items:center;gap:7px;height:36px;padding:0 9px 0 5px;border-radius:10px;background:#31C6FF;border:3px solid #000;box-shadow:0 4px 0 rgba(0,0,0,.5)">
+          <div style="width:22px;height:22px;border-radius:7px;background:rgba(0,0,0,.26);display:grid;place-items:center;flex:0 0 auto">
+            <img src="assets/fx/shield.png" alt="" style="width:16px;height:16px;object-fit:contain">
+          </div>
+          <div style="font-family:'Baloo 2',cursive;font-size:20px;font-weight:800;line-height:1;color:#1A1206">8</div>
+          <div style="width:2px;height:18px;background:rgba(0,0,0,.28)"></div>
+          <div style="font-family:'Baloo 2',cursive;font-size:11px;font-weight:800;letter-spacing:.04em;line-height:1;color:#2A0806;white-space:nowrap">→ SELF</div>
+        </div>
+      </div>
+      <div style="font-size:13px;font-weight:500;color:#8C95A4;margin-top:4px;line-height:1.5">Hiện có. Cùng khung, khác fill.</div>
+    </div>
+
+    <div style="padding:22px 20px 20px;border-radius:14px;background:#161A21;border:3px solid #3FCD3C;box-shadow:0 0 0 1px rgba(63,205,60,.25)">
+      <div style="font-family:'Baloo 2',cursive;font-size:12px;font-weight:800;letter-spacing:.16em;color:#3FCD3C">MỚI · KHÔNG HÀNH ĐỘNG</div>
+      <div style="height:78px;display:flex;align-items:center;margin-top:12px">
+        <div style="display:flex;align-items:center;height:36px;padding:0 14px;border-radius:10px;background:#242A34;border:3px solid #000;box-shadow:0 4px 0 rgba(0,0,0,.5);font-family:'Baloo 2',cursive;font-size:13px;font-weight:800;letter-spacing:.14em;line-height:1;color:#8C95A4;white-space:nowrap">NO MOVE</div>
+      </div>
+      <div style="font-size:13px;font-weight:500;color:#A6B0BF;margin-top:4px;line-height:1.5">1 phần tử, rộng ~104px. Không có glyph số nào.</div>
+    </div>
+
+    <div style="padding:22px 20px 20px;border-radius:14px;background:#161A21;border:3px solid #3FCD3C;box-shadow:0 0 0 1px rgba(63,205,60,.25)">
+      <div style="font-family:'Baloo 2',cursive;font-size:12px;font-weight:800;letter-spacing:.16em;color:#3FCD3C">MỚI · GIẤU INTENT</div>
+      <div style="height:78px;display:flex;align-items:center;margin-top:12px">
+        <div style="display:flex;align-items:center;gap:7px;height:36px;padding:0 13px 0 5px;border-radius:10px;background:#242A34;border:3px solid #000;box-shadow:0 4px 0 rgba(0,0,0,.5)">
+          <div style="width:22px;height:22px;border-radius:7px;background:rgba(0,0,0,.34);display:grid;place-items:center;flex:0 0 auto;font-family:'Baloo 2',cursive;font-size:16px;font-weight:800;line-height:1;color:#C7CEDA">?</div>
+          <div style="font-family:'Baloo 2',cursive;font-size:13px;font-weight:800;letter-spacing:.14em;line-height:1;color:#8C95A4;white-space:nowrap">HIDDEN</div>
+        </div>
+      </div>
+      <div style="font-size:13px;font-weight:500;color:#A6B0BF;margin-top:4px;line-height:1.5">Dấu “?” chỉ dùng ở đây. Giữ ô icon vì có ẩn một giá trị.</div>
+    </div>
+  </div>
+
+  <div style="margin-top:22px;display:grid;grid-template-columns:1fr 1fr;gap:18px">
+
+    <div style="padding:22px 24px 24px;border-radius:14px;background:#161A21;border:3px solid #242A34">
+      <div style="font-family:'Baloo 2',cursive;font-size:15px;font-weight:800;letter-spacing:.14em;color:#FFC445">SỐ ĐO — BADGE “NO MOVE”</div>
+      <div style="margin-top:14px;display:grid;grid-template-columns:auto 1fr;gap:9px 22px;font-size:14px;line-height:1.35">
+        <div style="color:#8C95A4;font-weight:600">height</div><div style="font-weight:600;color:#FFF8EA;font-variant-numeric:tabular-nums">36 px <span style="color:#6E7889;font-weight:500">— giống badge thường, không làm nhảy cột</span></div>
+        <div style="color:#8C95A4;font-weight:600">radius</div><div style="font-weight:600;color:#FFF8EA">10 px</div>
+        <div style="color:#8C95A4;font-weight:600">border</div><div style="font-weight:600;color:#FFF8EA">3 px · #000000</div>
+        <div style="color:#8C95A4;font-weight:600">shelf</div><div style="font-weight:600;color:#FFF8EA">offset y 4 · #000000 @ 50% · size 0 · spread 0</div>
+        <div style="color:#8C95A4;font-weight:600">fill</div><div style="font-weight:600;color:#FFF8EA">#242A34 <span style="color:#6E7889;font-weight:500">— ngoài bảng màu loại đòn</span></div>
+        <div style="color:#8C95A4;font-weight:600">padding</div><div style="font-weight:600;color:#FFF8EA">0 / 14 / 0 / 14</div>
+        <div style="color:#8C95A4;font-weight:600">gap</div><div style="font-weight:600;color:#FFF8EA">— <span style="color:#6E7889;font-weight:500">(một phần tử duy nhất)</span></div>
+        <div style="color:#8C95A4;font-weight:600">nhãn</div><div style="font-weight:600;color:#FFF8EA">NO MOVE</div>
+        <div style="color:#8C95A4;font-weight:600">font</div><div style="font-weight:600;color:#FFF8EA">Baloo 2 · 800 · 13 px · tracking .14em · line 1</div>
+        <div style="color:#8C95A4;font-weight:600">ink</div><div style="font-weight:600;color:#FFF8EA">#8C95A4 <span style="color:#6E7889;font-weight:500">— 4.9:1 trên #242A34</span></div>
+        <div style="color:#8C95A4;font-weight:600">rộng</div><div style="font-weight:600;color:#FFF8EA">hug content ≈ 104 px</div>
+      </div>
+    </div>
+
+    <div style="padding:22px 24px 24px;border-radius:14px;background:#161A21;border:3px solid #242A34">
+      <div style="font-family:'Baloo 2',cursive;font-size:15px;font-weight:800;letter-spacing:.14em;color:#FFC445">6 LỚP CHỐNG ĐỌC NHẦM THÀNH “0 SÁT THƯƠNG”</div>
+      <div style="margin-top:14px;display:flex;flex-direction:column;gap:10px">
+        <div style="display:flex;gap:11px;align-items:flex-start"><div style="flex:0 0 auto;width:21px;height:21px;border-radius:6px;background:#242A34;border:2px solid #000;display:grid;place-items:center;font-family:'Baloo 2',cursive;font-size:12px;font-weight:800;color:#C7CEDA;margin-top:1px">1</div><div style="font-size:14px;font-weight:500;line-height:1.5;color:#EDF1F6">Không có bất kỳ glyph chữ số nào trong badge. Số 0 không tồn tại để đọc.</div></div>
+        <div style="display:flex;gap:11px;align-items:flex-start"><div style="flex:0 0 auto;width:21px;height:21px;border-radius:6px;background:#242A34;border:2px solid #000;display:grid;place-items:center;font-family:'Baloo 2',cursive;font-size:12px;font-weight:800;color:#C7CEDA;margin-top:1px">2</div><div style="font-size:14px;font-weight:500;line-height:1.5;color:#EDF1F6">Bỏ ô icon 22px nền đen 26% — đó chính là tín hiệu “có một giá trị ở đây”.</div></div>
+        <div style="display:flex;gap:11px;align-items:flex-start"><div style="flex:0 0 auto;width:21px;height:21px;border-radius:6px;background:#242A34;border:2px solid #000;display:grid;place-items:center;font-family:'Baloo 2',cursive;font-size:12px;font-weight:800;color:#C7CEDA;margin-top:1px">3</div><div style="font-size:14px;font-weight:500;line-height:1.5;color:#EDF1F6">Bỏ gạch phân cách và dòng “→ TÊN”. Không có mục tiêu thì không có đòn.</div></div>
+        <div style="display:flex;gap:11px;align-items:flex-start"><div style="flex:0 0 auto;width:21px;height:21px;border-radius:6px;background:#242A34;border:2px solid #000;display:grid;place-items:center;font-family:'Baloo 2',cursive;font-size:12px;font-weight:800;color:#C7CEDA;margin-top:1px">4</div><div style="font-size:14px;font-weight:500;line-height:1.5;color:#EDF1F6">Fill #242A34 không nằm trong bảng loại đòn (đỏ / xanh / lục / tím). Riêng màu đã nói “không phải đòn”.</div></div>
+        <div style="display:flex;gap:11px;align-items:flex-start"><div style="flex:0 0 auto;width:21px;height:21px;border-radius:6px;background:#242A34;border:2px solid #000;display:grid;place-items:center;font-family:'Baloo 2',cursive;font-size:12px;font-weight:800;color:#C7CEDA;margin-top:1px">5</div><div style="font-size:14px;font-weight:500;line-height:1.5;color:#EDF1F6">Ink xám trên nền tối, đảo ngược trọng lượng của badge sống (ink gần đen trên fill sáng).</div></div>
+        <div style="display:flex;gap:11px;align-items:flex-start"><div style="flex:0 0 auto;width:21px;height:21px;border-radius:6px;background:#242A34;border:2px solid #000;display:grid;place-items:center;font-family:'Baloo 2',cursive;font-size:12px;font-weight:800;color:#C7CEDA;margin-top:1px">6</div><div style="font-size:14px;font-weight:500;line-height:1.5;color:#EDF1F6">Rộng co lại còn ~104px so với 148px, cả hàng địch tự động chìm xuống.</div></div>
+      </div>
+    </div>
+  </div>
+
+  <div style="margin-top:18px;padding:20px 24px;border-radius:14px;background:#161A21;border:3px solid #242A34">
+    <div style="font-family:'Baloo 2',cursive;font-size:15px;font-weight:800;letter-spacing:.14em;color:#FFC445">TẠI SAO KHÔNG ẨN HẲN</div>
+    <div style="margin-top:12px;display:grid;grid-template-columns:repeat(3,1fr);gap:20px">
+      <div style="font-size:14px;font-weight:500;line-height:1.55;color:#EDF1F6">Cột địch là stack dọc 186×370 với gap 8. Bỏ badge làm status chips và thanh HP nhảy lên <strong style="color:#FFF8EA">44px</strong> giữa lượt.</div>
+      <div style="font-size:14px;font-weight:500;line-height:1.55;color:#EDF1F6">Chỗ trống không phân biệt được “địch không làm gì” với “intent chưa roll / bị giấu”. Ba state khác nhau cần ba hình khác nhau.</div>
+      <div style="font-size:14px;font-weight:500;line-height:1.55;color:#EDF1F6">Badge là vùng bấm của tooltip intent. Ẩn đi thì người chơi mất chỗ hỏi “tại sao nó đứng im”.</div>
+    </div>
+  </div>
+
+  <!-- ══════════════════ 2 · NODE CHIP ══════════════════ -->
+  <div style="margin-top:64px;display:flex;align-items:center;gap:14px">
+    <div style="width:40px;height:40px;border-radius:11px;background:#FF9345;border:3px solid #000;box-shadow:0 4px 0 rgba(0,0,0,.5);display:grid;place-items:center;font-family:'Baloo 2',cursive;font-size:22px;font-weight:800;color:#2A1505">2</div>
+    <div style="font-family:'Baloo 2',cursive;font-size:30px;font-weight:800;line-height:1;color:#FFF8EA">CHIP NHÃN NODE BỊ ĐÈ</div>
+  </div>
+
+  <div style="margin-top:18px;display:flex;align-items:flex-start;gap:12px;padding:18px 20px;border-radius:14px;background:#1B1F27;border:3px solid #000;box-shadow:0 5px 0 rgba(0,0,0,.5)">
+    <div style="flex:0 0 auto;height:26px;padding:0 11px;display:flex;align-items:center;border-radius:8px;background:#3FCD3C;border:3px solid #000;font-family:'Baloo 2',cursive;font-size:12px;font-weight:800;letter-spacing:.14em;color:#07260A">ĐÁP ÁN</div>
+    <div style="font-size:16px;font-weight:600;line-height:1.55;color:#EDF1F6;text-wrap:pretty">Cả ba, nhưng mỗi thứ một ít: <strong style="color:#FFF8EA">chip chuyển sang cạnh phải token</strong> (rời khỏi kênh dọc hoàn toàn), <strong style="color:#FFF8EA">vòng nhấp nháy vẽ vào trong token</strong> (dấu chân ngoài = 0), <strong style="color:#FFF8EA">pitch 118 → 124</strong>. Riêng tăng pitch không cứu được: cần 170px mới đủ chỗ cho chip ở dưới, mà bảng chỉ cao 1080.</div>
+  </div>
+
+  <div style="margin-top:26px;display:grid;grid-template-columns:1fr 1fr;gap:18px">
+
+    <div style="padding:22px 20px 20px;border-radius:14px;background:#161A21;border:3px solid #242A34">
+      <div style="display:flex;align-items:center;gap:10px">
+        <div style="height:24px;padding:0 10px;display:flex;align-items:center;border-radius:7px;background:#F54540;border:2px solid #000;font-family:'Baloo 2',cursive;font-size:11px;font-weight:800;letter-spacing:.14em;color:#2A0806">HIỆN TẠI</div>
+        <div style="font-family:'Baloo 2',cursive;font-size:14px;font-weight:800;letter-spacing:.1em;color:#8C95A4">PITCH 118 · CHIP DƯỚI · VÒNG NGOÀI</div>
+      </div>
+      <div style="position:relative;width:100%;height:320px;margin-top:14px;border-radius:10px;background:#12151B;border:2px solid #242A34;overflow:hidden">
+        <div style="position:absolute;left:100px;top:27px;width:106px;height:106px;border-radius:18px;background:#8B3FD9;border:4px solid #000;box-shadow:0 6px 0 rgba(0,0,0,.5);overflow:hidden">
+          <div style="position:absolute;top:0;left:0;right:0;height:44%;background:#BF6BFF"></div>
+          <div style="position:absolute;bottom:0;left:0;right:0;height:19%;background:#5E2497"></div>
+        </div>
+        <div style="position:absolute;left:100px;top:27px;width:106px;height:106px;display:grid;place-items:center">
+          <div style="width:64px;height:64px;border-radius:50%;background:#FFF8EA;border:3px solid #000;display:grid;place-items:center">
+            <img src="assets/node/elite.png" alt="" style="width:44px;height:44px;object-fit:contain">
+          </div>
+        </div>
+        <div style="position:absolute;left:97px;top:137px;width:112px;height:3px;background:repeating-linear-gradient(90deg,#F54540 0 7px,transparent 7px 14px)"></div>
+
+        <div style="position:absolute;left:126px;top:142px;height:30px;padding:0 12px;display:flex;align-items:center;border-radius:9px;background:#FFF8EA;border:3px solid #000;box-shadow:0 3px 0 rgba(0,0,0,.45);font-family:'Baloo 2',cursive;font-size:14px;font-weight:800;letter-spacing:.08em;line-height:1;color:#1A1206;z-index:3">ELITE</div>
+
+        <div style="position:absolute;left:81px;top:123px;width:144px;height:144px;border-radius:26px;border:5px solid #FF9345;box-shadow:0 0 0 3px #000;box-sizing:border-box;z-index:2;animation:blink 1.8s ease-in-out infinite"></div>
+        <div style="position:absolute;left:92px;top:137px;width:122px;height:122px;border-radius:24px;background:#C9302B;border:5px solid #000;box-shadow:0 8px 0 rgba(0,0,0,.55);overflow:hidden">
+          <div style="position:absolute;top:0;left:0;right:0;height:44%;background:#F54540"></div>
+          <div style="position:absolute;bottom:0;left:0;right:0;height:19%;background:#8E1C18"></div>
+        </div>
+        <div style="position:absolute;left:92px;top:137px;width:122px;height:122px;display:grid;place-items:center">
+          <div style="width:74px;height:74px;border-radius:50%;background:#FFF8EA;border:3px solid #000;display:grid;place-items:center">
+            <img src="assets/node/battle.png" alt="" style="width:50px;height:50px;object-fit:contain">
+          </div>
+        </div>
+
+        <div style="position:absolute;left:246px;top:123px;right:18px;height:52px;border-left:3px solid #F54540;padding-left:12px">
+          <div style="font-family:'Baloo 2',cursive;font-size:13px;font-weight:800;letter-spacing:.1em;color:#F54540">CHỒNG 52 px</div>
+          <div style="font-size:13px;font-weight:500;color:#A6B0BF;line-height:1.45;margin-top:3px">Đáy chip + shelf ở 175. Mép trên vòng (quầng đen) ở 123.</div>
+        </div>
+        <div style="position:absolute;left:246px;top:200px;right:18px">
+          <div style="font-size:13px;font-weight:500;color:#A6B0BF;line-height:1.5">Ngay cả khi bỏ hẳn chip, hai token vẫn chồng <strong style="color:#EDF1F6">16px</strong>: 53 (nửa token mở) + 6 (shelf) + 61 (nửa token here) + 14 (vòng) = 134 &gt; pitch 118.</div>
+        </div>
+      </div>
+    </div>
+
+    <div style="padding:22px 20px 20px;border-radius:14px;background:#161A21;border:3px solid #3FCD3C;box-shadow:0 0 0 1px rgba(63,205,60,.25)">
+      <div style="display:flex;align-items:center;gap:10px">
+        <div style="height:24px;padding:0 10px;display:flex;align-items:center;border-radius:7px;background:#3FCD3C;border:2px solid #000;font-family:'Baloo 2',cursive;font-size:11px;font-weight:800;letter-spacing:.14em;color:#07260A">SỬA</div>
+        <div style="font-family:'Baloo 2',cursive;font-size:14px;font-weight:800;letter-spacing:.1em;color:#8C95A4">PITCH 124 · CHIP CẠNH PHẢI · VÒNG TRONG</div>
+      </div>
+      <div style="position:relative;width:100%;height:320px;margin-top:14px;border-radius:10px;background:#12151B;border:2px solid #242A34;overflow:hidden">
+        <div style="position:absolute;left:100px;top:27px;width:106px;height:106px;border-radius:18px;background:#8B3FD9;border:4px solid #000;box-shadow:0 6px 0 rgba(0,0,0,.5);overflow:hidden">
+          <div style="position:absolute;top:0;left:0;right:0;height:44%;background:#BF6BFF"></div>
+          <div style="position:absolute;bottom:0;left:0;right:0;height:19%;background:#5E2497"></div>
+        </div>
+        <div style="position:absolute;left:100px;top:27px;width:106px;height:106px;display:grid;place-items:center">
+          <div style="width:64px;height:64px;border-radius:50%;background:#FFF8EA;border:3px solid #000;display:grid;place-items:center">
+            <img src="assets/node/elite.png" alt="" style="width:44px;height:44px;object-fit:contain">
+          </div>
+        </div>
+        <div style="position:absolute;left:216px;top:65px;height:30px;padding:0 12px;display:flex;align-items:center;border-radius:9px;background:#FFF8EA;border:3px solid #000;box-shadow:0 3px 0 rgba(0,0,0,.45);font-family:'Baloo 2',cursive;font-size:14px;font-weight:800;letter-spacing:.08em;line-height:1;color:#1A1206">ELITE</div>
+
+        <div style="position:absolute;left:92px;top:143px;width:122px;height:122px;border-radius:24px;background:#C9302B;border:5px solid #000;box-shadow:0 8px 0 rgba(0,0,0,.55);overflow:hidden">
+          <div style="position:absolute;top:0;left:0;right:0;height:44%;background:#F54540"></div>
+          <div style="position:absolute;bottom:0;left:0;right:0;height:19%;background:#8E1C18"></div>
+        </div>
+        <div style="position:absolute;left:97px;top:148px;width:112px;height:112px;border-radius:19px;border:4px solid #FF9345;box-sizing:border-box;z-index:2;animation:blink 1.8s ease-in-out infinite"></div>
+        <div style="position:absolute;left:92px;top:143px;width:122px;height:122px;display:grid;place-items:center;z-index:3">
+          <div style="width:74px;height:74px;border-radius:50%;background:#FFF8EA;border:3px solid #000;display:grid;place-items:center">
+            <img src="assets/node/battle.png" alt="" style="width:50px;height:50px;object-fit:contain">
+          </div>
+        </div>
+        <div style="position:absolute;left:224px;top:189px;height:30px;padding:0 12px;display:flex;align-items:center;border-radius:9px;background:#FF9345;border:3px solid #000;box-shadow:0 3px 0 rgba(0,0,0,.45);font-family:'Baloo 2',cursive;font-size:14px;font-weight:800;letter-spacing:.08em;line-height:1;color:#2A1505">YOU ARE HERE</div>
+
+        <div style="position:absolute;left:97px;top:139px;width:112px;height:4px;background:repeating-linear-gradient(90deg,#3FCD3C 0 7px,transparent 7px 14px)"></div>
+        <div style="position:absolute;left:100px;top:283px;right:18px">
+          <div style="font-family:'Baloo 2',cursive;font-size:13px;font-weight:800;letter-spacing:.1em;color:#3FCD3C">HỞ 4 px</div>
+          <div style="font-size:13px;font-weight:500;color:#A6B0BF;line-height:1.45;margin-top:2px">53 + 6 (shelf) + 61 + 0 (vòng) = 120 &lt; pitch 124. Kênh dọc sạch ở mọi lane.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div style="margin-top:22px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:18px">
+
+    <div style="padding:22px 24px 24px;border-radius:14px;background:#161A21;border:3px solid #242A34">
+      <div style="font-family:'Baloo 2',cursive;font-size:15px;font-weight:800;letter-spacing:.14em;color:#FFC445">A · CHIP — NEO MỚI</div>
+      <div style="margin-top:14px;display:grid;grid-template-columns:auto 1fr;gap:9px 18px;font-size:14px;line-height:1.35">
+        <div style="color:#8C95A4;font-weight:600">neo</div><div style="font-weight:600;color:#FFF8EA">cạnh phải token, canh giữa dọc</div>
+        <div style="color:#8C95A4;font-weight:600">gap</div><div style="font-weight:600;color:#FFF8EA">10 px từ mép token (kể cả viền)</div>
+        <div style="color:#8C95A4;font-weight:600">height</div><div style="font-weight:600;color:#FFF8EA">30 px <span style="color:#6E7889;font-weight:500">— giữ nguyên</span></div>
+        <div style="color:#8C95A4;font-weight:600">radius</div><div style="font-weight:600;color:#FFF8EA">9 px</div>
+        <div style="color:#8C95A4;font-weight:600">border</div><div style="font-weight:600;color:#FFF8EA">3 px · #000000</div>
+        <div style="color:#8C95A4;font-weight:600">shelf</div><div style="font-weight:600;color:#FFF8EA">offset y 3 · #000 @ 45% · size 0</div>
+        <div style="color:#8C95A4;font-weight:600">padding</div><div style="font-weight:600;color:#FFF8EA">0 / 12 / 0 / 12</div>
+        <div style="color:#8C95A4;font-weight:600">font</div><div style="font-weight:600;color:#FFF8EA">Baloo 2 · 800 · 14 px · .08em</div>
+        <div style="color:#8C95A4;font-weight:600">fill open</div><div style="font-weight:600;color:#FFF8EA">#FFF8EA · ink #1A1206</div>
+        <div style="color:#8C95A4;font-weight:600">fill here</div><div style="font-weight:600;color:#FFF8EA">#FF9345 · ink #2A1505</div>
+      </div>
+      <div style="margin-top:14px;font-size:13px;font-weight:500;line-height:1.5;color:#A6B0BF">Lane cách nhau 370px, token rộng nhất 122 → còn 248px trống ngang. Chip rộng nhất (“YOU ARE HERE”) là 152px, đặt ở 71…223px tính từ tâm: hở 94px trước token lane kế.</div>
+    </div>
+
+    <div style="padding:22px 24px 24px;border-radius:14px;background:#161A21;border:3px solid #242A34">
+      <div style="font-family:'Baloo 2',cursive;font-size:15px;font-weight:800;letter-spacing:.14em;color:#FFC445">B · VÒNG NHẤP NHÁY</div>
+      <div style="margin-top:14px;display:grid;grid-template-columns:auto 1fr;gap:9px 18px;font-size:14px;line-height:1.35">
+        <div style="color:#8C95A4;font-weight:600">inset</div><div style="font-weight:600;color:#FFF8EA">5 px <span style="color:#6E7889;font-weight:500">(was −11)</span></div>
+        <div style="color:#8C95A4;font-weight:600">radius</div><div style="font-weight:600;color:#FFF8EA">19 px <span style="color:#6E7889;font-weight:500">(was 26)</span></div>
+        <div style="color:#8C95A4;font-weight:600">border</div><div style="font-weight:600;color:#FFF8EA">4 px · #FF9345 <span style="color:#6E7889;font-weight:500">(was 5)</span></div>
+        <div style="color:#8C95A4;font-weight:600">quầng đen</div><div style="font-weight:600;color:#FFF8EA">bỏ <span style="color:#6E7889;font-weight:500">— viền token 5px đã là quầng</span></div>
+        <div style="color:#8C95A4;font-weight:600">z</div><div style="font-weight:600;color:#FFF8EA">trên thân token, dưới đĩa icon</div>
+        <div style="color:#8C95A4;font-weight:600">blink</div><div style="font-weight:600;color:#FFF8EA">1.8s ease-in-out · opacity 1 ↔ .35</div>
+        <div style="color:#8C95A4;font-weight:600">dấu chân</div><div style="font-weight:600;color:#3FCD3C">0 px ngoài token</div>
+      </div>
+      <div style="margin-top:14px;font-size:13px;font-weight:500;line-height:1.5;color:#A6B0BF">Vòng trong không mất độ nổi: token here vẫn to hơn 16px, radius 24, viền 5, shelf 8 — vòng cam chỉ cần xác nhận, không cần chiếm chỗ.</div>
+    </div>
+
+    <div style="padding:22px 24px 24px;border-radius:14px;background:#161A21;border:3px solid #242A34">
+      <div style="font-family:'Baloo 2',cursive;font-size:15px;font-weight:800;letter-spacing:.14em;color:#FFC445">C · PITCH HÀNG</div>
+      <div style="margin-top:14px;display:grid;grid-template-columns:auto 1fr;gap:9px 18px;font-size:14px;line-height:1.35">
+        <div style="color:#8C95A4;font-weight:600">pitch</div><div style="font-weight:600;color:#FFF8EA">124 px <span style="color:#6E7889;font-weight:500">(was 118)</span></div>
+        <div style="color:#8C95A4;font-weight:600">r1</div><div style="font-weight:600;color:#FFF8EA;font-variant-numeric:tabular-nums">946 <span style="color:#6E7889;font-weight:500">— giữ nguyên</span></div>
+        <div style="color:#8C95A4;font-weight:600">r2</div><div style="font-weight:600;color:#FFF8EA;font-variant-numeric:tabular-nums">822</div>
+        <div style="color:#8C95A4;font-weight:600">r3</div><div style="font-weight:600;color:#FFF8EA;font-variant-numeric:tabular-nums">698</div>
+        <div style="color:#8C95A4;font-weight:600">r4</div><div style="font-weight:600;color:#FFF8EA;font-variant-numeric:tabular-nums">574</div>
+        <div style="color:#8C95A4;font-weight:600">r5</div><div style="font-weight:600;color:#FFF8EA;font-variant-numeric:tabular-nums">450</div>
+        <div style="color:#8C95A4;font-weight:600">r6</div><div style="font-weight:600;color:#FFF8EA;font-variant-numeric:tabular-nums">326</div>
+        <div style="color:#8C95A4;font-weight:600">r7</div><div style="font-weight:600;color:#FFF8EA;font-variant-numeric:tabular-nums">202</div>
+        <div style="color:#8C95A4;font-weight:600">lane</div><div style="font-weight:600;color:#FFF8EA">780 / 1150 / 1520 <span style="color:#6E7889;font-weight:500">— không đổi</span></div>
+      </div>
+      <div style="margin-top:14px;font-size:13px;font-weight:500;line-height:1.5;color:#A6B0BF">r7 là hàng sương mù (token 94) → mép trên ở 155, dưới header 96 đủ 59px hở. Không tràn khung 1080.</div>
+    </div>
+  </div>
+
+  <div style="margin-top:18px;padding:20px 24px;border-radius:14px;background:#1B1F27;border:3px solid #000;box-shadow:0 5px 0 rgba(0,0,0,.5)">
+    <div style="font-family:'Baloo 2',cursive;font-size:15px;font-weight:800;letter-spacing:.14em;color:#FFC445">TẠI SAO KHÔNG CHỈ TĂNG PITCH</div>
+    <div style="margin-top:10px;font-size:15px;font-weight:500;line-height:1.6;color:#EDF1F6;text-wrap:pretty">Để chip ở lại dưới token thì mỗi hàng cần: 53 (nửa token mở) + 9 (gap) + 30 (chip) + 3 (shelf chip) + 61 (nửa token here) + 14 (vòng ngoài) = <strong style="color:#FFF8EA">170px</strong>. Bảy hàng × 170 = 1020px, cộng nửa token trên dưới và header 96px thì vượt 1080. Vì vậy chip phải rời kênh dọc — tăng pitch chỉ là phần bù 6px cho shelf.</div>
+  </div>
+
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1520,&quot;height&quot;:2400}}"></script>
+</body>
+</html>
