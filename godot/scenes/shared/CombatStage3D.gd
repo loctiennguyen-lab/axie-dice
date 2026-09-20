@@ -306,10 +306,32 @@ const _PART_TYPES: Array[int] = [
 ## 97px). Compensating would mean raising `_ENEMY_SPRITE_HEIGHT_M`, and that is NOT safe to do
 ## alone — `HEAD_HEIGHT` (1.55, shared with the party rig) is what the nameplate anchors to, so a
 ## taller sprite would push its own head through its plate. See the task report.
-const _ROW_SPACING_PARTY := 1.455
+## 2026-09-21 — THE PARTY ROW'S TAILS WERE BEING CUT OFF, reported against a 1920x1200 window.
+## The arithmetic above solved z_party 5.45 to put the party FEET at y~824 against a band that
+## bottoms out at 842: eighteen pixels. A tail hangs below the feet, so eighteen pixels is not
+## clearance, it is the bug — and it is a fixed FRACTION of the band (SubViewportContainer
+## stretches the render to its rect and the camera keeps its vertical fov), so it clips at every
+## window size, not just the tall one. Extending the band down cannot fix it: the cut happens
+## inside the render, not at the Control's edge.
+##
+## So the row moves BACK, not the camera. Moving the camera would drag the enemy row up into its
+## own fixed-y nameplates (_ENEMY_COLUMN_TOP), which is a second defect to buy the first one.
+## Depth goes 13.2 - 5.45 = 7.75 -> 13.2 - 5.15 = 8.05. Because the projection above is a flat
+## `1148.06 / depth`, the on-screen column pitch shrinks by exactly that ratio, so the spacing is
+## multiplied by 8.05 / 7.75 = 1.0387 to keep the mockup's 194px pitch. The models render ~4%
+## smaller for the same reason; that is the price, and it is in the capture rather than argued
+## about here.
+##
+## 5.15 IS A BALANCE POINT, NOT A ROUND NUMBER. Lifting the row lifts its nameplate stack with
+## it, toward the front line at y=480 — so too much lift trades a cut tail for a status chip
+## crowding the divider, which is the other half of what was asked for. Measured at this value,
+## with `CombatView._DECK_H` at 204 and `_STAGE_BOTTOM_F` at 1.0: the warning chip clears the
+## front line by 50px at a 1080 canvas and 73px at 1200, and the tails clear the deck bar at
+## both. At 4.85 the tails were fine and the chip clearance fell to 14px.
+const _ROW_SPACING_PARTY := 1.511
 const _ROW_SPACING_ENEMY := 5.103
 const _POS_Y := 0.0
-const _POS_Z_PARTY := 5.45    # near row (camera-facing) — party
+const _POS_Z_PARTY := 5.15    # near row (camera-facing) — party; was 5.45, see above
 const _POS_Z_ENEMY := -6.5    # far row — enemies, reads as "further back" per JRPG convention
 
 ## Facing fix (bug report: "Axie đang quay mặt về camera, muốn quay lưng lại tiến lên đánh

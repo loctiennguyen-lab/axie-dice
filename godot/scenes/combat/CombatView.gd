@@ -498,8 +498,16 @@ func _grade_stage_art() -> void:
 ## The top bar's four utility chips share one box. combat-v2.html draws them as a fixed row of
 ## `UNDO · INFO · LOG · ♪`, and every one of them is the same 33px chip; a helper keeps the four
 ## call sites from drifting the way the five call sites before them did.
+##
+## 33 content + a 3px border on each edge = 39 outer. The shard chip beside them is the same
+## height by the same arithmetic.
+const _UTIL_CHIP := 39.0
 func _utility_chip_style(fill: Color, border_w: int = 3) -> StyleBoxFlat:
-	return DangoTheme.solid_chip_style(fill, 9, border_w, Vector2(11, 0))
+	# `padding:0 11px` INSIDE a 3px border. A StyleBoxFlat's content margin is measured from the
+	# OUTER edge and replaces the border, so the mockup's 11 is written here as 11 + 3. Getting
+	# this backwards costs one border width of inset on every chip at once — the convention is
+	# spelled out in RunMapController's own PADDING CONVENTION note.
+	return DangoTheme.solid_chip_style(fill, 9, border_w, Vector2(11.0 + border_w, 0))
 
 
 ## Top-bar utility chip, per combat-v2.html's `utils` row: height 33, min-width 33, padding
@@ -509,7 +517,17 @@ func _utility_chip_style(fill: Color, border_w: int = 3) -> StyleBoxFlat:
 ## Supersedes the 40px-tall `style_button(secondary)` chrome this used to wear: that helper's
 ## radius (12), padding (14/7) and shelf (4) are the REROLL button's shape, not this one's.
 func _style_utility_button(btn: Button) -> void:
-	btn.custom_minimum_size = Vector2(33, 33)
+	# `height:33px; min-width:33px` are the CONTENT box; the 3px black border adds outside them,
+	# so the chip is 39x39 outer. It was set to 33x33, which is the same off-by-the-border the
+	# die card and the header buttons were both fixed for.
+	#
+	# SHRINK_CENTER matters more than the number. `StatsRow` is an HBoxContainer, whose cross
+	# axis defaults to FILL — so these five chips were being stretched to the bar's full 60px
+	# interior and measured 54px tall in the 2026-09-21 capture, against a design that says 39.
+	# That is what "the buttons look squeezed" was: not too small, too tall, with the label
+	# floating in the middle of a box a third taller than it should be.
+	btn.custom_minimum_size = Vector2(_UTIL_CHIP, _UTIL_CHIP)
+	btn.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	btn.focus_mode = Control.FOCUS_NONE
 	# Baloo 13/800 at the mockup's `letter-spacing:.05em` — one call sets face, size and tracking.
 	DangoTheme.apply_tracking(btn, 0.05, 13, 800)
@@ -823,6 +841,7 @@ func _build_top_bar() -> void:
 	var buttons_row := HBoxContainer.new()
 	buttons_row.name = "ButtonsRow"
 	buttons_row.add_theme_constant_override("separation", 5)
+	buttons_row.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	_stats_row.add_child(buttons_row)
 	var trailing_buttons: Array[Button] = [_undo_button, _info_button, _log_toggle_button]
 	for btn in trailing_buttons:
@@ -1044,12 +1063,14 @@ func _build_relic_strip() -> void:
 func _build_shard_chip() -> void:
 	# combat-v2.html: height 33, padding `0 11px 0 7px`, radius 9, 3px black, gap 7, 19px glyph.
 	var chip := PanelContainer.new()
-	chip.custom_minimum_size = Vector2(0, 33)
+	# Same off-by-the-border as the utility chips: `height:33` is the content box, the 3px
+	# border adds outside it, and `padding:0 11px 0 7px` is measured inside that border.
+	chip.custom_minimum_size = Vector2(0, _UTIL_CHIP)
 	chip.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	var chip_style := DangoTheme.surface_style(
 		DangoTheme.Surface.CREAM, 9, 3, 0.0, Vector2(-1, -1))
-	chip_style.content_margin_left = 7.0
-	chip_style.content_margin_right = 11.0
+	chip_style.content_margin_left = 7.0 + 3.0
+	chip_style.content_margin_right = 11.0 + 3.0
 	chip_style.content_margin_top = 0.0
 	chip_style.content_margin_bottom = 0.0
 	chip.add_theme_stylebox_override("panel", chip_style)
@@ -2158,14 +2179,33 @@ const _ENEMY_PLATE_GAP := 16.0
 # than of the whole canvas. At 1080 this reproduces the mockup exactly, by construction; on a
 # taller canvas the band absorbs the slack and the three keep their relationship.
 const _TOP_BAR_H := 60.0        ## CB-01, and Combat.tscn's %TopBar offset_bottom
-const _DECK_H := 216.0          ## CB-18, and Combat.tscn's %DeckBar offset_top
+## CB-18 says 216, and that is what this was. TRIMMED to 204 on 2026-09-21 at the owner's
+## request ("thu gọn lại phần hub của skill — đang thừa ra 1 đoạn trống ở trên"), and 204 is not
+## a taste call: the bar's own content is a 4px top border, the mockup's 16px inner inset top and
+## bottom, and a tallest column of 166 (a 158 die card plus its 8px shelf; the MANA + RELIC
+## ACTIVES column beside it measures ~156). 4 + 16 + 166 + 16 = 202, so 204 keeps two pixels of
+## slack and takes the rest back for the stage. Anything below 202 starts eating the cards.
+## Combat.tscn's %DeckBar offset_top carries the same number.
+const _DECK_H := 204.0
 ## Reference frame only — the canvas the mockup was authored on. NOT a layout position: nothing
 ## below uses it except to convert one of the mockup's own y values into a band fraction.
 const _MOCK_CANVAS_H := 1080.0
 const _MOCK_BAND_H := _MOCK_CANVAS_H - _TOP_BAR_H - _DECK_H          ## 804
 const _FRONT_LINE_F := (480.0 - _TOP_BAR_H) / _MOCK_BAND_H           ## mockup FrontLine top
 const _STAGE_TOP_F := (0.13 * _MOCK_CANVAS_H - _TOP_BAR_H) / _MOCK_BAND_H
-const _STAGE_BOTTOM_F := (0.78 * _MOCK_CANVAS_H - _TOP_BAR_H) / _MOCK_BAND_H
+## WAS `(0.78 * _MOCK_CANVAS_H - _TOP_BAR_H) / _MOCK_BAND_H`, i.e. the stage stopped at y=842
+## and left a 22px strip of nothing between it and the deck bar. The strip was not the bug but it
+## was where the bug showed: the party models were being sliced by a hard horizontal line, and a
+## line with empty space under it reads as a rendering fault rather than a framing choice. The
+## stage now runs to the deck bar.
+##
+## Extending it does NOT by itself reveal more of a model — `CombatStage3D` is a
+## SubViewportContainer with `stretch = true`, so the render resizes with the Control and the
+## camera keeps its vertical fov; a clipped foot stays clipped at the same fraction. It was
+## tested that way round first and the tail was still cut, just lower down. What it does buy is
+## 22 more pixels of band for the same world, which is a ~3% larger frame — worth having, and it
+## is the party row moving back (CombatStage3D._POS_Z_PARTY) that actually uncovers the tails.
+const _STAGE_BOTTOM_F := 1.0
 
 
 ## Places the two things that live between the top bar and the deck. Idempotent; runs once at
