@@ -209,8 +209,12 @@ func test_every_guide_names_heroes_and_an_archetype_that_exist() -> void:
 ## halfway is one where the first caller to ask for a missing key gets a default instead of an
 ## error — and the missing keys are exactly the ones no test was looking at.
 func test_the_arch_table_is_a_complete_copy() -> void:
+	# CORRECTED 2026-09-21: this list was itself a half copy — it stopped at ten and left out
+	# `exec`, which src/data.js has carried since 2026-09-04 (relic-system.md §3.3) and which
+	# `PASSIVE.beast.a` points at. The gate that exists to catch a halfway copy was one. The
+	# eleventh entry is now in ContentDB.ARCH and here.
 	var expected := ["poison", "burn", "shield", "mana", "pierce", "crit", "growth", "summon",
-		"aoe", "thorns"]
+		"aoe", "thorns", "exec"]
 	_assert(ContentDB.ARCH.size() == expected.size(),
 		"ARCH has %d entries, src/data.js has %d" % [ContentDB.ARCH.size(), expected.size()])
 	for key in expected:

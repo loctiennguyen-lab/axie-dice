@@ -23,19 +23,24 @@ extends Control
 ## (only SAMPLE TEAMS and CONFIRM TEAM) — every path back through this screen commits the
 ## current picks, matching the mockup exactly.
 ##
-## OMITTED FROM THIS PASS: the mockup's bottom "THIS COMP LEANS" archetype strip. Its own demo
-## data (`archChips`: BULWARK/PLAGUE/AEGIS) is hardcoded and does not react to the five hero
-## picks above it, and does not even match `ContentDB.GUIDES`' own archetype names
-## (BULWARK/PLAGUE/APEX/CONDUIT) — it reads as unfinished demo copy, not a specified formula.
-## Inventing a "which archetype does this comp lean toward" classifier is gameplay-analysis
-## logic with no design spec behind it (out of scope for UI-programmer work — see this agent's
-## "must NOT implement gameplay logic in UI code" rule). Flagged for design/ux to spec a real
-## rule; left out rather than guessed at.
+## RESOLVED 2026-09-21 (TEAM-05): the mockup's bottom "THIS COMP LEANS" strip is now built.
+## It was left out of the earlier pass because the mockup's own `archChips` are hardcoded demo
+## data (BULWARK/PLAGUE/AEGIS) that does not react to the five picks, and inventing a classifier
+## would have been gameplay logic with no spec behind it. There is a spec: the live JS build has
+## shipped `archScore()` / `ARCH_PRIORITY` / `faceArch()` in src/data.js since launch, and those
+## three are now ported verbatim into ContentDB as `team_arch_score()` / `ARCH_PRIORITY` /
+## `face_arch()`. This strip reads that port, so what the player sees is the shipping rule, not
+## a guess. See `_build_arch_bar()` at the bottom of this file.
 
 const _CLASS_ORDER: Array[String] = ["plant", "beast", "aqua", "reptile", "bug", "bird"]
 
 var _content: Control
 var _team_selection: Array[String] = []
+## VLT-05: every key a slot dropdown may hold — the six T1 heroes, then the player's own
+## imported Vault Axies. Built once in `_ready()` and never re-ordered, because the
+## OptionButton indices in `_build_card()` are positions in THIS array.
+var _pick_keys: Array[String] = []
+var _subtitle: Label
 
 # One entry per slot: option (OptionButton), header_panel/header_name/header_cls,
 # band_panel/portrait/tier_badge/hp_badge, passive_name/passive_text, faces_grid.
@@ -48,7 +53,37 @@ func _ready() -> void:
 		MainMenu.pending_team = []
 	else:
 		_team_selection = MainMenu.DEFAULT_TEAM.duplicate()
+	# VLT-05: MetaState registers every vault record into `ContentDB.heroes` as `vault_<id>`,
+	# but it does so deferred from its own `_ready()`. Landing here straight from Vault can beat
+	# that call, so ask for it now — it is idempotent.
+	MetaState.ensure_vault_heroes()
+	_pick_keys = _build_pick_keys()
 	_build_ui()
+
+
+## The six starters, then the vault. Stale records are left out on purpose: their dice were
+## built under older face rules and cannot be played (MetaState.vault_stale()'s own docstring
+## says team select refuses them), and a pick that silently plays wrong numbers is worse than
+## one the player cannot make.
+func _build_pick_keys() -> Array[String]:
+	var keys: Array[String] = MainMenu.T1_HERO_KEYS.duplicate()
+	for entry in MetaState.vault:
+		if MetaState.vault_stale(entry):
+			continue
+		var key := MetaState.vault_key(entry)
+		if ContentDB.heroes.has(key) and not keys.has(key):
+			keys.append(key)
+	return keys
+
+
+## The label for one dropdown row. A vault Axie is marked so the player can tell their own
+## imported NFT from a starter at a glance — the JS build makes the same distinction by giving
+## the vault its own "YOUR VAULT" grid, which five dropdowns have no room for.
+func _pick_label(hero_key: String) -> String:
+	var hero_def: Dictionary = ContentDB.heroes.get(hero_key, {})
+	var base := "%s (%s)" % [
+		String(hero_def.get("n", hero_key)), String(hero_def.get("cls", "")).capitalize()]
+	return base + " · VAULT" if MetaState.is_vault_key(hero_key) else base
 
 
 func _build_ui() -> void:
@@ -87,6 +122,8 @@ func _build_ui() -> void:
 	_cards.clear()
 	for i in MainMenu.TEAM_SIZE:
 		row.add_child(_build_card(i))
+
+	_build_arch_bar()
 
 
 ## The mockup's left/right rail for this screen (the shell's own is 84).
@@ -132,7 +169,7 @@ func _build_header() -> void:
 	title_col.add_child(title)
 
 	var subtitle := Label.new()
-	subtitle.text = "5 Tier-1 Axies · duplicates allowed · every run starts at Tier 1"
+	subtitle.text = _SUBTITLE_BASE
 	subtitle.add_theme_font_override("font", DangoTheme.FONT_UI_SEMI)
 	subtitle.add_theme_font_size_override("font_size", 14)
 	# CORRECTED 2026-09-20 (mockup pass): the note here claimed DangoTheme had no token for the
@@ -141,6 +178,8 @@ func _build_header() -> void:
 	# (Team Select, Vault, Reward)"). Exact hex, no approximation.
 	subtitle.add_theme_color_override("font_color", DangoTheme.SUBTITLE_TEXT)
 	title_col.add_child(subtitle)
+	_subtitle = subtitle
+	_refresh_ranked_note()
 
 	var buttons := HBoxContainer.new()
 	buttons.add_theme_constant_override("separation", 11)
@@ -199,9 +238,157 @@ func _build_header() -> void:
 		confirm_btn.add_theme_stylebox_override(state_key, box)
 
 
+## VLT-05 / the JS build's `hasVault` rule. `RunState.begin()` already downgrades a ranked run
+## to unranked when the roster holds a vault key — silently, in the engine, after the player has
+## committed. The Vault screen explains the rule on its own RANKED RUN note; this is the same
+## sentence at the moment the pick is actually made. No new element: it extends the subtitle
+## line the mockup already draws under the title.
+const _SUBTITLE_BASE := "5 Tier-1 Axies · duplicates allowed · every run starts at Tier 1"
+
+
+func _refresh_ranked_note() -> void:
+	if _subtitle == null:
+		return
+	_subtitle.text = _SUBTITLE_BASE
+	if MetaState.team_has_vault_pick(_team_selection):
+		_subtitle.text += " · a Vault Axie makes this run unranked"
+
+
 func _on_confirm_pressed() -> void:
 	MainMenu.pending_team = _team_selection.duplicate()
 	get_tree().change_scene_to_file("res://scenes/main_menu/MainMenu.tscn")
+
+
+# ===========================================================================
+# TEAM-05 — "THIS COMP LEANS"
+#
+# Mockup box (meta-screens-v2.html, TEAM SELECT, last block): the bar sits at bottom:38 /
+# left:56 / right:56, padding 14px 18px, radius 15, background #1B1F27 (Surface.PANEL),
+# border 4px black, shelf `0 5px 0`, and lays out `gap:18` — eyebrow, then the chip row.
+# Chip: `gap:10; padding:9px 14px; radius:12; background:{arch colour}; border:3px black`,
+# glyph 19px, name Baloo 15 w800 tracking .08em line-height 1, description 12px w600 with
+# `margin-top:2`. Three chips, same as the mockup's `hint-placeholder-count`.
+#
+# The ranking is ContentDB.team_arch_top() — the src/data.js `archScore()` port: each hero's
+# class passive scores 1 for its own archetype, and every die face scores 3/2/1 by rarity for
+# the archetype `face_arch()` assigns it. Ties break on ARCH's own declaration order, so the
+# bar never flickers between two equal archetypes as the player re-picks.
+# ===========================================================================
+
+## `_content`'s bottom edge is DangoScreen.SAFE above the screen's; the mockup wants 38.
+const _ARCH_BAR_BOTTOM := 38.0
+## The mockup draws three. Fewer appear only when the comp genuinely leans on fewer (an
+## all-Plant five scores exactly two), which is information, not a hole.
+const _ARCH_CHIP_COUNT := 3
+
+var _arch_chip_row: HBoxContainer
+
+
+func _build_arch_bar() -> void:
+	var bar := PanelContainer.new()
+	bar.name = "CompLeansBar"
+	bar.set_anchors_preset(Control.PRESET_BOTTOM_WIDE)
+	# Same 28px reclaim as the header and the card row: `_content` starts at the shell's 84
+	# rail, this screen's mockup rail is 56.
+	bar.offset_left = _RAIL - DangoScreen.RAIL_X
+	bar.offset_right = DangoScreen.RAIL_X - _RAIL
+	# BOTTOM_WIDE pins both edges to the bottom; with GROW_DIRECTION_BEGIN the bar keeps its
+	# bottom on that line and takes its height upward from its own content, so the chips'
+	# two-line text sets the height instead of a hardcoded strip (the bug T4 fixed in the
+	# header, not repeated here).
+	bar.offset_top = DangoScreen.SAFE - _ARCH_BAR_BOTTOM
+	bar.offset_bottom = DangoScreen.SAFE - _ARCH_BAR_BOTTOM
+	bar.grow_vertical = Control.GROW_DIRECTION_BEGIN
+	bar.add_theme_stylebox_override("panel",
+		DangoTheme.surface_style(DangoTheme.Surface.PANEL, 15, 4, 5.0, Vector2(18, 14)))
+	_content.add_child(bar)
+
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 18)
+	bar.add_child(row)
+
+	var eyebrow := Label.new()
+	eyebrow.name = "CompLeansEyebrow"
+	eyebrow.text = "THIS COMP LEANS"
+	eyebrow.add_theme_font_override("font", DangoTheme.FONT_DISPLAY)
+	eyebrow.add_theme_font_size_override("font_size", 13)
+	eyebrow.add_theme_color_override("font_color", DangoTheme.MUTED_TEXT)
+	DangoTheme.apply_tracking(eyebrow, 0.16, 13)
+	eyebrow.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	row.add_child(eyebrow)
+
+	_arch_chip_row = HBoxContainer.new()
+	_arch_chip_row.name = "ArchChips"
+	_arch_chip_row.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_arch_chip_row.add_theme_constant_override("separation", 10)
+	row.add_child(_arch_chip_row)
+
+	_refresh_arch_bar()
+
+
+func _refresh_arch_bar() -> void:
+	if _arch_chip_row == null:
+		return
+	for c in _arch_chip_row.get_children():
+		_arch_chip_row.remove_child(c)
+		c.queue_free()
+	for key in ContentDB.team_arch_top(_team_selection, _ARCH_CHIP_COUNT):
+		_arch_chip_row.add_child(_build_arch_chip(String(key)))
+
+
+func _build_arch_chip(key: String) -> PanelContainer:
+	var arch: Dictionary = ContentDB.ARCH.get(key, {})
+	# A missing archetype is a data error, not a styling choice — neutral fill rather than
+	# some other archetype's colour, same rule GuidesView._build_card() uses.
+	var fill := Color(String(arch.get("c", ""))) if arch.has("c") else DangoTheme.PANEL_RAISED
+	# The mockup inks all three chips #1A1206 because every ARCH colour today is light. ink_on()
+	# gets the same answer for all eleven and keeps it right if a colour is ever darkened.
+	var ink := DangoTheme.ink_on(fill)
+
+	var chip := PanelContainer.new()
+	chip.name = "ArchChip_" + key
+	chip.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	chip.add_theme_stylebox_override("panel",
+		DangoTheme.solid_chip_style(fill, 12, 3, Vector2(14, 9)))
+
+	var chip_row := HBoxContainer.new()
+	chip_row.add_theme_constant_override("separation", 10)
+	chip.add_child(chip_row)
+
+	var glyph := Label.new()
+	glyph.text = String(arch.get("ic", "?"))
+	# No FONT_DISPLAY override: Baloo 2 has no coverage for these symbols, so the glyph takes
+	# the default UI font exactly as the Guides card badge does.
+	glyph.add_theme_font_size_override("font_size", 19)
+	glyph.add_theme_color_override("font_color", ink)
+	glyph.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	chip_row.add_child(glyph)
+
+	var text_col := VBoxContainer.new()
+	text_col.add_theme_constant_override("separation", 2)
+	text_col.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	chip_row.add_child(text_col)
+
+	var name_lbl := Label.new()
+	name_lbl.name = "ArchName"
+	name_lbl.text = String(arch.get("n", key.to_upper()))
+	name_lbl.add_theme_font_override("font", DangoTheme.FONT_DISPLAY)
+	name_lbl.add_theme_font_size_override("font_size", 15)
+	name_lbl.add_theme_color_override("font_color", ink)
+	DangoTheme.apply_tracking(name_lbl, 0.08, 15)
+	# `line-height:1` on a 15px Baloo 2, whose own line box is ~1.6em — without the clamp the
+	# chip grows ~9px taller than the mockup and the two lines drift apart.
+	text_col.add_child(DangoTheme.line_box(name_lbl, 15, 1.0))
+
+	var desc := Label.new()
+	desc.name = "ArchDesc"
+	desc.text = String(arch.get("d", ""))
+	desc.add_theme_font_override("font", DangoTheme.FONT_UI_SEMI)
+	desc.add_theme_font_size_override("font_size", 12)
+	desc.add_theme_color_override("font_color", DangoTheme.INK_ON_PRIMARY)
+	text_col.add_child(desc)
+
+	return chip
 
 
 # ===========================================================================
@@ -291,14 +478,14 @@ func _build_card(index: int) -> PanelContainer:
 	# RESTORED 2026-09-20 (mockup pass): FIX-PASS-01 T1 dropped the "(Class)" suffix as
 	# redundant. meta-screens-v2.html's own `pickLabel` is `${name} (${Class})`, and
 	# godot/CLAUDE.md puts the mockup above a superseded prose pass.
-	for hero_key in MainMenu.T1_HERO_KEYS:
-		var hero_def: Dictionary = ContentDB.heroes.get(hero_key, {})
-		option.add_item("%s (%s)" % [
-			String(hero_def.get("n", hero_key)), String(hero_def.get("cls", "")).capitalize()])
-	option.select(max(0, MainMenu.T1_HERO_KEYS.find(_team_selection[index])))
+	for hero_key in _pick_keys:
+		option.add_item(_pick_label(hero_key))
+	option.select(max(0, _pick_keys.find(_team_selection[index])))
 	option.item_selected.connect(func(idx: int) -> void:
-		_team_selection[index] = MainMenu.T1_HERO_KEYS[idx]
-		_refresh_card(index))
+		_team_selection[index] = _pick_keys[idx]
+		_refresh_card(index)
+		_refresh_arch_bar()
+		_refresh_ranked_note())
 	body.add_child(option)
 
 	# FIX-PASS-01 T1: the Button-state overrides above only reach the OptionButton's own face —

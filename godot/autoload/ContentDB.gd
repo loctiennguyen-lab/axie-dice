@@ -820,7 +820,109 @@ const ARCH := {
 		"d": "Every attack hits the whole board."},
 	"thorns": {"n": "AEGIS", "ic": "✜", "c": "#a86fd8",
 		"d": "Let the enemy kill itself on your armour."},
+	## The eleventh archetype, and it was MISSING from this port. `CLASS_PASSIVE.beast.a` has
+	## always been `"exec"`, and every scorer guards with `if ARCH.has(a)` — so every Beast in
+	## the game contributed zero to every archetype, silently, and a relic tagged `exec` showed
+	## an em-dash where its playstyle should be. src/data.js carries the entry (added there
+	## 2026-09-04, relic-system.md §3.3); it simply never came across.
+	"exec": {"n": "FERAL", "ic": "✖", "c": "#ff6b5f",
+		"d": "Wound them, then delete them. Every kill feeds the next."},
 }
+
+
+## Which archetype a single die face feeds — src/engine.js `ARCH_PRIORITY`, copied in order.
+##
+## THE ORDER IS THE RULE, not an accident of an if-chain. From the JS file's own note:
+## "the archetype of a face is the rarest and least replaceable one it belongs to — keyword
+## before type; accumulator (poison/thorns) before burst; condition (exec) before probability
+## (crit); scope (aoe) last."
+##
+## `t` matches the face's `type`, `k` matches a keyword family (a keyword stored as `burn:6`
+## counts as `burn`). First entry that matches wins; a plain dmg/heal/buff/debuff face matches
+## nothing and feeds no archetype, which is correct — it is a neutral face, not an oversight.
+const ARCH_PRIORITY: Array = [
+	{"a": "summon", "t": ["summon"], "k": []},
+	{"a": "poison", "t": ["poison"], "k": ["poison"]},
+	{"a": "thorns", "t": [], "k": ["thorns"]},
+	{"a": "burn", "t": [], "k": ["burn"]},
+	{"a": "exec", "t": [], "k": ["exec"]},
+	{"a": "crit", "t": [], "k": ["crit"]},
+	{"a": "growth", "t": [], "k": ["growth"]},
+	{"a": "pierce", "t": [], "k": ["pierce"]},
+	{"a": "mana", "t": ["mana"], "k": ["mana"]},
+	{"a": "shield", "t": ["shield"], "k": []},
+	{"a": "aoe", "t": [], "k": ["aoe", "cleave"]},
+]
+
+
+## The archetype a face feeds, or "" for a neutral face. See ARCH_PRIORITY.
+static func face_arch(face: Dictionary) -> String:
+	var face_type := String(face.get("type", ""))
+	var kws: Array = face.get("keywords", [])
+	var families: Array[String] = []
+	for k in kws:
+		families.append(String(k).split(":")[0])
+	for rule in ARCH_PRIORITY:
+		var r: Dictionary = rule
+		if face_type in (r["t"] as Array):
+			return String(r["a"])
+		for want in (r["k"] as Array):
+			if families.has(String(want)):
+				return String(r["a"])
+	return ""
+
+
+## What a team of heroes leans toward — src/engine.js `archScore()`, adapted to a screen that
+## has no relics and no mutations yet.
+##
+## The JS scores three sources: relics (weighted by rarity), one point per hero's class passive,
+## and mutated faces (weighted by rarity). On Team Select the first and third do not exist yet,
+## and the class passive alone gives every archetype exactly 1 for five different classes — a
+## five-way tie, which reads as no answer at all.
+##
+## So the BASE die faces are scored here, by the same rarity weighting the JS uses for mutated
+## ones: a face you own counts the same whether it shipped with the Axie or was added later.
+## That is the one deliberate extension, and it is what makes two Plants read as BULWARK rather
+## than as a tie with everything else.
+##
+## Returns every ARCH key, including the zeroes, so a caller can sort without special cases.
+func team_arch_score(hero_keys: Array) -> Dictionary:
+	var score := {}
+	for key in ARCH:
+		score[key] = 0
+	for hero_key in hero_keys:
+		var hero: Dictionary = heroes.get(String(hero_key), {})
+		if hero.is_empty():
+			continue
+		var passive: Dictionary = CLASS_PASSIVE.get(String(hero.get("cls", "")), {})
+		var passive_arch := String(passive.get("a", ""))
+		if score.has(passive_arch):
+			score[passive_arch] += 1
+		for raw_face in (hero.get("die", []) as Array):
+			var face: Dictionary = raw_face
+			var a := face_arch(face)
+			if not score.has(a):
+				continue
+			var rarity := int(face.get("rarity", 0))
+			score[a] += 3 if rarity >= 3 else (2 if rarity >= 2 else 1)
+	return score
+
+
+## The `count` archetypes a team leans toward hardest, as ARCH keys. Ties break on ARCH's own
+## declaration order, which is what the JS's `Object.keys` sort does. Archetypes at zero are
+## dropped: an empty chip is worse than a missing one.
+func team_arch_top(hero_keys: Array, count: int = 3) -> Array:
+	var score := team_arch_score(hero_keys)
+	var order := ARCH.keys()
+	var keys: Array = []
+	for k in order:
+		if int(score[k]) > 0:
+			keys.append(k)
+	keys.sort_custom(func(a, b):
+		if int(score[a]) != int(score[b]):
+			return int(score[a]) > int(score[b])
+		return order.find(a) < order.find(b))
+	return keys.slice(0, count)
 
 ## src/data.js GUIDES — the four sample teams, copied verbatim.
 ##
