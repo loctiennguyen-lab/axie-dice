@@ -48,7 +48,24 @@ const WATCHED_FILES: Array[String] = ["res://assets/data/part_faces.json"]
 ## NOT bumped, and the reason is the whole point of asking: that flag decides whether a player
 ## is shown the tutorial. It cannot change what a run does, because a ranked run reads
 ## `MetaState.run_bonuses(true)`, which returns zeroes for everything the meta holds.
-const FINGERPRINT := "e0b6a259cb305527c73af1fb8383cd8843f9de3b7af2ed5e09c7ef4b6ea89383"
+##
+## Moved again, 2026-09-21, by `ContentDB.ARCH` gaining its eleventh entry (`exec`) plus the
+## new `ARCH_PRIORITY` / `face_arch()` / `team_arch_score()` / `team_arch_top()` port. NOT
+## bumped: ARCH is a tracker/display table. Nothing in `scripts/core` branches on membership in
+## it — the only reader outside the UI is `reward_generator._relic_text()`, which falls back to
+## "Archetype: <key>" when a relic has no description, and relic SELECTION never filters on it.
+## The four new functions have no caller in the engine at all; Team Select reads them to draw
+## the "THIS COMP LEANS" bar. Same actions, same run.
+##
+## BUMPED, 2026-09-21, by `MetaState._hero_def_from_vault()`. This one IS a rules change and
+## `ActionLog.RULES_VERSION` moved to `godot-2026-09-21-a` with it. An imported Axie's die was
+## stored under src/data.js's short field names (`p/t/v/k/r`) and handed to `ContentDB.heroes`
+## untouched, while this port's engine reads the long names it gave the hand-written hero table
+## (`part/type/value/keywords/rarity`). Every lookup missed, `Dictionary.get()` returned the
+## default, and a vault Axie rolled six 0-value blank faces in real combat. It now rolls the die
+## its own six body parts describe — the same actions produce a different run, which is the
+## question this file exists to ask.
+const FINGERPRINT := "0aa93553d7efcdbe06a66690ad6ea0d174a6801498097751f3ac3aa207bb9d10"
 
 
 func _ready() -> void:

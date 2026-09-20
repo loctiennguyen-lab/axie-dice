@@ -11,13 +11,14 @@ extends Control
 ## `AxieIdField`, `ScanButton`, `ImportStatus`, `RemoveButton`, `StaleBadge`, `SecretBadge`) is
 ## preserved exactly.
 ##
-## FLAGGED: the mockup shows a "USE IN TEAM" button on every record. There is no existing
-## single-slot hand-off action to wire it to — a vault Axie is already selectable from the normal
-## hero dropdown on MainMenu/TeamSelect (it registers into `ContentDB.heroes` as `vault_<id>`,
-## same as any other hero), and Guides' one-click hand-off replaces the WHOLE team, not one slot.
-## Inventing a partial-team hand-off is a real UX decision (which slot does it replace?) that
-## belongs to ux-designer, not to a restyle pass — so this screen keeps REMOVE only, and this note
-## says why "USE IN TEAM" is missing rather than leaving it unexplained.
+## RESOLVED 2026-09-21 (VLT-05): "USE IN TEAM" is built. The earlier note below said it was
+## blocked on a UX decision — which of the five slots does one Axie replace? The live JS build
+## answers it: its team screen carries a "YOUR VAULT" grid and clicking a chip pushes that Axie
+## into the next free slot (src/client.html:4560). Godot's five slots are always full, so the
+## same rule reads as "the first slot that is not already a Vault pick", and the player LANDS ON
+## TEAM SELECT with the change visible and every slot still editable — it is a jump with a
+## suggestion, not a silent write. The dropdown on that screen now lists vault Axies too, which
+## is the other half of the JS grid.
 ##
 ## WHAT IS DELIBERATELY NOT HERE
 ## -----------------------------
@@ -106,9 +107,12 @@ const ID_FIELD_H := 56.0           ## height:50 + border:3
 const SCAN_SIZE := Vector2(118, 56)  ## width:112; height:50 + border:3
 const CARD_BAND_H := 48.0          ## height:44 + border-bottom:4
 const CARD_FLAG_H := 28.0          ## height:24 + border:2
+const CARD_HEAD_TILE := 28.0       ## VLT-04's round portrait tile in the card header
 const PREVIEW_BOX_H := 230.0       ## height:224 + border:3
 const PREVIEW_BOX_RADIUS := 14   ## VLT-05
 const REMOVE_BTN_H := 56.0         ## height:50 + border:3
+const REMOVE_BTN_W := 130.0        ## width:124 + border:3 each side
+const ACTION_ROW_GAP := 10         ## the mockup's `gap:10` between USE IN TEAM and REMOVE
 
 
 func _ready() -> void:
@@ -635,7 +639,35 @@ func _build_row(entry: Dictionary) -> PanelContainer:
 
 	var band_row := HBoxContainer.new()
 	band_row.alignment = BoxContainer.ALIGNMENT_CENTER
+	# `gap:10` between the portrait tile, the name and the flag chip.
+	band_row.add_theme_constant_override("separation", 10)
 	band.add_child(band_row)
+
+	# VLT-04 calls this tile REQUIRED ("it matches the die-card header pattern, CB-22") and it
+	# was missing from the header entirely — the band held only the name and the flag chip.
+	# 28 outer = a 22px image inside a 3px black ring, `object-position: top` so the crop keeps
+	# the face rather than centring on the body.
+	var head := PanelContainer.new()
+	head.name = "HeaderPortrait"
+	head.custom_minimum_size = Vector2(CARD_HEAD_TILE, CARD_HEAD_TILE)
+	head.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	head.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+	head.add_theme_stylebox_override("panel",
+		DangoTheme.solid_chip_style(DangoTheme.CREAM_RAISED, int(CARD_HEAD_TILE * 0.5), 3,
+			Vector2(0, 0)))
+	# NO clip_to_frame() here. The card itself is already a canvas group (G3) and Godot's canvas
+	# groups do not nest — a clipped child inside a clipped parent renders as nothing, which is
+	# the same bug that emptied the shop rows. The portraits are transparent PNGs, so the image
+	# has no square edge to clip off anyway; the black ring does the shaping.
+	var head_img := TextureRect.new()
+	head_img.texture = MockupAssets.tex("assets/portrait/%s.png" % cls)
+	head_img.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	head_img.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	head_img.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	head_img.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	head_img.custom_minimum_size = Vector2(CARD_HEAD_TILE - 6, CARD_HEAD_TILE - 6)
+	head.add_child(head_img)
+	band_row.add_child(head)
 
 	var nm := DangoTheme.display_label(str(entry.get("n", "Axie")), 20, DangoTheme.INK,
 		800, 0.02)
@@ -739,10 +771,33 @@ func _build_row(entry: Dictionary) -> PanelContainer:
 		stale.add_theme_color_override("font_color", DangoTheme.DANGER)
 		info.add_child(stale)
 
+	# VLT-05 action row: USE IN TEAM takes the leftover width, REMOVE is fixed at 124 + border.
+	var actions := HBoxContainer.new()
+	actions.name = "ActionRow"
+	actions.add_theme_constant_override("separation", ACTION_ROW_GAP)
+	info.add_child(actions)
+
+	var use_btn := Button.new()
+	use_btn.name = "UseInTeamButton"
+	use_btn.text = "USE IN TEAM"
+	use_btn.custom_minimum_size = Vector2(0, REMOVE_BTN_H)
+	use_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	DangoTheme.style_button(use_btn, true)
+	use_btn.add_theme_font_override("font", DangoTheme.FONT_DISPLAY)
+	use_btn.add_theme_font_size_override("font_size", 17)
+	DangoTheme.apply_tracking(use_btn, 0.1, 17)
+	# A stale record cannot be played at all (see the StaleBadge text above), so the button that
+	# would put it in a team is disabled rather than left live and refusing on the next screen.
+	use_btn.disabled = stale_card
+	use_btn.tooltip_text = ("Re-import this Axie before using it — its die was built under older"
+		+ " rules.") if stale_card else "Puts this Axie in your team and opens Team Select."
+	use_btn.pressed.connect(_on_use_in_team_pressed.bind(str(entry.get("axie_id", ""))))
+	actions.add_child(use_btn)
+
 	var remove := Button.new()
 	remove.name = "RemoveButton"
 	remove.text = "REMOVE"
-	remove.custom_minimum_size = Vector2(0, REMOVE_BTN_H)
+	remove.custom_minimum_size = Vector2(REMOVE_BTN_W, REMOVE_BTN_H)
 	remove.add_theme_font_override("font", DangoTheme.FONT_DISPLAY)
 	remove.add_theme_font_size_override("font_size", 16)
 	DangoTheme.apply_tracking(remove, 0.08, 16)
@@ -760,7 +815,7 @@ func _build_row(entry: Dictionary) -> PanelContainer:
 	for color_key in ["font_color", "font_hover_color", "font_pressed_color", "font_focus_color"]:
 		remove.add_theme_color_override(color_key, DangoTheme.INK_ON_DANGER)
 	remove.pressed.connect(_on_remove_pressed.bind(str(entry.get("axie_id", ""))))
-	info.add_child(remove)
+	actions.add_child(remove)
 	return card
 
 
@@ -829,6 +884,37 @@ func _build_die_strip(die: Array, cls: String = "") -> GridContainer:
 
 		grid.add_child(chip)
 	return grid
+
+
+## VLT-05. The JS rule is "push into the next free slot, refuse when the team is full"
+## (src/client.html:4560). Godot's roster is five fixed slots and never has a free one, so the
+## nearest honest reading is: take the first slot that is not already a Vault pick — press it on
+## three different Axies and they land in slots 1, 2, 3 instead of overwriting each other. When
+## all five are already Vault picks the last slot gives way, because refusing outright would
+## leave the button dead with nothing on screen explaining why.
+##
+## The roster comes through `MainMenu.pending_team`, which MainMenu seeds before opening this
+## screen. It is left SET, not cleared: TeamSelect reads and clears it on arrival.
+func _on_use_in_team_pressed(axie_id: String) -> void:
+	var key := MetaState.VAULT_KEY_PREFIX + axie_id
+	if not ContentDB.heroes.has(key):
+		MetaState.ensure_vault_heroes()
+	if not ContentDB.heroes.has(key):
+		push_warning("VaultView: no hero registered for %s; not handing it to Team Select" % key)
+		return
+
+	var team: Array[String] = MainMenu.pending_team.duplicate()
+	if team.size() != MainMenu.TEAM_SIZE:
+		team = MainMenu.DEFAULT_TEAM.duplicate()
+	if not team.has(key):
+		var slot := MainMenu.TEAM_SIZE - 1
+		for i in MainMenu.TEAM_SIZE:
+			if not MetaState.is_vault_key(team[i]):
+				slot = i
+				break
+		team[slot] = key
+	MainMenu.pending_team = team
+	get_tree().change_scene_to_file("res://scenes/main_menu/TeamSelect.tscn")
 
 
 func _on_remove_pressed(axie_id: String) -> void:

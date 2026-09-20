@@ -31,6 +31,7 @@ const EXPECTED_TESTS: Array[String] = [
 	"test_a_full_vault_refuses_the_next_import_and_says_why",
 	"test_removing_an_axie_also_unregisters_its_hero_key",
 	"test_a_vault_axie_is_playable_as_a_tier_one_hero",
+	"test_a_registered_vault_die_speaks_the_engine_s_face_schema",
 	"test_a_stale_record_is_flagged_and_never_becomes_playable",
 	"test_a_ranked_run_cannot_be_started_with_a_vault_pick",
 	"test_numbers_survive_the_json_round_trip",
@@ -75,6 +76,7 @@ func _ready() -> void:
 	test_a_full_vault_refuses_the_next_import_and_says_why()
 	test_removing_an_axie_also_unregisters_its_hero_key()
 	test_a_vault_axie_is_playable_as_a_tier_one_hero()
+	test_a_registered_vault_die_speaks_the_engine_s_face_schema()
 	test_a_stale_record_is_flagged_and_never_becomes_playable()
 	test_a_ranked_run_cannot_be_started_with_a_vault_pick()
 	test_numbers_survive_the_json_round_trip()
@@ -245,6 +247,44 @@ func test_a_vault_axie_is_playable_as_a_tier_one_hero() -> void:
 		+ "unresolved hero key looks like")
 	RunState.reset()
 	_done("test_a_vault_axie_is_playable_as_a_tier_one_hero")
+
+
+## THE DRIFT THE TEST ABOVE WARNED ABOUT, and did not catch. It counted the faces and never
+## looked inside one. src/data.js has one face shape (`{p,t,v,k,r}`); this port renamed those
+## fields for the hand-written hero table (`{part,type,value,keywords,rarity}`) and wrote the
+## whole engine against the long names, while `axie_to_die.gd` kept the short ones. For as long
+## as `_register_vault_hero()` stored the record untouched, every imported Axie rolled six
+## 0-value blank faces in real combat, because `Dictionary.get()` answers a missing key with the
+## default instead of failing. This checks the field names, not just the count.
+func test_a_registered_vault_die_speaks_the_engine_s_face_schema() -> void:
+	MetaState.vault.clear()
+	MetaState.vault_import(_payload("777"))
+	var def: Dictionary = ContentDB.heroes.get("vault_777", {})
+	var die: Array = def.get("die", [])
+	_assert(die.size() == 6, "the registered hero's die has %d faces" % die.size())
+
+	var reference: Dictionary = (ContentDB.heroes["plant1"]["die"] as Array)[0]
+	var live := 0
+	for raw in die:
+		var face: Dictionary = raw
+		for field in reference.keys():
+			_assert(face.has(field),
+				"a registered vault face has no '%s' — the engine reads that key and would " % field
+				+ "roll this face as a 0. Face: %s" % str(face))
+		_assert(not face.has("v") and not face.has("t") and not face.has("p"),
+			"a registered vault face still carries the stored short keys: %s" % str(face))
+		if int(face.get("value", 0)) > 0:
+			live += 1
+	_assert(live > 0,
+		"every face of the registered vault die is worth 0 — that is what the schema mismatch "
+		+ "looked like from inside combat")
+
+	# The STORED record must keep the short names: it is the save format, and rewriting it
+	# would invalidate every save already on disk.
+	var stored: Dictionary = (MetaState.vault[0]["die"] as Array)[0]
+	_assert(stored.has("v") and stored.has("t") and stored.has("p"),
+		"the stored vault record was rewritten into the long schema: %s" % str(stored))
+	_done("test_a_registered_vault_die_speaks_the_engine_s_face_schema")
 
 
 func test_a_stale_record_is_flagged_and_never_becomes_playable() -> void:

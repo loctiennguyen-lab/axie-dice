@@ -45,7 +45,11 @@ extends RefCounted
 ## version does not match the engine replaying it is not a suspicious log, it is an unreadable
 ## one, and must be reported as such rather than replayed and disbelieved (the JS server answers
 ## 409 for exactly this, submit-run.js:112).
-const RULES_VERSION := "godot-2026-09-19-a"
+## 2026-09-21: bumped for the vault-die schema fix (MetaState._hero_def_from_vault). An
+## imported Axie used to reach combat with six faces the engine could not read — it rolled
+## 0-value blanks — and now rolls the die its parts describe. Any log recorded before this
+## replays differently, which is exactly what this constant is for.
+const RULES_VERSION := "godot-2026-09-21-a"
 
 ## Mirrors `ALLOWED_FNS` in api/submit-run.js, in this port's own vocabulary. A verifier reads
 ## this list to know what it must implement; anything absent from it is refused at record time,

@@ -468,7 +468,43 @@ func _register_vault_hero(entry: Dictionary) -> void:
 		# manifest, so its die cannot be rebuilt, and registering it would let a team picker that
 		# only checks `ContentDB.heroes` hand the player a die built under last version's rules.
 		return
-	ContentDB.heroes[vault_key(entry)] = entry
+	ContentDB.heroes[vault_key(entry)] = _hero_def_from_vault(entry)
+
+
+## THE TWO DIE SCHEMAS, and the bug this exists to close (found 2026-09-21 by VLT-05's own
+## screenshot: a vault Axie picked into Team Select drew six blank faces valued 0, while the
+## Vault card two screens earlier drew the same die correctly).
+##
+## src/data.js has ONE face shape, `F(p,t,v,...k) -> {p,t,v,k,r}`, and everything in the JS build
+## reads it. This port renamed those fields for the hand-written hero table — `ContentDB._f()`
+## emits `{part, type, value, keywords, rarity}` — and the whole engine was written against the
+## long names (`combat_engine` line 779 reads `f.value`, line 387 reads `f.type`). But
+## `axie_to_die.gd` was ported from the JS verbatim and still emits the SHORT names, and
+## `_register_vault_hero()` used to hand that record to `ContentDB.heroes` untouched. Every key
+## the engine asked for was missing, and `Dictionary.get()` answers a missing key with the
+## default — so an imported Axie rolled six 0-damage blank faces, silently, in real combat.
+## `t_vault` checked the die had six entries and never looked inside one, which is exactly the
+## drift its own docstring warned about.
+##
+## The STORED record keeps the short names: it is the save format and the shape a server-side
+## replay would re-derive, and rewriting it would break every save already on disk. The
+## conversion happens here, at the one point where a vault record becomes a playable hero.
+static func _hero_def_from_vault(entry: Dictionary) -> Dictionary:
+	var hero := entry.duplicate(true)
+	var faces: Array = []
+	for f in (entry.get("die", []) as Array):
+		if not (f is Dictionary):
+			continue
+		var src: Dictionary = f
+		faces.append({
+			"part": String(src.get("p", "blank")),
+			"type": String(src.get("t", "blank")),
+			"value": int(src.get("v", 0)),
+			"keywords": (src.get("k", []) as Array).duplicate(),
+			"rarity": int(src.get("r", 0)),
+		})
+	hero["die"] = faces
+	return hero
 
 
 ## Vault Axies are not eligible for a Ranked Run (rule spec §6; the live server refuses them with

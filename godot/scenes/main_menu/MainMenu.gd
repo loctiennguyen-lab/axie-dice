@@ -908,7 +908,13 @@ func _build_nav_tiles() -> void:
 	_nav_tiles["vault"] = _add_nav_tile(grid, "vault", "THE VAULT",
 		"%d / %d" % [MetaState.vault.size(), MetaState.VAULT_MAX],
 		DangoTheme.STATUS_FREEZE, true, "",
-		func() -> void: get_tree().change_scene_to_file("res://scenes/vault/Vault.tscn"))
+		func() -> void:
+			# VLT-05: the Vault's USE IN TEAM puts one imported Axie into the CURRENT roster,
+			# so the roster has to survive the trip. Same hand-off channel the EDIT TEAM
+			# button already uses — and if the player just comes back with BACK, this
+			# `_ready()` reads it again and the team is unchanged.
+			pending_team = _team_selection.duplicate()
+			get_tree().change_scene_to_file("res://scenes/vault/Vault.tscn"))
 	_nav_tiles["guides"] = _add_nav_tile(grid, "guides", "SAMPLE TEAMS",
 		"%d COMPS" % ContentDB.GUIDES.size(),
 		DangoTheme.CREAM_RAISED, true, "",
