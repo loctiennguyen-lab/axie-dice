@@ -203,6 +203,26 @@ const _PART_VERB := {
 static var disable_juice_for_tests: bool = false
 
 
+## WHEN THE BLOW LANDS (2026-09-21). The engine resolves a whole face in one call, so every
+## consequence — the damage number, the flinch, the hit-stop, the HP bar draining — used to
+## appear on the same frame the attacker STARTED moving. The attack and its result were
+## simultaneous, which is why a hit read as a number appearing rather than as something
+## happening to somebody.
+##
+## This is the offset the visuals wait, and it is not a taste number: it equals
+## CombatStage3D's `_LUNGE_OUT + _LUNGE_HOLD`, the moment an attacker is furthest into its
+## lunge. Change one and change the other.
+##
+## NOTHING ABOUT THE RULES MOVES. CombatEngine still resolves everything synchronously, the
+## action log still records it in the same order, and a replay still verifies identically —
+## only the drawing is late. Zero in test mode, so no test has to learn to wait.
+const _IMPACT_DELAY := 0.18
+
+
+static func impact_delay() -> float:
+	return 0.0 if disable_juice_for_tests else _IMPACT_DELAY
+
+
 ## True when the impact effects must not play: a test asked for silence, or the PLAYER did
 ## (Settings -> Reduce flashing). Kept as one function so the two reasons can never drift into
 ## two different sets of suppressed effects — a setting that turns off some of the flashing is
@@ -2603,11 +2623,14 @@ func _on_hp_changed(_uid: int, _hp: int, _max_hp: int, _shield: int) -> void:
 	_rebuild_all()
 
 func _on_hit_landed(src_uid: int, uid: int, value: int, crit: bool) -> void:
+	# The log line is NOT deferred. It is a transcript, its order is the engine's, and
+	# interleaving it with animation timing is how a log stops matching the run it describes.
 	_append_log("[hit] %s -> %s : %d%s" % [_unit_name(src_uid), _unit_name(uid), value, " CRIT" if crit else ""])
-	if is_instance_valid(_stage3d):
-		_stage3d.play_hit_reaction(uid)   # `uid` is whoever just TOOK this hit — see
-			# CombatStage3D.play_hit_reaction()'s own comment for the damage_pipeline.gd cross-check
-	_play_hit_juice()
+	_after_impact(func():
+		if is_instance_valid(_stage3d):
+			_stage3d.play_hit_reaction(uid)   # `uid` is whoever just TOOK this hit — see
+				# CombatStage3D.play_hit_reaction()'s own comment for the damage_pipeline.gd cross-check
+		_play_hit_juice())
 
 func _on_unit_died(uid: int) -> void:
 	_append_log("[death] %s" % _unit_name(uid))
@@ -2628,8 +2651,9 @@ func _on_face_used(uid: int, _side: String, target_uid: int, aoe: bool, face_par
 	var show_aoe_tag := aoe and face_type != "mana" and face_type != "summon"
 	_append_log("[use] %s -> %s (%s/%s)%s" % [_unit_name(uid), tgt, face_part, face_type, " [AOE]" if show_aoe_tag else ""])
 	if is_instance_valid(_stage3d):
-		_stage3d.play_action(uid, face_type)   # "ra chiêu" — clip/pace now varies by face_type,
-			# see CombatStage3D.play_action()'s _ACTION_ANIM_BY_TYPE comment
+		_stage3d.play_action(uid, face_type, target_uid)   # "ra chiêu" — clip/pace varies by
+			# face_type (_ACTION_ANIM_BY_TYPE), and `target_uid` is what lets the lunge aim at
+			# the unit being hit instead of just stepping forward (_play_action_motion())
 
 func _on_resonance_triggered(uid: int) -> void:
 	_append_log("[resonance] %s" % _unit_name(uid))
@@ -2641,9 +2665,10 @@ func _on_relic_pulsed(relic_id: String, uid: int) -> void:
 	_append_log("[relic] %s on %s" % [relic_id, _unit_name(uid)])
 
 func _on_float_text(uid: int, text: String, css_class: String, big: int) -> void:
-	var p: UnitPortrait = _portraits.get(uid)
-	if p != null:
-		p.spawn_float_text(text, css_class, big)
+	_after_impact(func():
+		var p: UnitPortrait = _portraits.get(uid)
+		if p != null and is_instance_valid(p):
+			p.spawn_float_text(text, css_class, big))
 
 func _on_boss_phase_changed(uid: int) -> void:
 	_append_log("[phase] boss %s changed phase" % _unit_name(uid))
@@ -3324,6 +3349,20 @@ func _play_die_roll_bounce(btn: Button) -> void:
 
 
 ## Hit-stop + screen shake (unchanged from the pre-review pass).
+## Runs `fn` at the moment the blow lands — see `_IMPACT_DELAY`. Immediate when there is no
+## delay to wait (tests), so the call graph is identical in that mode rather than merely fast.
+##
+## `fn` may run after this scene has been torn down (a killing blow calls _finish(), which
+## changes scene), so every caller's body re-checks what it touches. The timer itself is
+## created on the tree, not on this node, and is dropped with the scene.
+func _after_impact(fn: Callable) -> void:
+	var d := impact_delay()
+	if d <= 0.0 or not is_inside_tree():
+		fn.call()
+		return
+	get_tree().create_timer(d).timeout.connect(fn, CONNECT_ONE_SHOT)
+
+
 func _play_hit_juice() -> void:
 	if flashes_suppressed():
 		return

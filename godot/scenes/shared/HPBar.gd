@@ -67,9 +67,19 @@ func set_stats(hp: int, max_hp: int, _unused_shield: int = 0) -> void:
 	# and would leave the bar stuck at its old ratio (this is what tests and off-screen rebuilds
 	# hit).
 	if is_inside_tree() and not is_equal_approx(display_ratio, target):
+		# A DRAIN waits for the blow to land; a GAIN does not. CombatEngine resolves a face in
+		# one call, so without this the bar started emptying on the frame the attacker began
+		# moving — before anything had touched the target. CombatView.impact_delay() is the one
+		# definition of that moment (and is 0 in test mode, so this stays a plain tween there).
+		#
+		# Healing, shielding and the turn-start refill are not impacts and get no delay: making
+		# a heal hesitate would read as lag, not as timing.
+		var delay := CombatView.impact_delay() if target < display_ratio else 0.0
 		_fill_tween = create_tween()
-		_fill_tween.tween_property(self, "display_ratio", target, _ANIM_SECONDS) \
+		var step := _fill_tween.tween_property(self, "display_ratio", target, _ANIM_SECONDS) \
 			.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+		if delay > 0.0:
+			step.set_delay(delay)
 	else:
 		display_ratio = target
 	queue_redraw()

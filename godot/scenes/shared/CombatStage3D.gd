@@ -416,6 +416,47 @@ const _ACTION_ANIM_BY_TYPE := {
 }
 const _DEFAULT_ACTION_ANIM := {"clip": AnimNames.WalkAttack, "time_scale": 1.0}
 
+## ── "Ra chiêu" MOTION (2026-09-21) ────────────────────────────────────────────────────────
+## The clip table above only reaches units that HAVE a rig. Every monster in the game is a
+## billboarded Sprite3D (`_make_enemy_sprite()`) and most bosses are too, so for them
+## `play_action()` returned without doing anything at all: a slime announced an attack, the
+## number appeared, and nothing on the field moved. This is the motion that covers both — a
+## Tween on the unit's own `slot`, which works whether the thing standing in it is a skeletal
+## rig, a sprite or the capsule placeholder.
+##
+## It rides ON TOP of the clip rather than replacing it: a party Axie plays WalkAttack AND
+## lunges, which is what makes an attack read as aimed at somebody rather than performed on
+## the spot.
+##
+## WHY `slot` AND NOT `visual`. The idle "breathing" bob (_start_idle_bob()) already owns
+## `visual.position:y`, and two tweens on one property fight. `slot` is free: only
+## play_victory_march() (end of combat, no actions left) and _start_death_fade() (guarded by
+## `dying`) touch it.
+const _LUNGE_FRACTION := 0.35   ## how far toward the target, as a fraction of the real gap —
+	## a fraction rather than a fixed distance so the enemy row (spacing 5.1) and the party row
+	## (spacing 1.455) both read as "a step toward them" instead of one lunging past its target.
+const _LUNGE_MAX := 1.1         ## metres. The cap matters on cross-field attacks, where 35% of
+	## ~12m would throw the model into the middle of the board.
+const _LUNGE_OUT := 0.13
+const _LUNGE_HOLD := 0.05
+const _LUNGE_BACK := 0.20
+## Squash/stretch, in SLOT space. Deliberately x/y only, never z: every monster is a camera-
+## facing billboard, so a z scale is invisible on exactly the units this exists for.
+const _LUNGE_STRETCH := Vector3(0.94, 1.07, 1.0)
+const _LUNGE_SQUASH := Vector3(1.10, 0.90, 1.0)
+## The in-place alternative for faces that do not reach out and hit someone — shield, buff,
+## heal, mana, summon. Dip, rise past 1, settle, with the eye glow pulsing under it.
+const _CAST_DIP := 0.10
+const _CAST_RISE := 0.16
+const _CAST_DIP_SCALE := Vector3(1.07, 0.90, 1.0)
+const _CAST_RISE_SCALE := Vector3(0.95, 1.10, 1.0)
+const _CAST_GLOW_MULT := 2.6
+
+## Which face types LUNGE. The rest cast in place. Read off what the face actually does to
+## somebody else, not off its animation clip: dmg/poison/debuff all pick an enemy and do
+## something to it, so the motion should point at that enemy.
+const _LUNGE_FACE_TYPES := ["dmg", "poison", "debuff"]
+
 # --- Juice tuning (checklist step 7 — Tween-only, no gameplay logic) ---
 const _SHAKE_STEPS := 6
 const _DEATH_FADE_DURATION := 0.45   # scale-to-zero "disappear", see _start_death_fade() comment
@@ -620,6 +661,10 @@ func spawn_unit(uid: int, cls: String, is_enemy: bool, slot_index: int, slot_cou
 
 	_units[uid] = {"slot": slot, "character": character, "visual": visual,
 		"idle_tween": null, "dying": false, "eye_light": eye_light, "shadow": shadow,
+		# `rest_pos` is where the lunge returns to, and `is_enemy` is which way "forward" is
+		# when a face has no single target to aim at (AoE). Both are written again by
+		# reseat_side(), which is the only other thing that moves a slot between actions.
+		"is_enemy": is_enemy, "rest_pos": slot.position, "action_tween": null,
 	}
 	# A real AxieCharacter3D rig breathes via its own looping Idle clip. Everything else — the
 	# Chimera sprite enemies and the capsule placeholder — has no animation rig, so it gets the
@@ -807,6 +852,8 @@ func reseat_side(uids: Array, is_enemy: bool) -> void:
 		var slot: Node3D = entry["slot"]
 		if is_instance_valid(slot):
 			slot.position = _slot_position(is_enemy, i, uids.size())
+			entry["rest_pos"] = slot.position   # the lunge's home moved with it
+			entry["is_enemy"] = is_enemy
 
 
 func has_unit(uid: int) -> bool:
@@ -962,10 +1009,15 @@ func set_targetable(uid: int, v: bool) -> void:
 ## plays out; an on_complete callback is only wired when time_scale != 1.0, to restore normal
 ## speed before Idle resumes (see _on_action_time_scale_reset()). No-op for the capsule
 ## placeholder fallback (no rig to animate) and for a unit already mid-death-sequence.
-func play_action(uid: int, face_type: String = "") -> void:
+## `target_uid` is optional and defaults to -1 ("no single target") so the pre-existing two-arg
+## call in tests/qa_action_variety_capture.gd keeps working unchanged.
+func play_action(uid: int, face_type: String = "", target_uid: int = -1) -> void:
 	var entry: Dictionary = _units.get(uid, {})
 	if entry.is_empty() or bool(entry.get("dying", false)):
 		return
+	# Motion FIRST, and outside the rig guard below — this is the half that monsters and bosses
+	# get, and they are exactly the units that fail that guard.
+	_play_action_motion(uid, entry, face_type, target_uid)
 	var character: AxieCharacter3D = entry.get("character")
 	if character == null or not is_instance_valid(character) or character.playable == null:
 		return
@@ -981,6 +1033,118 @@ func play_action(uid: int, face_type: String = "") -> void:
 	else:
 		playable.time_scale = scale
 		playable.play(clip, "", false, Callable(self, "_on_action_time_scale_reset").bind(uid))
+
+
+## The lunge/cast Tween — see the _LUNGE_* constant block for the design and for why this
+## drives `slot` rather than `visual`.
+##
+## Every tweener is PARALLEL with an explicit delay rather than chained. Chaining reads more
+## naturally but makes the out/impact/recover phases depend on each other's exact durations;
+## with delays, each phase states its own place on one timeline, which is the thing that has to
+## line up with CombatView's impact delay (CombatView.impact_delay(), which is deliberately the
+## same length as _LUNGE_OUT + _LUNGE_HOLD — the moment the attacker is furthest forward is the
+## moment the number is supposed to appear on the target).
+func _play_action_motion(uid: int, entry: Dictionary, face_type: String,
+		target_uid: int) -> void:
+	if CombatView.disable_juice_for_tests:
+		return
+	var slot: Node3D = entry.get("slot")
+	if not is_instance_valid(slot):
+		return
+
+	# A second action before the first finished (echo/multi faces, or a fast player) must not
+	# leave the model halfway out: kill the old tween and put the slot back before starting.
+	var prev = entry.get("action_tween")
+	if prev is Tween and (prev as Tween).is_valid():
+		(prev as Tween).kill()
+	var rest: Vector3 = entry.get("rest_pos", slot.position)
+	slot.position = rest
+	slot.scale = Vector3.ONE
+
+	var tw := create_tween()
+	tw.set_parallel(true)
+	entry["action_tween"] = tw
+
+	if not _LUNGE_FACE_TYPES.has(face_type):
+		# Cast in place. No target to face, and a shield/heal that walked at somebody would be
+		# actively misleading about who it affects.
+		tw.tween_property(slot, "scale", _CAST_DIP_SCALE, _CAST_DIP) 			.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+		tw.tween_property(slot, "scale", _CAST_RISE_SCALE, _CAST_RISE).set_delay(_CAST_DIP) 			.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+		tw.tween_property(slot, "scale", Vector3.ONE, _CAST_RISE) 			.set_delay(_CAST_DIP + _CAST_RISE).set_trans(Tween.TRANS_SINE)
+		_pulse_eye_light(tw, entry)
+		return
+
+	var dir := _lunge_direction(entry, rest, target_uid)
+	var dist := _lunge_distance(rest, target_uid)
+	var out_pos := rest + dir * dist
+	tw.tween_property(slot, "position", out_pos, _LUNGE_OUT) 		.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+	tw.tween_property(slot, "scale", _LUNGE_STRETCH, _LUNGE_OUT) 		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+	tw.tween_property(slot, "scale", _LUNGE_SQUASH, _LUNGE_HOLD).set_delay(_LUNGE_OUT) 		.set_trans(Tween.TRANS_SINE)
+	tw.tween_property(slot, "position", rest, _LUNGE_BACK) 		.set_delay(_LUNGE_OUT + _LUNGE_HOLD) 		.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	tw.tween_property(slot, "scale", Vector3.ONE, _LUNGE_BACK) 		.set_delay(_LUNGE_OUT + _LUNGE_HOLD) 		.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+
+
+## Cancels a lunge/cast in flight and puts the slot back exactly on its mark. Safe to call on
+## a unit that never moved.
+func _stop_action_motion(entry: Dictionary) -> void:
+	var tw = entry.get("action_tween")
+	if tw is Tween and (tw as Tween).is_valid():
+		(tw as Tween).kill()
+	entry["action_tween"] = null
+	var slot: Node3D = entry.get("slot")
+	if is_instance_valid(slot):
+		slot.position = entry.get("rest_pos", slot.position)
+		slot.scale = Vector3.ONE
+
+
+## Unit vector from the attacker toward its target. Falls back to "straight at the other row"
+## when there is no single target — an AoE face (target_uid -1, or a target that has already
+## been despawned) still steps forward, it just does not pick a lane.
+func _lunge_direction(entry: Dictionary, rest: Vector3, target_uid: int) -> Vector3:
+	# Untyped on purpose: _rest_position_of() returns Vector3-or-null, which GDScript has no
+	# way to spell as a static type, and `:=` cannot infer from it.
+	var tgt_rest = _rest_position_of(target_uid)
+	if tgt_rest != null:
+		var delta: Vector3 = (tgt_rest as Vector3) - rest
+		delta.y = 0.0
+		if delta.length() > 0.001:
+			return delta.normalized()
+	return Vector3(0.0, 0.0, -1.0) if not bool(entry.get("is_enemy", false)) 		else Vector3(0.0, 0.0, 1.0)
+
+
+func _lunge_distance(rest: Vector3, target_uid: int) -> float:
+	var tgt_rest = _rest_position_of(target_uid)
+	if tgt_rest == null:
+		return _LUNGE_MAX * 0.5   # no target to close on; a half step reads as "winding up"
+	return minf(rest.distance_to(tgt_rest as Vector3) * _LUNGE_FRACTION, _LUNGE_MAX)
+
+
+## The target's resting slot position, or null when there is no usable target. Returns the
+## REST position, not the live one: a target mid-lunge of its own (thorns, a simultaneous
+## enemy turn) would otherwise drag this attacker's aim around with it.
+func _rest_position_of(uid: int):
+	if uid < 0:
+		return null
+	var entry: Dictionary = _units.get(uid, {})
+	if entry.is_empty():
+		return null
+	var slot: Node3D = entry.get("slot")
+	if not is_instance_valid(slot):
+		return null
+	return entry.get("rest_pos", slot.position)
+
+
+## The eye glow flaring under a cast. Added to the caller's own parallel Tween so it shares one
+## timeline with the scale, and restored to _EYE_LIGHT_ENERGY rather than to whatever it happens
+## to be at — the spawn fade-in (_make_eye_light()) is the only other writer and it always ends
+## there.
+func _pulse_eye_light(tw: Tween, entry: Dictionary) -> void:
+	var light = entry.get("eye_light")
+	if not (light is OmniLight3D) or not is_instance_valid(light as OmniLight3D):
+		return
+	var lamp := light as OmniLight3D
+	tw.tween_property(lamp, "light_energy", _EYE_LIGHT_ENERGY * _CAST_GLOW_MULT, _CAST_DIP) 		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+	tw.tween_property(lamp, "light_energy", _EYE_LIGHT_ENERGY, _CAST_RISE * 1.5) 		.set_delay(_CAST_DIP).set_trans(Tween.TRANS_SINE)
 
 
 ## Restores normal (1.0) playback speed once a slowed/sped-up one-shot action clip (see
@@ -1032,6 +1196,11 @@ func play_death(uid: int) -> void:
 	var idle_tween = entry.get("idle_tween")
 	if idle_tween is Tween and (idle_tween as Tween).is_valid():
 		(idle_tween as Tween).kill()   # stop the "breathing" bob — nothing to breathe once dead
+	# A unit can die mid-lunge (thorns, or a counter that resolves inside its own attack). The
+	# death fade tweens `slot.scale` to zero, and the action tween is tweening the same property
+	# back to ONE — whichever finishes last wins, which is how a corpse ends up full size and
+	# frozen. Kill it and put the slot back on its mark first.
+	_stop_action_motion(entry)
 	var character: AxieCharacter3D = entry.get("character")
 	var playable: AxiePlayable = null
 	if character != null and is_instance_valid(character):
@@ -1118,6 +1287,8 @@ func play_victory_march(uids: Array, distance: float, duration: float) -> void:
 		var idle_tween = entry.get("idle_tween")
 		if idle_tween is Tween and (idle_tween as Tween).is_valid():
 			(idle_tween as Tween).kill()   # marching, not breathing in place
+		_stop_action_motion(entry)   # the winning blow's lunge must not tween the slot back
+			# to its mark while the march is walking it off the field
 		var character: AxieCharacter3D = entry.get("character")
 		if character != null and is_instance_valid(character) and character.playable != null:
 			character.playable.set_default(AnimNames.Run)
@@ -1198,6 +1369,7 @@ func dispose_all() -> void:
 		var idle_tween = entry.get("idle_tween")
 		if idle_tween is Tween and (idle_tween as Tween).is_valid():
 			(idle_tween as Tween).kill()
+		_stop_action_motion(entry)
 		var character = entry.get("character")
 		if character != null:
 			(character as AxieCharacter3D).dispose()
