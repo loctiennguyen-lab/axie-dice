@@ -1,0 +1,795 @@
+{
+ "_source": "axie-origins-asset-kit PvE/Chimeras, sampled with spine-ts 3.8",
+ "clips": {
+  "alpha-wolf": {
+   "attack": {
+    "frames": 11,
+    "cols": 4,
+    "rows": 3,
+    "frame_w": 256,
+    "frame_h": 143,
+    "fps": 12,
+    "duration": 0.9,
+    "clip": "attack/melee/normal-attack"
+   },
+   "hit": {
+    "frames": 8,
+    "cols": 3,
+    "rows": 3,
+    "frame_w": 256,
+    "frame_h": 143,
+    "fps": 12,
+    "duration": 0.6667,
+    "clip": "defense/hit-by-normal"
+   },
+   "die": {
+    "frames": 16,
+    "cols": 4,
+    "rows": 4,
+    "frame_w": 256,
+    "frame_h": 143,
+    "fps": 12,
+    "duration": 1.3667,
+    "clip": "defense/hit-die"
+   },
+   "base": {
+    "frames": 1,
+    "cols": 1,
+    "rows": 1,
+    "frame_w": 256,
+    "frame_h": 143,
+    "fps": 0.0,
+    "duration": 0.0,
+    "clip": "action/idle/normal"
+   }
+  },
+  "aqua-alpha-wolf": {
+   "attack": {
+    "frames": 19,
+    "cols": 5,
+    "rows": 4,
+    "frame_w": 256,
+    "frame_h": 166,
+    "fps": 12,
+    "duration": 1.6,
+    "clip": "attack/melee/normal-attack"
+   },
+   "hit": {
+    "frames": 12,
+    "cols": 4,
+    "rows": 3,
+    "frame_w": 256,
+    "frame_h": 166,
+    "fps": 12,
+    "duration": 0.9667,
+    "clip": "defense/hit-by-normal"
+   },
+   "die": {
+    "frames": 35,
+    "cols": 6,
+    "rows": 6,
+    "frame_w": 256,
+    "frame_h": 166,
+    "fps": 12,
+    "duration": 2.9,
+    "clip": "action/die"
+   },
+   "base": {
+    "frames": 1,
+    "cols": 1,
+    "rows": 1,
+    "frame_w": 256,
+    "frame_h": 166,
+    "fps": 0.0,
+    "duration": 0.0,
+    "clip": "action/idle/normal"
+   }
+  },
+  "aqua-slime-atk": {
+   "attack": {
+    "frames": 20,
+    "cols": 5,
+    "rows": 4,
+    "frame_w": 256,
+    "frame_h": 185,
+    "fps": 12,
+    "duration": 1.6667,
+    "clip": "attack/ranged/cast"
+   },
+   "hit": {
+    "frames": 7,
+    "cols": 3,
+    "rows": 3,
+    "frame_w": 256,
+    "frame_h": 185,
+    "fps": 12,
+    "duration": 0.5667,
+    "clip": "defense/hit-by-normal"
+   },
+   "die": {
+    "frames": 18,
+    "cols": 5,
+    "rows": 4,
+    "frame_w": 256,
+    "frame_h": 185,
+    "fps": 12,
+    "duration": 1.5167,
+    "clip": "action/die"
+   },
+   "base": {
+    "frames": 1,
+    "cols": 1,
+    "rows": 1,
+    "frame_w": 256,
+    "frame_h": 185,
+    "fps": 0.0,
+    "duration": 0.0,
+    "clip": "action/idle/normal"
+   }
+  },
+  "aqua-slime-boss": {
+   "attack": {
+    "frames": 11,
+    "cols": 4,
+    "rows": 3,
+    "frame_w": 256,
+    "frame_h": 208,
+    "fps": 12,
+    "duration": 0.9167,
+    "clip": "attack/melee/normal-attack"
+   },
+   "hit": {
+    "frames": 8,
+    "cols": 3,
+    "rows": 3,
+    "frame_w": 256,
+    "frame_h": 208,
+    "fps": 12,
+    "duration": 0.6667,
+    "clip": "defense/hit-by-normal"
+   },
+   "base": {
+    "frames": 1,
+    "cols": 1,
+    "rows": 1,
+    "frame_w": 256,
+    "frame_h": 208,
+    "fps": 0.0,
+    "duration": 0.0,
+    "clip": "action/idle/normal"
+   }
+  },
+  "aqua-slime-def": {
+   "attack": {
+    "frames": 8,
+    "cols": 3,
+    "rows": 3,
+    "frame_w": 256,
+    "frame_h": 137,
+    "fps": 12,
+    "duration": 0.65,
+    "clip": "attack/melee/normal-attack"
+   },
+   "hit": {
+    "frames": 5,
+    "cols": 3,
+    "rows": 2,
+    "frame_w": 256,
+    "frame_h": 137,
+    "fps": 12,
+    "duration": 0.4,
+    "clip": "defense/hit-by-normal"
+   },
+   "die": {
+    "frames": 27,
+    "cols": 6,
+    "rows": 5,
+    "frame_w": 256,
+    "frame_h": 137,
+    "fps": 12,
+    "duration": 2.2833,
+    "clip": "action/die"
+   },
+   "base": {
+    "frames": 1,
+    "cols": 1,
+    "rows": 1,
+    "frame_w": 256,
+    "frame_h": 137,
+    "fps": 0.0,
+    "duration": 0.0,
+    "clip": "action/idle/normal"
+   }
+  },
+  "aqua-slime-sup": {
+   "attack": {
+    "frames": 18,
+    "cols": 5,
+    "rows": 4,
+    "frame_w": 256,
+    "frame_h": 150,
+    "fps": 12,
+    "duration": 1.5333,
+    "clip": "attack/melee/normal-attack"
+   },
+   "hit": {
+    "frames": 10,
+    "cols": 4,
+    "rows": 3,
+    "frame_w": 256,
+    "frame_h": 150,
+    "fps": 12,
+    "duration": 0.8333,
+    "clip": "defense/hit-by-normal"
+   },
+   "die": {
+    "frames": 18,
+    "cols": 5,
+    "rows": 4,
+    "frame_w": 256,
+    "frame_h": 150,
+    "fps": 12,
+    "duration": 1.5,
+    "clip": "action/die"
+   },
+   "base": {
+    "frames": 1,
+    "cols": 1,
+    "rows": 1,
+    "frame_w": 256,
+    "frame_h": 150,
+    "fps": 0.0,
+    "duration": 0.0,
+    "clip": "action/idle/normal"
+   }
+  },
+  "aqua-wolf": {
+   "attack": {
+    "frames": 22,
+    "cols": 5,
+    "rows": 5,
+    "frame_w": 256,
+    "frame_h": 142,
+    "fps": 12,
+    "duration": 1.8333,
+    "clip": "attack/melee/normal-attack"
+   },
+   "hit": {
+    "frames": 22,
+    "cols": 5,
+    "rows": 5,
+    "frame_w": 256,
+    "frame_h": 142,
+    "fps": 12,
+    "duration": 1.8333,
+    "clip": "defense/hit-by-normal"
+   },
+   "die": {
+    "frames": 28,
+    "cols": 6,
+    "rows": 5,
+    "frame_w": 256,
+    "frame_h": 142,
+    "fps": 12,
+    "duration": 2.3333,
+    "clip": "defense/hit-die"
+   },
+   "base": {
+    "frames": 1,
+    "cols": 1,
+    "rows": 1,
+    "frame_w": 256,
+    "frame_h": 142,
+    "fps": 0.0,
+    "duration": 0.0,
+    "clip": "action/idle/normal"
+   }
+  },
+  "daddy-bear": {
+   "attack": {
+    "frames": 18,
+    "cols": 5,
+    "rows": 4,
+    "frame_w": 256,
+    "frame_h": 171,
+    "fps": 12,
+    "duration": 1.5,
+    "clip": "attack/melee/normal-attack"
+   },
+   "hit": {
+    "frames": 8,
+    "cols": 3,
+    "rows": 3,
+    "frame_w": 256,
+    "frame_h": 171,
+    "fps": 12,
+    "duration": 0.6667,
+    "clip": "defense/hit-by-normal"
+   },
+   "die": {
+    "frames": 18,
+    "cols": 5,
+    "rows": 4,
+    "frame_w": 256,
+    "frame_h": 171,
+    "fps": 12,
+    "duration": 1.5,
+    "clip": "defense/hit-die"
+   },
+   "base": {
+    "frames": 1,
+    "cols": 1,
+    "rows": 1,
+    "frame_w": 256,
+    "frame_h": 171,
+    "fps": 0.0,
+    "duration": 0.0,
+    "clip": "action/idle/normal"
+   }
+  },
+  "dryad-fighter": {
+   "attack": {
+    "frames": 19,
+    "cols": 5,
+    "rows": 4,
+    "frame_w": 256,
+    "frame_h": 193,
+    "fps": 12,
+    "duration": 1.6,
+    "clip": "attack/melee/normal-attack"
+   },
+   "hit": {
+    "frames": 21,
+    "cols": 5,
+    "rows": 5,
+    "frame_w": 256,
+    "frame_h": 193,
+    "fps": 12,
+    "duration": 1.7333,
+    "clip": "defense/hit-by-normal"
+   },
+   "die": {
+    "frames": 40,
+    "cols": 7,
+    "rows": 6,
+    "frame_w": 256,
+    "frame_h": 193,
+    "fps": 12,
+    "duration": 3.3333,
+    "clip": "defense/hit-die"
+   },
+   "base": {
+    "frames": 1,
+    "cols": 1,
+    "rows": 1,
+    "frame_w": 256,
+    "frame_h": 193,
+    "fps": 0.0,
+    "duration": 0.0,
+    "clip": "action/idle/normal"
+   }
+  },
+  "dryad-mage": {
+   "attack": {
+    "frames": 40,
+    "cols": 7,
+    "rows": 6,
+    "frame_w": 256,
+    "frame_h": 253,
+    "fps": 12,
+    "duration": 3.3333,
+    "clip": "attack/ranged/cast-high"
+   },
+   "hit": {
+    "frames": 24,
+    "cols": 5,
+    "rows": 5,
+    "frame_w": 256,
+    "frame_h": 253,
+    "fps": 12,
+    "duration": 2,
+    "clip": "defense/hit-by-normal"
+   },
+   "die": {
+    "frames": 28,
+    "cols": 6,
+    "rows": 5,
+    "frame_w": 256,
+    "frame_h": 253,
+    "fps": 12,
+    "duration": 2.3333,
+    "clip": "defense/hit-die"
+   },
+   "base": {
+    "frames": 1,
+    "cols": 1,
+    "rows": 1,
+    "frame_w": 256,
+    "frame_h": 253,
+    "fps": 0.0,
+    "duration": 0.0,
+    "clip": "action/idle/normal"
+   }
+  },
+  "dryad-ranger": {
+   "attack": {
+    "frames": 28,
+    "cols": 6,
+    "rows": 5,
+    "frame_w": 256,
+    "frame_h": 244,
+    "fps": 12,
+    "duration": 2.3333,
+    "clip": "attack/ranged/cast"
+   },
+   "hit": {
+    "frames": 8,
+    "cols": 3,
+    "rows": 3,
+    "frame_w": 256,
+    "frame_h": 244,
+    "fps": 12,
+    "duration": 0.6667,
+    "clip": "defense/hit-by-normal"
+   },
+   "die": {
+    "frames": 26,
+    "cols": 6,
+    "rows": 5,
+    "frame_w": 256,
+    "frame_h": 244,
+    "fps": 12,
+    "duration": 2.2,
+    "clip": "defense/hit-die"
+   },
+   "base": {
+    "frames": 1,
+    "cols": 1,
+    "rows": 1,
+    "frame_w": 256,
+    "frame_h": 244,
+    "fps": 0.0,
+    "duration": 0.0,
+    "clip": "action/idle/normal"
+   }
+  },
+  "flowering-treant": {
+   "attack": {
+    "frames": 7,
+    "cols": 3,
+    "rows": 3,
+    "frame_w": 256,
+    "frame_h": 208,
+    "fps": 12,
+    "duration": 0.5833,
+    "clip": "attack/melee/normal-attack"
+   },
+   "hit": {
+    "frames": 5,
+    "cols": 3,
+    "rows": 2,
+    "frame_w": 256,
+    "frame_h": 208,
+    "fps": 12,
+    "duration": 0.4,
+    "clip": "defense/hit-by-normal"
+   },
+   "base": {
+    "frames": 1,
+    "cols": 1,
+    "rows": 1,
+    "frame_w": 256,
+    "frame_h": 208,
+    "fps": 0.0,
+    "duration": 0.0,
+    "clip": "action/idle/normal"
+   }
+  },
+  "forest-slime-fighter": {
+   "attack": {
+    "frames": 14,
+    "cols": 4,
+    "rows": 4,
+    "frame_w": 221,
+    "frame_h": 256,
+    "fps": 12,
+    "duration": 1.1667,
+    "clip": "attack/melee/normal-attack"
+   },
+   "hit": {
+    "frames": 8,
+    "cols": 3,
+    "rows": 3,
+    "frame_w": 221,
+    "frame_h": 256,
+    "fps": 12,
+    "duration": 0.6667,
+    "clip": "defense/hit-by-normal"
+   },
+   "base": {
+    "frames": 1,
+    "cols": 1,
+    "rows": 1,
+    "frame_w": 221,
+    "frame_h": 256,
+    "fps": 0.0,
+    "duration": 0.0,
+    "clip": "action/idle/normal"
+   }
+  },
+  "forest-slime-flower": {
+   "attack": {
+    "frames": 8,
+    "cols": 3,
+    "rows": 3,
+    "frame_w": 256,
+    "frame_h": 161,
+    "fps": 12,
+    "duration": 0.6667,
+    "clip": "attack/melee/normal-attack"
+   },
+   "hit": {
+    "frames": 8,
+    "cols": 3,
+    "rows": 3,
+    "frame_w": 256,
+    "frame_h": 161,
+    "fps": 12,
+    "duration": 0.6667,
+    "clip": "defense/hit-by-normal"
+   },
+   "die": {
+    "frames": 12,
+    "cols": 4,
+    "rows": 3,
+    "frame_w": 256,
+    "frame_h": 161,
+    "fps": 12,
+    "duration": 1,
+    "clip": "action/die"
+   },
+   "base": {
+    "frames": 1,
+    "cols": 1,
+    "rows": 1,
+    "frame_w": 256,
+    "frame_h": 161,
+    "fps": 0.0,
+    "duration": 0.0,
+    "clip": "action/idle/normal"
+   }
+  },
+  "gray-wolf": {
+   "attack": {
+    "frames": 10,
+    "cols": 4,
+    "rows": 3,
+    "frame_w": 256,
+    "frame_h": 238,
+    "fps": 12,
+    "duration": 0.8667,
+    "clip": "attack/melee/normal-attack"
+   },
+   "hit": {
+    "frames": 6,
+    "cols": 3,
+    "rows": 2,
+    "frame_w": 256,
+    "frame_h": 238,
+    "fps": 12,
+    "duration": 0.5,
+    "clip": "defense/hit-by-normal"
+   },
+   "base": {
+    "frames": 1,
+    "cols": 1,
+    "rows": 1,
+    "frame_w": 256,
+    "frame_h": 238,
+    "fps": 0.0,
+    "duration": 0.0,
+    "clip": "action/idle/normal"
+   }
+  },
+  "mommy-bear": {
+   "attack": {
+    "frames": 18,
+    "cols": 5,
+    "rows": 4,
+    "frame_w": 256,
+    "frame_h": 157,
+    "fps": 12,
+    "duration": 1.5,
+    "clip": "attack/melee/normal-attack"
+   },
+   "hit": {
+    "frames": 16,
+    "cols": 4,
+    "rows": 4,
+    "frame_w": 256,
+    "frame_h": 157,
+    "fps": 12,
+    "duration": 1.3333,
+    "clip": "defense/hit-by-normal"
+   },
+   "die": {
+    "frames": 36,
+    "cols": 6,
+    "rows": 6,
+    "frame_w": 256,
+    "frame_h": 157,
+    "fps": 12,
+    "duration": 3,
+    "clip": "defense/hit-die"
+   },
+   "base": {
+    "frames": 1,
+    "cols": 1,
+    "rows": 1,
+    "frame_w": 256,
+    "frame_h": 157,
+    "fps": 0.0,
+    "duration": 0.0,
+    "clip": "action/idle/normal"
+   }
+  },
+  "slime": {
+   "attack": {
+    "frames": 8,
+    "cols": 3,
+    "rows": 3,
+    "frame_w": 256,
+    "frame_h": 131,
+    "fps": 12,
+    "duration": 0.6667,
+    "clip": "attack/melee/normal-attack"
+   },
+   "hit": {
+    "frames": 8,
+    "cols": 3,
+    "rows": 3,
+    "frame_w": 256,
+    "frame_h": 131,
+    "fps": 12,
+    "duration": 0.6667,
+    "clip": "defense/hit-by-normal"
+   },
+   "die": {
+    "frames": 12,
+    "cols": 4,
+    "rows": 3,
+    "frame_w": 256,
+    "frame_h": 131,
+    "fps": 12,
+    "duration": 1,
+    "clip": "action/die"
+   },
+   "base": {
+    "frames": 1,
+    "cols": 1,
+    "rows": 1,
+    "frame_w": 256,
+    "frame_h": 131,
+    "fps": 0.0,
+    "duration": 0.0,
+    "clip": "action/idle/normal"
+   }
+  },
+  "treant": {
+   "attack": {
+    "frames": 7,
+    "cols": 3,
+    "rows": 3,
+    "frame_w": 256,
+    "frame_h": 173,
+    "fps": 12,
+    "duration": 0.5833,
+    "clip": "attack/melee/normal-attack"
+   },
+   "hit": {
+    "frames": 5,
+    "cols": 3,
+    "rows": 2,
+    "frame_w": 256,
+    "frame_h": 173,
+    "fps": 12,
+    "duration": 0.4,
+    "clip": "defense/hit-by-normal"
+   },
+   "base": {
+    "frames": 1,
+    "cols": 1,
+    "rows": 1,
+    "frame_w": 256,
+    "frame_h": 173,
+    "fps": 0.0,
+    "duration": 0.0,
+    "clip": "action/idle/normal"
+   }
+  },
+  "treant-fighter": {
+   "attack": {
+    "frames": 8,
+    "cols": 3,
+    "rows": 3,
+    "frame_w": 256,
+    "frame_h": 202,
+    "fps": 12,
+    "duration": 0.65,
+    "clip": "attack/melee/normal-attack"
+   },
+   "hit": {
+    "frames": 4,
+    "cols": 2,
+    "rows": 2,
+    "frame_w": 256,
+    "frame_h": 202,
+    "fps": 12,
+    "duration": 0.35,
+    "clip": "defense/hit-by-normal"
+   },
+   "die": {
+    "frames": 11,
+    "cols": 4,
+    "rows": 3,
+    "frame_w": 256,
+    "frame_h": 202,
+    "fps": 12,
+    "duration": 0.8833,
+    "clip": "defense/hit-die"
+   },
+   "base": {
+    "frames": 1,
+    "cols": 1,
+    "rows": 1,
+    "frame_w": 256,
+    "frame_h": 202,
+    "fps": 0.0,
+    "duration": 0.0,
+    "clip": "action/idle/normal"
+   }
+  },
+  "werewolf": {
+   "attack": {
+    "frames": 22,
+    "cols": 5,
+    "rows": 5,
+    "frame_w": 256,
+    "frame_h": 197,
+    "fps": 12,
+    "duration": 1.8333,
+    "clip": "attack/melee/normal-attack"
+   },
+   "hit": {
+    "frames": 22,
+    "cols": 5,
+    "rows": 5,
+    "frame_w": 256,
+    "frame_h": 197,
+    "fps": 12,
+    "duration": 1.8333,
+    "clip": "defense/hit-by-normal"
+   },
+   "die": {
+    "frames": 46,
+    "cols": 7,
+    "rows": 7,
+    "frame_w": 256,
+    "frame_h": 197,
+    "fps": 12,
+    "duration": 3.8,
+    "clip": "defense/hit-die"
+   },
+   "base": {
+    "frames": 1,
+    "cols": 1,
+    "rows": 1,
+    "frame_w": 256,
+    "frame_h": 197,
+    "fps": 0.0,
+    "duration": 0.0,
+    "clip": "action/idle/normal"
+   }
+  }
+ }
+}

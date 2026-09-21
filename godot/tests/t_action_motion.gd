@@ -51,8 +51,13 @@ func _ready() -> void:
 	_test_the_impact_delay_matches_the_lunge_apex()
 	await _test_a_rigless_monster_lunges_at_its_target(tree, enemy.uid, ally.uid)
 	await _test_a_support_face_stays_on_its_mark(tree, ally.uid)
-	await _test_dying_mid_lunge_puts_the_slot_back(tree, enemy.uid, ally.uid)
 	await _test_a_ranged_face_plants_instead_of_lunging(tree, ally.uid, enemy.uid)
+	await _test_a_rigless_monster_plays_its_attack_SHEET(tree, enemy.uid, ally.uid)
+	# LAST, and it must stay last: it kills `enemy`, and play_action()/play_sheet() both
+	# early-return on a unit whose `dying` flag is set. Running it earlier made the sheet
+	# case above fail with "the attack sheet never started" — the sheet was fine, the
+	# monster was dead.
+	await _test_dying_mid_lunge_puts_the_slot_back(tree, enemy.uid, ally.uid)
 
 	CombatView.disable_juice_for_tests = false
 	if _fails.is_empty():
@@ -185,6 +190,60 @@ func _test_a_ranged_face_plants_instead_of_lunging(tree: SceneTree, uid: int,
 		"the ranged face produced no motion at all — a cast still has to dip and rise")
 	_check(slot.position.distance_to(rest) < 0.01,
 		"the unit was left off its mark at %s after the ranged face" % slot.position)
+
+
+## The lunge moves a monster. This asserts the OTHER half: that it also animates. Before the
+## frame sheets, a monster's whole "ra chiêu" was a slide plus a squash of one frozen
+## picture, and nothing in the suite could tell that apart from a real attack.
+##
+## Checked on the Sprite3D itself rather than on a signal: region_enabled flipping on, the
+## texture no longer being the resting one, and the region actually walking to a later cell
+## are the three things that are false if the sheet silently did not load.
+func _test_a_rigless_monster_plays_its_attack_SHEET(tree: SceneTree, uid: int,
+		target_uid: int) -> void:
+	var entry: Dictionary = _stage._units.get(uid, {})
+	var sheet_name := String(entry.get("sheet_name", ""))
+	_check(sheet_name != "",
+		"uid=%d has no sheet_name — this test needs a monster built from the Chimera art, "
+		% uid + "pick a different encounter seed")
+	if sheet_name == "":
+		return
+	if not MonsterAnim.has(sheet_name, "attack"):
+		_check(false, "'%s' has no attack sheet; 20/20 were exported, so either the "
+			% sheet_name + "catalog or assets/monsters/anim/ did not ship")
+		return
+
+	var sprite: Sprite3D = entry.get("sheet_sprite")
+	_check(is_instance_valid(sprite), "the monster's Sprite3D was not recorded on its entry")
+	if not is_instance_valid(sprite):
+		return
+	var base_tex: Texture2D = entry.get("sheet_base_tex")
+	var base_px: float = float(entry.get("sheet_base_pixel_size", 0.0))
+
+	_stage.play_action(uid, "dmg", target_uid)
+	await tree.process_frame
+	_check(sprite.region_enabled,
+		"play_action() left region_enabled false — the attack sheet never started")
+	_check(sprite.texture != base_tex,
+		"the sprite is still showing its resting texture during an attack")
+	var first := sprite.region_rect
+
+	# Far enough in to be past the first cell, but before the clip can end.
+	var dur := MonsterAnim.duration(sheet_name, "attack")
+	await tree.create_timer(minf(dur * 0.5, 0.6)).timeout
+	_check(sprite.region_rect != first,
+		"the sheet never advanced: region_rect stayed at %s for %.2fs of a %.2fs clip"
+		% [first, minf(dur * 0.5, 0.6), dur])
+
+	# And it comes home. A sprite left on a sheet shows one frozen attack frame forever.
+	await tree.create_timer(dur + 0.3).timeout
+	_check(not sprite.region_enabled,
+		"the sprite was left in region mode after the attack finished")
+	_check(sprite.texture == base_tex,
+		"the sprite was left showing the attack sheet instead of its resting texture")
+	_check(is_equal_approx(sprite.pixel_size, base_px),
+		"pixel_size was left at %f instead of its resting %f — the monster would stay the "
+		% [sprite.pixel_size, base_px] + "wrong size")
 
 
 func _synthetic_roster() -> Array:

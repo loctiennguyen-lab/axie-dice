@@ -589,6 +589,8 @@ func _make_ground_shadow(width: float) -> MeshInstance3D:
 ## t_stage3d_pick.gd, which construct units with no boss concept at all) keeps working unchanged.
 func spawn_unit(uid: int, cls: String, is_enemy: bool, slot_index: int, slot_count: int,
 		is_boss: bool = false, unit_key: String = "") -> void:
+	var sheet_sprite_name := ""       # see the MonsterAnim block further down
+	var sheet_target: Sprite3D = null
 	var slot := Node3D.new()
 	slot.name = "Slot_%d" % uid
 	slot.position = _slot_position(is_enemy, slot_index, slot_count)
@@ -620,6 +622,11 @@ func spawn_unit(uid: int, cls: String, is_enemy: bool, slot_index: int, slot_cou
 		var sprite := _make_enemy_sprite(tex, target_height)
 		slot.add_child(sprite)
 		visual = sprite
+		# The kit's own name for this creature's art. It is the key into MonsterAnim, and it
+		# is recorded here because spawn_unit() is the only place that knows it — play_action()
+		# and friends see a uid, not a sprite.
+		sheet_sprite_name = MonsterArt.sprite_name_for(unit_key, is_boss)
+		sheet_target = sprite
 		# Exact width already on hand for free: pixel_size * source texture width, same math
 		# _make_enemy_sprite() used to derive pixel_size from target_height in the first place.
 		shadow_width = float(tex.get_width()) * sprite.pixel_size
@@ -671,6 +678,11 @@ func spawn_unit(uid: int, cls: String, is_enemy: bool, slot_index: int, slot_cou
 		# when a face has no single target to aim at (AoE). Both are written again by
 		# reseat_side(), which is the only other thing that moves a slot between actions.
 		"is_enemy": is_enemy, "rest_pos": slot.position, "action_tween": null,
+		# Frame-sheet animation for rigless monsters. `sheet_name` is "" for anything with a
+		# real rig (every party Axie), which is what every caller below tests.
+		"sheet_name": sheet_sprite_name, "sheet_sprite": sheet_target,
+		"sheet_tween": null, "sheet_base_tex": (sheet_target.texture if sheet_target != null else null),
+		"sheet_base_pixel_size": (sheet_target.pixel_size if sheet_target != null else 0.0),
 	}
 	# A real AxieCharacter3D rig breathes via its own looping Idle clip. Everything else — the
 	# Chimera sprite enemies and the capsule placeholder — has no animation rig, so it gets the
@@ -1027,6 +1039,9 @@ func play_action(uid: int, face_type: String = "", target_uid: int = -1,
 	# CombatView picked for this face (it owns the class/part lookup); all this file does with
 	# it is ask whether the clip is a RANGED one, because that decides lunge vs cast-in-place.
 	_play_action_motion(uid, entry, face_type, target_uid, vfx_key)
+	# The other half a rigless monster gets: the kit's own attack clip, played as a frame
+	# sheet alongside the lunge. No-op for anything with a real rig.
+	_play_sheet(entry, "attack")
 	var character: AxieCharacter3D = entry.get("character")
 	if character == null or not is_instance_valid(character) or character.playable == null:
 		return
@@ -1156,6 +1171,128 @@ func _rest_position_of(uid: int):
 	return entry.get("rest_pos", slot.position)
 
 
+# ---------------------------------------------------------------------------
+# Frame-sheet animation for rigless monsters
+# ---------------------------------------------------------------------------
+## Every party Axie animates from a real skeletal rig (AxiePlayable). Every monster is a
+## billboarded Sprite3D, so before this it could only be SLID and SQUASHED — the lunge in
+## _play_action_motion() was the whole of its "ra chiêu". These three entry points give it
+## the kit's own clips instead, baked to grid sheets offline (see MonsterAnim).
+##
+## Nothing here replaces the lunge; it rides with it. A monster now steps forward AND swings.
+##
+## The resting sprite and every sheet share one cell size and one ground line by
+## construction (MonsterAnim's header explains why), so swapping `texture` is safe: only the
+## picture changes, never the creature's size or footing.
+
+
+## Plays `state` once on a rigless monster. No-op — cheaply — for a unit with a rig, a unit
+## with no sheet for this state, or when juice is off for tests. `on_done` fires whether the
+## sheet played or not, so a caller can sequence on it either way.
+##
+## `restore` returns the sprite to its resting picture when the clip ends. Death passes
+## false: a corpse must hold the clip's last frame, and restoring first would stand it back
+## up for a frame before the fade.
+func _play_sheet(entry: Dictionary, state: String, on_done := Callable(),
+		restore := true) -> bool:
+	if CombatView.disable_juice_for_tests:
+		if on_done.is_valid():
+			on_done.call()
+		return false
+	var sprite: Sprite3D = entry.get("sheet_sprite")
+	var sheet_name := String(entry.get("sheet_name", ""))
+	if sheet_name == "" or not is_instance_valid(sprite):
+		if on_done.is_valid():
+			on_done.call()
+		return false
+	var meta := MonsterAnim.sheet(sheet_name, state)
+	if meta.is_empty():
+		if on_done.is_valid():
+			on_done.call()
+		return false
+	var path := MonsterAnim.sheet_path(sheet_name, state)
+	if not ResourceLoader.exists(path):
+		if on_done.is_valid():
+			on_done.call()
+		return false
+	var tex: Texture2D = load(path)
+	if tex == null:
+		if on_done.is_valid():
+			on_done.call()
+		return false
+
+	_stop_sheet(entry)
+	var cols := maxi(1, int(meta.get("cols", 1)))
+	var fw := int(meta.get("frame_w", 1))
+	var fh := int(meta.get("frame_h", 1))
+	var count := maxi(1, int(meta.get("frames", 1)))
+	var fps := maxf(1.0, float(meta.get("fps", 12.0)))
+
+	sprite.texture = tex
+	sprite.region_enabled = true
+	# pixel_size was derived from the RESTING texture's height. A sheet is many cells tall, so
+	# it has to be re-derived from the CELL height or the monster balloons to sheet size.
+	sprite.pixel_size = _sheet_pixel_size(entry, fh)
+	_set_sheet_frame(sprite, 0, cols, fw, fh)
+
+	var tw := create_tween()
+	entry["sheet_tween"] = tw
+	tw.tween_method(
+		func(f: float) -> void:
+			if is_instance_valid(sprite):
+				_set_sheet_frame(sprite, clampi(int(f), 0, count - 1), cols, fw, fh),
+		0.0, float(count), float(count) / fps)
+	tw.finished.connect(func() -> void:
+		if restore:
+			_restore_sheet(entry)
+		if on_done.is_valid():
+			on_done.call())
+	return true
+
+
+## The cell height a sheet frame must be drawn at, in metres per pixel, so that a sheet frame
+## occupies exactly the same on-screen box as the resting sprite. Derived from the resting
+## texture rather than stored, because _make_enemy_sprite() already encoded the boss scale
+## into pixel_size and this has to inherit it.
+func _sheet_pixel_size(entry: Dictionary, frame_h: int) -> float:
+	var sprite: Sprite3D = entry.get("sheet_sprite")
+	var base_tex: Texture2D = entry.get("sheet_base_tex")
+	if not is_instance_valid(sprite) or base_tex == null or frame_h <= 0:
+		return sprite.pixel_size if is_instance_valid(sprite) else 0.01
+	# The resting sprite IS one cell of the shared box, so its height is the cell height and
+	# the ratio is 1 in practice. Computed rather than assumed so a future re-export with a
+	# different resting crop cannot silently resize every monster.
+	var base_h := maxf(1.0, float(base_tex.get_height()))
+	return float(entry.get("sheet_base_pixel_size", sprite.pixel_size)) * (base_h / float(frame_h))
+
+
+func _set_sheet_frame(sprite: Sprite3D, index: int, cols: int, fw: int, fh: int) -> void:
+	sprite.region_rect = Rect2(float(index % cols) * fw, float(index / cols) * fh, fw, fh)
+
+
+## Back to the resting picture. Safe on a unit that never played a sheet.
+func _restore_sheet(entry: Dictionary) -> void:
+	var sprite: Sprite3D = entry.get("sheet_sprite")
+	if not is_instance_valid(sprite):
+		return
+	var base_tex: Texture2D = entry.get("sheet_base_tex")
+	if base_tex != null:
+		sprite.texture = base_tex
+	sprite.region_enabled = false
+	var base_px: float = float(entry.get("sheet_base_pixel_size", sprite.pixel_size))
+	if base_px > 0.0:
+		sprite.pixel_size = base_px
+
+
+## Cancels a sheet in flight WITHOUT restoring, for callers that are about to start another
+## one. play_death() also uses it to freeze a corpse on its last frame.
+func _stop_sheet(entry: Dictionary) -> void:
+	var tw = entry.get("sheet_tween")
+	if tw is Tween and (tw as Tween).is_valid():
+		(tw as Tween).kill()
+	entry["sheet_tween"] = null
+
+
 ## The eye glow flaring under a cast. Added to the caller's own parallel Tween so it shares one
 ## timeline with the scale, and restored to _EYE_LIGHT_ENERGY rather than to whatever it happens
 ## to be at — the spawn fade-in (_make_eye_light()) is the only other writer and it always ends
@@ -1192,6 +1329,7 @@ func play_hit_reaction(uid: int) -> void:
 	if entry.is_empty() or bool(entry.get("dying", false)):
 		return
 	var character: AxieCharacter3D = entry.get("character")
+	_play_sheet(entry, "hit")      # the rigless half; no-op when a rig answers below
 	if character == null or not is_instance_valid(character) or character.playable == null:
 		return
 	character.playable.play(AnimNames.IdleGetHit, "", false)
@@ -1228,7 +1366,12 @@ func play_death(uid: int) -> void:
 	if character != null and is_instance_valid(character):
 		playable = character.playable
 	if CombatView.disable_juice_for_tests or playable == null:
-		_start_death_fade(uid, entry)
+		# A rigless monster with a `die` sheet plays it and only then fades, mirroring what
+		# the rigged path below does with the Dead clip. _play_sheet() calls back immediately
+		# when there is no sheet (5 of the 20 ship a placeholder die clip, see MonsterAnim),
+		# so the no-sheet case is exactly the old behaviour.
+		# restore=false freezes the corpse on the clip's last frame; see _play_sheet().
+		_play_sheet(entry, "die", func() -> void: _start_death_fade(uid, entry), false)
 		return
 	playable.set_default("")
 	playable.play(AnimNames.Dead, "", false, Callable(self, "_on_death_anim_done").bind(uid))

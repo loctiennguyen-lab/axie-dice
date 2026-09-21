@@ -17,7 +17,7 @@
 // geometry as JSON and stops. Rasterising is spine_pose_render.py's job, and it is dumb by
 // design: textured triangles against the atlas page, nothing to get wrong.
 //
-// Usage: node spine_pose_dump.js <spine-core-3.8.js> <skel-dir> <name> [animation]
+// Usage: node spine_pose_dump.js <core.js> <skel-dir> <name> [animation] [fps] [maxFrames]
 // With no animation it emits the setup pose; the animation, when given, is applied at t=0.
 const fs = require('fs');
 const vm = require('vm');
@@ -58,33 +58,61 @@ const loader = new spine.AtlasAttachmentLoader(atlas);
 const binary = new spine.SkeletonBinary(loader);
 const data = binary.readSkeletonData(new Uint8Array(fs.readFileSync(`${dir}/${name}.skel`)));
 
+const fps = parseFloat(process.argv[6] || '0');
+const maxFrames = parseInt(process.argv[7] || '0', 10);
 const skeleton = new spine.Skeleton(data);
-skeleton.setToSetupPose();
-if (animName) {
-  const state = new spine.AnimationState(new spine.AnimationStateData(data));
-  state.setAnimation(0, animName, false);
-  state.update(0);
-  state.apply(skeleton);
-}
-skeleton.updateWorldTransform();   // <- solves the constraints
+const anim = animName ? data.findAnimation(animName) : null;
+if (animName && !anim) { console.error(`no animation '${animName}' in ${name}`); process.exit(2); }
 
-const out = { name, anim: animName || '(setup)', slots: [] };
-for (const slot of skeleton.drawOrder) {
-  const att = slot.getAttachment();
-  if (!att) continue;
-  if (att instanceof spine.RegionAttachment) {
-    const v = new Float32Array(8);
-    att.computeWorldVertices(slot.bone, v, 0, 2);
-    out.slots.push({ slot: slot.data.name, type: 'region', region: att.region.name,
-                     verts: Array.from(v), uvs: Array.from(att.uvs) });
-  } else if (att instanceof spine.MeshAttachment) {
-    const n = att.worldVerticesLength;
-    const v = new Float32Array(n);
-    att.computeWorldVertices(slot, 0, n, v, 0, 2);
-    out.slots.push({ slot: slot.data.name, type: 'mesh', region: att.region.name,
-                     verts: Array.from(v), uvs: Array.from(att.uvs),
-                     triangles: Array.from(att.triangles) });
+function snapshot() {
+  const slots = [];
+  for (const slot of skeleton.drawOrder) {
+    const att = slot.getAttachment();
+    if (!att) continue;
+    if (att instanceof spine.RegionAttachment) {
+      const v = new Float32Array(8);
+      att.computeWorldVertices(slot.bone, v, 0, 2);
+      slots.push({ slot: slot.data.name, type: 'region', region: att.region.name,
+                   verts: Array.from(v), uvs: Array.from(att.uvs) });
+    } else if (att instanceof spine.MeshAttachment) {
+      const n = att.worldVerticesLength;
+      const v = new Float32Array(n);
+      att.computeWorldVertices(slot, 0, n, v, 0, 2);
+      slots.push({ slot: slot.data.name, type: 'mesh', region: att.region.name,
+                   verts: Array.from(v), uvs: Array.from(att.uvs),
+                   triangles: Array.from(att.triangles) });
+    }
   }
+  return slots;
 }
-out.animations = data.animations.map(a => a.name);
+
+function poseAt(t) {
+  skeleton.setToSetupPose();
+  if (anim) {
+    // MixBlend.setup onto the fresh setup pose above makes this an ABSOLUTE sample at t,
+    // independent of whatever was posed before it — so one frame's rounding cannot
+    // accumulate into the next the way stepping an AnimationState forward would.
+    anim.apply(skeleton, 0, t, false, [], 1, spine.MixBlend.setup, spine.MixDirection['in']);
+  }
+  skeleton.updateWorldTransform();   // <- this is what solves IK / transform / path
+}
+
+const out = { name, anim: animName || '(setup)',
+              animations: data.animations.map(a => ({ name: a.name, duration: a.duration })) };
+if (anim && fps > 0) {
+  let count = Math.max(1, Math.round(anim.duration * fps));
+  if (maxFrames > 0) count = Math.min(count, maxFrames);
+  out.fps = fps;
+  out.duration = anim.duration;
+  out.frames = [];
+  for (let f = 0; f < count; f++) {
+    // duration * f / count rather than f / fps: a LOOPING clip must not repeat its first
+    // pose as its last, and this spaces the samples evenly over the real length either way.
+    poseAt(anim.duration * f / count);
+    out.frames.push(snapshot());
+  }
+} else {
+  poseAt(0);
+  out.slots = snapshot();
+}
 process.stdout.write(JSON.stringify(out));
