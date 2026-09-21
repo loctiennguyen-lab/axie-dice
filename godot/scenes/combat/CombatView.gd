@@ -314,6 +314,10 @@ var _shard_value_label: Label
 var _mana_value_label: Label
 var _active_count_label: Label
 var _actives_row: HBoxContainer
+
+## The relic active waiting for a target, or "". Parallel to `_selected_die_uid`: exactly one
+## of the two may be armed, and _on_target_clicked() serves whichever is.
+var _selected_active_id := ""
 var _reroll_count_label: Label
 var _reroll_count_style: StyleBoxFlat
 var _part_icon_cache: Dictionary = {}   # "<slot>_<class>" -> Texture2D, lazily loaded (36 combos,
@@ -613,11 +617,7 @@ func _connect_ui_buttons() -> void:
 	_info_panel.visible = false
 
 	for i in _die_slot_buttons.size():
-		var idx := i
-		var btn: Button = _die_slot_buttons[i]
-		btn.pressed.connect(func(): _on_die_slot_pressed(idx))
-		btn.mouse_entered.connect(func(): _on_die_slot_hover(idx, true))
-		btn.mouse_exited.connect(func(): _on_die_slot_hover(idx, false))
+		_wire_die_slot(i)
 
 	# CB-21 / D1 — THE CARD IS 180x158 OUTER. Combat.tscn sets that on all five slots.
 	#
@@ -652,23 +652,7 @@ func _connect_ui_buttons() -> void:
 
 	for i in _die_slot_buttons.size():
 		var btn: Button = _die_slot_buttons[i]
-		btn.add_theme_stylebox_override("normal", _die_slot_base_style)
-		btn.add_theme_stylebox_override("hover", _die_slot_base_style)
-		btn.add_theme_stylebox_override("disabled", _die_slot_disabled_style)
-		# `toggle_mode=true` (Combat.tscn) means a selected slot's `button_pressed` is true, so
-		# Godot's Button also consults the "pressed"/"focus" theme slots, not just "normal" —
-		# without these overrides too, a selected die silently fell back to the DEFAULT theme's
-		# pressed look (square corners, no border) instead of _die_slot_selected_style below.
-		btn.add_theme_stylebox_override("pressed", _die_slot_base_style)
-		btn.add_theme_stylebox_override("focus", _die_slot_base_style)
-		# G3. The header band already carries matching 11px TOP corners (card radius 15 minus
-		# the 4px border), which fixes the two corners it touches; the cream body under it still
-		# squared off the bottom two. Clipping the frame covers all four, and keeps holding if
-		# D1 changes either radius.
-		DangoTheme.clip_to_frame(btn)
-		btn.text = ""   # every state now renders through _die_slot_content children instead —
-			# see _build_die_slot_content()/_update_die_slot_content(); "used"/"dead"/"not
-			# rolled" states still set a plain Label inside that same content tree, not btn.text.
+		_style_die_slot(btn)
 		_die_slot_content.append(_build_die_slot_content(btn))
 
 	_stage3d.unit_clicked.connect(_on_target_clicked)   # second input path into the SAME
@@ -1758,13 +1742,22 @@ func _class_portrait(cls: String) -> Texture2D:
 	return _part_icon_cache[key]
 
 
+## The six body-part icons, per class. Returns null when there is no icon for this
+## part/class pair, and the caller draws the card without one.
+##
+## The existence check is not defensive padding: the set on disk is exactly six slots x six
+## classes, and a SUMMONED TOKEN's faces carry part "m" — the same placeholder every enemy
+## face uses — so "m_aqua" has never existed. Until tokens got a die card nothing ever asked
+## for it. `load()` on a missing path logs a red engine error every rebuild, several times a
+## second, which is noise that buries real ones.
 func _part_icon_for(part: String, cls: String) -> Texture2D:
 	if cls == "":
 		return null
 	var slot := String(_PART_ICON_SLOT.get(part, part))
 	var key := "%s_%s" % [slot, cls]
 	if not _part_icon_cache.has(key):
-		_part_icon_cache[key] = load("res://assets/icons/web/part/%s.svg" % key)
+		var path := "res://assets/icons/web/part/%s.svg" % key
+		_part_icon_cache[key] = load(path) if ResourceLoader.exists(path) else null
 	return _part_icon_cache[key]
 
 
@@ -2453,6 +2446,7 @@ func _on_die_slot_pressed(slot_index: int) -> void:
 	var u: Unit = units[slot_index]
 	if u.hp <= 0 or not u.has_rolled() or u.roll_used():
 		return
+	_selected_active_id = ""   # a die and a relic active cannot both be waiting on one click
 	_selected_die_uid = -1 if _selected_die_uid == u.uid else u.uid
 	_rebuild_all()
 
@@ -2467,6 +2461,50 @@ func _save_run_progress() -> void:
 	RunState.save_run(_combat.to_data())
 
 
+## Pressing a relic active. Cards that hit nobody in particular resolve on the spot; the rest
+## arm and wait for a unit click, exactly like selecting a die does.
+##
+## Arming an active DISARMS any selected die and vice versa (see _on_die_slot_pressed), because
+## _on_target_clicked() can only mean one of them and a player holding both would be guessing.
+func _on_active_pressed(relic_id: String) -> void:
+	if _is_animating or _combat == null:
+		return
+	if _selected_active_id == relic_id:      # press again to put it down
+		_selected_active_id = ""
+		_clear_all_previews()
+		_rebuild_all()
+		return
+	var def: RelicDef = RelicRegistry.get_def(relic_id)
+	if def == null:
+		return
+	if _combat.mana < int(def.act_cost):
+		return                                # the tile is already disabled; belt and braces
+
+	if def.act_target() == "none":
+		_play_active_now(relic_id, -1)
+		return
+	_selected_active_id = relic_id
+	_selected_die_uid = -1
+	_clear_all_previews()
+	_rebuild_all()
+
+
+## The one place an active is actually spent, so the log line, the failure float and the
+## disarm cannot drift between the targeted and untargeted paths.
+func _play_active_now(relic_id: String, target_uid: int) -> void:
+	var ok: bool = _combat.play_active(relic_id, target_uid)
+	_append_log("[input] active %s -> %s : %s" % [relic_id,
+		_unit_name(target_uid) if target_uid >= 0 else "-", "ok" if ok else "invalid"])
+	if not ok and target_uid >= 0:
+		var p: UnitPortrait = _portraits.get(target_uid)
+		if p != null:
+			p.spawn_float_text("Invalid target", "deb", 0)
+	_selected_active_id = ""
+	_clear_all_previews()
+	_rebuild_all()
+	_save_run_progress()
+
+
 func _on_target_clicked(uid: int) -> void:
 	if _is_animating:
 		return
@@ -2475,6 +2513,15 @@ func _on_target_clicked(uid: int) -> void:
 	# paints as targetable: a die is selected and the unit is alive. So the targeting path
 	# below is untouched, and this only fills in the click that used to do nothing at all.
 	var u := _combat.by_uid(uid)
+	# An armed relic active claims the click before the die path does. Checked FIRST because
+	# arming one clears `_selected_die_uid`, so the die branch below would fall through to the
+	# inspector and the player's click would look like it did nothing.
+	if _selected_active_id != "":
+		if u == null or u.hp <= 0:
+			_open_unit_inspect(uid)
+			return
+		_play_active_now(_selected_active_id, uid)
+		return
 	if _selected_die_uid == -1 or u == null or u.hp <= 0:
 		_open_unit_inspect(uid)
 		return
@@ -2996,8 +3043,12 @@ func _update_bottom_deck() -> void:
 const _ACTIVE_SLOT_CAP := 4
 
 ## Relic-active slots — mirrors the mockup's own `_activeSlots()` algorithm: up to 4 shown, a
-## "+n" tile if there are more, empty dashed tiles padding out to 4 if there are fewer. No
-## click-wiring (see _build_actives_card()'s scope note) — display only.
+## "+n" tile if there are more, empty dashed tiles padding out to 4 if there are fewer.
+##
+## These are CLICKABLE now. The engine has had CombatEngine.play_active() all along; the
+## slots were built as display-only and the report was simply that they cannot be pressed.
+## A card the player cannot afford is `disabled` rather than hidden, so the cost stays
+## readable — that is the whole point of showing the MP number on the tile.
 func _update_actives() -> void:
 	for c in _actives_row.get_children():
 		c.queue_free()
@@ -3013,12 +3064,23 @@ func _update_actives() -> void:
 	var shown: Array = held.slice(0, _ACTIVE_SLOT_CAP - 1 if overflow else _ACTIVE_SLOT_CAP)
 	for def in shown:
 		var affordable := _combat.mana >= int(def.act_cost)
-		var slot := PanelContainer.new()
+		var armed := _selected_active_id == String(def.id)
+		var slot := Button.new()
 		slot.custom_minimum_size = Vector2(55, 55)
 		slot.tooltip_text = _relic_tooltip(def)
-		slot.add_theme_stylebox_override("panel", DangoTheme.solid_chip_style(
-			DangoTheme.MANA_PURPLE if affordable else DangoTheme.DISABLED_FILL, 12, 2, Vector2(0, 4)))
+		slot.focus_mode = Control.FOCUS_NONE
+		slot.text = ""
+		slot.disabled = not affordable
+		# An armed card reads as PRIMARY so it is obvious which one the next unit click will
+		# spend, the same way a selected die does.
+		var fill: Color = DangoTheme.PRIMARY if armed else (
+			DangoTheme.MANA_PURPLE if affordable else DangoTheme.DISABLED_FILL)
+		for st in ["normal", "hover", "pressed", "focus", "disabled"]:
+			slot.add_theme_stylebox_override(st, DangoTheme.solid_chip_style(
+				fill, 12, 3 if armed else 2, Vector2(0, 4)))
+		slot.pressed.connect(_on_active_pressed.bind(String(def.id)))
 		var col := VBoxContainer.new()
+		col.mouse_filter = Control.MOUSE_FILTER_IGNORE   # the Button under it takes the click
 		col.alignment = BoxContainer.ALIGNMENT_CENTER
 		col.add_theme_constant_override("separation", 2)
 		slot.add_child(col)
@@ -3157,7 +3219,18 @@ func _update_portrait(u: Unit) -> void:
 	var is_selected := (u.uid == _selected_die_uid)
 	p.set_selected(is_selected)
 	if not is_selected:
-		var targetable := _selected_die_uid != -1 and u.hp > 0
+		# An armed relic active highlights only the SIDE it can legally hit — a heal lights up
+		# the party, a bolt lights up the enemies. A selected die keeps the old rule (anything
+		# alive), because a face's legality depends on data this screen is not the authority
+		# on; an active's does not, it is one word on the card.
+		var targetable := false
+		if _selected_active_id != "":
+			var adef: RelicDef = RelicRegistry.get_def(_selected_active_id)
+			var want := adef.act_target() if adef != null else "none"
+			targetable = u.hp > 0 and ((want == "ally" and u.side == "p")
+				or (want == "enemy" and u.side == "e"))
+		else:
+			targetable = _selected_die_uid != -1 and u.hp > 0
 		p.set_targetable(targetable)
 		_stage3d.set_targetable(u.uid, targetable)
 
@@ -3184,6 +3257,9 @@ func _apply_intent_to_hud(hud: UnitHeadHUD, u: Unit) -> void:
 
 func _update_dice_tray() -> void:
 	var units := _party_dice_units()
+	# Grow the tray BEFORE laying it out: a summon adds a party member mid-combat, and the
+	# five cards Combat.tscn ships cannot show a sixth.
+	_ensure_die_slots(units.size())
 	for i in _die_slot_buttons.size():
 		var btn: Button = _die_slot_buttons[i]
 		var content: Dictionary = _die_slot_content[i]
@@ -3343,10 +3419,13 @@ func _update_die_slot_content(content: Dictionary, u: Unit) -> void:
 	var part_icon := _part_icon_for(part, u.cls)   # body-part icon (web/part/<slot>_<class>.svg)
 	part_icon_rect.texture = part_icon
 	part_icon_rect.visible = part_icon != null
-	caption_label.text = "%s · %s" % [
-		String(_PART_LABEL.get(part, part.to_upper())),
-		DangoTheme.face_type_label(face_type),
-	]
+	# A face whose part is not one of the six body slots shows the TYPE alone. "m" is the
+	# placeholder the engine gives every enemy face and every summoned token's face, and with
+	# tokens now owning a die card it reached the screen as the caption "M · ATTACK" — an
+	# internal key leaking into the UI.
+	var part_name := String(_PART_LABEL.get(part, ""))
+	caption_label.text = ("%s · %s" % [part_name, DangoTheme.face_type_label(face_type)]) \
+		if part_name != "" else DangoTheme.face_type_label(face_type)
 
 	# TOOLTIP, not per-chip hovers. The keyword pills are 20px tall and live INSIDE the die
 	# Button; giving each one MOUSE_FILTER_STOP so it could carry its own tooltip would punch a
@@ -3489,13 +3568,105 @@ func _begin_hit_animation() -> Callable:
 	return release
 
 
+## One die slot's input wiring. Factored out of _ready() so _ensure_die_slots() can grow the
+## tray at runtime and get a slot that behaves identically to the five in Combat.tscn.
+## One die slot's looks. Factored out so _ensure_die_slots() can grow the tray for summoned
+## tokens and get a card that is identical to the five Combat.tscn ships.
+func _style_die_slot(btn: Button) -> void:
+	btn.add_theme_stylebox_override("normal", _die_slot_base_style)
+	btn.add_theme_stylebox_override("hover", _die_slot_base_style)
+	btn.add_theme_stylebox_override("disabled", _die_slot_disabled_style)
+	# `toggle_mode=true` (Combat.tscn) means a selected slot's `button_pressed` is true, so
+	# Godot's Button also consults the "pressed"/"focus" theme slots, not just "normal" —
+	# without these overrides too, a selected die silently fell back to the DEFAULT theme's
+	# pressed look (square corners, no border) instead of _die_slot_selected_style.
+	btn.add_theme_stylebox_override("pressed", _die_slot_base_style)
+	btn.add_theme_stylebox_override("focus", _die_slot_base_style)
+	# G3. The header band already carries matching 11px TOP corners (card radius 15 minus the
+	# 4px border), which fixes the two corners it touches; the cream body under it still
+	# squared off the bottom two. Clipping the frame covers all four, and keeps holding if D1
+	# changes either radius.
+	DangoTheme.clip_to_frame(btn)
+	btn.text = ""   # every state renders through _die_slot_content children instead — see
+		# _build_die_slot_content()/_update_die_slot_content(); "used"/"dead"/"not rolled"
+		# states still set a plain Label inside that same content tree, not btn.text.
+
+
+func _wire_die_slot(idx: int) -> void:
+	var btn: Button = _die_slot_buttons[idx]
+	btn.pressed.connect(func(): _on_die_slot_pressed(idx))
+	btn.mouse_entered.connect(func(): _on_die_slot_hover(idx, true))
+	btn.mouse_exited.connect(func(): _on_die_slot_hover(idx, false))
+
+
+## The scene ships five die slots because a roster is five Axies. A SUMMONED token is a sixth
+## party member with a real die, and `tokenCap` allows up to four of them, so the tray has to
+## be able to reach nine.
+##
+## Grown in code rather than placed in Combat.tscn: four permanently-hidden extra cards would
+## be four more things every layout pass has to remember to skip, for a case most fights never
+## reach.
+##
+## ONE ROW, ALWAYS. The grid is inside a CenterContainer in a 204px-tall bar, so a second row
+## would be clipped rather than wrapped. `columns` therefore tracks the slot count and the
+## cards narrow to fit: _DIE_SLOT_W_MAX down to _DIE_SLOT_W_MIN, which at nine slots is
+## 9*128 + 8*14 = 1264px and still inside the zone the five 180px cards leave.
+const _DIE_SLOT_W_MAX := 180.0
+const _DIE_SLOT_W_MIN := 128.0
+const _DIE_SLOT_H := 158.0
+
+
+func _ensure_die_slots(count: int) -> void:
+	var want := maxi(count, 5)         # never shrink below the roster's five
+	var grid := _die_slot_buttons[0].get_parent() as GridContainer
+	if grid == null:
+		return
+	while _die_slot_buttons.size() < want:
+		var btn := Button.new()
+		btn.name = "DieSlot%d" % _die_slot_buttons.size()
+		btn.toggle_mode = true
+		btn.text = ""
+		btn.custom_minimum_size = Vector2(_DIE_SLOT_W_MAX, _DIE_SLOT_H)
+		grid.add_child(btn)
+		_die_slot_buttons.append(btn)
+		_style_die_slot(btn)
+		_die_slot_content.append(_build_die_slot_content(btn))
+		_die_slot_lifted.append(false)
+		_wire_die_slot(_die_slot_buttons.size() - 1)
+
+	# Width and column count follow the live tray size, so five cards look exactly as they
+	# always did and only a summon narrows them.
+	var w: float = _DIE_SLOT_W_MAX if want <= 5 else maxf(_DIE_SLOT_W_MIN,
+		_DIE_SLOT_W_MAX - float(want - 5) * 13.0)
+	grid.columns = want
+	for b in _die_slot_buttons:
+		# Width only. Visibility is _update_dice_tray()'s to set, per slot, from whether a
+		# unit actually occupies it — setting it here too would fight that on the same frame.
+		(b as Button).custom_minimum_size = Vector2(w, _DIE_SLOT_H)
+
+
+## Everyone in the party who gets a die card, in tray order.
+##
+## SUMMONED TOKENS ARE IN HERE NOW. They used to be filtered out by `roster_index >= 0` —
+## a token is not in RunState.roster so it carries the default -1 — which meant a summoned
+## Axie Egg rolled a die the player could never see or spend. Reported as "bỏ quên mất không
+## làm ô cho Axie Egg".
+##
+## Roster heroes keep their roster order and stay leftmost, so a summon never shuffles the
+## cards the player has been reading all fight. Tokens follow, oldest first: `uid` is handed
+## out in spawn order, so that is arrival order without needing to store one.
 func _party_dice_units() -> Array:
-	var out: Array = []
+	var heroes: Array = []
+	var tokens: Array = []
 	for u in _combat.party:
 		if u.roster_index >= 0:
-			out.append(u)
-	out.sort_custom(func(a, b): return a.roster_index < b.roster_index)
-	return out
+			heroes.append(u)
+		else:
+			tokens.append(u)
+	heroes.sort_custom(func(a, b): return a.roster_index < b.roster_index)
+	tokens.sort_custom(func(a, b): return a.uid < b.uid)
+	heroes.append_array(tokens)
+	return heroes
 
 
 ## The VFX layer, built on demand. Kept out of Combat.tscn on purpose — see the field.

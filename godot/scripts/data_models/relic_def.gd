@@ -131,3 +131,32 @@ extends Resource
 ## which breaks INV-1 (see the long comment at src/engine.js:36-47).
 @export_enum("kw", "add", "mul") var mf_phase: String = "add"
 @export_enum("kw", "add", "mul") var mf_phase2: String = "add"
+
+
+## --- What an active card needs the player to click, before it can be played ---
+##
+## "none" plays on the spot. "ally" and "enemy" need a unit picked first, and the engine
+## REFUSES a wrong one (CombatEngine.play_active() checks `tgt.side` per kind and returns
+## false without spending mana), so this table only has to agree with the engine to keep the
+## UI from offering a click that cannot work — it is not the authority on legality.
+##
+## Read off combat_engine.gd's own `match String(a.get("kind", ""))`, kind by kind:
+##   heal                                  -> tgt.side must be "p"
+##   dmg / ult / stun / shatter            -> tgt.side must be "e"
+##   shieldall / dmgall / poisonall /
+##   reroll / kw / grow / summon           -> never reads `tgt`
+##
+## It lives HERE and not in combat_engine.gd on purpose: `res://scripts/core` is inside
+## t_rules_version's fingerprint, and adding a UI-facing helper there would trip the rules
+## gate over a change that alters no rule. `scripts/data_models` is outside it.
+const _ACT_TARGET := {
+	"heal": "ally",
+	"dmg": "enemy", "ult": "enemy", "stun": "enemy", "shatter": "enemy",
+}
+
+
+## "none" | "ally" | "enemy". A passive, or an active with no `act` block, answers "none".
+func act_target() -> String:
+	if act_cost <= 0 or act.is_empty():
+		return "none"
+	return String(_ACT_TARGET.get(String(act.get("kind", "")), "none"))
