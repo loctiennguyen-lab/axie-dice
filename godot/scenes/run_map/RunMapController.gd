@@ -380,8 +380,46 @@ func _canvas_size() -> Vector2:
 ## The mockup's own LANES/ROWS give the position inside the MOCKUP's graph region; that same
 ## fraction is then applied to the live region. Identical output at 1920x1080; on a taller
 ## canvas the rows spread to fill instead of leaving a void under the graph.
+## The lane a node is DRAWN in, which is not simply its `col`.
+##
+## THE DEFECT THIS FIXES ("The Path vẫn cực kì xấu", with a screenshot of long diagonals
+## sweeping across the whole board). Pinning x to `col` looks obviously right and is wrong at
+## exactly one place: a BOSS / segment row holds a single node and the generator always gives
+## it col 0. Invariant #9 then makes the row below converge 100% onto it and the row above
+## fan 100% out of it — so every one of those funnel edges ran from lane 2 (x 1520) to lane 0
+## (x 780). 740px across a 124px row is a near-horizontal sweep, and there are five of them
+## in an 18-row map. Measured on the generated graph rather than guessed: seed 13371337 has
+## exactly five edges with |dcol| > 1, and all five touch a single-node row at col 0 (rows 6,
+## 12 and 18 — the boss rows).
+##
+## The graph is not at fault and is not touched. run_flow_v2.html draws its own single-node
+## row at LANES.c, not LANES.l, and centring ours the same way turns each funnel into a
+## symmetric V whose widest edge is 370px — the same 370 every ordinary +/-1 edge already
+## spans. No edge in the map is then wider than the mockup's own maximum.
+##
+## Only rows with ONE node move. A row with two or three keeps strict lanes, so columns still
+## read as columns and the left-to-right order of every row is unchanged — which is what
+## guarantees this cannot introduce a crossing that was not already there.
+func _lane_x_for(node: RunMapNode) -> float:
+	var row_size := 0
+	if _graph != null:
+		var idx := node.row - 1
+		if idx >= 0 and idx < _graph.rows.size():
+			row_size = (_graph.rows[idx] as Array).size()
+	return _MOCK_LANE_X[lane_index(node.col, row_size)]
+
+
+## The rule on its own, static so a test can check it against a real generated graph without
+## standing up the whole scene. `row_size` is how many nodes share that row; 0 means unknown,
+## which falls back to the plain column.
+static func lane_index(col: int, row_size: int) -> int:
+	if row_size == 1:
+		return 1        # dead centre — see _lane_x_for()
+	return clampi(col, 0, 2)
+
+
 func _node_screen_pos(node: RunMapNode, current_row: int) -> Vector2:
-	var lane := clampi(node.col, 0, _MOCK_LANE_X.size() - 1)
+	var lane_x := _lane_x_for(node)
 	var rel := node.row - current_row
 	var window := _row_window(current_row)
 	# The band is drawn CENTRED in the graph region, and the centre of a full band is the
@@ -393,7 +431,7 @@ func _node_screen_pos(node: RunMapNode, current_row: int) -> Vector2:
 	var centre_rel := float(window.x + window.y) * 0.5
 	var mock := _graph_region_for(_MOCK_CANVAS)
 	var mock_centre_y := mock.position.y + mock.size.y * 0.5
-	var mock_pos := Vector2(_MOCK_LANE_X[lane],
+	var mock_pos := Vector2(lane_x,
 		mock_centre_y - (float(rel) - centre_rel) * _MOCK_ROW_PITCH)
 	var live := _graph_region_for(_canvas_size())
 	var frac := (mock_pos - mock.position) / mock.size
@@ -451,6 +489,7 @@ func _rebuild_edges(current_row: int, _reachable: Array) -> void:
 	if _graph == null:
 		return
 	var edges: Array[Dictionary] = []
+	var probe := OS.has_environment("RUNMAP_EDGE_PROBE")   # layout debugging, off in play
 	for row in _graph.rows:
 		for raw_node in row:
 			var from_node: RunMapNode = raw_node
@@ -461,6 +500,12 @@ func _rebuild_edges(current_row: int, _reachable: Array) -> void:
 				if to_node == null or not _in_window(to_node, current_row):
 					continue
 				edges.append(_edge_spec(from_node, to_node, current_row))
+				if probe:
+					var _sp: Dictionary = edges[edges.size() - 1]
+					print("EDGEPROBE r%d c%d -> r%d c%d  dx=%.0f dy=%.0f" % [
+						from_node.row, from_node.col, to_node.row, to_node.col,
+						absf((_sp["b"] as Vector2).x - (_sp["a"] as Vector2).x),
+						absf((_sp["b"] as Vector2).y - (_sp["a"] as Vector2).y)])
 
 	# Pass 1 - every casing. Always solid and always full width, including under a dashed core:
 	# the mockup's casing path carries no `stroke-dasharray`.

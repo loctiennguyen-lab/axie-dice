@@ -26,6 +26,7 @@ extends Node
 const EXPECTED_TESTS: Array[String] = [
 	"test_map_window_renders_nearby_rows_onscreen_and_fills_the_frame",
 	"test_the_row_band_keeps_its_height_and_slides_at_both_ends",
+	"test_no_edge_travels_more_than_one_lane",
 	"test_node_label_never_contains_a_technical_graph_id",
 	"test_shop_bought_and_unaffordable_buttons_use_different_styleboxes",
 	"test_reward_and_shop_cards_show_a_rarity_chip_matching_rar",
@@ -45,6 +46,7 @@ func _ready() -> void:
 
 	await test_map_window_renders_nearby_rows_onscreen_and_fills_the_frame()
 	await test_the_row_band_keeps_its_height_and_slides_at_both_ends()
+	test_no_edge_travels_more_than_one_lane()
 	await test_node_label_never_contains_a_technical_graph_id()
 	await test_shop_bought_and_unaffordable_buttons_use_different_styleboxes()
 	await test_reward_and_shop_cards_show_a_rarity_chip_matching_rar()
@@ -185,6 +187,58 @@ func test_map_window_renders_nearby_rows_onscreen_and_fills_the_frame() -> void:
 ## THREE THINGS, and the first is the one that was broken: the band is always exactly as tall
 ## as it is designed to be, wherever the player stands. Clamping it at the ends is what left
 ## the map hugging one edge of the frame with dead space against the other.
+## No drawn edge may travel more than ONE lane sideways.
+##
+## This is the "The Path vẫn cực kì xấu" report, pinned as a number. The generator is not at
+## fault — it keeps |dcol| <= 1 within a path — but a boss row holds a single node that is
+## always col 0, and invariant #9 funnels the whole row below onto it and fans the row above
+## out of it. Drawn at col 0 those funnels ran lane 2 -> lane 0: 740px sideways across a
+## 124px row, five times in an 18-row map, which is the near-horizontal sweep in the report's
+## screenshot. RunMapController.lane_index() centres single-node rows so the funnel becomes a
+## symmetric V.
+##
+## Checked against REAL generated graphs over many seeds rather than a fixture, because the
+## offending shape only appears at segment boundaries and a hand-written map would not have
+## them. Asserting on lane distance rather than on pixels keeps it true if the lane x values
+## or the canvas ever move.
+func test_no_edge_travels_more_than_one_lane() -> void:
+	var script := load("res://scenes/run_map/RunMapController.gd") as GDScript
+	var worst := 0
+	var worst_desc := ""
+	var checked := 0
+	for seed_value in [13371337, 555001, 1, 42, 99999, 246810]:
+		var rng := Rng.new(seed_value)
+		var graph: RunMapGraph = RunMapGenerator.generate(rng, "normal", 0)
+		var size_of_row := {}
+		for i in graph.rows.size():
+			size_of_row[i + 1] = (graph.rows[i] as Array).size()
+		for row in graph.rows:
+			for raw_from in row:
+				var from_node: RunMapNode = raw_from
+				var from_lane: int = script.call("lane_index", from_node.col,
+					int(size_of_row.get(from_node.row, 0)))
+				for next_id in from_node.next_ids:
+					var to_node := graph.find_node(next_id)
+					if to_node == null:
+						continue
+					var to_lane: int = script.call("lane_index", to_node.col,
+						int(size_of_row.get(to_node.row, 0)))
+					checked += 1
+					var travel: int = absi(to_lane - from_lane)
+					if travel > worst:
+						worst = travel
+						worst_desc = "seed %d: r%dc%d(lane %d) -> r%dc%d(lane %d)" % [
+							seed_value, from_node.row, from_node.col, from_lane,
+							to_node.row, to_node.col, to_lane]
+	_assert(checked > 100,
+		"only %d edges were examined — the generator returned almost nothing and this check "
+		% checked + "would pass vacuously")
+	_assert(worst <= 1,
+		"an edge travels %d lanes sideways (%s); at 370px a lane and 124px a row that draws "
+		% [worst, worst_desc] + "as a near-horizontal sweep across the board")
+	_done("test_no_edge_travels_more_than_one_lane")
+
+
 func test_the_row_band_keeps_its_height_and_slides_at_both_ends() -> void:
 	var runmap := _new_runmap()
 	await get_tree().process_frame
