@@ -2,11 +2,17 @@
 # Production build for Vercel. Invoked by vercel.json's buildCommand.
 #
 # The game is a Godot web export, and Vercel's build container has no Godot and no export
-# templates. So the export is produced on a developer machine and COMMITTED under web/, and
-# this script only stages it. Re-export before deploying:
+# templates, so the export is produced on a developer machine and this script only stages it.
 #
-#   godot --path godot --headless --export-release Web
-#   git add -f web/ && git commit -m "web: re-export"
+# The export is NOT in git. GitHub rejects any single file over 100 MB and index.pck is around
+# 190 MB, so the repository stays source-only and the build is uploaded straight to Vercel:
+#
+#   godot --path godot --headless --export-release Web    # writes web/
+#   vercel --prod                                         # uploads the working directory
+#
+# `vercel --prod` sends the local working directory, not the git tree, so web/ goes up even
+# though git ignores it. api/axie.js ships in the same deploy as a serverless function, which
+# is what the browser build needs for Axie import (the GraphQL gateway sends no CORS headers).
 #
 # Verify locally with:  bash tools/vercel-build.sh && ls -R build
 set -euo pipefail

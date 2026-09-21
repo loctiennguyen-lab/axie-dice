@@ -67,10 +67,20 @@ binary. `godot/tools/play.sh` launches the game with the same binary resolution.
 
 ### Web export
 
-`godot/export_presets.cfg` has a Web preset that writes to `build/web/`. Export it from the
-editor (Project, Export, Web) or with `godot --path godot --headless --export-release Web`,
-which needs the matching export templates installed. The result is a static folder; any file
-server will do, and `tools/serve_web_build.py` is a one-liner for local testing.
+`godot/export_presets.cfg` has a Web preset that writes to `web/`. Export it from the editor
+(Project, Export, Web) or with `godot --path godot --headless --export-release Web`, which
+needs the matching export templates installed.
+
+The result is a static folder, and `tools/serve_web_build.py` serves it locally with the two
+headers a Godot web export needs (`python3 tools/serve_web_build.py`, then
+http://127.0.0.1:8099). A plain `python3 -m http.server` looks like it works and then the game
+never boots.
+
+The export is deliberately not in this repository. `index.pck` is around 190 MB and GitHub
+refuses any single file over 100 MB, so the build is uploaded straight to Vercel with
+`vercel --prod`, which reads the working directory rather than the git tree. That deploy also
+carries `api/axie.js`, the Axie lookup proxy the browser build needs because the GraphQL
+gateway sends no CORS headers.
 
 ## Controls
 

@@ -31,9 +31,11 @@ marrow/
 docs/consistency-failures.md
 
 # === Build Output ===
-# `build/` is what tools/vercel-build.sh assembles at deploy time. The Godot web export it
-# stages from lives in `web/` and IS committed, because Vercel's build container has no Godot
-# and no export templates -- see that script's header.
+# Neither of these is committed. GitHub refuses any single file over 100 MB and the Godot web
+# export's index.pck is ~190 MB, so the build cannot live in the repository at all. It is
+# uploaded straight to Vercel with the CLI instead (`vercel --prod`), which reads the working
+# directory rather than the git tree -- see tools/vercel-build.sh.
+web/
 build/
 builds/
 AxieDice.html
@@ -233,3 +235,4 @@ HANDOFF-PUSH.md
 push-to-github.sh
 export-web.sh
 .gdignore.disabled
+FINISH.sh
