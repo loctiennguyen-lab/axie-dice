@@ -83,6 +83,19 @@ const _PAYLOAD_PATH := "user://axie_query.json"
 ## without a code change. Set it in Project Settings, or call `set_proxy_url()` at runtime.
 const PROXY_SETTING := "axie/proxy_url"
 
+## The proxy this repository actually ships, compiled in as the fallback.
+##
+## This used to live ONLY in `project.godot` under `[axie]`, and the Godot editor deleted it:
+## opening the project for the first time rewrote that file from its own in-memory settings and
+## the custom section did not survive. The failure is silent and total — a web build with no
+## proxy reports Import Axie as unavailable, because a browser cannot reach the GraphQL gateway
+## itself (no CORS headers) — and it only appears in an export, so the editor never shows it.
+##
+## A constant cannot be deleted by a tool. The project setting still wins when it is present, so
+## pointing a build at a different server is unchanged; this is only what happens when nobody
+## has said otherwise.
+const DEFAULT_PROXY_URL := "https://axiedice.vercel.app/api/axie"
+
 enum Transport { NONE, CURL, PROXY }
 
 static var _proxy_url_override := ""
@@ -98,8 +111,10 @@ static func proxy_url() -> String:
 	if not _proxy_url_override.is_empty():
 		return _proxy_url_override
 	if ProjectSettings.has_setting(PROXY_SETTING):
-		return str(ProjectSettings.get_setting(PROXY_SETTING, "")).strip_edges()
-	return ""
+		var configured := str(ProjectSettings.get_setting(PROXY_SETTING, "")).strip_edges()
+		if not configured.is_empty():
+			return configured
+	return DEFAULT_PROXY_URL
 
 
 static func set_proxy_url(url: String) -> void:
