@@ -206,8 +206,13 @@ CONTRIBUTING.md
 UPGRADING.md
 SECURITY.md
 /CLAUDE.md
-docs/
 .claude/
+
+# docs/ was the JavaScript build's paper trail and is gone, with one exception: the v2 design
+# handoff is the UI source of truth this port was built against, and t_mockup_assets re-reads
+# its four mockups on every run rather than carrying its own copy of the asset list.
+docs/*
+!docs/design-handoff-v2/
 
 # === QA evidence ===
 # Screenshots from the capture scenes. Useful while working, ~100MB of noise in a clone.

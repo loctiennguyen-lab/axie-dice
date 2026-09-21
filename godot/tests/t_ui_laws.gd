@@ -88,8 +88,9 @@ func _ready() -> void:
 	for _w in 4:
 		await get_tree().process_frame
 	_guard.capture()
-	_seed_state_the_scenes_need()
 	for path in SCENES:
+		# Re-seeded before EVERY scene, not once before the loop — see that function's comment.
+		_seed_state_the_scenes_need()
 		await _check_scene(path)
 	_guard.restore()
 	if _fail.is_empty():
@@ -108,6 +109,13 @@ func _ready() -> void:
 ## machine with a played save the first is invisible and on the author's the second was never
 ## hit, so this gate went red on a fresh checkout for reasons that had nothing to do with UI
 ## laws. Both are seeded here, in memory; `_guard` puts the save file back byte for byte.
+##
+## CALLED BEFORE EVERY SCENE, not once before the loop. `pending_combat` is a one-shot handoff:
+## `CombatView._ready()` reads it and immediately clears it, so any scene that starts a fight
+## eats the seed and starves whatever is checked after it. Tutorial.tscn does exactly that — it
+## now teaches on a real embedded Combat.tscn — and it sits directly before Combat.tscn in the
+## list, so seeding once left Combat asserting its way out of `_ready()` and failing L0 with no
+## plate. Seeding per scene costs nothing and cannot be ordered wrong.
 func _seed_state_the_scenes_need() -> void:
 	MetaState.tutorial_seen = true
 	CombatView.disable_juice_for_tests = true
