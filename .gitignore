@@ -226,7 +226,6 @@ production/qa/evidence/
 .github/CODEOWNERS
 .github/FUNDING.yml
 .github/workflows/
-.vercelignore
 package.json
 package-lock.json
 AxieDiceTactics.html

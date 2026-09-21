@@ -1,0 +1,34 @@
+# What NOT to upload when deploying with `vercel --prod`.
+#
+# The CLI uploads the working directory, not the git tree, and without this file that is
+# 981 MB: the whole Godot project, its 195 MB addon asset pack, its 107 MB import cache, the
+# QA evidence and node_modules. The upload times out and aborts in a loop.
+#
+# The deploy needs exactly three things: web/ (the exported game), api/ (the Axie lookup
+# proxy, which the browser build cannot do without because the GraphQL gateway sends no CORS
+# headers) and tools/vercel-build.sh, which vercel.json runs to stage web/ into build/.
+
+godot
+production
+design
+docs
+src
+assets
+third_party
+node_modules
+.git
+.github
+.claude
+build
+
+# Root files that are for the repository, not the deploy.
+README.md
+THIRD-PARTY-NOTICES.md
+LICENSE
+FINISH.sh
+export-web.sh
+push-to-github.sh
+HANDOFF-PUSH.md
+build.py
+package.json
+package-lock.json
