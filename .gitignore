@@ -50,7 +50,11 @@ dist/
 # === Engine: Godot ===
 .godot/
 *.translation
-export_presets.cfg
+# export_presets.cfg IS committed. Godot's stock ignore drops it because it can carry signing
+# credentials; this one carries none, and it is the only record of how the shipped build is
+# made -- including the include/exclude filters that decide whether the Axie mixer asset pack
+# reaches the .pck at all. Losing it is how a web build ends up with no Axies in it.
+!export_presets.cfg
 # Uncomment if using Godot:
 # *.import
 
