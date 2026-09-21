@@ -12,7 +12,10 @@ the problem is the web server.
 import functools, http.server, os, socketserver, sys
 
 PORT = int(sys.argv[1]) if len(sys.argv) > 1 else 8099
-ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "build", "web")
+# `web/`, not `build/web/`: the export preset writes there and that folder is committed, so
+# this serves exactly the bytes Vercel will serve. `build/` is only what vercel-build.sh
+# assembles at deploy time.
+ROOT = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "web")
 
 
 class Handler(http.server.SimpleHTTPRequestHandler):
