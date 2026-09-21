@@ -31,6 +31,9 @@ marrow/
 docs/consistency-failures.md
 
 # === Build Output ===
+# `build/` is what tools/vercel-build.sh assembles at deploy time. The Godot web export it
+# stages from lives in `web/` and IS committed, because Vercel's build container has no Godot
+# and no export templates -- see that script's header.
 build/
 builds/
 AxieDice.html
@@ -171,3 +174,49 @@ third_party/godot-axie-mixer-3d-main/*
 third_party/godot-axie-mixer-3d-main/tests/*
 !third_party/godot-axie-mixer-3d-main/tests/goldens/
 production/leaderboard/verdicts/
+
+# === Removed with the JavaScript build (2026-09-21) ===
+# The single-file vanilla-JS prototype this project started as. The Godot build under godot/
+# replaced it; these paths are kept on disk for reference on the machines that still have them
+# and are no longer part of the repository. See README "Disclosures".
+src/
+build.py
+assets/_incoming/
+assets/audio/
+api/_auth.js
+api/_engine.js
+api/admin-stats.js
+api/auth.js
+api/leaderboard.js
+api/submit-run.js
+api/sync-save.js
+api/telemetry.js
+tools/*.mjs
+tools/sim.js
+tools/admin-dashboard.html
+tools/serve.py
+tools/known-failures.json
+tools/verify_runs.sh
+tools/cleanup-2026-09-20.sh
+
+# === Claude Code Game Studios scaffolding ===
+# This repository is the game, not the framework it was built inside.
+CCGS Skill Testing Framework/
+CONTRIBUTING.md
+UPGRADING.md
+SECURITY.md
+/CLAUDE.md
+docs/
+.claude/
+
+# === QA evidence ===
+# Screenshots from the capture scenes. Useful while working, ~100MB of noise in a clone.
+production/qa/evidence/
+.github/CODEOWNERS
+.github/FUNDING.yml
+.github/workflows/
+.vercelignore
+package.json
+package-lock.json
+AxieDiceTactics.html
+Claude outputs/

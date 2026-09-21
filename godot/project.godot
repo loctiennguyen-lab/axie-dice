@@ -15,6 +15,16 @@ run/main_scene="res://scenes/main_menu/MainMenu.tscn"
 config/features=PackedStringArray("4.7", "Forward Plus")
 config/icon=""
 
+[axie]
+
+; Web builds have no `curl`, so AxieApi falls back to Transport.PROXY and does a plain
+; GET <proxy_url>?id=<axieId>. Without this setting active_transport() returns NONE and
+; Import Axie silently reports "unavailable" in the browser -- desktop kept working, which
+; is exactly why it went unnoticed. The endpoint is `api/axie.js` in this repository, a
+; serverless function that answers with the already-unwrapped Axie and sends
+; Access-Control-Allow-Origin: *, so the Godot build may be hosted on any origin.
+proxy_url="https://axiedice.vercel.app/api/axie"
+
 [autoload]
 
 EventBus="*res://autoload/EventBus.gd"

@@ -1,10 +1,14 @@
 {
   "buildCommand": "bash tools/vercel-build.sh",
   "outputDirectory": "build",
-  "cleanUrls": true,
-  "functions": {
-    "api/*.js": {
-      "includeFiles": "src/**"
+  "cleanUrls": false,
+  "headers": [
+    {
+      "source": "/(.*)",
+      "headers": [
+        { "key": "Cross-Origin-Opener-Policy", "value": "same-origin" },
+        { "key": "Cross-Origin-Embedder-Policy", "value": "require-corp" }
+      ]
     }
-  }
+  ]
 }

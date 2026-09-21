@@ -1,3 +1,0 @@
-- [No new currency, prefer Gene Shard](feedback_no-new-currency-prefer-gene-shard.md) — PO rejected new "Echo Fragment" currency idea, defer it, use Gene Shard only
-- [Reuse existing META fields](feedback_reuse-existing-meta-fields.md) — strong project norm; avoid new tracking fields/counters when an existing one implies the condition
-- [Echo Box gate v3 + Daily Mission spec](project_echo-box-daily-mission-2026-09.md) — 2026-09-07 amendments in economy-progression.md §10.3, source of truth for implementation
