@@ -16,6 +16,7 @@ const QUERY = `
     axie(axieId: $axieId) {
       id
       class
+      newGenes
       parts {
         id
         name
@@ -165,10 +166,23 @@ module.exports = async (req, res) => {
 
     // Success: return clean payload
     res.setHeader('Cache-Control', 'public, max-age=300');
+    // `genes` here carries the value of the gateway's `newGenes` field, and the name mismatch
+    // is deliberate. The gateway exposes BOTH `genes` and `newGenes`, both return a hex string,
+    // and that is exactly what makes picking the wrong one dangerous: `genes` is the original
+    // 256-bit format (66 chars) and `newGenes` is the 512-bit Origin format (130 chars). The
+    // game's AxieDescriptor.from_genes() is a 512-bit decoder; handed the short one it does not
+    // error, it decodes garbage and builds a confident, wrong-looking Axie. See the same warning
+    // at the top of godot/scripts/net/axie_api.gd's QUERY.
+    //
+    // The key is `genes` because that is the proxy contract the Godot client documents and reads
+    // first (AxieApi.parse_proxy_response). Without this field the browser build imports an Axie
+    // whose die is correct and whose 3D model cannot be built at all, which surfaces to the
+    // player as "No gene data for this Axie." on a perfectly good Axie.
     res.status(200).json({
       id: axie.id,
       class: axie.class,
       image: axieImageUrl(axie.id),
+      genes: axie.newGenes || '',
       parts: axie.parts,
     });
   } catch (err) {

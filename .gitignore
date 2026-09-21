@@ -232,3 +232,4 @@ Claude outputs/
 HANDOFF-PUSH.md
 push-to-github.sh
 export-web.sh
+.gdignore.disabled
