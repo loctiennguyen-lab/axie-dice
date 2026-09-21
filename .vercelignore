@@ -4,9 +4,11 @@
 # 981 MB: the whole Godot project, its 195 MB addon asset pack, its 107 MB import cache, the
 # QA evidence and node_modules. The upload times out and aborts in a loop.
 #
-# The deploy needs exactly three things: web/ (the exported game), api/ (the Axie lookup
-# proxy, which the browser build cannot do without because the GraphQL gateway sends no CORS
-# headers) and tools/vercel-build.sh, which vercel.json runs to stage web/ into build/.
+# Vercel serves the API, not the game: both GitHub and Vercel refuse any single file over
+# 100 MB and index.pck is 189 MB, so the playable build is on itch.io. What Vercel needs is
+# api/axie.js (the Axie lookup proxy the browser build calls, because the GraphQL gateway
+# sends no CORS headers) and tools/vercel-build.sh. Everything else, web/ included, stays
+# off the upload.
 
 godot
 production
@@ -20,6 +22,7 @@ node_modules
 .github
 .claude
 build
+web
 
 # Root files that are for the repository, not the deploy.
 README.md

@@ -76,11 +76,17 @@ headers a Godot web export needs (`python3 tools/serve_web_build.py`, then
 http://127.0.0.1:8099). A plain `python3 -m http.server` looks like it works and then the game
 never boots.
 
-The export is deliberately not in this repository. `index.pck` is around 190 MB and GitHub
-refuses any single file over 100 MB, so the build is uploaded straight to Vercel with
-`vercel --prod`, which reads the working directory rather than the git tree. That deploy also
-carries `api/axie.js`, the Axie lookup proxy the browser build needs because the GraphQL
-gateway sends no CORS headers.
+The export is deliberately not in this repository, and it is not on Vercel either. GitHub
+and Vercel both refuse any single file over 100 MB, and `index.pck` is 189 MB. The playable
+build is hosted on itch.io, which allows 1 GB and is built for exactly this.
+
+Vercel still runs `api/axie.js`, the Axie lookup proxy. The browser build cannot query the
+Axie GraphQL gateway directly because it sends no CORS headers, so the Vault calls this
+instead; it answers with `Access-Control-Allow-Origin: *`, which is what lets the game live
+on a different domain from its API.
+
+The export needs no cross-origin isolation: the Web preset has `thread_support` off, so it
+does not use SharedArrayBuffer and any static host will serve it.
 
 ## Controls
 
