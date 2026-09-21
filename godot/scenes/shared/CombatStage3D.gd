@@ -1017,13 +1017,16 @@ func set_targetable(uid: int, v: bool) -> void:
 ## placeholder fallback (no rig to animate) and for a unit already mid-death-sequence.
 ## `target_uid` is optional and defaults to -1 ("no single target") so the pre-existing two-arg
 ## call in tests/qa_action_variety_capture.gd keeps working unchanged.
-func play_action(uid: int, face_type: String = "", target_uid: int = -1) -> void:
+func play_action(uid: int, face_type: String = "", target_uid: int = -1,
+		vfx_key: String = "") -> void:
 	var entry: Dictionary = _units.get(uid, {})
 	if entry.is_empty() or bool(entry.get("dying", false)):
 		return
 	# Motion FIRST, and outside the rig guard below — this is the half that monsters and bosses
-	# get, and they are exactly the units that fail that guard.
-	_play_action_motion(uid, entry, face_type, target_uid)
+	# get, and they are exactly the units that fail that guard. `vfx_key` is the Origins clip
+	# CombatView picked for this face (it owns the class/part lookup); all this file does with
+	# it is ask whether the clip is a RANGED one, because that decides lunge vs cast-in-place.
+	_play_action_motion(uid, entry, face_type, target_uid, vfx_key)
 	var character: AxieCharacter3D = entry.get("character")
 	if character == null or not is_instance_valid(character) or character.playable == null:
 		return
@@ -1051,7 +1054,7 @@ func play_action(uid: int, face_type: String = "", target_uid: int = -1) -> void
 ## same length as _LUNGE_OUT + _LUNGE_HOLD — the moment the attacker is furthest forward is the
 ## moment the number is supposed to appear on the target).
 func _play_action_motion(uid: int, entry: Dictionary, face_type: String,
-		target_uid: int) -> void:
+		target_uid: int, vfx_key: String = "") -> void:
 	if CombatView.disable_juice_for_tests:
 		return
 	var slot: Node3D = entry.get("slot")
@@ -1071,9 +1074,14 @@ func _play_action_motion(uid: int, entry: Dictionary, face_type: String,
 	tw.set_parallel(true)
 	entry["action_tween"] = tw
 
-	if not _LUNGE_FACE_TYPES.has(face_type):
-		# Cast in place. No target to face, and a shield/heal that walked at somebody would be
-		# actively misleading about who it affects.
+	# Two ways to end up casting in place instead of lunging.
+	#  - the face does not reach out and hit anybody (shield/heal/buff/mana/summon): walking at
+	#    a target would be actively misleading about who it affects.
+	#  - the face DOES hit somebody, but from range. `is_ranged` is the Origins capture's own
+	#    flag (cast / projectile / throw), so an Axie that fires a bolt plants its feet and the
+	#    bolt covers the distance, while a bite or a gore still closes it. Lunging AND firing
+	#    would say two different things about the attack's reach in the same half second.
+	if not _LUNGE_FACE_TYPES.has(face_type) or SkillVfxCatalog.is_ranged(vfx_key):
 		tw.tween_property(slot, "scale", _CAST_DIP_SCALE, _CAST_DIP) 			.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
 		tw.tween_property(slot, "scale", _CAST_RISE_SCALE, _CAST_RISE).set_delay(_CAST_DIP) 			.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 		tw.tween_property(slot, "scale", Vector3.ONE, _CAST_RISE) 			.set_delay(_CAST_DIP + _CAST_RISE).set_trans(Tween.TRANS_SINE)

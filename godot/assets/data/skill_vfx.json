@@ -1,0 +1,804 @@
+{
+ "_source": "axie-origins-asset-kit web-vfx/public/vfx (Sky Mavis IP, Vibeathon licence)",
+ "_note": "Trimmed from each clip.json: only the fields SkillVfx needs to play the sheet.",
+ "clips": {
+  "plant_bite": {
+   "cols": 8,
+   "rows": 7,
+   "frame_w": 560,
+   "frame_h": 273,
+   "frames": 53,
+   "fps": 30.0,
+   "peak_frame": 14,
+   "is_ranged": false,
+   "projectile_travel": 0.0,
+   "anchor": [
+    281.312,
+    174.508
+   ],
+   "attacker": [
+    674.754,
+    281.066
+   ]
+  },
+  "plant_gore": {
+   "cols": 8,
+   "rows": 5,
+   "frame_w": 764,
+   "frame_h": 360,
+   "frames": 39,
+   "fps": 30.0,
+   "peak_frame": 15,
+   "is_ranged": false,
+   "projectile_travel": 0.0,
+   "anchor": [
+    281.312,
+    163.508
+   ],
+   "attacker": [
+    674.754,
+    270.066
+   ]
+  },
+  "plant_slash": {
+   "cols": 8,
+   "rows": 6,
+   "frame_w": 593,
+   "frame_h": 398,
+   "frames": 47,
+   "fps": 30.0,
+   "peak_frame": 16,
+   "is_ranged": false,
+   "projectile_travel": 0.0,
+   "anchor": [
+    273.312,
+    174.508
+   ],
+   "attacker": [
+    666.754,
+    281.066
+   ]
+  },
+  "plant_smash": {
+   "cols": 8,
+   "rows": 5,
+   "frame_w": 647,
+   "frame_h": 324,
+   "frames": 39,
+   "fps": 30.0,
+   "peak_frame": 26,
+   "is_ranged": false,
+   "projectile_travel": 0.0,
+   "anchor": [
+    281.312,
+    174.508
+   ],
+   "attacker": [
+    674.754,
+    281.066
+   ]
+  },
+  "plant_cast": {
+   "cols": 8,
+   "rows": 10,
+   "frame_w": 689,
+   "frame_h": 350,
+   "frames": 74,
+   "fps": 30.0,
+   "peak_frame": 21,
+   "is_ranged": true,
+   "projectile_travel": 0.8999999761581421,
+   "anchor": [
+    206.312,
+    174.508
+   ],
+   "attacker": [
+    599.754,
+    281.066
+   ]
+  },
+  "plant_projectile": {
+   "cols": 8,
+   "rows": 12,
+   "frame_w": 471,
+   "frame_h": 331,
+   "frames": 93,
+   "fps": 30.0,
+   "peak_frame": 22,
+   "is_ranged": true,
+   "projectile_travel": 0.6499999761581421,
+   "anchor": [
+    64.312,
+    126.508
+   ],
+   "attacker": [
+    457.754,
+    233.066
+   ]
+  },
+  "plant_throw": {
+   "cols": 8,
+   "rows": 5,
+   "frame_w": 960,
+   "frame_h": 540,
+   "frames": 39,
+   "fps": 30.0,
+   "peak_frame": 19,
+   "is_ranged": true,
+   "projectile_travel": 0.6499999761581421,
+   "anchor": [
+    281.312,
+    174.508
+   ],
+   "attacker": [
+    674.754,
+    281.066
+   ]
+  },
+  "beast_bite": {
+   "cols": 8,
+   "rows": 5,
+   "frame_w": 589,
+   "frame_h": 265,
+   "frames": 39,
+   "fps": 30.0,
+   "peak_frame": 15,
+   "is_ranged": false,
+   "projectile_travel": 0.0,
+   "anchor": [
+    272.312,
+    165.508
+   ],
+   "attacker": [
+    665.754,
+    272.066
+   ]
+  },
+  "beast_gore": {
+   "cols": 8,
+   "rows": 5,
+   "frame_w": 628,
+   "frame_h": 270,
+   "frames": 39,
+   "fps": 30.0,
+   "peak_frame": 15,
+   "is_ranged": false,
+   "projectile_travel": 0.0,
+   "anchor": [
+    281.312,
+    168.508
+   ],
+   "attacker": [
+    674.754,
+    275.066
+   ]
+  },
+  "beast_slash": {
+   "cols": 8,
+   "rows": 7,
+   "frame_w": 566,
+   "frame_h": 414,
+   "frames": 50,
+   "fps": 30.0,
+   "peak_frame": 16,
+   "is_ranged": false,
+   "projectile_travel": 0.0,
+   "anchor": [
+    281.312,
+    174.508
+   ],
+   "attacker": [
+    674.754,
+    281.066
+   ]
+  },
+  "beast_smash": {
+   "cols": 8,
+   "rows": 5,
+   "frame_w": 651,
+   "frame_h": 324,
+   "frames": 39,
+   "fps": 30.0,
+   "peak_frame": 28,
+   "is_ranged": false,
+   "projectile_travel": 0.0,
+   "anchor": [
+    281.312,
+    174.508
+   ],
+   "attacker": [
+    674.754,
+    281.066
+   ]
+  },
+  "beast_cast": {
+   "cols": 8,
+   "rows": 7,
+   "frame_w": 650,
+   "frame_h": 324,
+   "frames": 51,
+   "fps": 30.0,
+   "peak_frame": 14,
+   "is_ranged": true,
+   "projectile_travel": 0.6499999761581421,
+   "anchor": [
+    281.312,
+    174.508
+   ],
+   "attacker": [
+    674.754,
+    281.066
+   ]
+  },
+  "beast_projectile": {
+   "cols": 8,
+   "rows": 10,
+   "frame_w": 514,
+   "frame_h": 356,
+   "frames": 78,
+   "fps": 30.0,
+   "peak_frame": 22,
+   "is_ranged": true,
+   "projectile_travel": 0.550000011920929,
+   "anchor": [
+    114.312,
+    151.508
+   ],
+   "attacker": [
+    507.754,
+    258.066
+   ]
+  },
+  "beast_throw": {
+   "cols": 8,
+   "rows": 8,
+   "frame_w": 693,
+   "frame_h": 413,
+   "frames": 59,
+   "fps": 30.0,
+   "peak_frame": 5,
+   "is_ranged": true,
+   "projectile_travel": 0.550000011920929,
+   "anchor": [
+    91.312,
+    162.508
+   ],
+   "attacker": [
+    484.754,
+    269.066
+   ]
+  },
+  "aquatic_bite": {
+   "cols": 8,
+   "rows": 6,
+   "frame_w": 367,
+   "frame_h": 297,
+   "frames": 42,
+   "fps": 30.0,
+   "peak_frame": 28,
+   "is_ranged": false,
+   "projectile_travel": 0.0,
+   "anchor": [
+    186.312,
+    174.508
+   ],
+   "attacker": [
+    579.754,
+    281.066
+   ]
+  },
+  "aquatic_gore": {
+   "cols": 8,
+   "rows": 5,
+   "frame_w": 763,
+   "frame_h": 371,
+   "frames": 39,
+   "fps": 30.0,
+   "peak_frame": 23,
+   "is_ranged": false,
+   "projectile_travel": 0.0,
+   "anchor": [
+    281.312,
+    174.508
+   ],
+   "attacker": [
+    674.754,
+    281.066
+   ]
+  },
+  "aquatic_slash": {
+   "cols": 8,
+   "rows": 5,
+   "frame_w": 470,
+   "frame_h": 304,
+   "frames": 39,
+   "fps": 30.0,
+   "peak_frame": 9,
+   "is_ranged": false,
+   "projectile_travel": 0.0,
+   "anchor": [
+    269.312,
+    174.508
+   ],
+   "attacker": [
+    662.754,
+    281.066
+   ]
+  },
+  "aquatic_smash": {
+   "cols": 8,
+   "rows": 6,
+   "frame_w": 692,
+   "frame_h": 428,
+   "frames": 44,
+   "fps": 30.0,
+   "peak_frame": 36,
+   "is_ranged": false,
+   "projectile_travel": 0.0,
+   "anchor": [
+    281.312,
+    174.508
+   ],
+   "attacker": [
+    674.754,
+    281.066
+   ]
+  },
+  "aquatic_cast": {
+   "cols": 8,
+   "rows": 10,
+   "frame_w": 286,
+   "frame_h": 392,
+   "frames": 80,
+   "fps": 30.0,
+   "peak_frame": 52,
+   "is_ranged": true,
+   "projectile_travel": 0.8999999761581421,
+   "anchor": [
+    -242.688,
+    174.508
+   ],
+   "attacker": [
+    150.754,
+    281.066
+   ]
+  },
+  "aquatic_projectile": {
+   "cols": 8,
+   "rows": 7,
+   "frame_w": 805,
+   "frame_h": 358,
+   "frames": 52,
+   "fps": 30.0,
+   "peak_frame": 35,
+   "is_ranged": true,
+   "projectile_travel": 0.550000011920929,
+   "anchor": [
+    281.312,
+    174.508
+   ],
+   "attacker": [
+    674.754,
+    281.066
+   ]
+  },
+  "aquatic_throw": {
+   "cols": 8,
+   "rows": 11,
+   "frame_w": 544,
+   "frame_h": 292,
+   "frames": 85,
+   "fps": 30.0,
+   "peak_frame": 22,
+   "is_ranged": true,
+   "projectile_travel": 0.699999988079071,
+   "anchor": [
+    281.312,
+    174.508
+   ],
+   "attacker": [
+    674.754,
+    281.066
+   ]
+  },
+  "reptile_bite": {
+   "cols": 8,
+   "rows": 6,
+   "frame_w": 581,
+   "frame_h": 303,
+   "frames": 45,
+   "fps": 30.0,
+   "peak_frame": 22,
+   "is_ranged": false,
+   "projectile_travel": 0.0,
+   "anchor": [
+    281.312,
+    174.508
+   ],
+   "attacker": [
+    674.754,
+    281.066
+   ]
+  },
+  "reptile_gore": {
+   "cols": 8,
+   "rows": 6,
+   "frame_w": 733,
+   "frame_h": 371,
+   "frames": 46,
+   "fps": 30.0,
+   "peak_frame": 15,
+   "is_ranged": false,
+   "projectile_travel": 0.0,
+   "anchor": [
+    242.312,
+    174.508
+   ],
+   "attacker": [
+    635.754,
+    281.066
+   ]
+  },
+  "reptile_slash": {
+   "cols": 8,
+   "rows": 7,
+   "frame_w": 591,
+   "frame_h": 454,
+   "frames": 50,
+   "fps": 30.0,
+   "peak_frame": 16,
+   "is_ranged": false,
+   "projectile_travel": 0.0,
+   "anchor": [
+    281.312,
+    174.508
+   ],
+   "attacker": [
+    674.754,
+    281.066
+   ]
+  },
+  "reptile_smash": {
+   "cols": 8,
+   "rows": 5,
+   "frame_w": 650,
+   "frame_h": 374,
+   "frames": 39,
+   "fps": 30.0,
+   "peak_frame": 38,
+   "is_ranged": false,
+   "projectile_travel": 0.0,
+   "anchor": [
+    281.312,
+    174.508
+   ],
+   "attacker": [
+    674.754,
+    281.066
+   ]
+  },
+  "reptile_cast": {
+   "cols": 8,
+   "rows": 8,
+   "frame_w": 680,
+   "frame_h": 350,
+   "frames": 59,
+   "fps": 30.0,
+   "peak_frame": 23,
+   "is_ranged": true,
+   "projectile_travel": 0.8999999761581421,
+   "anchor": [
+    218.312,
+    174.508
+   ],
+   "attacker": [
+    611.754,
+    281.066
+   ]
+  },
+  "reptile_projectile": {
+   "cols": 8,
+   "rows": 12,
+   "frame_w": 465,
+   "frame_h": 312,
+   "frames": 93,
+   "fps": 30.0,
+   "peak_frame": 22,
+   "is_ranged": true,
+   "projectile_travel": 0.6800000071525574,
+   "anchor": [
+    68.312,
+    115.508
+   ],
+   "attacker": [
+    461.754,
+    222.066
+   ]
+  },
+  "reptile_throw": {
+   "cols": 8,
+   "rows": 12,
+   "frame_w": 476,
+   "frame_h": 283,
+   "frames": 90,
+   "fps": 30.0,
+   "peak_frame": 6,
+   "is_ranged": true,
+   "projectile_travel": 0.699999988079071,
+   "anchor": [
+    76.312,
+    78.508
+   ],
+   "attacker": [
+    469.754,
+    185.066
+   ]
+  },
+  "bug_bite": {
+   "cols": 8,
+   "rows": 6,
+   "frame_w": 600,
+   "frame_h": 301,
+   "frames": 43,
+   "fps": 30.0,
+   "peak_frame": 22,
+   "is_ranged": false,
+   "projectile_travel": 0.0,
+   "anchor": [
+    281.312,
+    174.508
+   ],
+   "attacker": [
+    674.754,
+    281.066
+   ]
+  },
+  "bug_gore": {
+   "cols": 8,
+   "rows": 5,
+   "frame_w": 825,
+   "frame_h": 402,
+   "frames": 39,
+   "fps": 30.0,
+   "peak_frame": 15,
+   "is_ranged": false,
+   "projectile_travel": 0.0,
+   "anchor": [
+    281.312,
+    174.508
+   ],
+   "attacker": [
+    674.754,
+    281.066
+   ]
+  },
+  "bug_slash": {
+   "cols": 8,
+   "rows": 7,
+   "frame_w": 584,
+   "frame_h": 417,
+   "frames": 50,
+   "fps": 30.0,
+   "peak_frame": 16,
+   "is_ranged": false,
+   "projectile_travel": 0.0,
+   "anchor": [
+    281.312,
+    174.508
+   ],
+   "attacker": [
+    674.754,
+    281.066
+   ]
+  },
+  "bug_smash": {
+   "cols": 8,
+   "rows": 5,
+   "frame_w": 650,
+   "frame_h": 324,
+   "frames": 39,
+   "fps": 30.0,
+   "peak_frame": 28,
+   "is_ranged": false,
+   "projectile_travel": 0.0,
+   "anchor": [
+    281.312,
+    174.508
+   ],
+   "attacker": [
+    674.754,
+    281.066
+   ]
+  },
+  "bug_cast": {
+   "cols": 8,
+   "rows": 9,
+   "frame_w": 736,
+   "frame_h": 387,
+   "frames": 70,
+   "fps": 30.0,
+   "peak_frame": 21,
+   "is_ranged": true,
+   "projectile_travel": 0.8999999761581421,
+   "anchor": [
+    210.312,
+    174.508
+   ],
+   "attacker": [
+    603.754,
+    281.066
+   ]
+  },
+  "bug_projectile": {
+   "cols": 8,
+   "rows": 11,
+   "frame_w": 498,
+   "frame_h": 336,
+   "frames": 81,
+   "fps": 30.0,
+   "peak_frame": 22,
+   "is_ranged": true,
+   "projectile_travel": 0.699999988079071,
+   "anchor": [
+    91.312,
+    135.508
+   ],
+   "attacker": [
+    484.754,
+    242.066
+   ]
+  },
+  "bug_throw": {
+   "cols": 8,
+   "rows": 8,
+   "frame_w": 497,
+   "frame_h": 340,
+   "frames": 57,
+   "fps": 30.0,
+   "peak_frame": 25,
+   "is_ranged": true,
+   "projectile_travel": 0.699999988079071,
+   "anchor": [
+    90.312,
+    139.508
+   ],
+   "attacker": [
+    483.754,
+    246.066
+   ]
+  },
+  "bird_bite": {
+   "cols": 8,
+   "rows": 6,
+   "frame_w": 309,
+   "frame_h": 292,
+   "frames": 44,
+   "fps": 30.0,
+   "peak_frame": 22,
+   "is_ranged": false,
+   "projectile_travel": 0.0,
+   "anchor": [
+    165.312,
+    174.508
+   ],
+   "attacker": [
+    558.754,
+    281.066
+   ]
+  },
+  "bird_gore": {
+   "cols": 8,
+   "rows": 6,
+   "frame_w": 778,
+   "frame_h": 360,
+   "frames": 47,
+   "fps": 30.0,
+   "peak_frame": 27,
+   "is_ranged": false,
+   "projectile_travel": 0.0,
+   "anchor": [
+    281.312,
+    160.508
+   ],
+   "attacker": [
+    674.754,
+    267.066
+   ]
+  },
+  "bird_slash": {
+   "cols": 8,
+   "rows": 7,
+   "frame_w": 456,
+   "frame_h": 296,
+   "frames": 50,
+   "fps": 30.0,
+   "peak_frame": 17,
+   "is_ranged": false,
+   "projectile_travel": 0.0,
+   "anchor": [
+    281.312,
+    174.508
+   ],
+   "attacker": [
+    674.754,
+    281.066
+   ]
+  },
+  "bird_smash": {
+   "cols": 8,
+   "rows": 6,
+   "frame_w": 572,
+   "frame_h": 231,
+   "frames": 47,
+   "fps": 30.0,
+   "peak_frame": 26,
+   "is_ranged": false,
+   "projectile_travel": 0.0,
+   "anchor": [
+    248.312,
+    174.508
+   ],
+   "attacker": [
+    641.754,
+    281.066
+   ]
+  },
+  "bird_cast": {
+   "cols": 8,
+   "rows": 12,
+   "frame_w": 649,
+   "frame_h": 305,
+   "frames": 89,
+   "fps": 30.0,
+   "peak_frame": 20,
+   "is_ranged": true,
+   "projectile_travel": 0.8999999761581421,
+   "anchor": [
+    116.312,
+    134.508
+   ],
+   "attacker": [
+    509.754,
+    241.066
+   ]
+  },
+  "bird_projectile": {
+   "cols": 8,
+   "rows": 9,
+   "frame_w": 753,
+   "frame_h": 378,
+   "frames": 69,
+   "fps": 30.0,
+   "peak_frame": 30,
+   "is_ranged": true,
+   "projectile_travel": 0.6000000238418579,
+   "anchor": [
+    281.312,
+    174.508
+   ],
+   "attacker": [
+    674.754,
+    281.066
+   ]
+  },
+  "bird_throw": {
+   "cols": 8,
+   "rows": 7,
+   "frame_w": 515,
+   "frame_h": 266,
+   "frames": 52,
+   "fps": 30.0,
+   "peak_frame": 40,
+   "is_ranged": true,
+   "projectile_travel": 0.699999988079071,
+   "anchor": [
+    43.312,
+    68.508
+   ],
+   "attacker": [
+    436.754,
+    175.066
+   ]
+  }
+ }
+}

@@ -251,6 +251,10 @@ static func flashes_suppressed() -> bool:
 @onready var _scrim: TextureRect = %Scrim
 @onready var _backdrop: BattleBackdrop = %Background
 @onready var _unit_visuals_root: Control = %UnitVisualsRoot
+## The Origins skill-VFX plate. Created on first use rather than placed in Combat.tscn so it
+## can be made UnitVisualsRoot's FIRST child: it must draw over the 3D stage but under the
+## portraits, nameplates and damage numbers that are this root's other children.
+var _skill_vfx: SkillVfxLayer = null
 @onready var _result_overlay: Control = %ResultOverlay
 @onready var _result_label: Label = %ResultLabel
 @onready var _deck_left_column: VBoxContainer = %DeckLeftColumn
@@ -2726,9 +2730,14 @@ func _on_face_used(uid: int, _side: String, target_uid: int, aoe: bool, face_par
 	var show_aoe_tag := aoe and face_type != "mana" and face_type != "summon"
 	_append_log("[use] %s -> %s (%s/%s)%s" % [_unit_name(uid), tgt, face_part, face_type, " [AOE]" if show_aoe_tag else ""])
 	if is_instance_valid(_stage3d):
-		_stage3d.play_action(uid, face_type, target_uid)   # "ra chiêu" — clip/pace varies by
-			# face_type (_ACTION_ANIM_BY_TYPE), and `target_uid` is what lets the lunge aim at
-			# the unit being hit instead of just stepping forward (_play_action_motion())
+		# The clip is resolved HERE, not in the stage: this is the side that can see the Unit
+		# (class, key, boss flag) and the face's body part. The stage only needs to know
+		# whether it came out ranged, which decides lunge vs plant-and-fire.
+		var vfx_key := _vfx_key_for(uid, face_part, face_type)
+		_stage3d.play_action(uid, face_type, target_uid, vfx_key)   # "ra chiêu" — clip/pace
+			# varies by face_type (_ACTION_ANIM_BY_TYPE), and `target_uid` is what lets the
+			# lunge aim at the unit being hit instead of just stepping forward
+		_play_skill_vfx(uid, target_uid, vfx_key)
 
 func _on_resonance_triggered(uid: int) -> void:
 	_append_log("[resonance] %s" % _unit_name(uid))
@@ -3482,6 +3491,72 @@ func _party_dice_units() -> Array:
 			out.append(u)
 	out.sort_custom(func(a, b): return a.roster_index < b.roster_index)
 	return out
+
+
+## The VFX layer, built on demand. Kept out of Combat.tscn on purpose — see the field.
+func _ensure_skill_vfx() -> SkillVfxLayer:
+	if is_instance_valid(_skill_vfx):
+		return _skill_vfx
+	if not is_instance_valid(_unit_visuals_root):
+		return null
+	_skill_vfx = SkillVfxLayer.new()
+	_skill_vfx.name = "SkillVfxLayer"
+	_unit_visuals_root.add_child(_skill_vfx)
+	_unit_visuals_root.move_child(_skill_vfx, 0)
+	return _skill_vfx
+
+
+## The Origins clip for a unit using a face, or "" when there is none. The voice class is
+## CombatAudio's, so a monster with no class of its own picks the same family its sounds come
+## from and the two cannot disagree.
+func _vfx_key_for(uid: int, face_part: String, face_type: String) -> String:
+	if _combat == null:
+		return ""
+	var u := _combat.by_uid(uid)
+	if u == null:
+		return ""
+	var voice := CombatAudio.voice_class(u.cls, u.key, u.is_boss)
+	return SkillVfxCatalog.clip_key(voice, face_part, face_type)
+
+
+## Draws `clip_key` between the two units. Both screen positions come from the same projection
+## and the same stage-offset rebasing _layout_unit_visuals() uses, so the effect sits in the
+## overlay space the portraits already agree on. A face with no target (AoE, or a self-buff)
+## aims at the attacker's own row-forward direction by borrowing the first live opponent, and
+## failing that plays on the spot.
+func _play_skill_vfx(uid: int, target_uid: int, clip_key: String) -> void:
+	if clip_key == "" or not is_instance_valid(_stage3d):
+		return
+	var layer := _ensure_skill_vfx()
+	if layer == null:
+		return
+	var offset: Vector2 = _stage3d.position
+	var a := _stage3d.get_unit_screen_pos(uid, CombatStage3D.HEAD_HEIGHT)
+	if a.x < 0.0:
+		return
+	var tgt := target_uid
+	if tgt < 0 or tgt == uid:
+		tgt = _first_opposing_uid(uid)
+	var b := _stage3d.get_unit_screen_pos(tgt, CombatStage3D.HEAD_HEIGHT) if tgt >= 0 \
+		else Vector2(-1, -1)
+	if b.x < 0.0:
+		b = a + Vector2(0.0, -120.0 if _combat_is_enemy_uid(uid) else 120.0)
+	layer.play(clip_key, a + offset, b + offset)
+
+
+## Somebody on the other side who is still alive, for a face that named no single target.
+func _first_opposing_uid(uid: int) -> int:
+	if _combat == null:
+		return -1
+	var want_enemy := not _combat_is_enemy_uid(uid)
+	for other in _portraits.keys():
+		var o := int(other)
+		if _combat_is_enemy_uid(o) != want_enemy:
+			continue
+		var u := _combat.by_uid(o)
+		if u != null and u.hp > 0:
+			return o
+	return -1
 
 
 func _unit_name(uid: int) -> String:

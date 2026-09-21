@@ -52,6 +52,7 @@ func _ready() -> void:
 	await _test_a_rigless_monster_lunges_at_its_target(tree, enemy.uid, ally.uid)
 	await _test_a_support_face_stays_on_its_mark(tree, ally.uid)
 	await _test_dying_mid_lunge_puts_the_slot_back(tree, enemy.uid, ally.uid)
+	await _test_a_ranged_face_plants_instead_of_lunging(tree, ally.uid, enemy.uid)
 
 	CombatView.disable_juice_for_tests = false
 	if _fails.is_empty():
@@ -139,6 +140,51 @@ func _test_dying_mid_lunge_puts_the_slot_back(tree: SceneTree, uid: int,
 	_check(slot.position.distance_to(rest) < 0.01,
 		"killing a unit mid-lunge left its slot at %s instead of its mark %s — the death fade "
 		% [slot.position, rest] + "and the lunge are now fighting over the same properties")
+
+
+## A RANGED face must not lunge. The kit's own capture marks cast/projectile/throw as
+## `isRanged`, and CombatStage3D reads that flag to decide whether the attacker closes the
+## distance or plants and lets the effect cover it. Asserted against a MELEE face on the same
+## unit and the same target, so a bug that simply disabled all motion cannot pass this.
+##
+## This lives here rather than in t_skill_vfx.gd because it is a MOTION assertion, and this is
+## the only file in the suite that runs with juice on — see the class comment.
+func _test_a_ranged_face_plants_instead_of_lunging(tree: SceneTree, uid: int,
+		target_uid: int) -> void:
+	var entry: Dictionary = _stage._units.get(uid, {})
+	var slot: Node3D = entry.get("slot")
+	var rest: Vector3 = entry.get("rest_pos")
+
+	var melee_key := SkillVfxCatalog.clip_key("plant", "mouth", "dmg")
+	var ranged_key := SkillVfxCatalog.clip_key("plant", "eyes", "debuff")
+	_check(melee_key != "" and not SkillVfxCatalog.is_ranged(melee_key),
+		"expected a mouth/dmg face to resolve to a MELEE clip, got '%s' (ranged=%s)"
+		% [melee_key, SkillVfxCatalog.is_ranged(melee_key)])
+	_check(ranged_key != "" and SkillVfxCatalog.is_ranged(ranged_key),
+		"expected an eyes/debuff face to resolve to a RANGED clip, got '%s' (ranged=%s)"
+		% [ranged_key, SkillVfxCatalog.is_ranged(ranged_key)])
+
+	# Melee first, as the control: the same call path DOES move this unit.
+	_stage.play_action(uid, "dmg", target_uid, melee_key)
+	await tree.create_timer(CombatStage3D._LUNGE_OUT).timeout
+	var melee_moved := slot.position.distance_to(rest)
+	await tree.create_timer(CombatStage3D._LUNGE_HOLD + CombatStage3D._LUNGE_BACK + 0.15).timeout
+
+	_stage.play_action(uid, "debuff", target_uid, ranged_key)
+	await tree.create_timer(CombatStage3D._LUNGE_OUT).timeout
+	var ranged_moved := slot.position.distance_to(rest)
+	await tree.create_timer(CombatStage3D._CAST_RISE * 2.0 + 0.2).timeout
+
+	_check(melee_moved > 0.05,
+		"the melee control did not lunge (%.4fm) — this case cannot tell you anything about "
+		% melee_moved + "the ranged one until the control moves")
+	_check(ranged_moved < 0.001,
+		"a ranged face moved the attacker %.4fm off its mark; it should plant and let the "
+		% ranged_moved + "effect cover the distance (melee control moved %.4fm)" % melee_moved)
+	_check(not slot.scale.is_equal_approx(Vector3.ONE) or ranged_moved == 0.0,
+		"the ranged face produced no motion at all — a cast still has to dip and rise")
+	_check(slot.position.distance_to(rest) < 0.01,
+		"the unit was left off its mark at %s after the ranged face" % slot.position)
 
 
 func _synthetic_roster() -> Array:
