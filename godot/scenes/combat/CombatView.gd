@@ -3079,7 +3079,15 @@ func _update_actives() -> void:
 			slot.add_theme_stylebox_override(st, DangoTheme.solid_chip_style(
 				fill, 12, 3 if armed else 2, Vector2(0, 4)))
 		slot.pressed.connect(_on_active_pressed.bind(String(def.id)))
+		# Button is NOT a Container, so a plain child Control is never laid out: it keeps its
+		# minimum size at the button's top-left corner and spills over the chip's rounded
+		# border. The column has to anchor itself to the button's rect to sit centred in it.
 		var col := VBoxContainer.new()
+		col.set_anchors_preset(Control.PRESET_FULL_RECT)
+		col.offset_left = 0.0
+		col.offset_top = 0.0
+		col.offset_right = 0.0
+		col.offset_bottom = 0.0
 		col.mouse_filter = Control.MOUSE_FILTER_IGNORE   # the Button under it takes the click
 		col.alignment = BoxContainer.ALIGNMENT_CENTER
 		col.add_theme_constant_override("separation", 2)
@@ -3089,6 +3097,7 @@ func _update_actives() -> void:
 		icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 		icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 		icon.texture = _relic_icon_for(def)   # see _RELIC_ARCHETYPE_ICON / the task report
+		icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		icon.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 		col.add_child(icon)
 		var cost := Label.new()
