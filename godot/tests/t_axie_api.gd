@@ -50,6 +50,8 @@ const EXPECTED_TESTS: Array[String] = [
 	"test_availability_is_reported_rather_than_assumed",
 	"test_the_proxy_transport_produces_the_same_shape_as_curl",
 	"test_the_transport_is_chosen_by_what_the_build_can_actually_do",
+	"test_the_403_workaround_is_sent_on_both_curl_attempts",
+	"test_only_a_transport_failure_is_retried",
 ]
 
 var _failures: Array[String] = []
@@ -72,6 +74,8 @@ func _ready() -> void:
 	test_availability_is_reported_rather_than_assumed()
 	test_the_proxy_transport_produces_the_same_shape_as_curl()
 	test_the_transport_is_chosen_by_what_the_build_can_actually_do()
+	test_the_403_workaround_is_sent_on_both_curl_attempts()
+	test_only_a_transport_failure_is_retried()
 
 	for name in EXPECTED_TESTS:
 		if not _completed.has(name):
@@ -90,6 +94,53 @@ func _ready() -> void:
 
 func _done(test_name: String) -> void:
 	_completed.append(test_name)
+
+
+## The reported bug: "HTTP 403 error when using an ID to select". The addon author's fix is
+## one header — Apollo Server rejects anything it judges could be a cross-site form post
+## unless the caller opts into a CORS preflight — and this pins that it is actually sent, on
+## BOTH attempts, spelled exactly as the reference demo spells it.
+##
+## Also pins the thing that stopped the reference from being copied wholesale: its query asks
+## for `id, genes, newGenes`, and parse_response() throws out any axie with a null class or no
+## parts. A GET carrying the reference's own field list would turn the 403 into "No Axie with
+## that ID" — the same failure wearing a message that blames the player's typing.
+func test_the_403_workaround_is_sent_on_both_curl_attempts() -> void:
+	_assert(AxieApi.APOLLO_HEADER == "Apollo-Require-Preflight:true",
+		"the preflight header is '%s'; the reference demo sends "
+		% AxieApi.APOLLO_HEADER + "'Apollo-Require-Preflight:true' and this is the whole fix")
+
+	var url := AxieApi.build_get_url("123")
+	_assert(url.begins_with(AxieApi.ENDPOINT + "?query="),
+		"the GET retry should hit the gateway's query string, got '%s'" % url)
+	_assert(url.contains("123"), "the GET retry lost the axie id: %s" % url)
+	# Percent-encoded, so the field names appear as %20-separated text rather than raw.
+	var decoded := url.uri_decode()
+	for field in ["class", "parts", "newGenes", "specialGenes"]:
+		_assert(decoded.contains(field),
+			"the GET retry does not ask for '%s'; parse_response() rejects an axie without "
+			% field + "class or parts, so this retry would report 'No Axie with that ID'")
+	_assert(not decoded.contains("genes,"),
+		"the GET retry asks for the legacy 66-char `genes`; AxieDescriptor.from_genes() is a "
+		+ "512-bit decoder and would build a confident wrong Axie from it")
+	_assert(not url.contains(" "),
+		"the GET url carries a raw space and curl would treat it as a second argument: %s" % url)
+	_done("test_the_403_workaround_is_sent_on_both_curl_attempts")
+
+
+## The retry costs a whole round trip, so it may only fire when the first attempt never
+## reached a resolver. A mistyped id must NOT be asked twice: the gateway already answered,
+## the answer will not change this second, and the player would wait twice as long to be told
+## about a typo.
+func test_only_a_transport_failure_is_retried() -> void:
+	for err in ["blocked", "network", "empty", "bad_json"]:
+		_assert(AxieApi._worth_retrying(err),
+			"'%s' means the request never got through and should be retried as a GET" % err)
+	for err in ["not_found", "graphql", "bad_id", "io", "unavailable", ""]:
+		_assert(not AxieApi._worth_retrying(err),
+			"'%s' is the gateway having answered; retrying doubles the wait and changes "
+			% err + "nothing")
+	_done("test_only_a_transport_failure_is_retried")
 
 
 func _assert(cond: bool, msg: String) -> void:

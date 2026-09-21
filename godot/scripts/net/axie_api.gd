@@ -59,8 +59,23 @@ const QUERY := "query GetAxieDetail($axieId: ID!) {" \
 	+ " axie(axieId: $axieId) { id class newGenes" \
 	+ " parts { id name class type specialGenes } } }"
 
-## Where curl might live. Checked in order; the first one that exists wins.
+## Where curl might live. Checked in order; the first one that exists wins. If none do, a bare
+## `curl` is PROBED on PATH before giving up — see curl_path(). MacPorts, Nix and a Homebrew
+## prefix that is not /opt/homebrew all put it somewhere this list does not name, and the old
+## behaviour there was to report "curl was not found" and silently drop to the proxy.
 const CURL_PATHS: Array[String] = ["/usr/bin/curl", "/opt/homebrew/bin/curl", "/bin/curl"]
+
+## The header the gateway wants, and the one thing this file was missing.
+##
+## Apollo Server refuses any request it judges could have come from a cross-site form, unless
+## the caller opts in by sending a header that forces a CORS preflight. The addon author
+## (jaatster, godot-axie-mixer-3d examples/mixer_demo.gd) sends exactly this and reports it as
+## the workaround for the "HTTP 403 when importing by ID" report, so it is sent on BOTH curl
+## attempts below.
+##
+## Note the spelling: `Name:value` with no space. curl accepts either, and this matches the
+## reference byte for byte so a future reader diffing the two files sees no difference at all.
+const APOLLO_HEADER := "Apollo-Require-Preflight:true"
 
 const _PAYLOAD_PATH := "user://axie_query.json"
 
@@ -136,6 +151,24 @@ static func build_payload(id: String) -> String:
 	return JSON.stringify({"query": QUERY, "variables": {"axieId": id.strip_edges()}})
 
 
+## The same request as a GET, which is the shape the addon author's demo uses.
+##
+## GraphQL variables do not survive a plain query string as neatly, so the id is inlined into
+## the query text. That is safe HERE and only here: `request_axie()` has already put the id
+## through `is_valid_axie_id()`, which admits nothing but ASCII digits, so there is no quote to
+## break out of and nothing to inject. The whole string is percent-encoded on the way out
+## regardless.
+##
+## The FIELD SELECTION stays ours. The reference demo asks for `id, genes, newGenes`, which
+## this game cannot use: `parse_response()` rejects an axie with a null class or no parts, and
+## the Vault builds the die out of `parts`. Copying the reference wholesale would turn a 403
+## into "No Axie with that ID", which is a worse bug because it reads like the player's typo.
+static func build_get_url(id: String) -> String:
+	var query := "query { axie(axieId: \"%s\") { id class newGenes" % id.strip_edges() \
+		+ " parts { id name class type specialGenes } } }"
+	return "%s?query=%s" % [ENDPOINT, query.uri_encode()]
+
+
 ## Turns whatever curl produced into the one shape the rest of the game reads:
 ##   {ok: bool, err: String, axie: {id, class, genes, parts}}
 ##
@@ -203,11 +236,24 @@ static func _fail(err: String, message: String) -> Dictionary:
 
 ## The curl binary, or "" when there is none. Public because the Vault screen has to tell the
 ## player why the field is disabled instead of just disabling it.
+static var _probed_curl := ""      ## "" = not probed yet, "-" = probed and absent
+
+
 static func curl_path() -> String:
 	for p in CURL_PATHS:
 		if FileAccess.file_exists(p):
 			return p
-	return ""
+	# Nothing at a known path. Before declaring curl absent — which disables the import field —
+	# actually TRY it, the way the addon author's advice says to ("check that `curl --version`
+	# works in your terminal"). A machine where curl is on PATH but not in CURL_PATHS used to
+	# fall through to the proxy and, on a build with no proxy, to "curl was not found".
+	if _probed_curl == "":
+		if OS.get_name() == "Web":
+			_probed_curl = "-"
+		else:
+			var out: Array = []
+			_probed_curl = "curl" if OS.execute("curl", ["--version"], out, true) == 0 else "-"
+	return "" if _probed_curl == "-" else _probed_curl
 
 
 static func is_available() -> bool:
@@ -253,7 +299,11 @@ func request_axie(id: String) -> bool:
 			return true
 
 
+var _pending_id := ""      ## the id the running thread is fetching; read by the GET retry
+
+
 func _request_via_curl(id: String) -> bool:
+	_pending_id = id.strip_edges()
 	var f := FileAccess.open(_PAYLOAD_PATH, FileAccess.WRITE)
 	if f == null:
 		completed.emit(_fail("io", "Could not prepare the request."))
@@ -266,15 +316,60 @@ func _request_via_curl(id: String) -> bool:
 	return true
 
 
+## TWO ATTEMPTS, in this order, because they fail to different things.
+##
+## POST with a JSON body and GraphQL variables is the better request — the id travels as a
+## typed variable rather than as text spliced into a query — so it goes first. When the
+## gateway turns it away, the GET is the shape the addon author ships and reports working
+## against the same 403, so it is worth the second round trip.
+##
+## Only a TRANSPORT failure retries. `not_found` and `graphql` mean the gateway answered and
+## had an opinion; asking again the same second changes nothing and would double every
+## mistyped id's wait.
+##
+## `-S` is new alongside `-s`: silent mode alone swallows curl's own error text, so a DNS or
+## TLS failure arrived here as an empty body and got reported as "returned nothing". With -S
+## the reason reaches `parse_response()`.
 func _run(payload_abs: String, curl: String) -> void:
+	var first := parse_response_from(_curl_post(curl, payload_abs))
+	if bool(first.get("ok", false)) or not _worth_retrying(String(first.get("err", ""))):
+		_finish.call_deferred(first)
+		return
+	var second := parse_response_from(_curl_get(curl, _pending_id))
+	# The retry only speaks if it actually did better. A second failure reports the FIRST
+	# one's message: the POST is the request this game means to make, and its diagnosis is the
+	# honest one to show.
+	_finish.call_deferred(second if bool(second.get("ok", false)) else first)
+
+
+## Transport-level failures, i.e. "the request never reached a GraphQL resolver".
+static func _worth_retrying(err: String) -> bool:
+	return err in ["blocked", "network", "empty", "bad_json"]
+
+
+static func parse_response_from(attempt: Array) -> Dictionary:
+	return parse_response(int(attempt[0]), String(attempt[1]))
+
+
+static func _curl_post(curl: String, payload_abs: String) -> Array:
 	var out: Array = []
 	var code := OS.execute(curl, [
-		"-s", "-m", str(TIMEOUT_SECONDS), "-X", "POST", ENDPOINT,
+		"-s", "-S", "-m", str(TIMEOUT_SECONDS), "-X", "POST", ENDPOINT,
 		"-H", "Content-Type: application/json",
+		"-H", APOLLO_HEADER,
 		"-d", "@" + payload_abs,
 	], out, true)
-	var body := str(out[0]) if out.size() > 0 else ""
-	_finish.call_deferred(parse_response(code, body))
+	return [code, str(out[0]) if out.size() > 0 else ""]
+
+
+static func _curl_get(curl: String, id: String) -> Array:
+	var out: Array = []
+	var code := OS.execute(curl, [
+		"-s", "-S", "-m", str(TIMEOUT_SECONDS),
+		"-H", APOLLO_HEADER,
+		build_get_url(id),
+	], out, true)
+	return [code, str(out[0]) if out.size() > 0 else ""]
 
 
 func _finish(result: Dictionary) -> void:
