@@ -597,7 +597,12 @@ func _die_label(u: Unit) -> String:
 	if u.roll_used():
 		return "%s\nSPENT" % u.n
 	var f := u.current_face()
-	return "%s\n%s · %d" % [u.n, String(f.get("type", "")).to_upper(), int(f.get("value", 0))]
+	# The LIVE value — see CombatView._live_face_value(). The tutorial runs a real
+	# CombatEngine, so its party grows every turn like any other, and a lesson that shows one
+	# number and deals another is teaching the wrong thing.
+	var live := _combat._face_value(u, u.roll_face_index()) if _combat != null \
+		else int(f.get("value", 0))
+	return "%s\n%s · %d" % [u.n, String(f.get("type", "")).to_upper(), live]
 
 
 func _intent_text(e: Unit) -> String:
@@ -614,7 +619,9 @@ func _intent_text(e: Unit) -> String:
 		if t != null:
 			target_name = t.n
 	return "%s will use %s (%d) on %s." % [
-		e.n, String(f.get("type", "")).to_upper(), int(f.get("value", 0)), target_name]
+		e.n, String(f.get("type", "")).to_upper(),
+		(_combat._face_value(e, fi) if _combat != null else int(f.get("value", 0))),
+		target_name]
 
 
 func _disconnect_big_button() -> void:

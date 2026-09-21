@@ -2021,6 +2021,28 @@ func _inspect_context(col: VBoxContainer, u: Unit) -> void:
 		inner.add_child(b)
 
 
+## THE number a face will actually produce — and the ONLY one the player should ever be shown.
+##
+## `u.die[fi].value` is the face's PRINTED value and it is not what happens. CombatEngine folds
+## growth, vital-at-full-HP, blind, weaken, boss overdrive, the Aqua CONDUIT passive and the
+## hiveMind relic on top of it in `_face_value()`, and that is what `_do_face()` then deals. The
+## unit inspector has always shown that number; the die card, the damage preview and the enemy
+## intent badge were all reading the printed one, so a grown Axie's card said 3 while its own
+## inspector said 4 and it hit for 4 (bug report 2026-09-21). One number, one source, five call
+## sites.
+##
+## FLAGGED: `_face_value()` is private on CombatEngine and this is a reach-through. It is the
+## SAME reach-through _inspect_faces() has always made — this function exists so there is one
+## of them in this file rather than five. The better shape is a public read-only `face_value()`
+## on CombatEngine; it was not taken here because `scripts/core` is fingerprinted by
+## t_rules_version.gd and moving that fingerprint for a pure display fix buys nothing. Worth
+## doing the next time that file is opened for a real reason.
+func _live_face_value(u: Unit, fi: int) -> int:
+	if _combat == null or u == null or fi < 0 or fi >= u.die.size():
+		return 0
+	return _combat._face_value(u, fi)
+
+
 ## All six faces. Values come from CombatEngine._face_value(), NOT the raw face data: growth,
 ## weaken, blind, vital and overdrive all change what a face is worth right now, and a panel
 ## that showed the base number would be lying at exactly the moment the player consults it.
@@ -2630,7 +2652,7 @@ func _on_die_slot_hover(slot_index: int, entering: bool) -> void:
 				var fi := u.roll_face_index()
 				var f: Dictionary = u.die[fi]
 				if String(f.get("type", "")) == "dmg":
-					var value := int(f.get("value", 0))
+					var value := _live_face_value(u, fi)
 					for e in _combat.alive_enemies():
 						var p: UnitPortrait = _portraits.get(e.uid)
 						if p != null:
@@ -2660,7 +2682,7 @@ func _on_enemy_intent_hover(uid: int, hovering: bool) -> void:
 		return
 	var p: UnitPortrait = _portraits.get(tgt_uid)
 	if p != null:
-		p.set_preview_damage(int(f.get("value", 0)))
+		p.set_preview_damage(_live_face_value(e, fi))
 
 
 func _clear_all_previews() -> void:
@@ -3139,7 +3161,11 @@ func _apply_intent_to_hud(hud: UnitHeadHUD, u: Unit) -> void:
 	var f: Dictionary = u.die[fi]
 	var tgt_uid := int(u.intent.get("target_uid", -1))
 	var tgt_name := _unit_name(tgt_uid) if tgt_uid >= 0 else "?"
-	hud.set_intent(true, String(f.get("type", "")), int(f.get("value", 0)), tgt_name)
+	# Live, not printed. This one matters most: rule spec §2 is "minh bạch triệt để" — the
+	# telegraph is a promise about what is coming — and _incoming_damage_for() a few lines
+	# down already computed the at-risk slice from _face_value(), so a weakened or overdriven
+	# enemy showed one number on its badge and a different one on its target's HP bar.
+	hud.set_intent(true, String(f.get("type", "")), _live_face_value(u, fi), tgt_name)
 
 
 func _update_dice_tray() -> void:
@@ -3287,7 +3313,7 @@ func _update_die_slot_content(content: Dictionary, u: Unit) -> void:
 	var fi := u.roll_face_index()
 	var f: Dictionary = u.die[fi]
 	var face_type := String(f.get("type", ""))
-	var value := int(f.get("value", 0))
+	var value := _live_face_value(u, fi)   # live, not printed — see _live_face_value()
 	var col := DangoTheme.die_type_color(face_type)
 
 	type_icon_rect.texture = _face_icon_for(face_type)

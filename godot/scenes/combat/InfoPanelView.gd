@@ -110,8 +110,13 @@ func _die_rows(u: Unit) -> String:
 		var mark := " <-- rolled" if i == cur else ""
 		var kws: Array = f.get("keywords", [])
 		var kw_text := (" [" + ", ".join(kws) + "]") if not kws.is_empty() else ""
+		# LIVE value, not the printed one. Same fix as the die card and the intent badge
+		# (CombatView._live_face_value()): growth/vital/blind/weaken/overdrive all land on
+		# top of `value`, and a reference panel that disagrees with the card next to it is
+		# worse than no panel.
+		var live := _combat._face_value(u, i) if _combat != null else int(f.get("value", 0))
 		s += "  %d. %s %s %d%s%s\n" % [i + 1, String(f.get("part", "")).to_upper(),
-			String(f.get("type", "")), int(f.get("value", 0)), kw_text, mark]
+			String(f.get("type", "")), live, kw_text, mark]
 	return s
 
 
