@@ -435,8 +435,14 @@ const _DEFAULT_ACTION_ANIM := {"clip": AnimNames.WalkAttack, "time_scale": 1.0}
 const _LUNGE_FRACTION := 0.35   ## how far toward the target, as a fraction of the real gap —
 	## a fraction rather than a fixed distance so the enemy row (spacing 5.1) and the party row
 	## (spacing 1.455) both read as "a step toward them" instead of one lunging past its target.
-const _LUNGE_MAX := 1.1         ## metres. The cap matters on cross-field attacks, where 35% of
-	## ~12m would throw the model into the middle of the board.
+const _LUNGE_MAX := 2.6         ## metres. This cap, not _LUNGE_FRACTION, is what every real
+	## lunge uses: the only faces that lunge are dmg/poison/debuff, all of which pick a target
+	## in the OTHER row, and that gap is ~11.7m, so 35% of it (4.08m) is always clipped to here.
+	## Raised from 1.1 on request ("tôi muốn quái đánh đã hơn"): at 1.1 the measured on-screen
+	## step was ~16px against a 170px-wide monster sprite, which reads as a lean rather than a
+	## strike. 2.6 still leaves the attacker at z=-3.9 from a rest of -6.5, well inside its own
+	## half of a board whose midline is 0, so it does not "throw the model into the middle of
+	## the board" the way 35% of the raw gap would.
 const _LUNGE_OUT := 0.13
 const _LUNGE_HOLD := 0.05
 const _LUNGE_BACK := 0.20
