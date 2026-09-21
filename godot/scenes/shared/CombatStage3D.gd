@@ -587,8 +587,13 @@ func _make_ground_shadow(width: float) -> MeshInstance3D:
 ## false/"") are the same Unit.is_boss/Unit.key fields CombatView._spawn_portrait() already has
 ## on hand — optional/defaulted so every existing call site (including t_stage3d_facing.gd/
 ## t_stage3d_pick.gd, which construct units with no boss concept at all) keeps working unchanged.
+## `genes` is the 512-bit Origin gene string of an IMPORTED Axie, or "" for everything else.
+## When it is set the party rig is built from those genes instead of the generic per-class
+## descriptor, which is what puts the player's own Axie on the battlefield rather than a
+## stand-in wearing its class colour. The Vault card already drew it this way; combat did not,
+## and that mismatch was the report ("không hiển thị art của Vault Axie trong trận").
 func spawn_unit(uid: int, cls: String, is_enemy: bool, slot_index: int, slot_count: int,
-		is_boss: bool = false, unit_key: String = "") -> void:
+		is_boss: bool = false, unit_key: String = "", genes: String = "") -> void:
 	var sheet_sprite_name := ""       # see the MonsterAnim block further down
 	var sheet_target: Sprite3D = null
 	var slot := Node3D.new()
@@ -631,13 +636,22 @@ func spawn_unit(uid: int, cls: String, is_enemy: bool, slot_index: int, slot_cou
 		# _make_enemy_sprite() used to derive pixel_size from target_height in the first place.
 		shadow_width = float(tex.get_width()) * sprite.pixel_size
 	else:
-		var desc := AxieDescriptor.new()
-		desc.body = AxieTypes.Body.NORMAL
-		if is_named_boss and _BOSS_COLOR_VARIANT.has(unit_key):
-			desc.color_variant = int(_BOSS_COLOR_VARIANT[unit_key])
-		else:
-			desc.color_variant = _ENEMY_COLOR_VARIANT if is_enemy else int(_CLASS_COLOR_VARIANT.get(cls, _ENEMY_COLOR_VARIANT))
-		desc.parts = _build_parts(cls)
+		var desc: AxieDescriptor = null
+		# Real genes win, and only for a PARTY unit: an enemy has no Axie behind it, and an
+		# imported Axie is never on the enemy side.
+		if not is_enemy and not genes.strip_edges().is_empty():
+			desc = AxieDescriptor.from_genes(genes.strip_edges())
+		if desc == null:
+			# No genes, or a gene string the decoder would not take — an Axie minted before the
+			# Origin format has an empty `newGenes`, and the Vault stores that as "". Falling
+			# back to the generic class body is what keeps those importable at all.
+			desc = AxieDescriptor.new()
+			desc.body = AxieTypes.Body.NORMAL
+			if is_named_boss and _BOSS_COLOR_VARIANT.has(unit_key):
+				desc.color_variant = int(_BOSS_COLOR_VARIANT[unit_key])
+			else:
+				desc.color_variant = _ENEMY_COLOR_VARIANT if is_enemy else int(_CLASS_COLOR_VARIANT.get(cls, _ENEMY_COLOR_VARIANT))
+			desc.parts = _build_parts(cls)
 
 		character = AxieCharacter3D.from_descriptor(desc)
 		if character != null and character.root != null:

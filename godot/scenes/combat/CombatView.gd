@@ -2200,7 +2200,12 @@ func _spawn_portrait(u: Unit, is_enemy: bool, slot_index: int, slot_count: int) 
 	_unit_visuals_root.add_child(hud)
 	_head_huds[u.uid] = hud
 
-	_stage3d.spawn_unit(u.uid, u.cls, is_enemy, slot_index, slot_count, u.is_boss, u.key)
+	# An imported Axie's genes ride along so the stage can build its real body. They live on
+	# the hero def MetaState._register_vault_hero() published into ContentDB, which is the only
+	# place that knows this key came from the Vault — Unit deliberately carries no gene field,
+	# so nothing here reaches into the engine or changes what a run replays as.
+	var genes := String((ContentDB.heroes.get(u.key, {}) as Dictionary).get("genes", ""))
+	_stage3d.spawn_unit(u.uid, u.cls, is_enemy, slot_index, slot_count, u.is_boss, u.key, genes)
 	# The audio director only ever sees uids in `hit_landed`, so it needs each unit's voice
 	# up front. Heroes carry their own class; monsters have none and get one derived from the
 	# Chimera sprite they wear — without this every enemy in the game would be silent.
