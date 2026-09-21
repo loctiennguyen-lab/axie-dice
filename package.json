@@ -1,7 +1,7 @@
 {
-  "name": "axie-dice-tactics-tools",
+  "name": "axie-dice-tools",
   "version": "1.0.0",
-  "description": "Development and testing tooling for Axie Dice Tactics",
+  "description": "Development and testing tooling for Axie Dice",
   "devDependencies": {
     "playwright": "^1.48.0"
   }

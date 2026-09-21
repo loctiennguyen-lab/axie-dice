@@ -576,7 +576,7 @@ func _on_add_pressed() -> void:
 	# records are NOT repaired by this guard; they have to be removed and re-imported.
 	var genes := str(_pending_axie.get("genes", "")).strip_edges()
 	if genes.is_empty():
-		_status_label.text = "This Axie came back without gene data — nothing to build a die from."
+		_status_label.text = "This Axie came back without gene data, so there is nothing to build a die from."
 		_status_label.add_theme_color_override("font_color", DangoTheme.DANGER)
 		return
 
@@ -789,7 +789,7 @@ func _build_row(entry: Dictionary) -> PanelContainer:
 	# A stale record cannot be played at all (see the StaleBadge text above), so the button that
 	# would put it in a team is disabled rather than left live and refusing on the next screen.
 	use_btn.disabled = stale_card
-	use_btn.tooltip_text = ("Re-import this Axie before using it — its die was built under older"
+	use_btn.tooltip_text = ("Re-import this Axie before using it. Its die was built under older"
 		+ " rules.") if stale_card else "Puts this Axie in your team and opens Team Select."
 	use_btn.pressed.connect(_on_use_in_team_pressed.bind(str(entry.get("axie_id", ""))))
 	actions.add_child(use_btn)
@@ -864,7 +864,7 @@ func _build_die_strip(die: Array, cls: String = "") -> GridContainer:
 			row.add_child(part_icon)
 
 		var value_lbl := DangoTheme.display_label(
-			"—" if ftype == "blank" else str(value), 22, DangoTheme.INK)
+			"·" if ftype == "blank" else str(value), 22, DangoTheme.INK)
 		row.add_child(value_lbl)
 		# VLT-05 / G-01: 21+2*2 swatch holding its 13px type glyph. Was a bare 17px colour block —
 		# the exact "colour standing alone for a mechanic" G-01 removes. Shared builder.

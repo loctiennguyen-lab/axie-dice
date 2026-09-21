@@ -85,7 +85,17 @@ const WATCHED_FILES: Array[String] = ["res://assets/data/part_faces.json"]
 ## begin-block and enemy loop, written out verbatim, against the split path on the same seed and
 ## compares `to_data()` turn by turn. Its own break-tests are recorded in that file. `t_replay`,
 ## `t_vertical_slice`, `t_full_run_loop` and `t_combat_roundtrip` all still agree as well.
-const FINGERPRINT := "7ffc46059ecf91d309cac56b9dc8ebd6e0612bf2756d0036ceb132f084850abf"
+##
+## Moved, 2026-09-21, by the English/punctuation pass before the GitHub push. Six boss `desc`
+## strings in `ContentDB.gd` and one sentence each in `reward_generator.gd`,
+## `axie_gene_preview.gd` and `run_verifier.gd` lost an em dash; the boss descriptions also
+## gained a full stop where the dash used to be. RULES_VERSION was NOT bumped. Every one of
+## these is a string the player reads and nothing branches on: `desc` is drawn by the boss
+## intro and the codex, `reward_generator`'s is the LEVEL UP card's subtitle (selection reads
+## `key`/`tier`, never `desc`), `axie_gene_preview`'s is a Vault warning line, and
+## `run_verifier`'s is the text of an already-decided ERR_NOT_RANKED failure. `t_replay` still
+## verifies a full run to the same score.
+const FINGERPRINT := "9601b57f5049847a63336a0f1f71740c4956cce66eb8fc105360940d439e4c5c"
 
 
 func _ready() -> void:

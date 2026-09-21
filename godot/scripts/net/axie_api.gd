@@ -422,7 +422,7 @@ static func parse_proxy_response(result: int, code: int, body: String) -> Dictio
 		# from here. Saying both is honest; picking one would be a guess presented as a fact.
 		if code == 502:
 			return _fail("upstream",
-				"The Axie service could not look that ID up. Check the ID is right — if it is, "
+				"The Axie service could not look that ID up. Check the ID is right. If it is, "
 				+ "the service may be having trouble.")
 		return _fail("proxy", "The Axie service is not responding correctly (HTTP %d)." % code)
 

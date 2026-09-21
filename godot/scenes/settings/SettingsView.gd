@@ -61,7 +61,7 @@ func _ready() -> void:
 			MetaState.reduce_flash = on
 			MetaState.save_to_disk())
 	_body("Turns off the screen shake on a hit and the colour flash on a resonant Axie. "
-		+ "Dice, actions and damage numbers are untouched — those tell you what happened.")
+		+ "Dice, actions and damage numbers are untouched, because those tell you what happened.")
 
 	_section("HOW TO PLAY")
 	_body("The tutorial teaches one turn end to end: roll, spend, target, end. It is the same "
@@ -105,7 +105,7 @@ func _build_abandon_section() -> void:
 		_body("No run in progress.")
 		return
 
-	_body("A run is saved. Abandoning it deletes that save — the Axies, relics and Gene Shard "
+	_body("A run is saved. Abandoning it deletes that save. The Axies, relics and Gene Shard "
 		+ "in it are gone, and Gene Shard already banked from finished runs is not affected.")
 	var confirm := CheckBox.new()
 	confirm.name = "ConfirmAbandonCheck"

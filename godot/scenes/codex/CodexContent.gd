@@ -27,16 +27,16 @@ const TABS: Array = [
 ## The mockup draws the slot; this is the build's own copy for it, written off what each tab
 ## actually says rather than invented. It lives beside TABS so the two cannot fall out of step.
 const TAB_LEDE: Dictionary = {
-	"basic": "One run, one turn, one action — the loop everything else sits inside.",
+	"basic": "One run, one turn, one action: the loop everything else sits inside.",
 	"dice": "Every Axie is a six-sided die, and its six faces are its six body parts.",
 	"mana": "The shared party resource, where it comes from, and the only thing it buys.",
 	"kw": "Every keyword a face can carry, and exactly what it does when it lands.",
-	"st": "Every status a unit can be carrying — what applies it, and when it wears off.",
+	"st": "Every status a unit can be carrying, what applies it, and when it wears off.",
 	"cls": "The six classes and the always-on passive that gives each one its archetype.",
 	"relic": "The full relic pool, by rarity, with what each one hooks into.",
 	"reward": "What each node type puts in front of you, and what it costs to take it.",
 	"boss": "Six bosses, six mechanics. Three or four of them per run, in a random order.",
-	"diff": "Ascension — what each level stacks on top of the run before it.",
+	"diff": "Ascension: what each level stacks on top of the run before it.",
 }
 
 ## In-combat InfoPanel tabs: 3 live (built by InfoPanelView.gd itself) + 3 shared with Codex.
@@ -69,7 +69,7 @@ static func _basic() -> String:
 	var full_rows: int = int(mc["full"]["total_rows"])
 	var s := _H % "A RUN"
 	s += ("A run's map is a branching path of nodes: several node's are open on a row at once, "
-		+ "and every row funnels back down to a single mandatory node — a required fight, or a "
+		+ "and every row funnels back down to a single mandatory node: a required fight, or a "
 		+ "boss. Short mode is %d rows, Full is %d rows. After every node you clear, you pick "
 		+ "one of up to three rewards. After every fight your party heals to full and any "
 		+ "fallen Axie is revived, so the difficulty sits inside each individual fight rather "
@@ -85,7 +85,7 @@ static func _basic() -> String:
 	s += "\n" + (_H % "UNDO")
 	s += ("Undo restores a full snapshot of the turn, and that snapshot INCLUDES the game's "
 		+ "random-number cursor. Redoing the exact same action always reproduces the exact same "
-		+ "result — undo lets you change your mind about WHICH move to make, it does not let you "
+		+ "result. Undo lets you change your mind about WHICH move to make, it does not let you "
 		+ "re-roll for a better outcome. History is still cleared the moment you press Reroll or "
 		+ "End Turn (both draw new randomness), unless you are carrying the Infinite Die relic.\n\n")
 	s += _H % "WINNING AND LOSING"
@@ -100,7 +100,7 @@ static func _basic() -> String:
 static func _dice() -> String:
 	var s := _H % "A DIE IS AN AXIE"
 	s += ("Every Axie carries one six-sided die, and those six faces are its six body parts. "
-		+ "Class does not decide which part sits on which face — class decides the DISTRIBUTION "
+		+ "Class does not decide which part sits on which face. Class decides the DISTRIBUTION "
 		+ "of parts. The row of six small squares under each die shows all six faces, with the "
 		+ "current one lit.\n\n")
 	s += _H % "THE SIX PARTS"
@@ -117,13 +117,13 @@ static func _dice() -> String:
 		+ "Legendary faces makes it a GOLDEN DIE; a single Mythic face makes it a COSMIC DIE.\n\n")
 	s += _H % "WHY CRIT IS SHOWN BEFORE YOU ATTACK"
 	s += ("Crit is decided the moment the die lands, not when you use it, and is shown on the "
-		+ "face immediately — you always see everything before you commit to a turn.")
+		+ "face immediately, so you always see everything before you commit to a turn.")
 	return s
 
 
 static func _mana() -> String:
 	var s := _H % "WHAT MANA IS FOR"
-	s += ("Mana is a shared PARTY resource, spent on Lunacia Cards — the active relics with a "
+	s += ("Mana is a shared PARTY resource, spent on Lunacia Cards: the active relics with a "
 		+ "button along the bottom bar.\n\n")
 	s += _H % "EARNING MANA"
 	s += _table(["SOURCE", "DETAIL"], [
@@ -140,7 +140,7 @@ static func _mana() -> String:
 	])
 	s += "\n" + (_H % "SPENDING MANA")
 	s += ("The AQUA passive turns every 4 Mana SPENT this fight into 1 Reroll. Hoarding Mana "
-		+ "chokes off that reroll supply — spend steadily.\n\n")
+		+ "chokes off that reroll supply, so spend steadily.\n\n")
 	s += _H % "LUNACIA CARDS"
 	var rows: Array = []
 	for def in RelicRegistry.offerable_defs_sorted():
@@ -360,8 +360,8 @@ static func _reward() -> String:
 		["TREASURE", "A free reward with no risk."],
 	])
 	s += "\n" + (_H % "REWARD TYPES")
-	s += ("There are 7 reward types. Gene Mutation and Rune Imbue — replacing or adding a "
-		+ "single face — are not in the game yet.\n\n")
+	s += ("There are 7 reward types. Gene Mutation and Rune Imbue, which replace or add a "
+		+ "single face, are not in the game yet.\n\n")
 	s += _table(["TYPE", "EFFECT"], [
 		["LEVEL UP", "Promotes an Axie to the next tier: rewrites all six faces and Max HP."],
 		["ASCENSION", "For an Axie already at max tier: all six faces get 25% stronger, permanently, and it stacks without limit."],
@@ -394,7 +394,7 @@ static func _boss() -> String:
 
 static func _diff() -> String:
 	var mc: Dictionary = RunMapGenerator.MODE_CONFIG
-	var s := _H % "ASCENSION — THE DIFFICULTY CEILING"
+	var s := _H % "ASCENSION: THE DIFFICULTY CEILING"
 	s += "Every run you win unlocks the next Ascension level.\n\n"
 	s += _table(["LEVEL", "MODIFIER (STACKING)"], [
 		["A1", "+10% enemy HP"], ["A2", "+1 Elite per wave"], ["A3", "+10% enemy damage"],
@@ -412,7 +412,7 @@ static func _diff() -> String:
 	s += ("Die-select, Reroll, Undo, Info and Log are on-screen buttons; none of them has a "
 		+ "keyboard shortcut yet.\n\n")
 	s += _table(["KEY", "ACTION"], [
-		["Space", "End turn — the only keyboard shortcut so far"],
+		["Space", "End turn. The only keyboard shortcut so far"],
 	])
 	return s
 

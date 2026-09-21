@@ -33,7 +33,7 @@ docs/consistency-failures.md
 # === Build Output ===
 build/
 builds/
-AxieDiceTactics.html
+AxieDice.html
 bin/
 obj/
 out/

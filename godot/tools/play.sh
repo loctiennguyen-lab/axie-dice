@@ -40,5 +40,5 @@ if [[ $unscanned -gt 0 ]]; then
     || "$GODOT" --headless --path "$ROOT/godot" --editor --quit >/dev/null 2>&1 || true
 fi
 
-echo "Đang mở Axie Dice Tactics (Godot port) — màn hình đầu là MAIN MENU."
+echo "Đang mở Axie Dice (Godot port) — màn hình đầu là MAIN MENU."
 exec "$GODOT" --path "$ROOT/godot"

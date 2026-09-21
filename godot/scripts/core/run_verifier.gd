@@ -63,7 +63,7 @@ static func verify(log: ActionLog) -> Dictionary:
 			% [str(header.get("content_version", "?")), content_version])
 	if not bool(header.get("ranked", false)):
 		return _fail(ERR_NOT_RANKED,
-			"Only a ranked run can be verified — an unranked one starts from unlocks that exist "
+			"Only a ranked run can be verified. An unranked one starts from unlocks that exist "
 			+ "only on the player's own machine.")
 
 	var team: Array[String] = []

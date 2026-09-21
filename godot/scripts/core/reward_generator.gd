@@ -210,7 +210,7 @@ static func _make_level_reward(rng: Rng, roster: Array, out: Array[Dictionary]) 
 	return {
 		"t": "level", "persistent_id": int(picked.get("persistent_id", 0)), "key": next_key, "rar": 2,
 		"title": "LEVEL UP",
-		"desc": "%s — Tier %d → Tier %d" % [_hero_name(picked), cur_tier, next_tier],
+		"desc": "%s: Tier %d to Tier %d" % [_hero_name(picked), cur_tier, next_tier],
 		"sub": "Rewrites all six faces and Max HP",
 	}
 

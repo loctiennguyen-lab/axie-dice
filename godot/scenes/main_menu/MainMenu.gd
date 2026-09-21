@@ -182,7 +182,7 @@ func _build_title_block() -> void:
 
 	var subtitle := Label.new()
 	subtitle.text = ("Every Axie is a six-sided die and every face is a body part. "
-		+ "Enemies telegraph first — nothing in combat is hidden.")
+		+ "Enemies telegraph first, so nothing in combat is hidden.")
 	subtitle.custom_minimum_size = Vector2(530, 0)
 	subtitle.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	subtitle.add_theme_font_override("font", DangoTheme.FONT_UI_SEMI)

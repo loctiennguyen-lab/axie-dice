@@ -463,7 +463,7 @@ func _load_bosses() -> void:
 		"agony": {
 			"n": "NIGHTMARE AGONY", "trait": "phase", "hpk": 2.0, "hpk2": 2.5, "dmgk": 0.50,
 			"add_cap": 0, "adds": [],
-			"desc": "TWO PHASES — on defeat it heals to full and switches to a far deadlier die.",
+			"desc": "TWO PHASES. On defeat it heals to full and switches to a far deadlier die.",
 			"die": [
 				_f("m", "dmg", 16), _f("m", "dmg", 12, ["aoe"]), _f("m", "shield", 16),
 				_f("m", "dmg", 14, ["cleave"]), _f("m", "debuff", 0, ["blind:3"]), _f("m", "dmg", 20, ["pierce"]),
@@ -476,7 +476,7 @@ func _load_bosses() -> void:
 		"gooey_king": {
 			"n": "GOOEY KING", "trait": "split", "hpk": 3.7, "dmgk": 0.62,
 			"add_cap": 2, "adds": ["slime"],
-			"desc": "SPLIT — spawns a Gooey Slime at 2/3 and 1/3 HP.",
+			"desc": "SPLIT. Spawns a Gooey Slime at 2/3 and 1/3 HP.",
 			"die": [
 				_f("m", "dmg", 9), _f("m", "dmg", 7, ["cleave"]), _f("m", "shield", 9),
 				_f("m", "dmg", 6, ["aoe"]), _f("m", "dmg", 11), _f("m", "heal", 8),
@@ -486,7 +486,7 @@ func _load_bosses() -> void:
 		"mecha": {
 			"n": "MECHA CHIMERA", "trait": "thorns", "hpk": 3.3, "dmgk": 0.57,
 			"add_cap": 0, "adds": [],
-			"desc": "RETALIATE — always has Thorns. Every 3rd turn it enters OVERDRIVE and deals 50% more damage.",
+			"desc": "RETALIATE. Always has Thorns. Every 3rd turn it enters OVERDRIVE and deals 50% more damage.",
 			"die": [
 				_f("m", "dmg", 13), _f("m", "dmg", 9, ["aoe"]), _f("m", "shield", 14),
 				_f("m", "dmg", 11, ["cleave"]), _f("m", "dmg", 16, ["pierce"]), _f("m", "buff", 0, ["thorns:6"]),
@@ -495,7 +495,7 @@ func _load_bosses() -> void:
 		"frost_lord": {
 			"n": "FROST LORD", "trait": "freeze", "hpk": 3.2, "dmgk": 0.55,
 			"add_cap": 0, "adds": [],
-			"desc": "DEEP FREEZE — freezes one of your dice each turn. Frozen dice cannot be rerolled, but can still be used.",
+			"desc": "DEEP FREEZE. Freezes one of your dice each turn. Frozen dice cannot be rerolled, but can still be used.",
 			"die": [
 				_f("m", "dmg", 12, ["aoe"]), _f("m", "dmg", 15), _f("m", "shield", 13, ["aoe"]),
 				_f("m", "debuff", 0, ["freeze", "aoe"]), _f("m", "dmg", 18, ["pierce"]), _f("m", "heal", 12),
@@ -504,7 +504,7 @@ func _load_bosses() -> void:
 		"plague_mother": {
 			"n": "PLAGUE MOTHER", "trait": "summon", "hpk": 3.0, "dmgk": 0.54,
 			"add_cap": 3, "adds": ["bugling", "venomaw"],
-			"desc": "BROOD — summons a minion every 3 turns and stacks Poison relentlessly.",
+			"desc": "BROOD. Summons a minion every 3 turns and stacks Poison relentlessly.",
 			"die": [
 				_f("m", "poison", 7, ["aoe"]), _f("m", "dmg", 14), _f("m", "poison", 9),
 				_f("m", "dmg", 12, ["aoe"]), _f("m", "debuff", 0, ["weaken:4"]), _f("m", "heal", 14),
@@ -513,7 +513,7 @@ func _load_bosses() -> void:
 		"mirror": {
 			"n": "MIRROR CHIMERA", "trait": "mirror", "hpk": 2.9, "dmgk": 0.52,
 			"add_cap": 0, "adds": [],
-			"desc": "MIRROR — copies the strongest die face you used last turn and plays it back at you.",
+			"desc": "MIRROR. Copies the strongest die face you used last turn and plays it back at you.",
 			"die": [
 				_f("m", "dmg", 14), _f("m", "dmg", 10, ["aoe"]), _f("m", "shield", 15),
 				_f("m", "dmg", 12, ["cleave"]), _f("m", "dmg", 17, ["pierce"]), _f("m", "heal", 13),

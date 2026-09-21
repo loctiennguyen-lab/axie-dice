@@ -142,7 +142,7 @@ static func warning_text(report: Dictionary) -> String:
 	if resolved >= total and total == PART_COUNT:
 		return ""
 	var missing: Array = report.get("missing", [])
-	return "Showing %d/%d parts — the 3D kit has no art for: %s" % [
+	return "Showing %d/%d parts. The 3D kit has no art for: %s" % [
 		resolved, total, ", ".join(PackedStringArray(missing))
 	]
 

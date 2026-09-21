@@ -186,16 +186,16 @@ const _KEYWORD_LABEL := {
 	"vulnerable": "VULNERABLE", "mana": "MANA", "undying": "UNDYING",
 }
 
-## Player-facing translation table: die-face `part` -> Vietnamese action verb (review P0 #1,
-## "Buba cắm sừng Gooey Slime · 5"). Falls back to a generic verb for any part not in
-## ContentDB's small fixed set (mouth/horn/back/tail/ear/eye — CombatStage3D._PART_TYPES).
+## Player-facing verb per die-face `part` (review P0 #1: the log reads "Buba gores Gooey Slime
+## · 5", not "[use] Buba -> Gooey Slime (horn/dmg)"). Falls back to a generic verb for any part
+## outside ContentDB's fixed set (mouth/horn/back/tail/ear/eye, CombatStage3D._PART_TYPES).
 const _PART_VERB := {
-	"horn": "cắm sừng",
-	"mouth": "cắn",
-	"tail": "quật đuôi",
-	"ear": "gào thét",
-	"back": "xoay lưng đánh",
-	"eye": "nhìn trừng trừng",
+	"horn": "gores",
+	"mouth": "bites",
+	"tail": "whips",
+	"ear": "shrieks at",
+	"back": "body-slams",
+	"eye": "glares at",
 }
 
 ## Set to true ONLY by automated test setup, before instantiating Combat.tscn — see the
@@ -2125,7 +2125,7 @@ func _inspect_faces(col: VBoxContainer, u: Unit) -> void:
 		row.add_child(tile)
 
 		var value := DangoTheme.display_label(
-			"—" if face_type == "blank" else str(_combat._face_value(u, i)),
+			"·" if face_type == "blank" else str(_combat._face_value(u, i)),
 			24, DangoTheme.INK, 800)
 		value.custom_minimum_size = Vector2(30, 0)
 		value.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
@@ -2905,17 +2905,17 @@ func _player_hit_line(src_uid: int, tgt_uid: int, value: int, crit: bool) -> Str
 	var line: String
 	match face_type:
 		"heal":
-			line = "%s hồi máu cho %s" % [src, tgt]
+			line = "%s heals %s" % [src, tgt]
 		"shield":
-			line = "%s dựng khiên cho %s" % [src, tgt]
+			line = "%s shields %s" % [src, tgt]
 		"poison":
-			line = "%s đầu độc %s" % [src, tgt]
+			line = "%s poisons %s" % [src, tgt]
 		_:
-			var verb: String = _PART_VERB.get(part, "tấn công")
+			var verb: String = _PART_VERB.get(part, "hits")
 			line = "%s %s %s" % [src, verb, tgt]
 	line += " · %d" % value
 	if crit:
-		line += " (chí mạng)"
+		line += " (crit)"
 	return line
 
 
@@ -3449,12 +3449,12 @@ func _update_die_slot_content(content: Dictionary, u: Unit) -> void:
 	var kw_row: HBoxContainer = content.kw_row
 
 	if u.hp <= 0:
-		_show_die_slot_plain(content, "(gục)")
-		(content.button as Button).tooltip_text = "%s đã gục — xúc xắc này không dùng được." % u.n
+		_show_die_slot_plain(content, "(down)")
+		(content.button as Button).tooltip_text = "%s is down. This die cannot be used." % u.n
 		return
 	if not u.has_rolled():
-		_show_die_slot_plain(content, "(chưa roll)")
-		(content.button as Button).tooltip_text = "%s chưa roll xúc xắc lượt này." % u.n
+		_show_die_slot_plain(content, "(not rolled)")
+		(content.button as Button).tooltip_text = "%s has not rolled this turn." % u.n
 		return
 
 	plain_label.visible = false
@@ -3501,7 +3501,7 @@ func _update_die_slot_content(content: Dictionary, u: Unit) -> void:
 		var kw_tip: Dictionary = _effect_tip(kw_key)
 		var kw_head := String(_KEYWORD_LABEL.get(kw_key, kw_key.to_upper()))
 		tip_lines.append(kw_head if kw_tip.is_empty()
-			else "%s — %s" % [kw_head, String(kw_tip["rule"])])
+			else "%s: %s" % [kw_head, String(kw_tip["rule"])])
 	(content.button as Button).tooltip_text = "\n".join(tip_lines)
 
 	for k in (f.get("keywords", []) as Array):
@@ -3847,14 +3847,14 @@ func _finish(won: bool) -> void:
 		# RunState._generate_post_combat_rewards()'s ordering-fix note). This scene only ever
 		# changes scene; it never advances run state on the ordinary-win path.
 		if RunState.phase == RunState.RunPhase.WON:
-			_result_label.text = "BẠN THẮNG — RUN COMPLETE"
+			_result_label.text = "YOU WIN: RUN COMPLETE"
 			get_tree().change_scene_to_file("res://scenes/result/Result.tscn")
 		else:
-			_result_label.text = "BẠN THẮNG"
+			_result_label.text = "YOU WIN"
 			get_tree().change_scene_to_file("res://scenes/run_map/RunMap.tscn")
 	else:
 		_result_overlay.visible = true
-		_result_label.text = "BẠN THUA"
+		_result_label.text = "YOU LOSE"
 		get_tree().change_scene_to_file("res://scenes/result/Result.tscn")
 
 

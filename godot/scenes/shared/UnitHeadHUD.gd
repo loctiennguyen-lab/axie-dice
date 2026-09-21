@@ -289,7 +289,7 @@ func set_intent(has_intent: bool, face_type: String, value: int, target_name: St
 	if value > 0:
 		head = "%s %d → %s" % [what, value, target_name.to_upper()]
 	_intent_panel.tooltip_text = head + ("\nThis is exactly what this enemy does when the turn "
-		+ "ends — the telegraph is never a guess and never random.")
+		+ "ends. The telegraph is never a guess and never random.")
 
 
 ## A PARTY unit has no intent slot. The only path that hides this Control.
@@ -317,7 +317,7 @@ func _apply_inert_badge() -> void:
 	_intent_word.visible = true
 	_intent_word.text = "NO MOVE"
 	_intent_panel.tooltip_text = ("NO MOVE\nThis enemy rolled a blank face. It really does "
-		+ "nothing this turn — this is not a 0-damage attack.")
+		+ "nothing this turn. This is not a 0-damage attack.")
 
 
 ## HIDDEN. Same inert fill and ink — it is not an attack either, and the spec gives it no fill of
