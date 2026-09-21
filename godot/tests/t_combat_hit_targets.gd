@@ -30,6 +30,13 @@ const _VIEWPORT := Vector2i(1920, 1238)   # the shape the bug was reported at: 1
 	# column's own bottom edge sat at 1238-48 = 1190, which is why "the bottom of the card works
 	# and the rest does not" was the shape of the report.
 
+## SAVE GUARD. This test drives real combat, and combat writes: CombatView._ready() ends with
+## `_save_run_progress()`, and a finished fight banks into MetaState. Both land in the file a
+## real player's run history lives in. Every progression-touching gate in this suite borrows
+## and restores it — see save_guard.gd's own header for the measurement that made that a rule.
+var _guard := SaveGuard.new()
+
+
 var _view: Node2D
 var _fails: Array[String] = []
 var _checks := 0
@@ -39,6 +46,7 @@ func _ready() -> void:
 	var tree := get_tree()
 	CombatView.disable_juice_for_tests = true
 	print("=== t_combat_hit_targets: start ===")
+	_guard.capture()
 
 	# A window this size is what puts the Content column over the board. Headless still lays
 	# Controls out against the root viewport's size, so setting it here is enough.
@@ -77,10 +85,12 @@ func _ready() -> void:
 	if _fails.is_empty():
 		print("=== t_combat_hit_targets: %d checks, 0 failure(s) ===" % _checks)
 		print("t_combat_hit_targets: PASS — %d checks OK" % _checks)
+		_guard.restore()
 		tree.quit(0)
 	else:
 		for f in _fails:
 			print("t_combat_hit_targets: FAIL — %s" % f)
+		_guard.restore()
 		tree.quit(1)
 
 

@@ -1084,6 +1084,14 @@ func _play_action_motion(uid: int, entry: Dictionary, face_type: String,
 	tw.tween_property(slot, "scale", Vector3.ONE, _LUNGE_BACK) 		.set_delay(_LUNGE_OUT + _LUNGE_HOLD) 		.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 
 
+## How long the longest "ra chiêu" motion takes, end to end. CombatView spaces the enemy phase
+## by this (CombatView.enemy_step_gap()) so one monster is back on its mark before the next one
+## starts — "one at a time" is only true if the gap and the motion agree, and they live in
+## different files. The cast branch is the longer of the two, so it decides.
+static func action_motion_duration() -> float:
+	return maxf(_LUNGE_OUT + _LUNGE_HOLD + _LUNGE_BACK, _CAST_DIP + _CAST_RISE * 2.0)
+
+
 ## Cancels a lunge/cast in flight and puts the slot back exactly on its mark. Safe to call on
 ## a unit that never moved.
 func _stop_action_motion(entry: Dictionary) -> void:

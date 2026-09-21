@@ -65,7 +65,27 @@ const WATCHED_FILES: Array[String] = ["res://assets/data/part_faces.json"]
 ## default, and a vault Axie rolled six 0-value blank faces in real combat. It now rolls the die
 ## its own six body parts describe — the same actions produce a different run, which is the
 ## question this file exists to ask.
-const FINGERPRINT := "0aa93553d7efcdbe06a66690ad6ea0d174a6801498097751f3ac3aa207bb9d10"
+## Moved, 2026-09-21, by the end_turn() split: `combat_engine.gd` gained `can_end_turn()`,
+## `begin_end_turn()`, `step_end_turn_action()` and `finish_end_turn()`, and `end_turn()` is now
+## a wrapper that calls the three in order. RULES_VERSION was NOT bumped, and the answer to this
+## file's one question was not taken on faith.
+##
+## The change exists so CombatView can put a gap between enemies and let each one's attack
+## animation play; the engine gained no timing, no `await`, and no new state. The same actions
+## produce the same run because the split preserves the two things that could have moved:
+##   · the ENEMY LOOP body is the old one line for line, including where the party-wipe check
+##     sits — only a real `_exec_face()` can end the phase early, and a skipped or stunned
+##     enemy returns "keep going" exactly as the old `continue` did;
+##   · the stepper takes an INDEX and the caller re-reads `enemies.size()` every pass, so an
+##     enemy SUMMONED mid-phase still acts this turn. A list of uids captured up front would
+##     have dropped it, and that WOULD have been a rules change — it is the trap this split was
+##     most likely to fall into.
+##
+## `t_enemy_phase_pacing.gd` (new) is the evidence, not the assertion: it replays the pre-split
+## begin-block and enemy loop, written out verbatim, against the split path on the same seed and
+## compares `to_data()` turn by turn. Its own break-tests are recorded in that file. `t_replay`,
+## `t_vertical_slice`, `t_full_run_loop` and `t_combat_roundtrip` all still agree as well.
+const FINGERPRINT := "7ffc46059ecf91d309cac56b9dc8ebd6e0612bf2756d0036ceb132f084850abf"
 
 
 func _ready() -> void:

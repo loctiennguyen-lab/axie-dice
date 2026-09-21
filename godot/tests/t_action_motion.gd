@@ -15,6 +15,13 @@ extends Node
 ##
 ## Run: godot --headless --path godot res://tests/t_action_motion.tscn
 
+## SAVE GUARD. This test drives real combat, and combat writes: CombatView._ready() ends with
+## `_save_run_progress()`, and a finished fight banks into MetaState. Both land in the file a
+## real player's run history lives in. Every progression-touching gate in this suite borrows
+## and restores it — see save_guard.gd's own header for the measurement that made that a rule.
+var _guard := SaveGuard.new()
+
+
 var _stage: CombatStage3D
 var _view: Node2D
 var _fails: Array[String] = []
@@ -25,6 +32,7 @@ func _ready() -> void:
 	var tree := get_tree()
 	CombatView.disable_juice_for_tests = false   # the whole point — see the class comment
 	print("=== t_action_motion: start ===")
+	_guard.capture()
 
 	RunState.pending_combat = {
 		"node_id": "motion_node", "kind": "battle", "pw": 2, "ascension": 0,
@@ -49,10 +57,12 @@ func _ready() -> void:
 	if _fails.is_empty():
 		print("=== t_action_motion: %d checks, 0 failure(s) ===" % _checks)
 		print("t_action_motion: PASS — %d checks OK" % _checks)
+		_guard.restore()
 		tree.quit(0)
 	else:
 		for f in _fails:
 			print("t_action_motion: FAIL — %s" % f)
+		_guard.restore()
 		tree.quit(1)
 
 

@@ -982,11 +982,45 @@ func _neighbors_of(arr: Array, t: Unit) -> Array:
 # END_TURN
 # ===========================================================================
 
+## END TURN, in one call. Unchanged behaviour, and the ONLY entry point for anything that is
+## not pacing the enemy phase on screen: the tutorial, the run verifier, the bot and every test
+## call this and see exactly what they always saw.
+##
+## SPLIT 2026-09-21 into begin/step/finish (below) so CombatView can put a gap between enemies
+## and let each one's attack animation play. The engine gained no timing and no `await`: it
+## still resolves everything the instant it is asked to, and this wrapper still does the whole
+## turn inside one call stack. What changed is that the CALLER may now drive the loop itself.
+##
+## Making `end_turn()` itself a coroutine was the obvious alternative and is the wrong one. It
+## would turn nineteen synchronous call sites into nineteen places that must remember to
+## `await`, and one of them is `run_verifier.gd` — a referee that replays a log frame-free and
+## must not start depending on the scene tree's clock to reach a verdict.
 func end_turn() -> void:
-	if won or lost:
+	if not begin_end_turn():
 		return
-	if phase == CombatPhase.END_TURN:
-		return
+	# Index, not a snapshot of uids, and `enemies.size()` re-read every pass — see
+	# step_end_turn_action()'s comment for the summon case that makes the difference.
+	var i := 0
+	while i < enemies.size():
+		if not step_end_turn_action(i):
+			break
+		i += 1
+	finish_end_turn()
+
+
+## Whether end_turn() would do anything. Public because the view needs the same answer to
+## decide whether to start pacing a phase at all, and a second copy of the condition there is
+## how the two drift.
+func can_end_turn() -> bool:
+	return not won and not lost and phase != CombatPhase.END_TURN
+
+
+## Phase 1 of 3 — everything that happens BEFORE the first enemy acts. Returns false when the
+## call was rejected (already over, or already in END_TURN), in which case nothing moved and
+## the caller must not go on to step or finish.
+func begin_end_turn() -> bool:
+	if not can_end_turn():
+		return false
 	_log("end_turn", [])
 	_set_turn_phase(CombatPhase.END_TURN)
 	undo_stack = []
@@ -1001,19 +1035,49 @@ func end_turn() -> void:
 			DamagePipeline.resolve({"combat": self, "src": src, "tgt": t, "value": v, "attack": false})
 		EventBus.float_text.emit((src.uid if src != null else 0), "OVERFLOW %d" % v, "man", 1)
 		mana = 0
+	return true
 
-	for e in enemies:
-		if e.hp <= 0 or e.intent.is_empty():
-			continue
-		EventBus.enemy_intent_executed.emit(e.uid)
-		if int(e.status.get("stun", 0)) > 0:
-			e.status["stun"] = 0
-			EventBus.float_text.emit(e.uid, "STUNNED", "deb", 0)
-			continue
-		_exec_face(e, int(e.intent.get("target_uid", -1)))
-		if not _any_real_party_alive():
-			break
 
+## Phase 2 of 3 — resolve the enemy sitting at `index` in `enemies`, and answer "keep going?".
+## One call, one enemy, no timing of its own; the caller decides how long to wait before the
+## next one.
+##
+## BY INDEX, NOT BY UID, AND THE CALLER RE-READS `enemies.size()` EVERY PASS. This is the whole
+## fidelity question of the split. The loop it replaces was `for e in enemies`, and GDScript
+## re-reads an Array's size on every iteration — so an enemy SUMMONED by an earlier enemy this
+## same phase is reached and acts in the same turn. Handing the caller a list of uids taken
+## before the first enemy moved would quietly drop that summon: same inputs, different run,
+## which is exactly the kind of "refactor" this project's RULES_VERSION gate exists to catch.
+## Indices survive an append; a snapshot does not.
+##
+## Every guard below is the original loop body's, in the original order, including WHERE the
+## party-wipe check sits: only a real `_exec_face()` can end the phase early. A skipped enemy
+## (dead, or with no intent) and a stunned one both return true exactly as the old `continue`
+## did, so an enemy killed by an earlier enemy's thorns is passed over identically.
+func step_end_turn_action(index: int) -> bool:
+	if phase != CombatPhase.END_TURN or index < 0 or index >= enemies.size():
+		return true
+	var e: Unit = enemies[index]
+	if e.hp <= 0 or e.intent.is_empty():
+		return true
+	EventBus.enemy_intent_executed.emit(e.uid)
+	if int(e.status.get("stun", 0)) > 0:
+		e.status["stun"] = 0
+		EventBus.float_text.emit(e.uid, "STUNNED", "deb", 0)
+		return true
+	_exec_face(e, int(e.intent.get("target_uid", -1)))
+	return _any_real_party_alive()
+
+
+## Phase 3 of 3 — the status tick, the end check, and the next turn's setup. Runs whether the
+## phase ran to completion or broke early on a party wipe, which is what the original did too.
+##
+## The `phase` guard only catches a stray call: `_check_end()` never touches `phase`, so a win
+## or a loss inside the enemy phase still arrives here with END_TURN set and still ticks status
+## before returning — verified by reading _check_end(), not assumed.
+func finish_end_turn() -> void:
+	if phase != CombatPhase.END_TURN:
+		return
 	StatusEngine.tick_status(self)   # emits EventBus.status_tick once, at the end (see status_engine.gd)
 	if _check_end():
 		return

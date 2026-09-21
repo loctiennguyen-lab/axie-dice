@@ -223,6 +223,14 @@ static func impact_delay() -> float:
 	return 0.0 if disable_juice_for_tests else _IMPACT_DELAY
 
 
+## The pause between two enemies acting — see _run_enemy_phase(). Read off CombatStage3D's own
+## motion length rather than typed here, so "one at a time" cannot quietly become "two at once"
+## the day somebody retunes the lunge. Zero in test mode, which collapses the paced phase back
+## into the same single call stack every test has always seen.
+static func enemy_step_gap() -> float:
+	return 0.0 if disable_juice_for_tests else CombatStage3D.action_motion_duration()
+
+
 ## True when the impact effects must not play: a test asked for silence, or the PLAYER did
 ## (Settings -> Reduce flashing). Kept as one function so the two reasons can never drift into
 ## two different sets of suppressed effects — a setting that turns off some of the flashing is
@@ -2510,12 +2518,57 @@ func _start_reroll_toss(slot_indices: Array) -> void:
 				overlay.scale = Vector2.ONE)
 
 
+## END TURN, paced. The engine still resolves each enemy the instant it is asked to; what this
+## adds is the gap BETWEEN the asks, so each monster's attack animation finishes before the next
+## one starts. Before this the whole enemy phase was one call and one frame — invisible while
+## nothing on the field moved, and an unreadable pile-up the moment it did.
+##
+## Re-entrant by construction: pressing SPACE again mid-phase reaches `begin_end_turn()`, which
+## refuses because the phase is already END_TURN, and returns here immediately. The button is
+## disabled for the duration as well (see _update_end_turn_ui()), so the guard is the backstop
+## rather than the mechanism.
 func _on_end_turn_pressed() -> void:
-	_combat.end_turn()
 	_selected_die_uid = -1
 	_clear_all_previews()
+	if not _combat.begin_end_turn():
+		return
+	_rebuild_all()   # the phase flip and the turn banner go up BEFORE the first enemy moves
+	await _run_enemy_phase()
+	if not _still_running():
+		return
+	_combat.finish_end_turn()
 	_rebuild_all()
 	_save_run_progress()
+
+
+## Drives CombatEngine's enemy phase one enemy at a time.
+##
+## BY INDEX, AND `enemies.size()` IS RE-READ EVERY PASS — this mirrors the engine's own
+## `end_turn()` wrapper exactly, and for the same reason: an enemy summoned by an earlier enemy
+## must still act this turn. See CombatEngine.step_end_turn_action()'s comment.
+##
+## The trailing wait matters as much as the ones between: `finish_end_turn()` ticks poison and
+## burn, and without it those numbers would land on top of the last attacker's own.
+func _run_enemy_phase() -> void:
+	var gap := enemy_step_gap()
+	var i := 0
+	while i < _combat.enemies.size():
+		if not _combat.step_end_turn_action(i):
+			break
+		i += 1
+		if gap > 0.0 and i < _combat.enemies.size():
+			await get_tree().create_timer(gap).timeout
+			if not _still_running():
+				return
+	if gap > 0.0 and _still_running():
+		await get_tree().create_timer(gap).timeout
+
+
+## Whether this scene is still the one playing. Every `await` above can come back after a
+## killing blow has already ended the fight and changed scene (_finish()), and touching
+## `_combat` or the portraits after that is a crash, not a cosmetic bug.
+func _still_running() -> bool:
+	return is_inside_tree() and _combat != null and not _result_shown
 
 
 func _on_log_toggle_pressed() -> void:
@@ -2995,7 +3048,11 @@ func _update_end_turn_ui() -> void:
 			break
 	var warn := has_unused and _combat.phase == CombatPhase.EXECUTE and not (_combat.won or _combat.lost)
 	DangoTheme.style_button(_end_turn_button, true, warn)
-	_end_turn_button.disabled = _combat.won or _combat.lost
+	# Disabled while the enemies are acting too, since 2026-09-21. That phase used to be one
+	# frame long, so an enabled button during it was unobservable; now it takes about a second
+	# per enemy and a live-looking button that does nothing is a broken button.
+	_end_turn_button.disabled = _combat.won or _combat.lost \
+		or _combat.phase == CombatPhase.END_TURN
 
 
 ## CB-11 / CB-12 — committed incoming damage on a party member: what the enemies have ALREADY
