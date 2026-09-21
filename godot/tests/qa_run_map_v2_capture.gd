@@ -42,9 +42,22 @@ func _ready() -> void:
 	if not RunState.roster.is_empty():
 		RunState.roster[0]["bonus_hp"] = 3
 
-	_walk_forward(3)
-
+	# TWO shots, and the first one is the point. At row 4 the seven-row band is full and the
+	# map fills its frame whatever the layout does — which is why a single mid-run capture
+	# missed the 2026-09-21 report entirely. Standing at the START of the run is where the
+	# band has nothing to put in its lower slots, and where the build bunched the whole map
+	# into the top of the screen with a third of the canvas blank under it. Capture the state
+	# the bug lived in, not only the state that always looked fine.
 	var scene: Node = load("res://scenes/run_map/RunMap.tscn").instantiate()
+	add_child(scene)
+	_map = scene
+	await _settle(10)
+	_shot("run_map_v2_row1")
+	_map.queue_free()
+	await _settle(2)
+
+	_walk_forward(3)
+	scene = load("res://scenes/run_map/RunMap.tscn").instantiate()
 	add_child(scene)
 	_map = scene
 	await _settle(10)

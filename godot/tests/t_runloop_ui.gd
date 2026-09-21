@@ -24,7 +24,8 @@ extends Node
 ## Run: godot --headless --path godot res://tests/t_runloop_ui.tscn
 
 const EXPECTED_TESTS: Array[String] = [
-	"test_map_window_renders_nearby_rows_onscreen_and_excludes_far_rows",
+	"test_map_window_renders_nearby_rows_onscreen_and_fills_the_frame",
+	"test_the_row_band_keeps_its_height_and_slides_at_both_ends",
 	"test_node_label_never_contains_a_technical_graph_id",
 	"test_shop_bought_and_unaffordable_buttons_use_different_styleboxes",
 	"test_reward_and_shop_cards_show_a_rarity_chip_matching_rar",
@@ -42,7 +43,8 @@ func _ready() -> void:
 	print("=== t_runloop_ui: start ===")
 	await get_tree().process_frame
 
-	await test_map_window_renders_nearby_rows_onscreen_and_excludes_far_rows()
+	await test_map_window_renders_nearby_rows_onscreen_and_fills_the_frame()
+	await test_the_row_band_keeps_its_height_and_slides_at_both_ends()
 	await test_node_label_never_contains_a_technical_graph_id()
 	await test_shop_bought_and_unaffordable_buttons_use_different_styleboxes()
 	await test_reward_and_shop_cards_show_a_rarity_chip_matching_rar()
@@ -131,16 +133,21 @@ func _new_runmap() -> Node:
 ## "the camera fit covers every rendered node, not just the reachable row" (the literal P0-1
 ## bug: a Camera2D that only fit current+reachable clipped every row beyond it).
 ##
-## v2 deletes the camera entirely: the board is now laid out directly in the fixed 1920x1080
-## screen space (RunMapController._node_screen_pos()), windowed to a fixed 7 rows around the
-## player (_ROWS_BEHIND=3.._ROWS_AHEAD=3) rather than framed dynamically. There is nothing left
-## to "clip" — a row either falls inside the window and is drawn on-screen, or falls outside it
-## and is not rendered at all. This test now asserts the SAME underlying rule the old one did
-## ("nothing the player can see is cut off/off-screen") against the new mechanism: every
-## rendered node's on-screen rect must lie fully inside the viewport, and a row far enough
-## outside the window (the fixture's r6, 5 rows beyond current) must be excluded from
-## _node_visuals altogether rather than merely mispositioned.
-func test_map_window_renders_nearby_rows_onscreen_and_excludes_far_rows() -> void:
+## v2 deletes the camera entirely: the board is laid out directly in fixed 1920x1080 screen
+## space (RunMapController._node_screen_pos()) and windowed to a band of rows around the
+## player. There is nothing left to "clip" — a row either falls inside the band and is drawn
+## on-screen, or falls outside it and is not rendered at all.
+##
+## UPDATED AGAIN 2026-09-21. The band used to be CLAMPED at the ends of the run, and this test
+## pinned the consequence: standing on row 1 of a six-row fixture, it asserted that exactly
+## five nodes rendered and that rows 5 and 6 were excluded. That was not a rule, it was a
+## symptom — a seven-slot frame drawing four rows, which on the real 18-row map left the whole
+## lower third of the screen blank (bug report: "The Path đang mất thẩm mỹ"). The band now
+## SLIDES instead of shrinking, so on this fixture every row is in view and nothing is
+## excluded at all. The two things worth pinning are pinned below instead: nothing rendered
+## may fall off-screen (the original invariant, unchanged), and the band must keep its full
+## height wherever the player stands (the new one).
+func test_map_window_renders_nearby_rows_onscreen_and_fills_the_frame() -> void:
 	var runmap := _new_runmap()
 	await get_tree().process_frame
 
@@ -148,10 +155,12 @@ func test_map_window_renders_nearby_rows_onscreen_and_excludes_far_rows() -> voi
 	var viewport_rect := Rect2(Vector2.ZERO, vp_size)
 
 	var node_visuals: Dictionary = runmap.get("_node_visuals")
-	# Window = current_row (1) +/- 3: rows 1..4 are in range (r1_c0, r2_c0, r2_c1, r3_c0, r4_c0
-	# = 5 nodes); rows 5..6 (4-5 rows beyond current) fall outside it.
-	_assert(node_visuals.size() == 5,
-		"fixture expected 5 nodes inside the +/-3 row window, found %d" % node_visuals.size())
+	# Six fixture rows, eight nodes, a seven-slot band: standing on row 1 the band slides to
+	# rows 1..7, the fixture runs out at 6, and every node is in view. Under the old clamped
+	# band this was five nodes and two dead slots.
+	_assert(node_visuals.size() == 8,
+		"the band should now cover the whole six-row fixture (8 nodes), found %d — if this "
+		% node_visuals.size() + "is 5, the band is clamping at the start of the run again")
 
 	var all_onscreen := true
 	var first_miss := ""
@@ -165,16 +174,59 @@ func test_map_window_renders_nearby_rows_onscreen_and_excludes_far_rows() -> voi
 				first_miss = "%s at %s (viewport %s)" % [id, rect, viewport_rect]
 	_assert(all_onscreen, "a rendered node's token falls outside the viewport — first miss: %s" % first_miss)
 
-	# Regression guard for the literal v1 symptom, restated for v2: the row furthest from
-	# current (r6, the boss/elite row, 5 rows beyond current_row=1) must not be rendered at
-	# all — it is windowed out cleanly rather than drawn off-camera/clipped.
-	_assert(not node_visuals.has("r6_c1"),
-		"row r6 (5 rows beyond current) must be excluded by the row window, not merely offscreen")
-	_assert(not node_visuals.has("r5_c0"),
-		"row r5 (4 rows beyond current) must be excluded by the row window, not merely offscreen")
+	runmap.queue_free()
+	_done("test_map_window_renders_nearby_rows_onscreen_and_fills_the_frame")
+
+
+## The band's own contract, on a map long enough to have an inside as well as two ends — the
+## six-row fixture above cannot express exclusion any more, because a seven-slot band covers
+## it whole.
+##
+## THREE THINGS, and the first is the one that was broken: the band is always exactly as tall
+## as it is designed to be, wherever the player stands. Clamping it at the ends is what left
+## the map hugging one edge of the frame with dead space against the other.
+func test_the_row_band_keeps_its_height_and_slides_at_both_ends() -> void:
+	var runmap := _new_runmap()
+	await get_tree().process_frame
+
+	# Swap in a long map and ask the controller directly. Cheaper and clearer than building a
+	# second scene, and _row_window() reads nothing but `_graph.rows.size()`.
+	var long_rows: Array = []
+	for r in range(1, 21):
+		long_rows.append([_node_data("L%d_c0" % r, r, 0, "battle",
+			[] if r == 20 else ["L%d_c0" % (r + 1)])])
+	runmap.set("_graph", RunMapGraph.from_data({
+		"rows": long_rows, "boss_rows": [20], "elite_rows": [], "start_node_id": "L1_c0"}))
+
+	# RunMapController.gd has no `class_name`, so its constants are read off the script
+	# resource rather than hardcoded here — the point of this check is that the band matches
+	# ITS OWN declared height, not a 7 typed into a test.
+	var consts: Dictionary = (load("res://scenes/run_map/RunMapController.gd") as GDScript) \
+		.get_script_constant_map()
+	var span: int = int(consts["_ROWS_BEHIND"]) + int(consts["_ROWS_AHEAD"]) + 1
+	for raw_row in [1, 2, 3, 10, 18, 19, 20]:
+		var current_row := int(raw_row)
+		var w: Vector2i = runmap.call("_row_window", current_row)
+		var lo := current_row + w.x
+		var hi := current_row + w.y
+		_assert(hi - lo + 1 == span,
+			"at row %d the band covers %d rows (%d..%d), not the full %d — it is clamping "
+			% [current_row, hi - lo + 1, lo, hi, span] + "instead of sliding")
+		_assert(lo >= 1 and hi <= 20,
+			"at row %d the band runs off the map: rows %d..%d of 1..20" % [current_row, lo, hi])
+		_assert(w.x <= 0 and w.y >= 0,
+			"at row %d the band (%d..%d) no longer contains the player's own row"
+			% [current_row, w.x, w.y])
+
+	# And it still EXCLUDES: on a 20-row map a row seven beyond the player is out of the band
+	# whichever way it has slid.
+	var mid: Vector2i = runmap.call("_row_window", 10)
+	_assert(mid.x == -3 and mid.y == 3,
+		"in the middle of a long map the band should be the unslid -3..+3, got %d..%d"
+		% [mid.x, mid.y])
 
 	runmap.queue_free()
-	_done("test_map_window_renders_nearby_rows_onscreen_and_excludes_far_rows")
+	_done("test_the_row_band_keeps_its_height_and_slides_at_both_ends")
 
 
 ## visual-polish-backlog P0-2. Every node's visible text — across every tier

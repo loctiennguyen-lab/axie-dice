@@ -383,18 +383,54 @@ func _canvas_size() -> Vector2:
 func _node_screen_pos(node: RunMapNode, current_row: int) -> Vector2:
 	var lane := clampi(node.col, 0, _MOCK_LANE_X.size() - 1)
 	var rel := node.row - current_row
-	# rel = +ROWS_AHEAD (the furthest future row) draws highest on screen, at ROWS.r7 = 238;
-	# rel = -ROWS_BEHIND draws lowest, at ROWS.r1 = 946.
-	var mock_pos := Vector2(_MOCK_LANE_X[lane], _MOCK_HERE_Y - float(rel) * _MOCK_ROW_PITCH)
+	var window := _row_window(current_row)
+	# The band is drawn CENTRED in the graph region, and the centre of a full band is the
+	# current row — so at a full window this is `_MOCK_HERE_Y - rel * pitch`, the mockup's own
+	# arithmetic, unchanged. (Not a coincidence worth trusting silently: the mock region is
+	# y 96..1052, whose centre is 574, and 574 is exactly `_MOCK_HERE_Y`.) Near either end of
+	# the run the band has slid, its centre is no longer the current row, and this is what
+	# keeps the drawn rows filling the frame instead of hugging one edge of it.
+	var centre_rel := float(window.x + window.y) * 0.5
 	var mock := _graph_region_for(_MOCK_CANVAS)
+	var mock_centre_y := mock.position.y + mock.size.y * 0.5
+	var mock_pos := Vector2(_MOCK_LANE_X[lane],
+		mock_centre_y - (float(rel) - centre_rel) * _MOCK_ROW_PITCH)
 	var live := _graph_region_for(_canvas_size())
 	var frac := (mock_pos - mock.position) / mock.size
 	return live.position + frac * live.size
 
 
+## The band of rows on screen, as offsets from the current row: (lowest_rel, highest_rel).
+##
+## It stays `_ROWS_BEHIND + _ROWS_AHEAD + 1` slots wide for as long as the map has that many
+## rows. When the player stands near either end of the run the band SLIDES rather than
+## shrinking, which is the whole fix: the build clamped it, so at row 2 the two slots BELOW the
+## player had no rows to put in them and a seven-slot frame drew five, bunched into the top of
+## the screen with a third of the canvas blank underneath (bug report 2026-09-21, "The Path
+## đang mất thẩm mỹ"). Sliding keeps the frame full, keeps the row pitch constant as the player
+## walks, and spends the freed slots on the road AHEAD — the half they can actually act on.
+##
+## No information leaks by showing more: the extra rows are fogged by _is_fogged(), which keys
+## off `current_row` and not off this window.
+func _row_window(current_row: int) -> Vector2i:
+	var last_row: int = _graph.rows.size() if _graph != null else 0
+	if last_row <= 0:
+		return Vector2i(-_ROWS_BEHIND, _ROWS_AHEAD)
+	var lo := current_row - _ROWS_BEHIND
+	var hi := current_row + _ROWS_AHEAD
+	if lo < 1:
+		hi += 1 - lo      # slide the whole band up; do not just clip the bottom off it
+		lo = 1
+	if hi > last_row:
+		lo = maxi(1, lo - (hi - last_row))
+		hi = last_row
+	return Vector2i(lo - current_row, hi - current_row)
+
+
 func _in_window(node: RunMapNode, current_row: int) -> bool:
+	var window := _row_window(current_row)
 	var rel := node.row - current_row
-	return rel >= -_ROWS_BEHIND and rel <= _ROWS_AHEAD
+	return rel >= window.x and rel <= window.y
 
 
 # ===========================================================================
@@ -729,15 +765,25 @@ func _build_token(node: RunMapNode, current_row: int, reachable: Array) -> void:
 		tick_sb.set_border_width_all(3)
 		tick_sb.set_corner_radius_all(15)
 		tick.add_theme_stylebox_override("panel", tick_sb)
-		# FLAGGED (glyph coverage): the mockup draws this badge as a check mark, U+2713. None of
-		# the six fonts this project ships carries that codepoint - Baloo2-*.ttf and
-		# WorkSans-*.ttf were read directly and their cmaps stop short of it - so setting it here
-		# would render a tofu box on the one badge whose whole job is to say "done". A plain "V"
-		# at the mockup's own size/weight/ink is what ships until a font that has U+2713 does.
-		var mark := DangoTheme.display_label("V", 15, DangoTheme.INK_ON_SUCCESS)
-		mark.set_anchors_preset(Control.PRESET_FULL_RECT)
-		mark.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		mark.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		# DRAWN, not typed. The mockup puts U+2713 here and none of this project's six fonts
+		# carries that codepoint (their cmaps were read directly), so the build shipped a plain
+		# letter "V" rather than a tofu box — and a "V" on a green disc reads as a letter, not
+		# as "done" (bug report 2026-09-21, comparing the build against the mockup). A check
+		# mark is two line segments; it does not need a font, and drawing it removes the whole
+		# dependency on a glyph nobody ships. Waiting for a font with U+2713 was never the only
+		# way out, it was just the first one considered.
+		#
+		# Points are in the badge's own 30x30 space, inside its 3px border. Round caps and a
+		# round joint so the short arm does not end in a hard corner at this size.
+		var mark := Line2D.new()
+		mark.points = PackedVector2Array([Vector2(9.0, 15.5), Vector2(13.2, 20.0),
+			Vector2(21.0, 10.5)])
+		mark.width = 3.4
+		mark.default_color = DangoTheme.INK_ON_SUCCESS
+		mark.antialiased = true
+		mark.begin_cap_mode = Line2D.LINE_CAP_ROUND
+		mark.end_cap_mode = Line2D.LINE_CAP_ROUND
+		mark.joint_mode = Line2D.LINE_JOINT_ROUND
 		tick.add_child(mark)
 		btn.add_child(tick)
 
@@ -986,6 +1032,17 @@ func _rebuild_rail() -> void:
 	var scroll := ScrollContainer.new()
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	scroll.clip_contents = true
+	# SIZE_EXPAND_FILL ON THE CHILD, and it has to be EXPAND — plain FILL does nothing here.
+	# ScrollContainer is the one Container in Godot that does not stretch its child to its own
+	# width on the non-scrolling axis unless the child asks to EXPAND; without this the child
+	# is laid out at its own minimum width and the rest of the card is dead space. Measured at
+	# 1920x1080: the ScrollContainer was 298 wide and its content 228, so every party row and
+	# every relic row rendered 70px narrower than the header above them — the HP bars stopped
+	# short, the relic rules wrapped a line early, and the RELICS divider ended in mid-air
+	# while the divider under the stats (which is NOT in here) ran the full width. That
+	# mismatch between two dividers in the same card is what the bug report saw as "Party và
+	# Relics đang bị co lại quá" (2026-09-21).
+	scroll_inner.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	scroll.add_child(scroll_inner)
 	content.add_child(scroll)
 	DangoTheme.style_scrollbars(scroll)
@@ -1033,7 +1090,7 @@ func _rebuild_rail() -> void:
 func _build_save_quit_button() -> Button:
 	var save_quit := Button.new()
 	save_quit.text = "SAVE & QUIT"
-	save_quit.custom_minimum_size = Vector2(0, 52)
+	save_quit.custom_minimum_size = Vector2(0, 60)   # mockup `height:52px;border:4px`
 	save_quit.add_theme_font_override("font", DangoTheme.FONT_DISPLAY)
 	save_quit.add_theme_font_size_override("font_size", 16)
 	DangoTheme.apply_tracking(save_quit, 0.18, 16)
@@ -1075,10 +1132,11 @@ func _build_rail_head(content: VBoxContainer) -> void:
 	run_name.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	head.add_child(run_name)
 
-	# Mockup: height 27, `padding:0 11px` (-> 3+11), radius 8, 3px black, Baloo 13 on PRIMARY.
+	# Mockup: height 27 + a 3px border either side -> 33, `padding:0 11px` (-> 3+11), radius 8,
+	# Baloo 13 on PRIMARY.
 	var mode_chip := PanelContainer.new()
 	mode_chip.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	mode_chip.custom_minimum_size.y = 27.0
+	mode_chip.custom_minimum_size.y = 33.0
 	mode_chip.add_theme_stylebox_override("panel",
 		DangoTheme.solid_chip_style(DangoTheme.PRIMARY, 8, 3, Vector2(14, 3)))
 	var mode_lbl := DangoTheme.display_label("%s - A%d" % [RunState.mode.to_upper(), RunState.ascension],
@@ -1196,9 +1254,26 @@ func _rule(margin_top: float, margin_bottom: float) -> Control:
 	return wrap
 
 
+# BORDER-BOX CONVENTION — the sibling of the PADDING one above, and it bit this rail on five
+# surfaces at once. `run-flow-v2.html` sets no `box-sizing` anywhere (checked: the string does
+# not appear in the file), so every `width`/`height` in it is a CONTENT box and its `border`
+# adds OUTSIDE that. Godot draws a StyleBoxFlat's border INSIDE the Control's rect. So a
+# mockup `height:23px; border:2px` is 27 rendered pixels and has to be written as 27 here —
+# typing 23 gives a 19px interior and a chip four pixels short.
+#
+# Measured, not inferred: the party portrait reads 51px across in the reference capture
+# (2900px wide, so 77 raw pixels / 1.5104), against the 46 this file was setting. 46 + 3 + 3
+# = 52. Every number below carries its mockup source and its arithmetic.
+
 ## `line-height:1.1` — the ratio run-flow-v2.html states on the party name, the party HP number
 ## and the relic name. Kept as one constant so the three cannot drift apart.
 const _RAIL_LINE_TIGHT := 1.1
+
+## mockup `width:46px;height:46px;border:3px solid #000` -> 46 + 3 + 3.
+const _PORTRAIT_TILE := 52.0
+## See the long comment in _build_party_row(): 3 (the border) + 2.93 (the inner corner curve),
+## rounded up, so the art's own corners cannot square off the tile's.
+const _PORTRAIT_ART_INSET := 6.0
 
 
 ## One party row - mockup: 46px portrait tile (radius 13, 3px black), name 17 and HP 16 on one
@@ -1211,10 +1286,10 @@ func _build_party_row(entry: Dictionary) -> Control:
 	var hero_def: Dictionary = ContentDB.heroes.get(hero_key, {})
 	var cls := String(hero_def.get("cls", "plant"))
 
+	# mockup `width:46px;height:46px;border:3px` -> 52 outer. See the BORDER-BOX note above.
 	var portrait_wrap := Control.new()
-	portrait_wrap.custom_minimum_size = Vector2(46, 46)
+	portrait_wrap.custom_minimum_size = Vector2(_PORTRAIT_TILE, _PORTRAIT_TILE)
 	portrait_wrap.size_flags_vertical = Control.SIZE_SHRINK_CENTER   # see the relic icon fix below
-	portrait_wrap.clip_contents = true
 	var portrait_bg := Panel.new()
 	portrait_bg.set_anchors_preset(Control.PRESET_FULL_RECT)
 	var pbg_sb := StyleBoxFlat.new()
@@ -1226,12 +1301,48 @@ func _build_party_row(entry: Dictionary) -> Control:
 	portrait_wrap.add_child(portrait_bg)
 	var portrait_tex: Texture2D = MockupAssets.tex("assets/portrait/%s.png" % cls)
 	if portrait_tex != null:
+		# INSET, and the black frame is re-drawn OVER it below. The art used to be a full-rect
+		# child painted on top of `portrait_bg`, which is why the tile had no visible outline
+		# along its bottom edge and its bottom corners came out square: an opaque, COVER-scaled
+		# portrait simply painted over the border, and `clip_contents` clips to the RECT, so it
+		# cannot round what it lets through. (Same fact DangoTheme.inner_radius()'s own comment
+		# records: clipping is not a substitute for a radius.)
+		#
+		# The inset is 6, not the border's 3, and the 3 extra pixels are geometry rather than
+		# taste: inside a 3px border at radius 13 the inner corner curves at radius 10, and a
+		# square inscribed so its corners stay inside that curve has to start
+		# 10 * (1 - 1/sqrt(2)) = 2.93px further in. At 3 the art would poke out of the curve at
+		# all four corners and square them off again, just less of them. FLAGGED as a
+		# deviation: the mockup fills the full 46 because CSS `overflow:hidden` gives it a
+		# ROUNDED clip, which Godot has only via canvas groups — and those do not draw at all
+		# under the Compatibility renderer every QA capture in this repo is taken through.
+		var art := Control.new()
+		art.set_anchors_preset(Control.PRESET_FULL_RECT)
+		art.offset_left = _PORTRAIT_ART_INSET
+		art.offset_top = _PORTRAIT_ART_INSET
+		art.offset_right = -_PORTRAIT_ART_INSET
+		art.offset_bottom = -_PORTRAIT_ART_INSET
+		art.clip_contents = true
+		art.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		portrait_wrap.add_child(art)
 		var portrait_img := TextureRect.new()
 		portrait_img.texture = portrait_tex
 		portrait_img.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
 		portrait_img.expand_mode = TextureRect.EXPAND_IGNORE_SIZE   # see _build_token()'s icon
 		portrait_img.set_anchors_preset(Control.PRESET_FULL_RECT)
-		portrait_wrap.add_child(portrait_img)
+		art.add_child(portrait_img)
+		# The outline, last, so nothing can paint over it. Border only — a fill here would hide
+		# the portrait it is framing.
+		var frame := Panel.new()
+		frame.set_anchors_preset(Control.PRESET_FULL_RECT)
+		frame.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		var frame_sb := StyleBoxFlat.new()
+		frame_sb.bg_color = Color(0, 0, 0, 0)
+		frame_sb.border_color = Color.BLACK
+		frame_sb.set_border_width_all(3)
+		frame_sb.set_corner_radius_all(13)
+		portrait_wrap.add_child(frame)
+		frame.add_theme_stylebox_override("panel", frame_sb)
 	row.add_child(portrait_wrap)
 
 	var text_col := VBoxContainer.new()
@@ -1268,8 +1379,10 @@ func _build_party_row(entry: Dictionary) -> Control:
 	var hp_lbl := DangoTheme.display_label("%d/%d" % [max_hp, max_hp], 16, hp_color)
 	name_row.add_child(DangoTheme.line_box(hp_lbl, 16, _RAIL_LINE_TIGHT))
 
+	# mockup `height:9px;border:2px` -> 13 outer. See the BORDER-BOX note above; at 9 the
+	# bar rendered a 5px interior, which is why it read as a hairline next to the mockup's.
 	var bar_wrap := Panel.new()
-	bar_wrap.custom_minimum_size = Vector2(0, 9)
+	bar_wrap.custom_minimum_size = Vector2(0, 13)
 	bar_wrap.clip_contents = true
 	var bar_sb := StyleBoxFlat.new()
 	bar_sb.bg_color = DangoTheme.WELL_DEEP
@@ -1280,13 +1393,21 @@ func _build_party_row(entry: Dictionary) -> Control:
 	var bar_fill := ColorRect.new()
 	bar_fill.color = hp_color
 	bar_fill.set_anchors_preset(Control.PRESET_FULL_RECT)
+	# INSIDE the 2px border, which is where the mockup puts it: its `position:absolute;inset:0`
+	# sits in the PADDING box of a bordered element, not over the border. Full-rect here paints
+	# the fill across the border too — measured 13 green rows in a 13px bar, i.e. no outline at
+	# all, which is the same "the art ate the frame" defect as the portrait above.
+	bar_fill.offset_left = 2.0
+	bar_fill.offset_top = 2.0
+	bar_fill.offset_right = -2.0
+	bar_fill.offset_bottom = -2.0
 	bar_wrap.add_child(bar_fill)
 	text_col.add_child(bar_wrap)
 
 	# FLAGGED (token): the mockup fills this chip #242A34; PANEL_RAISED (#262C36) stands in.
 	var tier_chip := PanelContainer.new()
 	tier_chip.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	tier_chip.custom_minimum_size.y = 23.0
+	tier_chip.custom_minimum_size.y = 27.0   # mockup `height:23px;border:2px`
 	tier_chip.add_theme_stylebox_override("panel",
 		DangoTheme.solid_chip_style(DangoTheme.PANEL_RAISED, 6, 2, Vector2(10, 2)))
 	var tier_lbl := DangoTheme.display_label("T%d" % int(entry.get("tier", 1)), 12, DangoTheme.CHIP_INK_ON_WELL)
@@ -1311,8 +1432,9 @@ func _build_relic_row(relic_id: String) -> Control:
 	# instruction, rather than being silently dropped from the list.
 	var relic_desc := String(def.description) if def != null else relic_id
 
+	# mockup `width:34px;height:34px;border:3px` -> 40 outer. See the BORDER-BOX note.
 	var icon_panel := Panel.new()
-	icon_panel.custom_minimum_size = Vector2(34, 34)
+	icon_panel.custom_minimum_size = Vector2(40, 40)
 	# Without this, HBoxContainer's default cross-axis SIZE_FILL stretches the icon to match
 	# the row's full height - a rounded square becomes a tall pill. Same fix as the chips above.
 	icon_panel.size_flags_vertical = Control.SIZE_SHRINK_CENTER
