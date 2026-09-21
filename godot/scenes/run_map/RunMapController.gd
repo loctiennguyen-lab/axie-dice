@@ -1271,9 +1271,9 @@ const _RAIL_LINE_TIGHT := 1.1
 
 ## mockup `width:46px;height:46px;border:3px solid #000` -> 46 + 3 + 3.
 const _PORTRAIT_TILE := 52.0
-## See the long comment in _build_party_row(): 3 (the border) + 2.93 (the inner corner curve),
-## rounded up, so the art's own corners cannot square off the tile's.
-const _PORTRAIT_ART_INSET := 6.0
+## See the long comment in _build_party_row(): the smallest inset whose square corners still
+## fall inside the tile's OUTER curve, so the black frame drawn last repaints over them.
+const _PORTRAIT_ART_INSET := 4.0
 
 
 ## One party row - mockup: 46px portrait tile (radius 13, 3px black), name 17 and HP 16 on one
@@ -1308,14 +1308,20 @@ func _build_party_row(entry: Dictionary) -> Control:
 		# cannot round what it lets through. (Same fact DangoTheme.inner_radius()'s own comment
 		# records: clipping is not a substitute for a radius.)
 		#
-		# The inset is 6, not the border's 3, and the 3 extra pixels are geometry rather than
-		# taste: inside a 3px border at radius 13 the inner corner curves at radius 10, and a
-		# square inscribed so its corners stay inside that curve has to start
-		# 10 * (1 - 1/sqrt(2)) = 2.93px further in. At 3 the art would poke out of the curve at
-		# all four corners and square them off again, just less of them. FLAGGED as a
-		# deviation: the mockup fills the full 46 because CSS `overflow:hidden` gives it a
-		# ROUNDED clip, which Godot has only via canvas groups — and those do not draw at all
-		# under the Compatibility renderer every QA capture in this repo is taken through.
+		# How far in the art starts is geometry, not taste, and the first pass solved the
+		# wrong inequality. The `frame` Panel below is drawn LAST with radius 13 and a 3px
+		# black border, so it repaints the whole 10..13 annulus. The art therefore only has
+		# to stay inside the OUTER curve (r = 13), not the inner one (r = 10):
+		#   art corner (d, d) -> distance to the arc centre (13, 13) is (13 - d) * sqrt(2)
+		#   (13 - d) * sqrt(2) <= 13  ->  d >= 13 * (1 - 1/sqrt(2)) = 3.81  ->  d = 4
+		# The old value 6 solved for the inner curve and cost 2px of art on every side: 40px
+		# of portrait in a 52px tile where the mockup shows 46. At 4 the art's corners land
+		# under the frame's border and nothing pokes out of the tile's silhouette.
+		#
+		# Still a 2px deviation from the mockup, which fills the full 46 because CSS
+		# `overflow:hidden` gives it a ROUNDED clip. Godot has that only via canvas groups
+		# (`clip_children`), and those do not draw under the Compatibility renderer every QA
+		# capture in this repo is taken through, so it could not be verified on a render.
 		var art := Control.new()
 		art.set_anchors_preset(Control.PRESET_FULL_RECT)
 		art.offset_left = _PORTRAIT_ART_INSET
