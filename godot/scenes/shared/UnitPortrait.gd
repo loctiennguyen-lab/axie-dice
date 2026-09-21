@@ -44,6 +44,12 @@ class_name UnitPortrait
 
 signal clicked(uid: int)
 
+## Right-click anywhere on this nameplate — always the inspector, never a game action. Mirrors
+## CombatStage3D.unit_inspect_requested (right-clicking the model itself); CombatView connects
+## both to the same _open_unit_inspect(). Left-click stays context-dependent (a legal target is
+## a target), which is why "what does this do?" needs a door of its own.
+signal inspect_requested(uid: int)
+
 ## CB-09 — ONE width for every nameplate in combat, both sides. Not a floor, not a minimum that
 ## a long name may exceed: the width. See the class comment.
 const WIDTH := 176.0
@@ -136,7 +142,20 @@ func _ready() -> void:
 	_incoming_icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	_incoming_icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	_incoming_icon.texture = _ICON_DMG
+	_incoming_chip.mouse_filter = Control.MOUSE_FILTER_STOP   # so it can carry a tooltip; the
+		# handler below keeps it a click target for the plate all the same
+	_incoming_chip.gui_input.connect(_on_hud_chip_gui_input)
 	_click_catcher.pressed.connect(func(): clicked.emit(uid))
+	_click_catcher.gui_input.connect(_on_click_catcher_gui_input)
+	# THE CATCHER GOES FIRST, NOT LAST. Godot picks GUI input by walking children in REVERSE
+	# order, so a full-rect Button added last is in front of every sibling — including the
+	# status chips, which is why a chip could never be hovered and therefore could never show
+	# a tooltip (`Viewport._gui_get_tooltip()` only ever asks the control it actually picked).
+	# Moved behind the column instead: the chips (MOUSE_FILTER_STOP, see _status_chip()) take
+	# the hover where they are, and every other pixel of the plate still falls through to the
+	# catcher because the whole column above it is MOUSE_FILTER_IGNORE. `flat = true` means the
+	# catcher draws nothing in any state, so its depth has no visual consequence.
+	move_child(_click_catcher, 0)
 
 
 ## CB-09 — the one plate style, for both sides.
@@ -261,6 +280,8 @@ func update_stats(hp: int, max_hp: int, shield: int, status: Dictionary) -> void
 	_incoming_chip.visible = (not _is_enemy) and _incoming > 0
 	if _incoming_chip.visible:
 		_incoming_label.text = str(_incoming)
+		_incoming_chip.tooltip_text = ("Incoming %d\nDamage the enemies have already declared "
+			+ "against this Axie this turn. Shield is subtracted first.") % _incoming
 
 	_rebuild_status_chips(status, shield)
 	if hp > 0:
@@ -279,20 +300,33 @@ func _rebuild_status_chips(status: Dictionary, shield: int) -> void:
 	for c in _status_row.get_children():
 		c.queue_free()
 	if shield > 0:
-		_status_row.add_child(_status_chip(_ICON_SHIELD, shield, DangoTheme.SHIELD_BLUE))
+		_status_row.add_child(
+			_status_chip(_ICON_SHIELD, shield, DangoTheme.SHIELD_BLUE, "shield"))
 	for key in _STATUS_ICON:
 		var v := int(status.get(key, 0))
 		if v > 0:
 			_status_row.add_child(
-				_status_chip(_STATUS_ICON[key], v, DangoTheme.status_color(key)))
+				_status_chip(_STATUS_ICON[key], v, DangoTheme.status_color(key), key))
 	# The STRIP stays visible and 28 tall regardless; only its contents come and go.
 
 
 ## One status chip — height 28, radius 9, 3px black, solid status colour, 16px icon + count in
 ## Baloo 16 inked by ink_on(). Never a wash of the status colour (L4), never white-on-colour (L5).
-func _status_chip(icon_tex: Texture2D, count: int, fill: Color) -> PanelContainer:
+##
+## `key` is the ENGINE's own status key ("poison", "burn", …, plus "shield"), and it is what
+## turns the chip from a coloured glyph into something a player can actually read: it looks the
+## rule up in CodexContent.status_tip() and hangs it off the chip as a tooltip. Before this the
+## strip was nine unlabelled icons and the only way to learn what one meant was the Codex
+## (bug report 2026-09-21, "chỉ vào Icon Effect không hiện mô tả").
+func _status_chip(icon_tex: Texture2D, count: int, fill: Color, key: String) -> PanelContainer:
 	var chip := PanelContainer.new()
-	chip.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	# STOP, not IGNORE — a tooltip needs the chip to be the control the viewport picks. The
+	# plate underneath keeps its click because _on_hud_chip_gui_input() forwards it by hand;
+	# MOUSE_FILTER_PASS would NOT do that job, since it propagates to ANCESTORS (all IGNORE
+	# here) and never to the ClickCatcher sibling.
+	chip.mouse_filter = Control.MOUSE_FILTER_STOP
+	chip.tooltip_text = _effect_tooltip(key, count)
+	chip.gui_input.connect(_on_hud_chip_gui_input)
 	chip.custom_minimum_size = Vector2(0, STATUS_STRIP_H)
 	# combat-v2.html: padding `0 8px 0 4px` — the glyph sits tighter to the left edge than the
 	# count does to the right, which is what keeps a 1-digit and a 2-digit chip reading alike.
@@ -319,6 +353,42 @@ func _status_chip(icon_tex: Texture2D, count: int, fill: Color) -> PanelContaine
 	lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	row.add_child(lbl)
 	return chip
+
+
+## "Poison 3" + the rule, off the ONE rule-book (CodexContent.statuses()). A key with no written
+## rule still gets a readable line rather than a blank tooltip — a missing entry should look like
+## missing text, not like a broken hover.
+static func _effect_tooltip(key: String, count: int) -> String:
+	var tip: Dictionary = CodexContent.status_tip(key)
+	if tip.is_empty():
+		return "%s %d" % [key.to_upper(), count]
+	# The rule-book prints stacking statuses as "Poison N"; the chip already shows the real N.
+	var label := String(tip["name"]).trim_suffix(" N")
+	return "%s %d\n%s" % [label, count, String(tip["rule"])]
+
+
+## A status chip (or the incoming-damage chip) is not a button, but it sits on top of the
+## plate's own ClickCatcher, so it hands the click back rather than eating it. Without this,
+## clicking a poisoned enemy's poison pill would silently do nothing.
+func _on_hud_chip_gui_input(ev: InputEvent) -> void:
+	if not (ev is InputEventMouseButton) or not (ev as InputEventMouseButton).pressed:
+		return
+	match (ev as InputEventMouseButton).button_index:
+		MOUSE_BUTTON_LEFT:
+			clicked.emit(uid)
+			accept_event()
+		MOUSE_BUTTON_RIGHT:
+			inspect_requested.emit(uid)
+			accept_event()
+
+
+## Button only reports `pressed` for the LEFT button, so right-click gets its own path.
+func _on_click_catcher_gui_input(ev: InputEvent) -> void:
+	if not (ev is InputEventMouseButton) or not (ev as InputEventMouseButton).pressed:
+		return
+	if (ev as InputEventMouseButton).button_index == MOUSE_BUTTON_RIGHT:
+		inspect_requested.emit(uid)
+		accept_event()
 
 
 func set_selected(v: bool) -> void:

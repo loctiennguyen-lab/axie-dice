@@ -164,11 +164,11 @@ const _PART_LABEL := {
 	"tail": "TAIL", "ears": "EARS", "eyes": "EYES",
 }
 
-## Short type caption — mirrors client.html's DIE_LABEL table verbatim.
-const _DIE_TYPE_LABEL := {
-	"dmg": "ATTACK", "shield": "SHIELD", "poison": "POISON", "heal": "HEAL",
-	"debuff": "WEAKEN", "buff": "BUFF", "mana": "MANA", "summon": "SUMMON", "blank": "BLANK",
-}
+## Short type caption — MOVED 2026-09-21 to `DangoTheme.FACE_TYPE_LABEL`, beside the colour and
+## the glyph for the same type, because the enemy-intent tooltip (UnitHeadHUD) now needs the
+## same nine words and a second copy there is how they drift. Read it through
+## `DangoTheme.face_type_label()`; the fallback ("unknown type uppercases its own key") is
+## unchanged from the `.get(face_type, face_type.to_upper())` this file used at both call sites.
 
 ## Keyword chip text — mirrors src/engine.js's KWT table verbatim (kwText()'s source data;
 ## client.html itself only ever calls into engine.js's kwText(), it has no separate table of its
@@ -344,7 +344,16 @@ func _ready() -> void:
 	# than fighting BattleBackdrop for the same visual with a second background. No footer
 	# (Combat owns its own chrome); `combat=true` so any future plate this shell draws grades at
 	# combat's darker/less-saturated brightness, matching `_grade_stage_art()` below.
-	DangoScreen.build(_shell_root, null, DangoTheme.Scrim.DEFAULT, false, true)
+	var _shell := DangoScreen.build(_shell_root, null, DangoTheme.Scrim.DEFAULT, false, true)
+	# Combat never puts anything IN the shared content column — it owns its own chrome — so it
+	# is pinned click-through here as well. `DangoScreen.build()` already sets
+	# MOUSE_FILTER_IGNORE on it (see that file for the whole bug: an empty full-rect Control,
+	# appended last, ate every click on the board and on all but the bottom strip of the deck).
+	# This line is belt and braces for the screen that bug actually cost, and it is what
+	# t_combat_hit_targets.gd asserts against.
+	var _shell_content: Control = _shell.get("content")
+	if _shell_content != null:
+		_shell_content.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	# build() APPENDS its new children to `_shell_root` (Combat.tscn's pre-existing Background/
 	# Scrim/Stage3D/TopBar/DeckBar/etc. are already there, added at scene-load time before this
 	# runs) — left where it lands, the new PlateHost's scrim gradient would paint as the LAST
@@ -632,6 +641,10 @@ func _connect_ui_buttons() -> void:
 
 	_stage3d.unit_clicked.connect(_on_target_clicked)   # second input path into the SAME
 		# click-click handler as UnitPortrait.clicked
+	# Right-click on the model is the always-available "what is this?" door — see that signal's
+	# own comment in CombatStage3D.gd. Never a game action, so it needs none of the guards
+	# _on_target_clicked() carries.
+	_stage3d.unit_inspect_requested.connect(_open_unit_inspect)
 
 
 
@@ -1666,13 +1679,26 @@ func _build_die_slot_content(btn: Button) -> Dictionary:
 	sel_ring_inner.visible = false
 	btn.add_child(sel_ring_inner)
 
-	return {"root": root, "plain_label": plain_label, "name_label": name_label,
+	return {"button": btn,
+		"root": root, "plain_label": plain_label, "name_label": name_label,
 		"header_bg": header_bg, "portrait_rect": portrait_rect,
 		"value_label": value_label, "part_icon_rect": part_icon_rect,
 		"type_tile": type_tile, "type_icon_rect": type_icon_rect, "caption_label": caption_label,
 		"kw_row": kw_row, "reroll_overlay": reroll_overlay, "face_area": face_area,
 		"face_panels": face_panels, "sel_ring_outer": sel_ring_outer,
 		"sel_ring_inner": sel_ring_inner}
+
+
+## One hover line's {name, rule} for anything the player can see the NAME of but not the RULE:
+## a die-face keyword first (CodexContent.keywords()), then the status rule-book, because a
+## dozen keys ("burn", "poison", "stun", "thorns", …) are BOTH a face keyword and a status and
+## the status page is where their rule is actually written. {} when neither knows the key — the
+## caller then prints the bare label rather than an empty line.
+func _effect_tip(key: String) -> Dictionary:
+	var tip: Dictionary = CodexContent.keyword_tip(key)
+	if tip.is_empty():
+		tip = CodexContent.status_tip(key)
+	return tip
 
 
 ## Per-type icon. Thin alias kept so this file's many call sites read locally; the table is
@@ -2037,7 +2063,7 @@ func _inspect_faces(col: VBoxContainer, u: Unit) -> void:
 		# body part and correctly yields no part label; anything else shows its own name even if
 		# _PART_LABEL has not heard of it yet.
 		var part_name := String(_PART_LABEL.get(raw_part, raw_part.to_upper())) if _PART_LABEL.has(raw_part) else ""
-		var type_name := String(_DIE_TYPE_LABEL.get(face_type, face_type.to_upper()))
+		var type_name := DangoTheme.face_type_label(face_type)
 		var text := ("%s · %s" % [part_name, type_name]) if part_name != "" else type_name
 		var names: Array = []
 		for k in (f.get("keywords", []) as Array):
@@ -2110,6 +2136,8 @@ func _spawn_portrait(u: Unit, is_enemy: bool, slot_index: int, slot_count: int) 
 	_unit_visuals_root.add_child(p)
 	p.setup(u.uid, u.n, u.cls, is_enemy)
 	p.clicked.connect(_on_target_clicked)
+	p.inspect_requested.connect(_open_unit_inspect)   # right-click the nameplate, same door as
+		# right-clicking the model (CombatStage3D.unit_inspect_requested)
 	_portraits[u.uid] = p
 
 	var hud := UnitHeadHUD.new()
@@ -2783,10 +2811,25 @@ func _update_turn_pill() -> void:
 		Color(ink.r, ink.g, ink.b, 0.72))
 
 
+## Relic hover copy — the NAME, what it costs if it is an active, and the relic's own sentence
+## (`RelicDef.description`, ported verbatim from src/data.js RELICS[].d — see that field's own
+## comment for why the words live on the def).
+##
+## The strip used to hand over the bare name, and the actives slot "name · MP n". Neither tells
+## a player what the relic DOES, which is the only question a hover is ever asked (bug report
+## 2026-09-21, "chỉ vào Relics không hiện mô tả"). Shared by both so the two can't diverge.
+func _relic_tooltip(def: RelicDef) -> String:
+	var head := String(def.name)
+	if int(def.act_cost) > 0:
+		head += "  ·  MP %d" % int(def.act_cost)
+	var body := String(def.description)
+	return head if body.is_empty() else "%s\n%s" % [head, body]
+
+
 ## The glyph on a relic chip. FLAGGED — see `_RELIC_ARCHETYPE_ICON`: `RelicDef` has no `icon`
 ## field, so this reads the relic's `archetype` (a real data field describing what it does) and
 ## falls back to the damage glyph for the offence-shaped archetypes that have no icon of their
-## own (aoe/crit/exec/pierce). The relic's NAME is still on the tooltip.
+## own (aoe/crit/exec/pierce). The relic's NAME and RULE are on the tooltip (_relic_tooltip()).
 func _relic_icon_for(def: RelicDef) -> Texture2D:
 	var key := String(def.archetype)
 	if _RELIC_ARCHETYPE_ICON.has(key):
@@ -2815,7 +2858,7 @@ func _update_relic_strip() -> void:
 		var chip := _icon_tile(_relic_icon_for(def), 33.0, 18.0,
 			DangoTheme.solid_chip_style(color, 9, 3, Vector2.ZERO))
 		chip.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-		chip.tooltip_text = String(def.name)
+		chip.tooltip_text = _relic_tooltip(def)
 		_relic_strip.add_child(chip)
 
 
@@ -2858,7 +2901,7 @@ func _update_actives() -> void:
 		var affordable := _combat.mana >= int(def.act_cost)
 		var slot := PanelContainer.new()
 		slot.custom_minimum_size = Vector2(55, 55)
-		slot.tooltip_text = "%s · MP %d" % [String(def.name), int(def.act_cost)]
+		slot.tooltip_text = _relic_tooltip(def)
 		slot.add_theme_stylebox_override("panel", DangoTheme.solid_chip_style(
 			DangoTheme.MANA_PURPLE if affordable else DangoTheme.DISABLED_FILL, 12, 2, Vector2(0, 4)))
 		var col := VBoxContainer.new()
@@ -3147,9 +3190,11 @@ func _update_die_slot_content(content: Dictionary, u: Unit) -> void:
 
 	if u.hp <= 0:
 		_show_die_slot_plain(content, "(gục)")
+		(content.button as Button).tooltip_text = "%s đã gục — xúc xắc này không dùng được." % u.n
 		return
 	if not u.has_rolled():
 		_show_die_slot_plain(content, "(chưa roll)")
+		(content.button as Button).tooltip_text = "%s chưa roll xúc xắc lượt này." % u.n
 		return
 
 	plain_label.visible = false
@@ -3178,8 +3223,23 @@ func _update_die_slot_content(content: Dictionary, u: Unit) -> void:
 	part_icon_rect.visible = part_icon != null
 	caption_label.text = "%s · %s" % [
 		String(_PART_LABEL.get(part, part.to_upper())),
-		String(_DIE_TYPE_LABEL.get(face_type, face_type.to_upper())),
+		DangoTheme.face_type_label(face_type),
 	]
+
+	# TOOLTIP, not per-chip hovers. The keyword pills are 20px tall and live INSIDE the die
+	# Button; giving each one MOUSE_FILTER_STOP so it could carry its own tooltip would punch a
+	# hole in the card's click area, which is the exact defect this pass is here to remove. The
+	# whole card carries one tooltip instead, and it explains every keyword on the face.
+	var tip_lines := PackedStringArray(["%s  ·  %s" % [u.n, caption_label.text]])
+	if value > 0:
+		tip_lines.append("Value %d" % value)
+	for k in (f.get("keywords", []) as Array):
+		var kw_key := String(k).split(":")[0]
+		var kw_tip: Dictionary = _effect_tip(kw_key)
+		var kw_head := String(_KEYWORD_LABEL.get(kw_key, kw_key.to_upper()))
+		tip_lines.append(kw_head if kw_tip.is_empty()
+			else "%s — %s" % [kw_head, String(kw_tip["rule"])])
+	(content.button as Button).tooltip_text = "\n".join(tip_lines)
 
 	for k in (f.get("keywords", []) as Array):
 		var kw_name := String(k).split(":")[0]

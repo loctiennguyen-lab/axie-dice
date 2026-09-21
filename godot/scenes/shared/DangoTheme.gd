@@ -151,6 +151,23 @@ static func face_type_icon(face_type: String) -> Texture2D:
 	return FACE_TYPE_ICON.get(face_type, FACE_TYPE_ICON["blank"])
 
 
+## The WORD for a face type — src/client.html's DIE_LABEL table, verbatim. It sits beside the
+## colour and the glyph for the same reason those two do (G-01): the die card's caption, the
+## unit inspector's face list and the enemy intent tooltip all name the same nine types, and
+## three private copies of this table is how they end up calling `debuff` three different
+## things. Moved here from CombatView._DIE_TYPE_LABEL on 2026-09-21.
+const FACE_TYPE_LABEL := {
+	"dmg": "ATTACK", "shield": "SHIELD", "poison": "POISON", "heal": "HEAL",
+	"debuff": "WEAKEN", "buff": "BUFF", "mana": "MANA", "summon": "SUMMON", "blank": "BLANK",
+}
+
+
+## Uppercase name of a face type; an unmapped type falls back to its own key uppercased, which
+## reads as a type nobody has named yet rather than as missing text.
+static func face_type_label(face_type: String) -> String:
+	return String(FACE_TYPE_LABEL.get(face_type, face_type.to_upper()))
+
+
 ## THE type-swatch builder — G-01 / L7. Every place that says "this face is of type X" builds it
 ## here: the die card (CB-23, 26/16), the unit inspector (CB-30, 22/14), Team Select's face cell
 ## (TEAM-04, 22/14) and the Vault's variant (VLT-05, 21/13).

@@ -30,6 +30,14 @@ class_name CombatStage3D
 ## technical-preferences.md: a second input path calling into the same handler).
 signal unit_clicked(uid: int)
 
+## Right-click on a unit's 3D model — ALWAYS the inspector, whether or not a die is selected.
+##
+## Left-click is context-dependent by design (src/client.html:5273: a legal target is a target,
+## everything else opens the inspector), which means that while a die IS selected there is no
+## left-click that can answer "what does this thing do?". Right-click is the second door, and
+## it never changes game state. CombatView connects this to _open_unit_inspect() directly.
+signal unit_inspect_requested(uid: int)
+
 ## catalog.json's `colors` table (addons/axie_mixer_3d_assets/catalog.json) has ~5-6 swatches
 ## per class ("<class>-00" .. "<class>-06"). The "-00" swatch (index 0/6/11/17/22/27 — what
 ## this table used to point at) is every class's near-white/cream DEFAULT skin tone
@@ -434,10 +442,15 @@ func _ready() -> void:
 	# in the top/bottom bands") — changed to STOP so clicking a unit's 3D model directly now
 	# also works (see _gui_input()/unit_clicked signal below; bug report: players instinctively
 	# tried clicking the big 3D model in the middle of the screen and got no response at all).
-	# Safe to flip: Combat.tscn's layout puts this stage in its OWN vertical band (MidStage,
-	# 20%-72% of the screen) that never overlaps EnemyBand/BottomBand where the UnitPortrait
-	# cards live — confirmed by reading Combat.tscn's anchors before making this change, not
-	# assumed — so this does not steal any click that used to reach a portrait.
+	# Safe: the nameplates and the deck are LATER siblings of this stage in Combat.tscn, and the
+	# viewport picks by reverse child order, so neither loses a click to it. (The original
+	# reasoning here — "the stage sits in its own MidStage band that never overlaps EnemyBand/
+	# BottomBand" — described a layout that no longer exists; those bands were removed in the
+	# 2026-09-17 layout rewrite. The conclusion still holds, for the reason above.)
+	#
+	# This assignment is the AUTHORITY, and it silently beat CombatStage3D.tscn's own
+	# `mouse_filter = 2` for as long as both existed. The scene file now says STOP too, so the
+	# two agree and reading either one tells the truth.
 	mouse_filter = Control.MOUSE_FILTER_STOP
 	_viewport.transparent_bg = true
 	_viewport.own_world_3d = true
@@ -853,16 +866,28 @@ func set_alive(uid: int, alive: bool) -> void:
 ## own rect currently is — Camera3D.unproject_position() always returns coordinates in that
 ## fixed 1280x640 space, never this Control's rect size, so the click position must be
 ## remapped into that space before comparing against it.
+## MOUSE_FILTER — this Control must never be MOUSE_FILTER_IGNORE, or the viewport never picks it
+## and everything below is dead code. `_ready()` sets STOP and is the authority; the scene file
+## used to say IGNORE anyway, which is a trap worth naming: reading CombatStage3D.tscn alone in
+## 2026-09-21's targeting investigation said "the click path is off" when the script had already
+## turned it on, and the scene file now agrees with `_ready()` so the next reader is not sent the
+## same way. `t_combat_hit_targets.gd` asserts the runtime value rather than either file's text.
 func _gui_input(event: InputEvent) -> void:
 	if not (event is InputEventMouseButton):
 		return
 	var mb := event as InputEventMouseButton
-	if mb.button_index != MOUSE_BUTTON_LEFT or not mb.pressed:
+	if not mb.pressed:
+		return
+	if mb.button_index != MOUSE_BUTTON_LEFT and mb.button_index != MOUSE_BUTTON_RIGHT:
 		return
 	var uid := _pick_unit_at(mb.position)
-	if uid != -1:
+	if uid == -1:
+		return
+	if mb.button_index == MOUSE_BUTTON_RIGHT:
+		unit_inspect_requested.emit(uid)
+	else:
 		unit_clicked.emit(uid)
-		accept_event()
+	accept_event()
 
 
 func _pick_unit_at(local_pos: Vector2) -> int:

@@ -281,6 +281,15 @@ func set_intent(has_intent: bool, face_type: String, value: int, target_name: St
 	# the target line as `→ BUBA`; at Baloo 11 with .04em tracking, mixed case reads as body copy
 	# next to the 20px value and loses the "this is a label" cue the whole badge depends on.
 	_intent_target_label.text = "→ %s" % target_name.to_upper()
+	# The badge is already the documented hover target ("the badge is the hover target for the
+	# intent tooltip" — see set_intent()'s own header) and until now the hover showed nothing.
+	# Spells the telegraph out in words, because the badge itself is three glyphs and a number.
+	var what := DangoTheme.face_type_label(face_type)
+	var head := "%s → %s" % [what, target_name.to_upper()]
+	if value > 0:
+		head = "%s %d → %s" % [what, value, target_name.to_upper()]
+	_intent_panel.tooltip_text = head + ("\nThis is exactly what this enemy does when the turn "
+		+ "ends — the telegraph is never a guess and never random.")
 
 
 ## A PARTY unit has no intent slot. The only path that hides this Control.
@@ -307,6 +316,8 @@ func _apply_inert_badge() -> void:
 	_intent_target_label.visible = false
 	_intent_word.visible = true
 	_intent_word.text = "NO MOVE"
+	_intent_panel.tooltip_text = ("NO MOVE\nThis enemy rolled a blank face. It really does "
+		+ "nothing this turn — this is not a 0-damage attack.")
 
 
 ## HIDDEN. Same inert fill and ink — it is not an attack either, and the spec gives it no fill of
@@ -326,6 +337,8 @@ func _apply_hidden_badge() -> void:
 	_intent_target_label.visible = false
 	_intent_word.visible = true
 	_intent_word.text = "HIDDEN"
+	_intent_panel.tooltip_text = ("HIDDEN\nThis enemy has not rolled its action yet. It will "
+		+ "show here as soon as it does.")
 
 
 func _intent_icon_for(face_type: String) -> Texture2D:

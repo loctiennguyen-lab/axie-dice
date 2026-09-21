@@ -253,7 +253,7 @@ mouse_filter = 2
 theme_override_font_sizes/font_size = 14
 theme_override_colors/font_color = Color(0.93, 0.94, 0.96, 1)
 autowrap_mode = 3
-text = "Click a die to use it, then click a target — its nameplate or the model on the field. Space ends your turn."
+text = "Click a die to use it, then click a target — its nameplate or the model on the field. Right-click any Axie or monster to inspect it. Space ends your turn."
 
 [node name="DeckBar" type="PanelContainer" parent="CanvasLayer/Root"]
 unique_name_in_owner = true

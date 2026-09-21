@@ -150,34 +150,97 @@ static func _mana() -> String:
 	return s
 
 
+## The keyword rule-book as DATA — same "ONE SOURCE" shape `statuses()` below already uses, and
+## for the same reason: the die cards in combat now show a tooltip per keyword chip
+## (CombatView._update_die_slot_content()), and a second copy of this prose beside the tray is
+## how the Codex and the tray end up disagreeing about what CLEAVE does.
+##
+## `key` is the ENGINE's own keyword string (the keys of ContentDB's face `keywords` arrays,
+## which CombatView._KEYWORD_LABEL is also keyed by) — that is what a hover has in hand. `name`
+## is the player-facing heading the Codex prints, which is NOT always the key ("aoe" prints as
+## "All / AoE", "rerollup" as "+Reroll"), which is exactly why the two are separate fields.
+static func keywords() -> Array:
+	return [
+		{"group": "TARGETING", "key": "cleave", "name": "Cleave",
+			"rule": "Full damage to the target and half to the two units next to it."},
+		{"group": "TARGETING", "key": "aoe", "name": "All / AoE",
+			"rule": "Hits every unit on that side. No target selection needed."},
+		{"group": "TARGETING", "key": "chain", "name": "Chain N",
+			"rule": "N separate hits on random targets."},
+		{"group": "TARGETING", "key": "multi", "name": "Multi N",
+			"rule": "Performs the action N times against the same target."},
+		{"group": "DAMAGE", "key": "pierce", "name": "Pierce",
+			"rule": "Ignores Shield completely and hits HP directly."},
+		{"group": "DAMAGE", "key": "exec", "name": "Execute",
+			"rule": "60% more damage against a target below 50% HP."},
+		{"group": "DAMAGE", "key": "vital", "name": "Vital",
+			"rule": "Double value while the attacking Axie is at full HP."},
+		{"group": "DAMAGE", "key": "crit", "name": "Crit N%",
+			"rule": "An N% chance to deal double damage, decided when the die lands."},
+		{"group": "DAMAGE", "key": "lifesteal", "name": "Lifesteal",
+			"rule": "Heals the attacker for the damage dealt."},
+		{"group": "CHANGES OVER TIME", "key": "growth", "name": "Growth",
+			"rule": "Permanently gains 1 each time you use it, for the rest of the fight."},
+		{"group": "CHANGES OVER TIME", "key": "decay", "name": "Decay",
+			"rule": "Loses 1 each time you use it."},
+		{"group": "SPECIAL RULES", "key": "cantrip", "name": "Cantrip",
+			"rule": "Triggers on its own the moment it lands, then the die rerolls itself for free."},
+		{"group": "SPECIAL RULES", "key": "heavy", "name": "Heavy",
+			"rule": "This die cannot be rerolled. In exchange the number is much higher."},
+		{"group": "SPECIAL RULES", "key": "rerollup", "name": "+Reroll",
+			"rule": "Using this face immediately gives you another Reroll."},
+		{"group": "SPECIAL RULES", "key": "selfharm", "name": "Self-damage N",
+			"rule": "The attacking Axie takes N piercing damage."},
+		{"group": "SPECIAL RULES", "key": "echo", "name": "Echo x2",
+			"rule": "The face resolves a second time against the same target."},
+	]
+
+
+## One keyword's {name, rule}, by the engine's own keyword key, or {} when this build has no
+## written rule for it yet. A keyword that is ALSO a status (burn/poison/stun/…) falls through
+## to `status_tip()` at the call site — see CombatView._effect_tip().
+static func keyword_tip(key: String) -> Dictionary:
+	for kw in keywords():
+		if String(kw["key"]) == key:
+			return {"name": String(kw["name"]), "rule": String(kw["rule"])}
+	return {}
+
+
+## One status's {name, rule}, by the key the ENGINE uses. That is `Unit.status`'s own key set
+## (poison/burn/regen/blind/weaken/vulnerable/thorns/stun/undying) plus "shield" — which is not
+## a stack at all but is drawn as the first chip of the same strip (CB-13) — and "freeze".
+##
+## Shield's row carries no `tone` (it has no DangoTheme.status_color() case), so its `icon`
+## field is the key; every other row's `tone` IS the engine key. Both are read here rather
+## than maintaining a third name for the same eleven things.
+static func status_tip(key: String) -> Dictionary:
+	for st in statuses():
+		var k := String(st["tone"])
+		if k == "":
+			k = String(st["icon"])
+		if k == key:
+			return {"name": String(st["name"]), "rule": String(st["rule"])}
+	return {}
+
+
+## Unchanged output from the hand-written version this replaces — same four groups, in the same
+## order, with the same blank line between a table and the next heading. It is now BUILT from
+## `keywords()` so the Codex page and the in-combat die tooltips cannot drift.
 static func _kw() -> String:
-	var s := _H % "TARGETING"
-	s += _table(["KEYWORD", "EFFECT"], [
-		["Cleave", "Full damage to the target and half to the two units next to it."],
-		["All / AoE", "Hits every unit on that side. No target selection needed."],
-		["Chain N", "N separate hits on random targets."],
-		["Multi N", "Performs the action N times against the same target."],
-	])
-	s += "\n" + (_H % "DAMAGE")
-	s += _table(["KEYWORD", "EFFECT"], [
-		["Pierce", "Ignores Shield completely and hits HP directly."],
-		["Execute", "60% more damage against a target below 50% HP."],
-		["Vital", "Double value while the attacking Axie is at full HP."],
-		["Crit N%", "An N% chance to deal double damage, decided when the die lands."],
-		["Lifesteal", "Heals the attacker for the damage dealt."],
-	])
-	s += "\n" + (_H % "CHANGES OVER TIME")
-	s += _table(["KEYWORD", "EFFECT"], [
-		["Growth", "Permanently gains 1 each time you use it, for the rest of the fight."],
-		["Decay", "Loses 1 each time you use it."],
-	])
-	s += "\n" + (_H % "SPECIAL RULES")
-	s += _table(["KEYWORD", "EFFECT"], [
-		["Cantrip", "Triggers on its own the moment it lands, then the die rerolls itself for free."],
-		["Heavy", "This die cannot be rerolled. In exchange the number is much higher."],
-		["+Reroll", "Using this face immediately gives you another Reroll."],
-		["Self-damage N", "The attacking Axie takes N piercing damage."],
-	])
+	var s := ""
+	var last_group := ""
+	var rows: Array = []
+	for kw in keywords():
+		var g := String(kw["group"])
+		if g != last_group:
+			if last_group != "":
+				s += _table(["KEYWORD", "EFFECT"], rows) + "\n"
+				rows = []
+			s += _H % g
+			last_group = g
+		rows.append([String(kw["name"]), String(kw["rule"])])
+	if not rows.is_empty():
+		s += _table(["KEYWORD", "EFFECT"], rows)
 	return s
 
 

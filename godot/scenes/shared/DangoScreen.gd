@@ -80,6 +80,22 @@ static func build(host: Control, plate: Texture2D, kind: int = DangoTheme.Scrim.
 	var content := Control.new()
 	content.name = "Content"
 	content.set_anchors_preset(Control.PRESET_FULL_RECT)
+	# MOUSE_FILTER_IGNORE — THE COLUMN IS A LAYOUT SLOT, NOT A SURFACE (bug, 2026-09-21).
+	#
+	# `Control.new()` defaults to MOUSE_FILTER_STOP, and this node is a FULL-RECT rectangle
+	# appended LAST to `host`. Godot picks GUI input by walking the children in reverse tree
+	# order and does NOT consult `z_index` while doing it, so on Combat this transparent,
+	# empty column sat on top of the entire board and ate every click inside
+	# (side_inset, top_inset) .. (w - side_inset, h - bottom_inset): the enemy/party
+	# nameplates, the 3D stage, and all but the bottom ~32px strip of the die cards, the
+	# reroll and the end-turn button. That is the whole "only a tiny part of the skill card
+	# responds / I cannot target an Axie or a boss" report, in one property.
+	#
+	# IGNORE does not disable the column's children — Godot tests children BEFORE the parent —
+	# so every screen that adds its content here keeps working exactly as before. Nothing in
+	# the build connects `gui_input` to this node or relies on it swallowing a click (checked
+	# across all thirteen `DangoScreen.build()` call sites).
+	content.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	host.add_child(content)
 
 	var apply := func() -> void:
