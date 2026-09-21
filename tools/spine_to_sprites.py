@@ -229,7 +229,7 @@ def parse_json_skel(path: pathlib.Path) -> tuple[list[Bone], list[Slot], dict]:
                 att = _json_attachment(att_name, a)
                 if att is not None:
                     attachments[(idx, att_name)] = att
-    return bones, slots, attachments
+    return bones, slots, attachments, {}   # JSON path carries no animations — see parse_skel
 
 
 def _json_attachment(att_name: str, a: dict):
@@ -384,7 +384,226 @@ def parse_skel(path: pathlib.Path) -> tuple[list[Bone], list[Slot], dict]:
             att = read_attachment(r, att_name, nonessential)
             if att is not None:
                 attachments[(slot_index, att_name)] = att
-    return bones, slots, attachments
+
+    # Everything below is walked purely to reach the ANIMATIONS block, which is the last
+    # thing in the file. Nothing here is kept except the animations themselves and the one
+    # bit of event data the animation reader needs (see read_events).
+    for _ in range(r.varint()):               # additional skins
+        r.string_ref()                        # name
+        for _ in range(r.varint()):           # bones
+            r.varint()
+        for _ in range(r.varint()):           # ik constraints
+            r.varint()
+        for _ in range(r.varint()):           # transform constraints
+            r.varint()
+        for _ in range(r.varint()):           # path constraints
+            r.varint()
+        for _ in range(r.varint()):
+            r.varint()                        # slot index
+            for _ in range(r.varint()):
+                read_attachment(r, r.string_ref(), nonessential)
+
+    event_has_audio = read_events(r)
+    animations = read_animations(r, event_has_audio)
+
+    # THE SELF-CHECK THAT MAKES THIS SAFE. Every block above is walked byte by byte, and a
+    # single miscounted field silently desynchronises everything after it — the failure mode
+    # is not an exception, it is plausible-looking garbage. The animation block is the last
+    # thing in a .skel, so landing exactly on EOF is a strong end-to-end proof that the whole
+    # walk was right. Without it, a wrong pose would be indistinguishable from a wrong parse.
+    if r.i != len(r.d):
+        raise ValueError(
+            f"{path.name}: parser finished at byte {r.i} of {len(r.d)} "
+            f"({len(r.d) - r.i} left over) — the skeleton walk desynchronised somewhere; "
+            "the animations read out of it cannot be trusted")
+    return bones, slots, attachments, animations
+
+
+# ---------------------------------------------------------------------------
+# Animations (Spine 3.8 binary) — enough of them to evaluate ONE pose
+# ---------------------------------------------------------------------------
+#
+# WHY THIS EXISTS. The setup pose is the rigger's neutral layout, not the pose the creature
+# is meant to be seen in. For most of the kit the two coincide, but for several they do not:
+# dryad-ranger's canopy lies on its side, aqua-alpha-wolf's parts sit apart, dryad-mage is in
+# a T-pose, aqua-slime-sup's lily pad floats above its head. What puts those right is the
+# first frame of the idle animation, which lives in a section this reader used to stop short
+# of.
+#
+# ONLY FRAME 0 IS KEPT. Every timeline is walked in full — it has to be, or the stream
+# desynchronises — but only the value at the first keyframe is retained. That is all a static
+# sprite needs, and it keeps this from turning into a runtime.
+#
+# WHAT IS APPLIED vs MERELY WALKED. Applied: bone rotate/translate/scale/shear and slot
+# attachment changes. Walked and discarded: colours, deform, draw order, events, and the IK /
+# transform / path constraint timelines. Constraints would need a solver, and a solver is the
+# line between "reads a pose" and "is a runtime" — see apply_animation_pose() for what that
+# costs on the three skeletons where it shows.
+
+CURVE_STEPPED = 1
+CURVE_BEZIER = 2
+
+
+def read_curve(r: BinaryReader) -> None:
+    """Consume a frame's interpolation record. Linear (0) carries no payload."""
+    t = r.byte()
+    if t == CURVE_BEZIER:
+        r.float(); r.float(); r.float(); r.float()
+
+
+def read_events(r: BinaryReader) -> list:
+    """Event definitions. Returns, per event, whether it carries an audio path — the
+    animation reader needs exactly that one bit, because an event frame for an event WITH
+    audio is two floats longer than one without."""
+    out = []
+    for _ in range(r.varint()):
+        r.string_ref()                        # name
+        r.varint(False)                       # intValue (signed)
+        r.float()                             # floatValue
+        r.string()                            # stringValue
+        audio = r.string()                    # audioPath
+        if audio is not None:
+            r.float(); r.float()              # volume, balance
+        out.append(audio is not None)
+    return out
+
+
+def read_animations(r: BinaryReader, event_has_audio: list) -> dict:
+    """{animation name: {"bones": {index: {...}}, "slots": {index: attachment_name}}},
+    every value taken from the timeline's FIRST keyframe."""
+    anims = {}
+    for _ in range(r.varint()):
+        name = r.string()
+        anims[name] = _read_animation(r, event_has_audio)
+    return anims
+
+
+def _read_animation(r: BinaryReader, event_has_audio: list) -> dict:
+    bone_pose: dict = {}
+    slot_pose: dict = {}
+    deform_pose: dict = {}
+
+    for _ in range(r.varint()):               # slot timelines
+        slot_index = r.varint()
+        for _ in range(r.varint()):
+            ttype = r.byte()
+            frames = r.varint()
+            if ttype == 0:                    # attachment
+                for f in range(frames):
+                    r.float()
+                    att = r.string_ref()
+                    if f == 0:
+                        slot_pose[slot_index] = att
+            elif ttype == 1:                  # colour
+                for f in range(frames):
+                    r.float(); r.int32()
+                    if f < frames - 1:
+                        read_curve(r)
+            elif ttype == 2:                  # two-colour
+                for f in range(frames):
+                    r.float(); r.int32(); r.int32()
+                    if f < frames - 1:
+                        read_curve(r)
+            else:
+                raise ValueError(f"unknown slot timeline type {ttype}")
+
+    for _ in range(r.varint()):               # bone timelines
+        bone_index = r.varint()
+        entry = bone_pose.setdefault(bone_index, {})
+        for _ in range(r.varint()):
+            ttype = r.byte()
+            frames = r.varint()
+            if ttype == 0:                    # rotate
+                for f in range(frames):
+                    r.float()
+                    deg = r.float()
+                    if f == 0:
+                        entry["rotate"] = deg
+                    if f < frames - 1:
+                        read_curve(r)
+            elif ttype in (1, 2, 3):          # translate, scale, shear
+                key = {1: "translate", 2: "scale", 3: "shear"}[ttype]
+                for f in range(frames):
+                    r.float()
+                    x, y = r.float(), r.float()
+                    if f == 0:
+                        entry[key] = (x, y)
+                    if f < frames - 1:
+                        read_curve(r)
+            else:
+                raise ValueError(f"unknown bone timeline type {ttype}")
+
+    for _ in range(r.varint()):               # IK constraint timelines
+        r.varint()
+        frames = r.varint()
+        for f in range(frames):
+            r.float(); r.float(); r.float()   # time, mix, softness
+            r.sbyte(); r.bool(); r.bool()     # bendDirection, compress, stretch
+            if f < frames - 1:
+                read_curve(r)
+
+    for _ in range(r.varint()):               # transform constraint timelines
+        r.varint()
+        frames = r.varint()
+        for f in range(frames):
+            for _ in range(5):                # time + 4 mixes
+                r.float()
+            if f < frames - 1:
+                read_curve(r)
+
+    for _ in range(r.varint()):               # path constraint timelines
+        r.varint()
+        for _ in range(r.varint()):
+            ttype = r.byte()
+            frames = r.varint()
+            floats = 3 if ttype == 2 else 2   # PATH_MIX carries two mixes, the rest one value
+            for f in range(frames):
+                for _ in range(floats):
+                    r.float()
+                if f < frames - 1:
+                    read_curve(r)
+
+    # Deform. KEPT, not discarded: a mesh whose bones move while its vertices stay on the
+    # setup shape comes out smeared, which looks like bad art rather than a missing feature.
+    # aqua-slime-atk is the clearest case in this kit.
+    for _ in range(r.varint()):               # per skin
+        skin_index = r.varint()
+        for _ in range(r.varint()):
+            slot_index = r.varint()
+            for _ in range(r.varint()):
+                att_name = r.string_ref()
+                frames = r.varint()
+                for f in range(frames):
+                    r.float()                 # time
+                    end = r.varint()
+                    values = None
+                    start = 0
+                    if end != 0:
+                        start = r.varint()
+                        values = [r.float() for _ in range(end)]
+                    if f == 0 and skin_index == 0:
+                        # `end == 0` is Spine's "no change from setup" encoding, which is a
+                        # real instruction: it clears any deform rather than leaving one on.
+                        deform_pose[(slot_index, att_name)] = (start, values)
+                    if f < frames - 1:
+                        read_curve(r)
+
+    for _ in range(r.varint()):               # draw order timelines
+        r.float()
+        for _ in range(r.varint()):
+            r.varint(); r.varint()
+
+    for _ in range(r.varint()):               # event timelines
+        r.float()                             # time
+        idx = r.varint()
+        r.varint(False)                       # intValue
+        r.float()                             # floatValue
+        if r.bool():                          # stringValue overridden?
+            r.string()
+        if idx < len(event_has_audio) and event_has_audio[idx]:
+            r.float(); r.float()              # volume, balance
+
+    return {"bones": bone_pose, "slots": slot_pose, "deform": deform_pose}
 
 
 def read_vertices(r: BinaryReader, vertex_count: int):
@@ -482,7 +701,132 @@ def read_attachment(r: BinaryReader, att_name: str, nonessential: bool):
 
 
 # ---------------------------------------------------------------------------
-# Setup-pose world transforms
+# Posing
+# ---------------------------------------------------------------------------
+
+## DEFAULT: the setup pose, i.e. posing OFF. Pass --pose action/idle/normal to turn it on.
+##
+## It defaults off because posing was MEASURED and did not earn its place. The theory was
+## that the handful of chimeras that composite badly (aqua-alpha-wolf's parts sit apart,
+## dryad-mage is splayed, dryad-ranger's canopy lies over, aqua-slime-sup's lily pad floats
+## clear of its head) were showing the rigger's neutral layout, and that the first frame of
+## the idle clip would put them right. It does not: rendered side by side at 230px, the
+## posed and unposed versions of all eight suspects are near-identical, because these rigs'
+## idle clips START at the setup pose. Turning it on by default would rewrite twenty PNGs
+## for no visible gain, so it is opt-in.
+##
+## The follow-up theory, that IK / transform constraints were doing the missing work, was
+## measured too and also fails: aqua-slime-sup and aqua-slime-boss composite badly with ZERO
+## constraints of any kind, while aqua-wolf (4 IK, 13 transform), werewolf (8, 11) and
+## daddy-bear (5, 20, 1 path) all composite fine. So the gap between this compositor and the
+## kit's own rendered portraits is NOT explained yet, and nobody should assume a constraint
+## solver would close it.
+##
+## What the reader below IS good for: it is the parsing half of any future frame-sequence
+## export, and it is verified — the walk lands exactly on EOF for all 20 binaries, and the
+## animation counts it recovers match the kit's own CHIMERA_NOTES.md table one for one.
+DEFAULT_POSE = ""
+
+
+def pick_pose(animations: dict, wanted: str) -> str:
+    """The animation to pose from, or "" to keep the setup pose. Falls back from the exact
+    name to any idle clip, so a skeleton that spells it differently still gets posed rather
+    than silently dropping back to the rigger's layout."""
+    if not animations or not wanted:
+        return ""
+    if wanted in animations:
+        return wanted
+    for candidate in sorted(animations):
+        if "idle" in candidate and "normal" in candidate:
+            return candidate
+    for candidate in sorted(animations):
+        if "idle" in candidate:
+            return candidate
+    return ""
+
+
+def apply_animation_pose(bones: list, slots: list, anim: dict) -> int:
+    """Move the skeleton onto an animation's FIRST keyframe, in place.
+
+    The value conventions are Spine's own, and they are not uniform — getting one wrong
+    bends a limb instead of failing:
+        rotate    ADDS to the setup rotation
+        translate ADDS to the setup x/y
+        scale     MULTIPLIES the setup scale
+        shear     ADDS to the setup shear
+    A slot timeline sets the visible attachment outright, and `None` means "show nothing" —
+    that is how the rigger hides a part the idle pose does not use, and honouring it is what
+    removes dryad-ranger's stray sleep glyph.
+
+    Returns how many bones were touched, so the caller can report a pose that did nothing.
+    """
+    touched = 0
+    for index, vals in anim.get("bones", {}).items():
+        if index >= len(bones):
+            continue
+        b = bones[index]
+        if "rotate" in vals:
+            b.rotation += vals["rotate"]
+        if "translate" in vals:
+            b.x += vals["translate"][0]
+            b.y += vals["translate"][1]
+        if "scale" in vals:
+            b.scale_x *= vals["scale"][0]
+            b.scale_y *= vals["scale"][1]
+        if "shear" in vals:
+            b.shear_x += vals["shear"][0]
+            b.shear_y += vals["shear"][1]
+        touched += 1
+    for index, att_name in anim.get("slots", {}).items():
+        if index < len(slots):
+            slots[index].attachment_name = att_name
+    return touched
+
+
+def apply_deform(attachments: dict, anim: dict) -> int:
+    """Overwrite each deformed mesh's vertices with the animation's first keyframe.
+
+    Spine stores a deform frame as a SPARSE run: `start` is where the run begins in the
+    flattened float array and the values follow, everything outside the run staying at its
+    setup value. For an unweighted mesh those floats ARE the local positions; for a weighted
+    one they are offsets added to each influence's bone-space position. Both are handled,
+    because this kit uses both.
+
+    Returns how many attachments were deformed.
+    """
+    done = 0
+    for (slot_index, att_name), (start, values) in anim.get("deform", {}).items():
+        att = attachments.get((slot_index, att_name))
+        if att is None or not isinstance(att, MeshAttachment):
+            continue
+        if values is None:
+            continue                          # "no change from setup" — nothing to write
+        if not att.weighted:
+            flat = [c for xy in att.vertices for c in xy]
+            for i, v in enumerate(values):
+                if start + i < len(flat):
+                    flat[start + i] = v
+            att.vertices = [(flat[i], flat[i + 1]) for i in range(0, len(flat) - 1, 2)]
+        else:
+            # The flattened deform array has two floats per INFLUENCE, in the same order the
+            # influences were read.
+            i = 0
+            new_verts = []
+            for influences in att.vertices:
+                out = []
+                for bone_index, vx, vy, weight in influences:
+                    dx = values[i - start] if start <= i < start + len(values) else 0.0
+                    dy = values[i + 1 - start] if start <= i + 1 < start + len(values) else 0.0
+                    out.append((bone_index, vx + dx, vy + dy, weight))
+                    i += 2
+                new_verts.append(out)
+            att.vertices = new_verts
+        done += 1
+    return done
+
+
+# ---------------------------------------------------------------------------
+# World transforms
 # ---------------------------------------------------------------------------
 
 def update_world_transforms(bones: list[Bone]) -> None:
@@ -664,7 +1008,8 @@ def is_effect_slot(slot_name: str) -> bool:
                for part in _EFFECT_SLOT_PARTS)
 
 
-def convert(skel_dir: pathlib.Path, out_dir: pathlib.Path, scale: float = 1.0) -> dict:
+def convert(skel_dir: pathlib.Path, out_dir: pathlib.Path, scale: float = 1.0,
+            pose: str = DEFAULT_POSE) -> dict:
     name = skel_dir.name
     skel = skel_dir / f"{name}.skel"
     skel_json = skel_dir / f"{name}.json"
@@ -674,11 +1019,20 @@ def convert(skel_dir: pathlib.Path, out_dir: pathlib.Path, scale: float = 1.0) -
         return {"name": name, "ok": False, "why": "missing .skel/.json, .atlas or .png"}
 
     if skel.exists():
-        bones, slots, attachments = parse_skel(skel)
+        bones, slots, attachments, animations = parse_skel(skel)
     else:
-        bones, slots, attachments = parse_json_skel(skel_json)
+        bones, slots, attachments, animations = parse_json_skel(skel_json)
     regions = parse_atlas(atlas)
     page = Image.open(page_path).convert("RGBA")
+
+    # Pose BEFORE the world transforms — apply_animation_pose() edits the local setup values
+    # that update_world_transforms() then composes.
+    used_pose = pick_pose(animations, pose)
+    posed_bones = 0
+    deformed = 0
+    if used_pose:
+        posed_bones = apply_animation_pose(bones, slots, animations[used_pose])
+        deformed = apply_deform(attachments, animations[used_pose])
     update_world_transforms(bones)
 
     drawn = []
@@ -739,7 +1093,9 @@ def convert(skel_dir: pathlib.Path, out_dir: pathlib.Path, scale: float = 1.0) -
     out_path = out_dir / f"{name}.png"
     canvas.save(out_path)
     return {"name": name, "ok": True, "size": canvas.size, "slots": len(drawn),
-            "meshes": mesh_count, "bones": len(bones), "path": str(out_path)}
+            "meshes": mesh_count, "bones": len(bones), "path": str(out_path),
+            "pose": used_pose or "(setup)", "posed_bones": posed_bones,
+            "deformed": deformed}
 
 
 def main() -> int:
@@ -749,6 +1105,8 @@ def main() -> int:
     ap.add_argument("out_dir")
     ap.add_argument("--scale", type=float, default=1.0)
     ap.add_argument("--only", default="", help="comma-separated skeleton names")
+    ap.add_argument("--pose", default=DEFAULT_POSE,
+                    help="animation whose FIRST frame to pose from; '' keeps the setup pose")
     args = ap.parse_args()
 
     src = pathlib.Path(args.chimeras_dir)
@@ -760,13 +1118,15 @@ def main() -> int:
         if wanted and d.name not in wanted:
             continue
         try:
-            res = convert(d, out, args.scale)
+            res = convert(d, out, args.scale, args.pose)
         except Exception as exc:                       # noqa: BLE001 - report, keep going
             res = {"name": d.name, "ok": False, "why": f"{type(exc).__name__}: {exc}"}
         if res["ok"]:
             ok += 1
             print(f"  OK    {res['name']:24s} {res['size'][0]:4d}x{res['size'][1]:<4d} "
-                  f"{res['slots']:2d} slots ({res['meshes']:2d} mesh), {res['bones']:2d} bones")
+                  f"{res['slots']:2d} slots ({res['meshes']:2d} mesh), {res['bones']:2d} bones, "
+                  f"pose {res['pose']} ({res['posed_bones']} bones, "
+                  f"{res['deformed']} deforms)")
         else:
             fail += 1
             print(f"  FAIL  {res['name']:24s} {res['why']}")
