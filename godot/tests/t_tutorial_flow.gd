@@ -1,15 +1,24 @@
 extends Node
-## Gate for the onboarding tutorial (design/gdd/onboarding-tutorial.md, ported —
-## scenes/tutorial/TutorialView.gd). Drives the real Tutorial.tscn scene end to end via
-## white-box `.call()`/`.get()` (same convention as t_runloop_ui.gd), asserting at every step
-## that:
+## Gate for the onboarding tutorial (design/gdd/onboarding-tutorial.md — scenes/tutorial/).
+##
+## The tutorial now runs on the REAL combat screen with a coach overlay on top of it
+## (TutorialView.gd's header explains the rewrite), so what this file has to prove moved with
+## it. It drives Tutorial.tscn end to end via white-box `.call()`/`.get()` (same convention as
+## t_runloop_ui.gd), asserting at every step that:
 ##   (a) the taught action, done correctly, advances the step and changes real combat state
-##   (b) every OTHER action — pressed directly by calling the handler function, bypassing
-##       whatever `.disabled` the UI happens to have set — is refused and changes nothing
-## (b) is the actual step-lock being tested, not the cosmetic button-disable: a regression that
-## keeps `.disabled` correct but drops the handler's own guard would still pass a test that
-## only checks button state, and that is exactly the class of bug this file exists to catch
-## (see the task report's break/revert proof).
+##   (b) every OTHER action — pressed by calling CombatView's own handler directly, bypassing
+##       both the coach's click-blocking bands and whatever `.disabled` the deck happens to
+##       have set — is refused and changes nothing
+##   (c) nothing the tutorial does reaches RunState or the save file
+##
+## (b) is the actual step-lock. A regression that keeps the overlay's bands in the right place
+## but drops CombatView._gated() would still pass a test that only clicks where the dim lets
+## you: Space, Escape and CombatStage3D's own unit_clicked path never travel through the
+## overlay at all, which is exactly the class of bug this file exists to catch.
+##
+## (c) is what used to be structural — the old fixture had its own board and could not touch a
+## run if it tried. Teaching on the production screen gives that up, so it has to be tested
+## instead of assumed.
 ##
 ## Anti-abort pattern (per t_vault.gd/t_runloop_ui.gd): every test function ends by calling
 ## _done(name), and EXPECTED_TESTS is cross-checked in _ready() so a runtime error that aborts
@@ -19,13 +28,13 @@ extends Node
 
 const EXPECTED_TESTS: Array[String] = [
 	"test_welcome_locks_everything_until_start",
-	"test_roll_step_locks_everything_but_got_it",
-	"test_intent_step_only_accepts_an_enemy_click",
+	"test_party_and_intent_steps_accept_only_their_own_button",
 	"test_reroll_step_only_accepts_reroll_and_actually_rerolls",
 	"test_die_step_rejects_every_die_but_the_taught_one",
 	"test_target_step_rejects_wrong_target_and_accepts_the_taught_one",
 	"test_endturn_step_rejects_early_end_turn_and_advances_on_the_real_one",
 	"test_reward_step_completes_tutorial_and_persists_the_flag",
+	"test_tutorial_combat_is_sealed_off_from_the_run",
 	"test_needs_tutorial_gate_formula",
 ]
 
@@ -35,7 +44,7 @@ var _completed: Array[String] = []
 
 ## test_reward_step_completes_tutorial_and_persists_the_flag() and
 ## test_needs_tutorial_gate_formula() both write MetaState.tutorial_seen/runs and the first one
-## calls the real _on_finish_pressed() -> MetaState.save_to_disk() — see save_guard.gd's own
+## calls the real _finish_tutorial() -> MetaState.save_to_disk() — see save_guard.gd's own
 ## header for why byte-for-byte restore, not a hand-picked field list, is the only version of
 ## this that cannot fall behind.
 var _guard := SaveGuard.new()
@@ -44,16 +53,19 @@ var _guard := SaveGuard.new()
 func _ready() -> void:
 	print("=== t_tutorial_flow: start ===")
 	_guard.capture()
+	# The tutorial drives a live CombatView: without this, every hit opens an input lock and a
+	# timer-driven enemy phase, and the tests would be racing animations rather than the rules.
+	CombatView.disable_juice_for_tests = true
 	await get_tree().process_frame
 
-	test_welcome_locks_everything_until_start()
-	test_roll_step_locks_everything_but_got_it()
-	test_intent_step_only_accepts_an_enemy_click()
-	test_reroll_step_only_accepts_reroll_and_actually_rerolls()
-	test_die_step_rejects_every_die_but_the_taught_one()
-	test_target_step_rejects_wrong_target_and_accepts_the_taught_one()
-	test_endturn_step_rejects_early_end_turn_and_advances_on_the_real_one()
-	test_reward_step_completes_tutorial_and_persists_the_flag()
+	await test_welcome_locks_everything_until_start()
+	await test_party_and_intent_steps_accept_only_their_own_button()
+	await test_reroll_step_only_accepts_reroll_and_actually_rerolls()
+	await test_die_step_rejects_every_die_but_the_taught_one()
+	await test_target_step_rejects_wrong_target_and_accepts_the_taught_one()
+	await test_endturn_step_rejects_early_end_turn_and_advances_on_the_real_one()
+	await test_reward_step_completes_tutorial_and_persists_the_flag()
+	await test_tutorial_combat_is_sealed_off_from_the_run()
 	test_needs_tutorial_gate_formula()
 
 	for name in EXPECTED_TESTS:
@@ -84,246 +96,262 @@ func _assert(cond: bool, msg: String) -> void:
 
 
 # ---------------------------------------------------------------------------------------
+# Fixture helpers
+# ---------------------------------------------------------------------------------------
 
 func _new_tutorial() -> TutorialView:
 	var t: TutorialView = load("res://scenes/tutorial/Tutorial.tscn").instantiate()
 	add_child(t)
+	# TutorialView._ready() instances Combat.tscn and then awaits two frames before it has an
+	# engine to read. Give it those, plus one for its first _render().
+	for _i in 4:
+		await get_tree().process_frame
 	return t
 
 
-## Advances a fresh tutorial instance to the DIE step (welcome->roll->intent->reroll), the
-## point every step-lock test below wants to start from. Asserts nothing itself — callers do.
-func _advance_to_die(t: TutorialView) -> void:
-	t.call("_on_start_pressed")
-	t.call("_on_got_it_pressed")
-	t.call("_on_enemy_pressed", 0)
-	t.call("_on_intent_close_pressed")
-	t.call("_on_reroll_pressed")
+func _view(t: TutorialView) -> CombatView:
+	return t.get("_view") as CombatView
 
 
 func _combat(t: TutorialView) -> CombatEngine:
-	return t.get("_combat")
+	return t.get("_combat") as CombatEngine
 
 
 func _phase(t: TutorialView) -> int:
 	return t.call("_phase")
 
 
+## The step is derived every _process() tick, so a state change made by a direct handler call
+## is not reflected in what the coach shows until the next frame. Tests read _phase() directly
+## (which re-derives on the spot), but anything that has to settle gets this.
+func _tick(n: int = 2) -> void:
+	for _i in n:
+		await get_tree().process_frame
+
+
+## Every interaction the combat screen offers, fired straight at CombatView's handlers — the
+## step-lock's actual surface. Returns nothing; callers assert on state afterwards.
+func _press_everything_except(t: TutorialView, skip: String) -> void:
+	var v := _view(t)
+	if skip != "reroll":
+		v.call("_on_reroll_pressed")
+	if skip != "die":
+		for i in 5:
+			v.call("_on_die_slot_pressed", i)
+	if skip != "target":
+		for e in _combat(t).enemies:
+			v.call("_on_target_clicked", e.uid)
+	if skip != "undo":
+		v.call("_on_undo_pressed")
+
+
+func _teaching_slot(t: TutorialView) -> int:
+	return int(t.call("_slot_of", t.call("_teaching_actor")))
+
+
+func _advance_to_reroll(t: TutorialView) -> void:
+	t.call("_on_cta_pressed")   # WELCOME -> PARTY
+	t.call("_on_cta_pressed")   # PARTY   -> INTENT
+	t.call("_on_cta_pressed")   # INTENT  -> auto-derived, which is REROLL on turn 1
+
+
+func _advance_to_die(t: TutorialView) -> void:
+	_advance_to_reroll(t)
+	_view(t).call("_on_reroll_pressed")
+
+
 # ---------------------------------------------------------------------------------------
 
 func test_welcome_locks_everything_until_start() -> void:
-	var t := _new_tutorial()
+	var t := await _new_tutorial()
 	_assert(_phase(t) == TutorialView.Step.WELCOME, "fresh tutorial did not start at WELCOME")
 
 	var combat := _combat(t)
+	_assert(combat != null, "the tutorial did not boot a real CombatEngine")
 	var rerolls_before: int = combat.rerolls
 	var turn_before: int = combat.turn
-	t.call("_on_reroll_pressed")
-	t.call("_on_end_turn_pressed")
-	t.call("_on_die_pressed", 0)
+	_press_everything_except(t, "")
 	_assert(combat.rerolls == rerolls_before, "reroll fired while still at WELCOME")
 	_assert(combat.turn == turn_before, "end turn fired while still at WELCOME")
+	_assert(int(_view(t).get("_selected_die_uid")) == -1, "a die was picked up at WELCOME")
 	_assert(_phase(t) == TutorialView.Step.WELCOME, "an ignored action advanced the WELCOME step")
 
-	t.call("_on_start_pressed")
-	_assert(_phase(t) == TutorialView.Step.ROLL, "START did not advance WELCOME -> ROLL")
+	t.call("_on_cta_pressed")
+	_assert(_phase(t) == TutorialView.Step.PARTY, "START did not advance WELCOME -> PARTY")
 
 	t.queue_free()
 	_done("test_welcome_locks_everything_until_start")
 
 
-func test_roll_step_locks_everything_but_got_it() -> void:
-	var t := _new_tutorial()
-	t.call("_on_start_pressed")
-	_assert(_phase(t) == TutorialView.Step.ROLL, "fixture did not reach ROLL")
-
+func test_party_and_intent_steps_accept_only_their_own_button() -> void:
+	var t := await _new_tutorial()
+	t.call("_on_cta_pressed")   # -> PARTY
 	var combat := _combat(t)
-	var rerolls_before: int = combat.rerolls
-	t.call("_on_reroll_pressed")
-	t.call("_on_die_pressed", 0)
-	_assert(combat.rerolls == rerolls_before, "reroll fired during ROLL")
-	_assert(_phase(t) == TutorialView.Step.ROLL, "a locked action advanced the ROLL step")
 
-	t.call("_on_got_it_pressed")
-	_assert(_phase(t) == TutorialView.Step.INTENT, "GOT IT did not advance ROLL -> INTENT")
+	for step_name in ["PARTY", "INTENT"]:
+		var rerolls_before: int = combat.rerolls
+		_press_everything_except(t, "")
+		_assert(combat.rerolls == rerolls_before, "reroll fired during the %s step" % step_name)
+		_assert(int(_view(t).get("_selected_die_uid")) == -1,
+			"a die was picked up during the %s step" % step_name)
+		t.call("_on_cta_pressed")
+
+	_assert(_phase(t) == TutorialView.Step.REROLL,
+		"three GOT ITs did not land on REROLL (got %d)" % _phase(t))
 
 	t.queue_free()
-	_done("test_roll_step_locks_everything_but_got_it")
-
-
-func test_intent_step_only_accepts_an_enemy_click() -> void:
-	var t := _new_tutorial()
-	t.call("_on_start_pressed")
-	t.call("_on_got_it_pressed")
-	_assert(_phase(t) == TutorialView.Step.INTENT, "fixture did not reach INTENT")
-
-	var combat := _combat(t)
-	var rerolls_before: int = combat.rerolls
-	t.call("_on_reroll_pressed")
-	_assert(combat.rerolls == rerolls_before, "reroll fired during INTENT")
-	_assert(_phase(t) == TutorialView.Step.INTENT, "a locked action advanced the INTENT step")
-
-	t.call("_on_enemy_pressed", 0)
-	_assert(bool(t.get("_intent_open")), "clicking an enemy at INTENT did not open the popup")
-	t.call("_on_intent_close_pressed")
-	_assert(_phase(t) != TutorialView.Step.INTENT, "closing the intent popup did not advance past INTENT")
-
-	t.queue_free()
-	_done("test_intent_step_only_accepts_an_enemy_click")
+	_done("test_party_and_intent_steps_accept_only_their_own_button")
 
 
 func test_reroll_step_only_accepts_reroll_and_actually_rerolls() -> void:
-	var t := _new_tutorial()
-	t.call("_on_start_pressed")
-	t.call("_on_got_it_pressed")
-	t.call("_on_enemy_pressed", 0)
-	t.call("_on_intent_close_pressed")
-	_assert(_phase(t) == TutorialView.Step.REROLL, "fixture did not reach REROLL")
-
+	var t := await _new_tutorial()
+	_advance_to_reroll(t)
 	var combat := _combat(t)
-	t.call("_on_end_turn_pressed")
-	_assert(combat.turn == 1, "end turn fired during REROLL")
-	_assert(_phase(t) == TutorialView.Step.REROLL, "a locked action advanced the REROLL step")
+	_assert(_phase(t) == TutorialView.Step.REROLL, "did not reach the REROLL step")
 
 	var rerolls_before: int = combat.rerolls
-	t.call("_on_reroll_pressed")
-	_assert(combat.rerolls == rerolls_before - 1, "REROLL button did not spend a reroll")
-	_assert(_phase(t) == TutorialView.Step.DIE, "REROLL did not advance REROLL -> DIE")
+	_press_everything_except(t, "reroll")
+	_assert(combat.rerolls == rerolls_before, "a non-reroll action changed the reroll count")
+	_assert(_phase(t) == TutorialView.Step.REROLL, "an ignored action advanced the REROLL step")
+
+	_view(t).call("_on_reroll_pressed")
+	_assert(combat.rerolls == rerolls_before - 1, "REROLL did not spend a reroll")
+	_assert(_phase(t) != TutorialView.Step.REROLL, "REROLL did not advance the step")
 
 	t.queue_free()
 	_done("test_reroll_step_only_accepts_reroll_and_actually_rerolls")
 
 
-## The step this task's break/revert proof (see report) targets: DIE must reject every die
-## except the one `_teaching_actor()` names, even when the handler is called directly.
 func test_die_step_rejects_every_die_but_the_taught_one() -> void:
-	var t := _new_tutorial()
+	var t := await _new_tutorial()
 	_advance_to_die(t)
-	_assert(_phase(t) == TutorialView.Step.DIE, "fixture did not reach DIE")
+	_assert(_phase(t) == TutorialView.Step.DIE, "did not reach the DIE step after rerolling")
 
-	var combat := _combat(t)
-	var taught: Unit = t.call("_teaching_actor")
-	_assert(taught != null, "fixture has no teachable dmg actor on TUT_SEED — seed needs retuning")
+	var v := _view(t)
+	var taught := _teaching_slot(t)
+	_assert(taught >= 0, "the DIE step has no taught die slot to point at")
 
-	var wrong_idx := -1
-	for i in combat.party.size():
-		if int((combat.party[i] as Unit).uid) != taught.uid:
-			wrong_idx = i
-			break
-	_assert(wrong_idx != -1, "fixture team has only one member — cannot exercise the wrong-die case")
-	if wrong_idx != -1:
-		t.call("_on_die_pressed", wrong_idx)
-		_assert(int(t.get("_selected_uid")) == -1, "pressing a NON-taught die at DIE was accepted")
-		_assert(_phase(t) == TutorialView.Step.DIE, "a wrong die press advanced the DIE step")
+	for i in 5:
+		if i == taught:
+			continue
+		v.call("_on_die_slot_pressed", i)
+		_assert(int(v.get("_selected_die_uid")) == -1,
+			"die slot %d was selectable at the DIE step (only %d should be)" % [i, taught])
 
-	var taught_idx := combat.party.find(taught)
-	t.call("_on_die_pressed", taught_idx)
-	_assert(int(t.get("_selected_uid")) == taught.uid, "pressing the taught die was not accepted")
-	_assert(_phase(t) == TutorialView.Step.TARGET, "the taught die press did not advance DIE -> TARGET")
+	v.call("_on_die_slot_pressed", taught)
+	var actor: Unit = t.call("_teaching_actor")
+	_assert(actor != null and int(v.get("_selected_die_uid")) == actor.uid,
+		"the taught die did not get picked up")
+	_assert(_phase(t) == TutorialView.Step.TARGET, "picking the taught die did not reach TARGET")
 
 	t.queue_free()
 	_done("test_die_step_rejects_every_die_but_the_taught_one")
 
 
 func test_target_step_rejects_wrong_target_and_accepts_the_taught_one() -> void:
-	var t := _new_tutorial()
+	var t := await _new_tutorial()
 	_advance_to_die(t)
+	var v := _view(t)
+	var actor: Unit = t.call("_teaching_actor")
+	v.call("_on_die_slot_pressed", _teaching_slot(t))
+	_assert(_phase(t) == TutorialView.Step.TARGET, "did not reach the TARGET step")
+
 	var combat := _combat(t)
-	var taught: Unit = t.call("_teaching_actor")
-	var taught_idx := combat.party.find(taught)
-	t.call("_on_die_pressed", taught_idx)
-	_assert(_phase(t) == TutorialView.Step.TARGET, "fixture did not reach TARGET")
+	var expected: Unit = t.call("_teaching_target", actor)
+	_assert(expected != null, "the TARGET step has no legal target to point at")
 
-	var expected: Unit = t.call("_teaching_target", taught)
-	_assert(expected != null, "fixture produced no teachable target")
+	# Every wrong unit on the board — the other enemies AND the player's own Axies, since
+	# CombatStage3D's click path offers both and a self-target would spend the die too.
+	var wrong: Array = []
+	for e in combat.enemies:
+		if e.uid != expected.uid:
+			wrong.append(e)
+	for u in combat.party:
+		if u.uid != expected.uid:
+			wrong.append(u)
+	for u2 in wrong:
+		v.call("_on_target_clicked", (u2 as Unit).uid)
+		_assert(int(v.get("_selected_die_uid")) == actor.uid,
+			"clicking %s at the TARGET step spent the die" % (u2 as Unit).n)
 
-	# Wrong target: any uid that is not the expected one (an out-of-range uid always qualifies).
-	var used_before := taught.roll_used()
-	t.call("_on_target_pressed", -999)
-	_assert(taught.roll_used() == used_before, "an invalid target uid was accepted at TARGET")
-	_assert(_phase(t) == TutorialView.Step.TARGET, "a wrong target press advanced the TARGET step")
-
-	t.call("_on_target_pressed", expected.uid)
-	_assert(taught.roll_used(), "the taught target press did not actually use the die")
-	_assert(_phase(t) != TutorialView.Step.TARGET, "the taught target press did not advance past TARGET")
+	var hp_before: int = expected.hp
+	v.call("_on_target_clicked", expected.uid)
+	await _tick(3)
+	_assert(expected.hp < hp_before,
+		"the taught target took no damage (%d -> %d)" % [hp_before, expected.hp])
+	_assert(_phase(t) == TutorialView.Step.ENDTURN, "spending the taught die did not reach ENDTURN")
 
 	t.queue_free()
 	_done("test_target_step_rejects_wrong_target_and_accepts_the_taught_one")
 
 
 func test_endturn_step_rejects_early_end_turn_and_advances_on_the_real_one() -> void:
-	var t := _new_tutorial()
+	var t := await _new_tutorial()
 	_advance_to_die(t)
+	var v := _view(t)
 	var combat := _combat(t)
-	var taught: Unit = t.call("_teaching_actor")
-	var taught_idx := combat.party.find(taught)
-	t.call("_on_die_pressed", taught_idx)
-	var expected: Unit = t.call("_teaching_target", taught)
-	t.call("_on_target_pressed", expected.uid)
 
-	if combat.won:
-		# TUT_ENEMY_HP is tuned so the single taught hit should not itself end the fight — if it
-		# ever does (e.g. after a future retune), ENDTURN is legitimately skipped, same as
-		# client.html's own tutPhase() precedence (S.phase!=='combat' beats the ENDTURN check).
-		_done("test_endturn_step_rejects_early_end_turn_and_advances_on_the_real_one")
-		return
-
-	_assert(_phase(t) == TutorialView.Step.ENDTURN, "fixture did not reach ENDTURN")
+	# Early: still at DIE, END TURN must do nothing.
 	var turn_before: int = combat.turn
-	t.call("_on_reroll_pressed")
-	t.call("_on_die_pressed", 0)
-	_assert(combat.turn == turn_before, "an action other than end-turn fired during ENDTURN")
-	_assert(_phase(t) == TutorialView.Step.ENDTURN, "a locked action advanced the ENDTURN step")
+	v.call("_on_end_turn_pressed")
+	await _tick(3)
+	_assert(combat.turn == turn_before, "END TURN fired at the DIE step")
 
-	t.call("_on_end_turn_pressed")
-	_assert(combat.turn > turn_before or combat.won, "END TURN did not advance the fight")
+	v.call("_on_die_slot_pressed", _teaching_slot(t))
+	var expected: Unit = t.call("_teaching_target", t.call("_teaching_actor"))
+	v.call("_on_target_clicked", expected.uid)
+	await _tick(3)
+	_assert(_phase(t) == TutorialView.Step.ENDTURN, "did not reach the ENDTURN step")
+
+	v.call("_on_end_turn_pressed")
+	await _tick(8)
+	_assert(combat.turn > turn_before or combat.won or combat.lost,
+		"END TURN at the ENDTURN step did not end the turn")
+	_assert(_phase(t) != TutorialView.Step.ENDTURN, "the ENDTURN step never advanced")
 
 	t.queue_free()
 	_done("test_endturn_step_rejects_early_end_turn_and_advances_on_the_real_one")
 
 
-## Full playthrough to REWARD, mirroring the exact taught sequence the task report's seed probe
-## verified always wins within 2 real turns on TUT_SEED. Free-play turns 2+ are driven by a
-## small bot exactly like the probe's, since nothing after ENDTURN is coached.
 func test_reward_step_completes_tutorial_and_persists_the_flag() -> void:
-	MetaState.tutorial_seen = false
-	var t := _new_tutorial()
+	var t := await _new_tutorial()
 	_advance_to_die(t)
+	var v := _view(t)
 	var combat := _combat(t)
-	var taught: Unit = t.call("_teaching_actor")
-	t.call("_on_die_pressed", combat.party.find(taught))
-	var expected: Unit = t.call("_teaching_target", taught)
-	t.call("_on_target_pressed", expected.uid)
-	if not combat.won:
-		t.call("_on_end_turn_pressed")
 
-	var safety := 0
-	while not combat.won and not combat.lost and safety < 50:
-		safety += 1
-		var a: Unit = null
-		for u in combat.party:
-			if u.hp > 0 and u.has_rolled() and not u.roll_used() \
-					and String(u.current_face().get("type", "")) == "dmg":
-				a = u
+	# Play it out for real. The safety bound is generous on purpose: the fixed seed is meant to
+	# win in about two turns, and a bound that has to be raised is the signal that the seed no
+	# longer teaches what it was chosen to teach.
+	var guard := 0
+	while not combat.won and not combat.lost and guard < 40:
+		guard += 1
+		var acted := false
+		for i in 5:
+			var actor: Unit = t.call("_teaching_actor")
+			if actor == null:
 				break
-		if a == null:
-			t.call("_on_end_turn_pressed")
-			continue
-		var tgt_uid := -1
-		for e in combat.enemies:
-			if e.hp > 0:
-				tgt_uid = e.uid
+			var slot := _teaching_slot(t)
+			if slot < 0:
 				break
-		if tgt_uid == -1:
+			v.call("_on_die_slot_pressed", slot)
+			if int(v.get("_selected_die_uid")) != actor.uid:
+				break
+			var tgt: Unit = t.call("_teaching_target", actor)
+			if tgt == null:
+				break
+			v.call("_on_target_clicked", tgt.uid)
+			await _tick(2)
+			acted = true
+		if combat.won or combat.lost:
 			break
-		t.call("_on_die_pressed", combat.party.find(a))
-		if int(t.get("_selected_uid")) == a.uid:
-			t.call("_on_target_pressed", tgt_uid)
-		else:
-			combat.use_die(a.uid, tgt_uid)   # FREE step: direct-die selection already covers
-				# this in practice, but never let a probe-only fixture mismatch hang the test
+		if not acted and combat.rerolls > 0:
+			v.call("_on_reroll_pressed")
+			continue
+		v.call("_on_end_turn_pressed")
+		await _tick(6)
 
 	_assert(combat.won, "the taught + free-play sequence did not win within the safety bound")
+	await _tick(3)
 	_assert(_phase(t) == TutorialView.Step.REWARD, "a won fight did not present the REWARD step")
 
 	t.call("_on_reward_pressed", 0)
@@ -337,6 +365,43 @@ func test_reward_step_completes_tutorial_and_persists_the_flag() -> void:
 
 	t.queue_free()
 	_done("test_reward_step_completes_tutorial_and_persists_the_flag")
+
+
+## The isolation the old self-contained fixture got for free, now that the tutorial teaches on
+## the production screen: no run state written, no CONTINUE RUN slot touched, no rehearsal move
+## appended to the run's replay-verify log.
+func test_tutorial_combat_is_sealed_off_from_the_run() -> void:
+	var shards_before := RunState.shards_this_run
+	var pw_before := RunState.power_level
+	var log_before := RunState.action_log
+	var log_len_before: int = RunState.action_log.entries.size() \
+		if RunState.action_log.get("entries") is Array else -1
+	var save_before := RunState.resume_combat.duplicate(true)
+
+	var t := await _new_tutorial()
+	var v := _view(t)
+	_assert(bool(v.get("_tutorial")), "Combat.tscn did not come up in tutorial mode")
+	_assert(_combat(t).action_log != log_before,
+		"the tutorial fight is writing into the RUN's action log")
+
+	_advance_to_die(t)
+	v.call("_on_die_slot_pressed", _teaching_slot(t))
+	v.call("_on_target_clicked", (t.call("_teaching_target", t.call("_teaching_actor")) as Unit).uid)
+	v.call("_on_end_turn_pressed")
+	await _tick(8)
+
+	_assert(RunState.shards_this_run == shards_before, "the tutorial changed RunState.shards_this_run")
+	_assert(RunState.power_level == pw_before, "the tutorial changed RunState.power_level")
+	_assert(RunState.resume_combat.hash() == save_before.hash(),
+		"the tutorial wrote the CONTINUE RUN slot")
+	if log_len_before >= 0:
+		_assert(RunState.action_log.entries.size() == log_len_before,
+			"the tutorial appended to the run's action log")
+	_assert(RunState.pending_combat.is_empty(),
+		"the tutorial left a pending_combat behind for the next screen to pick up")
+
+	t.queue_free()
+	_done("test_tutorial_combat_is_sealed_off_from_the_run")
 
 
 func test_needs_tutorial_gate_formula() -> void:

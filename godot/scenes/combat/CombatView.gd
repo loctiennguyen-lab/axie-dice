@@ -354,6 +354,32 @@ var _last_face_used_by_uid: Dictionary = {}   # uid -> {part, type} of the last 
 	# used — cached here only so _on_hit_landed() (whose own payload has no face_part) can build
 	# a player-facing sentence; see _player_hit_line()
 
+# --- Tutorial embedding (scenes/tutorial/TutorialView.gd) --------------------------------
+## The onboarding tutorial teaches ON this screen rather than on a simplified copy of it, the
+## same way the web build overlays its step-lock on the real scCombat() DOM. Embedding needs
+## exactly two things from here, and nothing else about this file changes:
+##
+##  * the fixture owns the ending. A tutorial fight must not write its result into RunState,
+##    must not touch the player's CONTINUE RUN slot, and must not change scene — it reports the
+##    outcome and lets the fixture decide. `_tutorial` gates all three (see _finish(),
+##    _save_run_progress(), and the ActionLog swap in _ready()), which is what keeps the
+##    fixture's isolation guarantee: a tutorial can still never be mistaken for a real run.
+##
+##  * the fixture owns a step-lock. Only the interaction being taught may fire. The refusal
+##    lives HERE, in the handlers, not only in the coach overlay's click-blocking bands and not
+##    only in `.disabled`, because Space/Escape and CombatStage3D's own unit_clicked path never
+##    go through a Button at all.
+##
+## The lock is a CALLBACK, not a list this screen is handed and holds on to. A list would be a
+## snapshot of whatever step was current when the fixture last redrew, and the fixture redraws
+## a frame after the state that moved the step — so for one frame the permitted action would be
+## the previous step's. Asking at press time means the answer is always derived from the step
+## the player is actually on.
+signal tutorial_combat_finished(won: bool)
+
+var _tutorial: bool = false
+var _gate_allows: Callable = Callable()
+
 # --- Juice state (unchanged from the pre-review pass) ---
 var _is_animating: bool = false
 var _hit_anim_count: int = 0
@@ -363,6 +389,7 @@ var _last_die_face: Dictionary = {}
 func _ready() -> void:
 	_setup = RunState.pending_combat
 	RunState.pending_combat = {}
+	_tutorial = bool(_setup.get("tutorial", false))
 	# CONTINUE RUN enters this scene straight from the main menu, so nobody has called
 	# RunState.enter_node() and pending_combat is empty. Everything _setup is read for —
 	# node_id, kind, pw, combat_seed — is already inside the saved engine snapshot, so rebuild
@@ -417,8 +444,10 @@ func _ready() -> void:
 	_combat = CombatEngine.new()
 	# The run owns the log; the combat only writes into it. Set before any action can be taken,
 	# and on the resume path too — a fight resumed from a save is the same run, and a log with a
-	# hole in the middle is not evidence of anything.
-	_combat.action_log = RunState.action_log
+	# hole in the middle is not evidence of anything. A TUTORIAL fight is not part of any run,
+	# so it gets a log of its own: appending rehearsal moves to the run's log would put actions
+	# into the replay-verify record that the run never actually took.
+	_combat.action_log = ActionLog.new() if _tutorial else RunState.action_log
 	# CONTINUE RUN: a run saved mid-fight carries the whole CombatEngine snapshot, and restoring
 	# it is not the same thing as starting the node again — setup_new() would re-roll the
 	# encounter and hand the player a fresh, full-health enemy line-up for a fight they were
@@ -2437,8 +2466,22 @@ func _update_front_line(_min_x: float, _max_x: float, _enemy_bottom_y: float) ->
 # Input — click-click (dice tray = select source, Nameplate/3D model = select target)
 # ===========================================================================
 
+## The tutorial step-lock, asked once per handler. Outside the tutorial this is one boolean.
+func _gated(key: String) -> bool:
+	if not _tutorial or not _gate_allows.is_valid():
+		return false
+	return not bool(_gate_allows.call(key))
+
+
+## Installed once by the tutorial fixture: `allows(key) -> bool`, asked on every interaction.
+func set_tutorial_gate(allows: Callable) -> void:
+	_gate_allows = allows
+
+
 func _on_die_slot_pressed(slot_index: int) -> void:
 	if _is_animating:
+		return
+	if _gated("die:%d" % slot_index):
 		return
 	var units := _party_dice_units()
 	if slot_index >= units.size():
@@ -2456,7 +2499,7 @@ func _on_die_slot_pressed(slot_index: int) -> void:
 ## Selecting a die is deliberately NOT one of them: it changes nothing an engine snapshot would
 ## record, and saving on it would write the file on every click for no gain.
 func _save_run_progress() -> void:
-	if _combat == null or _result_shown:
+	if _combat == null or _result_shown or _tutorial:
 		return
 	RunState.save_run(_combat.to_data())
 
@@ -2468,6 +2511,8 @@ func _save_run_progress() -> void:
 ## _on_target_clicked() can only mean one of them and a player holding both would be guessing.
 func _on_active_pressed(relic_id: String) -> void:
 	if _is_animating or _combat == null:
+		return
+	if _gated("active"):
 		return
 	if _selected_active_id == relic_id:      # press again to put it down
 		_selected_active_id = ""
@@ -2508,6 +2553,8 @@ func _play_active_now(relic_id: String, target_uid: int) -> void:
 func _on_target_clicked(uid: int) -> void:
 	if _is_animating:
 		return
+	if _gated("target:%d" % uid):
+		return
 	# src/client.html:5273 — a unit that is NOT a legal target opens its inspector instead;
 	# a legal one is a target. In this port "legal target" is exactly what _update_portrait()
 	# paints as targetable: a die is selected and the unit is alive. So the targeting path
@@ -2538,6 +2585,8 @@ func _on_target_clicked(uid: int) -> void:
 
 
 func _on_reroll_pressed() -> void:
+	if _gated("reroll"):
+		return
 	var uids: Array = []
 	var slot_indices: Array = []
 	var units := _party_dice_units()
@@ -2606,6 +2655,8 @@ func _start_reroll_toss(slot_indices: Array) -> void:
 ## disabled for the duration as well (see _update_end_turn_ui()), so the guard is the backstop
 ## rather than the mechanism.
 func _on_end_turn_pressed() -> void:
+	if _gated("end_turn"):
+		return
 	_selected_die_uid = -1
 	_clear_all_previews()
 	if not _combat.begin_end_turn():
@@ -2658,6 +2709,8 @@ func _on_log_toggle_pressed() -> void:
 ## (file-header: "NEVER contains game rules itself").
 func _on_undo_pressed() -> void:
 	if _is_animating:
+		return
+	if _gated("undo"):
 		return
 	if _combat.undo_last():
 		_selected_die_uid = -1
@@ -3766,6 +3819,14 @@ func _finish(won: bool) -> void:
 	if _result_shown:
 		return
 	_result_shown = true
+	# Embedded in the tutorial: the fixture owns what happens next. Stop BEFORE
+	# apply_combat_result() and before any change_scene_to_file() — see `_tutorial`'s comment.
+	# The victory march still plays, because that beat is part of what the tutorial is showing.
+	if _tutorial:
+		if won:
+			await _play_victory_march()
+		tutorial_combat_finished.emit(won)
+		return
 	RunState.apply_combat_result(_combat.get_result())   # unchanged position/ordering relative
 		# to the pre-animation-pass code — only the win branch below now awaits the march before
 		# its own overlay/scene-change lines; this call itself is not delayed.

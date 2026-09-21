@@ -2,45 +2,39 @@ extends Control
 class_name TutorialView
 ## Mandatory onboarding tutorial (design/gdd/onboarding-tutorial.md), Godot port.
 ##
-## SCOPE DEVIATION FROM THE DESIGN DOC (flagged per collaboration protocol — see task report
-## for the full list; summarized here so the reason lives next to the code it explains):
-## the JS tutorial reuses the production scCombat()/scReward() screens verbatim and overlays a
-## step-lock on top of their real DOM. This port's equivalent production screens
-## (scenes/combat/CombatView.gd, scenes/run_map/RunMapController.gd) are NOT owned by this
-## task (see the task's file-ownership list) and retrofitting a step-lock/coach-overlay API
-## into them is a real cross-screen architecture change, not something to do as a side effect
-## of a tutorial. This scene is therefore a SELF-CONTAINED rehearsal: it drives a real
-## `CombatEngine` instance (the same class and public API CombatView.gd uses — use_die/
-## reroll_dice/end_turn) with a small hand-built board of its own, rather than instancing
-## Combat.tscn. The RULES are real; the CHROME is a simplified stand-in for it.
+## WHAT CHANGED, 21 Sep 2026. This screen used to be a self-contained rehearsal: a real
+## CombatEngine driven through a small hand-built board of its own, because retrofitting a
+## step-lock into the production combat screen was out of that task's scope. The result taught
+## the rules on a screen the player never sees again, and looked nothing like the game.
 ##
-## INPUT MODEL: click-click only. Unlike the JS build (which has a second drag-and-drop input
-## path that also had to be locked — design doc §3.5), CombatView.gd's own header comment
-## states drag-and-drop targeting is "NOT done this pass" for this port — there is currently
-## only one input path in the whole game. Locking it is therefore sufficient; there is no
-## second path to guard against yet, and none is added here.
+## It now does what the web build always did: it teaches ON the real screen. Combat.tscn is
+## instanced as-is — the same dice tray, the same 3D stage, the same intent badges — and
+## everything the tutorial adds sits ABOVE it in TutorialCoach.gd (the dim, the spotlight, the
+## card). The two hooks this needs from CombatView.gd are documented there next to `_tutorial`:
+## a flag that stops the screen writing a result anywhere, and a per-step gate on its input
+## handlers.
 ##
-## ISOLATION (mirrors design doc §3.1's "must not reach S.phase==='won'"/no leaderboard submit
-## requirement): this fixture never touches `RunState` at all — no `enter_node()`, no action
-## log assignment, no `RunState.shards_this_run` — so nothing here can be mistaken for a real
-## run by the anti-cheat/replay-verify system, exactly the same isolation guarantee the JS
-## fixture achieves by never incrementing `META.runs`.
+## ISOLATION (design doc §3.1's "must not reach S.phase==='won'" / no leaderboard submit) is
+## unchanged and is now enforced on CombatView's side: in tutorial mode it never calls
+## RunState.apply_combat_result(), never writes the CONTINUE RUN slot, never changes scene, and
+## logs into an ActionLog of its own rather than the run's. This file's only write to global
+## state is RunState.pending_combat, which Combat.tscn consumes and clears in its own _ready().
 ##
-## STEP MODEL: mirrors client.html's tutStep/tutPhase() split — most steps are DERIVED fresh
-## from live combat state every render (so nothing can desync from the real board), and only
-## the handful of steps with no combat-state signature of their own (WELCOME, ROLL->"GOT IT",
-## INTENT->modal-closed, REWARD-taken->DONE) are tracked by the small `_manual_step` int below.
+## STEP MODEL: unchanged in shape from the previous pass and from client.html's tutStep/
+## tutPhase() split — most steps are DERIVED fresh from live combat state every tick (so
+## nothing can desync from the real board), and only the handful with no combat-state signature
+## of their own (WELCOME, PARTY, INTENT, reward-taken) are tracked by `_manual_step`.
+##
+## THE LOCK IS IN TWO PLACES ON PURPOSE. The coach's dim is four click-blocking bands around
+## the lit rectangle, so what the player can see is exactly what they can press. That is the
+## visible lock. The one that has to hold is CombatView._gated(), because Space, Escape and
+## CombatStage3D's own unit_clicked path never travel through the overlay at all.
+## t_tutorial_flow.gd presses the handlers directly, bypassing the overlay, to prove it.
 
-enum Step { WELCOME, ROLL, INTENT, REROLL, DIE, TARGET, ENDTURN, FREE, REWARD, DONE, LOST }
+enum Step { WELCOME, PARTY, INTENT, REROLL, DIE, TARGET, ENDTURN, FREE, REWARD, DONE, LOST }
 
-# --- Tutorial fixture tuning (coding-standards.md: gameplay values must be data-driven, not
-# hardcoded inline at every call site — kept here as named consts, same pattern CombatView.gd
-# already uses for its own tuning numbers, e.g. _ROLL_ANIM_SCALE). LOCKED once shipped, same
-# as the JS TUT_SEED/TUT_TEAM/TUT_ENEMY_HP — changing the seed changes the first roll shown to
-# every new player. Verified against THIS engine's own RNG (not assumed from the JS values) —
-# see the task report for the probe that checked this seed produces >=1 usable "dmg" actor
-# both before and after a reroll, and that the exact taught sequence (1 coached hit, then free
-# play) wins within 2 real turns, on this build's CombatEngine.
+# --- Fixture tuning. LOCKED once shipped, same as the JS TUT_SEED/TUT_TEAM/TUT_ENEMY_HP —
+# changing the seed changes the first roll shown to every new player.
 const TUT_SEED := 3
 const TUT_TEAM: Array[String] = ["plant1", "beast1", "aqua1", "reptile1", "bird1"]
 const TUT_ENEMY_HP := 6
@@ -51,81 +45,59 @@ const _REWARD_FLAVORS := [
 	{"title": "Gene Shard x20", "desc": "Currency to unlock permanent upgrades between runs."},
 ]
 
-var _combat: CombatEngine
+## Total coached steps, for the "STEP n OF N" line on the card. FREE and the end screens are
+## not counted: by then the tutorial has stopped telling the player what to do.
+const _COACHED_STEPS := 6
+
+var _view: Node2D = null            # the real Combat.tscn
+var _combat: CombatEngine = null    # its engine, read-only from here
+var _coach: TutorialCoach = null
+
+var _manual_step: int = 0   # 0=welcome, 1=party, 2=intent, 3=auto, 8=reward taken
+var _outcome: int = -1      # -1 still fighting, 0 lost, 1 won
 var _max_rerolls: int = 0
-var _manual_step: int = 0   # 0=welcome, 1=roll("GOT IT" gate), 2=intent(modal gate), 3=auto, 8=done
-var _selected_uid: int = -1
-var _intent_open: bool = false
-var _intent_enemy_idx: int = -1
-var _finished_reason: String = ""   # "" | "reward_taken" | "lost" — which big-overlay copy to show
-
-# --- Built controls ---
-var _board: Control
-var _enemy_row: HBoxContainer
-var _enemy_buttons: Array[Button] = []
-var _die_row: HBoxContainer
-var _die_buttons: Array[Button] = []
-var _reroll_button: Button
-var _end_turn_button: Button
-var _coach_title: Label
-var _coach_body: Label
-var _coach_panel: PanelContainer
-var _got_it_button: Button
-var _intent_panel: PanelContainer
-var _intent_label: Label
-var _intent_close_button: Button
-var _reward_row: HBoxContainer
-var _reward_buttons: Array[Button] = []
-var _big_overlay: Control
-var _big_title: Label
-var _big_body: Label
-var _big_button: Button
-
-var _content: Control
-
-## FLAGGED (routing task): no background art was ever specified for this fixture screen (it
-## painted flat DangoTheme.BG before this pass). Reusing MainMenu's plate — thematically
-## "entering the game" fits an onboarding rehearsal — rather than leaving the shell's plate
-## argument to a made-up asset with no design reference.
-const BG_TEXTURE := "res://assets/backgrounds/origins/scene/4-entrance.jpg"
+var _last_phase: int = -1
+var _ready_done: bool = false
 
 
 func _ready() -> void:
-	custom_minimum_size = Vector2(0, 0)
 	set_anchors_preset(Control.PRESET_FULL_RECT)
-	_build_ui()
-	_setup_combat()
-	_render()
+	_coach = TutorialCoach.new()
+	_coach.cta_pressed.connect(_on_cta_pressed)
+	_coach.reward_chosen.connect(_on_reward_pressed)
+	_coach.skip_pressed.connect(_on_skip_pressed)
+	add_child(_coach)
+	await _build_combat()
+	_ready_done = true
+	_render(true)
 
 
-## Shell (godot/CLAUDE.md rule 2). NO footer — changed 2026-09-20.
-##
-## The routing task's scene list said "footer", and this screen duly built one and then added
-## nothing to it: a 72px bar of chrome with no control in it, sitting across the bottom of every
-## tutorial step. FIX-PASS-03 §1 is explicit that empty painted background is fine and an empty
-## PANEL is not, and §8's footer rule exists to hold a BACK — which this mandatory fixture
-## deliberately does not have (see the file header's ISOLATION note; the flow exits through its
-## own DONE overlay). A bar with nothing in it satisfies neither rule, so it goes; the content
-## column keeps the height back.
-func _build_shell() -> Control:
-	var built := DangoScreen.build(self, load(BG_TEXTURE), DangoTheme.Scrim.DEFAULT, false, false)
-	return built["content"]
-
-
-# ===========================================================================
-# Fixture setup — real CombatEngine, no RunState involved (see file header "ISOLATION").
-# ===========================================================================
-
-func _setup_combat() -> void:
-	_combat = CombatEngine.new()
-	_combat.setup_new({
+## Boots the production combat screen inside this one. `tutorial: true` is the whole contract —
+## see CombatView's `_tutorial` comment for the three things it turns off.
+func _build_combat() -> void:
+	RunState.pending_combat = {
 		"node_id": "tutorial", "kind": "battle", "pw": 0, "ascension": 0,
 		"combat_seed": TUT_SEED, "roster_snapshot": _roster_snapshot(),
-	})
-	for e in _combat.enemies:
-		e.hp = TUT_ENEMY_HP
-		e.max_hp = TUT_ENEMY_HP
-	_max_rerolls = _combat.max_rerolls
+		"relic_ids": [], "tutorial": true,
+	}
+	_view = load("res://scenes/combat/Combat.tscn").instantiate() as Node2D
+	add_child(_view)
+	move_child(_coach, get_child_count() - 1)   # the coach stays on top of the board
+	# Two frames: one for Combat's own _ready(), one for the deck bar to have a real size (the
+	# coach's first spotlight measures a Control, and an unlaid-out one measures zero).
+	await get_tree().process_frame
+	await get_tree().process_frame
+	_combat = _view.get("_combat") as CombatEngine
+	_max_rerolls = int(_view.get("_max_rerolls"))
+	if _combat != null:
+		# A short fight: the taught hit lands, the enemy answers once, and free play finishes
+		# it within a turn or two instead of making a first-time player grind a full wave.
+		for e in _combat.enemies:
+			e.hp = TUT_ENEMY_HP
+			e.max_hp = TUT_ENEMY_HP
+		_view.call("_rebuild_all")
+	_view.connect("tutorial_combat_finished", _on_combat_finished)
+	_view.call("set_tutorial_gate", Callable(self, "_allows"))
 
 
 func _roster_snapshot() -> Array:
@@ -137,21 +109,23 @@ func _roster_snapshot() -> Array:
 
 
 # ===========================================================================
-# Step derivation — port of client.html's tutPhase()/tutActor() (see file header).
+# Step derivation — port of client.html's tutPhase()/tutActor()
 # ===========================================================================
 
 func _phase() -> int:
 	if _manual_step == 0:
 		return Step.WELCOME
-	if _manual_step >= 8:
-		return Step.DONE
 	if _manual_step == 1:
-		return Step.ROLL
+		return Step.PARTY
 	if _manual_step == 2:
 		return Step.INTENT
-	if _combat.lost:
+	if _manual_step >= 8:
+		return Step.DONE
+	if _combat == null:
+		return Step.FREE
+	if _outcome == 0 or _combat.lost:
 		return Step.LOST
-	if _combat.won:
+	if _outcome == 1 or _combat.won:
 		return Step.REWARD
 	if _combat.turn > 1:
 		return Step.FREE
@@ -163,7 +137,7 @@ func _phase() -> int:
 	var actor := _teaching_actor()
 	if actor == null:
 		return Step.FREE
-	return Step.TARGET if _selected_uid == actor.uid else Step.DIE
+	return Step.TARGET if int(_view.get("_selected_die_uid")) == actor.uid else Step.DIE
 
 
 ## Which party member step DIE/TARGET teaches — recomputed fresh every call (never cached),
@@ -182,9 +156,8 @@ func _teaching_actor() -> Unit:
 
 
 ## dmg/poison/debuff faces teach "click the enemy"; anything else (heal/shield/buff/mana) falls
-## back to self-target — a safe default this fixture's fixed seed does not actually exercise
-## (the taught actor is a "dmg" face on TUT_SEED, verified by the probe in the task report) but
-## kept so a future reseed cannot silently point the coaching arrow at an illegal target.
+## back to self-target — a safe default this fixture's fixed seed does not exercise, kept so a
+## future reseed cannot silently point the coaching arrow at an illegal target.
 func _teaching_target(actor: Unit) -> Unit:
 	if actor == null:
 		return null
@@ -197,256 +170,56 @@ func _teaching_target(actor: Unit) -> Unit:
 	return actor
 
 
-func _all_rollable_uids() -> Array:
-	var out: Array = []
-	for u in _combat.party:
-		if u.hp > 0 and u.has_rolled() and not u.roll_used() and not u.heavy and not u.frozen:
-			out.append(u.uid)
-	return out
+## Which die slot the taught actor occupies — the slots are CombatView's own ordering
+## (`_party_dice_units()`), not `_combat.party`'s, and the gate key is the SLOT index.
+func _slot_of(u: Unit) -> int:
+	if u == null or _view == null:
+		return -1
+	var units: Array = _view.call("_party_dice_units")
+	for i in units.size():
+		if (units[i] as Unit).uid == u.uid:
+			return i
+	return -1
 
 
 # ===========================================================================
-# UI construction — everything built in code (same convention as MainMenu.gd/
-# RunMapController.gd's own runtime-built content).
+# Tick — the derived step is re-read every frame, and the screen is only redrawn when it moves
 # ===========================================================================
 
-func _build_ui() -> void:
-	_content = _build_shell()   # first statement in effect — see _build_shell()'s own doc comment
+func _process(_delta: float) -> void:
+	if not _ready_done:
+		return
+	var ph := _phase()
+	if ph != _last_phase:
+		_render(false)
 
-	_board = VBoxContainer.new()
-	_board.set_anchors_preset(Control.PRESET_FULL_RECT)
-	_board.add_theme_constant_override("separation", 16)
 
-	var margin := MarginContainer.new()
-	for side in ["left", "right", "top", "bottom"]:
-		margin.add_theme_constant_override("margin_" + side, 24)
-	margin.set_anchors_preset(Control.PRESET_FULL_RECT)
-	margin.add_child(_board)
-	_content.add_child(margin)
-
-	var header := Label.new()
-	header.text = "TUTORIAL"
-	header.add_theme_font_size_override("font_size", 16)
-	header.add_theme_color_override("font_color", DangoTheme.PRIMARY)
-	_board.add_child(header)
-
-	_enemy_row = HBoxContainer.new()
-	_enemy_row.add_theme_constant_override("separation", 12)
-	_board.add_child(_enemy_row)
-	for i in 8:   # sized generously; hidden buttons beyond the real enemy count
-		var b := Button.new()
-		b.visible = false
-		b.pressed.connect(func(): _on_enemy_pressed(i))
-		DangoTheme.style_button(b, false)
-		_enemy_row.add_child(b)
-		_enemy_buttons.append(b)
-
-	_intent_panel = PanelContainer.new()
-	_intent_panel.visible = false
-	_intent_panel.add_theme_stylebox_override("panel", DangoTheme.surface_style(DangoTheme.Surface.PANEL, 10, 3, 4.0, Vector2(12, 8)))
-	_board.add_child(_intent_panel)
-	var intent_col := VBoxContainer.new()
-	intent_col.add_theme_constant_override("separation", 8)
-	_intent_panel.add_child(intent_col)
-	_intent_label = Label.new()
-	_intent_label.add_theme_color_override("font_color", DangoTheme.TEXT)
-	_intent_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	intent_col.add_child(_intent_label)
-	_intent_close_button = Button.new()
-	_intent_close_button.text = "Close"
-	DangoTheme.style_button(_intent_close_button, true)
-	_intent_close_button.pressed.connect(_on_intent_close_pressed)
-	intent_col.add_child(_intent_close_button)
-
-	_die_row = HBoxContainer.new()
-	_die_row.add_theme_constant_override("separation", 10)
-	_board.add_child(_die_row)
-	for i in TUT_TEAM.size():
-		var b2 := Button.new()
-		b2.custom_minimum_size = Vector2(150, 90)
-		b2.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		b2.pressed.connect(func(): _on_die_pressed(i))
-		DangoTheme.style_button(b2, false)
-		_die_row.add_child(b2)
-		_die_buttons.append(b2)
-
-	var controls_row := HBoxContainer.new()
-	controls_row.add_theme_constant_override("separation", 12)
-	_board.add_child(controls_row)
-	_reroll_button = Button.new()
-	_reroll_button.text = "REROLL"
-	DangoTheme.style_button(_reroll_button, false)
-	_reroll_button.pressed.connect(_on_reroll_pressed)
-	controls_row.add_child(_reroll_button)
-	_end_turn_button = Button.new()
-	_end_turn_button.text = "END TURN"
-	DangoTheme.style_button(_end_turn_button, true)
-	_end_turn_button.pressed.connect(_on_end_turn_pressed)
-	controls_row.add_child(_end_turn_button)
-
-	_reward_row = HBoxContainer.new()
-	_reward_row.add_theme_constant_override("separation", 12)
-	_reward_row.visible = false
-	_board.add_child(_reward_row)
-	for i in _REWARD_FLAVORS.size():
-		var rb := Button.new()
-		rb.custom_minimum_size = Vector2(180, 100)
-		rb.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		var flavor: Dictionary = _REWARD_FLAVORS[i]
-		rb.text = "%s\n\n%s" % [String(flavor.get("title", "")), String(flavor.get("desc", ""))]
-		DangoTheme.style_button(rb, true)
-		rb.pressed.connect(func(): _on_reward_pressed(i))
-		_reward_row.add_child(rb)
-		_reward_buttons.append(rb)
-
-	_coach_panel = PanelContainer.new()
-	_coach_panel.add_theme_stylebox_override("panel", DangoTheme.surface_style(DangoTheme.Surface.PANEL, 10, 3, 4.0, Vector2(14, 9)))
-	_board.add_child(_coach_panel)
-	var coach_col := VBoxContainer.new()
-	coach_col.add_theme_constant_override("separation", 6)
-	_coach_panel.add_child(coach_col)
-	_coach_title = Label.new()
-	_coach_title.add_theme_font_size_override("font_size", 20)
-	_coach_title.add_theme_color_override("font_color", DangoTheme.PRIMARY)
-	coach_col.add_child(_coach_title)
-	_coach_body = Label.new()
-	_coach_body.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_coach_body.add_theme_color_override("font_color", DangoTheme.TEXT)
-	coach_col.add_child(_coach_body)
-	_got_it_button = Button.new()
-	_got_it_button.text = "GOT IT →"
-	_got_it_button.visible = false
-	DangoTheme.style_button(_got_it_button, true)
-	_got_it_button.pressed.connect(_on_got_it_pressed)
-	coach_col.add_child(_got_it_button)
-
-	_big_overlay = ColorRect.new()
-	(_big_overlay as ColorRect).color = DangoTheme.BG
-	_big_overlay.set_anchors_preset(Control.PRESET_FULL_RECT)
-	_content.add_child(_big_overlay)
-	var big_center := CenterContainer.new()
-	big_center.set_anchors_preset(Control.PRESET_FULL_RECT)
-	_big_overlay.add_child(big_center)
-	var big_col := VBoxContainer.new()
-	big_col.add_theme_constant_override("separation", 14)
-	big_center.add_child(big_col)
-	_big_title = Label.new()
-	_big_title.add_theme_font_size_override("font_size", 28)
-	_big_title.add_theme_color_override("font_color", DangoTheme.TEXT)
-	big_col.add_child(_big_title)
-	_big_body = Label.new()
-	_big_body.custom_minimum_size = Vector2(480, 0)
-	_big_body.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_big_body.add_theme_color_override("font_color", DangoTheme.TEXT_DIM)
-	big_col.add_child(_big_body)
-	_big_button = Button.new()
-	_big_button.custom_minimum_size = Vector2(220, 52)
-	DangoTheme.style_button(_big_button, true)
-	big_col.add_child(_big_button)
+func _on_combat_finished(won: bool) -> void:
+	_outcome = 1 if won else 0
+	_render(false)
 
 
 # ===========================================================================
-# Input handlers — EVERY one starts with an explicit step-gate check (defense in depth: this
-# is the logical guard, independent of whichever controls happen to be `.disabled` — mirrors
-## client.html's own reasoning for guarding its global Enter/Space shortcut inside the handler
-## rather than trusting the CSS pointer-events lock alone). t_tutorial_flow.gd calls these
-## functions directly (bypassing the disabled UI) specifically to prove these guards, not just
-## the visual lock, are what is doing the work.
+# Input — the coach only ever sends these three, and each re-checks the step itself
 # ===========================================================================
 
-func _on_start_pressed() -> void:
-	if _phase() != Step.WELCOME:
-		return
-	_manual_step = 1
-	_render()
-
-
-func _on_got_it_pressed() -> void:
-	if _phase() != Step.ROLL:
-		return
-	_manual_step = 2
-	_render()
-
-
-## One button, two jobs depending on the step (see _build_ui()'s comment on the enemy row
-## doubling as the target-click surface): at INTENT it opens the read-only intent popup; at
-## TARGET/FREE it forwards to the same use_die() path _on_target_pressed() drives. Each branch
-## keeps its own explicit step-gate check rather than relying on the caller to have picked the
-## right moment — same defense-in-depth as every other handler in this file.
-func _on_enemy_pressed(idx: int) -> void:
-	if idx < 0 or idx >= _combat.enemies.size():
-		return
-	var ph := _phase()
-	if ph == Step.INTENT:
-		_intent_open = true
-		_intent_enemy_idx = idx
-		_render()
-		return
-	if ph == Step.TARGET or ph == Step.FREE:
-		_on_target_pressed(_combat.enemies[idx].uid)
-		return
-
-
-func _on_intent_close_pressed() -> void:
-	_intent_open = false
-	if _manual_step == 2:
-		_manual_step = 3
-	_render()
-
-
-func _on_reroll_pressed() -> void:
-	var ph := _phase()
-	if ph != Step.REROLL and ph != Step.FREE:
-		return
-	if _combat.rerolls <= 0:
-		return
-	_combat.reroll_dice(_all_rollable_uids())
-	_selected_uid = -1
-	_render()
-
-
-func _on_die_pressed(idx: int) -> void:
-	var ph := _phase()
-	if ph != Step.DIE and ph != Step.FREE:
-		return
-	if idx < 0 or idx >= _combat.party.size():
-		return
-	var u: Unit = _combat.party[idx]
-	if u.hp <= 0 or not u.has_rolled() or u.roll_used():
-		return
-	if ph == Step.DIE:
-		var taught := _teaching_actor()
-		if taught == null or u.uid != taught.uid:
-			return   # <-- the guard t_tutorial_flow.gd's break-injection targets
-	_selected_uid = u.uid
-	_render()
-
-
-func _on_target_pressed(uid: int) -> void:
-	var ph := _phase()
-	if ph != Step.TARGET and ph != Step.FREE:
-		return
-	if _selected_uid == -1:
-		return
-	var actor := _combat.by_uid(_selected_uid)
-	if actor == null:
-		return
-	if ph == Step.TARGET:
-		var expected := _teaching_target(_teaching_actor())
-		if expected == null or uid != expected.uid:
+## The card's single button. Which step it belongs to decides what it does, and each branch
+## re-checks the step rather than trusting the caller (same defense-in-depth as every handler
+## in the previous pass — t_tutorial_flow.gd calls these directly to prove it).
+func _on_cta_pressed() -> void:
+	match _phase():
+		Step.WELCOME:
+			_manual_step = 1
+		Step.PARTY:
+			_manual_step = 2
+		Step.INTENT:
+			_manual_step = 3
+		Step.DONE, Step.LOST:
+			_on_finish_pressed()
 			return
-	_combat.use_die(_selected_uid, uid)
-	_selected_uid = -1
-	_render()
-
-
-func _on_end_turn_pressed() -> void:
-	var ph := _phase()
-	if ph != Step.ENDTURN and ph != Step.FREE:
-		return
-	_combat.end_turn()
-	_selected_uid = -1
-	_render()
+		_:
+			return
+	_render(false)
 
 
 func _on_reward_pressed(idx: int) -> void:
@@ -454,9 +227,12 @@ func _on_reward_pressed(idx: int) -> void:
 		return
 	if idx < 0 or idx >= _REWARD_FLAVORS.size():
 		return
-	_finished_reason = "reward_taken"
 	_manual_step = 8
-	_render()
+	_render(false)
+
+
+func _on_skip_pressed() -> void:
+	_on_finish_pressed()
 
 
 ## Split from _on_finish_pressed() so a test can exercise "the tutorial is now recorded as
@@ -474,156 +250,161 @@ func _on_finish_pressed() -> void:
 
 
 # ===========================================================================
-# Render — single "read model, redraw" entry point (same discipline CombatView.gd's own
-# _rebuild_all() comment describes), called after every handler above.
+# Render — one "read model, redraw" entry point. Sets the coach's card AND the combat screen's
+# input gate from the same step value, so what is lit and what is pressable cannot disagree.
 # ===========================================================================
 
-func _render() -> void:
+func _render(_first: bool) -> void:
 	var ph := _phase()
-
-	_big_overlay.visible = ph in [Step.WELCOME, Step.DONE, Step.LOST]
-	if ph == Step.WELCOME:
-		_big_title.text = "Welcome to Axie Dice Tactics!"
-		_big_body.text = "Every Axie is a die, and every face is a real body part. Let's play one battle together before you're on your own."
-		_big_button.text = "START"
-		_disconnect_big_button()
-		_big_button.pressed.connect(_on_start_pressed)
-	elif ph == Step.DONE:
-		_big_title.text = "Nice work — you're ready."
-		_big_body.text = "That's the whole loop: roll, read the enemy, reroll if you need to, act, then pick a reward. Everything else you'll pick up as you play."
-		_big_button.text = "START PLAYING"
-		_disconnect_big_button()
-		_big_button.pressed.connect(_on_finish_pressed)
-	elif ph == Step.LOST:
-		_big_title.text = "That fight didn't go your way."
-		_big_body.text = "That shouldn't happen in this tutorial — let's just get you into the real game."
-		_big_button.text = "CONTINUE"
-		_disconnect_big_button()
-		_big_button.pressed.connect(_on_finish_pressed)
-
-	_intent_panel.visible = _intent_open
-	if _intent_open and _intent_enemy_idx >= 0 and _intent_enemy_idx < _combat.enemies.size():
-		var e: Unit = _combat.enemies[_intent_enemy_idx]
-		_intent_label.text = _intent_text(e)
-
-	for i in _enemy_buttons.size():
-		var b := _enemy_buttons[i]
-		if i < _combat.enemies.size():
-			var e2: Unit = _combat.enemies[i]
-			b.visible = true
-			b.text = "%s\nHP %d/%d" % [e2.n if e2.n != "" else e2.key, e2.hp, e2.max_hp]
-			b.disabled = (ph != Step.INTENT) or e2.hp <= 0
-		else:
-			b.visible = false
-
-	for i in _die_buttons.size():
-		var b3 := _die_buttons[i]
-		if i >= _combat.party.size():
-			b3.visible = false
-			continue
-		var u: Unit = _combat.party[i]
-		b3.visible = true
-		b3.text = _die_label(u)
-		var selectable := u.hp > 0 and u.has_rolled() and not u.roll_used()
-		var enabled := false
-		if ph == Step.DIE:
-			var taught := _teaching_actor()
-			enabled = selectable and taught != null and u.uid == taught.uid
-		elif ph == Step.FREE:
-			enabled = selectable
-		b3.disabled = not enabled
-		b3.button_pressed = (u.uid == _selected_uid)
-
-	_reroll_button.disabled = not ((ph == Step.REROLL or ph == Step.FREE) and _combat.rerolls > 0)
-	_end_turn_button.disabled = not (ph == Step.ENDTURN or ph == Step.FREE)
-	_got_it_button.visible = (ph == Step.ROLL)
-
-	_reward_row.visible = (ph == Step.REWARD)
-	for rb in _reward_buttons:
-		rb.disabled = (ph != Step.REWARD)
-
-	# Target buttons (enemy row doubles as the target-click surface at TARGET/FREE too — a
-	# second connection would stack handlers, so target clicks route through the SAME enemy
-	# button objects via _enemy_or_target_pressed() rerouting below instead of a second row).
-	for i in _enemy_buttons.size():
-		if i >= _combat.enemies.size():
-			continue
-		var b4 := _enemy_buttons[i]
-		var e3: Unit = _combat.enemies[i]
-		if ph == Step.TARGET or ph == Step.FREE:
-			var can_target := e3.hp > 0 and _selected_uid != -1
-			if ph == Step.TARGET:
-				var expected := _teaching_target(_teaching_actor())
-				can_target = can_target and expected != null and expected.uid == e3.uid
-			b4.disabled = not can_target
-
-	if not (ph in [Step.ROLL, Step.INTENT, Step.REROLL, Step.DIE, Step.TARGET, Step.ENDTURN, Step.REWARD]):
-		_coach_panel.visible = false
-	else:
-		_coach_panel.visible = true
-		_set_coach_text(ph)
-
-
-func _set_coach_text(ph: int) -> void:
+	_last_phase = ph
 	match ph:
-		Step.ROLL:
-			_coach_title.text = "Your 5 Axies just rolled"
-			_coach_body.text = "Every face is a real body part on that Axie."
+		Step.WELCOME:
+			_coach.show_curtain("Welcome to Axie Dice Tactics!",
+				"Every Axie is a die, and every face is a real body part. "
+				+ "Let's play one battle together before you're on your own.",
+				"START")
+		Step.PARTY:
+			_coach.show_step(_label(1), "These five are your team",
+				"Each card is one Axie's die, showing the face it just rolled — the body part, "
+				+ "what it does, and for how much.",
+				"GOT IT →", _dice_tray())
 		Step.INTENT:
-			_coach_title.text = "The enemy shows its hand"
-			_coach_body.text = "Click an enemy — you'll see exactly what it's about to do."
+			_coach.show_step(_label(2), "The enemy shows its hand",
+				"That badge above its head is exactly what it will do on its turn. You always "
+				+ "get to see it coming.",
+				"GOT IT →", null, _enemy_rect())
 		Step.REROLL:
-			_coach_title.text = "Not happy with that roll?"
-			_coach_body.text = "Press REROLL — in this tutorial it re-rolls every die."
+			_coach.show_step(_label(3), "Not happy with that roll?",
+				"Press REROLL. It re-rolls every die you haven't used yet — you get a few "
+				+ "of these each turn.",
+				"", _node("_reroll_button"))
 		Step.DIE:
-			_coach_title.text = "Click this die"
-			_coach_body.text = "The highlighted die is the only one you can click right now."
+			_coach.show_step(_label(4), "Pick this die",
+				"It rolled an attack face. Click it to pick it up — the highlighted one is the "
+				+ "only card you can press right now.",
+				"", _die_slot(_slot_of(_teaching_actor())))
 		Step.TARGET:
-			_coach_title.text = "Now pick a target"
-			_coach_body.text = "Click the highlighted enemy to use it."
+			_coach.show_step(_label(5), "Now click the enemy",
+				"That spends the die and lands the hit. Every attack works this way: pick a "
+				+ "die, then pick who it goes to.",
+				"", null, _enemy_rect())
 		Step.ENDTURN:
-			_coach_title.text = "The enemy acts out exactly what it showed"
-			_coach_body.text = "Press END TURN."
+			_coach.show_step(_label(6), "Your move is done",
+				"Press END TURN and the enemy acts out exactly what its badge showed.",
+				"", _node("_end_turn_button"))
+		Step.FREE:
+			_coach.show_step("", "Over to you",
+				"That's the whole loop. Finish the fight — everything on this screen is "
+				+ "yours now.", "", null, _free_hint_rect(), false)
 		Step.REWARD:
-			_coach_title.text = "Pick 1 of 3"
-			_coach_body.text = "All three are good picks — this is where you start shaping your build."
+			_coach.show_rewards("You won — pick one",
+				"All three are good picks. This is where you start shaping your build.",
+				_REWARD_FLAVORS)
+		Step.DONE:
+			_coach.show_curtain("Nice work — you're ready.",
+				"Roll, read the enemy, reroll if you need to, act, then pick a reward. "
+				+ "Everything else you'll pick up as you play.",
+				"START PLAYING")
+		Step.LOST:
+			_coach.show_curtain("That fight didn't go your way.",
+				"That shouldn't happen in the tutorial — let's just get you into the real game.",
+				"CONTINUE")
 
 
-func _die_label(u: Unit) -> String:
-	if u.hp <= 0:
-		return "%s\nDEAD" % u.n
-	if not u.has_rolled():
-		return "%s\n(not rolled)" % u.n
-	if u.roll_used():
-		return "%s\nSPENT" % u.n
-	var f := u.current_face()
-	# The LIVE value — see CombatView._live_face_value(). The tutorial runs a real
-	# CombatEngine, so its party grows every turn like any other, and a lesson that shows one
-	# number and deals another is teaching the wrong thing.
-	var live := _combat._face_value(u, u.roll_face_index()) if _combat != null \
-		else int(f.get("value", 0))
-	return "%s\n%s · %d" % [u.n, String(f.get("type", "")).to_upper(), live]
+func _label(n: int) -> String:
+	return "STEP %d OF %d" % [n, _COACHED_STEPS]
 
 
-func _intent_text(e: Unit) -> String:
-	if e.intent.is_empty():
-		return "%s has no move ready yet." % e.n
-	var fi := int(e.intent.get("face_index", -1))
-	if fi < 0 or fi >= e.die.size():
-		return "%s's move is unclear." % e.n
-	var f: Dictionary = e.die[fi]
-	var target_uid := int(e.intent.get("target_uid", -1))
-	var target_name := "no one"
-	if target_uid >= 0:
-		var t := _combat.by_uid(target_uid)
-		if t != null:
-			target_name = t.n
-	return "%s will use %s (%d) on %s." % [
-		e.n, String(f.get("type", "")).to_upper(),
-		(_combat._face_value(e, fi) if _combat != null else int(f.get("value", 0))),
-		target_name]
+## THE STEP-LOCK. CombatView calls this on every interaction, with a key naming what the
+## player just pressed — "reroll", "end_turn", "die:<slot>", "target:<uid>", "undo", "active".
+## The answer is derived from _phase() on the spot, never from what the coach last drew: the
+## coach redraws a frame after the state that moved the step, and a lock made of that snapshot
+## would spend one frame enforcing the previous step.
+##
+## Everything not named here is refused, which is the right default — a step that forgets to
+## list an interaction locks it rather than leaking it.
+func _allows(key: String) -> bool:
+	match _phase():
+		Step.REROLL:
+			return key == "reroll"
+		Step.DIE:
+			var slot := _slot_of(_teaching_actor())
+			return slot >= 0 and key == "die:%d" % slot
+		Step.TARGET:
+			# The taught die stays pressable so the player can put it back down; everything
+			# else on the board is still locked to the one legal target.
+			var tgt := _teaching_target(_teaching_actor())
+			if tgt != null and key == "target:%d" % tgt.uid:
+				return true
+			var slot2 := _slot_of(_teaching_actor())
+			return slot2 >= 0 and key == "die:%d" % slot2
+		Step.ENDTURN:
+			return key == "end_turn"
+		Step.FREE:
+			return true
+	return false
 
 
-func _disconnect_big_button() -> void:
-	for c in _big_button.pressed.get_connections():
-		_big_button.pressed.disconnect(c["callable"])
+## A private Control on the combat screen, by field name. Kept in one place so the coupling to
+## CombatView's internals is a short, greppable list rather than scattered `.get()` calls.
+func _node(field: String) -> Control:
+	if _view == null:
+		return null
+	var c = _view.get(field)
+	return c as Control if c is Control else null
+
+
+## The five die cards as one block — the dice tray, not the whole deck bar. Lighting the bar
+## would also light the mana well, the relic rack and the two action buttons, none of which
+## this step is talking about. Reached through a slot's parent rather than by node path so it
+## survives Combat.tscn being re-laid-out.
+func _dice_tray() -> Control:
+	var first := _die_slot(0)
+	return first.get_parent() as Control if first != null else _node("_deck_bar_panel")
+
+
+func _die_slot(index: int) -> Control:
+	if _view == null or index < 0:
+		return null
+	var slots = _view.get("_die_slot_buttons")
+	if slots is Array and index < (slots as Array).size():
+		return (slots as Array)[index] as Control
+	return null
+
+
+## The enemy's own column, as a rectangle: its intent badge and nameplate sit at a fixed y near
+## the top of the stage and the creature hangs below them, so the lit area has to run from the
+## badge down to the front line — the plate alone would leave the body the player is being told
+## to click sitting in the dark, outside the hole, unclickable.
+func _enemy_rect() -> Rect2:
+	if _combat == null or _view == null:
+		return Rect2()
+	var target := _teaching_target(_teaching_actor())
+	if target == null:
+		for e in _combat.enemies:
+			if e.hp > 0:
+				target = e
+				break
+	if target == null:
+		return Rect2()
+	var box := Rect2()
+	for field in ["_head_huds", "_portraits"]:
+		var d = _view.get(field)
+		if not (d is Dictionary):
+			continue
+		var c = (d as Dictionary).get(target.uid)
+		if c is Control and (c as Control).is_visible_in_tree():
+			var r := (c as Control).get_global_rect()
+			box = r if box.size == Vector2.ZERO else box.merge(r)
+	if box.size == Vector2.ZERO:
+		return Rect2()
+	var line := _node("_front_line")
+	var bottom: float = line.global_position.y if line != null else box.end.y
+	box = box.grow_individual(46.0, 6.0, 46.0, maxf(bottom - box.end.y, 0.0))
+	return box
+
+
+## FREE play dims nothing — but the card still has to sit somewhere sensible, so it is placed
+## against the top-left of the board rather than beside a spotlight.
+func _free_hint_rect() -> Rect2:
+	return Rect2(24.0, 70.0, 1.0, 1.0)
