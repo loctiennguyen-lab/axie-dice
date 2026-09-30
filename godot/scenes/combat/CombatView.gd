@@ -2625,7 +2625,8 @@ func _on_reroll_pressed() -> void:
 	if use_fx:
 		_hold_reroll_overlays(slot_indices)
 		_reroll_fx_active = true   # before _rebuild_all(): no roll-bounce under the tray
-	elif not slot_indices.is_empty():
+	elif not slot_indices.is_empty() and _combat.rerolls > 0:
+		# (no rerolls left = reroll_dice() refuses, so there is nothing to toss)
 		_start_reroll_toss(slot_indices)
 	var ok := _combat.reroll_dice(uids)
 	_append_log("[input] reroll %d dice : %s" % [uids.size(), "ok" if ok else "failed"])
