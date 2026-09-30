@@ -335,6 +335,13 @@ var _die_slot_used_style: StyleBoxFlat
 var _die_slot_content: Array = []        # {root, plain_label, name_label, icon_rect, value_label,
 	# type_label, kw_row} per slot — see _build_die_slot_content()
 var _die_slot_lifted: Array = [false, false, false, false, false]
+## Reroll presentation — scenes/combat/reroll_fx/, ported from the Claude Design file
+## "Godot Combat Reroll FX v2". Built on the first reroll and never in test mode, where a reroll
+## still repaints in the same frame it always has. While `_reroll_fx_active` the rerolled cards
+## keep their toss overlay up (hiding the new face) until their cube lands back in them.
+var _reroll_fx: RerollFX = null
+var _reroll_fx_active: bool = false
+var _reroll_fx_slot_by_uid: Dictionary = {}
 var _last_die_used: Dictionary = {}       # uid -> bool — drives the flip-on-use juice
 var _hovered_enemy_uid: int = -1          # enemy whose intent badge is currently hovered
 var _end_turn_acting_uid: int = -1        # most recent EventBus.enemy_intent_executed(uid) seen
@@ -521,8 +528,15 @@ func _exit_tree() -> void:
 func _unhandled_key_input(event: InputEvent) -> void:
 	if event is InputEventKey and event.pressed and not (event as InputEventKey).echo:
 		var code := (event as InputEventKey).keycode
-		if code == KEY_SPACE and not _end_turn_button.disabled and not _is_animating:
+		if code == KEY_SPACE and not _end_turn_button.disabled and not _is_animating \
+				and not _reroll_fx_active:
 			_on_end_turn_pressed()
+		elif code == KEY_R:
+			# R rerolls, and skips the tray while it is up (the tray's own "TAP TO SKIP  R").
+			if _reroll_fx_active:
+				_reroll_fx.skip()
+			elif not _reroll_button.disabled:
+				_on_reroll_pressed()
 		elif code == KEY_ESCAPE:
 			# The only way out of a fight now that combat-v2.html's four-chip utility row has no
 			# Quit button — the confirm dialog itself is unchanged.
@@ -2585,6 +2599,9 @@ func _on_target_clicked(uid: int) -> void:
 
 
 func _on_reroll_pressed() -> void:
+	if _reroll_fx_active:
+		_reroll_fx.skip()
+		return
 	if _gated("reroll"):
 		return
 	var uids: Array = []
@@ -2595,16 +2612,127 @@ func _on_reroll_pressed() -> void:
 		if u.hp > 0 and u.has_rolled() and not u.roll_used() and not u.heavy and not u.frozen:
 			uids.append(u.uid)
 			slot_indices.append(i)
+	# The face each die showed BEFORE the reroll — the tray's +2 / -1 / NEW chips and its
+	# "power vs last roll" line are measured against it.
+	var prev_faces := {}
+	for uid in uids:
+		prev_faces[uid] = _combat.by_uid(uid).roll_face_index()
+	var use_fx := not disable_juice_for_tests and not slot_indices.is_empty() and _combat.rerolls > 0
 	# Toss overlay must go up BEFORE reroll_dice()/_rebuild_all() below repaint the new face —
 	# see _start_reroll_toss()'s own comment for why this ordering is what makes "hide old value,
-	# reveal new only once the toss settles" work with zero engine changes.
-	if not slot_indices.is_empty():
+	# reveal new only once the toss settles" work with zero engine changes. With the tray the
+	# overlay stays up until that die's cube is back in its card (_on_reroll_fx_die_returned()).
+	if use_fx:
+		_hold_reroll_overlays(slot_indices)
+		_reroll_fx_active = true   # before _rebuild_all(): no roll-bounce under the tray
+	elif not slot_indices.is_empty():
 		_start_reroll_toss(slot_indices)
 	var ok := _combat.reroll_dice(uids)
 	_append_log("[input] reroll %d dice : %s" % [uids.size(), "ok" if ok else "failed"])
 	_selected_die_uid = -1
 	_rebuild_all()
+	if use_fx:
+		if ok:
+			_play_reroll_fx(uids, slot_indices, prev_faces)
+		else:
+			_end_reroll_fx()
 	_save_run_progress()
+
+
+## Shows the rerolled cards' toss overlay and leaves it up — no spin, the cube in the tray is the
+## motion now. Each one comes down when its own cube lands (see _on_reroll_fx_die_returned()).
+func _hold_reroll_overlays(slot_indices: Array) -> void:
+	for i in slot_indices:
+		var overlay := _reroll_overlay_at(i)
+		if overlay == null:
+			continue
+		overlay.visible = true
+		overlay.modulate = Color(1, 1, 1, 1)
+		overlay.rotation_degrees = 0.0
+		overlay.scale = Vector2.ONE
+
+
+func _reroll_overlay_at(slot: int) -> PanelContainer:
+	if slot < 0 or slot >= _die_slot_content.size():
+		return null
+	var overlay: PanelContainer = (_die_slot_content[slot] as Dictionary).get("reroll_overlay")
+	if overlay == null or not is_instance_valid(overlay):
+		return null
+	return overlay
+
+
+func _ensure_reroll_fx() -> RerollFX:
+	if _reroll_fx == null:
+		_reroll_fx = RerollFX.new()
+		_reroll_fx.display_font = DangoTheme.FONT_DISPLAY
+		_reroll_fx.reroll_icon = _ICON_REROLL
+		for t in DangoTheme.FACE_TYPE_ICON:
+			_reroll_fx.type_icons[t] = DangoTheme.face_type_icon(t)
+			_reroll_fx.type_colors[t] = DangoTheme.die_type_color(t)
+		add_child(_reroll_fx)
+		_reroll_fx.die_returned.connect(_on_reroll_fx_die_returned)
+		_reroll_fx.finished.connect(func(_grade): _end_reroll_fx())
+		_reroll_fx.shake_requested.connect(_on_reroll_fx_shake)
+	# Settings -> Reduce flashing turns off the shake and the gold flashes, same as a hit's.
+	_reroll_fx.screen_shake = not MetaState.reduce_flash
+	_reroll_fx.flashes = not MetaState.reduce_flash
+	_reroll_fx.sound = not MetaState.audio_muted
+	return _reroll_fx
+
+
+## One tray entry per rerolled die. Faces carry the LIVE value (_face_value(): growth, relics,
+## weaken) so the cube shows the same number the card will. The roll itself is already decided
+## by reroll_dice() above; the tray only performs it.
+func _play_reroll_fx(uids: Array, slot_indices: Array, prev_faces: Dictionary) -> void:
+	var entries: Array = []
+	_reroll_fx_slot_by_uid.clear()
+	for n in uids.size():
+		var u := _combat.by_uid(int(uids[n]))
+		var slot: int = slot_indices[n]
+		if u == null or not u.has_rolled() or slot >= _die_slot_buttons.size():
+			continue
+		var faces: Array = []
+		for i in u.die.size():
+			faces.append({"type": String((u.die[i] as Dictionary).get("type", "blank")),
+				"value": _combat._face_value(u, i)})
+		if faces.size() != 6:
+			continue
+		var btn: Button = _die_slot_buttons[slot]
+		_reroll_fx_slot_by_uid[u.uid] = slot
+		entries.append({
+			"id": u.uid, "card": btn, "faces": faces,
+			"final": u.roll_face_index(), "prev": maxi(0, int(prev_faces.get(u.uid, 0))),
+			"class_color": DangoTheme.class_color(u.cls),
+			"egg": u.roster_index < 0,   # summoned tokens ride as the small die
+			"rest_position": Vector2(btn.position.x, 0.0),
+		})
+	if entries.is_empty():
+		_end_reroll_fx()
+		return
+	_ensure_reroll_fx().play(entries, {"rerolls_left": _combat.rerolls})
+
+
+func _on_reroll_fx_die_returned(uid: Variant, _face: int, _is_max: bool) -> void:
+	var overlay := _reroll_overlay_at(int(_reroll_fx_slot_by_uid.get(uid, -1)))
+	if overlay != null:
+		overlay.visible = false
+
+
+func _on_reroll_fx_shake(amplitude: float) -> void:
+	# The tray layer shakes itself; the 3D stage behind it only takes the big moments.
+	if amplitude >= 7.0 and is_instance_valid(_stage3d):
+		_stage3d.shake(amplitude * 0.5, 0.16)
+
+
+## Always leaves the tray closed and every card showing its real face — also the path taken
+## when reroll_dice() refused after the overlays went up.
+func _end_reroll_fx() -> void:
+	_reroll_fx_active = false
+	for i in _die_slot_content.size():
+		var overlay := _reroll_overlay_at(i)
+		if overlay != null:
+			overlay.visible = false
+	_rebuild_all()
 
 
 ## "Tung xúc xắc" toss juice (ui-programmer follow-up pass, task C). Each rerolled slot's
@@ -3570,6 +3698,8 @@ func _maybe_play_roll_juice(u: Unit, btn: Button) -> void:
 	_last_die_face[u.uid] = fi
 	if prev == null or prev == fi:
 		return
+	if _reroll_fx_active:
+		return   # the reroll tray lands this card itself (RerollFX._land_card())
 	_play_die_roll_bounce(btn)
 
 
