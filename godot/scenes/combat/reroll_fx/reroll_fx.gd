@@ -460,6 +460,14 @@ func _update_tease() -> void:
 	_teasing = tease
 
 
+## Every overlay the tray leaves in the tree must let clicks through to the board.
+func _ignore_mouse(n: Node) -> void:
+	if n is Control:
+		(n as Control).mouse_filter = Control.MOUSE_FILTER_IGNORE
+	for c in n.get_children():
+		_ignore_mouse(c)
+
+
 func _collect() -> void:
 	if _stage == "collect":
 		return
@@ -467,6 +475,7 @@ func _collect() -> void:
 	_open_tray(false)
 	var st := create_tween()
 	st.tween_property(_stamp, "modulate:a", 0.0, 0.15)
+	st.tween_callback(func(): _stamp.visible = false)
 	if _teasing:
 		_spot_mat.set_shader_parameter("fade", 0.0)
 	_teasing = false
@@ -751,6 +760,7 @@ func _slam(g: Dictionary) -> void:
 	_stamp_sub.text = g.sub
 	_stamp_sub.add_theme_color_override("font_color", g.sub_fg)
 	(_stamp_panel.get_theme_stylebox("panel") as StyleBoxFlat).bg_color = g.bg
+	_stamp.visible = true
 	_stamp.reset_size()
 	_stamp.pivot_offset = _stamp.size / 2.0
 	_stamp.position = STAMP_POS - _stamp.size / 2.0
@@ -1021,6 +1031,11 @@ func _build() -> void:
 	_stamp.add_child(sub)
 	_stamp.modulate.a = 0.0
 	_root.add_child(_stamp)
+	# The stamp sits over the middle of the board and stays in the tree between rolls. A
+	# PanelContainer defaults to MOUSE_FILTER_STOP, so without this an invisible (alpha 0)
+	# stamp swallowed every click on the enemies after the first graded reroll.
+	_ignore_mouse(_stamp)
+	_stamp.visible = false
 
 	_chips_layer = Node2D.new()
 	_chips_layer.z_index = 9

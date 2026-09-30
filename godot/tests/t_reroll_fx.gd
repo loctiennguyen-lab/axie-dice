@@ -90,6 +90,15 @@ func _ready() -> void:
 
 
 func _after_checks(btns: Array, rest: Dictionary, label: String) -> void:
+	# Nothing the tray leaves behind may catch a click meant for the board (regression:
+	# the invisible grade stamp blocked every attack on the enemies after a reroll).
+	var fx: Node = _view.get("_reroll_fx")
+	if fx != null:
+		for c in fx.find_children("*", "Control", true, false):
+			var ctl := c as Control
+			if ctl.is_visible_in_tree() and ctl.mouse_filter != Control.MOUSE_FILTER_IGNORE:
+				_check(false, "%s: tray control %s still catches clicks" % [label, ctl.get_path()])
+				break
 	for i in btns.size():
 		var ov: Control = _view.call("_reroll_overlay_at", i)
 		if ov != null:
