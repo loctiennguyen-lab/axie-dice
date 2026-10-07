@@ -1,0 +1,19 @@
+# One Worker serves the whole game: the static build out of R2, and the Axie lookup proxy at
+# /api/axie. Same origin for both, which is why the game needs no CORS at all any more.
+name = "axie-dice"
+main = "src/index.js"
+compatibility_date = "2026-09-21"
+
+# Publish on the free *.workers.dev subdomain. Attach a custom domain later in the dashboard
+# (Workers -> axie-dice -> Settings -> Domains) without touching the game: the build reads its
+# own origin, so it follows whatever host answers.
+workers_dev = true
+
+# The bucket the build was uploaded to. Reading it through this binding costs no egress and
+# is not subject to the r2.dev rate limit, which is development-only by Cloudflare's own docs.
+[[r2_buckets]]
+binding = "GAME"
+bucket_name = "axie-dice"
+
+[observability]
+enabled = true

@@ -24,6 +24,9 @@ node_modules
 build
 web
 
+# The itch.io zip: 231 MB in one file, which is what Vercel was choking on.
+*.zip
+
 # Root files that are for the repository, not the deploy.
 README.md
 THIRD-PARTY-NOTICES.md

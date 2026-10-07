@@ -1,0 +1,485 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, user-scalable=no, initial-scale=1.0">
+	<title>$GODOT_PROJECT_NAME</title>
+	<style>
+/* Fonts are self-hosted, subset to the glyphs this screen actually draws (36 KB for all
+   three, against ~300 KB from a CDN). Not a size optimisation first and foremost: enabling
+   cross-origin isolation for SharedArrayBuffer means COEP: require-corp, and a cross-origin
+   stylesheet or font file without CORP headers is blocked outright. Same-origin files cannot
+   be. Sources are the project's own TTFs in godot/assets/fonts. */
+@font-face { font-family: 'Baloo 2'; font-weight: 800; font-style: normal; font-display: block; src: url(ld-baloo2-800.woff) format('woff'); }
+@font-face { font-family: 'Baloo 2'; font-weight: 700; font-style: normal; font-display: block; src: url(ld-baloo2-700.woff) format('woff'); }
+@font-face { font-family: 'Work Sans'; font-weight: 600; font-style: normal; font-display: block; src: url(ld-worksans-600.woff) format('woff'); }
+
+html, body, #canvas { margin: 0; padding: 0; border: 0; }
+body { color: white; background-color: #16220f; overflow: hidden; touch-action: none; }
+#canvas { display: block; }
+#canvas:focus { outline: none; }
+
+#status { position: absolute; inset: 0; visibility: hidden; overflow: hidden; background: #16220f; }
+#status-progress, #status-splash { display: none !important; }
+
+/* ---- backdrop: fills the whole viewport, never scaled ---- */
+.ld-bg, .ld-wash { position: absolute; inset: 0; }
+.ld-bg {
+	background: url(ld-bg.jpg) center 46% / cover no-repeat;
+	filter: blur(5px) saturate(1.1) brightness(.92);
+	transform: scale(1.08);
+}
+.ld-wash.a { background: radial-gradient(90% 70% at 20% 4%, rgba(255,238,196,.5) 0%, rgba(255,206,132,.14) 40%, rgba(0,0,0,0) 68%); }
+.ld-wash.b { background: linear-gradient(180deg, rgba(8,18,10,.66) 0%, rgba(8,18,10,.12) 30%, rgba(6,14,8,.42) 68%, rgba(5,10,6,.88) 100%); }
+.ld-wash.c { box-shadow: inset 0 0 320px 110px rgba(10,18,10,.6); }
+
+/* ---- the 1920x1080 artboard, scaled to fit ---- */
+#ld-stage {
+	position: absolute; left: 50%; top: 50%;
+	width: 1920px; height: 1080px;
+	transform: translate(-50%, -50%) scale(var(--k, 1));
+	transform-origin: center center;
+	font-family: 'Work Sans', system-ui, sans-serif;
+}
+
+@keyframes ld-bob { 0%,100% { transform: translateY(0) } 50% { transform: translateY(-16px) } }
+@keyframes ld-tumble { 0% { transform: translateY(0) rotate(0deg) } 50% { transform: translateY(-38px) rotate(24deg) } 100% { transform: translateY(0) rotate(0deg) } }
+@keyframes ld-fill { 0% { width: 4% } 18% { width: 26% } 38% { width: 33% } 62% { width: 68% } 82% { width: 79% } 100% { width: 98% } }
+@keyframes ld-sheen { 0% { transform: translateX(-120%) } 100% { transform: translateX(520%) } }
+@keyframes ld-dots { 0%,20% { opacity: 0 } 40%,100% { opacity: 1 } }
+@keyframes ld-mote { 0% { transform: translateY(20px); opacity: 0 } 25% { opacity: .85 } 100% { transform: translateY(-260px); opacity: 0 } }
+@keyframes ld-glow { 0%,100% { opacity: .55 } 50% { opacity: .9 } }
+
+.ld-boss { position: absolute; right: -170px; bottom: 210px; width: 760px; opacity: .3; filter: brightness(.45) blur(1.5px); }
+
+.ld-die { position: absolute; background: #FBF1DE; border: 7px solid #1a1207; box-sizing: border-box; display: grid; place-items: center; }
+.ld-die span { border-radius: 50%; }
+
+.ld-title {
+	margin: 0; font-family: 'Baloo 2', sans-serif; font-weight: 800; font-size: 168px; line-height: .88;
+	letter-spacing: -.012em; color: #FFF6E6;
+	text-shadow: 6px 0 0 #1a1207, -6px 0 0 #1a1207, 0 6px 0 #1a1207, 0 -6px 0 #1a1207, 5px 5px 0 #1a1207, -5px 5px 0 #1a1207, 5px -5px 0 #1a1207, -5px -5px 0 #1a1207, 0 15px 0 #FF9345, 0 21px 0 #1a1207, 0 36px 48px rgba(6,14,8,.6);
+}
+.ld-tag {
+	margin: 10px 0 0; font-family: 'Baloo 2', sans-serif; font-weight: 700; font-size: 44px; line-height: 1; color: #FFEBD2;
+	text-shadow: 3px 0 0 #1a1207, -3px 0 0 #1a1207, 0 3px 0 #1a1207, 0 -3px 0 #1a1207, 0 12px 26px rgba(6,14,8,.55);
+}
+.ld-team { position: absolute; left: 0; right: 0; bottom: 318px; display: flex; justify-content: center; align-items: flex-end; gap: 46px; }
+.ld-mate { display: flex; flex-direction: column; align-items: center; gap: 10px; animation: ld-bob 3.2s ease-in-out infinite; }
+.ld-mate img.p { width: 190px; height: 190px; filter: drop-shadow(0 20px 22px rgba(6,14,8,.55)); }
+.ld-mate img.s { width: 46px; height: 46px; opacity: .92; filter: drop-shadow(0 4px 6px rgba(6,14,8,.6)); }
+
+.ld-foot { position: absolute; left: 0; right: 0; bottom: 96px; display: flex; flex-direction: column; align-items: center; gap: 22px; }
+.ld-loading { font-family: 'Baloo 2', sans-serif; font-weight: 800; font-size: 38px; letter-spacing: .3em; text-transform: uppercase; color: #FFD9B0; text-shadow: 0 4px 12px rgba(6,14,8,.7); }
+.ld-dot { width: 11px; height: 11px; border-radius: 50%; background: #FF9345; animation: ld-dots 1.2s steps(1) infinite; }
+.ld-track { width: 1240px; border-radius: 28px; background: #1a1207; padding: 7px; box-shadow: 0 12px 0 rgba(26,18,7,.7), 0 26px 44px rgba(6,14,8,.55); }
+.ld-groove { height: 44px; border-radius: 22px; background: #2a2114; overflow: hidden; position: relative; }
+#ld-fill {
+	position: absolute; inset: 0; width: 4%; border-radius: 22px; overflow: hidden;
+	background: linear-gradient(180deg, #FFC078 0%, #FF9345 58%, #EE7526 100%);
+	transition: width .28s ease-out;
+}
+/* before the first real byte count arrives, fake it so the bar is never dead */
+#ld-fill.indeterminate { animation: ld-fill 9s cubic-bezier(.4,.05,.3,1) infinite; transition: none; }
+#ld-fill .sheen { position: absolute; top: 0; bottom: 0; left: 0; width: 90px; background: linear-gradient(90deg, rgba(255,255,255,0) 0%, rgba(255,255,255,.55) 50%, rgba(255,255,255,0) 100%); animation: ld-sheen 2.4s linear infinite; }
+#ld-note { margin: 4px 0 0; font-family: 'Work Sans', sans-serif; font-weight: 600; font-size: 24px; letter-spacing: .16em; text-transform: uppercase; color: rgba(255,232,206,.82); }
+
+.ld-start {
+	font-family: 'Baloo 2', sans-serif; font-weight: 800; font-size: 46px; letter-spacing: .12em;
+	text-transform: uppercase; color: #1a1207; cursor: pointer;
+	background: linear-gradient(180deg, #FFC078 0%, #FF9345 58%, #EE7526 100%);
+	border: 7px solid #1a1207; border-radius: 28px; padding: 18px 68px;
+	box-shadow: 0 14px 0 rgba(26,18,7,.75), 0 28px 46px rgba(6,14,8,.55);
+	transition: transform .12s ease-out, box-shadow .12s ease-out;
+}
+.ld-start:hover { transform: translateY(-3px); box-shadow: 0 17px 0 rgba(26,18,7,.75), 0 32px 52px rgba(6,14,8,.6); }
+.ld-start:active { transform: translateY(6px); box-shadow: 0 8px 0 rgba(26,18,7,.75), 0 16px 26px rgba(6,14,8,.5); }
+
+.ld-mote { position: absolute; border-radius: 50%; }
+
+#status-notice {
+	position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
+	background-color: #5b3943; border-radius: .5rem; border: 1px solid #9b3943; color: #e0e0e0;
+	font-family: 'Work Sans', 'Noto Sans', Arial, sans-serif; line-height: 1.3;
+	max-width: 40rem; overflow: hidden; padding: 1rem; text-align: center; z-index: 5; display: none;
+}
+	</style>
+$GODOT_HEAD_INCLUDE
+	<link id="-gd-engine-icon" rel="icon" type="image/png" href="favicon-axie.png" />
+	<link rel="apple-touch-icon" href="apple-touch-axie.png"/>
+</head>
+<body>
+	<canvas id="canvas">
+		Your browser does not support the canvas tag.
+	</canvas>
+
+	<noscript>
+		Your browser does not support JavaScript.
+	</noscript>
+
+	<div id="status">
+		<div class="ld-bg"></div>
+		<div class="ld-wash a"></div>
+		<div class="ld-wash b"></div>
+		<div class="ld-wash c"></div>
+
+		<div id="ld-stage">
+			<img class="ld-boss" src="ld-boss.png" alt="">
+
+			<div style="position:absolute; inset:0; pointer-events:none;">
+				<div class="ld-die" style="left:172px; top:232px; width:124px; height:124px; border-radius:26px; box-shadow:0 16px 0 rgba(26,18,7,.55), 0 30px 46px rgba(6,14,8,.5); grid-template-columns:repeat(3,1fr); grid-template-rows:repeat(3,1fr); padding:12px; animation:ld-tumble 5.2s ease-in-out infinite;">
+					<span style="grid-area:1/1; width:20px; height:20px; background:#E0533C;"></span>
+					<span style="grid-area:2/2; width:20px; height:20px; background:#E0533C;"></span>
+					<span style="grid-area:3/3; width:20px; height:20px; background:#E0533C;"></span>
+				</div>
+				<div class="ld-die" style="right:224px; top:312px; width:104px; height:104px; border-radius:22px; border-width:6px; box-shadow:0 14px 0 rgba(26,18,7,.5), 0 26px 40px rgba(6,14,8,.45); grid-template-columns:repeat(2,1fr); grid-template-rows:repeat(2,1fr); padding:16px; animation:ld-tumble 6.6s ease-in-out infinite; animation-delay:-1.8s;">
+					<span style="width:18px; height:18px; background:#2F7BD8;"></span>
+					<span style="width:18px; height:18px; background:#2F7BD8;"></span>
+					<span style="width:18px; height:18px; background:#2F7BD8;"></span>
+					<span style="width:18px; height:18px; background:#2F7BD8;"></span>
+				</div>
+				<div class="ld-die" style="right:430px; top:168px; width:82px; height:82px; border-radius:18px; border-width:6px; background:#FFD9B0; box-shadow:0 12px 0 rgba(26,18,7,.45), 0 22px 34px rgba(6,14,8,.4); animation:ld-tumble 7.8s ease-in-out infinite; animation-delay:-3.4s;">
+					<span style="width:18px; height:18px; background:#1a1207;"></span>
+				</div>
+				<div style="position:absolute; left:330px; bottom:372px; width:340px; height:200px; border-radius:50%; background:radial-gradient(50% 50% at 50% 50%, rgba(255,190,120,.3) 0%, rgba(255,190,120,0) 72%); animation:ld-glow 6s ease-in-out infinite;"></div>
+			</div>
+
+			<div style="position:absolute; left:0; right:0; top:96px; display:flex; flex-direction:column; align-items:center; gap:26px;">
+				<h1 class="ld-title">AXIE DICE</h1>
+				<p class="ld-tag">Build your team and destroy everything</p>
+			</div>
+
+			<div class="ld-team">
+				<div class="ld-mate"><img class="p" src="ld-plant.png" alt=""><img class="s" src="ld-part-back-plant.svg" alt=""></div>
+				<div class="ld-mate" style="animation-delay:-.45s"><img class="p" src="ld-beast.png" alt="" style="width:198px;height:198px"><img class="s" src="ld-part-horn-beast.svg" alt=""></div>
+				<div class="ld-mate" style="animation-delay:-.9s"><img class="p" src="ld-aqua.png" alt=""><img class="s" src="ld-part-ears-aqua.svg" alt=""></div>
+				<div class="ld-mate" style="animation-delay:-1.35s"><img class="p" src="ld-reptile.png" alt="" style="width:194px;height:194px"><img class="s" src="ld-part-mouth-reptile.svg" alt=""></div>
+				<div class="ld-mate" style="animation-delay:-1.8s"><img class="p" src="ld-bug.png" alt="" style="width:188px;height:188px"><img class="s" src="ld-part-tail-bug.svg" alt=""></div>
+			</div>
+
+			<div style="position:absolute; left:50%; bottom:296px; width:1180px; height:70px; margin-left:-590px; border-radius:50%; background:radial-gradient(50% 50% at 50% 50%, rgba(8,16,8,.5) 0%, rgba(8,16,8,0) 70%);"></div>
+
+			<div class="ld-foot">
+				<button id="ld-start" class="ld-start" type="button">Tap to start</button>
+				<div id="ld-progress-block" style="display:none; flex-direction:column; align-items:center; gap:22px;">
+				<div style="display:flex; align-items:baseline; gap:18px;">
+					<span class="ld-loading">Loading</span>
+					<span style="display:flex; gap:8px; padding-bottom:6px;">
+						<span class="ld-dot"></span>
+						<span class="ld-dot" style="animation-delay:.4s"></span>
+						<span class="ld-dot" style="animation-delay:.8s"></span>
+					</span>
+				</div>
+				<div class="ld-track">
+					<div class="ld-groove">
+						<div id="ld-fill" class="indeterminate"><div class="sheen"></div></div>
+					</div>
+				</div>
+				<p id="ld-note">Preparing the run</p>
+				</div>
+			</div>
+
+			<div style="position:absolute; inset:0; pointer-events:none;">
+				<span class="ld-mote" style="left:14%; bottom:22%; width:9px; height:9px; background:#FFD9A0; animation:ld-mote 11s linear infinite;"></span>
+				<span class="ld-mote" style="left:33%; bottom:30%; width:6px; height:6px; background:#FFE9C4; animation:ld-mote 14s linear infinite; animation-delay:-4s;"></span>
+				<span class="ld-mote" style="left:58%; bottom:26%; width:8px; height:8px; background:#FFD9A0; animation:ld-mote 12.5s linear infinite; animation-delay:-7s;"></span>
+				<span class="ld-mote" style="left:78%; bottom:34%; width:7px; height:7px; background:#FFE9C4; animation:ld-mote 13.5s linear infinite; animation-delay:-2.5s;"></span>
+				<span class="ld-mote" style="left:89%; bottom:20%; width:5px; height:5px; background:#FFD9A0; animation:ld-mote 15s linear infinite; animation-delay:-9s;"></span>
+			</div>
+		</div>
+
+		<img id="status-splash" src="$GODOT_SPLASH" alt="">
+		<progress id="status-progress"></progress>
+		<div id="status-notice"></div>
+	</div>
+
+	<script>
+// Godot creates its AudioContext while the engine boots. Chrome hands every context back
+// suspended until the page has seen a real gesture, and a context still suspended when the
+// first sound plays stays silent for the rest of the session — which reads as "the build has
+// no audio". Keep a handle on every context the page makes and wake them on the first input.
+(function () {
+	const Orig = window.AudioContext || window.webkitAudioContext;
+	if (!Orig) { return; }
+	const live = [];
+	function Patched(...args) {
+		const ctx = new Orig(...args);
+		live.push(ctx);
+		return ctx;
+	}
+	Patched.prototype = Orig.prototype;
+	window.AudioContext = Patched;
+	window.webkitAudioContext = Patched;
+	window.__audioContexts = live;
+	function wake() {
+		live.forEach((c) => { if (c.state === 'suspended') { c.resume().catch(() => {}); } });
+	}
+	['pointerdown', 'keydown', 'touchstart'].forEach((e) => window.addEventListener(e, wake, true));
+}());
+	</script>
+
+	<script src="$GODOT_URL"></script>
+	<script>
+// Godot swaps the favicon for the icon baked into the .pck the moment the engine boots, which
+// puts the stock robot back over ours. Re-pin ours for the first 30s; once the project is
+// re-exported with the Axie icon the two agree and this becomes a no-op.
+(function () {
+	const want = 'favicon-axie.png';
+	function pin() {
+		const l = document.getElementById('-gd-engine-icon');
+		if (l && l.getAttribute('href') !== want) { l.setAttribute('href', want); }
+	}
+	const t = setInterval(pin, 400);
+	setTimeout(() => clearInterval(t), 30000);
+}());
+
+// The artboard is authored at 1920x1080; scale it to fit whatever window we get.
+(function () {
+	const stage = document.getElementById('ld-stage');
+	function fit() {
+		if (!stage.isConnected) { return; }
+		stage.style.setProperty('--k', Math.min(window.innerWidth / 1920, window.innerHeight / 1080));
+	}
+	fit();
+	window.addEventListener('resize', fit);
+}());
+
+const GODOT_CONFIG = $GODOT_CONFIG;
+const GODOT_THREADS_ENABLED = $GODOT_THREADS_ENABLED;
+const engine = new Engine(GODOT_CONFIG);
+
+(function () {
+	const statusOverlay = document.getElementById('status');
+	const statusProgress = document.getElementById('status-progress');
+	const statusNotice = document.getElementById('status-notice');
+	const ldFill = document.getElementById('ld-fill');
+	const ldNote = document.getElementById('ld-note');
+	const startGate = document.getElementById('ld-start');
+	const progressBlock = document.getElementById('ld-progress-block');
+
+	let initializing = true;
+	let statusMode = '';
+
+	// The real byte counter drives the bar. Until it reports something usable the bar keeps
+	// its scripted animation, because a bar frozen at 0% reads as a hung page.
+	function setLoadingProgress(current, total) {
+		if (!(current > 0 && total > 0)) {
+			ldFill.classList.add('indeterminate');
+			return;
+		}
+		const pct = Math.max(2, Math.min(100, Math.round((current / total) * 100)));
+		ldFill.classList.remove('indeterminate');
+		ldFill.style.width = pct + '%';
+		ldNote.textContent = 'Preparing the run · ' + pct + '%';
+	}
+
+	function setStatusMode(mode) {
+		if (statusMode === mode || !initializing) {
+			return;
+		}
+		if (mode === 'hidden') {
+			statusOverlay.remove();
+			initializing = false;
+			return;
+		}
+		statusOverlay.style.visibility = 'visible';
+		statusProgress.style.display = mode === 'progress' ? 'block' : 'none';
+		statusNotice.style.display = mode === 'notice' ? 'block' : 'none';
+		statusMode = mode;
+	}
+
+	function setStatusNotice(text) {
+		while (statusNotice.lastChild) {
+			statusNotice.removeChild(statusNotice.lastChild);
+		}
+		const lines = text.split('\n');
+		lines.forEach((line) => {
+			statusNotice.appendChild(document.createTextNode(line));
+			statusNotice.appendChild(document.createElement('br'));
+		});
+	}
+
+	function displayFailureNotice(err) {
+		console.error(err);
+		if (err instanceof Error) {
+			setStatusNotice(err.message);
+		} else if (typeof err === 'string') {
+			setStatusNotice(err);
+		} else {
+			setStatusNotice('An unknown error occurred.');
+		}
+		setStatusMode('notice');
+		initializing = false;
+	}
+
+	// WHY THE MAIN PACK IS CACHED BY HAND
+	//
+	// index.pck is ~225 MB. The browser's HTTP cache does not keep an entry that size, and the
+	// Worker used to answer every revalidation with a full 200, so every visit downloaded the
+	// whole pack again (55-80 s on a fast line). Cache Storage has no such size ceiling, so the
+	// pack lives there, tagged with the ETag it was downloaded under. A visit costs one HEAD
+	// request: same ETag -> read the pack from disk, different ETag (new export) -> download the
+	// new one and replace it. Anything that goes wrong here falls back to a plain download, so
+	// the worst case is the old behaviour, never a broken game.
+	const PACK_CACHE_NAME = 'axie-dice-pack';
+	const PACK_TAG_HEADER = 'x-pack-etag';
+
+	async function downloadPack(url, expectedSize, onBytes) {
+		const res = await fetch(url, { cache: 'no-store' });
+		if (!res.ok) { throw new Error('Could not download ' + url + ' (HTTP ' + res.status + ')'); }
+		const etag = res.headers.get('etag') || '';
+		const total = expectedSize || parseInt(res.headers.get('content-length') || '0', 10) || 0;
+		// Filled in place: a chunk list would need a second 225 MB copy to join.
+		let buf = new Uint8Array(total || 1 << 20);
+		let got = 0;
+		const reader = res.body.getReader();
+		for (;;) {
+			const { done, value } = await reader.read();
+			if (done) { break; }
+			if (got + value.length > buf.length) {
+				const bigger = new Uint8Array(Math.max(buf.length * 2, got + value.length));
+				bigger.set(buf.subarray(0, got));
+				buf = bigger;
+			}
+			buf.set(value, got);
+			got += value.length;
+			onBytes(got, total || got);
+		}
+		if (total && got !== total) { throw new Error('Incomplete download of ' + url + ' (' + got + ' of ' + total + ' bytes)'); }
+		return { bytes: got === buf.length ? buf : buf.subarray(0, got), etag };
+	}
+
+	// Resolves to an ArrayBuffer holding the pack.
+	async function loadPack(url, expectedSize, onProgress) {
+		let cache = null;
+		try { cache = await caches.open(PACK_CACHE_NAME); } catch (e) { cache = null; }
+
+		let liveTag = '';
+		try {
+			const head = await fetch(url, { method: 'HEAD', cache: 'no-store' });
+			if (head.ok) { liveTag = head.headers.get('etag') || ''; }
+		} catch (e) { /* offline: a cached pack is still better than nothing */ }
+
+		if (cache) {
+			try {
+				const hit = await cache.match(url);
+				if (hit) {
+					const storedTag = hit.headers.get(PACK_TAG_HEADER) || '';
+					const sameVersion = liveTag ? storedTag === liveTag : storedTag !== '';
+					if (sameVersion) {
+						const buf = await hit.arrayBuffer();
+						if (!expectedSize || buf.byteLength === expectedSize) {
+							onProgress(buf.byteLength, buf.byteLength);
+							return buf;
+						}
+					}
+				}
+			} catch (e) { console.warn('Pack cache read failed, downloading instead:', e); }
+		}
+
+		let lastErr = null;
+		for (let attempt = 0; attempt < 3; attempt++) {
+			try {
+				const { bytes, etag } = await downloadPack(url, expectedSize, onProgress);
+				const buffer = bytes.byteOffset === 0 && bytes.byteLength === bytes.buffer.byteLength
+					? bytes.buffer : bytes.slice().buffer;
+				if (cache) {
+					try {
+						await cache.delete(url);
+						await cache.put(url, new Response(buffer, {
+							headers: { 'content-type': 'application/octet-stream', [PACK_TAG_HEADER]: etag || liveTag },
+						}));
+					} catch (e) {
+						// Quota or private mode. The game still starts, it just downloads next time too.
+						console.warn('Pack cache write failed:', e);
+						try { await cache.delete(url); } catch (e2) { /* nothing to clean */ }
+					}
+				}
+				return buffer;
+			} catch (e) { lastErr = e; }
+		}
+		throw lastErr;
+	}
+
+	// WHY THE GAME WAITS FOR A TAP BEFORE IT BOOTS
+	//
+	// Godot builds its AudioContext while the engine starts. Chrome hands back a SUSPENDED
+	// context to a page that has not been touched yet, and the audio driver latches onto that
+	// dead context for the rest of the session: resuming it later makes `state` read `running`
+	// while the mix stays digital silence, which is exactly the silent-but-healthy build this
+	// project spent an evening chasing. A context created after the page has been clicked once
+	// starts `running`, so the whole class of failure disappears if the boot happens on the far
+	// side of one gesture. The tap costs the player a click; the alternative costs them the
+	// sound.
+	function bootGame() {
+		startGate.remove();
+		progressBlock.style.display = 'flex';
+		setStatusMode('progress');
+		function onProgress(current, total) {
+			if (current > 0 && total > 0) {
+				statusProgress.value = current;
+				statusProgress.max = total;
+			} else {
+				statusProgress.removeAttribute('value');
+				statusProgress.removeAttribute('max');
+			}
+			setLoadingProgress(current, total);
+		}
+		// Same steps as Engine.startGame(), except the pack comes from loadPack() above instead
+		// of a plain fetch: init the engine (wasm), hand it the pack, start with --main-pack.
+		const exe = GODOT_CONFIG['executable'];
+		const pack = GODOT_CONFIG['mainPack'] || (exe + '.pck');
+		const packSize = (GODOT_CONFIG['fileSizes'] || {})[pack] || 0;
+		Promise.all([
+			engine.init(exe),
+			loadPack(pack, packSize, onProgress),
+		]).then(([, buffer]) => engine.preloadFile(buffer, pack))
+			.then(() => engine.start({ args: ['--main-pack', pack].concat(GODOT_CONFIG['args'] || []) }))
+			.then(() => {
+				setStatusMode('hidden');
+			}, displayFailureNotice);
+	}
+
+	const missing = Engine.getMissingFeatures({
+		threads: GODOT_THREADS_ENABLED,
+	});
+
+	if (missing.length !== 0) {
+		if (GODOT_CONFIG['serviceWorker'] && GODOT_CONFIG['ensureCrossOriginIsolationHeaders'] && 'serviceWorker' in navigator) {
+			let serviceWorkerRegistrationPromise;
+			try {
+				serviceWorkerRegistrationPromise = navigator.serviceWorker.getRegistration();
+			} catch (err) {
+				serviceWorkerRegistrationPromise = Promise.reject(new Error('Service worker registration failed.'));
+			}
+			// There's a chance that installing the service worker would fix the issue
+			Promise.race([
+				serviceWorkerRegistrationPromise.then((registration) => {
+					if (registration != null) {
+						return Promise.reject(new Error('Service worker already exists.'));
+					}
+					return registration;
+				}).then(() => engine.installServiceWorker()),
+				// For some reason, `getRegistration()` can stall
+				new Promise((resolve) => {
+					setTimeout(() => resolve(), 2000);
+				}),
+			]).then(() => {
+				// Reload if there was no error.
+				window.location.reload();
+			}).catch((err) => {
+				console.error('Error while registering service worker:', err);
+			});
+		} else {
+			// Display the message as usual
+			const missingMsg = 'Error\nThe following features required to run Godot projects on the Web are missing:\n';
+			displayFailureNotice(missingMsg + missing.join('\n'));
+		}
+	} else {
+		statusOverlay.style.visibility = 'visible';
+		startGate.addEventListener('click', bootGame, { once: true });
+	}
+}());
+	</script>
+</body>
+</html>
