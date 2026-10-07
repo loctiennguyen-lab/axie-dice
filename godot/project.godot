@@ -13,6 +13,7 @@ config_version=5
 config/name="Axie Dice (Godot port)"
 run/main_scene="res://scenes/main_menu/MainMenu.tscn"
 config/features=PackedStringArray("4.7", "Forward Plus")
+config/icon="res://assets/portraits/plant.png"
 
 [autoload]
 
@@ -23,6 +24,16 @@ RunState="*res://autoload/RunState.gd"
 RunStatsAccumulator="*res://autoload/RunStatsAccumulator.gd"
 RelicRegistry="*res://autoload/RelicRegistry.gd"
 AxieMixerBoot="*res://autoload/AxieMixerBoot.tscn"
+
+[audio]
+
+; On Web, Godot defaults `default_playback_type` to Sample (1): AudioStreamWAV is handed to
+; WebAudio as an AudioBufferSourceNode instead of being mixed by AudioServer. In this project
+; that path produces nothing at all - no AudioBuffer is ever created, no source node is ever
+; started, and the player still reports playing=true, so the game ran dead silent in the
+; browser while sounding correct in the editor. 0 = Stream: mix through AudioServer, the same
+; path the editor uses. See claude/AUDIO_SILENCE_INVESTIGATION.md.
+general/default_playback_type.web=0
 
 [axie]
 

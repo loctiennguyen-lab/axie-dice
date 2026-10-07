@@ -157,15 +157,23 @@ static func set_volume(music_linear: float, sfx_linear: float) -> void:
 # Setup
 # ===========================================================================
 
+## On Web, Godot's default playback type is Sample: the WAV is handed straight to WebAudio as
+## an AudioBufferSourceNode instead of being mixed by AudioServer. That path silently produced
+## nothing here - the game was dead quiet in the browser and fine in the editor. Forcing Stream
+## puts every player on the same path the editor uses. `default_playback_type.web` in
+## project.godot says the same thing globally; this is the belt to that suspenders, because a
+## player created in code is exactly where a missed project setting would go unnoticed.
 func _build_players() -> void:
 	_music_player = AudioStreamPlayer.new()
 	_music_player.bus = MUSIC_BUS
 	_music_player.name = "MusicPlayer"
+	_music_player.playback_type = AudioServer.PLAYBACK_TYPE_STREAM
 	add_child(_music_player)
 	for i in SFX_VOICES:
 		var p := AudioStreamPlayer.new()
 		p.bus = SFX_BUS
 		p.name = "SfxVoice%d" % i
+		p.playback_type = AudioServer.PLAYBACK_TYPE_STREAM
 		add_child(p)
 		_sfx_players.append(p)
 
@@ -201,6 +209,7 @@ func start_music(node_id: String, is_boss: bool) -> void:
 		return
 	var stream := load(path) as AudioStream
 	if stream == null:
+		push_warning("CombatAudioDirector: battle music failed to load: %s" % path)
 		return
 	_music_player.stream = stream
 	_music_player.volume_db = -40.0

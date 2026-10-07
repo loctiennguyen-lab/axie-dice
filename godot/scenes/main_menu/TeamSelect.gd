@@ -238,6 +238,10 @@ func _build_header() -> void:
 		confirm_btn.add_theme_stylebox_override(state_key, box)
 
 
+## A vault Axie is a real NFT with a 512-bit gene string behind it, so its card can show the
+## actual animal instead of the generic class portrait. Same scene the Vault screen uses.
+const _PREVIEW_SCENE := "res://scenes/shared/AxiePreview3D.tscn"
+
 ## VLT-05 / the JS build's `hasVault` rule. `RunState.begin()` already downgrades a ranked run
 ## to unranked when the roster holds a vault key — silently, in the engine, after the player has
 ## committed. The Vault screen explains the rule on its own RANKED RUN note; this is the same
@@ -547,6 +551,17 @@ func _build_card(index: int) -> PanelContainer:
 	portrait.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	portrait_wrap.add_child(portrait)
 
+	# Built once per card and left hidden; `_refresh_card` decides which of the two the band
+	# shows. Building it lazily on the first vault pick would mean instantiating a 3D rig in the
+	# middle of a dropdown callback, and the preview needs a `_ready()` before `set_genes()` has
+	# anything to hang the character on.
+	var preview := (load(_PREVIEW_SCENE) as PackedScene).instantiate() as AxiePreview3D
+	preview.name = "VaultPreview"
+	preview.custom_minimum_size = Vector2(164, 164)
+	preview.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	preview.visible = false
+	portrait_wrap.add_child(preview)
+
 	# Mockup: TIER pill `height:26` + `border:2` = 30 outer, radius 7, 9px in from the band's
 	# bottom-LEFT; HP badge `height:32` + `border:3` = 38 outer, radius 9, 9px in from the
 	# bottom-RIGHT.
@@ -610,6 +625,7 @@ func _build_card(index: int) -> PanelContainer:
 	_cards.append({
 		"option": option, "header_panel": header, "header_name": header_name,
 		"header_cls": header_cls, "band_panel": band_panel, "portrait": portrait,
+		"preview": preview, "preview_genes": "",
 		"tier_badge": tier_badge, "hp_badge": hp_badge, "passive_panel": passive_panel,
 		"passive_name": passive_name, "passive_text": passive_text, "faces_grid": faces_grid,
 	})
@@ -689,8 +705,47 @@ func _refresh_card(index: int) -> void:
 
 	((card["band_panel"] as Panel).get_theme_stylebox("panel") as StyleBoxFlat).bg_color = accent
 
+	# THE CLASS PORTRAIT IS A STAND-IN, AND ONLY THE STARTERS SHOULD GET IT.
+	#
+	# `assets/portrait/<cls>.png` is one baked picture per class — right for the six starters,
+	# wrong for an imported Axie, which has its own body and is the whole reason the player
+	# imported it. Every other screen already knows this: the Vault card and the combat stage
+	# both rebuild the animal from `genes` (CombatView._spawn_unit: "Real genes win"). Team
+	# Select was the last place still drawing the generic one, so an imported Axie looked
+	# identical to a starter of the same class right up to the moment it walked onto the field.
+	#
+	# The preview is a live 3D rig, so it is only fed when the genes actually change: `set_genes`
+	# tears the character down and builds a new one, and `_refresh_card` runs for all five cards
+	# whenever any one dropdown moves.
 	var portrait: TextureRect = card["portrait"]
-	portrait.texture = MockupAssets.tex("assets/portrait/%s.png" % cls)
+	var preview: AxiePreview3D = card["preview"]
+	var genes := String(hero_def.get("genes", "")).strip_edges()
+	var showing_axie := false
+	if not genes.is_empty():
+		# Only re-feed the rig when the pick actually changed: `set_genes` disposes the character
+		# and builds a new one, and `_refresh_card` runs for all five cards whenever any single
+		# dropdown moves.
+		if String(card["preview_genes"]) != genes:
+			var report: Dictionary = preview.set_genes(genes)
+			# `ok` false covers an empty gene, rubbish hex, AND the addon catalogue not being up
+			# yet. Only the last of those can fix itself, so a failed build is NOT cached —
+			# leaving `preview_genes` empty means the next refresh tries again rather than
+			# freezing the card on a fallback for the rest of the session.
+			if bool(report.get("ok", false)):
+				card["preview_genes"] = genes
+			else:
+				preview.clear_preview()
+		showing_axie = not String(card["preview_genes"]).is_empty()
+	elif not String(card["preview_genes"]).is_empty():
+		preview.clear_preview()
+		card["preview_genes"] = ""
+
+	preview.visible = showing_axie
+	portrait.visible = not showing_axie
+	if showing_axie:
+		portrait.texture = null
+	else:
+		portrait.texture = MockupAssets.tex("assets/portrait/%s.png" % cls)
 
 	(card["tier_badge"] as Label).text = "TIER %d" % int(hero_def.get("tier", 1))
 	(card["hp_badge"] as Label).text = "%d HP" % int(hero_def.get("max_hp", 0))

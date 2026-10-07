@@ -83,18 +83,24 @@ const _PAYLOAD_PATH := "user://axie_query.json"
 ## without a code change. Set it in Project Settings, or call `set_proxy_url()` at runtime.
 const PROXY_SETTING := "axie/proxy_url"
 
-## The proxy this repository actually ships, compiled in as the fallback.
+## Where the proxy lives, relative to whatever is serving the game.
 ##
-## This used to live ONLY in `project.godot` under `[axie]`, and the Godot editor deleted it:
-## opening the project for the first time rewrote that file from its own in-memory settings and
-## the custom section did not survive. The failure is silent and total — a web build with no
-## proxy reports Import Axie as unavailable, because a browser cannot reach the GraphQL gateway
-## itself (no CORS headers) — and it only appears in an export, so the editor never shows it.
+## The web build is served by the same Cloudflare Worker that answers this path, so the URL is
+## READ FROM THE BROWSER at runtime rather than compiled in. That is not a nicety. This URL has
+## already moved twice and each move cost a full re-export, because it lives inside index.pck.
+## Deriving it from location.origin means the game follows its own host wherever it is
+## deployed, and the next domain change costs nothing.
+const PROXY_PATH := "/api/axie"
+
+## The fallback for a build that is NOT served by the Worker: a desktop export with no `curl`,
+## mainly. Desktop normally talks to the gateway directly, so this is rarely reached.
 ##
-## A constant cannot be deleted by a tool. The project setting still wins when it is present, so
-## pointing a build at a different server is unchanged; this is only what happens when nobody
-## has said otherwise.
-const DEFAULT_PROXY_URL := "https://axiedice.vercel.app/api/axie"
+## It is a constant rather than a setting because the setting was not safe. It lived only in
+## project.godot under [axie], and the Godot editor deleted it: opening the project for the
+## first time rewrote that file from the editor's own in-memory settings and the custom section
+## did not survive. A web build with no proxy reports Import Axie as unavailable and says
+## nothing about why, and only an export shows it, so the editor never reveals the damage.
+const DEFAULT_PROXY_URL := "https://axie-dice.workers.dev/api/axie"
 
 enum Transport { NONE, CURL, PROXY }
 
@@ -114,7 +120,26 @@ static func proxy_url() -> String:
 		var configured := str(ProjectSettings.get_setting(PROXY_SETTING, "")).strip_edges()
 		if not configured.is_empty():
 			return configured
+	var same_origin := same_origin_proxy()
+	if not same_origin.is_empty():
+		return same_origin
 	return DEFAULT_PROXY_URL
+
+
+## The proxy on whatever host served this page, or "" when there is no page.
+##
+## Only a web build has an origin to read. Everywhere else this returns "" and the caller falls
+## through to the constant, so desktop and headless behave exactly as before. The feature check
+## guards the call rather than a null test on the result, because on a non-web build the
+## JavaScriptBridge singleton exists and silently does nothing, which would look like an empty
+## origin and be indistinguishable from a real failure.
+static func same_origin_proxy() -> String:
+	if not OS.has_feature("web"):
+		return ""
+	var origin := str(JavaScriptBridge.eval("window.location.origin", true))
+	if not origin.begins_with("http"):
+		return ""
+	return origin.rstrip("/") + PROXY_PATH
 
 
 static func set_proxy_url(url: String) -> void:
