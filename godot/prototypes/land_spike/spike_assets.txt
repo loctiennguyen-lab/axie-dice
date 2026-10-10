@@ -1,0 +1,24 @@
+# Land spike asset list (import_homeland.py --list)
+scenes/HomeLand_Asset/Environment/Savannah/Ground/S_Plot_Module_3x3.tscn
+scenes/HomeLand_Asset/Environment/Savannah/Ground/S_TileGrass_01.tscn
+scenes/HomeLand_Asset/Environment/Savannah/Ground/S_TileGrass_02.tscn
+scenes/HomeLand_Asset/Environment/Savannah/Ground/S_TileGrass_03.tscn
+scenes/HomeLand_Asset/Environment/Savannah/Ground/S_TileGrass_04.tscn
+scenes/HomeLand_Asset/Environment/Savannah/Decoration/StonePath/S_StonePath_Straight.tscn
+scenes/HomeLand_Asset/Environment/Savannah/Decoration/StonePath/S_StonePath_Cross.tscn
+scenes/HomeLand_Asset/Environment/Savannah/Decoration/StonePath/S_StonePath_Turn_L.tscn
+scenes/HomeLand_Asset/Environment/Savannah/Decoration/StonePath/S_StonePath_Start.tscn
+scenes/HomeLand_Asset/Environment/Savannah/Tree/S_Tree01_Allside.tscn
+scenes/HomeLand_Asset/Environment/Savannah/Tree/S_Tree02_Allside.tscn
+scenes/HomeLand_Asset/Environment/Savannah/Tree/S_Tree03_Allside.tscn
+scenes/HomeLand_Asset/Environment/Savannah/Tree/S_Tree03a_Allside.tscn
+scenes/HomeLand_Asset/Environment/Savannah/Shrub/S_Shrub01_Allside.tscn
+scenes/HomeLand_Asset/Environment/Savannah/Shrub/S_Shrub02_Allside.tscn
+scenes/HomeLand_Asset/Environment/Savannah/Shrub/S_Shrub03_Allside.tscn
+scenes/HomeLand_Asset/Environment/Savannah/Rock/SavannahRock_01.tscn
+scenes/HomeLand_Asset/Environment/Savannah/Rock/SavannahRock_02.tscn
+scenes/HomeLand_Asset/Environment/Savannah/Ground/Flower/Cattail2.tscn
+scenes/HomeLand_Asset/Building_HomeLand/Portal/SM_Portal_01.tscn
+scenes/HomeLand_Asset/Building_HomeLand/Alchemy/SM_Alchemy_lv1_Prefab.tscn
+scenes/HomeLand_Asset/Building_HomeLand/SpyQuarter/SpyQuarter_F_01.tscn
+scenes/HomeLand_Asset/Building_HomeLand/House/House_lv1.tscn

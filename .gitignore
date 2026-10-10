@@ -246,3 +246,12 @@ SHIP.sh
 
 # Wrangler local cache/state, never part of the repo.
 .wrangler/
+
+# === 3D asset library (Sky Mavis Homeland + Atia, 10/2026) ===
+# Godot-converted copy (~3.5 GB) + render library for Claude Design. Kept OUTSIDE godot/ so the
+# editor does not import 2,000 models; copy only what a scene uses with godot/tools/import_homeland.py.
+# See asset-library/README.md.
+asset-library/
+
+# Assets a prototype copied in with godot/tools/import_homeland.py — regenerable from asset-library/.
+godot/prototypes/*/homeland/
