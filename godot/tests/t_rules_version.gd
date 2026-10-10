@@ -95,7 +95,14 @@ const WATCHED_FILES: Array[String] = ["res://assets/data/part_faces.json"]
 ## `key`/`tier`, never `desc`), `axie_gene_preview`'s is a Vault warning line, and
 ## `run_verifier`'s is the text of an already-decided ERR_NOT_RANKED failure. `t_replay` still
 ## verifies a full run to the same score.
-const FINGERPRINT := "9601b57f5049847a63336a0f1f71740c4956cce66eb8fc105360940d439e4c5c"
+## Moved, 2026-10-10, by accounts + cloud save (`b4f528f`): new autoload `AccountService.gd`,
+## `SaveStore` gained per-account profiles, `MetaState` gained `reload_from_store()` and a comment
+## edit. RULES_VERSION was NOT bumped (Liam, 10 Oct). None of it is read during a run: it decides
+## WHICH save file meta progression lives in, never how a die, an enemy or a reward resolves.
+## `t_replay` still verifies a full run to the same score.
+## Moved again the same day: `AccountService.error_message()` gained a "rate_limited" line for the
+## Worker's new sign-in rate limit. Player-facing text only; RULES_VERSION was NOT bumped.
+const FINGERPRINT := "397eec37a3297afc1a0316c3eda8d766d313c05cddf6f6a91eab2e9ce0747d7e"
 
 
 func _ready() -> void:

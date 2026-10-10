@@ -80,9 +80,10 @@ beforeEach(() => {
   _test.resetJwksCache();
 });
 
-const call = (path, { method = 'GET', cookie, origin, body, host = ORIGIN } = {}) => {
+const call = (path, { method = 'GET', cookie, origin, body, host = ORIGIN, ip } = {}) => {
   const headers = {};
   if (cookie) headers.Cookie = cookie;
+  if (ip) headers['CF-Connecting-IP'] = ip;
   if (origin) headers.Origin = origin;
   if (body !== undefined) headers['Content-Type'] = 'application/json';
   return worker.fetch(new Request(host + path, { method, headers, body: body === undefined ? undefined : JSON.stringify(body) }), env);
@@ -320,4 +321,76 @@ test('save input is validated', async () => {
 test('legal pages and unrelated routes still go where they went before', async () => {
   assert.equal((await call('/terms')).status, 200);
   assert.equal((await call('/privacy')).status, 200);
+});
+
+// ---------------------------------------------------------------- rate limits
+
+/** Stand-in for Cloudflare's rate limit binding: a fixed budget per key, never refilled. */
+function fakeLimiter(limit) {
+  const used = new Map();
+  return {
+    keys: used,
+    async limit({ key }) {
+      const n = (used.get(key) || 0) + 1;
+      used.set(key, n);
+      return { success: n <= limit };
+    },
+  };
+}
+
+test('sign-in over the limit goes back to the game with auth_error=rate_limited, per IP', async () => {
+  env.AUTH_LIMITER = fakeLimiter(2);
+  const ret = encodeURIComponent(`${ORIGIN}/play`);
+  assert.equal((await call(`/auth/login?return=${ret}`, { ip: '1.1.1.1' })).status, 302);
+  assert.equal((await call(`/auth/login?return=${ret}`, { ip: '1.1.1.1' })).status, 302);
+  const blocked = await call(`/auth/login?return=${ret}`, { ip: '1.1.1.1' });
+  assert.equal(blocked.status, 302);
+  const to = new URL(blocked.headers.get('Location'));
+  assert.equal(to.origin + to.pathname, `${ORIGIN}/play`);
+  assert.equal(to.searchParams.get('auth_error'), 'rate_limited');
+  assert.equal(google.tokenCalls.length, 0);
+
+  // The callback is limited the same way, and never reaches Google's token endpoint.
+  const cb = await call('/auth/callback?state=x&code=y', { ip: '1.1.1.1' });
+  assert.equal(new URL(cb.headers.get('Location')).searchParams.get('auth_error'), 'rate_limited');
+  assert.equal(google.tokenCalls.length, 0);
+
+  // Another IP has its own budget.
+  const other = await call(`/auth/login?return=${ret}`, { ip: '2.2.2.2' });
+  assert.match(other.headers.get('Location'), /^https:\/\/accounts\.google\.com\//);
+});
+
+test('logout over the limit is a 429, not a fake sign-out', async () => {
+  env.AUTH_LIMITER = fakeLimiter(0);
+  const r = await call('/auth/logout', { method: 'POST', origin: ORIGIN, ip: '1.1.1.1' });
+  assert.equal(r.status, 429);
+  assert.equal(r.headers.getSetCookie().length, 0);
+});
+
+test('saves are limited per session, so players sharing an IP do not share a budget', async () => {
+  const a = `ad_session=${(await signIn()).session}`;
+  google.user = { sub: '4004', email: 'c@gmail.com', name: 'C', email_verified: true };
+  const b = `ad_session=${(await signIn()).session}`;
+  env.SAVE_LIMITER = fakeLimiter(1);
+  const get = (cookie) => call('/api/save', { cookie, ip: '9.9.9.9' });
+
+  assert.equal((await get(a)).status, 200);
+  const blocked = await get(a);
+  assert.equal(blocked.status, 429);
+  assert.equal(blocked.headers.get('Retry-After'), '60');
+  assert.equal((await blocked.json()).error, 'rate_limited');
+  assert.equal((await get(b)).status, 200, 'same IP, other player: not blocked');
+
+  // No session: falls back to the IP key (and is then refused as signed out, as before).
+  assert.equal((await call('/api/save', { ip: '9.9.9.9' })).status, 401);
+  assert.ok([...env.SAVE_LIMITER.keys.keys()].includes('ip:9.9.9.9'));
+});
+
+test('/api/me is never rate limited, and no binding means no limit', async () => {
+  env.AUTH_LIMITER = fakeLimiter(0);
+  env.SAVE_LIMITER = fakeLimiter(0);
+  assert.equal((await call('/api/me')).status, 401);
+  delete env.AUTH_LIMITER; delete env.SAVE_LIMITER;
+  assert.equal((await call('/auth/login')).status, 302);
+  assert.match((await call('/auth/login')).headers.get('Location'), /^https:\/\/accounts\.google\.com\//);
 });

@@ -460,8 +460,50 @@ const ROUTES = {
 
 export const isAccountsPath = (pathname) => Object.prototype.hasOwnProperty.call(ROUTES, pathname);
 
+// ---------------------------------------------------------------- rate limits
+//
+// Cloudflare's Workers Rate Limiting binding (wrangler.toml `[[ratelimits]]`). Counters are per
+// Cloudflare location and eventually consistent: this stops floods and scripted abuse, it is not
+// exact accounting. /api/me is left out on purpose: the game calls it on every page load.
+//
+// Sign-in is keyed by IP. One sign-in is two requests (login + callback), so 30/min still lets a
+// room of players on one office IP sign in together. Saves are keyed by session when there is
+// one, so players behind a shared IP never use up each other's budget; the game pushes at most
+// once per few seconds and backs off on any error, so 60/min is far above real play.
+//
+// A missing binding (local tests, `wrangler dev` without it) means no limit, never an outage.
+const LIMITERS = {
+  '/auth/login': 'AUTH_LIMITER',
+  '/auth/callback': 'AUTH_LIMITER',
+  '/auth/logout': 'AUTH_LIMITER',
+  '/api/save': 'SAVE_LIMITER',
+};
+
+async function overLimit(request, env, url) {
+  const limiter = env[LIMITERS[url.pathname]];
+  if (!limiter) return false;
+  let key = `ip:${request.headers.get('CF-Connecting-IP') || 'unknown'}`;
+  if (url.pathname === '/api/save') {
+    const token = readCookie(request, SESSION_COOKIE);
+    if (token) key = `s:${await sha256b64url(token)}`;
+  }
+  const { success } = await limiter.limit({ key });
+  return !success;
+}
+
+function rateLimited(request, env, url) {
+  // Login and callback are full-page navigations: send the player back to the game with a reason
+  // it can show, instead of leaving them on a bare JSON page.
+  if (url.pathname === '/auth/login' || url.pathname === '/auth/callback') {
+    const back = safeReturnTo(url.pathname === '/auth/login' ? url.searchParams.get('return') : null, url, env);
+    return redirect(withParam(back, 'auth_error', 'rate_limited'));
+  }
+  return json({ error: 'rate_limited' }, 429, { 'Retry-After': '60' });
+}
+
 export async function handleAccounts(request, env, url) {
   try {
+    if (await overLimit(request, env, url)) return rateLimited(request, env, url);
     return await ROUTES[url.pathname](request, env, url);
   } catch (err) {
     console.error('accounts error', url.pathname, String(err && err.stack || err));

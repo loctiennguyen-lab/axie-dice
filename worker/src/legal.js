@@ -14,7 +14,7 @@ function page(title, body) {
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>${title} · Axie Dice Dice</title>
+<title>${title} · Axie Dice</title>
 <link rel="icon" href="/favicon-axie.png">
 <style>
 @font-face { font-family: 'Baloo 2'; font-weight: 800; font-display: swap; src: url(/ld-baloo2-800.woff) format('woff'); }
@@ -49,7 +49,7 @@ const TERMS = page('Terms of Use', `
 <h1>Terms of Use</h1>
 <p class="updated">Last updated ${UPDATED}</p>
 
-<p>Axie Dice Dice is a free browser game made by Liam Nguyen as an entry in Sky Mavis's internal Vibeathon. It is shared with Sky Mavis employees only. By playing it you agree to the points below.</p>
+<p>Axie Dice is a free browser game made by Liam Nguyen as an entry in Sky Mavis's internal Vibeathon. It is shared with Sky Mavis employees only. By playing it you agree to the points below.</p>
 
 <h2>It is an early build</h2>
 <p>Things will change, break and get fixed. We try hard to keep your progress, but if a change ever forces a reset we will say so in the game before it happens.</p>

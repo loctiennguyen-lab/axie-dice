@@ -29,3 +29,22 @@ GOOGLE_CLIENT_ID = "597753927078-rn7b186qo0obgalq3hgpiv6k7g0mk7dl.apps.googleuse
 binding = "DB"
 database_name = "axie-dice-db"
 database_id = "58758c7a-7663-4008-a9de-05490d950a9e"
+
+# Rate limits on sign-in and cloud saves (worker/src/accounts.js, "rate limits"). Per Cloudflare
+# location and eventually consistent: abuse protection, not exact accounting. Period must be 10
+# or 60. Needs wrangler >= 4.36. namespace_id only has to be unique within the account.
+[[ratelimits]]
+name = "AUTH_LIMITER"
+namespace_id = "1001"
+
+  [ratelimits.simple]
+  limit = 30
+  period = 60
+
+[[ratelimits]]
+name = "SAVE_LIMITER"
+namespace_id = "1002"
+
+  [ratelimits.simple]
+  limit = 60
+  period = 60

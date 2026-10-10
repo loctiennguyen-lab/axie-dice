@@ -100,10 +100,11 @@ Every error has a plain sentence plus a way forward (`Try again`, `Use another a
 ## 7. Tuning Knobs
 `PUSH_DELAY`, `RETRY_DELAYS`, `BACKUP_DAYS` in `AccountService.gd`; save size cap and session lifetime
 in `worker/src/accounts.js`. Restricting sign-in to Sky Mavis accounts only is a one-line `hd`
-check in the callback.
+check in the callback. Rate limits: `limit`/`period` of `AUTH_LIMITER` (30/60s) and
+`SAVE_LIMITER` (60/60s) in `worker/wrangler.toml`; period can only be 10 or 60.
 
 ## 8. Acceptance Criteria
-- `node --test worker/test` — 23 tests pass.
+- `cd worker && node --test test/*.test.mjs` — 27 tests pass (4 of them cover rate limits).
 - `godot/tests/t_account_sync` — 76 checks pass, including the welcome-panel regression test.
 - Live QA (10 Oct 2026) passed: first sign-in moves guest progress; reload does not prompt;
   debounced upload; switch account and sign out; silent pull when another device is newer;
@@ -111,7 +112,14 @@ check in the callback.
   signed-in menu.
 - Not yet tested: Chrome incognito, Safari.
 
+### Done 10 Oct 2026 (not deployed yet)
+- Rate limits (Cloudflare Workers Rate Limiting binding): `/auth/login`, `/auth/callback`,
+  `/auth/logout` 30/min per IP; `/api/save` 60/min per session (per IP when signed out).
+  `/api/me` is not limited. Over the limit: login/callback go back to the game with
+  `auth_error=rate_limited` (own message in `AccountService.error_message`); logout and save get
+  429 + `Retry-After: 60`, which the game already treats as offline and retries.
+- `production/privacy-preview.html` removed. "Axie Dice Dice" typo fixed on /terms and /privacy.
+
 ### Backlog (not started)
-Dedicated login screen (with the final UI polish) · account chip to the top-right · rate
-limiting on `/auth/*` and `/api/save` · remove `production/privacy-preview.html` · delete the
-old `axie-dice-fun` Worker.
+Dedicated login screen (with the final UI polish) · account chip to the top-right (both moved to
+the final UI polish pass, Liam 10 Oct) · delete the old `axie-dice-fun` Worker (dashboard).

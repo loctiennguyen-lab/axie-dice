@@ -226,6 +226,8 @@ static func error_message(code: String) -> String:
 			return "Couldn't save to the cloud. We'll keep trying."
 		"sign_out_failed":
 			return "Couldn't sign out. Check your connection and try again."
+		"rate_limited":
+			return "Too many sign-in attempts. Wait a minute and try again."
 	return "Sign-in didn't work. Try again."
 
 

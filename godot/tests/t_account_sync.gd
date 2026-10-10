@@ -446,6 +446,10 @@ func test_messages_and_summary() -> void:
 			"session_expired", "save_failed", "sign_out_failed", "token", "anything"]:
 		var m := AccountServiceScript.error_message(code)
 		_check(not m.is_empty() and not m.contains("_"), "message for %s is plain English" % code)
+	# The Worker's rate limit (worker/src/accounts.js) sends ?auth_error=rate_limited; it must get
+	# its own line, not the generic fallback.
+	_check(AccountServiceScript.error_message("rate_limited")
+		!= AccountServiceScript.error_message("anything"), "rate_limited has its own message")
 	var s := AccountServiceScript.summarize({"meta": _meta(7, 3),
 		"run": {"run": {"mode": "full", "ascension": 2}}})
 	_check(s["shards"] == 7 and s["runs"] == 3 and s["run"] == "Full · Ascension 2", "summary fields")
