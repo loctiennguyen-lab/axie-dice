@@ -136,6 +136,18 @@ func _build_ui() -> void:
 	_build_run_setup_panel()
 	_build_nav_tiles()
 	_build_team_row()
+	_account_entered.call_deferred()
+
+
+## Accounts (claude/ACCOUNT_SYSTEM_v1.md §7). The menu is the one scene every path returns to,
+## so it is where a cloud save that arrived mid-run is applied, a sign-in error is explained and
+## the first-launch account panel is offered.
+func _account_entered() -> void:
+	AccountService.menu_entered()
+	AccountService.show_pending_error()
+	if AccountService.should_offer_welcome():
+		AccountService.mark_welcome_shown()
+		AccountUI.show_welcome(AccountService._ui_layer())
 
 
 # ===========================================================================
@@ -198,7 +210,15 @@ func _build_title_block() -> void:
 	var shard_chip := _build_shard_chip()
 	var shard_margin := MarginContainer.new()
 	shard_margin.add_theme_constant_override("margin_top", 24)
-	shard_margin.add_child(shard_chip)
+	# Interim placement (accounts, 10 Oct 2026): the mock puts the account chip top-right, where
+	# this menu already has RUN SETUP, so it sits beside the shard chip until the UI polish pass.
+	var chip_row := HBoxContainer.new()
+	chip_row.add_theme_constant_override("separation", 14)
+	chip_row.add_child(shard_chip)
+	if AccountService.enabled:
+		chip_row.add_child(AccountUI.build_chip(AccountService, func() -> void:
+			get_tree().change_scene_to_file("res://scenes/settings/Settings.tscn")))
+	shard_margin.add_child(chip_row)
 	vbox.add_child(shard_margin)
 
 	var buttons := VBoxContainer.new()

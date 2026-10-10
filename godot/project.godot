@@ -18,6 +18,7 @@ config/icon="res://assets/portraits/plant.png"
 [autoload]
 
 EventBus="*res://autoload/EventBus.gd"
+AccountService="*res://autoload/AccountService.gd"
 MetaState="*res://autoload/MetaState.gd"
 ContentDB="*res://autoload/ContentDB.gd"
 RunState="*res://autoload/RunState.gd"

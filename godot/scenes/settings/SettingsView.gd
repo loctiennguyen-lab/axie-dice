@@ -41,6 +41,8 @@ func _ready() -> void:
 	_content.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 
 	_title("SETTINGS")
+	_section("ACCOUNT")
+	_build_account_section()
 	_section("AUDIO")
 	_slider("Music", MetaState.audio_music_volume, func(v: float) -> void:
 		MetaState.audio_music_volume = v
@@ -132,6 +134,90 @@ func _build_abandon_section() -> void:
 
 	_abandon_status = _body("")
 	_abandon_status.visible = false
+
+
+## Settings → Account (claude/ACCOUNT_SYSTEM_v1.md §7 C). The only place with Sign out and
+## Switch account. Sign out takes two presses: the first says what happens, the second does it.
+func _build_account_section() -> void:
+	if not AccountService.enabled:
+		_body("Accounts are available in the web version at axiedice.fun. Progress here stays "
+			+ "on this computer.")
+		return
+	if not AccountService.is_signed_in():
+		_body("You're playing as a guest. Progress stays on this browser only. Sign in with "
+			+ "Google to keep it on every device. Your Sky Mavis work account works too.")
+		var sign_in := Button.new()
+		sign_in.name = "SignInButton"
+		sign_in.text = "CONTINUE WITH GOOGLE"
+		sign_in.custom_minimum_size = Vector2(0, 44)
+		DangoTheme.style_button(sign_in, true)
+		sign_in.pressed.connect(func() -> void: AccountService.sign_in())
+		_content.add_child(sign_in)
+		return
+
+	var who := HBoxContainer.new()
+	who.add_theme_constant_override("separation", 10)
+	var name_lbl := DangoTheme.display_label(AccountService.display_name(), 22)
+	who.add_child(name_lbl)
+	if bool(AccountService.account.get("sky_mavis", false)):
+		who.add_child(AccountUI.sky_mavis_badge())
+	_content.add_child(who)
+	_body("%s · Google" % String(AccountService.account.get("email", "")))
+	var status_lbl := _body("")
+	var refresh := func() -> void:
+		var line: Array = AccountUI.status_line(AccountService)
+		var text: String = "Cloud save: " + String(line[0])
+		if AccountService.status == AccountServiceScript.Status.SAVED and AccountService.last_synced > 0:
+			text = "Cloud save: Saved " + AccountUI.ago(AccountService.last_synced)
+		status_lbl.text = text
+	refresh.call()
+	AccountService.changed.connect(refresh)
+	tree_exiting.connect(func() -> void:
+		if AccountService.changed.is_connected(refresh):
+			AccountService.changed.disconnect(refresh))
+
+	if AccountService.status == AccountServiceScript.Status.EXPIRED:
+		_body("Your session expired. Sign in again to keep saving. Your progress is safe on this device.")
+		var again := Button.new()
+		again.text = "SIGN IN"
+		again.custom_minimum_size = Vector2(0, 44)
+		DangoTheme.style_button(again, true)
+		again.pressed.connect(func() -> void: AccountService.sign_in())
+		_content.add_child(again)
+
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 12)
+	_content.add_child(row)
+	var switch_btn := Button.new()
+	switch_btn.name = "SwitchAccountButton"
+	switch_btn.text = "SWITCH ACCOUNT"
+	switch_btn.custom_minimum_size = Vector2(0, 44)
+	DangoTheme.style_button(switch_btn, false)
+	switch_btn.pressed.connect(func() -> void: AccountService.sign_in(true))
+	row.add_child(switch_btn)
+
+	var out_btn := Button.new()
+	out_btn.name = "SignOutButton"
+	out_btn.text = "SIGN OUT"
+	out_btn.custom_minimum_size = Vector2(0, 44)
+	DangoTheme.style_button(out_btn, true, true)
+	row.add_child(out_btn)
+	var confirm_lbl := _body("")
+	confirm_lbl.visible = false
+	var armed := [false]
+	out_btn.pressed.connect(func() -> void:
+		if not armed[0]:
+			armed[0] = true
+			var unsynced: bool = AccountService.has_unsynced_changes()
+			out_btn.text = "SYNC AND SIGN OUT" if unsynced else "CONFIRM SIGN OUT"
+			confirm_lbl.text = ("Sign out? Your progress is saved to your account. This browser "
+				+ "goes back to guest mode.") if not unsynced else ("Sign out? Your latest "
+				+ "progress uploads first, then this browser goes back to guest mode.")
+			confirm_lbl.visible = true
+			return
+		out_btn.disabled = true
+		switch_btn.disabled = true
+		AccountService.sign_out())
 
 
 # --- small builders ---------------------------------------------------------

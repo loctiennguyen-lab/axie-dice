@@ -55,8 +55,8 @@ var reduce_flash: bool = false
 var daily_date: String = ""
 
 ## Onboarding tutorial (design/gdd/onboarding-tutorial.md), ported trigger. The JS gate is
-## "after first login" (`!META.tut && META.runs===0`) — this port has no login screen (a
-## deliberate, permanent waiver, not a gap to fill later), so the equivalent trigger is FIRST
+## "after first login" (`!META.tut && META.runs===0`). This port's sign-in is optional (accounts,
+## claude/ACCOUNT_SYSTEM_v1.md — a guest never signs in), so the equivalent trigger is still FIRST
 ## LAUNCH ON THIS MACHINE: false on a save that has never been through Tutorial.tscn's
 ## completion, checked once at MainMenu.gd's _ready(), the single scene every "return to menu"
 ## path in this project already funnels through (boot IS MainMenu.tscn per project.godot's
@@ -82,6 +82,35 @@ func _ready() -> void:
 func add_shards(amount: int) -> void:
 	shard_pool += amount
 	save_to_disk()
+
+## Throws away everything in memory and loads whichever save `SaveStore.profile` now points at.
+##
+## `load_from_disk()` alone is not enough when the account changes: it only assigns the fields a
+## save contains, so loading a fresh account's empty save would leave the previous player's
+## shards, vault and pass sitting in memory. Called by AccountService on sign-in, sign-out and
+## after applying a cloud save — never in the middle of a run.
+func reload_from_store() -> void:
+	shard_pool = 0
+	battle_pass_xp = 0
+	battle_pass_level = 1
+	vault.clear()
+	unlocks.clear()
+	xp = 0
+	bp_claimed.clear()
+	perks = {}
+	asc_max = 0
+	runs = 0
+	wins = 0
+	best = 0
+	audio_music_volume = 1.0
+	audio_sfx_volume = 1.0
+	audio_muted = false
+	reduce_flash = false
+	daily_date = ""
+	tutorial_seen = false
+	load_from_disk()
+	ensure_vault_heroes()
+
 
 func load_from_disk() -> void:
 	# Through SaveStore, not FileAccess: on a web build `user://` does not reliably survive a
