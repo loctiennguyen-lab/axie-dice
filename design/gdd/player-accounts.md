@@ -1,73 +1,117 @@
-# Player Accounts & Progression Sync
+# Player Accounts & Cloud Save
+
+> **Status**: Implemented and live on axiedice.fun (10 Oct 2026).
+> Replaces the earlier username + password / mandatory-login design (Vercel + Upstash). That
+> design was never shipped in the Godot build and is dropped: there is no password, no
+> registration form, and guest play stays.
+> Code: `godot/autoload/AccountService.gd`, `godot/scripts/core/save_store.gd`,
+> `godot/scenes/shared/AccountUI.gd`, `godot/scenes/settings/SettingsView.gd` (Account section),
+> `worker/src/accounts.js`, `worker/src/legal.js`, `worker/migrations/0001_accounts.sql`.
 
 ## 1. Overview
-Beta-scope account system: username + password login, letting players sync their `META` progression (Vault, Unlocks, Collection, Battle Pass, Shards) across devices instead of it being trapped in one browser's `localStorage`. **Login is mandatory** (2026-09-01 amendment — see `docs/architecture/adr-0002-player-accounts.md` Status): the app gates every screen, including PLAY, behind an authenticated session — there is no guest mode. Backend reuses the Vercel Functions + Upstash Redis infrastructure from `docs/architecture/adr-0001-leaderboard-backend-infrastructure.md`.
+Players can sign in with Google (a Sky Mavis work account or a personal Gmail) and their
+progress — the meta save and any run in progress — is stored on the server and follows them to
+any browser. Signing in for the first time creates the game profile automatically; there is no
+second registration. Guest play still works and keeps progress in the browser only. The backend
+is the same Cloudflare Worker that serves the game (`axie-dice`), with a D1 database
+(`axie-dice-db`).
 
 ## 2. Player Fantasy
-"My progress follows me, not my browser." A player who plays on a laptop at home and a phone on the go sees the same Vault, the same Unlocks, the same Collection — no re-grinding, no fear of losing everything to a cleared cache.
+"My progress follows me, not my browser." Clearing the cache, opening another browser or
+switching laptops never costs a run, a shard or a Vault Axie. Signing in is one button, and a
+guest who signs in later keeps what they already earned.
 
 ## 3. Detailed Rules
 
-### App gate (mandatory — no guest mode)
-- On launch, before rendering the menu (or any other screen), the app checks for a cached, non-expired session token.
-- No valid token → the app shows ONLY the login/register form. PLAY and every menu tile are unreachable — there is no "skip for now" path.
-- A valid, but not-yet-verified-with-the-server token still lets the app render normally optimistically (avoids a network round-trip blocking every launch); if the server later rejects it (401 on the first authenticated call), the app drops back to the gate rather than silently continuing in a half-authenticated state.
-- **Amended by `design/gdd/onboarding-tutorial.md`**: every place this rule (and Registration/Login below) used to land the player on `screen='menu'` now calls a single `enterMenu()` gate function instead, which sends a brand-new account (`!META.tut && META.runs===0`) to `screen='tutorial'` first. A returning account (`META.runs>0` or `META.tut` already `1`) still goes straight to menu exactly as described below — this only inserts one extra one-time stop for accounts that have never played a real run.
+### Sign-in (web build only)
+- `CONTINUE WITH GOOGLE` navigates the whole page to `/auth/login`. No popup.
+- The Worker runs OAuth authorization code + PKCE with `state` and `nonce`, held in a signed
+  10-minute cookie (`ad_oauth`, Path=/auth). The code is exchanged on the server; the client
+  secret and tokens never reach the page.
+- The ID token is checked against Google's JWKS (RS256) plus `iss`, `aud`, `nonce`, `exp` and
+  `email_verified`.
+- Profile key is `google:<sub>`, never the email. `hd = skymavis.com` shows a `Sky Mavis` badge.
+- Session: random token in an HttpOnly, Secure, SameSite=Lax cookie (`ad_session`,
+  Domain=axiedice.fun, 30 days). Only its SHA-256 hash is stored in D1.
+- `www.axiedice.fun` hops to the apex before login so the cookie domain is always the same.
+- The callback returns to the game with `?auth=signed_in` or `?auth_error=<code>`; return URLs
+  are restricted to the same origin.
+- Desktop/editor builds have no sign-in; Settings explains that progress stays on this device.
 
-### Registration
-- Reached only from the login gate (first launch) or an explicit "switch account" action later. Same form either way.
-- Username: 3–20 characters, `[a-z0-9_]` only, case-insensitive uniqueness.
-- Password: minimum 8 characters, no other composition rule (length over complexity theater).
-- On successful registration, the player's **current local `META` becomes their first cloud save** (relevant for a returning device that had pre-gate local progress; a brand-new device just starts at `DEF_META`).
+### Guest and first sign-in
+- No session → the menu offers a `Save your progress` panel once the server has answered 401.
+  `Play as guest` closes it. The panel is never shown before `/api/me` answers.
+- First sign-in, empty cloud, guest progress on this browser → ask: `Move progress` or
+  `Start fresh`.
+- Cloud already has progress and this browser has different guest progress → ask which to keep,
+  showing runs / shards / Vault / last played for both. Never merge.
+- Whatever is not kept is copied to a local backup profile for 7 days.
 
-### Login
-- Username + password → session token (30-day expiry), cached in `localStorage`.
-- Server's stored `META` is fetched and compared against local `META` by `savedAt` timestamp:
-  - If server copy is newer or local has no unsynced changes: silently adopt the server copy.
-  - If local has changes newer than the server copy (e.g. played offline before logging in on this device): show a clear choice — "Keep this device's progress" vs "Use cloud progress" — never silently discard either.
+### Saves
+- `SaveStore` keeps one folder per profile: guest uses the old keys
+  (`axiedice:user://...`), an account uses `user://acct/<id>/...`. Switching accounts on one
+  browser can never read someone else's save.
+- Every write through `SaveStore` marks the account dirty; `AccountService` uploads after 3 s
+  of quiet, and flushes on tab hide (best effort).
+- `PUT /api/save` carries the `rev` the client last saw. A stale `rev` → 409 with the server
+  copy → `This account was played somewhere else.` → `Keep this device` / `Keep cloud`.
+- If the cloud copy is newer and this browser has no unsynced edits, it is adopted silently.
+- Upload failure → chip shows `Offline — will sync`, retries at 5 / 15 / 60 / 120 s (then every 120 s). `Sync now` retries at once.
+- Continue Run reads the run from the cloud copy, so a run started on one device can be
+  continued on another.
 
-### Ongoing sync
-- Every `saveMeta()` call, while logged in, schedules a debounced (~5s) push to the server.
-- Sync failures (offline, server error) never block or interrupt gameplay — same graceful-degrade pattern the leaderboard already uses for `stored:false`.
+### Sign out / switch
+- Settings → Account: name, email, badge, status, `SWITCH ACCOUNT`, `SIGN OUT`.
+- Sign out needs a second press. With unsynced edits the button becomes `SYNC AND SIGN OUT` and
+  uploads first. The game only drops to guest after the server confirms the logout.
+- Switch account = sign out + sign in with `prompt=select_account`.
 
-### Leaderboard integration
-- Every Ranked Run submission uses the account's **username** as the leaderboard display name automatically — there is no free-text name entry anymore, since a submission is impossible without being logged in.
-
-### Logout
-- Clears the cached session token and returns straight to the login/register gate (per the App gate rule — there is nowhere else for a logged-out session to go). Local `META` on the device is left as-is (not wiped) so logging back in with the SAME account resumes instantly without a network round-trip needed to feel right, but no screen is reachable until that login happens.
+### Errors
+Every error has a plain sentence plus a way forward (`Try again`, `Use another account`,
+`Play as guest`, `Sign in`). Mapped codes: `access_denied` (cancelled), `expired`/`state` (timed out), `network`,
+`admin_policy_enforced`/`org_internal` (company block), `session_expired`, `save_failed`,
+`sign_out_failed`; anything else gets a generic retry line. See `AccountService.error_message()`.
 
 ## 4. Formulas
-No gameplay-numeric formulas. The only computed value is the password hash: `crypto.scrypt(password, randomSalt, 64)` (Node builtin), stored as `{salt, hash}` — never the raw password.
+- Upload debounce: `PUSH_DELAY = 3.0` s.
+- Retry schedule: `RETRY_DELAYS = [5, 15, 60, 120]` s, then stays at 120 s.
+- Local backup lifetime: `BACKUP_DAYS = 7`.
+- Save body cap: 512 KB per `PUT /api/save`.
+- Session lifetime: 30 days. OAuth state cookie: 10 minutes.
 
 ## 5. Edge Cases
-- **Duplicate username at registration** → generic "username taken" error. Login failures use a generic "invalid username or password" (no hint about which field is wrong — avoids username enumeration).
-- **Forgotten password** → **no recovery flow in beta** (no email service configured yet). Explicitly flagged as a bigger risk now that login is mandatory (see ADR-0002 Amendment): a player who forgets their password is locked out of the game itself, not just cloud sync. Still a known, explicit beta limitation, not an oversight — but should be prioritized sooner than "eventually."
-- **Sync conflict** (two devices edited offline) → resolved by the explicit choice prompt described above under Login, never a silent last-write-wins on the client's behalf. (Server storage itself is last-write-wins — whichever `POST /api/sync-save` lands last wins — but the client always gives the player the choice before it triggers an overwrite from a divergent state.)
-- **Two different accounts sharing one device** (fixed 2026-09-02, was a real bug in the first shipped version) → local `META` carries an `owner` field (the username whose progress currently occupies this device's local storage). The keep-local-vs-use-cloud prompt above is now gated on `META.owner === (account being logged into)` — a different account, or a brand-new device, NEVER sees that prompt and never has a chance to have another account's local progress merged into it; it just gets its own cloud save (or a clean slate if it has none yet). Registering a second account on a device that already has a first account's local progress also starts that second account clean, for the same reason. Logging back into the SAME account that already owns this device's local data behaves exactly as before (the by-`savedAt` comparison and prompt still apply — that path is for one player's own multi-device sync, which is unaffected).
-- **Registering/logging in while offline / server down** → the gate shows a clear network-error message and stays on the gate (nothing to fall back to — there is no guest mode). Does not silently fail or spin forever.
-- **Brute-force attempts** → rate-limited per-IP on `api/auth.js` (same in-memory limiter pattern as `api/axie.js`), generic error responses regardless of whether the username exists.
-- **Cached token present but expired/invalid** (e.g. 30 days passed, or `AUTH_JWT_SECRET` rotated server-side) → the first authenticated call fails with 401, the client clears the stale token and returns to the gate with a neutral "please log in again" message — never a silent infinite retry loop.
+- Signed-in session but no cached account on this browser (fresh profile, cleared storage):
+  the welcome panel must wait for `/api/me`; a 200 closes any panel already open.
+- Sign-in lands mid-run or on a non-menu scene: the save fetch is deferred until a safe scene.
+- Two tabs or two devices writing → 409 → explicit choice, never a silent overwrite.
+- Logout request fails → stay signed in and toast `sign_out_failed`, never fake a sign-out.
+- Company Workspace blocks the app → `Use another account` / `Play as guest`.
+- Incognito / strict cookie blocking: not tested yet. If the session cookie is dropped the player
+  simply stays a guest; there is no dedicated message for it.
 
 ## 6. Dependencies
-- `docs/architecture/adr-0001-leaderboard-backend-infrastructure.md` — reused infrastructure (Vercel Functions, Upstash Redis).
-- `docs/architecture/adr-0002-player-accounts.md` — technical decision record for this system.
-- `src/ui.js` `META`/`DEF_META`/`saveMeta()`/`loadMeta()` — existing progression state this system syncs.
-- `design/gdd/leaderboard-system.md` — leaderboard display-name integration for logged-in players.
-- `design/gdd/onboarding-tutorial.md` — inserts the mandatory tutorial screen between this system's gate and `screen='menu'` for a brand-new account; see the App gate amendment above.
+- Cloudflare Worker `axie-dice` (routes `/auth/*`, `/api/me`, `/api/save`, `/terms`, `/privacy`).
+- Cloudflare D1 `axie-dice-db`: `players`, `saves`, `sessions` (`worker/migrations/0001_accounts.sql`).
+- Google Cloud project `axie-dice`, OAuth client "Axie Dice Worker", redirect
+  `https://axiedice.fun/auth/callback`. Secrets on the Worker: `GOOGLE_CLIENT_SECRET`,
+  `SESSION_SIGNING_KEY`.
+- `MetaState.reload_from_store()` and `SaveStore` (every save write must go through `SaveStore`).
 
 ## 7. Tuning Knobs
-- Minimum password length (currently 8).
-- Session token expiry (currently 30 days).
-- Sync debounce interval (currently ~5s after last `META` change).
-- Username length bounds (currently 3–20 chars).
+`PUSH_DELAY`, `RETRY_DELAYS`, `BACKUP_DAYS` in `AccountService.gd`; save size cap and session lifetime
+in `worker/src/accounts.js`. Restricting sign-in to Sky Mavis accounts only is a one-line `hd`
+check in the callback.
 
 ## 8. Acceptance Criteria
-- A brand-new visitor cannot reach PLAY, or any menu screen, without registering or logging in first — the gate is the only thing rendered until authentication succeeds.
-- A new player can register with username + password and immediately see their existing local progress (if any, on a returning device) preserved as their first cloud save.
-- Logging in on a second, fresh device pulls down the same Vault/Unlocks/Collection/Shards as the first device.
-- Logging in with unsynced local progress present prompts an explicit keep-local-vs-use-cloud choice; neither is ever silently discarded.
-- Logging out returns to the gate; the app is unreachable again until logging back in.
-- An expired or invalid cached token drops the app back to the gate with a clear message, not a broken/half-loaded state.
-- No password is ever stored or logged in plaintext, verified by reading `api/auth.js` and confirming only `{salt, hash}` reaches Redis.
-- Repeated failed login attempts from one IP are rate-limited.
-- Every Ranked Run submission uses the account username automatically, without a separate name-entry step.
+- `node --test worker/test` — 23 tests pass.
+- `godot/tests/t_account_sync` — 76 checks pass, including the welcome-panel regression test.
+- Live QA (10 Oct 2026) passed: first sign-in moves guest progress; reload does not prompt;
+  debounced upload; switch account and sign out; silent pull when another device is newer;
+  conflict dialog with backup; offline then auto-upload; welcome panel never covers a
+  signed-in menu.
+- Not yet tested: Chrome incognito, Safari.
+
+### Backlog (not started)
+Dedicated login screen (with the final UI polish) · account chip to the top-right · rate
+limiting on `/auth/*` and `/api/save` · remove `production/privacy-preview.html` · delete the
+old `axie-dice-fun` Worker.

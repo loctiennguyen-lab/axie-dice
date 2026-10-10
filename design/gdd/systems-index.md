@@ -14,7 +14,7 @@
 | Relic Roster Expansion | `relic-roster-expansion.md` | 50 relic mới (48 + 2 bắt buộc từ audit) | Không rõ — xem file |
 | Combo Decision Memo | `combo-decision-memo.md` | Memo quyết định về hệ COMBO | Không rõ — xem file |
 | Economy & Progression | `economy-progression.md` | Economy tổng thể, Lunacia Pass, Echo Box, NFT/Vault, faucet-sink, monetization — Design Spec v2.0 | Hỗn hợp — nhiều mục ✅ CHỐT, một số 🔬 CẦN SIM, một số đã bị amend (xem §10.2b, §10.3 amendments trong file) |
-| Player Accounts | `player-accounts.md` | Player Accounts & Progression Sync | Không rõ — xem file |
+| Player Accounts | `player-accounts.md` | Đăng nhập Google + lưu save lên server (Worker + D1), guest vẫn chơi được | Implemented (2026-10-10) |
 | Leaderboard System | `leaderboard-system.md` | Bảng xếp hạng, anti-cheat qua deterministic replay | MVP implemented (2026-09-01) |
 | **World Tour ("Lunacia Atlas")** | `world-tour.md` | Bản đồ tiến trình meta persistent, milestone deterministic dựa trên `META.runs`, phân biệt rõ với Lunacia Pass (XP) và Echo Box (gacha) | **Draft — chờ product owner xác nhận 3 câu hỏi mở cuối file** |
 | **Onboarding Tutorial (Mandatory)** | `onboarding-tutorial.md` | Tutorial bắt buộc 6 bước (~90-120s) sau lần đăng ký/đăng nhập đầu tiên, dùng `newGame(seed,...)` dựng mock battle 5-Axie deterministic; xóa code `TUT[]`/`tutOverlay()` cũ đã chết | **Draft — chờ implement** |
