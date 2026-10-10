@@ -15,10 +15,14 @@ extends Node
 ##
 ## Run: godot --headless --path godot tests/t_face_used_log_tag.tscn
 
+## Puts the player's real meta and run saves back before quitting (see save_guard.gd).
+var _guard := SaveGuard.new()
+
 var _anomaly := ""
 
 
 func _ready() -> void:
+	_guard.capture()
 	var tree := get_tree()
 	CombatView.disable_juice_for_tests = true
 
@@ -72,6 +76,7 @@ func _ready() -> void:
 
 	if _anomaly == "":
 		print("t_face_used_log_tag: PASS — [AOE] tag only shows for genuine multi-target faces")
+		_guard.restore()
 		tree.quit(0)
 	else:
 		_fail(tree)
@@ -108,4 +113,5 @@ func _check(cond: bool, msg: String) -> void:
 func _fail(tree: SceneTree) -> void:
 	print("t_face_used_log_tag: FAIL — %s" % _anomaly)
 	CombatView.disable_juice_for_tests = false
+	_guard.restore()
 	tree.quit(1)

@@ -35,6 +35,36 @@ if [[ $unscanned -gt 0 ]]; then
     || "$GODOT" --headless --path "$PROJ" --editor --quit >/dev/null 2>&1 || true
 fi
 
+# Bảo vệ save THẬT của người chơi trên máy này (2026-10-10). MetaState/RunState là autoload ghi
+# thẳng vào user://, nên test nào quên SaveGuard (hoặc thoát trước khi restore) là ghi đè lên
+# progress thật — đo ngày 10/10: cả suite xoá run_save.json và sửa meta_save.json mà không ai
+# thấy. Giờ mỗi test được so hash save trước/sau; test nào để lại thay đổi thì FAIL, và save
+# được chép lại từ bản chụp đầu suite. Cuối suite luôn chép lại một lần nữa cho chắc.
+_app_name="$(sed -n 's/^config\/name="\(.*\)"$/\1/p' "$PROJ/project.godot" | head -1)"
+if [[ "$(uname)" == Darwin ]]; then
+  USERDIR="$HOME/Library/Application Support/Godot/app_userdata/$_app_name"
+else
+  USERDIR="${XDG_DATA_HOME:-$HOME/.local/share}/godot/app_userdata/$_app_name"
+fi
+SAVE_SNAP="$(mktemp -d)"
+_save_items=(meta_save.json run_save.json acct)
+for it in "${_save_items[@]}"; do
+  [[ -e "$USERDIR/$it" ]] && cp -Rp "$USERDIR/$it" "$SAVE_SNAP/"
+done
+_save_fp() {   # dấu vân tay nội dung các file save (bỏ qua thư mục rỗng)
+  (cd "$1" 2>/dev/null && find meta_save.json run_save.json acct -type f 2>/dev/null \
+     | LC_ALL=C sort | while IFS= read -r f; do printf '%s ' "$f"; cksum < "$f"; done)
+}
+_save_restore() {
+  for it in "${_save_items[@]}"; do
+    rm -rf "${USERDIR:?}/$it"
+    [[ -e "$SAVE_SNAP/$it" ]] && cp -Rp "$SAVE_SNAP/$it" "$USERDIR/"
+  done
+  return 0
+}
+SAVE_FP0="$(_save_fp "$SAVE_SNAP")"
+trap '_save_restore; rm -rf "$SAVE_SNAP"' EXIT
+
 pass=0; fail=0; failed_names=()
 
 # Two kinds of test live side by side: scene tests (t_*.tscn, a Node _ready())
@@ -54,15 +84,21 @@ for target in "${targets[@]}"; do
     out="$("$GODOT" --headless --path "$PROJ" --script "tests/$name.gd" 2>&1)"
   fi
   code=$?
+  leak=""
+  if [[ "$(_save_fp "$USERDIR")" != "$SAVE_FP0" ]]; then
+    leak="$name để lại save thật của người chơi bị đổi (meta/run/acct) — dùng SaveGuard. Đã chép lại save."
+    _save_restore
+  fi
   # A test fails on a non-zero exit, an engine-level script error, or an explicit
   # "FAIL" verdict. "0 failure(s)" in a passing summary must NOT trip this, hence the
   # word-boundary + explicit-verdict matching rather than a bare `grep -i fail`.
-  if [[ $code -ne 0 ]] \
+  if [[ $code -ne 0 || -n "$leak" ]] \
      || grep -qE "SCRIPT ERROR|Parse Error|^ *FAIL|: FAIL|FAILED" <<<"$out" \
      || grep -qE "[^0-9]([1-9][0-9]*) failure" <<<"$out" \
      || ! grep -qi "PASS" <<<"$out"; then
     fail=$((fail+1)); failed_names+=("$name")
     printf '  \033[31mFAIL\033[0m  %s\n' "$name"
+    [[ -n "$leak" ]] && printf '        %s\n' "$leak"
     sed -n '1,25p' <<<"$out" | sed 's/^/        /'
   else
     pass=$((pass+1))

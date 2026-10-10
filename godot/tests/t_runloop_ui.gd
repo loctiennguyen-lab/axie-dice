@@ -14,12 +14,10 @@ extends Node
 ## EXPECTED_TESTS is cross-checked in _ready() so a runtime error that aborts a test partway
 ## cannot silently read as PASS.
 ##
-## No test here touches MetaState (the player's real profile save) — RunMapController's
-## save-on-progress calls (`_save_map_progress()`) only ever write RunState.SAVE_PATH
-## ("user://run_save.json", the resumable-run slot), which the project's own t_run_save.gd
-## already treats as fair game for a test to overwrite (no SaveGuard used there either) — see
-## that file's test_a_wrong_version_save_is_refused_not_half_loaded(). SaveGuard is reserved
-## for MetaState.SAVE_PATH specifically (save_guard.gd's own header), so it is not needed here.
+## RunMapController's save-on-progress calls (`_save_map_progress()`) write RunState.SAVE_PATH,
+## which on a dev machine is the player's real run in progress. This file used to call that fair
+## game; measured 2026-10-10 it was deleting a real run, so it now uses SaveGuard, which covers
+## the run save as well as meta (save_guard.gd).
 ##
 ## Run: godot --headless --path godot res://tests/t_runloop_ui.tscn
 
@@ -33,6 +31,9 @@ const EXPECTED_TESTS: Array[String] = [
 	"test_level_up_description_never_reads_as_x_arrow_x",
 ]
 
+## Puts the player's real meta and run saves back before quitting (see save_guard.gd).
+var _guard := SaveGuard.new()
+
 var _failures: Array[String] = []
 var _checks := 0
 var _completed: Array[String] = []
@@ -41,6 +42,7 @@ const _ID_PATTERN := "r\\d+_c\\d+"
 
 
 func _ready() -> void:
+	_guard.capture()
 	print("=== t_runloop_ui: start ===")
 	await get_tree().process_frame
 
@@ -60,10 +62,12 @@ func _ready() -> void:
 	print("=== t_runloop_ui: %d checks, %d failure(s) ===" % [_checks, _failures.size()])
 	if _failures.is_empty():
 		print("t_runloop_ui: PASS — %d checks OK" % _checks)
+		_guard.restore()
 		get_tree().quit(0)
 		return
 	for f in _failures:
 		print("t_runloop_ui: FAIL — %s" % f)
+	_guard.restore()
 	get_tree().quit(1)
 
 

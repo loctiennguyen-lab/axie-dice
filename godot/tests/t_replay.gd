@@ -19,6 +19,9 @@ extends Node
 ## requires each corruption to produce a DIFFERENT end state. If an injection ever stops making a
 ## difference, this gate has gone blind and says so.
 
+## Puts the player's real meta and run saves back before quitting (see save_guard.gd).
+var _guard := SaveGuard.new()
+
 const COMBAT_SEED := 424242
 const MAX_TURNS := 200
 ## A seed t_full_run_loop walks to the final row, so the recorded run covers combats, rewards,
@@ -44,6 +47,7 @@ var _completed: Array[String] = []
 
 
 func _ready() -> void:
+	_guard.capture()
 	print("=== t_replay: start ===")
 	await get_tree().process_frame
 
@@ -64,10 +68,12 @@ func _ready() -> void:
 	print("=== t_replay: %d checks, %d failure(s) ===" % [_checks, _failures.size()])
 	if _failures.is_empty():
 		print("t_replay: PASS — %d checks OK" % _checks)
+		_guard.restore()
 		get_tree().quit(0)
 		return
 	for f in _failures:
 		print("t_replay: FAIL — %s" % f)
+	_guard.restore()
 	get_tree().quit(1)
 
 

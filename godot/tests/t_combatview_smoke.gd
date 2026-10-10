@@ -26,6 +26,9 @@ extends Node
 ## as a cheap, bounded defensive check (not the fix) in case that flag ever fails to suppress
 ## something.
 
+## Puts the player's real meta and run saves back before quitting (see save_guard.gd).
+var _guard := SaveGuard.new()
+
 const MAX_STEPS := 200
 const _ANIM_CLEAR_FRAME_GUARD := 300
 
@@ -34,6 +37,7 @@ var _anomaly := ""
 
 
 func _ready() -> void:
+	_guard.capture()
 	# Cache the SceneTree BEFORE any gameplay action can run: a real win legitimately calls
 	# get_tree().change_scene_to_file() (CombatView._finish()), which detaches this test node
 	# (it IS the loaded main scene here) from the tree — self.get_tree() would return null
@@ -100,6 +104,7 @@ func _ready() -> void:
 
 	if _anomaly == "":
 		print("t_combatview_smoke: PASS — Combat.tscn loaded, portraits wired, click handlers drove CombatEngine to a real finish")
+		_guard.restore()
 		tree.quit(0)
 	else:
 		_fail(tree)
@@ -196,4 +201,5 @@ func _check(cond: bool, msg: String) -> void:
 func _fail(tree: SceneTree) -> void:
 	print("t_combatview_smoke: FAIL — %s" % _anomaly)
 	CombatView.disable_juice_for_tests = false
+	_guard.restore()
 	tree.quit(1)

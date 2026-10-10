@@ -28,16 +28,29 @@ extends RefCounted
 ##
 ## `restore()` also reloads MetaState from the restored file, so anything later in the same
 ## process sees the player's real values rather than the test's leftovers.
+##
+## BOTH FILES, NOT JUST META (2026-10-10)
+## --------------------------------------
+## Until 10 Oct this guarded `meta_save.json` only. Measured that day, one test at a time with
+## md5 before and after: 23 gates deleted `run_save.json` — the player's run in progress — because
+## starting a run or a combat calls `RunState.clear_saved_run()`. Every gate that already used
+## SaveGuard was among them. The run save is now captured and put back the same way.
+## `run_tests.sh` also hashes both files around every test and fails the one that changed them,
+## so a gate that forgets SaveGuard (or quits before `restore()`) is caught, not silent.
 
-var _backup := ""
-var _had_save := false
+const _PATHS := [MetaState.SAVE_PATH, RunState.SAVE_PATH]
+
+var _backup := {}       # path -> text, only for files that existed at capture()
 var _captured := false
 
 
 func capture() -> void:
 	_captured = true
-	_had_save = FileAccess.file_exists(MetaState.SAVE_PATH)
-	_backup = FileAccess.get_file_as_string(MetaState.SAVE_PATH) if _had_save else ""
+	_backup.clear()
+	for p in _PATHS:
+		var real := SaveStore.path_for(SaveStore.profile, p)
+		if FileAccess.file_exists(real):
+			_backup[p] = FileAccess.get_file_as_string(real)
 
 
 func restore() -> void:
@@ -45,15 +58,17 @@ func restore() -> void:
 		push_warning("SaveGuard.restore() called without capture() — nothing to put back, and "
 			+ "the test has been writing to the player's real save file the whole time.")
 		return
-	if _had_save:
-		var f := FileAccess.open(MetaState.SAVE_PATH, FileAccess.WRITE)
-		if f == null:
-			push_error("SaveGuard: could not reopen %s to restore it" % MetaState.SAVE_PATH)
-			return
-		f.store_string(_backup)
-		f.close()
-	elif FileAccess.file_exists(MetaState.SAVE_PATH):
-		# There was no save before the test ran. Leaving one behind would hand a fresh install a
-		# progression history it never played.
-		DirAccess.remove_absolute(ProjectSettings.globalize_path(MetaState.SAVE_PATH))
+	for p in _PATHS:
+		var real := SaveStore.path_for(SaveStore.profile, p)
+		if _backup.has(p):
+			var f := FileAccess.open(real, FileAccess.WRITE)
+			if f == null:
+				push_error("SaveGuard: could not reopen %s to restore it" % real)
+				continue
+			f.store_string(_backup[p])
+			f.close()
+		elif FileAccess.file_exists(real):
+			# There was no save before the test ran. Leaving one behind would hand a fresh install a
+			# progression history (or a run) it never played.
+			DirAccess.remove_absolute(ProjectSettings.globalize_path(real))
 	MetaState.load_from_disk()

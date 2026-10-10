@@ -9,12 +9,16 @@ extends Node
 ##   6 the combat scene freed mid-tray does not error
 ## Run: godot --headless --path godot tests/t_reroll_fx_edges.tscn
 
+## Puts the player's real meta and run saves back before quitting (see save_guard.gd).
+var _guard := SaveGuard.new()
+
 var _tree: SceneTree
 var _view: Node
 var _anomaly := ""
 
 
 func _ready() -> void:
+	_guard.capture()
 	_tree = get_tree()
 	CombatView.disable_juice_for_tests = false
 	await _boot(515151)
@@ -222,7 +226,9 @@ func _done(err: String) -> void:
 		_anomaly = err
 	if _anomaly != "":
 		print("t_reroll_fx_edges: FAIL — %s" % _anomaly)
+		_guard.restore()
 		_tree.quit(1)
 	else:
 		print("t_reroll_fx_edges: PASS — egg, heavy/frozen, keys, click-through, 0 rerolls, freed mid-tray")
+		_guard.restore()
 		_tree.quit(0)

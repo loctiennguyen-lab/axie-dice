@@ -26,12 +26,16 @@ extends Node
 ##
 ## Run: godot --headless --path godot res://tests/t_midcombat_spawn_visuals.tscn
 
+## Puts the player's real meta and run saves back before quitting (see save_guard.gd).
+var _guard := SaveGuard.new()
+
 var _failures: Array[String] = []
 var _checks := 0
 var _view: Node2D
 
 
 func _ready() -> void:
+	_guard.capture()
 	print("=== t_midcombat_spawn_visuals: start ===")
 	var tree := get_tree()
 	CombatView.disable_juice_for_tests = true
@@ -52,10 +56,12 @@ func _ready() -> void:
 	print("=== t_midcombat_spawn_visuals: %d checks, %d failure(s) ===" % [_checks, _failures.size()])
 	if _failures.is_empty():
 		print("t_midcombat_spawn_visuals: PASS — %d checks OK" % _checks)
+		_guard.restore()
 		tree.quit(0)
 		return
 	for f in _failures:
 		print("t_midcombat_spawn_visuals: FAIL — %s" % f)
+	_guard.restore()
 	tree.quit(1)
 
 
