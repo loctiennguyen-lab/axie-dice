@@ -17,3 +17,15 @@ bucket_name = "axie-dice"
 
 [observability]
 enabled = true
+
+# Google sign-in (Google Cloud project "axie-dice", owner tienloc031612@gmail.com).
+# The client ID is public by design; GOOGLE_CLIENT_SECRET and SESSION_SIGNING_KEY are Worker
+# secrets set with `npx wrangler secret put`, never written here.
+[vars]
+GOOGLE_CLIENT_ID = "597753927078-rn7b186qo0obgalq3hgpiv6k7g0mk7dl.apps.googleusercontent.com"
+
+# Player profiles, saves and sessions (design: claude/ACCOUNT_SYSTEM_v1.md §4).
+[[d1_databases]]
+binding = "DB"
+database_name = "axie-dice-db"
+database_id = "58758c7a-7663-4008-a9de-05490d950a9e"

@@ -1,7 +1,11 @@
+import { handleLegal } from './legal.js';
+import { handleAccounts, isAccountsPath } from './accounts.js';
 /**
  * Axie Dice, served entirely from Cloudflare.
  *
  *   /api/axie?id=<axieId>   the Axie lookup proxy, ported from the Vercel function it replaces
+ *   /auth/*, /api/me, /api/save   Google sign-in and cloud saves (accounts.js)
+ *   /terms, /privacy        legal pages (legal.js)
  *   everything else         the Godot web build, streamed out of the R2 bucket
  *
  * Serving both from one Worker means the game and its API share an origin. The browser never
@@ -244,6 +248,8 @@ export default {
   async fetch(request, env) {
     const url = new URL(request.url);
     if (url.pathname === '/api/axie') return handleAxie(request, url);
+    if (url.pathname === '/terms' || url.pathname === '/privacy') return handleLegal(url);
+    if (isAccountsPath(url.pathname)) return handleAccounts(request, env, url);
     return serveGame(request, env, url);
   },
 };
