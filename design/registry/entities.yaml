@@ -37,7 +37,13 @@
 #   Each entry: name, status, source, referenced_by[], attributes{}, added, revised
 
 version: 1
-last_updated: ""
+last_updated: 2026-10-10
+
+# NOTE (2026-10-10): every entry below is tagged `status: active  # proposal` = a proposal
+# approved by Liam (10/10/2026) that is NOT yet in a GDD. The registry only knows
+# active | deprecated, so `active` is the closest value. When the fact lands in a GDD
+# (design/gdd/economy-progression.md / build-spec.md), change `source:` to that GDD,
+# drop the "# proposal" comment and set revised: to that date.
 
 # ─── ENTITIES ────────────────────────────────────────────────────────────────
 # Named game-world objects: enemies, NPCs, characters, factions, bosses.
@@ -77,7 +83,63 @@ entities: []
 # Attribute fields: value_gold, weight, stackable, category, and any stat
 #   modifiers that another system (e.g., economy, crafting) might reference.
 
-items: []
+items:
+  - name: gene_shard
+    status: active              # proposal approved by Liam 10/10/2026, not yet in a GDD
+    source: design/proposals/economy-v2.md
+    referenced_by:
+      - design/proposals/economy-v2.md
+      - design/proposals/echobox-pass-v2.md
+    category: currency
+    role: "soft currency earned from runs, daily reward, Pass; spent ONLY on Echo tickets and the one-time stat-unlock shop. Echo Box and duplicate conversion never pay Shard (ECO-3)"
+    added: 2026-10-10
+    revised: ""
+
+  - name: land_stone
+    status: active              # proposal approved by Liam 10/10/2026, not yet in a GDD
+    source: design/proposals/economy-v2.md
+    referenced_by:
+      - design/proposals/economy-v2.md
+      - design/proposals/echobox-pass-v2.md
+    category: currency
+    role: "Land-upgrade currency; spent ONLY on Land tiers (ECO-1). Faucets: Echo Box reward type, daily reward, weekly bonus, Pass, future missions"
+    added: 2026-10-10
+    revised: ""
+
+  - name: echo_ticket
+    status: active              # proposal approved by Liam 10/10/2026, not yet in a GDD
+    source: design/proposals/economy-v2.md
+    referenced_by:
+      - design/proposals/economy-v2.md
+      - design/proposals/echobox-pass-v2.md
+    category: ticket
+    note: "ONE ticket type for both boxes (no season_ticket). Bought with Gene Shard, or granted by Pass / duplicate conversion / starter / bundle. Pass, recycled, starter and bundle tickets do not advance the price ladder"
+    base_price_shard: 200
+    price_growth_per_ticket_bought_in_day: 1.05
+    price_formula: "round5(200 * 1.05^(k-1)), k = order of Shard-bought ticket in the UTC day"
+    buy_cap_per_day: 30
+    hold_cap: 999
+    added: 2026-10-10
+    revised: ""
+
+  - name: echo_fragment
+    status: active              # proposal approved by Liam 10/10/2026, not yet in a GDD
+    source: design/proposals/economy-v2.md
+    referenced_by:
+      - design/proposals/economy-v2.md
+      - design/proposals/echobox-pass-v2.md
+    category: conversion_material
+    note: "Not a currency (Liam rejected a new currency). Duplicate cosmetic converts to fragments; 10 fragments = 1 echo_ticket. Fragments and tickets never convert to Shard or Stone"
+    fragments_per_ticket: 10
+    fragments_by_rarity:
+      common: 3
+      uncommon: 5
+      rare: 10
+      epic: 20
+      legendary: 40
+      mythic: 80
+    added: 2026-10-10
+    revised: ""
 
 # Example:
 #
@@ -106,7 +168,36 @@ items: []
 #   output_range[min, max], added
 # Optional: expression (the actual formula), notes
 
-formulas: []
+formulas:
+  - name: echo_ticket_price
+    status: active              # proposal approved by Liam 10/10/2026, not yet in a GDD
+    source: design/proposals/economy-v2.md
+    referenced_by:
+      - design/proposals/economy-v2.md
+      - design/proposals/echobox-pass-v2.md
+    variables:
+      - k                       # 1-based order of the Shard-bought ticket in the UTC day
+    output_range: [200, 825]    # k=1 -> 200 ; k=30 -> 825
+    expression: "round5(200 * 1.05^(k-1))"
+    notes: "Total cost of n tickets in one day C(n) = 4000 * (1.05^n - 1). One shared ladder for both boxes."
+    added: 2026-10-10
+    revised: ""
+
+  - name: season_box_hard_bound
+    status: active              # proposal approved by Liam 10/10/2026, not yet in a GDD
+    source: design/proposals/economy-v2.md
+    referenced_by:
+      - design/proposals/economy-v2.md
+      - design/proposals/echobox-pass-v2.md
+    variables:
+      - N_t                     # per-tier cap (Epic 10, Legendary 20, Mythic 40)
+      - h_t                     # number of higher tiers
+      - items_t                 # items in tier (6 / 3 / 2)
+    output_range: [1, 80]
+    expression: "B = max over tiers of items_t * (N_t + h_t) = max(72, 63, 80) = 80 pulls"
+    notes: "Full season set guaranteed within 80 pulls (400 tickets). Typical ~55 pulls. Liam kept the 80 cap (10/10)."
+    added: 2026-10-10
+    revised: ""
 
 # Example:
 #
@@ -139,7 +230,160 @@ formulas: []
 #
 # Required fields: name, status, source, referenced_by, value, unit, added
 
-constants: []
+constants:
+  - name: echo_standard_pull_cost
+    status: active              # proposal approved by Liam 10/10/2026, not yet in a GDD
+    source: design/proposals/economy-v2.md
+    referenced_by:
+      - design/proposals/economy-v2.md
+      - design/proposals/echobox-pass-v2.md
+    value: 1
+    unit: echo_ticket
+    added: 2026-10-10
+    revised: ""
+
+  - name: echo_season_pull_cost
+    status: active              # proposal approved by Liam 10/10/2026, not yet in a GDD
+    source: design/proposals/economy-v2.md
+    referenced_by:
+      - design/proposals/economy-v2.md
+      - design/proposals/echobox-pass-v2.md
+    value: 5
+    unit: echo_ticket
+    added: 2026-10-10
+    revised: ""
+
+  - name: echo_season_pull_cap_day
+    status: active              # proposal approved by Liam 10/10/2026, not yet in a GDD
+    source: design/proposals/economy-v2.md
+    referenced_by:
+      - design/proposals/economy-v2.md
+      - design/proposals/echobox-pass-v2.md
+    value: 8
+    unit: season_pulls_per_utc_day   # = 40 tickets/day
+    added: 2026-10-10
+    revised: ""
+
+  - name: echo_season_length
+    status: active              # proposal approved by Liam 10/10/2026, not yet in a GDD
+    source: design/proposals/echobox-pass-v2.md
+    referenced_by:
+      - design/proposals/economy-v2.md
+      - design/proposals/echobox-pass-v2.md
+    value: 12
+    unit: weeks
+    added: 2026-10-10
+    revised: ""
+
+  - name: echo_season_completion_bound
+    status: active              # proposal approved by Liam 10/10/2026, not yet in a GDD
+    source: design/proposals/economy-v2.md
+    referenced_by:
+      - design/proposals/economy-v2.md
+      - design/proposals/echobox-pass-v2.md
+    value: 80
+    unit: season_pulls          # hard max to complete season S1 (400 tickets); typical 55
+    added: 2026-10-10
+    revised: ""
+
+  - name: land_tier_costs
+    status: active              # proposal approved by Liam 10/10/2026, not yet in a GDD
+    source: design/proposals/economy-v2.md
+    referenced_by:
+      - design/proposals/economy-v2.md
+      - design/proposals/echobox-pass-v2.md
+    value: [40000, 100000, 180000, 500000, 1000000]
+    unit: land_stone            # cumulative 40k / 140k / 320k / 820k / 1,820k; Land is paid ONLY in Stone
+    added: 2026-10-10
+    revised: ""
+
+  - name: echo_standard_stone_table
+    status: active              # proposal approved by Liam 10/10/2026, not yet in a GDD
+    source: design/proposals/economy-v2.md
+    referenced_by:
+      - design/proposals/economy-v2.md
+      - design/proposals/echobox-pass-v2.md
+    value:                      # stack -> probability per pull (percent); Stone total 60%, rest 40% cosmetic
+      100: 15.30
+      250: 24.08
+      500: 13.00
+      1000: 6.00
+      2500: 1.60
+      10000: 0.02               # jackpot, 1 in 5,000 pulls. SỬA 10/10 (was 0.2%, 1 in 500)
+    unit: land_stone
+    ev_per_pull: 242.5
+    added: 2026-10-10
+    revised: 2026-10-10         # jackpot lowered 0.2% -> 0.02%, other stacks rebalanced, EV unchanged
+
+  - name: echo_season_stone_table
+    status: active              # proposal approved by Liam 10/10/2026, not yet in a GDD
+    source: design/proposals/economy-v2.md
+    referenced_by:
+      - design/proposals/economy-v2.md
+      - design/proposals/echobox-pass-v2.md
+    value:                      # stack -> probability INSIDE a Stone pull (percent); Stone pull ~78% of season pulls
+      500: 32.74
+      1000: 45.13
+      2500: 17.50
+      5000: 4.60
+      25000: 0.03               # jackpot, 0.0234% per season pull = 1 in ~4,274 pulls. SỬA 10/10 (was 0.2%)
+    unit: land_stone
+    ev_per_stone_pull: 1290
+    ev_per_season_pull: 1006
+    added: 2026-10-10
+    revised: 2026-10-10         # jackpot lowered 0.2% -> 0.03%, other stacks rebalanced, EV unchanged
+
+  - name: pass_length
+    status: active              # proposal approved by Liam 10/10/2026, not yet in a GDD
+    source: design/proposals/echobox-pass-v2.md
+    referenced_by:
+      - design/proposals/economy-v2.md
+      - design/proposals/echobox-pass-v2.md
+    value: 30
+    unit: levels                # season = 8 weeks; total XP to level 30 = 32,400
+    pass_total_xp: 32400
+    pass_season_weeks: 8
+    pass_reward_totals: "4,800 Shard + 16,500 Stone + 12 tickets + cosmetics"
+    added: 2026-10-10
+    revised: ""
+
+  - name: pass_post30_loop
+    status: active              # proposal approved by Liam 10/10/2026, not yet in a GDD
+    source: design/proposals/echobox-pass-v2.md
+    referenced_by:
+      - design/proposals/economy-v2.md
+      - design/proposals/echobox-pass-v2.md
+    value: "2000 XP = 50 Shard"
+    unit: shard_per_2000_xp     # leftover XP converts at same rate, not carried over; cap ~405 Shard/week
+    added: 2026-10-10
+    revised: ""
+
+  - name: daily_reward
+    status: active              # proposal approved by Liam 10/10/2026, not yet in a GDD
+    source: design/proposals/echobox-pass-v2.md
+    referenced_by:
+      - design/proposals/economy-v2.md
+      - design/proposals/echobox-pass-v2.md
+    value:
+      shard: 60
+      stone: 500
+      pass_xp: 100
+    unit: per UTC day           # day = UTC, server-confirmed; guest Stone waits 7 days
+    added: 2026-10-10
+    revised: ""
+
+  - name: weekly_bonus
+    status: active              # proposal approved by Liam 10/10/2026, not yet in a GDD
+    source: design/proposals/echobox-pass-v2.md
+    referenced_by:
+      - design/proposals/economy-v2.md
+      - design/proposals/echobox-pass-v2.md
+    value:
+      shard: 150
+      stone: 2000
+    unit: per week when >= 4 days opened
+    added: 2026-10-10
+    revised: ""
 
 # Example:
 #

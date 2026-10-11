@@ -1,5 +1,23 @@
 Trạng thái: ĐỀ XUẤT — chờ Liam review
 
+> **SỬA 10/10: jackpot thật nhỏ.** Liam: jackpot 10.000 / 25.000 Stone được giữ, nhưng tỉ lệ phải thật nhỏ.
+> - Hộp thường: jackpot 10.000 từ 0,2% (1/500) xuống **0,02% = 1 trong 5.000 lượt**.
+> - Hộp mùa: jackpot 25.000 từ 0,2% trong lượt Stone (0,16% mỗi lượt mùa, 1/625) xuống **0,03% trong lượt Stone = 0,0234% mỗi lượt mùa = 1 trong ~4.274 lượt mùa** (~21.400 vé).
+> - Phần xác suất và EV bỏ ra chuyển sang các stack 500–5.000, đã chỉnh để **EV hộp thường vẫn đúng 242,5, EV hộp mùa vẫn 1.290/lượt Stone (1.006/lượt mùa)**. Nên bảng tuần tới LunaLanding (§6.4) **không đổi một con số nào**. Chỉ độ dao động do may mắn nhỏ lại (§6.4). Bảng mới: §3.1, §4.2. Trần server ECO-7 giữ 80.000. Thêm ECO-20.
+
+> **LIAM ĐÍNH CHÍNH (10/10):** Land Stone là MỘT LOẠI PHẦN THƯỞNG trong bảng rơi của Echo Box (tỉ lệ ra cao),
+> KHÔNG đi kèm mọi lượt quay. Mỗi lượt ra đúng một phần thưởng. Thân file hiện tính sai mô hình (Stone kèm mọi
+> lượt + cửa sổ 20 lượt) → phải tính lại. Casual/regular vượt mục tiêu: Liam chấp nhận, để nguyên.
+> **Liam xác nhận mô hình (10/10):** mỗi lượt = 1 phần thưởng (Land Stone HOẶC cosmetic). **Hộp mùa CÓ ra Stone,
+> với lượng CAO HƠN hộp thường** vì giá lượt cao hơn (5 vé).
+> **Liam chốt 3 câu cuối (10/10):** (1) casual/regular chậm hơn mục tiêu ~37–39%: ĐỂ NGUYÊN · (2) trần đủ bộ mùa
+> 80 lượt: GIỮ NGUYÊN · (3) jackpot 10.000 / 25.000 Stone: ĐƯỢC, nhưng **tỉ lệ ra phải THẬT NHỎ** · cho phép thêm
+> thực thể economy vào `design/registry/entities.yaml`.
+> **QUYẾT ĐỊNH LIAM (10/10, 5 câu sau bản 2 hộp):** (1) **giá vé cơ sở = 200 Shard** (không hỏi lại) ·
+> (2) CHẤP NHẬN casual/regular mua đủ bộ mùa thì tốn nhiều Shard và lên Land chậm hơn · (3) hộp thường **1 vé**/
+> lượt, hộp mùa **5 vé**/lượt · (4) vé bundle: KHÔNG hàng rào, chấp nhận người nạp nhiều lên Land nhanh gấp đôi ·
+> (5) vé đổi từ đồ thừa **KHÔNG tính** vào cửa sổ Stone 20 lượt/ngày.
+
 > **QUYẾT ĐỊNH CỦA LIAM SAU REVIEW (10/10) — ưu tiên hơn nội dung bên dưới:**
 > - Thứ tự làm: **Economy → Relic → Nhiệm vụ** (Nhiệm vụ thiết kế lại SAU khi economy + relic chốt).
 > - **Echo Box**: reset theo NGÀY (UTC), tăng số lượt quay được nhưng hạ tương đối tỉ lệ đồ hiếm.
@@ -27,531 +45,432 @@ Trạng thái: ĐỀ XUẤT — chờ Liam review
 > - Ba điều trong thiết kế Nhiệm vụ: (1) chạy trên ranked profile — đồng ý; (2) đổi tên Daily
 >   Mission +60 thành "Thưởng ngày" — đồng ý; (3) save-scum — Liam chưa thấy vấn đề, đang hỏi lại.
 
+> **BỔ SUNG (trích nguyên ý từ `echobox-pass-v2.md` và lệnh của Liam, 10/10) — Echo Box tách 2 hộp:**
+> - **E1** giá hộp mùa = **gấp 5** hộp thường (không phải 3) · **E2** chấp nhận người đủ bộ mỗi mùa lên Land chậm hơn (economy-designer tính lại) · **E3** nhịp hộp mùa **12 tuần** · **E4** hộp thường giữ Mythic (decor/thú), die/frame/FX Mythic chỉ ở hộp mùa · **E5** dành ~15 món Epic+ của thư viện cho các mùa sau.
+> - **E6** một tòa nhà Echo Box, hai tab (Thường / Mùa). 
+> - **E7** 19 món art mới bậc thấp vào hộp thường. **MỘT loại vé cho cả hai hộp** (không có `season_ticket`). **Đồ trùng đổi thành vé**, ví dụ của Liam: "10 đồ trùng bậc thấp → 3 vé", bậc cao đáng giá hơn, cho cả hai hộp.
 
-# Axie Dice — Economy v2 (bản hợp nhất: Shard, Land Stone, Vé Echo Box, Pass, Thưởng ngày)
+# Axie Dice — Economy v2 (mô hình: mỗi lượt đúng 1 phần thưởng)
 
-Tác giả: economy-designer · 10/10/2026 · Chỉ sửa file này, không có code.
-Cấu trúc cơ chế lấy từ `echobox-pass-v2.md` (game-designer). Số cuối là của tôi. Mọi số là first-pass, tính tay, **chưa qua sim**. Số nào lệch với file của game-designer thì tôi ghi rõ ở §0.3.
+Tác giả: economy-designer · 10/10/2026 (bản viết lại theo đính chính) · Chỉ sửa file này, không code. Mọi số tính tay, **chưa qua sim**.
 
 ---
 
 ## 0. Đọc nhanh
 
-### 0.1 Kết quả
+### 0.1 Mô hình mới và kết quả
 
-1. **Với số đề xuất, thời gian tới LunaLanding (1.820.000 Stone):** heavy **51,6 tuần (~11,9 tháng)**, regular **77,9 tuần (~1,5 năm)**, casual **98,3 tuần (~1,9 năm)**. Heavy khớp mục tiêu 1 năm của Liam.
-2. Echo Box là nguồn Stone chính: 66% (casual), 67% (regular), 79% (heavy) tổng Stone/tuần.
-3. **Cửa sổ Stone 20 lượt/ngày chỉ khóa heavy.** Regular và casual không bao giờ chạm 20, nên đổi núm này chỉ đổi thời gian của heavy.
-4. **Giá bậc thang theo ngày nén chênh lệch giữa các nhóm**: heavy kiếm gấp 3,5 lần Shard của casual nhưng chỉ nhanh hơn ~1,9 lần về Land. Đó là chủ ý (xem §2.4 và OQ-1).
-5. Không có vòng lặp salvage: tối đa 0,265 vé hồi mỗi lượt quay, nên 1 vé mua được tối đa 1,36 lượt (§3.5).
-6. Pass: heavy xong sau **14–14,7 ngày**. Phát hiện một lỗi nhỏ trong file game-designer (§0.3).
-7. Mọi nhóm bình thường không bao giờ hết Shard (không có chi phí bắt buộc). Chỗ yếu duy nhất: heavy giỏi, nếu dừng ở đúng 20 lượt/ngày sẽ tồn ~235.000 Shard sau 6 tháng (§6, OQ-2).
+1. **Mỗi lượt quay = một phần thưởng từ một bảng rơi.** Land Stone là một loại phần thưởng (nhiều cỡ), phần còn lại là cosmetic theo độ hiếm. **Không còn cửa sổ 20 lượt, không còn knob E/A/B**, vì Stone không kèm mọi lượt nên không cần khóa. Quyết định (5) và A11 hết đối tượng (không còn cửa sổ nào để "tính" hay "không tính"). Tốc độ lên Land giờ do hai thứ điều khiển: **xác suất ra Stone** và **cỡ stack** của từng hộp.
+2. **Hộp thường (1 vé):** 60% lượt ra Stone (100 / 250 / 500 / 1.000 / 2.500 / 10.000; jackpot 10.000 chỉ 0,02% = 1/5.000 lượt), 40% ra cosmetic (tỉ lệ độ hiếm giữ như cũ, pity tính trên lượt cosmetic). Stone trung bình **242,5/lượt** (§3).
+3. **Hộp mùa (5 vé):** ra cosmetic theo odds leo dần có trần cứng như cũ, **lượt nào không trúng tầng nào thì ra Stone** (500 / 1.000 / 2.500 / 5.000 / 25.000, trung bình 1.290 mỗi lần ra Stone; jackpot 25.000 chỉ 0,0234% mỗi lượt mùa = 1/4.274). Cả bộ S1 vẫn **chắc chắn đủ trong ≤ 80 lượt** (chứng minh §4.3). Stone ~**78% lượt**, trung bình **1.006/lượt** (201/vé, bằng 83% hộp thường tính theo vé). Epic không còn là "ô mặc định"; nó thành tầng có odds leo dần riêng (N = 10).
+4. **Đồ trùng:** vì cosmetic chỉ còn 40% lượt (hộp thường) và ~22% (hộp mùa), hồi vé thấp hơn nhiều: hộp thường tối đa **0,211 vé/lượt** (cũ 0,527), hộp mùa **0,35 vé/lượt = 0,07 mỗi vé bỏ ra**. Không có vòng lặp vô hạn (§5).
+5. **Tuần tới LunaLanding (R = 450, tuần)**, bảng Stone đã chỉnh để **heavy ở "nửa bộ" = 52,3 tuần (1,00 năm)**:
+
+| | Không mua mùa | Nửa bộ | Đủ bộ |
+|---|---|---|---|
+| Casual | 125,9 (2,41 năm) | 136,2 (2,61) | 146,8 (2,82) |
+| Regular | 102,1 (1,96) | 108,8 (2,09) | 115,7 (2,22) |
+| Heavy | 50,6 (0,97) | **52,3 (1,00)** | 53,9 (1,03) |
+
+6. **Casual/regular vượt mục tiêu 37–39%** ở "nửa bộ" (casual 2,61 năm so với ~1,9; regular 2,09 so với ~1,5). Liam đã chấp nhận, không thêm catch-up. Lý do vẫn nên biết con số: heavy bị ghim ở 52 tuần nên nguồn Stone theo vé đã chỉnh vừa heavy; casual/regular có thu nhập vé thấp hơn 3–4 lần nhưng Stone cố định (thưởng ngày, Pass) chỉ thấp hơn ~0–20%, nên khoảng cách không thu hẹp được nếu không đổi nguồn cố định (§11, OQ-1).
+7. **Bộ mùa S1:** điển hình 55 lượt = 275 vé, hoàn ~3,5 vé, **ròng ~271,5 vé** (cũ 188, vì Epic hết là ô trùng 85% nên hoàn nhiều). Tốn **81,7% / 66,0% / 23,6%** Shard 12 tuần của casual / regular / heavy. Trần cứng 80 lượt = 400 vé: **120% / 97% / 35%** (§7). Casual không đủ Shard cho trần cứng trong một mùa (OQ-2).
+8. **Bundle** (không hàng rào): +50 vé/tuần đưa "nửa bộ" xuống heavy 36,8 / regular 58,0 / casual 65,0 tuần; +100 vé/tuần xuống 28,4 / 39,5 / 42,6 (§9). Người nạp đạt Land nhanh gấp ~1,4–3,2 lần.
+9. **Shard 6 tháng:** mọi persona về ~0 (hết vào vé mỗi ngày, §8). Pass sau lv30 giữ 2.000 XP = 50 Shard.
 
 ### 0.2 Giả định
 
-| # | Giả định | Nguồn |
-|---|---|---|
-| A1 | R = 450 Shard/run (short, đã trừ shop trong run, **không** gồm +60 daily). Độ nhạy 350 / 570 | Probe: ~568 thắng trọn, ~336 bot, ~854 full |
-| A2 | Casual: mở game 4 ngày/tuần, 3 run/ngày (12 run/tuần), thắng ~45%. Regular: 7 ngày, 2 run/ngày (14). Heavy: 7 ngày, 8 run/ngày (56), thắng ~75%. Cả ba dùng R = 450 cho dễ so | Brief + A3 bản cũ |
-| A3 | Người chơi tiêu hết Shard mỗi ngày vào vé, chia đều qua các ngày mở game (đây là cách rẻ nhất vì bậc giá reset hằng ngày) | Tối ưu của ladder lồi |
-| A4 | Pool Echo 255 món: 61 / 55 / 47 / 39 / 31 / 22 (Common→Mythic), quay theo luật không-lặp | `echobox-pass-v2.md` §2.3, số ước |
-| A5 | Pity "cứng" nâng đúng độ hiếm bảo đảm (lượt 15 → Rare, 60 → Epic, 200 → Legendary, 1.000 → Mythic) khi lượt đó tự nhiên thấp hơn | Quy ước của tôi |
-| A6 | XP run: thắng ~506, thua ~190 → 332 XP/run (45% thắng), 427 (75%) | A4 bản cũ |
-| A7 | Tuần = tuần UTC, reset thứ Hai 00:00. 1 tháng = 4,345 tuần | |
-| A8 | Cả ba nhóm làm xong Pass mỗi mùa (8 tuần) nên Pass cộng bình quân 1/8 mỗi tuần | §4 |
-| A9 | Tách mảnh xảy ra ngay lúc quay, tồn dư mảnh (<10) bỏ qua | |
-
-### 0.3 Chỗ tôi lệch với `echobox-pass-v2.md`
-
-| Mục | Game-designer | Tôi | Lý do |
-|---|---|---|---|
-| Tuần tới Luna (heavy / regular / casual) | 54 / 100 / 121 | **51,6 / 77,9 / 98,3** | Tôi cộng vé salvage (+20–30% lượt quay, vì đồ trùng chỉ có sau khi đủ độ hiếm) và tính số vé mua từ ngân sách Shard thật (regular 8,76 vé/ngày, không phải 8 hay 56 lượt/tuần cố định) |
-| XP run heavy | 8 run = 3.416 XP thô "bị cắt còn 2.000" | **1.883** | Luật "1.500 đầu 100%, sau đó 20%": 1.500 + 0,2 × (3.416 − 1.500) = 1.883, chưa chạm trần 2.000. Heavy 8 run/ngày xong Pass ở 14,7 ngày. Chạm 2.000 phải ≥ 9,4 run/ngày |
-| Tổng cộng dồn 5 vé đầu | 545 | 552,6 (công thức) / 550 (cộng giá làm tròn) | Lỗi cộng |
-| E (Stone/lượt) | 180,1, nói pity thêm 8–12% | **E_eff ≈ 199** (+10,5%) | Tính cụ thể ở §3.2 |
-
-Cấu trúc giữ nguyên: vé + mảnh, giá bậc thang theo ngày, cửa sổ Stone, không-lặp, pity theo lượt, Pass 30 level có trần XP/ngày.
+| # | Giả định |
+|---|---|
+| A1 | R = 450 Shard/run (đã trừ shop trong run, không gồm +60 thưởng ngày). Độ nhạy R = 350 / 570 |
+| A2 | Casual 4 ngày × 3 run (12 run/tuần). Regular 7 × 2 (14). Heavy 7 × 8 (56) |
+| A3 | Hết Shard mỗi ngày mở game đều vào vé (thang giá lồi, chia đều là rẻ nhất) |
+| A4 | Hộp thường 223 món: 61 / 55 / 47 / 28 / 20 / 12 theo độ hiếm (`echobox-pass-v2.md` §2.7) |
+| A5 | Hộp mùa S1: 6 Epic, 3 Legendary, 2 Mythic + 1 độc quyền mốc 40 |
+| A6 | Mô hình dòng chảy §6.1: vé không-tái-chế → số lượt, qua hồi vé theo tiến độ bộ sưu tập. Missions chưa tính vào mốc thời gian (§9) |
+| A7 | 1 năm = 52,14 tuần; tuần UTC |
 
 ---
 
 ## 1. Bản đồ currency
 
-### 1.1 Gene Shard
-
-| Faucet | Số cuối | Ghi chú |
-|---|---|---|
-| Run | R ≈ 450/run (thắng ~568, thua ~258) | A1 |
-| Thưởng ngày | 60/ngày (hoàn thành 1 run) | |
-| Thưởng tuần | 150 (≥ 4 ngày nhận trong tuần UTC) | |
-| Pass | 4.800/mùa 8 tuần = 600/tuần | §4 |
-| Nhiệm vụ | Tổng thể ≤ 100% stake (không phải faucet ròng) | Ngân sách §5 |
-| Echo Box | **0**. Quay vé và salvage không bao giờ cộng Shard | ECO-3 |
-
-| Sink | Số cuối |
+| Faucet Shard | Số |
 |---|---|
-| Mua vé Echo | giá vé thứ k trong ngày UTC = `round5(100 × 1,05^(k−1))`, tối đa 30 vé mua/ngày |
-| Stake Nhiệm vụ | thiết kế sau |
-| Shop trong run | giữ nguyên, đã nằm trong R |
-| Unlock shop một lần | 10.350 (giá cũ ×3, `economy` bản trước; 5 unlock chỉ số nhận miễn phí ở Pass S1) |
+| Run | 450/run |
+| Thưởng ngày / tuần | 60/ngày; +150 nếu ≥ 4 ngày |
+| Pass | 4.800/mùa 8 tuần + vòng lặp sau lv30 (+33 / +70 / +283 mỗi tuần: casual/regular/heavy) |
+| Echo Box (cả hai), đổi trùng | **0** |
 
-### 1.2 Land Stone
+Sink Shard: mua vé `round5(200 × 1,05^(k−1))`, k = thứ tự vé mua trong ngày UTC, tối đa 30/ngày, một thang chung; unlock shop một lần 10.350.
 
-| Faucet | Số cuối |
+| Faucet Stone | Số |
 |---|---|
-| Lượt quay Echo | Stone theo độ hiếm: 80 / 160 / 400 / 1.000 / 2.500 / 8.000, chỉ **20 lượt đầu mỗi ngày UTC** |
-| Thưởng ngày | 500/ngày |
-| Thưởng tuần | 2.000 (≥ 4 ngày) |
-| Pass | 16.500/mùa = 2.062,5/tuần |
-| Nhiệm vụ | ≤ 150/ngày hoạt động (§5) |
+| Hộp thường | 242,5/lượt trung bình, theo bảng §3 |
+| Hộp mùa | 1.006/lượt trung bình, theo bảng §4 |
+| Thưởng ngày / tuần | 500/ngày; +2.000/tuần (≥ 4 ngày) |
+| Pass | 16.500/mùa 8 tuần = 2.062,5/tuần |
+| Nhiệm vụ (sau này) | ≤ 150/ngày hoạt động (§9) |
+| Bundle | Vé bundle quay như vé thường, ra đúng bảng trên |
 
-| Sink | Số |
-|---|---|
-| Nâng Land | 40.000 / 100.000 / 180.000 / 500.000 / 1.000.000 = **1.820.000** (cộng dồn 40k / 140k / 320k / 820k / 1.820k) |
-| Sau LunaLanding | Ngoài phạm vi (Liam làm) |
-
-Stone không đổi sang Shard, không mua trực tiếp bằng Shard. Đường duy nhất Shard → Stone là vé Echo.
-
-### 1.3 Vé và mảnh
-
-| | Faucet | Sink |
-|---|---|---|
-| Vé | Mua Shard (≤30/ngày), salvage (10 mảnh = 1 vé), Pass 12/mùa (1,5/tuần), quà khởi đầu 3, bundle sau này | 1 lượt quay |
-| Mảnh | Đồ trùng: 1 / 2 / 5 / 15 / 40 / 100 mảnh (Common→Mythic) | Tự gộp 10 → 1 vé |
-
-Vé/mảnh không đổi ngược ra Shard hay Stone. Vé từ salvage, Pass, bundle không làm tăng bậc giá nhưng **có** tính vào cửa sổ Stone 20.
+Sink Stone: Land 40k / 100k / 180k / 500k / 1M, cộng dồn 40k / 140k / 320k / 820k / 1.820k. Vé và mảnh không đổi ngược ra Shard hay Stone.
 
 ---
 
-## 2. Persona và timeline Land
+## 2. Giá vé, thu nhập, persona
 
-### 2.1 Thu nhập Shard mỗi tuần và vé mua được
+Tổng chi n vé trong ngày: `C(n) = 4.000 × (1,05^n − 1)`. Ví dụ C(10) = 4.000 × 0,6289 = 2.516; C(20) = 6.613; C(30) = 13.288. Vé thứ k: 1→200, 5→245, 10→310, 15→395, 20→505, 30→825.
 
-Thu nhập tuần = run + thưởng ngày + thưởng tuần + Pass.
+Thu nhập tuần và vé/tuần (vé mua từ `n = ln(1 + Shard_ngày/4.000) / 0,04879`, cộng 1,5 vé Pass/tuần):
 
-| | Casual | Regular | Heavy |
-|---|---|---|---|
-| Run | 12 × 450 = 5.400 | 14 × 450 = 6.300 | 56 × 450 = 25.200 |
-| Thưởng ngày | 4 × 60 = 240 | 7 × 60 = 420 | 420 |
-| Thưởng tuần | 150 | 150 | 150 |
-| Pass (4.800/8) | 600 | 600 | 600 |
-| **Shard vào/tuần** | **6.390** | **7.470** | **26.370** |
-| Shard/ngày mở game | 6.390 / 4 = 1.597 | 7.470 / 7 = 1.067 | 26.370 / 7 = 3.767 |
-
-Tổng chi phí n vé trong một ngày: `C(n) = 100 × (1,05^n − 1) / 0,05 = 2.000 × (1,05^n − 1)`.
-
-| n | 1,05^n | C(n) | Giá vé thứ n | C(n)/n |
+| R | | Casual | Regular | Heavy |
 |---|---|---|---|---|
-| 8 | 1,4775 | 954,9 | 140 | 119,4 |
-| 10 | 1,6289 | 1.257,8 | 155 | 125,8 |
-| 12 | 1,7959 | 1.591,7 | 170 | 132,6 |
-| 15 | 2,0789 | 2.157,9 | 200 | 143,9 |
-| 20 | 2,6533 | 3.306,6 | 255 | 165,3 |
-| 22 | 2,9253 | 3.850,5 | 280 | 175,0 |
-| 25 | 3,3864 | 4.772,7 | 325 | 190,9 |
-| 30 | 4,3219 | 6.643,9 | 410 | 221,5 |
+| 450 | Shard/tuần (run + ngày + tuần + Pass) | 5.400+240+150+633 = **6.423** | 6.300+420+150+670 = **7.540** | 25.200+420+150+883 = **26.653** |
+| | Shard/ngày mở game | 1.606 | 1.077 | 3.808 |
+| | Vé/ngày | ln(1,4015)/0,04879 = **6,92** | **4,89** | **13,71** |
+| | **Vé/tuần (b₀)** | 6,92×4+1,5 = **29,2** | 4,89×7+1,5 = **35,7** | 13,71×7+1,5 = **97,5** |
+| | Giá TB/vé | 232 | 220 | 278 |
+| 350 | Shard/tuần | 5.223 | 6.140 | 21.053 |
+| | Vé/ngày · vé/tuần | 5,79 · **24,7** | 4,06 · **29,9** | 11,49 · **81,9** |
+| 570 | Shard/tuần | 7.863 | 9.220 | 33.373 |
+| | Vé/ngày · vé/tuần | 8,19 · **34,3** | 5,83 · **42,3** | 16,08 · **114,1** |
 
-(Bảng tính bằng công thức liên tục. Làm tròn từng vé về bội 5 lệch dưới 1% tổng.)
+Shard 12 tuần (R = 450): 77.076 / 90.480 / 319.836. Hai cap giữ nguyên: 30 vé mua/ngày (hầu như không ai chạm; heavy 13,7) và 8 lượt mùa/ngày (= 40 vé/ngày; xong bộ điển hình không sớm hơn ~7 ngày, trần cứng 80 lượt không sớm hơn 10 ngày).
 
-Giải `C(n) = Shard/ngày`:
+Ba hành vi mùa (mỗi 12 tuần), dùng xuyên suốt:
+- **Không mua mùa:** 0 lượt mùa.
+- **Nửa bộ:** 27,5 lượt = 137,5 vé = **11,46 vé/tuần** (2,29 lượt/tuần), hoàn ~0 (chưa có tầng nào đủ).
+- **Đủ bộ:** 55 lượt = 275 vé = 22,92 vé/tuần, hoàn 3,5 vé/12 tuần = 0,29/tuần, ròng **22,63 vé/tuần** (4,58 lượt/tuần).
 
-| Persona | Phép tính | Vé/ngày | Vé mua/tuần | Shard tiêu/tuần |
+Vé còn cho hộp thường: `b_std = b₀ − vé mùa ròng`.
+
+---
+
+## 3. Hộp thường — bảng rơi (1 vé/lượt)
+
+### 3.1 Bảng rơi
+
+| Phần thưởng | Tỉ lệ mỗi lượt | Điều kiện | Ghi chú |
+|---|---|---|---|
+| Stone 100 | 15,30% | | SỬA 10/10 (cũ 20,0%) |
+| Stone 250 | 24,08% | | SỬA 10/10 (cũ 20,0%) |
+| Stone 500 | 13,00% | | không đổi |
+| Stone 1.000 | 6,00% | | SỬA 10/10 (cũ 5,5%) |
+| Stone 2.500 | 1,60% | | SỬA 10/10 (cũ 1,3%) |
+| **Stone 10.000 (jackpot)** | **0,02%** | **1/5.000 lượt** | SỬA 10/10: jackpot thật nhỏ (cũ 0,2% = 1/500) |
+| **Tổng Stone** | **60,00%** | | EV = 15,3+60,2+65+60+40+2 = **242,5**/lượt |
+
+Kiểm tổng xác suất: 15,30+24,08+13,00+6,00+1,60+0,02 = 60,00. Kiểm EV từng dòng: 100×0,1530 = 15,3 · 250×0,2408 = 60,2 · 500×0,13 = 65 · 1.000×0,06 = 60 · 2.500×0,016 = 40 · 10.000×0,0002 = 2. Cộng 242,5, bằng bản cũ. Cách chỉnh: jackpot mất 0,18% xác suất và 18 EV; phần 0,18% dồn sang 2.500, 1.000, 250 (kéo từ stack 100) để bù đủ 18 EV. Bảng sạch ở mức 2 số lẻ; không có phương án sạch hơn mà giữ EV chính xác 242,5.
+| **— Cosmetic (40%) —** | | | |
+| Common | 24,0728% | cosmetic, 61 món | SỬA 10/10: 24,08 → 24,0728 để tổng cosmetic đúng 40,0000% (trước cộng 40,0072%) |
+| Uncommon | 9,72% | 55 món | |
+| Rare | 4,52% | 47 món | |
+| Epic | 1,264% | 28 món | |
+| Legendary | 0,360% | 20 món | |
+| Mythic (decor/thú/phụ kiện/danh hiệu) | 0,0632% | 12 món | E4: không phải die/frame/FX |
+| **Tổng cosmetic** | **40,0000%** | | 24,0728+9,72+4,52+1,264+0,360+0,0632 = 40,0000; = 0,4 × (60,2 / 24,3 / 11,3 / 3,16 / 0,90 / 0,158) |
+
+Tỉ lệ cosmetic là tỉ lệ hiệu dụng cũ (đã gồm pity) nhân 0,4; tỉ lệ cơ bản trước pity là 62 / 25 / 9,5 / 2,7 / 0,7 / 0,1% của phần cosmetic. Không-lặp theo tầng: còn món chưa có thì chỉ ra món chưa có; hết món thì ra đồ trùng.
+
+Phân bổ EV Stone theo stack (chia 242,5): 100 → 6,3%; 250 → 24,8%; 500 → 26,8%; 1.000 → 24,7%; 2.500 → 16,5%; jackpot → 0,8% (cũ 8,2%). Lý do (variable ratio): nhiều chiến thắng nhỏ đều đặn (60% lượt "có gì đó"); cú lớn nhất giờ là chuyện hiếm hẳn (1/5.000), còn cú "khá to" là stack 2.500 (1,6% = 1/62,5 lượt) để người chơi vẫn có chuyện để nhớ. Stone không đổi ra Shard nên stack 100 không phải "thua tiền".
+
+### 3.2 Sàn / trần và kỳ vọng
+
+- **Pity cứng, đếm theo lượt cosmetic** (lượt ra Stone không làm bộ đếm tăng): 15 lượt cosmetic không có ≥ Rare thì lượt kế chắc ≥ Rare; 60 / 200 / 1.000 cho Epic / Legendary / Mythic. Giữ nguyên số cũ nên tỉ lệ hiệu dụng ở trên đúng. Chạm hai ngưỡng thì cấp cao nhất, reset các bộ đếm thấp. Không có pity cho Stone (xác suất 10 lượt liền không Stone = 0,4¹⁰ = 0,01%).
+- Số lượt trung bình tới món đầu tiên của tầng (≥ tầng đó): Rare+ `1/(0,4 × 0,15518)` = **16,1**; Epic+ `1/(0,4 × 0,04218)` = **59,3**; Legendary+ `1/(0,4 × 0,01058)` = **236**; Mythic `1/(0,4 × 0,00158)` = **1.582**. Stone: cỡ 1.000+ cứ ~13 lượt (7,62% → 1/0,0762 = 13,1), 2.500+ ~62 lượt (1,62% → 61,7), jackpot **5.000 lượt** (SỬA 10/10, cũ 500).
+- Số lượt tới khi **đủ cả tầng** (bộ sưu tập chậm gấp 2,5 so với cũ): Common 252,5 · Uncommon 565 · Rare 1.040 · Epic 2.215 · Legendary 5.555 · Mythic 18.988 lượt (= lượt cosmetic cũ 101 / 226 / 416 / 886 / 2.222 / 7.595 chia 0,4).
+
+---
+
+## 4. Hộp mùa — bảng rơi (5 vé/lượt)
+
+### 4.1 Cơ chế mỗi lượt (thay thứ tự của `echobox-pass-v2.md` §2.8)
+
+Mỗi tầng chưa đủ có bộ đếm `c_t` (lượt kể từ lần tầng đó trúng, không reset theo ngày) và trần `N_t`. Công thức odds leo dần giữ nguyên: `p_t(c) = (2c − 1) / (N_t² − (c−1)²)` (k = 2), `p_t(N_t) = 1`.
+
+1. `c_t += 1` cho mọi tầng chưa đủ.
+2. **Đến hạn thắng ngẫu nhiên:** nếu có tầng chưa đủ với `c_t ≥ N_t`, lấy tầng cao nhất. Xong lượt (ra cosmetic).
+3. Không tầng nào đến hạn: thử lần lượt Mythic → Legendary → Epic. Tầng chưa đủ trúng với `p_t(c_t)`; tầng đã đủ trúng với `b_t` (ra đồ trùng). Tầng đầu tiên trúng là kết quả.
+4. **Không tầng nào trúng → ra Stone**, bốc từ bảng 4.2.
+5. Reset `c_t = 0` cho tầng vừa trúng (nếu nó chưa đủ trước lượt này).
+
+| Tầng | Món | Trần N | `p(1)` | Lượt TB / món | `b_t` khi đủ | Trùng → vé |
+|---|---|---|---|---|---|---|
+| Mythic | 2 | 40 | 0,0625% | 27,16 | 1% | 8 |
+| Legendary | 3 | 20 | 0,25% | 13,83 | 3% | 4 |
+| **Epic (mới)** | 6 | **10** | 1,0% | 7,15 | 8% | 2 |
+
+Lượt TB = `N − (N−1)(2N−1)/(6N)`: Epic `10 − 9×19/60` = 7,15; Legendary `20 − 19×39/120` = 13,83; Mythic `40 − 39×79/240` = 27,16. Mẫu Epic: p(5) = 9/84 = 10,7%; p(8) = 15/51 = 29,4%; p(9) = 17/36 = 47,2%; p(10) = 100%. Mythic và Legendary giữ bảng mẫu cũ. Độc quyền `die_m_moon` ở mốc 40 lượt mở là phần thưởng thêm ngoài lượt, không chiếm lượt, không kèm Stone.
+
+### 4.2 Bảng rơi
+
+**Khi không tầng nào trúng (≈ 78% lượt), ra Stone:**
+
+| Stone | Xác suất (trong lượt Stone) | Mỗi lượt mùa trung bình (× 0,78) | EV |
+|---|---|---|---|
+| 500 | 32,74% | 25,54% | 163,7 |
+| 1.000 | 45,13% | 35,20% | 451,3 |
+| 2.500 | 17,50% | 13,65% | 437,5 |
+| 5.000 | 4,60% | 3,59% | 230,0 |
+| **25.000 (jackpot)** | **0,03%** | **0,0234%** (1/4.274 lượt mùa) | 7,5 |
+| Tổng | 100% | 78,0% | **1.290 / lượt Stone; 1.006 / lượt mùa** |
+
+SỬA 10/10: jackpot thật nhỏ (cũ 0,2% trong lượt Stone = 0,16% mỗi lượt mùa = 1/625). Kiểm xác suất: 32,74+45,13+17,50+4,60+0,03 = 100,00. Kiểm EV: 500×0,3274 = 163,7 · 1.000×0,4513 = 451,3 · 2.500×0,175 = 437,5 · 5.000×0,046 = 230 · 25.000×0,0003 = 7,5; cộng 1.290,0, bằng bản cũ. Mỗi lượt mùa: nhân 0,78 (32,74 → 25,54; 45,13 → 35,20; 17,5 → 13,65; 4,6 → 3,59; 0,03 → 0,0234; cộng 78,0). 1.290 × 0,78 = 1.006,2. Jackpot mùa: 1/0,000234 = 4.274 lượt = 21.370 vé. Một người đủ bộ mỗi mùa (~4,58 lượt/tuần ≈ 238 lượt/năm) gặp trung bình 0,056 jackpot/năm, tức gần như không bao giờ trong một năm; đây là chủ ý "thật nhỏ", nhưng nghĩa là với hộp mùa jackpot là truyền thuyết hơn là phần thưởng người chơi trông đợi. Nếu Liam muốn nó còn dễ thấy hơn thì tăng lên 0,05%, nhưng đó vẫn là ≤ 0,05% mỗi lượt.
+
+**Cosmetic (≈ 22% lượt, theo bộ đếm):** trong 55 lượt điển hình có 11 lượt ra món mới (6 Epic, 3 Legendary, 2 Mythic) và ~1,3 lượt trùng (E 0,92 + L 0,40), tức 12,3/55 = 22,4% cosmetic, **77,6% ≈ 78% Stone**. Nửa bộ (27,5 lượt đầu): ~5,8 món mới/27,5 = 21%, Stone 79%. Dùng 78% cho cả hai.
+
+Lý do cỡ stack: stack thấp nhất 500 = 5 × stack 100 của hộp thường; EV mỗi vé 1.006/5 = **201** so với 242,5 của hộp thường khi chưa hồi vé (83%). Không bằng 100% vì mỗi lượt mùa còn có ~22% là cosmetic cực hiếm; Stone của hộp mùa vẫn *lớn hơn từng lượt* nhưng người chỉ muốn lên Land nên quay hộp thường. Vault (series cũ, N nhân đôi): chưa tính riêng, Stone ~88% lượt nên ~1.140/lượt, giữ cùng bảng.
+
+### 4.3 Chứng minh bound ≤ 80 lượt khi Stone là ô "không trúng"
+
+Stone chỉ được bốc ở bước 4, **sau** bước 2 (đến hạn). Nên Stone không bao giờ chiếm lượt của một tầng đã đến hạn. Với tầng t, gọi `h_t` = số tầng cao hơn nó (Mythic 0, Legendary 1, Epic 2). Sau khi tầng t trúng, bộ đếm về 0 và tới hạn sau đúng `N_t` lượt; lượt đó chỉ bị chặn bởi tầng cao hơn cũng đến hạn, mỗi tầng cao hơn chặn tối đa một lần (vì nó vừa trúng thì bộ đếm về 0 và `N_t > h_t`). Vậy món kế của tầng t trúng không muộn hơn `N_t + h_t` lượt sau món trước:
+
+```
+B(Epic)      = 6 × (10 + 2) = 72
+B(Legendary) = 3 × (20 + 1) = 63
+B(Mythic)    = 2 × (40 + 0) = 80
+B = max = 80 lượt. Mythic đầu tiên ≤ 40.
+```
+
+Điều kiện: mọi `N_t > h_t` (10 > 2, 20 > 1, 40 > 0 đều đúng), bước 2 đi trước. Đồ trùng của tầng đã đủ nằm ở bước 3 nên không chặn được tầng đến hạn. Điển hình **~55 lượt**: chuỗi Mythic 2 × 27,16 = 54,3 là chuỗi dài nhất (Epic 6 × 7,15 = 42,9; Legendary 3 × 13,83 = 41,5), cộng ~1 lượt do chặn lẫn nhau. Số điển hình là ước tay, cần sim 100.000 series (ECO-15).
+
+---
+
+## 5. Đồ trùng và chứng minh không vòng lặp
+
+Bảng đổi: Common 3 · Uncommon 5 · Rare 10 · Epic 20 · Legendary 40 · Mythic 80 mảnh, 10 mảnh = 1 vé (10 trùng Common = 30 mảnh = 3 vé, đúng ví dụ Liam). Một loại vé, hai hộp dùng chung.
+
+**Hộp thường (hồi vé theo tiến độ).** `ν` = hồi vé mỗi lượt cosmetic khi đủ các tầng tới đó (không đổi so với bản cũ: 0,1806 / 0,3021 / 0,4151 / 0,4783 / 0,5143 / 0,5269). Mỗi lượt chỉ 40% là cosmetic nên `ν_p = 0,4 × ν`:
+
+| Đủ tầng | Sau lượt thứ | `ν_p` (vé/lượt) | Hồi / giá | Stone mỗi vé không-tái-chế = 242,5 / (1 − ν_p) |
 |---|---|---|---|---|
-| Casual | 1,05^n = 1 + 1.597/2.000 = 1,799 → n = 0,5873 / 0,04879 = **12,0** | 12 | 48 | 4 × 1.591,7 = 6.367 |
-| Regular | 1,05^n = 1 + 1.067/2.000 = 1,533 → n = **8,76** (5,3 ngày mua 9, 1,7 ngày mua 8) | 8,76 | 61,3 | 7.470 |
-| Heavy | 1,05^n = 1 + 3.767/2.000 = 2,884 → n = 1,0593 / 0,04879 = **21,7** | 21,7 | 152 | 26.370 |
+| (chưa) | 0 | 0 | 0 | 242,5 |
+| Common | 252,5 | 0,07224 | 7,2% | 261,4 |
+| Uncommon | 565 | 0,12084 | 12,1% | 275,8 |
+| Rare | 1.040 | 0,16604 | 16,6% | 290,8 |
+| Epic | 2.215 | 0,19132 | 19,1% | 299,9 |
+| Legendary | 5.555 | 0,20572 | 20,6% | 305,3 |
+| Mythic | 18.988 | 0,21076 | **21,1%** | 307,3 |
 
-Cộng vé Pass 12/8 = 1,5/tuần. Giá vé không chạm trần mua 30 (heavy cần 21,7; để chạm 30 phải có 6.644 Shard/ngày = 46.500/tuần).
+Cũ: hồi tối đa 0,527 vé/lượt. Mới 0,211: bộ sưu tập chậm hơn, ít trùng hơn, vòng tái chế yếu hơn hai lần rưỡi.
 
-Ghi chú: mở game vào ngày không chơi run vẫn mua được vé. Casual mở game 7 ngày thay vì 4 sẽ mua 6.390/7 = 913/ngày → 7,9 vé/ngày = 55 vé/tuần (+15%). Đó là thưởng cho thói quen mở game hằng ngày, tôi giữ.
+**Hộp mùa.** Khi cả ba tầng đã đủ: xác suất ra M / L / E trùng = 1% / 0,99×3% = 2,97% / 0,99×0,97×8% = 7,68%. Hồi = 0,01×8 + 0,0297×4 + 0,0768×2 = 0,08 + 0,1188 + 0,1536 = **0,352 vé/lượt**, chia giá 5 vé = **0,0705**.
 
-### 2.2 Số lượt quay thật: salvage
-
-Với luật không-lặp, đồ trùng chỉ xuất hiện sau khi đủ độ hiếm đó. Số lượt để đủ từng độ hiếm = số món / tỉ lệ hiệu dụng (§3.2):
-
-| Độ hiếm | Món | Tỉ lệ hiệu dụng | Lượt quay tới khi đủ |
-|---|---|---|---|
-| Common | 61 | 0,602 | 101 |
-| Uncommon | 55 | 0,243 | 226 |
-| Rare | 47 | 0,113 | 416 |
-| Epic | 39 | 0,0316 | 1.234 (làm tròn 1.230) |
-| Legendary | 31 | 0,009 | 3.444 |
-| Mythic | 22 | 0,00158 | ~13.900 |
-
-Mỗi lượt sau khi đủ độ hiếm đó trả về `tỉ lệ × mảnh / 10` vé:
-
-| Độ hiếm | Mảnh trùng | Vé hồi/lượt (hiệu dụng) |
-|---|---|---|
-| Common | 1 | 0,602 × 1 / 10 = 0,0602 |
-| Uncommon | 2 | 0,243 × 2 / 10 = 0,0486 |
-| Rare | 5 | 0,113 × 5 / 10 = 0,0565 |
-| Epic | 15 | 0,0316 × 15 / 10 = 0,0474 |
-| Legendary | 40 | 0,009 × 40 / 10 = 0,0360 |
-| Mythic | 100 | 0,00158 × 100 / 10 = 0,0158 |
-| **Tổng khi đủ hết** | | **0,265** |
-
-Hệ số hồi ν theo tiến độ: 0 (dưới 101 lượt) → 0,060 → 0,109 → 0,165 (sau 416) → 0,213 (sau 1.230) → 0,249 (sau 3.444). Tổng số lượt = vé gốc / (1 − ν).
-
-Tổng số lượt `N` mỗi persona (b = vé mua + Pass mỗi tuần; N' = b / (1 − ν)):
-
-| | Casual (b = 49,5) | Regular (b = 62,8) | Heavy (b = 153,5) |
-|---|---|---|---|
-| Đủ Common (t, tuần) | 2,0 | 1,6 | 0,7 |
-| Đủ Rare | 7,8 | 6,2 | 2,5 |
-| Đủ Epic | 21,6 | 17,0 | 7,0 |
-| Đủ Legendary | 56,8 | 44,8 | 18,3 |
-| Lượt/tuần cuối cùng | 65,9 | 83,6 | 204 |
-| **Lượt/tuần TB năm 1** | **60,5** | **77,9** | **~199** (chỉ 140 có Stone) |
-
-Phép tính mẫu casual, đoạn Epic (N từ 416 tới 1.230): tốc độ = 49,5 / (1 − 0,165) = 59,3 lượt/tuần; 814 / 59,3 = 13,7 tuần.
-
-### 2.3 Stone mỗi tuần
-
-E_eff dùng làm tròn xuống 198 (giá trị tính được 199, chi tiết §3.2).
-
-| Nguồn/tuần | Casual | Regular | Heavy |
-|---|---|---|---|
-| Echo (năm 1, TB) | 60,5 × 198 = 11.979 | 77,9 × 198 = 15.424 | **140** × 198 = 27.720 |
-| Thưởng ngày | 4 × 500 = 2.000 | 3.500 | 3.500 |
-| Thưởng tuần | 2.000 | 2.000 | 2.000 |
-| Pass 16.500 / 8 | 2.062,5 | 2.062,5 | 2.062,5 |
-| Nhiệm vụ | 0 (§5) | 0 | 0 |
-| **Stone/tuần (năm 1)** | **18.041** | **22.987** | **35.282** |
-| Tỉ lệ Echo | 66% | 67% | 79% |
-| Tỉ lệ thưởng ngày + tuần | 22% | 24% | 16% |
-| Tỉ lệ Pass | 11% | 9% | 6% |
-
-Heavy bị cửa sổ cắt: 28 lượt/ngày thật nhưng chỉ 20 có Stone. Không có cửa sổ, heavy được 199 × 198 = 39.400 Stone Echo/tuần và tới Luna sau (39.400 + 7.562) → 1.820.000 / 46.962 = **38,8 tuần**, nghĩa là cửa sổ kéo heavy từ 38,8 lên 51,6 tuần.
-
-Sau khi đủ Legendary, tốc độ ổn định: casual 65,9 × 198 + 6.062,5 = **19.110**, regular 83,6 × 198 + 7.562,5 = **24.117**.
-
-### 2.4 Timeline Land
-
-Heavy (hằng số 35.282/tuần): mỗi mốc = cộng dồn / 35.282. Ví dụ Luna: 1.820.000 / 35.282 = 51,6.
-Casual/regular: cộng dồn theo từng đoạn salvage. Ví dụ casual: đoạn 1 (2,0 tuần) 15.863 × 2,04 = 32.361; đoạn 2: 16.491 × 2,37 = 39.084; đoạn 3: 17.059 × 3,42 = 58.342; đoạn 4: 17.803 × 13,73 = 244.436; đoạn 5: 18.514 × 35,20 = 651.693 → cộng dồn 1.025.916 tại tuần 56,76; còn lại 794.084 / 19.110 = 41,55 → **98,3 tuần**.
-
-| Bước | Stone | Cộng dồn | Casual | Regular | Heavy |
-|---|---|---|---|---|---|
-| Savannah → Forest | 40.000 | 40.000 | 2,5 tuần | 2,0 | 1,1 |
-| Forest → Arctic | 100.000 | 140.000 | 8,4 | 6,7 | 4,0 |
-| Arctic → Mystic | 180.000 | 320.000 | 18,5 | 14,7 | 9,1 |
-| Mystic → Genesis | 500.000 | 820.000 | 45,6 | 36,2 | 23,2 |
-| Genesis → LunaLanding | 1.000.000 | 1.820.000 | **98,3 (22,6 tháng)** | **77,9 (17,9 tháng)** | **51,6 (11,9 tháng)** |
-
-Bậc 4 (500.000) là bậc dài nhất đầu tiên, rồi bậc 5 dài hơn gấp đôi: heavy mất 28,4 tuần cho bậc cuối, casual 52,7 tuần.
-
-Độ nhạy theo R (casual/regular giữ cách chia đều, tính lại vé; số lượt tỉ lệ b):
-
-| R | Casual vé/ngày → Luna | Regular vé/ngày → Luna | Heavy vé/ngày → Luna |
-|---|---|---|---|
-| 350 | 10,3 → 108,6 tuần | 7,4 → 86,9 | 18,6 → ~52,5 |
-| 450 | 12,0 → 98,3 | 8,76 → 77,9 | 21,7 → 51,6 |
-| 570 | 14,0 → 88,8 | 10,3 → 69,8 | 24,9 → 51,6 |
-
-(Ví dụ regular R = 350: Shard 6.070/tuần → 867/ngày → n = ln(1,4335)/0,04879 = 7,38; 51,7 + 1,5 = 53,2 lượt gốc; Echo TB 15.802 × 53,2/62,8 = 13.386; + 7.562 → 20.948 → 86,9 tuần.)
-
-R đổi ±27% chỉ làm casual/regular đổi ±10%, heavy gần như không đổi (cửa sổ khóa). Đo R sai không làm hỏng ladder.
-
-Dao động may rủi của heavy: σ Stone/lượt ≈ 358 (Mythic 8.000 chi phối). 7.280 lượt/năm → σ ≈ 358 × √7.280 = 30,5k, tức ±1,7% tổng 1.820.000. Hai σ ≈ ±1,8 tuần. Chấp nhận được.
-
-**Có chấp nhận được không, có cần catch-up?** Khuyến nghị của tôi: **không đổi ladder, không thêm catch-up ở bản đầu.** Lý do:
-1. Regular 1,5 năm và casual 1,9 năm tới đích cuối, nhưng bốn bậc đầu (đến Genesis, 820k) là 36 tuần (regular) và 46 tuần (casual): trong năm đầu họ vẫn có bậc mới. Luna là mốc cosmetic (không có sức mạnh).
-2. Tỉ lệ heavy : regular : casual = 1 : 1,5 : 1,9 do hình dạng của bậc thang + cửa sổ. Mọi kéo casual nhanh lên đều đưa heavy xuống dưới 1 năm (ví dụ cộng +4.000 Stone/tuần cho mọi người: heavy 46,3 tuần, casual 80,9 tuần), vì thưởng ngày/tuần/Pass cộng như nhau cho mọi nhóm.
-3. Nếu telemetry cho thấy median casual hoạt động dưới 14.000 Stone/tuần hoặc nghỉ giữa chừng ở bậc 4–5, bật "Final Stretch": thêm **+2.500 Stone/tuần khi đang leo bậc 5**. Tính thử: casual +13% tốc độ → bậc cuối từ 52,7 xuống ~46,6 tuần (−6); heavy +7% → 28,4 xuống ~26,6 (−1,8). Núm này nhắm vào nhóm ít chơi hơn mà gần như không động tới heavy. Chưa bật.
+**Không vòng lặp vô hạn.** Một vé bỏ ra (ở hộp nào cũng vậy) sinh ra kỳ vọng ≤ max(0,211; 0,0705) = **0,211** vé mới; không cạnh nào về Shard hay Stone (ECO-3). Quá trình vé→lượt→mảnh→vé là chuỗi hình học tỉ số < 1: từ n vé, tổng vé bỏ ra ≤ n / (1 − 0,211) = **1,267 n**. Hồi thực tế còn thấp hơn vì chỉ tính trùng sau khi đủ tầng và mảnh lẻ < 10 bị giữ lại.
 
 ---
 
-## 3. Echo Box: số cuối
+## 6. Persona: lượt, Stone, thời gian tới LunaLanding
 
-### 3.1 Giá vé
+### 6.1 Mô hình
 
-`price(k) = round5(100 × 1,05^(k−1))`, k = thứ tự vé **mua bằng Shard** trong ngày UTC, tối đa 30/ngày.
+Với T = số vé không-tái-chế đã dùng ở hộp thường, số lượt P(T) tính từ bảng §5. Mốc (T, P): (252,5; 252,5) · (542,4; 565) · (960,0; 1.040) · (1.939,9; 2.215) · (4.640,9; 5.555). Độ dốc `dP/dT = 1/(1 − ν_p)`: 1,078 · 1,137 · 1,199 · 1,237 · 1,259. Stone hộp thường = 242,5 × P.
 
-| k | 1 | 2 | 3 | 5 | 8 | 10 | 12 | 15 | 20 | 22 | 25 | 30 |
-|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| Giá | 100 | 105 | 110 | 120 | 140 | 155 | 170 | 200 | 255 | 280 | 325 | 410 |
+Tổng Stone sau t tuần = `242,5 × P(b_std × t)` + `(Stone cố định + Stone hộp mùa) × t`, giải bằng 1.820.000.
+- Stone cố định: casual 2.000 (ngày) + 2.000 (tuần) + 2.062,5 (Pass) = **6.062,5**; regular/heavy 3.500 + 2.000 + 2.062,5 = **7.562,5**.
+- Stone hộp mùa: nửa bộ 2,2917 lượt × 1.006,2 = **2.306**; đủ bộ 4,5833 × 1.006,2 = **4.612**.
 
-Quà khởi đầu 3 vé. Nạp Shard tối thiểu để có vé đầu: 100 (một run đầu ~336–450 đủ cho 4 vé: C(4) = 2.000 × 0,2155 = 431).
+Ví dụ heavy nửa bộ: `b_std` = 97,5 − 11,46 = 86,04. t = 52,28: T = 4.498,2 → P = 2.215 + (4.498,2 − 1.939,9)/0,80868 = 2.215 + 3.163,4 = 5.378,4 → hộp thường 5.378,4 × 242,5 = 1.304.262; cố định+mùa 9.868,4 × 52,28 = 515.918; tổng **1.820.180** ✓.
 
-Giữ 100 / 1,05 / 30. Đã thử: base 130 làm casual mua 9,8 vé/ngày (−18%); base 80 cho regular 10,5 (+20%). Heavy chỉ bị khóa bởi cửa sổ nên 100 tốt cho cả ba (regular 8,76 nằm trong dải 8–10, heavy 21,7 trong 18–22).
+### 6.2 Vé/lượt mỗi tuần (R = 450)
 
-### 3.2 Drop table, E và pity
+| | | Không mua mùa | Nửa bộ | Đủ bộ |
+|---|---|---|---|---|
+| Casual | Vé đầu cho hộp thường `b_std` (→ lượt TB cả hành trình) | 29,2 (→ 34,6) | 17,7 (→ 20,6) | 6,6 (→ 7,1) |
+| | Lượt hộp mùa/tuần | 0 | 2,29 | 4,58 |
+| Regular | `b_std` (→ lượt TB) | 35,7 (→ 42,3) | 24,2 (→ 28,3) | 13,1 (→ 14,7) |
+| | Lượt mùa/tuần | 0 | 2,29 | 4,58 |
+| Heavy | `b_std` (→ lượt TB) | 97,5 (→ 117,1) | 86,0 (→ 102,9) | 74,9 (→ 89,2) |
+| | Lượt mùa/tuần | 0 | 2,29 | 4,58 |
 
-Tỉ lệ gốc, Stone mỗi lượt, tỉ lệ sau pity (tôi tính tay).
+(Lượt TB = Stone hộp thường trung bình/tuần ÷ 242,5; cao hơn `b_std` nhờ tái chế.)
 
-| Độ hiếm | Tỉ lệ gốc | Tỉ lệ hiệu dụng | Món | Stone/lượt | EV gốc | EV hiệu dụng |
+### 6.3 Stone/tuần theo nguồn (trung bình cả hành trình tới LunaLanding, R = 450)
+
+| Persona · hành vi | Hộp thường | Hộp mùa | Thưởng ngày+tuần | Pass | Nhiệm vụ (chưa tính) | **Tổng/tuần** |
 |---|---|---|---|---|---|---|
-| Common | 62,0% | 60,2% | 61 | 80 | 49,6 | 48,2 |
-| Uncommon | 25,0% | 24,3% | 55 | 160 | 40,0 | 38,9 |
-| Rare | 9,5% | 11,3% | 47 | 400 | 38,0 | 45,2 |
-| Epic | 2,7% | 3,16% | 39 | 1.000 | 27,0 | 31,6 |
-| Legendary | 0,7% | 0,90% | 31 | 2.500 | 17,5 | 22,5 |
-| Mythic | 0,1% | 0,158% | 22 | 8.000 | 8,0 | 12,7 |
-| **Tổng** | **100%** | **100%** | **255** | | **180,1** | **199,0** |
+| Casual · không | 8.399 | 0 | 4.000 | 2.063 | 0 | 14.462 |
+| Casual · nửa | 4.994 | 2.306 | 4.000 | 2.063 | 0 | 13.363 |
+| Casual · đủ | 1.723 | 4.612 | 4.000 | 2.063 | 0 | 12.398 |
+| Regular · không | 10.263 | 0 | 5.500 | 2.063 | 0 | 17.826 |
+| Regular · nửa | 6.859 | 2.306 | 5.500 | 2.063 | 0 | 16.728 |
+| Regular · đủ | 3.562 | 4.612 | 5.500 | 2.063 | 0 | 15.737 |
+| Heavy · không | 28.405 | 0 | 5.500 | 2.063 | 0 | 35.968 |
+| Heavy · nửa | 24.945 | 2.306 | 5.500 | 2.063 | 0 | 34.814 |
+| Heavy · đủ | 21.623 | 4.612 | 5.500 | 2.063 | 0 | 33.798 |
 
-Cách tính pity. Với ngưỡng cứng T và xác suất tự nhiên p của "≥ độ hiếm đó", số lượt trung bình mỗi chu kỳ = `(1 − (1−p)^T) / p`. Tỉ lệ "nâng" mỗi lượt = `(1−p)^T / chu kỳ`. Nâng thay thế một lượt thấp hơn nên cộng thêm `(Stone bảo đảm − Stone TB lượt bị thay)`.
+Kiểm: 1.820.000 / tuần tới Land (ví dụ heavy nửa 1.820.000/52,28 = 34.813). Hộp thường của heavy ở năm cuối lớn hơn năm đầu vì tái chế tăng dần.
 
-| Pity | p tự nhiên | (1−p)^T | Chu kỳ | Nâng/lượt | Stone thêm/nâng | Stone thêm/lượt |
-|---|---|---|---|---|---|---|
-| ≥ Rare @15 | 0,130 | 0,87^15 = 0,1237 | 6,74 | 0,01835 | 400 − 103 = 297 | **5,45** |
-| ≥ Epic @60 | 0,035 | 0,965^60 = 0,1179 | 25,2 | 0,00468 | 1.000 − 132 = 868 | **4,06** |
-| ≥ Legendary @200 | 0,008 | 0,992^200 = 0,2004 | 99,95 | 0,002005 | 2.500 − 156 = 2.344 | **4,70** |
-| Mythic @1.000 | 0,001 | 0,999^1000 = 0,3677 | 632 | 0,000581 | 8.000 − 172 = 7.828 | **4,55** |
-| | | | | | **Tổng** | **+18,76** |
+### 6.4 Tuần tới LunaLanding
 
-E_eff = 180,1 + 18,8 = **198,9 (+10,4%)**. Hai điều cần nhớ:
-- Xác suất chạm sàn: 14,2% (Rare), 12,2% (Epic), 20,2% (Legendary), 36,8% (Mythic). Rare/Epic/Legendary nâng nhau nên cộng gộp là gần đúng; sim sẽ cho số thật.
-- Mythic pity (1.000) đóng góp 4,55 Stone/lượt, hơn một nửa EV gốc của Mythic (8,0). Nếu Liam muốn Mythic "thật sự hiếm" thì nới pity này (OQ-6).
+| R = 450 | Không mua mùa | Nửa bộ | Đủ bộ |
+|---|---|---|---|
+| Casual | 125,9 | 136,2 | 146,8 |
+| Regular | 102,1 | 108,8 | 115,7 |
+| Heavy | 50,6 | **52,3** | 53,9 |
 
-Số lượt kỳ vọng tới độ hiếm đầu tiên (hiệu dụng): ≥ Rare 6,7; ≥ Epic 25,2; ≥ Legendary 100; Mythic 632. Regular (78 lượt/tuần): Epic+ mỗi ~2 ngày, Legendary+ mỗi 1,3 tuần, Mythic mỗi 8,1 tuần. Heavy (~199 lượt/tuần): Mythic mỗi 3,2 tuần, ~16/năm.
+Độ nhạy R, hành vi nửa bộ (tuần): 
 
-**Sàn/trần:** pity cứng 15 / 60 / 200 / 1.000 lượt, bộ đếm không reset theo ngày, tính cả vé salvage. Pity chạm hai ngưỡng cùng lượt → cấp độ cao nhất, reset các bộ đếm thấp hơn. Trần: 30 vé mua/ngày; Stone chỉ 20 lượt đầu/ngày; thêm trần bảo vệ server 24.000 Stone Echo/ngày (kỳ vọng 3.960; chỉ chặn bug, ECO-7).
+| R | Casual | Regular | Heavy |
+|---|---|---|---|
+| 350 | 151,1 (2,90 năm) | 121,1 (2,32) | 60,1 (1,15) |
+| 450 | 136,2 (2,61) | 108,8 (2,09) | 52,3 (1,00) |
+| 570 | 122,6 (2,35) | 97,6 (1,87) | 45,9 (0,88) |
 
-### 3.3 Cost per pull và tỉ giá Shard → Stone
+Mục tiêu Liam: heavy ~52, regular ~78, casual ~99 tuần. Heavy khớp (R = 450). Regular/casual chậm hơn 39% / 37% ở nửa bộ (OQ-1). Tỉ lệ heavy : regular : casual = 1 : 2,08 : 2,60.
 
-Chi phí Shard mỗi lượt (chỉ vé mua) = C(n)/n. Chi phí thật gồm vé Pass và vé salvage miễn phí:
+**Biến thiên do may mắn (±1σ, chỉ phần hộp thường), SỬA 10/10 sau khi hạ jackpot:** Stone mỗi lượt hộp thường có E[x²] = 0,153×10⁴ + 0,2408×62.500 + 0,13×250.000 + 0,06×10⁶ + 0,016×6,25×10⁶ + 0,0002×10⁸ = 1.530 + 15.050 + 32.500 + 60.000 + 100.000 + 20.000 = 229.080 → var = 229.080 − 242,5² (58.806) = 170.274, SD ≈ **413/lượt** (cũ 594). Heavy ~5.380 lượt: SD = 413 × √5.380 = 30.300 Stone ≈ **±0,9 tuần** (cũ ±1,3); casual nửa bộ ~2.800 lượt: SD = 413 × 52,9 = 21.800 ≈ **±1,6 tuần** (cũ ±2,4). Chưa tính hộp mùa. Heavy gặp jackpot thường ~5.380/5.000 ≈ **1,1 cái/năm** (cũ ~11), tức chừng 11.000 Stone ≈ 0,6% đường Land (cũ 6%).
 
-| Persona | Shard tiêu/tuần | Lượt/tuần (TB năm 1) | Shard/lượt thật | Stone Echo/tuần | **Shard / 1.000 Stone** | Stone / 1.000 Shard |
-|---|---|---|---|---|---|---|
-| Casual | 6.367 | 60,5 | 105 | 11.979 | **531** | 1.881 |
-| Regular | 7.470 | 77,9 | 96 | 15.424 | **484** | 2.065 |
-| Heavy (tiêu hết) | 26.370 | ~199 (140 có Stone) | 133 (188 trên lượt có Stone) | 27.720 | **951** | 1.051 |
-| Heavy (dừng ở 20 vé/ngày) | 23.149 | 140 | | 27.720 | **835** | 1.197 |
+**Stone sau 26 tuần (nửa bộ):** casual ~323k (vừa qua mốc Mystic 320k), regular ~410k (Mystic), heavy ~897k (Genesis, mốc 820k).
 
-Phép tính mẫu casual: 6.367 / 11.979 = 0,5315 Shard/Stone → 531 Shard cho 1.000 Stone.
-Tỉ giá biên: vé đầu ngày 100 / 199 = 0,50 Shard/Stone (503 mỗi 1.000); vé thứ 12 = 170 / 199 = 0,85 (854); vé thứ 20 (cuối cửa sổ, nếu không có salvage) = 255 / 199 = 1,28 (1.281). Vé từ 21 trở đi: vô hạn (0 Stone). Mỗi ngày Shard luôn có chỗ đi (lượt cosmetic vẫn tìm đồ mới), nhưng Stone thì không.
-
-Tại sao dồn mua một ngày không có lợi: casual dồn 6.390 Shard vào 1 ngày → 1,05^n = 1 + 3,195 = 4,195 → n = 29,4 vé, chỉ 20 có Stone. Chia 4 ngày được 48 vé, cả 48 có Stone.
-
-### 3.4 Đồ trùng và salvage
-
-| Độ hiếm | Mảnh khi trùng | Giá trị (vé) |
-|---|---|---|
-| Common | 1 | 0,1 |
-| Uncommon | 2 | 0,2 |
-| Rare | 5 | 0,5 |
-| Epic | 15 | 1,5 |
-| Legendary | 40 | 4 |
-| Mythic | 100 | 10 |
-
-Giữ nguyên số của game-designer. Tách tự động, 10 mảnh = 1 vé. Quy tắc không-lặp: chỉ trùng khi đã đủ độ hiếm đó. Vé salvage tích về trung bình năm 1: casual 3.144 − 49,5 × 52 = **570 vé (11/tuần, 18% số lượt)**, regular 4.050 − 62,8 × 52 = **784 vé (15/tuần, 19%)**, heavy ~10.330 − 153,5 × 52 = **2.350 vé (45/tuần, 23%)**.
-
-### 3.5 Chứng minh không có vòng lặp salvage vô hạn
-
-1. **Vé và mảnh không bao giờ thành Shard** (ECO-3): sau mọi lượt, Shard không tăng. Vòng "quay → trùng → vé → quay" không có cạnh quay lại Shard.
-2. **Hồi tối đa 0,265 vé/lượt** (bảng ở §2.2: 0,0602 + 0,0486 + 0,0565 + 0,0474 + 0,0360 + 0,0158 = 0,2645). Đây là trần với đủ 255 món, kể cả pity (nếu dùng tỉ lệ gốc là 0,238).
-3. Chuỗi vé: 1 vé mua → tối đa 0,265 vé salvage → 0,265² … Tổng = 1 / (1 − 0,265) = **1,36 lượt**. Hội tụ vì 0,265 < 1.
-4. Stone bị chặn độc lập: dù có vé vô hạn, Stone Echo/ngày ≤ 20 × E (kỳ vọng 3.960) và ≤ 24.000 (server). Nên ngay cả lỗi salvage cũng không mở Land vô hạn.
-5. Bundle (sau này): tính vào cửa sổ 20, không bypass.
+Mốc hoàn tất tầng hộp thường theo tuần (nửa bộ, vé đầu b_std / 86,0, 24,2, 17,7): Common xong ở tuần 2,9 / 10,4 / 14,2 (heavy / regular / casual); Uncommon 6,3 / 22,4 / 30,6; Rare 11,2 / 39,6 / 54,1; Epic 22,5 / 80 / 109; Legendary 53,9 / 191 / 261. Heavy cũng chỉ vừa kịp Legendary vào năm thứ hai; Mythic của hộp thường gần như không ai đủ bộ.
 
 ---
 
-## 4. Battle Pass v2 và Thưởng ngày
+## 7. Chi phí bộ mùa so với Shard 12 tuần
 
-### 4.1 Cấu trúc và thời gian xong
+Ròng điển hình = 275 − 3,5 = **271,5 vé**; nửa bộ 137,5; trần cứng 80 lượt = 400 vé (hoàn ≥ 0, tính cận trên). Giá = vé × giá TB (232 / 220 / 278).
 
-Level 30, `XP(lv) = 500 + 40(lv−1)`, cộng dồn `480L + 20L²`, lv 30 = 14.400 + 18.000 = **32.400**. Mùa 8 tuần, nối liền.
+| | Shard 12 tuần | Nửa bộ 137,5 vé | % | Điển hình 271,5 vé | % | Trần cứng 400 vé | % |
+|---|---|---|---|---|---|---|---|
+| Casual | 77.076 | 31.900 | **41,4%** | 62.988 | **81,7%** | 92.800 | **120,4%** |
+| Regular | 90.480 | 30.250 | **33,4%** | 59.730 | **66,0%** | 88.000 | **97,3%** |
+| Heavy | 319.836 | 38.225 | **12,0%** | 75.477 | **23,6%** | 111.200 | **34,8%** |
 
-XP nguồn: run (1.500 đầu mỗi ngày 100%, phần sau 20%, tổng ≤ 2.000/ngày), thưởng ngày +100, việc tuần 3 × 500 = 1.500/tuần.
-
-| Persona | XP/ngày | Xong |
-|---|---|---|
-| Casual (3 run/ngày × 4 ngày, 2/3 việc tuần) | (996 + 100) × 4 + 1.000 = 5.384/tuần | 32.400 / 5.384 = **6,0 tuần** |
-| Regular (2 run/ngày) | 664 + 100 + 214 = 978 | 33,1 ngày = **4,7 tuần** |
-| 1 run/ngày | 332 + 100 + 214 = 646 | 50,2 ngày = **7,2 tuần** (vẫn xong trong 8 tuần) |
-| Heavy (8 run/ngày) | 1.883 + 100 + 214 = 2.197 | **14,7 ngày** |
-| Cực đoan (≥ 9,4 run/ngày) | 2.000 + 100 + 214 = 2.314 | **14,0 ngày** (sàn) |
-
-Sàn: `T_min = 32.400 / 2.314 = 14,0 ngày`. Kiểm theo tuần lịch: 14 ngày, 2 tuần việc tuần: 14 × 2.100 + 3.000 = 32.400. Nếu 14 ngày rơi vào 3 tuần lịch: 14 × 2.100 + 4.500 = 33.900 ≥ 32.400 (ngày 13 chỉ có 27.300 + 4.500 = 31.800 < 32.400) nên vẫn là ngày 14. ECO-9 giữ sàn này.
-
-Người chơi dưới ~4.050 XP/tuần (ví dụ 3 ngày × 1 run) không xong mùa; họ giữ phần đã đạt. Giữ như vậy, không tăng hỗ trợ.
-
-### 4.2 Bảng 30 level
-
-Tổng Shard 4.800, Stone 16.500, vé 12, cosmetic 7 + 1 danh hiệu, 5 unlock chỉ số (lv 4/8/12/16/20; ai đã sở hữu thì nhận Shard theo giá shop). Giữ cấu trúc của game-designer, số đã kiểm lại.
-
-| Lv | XP cộng dồn | Thưởng |
-|---|---|---|
-| 1 | 500 | 300 Shard |
-| 2 | 1.040 | 1 vé |
-| 3 | 1.620 | 1.000 Stone |
-| 4 | 2.240 | **Unlock u_reroll** |
-| 5 | 2.900 | fx_c_leaf + 300 Shard |
-| 6 | 3.600 | 1 vé |
-| 7 | 4.340 | 1.500 Stone |
-| 8 | 5.120 | **Unlock u_hp** |
-| 9 | 5.940 | frame_u_vine |
-| 10 | 6.800 | 500 Shard + 1 vé |
-| 11 | 7.700 | 1.500 Stone |
-| 12 | 8.640 | **Unlock u_start** |
-| 13 | 9.620 | 500 Shard |
-| 14 | 10.640 | 1 vé |
-| 15 | 11.700 | fx_r_bubble + 2.000 Stone |
-| 16 | 12.800 | **Unlock u_reroll2** |
-| 17 | 13.940 | 500 Shard |
-| 18 | 15.120 | 1 vé |
-| 19 | 16.340 | 2.000 Stone |
-| 20 | 17.600 | **Unlock u_hp2** + 500 Shard |
-| 21 | 18.900 | die_u_moss |
-| 22 | 20.240 | 500 Shard |
-| 23 | 21.620 | 2 vé |
-| 24 | 23.040 | 2.500 Stone |
-| 25 | 24.500 | die_e_s1_founder + 500 Shard |
-| 26 | 26.000 | 600 Shard |
-| 27 | 27.540 | frame_e_s1_founder |
-| 28 | 29.120 | 1 vé + 3.000 Stone |
-| 29 | 30.740 | 600 Shard |
-| 30 | 32.400 | frame_l_sovereign + danh hiệu LUNACIA SOVEREIGN + 4 vé + 3.000 Stone |
-
-Kiểm:
-- Shard: 300 + 300 + 6 × 500 + 2 × 600 = 600 + 3.000 + 1.200 = **4.800**.
-- Stone: 1.000 + 1.500 + 1.500 + 2.000 + 2.000 + 2.500 + 3.000 + 3.000 = **16.500**.
-- Vé: lv 2, 6, 10, 14, 18 (5) + lv 23 (2) + lv 28 (1) + lv 30 (4) = **12**.
-
-Giá trị Pass: 4.800 Shard + 12 vé (~12 × 140 = 1.680 Shard) + 16.500 Stone + 12 lượt × 198 = 2.376 Stone. Tỉ trọng Stone Pass: casual 11%, regular 9%, heavy 6% (§2.3). Pass là bù nhẹ cho người ít chơi, vì cố định theo thời gian.
-
-### 4.3 Thưởng ngày
-
-| | Điều kiện | Thưởng |
-|---|---|---|
-| Ngày | Hoàn thành 1 run trong ngày UTC (server xác nhận) | **60 Shard + 500 Stone + 100 XP** |
-| Tuần | ≥ 4 ngày nhận trong tuần UTC | **+150 Shard + 2.000 Stone** |
-
-Stone/tuần: casual 4 × 500 + 2.000 = 4.000, regular/heavy 7 × 500 + 2.000 = 5.500. Tỉ trọng 22% / 24% / 16% (§2.3). Không phạt đứt chuỗi. Guest: nhận Stone sau khi đăng nhập (queue 7 ngày). Đây là phần Stone cố định theo thời gian, không phụ thuộc kỹ năng hay lượng gacha.
+Ở R = 350, tỉ lệ của casual/regular tăng ~+20–23% (thu nhập thấp hơn tỉ lệ nghịch). Cũ (hộp mùa cho Stone, Epic là ô trùng 85%): 188 vé ròng, 56,6 / 45,7 / 16,3%. Giờ đắt hơn ~44% vì hoàn vé gần như mất; đổi lại Stone của hộp mùa tự bù lại (201 Stone/vé). Vault: series cũ N nhân đôi (bound 160 lượt = 800 vé), mở bằng cùng vé, không hạn.
 
 ---
 
-## 5. Ngân sách cho Nhiệm vụ (thiết kế sau)
+## 8. Shard 6 tháng (26 tuần, R = 450)
 
-Nhiệm vụ trả Land Stone nhỏ và Shard theo stake. Ngân sách để hệ đó nhắm tới, tính trên timeline §2.4:
-
-### 5.1 Stone
-
-**Trần: ≤ 150 Stone mỗi ngày hoạt động** (≤ 1.050/tuần). Mỗi mission trung bình ~30 Stone nếu 5/ngày, tức 0,15 lượt quay. Ví dụ bậc I/II/III/IV = 10 / 20 / 40 / 80 (tổng 150); chỉ là minh họa.
+Mua 10.350 unlock ngay từ đầu (cực đại); Pass bình quân; hết Shard vào vé mỗi ngày (A3).
 
 | | Casual | Regular | Heavy |
 |---|---|---|---|
-| Tốc độ gốc (TB đến Luna) | 18.515 | 23.364 | 35.282 |
-| + mission tối đa | 4 ngày × 150 = 600 → 19.115 | 1.050 → 24.414 | 1.050 → 36.332 |
-| Luna | 1.820.000 / 19.115 = **95,2 tuần (−3,1)** | / 24.414 = **74,5 (−3,4)** | / 36.332 = **50,1 (−1,5)** |
-| Rút ngắn | −3,2% | −4,4% | −2,9% |
+| Shard vào | 166.998 | 196.040 | 692.978 |
+| Unlock | −10.350 | −10.350 | −10.350 |
+| Vé mua (sau unlock) + Pass 39 | 681 + 39 = 720 | 847 + 39 = 886 | 2.468 + 39 = 2.507 |
+| Cho hộp mùa: đủ bộ (26/12 × 275 = 596) / nửa (298) | 596 / 298 | 596 / 298 | 596 / 298 |
+| Còn cho hộp thường: đủ / nửa | 124 / 422 | 290 / 588 | 1.911 / 2.209 |
+| **Số dư Shard cuối kỳ** | < 1 vé (~200–300) | < 1 vé | < 1 vé |
 
-Quy tắc: nếu mission được phép trả hơn trần này (ví dụ 300/ngày), regular rút −8% (24.2k → 25.5k/tuần, 71,5 tuần) và heavy xuống 48,7 tuần, sát ranh giới "~1 năm". Không đi quá mà không tính lại.
-
-### 5.2 Shard
-
-- Tổng thể (toàn dân) RTP ≤ 100%; mission không phải faucet ròng.
-- Người giỏi có lãi tối đa **+5% thu nhập tuần**: casual +320, regular +375, heavy +1.300 Shard/tuần.
-- Tác động lên Stone: casual +320 Shard/tuần mua thêm 320 / 180 = 1,8 vé × 198 × 1,2 = 430 Stone/tuần (+2,3%); regular tương tự +2%; heavy 0 (đã quá cửa sổ). Cộng với trần Stone mission, tổng rút ngắn nhiều nhất ~6–7% (casual).
-- Người được phép lỗ cả 5 stake (quyết định 10/10): mất nhiều nhất cỡ vài ngày vé, không dẫn tới hết Shard, vì run thua vẫn cho ~258 Shard và không có chi phí bắt buộc nào (§6).
+Không ai dư Shard vì Shard chỉ có một đường tiêu (vé) và không có chi bắt buộc. Casual đủ bộ để lại chỉ 124 vé cho hộp thường trong 6 tháng, tức Stone hộp thường gần như không tăng (xem 1.723/tuần ở §6.3). Echo Market tiếp tục hoãn (A10); chỉ bật khi telemetry thấy p90 số dư > 8 tuần thu nhập.
 
 ---
 
-## 6. Shard 26 tuần mỗi persona
+## 9. Nhiệm vụ và bundle
 
-Giả định: tiêu hết mỗi ngày vào vé (A3), trừ 10.350 một lần cho unlock shop (cực đại; nếu 5 unlock chỉ số nhận từ Pass thì dư thêm 7.110).
+**Ngân sách Nhiệm vụ (hệ thống tương lai).** Stone ≤ **150/ngày hoạt động** (≤ 600/tuần casual, ≤ 1.050/tuần regular/heavy). Phần lớn lượng Stone này vẫn "rất nhỏ": 4,5% / 6,3% / 3,0% Stone tuần của casual / regular / heavy (nửa bộ). Nếu kiếm đủ cả trần, Land nhanh hơn ≈ casual −5,9 tuần (136,2 → ~130), regular −6,4 (108,8 → ~102), heavy −1,5 (52,3 → ~50,8). Mốc thời gian ở §6 **chưa tính** nhiệm vụ. Shard: không có Shard cho không; thưởng Shard chỉ từ stake của người chơi với RTP ≤ 100%, người chơi được phép lỗ cả 5 nhiệm vụ. Nếu sau này muốn tặng Shard thật, ngân sách ≤ 40 Shard/ngày hoạt động (~0,6–3% thu nhập) để vẫn dưới sai số.
 
-| | Casual | Regular | Heavy |
+**Bundle vé (quyết định 4, không hàng rào).** Vé bundle ra Stone như vé thường (hộp thường ~242–307 Stone/vé tùy tiến độ). Hành vi nửa bộ, tuần tới Land:
+
+| | Không bundle | +50 vé/tuần | +100 vé/tuần |
 |---|---|---|---|
-| Shard vào (26 × tuần) | 6.390 × 26 = 166.140 | 7.470 × 26 = 194.220 | 26.370 × 26 = 685.620 |
-| Unlock một lần | −10.350 | −10.350 | −10.350 |
-| Còn cho vé | 155.790 | 183.870 | 675.270 |
-| Số ngày mở game | 104 | 182 | 182 |
-| Shard/ngày | 1.498 | 1.010 | 3.710 |
-| Vé/ngày (giải C(n)) | 1,05^n = 1,749 → 11,5 | 1,505 → 8,4 | 2,855 → 21,5 |
-| Tổng vé mua | ~1.190 | ~1.525 | ~3.910 |
-| Số dư cuối kỳ | < 1 vé (< 170) | < 1 vé (< 150) | < 1 vé (< 280) |
-| Tổng lượt quay (kèm Pass + salvage) | ~1.510 | ~1.950 | ~5.020 |
-| Stone cộng dồn | ~456.000 | ~582.000 | ~917.000 |
-| Bậc Land | Mystic (≥ 320k) | Mystic | **Genesis** (≥ 820k, đạt tuần 23,2) |
+| Heavy | 52,3 | 36,8 (1,4×) | 28,4 (1,8×) |
+| Regular | 108,8 | 58,0 (1,9×) | 39,5 (2,8×) |
+| Casual | 136,2 | 65,0 (2,1×) | 42,6 (3,2×) |
 
-Phép tính mẫu: casual vé/ngày = ln(1,749) / 0,04879 = 0,5589 / 0,04879 = 11,5; 11,5 × 104 = 1.190.
-Stone casual: 374.223 (tuần 21,56) + 4,44 × 18.514 = 82.202 → 456.425.
-
-**Không bao giờ hết Shard:** không có chi phí bắt buộc, run không tốn Shard, mua vé là tự nguyện, run thua vẫn ~258. Người mới có đủ cho 4 vé sau 1 run.
-
-**Không tích vô ích với casual/regular:** họ tiêu hết ngân sách mỗi ngày, tồn dưới 1 vé.
-
-**Chỗ yếu: heavy dừng ở 20 vé/ngày.** Heavy "chỉ mua đủ để lấp cửa sổ" (vé cần = 20 × (1 − ν) − 0,2 Pass) tồn thêm:
-- Tuần 0–8,8 (ν TB ≈ 0,10): mua 17,8 vé/ngày → C = 2.767; dư 3.767 − 2.767 ≈ 1.000/ngày × 61,6 ngày = 61.600.
-- Tuần 8,8–24,6 (ν = 0,213): mua 15,5 → C = 2.261; dư 1.506/ngày × 110,6 = 166.600.
-- Tuần 24,6–26 (ν = 0,249): mua 14,8 → C = 2.118; dư 1.649 × 9,8 = 16.200.
-- Tổng 244.400 − 10.350 = **~234.000 Shard** (≈ 8,9 tuần thu nhập). Đây là "pile" thật của nhóm này.
-
-Cách hấp thụ ngay: heavy mua vé vượt cửa sổ (không Stone nhưng vẫn ra cosmetic mới, mảnh, pity cho Mythic), tới 30 vé/ngày, đây là chế độ "tiêu hết" của bảng trên. Lâu dài cần sink riêng (OQ-2).
+Người nạp lên Land nhanh gấp ~1,4–3,2 lần tùy mức nạp. Casual/regular hưởng nhiều hơn heavy vì phần vé thêm so với vé họ có lớn hơn. Chỉ nêu hệ quả, không guardrail. Trần server (ECO-7) chỉ để chặn bug.
 
 ---
 
-## 7. Núm chỉnh, bất biến, telemetry, câu hỏi mở
+## 10. Battle Pass và Thưởng ngày (giữ nguyên)
 
-### 7.1 Núm và khoảng an toàn
+Theo `echobox-pass-v2.md` §3–§4 và A1–A11: Pass 30 level, mùa 8 tuần, 32.400 XP; thưởng Shard 4.800 + Stone 16.500 + vé 12 + cosmetic; vòng lặp sau lv30 **2.000 XP = 50 Shard** (trần ~405 Shard/tuần ở XP tối đa, ≤ 1,5% thu nhập heavy; XP lẻ đổi cùng tỉ lệ, không mang sang). Thưởng ngày 60 Shard + 500 Stone + 100 XP; ≥ 4 ngày/tuần +150 Shard + 2.000 Stone; Stone guest chờ 7 ngày. Vé Pass không tăng bậc k. Casual 6,0 tuần / regular 4,7 tuần / heavy 14,7 ngày xong Pass; sàn 14,0 ngày.
 
-Mọi số trong `assets/data/`, không hardcode.
+---
+
+## 11. Núm, bất biến, telemetry, câu hỏi mở
+
+### 11.1 Núm (mọi số trong `assets/data/`, không hardcode)
 
 | Núm | Mặc định | Khoảng an toàn | Độ nhạy (đã tính) |
 |---|---|---|---|
-| `ticket_price_base` | 100 | 80–130 | 130 → casual −18% vé, regular −20%; 80 → regular +20% |
-| `ticket_price_growth` | 1,05 | 1,03–1,07 | Từ 1,08 heavy mua dưới 20/ngày (18,1) → heavy chậm hơn. 1,03: regular +7% vé |
-| `ticket_buy_cap_day` | 30 | 25–50 | Không chạm ở R ≤ 570 |
-| `stone_window_day` | 20 | 16–24 | Chỉ heavy: 16 → 61,2 tuần; 24 → 44,6 tuần. Regular/casual không đổi |
-| `stone_by_rarity` | 80/160/400/1.000/2.500/8.000 | nhân 0,8–1,2 | ×1,2: heavy 44,4, regular 68,6, casual 86,7 tuần |
-| `rarity_rates` | 62/25/9,5/2,7/0,7/0,1 | Mythic 0,05–0,2 | |
-| `pity` | 15/60/200/1.000 | 10–20 / 40–80 / 120–300 / 600–1.500 | Mythic pity = 4,55 Stone/lượt |
-| `fragments_per_ticket` | 10 | 6–15 | Dota dùng 6. Luôn giữ ν_max < 1 |
-| `salvage_fragments` | 1/2/5/15/40/100 | — | ν_max = 0,265 |
-| `daily_stone` | 500 | 300–1.000 | Mỗi +100/ngày: casual +400/tuần (+2,1%), regular/heavy +700 (+3% / +2%) |
+| `ticket_price_base` | **200** (Liam chốt) | | |
+| `ticket_price_growth` / `ticket_buy_cap_day` | 1,05 / 30 | 1,03–1,07 / 20–50 | |
+| `season_pull_cost_tickets` | 5 | 4–6 | |
+| `season_pull_cap_day` | 8 | 6–10 | |
+| `std_stone_share` | 60% | 50–70% | mean 242,5 cố định: đổi share là đổi ν (cosmetic nhiều/ít), phải sim lại |
+| `std_stone_table` | 100/250/500/1.000/2.500/10.000 ở 15,30/24,08/13/6/1,6/**0,02**% (SỬA 10/10) | EV 225–260; jackpot ≤ 0,05% | ±10 Stone/lượt ≈ ∓1,5 tuần heavy, ∓1,8 regular |
+| `std_jackpot_rate` | **0,02%** (1/5.000) | 0,01–0,05% | đổi jackpot phải dồn/rút EV ở 1.000–2.500 để giữ 242,5 |
+| `season_stone_table` | 500/1.000/2.500/5.000/25.000 ở 32,74/45,13/17,5/4,6/**0,03**% trong lượt Stone (SỬA 10/10) | EV/lượt Stone 1.100–1.600; jackpot ≤ 0,06% (= 0,05% mỗi lượt mùa) | EV/vé 201 = 83% hộp thường |
+| `season_jackpot_rate` | **0,03%** trong lượt Stone = 0,0234% mỗi lượt mùa (1/4.274) | 0,01–0,06% | như trên, giữ 1.290 |
+| `season_N_E / N_L / N_M`, `k` | 10 / 20 / 40, 2 | N_t > h_t; N_M ≥ 30 | N_M = 50 → bound 100 |
+| `season_dupe_rate b_E/b_L/b_M` | 8% / 3% / 1% | 0–15% | b_E 0 → hoàn ~1,6 vé, chi phí +0,6% |
+| `dupe_fragments` | 3/5/10/20/40/80 | Common 2–4, Mythic 60–100 | |
+| `fragments_per_ticket` | 10 | 8–12 | |
+| `pity_std` (lượt cosmetic) | 15/60/200/1.000 | | |
+| `series_weeks` | 12 | 8–16 | |
+| `daily_stone` | 500 | 300–1.100 | 700 → heavy 50,3 · regular 100,6 · casual 128,7 (nửa bộ) |
 | `weekly_bonus` | 150 Shard + 2.000 Stone, ≥ 4 ngày | 3–5 ngày | |
-| `pass_xp` | 500 + 40(lv−1) | tổng 28.000–36.000 | T_min ≥ 14 ngày |
-| `pass_run_xp_cap_day` | 2.000 (1.500 @100%, 20% sau đó) | 1.500–2.500 | |
-| `pass_weekly_tasks_xp` | 3 × 500 | 1.000–2.000 | |
-| `pass_totals` | 4.800 Shard / 16.500 Stone / 12 vé | Stone 12.000–22.000 | |
-| `mission_stone_day_cap` | 150 | 100–200 | Tại 150 rút Luna −3% đến −4%; tại 300 thì −8% |
+| `pass_*`, `pass_loop` | như §10 | T_min ≥ 14 ngày | |
+| `mission_stone_day_cap` | 150 | 100–200 | |
 | `land_cost[5]` | 40k/100k/180k/500k/1M | Liam chốt | |
-| `final_stretch` (tùy chọn) | tắt; +2.500 Stone/tuần ở bậc 5 | 0–4.000 | §2.4 |
+| `final_stretch` | tắt | | |
 
-### 7.2 Bất biến (test được)
+Bỏ khỏi bản cũ: `stone_window_day`, `recycle_stone_window_day`, `recycled_pull_stone_scale`, `stone_by_rarity`, `season_first_hit_stone`, `vault_first_hit_scale`, `rho_max`.
 
-Tiền tố ECO để không đụng `INV-1..7` của `build-spec.md` và `INV-V*` của game-designer.
+### 11.2 Bất biến (tiền tố ECO)
 
 | # | Bất biến |
 |---|---|
-| ECO-1 | Nâng Land chỉ trừ Stone. Không API nào trừ Shard cho Land |
-| ECO-2 | Vé thứ k mua bằng Shard trong ngày UTC giá `round5(100 × 1,05^(k−1))`, k reset 00:00 UTC, tối đa 30/ngày. Vé salvage, Pass, bundle, starter không tăng k |
-| ECO-3 | Quay vé và salvage không bao giờ cộng Shard. Sau mỗi lượt: Shard không đổi, vé −1. Không có đường Stone→Shard, vé→Shard |
-| ECO-4 | Stone Echo chỉ cho 20 lượt đầu mỗi ngày UTC (mọi nguồn vé). Lượt 21+ = 0 Stone |
-| ECO-5 | `Σ rate × mảnh / 10 < 1` với cả tỉ lệ gốc (0,238) và hiệu dụng (0,265). Test: 100.000 vé mua → tổng lượt ≤ 1,36 × 100.000 |
-| ECO-6 | `Σ rarity_rates = 100% (±0,001)`. E gốc = 180,1 (±2). E_eff trong khoảng 190–208 (sim 100.000 lượt) |
-| ECO-7 | Server chặn Echo Stone > 24.000/ngày/tài khoản và vé giữ ≤ 999 |
-| ECO-8 | Pity: không quá 15 lượt liền không có ≥ Rare, 60 không có ≥ Epic, 200 không có ≥ Legendary, 1.000 không có Mythic (RNG ép xui) |
-| ECO-9 | `T_min = 32.400 / (cap_run + 100 + 1.500/7) = 14,0 ngày ≥ 14`. XP cộng dồn lv 30 = 32.400. Pass: Shard 4.800, Stone 16.500, vé 12 |
-| ECO-10 | Stone từ Pass, thưởng ngày/tuần, Echo: do server cấp và kiểm ngày UTC. Mọi ghi qua `SaveStore`; field mới (vé, mảnh, pity, bộ đếm ngày) có trong `MetaState.reload_from_store()` |
-| ECO-11 | Timeline sim (R = 450): heavy 51,6 ±10%, regular 77,9 ±15%, casual 98,3 ±15% tuần. Heavy 49–54 tuần khi R ∈ [350, 570] |
-| ECO-12 | Mission Stone ≤ 150/ngày hoạt động |
+| ECO-1 | Nâng Land chỉ trừ Stone |
+| ECO-2 | Vé thứ k mua Shard trong ngày UTC giá `round5(200 × 1,05^(k−1))`, ≤ 30/ngày, một thang chung; vé Pass/tái chế/starter/bundle không tăng k |
+| ECO-3 | Mở hộp và đổi trùng không bao giờ cộng Shard; không có đường vé/mảnh/Stone → Shard |
+| ECO-4 | **Mỗi lượt ra đúng một phần thưởng** (Stone XOR cosmetic). Hộp thường: Σ = 100% (±0,001), Stone 60% (±0,5 sim 100.000 lượt), EV Stone 242,5 (±3%) |
+| ECO-5 | Không có cửa sổ Stone theo ngày ở bất kỳ hộp nào. Chặn duy nhất: ECO-7 |
+| ECO-6 | Hồi vé/lượt: hộp thường ≤ 0,25 (hiện 0,211), hộp mùa ≤ 0,10 mỗi vé bỏ ra (hiện 0,0705). Test: 100.000 vé mua → tổng vé bỏ ra ≤ 1,30 × 100.000 |
+| ECO-7 | Server chặn Stone Echo > 80.000/ngày/tài khoản (cao hơn 3 × stack lớn nhất, chỉ chặn bug) và vé giữ ≤ 999. (Số 24.000 cũ sẽ cắt jackpot nên bỏ). SỬA 10/10: vẫn giữ 80.000. Trần này chưa bao giờ được tính theo tần suất jackpot, chỉ theo độ lớn stack (3 × 25.000 = 75.000, làm tròn 80.000); jackpot hiếm hơn không làm trần sai, và hạ trần xuống dưới 25.000 sẽ cắt jackpot nên không hạ |
+| ECO-8 | Pity hộp thường theo lượt cosmetic: không quá 15/60/200/1.000 lượt cosmetic liền không có ≥ Rare/Epic/Legendary/Mythic |
+| ECO-9 | `T_min = 32.400 / (2.000 + 100 + 1.500/7) = 14,0 ngày ≥ 14`; Pass: Shard 4.800, Stone 16.500, vé 12 |
+| ECO-10 | Stone và vé do server cấp, kiểm ngày UTC. Ghi qua `SaveStore`; field mới (vé theo nguồn, mảnh, pity, bộ đếm series) vào `MetaState.reload_from_store()` |
+| ECO-11 | Timeline sim (R = 450, nửa bộ): heavy 52 ±10%, regular 109 ±15%, casual 136 ±15%; không mua mùa / đủ bộ theo §6.4 |
+| ECO-12 | Stone nhiệm vụ ≤ 150/ngày hoạt động |
 | ECO-13 | Unlock chỉ số = 0 khi Ranked; ai đã có unlock thì mốc Pass trả Shard bằng giá shop |
+| ECO-14 | Một lượt mùa trừ đúng 5 vé; bảng Stone mùa chỉ bốc khi không tầng nào trúng và không tầng nào đến hạn; ≤ 8 lượt mùa/ngày |
+| ECO-15 | S1 đủ trong ≤ 80 lượt, Mythic đầu ≤ 40; sim 100.000 series: max ≤ 80, mean 55 ±3, Stone mùa 78% ±2 |
+| ECO-16 | Bảng đổi trùng đơn điệu tăng theo độ hiếm; 10 trùng Common → 3 vé |
+| ECO-17 | Vòng lặp Pass: 2.000 XP = 50 Shard, ≤ 405 Shard/tuần, XP lẻ đổi cùng tỉ lệ, không mang sang |
+| ECO-18 | Bundle: lượt dùng vé bundle ra đúng bảng thường, không trần/tuần riêng |
+| ECO-19 | **Hộp mùa không có Stone một lần theo món mới** (khoản 9.300 cũ bị xóa; trúng cosmetic = hết phần thưởng lượt đó) |
+| ECO-20 | **Jackpot thật nhỏ (SỬA 10/10):** hộp thường jackpot 10.000 = 0,02% mỗi lượt (±0,01 điểm %, sim 100.000 lượt chỉ kỳ vọng ~20 cái nên kiểm bằng đếm trọng số trong bảng, không bằng sim); hộp mùa jackpot 25.000 = 0,03% trong lượt Stone. Không jackpot nào > 0,05% mỗi lượt của hộp nó. Đổi tỉ lệ jackpot thì EV 242,5 / 1.290 phải giữ trong ±3% |
 
-### 7.3 Telemetry
+### 11.3 Telemetry
 
-1. Sổ vé theo `origin` (shard/salvage/pass/starter/bundle): số vé, số lượt, tỉ lệ salvage trên lượt (đối chiếu 18–23%).
-2. Vé mua/ngày p10/p50/p90 theo nhóm hoạt động; % ngày chạm cửa sổ 20; % người dùng > 20 lượt/ngày.
-3. Stone/tuần theo nguồn (Echo, thưởng, Pass, mission) và **thời gian tới từng bậc Land** p10/p50/p90 so với bảng §2.4.
-4. Tỉ lệ chạm pity theo bậc, số lượt thật tới Epic+/Legendary+/Mythic (đối chiếu 25 / 100 / 632).
-5. Số dư Shard p90: cờ đỏ khi > 4 tuần thu nhập (pile của heavy) hoặc p10 mua < 4 vé/ngày ở ngày mở game.
-6. Pass: số ngày hoàn thành (min ≥ 14), % xong mùa, % chạm trần XP ngày.
-7. Thưởng ngày/tuần: tỉ lệ nhận, % đạt ≥ 4 ngày.
-8. R thật theo mode và thắng/thua (cập nhật A1).
-9. Mission Stone/ngày thật so với trần 150.
-10. Echo Stone/ngày p99 so với trần server 24.000.
+1. Sổ vé theo `origin` (shard / recycle / pass / starter / bundle); tỉ lệ lượt dùng vé tái chế (kỳ vọng thấp hơn bản cũ: heavy ~16% lượt năm đầu = (5.378 − 4.498)/5.378, casual/regular thấp hơn).
+2. Vé mua/ngày p10/p50/p90 (đối chiếu 6,9 / 4,9 / 13,7); % ngày chạm cap 30.
+3. Tỉ lệ ra Stone mỗi hộp (60% / 78%), phân phối stack, EV thực mỗi lượt (242,5 / 1.006), tần suất jackpot (1/5.000 lượt thường / 1/4.274 lượt mùa; SỬA 10/10, cũ 1/500 và 1/625). Vì quá hiếm nên đếm trên toàn bộ người chơi, không theo từng người.
+4. Stone/tuần theo nguồn; thời gian tới từng bậc Land p10/p50/p90 theo hành vi mùa.
+5. Hộp mùa: % người mở, lượt/series (đối chiếu 55, max 80), vé ròng/series (271,5), % Shard 12 tuần cho mùa (82 / 66 / 24).
+6. Hồi vé thực tế mỗi hộp (≤ 0,211 / 0,0705), % chạm pity.
+7. Số dư Shard p90 (cờ đỏ > 8 tuần thu nhập).
+8. Pass: ngày xong (min ≥ 14), Shard từ vòng lặp (≤ 405/tuần).
+9. R thật theo mode; Echo Stone/ngày p99 so với trần 80.000; Stone/ngày từ bundle.
+10. Mission Stone/ngày thật so với 150.
 
-### 7.4 Câu hỏi mở (kèm đề xuất)
+### 11.4 Câu hỏi mở (chỉ những gì Liam còn phải trả lời)
 
 | # | Câu hỏi | Đề xuất |
 |---|---|---|
-| OQ-1 | Regular 1,5 năm, casual 1,9 năm tới Luna: chấp nhận không, hay cần catch-up? | Chấp nhận, không đổi ladder (§2.4). Chuẩn bị núm `final_stretch` +2.500 Stone/tuần ở bậc 5, bật khi telemetry cho thấy casual median < 14.000 Stone/tuần |
-| OQ-2 | Heavy dừng ở cửa sổ tồn ~235.000 Shard/6 tháng. Cần sink Shard riêng? | Hoãn. Khi p90 số dư > 4 tuần thu nhập thì thêm "Echo Market": mua thẳng 1 món còn thiếu, giá cố định cao hơn nhiều so với quay (không ra Stone, không có Mythic) |
-| OQ-3 | Cửa sổ 20 tính mọi vé (salvage, Pass, bundle)? | Có, như game-designer. Nếu bỏ salvage khỏi cửa sổ thì heavy nhanh hơn ~25% (vượt mục tiêu 1 năm) |
-| OQ-4 | Có cần bậc "50% Stone cho lượt 21–30" không? | Không. Heavy chỉ vượt cửa sổ ~1,7 vé/ngày, thêm bậc chỉ tăng độ phức tạp |
-| OQ-5 | Guest: Stone chờ trong queue 7 ngày, cấp khi đăng nhập? | Có. Nếu không thì đổi đồng hồ máy là lách |
-| OQ-6 | Mythic pity 1.000 (cho 37% người chơi chạm sàn) có giữ? | Giữ ở bản đầu; nếu Liam muốn Mythic thực sự hiếm thì nới tới 1.500 (Stone/lượt −1,5) |
-| OQ-7 | Mở game ngày không chơi vẫn mua vé được (thưởng +15% vé cho casual)? | Có, đây là thưởng cho thói quen mở game |
-| OQ-8 | Ai đã mua unlock chỉ số từ shop: mốc Pass trả Shard bằng giá shop (ECO-13)? | Có, như game-designer; giá shop không đổi để làm đường dự phòng |
-| OQ-9 | Mission Stone trần 150/ngày | Chốt ở đây, Nhiệm vụ thiết kế sau trong trần này |
-| OQ-10 | Số món thật mỗi độ hiếm (61/55/47/39/31/22) là ước | Đổi số này chỉ làm dịch thời điểm salvage, không đổi kết luận. Cập nhật khi art request chốt |
+| OQ-1 | Với heavy ghim ở ~1 năm, regular ra **2,09 năm** (mục tiêu 1,5) và casual **2,61 năm** (mục tiêu 1,9), chậm hơn ~38%. Số này lớn hơn con số Liam đã thấy. Chấp nhận như đã duyệt, hay nâng nguồn Stone cố định? | Để nguyên (đúng quyết định "không catch-up"). Nếu muốn nới: `daily_stone` 500 → 700 kéo regular về 100,6, casual 128,7 (heavy 50,3); chỉ tính khi telemetry cho thấy người chơi bỏ cuộc |
+| OQ-2 | Trần cứng 80 lượt = 400 vé = **120% Shard 12 tuần của casual** (97% regular). Casual không thể chắc đủ bộ trong một mùa. Giữ ≤ 80, hay hạ trần (cần đổi N_E/N_L/N_M và tính lại điển hình ~55)? | Giữ 80: điển hình mới là mức người chơi thực trả (82% casual), phần còn lại là bộ vào Vault không hạn. Chỉ hạ nếu playtest cho thấy casual nản |
+| OQ-3 | ĐÃ CHỐT 10/10 (Liam: giữ 10.000 / 25.000, tỉ lệ thật nhỏ). Đã hạ xuống 0,02% (1/5.000) và 0,03% (1/4.274 lượt mùa), xem §3.1 / §4.2. Heavy gặp ~1,1 jackpot thường/năm | Không còn câu hỏi. Nếu muốn jackpot mùa dễ thấy hơn, tăng tới 0,05% (xem §4.2) |
+
+Đăng ký registry (`design/registry/entities.yaml`): vé, mảnh, bảng đổi trùng, 5 vé/lượt mùa, giá cơ sở 200, các stack Stone. Liam đã cho phép (10/10); đã đăng ký ngày 10/10/2026 với `status: active` kèm comment "đề xuất Liam đã duyệt, chưa vào GDD" (registry chỉ có active | deprecated). Số ước, chưa sim: số lượt điển hình 55, hồi 3,5 vé, 78% Stone mùa; cần sim 100.000 series và 100.000 lượt hộp thường trước khi chốt.
+
+---
+
+## 12. Game-designer phải sửa trong `echobox-pass-v2.md` §2–§4 cho khớp
+
+**§2 (Echo Box)**
+1. **Một loại vé, bỏ `season_ticket`**: §2.0 đọc nhanh, §2.2 (bảng 2 hộp), §2.3 (vé), §2.4 (hai thang giá, tỉ lệ 3×, OQ-27) viết lại: một thang `round5(200 × 1,05^(k−1))`, hộp thường 1 vé, hộp mùa 5 vé/lượt; bỏ bộ đếm `season_dupe_count`; quà khởi đầu 3 vé chung.
+2. **Mô hình bảng rơi, mỗi lượt đúng một phần thưởng**: thêm Stone vào bảng rơi cả hai hộp; bỏ cửa sổ 20 lượt/ngày (§2.4 dòng "Cửa sổ Stone", §2.6) và bỏ "Stone mỗi lượt theo độ hiếm 80/160/400/1.000/2.500/8.000" (§2.7).
+3. **§2.7 hộp thường**: thay bảng "Tỉ lệ cơ bản và Stone" bằng bảng §3.1 của file này (Stone 60% gồm 6 stack, cosmetic 40%); pity đếm theo lượt cosmetic; thời gian tới đủ tầng nhân 2,5 (252 / 565 / 1.040 / 2.215 / 5.555 / 18.988 lượt).
+4. **§2.8 hộp mùa**: Epic thành tầng có odds leo dần (N_E = 10, b_E = 8%), không còn là ô mặc định; ô không trúng = Stone theo bảng 4.2; thứ tự xử lý 5 bước như §4.1; bound `B = max(72, 63, 80) = 80`; xóa bảng bound cũ và dòng "Epic ~1".
+5. **§2.5 đồ trùng**: một bảng 3/5/10/20/40/80 mảnh (cũ 1/2/5/15/40/100 và "6 trùng = 1 vé Mùa"), 10 mảnh = 1 vé; hồi hộp thường tối đa 0,211/lượt, hộp mùa 0,0705 mỗi vé; sửa chứng minh (một vòng chung, tỉ số 0,211).
+6. **§2.6 Land Stone**: thay bảng "Stone một lần 9.300" bằng Stone là phần thưởng bảng rơi hộp mùa; xóa `season_first_hit_stone`; bảng tuần tới Land thay bằng §6.4 file này.
+7. **§2.9 mốc 12/40**: giữ danh hiệu và `die_m_moon`, **bỏ Stone 2.000 ở mốc 40**.
+8. **§2.10 Vault**: bỏ `vault_first_hit_scale`; N nhân đôi giữ; Stone mùa giữ cùng bảng.
+9. §0 mục 1, 4, 5, 8: sửa "hai loại vé", "đồ trùng không nuôi hộp kia", "hộp mùa gần như trung tính", "Pass trả 8 vé Echo + 4 vé Mùa".
+
+**§3 (Battle Pass)**: Pass trả **12 vé chung** (bỏ "8 Echo + 4 Mùa"); mọi dòng nhắc `season_ticket` đổi thành "vé".
+
+**§4 (Thưởng ngày)**: không đổi số; chỉ sửa các dòng nhắc cửa sổ Stone 20 lượt và vé Echo/Mùa thành "vé".

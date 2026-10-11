@@ -81,7 +81,33 @@ Làm cả 4 hệ:
   hiếm theo mùa; GIÁ HỘP MÙA CAO HƠN NHIỀU hộp thường). **XONG 10/10** (`echobox-pass-v2.md` §2): 2 loại vé không đổi chéo,
   hộp mùa 3× giá (300 vs 100 Shard, chờ Liam OQ-27), hộp mùa 0 Stone/lượt (chỉ Stone một lần/món mới),
   pool thường 223 món, Series 1 hộp mùa 11+1 món, đủ bộ ≤80 lượt, nhịp 12 tuần, 1 nhà 2 tab. OQ-20..27.
-  Chờ Liam trả lời danh sách A–D + OQ-20..27 → economy-designer cân lại số.
+  Liam đã trả lời A–D + E1–E5 (ghi ở đầu các file đề xuất): hộp mùa GẤP 5, nhịp 12 tuần, chấp nhận
+  Land chậm hơn với người mua đủ bộ; Pass có vòng lặp mốc sau lv30 trả Shard nhỏ (kiểu LoL); vé bundle
+  ra Stone không tính giới hạn 20; leaderboard chỉ cho người đã đăng ký (KHÔNG theo công ty).
+  E6: 1 nhà 2 tab. E7: 1 LOẠI VÉ chung cho 2 hộp, đồ thừa đổi ra vé (vd 10 món thấp → 3 vé).
+  economy-v2.md ĐÃ cân lại cho 2 hộp + 1 vé chung (đổi trùng C3/U5/R10/E20/L40/M80 mảnh, 10 mảnh = 1 vé).
+  Liam chốt 5 câu: vé 200 Shard; chấp nhận chậm khi đủ bộ; 1 vé / 5 vé; bundle không hàng rào; vé đổi KHÔNG
+  tính cửa sổ 20. **ĐÍNH CHÍNH của Liam:** Stone là một loại phần thưởng trong bảng rơi (tỉ lệ cao), không kèm
+  mọi lượt → mô hình economy hiện tại SAI, phải tính lại. Liam XÁC NHẬN mô hình; hộp mùa cũng ra Stone, lượng cao hơn hộp thường.
+  economy-v2.md ĐÃ tính lại theo mô hình đúng (thường: 60% Stone, EV 242,5/lượt; mùa: Stone là ô không trúng,
+  EV ~1.006/lượt; bound 80). Heavy nửa bộ 52,3 tuần; regular 108,8; casual 136,2. Liam: để nguyên chậm, giữ 80, jackpot ok nhưng tỉ lệ THẬT NHỎ, cho thêm registry.
+  XONG: jackpot thường 0,02% (1/5.000), mùa 0,03% lượt Stone; EV và tuần Land không đổi. Registry ghi 18 mục
+  economy (design/registry/entities.yaml). echobox-pass-v2 ĐÃ đồng bộ với economy-v2 (1 loại vé, mỗi lượt 1 phần
+  thưởng). Còn mở: OQ-13 (Arcana Progress), OQ-14 (quà 40 lượt Mythic?), OQ-28 (xác nhận lượt mùa 5 vé), OQ-29.
+  Việc chờ sim khi triển khai: ECO-15 trung bình đủ bộ, chi phí Vault.
+- **RELIC (Liam duyệt bắt đầu 10/10):** đang chạy game-designer bước 1 (audit 94 relic) + 2 (nghiên cứu) →
+  `design/proposals/relic-audit-research.md` — XONG bước 1–2 (KEEP 66 / BUFF 3 / REWORK 18 / MERGE 7 / CUT 0;
+  54% passive chỉ sửa xúc xắc lúc build; mload/RELIC_CAP/ex chưa port — đã kiểm code). Liam trả lời 12 câu (ghi đầu file). Bước 3a XONG: `relic-set-v2.md` (134 relic: 52 giữ + 16 active + 19 rework + 2 merge + 45 mới; 12 duo, 6
+  class-up, 9 pact, 8 hook mới; trần nhân G ×2.5). Liam trả lời đủ 14 câu (11/10); **Liam DUYỆT bộ relic (11/10)**, audit lại XONG → `relic-set-v2-review.md`: LOCK AFTER FIXES, 22 phát hiện (3 BLOCKER, 9 MAJOR, 10 MINOR). Liam trả lời Q1–Q6 (bỏ tithepurse, trần G theo Axie, pact 1 lần/pact, linkstone kề cố định, giữ event −HP, KHÔNG trần flat). Bộ relic ĐÃ SỬA theo review: 133 relic (bỏ tithepurse, 44 mới), BLOCKER+MAJOR fixed, 7 MINOR fixed / 3 hoãn.
+  Câu 15 (cả `curse`) và 16 (trần ×2,0 Shield/Heal/Mana): CÓ. **BỘ RELIC ĐÃ KHOÁ VỀ THIẾT KẾ (11/10)**, số chốt sau sim.
+- **Nhiệm vụ: ĐANG CHẠY** game-designer viết lại `nhiem-vu-risk-to-earn.md` (thang độ khó D → p → stake/m, ≤150 Stone/ngày,
+  RTP ≤100%, ≥15 loại, bảng 5/ngày, telemetry trả lời "người chơi có chấp nhận risk to earn không").
+  reroll gốc = 2; shop tiêu Gene Shard thật (A1 +15% = sink); ContentDB nằm trong fingerprint.
+  Liam trả lời đủ 10 câu Ascension (11/10). Request UI cho Claude Design: `design/requests/ascension-ui-request-01.md`
+  (8 mục: panel Run Setup, badge trong run, Boss Clock, sticker Eternal, báo weaken, pact bắt buộc, giá shop, reward
+  2 thẻ/ô 7). Ascension cho ranked: Claude đã đề xuất (daily A3 cố định, thử thách tuần A6, bảng theo từng level),
+  chi tiết làm ở bước ranked.
+  Casual/regular chậm hơn mục tiêu: Liam chấp nhận.
 - Asset: `asset-library/godot-ready/` + `asset-library/design-library/` giờ là BẢN CHÉP THẬT (10/10).
   **Không mở/sửa `~/Downloads/MyGame` và `~/Downloads/axie-asset-sources/`** (Liam cấm).
 - **Seed/resume — CHỐT (Liam 10/10), làm cùng ĐỢT COMBAT:** vào lại thì về đúng trận/lượt/HP/mặt đang
@@ -100,9 +126,9 @@ Mỗi bước: brainstorm → plan → làm → polish, đợi Liam duyệt gi�
 
 ## Việc đang treo
 
-- Commit `088bf0f` và mọi thay đổi 10/10 (dưới) chưa commit/push. Worker chưa deploy
-  (rate limit + sửa typo "Axie Dice Dice" trên /terms, /privacy chỉ có hiệu lực sau
-  `cd worker && npx wrangler deploy`).
+- 10/10: đã commit 4 nhóm (cd6dad5 test save-safe, 059458e worker rate limit, 17fe83f prototypes,
+  744138b docs). ĐÃ push lên `axiedice/main` 10/10 (kèm 088bf0f docs của Cowork). Worker ĐÃ deploy (version b73672cd),
+  smoke check OK.
 - Xoá Worker cũ `axie-dice-fun` (dashboard) · test Chrome incognito + Safari — Liam làm.
 - Login riêng + chip tài khoản góc phải: để tới đợt polish UI cuối (Liam, 10/10).
 
