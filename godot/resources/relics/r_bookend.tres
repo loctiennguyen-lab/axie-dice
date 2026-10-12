@@ -6,13 +6,11 @@
 script = ExtResource("1")
 id = "r_bookend"
 name = "Bookend Pennants"
-description = "Axie slot 1 và slot 5: mọi mặt dmg +3"
+description = "Axie in party slot 1 and slot 5: all damage faces +3."
 rarity = 0
 archetype = "crit"
 mload = 0
 sort_index = 100535
-hook_key = ""
+hook_key = "r_bookend"
 tags = PackedStringArray("uni")
 layer = "positional"
-needs_hook = "BODY"
-hidden_from_pool = true

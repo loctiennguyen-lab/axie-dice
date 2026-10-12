@@ -6,13 +6,11 @@
 script = ExtResource("1")
 id = "r_spikedbulwark"
 name = "Spiked Bulwark"
-description = "Axie nhận Shield: Thorns của nó +1 cho mỗi 5 Shield đang có (tối đa +4) đến hết lượt"
+description = "When an Axie gains Shield: +1 Thorns per 5 Shield it holds (max +4) until end of turn."
 rarity = 1
 archetype = "shield"
 mload = 0
 sort_index = 101505
-hook_key = ""
+hook_key = "r_spikedbulwark"
 tags = PackedStringArray("shield", "thorns")
 layer = "duo"
-needs_hook = "BODY"
-hidden_from_pool = true

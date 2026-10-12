@@ -31,18 +31,13 @@ const EXPECTED_HOOKS := {
 	"r_bloodmouth": ["mod_face"],
 	"r_gorehook": ["mod_face"],
 	"r_barbedhide": ["mod_face"],
-	"r_rotbite": ["mod_dmg"],
-	"r_tinderbox": ["mod_dmg"],
 	"r_lastwall": ["on_turn_start"],
 	"r_tidalbrand": ["mod_face", "on_turn_start"],
-	"r_heart": ["mod_face"],
+	"r_heart": ["mod_face", "on_turn_start"],
 	"r_ear": ["mod_face"],
-	"r_spines": ["on_turn_start"],
 	"r_ember": ["on_hit"],
-	"r_openwound": ["mod_dmg"],
 	"r_deathmark": ["mod_face", "on_kill"],
 	"r_wildfire": ["mod_face"],
-	"r_voidgene": ["on_turn_start"],
 	"r_talonedge": ["mod_face"],
 	"r_marrowdrill": ["mod_face"],
 	"r_heartwood": ["growth_all_guard"],
@@ -72,9 +67,9 @@ const EXPECTED_HOOKS := {
 	"r_manaspring": ["on_turn_start"],
 	"r_keeneye": ["on_roll_end"],
 	"r_windlash": ["mod_face", "mod_face2"],
-	"r_bloodpact": ["mod_face"],
+	"r_broodpouch": ["on_turn_start"],
 	"r_plaguelord": ["mod_face"],
-	"r_soulforge": ["mod_face"],
+	"r_soulforge": ["mod_dmg"],
 	"r_stormcall": ["mod_face"],
 	"r_manaflood": ["on_turn_start"],
 	"r_ancientgene": ["mod_face"],
@@ -128,7 +123,7 @@ func _pos(d) -> int:
 func _is_pure_data(d) -> bool:
 	for f in ["piercePlus", "dmgMult", "critMult", "critFlat", "critFlatPity", "critBonus", "dr",
 			"thornsMult", "thornsPlus", "rerollUp", "hiveMind", "tokenCap", "cleaveRatio", "poisonTicks",
-			"burnMult", "burnTicks", "burnTickRatio", "growthPlus", "growthAll", "startSummon", "actReuse"]:
+			"burnMult", "burnTicks", "burnTickRatio", "growthPlus", "woundedPoison", "growthAll", "startSummon", "actReuse"]:
 		if float(d.get(f)) != 0.0:
 			return true
 	for f in ["critPierce", "noShieldCap", "healShield", "manaOverflow", "plague", "burnSlow", "burnSpread",
@@ -157,7 +152,7 @@ func test_every_relic_in_the_source_has_a_resource() -> void:
 	for d in _defs():
 		if _pos(d) < V2_POS_MIN:
 			legacy += 1
-	_assert(legacy == 94, "expected 94 legacy relics loaded, found %d — src/data.js RELICS[] has 94" % legacy)
+	_assert(legacy == 88, "expected 88 legacy relics loaded (94 minus the 6 merged away in v2), found %d" % legacy)
 	# A v2 relic with no hook_key and no behaviour must not be offered (hidden until its hook lands).
 	for d in _defs():
 		if _pos(d) >= V2_POS_MIN and String(d.hook_key) == "" and d.act_cost <= 0:

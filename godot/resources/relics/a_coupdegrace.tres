@@ -6,16 +6,16 @@
 script = ExtResource("1")
 id = "a_coupdegrace"
 name = "Coup de Grâce"
-description = "[MP 5] Deal 14 damage to one enemy, executing."
+description = "[MP 4] Deal 15 damage to one enemy, executing."
 rarity = 2
 archetype = "exec"
 mload = 0
 sort_index = 102089
 hook_key = ""
-act_cost = 5
+act_cost = 4
 act = {
 "kind": "dmg",
-"v": 14,
+"v": 15,
 "exec": 1
 }
 tags = PackedStringArray("exec")

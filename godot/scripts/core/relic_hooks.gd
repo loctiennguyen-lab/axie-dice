@@ -32,35 +32,12 @@ extends RefCounted
 ## (r_heart, r_ear, r_deathmark, r_soulforge, r_worldpiercer, ...) were deliberately left
 ## unported for exactly this reason rather than shipped with a silently-missing modFace half.
 static var TABLE: Dictionary = {
-	"r_rotbite": {
-		# JS: modDmg:ctx=> (ctx.tgt.st.poison>0? ctx.v+2 : ctx.v) — no event in JS either;
-		# the +2 is already visible through the final hit_landed/float_text the pipeline
-		# emits for the resulting total, same as JS.
-		"mod_dmg": func(ctx: Dictionary):
-			var tgt: Unit = ctx["tgt"]
-			var v: float = float(ctx["value"])
-			return v + 2.0 if int(tgt.status.get("poison", 0)) > 0 else v,
-	},
-	"r_tinderbox": {
-		# JS: modDmg:ctx=> (ctx.tgt.st.burn>0? ctx.v+2 : ctx.v)
-		"mod_dmg": func(ctx: Dictionary):
-			var tgt: Unit = ctx["tgt"]
-			var v: float = float(ctx["value"])
-			return v + 2.0 if int(tgt.status.get("burn", 0)) > 0 else v,
-	},
-	"r_openwound": {
-		# JS: modDmg:ctx=> ctx.tgt.st.poison>0 ? Math.ceil(ctx.v*1.3) : ctx.v
-		"mod_dmg": func(ctx: Dictionary):
-			var tgt: Unit = ctx["tgt"]
-			var v: float = float(ctx["value"])
-			return ceil(v * 1.3) if int(tgt.status.get("poison", 0)) > 0 else v,
-	},
 	"r_scentofblood": {
 		# JS: modDmg:ctx=> (ctx.tgt.side==='e'&&ctx.tgt.hp<ctx.tgt.maxHp*0.5? ctx.v+4 : ctx.v)
 		"mod_dmg": func(ctx: Dictionary):
 			var tgt: Unit = ctx["tgt"]
 			var v: float = float(ctx["value"])
-			return v + 4.0 if (tgt.side == "e" and tgt.hp < tgt.max_hp * 0.5) else v,
+			return v + 4.0 if (tgt.side == "e" and DamagePipeline.is_wounded(ctx["combat"], tgt)) else v,
 	},
 	"r_lastwall": {
 		# JS onTurnStart: most-endangered living non-token ally (lowest hp+shield) gets
@@ -80,21 +57,6 @@ static var TABLE: Dictionary = {
 			if int(w.status.get("undying", 0)) == 0:
 				w.status["undying"] = 1
 				EventBus.float_text.emit(w.uid, "UNDYING", "buf", 0)
-			return,
-	},
-	"r_spines": {
-		# JS onTurnStart: whole living party always has Thorns >= 2. Silent in JS (no ft) —
-		# pulse the relic channel when it actually raises the value so it isn't invisible
-		# every single turn once it's already at the floor (rule spec §10 "never skip this").
-		"on_turn_start": func(ctx: Dictionary):
-			var combat = ctx["combat"]
-			for u in combat.party:
-				if u.hp <= 0:
-					continue
-				var before := int(u.status.get("thorns", 0))
-				if before < 2:
-					u.status["thorns"] = 2
-					EventBus.relic_pulsed.emit("r_spines", u.uid)
 			return,
 	},
 	"r_ember": {
@@ -280,11 +242,16 @@ static var TABLE: Dictionary = {
 			return,
 	},
 	"r_heart": {
-		# JS: u=>{u.maxHp+=12;} — a modFace that touches no face at all. Kept as a modFace
-		# rather than a data field because it must run inside the INV-5 pass, alongside the
-		# other relics that change max HP, so the order of HP changes is data-determined too.
+		# v2 rework (§1.2): +8 Max HP for the whole party (runs in the INV-5 pass with the other
+		# max-HP changes); at turn start an Axie below 30% HP gains 6 Shield.
 		"mod_face": func(ctx: Dictionary):
-			ctx["unit"].max_hp += 12
+			ctx["unit"].max_hp += 8
+			return,
+		"on_turn_start": func(ctx: Dictionary):
+			var combat = ctx["combat"]
+			for u in combat.party:
+				if u.hp > 0 and not u.is_token and float(u.hp) < float(u.max_hp) * 0.3:
+					DamagePipeline.apply_shield(combat, u, 6)
 			return,
 	},
 	"r_ear": {
@@ -366,15 +333,6 @@ static var TABLE: Dictionary = {
 					(f["keywords"] as Array).append("burn:6")
 			return,
 	},
-	"r_bloodpact": {
-		# JS: u.maxHp = Math.max(4, Math.round(u.maxHp*0.85)). Math.round, not ceil/floor —
-		# and JS rounds .5 toward +infinity, which is what GDScript's round() does too.
-		# The x1.6 damage half is the `dmgMult` data field.
-		"mod_face": func(ctx: Dictionary):
-			var unit = ctx["unit"]
-			unit.max_hp = maxi(4, int(round(float(unit.max_hp) * 0.85)))
-			return,
-	},
 	"r_plaguelord": {
 		# The "poison never decays" half is the `plague` data field.
 		"mod_face": func(ctx: Dictionary):
@@ -384,12 +342,14 @@ static var TABLE: Dictionary = {
 			return,
 	},
 	"r_soulforge": {
-		# The no-shield-cap and 30%-damage-reduction halves are the `noShieldCap`/`dr` fields.
-		"mod_face": func(ctx: Dictionary):
-			for f in ctx["unit"].die:
-				if String(f.get("type", "")) == "shield":
-					f["value"] = int(f.get("value", 0)) + 2
-			return,
+		# v2 rework (§1.2): the no-shield-cap half is the `noShieldCap` field. No `dr`, no +2
+		# Shield any more; instead every 10 Shield on the attacker is +1 on its damage faces (max +6).
+		"mod_dmg": func(ctx: Dictionary):
+			var src: Unit = ctx.get("src", null)
+			var v: float = float(ctx["value"])
+			if src == null:
+				return v
+			return v + float(mini(6, src.shield / 10)),
 	},
 	"r_stormcall": {
 		# "single-target" means a face carrying neither aoe nor cleave already.
@@ -401,14 +361,33 @@ static var TABLE: Dictionary = {
 			return,
 	},
 	"r_ancientgene": {
-		# mf_phase "mul" — this is the only multiplier in the game, and the whole INV-5 phase
-		# ordering exists so that it lands AFTER every flat adder no matter the pickup order.
-		# ceil, and only on faces with a positive value, so blanks stay blank.
+		# v2 rework (§1.2): +30% on DAMAGE faces only (was every face), plus +1 Growth on every
+		# face that already has the growth keyword. mf_phase "mul" keeps it after every flat adder
+		# (INV-5). ceil, positive faces only, so blanks stay blank.
 		"mod_face": func(ctx: Dictionary):
-			for f in ctx["unit"].die:
+			var unit = ctx["unit"]
+			for i in unit.die.size():
+				var f: Dictionary = unit.die[i]
 				var v := int(f.get("value", 0))
-				if v > 0:
+				if String(f.get("type", "")) == "dmg" and v > 0:
 					f["value"] = int(ceil(float(v) * 1.3))
+				if (f["keywords"] as Array).has("growth"):
+					unit.add_growth(i, 1)
+			return,
+	},
+	"r_broodpouch": {
+		# The start-of-fight Egg is the `startSummon` field. Merged swarmnest rule: on turn 3,
+		# fewer than 3 Eggs -> one more. on_turn_start runs before roll_all, so it rolls normally.
+		"on_turn_start": func(ctx: Dictionary):
+			var combat = ctx["combat"]
+			if combat.turn != 3:
+				return
+			var eggs := 0
+			for u in combat.party:
+				if u.is_token and u.hp > 0:
+					eggs += 1
+			if eggs < 3:
+				combat.party.append(combat._mk_ally())
 			return,
 	},
 	"r_worldpiercer": {
@@ -460,14 +439,6 @@ static var TABLE: Dictionary = {
 				for f in u.die:
 					if String(f.get("type", "")) == "dmg":
 						f["value"] = int(f.get("value", 0)) + 1
-			return,
-	},
-	"r_voidgene": {
-		# The +2 max rerolls half is the `rerollUp` data field.
-		"on_turn_start": func(ctx: Dictionary):
-			var combat = ctx["combat"]
-			if combat.turn == 1:
-				combat.mana += 1
 			return,
 	},
 	"r_infinitedie": {
@@ -638,7 +609,7 @@ static var TABLE: Dictionary = {
 			var t: Unit = ctx["tgt"]
 			if t == null or t.side != "e" or t.hp <= 0:
 				return
-			if float(t.hp) < float(t.max_hp) * 0.5 and not bool(t.custom_state.get("spiraled", false)):
+			if DamagePipeline.is_wounded(ctx["combat"], t) and not bool(t.custom_state.get("spiraled", false)):
 				t.custom_state["spiraled"] = true
 				DamagePipeline.resolve({"combat": ctx["combat"], "src": null, "tgt": t,
 					"value": 7, "pierce": true, "attack": false})
@@ -777,9 +748,132 @@ static var TABLE: Dictionary = {
 		"mod_dmg": func(ctx: Dictionary):
 			var tgt: Unit = ctx["tgt"]
 			var v: float = float(ctx["value"])
-			if tgt.side == "e" and float(tgt.hp) > float(tgt.max_hp) * 0.5:
+			if tgt.side == "e" and not DamagePipeline.is_wounded(ctx["combat"], tgt):
 				return ceil(v * 1.9)
 			return v,
+	},
+
+
+	# =======================================================================
+	# RELIC SET V2 (design/proposals/relic-set-v2.md) — bodies that need only hooks that exist
+	# today. Relics that wait for the 8 new hooks stay data-only (needs_hook in the .tres).
+	# =======================================================================
+	"r_bookend": {
+		# §1.5 positional: party slot 1 and slot 5 (index 0 and 4) — dmg faces +3. `slot` is set
+		# by the engine (lane A); until then the roster index is the same number.
+		"mod_face": func(ctx: Dictionary):
+			var unit = ctx["unit"]
+			var s: int = unit.slot if unit.slot >= 0 else unit.roster_index
+			if s != 0 and s != 4:
+				return
+			for f in unit.die:
+				if String(f.get("type", "")) == "dmg":
+					f["value"] = int(f.get("value", 0)) + 3
+			return,
+	},
+	"r_brittledice": {
+		# Pact (dice group): benefit = every dmg face +4 (add phase); drawback = Shield/Heal
+		# faces halved, rounded down (mul phase, so it also halves other relics' bonuses).
+		"mod_face": func(ctx: Dictionary):
+			for f in ctx["unit"].die:
+				if String(f.get("type", "")) == "dmg":
+					f["value"] = int(f.get("value", 0)) + 4
+			return,
+		"mod_face2": func(ctx: Dictionary):
+			for f in ctx["unit"].die:
+				var t := String(f.get("type", ""))
+				if t == "shield" or t == "heal":
+					f["value"] = int(floor(float(int(f.get("value", 0))) * 0.5))
+			return,
+	},
+	"r_towershield": {
+		# §1.5: a dmg face of an Axie that holds Shield: +1 per 4 Shield, at most +6.
+		"mod_dmg": func(ctx: Dictionary):
+			var src: Unit = ctx.get("src", null)
+			var v: float = float(ctx["value"])
+			if src == null:
+				return v
+			return v + float(mini(6, src.shield / 4)),
+	},
+	"r_patientfang": {
+		# Pact (dice group): turn 1 every damage face deals 0; from turn 2, +2 per turn passed,
+		# capped at +14. Only face damage reaches mod_dmg with a src (relic damage has src null).
+		"mod_dmg": func(ctx: Dictionary):
+			var v: float = float(ctx["value"])
+			var turn: int = int(ctx["combat"].turn)
+			if turn <= 1:
+				return 0.0
+			return v + float(mini(14, 2 * (turn - 1))),
+	},
+	"r_festermark": {
+		# Merge of rotbite + tinderbox + openwound: poisoned OR burning target takes +2 per hit,
+		# both statuses +4. Flat, no multiplier.
+		"mod_dmg": func(ctx: Dictionary):
+			var tgt: Unit = ctx["tgt"]
+			var v: float = float(ctx["value"])
+			var n := 0
+			if int(tgt.status.get("poison", 0)) > 0:
+				n += 1
+			if int(tgt.status.get("burn", 0)) > 0:
+				n += 1
+			return v + 2.0 * n,
+	},
+	"r_coupmark": {
+		# Crit on a wounded target (is_wounded BEFORE the hit): if it is left at <= 25% Max HP,
+		# it dies. Same shape as apexferal: pierce, attack=false, no re-entry into on_hit.
+		"on_hit": func(ctx: Dictionary):
+			var t: Unit = ctx["tgt"]
+			var combat = ctx["combat"]
+			if not bool(ctx.get("crit", false)) or t == null or t.side != "e" or t.hp <= 0:
+				return
+			var hp_before: int = t.hp + int(ctx.get("dealt", 0))
+			if not DamagePipeline.is_wounded_at(combat, t, hp_before):
+				return
+			if float(t.hp) <= float(t.max_hp) * 0.25:
+				DamagePipeline.resolve({"combat": combat, "src": null, "tgt": t,
+					"value": t.hp, "pierce": true, "attack": false})
+			return,
+	},
+	"r_spikedbulwark": {
+		# Shield + Thorns duo: an Axie that gains Shield holds +1 Thorns per 5 Shield (max +4)
+		# until the end of the turn. The bonus is remembered per unit so it is removed exactly.
+		"on_shield": func(ctx: Dictionary):
+			var u: Unit = ctx["tgt"]
+			var want: int = mini(4, u.shield / 5)
+			var have: int = int(u.custom_state.get("spiked_bonus", 0))
+			if want > have:
+				u.status["thorns"] = mini(StatusEngine.THORNS_CAP, int(u.status.get("thorns", 0)) + (want - have))
+				u.custom_state["spiked_bonus"] = want
+			return,
+		"on_turn_start": func(ctx: Dictionary):
+			for u in ctx["combat"].party:
+				var have: int = int(u.custom_state.get("spiked_bonus", 0))
+				if have > 0:
+					u.status["thorns"] = maxi(0, int(u.status.get("thorns", 0)) - have)
+					u.custom_state["spiked_bonus"] = 0
+			return,
+	},
+	"r_thornling": {
+		# Summon + Thorns duo: Eggs hold Thorns 3 (floor, re-applied each turn start); whenever an
+		# Egg reflects, the Axie(s) next to it gain 2 Shield.
+		"on_turn_start": func(ctx: Dictionary):
+			for u in ctx["combat"].party:
+				if u.is_token and u.hp > 0:
+					u.status["thorns"] = maxi(int(u.status.get("thorns", 0)), 3)
+			return,
+		"on_thorns": func(ctx: Dictionary):
+			var egg: Unit = ctx["tgt"]
+			var combat = ctx["combat"]
+			if egg == null or not egg.is_token:
+				return
+			var line: Array = []
+			for u in combat.party:
+				if u.hp > 0:
+					line.append(u)
+			for n in combat._neighbors_of(line, egg):
+				if not n.is_token:
+					DamagePipeline.apply_shield(combat, n, 2)
+			return,
 	},
 
 }

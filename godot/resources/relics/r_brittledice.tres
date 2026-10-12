@@ -6,14 +6,13 @@
 script = ExtResource("1")
 id = "r_brittledice"
 name = "Brittle Dice"
-description = "Lợi: mọi mặt dmg +4. Hại: mọi mặt Shield/Heal ×0.5 (làm tròn xuống)"
+description = "PACT: all damage faces +4, but Shield and Heal faces are halved (rounded down)."
 rarity = 2
 archetype = "crit"
 mload = 0
 sort_index = 102520
-hook_key = ""
+hook_key = "r_brittledice"
 tags = PackedStringArray("uni")
 layer = "pact"
 pact_group = "dice"
-needs_hook = "BODY"
-hidden_from_pool = true
+mf_phase2 = "mul"

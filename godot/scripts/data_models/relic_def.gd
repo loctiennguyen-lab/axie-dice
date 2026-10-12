@@ -115,6 +115,8 @@ extends Resource
 @export var burnSpread: bool = false
 @export var poisonSpread: bool = false
 @export var growthPlus: float = 0.0
+@export var woundedPoison: float = 0.0  ## carrioncall: a target with >= this much Poison counts as
+                                         ## "wounded" in DamagePipeline.is_wounded (relic-set-v2 §3.5).
 
 ## --- Fields the engine reads but that had no home here until the Phase-1 parity pass.
 ## Each one corresponds to a real src/engine.js behaviour that was silently unreachable

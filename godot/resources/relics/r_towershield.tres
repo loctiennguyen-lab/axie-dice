@@ -6,13 +6,11 @@
 script = ExtResource("1")
 id = "r_towershield"
 name = "Tower Shield"
-description = "Mặt dmg của Axie đang có Shield: +1 dmg mỗi 4 Shield (tối đa +6). Shield thành sát thương"
+description = "A damage face of an Axie holding Shield: +1 damage per 4 Shield (max +6)."
 rarity = 0
 archetype = "shield"
 mload = 0
 sort_index = 100545
-hook_key = ""
+hook_key = "r_towershield"
 tags = PackedStringArray("shield")
 layer = "payoff"
-needs_hook = "BODY"
-hidden_from_pool = true

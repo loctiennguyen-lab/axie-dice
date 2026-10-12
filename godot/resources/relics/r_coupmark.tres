@@ -6,13 +6,11 @@
 script = ExtResource("1")
 id = "r_coupmark"
 name = "Coup Mark"
-description = "Crit lên địch dưới 50% HP: nếu địch còn ≤25% Max HP sau đòn thì chết ngay (Execute)"
+description = "A crit on a target below 50% HP that leaves it at 25% Max HP or less kills it."
 rarity = 2
 archetype = "crit"
 mload = 0
 sort_index = 102509
-hook_key = ""
+hook_key = "r_coupmark"
 tags = PackedStringArray("crit", "exec")
 layer = "duo"
-needs_hook = "BODY"
-hidden_from_pool = true

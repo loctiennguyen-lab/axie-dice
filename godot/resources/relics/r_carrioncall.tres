@@ -6,7 +6,7 @@
 script = ExtResource("1")
 id = "r_carrioncall"
 name = "Carrion Call"
-description = "Địch có ≥5 Poison được tính là wounded trong `is_wounded()` (§3.5): FERAL, Scent of Blood, Death Spiral và mọi điều kiện \"dưới 50% HP\". Vì dùng đúng một hàm, địch đó cũng KHÔNG còn là \"trên 50% HP\" với `dawnlance` (SỬA SAU REVIEW 11/10)"
+description = "Enemies with 5 or more Poison count as wounded for every "below 50% HP" rule."
 rarity = 2
 archetype = "exec"
 mload = 0
@@ -14,5 +14,4 @@ sort_index = 102513
 hook_key = ""
 tags = PackedStringArray("exec", "poison")
 layer = "duo"
-needs_hook = "BODY"
-hidden_from_pool = true
+woundedPoison = 5.0

@@ -214,9 +214,10 @@ func _check_relic_pure_data() -> void:
 # sites (RelicHooks.fire/run_value_hook), against real Unit objects from a real CombatEngine.
 # ===========================================================================
 func _check_relic_hooks() -> void:
-	_check_mod_dmg_relic("r_rotbite", "poison", 2.0, func(v): return v + 2.0)
-	_check_mod_dmg_relic("r_tinderbox", "burn", 2.0, func(v): return v + 2.0)
-	_check_mod_dmg_relic("r_openwound", "poison", 2.0, func(v): return ceil(v * 1.3))
+	# r_rotbite / r_tinderbox / r_openwound merged into r_festermark (relic-set-v2 §1.3): +2 for
+	# one status. The "both statuses +4" case is covered in t_relic_set_v2.
+	_check_mod_dmg_relic("r_festermark", "poison", 2.0, func(v): return v + 2.0)
+	_check_mod_dmg_relic("r_festermark", "burn", 2.0, func(v): return v + 2.0)
 	_check_scentofblood()
 	_check_lastwall()
 	_check_spines()
@@ -273,10 +274,11 @@ func _check_lastwall() -> void:
 
 
 func _check_spines() -> void:
-	var combat := _new_combat(["r_spines"])
+	# r_spines merged into r_scalecrown (relic-set-v2 §1.3): same Thorns floor 2 for the whole party.
+	var combat := _new_combat(["r_scalecrown"])
 	RelicHooks.fire(combat, "on_turn_start", {"combat": combat})
 	for u in combat.alive_party():
-		_assert(int(u.status.get("thorns", 0)) >= 2, "r_spines: %s should have Thorns >= 2" % u.key)
+		_assert(int(u.status.get("thorns", 0)) >= 2, "r_scalecrown: %s should have Thorns >= 2" % u.key)
 
 
 func _check_ember() -> void:
@@ -359,8 +361,8 @@ func _check_manaspring() -> void:
 # worth of hooks firing every turn together.
 # ===========================================================================
 const ALL_20_RELIC_IDS := [
-	"r_rotbite", "r_tinderbox", "r_lastwall", "r_spines", "r_luckycharm", "r_ember",
-	"r_openwound", "r_holyfont", "r_hivemind", "r_scentofblood", "r_bloodhymn",
+	"r_festermark", "r_scalecrown", "r_lastwall", "r_luckycharm", "r_ember",
+	"r_towershield", "r_holyfont", "r_hivemind", "r_scentofblood", "r_bloodhymn",
 	"r_bastionplate", "r_hollowbone", "r_chainreact", "r_cullingorder", "r_hearthcore",
 	"r_manaspring", "r_venomengine", "r_mirrorshell", "r_solarcore",
 ]

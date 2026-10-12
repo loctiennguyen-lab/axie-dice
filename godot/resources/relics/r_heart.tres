@@ -6,11 +6,11 @@
 script = ExtResource("1")
 id = "r_heart"
 name = "Lunacia Heart"
-description = "Each Axie gains 12 Max HP."
-rarity = 1
+description = "RULE: +8 Max HP for the whole party. At turn start, any Axie below 30% HP gains 6 Shield."
+rarity = 0
 archetype = "shield"
 mload = 0
-sort_index = 101014
+sort_index = 100014
 hook_key = "r_heart"
 mf_phase = "add"
 tags = PackedStringArray("shield")

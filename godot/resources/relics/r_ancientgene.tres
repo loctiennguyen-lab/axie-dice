@@ -6,7 +6,7 @@
 script = ExtResource("1")
 id = "r_ancientgene"
 name = "Ancient Gene"
-description = "RULE: all six faces on every Axie are 30% stronger."
+description = "RULE: every damage face deals 30% more, and every face that already has Growth gains +1 Growth. Takes the multiplier slot."
 rarity = 3
 archetype = "growth"
 mload = 2

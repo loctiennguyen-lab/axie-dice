@@ -6,13 +6,11 @@
 script = ExtResource("1")
 id = "r_thornling"
 name = "Thornling"
-description = "Egg có Thorns 3; mỗi lần Egg phản Thorns, Axie hàng xóm nhận 2 Shield"
+description = "Eggs have Thorns 3. When an Egg reflects, the Axie next to it gains 2 Shield."
 rarity = 2
 archetype = "summon"
 mload = 0
 sort_index = 102512
-hook_key = ""
+hook_key = "r_thornling"
 tags = PackedStringArray("summon", "thorns")
 layer = "duo"
-needs_hook = "BODY"
-hidden_from_pool = true

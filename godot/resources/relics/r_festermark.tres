@@ -6,13 +6,11 @@
 script = ExtResource("1")
 id = "r_festermark"
 name = "Festering Mark"
-description = "Địch có Poison hoặc Burn nhận +2 mỗi đòn; có cả hai thì +4. Số phẳng, không nhân"
+description = "Enemies that are poisoned or burning take +2 per hit; both at once +4."
 rarity = 1
 archetype = "poison"
 mload = 0
 sort_index = 101501
-hook_key = ""
+hook_key = "r_festermark"
 tags = PackedStringArray("poison", "burn")
 layer = "payoff"
-needs_hook = "BODY"
-hidden_from_pool = true
