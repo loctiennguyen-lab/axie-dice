@@ -256,8 +256,14 @@ func _build_world() -> void:
 
 	var sun := DirectionalLight3D.new()
 	sun.rotation_degrees = Vector3(-52, -30, 0)
-	sun.light_energy = 1.2
+	sun.light_energy = 1.25
+	sun.light_color = Color("ffe2b0") if _tier != 4 and _tier != 6 else Color("f3dcff")   # warm late-afternoon sun
 	sun.shadow_enabled = true
+	sun.shadow_blur = 2.2            # soft penumbra
+	sun.light_angular_distance = 0.6
+	sun.shadow_bias = 0.04
+	sun.shadow_normal_bias = 1.2
+	sun.directional_shadow_mode = DirectionalLight3D.SHADOW_ORTHOGONAL   # one split: fastest on an ortho camera
 	sun.directional_shadow_max_distance = 70.0
 	add_child(sun)
 
@@ -338,11 +344,37 @@ func _build_ground() -> void:
 	gt.fill = GradientTexture2D.FILL_RADIAL
 	gt.fill_from = Vector2(0.5, 0.5)
 	gt.fill_to = Vector2(1.0, 0.5)
-	var tm := StandardMaterial3D.new()
-	tm.albedo_texture = gt
-	tm.roughness = 1.0
+	# Radial biome tint multiplied by the library's tileable dirt texture (luminance only, so
+	# every biome gets the same mottled earth in its own colours).
+	var tm := ShaderMaterial.new()
+	tm.shader = _ground_shader()
+	tm.set_shader_parameter("tint", gt)
+	var dirt := load(DIRT_TEX) as Texture2D
+	if dirt != null:
+		tm.set_shader_parameter("dirt", dirt)
 	top.material_override = tm
 	add_child(top)
+
+
+const DIRT_TEX := "res://assets/land/homeland/src/HomeLand_Asset/Environment/Savannah/Ground/Source/Land_Savannah_01_ground.png"
+
+
+func _ground_shader() -> Shader:
+	var sh := Shader.new()
+	sh.code = """shader_type spatial;
+render_mode diffuse_lambert, specular_disabled;
+uniform sampler2D tint : source_color, repeat_disable;
+uniform sampler2D dirt : source_color, repeat_enable, filter_linear_mipmap, hint_default_white;
+void fragment() {
+	vec3 t = texture(tint, UV).rgb;
+	float l1 = dot(texture(dirt, UV * 5.0).rgb, vec3(0.333));
+	float l2 = dot(texture(dirt, UV * 1.7 + vec2(0.31, 0.57)).rgb, vec3(0.333));
+	float m = clamp((l1 * 0.6 + l2 * 0.4 - 0.62) * 2.6 + 1.0, 0.65, 1.2);
+	ALBEDO = t * m;
+	ROUGHNESS = 1.0;
+}
+"""
+	return sh
 
 
 func _build_buildings() -> void:
@@ -405,7 +437,7 @@ func _build_props() -> void:
 		scatter.append([k, 1.3])
 	var placed := 0
 	var tries := 0
-	while not scatter.is_empty() and placed < 12 and tries < 400:
+	while not scatter.is_empty() and placed < 30 and tries < 900:
 		tries += 1
 		var p := Vector3(_rng.randf_range(-half, half), 0, _rng.randf_range(-half, half))
 		if _blocked_at(p, 1.5):
@@ -416,7 +448,7 @@ func _build_props() -> void:
 	var tufts: Array = biome["tufts"]
 	placed = 0
 	tries = 0
-	while not tufts.is_empty() and placed < 24 and tries < 300:
+	while not tufts.is_empty() and placed < 60 and tries < 700:
 		tries += 1
 		var p := Vector3(_rng.randf_range(-half, half), 0, _rng.randf_range(-half, half))
 		if _blocked_at(p, 0.5):
