@@ -95,6 +95,7 @@ const isPaid = (kind, args) => KINDS[kind].paid || (kind === 'reroll' && args.so
 export class RunCore {
   /**
    * deps: { now():ms, charge?(idemKey, kind, args, meta) -> Promise<bool>,
+   *         checkHello?(claims) -> Promise<boolean> (D1: jti current, account not locked),
    *         verifyToken?(token) -> Promise<{player_id, run_id, rules_version}|null>,
    *         supportsRules?(v) -> bool, log?(event, detail) }
    */
@@ -197,6 +198,12 @@ export class RunCore {
     const claims = this.deps.verifyToken ? await this.deps.verifyToken(msg.run_token) : null;
     if (!claims || claims.run_id !== meta.run_id || claims.player_id !== meta.player_id) {
       return { replies: [], close: { code: 1008, reason: 'auth' } };
+    }
+    // ADR 4.6: ask D1 again at hello (token not revoked, account not locked). Fail closed on any error.
+    if (this.deps.checkHello) {
+      let ok = false;
+      try { ok = await this.deps.checkHello(claims); } catch { ok = false; }
+      if (!ok) { this._anomaly('hello_revoked', { run_id: meta.run_id }); return { replies: [], close: { code: 1008, reason: 'auth' } }; }
     }
     if (claims.rules_version !== meta.rules_version) return { replies: [{ t: 'bye', reason: 'version' }], close: { code: 4001, reason: 'version' } };
     const epoch = meta.session_epoch + 1; // newest socket wins, the DO shell evicts the older ones

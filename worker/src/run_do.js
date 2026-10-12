@@ -27,6 +27,13 @@ export class RunDO {
     RunCore.initSchema(ctx.storage.sql);
     this.core = new RunCore(ctx.storage.sql, {
       verifyToken: (t) => verifyRunToken(env, t),
+      checkHello: async (claims) => {
+        if (!env.DB || !claims.jti) return false;
+        const row = await env.DB.prepare(
+          `SELECT r.token_jti, p.locked_at FROM runs r JOIN players p ON p.id = r.player_id WHERE r.run_id = ? AND r.player_id = ?`,
+        ).bind(claims.run_id, claims.player_id).first();
+        return !!row && row.locked_at == null && row.token_jti === claims.jti;
+      },
       supportsRules: (v) => rulesSupported(env, v),
       // Gem is charged in D1 inside the request that earns the seed (ADR 4.9). The idem key is built by
       // RunCore as aid:{run}:{seq}, so a retried request replays the old charge instead of paying twice.

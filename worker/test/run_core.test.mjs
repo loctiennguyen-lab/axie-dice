@@ -454,3 +454,29 @@ test('shop_roll can be consumed by shop_done (leaving without buying does not so
   assert.equal((await c.epoch('reward_reroll', { k: 1, node_id: 'r1_c1' }, [A('enter_node', ['r1_c1', 'shop'])])).t, 'epoch_res');
   assert.equal((await c.epoch('node', { node_id: 'r1_c2' }, [A('take_reward')])).t, 'epoch_res');
 });
+
+test('run token kid: rotation keeps previous-key tokens alive, unknown kid and dropped prev key are refused', async () => {
+  const claims = { player_id: 'p', run_id: RUN, rules_version: RULES, jti: 'j1' };
+  const oldEnv = { RUN_TOKEN_KEY: 'old', RUN_TOKEN_KID: 'k1' };
+  const t = await signRunToken(oldEnv, claims, 1000);
+  assert.equal((await verifyRunToken(oldEnv, t, 1001)).kid, 'k1');
+  const rotated = { RUN_TOKEN_KEY: 'new', RUN_TOKEN_KID: 'k2', RUN_TOKEN_KEY_PREV: 'old', RUN_TOKEN_KID_PREV: 'k1' };
+  assert.equal((await verifyRunToken(rotated, t, 1001)).jti, 'j1');
+  assert.equal(await verifyRunToken({ RUN_TOKEN_KEY: 'new', RUN_TOKEN_KID: 'k2' }, t, 1001), null);
+  const t2 = await signRunToken(rotated, claims, 1000);
+  assert.equal((await verifyRunToken(rotated, t2, 1001)).kid, 'k2');
+  // a kid claim cannot be used to pick the wrong key: relabelling k2 as k1 fails the signature
+  const [body, sig] = t2.split('.');
+  const relabel = Buffer.from(JSON.stringify({ ...JSON.parse(Buffer.from(body, 'base64url')), kid: 'k1' })).toString('base64url');
+  assert.equal(await verifyRunToken(rotated, `${relabel}.${sig}`, 1001), null);
+});
+
+test('hello asks D1 (checkHello): revoked or locked closes with auth, a pass welcomes; errors fail closed', async () => {
+  let verdict = true;
+  const { c } = await fresh({}, { checkHello: async () => { if (verdict === 'boom') throw new Error('d1'); return verdict; } });
+  assert.equal((await c.hello()).replies[0].t, 'welcome');
+  verdict = false;
+  assert.equal((await c.hello()).close.reason, 'auth');
+  verdict = 'boom';
+  assert.equal((await c.hello()).close.reason, 'auth');
+});
