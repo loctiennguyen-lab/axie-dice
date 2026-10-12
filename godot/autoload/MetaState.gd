@@ -111,19 +111,21 @@ func _ready() -> void:
 	# A deferred call runs once the whole autoload set is up.
 	ensure_vault_heroes.call_deferred()
 
-func add_shards(amount: int, reason: String = "earn") -> void:
+func add_shards(amount: int, reason: String = "earn", save: bool = true) -> void:
 	shard_pool += amount
 	ledger_add("shard", amount, reason)
-	save_to_disk()
+	if save:
+		save_to_disk()
 
 
 ## Land Stone. n > 0. Vào sổ cái.
-func add_stone(n: int, reason: String = "earn") -> void:
+func add_stone(n: int, reason: String = "earn", save: bool = true) -> void:
 	if n <= 0:
 		return
 	stone += n
 	ledger_add("stone", n, reason)
-	save_to_disk()
+	if save:
+		save_to_disk()
 
 
 ## Trừ `n` của `currency` ("shard" | "stone" | "gem"). false (không trừ gì) nếu không đủ.
@@ -184,6 +186,23 @@ func claim_gem_gift_async(done: Callable = Callable()) -> void:
 
 
 ## Nhận Gem tặng hôm nay (giờ UTC thật của máy; bản server sẽ do server xác nhận).
+## Giá shop hiện hành của một unlock (để hoàn Shard khi mốc Pass trùng unlock đã có, ECO-13).
+## Đọc ContentDB.UNLOCKS; bảng giá x3 (A2) chưa áp ở đó, theo ContentDB khi nó đổi.
+func unlock_price(id: String) -> int:
+	return int(unlock_def(id).get("cost", 0))
+
+
+## Gọi khi một run kết thúc (A/U nối): cộng XP Pass v2 theo công thức run XP. Trả XP thực nhận.
+func pass_add_run_xp(raw_xp: int) -> int:
+	var got := PassV2.add_run_xp(self, raw_xp, today_utc())
+	return got
+
+
+## Nhận phần thưởng free của level `lv` ở Pass v2 (xem PassV2.claim_free).
+func pass_claim_free(lv: int) -> Dictionary:
+	return PassV2.claim_free(self, lv)
+
+
 func claim_gem_gift_now() -> Dictionary:
 	return gem_wallet().claim_daily_gift(int(Time.get_unix_time_from_system()))
 
@@ -348,7 +367,9 @@ func _economy_from_json(parsed: Dictionary, raw_text: String = "") -> void:
 	if ps is Dictionary:
 		pass_season = {"id": str((ps as Dictionary).get("id", "")), "xp": int((ps as Dictionary).get("xp", 0)),
 			"level": int((ps as Dictionary).get("level", 0)),
-			"claimed_free": _ints((ps as Dictionary).get("claimed_free", []))}
+			"claimed_free": _ints((ps as Dictionary).get("claimed_free", [])),
+			"day": str((ps as Dictionary).get("day", "")), "day_xp": int((ps as Dictionary).get("day_xp", 0)),
+			"post30_claimed": int((ps as Dictionary).get("post30_claimed", 0))}
 	vip_until_utc = int(parsed.get("vip_until_utc", 0))
 	vip_trial_used = bool(parsed.get("vip_trial_used", false))
 	mission_house_level = int(parsed.get("mission_house_level", 0))
@@ -909,4 +930,5 @@ func claim_daily_mission() -> bool:
 		return false
 	daily_date = today
 	shard_pool += ContentDB.DAILY_MISSION_SHARD
+	PassV2.add_daily_bonus_xp(self, today)   # +100 XP Pass v2 (ngoài mùa: không làm gì)
 	return true

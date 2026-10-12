@@ -26,6 +26,12 @@ func grant(_n: int, _tag: String) -> void:
 	push_error("GemWallet.grant: chưa cài đặt")
 
 
+## Ví này cấp Gem được ngay phía client (grant() có hiệu lực)? Local: true. Remote: false cho tới khi
+## server có endpoint quà mùa; chỗ nào cần cấp Gem (quà Pass) phải kiểm cái này trước.
+func grants_locally() -> bool:
+	return false
+
+
 ## Nhận Gem tặng theo ngày. `now_unix` truyền vào để test được (UTC).
 ## Trả {ok:bool, granted:int, reason:String, next_utc:int}. reason: "" | "already_claimed" | "at_cap".
 func claim_daily_gift(_now_unix: int) -> Dictionary:

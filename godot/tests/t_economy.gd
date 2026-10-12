@@ -28,8 +28,19 @@ class Stub extends RefCounted:
 	var mission_house_level := 0
 	var saves := 0
 	var ledger: Array = []
-	func add_stone(n: int, _r: String) -> void:
+	var unlocks: Array = []
+	var pass_season := {}
+	var _wallet: GemWallet = null
+	func add_stone(n: int, _r: String, _save: bool = true) -> void:
 		stone += n
+	func add_shards(n: int, _r: String, _save: bool = true) -> void:
+		shard_pool += n
+	func unlock_price(_id: String) -> int:
+		return 220
+	func gem_wallet() -> GemWallet:
+		if _wallet == null:
+			_wallet = LocalGemWallet.new(self)
+		return _wallet
 	func spend(cur: String, n: int, _r: String, _save: bool = true) -> bool:
 		if cur == "shard":
 			if shard_pool < n: return false
@@ -61,6 +72,7 @@ func _ready() -> void:
 	test_mission_board()
 	test_store_and_l1_flags()
 	test_remote_wallet_wiring()
+	test_pass_v2()
 	test_migration_resets_old_save()
 	test_new_fields_survive_reload()
 	test_record_run_outcome_and_badges()
@@ -598,3 +610,99 @@ func test_remote_wallet_wiring() -> void:
 	MetaState.claim_gem_gift_async(func(r: Dictionary) -> void: loc.merge(r))
 	_assert(loc.get("ok", false) and MetaState.gems_cache == 300, "claim async local")
 	MetaState.set_gem_wallet(null)
+
+
+class NoLocalGrantWallet extends GemWallet:
+	func balance() -> int:
+		return 0
+
+
+func test_pass_v2() -> void:
+	_assert(not PassV2.season_active("2026-11-02") and PassV2.season_active("2026-11-03"), "mùa 1 bắt đầu 3/11")
+	_assert(PassV2.season_active("2026-12-28") and not PassV2.season_active("2026-12-29"), "mùa 1 hết 29/12 (loại trừ)")
+	_assert(PassV2.level_for_xp(499) == 0 and PassV2.level_for_xp(500) == 1 and PassV2.level_for_xp(1040) == 2
+		and PassV2.level_for_xp(32400) == 30 and PassV2.level_for_xp(99999) == 30, "level theo XP cộng dồn")
+	var d1 := "2026-11-03"
+	var s := Stub.new()
+	_assert(PassV2.add_run_xp(s, 1000, "2026-11-02") == 0, "ngoài mùa không nhận XP")
+	_assert(PassV2.add_run_xp(s, 1000, d1) == 1000, "1.000 XP đầu: 100%")
+	_assert(PassV2.add_run_xp(s, 1000, d1) == 600, "500 còn lại 100% + 500 x 20% = 600")
+	_assert(PassV2.add_run_xp(s, 5000, d1) == 400, "trần ngày 2.000: chỉ nhận 400")
+	_assert(PassV2.add_run_xp(s, 100, d1) == 0 and int(s.pass_season["xp"]) == 2000, "đầy trần ngày")
+	_assert(PassV2.add_run_xp(s, 300, "2026-11-04") == 300, "ngày UTC mới: trần reset")
+	_assert(PassV2.add_daily_bonus_xp(s, "2026-11-04") == 100 and int(s.pass_season["xp"]) == 2400, "thưởng ngày +100 XP, không bị trần run")
+	_assert(int(s.pass_season["level"]) == PassV2.level_for_xp(2400), "level cập nhật")
+	_assert(s.pass_season["id"] == "s1", "pass_season thuộc mùa s1")
+	# ensure_season: mùa khác thì reset
+	s.pass_season = PassV2.new_state("s0")
+	s.pass_season["xp"] = 777
+	PassV2.add_run_xp(s, 10, d1)
+	_assert(int(s.pass_season["xp"]) == 10 and s.pass_season["id"] == "s1", "mùa mới reset XP")
+
+	# claim từng mốc
+	var c := Stub.new()
+	c.pass_season = PassV2.new_state("s1")
+	_assert(PassV2.claim_free(c, 1)["reason"] == "not_reached", "chưa đạt level 1")
+	c.pass_season["xp"] = 500
+	var r := PassV2.claim_free(c, 1)
+	_assert(r["ok"] and c.shard_pool == 300, "lv1 = 300 Shard")
+	_assert(PassV2.claim_free(c, 1)["reason"] == "already_claimed" and c.shard_pool == 300, "không nhận trùng")
+	_assert(PassV2.claimable_levels(c).is_empty(), "không còn mốc chờ")
+	_assert(PassV2.claim_free(c, 99)["reason"] == "no_such_level", "level lạ")
+	# unlock: cấp lần đầu, trùng thì hoàn Shard bằng giá shop
+	c.pass_season["xp"] = 2240
+	var shard0 := c.shard_pool
+	PassV2.claim_free(c, 4)
+	_assert(c.unlocks.has("u_reroll") and c.shard_pool == shard0, "lv4 cấp unlock u_reroll")
+	var o := Stub.new()
+	o.pass_season = PassV2.new_state("s1")
+	o.pass_season["xp"] = 2240
+	o.unlocks = ["u_reroll"]
+	var ro := PassV2.claim_free(o, 4)
+	_assert(ro["ok"] and o.shard_pool == 220 and o.unlocks.size() == 1, "đã có unlock: hoàn Shard giá shop, không cấp lại (ECO-13)")
+	# mốc Gem
+	var g := Stub.new()
+	g.pass_season = PassV2.new_state("s1")
+	g.pass_season["xp"] = 6800
+	var rg := PassV2.claim_free(g, 10)
+	_assert(rg["ok"] and g.gems_cache == 90 and g.shard_pool == 500 and int(g.tickets["normal"]) == 1, "lv10: 500 Shard + 1 vé + 90 Gem")
+	# ví không cấp local được: từ chối cả mốc, không đánh dấu
+	var rm := Stub.new()
+	rm.pass_season = PassV2.new_state("s1")
+	rm.pass_season["xp"] = 6800
+	rm._wallet = NoLocalGrantWallet.new()
+	var rr := PassV2.claim_free(rm, 10)
+	_assert(not rr["ok"] and rr["reason"] == "gem_needs_server" and rm.shard_pool == 0
+		and (rm.pass_season["claimed_free"] as Array).is_empty(), "ví remote chưa có endpoint: không nhận, không mất mốc")
+	# nhận hết 30 level: đúng tổng đã chốt
+	var all := Stub.new()
+	all.pass_season = PassV2.new_state("s1")
+	all.pass_season["xp"] = 32400
+	for lv in PassV2.claimable_levels(all):
+		_assert(PassV2.claim_free(all, lv)["ok"], "claim lv%d" % lv)
+	_assert(all.shard_pool == 4800 and all.stone == 16500 and int(all.tickets["normal"]) == 12, "tổng Pass: 4.800 Shard, 16.500 Stone, 12 vé")
+	_assert(all.gems_cache == 180 and all.unlocks.size() == 5, "180 Gem (2 x 90) và 5 unlock")
+	_assert(all.cosmetics_owned.has("frame_l_sovereign") and all.cosmetics_owned.has("title:LUNACIA SOVEREIGN"), "cosmetic + danh hiệu lv30")
+	_assert(PassV2.claimable_levels(all).is_empty(), "claim hết, không còn gì chờ")
+	# vòng lặp sau lv30
+	all.pass_season["xp"] = 32400 + 4500
+	_assert(PassV2.post30_pending(all) == 2, "4.500 XP dư = 2 vòng")
+	_assert(PassV2.claim_post30(all) == 100 and all.shard_pool == 4900, "2 vòng = 100 Shard")
+	_assert(PassV2.claim_post30(all) == 0, "không nhận trùng vòng")
+	all.pass_season["xp"] = 32400 + 6000
+	_assert(PassV2.post30_pending(all) == 1, "thêm một vòng mới")
+	var low := Stub.new()
+	low.pass_season = PassV2.new_state("s1")
+	low.pass_season["xp"] = 30000
+	_assert(PassV2.post30_pending(low) == 0, "chưa tới lv30: không có vòng")
+	var pr := PassV2.premium_state()
+	_assert(pr["locked"] and pr["label"] == "Season 2", "premium khoá, nhãn Season 2")
+	# MetaState: các key mới của pass_season qua reload
+	SaveStore.erase(MetaState.SAVE_PATH)
+	MetaState.reload_from_store()
+	MetaState.pass_season = {"id": "s1", "xp": 1234, "level": 2, "claimed_free": [1], "day": "2026-11-03", "day_xp": 900, "post30_claimed": 2}
+	MetaState.save_to_disk()
+	MetaState.reload_from_store()
+	_assert(int(MetaState.pass_season["day_xp"]) == 900 and String(MetaState.pass_season["day"]) == "2026-11-03"
+		and int(MetaState.pass_season["post30_claimed"]) == 2, "pass_season giữ day/day_xp/post30_claimed qua reload")
+	_assert(MetaState.unlock_price("u_reroll") > 0, "unlock_price đọc từ ContentDB")

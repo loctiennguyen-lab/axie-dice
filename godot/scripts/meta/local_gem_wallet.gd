@@ -17,6 +17,10 @@ func _init(p_store: Object) -> void:
 	store = p_store
 
 
+func grants_locally() -> bool:
+	return true
+
+
 func balance() -> int:
 	return int(store.gems_cache)
 
