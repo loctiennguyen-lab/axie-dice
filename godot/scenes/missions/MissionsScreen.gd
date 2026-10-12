@@ -7,8 +7,8 @@ extends Control
 ## button. Full rule rows, the m multiplier and the stake warning live in the confirm modal (M6c).
 ## No win-rate or expected-return line: no data source exists yet.
 ##
-## Paying the stake: no MetaState/RunState escrow API exists (MissionBoard says escrow is the server's).
-## So `stake_hook` is the seam. Without a valid hook "Stake and play" stays disabled.
+## Paying the stake: MetaState.take_mission_stake() escrows it and returns the mission id; RunState.end_run
+## settles it, a failed begin_run refunds it, abandon is settled in SettingsView.
 ## Drawn: M6a/b board (locked tiers per lock_reason), M6c confirm, M6g newcomer, M6h not enough Shard,
 ## M6i open run, M6j offline, M6k guest, M6l tall (cards flow into a scroll, extra height to the grid).
 ## Not drawn: M6d/e/f results (belong to the Result screen), "table updated" line (no data).
@@ -23,10 +23,7 @@ var no_scene_change := false
 var use_account := true
 var remote_on: bool = String(ProjectSettings.get_setting("axie/gem_wallet", "")) == "remote"
 var account_status_hook: Callable
-## Tests / server seam: Callable(tier_id:String, stake:int) -> bool. Takes the stake. Missing = cannot stake.
-var stake_hook: Callable
-## Optional: Callable(tier_id, stake) -> void, called when the run could not start after the stake was taken.
-var refund_hook: Callable
+
 ## Tests: Callable(params) -> {ok, code}; default RunState.begin_run.
 var start_hook: Callable
 var begin_error := ""
@@ -92,15 +89,13 @@ func offer(tier_id: String) -> Dictionary:
 
 
 ## Shard that may be staked. The starter grant cannot be staked (README M6), so it is taken off the
-## balance while it may still be unspent. Approximation: MetaState has no separate starter counter.
+## balance (MetaState.starter_shard_locked).
 func usable_shards() -> int:
-	var st: Dictionary = _Econ.get_table("daily").get("starter", {})
-	var starter := int(st.get("shards", 0)) if MetaState.starter_granted else 0
-	return maxi(0, MetaState.shard_pool - starter)
+	return MetaState.stake_usable_shards()
 
 
 ## Why this tier cannot be staked right now, or "" when it can.
-## Order: account/open run, tier lock, balance, missing stake API.
+## Order: account/open run, tier lock, balance.
 func block_reason(tier_id: String) -> String:
 	var o := offer(tier_id)
 	if o.is_empty():
@@ -115,8 +110,6 @@ func block_reason(tier_id: String) -> String:
 		return lock_text(o)
 	if usable_shards() < int(o.stake):
 		return "Need %d more Shard" % (int(o.stake) - usable_shards())
-	if not stake_hook.is_valid():
-		return "Staking is not available in this build"
 	return ""
 
 
@@ -172,7 +165,7 @@ func _num(f: float) -> String:
 
 
 ## Header of the run RunState.begin_run() reads (RunState.mission).
-func mission_params(tier_id: String) -> Dictionary:
+func mission_params(tier_id: String, mission_id: String = "") -> Dictionary:
 	var o := offer(tier_id)
 	var t: Dictionary = (_Econ.get_table("missions").get("tiers", {}) as Dictionary).get(tier_id, {})
 	var keys: Array[String] = []
@@ -184,13 +177,13 @@ func mission_params(tier_id: String) -> Dictionary:
 		"team_keys": keys, "mode": String(o.mode), "ascension": int(o.ascension), "ranked": false,
 		"kind": "mission", "newcomer": false,
 		"mission": {
-			"mission_id": "%s|%s" % [today(), tier_id], "tier": int(tier_id.substr(1)),
+			"mission_id": mission_id if mission_id != "" else "%s|%s" % [today(), tier_id], "tier": int(tier_id.substr(1)),
 			"rules": (o.rules as Array).duplicate(), "stake": int(o.stake),
 			"m_base": float(t.get("m_base", 0)), "m_scale": float(t.get("m_scale", 1.0)), "m_eff": float(o.m),
 		}}
 
 
-## Take the stake (stake_hook), then start the run with the mission header. {ok, code}.
+## Take the stake (MetaState escrow), then start the run with the mission header. {ok, code}.
 func start(tier_id: String) -> Dictionary:
 	if use_account and state in ["normal", "offline", "guest"]:
 		var d := derive_state()
@@ -199,14 +192,14 @@ func start(tier_id: String) -> Dictionary:
 	if block_reason(tier_id) != "":
 		return {"ok": false, "code": "blocked"}
 	var o := offer(tier_id)
-	if not bool(stake_hook.call(tier_id, int(o.stake))):
+	var mid := MetaState.take_mission_stake(tier_id, int(o.stake))
+	if mid == "":
 		_banner("Could not take the stake", "Nothing was spent.", true)
 		return {"ok": false, "code": "stake"}
-	var params := mission_params(tier_id)
+	var params := mission_params(tier_id, mid)
 	var r: Dictionary = (await start_hook.call(params)) if start_hook.is_valid() else (await RunState.begin_run(params))
 	if not r.get("ok", false):
-		if refund_hook.is_valid():
-			refund_hook.call(tier_id, int(o.stake))
+		MetaState.refund_mission_stake()
 		begin_error = "Could not start the mission, try again."
 		_banner(begin_error, "Code: %s" % String(r.get("code", "?")), false)
 		return r

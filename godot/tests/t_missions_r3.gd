@@ -1,7 +1,7 @@
 extends Node
 ## M6 Missions R3: board renders from data (MissionBoard/missions.json), locked tiers cannot start,
 ## states (newcomer, not enough Shard, open run, offline/guest only block with the remote flag),
-## starting passes the mission header to the run start, stake goes through stake_hook only.
+## starting passes the mission header to the run start, stake goes through MetaState escrow.
 
 var _fail: Array[String] = []
 var _checks := 0
@@ -48,43 +48,45 @@ func _ready() -> void:
 	_ok(s.offer("N4").lock_reason == "disabled" and s.offer("N6").lock_reason == "disabled", "N4/N6 not in this build")
 	_ok(s.find_child("LockNote", true, false) != null, "lock note shown")
 	_ok((s.find_child("UpgradeHouse", true, false) as Button).disabled, "house upgrade disabled in L1")
-	# no stake API -> cannot start even when unlocked and rich
-	_ok(s.block_reason("N1") == "Staking is not available in this build", "no stake_hook: blocked")
-	_ok((s.find_child("Stake_N1", true, false) as Button).disabled, "Stake button disabled without stake API")
-	var no: Dictionary = await s.start("N1")
-	_ok(not no.ok and RunState.mission.is_empty(), "start without stake API does nothing")
-	# stake_hook + start_hook
-	var paid: Array = []
-	s.stake_hook = func(t: String, n: int) -> bool:
-		paid.append([t, n])
-		return true
+	# real escrow path: stake is taken from MetaState, id goes into the mission header
+	MetaState.mission_escrow = {}
+	MetaState.starter_shard_locked = 0
+	_ok(s.block_reason("N1") == "", "N1 startable with enough usable Shard")
+	_ok(not (s.find_child("Stake_N1", true, false) as Button).disabled, "Stake button enabled")
 	var got: Array = []
 	s.start_hook = func(p: Dictionary) -> Dictionary:
 		got.append(p)
 		return {"ok": true, "code": ""}
-	s._refresh()
-	_ok(s.block_reason("N1") == "", "N1 startable with stake API")
 	var lk: Dictionary = await s.start("N3")
-	_ok(not lk.ok and paid.is_empty() and got.is_empty(), "locked tier cannot start, no stake taken")
+	_ok(not lk.ok and got.is_empty() and MetaState.mission_escrow.is_empty(), "locked tier cannot start, no stake taken")
+	var before := MetaState.shard_pool
 	var r: Dictionary = await s.start("N2")
-	_ok(r.ok and paid.size() == 1 and paid[0] == ["N2", int(cfg.tiers.N2.stake)], "stake taken once for N2")
+	_ok(r.ok and got.size() == 1, "N2 starts")
+	_ok(MetaState.shard_pool == before - int(cfg.tiers.N2.stake), "stake taken once from the pool")
 	var p: Dictionary = got[0]
 	var m: Dictionary = p.mission
+	_ok(String(m.mission_id) != "" and String(m.mission_id) == String(MetaState.mission_escrow.get("mission_id", "x")), "header mission_id = escrow id")
 	_ok(p.kind == "mission" and p.mode == "short" and p.ascension == int(cfg.tiers.N2.ascension), "mission params")
 	_ok(m.tier == 2 and int(m.stake) == int(cfg.tiers.N2.stake) and is_equal_approx(float(m.m_eff), float(cfg.tiers.N2.m_base) * float(cfg.tiers.N2.m_scale)), "mission header numbers from data")
 	_ok((m.rules as Array) == (s.offer("N2").rules as Array), "mission rules = today's rule set")
-	# stake failure: no run
-	s.stake_hook = func(_t: String, _n: int) -> bool: return false
-	got.clear()
-	var sf: Dictionary = await s.start("N1")
-	_ok(not sf.ok and got.is_empty(), "stake refused: no run started")
-	s.stake_hook = func(_t: String, _n: int) -> bool: return true
-	# run start fails -> refund hook
-	var refunded: Array = []
-	s.refund_hook = func(t: String, n: int) -> void: refunded.append([t, n])
+	MetaState.refund_mission_stake()
+	_ok(MetaState.shard_pool == before, "refund restores the pool")
+	# run start fails -> stake refunded
 	s.start_hook = func(_p: Dictionary) -> Dictionary: return {"ok": false, "code": "busy"}
 	var bf: Dictionary = await s.start("N1")
-	_ok(not bf.ok and refunded.size() == 1, "failed start refunds")
+	_ok(not bf.ok and MetaState.shard_pool == before and MetaState.mission_escrow.is_empty(), "failed start refunds")
+	# take refused (not enough usable Shard because starter grant is locked): no run
+	MetaState.starter_shard_locked = MetaState.shard_pool - 10
+	s._refresh()
+	_ok(s.usable_shards() == 10 and s.block_reason("N1") != "", "locked starter Shard is not usable")
+	got.clear()
+	s.start_hook = func(p: Dictionary) -> Dictionary:
+		got.append(p)
+		return {"ok": true, "code": ""}
+	var sf: Dictionary = await s.start("N1")
+	_ok(not sf.ok and got.is_empty() and MetaState.shard_pool == before, "insufficient usable Shard: nothing taken, no run")
+	MetaState.starter_shard_locked = 0
+	s._refresh()
 	# confirm modal, focus on Not now, rules text from data
 	s.open_confirm("N2")
 	await get_tree().process_frame
@@ -97,12 +99,7 @@ func _ready() -> void:
 	s._refresh()
 	_ok(s.block_reason("N1") == "Need 50 more Shard", "missing amount shown")
 	_ok((s.find_child("Stake_N1", true, false) as Button).text == "Need 50 more Shard", "button shows missing amount")
-	# starter shards are not usable
-	MetaState.starter_granted = true
 	MetaState.shard_pool = 5000
-	var st_sh := int(((load("res://scripts/meta/economy_db.gd") as Script).get_table("daily").starter as Dictionary).get("shards", 0))
-	_ok(s.usable_shards() == 5000 - st_sh, "starter allowance excluded")
-	MetaState.starter_granted = false
 	# newcomer: every card locked
 	MetaState.runs = 2
 	s._refresh()
@@ -125,6 +122,7 @@ func _ready() -> void:
 		_ok(s.block_reason("N1") == "" and s.find_child("Banner", true, false) != null, "local: %s info banner only" % st)
 	s.set_state("loading")
 	_ok(s.find_child("Grid", true, false) == null, "loading renders no cards")
+	MetaState.mission_escrow = {}
 	s.queue_free()
 	_guard.restore()
 	if _fail.is_empty():
