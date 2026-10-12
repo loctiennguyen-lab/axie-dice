@@ -64,7 +64,8 @@ func _ready() -> void:
 			String(args.get("out", "")), EXIT_INPUT)
 		return
 
-	var verdict := RunVerifier.verify(ActionLog.from_data(parsed as Dictionary))
+	var verdict := RunVerifier.verify(ActionLog.from_data(parsed as Dictionary),
+		(parsed as Dictionary).get("tape", []) as Array)
 	# The full end state is for tests and debugging, not for a caller that only needs a score —
 	# and it is large. Dropped here so the verdict stays one readable line.
 	verdict.erase("state")

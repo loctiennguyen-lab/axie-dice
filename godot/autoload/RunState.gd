@@ -113,6 +113,17 @@ var resume_combat: Dictionary = {}
 # --- Gameplay RNG (architecture plan §5: owned here, never an autoload, never used for VFX) ---
 var _rng: Rng = null
 
+## Where every random draw of the rules gets its seed (L1 contract 1). Local for tests/dev/bots,
+## Tape for the verifier/tutorial, Remote (lane S) for real runs. Set by the start_* functions.
+var epoch: EpochSource = null
+## True while an async request_* is waiting for a seed: every other action must be refused,
+## because changing the log between request and reply would make the server's `h` disagree.
+var epoch_busy: bool = false
+## Seed of the `node` epoch of the node being visited. Treasure rewards draw from it.
+var _node_seed: int = 0
+## Rows whose node types the server has revealed (extra.row_types / Scout). {row:int -> Array}.
+var row_types_known: Dictionary = {}
+
 ## Every decision this run, in order, for the replay-verify gate the port still owes
 ## (`scripts/core/action_log.gd` explains why it is recorded here and not in the UI).
 ## Always present, never null: a run whose log is missing cannot be told apart from a run whose
@@ -132,11 +143,6 @@ var action_log: ActionLog = ActionLog.new()
 # itself, so the log had to record the client's description of what was on sale; it now takes
 # an INDEX into an offer the verifier re-derives.
 # ---------------------------------------------------------------------------
-
-## Salts that separate the two streams at one node. Same values the map screen used, kept so
-## an in-flight save from before this move still resolves to the same offer.
-const EVENT_SALT := 501
-const SHOP_SALT := 502
 
 var shop_items: Array[Dictionary] = []
 var event_key: String = ""
@@ -185,16 +191,85 @@ func reset() -> void:
 	pending_combat = {}
 	resume_combat = {}
 	_rng = null
+	epoch = null
+	epoch_busy = false
+	_node_seed = 0
+	row_types_known = {}
 	action_log = ActionLog.new()
 	shop_items = []
 	event_key = ""
 	_shop_rng = null
 	_event_rng = null
 
+## COMPATIBILITY ENTRY (L1 contract 1.4): the old synchronous start. `p_seed` becomes the secret of a
+## LocalEpochSource, so the same seed still gives the same run (it is just a different run than before
+## the epoch seam). New code uses begin_run() / start_run_with_epoch().
 func start_new_run(p_seed: int, team_hero_keys: Array[String], p_mode: String,
 		p_ascension: int, p_ranked: bool) -> void:
+	start_run_with_epoch(LocalEpochSource.new(PackedByteArray(), p_seed), {
+		"team_keys": team_hero_keys.duplicate(), "mode": p_mode, "ascension": p_ascension,
+		"ranked": p_ranked}, p_seed)
+
+
+## Synchronous start for sources that answer immediately (Local, Tape). Returns false (and starts
+## nothing) when the source refuses or is remote. `display_seed` is only what the UI shows as "SEED".
+func start_run_with_epoch(src: EpochSource, params: Dictionary, display_seed: int = -1) -> bool:
 	reset()
-	run_seed = p_seed
+	epoch = src
+	var r := src.start_run(params)
+	if not r.done:
+		push_error("RunState.start_run_with_epoch: remote source, use begin_run()")
+		epoch = null
+		return false
+	if not r.ok:
+		push_error("RunState.start_run_with_epoch: epoch refused (%s)" % r.code)
+		epoch = null
+		return false
+	_start_core(r, params, r.seed if display_seed < 0 else display_seed)
+	return true
+
+
+## Async start used by the real menu flow (L/M wire it before the remote flag is switched on).
+## Returns {ok, code}. Source = project setting `axie/epoch_source` ("local" by default).
+func begin_run(params: Dictionary) -> Dictionary:
+	if epoch_busy:
+		return {"ok": false, "code": "busy"}
+	var src: EpochSource = LocalEpochSource.new(PackedByteArray(), randi())
+	reset()
+	epoch = src
+	epoch_busy = true
+	var r := src.start_run(params)
+	if not r.done:
+		await r.resolved
+	epoch_busy = false
+	if not r.ok:
+		epoch = null
+		return {"ok": false, "code": r.code}
+	_start_core(r, params, r.seed)
+	return {"ok": true, "code": ""}
+
+
+## For a caller that already holds `epoch` and a run_start `seed` (tests, tools).
+func start_new_run_seeded(seed: int, params: Dictionary) -> void:
+	reset_keep_epoch()
+	_start_core(EpochReply.ok_reply(seed, {}), params, seed)
+
+
+func reset_keep_epoch() -> void:
+	var keep := epoch
+	reset()
+	epoch = keep
+
+
+func _start_core(start_reply: EpochReply, params: Dictionary, display_seed: int) -> void:
+	var p_seed := start_reply.seed
+	var team_hero_keys: Array[String] = []
+	for k in (params.get("team_keys", []) as Array):
+		team_hero_keys.append(String(k))
+	var p_mode := String(params.get("mode", "short"))
+	var p_ascension := int(params.get("ascension", 0))
+	var p_ranked := bool(params.get("ranked", false))
+	run_seed = display_seed
 	mode = p_mode
 	ascension = p_ascension
 	ranked = p_ranked
@@ -219,7 +294,10 @@ func start_new_run(p_seed: int, team_hero_keys: Array[String], p_mode: String,
 	# `ranked`, not `p_ranked`: the guard above may have downgraded the run, and a run that is not
 	# ranked must get its meta bonuses. Reading the argument here instead would produce a run that
 	# is unranked AND stripped of everything the player unlocked — the worst of both.
-	var meta_bonus: Dictionary = MetaState.run_bonuses(ranked)
+	# A verifier replays on a machine whose MetaState is not the player's, so bonuses may be handed in
+	# through params (they travel in the signed header's loadout) instead of read from MetaState.
+	var meta_bonus: Dictionary = (params["bonuses"] as Dictionary) if params.has("bonuses") \
+		else MetaState.run_bonuses(ranked)
 	bonus_reroll = int(meta_bonus.get("bonus_reroll", 0))
 	var meta_hp := int(meta_bonus.get("hp_bonus", 0))
 	reward_reroll_max = int(meta_bonus.get("reward_reroll_max", 1))
@@ -267,8 +345,16 @@ func start_new_run(p_seed: int, team_hero_keys: Array[String], p_mode: String,
 	# `ranked`, not `p_ranked` — the vault guard above may have downgraded the run, and a log
 	# that claimed ranked while the run is not would be refused by the verifier for the wrong
 	# reason (it would look like tampering rather than like an unranked run).
-	action_log.begin(run_seed, team_hero_keys, mode, ascension,
+	action_log.begin(display_seed, team_hero_keys, mode, ascension,
 		String(ContentDB.part_faces.get("engineVersion", "")), ranked)
+	var loadout: Dictionary = (params.get("loadout", {}) as Dictionary).duplicate(true)
+	loadout["bonuses"] = meta_bonus.duplicate(true)
+	var hdr_extra: Dictionary = start_reply.extra.get("header", {}) as Dictionary
+	action_log.set_epoch_header(String(start_reply.extra.get("run_id", "")),
+		String(start_reply.extra.get("client_nonce", "")), loadout,
+		bool(hdr_extra.get("newcomer", false)), (hdr_extra.get("mission", {}) as Dictionary))
+	if epoch != null:
+		epoch.bind_log(action_log)
 	set_phase(RunPhase.MAP)
 
 
@@ -321,15 +407,77 @@ func set_phase(new_phase: int) -> void:
 	phase = new_phase
 	EventBus.phase_changed.emit(old_phase, new_phase)
 
+## Seed for one boundary: the caller's, or (compat) one asked from the epoch source right now.
+## Returns -1 and logs an error when none can be had; callers then do nothing.
+func _epoch_seed(kind: String, args: Dictionary, given: int) -> int:
+	if given >= 0:
+		return given
+	_ensure_epoch()
+	var r := epoch.request(kind, args)
+	if not r.done:
+		push_error("RunState: '%s' needs the async request_* wrapper with a remote epoch source" % kind)
+		return -1
+	if not r.ok:
+		push_error("RunState: epoch '%s' refused (%s)" % [kind, r.code])
+		return -1
+	return r.seed
+
+
+## Tests and tools that build a RunState by hand never opened an epoch. Give them a started Local one
+## keyed by run_seed, so the old synchronous calls keep working.
+func _ensure_epoch() -> void:
+	if epoch != null:
+		return
+	epoch = LocalEpochSource.new(PackedByteArray(), run_seed)
+	epoch.start_run({"mode": mode, "ascension": ascension})
+	epoch.bind_log(action_log)
+
+
+## Async twin of enter_node(): asks for the `node` seed (waiting if remote), then enters.
+func request_enter_node(node_id: String, node_kind: String) -> Dictionary:
+	if epoch_busy:
+		return {"ok": false, "code": "busy"}
+	_ensure_epoch()
+	epoch_busy = true
+	var r := epoch.request("node", {"node_id": node_id})
+	if not r.done:
+		await r.resolved
+	epoch_busy = false
+	if not r.ok:
+		return {"ok": false, "code": r.code}
+	if r.extra.has("row_types"):
+		reveal_rows(r.extra["row_types"] as Dictionary)
+	enter_node(node_id, node_kind, r.seed)
+	return {"ok": true, "code": ""}
+
+
+## Generic request for the view (end_turn, reroll...). Caller checks `.done` / awaits `.resolved`.
+func request_epoch(kind: String, args: Dictionary) -> EpochReply:
+	_ensure_epoch()
+	return epoch.request(kind, args)
+
+
+## Rows whose node types were revealed to the player (Scout / node epoch). Recorded so a resumed
+## run and the verifier know what the player has already seen.
+func reveal_rows(row_types: Dictionary) -> void:
+	for k in row_types.keys():
+		row_types_known[int(k)] = (row_types[k] as Array).duplicate()
+
+
 ## Called by RunMapController when the player picks a valid node. Builds the CombatSetup
 ## data (not a live CombatEngine) and stores it in pending_combat for Combat.tscn to consume.
-func enter_node(node_id: String, node_kind: String) -> void:
+func enter_node(node_id: String, node_kind: String, seed: int = -1) -> void:
+	# seed < 0 = compatibility path: ask the (Local/Tape) epoch for the `node` seed ourselves.
+	var node_sd := _epoch_seed("node", {"node_id": node_id}, seed)
+	if node_sd < 0:
+		return
+	_node_seed = node_sd
 	action_log.record("enter_node", [node_id, node_kind])
 	current_node_id = node_id
 	match node_kind:
 		"battle", "elite", "boss":
 			set_phase(RunPhase.COMBAT)
-			var combat_seed := Rng.derive_combat_seed(run_seed, node_id, 0)
+			var combat_seed := node_sd
 			pending_combat = {
 				"node_id": node_id,
 				"kind": node_kind,
@@ -340,16 +488,19 @@ func enter_node(node_id: String, node_kind: String) -> void:
 				"combat_seed": combat_seed,
 				"bonus_reroll": bonus_reroll,
 				"run_mods": run_mods.duplicate(),
+				# Compatibility: lets CombatEngine ask for end_turn/reroll seeds itself until the UI
+				# does it (contract 1.4). Not serialised: pending_combat is consumed, never saved.
+				"epoch": epoch,
 			}
 			if node_kind == "boss":
 				pending_combat["boss_key"] = _boss_key_for_node(node_id)
 			EventBus.node_entered.emit(node_kind, node_id)
 		"event":
-			_open_event(node_id)
+			_open_event(node_id, node_sd)
 			set_phase(RunPhase.EVENT)
 			EventBus.node_entered.emit(node_kind, node_id)
 		"shop":
-			_open_shop(node_id)
+			_open_shop(node_id, node_sd)
 			set_phase(RunPhase.SHOP)
 			EventBus.node_entered.emit(node_kind, node_id)
 		"treasure":
@@ -377,7 +528,7 @@ func after_node() -> void:
 ## plan §4: "chỉ qua một hàm" — never let Combat.tscn or Result.tscn mutate roster/shards
 ## directly). res is a CombatResult-shaped Dictionary from CombatEngine.get_result():
 ## {won, shards_earned, growth_keep, roster_updates, kind, pw}.
-func apply_combat_result(res: Dictionary) -> void:
+func apply_combat_result(res: Dictionary, reward_seed: int = -1) -> void:
 	# Folded in BEFORE the won/lost branch: a run that ended in defeat still fought, and a
 	# result screen that showed zeroes after a long losing run would be reporting the loss
 	# twice.
@@ -397,7 +548,10 @@ func apply_combat_result(res: Dictionary) -> void:
 			set_phase(RunPhase.WON)
 			end_run(true)
 		else:
-			_generate_post_combat_rewards(res)
+			var reward_sd := _epoch_seed("reward", {"node_id": current_node_id}, reward_seed)
+			if reward_sd < 0:
+				return
+			_generate_post_combat_rewards(res, reward_sd)
 			set_phase(RunPhase.REWARD)
 	else:
 		set_phase(RunPhase.LOST)
@@ -444,6 +598,8 @@ func end_run(won: bool) -> void:
 	# otherwise (client.html:3420). Doing it here rather than in a save guard means a finished
 	# run cannot leave a resumable save behind even if some later call site forgets.
 	clear_saved_run()
+	if epoch != null:
+		epoch.close("won" if won else "lost", {})
 	MetaState.add_shards(shards_this_run)
 
 	# Lifetime stats and the Ascension ladder (src/client.html onRunEnd(), :5436-5446).
@@ -528,7 +684,7 @@ func _reward_count() -> int:
 ## after_node() is called from RunMapController._on_reward_chosen() once a card is actually
 ## picked, matching takeReward()'s ordering exactly, with generate_treasure_rewards() /
 ## _on_reward_chosen() sharing the exact same path for the treasure node's own offer.
-func _generate_post_combat_rewards(res: Dictionary) -> void:
+func _generate_post_combat_rewards(res: Dictionary, reward_sd: int) -> void:
 	var kind := String(res.get("kind", "battle"))
 	var pw := int(res.get("pw", power_level))
 	# src/engine.js finishCombat(): s.rewardTier = boss?3 : elite?2 : (s.step%3===0?1:0). This
@@ -536,7 +692,7 @@ func _generate_post_combat_rewards(res: Dictionary) -> void:
 	# verify lại khi số node/hàng thay đổi khi không còn 1 tuyến cố định") — approximated
 	# with power_level (0-indexed, standing in for JS's 1-indexed step) below.
 	var tier := 3 if kind == "boss" else (2 if kind == "elite" else (1 if (power_level + 1) % 3 == 0 else 0))
-	_set_pending_rewards(tier, pw, 601)
+	_set_pending_rewards(tier, pw, reward_sd)
 
 
 ## src/engine.js chooseNode() 'treasure' branch (engine.js:402): `s.rewardTier=1;
@@ -545,16 +701,16 @@ func _generate_post_combat_rewards(res: Dictionary) -> void:
 ## — see RunMapController._on_treasure_node()'s history). `node_id` seeds a salt distinct
 ## from every other overlay flow (RunMapController._node_rng()'s convention).
 func generate_treasure_rewards(_node_id: String) -> void:
-	_set_pending_rewards(1, power_level, 503)
+	_set_pending_rewards(1, power_level, _node_seed)
 
 
-func _set_pending_rewards(tier: int, pw: int, salt: int) -> void:
+func _set_pending_rewards(tier: int, pw: int, seed: int) -> void:
 	_reward_reroll_tier = tier
 	_reward_reroll_pw = pw
 	_reward_reroll_count = _reward_count()
-	_reward_reroll_salt = salt
+	_reward_reroll_salt = 0   # now: how many rerolls this offer has had (the `k` of the epoch)
 	reward_reroll_charges = reward_reroll_max
-	var reward_rng := Rng.new(Rng.derive_combat_seed(run_seed, current_node_id, salt))
+	var reward_rng := Rng.new(seed)
 	pending_rewards = RewardGenerator.generate(pw, tier, reward_rng, owned_relic_ids, roster,
 		effective_max_rerolls(), _reward_reroll_count)
 
@@ -562,13 +718,16 @@ func _set_pending_rewards(tier: int, pw: int, salt: int) -> void:
 ## src/engine.js rerollRewards() (engine.js:1163-1166): spends 1 s.rerollReward charge and
 ## redraws the SAME tier/pw offer. Uses a bumped salt (never the original 601/503 draw) so a
 ## reroll can never reproduce the exact offer it just replaced.
-func reroll_pending_rewards() -> bool:
+func reroll_pending_rewards(seed: int = -1) -> bool:
 	if reward_reroll_charges <= 0 or pending_rewards.is_empty():
+		return false
+	var sd := _epoch_seed("reward_reroll", {"k": _reward_reroll_salt + 1}, seed)
+	if sd < 0:
 		return false
 	action_log.record("reroll_rewards", [])
 	reward_reroll_charges -= 1
 	_reward_reroll_salt += 1
-	var reward_rng := Rng.new(Rng.derive_combat_seed(run_seed, current_node_id, _reward_reroll_salt))
+	var reward_rng := Rng.new(sd)
 	pending_rewards = RewardGenerator.generate(_reward_reroll_pw, _reward_reroll_tier, reward_rng,
 		owned_relic_ids, roster, effective_max_rerolls(), _reward_reroll_count)
 	return true
@@ -651,8 +810,8 @@ func apply_chosen_reward(reward: Dictionary) -> void:
 
 ## Builds this node's shop offer. Called from enter_node(), so a replay that applies the same
 ## `enter_node` action gets the same three items in the same order without being told them.
-func _open_shop(node_id: String) -> void:
-	_shop_rng = Rng.new(Rng.derive_combat_seed(run_seed, node_id, SHOP_SALT))
+func _open_shop(_node_id: String, seed: int) -> void:
+	_shop_rng = Rng.new(seed)
 	shop_items = []
 	for raw in RewardGenerator.generate_shop_items(_shop_rng, owned_relic_ids):
 		shop_items.append((raw as Dictionary).duplicate(true))
@@ -661,8 +820,8 @@ func _open_shop(node_id: String) -> void:
 ## Picks which event this node runs. Only events whose options actually DO something are
 ## eligible (ContentDB.playable_event_keys) — offering an unported option means the player
 ## chooses and nothing happens, which is indistinguishable from a bug.
-func _open_event(node_id: String) -> void:
-	_event_rng = Rng.new(Rng.derive_combat_seed(run_seed, node_id, EVENT_SALT))
+func _open_event(_node_id: String, seed: int) -> void:
+	_event_rng = Rng.new(seed)
 	var keys := ContentDB.playable_event_keys()
 	event_key = "" if keys.is_empty() else String(keys[_event_rng.next_int(keys.size())])
 
@@ -676,15 +835,19 @@ func event_options() -> Array:
 ## The replayable way to resolve an event: an INDEX into the offer this run generated. Nothing
 ## about the option travels in the log, so a verifier re-derives the offer and checks the index
 ## against it.
-func choose_event_option(index: int) -> String:
+func choose_event_option(index: int, seed: int = -1) -> String:
 	var opts := event_options()
 	if index < 0 or index >= opts.size():
 		push_error("RunState.choose_event_option: index %d outside an offer of %d"
 			% [index, opts.size()])
 		return ""
+	var sd := _epoch_seed("event_choice", {"index": index}, seed)
+	if sd < 0:
+		return ""
 	action_log.record("event_choose", [index])
 	var fx := String((opts[index] as Dictionary).get("fx", ""))
-	return apply_event_fx(fx, _event_rng if _event_rng != null else Rng.new(run_seed))
+	_event_rng = Rng.new(sd)
+	return apply_event_fx(fx, _event_rng)
 
 
 ## Ported subset of src/engine.js applyEventFx() (rule spec §9/§10) — only the fx values
@@ -773,7 +936,7 @@ func apply_event_fx(fx: String, rng: Rng) -> String:
 ## `_shop_rng` is the same stream the offer was generated from, continued here for the "heal"
 ## item's random target pick (src/engine.js's `pick(s.roster)`); continuing it rather than
 ## starting a fresh one is what makes the purchase order part of the replay.
-func try_buy_shop_item(index: int) -> bool:
+func try_buy_shop_item(index: int, seed: int = -1) -> bool:
 	if index < 0 or index >= shop_items.size():
 		return false
 	var item: Dictionary = shop_items[index]
@@ -782,7 +945,12 @@ func try_buy_shop_item(index: int) -> bool:
 	var cost := int(item.get("cost", 0))
 	if shards_this_run < cost:
 		return false
-	var rng: Rng = _shop_rng if _shop_rng != null else Rng.new(run_seed)
+	var rng: Rng = null
+	if shop_item_needs_epoch(index):
+		var sd := _epoch_seed("shop_roll", {"node_id": current_node_id, "item": index}, seed)
+		if sd < 0:
+			return false
+		rng = Rng.new(sd)
 	action_log.record("shop_buy", [index])
 	shards_this_run -= cost
 	match String(item.get("kind", "")):
@@ -800,6 +968,14 @@ func try_buy_shop_item(index: int) -> bool:
 	# replay — which has no screen — left every item buyable forever.
 	item["bought"] = true
 	return true
+
+
+## True when buying this item draws randomness (today only "heal": it picks the Axie), so the UI
+## must ask for a `shop_roll` epoch first. Other items are bought without one.
+func shop_item_needs_epoch(index: int) -> bool:
+	if index < 0 or index >= shop_items.size():
+		return false
+	return String((shop_items[index] as Dictionary).get("kind", "")) == "heal"
 
 
 func _roster_entry_by_pid(pid: int) -> Dictionary:
@@ -839,7 +1015,7 @@ const SAVE_PATH := "user://run_save.json"
 ## Bumped whenever the shape below changes incompatibly. A save from a different version is
 ## ignored rather than half-loaded: a run restored into a schema it does not match is worse
 ## than no save at all, because it looks like it worked.
-const SAVE_VERSION := 1
+const SAVE_VERSION := 2
 
 ## Dictionaries whose keys are INTEGERS, per roster entry. JSON has no integer keys — every
 ## one comes back as a string — so `growth.get(3)` would miss a value stored under "3" and
@@ -897,6 +1073,14 @@ func to_data() -> Dictionary:
 		"event_key": event_key,
 		"shop_rng_state": _shop_rng.get_state() if _shop_rng != null else 0,
 		"event_rng_state": _event_rng.get_state() if _event_rng != null else 0,
+		# Epoch seam (contract 1.5). The tape lets a resumed run keep its sequence and hash chain;
+		# the log is saved with it because the chain is computed over it.
+		"epoch_tape": epoch.tape() if epoch != null else [],
+		"epoch_seq": (epoch.tape().size() if epoch != null else 0),
+		"run_id": String(action_log.header.get("run_id", "")),
+		"node_seed": _node_seed,
+		"row_types_known": row_types_known.duplicate(true),
+		"action_log": action_log.to_data(),
 	}
 
 
@@ -944,6 +1128,16 @@ func from_data(d: Dictionary) -> void:
 	_run_end_processed = bool(d.get("run_end_processed", false))
 	pending_rewards.assign(d.get("pending_rewards", []))
 	_rng = Rng.new(int(d.get("rng_state", run_seed)))
+	_node_seed = int(d.get("node_seed", 0))
+	row_types_known = {}
+	for rk in (d.get("row_types_known", {}) as Dictionary).keys():
+		row_types_known[int(rk)] = ((d["row_types_known"] as Dictionary)[rk] as Array).duplicate()
+	if d.has("action_log"):
+		action_log = ActionLog.from_data(d["action_log"] as Dictionary)
+		var local := LocalEpochSource.new(PackedByteArray(), int(action_log.header.get("local_secret", 0)))
+		local.resume(ActionLog._restore_ints(d.get("epoch_tape", [])) as Array)
+		local.bind_log(action_log)
+		epoch = local
 
 
 ## Roster entries survive JSON intact except for `growth`, whose keys are integers — see

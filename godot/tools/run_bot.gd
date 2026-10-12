@@ -56,6 +56,7 @@ static func play_run(seed_value: int, team: Array[String] = DEFAULT_TEAM,
 	var won := RunState.phase == RunState.RunPhase.WON
 	return {
 		"log": RunState.action_log,
+		"tape": RunState.epoch.tape() if RunState.epoch != null else [],
 		"state": RunState.to_data(),
 		"score": RunState.compute_run_xp(won),
 		"won": won,

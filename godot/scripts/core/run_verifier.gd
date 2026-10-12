@@ -41,7 +41,11 @@ const ERR_UNKNOWN_ACTION := "unknown_action"
 
 ## Returns {ok, error, message, score, won, action_index, state} — `state` being the full
 ## RunState.to_data() the replay arrived at, so a caller can compare or store a digest.
-static func verify(log: ActionLog) -> Dictionary:
+## `tape` = the epochs the run was played with ([{seq, kind, args, seed, extra}]), `loadout` = the
+## injected bonuses/unlocks (defaults to the header's own `loadout`). Seeds come ONLY from the tape,
+## and each one is checked against the hash of the log replayed so far, so an edited log fails with
+## `action_rejected` instead of replaying into another run. MetaState is never read for a replay.
+static func verify(log: ActionLog, tape: Array = [], loadout: Dictionary = {}) -> Dictionary:
 	var header: Dictionary = log.header
 
 	# --- refuse before replaying, and say which of the refusals it was ------------------
@@ -56,6 +60,8 @@ static func verify(log: ActionLog) -> Dictionary:
 		return _fail(ERR_RULES_VERSION,
 			"This run was played on game rules version '%s'; this referee runs '%s'."
 			% [str(header.get("rules_version", "?")), ActionLog.RULES_VERSION])
+	if tape.is_empty():
+		return _fail(ERR_BAD_HEADER, "No epoch tape was supplied; seeds cannot be rebuilt without it.")
 	var content_version := String(ContentDB.part_faces.get("engineVersion", ""))
 	if String(header.get("content_version", "")) != content_version:
 		return _fail(ERR_CONTENT_VERSION,
@@ -73,8 +79,17 @@ static func verify(log: ActionLog) -> Dictionary:
 		return _fail(ERR_BAD_HEADER, "The record names no team.")
 
 	# --- replay -------------------------------------------------------------------------
-	RunState.start_new_run(int(header.get("seed", 0)), team, String(header.get("mode", "short")),
-		int(header.get("ascension", 0)), true)
+	var lo: Dictionary = loadout if not loadout.is_empty() else (header.get("loadout", {}) as Dictionary)
+	var params := {"team_keys": team, "mode": String(header.get("mode", "short")),
+		"ascension": int(header.get("ascension", 0)), "ranked": true, "loadout": lo}
+	if lo.has("bonuses"):
+		params["bonuses"] = ActionLog._restore_ints(lo["bonuses"])
+	var tape_src := TapeEpochSource.new(tape)
+	if not RunState.start_run_with_epoch(tape_src, params, int(header.get("local_secret", 0))):
+		return _fail(ERR_BAD_HEADER, "The epoch tape does not open a run.")
+	# The tape is checked against the log being verified, one entry at a time (see set_visible_len).
+	tape_src.bind_log(log)
+	tape_src.set_visible_len(0)
 	if not RunState.ranked:
 		# start_new_run downgrades a ranked run whose team holds a Vault Axie, because a vault
 		# die exists only in one save. Reaching here means the log's own team cannot be ranked.
@@ -91,6 +106,7 @@ static func verify(log: ActionLog) -> Dictionary:
 		var e: Dictionary = log.entries[i]
 		var fn := String(e.get("fn", ""))
 		var args: Array = e.get("args", [])
+		tape_src.set_visible_len(i)
 		match fn:
 			"enter_node":
 				# A node ends when the next one is entered. Nothing logs "I left the node",
@@ -124,6 +140,7 @@ static func verify(log: ActionLog) -> Dictionary:
 				# The moment a fight is decided, the run reacts — the same order CombatView
 				# uses, and the order the rewards depend on.
 				if (engine.won or engine.lost) and RunState.phase == RunState.RunPhase.COMBAT:
+					tape_src.set_visible_len(i + 1)
 					RunState.apply_combat_result(engine.get_result())
 					engine = null
 			"take_reward":
@@ -177,7 +194,9 @@ static func _apply_combat(engine: CombatEngine, fn: String, args: Array) -> bool
 		"play_active":
 			return engine.play_active(String(args[0]), int(args[1]))
 		"reroll_dice":
-			return engine.reroll_dice(args[0] as Array)
+			# args[1] = from_aid (0/1); logs written before it existed have only the uids.
+			return engine.reroll_dice(args[0] as Array, -1, \
+				args.size() > 1 and int(args[1]) != 0)
 		"undo_last":
 			return engine.undo_last()
 		"end_turn":

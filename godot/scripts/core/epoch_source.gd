@@ -20,7 +20,13 @@ func bind_log(l: ActionLog) -> void:
 var _run_id: String = ""
 var _prev_h: PackedByteArray = PackedByteArray()
 var _sent_len: int = 0
+## Verifier only: how many log entries had been "played" when this request was made. -1 = all of them.
+var _visible_len: int = -1
 var _first_epoch: bool = true   # run_start carries h_0 itself, with no chain step (golden vectors)
+
+
+func set_visible_len(n: int) -> void:
+	_visible_len = n
 
 
 func _chain_begin(run_id: String) -> void:
@@ -37,8 +43,8 @@ func _chain_peek() -> Dictionary:
 	var entries: Array = []
 	var n := 0
 	if _log != null:
-		n = _log.entries.size()
-		entries = _log.entries.slice(_sent_len, n)
+		n = _log.entries.size() if _visible_len < 0 else mini(_visible_len, _log.entries.size())
+		entries = _log.entries.slice(_sent_len, n) if n > _sent_len else []
 	var d := EpochCanon.delta(entries)
 	if not bool(d["ok"]):
 		return {"ok": false, "error": String(d["error"])}

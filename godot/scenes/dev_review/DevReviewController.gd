@@ -38,11 +38,12 @@ func _on_jump_combat() -> void:
 	# so this is reproducible — a fixed dice-roll sequence for repeat testing, exactly
 	# what the Jaatster workflow calls for.
 	RunState.start_new_run(_current_seed(), PLACEHOLDER_TEAM, "short", 0, false)
-	var combat_seed := Rng.derive_combat_seed(_current_seed(), "dev_review_jump", 0)
+	# Local epoch keyed by the typed seed: reproducible, no server (ADR-RNG §4.5).
+	var combat_seed := RunState.request_epoch("node", {"node_id": "r1_c0"}).seed
 	RunState.pending_combat = {
 		"node_id": "dev_review_jump", "kind": "battle", "pw": 0, "ascension": 0,
 		"roster_snapshot": RunState.roster.duplicate(true),
-		"relic_ids": [], "combat_seed": combat_seed,
+		"relic_ids": [], "combat_seed": combat_seed, "epoch": RunState.epoch,
 	}
 	RunState.set_phase(RunState.RunPhase.COMBAT)
 	get_tree().change_scene_to_file("res://scenes/combat/Combat.tscn")

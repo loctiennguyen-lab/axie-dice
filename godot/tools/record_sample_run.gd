@@ -33,7 +33,9 @@ func _ready() -> void:
 		_guard.restore()
 		get_tree().quit(2)
 		return
-	f.store_string(JSON.stringify(log.to_data()))
+	var bundle := log.to_data()
+	bundle["tape"] = played["tape"]   # the verifier needs the epochs as well as the decisions
+	f.store_string(JSON.stringify(bundle))
 	f.close()
 
 	print("record_sample_run: seed=%d actions=%d score=%d won=%s complete=%s -> %s"

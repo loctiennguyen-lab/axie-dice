@@ -47,10 +47,37 @@ func start_run(params: Dictionary) -> EpochReply:
 	if not reply.ok:
 		return reply
 	reply.extra["run_id"] = run_id
+	reply.extra["client_nonce"] = _nonce
 	reply.extra["commit"] = EpochCanon.commit(run_id, _s_run).hex_encode()
 	reply.extra["header"] = {"newcomer": false, "loadout": (params.get("loadout", {}) as Dictionary).duplicate(true)}
 	(_tape[_tape.size() - 1] as Dictionary)["extra"] = reply.extra.duplicate(true)
 	return reply
+
+
+## Continues a saved Local run: restores the sequence, the hash chain position and the reroll pins
+## from the tape that was saved with it.
+func resume(p_tape: Array) -> void:
+	_tape = p_tape.duplicate(true)
+	_started = not _tape.is_empty()
+	_seq = _tape.size()
+	_pins = {}
+	_last_node_seq = 0
+	if _tape.is_empty():
+		return
+	var first: Dictionary = _tape[0]
+	_chain_begin(String((first.get("extra", {}) as Dictionary).get("run_id", "")))
+	var last: Dictionary = _tape[_tape.size() - 1]
+	var lx: Dictionary = last.get("extra", {})
+	_prev_h = String(lx.get("h", "")).hex_decode()
+	_sent_len = int(lx.get("log_len", 0))
+	_first_epoch = false
+	for e in _tape:
+		var ed: Dictionary = e
+		var a: Dictionary = ed.get("args", {})
+		if String(ed.get("kind", "")) == "node":
+			_last_node_seq = int(ed["seq"])
+		elif String(ed.get("kind", "")) == "reroll":
+			_pins["%d|%d|%d|%d" % [_last_node_seq, int(a.get("attempt", 0)), int(a.get("turn", 0)), int(a.get("k", 0))]] = int(ed["seed"])
 
 
 func request(kind: String, args: Dictionary) -> EpochReply:

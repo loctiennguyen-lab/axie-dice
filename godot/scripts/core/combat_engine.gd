@@ -88,6 +88,12 @@ var undo_stack: Array = []
 var action_log: ActionLog = null
 
 var _rng: Rng = null
+## Compatibility only (L1 contract 1.4): when a caller does not pass a seed (`seed < 0`) the engine
+## asks this source for one. RunState hands it in through the combat setup. Null = legacy behaviour,
+## the draw simply continues the current stream (raw-engine tests). Remove with the compat layer.
+var _epoch: EpochSource = null
+## k-th reroll request this turn (reroll epoch key, ADR-RNG §4.4). In the snapshot so undo rewinds it.
+var reroll_k: int = 0
 var _next_token_uid: int = TOKEN_UID_BASE
 
 
@@ -108,6 +114,8 @@ func setup_new(combat_setup: Dictionary) -> void:
 	_boss_key = String(combat_setup.get("boss_key", ""))
 	_run_mods = (combat_setup.get("run_mods", {}) as Dictionary).duplicate()
 	_rng = Rng.new(combat_seed)
+	_epoch = combat_setup.get("epoch", null) as EpochSource
+	reroll_k = 0
 	_next_token_uid = TOKEN_UID_BASE
 	undo_stack = []
 	won = false
@@ -211,6 +219,7 @@ func _state_dict() -> Dictionary:
 		"lost": lost,
 		"result_shards_earned": result_shards_earned,
 		"rng_state": _rng.get_state() if _rng != null else 0,
+		"reroll_k": reroll_k,
 		"next_token_uid": _next_token_uid,
 	}
 
@@ -239,6 +248,7 @@ func _apply_state_dict(d: Dictionary) -> void:
 	lost = bool(d.get("lost", false))
 	result_shards_earned = int(d.get("result_shards_earned", 0))
 	_rng = Rng.new(int(d.get("rng_state", 0)))
+	reroll_k = int(d.get("reroll_k", 0))
 	_next_token_uid = int(d.get("next_token_uid", TOKEN_UID_BASE))
 
 
@@ -449,21 +459,27 @@ func _resolve_cantrips() -> void:
 
 ## REROLL — see the class-level DESIGN DECISION comment: this is a transient marker, not
 ## a blocking gate. engine.js doReroll(s, uids).
-func reroll_dice(uids: Array) -> bool:
-	if won or lost:
+func reroll_dice(uids: Array, seed: int = -1, from_aid: bool = false) -> bool:
+	if not can_reroll(uids, from_aid):
 		return false
-	if rerolls <= 0:
-		return false
-	var list: Array = []
-	for raw_id in uids:
-		var u := by_uid(int(raw_id))
-		if u != null and u.side == "p" and u.hp > 0 and u.has_rolled() and not u.roll_used() \
-				and not u.heavy and not u.frozen:
-			list.append(u)
-	if list.is_empty():
-		return false
+	# Epoch boundary: the seed for the new faces. Asked AFTER the legality check (ADR-RNG §4.3 rule 5:
+	# never ask for a seed for an action the engine would refuse) and BEFORE the action is logged
+	# (the server expects the consuming action at log_len).
+	var use_seed := seed
+	if use_seed < 0 and _epoch != null:
+		var r := _epoch.request("reroll", {"turn": turn, "k": reroll_k + 1,
+			"source": "aid" if from_aid else "base", "uids": _int_list(uids)})
+		if not r.ok:
+			push_error("CombatEngine.reroll_dice: epoch refused (%s)" % r.code)
+			return false
+		use_seed = r.seed
+	if use_seed >= 0:
+		_rng = Rng.new(use_seed)
+	reroll_k += 1
+	var list: Array = _rerollable(uids)
 	_set_turn_phase(CombatPhase.REROLL)
-	rerolls -= 1
+	if not from_aid:
+		rerolls -= 1
 	var keep_crit := RelicHooks.has(self, "critKeep")
 	for raw_u in list:
 		var u: Unit = raw_u
@@ -482,8 +498,36 @@ func reroll_dice(uids: Array) -> bool:
 	# The uids the CALLER asked for, not the filtered `list`: the filter is a rule, and a replay
 	# re-applies it. Logging the filtered set would bake today's filter into the record and hide
 	# a future change to it.
-	_log("reroll_dice", [uids.duplicate()])
+	# `from_aid` is logged (as 0/1, canon has no bool) so a replay can re-apply an Aid reroll made
+	# with no rerolls left; the plain reroll_dice(uids) form still replays (missing arg = 0).
+	_log("reroll_dice", [uids.duplicate(), 1 if from_aid else 0])
 	return true
+
+
+## Pure legality check for reroll_dice(); the view calls it BEFORE asking for an epoch.
+func can_reroll(uids: Array, from_aid: bool = false) -> bool:
+	if won or lost:
+		return false
+	if rerolls <= 0 and not from_aid:
+		return false
+	return not _rerollable(uids).is_empty()
+
+
+func _rerollable(uids: Array) -> Array:
+	var list: Array = []
+	for raw_id in uids:
+		var u := by_uid(int(raw_id))
+		if u != null and u.side == "p" and u.hp > 0 and u.has_rolled() and not u.roll_used() \
+				and not u.heavy and not u.frozen:
+			list.append(u)
+	return list
+
+
+static func _int_list(a: Array) -> Array:
+	var out: Array = []
+	for x in a:
+		out.append(int(x))
+	return out
 
 
 ## Plays a Lunacia active card for Mana. Port of src/engine.js playerUseRelic()
@@ -995,8 +1039,8 @@ func _neighbors_of(arr: Array, t: Unit) -> Array:
 ## would turn nineteen synchronous call sites into nineteen places that must remember to
 ## `await`, and one of them is `run_verifier.gd` — a referee that replays a log frame-free and
 ## must not start depending on the scene tree's clock to reach a verdict.
-func end_turn() -> void:
-	if not begin_end_turn():
+func end_turn(seed: int = -1) -> void:
+	if not begin_end_turn(seed):
 		return
 	# Index, not a snapshot of uids, and `enemies.size()` re-read every pass — see
 	# step_end_turn_action()'s comment for the summon case that makes the difference.
@@ -1018,9 +1062,19 @@ func can_end_turn() -> bool:
 ## Phase 1 of 3 — everything that happens BEFORE the first enemy acts. Returns false when the
 ## call was rejected (already over, or already in END_TURN), in which case nothing moved and
 ## the caller must not go on to step or finish.
-func begin_end_turn() -> bool:
+func begin_end_turn(seed: int = -1) -> bool:
 	if not can_end_turn():
 		return false
+	# Epoch boundary (see reroll_dice): enemy phase + next turn's rolls + intents draw from `seed`.
+	var use_seed := seed
+	if use_seed < 0 and _epoch != null:
+		var r := _epoch.request("end_turn", {"turn": turn})
+		if not r.ok:
+			push_error("CombatEngine.begin_end_turn: epoch refused (%s)" % r.code)
+			return false
+		use_seed = r.seed
+	if use_seed >= 0:
+		_rng = Rng.new(use_seed)
 	_log("end_turn", [])
 	_set_turn_phase(CombatPhase.END_TURN)
 	undo_stack = []
@@ -1085,6 +1139,7 @@ func finish_end_turn() -> void:
 	turn += 1
 	stat["turns"] = int(stat.get("turns", 0)) + 1
 	rerolls = max_rerolls
+	reroll_k = 0
 	used_actives = []
 	resonance_log = []
 	for u in party:
