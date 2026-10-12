@@ -94,6 +94,15 @@ var _rng: Rng = null
 var _epoch: EpochSource = null
 ## k-th reroll request this turn (reroll epoch key, ADR-RNG §4.4). In the snapshot so undo rewinds it.
 var reroll_k: int = 0
+
+
+## Hands the engine the run's epoch source. setup_new() does it from the combat setup; a fight restored
+## with from_data() (resume, scene reload) has no setup, so the caller (CombatView, lane U) calls
+## `_combat.set_epoch(RunState.epoch)` right after from_data(). Without it the engine falls back to the
+## legacy continuing stream and the draw is not on the tape.
+func set_epoch(src: EpochSource) -> void:
+	_epoch = src
+
 var _next_token_uid: int = TOKEN_UID_BASE
 
 
