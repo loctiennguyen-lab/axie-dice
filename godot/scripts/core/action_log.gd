@@ -73,8 +73,9 @@ const ALLOWED_FNS: Array[String] = [
 	"enter_node", "use_die", "play_active", "reroll_dice", "end_turn", "undo_last",
 	"take_reward", "reroll_rewards", "event_choose", "event_done", "shop_buy", "shop_done",
 	"tweak", "hold_pick", "loaded_pick", "sell_relic", "swap_on_full", "reorder_party",
+	"continue", "shop_refresh", "aid_use",
 	# Still to come, each in the PR that implements it AND teaches RunVerifier to replay it (t_replay
-	# refuses an action the referee cannot replay): continue, pact_reroll, shop_refresh, aid_use, pact_pick.
+	# refuses an action the referee cannot replay): pact_reroll, pact_pick.
 ]
 
 ## Same ceiling as the JS server (submit-run.js:30). A real run lands far below it; the limit is

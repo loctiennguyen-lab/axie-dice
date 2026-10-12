@@ -104,6 +104,9 @@ var relic_run_out: Dictionary = {}
 ## Combat pressure (ascension-v2 §2.4, monetization-v1 §1.2). Pure functions of `turn` and
 ## `clock_turn_base`, so replay needs no extra input. Continue / the Aid "delay clock" move the base.
 var clock_turn_base: int = 0
+## How many times the party was revived in this fight (the `attempt` of the epoch protocol). Fight state,
+## not a purchase flag: no rule reads it except to key the next epoch request (MON-13).
+var attempt: int = 0
 ## Newcomer account (first runs): attrition and the light A0-A3 clock are off. A fixed header fact.
 var newcomer: bool = false
 ## Pure numbers handed in by RunState (a Boon, a mission rule, anything): the engine neither knows nor
@@ -146,6 +149,7 @@ func setup_new(combat_setup: Dictionary) -> void:
 	_epoch = combat_setup.get("epoch", null) as EpochSource
 	newcomer = bool(combat_setup.get("newcomer", false))
 	clock_turn_base = 0
+	attempt = 0
 	start_shield_all = int(combat_setup.get("start_shield_all", 0))
 	start_mana = int(combat_setup.get("start_mana", 0))
 	first_dmg_face_bonus = int(combat_setup.get("first_dmg_face_bonus", 0))
@@ -280,6 +284,7 @@ func _state_dict() -> Dictionary:
 		"relic_run_out": relic_run_out.duplicate(true),
 		"end_fired": _end_fired,
 		"clock_turn_base": clock_turn_base,
+		"attempt": attempt,
 		"newcomer": newcomer,
 		"start_shield_all": start_shield_all,
 		"start_mana": start_mana,
@@ -320,6 +325,7 @@ func _apply_state_dict(d: Dictionary) -> void:
 	relic_run_out = (d.get("relic_run_out", {}) as Dictionary).duplicate(true)
 	_end_fired = bool(d.get("end_fired", false))
 	clock_turn_base = int(d.get("clock_turn_base", 0))
+	attempt = int(d.get("attempt", 0))
 	newcomer = bool(d.get("newcomer", false))
 	start_shield_all = int(d.get("start_shield_all", 0))
 	start_mana = int(d.get("start_mana", 0))
@@ -554,8 +560,11 @@ func reroll_dice(uids: Array, seed: int = -1, from_aid: bool = false) -> bool:
 	# (the server expects the consuming action at log_len).
 	var use_seed := seed
 	if use_seed < 0 and _epoch != null:
-		var r := _epoch.request("reroll", {"turn": turn, "k": reroll_k + 1,
-			"source": "aid" if from_aid else "base", "uids": _int_list(uids)})
+		var rargs := {"turn": turn, "k": reroll_k + 1,
+			"source": "aid" if from_aid else "base", "uids": _int_list(uids)}
+		if attempt > 0:
+			rargs["attempt"] = attempt
+		var r := _epoch.request("reroll", rargs)
 		if not r.ok:
 			push_error("CombatEngine.reroll_dice: epoch refused (%s)" % r.code)
 			return false
@@ -1218,7 +1227,10 @@ func begin_end_turn(seed: int = -1) -> bool:
 	# Epoch boundary (see reroll_dice): enemy phase + next turn's rolls + intents draw from `seed`.
 	var use_seed := seed
 	if use_seed < 0 and _epoch != null:
-		var r := _epoch.request("end_turn", {"turn": turn})
+		var eargs := {"turn": turn}
+		if attempt > 0:
+			eargs["attempt"] = attempt
+		var r := _epoch.request("end_turn", eargs)
 		if not r.ok:
 			push_error("CombatEngine.begin_end_turn: epoch refused (%s)" % r.code)
 			return false
@@ -1398,6 +1410,66 @@ func _boss_turn_traits() -> void:
 						mirrored["value"] = max(int(b.die[0].get("value", 0)),
 							int(ceil(float(last_big.get("v", 0)) * 1.1)))
 						b.die[0] = mirrored
+
+
+# ===========================================================================
+# Continue (monetization R1, dang B) and the Aid effects that touch a fight
+# ===========================================================================
+
+## Whole real party down and the fight is not won.
+func can_continue() -> bool:
+	return lost and not won
+
+
+## Revives the real party at `heal_pct` of Max HP (ceil), keeps every enemy exactly as it was (HP, phase,
+## spike schedule), sends clock and attrition back to 0 and rolls a fresh turn from `seed`. It is the
+## same fight: `turn` is not touched. `heal_pct < 0` reads the ascension rule. The server charges for
+## it inside the epoch request; here it is only a pure effect taking numbers (MON-13).
+func continue_after_wipe(seed: int = -1, heal_pct: int = -1) -> bool:
+	if not can_continue():
+		return false
+	var pct := heal_pct if heal_pct >= 0 else int(ContentDB.ascension_mods(ascension).get("continue_heal_pct", 40))
+	var use_seed := seed
+	if use_seed < 0 and _epoch != null:
+		var cargs := {"node_id": node_id, "attempt": attempt + 1}
+		var r := _epoch.request("continue", cargs)
+		if not r.ok:
+			push_error("CombatEngine.continue_after_wipe: epoch refused (%s)" % r.code)
+			return false
+		use_seed = r.seed
+	if use_seed >= 0:
+		_rng = Rng.new(use_seed)
+	attempt += 1
+	lost = false
+	var revived: Array = []
+	for u in party:
+		if u.is_token:
+			continue
+		u.hp = maxi(1, int(ceil(float(u.max_hp) * float(pct) / 100.0)))
+		u.shield = 0
+		u.status = {}
+		u.frozen = false
+		u.frozen_next = false
+		u.clear_roll()
+		revived.append(u.uid)
+	clock_turn_base = turn
+	undo_stack = []
+	rerolls = max_rerolls
+	reroll_k = 0
+	used_actives = []
+	resonance_log = []
+	_first_dmg_used = false
+	_set_turn_phase(CombatPhase.ROLL)
+	roll_all()
+	_set_turn_phase(CombatPhase.EXECUTE)
+	EventBus.party_revived.emit(revived, pct)
+	_log("continue", [attempt])
+	return true
+
+
+## Aid R4: pushes the boss clock (and attrition, they share the base) back `turns` turns.
+func delay_clock(turns: int) -> void:
+	clock_turn_base = mini(turn, clock_turn_base + maxi(0, turns))
 
 
 # ===========================================================================

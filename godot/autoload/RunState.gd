@@ -133,6 +133,11 @@ var boon_id: String = ""
 var newcomer: bool = false
 ## Counters that scope a Boon to "your first 3 fights", "first Boss", "first Battle reward".
 var _rewarding_kind: String = ""
+## Aid uses this run [{aid, node_id}], ONLY written by record_aid_use() and read by aid_uses_view() / the
+## UI's AidCatalog. No rule may read it (t_mon13). The Boon (R8/R9) is not counted here: boon_used says so.
+var aid_uses: Array[Dictionary] = []
+var boon_used: bool = false
+var _shop_refreshes: int = 0
 var fights_started: int = 0
 var bosses_started: int = 0
 var first_battle_rewarded: bool = false
@@ -214,6 +219,9 @@ func reset() -> void:
 	epoch = null
 	epoch_busy = false
 	boon_id = ""
+	aid_uses = []
+	boon_used = false
+	_shop_refreshes = 0
 	newcomer = false
 	fights_started = 0
 	bosses_started = 0
@@ -470,6 +478,54 @@ func boon_numbers_for_fight(fight_index: int, boss_index: int) -> Dictionary:
 	out["first_dmg_face_bonus"] = int(fx.get("first_dmg_face_bonus", 0))
 	out["start_eggs"] = int(fx.get("start_eggs", 0))
 	return out
+
+
+## The one writer of the Aid ledger. R8/R9 (Boon, Kit) only flip boon_used; they never enter `uses`.
+func record_aid_use(aid_id: String) -> void:
+	if aid_id == "boon" or aid_id == "kit":
+		boon_used = true
+		return
+	aid_uses.append({"aid": aid_id, "node_id": current_node_id})
+
+
+func aid_uses_view() -> Array:
+	return aid_uses.duplicate(true)
+
+
+## Appends the line the server returned for an Aid use to OUR log, so the hash chain matches
+## (contract 1.5), and counts it. `args` are the Aid's own positional parameters.
+func apply_aid_use(aid_id: String, args: Array = []) -> void:
+	var line: Array = [aid_id]
+	line.append_array(args)
+	action_log.record("aid_use", line)
+	record_aid_use(aid_id)
+
+
+## What the UI needs to decide which Aid to offer (AidCatalog, lane E). Pure read.
+func aid_context(combat: CombatEngine = null) -> Dictionary:
+	var hud: Dictionary = combat.hud_state() if combat != null else {}
+	return {"mode": mode, "mission": not (action_log.header.get("mission", {}) as Dictionary).is_empty(),
+		"newcomer": newcomer, "ascension": ascension,
+		"node_kind": String(pending_combat.get("kind", "")) if phase == RunPhase.COMBAT else "",
+		"in_shop": phase == RunPhase.SHOP, "at_pact": false,
+		"party_wiped": combat != null and combat.can_continue(),
+		"rerolls_left": int(hud.get("rerolls", 0)),
+		"clock_turns_left": int((hud.get("clock", {}) as Dictionary).get("turns_left", 0)),
+		"uses": aid_uses_view(), "boon_used": boon_used, "vip": false, "free_continue_left": false}
+
+
+## Aid R6: a new shop row from `seed` (the old items, bought or not, are replaced). Logged as
+## `shop_refresh` [k]. Price and the cap live with the server / AidCatalog, not here.
+func refresh_shop(seed: int = -1) -> bool:
+	if phase != RunPhase.SHOP:
+		return false
+	var sd := _epoch_seed("shop_refresh", {"node_id": current_node_id, "k": _shop_refreshes + 1}, seed)
+	if sd < 0:
+		return false
+	_shop_refreshes += 1
+	action_log.record("shop_refresh", [_shop_refreshes])
+	_open_shop(current_node_id, sd)
+	return true
 
 
 ## Seed for one boundary: the caller's, or (compat) one asked from the epoch source right now.
@@ -899,6 +955,7 @@ func apply_chosen_reward(reward: Dictionary) -> void:
 ## Builds this node's shop offer. Called from enter_node(), so a replay that applies the same
 ## `enter_node` action gets the same three items in the same order without being told them.
 func _open_shop(_node_id: String, seed: int) -> void:
+	_shop_refreshes = 0 if _node_seed == seed else _shop_refreshes
 	_shop_relic_count = int(RelicHooks.run_value(owned_relic_ids, "shop_relic_count",   # H8
 		{"ascension": ascension, "kind": "shop"}, 2))
 	_shop_rng = Rng.new(seed)
@@ -1243,6 +1300,7 @@ func to_data() -> Dictionary:
 		"epoch_seq": (epoch.tape().size() if epoch != null else 0),
 		"run_id": String(action_log.header.get("run_id", "")),
 		"node_seed": _node_seed,
+		"aid_uses": aid_uses.duplicate(true), "boon_used": boon_used, "shop_refreshes": _shop_refreshes,
 		"boon_id": boon_id, "newcomer": newcomer, "fights_started": fights_started,
 		"bosses_started": bosses_started, "first_battle_rewarded": first_battle_rewarded,
 		"relic_state": relic_state.duplicate(true),
@@ -1298,6 +1356,9 @@ func from_data(d: Dictionary) -> void:
 	pending_rewards.assign(d.get("pending_rewards", []))
 	_rng = Rng.new(int(d.get("rng_state", run_seed)))
 	_node_seed = int(d.get("node_seed", 0))
+	aid_uses.assign(d.get("aid_uses", []))
+	boon_used = bool(d.get("boon_used", false))
+	_shop_refreshes = int(d.get("shop_refreshes", 0))
 	boon_id = String(d.get("boon_id", ""))
 	newcomer = bool(d.get("newcomer", false))
 	fights_started = int(d.get("fights_started", 0))

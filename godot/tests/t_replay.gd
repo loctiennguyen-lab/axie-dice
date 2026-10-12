@@ -374,6 +374,12 @@ func _sample_args(fn: String) -> Array:
 			return ["r_claw", "r_horn"]
 		"reorder_party":
 			return [[1, 2, 3, 4, 5]]
+		"continue":
+			return [1]
+		"shop_refresh":
+			return [1]
+		"aid_use":
+			return ["delay_clock", 2]
 	return []
 
 
