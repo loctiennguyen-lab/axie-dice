@@ -21,6 +21,7 @@ class Stub extends RefCounted:
 	var vip_trial_used := false
 	var tickets := {"normal": 0, "season": 0}
 	var echobox_pity := {}
+	var season_box := {}
 	var cosmetics_owned: Array = []
 	var runs := 0
 	var asc_wins := {}
@@ -81,6 +82,7 @@ func _ready() -> void:
 	test_mission_stake()
 	test_daily_claim_stone()
 	test_pass_wrappers()
+	test_season_box()
 	_guard.restore()
 	print("=== t_economy: %d checks, %d failure(s) ===" % [_checks, _failures.size()])
 	if _failures.is_empty():
@@ -940,3 +942,67 @@ func test_pass_wrappers() -> void:
 	_assert(got > 0 and MetaState.shard_pool == before + got and int(MetaState.pass_state()["post30_pending"]) == 0, "post30: nhận Shard, hết vòng chờ")
 	st["claimed_free"].append(99)
 	_assert(not (MetaState.pass_season["claimed_free"] as Array).has(99), "pass_state trả bản sao")
+
+
+func _season_run(seed_v: int, vault: bool, max_pulls: int) -> Dictionary:
+	var s := Stub.new()
+	s.tickets["normal"] = 5 * max_pulls
+	var rng := _rng(seed_v)
+	var n := 0
+	var first_mythic := 0
+	var done_at := 0
+	for i in max_pulls:
+		var day := "2026-11-%02d" % (1 + i / 8)   # 8 lượt/ngày, tránh trần ngày
+		var r := EchoBox.open_season(s, rng, day, vault, "", true)
+		if not r["ok"]:
+			return {"err": r["reason"]}
+		n += 1
+		if first_mythic == 0 and r["tier"] == "mythic" and not r["duplicate"]:
+			first_mythic = n
+		if r["complete"]:
+			done_at = n
+			break
+	return {"done": done_at, "first_mythic": first_mythic, "s": s, "n": n}
+
+
+## Hộp mùa: tắt mặc định, 5 vé/lượt, trần 8/ngày, đủ bộ <= 80 lượt (Vault <= 160), Mythic đầu <= 40, mốc, bền qua save.
+func test_season_box() -> void:
+	var s0 := Stub.new()
+	s0.tickets["normal"] = 50
+	_assert(not EchoBox.season_enabled() and EchoBox.open_season(s0, _rng(1), "2026-11-01")["reason"] == "disabled", "hộp mùa tắt: từ chối")
+	_assert(EchoBox.open_season(Stub.new(), _rng(1), "2026-11-01", false, "", true)["reason"] == "no_tickets", "thiếu vé")
+	var r1 := EchoBox.open_season(s0, _rng(2), "2026-11-01", false, "", true)
+	_assert(r1["ok"] and s0.tickets["normal"] == 45 and s0.saves == 1, "một lượt = 5 vé + một save")
+	for i in 7:
+		EchoBox.open_season(s0, _rng(3 + i), "2026-11-01", false, "", true)
+	_assert(EchoBox.open_season(s0, _rng(9), "2026-11-01", false, "", true)["reason"] == "daily_cap", "trần 8 lượt/ngày")
+	_assert(EchoBox.open_season(s0, _rng(9), "2026-11-02", false, "", true)["ok"], "sang ngày mới mở lại được")
+	_assert(abs(EchoBox.season_hit_prob(10, 40, 2.0) - 19.0 / 1519.0) < 1e-9 and EchoBox.season_hit_prob(40, 40, 2.0) == 1.0, "p(10)=19/1519, p(N)=1")
+	var worst := 0
+	var worst_m := 0
+	var ms_ok := true
+	for sd in range(1, 41):
+		var r := _season_run(sd, false, 80)
+		_assert(not r.has("err") and r["done"] > 0, "seed %d: đủ bộ trong <= 80 lượt" % sd)
+		if r.has("err") or r["done"] == 0:
+			continue
+		worst = maxi(worst, r["done"])
+		worst_m = maxi(worst_m, r["first_mythic"])
+		var inv: Array = (r["s"] as Stub).cosmetics_owned
+		ms_ok = ms_ok and inv.has("die_m_moon") == (r["n"] >= 40) and inv.has("title_s1_echo") and inv.has("title_s1_complete")
+	_assert(worst <= 80 and worst_m <= 40, "bound: đủ bộ <= 80 (max %d), Mythic đầu <= 40 (max %d)" % [worst, worst_m])
+	_assert(ms_ok, "mốc 12/40 + danh hiệu đủ bộ đúng")
+	var rv := _season_run(7, true, 160)
+	_assert(not rv.has("err") and rv["done"] > 0 and rv["done"] <= 160, "Vault: đủ bộ <= 160 lượt")
+	# xác định + bền qua MetaState
+	var a := _season_run(5, false, 80)
+	var b := _season_run(5, false, 80)
+	_assert(a["done"] == b["done"], "cùng seed cùng kết quả")
+	_fresh_meta(0, 0)
+	MetaState.tickets["normal"] = 20
+	var before: int = MetaState.tickets["normal"]
+	var rr := EchoBox.open_season(MetaState, _rng(11), "2026-11-01", false, "", true)
+	_assert(rr["ok"] and MetaState.tickets["normal"] >= before - 5 - 0, "MetaState: mở được")
+	var opens := int(EchoBox.season_state(MetaState)["opens"])
+	MetaState.reload_from_store()
+	_assert(opens == 1 and int(EchoBox.season_state(MetaState)["opens"]) == 1 and int(EchoBox.season_state(MetaState)["day_pulls"]) == 1, "season_box bền qua reload")

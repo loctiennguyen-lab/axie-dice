@@ -80,6 +80,8 @@ var gems_cache: int = 0                  # Gem (local) / bộ đệm hiển th�
 var gem_claim_next_utc: int = 0          # unix 00:00 UTC kế tiếp được nhận Gem tặng
 var gem_gift_day: String = ""            # ngày UTC đã nhận Gem tặng gần nhất
 var tickets: Dictionary = {"normal": 0, "season": 0}   # MỘT loại vé: dùng "normal"; "season" dự trữ = 0
+## Hộp mùa theo series: {series_id: {opens, c_epic, c_legendary, c_mythic, owned[], milestones[], day, day_pulls}}.
+var season_box: Dictionary = {}
 var echobox_pity: Dictionary = {}        # bộ đếm pity, mảnh, số lượt mở, đếm mua vé theo ngày
 var cosmetics_owned: Array[String] = []
 var pass_season: Dictionary = {"id": "", "xp": 0, "level": 0, "claimed_free": []}
@@ -448,6 +450,7 @@ func _reset_economy_fields() -> void:
 	gem_gift_day = ""
 	tickets = {"normal": 0, "season": 0}
 	echobox_pity = {}
+	season_box = {}
 	cosmetics_owned.clear()
 	pass_season = {"id": "", "xp": 0, "level": 0, "claimed_free": []}
 	vip_until_utc = 0
@@ -520,6 +523,7 @@ func _economy_from_json(parsed: Dictionary, raw_text: String = "") -> void:
 	tickets = {"normal": int((t as Dictionary).get("normal", 0)) if t is Dictionary else 0,
 		"season": int((t as Dictionary).get("season", 0)) if t is Dictionary else 0}
 	echobox_pity = _pity_from_json(parsed.get("echobox_pity", {}))
+	season_box = _season_box_from_json(parsed.get("season_box", {}))
 	cosmetics_owned.clear()
 	for c in (parsed.get("cosmetics_owned", []) as Array):
 		cosmetics_owned.append(str(c))
@@ -600,6 +604,25 @@ static func _weekly_from_json(raw) -> Dictionary:
 	return out
 
 
+static func _season_box_from_json(raw) -> Dictionary:
+	var out: Dictionary = {}
+	if not (raw is Dictionary):
+		return out
+	for sid in (raw as Dictionary):
+		var v = (raw as Dictionary)[sid]
+		if not (v is Dictionary):
+			continue
+		var e := {"opens": int(v.get("opens", 0)), "c_epic": int(v.get("c_epic", 0)), "c_legendary": int(v.get("c_legendary", 0)),
+			"c_mythic": int(v.get("c_mythic", 0)), "day": str(v.get("day", "")), "day_pulls": int(v.get("day_pulls", 0)),
+			"owned": [], "milestones": []}
+		for k in ["owned", "milestones"]:
+			if v.get(k, []) is Array:
+				for x in v[k]:
+					e[k].append(str(x))
+		out[String(sid)] = e
+	return out
+
+
 static func _pity_from_json(raw) -> Dictionary:
 	var out: Dictionary = {}
 	if not (raw is Dictionary):
@@ -637,6 +660,7 @@ func save_to_disk() -> void:
 		"gem_gift_day": gem_gift_day,
 		"tickets": tickets,
 		"echobox_pity": echobox_pity,
+		"season_box": season_box,
 		"cosmetics_owned": cosmetics_owned,
 		"pass_season": pass_season,
 		"vip_until_utc": vip_until_utc,

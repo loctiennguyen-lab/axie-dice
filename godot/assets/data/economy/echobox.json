@@ -149,7 +149,7 @@
 		},
 		"season": {
 			"enabled": false,
-			"_note": "Dữ liệu Series 1; logic hộp mùa chưa viết ở L1 nên tắt",
+			"_note": "Series 1 (echobox-pass-v2 §2.8-2.10). enabled=false: UI chưa bật; EchoBox.open_season chạy được (test dùng allow_disabled).",
 			"ticket_cost": 5,
 			"pull_cap_day": 8,
 			"series_id": "s1",
@@ -228,7 +228,8 @@
 					"amount": 25000,
 					"weight": 0.03
 				}
-			]
+			],
+			"complete_reward": "title_s1_complete"
 		}
 	}
 }
