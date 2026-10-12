@@ -140,10 +140,10 @@ var boon_used: bool = false
 var _shop_refreshes: int = 0
 ## Mission (risk-to-earn) header: {mission_id, tier, rules:[...], condition?, stake, m_base, m_scale, m_eff}.
 var mission: Dictionary = {}
-## The RunParams this run was started with (contract 3.6), kept for MetaState.record_run_outcome().
-var run_params: Dictionary = {}
 var fights_started: int = 0
 var bosses_started: int = 0
+## Ascension from which the map generator forces the extra elite row (RunMapGenerator: ascension >= 9).
+const ELITE_FORCED_ASC := 9
 var first_battle_rewarded: bool = false
 ## Number of relic items the shop offers, after the H8 `shop_relic_count` hook. Applied by the
 ## shop generator once lane B's generate_shop_items takes a relic_count.
@@ -227,7 +227,6 @@ func reset() -> void:
 	boon_used = false
 	_shop_refreshes = 0
 	mission = {}
-	run_params = {}
 	newcomer = false
 	fights_started = 0
 	bosses_started = 0
@@ -305,7 +304,6 @@ func reset_keep_epoch() -> void:
 
 
 func _start_core(start_reply: EpochReply, params: Dictionary, display_seed: int) -> void:
-	run_params = params.duplicate(true)
 	var p_seed := start_reply.seed
 	var team_hero_keys: Array[String] = []
 	for k in (params.get("team_keys", []) as Array):
@@ -393,9 +391,10 @@ func _start_core(start_reply: EpochReply, params: Dictionary, display_seed: int)
 	# .to_data() on that null is a deliberate crash, not a bug, if it ever happens.
 	# M3 "Hunted" gives a mission run the two extra elites A9 already has; the generator keys them off
 	# ascension >= 9, so a mission with M3 below A9 asks for the same map shape.
+	# (mission_mods ignores min/max_ascension for the `standard` block; only listed rules are gated.)
 	var map_asc := ascension
-	if int(ContentDB.mission_mods(mission_rules(), ascension).get("extra_elite", 0)) > 0 and ascension < 9:
-		map_asc = 9
+	if int(ContentDB.mission_mods(mission_rules(), ascension).get("extra_elite", 0)) > 0 and ascension < ELITE_FORCED_ASC:
+		map_asc = ELITE_FORCED_ASC
 	map_graph = RunMapGenerator.generate(_rng, mode, map_asc).to_data()
 	# Opened AFTER the map exists, so a log never describes a run that failed to start. The
 	# content version comes from part_faces.json's own stamp: the same actions against different
@@ -781,7 +780,11 @@ func end_run(won: bool) -> void:
 	MetaState.xp += last_run_xp
 	# Lane E hooks (present once l1/E is merged; has_method keeps this safe before that).
 	if MetaState.has_method("record_run_outcome"):
-		MetaState.call("record_run_outcome", run_params, bool(mission_outcome(won)["won"]))
+		# Params are rebuilt from fields that already live in to_data() (a stored run_params would make
+		# the RunVerifier replay digest differ). `won` here is the MISSION-aware win (final boss fell AND
+		# the offer condition held); MetaState.wins/asc_max above use the raw `won` as the JS ladder does.
+		MetaState.call("record_run_outcome", {"mode": mode, "ascension": ascension, "ranked": ranked,
+			"reached_boss": bosses_started > 0}, bool(mission_outcome(won)["won"]))
 	if MetaState.has_method("pass_add_run_xp"):
 		MetaState.call("pass_add_run_xp", last_run_xp)
 	# Daily Mission. Granted on ANY run end — win, loss or quit — exactly as JS does it
@@ -1339,7 +1342,6 @@ func to_data() -> Dictionary:
 		"run_id": String(action_log.header.get("run_id", "")),
 		"node_seed": _node_seed,
 		"mission": mission.duplicate(true),
-		"run_params": run_params.duplicate(true),
 		"aid_uses": aid_uses.duplicate(true), "boon_used": boon_used, "shop_refreshes": _shop_refreshes,
 		"boon_id": boon_id, "newcomer": newcomer, "fights_started": fights_started,
 		"bosses_started": bosses_started, "first_battle_rewarded": first_battle_rewarded,
@@ -1397,7 +1399,6 @@ func from_data(d: Dictionary) -> void:
 	_rng = Rng.new(int(d.get("rng_state", run_seed)))
 	_node_seed = int(d.get("node_seed", 0))
 	mission = (d.get("mission", {}) as Dictionary).duplicate(true)
-	run_params = (d.get("run_params", {}) as Dictionary).duplicate(true)
 	aid_uses.assign(d.get("aid_uses", []))
 	boon_used = bool(d.get("boon_used", false))
 	_shop_refreshes = int(d.get("shop_refreshes", 0))
