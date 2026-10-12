@@ -79,7 +79,8 @@ func test_pool_shape() -> void:
 	_assert(offerable.size() == visible, "offerable pool == non-hidden defs")
 	for id in ["r_bookend", "r_festermark", "r_thornling", "r_twinfates", "r_fumeblossom"]:
 		_assert(RelicRegistry.get_def(id) != null, "%s has a def" % id)
-	_assert(RelicRegistry.get_def("r_twinfates").hidden_from_pool, "twinfates waits for H7")
+	_assert(RelicRegistry.get_def("r_fumeblossom").hidden_from_pool, "fumeblossom waits for a tick hook")
+	_assert(not RelicRegistry.get_def("r_twinfates").hidden_from_pool, "twinfates is live (H1/H7)")
 	_assert(not RelicRegistry.get_def("r_bookend").hidden_from_pool, "bookend is live")
 	for id in ["r_rotbite", "r_tinderbox", "r_openwound", "r_voidgene", "r_spines", "r_swarmnest"]:
 		_assert(RelicRegistry.get_def(id) == null, "%s merged away" % id)
