@@ -25,16 +25,16 @@ export const ALLOWED_FNS = new Set([
   'tweak', 'hold_pick', 'loaded_pick', 'sell_relic', 'swap_on_full', 'reorder_party', 'aid_use',
 ]);
 
-/** kind -> action that consumes it at position log_len (ADR 4.2). null = consumed on reply. */
+/** kind -> action(s) that consume it at position log_len (ADR 4.2). null = consumed on reply. A list means any of them. */
 export const KINDS = {
   run_start: { consume: null, paid: false },
   node: { consume: 'enter_node', paid: false },
   end_turn: { consume: 'end_turn', paid: false },
   reroll: { consume: 'reroll_dice', paid: false }, // paid when args.source === 'aid'
   reward: { consume: null, paid: false },
-  reward_reroll: { consume: 'reroll_rewards', paid: false },
-  event_choice: { consume: 'event_choose', paid: false },
-  shop_roll: { consume: 'shop_buy', paid: false },
+  reward_reroll: { consume: ['reroll_rewards', 'take_reward'], paid: false },
+  event_choice: { consume: ['event_choose', 'event_done'], paid: false },
+  shop_roll: { consume: ['shop_buy', 'shop_done'], paid: false }, // shop_done: leaving without buying must not soft-lock
   shop_refresh: { consume: 'shop_refresh', paid: true },
   continue: { consume: 'continue', paid: true },
   pact_reroll: { consume: 'pact_reroll', paid: true },
@@ -238,7 +238,7 @@ export class RunCore {
     if (!prev) return null;
     const need = KINDS[prev.kind].consume;
     if (!need) return null;
-    if (delta.length === 0 || delta[0].fn !== need) return 'unconsumed';
+    if (delta.length === 0 || ![].concat(need).includes(delta[0].fn)) return 'unconsumed';
     return null;
   }
 

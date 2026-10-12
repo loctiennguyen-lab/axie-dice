@@ -443,3 +443,14 @@ test('continue price: 90 on a normal node, 180 when the logged node kind is boss
   assert.equal((await b.c.epoch('continue', { node_id: 'r1_c0' }, [A('enter_node', ['r1_c0', 'boss'])])).t, 'epoch_res');
   assert.deepEqual(prices, [90, 180]);
 });
+
+test('shop_roll can be consumed by shop_done (leaving without buying does not soft-lock); other first actions still refused', async () => {
+  const { c } = await fresh();
+  await c.hello();
+  await start(c);
+  assert.equal((await c.epoch('shop_roll', { node_id: 'r1_c0', item: 'x' }, [])).t, 'epoch_res');
+  assert.equal((await c.epoch('end_turn', { turn: 1 }, [A('use_die', [1, 100001])])).code, 'rejected');
+  assert.equal((await c.epoch('node', { node_id: 'r1_c1' }, [A('shop_done')])).t, 'epoch_res');
+  assert.equal((await c.epoch('reward_reroll', { k: 1, node_id: 'r1_c1' }, [A('enter_node', ['r1_c1', 'shop'])])).t, 'epoch_res');
+  assert.equal((await c.epoch('node', { node_id: 'r1_c2' }, [A('take_reward')])).t, 'epoch_res');
+});
