@@ -121,7 +121,7 @@ async function paidRun(gems, opts = {}) {
   await core.handle(conn, JSON.stringify({ t: 'hello', run_token: 'x', last_seq: 0 }));
   let seq = -1, len = 0, h = await chainStart(RUN);
   const ep = async (kind, args, actions = [], extra = {}) => {
-    const nh = await chainNext(h, actions);
+    const nh = seq < 0 ? h : await chainNext(h, actions);
     const msg = { t: 'epoch_req', seq: seq + 1, kind, args, log_delta: actions, h: nh, log_len: len + actions.length, ...extra };
     const r = (await core.handle(conn, JSON.stringify(msg))).replies[0];
     if (r.t === 'epoch_res') { seq++; len = msg.log_len; h = nh; }

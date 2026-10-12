@@ -243,8 +243,9 @@ export class RunCore {
   }
 
   async _verifyChain(meta, prev, delta, claimedH) {
-    const prevH = prev ? prev.h : await chainStart(meta.run_id);
-    const h = await chainNext(prevH, delta);
+    // The very first epoch (run_start) carries h_0 itself, with no chain step (golden vectors).
+    if (!prev) return delta.length === 0 && claimedH === (await chainStart(meta.run_id)) ? claimedH : null;
+    const h = await chainNext(prev.h, delta);
     return h === claimedH ? h : null;
   }
 
