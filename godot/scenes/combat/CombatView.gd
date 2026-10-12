@@ -2274,7 +2274,7 @@ func _play_reroll_fx(uids: Array, slot_indices: Array, prev_faces: Dictionary) -
 			"final": u.roll_face_index(), "prev": maxi(0, int(prev_faces.get(u.uid, 0))),
 			"class_color": DangoTheme.class_color(u.cls),
 			"egg": u.roster_index < 0,   # summoned tokens ride as the small die
-			"rest_position": Vector2(btn.position.x, 0.0),
+			"rest_position": btn.position,
 		})
 	if entries.is_empty():
 		_end_reroll_fx()

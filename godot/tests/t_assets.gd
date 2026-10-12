@@ -365,7 +365,7 @@ func test_every_mapped_card_illustration_loads() -> void:
 		"ink on Mythic is not INK — cream on #FF3D6E is ~2.8:1 and forbidden")
 	_assert(DangoTheme.MYTHIC_NIGHT.to_html(false) == "2a0f2e",
 		"the Mythic night background is not #2A0F2E (approved 12/10)")
-	_assert(DangoTheme.ink_on(DangoTheme.DANGER) == DangoTheme.CREAM,
+	_assert(DangoTheme.ink_on(DangoTheme.DANGER) == DangoTheme.CREAM_RAISED,
 		"the Mythic special case in ink_on() leaked onto DANGER")
 
 	# Every reward type the game can actually offer must have art. reward_generator.gd is the
