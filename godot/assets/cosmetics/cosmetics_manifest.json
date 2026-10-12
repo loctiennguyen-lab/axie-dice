@@ -1,0 +1,521 @@
+{
+  "tiers": [
+    {
+      "k": "c",
+      "name": "Common",
+      "biome": "Savannah",
+      "color": "#C6CEDA"
+    },
+    {
+      "k": "u",
+      "name": "Uncommon",
+      "biome": "Forest",
+      "color": "#40CC3D"
+    },
+    {
+      "k": "r",
+      "name": "Rare",
+      "biome": "Arctic",
+      "color": "#33B8FF"
+    },
+    {
+      "k": "e",
+      "name": "Epic",
+      "biome": "Mystic",
+      "color": "#BF6BFF"
+    },
+    {
+      "k": "l",
+      "name": "Legendary",
+      "biome": "Genesis",
+      "color": "#FF9445"
+    },
+    {
+      "k": "m",
+      "name": "Mythic",
+      "biome": "LunaLanding",
+      "color": "#FF3D6E",
+      "proposed": true
+    }
+  ],
+  "dice": {
+    "die_c_reed": {
+      "name": "Sunbaked Weave",
+      "tier": 0,
+      "contrast": 7.3027840639483195,
+      "dark": false,
+      "tag": "",
+      "spec": [
+        "Border #000, 4 px at s=104 (3 px on the 36 px egg token).",
+        "Same language as the Homeland frames: straw strands with an airbrushed gold gradient (#FFF0D0 → #F8C880), inner lines #E09050 (6.1:1 to the value ink, so the calm zone stays readable).",
+        "A braided rim along the bottom 15 px in orange #F8A858 / brown #A85038, with the maroon #6B2B2B outline. Static."
+      ]
+    },
+    "die_c_sunwood": {
+      "name": "Driftwood Deck",
+      "tier": 0,
+      "contrast": 7.1902250010849,
+      "dark": false,
+      "tag": "",
+      "spec": [
+        "Border #000, 4 px.",
+        "Six sun-bleached planks (#FAEEDC → #EED6B0), seam #C89868 (7.0:1 to ink), wavy grain #DDB98C. Iron nails #8A6040 sit at x 5 and 99, outside the calm zone.",
+        "One cream sparkle top-right. Static."
+      ]
+    },
+    "die_c_clay": {
+      "name": "Kiln Clay",
+      "tier": 0,
+      "contrast": 8.688929204432288,
+      "dark": false,
+      "tag": "",
+      "spec": [
+        "Border #000, 4 px.",
+        "Baked clay (#F9E0C6 → #EDB892) pressed with five thumbprints, ridges #E2A47E (6.9:1 to ink).",
+        "Terracotta glaze rim along the bottom (#DE7A50 → #B04A2E, highlight #F4A07C), maroon outline. Static."
+      ]
+    },
+    "die_u_moss": {
+      "name": "Mossy Pebble",
+      "tier": 1,
+      "contrast": 8.30698955294268,
+      "dark": false,
+      "tag": "",
+      "spec": [
+        "Border #000, 4 px.",
+        "Cream river stones with an airbrushed top-left light (#FFFFFF → #E8DCC8) and soft brown inner line #C8A888 (6.6:1 to ink).",
+        "Frog-green moss along the bottom and sides (#60C878 → #40A888, vein #186048) with two broad leaves and a cream water-lily bud, borrowed from the lily-pad frame. Maroon outline. Static."
+      ]
+    },
+    "die_u_bark": {
+      "name": "Heartwood Rings",
+      "tier": 1,
+      "contrast": 9.96063303971442,
+      "dark": false,
+      "tag": "",
+      "spec": [
+        "Border #000, 4 px.",
+        "A cut log face (#F6E4C6 → #ECD2A8): growth rings #DDB888 radiate from the lower-left corner (6.0:1 to ink).",
+        "Bark rim along the bottom (#B8743E → #8A4A26, grooves #6A3418) with a two-leaf sprout. Static."
+      ]
+    },
+    "die_u_berry": {
+      "name": "Berry Jam",
+      "tier": 1,
+      "contrast": 12.182582526594599,
+      "dark": false,
+      "tag": "",
+      "spec": [
+        "Border #000, 4 px.",
+        "Cream icing (#FFF3F5 → #F8DCE4) with sugar dots #F2C6D4. Jam (#F0507A → #B8204E, shine #FFC0D0) pools along the bottom and drips down both side edges, outside the calm zone.",
+        "Two blueberries bottom-left, a raspberry with a mint leaf bottom-right. Static."
+      ]
+    },
+    "die_r_plant": {
+      "name": "Sprout Vine",
+      "tier": 2,
+      "contrast": 12.726027150896106,
+      "dark": false,
+      "tag": "Mastery · Plant",
+      "spec": [
+        "Border #000, 4 px.",
+        "Two materials: a spring-green field (#F2FBDC → #D8F0B4) printed with leaf silhouettes #BCE290 (12:1 to ink), plus a vine along the bottom (#5FA82A on maroon) carrying five chunky leaves.",
+        "A curled tendril top-right. Static."
+      ]
+    },
+    "die_r_beast": {
+      "name": "Wildfur",
+      "tier": 2,
+      "contrast": 11.125790195202534,
+      "dark": false,
+      "tag": "Mastery · Beast",
+      "spec": [
+        "Border #000, 4 px.",
+        "Two materials: warm fur (#FFF3DE → #FFDEAE) with tuft strokes #F2C07C (9.7:1 to ink), plus a fluffy orange ruff along the bottom (#FFC35A → #E0861E, strands #B85A10).",
+        "Three claw slashes (#C8682A) top-right and a paw print top-left, both above the calm zone. Static."
+      ]
+    },
+    "die_r_aqua": {
+      "name": "Tidepool",
+      "tier": 2,
+      "contrast": 8.456383536082585,
+      "dark": false,
+      "tag": "Mastery · Aquatic",
+      "spec": [
+        "Border #000, 4 px.",
+        "Two materials: scale field with an airbrushed aqua gradient (#E0FAF4 → #90D8D0) and scallop line #58C0B0 (7.2:1 to ink), plus a curling wave (#58C0B0 → #2E8C90) with cream foam and a maroon outline.",
+        "Bubbles are rimmed Homeland sparkles (#D8FFF6 with a teal rim #5AB0B0). Static."
+      ]
+    },
+    "die_r_reptile": {
+      "name": "Scute Mosaic",
+      "tier": 2,
+      "contrast": 9.299274305555857,
+      "dark": false,
+      "tag": "Mastery · Reptile",
+      "spec": [
+        "Border #000, 4 px.",
+        "Two materials: a pale lilac hex-scale field (#F3EAFF → #DFCEF8), hex lines #C6ACEE (9.1:1 to ink), plus a row of big glossy scutes along the bottom (#B694FF → #7D4CE7, shine #E2C8FF) with maroon outline. Static."
+      ]
+    },
+    "die_r_bug": {
+      "name": "Ladyshell",
+      "tier": 2,
+      "contrast": 9.846234256360734,
+      "dark": false,
+      "tag": "Mastery · Bug",
+      "spec": [
+        "Border #000, 4 px.",
+        "Two materials: a blush carapace (#FFEEEA → #FCD6CE) with segment arcs and a centre seam in #F2AC9C (9.0:1 to ink), plus a ladybird shell along the bottom (#FF6E5E → #D83A30, maroon spots and split).",
+        "Two curled antennae with red tips in the top corners. Static."
+      ]
+    },
+    "die_r_bird": {
+      "name": "Plume Fan",
+      "tier": 2,
+      "contrast": 11.858939793430805,
+      "dark": false,
+      "tag": "Mastery · Bird",
+      "spec": [
+        "Border #000, 4 px.",
+        "Two materials: sky down (#EFF9FF → #CFEEFF) with feather scallops #A2D6F2 (11:1 to ink), plus seven tail feathers fanned up from the bottom edge, alternating pink (#FFB0D4 → #E85A9A) and blue (#A8E6FF → #3AA8E8) with quills. Static."
+      ]
+    },
+    "die_e_rune": {
+      "name": "Moonrune Tablet",
+      "tier": 3,
+      "contrast": 11.58095585909436,
+      "dark": false,
+      "tag": "",
+      "spec": [
+        "Border #4A1E8A (Mystic violet), 4 px. Reads as black at 36 px.",
+        "Lavender tablet (#F4ECFF → #D8C4F4) with diagonal lilac stripes, as on the SS2 Fancy frame. Runes are carved in #8050C8 with a white lip.",
+        "Gold scroll curls (#F8C880 → #F0A050, line #E07828) in both lower corners, and a teal gem (#78E0B0) at each side.",
+        "glow.png: rune underlay #C898F0 5 px, blend Add. Idle: pulse 0.35→0.9, 2.0 s. Reduce flashing: 0.55→0.7."
+      ]
+    },
+    "die_e_spore": {
+      "name": "Glowshroom Grove",
+      "tier": 3,
+      "contrast": 14.759768925777278,
+      "dark": false,
+      "tag": "",
+      "spec": [
+        "Border #3B1A5C (deep Mystic), 4 px. Reads as black at 36 px.",
+        "Moonlit mist field (#F3EFFF → #DDE6F6). Ornament: violet toadstool clusters in both lower corners (caps #D49CFF → #9A5AE6, spots #F4E8FF, cream stems) on a plum moss rim (#7A60C8 → #4A3090).",
+        "glow.png: mint halos #9AF0D8 behind each cluster + 7 floating spores (core #E8FFF8, rim #3AB89A), blend Add. All spores sit above the calm zone or at the side edges.",
+        "Idle: halos pulse 0.25→0.9 over 2.0 s; spores twinkle 2.0 s, staggered 0.3 s. Reduce flashing: halos 0.5→0.65, spores opacity only."
+      ]
+    },
+    "die_e_s1_founder": {
+      "name": "Founder’s Laurel",
+      "tier": 3,
+      "contrast": 12.899029903803624,
+      "dark": false,
+      "tag": "Pass S1 · founding season",
+      "spec": [
+        "Border #5A2A0A (dark bronze), 4 px. Reads as black at 36 px.",
+        "Parchment (#FFF8E8 → #F4E2C0) with a faint star print #EBD5A8. Ornament: two laurel branches climb the side edges (leaves #B4E070 → #6AA02A, kept at x ≤ 9 and x ≥ 95), an orange Season-1 shield sits above the value row, and a gold ribbon (#FFD36A → #F0A030) reading “SEASON 1” in Baloo 2 800 #6B2B2B runs below it.",
+        "Idle: the two gold stars in the top corners twinkle, 2.0 s, offset 1.0 s. Reduce flashing: opacity only."
+      ]
+    },
+    "die_l_gold": {
+      "name": "Genesis Sunplate",
+      "tier": 4,
+      "contrast": 10.379849116441457,
+      "dark": false,
+      "tag": "",
+      "spec": [
+        "Border #7A3410 (burnt orange), 4 px.",
+        "Warm gold field (#FFF6DC → #FFE0A0) with engraved orange swirls #F0B868 (5.4:1 to ink), as on the gold cuffs of frame_2. A sun rises from the bottom edge (#FFE090 → #F8A048), with orange blade rays (#FFC870 → #F07828) and a maroon outline.",
+        "glow.png: diagonal sheen, white 50 %, blend Add. Idle: sweeps across in 1.1 s, then rests. 3.2 s loop. Reduce flashing: sheen at 20 %."
+      ]
+    },
+    "die_l_relic_stone": {
+      "name": "Relic Seam",
+      "tier": 4,
+      "contrast": 8.058561128809595,
+      "dark": false,
+      "tag": "",
+      "spec": [
+        "Border #3A3020 (old stone), 4 px.",
+        "Running-bond stone blocks (#F3EFE6 → #DDD6C6, mortar #B4AA96 at 8.4:1 to ink) with chip marks. Ornament: a carved keystone at the bottom centre with a glowing sun glyph.",
+        "Light layer (glow.png): golden seams crack down both side edges and along the bottom: halo #FFC870 6 px at 55 %, edge #C8701A 2.6 px, core #FFF4C8 1.2 px. Seams never enter the calm zone.",
+        "Idle: halo pulses 0.25→0.9, 2.4 s. Reduce flashing: 0.5→0.65."
+      ]
+    },
+    "die_l_kingdom": {
+      "name": "Lunacia Sovereign",
+      "tier": 4,
+      "contrast": 12.807267072008933,
+      "dark": false,
+      "tag": "Echo Box · pairs with Pass lv30 “LUNACIA SOVEREIGN”",
+      "spec": [
+        "Border #24388A (royal navy), 4 px. Reads as black at 36 px.",
+        "Ivory damask (#FFFAF0 → #F6E8D0, diamond motif #EAD4AC at 12:1 to ink). Ornament: a royal-blue velvet hem (#4A68D8 → #24388A) under a gold trim line (#FFC93C on maroon), a gold crown (#FFE48A → #E8A020, ruby #E8304A, sapphires #3AC8F0) and four gold stars on the hem, gold filigree in the top corners.",
+        "Light layer: diagonal white sheen, 50 %, blend Add. Idle: sweeps across in 1.2 s, then rests. 3.6 s loop. Reduce flashing: sheen at 20 %."
+      ]
+    },
+    "die_m_redcrystal": {
+      "name": "Luna Heartcrystal",
+      "tier": 5,
+      "contrast": 14.01584907759374,
+      "dark": true,
+      "tag": "",
+      "spec": [
+        "Dark skin, so it gets a LIGHT VALUE PLATE: cream gradient #FFF4E4 → #F4DCC4 with a 1.4 px maroon #6B2B2B outline, sized to the calm zone. Ink stays #1A1206.",
+        "Border #6B2B2B (Homeland maroon), 4 px. Field: night navy (#2A3A6A → #14204A) with cream star dust.",
+        "Signature: a cream crescent moon with a teal gem (the SS3 crescent) and red crystals (#FF8A98 → #C02848, facet #FF9AA8).",
+        "Idle: 3 teal-rimmed sparkles twinkle 1.6 s, staggered. Reduce flashing: opacity only.",
+        "MAX settle: the crescent fills to a full moon for 0.6 s while the crystals grow 1→1.15 (ease-out-back). Reduced: crystals only."
+      ]
+    },
+    "die_m_moon": {
+      "name": "Moonface Dreamer",
+      "tier": 5,
+      "contrast": 12.368255080113684,
+      "dark": false,
+      "tag": "Echo Box · the moon disc is the value plate",
+      "spec": [
+        "Border #2E2266 (night violet), 4 px. Reads as black at 36 px.",
+        "Dark skin handled without a separate plate: a full moon (r 52, centre 52/68; #FFF9EC → #F0DCC0, rim #E8A060) covers the whole calm zone, so the number sits on the moon. Night field outside it (#30246A → #120C34) with star dust.",
+        "Signature: the moon has a sleeping face. Closed eyes sit above the value row (y 39), blush #F8C8C0 at the sides, a small smile below it (y 92). Faint craters #EBD6B6.",
+        "Idle: a warm halo (#FFE8B0 radial) breathes 0.25→0.9 over 3.0 s; four blue-rimmed sparkles twinkle 1.6 s, staggered. Reduce flashing: halo 0.5→0.65, sparkles opacity only.",
+        "MAX settle: the eyes open for 0.8 s (two #6B2B2B pupils with cream catch-lights) and the halo flares to r 70. Reduced: eyes only."
+      ]
+    }
+  },
+  "fx": {
+    "fx_c_dust": {
+      "name": "Dust Devil",
+      "tier": 0,
+      "spec": [
+        "Trail: cartoon dust clouds (3-lobe puffs, sand #F7DE9A, shade #D99A2B, 2.5 px black ring) pop in behind the die every 60 ms (scale 0→1→0.7, 0.35 s), plus 2 speed streaks per bounce arc.",
+        "Impact: a cloud pair bursts left and right along the felt and a sand ring spreads flat on the felt (ground ellipse r 30→90, 0.4 s).",
+        "Settle (signature): a flat sand shockwave ring rolls out on the felt and two big clouds pop at the die’s feet. 8 bits [face type, sand].",
+        "Peak ≈ 22 / die. No luminance pulses, so the reduced variant is identical."
+      ]
+    },
+    "fx_c_leaf": {
+      "name": "Leaf Tumble",
+      "tier": 0,
+      "spec": [
+        "Trail: one leaf every 70 ms (sizes 8–11, #9AD860 / #F0C040 / #E88A30, maroon ring) drifts down and flips (scale-Y flutter).",
+        "Impact: 4 leaves pop up and flutter down on light gravity; a flat green ring spreads on the felt.",
+        "Settle (signature): 8 leaves burst from an arc 80 px above the die and drift outward; a wide green felt ring (r 50→170). 8 bits [face type, leaf green], spawned first.",
+        "Peak ≤ 40 / die (hard cap). The face-type bits spawn first in the settle, so a full budget never drops them. No luminance change, so the reduced variant is identical."
+      ]
+    },
+    "fx_c_pebble": {
+      "name": "Skipping Stones",
+      "tier": 0,
+      "spec": [
+        "Trail: a pebble (#C8BCA8 / #A89880 / #D8CCB4, maroon ring, cream glint) drops off the die every 90 ms.",
+        "Impact: 3 pebbles skip along the felt (each bounces at 50 % energy) and a small sand cloud puffs.",
+        "Settle (signature): 6 pebbles skip outward from |x| 60–80 and 2 sand clouds pop at the die’s feet; flat sand ring on the felt. 8 bits [face type, stone], spawned first.",
+        "Peak ≈ 24 / die. Reduced: identical."
+      ]
+    },
+    "fx_u_petal": {
+      "name": "Petal Waltz",
+      "tier": 1,
+      "spec": [
+        "Trail: pink petals (#FFB0CC / #FF8AB0 / #FFE0EA) shed every 40 ms on a sine sway, flipping as they fall.",
+        "Impact: a fan of 6 petals opens upward from the felt.",
+        "Settle (signature): 12 petals appear on a ring (r 85 × 70) around the die and spin away tangentially like a waltz; a flat pink felt ring. 8 bits [face type, petal], spawned first.",
+        "Peak ≤ 40 / die (hard cap). The face-type bits spawn first in the settle, so a full budget never drops them. Reduced: identical."
+      ]
+    },
+    "fx_u_splash": {
+      "name": "Puddle Jump",
+      "tier": 1,
+      "spec": [
+        "Trail: water drops (#7ADCFF / #3AB4F0 / #D8F6FF, teardrop pointing back along the motion) flick off every 50 ms and fall.",
+        "Impact: a 6-drop crown splash and a flat blue ring.",
+        "Settle (signature): two crown splashes rise at x ±64–96 (10 drops, up to 380 px/s) and two ripple rings spread on the felt (blue r 60→190, white r 40→130). 8 bits [face type, water], spawned first.",
+        "Peak ≤ 40 / die (hard cap). The face-type bits spawn first in the settle, so a full budget never drops them. Reduced: identical."
+      ]
+    },
+    "fx_u_ember": {
+      "name": "Campfire Crown",
+      "tier": 1,
+      "spec": [
+        "Trail: a ribbon of flame tongues (teardrops, #FF6A2B outer / #FFD23F core, black ring) shed every 35 ms that shrink and lift, plus embers.",
+        "Impact: a flame flower (5 tongues fanned up from the felt) and 6 embers on gravity.",
+        "Settle (signature): a crown of 7 flame tongues flickers around the die’s base for 0.35 s (12 fps flicker, 3 shapes), then pops into embers. 8 bits [face type, #FFB23F]. Tongues sit at x ≥ ±62, so the face stays clear.",
+        "Peak ≈ 30 / die. Reduced: identical (flicker is shape-only, no brightness change)."
+      ]
+    },
+    "fx_r_frost": {
+      "name": "Glacier Bloom",
+      "tier": 2,
+      "spec": [
+        "Trail: snowflakes and ice glints drift off the die.",
+        "Impact: 3 ice spikes erupt from the felt (Ice ramp, two-face toon), hold 0.3 s, then shatter into shards. A small snow cloud puffs.",
+        "Settle (signature): a ring of 6 ice spikes bursts out of the felt around the die (ground ellipse r 95), holds 0.35 s, then shatters outward. A frost ring spreads flat on the felt.",
+        "Spikes stay at |x| ≥ 70 from the die centre, so the face is never covered.",
+        "Peak ≈ 34 / die. Reduced: identical."
+      ]
+    },
+    "fx_r_bubble": {
+      "name": "Bubble Stream",
+      "tier": 2,
+      "spec": [
+        "Trail: bubbles rise and wobble off the die every 40 ms (grow 5→12, rim #7ADCFF on maroon, fill 28 %, white catch-light).",
+        "Impact: 5 bubbles float up from the felt.",
+        "Settle (signature): one big bubble swells behind the die (r 40→80) and pops into 6 droplet lines; 10 bubbles rise in two columns at |x| 66–110. 8 bits [face type, bubble], spawned first.",
+        "Peak ≤ 40 / die (hard cap). The face-type bits spawn first in the settle, so a full budget never drops them. Reduced: identical (no brightness change)."
+      ]
+    },
+    "fx_r_spark": {
+      "name": "Static Snap",
+      "tier": 2,
+      "spec": [
+        "Trail: short zig-zag bolts (maroon 7 px, #FFE84A 3.6 px, white 1.2 px core) crackle behind the die every 60 ms + yellow sparks.",
+        "Impact: 3 bolts run flat along the felt; yellow ring.",
+        "Settle (signature): 6 bolts snap outward from r 72 to r 120–150 around the die, re-jagged at 24 fps for 0.35 s, plus 6 sparks. 6 bits [face type, #FFE84A], spawned first.",
+        "Reduced: bolts keep one fixed shape (no re-jag), so nothing flickers.",
+        "Peak ≈ 28 / die."
+      ]
+    },
+    "fx_e_rune": {
+      "name": "Summoning Circle",
+      "tier": 3,
+      "spec": [
+        "Trail: spore wisps #BF6BFF (35 % halo) and floating rune glyphs.",
+        "Impact: a small rune ring flashes flat on the felt (ellipse r 40, 0.3 s).",
+        "Settle (signature): a magic circle draws itself on the felt under the die (outer ring sweeps 0→360° in 0.25 s, 6 runes pop in sequence, rotates 30°). A violet light pillar rises behind the die (35 %) and runes float up its edges. 0.9 s total.",
+        "Reduced: pillar 15 %, halos 50 %, the circle does not pulse."
+      ]
+    },
+    "fx_e_spore": {
+      "name": "Glowshroom Bloom",
+      "tier": 3,
+      "spec": [
+        "Trail: mint (#5AE0C0) and violet (#BF6BFF) spore wisps with 35 % halos.",
+        "Impact: two small toadstools pop up on the felt at x ±36 and sink.",
+        "Settle (signature): 5 glowing toadstools sprout around the die (|x| 86–152, ease-out-back 0.16 s, 0.05 s stagger), mint halos behind each; 10 spores rise from them. 0.9 s. 8 bits [face type, mint], spawned first.",
+        "Reduced: halos at 50 %.",
+        "Peak ≈ 30 / die."
+      ]
+    },
+    "fx_l_sunfire": {
+      "name": "Genesis Crest",
+      "tier": 4,
+      "spec": [
+        "Trail: comet ribbon from the last 14 die positions (maroon 22 px, #F8A048 16 px, #FFC870 8 px core, tapered) plus gold sparkles.",
+        "Impact: a flat gold ring spreads on the felt (r 30→90) and two small orange-rimmed stars hop out.",
+        "Settle (signature, matches frame_l_sunburst): the frame crest rises behind the die. A sun disc (#FFE8A0 → #F8A048, swirl #E07828) with two pairs of blade wings (#F07828 → #FFC870) that flex 6 %. Four big orange-rimmed stars blink around it. 0.9 s. 10 bits [face type, #FFC870]; gold tint 0.25 for 0.2 s.",
+        "Reduce flashing: no tint, stars blink by scale only.",
+        "Peak ≈ 30 / die."
+      ]
+    },
+    "fx_l_starfall": {
+      "name": "Royal Starfall",
+      "tier": 4,
+      "spec": [
+        "Trail: a 3-layer navy-gold comet ribbon (maroon 22 px, #3A58C8 15 px, #FFE48A 7 px) + gold stars with navy rims + white streaks.",
+        "Impact: a gold felt ring and two hopping stars.",
+        "Settle (signature): 5 shooting stars dive in from the upper right (0.3 s each, 0.07 s stagger), land around the die (never within 52 px of the face) and stay as twinkling gold stars; gold felt ring; gold tint 0.15 for 0.2 s. 10 bits [face type, gold], spawned first.",
+        "Reduce flashing: no tint, landed stars do not blink.",
+        "Peak ≈ 30 / die."
+      ]
+    },
+    "fx_m_lunar": {
+      "name": "Luna Crest",
+      "tier": 5,
+      "spec": [
+        "Rebuilt as the Mythic signature. No ice spikes, no shatter, nothing shared with Glacier Bloom. All Mythic layers run at full 60 fps; every lower tier animates on twos (12 fps), so the motion itself reads as premium.",
+        "Trail: a 4-layer crimson-gold ribbon (maroon 26 px, #7A1030 20, #FF3D6E 13, #FFD76A 5 core) + two afterimages of the die (32 % / 18 %) + tumbling gold crescents and crimson-rimmed star dust.",
+        "Impact: a flat crimson/gold double ring on the felt and 3 gold stars hop out.",
+        "Settle (every roll): a celestial dial opens behind the die (crimson ring r 96, gold ring r 84, 12 ticks, 3 gems, 4 crescents, rotating), a gold constellation draws itself on both sides (6 stars, |x| ≥ 96 from centre), and a light sheen crosses the die face once (0.32 s).",
+        "MAX (blood-moon eclipse, 1.9 s): the tray falls to night (60 % dim + 26 twinkling stars), a crimson moon rises behind the die with slow god rays, a plum shadow slides across it until only a gold corona is left, a diamond-ring sparkle pops on the rim, 6 gold crescents orbit the die and a shooting star crosses the tray.",
+        "Reduce flashing: 30 % dim, rays and corona glow at half, sheen at 50 %, no diamond-ring blink.",
+        "Peak ≈ 36 / die on MAX (each big layer is one particle)."
+      ]
+    }
+  },
+  "frames_with_art": {
+    "frame_c_bird": {
+      "source_file": "frame_3.png",
+      "image_size": [
+        600,
+        660
+      ],
+      "window_center_px": [
+        274.0,
+        363.5
+      ],
+      "window_radius_px": 217.0
+    },
+    "frame_u_pond": {
+      "source_file": "frame_1.png",
+      "image_size": [
+        600,
+        645
+      ],
+      "window_center_px": [
+        299.0,
+        317.0
+      ],
+      "window_radius_px": 209.0
+    },
+    "frame_e_runering": {
+      "source_file": "ss2_fancy.png",
+      "image_size": [
+        600,
+        643
+      ],
+      "window_center_px": [
+        291.5,
+        342.5
+      ],
+      "window_radius_px": 181.0
+    },
+    "frame_l_sunburst": {
+      "source_file": "frame_2.png",
+      "image_size": [
+        600,
+        658
+      ],
+      "window_center_px": [
+        290.5,
+        326.5
+      ],
+      "window_radius_px": 236.5
+    },
+    "frame_m_eclipse": {
+      "source_file": "ss3_fancy.png",
+      "image_size": [
+        600,
+        664
+      ],
+      "window_center_px": [
+        299.0,
+        327.5
+      ],
+      "window_radius_px": 190.5
+    }
+  },
+  "frames_waiting_for_art": [
+    "frame_c_aqua",
+    "frame_c_beast",
+    "frame_c_bug",
+    "frame_c_plant",
+    "frame_c_reptile",
+    "frame_e_firefly",
+    "frame_e_s1_founder",
+    "frame_l_sovereign",
+    "frame_m_crystal",
+    "frame_r_aurora",
+    "frame_r_frost",
+    "frame_r_icicle",
+    "frame_r_snowglobe",
+    "frame_u_campfire",
+    "frame_u_mushroom",
+    "frame_u_vine"
+  ],
+  "mythic_color": "#FF3D6E",
+  "mythic_pair_color": "#2A0F2E",
+  "source": "Claude Design \"Cosmetics 01 v6\" (11/10/2026), design/handoffs/cosmetics-01/"
+}
