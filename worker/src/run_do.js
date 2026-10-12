@@ -20,6 +20,9 @@ const json = (body, status = 200) =>
 export const rulesSupported = (env, v) =>
   (env.SUPPORTED_RULES ? env.SUPPORTED_RULES.split(',').includes(v) : SUPPORTED_RULES.has(v));
 
+/** A socket that has not sent a valid hello within this long is closed by alarm() (ADR F12: alarm is the only timer). */
+export const HELLO_DEADLINE_MS = 10_000;
+
 export class RunDO {
   constructor(ctx, env) {
     this.ctx = ctx;
@@ -63,7 +66,8 @@ export class RunDO {
     if (request.headers.get('Upgrade') === 'websocket') {
       const pair = new WebSocketPair();
       this.ctx.acceptWebSocket(pair[1]);
-      pair[1].serializeAttachment({ authed: false, epoch: 0 });
+      pair[1].serializeAttachment({ authed: false, epoch: 0, at: Date.now() });
+      if ((await this.ctx.storage.getAlarm()) == null) await this.ctx.storage.setAlarm(Date.now() + HELLO_DEADLINE_MS);
       return new Response(null, { status: 101, webSocket: pair[0] });
     }
     return json({ error: 'not_found' }, 404);
@@ -104,5 +108,18 @@ export class RunDO {
     }
   }
 
-  async alarm() { await this._syncClosed(); }
+  async alarm() {
+    await this._syncClosed();
+    // Close sockets that never said hello; re-arm for the youngest one still waiting.
+    const now = Date.now();
+    let next = null;
+    for (const ws of this.ctx.getWebSockets()) {
+      let att = null;
+      try { att = ws.deserializeAttachment(); } catch { /* unreadable = treat as unauthed */ }
+      if (att && att.authed) continue;
+      const due = ((att && att.at) || 0) + HELLO_DEADLINE_MS;
+      if (due <= now) { try { ws.close(1008, 'no_hello'); } catch { /* already gone */ } } else if (next === null || due < next) next = due;
+    }
+    if (next !== null) await this.ctx.storage.setAlarm(next);
+  }
 }
