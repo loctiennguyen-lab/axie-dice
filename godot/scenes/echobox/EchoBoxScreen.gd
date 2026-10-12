@@ -40,6 +40,9 @@ var results: Array = []
 var error_text := ""
 ## Derive state from AccountService (guest/offline). Tests that drive state by hand turn this off.
 var use_account := true
+## Remote Gem wallet on (ProjectSettings "axie/gem_wallet" == "remote"). Only then do guest/offline
+## block pulls and buying; while tickets are local they just show the info banner. Tests override.
+var remote_on: bool = String(ProjectSettings.get_setting("axie/gem_wallet", "")) == "remote"
 ## Tests: replaces AccountService.status. Returns an AccountService.Status int.
 var account_status_hook: Callable
 
@@ -106,6 +109,11 @@ func tickets() -> int:
 	return int(MetaState.tickets.get("normal", 0))
 
 
+## True when guest/offline actually stops pulls and buying (remote wallet only).
+func _account_blocks() -> bool:
+	return remote_on and (state == "offline" or state == "guest")
+
+
 func today() -> String:
 	return Time.get_date_string_from_system(true)
 
@@ -126,13 +134,10 @@ func next_price() -> int:
 func pull_block_reason(n: int) -> String:
 	if tab != "regular":
 		return "Season box - coming later"
-	match state:
-		"loading":
-			return "Loading..."
-		"offline":
-			return "Needs a connection - nothing is spent"
-		"guest":
-			return "Sign in to get tickets"
+	if state == "loading":
+		return "Loading..."
+	if _account_blocks():
+		return "Needs a connection - nothing is spent" if state == "offline" else "Sign in to get tickets"
 	if tickets() < n:
 		return "Not enough tickets (%d of %d)" % [tickets(), n]
 	return ""
@@ -156,8 +161,7 @@ func pull(n: int) -> Array:
 		error_text = "Could not open the box. Your tickets were not spent."
 		set_state("error")
 		return out
-	if out.size() < n:
-		error_text = "Opened %d of %d" % [out.size(), n]
+	error_text = "Opened %d of %d" % [out.size(), n] if out.size() < n else ""
 	results = out
 	_refresh_all()
 	await _play_ceremony(out)
@@ -167,7 +171,7 @@ func pull(n: int) -> Array:
 ## Buy one ticket for Shards (EchoBox.buy_tickets). Returns the logic result.
 func buy_ticket() -> Dictionary:
 	_recheck_account()
-	if state == "offline" or state == "guest":
+	if _account_blocks():
 		return {"ok": false, "reason": "state"}
 	var r := EchoBox.buy_tickets(MetaState, today(), 1)
 	if r.get("ok", false):
@@ -194,9 +198,15 @@ func set_state(s: String) -> void:
 	if s == "loading":
 		_build_skeleton()
 	elif s == "offline":
-		_banner("Can't reach the dice server", "Opening needs a connection; nothing is spent. Cached counts are greyed.", true)
+		if remote_on:
+			_banner("Can't reach the dice server", "Opening needs a connection; nothing is spent. Cached counts are greyed.", true)
+		else:
+			_banner("You're offline", "Boxes open on this device for now; progress syncs when you reconnect.", false)
 	elif s == "guest":
-		_banner("Guest", "A guest can look but has no tickets or wallet.", false)
+		if remote_on:
+			_banner("Sign in to use this.", "Guests can read the rates and pool. Tickets and pulls need an account.", false)
+		else:
+			_banner("Playing as a guest", "Boxes open on this device. Sign in to keep your tickets across devices.", false)
 	elif s == "error":
 		_banner("Pull failed (server error)", error_text if error_text != "" else "Your tickets were not spent.", true)
 	elif s == "last_pull":
@@ -419,7 +429,7 @@ func _refresh_all() -> void:
 
 func _refresh_bar() -> void:
 	_clear(_bar_host)
-	var offline := state == "offline"
+	var offline := state == "offline" and remote_on
 	var t := _label("Tickets  %d / 999" % tickets(), 20, DangoTheme.INK_3 if offline else DangoTheme.INK, true)
 	t.name = "Tickets"
 	_bar_host.add_child(t)
@@ -448,7 +458,7 @@ func _refresh_bar() -> void:
 	var buy := _button("Buy ticket  %s" % (str(price) if price >= 0 else "max today"), 210, 48, true)
 	buy.name = "BuyTicket"
 	var why := ""
-	if state in ["offline", "guest", "loading"]:
+	if _account_blocks() or state == "loading":
 		why = "Not available right now"
 	elif price < 0:
 		why = "Daily limit reached (30)"
@@ -522,7 +532,7 @@ func _refresh_stage() -> void:
 			rl.name = "Reason"
 			rl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 			v.add_child(rl)
-			if why1.begins_with("Not enough") and not (state in ["offline", "guest"]):
+			if why1.begins_with("Not enough") and not _account_blocks():
 				var sc := _button("Buy enough for 1 pull", 260, 48)
 				sc.name = "BuyEnough"
 				sc.pressed.connect(buy_ticket)
@@ -624,6 +634,10 @@ func _build_summary() -> Control:
 			new_n += 1
 	v.add_child(_label("%s · %d Stone · %d new · %d duplicates" % [
 		"Last pull" if state == "last_pull" else "Result", stone, new_n, dup_n], 18, DangoTheme.INK, true))
+	if error_text.begins_with("Opened "):
+		var pl := _label(error_text, 16, DangoTheme.INK_3)
+		pl.name = "PartialPull"
+		v.add_child(pl)
 	var grid := GridContainer.new()
 	grid.name = "ResultGrid"
 	grid.columns = 5

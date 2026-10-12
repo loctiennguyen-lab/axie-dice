@@ -18,6 +18,7 @@ func _make(st := "normal") -> EchoBoxScreen:
 	var s: EchoBoxScreen = load("res://scenes/echobox/EchoBoxScreen.tscn").instantiate()
 	s.state = st
 	s.use_account = false
+	s.remote_on = true
 	s.no_scene_change = true
 	s.instant = true
 	add_child(s)
@@ -96,6 +97,7 @@ func _ready() -> void:
 		var sa: EchoBoxScreen = load("res://scenes/echobox/EchoBoxScreen.tscn").instantiate()
 		var cur: Array = [pair[0]]
 		sa.account_status_hook = func() -> int: return cur[0]
+		sa.remote_on = true
 		sa.no_scene_change = true
 		sa.instant = true
 		add_child(sa)
@@ -109,6 +111,17 @@ func _ready() -> void:
 			var by := sa.buy_ticket()
 			_ok(not by.get("ok", true), "buy re-checks account")
 		sa.queue_free()
+	# Local mode (remote wallet off): guest/offline keep an info banner but may pull and buy
+	for st in ["guest", "offline"]:
+		var sl: EchoBoxScreen = await _make(st)
+		sl.remote_on = false
+		sl.set_state(st)
+		MetaState.tickets["normal"] = 3
+		_ok(sl.pull_block_reason(1) == "", "local mode: %s may pull" % st)
+		_ok(sl.find_child("Banner", true, false) != null, "local mode: %s info banner" % st)
+		var pr: Array = await sl.pull(1)
+		_ok(pr.size() == 1 and sl.tickets() == 2, "local mode: %s pull spends a ticket" % st)
+		sl.queue_free()
 	# partial pull
 	var sp: EchoBoxScreen = await _make()
 	MetaState.tickets["normal"] = 5
@@ -117,6 +130,7 @@ func _ready() -> void:
 		return [one]
 	await sp.pull(3)
 	_ok(sp.error_text == "Opened 1 of 3", "partial pull text")
+	_ok(sp.find_child("PartialPull", true, false) != null, "partial pull text visible in summary")
 	sp.queue_free()
 	_guard.restore()
 	if _fail.is_empty():
