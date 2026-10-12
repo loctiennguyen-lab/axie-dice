@@ -545,9 +545,19 @@ func test_store_and_l1_flags() -> void:
 	_assert(StoreCatalog.buy_ticket_bundle(s, 100) == "no_gems" and s.tickets["normal"] == 6, "thiếu Gem: không nhận vé")
 	_assert(EchoBox.bought_today(s, "2026-11-03") == 0, "vé bundle không tăng bậc giá Shard")
 	_assert(StoreCatalog.cosmetic_price("rare") == 90 and StoreCatalog.cosmetic_price("mythic") == 720, "giá cosmetic tạm 90..720")
-	_assert(StoreCatalog.buy_cosmetic(s, "frame_u_x", "epic") == "" and s.gems_cache == 700 and s.cosmetics_owned.has("frame_u_x"), "mua cosmetic epic 180")
-	_assert(StoreCatalog.buy_cosmetic(s, "frame_u_x", "epic") == "owned" and s.gems_cache == 700, "đã có: không trừ")
-	_assert(StoreCatalog.buy_cosmetic(s, "x", "common") == "not_for_sale", "common không bán trực tiếp")
+	_assert(StoreCatalog.buy_cosmetic(s, "std_e_001", "epic") == "" and s.gems_cache == 700 and s.cosmetics_owned.has("std_e_001"), "mua cosmetic epic 180")
+	_assert(StoreCatalog.buy_cosmetic(s, "std_e_001", "epic") == "owned" and s.gems_cache == 700, "đã có: không trừ")
+	_assert(StoreCatalog.buy_cosmetic(s, "std_c_001", "common") == "not_for_sale", "common không bán trực tiếp")
+	_assert(StoreCatalog.buy_cosmetic(s, "die_e_rune", "epic") == "not_in_normal_pool" and s.gems_cache == 700, "đồ mùa không bán trực tiếp")
+	_assert(StoreCatalog.buy_cosmetic(s, "std_e_999", "epic") == "not_in_normal_pool", "id ngoài pool bị từ chối")
+	var full := Stub.new()
+	full.gems_cache = 5000
+	full.tickets["normal"] = 990
+	var saves0 := full.saves
+	_assert(StoreCatalog.buy_ticket_bundle(full, 15) == "hold_cap" and full.gems_cache == 5000, "vượt trần 999 vé: từ chối, chưa trừ Gem")
+	var one := Stub.new()
+	one.gems_cache = 500
+	_assert(StoreCatalog.buy_ticket_bundle(one, 6) == "" and one.saves == 1, "bundle = đúng một lần save")
 	_assert(bool(_Econ.get_table("aid_prices")["ranked_allows_kit_boon"]), "ranked cho dùng Kit/Boon")
 	var r := AidCatalog.offer("R8", _ctx({"node_kind": "setup", "mode": "ranked"}))
 	_assert(r["show"] and r["enabled"], "Boon hiện ở ranked")

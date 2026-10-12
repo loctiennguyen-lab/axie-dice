@@ -15,8 +15,8 @@ func can_afford(n: int) -> bool:
 	return n >= 0 and balance() >= n
 
 
-## Trừ n Gem. false nếu không đủ (không trừ gì). `reason` vào sổ cái, vd "aid:R1".
-func spend(_n: int, _reason: String) -> bool:
+## Trừ n Gem. false nếu không đủ (không trừ gì). save=false: người gọi sẽ save sau (một lần cho cả giao dịch). `reason` vào sổ cái, vd "aid:R1".
+func spend(_n: int, _reason: String, _save: bool = true) -> bool:
 	push_error("GemWallet.spend: chưa cài đặt")
 	return false
 

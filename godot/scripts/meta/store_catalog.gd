@@ -31,7 +31,10 @@ static func buy_ticket_bundle(store: Object, count: int) -> String:
 			gems = int((b as Dictionary).get("gems", 0))
 	if gems < 0:
 		return "unknown_bundle"
-	if not store.spend("gem", gems, "store:bundle%d" % count):
+	var hold_cap := int((_Econ.get_table("echobox").get("tickets", {}) as Dictionary).get("hold_cap", 999))
+	if int(store.tickets.get("normal", 0)) + count > hold_cap:
+		return "hold_cap"   # kiểm TRƯỚC khi trừ Gem
+	if not store.spend("gem", gems, "store:bundle%d" % count, false):
 		return "no_gems"
 	EchoBox.grant_tickets(store, count, "bundle")
 	store.save_to_disk()
@@ -43,6 +46,10 @@ static func buy_cosmetic(store: Object, item_id: String, rarity: String) -> Stri
 	var price := cosmetic_price(rarity)
 	if price <= 0:
 		return "not_for_sale"
+	# Chỉ đồ thuộc pool hộp thường; đồ mùa chỉ ra từ hộp mùa (Liam 12/10, bỏ T6).
+	var box: Dictionary = (_Econ.get_table("echobox").get("boxes", {}) as Dictionary).get("normal", {})
+	if not EchoBox.pool_ids(box, rarity).has(item_id):
+		return "not_in_normal_pool"
 	if store.cosmetics_owned.has(item_id):
 		return "owned"
 	if not store.spend("gem", price, "store:cosmetic:" + item_id):

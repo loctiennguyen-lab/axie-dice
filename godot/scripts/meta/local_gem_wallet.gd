@@ -21,14 +21,15 @@ func balance() -> int:
 	return int(store.gems_cache)
 
 
-func spend(n: int, reason: String) -> bool:
+func spend(n: int, reason: String, save: bool = true) -> bool:
 	if n < 0 or int(store.gems_cache) < n:
 		return false
 	if n == 0:
 		return true
 	store.gems_cache = int(store.gems_cache) - n
 	store.ledger_add("gem", -n, reason)
-	store.save_to_disk()
+	if save:
+		store.save_to_disk()
 	return true
 
 
