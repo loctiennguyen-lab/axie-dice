@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<script src="_ds/dango-design-system-b8da985f-efd5-488e-ae62-d508e48befe9/_ds_bundle.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&amp;family=Work+Sans:wght@500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#2A1C12}
+a{color:#FF9345;text-decoration:none}a:hover{color:#FFB275}
+</style>
+</helmet>
+<div style="display:flex;flex-direction:column;gap:64px;padding:64px;width:max-content;background:#2A1C12;font-family:'Work Sans',sans-serif;color:#3A2214;-webkit-font-smoothing:antialiased">
+  <div style="display:flex;flex-direction:column;gap:8px;max-width:1920px">
+    <div style="font-family:'Baloo 2';font-weight:800;font-size:15px;letter-spacing:.18em;color:#D79A58">AXIE DICE · UI REQUEST 02 · ROUND 1 · 01</div>
+    <div style="font-family:'Baloo 2';font-weight:800;font-size:60px;line-height:1;color:#FFF8EA">Land hub</div>
+    <div style="font-size:17px;line-height:1.5;color:#DDBF8C;max-width:1300px;text-wrap:pretty">Fixed-camera Land diorama. Buildings are Homeland renders from the design library; Axies are live 3D (dashed frames). Every house is a click target with a name plate; the top bar repeats every entry for keyboard use (keys 1–9). <a href="Dice UI R1 - Style Sheet.dc.html">← Style sheet</a> · <a href="Dice UI R1 - Combat.dc.html">Combat →</a></div>
+  </div>
+
+  <sc-for list="{{ frames }}" as="f" hint-placeholder-count="4">
+    <div data-screen-label="{{ f.id }}" style="display:flex;flex-direction:column;gap:12px">
+      <div style="display:flex;align-items:center;gap:12px">
+        <div style="height:34px;padding:0 12px;display:flex;align-items:center;border-radius:9px;background:#FF9345;border:3px solid #24140B;font-family:'Baloo 2';font-size:17px;font-weight:800;color:#2A1505">{{ f.id }}</div>
+        <div style="font-family:'Baloo 2';font-size:26px;font-weight:800;color:#FFF8EA">{{ f.caption }}</div>
+        <div style="font-size:14px;font-weight:600;color:#B89A74">{{ f.sizeLabel }}</div>
+      </div>
+      <div style="font-size:15px;color:#DDBF8C;max-width:1600px">{{ f.note }}</div>
+
+      <div style="position:relative;width:1920px;height:{{ f.H }}px;overflow:hidden;background:{{ f.sky }}">
+        <div style="position:absolute;left:0;right:0;top:{{ f.cliffTop }}px;height:{{ f.groundH }}px;background:{{ f.cliff }};clip-path:polygon(50% 0,100% 50%,50% 100%,0 50%)"></div>
+        <div style="position:absolute;left:60px;right:60px;top:{{ f.groundTop }}px;height:{{ f.groundH }}px;background:{{ f.ground }};clip-path:polygon(50% 0,100% 50%,50% 100%,0 50%)"></div>
+        <div style="position:absolute;left:60px;right:60px;top:{{ f.groundTop }}px;height:{{ f.groundH }}px;background:repeating-linear-gradient(63deg,transparent 0 118px,{{ f.seam }} 118px 121px),repeating-linear-gradient(-63deg,transparent 0 118px,{{ f.seam }} 118px 121px);clip-path:polygon(50% 0,100% 50%,50% 100%,0 50%)"></div>
+        <img src="hl/e/s_stonefloor.png" alt="" style="position:absolute;left:740px;top:{{ f.plazaTop }}px;width:440px;opacity:.9">
+
+        <sc-for list="{{ f.decor }}" as="d" hint-placeholder-count="0">
+          <img src="{{ d.src }}" alt="" style="position:absolute;left:{{ d.x }}px;top:{{ d.y }}px;width:{{ d.w }}px">
+        </sc-for>
+
+        <sc-for list="{{ f.plots }}" as="p" hint-placeholder-count="0">
+          <div style="position:absolute;left:{{ p.x }}px;top:{{ p.y }}px;width:200px;display:flex;flex-direction:column;align-items:center">
+            <div style="position:relative;width:200px;height:108px">
+              <img src="hl/e/s_plot3x3.png" alt="" style="position:absolute;inset:0;width:200px;height:108px;opacity:.75;filter:saturate(.6)">
+              <div style="position:absolute;inset:6px 10px 14px;border:3px dashed #8A3E22;clip-path:polygon(50% 0,100% 50%,50% 100%,0 50%)"></div>
+              <div style="position:absolute;left:84px;top:6px;width:32px;height:52px;display:flex;flex-direction:column;align-items:center"><div style="width:32px;height:32px;border-radius:8px;background:#FFF8EA;border:3px solid #24140B;display:flex;align-items:center;justify-content:center"><img src="asc/new-icons/lock.svg" alt="" style="width:20px;height:20px"></div><div style="width:5px;height:22px;background:#7A4526;border:2px solid #24140B;border-top:0"></div></div>
+            </div>
+            <div style="margin-top:2px;padding:5px 12px 6px;border-radius:12px;background:#E8D6B4;border:3px solid #24140B;box-shadow:3px 4px 0 rgba(74,34,14,.35);display:flex;flex-direction:column;align-items:center">
+              <div style="font-family:'Baloo 2';font-weight:800;font-size:17px;line-height:1.1;color:#6E4A30">{{ p.name }}</div>
+              <div style="font-size:12px;font-weight:600;color:#6E4A30">{{ p.when }}</div>
+            </div>
+          </div>
+        </sc-for>
+
+        <sc-for list="{{ f.houses }}" as="h" hint-placeholder-count="6">
+          <div style="position:absolute;left:{{ h.x }}px;top:{{ h.y }}px;width:{{ h.w }}px;display:flex;flex-direction:column;align-items:center;cursor:pointer">
+            <div style="position:relative;width:{{ h.w }}px;height:{{ h.h }}px">
+              <img src="{{ h.src }}" alt="{{ h.name }}" style="width:100%;height:100%;object-fit:contain;object-position:50% 100%">
+              <sc-if value="{{ h.badge }}" hint-placeholder-val="{{ false }}">
+                <div style="position:absolute;right:6px;top:4px;height:30px;padding:0 11px 0 6px;border-radius:999px;background:{{ h.badgeBg }};border:3px solid #24140B;box-shadow:3px 4px 0 rgba(74,34,14,.35);display:flex;align-items:center;gap:4px;font-family:'Baloo 2';font-weight:800;font-size:15px;color:{{ h.badgeInk }}"><img src="{{ h.badgeIcon }}" alt="" style="width:20px;height:20px">{{ h.badge }}</div>
+              </sc-if>
+            </div>
+            <div style="margin-top:-4px;padding:5px 14px 6px;border-radius:12px;background:linear-gradient(180deg,#FFF8EA,#EBD3A8);border:3px solid #24140B;box-shadow:inset 2px 2px 0 rgba(255,248,234,.65),3px 4px 0 rgba(74,34,14,.35);display:flex;flex-direction:column;align-items:center;white-space:nowrap">
+              <div style="display:flex;align-items:center;gap:6px"><div style="width:20px;height:20px;border-radius:6px;background:#3B2618;color:#FFF8EA;font-family:'Baloo 2';font-weight:800;font-size:13px;display:flex;align-items:center;justify-content:center">{{ h.key }}</div><div style="font-family:'Baloo 2';font-weight:800;font-size:19px;line-height:1.15;color:#3A2214">{{ h.name }}</div></div>
+              <sc-if value="{{ h.sub }}" hint-placeholder-val="{{ false }}"><div style="font-size:12px;font-weight:600;color:#6E4A30">{{ h.sub }}</div></sc-if>
+            </div>
+          </div>
+        </sc-for>
+
+        <sc-for list="{{ f.axies }}" as="a" hint-placeholder-count="3">
+          <div style="position:absolute;left:{{ a.x }}px;top:{{ a.y }}px;width:96px;height:78px;border-radius:50%;border:3px dashed #8A3E22;background:rgba(255,248,234,.35);display:flex;align-items:center;justify-content:center;font-family:'Baloo 2';font-weight:800;font-size:14px;color:#5A2812">Axie 3D</div>
+        </sc-for>
+
+        <!-- PORTAL -->
+        <div style="position:absolute;left:770px;top:{{ f.portalTop }}px;width:380px;display:flex;flex-direction:column;align-items:center">
+          <div style="position:relative;width:380px;height:340px">
+            <div style="position:absolute;left:70px;right:70px;bottom:10px;height:70px;border-radius:50%;background:radial-gradient(closest-side,rgba(95,207,203,.55),rgba(95,207,203,0))"></div>
+            <img src="hl/b/portal.png" alt="Portal" style="position:absolute;left:10px;top:0;width:360px;height:360px;object-fit:contain">
+          </div>
+          <sc-if value="{{ f.cont }}" hint-placeholder-val="{{ false }}">
+            <div style="margin-top:4px;width:420px;padding:12px;border-radius:20px;background:linear-gradient(180deg,#F8EBD2,#EBD3A8);border:4px solid #8A3E22;box-shadow:4px 6px 0 rgba(74,34,14,.30);display:flex;flex-direction:column;gap:10px">
+              <div style="height:68px;border-radius:14px;background:linear-gradient(180deg,#FFB070,#FF8A3A);border:3px solid #24140B;box-shadow:inset 2px 2px 0 rgba(255,248,234,.65),3px 5px 0 #8A3E22;display:flex;flex-direction:column;align-items:center;justify-content:center">
+                <div style="font-family:'Baloo 2';font-weight:800;font-size:26px;line-height:1;color:#2A1505">Continue run</div>
+                <div style="font-size:13px;font-weight:700;color:#4A2208">Act 2 · Floor 6 · A3 · party 4 of 5 standing</div>
+              </div>
+              <div style="height:48px;border-radius:12px;background:linear-gradient(180deg,#FFF8EA,#EBD3A8);border:3px solid #24140B;box-shadow:3px 4px 0 rgba(74,34,14,.35);display:flex;align-items:center;justify-content:center;font-family:'Baloo 2';font-weight:800;font-size:18px;color:#3A2214">New run</div>
+              <div style="font-size:12px;font-weight:600;color:#6E4A30;text-align:center">New run asks to confirm before it ends the current run.</div>
+            </div>
+          </sc-if>
+          <sc-if value="{{ f.notCont }}" hint-placeholder-val="{{ true }}">
+            <div style="margin-top:4px;width:340px;height:84px;border-radius:18px;background:linear-gradient(180deg,#FFB070,#FF8A3A);border:4px solid #24140B;box-shadow:inset 2px 2px 0 rgba(255,248,234,.65),4px 6px 0 #8A3E22;display:flex;align-items:center;justify-content:center;gap:14px">
+              <div style="display:flex;flex-direction:column;align-items:flex-start"><div style="font-family:'Baloo 2';font-weight:800;font-size:38px;line-height:.95;color:#2A1505">RUN</div><div style="font-size:13px;font-weight:700;color:#4A2208">Enter the Portal · Run Setup</div></div>
+              <div style="height:34px;padding:0 10px;border-radius:9px;background:#3B2618;color:#FFF8EA;font-family:'Baloo 2';font-weight:800;font-size:15px;display:flex;align-items:center">Enter</div>
+            </div>
+          </sc-if>
+        </div>
+
+        <!-- TOP BAR -->
+        <div style="position:absolute;left:16px;right:16px;top:16px;height:68px;display:flex;align-items:center;gap:12px;padding:0 8px;border-radius:20px;background:linear-gradient(180deg,#F8EBD2,#EBD3A8);border:4px solid #8A3E22;box-shadow:inset 2px 2px 0 rgba(255,248,234,.65),4px 6px 0 rgba(74,34,14,.30);box-sizing:border-box">
+          <div style="height:52px;display:flex;align-items:center;gap:10px;padding:0 14px 0 4px;border-radius:14px;background:#FFF8EA;border:3px solid #24140B">
+            <div style="width:40px;height:40px;border-radius:50%;background:#DDBF8C;border:3px solid #24140B;display:flex;align-items:center;justify-content:center;font-family:'Baloo 2';font-weight:800;font-size:15px;color:#6E4A30">L</div>
+            <div style="display:flex;flex-direction:column"><div style="font-family:'Baloo 2';font-weight:800;font-size:17px;line-height:1.05">Liam</div><div style="font-size:12px;font-weight:700;color:#6E4A30">{{ f.tierName }} Land</div></div>
+          </div>
+          <div style="flex:1 1 auto;display:flex;align-items:center;justify-content:center;gap:4px">
+            <sc-for list="{{ f.shortcuts }}" as="s" hint-placeholder-count="9">
+              <div style="position:relative;height:52px;display:flex;align-items:center;gap:6px;padding:0 10px 0 6px;border-radius:12px;background:{{ s.bg }};border:3px solid {{ s.border }};opacity:{{ s.op }}">
+                <img src="{{ s.src }}" alt="" style="width:36px;height:36px;object-fit:contain">
+                <div style="display:flex;flex-direction:column"><div style="font-family:'Baloo 2';font-weight:800;font-size:15px;line-height:1.05;color:#3A2214;white-space:nowrap">{{ s.name }}</div><div style="font-size:11px;font-weight:700;color:#6E4A30">{{ s.key }}</div></div>
+                <sc-if value="{{ s.dot }}" hint-placeholder-val="{{ false }}"><div style="position:absolute;right:-5px;top:-7px;width:18px;height:18px;border-radius:50%;background:#FF9345;border:3px solid #24140B"></div></sc-if>
+              </div>
+            </sc-for>
+          </div>
+          <div style="display:flex;align-items:center;gap:6px">
+            <div style="height:44px;display:flex;align-items:center;gap:6px;padding:0 12px 0 6px;border-radius:12px;background:#FFF8EA;border:3px solid #24140B"><img src="asc/fx/shard.png" alt="" style="width:28px;height:28px"><div style="font-family:'Baloo 2';font-weight:800;font-size:18px">1,240</div></div>
+            <div style="height:44px;display:flex;align-items:center;gap:6px;padding:0 12px 0 6px;border-radius:12px;background:#FFF8EA;border:3px solid #24140B"><img src="hl/i/stone.png" alt="" style="width:28px;height:28px"><div style="font-family:'Baloo 2';font-weight:800;font-size:18px">86</div></div>
+            <div style="height:44px;display:flex;align-items:center;gap:6px;padding:0 6px 0 6px;border-radius:12px;background:#FFF8EA;border:3px solid #24140B"><img src="hl/i/gem.png" alt="" style="width:28px;height:28px"><div style="font-family:'Baloo 2';font-weight:800;font-size:18px">{{ f.gem }}</div><div style="width:26px;height:26px;border-radius:8px;background:#A27BEA;border:2px solid #24140B;display:flex;align-items:center;justify-content:center;font-family:'Baloo 2';font-weight:800;font-size:18px;color:#1E1236">+</div></div>
+            <div style="width:48px;height:48px;border-radius:12px;background:linear-gradient(180deg,#FFF8EA,#EBD3A8);border:3px solid #24140B;display:flex;align-items:center;justify-content:center;font-family:'Baloo 2';font-weight:800;font-size:13px;color:#3A2214;line-height:1;text-align:center">Codex</div>
+            <div style="width:48px;height:48px;border-radius:12px;background:linear-gradient(180deg,#FFF8EA,#EBD3A8);border:3px solid #24140B;display:flex;align-items:center;justify-content:center"><img src="asc/fx/settings.svg" alt="Settings" style="width:26px;height:26px;filter:brightness(0) saturate(100%) invert(10%) sepia(30%) saturate(1500%) hue-rotate(350deg)"></div>
+          </div>
+        </div>
+
+        <!-- VIP POPUP -->
+        <sc-if value="{{ f.vip }}" hint-placeholder-val="{{ false }}">
+          <div style="position:absolute;inset:0;background:rgba(36,20,11,.55)"></div>
+          <div style="position:absolute;left:560px;top:{{ f.vipTop }}px;width:800px;border-radius:28px;background:linear-gradient(180deg,#F8EBD2,#EBD3A8);border:4px solid #8A3E22;box-shadow:inset 2px 2px 0 rgba(255,248,234,.65),5px 8px 0 rgba(36,20,11,.45);overflow:hidden">
+            <div style="height:64px;display:flex;align-items:center;gap:12px;padding:0 24px;background:linear-gradient(180deg,#4A3570,#33244F);border-bottom:4px solid #8A3E22">
+              <img src="hl/icons/mooncard.svg" alt="" style="width:40px;height:40px">
+              <div style="font-family:'Baloo 2';font-weight:800;font-size:30px;color:#FFF8EA">Moon Card</div>
+              <div style="flex:1"></div>
+              <div style="font-size:13px;font-weight:700;color:#D7C8F2">VIP · 30 days</div>
+            </div>
+            <div style="padding:22px 26px 24px;display:flex;flex-direction:column;gap:18px">
+              <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:20px">
+                <div style="display:flex;flex-direction:column;gap:2px">
+                  <div style="font-family:'Baloo 2';font-weight:800;font-size:15px;letter-spacing:.06em;color:#8A3E22">PRICE</div>
+                  <div style="display:flex;align-items:baseline;gap:12px"><div style="font-family:'Baloo 2';font-weight:800;font-size:48px;line-height:1">4.99 USD</div><div style="display:flex;align-items:center;gap:5px;font-family:'Baloo 2';font-weight:800;font-size:22px;color:#6E4A30">= <img src="hl/i/gem.png" alt="" style="width:24px;height:24px">420 Lunar Gem</div></div>
+                </div>
+                <div style="font-size:13px;font-weight:600;color:#6E4A30;text-align:right;max-width:230px">One payment. Does not renew by itself.</div>
+              </div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+                <sc-for list="{{ vipRows }}" as="v" hint-placeholder-count="6">
+                  <div style="min-height:52px;display:flex;align-items:center;gap:10px;padding:6px 12px;border-radius:12px;background:#FFF8EA;border:3px solid {{ v.border }}">
+                    <img src="{{ v.icon }}" alt="" style="width:28px;height:28px;opacity:{{ v.op }}">
+                    <div style="display:flex;flex-direction:column"><div style="font-family:'Baloo 2';font-weight:800;font-size:17px;line-height:1.1;color:{{ v.ink }}">{{ v.title }}</div><div style="font-size:12px;font-weight:600;color:#6E4A30">{{ v.sub }}</div></div>
+                  </div>
+                </sc-for>
+              </div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+                <div style="height:60px;border-radius:14px;background:linear-gradient(180deg,#FFF8EA,#EBD3A8);border:3px solid #24140B;box-shadow:inset 2px 2px 0 rgba(255,248,234,.65),3px 5px 0 rgba(74,34,14,.35);display:flex;align-items:center;justify-content:center;font-family:'Baloo 2';font-weight:800;font-size:21px">Close</div>
+                <div style="height:60px;border-radius:14px;background:linear-gradient(180deg,#FFB070,#FF8A3A);border:3px solid #24140B;box-shadow:inset 2px 2px 0 rgba(255,248,234,.65),3px 5px 0 #8A3E22;display:flex;align-items:center;justify-content:center;font-family:'Baloo 2';font-weight:800;font-size:21px;color:#2A1505">Buy · 4.99 USD</div>
+              </div>
+              <div style="font-size:13px;font-weight:600;color:#6E4A30;text-align:center">Shown at most once a day. The Moon Card is always in the Store. Esc closes.</div>
+            </div>
+          </div>
+        </sc-if>
+      </div>
+    </div>
+  </sc-for>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  renderVals() {
+    const mk = (o) => {
+      const H = o.H, dy = (H - 1080) / 2;
+      const arctic = o.tier === 'Arctic';
+      const B = (key, name, src, cx, base, w, h, extra = {}) => ({ key, name, src, x: cx - w / 2, y: base + dy - h, w, h, ...extra });
+      const badge = (t) => t === 'FREE' ? { badge: 'FREE', badgeBg: '#8CC85A', badgeInk: '#183A0C', badgeIcon: 'hl/icons/gift.svg' }
+        : t === 'CLAIM' ? { badge: 'CLAIM', badgeBg: '#FF9345', badgeInk: '#2A1505', badgeIcon: 'hl/icons/gift.svg' }
+        : t === 'NEW' ? { badge: 'NEW', badgeBg: '#FFC445', badgeInk: '#3A2A12', badgeIcon: 'asc/fx/buff.svg' }
+        : t === 'VIP' ? { badge: 'VIP', badgeBg: '#A27BEA', badgeInk: '#1E1236', badgeIcon: 'hl/icons/mooncard.svg' } : {};
+      const houses = [
+        B('2', 'House', 'hl/b/house.png', 560, 470, 250, 230, { sub: 'Team presets' }),
+        B('3', 'Missions', 'hl/b/mastery.png', 1360, 470, 210, 250, { sub: 'Staked missions' }),
+        B('4', 'Echo Box', 'hl/b/echobox.png', 470, 770, 190, 230, { ...badge(o.bEcho) }),
+        B('5', 'Season Pass', 'hl/b/pass.png', 1450, 770, 210, 230, { sub: 'Season 1 · ends 30 Nov 2026', ...badge(o.bPass) }),
+        B('6', 'Vault', 'hl/b/vault.png', 235, 650, 200, 200, { ...badge(o.bVault) }),
+        B('7', 'Store', 'hl/b/gallery.png', 1685, 650, 190, 230, { ...badge(o.bStore) }),
+      ];
+      const plots = [];
+      if (arctic) houses.push(B('8', 'Mastery Hall', 'hl/b/armorsmith.png', 760, 340, 170, 190, { ...badge('NEW') }));
+      else plots.push({ name: 'Mastery Hall', when: 'Builds at Arctic Land', x: 660, y: 230 + dy });
+      plots.push({ name: 'Gallery', when: 'Builds at Genesis Land', x: 1060, y: 230 + dy });
+      const t = arctic
+        ? { t1: 'hl/e/a_tree01.png', t2: 'hl/e/a_tree02.png', t3: 'hl/e/a_tree01.png', r: 'hl/e/a_stone01.png', s: 'hl/e/a_shrub01.png' }
+        : { t1: 'hl/e/s_tree02.png', t2: 'hl/e/s_tree03.png', t3: 'hl/e/s_tree01.png', r: 'hl/e/s_rock02.png', s: 'hl/e/s_shrub01.png' };
+      const decor = [
+        { src: t.t1, x: arctic ? 300 : 330, y: (arctic ? 280 : 250) + dy, w: arctic ? 150 : 190 }, { src: t.t2, x: 1420, y: 240 + dy, w: 190 },
+        { src: t.r, x: 70, y: 470 + dy, w: 150 }, { src: t.s, x: 1760, y: 500 + dy, w: 110 },
+        { src: t.t3, x: 900, y: 140 + dy, w: 120 }, { src: t.s, x: 640, y: 820 + dy, w: 110 },
+        { src: t.r, x: 1150, y: 860 + dy, w: 120 }, { src: t.s, x: 1210, y: 300 + dy, w: 90 },
+      ];
+      const sc = (name, key, src, extra = {}) => ({ name, key, src, bg: '#FFF8EA', border: '#24140B', op: 1, dot: false, ...extra });
+      const shortcuts = [
+        sc('Run', '1', 'hl/b/portal.png', { bg: '#FFC48E' }), sc('Teams', '2', 'hl/b/house.png'), sc('Missions', '3', 'hl/b/mastery.png'),
+        sc('Echo Box', '4', 'hl/b/echobox.png', { dot: !!o.bEcho }), sc('Pass', '5', 'hl/b/pass.png', { dot: !!o.bPass }),
+        sc('Vault', '6', 'hl/b/vault.png', { dot: !!o.bVault }), sc('Store', '7', 'hl/b/gallery.png', { dot: !!o.bStore }),
+        arctic ? sc('Mastery', '8', 'hl/b/armorsmith.png', { dot: true }) : sc('Mastery', 'Arctic', 'asc/new-icons/lock.svg', { bg: '#E8D6B4', border: '#9A7650', op: .8 }),
+        sc('Gallery', 'Genesis', 'asc/new-icons/lock.svg', { bg: '#E8D6B4', border: '#9A7650', op: .8 }),
+      ];
+      return {
+        ...o, sizeLabel: `1920 × ${H}`, dy,
+        sky: arctic ? 'linear-gradient(180deg,#B9DDEB 0%,#E4F1F2 45%,#DCEBEA 100%)' : 'linear-gradient(180deg,#A9DDF0 0%,#F4E6C6 45%,#EED7A8 100%)',
+        ground: arctic ? 'radial-gradient(ellipse at 40% 35%,#F4FBF9 0%,#D6ECE8 55%,#B4D6D2 100%)' : 'radial-gradient(ellipse at 40% 35%,#FAD27C 0%,#F2B652 55%,#DE9A3C 100%)',
+        cliff: arctic ? 'linear-gradient(180deg,#7FA8A8,#5A8384)' : 'linear-gradient(180deg,#B87440,#8A4E28)',
+        seam: arctic ? 'rgba(90,131,132,.18)' : 'rgba(138,62,34,.12)',
+        groundTop: 180 + dy, cliffTop: 216 + dy, groundH: 820, plazaTop: 520 + dy,
+        portalTop: 300 + dy, vipTop: 210 + dy,
+        houses, plots, decor, shortcuts,
+        axies: [{ x: 690, y: 640 + dy }, { x: 1170, y: 690 + dy }, { x: 980, y: 860 + dy }],
+        notCont: !o.cont, tierName: o.tier, gem: o.gem || '35',
+      };
+    };
+    const frames = [
+      mk({ id: '01a', caption: 'Savannah · new player, day 1', tier: 'Savannah', H: 1080, bEcho: 'FREE', bPass: 'CLAIM',
+        note: 'Savannah tier: Portal, House, Missions, Echo Box, Season Pass, Vault and Store are all built. Mastery Hall and Gallery are visible empty plots with a lock sign. Free box ready on Echo Box; a free Pass reward to claim.' }),
+      mk({ id: '01b', caption: 'Savannah · unfinished run', tier: 'Savannah', H: 1080, cont: true, bVault: 'NEW', bStore: 'VIP',
+        note: 'The Portal plate splits into Continue run (primary, shows act, floor, Ascension, party standing) and New run (secondary). Store carries the VIP badge from day 2 onward until the card is bought or dismissed for the day.' }),
+      mk({ id: '01c', caption: 'Savannah · Moon Card popup (day 2 login)', tier: 'Savannah', H: 1080, vip: true, bStore: 'VIP',
+        note: 'Shown on the second day\u2019s login, at most once per day, never on the defeat screen. Close and Buy are the same size (352 × 60). No countdown anywhere.' }),
+      mk({ id: '01d', caption: 'Arctic tier · taller window', tier: 'Arctic', H: 1240, bPass: 'CLAIM', gem: '512',
+        note: 'Arctic ground (snow plot), Arctic trees and stones. Mastery Hall is built (NEW badge); Gallery is still a plot. Top bar stays on the top edge; the Land is centred in the extra 160 px.' }),
+    ];
+    const vipRows = [
+      { icon: 'hl/i/gem.png', title: '20 Gem a day', sub: 'Claim it yourself each day · no stacking', border: '#24140B', ink: '#3A2214', op: 1 },
+      { icon: 'asc/fx/chest.png', title: '1 Echo ticket a day', sub: 'For 30 days', border: '#24140B', ink: '#3A2214', op: 1 },
+      { icon: 'asc/fx/buff.svg', title: '1 Boon a day', sub: 'Counts toward the 1-Boon-per-run limit', border: '#24140B', ink: '#3A2214', op: 1 },
+      { icon: 'hl/icons/aid.svg', title: 'Continue at \u221225%', sub: 'Once per run', border: '#24140B', ink: '#3A2214', op: 1 },
+      { icon: 'asc/fx/shard.png', title: 'No Gene Shard boost', sub: 'Shard income is the same for everyone', border: '#B89A74', ink: '#6E4A30', op: .55 },
+      { icon: 'hl/i/stone.png', title: 'No Land Stone boost', sub: 'Stone income is the same for everyone', border: '#B89A74', ink: '#6E4A30', op: .55 },
+    ];
+    const only = (location.hash.match(/f=([\w,]+)/) || [])[1];
+    return { frames: only ? frames.filter(f => only.split(',').includes(f.id)) : frames, vipRows };
+  }
+  componentDidMount() { this._h = () => this.forceUpdate(); window.addEventListener('hashchange', this._h); }
+  componentWillUnmount() { window.removeEventListener('hashchange', this._h); }
+}
+</script>
+</body>
+</html>

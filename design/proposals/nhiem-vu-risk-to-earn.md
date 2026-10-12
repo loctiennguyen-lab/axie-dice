@@ -1,5 +1,10 @@
 Trạng thái: CHỐT THIẾT KẾ (12/10) — chờ review nhanh
 
+> **QUYẾT ĐỊNH LIAM (12/10, sau review cuối):** leaderboard Nhiệm vụ **tách theo từng Ascension** (mỗi Ascension một
+> bảng) · **NFT (Axie/part thật) được dùng trong mọi run, kể cả Nhiệm vụ** (ghi đè khuyến nghị "không ở v1.0") · duyệt
+> ngưỡng Bayes (R_hi 0,95, ε 0,10, bước ≤ 0,02/ngày). Trần ~20 run mới/ngày của kiến trúc (C4) **không áp cho Nhiệm vụ**
+> (Liam: đã có Bayes). NFT: Liam muốn tham gia được, có gì cân bằng sau.
+
 > **QUYẾT ĐỊNH LIAM còn hiệu lực (gom lại, ưu tiên hơn thân file). Chỗ nào ghi THAY là đã ghi đè quyết định cũ.**
 > - Nhiệm vụ = cược (stake) + thưởng tăng theo độ khó. Cược bằng **Gene Shard**; thắng có thêm **Land Stone rất ít**. Thua thì **mất cược, không hoàn, không an ủi gì** (12/10 chốt lại). Người chơi được phép lỗ bao nhiêu cũng được.
 > - **THAY (12/10): bỏ giới hạn "tối đa 5 Nhiệm vụ/người/ngày". Hiện tại KHÔNG có giới hạn số lần mua mỗi ngày** (chỉnh sau, xem §3.4 và §4.4). Chỉ còn một run mở tại một thời điểm.
