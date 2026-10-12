@@ -1,0 +1,49 @@
+[gd_scene format=4]
+
+[ext_resource type="PackedScene" path="res://assets/land/homeland/src/HomeLand_Asset/Environment/Savannah/Shrub/Source/SM_Shrub01.fbx" id="1_nxcrc"]
+[ext_resource type="Material" path="res://assets/land/homeland/materials/HomeLand_Asset/Environment/Savannah/Shrub/Source/M_Shrub01_Savannah.tres" id="2_4rkom"]
+[ext_resource type="Material" path="res://assets/land/homeland/materials/HomeLand_Asset/Environment/Savannah/Shrub/Source/M_S_Shrub_01_Allside.tres" id="3_wat0r"]
+
+[sub_resource type="ArrayMesh" id="ArrayMesh_sdn6l"]
+_surfaces = [{
+"aabb": AABB(-4.4459925, -0.08679839, -4.4459925, 8.891985, 2.9522183, 8.891985),
+"format": 34359742465,
+"index_count": 144,
+"index_data": PackedByteArray("EAARABIAEAATABEAEAAUABMAFAAVABMAFQAWABMAFwAQABIAGAAXABIAGQAYABIAGgAZABIAGgASABsAAAABAAIAAgADAAAAHAAdAB4AHAAfAB0AHAAgAB8AIAAhAB8AIQAiAB8AIwAcAB4AJAAjAB4AJQAkAB4AJgAlAB4AJgAeACcABAAFAAYABgAHAAQAKAApACoAKAArACkAKAAsACsALAAtACsALQAuACsALwAoACoAMAAvACoAMQAwACoAMgAxACoAMgAqADMACAAJAAoACgALAAgANAA1ADYANAA3ADUANAA4ADcAOAA5ADcAOQA6ADcAOwA0ADYAPAA7ADYAPQA8ADYAPgA9ADYAPgA2AD8ADAANAA4ADgAPAAwA"),
+"lods": [2.2117195, PackedByteArray("AAABAAIAAgADAAAABAAFAAYABgAHAAQACAAJAAoACgALAAgADAANAA4ADgAPAAwA")],
+"name": "lambert2",
+"primitive": 3,
+"uv_scale": Vector4(0, 0, 0, 0),
+"vertex_count": 64,
+"vertex_data": PackedByteArray("kkWOQKrJrj2IN1o+1LBrP6rJrj3GRWxAk6U9wLTh7j2GG3q+bOUPP7Th7j0GRG7AkkWOwKrJrj2IN1q+1LBrv6rJrj3GRWzAk6U9QLTh7j2GG3o+bOUPv7Th7j0GRG5AiDdavqrJrj2SRY5AxkVswKrJrj3UsGs/hht6PrTh7j2TpT3ABkRuQLTh7j1s5Q8/iDdaPqrJrj2SRY7AxkVsQKrJrj3UsGu/hht6vrTh7j2TpT1ABkRuwLTh7j1s5Q+/cbqZv2fKG0DIeKM/F5cHQJxtbD+hCRG/9F4HQFI/JLyhSxg/A6/HP0Or4T+7anu/AZlQvwpjN0Dpv54+/Q+ZPZ+eNkCyziu/O5lkP41ZG0AEi4e/mzCHvwZC5T/Ny/Q/tNQQv/fcfz+GExZA/1CCPlGB3D1ZESJAO++HP3jPk71g9Ow/H9jsP1vDsb2gk3w/cbqZP2fKG0DIeKO/F5cHwJxtbD+hCRE/9F4HwFI/JLyhSxi/A6/Hv0Or4T+7ans/AZlQPwpjN0Dpv56+/Q+ZvZ+eNkCyzis/O5lkv41ZG0AEi4c/mzCHPwZC5T/Ny/S/tNQQP/fcfz+GExbA/1CCvlGB3D1ZESLAO++Hv3jPk71g9Oy/H9jsv1vDsb2gk3y/yHijv2fKG0Bxupm/oQkRP5xtbD8XlwdAoUsYv1I/JLz0XgdAu2p7P0Or4T8Dr8c/6b+evgpjN0ABmVC/ss4rP5+eNkD9D5k9BIuHP41ZG0A7mWQ/zcv0vwZC5T+bMIe/hhMWwPfcfz+01BC/WREiwFGB3D3/UII+YPTsv3jPk70774c/oJN8v1vDsb0f2Ow/yHijP2fKG0Bxupk/oQkRv5xtbD8XlwfAoUsYP1I/JLz0XgfAu2p7v0Or4T8Dr8e/6b+ePgpjN0ABmVA/ss4rv5+eNkD9D5m9BIuHv41ZG0A7mWS/zcv0PwZC5T+bMIc/hhMWQPfcfz+01BA/WREiQFGB3D3/UIK+YPTsP3jPk70774e/oJN8P1vDsb0f2Oy/")
+}]
+blend_shape_mode = 0
+
+[sub_resource type="ArrayMesh" id="ArrayMesh_v1cyd"]
+resource_name = "SM_Shrub_01_AllSide"
+_surfaces = [{
+"aabb": AABB(-4.4459925, -0.08679839, -4.4459925, 8.891985, 2.9522183, 8.891985),
+"attribute_data": PackedByteArray("ienfPsJSez/pX4s8h5R6P8EKpDztkxY/NXThPipSFz+J6d8+wlJ7P+lfizyHlHo/wQqkPO2TFj81dOE+KlIXP4np3z7CUns/6V+LPIeUej/BCqQ87ZMWPzV04T4qUhc/ienfPsJSez/pX4s8h5R6P8EKpDztkxY/NXThPipSFz+I48o94Kf4PfhHCj+8bMA+JILgPqINCj/P8Ac/cJV1Ppw0Yj4gOlU9K0rFPiBgVz0YlPs+AGf4PVw1UD3EYHA+kGhFPfDXuT5IE7A96wkHP/1pbD5vKgs/naTAPsTVCz+I48o94Kf4PfhHCj+8bMA+JILgPqINCj/P8Ac/cJV1Ppw0Yj4gOlU9K0rFPiBgVz0YlPs+AGf4PVw1UD3EYHA+kGhFPfDXuT5IE7A96wkHP/1pbD5vKgs/naTAPsTVCz+I48o94Kf4PfhHCj+8bMA+JILgPqINCj/P8Ac/cJV1Ppw0Yj4gOlU9K0rFPiBgVz0YlPs+AGf4PVw1UD3EYHA+kGhFPfDXuT5IE7A96wkHP/1pbD5vKgs/naTAPsTVCz+I48o94Kf4PfhHCj+8bMA+JILgPqINCj/P8Ac/cJV1Ppw0Yj4gOlU9K0rFPiBgVz0YlPs+AGf4PVw1UD3EYHA+kGhFPfDXuT5IE7A96wkHP/1pbD5vKgs/naTAPsTVCz8="),
+"format": 34359742487,
+"index_count": 144,
+"index_data": PackedByteArray("EAARABIAEAATABEAEAAUABMAFAAVABMAFQAWABMAFwAQABIAGAAXABIAGQAYABIAGgAZABIAGgASABsAAAABAAIAAgADAAAAHAAdAB4AHAAfAB0AHAAgAB8AIAAhAB8AIQAiAB8AIwAcAB4AJAAjAB4AJQAkAB4AJgAlAB4AJgAeACcABAAFAAYABgAHAAQAKAApACoAKAArACkAKAAsACsALAAtACsALQAuACsALwAoACoAMAAvACoAMQAwACoAMgAxACoAMgAqADMACAAJAAoACgALAAgANAA1ADYANAA3ADUANAA4ADcAOAA5ADcAOQA6ADcAOwA0ADYAPAA7ADYAPQA8ADYAPgA9ADYAPgA2AD8ADAANAA4ADgAPAAwA"),
+"lods": [2.2117195, PackedByteArray("AAABAAIAAgADAAAABAAFAAYABgAHAAQACAAJAAoACgALAAgADAANAA4ADgAPAAwA")],
+"material": ExtResource("2_4rkom"),
+"name": "lambert2",
+"primitive": 3,
+"uv_scale": Vector4(0, 0, 0, 0),
+"vertex_count": 64,
+"vertex_data": PackedByteArray("kkWOQKrJrj2IN1o+1LBrP6rJrj3GRWxAk6U9wLTh7j2GG3q+bOUPP7Th7j0GRG7AkkWOwKrJrj2IN1q+1LBrv6rJrj3GRWzAk6U9QLTh7j2GG3o+bOUPv7Th7j0GRG5AiDdavqrJrj2SRY5AxkVswKrJrj3UsGs/hht6PrTh7j2TpT3ABkRuQLTh7j1s5Q8/iDdaPqrJrj2SRY7AxkVsQKrJrj3UsGu/hht6vrTh7j2TpT1ABkRuwLTh7j1s5Q+/cbqZv2fKG0DIeKM/F5cHQJxtbD+hCRG/9F4HQFI/JLyhSxg/A6/HP0Or4T+7anu/AZlQvwpjN0Dpv54+/Q+ZPZ+eNkCyziu/O5lkP41ZG0AEi4e/mzCHvwZC5T/Ny/Q/tNQQv/fcfz+GExZA/1CCPlGB3D1ZESJAO++HP3jPk71g9Ow/H9jsP1vDsb2gk3w/cbqZP2fKG0DIeKO/F5cHwJxtbD+hCRE/9F4HwFI/JLyhSxi/A6/Hv0Or4T+7ans/AZlQPwpjN0Dpv56+/Q+ZvZ+eNkCyzis/O5lkv41ZG0AEi4c/mzCHPwZC5T/Ny/S/tNQQP/fcfz+GExbA/1CCvlGB3D1ZESLAO++Hv3jPk71g9Oy/H9jsv1vDsb2gk3y/yHijv2fKG0Bxupm/oQkRP5xtbD8XlwdAoUsYv1I/JLz0XgdAu2p7P0Or4T8Dr8c/6b+evgpjN0ABmVC/ss4rP5+eNkD9D5k9BIuHP41ZG0A7mWQ/zcv0vwZC5T+bMIe/hhMWwPfcfz+01BC/WREiwFGB3D3/UII+YPTsv3jPk70774c/oJN8v1vDsb0f2Ow/yHijP2fKG0Bxupk/oQkRv5xtbD8XlwfAoUsYP1I/JLz0XgfAu2p7v0Or4T8Dr8e/6b+ePgpjN0ABmVA/ss4rv5+eNkD9D5m9BIuHv41ZG0A7mWS/zcv0PwZC5T+bMIc/hhMWQPfcfz+01BA/WREiQFGB3D3/UIK+YPTsP3jPk70774e/oJN8P1vDsb0f2Oy/ca0ape3/BuBxrRql7f8G4HGtGqXt/wbgca0ape3/BuAbJYzSD0AHwBsljNIPQAfAGyWM0g9AB8AbJYzSD0AHwI1SGqX9vwfAjVIapf2/B8CNUhql/b8HwI1SGqX9vwfA49qM0hEA/9/j2ozSEQD/3+PajNIRAP/f49qM0hEA/99xrRqlO/7M4HGtGqXL/f/gca0apYn+qOBxrRqlVv004XGtGqX2/F/hca0apRr/ZuBxrRqloPvMn3GtGqUd/trgca0apan8guFxrRqlnf8r4HGtGqUg/Uzhca0apc38cuEbJYzSmUHgwBsljNL/QRnBGyWM0lJBucAbJYzSakJTwRsljNLAQoPBGyWM0s9AccAbJYzSZkDPvRsljNK1QfDAGyWM0gdDqsEbJYzSWEAwwBsljNKbQm7BGyWM0uZCl8GNUhql1b/gwI1SGqXLvxnBjVIapd2/ucCNUhqlwL9TwY1SGqW4v4PBjVIapeq/ccCNUhqlBrzPvY1SGqXTv/DAjVIapbC/qsGNUhql9r8wwI1SGqW7v27BjVIapbS/l8Hj2ozSwwET4OPajNIzAhjg49qM0nUBEODj2ozSqAIe4OPajNIIAyLg49qM0uQACeDj2ozSXgQDnuPajNLhARXg49qM0lUDJuDj2ozSYQAD4OPajNLeAiDg49qM0jEDJOA=")
+}]
+blend_shape_mode = 0
+shadow_mesh = SubResource("ArrayMesh_sdn6l")
+
+[node name="S_Shrub01_Allside" type="Node3D" unique_id=970826071]
+
+[node name="S_Shrub01_Allside" parent="." unique_id=1389085865 instance=ExtResource("1_nxcrc")]
+
+[node name="SM_Shrub_01" parent="S_Shrub01_Allside" index="0" unique_id=774030980]
+mesh = SubResource("ArrayMesh_v1cyd")
+surface_material_override/0 = ExtResource("3_wat0r")
+
+[editable path="S_Shrub01_Allside"]

@@ -1,0 +1,8 @@
+[gd_resource type="StandardMaterial3D" format=3]
+
+[ext_resource type="Texture2D" path="res://assets/land/homeland/src/HomeLand_Asset/Building_HomeLand/Portal/Source/T_Portal_Hologram_01_A.png" id="1_mhw57"]
+
+[resource]
+resource_name = "M_Portal_Hologram"
+transparency = 1
+albedo_texture = ExtResource("1_mhw57")

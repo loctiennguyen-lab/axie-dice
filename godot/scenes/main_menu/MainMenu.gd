@@ -117,11 +117,35 @@ func _ready() -> void:
 	if MetaState.needs_tutorial():
 		get_tree().change_scene_to_file("res://scenes/tutorial/Tutorial.tscn")
 		return
+	# The hub is the screen the game opens to. Only LandNav's run_setup fallback (no RunSetup scene
+	# yet) keeps this old menu alive, as the Run Setup screen.
+	if not LandNav.legacy_setup_open:
+		get_tree().change_scene_to_file.call_deferred(LandNav.land_scene())
+		return
 	_seed_value = int(randi())
 	if not pending_team.is_empty():
 		_team_selection = pending_team.duplicate()
 		pending_team = []
 	_build_ui()
+	_add_back_to_land()
+
+
+## This menu only lives on as the temporary Run Setup screen; give it a way home.
+func _add_back_to_land() -> void:
+	var b := Button.new()
+	b.name = "BackToLand"
+	b.text = "< LAND"
+	b.position = Vector2(16, 16)
+	b.custom_minimum_size = Vector2(120, 44)
+	DangoTheme.style_button(b, false)
+	b.pressed.connect(LandNav.back_to_land)
+	add_child(b)
+
+
+func _unhandled_key_input(event: InputEvent) -> void:
+	if event is InputEventKey and event.pressed and not event.echo \
+			and (event as InputEventKey).keycode == KEY_ESCAPE:
+		LandNav.back_to_land()
 
 
 func _build_ui() -> void:

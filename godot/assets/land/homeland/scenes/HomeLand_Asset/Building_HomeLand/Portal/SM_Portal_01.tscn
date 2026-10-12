@@ -1,0 +1,8 @@
+[gd_scene format=3]
+
+[ext_resource type="PackedScene" path="res://assets/land/homeland/src/HomeLand_Asset/Building_HomeLand/Portal/Source/SM_Portal_01.fbx" id="1_4asfb"]
+
+[node name="SM_Portal_01" type="Node3D" unique_id=1022768721]
+
+[node name="SM_Portal_01" type="Node3D" parent="." unique_id=1805293361 instance=ExtResource("1_4asfb")]
+transform = Transform3D(0.75, 0, 0, 0, 0.75, 0, 0, 0, 0.75, 0, 0, 0)

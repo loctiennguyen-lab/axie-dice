@@ -52,6 +52,8 @@ func _ready() -> void:
 	# checkout, in a container and in CI — so the gate reported eight failures that had nothing
 	# to do with what it tests. The flag is set in memory only and put back below, which is the
 	# same no-disk-write pattern the header describes.
+	# MainMenu now redirects to the Land hub unless it was opened as the legacy Run Setup.
+	LandNav.legacy_setup_open = true
 	_tutorial_seen_was = MetaState.tutorial_seen
 	MetaState.tutorial_seen = true
 	await get_tree().process_frame

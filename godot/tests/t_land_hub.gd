@@ -1,0 +1,81 @@
+extends Node
+## Gate for the Land hub scene: it builds, every house is a clickable box routed through LandNav
+## (never a direct change_scene), locked plots never navigate, keys 1-9 map to the shortcut bar.
+## Run: godot --headless --path godot res://tests/t_land_hub.tscn
+
+var _fails: Array[String] = []
+var _checks := 0
+
+
+func _check(ok: bool, msg: String) -> void:
+	_checks += 1
+	if not ok:
+		_fails.append(msg)
+		printerr("FAIL: ", msg)
+
+
+func _ready() -> void:
+	print("=== t_land_hub: start ===")
+	var seen_was := MetaState.tutorial_seen
+	MetaState.tutorial_seen = true      # in memory only
+	LandNav.dry_run = true
+	var hub := (load("res://scenes/land/Land.tscn") as PackedScene).instantiate() as LandHub
+	add_child(hub)
+	await get_tree().process_frame
+	await get_tree().process_frame
+
+	for id in ["portal", "house", "missions", "echobox", "pass", "vault", "store"]:
+		_check(hub.find_child("Hit_" + id, true, false) != null, "thiếu hộp bấm cho " + id)
+	for id in ["mastery", "gallery"]:
+		_check(hub.find_child("Plot_" + id, true, false) != null, "thiếu ô đất khoá " + id)
+	for k in range(1, 10):
+		_check(hub.find_child("Shortcut%d" % k, true, false) != null, "thiếu phím tắt %d" % k)
+
+	# House -> screen through LandNav.
+	LandNav.last_path = ""
+	(hub.find_child("Hit_pass", true, false) as Button).emit_signal("pressed")
+	_check(LandNav.last_path == "res://scenes/pass/Pass.tscn", "Pass path: " + LandNav.last_path)
+	LandNav.last_path = ""
+	(hub.find_child("Hit_vault", true, false) as Button).emit_signal("pressed")
+	_check(LandNav.last_path == "res://scenes/vault/Vault.tscn", "Vault path: " + LandNav.last_path)
+	LandNav.last_path = ""
+	(hub.find_child("Hit_house", true, false) as Button).emit_signal("pressed")
+	_check(LandNav.last_path == "res://scenes/main_menu/TeamSelect.tscn", "House path: " + LandNav.last_path)
+	# Shortcut 6 = Vault.
+	LandNav.last_path = ""
+	(hub.find_child("Shortcut6", true, false) as Button).emit_signal("pressed")
+	_check(LandNav.last_path == "res://scenes/vault/Vault.tscn", "phím 6 phải mở Vault")
+	# Locked shortcuts (Mastery 8, Gallery 9) must not navigate.
+	LandNav.last_path = ""
+	(hub.find_child("Shortcut8", true, false) as Button).emit_signal("pressed")
+	(hub.find_child("Shortcut9", true, false) as Button).emit_signal("pressed")
+	_check(LandNav.last_path == "", "Mastery/Gallery khoá không được điều hướng")
+	# Screens that do not exist yet are 'Coming soon', not a crash or a blank scene.
+	LandNav.last_path = ""
+	(hub.find_child("Hit_missions", true, false) as Button).emit_signal("pressed")
+	_check(LandNav.last_path == "" or LandNav.is_available(&"missions"), "Missions chưa có màn thì không đổi scene")
+	# Run plate -> run_setup when there is no open run.
+	var plate := hub.find_child("RunPlate", true, false) as Button
+	var cont := hub.find_child("ContinuePanel", true, false) as Control
+	_check(plate != null and cont != null, "thiếu Run plate / Continue panel")
+	if plate != null and cont != null:
+		_check(plate.visible != cont.visible, "Run plate và Continue panel phải loại trừ nhau")
+		if plate.visible:
+			LandNav.last_path = ""
+			plate.emit_signal("pressed")
+			_check(LandNav.last_path == LandNav.resolve(&"run_setup"), "Run plate phải mở run_setup")
+
+	# Layout follows the window: plate centre x stays on the house centre at any height.
+	var pass_plate := hub.find_child("Hit_pass", true, false) as Button
+	_check(absf(pass_plate.position.x + pass_plate.size.x * 0.5 - 1450.0) < 1.0, "hộp Pass lệch tâm x")
+
+	hub.queue_free()
+	await get_tree().process_frame
+	LandNav.dry_run = false
+	MetaState.tutorial_seen = seen_was
+	if _fails.is_empty():
+		print("=== t_land_hub: PASS (%d checks) ===" % _checks)
+		get_tree().quit(0)
+	else:
+		printerr("=== t_land_hub: FAIL (%d/%d) ===" % [_fails.size(), _checks])
+		get_tree().quit(1)

@@ -1,0 +1,17 @@
+[gd_resource type="ShaderMaterial" format=3]
+
+[ext_resource type="Shader" path="res://assets/land/homeland/shaders/HomeLand_Asset/Environment/Forest/Decoration/StonePath/Floor/S_StoneFloor.gdshader" id="1_xjtnq"]
+[ext_resource type="Texture2D" path="res://assets/land/homeland/src/HomeLand_Asset/Environment/Forest/Decoration/StonePath/Road/T_StonePath01_C.png" id="2_l5okp"]
+[ext_resource type="Texture2D" path="res://assets/land/homeland/src/HomeLand_Asset/Environment/Forest/Decoration/StonePath/Road/T_StonePath01_N.png" id="3_afjig"]
+
+[resource]
+resource_name = "M_StonePath_01_Random0-8"
+render_priority = 0
+shader = ExtResource("1_xjtnq")
+shader_parameter/pVector1_9c1ef250afa4424cbe2d88f0a965501f = null
+shader_parameter/pVector1_f0b1a6efd0914380bb8a758541a4e280 = null
+shader_parameter/sg_shadow = null
+shader_parameter/pTexture2D_0e6d9756e0854b53aa49fb6961de47e5 = ExtResource("2_l5okp")
+shader_parameter/pTexture2D_5891cfed490c406abc436294d6fd7f74 = ExtResource("3_afjig")
+shader_parameter/sg_main_light_dir = null
+shader_parameter/sg_main_light_color = null
