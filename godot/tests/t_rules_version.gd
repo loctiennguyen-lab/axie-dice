@@ -161,7 +161,9 @@ const WATCHED_FILES: Array[String] = ["res://assets/data/part_faces.json"]
 ## on_status_tick, on_shield_break. No relic is hidden now. Changes the run result: YES.
 ## Moved 2026-10-13 by 1813525: RunState picks RemoteEpochSource only when axie/epoch_source == "remote"
 ## (default local, unchanged path), RunSession as a lazy child node. Run result: NO, stays -h.
-const FINGERPRINT := "6cda3b980134ca164707bc79682c9a4ee0a82cc110bba8d5b64520f17a8c1011"
+## Moved 2026-10-13 by lane E (5eadce4..b2e12a9): MetaState daily Stone + week counter, Pass wrappers, Gem pack
+## data, seasonal Echo Box state (disabled in data). Meta only. Run result: NO, stays -h.
+const FINGERPRINT := "0b15a70bb336e12e42dfaf153ce667a374d72585bc08dce988be8a86c000c626"
 
 
 func _ready() -> void:

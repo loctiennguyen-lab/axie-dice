@@ -15,6 +15,16 @@ static func usd_enabled() -> bool:
 	return bool(_cfg().get("usd_buttons_enabled", false))
 
 
+## Thang gói Gem (USD -> Gem). Chỉ hiển thị ở L1: không mua được khi usd_enabled() == false.
+static func gem_packs() -> Array:
+	return _cfg().get("gem_packs", [])
+
+
+## Cấu hình Moon Card (chỗ giữ, enabled=false ở L1). {} nếu thiếu.
+static func moon_card() -> Dictionary:
+	return _cfg().get("moon_card", {})
+
+
 static func bundles() -> Array:
 	return _cfg().get("ticket_bundles", [])
 

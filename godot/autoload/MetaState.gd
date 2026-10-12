@@ -80,6 +80,8 @@ var gems_cache: int = 0                  # Gem (local) / bộ đệm hiển th�
 var gem_claim_next_utc: int = 0          # unix 00:00 UTC kế tiếp được nhận Gem tặng
 var gem_gift_day: String = ""            # ngày UTC đã nhận Gem tặng gần nhất
 var tickets: Dictionary = {"normal": 0, "season": 0}   # MỘT loại vé: dùng "normal"; "season" dự trữ = 0
+## Hộp mùa theo series: {series_id: {opens, c_epic, c_legendary, c_mythic, owned[], milestones[], day, day_pulls}}.
+var season_box: Dictionary = {}
 var echobox_pity: Dictionary = {}        # bộ đếm pity, mảnh, số lượt mở, đếm mua vé theo ngày
 var cosmetics_owned: Array[String] = []
 var pass_season: Dictionary = {"id": "", "xp": 0, "level": 0, "claimed_free": []}
@@ -96,6 +98,8 @@ var asc_wins: Dictionary = {}            # "asc" -> số run thắng
 var full_a9_won: bool = false
 var aid_hints_off: bool = false
 var last_daily_reward_utc: String = ""
+## Số ngày UTC đã nhận daily trong tuần (thứ Hai UTC): {"week": "YYYY-MM-DD", "n": 0}. Cho chấm tuần M8.
+var daily_week: Dictionary = {"week": "", "n": 0}
 ## Sổ cái (200 dòng cuối): {t, c, d, r, b} = thời điểm, tiền tệ, thay đổi, lý do, số dư sau.
 var ledger: Array = []
 const LEDGER_MAX := 200
@@ -213,6 +217,31 @@ func pass_claim_weekly(week_day: String, task_id: String) -> Dictionary:
 ## Nhận phần thưởng free của level `lv` ở Pass v2 (xem PassV2.claim_free).
 func pass_claim_free(lv: int) -> Dictionary:
 	return PassV2.claim_free(self, lv)
+
+
+## Nhận hết vòng sau lv30 đang chờ (50 Shard/vòng, data). Trả số Shard nhận được.
+func pass_claim_post30() -> int:
+	return PassV2.claim_post30(self)
+
+
+## Ảnh chụp chỉ đọc của Pass v2 cho màn hình (đổi dict trả về không ảnh hưởng save).
+func pass_state() -> Dictionary:
+	var today := today_utc()
+	var wk := PassV2.week_key(today)
+	var xp := int(pass_season.get("xp", 0))
+	return {
+		"season_id": String(pass_season.get("id", "")),
+		"active": PassV2.season_active(today),
+		"xp": xp,
+		"level": PassV2.level_for_xp(xp),
+		"max_xp": PassV2.max_xp(),
+		"claimed_free": (pass_season.get("claimed_free", []) as Array).duplicate(),
+		"claimable_levels": PassV2.claimable_levels(self),
+		"post30_pending": PassV2.post30_pending(self),
+		"premium": PassV2.premium_state(),
+		"week_key": wk,
+		"weekly": PassV2.weekly_status(self, wk),
+	}
 
 
 func claim_gem_gift_now() -> Dictionary:
@@ -421,6 +450,7 @@ func _reset_economy_fields() -> void:
 	gem_gift_day = ""
 	tickets = {"normal": 0, "season": 0}
 	echobox_pity = {}
+	season_box = {}
 	cosmetics_owned.clear()
 	pass_season = {"id": "", "xp": 0, "level": 0, "claimed_free": []}
 	vip_until_utc = 0
@@ -433,6 +463,7 @@ func _reset_economy_fields() -> void:
 	full_a9_won = false
 	aid_hints_off = false
 	last_daily_reward_utc = ""
+	daily_week = {"week": "", "n": 0}
 	ledger = []
 
 
@@ -492,6 +523,7 @@ func _economy_from_json(parsed: Dictionary, raw_text: String = "") -> void:
 	tickets = {"normal": int((t as Dictionary).get("normal", 0)) if t is Dictionary else 0,
 		"season": int((t as Dictionary).get("season", 0)) if t is Dictionary else 0}
 	echobox_pity = _pity_from_json(parsed.get("echobox_pity", {}))
+	season_box = _season_box_from_json(parsed.get("season_box", {}))
 	cosmetics_owned.clear()
 	for c in (parsed.get("cosmetics_owned", []) as Array):
 		cosmetics_owned.append(str(c))
@@ -515,6 +547,8 @@ func _economy_from_json(parsed: Dictionary, raw_text: String = "") -> void:
 	full_a9_won = bool(parsed.get("full_a9_won", false))
 	aid_hints_off = bool(parsed.get("aid_hints_off", false))
 	last_daily_reward_utc = str(parsed.get("last_daily_reward_utc", ""))
+	var dw = parsed.get("daily_week", {})
+	daily_week = {"week": String(dw.get("week", "")), "n": maxi(0, int(dw.get("n", 0)))} if dw is Dictionary else {"week": "", "n": 0}
 	ledger = (parsed.get("ledger", []) as Array).duplicate(true) if parsed.get("ledger", []) is Array else []
 	starter_granted = bool(parsed.get("starter_granted", false))
 	if ver < SAVE_VERSION:
@@ -570,6 +604,25 @@ static func _weekly_from_json(raw) -> Dictionary:
 	return out
 
 
+static func _season_box_from_json(raw) -> Dictionary:
+	var out: Dictionary = {}
+	if not (raw is Dictionary):
+		return out
+	for sid in (raw as Dictionary):
+		var v = (raw as Dictionary)[sid]
+		if not (v is Dictionary):
+			continue
+		var e := {"opens": int(v.get("opens", 0)), "c_epic": int(v.get("c_epic", 0)), "c_legendary": int(v.get("c_legendary", 0)),
+			"c_mythic": int(v.get("c_mythic", 0)), "day": str(v.get("day", "")), "day_pulls": int(v.get("day_pulls", 0)),
+			"owned": [], "milestones": []}
+		for k in ["owned", "milestones"]:
+			if v.get(k, []) is Array:
+				for x in v[k]:
+					e[k].append(str(x))
+		out[String(sid)] = e
+	return out
+
+
 static func _pity_from_json(raw) -> Dictionary:
 	var out: Dictionary = {}
 	if not (raw is Dictionary):
@@ -607,6 +660,7 @@ func save_to_disk() -> void:
 		"gem_gift_day": gem_gift_day,
 		"tickets": tickets,
 		"echobox_pity": echobox_pity,
+		"season_box": season_box,
 		"cosmetics_owned": cosmetics_owned,
 		"pass_season": pass_season,
 		"vip_until_utc": vip_until_utc,
@@ -619,6 +673,7 @@ func save_to_disk() -> void:
 		"full_a9_won": full_a9_won,
 		"aid_hints_off": aid_hints_off,
 		"last_daily_reward_utc": last_daily_reward_utc,
+		"daily_week": daily_week,
 		"ledger": ledger,
 	}
 	if not SaveStore.write_text(SAVE_PATH, JSON.stringify(data, "\t")):
@@ -1089,5 +1144,29 @@ func claim_daily_mission() -> bool:
 		return false
 	daily_date = today
 	shard_pool += ContentDB.DAILY_MISSION_SHARD
+	var stone_n := int((EconomyDBScript.get_table("daily").get("daily_reward", {}) as Dictionary).get("stone", 0))
+	if stone_n > 0:
+		add_stone(stone_n, "daily", false)
+	var wk := PassV2.week_key(today)
+	if String(daily_week.get("week", "")) != wk:
+		daily_week = {"week": wk, "n": 0}
+	daily_week["n"] = int(daily_week["n"]) + 1
 	PassV2.add_daily_bonus_xp(self, today)   # +100 XP Pass v2 (ngoài mùa: không làm gì)
 	return true
+
+
+## Đã nhận daily hôm nay (= đã xong một run hôm nay: claim_daily_mission chạy ở cuối run). Cho chấm ngày M8.
+func daily_done_today() -> bool:
+	return daily_date == today_utc()
+
+
+## Số ngày đã nhận daily trong tuần UTC hiện tại (0..7).
+func weekly_daily_days() -> int:
+	if String(daily_week.get("week", "")) != PassV2.week_key(today_utc()):
+		return 0
+	return int(daily_week.get("n", 0))
+
+
+## Ngưỡng ngày để ăn thưởng tuần (daily.json -> weekly_bonus.min_days). Chưa có logic trao thưởng tuần.
+func weekly_daily_min_days() -> int:
+	return int((EconomyDBScript.get_table("daily").get("weekly_bonus", {}) as Dictionary).get("min_days", 0))

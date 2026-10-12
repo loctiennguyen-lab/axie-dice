@@ -53,6 +53,45 @@
 			"epic": 180,
 			"legendary": 360,
 			"mythic": 720
+		},
+		"gem_packs": [
+			{
+				"usd": 0.99,
+				"gems": 80
+			},
+			{
+				"usd": 4.99,
+				"gems": 420
+			},
+			{
+				"usd": 9.99,
+				"gems": 880
+			},
+			{
+				"usd": 19.99,
+				"gems": 1800
+			},
+			{
+				"usd": 49.99,
+				"gems": 4650
+			},
+			{
+				"usd": 99.99,
+				"gems": 9600
+			}
+		],
+		"gem_packs_note": "ui-redesign-request-02-round3-meta M-Store: bonus <= 20%. KHÔNG mua được ở L1 (usd_buttons_enabled=false).",
+		"moon_card": {
+			"enabled": false,
+			"_note": "Chỗ giữ cấu hình, L1 tắt (Liam 12/10: không thử miễn phí). Số theo request-02 round3 M-Store, chờ economy chốt.",
+			"usd": 4.99,
+			"gems_value": 420,
+			"days": 30,
+			"max_stack_days": 180,
+			"daily_gem": 20,
+			"daily_tickets": 1,
+			"daily_boon": 1,
+			"continue_discount_pct": 25
 		}
 	}
 }

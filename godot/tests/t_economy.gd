@@ -21,6 +21,7 @@ class Stub extends RefCounted:
 	var vip_trial_used := false
 	var tickets := {"normal": 0, "season": 0}
 	var echobox_pity := {}
+	var season_box := {}
 	var cosmetics_owned: Array = []
 	var runs := 0
 	var asc_wins := {}
@@ -79,6 +80,9 @@ func _ready() -> void:
 	test_record_run_outcome_and_badges()
 	test_spend_and_ledger()
 	test_mission_stake()
+	test_daily_claim_stone()
+	test_pass_wrappers()
+	test_season_box()
 	_guard.restore()
 	print("=== t_economy: %d checks, %d failure(s) ===" % [_checks, _failures.size()])
 	if _failures.is_empty():
@@ -557,6 +561,16 @@ func test_store_and_l1_flags() -> void:
 	s.gems_cache = 1000
 	_assert(StoreCatalog.buy_ticket_bundle(s, 6) == "" and s.gems_cache == 880 and s.tickets["normal"] == 6, "bundle 6 vé = 120 Gem")
 	_assert(StoreCatalog.buy_ticket_bundle(s, 7) == "unknown_bundle", "gói lạ")
+	var packs := StoreCatalog.gem_packs()
+	var gems_l: Array = []
+	var bonus_ok := true
+	for pk in packs:
+		gems_l.append(int(pk["gems"]))
+		bonus_ok = bonus_ok and float(pk["gems"]) <= float(pk["usd"]) * 100.0 * 1.2
+	_assert(gems_l == [80, 420, 880, 1800, 4650, 9600] and is_equal_approx(float(packs[5]["usd"]), 99.99), "thang gói Gem 80..9600")
+	_assert(bonus_ok, "gói Gem: thưởng <= 20%")
+	var mc := StoreCatalog.moon_card()
+	_assert(not bool(mc.get("enabled", true)) and int(mc["daily_gem"]) == 20 and int(mc["days"]) == 30 and int(mc["max_stack_days"]) == 180, "Moon Card: cấu hình, tắt ở L1")
 	_assert(StoreCatalog.buy_ticket_bundle(s, 100) == "no_gems" and s.tickets["normal"] == 6, "thiếu Gem: không nhận vé")
 	_assert(EchoBox.bought_today(s, "2026-11-03") == 0, "vé bundle không tăng bậc giá Shard")
 	_assert(StoreCatalog.cosmetic_price("rare") == 90 and StoreCatalog.cosmetic_price("mythic") == 720, "giá cosmetic tạm 90..720")
@@ -886,3 +900,109 @@ func _test_mission_stake_body(has_run: Array) -> void:
 	MetaState.settle_mission_stake(false)
 	MetaState.reload_from_store()
 	_assert(MetaState.mission_escrow.is_empty() and MetaState.shard_pool == 700, "abandon: đóng thua, bền qua reload")
+
+
+## claim_daily_mission: +500 Stone (daily.json) vào sổ cái, một lần/ngày; cờ ngày + đếm ngày tuần bền qua reload.
+func test_daily_claim_stone() -> void:
+	_fresh_meta(0, 0)
+	var want := int((_Econ.get_table("daily").get("daily_reward", {}) as Dictionary).get("stone", -1))
+	_assert(want > 0 and not MetaState.daily_done_today() and MetaState.weekly_daily_days() == 0, "daily: trạng thái đầu sạch")
+	_assert(MetaState.claim_daily_mission(), "daily: nhận lần đầu")
+	_assert(MetaState.stone == want, "daily: Stone = daily.json (%d)" % want)
+	var led := 0
+	for l in MetaState.ledger:
+		if String(l.get("c", "")) == "stone" and String(l.get("r", "")) == "daily":
+			led += int(l.get("d", 0))
+	_assert(led == want, "daily: Stone vào sổ cái")
+	_assert(not MetaState.claim_daily_mission() and MetaState.stone == want, "daily: lần hai cùng ngày không cộng thêm")
+	_assert(MetaState.daily_done_today() and MetaState.weekly_daily_days() == 1, "daily: cờ hôm nay + 1 ngày trong tuần")
+	_assert(MetaState.weekly_daily_min_days() == 4, "daily: ngưỡng tuần từ data")
+	MetaState.save_to_disk()
+	MetaState.reload_from_store()
+	_assert(MetaState.stone == want and MetaState.daily_done_today() and MetaState.weekly_daily_days() == 1, "daily: bền qua reload")
+	MetaState.daily_date = "2000-01-01"
+	MetaState.daily_week = {"week": "2000-01-03", "n": 3}
+	_assert(not MetaState.daily_done_today() and MetaState.weekly_daily_days() == 0, "daily: tuần cũ không tính")
+	MetaState.claim_daily_mission()
+	_assert(MetaState.weekly_daily_days() == 1, "daily: sang tuần mới đếm lại từ 1")
+
+
+## MetaState.pass_state() chỉ đọc + pass_claim_post30() đi qua PassV2.
+func test_pass_wrappers() -> void:
+	_fresh_meta(0, 0)
+	var st := MetaState.pass_state()
+	for k in ["season_id", "active", "xp", "level", "max_xp", "claimed_free", "claimable_levels", "post30_pending", "premium", "week_key", "weekly"]:
+		_assert(st.has(k), "pass_state có key %s" % k)
+	_assert(MetaState.pass_claim_post30() == 0, "post30: chưa có vòng thì 0")
+	MetaState.pass_season["id"] = "x"
+	MetaState.pass_season["xp"] = PassV2.max_xp() + 4000
+	_assert(int(MetaState.pass_state()["post30_pending"]) == 2, "post30_pending = 2 vòng")
+	var before := MetaState.shard_pool
+	var got := MetaState.pass_claim_post30()
+	_assert(got > 0 and MetaState.shard_pool == before + got and int(MetaState.pass_state()["post30_pending"]) == 0, "post30: nhận Shard, hết vòng chờ")
+	st["claimed_free"].append(99)
+	_assert(not (MetaState.pass_season["claimed_free"] as Array).has(99), "pass_state trả bản sao")
+
+
+func _season_run(seed_v: int, vault: bool, max_pulls: int) -> Dictionary:
+	var s := Stub.new()
+	s.tickets["normal"] = 5 * max_pulls
+	var rng := _rng(seed_v)
+	var n := 0
+	var first_mythic := 0
+	var done_at := 0
+	for i in max_pulls:
+		var day := "2026-11-%02d" % (1 + i / 8)   # 8 lượt/ngày, tránh trần ngày
+		var r := EchoBox.open_season(s, rng, day, vault, "", true)
+		if not r["ok"]:
+			return {"err": r["reason"]}
+		n += 1
+		if first_mythic == 0 and r["tier"] == "mythic" and not r["duplicate"]:
+			first_mythic = n
+		if r["complete"]:
+			done_at = n
+			break
+	return {"done": done_at, "first_mythic": first_mythic, "s": s, "n": n}
+
+
+## Hộp mùa: tắt mặc định, 5 vé/lượt, trần 8/ngày, đủ bộ <= 80 lượt (Vault <= 160), Mythic đầu <= 40, mốc, bền qua save.
+func test_season_box() -> void:
+	var s0 := Stub.new()
+	s0.tickets["normal"] = 50
+	_assert(not EchoBox.season_enabled() and EchoBox.open_season(s0, _rng(1), "2026-11-01")["reason"] == "disabled", "hộp mùa tắt: từ chối")
+	_assert(EchoBox.open_season(Stub.new(), _rng(1), "2026-11-01", false, "", true)["reason"] == "no_tickets", "thiếu vé")
+	var r1 := EchoBox.open_season(s0, _rng(2), "2026-11-01", false, "", true)
+	_assert(r1["ok"] and s0.tickets["normal"] == 45 and s0.saves == 1, "một lượt = 5 vé + một save")
+	for i in 7:
+		EchoBox.open_season(s0, _rng(3 + i), "2026-11-01", false, "", true)
+	_assert(EchoBox.open_season(s0, _rng(9), "2026-11-01", false, "", true)["reason"] == "daily_cap", "trần 8 lượt/ngày")
+	_assert(EchoBox.open_season(s0, _rng(9), "2026-11-02", false, "", true)["ok"], "sang ngày mới mở lại được")
+	_assert(abs(EchoBox.season_hit_prob(10, 40, 2.0) - 19.0 / 1519.0) < 1e-9 and EchoBox.season_hit_prob(40, 40, 2.0) == 1.0, "p(10)=19/1519, p(N)=1")
+	var worst := 0
+	var worst_m := 0
+	var ms_ok := true
+	for sd in range(1, 41):
+		var r := _season_run(sd, false, 80)
+		_assert(not r.has("err") and r["done"] > 0, "seed %d: đủ bộ trong <= 80 lượt" % sd)
+		if r.has("err") or r["done"] == 0:
+			continue
+		worst = maxi(worst, r["done"])
+		worst_m = maxi(worst_m, r["first_mythic"])
+		var inv: Array = (r["s"] as Stub).cosmetics_owned
+		ms_ok = ms_ok and inv.has("die_m_moon") == (r["n"] >= 40) and inv.has("title_s1_echo") and inv.has("title_s1_complete")
+	_assert(worst <= 80 and worst_m <= 40, "bound: đủ bộ <= 80 (max %d), Mythic đầu <= 40 (max %d)" % [worst, worst_m])
+	_assert(ms_ok, "mốc 12/40 + danh hiệu đủ bộ đúng")
+	var rv := _season_run(7, true, 160)
+	_assert(not rv.has("err") and rv["done"] > 0 and rv["done"] <= 160, "Vault: đủ bộ <= 160 lượt")
+	# xác định + bền qua MetaState
+	var a := _season_run(5, false, 80)
+	var b := _season_run(5, false, 80)
+	_assert(a["done"] == b["done"], "cùng seed cùng kết quả")
+	_fresh_meta(0, 0)
+	MetaState.tickets["normal"] = 20
+	var before: int = MetaState.tickets["normal"]
+	var rr := EchoBox.open_season(MetaState, _rng(11), "2026-11-01", false, "", true)
+	_assert(rr["ok"] and MetaState.tickets["normal"] >= before - 5 - 0, "MetaState: mở được")
+	var opens := int(EchoBox.season_state(MetaState)["opens"])
+	MetaState.reload_from_store()
+	_assert(opens == 1 and int(EchoBox.season_state(MetaState)["opens"]) == 1 and int(EchoBox.season_state(MetaState)["day_pulls"]) == 1, "season_box bền qua reload")
