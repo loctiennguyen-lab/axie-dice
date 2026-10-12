@@ -4,9 +4,10 @@ extends Node
 ## node only does the loopback half:
 ##   1. listen on 127.0.0.1:<random port>, make a PKCE verifier + state
 ##   2. open the system browser at <server>/auth/login?desktop=1&challenge&port&state
-##   3. accept ONE request on /cb, check `state`, answer with a small page, close the listener
+##   3. keep accepting until a GET /cb with our `state` arrives (browsers preconnect and ask for
+##      /favicon.ico), answer with a small page, then close the listener
 ##   4. POST {code, verifier} to /auth/desktop/token and hand back the tokens
-## No custom URI scheme. The listener never accepts a second connection.
+## No custom URI scheme. Requests with a wrong `state` or another path never end the flow.
 ##
 ## Emits `finished(ok, tokens, error)`: tokens = {access, refresh, expires_in, device_id}.
 
@@ -15,6 +16,8 @@ signal finished(ok: bool, tokens: Dictionary, error: String)
 const LOGIN_TIMEOUT_S := 300.0
 const PORT_MIN := 49152
 const PORT_MAX := 65535
+const MAX_PEERS := 8
+const PEER_TIMEOUT_S := 20.0
 
 var server_url := "https://axiedice.fun"
 ## Seam for tests: replaces OS.shell_open so a test can play the browser.
@@ -26,8 +29,7 @@ var _tcp: TCPServer
 var _verifier := ""
 var _state := ""
 var _port := 0
-var _peer: StreamPeerTCP
-var _buf := ""
+var _peers: Array = []   # [{peer, buf, age}]
 var _age := 0.0
 var _done := false
 
@@ -99,41 +101,57 @@ func _process(delta: float) -> void:
 	if _age > LOGIN_TIMEOUT_S:
 		_finish(false, {}, "timeout")
 		return
-	if _peer == null and _tcp != null and _tcp.is_connection_available():
-		_peer = _tcp.take_connection()
-		_tcp.stop()   # one connection only; nobody else can reach the port after this
-	if _peer == null:
+	# Browsers open speculative connections (Chrome preconnect) and fetch /favicon.ico, so the listener
+	# keeps accepting until a valid GET /cb with our `state` arrives. Everything else gets a 404.
+	while _tcp != null and _tcp.is_connection_available() and _peers.size() < MAX_PEERS:
+		_peers.append({"peer": _tcp.take_connection(), "buf": "", "age": 0.0})
+	for entry in _peers.duplicate():
+		if _done:
+			return
+		_service_peer(entry, delta)
+
+
+func _service_peer(entry: Dictionary, delta: float) -> void:
+	var peer: StreamPeerTCP = entry["peer"]
+	peer.poll()
+	entry["age"] = float(entry["age"]) + delta
+	var st := peer.get_status()
+	if st == StreamPeerTCP.STATUS_ERROR or st == StreamPeerTCP.STATUS_NONE or float(entry["age"]) > PEER_TIMEOUT_S:
+		_drop(entry)
 		return
-	_peer.poll()
-	if _peer.get_status() != StreamPeerTCP.STATUS_CONNECTED:
-		if _peer.get_status() == StreamPeerTCP.STATUS_ERROR:
-			_finish(false, {}, "network")
+	if st != StreamPeerTCP.STATUS_CONNECTED:
 		return
-	var n := _peer.get_available_bytes()
+	var n := peer.get_available_bytes()
 	if n > 0:
-		_buf += _peer.get_utf8_string(n)
-	if _buf.length() > 8192:
-		_finish(false, {}, "bad_request")
-	elif _buf.find("\r\n") >= 0:
-		_handle_request(_buf.substr(0, _buf.find("\r\n")))
+		entry["buf"] = String(entry["buf"]) + peer.get_utf8_string(n)
+	var buf := String(entry["buf"])
+	if buf.length() > 8192:
+		_drop(entry)
+	elif buf.find("\r\n") >= 0:
+		_handle_request(entry, buf.substr(0, buf.find("\r\n")))
 
 
-func _handle_request(line: String) -> void:
+func _handle_request(entry: Dictionary, line: String) -> void:
+	var peer: StreamPeerTCP = entry["peer"]
 	var cb := parse_callback(line)
-	var ok := not cb.is_empty() and String(cb["state"]) == _state
-	_reply_page(ok and String(cb["error"]).is_empty())
-	if not ok:
-		_finish(false, {}, "state")
+	if cb.is_empty() or String(cb["state"]) != _state:
+		_reply(peer, 404 if cb.is_empty() else 400, "Not the sign-in callback.")
+		_drop(entry)
 		return
 	if not String(cb["error"]).is_empty():
+		_reply(peer, 200, "Sign-in did not work. Go back to the game and try again.")
+		_drop(entry)
 		_finish(false, {}, String(cb["error"]))
 		return
 	var code := String(cb["code"])
 	if code.is_empty():
-		_finish(false, {}, "bad_request")
+		_reply(peer, 400, "Missing code.")
+		_drop(entry)
 		return
+	_reply(peer, 200, "Signed in. You can close this tab and go back to the game.")
+	_drop(entry)
 	_done = true   # stop polling; the exchange below is async
-	_close_peer()
+	_stop_listening()
 	exchange.call(server_url + "/auth/desktop/token",
 		JSON.stringify({"code": code, "verifier": _verifier, "label": OS.get_name()}),
 		func(http: int, text: String) -> void:
@@ -144,29 +162,32 @@ func _handle_request(line: String) -> void:
 				_emit(false, {}, "token"))
 
 
-func _reply_page(ok: bool) -> void:
-	var body := "<html><body style='font-family:sans-serif;text-align:center;margin-top:20vh'><h2>%s</h2></body></html>" \
-		% ("Signed in. You can close this tab and go back to the game." if ok else "Sign-in did not work. Go back to the game and try again.")
-	var resp := "HTTP/1.1 200 OK\r\nContent-Type: text/html; charset=utf-8\r\nContent-Length: %d\r\nConnection: close\r\nCache-Control: no-store\r\n\r\n%s" \
-		% [body.to_utf8_buffer().size(), body]
-	_peer.put_data(resp.to_utf8_buffer())
+func _reply(peer: StreamPeerTCP, status: int, message: String) -> void:
+	var body := "<html><body style='font-family:sans-serif;text-align:center;margin-top:20vh'><h2>%s</h2></body></html>" % message
+	var resp := "HTTP/1.1 %d %s\r\nContent-Type: text/html; charset=utf-8\r\nContent-Length: %d\r\nConnection: close\r\nCache-Control: no-store\r\n\r\n%s" \
+		% [status, "OK" if status == 200 else "Error", body.to_utf8_buffer().size(), body]
+	peer.put_data(resp.to_utf8_buffer())
 
 
-func _close_peer() -> void:
-	if _peer != null:
-		_peer.disconnect_from_host()
-		_peer = null
+func _drop(entry: Dictionary) -> void:
+	(entry["peer"] as StreamPeerTCP).disconnect_from_host()
+	_peers.erase(entry)
+
+
+func _stop_listening() -> void:
+	for entry in _peers.duplicate():
+		_drop(entry)
+	if _tcp != null:
+		_tcp.stop()
 
 
 func _finish(ok: bool, tokens: Dictionary, error: String) -> void:
 	_done = true
-	_close_peer()
 	_emit(ok, tokens, error)
 
 
 func _emit(ok: bool, tokens: Dictionary, error: String) -> void:
 	_done = true
-	if _tcp != null:
-		_tcp.stop()
+	_stop_listening()
 	set_process(false)
 	finished.emit(ok, tokens, error)

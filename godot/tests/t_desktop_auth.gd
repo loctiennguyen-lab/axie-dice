@@ -110,27 +110,44 @@ func _loopback_test() -> void:
 	c.disconnect_from_host()
 	a.queue_free()
 
-	# wrong state is refused and no exchange happens
+	# preconnect + favicon + wrong state do not end the flow; the right state still wins afterwards
 	var b := DesktopAuth.new()
 	add_child(b)
-	b.open_url = func(_u: String) -> void: pass
-	var called := [false]
-	b.exchange = func(_u: String, _bd: String, _d: Callable) -> void: called[0] = true
+	b.open_url = func(u: String) -> void: opened[0] = u
+	var called := [0]
+	b.exchange = func(_u: String, _bd: String, done: Callable) -> void:
+		called[0] += 1
+		done.call(200, JSON.stringify({"access": "A", "refresh": "R2", "device_id": "d"}))
 	var res2 := []
-	b.finished.connect(func(ok: bool, _t: Dictionary, err: String) -> void: res2.append([ok, err]))
+	b.finished.connect(func(ok: bool, tk: Dictionary, err: String) -> void: res2.append([ok, tk, err]))
 	b.begin()
-	var c2 := StreamPeerTCP.new()
-	c2.connect_to_host("127.0.0.1", b.listen_port())
-	for _i in 200:
-		c2.poll()
-		if c2.get_status() == StreamPeerTCP.STATUS_CONNECTED:
-			break
+	var state2 := String(opened[0]).split("state=")[1]
+	var idle := await _connect(b.listen_port())            # speculative connection that sends nothing
+	var fav := await _connect(b.listen_port())
+	fav.put_data("GET /favicon.ico HTTP/1.1\r\n\r\n".to_utf8_buffer())
+	var bad := await _connect(b.listen_port())
+	bad.put_data("GET /cb?code=X&state=WRONG HTTP/1.1\r\n\r\n".to_utf8_buffer())
+	for _i in 30:
 		await get_tree().process_frame
-	c2.put_data("GET /cb?code=X&state=WRONG HTTP/1.1\r\n\r\n".to_utf8_buffer())
+	_check(res2.is_empty() and called[0] == 0, "idle, favicon and wrong-state connections do not end the flow")
+	var good := await _connect(b.listen_port())
+	good.put_data(("GET /cb?code=OK&state=%s HTTP/1.1\r\n\r\n" % state2).to_utf8_buffer())
 	for _i in 300:
 		if not res2.is_empty():
 			break
 		await get_tree().process_frame
-	_check(res2.size() == 1 and res2[0] == [false, "state"] and not called[0], "wrong state refused, no token request")
-	c2.disconnect_from_host()
+	_check(res2.size() == 1 and res2[0][0] == true and called[0] == 1, "right state after the noise completes sign-in")
+	for p in [idle, fav, bad, good]:
+		(p as StreamPeerTCP).disconnect_from_host()
 	b.queue_free()
+
+
+func _connect(port: int) -> StreamPeerTCP:
+	var c := StreamPeerTCP.new()
+	c.connect_to_host("127.0.0.1", port)
+	for _i in 200:
+		c.poll()
+		if c.get_status() == StreamPeerTCP.STATUS_CONNECTED:
+			break
+		await get_tree().process_frame
+	return c
