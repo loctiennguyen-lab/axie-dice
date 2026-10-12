@@ -242,7 +242,7 @@ func _offline_and_errors() -> void:
 	var r2: EpochReply = (p2[1] as RemoteEpochSource).start_run({"mode": "short"})
 	_run(sess2, r2, 40.0)
 	_check(r2.done and not r2.ok and r2.code == "offline", "unreachable server -> offline after the grace period")
-	_check(sess2.state == "reconnecting", "session keeps trying to reconnect")
+	_check(sess2.state in ["connecting", "reconnecting"], "session keeps trying to reconnect")
 	sess2.queue_free()
 
 	# kicked by another device

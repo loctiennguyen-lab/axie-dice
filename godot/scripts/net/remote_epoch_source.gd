@@ -22,6 +22,12 @@ func _init(p_session: RunSession = null, rules_version: String = "") -> void:
 	_rules_version = rules_version if rules_version != "" else ActionLog.RULES_VERSION
 
 
+## Project setting `axie/epoch_source`; "local" (default) keeps LocalEpochSource. RunState.begin_run picks
+## `RemoteEpochSource.new(RunSession)` only when this returns true (lane I wires it; see report).
+static func flag_on() -> bool:
+	return String(ProjectSettings.get_setting("axie/epoch_source", "local")) == "remote"
+
+
 func is_remote() -> bool:
 	return true
 
@@ -63,7 +69,7 @@ func start_run(params: Dictionary) -> EpochReply:
 				"commit": String(data.get("commit", "")), "header": header,
 				"h": String(peek["h"]), "log_len": 0}
 			_record("run_start", args, inner.seed, extra)
-			reply.settle(true, inner.seed, "", extra))
+			reply.settle(true, inner.seed, "", extra)))
 	return reply
 
 
