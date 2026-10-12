@@ -440,6 +440,8 @@ func test_the_vault_screen_shows_what_the_store_holds() -> void:
 	if packed == null:
 		return
 	var screen := packed.instantiate()
+	screen.use_account = false
+	screen.no_scene_change = true
 	add_child(screen)
 	await get_tree().process_frame
 
@@ -497,6 +499,18 @@ func test_the_vault_screen_shows_what_the_store_holds() -> void:
 	if remove != null:
 		remove.pressed.emit()
 		await get_tree().process_frame
+		# R3 M3d: Remove asks first; nothing is deleted until the confirm button is pressed.
+		_assert(MetaState.vault_index_of("123") >= 0, "REMOVE deleted without asking")
+		var keep := screen.find_child("KeepButton", true, false) as Button
+		_assert(keep != null and keep.has_focus(), "confirm modal lacks focused Keep it")
+		keep.pressed.emit()
+		await get_tree().process_frame
+		_assert(screen.find_child("RemoveConfirm", true, false) == null and MetaState.vault_index_of("123") >= 0,
+			"Keep it must close the modal and keep the Axie")
+		remove.pressed.emit()
+		await get_tree().process_frame
+		(screen.find_child("ConfirmRemoveButton", true, false) as Button).pressed.emit()
+		await get_tree().process_frame
 		_assert(MetaState.vault_index_of("123") < 0,
 			"REMOVE did not reach the store — the row is gone from the screen and the Axie is "
 			+ "still in the save, so it comes back on the next visit")
@@ -519,6 +533,8 @@ func test_the_screen_marks_a_stale_record_instead_of_hiding_it() -> void:
 	MetaState.vault.append(old)
 
 	var screen := (load("res://scenes/vault/Vault.tscn") as PackedScene).instantiate()
+	screen.use_account = false
+	screen.no_scene_change = true
 	add_child(screen)
 	await get_tree().process_frame
 
@@ -547,6 +563,8 @@ func test_no_row_leaks_a_null_or_nan_into_its_text() -> void:
 	MetaState.vault_import(_payload("456", "aqua"))
 
 	var screen := (load("res://scenes/vault/Vault.tscn") as PackedScene).instantiate()
+	screen.use_account = false
+	screen.no_scene_change = true
 	add_child(screen)
 	await get_tree().process_frame
 
