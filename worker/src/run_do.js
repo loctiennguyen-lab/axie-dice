@@ -30,8 +30,8 @@ export class RunDO {
       supportsRules: (v) => rulesSupported(env, v),
       // Gem is charged in D1 inside the request that earns the seed (ADR 4.9). The idem key is built by
       // RunCore as aid:{run}:{seq}, so a retried request replays the old charge instead of paying twice.
-      charge: async (idem, aid, _args, meta) => {
-        const r = await spendGem(env, meta.player_id, PRICES[aid].price, `aid:${aid}`, idem);
+      charge: async (idem, aid, _args, meta, price) => {
+        const r = await spendGem(env, meta.player_id, price ?? PRICES[aid].price, `aid:${aid}`, idem);
         return r.ok;
       },
       log: (event, detail) => console.warn('run anomaly', event, JSON.stringify(detail)),

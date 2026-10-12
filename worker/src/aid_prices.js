@@ -8,7 +8,7 @@ export const AID_BY_KIND = (kind, args) =>
         : kind === 'shop_refresh' ? 'R6' : null;
 
 export const PRICES = {
-  R1: { price: 90, cap_run: 1 }, // TODO: boss price 180 needs node kind; the DO does not know it yet
+  R1: { price: 90, cap_run: 1 },
   R2: { price: 15, cap_run: 4 },
   R5: { price: 15, cap_run: 4 },
   R6: { price: 18, cap_run: 2 },
@@ -16,3 +16,5 @@ export const PRICES = {
 /** Total paid uses per run: A0-A8 6, A9-A10 4 (aid_prices.json total_cap). */
 export const totalCap = (ascension) => (ascension >= 9 ? 4 : 6);
 export const GIFT = { per_day: 300, balance_cap: 900 };
+/** Continue on a boss node (aid_prices.json R1.boss_price). Applied by RunCore._price from the logged node kind. */
+export const BOSS_CONTINUE_PRICE = 180;

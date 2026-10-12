@@ -7,7 +7,7 @@
 // What it enforces is the syntactic part of ADR server-authoritative-rng §4.3 / §4.6: append-only
 // log with a hash chain, one valid request per seq, no overlapping epochs, consume-in-place,
 // pinned reroll seeds, budgets. It never runs game rules: that is the verifier's job (later).
-import { AID_BY_KIND, PRICES, totalCap } from './aid_prices.js';
+import { AID_BY_KIND, BOSS_CONTINUE_PRICE, PRICES, totalCap } from './aid_prices.js';
 import { canonKV, chainStart, chainNext, commitOf, epochSeed, isCanonScalar, nodeRow, MAX_PARAMS, _bytes } from './epoch_canon.js';
 
 export const MAX_EPOCHS = 400;
@@ -325,7 +325,7 @@ export class RunCore {
     // charge and can never ride on the first price. The seq-level replay above already returns the old
     // answer for an identical resend without charging.
     if (aid) {
-      const ok = await this._charge(meta, seq, aid, args);
+      const ok = await this._charge(meta, seq, aid, args, this._price(aid, args, delta));
       if (!ok) return fail(seq, 'rejected');
     }
     this.sql.exec(
@@ -367,12 +367,25 @@ export class RunCore {
     return total >= totalCap(meta.ascension);
   }
 
-  async _charge(meta, seq, kind, args) {
+  /** Gem price of a paid request. Continue on a boss node costs BOSS_CONTINUE_PRICE; the node kind comes from the
+   *  server's own copy of the log (the enter_node line for args.node_id, this request's delta included). */
+  _price(aid, args, delta) {
+    if (aid !== 'R1') return PRICES[aid].price;
+    const isBoss = (e) => e && e.fn === 'enter_node' && Array.isArray(e.args) && e.args[0] === args.node_id && e.args[1] === 'boss';
+    if (delta.some(isBoss)) return BOSS_CONTINUE_PRICE;
+    for (const r of this.sql.exec('SELECT log_delta FROM epochs').toArray()) {
+      let d; try { d = JSON.parse(r.log_delta); } catch { continue; }
+      if (Array.isArray(d) && d.some(isBoss)) return BOSS_CONTINUE_PRICE;
+    }
+    return PRICES.R1.price;
+  }
+
+  async _charge(meta, seq, kind, args, price) {
     if (!this.deps.charge) return false; // no wallet wired (L1: pending the Gem decision) = refuse
     const idem = `aid:${meta.run_id}:${seq}:${kind}`;
     this.sql.exec(`INSERT OR REPLACE INTO pending_aid (seq, aid, idem_key, state) VALUES (?, ?, ?, 'charging')`, seq, kind, idem);
     let ok = false;
-    try { ok = await this.deps.charge(idem, kind, args, meta); } catch { ok = false; }
+    try { ok = await this.deps.charge(idem, kind, args, meta, price); } catch { ok = false; }
     this.sql.exec('DELETE FROM pending_aid WHERE seq = ?', seq);
     return ok;
   }
