@@ -119,6 +119,16 @@ var epoch: EpochSource = null
 ## True while an async request_* is waiting for a seed: every other action must be refused,
 ## because changing the log between request and reply would make the server's `h` disagree.
 var epoch_busy: bool = false
+## Relic run-level state (H6, contract 2.3): id -> plain-JSON Dictionary owned by that relic's handlers.
+## Copied into pending_combat as `relic_state` and written back from get_result()["relic_state"].
+var relic_state: Dictionary = {}
+## id -> "eternal" (ascension sticker). Eternal relics cannot be sold.
+var relic_stickers: Dictionary = {}
+## Pact relic ids taken this run, kept after they are sold (drawbacks/offers care about history).
+var pacts_taken: Array[String] = []
+## Number of relic items the shop offers, after the H8 `shop_relic_count` hook. Applied by the
+## shop generator once lane B's generate_shop_items takes a relic_count.
+var _shop_relic_count: int = 2
 ## Seed of the `node` epoch of the node being visited. Treasure rewards draw from it.
 var _node_seed: int = 0
 ## Rows whose node types the server has revealed (extra.row_types / Scout). {row:int -> Array}.
@@ -193,6 +203,10 @@ func reset() -> void:
 	_rng = null
 	epoch = null
 	epoch_busy = false
+	relic_state = {}
+	relic_stickers = {}
+	pacts_taken = []
+	_shop_relic_count = 2
 	_node_seed = 0
 	row_types_known = {}
 	action_log = ActionLog.new()
@@ -488,6 +502,7 @@ func enter_node(node_id: String, node_kind: String, seed: int = -1) -> void:
 				"combat_seed": combat_seed,
 				"bonus_reroll": bonus_reroll,
 				"run_mods": run_mods.duplicate(),
+				"relic_state": relic_state.duplicate(true),
 				# Compatibility: lets CombatEngine ask for end_turn/reroll seeds itself until the UI
 				# does it (contract 1.4). Not serialised: pending_combat is consumed, never saved.
 				"epoch": epoch,
@@ -533,6 +548,8 @@ func apply_combat_result(res: Dictionary, reward_seed: int = -1) -> void:
 	# result screen that showed zeroes after a long losing run would be reporting the loss
 	# twice.
 	_fold_combat_stats(res.get("stat", {}))
+	if res.has("relic_state"):
+		relic_state = (res["relic_state"] as Dictionary).duplicate(true)
 	if res.get("won", false):
 		shards_this_run += int(res.get("shards_earned", 0))
 		_apply_growth_keep(res.get("growth_keep", {}))
@@ -671,7 +688,9 @@ func effective_max_rerolls() -> int:
 ## src/data.js ascMods(a).rewards: 3 normally, 2 at Ascension>=7 — thread through
 ## ContentDB.ascension_mods() rather than re-deriving the threshold here.
 func _reward_count() -> int:
-	return int(ContentDB.ascension_mods(ascension).get("rewards", 3))
+	var base := int(ContentDB.ascension_mods(ascension).get("rewards", 3))
+	return int(RelicHooks.run_value(owned_relic_ids, "reward_card_count",   # H8
+		{"ascension": ascension, "kind": "reward"}, base))
 
 
 ## Builds the reward-choice cards for a won combat (src/engine.js finishCombat() ->
@@ -709,7 +728,8 @@ func _set_pending_rewards(tier: int, pw: int, seed: int) -> void:
 	_reward_reroll_pw = pw
 	_reward_reroll_count = _reward_count()
 	_reward_reroll_salt = 0   # now: how many rerolls this offer has had (the `k` of the epoch)
-	reward_reroll_charges = reward_reroll_max
+	reward_reroll_charges = int(RelicHooks.run_value(owned_relic_ids, "reward_reroll_charges",   # H8
+		{"ascension": ascension, "kind": "reward"}, reward_reroll_max))
 	var reward_rng := Rng.new(seed)
 	pending_rewards = RewardGenerator.generate(pw, tier, reward_rng, owned_relic_ids, roster,
 		effective_max_rerolls(), _reward_reroll_count)
@@ -776,7 +796,7 @@ func apply_chosen_reward(reward: Dictionary) -> void:
 		"relic":
 			var rid := String(reward.get("key", ""))
 			if rid != "" and not owned_relic_ids.has(rid):
-				owned_relic_ids.append(rid)
+				_grant_relic(rid, "reward")
 		"hp":
 			var entry3 := _roster_entry_by_pid(int(reward.get("persistent_id", -1)))
 			if not entry3.is_empty():
@@ -789,7 +809,7 @@ func apply_chosen_reward(reward: Dictionary) -> void:
 			# event fx already uses.
 			var rid2 := String(reward.get("key", ""))
 			if rid2 != "" and not owned_relic_ids.has(rid2):
-				owned_relic_ids.append(rid2)
+				_grant_relic(rid2, "reward")
 			_reduce_party_max_hp_pct(0.2)
 		"curse":
 			# src/engine.js applyReward() 'curse' (engine.js:1184-1185):
@@ -811,6 +831,8 @@ func apply_chosen_reward(reward: Dictionary) -> void:
 ## Builds this node's shop offer. Called from enter_node(), so a replay that applies the same
 ## `enter_node` action gets the same three items in the same order without being told them.
 func _open_shop(_node_id: String, seed: int) -> void:
+	_shop_relic_count = int(RelicHooks.run_value(owned_relic_ids, "shop_relic_count",   # H8
+		{"ascension": ascension, "kind": "shop"}, 2))
 	_shop_rng = Rng.new(seed)
 	shop_items = []
 	for raw in RewardGenerator.generate_shop_items(_shop_rng, owned_relic_ids):
@@ -868,7 +890,7 @@ func apply_event_fx(fx: String, rng: Rng) -> String:
 			if def == null:
 				def = RewardGenerator.pick_relic(rng, owned_relic_ids, 0, 2)
 			if def != null:
-				owned_relic_ids.append(def.id)
+				_grant_relic(def.id, "event")
 			_reduce_party_max_hp_pct(0.2)
 			return "Received %s. The whole party loses 20%% Max HP." % (def.name if def != null else "nothing")
 		"pray":
@@ -880,7 +902,7 @@ func apply_event_fx(fx: String, rng: Rng) -> String:
 		"chest":
 			var def2 := RewardGenerator.pick_relic(rng, owned_relic_ids, 1, 3)
 			if def2 != null:
-				owned_relic_ids.append(def2.id)
+				_grant_relic(def2.id, "event")
 			return "You found a relic: %s" % (def2.name if def2 != null else "nothing")
 		"shards60":
 			shards_this_run += 60
@@ -910,7 +932,7 @@ func apply_event_fx(fx: String, rng: Rng) -> String:
 			if rng.next_float() < 0.5:
 				var won_relic := RewardGenerator.pick_relic(rng, owned_relic_ids, 2, 3)
 				if won_relic != null:
-					owned_relic_ids.append(won_relic.id)
+					_grant_relic(won_relic.id, "event")
 				return "YOU WIN! Received %s" % (won_relic.name if won_relic != null else "nothing")
 			_reduce_party_max_hp_pct(0.1)
 			return "YOU LOSE. The whole party loses 10% Max HP."
@@ -957,7 +979,7 @@ func try_buy_shop_item(index: int, seed: int = -1) -> bool:
 		"relic":
 			var rid := String(item.get("key", ""))
 			if rid != "" and not owned_relic_ids.has(rid):
-				owned_relic_ids.append(rid)
+				_grant_relic(rid, "reward")
 		"heal":
 			if not roster.is_empty():
 				var e: Dictionary = roster[rng.next_int(roster.size())]
@@ -976,6 +998,76 @@ func shop_item_needs_epoch(index: int) -> bool:
 	if index < 0 or index >= shop_items.size():
 		return false
 	return String((shop_items[index] as Dictionary).get("kind", "")) == "heal"
+
+
+## Puts a relic in the owned list (order of pickup is the order hooks fire in) and tells the relics
+## that care. Slot capacity is NOT checked here: the UI asks acquire_relic() first when a slot may be
+## full; the plain reward/shop/event paths grant directly, as before the slot model existed.
+func _grant_relic(relic_id: String, source: String) -> void:
+	if relic_id == "" or owned_relic_ids.has(relic_id):
+		return
+	owned_relic_ids.append(relic_id)
+	if RelicSlots.is_pact(relic_id) and not pacts_taken.has(relic_id):
+		pacts_taken.append(relic_id)
+	RelicHooks.run_fire(owned_relic_ids, "on_relic_acquired", {"relic_id": relic_id, "source": source})   # H8
+
+
+## Takes a relic respecting the slot rules (RelicSlots.check_add). When every slot of its kind is
+## full the caller must name `sell_id` from check.sell_from; that is logged as `swap_on_full`.
+func acquire_relic(relic_id: String, source: String, sell_id: String = "") -> bool:
+	var chk := RelicSlots.check_add(owned_relic_ids, relic_stickers, relic_id, ascension, false)
+	if not bool(chk["ok"]):
+		return false
+	if bool(chk["needs_sell"]):
+		if sell_id == "" or not (chk["sell_from"] as Array).has(sell_id):
+			return false
+		shards_this_run += RelicSlots.sell_price(sell_id, ascension)
+		owned_relic_ids.erase(sell_id)
+		relic_state.erase(sell_id)
+		action_log.record("swap_on_full", [sell_id, relic_id])
+	elif sell_id != "":
+		return false
+	_grant_relic(relic_id, source)
+	return true
+
+
+## Sells an owned, non-Eternal relic for Gene Shards. Not while a fight is open.
+func sell_relic(relic_id: String) -> bool:
+	if not owned_relic_ids.has(relic_id) or relic_stickers.get(relic_id, "") == RelicSlots.STICKER_ETERNAL:
+		return false
+	if phase == RunPhase.COMBAT:
+		return false
+	shards_this_run += RelicSlots.sell_price(relic_id, ascension)
+	owned_relic_ids.erase(relic_id)
+	relic_state.erase(relic_id)
+	action_log.record("sell_relic", [relic_id])
+	return true
+
+
+## Re-orders the party (positional relics read the slot). `order` = persistent_ids, a permutation.
+## Only on the map: slot changes mid-fight would move "next to" under the player's feet.
+func reorder_party(order: Array) -> bool:
+	if phase != RunPhase.MAP or order.size() != roster.size():
+		return false
+	var by_pid: Dictionary = {}
+	for e in roster:
+		by_pid[int(e.get("persistent_id", -1))] = e
+	var out: Array[Dictionary] = []
+	for pid in order:
+		if not by_pid.has(int(pid)):
+			return false
+		out.append(by_pid[int(pid)])
+		by_pid.erase(int(pid))
+	roster = out
+	action_log.record("reorder_party", [_int_array(order)])
+	return true
+
+
+static func _int_array(a: Array) -> Array:
+	var out: Array = []
+	for x in a:
+		out.append(int(x))
+	return out
 
 
 func _roster_entry_by_pid(pid: int) -> Dictionary:
@@ -1079,6 +1171,9 @@ func to_data() -> Dictionary:
 		"epoch_seq": (epoch.tape().size() if epoch != null else 0),
 		"run_id": String(action_log.header.get("run_id", "")),
 		"node_seed": _node_seed,
+		"relic_state": relic_state.duplicate(true),
+		"relic_stickers": relic_stickers.duplicate(true),
+		"pacts_taken": pacts_taken.duplicate(),
 		"row_types_known": row_types_known.duplicate(true),
 		"action_log": action_log.to_data(),
 	}
@@ -1129,6 +1224,9 @@ func from_data(d: Dictionary) -> void:
 	pending_rewards.assign(d.get("pending_rewards", []))
 	_rng = Rng.new(int(d.get("rng_state", run_seed)))
 	_node_seed = int(d.get("node_seed", 0))
+	relic_state = (d.get("relic_state", {}) as Dictionary).duplicate(true)
+	relic_stickers = (d.get("relic_stickers", {}) as Dictionary).duplicate(true)
+	pacts_taken.assign(d.get("pacts_taken", []))
 	row_types_known = {}
 	for rk in (d.get("row_types_known", {}) as Dictionary).keys():
 		row_types_known[int(rk)] = ((d["row_types_known"] as Dictionary)[rk] as Array).duplicate()

@@ -94,6 +94,14 @@ var _rng: Rng = null
 var _epoch: EpochSource = null
 ## k-th reroll request this turn (reroll epoch key, ADR-RNG §4.4). In the snapshot so undo rewinds it.
 var reroll_k: int = 0
+## Relic scratch space for ONE combat (H6, contract 2.3): plain JSON, owned by lane B's handlers
+## (tweak_left, mana_paid_<id>, chaos_rerolls...). In the snapshot, so undo and resume restore it
+## together with Mana. `relic_run_in` is RunState.relic_state as the fight began; handlers write
+## run-level results into `relic_run_out`, which get_result() hands back.
+var relic_combat: Dictionary = {}
+var relic_run_in: Dictionary = {}
+var relic_run_out: Dictionary = {}
+var _end_fired: bool = false     ## on_combat_end fires once, from the first get_result()
 
 
 ## Hands the engine the run's epoch source. setup_new() does it from the combat setup; a fight restored
@@ -124,6 +132,10 @@ func setup_new(combat_setup: Dictionary) -> void:
 	_run_mods = (combat_setup.get("run_mods", {}) as Dictionary).duplicate()
 	_rng = Rng.new(combat_seed)
 	_epoch = combat_setup.get("epoch", null) as EpochSource
+	relic_combat = {}
+	relic_run_in = (combat_setup.get("relic_state", {}) as Dictionary).duplicate(true)
+	relic_run_out = relic_run_in.duplicate(true)
+	_end_fired = false
 	reroll_k = 0
 	_next_token_uid = TOKEN_UID_BASE
 	undo_stack = []
@@ -178,6 +190,7 @@ func setup_new(combat_setup: Dictionary) -> void:
 			eligible[_rng.next_int(eligible.size())].status["weaken"] = 2
 
 	turn = 1
+	RelicHooks.fire(self, "on_combat_start", {"combat": self, "node_kind": kind})   # H5a
 	# JS startCombat() fires onTurnStart BEFORE the first rollAll (engine.js:426). Omitting it
 	# made every on-turn-start relic silently skip turn 1 of every combat — the relic looked
 	# implemented and was simply one turn late, forever.
@@ -229,6 +242,10 @@ func _state_dict() -> Dictionary:
 		"result_shards_earned": result_shards_earned,
 		"rng_state": _rng.get_state() if _rng != null else 0,
 		"reroll_k": reroll_k,
+		"relic_combat": relic_combat.duplicate(true),
+		"relic_run_in": relic_run_in.duplicate(true),
+		"relic_run_out": relic_run_out.duplicate(true),
+		"end_fired": _end_fired,
 		"next_token_uid": _next_token_uid,
 	}
 
@@ -258,6 +275,10 @@ func _apply_state_dict(d: Dictionary) -> void:
 	result_shards_earned = int(d.get("result_shards_earned", 0))
 	_rng = Rng.new(int(d.get("rng_state", 0)))
 	reroll_k = int(d.get("reroll_k", 0))
+	relic_combat = (d.get("relic_combat", {}) as Dictionary).duplicate(true)
+	relic_run_in = (d.get("relic_run_in", {}) as Dictionary).duplicate(true)
+	relic_run_out = (d.get("relic_run_out", {}) as Dictionary).duplicate(true)
+	_end_fired = bool(d.get("end_fired", false))
 	_next_token_uid = int(d.get("next_token_uid", TOKEN_UID_BASE))
 
 
@@ -286,7 +307,14 @@ static func _dup_dict_array(arr: Array) -> Array:
 ## these two (plus s.step, which has no branching-RunMap equivalent, see rule spec §9 note)
 ## to pick a reward tier and rarity band.
 func get_result() -> Dictionary:
+	if not _end_fired and (won or lost):
+		# H5b: once per fight, only when the fight is truly over (a wiped party still on the Continue
+		# screen has not asked for a result yet). Guarded by a flag in the snapshot, not by luck.
+		_end_fired = true
+		RelicHooks.fire(self, "on_combat_end", {"combat": self, "result": "won" if won else "lost",
+			"node_kind": kind})
 	return {
+		"relic_state": relic_run_out.duplicate(true),
 		"won": won,
 		"shards_earned": result_shards_earned if won else 0,
 		"growth_keep": _compute_growth_keep(),
@@ -396,10 +424,13 @@ func roll_all() -> void:
 			e.intent = {}
 	_resolve_cantrips()
 	RelicHooks.fire(self, "on_roll_end", {"combat": self})
+	RelicHooks.fire(self, "on_roll_settled", {"combat": self, "rerolled_uids": []})   # H1b
 
 
 func _roll_unit(u: Unit) -> void:
 	var fi := _rng.next_int(6)
+	# H7: roll_face may redirect the face (loadeddie, twinfates draw more from the same stream).
+	fi = int(RelicHooks.run_value_hook(self, "roll_face", {"combat": self, "unit": u}, fi))
 	var f: Dictionary = u.die[fi]
 	u.heavy = _has_kw(f, "heavy")
 	var cc := _crit_chance(u, f)
@@ -486,6 +517,10 @@ func reroll_dice(uids: Array, seed: int = -1, from_aid: bool = false) -> bool:
 		_rng = Rng.new(use_seed)
 	reroll_k += 1
 	var list: Array = _rerollable(uids)
+	var hook := _before_reroll(uids, from_aid, false)
+	if bool(hook["veto"]) or mana < int(hook["mana_cost"]):
+		return false
+	mana -= int(hook["mana_cost"])
 	_set_turn_phase(CombatPhase.REROLL)
 	if not from_aid:
 		rerolls -= 1
@@ -499,6 +534,10 @@ func reroll_dice(uids: Array, seed: int = -1, from_aid: bool = false) -> bool:
 		if keep_crit and had_crit:
 			u.set_crit_now(true)
 	_resolve_cantrips()
+	var settled: Array[int] = []
+	for ru in list:
+		settled.append((ru as Unit).uid)
+	RelicHooks.fire(self, "on_roll_settled", {"combat": self, "rerolled_uids": settled})   # H1b
 	# JS clears the undo stack on reroll ONLY when the party lacks `safeReroll`
 	# (engine.js:502). Clearing unconditionally quietly disabled that relic's whole point.
 	if not RelicHooks.has(self, "safeReroll"):
@@ -519,7 +558,18 @@ func can_reroll(uids: Array, from_aid: bool = false) -> bool:
 		return false
 	if rerolls <= 0 and not from_aid:
 		return false
-	return not _rerollable(uids).is_empty()
+	if _rerollable(uids).is_empty():
+		return false
+	var h := _before_reroll(uids, from_aid, true)
+	return not bool(h["veto"]) and mana >= int(h["mana_cost"])
+
+
+## H1a. A handler may veto the reroll or charge Mana for it; dry_run tells it nothing may be spent.
+func _before_reroll(uids: Array, from_aid: bool, dry_run: bool) -> Dictionary:
+	var ctx := {"combat": self, "uids": _int_list(uids), "from_aid": from_aid, "veto": false,
+		"mana_cost": 0, "dry_run": dry_run}
+	RelicHooks.fire(self, "before_reroll", ctx)
+	return ctx
 
 
 func _rerollable(uids: Array) -> Array:
@@ -685,6 +735,7 @@ func play_active(relic_id: String, target_uid: int = -1) -> bool:
 	mana_spent += cost
 	used_actives.append(relic_id)
 	_grant_conduit_rerolls()
+	RelicHooks.fire(self, "on_active_played", {"combat": self, "act_id": relic_id, "cost": cost})   # H4
 	EventBus.relic_pulsed.emit(relic_id, (src.uid if src != null else 0))
 	_check_end()
 	_log("play_active", [relic_id, target_uid])
@@ -745,6 +796,40 @@ func _push_undo() -> void:
 		undo_stack.pop_front()
 
 
+## H7 — dice-editing relics (Tweak / Amber hold / Loaded die). Each call: legal only mid-EXECUTE, takes an
+## undo snapshot, lets the owning relic decide through `roll_edit` (ctx.ok = true), and is logged so a
+## replay re-applies it. Deterministic apart from draws the handler makes on the epoch's own stream.
+func tweak(kind: String, uid_a: int, uid_b: int = -1) -> bool:
+	return _roll_edit("tweak", kind, uid_a, uid_b, -1, [kind, uid_a, uid_b])
+
+
+func hold_pick(uid: int) -> bool:
+	return _roll_edit("hold_pick", "hold", uid, -1, -1, [uid])
+
+
+func loaded_pick(uid: int, face_index: int) -> bool:
+	return _roll_edit("loaded_pick", "loaded", uid, -1, face_index, [uid, face_index])
+
+
+## Tweaks the party may still spend this turn (relic_combat["tweak_left"], set by the relic).
+func tweak_budget_left() -> int:
+	return int(relic_combat.get("tweak_left", 0))
+
+
+func _roll_edit(fn: String, p_kind: String, uid_a: int, uid_b: int, face_index: int, log_args: Array) -> bool:
+	if won or lost or phase != CombatPhase.EXECUTE:
+		return false
+	_push_undo()
+	var ctx := {"combat": self, "kind": p_kind, "uid_a": uid_a, "uid_b": uid_b,
+		"face_index": face_index, "ok": false}
+	RelicHooks.fire(self, "roll_edit", ctx)
+	if not bool(ctx["ok"]):
+		undo_stack.pop_back()
+		return false
+	_log(fn, log_args)
+	return true
+
+
 ## Free undo within a turn, until reroll or a new turn clears the stack (rule spec §2).
 ## Snapshot-restore-in-place (architecture plan §4b) — NOT action-replay.
 func undo_last() -> bool:
@@ -798,6 +883,8 @@ func _exec_face(u: Unit, target_uid: int) -> bool:
 	if u.side == "p" and u.roll_crit_now():
 		u.set_crit_now(false)
 	u.resonant_now = false
+	RelicHooks.fire(self, "on_face_used", {"combat": self, "unit": u, "face": f, "fi": fi,
+		"target_uid": target_uid, "side": u.side, "depth": 0})   # H2
 	return true
 
 
@@ -1088,6 +1175,7 @@ func begin_end_turn(seed: int = -1) -> bool:
 	_set_turn_phase(CombatPhase.END_TURN)
 	undo_stack = []
 	first_used = false
+	RelicHooks.fire(self, "on_turn_end", {"combat": self})   # H3
 
 	# mana overflow (relic OR mythic `overflow` face) — no-op today: no relic and no
 	# ported tier-1 face carries `overflow`. Kept so wiring either in later is content-only.
@@ -1291,6 +1379,7 @@ func _build_unit_from_roster(entry: Dictionary, index: int) -> Unit:
 	u.cls = String(hero_def.get("cls", ""))
 	u.tier = int(entry.get("tier", hero_def.get("tier", 1)))
 	u.roster_index = index
+	u.slot = index   # positional relics ("next to") read slot; reorder_party changes the roster order
 	u.max_hp = base_hp + int(entry.get("bonus_hp", 0))
 	u.die = (hero_def.get("die", []) as Array).duplicate(true)
 

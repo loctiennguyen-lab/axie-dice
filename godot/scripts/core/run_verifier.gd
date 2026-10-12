@@ -130,7 +130,16 @@ static func verify(log: ActionLog, tape: Array = [], loadout: Dictionary = {}) -
 					# it. Deterministic from (run_seed, node_id, salt 503), like every other
 					# offer in the run.
 					RunState.generate_treasure_rewards(String(args[0]))
-			"use_die", "play_active", "reroll_dice", "undo_last", "end_turn":
+			"sell_relic":
+				if args.size() < 1 or not RunState.sell_relic(String(args[0])):
+					return _fail(ERR_REJECTED, "A relic sale was recorded that the replay cannot make.", i)
+			"swap_on_full":
+				if args.size() < 2 or not RunState.acquire_relic(String(args[1]), "swap", String(args[0])):
+					return _fail(ERR_REJECTED, "A relic swap was recorded that the replay cannot make.", i)
+			"reorder_party":
+				if args.size() < 1 or not RunState.reorder_party(args[0] as Array):
+					return _fail(ERR_REJECTED, "A party reorder was recorded that the replay cannot make.", i)
+			"use_die", "play_active", "reroll_dice", "undo_last", "end_turn", "tweak", "hold_pick", "loaded_pick":
 				if engine == null:
 					return _fail(ERR_REJECTED,
 						"A combat move was recorded outside a combat.", i)
@@ -199,6 +208,12 @@ static func _apply_combat(engine: CombatEngine, fn: String, args: Array) -> bool
 				args.size() > 1 and int(args[1]) != 0)
 		"undo_last":
 			return engine.undo_last()
+		"tweak":
+			return args.size() >= 3 and engine.tweak(String(args[0]), int(args[1]), int(args[2]))
+		"hold_pick":
+			return args.size() >= 1 and engine.hold_pick(int(args[0]))
+		"loaded_pick":
+			return args.size() >= 2 and engine.loaded_pick(int(args[0]), int(args[1]))
 		"end_turn":
 			engine.end_turn()
 			return true
