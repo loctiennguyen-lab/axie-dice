@@ -2,6 +2,12 @@
 
 Cập nhật: 2026-10-12. Nhánh `godot-port`, push lên `axiedice` (`git push axiedice godot-port:main`).
 
+## ⇢ TIẾN ĐỘ ĐÊM 12→13/10 (lane I ghi giữa đêm; bản cuối ở mục báo cáo sáng)
+- Đã merge + push: E (ví Gem async, Pass v2, việc tuần), B (EN, offer v2, 22 relic H1–H8, pact live, pipfile; rồi trục G/A, trần reroll, Eternal, pact_forced), C (Atia 3D, 6 sân biome, meshsrc/), A (luật Nhiệm vụ, end_run → record_run_outcome + reached_boss), U (UI combat v3), M1 Run Setup. RULES_VERSION `godot-2026-10-12-f`. Suite 76/76 không SKIP.
+- `.gitignore`: `src/` neo về gốc (`/src/`) — trước đó nó giấu mesh sân C và Land L.
+- Đang chạy: L (track mesh homeland/src + làm đẹp hub), M (Echo Box), S (RunSession, ví Gem khi đăng nhập, giá Continue 180, quà mùa), sim nhanh (`production/qa/sim-quick-2026-10-12.md`).
+- Câu chờ Liam: `pending-decisions.md` mục F (đã trả lời) và G (agent chọn tạm). Review R3: `design/handoffs/ui-02-round3/REVIEW-art-director.md`.
+
 ## ⇢ BẮT ĐẦU TỪ ĐÂY (bàn giao tối 12/10/2026 — session mới đọc mục này trước)
 
 **Đang làm: sprint L1 — playtest nội bộ tải về, ra mắt 3/11/2026.** Kế hoạch: `production/l1-sprint-plan.md` (khối quyết định
