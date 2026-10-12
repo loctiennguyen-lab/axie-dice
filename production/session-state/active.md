@@ -39,9 +39,10 @@ B relic v2 (133 relic, slots), C sổ Atia, E kinh tế + Store fixes. RULES_VER
 → ghi chú sửa cho Liam gửi; làn M + U làm theo.
 
 **Liam trả lời tối 12/10:** Pass: hết mùa vẫn nhận được thưởng đã đạt, chỉ dừng cộng XP · ưu tiên làm đẹp Land hub: CÓ.
-**Chưa trả lời (hỏi lại đầu session):** (3) mặc định chấp nhận các chỗ [INF] của Round 3 rồi gom danh sách sửa;
-(4) bỏ phần gamepad trong R3 (game không hỗ trợ); (5) không deploy Worker trong đêm; (6) thứ tự ưu tiên: merge chờ → U xanh →
-màn meta R3 → đẹp Land → relic ẩn → sân biome → RunSession. Khuyến nghị cả 4 là "đồng ý".
+**Liam trả lời thêm tối 12/10 (đã chốt, không hỏi lại):** (3) chấp nhận các chỗ [INF] của Round 3, code theo, gom danh sách
+sửa cho Liam gửi Claude Design · (4) bỏ phần gamepad trong R3 · (5) KHÔNG deploy Worker trong đêm — sáng 13/10 Liam làm cùng ·
+(6) thứ tự ưu tiên trong đêm: merge các commit đang chờ → U xanh → màn meta R3 (Run Setup, Echo Box, Nhiệm vụ, Store, Pass
+trước) → đẹp Land hub → relic ẩn → sân biome → RunSession. Tối đa 4 agent cùng lúc. Chạy liên tục, không chờ Liam duyệt.
 
 **Trước deploy Worker (hỏi Liam):** áp migration 0002–0004 lên D1 `axie-dice-db`, `wrangler secret put RUN_TOKEN_KEY`, có
 thể thêm redirect URI desktop cho Google OAuth; Cloudflare gói Free.
