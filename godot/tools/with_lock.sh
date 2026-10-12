@@ -12,7 +12,9 @@
 # dùng mkdir (nguyên tử) làm khoá.
 #
 # Hành vi:
-#   - Khoá là thư mục $AXIE_GODOT_LOCK (mặc định ~/Library/Caches/axie-dice-godot.lock), nằm ngoài repo.
+#   - Khoá là thư mục $AXIE_GODOT_LOCK, nằm ngoài repo. Mặc định ~/Library/Caches/axie-dice-godot.lock
+#     (cây chính, save thật). Worktree có godot/override.cfg (use_custom_user_dir) dùng user dir riêng và
+#     khoá riêng ~/Library/Caches/axie-dice-godot-<tên>.lock: các làn không còn xếp hàng chung. Xem userdir.sh.
 #     File `pid` ghi "pid|lstart" của chủ khoá. Chủ đã chết, hoặc pid bị tái dùng (lstart khác) -> khoá chết.
 #   - Tiếp quản qua gate mkdir theo pid chết: đúng một bên được mv khoá cũ đi.
 #   - Trước khi chạy: chụp save thật (meta_save.json, run_save.json, acct/) vào $LOCK/snap và trả lại
@@ -32,9 +34,16 @@ if [[ $# -lt 1 ]]; then
   exit 64
 fi
 
-LOCK="${AXIE_GODOT_LOCK:-$HOME/Library/Caches/axie-dice-godot.lock}"
 TIMEOUT="${AXIE_LOCK_TIMEOUT:-1800}"
 PROJ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
+# user:// thật + đường dẫn khoá suy từ project này (có override.cfg -> user dir riêng + khoá riêng).
+# shellcheck source=userdir.sh
+source "$PROJ/tools/userdir.sh"
+if ! axie_resolve_userdir "$PROJ" && [[ -z "${AXIE_SAVE_DIR:-}" || -z "${AXIE_GODOT_LOCK:-}" ]]; then
+  echo "with_lock: không đọc được config/name trong project.godot, không chạy." >&2
+  exit 2
+fi
+LOCK="${AXIE_GODOT_LOCK:-$AXIE_LOCK_DEFAULT}"
 SAVE_ITEMS=(meta_save.json run_save.json acct)
 GUARD="${AXIE_GUARD_SAVE:-1}"
 
@@ -75,20 +84,7 @@ _try_take() {
 
 # --- save guard -------------------------------------------------------------
 if [[ "$GUARD" == 1 ]]; then
-  if [[ -n "${AXIE_SAVE_DIR:-}" ]]; then
-    USERDIR="$AXIE_SAVE_DIR"
-  else
-    _app="$(sed -n 's/^config\/name="\(.*\)"$/\1/p' "$PROJ/project.godot" 2>/dev/null | head -1)"
-    if [[ -z "$_app" ]]; then
-      echo "with_lock: không đọc được config/name trong project.godot, không chạy (không bảo vệ được save)." >&2
-      exit 2
-    fi
-    if [[ "$(uname)" == Darwin ]]; then
-      USERDIR="$HOME/Library/Application Support/Godot/app_userdata/$_app"
-    else
-      USERDIR="${XDG_DATA_HOME:-$HOME/.local/share}/godot/app_userdata/$_app"
-    fi
-  fi
+  USERDIR="${AXIE_SAVE_DIR:-$AXIE_USERDIR}"
 fi
 
 _snapshot_save() {   # $1 = thư mục snap

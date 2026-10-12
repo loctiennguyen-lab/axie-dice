@@ -255,3 +255,6 @@ asset-library/
 
 # Assets a prototype copied in with godot/tools/import_homeland.py — regenerable from asset-library/.
 godot/prototypes/*/homeland/
+
+# Per-worktree user:// override cho các làn L1 (xem production/l1-lanes.md)
+godot/override.cfg

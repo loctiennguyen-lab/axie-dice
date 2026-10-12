@@ -7,7 +7,10 @@ set -uo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd -P)"
 PROJ="$ROOT/godot"
-LOCK="${AXIE_GODOT_LOCK:-$HOME/Library/Caches/axie-dice-godot.lock}"
+# shellcheck source=userdir.sh
+source "$ROOT/godot/tools/userdir.sh"
+axie_resolve_userdir "$PROJ" || { echo "run_tests: không đọc được config/name trong project.godot" >&2; exit 2; }
+LOCK="${AXIE_GODOT_LOCK:-$AXIE_LOCK_DEFAULT}"
 
 # Cờ cho worktree của làn (không phải làn I): AXIE_SKIP_RULES_FINGERPRINT=1 -> t_rules_version
 # báo SKIP thay vì FAIL (FINGERPRINT chỉ làn I được tính lại, nên nó đỏ trong mọi worktree đã
@@ -68,12 +71,7 @@ fi
 # Bảo vệ save THẬT của người chơi (2026-10-10). Với lệnh chạy qua with_lock.sh, save đã được
 # chụp và trả lại ở tầng with_lock (kể cả khi bị kill). Lớp này vẫn đo từng test: test nào để
 # lại thay đổi thì FAIL, và save được chép lại từ bản chụp đầu suite.
-_app_name="$(sed -n 's/^config\/name="\(.*\)"$/\1/p' "$PROJ/project.godot" | head -1)"
-if [[ "$(uname)" == Darwin ]]; then
-  USERDIR="$HOME/Library/Application Support/Godot/app_userdata/$_app_name"
-else
-  USERDIR="${XDG_DATA_HOME:-$HOME/.local/share}/godot/app_userdata/$_app_name"
-fi
+USERDIR="$AXIE_USERDIR"   # theo override.cfg của worktree nếu có (xem userdir.sh)
 SAVE_SNAP="$(mktemp -d)"
 _save_items=(meta_save.json run_save.json acct)
 for it in "${_save_items[@]}"; do

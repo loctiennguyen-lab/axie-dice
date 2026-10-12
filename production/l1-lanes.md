@@ -30,9 +30,27 @@ Làn I làm việc ngay trong `/Users/loc.tien.nguyen/my-game` (nhánh `godot-po
 6. Mức sàn test (hiện 56/56 trong `.claude/docs/technical-preferences.md`): đổi suite thì đổi con số trong cùng commit.
 7. Push: chỉ `git push axiedice godot-port:main`, không bao giờ `origin`. Không deploy.
 
+## user:// riêng cho mỗi worktree (override.cfg)
+
+Từ 12/10 (chiều) mỗi worktree làn có file `godot/override.cfg` (KHÔNG track, đã vào `.gitignore`):
+
+```
+[application]
+config/use_custom_user_dir=true
+config/custom_user_dir_name="AxieDice-wt-<làn>"
+```
+
+Godot 4.7.2 đọc file này ở thư mục project (đã kiểm: headless báo user dir `~/Library/Application Support/AxieDice-wt-<làn>`; bỏ file thì về `app_userdata/Axie Dice (Godot port)`). Hệ quả:
+- Save/test của worktree nằm ở user dir riêng, KHÔNG còn chạm save thật của Liam ở `app_userdata/Axie Dice (Godot port)`. Cây chính (không có override.cfg) giữ hành vi cũ.
+- Khoá cũng riêng theo worktree: `~/Library/Caches/axie-dice-godot-AxieDice-wt-<làn>.lock`. Các làn không xếp hàng chung nữa. Chỉ cây chính (làn I, save thật) dùng khoá chung `axie-dice-godot.lock`. Logic suy ra user dir + khoá nằm ở `godot/tools/userdir.sh`, dùng chung cho `with_lock.sh` và `run_tests.sh`.
+- User dir mới trống = như máy cài mới. Muốn có save mẫu thì chép tay vào thư mục đó.
+- Worktree mới tạo sau này: tự tạo `godot/override.cfg` như trên (tên khác nhau cho mỗi worktree, đừng dùng chung tên).
+- Làn R: file override.cfg không được vào bản build. Trước khi export, kiểm gói export không chứa nó (hoặc build từ cây không có file này).
+- `with_lock.sh` / `run_tests.sh` luôn suy user dir từ project của CHÍNH worktree chứa script; đừng chạy script của worktree này với `--path` của worktree khác.
+
 ## Chạy Godot: BẮT BUỘC qua khoá
 
-Mọi worktree dùng chung một thư mục `user://` (save thật của máy, theo `config/name`). Hai lần chạy Godot cùng lúc sẽ giẫm nhau. Vì vậy MỌI lần chạy Godot, ở worktree nào cũng vậy, đều đi qua `godot/tools/with_lock.sh`:
+Hai lần chạy Godot trên CÙNG một user dir sẽ giẫm nhau (trong cùng worktree, hoặc cây chính). Vì vậy MỌI lần chạy Godot, ở worktree nào cũng vậy, đều đi qua `godot/tools/with_lock.sh`:
 
 ```
 # cả suite (run_tests.sh tự xin khoá, gọi trực tiếp cũng được)
@@ -49,7 +67,7 @@ godot/tools/with_lock.sh "$GODOT" --headless --path godot res://tools/record_sam
 ```
 
 - `GODOT=/Users/loc.tien.nguyen/Desktop/Godot.app/Contents/MacOS/Godot`.
-- Khoá là thư mục `~/Library/Caches/axie-dice-godot.lock` (mkdir nguyên tử, ngoài repo). Có file `pid`; pid chết thì khoá bị coi là chết và người sau tiếp quản. Khi phải chờ, script in ra ai đang giữ. Chờ tối đa 30 phút (`AXIE_LOCK_TIMEOUT`).
+- Khoá là thư mục trong `~/Library/Caches/` (mkdir nguyên tử, ngoài repo; riêng theo user dir như trên). Có file `pid`; pid chết thì khoá bị coi là chết và người sau tiếp quản. Khi phải chờ, script in ra ai đang giữ. Chờ tối đa 30 phút (`AXIE_LOCK_TIMEOUT`).
 - Lỗi parse GDScript làm Godot treo, mac không có `timeout`. Chạy lẻ nên đặt `AXIE_HANG_KILL=120` (giây) để kill và nhả khoá.
 - Mỗi lần chạy suite đầy đủ mất khoảng 1,5 phút (đo 12/10: 91s). Làn thường chỉ chạy test lẻ của file mình; suite đủ do làn I chạy sau merge.
 - `record_sample_run.tscn` và `verify_run.tscn` đã có SaveGuard (không còn đè save thật).

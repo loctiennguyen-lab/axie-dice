@@ -169,7 +169,7 @@ check "lồng đúng pid thoát 0" test "$rc" -eq 0
 echo "== cờ skip AXIE_SKIP_RULES_FINGERPRINT bị từ chối ở worktree chính và khi có CI"
 R="$S/repo"
 mkdir -p "$R/godot/tools" "$R/godot/tests"
-cp "$RT" "$WL" "$R/godot/tools/"
+cp "$RT" "$WL" "$TOOLS/userdir.sh" "$R/godot/tools/"
 printf 'config/name="axie-test-zz"\n' > "$R/godot/project.godot"
 : > "$R/godot/tests/t_rules_version.gd"
 git -C "$R" init -q
@@ -185,6 +185,36 @@ out="$(AXIE_SKIP_RULES_FINGERPRINT=1 GODOT=/usr/bin/true bash "$S/wt/godot/tools
 check "worktree của làn: cờ được chấp nhận (exit 0)" test "$rc" -eq 0
 check "worktree của làn: dòng SKIPPED hiện ra" grep -q "SKIPPED" <<<"$out"
 check "khoá nhả sau suite giả" lock_gone
+
+# --- user dir riêng theo override.cfg ---------------------------------------
+echo "-- override.cfg / user dir riêng --"
+source "$TOOLS/userdir.sh"
+P="$S/proj"; mkdir -p "$P"; printf 'config/name="Axie Zz"\n' > "$P/project.godot"
+axie_resolve_userdir "$P"
+check "không override.cfg: user dir = app_userdata/<config/name>" grep -q "app_userdata/Axie Zz$" <<<"$AXIE_USERDIR"
+check "không override.cfg: khoá chung axie-dice-godot.lock" grep -q "axie-dice-godot.lock$" <<<"$AXIE_LOCK_DEFAULT"
+printf '[application]\nconfig/use_custom_user_dir=true\nconfig/custom_user_dir_name="AxieDice-wt-Q"\n' > "$P/override.cfg"
+axie_resolve_userdir "$P"
+check "override.cfg: user dir = <base>/AxieDice-wt-Q" grep -Eq "/AxieDice-wt-Q$" <<<"$AXIE_USERDIR"
+check "override.cfg: không nằm trong app_userdata" bash -c '! grep -q app_userdata <<<"$1"' _ "$AXIE_USERDIR"
+check "override.cfg: khoá riêng axie-dice-godot-AxieDice-wt-Q.lock" grep -q "axie-dice-godot-AxieDice-wt-Q.lock$" <<<"$AXIE_LOCK_DEFAULT"
+printf '[application]\nconfig/use_custom_user_dir=false\nconfig/custom_user_dir_name="AxieDice-wt-Q"\n' > "$P/override.cfg"
+axie_resolve_userdir "$P"
+check "use_custom_user_dir=false: quay về user dir mặc định" grep -q "app_userdata/Axie Zz$" <<<"$AXIE_USERDIR"
+# with_lock.sh trong project giả có override.cfg: chụp/trả save ở user dir riêng, không đụng AXIE_*.
+FB="$S/fakehome"; mkdir -p "$FB/Library/Caches" "$S/wt2/godot/tools"
+cp "$WL" "$TOOLS/userdir.sh" "$S/wt2/godot/tools/"
+printf 'config/name="Axie Zz"\n' > "$S/wt2/godot/project.godot"
+printf '[application]\nconfig/use_custom_user_dir=true\nconfig/custom_user_dir_name="AxieDice-wt-Q"\n' > "$S/wt2/godot/override.cfg"
+ud="$FB/Library/Application Support/AxieDice-wt-Q"; [[ "$(uname)" == Darwin ]] || ud="$FB/.local/share/AxieDice-wt-Q"
+mkdir -p "$ud"; printf 'WT' > "$ud/meta_save.json"
+cat > "$S/wt_writer.sh" <<'EOS'
+#!/usr/bin/env bash
+printf 'CHANGED' > "$1/meta_save.json"
+EOS
+( unset AXIE_GODOT_LOCK AXIE_SAVE_DIR; HOME="$FB" XDG_DATA_HOME="$FB/.local/share" bash "$S/wt2/godot/tools/with_lock.sh" bash "$S/wt_writer.sh" "$ud" ) >/dev/null 2>&1
+check "worktree override: save của user dir riêng được trả lại" test "$(cat "$ud/meta_save.json")" = WT
+check "worktree override: khoá riêng đã nhả" bash -c '[[ ! -e "$1/Library/Caches/axie-dice-godot-AxieDice-wt-Q.lock" ]]' _ "$FB"
 
 echo
 echo "================ with_lock_test: $PASS passed, $FAIL failed ================"
