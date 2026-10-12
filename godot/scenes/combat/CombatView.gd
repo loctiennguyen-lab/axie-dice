@@ -449,6 +449,8 @@ func _ready() -> void:
 	RunState.resume_combat = {}
 	if not resumed.is_empty():
 		_combat.from_data(resumed)
+		if _combat.has_method("set_epoch") and "epoch" in RunState:
+			_combat.call("set_epoch", RunState.get("epoch"))   # lane A (PR2): resume keeps the epoch
 		_append_log("=== combat RESUMED from save: node=%s turn=%d ===" % [_combat.node_id, _combat.turn])
 	else:
 		_combat.setup_new(_setup)
@@ -1832,6 +1834,7 @@ func _spawn_portrait(u: Unit, is_enemy: bool, slot_index: int, slot_count: int) 
 		tag = "ELITE"
 	p.setup(u.uid, u.n, u.cls, is_enemy, u.is_boss, tag)
 	p.clicked.connect(_on_target_clicked)
+	p.hover_changed.connect(_on_plate_hover)
 	p.inspect_requested.connect(_open_unit_inspect)   # right-click the nameplate, same door as
 		# right-clicking the model (CombatStage3D.unit_inspect_requested)
 	_portraits[u.uid] = p
@@ -2487,11 +2490,41 @@ func _on_enemy_intent_hover(uid: int, hovering: bool) -> void:
 	var p: UnitPortrait = _portraits.get(tgt_uid)
 	if p != null:
 		p.set_preview_damage(_live_face_value(e, fi))
+	# Party HP lives in the tray: the gold hatched segment goes on that column's bar.
+	var units := _party_dice_units()
+	for i in units.size():
+		if (units[i] as Unit).uid == tgt_uid and i < _die_slot_content.size():
+			((_die_slot_content[i] as Dictionary)["hp"] as HPBar).set_preview(_live_face_value(e, fi))
+
+
+## Pointer over an enemy plate. On its intent block: preview that intent on its target. Elsewhere
+## while a die is selected: preview the die's hit on this enemy (README 3 "Targeting").
+func _on_plate_hover(uid: int, hovering: bool, on_intent: bool) -> void:
+	if _combat == null:
+		return
+	if on_intent:
+		_on_enemy_intent_hover(uid, hovering)
+		return
+	if not hovering:
+		_clear_all_previews()
+		return
+	var src := _combat.by_uid(_selected_die_uid) if _selected_die_uid != -1 else null
+	if src == null or not src.has_rolled():
+		return
+	var fi := src.roll_face_index()
+	if fi < 0 or fi >= src.die.size() or String((src.die[fi] as Dictionary).get("type", "")) != "dmg":
+		return
+	var p: UnitPortrait = _portraits.get(uid)
+	if p != null and _combat_is_enemy_uid(uid):
+		p.set_preview_damage(_live_face_value(src, fi))
 
 
 func _clear_all_previews() -> void:
 	for p in _portraits.values():
 		(p as UnitPortrait).clear_preview_damage()
+	for c in _die_slot_content:
+		if (c as Dictionary).has("hp"):
+			((c as Dictionary)["hp"] as HPBar).clear_preview()
 
 
 # ===========================================================================

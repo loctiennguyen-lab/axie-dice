@@ -22,6 +22,8 @@ class_name UnitPortrait
 
 signal clicked(uid: int)
 signal inspect_requested(uid: int)
+## Pointer entered/left the plate (`on_intent` = the intent block specifically): drives the damage preview.
+signal hover_changed(uid: int, hovering: bool, on_intent: bool)
 
 const WIDTH := 320.0
 const BOSS_WIDTH := 640.0
@@ -134,6 +136,8 @@ func setup(p_uid: int, display_name: String, _cls: String, is_enemy: bool, is_bo
 	_click_catcher.size = Vector2(w, plate_h)
 	_click_catcher.pressed.connect(func(): clicked.emit(uid))
 	_click_catcher.gui_input.connect(_on_click_catcher_gui_input)
+	_click_catcher.mouse_entered.connect(func(): hover_changed.emit(uid, true, false))
+	_click_catcher.mouse_exited.connect(func(): hover_changed.emit(uid, false, false))
 	add_child(_click_catcher)
 
 	# --- plate ---
@@ -217,11 +221,14 @@ func setup(p_uid: int, display_name: String, _cls: String, is_enemy: bool, is_bo
 	# --- intent block ---
 	var iw := BOSS_INTENT_W if is_boss else INTENT_W
 	_intent_panel = PanelContainer.new()
-	_intent_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_intent_panel.mouse_filter = Control.MOUSE_FILTER_STOP   # hover = preview + tooltip; clicks are forwarded
+	_intent_panel.gui_input.connect(_on_forward_gui_input)
 	_intent_panel.custom_minimum_size = Vector2(iw, 0)
 	_intent_style = HudKit.box(DangoTheme.CREAM_300, 0, 0)
 	_intent_style.border_width_left = 3
 	_intent_panel.add_theme_stylebox_override("panel", _intent_style)
+	_intent_panel.mouse_entered.connect(func(): hover_changed.emit(uid, true, true))
+	_intent_panel.mouse_exited.connect(func(): hover_changed.emit(uid, false, true))
 	row.add_child(_intent_panel)
 	var ic := VBoxContainer.new()
 	ic.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -346,6 +353,8 @@ func update_stats(hp: int, max_hp: int, shield: int, status: Dictionary) -> void
 	_hp_bar.set_stats(hp, _max_hp)
 	HudKit.fill_status_row(_status_row, status, shield, _STATUS_ICON,
 		Callable(self, "_effect_tooltip"), 4)
+	for chip in _status_row.get_children():
+		(chip as Control).gui_input.connect(_on_forward_gui_input)   # chips hand clicks back
 	if hp > 0:
 		_dying = false
 		visible = true
@@ -507,6 +516,19 @@ static func _effect_tooltip(key: String, count: int) -> String:
 		return "%s %d" % [key.to_upper(), count]
 	var label := String(tip["name"]).trim_suffix(" N")
 	return "%s %d\n%s" % [label, count, String(tip["rule"])]
+
+
+## The intent block and the status chips sit on top of the click catcher, so they hand clicks back.
+func _on_forward_gui_input(ev: InputEvent) -> void:
+	if not (ev is InputEventMouseButton) or not (ev as InputEventMouseButton).pressed:
+		return
+	match (ev as InputEventMouseButton).button_index:
+		MOUSE_BUTTON_LEFT:
+			clicked.emit(uid)
+			accept_event()
+		MOUSE_BUTTON_RIGHT:
+			inspect_requested.emit(uid)
+			accept_event()
 
 
 func _on_click_catcher_gui_input(ev: InputEvent) -> void:
