@@ -32,7 +32,8 @@ func _load_all() -> void:
 	while file_name != "":
 		if file_name.ends_with(".tres"):
 			var def = load(RELIC_DIR + file_name)
-			if def != null and def.has_method("get") and "id" in def:
+			# relic_tuning.tres lives here too (a RelicTuning, no `id`): skip anything that is not a def.
+			if def != null and def is RelicDef and "id" in def:
 				_defs_by_id[def.id] = def
 		file_name = dir.get_next()
 	dir.list_dir_end()
@@ -63,6 +64,6 @@ func get_def(id: String):
 func offerable_defs_sorted() -> Array:
 	var out: Array = []
 	for def in _defs_sorted:
-		if not String(def.id).begins_with("__"):
+		if not String(def.id).begins_with("__") and not def.hidden_from_pool:
 			out.append(def)
 	return out

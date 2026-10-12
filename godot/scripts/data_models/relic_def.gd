@@ -49,6 +49,16 @@ extends Resource
 @export var hook_key: String = ""      ## Key into RelicHooks.TABLE. "" = pure-data relic
                                         ## with no custom event logic — still fully
                                         ## functional via the aggregate fields below.
+## --- Relic set v2 metadata (design/proposals/relic-set-v2.md §1, §3). Pure data: nothing in
+## the combat engine reads these. RelicSlots / the offer code (reward_generator) do.
+@export var tags: PackedStringArray = PackedStringArray()   ## up to 2: archetype / class / "uni"
+@export var layer: String = ""          ## enabler|payoff|scaling|engine|pact|duo|dice|positional|class-up|economy|active
+@export var mult_axis: String = ""      ## "" = no multiplier slot, "G" = global slot, "A:<axis>" = archetype slot
+@export var pact_group: String = ""     ## "" = not a pact; "reroll"|"dice"|"mana" = boss pact drawback group
+@export var requires_class: String = "" ## class upgrader: only offered when the party has this class
+@export var hidden_from_pool: bool = false  ## cut list / not ready: never offered (still resolvable via get_def)
+@export var needs_hook: String = ""     ## "H2", "H3,H4"...: waits for these new hooks (lane A, 20/10).
+                                        ## Informational; such relics also carry hidden_from_pool = true.
 @export var act_cost: int = 0          ## 0 = passive. >0 = Lunacia active card, playable in
                                         ## combat for Mana via CombatEngine.play_active().
 
