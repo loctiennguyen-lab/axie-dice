@@ -82,7 +82,7 @@ func _ready() -> void:
 	s.start_hook = Callable()
 	s.set_state("normal")
 	var rr := await s.begin()
-	_ok(rr.ok and RunState.team_hero_keys.size() == 5 and RunState.mode == "full" and RunState.ascension == 3, "real RunState.begin_run called with params")
+	_ok(rr.ok and RunState.roster.size() == 5 and RunState.mode == "full" and RunState.ascension == 3, "real RunState.begin_run called with params")
 	# other states
 	for st in ["loading", "offline", "open_run", "normal"]:
 		s.set_state(st)
