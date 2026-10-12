@@ -794,7 +794,8 @@ func _test_mission_stake_body(has_run: Array) -> void:
 	var new_id := ""
 	var pay := MissionBoard.payout("N1")   # 300 x 1.6 = 480
 	_fresh_meta(1000, 0)
-	_assert((m1 := MetaState.take_mission_stake("N1", 300)) != "" and MetaState.shard_pool == 700 and int(MetaState.mission_escrow["stake"]) == 300, "take: trừ cược, ghi escrow")
+	m1 = MetaState.take_mission_stake("N1", 300)
+	_assert(m1 != "" and MetaState.shard_pool == 700 and int(MetaState.mission_escrow["stake"]) == 300, "take: trừ cược, ghi escrow")
 	MetaState.record_run_outcome({"mode": "short", "ascension": 3, "mission_id": m1}, true)
 	_assert(MetaState.shard_pool == 700 + pay and MetaState.stone == 4 and MetaState.mission_escrow.is_empty(), "thắng: trả payout + Stone, đóng escrow")
 	_assert(not MetaState.settle_mission_stake(true) and MetaState.shard_pool == 700 + pay, "settle lần hai: không trả thêm")
@@ -850,7 +851,8 @@ func _test_mission_stake_body(has_run: Array) -> void:
 	# orphan: escrow mở nhưng không còn run lưu -> đóng thua rồi cho take mới
 	_fresh_meta(1000, 0)
 	var old := MetaState.take_mission_stake("N1")
-	_assert((new_id := MetaState.take_mission_stake("N1")) != "" and new_id != old and MetaState.shard_pool == 400 and MetaState.mission_escrow["mission_id"] == new_id, "escrow mồ côi: đóng thua, nhận cược mới")
+	new_id = MetaState.take_mission_stake("N1")
+	_assert(new_id != "" and new_id != old and MetaState.shard_pool == 400 and MetaState.mission_escrow["mission_id"] == new_id, "escrow mồ côi: đóng thua, nhận cược mới")
 	# --- review fixes ---
 	# nonce: mỗi lần nhận cược một id khác, không rỗng
 	_fresh_meta(2000, 0)
