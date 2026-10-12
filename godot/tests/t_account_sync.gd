@@ -82,7 +82,8 @@ func _reset_storage() -> void:
 
 
 func _meta(shards: int, runs: int = 0) -> Dictionary:
-	return {"shard_pool": shards, "runs": runs, "xp": 0, "vault": [], "unlocks": []}
+	# save_version 2 + starter_granted: a v1 save is (by decision) reset on load, not what this test is about
+	return {"shard_pool": shards, "runs": runs, "xp": 0, "vault": [], "unlocks": [], "save_version": 2, "starter_granted": true}
 
 
 func _put_meta(who: String, m: Dictionary) -> void:
