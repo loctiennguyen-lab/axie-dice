@@ -14,14 +14,12 @@ func _ready() -> void:
 	var classes := ["plant", "beast", "aqua", "reptile", "bug"]
 	var batch := 0
 	for s in range(0, keys.size(), 3):
-		if stage != null:
-			stage.queue_free()
+		if stage == null:
+			stage = stage_scene.instantiate()
+			get_tree().root.add_child.call_deferred(stage)
 			await get_tree().process_frame
-		stage = stage_scene.instantiate()
-		get_tree().root.add_child.call_deferred(stage)
-		await get_tree().process_frame
-		await get_tree().process_frame
-		var uid := 1
+			await get_tree().process_frame
+		var uid := 1 + batch * 20   # unique uids so slot node names never collide between batches
 		var ids := []
 		var cnt: int = min(3, keys.size() - s)
 		for i in 5:
@@ -35,7 +33,7 @@ func _ready() -> void:
 			var vis: Node3D = ent["visual"]
 			print("UNIT ", k, " visual=", vis.get_class(), " ", vis.name, " pos=", vis.position, " scale=", vis.scale, " visible=", vis.visible, " atia=", not (ent.get("atia", {}) as Dictionary).is_empty())
 			uid += 1
-		for _i in 20:
+		for _i in 45:
 			await get_tree().process_frame
 		var t0 := Time.get_ticks_msec(); var frames := 0
 		while Time.get_ticks_msec() - t0 < 1500:
@@ -48,7 +46,11 @@ func _ready() -> void:
 			stage.play_action(id, "dmg", -1)
 		for _i in 20:
 			await get_tree().process_frame
+		for id in ids:
+			var slot: Node = stage._units[id]["slot"]
+			slot.get_parent().remove_child(slot)
+			slot.queue_free()
 		stage.dispose_all()
-		for c in stage.get_children(): pass
+		await get_tree().process_frame
 		batch += 1
 	get_tree().quit(0)
