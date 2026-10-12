@@ -14,7 +14,6 @@ extends Control
 ## Not drawn: M6d/e/f results (belong to the Result screen), "table updated" line (no data).
 
 const _Econ := preload("res://scripts/meta/economy_db.gd")
-const LAND_BACK := "res://scenes/main_menu/MainMenu.tscn"   # lane L replaces with the Land hub
 const RUN_MAP := "res://scenes/run_map/RunMap.tscn"
 const RULE_NAMES := {"M1": "Harsh clock", "M2": "Spike stack", "M3": "Hunted", "M4": "Heavy hits", "M5": "Thick boss"}
 
@@ -400,7 +399,7 @@ func _build_header() -> Control:
 
 func _on_back() -> void:
 	if is_inside_tree() and not no_scene_change:
-		get_tree().change_scene_to_file(LAND_BACK)
+		LandNav.back_to_land()
 
 
 func _clear(n: Node) -> void:
