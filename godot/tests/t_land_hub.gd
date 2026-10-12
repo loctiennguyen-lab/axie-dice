@@ -91,9 +91,40 @@ func _ready() -> void:
 	LandHub.tier_override = 0
 	LandNav.dry_run = false
 	MetaState.tutorial_seen = seen_was
+	_check_scene_deps("res://assets/land/homeland/scenes")
 	if _fails.is_empty():
 		print("=== t_land_hub: PASS (%d checks) ===" % _checks)
 		get_tree().quit(0)
 	else:
 		printerr("=== t_land_hub: FAIL (%d/%d) ===" % [_fails.size(), _checks])
 		get_tree().quit(1)
+
+
+## Every HomeLand scene Land can place: all dependencies exist on disk (a clean checkout must not
+## have broken refs, e.g. files swallowed by .gitignore) and the scene instantiates.
+func _check_scene_deps(dir_path: String) -> void:
+	var scenes: Array[String] = []
+	_collect_scenes(dir_path, scenes)
+	_check(scenes.size() > 0, "no Land scenes found under " + dir_path)
+	for sp in scenes:
+		for d in ResourceLoader.get_dependencies(sp):
+			var parts := String(d).split("::")
+			var dp := parts[parts.size() - 1]
+			if dp == "":
+				dp = parts[0]
+			_check(ResourceLoader.exists(dp) or FileAccess.file_exists(dp), "%s depends on missing %s" % [sp, dp])
+		var ps := load(sp) as PackedScene
+		_check(ps != null, sp + " does not load")
+		if ps != null:
+			var inst := ps.instantiate()
+			_check(inst != null, sp + " does not instantiate")
+			if inst != null:
+				inst.free()
+
+
+func _collect_scenes(dir_path: String, out: Array[String]) -> void:
+	for f in DirAccess.get_files_at(dir_path):
+		if f.ends_with(".tscn"):
+			out.append(dir_path.path_join(f))
+	for d in DirAccess.get_directories_at(dir_path):
+		_collect_scenes(dir_path.path_join(d), out)
