@@ -66,6 +66,7 @@ var roster_index: int = -1      # index into RunState.roster — Formation Reson
 ## Position in the party line-up (0 = leftmost), read by positional relics (relic-set-v2 §1.5).
 ## -1 until the engine assigns it (lane A sets slot = roster_index in _build_unit_from_roster).
 var slot: int = -1
+var g_oc_bonus: float = 0.0   ## sum of (ascend 0.25 / forge 0.30) on this Axie: additive term of G_axie (relic-set-v2 §3.3)
 
 ## Open bucket for boss-specific counters (turn_count, split_done, phase, trait, adds,
 ## add_cap, permanent_thorns, die2/max_hp2 for phase-2 dice, summons key, sc scale factor)

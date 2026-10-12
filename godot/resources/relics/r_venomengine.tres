@@ -12,7 +12,6 @@ archetype = "poison"
 mload = 1
 sort_index = 103062
 hook_key = ""
-poisonTicks = 2.0
 tags = PackedStringArray("poison")
 layer = "engine"
 mult_axis = "A:poison"

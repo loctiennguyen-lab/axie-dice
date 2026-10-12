@@ -143,7 +143,11 @@ const WATCHED_FILES: Array[String] = ["res://assets/data/part_faces.json"]
 ## end_run -> record_run_outcome {mode, ascension, ranked, reached_boss}. Changes the run result: YES.
 ## Moved 2026-10-12 night by lane E (467a478): MetaState.gd Pass v2 weekly tasks. Meta only, after a run
 ## ends. Changes the run result: NO, RULES_VERSION stays -e.
-const FINGERPRINT := "3014469aaf6229d5b8e1045188f8dcf64355c7824a7093ef1210b65f41ba77b5"
+## BUMPED, 2026-10-12 night: `ActionLog.RULES_VERSION` -> `godot-2026-10-12-f`. Lane B: G/A multiplier axes
+## (G cap 2.5 per Axie damage face, ascend/forge no longer baked into faces, A axes for ticks/thorns/crit/opener),
+## reroll caps (a_chaos 6, relic sources 4 per turn), Eternal sticker, RelicSlots.pact_forced, apexpredator no
+## crit chance. Touches combat_engine.gd / RunState.gd / unit.gd minimally. Changes the run result: YES.
+const FINGERPRINT := "36cc0b77be5f813e27e011b6e071053bd83e5e3e9b2b29db8f41453354eaf4a3"
 
 
 func _ready() -> void:

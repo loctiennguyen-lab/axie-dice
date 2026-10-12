@@ -14,6 +14,10 @@ extends Resource
 @export var sell_pct_ascended: int = 40        ## % from `sell_pct_from_ascension`
 @export var sell_pct_from_ascension: int = 1
 @export var chalice_id: String = "r_hollowchalice"
+@export var g_cap: float = 2.5                 ## G_axie ceiling (relic-set-v2 §3.3)
+@export var oc_nondmg_cap: float = 2.0         ## cumulative ascend/forge multiplier ceiling on Shield/Heal/Mana faces
+@export var relic_reroll_cap: int = 4          ## Reroll gained from relics per turn (§3.6, F-22)
+@export var chaos_reroll_cap: int = 6          ## a_chaos: Reroll gained from actives per turn
 
 ## --- Offer system (relic-set-v2 §4, design/l1-relic-answers.md §8). Weights are integers. ---
 ## source -> [Common, Rare, Epic, Legendary]; a rarity with no valid relic is dropped and the rest renormalised.

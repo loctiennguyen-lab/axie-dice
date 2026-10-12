@@ -12,7 +12,6 @@ archetype = "burn"
 mload = 1
 sort_index = 103065
 hook_key = ""
-burnMult = 2.0
 tags = PackedStringArray("burn")
 layer = "engine"
 mult_axis = "A:burn"

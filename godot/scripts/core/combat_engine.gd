@@ -45,6 +45,8 @@ var phase: int = CombatPhase.EXECUTE
 
 var mana: int = 0
 var mana_spent: int = 0
+var chaos_reroll_given: int = 0   ## Reroll gained from active relics this turn (a_chaos cap, relic-set-v2 §3.6)
+var relic_reroll_given: int = 0   ## Reroll gained from passive relic sources this turn (cap relic_reroll_cap)
 var _cond_given: int = 0   ## AQUA CONDUIT payout watermark — see _grant_conduit_rerolls()
 var rerolls: int = 0
 var max_rerolls: int = 2
@@ -179,6 +181,8 @@ func setup_new(combat_setup: Dictionary) -> void:
 	mana_spent = 0
 	_cond_given = 0
 	used_actives = []
+	chaos_reroll_given = 0
+	relic_reroll_given = 0
 
 	var roster: Array = combat_setup.get("roster_snapshot", [])
 	party = []
@@ -267,6 +271,8 @@ func _state_dict() -> Dictionary:
 		"phase": phase,
 		"mana": mana,
 		"mana_spent": mana_spent,
+		"chaos_reroll_given": chaos_reroll_given,
+		"relic_reroll_given": relic_reroll_given,
 		"rerolls": rerolls,
 		"max_rerolls": max_rerolls,
 		"used_actives": used_actives.duplicate(true),
@@ -310,6 +316,8 @@ func _apply_state_dict(d: Dictionary) -> void:
 	phase = int(d.get("phase", CombatPhase.EXECUTE))
 	mana = int(d.get("mana", 0))
 	mana_spent = int(d.get("mana_spent", 0))
+	chaos_reroll_given = int(d.get("chaos_reroll_given", 0))
+	relic_reroll_given = int(d.get("relic_reroll_given", 0))
 	rerolls = int(d.get("rerolls", 0))
 	max_rerolls = int(d.get("max_rerolls", 2))
 	used_actives = (d.get("used_actives", []) as Array).duplicate(true)
@@ -743,7 +751,11 @@ func play_active(relic_id: String, target_uid: int = -1) -> bool:
 			else:
 				StatusEngine.add_status(self, tgt, ["stun"], src)
 		"reroll":
-			rerolls += v
+			# a_chaos: total Reroll from actives <= chaos_reroll_cap per turn (1 MP = 8 with Conduit Crown otherwise)
+			var room: int = maxi(0, RelicSlots.tuning().chaos_reroll_cap - chaos_reroll_given)
+			var got: int = mini(v, room)
+			chaos_reroll_given += got
+			rerolls += got
 		"kw":
 			# ENG-10 — mode 'min' raises a status to a floor and is idempotent; 'add' stacks.
 			var parts := String(a.get("kw", "")).split(":")
@@ -815,6 +827,15 @@ func play_active(relic_id: String, target_uid: int = -1) -> bool:
 ## AQUA CONDUIT class passive — every 4 Mana spent this combat grants +1 reroll charge, while
 ## at least one Aqua Axie lives. `_cond_given` tracks what has already been paid out so the
 ## grant is monotonic rather than re-awarded on every spend (JS `s._condGiven`).
+## Passive relic Reroll sources (cullingorder, apexpredator, alphafang, tidecaller) go through here:
+## total <= relic_reroll_cap per turn. Returns how many were actually granted.
+func grant_relic_reroll(n: int) -> int:
+	var got: int = mini(n, maxi(0, RelicSlots.tuning().relic_reroll_cap - relic_reroll_given))
+	relic_reroll_given += got
+	rerolls += got
+	return got
+
+
 func _grant_conduit_rerolls() -> void:
 	var has_aqua := false
 	for u in party:
@@ -1319,6 +1340,8 @@ func finish_end_turn() -> void:
 	reroll_k = 0
 	_first_dmg_used = false
 	used_actives = []
+	chaos_reroll_given = 0
+	relic_reroll_given = 0
 	resonance_log = []
 	for u in party:
 		if u.frozen:
@@ -1471,6 +1494,8 @@ func continue_after_wipe(seed: int = -1, heal_pct: int = -1) -> bool:
 	rerolls = max_rerolls
 	reroll_k = 0
 	used_actives = []
+	chaos_reroll_given = 0
+	relic_reroll_given = 0
 	resonance_log = []
 	_first_dmg_used = false
 	_set_turn_phase(CombatPhase.ROLL)
@@ -1621,6 +1646,7 @@ func _build_unit_from_roster(entry: Dictionary, index: int) -> Unit:
 	u.max_hp = base_hp + int(entry.get("bonus_hp", 0))
 	u.die = (hero_def.get("die", []) as Array).duplicate(true)
 
+	var oc_prod := 1.0
 	for m in (entry.get("muts", []) as Array):
 		var mt := String(m.get("type", ""))
 		if mt == "part":
@@ -1637,10 +1663,18 @@ func _build_unit_from_roster(entry: Dictionary, index: int) -> Unit:
 				if int(u.die[idx2].get("rarity", 0)) < 1:
 					u.die[idx2]["rarity"] = 1
 		elif mt == "oc":
+			# relic-set-v2 §3.3: on damage faces ascend/forge no longer multiply at build time; they feed
+			# G_axie as an additive term (RelicHooks.g_axie). Shield/Heal/Mana keep the compounding
+			# multiplier, capped at oc_nondmg_cap, rounded once from the base value (after the loop).
 			var mult := float(m.get("mult", 1.5))
-			for f in u.die:
-				if int(f.get("value", 0)) > 0:
-					f["value"] = int(ceil(int(f["value"]) * mult))
+			u.g_oc_bonus += mult - 1.0
+			oc_prod *= mult
+
+	if oc_prod != 1.0:
+		var oc_m := minf(oc_prod, RelicSlots.tuning().oc_nondmg_cap)
+		for f in u.die:
+			if int(f.get("value", 0)) > 0 and String(f.get("type", "")) != "dmg":
+				f["value"] = int(ceil(int(f["value"]) * oc_m))
 
 	# ENG-3 — growth persisted between combats by the growthKeep relic. Seeded BEFORE the
 	# modFace pass, matching JS (engine.js buildUnit): growth is added to faceValue at use

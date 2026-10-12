@@ -319,9 +319,6 @@ static var TABLE: Dictionary = {
 			var unit = ctx["unit"]
 			for i in unit.die.size():
 				var f: Dictionary = unit.die[i]
-				var v := int(f.get("value", 0))
-				if String(f.get("type", "")) == "dmg" and v > 0:
-					f["value"] = int(ceil(float(v) * 1.3))
 				if (f["keywords"] as Array).has("growth"):
 					unit.add_growth(i, 1)
 			return,
@@ -658,7 +655,7 @@ static var TABLE: Dictionary = {
 			var tgt: Unit = ctx["tgt"]
 			var v: float = float(ctx["value"])
 			if tgt.side == "e" and not DamagePipeline.is_wounded(ctx["combat"], tgt):
-				return ceil(v * 1.9)
+				return ceil(v * (1.0 + RelicHooks.axis_sum(ctx["combat"], "A:opener")))
 			return v,
 	},
 
@@ -1717,6 +1714,29 @@ static func _hook_key_of(relic_id: String) -> String:
 		return ""
 	return String(def.hook_key)
 
+
+## Sum of `mult_bonus` over owned relics on one multiplier axis ("A:poison", "A:burn", ...). Within an
+## axis bonuses ADD (total = 1 + this); different axes multiply (relic-set-v2 §3.3).
+static func axis_sum(combat, axis: String) -> float:
+	var total := 0.0
+	for def in _owned_defs(combat):
+		if String(def.mult_axis) == axis:
+			total += float(def.mult_bonus)
+	return total
+
+## G_axie = min(g_cap, 1 + G relic bonuses + that Axie's ascend/forge bonus). Damage faces only.
+## r_lonewolf counts only for the Axie in slot 1 (roster index 0).
+static func g_axie(combat, src) -> float:
+	var b := 0.0
+	for def in _owned_defs(combat):
+		if String(def.mult_axis) != "G":
+			continue
+		if String(def.id) == "r_lonewolf" and (src == null or int(src.slot) != 0):
+			continue
+		b += float(def.mult_bonus)
+	if src != null:
+		b += float(src.g_oc_bonus)
+	return minf(RelicSlots.tuning().g_cap, 1.0 + b)
 
 static func sum(combat, field: String, default_value: float = 0.0) -> float:
 	var total := default_value

@@ -34,7 +34,7 @@ const ROSTER := ["plant1", "beast1", "aqua1", "reptile1", "bird1"]
 const DIE_RELICS := ["r_pierceall", "r_cleaveall", "r_bloodmouth",
 	"r_gorehook", "r_heart", "r_ear", "r_talonedge", "r_marrowdrill",
 	"r_bloomscale", "r_rotmouth", "r_squallmark", "r_fang", "r_pyroclasm", "r_wildfire",
-	"r_plaguelord", "r_stormcall", "r_ancientgene",
+	"r_plaguelord", "r_stormcall",
 	"r_worldpiercer", "r_tidalbrand", "r_deathmark", "r_bloodthorn",
 	"r_growthcore", "r_thousandcuts", "r_windlash", "r_apexferal"]
 
@@ -45,7 +45,6 @@ var _checks := 0
 func _ready() -> void:
 	print("=== t_relic_behaviour: start ===")
 	test_every_die_relic_actually_changes_a_die()
-	test_ancientgene_multiplies_and_rounds_up()
 	test_ancientgene_runs_after_flat_adders()
 	test_heart_raises_max_hp_by_eight()
 	test_bloodpact_costs_two_max_rerolls_not_hp()
@@ -123,45 +122,21 @@ func test_every_die_relic_actually_changes_a_die() -> void:
 
 
 
-## JS: `if (f.v > 0) f.v = Math.ceil(f.v * 1.3)`. Blanks (value 0) must stay 0 — a blanket
-## multiply would turn every blank face into a 0 that still reads as a real face downstream.
-func test_ancientgene_multiplies_and_rounds_up() -> void:
-	var plain := _combat([])
-	var gened := _combat(["r_ancientgene"])
-	for i in plain.party.size():
-		for j in (plain.party[i] as Unit).die.size():
-			var v := int((plain.party[i].die[j] as Dictionary).get("value", 0))
-			# v2: only DAMAGE faces are multiplied now (relic-set-v2 §1.2).
-			var is_dmg: bool = String((plain.party[i].die[j] as Dictionary).get("type", "")) == "dmg"
-			var want: int = int(ceil(float(v) * 1.3)) if (v > 0 and is_dmg) else v
-			var got := int((gened.party[i].die[j] as Dictionary).get("value", 0))
-			_assert(got == want,
-				"r_ancientgene on party %d face %d: expected ceil(%d*1.3)=%d, got %d"
-					% [i, j, v, want, got])
-
-
-## INV-1, the reason mf_phase exists. r_claw is an "add", r_ancientgene a "mul". The result
-## must be ceil((v+4)*1.3) — the multiplier last — and must NOT depend on which order the two
-## relic ids were picked up in.
+## v2 (§3.3): ancientgene is the G axis now, applied in DamagePipeline after the flat adders (INV-5).
+## ceil((v+4)*1.3), and pickup order must not matter. Build-time die values stay un-multiplied.
 func test_ancientgene_runs_after_flat_adders() -> void:
-	var plain := _combat([])
-	# r_brittledice is the flat "+4 on damage faces" adder here (r_claw is a per-roll bonus now)
 	var a := _combat(["r_brittledice", "r_ancientgene"])
 	var b := _combat(["r_ancientgene", "r_brittledice"])
-	_assert(_party_shape(a) == _party_shape(b),
-		"owning r_brittledice + r_ancientgene gives a different party depending on pickup order — "
-		+ "INV-1 broken: a relic's power is a range instead of a number")
-	for i in plain.party.size():
-		for j in (plain.party[i] as Unit).die.size():
-			var f: Dictionary = plain.party[i].die[j]
-			var v := int(f.get("value", 0))
-			var t := String(f.get("type", ""))
-			var adds: int = 4 if t == "dmg" else 0
-			var want: int = int(ceil(float(v + adds) * 1.3)) if t == "dmg" and (v + adds) > 0 else (v / 2 if (t == "shield" or t == "heal") else v)
-			var got := int((a.party[i].die[j] as Dictionary).get("value", 0))
-			_assert(got == want,
-				"party %d face %d: expected the add BEFORE the multiply, ceil((%d+%d)*1.3)=%d, got %d"
-					% [i, j, v, adds, want, got])
+	_assert(_party_shape(a) == _party_shape(b), "brittledice + ancientgene: pickup order changes the party (INV-1)")
+	var base := _combat(["r_brittledice"])
+	_assert(_party_shape(a) == _party_shape(base), "ancientgene does not bake damage faces any more")
+	for c in [a, b]:
+		var t: Unit = c.alive_enemies()[0]
+		t.max_hp = 1000
+		t.hp = 1000
+		var v := int(c.party[0].die[0].get("value", 0)) + 0
+		DamagePipeline.resolve({"combat": c, "src": c.party[0], "tgt": t, "value": 6, "attack": true, "face_type": "dmg"})
+		_assert(1000 - t.hp == 8, "G applied after adders: 6 -> ceil(6*1.3)=8, got %d" % (1000 - t.hp))
 
 
 func test_heart_raises_max_hp_by_eight() -> void:
