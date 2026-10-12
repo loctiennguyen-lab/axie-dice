@@ -26,11 +26,25 @@ func grant(_n: int, _tag: String) -> void:
 	push_error("GemWallet.grant: chưa cài đặt")
 
 
+## Ví này cấp Gem được ngay phía client (grant() có hiệu lực)? Local: true. Remote: false cho tới khi
+## server có endpoint quà mùa; chỗ nào cần cấp Gem (quà Pass) phải kiểm cái này trước.
+func grants_locally() -> bool:
+	return false
+
+
 ## Nhận Gem tặng theo ngày. `now_unix` truyền vào để test được (UTC).
 ## Trả {ok:bool, granted:int, reason:String, next_utc:int}. reason: "" | "already_claimed" | "at_cap".
 func claim_daily_gift(_now_unix: int) -> Dictionary:
 	push_error("GemWallet.claim_daily_gift: chưa cài đặt")
 	return {"ok": false, "granted": 0, "reason": "unimplemented", "next_utc": 0}
+
+
+## Bản bất đồng bộ: done(result:Dictionary) cùng dạng với claim_daily_gift. Local trả ngay; Remote
+## (RemoteGemWallet) gọi server rồi mới done. UI nên dùng hàm này.
+func claim_daily_gift_async(done: Callable) -> void:
+	var r := claim_daily_gift(int(Time.get_unix_time_from_system()))
+	if done.is_valid():
+		done.call(r)
 
 
 ## Unix của 00:00 UTC kế tiếp sau `now_unix` (cho badge / đếm giờ).

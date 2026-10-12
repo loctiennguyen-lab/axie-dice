@@ -421,5 +421,13 @@
 		"weekly_task_xp": 500,
 		"weekly_tasks": 3
 	},
-	"unlock_refund_if_owned": "shop_price"
+	"unlock_refund_if_owned": "shop_price",
+	"start_day": "2026-11-03",
+	"end_day": "2026-12-29",
+	"_note_dates": "Mùa 1: 8 tuần từ 3/11/2026; end_day là ngày đầu tiên SAU mùa (loại trừ). Hết mùa không nhận thêm XP; thưởng đã đạt vẫn nhận được (giả định, chờ Liam)",
+	"premium": {
+		"unlock_season": 2,
+		"label": "Season 2",
+		"locked_in_l1": true
+	}
 }

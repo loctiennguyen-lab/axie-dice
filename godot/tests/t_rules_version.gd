@@ -132,7 +132,9 @@ const WATCHED_FILES: Array[String] = ["res://assets/data/part_faces.json"]
 ## and scripts/net/ (RemoteGemWallet, run session plumbing). Accounts and network only; nothing here
 ## is read while a die, enemy or reward resolves, and the remote sources are not wired in yet
 ## (flag off). Changes the run result: NO, so RULES_VERSION was NOT bumped (still -c).
-const FINGERPRINT := "c686448cc035886fcffe5b1313e99a870e409ec1b0fa1c6e822f5fe525dad1f5"
+## Moved 2026-10-12 night by lane E merge (7f68d62 + 7ce7560): MetaState.gd (remote Gem wallet wiring,
+## Pass v2 XP/claims). Meta progression only, read after a run ends. Changes the run result: NO.
+const FINGERPRINT := "60e27dde342f63b2694db0c26cd43d68fcf9e0adb69530a9d177ae2b2c2aba3a"
 
 
 func _ready() -> void:
