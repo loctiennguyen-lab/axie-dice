@@ -15,8 +15,20 @@ const REGISTRY_PATH := "res://assets/atia/arenas.json"
 const GROUND_SIZE := 160.0
 
 const BOSS_LIGHT_MUL := 0.72
-const BOSS_FOG_DENSITY := 0.011
-const BOSS_PORTAL_MUL := 1.5
+const BOSS_FOG_DENSITY := 0.0035
+const BOSS_PORTAL_MUL := 1.2
+const BOSS_PORTAL_Z := -36.0   # pushed back so the 1.2x tower still fits under the frame top
+## Same sun / ambient as the Land hub; a biome only tints these a little (it owns sky + ground).
+const LAND_SUN := Color("ffe2b0")
+const LAND_SUN_ENERGY := 1.25
+const LAND_AMBIENT := Color("fff1d6")
+const LAND_AMBIENT_ENERGY := 0.75
+const BASE_FOG_DENSITY := 0.006
+## Prop keep-out (|x| / z): enemy flanks (enemy row z -6.5, x 0/+-5.1) and the portal line.
+const KEEPOUT_ENEMY_Z := [-11.0, -2.0]
+const KEEPOUT_ENEMY_X := 10.5
+const KEEPOUT_PORTAL_Z := -20.0   # anything behind this z keeps |x| >= KEEPOUT_PORTAL_X
+const KEEPOUT_PORTAL_X := 6.5
 
 static var _registry: Dictionary = {}
 static var _loaded := false
@@ -27,6 +39,7 @@ var _props_root: Node3D
 var _portal: Node3D
 var _portal_light: OmniLight3D
 var _sun: DirectionalLight3D
+var _ground_mat: StandardMaterial3D
 var _env: Environment
 
 
@@ -76,6 +89,7 @@ func build(id: String, env: Environment, sun: DirectionalLight3D, boss: bool = f
 	add_child(_props_root)
 	_add_ground(b)
 	_add_path(b)
+	_add_flecks(b)
 	_scatter(b, reg.get("zones", {}))
 	_add_portal(reg.get("portal", {}))
 	if boss:
@@ -98,11 +112,24 @@ func clear() -> void:
 func _apply_boss_look() -> void:
 	_sun.light_energy *= BOSS_LIGHT_MUL
 	_sun.light_color = _sun.light_color.lerp(Color(1.0, 0.55, 0.4), 0.35)
+	# dark red-maroon sky with an orange horizon band so the horizon still reads
+	var sky_mat := _env.sky.sky_material as ProceduralSkyMaterial
+	sky_mat.sky_top_color = Color("2e0b12")
+	sky_mat.sky_horizon_color = Color("e8742c")
+	sky_mat.ground_horizon_color = Color("a04a24")
+	sky_mat.sky_curve = 0.12
 	_env.fog_density = BOSS_FOG_DENSITY
-	_env.fog_light_color = _env.fog_light_color.lerp(Color(0.25, 0.1, 0.12), 0.45)
+	_env.fog_light_color = Color("8a3a22")
 	_env.ambient_light_energy = 0.7
+	if _ground_mat != null:
+		var c := _ground_mat.albedo_color
+		_ground_mat.albedo_color = Color.from_hsv(c.h, minf(c.s * 1.3, 1.0), c.v * 0.85)
 	if _portal != null:
+		var z := float(registry().get("portal", {}).get("z", -20.0))
 		_portal.scale *= BOSS_PORTAL_MUL
+		_portal.position.z += BOSS_PORTAL_Z - z
+		if _portal_light != null:
+			_portal_light.position.z += BOSS_PORTAL_Z - z
 	if _portal_light != null:
 		_portal_light.light_color = Color(1.0, 0.35, 0.25)
 		_portal_light.light_energy = 2.4
@@ -119,13 +146,14 @@ func _tint_environment(b: Dictionary) -> void:
 	sky.sky_material = sky_mat
 	_env.sky = sky
 	_env.background_mode = Environment.BG_SKY
-	_env.ambient_light_source = Environment.AMBIENT_SOURCE_SKY
-	_env.ambient_light_energy = 0.9
+	_env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
+	_env.ambient_light_color = LAND_AMBIENT.lerp(Color(String(b.get("sky_horizon", "#ffffff"))), 0.2)
+	_env.ambient_light_energy = LAND_AMBIENT_ENERGY
 	_env.fog_enabled = true
 	_env.fog_light_color = Color(String(b.get("fog", "#efdcae")))
-	_env.fog_density = 0.006
-	_sun.light_color = Color(String(b.get("light", "#ffffff")))
-	_sun.light_energy = float(b.get("light_energy", 1.15))
+	_env.fog_density = float(b.get("fog_density", BASE_FOG_DENSITY))
+	_sun.light_color = LAND_SUN.lerp(Color(String(b.get("light", "#ffffff"))), 0.3)
+	_sun.light_energy = LAND_SUN_ENERGY * lerpf(1.0, float(b.get("light_energy", 1.15)) / 1.15, 0.5)
 
 
 func _add_ground(b: Dictionary) -> void:
@@ -134,6 +162,7 @@ func _add_ground(b: Dictionary) -> void:
 	var mat := StandardMaterial3D.new()
 	mat.albedo_color = Color(String(b.get("ground", "#c9b46a")))
 	mat.roughness = 1.0
+	_ground_mat = mat
 	var mi := MeshInstance3D.new()
 	mi.name = "Ground"
 	mi.mesh = plane
@@ -188,11 +217,19 @@ func _scatter(b: Dictionary, zones: Dictionary) -> void:
 			if n == null:
 				continue
 			_props_root.add_child(n)
-			var x := rng.randf_range(float(xr[0]), float(xr[1]))
-			# flank / low zones are given as positive |x|; mirror half of them to the left
-			if float(xr[0]) >= 0.0 and rng.randf() < 0.5:
-				x = -x
-			var z := rng.randf_range(float(zr[0]), float(zr[1]))
+			var x := 0.0
+			var z := 0.0
+			for _try in 12:   # rejection sampling against the keep-out zones (deterministic rng)
+				x = rng.randf_range(float(xr[0]), float(xr[1]))
+				# flank / low zones are given as positive |x|; mirror half of them to the left
+				if float(xr[0]) >= 0.0 and rng.randf() < 0.5:
+					x = -x
+				z = rng.randf_range(float(zr[0]), float(zr[1]))
+				if not in_keepout(x, z):
+					break
+			if in_keepout(x, z):
+				n.queue_free()
+				continue
 			n.position = Vector3(x, 0.0, z)
 			n.rotation_degrees.y = rng.randf_range(0.0, 360.0)
 			if hm.size() == 2:
@@ -205,6 +242,47 @@ func _scatter(b: Dictionary, zones: Dictionary) -> void:
 					n.position.y = -box.position.y * f
 			else:
 				n.scale = Vector3.ONE * rng.randf_range(float(sc[0]), float(sc[1]))
+
+
+## True when a prop at (x, z) would crowd the enemy row or stand on the portal line.
+static func in_keepout(x: float, z: float) -> bool:
+	if z >= float(KEEPOUT_ENEMY_Z[0]) and z <= float(KEEPOUT_ENEMY_Z[1]) and absf(x) < KEEPOUT_ENEMY_X:
+		return true
+	return z < KEEPOUT_PORTAL_Z and absf(x) < KEEPOUT_PORTAL_X
+
+
+## Optional per-biome ground flecks (`flecks`: {color, count}) so a dark ground is not a flat slab.
+func _add_flecks(b: Dictionary) -> void:
+	var cfg: Dictionary = b.get("flecks", {})
+	if cfg.is_empty():
+		return
+	var rng := RandomNumberGenerator.new()
+	rng.seed = hash(biome_id) + 7
+	var mesh := CylinderMesh.new()
+	mesh.top_radius = 0.35
+	mesh.bottom_radius = 0.35
+	mesh.height = 0.01
+	mesh.radial_segments = 8
+	mesh.rings = 1
+	var mat := StandardMaterial3D.new()
+	mat.albedo_color = Color(String(cfg.get("color", "#7a80a6")))
+	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	mesh.material = mat
+	var mm := MultiMesh.new()
+	mm.transform_format = MultiMesh.TRANSFORM_3D
+	mm.mesh = mesh
+	var count := int(cfg.get("count", 80))
+	mm.instance_count = count
+	for i in count:
+		var x := rng.randf_range(-30.0, 30.0)
+		var z := rng.randf_range(-40.0, 9.0)
+		var sc := rng.randf_range(0.5, 2.2)
+		mm.set_instance_transform(i, Transform3D(Basis.from_scale(Vector3(sc, 1.0, sc * rng.randf_range(0.5, 1.0))), Vector3(x, 0.005, z)))
+	var mmi := MultiMeshInstance3D.new()
+	mmi.name = "Flecks"
+	mmi.multimesh = mm
+	mmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+	_props_root.add_child(mmi)
 
 
 func _add_portal(cfg: Dictionary) -> void:
@@ -248,6 +326,14 @@ static func _aabb_of(root: Node3D) -> AABB:
 		box = b if first else box.merge(b)
 		first = false
 	return box
+
+
+## World position of the top of the portal tower, or ZERO when this arena has none.
+func portal_top_position() -> Vector3:
+	if _portal == null:
+		return Vector3.ZERO
+	var box := _aabb_of(_portal)
+	return _portal.global_transform * Vector3(box.get_center().x, box.end.y, box.get_center().z)
 
 
 ## World position of the portal, or ZERO when this arena has none.
