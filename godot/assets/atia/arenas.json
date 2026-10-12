@@ -60,7 +60,7 @@
  },
  "biomes": {
   "savannah": {
-   "ground": "#b58a3a",
+   "ground": "#cfa83c",
    "sky_top": "#6fb3e8",
    "sky_horizon": "#f1cf8c",
    "fog": "#e8cf9a",
