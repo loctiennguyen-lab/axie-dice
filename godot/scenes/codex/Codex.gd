@@ -37,7 +37,6 @@ extends Control
 ##   get_tree().change_scene_to_file("res://scenes/codex/Codex.tscn")
 ## BACK returns to the main menu through the shared footer.
 
-const MAIN_MENU_SCENE := "res://scenes/main_menu/MainMenu.tscn"
 
 ## The mockup's own plate for this screen (it is the same temple backdrop the Lunacia Pass
 ## uses). Resolved through MockupAssets, never as a hand-written res:// string.
@@ -46,11 +45,11 @@ const BG_MOCKUP_PLATE := "assets/bg/temple.jpg"
 ## The mockup's left/right rail for this screen; `content` already supplies 84, so every
 ## offset below is expressed against that.
 const RAIL := 64.0
-const TAB_RAIL_W := 294.0
+const TAB_RAIL_W := 300.0   # R3 M10: rail 300
 const PANEL_LEFT := 382.0
 ## Mockup `top:164` for both columns, measured against `content`'s own top edge — which is
 ## already the 48px safe line, so it is 116 here and not 164.
-const COLUMNS_TOP := 164.0 - 48.0
+const COLUMNS_TOP := 8.0   # R3: no page heading above the rail, the panel header carries the title
 
 var _tab_row: VBoxContainer
 var _body: RichTextLabel
@@ -71,12 +70,10 @@ func _ready() -> void:
 	var content: Control = shell["content"]
 	var footer: HBoxContainer = shell["footer"]
 
-	_build_header(content)
 	_build_tab_rail(content)
 	_build_reading_panel(content)
 
-	DangoScreen.add_back_button(footer, func() -> void:
-		get_tree().change_scene_to_file(MAIN_MENU_SCENE))
+	DangoScreen.add_back_button(footer, func() -> void: LandNav.back_to_land())
 
 	_select_tab(_current_tab)
 	get_viewport().size_changed.connect(_apply_body_height)
@@ -84,36 +81,7 @@ func _ready() -> void:
 	call_deferred("_apply_body_height")
 
 
-# ── Page heading ───────────────────────────────────────────────────────────────────────────
-## Mockup `top:44`. RESTORED 2026-09-20: this used to be clamped to the old uniform 48px
-## safe-area law, which is gone (the law now only checks that nothing is clipped by the
-## 1920x1080 canvas edge). `content` starts at the shell's 48px line, so 44 is 4px above it.
-func _build_header(content: Control) -> void:
-	var col := VBoxContainer.new()
-	col.name = "HeaderCol"
-	col.set_anchors_preset(Control.PRESET_TOP_WIDE)
-	col.offset_left = RAIL - DangoScreen.RAIL_X
-	col.offset_right = DangoScreen.RAIL_X - RAIL
-	col.offset_top = 44.0 - 48.0
-	col.add_theme_constant_override("separation", 9)
-	content.add_child(col)
-
-	var chip := PanelContainer.new()
-	chip.custom_minimum_size = Vector2(0, 34)
-	chip.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
-	chip.add_theme_stylebox_override("panel",
-		DangoTheme.solid_chip_style(DangoTheme.PRIMARY, 9, 3, Vector2(14, 0)))
-	var eyebrow := DangoTheme.display_label("THE RULE BOOK", 14,
-		DangoTheme.INK_ON_PRIMARY, 800, 0.16)
-	eyebrow.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	eyebrow.add_theme_constant_override("line_spacing", 0)
-	chip.add_child(eyebrow)
-	col.add_child(chip)
-
-	col.add_child(DangoTheme.display_label("CODEX", 52, DangoTheme.CREAM_RAISED, 800, 0.02))
-
-
-# ── The 294px tab rail ─────────────────────────────────────────────────────────────────────
+# ── The 300px tab rail ─────────────────────────────────────────────────────────────────────
 func _build_tab_rail(content: Control) -> void:
 	_tab_row = VBoxContainer.new()
 	_tab_row.name = "TabRow"
@@ -139,41 +107,22 @@ func _build_tab_rail(content: Control) -> void:
 		b.clip_text = true
 		b.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 		b.add_theme_font_override("font", DangoTheme.FONT_DISPLAY)
-		b.add_theme_font_size_override("font_size", 15)
-		DangoTheme.apply_tracking(b, 0.06, 15)
+		b.add_theme_font_size_override("font_size", 16)
+		DangoTheme.apply_tracking(b, 0.06, 16)
 		b.pressed.connect(_select_tab.bind(key))
 		_tab_row.add_child(b)
 		_tab_buttons[key] = b
-		_add_tab_tag(b)
-
-
-## X2 — the state tag on the right of a rail tab.
-##
-## A Button has no second slot, so the chip is a child laid out over the button's own right
-## padding rather than a sibling: `justify-content:space-between` in the mockup, an anchored
-## overlay here. `mouse_filter = IGNORE` so it never eats the tab's own click.
-##
-## FLAGGED, and worth a decision: every tab in this build has real authored copy, so all ten
-## chips read IN and the column carries no information. The chip was left out of the previous
-## pass for exactly that reason; it is built now because the owner asked for the mockup's
-## layout. If it reads as noise on screen, this one function is what comes back out.
-func _add_tab_tag(btn: Button) -> void:
-	var tag := PanelContainer.new()
-	tag.name = "Tag"
-	tag.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	tag.set_anchors_preset(Control.PRESET_CENTER_RIGHT)
-	tag.grow_horizontal = Control.GROW_DIRECTION_BEGIN
-	tag.offset_right = -15.0        # the tab's own 15px right padding
-	tag.custom_minimum_size = Vector2(0, 18)
-	tag.add_theme_stylebox_override("panel",
-		DangoTheme.solid_chip_style(DangoTheme.SUCCESS, 5, 2, Vector2(7, 0)))
-	btn.add_child(tag)
-
-	var lbl := DangoTheme.display_label("IN", 10, DangoTheme.ink_on(DangoTheme.SUCCESS), 800, 0.08)
-	lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	lbl.add_theme_constant_override("line_spacing", 0)   # mockup: line-height 1
-	tag.add_child(lbl)
+	# R3 M10: the rail ends with Guides, which is its own screen.
+	var gb := Button.new()
+	gb.name = "CodexTab_guides"
+	gb.text = "GUIDES"
+	gb.custom_minimum_size = Vector2(0, 50)
+	gb.alignment = HORIZONTAL_ALIGNMENT_LEFT
+	gb.add_theme_font_override("font", DangoTheme.FONT_DISPLAY)
+	gb.add_theme_font_size_override("font_size", 16)
+	_style_tab(gb, false)
+	gb.pressed.connect(func() -> void: LandNav.open(&"guides"))
+	_tab_row.add_child(gb)
 
 
 ## X3 — STATUS EFFECTS as the mockup's card grid instead of two BBCode tables.
@@ -261,7 +210,7 @@ func _style_tab(btn: Button, selected: bool) -> void:
 	# an overlay child (a Button has no second slot), so the label has to be kept off it by
 	# reserving its width here instead: 15 of the mockup's own right padding, plus the chip and
 	# a gap. Without this a long tab name ellipsises UNDER the chip rather than before it.
-	sb.content_margin_right = 55.0
+	sb.content_margin_right = 15.0
 	sb.content_margin_top = 0.0
 	sb.content_margin_bottom = 0.0
 	var hover := sb.duplicate() as StyleBoxFlat
@@ -348,7 +297,7 @@ func _build_reading_panel(content: Control) -> void:
 	head_left.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	head_row.add_child(head_left)
 
-	_panel_title = DangoTheme.display_label("", 32, DangoTheme.INK, 800, 0.02)
+	_panel_title = DangoTheme.display_label("", 26, DangoTheme.INK, 800, 0.02)
 	_panel_title.name = "PanelTitle"
 	_panel_title.clip_text = true
 	_panel_title.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
@@ -365,35 +314,6 @@ func _build_reading_panel(content: Control) -> void:
 	# 18px gap and the state chip this column already lands within a few px of 900. If the
 	# panel ever gets much wider, this is the line that needs the clamp.
 	head_left.add_child(_panel_lede)
-
-	var head_right := VBoxContainer.new()
-	head_right.alignment = BoxContainer.ALIGNMENT_END
-	head_right.size_flags_horizontal = Control.SIZE_SHRINK_END
-	head_right.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
-	head_right.add_theme_constant_override("separation", 6)
-	head_row.add_child(head_right)
-
-	# The mockup's state chip. Every tab in this build has authored copy, so it is CONTENT IN
-	# on all ten — see the file header, and the same note on _add_tab_tag().
-	#
-	# NOT BUILT, deliberately, and reported rather than skipped silently: the 11px mono
-	# `codex.statuses[] · {icon, name, body}` binding line the mockup draws under this chip.
-	# It is a note from the designer to the implementer about where the data comes from, and
-	# putting a code path on a screen a player reads is a different thing from putting a chip
-	# there. Two reasons, either sufficient: the project ships no mono font, and the string
-	# names an internal API. Say the word and it is four lines.
-	var state_chip := PanelContainer.new()
-	state_chip.name = "StateChip"
-	state_chip.custom_minimum_size = Vector2(0, 24)
-	state_chip.size_flags_horizontal = Control.SIZE_SHRINK_END
-	state_chip.add_theme_stylebox_override("panel",
-		DangoTheme.solid_chip_style(DangoTheme.SUCCESS, 7, 3, Vector2(10, 0)))
-	head_right.add_child(state_chip)
-	var state_lbl := DangoTheme.display_label("CONTENT IN", 12,
-		DangoTheme.ink_on(DangoTheme.SUCCESS), 800, 0.06)
-	state_lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	state_lbl.add_theme_constant_override("line_spacing", 0)
-	state_chip.add_child(state_lbl)
 
 	var body_margin := MarginContainer.new()
 	body_margin.name = "BodyMargin"
@@ -421,8 +341,8 @@ func _build_reading_panel(content: Control) -> void:
 	# for the dark panel this screen used to render on.
 	_body.add_theme_font_override("normal_font", DangoTheme.FONT_UI)
 	_body.add_theme_font_override("bold_font", DangoTheme.FONT_UI_BOLD)
-	_body.add_theme_font_size_override("normal_font_size", 14)
-	_body.add_theme_font_size_override("bold_font_size", 14)
+	_body.add_theme_font_size_override("normal_font_size", 16)
+	_body.add_theme_font_size_override("bold_font_size", 16)
 	_body.add_theme_color_override("default_color", DangoTheme.INK_ON_CREAM_SOFT)
 	_body.add_theme_constant_override("table_h_separation", 18)
 	_body.add_theme_constant_override("table_v_separation", 6)
