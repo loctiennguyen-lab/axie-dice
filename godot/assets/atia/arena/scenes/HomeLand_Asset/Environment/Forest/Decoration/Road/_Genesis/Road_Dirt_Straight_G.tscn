@@ -1,6 +1,6 @@
 [gd_scene format=4]
 
-[ext_resource type="PackedScene" path="res://assets/atia/arena/src/HomeLand_Asset/Environment/Forest/Decoration/Road/FBX/SM_Road_Dirt_Straight.fbx" id="1_treg2"]
+[ext_resource type="PackedScene" path="res://assets/atia/arena/meshsrc/HomeLand_Asset/Environment/Forest/Decoration/Road/FBX/SM_Road_Dirt_Straight.fbx" id="1_treg2"]
 [ext_resource type="Material" path="res://assets/atia/arena/materials/HomeLand_Asset/Environment/Forest/Decoration/Road/Material/Forest/M_Road_Dirt_01_F.tres" id="2_oq2ro"]
 [ext_resource type="Material" path="res://assets/atia/arena/materials/HomeLand_Asset/Environment/Forest/Decoration/Road/Material/Mystic/M_Road_Dirt_01_M.tres" id="3_y1qj6"]
 

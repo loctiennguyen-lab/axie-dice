@@ -1,12 +1,12 @@
 [gd_resource type="ShaderMaterial" format=3]
 
 [ext_resource type="Shader" path="res://assets/atia/arena/shaders/HomeLand_Asset/Environment/Forest/Ground/Source/S_TileGrass_01.gdshader" id="1_mn8d2"]
-[ext_resource type="Texture2D" path="res://assets/atia/arena/src/HomeLand_Asset/Environment/Mystic/Ground/Source/land_mystic_ground_01.png" id="2_wb6ud"]
-[ext_resource type="Texture2D" path="res://assets/atia/arena/src/HomeLand_Asset/Environment/Savannah/Ground/Source/Land_Savannah_01_ground.png" id="3_mpdmc"]
-[ext_resource type="Texture2D" path="res://assets/atia/arena/src/HomeLand_Asset/Environment/Forest/Ground/Source/Shader/T_Forest3.png" id="4_67b0d"]
-[ext_resource type="Texture2D" path="res://assets/atia/arena/src/HomeLand_Asset/Environment/Genesis/Ground/Source/land_genesis_ground_01.png" id="5_wsdn4"]
-[ext_resource type="Texture2D" path="res://assets/atia/arena/src/HomeLand_Asset/Environment/Arctic/Ground/Source/Land_Arctic_01_Ground.png" id="6_tque2"]
-[ext_resource type="Texture2D" path="res://assets/atia/arena/src/HomeLand_Asset/Environment/Genesis/Ground/Source/land_genesis_pattern.png" id="7_susxf"]
+[ext_resource type="Texture2D" path="res://assets/atia/arena/meshsrc/HomeLand_Asset/Environment/Mystic/Ground/Source/land_mystic_ground_01.png" id="2_wb6ud"]
+[ext_resource type="Texture2D" path="res://assets/atia/arena/meshsrc/HomeLand_Asset/Environment/Savannah/Ground/Source/Land_Savannah_01_ground.png" id="3_mpdmc"]
+[ext_resource type="Texture2D" path="res://assets/atia/arena/meshsrc/HomeLand_Asset/Environment/Forest/Ground/Source/Shader/T_Forest3.png" id="4_67b0d"]
+[ext_resource type="Texture2D" path="res://assets/atia/arena/meshsrc/HomeLand_Asset/Environment/Genesis/Ground/Source/land_genesis_ground_01.png" id="5_wsdn4"]
+[ext_resource type="Texture2D" path="res://assets/atia/arena/meshsrc/HomeLand_Asset/Environment/Arctic/Ground/Source/Land_Arctic_01_Ground.png" id="6_tque2"]
+[ext_resource type="Texture2D" path="res://assets/atia/arena/meshsrc/HomeLand_Asset/Environment/Genesis/Ground/Source/land_genesis_pattern.png" id="7_susxf"]
 
 [resource]
 resource_name = "M_TileGrass_01"

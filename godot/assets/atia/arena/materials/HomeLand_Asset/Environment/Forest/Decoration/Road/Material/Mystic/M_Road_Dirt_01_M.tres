@@ -1,9 +1,9 @@
 [gd_resource type="ShaderMaterial" format=3]
 
 [ext_resource type="Shader" path="res://assets/atia/arena/shaders/HomeLand_Asset/Environment/Forest/Decoration/Road/Material/Mystic/S_Road_Dirt_01_M.gdshader" id="1_pcdxg"]
-[ext_resource type="Texture2D" path="res://assets/atia/arena/src/HomeLand_Asset/Environment/Forest/Decoration/Road/Textures/T_Road_Edge_C_M.png" id="2_6obtf"]
-[ext_resource type="Texture2D" path="res://assets/atia/arena/src/HomeLand_Asset/Environment/Forest/Decoration/Road/Textures/T_Road_Dirt_C_M.png" id="3_g3aj4"]
-[ext_resource type="Texture2D" path="res://assets/atia/arena/src/HomeLand_Asset/Environment/Forest/Decoration/Road/Textures/T_Road_Dirt_01_Grass_A.png" id="4_r36ul"]
+[ext_resource type="Texture2D" path="res://assets/atia/arena/meshsrc/HomeLand_Asset/Environment/Forest/Decoration/Road/Textures/T_Road_Edge_C_M.png" id="2_6obtf"]
+[ext_resource type="Texture2D" path="res://assets/atia/arena/meshsrc/HomeLand_Asset/Environment/Forest/Decoration/Road/Textures/T_Road_Dirt_C_M.png" id="3_g3aj4"]
+[ext_resource type="Texture2D" path="res://assets/atia/arena/meshsrc/HomeLand_Asset/Environment/Forest/Decoration/Road/Textures/T_Road_Dirt_01_Grass_A.png" id="4_r36ul"]
 
 [resource]
 resource_name = "M_Road_Dirt_01_M"

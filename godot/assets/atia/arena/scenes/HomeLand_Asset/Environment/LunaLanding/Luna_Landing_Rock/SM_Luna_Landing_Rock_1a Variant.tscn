@@ -1,7 +1,7 @@
 [gd_scene format=4]
 
-[ext_resource type="PackedScene" path="res://assets/atia/arena/src/HomeLand_Asset/Environment/LunaLanding/Luna_Landing_Rock/Source/SM_Luna_Landing_Rock_1a.fbx" id="1_yhkjx"]
-[ext_resource type="Texture2D" path="res://assets/atia/arena/src/HomeLand_Asset/Environment/LunaLanding/Luna_Landing_Rock/Source/T_Luna_Landing_Rock_1_C.png" id="2_vdru6"]
+[ext_resource type="PackedScene" path="res://assets/atia/arena/meshsrc/HomeLand_Asset/Environment/LunaLanding/Luna_Landing_Rock/Source/SM_Luna_Landing_Rock_1a.fbx" id="1_yhkjx"]
+[ext_resource type="Texture2D" path="res://assets/atia/arena/meshsrc/HomeLand_Asset/Environment/LunaLanding/Luna_Landing_Rock/Source/T_Luna_Landing_Rock_1_C.png" id="2_vdru6"]
 [ext_resource type="Material" path="res://assets/atia/arena/materials/HomeLand_Asset/Environment/LunaLanding/Luna_Landing_Rock/Source/M_Luna_Landing_Rock_1_C.tres" id="3_3421l"]
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_ltd0m"]

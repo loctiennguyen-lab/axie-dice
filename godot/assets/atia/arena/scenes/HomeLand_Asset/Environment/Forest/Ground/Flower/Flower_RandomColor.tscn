@@ -1,6 +1,6 @@
 [gd_scene format=4]
 
-[ext_resource type="PackedScene" path="res://assets/atia/arena/src/HomeLand_Asset/Environment/Forest/Ground/Flower/Source/SM_Flower.fbx" id="1_xm52w"]
+[ext_resource type="PackedScene" path="res://assets/atia/arena/meshsrc/HomeLand_Asset/Environment/Forest/Ground/Flower/Source/SM_Flower.fbx" id="1_xm52w"]
 [ext_resource type="Material" path="res://assets/atia/arena/materials/HomeLand_Asset/Environment/Forest/Ground/Flower/Source/M_Flower.tres" id="2_w7eda"]
 [ext_resource type="Material" path="res://assets/atia/arena/materials/HomeLand_Asset/Environment/Forest/Ground/Flower/Source/M_Flower_RandomColor.tres" id="3_h2eqt"]
 

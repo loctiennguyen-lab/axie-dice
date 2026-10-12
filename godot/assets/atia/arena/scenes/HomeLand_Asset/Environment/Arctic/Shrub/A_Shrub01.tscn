@@ -1,6 +1,6 @@
 [gd_scene format=4]
 
-[ext_resource type="PackedScene" path="res://assets/atia/arena/src/HomeLand_Asset/Environment/Forest/Shrub/Source/SM_Shrub01.fbx" id="1_q7ja5"]
+[ext_resource type="PackedScene" path="res://assets/atia/arena/meshsrc/HomeLand_Asset/Environment/Forest/Shrub/Source/SM_Shrub01.fbx" id="1_q7ja5"]
 [ext_resource type="Material" path="res://assets/atia/arena/materials/HomeLand_Asset/Environment/Arctic/Shrub/Source/M_Shrub01_Arctic.tres" id="2_px8lq"]
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_dogxh"]

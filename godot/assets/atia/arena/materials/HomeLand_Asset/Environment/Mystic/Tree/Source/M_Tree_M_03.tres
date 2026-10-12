@@ -1,6 +1,6 @@
 [gd_resource type="StandardMaterial3D" format=3]
 
-[ext_resource type="Texture2D" path="res://assets/atia/arena/src/HomeLand_Asset/Environment/Mystic/Tree/Source/T_Tree_M_03.png" id="1_nysmt"]
+[ext_resource type="Texture2D" path="res://assets/atia/arena/meshsrc/HomeLand_Asset/Environment/Mystic/Tree/Source/T_Tree_M_03.png" id="1_nysmt"]
 
 [resource]
 resource_name = "M_Tree_M_03"

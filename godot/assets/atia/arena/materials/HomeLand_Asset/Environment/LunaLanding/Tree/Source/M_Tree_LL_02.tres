@@ -1,6 +1,6 @@
 [gd_resource type="StandardMaterial3D" format=3]
 
-[ext_resource type="Texture2D" path="res://assets/atia/arena/src/HomeLand_Asset/Environment/LunaLanding/Tree/Source/T_Luna_Landing_Tree_2_C.png" id="1_rgw62"]
+[ext_resource type="Texture2D" path="res://assets/atia/arena/meshsrc/HomeLand_Asset/Environment/LunaLanding/Tree/Source/T_Luna_Landing_Tree_2_C.png" id="1_rgw62"]
 
 [resource]
 resource_name = "M_Tree_LL_02"

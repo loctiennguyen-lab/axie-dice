@@ -1,6 +1,6 @@
 [gd_scene format=4]
 
-[ext_resource type="PackedScene" path="res://assets/atia/arena/src/HomeLand_Asset/Environment/Mystic/Shrub/Source/SM_Shrub01_M.fbx" id="1_40w2p"]
+[ext_resource type="PackedScene" path="res://assets/atia/arena/meshsrc/HomeLand_Asset/Environment/Mystic/Shrub/Source/SM_Shrub01_M.fbx" id="1_40w2p"]
 [ext_resource type="Material" path="res://assets/atia/arena/materials/HomeLand_Asset/Environment/Mystic/Shrub/Source/M_Shrub01_M.tres" id="2_02xgo"]
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_6bkev"]

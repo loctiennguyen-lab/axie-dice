@@ -1,7 +1,7 @@
 [gd_resource type="ShaderMaterial" format=3]
 
 [ext_resource type="Shader" path="res://assets/atia/arena/shaders/HomeLand_Asset/Environment/Arctic/Ground/Source/S_LandPlot_Arctic_Tile.gdshader" id="1_d7ehq"]
-[ext_resource type="Texture2D" path="res://assets/atia/arena/src/HomeLand_Asset/Environment/Arctic/Ground/Source/Land_Arctic_01_Ground.png" id="2_mx4pr"]
+[ext_resource type="Texture2D" path="res://assets/atia/arena/meshsrc/HomeLand_Asset/Environment/Arctic/Ground/Source/Land_Arctic_01_Ground.png" id="2_mx4pr"]
 
 [resource]
 resource_name = "M_Tile_Arctic"

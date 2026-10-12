@@ -36,6 +36,7 @@ func _ready() -> void:
 	for row in range(1, 19):
 		seen[CombatArena3D.biome_for(row, false)] = true
 	_assert(seen.size() == journey.size(), "an 18-row run should visit every biome, saw %d" % seen.size())
+	_check_scene_deps("res://assets/atia/arena/scenes")
 	print("=== t_arena_coverage: %d checks, %d failure(s) ===" % [_checks, _fails.size()])
 	if _fails.is_empty():
 		print("t_arena_coverage: PASS — %d checks OK" % _checks)
@@ -50,3 +51,34 @@ func _assert(cond: bool, msg: String) -> void:
 	_checks += 1
 	if not cond:
 		_fails.append(msg)
+
+
+## Every arena scene: all dependencies exist on disk (a clean checkout must not have broken
+## refs, e.g. files swallowed by .gitignore) and the scene instantiates.
+func _check_scene_deps(dir_path: String) -> void:
+	var scenes: Array[String] = []
+	_collect(dir_path, scenes)
+	_assert(scenes.size() > 0, "no arena scenes found under %s" % dir_path)
+	for sp in scenes:
+		for d in ResourceLoader.get_dependencies(sp):
+			# get_dependencies returns "uid::type::path" or plain path; take the last part
+			var parts := String(d).split("::")
+			var dp := parts[parts.size() - 1]
+			if dp == "":
+				dp = parts[0]
+			_assert(ResourceLoader.exists(dp) or FileAccess.file_exists(dp), "%s depends on missing %s" % [sp, dp])
+		var ps := load(sp) as PackedScene
+		_assert(ps != null, "%s does not load" % sp)
+		if ps != null:
+			var inst := ps.instantiate()
+			_assert(inst != null, "%s does not instantiate" % sp)
+			if inst != null:
+				inst.free()
+
+
+func _collect(dir_path: String, out: Array[String]) -> void:
+	for f in DirAccess.get_files_at(dir_path):
+		if f.ends_with(".tscn"):
+			out.append(dir_path.path_join(f))
+	for d in DirAccess.get_directories_at(dir_path):
+		_collect(dir_path.path_join(d), out)

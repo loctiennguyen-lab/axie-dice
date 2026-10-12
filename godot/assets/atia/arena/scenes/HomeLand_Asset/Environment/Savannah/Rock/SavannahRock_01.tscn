@@ -1,6 +1,6 @@
 [gd_scene format=4]
 
-[ext_resource type="PackedScene" path="res://assets/atia/arena/src/HomeLand_Asset/Environment/Savannah/Rock/Source/SM_SavannahRock_01.fbx" id="1_cimrn"]
+[ext_resource type="PackedScene" path="res://assets/atia/arena/meshsrc/HomeLand_Asset/Environment/Savannah/Rock/Source/SM_SavannahRock_01.fbx" id="1_cimrn"]
 [ext_resource type="Material" path="res://assets/atia/arena/materials/HomeLand_Asset/Environment/Savannah/Rock/Source/M_S_Rock_01.tres" id="2_e74p2"]
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_c5xi3"]
