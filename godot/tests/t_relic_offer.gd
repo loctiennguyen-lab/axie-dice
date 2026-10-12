@@ -97,7 +97,7 @@ func test_hard_exclusions() -> void:
 	_assert(RewardGenerator.is_offerable(RelicRegistry.get_def("a_chaos"), _ctx([])), "a_chaos fine without twinfates")
 	_assert(RewardGenerator.twinfates_blocks_reroll(["r_twinfates"]) and not RewardGenerator.twinfates_blocks_reroll(["r_claw"]), "twinfates_blocks_reroll")
 	# hidden relics never offered
-	_assert(not RewardGenerator.is_offerable(RelicRegistry.get_def("r_tidecaller"), _ctx([]), true), "hidden relic not offered yet")
+	_assert(not RewardGenerator.is_offerable(RelicRegistry.get_def("r_firestormveil"), _ctx([]), true), "hidden relic not offered yet")
 
 
 func test_weights() -> void:

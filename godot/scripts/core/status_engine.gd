@@ -44,9 +44,10 @@ static func add_status(combat, tgt: Unit, kws: Array, src: Unit = null) -> void:
 
 		if n == "poison":
 			if src != null and src.side == "p" and src.cls == "bug" and int(tgt.status.get("poison", 0)) > 0:
-				v += 2                                                          # VIRULENT passive
+				v += int(RelicHooks.field(combat, "virulent_bonus", 2.0))   # VIRULENT passive
 			tgt.status["poison"] = int(tgt.status.get("poison", 0)) + v
 			EventBus.float_text.emit(tgt.uid, "PSN %d" % v, "poi", 0)
+			RelicHooks.fire(combat, "on_poison_applied", {"combat": combat, "src": src, "tgt": tgt, "v": v})
 			if src != null and src.side == "p" and RelicHooks.has(combat, "poisonSpread"):
 				var arr: Array = combat.alive_enemies() if tgt.side == "e" else combat.alive_party()
 				var i := arr.find(tgt)

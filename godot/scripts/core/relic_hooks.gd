@@ -1171,6 +1171,92 @@ static var TABLE: Dictionary = {
 				return 0
 			return ctx["value"],
 	},
+	"r_alphafang": {
+		# Class-up (beast). FERAL threshold 65% (FERAL only). A Beast Axie's face kill refunds 1 Reroll,
+		# once per turn, through grant_relic_reroll (4/turn cap). Ticks/thorns/relic kills pass killer null.
+		"class_field": func(ctx: Dictionary):
+			return 0.65 if ctx["key"] == "feral_threshold" else ctx["value"],
+		"on_kill": func(ctx: Dictionary):
+			var k = ctx.get("killer", null)
+			if k != null and k.cls == "beast" and RelicHooks.once_per_turn(ctx["combat"], "alphafang_t"):
+				ctx["combat"].grant_relic_reroll(1)
+			return,
+	},
+	"r_falconhood": {
+		# Class-up (bird). TALON +5 (was +3); a Bird's Pierce hit ignores Thorns.
+		"class_field": func(ctx: Dictionary):
+			if ctx["key"] == "talon_pierce":
+				return 5.0
+			if ctx["key"] == "talon_ignore_thorns":
+				return 1.0
+			return ctx["value"],
+	},
+	"r_heartrootgrove": {
+		# Class-up (plant). BULWARK: Thorns 3 from >=6 Shield (was 2 from 10). End of turn a Plant with
+		# >=10 Shield gives 3 Shield to each adjacent Axie.
+		"class_field": func(ctx: Dictionary):
+			if ctx["key"] == "bulwark_at":
+				return 6.0
+			if ctx["key"] == "bulwark_thorns":
+				return 3.0
+			return ctx["value"],
+		"on_turn_end": func(ctx: Dictionary):
+			var c = ctx["combat"]
+			for u in RelicHooks.party_line(c):
+				if u.cls == "plant" and u.shield >= 10:
+					for n in RelicHooks.slot_neighbors(c, u):
+						DamagePipeline.apply_shield(c, n, 3)
+			return,
+	},
+	"r_shedskin": {
+		# Class-up (reptile). SCALES: Thorns 4 (was 2), Thorns poison 2 (was 1). A Reptile hit while it had
+		# no Shield gains 4 Shield (once per turn per Axie).
+		"class_field": func(ctx: Dictionary):
+			if ctx["key"] == "scales_thorns":
+				return 4.0
+			if ctx["key"] == "scales_poison":
+				return 2.0
+			return ctx["value"],
+		"on_dmg_taken": func(ctx: Dictionary):
+			var t: Unit = ctx["tgt"]
+			if t.side == "p" and t.cls == "reptile" and t.hp > 0 and not bool(ctx.get("had_shield", true)) \
+					and RelicHooks.once_per_turn(ctx["combat"], "shedskin_%d" % t.uid):
+				DamagePipeline.apply_shield(ctx["combat"], t, 4)
+			return,
+	},
+	"r_tidecaller": {
+		# Class-up (aqua). CONDUIT: 1 Reroll per 3 Mana spent (was 4); Aqua Mana faces +1 more.
+		# The "may exceed max by up to 2" clause needs no code: CONDUIT rerolls are not clamped to max today.
+		"class_field": func(ctx: Dictionary):
+			return 3.0 if ctx["key"] == "conduit_step" else ctx["value"],
+		"mod_face": func(ctx: Dictionary):
+			var u: Unit = ctx["unit"]
+			if u.cls == "aqua":
+				for f in u.die:
+					if String(f.get("type", "")) == "mana":
+						f["value"] = int(f.get("value", 0)) + 1
+			return,
+	},
+	"r_venomlineage": {
+		# Class-up (bug). VIRULENT +3 (was +2); a Bug's first Poison each turn also puts 1 stack on each
+		# neighbouring enemy.
+		"class_field": func(ctx: Dictionary):
+			return 3.0 if ctx["key"] == "virulent_bonus" else ctx["value"],
+		"on_poison_applied": func(ctx: Dictionary):
+			var s = ctx.get("src", null)
+			var t: Unit = ctx["tgt"]
+			if s == null or s.side != "p" or s.cls != "bug" or t.side != "e":
+				return
+			if not RelicHooks.once_per_turn(ctx["combat"], "venomlin_%d" % s.uid):
+				return
+			var arr: Array = ctx["combat"].alive_enemies()
+			var i := arr.find(t)
+			for x in [arr[i - 1] if i > 0 else null, arr[i + 1] if i >= 0 and i < arr.size() - 1 else null]:
+				if x != null:
+					x.status["poison"] = int(x.status.get("poison", 0)) + 1
+					EventBus.float_text.emit(x.uid, "PSN 1", "poi", 0)
+			return,
+	},
 	"r_tithepips": {
 		# Pact (dice group): +3 Mana each turn; after every roll the lowest-value face is blanked (exactly
 		# one, living non-Egg Axies with an unused face, tie to the lower slot). Recomputed at every settle.
@@ -1774,6 +1860,11 @@ static func g_axie(combat, src) -> float:
 	if src != null:
 		b += float(src.g_oc_bonus)
 	return minf(RelicSlots.tuning().g_cap, 1.0 + b)
+
+## FIELD hook: class-passive numbers (FERAL threshold, TALON pierce, BULWARK, SCALES, CONDUIT step,
+## VIRULENT). Call sites pass the base value; owned class-upgrade relics answer `class_field` by key.
+static func field(combat, key: String, base: float) -> float:
+	return float(run_value_hook(combat, "class_field", {"combat": combat, "key": key}, base))
 
 static func sum(combat, field: String, default_value: float = 0.0) -> float:
 	var total := default_value

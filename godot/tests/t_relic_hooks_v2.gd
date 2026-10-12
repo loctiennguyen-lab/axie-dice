@@ -22,6 +22,7 @@ func _ready() -> void:
 	test_devilsreroll()
 	test_twinfates()
 	test_pacts_v2()
+	test_class_ups()
 	test_tithepips()
 	test_amberdie()
 	test_tweaks()
@@ -411,6 +412,116 @@ func test_pacts_v2() -> void:
 	var h0 := _combat([], 93)
 	h0.party[0].die[mfi] = {"type": "mana", "value": 3, "keywords": []}
 	_assert(h0._face_value(h0.party[0], mfi) >= 3, "chalice: baseline Mana face is not 0")
+
+
+func test_class_ups() -> void:
+	var keys := ["plant1", "beast1", "aqua1", "reptile1", "bird1"]
+	var wounded := func(c: CombatEngine, frac: float) -> Unit:
+		var e: Unit = c.alive_enemies()[0]
+		e.max_hp = 100
+		e.hp = int(100.0 * frac)
+		return e
+	# alphafang: FERAL x1.6 now up to 65% HP, not at 70%; Execute-only (non beast) stays at 50%.
+	var b := _combat([], 101, keys)
+	var a := _combat(["r_alphafang"], 101, keys)
+	for pair in [[b, false], [a, true]]:
+		var c: CombatEngine = pair[0]
+		var e: Unit = wounded.call(c, 0.6)
+		e.shield = 0
+		var hp0 := e.hp
+		DamagePipeline.resolve({"combat": c, "src": c.party[1], "tgt": e, "value": 10, "attack": true, "face_type": "dmg"})
+		var want := 16 if bool(pair[1]) else 10
+		_assert(hp0 - e.hp == want, "alphafang: beast at 60%% HP takes %d (got %d)" % [want, hp0 - e.hp])
+	var e2: Unit = wounded.call(a, 0.7)
+	e2.shield = 0
+	var h2 := e2.hp
+	DamagePipeline.resolve({"combat": a, "src": a.party[1], "tgt": e2, "value": 10, "attack": true, "face_type": "dmg"})
+	_assert(h2 - e2.hp == 10, "alphafang: beast at 70% HP no FERAL")
+	var a3 := _combat(["r_alphafang"], 101, keys)
+	var rr := a3.rerolls
+	a3.alive_enemies()[0].hp = 3
+	DamagePipeline.resolve({"combat": a3, "src": a3.party[1], "tgt": a3.alive_enemies()[0], "value": 10, "attack": true, "face_type": "dmg"})
+	_assert(a3.rerolls == rr + 1, "alphafang: beast face kill refunds 1 Reroll")
+	var a2 := _combat(["r_alphafang"], 101, keys)
+	var rr2 := a2.rerolls
+	a2.alive_enemies()[0].hp = 2
+	DamagePipeline.resolve({"combat": a2, "src": null, "tgt": a2.alive_enemies()[0], "value": 10, "attack": false, "face_type": "dmg"})
+	var a4 := _combat(["r_alphafang"], 101, keys)
+	a4.alive_enemies()[0].hp = 2
+	DamagePipeline.resolve({"combat": a4, "src": a4.party[0], "tgt": a4.alive_enemies()[0], "value": 999, "attack": true, "face_type": "dmg"})
+	_assert(a2.rerolls == rr2 and a4.rerolls == rr2, "alphafang: tick kill and non-beast kill refund nothing")
+	# falconhood: pierce +5 for bird (was +3); bird pierce ignores Thorns.
+	var fb := _combat([], 102, keys)
+	var fc := _combat(["r_falconhood"], 102, keys)
+	var dmg := []
+	for c in [fb, fc]:
+		var e: Unit = c.alive_enemies()[0]
+		e.shield = 0
+		e.status["thorns"] = 3
+		var h: int = e.hp
+		var bh: int = c.party[4].hp
+		DamagePipeline.resolve({"combat": c, "src": c.party[4], "tgt": e, "value": 5, "pierce": true, "attack": true, "face_type": "dmg"})
+		dmg.append([h - e.hp, bh - c.party[4].hp])
+	_assert(dmg[0][0] == 8 and dmg[1][0] == 10, "falconhood: pierce +3 -> +5 (%s)" % str(dmg))
+	_assert(dmg[0][1] == 3 and dmg[1][1] == 0, "falconhood: bird pierce ignores Thorns (%s)" % str(dmg))
+	# heartrootgrove: Thorns 3 from 6 Shield; end of turn Plant >=10 Shield gives neighbours 3.
+	var hb := _combat([], 103, keys)
+	var hc := _combat(["r_heartrootgrove"], 103, keys)
+	for c in [hb, hc]:
+		var p: Unit = c.party[0]
+		p.shield = 0
+		p.status["thorns"] = 0
+		DamagePipeline.apply_shield(c, p, 4)   # +2 plant bonus = 6
+	_assert(int(hb.party[0].status.get("thorns", 0)) == 0 and int(hc.party[0].status["thorns"]) == 3, "heartroot: Thorns 3 at 6 Shield")
+	var beast: Unit = hc.party[1]
+	var sh0: int = beast.shield
+	hc.party[0].shield = 12
+	RelicHooks.fire(hc, "on_turn_end", {"combat": hc})
+	_assert(beast.shield == sh0 + 3, "heartroot: neighbour +3 Shield at turn end")
+	# shedskin: Thorns 4 at start, thorns poison 2, hit with no Shield -> +4 Shield once a turn.
+	var sc := _combat(["r_shedskin"], 104, keys)
+	var rep: Unit = sc.party[3]
+	_assert(int(rep.status.get("thorns", 0)) == 4, "shedskin: SCALES Thorns 4")
+	rep.shield = 0
+	var atk: Unit = sc.alive_enemies()[0]
+	atk.hp = atk.max_hp
+	atk.status["poison"] = 0
+	DamagePipeline.resolve({"combat": sc, "src": atk, "tgt": rep, "value": 3, "attack": true, "face_type": "dmg"})
+	_assert(rep.shield == 4, "shedskin: unshielded Reptile hit gains 4 Shield (%d)" % rep.shield)
+	_assert(int(atk.status.get("poison", 0)) == 2, "shedskin: Thorns apply Poison 2 (%d)" % int(atk.status.get("poison", 0)))
+	rep.shield = 0
+	DamagePipeline.resolve({"combat": sc, "src": atk, "tgt": rep, "value": 3, "attack": true, "face_type": "dmg"})
+	_assert(rep.shield == 0, "shedskin: Shield trigger once per turn")
+	# tidecaller: 1 Reroll per 3 Mana (CONDUIT), Aqua Mana faces +1.
+	var tb := _combat([], 105, keys)
+	var tc := _combat(["r_tidecaller", "a_restore"], 105, keys)
+	for fi in 6:
+		if String(tb.party[2].die[fi].get("type", "")) == "mana":
+			_assert(int(tc.party[2].die[fi]["value"]) == int(tb.party[2].die[fi]["value"]) + 1, "tidecaller: aqua mana face +1")
+	var r0: int = tc.rerolls
+	tc.mana_spent = 3
+	tc._grant_conduit_rerolls()
+	_assert(tc.rerolls == r0 + 1, "tidecaller: 3 Mana spent = 1 Reroll")
+	var r1: int = tb.rerolls
+	tb.mana_spent = 3
+	tb._grant_conduit_rerolls()
+	_assert(tb.rerolls == r1, "tidecaller baseline: 3 Mana is not enough")
+	# venomlineage: VIRULENT +3 on already-poisoned target; first Poison each turn spreads 1 to neighbours.
+	var vk := ["bug1", "beast1", "aqua1", "reptile1", "bird1"]
+	var vc := _combat(["r_venomlineage"], 106, vk)
+	var bug: Unit = vc.party[0]
+	var ens: Array = vc.alive_enemies()
+	if ens.size() >= 2 and bug.cls == "bug":
+		for x in ens:
+			x.status["poison"] = 0
+		ens[1].status["poison"] = 0
+		StatusEngine.add_status(vc, ens[1], ["poison:1"], bug)
+		_assert(int(ens[1].status["poison"]) == 1 and int(ens[0].status.get("poison", 0)) == 1, "venomlineage: first Poison spreads 1 to neighbour")
+		StatusEngine.add_status(vc, ens[1], ["poison:1"], bug)
+		_assert(int(ens[1].status["poison"]) == 5, "venomlineage: already poisoned +3 (%d)" % int(ens[1].status["poison"]))
+		_assert(int(ens[0].status.get("poison", 0)) == 1, "venomlineage: spread only once per turn")
+	else:
+		_assert(false, "venomlineage: need a bug lead and 2 enemies")
 
 
 func test_twinfates() -> void:

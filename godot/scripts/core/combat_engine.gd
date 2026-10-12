@@ -209,7 +209,7 @@ func setup_new(combat_setup: Dictionary) -> void:
 
 	for u in party:                                                    # SCALES passive
 		if u.cls == "reptile":
-			u.status["thorns"] = max(int(u.status.get("thorns", 0)), 2)
+			u.status["thorns"] = max(int(u.status.get("thorns", 0)), int(RelicHooks.field(self, "scales_thorns", 2.0)))
 
 	# JS: `s.enemies.forEach(e => { if(e.permThorns) e.st.thorns = e.permThorns; })`
 	# (engine.js:424). Without this the MECHA CHIMERA's RETALIATE trait — its entire
@@ -845,7 +845,7 @@ func _grant_conduit_rerolls() -> void:
 			break
 	if not has_aqua:
 		return
-	var gained: int = int(floor(mana_spent / 4.0)) - _cond_given
+	var gained: int = int(floor(mana_spent / RelicHooks.field(self, "conduit_step", 4.0))) - _cond_given
 	if gained > 0:
 		rerolls += gained
 		_cond_given += gained
