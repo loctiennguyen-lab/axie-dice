@@ -2,13 +2,50 @@
 
 Cập nhật: 2026-10-12. Nhánh `godot-port`, push lên `axiedice` (`git push axiedice godot-port:main`).
 
-## ⇢ TIẾN ĐỘ ĐÊM 12→13/10 (lane I ghi giữa đêm; bản cuối ở mục báo cáo sáng)
-- Đã merge + push: E (ví Gem async, Pass v2, việc tuần), B (EN, offer v2, 22 relic H1–H8, pact live, pipfile; rồi trục G/A, trần reroll, Eternal, pact_forced), C (Atia 3D, 6 sân biome, meshsrc/), A (luật Nhiệm vụ, end_run → record_run_outcome + reached_boss), U (UI combat v3), M1 Run Setup. RULES_VERSION `godot-2026-10-12-f`. Suite 76/76 không SKIP.
-- `.gitignore`: `src/` neo về gốc (`/src/`) — trước đó nó giấu mesh sân C và Land L.
-- Đang chạy: L (track mesh homeland/src + làm đẹp hub), M (Echo Box), S (RunSession, ví Gem khi đăng nhập, giá Continue 180, quà mùa), sim nhanh (`production/qa/sim-quick-2026-10-12.md`).
-- Câu chờ Liam: `pending-decisions.md` mục F (đã trả lời) và G (agent chọn tạm). Review R3: `design/handoffs/ui-02-round3/REVIEW-art-director.md`.
+## ⇢ BẮT ĐẦU TỪ ĐÂY (bàn giao sáng 13/10/2026 — sau đêm chạy liên tục)
 
-## ⇢ BẮT ĐẦU TỪ ĐÂY (bàn giao tối 12/10/2026 — session mới đọc mục này trước)
+**godot-port = axiedice/main** (đã push). Suite cây chính **85/85 không SKIP**, Worker **141/141**. RULES_VERSION
+`godot-2026-10-13-h`. Mức sàn trong `.claude/docs/technical-preferences.md` đã cập nhật (file đó nằm trong .gitignore, chỉ trên máy).
+
+**Đã merge trong đêm (mỗi lần merge đều có agent khác review + suite xanh ở cây chính):**
+- A: luật Nhiệm vụ, end_run → record_run_outcome (+reached_boss), RemoteEpochSource sau cờ (mặc định local).
+- B: offer v2, EN, boss miễn instant kill, 22 relic H1–H8 + 7 rework, pact live, trục G/A (trần G ×2,5), trần reroll,
+  Eternal, pact_forced, **mở hết 14 relic ẩn** (không còn relic ẩn).
+- C: Atia 3D, 6 sân biome (chọn theo hàng bản đồ, boss có biến thể), ánh sáng khớp Land, sửa khung/cổng.
+- E: ví Gem remote, Pass v2 + việc tuần, ký quỹ cược Nhiệm vụ (nonce, an toàn khi tắt app), daily +500 Stone, hộp mùa (đang tắt).
+- L: Land hub 6 tier, cổng xoay 90°, ánh sáng ấm, đất, decor dày, phím 1/3/4/daily mở màn R3, sửa lỗi khởi động.
+- U: UI combat v3, AidPanel/DefeatPanel, "Elite row ahead" ở A9, số build 0.1.0-l1, chọn sân 3D.
+- M (Round 3): Run Setup, Echo Box, Nhiệm vụ (cược thật qua ký quỹ), Store + Daily, Pass, Vault, Settings, Codex.
+- S: RunSession, ví Gem khi đăng nhập (sau cờ), Continue boss 180, quà mùa 2×90 (bảng mùa server + điều kiện số run),
+  token kid/jti + thu hồi, khoá trần quà nguyên tử, alarm hello.
+- `.gitignore`: `src/` neo về gốc (trước đó giấu mesh sân và Land).
+
+**Còn lại theo làn:**
+- A: sửa `LocalEpochSource` ghi header.newcomer từ params (đang làm/ chờ merge — nếu chưa thấy commit "newcomer" trên godot-port thì làm tiếp). Nối màn pact gọi `RelicSlots.pact_forced`. Client gọi lại `/api/run/open` sau 1008 auth.
+- B: xong bộ relic L1. Còn: sim cân bằng thật (sim F), sporegale có thể dùng `poisonSpread`.
+- C: mystic/genesis chưa ai xem ảnh; chân trời boss vẫn phẳng (camera thấy ít trời).
+- E: thưởng tuần Daily (4 ngày → 150 Shard + 2000 Stone) có data chưa có logic; ghép số vào bảng Aid catalog (giá Aid đang viết cứng trong CombatView).
+- L: mảnh địa hình biome thật (mới có đất texture), tier 6 trời tím/đất hồng chưa chỉnh.
+- M: M2 Team presets, M9 Leaderboard, M12–M14 Profile/Account/Cosmetics, M15 Land upgrade chưa làm; Vault giữ thẻ cũ (chưa lưới 5×4); hộp mùa UI (bật `enabled`).
+- R: bản build Mac/Win ở `build/l1-2026-10-13/` (từ b2bd505, TRƯỚC Pass/ký quỹ/màn M sau) — build lại sau khi anh duyệt.
+- S: ràng token với session (chờ anh quyết); M7 nhảy hàng chưa có spec server.
+
+**Câu cần Liam quyết:** `production/session-state/pending-decisions.md` mục F (đã trả lời) + **G** (agent chọn tạm). Quan trọng:
+G1–G6 Nhiệm vụ cực khó (doc `design/proposals/nhiem-vu-risk-to-earn.md` + review), Eternal (2 relic đầu, có tính relic khởi đầu?),
+breakersward, A9 "Elite row ahead", việc tuần (XP ngoài trần ngày, mất nếu qua tuần), quà mùa 3/8 run, token không ràng session,
+thu nhỏ 72 MB texture nguồn, hộp mùa (dup trả vé).
+Review UI R3 để gửi Claude Design: `design/handoffs/ui-02-round3/REVIEW-art-director.md`. Sim nhanh: `production/qa/sim-quick-2026-10-12.md`.
+Smoke: `production/qa/smoke-2026-10-13.md`.
+
+**Deploy sáng nay (làm cùng Liam, theo thứ tự):**
+1. `cd worker && node --test test/*.test.mjs` (141/141).
+2. `npx wrangler d1 migrations apply axie-dice-db --remote` — áp 0002, 0003, 0004, **0005_token_revocation** (0005 phải trước code).
+3. `npx wrangler secret put RUN_TOKEN_KEY` (và `RUN_TOKEN_KID`; khi xoay khoá thêm `RUN_TOKEN_KEY_PREV`/`RUN_TOKEN_KID_PREV`).
+4. Google OAuth: thêm redirect URI desktop (loopback) nếu dùng login desktop.
+5. `npx wrangler deploy`. Cờ client `axie/epoch_source`, `axie/gem_wallet` vẫn "local" → người chơi chưa thấy thay đổi.
+6. Web: `bash export-web.sh` (tắt editor) → `bash deploy-r2.sh`. Desktop: build lại từ godot-port mới nhất.
+
+## (cũ, tối 12/10) bàn giao trước đêm
 
 **Đang làm: sprint L1 — playtest nội bộ tải về, ra mắt 3/11/2026.** Kế hoạch: `production/l1-sprint-plan.md` (khối quyết định
 đầu file), giao diện giữa các làn: `production/l1-interfaces.md`, bảng làn/worktree/quy tắc merge: `production/l1-lanes.md`,
