@@ -10,6 +10,7 @@ func _ready() -> void:
 	test_g_axis()
 	test_a_axes()
 	test_reroll_caps()
+	test_eternal()
 	print("=== t_relic_axes: %d checks, %d failure(s) ===" % [_checks, _failures.size()])
 	if _failures.is_empty():
 		print("t_relic_axes: PASS — %d checks OK" % _checks)
@@ -135,3 +136,27 @@ func test_reroll_caps() -> void:
 	_assert(d.grant_relic_reroll(3) == 3 and d.grant_relic_reroll(3) == 1 and d.rerolls == 4, "relic reroll cap 4/turn")
 	_assert(d.grant_relic_reroll(1) == 0, "cap holds")
 	_assert(int(d._state_dict()["relic_reroll_given"]) == 4, "cap counter is in the undo state")
+
+
+func test_eternal() -> void:
+	var saved_asc: int = RunState.ascension
+	var saved_owned: Array = RunState.owned_relic_ids.duplicate()
+	var saved_st: Dictionary = RunState.relic_stickers.duplicate()
+	RunState.owned_relic_ids = []
+	RunState.relic_stickers = {}
+	RunState.ascension = 4
+	RunState._grant_relic("r_claw", "reward")
+	_assert(RunState.relic_stickers.is_empty(), "A4: no Eternal sticker")
+	RunState.owned_relic_ids = []
+	RunState.ascension = 5
+	for id in ["r_claw", "r_seedling", "r_heart"]:
+		RunState._grant_relic(id, "reward")
+	_assert(RunState.relic_stickers.size() == 2, "A5: eternal_max 2 stickers (got %d)" % RunState.relic_stickers.size())
+	_assert(RunState.relic_stickers.has("r_claw") and RunState.relic_stickers.has("r_seedling") and not RunState.relic_stickers.has("r_heart"), "first two relics are Eternal")
+	_assert(not RunState.sell_relic("r_claw"), "Eternal relic cannot be sold")
+	_assert(RunState.owned_relic_ids.has("r_claw"), "still owned")
+	var d: Dictionary = RunState.to_data()
+	_assert((d["relic_stickers"] as Dictionary).size() == 2, "stickers saved in to_data")
+	RunState.owned_relic_ids = saved_owned
+	RunState.relic_stickers = saved_st
+	RunState.ascension = saved_asc

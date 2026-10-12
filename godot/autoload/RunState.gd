@@ -1179,6 +1179,12 @@ func _grant_relic(relic_id: String, source: String) -> void:
 	owned_relic_ids.append(relic_id)
 	if RelicSlots.is_pact(relic_id) and not pacts_taken.has(relic_id):
 		pacts_taken.append(relic_id)
+	# Eternal sticker (ascension.json `eternal_max`, relic-set-v2 A5): the first N non-pact relics the run
+	# acquires are stuck (cannot be sold). Deterministic from the grant order, so replay needs no extra log.
+	var eternal_max := int(ContentDB.ascension_mods(ascension).get("eternal_max", 0))
+	if eternal_max > 0 and not RelicSlots.is_pact(relic_id) and not relic_id.begins_with("__") \
+			and relic_stickers.size() < eternal_max:
+		relic_stickers[relic_id] = RelicSlots.STICKER_ETERNAL
 	RelicHooks.run_fire(owned_relic_ids, "on_relic_acquired", {"relic_id": relic_id, "source": source})   # H8
 
 
@@ -1194,6 +1200,7 @@ func acquire_relic(relic_id: String, source: String, sell_id: String = "") -> bo
 		shards_this_run += RelicSlots.sell_price(sell_id, ascension)
 		owned_relic_ids.erase(sell_id)
 		relic_state.erase(sell_id)
+		relic_stickers.erase(sell_id)
 		action_log.record("swap_on_full", [sell_id, relic_id])
 	elif sell_id != "":
 		return false
