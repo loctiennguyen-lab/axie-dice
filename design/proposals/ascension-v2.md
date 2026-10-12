@@ -1,4 +1,14 @@
-Trạng thái: ĐỀ XUẤT — chờ Liam review
+Trạng thái: ĐỀ XUẤT — chờ Liam review (§5.1 sửa 12/10 theo B1, chưa sim)
+
+> **QUYẾT ĐỊNH LIAM (12/10, B1) — ưu tiên hơn thân file:** độ khó Ascension đi theo nhịp **răng cưa kiểu Angry Birds**:
+> bậc thường giảm win rate 2–4 điểm, **bậc cổng A3/A6/A9 nhảy 6–8 điểm** (bậc thêm cơ chế mới); trong một run giữ
+> đầu dễ, về sau khó. **§5.1 là bảng độ khó duy nhất**; `monetization-v1.md` chỉ tham chiếu (creative-director BLOCKER 1).
+> Số trong §5.1 là mục tiêu sim đầu, **chưa sim**. **Liam 12/10 (sau re-review creative-director):** A4/A5 giữ là bậc
+> thường (cổng vẫn A3/A6/A9); khoảng cách heavy − regular giữ 22; bỏ cột bot A; **casual A0 nâng 37 → 40** (cả cột casual
+> +3), chỉ chỉnh bằng núm áp cho mọi người; **luật Continue hồi 25% từ A6 bật ngay trong sim đầu** (§2.5 mới).
+> Cùng đợt sửa: A4 là **clock đầy đủ thay bản nhẹ A0** (Liam duyệt
+> clock nhẹ A0 ngày 11/10, OQ-B). A4 Boss Clock và A5 Eternal cũng thêm cơ chế mới nhưng là bậc thường: **không đổi**,
+> đưa vào câu hỏi 11 ở §6.
 
 > **QUYẾT ĐỊNH LIAM (11/10, 10 câu):** (1) hạ HP/dmg, luật gánh độ khó · (2) pact bắt buộc ở A6 và A10 · (3) A1 giữ
 > cả giá shop ×1,15 (Gene Shard thật) và bán relic 40% · (4) chưa có sticker Rental · (5) mốc enrage 10/8 chốt sau
@@ -23,7 +33,7 @@ Tác giả: game-designer · 2026-10-10. Chưa có code, không sửa file nào 
 | A1 | Lean Pack | Shop đắt hơn, bán relic được ít hơn | HP địch +10% |
 | A2 | Elite Escort | Elite có thêm 1 quái | (giữ nguyên luật cũ) |
 | A3 | Short Dice | Reroll gốc −1 | dmg địch +10% |
-| A4 | Boss Clock | Boss có đồng hồ enrage hiện sẵn | HP boss +15% |
+| A4 | Boss Clock | Boss có đồng hồ enrage **đầy đủ** hiện sẵn (thay bản nhẹ A0, §2.4) | HP boss +15% |
 | A5 | Eternal Gift | Relic từ elite bị sticker Eternal; weaken đầu trận có báo trước | (weaken giữ nguyên) |
 | A6 | First Pact | Boss đầu tiên bắt buộc nhận 1 pact | HP địch +10% |
 | A7 | Narrow Offer | Reward còn 2 thẻ | (giữ nguyên luật cũ) |
@@ -84,7 +94,7 @@ Cột "Số kept" là số nhỏ giữ lại từ ladder hiện tại. Cột "Á
 | **A1** Lean Pack | Giá shop ×1.15 (làm tròn, §2.2). Bán relic lấy 40% giá gốc (thay 50%) | Shop/reward | HP địch ×1.10 | Build đổi relic liên tục, relic economy; run nào cũng cần chọn kỹ hơn | Giá hiện sẵn ở shop, tiền không mất bí ẩn. Bỏ qua shop vẫn là lựa chọn hợp lệ |
 | **A2** Elite Escort | Elite có +1 quái (luật cũ, giữ) | Elite | — | Build chậm hoặc cần hồi sức; nhấn việc có nên đánh elite | Số quái hiện rõ trên map; người chơi chọn đi hay né elite |
 | **A3** Short Dice | Số Reroll gốc −1 mỗi lượt (tính trước relic, sàn gốc 1; §2.3) | Dice/reroll | dmg địch ×1.10 | Build câu crit, build sống nhờ reroll (`tidalbrand`, `infinitedie`) | Mọi nguồn reroll từ relic vẫn cộng bình thường, nên đổi build được |
-| **A4** Boss Clock | Boss có **Enrage**: từ lượt 10, mỗi lượt dmg của boss +20% (cộng dồn, tối đa +100%). Bộ đếm hiện trên boss | Boss | HP boss ×1.15 | Build chậm: Plant growth, Thorns/Shield chờ trận kéo dài, poison tick yếu | Bộ đếm hiện từ lượt 1; người chơi tính trước được. Đây là đồng hồ, không phải trait |
+| **A4** Boss Clock | Boss có **Enrage đầy đủ**: từ lượt 10, mỗi lượt dmg của boss +20% (cộng dồn, tối đa +100%). **Thay bản nhẹ A0** (lượt 14, +10%/lượt, tối đa 3 cộng dồn, §2.4), không cộng thêm lên trên. Bộ đếm hiện trên boss | Boss | HP boss ×1.15 | Build chậm: Plant growth, Thorns/Shield chờ trận kéo dài, poison tick yếu | Bộ đếm hiện từ lượt 1; người chơi tính trước được. Đây là đồng hồ, không phải trait |
 | **A5** Eternal Gift | (a) Relic nhận từ **elite** có sticker **Eternal**: không bán/không đổi được (tối đa 2 relic Eternal mỗi run; relic elite thứ 3 trở đi không sticker). (b) Axie bị weaken đầu trận được báo trước lượt 1 | Sticker + trận | weaken cũ giữ nguyên | Build cần tuỳ biến ô; build dùng relic yếu để chờ thay | Sticker hiện trên thẻ **trước khi** chọn; relic Eternal vẫn là relic miễn phí |
 | **A6** First Pact | Boss **đầu tiên** của run: màn Pact không còn nút "bỏ cả 3", phải nhận 1 (§4.4 relic-set). Pact chiếm ô passive như cũ | Pact | HP địch ×1.10 | Build đã đầy ô; build đã dựa vào reroll (nhóm drawback Reroll đau hơn) | Vẫn chọn 1/3, mỗi nhóm drawback một cái. Drawback không đụng HP |
 | **A7** Narrow Offer | Reward chỉ còn **2 thẻ** thay vì 3 (luật cũ, giữ) | Reward | — | Build cần một relic cụ thể để mở combo; người thích "vá" | Reroll reward vẫn còn; "thẻ dẫn" nghiêng theo build vẫn có (§3.3) |
@@ -119,9 +129,19 @@ nếu turn >= clock_start:
     boss_dmg_mult *= (1 + 0.20 * stacks)
 ```
 
+- **Bản nhẹ ở A0–A3** (Liam duyệt 11/10, `monetization-v1.md` §1.2-C): `clock_start` = 14, +10%/lượt, tối đa 3 cộng dồn (+30%), cùng bộ đếm hiện sẵn. Từ A4 công thức trên **thay hẳn** bản nhẹ, không cộng chồng. Tắt trong giai đoạn làm quen của tài khoản mới (5 run đầu). Hệ quả cho sim G: delta của A4 đo **so với bản nhẹ A0**, không so với "không có clock".
 - Đếm theo **lượt của trận**, không reset khi boss sang phase 2 (Nightmare Agony có 2 phase). Chưa reset là cố ý: reset sẽ cho người chơi kéo dài trận.
 - Chỉ áp cho node kind `boss`. Đồng hồ nhân với dmg của boss, không phải với mặt dice của người chơi.
 - Hiện trên boss nameplate "Enrage in N" rồi "Enrage ×1.4". Đây là UI mới, cần mockup (§4.3).
+
+### 2.5 Luật Continue từ A6 (MỚI 12/10, Liam, theo B2 và re-review creative-director)
+
+Hiệu ứng Continue (do `monetization-v1.md` định nghĩa: đội sống lại, địch giữ HP/phase, enrage/attrition về 0, dice mới) có **tỉ lệ hồi HP của đội là hàm của `ascension`**: **A0–A5 hồi 40%, từ A6 hồi 25%**. Luật này **bật ngay trong sim đầu**, không còn là dự phòng.
+- Mọi người như nhau: không đọc ví, không đọc việc đã mua Continue hay chưa, không đọc chuỗi thua (MON-5, MON-13). Chỉ có một chỗ đọc `ascension`.
+- Hiện cho người chơi: nút Continue hiện **HP boss còn lại và mức hồi** (40% hay 25%) trước khi trả tiền.
+- Không đổi luật HP "hồi đầy mỗi trận": Continue là hồi sinh trong trận, không mang qua trận.
+- Ghi vào `ascension_mods()` như một trường `continue_heal_pct` (40 hoặc 25), thuộc đợt bump `RULES_VERSION` chung.
+- Sàn thắng khi mua Continue ở boss (telemetry của monetization): A0–A5 50–80%, A6–A10 35–60%.
 
 ## 3. Tương tác với relic và economy
 
@@ -192,25 +212,43 @@ Header action log đã có `ascension`. Luật là hàm thuần của số đó,
 
 ## 5. Kế hoạch cân bằng
 
-### 5.1 Đường cong thắng mục tiêu
+### 5.1 Đường cong thắng mục tiêu (BẢNG ĐỘ KHÓ DUY NHẤT của game; SỬA 12/10, B1 răng cưa)
 
-Hai thước đo. Số bot lấy theo relic-set §6.2 (35–60% ở mức chuẩn). Số người chơi giỏi là mục tiêu phỏng đoán, đo lại sau khi có playtest.
+**Đây là bảng duy nhất.** `monetization-v1.md` (sàn MON-11, mức nâng Aid, giá Aid) và mọi sim cân bằng chỉ **tham chiếu** bảng này, không có bảng độ khó thứ hai ở file nào khác.
 
-| Level | Bot A (trung bình các archetype) | Bot A (archetype mạnh nhất) | Người chơi giỏi (mục tiêu) |
-|---|---|---|---|
-| A0 | 50% | 60% | 85% |
-| A1 | 47% | 57% | 80% |
-| A2 | 44% | 54% | 76% |
-| A3 | 41% | 51% | 71% |
-| A4 | 38% | 48% | 66% |
-| A5 | 35% | 45% | 62% |
-| A6 | 32% | 42% | 57% |
-| A7 | 29% | 39% | 52% |
-| A8 | 26% | 36% | 47% |
-| A9 | 23% | 33% | 42% |
-| A10 | 20% | 30% | 35–40% |
+**Hình dạng (Liam, B1, kiểu Angry Birds):**
+- **Bậc thường** (A1, A2, A4, A5, A7, A8, A10): mỗi bước win rate giảm **2–4 điểm**.
+- **Bậc cổng A3, A6, A9** (bước A2→A3, A5→A6, A8→A9): giảm **6–8 điểm**. Ba level này trùng với ba luật mới nặng nhất: A3 Short Dice, A6 First Pact, A9 Hunted.
+- Trong một run vẫn giữ đầu dễ, về sau khó (xem `monetization-v1.md` §1.3). Bảng này là win rate của cả run.
 
-Ràng buộc: mỗi bước giảm 2–4 điểm (không bước nào >5, không bước nào <1: nếu <1 thì luật đó là nhiễu). Archetype yếu nhất ở A10 không dưới 8%. Chênh mạnh–yếu ở bất kỳ level nào không vượt 25 điểm (cùng cổng relic-set).
+**Số liệu là mục tiêu cho sim đầu, CHƯA SIM.** Ba hồ sơ (định nghĩa như `monetization-v1.md` §1.4): **casual** chọn build trung bình, ít tối ưu reroll; **regular** hiểu tag và build theo cặp; **heavy** tối ưu tốt, biết tính đồng hồ. Điểm neo A0 lấy từ mục tiêu "thật khó" của Liam (11/10): casual 40 (nâng từ 37 ngày 12/10), regular 60, heavy 82. Regular và heavy đi theo **giữa dải** (thường −3, cổng −7). Casual đi theo **đáy dải** (thường −2, cổng −6) để cả mười bước không đẩy casual xuống số âm: tổng giảm của casual 32 điểm, của regular/heavy 42 điểm.
+
+| Level | Loại bước | Casual | Regular | Heavy | Bước casual / regular, heavy |
+|---|---|---|---|---|---|
+| A0 | — | **40** (sàn 35, cờ đỏ 36) | 60 | 82 | — |
+| A1 | thường | 38 | 57 | 79 | −2 / −3 |
+| A2 | thường | 36 | 54 | 76 | −2 / −3 |
+| A3 | **CỔNG** | 30 | 47 | 69 | **−6 / −7** |
+| A4 | thường | 28 | 44 | 66 | −2 / −3 |
+| A5 | thường | 26 | 41 | 63 | −2 / −3 |
+| A6 | **CỔNG** | 20 | 34 | 56 | **−6 / −7** |
+| A7 | thường | 18 | 31 | 53 | −2 / −3 |
+| A8 | thường | 16 | 28 | 50 | −2 / −3 |
+| A9 | **CỔNG** | 10 | 21 | 43 | **−6 / −7** |
+| A10 | thường | 8 | 18 | 40 | −2 / −3 |
+
+Kiểm tính: casual 40 − (2+2+6+2+2+6+2+2+6+2 = 32) = 8; regular 60 − (3+3+7+3+3+7+3+3+7+3 = 42) = 18; heavy 82 − 42 = 40. Heavy A10 = 40 nằm trong mục tiêu cũ "35–40%". Khoảng cách heavy − regular không đổi, bằng 22 điểm ở mọi level (Liam giữ 22, 12/10); casual cách regular 20 điểm ở A0 và hẹp dần còn 10 ở A10.
+
+**Casual A0 nâng 37 → 40 (Liam, 12/10):** biên so với sàn 35 là 5 điểm, lớn hơn sai số sim ±3; cả cột casual dịch +3. Nếu sim kéo casual A0 xuống dưới 40, chỉnh bằng **núm áp cho mọi người** (HP/dmg, `attrition_start`, `clock_start`). **Không** có núm riêng "bỏ clock cho casual": đó là độ khó theo hồ sơ đoán từ hành vi, trái MON-5.
+
+**Ràng buộc (SỬA 12/10, thay "mỗi bước giảm 2–4 điểm, không bước nào >5"):**
+- Bậc thường: mỗi bước giảm 2–4 điểm, không bước thường nào <2 (nếu <2 thì luật đó là nhiễu) và không >4.
+- Bậc cổng A3/A6/A9: mỗi bước giảm 6–8 điểm. Cổng nhảy dưới 6 thì không còn là cổng, trên 8 là bức tường.
+- **Sàn công bằng (MON-11 của monetization):** casual-không-Aid ở A0 ≥ 35% (cờ đỏ < 36%; mục tiêu 40). Casual không bao giờ < 0; A10 casual ≥ 3%.
+- Chênh mạnh–yếu giữa các archetype ở bất kỳ level nào không vượt 25 điểm (cùng cổng relic-set). Archetype yếu nhất ở A10 không dưới 8% (đo bằng bot A trên 11 archetype, sim F).
+- **Cột bot A của bản 11/10 bỏ** (bot trung bình 50 → 20 không khớp tổng giảm tối thiểu 32 điểm của dải mới). Sim F vẫn chạy bot A trên 11 archetype và báo cùng bảng; bot A ánh xạ vào hồ sơ nào do lần sim đầu quyết (không tự gán ở đây).
+- Dùng được cho hai kiểm: win rate **không Aid**. Mức nâng của Aid là việc của `monetization-v1.md` §9.4.
+- Bảng này đo **tài khoản đã qua giai đoạn làm quen** (5 run đầu tắt attrition và clock nhẹ A0, `monetization-v1.md` §1.6).
 
 ### 5.2 Sim
 
@@ -219,7 +257,7 @@ Dùng lại bot A–E của relic-set §6.1, thêm:
 | Sim | Cách chạy | Đo gì |
 |---|---|---|
 | **F. Ladder sweep** | Bot A, 11 archetype, A0–A10, 300 seed mỗi ô | Đường cong §5.1, độ dốc, level nào là "bức tường" |
-| **G. Ablation** | Ở A10, tắt từng luật một (mỗi luật 300 seed/archetype) | Delta winrate của từng luật. Mục tiêu 2–5 điểm/luật. Dưới 1,5 = bỏ hoặc gộp; trên 8 = quá nặng |
+| **G. Ablation** | Ở A10, tắt từng luật một (mỗi luật 300 seed/archetype) | Delta winrate của từng luật. Mục tiêu **khớp bước §5.1**: bậc thường 2–4 điểm, bậc cổng (A3, A6, A9, gồm luật chính + số HP/dmg kèm) 6–8 điểm. Dưới 1,5 = bỏ hoặc gộp; trên 8 = quá nặng. Delta của A4 so với bản nhẹ A0 |
 | **H. Pact bắt buộc** | A6/A10, so với cùng ladder cho phép bỏ pact | Pact nào bị chọn >60% khi bắt buộc; nhóm drawback nào bị chọn nhiều nhất (nếu 1 nhóm >70% thì drawback quá nhẹ) |
 | **I. Enrage** | Trận boss với từng archetype | Tỉ lệ boss chết trước lượt 10; số lượt trung bình; TTK từng archetype; không archetype nào <35% win chỉ vì enrage |
 | **J. Slot pressure** | A8 so với cùng build ở 8 ô | Winrate delta; số relic bị bán sớm; tỉ lệ run phải bán Eternal (phải =0) |
@@ -236,7 +274,7 @@ Dùng lại bot A–E của relic-set §6.1, thêm:
 7. `t_rules_version` và `t_full_run_loop` xanh với bộ luật mới; HP vẫn hồi đầy mỗi trận (R5 của relic-set).
 8. Bot soak 2000 run A0–A10 không NaN, không treo, không vượt trần.
 
-**Sim:** đạt §5.1 trên sim F; mỗi luật nằm trong dải 2–8 điểm trên sim G.
+**Sim:** đạt §5.1 trên sim F (từng ô trong ±3 điểm, mỗi bước đúng dải: thường 2–4, cổng A3/A6/A9 6–8, casual A0 ≥ 35%); mỗi luật nằm trong dải 2–8 điểm trên sim G.
 
 **Trải nghiệm (playtest):**
 1. Người chơi nêu được luật của level hiện tại và nói mình đổi gì vì nó.
@@ -253,6 +291,8 @@ Dùng lại bot A–E của relic-set §6.1, thêm:
 | Giá shop ×, tỉ lệ bán | curve | 1.15 / 40% | 1.00–1.30 / 25–50% | A1 |
 | Reroll gốc trừ | gate | −1 | 0 đến −2 | A3 |
 | Enrage: lượt bắt đầu | gate | 10 / 8 | 7–14 | A4, A9 |
+| Enrage nhẹ A0–A3: lượt bắt đầu, +%/lượt, tối đa | gate | 14 / +10% / 3 cộng dồn | 12–16 / +5–10% | Liam duyệt 11/10 |
+| Bước đường cong §5.1 | curve | thường 2–4, cổng 6–8 | theo B1 | chỉ là mục tiêu sim, không phải núm trong data |
 | Enrage: +%/lượt, tối đa | curve | +20% / ×2 | +10–30% / ×1.5–×3 | A4 |
 | Số relic Eternal tối đa | gate | 2 | 1–3 | A5 |
 | Pact bắt buộc: boss nào | gate | đầu (A6) / mọi (A10) | | A6, A10 |
@@ -286,6 +326,10 @@ Dùng lại bot A–E của relic-set §6.1, thêm:
 | 8 | Reroll gốc −1 ở A3 là tương đối sớm. Dời sang A5, và đưa Eternal xuống A3? | **Giữ A3.** Người chơi nên học reroll là tài nguyên trước khi build đã khoá |
 | 9 | UI mới (đồng hồ Enrage, sticker, báo weaken) cần mockup trước. Ai làm, khi nào? | `ux-designer` làm mockup sau khi Liam chốt bảng này; không code UI trước |
 | 10 | Ranked/daily có dùng Ascension không, và ở level nào? | **Chưa quyết.** Luật cố định nên ranked dùng được; cần quyết ở bước ranked profile |
+| 11 | **A4 Boss Clock và A5 Eternal cũng thêm cơ chế mới, nhưng là bậc thường (2–4 điểm), chỉ A3/A6/A9 là cổng.** | **ĐÃ TRẢ LỜI (Liam 12/10): giữ A4/A5 là bậc thường; cổng vẫn A3/A6/A9.** Nếu sim G cho thấy A4 hoặc A5 nhảy > 4 điểm thì báo lại, không tự đổi |
+| 12 | Khoảng cách heavy − regular = 22 điểm ở mọi level (bản 11/10 ở A6 là 26) | **ĐÃ TRẢ LỜI: giữ 22.** Nếu biên MON-11 mỏng thì hạ Aid, không nâng heavy |
+| 13 | Casual đi theo đáy dải (−2 / −6) | **ĐÃ TRẢ LỜI:** giữ đáy dải; **casual A0 nâng 37 → 40**, A10 = 8; khoảng cách casual–regular từ 20 xuống 10. Chỉ chỉnh bằng núm áp cho mọi người |
+| 14 | Bỏ cột bot A trung bình/mạnh nhất của bản 11/10 | **ĐÃ TRẢ LỜI: đồng ý.** Bot A đo ở sim F rồi ánh xạ vào hồ sơ |
 
 ## 7. Việc tiếp theo (đợi Liam duyệt, không tự làm)
 

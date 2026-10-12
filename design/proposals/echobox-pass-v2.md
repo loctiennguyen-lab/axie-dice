@@ -57,7 +57,7 @@ Tác giả: game-designer · 10/10/2026 · Không sửa file nào khác, không 
 7. **Hộp mùa theo nhịp 12 tuần** (E3). Series cũ vào Vault: mở được, N nhân đôi, vẫn lấy được độc quyền (§2.10).
 8. **Một tòa nhà Echo Box, hai tab** ("Thường" / "Mùa"), một thanh hiện số vé (§2.11).
 9. **Battle Pass 30 level, season 8 tuần.** Tổng 32.400 XP; `T_min` ≥ 14 ngày. **Pass trả 12 vé chung.** Sau level 30: **2.000 XP = 50 Shard** (vòng lặp mốc kiểu LoL, A3/A4) (§3).
-10. **5 unlock cộng chỉ số vào Pass ở level 4/8/12/16/20, chỉ ở Season 1.** Ai đã mua được hoàn Shard. Ranked vẫn tắt hết (§3).
+10. **5 unlock cộng chỉ số vào Pass ở level 4/8/12/16/20, chỉ ở Season 1.** Ai đã mua được hoàn Shard. ~~Ranked vẫn tắt hết (§3).~~ **SỬA 12/10 (Liam, B3): unlock cày được dùng trong ranked** (người cày không thua người nạp).
 
 ---
 
@@ -527,7 +527,7 @@ Số XP/run dùng `economy-v2.md` A4 (thắng ~506, thua ~190; 45% thắng ≈ 3
 
 ### 3.4 Đặt 5 unlock cộng chỉ số
 
-Năm unlock: `u_reroll` (+1 reroll tối đa), `u_hp` (+3 Max HP), `u_start` (relic Common ngẫu nhiên khi bắt đầu), `u_reroll2` (+1 reroll nữa), `u_hp2` (+2 Max HP nữa). Hiện mua Shard (220/400/500/600/650). `MetaState.run_bonuses(ranked)` trả 0 khi Ranked.
+Năm unlock: `u_reroll` (+1 reroll tối đa), `u_hp` (+3 Max HP), `u_start` (relic Common ngẫu nhiên khi bắt đầu), `u_reroll2` (+1 reroll nữa), `u_hp2` (+2 Max HP nữa). Hiện mua Shard (220/400/500/600/650). ~~`MetaState.run_bonuses(ranked)` trả 0 khi Ranked.~~ **SỬA 12/10 (B3):** `run_bonuses` trả đúng bonus của loadout tài khoản cả khi `ranked = true`; verifier nhận loadout tiêm vào (`docs/architecture/server-authoritative-rng.md` F9).
 
 Các cách đặt:
 
@@ -540,7 +540,7 @@ Các cách đặt:
 Quy tắc kèm theo C:
 - Ai **đã sở hữu** unlock thì mốc đó trả **Shard bằng giá shop hiện hành** thay vì cấp lại. Không ai thiệt (ECO-13).
 - Giá Shard trong shop không đổi khi Pass phát; đây là đường dự phòng vĩnh viễn, không phải FOMO.
-- Pass và shop ghi trên cùng nhãn "Không áp dụng ở Ranked", cùng một huy hiệu trên mỗi mốc có unlock.
+- ~~Pass và shop ghi trên cùng nhãn "Không áp dụng ở Ranked"~~ **SỬA 12/10 (B3):** bỏ nhãn đó (unlock tính trong ranked). Giữ một huy hiệu chung trên mỗi mốc có unlock để người chơi nhận ra đó là unlock chỉ số; nội dung huy hiệu do UI quyết.
 - Đặt ở level 4/8/12/16/20, tức ngày 2,3 / 5,2 / 8,8 / 13,1 / 18,0 của người chơi thường. Người chơi 1 run/ngày vẫn có đủ cả 5 trong ~4 tuần. Thứ tự: reroll trước (nhẹ, dễ cảm nhận), HP, relic Common, rồi hai bậc cao.
 - `u_start` phụ thuộc thiết kế lại relic (Liam đã xếp Relic sau Economy): nếu pool relic Common đổi, mốc này đổi theo.
 
@@ -690,7 +690,7 @@ Số ECO-n là bất biến tương ứng trong `economy-v2.md` §11.2.
 | INV-V7 | Hộp thường: tổng bảng Stone + cosmetic = 100% (±0,001). Hộp mùa: `season_stone_table` tổng 100%, EV 1.290/lượt Stone (±3%) |
 | INV-V8 | `T_min = XP_total / (cap_run + xp_daily + xp_weekly/7) ≥ 14` ngày (ECO-9) |
 | INV-V9 | Pass: tổng Shard 4.800, Stone 16.500, **vé 12 (chung)**; cộng dồn XP lv 30 = 32.400; không có perk sức mạnh cấp trực tiếp (ECO-9) |
-| INV-V10 | Mọi unlock chỉ số (từ Pass hay shop) bằng 0 khi `ranked = true` |
+| INV-V10 | **SỬA 12/10 (B3):** unlock chỉ số (từ Pass hay shop) **tính trong ranked**; run ranked nhận đúng bonus của loadout tài khoản và verifier tái tạo cùng bonus từ loadout. (Bản cũ: bằng 0 khi `ranked = true`, đã bỏ) |
 | INV-V11 | Ai đã có unlock thì mốc Pass trả Shard bằng giá shop, không cấp lại (ECO-13) |
 | INV-V12 | Mọi Stone-bearing claim (mở, thưởng ngày, thưởng tuần, Pass) kiểm ở server; ghi qua `SaveStore`; field mới nằm trong `MetaState.reload_from_store()` (ECO-10); server chặn Stone Echo > 80.000/ngày/tài khoản và vé giữ ≤ 999 (ECO-7) |
 | INV-V13 | Công thức leo dần (hộp mùa): `p_t(N_t) = 1`; `p_t(c)` không giảm theo c; `F_t(c) = (c/N_t)^k` (đối chiếu bảng §2.8 ở các c chính) |

@@ -46,7 +46,7 @@ Mọi con số là first-pass để có cái mà bắn, chưa qua sim. Chỗ nà
 1. **Một câu**: Land là nơi ở, Run là nơi chơi. Land không cho sức mạnh trong combat, chỉ cho bề rộng (cosmetic, tiện lợi, lựa chọn trước run). Sức mạnh vẫn chỉ nằm ở tầng run. Đây chính là luật C6 + "hai tầng" trong `economy-progression.md` §3, tôi giữ nguyên.
 2. **Hai currency, không hơn**: Gene Shard (chảy nhanh, đem đi cược/mua hộp) và Land Stone (chảy chậm, không cược được, không mua được bằng Shard, chỉ để lên tier Land).
 3. **Chiều sâu build là phần tôi đầu tư nhiều nhất**: 4 trục (class passive × relic engine × Gene Mutation × enemy trait), mỗi archetype có một counter nằm trong *địch*, không chỉ trong build khác.
-4. **Ranked/daily dùng "Ranked profile"**: bỏ hết perk/unlock cộng chỉ số. Không có nó thì mọi thứ về competition là P2W kiểu nạp thời gian.
+4. ~~**Ranked/daily dùng "Ranked profile"**: bỏ hết perk/unlock cộng chỉ số.~~ **SỬA 12/10 (Liam, B3): unlock cày dùng được trong ranked** (Aid mua bằng tiền thật đã dùng được trong ranked, nên người cày không được thua người nạp). "Ranked profile" chỉ còn: Ascension + đội hình tự chọn, relic khởi đầu cố định.
 5. **Cắt**: World Tour, Moon Dust (Liam đã chốt), unlock cộng HP/reroll vĩnh viễn, bán Echo Box theo giá lũy tiến, farming kiểu Homeland (không làm Mine/Smelter/Field...).
 
 ---
@@ -191,7 +191,7 @@ Faucet: ~13 run × ~150 (baseline F3, chưa đo) ≈ 1.950 + daily 60×5 = 300 +
 |---|---|---|
 | `u_full` (mở Full) | Giữ, bỏ Shard, mở bằng "hoàn 1 run short" | Là cửa chuyển chế độ, không nên bán |
 | `u_relic1/2`, `u_face1/2` | Thay bằng **relic/face discovery**: relic Epic/Legendary vào pool khi **gặp lần đầu**, không bán | Hiện đang inert; mở pool làm tăng bề rộng, đúng C6 |
-| `u_reroll`, `u_reroll2`, `u_hp`, `u_hp2`, `u_start` | **Đóng băng trong Ranked profile**; ở chế độ thường giữ nhưng mua Shard rẻ + đổi sang **sidegrade** về sau (xem OQ-3) | Là sức mạnh vĩnh viễn ở tầng sưu tầm, trái C6 |
+| `u_reroll`, `u_reroll2`, `u_hp`, `u_hp2`, `u_start` | ~~Đóng băng trong Ranked profile~~ **SỬA 12/10 (B3): tính trong ranked**; ở chế độ thường giữ nhưng mua Shard rẻ + đổi sang **sidegrade** về sau (xem OQ-3) | Là sức mạnh vĩnh viễn ở tầng sưu tầm, trái C6 |
 
 ---
 
@@ -466,7 +466,7 @@ x1: +XP Pass; x2: + 1 Land Stone; x3: + decor "Nguy hiểm" (chủ đề) mỗi 
 | Thành phần | Thiết kế |
 |---|---|
 | **Daily seed** | Mỗi ngày UTC một seed: map, reward offer, RNG combat giống nhau. Qua Portal. Mỗi ngày tối đa 3 lần thử. |
-| **Ranked profile** | Bỏ hết perk/unlock cộng chỉ số, relic khởi đầu cố định. Chỉ còn Ascension + đội hình tự chọn. Giữ đúng luật "tầng sưu tầm = bề rộng" cho đo kỹ năng. |
+| **Ranked profile** | **SỬA 12/10 (B3):** unlock cày **tính** trong ranked (bản cũ bỏ hết perk/unlock cộng chỉ số); relic khởi đầu cố định, Ascension + đội hình tự chọn. Ranked chỉ mở sau giai đoạn làm quen (5 run đầu, `monetization-v1.md` §1.6). Bảng xếp hạng có bộ lọc "Pure" cho người không dùng Aid. |
 | **Điểm** | `score = 1000×thắng + 40×node_cleared + max(0, 300−turns) + 2×HP_còn + 100×A`. Chỉ là first-pass; hòa → turns ít hơn. |
 | **Xác minh** | Client gửi action log; server chạy `RunVerifier` (đã có, `t_replay` 47 check). Không verify được thì không lên bảng. |
 | **Bảng** | Ngày, tuần, và Ascension 10 cả mùa. **Bảng công ty**: nhóm theo domain email đăng nhập Google (đã có tài khoản, F: `worker/src/accounts.js`). *Cần đồng ý quyền riêng tư + terms (OQ-6).* |
@@ -521,7 +521,7 @@ Mỗi phase ship độc lập, và P1 có giá trị ngay cả khi Land chưa xo
 |---|---|---|
 | OQ-1 | Chấp nhận **2 currency** (Shard + Land Stone) thay vì 1? | Có. Một currency làm contract thành đường tắt lên Land. |
 | OQ-2 | Echo Box giá phẳng 250 thay vì lũy tiến cũ (`economy-progression.md` §10)? | Phẳng; cần Liam xác nhận vì ngược với bản đã duyệt. |
-| OQ-3 | Với unlock cộng chỉ số (`u_hp`, `u_reroll`...) và perk Pass: (a) xóa hẳn, (b) giữ ở chế độ thường nhưng khóa ở Ranked, (c) đổi sang sidegrade? | (b) ngắn hạn, (c) dài hạn. Xóa thì người đã mua mất thứ họ mua. |
+| OQ-3 | Với unlock cộng chỉ số (`u_hp`, `u_reroll`...) và perk Pass: (a) xóa hẳn, (b) giữ ở chế độ thường nhưng khóa ở Ranked, (c) đổi sang sidegrade? | **ĐÃ QUYẾT 12/10 (Liam, B3): giữ, và dùng được trong Ranked** (không khóa). (c) sidegrade để dài hạn nếu cần. Xóa thì người đã mua mất thứ họ mua. |
 | OQ-4 | HP carry-over: A, B hay C? Chấp nhận phá replay cũ (đổi `RULES_VERSION`)? | B, vì replay cũ hiện không có giá trị ngoài test. |
 | OQ-5 | "×1" của contract = hoàn đúng stake (hòa vốn)? | Có, nhưng kèm thưởng phi-Shard. Nếu ý Liam là "thắng thêm 1×" thì kinh tế đổi (lãi gấp đôi) và phải hạ trần. |
 | OQ-6 | Bảng công ty theo domain email Google: có đồng ý không, người chơi có thể ẩn không? | Có, opt-out mặc định bật hiển thị tên; cần xem terms/privacy hiện có (`worker/src/legal.js`). |

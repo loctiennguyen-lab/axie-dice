@@ -1,4 +1,12 @@
-Trạng thái: ĐỀ XUẤT — chờ Liam review
+Trạng thái: ĐỀ XUẤT — chờ Liam review (ECO-13 sửa 12/10 theo B3)
+
+> **QUYẾT ĐỊNH LIAM (12/10, B3) — ưu tiên hơn thân file:** unlock cày (5 unlock cộng chỉ số `u_reroll`, `u_hp`,
+> `u_start`, `u_reroll2`, `u_hp2`, từ shop hay Pass) **được dùng trong ranked**; người cày không được thua người nạp
+> (Aid mua bằng tiền thật đã dùng được trong ranked). **ECO-13 bỏ vế "Unlock chỉ số = 0 khi Ranked"**; giữ vế
+> "ai đã có unlock thì mốc Pass trả Shard bằng giá shop". Mọi chỗ trong file này nói "Ranked profile tắt unlock/bonus = 0"
+> đã bị thay bằng quyết định này. Hệ quả: bảng win rate ranked phải đo **có unlock**, và verifier nhận loadout unlock
+> tiêm vào (`docs/architecture/server-authoritative-rng.md` F9). File khác còn câu cũ (`echobox-pass-v2.md` INV-V10 và
+> các dòng "Không áp dụng ở Ranked", `core-loop-v2.md` mục Ranked profile) cần sửa theo, chưa sửa ở đây.
 
 > **SỬA 10/10: jackpot thật nhỏ.** Liam: jackpot 10.000 / 25.000 Stone được giữ, nhưng tỉ lệ phải thật nhỏ.
 > - Hộp thường: jackpot 10.000 từ 0,2% (1/500) xuống **0,02% = 1 trong 5.000 lượt**.
@@ -36,13 +44,13 @@ Trạng thái: ĐỀ XUẤT — chờ Liam review
 > - **Daily**: đồng ý đề xuất. Ngày tính theo **giờ UTC**, server xác nhận.
 > - **Battle Pass**: đổi đường cong XP; học **Battle Pass của LoL** — chơi càng nhiều lên càng
 >   nhanh, nhưng chơi nhiều nhất cũng mất ~2 tuần mới xong. Đưa một số cosmetic vào làm thưởng Pass.
->   **5 unlock cộng chỉ số vẫn đưa vào Battle Pass được** — tinh chỉnh khéo cho hợp (Ranked profile
->   vẫn tắt chúng).
+>   **5 unlock cộng chỉ số vẫn đưa vào Battle Pass được** — tinh chỉnh khéo cho hợp (~~Ranked profile
+>   vẫn tắt chúng~~ — **đảo lại 12/10, B3: unlock cày được dùng trong ranked**, xem khối đầu file).
 > - **Nhiệm vụ**: CÓ trả Land Stone nhưng lượng rất nhỏ. **Bỏ** hai luật thêm (lỗ ngày ≤1R, stake
 >   ≤40% số dư): người chơi được phép lỗ cả 5 nhiệm vụ. Đường cong độ khó và đường cong thưởng phải
 >   đi cùng nhau: muốn kiếm nhiều thì phải chấp nhận khó và bỏ nhiều tiền. Mục đích: kiểm tra người
 >   chơi có chấp nhận risk to earn không.
-> - Ba điều trong thiết kế Nhiệm vụ: (1) chạy trên ranked profile — đồng ý; (2) đổi tên Daily
+> - Ba điều trong thiết kế Nhiệm vụ: (1) chạy trên ranked profile — đồng ý (nay ranked profile **có** unlock cày, B3 12/10); (2) đổi tên Daily
 >   Mission +60 thành "Thưởng ngày" — đồng ý; (3) save-scum — Liam chưa thấy vấn đề, đang hỏi lại.
 
 > **BỔ SUNG (trích nguyên ý từ `echobox-pass-v2.md` và lệnh của Liam, 10/10) — Echo Box tách 2 hộp:**
@@ -424,7 +432,7 @@ Bỏ khỏi bản cũ: `stone_window_day`, `recycle_stone_window_day`, `recycled
 | ECO-10 | Stone và vé do server cấp, kiểm ngày UTC. Ghi qua `SaveStore`; field mới (vé theo nguồn, mảnh, pity, bộ đếm series) vào `MetaState.reload_from_store()` |
 | ECO-11 | Timeline sim (R = 450, nửa bộ): heavy 52 ±10%, regular 109 ±15%, casual 136 ±15%; không mua mùa / đủ bộ theo §6.4 |
 | ECO-12 | Stone nhiệm vụ ≤ 150/ngày hoạt động |
-| ECO-13 | Unlock chỉ số = 0 khi Ranked; ai đã có unlock thì mốc Pass trả Shard bằng giá shop |
+| ECO-13 | **SỬA 12/10 (B3):** unlock chỉ số **tính trong Ranked** (không còn = 0); ai đã có unlock thì mốc Pass trả Shard bằng giá shop. Test: run ranked nhận đúng bonus của loadout tài khoản, và verifier tái tạo cùng bonus từ loadout |
 | ECO-14 | Một lượt mùa trừ đúng 5 vé; bảng Stone mùa chỉ bốc khi không tầng nào trúng và không tầng nào đến hạn; ≤ 8 lượt mùa/ngày |
 | ECO-15 | S1 đủ trong ≤ 80 lượt, Mythic đầu ≤ 40; sim 100.000 series: max ≤ 80, mean 55 ±3, Stone mùa 78% ±2 |
 | ECO-16 | Bảng đổi trùng đơn điệu tăng theo độ hiếm; 10 trùng Common → 3 vé |

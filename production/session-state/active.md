@@ -5,6 +5,12 @@ Bản đầy đủ trước khi rút gọn: `archive/active-2026-10-12-before-re
 
 ## ⇢ BẮT ĐẦU TỪ ĐÂY
 
+**Cập nhật cuối 12/10:** đã chốt + review xong: kiến trúc server RNG (local `docs/architecture/`), monetization-v1
+(cách B, PA-1, quà 180 Gem, status CHỐT — chờ sim), ascension-v2 bảng răng cưa, prompt UI
+`design/requests/ui-redesign-request-02.md` (Liam gửi Claude Design). Tiếp theo: (1) Liam gửi prompt UI + ghi chú cosmetics
+02 cho Claude Design; (2) technical-director thêm kind epoch cho R5 đổi pact; (3) sim F/G cho monetization + Ascension;
+(4) viết lại Nhiệm vụ bản cực khó; (5) kế hoạch phase toàn dự án. Mục 1–3 bên dưới là bản sáng 12/10, đã xong.
+
 1. **Mở `production/session-state/pending-decisions.md`** — 23 câu (A art, B monetization, C kiến trúc) + câu commit (D),
    mỗi câu có đề xuất. Liam nói sẽ trả lời ở session này. Đưa danh sách cho Liam, ghi quyết định vào đầu file nguồn,
    rồi làm "Việc sau khi Liam trả lời" ở cuối file đó.
