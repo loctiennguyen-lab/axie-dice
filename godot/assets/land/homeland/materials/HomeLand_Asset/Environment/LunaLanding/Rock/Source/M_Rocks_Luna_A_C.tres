@@ -1,0 +1,8 @@
+[gd_resource type="StandardMaterial3D" format=3]
+
+[ext_resource type="Texture2D" path="res://assets/land/homeland/src/HomeLand_Asset/Environment/LunaLanding/Rock/Source/T_Rocks_Luna_A_C.png" id="1_q1ah1"]
+
+[resource]
+resource_name = "M_Rocks_Luna_A_C"
+shading_mode = 0
+albedo_texture = ExtResource("1_q1ah1")

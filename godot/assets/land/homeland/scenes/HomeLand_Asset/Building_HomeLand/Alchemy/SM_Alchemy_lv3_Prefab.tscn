@@ -1,0 +1,9 @@
+[gd_scene format=3]
+
+[ext_resource type="PackedScene" path="res://assets/land/homeland/src/HomeLand_Asset/Building_HomeLand/Alchemy/Source/SM_Alchemy_lv3.fbx" id="1_ytprp"]
+
+[node name="SM_Alchemy_lv3_Prefab" type="Node3D" unique_id=597039235]
+
+[node name="SM_Alchemy_lv3_Prefab" type="Node3D" parent="." unique_id=1964779756]
+
+[node name="SM_Alchemy_lv3" type="Node3D" parent="SM_Alchemy_lv3_Prefab" unique_id=434794086 instance=ExtResource("1_ytprp")]

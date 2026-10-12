@@ -1,0 +1,54 @@
+[gd_scene format=4]
+
+[ext_resource type="PackedScene" path="res://assets/land/homeland/src/HomeLand_Asset/Environment/Forest/Ground/Source/SM_TileGrass_02.fbx" id="1_on5fx"]
+[ext_resource type="Texture2D" path="res://assets/land/homeland/src/HomeLand_Asset/Environment/Forest/Ground/Source/T_TileGrass_Mask.png" id="2_y6vyf"]
+[ext_resource type="Material" path="res://assets/land/homeland/materials/HomeLand_Asset/Environment/Forest/Ground/Source/M_TileGrass_234.tres" id="3_3dipp"]
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_lwxti"]
+resource_name = "lambert6"
+vertex_color_use_as_albedo = true
+albedo_color = Color(0.9063318, 0.9063318, 0.9063318, 0.8)
+albedo_texture = ExtResource("2_y6vyf")
+emission_enabled = true
+
+[sub_resource type="ArrayMesh" id="ArrayMesh_oniuf"]
+_surfaces = [{
+"aabb": AABB(-0.39144745, -0.04947528, -0.39144745, 0.7828949, 0.51217574, 0.7828949),
+"format": 34359742465,
+"index_count": 18,
+"index_data": PackedByteArray("AAABAAIAAgADAAAABAAFAAYABgAHAAQACAAJAAoACgALAAgA"),
+"name": "lambert6",
+"primitive": 3,
+"uv_scale": Vector4(0, 0, 0, 0),
+"vertex_count": 12,
+"vertex_data": PackedByteArray("zWvIPgAAAADNa8g+zWvIvgAAAADNa8g+zWvIvgAAAADNa8i+zWvIPgAAAADNa8i+uMUIvArA3j64xQg8aFiTvmTxxj5oWJM+8dyBvoHcsrzx3IE+clTTPNMNyjxyVNO8KXVdPpemSr0pdV2+s/yfPlNxrj6z/J++SVGFPRTn7D5JUYW9uNz+vLODlD243P48")
+}]
+blend_shape_mode = 0
+
+[sub_resource type="ArrayMesh" id="ArrayMesh_dkp6i"]
+resource_name = "SM_TileGrass_02"
+_surfaces = [{
+"aabb": AABB(-0.39144745, -0.04947528, -0.39144745, 0.7828949, 0.51217574, 0.7828949),
+"attribute_data": PackedByteArray("5E57Px81fz8W1Xo/HzV/PxbVej9Ru34/5E57P1G7fj/GeGI+2IQ0PgD8vDrYhDQ+APy8Ol693z7GeGI+Xr3fPgUoaD6cNN8+BShoPrDM5z2AF9S7sMznPYAX1LucNN8+"),
+"format": 34359742487,
+"index_count": 18,
+"index_data": PackedByteArray("AAABAAIAAgADAAAABAAFAAYABgAHAAQACAAJAAoACgALAAgA"),
+"material": SubResource("StandardMaterial3D_lwxti"),
+"name": "lambert6",
+"primitive": 3,
+"uv_scale": Vector4(0, 0, 0, 0),
+"vertex_count": 12,
+"vertex_data": PackedByteArray("zWvIPgAAAADNa8g+zWvIvgAAAADNa8g+zWvIvgAAAADNa8i+zWvIPgAAAADNa8i+uMUIvArA3j64xQg8aFiTvmTxxj5oWJM+8dyBvoHcsrzx3IE+clTTPNMNyjxyVNO8KXVdPpemSr0pdV2+s/yfPlNxrj6z/J++SVGFPRTn7D5JUYW9uNz+vLODlD243P48/3///////7//f///////v/9///////+//3///////78AAP+/KvZMMAAA/78q9usmAAD/vyr26yYAAP+/KvZMMAAA/z+t5lNmAAD/P63mU2YAAP8/reZTZgAA/z+t5lNm")
+}]
+blend_shape_mode = 0
+shadow_mesh = SubResource("ArrayMesh_oniuf")
+
+[node name="F_TileGrass_02" type="Node3D" unique_id=1319146945]
+
+[node name="F_TileGrass_02" parent="." unique_id=51687013 instance=ExtResource("1_on5fx")]
+
+[node name="SM_TileGrass_02" parent="F_TileGrass_02" index="0" unique_id=613374142]
+mesh = SubResource("ArrayMesh_dkp6i")
+surface_material_override/0 = ExtResource("3_3dipp")
+
+[editable path="F_TileGrass_02"]

@@ -1,0 +1,15 @@
+[gd_scene format=3]
+
+[ext_resource type="PackedScene" path="res://assets/land/homeland/src/HomeLand_Asset/Building_HomeLand/Weaponsmith/Source/SM_Weaponsmith_lv1.fbx" id="1_xwwyl"]
+
+[node name="Weaponsmith_lv1" type="Node3D" unique_id=810313264]
+
+[node name="Weaponsmith_lv1" type="Node3D" parent="." unique_id=967404251]
+
+[node name="SM_SoftShadow_Elip" type="Node3D" parent="Weaponsmith_lv1" unique_id=270647861]
+transform = Transform3D(0.7594884, 0, 0, 0, 0.7594884, 0, 0, 0, 0.7594884, 0.01, 0.02, -1.91)
+
+[node name="Weaponsmith_lv1" type="Node3D" parent="Weaponsmith_lv1" unique_id=554398548 instance=ExtResource("1_xwwyl")]
+
+[node name="SM_SoftShadow_Square" type="Node3D" parent="Weaponsmith_lv1" unique_id=1679083793]
+transform = Transform3D(1.0122458, 0, 0, 0, 1, 0, 0, 0, 0.43953848, 0, 0.02, 2.16)

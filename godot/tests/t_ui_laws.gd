@@ -120,6 +120,7 @@ func _ready() -> void:
 ## plate. Seeding per scene costs nothing and cannot be ordered wrong.
 func _seed_state_the_scenes_need() -> void:
 	MetaState.tutorial_seen = true
+	LandNav.legacy_setup_open = true   # MainMenu redirects to Land otherwise
 	CombatView.disable_juice_for_tests = true
 	var roster: Array = []
 	var keys := ["plant1", "beast1", "aqua1", "reptile1", "bug1"]

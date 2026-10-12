@@ -1,0 +1,20 @@
+[gd_resource type="ShaderMaterial" format=3]
+
+[ext_resource type="Shader" path="res://assets/land/homeland/shaders/HomeLand_Asset/Environment/Savannah/Ground/Source/S_LandPlot_Savannah.gdshader" id="1_kpjqr"]
+[ext_resource type="Texture2D" path="res://assets/land/homeland/src/HomeLand_Asset/Environment/Savannah/Ground/Source/Land_Savannah_01_ground.png" id="2_lfb4t"]
+[ext_resource type="Texture2D" path="res://assets/land/homeland/src/HomeLand_Asset/Environment/Public/Resource_Plot/Source/Texture/Terrain_Mask.png" id="3_cd3oh"]
+[ext_resource type="Texture2D" path="res://assets/land/homeland/src/HomeLand_Asset/Environment/Public/Resource_Plot/Source/Texture/Road.png" id="4_po6by"]
+[ext_resource type="Texture2D" path="res://assets/land/homeland/src/HomeLand_Asset/Environment/Forest/Ground/Source/Shader/T_Noise_01.png" id="5_y30i2"]
+
+[resource]
+resource_name = "M_LandPlot_savannah"
+render_priority = 0
+shader = ExtResource("1_kpjqr")
+shader_parameter/pVector1_d286a9a95ecc4e2f976cc2b14d3c2cff = null
+shader_parameter/sg_shadow = null
+shader_parameter/pTexture2D_3e79e3fd56a44863875da278ba8e1dfc = ExtResource("2_lfb4t")
+shader_parameter/t_2aa0348f00fe = ExtResource("3_cd3oh")
+shader_parameter/t_54815ad5a35c = ExtResource("4_po6by")
+shader_parameter/t_de8b3b94650f = ExtResource("5_y30i2")
+shader_parameter/sg_main_light_dir = null
+shader_parameter/sg_main_light_color = null

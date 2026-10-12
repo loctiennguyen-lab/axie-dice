@@ -1,0 +1,11 @@
+[gd_resource type="StandardMaterial3D" format=3]
+
+[ext_resource type="Texture2D" path="res://assets/land/homeland/src/HomeLand_Asset/Environment/Genesis/Tree/Source/T_Tree_02_G_C.png" id="1_de1ei"]
+
+[resource]
+resource_name = "M_Tree_G_02"
+transparency = 2
+alpha_scissor_threshold = 0.5
+alpha_antialiasing_mode = 0
+shading_mode = 0
+albedo_texture = ExtResource("1_de1ei")

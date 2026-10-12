@@ -1,0 +1,54 @@
+[gd_scene format=4]
+
+[ext_resource type="PackedScene" path="res://assets/land/homeland/src/HomeLand_Asset/Environment/Arctic/Ground/Source/SM_TileSnow_02.fbx" id="1_4skwf"]
+[ext_resource type="Texture2D" path="res://assets/land/homeland/src/HomeLand_Asset/Environment/Forest/Ground/Source/T_TileGrass_Mask.png" id="2_5gy0y"]
+[ext_resource type="Material" path="res://assets/land/homeland/materials/HomeLand_Asset/Environment/Arctic/Ground/Source/M_Tile_Arctic.tres" id="3_jx3u0"]
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_pa34c"]
+resource_name = "lambert6"
+vertex_color_use_as_albedo = true
+albedo_color = Color(0.9063318, 0.9063318, 0.9063318, 0.8)
+albedo_texture = ExtResource("2_5gy0y")
+emission_enabled = true
+
+[sub_resource type="ArrayMesh" id="ArrayMesh_45ndb"]
+_surfaces = [{
+"aabb": AABB(-0.39144745, 0, -0.39144745, 0.7828949, 0.10400066, 0.7828949),
+"format": 34359742465,
+"index_count": 12,
+"index_data": PackedByteArray("AAABAAIAAQADAAIABAABAAAABAADAAEA"),
+"name": "lambert6",
+"primitive": 3,
+"uv_scale": Vector4(0, 0, 0, 0),
+"vertex_count": 5,
+"vertex_data": PackedByteArray("zWvIPgAAAADNa8i+AAAAAEz+1D0AAAAAzWvIvgAAAADNa8i+zWvIvgAAAADNa8g+zWvIPgAAAADNa8g+")
+}]
+blend_shape_mode = 0
+
+[sub_resource type="ArrayMesh" id="ArrayMesh_m76xv"]
+resource_name = "SM_TileGrass_02"
+_surfaces = [{
+"aabb": AABB(-0.39144745, 0, -0.39144745, 0.7828949, 0.10400066, 0.7828949),
+"attribute_data": PackedByteArray("5E57P1G7fj/9EXs/OPh+PxbVej9Ru34/FtV6Px81fz/kTns/HzV/Pw=="),
+"format": 34359742487,
+"index_count": 12,
+"index_data": PackedByteArray("AAABAAIAAQADAAIABAABAAAABAADAAEA"),
+"material": SubResource("StandardMaterial3D_pa34c"),
+"name": "lambert6",
+"primitive": 3,
+"uv_scale": Vector4(0, 0, 0, 0),
+"vertex_count": 5,
+"vertex_data": PackedByteArray("zWvIPgAAAADNa8i+AAAAAEz+1D0AAAAAzWvIvgAAAADNa8i+zWvIvgAAAADNa8g+zWvIPgAAAADNa8g+3ZqP8m3vtrf/f///AAAAgCFlj/Jt70jIkHIg5W3vSMhujSDlbe+2tw==")
+}]
+blend_shape_mode = 0
+shadow_mesh = SubResource("ArrayMesh_45ndb")
+
+[node name="TileSnow_02" type="Node3D" unique_id=342452227]
+
+[node name="TileSnow_02" parent="." unique_id=960731242 instance=ExtResource("1_4skwf")]
+
+[node name="SM_TileGrass_02" parent="TileSnow_02" index="0" unique_id=1774779726]
+mesh = SubResource("ArrayMesh_m76xv")
+surface_material_override/0 = ExtResource("3_jx3u0")
+
+[editable path="TileSnow_02"]

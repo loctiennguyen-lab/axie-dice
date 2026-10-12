@@ -1,0 +1,7 @@
+[gd_scene format=3]
+
+[ext_resource type="PackedScene" path="res://assets/land/homeland/src/HomeLand_Asset/Environment/Genesis/Tree/Source/SM_Tree_G_06.fbx" id="1_tm6j3"]
+
+[node name="SM_Tree_G_06" type="Node3D" unique_id=1376398140]
+
+[node name="SM_Tree_G_06" type="Node3D" parent="." unique_id=904510942 instance=ExtResource("1_tm6j3")]

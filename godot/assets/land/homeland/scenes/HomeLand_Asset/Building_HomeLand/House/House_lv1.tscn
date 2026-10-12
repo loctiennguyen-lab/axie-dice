@@ -1,0 +1,12 @@
+[gd_scene format=3]
+
+[ext_resource type="PackedScene" path="res://assets/land/homeland/src/HomeLand_Asset/Building_HomeLand/House/Source/SM_House_lv1.fbx" id="1_hrtgw"]
+
+[node name="House_lv1" type="Node3D" unique_id=1808233132]
+
+[node name="House_lv1" type="Node3D" parent="." unique_id=726762244]
+
+[node name="House_lv1" type="Node3D" parent="House_lv1" unique_id=1721545072 instance=ExtResource("1_hrtgw")]
+
+[node name="SM_SoftShadow_Square" type="Node3D" parent="House_lv1" unique_id=1295817833]
+transform = Transform3D(1.2887, 0, 0, 0, 1, 0, 0, 0, 1.6846, 0, 0.02, 0)

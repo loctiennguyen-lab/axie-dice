@@ -308,6 +308,7 @@ func test_use_this_team_actually_reaches_the_menu() -> void:
 
 	# The menu must pick it up, and must CLEAR it — otherwise a player who returns to the menu
 	# later has their own edited team silently replaced by a guide they clicked once.
+	LandNav.legacy_setup_open = true   # MainMenu otherwise redirects to Land
 	var menu := (load("res://scenes/main_menu/MainMenu.tscn") as PackedScene).instantiate()
 	add_child(menu)
 	await get_tree().process_frame
