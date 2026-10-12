@@ -1,6 +1,7 @@
 Trạng thái: ĐỀ XUẤT (bản sửa 11/10) — chờ Liam review → economy-designer đặt giá → senior reviewer audit
 
-> **QUYẾT ĐỊNH LIAM (12/10) — ưu tiên hơn thân file (B7 còn mở, xem `pending-decisions.md`):**
+> **QUYẾT ĐỊNH LIAM (12/10) — ưu tiên hơn thân file (cập nhật 12/10, đã chốt đủ B1–B8):**
+> B7 Pass premium **từ mùa 2**; **giữ Lunar Gem** (tiền cao cấp, chỉ mua bằng tiền thật); **có tặng 120 Gem/mùa** cho người không nạp ·
 > B1 độ khó Ascension kiểu Angry Birds (răng cưa): bậc thường khó thêm 2–4 điểm %, bậc cổng A3/A6/A9 nhảy 6–8 điểm
 > (bậc thêm cơ chế mới); trong run giữ đầu dễ, về sau khó · B6 bỏ nhảy cấp Pass ở v1; VIP = 1 Continue/run −25% +
 > 1 Boon/ngày; A10 trần 4 Aid; **bỏ hẳn R10 Hồi khẩn** (Liam: không cần thiết) ·

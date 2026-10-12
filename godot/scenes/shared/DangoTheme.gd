@@ -246,11 +246,15 @@ static func owned_button_style() -> StyleBoxFlat:
 
 ## A small coloured chip for a rarity tier. Common/Uncommon/Rare/Epic/Legendary = 0..4, matching
 ## the `rar` field `reward_generator.gd` already puts on every reward, shop item and relic.
+## Mythic = 5 is cosmetics only (skins, dice, frames): no relic, reward or shop item reaches it.
 ##
 ## Lives here rather than in one screen because the Result screen grew its own version first and
 ## the reward/shop/event/treasure cards — the screens where rarity actually changes a decision —
 ## never got one. One definition, so the two cannot drift apart.
-const RARITY_NAMES: Array[String] = ["Common", "Uncommon", "Rare", "Epic", "Legendary"]
+const RARITY_NAMES: Array[String] = ["Common", "Uncommon", "Rare", "Epic", "Legendary", "Mythic"]
+## Index of the cosmetics-only tier. Everything below it is shared with relics (CardArt has one
+## relic illustration per tier below this).
+const RARITY_MYTHIC := 5
 ## Exact v2 hexes (handoff §Colour · Rarity). They were eyeballed approximations of these until
 ## 2026-09-20; the epic and legendary values now equal MANA_PURPLE and PRIMARY exactly, which is
 ## intended — rarity and mana share a purple, and legendary IS the Kam orange.
@@ -260,7 +264,14 @@ const RARITY_COLORS: Array[Color] = [
 	Color(0x33 / 255.0, 0xB8 / 255.0, 0xFF / 255.0),   # Rare
 	Color(0xBF / 255.0, 0x6B / 255.0, 0xFF / 255.0),   # Epic
 	Color(0xFF / 255.0, 0x94 / 255.0, 0x45 / 255.0),   # Legendary
+	# Mythic "Luna Crimson", approved by Liam 12/10 (cosmetics-01 REVIEW §5). Only for rarity chips,
+	# borders, tier names and frames, never for numbers, HP, intents or damage text (it sits ~17°
+	# from DANGER). Always paired with the word MYTHIC or the crystal glyph. Ink on it must be INK
+	# (≈5.4:1); cream is ≈2.8:1 and white ≈3.4:1, both forbidden, see the special case in ink_on().
+	Color(0xFF / 255.0, 0x3D / 255.0, 0x6E / 255.0),   # Mythic
 ]
+## The one night background Mythic cosmetics sit on (approved with the Mythic colour, 12/10).
+const MYTHIC_NIGHT := Color(0x2A / 255.0, 0x0F / 255.0, 0x2E / 255.0)
 
 
 static func rarity_color(rar: int) -> Color:
@@ -853,6 +864,11 @@ static func solid_chip_style(fill: Color, radius: int = 9, border_w: int = 3,
 ## whether a status colour wants black or cream on it — and so nobody "fixes" a contrast failure
 ## by desaturating the status colour, which the handoff forbids.
 static func ink_on(fill: Color) -> Color:
+	# Mythic crimson lands at luma ≈ 0.415, just under the cut, so the formula below would pick
+	# cream at ≈2.8:1. Dark ink is ≈5.4:1 there. Pinned here instead of moving the cut, because
+	# DANGER sits at ≈ 0.416 too and its cream ink is what every screen already shows.
+	if fill.is_equal_approx(RARITY_COLORS[RARITY_MYTHIC]):
+		return INK
 	var luma := fill.r * 0.2126 + fill.g * 0.7152 + fill.b * 0.0722
 	return INK if luma > 0.42 else CREAM
 

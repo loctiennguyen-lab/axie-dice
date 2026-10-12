@@ -66,6 +66,8 @@ Request cho Claude Design: `design/requests/cosmetics-art-request-01.md` (55 mó
 4. Bắt đầu triển khai theo phase.
 
 ## Bẫy
+- Comment cũ gọi bậc 4 là "Mythic" (`reward_generator.gd:56`, `relic_def.gd:32`, `unit.gd:40`) giờ sai vì Mythic = 5 (chỉ cosmetic).
+  Đây là file luật: sửa comment cũng làm đỏ `t_rules_version`, nên để gom vào lần bump `RULES_VERSION` chung.
 - Lỗi parse GDScript làm Godot treo; Mac không có `timeout` → background + `( sleep N; kill $p )`.
 - `godot/tools/record_sample_run.tscn` và `verify_run.tscn` CHƯA có SaveGuard — ghi đè save thật. Sao lưu
   `~/Library/Application Support/Godot/app_userdata/Axie Dice (Godot port)/` trước khi chạy bất cứ thứ gì.

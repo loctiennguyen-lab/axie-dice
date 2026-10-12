@@ -349,10 +349,24 @@ func test_every_mapped_card_illustration_loads() -> void:
 		var relic_path: String = CardArt.DIR + CardArt.RELIC_ART_BY_RARITY[i] + ".png"
 		_assert(ResourceLoader.exists(relic_path),
 			"relic rarity %d maps to %s, which is not on disk" % [i, relic_path])
-	_assert(CardArt.RELIC_ART_BY_RARITY.size() == DangoTheme.RARITY_NAMES.size(),
-		"there are %d relic illustrations for %d rarities — the tiers no longer line up, so "
-			% [CardArt.RELIC_ART_BY_RARITY.size(), DangoTheme.RARITY_NAMES.size()]
+	# Relics span every tier below Mythic; Mythic (cosmetics only) has no relic art on purpose.
+	_assert(CardArt.RELIC_ART_BY_RARITY.size() == DangoTheme.RARITY_MYTHIC,
+		"there are %d relic illustrations for %d relic rarities — the tiers no longer line up, so "
+			% [CardArt.RELIC_ART_BY_RARITY.size(), DangoTheme.RARITY_MYTHIC]
 		+ "some rarity silently falls back to Common art")
+	_assert(DangoTheme.RARITY_NAMES.size() == DangoTheme.RARITY_COLORS.size(),
+		"%d rarity names but %d rarity colours" % [DangoTheme.RARITY_NAMES.size(),
+			DangoTheme.RARITY_COLORS.size()])
+	_assert(DangoTheme.rarity_name(DangoTheme.RARITY_MYTHIC) == "Mythic",
+		"tier %d is not named Mythic" % DangoTheme.RARITY_MYTHIC)
+	_assert(DangoTheme.rarity_color(DangoTheme.RARITY_MYTHIC).to_html(false) == "ff3d6e",
+		"Mythic is not #FF3D6E (approved 12/10)")
+	_assert(DangoTheme.ink_on(DangoTheme.rarity_color(DangoTheme.RARITY_MYTHIC)) == DangoTheme.INK,
+		"ink on Mythic is not INK — cream on #FF3D6E is ~2.8:1 and forbidden")
+	_assert(DangoTheme.MYTHIC_NIGHT.to_html(false) == "2a0f2e",
+		"the Mythic night background is not #2A0F2E (approved 12/10)")
+	_assert(DangoTheme.ink_on(DangoTheme.DANGER) == DangoTheme.CREAM,
+		"the Mythic special case in ink_on() leaked onto DANGER")
 
 	# Every reward type the game can actually offer must have art. reward_generator.gd is the
 	# authority on which those are; a type added there and forgotten here would ship a card that

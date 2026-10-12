@@ -4,7 +4,7 @@ Trạng thái: REVIEW — chờ Liam
 > A1 giữ style Homeland cho cosmetic (hợp thế giới 3D), chỉ ép viền đậm ở cỡ nhỏ · A2 (a) vẽ lại cả 21 khung cùng một
 > style, lấy 5 khung của Liam (khung mẫu HomeLand) làm tham chiếu · A3 khung Legendary = mặt trời vàng (`sunburst`) ·
 > A4 duyệt Mythic `#FF3D6E` (chỉ chip/viền/tên tier, cấm chữ trắng) + một nền đêm `#2A0F2E` · A5 đợt giao sau có lớp
-> glow/MAX riêng cho Epic+.
+> glow/MAX riêng cho Epic+ · §10 Q6 **có** chi tiết băng chung cho 6 skin Rare · §10 Q3 **giữ** tím lilac của Reptile.
 
 # Review độc lập: Cosmetics 01 v6 (Claude Design) so với brief
 
