@@ -240,7 +240,7 @@ test('paid requests: refused with no wallet, refused in mission mode, charged on
   await w.c.epoch('node', { node_id: 'r1_c0' }, []);
   const r = await w.c.epoch('continue', { node_id: 'r1_c0' }, [A('enter_node', ['r1_c0', 'battle'])]);
   assert.equal(r.t, 'epoch_res');
-  assert.deepEqual(charges, [[`aid:${RUN}:3`, 'continue']]);
+  assert.deepEqual(charges, [[`aid:${RUN}:3`, 'R1']]);
   assert.equal(w.sql.exec('SELECT COUNT(*) AS n FROM pending_aid').toArray()[0].n, 0);
 
   const m = await fresh({ mode: 'mission' }, { charge: async () => { throw new Error('must not be called'); } });

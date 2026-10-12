@@ -70,7 +70,7 @@ async function createRun(request, env, url, player) {
   try {
     const r = await stub(env, runId).fetch('https://do/init', {
       method: 'POST',
-      body: JSON.stringify({ run_id: runId, player_id: player.id, mode, rules_version: rules, client_nonce: nonce }),
+      body: JSON.stringify({ run_id: runId, player_id: player.id, mode, ascension, rules_version: rules, client_nonce: nonce }),
     });
     init = await r.json();
   } catch (err) {

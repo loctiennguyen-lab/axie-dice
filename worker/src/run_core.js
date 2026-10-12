@@ -7,6 +7,7 @@
 // What it enforces is the syntactic part of ADR server-authoritative-rng §4.3 / §4.6: append-only
 // log with a hash chain, one valid request per seq, no overlapping epochs, consume-in-place,
 // pinned reroll seeds, budgets. It never runs game rules: that is the verifier's job (later).
+import { AID_BY_KIND, PRICES, totalCap } from './aid_prices.js';
 import { canonKV, chainStart, chainNext, commitOf, epochSeed, isCanonScalar, nodeRow, MAX_PARAMS, _bytes } from './epoch_canon.js';
 
 export const MAX_EPOCHS = 400;
@@ -105,7 +106,7 @@ export class RunCore {
   static initSchema(sql) {
     sql.exec(`CREATE TABLE IF NOT EXISTS meta (
       id INTEGER PRIMARY KEY CHECK (id = 1), run_id TEXT NOT NULL, player_id TEXT NOT NULL,
-      is_guest INTEGER NOT NULL, mode TEXT NOT NULL, rules_version TEXT NOT NULL,
+      is_guest INTEGER NOT NULL, mode TEXT NOT NULL, ascension INTEGER NOT NULL DEFAULT 0, rules_version TEXT NOT NULL,
       s_run BLOB NOT NULL, client_nonce TEXT, session_epoch INTEGER NOT NULL DEFAULT 0,
       state TEXT NOT NULL, outcome TEXT, summary TEXT, created_at INTEGER NOT NULL)`);
     sql.exec(`CREATE TABLE IF NOT EXISTS pending_aid (
@@ -115,22 +116,22 @@ export class RunCore {
     sql.exec(`CREATE TABLE IF NOT EXISTS epochs (
       seq INTEGER PRIMARY KEY, kind TEXT NOT NULL, args TEXT NOT NULL, h TEXT NOT NULL,
       log_len INTEGER NOT NULL, seed INTEGER NOT NULL, log_delta TEXT NOT NULL,
-      attempt INTEGER NOT NULL, req_digest TEXT NOT NULL, pin_key TEXT, uids TEXT, at INTEGER NOT NULL)`);
+      attempt INTEGER NOT NULL, req_digest TEXT NOT NULL, pin_key TEXT, uids TEXT, aid TEXT, at INTEGER NOT NULL)`);
   }
 
   // ------------------------------------------------------------------ creation
 
   /** Called once, right after the D1 batch inserted runs(state=pending). Returns the commitment. */
-  async init({ run_id, player_id, is_guest = false, mode = 'normal', rules_version, client_nonce = null }) {
+  async init({ run_id, player_id, is_guest = false, mode = 'normal', ascension = 0, rules_version, client_nonce = null }) {
     RunCore.initSchema(this.sql);
     if (this.meta()) throw new Error('run already initialised');
     if (!/^[a-f0-9]{32}$/.test(run_id)) throw new Error('bad run_id');
     if (this.deps.supportsRules && !this.deps.supportsRules(rules_version)) return { ok: false, code: 'version' };
     const sRun = crypto.getRandomValues(new Uint8Array(32)); // never leaves the DO while the run is open
     this.sql.exec(
-      `INSERT INTO meta (id, run_id, player_id, is_guest, mode, rules_version, s_run, client_nonce, state, created_at)
-       VALUES (1, ?, ?, ?, ?, ?, ?, ?, 'open', ?)`,
-      run_id, player_id, is_guest ? 1 : 0, mode, rules_version, sRun, client_nonce, this.deps.now(),
+      `INSERT INTO meta (id, run_id, player_id, is_guest, mode, ascension, rules_version, s_run, client_nonce, state, created_at)
+       VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?, 'open', ?)`,
+      run_id, player_id, is_guest ? 1 : 0, mode, ascension, rules_version, sRun, client_nonce, this.deps.now(),
     );
     return { ok: true, commit: await commitOf(run_id, sRun) };
   }
@@ -293,9 +294,11 @@ export class RunCore {
     if (m.kind === 'continue' && args.attempt !== undefined && args.attempt !== attempt) return fail(seq, 'rejected');
 
     // Paid requests: mission runs refuse them outright; others go through the wallet hook.
+    let aid = null;
     if (isPaid(m.kind, args)) {
-      if (meta.mode === 'mission') return fail(seq, 'rejected');
-      const ok = await this._charge(meta, seq, m.kind, args);
+      aid = AID_BY_KIND(m.kind, args);
+      if (meta.mode === 'mission' || meta.is_guest || !aid || this._overCap(meta, aid, m.kind, args)) return fail(seq, 'rejected');
+      const ok = await this._charge(meta, seq, aid, args);
       if (!ok) return fail(seq, 'rejected');
     }
 
@@ -317,9 +320,9 @@ export class RunCore {
       });
     }
     this.sql.exec(
-      `INSERT INTO epochs (seq, kind, args, h, log_len, seed, log_delta, attempt, req_digest, pin_key, uids, at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      seq, m.kind, JSON.stringify(args), h, m.log_len, seed, JSON.stringify(delta), attempt, digest, pin, uids, this.deps.now(),
+      `INSERT INTO epochs (seq, kind, args, h, log_len, seed, log_delta, attempt, req_digest, pin_key, uids, aid, at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      seq, m.kind, JSON.stringify(args), h, m.log_len, seed, JSON.stringify(delta), attempt, digest, pin, uids, aid, this.deps.now(),
     );
     return { t: 'epoch_res', seq, seed };
   }
@@ -341,6 +344,18 @@ export class RunCore {
     const nodeSeq = this._battleSeq();
     const n = this.sql.exec(`SELECT COUNT(*) AS n FROM epochs WHERE kind = 'continue' AND seq > ?`, nodeSeq).toArray()[0].n;
     return kind === 'continue' ? n + 1 : n;
+  }
+
+  /** Per-run caps (ADR 4.9, checked BEFORE charging): per aid, per node for R5, and the total. */
+  _overCap(meta, aid, kind, args) {
+    const used = (a) => this.sql.exec('SELECT COUNT(*) AS n FROM epochs WHERE aid = ?', a).toArray()[0].n;
+    if (used(aid) >= PRICES[aid].cap_run) return true;
+    if (kind === 'pact_reroll') {
+      const here = this.sql.exec(`SELECT COUNT(*) AS n FROM epochs WHERE aid = 'R5' AND args LIKE ?`, `%"node_id":"${args.node_id}"%`).toArray()[0].n;
+      if (here >= 1) return true; // cap_per_pact
+    }
+    const total = this.sql.exec('SELECT COUNT(*) AS n FROM epochs WHERE aid IS NOT NULL').toArray()[0].n;
+    return total >= totalCap(meta.ascension);
   }
 
   async _charge(meta, seq, kind, args) {

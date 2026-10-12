@@ -1,0 +1,84 @@
+// Gem wallet in D1: balance + append-only ledger with server-built idempotency keys.
+// Every change is one DB.batch (a transaction in D1): ledger row first, then the balance update whose
+// CHECK(balance >= 0) rolls the whole batch back when funds are short. A duplicate idem_key trips the
+// UNIQUE index, rolls back, and is reported as an idempotent replay, never a second charge.
+import { shared } from './accounts.js';
+import { GIFT } from './aid_prices.js';
+
+const { json } = shared;
+const CUR = 'gem';
+const nowS = () => Math.floor(Date.now() / 1000);
+const utcDay = (s) => new Date(s * 1000).toISOString().slice(0, 10);
+
+export async function balanceOf(env, playerId) {
+  const r = await env.DB.prepare('SELECT balance FROM wallets WHERE player_id = ? AND currency = ?').bind(playerId, CUR).first();
+  return r ? r.balance : 0;
+}
+
+const isUnique = (e) => /UNIQUE/i.test(String((e && e.message) || e));
+
+async function replay(env, playerId, idem) {
+  const row = await env.DB.prepare('SELECT delta FROM wallet_ledger WHERE player_id = ? AND idem_key = ?').bind(playerId, idem).first();
+  return row ? { ok: true, dup: true, delta: row.delta, balance: await balanceOf(env, playerId) } : null;
+}
+
+/** Apply delta (+grant / -spend). Returns {ok, balance, dup?} or {ok:false, code:'insufficient'|'error'}. */
+export async function applyDelta(env, playerId, delta, reason, idem, at = nowS()) {
+  if (!Number.isSafeInteger(delta) || delta === 0) return { ok: false, code: 'bad_amount' };
+  const first = await replay(env, playerId, idem);
+  if (first) return first;
+  try {
+    await env.DB.batch([
+      env.DB.prepare('INSERT OR IGNORE INTO wallets (player_id, currency, balance) VALUES (?, ?, 0)').bind(playerId, CUR),
+      env.DB.prepare('INSERT INTO wallet_ledger (player_id, currency, delta, reason, idem_key, at) VALUES (?, ?, ?, ?, ?, ?)')
+        .bind(playerId, CUR, delta, reason, idem, at),
+      env.DB.prepare('UPDATE wallets SET balance = balance + ? WHERE player_id = ? AND currency = ?').bind(delta, playerId, CUR),
+    ]);
+  } catch (e) {
+    if (isUnique(e)) return (await replay(env, playerId, idem)) || { ok: false, code: 'error' };
+    if (/CHECK/i.test(String(e && e.message || e))) return { ok: false, code: 'insufficient' };
+    throw e;
+  }
+  return { ok: true, balance: await balanceOf(env, playerId) };
+}
+
+export const spendGem = (env, playerId, n, reason, idem) => applyDelta(env, playerId, -n, reason, idem);
+
+/** Daily gift: min(300, room under the 900 cap), once per UTC day. At the cap the day is NOT used up. */
+export async function claimDaily(env, playerId, at = nowS()) {
+  const day = utcDay(at);
+  const next = (Math.floor(at / 86400) + 1) * 86400;
+  const idem = `grant:${playerId}:${day}`;
+  const used = await replay(env, playerId, idem);
+  if (used) return { ok: false, granted: 0, reason: 'already_claimed', balance: used.balance, next_utc: next };
+  const bal = await balanceOf(env, playerId);
+  const room = GIFT.balance_cap - bal;
+  if (room <= 0) return { ok: false, granted: 0, reason: 'at_cap', balance: bal, next_utc: at };
+  const amount = Math.min(GIFT.per_day, room);
+  const r = await applyDelta(env, playerId, amount, 'grant:playtest_grant', idem, at);
+  if (!r.ok) return { ok: false, granted: 0, reason: 'error', balance: bal, next_utc: next };
+  if (r.dup) return { ok: false, granted: 0, reason: 'already_claimed', balance: r.balance, next_utc: next };
+  return { ok: true, granted: amount, reason: '', balance: r.balance, next_utc: next };
+}
+
+export const isWalletPath = (p) => p === '/api/wallet' || p === '/api/gem/claim';
+
+export async function handleWallet(request, env, url) {
+  try {
+    const player = await shared.currentPlayer(request, env);
+    if (!player) return json({ error: 'unauthenticated' }, 401);
+    if (url.pathname === '/api/wallet' && request.method === 'GET') {
+      const tail = await env.DB.prepare('SELECT delta, reason, at FROM wallet_ledger WHERE player_id = ? ORDER BY id DESC LIMIT 20').bind(player.id).all();
+      return json({ gem: await balanceOf(env, player.id), ledger_tail: tail.results });
+    }
+    if (url.pathname === '/api/gem/claim' && request.method === 'POST') {
+      const o = request.headers.get('Origin');
+      if (o && !shared.isAllowedOrigin(o, url)) return json({ error: 'forbidden' }, 403);
+      return json(await claimDaily(env, player.id));
+    }
+    return json({ error: 'not_found' }, 404);
+  } catch (err) {
+    console.error('wallet error', String(err && err.stack || err));
+    return json({ error: 'server' }, 500);
+  }
+}
