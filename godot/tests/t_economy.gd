@@ -79,6 +79,7 @@ func _ready() -> void:
 	test_record_run_outcome_and_badges()
 	test_spend_and_ledger()
 	test_mission_stake()
+	test_daily_claim_stone()
 	_guard.restore()
 	print("=== t_economy: %d checks, %d failure(s) ===" % [_checks, _failures.size()])
 	if _failures.is_empty():
@@ -886,3 +887,28 @@ func _test_mission_stake_body(has_run: Array) -> void:
 	MetaState.settle_mission_stake(false)
 	MetaState.reload_from_store()
 	_assert(MetaState.mission_escrow.is_empty() and MetaState.shard_pool == 700, "abandon: đóng thua, bền qua reload")
+
+
+## claim_daily_mission: +500 Stone (daily.json) vào sổ cái, một lần/ngày; cờ ngày + đếm ngày tuần bền qua reload.
+func test_daily_claim_stone() -> void:
+	_fresh_meta(0, 0)
+	var want := int((_Econ.get_table("daily").get("daily_reward", {}) as Dictionary).get("stone", -1))
+	_assert(want > 0 and not MetaState.daily_done_today() and MetaState.weekly_daily_days() == 0, "daily: trạng thái đầu sạch")
+	_assert(MetaState.claim_daily_mission(), "daily: nhận lần đầu")
+	_assert(MetaState.stone == want, "daily: Stone = daily.json (%d)" % want)
+	var led := 0
+	for l in MetaState.ledger:
+		if String(l.get("c", "")) == "stone" and String(l.get("r", "")) == "daily":
+			led += int(l.get("d", 0))
+	_assert(led == want, "daily: Stone vào sổ cái")
+	_assert(not MetaState.claim_daily_mission() and MetaState.stone == want, "daily: lần hai cùng ngày không cộng thêm")
+	_assert(MetaState.daily_done_today() and MetaState.weekly_daily_days() == 1, "daily: cờ hôm nay + 1 ngày trong tuần")
+	_assert(MetaState.weekly_daily_min_days() == 4, "daily: ngưỡng tuần từ data")
+	MetaState.save_to_disk()
+	MetaState.reload_from_store()
+	_assert(MetaState.stone == want and MetaState.daily_done_today() and MetaState.weekly_daily_days() == 1, "daily: bền qua reload")
+	MetaState.daily_date = "2000-01-01"
+	MetaState.daily_week = {"week": "2000-01-03", "n": 3}
+	_assert(not MetaState.daily_done_today() and MetaState.weekly_daily_days() == 0, "daily: tuần cũ không tính")
+	MetaState.claim_daily_mission()
+	_assert(MetaState.weekly_daily_days() == 1, "daily: sang tuần mới đếm lại từ 1")

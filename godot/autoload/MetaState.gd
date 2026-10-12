@@ -96,6 +96,8 @@ var asc_wins: Dictionary = {}            # "asc" -> số run thắng
 var full_a9_won: bool = false
 var aid_hints_off: bool = false
 var last_daily_reward_utc: String = ""
+## Số ngày UTC đã nhận daily trong tuần (thứ Hai UTC): {"week": "YYYY-MM-DD", "n": 0}. Cho chấm tuần M8.
+var daily_week: Dictionary = {"week": "", "n": 0}
 ## Sổ cái (200 dòng cuối): {t, c, d, r, b} = thời điểm, tiền tệ, thay đổi, lý do, số dư sau.
 var ledger: Array = []
 const LEDGER_MAX := 200
@@ -433,6 +435,7 @@ func _reset_economy_fields() -> void:
 	full_a9_won = false
 	aid_hints_off = false
 	last_daily_reward_utc = ""
+	daily_week = {"week": "", "n": 0}
 	ledger = []
 
 
@@ -515,6 +518,8 @@ func _economy_from_json(parsed: Dictionary, raw_text: String = "") -> void:
 	full_a9_won = bool(parsed.get("full_a9_won", false))
 	aid_hints_off = bool(parsed.get("aid_hints_off", false))
 	last_daily_reward_utc = str(parsed.get("last_daily_reward_utc", ""))
+	var dw = parsed.get("daily_week", {})
+	daily_week = {"week": String(dw.get("week", "")), "n": maxi(0, int(dw.get("n", 0)))} if dw is Dictionary else {"week": "", "n": 0}
 	ledger = (parsed.get("ledger", []) as Array).duplicate(true) if parsed.get("ledger", []) is Array else []
 	starter_granted = bool(parsed.get("starter_granted", false))
 	if ver < SAVE_VERSION:
@@ -619,6 +624,7 @@ func save_to_disk() -> void:
 		"full_a9_won": full_a9_won,
 		"aid_hints_off": aid_hints_off,
 		"last_daily_reward_utc": last_daily_reward_utc,
+		"daily_week": daily_week,
 		"ledger": ledger,
 	}
 	if not SaveStore.write_text(SAVE_PATH, JSON.stringify(data, "\t")):
@@ -1089,5 +1095,29 @@ func claim_daily_mission() -> bool:
 		return false
 	daily_date = today
 	shard_pool += ContentDB.DAILY_MISSION_SHARD
+	var stone_n := int((EconomyDBScript.get_table("daily").get("daily_reward", {}) as Dictionary).get("stone", 0))
+	if stone_n > 0:
+		add_stone(stone_n, "daily", false)
+	var wk := PassV2.week_key(today)
+	if String(daily_week.get("week", "")) != wk:
+		daily_week = {"week": wk, "n": 0}
+	daily_week["n"] = int(daily_week["n"]) + 1
 	PassV2.add_daily_bonus_xp(self, today)   # +100 XP Pass v2 (ngoài mùa: không làm gì)
 	return true
+
+
+## Đã nhận daily hôm nay (= đã xong một run hôm nay: claim_daily_mission chạy ở cuối run). Cho chấm ngày M8.
+func daily_done_today() -> bool:
+	return daily_date == today_utc()
+
+
+## Số ngày đã nhận daily trong tuần UTC hiện tại (0..7).
+func weekly_daily_days() -> int:
+	if String(daily_week.get("week", "")) != PassV2.week_key(today_utc()):
+		return 0
+	return int(daily_week.get("n", 0))
+
+
+## Ngưỡng ngày để ăn thưởng tuần (daily.json -> weekly_bonus.min_days). Chưa có logic trao thưởng tuần.
+func weekly_daily_min_days() -> int:
+	return int((EconomyDBScript.get_table("daily").get("weekly_bonus", {}) as Dictionary).get("min_days", 0))
