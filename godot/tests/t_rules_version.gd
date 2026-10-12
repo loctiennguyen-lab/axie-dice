@@ -19,7 +19,7 @@ extends Node
 ## and the rules JSON lane A/E add lives under `assets/data/rules/`. Every dir is walked
 ## recursively for .gd / .tres / .json (never .uid / .import: Godot bookkeeping).
 const WATCHED_DIRS: Array[String] = ["res://scripts/core", "res://autoload",
-	"res://resources/relics", "res://assets/data/rules"]
+	"res://resources/relics", "res://assets/data/rules", "res://scripts/meta"]
 const WATCHED_EXTS: Array[String] = [".gd", ".tres", ".json"]
 const WATCHED_FILES: Array[String] = ["res://assets/data/part_faces.json"]
 
@@ -114,7 +114,15 @@ const WATCHED_FILES: Array[String] = ["res://assets/data/part_faces.json"]
 ## The watch list now also covers resources/relics (*.tres incl. relic_tuning.tres) and
 ## assets/data/rules (*.json), recursively, so the relic set is fingerprinted from here on.
 ## Earlier today (88abaa4 B skeleton, d6e8f25 C MonsterArt.resolve) moved it with no behaviour change.
-const FINGERPRINT := "1221180ed728bfffa6b313e7e8f1e1fe715f652a648cb136a053bdf1393ff31e"
+## BUMPED again, 2026-10-12: `ActionLog.RULES_VERSION` -> `godot-2026-10-12-b`. Lane E's merge
+## (MetaState save v2 + migration, EconomyDB, GemWallet, Echo Box, MissionBoard) is wallet/UI-only
+## EXCEPT `MetaState.run_bonuses(is_ranked)`: ranked runs used to get all zeroes, and now get the
+## grind unlocks (B3, Liam 12/10). Same actions + seed in a ranked run now play out differently
+## (starting bonuses are non-zero), so old ranked logs must not be replayed under the new rules.
+## Changes the run result: YES. `scripts/meta` (Aid catalog, Echo Box...) joined the watch list.
+## DEBT: the verifier must take the loadout from the log header; until then a ranked replay only
+## matches on a machine with the same unlocks (see production/l1-tasks-I.md).
+const FINGERPRINT := "b04922468e219fda91cf0274fa2b56d2ac703f6e468a66457683c6f3d1de75f9"
 
 
 func _ready() -> void:

@@ -49,7 +49,7 @@ extends RefCounted
 ## imported Axie used to reach combat with six faces the engine could not read — it rolled
 ## 0-value blanks — and now rolls the die its parts describe. Any log recorded before this
 ## replays differently, which is exactly what this constant is for.
-const RULES_VERSION := "godot-2026-10-12-a"   # L1 combat batch 1: đổi kết quả run: CÓ (epoch seed + relic set v2)
+const RULES_VERSION := "godot-2026-10-12-b"   # L1: đổi kết quả run: CÓ (ranked nhận run_bonuses từ unlock cày, B3). -a = epoch seed + relic set v2
 
 ## Mirrors `ALLOWED_FNS` in api/submit-run.js, in this port's own vocabulary. A verifier reads
 ## this list to know what it must implement; anything absent from it is refused at record time,

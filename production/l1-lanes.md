@@ -27,7 +27,7 @@ Làn I làm việc ngay trong `/Users/loc.tien.nguyen/my-game` (nhánh `godot-po
 3. Trước khi merge: nhánh làn rebase lên `godot-port` mới nhất (làn I hoặc làn chủ nhánh rebase, không để conflict trôi sang `godot-port`).
 4. Chỉ sửa file mình sở hữu. File chung (`FINGERPRINT`, `RULES_VERSION`, `project.godot`, `run_tests.sh`, mức sàn test) chỉ làn I sửa. Cần đổi thì gửi yêu cầu cho làn I.
 5. `FINGERPRINT` trong `t_rules_version.gd`: không làn nào tự sửa. Làn I tính lại sau mỗi merge và ghi "đổi kết quả run: có/không" vào mô tả merge. Conflict ở dòng này giải bằng cách tính lại, không chọn bên.
-6. Mức sàn test (hiện 62/62 từ 12/10, trong `.claude/docs/technical-preferences.md`): đổi suite thì đổi con số trong cùng commit.
+6. Mức sàn test (hiện 63/63 từ 12/10, sau merge E, trong `.claude/docs/technical-preferences.md`): đổi suite thì đổi con số trong cùng commit.
 7. Push: chỉ `git push axiedice godot-port:main`, không bao giờ `origin`. Không deploy.
 
 ## user:// riêng cho mỗi worktree (override.cfg)

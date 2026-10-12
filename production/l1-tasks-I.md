@@ -13,3 +13,8 @@ Cập nhật 12/10, sau merge A PR1 (3220402) + B (6ae29ef) và bump `RULES_VERS
 4. **`randi()` tự do trong `RunState.begin_run`** (chọn `local_secret` của `LocalEpochSource`). Hiện không có test `t_no_free_rng` nào để cho phép riêng dòng này; nếu thêm test đó, phải ghi ngoại lệ đúng dòng này và không cho nơi khác.
 5. **Fingerprint** giờ phủ `scripts/core`, `autoload`, `resources/relics` (`*.tres`, gồm `relic_tuning.tres`), `assets/data/rules` (`*.json`, thư mục chưa có), đệ quy. Làn thêm file luật ở chỗ khác thì báo làn I thêm vào `WATCHED_DIRS`.
 6. **Khoá Godot:** mỗi worktree có user dir + khoá riêng (override.cfg); chỉ cây chính dùng khoá chung. Suite ở cây chính vẫn phải xếp hàng sau các lần chạy lẻ trong cây chính, và có lúc chờ rất lâu.
+
+## Sau merge E (12/10, RULES_VERSION -> godot-2026-10-12-b)
+
+7. **Ranked nhận `run_bonuses` từ unlock cày (B3)** nhưng verifier chưa đọc loadout từ header của log. Replay ranked chỉ khớp trên máy có cùng unlock. Phải làm (A + S): ghi loadout vào header, verifier dùng nó thay cho `MetaState`, trước khi chấm leaderboard thật. Đã bump `-b` vì cùng actions + seed cho run khác.
+8. Fingerprint giờ phủ thêm `scripts/meta/` (Aid catalog ảnh hưởng combat). `assets/data/economy/*.json` chưa phủ (ví/Pass, không đổi kết quả run); nếu Aid hoặc luật đọc dữ liệu từ đó thì phải thêm.
