@@ -85,6 +85,14 @@ func _ready() -> void:
 	s.set_state("normal")
 	var rr := await s.begin()
 	_ok(rr.ok and RunState.roster.size() == 5 and RunState.mode == "full" and RunState.ascension == 3, "real RunState.begin_run called with params")
+	# newcomer param reaches the header and RunState (default false)
+	var base := {"team_keys": ["bird1", "bird1", "bird1", "bird1", "bird1"], "mode": "short", "ascension": 0}
+	var p_nc := base.duplicate(true)
+	p_nc["newcomer"] = true
+	var r_nc: Dictionary = await RunState.begin_run(p_nc)
+	_ok(r_nc.ok and RunState.newcomer == true, "begin_run newcomer:true -> RunState.newcomer")
+	var r_df: Dictionary = await RunState.begin_run(base.duplicate(true))
+	_ok(r_df.ok and RunState.newcomer == false, "begin_run default newcomer false")
 	# other states
 	for st in ["loading", "offline", "open_run", "normal"]:
 		s.set_state(st)

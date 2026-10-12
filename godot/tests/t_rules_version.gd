@@ -163,7 +163,10 @@ const WATCHED_FILES: Array[String] = ["res://assets/data/part_faces.json"]
 ## (default local, unchanged path), RunSession as a lazy child node. Run result: NO, stays -h.
 ## Moved 2026-10-13 by lane E (5eadce4..b2e12a9): MetaState daily Stone + week counter, Pass wrappers, Gem pack
 ## data, seasonal Echo Box state (disabled in data). Meta only. Run result: NO, stays -h.
-const FINGERPRINT := "0b15a70bb336e12e42dfaf153ce667a374d72585bc08dce988be8a86c000c626"
+## BUMPED, 2026-10-13: `ActionLog.RULES_VERSION` -> `godot-2026-10-13-i`. LocalEpochSource writes header.newcomer
+## from run params (was always false), so local newcomer runs now get the designed softening (no attrition, no
+## light boss clock, Aid hidden; monetization-v1 §1.6). Changes the run result: YES (newcomer runs only).
+const FINGERPRINT := "2c20012d9a8217273fe5a7efc3a654ca9fffddf42f394f6c723b74f53fc50220"
 
 
 func _ready() -> void:

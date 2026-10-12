@@ -5,7 +5,7 @@ Cập nhật: 2026-10-12. Nhánh `godot-port`, push lên `axiedice` (`git push a
 ## ⇢ BẮT ĐẦU TỪ ĐÂY (bàn giao sáng 13/10/2026 — sau đêm chạy liên tục)
 
 **godot-port = axiedice/main** (đã push). Suite cây chính **85/85 không SKIP**, Worker **141/141**. RULES_VERSION
-`godot-2026-10-13-h`. Mức sàn trong `.claude/docs/technical-preferences.md` đã cập nhật (file đó nằm trong .gitignore, chỉ trên máy).
+`godot-2026-10-13-i`. Mức sàn trong `.claude/docs/technical-preferences.md` đã cập nhật (file đó nằm trong .gitignore, chỉ trên máy).
 
 **Đã merge trong đêm (mỗi lần merge đều có agent khác review + suite xanh ở cây chính):**
 - A: luật Nhiệm vụ, end_run → record_run_outcome (+reached_boss), RemoteEpochSource sau cờ (mặc định local).
@@ -21,7 +21,7 @@ Cập nhật: 2026-10-12. Nhánh `godot-port`, push lên `axiedice` (`git push a
 - `.gitignore`: `src/` neo về gốc (trước đó giấu mesh sân và Land).
 
 **Còn lại theo làn:**
-- A: sửa `LocalEpochSource` ghi header.newcomer từ params (đang làm/ chờ merge — nếu chưa thấy commit "newcomer" trên godot-port thì làm tiếp). Nối màn pact gọi `RelicSlots.pact_forced`. Client gọi lại `/api/run/open` sau 1008 auth.
+- A: (xong, -i) header.newcomer lấy từ params. Nối màn pact gọi `RelicSlots.pact_forced`. Client gọi lại `/api/run/open` sau 1008 auth.
 - B: xong bộ relic L1. Còn: sim cân bằng thật (sim F), sporegale có thể dùng `poisonSpread`.
 - C: mystic/genesis chưa ai xem ảnh; chân trời boss vẫn phẳng (camera thấy ít trời).
 - E: thưởng tuần Daily (4 ngày → 150 Shard + 2000 Stone) có data chưa có logic; ghép số vào bảng Aid catalog (giá Aid đang viết cứng trong CombatView).

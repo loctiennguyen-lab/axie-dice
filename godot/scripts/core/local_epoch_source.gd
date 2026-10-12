@@ -49,7 +49,7 @@ func start_run(params: Dictionary) -> EpochReply:
 	reply.extra["run_id"] = run_id
 	reply.extra["client_nonce"] = _nonce
 	reply.extra["commit"] = EpochCanon.commit(run_id, _s_run).hex_encode()
-	reply.extra["header"] = {"newcomer": false, "loadout": (params.get("loadout", {}) as Dictionary).duplicate(true)}
+	reply.extra["header"] = {"newcomer": bool(params.get("newcomer", false)), "loadout": (params.get("loadout", {}) as Dictionary).duplicate(true)}
 	(_tape[_tape.size() - 1] as Dictionary)["extra"] = reply.extra.duplicate(true)
 	return reply
 
