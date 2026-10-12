@@ -4,7 +4,7 @@ Liam trả lời theo số, ví dụ "đồng ý hết, trừ 4: …". Mỗi câ
 nguồn, không nằm ở đây nữa.
 
 ## A–C. Đã trả lời 12/10 (tối)
-1 có đăng nhập desktop · 2 Gem trên server · 3 duyệt danh sách cắt · 4–6 duyệt · 7 ~8 giờ/ngày · 8 "Axie Dice" ·
+1 có đăng nhập desktop · 2 Gem trên server · 3 danh sách cắt: chưa duyệt (đã gửi lại cho Liam) · 4–6 duyệt · 7 ~8 giờ/ngày · 8 "Axie Dice" ·
 9 `fun.axiedice.game` · 10 0.1.0 · 11 Slack + form, người nhận Liam. Ghi ở đầu `production/l1-sprint-plan.md`.
 
 ## D. Việc anh cần tự làm (agent không làm được)
