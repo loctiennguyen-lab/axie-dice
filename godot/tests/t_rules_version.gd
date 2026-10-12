@@ -122,7 +122,9 @@ const WATCHED_FILES: Array[String] = ["res://assets/data/part_faces.json"]
 ## Changes the run result: YES. `scripts/meta` (Aid catalog, Echo Box...) joined the watch list.
 ## DEBT: the verifier must take the loadout from the log header; until then a ranked replay only
 ## matches on a machine with the same unlocks (see production/l1-tasks-I.md).
-const FINGERPRINT := "b04922468e219fda91cf0274fa2b56d2ac703f6e468a66457683c6f3d1de75f9"
+## Moved 2026-10-12 by lane E Store fixes (store_catalog/gem_wallet spend(save)): wallet + shop only,
+## no run outcome change, so RULES_VERSION was NOT bumped.
+const FINGERPRINT := "22a7952f1ead309270726b61fe7d8d093027a0acc3bd64c8e327e3d2a8e56841"
 
 
 func _ready() -> void:
