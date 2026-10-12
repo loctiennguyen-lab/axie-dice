@@ -16,8 +16,10 @@ const GROUND_SIZE := 160.0
 
 const BOSS_LIGHT_MUL := 0.72
 const BOSS_FOG_DENSITY := 0.0035
-const BOSS_PORTAL_MUL := 1.2
-const BOSS_PORTAL_Z := -36.0   # pushed back so the 1.2x tower still fits under the frame top
+const BOSS_PORTAL_MUL := 1.3
+const BOSS_PORTAL_Z := -46.0   # pushed back so the 1.3x tower still fits under the frame top
+## SM_Portal_01 has a detached spire (separate piece, mesh-local y > 7.5) that floats above the tower; dropped.
+const PORTAL_FINIAL_Y := 7.5
 ## Same sun / ambient as the Land hub; a biome only tints these a little (it owns sky + ground).
 const LAND_SUN := Color("ffe2b0")
 const LAND_SUN_ENERGY := 1.25
@@ -305,12 +307,39 @@ func _add_portal(cfg: Dictionary) -> void:
 		var f := float(cfg.get("height_m", 4.5)) / box.size.y
 		_portal.scale = Vector3.ONE * f
 		_portal.position = Vector3(-box.get_center().x * f, -box.position.y * f, float(cfg.get("z", -15.0)))
+	for m in _portal.find_children("*", "MeshInstance3D", true, false):
+		_drop_finial(m as MeshInstance3D)
 	_portal_light = OmniLight3D.new()
 	_portal_light.light_color = Color(0.55, 0.8, 1.0)
 	_portal_light.light_energy = 1.2
 	_portal_light.omni_range = 9.0
 	_portal_light.position = Vector3(0.0, 2.2, float(cfg.get("z", -15.0)) + 1.0)
 	_props_root.add_child(_portal_light)
+
+
+## Rebuild the mesh without triangles lying entirely above PORTAL_FINIAL_Y (the floating spire).
+static func _drop_finial(mi: MeshInstance3D) -> void:
+	var src := mi.mesh as ArrayMesh
+	if src == null:
+		return
+	var out := ArrayMesh.new()
+	for s in src.get_surface_count():
+		var a := src.surface_get_arrays(s)
+		var v: PackedVector3Array = a[Mesh.ARRAY_VERTEX]
+		var idx: PackedInt32Array = a[Mesh.ARRAY_INDEX]
+		if idx.is_empty():
+			return
+		var keep := PackedInt32Array()
+		for t in idx.size() / 3:
+			var i0 := idx[t * 3]
+			var i1 := idx[t * 3 + 1]
+			var i2 := idx[t * 3 + 2]
+			if minf(v[i0].y, minf(v[i1].y, v[i2].y)) <= PORTAL_FINIAL_Y:
+				keep.append_array(PackedInt32Array([i0, i1, i2]))
+		a[Mesh.ARRAY_INDEX] = keep
+		out.add_surface_from_arrays(Mesh.PRIMITIVE_TRIANGLES, a)
+		out.surface_set_material(s, src.surface_get_material(s))
+	mi.mesh = out
 
 
 ## AABB of all meshes under `root`, in root's local space (all node transforms applied).
