@@ -912,6 +912,36 @@ static func fire(combat, event: String, ctx) -> void:
 		if TABLE.has(hk) and (TABLE[hk] as Dictionary).has(event):
 			(TABLE[hk] as Dictionary)[event].call(ctx)
 
+## Out-of-combat twins of fire()/run_value_hook() (hook H8, relic-set-v2 §5): RunState has no
+## CombatEngine while it opens a shop or builds a reward, only the owned id list. Same pickup
+## order, same TABLE lookup. Handlers return data by writing into `ctx` (fire() drops returns).
+## No-op when no owned relic declares `event`.
+static func run_fire(relic_ids: Array, event: String, ctx: Dictionary) -> void:
+	for id in relic_ids:
+		var hk := _hook_key_of(String(id))
+		if hk != "" and TABLE.has(hk) and (TABLE[hk] as Dictionary).has(event):
+			(TABLE[hk] as Dictionary)[event].call(ctx)
+
+
+## Threads `value` through every owned relic's `event` handler (ctx["value"] carries the running
+## value in, the handler returns the new one). Returns `value` unchanged when nobody handles it.
+static func run_value(relic_ids: Array, event: String, ctx: Dictionary, value: Variant) -> Variant:
+	var v = value
+	for id in relic_ids:
+		var hk := _hook_key_of(String(id))
+		if hk != "" and TABLE.has(hk) and (TABLE[hk] as Dictionary).has(event):
+			ctx["value"] = v
+			v = (TABLE[hk] as Dictionary)[event].call(ctx)
+	return v
+
+
+static func _hook_key_of(relic_id: String) -> String:
+	var def = RelicRegistry.get_def(relic_id)
+	if def == null or not ("hook_key" in def):
+		return ""
+	return String(def.hook_key)
+
+
 static func sum(combat, field: String, default_value: float = 0.0) -> float:
 	var total := default_value
 	for def in _owned_defs(combat):

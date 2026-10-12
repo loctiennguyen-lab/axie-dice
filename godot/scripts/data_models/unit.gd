@@ -63,6 +63,10 @@ var roster_index: int = -1      # index into RunState.roster — Formation Reson
                                  # (rule spec §4: position in s.roster, NEVER combat-board
                                  # position). -1 for tokens/enemies (never resonate).
 
+## Position in the party line-up (0 = leftmost), read by positional relics (relic-set-v2 §1.5).
+## -1 until the engine assigns it (lane A sets slot = roster_index in _build_unit_from_roster).
+var slot: int = -1
+
 ## Open bucket for boss-specific counters (turn_count, split_done, phase, trait, adds,
 ## add_cap, permanent_thorns, die2/max_hp2 for phase-2 dice, summons key, sc scale factor)
 ## so adding a new boss later never requires touching this schema (architecture plan §8).
@@ -147,7 +151,7 @@ func to_data() -> Dictionary:
 		"die": die.duplicate(true),
 		"growth": growth.duplicate(true),
 		"rolled": rolled.duplicate(true),
-		"roster_index": roster_index,
+		"roster_index": roster_index, "slot": slot,
 		"custom_state": custom_state.duplicate(true),
 		"intent": intent.duplicate(true),
 		"_dead": _dead,
@@ -184,6 +188,7 @@ static func from_data(d: Dictionary) -> Unit:
 		u.growth[int(k)] = int((d["growth"] as Dictionary)[k])
 	u.rolled = (d.get("rolled", []) as Array).duplicate(true)
 	u.roster_index = int(d.get("roster_index", -1))
+	u.slot = int(d.get("slot", -1))
 	u.custom_state = (d.get("custom_state", {}) as Dictionary).duplicate(true)
 	u.intent = (d.get("intent", {}) as Dictionary).duplicate(true)
 	u._dead = bool(d.get("_dead", false))
