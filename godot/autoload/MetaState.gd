@@ -83,6 +83,17 @@ func add_shards(amount: int) -> void:
 	shard_pool += amount
 	save_to_disk()
 
+## L1 contract §5.2 — A gọi từ RunState.end_run. 14/10: bản NO-OP (E điền thân sau: asc_wins,
+## full_a9_won, mở bậc Nhiệm vụ). Không ghi save.
+func record_run_outcome(_params: Dictionary, _won: bool) -> void:
+	pass
+
+
+## L1 contract §5.2 — L đọc để hiện chấm đỏ/badge trên màn `screen_id`. 14/10: luôn 0.
+func badge_count(_screen_id: String) -> int:
+	return 0
+
+
 ## Throws away everything in memory and loads whichever save `SaveStore.profile` now points at.
 ##
 ## `load_from_disk()` alone is not enough when the account changes: it only assigns the fields a
