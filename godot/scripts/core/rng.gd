@@ -45,13 +45,3 @@ static func _imul(a: int, b: int) -> int:
 	@warning_ignore("integer_division")
 	var result: int = (a * b) & 0xFFFFFFFF
 	return result
-
-## Derives a combat seed from (run_seed, node_id, turn) instead of relying on a single
-## continuously-advancing stream. This is what makes save/quit mid-combat, undo, scene
-## reload, and DevReview's "jump straight into combat" all reproducible — see
-## architecture plan §5. Uses a simple string hash (Godot's String.hash(), stable within
-## a single engine version) folded through one more mulberry32 step for distribution.
-static func derive_combat_seed(run_seed: int, node_id: String, turn: int) -> int:
-	var h: int = ("%d:%s:%d" % [run_seed, node_id, turn]).hash() & 0xFFFFFFFF
-	var r := Rng.new(h)
-	return int(r.next_float() * 4294967296.0) & 0xFFFFFFFF

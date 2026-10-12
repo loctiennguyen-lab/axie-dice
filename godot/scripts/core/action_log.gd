@@ -72,6 +72,9 @@ const RULES_VERSION := "godot-2026-09-21-a"
 const ALLOWED_FNS: Array[String] = [
 	"enter_node", "use_die", "play_active", "reroll_dice", "end_turn", "undo_last",
 	"take_reward", "reroll_rewards", "event_choose", "event_done", "shop_buy", "shop_done",
+	# L1 (contract 1.5) adds continue, pact_reroll, shop_refresh, aid_use, tweak, hold_pick, loaded_pick,
+	# reorder_party, sell_relic, swap_on_full, pact_pick. Each joins this list in the PR that implements
+	# it AND teaches RunVerifier to replay it: t_replay refuses an action the referee cannot replay.
 ]
 
 ## Same ceiling as the JS server (submit-run.js:30). A real run lands far below it; the limit is
@@ -105,7 +108,9 @@ var rejected: Array[String] = []
 func begin(seed_value: int, team_keys: Array, mode: String, ascension: int,
 		content_version: String = "", is_ranked: bool = false) -> void:
 	header = {
-		"seed": seed_value,
+		# Local runs only: the secret that keys LocalEpochSource. A real run has none, its seeds come
+		# from the server (header carries run_id/client_nonce instead, see set_epoch_header).
+		"local_secret": seed_value,
 		"team_keys": Array(team_keys).duplicate(),
 		"mode": mode,
 		"ascension": ascension,
@@ -121,6 +126,17 @@ func begin(seed_value: int, team_keys: Array, mode: String, ascension: int,
 	entries = []
 	overflowed = false
 	rejected = []
+
+
+## Epoch-era header fields (contract 1.5). `loadout` carries the injected bonuses a verifier must
+## use instead of reading its own MetaState.
+func set_epoch_header(run_id: String, client_nonce: String, loadout: Dictionary, newcomer: bool,
+		mission: Dictionary) -> void:
+	header["run_id"] = run_id
+	header["client_nonce"] = client_nonce
+	header["loadout"] = loadout.duplicate(true)
+	header["newcomer"] = newcomer
+	header["mission"] = mission.duplicate(true)
 
 
 ## Appends one decision. Returns false when it was refused — callers ignore that (gameplay must
@@ -194,7 +210,7 @@ static func _restore_ints(value: Variant) -> Variant:
 static func from_data(data: Dictionary) -> ActionLog:
 	var out_log := ActionLog.new()
 	out_log.header = (data.get("header", {}) as Dictionary).duplicate(true)
-	out_log.header["seed"] = int(out_log.header.get("seed", 0))
+	out_log.header["local_secret"] = int(out_log.header.get("local_secret", 0))
 	out_log.header["ascension"] = int(out_log.header.get("ascension", 0))
 	out_log.header["ranked"] = bool(out_log.header.get("ranked", false))
 	var raw: Array = data.get("entries", []) as Array

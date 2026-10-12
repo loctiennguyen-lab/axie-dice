@@ -168,8 +168,8 @@ func test_the_log_survives_the_json_round_trip_it_will_travel_as() -> void:
 		"the log did not survive JSON unchanged — it will travel to a verifier this way, so a "
 		+ "field that mutates in transit is a field the verifier reads differently than it was "
 		+ "written")
-	_assert(int(back.header.get("seed", -1)) == 7 and int(back.header.get("ascension", -1)) == 2,
-		"the header lost the seed/ascension a replay has to start from")
+	_assert(int(back.header.get("local_secret", -1)) == 7 and int(back.header.get("ascension", -1)) == 2,
+		"the header lost the local secret/ascension a replay has to start from")
 	# Nested arrays are the shape most likely to come back wrong (reroll_dice carries one), so
 	# it is checked by value rather than trusted to the round trip above.
 	var rr: Dictionary = back.entries[1]
@@ -277,7 +277,7 @@ func test_a_whole_run_is_rebuilt_from_its_log_by_the_referee() -> void:
 		"the run's log reports itself incomplete (overflow=%s, rejected=%s)"
 		% [log.overflowed, str(log.rejected)])
 
-	var verdict := RunVerifier.verify(log)
+	var verdict := RunVerifier.verify(log, played["tape"])
 	_assert(bool(verdict["ok"]),
 		"the referee refused an honest run: %s — %s (action %s)"
 		% [str(verdict["error"]), str(verdict["message"]), str(verdict["action_index"])])
@@ -308,14 +308,14 @@ func test_a_whole_run_is_rebuilt_from_its_log_by_the_referee() -> void:
 			bumped = true
 			break
 	if bumped:
-		var bad := RunVerifier.verify(tampered)
+		var bad := RunVerifier.verify(tampered, played["tape"])
 		_assert((not bool(bad["ok"])) or int(bad["score"]) != int(verdict["score"]),
 			"editing which reward was taken changed nothing the referee could see")
 
 	# And a log that admits it is incomplete must be refused before it is even replayed.
 	var holed := _clone(log)
 	holed.rejected.append("a deliberate hole")
-	var refused := RunVerifier.verify(holed)
+	var refused := RunVerifier.verify(holed, played["tape"])
 	_assert(not bool(refused["ok"]) and String(refused["error"]) == RunVerifier.ERR_INCOMPLETE,
 		"an incomplete log was accepted (error was '%s')" % str(refused["error"]))
 
@@ -331,6 +331,8 @@ func test_a_whole_run_is_rebuilt_from_its_log_by_the_referee() -> void:
 ##
 ## Two lists, one commit apart, is all it takes. This gate refuses to let them separate.
 func test_the_referee_knows_every_action_the_log_can_hold() -> void:
+	# A real tape, so the probe gets past the "no tape" refusal and reaches the dispatch.
+	var tape: Array = (_play_recorded_run(RUN_SEED))["tape"]
 	for fn in ActionLog.ALLOWED_FNS:
 		var probe := ActionLog.new()
 		probe.begin(RUN_SEED, TEAM, "short", 0,
@@ -339,7 +341,7 @@ func test_the_referee_knows_every_action_the_log_can_hold() -> void:
 		# expected; being UNKNOWN is the failure — that is the referee saying it has never heard
 		# of a move the game can write down.
 		probe.entries = [{"fn": fn, "args": _sample_args(fn)}]
-		var verdict := RunVerifier.verify(probe)
+		var verdict := RunVerifier.verify(probe, tape)
 		_assert(String(verdict["error"]) != RunVerifier.ERR_UNKNOWN_ACTION,
 			"the log can record '%s' and the referee does not know what it is. Any run "
 			% fn + "containing it can never be scored, and the player is told nothing.")
@@ -412,7 +414,7 @@ func _apply(engine: CombatEngine, fn: String, args: Array) -> bool:
 		"play_active":
 			return engine.play_active(String(args[0]), int(args[1]))
 		"reroll_dice":
-			return engine.reroll_dice(args[0] as Array)
+			return engine.reroll_dice(args[0] as Array, -1, args.size() > 1 and int(args[1]) != 0)
 		"undo_last":
 			return engine.undo_last()
 		"end_turn":
@@ -513,7 +515,11 @@ func _digest(snapshot) -> String:
 ## A run's end state, minus the things that are not outcomes. `action_log` is not in to_data()
 ## at all; `shop_items` carries `bought` flags that ARE outcomes and stay in.
 func _run_digest(state) -> String:
-	return JSON.stringify(state)
+	# The replay does not append to the log it reads (replaying = true), so the log itself is not
+	# part of "the same run"; everything else, including the epoch tape, must match.
+	var d: Dictionary = (state as Dictionary).duplicate(true)
+	d.erase("action_log")
+	return JSON.stringify(d)
 
 
 func _run_brief(state) -> String:

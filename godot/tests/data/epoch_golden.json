@@ -1,0 +1,442 @@
+{
+ "version": 1,
+ "spec": [
+  "All strings are ASCII. '|' in ADR-RNG 4.1 means plain byte concatenation (no separator).",
+  "String values: non-empty, chars [a-z0-9_-] only ('-' added to ADR-RNG's set because rules_version contains it). Ints: decimal, no '+', no leading zeros. Bool/float/null/empty string are invalid. Arrays: elements joined by ',', order preserved, empty array -> empty value, elements are ints or strings, no nesting.",
+  "canon_request: flatten nested dicts with prefix 'parent.', lines 'key=value\\n', sorted by key as bytes (so 'args.node_id' sorts between 'a' and 'attempt'). Keys are [a-z0-9_]+.",
+  "canon_action (log line): 'fn|p0=v0|p1=v1...\\n'. fn is [a-z_]+. The in-game log is positional, so parameters are named p0..p9 by position (max 10), in positional order. canon_delta = lines concatenated in the order they happened; empty delta = empty string.",
+  "h_0 = SHA256('axiedice/log/v1' || run_id). h_n = SHA256('axiedice/log/v1' || h_{n-1} (32 raw bytes) || canon_delta_n). In requests, h is lowercase hex (64 chars).",
+  "commit = SHA256('axiedice/commit/v1' || run_id || S_run (32 raw bytes)).",
+  "seed = first 4 bytes of HMAC-SHA256(key = S_run (32 raw bytes), msg = canon_request(request)), big-endian, as unsigned 32-bit int. request = {run_id, seq, kind, args{...}, h, log_len, rules_version, attempt, client_nonce}; attempt is an int (0 unless kind == continue); client_nonce lowercase hex.",
+  "node_id format: r<row>_c<col> (row >= 1, col >= 0, decimal, no leading zeros), e.g. r1_c0, r12_c3. The row is the integer after the leading r. DO derives the row from it to refuse row-skipping (M7). Any other node_id is invalid for kinds node/shop_roll/shop_refresh/continue/pact_reroll/reward. A rules_version containing '-' is fine: '-' is allowed in string values; '.' is not.",
+  "args.uids is part of the request on the wire and in the ledger but is EXCLUDED from the canon that feeds the seed (ADR-RNG 4.4: uids are a commitment, not seed input). canon_request therefore drops the line 'args.uids=...'; requests differing only in uids have the same canon and the same seed.",
+  "rowtype digest (M7): HMAC-SHA256(key = S_run, msg = 'axiedice/rowtype/v1' || 0x7C || run_id || 0x7C || row as 4-byte big-endian). Node type of a row is derived from this digest by the map code (not part of this file).",
+  "aid_use line (client rebuilds it from (aid_id, args)): canon_action({fn:'aid_use', args:[aid_id, ...positional args]})."
+ ],
+ "s_run_hex": "0102030405060708090a0b0c0d0e0f101112131415161718191a1b1c1d1e1f20",
+ "run_id": "run_0123456789abcdef",
+ "client_nonce": "00112233445566778899aabbccddeeff",
+ "rules_version": "godot-2026-09-21-a",
+ "commit": "2779ccbf0c1344c655efa3cbea1711dd9474aca4fe434255e7923b31b012a99a",
+ "h0": "ad62f66ec66bab26c5d537e7f244d7529b1a5241f89a4540b9e532e5eb9f6f20",
+ "action_lines": [
+  {
+   "action": {
+    "fn": "enter_node",
+    "args": [
+     "r1_c0",
+     "battle"
+    ]
+   },
+   "canon": "enter_node|p0=r1_c0|p1=battle\n"
+  },
+  {
+   "action": {
+    "fn": "use_die",
+    "args": [
+     1,
+     100001
+    ]
+   },
+   "canon": "use_die|p0=1|p1=100001\n"
+  },
+  {
+   "action": {
+    "fn": "reroll_dice",
+    "args": [
+     [
+      3,
+      1,
+      2
+     ],
+     0
+    ]
+   },
+   "canon": "reroll_dice|p0=3,1,2|p1=0\n"
+  },
+  {
+   "action": {
+    "fn": "reroll_dice",
+    "args": [
+     [],
+     1
+    ]
+   },
+   "canon": "reroll_dice|p0=|p1=1\n"
+  },
+  {
+   "action": {
+    "fn": "play_active",
+    "args": [
+     "a_surge",
+     -1
+    ]
+   },
+   "canon": "play_active|p0=a_surge|p1=-1\n"
+  },
+  {
+   "action": {
+    "fn": "end_turn",
+    "args": []
+   },
+   "canon": "end_turn\n"
+  },
+  {
+   "action": {
+    "fn": "take_reward",
+    "args": [
+     2
+    ]
+   },
+   "canon": "take_reward|p0=2\n"
+  },
+  {
+   "action": {
+    "fn": "aid_use",
+    "args": [
+     "scout",
+     3
+    ]
+   },
+   "canon": "aid_use|p0=scout|p1=3\n"
+  }
+ ],
+ "chain": [
+  {
+   "delta": [
+    {
+     "fn": "enter_node",
+     "args": [
+      "r1_c0",
+      "battle"
+     ]
+    },
+    {
+     "fn": "use_die",
+     "args": [
+      1,
+      100001
+     ]
+    }
+   ],
+   "canon": "enter_node|p0=r1_c0|p1=battle\nuse_die|p0=1|p1=100001\n",
+   "h": "2bdb1481285b841b6f642699e7876d93a099bf16924ba9f5e2f4bf45d317b0ed"
+  },
+  {
+   "delta": [
+    {
+     "fn": "reroll_dice",
+     "args": [
+      [
+       3,
+       1,
+       2
+      ],
+      0
+     ]
+    },
+    {
+     "fn": "reroll_dice",
+     "args": [
+      [],
+      1
+     ]
+    },
+    {
+     "fn": "play_active",
+     "args": [
+      "a_surge",
+      -1
+     ]
+    }
+   ],
+   "canon": "reroll_dice|p0=3,1,2|p1=0\nreroll_dice|p0=|p1=1\nplay_active|p0=a_surge|p1=-1\n",
+   "h": "a18ed95380a29a74b547d99a509e7ec9f3718477fedfb4edf33cb8e21b1109db"
+  },
+  {
+   "delta": [],
+   "canon": "",
+   "h": "9c3da62c1ca36368cdbea7ca39e3671265d20669b8f66177ab82799ce29e1098"
+  },
+  {
+   "delta": [
+    {
+     "fn": "end_turn",
+     "args": []
+    },
+    {
+     "fn": "take_reward",
+     "args": [
+      2
+     ]
+    },
+    {
+     "fn": "aid_use",
+     "args": [
+      "scout",
+      3
+     ]
+    }
+   ],
+   "canon": "end_turn\ntake_reward|p0=2\naid_use|p0=scout|p1=3\n",
+   "h": "03e463a886bb7a0198eb1e398cdb9628a63d94cc25fd88fa8763e85734fe9f86"
+  }
+ ],
+ "epochs": [
+  {
+   "request": {
+    "run_id": "run_0123456789abcdef",
+    "seq": 0,
+    "kind": "run_start",
+    "args": {
+     "mode": "short",
+     "ascension": 0
+    },
+    "h": "ad62f66ec66bab26c5d537e7f244d7529b1a5241f89a4540b9e532e5eb9f6f20",
+    "log_len": 0,
+    "rules_version": "godot-2026-09-21-a",
+    "attempt": 0,
+    "client_nonce": "00112233445566778899aabbccddeeff"
+   },
+   "canon": "args.ascension=0\nargs.mode=short\nattempt=0\nclient_nonce=00112233445566778899aabbccddeeff\nh=ad62f66ec66bab26c5d537e7f244d7529b1a5241f89a4540b9e532e5eb9f6f20\nkind=run_start\nlog_len=0\nrules_version=godot-2026-09-21-a\nrun_id=run_0123456789abcdef\nseq=0\n",
+   "seed": 350858073
+  },
+  {
+   "request": {
+    "run_id": "run_0123456789abcdef",
+    "seq": 1,
+    "kind": "node",
+    "args": {
+     "node_id": "r1_c0"
+    },
+    "h": "2bdb1481285b841b6f642699e7876d93a099bf16924ba9f5e2f4bf45d317b0ed",
+    "log_len": 0,
+    "rules_version": "godot-2026-09-21-a",
+    "attempt": 0,
+    "client_nonce": "00112233445566778899aabbccddeeff"
+   },
+   "canon": "args.node_id=r1_c0\nattempt=0\nclient_nonce=00112233445566778899aabbccddeeff\nh=2bdb1481285b841b6f642699e7876d93a099bf16924ba9f5e2f4bf45d317b0ed\nkind=node\nlog_len=0\nrules_version=godot-2026-09-21-a\nrun_id=run_0123456789abcdef\nseq=1\n",
+   "seed": 3928829903
+  },
+  {
+   "request": {
+    "run_id": "run_0123456789abcdef",
+    "seq": 2,
+    "kind": "reroll",
+    "args": {
+     "turn": 1,
+     "k": 1,
+     "source": "base",
+     "uids": [
+      3,
+      1,
+      2
+     ]
+    },
+    "h": "a18ed95380a29a74b547d99a509e7ec9f3718477fedfb4edf33cb8e21b1109db",
+    "log_len": 2,
+    "rules_version": "godot-2026-09-21-a",
+    "attempt": 0,
+    "client_nonce": "00112233445566778899aabbccddeeff"
+   },
+   "canon": "args.k=1\nargs.source=base\nargs.turn=1\nattempt=0\nclient_nonce=00112233445566778899aabbccddeeff\nh=a18ed95380a29a74b547d99a509e7ec9f3718477fedfb4edf33cb8e21b1109db\nkind=reroll\nlog_len=2\nrules_version=godot-2026-09-21-a\nrun_id=run_0123456789abcdef\nseq=2\n",
+   "seed": 2531957220
+  },
+  {
+   "request": {
+    "run_id": "run_0123456789abcdef",
+    "seq": 2,
+    "kind": "reroll",
+    "args": {
+     "turn": 1,
+     "k": 1,
+     "source": "base",
+     "uids": [
+      1,
+      2,
+      3
+     ]
+    },
+    "h": "a18ed95380a29a74b547d99a509e7ec9f3718477fedfb4edf33cb8e21b1109db",
+    "log_len": 2,
+    "rules_version": "godot-2026-09-21-a",
+    "attempt": 0,
+    "client_nonce": "00112233445566778899aabbccddeeff"
+   },
+   "canon": "args.k=1\nargs.source=base\nargs.turn=1\nattempt=0\nclient_nonce=00112233445566778899aabbccddeeff\nh=a18ed95380a29a74b547d99a509e7ec9f3718477fedfb4edf33cb8e21b1109db\nkind=reroll\nlog_len=2\nrules_version=godot-2026-09-21-a\nrun_id=run_0123456789abcdef\nseq=2\n",
+   "seed": 2531957220
+  },
+  {
+   "request": {
+    "run_id": "run_0123456789abcdef",
+    "seq": 4,
+    "kind": "continue",
+    "args": {
+     "node_id": "r2_c1",
+     "attempt": 1
+    },
+    "h": "03e463a886bb7a0198eb1e398cdb9628a63d94cc25fd88fa8763e85734fe9f86",
+    "log_len": 8,
+    "rules_version": "godot-2026-09-21-a",
+    "attempt": 1,
+    "client_nonce": "00112233445566778899aabbccddeeff"
+   },
+   "canon": "args.attempt=1\nargs.node_id=r2_c1\nattempt=1\nclient_nonce=00112233445566778899aabbccddeeff\nh=03e463a886bb7a0198eb1e398cdb9628a63d94cc25fd88fa8763e85734fe9f86\nkind=continue\nlog_len=8\nrules_version=godot-2026-09-21-a\nrun_id=run_0123456789abcdef\nseq=4\n",
+   "seed": 727722546
+  },
+  {
+   "request": {
+    "run_id": "run_0123456789abcdef",
+    "seq": 5,
+    "kind": "reroll",
+    "args": {
+     "turn": 2,
+     "k": 2,
+     "source": "aid",
+     "uids": []
+    },
+    "h": "9c3da62c1ca36368cdbea7ca39e3671265d20669b8f66177ab82799ce29e1098",
+    "log_len": 5,
+    "rules_version": "godot-2026-09-21-a",
+    "attempt": 0,
+    "client_nonce": "00112233445566778899aabbccddeeff"
+   },
+   "canon": "args.k=2\nargs.source=aid\nargs.turn=2\nattempt=0\nclient_nonce=00112233445566778899aabbccddeeff\nh=9c3da62c1ca36368cdbea7ca39e3671265d20669b8f66177ab82799ce29e1098\nkind=reroll\nlog_len=5\nrules_version=godot-2026-09-21-a\nrun_id=run_0123456789abcdef\nseq=5\n",
+   "seed": 751053978
+  }
+ ],
+ "invalid": [
+  {
+   "why": "uppercase in string",
+   "kind": "action",
+   "action": {
+    "fn": "play_active",
+    "args": [
+     "A_Surge",
+     -1
+    ]
+   }
+  },
+  {
+   "why": "bool value",
+   "kind": "action",
+   "action": {
+    "fn": "reroll_dice",
+    "args": [
+     [
+      1
+     ],
+     true
+    ]
+   }
+  },
+  {
+   "why": "float value",
+   "kind": "action",
+   "action": {
+    "fn": "use_die",
+    "args": [
+     1.5,
+     2
+    ]
+   }
+  },
+  {
+   "why": "nested array",
+   "kind": "action",
+   "action": {
+    "fn": "reroll_dice",
+    "args": [
+     [
+      [
+       1
+      ]
+     ],
+     0
+    ]
+   }
+  },
+  {
+   "why": "separator char in string",
+   "kind": "action",
+   "action": {
+    "fn": "play_active",
+    "args": [
+     "a|b",
+     1
+    ]
+   }
+  },
+  {
+   "why": "empty string",
+   "kind": "action",
+   "action": {
+    "fn": "play_active",
+    "args": [
+     "",
+     1
+    ]
+   }
+  },
+  {
+   "why": "bad fn",
+   "kind": "action",
+   "action": {
+    "fn": "Use-Die",
+    "args": []
+   }
+  }
+ ],
+ "rowtypes": [
+  {
+   "row": 1,
+   "digest": "8cb819cc5548b76087449b27d395b36cfc6aa1e42c3d2acd51a1be56716efe82"
+  },
+  {
+   "row": 2,
+   "digest": "18f8ee5abca4146abf8b18a64e2a330f972cd3e69bdb38ac753a8d463c6da80c"
+  },
+  {
+   "row": 12,
+   "digest": "32e44c63d0ae0ece6f35dfdcd331fef77b49256ce9123da7b50486897803f5c0"
+  }
+ ],
+ "node_ids": [
+  {
+   "id": "r1_c0",
+   "row": 1
+  },
+  {
+   "id": "r12_c3",
+   "row": 12
+  },
+  {
+   "id": "r10_c0",
+   "row": 10
+  },
+  {
+   "id": "r0_c1",
+   "row": -1
+  },
+  {
+   "id": "r01_c1",
+   "row": -1
+  },
+  {
+   "id": "r2_c",
+   "row": -1
+  },
+  {
+   "id": "R2_c1",
+   "row": -1
+  },
+  {
+   "id": "r2_c01",
+   "row": -1
+  },
+  {
+   "id": "x",
+   "row": -1
+  }
+ ]
+}

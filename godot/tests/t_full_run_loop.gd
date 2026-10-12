@@ -194,9 +194,9 @@ func _run_one(seed_value: int, force_win: bool) -> void:
 	_check(log.is_complete(),
 		"%s: the run's action log reports itself incomplete (overflow=%s, rejected=%s)"
 			% [tag, log.overflowed, str(log.rejected)])
-	_check(int(log.header.get("seed", -1)) == seed_value,
+	_check(int(log.header.get("local_secret", -1)) == seed_value,
 		"%s: the log's header carries seed %s, not the seed this run was started with"
-			% [tag, str(log.header.get("seed", "?"))])
+			% [tag, str(log.header.get("local_secret", "?"))])
 	var kinds := {}
 	for e in log.entries:
 		kinds[String((e as Dictionary).get("fn", ""))] = true

@@ -116,9 +116,9 @@ func test_a_ranked_run_can_export_the_record_the_verifier_reads() -> void:
 		_assert(parsed is Dictionary, "the exported record is not JSON")
 		if parsed is Dictionary:
 			var restored := ActionLog.from_data(parsed as Dictionary)
-			_assert(int(restored.header.get("seed", -1)) == RunState.run_seed,
+			_assert(int(restored.header.get("local_secret", -1)) == RunState.run_seed,
 				"the exported record carries seed %s, not this run's %d"
-				% [str(restored.header.get("seed", "?")), RunState.run_seed])
+				% [str(restored.header.get("local_secret", "?")), RunState.run_seed])
 			_assert(bool(restored.header.get("ranked", false)),
 				"the exported record does not declare itself ranked, so the referee would "
 				+ "refuse it")
