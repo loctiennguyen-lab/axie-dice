@@ -6,7 +6,7 @@
 script = ExtResource("1")
 id = "r_claw"
 name = "Razor Claw"
-description = "All damage faces deal 1 more."
+description = "Each turn, the lowest-value damage face on your team gets +4 (rechecked after every Reroll). Ties go to the Axie further left."
 rarity = 0
 archetype = "exec"
 mload = 0
@@ -15,4 +15,3 @@ hook_key = "r_claw"
 mf_phase = "add"
 tags = PackedStringArray("uni")
 layer = "enabler"
-needs_hook = "H1"

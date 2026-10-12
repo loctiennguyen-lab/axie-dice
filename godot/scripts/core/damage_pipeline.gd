@@ -128,7 +128,7 @@ static func resolve(ctx: Dictionary) -> int:
 		RelicHooks.fire(combat, "on_dmg_taken", {"src": src, "tgt": tgt, "dealt": dealt, "attack": attack, "combat": combat})
 
 	# 11. THORNS — pierce+piercePlus relic bypasses it entirely
-	var skip_thorns := pierce and RelicHooks.has(combat, "piercePlus")
+	var skip_thorns := pierce and (RelicHooks.has(combat, "piercePlus") or RelicHooks.has(combat, "pierceThornProof"))
 	var thorns_now := int(tgt.status.get("thorns", 0))
 	if tgt.side == "p" and tgt.is_token:       # thornling: Eggs reflect at least this much from the moment they exist
 		thorns_now = maxi(thorns_now, int(RelicHooks.max_val(combat, "eggThorns", 0.0)))

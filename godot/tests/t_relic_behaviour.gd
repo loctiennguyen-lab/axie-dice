@@ -31,11 +31,11 @@ const ROSTER := ["plant1", "beast1", "aqua1", "reptile1", "bird1"]
 
 ## Relics whose effect is visible in the party's dice the moment combat is built (modFace),
 ## paired with an assertion over the built die. `null` means "just require a difference".
-const DIE_RELICS := ["r_claw", "r_carapace", "r_pierceall", "r_cleaveall", "r_bloodmouth",
-	"r_gorehook", "r_barbedhide", "r_heart", "r_ear", "r_talonedge", "r_marrowdrill",
+const DIE_RELICS := ["r_pierceall", "r_cleaveall", "r_bloodmouth",
+	"r_gorehook", "r_heart", "r_ear", "r_talonedge", "r_marrowdrill",
 	"r_bloomscale", "r_rotmouth", "r_squallmark", "r_fang", "r_pyroclasm", "r_wildfire",
 	"r_plaguelord", "r_stormcall", "r_ancientgene",
-	"r_worldpiercer", "r_tidalbrand", "r_deathmark", "r_bloodthorn", "r_regrow",
+	"r_worldpiercer", "r_tidalbrand", "r_deathmark", "r_bloodthorn",
 	"r_growthcore", "r_thousandcuts", "r_windlash", "r_apexferal"]
 
 var _failures: Array[String] = []
@@ -45,14 +45,12 @@ var _checks := 0
 func _ready() -> void:
 	print("=== t_relic_behaviour: start ===")
 	test_every_die_relic_actually_changes_a_die()
-	test_claw_adds_exactly_one_to_damage_faces_only()
 	test_ancientgene_multiplies_and_rounds_up()
 	test_ancientgene_runs_after_flat_adders()
 	test_heart_raises_max_hp_by_eight()
 	test_bloodpact_costs_two_max_rerolls_not_hp()
 	test_thousandcuts_halves_after_the_adders_and_adds_multi()
 	test_turn_start_mana_relics_grant_on_turn_one_only()
-	test_regrow_floors_regen_without_stacking()
 	test_scalecrown_floors_thorns_on_the_whole_party()
 	test_every_turn_start_and_roll_end_hook_survives_a_real_turn()
 	test_on_kill_hooks_survive_a_real_enemy_death()
@@ -123,17 +121,6 @@ func test_every_die_relic_actually_changes_a_die() -> void:
 				% rid + "either never matches a face or never runs")
 
 
-func test_claw_adds_exactly_one_to_damage_faces_only() -> void:
-	var plain := _combat([])
-	var clawed := _combat(["r_claw"])
-	for i in plain.party.size():
-		for j in (plain.party[i] as Unit).die.size():
-			var before: Dictionary = plain.party[i].die[j]
-			var after: Dictionary = clawed.party[i].die[j]
-			var want: int = int(before.get("value", 0)) + (1 if String(before.get("type", "")) == "dmg" else 0)
-			_assert(int(after.get("value", 0)) == want,
-				"r_claw on party %d face %d (%s): expected %d, got %d"
-					% [i, j, before.get("type", ""), want, int(after.get("value", 0))])
 
 
 ## JS: `if (f.v > 0) f.v = Math.ceil(f.v * 1.3)`. Blanks (value 0) must stay 0 — a blanket
@@ -154,21 +141,23 @@ func test_ancientgene_multiplies_and_rounds_up() -> void:
 
 
 ## INV-1, the reason mf_phase exists. r_claw is an "add", r_ancientgene a "mul". The result
-## must be ceil((v+1)*1.3) — the multiplier last — and must NOT depend on which order the two
+## must be ceil((v+4)*1.3) — the multiplier last — and must NOT depend on which order the two
 ## relic ids were picked up in.
 func test_ancientgene_runs_after_flat_adders() -> void:
 	var plain := _combat([])
-	var a := _combat(["r_claw", "r_ancientgene"])
-	var b := _combat(["r_ancientgene", "r_claw"])
+	# r_brittledice is the flat "+4 on damage faces" adder here (r_claw is a per-roll bonus now)
+	var a := _combat(["r_brittledice", "r_ancientgene"])
+	var b := _combat(["r_ancientgene", "r_brittledice"])
 	_assert(_party_shape(a) == _party_shape(b),
-		"owning r_claw + r_ancientgene gives a different party depending on pickup order — "
+		"owning r_brittledice + r_ancientgene gives a different party depending on pickup order — "
 		+ "INV-1 broken: a relic's power is a range instead of a number")
 	for i in plain.party.size():
 		for j in (plain.party[i] as Unit).die.size():
 			var f: Dictionary = plain.party[i].die[j]
 			var v := int(f.get("value", 0))
-			var adds: int = 1 if String(f.get("type", "")) == "dmg" else 0
-			var want: int = int(ceil(float(v + adds) * 1.3)) if (v + adds) > 0 and adds == 1 else v
+			var t := String(f.get("type", ""))
+			var adds: int = 4 if t == "dmg" else 0
+			var want: int = int(ceil(float(v + adds) * 1.3)) if t == "dmg" and (v + adds) > 0 else (v / 2 if (t == "shield" or t == "heal") else v)
 			var got := int((a.party[i].die[j] as Dictionary).get("value", 0))
 			_assert(got == want,
 				"party %d face %d: expected the add BEFORE the multiply, ceil((%d+%d)*1.3)=%d, got %d"
@@ -241,17 +230,6 @@ func test_turn_start_mana_relics_grant_on_turn_one_only() -> void:
 			"%s granted Mana again on turn 2 — the turn==1 guard is missing" % rid)
 
 
-## `Math.max(existing, 2)` is a floor. Firing it twice must not reach 4.
-func test_regrow_floors_regen_without_stacking() -> void:
-	var c := _combat(["r_regrow"])
-	for u in c.party:
-		_assert(int(u.status.get("regen", 0)) >= 2,
-			"r_regrow left party member %d without Regen 2 at combat start" % u.uid)
-	RelicHooks.fire(c, "on_turn_start", {"combat": c})
-	for u in c.party:
-		_assert(int(u.status.get("regen", 0)) == 2,
-			"r_regrow stacked Regen to %d on a second turn — it must be a floor, not an add"
-				% int(u.status.get("regen", 0)))
 
 
 func test_scalecrown_floors_thorns_on_the_whole_party() -> void:

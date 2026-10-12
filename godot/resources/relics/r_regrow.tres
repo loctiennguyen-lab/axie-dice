@@ -6,7 +6,7 @@
 script = ExtResource("1")
 id = "r_regrow"
 name = "Regrowth Bud"
-description = "The whole party has Regen 2 every turn. Each Axie gains 2 Max HP."
+description = "Each time you use a Shield or Heal face, that Axie gains +1 Growth for this combat (max +4)."
 rarity = 2
 archetype = "shield"
 mload = 0
@@ -15,4 +15,3 @@ hook_key = "r_regrow"
 mf_phase = "add"
 tags = PackedStringArray("growth", "shield")
 layer = "enabler"
-needs_hook = "H2"

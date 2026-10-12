@@ -15,4 +15,3 @@ hook_key = "r_keeneye"
 critFlatPity = 4.0
 tags = PackedStringArray("crit")
 layer = "payoff"
-needs_hook = "H1"

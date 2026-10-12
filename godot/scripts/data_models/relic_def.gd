@@ -124,6 +124,7 @@ extends Resource
                                          ## from the moment they exist (DamagePipeline step 11).
 @export var zeroFirstTurn: bool = false  ## patientfang: player damage faces deal exactly 0 on turn 1,
                                          ## applied after every bonus (DamagePipeline).
+@export var pierceThornProof: bool = false  ## hollowbone: Pierce faces ignore Thorns (like piercePlus does today).
 @export var woundedPoison: float = 0.0  ## carrioncall: a target with >= this much Poison counts as
                                          ## "wounded" in DamagePipeline.is_wounded (relic-set-v2 §3.5).
 

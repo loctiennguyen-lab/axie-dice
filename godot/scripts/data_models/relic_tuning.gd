@@ -38,5 +38,7 @@ extends Resource
 @export var fortune_id: String = "r_fortuneledger"
 @export var fortune_blocked_from_ascension: int = 10
 @export var pact_groups: PackedStringArray = PackedStringArray(["reroll", "dice", "mana"])
+@export var tweak_budget_per_turn: int = 2   ## Tweaks per turn shared by every dice relic (amberdie's hold is separate)
+@export var flip_offset: int = 3             ## flipside: face i becomes (i + offset) mod 6
 @export var pact_offer_size: int = 3
 @export var pact_weight: int = 4

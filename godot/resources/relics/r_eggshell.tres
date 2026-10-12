@@ -6,12 +6,11 @@
 script = ExtResource("1")
 id = "r_eggshell"
 name = "Eggshell Ward"
-description = "RULE: every Axie Egg gains 2 Shield at the start of each turn."
-rarity = 1
+description = "At end of turn, each living Egg gives 3 Shield to each Axie next to it."
+rarity = 0
 archetype = "summon"
 mload = 0
-sort_index = 101029
+sort_index = 100029
 hook_key = "r_eggshell"
 tags = PackedStringArray("summon")
 layer = "enabler"
-needs_hook = "H3"
