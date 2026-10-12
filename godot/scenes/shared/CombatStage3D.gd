@@ -572,6 +572,17 @@ func set_arena(biome_id: String, boss: bool = false) -> bool:
 	return true
 
 
+## Fraction of the viewport height left ABOVE the portal tower top (0 = touching the frame top,
+## negative = cropped). 1.0 when there is no arena/portal. Used by the arena framing test.
+func portal_top_margin() -> float:
+	if _arena == null or _camera == null or _arena.portal_position() == Vector3.ZERO:
+		return 1.0
+	var top := _arena.portal_top_position()
+	if _camera.is_position_behind(top):
+		return 1.0
+	return _camera.unproject_position(top).y / float(_viewport.size.y)
+
+
 ## Picks and builds the arena for a map node. Pure function of (row, is_boss, total_rows) -
 ## no RNG, so replays and re-entering a fight always give the same battlefield.
 ## `total_rows` = RunMapGraph rows.size() (18 standard, 30 full).

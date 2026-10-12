@@ -42,6 +42,7 @@ func _ready() -> void:
 		seen[CombatArena3D.biome_for(row, false)] = true
 	_assert(seen.size() == journey.size(), "an 18-row run should visit every biome, saw %d" % seen.size())
 	_check_scene_deps("res://assets/atia/arena/scenes")
+	await _check_framing(journey)
 	print("=== t_arena_coverage: %d checks, %d failure(s) ===" % [_checks, _fails.size()])
 	if _fails.is_empty():
 		print("t_arena_coverage: PASS — %d checks OK" % _checks)
@@ -87,3 +88,28 @@ func _collect(dir_path: String, out: Array[String]) -> void:
 			out.append(dir_path.path_join(f))
 	for d in DirAccess.get_directories_at(dir_path):
 		_collect(dir_path.path_join(d), out)
+
+
+## The portal tower must not touch the frame top (16:9 stage) in any biome, normal or boss, and
+## no prop may sit inside the enemy-flank / portal-line keep-out.
+func _check_framing(journey: Array) -> void:
+	_assert(CombatArena3D.in_keepout(0.0, -30.0), "portal line should be keep-out")
+	_assert(CombatArena3D.in_keepout(5.0, -6.5), "enemy row should be keep-out")
+	_assert(not CombatArena3D.in_keepout(15.0, -6.5), "far flank should be allowed")
+	var stage: CombatStage3D = load("res://scenes/shared/CombatStage3D.tscn").instantiate()
+	add_child(stage)
+	await get_tree().process_frame
+	for b in journey:
+		for boss in [false, true]:
+			stage.set_arena(String(b), boss)
+			var m: float = stage.portal_top_margin()
+			print("  margin ", b, " boss=", boss, " ", snappedf(m, 0.001))
+			_assert(m >= (0.012 if boss else 0.03), "%s boss=%s portal top margin %.3f too small" % [b, boss, m])
+			var arena: Node = stage.get("_arena")
+			var root: Node = arena.get("_props_root")
+			for n in root.get_children():
+				if n is Node3D and not (n is MeshInstance3D) and not (n is OmniLight3D) and not (n is MultiMeshInstance3D) \
+						and n != arena.get("_portal") and n.position.z > -30.0 and n.position.z < 6.0 and n.position.x != 0.0:
+					_assert(not CombatArena3D.in_keepout(n.position.x, n.position.z) or n.position.z == 8.0 or n.position.x == 0.0,
+						"%s prop %s inside keep-out at %s" % [b, n.name, n.position])
+	stage.queue_free()
