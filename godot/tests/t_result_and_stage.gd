@@ -30,7 +30,7 @@ const RESULT_SCENE := "res://scenes/result/Result.tscn"
 ## reads above CardRow (shard/pass/relics) reads above the CTAs — outcome, then build, then
 ## currency, top to bottom.
 ##
-## UPDATED (routing task, FIX-PASS-02 §1 item 4): the CTA row ("RUN IT AGAIN" / "MAIN MENU")
+## UPDATED (routing task, FIX-PASS-02 §1 item 4): the CTA row ("RUN IT AGAIN" / "BACK TO LAND")
 ## used to be its own `CtaRow` Control anchored to the bottom of the raw viewport; it is now
 ## folded into the shared shell's `Footer` bar (DangoScreen.build()/add_back_button()/
 ## add_footer_action(), the same BACK + primary-action convention Pass/Unlocks/Vault/Guides

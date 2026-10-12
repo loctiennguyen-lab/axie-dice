@@ -172,7 +172,8 @@ func start_params() -> Dictionary:
 	for k in party:
 		if k != "":
 			keys.append(k)
-	return {"team_keys": keys, "mode": mode, "ascension": ascension, "ranked": false}
+	return {"team_keys": keys, "mode": mode, "ascension": ascension, "ranked": false,
+		"newcomer": is_newcomer()}
 
 
 ## Why Begin is disabled, or "" when it is allowed.

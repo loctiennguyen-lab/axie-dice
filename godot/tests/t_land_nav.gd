@@ -23,7 +23,7 @@ func _ready() -> void:
 		_check(LandNav.SCREENS.has(id), "SCREENS thiếu id %s" % id)
 	# Màn đã có thật thì phải resolve được.
 	for id in [&"run_setup", &"team_select", &"pass", &"vault", &"codex", &"settings", &"guides",
-			&"unlocks", &"account"]:
+			&"unlocks", &"account", &"daily"]:
 		_check(LandNav.is_available(id), "%s phải có màn (hoặc fallback)" % id)
 	_check(LandNav.resolve(&"khong_co_id") == "", "id lạ phải resolve rỗng")
 	# open ghi path + params; back_to_land xoá params.

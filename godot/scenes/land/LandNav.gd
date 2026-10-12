@@ -23,6 +23,7 @@ const SCREENS: Dictionary = {
 	&"codex": {"scene": "res://scenes/codex/Codex.tscn"},
 	&"settings": {"scene": "res://scenes/settings/Settings.tscn"},
 	&"guides": {"scene": "res://scenes/guides/Guides.tscn"},
+	&"daily": {"scene": "res://scenes/daily/DailyScreen.tscn"},
 	# Mastery Hall / Gallery: no screens yet (lane M); the hub shows "Coming soon".
 	&"mastery": {"scene": "res://scenes/mastery/Mastery.tscn"},
 	&"gallery": {"scene": "res://scenes/gallery/Gallery.tscn"},

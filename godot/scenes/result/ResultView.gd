@@ -837,7 +837,7 @@ func _build_cta_row() -> void:
 	again.pressed.connect(_on_menu_pressed)
 	row.add_child(again)
 
-	var menu := _cta_button("MAIN MENU", 250.0, 20, DangoTheme.PANEL_ON_ART,
+	var menu := _cta_button("BACK TO LAND", 250.0, 20, DangoTheme.PANEL_ON_ART,
 		DangoTheme.MUTED_TEXT, 0.14)
 	menu.name = "BackButton"
 	menu.pressed.connect(_on_menu_pressed)

@@ -338,7 +338,7 @@ func _on_use_pressed(guide: Dictionary) -> void:
 ## §1 item 4: the footer is `DangoScreen.build()`'s.
 func _build_footer(footer: HBoxContainer) -> void:
 	DangoScreen.add_back_button(footer, func() -> void:
-		get_tree().change_scene_to_file(MAIN_MENU_SCENE))
+		LandNav.back_to_land())
 
 
 func _cream_body_label(text: String) -> Label:

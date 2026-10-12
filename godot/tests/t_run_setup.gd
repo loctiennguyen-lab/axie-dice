@@ -128,6 +128,7 @@ func _ready() -> void:
 	MetaState.runs = 1
 	var s3 := await _make("loading")
 	_ok(s3.find_child("KitBoon", true, false) == null, "newcomer hides Kit/Boon")
+	_ok(bool(s3.start_params().get("newcomer", false)), "start_params carries newcomer=true for a fresh save")
 	s3.queue_free()
 	_guard.restore()
 	if _fail.is_empty():
