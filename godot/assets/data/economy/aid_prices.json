@@ -75,5 +75,6 @@
 			"boss"
 		]
 	},
-	"vip_boon_per_day": 1
+	"vip_boon_per_day": 1,
+	"ranked_allows_kit_boon": true
 }

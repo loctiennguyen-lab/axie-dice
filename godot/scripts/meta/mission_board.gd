@@ -1,6 +1,6 @@
 class_name MissionBoard
 extends RefCounted
-## Bảng Nhiệm vụ ngày (L1: N1-N4 bật, N5/N6 tắt). Design: nhiem-vu-risk-to-earn.md 3.2-3.6.
+## Bảng Nhiệm vụ ngày (L1: chỉ N1-N3 bật; N4-N6 và nâng nhà tắt). Design: nhiem-vu-risk-to-earn.md 3.2-3.6.
 ## Dữ liệu: assets/data/economy/missions.json. Định nghĩa luật M1-M5 (con số đổi trận) nằm ở
 ## rules/mission_rules.json của làn A; ở đây chỉ tham chiếu mã.
 ## Chỉ là dữ liệu bảng + điều kiện mở. Escrow (trừ cược lúc tạo run) và trả thưởng là việc server.
@@ -85,6 +85,8 @@ static func next_house_cost(store: Object) -> Dictionary:
 
 ## Nâng nhà: trừ Shard và Stone (đủ cả hai mới trừ). Trả "" khi xong hoặc lý do từ chối.
 static func upgrade_house(store: Object) -> String:
+	if not bool(_cfg().get("house_upgrade_enabled", false)):
+		return "disabled"   # L1: nhà không nâng cấp
 	var cost := next_house_cost(store)
 	if cost.is_empty():
 		return "max_level"

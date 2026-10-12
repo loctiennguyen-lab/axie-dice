@@ -44,7 +44,7 @@
 			"stone": 22,
 			"unlock_win_asc": 7,
 			"house_level": 2,
-			"enabled": true
+			"enabled": false
 		},
 		"N5": {
 			"mode": "short",
@@ -150,5 +150,7 @@
 	"stone_day_cap": 150,
 	"newcomer_runs": 5,
 	"payout_cap": 20000,
-	"newcomer_gate": true
+	"newcomer_gate": true,
+	"house_upgrade_enabled": false,
+	"_note_l1": "L1 (Liam): chỉ N1-N3; nhà không nâng cấp (giữ dữ liệu, tắt)"
 }

@@ -34,6 +34,9 @@ class Stub extends RefCounted:
 		if cur == "shard":
 			if shard_pool < n: return false
 			shard_pool -= n
+		elif cur == "gem":
+			if gems_cache < n: return false
+			gems_cache -= n
 		elif cur == "stone":
 			if stone < n: return false
 			stone -= n
@@ -56,6 +59,7 @@ func _ready() -> void:
 	test_echobox_no_repeat_and_recycle()
 	test_ticket_buy_cap_and_cost()
 	test_mission_board()
+	test_store_and_l1_flags()
 	test_migration_resets_old_save()
 	test_new_fields_survive_reload()
 	test_record_run_outcome_and_badges()
@@ -93,6 +97,9 @@ func test_data_validates() -> void:
 	_assert(int(a["R4"]["price"]) == 60 and int(a["R5"]["price"]) == 15 and int(a["R6"]["price"]) == 18
 		and int(a["R7"]["price"]) == 12 and int(a["R8"]["price"]) == 38 and int(a["R9"]["price"]) == 60, "giá PA-1")
 	_assert(not bool(_Econ.get_table("echobox")["boxes"]["season"]["enabled"]), "hộp mùa tắt ở L1")
+	_assert(not bool(g["vip_trial"]["enabled"]), "VIP thử tắt ở L1")
+	var tiers: Dictionary = _Econ.get_table("missions")["tiers"]
+	_assert(tiers["N3"]["enabled"] and not tiers["N4"]["enabled"], "Nhiệm vụ chỉ N1-N3 ở L1")
 
 
 func test_ticket_price_curve() -> void:
@@ -383,15 +390,15 @@ func test_mission_board() -> void:
 	var s := Stub.new()
 	s.runs = 2
 	var offers := MissionBoard.offers("2026-11-03", s)
-	_assert(offers.size() == 6, "6 dòng (N5/N6 tắt hiện xám)")
+	_assert(offers.size() == 6, "6 dòng (N4-N6 tắt hiện xám)")
 	_assert(offers[0]["lock_reason"] == "newcomer", "chưa qua 5 run: khoá newcomer")
 	s.runs = 5
 	_assert(MissionBoard.lock_reason("N1", s) == "asc_win", "N1 cần thắng A3")
 	s.asc_wins["3"] = 1
 	_assert(MissionBoard.lock_reason("N1", s) == "", "đã thắng A3: N1 mở")
 	s.asc_wins["7"] = 1
-	_assert(MissionBoard.lock_reason("N4", s) == "house", "N4 cần nhà cấp 2")
-	_assert(MissionBoard.lock_reason("N5", s) == "disabled" and MissionBoard.lock_reason("N6", s) == "disabled", "N5/N6 tắt ở L1")
+	for k in ["N4", "N5", "N6"]:
+		_assert(MissionBoard.lock_reason(k, s) == "disabled", "%s tắt ở L1 (chỉ N1-N3)" % k)
 	var a := MissionBoard.offers("2026-11-03", s)
 	var b := MissionBoard.offers("2026-11-03", s)
 	_assert(a == b, "bảng cùng ngày giống nhau")
@@ -400,13 +407,11 @@ func test_mission_board() -> void:
 		ruleset_days[MissionBoard.rule_set_key("2026-11-%02d" % d, "N2")] = true
 	_assert(ruleset_days.size() == 2, "bộ luật A/B đổi theo ngày")
 	_assert((a[0]["rules"] as Array).is_empty() and a[0]["stone"] == 4, "N1 chỉ luật chuẩn, 4 Stone")
-	# nâng nhà
-	_assert(MissionBoard.upgrade_house(s) == "no_shards", "nâng nhà thiếu Shard")
-	s.shard_pool = 3000
-	_assert(MissionBoard.upgrade_house(s) == "no_stone", "thiếu Stone")
-	s.stone = 4000
-	_assert(MissionBoard.upgrade_house(s) == "" and s.mission_house_level == 2 and s.shard_pool == 0 and s.stone == 0, "nâng cấp 2: 3.000 Shard + 4.000 Stone")
-	_assert(MissionBoard.lock_reason("N4", s) == "", "N4 mở sau nhà cấp 2")
+	# nâng nhà: tắt ở L1
+	s.shard_pool = 99999
+	s.stone = 99999
+	_assert(MissionBoard.upgrade_house(s) == "disabled" and s.mission_house_level == 0 and s.shard_pool == 99999,
+		"nâng nhà tắt ở L1, không trừ gì")
 
 
 func test_migration_resets_old_save() -> void:
@@ -529,3 +534,22 @@ func test_spend_and_ledger() -> void:
 	for i in 250:
 		MetaState.add_stone(1, "bulk")
 	_assert(MetaState.ledger.size() == MetaState.LEDGER_MAX, "sổ cái giữ tối đa %d dòng" % MetaState.LEDGER_MAX)
+
+
+func test_store_and_l1_flags() -> void:
+	_assert(not StoreCatalog.usd_enabled(), "nút USD tắt ở L1")
+	var s := Stub.new()
+	s.gems_cache = 1000
+	_assert(StoreCatalog.buy_ticket_bundle(s, 6) == "" and s.gems_cache == 880 and s.tickets["normal"] == 6, "bundle 6 vé = 120 Gem")
+	_assert(StoreCatalog.buy_ticket_bundle(s, 7) == "unknown_bundle", "gói lạ")
+	_assert(StoreCatalog.buy_ticket_bundle(s, 100) == "no_gems" and s.tickets["normal"] == 6, "thiếu Gem: không nhận vé")
+	_assert(EchoBox.bought_today(s, "2026-11-03") == 0, "vé bundle không tăng bậc giá Shard")
+	_assert(StoreCatalog.cosmetic_price("rare") == 90 and StoreCatalog.cosmetic_price("mythic") == 720, "giá cosmetic tạm 90..720")
+	_assert(StoreCatalog.buy_cosmetic(s, "frame_u_x", "epic") == "" and s.gems_cache == 700 and s.cosmetics_owned.has("frame_u_x"), "mua cosmetic epic 180")
+	_assert(StoreCatalog.buy_cosmetic(s, "frame_u_x", "epic") == "owned" and s.gems_cache == 700, "đã có: không trừ")
+	_assert(StoreCatalog.buy_cosmetic(s, "x", "common") == "not_for_sale", "common không bán trực tiếp")
+	_assert(bool(_Econ.get_table("aid_prices")["ranked_allows_kit_boon"]), "ranked cho dùng Kit/Boon")
+	var r := AidCatalog.offer("R8", _ctx({"node_kind": "setup", "mode": "ranked"}))
+	_assert(r["show"] and r["enabled"], "Boon hiện ở ranked")
+	var d: Dictionary = _Econ.get_table("daily")["daily_runs"]
+	_assert(int(d["max_per_day"]) == 3 and bool(d["shared_seed"]), "Daily tối đa 3 lần/ngày UTC, chung seed")

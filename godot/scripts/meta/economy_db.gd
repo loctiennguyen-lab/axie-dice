@@ -169,9 +169,13 @@ static func _validate_missions(errs: Array[String]) -> void:
 		var t: Dictionary = tiers.get("N%d" % (i + 1), {})
 		if int(t.get("stake", 0)) != stakes[i] or absf(float(t.get("m_base", 0)) - ms[i]) > 0.0001:
 			errs.append("missions: N%d sai stake/m" % (i + 1))
-		if not bool(t.get("enabled", false)):
+		if i < 3 and not bool(t.get("enabled", false)):
 			errs.append("missions: N%d phải bật ở L1" % (i + 1))
-	for k in ["N5", "N6"]:
+	if bool(m.get("house_upgrade_enabled", true)):
+		errs.append("missions: nâng nhà phải tắt ở L1")
+	if bool((get_table("gem").get("vip_trial", {}) as Dictionary).get("enabled", true)):
+		errs.append("gem: vip_trial phải tắt ở L1")
+	for k in ["N4", "N5", "N6"]:
 		if bool((tiers.get(k, {}) as Dictionary).get("enabled", true)):
 			errs.append("missions: %s phải tắt ở L1" % k)
 
