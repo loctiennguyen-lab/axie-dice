@@ -78,6 +78,7 @@ func _ready() -> void:
 	test_new_fields_survive_reload()
 	test_record_run_outcome_and_badges()
 	test_spend_and_ledger()
+	test_mission_stake()
 	_guard.restore()
 	print("=== t_economy: %d checks, %d failure(s) ===" % [_checks, _failures.size()])
 	if _failures.is_empty():
@@ -767,3 +768,77 @@ func test_pass_weekly_tasks() -> void:
 	_assert(int(MetaState.pass_season["xp"]) == 300 and (MetaState.pass_season.get("weekly", {}) as Dictionary).is_empty(), "save cũ không có weekly: load được, weekly rỗng")
 	PassV2.record_run(MetaState, "2026-11-04", false, false)
 	_assert(PassV2.weekly_status(MetaState, "2026-11-04")[0]["progress"] == 1, "save cũ: đếm run tiếp được")
+
+
+func _fresh_meta(shards: int, locked: int) -> void:
+	SaveStore.erase(MetaState.SAVE_PATH)
+	MetaState.reload_from_store()
+	MetaState.shard_pool = shards
+	MetaState.starter_shard_locked = locked
+	MetaState.stone = 0
+	MetaState.mission_escrow = {}
+	MetaState.mission_stone_day = {"day": "", "n": 0}
+	MetaState.save_to_disk()
+
+
+## Escrow cược Nhiệm vụ: take / thắng / thua / bỏ / idempotent / hoàn / khởi động lại / thiếu / starter.
+func test_mission_stake() -> void:
+	var pay := MissionBoard.payout("N1")   # 300 x 1.6 = 480
+	_fresh_meta(1000, 0)
+	_assert(MetaState.take_mission_stake("N1", "m1", 300) and MetaState.shard_pool == 700 and int(MetaState.mission_escrow["stake"]) == 300, "take: trừ cược, ghi escrow")
+	MetaState.record_run_outcome({"mode": "short", "ascension": 3, "mission_id": "m1"}, true)
+	_assert(MetaState.shard_pool == 700 + pay and MetaState.stone == 4 and MetaState.mission_escrow.is_empty(), "thắng: trả payout + Stone, đóng escrow")
+	_assert(not MetaState.settle_mission_stake(true) and MetaState.shard_pool == 700 + pay, "settle lần hai: không trả thêm")
+	MetaState.record_run_outcome({"mode": "short", "ascension": 3, "mission_id": "m1"}, true)
+	_assert(MetaState.shard_pool == 700 + pay, "record_run_outcome lặp: không trả thêm")
+	# thua
+	_fresh_meta(1000, 0)
+	MetaState.take_mission_stake("N2", "m3")
+	MetaState.record_run_outcome({"mission_id": "m3"}, false)
+	_assert(MetaState.shard_pool == 500 and MetaState.mission_escrow.is_empty() and MetaState.stone == 0, "thua: mất cược, không Stone")
+	# bỏ run
+	_fresh_meta(1000, 0)
+	MetaState.take_mission_stake("N1", "m4")
+	_assert(MetaState.settle_mission_stake(false) and MetaState.shard_pool == 700 and not MetaState.settle_mission_stake(false), "bỏ: mất cược, idempotent")
+	# run thường kết thúc: không đụng escrow
+	_fresh_meta(1000, 0)
+	MetaState.take_mission_stake("N1", "m5")
+	MetaState.record_run_outcome({"mode": "short", "ascension": 0}, true)
+	_assert(not MetaState.mission_escrow.is_empty(), "run thường (không mission_id): escrow nguyên")
+	# khởi động lại giữa run
+	MetaState.reload_from_store()
+	_assert(int(MetaState.mission_escrow.get("stake", 0)) == 300 and MetaState.shard_pool == 700, "restart: escrow + số dư còn")
+	MetaState.record_run_outcome({"mission_id": "m5"}, true)
+	_assert(MetaState.shard_pool == 700 + pay, "restart rồi thắng: trả đúng một lần")
+	# hoàn
+	_fresh_meta(1000, 0)
+	MetaState.take_mission_stake("N3", "m6")
+	_assert(MetaState.refund_mission_stake() and MetaState.shard_pool == 1000 and not MetaState.refund_mission_stake(), "refund: trả đúng cược, một lần")
+	# thiếu / starter / tier tắt / sai stake
+	_fresh_meta(200, 0)
+	_assert(not MetaState.take_mission_stake("N1") and MetaState.shard_pool == 200 and MetaState.mission_escrow.is_empty(), "thiếu Shard: false, không đổi")
+	_fresh_meta(700, 500)
+	_assert(MetaState.stake_usable_shards() == 200 and not MetaState.take_mission_stake("N1"), "starter không tính làm cược")
+	_fresh_meta(800, 500)
+	_assert(MetaState.take_mission_stake("N1") and MetaState.shard_pool == 500 and MetaState.starter_shard_locked == 500, "đủ phần dùng được: cược không đụng starter")
+	_fresh_meta(5000, 0)
+	_assert(not MetaState.take_mission_stake("N4") and not MetaState.take_mission_stake("N1", "", 999) and not MetaState.take_mission_stake("ZZ"), "tier tắt/lạ, sai stake: từ chối")
+	# spend thường tiêu starter trước
+	_fresh_meta(800, 500)
+	MetaState.spend("shard", 100, "t")
+	_assert(MetaState.starter_shard_locked == 400 and MetaState.stake_usable_shards() == 300, "spend thường tiêu phần starter trước")
+	# save cũ không có field mới
+	var raw: Dictionary = JSON.parse_string(SaveStore.read_text(MetaState.SAVE_PATH))
+	raw.erase("mission_escrow"); raw.erase("starter_shard_locked"); raw.erase("mission_stone_day")
+	SaveStore.write_text(MetaState.SAVE_PATH, JSON.stringify(raw))
+	MetaState.reload_from_store()
+	_assert(MetaState.mission_escrow.is_empty() and MetaState.starter_shard_locked == 0, "save cũ: load được, mặc định rỗng")
+	# R: bỏ ngay sau khi mua = chỉ mất cược (R tích theo tiến độ, 0 lúc đầu)
+	_fresh_meta(1000, 0)
+	MetaState.take_mission_stake("N1", "m7")
+	MetaState.settle_mission_stake(false)
+	_assert(MetaState.shard_pool == 700, "mua rồi bỏ ngay: -cược")
+	# orphan: escrow mở nhưng không còn run lưu -> đóng thua rồi cho take mới
+	_fresh_meta(1000, 0)
+	MetaState.take_mission_stake("N1", "old")
+	_assert(MetaState.take_mission_stake("N1", "new") and MetaState.shard_pool == 400 and MetaState.mission_escrow["mission_id"] == "new", "escrow mồ côi: đóng thua, nhận cược mới")

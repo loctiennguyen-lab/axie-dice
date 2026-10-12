@@ -15,6 +15,14 @@ static func _cfg() -> Dictionary:
 	return _Econ.get_table("missions")
 
 
+static func tiers() -> Dictionary:
+	return _cfg().get("tiers", {})
+
+
+static func config() -> Dictionary:
+	return _cfg()
+
+
 static func tier_ids() -> Array:
 	return ["N1", "N2", "N3", "N4", "N5", "N6"]
 

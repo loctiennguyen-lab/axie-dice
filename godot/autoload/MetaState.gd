@@ -86,6 +86,12 @@ var pass_season: Dictionary = {"id": "", "xp": 0, "level": 0, "claimed_free": []
 var vip_until_utc: int = 0
 var vip_trial_used: bool = false
 var mission_house_level: int = 0
+## Escrow cược Nhiệm vụ đang mở ({} = không có). Lưu qua SaveStore nên sống qua khởi động lại giữa run.
+var mission_escrow: Dictionary = {}
+## Phần Shard khoản khởi đầu chưa tiêu: KHÔNG dùng làm cược (nhiem-vu-risk-to-earn: "khoản khởi đầu không dùng làm cược").
+var starter_shard_locked: int = 0
+## Stone Nhiệm vụ đã nhận trong ngày UTC (trần stone_day_cap): {"day": "", "n": 0}.
+var mission_stone_day: Dictionary = {"day": "", "n": 0}
 var asc_wins: Dictionary = {}            # "asc" -> số run thắng
 var full_a9_won: bool = false
 var aid_hints_off: bool = false
@@ -137,6 +143,7 @@ func spend(currency: String, n: int, reason: String, save: bool = true) -> bool:
 			if shard_pool < n:
 				return false
 			shard_pool -= n
+			starter_shard_locked = maxi(0, starter_shard_locked - n)   # tiêu khoản khởi đầu trước, phần dùng làm cược không đổi
 		"stone":
 			if stone < n:
 				return false
@@ -237,6 +244,11 @@ func apply_server_wallet(snapshot: Dictionary) -> void:
 ## và "đã thắng Full A9" để mở bậc Nhiệm vụ. `params`: {mode:"short"|"full", ascension:int, ...}.
 ## runs/wins/best vẫn do end_run ghi như hôm nay.
 func record_run_outcome(params: Dictionary, won: bool) -> void:
+	# Quyết toán cược Nhiệm vụ (một lần; settle lần hai không làm gì). `won` đã gồm điều kiện phụ.
+	# Run thường kết thúc khi đang có escrow của run khác: params.mission_id rỗng -> không đụng escrow.
+	if not mission_escrow.is_empty() and String(params.get("mission_id", "")) == String(mission_escrow.get("mission_id", "")) \
+			and not String(params.get("mission_id", "")).is_empty():
+		settle_mission_stake(won, false)
 	# Việc tuần Pass v2: mọi run đã kết thúc đều tính; params.reached_boss (tuỳ chọn) cho việc "chạm boss".
 	PassV2.record_run(self, today_utc(), won, bool(params.get("reached_boss", false)))
 	if not won:
@@ -246,6 +258,89 @@ func record_run_outcome(params: Dictionary, won: bool) -> void:
 	if String(params.get("mode", "short")) == "full" and asc >= 9:
 		full_a9_won = true
 	save_to_disk()
+
+
+## Shard dùng được làm cược = số dư trừ phần khoản khởi đầu chưa tiêu.
+func stake_usable_shards() -> int:
+	return maxi(0, shard_pool - starter_shard_locked)
+
+
+static func _escrow_from_json(raw) -> Dictionary:
+	if not (raw is Dictionary) or (raw as Dictionary).is_empty():
+		return {}
+	var d: Dictionary = raw
+	return {"tier": String(d.get("tier", "")), "mission_id": String(d.get("mission_id", "")),
+		"stake": int(d.get("stake", 0)), "payout": int(d.get("payout", 0)), "stone": int(d.get("stone", 0)),
+		"t": int(d.get("t", 0))}
+
+
+## Nhiệm vụ (nhiem-vu-risk-to-earn §3, economy missions.json): trừ cược lúc tạo run, ghi escrow vào save.
+## `tier_id` = "N1".. ; `mission_id` = id offer/run (RunState.mission.mission_id) để khớp lúc quyết toán;
+## `stake` (tuỳ chọn) phải khớp bảng, số trong bảng là số thật. false + không trừ gì nếu: tier tắt/lạ,
+## không đủ Shard dùng được (khởi đầu không tính), hoặc đã có escrow đang mở của run còn sống.
+## Escrow mồ côi (không còn run đã lưu) bị đóng là thua trước khi nhận cược mới.
+func take_mission_stake(tier_id: String, mission_id: String = "", stake: int = -1) -> bool:
+	var t: Dictionary = (MissionBoard.tiers() as Dictionary).get(tier_id, {})
+	if t.is_empty() or not bool(t.get("enabled", false)):
+		return false
+	var cost := int(t.get("stake", 0))
+	if cost <= 0 or (stake >= 0 and stake != cost):
+		return false
+	if not mission_escrow.is_empty():
+		if RunState.has_saved_run():
+			return false
+		settle_mission_stake(false, false)   # run đã mất mà escrow còn: coi như bỏ = thua
+	if stake_usable_shards() < cost:
+		return false
+	shard_pool -= cost   # trực tiếp, không qua spend(): cược lấy từ phần dùng được, không đụng starter_shard_locked
+	ledger_add("shard", -cost, "mission_stake")
+	var cap := int(MissionBoard.config().get("payout_cap", 0))
+	var pay := MissionBoard.payout(tier_id)
+	if cap > 0:
+		pay = mini(pay, cap)
+	mission_escrow = {"tier": tier_id, "mission_id": mission_id, "stake": cost, "payout": pay,
+		"stone": int(t.get("stone", 0)), "t": int(Time.get_unix_time_from_system())}
+	save_to_disk()
+	return true
+
+
+## Đóng escrow. Thắng: trả `payout` (đã gồm cược, trần payout_cap) + Stone (trần stone_day_cap/ngày).
+## Thua/bỏ: cược mất. Idempotent: không escrow -> trả false và không làm gì.
+## Gọi `settle_mission_stake(false)` khi người chơi bấm Bỏ run (SettingsView) vì đường đó không qua end_run.
+## Shard R của run (RunState.shards_this_run) vẫn cộng như thường: nó tích theo tiến độ trận/sự kiện nên
+## bỏ ngay sau khi mua cho R = 0 và lỗ đủ cược; không có chỗ nào cộng R cố định cho mission.
+func settle_mission_stake(won: bool, save: bool = true) -> bool:
+	if mission_escrow.is_empty():
+		return false
+	var e := mission_escrow
+	mission_escrow = {}   # xoá trước khi trả: lỗi giữa chừng cũng không trả hai lần
+	if won:
+		add_shards(int(e.get("payout", 0)), "mission_win", false)
+		var day := today_utc()
+		if String(mission_stone_day.get("day", "")) != day:
+			mission_stone_day = {"day": day, "n": 0}
+		var room := maxi(0, int(MissionBoard.config().get("stone_day_cap", 0)) - int(mission_stone_day["n"]))
+		var st := mini(int(e.get("stone", 0)), room)
+		if st > 0:
+			mission_stone_day["n"] = int(mission_stone_day["n"]) + st
+			add_stone(st, "mission_win", false)
+	else:
+		ledger_add("shard", 0, "mission_loss_%s" % String(e.get("tier", "")))
+	if save:
+		save_to_disk()
+	return true
+
+
+## Chỉ khi run KHÔNG bắt đầu được (begin_run lỗi): hoàn đúng số đã trừ, không payout. false nếu không có escrow.
+func refund_mission_stake() -> bool:
+	if mission_escrow.is_empty():
+		return false
+	var cost := int(mission_escrow.get("stake", 0))
+	mission_escrow = {}
+	shard_pool += cost
+	ledger_add("shard", cost, "mission_refund")
+	save_to_disk()
+	return true
 
 
 ## L1 contract 5.2 — chấm đỏ cho màn `screen_id`. Chỉ đếm cái nhận được ngay, không tính toán nặng.
@@ -303,6 +398,9 @@ func _reset_economy_fields() -> void:
 	vip_until_utc = 0
 	vip_trial_used = false
 	mission_house_level = 0
+	mission_escrow = {}
+	starter_shard_locked = 0
+	mission_stone_day = {"day": "", "n": 0}
 	asc_wins = {}
 	full_a9_won = false
 	aid_hints_off = false
@@ -381,6 +479,10 @@ func _economy_from_json(parsed: Dictionary, raw_text: String = "") -> void:
 	vip_until_utc = int(parsed.get("vip_until_utc", 0))
 	vip_trial_used = bool(parsed.get("vip_trial_used", false))
 	mission_house_level = int(parsed.get("mission_house_level", 0))
+	mission_escrow = _escrow_from_json(parsed.get("mission_escrow", {}))
+	starter_shard_locked = maxi(0, int(parsed.get("starter_shard_locked", 0)))
+	var msd = parsed.get("mission_stone_day", {})
+	mission_stone_day = {"day": String(msd.get("day", "")), "n": int(msd.get("n", 0))} if msd is Dictionary else {"day": "", "n": 0}
 	asc_wins = _int_values(parsed.get("asc_wins", {}))
 	full_a9_won = bool(parsed.get("full_a9_won", false))
 	aid_hints_off = bool(parsed.get("aid_hints_off", false))
@@ -412,6 +514,7 @@ func _apply_starter_if_needed() -> void:
 		return
 	var st: Dictionary = EconomyDBScript.get_table("daily").get("starter", {})
 	shard_pool += int(st.get("shards", 0))
+	starter_shard_locked = int(st.get("shards", 0))
 	gems_cache += int(st.get("gems", 0))
 	tickets["normal"] = int(tickets.get("normal", 0)) + int(st.get("tickets", 0))
 	starter_granted = true
@@ -481,6 +584,9 @@ func save_to_disk() -> void:
 		"vip_until_utc": vip_until_utc,
 		"vip_trial_used": vip_trial_used,
 		"mission_house_level": mission_house_level,
+		"mission_escrow": mission_escrow,
+		"starter_shard_locked": starter_shard_locked,
+		"mission_stone_day": mission_stone_day,
 		"asc_wins": asc_wins,
 		"full_a9_won": full_a9_won,
 		"aid_hints_off": aid_hints_off,
@@ -644,6 +750,7 @@ func buy_unlock(id: String) -> String:
 	if shard_pool < cost:
 		return "Needs %d Gene Shard, you have %d." % [cost, shard_pool]
 	shard_pool -= cost
+	starter_shard_locked = maxi(0, starter_shard_locked - cost)
 	unlocks.append(id)
 	save_to_disk()
 	return ""
