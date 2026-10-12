@@ -760,6 +760,8 @@ func end_run(won: bool) -> void:
 	# JS: saveRun() writes the slot only while phase is neither 'won' nor 'lost', and removes it
 	# otherwise (client.html:3420). Doing it here rather than in a save guard means a finished
 	# run cannot leave a resumable save behind even if some later call site forgets.
+	# Lane E: settle the mission escrow (and save) BEFORE the saved run is cleared (kill-safe).
+	MetaState.settle_mission_for_run(String(mission.get("mission_id", "")), bool(mission_outcome(won)["won"]))
 	clear_saved_run()
 	if epoch != null:
 		var mo := mission_outcome(won)

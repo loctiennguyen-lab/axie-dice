@@ -279,19 +279,30 @@ static func _escrow_from_json(raw) -> Dictionary:
 ## `stake` (tuỳ chọn) phải khớp bảng, số trong bảng là số thật. false + không trừ gì nếu: tier tắt/lạ,
 ## không đủ Shard dùng được (khởi đầu không tính), hoặc đã có escrow đang mở của run còn sống.
 ## Escrow mồ côi (không còn run đã lưu) bị đóng là thua trước khi nhận cược mới.
-func take_mission_stake(tier_id: String, mission_id: String = "", stake: int = -1) -> bool:
+## Test seam: nếu gán, thay cho RunState.has_saved_run() trong code escrow (test không phụ thuộc save thật).
+var saved_run_probe: Callable = Callable()
+
+func _saved_run_exists() -> bool:
+	if saved_run_probe.is_valid():
+		return bool(saved_run_probe.call())
+	return RunState.has_saved_run()
+
+
+func take_mission_stake(tier_id: String, stake: int = -1) -> String:
 	var t: Dictionary = (MissionBoard.tiers() as Dictionary).get(tier_id, {})
 	if t.is_empty() or not bool(t.get("enabled", false)):
-		return false
+		return ""
 	var cost := int(t.get("stake", 0))
 	if cost <= 0 or (stake >= 0 and stake != cost):
-		return false
+		return ""
 	if not mission_escrow.is_empty():
-		if RunState.has_saved_run():
-			return false
+		if _saved_run_exists():
+			return ""
 		settle_mission_stake(false, false)   # run đã mất mà escrow còn: coi như bỏ = thua
 	if stake_usable_shards() < cost:
-		return false
+		return ""
+	# Nonce mỗi lần nhận cược (không theo ngày/bậc): run không cược không thể khớp escrow cũ.
+	var mission_id := "ms_" + Crypto.new().generate_random_bytes(8).hex_encode()
 	shard_pool -= cost   # trực tiếp, không qua spend(): cược lấy từ phần dùng được, không đụng starter_shard_locked
 	ledger_add("shard", -cost, "mission_stake")
 	var cap := int(MissionBoard.config().get("payout_cap", 0))
@@ -301,7 +312,21 @@ func take_mission_stake(tier_id: String, mission_id: String = "", stake: int = -
 	mission_escrow = {"tier": tier_id, "mission_id": mission_id, "stake": cost, "payout": pay,
 		"stone": int(t.get("stone", 0)), "t": int(Time.get_unix_time_from_system())}
 	save_to_disk()
-	return true
+	return mission_id
+
+
+## id của escrow đang mở ("" nếu không có). Lane M truyền id này vào header mission của RunState.
+func current_mission_id() -> String:
+	return String(mission_escrow.get("mission_id", ""))
+
+
+## RunState.end_run gọi TRƯỚC clear_saved_run: chốt escrow (và lưu) khi save run còn đó, nên app bị kill
+## giữa chừng không biến thắng thành thua (kill trước: run còn, escrow còn; kill sau: escrow đã trả).
+## Chỉ đóng khi mission_id khớp escrow đang mở. Idempotent.
+func settle_mission_for_run(mission_id: String, won: bool) -> bool:
+	if mission_id.is_empty() or mission_id != current_mission_id():
+		return false
+	return settle_mission_stake(won, true)
 
 
 ## Đóng escrow. Thắng: trả `payout` (đã gồm cược, trần payout_cap) + Stone (trần stone_day_cap/ngày).
@@ -332,8 +357,11 @@ func settle_mission_stake(won: bool, save: bool = true) -> bool:
 
 
 ## Chỉ khi run KHÔNG bắt đầu được (begin_run lỗi): hoàn đúng số đã trừ, không payout. false nếu không có escrow.
+## Từ chối khi run đã bắt đầu (có save run hoặc RunState không còn ở MENU).
 func refund_mission_stake() -> bool:
 	if mission_escrow.is_empty():
+		return false
+	if _saved_run_exists() or RunState.phase != RunState.RunPhase.MENU:
 		return false
 	var cost := int(mission_escrow.get("stake", 0))
 	mission_escrow = {}
