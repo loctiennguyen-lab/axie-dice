@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="RelicDef" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data_models/relic_def.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "r_linkstone"
+name = "Linkstone"
+description = "SỬA SAU REVIEW 11/10 (F-11, Q4): điều kiện **tĩnh**. Mỗi Axie đang đứng kề một Axie còn sống khác mà mặt đang hiện cùng loại (dmg, shield, heal, poison, mana; Egg/token không tính) nhận +2 giá trị chính của mặt đó. **Khác LINK gốc** (LINK gốc kích lúc dùng mặt và ×1.15 cho người dùng sau): linkstone xét theo mặt đang hiện, tính lại sau roll và mỗi reroll, và không cần ai dùng trước. ×1.15 của LINK gốc vẫn chạy riêng. \"Kề\" dùng đúng hàm của LINK (`combat_engine.gd` ~751, kiểm lúc làm)"
+rarity = 0
+archetype = "crit"
+mload = 0
+sort_index = 100534
+hook_key = ""
+tags = PackedStringArray("uni")
+layer = "positional"
+needs_hook = "H1"
+hidden_from_pool = true

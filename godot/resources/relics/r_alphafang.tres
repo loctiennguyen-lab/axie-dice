@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="RelicDef" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data_models/relic_def.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "r_alphafang"
+name = "Alpha's Fang"
+description = "FERAL: ngưỡng dưới 65% HP (thay 50%, chỉ FERAL; `is_wounded` của relic khác vẫn 50%), hệ số vẫn ×1.6; Axie Beast kill hoàn 1 Reroll (1/lượt). SỬA SAU REVIEW 11/10 (F-20): chỉ tính kill do **mặt của Axie Beast** gây; kill do tick/thorns/relic không tính. `on_kill` ctx thêm `killer` (§5)"
+rarity = 2
+archetype = "beast"
+mload = 0
+sort_index = 102515
+hook_key = ""
+tags = PackedStringArray("beast", "exec")
+layer = "class-up"
+requires_class = "beast"
+needs_hook = "FIELD"
+hidden_from_pool = true

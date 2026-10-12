@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="RelicDef" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data_models/relic_def.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "r_ironvow"
+name = "Iron Vow"
+description = "Lợi: mọi Shield tạo ra ×1.5 (+50% trên trục shield), Thorns +2 cả đội. Hại: mọi mặt dmg −2 (sàn 1)"
+rarity = 2
+archetype = "shield"
+mload = 0
+sort_index = 102527
+hook_key = ""
+tags = PackedStringArray("shield", "thorns")
+layer = "pact"
+mult_axis = "A:shield"
+pact_group = "dice"
+needs_hook = "SHIELD_VALUE"
+hidden_from_pool = true

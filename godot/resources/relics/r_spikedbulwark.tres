@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="RelicDef" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data_models/relic_def.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "r_spikedbulwark"
+name = "Spiked Bulwark"
+description = "When an Axie gains Shield: +1 Thorns per 5 Shield it holds (max +4) until end of turn."
+rarity = 1
+archetype = "shield"
+mload = 0
+sort_index = 101505
+hook_key = "r_spikedbulwark"
+tags = PackedStringArray("shield", "thorns")
+layer = "duo"

@@ -12,3 +12,6 @@ archetype = "pierce"
 mload = 2
 sort_index = 103071
 hook_key = "r_dawnlance"
+tags = PackedStringArray("uni")
+layer = "payoff"
+mult_axis = "A:opener"

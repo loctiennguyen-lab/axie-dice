@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="RelicDef" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data_models/relic_def.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "r_broodbloom"
+name = "Brood Bloom"
+description = "Cuối lượt mỗi Egg +1 growth; Egg mới nở nhận growth bằng Egg có growth cao nhất"
+rarity = 2
+archetype = "growth"
+mload = 0
+sort_index = 102510
+hook_key = ""
+tags = PackedStringArray("growth", "summon")
+layer = "duo"
+needs_hook = "H3"
+hidden_from_pool = true

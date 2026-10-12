@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="RelicDef" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data_models/relic_def.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "r_coupmark"
+name = "Coup Mark"
+description = "A crit on a target below 50% HP that leaves it at 25% Max HP or less kills it."
+rarity = 2
+archetype = "crit"
+mload = 0
+sort_index = 102509
+hook_key = "r_coupmark"
+tags = PackedStringArray("crit", "exec")
+layer = "duo"

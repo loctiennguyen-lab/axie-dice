@@ -12,3 +12,5 @@ archetype = "summon"
 mload = 0
 sort_index = 101030
 hook_key = "r_broodmother"
+tags = PackedStringArray("summon")
+layer = "enabler"

@@ -34,7 +34,7 @@ const ROSTER := ["plant1", "beast1", "aqua1", "reptile1", "bird1"]
 const DIE_RELICS := ["r_claw", "r_carapace", "r_pierceall", "r_cleaveall", "r_bloodmouth",
 	"r_gorehook", "r_barbedhide", "r_heart", "r_ear", "r_talonedge", "r_marrowdrill",
 	"r_bloomscale", "r_rotmouth", "r_squallmark", "r_fang", "r_pyroclasm", "r_wildfire",
-	"r_bloodpact", "r_plaguelord", "r_soulforge", "r_stormcall", "r_ancientgene",
+	"r_plaguelord", "r_stormcall", "r_ancientgene",
 	"r_worldpiercer", "r_tidalbrand", "r_deathmark", "r_bloodthorn", "r_regrow",
 	"r_growthcore", "r_thousandcuts", "r_windlash", "r_apexferal"]
 
@@ -48,8 +48,8 @@ func _ready() -> void:
 	test_claw_adds_exactly_one_to_damage_faces_only()
 	test_ancientgene_multiplies_and_rounds_up()
 	test_ancientgene_runs_after_flat_adders()
-	test_heart_raises_max_hp_by_twelve()
-	test_bloodpact_cuts_max_hp_and_never_below_four()
+	test_heart_raises_max_hp_by_eight()
+	test_bloodpact_costs_two_max_rerolls_not_hp()
 	test_thousandcuts_halves_after_the_adders_and_adds_multi()
 	test_turn_start_mana_relics_grant_on_turn_one_only()
 	test_regrow_floors_regen_without_stacking()
@@ -144,7 +144,9 @@ func test_ancientgene_multiplies_and_rounds_up() -> void:
 	for i in plain.party.size():
 		for j in (plain.party[i] as Unit).die.size():
 			var v := int((plain.party[i].die[j] as Dictionary).get("value", 0))
-			var want: int = int(ceil(float(v) * 1.3)) if v > 0 else 0
+			# v2: only DAMAGE faces are multiplied now (relic-set-v2 §1.2).
+			var is_dmg: bool = String((plain.party[i].die[j] as Dictionary).get("type", "")) == "dmg"
+			var want: int = int(ceil(float(v) * 1.3)) if (v > 0 and is_dmg) else v
 			var got := int((gened.party[i].die[j] as Dictionary).get("value", 0))
 			_assert(got == want,
 				"r_ancientgene on party %d face %d: expected ceil(%d*1.3)=%d, got %d"
@@ -166,33 +168,32 @@ func test_ancientgene_runs_after_flat_adders() -> void:
 			var f: Dictionary = plain.party[i].die[j]
 			var v := int(f.get("value", 0))
 			var adds: int = 1 if String(f.get("type", "")) == "dmg" else 0
-			var want: int = int(ceil(float(v + adds) * 1.3)) if (v + adds) > 0 else 0
+			var want: int = int(ceil(float(v + adds) * 1.3)) if (v + adds) > 0 and adds == 1 else v
 			var got := int((a.party[i].die[j] as Dictionary).get("value", 0))
 			_assert(got == want,
 				"party %d face %d: expected the add BEFORE the multiply, ceil((%d+%d)*1.3)=%d, got %d"
 					% [i, j, v, adds, want, got])
 
 
-func test_heart_raises_max_hp_by_twelve() -> void:
+func test_heart_raises_max_hp_by_eight() -> void:
 	var plain := _combat([])
 	var hearty := _combat(["r_heart"])
 	for i in plain.party.size():
-		_assert(hearty.party[i].max_hp == plain.party[i].max_hp + 12,
+		_assert(hearty.party[i].max_hp == plain.party[i].max_hp + 8,
 			"r_heart on party %d: expected %d max HP, got %d"
-				% [i, plain.party[i].max_hp + 12, hearty.party[i].max_hp])
+				% [i, plain.party[i].max_hp + 8, hearty.party[i].max_hp])
 
 
 ## JS: `u.maxHp = Math.max(4, Math.round(u.maxHp * 0.85))`. The floor of 4 is the part worth
 ## a test: without it the relic could reduce a small unit to 0 max HP, which is not "risk".
-func test_bloodpact_cuts_max_hp_and_never_below_four() -> void:
+func test_bloodpact_costs_two_max_rerolls_not_hp() -> void:
 	var plain := _combat([])
 	var pacted := _combat(["r_bloodpact"])
 	for i in plain.party.size():
-		var want: int = maxi(4, int(round(float(plain.party[i].max_hp) * 0.85)))
-		_assert(pacted.party[i].max_hp == want,
-			"r_bloodpact on party %d: expected %d max HP, got %d"
-				% [i, want, pacted.party[i].max_hp])
-		_assert(pacted.party[i].max_hp >= 4, "r_bloodpact took party %d below the floor of 4" % i)
+		_assert(pacted.party[i].max_hp == plain.party[i].max_hp,
+			"r_bloodpact must not touch Max HP any more (v2 §1.2), party %d" % i)
+	_assert(pacted.max_rerolls == maxi(0, plain.max_rerolls - 2),
+		"r_bloodpact: max rerolls %d -> %d, expected -2 (floor 0)" % [plain.max_rerolls, pacted.max_rerolls])
 
 
 ## Two phases on one relic: the keyword in "kw", the halving in "add". The halving must see
@@ -225,7 +226,7 @@ func test_thousandcuts_halves_after_the_adders_and_adds_multi() -> void:
 ## These three grant Mana on turn 1 only. Asserting the amount AND that turn 2 adds nothing
 ## is the point: `if (s.turn === 1)` is easy to drop, and the relic would then print money.
 func test_turn_start_mana_relics_grant_on_turn_one_only() -> void:
-	for pair in [["r_voidgene", 1], ["r_infinitedie", 1], ["r_manaflood", 3]]:
+	for pair in [["r_infinitedie", 1], ["r_manaflood", 3]]:
 		var rid: String = pair[0]
 		var amount: int = pair[1]
 		var plain := _combat([])

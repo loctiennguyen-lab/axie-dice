@@ -43,7 +43,7 @@ static func resolve(ctx: Dictionary) -> int:
 
 	# ---- source side (steps 1-5) — only when the attacker is a player-side unit ----
 	if src != null and src.side == "p":
-		var low_hp := tgt.hp < tgt.max_hp * 0.5
+		var low_hp := is_wounded(combat, tgt)
 		if low_hp and (src.cls == "beast" or is_exec):
 			v = ceil(v * 1.6)                                                    # 1. EXECUTE
 		if pierce:
@@ -174,6 +174,22 @@ static func resolve(ctx: Dictionary) -> int:
 	if tgt.is_boss:
 		check_boss_phase(combat, tgt)
 	return dealt
+
+
+## relic-set-v2 §3.5: the ONE definition of "wounded" (below 50% HP). Used by FERAL/Execute,
+## scentofblood, deathspiral, coupmark and dawnlance (as `not is_wounded`). carrioncall adds
+## "a target holding >= `woundedPoison` Poison is wounded too". `threshold` is for alphafang
+## (FERAL only, 65%); every other caller leaves it at 0.5.
+static func is_wounded(combat, tgt: Unit, threshold: float = 0.5) -> bool:
+	return is_wounded_at(combat, tgt, tgt.hp, threshold)
+
+
+## Same test against an explicit HP value (coupmark asks "was it wounded BEFORE this hit").
+static func is_wounded_at(combat, tgt: Unit, hp_value: int, threshold: float = 0.5) -> bool:
+	if float(hp_value) < float(tgt.max_hp) * threshold:
+		return true
+	var need := int(RelicHooks.max_val(combat, "woundedPoison", 0.0))
+	return need > 0 and int(tgt.status.get("poison", 0)) >= need
 
 
 static func apply_heal(combat, tgt: Unit, value: int) -> void:

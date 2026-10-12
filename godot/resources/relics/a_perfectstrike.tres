@@ -6,15 +6,17 @@
 script = ExtResource("1")
 id = "a_perfectstrike"
 name = "Perfect Strike"
-description = "[MP 5] Deal 8 damage to one enemy. This attack always crits."
+description = "[MP 4] Deal 8 damage to one enemy. This attack always crits."
 rarity = 1
 archetype = "crit"
 mload = 0
 sort_index = 101085
 hook_key = ""
-act_cost = 5
+act_cost = 4
 act = {
 "kind": "dmg",
 "v": 8,
 "crit": 1
 }
+tags = PackedStringArray("crit")
+layer = "active"

@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="RelicDef" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data_models/relic_def.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "r_shedskin"
+name = "Shed Skin"
+description = "SCALES: Thorns 4 (thay 2), Thorns gắn Poison 2 (thay 1); Axie Reptile bị đánh khi không có Shield: +4 Shield (1 lần/lượt/Axie)"
+rarity = 2
+archetype = "reptile"
+mload = 0
+sort_index = 102517
+hook_key = ""
+tags = PackedStringArray("reptile", "thorns")
+layer = "class-up"
+requires_class = "reptile"
+needs_hook = "FIELD"
+hidden_from_pool = true

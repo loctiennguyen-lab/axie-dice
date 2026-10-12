@@ -13,3 +13,5 @@ mload = 0
 sort_index = 11
 hook_key = "r_tidalbrand"
 mf_phase = "kw"
+tags = PackedStringArray("mana")
+layer = "enabler"

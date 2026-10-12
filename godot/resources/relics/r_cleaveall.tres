@@ -13,3 +13,5 @@ mload = 0
 sort_index = 100003
 hook_key = "r_cleaveall"
 mf_phase = "add"
+tags = PackedStringArray("aoe")
+layer = "enabler"

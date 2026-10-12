@@ -6,10 +6,12 @@
 script = ExtResource("1")
 id = "r_broodpouch"
 name = "Brood Pouch"
-description = "Start every fight with an Axie Egg."
+description = "Start every fight with an Axie Egg. On turn 3, if you have fewer than 3 Eggs, gain one."
 rarity = 0
 archetype = "summon"
 mload = 0
 sort_index = 100006
-hook_key = ""
+hook_key = "r_broodpouch"
 startSummon = 1.0
+tags = PackedStringArray("summon")
+layer = "enabler"

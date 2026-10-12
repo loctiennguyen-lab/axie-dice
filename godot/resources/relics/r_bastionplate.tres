@@ -12,3 +12,5 @@ archetype = "shield"
 mload = 0
 sort_index = 102039
 hook_key = "r_bastionplate"
+tags = PackedStringArray("shield")
+layer = "payoff"

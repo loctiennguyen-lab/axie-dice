@@ -17,3 +17,5 @@ act = {
 "kind": "ult",
 "v": 40
 }
+tags = PackedStringArray("mana")
+layer = "active"

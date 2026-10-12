@@ -4,11 +4,13 @@
 
 [resource]
 script = ExtResource("1")
-id = "r_openwound"
-name = "Open Wound"
-description = "RULE: targets with Poison take 30% more damage."
+id = "r_festermark"
+name = "Festering Mark"
+description = "Enemies that are poisoned or burning take +2 per hit; both at once +4."
 rarity = 1
 archetype = "poison"
 mload = 0
-sort_index = 101019
-hook_key = "r_openwound"
+sort_index = 101501
+hook_key = "r_festermark"
+tags = PackedStringArray("poison", "burn")
+layer = "payoff"

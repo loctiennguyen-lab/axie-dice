@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="RelicDef" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data_models/relic_def.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "r_patientfang"
+name = "Patient Fang"
+description = "PACT: +2 damage per turn passed (max +14), but on turn 1 all damage faces deal 0."
+rarity = 3
+archetype = "crit"
+mload = 0
+sort_index = 103525
+hook_key = "r_patientfang"
+tags = PackedStringArray("uni")
+layer = "pact"
+pact_group = "dice"

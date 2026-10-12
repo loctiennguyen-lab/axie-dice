@@ -6,14 +6,16 @@
 script = ExtResource("1")
 id = "a_nova"
 name = "Gene Nova"
-description = "[MP 8] Deal 10 damage to every enemy."
+description = "[MP 7] Deal 12 damage to every enemy."
 rarity = 3
 archetype = "aoe"
 mload = 0
 sort_index = 103092
 hook_key = ""
-act_cost = 8
+act_cost = 7
 act = {
 "kind": "dmgall",
-"v": 10
+"v": 12
 }
+tags = PackedStringArray("aoe")
+layer = "active"

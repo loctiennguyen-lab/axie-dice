@@ -13,3 +13,6 @@ mload = 1
 sort_index = 102040
 hook_key = ""
 piercePlus = 3.0
+tags = PackedStringArray("pierce")
+layer = "payoff"
+needs_hook = "H2"

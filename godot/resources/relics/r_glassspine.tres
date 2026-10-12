@@ -12,3 +12,5 @@ archetype = "thorns"
 mload = 0
 sort_index = 102049
 hook_key = "r_glassspine"
+tags = PackedStringArray("thorns", "shield")
+layer = "payoff"

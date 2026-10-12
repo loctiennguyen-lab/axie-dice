@@ -16,3 +16,5 @@ act_cost = 4
 act = {
 "kind": "stun"
 }
+tags = PackedStringArray("mana")
+layer = "active"

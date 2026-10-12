@@ -12,3 +12,6 @@ archetype = "summon"
 mload = 0
 sort_index = 101029
 hook_key = "r_eggshell"
+tags = PackedStringArray("summon")
+layer = "enabler"
+needs_hook = "H3"

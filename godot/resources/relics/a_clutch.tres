@@ -17,3 +17,5 @@ act = {
 "kind": "summon",
 "v": 1
 }
+tags = PackedStringArray("summon")
+layer = "active"

@@ -14,3 +14,5 @@ sort_index = 3070
 hook_key = "r_worldpiercer"
 piercePlus = 1.0
 mf_phase = "kw"
+tags = PackedStringArray("pierce")
+layer = "engine"

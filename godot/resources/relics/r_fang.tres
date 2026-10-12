@@ -13,3 +13,5 @@ mload = 0
 sort_index = 102037
 hook_key = "r_fang"
 mf_phase = "add"
+tags = PackedStringArray("poison")
+layer = "enabler"

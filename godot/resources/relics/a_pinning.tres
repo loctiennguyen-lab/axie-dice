@@ -17,3 +17,5 @@ act = {
 "kind": "shatter",
 "min": 6
 }
+tags = PackedStringArray("pierce")
+layer = "active"

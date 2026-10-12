@@ -13,3 +13,5 @@ mload = 0
 sort_index = 101020
 hook_key = "r_deathmark"
 mf_phase = "add"
+tags = PackedStringArray("exec")
+layer = "scaling"

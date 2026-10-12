@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="RelicDef" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data_models/relic_def.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "r_merchantscale"
+name = "Merchant's Scale"
+description = "REDESIGN: Shop có **3 relic** thay vì 2, giá và giá bán giữ nguyên. Chỉ thêm lựa chọn để tiêu"
+rarity = 0
+archetype = "crit"
+mload = 0
+sort_index = 100542
+hook_key = ""
+tags = PackedStringArray("uni")
+layer = "economy"
+needs_hook = "H8"
+hidden_from_pool = true

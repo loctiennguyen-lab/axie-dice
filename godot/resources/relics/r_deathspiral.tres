@@ -12,3 +12,5 @@ archetype = "exec"
 mload = 0
 sort_index = 102052
 hook_key = "r_deathspiral"
+tags = PackedStringArray("exec")
+layer = "payoff"

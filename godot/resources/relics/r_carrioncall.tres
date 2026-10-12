@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="RelicDef" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data_models/relic_def.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "r_carrioncall"
+name = "Carrion Call"
+description = "Enemies with 5 or more Poison count as wounded for every "below 50% HP" rule."
+rarity = 2
+archetype = "exec"
+mload = 0
+sort_index = 102513
+hook_key = ""
+tags = PackedStringArray("exec", "poison")
+layer = "duo"
+woundedPoison = 5.0

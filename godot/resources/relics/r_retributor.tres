@@ -12,3 +12,5 @@ archetype = "thorns"
 mload = 0
 sort_index = 102050
 hook_key = "r_retributor"
+tags = PackedStringArray("thorns")
+layer = "payoff"

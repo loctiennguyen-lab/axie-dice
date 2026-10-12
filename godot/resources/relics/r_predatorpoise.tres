@@ -13,3 +13,5 @@ mload = 0
 sort_index = 100012
 hook_key = ""
 critKeep = true
+tags = PackedStringArray("crit")
+layer = "enabler"

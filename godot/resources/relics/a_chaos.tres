@@ -17,3 +17,5 @@ act = {
 "kind": "reroll",
 "v": 4
 }
+tags = PackedStringArray("mana")
+layer = "active"

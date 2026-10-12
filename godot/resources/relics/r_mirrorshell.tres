@@ -13,3 +13,6 @@ mload = 1
 sort_index = 103064
 hook_key = ""
 thornsMult = 2.0
+tags = PackedStringArray("thorns")
+layer = "payoff"
+mult_axis = "A:thorns"

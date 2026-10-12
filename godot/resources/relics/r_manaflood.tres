@@ -13,3 +13,5 @@ mload = 0
 sort_index = 103068
 hook_key = "r_manaflood"
 manaOverflow = true
+tags = PackedStringArray("mana")
+layer = "payoff"

@@ -14,3 +14,6 @@ sort_index = 100007
 hook_key = "r_barbedhide"
 thornsPlus = 1.0
 mf_phase = "add"
+tags = PackedStringArray("thorns")
+layer = "enabler"
+needs_hook = "H2"

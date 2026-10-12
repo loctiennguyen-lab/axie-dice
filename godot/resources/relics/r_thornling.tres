@@ -4,12 +4,13 @@
 
 [resource]
 script = ExtResource("1")
-id = "r_swarmnest"
-name = "Swarm Nest"
-description = "RULE: start every fight with 2 Axie Eggs on your side."
+id = "r_thornling"
+name = "Thornling"
+description = "Eggs have Thorns 3. When an Egg reflects, the Axie next to it gains 2 Shield."
 rarity = 2
 archetype = "summon"
 mload = 0
-sort_index = 102044
-hook_key = ""
-startSummon = 2.0
+sort_index = 102512
+hook_key = "r_thornling"
+tags = PackedStringArray("summon", "thorns")
+layer = "duo"

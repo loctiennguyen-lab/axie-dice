@@ -12,3 +12,5 @@ archetype = "thorns"
 mload = 0
 sort_index = 103074
 hook_key = "r_ironmaiden"
+tags = PackedStringArray("thorns")
+layer = "payoff"

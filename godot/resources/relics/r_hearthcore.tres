@@ -14,3 +14,6 @@ sort_index = 102054
 hook_key = ""
 burnTicks = 2.0
 burnTickRatio = 0.7
+tags = PackedStringArray("burn")
+layer = "payoff"
+mult_axis = "A:burn"

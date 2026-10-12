@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="RelicDef" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data_models/relic_def.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "r_loadeddie"
+name = "Loaded Die"
+description = "LOCK: lúc nhận, chọn 1 mặt của 1 Axie; mặt đó nặng ×3 (xuất hiện 37.5% thay vì 16.7%) cả run"
+rarity = 1
+archetype = "crit"
+mload = 0
+sort_index = 101532
+hook_key = ""
+tags = PackedStringArray("uni")
+layer = "dice"
+needs_hook = "H6,H7"
+hidden_from_pool = true
