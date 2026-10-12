@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<script src="_ds/dango-design-system-b8da985f-efd5-488e-ae62-d508e48befe9/_ds_bundle.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&amp;family=Work+Sans:wght@500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#2A1C12}
+a{color:#FF9345;text-decoration:none}a:hover{color:#FFB275}
+</style>
+</helmet>
+<div style="display:flex;flex-direction:column;gap:28px;padding:64px;width:1920px;background:#2A1C12;font-family:'Work Sans',sans-serif;color:#3A2214;-webkit-font-smoothing:antialiased;font-variant-numeric:tabular-nums">
+  <div style="display:flex;flex-direction:column;gap:8px">
+    <div style="font-family:'Baloo 2';font-weight:800;font-size:15px;letter-spacing:.18em;color:#D79A58">AXIE DICE · UI REQUEST 02 · ROUND 1 · 04</div>
+    <div style="font-family:'Baloo 2';font-weight:800;font-size:60px;line-height:1;color:#FFF8EA">Reroll FX · v2 sequence, Homeland colours</div>
+    <div style="font-size:17px;line-height:1.5;color:#DDBF8C;max-width:1400px;text-wrap:pretty">Same six beats and timing as RerollFX v2 (tray pops up, dice tossed onto the felt, tease on the last die, lock with tally, grade stamp, dice fly home). Only the look changes: wood frame, grass felt, cream dice, dark outlines, warm dim instead of black. The colour map for <span style="font-family:ui-monospace,monospace;font-size:15px">reroll_fx.gd</span> is under the stage. <a href="Dice UI R1 - Combat.dc.html">← Combat</a></div>
+  </div>
+
+  <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+    <div onClick="{{ onReroll }}" style="height:60px;padding:0 26px;display:flex;align-items:center;gap:10px;border-radius:14px;background:linear-gradient(180deg,#FFB070,#FF8A3A);border:3px solid #24140B;box-shadow:inset 2px 2px 0 rgba(255,248,234,.65),3px 5px 0 #8A3E22;cursor:pointer;font-family:'Baloo 2';font-weight:800;font-size:21px;color:#2A1505"><img src="hl/icons/reroll.svg" alt="" style="width:30px;height:30px">{{ mainLabel }}</div>
+    <div onClick="{{ onReset }}" style="height:48px;padding:0 18px;display:flex;align-items:center;border-radius:12px;background:linear-gradient(180deg,#FFF8EA,#EBD3A8);border:3px solid #24140B;cursor:pointer;font-family:'Baloo 2';font-weight:800;font-size:17px">Reset rerolls</div>
+    <div style="width:3px;height:40px;background:#5A3A26;border-radius:2px;margin:0 6px"></div>
+    <sc-for list="{{ toggles }}" as="t" hint-placeholder-count="5">
+      <div onClick="{{ t.on }}" style="height:48px;padding:0 16px 0 10px;display:flex;align-items:center;gap:8px;border-radius:12px;background:{{ t.bg }};border:3px solid #24140B;cursor:pointer;font-family:'Baloo 2';font-weight:800;font-size:17px;color:{{ t.ink }}"><div style="width:22px;height:22px;border-radius:7px;border:3px solid #24140B;background:{{ t.box }};display:flex;align-items:center;justify-content:center;font-size:13px;color:#183A0C;box-sizing:border-box">{{ t.mark }}</div>{{ t.label }}</div>
+    </sc-for>
+    <div style="font-size:14px;color:#B89A74">R = reroll · R, Space or a click on the tray = skip</div>
+  </div>
+
+  <div data-screen-label="04 Reroll stage" style="position:relative;width:1920px;height:1080px;overflow:hidden;background:#C98A3E">
+    <div ref="{{ refBoard }}" style="position:absolute;inset:0;background:linear-gradient(180deg,#9FD6EA 0%,#CFE8E6 28%,#F2C46A 35%,#E8A848 70%,#C98A3E 100%)">
+      <img src="hl/e/s_tree02.png" alt="" style="position:absolute;left:-30px;top:140px;width:300px">
+      <img src="hl/e/s_tree03.png" alt="" style="position:absolute;left:1660px;top:140px;width:290px">
+      <img src="hl/e/s_rock02.png" alt="" style="position:absolute;left:1520px;top:420px;width:200px">
+      <img src="hl/e/s_shrub01.png" alt="" style="position:absolute;left:60px;top:420px;width:160px">
+      <sc-for list="{{ monsters }}" as="m" hint-placeholder-count="3">
+        <div style="position:absolute;left:{{ m.x }}px;top:240px;width:240px;height:240px;border-radius:28px;border:3px dashed #8A3E22;background:rgba(255,248,234,.30);display:flex;align-items:center;justify-content:center;font-family:'Baloo 2';font-weight:800;font-size:18px;color:#5A2812">Atia monster 3D</div>
+        <div style="position:absolute;left:{{ m.px }}px;top:96px;width:320px;height:92px;border-radius:16px;background:linear-gradient(180deg,#FFF8EA,#EBD3A8);border:3px solid #24140B;box-sizing:border-box;padding:8px 12px;font-family:'Baloo 2';font-weight:800;font-size:18px">{{ m.name }}</div>
+      </sc-for>
+      <sc-for list="{{ party }}" as="p" hint-placeholder-count="5">
+        <div style="position:absolute;left:{{ p.ax }}px;top:666px;width:200px;height:200px;border-radius:50% 50% 24px 24px;border:3px dashed #8A3E22;background:rgba(255,248,234,.30);display:flex;align-items:center;justify-content:center;font-family:'Baloo 2';font-weight:800;font-size:18px;color:#5A2812">Axie 3D</div>
+      </sc-for>
+      <sc-for list="{{ party }}" as="p" hint-placeholder-count="5">
+        <div style="position:absolute;left:{{ p.cx }}px;top:888px;width:272px;height:176px;box-sizing:border-box;padding:12px;display:flex;flex-direction:column;gap:10px;border-radius:20px;background:linear-gradient(180deg,#F8EBD2,#EBD3A8);border:3px solid #8A3E22;box-shadow:inset 2px 2px 0 rgba(255,248,234,.65),3px 5px 0 rgba(74,34,14,.35)">
+          <div style="display:flex;gap:10px;height:104px">
+            <div ref="{{ p.refCard }}" style="position:relative;flex:0 0 104px;height:104px;box-sizing:border-box;border-radius:22px;background:{{ p.dieBg }};border:3px solid #24140B;box-shadow:inset 2px 2px 0 rgba(255,248,234,.7),3px 4px 0 rgba(74,34,14,.35);display:flex;flex-direction:column;align-items:center;justify-content:center;opacity:{{ p.cardOp }}">
+              <img src="{{ p.dieIcon }}" alt="" style="width:40px;height:40px">
+              <div style="font-family:'Baloo 2';font-weight:800;font-size:34px;line-height:1;color:#24140B">{{ p.dieNum }}</div>
+              <sc-if value="{{ p.used }}" hint-placeholder-val="{{ false }}"><div style="position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);height:26px;padding:0 8px;border-radius:8px;background:#3B2618;border:2px solid #24140B;color:#FFF8EA;font-family:'Baloo 2';font-weight:800;font-size:14px;display:flex;align-items:center">USED</div></sc-if>
+            </div>
+            <div style="flex:1 1 auto;min-width:0;display:flex;flex-direction:column;gap:6px">
+              <div style="display:flex;align-items:center;gap:6px"><img src="{{ p.cls }}" alt="" style="width:24px;height:24px;border-radius:7px;border:2px solid #24140B;background:#FFF8EA"><div style="font-family:'Baloo 2';font-weight:800;font-size:18px;line-height:1">{{ p.name }}</div></div>
+              <div style="position:relative;height:26px;border-radius:9px;background:#4A2A1A;border:3px solid #24140B;overflow:hidden;box-sizing:border-box">
+                <div style="position:absolute;left:0;top:0;bottom:0;width:{{ p.pct }}%;background:linear-gradient(180deg,#86D65E,#4FA62F)"></div>
+                <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:'Baloo 2';font-weight:800;font-size:16px;color:#FFF8EA;text-shadow:-2px 0 0 #24140B,2px 0 0 #24140B,0 -2px 0 #24140B,0 2px 0 #24140B">{{ p.hpText }}</div>
+              </div>
+            </div>
+          </div>
+          <div style="display:flex;gap:4px;height:34px">
+            <sc-for list="{{ p.faces }}" as="d" hint-placeholder-count="6">
+              <div style="flex:1 1 0;border-radius:9px;background:{{ d.bg }};border:2px solid {{ d.border }};display:flex;align-items:center;justify-content:center;gap:1px;opacity:{{ d.op }};box-sizing:border-box"><img src="{{ d.icon }}" alt="" style="width:16px;height:16px"><span style="font-family:'Baloo 2';font-weight:800;font-size:14px;color:#24140B">{{ d.n }}</span></div>
+            </sc-for>
+          </div>
+        </div>
+        <div ref="{{ p.refChip }}" style="position:absolute;left:{{ p.chipX }}px;top:848px;height:34px;padding:0 12px;transform:translateX(-50%);border-radius:10px;border:3px solid #24140B;box-sizing:border-box;box-shadow:3px 4px 0 rgba(74,34,14,.35);display:flex;align-items:center;font-family:'Baloo 2';font-weight:800;font-size:20px;white-space:nowrap;opacity:0;background:{{ p.chipBg }};color:{{ p.chipInk }}">{{ p.chip }}</div>
+      </sc-for>
+      <div style="position:absolute;left:16px;bottom:16px;width:216px;height:104px;box-sizing:border-box;padding:0 12px;border-radius:18px;background:linear-gradient(180deg,#FFF8EA,#E6DAF6);border:3px solid #4E2E8A;display:flex;align-items:center;gap:10px">
+        <img src="hl/icons/aid.svg" alt="" style="width:44px;height:44px">
+        <div style="display:flex;flex-direction:column"><div style="font-family:'Baloo 2';font-weight:800;font-size:22px;line-height:1">Aid ▴</div><div style="font-size:13px;font-weight:700;color:#4E2E8A">used 2 of 6</div></div>
+      </div>
+      <div onClick="{{ onReroll }}" style="position:absolute;right:16px;top:888px;width:200px;height:56px;box-sizing:border-box;border-radius:14px;background:{{ rrBg }};border:3px solid {{ rrBorder }};box-shadow:3px 5px 0 rgba(74,34,14,.35);display:flex;align-items:center;justify-content:center;gap:8px;cursor:pointer">
+        <img src="hl/icons/reroll.svg" alt="" style="width:30px;height:30px;opacity:{{ rrIcoOp }}">
+        <div style="font-family:'Baloo 2';font-weight:800;font-size:19px;color:{{ rrInk }}">{{ rrLabel }}</div>
+      </div>
+      <div style="position:absolute;right:16px;bottom:16px;width:200px;height:104px;box-sizing:border-box;border-radius:18px;background:linear-gradient(180deg,#FFB070,#FF8A3A);border:4px solid #24140B;box-shadow:4px 6px 0 #8A3E22;display:flex;flex-direction:column;align-items:center;justify-content:center">
+        <div style="font-family:'Baloo 2';font-weight:800;font-size:28px;line-height:1;color:#2A1505">END TURN</div>
+        <div style="font-size:13px;font-weight:700;color:#4A2208">E · 4 dice unused</div>
+      </div>
+    </div>
+
+    <div ref="{{ refDim }}" style="position:absolute;inset:0;background:#24140B;opacity:0;pointer-events:none"></div>
+
+    <div ref="{{ refTray }}" onClick="{{ onSkip }}" style="position:absolute;left:360px;top:110px;width:1200px;height:600px;box-sizing:border-box;border-radius:40px;background:linear-gradient(180deg,#D79A58,#B87440);border:5px solid #8A3E22;box-shadow:inset 3px 3px 0 rgba(255,248,234,.45),5px 8px 0 rgba(36,20,11,.45);opacity:0;visibility:hidden;cursor:pointer">
+      <div style="position:absolute;left:6px;top:6px;right:6px;bottom:6px;border-radius:32px;border:3px solid #E8B36E;pointer-events:none"></div>
+      <div style="position:absolute;left:14px;right:14px;top:58px;bottom:14px;border-radius:26px;background:radial-gradient(ellipse at 50% 42%,#86C25E 0%,#6AA448 55%,#558C3A 100%);border:4px solid #3E6A2A;box-shadow:inset 0 6px 0 rgba(36,20,11,.18)">
+        <div style="position:absolute;inset:12px;border-radius:18px;border:3px dashed rgba(255,248,234,.35)"></div>
+      </div>
+      <div style="position:absolute;left:18px;right:18px;top:12px;height:36px;display:flex;align-items:center;gap:10px">
+        <div style="height:36px;padding:0 6px 0 8px;display:flex;align-items:center;gap:6px;border-radius:11px;background:#FFF8EA;border:3px solid #24140B;box-sizing:border-box">
+          <img src="hl/icons/reroll.svg" alt="" style="width:22px;height:22px">
+          <div style="font-family:'Baloo 2';font-weight:800;font-size:19px;color:#24140B">REROLL</div>
+          <div style="height:24px;padding:0 8px;border-radius:7px;background:#FF9345;border:2px solid #24140B;font-family:'Baloo 2';font-weight:800;font-size:15px;color:#2A1505;display:flex;align-items:center;box-sizing:border-box">×{{ rerolls }}</div>
+        </div>
+        <div style="flex:1;display:flex;justify-content:center;gap:6px">
+          <sc-for list="{{ tally }}" as="t" hint-placeholder-count="4">
+            <div ref="{{ t.ref }}" style="height:36px;padding:0 11px 0 5px;display:flex;align-items:center;gap:5px;border-radius:10px;background:{{ t.bg }};border:3px solid #24140B;box-sizing:border-box">
+              <img src="{{ t.icon }}" alt="" style="width:22px;height:22px;opacity:{{ t.op }}">
+              <div style="font-family:'Baloo 2';font-weight:800;font-size:21px;line-height:1;color:{{ t.ink }}">{{ t.n }}</div>
+            </div>
+          </sc-for>
+        </div>
+        <div style="display:flex;align-items:center;gap:6px">
+          <div style="font-family:'Baloo 2';font-weight:800;font-size:15px;color:#FFF8EA;text-shadow:-2px 0 0 #5A2812,2px 0 0 #5A2812,0 -2px 0 #5A2812,0 2px 0 #5A2812">TAP TO SKIP</div>
+          <div style="height:26px;padding:0 8px;border-radius:7px;background:#3B2618;border:2px solid #24140B;font-family:'Baloo 2';font-weight:800;font-size:14px;color:#FFF8EA;display:flex;align-items:center;box-sizing:border-box">R</div>
+        </div>
+      </div>
+    </div>
+
+    <div ref="{{ refSpot }}" style="position:absolute;inset:0;opacity:0;pointer-events:none"></div>
+
+    <sc-for list="{{ party }}" as="p" hint-placeholder-count="5">
+      <div ref="{{ p.refShadow }}" style="position:absolute;left:0;top:0;width:110px;height:26px;border-radius:50%;background:rgba(36,20,11,.38);opacity:0;pointer-events:none"></div>
+      <div ref="{{ p.refMover }}" style="position:absolute;left:0;top:0;width:120px;height:120px;perspective:700px;opacity:0;pointer-events:none">
+        <div ref="{{ p.refCube }}" style="position:relative;width:120px;height:120px;transform-style:preserve-3d">
+          <sc-for list="{{ p.cube }}" as="f" hint-placeholder-count="6">
+            <div style="position:absolute;inset:0;box-sizing:border-box;border-radius:22px;border:4px solid #24140B;background:{{ f.bg }};backface-visibility:hidden;transform:{{ f.tf }};display:flex;flex-direction:column;align-items:center;justify-content:center;box-shadow:inset 4px 4px 0 rgba(255,248,234,.75),inset -4px -5px 0 rgba(138,62,34,.2)">
+              <img src="{{ f.icon }}" alt="" style="width:46px;height:46px">
+              <div style="font-family:'Baloo 2';font-weight:800;font-size:40px;line-height:1;color:#24140B">{{ f.n }}</div>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+    </sc-for>
+
+    <div ref="{{ refFx }}" style="position:absolute;inset:0;pointer-events:none;overflow:hidden"></div>
+
+    <div ref="{{ refStamp }}" style="position:absolute;left:960px;top:432px;display:flex;flex-direction:column;align-items:center;gap:10px;opacity:0;pointer-events:none;transform:translate(-50%,-50%)">
+      <div ref="{{ refStampPanel }}" style="padding:12px 38px 8px;border-radius:20px;border:5px solid #24140B;box-shadow:inset 3px 3px 0 rgba(255,248,234,.6),5px 8px 0 rgba(36,20,11,.45);font-family:'Baloo 2';font-weight:800;font-size:72px;line-height:1;color:#24140B;white-space:nowrap;background:{{ stampBg }}">{{ stampText }}</div>
+      <div style="padding:4px 14px;border-radius:10px;background:#3B2618;border:3px solid #24140B;font-family:'Baloo 2';font-weight:800;font-size:19px;white-space:nowrap;color:{{ stampSubInk }}">{{ stampSub }}</div>
+    </div>
+  </div>
+
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:28px">
+    <div style="padding:26px;border-radius:24px;background:linear-gradient(180deg,#FFF8EA,#F3E2C2);border:4px solid #8A3E22;display:flex;flex-direction:column;gap:14px">
+      <div style="font-family:'Baloo 2';font-weight:800;font-size:28px">Colour map · reroll_fx.gd / fx_bits.gd</div>
+      <div style="display:grid;grid-template-columns:1.3fr 110px 110px 1.4fr;border-radius:14px;overflow:hidden;border:3px solid #8A3E22;font-size:13px;line-height:1.35">
+        <div style="padding:9px 10px;background:#B87440;color:#FFF8EA;font-family:'Baloo 2';font-weight:800;font-size:14px">Element</div><div style="padding:9px 10px;background:#B87440;color:#FFF8EA;font-family:'Baloo 2';font-weight:800;font-size:14px">v2</div><div style="padding:9px 10px;background:#B87440;color:#FFF8EA;font-family:'Baloo 2';font-weight:800;font-size:14px">Homeland</div><div style="padding:9px 10px;background:#B87440;color:#FFF8EA;font-family:'Baloo 2';font-weight:800;font-size:14px">Note</div>
+        <sc-for list="{{ cmap }}" as="c" hint-placeholder-count="12">
+          <div style="padding:7px 10px;background:{{ c.row }};font-weight:700">{{ c.el }}</div>
+          <div style="padding:7px 10px;background:{{ c.row }};display:flex;align-items:center;gap:6px"><div style="width:16px;height:16px;border-radius:5px;border:2px solid #24140B;background:{{ c.old }};flex:0 0 auto"></div><span style="font-family:ui-monospace,monospace;font-size:12px">{{ c.old }}</span></div>
+          <div style="padding:7px 10px;background:{{ c.row }};display:flex;align-items:center;gap:6px"><div style="width:16px;height:16px;border-radius:5px;border:2px solid #24140B;background:{{ c.nu }};flex:0 0 auto"></div><span style="font-family:ui-monospace,monospace;font-size:12px">{{ c.nu }}</span></div>
+          <div style="padding:7px 10px;background:{{ c.row }};color:#6E4A30">{{ c.note }}</div>
+        </sc-for>
+      </div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:28px">
+      <div style="padding:26px;border-radius:24px;background:linear-gradient(180deg,#FFF8EA,#F3E2C2);border:4px solid #8A3E22;display:flex;flex-direction:column;gap:12px">
+        <div style="font-family:'Baloo 2';font-weight:800;font-size:28px">Beats · unchanged from v2</div>
+        <div style="display:grid;grid-template-columns:150px 110px 1fr;border-radius:14px;overflow:hidden;border:3px solid #8A3E22;font-size:13px;line-height:1.4">
+          <sc-for list="{{ beats }}" as="b" hint-placeholder-count="6">
+            <div style="padding:8px 12px;background:{{ b.bg }};font-family:'Baloo 2';font-weight:800;font-size:15px">{{ b.name }}</div>
+            <div style="padding:8px 12px;background:{{ b.bg }};font-family:'Baloo 2';font-weight:800">{{ b.t }}</div>
+            <div style="padding:8px 12px;background:{{ b.bg }}">{{ b.m }}</div>
+          </sc-for>
+        </div>
+      </div>
+      <div style="padding:26px;border-radius:24px;background:linear-gradient(180deg,#FFF8EA,#F3E2C2);border:4px solid #8A3E22;display:flex;flex-direction:column;gap:10px;font-size:14px;line-height:1.5">
+        <div style="font-family:'Baloo 2';font-weight:800;font-size:28px">Style rules applied</div>
+        <div>Every die, chip, bit, stamp and tag keeps a dark <b>#24140B</b> outline (2 px bits, 3 px chips, 4–5 px dice and stamp). Shadows are the hard contact shadow from the style sheet, no soft black blur.</div>
+        <div>Text on coloured fills uses dark ink. The −n chip moved from red fill to cream with brown ink, because the red #D9472B is mid-tone.</div>
+        <div><b>Reduce flashing:</b> no gold full-screen flash, no card brightness flash, rings appear without scaling. <b>Screen shake off:</b> no shake on first touch or stamp. <b>Fast reroll:</b> no tease, no stamp, short hold (as v2).</div>
+      </div>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  constructor(p) {
+    super(p);
+    const FX = 'asc/fx/';
+    this.ico = { dmg: FX + 'dmg.png', shield: FX + 'shield.png', heal: FX + 'heal.png', buff: FX + 'buff.svg', poison: FX + 'poison.png' };
+    this.tint = { dmg: '#FFD9C9', shield: '#CFE7F7', heal: '#D6F0C2', buff: '#F2E0FF', poison: '#DDF2C4' };
+    this.col = { dmg: '#D9472B', shield: '#6CB8EC', heal: '#5DBB3A', buff: '#FF9345', poison: '#A8D84A' };
+    this.P = [
+      { name: 'Bubbles', cls: 'asc/portrait/aqua.png', hp: 34, max: 52, faces: [['dmg', 6], ['dmg', 8], ['shield', 5], ['heal', 4], ['dmg', 6], ['poison', 2]] },
+      { name: 'Thornie', cls: 'asc/portrait/plant.png', hp: 51, max: 64, faces: [['shield', 8], ['heal', 6], ['shield', 6], ['dmg', 4], ['heal', 5], ['buff', 1]] },
+      { name: 'Rex', cls: 'asc/portrait/reptile.png', hp: 40, max: 58, faces: [['dmg', 9], ['dmg', 7], ['shield', 4], ['dmg', 12], ['poison', 3], ['dmg', 5]] },
+      { name: 'Buzz', cls: 'asc/portrait/bug.png', hp: 29, max: 44, used: true, faces: [['poison', 3], ['dmg', 5], ['dmg', 6], ['buff', 1], ['dmg', 18], ['shield', 3]] },
+      { name: 'Fang', cls: 'asc/portrait/beast.png', hp: 47, max: 60, faces: [['dmg', 10], ['dmg', 8], ['dmg', 14], ['shield', 5], ['dmg', 6], ['heal', 3]] },
+    ];
+    this.ORI = [[0, 0], [0, -90], [0, 180], [0, 90], [-90, 0], [90, 0]];
+    this.TF = ['translateZ(60px)', 'rotateY(90deg) translateZ(60px)', 'rotateY(180deg) translateZ(60px)', 'rotateY(-90deg) translateZ(60px)', 'rotateX(90deg) translateZ(60px)', 'rotateX(-90deg) translateZ(60px)'];
+    this.ORDER = ['dmg', 'shield', 'heal', 'poison', 'buff'];
+    this.els = this.P.map(() => ({}));
+    this.tallyEls = {};
+    this.state = { rolled: [1, 0, 3, 4, 2], rerolls: 3, playing: false, slow: false, fast: false, calm: false, shake: true,
+      chips: ['', '', '', '', ''], tally: {}, tallyTypes: [], stampText: '', stampSub: '', stampBg: '#FFC445', stampSubInk: '#A8D878' };
+  }
+  componentDidMount() {
+    this._key = (e) => { if (e.key === 'r' || e.key === 'R') { e.preventDefault(); this.reroll(); } else if (e.code === 'Space' && this.state.playing) { e.preventDefault(); this.skipReq = true; } };
+    window.addEventListener('keydown', this._key);
+  }
+  componentWillUnmount() { window.removeEventListener('keydown', this._key); clearTimeout(this.raf); }
+  // ── fx helpers (WAAPI, transient DOM) ──
+  k() { return this.state.slow ? 2.5 : 1; }
+  bit(x, y, color, ang, dist, size, dur) {
+    const fx = this.els.fx; if (!fx) return;
+    const d = document.createElement('div');
+    d.style.cssText = `position:absolute;left:${x - size / 2}px;top:${y - size / 2}px;width:${size}px;height:${size}px;border-radius:${Math.random() < .5 ? '50%' : '4px'};background:${color};border:2px solid #24140B;box-sizing:border-box`;
+    d.style.opacity = 0; fx.appendChild(d); setTimeout(() => d.remove(), dur * this.k() + 50);
+    const dx = Math.cos(ang) * dist, dy = Math.sin(ang) * dist;
+    d.animate([{ transform: 'translate(0,0) scale(1) rotate(0deg)', opacity: 1 }, { transform: `translate(${dx}px,${dy * .6}px) scale(.9) rotate(120deg)`, opacity: 1, offset: .55 }, { transform: `translate(${dx * 1.15}px,${dy * .6 + 60}px) scale(.4) rotate(200deg)`, opacity: 0 }], { duration: dur * this.k(), easing: 'cubic-bezier(.2,.7,.4,1)' });
+  }
+  burst(x, y, colors, n, dist, size = 14) { for (let i = 0; i < n; i++) this.bit(x, y, colors[i % colors.length], Math.random() * Math.PI * 2, dist * (.5 + Math.random() * .7), size * (.7 + Math.random() * .6), 620); }
+  dust(x, y) { for (let i = 0; i < 5; i++) this.bit(x, y, i % 2 ? '#FFF8EA' : '#DDBF8C', Math.PI + Math.random() * Math.PI, 40 + Math.random() * 30, 12 + Math.random() * 8, 420); }
+  ring(x, y, r, color, scale) {
+    const fx = this.els.fx; if (!fx) return;
+    const d = document.createElement('div');
+    d.style.cssText = `position:absolute;left:${x - r}px;top:${y - r}px;width:${r * 2}px;height:${r * 2}px;border-radius:50%;border:6px solid ${color};box-shadow:0 0 0 2px #24140B,inset 0 0 0 2px #24140B;box-sizing:border-box`;
+    d.style.opacity = 0; fx.appendChild(d); setTimeout(() => d.remove(), 430 * this.k());
+    const calm = this.state.calm;
+    d.animate(calm ? [{ opacity: 1 }, { opacity: 0 }] : [{ transform: 'scale(.6)', opacity: 1 }, { transform: `scale(${scale})`, opacity: 0 }], { duration: 380 * this.k(), easing: 'ease-out' });
+  }
+  flash() {
+    if (this.state.calm) return; const fx = this.els.fx; if (!fx) return;
+    const d = document.createElement('div'); d.style.cssText = 'position:absolute;inset:0;background:#FFE7A0';
+    d.style.opacity = 0; fx.appendChild(d); setTimeout(() => d.remove(), 260 * this.k()); d.animate([{ opacity: .5 }, { opacity: 0 }], { duration: 220 * this.k() });
+  }
+  maxTag(x, y) {
+    const fx = this.els.fx; if (!fx) return;
+    const d = document.createElement('div');
+    d.style.cssText = `position:absolute;left:${x}px;top:${y}px;height:40px;padding:0 14px;display:flex;align-items:center;border-radius:12px;background:#FFC445;border:4px solid #24140B;box-shadow:3px 5px 0 rgba(36,20,11,.45);font-family:'Baloo 2';font-weight:800;font-size:26px;color:#24140B;white-space:nowrap;box-sizing:border-box`;
+    d.textContent = 'MAX!'; d.style.transform = 'translate(-50%,-50%) rotate(-8deg)'; fx.appendChild(d); this.maxTags.push(d);
+    d.animate([{ transform: 'translate(-50%,-50%) rotate(-8deg) scale(.4)', opacity: 0 }, { transform: 'translate(-50%,-50%) rotate(-8deg) scale(1.2)', opacity: 1, offset: .6 }, { transform: 'translate(-50%,-50%) rotate(-8deg) scale(1)', opacity: 1 }], { duration: 260 * this.k(), easing: 'ease-out' });
+  }
+  shake(power) {
+    if (!this.state.shake || !this.els.board) return;
+    const p = power; this.els.board.animate([{ transform: 'translate(0,0)' }, { transform: `translate(${p}px,${-p * .6}px)` }, { transform: `translate(${-p * .8}px,${p * .9}px)` }, { transform: `translate(${p * .5}px,${-p * .4}px)` }, { transform: 'translate(0,0)' }], { duration: 220 * this.k() });
+  }
+  pop(el, s1 = 1.25) { if (el) el.animate([{ transform: 'scale(1)' }, { transform: `scale(${s1})` }, { transform: 'scale(1)' }], { duration: 160 * this.k() }); }
+  setCube(i, rx, ry, rest) {
+    const c = this.els[i].cube; if (!c) return;
+    c.style.transform = `rotateX(${rx}deg) rotateY(${ry}deg)`;
+    [...c.children].forEach((el, j) => { el.style.visibility = rest == null || j === rest ? 'visible' : 'hidden'; });
+  }
+  grade(prev, next) {
+    let tot = 0, n = 0, maxes = 0;
+    this.P.forEach((p, i) => { if (p.used) return; const [k, v] = p.faces[next[i]]; const mx = Math.max(...p.faces.map(f => f[1])); tot += k === 'buff' ? .6 : v / mx; n++; if (v === mx && k !== 'buff') maxes++; });
+    const avg = tot / n, dv = this.sum(next) - this.sum(prev);
+    let t = null;
+    if (maxes === n && n >= 3) t = ['JACKPOT!!', '#FFC445', 3]; else if (avg >= .85 || maxes >= 3) t = ['PERFECT!', '#FFC445', 2]; else if (avg >= .68) t = ['GREAT ROLL!', '#FF9345', 1]; else if (avg >= .52) t = ['NICE ROLL', '#8CC85A', 0];
+    return { on: !!t, text: t ? t[0] : '', bg: t ? t[1] : '#FFC445', tier: t ? t[2] : -1,
+      sub: `${dv > 0 ? '+' : dv < 0 ? '\u2212' : '\u00b1'}${Math.abs(dv)} POWER VS LAST ROLL`, subInk: dv > 0 ? '#A8D878' : dv < 0 ? '#FFB0A0' : '#EBD3A8' };
+  }
+  sum(r) { return this.P.reduce((s, p, i) => s + p.faces[r[i]][1], 0); }
+  // ── sequence ──
+  reroll() {
+    if (this.state.playing) { this.skipReq = true; return; }
+    if (this.state.rerolls <= 0) return;
+    const prev = [...this.state.rolled];
+    const next = prev.map((k, i) => this.P[i].used ? k : Math.floor(Math.random() * 6));
+    const roll = this.P.map((_, i) => i).filter(i => !this.P[i].used);
+    const fast = this.state.fast, K = this.k();
+    const g = this.grade(prev, next);
+    const types = this.ORDER.filter(t => roll.some(i => this.P[i].faces[next[i]][0] === t));
+    const chips = prev.map((k, i) => {
+      if (this.P[i].used) return '';
+      const vals = this.P[i].faces.map(f => f[1]), v = this.P[i].faces[next[i]][1], d = v - this.P[i].faces[k][1];
+      return v === Math.max(...vals) ? 'MAX' : d > 0 ? `+${d}` : d < 0 ? `\u2212${-d}` : '=';
+    });
+    this.maxTags = []; this.skipReq = false;
+    this.setState({ playing: true, rerolls: this.state.rerolls - 1, chips, tallyTypes: types, tally: {}, stampText: g.text, stampSub: g.sub, stampBg: g.bg, stampSubInk: g.subInk });
+    this.P.forEach((_, i) => { const e = this.els[i]; if (e.chip) e.chip.style.opacity = 0; });
+    // timeline (ms at 1×)
+    const W = 260, G = 35, FA = fast ? 300 : 380, FB = fast ? 160 : 240, FC = fast ? 0 : 180;
+    const tease = roll[roll.length - 1];
+    const plan = roll.map((i, n) => {
+      const sx = 312 + i * 288, sy = 952;
+      const rx = 470 + n * ((1450 - 470) / Math.max(1, roll.length - 1)) + (Math.random() * 60 - 30);
+      const ry = 400 + (n % 2 ? 70 : -60) + (Math.random() * 40 - 20);
+      const lx = Math.min(1440, Math.max(480, rx + (Math.random() * 200 - 100))), ly = Math.min(600, Math.max(280, ry + 80 + Math.random() * 60));
+      const [tx, ty] = this.ORI[next[i]];
+      const spinX = (Math.random() < .5 ? -1 : 1) * 360 * (fast ? 1 : 2), spinY = (Math.random() < .5 ? -1 : 1) * 360 * (fast ? 1 : 2 + (n % 2));
+      return { i, n, start: W + n * G, s: [sx, sy], L: [lx, ly], M: [(lx + rx) / 2 + 20, (ly + ry) / 2], R: [rx, ry], to: [tx + spinX, ty + spinY], tease: i === tease && !fast, hit: false, locked: false };
+    });
+    const settle = (pl) => pl.start + FA + FB + FC;
+    const lastNormal = Math.max(...plan.map(settle));
+    const teaseEnd = fast ? lastNormal : lastNormal + 550;
+    const LOCK = fast ? 110 : 300;
+    plan.forEach((pl, n) => { pl.lockT = teaseEnd + n * LOCK; });
+    const locksEnd = teaseEnd + plan.length * LOCK;
+    const holdStart = locksEnd + (g.on && !fast ? 150 : 0);
+    const retStart = holdStart + (g.on && !fast ? 1250 : fast ? 300 : 520);
+    const RET = 520, end = retStart + RET + plan.length * 40 + 60;
+    this.tl = { plan, retStart, holdStart, end };
+    // open tray + dim
+    const tray = this.els.tray, dim = this.els.dim;
+    tray.style.visibility = 'visible';
+    tray.style.opacity = 1; tray.style.transform = 'none'; dim.style.opacity = .45;
+    tray.animate([{ opacity: 0, transform: 'translateY(40px) scale(.94)' }, { opacity: 1, transform: 'translateY(0) scale(1)' }], { duration: 300 * K, easing: 'cubic-bezier(.34,1.56,.64,1)' });
+    dim.animate([{ opacity: 0 }, { opacity: .45 }], { duration: 260 * K });
+    if (this.els.stamp) this.els.stamp.style.opacity = 0;
+    roll.forEach((i, n) => { const c = this.els[i].card; if (c) c.animate([{ transform: 'translate(0,0)' }, { transform: 'translate(-4px,-6px) rotate(-3deg)' }, { transform: 'translate(4px,-12px) rotate(3deg)' }, { transform: 'translate(0,2px) scale(1.07,.94)' }, { transform: 'translate(0,0)' }], { duration: 260 * K }); });
+    plan.forEach(pl => { const c = this.els[pl.i].cube; if (c) this.setCube(pl.i, 0, 0, null); });
+    const t0 = performance.now();
+    let skipped = false, stampShown = false, retFired = false, offset = 0;
+    const ease = (x) => 1 - Math.pow(1 - x, 3);
+    const lerp = (a, b, t) => a + (b - a) * t;
+    const tick = (now) => {
+      let t = (now - t0) / K + offset;
+      if (this.skipReq && !skipped && t < retStart) { skipped = true; offset += retStart - t; t = retStart; }
+      plan.forEach(pl => {
+        const e = this.els[pl.i]; if (!e.mover) return;
+        const u = t - pl.start;
+        let x, y, z = 0, sc = 1, sqx = 1, sqy = 1, rx, ry;
+        if (t >= retStart) {
+          const r = Math.min(1, Math.max(0, (t - retStart - pl.n * 40) / RET)), er = r * r * (3 - 2 * r);
+          const cx = (pl.R[0] + pl.s[0]) / 2, cy = Math.min(pl.R[1], pl.s[1]) - 220;
+          x = (1 - er) * (1 - er) * pl.R[0] + 2 * (1 - er) * er * cx + er * er * pl.s[0];
+          y = (1 - er) * (1 - er) * pl.R[1] + 2 * (1 - er) * er * cy + er * er * pl.s[1];
+          sc = lerp(1, .87, er); rx = this.ORI[next[pl.i]][0]; ry = this.ORI[next[pl.i]][1];
+          if (!pl.locked) this.lockDie(pl, next, true);
+          if (r >= 1 && !pl.home) { pl.home = true; this.homeDie(pl, next); }
+          e.mover.style.opacity = r >= 1 ? 0 : 1; e.shadow.style.opacity = 0;
+          this.setCube(pl.i, rx, ry, next[pl.i]);
+          e.mover.style.transform = `translate(${x - 60}px,${y - 60}px) scale(${sc})`;
+          return;
+        }
+        if (u < 0) { e.mover.style.opacity = 0; e.shadow.style.opacity = 0; return; }
+        e.mover.style.opacity = 1;
+        const spinEnd = pl.tease ? pl.lockT - pl.start : FA + FB + FC;
+        const a = ease(Math.min(1, u / spinEnd));
+        rx = lerp(0, pl.to[0], a); ry = lerp(0, pl.to[1], a);
+        if (u < FA) { const p = u / FA, ep = ease(p); x = lerp(pl.s[0], pl.L[0], ep); y = lerp(pl.s[1], pl.L[1], ep); z = 260 * 4 * p * (1 - p) + (1 - p) * 40; sc = lerp(.87, 1, Math.min(1, p * 2)); }
+        else if (u < FA + FB) { const q = (u - FA) / FB; x = lerp(pl.L[0], fast ? pl.R[0] : pl.M[0], q); y = lerp(pl.L[1], fast ? pl.R[1] : pl.M[1], q); z = 70 * 4 * q * (1 - q); if (!pl.hit) { pl.hit = true; this.dust(x, y + 50); if (pl.n === 0) this.shake(6); } }
+        else if (u < FA + FB + FC) { const q = (u - FA - FB) / FC; x = lerp(pl.M[0], pl.R[0], q); y = lerp(pl.M[1], pl.R[1], q); z = 24 * 4 * q * (1 - q); }
+        else { x = pl.R[0]; y = pl.R[1]; const s = Math.min(1, (u - FA - FB - FC) / 120); sqx = 1.08 - .08 * s; sqy = .9 + .1 * s; if (pl.tease && t < pl.lockT) { z = 6 + 4 * Math.sin(u / 40); } }
+        if (t >= pl.lockT && !pl.locked) this.lockDie(pl, next, false);
+        if (pl.locked && t < pl.lockT + 160) { const q = (t - pl.lockT) / 160; z = Math.max(z, 22 * 4 * q * (1 - q)); }
+        this.setCube(pl.i, rx, ry, pl.locked ? next[pl.i] : null);
+        e.mover.style.transform = `translate(${x - 60}px,${y - 60 - z}px) scale(${sc * sqx},${sc * sqy})`;
+        e.shadow.style.opacity = .9; e.shadow.style.transform = `translate(${x - 55}px,${y + 46}px) scale(${Math.max(.45, 1 - z / 320)})`;
+      });
+      // tease spotlight
+      const tp = plan.find(p => p.tease);
+      const spot = this.els.spot;
+      if (tp && t >= lastNormal && t < tp.lockT + 120 && !skipped) {
+        const f = Math.min(1, (t - lastNormal) / 120) * (t > tp.lockT ? Math.max(0, 1 - (t - tp.lockT) / 120) : 1);
+        spot.style.opacity = f; spot.style.background = `radial-gradient(circle at ${tp.R[0]}px ${tp.R[1] - 8}px, rgba(36,20,11,0) 96px, rgba(36,20,11,.62) 150px)`;
+      } else spot.style.opacity = 0;
+      // stamp
+      if (g.on && !fast && t >= holdStart && !stampShown && !skipped) { stampShown = true; this.slam(g); }
+      if (t >= retStart && !retFired) {
+        retFired = true;
+        tray.style.opacity = 0; tray.style.transform = 'translateY(40px) scale(.94)'; dim.style.opacity = 0;
+        tray.animate([{ opacity: 1, transform: 'translateY(0) scale(1)' }, { opacity: 0, transform: 'translateY(40px) scale(.94)' }], { duration: 300 * K });
+        dim.animate([{ opacity: .45 }, { opacity: 0 }], { duration: 300 * K });
+        const st = this.els.stamp; if (st && st.style.opacity !== '0') { st.style.opacity = 0; st.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 150 * K }); }
+        (this.maxTags || []).forEach(d => { d.style.opacity = 0; d.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 150 * K }); setTimeout(() => d.remove(), 160 * K); });
+      }
+      if (t >= end) { tray.style.visibility = 'hidden'; spot.style.opacity = 0; this.setState({ playing: false }); return; }
+      this.raf = setTimeout(() => tick(performance.now()), 16);
+    };
+    this.raf = setTimeout(() => tick(performance.now()), 16);
+  }
+  lockDie(pl, next, silent) {
+    pl.locked = true;
+    const [k, v] = this.P[pl.i].faces[next[pl.i]];
+    const isMax = v === Math.max(...this.P[pl.i].faces.map(f => f[1])) && k !== 'buff';
+    this.setState(s => ({ tally: { ...s.tally, [k]: (s.tally[k] || 0) + (k === 'buff' ? 1 : v) } }));
+    if (silent) return;
+    const [x, y] = pl.R;
+    this.ring(x, y, 60, isMax ? '#FFC445' : '#FFF8EA', isMax ? 1.9 : 1.45);
+    this.burst(x, y, [this.col[k], '#FFF8EA'], isMax ? 16 : 8, isMax ? 170 : 90);
+    if (isMax) { this.burst(x, y, ['#FFC445', this.col[k], '#FFF8EA'], 10, 200, 16); this.maxTag(x, y - 104); this.flash(); }
+    setTimeout(() => this.pop(this.tallyEls[k]), 0);
+  }
+  homeDie(pl, next) {
+    this.setState(s => { const rolled = [...s.rolled]; rolled[pl.i] = next[pl.i]; return { rolled }; });
+    const e = this.els[pl.i], K = this.k();
+    if (e.card) e.card.animate(this.state.calm
+      ? [{ transform: 'scale(1.1,.92)' }, { transform: 'scale(1)' }]
+      : [{ transform: 'scale(1.12,.9)', filter: 'brightness(1.6)' }, { transform: 'scale(.97,1.04)', filter: 'brightness(1.2)', offset: .5 }, { transform: 'scale(1)', filter: 'brightness(1)' }], { duration: 300 * K });
+    const r = e.card ? e.card.getBoundingClientRect() : null;
+    if (e.chip) { e.chip.style.opacity = 1; e.chip.animate([{ transform: 'translateX(-50%) translateY(12px) scale(.6)', opacity: 0 }, { transform: 'translateX(-50%) translateY(-4px) scale(1.18)', opacity: 1, offset: .6 }, { transform: 'translateX(-50%) translateY(0) scale(1)', opacity: 1 }], { duration: 260 * K }); }
+    this.ring(312 + pl.i * 288, 952, 58, '#FFF8EA', 1.3);
+  }
+  slam(g) {
+    const st = this.els.stamp, K = this.k(); if (!st) return;
+    st.style.opacity = 1; st.style.transform = 'translate(-50%,-50%) rotate(-5deg)';
+    st.animate([{ opacity: 0, transform: 'translate(-50%,-50%) scale(2.6) rotate(-1deg)' }, { opacity: 1, transform: 'translate(-50%,-50%) scale(1) rotate(-6deg)', offset: .55 }, { opacity: 1, transform: 'translate(-50%,-50%) scale(1.06) rotate(-5deg)', offset: .78 }, { opacity: 1, transform: 'translate(-50%,-50%) scale(1) rotate(-5deg)' }], { duration: 520 * K, easing: 'ease-in' });
+    setTimeout(() => {
+      this.shake(g.tier >= 2 ? 10 : 6);
+      if (g.tier >= 1) this.burst(960, 432, ['#FFC445', '#FF9345', '#FFF8EA', '#8CC85A', '#6CB8EC'], g.tier >= 2 ? 26 : 14, 260, 18);
+      if (g.tier >= 2) this.flash();
+    }, 290 * K);
+  }
+  renderVals() {
+    const s = this.state;
+    const party = this.P.map((p, i) => {
+      const [k, v] = p.faces[s.rolled[i]]; const chip = s.chips[i];
+      return {
+        name: p.name, cls: p.cls, cx: 248 + i * 288, ax: 284 + i * 288, chipX: 312 + i * 288, used: !!p.used, cardOp: p.used ? .5 : 1,
+        hpText: `${p.hp} / ${p.max}`, pct: p.hp / p.max * 100,
+        dieIcon: this.ico[k], dieNum: k === 'buff' ? '' : v, dieBg: `linear-gradient(160deg,#FFF8EA,${this.tint[k]})`,
+        cube: p.faces.map(([kk, n], j) => ({ icon: this.ico[kk], n: kk === 'buff' ? '' : n, bg: `linear-gradient(160deg,#FFF8EA,${this.tint[kk]})`, tf: this.TF[j] })),
+        faces: p.faces.map(([kk, n], j) => ({ icon: this.ico[kk], n: kk === 'buff' ? '' : n, bg: this.tint[kk], border: j === s.rolled[i] ? '#24140B' : '#B89A74', op: j === s.rolled[i] ? 1 : .8 })),
+        chip, chipBg: chip === 'MAX' ? '#FFC445' : chip.startsWith('+') ? '#8CC85A' : '#FFF8EA', chipInk: chip.startsWith('+') ? '#183A0C' : chip === 'MAX' ? '#3A2A12' : '#6E4A30',
+        refCard: el => { this.els[i].card = el; }, refChip: el => { this.els[i].chip = el; },
+        refMover: el => { this.els[i].mover = el; }, refCube: el => { this.els[i].cube = el; }, refShadow: el => { this.els[i].shadow = el; },
+      };
+    });
+    const tally = s.tallyTypes.map(t => { const n = s.tally[t] || 0; return { icon: this.ico[t], n, bg: n ? '#FFF8EA' : '#3B2618', ink: n ? '#24140B' : '#B89A74', op: n ? 1 : .5, ref: el => { this.tallyEls[t] = el; } }; });
+    const tg = (label, on, key) => ({ label, bg: on ? '#FFF8EA' : '#5A3A26', ink: on ? '#3A2214' : '#FFF8EA', box: on ? '#8CC85A' : '#FFF8EA', mark: on ? '\u2713' : '', on: () => this.setState({ [key]: !this.state[key] }) });
+    const out = s.rerolls <= 0 && !s.playing;
+    const cm = [
+      ['Board dim', '#08090D', '#24140B', 'opacity .45 (was black)'],
+      ['Tray frame', '#7A4A22', '#B87440', 'gradient #D79A58→#B87440, border 5 #8A3E22, r 40'],
+      ['Tray lip', '#A56B35', '#E8B36E', '3 px inner highlight line'],
+      ['Tray shadow', '#000000', '#24140B', 'hard 5/8, 45%, no blur'],
+      ['Felt', '#1B3E45', '#6AA448', 'radial #86C25E→#558C3A, border 4 #3E6A2A'],
+      ['Felt glow', '#27555D', '#86C25E', 'centre of the radial'],
+      ['Felt dash', '#F3E7D3', '#FFF8EA', '3 px dashed @ 35%'],
+      ['Header chip', '#F3E7D3', '#FFF8EA', 'border 3 #24140B'],
+      ['Tally off', '#4A2A0E', '#3B2618', 'ink #B89A74 (was #A07A52)'],
+      ['Tally on', '#F3E7D3', '#FFF8EA', 'ink #24140B'],
+      ['Dust', '#BFD3CC', '#DDBF8C', 'with #FFF8EA, outlined'],
+      ['Ring / MAX', '#FFD76A', '#FFC445', 'also MAX! tag, stamp gold'],
+      ['Type: dmg', '#F54540', '#D9472B', 'bits only'],
+      ['Type: shield', '#31C6FF', '#6CB8EC', 'bits only'],
+      ['Type: heal', '#3FCD3C', '#5DBB3A', 'bits only'],
+      ['Stamp GREAT', '#FF9345', '#FF9345', 'unchanged'],
+      ['Stamp NICE', '#7DE07A', '#8CC85A', 'grass green'],
+      ['Stamp sub pill', '#12161D', '#3B2618', 'dusk plate'],
+      ['Sub: up / down', '#7DE07A', '#A8D878', 'down #FF8A85 → #FFB0A0'],
+      ['Chip +n', '#3FCD3C', '#8CC85A', 'ink #183A0C'],
+      ['Chip −n', '#F54540', '#FFF8EA', 'cream + ink #6E4A30 (no text on red)'],
+      ['Full-screen flash', '#FFD76A', '#FFE7A0', '50% → 0, off with Reduce flashing'],
+    ].map((r, i) => ({ el: r[0], old: r[1], nu: r[2], note: r[3], row: i % 2 ? '#F6E7CB' : '#FFF8EA' }));
+    const beats = [
+      ['1 Wind-up', '0.26 s', 'Cards shake, lift, squash. Tray pops up (0.94 → 1, back-ease, from +40 px). Board dims to 45%.'],
+      ['2 Toss', '~0.8 s', 'Cubes fly from their own card, 35 ms apart, 2–3 turns. Dust on each touch; screen shakes on the first.'],
+      ['3 Tease', '0.55 s', 'All others stopped; the last Axie die keeps spinning under a spotlight, rest of the screen darker.'],
+      ['4 Lock', '0.3 s / die', 'Hop, burst in the face-type colour, ring, tally counts up. MAX: tilted MAX! tag, gold flash, double bits.'],
+      ['5 Grade', '0.5–1.1 s', 'NICE / GREAT / PERFECT / JACKPOT stamp slams at the tray centre with “±n POWER VS LAST ROLL”.'],
+      ['6 Return', '0.52 s', 'Cubes curve back to their card. Card squashes and flashes, face updates, chip +n / −n / = / MAX pops.'],
+    ].map((b, i) => ({ name: b[0], t: b[1], m: b[2], bg: i % 2 ? '#F6E7CB' : '#FFF8EA' }));
+    return {
+      party, tally, beats, cmap: cm, rerolls: s.rerolls,
+      monsters: [{ x: 480, px: 440, name: 'Mossback Grub' }, { x: 840, px: 800, name: 'Thornling' }, { x: 1200, px: 1160, name: 'Ember Wisp' }],
+      stampText: s.stampText, stampSub: s.stampSub, stampBg: s.stampBg, stampSubInk: s.stampSubInk,
+      onReroll: () => this.reroll(), onSkip: () => { if (this.state.playing) this.skipReq = true; },
+      onReset: () => { if (!this.state.playing) this.setState({ rerolls: 3 }); },
+      mainLabel: s.playing ? 'Skip' : out ? 'No rerolls left' : `Reroll (${s.rerolls} left)`,
+      toggles: [tg('Slow-mo 2.5×', s.slow, 'slow'), tg('Fast reroll', s.fast, 'fast'), tg('Reduce flashing', s.calm, 'calm'), tg('Screen shake', s.shake, 'shake')],
+      rrLabel: s.playing ? 'Skip · R' : `Reroll · ${s.rerolls} left`,
+      rrBg: out ? '#E8D6B4' : 'linear-gradient(180deg,#FFF8EA,#EBD3A8)', rrBorder: out ? '#9A7650' : '#24140B', rrInk: out ? '#9A7650' : '#3A2214', rrIcoOp: out ? .45 : 1,
+      refBoard: el => { this.els.board = el; }, refDim: el => { this.els.dim = el; }, refTray: el => { this.els.tray = el; }, refSpot: el => { this.els.spot = el; },
+      refFx: el => { this.els.fx = el; }, refStamp: el => { this.els.stamp = el; }, refStampPanel: el => { this.els.stampPanel = el; },
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,647 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<script src="_ds/dango-design-system-b8da985f-efd5-488e-ae62-d508e48befe9/_ds_bundle.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&amp;family=Work+Sans:wght@500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+  body { margin:0; background:#0B0D12; }
+  a { color:#FF9345; text-decoration:none; }
+  a:hover { color:#FFB275; }
+</style>
+</helmet>
+
+<div style="display:flex;flex-direction:column;gap:72px;padding:72px;background:#0B0D12;font-family:'Work Sans',system-ui,sans-serif;color:#F3E7D3;-webkit-font-smoothing:antialiased;font-variant-numeric:tabular-nums;width:max-content">
+
+  <div style="display:flex;flex-direction:column;gap:10px;max-width:1920px">
+    <div style="font-family:'Baloo 2',cursive;font-size:15px;font-weight:800;letter-spacing:.2em;color:#8C95A4">UI REQUEST 01 · ASCENSION V2 · EXTENDS run-flow-v2.html</div>
+    <div style="font-family:'Baloo 2',cursive;font-size:64px;font-weight:800;line-height:1;color:#FFF8EA">3.2 · 3.4 · 3.5 · 3.6 · 3.7 · 3.8 in the run flow</div>
+    <div style="font-size:18px;font-weight:600;line-height:1.5;color:#A6B0BF;max-width:1300px;text-wrap:pretty">Run Map, Reward, Shop and the boss Pact screen. The pact screen and sell box are designed once here because run-flow-v2 has neither; they are built to sit under the relic-UI request that follows relic-set-v2 sign-off.</div>
+  </div>
+
+  <!-- ══ RUN MAP ══ -->
+  <div data-screen-label="Run Map A9" style="display:flex;flex-direction:column;gap:14px">
+    <div style="display:flex;align-items:center;gap:12px">
+      <div style="height:34px;padding:0 12px;display:flex;align-items:center;border-radius:9px;background:#FF9345;border:3px solid #000;font-family:'Baloo 2',cursive;font-size:17px;font-weight:800;color:#2A1505">3.5-a</div>
+      <div style="font-family:'Baloo 2',cursive;font-size:24px;font-weight:800;color:#FFF8EA">Run Map · A9 · elite node selected → weaken pre-warning · badge on rail (3.2-c) · 7-slot strip (3.8-d) · Eternal in relic list (3.4-c)</div>
+    </div>
+    <div style="font-size:14px;font-weight:600;color:#8C95A4">Data state: A9 run, row 4, 5 relics held (1 Eternal), elite on row 5 left lane selected (first click). Boss clock chip added under the boss plate.</div>
+
+    <div style="position:relative;width:1920px;height:1080px;overflow:hidden;background:#0E1016">
+      <img src="asc/bg/crossroad.jpg" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;filter:saturate(1.05) brightness(.82)">
+      <div style="position:absolute;inset:0;background:radial-gradient(125% 95% at 55% 8%, rgba(14,16,22,.04) 0%, rgba(14,16,22,.4) 52%, rgba(14,16,22,.84) 100%)"></div>
+
+      <div style="position:absolute;top:28px;left:28px;width:344px;bottom:28px;display:flex;flex-direction:column;gap:12px">
+        <div style="flex:0 0 auto;display:flex;flex-direction:column;padding:19px 19px 17px;border-radius:18px;background:#161A21;border:4px solid #000;box-shadow:0 7px 0 rgba(0,0,0,.55)">
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
+            <div style="font-family:'Baloo 2',cursive;font-size:28px;font-weight:800;letter-spacing:.01em;line-height:1;color:#FFF8EA">LUNACIA RUN</div>
+            <div style="height:27px;padding:0 11px;display:flex;align-items:center;border-radius:8px;background:#FF9345;border:3px solid #000;font-family:'Baloo 2',cursive;font-size:13px;font-weight:800;letter-spacing:.06em;line-height:1;color:#2A1505">SHORT</div>
+          </div>
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-top:7px">
+            <div style="font-family:'Baloo 2',cursive;font-size:12px;font-weight:700;letter-spacing:.14em;color:#6F7887">SEED 3970737296</div>
+            <div style="height:27px;box-sizing:border-box;padding:0 7px 0 9px;display:flex;align-items:center;gap:4px;border-radius:8px;background:#C9302B;border:3px solid #000;outline:3px solid #FFC79B;outline-offset:2px;font-family:'Baloo 2',cursive;font-size:14px;font-weight:800;line-height:1;color:#FFF8EA">A9<span style="font-size:11px;color:#FFC3C0">▾</span></div>
+          </div>
+          <div style="display:flex;margin-top:17px">
+            <sc-for list="{{ runStats }}" as="r" hint-placeholder-count="3">
+              <div style="flex:1 1 0;padding-left:{{ r.pl }};border-left:{{ r.bl }}">
+                <div style="font-family:'Baloo 2',cursive;font-size:30px;font-weight:800;line-height:1;color:{{ r.c }}">{{ r.v }}</div>
+                <div style="font-family:'Baloo 2',cursive;font-size:11px;font-weight:800;letter-spacing:.14em;color:#6F7887;margin-top:6px">{{ r.k }}</div>
+              </div>
+            </sc-for>
+          </div>
+          <div style="height:2px;background:rgba(255,147,69,.22);margin:17px 0 15px"></div>
+          <div style="font-family:'Baloo 2',cursive;font-size:12px;font-weight:800;letter-spacing:.2em;color:#6F7887">PARTY</div>
+          <div style="display:flex;flex-direction:column;gap:10px;margin-top:12px">
+            <sc-for list="{{ roster }}" as="r" hint-placeholder-count="5">
+              <div style="display:flex;align-items:center;gap:11px">
+                <div style="width:46px;height:46px;box-sizing:border-box;border-radius:13px;background:{{ r.cls }};border:3px solid #000;overflow:hidden;flex:0 0 auto"><img src="{{ r.portrait }}" alt="" style="width:100%;height:100%;object-fit:cover"></div>
+                <div style="flex:1 1 auto;min-width:0">
+                  <div style="display:flex;align-items:baseline;justify-content:space-between;gap:8px">
+                    <div style="font-family:'Baloo 2',cursive;font-size:17px;font-weight:700;line-height:1.1;color:#FFF8EA">{{ r.name }}</div>
+                    <div style="font-family:'Baloo 2',cursive;font-size:16px;font-weight:800;line-height:1.1;color:#3FCD3C">{{ r.hp }}</div>
+                  </div>
+                  <div style="position:relative;height:9px;border-radius:5px;background:#0B0D12;border:2px solid #000;margin-top:5px;overflow:hidden"><div style="position:absolute;inset:0;background:#3FCD3C"></div></div>
+                </div>
+                <div style="height:23px;padding:0 8px;display:flex;align-items:center;border-radius:6px;background:#242A34;border:2px solid #000;font-family:'Baloo 2',cursive;font-size:12px;font-weight:800;line-height:1;color:#A9B3C2;flex:0 0 auto">T1</div>
+              </div>
+            </sc-for>
+          </div>
+          <div style="height:17px"></div>
+          <div style="height:2px;background:rgba(255,147,69,.22);margin:0 0 15px"></div>
+          <div style="display:flex;align-items:baseline;justify-content:space-between">
+            <div style="font-family:'Baloo 2',cursive;font-size:12px;font-weight:800;letter-spacing:.2em;color:#6F7887">RELICS</div>
+            <div style="font-family:'Baloo 2',cursive;font-size:13px;font-weight:800;color:#A9B3C2">5 / 7 PASSIVE</div>
+          </div>
+          <div style="display:flex;gap:6px;margin-top:10px">
+            <sc-for list="{{ slotsMap }}" as="s" hint-placeholder-count="8">
+              <div title="{{ s.title }}" style="position:relative;width:32px;height:32px;box-sizing:border-box;border-radius:8px;background:{{ s.bg }};border:3px {{ s.bs }} {{ s.bc }};display:grid;place-items:center">
+                <img src="{{ s.icon }}" alt="" style="width:{{ s.isz }};height:{{ s.isz }};object-fit:contain;display:{{ s.idisp }}">
+                <img src="asc/new-icons/eternal.svg" alt="" style="position:absolute;right:-6px;bottom:-6px;width:15px;height:15px;display:{{ s.eDisp }}">
+              </div>
+            </sc-for>
+          </div>
+          <div style="display:flex;align-items:center;gap:6px;margin-top:7px">
+            <img src="asc/new-icons/lock.svg" alt="" style="width:13px;height:13px">
+            <div style="font-size:11px;font-weight:600;color:#8C95A4">Slot 8 locked · A8 Cramped Pack</div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:9px;margin-top:12px">
+            <sc-for list="{{ relicList }}" as="r" hint-placeholder-count="3">
+              <div style="display:flex;align-items:center;gap:11px">
+                <div style="position:relative;width:34px;height:34px;box-sizing:border-box;border-radius:10px;background:{{ r.bg }};border:3px solid #000;display:grid;place-items:center;flex:0 0 auto">
+                  <img src="{{ r.icon }}" alt="" style="width:20px;height:20px;object-fit:contain">
+                  <img src="asc/new-icons/eternal.svg" alt="" style="position:absolute;right:-6px;bottom:-6px;width:16px;height:16px;display:{{ r.eDisp }}">
+                </div>
+                <div style="min-width:0;flex:1 1 auto">
+                  <div style="display:flex;align-items:center;gap:6px">
+                    <div style="font-family:'Baloo 2',cursive;font-size:14px;font-weight:800;letter-spacing:.04em;line-height:1.1;color:#FFF8EA">{{ r.n }}</div>
+                    <div style="display:{{ r.eDisp }};height:17px;padding:0 5px;align-items:center;border-radius:5px;background:#FFC445;border:2px solid #000;font-family:'Baloo 2',cursive;font-size:10px;font-weight:800;letter-spacing:.08em;line-height:1;color:#3A2A12">ETERNAL</div>
+                  </div>
+                  <div style="font-size:11px;font-weight:600;line-height:1.35;color:#6F7887">{{ r.d }}</div>
+                </div>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+        <div style="flex:1 1 auto"></div>
+        <div style="height:52px;box-sizing:border-box;border-radius:14px;display:grid;place-items:center;background:rgba(27,31,39,.92);border:4px solid #000;box-shadow:0 6px 0 rgba(0,0,0,.55);font-family:'Baloo 2',cursive;font-size:16px;font-weight:800;letter-spacing:.18em;color:#8C95A4">SAVE &amp; QUIT</div>
+      </div>
+
+      <div style="position:absolute;top:30px;left:396px;right:28px;height:66px;display:flex;align-items:center;justify-content:space-between;gap:20px">
+        <div>
+          <div style="font-family:'Baloo 2',cursive;font-size:44px;font-weight:800;line-height:1;color:#FFF8EA;text-shadow:0 3px 0 rgba(0,0,0,.6)">THE PATH</div>
+          <div style="font-size:13px;font-weight:600;color:#EDF1F6;margin-top:5px;text-shadow:0 1px 3px rgba(0,0,0,.9)">Pick the next node. Fog lifts one row ahead.</div>
+        </div>
+        <div style="display:flex;flex-direction:column;align-items:flex-end">
+          <div style="display:flex;align-items:center;gap:14px;height:66px;box-sizing:border-box;padding:0 18px 0 12px;border-radius:16px;background:#C9302B;border:4px solid #000;box-shadow:0 6px 0 rgba(0,0,0,.55);position:relative;z-index:1">
+            <div style="width:44px;height:44px;box-sizing:border-box;border-radius:12px;background:#F54540;border:3px solid #000;display:grid;place-items:center"><img src="asc/node/boss.png" alt="" style="width:28px;height:28px;object-fit:contain"></div>
+            <div>
+              <div style="font-family:'Baloo 2',cursive;font-size:11px;font-weight:800;letter-spacing:.2em;line-height:1;color:#FFC3C0">ROW 18 · 14 ROWS AWAY</div>
+              <div style="font-family:'Baloo 2',cursive;font-size:25px;font-weight:800;line-height:1.1;color:#FFF8EA">CHIMERA LORD</div>
+            </div>
+          </div>
+          <div style="margin-top:-4px;margin-right:14px;display:flex;align-items:center;gap:6px;height:30px;box-sizing:border-box;padding:4px 10px 0 8px;border-radius:0 0 10px 10px;background:#262C36;border:3px solid #000;border-top:0">
+            <img src="asc/new-icons/boss-clock.svg" alt="" style="width:15px;height:15px">
+            <div style="font-family:'Baloo 2',cursive;font-size:12px;font-weight:800;letter-spacing:.06em;line-height:1;color:#FFC79B">ENRAGES FROM TURN 8 · PACT REQUIRED</div>
+          </div>
+        </div>
+      </div>
+
+      <svg viewBox="0 0 1920 1080" style="position:absolute;inset:0;width:1920px;height:1080px;pointer-events:none">
+        <g fill="none" stroke-linecap="round">
+          <sc-for list="{{ edges }}" as="g" hint-placeholder-count="10"><path d="{{ g.d }}" stroke="#000" stroke-width="14"></path></sc-for>
+          <sc-for list="{{ edges }}" as="g" hint-placeholder-count="10"><path d="{{ g.d }}" stroke="{{ g.c }}" stroke-width="6" stroke-dasharray="{{ g.dash }}"></path></sc-for>
+        </g>
+      </svg>
+
+      <sc-for list="{{ nodes }}" as="n" hint-placeholder-count="12">
+        <div style="position:absolute;left:{{ n.x }};top:{{ n.y }};width:{{ n.box }};display:flex;flex-direction:column;align-items:center;gap:9px">
+          <div style="position:relative;width:{{ n.box }};height:{{ n.box }}">
+            <div style="position:absolute;inset:-11px;border-radius:26px;border:5px solid {{ n.ringC }};box-shadow:0 0 0 3px #000;display:{{ n.ringDisp }}"></div>
+            <div style="position:absolute;inset:0;border-radius:{{ n.radius }};background:{{ n.base }};border:{{ n.border }} solid #000;box-shadow:{{ n.shelf }};overflow:hidden">
+              <div style="position:absolute;top:0;left:0;right:0;height:44%;background:{{ n.top }}"></div>
+              <div style="position:absolute;bottom:0;left:0;right:0;height:19%;background:{{ n.lip }}"></div>
+            </div>
+            <div style="position:absolute;inset:0;display:grid;place-items:center">
+              <div style="width:{{ n.disc }};height:{{ n.disc }};box-sizing:border-box;border-radius:50%;background:{{ n.discBg }};border:3px solid #000;display:grid;place-items:center">
+                <img src="{{ n.icon }}" alt="" style="width:{{ n.iconSize }};height:{{ n.iconSize }};object-fit:contain;opacity:{{ n.iconOpacity }};display:{{ n.iconDisp }}">
+                <div style="font-family:'Baloo 2',cursive;font-size:32px;font-weight:800;line-height:1;color:#8C95A4;display:{{ n.fogDisp }}">?</div>
+              </div>
+            </div>
+            <div style="position:absolute;bottom:-7px;right:-7px;width:30px;height:30px;box-sizing:border-box;border-radius:50%;background:#3FCD3C;border:3px solid #000;display:{{ n.doneDisp }};place-items:center;font-size:15px;font-weight:800;color:#07260A">✓</div>
+            <div style="position:absolute;top:-9px;right:-9px;width:30px;height:30px;box-sizing:border-box;border-radius:50%;background:#FF8FC7;border:3px solid #000;display:{{ n.wkDisp }};place-items:center"><img src="asc/fx/weaken.png" alt="" style="width:16px;height:16px"></div>
+          </div>
+          <div style="height:30px;box-sizing:border-box;padding:0 12px;display:{{ n.labelDisp }};align-items:center;border-radius:9px;background:{{ n.labelBg }};border:3px solid #000;box-shadow:0 3px 0 rgba(0,0,0,.45);font-family:'Baloo 2',cursive;font-size:14px;font-weight:800;letter-spacing:.08em;line-height:1;white-space:nowrap;color:{{ n.labelFg }}">{{ n.label }}</div>
+        </div>
+      </sc-for>
+
+      <div style="position:absolute;left:410px;top:384px;width:300px;border-radius:16px;overflow:hidden;background:#F3E7D3;border:4px solid #000;box-shadow:0 6px 0 rgba(0,0,0,.55);z-index:5">
+        <div style="height:40px;box-sizing:border-box;background:#BF6BFF;border-bottom:3px solid #000;display:flex;align-items:center;justify-content:space-between;padding:0 12px">
+          <div style="font-family:'Baloo 2',cursive;font-size:15px;font-weight:800;letter-spacing:.12em;color:#1E0A33">ELITE · ROW 5</div>
+          <div style="font-family:'Baloo 2',cursive;font-size:12px;font-weight:800;letter-spacing:.08em;color:#1E0A33">SELECTED</div>
+        </div>
+        <div style="padding:11px 12px 12px;display:flex;flex-direction:column;gap:8px">
+          <div style="display:flex;align-items:center;gap:8px">
+            <img src="asc/fx/elite.png" alt="" style="width:18px;height:18px;object-fit:contain">
+            <div style="font-size:13px;font-weight:600;color:#3A2A12">3 monsters · 2 + 1 escort <b style="color:#6B5433">(A2)</b></div>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px">
+            <img src="asc/new-icons/eternal.svg" alt="" style="width:18px;height:18px">
+            <div style="font-size:13px;font-weight:600;color:#3A2A12">Relic reward will be Eternal · 1 of 2 used <b style="color:#6B5433">(A5)</b></div>
+          </div>
+          <div style="display:flex;align-items:center;gap:9px;padding:8px 9px;border-radius:11px;background:#FFF8EA;border:3px solid #000">
+            <div style="width:34px;height:34px;box-sizing:border-box;border-radius:50%;background:#FFB23F;border:3px solid #000;overflow:hidden;flex:0 0 auto"><img src="asc/portrait/beast.png" alt="" style="width:100%;height:100%;object-fit:cover"></div>
+            <div style="flex:1 1 auto;min-width:0">
+              <div style="font-family:'Baloo 2',cursive;font-size:15px;font-weight:800;line-height:1.05;color:#1A1206">BUBA STARTS WEAKENED</div>
+              <div style="font-size:11px;font-weight:600;color:#6B5433">From turn 1 of this fight</div>
+            </div>
+            <div style="display:flex;align-items:center;gap:3px;height:28px;box-sizing:border-box;padding:0 8px 0 4px;border-radius:9px;background:#FF8FC7;border:3px solid #000">
+              <img src="asc/fx/weaken.png" alt="" style="width:16px;height:16px;object-fit:contain">
+              <div style="font-family:'Baloo 2',cursive;font-size:16px;font-weight:800;line-height:1;color:#1A1206">2</div>
+            </div>
+          </div>
+          <div style="height:44px;box-sizing:border-box;border-radius:11px;display:grid;place-items:center;background:#FF9345;border:3px solid #000;box-shadow:0 4px 0 rgba(0,0,0,.45);font-family:'Baloo 2',cursive;font-size:17px;font-weight:800;letter-spacing:.14em;color:#2A1505">FIGHT →</div>
+        </div>
+      </div>
+      <div style="position:absolute;left:706px;top:470px;width:22px;height:6px;background:#000;z-index:4"></div>
+    </div>
+  </div>
+
+  <!-- ══ REWARD ══ -->
+  <sc-for list="{{ rewardScreens }}" as="rs" hint-placeholder-count="2">
+    <div data-screen-label="{{ rs.id }}" style="display:flex;flex-direction:column;gap:14px">
+      <div style="display:flex;align-items:center;gap:12px">
+        <div style="height:34px;padding:0 12px;display:flex;align-items:center;border-radius:9px;background:#FF9345;border:3px solid #000;font-family:'Baloo 2',cursive;font-size:17px;font-weight:800;color:#2A1505">{{ rs.id }}</div>
+        <div style="font-family:'Baloo 2',cursive;font-size:24px;font-weight:800;color:#FFF8EA">{{ rs.caption }}</div>
+      </div>
+      <div style="font-size:14px;font-weight:600;color:#8C95A4">{{ rs.state }}</div>
+      <div style="position:relative;width:1920px;height:1080px;overflow:hidden;background:#0E1016">
+        <img src="asc/bg/rocky.jpg" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;filter:saturate(1.05) brightness(.82)">
+        <div style="position:absolute;inset:0;background:radial-gradient(125% 95% at 55% 8%, rgba(14,16,22,.04) 0%, rgba(14,16,22,.4) 52%, rgba(14,16,22,.84) 100%)"></div>
+        <div style="position:absolute;top:82px;left:0;right:0;text-align:center">
+          <div style="display:inline-flex;align-items:center;gap:9px;height:38px;box-sizing:border-box;padding:0 18px;border-radius:10px;background:#BF6BFF;border:4px solid #000;box-shadow:0 5px 0 rgba(0,0,0,.5);font-family:'Baloo 2',cursive;font-size:16px;font-weight:800;letter-spacing:.2em;color:#1E0A33">ELITE CLEARED</div>
+          <div style="font-family:'Baloo 2',cursive;font-size:64px;font-weight:800;letter-spacing:.02em;line-height:1.1;margin-top:14px;color:#FFF8EA">CHOOSE ONE REWARD</div>
+          <div style="display:flex;align-items:center;justify-content:center;gap:10px;margin-top:4px">
+            <div style="font-size:15px;font-weight:600;color:#A6B0BF">Taking a reward ends the node. You keep it for the rest of the run.</div>
+            <div style="height:24px;padding:0 8px;display:flex;align-items:center;gap:5px;border-radius:7px;background:#C9302B;border:2px solid #000;font-family:'Baloo 2',cursive;font-size:12px;font-weight:800;letter-spacing:.08em;line-height:1;color:#FFF8EA">{{ rs.ascTag }}</div>
+          </div>
+        </div>
+        <div style="position:absolute;top:288px;left:0;right:0;display:flex;justify-content:center;gap:28px">
+          <sc-for list="{{ rs.cards }}" as="w" hint-placeholder-count="2">
+            <div style="position:relative;width:440px;border-radius:20px;background:#F3E7D3;border:5px solid #000;box-shadow:0 8px 0 rgba(0,0,0,.55);box-sizing:border-box">
+              <div style="height:46px;box-sizing:border-box;background:{{ w.rarColor }};border-bottom:4px solid #000;border-radius:15px 15px 0 0;display:flex;align-items:center;justify-content:space-between;padding:0 16px">
+                <div style="font-family:'Baloo 2',cursive;font-size:15px;font-weight:800;letter-spacing:.14em;line-height:1;color:#1A1206">{{ w.kind }}</div>
+                <div style="font-family:'Baloo 2',cursive;font-size:14px;font-weight:800;letter-spacing:.12em;line-height:1;color:#1A1206">{{ w.rar }}</div>
+              </div>
+              <div style="padding:22px 22px 20px">
+                <div style="position:relative;display:flex;justify-content:center">
+                  <div style="width:132px;height:132px;box-sizing:border-box;border-radius:30px;background:#FFF8EA;border:4px solid #000;display:grid;place-items:center">
+                    <img src="{{ w.icon }}" alt="" style="width:78px;height:78px;object-fit:contain">
+                  </div>
+                  <div style="position:absolute;top:-4px;left:262px;transform:rotate(-8deg);display:{{ w.stkDisp }};align-items:center;gap:6px;height:36px;box-sizing:border-box;padding:0 12px 0 6px;border-radius:10px;background:{{ w.stkBg }};border:3px {{ w.stkBs }} #000;box-shadow:0 4px 0 rgba(0,0,0,.4)">
+                    <img src="asc/new-icons/eternal.svg" alt="" style="width:24px;height:24px;opacity:{{ w.stkOp }}">
+                    <div style="font-family:'Baloo 2',cursive;font-size:15px;font-weight:800;letter-spacing:.1em;line-height:1;color:{{ w.stkFg }};text-decoration:{{ w.stkStrike }}">ETERNAL</div>
+                  </div>
+                </div>
+                <div style="font-family:'Baloo 2',cursive;font-size:31px;font-weight:800;line-height:1.1;text-align:center;margin-top:18px;color:#1A1206">{{ w.name }}</div>
+                <div style="font-size:14px;line-height:1.5;font-weight:600;color:#3A2A12;text-align:center;margin-top:10px;min-height:63px;text-wrap:pretty">{{ w.desc }}</div>
+                <div style="display:{{ w.noteDisp }};align-items:center;gap:9px;margin-top:10px;min-height:42px;box-sizing:border-box;padding:7px 11px;border-radius:11px;background:{{ w.noteBg }};border:3px solid #000">
+                  <img src="asc/new-icons/eternal.svg" alt="" style="width:20px;height:20px;flex:0 0 auto;opacity:{{ w.stkOp }}">
+                  <div style="font-size:13px;font-weight:600;line-height:1.35;color:#3A2A12;text-wrap:pretty">{{ w.note }}</div>
+                </div>
+                <div style="margin-top:14px;height:60px;box-sizing:border-box;border-radius:13px;display:grid;place-items:center;background:#FF9345;border:4px solid #000;box-shadow:0 4px 0 rgba(0,0,0,.45);font-family:'Baloo 2',cursive;font-size:20px;font-weight:800;letter-spacing:.16em;color:#2A1505">TAKE</div>
+              </div>
+            </div>
+          </sc-for>
+        </div>
+        <div style="position:absolute;bottom:96px;left:0;right:0;display:flex;justify-content:center;gap:13px">
+          <div style="display:{{ rs.rerollDisp }};align-items:center;gap:11px;height:56px;box-sizing:border-box;padding:0 20px;border-radius:13px;background:#262C36;border:4px solid #000;box-shadow:0 5px 0 rgba(0,0,0,.45)">
+            <img src="asc/fx/reroll.svg" alt="" style="width:21px;height:21px;object-fit:contain">
+            <div style="font-family:'Baloo 2',cursive;font-size:18px;font-weight:800;letter-spacing:.12em;color:#F3E7D3">REROLL REWARDS</div>
+            <div style="height:28px;box-sizing:border-box;padding:0 10px;display:flex;align-items:center;border-radius:8px;background:#FF9345;border:2px solid #000;font-family:'Baloo 2',cursive;font-size:16px;font-weight:800;line-height:1;color:#2A1505">×1</div>
+          </div>
+          <div style="height:56px;box-sizing:border-box;padding:0 26px;display:grid;place-items:center;border-radius:13px;background:#1B1F27;border:4px solid #000;box-shadow:0 5px 0 rgba(0,0,0,.45);font-family:'Baloo 2',cursive;font-size:18px;font-weight:800;letter-spacing:.14em;color:#8C95A4">SKIP</div>
+        </div>
+      </div>
+    </div>
+  </sc-for>
+
+  <div data-screen-label="3.8-c Reroll greyed" style="display:flex;flex-direction:column;gap:14px">
+    <div style="display:flex;align-items:center;gap:12px">
+      <div style="height:34px;padding:0 12px;display:flex;align-items:center;border-radius:9px;background:#FF9345;border:3px solid #000;font-family:'Baloo 2',cursive;font-size:17px;font-weight:800;color:#2A1505">3.8-c</div>
+      <div style="font-family:'Baloo 2',cursive;font-size:24px;font-weight:800;color:#FFF8EA">A10 · reward button row when the player holds a reward-reroll source</div>
+    </div>
+    <div style="display:flex;align-items:flex-start;gap:40px;padding:36px 48px;border-radius:18px;background:#2A2F38;border:3px solid #000;width:1300px;box-sizing:border-box">
+      <div style="display:flex;flex-direction:column;align-items:center;gap:10px">
+        <div style="display:flex;gap:13px">
+          <div style="display:flex;align-items:center;gap:11px;height:56px;box-sizing:border-box;padding:0 20px;border-radius:13px;background:#1B1F27;border:4px solid #000">
+            <img src="asc/fx/reroll.svg" alt="" style="width:21px;height:21px;object-fit:contain;opacity:.35">
+            <div style="font-family:'Baloo 2',cursive;font-size:18px;font-weight:800;letter-spacing:.12em;color:#5C6573;text-decoration:line-through">REROLL REWARDS</div>
+            <div style="height:28px;box-sizing:border-box;padding:0 10px;display:flex;align-items:center;border-radius:8px;background:#10131A;border:2px solid #000;font-family:'Baloo 2',cursive;font-size:16px;font-weight:800;line-height:1;color:#5C6573">×0</div>
+          </div>
+          <div style="height:56px;box-sizing:border-box;padding:0 26px;display:grid;place-items:center;border-radius:13px;background:#1B1F27;border:4px solid #000;box-shadow:0 5px 0 rgba(0,0,0,.45);font-family:'Baloo 2',cursive;font-size:18px;font-weight:800;letter-spacing:.14em;color:#8C95A4">SKIP</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:7px;height:28px;padding:0 10px;border-radius:8px;background:#C9302B;border:2px solid #000">
+          <div style="font-family:'Baloo 2',cursive;font-size:13px;font-weight:800;letter-spacing:.06em;color:#FFF8EA">ASCENSION 10 · REWARD REROLLS ARE OFF</div>
+        </div>
+      </div>
+      <div style="flex:1 1 auto;font-size:14px;font-weight:600;line-height:1.55;color:#C7CED9">Absent is the default at A10 (3.8-b). The greyed button appears only if the player owns something that would normally grant a reward reroll (e.g. the meta unlock behind <code>reward_reroll_max = 1</code>), so they can see why it does nothing. No shelf shadow, not focusable, cursor default. Per ascension-v2 §3.1 <code>fortuneledger</code> is never offered at A10, so no relic currently produces this state — flagged in the README.</div>
+    </div>
+  </div>
+
+  <!-- ══ SHOP ══ -->
+  <div data-screen-label="3.7-a Shop A1" style="display:flex;flex-direction:column;gap:14px">
+    <div style="display:flex;align-items:center;gap:12px">
+      <div style="height:34px;padding:0 12px;display:flex;align-items:center;border-radius:9px;background:#FF9345;border:3px solid #000;font-family:'Baloo 2',cursive;font-size:17px;font-weight:800;color:#2A1505">3.7-a</div>
+      <div style="font-family:'Baloo 2',cursive;font-size:24px;font-weight:800;color:#FFF8EA">Shop · A5 run (A1 modifier active) · every price struck + new price · sell row at 40% · Eternal sell disabled (3.4-d)</div>
+    </div>
+    <div style="font-size:14px;font-weight:600;color:#8C95A4">Data state: 200 shard, prices from relic-set §3.1 (C 45 · R 75 · E 120 · L 180) and ascension-v2 §2.2. Serum already owned.</div>
+    <div style="position:relative;width:1920px;height:1080px;overflow:hidden;background:#0E1016">
+      <img src="asc/bg/river.jpg" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;filter:saturate(1.05) brightness(.82)">
+      <div style="position:absolute;inset:0;background:radial-gradient(125% 95% at 55% 8%, rgba(14,16,22,.04) 0%, rgba(14,16,22,.4) 52%, rgba(14,16,22,.84) 100%)"></div>
+      <div style="position:absolute;left:84px;bottom:180px;width:360px;height:520px;border-radius:20px;border:2px dashed rgba(243,231,211,.45);display:grid;place-items:center;font-family:'Baloo 2',cursive;font-size:16px;font-weight:800;letter-spacing:.12em;color:rgba(243,231,211,.7)">ATIA MONSTER 3D · MERCHANT</div>
+      <div style="position:absolute;left:78px;bottom:44px;width:372px;box-sizing:border-box;padding:14px 16px;border-radius:14px;background:#1B1F27;border:4px solid #000;box-shadow:0 5px 0 rgba(0,0,0,.5);text-align:center">
+        <div style="font-family:'Baloo 2',cursive;font-size:14px;font-weight:800;letter-spacing:.2em;color:#8C95A4">CHIMERA MERCHANT</div>
+        <div style="font-size:14px;line-height:1.5;font-weight:600;color:#C7BBD6;margin-top:5px">"Genes for shards. No refunds, no questions."</div>
+      </div>
+
+      <div style="position:absolute;top:58px;right:64px;width:1100px;border-radius:20px;overflow:hidden;background:#1B1F27;border:5px solid #000;box-shadow:0 7px 0 rgba(0,0,0,.5);box-sizing:border-box">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:16px;padding:18px 24px;background:#FF9345;border-bottom:4px solid #000">
+          <div>
+            <div style="display:flex;align-items:center;gap:12px">
+              <div style="font-family:'Baloo 2',cursive;font-size:38px;font-weight:800;line-height:1;color:#2A1505">CHIMERA MERCHANT</div>
+              <div style="height:28px;padding:0 9px;display:flex;align-items:center;border-radius:8px;background:#C9302B;border:3px solid #000;font-family:'Baloo 2',cursive;font-size:13px;font-weight:800;letter-spacing:.06em;line-height:1;color:#FFF8EA">A1 · PRICES +15% · SELL 40%</div>
+            </div>
+            <div style="font-size:13px;font-weight:600;color:#5A3310;margin-top:3px">Row 4 · stock refreshes every merchant node</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:9px;height:52px;box-sizing:border-box;padding:0 16px;border-radius:12px;background:#F3E7D3;border:4px solid #000">
+            <img src="asc/fx/shard.png" alt="" style="width:28px;height:28px;object-fit:contain">
+            <div style="font-family:'Baloo 2',cursive;font-size:30px;font-weight:800;line-height:1;color:#1A1206">200</div>
+          </div>
+        </div>
+        <div style="padding:18px 20px 8px;display:flex;flex-direction:column;gap:11px">
+          <sc-for list="{{ shop }}" as="it" hint-placeholder-count="4">
+            <div style="display:flex;align-items:center;gap:16px;padding:14px 16px;border-radius:14px;background:#F3E7D3;border:4px solid #000;box-shadow:0 4px 0 rgba(0,0,0,.4)">
+              <div style="width:62px;height:62px;box-sizing:border-box;border-radius:14px;background:{{ it.rarColor }};border:3px solid #000;display:grid;place-items:center;flex:0 0 auto"><img src="{{ it.icon }}" alt="" style="width:36px;height:36px;object-fit:contain"></div>
+              <div style="flex:1 1 auto;min-width:0">
+                <div style="display:flex;align-items:center;gap:9px">
+                  <div style="font-family:'Baloo 2',cursive;font-size:22px;font-weight:800;line-height:1;color:#1A1206">{{ it.name }}</div>
+                  <div style="height:22px;box-sizing:border-box;padding:0 8px;display:flex;align-items:center;border-radius:6px;background:{{ it.rarColor }};border:2px solid #000;font-family:'Baloo 2',cursive;font-size:12px;font-weight:800;letter-spacing:.1em;line-height:1;color:#1A1206">{{ it.rar }}</div>
+                </div>
+                <div style="font-size:14px;line-height:1.45;font-weight:600;color:#3A2A12;margin-top:5px">{{ it.desc }}</div>
+              </div>
+              <div style="width:178px;height:56px;box-sizing:border-box;border-radius:13px;display:flex;align-items:center;justify-content:center;gap:7px;background:{{ it.btnBg }};border:4px solid #000;box-shadow:0 4px 0 rgba(0,0,0,.4);flex:0 0 auto">
+                <div style="display:{{ it.wasDisp }};font-family:'Baloo 2',cursive;font-size:15px;font-weight:800;line-height:1;color:#8A4A15;text-decoration:line-through;text-decoration-thickness:2px">{{ it.was }}</div>
+                <img src="asc/fx/shard.png" alt="" style="width:20px;height:20px;object-fit:contain;display:{{ it.iconDisp }}">
+                <div style="font-family:'Baloo 2',cursive;font-size:24px;font-weight:800;line-height:1;color:{{ it.btnFg }}">{{ it.price }}</div>
+                <div style="font-family:'Baloo 2',cursive;font-size:13px;font-weight:800;letter-spacing:.08em;color:{{ it.btnFg }}">{{ it.btnLabel }}</div>
+              </div>
+            </div>
+          </sc-for>
+        </div>
+        <div style="margin:8px 20px 0;padding:12px 14px 14px;border-radius:14px;background:#10131A;border:3px solid #000">
+          <div style="display:flex;align-items:baseline;justify-content:space-between">
+            <div style="font-family:'Baloo 2',cursive;font-size:13px;font-weight:800;letter-spacing:.16em;color:#8C95A4">SELL A RELIC</div>
+            <div style="font-family:'Baloo 2',cursive;font-size:12px;font-weight:800;letter-spacing:.08em;color:#FFC79B">REFUND 40% OF BASE PRICE (A1) · ROUNDED DOWN</div>
+          </div>
+          <div style="display:flex;gap:9px;margin-top:10px">
+            <sc-for list="{{ sellRows }}" as="s" hint-placeholder-count="3">
+              <div style="flex:{{ s.flex }};display:flex;align-items:center;gap:9px;height:52px;box-sizing:border-box;padding:0 8px 0 7px;border-radius:11px;background:#1B1F27;border:3px solid #000">
+                <div style="position:relative;width:34px;height:34px;box-sizing:border-box;border-radius:9px;background:{{ s.bg }};border:3px solid #000;display:grid;place-items:center;flex:0 0 auto">
+                  <img src="{{ s.icon }}" alt="" style="width:19px;height:19px;object-fit:contain">
+                  <img src="asc/new-icons/eternal.svg" alt="" style="position:absolute;right:-6px;bottom:-6px;width:15px;height:15px;display:{{ s.eDisp }}">
+                </div>
+                <div style="flex:1 1 auto;min-width:0;font-family:'Baloo 2',cursive;font-size:14px;font-weight:800;letter-spacing:.03em;line-height:1.1;color:#FFF8EA;white-space:nowrap">{{ s.n }}</div>
+                <div style="height:36px;box-sizing:border-box;padding:0 10px;display:flex;align-items:center;gap:5px;border-radius:9px;background:{{ s.btnBg }};border:3px solid #000;flex:0 0 auto">
+                  <img src="{{ s.btnIcon }}" alt="" style="width:15px;height:15px;object-fit:contain">
+                  <div style="font-family:'Baloo 2',cursive;font-size:{{ s.fs }};font-weight:800;letter-spacing:.04em;line-height:1;color:{{ s.btnFg }}">{{ s.btn }}</div>
+                </div>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+        <div style="padding:14px 20px 20px">
+          <div style="height:60px;box-sizing:border-box;border-radius:14px;display:grid;place-items:center;background:#FF9345;border:4px solid #000;box-shadow:0 5px 0 rgba(0,0,0,.45);font-family:'Baloo 2',cursive;font-size:22px;font-weight:800;letter-spacing:.18em;color:#2A1505">LEAVE THE SHOP</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div data-screen-label="3.7-b Sell A0 vs A1" style="display:flex;flex-direction:column;gap:14px">
+    <div style="display:flex;align-items:center;gap:12px">
+      <div style="height:34px;padding:0 12px;display:flex;align-items:center;border-radius:9px;background:#FF9345;border:3px solid #000;font-family:'Baloo 2',cursive;font-size:17px;font-weight:800;color:#2A1505">3.7-b</div>
+      <div style="font-family:'Baloo 2',cursive;font-size:24px;font-weight:800;color:#FFF8EA">Price + sell, A0 vs A1, every rarity</div>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(4,260px);gap:18px;padding:28px;border-radius:18px;background:#2A2F38;border:3px solid #000;width:max-content">
+      <sc-for list="{{ priceTable }}" as="p" hint-placeholder-count="8">
+        <div style="display:flex;flex-direction:column;gap:9px;padding:12px;border-radius:13px;background:#1B1F27;border:3px solid #000">
+          <div style="display:flex;align-items:center;justify-content:space-between">
+            <div style="height:22px;box-sizing:border-box;padding:0 8px;display:flex;align-items:center;border-radius:6px;background:{{ p.rarColor }};border:2px solid #000;font-family:'Baloo 2',cursive;font-size:12px;font-weight:800;letter-spacing:.1em;color:#1A1206">{{ p.rar }}</div>
+            <div style="font-family:'Baloo 2',cursive;font-size:13px;font-weight:800;letter-spacing:.1em;color:#FFC79B">{{ p.lv }}</div>
+          </div>
+          <div style="height:56px;box-sizing:border-box;border-radius:13px;display:flex;align-items:center;justify-content:center;gap:7px;background:#FF9345;border:4px solid #000;box-shadow:0 4px 0 rgba(0,0,0,.4)">
+            <div style="display:{{ p.wasDisp }};font-family:'Baloo 2',cursive;font-size:15px;font-weight:800;line-height:1;color:#8A4A15;text-decoration:line-through;text-decoration-thickness:2px">{{ p.was }}</div>
+            <img src="asc/fx/shard.png" alt="" style="width:20px;height:20px;object-fit:contain">
+            <div style="font-family:'Baloo 2',cursive;font-size:24px;font-weight:800;line-height:1;color:#2A1505">{{ p.price }}</div>
+            <div style="font-family:'Baloo 2',cursive;font-size:13px;font-weight:800;letter-spacing:.08em;color:#2A1505">BUY</div>
+          </div>
+          <div style="height:36px;box-sizing:border-box;display:flex;align-items:center;justify-content:center;gap:6px;border-radius:9px;background:#F3E7D3;border:3px solid #000">
+            <img src="asc/fx/shard.png" alt="" style="width:15px;height:15px">
+            <div style="font-family:'Baloo 2',cursive;font-size:15px;font-weight:800;color:#1A1206">SELL {{ p.sell }}</div>
+            <div style="font-family:'Baloo 2',cursive;font-size:11px;font-weight:800;color:#6B5433">{{ p.pct }}</div>
+          </div>
+        </div>
+      </sc-for>
+    </div>
+  </div>
+
+  <!-- ══ PACT ══ -->
+  <sc-for list="{{ pactScreens }}" as="ps" hint-placeholder-count="3">
+    <div data-screen-label="{{ ps.id }}" style="display:flex;flex-direction:column;gap:14px">
+      <div style="display:flex;align-items:center;gap:12px">
+        <div style="height:34px;padding:0 12px;display:flex;align-items:center;border-radius:9px;background:#FF9345;border:3px solid #000;font-family:'Baloo 2',cursive;font-size:17px;font-weight:800;color:#2A1505">{{ ps.id }}</div>
+        <div style="font-family:'Baloo 2',cursive;font-size:24px;font-weight:800;color:#FFF8EA">{{ ps.caption }}</div>
+      </div>
+      <div style="font-size:14px;font-weight:600;color:#8C95A4">{{ ps.state }}</div>
+      <div style="position:relative;width:1920px;height:1080px;overflow:hidden;background:#0E1016">
+        <img src="asc/bg/temple.jpg" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;filter:saturate(1.05) brightness(.7)">
+        <div style="position:absolute;inset:0;background:radial-gradient(125% 95% at 55% 8%, rgba(14,16,22,.1) 0%, rgba(14,16,22,.5) 52%, rgba(14,16,22,.88) 100%)"></div>
+        <div style="position:absolute;top:62px;left:0;right:0;text-align:center">
+          <div style="display:inline-flex;align-items:center;gap:10px">
+            <div style="display:inline-flex;align-items:center;height:38px;box-sizing:border-box;padding:0 18px;border-radius:10px;background:#F54540;border:4px solid #000;box-shadow:0 5px 0 rgba(0,0,0,.5);font-family:'Baloo 2',cursive;font-size:16px;font-weight:800;letter-spacing:.2em;color:#3A0A08">BOSS DEFEATED · CHIMERA LORD</div>
+            <div style="display:{{ ps.ascDisp }};align-items:center;height:38px;box-sizing:border-box;padding:0 12px;border-radius:10px;background:#C9302B;border:4px solid #000;box-shadow:0 5px 0 rgba(0,0,0,.5);font-family:'Baloo 2',cursive;font-size:17px;font-weight:800;color:#FFF8EA">{{ ps.asc }}</div>
+          </div>
+          <div style="font-family:'Baloo 2',cursive;font-size:64px;font-weight:800;letter-spacing:.02em;line-height:1.1;margin-top:14px;color:#FFF8EA">CHOOSE A PACT</div>
+          <div style="font-size:15px;font-weight:600;color:#A6B0BF;margin-top:4px">A pact is a relic with a permanent drawback. Each pact can be taken once per run.</div>
+          <div style="display:inline-flex;align-items:center;gap:10px;margin-top:14px;height:44px;box-sizing:border-box;padding:0 12px;border-radius:12px;background:#161A21;border:3px solid #000">
+            <div style="font-family:'Baloo 2',cursive;font-size:12px;font-weight:800;letter-spacing:.14em;color:#8C95A4">PASSIVE SLOTS</div>
+            <div style="display:flex;gap:5px">
+              <sc-for list="{{ ps.slots }}" as="s" hint-placeholder-count="8">
+                <div style="position:relative;width:26px;height:26px;box-sizing:border-box;border-radius:7px;background:{{ s.bg }};border:3px {{ s.bs }} {{ s.bc }};display:grid;place-items:center">
+                  <img src="{{ s.icon }}" alt="" style="width:{{ s.isz2 }};height:{{ s.isz2 }};object-fit:contain;display:{{ s.idisp }}">
+                  <img src="asc/new-icons/eternal.svg" alt="" style="position:absolute;right:-5px;bottom:-5px;width:13px;height:13px;display:{{ s.eDisp }}">
+                </div>
+              </sc-for>
+            </div>
+            <div style="font-family:'Baloo 2',cursive;font-size:14px;font-weight:800;color:#FFF8EA">{{ ps.slotText }}</div>
+          </div>
+        </div>
+        <div style="position:absolute;top:322px;left:0;right:0;display:flex;justify-content:center;gap:28px">
+          <sc-for list="{{ pacts }}" as="p" hint-placeholder-count="3">
+            <div style="width:440px;border-radius:20px;overflow:hidden;background:#F3E7D3;border:5px solid #000;box-shadow:0 8px 0 rgba(0,0,0,.55);box-sizing:border-box">
+              <div style="height:46px;box-sizing:border-box;background:{{ p.rarColor }};border-bottom:4px solid #000;display:flex;align-items:center;justify-content:space-between;padding:0 16px">
+                <div style="font-family:'Baloo 2',cursive;font-size:15px;font-weight:800;letter-spacing:.14em;line-height:1;color:#1A1206">PACT · {{ p.group }}</div>
+                <div style="font-family:'Baloo 2',cursive;font-size:14px;font-weight:800;letter-spacing:.12em;line-height:1;color:#1A1206">{{ p.rar }}</div>
+              </div>
+              <div style="padding:18px 20px 20px">
+                <div style="display:flex;align-items:center;gap:14px">
+                  <div style="position:relative;width:88px;height:88px;box-sizing:border-box;border-radius:22px;background:#FFF8EA;border:4px solid #000;display:grid;place-items:center;flex:0 0 auto">
+                    <img src="{{ p.icon }}" alt="" style="width:50px;height:50px;object-fit:contain">
+                    <img src="asc/new-icons/pact.svg" alt="" style="position:absolute;right:-9px;bottom:-9px;width:30px;height:30px">
+                  </div>
+                  <div>
+                    <div style="font-family:'Baloo 2',cursive;font-size:29px;font-weight:800;line-height:1.05;color:#1A1206">{{ p.name }}</div>
+                    <div style="display:flex;gap:6px;margin-top:7px">
+                      <div style="height:24px;box-sizing:border-box;padding:0 8px;display:flex;align-items:center;border-radius:7px;background:#262C36;border:2px solid #000;font-family:'Baloo 2',cursive;font-size:12px;font-weight:800;letter-spacing:.06em;line-height:1;color:#F3E7D3;white-space:nowrap">1 PASSIVE SLOT</div>
+                      <div style="display:{{ p.multDisp }};height:24px;box-sizing:border-box;padding:0 8px;align-items:center;border-radius:7px;background:#FFC79B;border:2px solid #000;font-family:'Baloo 2',cursive;font-size:12px;font-weight:800;letter-spacing:.06em;line-height:1;color:#2A1505;white-space:nowrap">{{ p.mult }}</div>
+                    </div>
+                  </div>
+                </div>
+                <div style="margin-top:16px;padding:10px 12px;border-radius:12px;background:#FFF8EA;border:3px solid #000;min-height:72px;box-sizing:border-box">
+                  <div style="font-family:'Baloo 2',cursive;font-size:13px;font-weight:800;letter-spacing:.14em;line-height:1;color:#2E7D2B">GAIN</div>
+                  <div style="font-size:14px;line-height:1.45;font-weight:600;color:#3A2A12;margin-top:4px">{{ p.gain }}</div>
+                </div>
+                <div style="margin-top:9px;padding:10px 12px;border-radius:12px;background:#FF8FC7;border:3px solid #000;min-height:72px;box-sizing:border-box">
+                  <div style="display:flex;align-items:center;gap:6px">
+                    <img src="asc/new-icons/drawback.svg" alt="" style="width:16px;height:16px">
+                    <div style="font-family:'Baloo 2',cursive;font-size:13px;font-weight:800;letter-spacing:.14em;line-height:1;color:#3A0A22;white-space:nowrap">COST · {{ p.group }} · ALL RUN</div>
+                  </div>
+                  <div style="font-size:14px;line-height:1.45;font-weight:600;color:#1A1206;margin-top:4px">{{ p.cost }}</div>
+                </div>
+                <div style="margin-top:14px;height:60px;box-sizing:border-box;border-radius:13px;display:grid;place-items:center;background:#FF9345;border:4px solid #000;box-shadow:0 4px 0 rgba(0,0,0,.45);font-family:'Baloo 2',cursive;font-size:20px;font-weight:800;letter-spacing:.16em;color:#2A1505">TAKE PACT</div>
+              </div>
+            </div>
+          </sc-for>
+        </div>
+        <div style="position:absolute;bottom:74px;left:0;right:0;display:flex;justify-content:center">
+          <div style="display:{{ ps.skipDisp }};flex-direction:column;align-items:center;gap:8px">
+            <div style="height:56px;box-sizing:border-box;padding:0 26px;display:grid;place-items:center;border-radius:13px;background:#1B1F27;border:4px solid #000;box-shadow:0 5px 0 rgba(0,0,0,.45);font-family:'Baloo 2',cursive;font-size:18px;font-weight:800;letter-spacing:.14em;color:#8C95A4">SKIP ALL THREE</div>
+            <div style="font-size:13px;font-weight:600;color:#A6B0BF">Skipping keeps your passive slots free.</div>
+          </div>
+          <div style="display:{{ ps.forcedDisp }};align-items:center;gap:14px;height:66px;box-sizing:border-box;padding:0 22px 0 14px;border-radius:16px;background:#C9302B;border:4px solid #000;box-shadow:0 6px 0 rgba(0,0,0,.55)">
+            <img src="asc/new-icons/pact.svg" alt="" style="width:38px;height:38px">
+            <div>
+              <div style="font-family:'Baloo 2',cursive;font-size:22px;font-weight:800;letter-spacing:.04em;line-height:1.05;color:#FFF8EA">{{ ps.forcedTitle }}</div>
+              <div style="font-size:13px;font-weight:600;color:#FFE3E1;margin-top:2px">{{ ps.forcedSub }}</div>
+            </div>
+          </div>
+        </div>
+
+        <div style="position:absolute;inset:0;z-index:20;display:{{ ps.sellDisp }}">
+          <div style="position:absolute;inset:0;background:rgba(11,13,18,.84)"></div>
+          <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:640px;border-radius:20px;overflow:hidden;background:#1B1F27;border:5px solid #000;box-shadow:0 8px 0 rgba(0,0,0,.55)">
+            <div style="padding:16px 20px;background:#262C36;border-bottom:4px solid #000">
+              <div style="font-family:'Baloo 2',cursive;font-size:28px;font-weight:800;line-height:1;color:#FFF8EA">MAKE ROOM FOR HOLLOW CHALICE</div>
+              <div style="font-size:13px;font-weight:600;color:#A6B0BF;margin-top:5px">All 7 passive slots are full. Sell one relic to take the pact. Ascension 10: this pact is required, so there is no cancel.</div>
+            </div>
+            <div style="padding:14px 18px 18px;display:flex;flex-direction:column;gap:8px">
+              <sc-for list="{{ sellBox }}" as="s" hint-placeholder-count="7">
+                <div style="display:flex;align-items:center;gap:11px;height:52px;box-sizing:border-box;padding:0 8px 0 8px;border-radius:12px;background:{{ s.rowBg }};border:3px solid #000">
+                  <div style="position:relative;width:34px;height:34px;box-sizing:border-box;border-radius:9px;background:{{ s.bg }};border:3px solid #000;display:grid;place-items:center;flex:0 0 auto">
+                    <img src="{{ s.icon }}" alt="" style="width:19px;height:19px;object-fit:contain">
+                    <img src="asc/new-icons/eternal.svg" alt="" style="position:absolute;right:-6px;bottom:-6px;width:15px;height:15px;display:{{ s.eDisp }}">
+                  </div>
+                  <div style="flex:1 1 auto;min-width:0">
+                    <div style="font-family:'Baloo 2',cursive;font-size:15px;font-weight:800;line-height:1.1;color:{{ s.nameFg }}">{{ s.n }}</div>
+                    <div style="font-size:11px;font-weight:600;color:#8C95A4">{{ s.d }}</div>
+                  </div>
+                  <div style="height:36px;box-sizing:border-box;padding:0 11px;display:flex;align-items:center;gap:5px;border-radius:9px;background:{{ s.btnBg }};border:3px solid #000;flex:0 0 auto">
+                    <img src="{{ s.btnIcon }}" alt="" style="width:15px;height:15px;object-fit:contain">
+                    <div style="font-family:'Baloo 2',cursive;font-size:{{ s.fs }};font-weight:800;letter-spacing:.04em;line-height:1;color:{{ s.btnFg }}">{{ s.btn }}</div>
+                  </div>
+                </div>
+              </sc-for>
+              <div style="display:flex;align-items:center;gap:8px;margin-top:4px;padding:8px 10px;border-radius:10px;background:#10131A;border:2px solid #000">
+                <img src="asc/new-icons/lock.svg" alt="" style="width:15px;height:15px">
+                <div style="font-size:12px;font-weight:600;color:#A6B0BF">Slot 8 is locked by A8 Cramped Pack. Refunds are 40% (A1).</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </sc-for>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:2100,&quot;height&quot;:2600}}">
+const RAR = { Common:"#C6CEDA", Rare:"#33B8FF", Epic:"#BF6BFF", Legendary:"#FF9445" };
+const CLS = { plant:"#7DC943", beast:"#FFB23F", aqua:"#39C5F3", reptile:"#B679F7", bug:"#F2624F" };
+const BASE = { Common:45, Rare:75, Epic:120, Legendary:180 };
+const up = b => Math.floor(b * 1.15 + 0.5);
+const NODE_TONE = {
+  battle:{ base:"#D8342F", top:"#F54540", lip:"#A32320" }, elite:{ base:"#A353E8", top:"#BF6BFF", lip:"#7B34B8" },
+  event:{ base:"#1FA8DE", top:"#31C6FF", lip:"#16789E" }, shop:{ base:"#E8802F", top:"#FF9345", lip:"#B35B15" },
+  treasure:{ base:"#E5AC2A", top:"#FFC445", lip:"#A97C12" },
+};
+const TONE_DONE = { base:"#C6B79B", top:"#E2D5BC", lip:"#9A8B70" };
+const TONE_SKIP = { base:"#262C36", top:"#323847", lip:"#191D25" };
+const TONE_FOG = { base:"#161A22", top:"#1F242E", lip:"#0F1218" };
+const L = { l:780, c:1150, r:1520 }, R = { r1:946, r2:828, r3:710, r4:592, r5:474, r6:356, r7:238 };
+const MAP = [
+  { t:"elite", x:L.c, y:R.r7, s:"fog" }, { t:"shop", x:L.r, y:R.r7, s:"fog" },
+  { t:"battle", x:L.l, y:R.r6, s:"fog" }, { t:"event", x:L.c, y:R.r6, s:"fog" }, { t:"battle", x:L.r, y:R.r6, s:"fog" },
+  { t:"elite", x:L.l, y:R.r5, s:"sel" }, { t:"elite", x:L.r, y:R.r5, s:"open" },
+  { t:"battle", x:L.c, y:R.r4, s:"here" },
+  { t:"event", x:L.l, y:R.r3, s:"done" }, { t:"battle", x:L.l, y:R.r2, s:"done" }, { t:"treasure", x:L.r, y:R.r2, s:"skip" },
+  { t:"battle", x:L.c, y:R.r1, s:"done" },
+];
+const EDGES = [[L.c,R.r1,L.l,R.r2,"past"],[L.c,R.r1,L.r,R.r2,"skip"],[L.l,R.r2,L.l,R.r3,"past"],[L.l,R.r3,L.c,R.r4,"past"],
+  [L.c,R.r4,L.l,R.r5,"sel"],[L.c,R.r4,L.r,R.r5,"live"],[L.l,R.r5,L.l,R.r6,"fog"],[L.l,R.r5,L.c,R.r6,"fog"],[L.r,R.r5,L.r,R.r6,"fog"],
+  [L.l,R.r6,L.c,R.r7,"fog"],[L.r,R.r6,L.r,R.r7,"fog"]];
+const ES = { past:["#4A525F","0"], skip:["#242A34","9 10"], live:["#FFC79B","0"], sel:["#FF9345","0"], fog:["#242A34","9 10"] };
+
+const HELD = [
+  { n:"BARBED HIDE", d:"Every Axie gains Thorns 1", icon:"asc/fx/thorns.png", rar:"Rare", eternal:true },
+  { n:"BLOOMSCALE", d:"Back & Eyes faces gain Growth", icon:"asc/fx/regen.png", rar:"Rare" },
+  { n:"SERUM", d:"One Axie gains 10 Max HP", icon:"asc/fx/heal.png", rar:"Common" },
+  { n:"INSTINCT", d:"1 extra maximum Reroll", icon:"asc/fx/reroll.svg", rar:"Common" },
+  { n:"BLOOD PACT", d:"Pact · all dmg +60% · Reroll max −2", icon:"asc/fx/dmg.png", rar:"Legendary", pact:true },
+  { n:"IRON SKIN", d:"Shield faces +2", icon:"asc/fx/shield.png", rar:"Common" },
+  { n:"VENOM SAC", d:"Poison faces +1", icon:"asc/fx/poison.png", rar:"Rare", eternal:true },
+];
+function slots(held, cap) {
+  const out = [];
+  for (let i = 0; i < 8; i++) {
+    const h = held[i];
+    if (i >= cap) out.push({ bg:"#0B0D12", bs:"dashed", bc:"#4A525F", icon:"asc/new-icons/lock.svg", isz:"16px", isz2:"13px", idisp:"block", eDisp:"none", title:"Locked by A8 Cramped Pack" });
+    else if (h) out.push({ bg: RAR[h.rar], bs:"solid", bc:"#000", icon:h.icon, isz:"18px", isz2:"14px", idisp:"block", eDisp: h.eternal ? "block" : "none", title:h.n });
+    else out.push({ bg:"#10131A", bs:"solid", bc:"#000", icon:"asc/new-icons/lock.svg", isz:"0", isz2:"0", idisp:"none", eDisp:"none", title:"Empty slot" });
+  }
+  return out;
+}
+function sellRow(h, forced) {
+  const v = Math.floor(BASE[h.rar] * 0.4);
+  return { n:h.n, d:h.d, icon:h.icon, bg:RAR[h.rar], eDisp: h.eternal ? "block" : "none",
+    rowBg: h.eternal ? "#161A21" : "#262C36", nameFg: h.eternal ? "#8C95A4" : "#FFF8EA",
+    btnBg: h.eternal ? "#10131A" : "#F3E7D3", btnFg: h.eternal ? "#FFC79B" : "#1A1206",
+    btnIcon: h.eternal ? "asc/new-icons/lock.svg" : "asc/fx/shard.png",
+    btn: h.eternal ? "ETERNAL — CANNOT BE SOLD" : `SELL ${v}`, fs: h.eternal ? "12px" : "15px", flex: h.eternal ? "1.7 1 0" : "1 1 0" };
+}
+
+class Component extends DCLogic {
+  renderVals() {
+    const nodes = MAP.map(n => {
+      const here = n.s === "here", open = n.s === "open" || n.s === "sel", sel = n.s === "sel", fog = n.s === "fog", done = n.s === "done", skip = n.s === "skip";
+      const size = here ? 122 : sel ? 112 : open ? 106 : fog ? 94 : 80;
+      const tone = fog ? TONE_FOG : skip ? TONE_SKIP : done ? TONE_DONE : NODE_TONE[n.t];
+      return { x:`${n.x - size/2}px`, y:`${n.y - size/2}px`, box:`${size}px`, radius: here ? "24px" : "18px", border: here || sel ? "5px" : "4px",
+        base:tone.base, top:tone.top, lip:tone.lip,
+        shelf: here || sel ? "0 8px 0 rgba(0,0,0,.55)" : open ? "0 6px 0 rgba(0,0,0,.5)" : "0 4px 0 rgba(0,0,0,.45)",
+        disc: here ? "74px" : open ? "64px" : fog ? "56px" : "48px",
+        discBg: fog ? "#0B0D12" : skip ? "#1B1F27" : done ? "#D6C6A8" : "#FFF8EA",
+        icon:`asc/node/${n.t === "shop" ? "merchant" : n.t}.png`, iconSize: here ? "50px" : open ? "44px" : "30px",
+        iconOpacity: done ? ".5" : skip ? ".32" : "1", iconDisp: fog ? "none" : "block", fogDisp: fog ? "block" : "none",
+        doneDisp: done ? "grid" : "none", ringDisp: here || sel ? "block" : "none", ringC: sel ? "#FFF8EA" : "#FF9345",
+        wkDisp: sel ? "grid" : "none",
+        labelDisp: here || open ? "flex" : "none", label: here ? "YOU ARE HERE" : n.t.toUpperCase(),
+        labelBg: here ? "#FF9345" : "#FFF8EA", labelFg: here ? "#2A1505" : "#1A1206" };
+    });
+    const held5 = [HELD[0], HELD[1], HELD[2], HELD[3], HELD[4]];
+    const eliteRelic = (name, icon, desc, rar, mode) => ({ kind:"RELIC · ELITE", rar: rar.toUpperCase(), rarColor: RAR[rar], icon, name, desc,
+      stkDisp:"flex", stkBg: mode === "on" ? "#FFC445" : "#E2D5BC", stkBs: mode === "on" ? "solid" : "dashed",
+      stkFg: mode === "on" ? "#3A2A12" : "#8A7450", stkOp: mode === "on" ? "1" : ".35", stkStrike: mode === "on" ? "none" : "line-through",
+      noteDisp:"flex", noteBg: mode === "on" ? "#FFE7A8" : "#E2D5BC",
+      note: mode === "on" ? "Eternal: cannot be sold. Taking this uses Eternal 2 of 2." : "Eternal limit reached (2 / 2). This relic gets no sticker and can be sold normally." });
+    const tier = { kind:"TIER UP", rar:"GUARANTEED", rarColor:"#FF9345", icon:"asc/portrait/reptile.png", name:"MACHITO → T2",
+      desc:"Machito levels to Tier 2: 23 Max HP and a stronger die on all six faces.", stkDisp:"none", stkBg:"", stkBs:"solid", stkFg:"", stkOp:"1", stkStrike:"none", noteDisp:"none", noteBg:"", note:"" };
+    const shopRaw = [
+      { name:"Lunacia Ultima", rar:"Epic", icon:"asc/fx/mana.svg", desc:"Active — deal 40 piercing damage to one target and grant 10 Shield to the whole party." },
+      { name:"Bloomscale", rar:"Rare", icon:"asc/fx/regen.png", desc:"RULE: every Back and Eyes face gains Growth, and Growth faces grow by 4 instead of 1." },
+      { name:"Serum", rar:"Common", icon:"asc/fx/heal.png", desc:"One Axie gains 10 Max HP.", owned:true },
+      { name:"Ancient Gene", rar:"Legendary", icon:"asc/fx/buff.svg", desc:"Every damage face +30% and takes the global multiplier slot. Every Growth face gains +1 growth." },
+    ];
+    const pactSlots = (held, cap) => slots(held, cap);
+    return {
+      runStats: [{ k:"POWER", v:"5", c:"#FFF8EA" },{ k:"ROW", v:"4 / 18", c:"#FFF8EA" },{ k:"SHARD", v:"200", c:"#FFC79B" }]
+        .map((r, i) => ({ ...r, pl: i ? "14px" : "0", bl: i ? "2px solid rgba(255,147,69,.22)" : "none" })),
+      roster: [["Olek","plant","17/17"],["Buba","beast","12/12"],["Puffy","aqua","13/13"],["Machito","reptile","16/16"],["Pomodoro","bug","14/14"]]
+        .map(([name, c, hp]) => ({ name, hp, cls: CLS[c], portrait:`asc/portrait/${c}.png` })),
+      slotsMap: slots(held5, 7),
+      relicList: held5.slice(0, 3).map(h => ({ ...h, bg: RAR[h.rar], eDisp: h.eternal ? "flex" : "none" })),
+      nodes, edges: EDGES.map(([x1,y1,x2,y2,k]) => ({ d:`M${x1},${y1} L${x2},${y2}`, c: ES[k][0], dash: ES[k][1] })),
+      rewardScreens: [
+        { id:"3.8-a", caption:"Reward · A7 · elite · 2-card layout · relic card carries the Eternal sticker (3.4-a)",
+          state:"Data state: A7 run, 1 Eternal held, reward reroll ×1 available. Two 440 cards, gap 28, centred (row width 908, left 506).",
+          ascTag:"A7 · 2 CARDS", rerollDisp:"flex",
+          cards:[ eliteRelic("BARBED HIDE","asc/fx/thorns.png","RULE: every Axie gains Thorns 1. Thorns fire again when the attacker ends its turn.","Rare","on"), tier ] },
+        { id:"3.8-b", caption:"Reward · A10 · elite · Eternal limit reached (3.4-b) · reroll button removed",
+          state:"Data state: A10 run, 2 Eternal held (cap 2). SKIP stays centred alone; nothing reserves the reroll's space.",
+          ascTag:"A10 · 2 CARDS · NO REROLL", rerollDisp:"none",
+          cards:[ eliteRelic("VENOM SAC","asc/fx/poison.png","Every Poison face applies 1 more Poison.","Rare","full"), tier ] },
+      ],
+      shop: shopRaw.map(it => {
+        const b = BASE[it.rar];
+        return { ...it, rar: it.rar.toUpperCase(), rarColor: RAR[it.rar],
+          btnBg: it.owned ? "#3FCD3C" : "#FF9345", btnFg: it.owned ? "#07260A" : "#2A1505",
+          btnLabel: it.owned ? "OWNED" : "BUY", iconDisp: it.owned ? "none" : "block",
+          price: it.owned ? "✓" : String(up(b)), was: String(b), wasDisp: it.owned ? "none" : "block" };
+      }),
+      sellRows: [HELD[0], HELD[1], HELD[3]].map(h => sellRow(h)),
+      priceTable: ["Common","Rare","Epic","Legendary"].flatMap(r => [0, 1].map(a => ({
+        rar: r.toUpperCase(), rarColor: RAR[r], lv: a ? "A1+" : "A0",
+        price: String(a ? up(BASE[r]) : BASE[r]), was: String(BASE[r]), wasDisp: a ? "block" : "none",
+        sell: String(Math.floor(BASE[r] * (a ? 0.4 : 0.5))), pct: a ? "40%" : "50%" }))),
+      pacts: [
+        { group:"REROLL", rar:"LEGENDARY", rarColor:RAR.Legendary, icon:"asc/fx/dmg.png", name:"BLOOD PACT", mult:"MULT SLOT G", multDisp:"flex",
+          gain:"All damage +60%. Takes the global multiplier slot.", cost:"Reroll max −2 (floor 0)." },
+        { group:"DICE", rar:"EPIC", rarColor:RAR.Epic, icon:"asc/fx/shield.png", name:"BRITTLE DICE", mult:"", multDisp:"none",
+          gain:"Every damage face +4.", cost:"Every Shield and Heal face ×0.5, rounded down." },
+        { group:"MANA", rar:"EPIC", rarColor:RAR.Epic, icon:"asc/fx/mana.svg", name:"HOLLOW CHALICE", mult:"", multDisp:"none",
+          gain:"+1 active slot (4). Every active costs 2 less Mana (min 1).", cost:"Mana faces give 0 Mana, after every modifier." },
+      ],
+      pactScreens: [
+        { id:"3.6-a", caption:"Pact · A0–A5 (normal) · skip allowed", state:"Data state: A3 run, first boss, 5 of 8 passive slots used.",
+          ascDisp:"none", asc:"", slots: pactSlots(held5.slice(0,4), 8), slotText:"4 / 8",
+          skipDisp:"flex", forcedDisp:"none", forcedTitle:"", forcedSub:"", sellDisp:"none" },
+        { id:"3.6-b", caption:"Pact · A6 first boss (forced) · skip removed, reason shown", state:"Data state: A6 run, first boss (row 6), 4 of 8 slots used.",
+          ascDisp:"flex", asc:"A6", slots: pactSlots(held5.slice(0,4), 8), slotText:"4 / 8",
+          skipDisp:"none", forcedDisp:"flex", forcedTitle:"ASCENSION 6 — A PACT IS REQUIRED", forcedSub:"First boss of the run. Pick one of the three to continue.", sellDisp:"none" },
+        { id:"3.6-c", caption:"Pact · A10 · slots full → mandatory sell box, no cancel · Eternal rows disabled (3.4-d)", state:"Data state: A10 run, second boss, 7 of 7 slots used (2 Eternal), player clicked TAKE PACT on Hollow Chalice.",
+          ascDisp:"flex", asc:"A10", slots: pactSlots(HELD, 7), slotText:"7 / 7",
+          skipDisp:"none", forcedDisp:"flex", forcedTitle:"ASCENSION 10 — EVERY BOSS REQUIRES A PACT", forcedSub:"Pick one of the three to continue.", sellDisp:"block" },
+      ],
+      sellBox: HELD.map(h => sellRow(h, true)),
+    };
+  }
+}
+</script>
+</body>
+</html>

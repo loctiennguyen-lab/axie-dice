@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<script src="_ds/dango-design-system-b8da985f-efd5-488e-ae62-d508e48befe9/_ds_bundle.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&amp;family=Work+Sans:wght@500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+  body { margin:0; background:#0B0D12; }
+  a { color:#FF9345; text-decoration:none; }
+  a:hover { color:#FFB275; }
+</style>
+</helmet>
+
+<div style="display:flex;flex-direction:column;gap:72px;padding:72px;background:#0B0D12;font-family:'Work Sans',system-ui,sans-serif;color:#F3E7D3;-webkit-font-smoothing:antialiased;font-variant-numeric:tabular-nums;width:max-content">
+
+  <div style="display:flex;flex-direction:column;gap:10px;max-width:1920px">
+    <div style="font-family:'Baloo 2',cursive;font-size:15px;font-weight:800;letter-spacing:.2em;color:#8C95A4">UI REQUEST 01 · ASCENSION V2 · EXTENDS combat-v2.html</div>
+    <div style="font-family:'Baloo 2',cursive;font-size:64px;font-weight:800;line-height:1;color:#FFF8EA">3.2 · 3.3 · 3.4 · 3.5 in combat</div>
+    <div style="font-size:18px;font-weight:600;line-height:1.5;color:#A6B0BF;max-width:1300px;text-wrap:pretty">Ascension badge in the top bar, Boss Clock tab under the boss nameplate, Eternal sticker on relic chips, weaken pre-warning on the fight intro. Party Axies and monsters are live 3D: their boxes are left as labelled frames at the combat-v2 sizes (party 180 × 224, enemy 186 × 228). The bottom deck is unchanged except the reroll count.</div>
+  </div>
+
+  <sc-for list="{{ screens }}" as="sc" hint-placeholder-count="2">
+    <div data-screen-label="{{ sc.id }}" style="display:flex;flex-direction:column;gap:14px">
+      <div style="display:flex;align-items:center;gap:12px">
+        <div style="height:34px;padding:0 12px;display:flex;align-items:center;border-radius:9px;background:#FF9345;border:3px solid #000;font-family:'Baloo 2',cursive;font-size:17px;font-weight:800;color:#2A1505">{{ sc.id }}</div>
+        <div style="font-family:'Baloo 2',cursive;font-size:24px;font-weight:800;color:#FFF8EA">{{ sc.caption }}</div>
+      </div>
+      <div style="font-size:14px;font-weight:600;color:#8C95A4">{{ sc.state }}</div>
+
+      <div style="position:relative;width:1920px;height:1080px;overflow:hidden;background:#0E1016">
+        <img src="asc/bg/rocky.jpg" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;filter:saturate(1.02) brightness(.74)">
+        <div style="position:absolute;inset:0;background:linear-gradient(180deg, rgba(14,16,22,.62) 0%, rgba(14,16,22,.2) 26%, rgba(14,16,22,.1) 52%, rgba(14,16,22,.5) 80%, rgba(14,16,22,.76) 100%)"></div>
+
+        <div style="position:absolute;top:69px;left:490px;width:766px;height:376px;display:flex;align-items:flex-end;justify-content:center;gap:104px;z-index:4">
+          <sc-for list="{{ sc.enemies }}" as="e" hint-placeholder-count="1">
+            <div style="width:186px;height:370px;display:flex;flex-direction:column;align-items:center;gap:8px;position:relative">
+              <div style="display:flex;align-items:center;gap:7px;height:36px;box-sizing:border-box;padding:0 9px 0 5px;border-radius:10px;background:{{ e.intentBg }};border:3px solid #000;box-shadow:0 4px 0 rgba(0,0,0,.5)">
+                <div style="width:22px;height:22px;border-radius:7px;background:rgba(0,0,0,.26);display:grid;place-items:center;flex:0 0 auto">
+                  <img src="{{ e.intentIcon }}" alt="" style="width:16px;height:16px;object-fit:contain">
+                </div>
+                <div style="font-family:'Baloo 2',cursive;font-size:20px;font-weight:800;line-height:1;color:#1A1206">{{ e.intentValue }}</div>
+                <div style="display:{{ e.enrDisp }};align-items:center;gap:3px;height:20px;padding:0 5px 0 3px;border-radius:6px;background:#1A1206">
+                  <img src="asc/new-icons/boss-clock.svg" alt="" style="width:13px;height:13px">
+                  <div style="font-family:'Baloo 2',cursive;font-size:11px;font-weight:800;line-height:1;color:#FFC79B">{{ e.enrText }}</div>
+                </div>
+                <div style="width:2px;height:18px;background:rgba(0,0,0,.28)"></div>
+                <div style="font-family:'Baloo 2',cursive;font-size:11px;font-weight:800;letter-spacing:.04em;line-height:1;color:#2A0806;white-space:nowrap">{{ e.intentTarget }}</div>
+              </div>
+              <div style="display:flex;align-items:center;justify-content:center;gap:5px;height:28px">
+                <sc-for list="{{ e.statuses }}" as="s" hint-placeholder-count="0">
+                  <div style="display:flex;align-items:center;gap:3px;height:28px;box-sizing:border-box;padding:0 8px 0 4px;border-radius:9px;background:{{ s.color }};border:3px solid #000">
+                    <img src="{{ s.icon }}" alt="" style="width:16px;height:16px;object-fit:contain">
+                    <div style="font-family:'Baloo 2',cursive;font-size:16px;font-weight:800;line-height:1;color:#1A1206">{{ s.n }}</div>
+                  </div>
+                </sc-for>
+              </div>
+              <div style="position:relative;width:176px;height:64px">
+                <div style="position:absolute;left:0;right:0;top:61px;height:29px;box-sizing:border-box;padding:3px 7px 0 7px;border-radius:0 0 10px 10px;background:{{ e.clk.bg }};border:3px solid #000;border-top:0;display:{{ e.clkDisp }};align-items:center;gap:5px;box-shadow:{{ e.clk.ring }}">
+                  <img src="asc/new-icons/boss-clock.svg" alt="" style="width:16px;height:16px;flex:0 0 auto">
+                  <div style="flex:1 1 auto;font-family:'Baloo 2',cursive;font-size:13px;font-weight:800;letter-spacing:.02em;line-height:1;color:{{ e.clk.fg }};white-space:nowrap">{{ e.clk.label }}</div>
+                  <div style="display:{{ e.clk.pipDisp }};gap:2px">
+                    <sc-for list="{{ e.clk.pips }}" as="p" hint-placeholder-count="5">
+                      <div style="width:8px;height:12px;box-sizing:border-box;border-radius:3px;background:{{ p.bg }};border:2px solid #000"></div>
+                    </sc-for>
+                  </div>
+                </div>
+                <div style="position:relative;width:176px;height:64px;box-sizing:border-box;padding:5px 10px;border-radius:12px;background:#161A21;border:3px solid #000;box-shadow:0 4px 0 rgba(0,0,0,.5)">
+                  <div style="display:flex;align-items:center;justify-content:space-between;gap:6px;height:20px">
+                    <div style="font-family:'Baloo 2',cursive;font-size:17px;font-weight:700;letter-spacing:.02em;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#FFF8EA">{{ e.name }}</div>
+                    <div style="font-family:'Baloo 2',cursive;font-size:18px;font-weight:800;line-height:1.2;white-space:nowrap;color:{{ e.hpColor }};flex:0 0 auto">{{ e.hpText }}</div>
+                  </div>
+                  <div style="position:relative;height:8px;border-radius:5px;background:#0B0D12;border:2px solid #000;margin-top:4px;overflow:hidden">
+                    <div style="position:absolute;top:0;bottom:0;left:0;width:{{ e.hpPct }};background:{{ e.hpColor }}"></div>
+                  </div>
+                  <div style="position:relative;height:8px;border-radius:5px;background:#0B0D12;border:2px solid #000;margin-top:4px;overflow:hidden"></div>
+                </div>
+              </div>
+              <div style="position:relative;width:100%;height:228px;margin-top:2px;display:flex;justify-content:center;align-items:flex-end">
+                <div style="position:absolute;inset:34px 8px 0 8px;border-radius:14px;border:2px dashed rgba(243,231,211,.45);display:grid;place-items:center;font-family:'Baloo 2',cursive;font-size:14px;font-weight:800;letter-spacing:.12em;color:rgba(243,231,211,.7);text-align:center">ATIA MONSTER 3D</div>
+              </div>
+            </div>
+          </sc-for>
+        </div>
+
+        <div style="position:absolute;top:484px;left:402px;height:340px;display:flex;align-items:flex-end;justify-content:center;gap:14px;z-index:4">
+          <sc-for list="{{ sc.party }}" as="p" hint-placeholder-count="5">
+            <div style="width:180px;height:326px;display:flex;flex-direction:column;align-items:center;gap:5px;position:relative">
+              <div style="display:flex;align-items:center;justify-content:center;gap:5px;height:28px">
+                <sc-for list="{{ p.statuses }}" as="s" hint-placeholder-count="0">
+                  <div style="display:flex;align-items:center;gap:3px;height:28px;box-sizing:border-box;padding:0 8px 0 4px;border-radius:9px;background:{{ s.color }};border:3px solid #000;outline:{{ s.ring }};outline-offset:2px">
+                    <img src="{{ s.icon }}" alt="" style="width:16px;height:16px;object-fit:contain">
+                    <div style="font-family:'Baloo 2',cursive;font-size:16px;font-weight:800;line-height:1;color:#1A1206">{{ s.n }}</div>
+                  </div>
+                </sc-for>
+              </div>
+              <div style="width:176px;height:68px;box-sizing:border-box;padding:5px 10px;border-radius:12px;background:#161A21;border:3px solid #000;border-top:6px solid {{ p.cls }};box-shadow:0 4px 0 rgba(0,0,0,.5)">
+                <div style="display:flex;align-items:center;justify-content:space-between;gap:5px;height:20px">
+                  <div style="font-family:'Baloo 2',cursive;font-size:17px;font-weight:700;letter-spacing:.02em;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#FFF8EA">{{ p.name }}</div>
+                  <div style="font-family:'Baloo 2',cursive;font-size:18px;font-weight:800;line-height:1.2;white-space:nowrap;color:#3FCD3C;flex:0 0 auto">{{ p.hpText }}</div>
+                </div>
+                <div style="position:relative;height:8px;border-radius:5px;background:#0B0D12;border:2px solid #000;margin-top:4px;overflow:hidden">
+                  <div style="position:absolute;inset:0;background:#3FCD3C"></div>
+                </div>
+                <div style="position:relative;height:8px;border-radius:5px;background:#0B0D12;border:2px solid #000;margin-top:4px;overflow:hidden"></div>
+              </div>
+              <div style="position:relative;width:100%;height:224px;display:flex;justify-content:center;align-items:flex-end">
+                <div style="position:absolute;inset:20px 10px 4px 10px;border-radius:14px;border:2px dashed rgba(243,231,211,.45);display:grid;place-items:center;font-family:'Baloo 2',cursive;font-size:14px;font-weight:800;letter-spacing:.12em;color:rgba(243,231,211,.7)">AXIE 3D</div>
+              </div>
+            </div>
+          </sc-for>
+        </div>
+
+        <div style="position:absolute;top:480px;left:0;right:0;height:0;z-index:3;pointer-events:none">
+          <div style="position:absolute;top:0;left:40px;right:40px;height:6px;border-radius:3px;background:#000"></div>
+          <div style="position:absolute;top:-4px;left:32px;width:14px;height:14px;border-radius:4px;background:#000;transform:rotate(45deg)"></div>
+          <div style="position:absolute;top:-4px;right:32px;width:14px;height:14px;border-radius:4px;background:#000;transform:rotate(45deg)"></div>
+        </div>
+
+        <div style="position:absolute;top:0;left:0;right:0;height:60px;background:#1B1F27;border-bottom:4px solid #000;display:flex;align-items:center;padding:0 18px;gap:11px;z-index:8">
+          <div style="display:flex;align-items:center;gap:9px;height:36px;box-sizing:border-box;padding:0 12px 0 6px;border-radius:11px;background:#262C36;border:3px solid #000;width:155px">
+            <div style="width:31px;height:31px;box-sizing:border-box;border-radius:9px;background:{{ sc.nodeBg }};border:3px solid #000;display:grid;place-items:center;flex:0 0 auto">
+              <img src="{{ sc.nodeIcon }}" alt="" style="width:20px;height:20px;object-fit:contain">
+            </div>
+            <div>
+              <div style="font-size:9px;font-weight:700;letter-spacing:.15em;color:#98A2B1;line-height:1.2">{{ sc.nodeLabel }}</div>
+              <div style="font-family:'Baloo 2',cursive;font-size:19px;font-weight:800;line-height:1.05;color:#FFF8EA;white-space:nowrap">{{ sc.wave }}<span style="color:#7C8695"> / 12</span></div>
+            </div>
+          </div>
+          <div style="display:flex;align-items:center;gap:4px;height:33px;box-sizing:border-box;padding:0 8px;border-radius:10px;background:#141820;border:3px solid #000">
+            <sc-for list="{{ sc.waveTrack }}" as="w" hint-placeholder-count="12">
+              <div style="width:{{ w.w }};height:10px;box-sizing:border-box;border-radius:4px;background:{{ w.bg }};border:2px solid #000"></div>
+            </sc-for>
+          </div>
+          <div style="position:relative;display:{{ sc.badgeDisp }};align-items:center;gap:5px;height:33px;box-sizing:border-box;padding:0 8px 0 10px;border-radius:9px;background:#C9302B;border:3px solid #000;outline:{{ sc.badgeRing }};outline-offset:2px;cursor:pointer">
+            <div style="font-family:'Baloo 2',cursive;font-size:18px;font-weight:800;line-height:1;color:#FFF8EA">{{ sc.asc }}</div>
+            <div style="font-family:'Baloo 2',cursive;font-size:12px;font-weight:800;line-height:1;color:#FFC3C0">▾</div>
+          </div>
+          <div style="flex:1 1 auto;display:flex;justify-content:center">
+            <div style="display:flex;align-items:center;gap:10px;height:40px;box-sizing:border-box;padding:0 18px;border-radius:999px;background:#FF9345;border:3px solid #000;box-shadow:0 4px 0 rgba(0,0,0,.45)">
+              <div style="width:9px;height:9px;border-radius:50%;background:#2A1505"></div>
+              <div style="font-family:'Baloo 2',cursive;font-size:16px;font-weight:800;letter-spacing:.1em;color:#2A1505;line-height:1">YOUR TURN</div>
+              <div style="width:2px;height:16px;background:rgba(42,21,5,.35)"></div>
+              <div style="font-family:'Baloo 2',cursive;font-size:15px;font-weight:700;letter-spacing:.04em;color:#5A3310;line-height:1">TURN {{ sc.turn }}</div>
+            </div>
+          </div>
+          <div style="display:flex;align-items:center;gap:6px">
+            <sc-for list="{{ sc.relics }}" as="r" hint-placeholder-count="3">
+              <div style="position:relative;width:33px;height:33px;box-sizing:border-box;border-radius:9px;background:{{ r.bg }};border:3px solid #000;display:grid;place-items:center">
+                <img src="{{ r.icon }}" alt="" style="width:18px;height:18px;object-fit:contain">
+                <img src="asc/new-icons/eternal.svg" alt="" style="position:absolute;right:-7px;bottom:-7px;width:17px;height:17px;display:{{ r.eternalDisp }}">
+              </div>
+            </sc-for>
+          </div>
+          <div style="display:flex;align-items:center;gap:7px;height:33px;box-sizing:border-box;padding:0 11px 0 7px;border-radius:9px;background:#F3E7D3;border:3px solid #000">
+            <img src="asc/fx/shard.png" alt="" style="width:19px;height:19px;object-fit:contain">
+            <div style="font-family:'Baloo 2',cursive;font-size:18px;font-weight:800;color:#1A1206;line-height:1">200</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:5px">
+            <sc-for list="{{ utils }}" as="u" hint-placeholder-count="5">
+              <div style="height:33px;min-width:33px;box-sizing:border-box;padding:0 11px;border-radius:9px;background:#262C36;border:3px solid #000;display:grid;place-items:center;font-family:'Baloo 2',cursive;font-size:13px;font-weight:800;letter-spacing:.05em;color:#DCE2EC">{{ u }}</div>
+            </sc-for>
+          </div>
+        </div>
+
+        <div style="position:absolute;top:72px;left:{{ sc.popLeft }};width:560px;z-index:20;display:{{ sc.popDisp }};border-radius:16px;background:#1B1F27;border:4px solid #000;box-shadow:0 7px 0 rgba(0,0,0,.55);overflow:hidden">
+          <div style="position:absolute;top:-1px;left:22px;width:0;height:0"></div>
+          <div style="padding:13px 16px 12px;background:#C9302B;border-bottom:4px solid #000">
+            <div style="display:flex;align-items:baseline;justify-content:space-between;gap:10px">
+              <div style="font-family:'Baloo 2',cursive;font-size:22px;font-weight:800;line-height:1;color:#FFF8EA">{{ sc.popTitle }}</div>
+              <div style="font-family:'Baloo 2',cursive;font-size:11px;font-weight:800;letter-spacing:.12em;color:#FFC3C0">LOCKED FOR THIS RUN</div>
+            </div>
+            <div style="font-family:'Baloo 2',cursive;font-size:12px;font-weight:800;letter-spacing:.08em;color:#FFE3E1;margin-top:5px">{{ sc.popMods }}</div>
+          </div>
+          <div style="padding:8px;display:flex;flex-direction:column;gap:2px">
+            <sc-for list="{{ sc.popRows }}" as="r" hint-placeholder-count="10">
+              <div style="display:flex;align-items:center;gap:8px;height:26px;padding:0 6px;border-radius:7px;background:{{ r.bg }}">
+                <img src="{{ r.icon }}" alt="" style="width:18px;height:18px;object-fit:contain;flex:0 0 auto;opacity:{{ r.iconOp }}">
+                <div style="width:28px;flex:0 0 auto;font-family:'Baloo 2',cursive;font-size:13px;font-weight:800;line-height:1;color:#FFC79B">{{ r.code }}</div>
+                <div style="width:98px;flex:0 0 auto;font-family:'Baloo 2',cursive;font-size:12px;font-weight:800;letter-spacing:.04em;line-height:1;color:{{ r.nameFg }};white-space:nowrap">{{ r.name }}</div>
+                <div style="flex:1 1 auto;min-width:0;font-size:12px;font-weight:600;line-height:1.1;color:{{ r.descFg }}">{{ r.desc }}</div>
+              </div>
+            </sc-for>
+          </div>
+          <div style="padding:9px 16px 11px;border-top:3px solid #000;background:#161A21;font-size:12px;font-weight:600;line-height:1.4;color:#A6B0BF">{{ sc.popFoot }}</div>
+        </div>
+
+        <div style="position:absolute;top:44%;left:50%;transform:translate(-50%,-50%);z-index:12;display:{{ sc.introDisp }};flex-direction:column;align-items:center">
+          <div style="padding:18px 64px;border-radius:20px;background:#A353E8;border:5px solid #000;box-shadow:0 7px 0 rgba(0,0,0,.5);text-align:center;position:relative;z-index:1">
+            <div style="font-family:'Baloo 2',cursive;font-size:16px;font-weight:800;letter-spacing:.3em;line-height:1.2;color:#1E0A33">WAVE 4 · ELITE · 3 ENEMIES</div>
+            <div style="font-family:'Baloo 2',cursive;font-size:56px;font-weight:800;letter-spacing:.04em;line-height:1.08;color:#FFF8EA;text-shadow:0 4px 0 rgba(0,0,0,.35)">ELITE FIGHT</div>
+          </div>
+          <div style="margin-top:-8px;display:flex;align-items:center;gap:12px;padding:18px 20px 12px 14px;border-radius:0 0 16px 16px;background:#F3E7D3;border:4px solid #000;border-top:0;box-shadow:0 6px 0 rgba(0,0,0,.5)">
+            <div style="width:40px;height:40px;box-sizing:border-box;border-radius:50%;background:#FFB23F;border:3px solid #000;overflow:hidden;flex:0 0 auto">
+              <img src="asc/portrait/beast.png" alt="" style="width:100%;height:100%;object-fit:cover">
+            </div>
+            <div>
+              <div style="font-family:'Baloo 2',cursive;font-size:20px;font-weight:800;line-height:1.05;color:#1A1206">BUBA STARTS WEAKENED</div>
+              <div style="font-size:13px;font-weight:600;color:#5A3310;margin-top:2px">Weaken 2 from turn 1 · Ascension 5</div>
+            </div>
+            <div style="display:flex;align-items:center;gap:3px;height:28px;box-sizing:border-box;padding:0 8px 0 4px;border-radius:9px;background:#FF8FC7;border:3px solid #000;margin-left:6px">
+              <img src="asc/fx/weaken.png" alt="" style="width:16px;height:16px;object-fit:contain">
+              <div style="font-family:'Baloo 2',cursive;font-size:16px;font-weight:800;line-height:1;color:#1A1206">2</div>
+            </div>
+          </div>
+        </div>
+
+        <div style="position:absolute;bottom:0;left:0;right:0;height:216px;background:#171A21;border-top:4px solid #000;z-index:6">
+          <div style="position:absolute;top:16px;left:24px;right:24px;bottom:16px;display:flex;align-items:flex-end;gap:18px">
+            <div style="width:272px;height:100%;box-sizing:border-box;border-radius:13px;border:2px dashed #39404E;display:grid;place-items:center;font-family:'Baloo 2',cursive;font-size:13px;font-weight:800;letter-spacing:.12em;color:#5C6573;text-align:center">MANA + RELIC ACTIVES<br>unchanged</div>
+            <div style="flex:1 1 auto;height:100%;box-sizing:border-box;border-radius:13px;border:2px dashed #39404E;display:grid;place-items:center;font-family:'Baloo 2',cursive;font-size:13px;font-weight:800;letter-spacing:.12em;color:#5C6573">FIVE DIE CARDS · unchanged</div>
+            <div style="width:272px;display:flex;flex-direction:column;justify-content:flex-end;gap:10px">
+              <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;height:56px;box-sizing:border-box;padding:0 16px;border-radius:14px;background:#262C36;border:3px solid #000;box-shadow:0 4px 0 rgba(0,0,0,.45)">
+                <div style="display:flex;align-items:center;gap:9px">
+                  <img src="asc/fx/reroll.svg" alt="" style="width:22px;height:22px;object-fit:contain">
+                  <div style="font-family:'Baloo 2',cursive;font-size:20px;font-weight:800;letter-spacing:.06em;line-height:1;color:#F3E7D3">REROLL</div>
+                </div>
+                <div style="display:flex;align-items:center;height:28px;box-sizing:border-box;padding:0 10px;border-radius:9px;background:#FF9345;border:2px solid #000;font-family:'Baloo 2',cursive;font-size:17px;font-weight:800;line-height:1;color:#2A1505">×{{ sc.rerolls }}</div>
+              </div>
+              <div style="display:flex;align-items:center;justify-content:center;gap:11px;height:72px;box-sizing:border-box;border-radius:15px;background:#FF9345;border:4px solid #000;box-shadow:0 6px 0 rgba(0,0,0,.5)">
+                <div style="font-family:'Baloo 2',cursive;font-size:26px;font-weight:800;letter-spacing:.08em;line-height:1;color:#2A1505">END TURN</div>
+                <div style="height:24px;padding:0 8px;display:flex;align-items:center;border-radius:7px;background:#2A1505;font-family:'Baloo 2',cursive;font-size:13px;font-weight:800;letter-spacing:.05em;line-height:1;color:#FFC79B">SPACE</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </sc-for>
+
+  <div data-screen-label="3.3 Boss Clock states" style="display:flex;flex-direction:column;gap:18px">
+    <div style="font-family:'Baloo 2',cursive;font-size:40px;font-weight:800;color:#FFF8EA">3.3 Boss Clock · every state on the 176-wide nameplate</div>
+    <div style="font-size:15px;font-weight:600;color:#A6B0BF;max-width:1500px;line-height:1.5">The clock is a 29px tab hung under the nameplate (top 61, overlapping the plate's bottom border). It sits in the top of the 228px monster frame, so the 28px status strip and the intent badge above keep their exact positions. Base intent in every specimen: 10 damage.</div>
+    <sc-for list="{{ clockRows }}" as="row" hint-placeholder-count="2">
+      <div style="display:flex;flex-direction:column;gap:10px">
+        <div style="font-family:'Baloo 2',cursive;font-size:20px;font-weight:800;letter-spacing:.06em;color:#FFC79B">{{ row.label }}</div>
+        <div style="display:flex;gap:22px;padding:24px;border-radius:18px;background:#2A2F38;border:3px solid #000">
+          <sc-for list="{{ row.items }}" as="e" hint-placeholder-count="8">
+            <div style="width:186px;display:flex;flex-direction:column;align-items:center;gap:8px">
+              <div style="display:flex;align-items:center;gap:7px;height:36px;box-sizing:border-box;padding:0 9px 0 5px;border-radius:10px;background:#F54540;border:3px solid #000;box-shadow:0 4px 0 rgba(0,0,0,.5)">
+                <div style="width:22px;height:22px;border-radius:7px;background:rgba(0,0,0,.26);display:grid;place-items:center;flex:0 0 auto">
+                  <img src="asc/fx/dmg.png" alt="" style="width:16px;height:16px;object-fit:contain">
+                </div>
+                <div style="font-family:'Baloo 2',cursive;font-size:20px;font-weight:800;line-height:1;color:#1A1206">{{ e.intentValue }}</div>
+                <div style="display:{{ e.enrDisp }};align-items:center;gap:3px;height:20px;padding:0 5px 0 3px;border-radius:6px;background:#1A1206">
+                  <img src="asc/new-icons/boss-clock.svg" alt="" style="width:13px;height:13px">
+                  <div style="font-family:'Baloo 2',cursive;font-size:11px;font-weight:800;line-height:1;color:#FFC79B">{{ e.enrText }}</div>
+                </div>
+                <div style="width:2px;height:18px;background:rgba(0,0,0,.28)"></div>
+                <div style="font-family:'Baloo 2',cursive;font-size:11px;font-weight:800;letter-spacing:.04em;line-height:1;color:#2A0806;white-space:nowrap">→ ALL</div>
+              </div>
+              <div style="height:28px"></div>
+              <div style="position:relative;width:176px;height:64px">
+                <div style="position:absolute;left:0;right:0;top:61px;height:29px;box-sizing:border-box;padding:3px 7px 0 7px;border-radius:0 0 10px 10px;background:{{ e.clk.bg }};border:3px solid #000;border-top:0;display:flex;align-items:center;gap:5px;box-shadow:{{ e.clk.ring }}">
+                  <img src="asc/new-icons/boss-clock.svg" alt="" style="width:16px;height:16px;flex:0 0 auto">
+                  <div style="flex:1 1 auto;font-family:'Baloo 2',cursive;font-size:13px;font-weight:800;letter-spacing:.02em;line-height:1;color:{{ e.clk.fg }};white-space:nowrap">{{ e.clk.label }}</div>
+                  <div style="display:{{ e.clk.pipDisp }};gap:2px">
+                    <sc-for list="{{ e.clk.pips }}" as="p" hint-placeholder-count="5">
+                      <div style="width:8px;height:12px;box-sizing:border-box;border-radius:3px;background:{{ p.bg }};border:2px solid #000"></div>
+                    </sc-for>
+                  </div>
+                </div>
+                <div style="position:relative;width:176px;height:64px;box-sizing:border-box;padding:5px 10px;border-radius:12px;background:#161A21;border:3px solid #000;box-shadow:0 4px 0 rgba(0,0,0,.5)">
+                  <div style="display:flex;align-items:center;justify-content:space-between;gap:6px;height:20px">
+                    <div style="font-family:'Baloo 2',cursive;font-size:17px;font-weight:700;line-height:1.2;color:#FFF8EA;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">Chimera Lord</div>
+                    <div style="font-family:'Baloo 2',cursive;font-size:18px;font-weight:800;line-height:1.2;color:#3FCD3C">88/96</div>
+                  </div>
+                  <div style="position:relative;height:8px;border-radius:5px;background:#0B0D12;border:2px solid #000;margin-top:4px;overflow:hidden"><div style="position:absolute;top:0;bottom:0;left:0;width:92%;background:#3FCD3C"></div></div>
+                  <div style="position:relative;height:8px;border-radius:5px;background:#0B0D12;border:2px solid #000;margin-top:4px;overflow:hidden"></div>
+                </div>
+              </div>
+              <div style="height:34px"></div>
+              <div style="font-family:'Baloo 2',cursive;font-size:14px;font-weight:800;color:#FFF8EA;text-align:center">{{ e.cap }}</div>
+              <div style="font-size:12px;font-weight:600;color:#A6B0BF;text-align:center;line-height:1.35">{{ e.sub }}</div>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+    </sc-for>
+  </div>
+
+  <div data-screen-label="3.2 Badge states" style="display:flex;flex-direction:column;gap:18px">
+    <div style="font-family:'Baloo 2',cursive;font-size:40px;font-weight:800;color:#FFF8EA">3.2 Ascension badge · top bar states</div>
+    <sc-for list="{{ badgeRows }}" as="b" hint-placeholder-count="3">
+      <div style="display:flex;align-items:center;gap:24px">
+        <div style="width:260px;font-family:'Baloo 2',cursive;font-size:17px;font-weight:800;color:#FFC79B">{{ b.label }}</div>
+        <div style="width:900px;height:60px;box-sizing:border-box;background:#1B1F27;border-bottom:4px solid #000;display:flex;align-items:center;padding:0 18px;gap:11px">
+          <div style="width:155px;height:36px;box-sizing:border-box;border-radius:11px;background:#262C36;border:3px solid #000;font-family:'Baloo 2',cursive;font-size:12px;font-weight:800;color:#5C6573;display:grid;place-items:center">WAVE CHIP</div>
+          <div style="width:180px;height:33px;box-sizing:border-box;border-radius:10px;background:#141820;border:3px solid #000;font-family:'Baloo 2',cursive;font-size:12px;font-weight:800;color:#5C6573;display:grid;place-items:center">WAVE TRACK</div>
+          <div style="display:{{ b.disp }};align-items:center;gap:5px;height:33px;box-sizing:border-box;padding:0 8px 0 10px;border-radius:9px;background:{{ b.bg }};border:3px solid #000;outline:{{ b.ring }};outline-offset:2px">
+            <div style="font-family:'Baloo 2',cursive;font-size:18px;font-weight:800;line-height:1;color:#FFF8EA">{{ b.text }}</div>
+            <div style="font-family:'Baloo 2',cursive;font-size:12px;font-weight:800;line-height:1;color:#FFC3C0">▾</div>
+          </div>
+          <div style="flex:1 1 auto"></div>
+          <div style="font-family:'Baloo 2',cursive;font-size:12px;font-weight:800;color:#5C6573">YOUR TURN · RELICS · SHARD · UTILS</div>
+        </div>
+        <div style="flex:1 1 auto;max-width:560px;font-size:13px;font-weight:600;line-height:1.45;color:#A6B0BF">{{ b.note }}</div>
+      </div>
+    </sc-for>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:2100,&quot;height&quot;:2600}}">
+const CLS = { plant:"#7DC943", beast:"#FFB23F", aqua:"#39C5F3", reptile:"#B679F7", bug:"#F2624F" };
+const IC = { shop:"asc/fx/shop.png", elite:"asc/fx/elite.png", reroll:"asc/fx/reroll.svg", clock:"asc/new-icons/boss-clock.svg",
+  eternal:"asc/new-icons/eternal.svg", pact:"asc/new-icons/pact.svg", chest:"asc/fx/chest.png", lock:"asc/new-icons/lock.svg" };
+const RULES = [
+  [1,"LEAN PACK","Shop prices +15% · selling refunds 40%, not 50%","shop"],
+  [2,"ELITE ESCORT","Every elite fight brings 1 extra monster","elite"],
+  [3,"SHORT DICE","Base rerolls 2 → 1 · relic rerolls still add","reroll"],
+  [4,"BOSS CLOCK","Bosses enrage from turn 10: +20%/turn, max +100%","clock"],
+  [5,"ETERNAL GIFT","Elite relics are Eternal · weaken announced first","eternal"],
+  [6,"FIRST PACT","First boss: you must take 1 of 3 pacts","pact"],
+  [7,"NARROW OFFER","Reward screens offer 2 cards, not 3","chest"],
+  [8,"CRAMPED PACK","Passive relic slots 8 → 7","lock"],
+  [9,"HUNTED","+2 elites on the map · boss clock from turn 8","elite"],
+  [10,"LAST STAND","Every boss requires a pact · no reward rerolls","pact"],
+];
+const f2 = x => "×" + x.toFixed(2);
+const mods = n => `ENEMY HP ${f2(Math.pow(1.1,[1,6,10].filter(l=>l<=n).length))} · ENEMY DMG ${f2(Math.pow(1.1,[3,8,10].filter(l=>l<=n).length))} · BOSS HP ${f2(n>=4?1.15:1)}`;
+function rows(n) {
+  return RULES.filter(r => r[0] <= n).map(([l, name, d, ic]) => {
+    let desc = d, sup = false;
+    if (l === 4 && n >= 9) desc = "Enrage from turn 8 (A9): +20%/turn, max +100%";
+    if (l === 6 && n >= 10) { desc = "Replaced by A10 — every boss requires a pact"; sup = true; }
+    return { code:`A${l}`, name, desc, icon: IC[ic], bg: "transparent", iconOp: sup ? ".4" : "1",
+      nameFg: sup ? "#5C6573" : "#FFF8EA", descFg: sup ? "#5C6573" : "#C7CED9" };
+  });
+}
+const STACK_BG = ["#FFB23F", "#FF9345", "#F56A40", "#F54540", "#C9302B"];
+// The clock's whole visual state is a function of (turn, start). Reduced-flash only drops the pulse ring.
+function clock(turn, start, reduced) {
+  const pips = n => [0,1,2,3,4].map(i => ({ bg: i < n ? "#1A1206" : "transparent" }));
+  if (turn < start) {
+    const left = start - turn;
+    return left === 1
+      ? { bg:"#FFC445", fg:"#3A2A12", label:"ENRAGE NEXT TURN", pipDisp:"none", pips: pips(0), ring:"0 4px 0 rgba(0,0,0,.5)" }
+      : { bg:"#262C36", fg:"#FFC79B", label:`ENRAGE IN ${left}`, pipDisp:"none", pips: pips(0), ring:"0 4px 0 rgba(0,0,0,.5)" };
+  }
+  const s = Math.min(5, turn - start + 1);
+  const ring = reduced ? "0 4px 0 rgba(0,0,0,.5)" : "0 4px 0 rgba(0,0,0,.5), 0 0 0 4px #FFF1A8";
+  return { bg: STACK_BG[s - 1], fg: s === 5 ? "#FFF8EA" : "#1A1206",
+    label: s === 5 ? "MAX +100%" : `ENRAGE +${s * 20}%`, pipDisp:"flex", pips: s === 5 ? pips(5).map(p => ({ bg:"#FFF8EA" })) : pips(s), ring };
+}
+function bossVals(turn, start, base, reduced) {
+  const s = turn >= start ? Math.min(5, turn - start + 1) : 0;
+  return { clk: clock(turn, start, reduced), intentValue: String(Math.round(base * (1 + 0.2 * s))),
+    enrDisp: s ? "flex" : "none", enrText: `+${s * 20}%` };
+}
+function track(wave) {
+  const out = [];
+  for (let i = 1; i <= 12; i++) {
+    const boss = i === 12 || i === 6;
+    out.push({ w: i === wave ? "17px" : boss ? "14px" : "11px",
+      bg: i < wave ? "#FF9345" : i === wave ? "#FFC79B" : boss ? "#F54540" : "#39404E" });
+  }
+  return out;
+}
+const PARTY = [["Olek","plant","17/17"],["Buba","beast","12/12"],["Puffy","aqua","13/13"],["Machito","reptile","16/16"],["Pomodoro","bug","14/14"]];
+const chip = (k, n, color, ring) => ({ icon:`asc/fx/${k}.png`, n, color, ring: ring || "none" });
+
+class Component extends DCLogic {
+  renderVals() {
+    const bossA = bossVals(10, 8, 10, false);
+    const screens = [
+      { id:"3.3-a", caption:"Boss fight · A10 · turn 10 · clock started turn 8 → enraged ×3 (+60%) · badge popover open (3.2-b)",
+        state:"Data state: A10 run, wave 6 boss, turn 10, boss intent base 10 → 16. Relic chip 1 is Eternal (A5). Rerolls ×1 (A3 base 1, no relic bonus).",
+        nodeBg:"#F54540", nodeIcon:"asc/node/boss.png", nodeLabel:"BOSS NODE", wave:"WAVE 6", turn:10, waveTrack: track(6),
+        asc:"A10", badgeDisp:"flex", badgeRing:"3px solid #FFC79B",
+        enemies:[{ name:"Chimera Lord", hpText:"88/96", hpPct:"92%", hpColor:"#3FCD3C", intentBg:"#F54540", intentIcon:"asc/fx/dmg.png",
+          intentTarget:"→ ALL", statuses:[chip("poison",3,"#A8D84A")], clkDisp:"flex", ...bossA }],
+        party: PARTY.map(([name, c, hp]) => ({ name, cls: CLS[c], hpText: hp, statuses: c === "reptile" ? [chip("thorns",2,"#FFB23F")] : [] })),
+        relics:[{ icon:"asc/fx/thorns.png", bg:"#BF6BFF", eternalDisp:"block" },{ icon:"asc/fx/regen.png", bg:"#40CC3D", eternalDisp:"none" },{ icon:"asc/fx/dmg.png", bg:"#FF9445", eternalDisp:"none" }],
+        popDisp:"block", popLeft:"336px", popTitle:"ASCENSION 10 · LAST STAND", popMods: mods(10), popRows: rows(10),
+        popFoot:"Read-only. Opens on click or hover of the badge, closes on Esc / click outside. Same rows as Run Setup (3.1), no NEW highlight.",
+        introDisp:"none", rerolls:1 },
+      { id:"3.5-b", caption:"Elite fight intro · A5 · turn 1 · weaken pre-warning on the intro banner + weaken chip on Buba from turn 1",
+        state:"Data state: A5 run, wave 4 elite (2 monsters + 1 escort from A2), turn 1, intro banner frame captured at its hold. Weaken value 2 is a stand-in — read the real value from combat_engine.gd (~155).",
+        nodeBg:"#BF6BFF", nodeIcon:"asc/node/elite.png", nodeLabel:"ELITE NODE", wave:"WAVE 4", turn:1, waveTrack: track(4),
+        asc:"A5", badgeDisp:"flex", badgeRing:"none",
+        enemies:[1,2,3].map(i => ({ name: i === 3 ? "Escort" : `Elite ${i}`, hpText:"30/30", hpPct:"100%", hpColor:"#3FCD3C", intentBg:"#F54540", intentIcon:"asc/fx/dmg.png",
+          intentValue: String(5 + i), intentTarget: i === 2 ? "→ BUBA" : "→ OLEK", statuses:[], clkDisp:"none", clk: clock(1, 10, true), enrDisp:"none", enrText:"" })),
+        party: PARTY.map(([name, c, hp]) => ({ name, cls: CLS[c], hpText: hp,
+          statuses: c === "beast" ? [chip("weaken",2,"#FF8FC7")] : c === "reptile" ? [chip("thorns",2,"#FFB23F")] : [] })),
+        relics:[{ icon:"asc/fx/thorns.png", bg:"#BF6BFF", eternalDisp:"block" },{ icon:"asc/fx/regen.png", bg:"#40CC3D", eternalDisp:"none" }],
+        popDisp:"none", popLeft:"0px", popTitle:"", popMods:"", popRows:[], popFoot:"",
+        introDisp:"flex", rerolls:1 },
+    ];
+    const mk = (turn, start, reduced, cap, sub) => ({ ...bossVals(turn, start, 10, reduced), cap, sub });
+    const clockRows = [
+      { label:"DEFAULT (animation on) · the pale 4px ring marks the pulse peak frame, played once when a stack is added",
+        items:[
+          mk(1,10,false,"A4–A8 · turn 1","Enrage in 9 · intent unmodified"),
+          mk(1,8,false,"A9–A10 · turn 1","Enrage in 7"),
+          mk(1,20,false,"Tuning: start 20","Two-digit count fits"),
+          mk(7,8,false,"A9 · turn 7","Gold tab = last calm turn"),
+          mk(8,8,false,"Stack 1 · +20%","10 → 12"),
+          mk(9,8,false,"Stack 2 · +40%","10 → 14"),
+          mk(10,8,false,"Stack 3 · +60%","10 → 16"),
+          mk(11,8,false,"Stack 4 · +80%","10 → 18"),
+          mk(12,8,false,"Stack 5 · +100% MAX","10 → 20 · stays here"),
+        ]},
+      { label:"REDUCE FLASHING · no pulse, no ring, no colour cycling — escalation is carried by fill, pips and the number",
+        items:[
+          mk(1,10,true,"A4–A8 · turn 1",""), mk(1,8,true,"A9–A10 · turn 1",""), mk(1,20,true,"Start 20",""),
+          mk(7,8,true,"Next turn",""), mk(8,8,true,"+20%",""), mk(9,8,true,"+40%",""), mk(10,8,true,"+60%",""),
+          mk(11,8,true,"+80%",""), mk(12,8,true,"+100% MAX",""),
+        ]},
+    ];
+    return {
+      screens, clockRows,
+      utils: ["UNDO","INFO","LOG","♪","⚙"],
+      badgeRows: [
+        { label:"A0 · hidden", disp:"none", bg:"#C9302B", text:"", ring:"none",
+          note:"Hidden at A0. There are no rules to list, and a neutral \"A0\" chip would read as a rule set. The Run Map rail keeps the existing \"SHORT · A0\" chip, so the level is still stated once per run." },
+        { label:"A6 · rest", disp:"flex", bg:"#C9302B", text:"A6", ring:"none",
+          note:"33 tall (matches relic chips), padding 0 8 0 10, radius 9, border 3 #000, fill #C9302B (the boss plate red from run-flow-v2). \"A6\" Baloo 18/800 #FFF8EA + ▾ 12/800 #FFC3C0. Sits right after the wave track, gap 11." },
+        { label:"A10 · hover / open", disp:"flex", bg:"#C9302B", text:"A10", ring:"3px solid #FFC79B",
+          note:"Hover/focus/open: 3px #FFC79B outline, offset 2. Popover 560 wide opens 8px below the top bar (top 72), left edge aligned to the badge. Keyboard: Tab to focus, Enter opens, Esc closes." },
+      ],
+    };
+  }
+}
+</script>
+</body>
+</html>

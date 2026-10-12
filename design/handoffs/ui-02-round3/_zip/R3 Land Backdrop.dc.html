@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&amp;family=Work+Sans:wght@500;600;700&amp;display=swap" rel="stylesheet">
+</helmet>
+<div style="position:absolute;inset:0;overflow:hidden;font-family:'Work Sans',sans-serif;color:#3A2214">
+  <div style="position:absolute;inset:-24px;filter:blur(12px);background:linear-gradient(180deg,#A9DDF0 0%,#F4E6C6 45%,#EED7A8 100%)">
+    <div style="position:absolute;left:24px;right:24px;top:{{ cliffTop }}px;height:820px;background:linear-gradient(180deg,#B87440,#8A4E28);clip-path:polygon(50% 0,100% 50%,50% 100%,0 50%)"></div>
+    <div style="position:absolute;left:84px;right:84px;top:{{ groundTop }}px;height:820px;background:radial-gradient(ellipse at 40% 35%,#FAD27C 0%,#F2B652 55%,#DE9A3C 100%);clip-path:polygon(50% 0,100% 50%,50% 100%,0 50%)"></div>
+    <sc-for list="{{ blds }}" as="b" hint-placeholder-count="7">
+      <img src="{{ b.src }}" alt="" style="position:absolute;left:{{ b.x }}px;top:{{ b.y }}px;width:{{ b.w }}px;height:{{ b.w }}px;object-fit:contain">
+    </sc-for>
+  </div>
+  <div style="position:absolute;inset:0;background:rgba(36,20,11,.55)"></div>
+  <div style="position:absolute;left:16px;right:16px;top:16px;height:68px;display:flex;align-items:center;gap:12px;padding:0 8px;border-radius:20px;background:linear-gradient(180deg,#F8EBD2,#EBD3A8);border:4px solid #8A3E22;box-shadow:inset 2px 2px 0 rgba(255,248,234,.65),4px 6px 0 rgba(74,34,14,.30);box-sizing:border-box">
+    <div style="height:52px;display:flex;align-items:center;gap:10px;padding:0 14px 0 4px;border-radius:14px;background:#FFF8EA;border:3px solid #24140B">
+      <div style="width:40px;height:40px;border-radius:50%;background:#DDBF8C;border:3px solid #24140B;display:flex;align-items:center;justify-content:center;font-family:'Baloo 2';font-weight:800;font-size:15px;color:#6E4A30">{{ initial }}</div>
+      <div style="display:flex;flex-direction:column"><div style="font-family:'Baloo 2';font-weight:800;font-size:17px;line-height:1.05">{{ who }}</div><div style="font-size:12px;font-weight:700;color:#6E4A30">{{ sub }}</div></div>
+    </div>
+    <div style="flex:1 1 auto;display:flex;align-items:center;justify-content:center;gap:4px">
+      <sc-for list="{{ shortcuts }}" as="s" hint-placeholder-count="9">
+        <div style="position:relative;height:52px;display:flex;align-items:center;gap:6px;padding:0 8px 0 5px;border-radius:12px;background:{{ s.bg }};border:3px solid {{ s.border }}">
+          <img src="{{ s.src }}" alt="" style="width:34px;height:34px;object-fit:contain">
+          <div style="display:flex;flex-direction:column"><div style="font-family:'Baloo 2';font-weight:800;font-size:15px;line-height:1.05;color:#3A2214;white-space:nowrap">{{ s.name }}</div><div style="font-size:12px;font-weight:700;color:#6E4A30">{{ s.key }}</div></div>
+          <sc-if value="{{ s.dot }}" hint-placeholder-val="{{ false }}"><div style="position:absolute;right:-5px;top:-7px;width:18px;height:18px;border-radius:50%;background:#FF9345;border:3px solid #24140B"></div></sc-if>
+        </div>
+      </sc-for>
+    </div>
+    <div style="display:flex;align-items:center;gap:6px">
+      <div style="position:relative;height:44px;display:flex;align-items:center;gap:6px;padding:0 10px 0 6px;border-radius:12px;background:{{ dailyBg }};border:3px solid #24140B">
+        <img src="hl/icons/gift.svg" alt="" style="width:26px;height:26px">
+        <div style="display:flex;flex-direction:column"><div style="font-family:'Baloo 2';font-weight:800;font-size:15px;line-height:1">Daily</div><div style="font-size:12px;font-weight:700;color:#6E4A30;line-height:1.1">D</div></div>
+        <sc-if value="{{ dailyClaim }}" hint-placeholder-val="{{ false }}"><div style="position:absolute;right:-6px;top:-10px;height:20px;padding:0 6px;border-radius:999px;background:#FF9345;border:2px solid #24140B;font-family:'Baloo 2';font-weight:800;font-size:12px;line-height:16px;color:#2A1505">CLAIM</div></sc-if>
+      </div>
+      <div style="height:44px;display:flex;align-items:center;gap:5px;padding:0 10px 0 5px;border-radius:12px;background:#FFF8EA;border:3px solid #24140B"><img src="asc/fx/shard.png" alt="" style="width:26px;height:26px"><div style="font-family:'Baloo 2';font-weight:800;font-size:17px">{{ shard }}</div></div>
+      <div style="height:44px;display:flex;align-items:center;gap:5px;padding:0 10px 0 5px;border-radius:12px;background:#FFF8EA;border:3px solid #24140B"><img src="hl/i/stone.png" alt="" style="width:26px;height:26px"><div style="font-family:'Baloo 2';font-weight:800;font-size:17px">{{ stone }}</div></div>
+      <div style="height:44px;display:flex;align-items:center;gap:5px;padding:0 5px;border-radius:12px;background:#FFF8EA;border:3px solid #24140B"><img src="hl/i/gem.png" alt="" style="width:26px;height:26px"><div style="font-family:'Baloo 2';font-weight:800;font-size:17px">{{ gem }}</div><div style="width:26px;height:26px;border-radius:8px;background:#A27BEA;border:2px solid #24140B;display:flex;align-items:center;justify-content:center;font-family:'Baloo 2';font-weight:800;font-size:18px;color:#1E1236">+</div></div>
+      <div style="width:48px;height:48px;border-radius:12px;background:linear-gradient(180deg,#FFF8EA,#EBD3A8);border:3px solid #24140B;display:flex;flex-direction:column;align-items:center;justify-content:center;font-family:'Baloo 2';font-weight:800;font-size:13px;line-height:1"><span>Codex</span><span style="font-size:12px;color:#6E4A30;font-family:'Work Sans';font-weight:700">C</span></div>
+      <div style="width:48px;height:48px;border-radius:12px;background:linear-gradient(180deg,#FFF8EA,#EBD3A8);border:3px solid #24140B;display:flex;align-items:center;justify-content:center"><img src="asc/fx/settings.svg" alt="Settings" style="width:26px;height:26px;filter:brightness(0) saturate(100%) invert(10%) sepia(30%) saturate(1500%) hue-rotate(350deg)"></div>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1920,&quot;height&quot;:1080},&quot;h&quot;:{&quot;editor&quot;:&quot;int&quot;,&quot;default&quot;:1080,&quot;tsType&quot;:&quot;number&quot;},&quot;gem&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;300&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;shard&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;1,240&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;stone&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;3,860&quot;,&quot;tsType&quot;:&quot;string&quot;},&quot;guest&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;},&quot;newcomer&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;},&quot;dailyClaim&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;},&quot;dots&quot;:{&quot;editor&quot;:&quot;text&quot;,&quot;default&quot;:&quot;&quot;,&quot;tsType&quot;:&quot;string&quot;}}">
+class Component extends DCLogic {
+  renderVals() {
+    const p = this.props, H = p.h ?? 1080, dy = (H - 1080) / 2, guest = !!p.guest, newbie = !!p.newcomer;
+    const sc = (name, key, src, x = {}) => ({ name, key, src, bg: '#FFF8EA', border: '#24140B', dot: false, ...x });
+    const lock = { bg: '#E8D6B4', border: '#9A7650' };
+    const B = (src, cx, base, w) => ({ src, x: cx - w / 2 + 24, y: base + dy - w + 24, w });
+    const dots = (p.dots || '').split(',');
+    return {
+      groundTop: 204 + dy, cliffTop: 240 + dy,
+      blds: [B('hl/b/portal.png', 960, 640, 360), B('hl/b/house.png', 560, 470, 240), B('hl/b/mastery.png', 1360, 470, 230), B('hl/b/echobox.png', 470, 770, 210), B('hl/b/pass.png', 1450, 770, 220), B('hl/b/vault.png', 235, 650, 200), B('hl/b/gallery.png', 1685, 650, 210)],
+      initial: guest ? '?' : 'L', who: guest ? 'Guest' : 'Liam', sub: guest ? 'Sign in · Savannah' : 'Savannah Land',
+      shortcuts: [
+        sc('Run', '1', 'hl/b/portal.png', { bg: '#FFC48E' }), sc('Teams', '2', 'hl/b/house.png'),
+        newbie ? sc('Missions', '5 runs', 'asc/new-icons/lock.svg', lock) : sc('Missions', '3', 'hl/b/mastery.png', { dot: dots.includes('missions') }),
+        sc('Echo Box', '4', 'hl/b/echobox.png', { dot: dots.includes('echo') }), sc('Pass', '5', 'hl/b/pass.png', { dot: dots.includes('pass') }),
+        sc('Vault', '6', 'hl/b/vault.png'), sc('Store', '7', 'hl/b/gallery.png', { dot: dots.includes('store') }),
+        sc('Mastery', 'Arctic', 'asc/new-icons/lock.svg', lock), sc('Gallery', 'Genesis', 'asc/new-icons/lock.svg', lock),
+      ],
+      dailyClaim: !!p.dailyClaim, dailyBg: p.dailyClaim ? '#FFE3A6' : '#FFF8EA',
+      shard: guest ? '—' : p.shard ?? '1,240', stone: guest ? '—' : p.stone ?? '3,860', gem: guest ? '—' : p.gem ?? '300',
+    };
+  }
+}
+</script>
+</body>
+</html>

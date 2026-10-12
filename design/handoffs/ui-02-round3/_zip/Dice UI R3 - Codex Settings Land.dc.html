@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<script src="_ds/dango-design-system-b8da985f-efd5-488e-ae62-d508e48befe9/_ds_bundle.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&amp;family=Work+Sans:wght@500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#2A1C12}
+a{color:#FF9345;text-decoration:none}a:hover{color:#FFB275}
+</style>
+</helmet>
+<div style="display:flex;flex-direction:column;gap:64px;padding:64px;width:max-content;background:#2A1C12;font-family:'Work Sans',sans-serif;color:#3A2214;-webkit-font-smoothing:antialiased">
+  <div style="display:flex;flex-direction:column;gap:8px;max-width:1920px">
+    <div style="font-family:'Baloo 2';font-weight:800;font-size:15px;letter-spacing:.18em;color:#D79A58">AXIE DICE · UI REQUEST 02 · ROUND 3 · M10 · M11 · M15</div>
+    <div style="font-family:'Baloo 2';font-weight:800;font-size:60px;line-height:1;color:#FFF8EA">Codex · Settings · Land upgrade</div>
+    <div style="font-size:17px;line-height:1.5;color:#DDBF8C;max-width:1300px;text-wrap:pretty">Codex (C) keeps the 10 existing tabs from <b>CodexContent.gd</b> plus Guides. Settings opens with Esc on the hub. Land upgrade (L) spends Land Stone; L1 ships tier 1 only. <a href="Dice UI R3 README.md">R3 README</a> · <a href="Dice UI R3 - Profile and Account.dc.html">← M9, M12–M14</a> · <a href="Dice UI R2 Addendum.dc.html">R2 addendum →</a></div>
+  </div>
+
+  <sc-for list="{{ frames }}" as="f" hint-placeholder-count="2">
+    <div data-screen-label="{{ f.id }}" style="display:flex;flex-direction:column;gap:12px">
+      <div style="display:flex;align-items:center;gap:12px">
+        <div style="height:34px;padding:0 12px;display:flex;align-items:center;border-radius:9px;background:#FF9345;border:3px solid #24140B;font-family:'Baloo 2';font-size:17px;font-weight:800;color:#2A1505">{{ f.id }}</div>
+        <div style="font-family:'Baloo 2';font-size:26px;font-weight:800;color:#FFF8EA">{{ f.caption }}</div>
+        <div style="font-size:14px;font-weight:600;color:#B89A74">1920 × 1080</div>
+      </div>
+      <div style="font-size:15px;color:#DDBF8C;max-width:1600px">{{ f.note }}</div>
+      <div style="position:relative;width:1920px;height:1080px;overflow:hidden">
+        <dc-import name="R3 Land Backdrop" h="1080" guest="{{ f.guest }}" stone="{{ f.stone }}" style="position:absolute;inset:0" hint-size="1920px,1080px"></dc-import>
+        <div style="position:absolute;left:{{ f.px }}px;top:{{ f.py }}px;width:{{ f.pw }}px;height:{{ f.ph }}px;border-radius:28px;background:linear-gradient(180deg,#F8EBD2,#EBD3A8);border:4px solid #8A3E22;box-shadow:inset 2px 2px 0 rgba(255,248,234,.65),5px 8px 0 rgba(36,20,11,.45);overflow:hidden;display:flex;flex-direction:column;box-sizing:border-box">
+          <div style="height:64px;flex:none;display:flex;align-items:center;gap:14px;padding:0 16px 0 8px;background:linear-gradient(180deg,#D79A58,#B87440);border-bottom:4px solid #8A3E22">
+            <div style="height:48px;padding:0 14px 0 10px;display:flex;align-items:center;gap:8px;border-radius:12px;background:linear-gradient(180deg,#FFF8EA,#EBD3A8);border:3px solid #24140B;box-shadow:inset 2px 2px 0 rgba(255,248,234,.65),3px 4px 0 rgba(74,34,14,.35);font-family:'Baloo 2';font-weight:800;font-size:18px;box-sizing:border-box"><span style="font-size:20px">←</span>{{ f.backLabel }}<span style="height:22px;padding:0 6px;border-radius:6px;background:#3B2618;color:#FFF8EA;font-size:13px;display:flex;align-items:center">Esc</span></div>
+            <img src="{{ f.thumb }}" alt="" style="width:36px;height:36px;object-fit:contain">
+            <div style="font-family:'Baloo 2';font-weight:800;font-size:36px;line-height:1;color:#2A1505">{{ f.title }}</div>
+            <div style="font-size:14px;font-weight:700;color:#3A1E07">{{ f.headSub }}</div>
+          </div>
+
+          <sc-if value="{{ f.codex }}" hint-placeholder-val="{{ false }}">
+            <div style="flex:1;min-height:0;display:grid;grid-template-columns:300px minmax(0,1fr);grid-template-rows:minmax(0,1fr);gap:16px;padding:16px 24px 20px">
+              <div style="display:flex;flex-direction:column;gap:5px;padding:10px;border-radius:18px;background:#FFF8EA;border:3px solid #8A3E22">
+                <div style="height:40px;display:flex;align-items:center;gap:8px;padding:0 10px;border-radius:10px;background:#F8EBD2;border:2px solid #B89A74;font-size:14px;font-weight:600;color:#9A7650"><img src="asc/fx/settings.svg" alt="" style="width:16px;height:16px;opacity:.5">Search keyword [INF, optional]</div>
+                <sc-for list="{{ f.rail }}" as="t" hint-placeholder-count="11"><div style="height:46px;flex:none;display:flex;align-items:center;gap:8px;padding:0 12px;border-radius:12px;background:{{ t.bg }};border:{{ t.bd }};box-shadow:{{ t.sh }};font-family:'Baloo 2';font-weight:800;font-size:15px;letter-spacing:.03em;color:{{ t.ink }}">{{ t.t }}</div></sc-for>
+              </div>
+              <div style="display:flex;flex-direction:column;border-radius:18px;background:#FFF8EA;border:3px solid #8A3E22;overflow:hidden;min-height:0">
+                <div style="flex:none;display:flex;flex-direction:column;gap:2px;padding:14px 20px;background:#F8EBD2;border-bottom:3px solid #8A3E22"><div style="font-family:'Baloo 2';font-weight:800;font-size:26px;line-height:1.1">{{ f.cTitle }}</div><div style="font-size:15px;font-weight:600;color:#6E4A30">{{ f.cLede }}</div></div>
+                <div style="flex:1;min-height:0;display:flex">
+                  <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:14px;padding:16px 20px;overflow:hidden">
+                    <sc-for list="{{ f.blocks }}" as="b" hint-placeholder-count="3">
+                      <div style="display:flex;flex-direction:column;gap:8px">
+                        <div style="font-family:'Baloo 2';font-weight:800;font-size:20px;color:#8A3E22">{{ b.h }}</div>
+                        <sc-if value="{{ b.p }}" hint-placeholder-val="{{ false }}"><div style="font-size:16px;font-weight:600;line-height:1.45;max-width:980px;text-wrap:pretty">{{ b.p }}</div></sc-if>
+                        <sc-if value="{{ b.rows }}" hint-placeholder-val="{{ false }}">
+                          <div style="display:flex;flex-direction:column;border-radius:12px;overflow:hidden;border:2px solid #B89A74">
+                            <sc-for list="{{ b.rows }}" as="r" hint-placeholder-count="4"><div style="min-height:38px;display:grid;grid-template-columns:{{ b.cols }};align-items:center;gap:14px;padding:6px 14px;background:{{ r.bg }}"><sc-for list="{{ r.c }}" as="c" hint-placeholder-count="2"><div style="font-size:15px;font-weight:{{ r.w }};line-height:1.35;font-family:{{ r.ff }};color:{{ r.ink }}">{{ c }}</div></sc-for></div></sc-for>
+                          </div>
+                        </sc-if>
+                        <sc-if value="{{ b.fair }}" hint-placeholder-val="{{ false }}"><div style="padding:10px 14px;border-radius:12px;background:#E6DAF6;border:3px solid #4E2E8A;font-size:16px;font-weight:700;line-height:1.45;color:#1E1236">Aid makes you stronger for one run. Players who buy more can win more. The Pure leaderboard only counts runs without Aid.</div></sc-if>
+                        <sc-if value="{{ b.teams }}" hint-placeholder-val="{{ false }}">
+                          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px"><sc-for list="{{ teams }}" as="t" hint-placeholder-count="4"><div style="display:flex;flex-direction:column;gap:8px;padding:12px;border-radius:14px;background:#F8EBD2;border:2px solid #B89A74"><div style="display:flex;align-items:center;gap:8px"><div style="font-family:'Baloo 2';font-weight:800;font-size:19px;flex:1">{{ t.n }}</div><sc-for list="{{ t.p }}" as="p" hint-placeholder-count="5"><img src="{{ p }}" alt="" style="width:30px;height:30px;border-radius:50%;border:2px solid #24140B;background:#FFF8EA"></sc-for></div><div style="font-size:14px;font-weight:600;line-height:1.4">{{ t.d }}</div><div style="align-self:flex-start;height:36px;padding:0 14px;display:flex;align-items:center;border-radius:10px;background:linear-gradient(180deg,#FFB070,#FF8A3A);border:3px solid #24140B;font-family:'Baloo 2';font-weight:800;font-size:15px;color:#2A1505">Use this team</div></div></sc-for></div>
+                        </sc-if>
+                      </div>
+                    </sc-for>
+                  </div>
+                  <div style="width:14px;flex:none;margin:8px 8px 8px 0;border-radius:7px;background:#DDBF8C;position:relative"><div style="position:absolute;left:2px;right:2px;top:{{ f.sbTop }}%;height:{{ f.sbH }}%;border-radius:5px;background:#3B2618"></div></div>
+                </div>
+              </div>
+            </div>
+          </sc-if>
+
+          <sc-if value="{{ f.settings }}" hint-placeholder-val="{{ false }}">
+            <div style="flex:1;min-height:0;display:grid;grid-template-columns:260px minmax(0,1fr);grid-template-rows:minmax(0,1fr);gap:16px;padding:16px 24px 20px">
+              <div style="display:flex;flex-direction:column;gap:5px;padding:10px;border-radius:18px;background:#FFF8EA;border:3px solid #8A3E22">
+                <sc-for list="{{ f.secNav }}" as="t" hint-placeholder-count="9"><div style="height:42px;display:flex;align-items:center;padding:0 12px;border-radius:10px;background:{{ t.bg }};border:2px solid {{ t.bd }};font-family:'Baloo 2';font-weight:800;font-size:16px;color:{{ t.ink }}">{{ t.t }}</div></sc-for>
+              </div>
+              <div style="display:flex;border-radius:18px;background:#FFF8EA;border:3px solid #8A3E22;overflow:hidden;min-height:0">
+                <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:18px;padding:18px 24px;overflow:hidden">
+                  <sc-for list="{{ f.sections }}" as="s" hint-placeholder-count="3">
+                    <div style="display:flex;flex-direction:column;gap:8px;max-width:960px">
+                      <div style="font-family:'Baloo 2';font-weight:800;font-size:20px">{{ s.h }}</div>
+                      <sc-for list="{{ s.rows }}" as="r" hint-placeholder-count="3">
+                        <div style="min-height:56px;display:flex;align-items:center;gap:14px;padding:6px 8px 6px 14px;border-radius:12px;background:{{ r.bg }};border:{{ r.bd }};box-shadow:{{ r.sh }}">
+                          <div style="flex:1;display:flex;flex-direction:column;gap:2px"><div style="font-family:'Baloo 2';font-weight:800;font-size:17px;line-height:1.15">{{ r.t }}</div><sc-if value="{{ r.d }}" hint-placeholder-val="{{ false }}"><div style="font-size:13px;font-weight:600;line-height:1.4;color:#6E4A30">{{ r.d }}</div></sc-if></div>
+                          <sc-if value="{{ r.tog }}" hint-placeholder-val="{{ false }}"><div style="display:flex;align-items:center;gap:8px"><div style="font-family:'Baloo 2';font-weight:800;font-size:16px;width:34px;text-align:right">{{ r.tog }}</div><div style="width:64px;height:34px;border-radius:999px;background:{{ r.tBg }};border:3px solid #24140B;position:relative;box-sizing:border-box"><div style="position:absolute;top:3px;left:{{ r.tX }}px;width:22px;height:22px;border-radius:50%;background:#FFF8EA;border:2px solid #24140B;box-sizing:border-box"></div></div></div></sc-if>
+                          <sc-if value="{{ r.slider }}" hint-placeholder-val="{{ false }}"><div style="display:flex;align-items:center;gap:10px;width:300px"><div style="flex:1;height:12px;border-radius:6px;background:#4A2A1A;border:2px solid #24140B;position:relative;box-sizing:border-box"><div style="width:{{ r.slider }}%;height:100%;background:#FFB23F"></div><div style="position:absolute;top:-8px;left:calc({{ r.slider }}% - 12px);width:24px;height:24px;border-radius:50%;background:#FFF8EA;border:3px solid #24140B;box-sizing:border-box"></div></div><div style="font-family:'Baloo 2';font-weight:800;font-size:16px;width:44px;text-align:right">{{ r.slider }}%</div></div></sc-if>
+                          <sc-if value="{{ r.segs }}" hint-placeholder-val="{{ false }}"><div style="display:flex;gap:4px;padding:3px;border-radius:12px;background:#DDBF8C;border:2px solid #24140B"><sc-for list="{{ r.segs }}" as="g" hint-placeholder-count="3"><div style="height:34px;padding:0 10px;display:flex;align-items:center;border-radius:8px;background:{{ g.bg }};font-family:'Baloo 2';font-weight:800;font-size:14px;color:{{ g.ink }}">{{ g.t }}</div></sc-for></div></sc-if>
+                          <sc-if value="{{ r.btn }}" hint-placeholder-val="{{ false }}"><div style="height:44px;padding:0 16px;display:flex;align-items:center;border-radius:12px;background:{{ r.btnBg }};border:3px solid {{ r.btnBd }};font-family:'Baloo 2';font-weight:800;font-size:16px;color:{{ r.btnInk }};box-sizing:border-box;white-space:nowrap">{{ r.btn }}</div></sc-if>
+                        </div>
+                      </sc-for>
+                    </div>
+                  </sc-for>
+                </div>
+                <div style="width:14px;flex:none;margin:8px 8px 8px 0;border-radius:7px;background:#DDBF8C;position:relative"><div style="position:absolute;left:2px;right:2px;top:{{ f.sbTop }}%;height:{{ f.sbH }}%;border-radius:5px;background:#3B2618"></div></div>
+              </div>
+            </div>
+          </sc-if>
+
+          <sc-if value="{{ f.land }}" hint-placeholder-val="{{ false }}">
+            <div style="flex:1;min-height:0;display:flex;flex-direction:column;gap:10px;padding:14px 22px 18px">
+              <div style="display:flex;align-items:center;gap:12px;padding:10px 14px;border-radius:14px;background:#FFF8EA;border:3px solid #8A3E22">
+                <img src="hl/i/stone.png" alt="" style="width:32px;height:32px"><div style="font-family:'Baloo 2';font-weight:800;font-size:22px">{{ f.stone }} Land Stone</div>
+                <div style="flex:1"></div><div style="font-size:13px;font-weight:700;color:#6E4A30;max-width:520px;text-align:right">Land gives no combat power. It opens breadth: houses, preset slots, decor. Stone comes from Echo Box, Pass and Daily only; it is never sold.</div>
+              </div>
+              <sc-for list="{{ f.tiers }}" as="t" hint-placeholder-count="6">
+                <div style="flex:1;min-height:0;display:flex;align-items:center;gap:14px;padding:6px 10px 6px 8px;border-radius:16px;background:{{ t.bg }};border:3px solid {{ t.bd }};box-shadow:{{ t.sh }}">
+                  <div style="width:110px;height:62px;flex:none;border-radius:12px;background:{{ t.ground }};border:2px solid #24140B;clip-path:polygon(50% 0,100% 50%,50% 100%,0 50%)"></div>
+                  <div style="width:210px;display:flex;flex-direction:column"><div style="font-family:'Baloo 2';font-weight:800;font-size:21px;line-height:1.05;color:{{ t.ink }}">{{ t.n }}</div><div style="font-size:12px;font-weight:700;color:#6E4A30">{{ t.state }}</div></div>
+                  <div style="flex:1;font-size:13px;font-weight:600;line-height:1.35;color:{{ t.ink2 }}">{{ t.adds }}</div>
+                  <div style="width:150px;display:flex;flex-direction:column;align-items:flex-end"><div style="display:flex;align-items:center;gap:4px;font-family:'Baloo 2';font-weight:800;font-size:19px;color:{{ t.ink }}"><sc-if value="{{ t.cost }}" hint-placeholder-val="{{ false }}"><img src="hl/i/stone.png" alt="" style="width:18px;height:18px"></sc-if>{{ t.cost }}</div><div style="font-size:12px;font-weight:700;color:#6E4A30">{{ t.cum }}</div></div>
+                  <div style="width:190px;height:48px;flex:none;display:flex;flex-direction:column;align-items:center;justify-content:center;border-radius:12px;background:{{ t.btnBg }};border:3px solid {{ t.btnBd }};box-shadow:{{ t.btnSh }};box-sizing:border-box"><div style="font-family:'Baloo 2';font-weight:800;font-size:16px;line-height:1.05;color:{{ t.btnInk }}">{{ t.btn }}</div><sc-if value="{{ t.btnSub }}" hint-placeholder-val="{{ false }}"><div style="font-size:12px;font-weight:700;color:{{ t.btnInk }}">{{ t.btnSub }}</div></sc-if></div>
+                </div>
+              </sc-for>
+            </div>
+          </sc-if>
+
+          <sc-if value="{{ f.modal }}" hint-placeholder-val="{{ false }}">
+            <div style="position:absolute;inset:68px 0 0;background:rgba(36,20,11,.55)"></div>
+            <div style="position:absolute;left:{{ f.mLeft }}px;top:{{ f.mTop }}px;width:600px;border-radius:24px;background:linear-gradient(180deg,#F8EBD2,#EBD3A8);border:4px solid #8A3E22;box-shadow:5px 8px 0 rgba(36,20,11,.45);overflow:hidden">
+              <div style="height:60px;display:flex;align-items:center;padding:0 20px;background:linear-gradient(180deg,#D79A58,#B87440);border-bottom:4px solid #8A3E22;font-family:'Baloo 2';font-weight:800;font-size:24px;color:#2A1505">{{ f.mTitle }}</div>
+              <div style="padding:18px 22px 22px;display:flex;flex-direction:column;gap:14px">
+                <sc-for list="{{ f.mLines }}" as="l" hint-placeholder-count="1"><div style="font-size:16px;font-weight:600;line-height:1.45">{{ l }}</div></sc-for>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px"><div style="height:60px;display:flex;align-items:center;justify-content:center;border-radius:14px;background:linear-gradient(180deg,#FFF8EA,#EBD3A8);border:3px solid #24140B;box-shadow:3px 5px 0 rgba(74,34,14,.35),0 0 0 7px #FFC445,0 0 0 10px #24140B;font-family:'Baloo 2';font-weight:800;font-size:20px;box-sizing:border-box">{{ f.mNo }}</div><div style="height:60px;display:flex;align-items:center;justify-content:center;border-radius:14px;background:linear-gradient(180deg,#FFB070,#FF8A3A);border:3px solid #24140B;box-shadow:3px 5px 0 #8A3E22;font-family:'Baloo 2';font-weight:800;font-size:20px;color:#2A1505;box-sizing:border-box">{{ f.mYes }}</div></div>
+              </div>
+            </div>
+          </sc-if>
+          <sc-if value="{{ f.toast }}" hint-placeholder-val="{{ false }}">
+            <div style="position:absolute;right:24px;bottom:24px;width:420px;display:flex;align-items:center;gap:12px;padding:12px 12px 12px 16px;border-radius:16px;background:#3B2618;border:3px solid #24140B;box-shadow:4px 6px 0 rgba(36,20,11,.45)"><img src="hl/i/stone.png" alt="" style="width:30px;height:30px"><div style="flex:1;display:flex;flex-direction:column"><div style="font-family:'Baloo 2';font-weight:800;font-size:18px;color:#FFF8EA">{{ f.toast }}</div><div style="font-size:13px;font-weight:600;color:#DDBF8C">{{ f.toastSub }}</div></div><div style="width:36px;height:36px;display:flex;align-items:center;justify-content:center;border-radius:10px;background:#FFF8EA;border:2px solid #24140B;font-family:'Baloo 2';font-weight:800;font-size:18px">×</div></div>
+          </sc-if>
+        </div>
+      </div>
+    </div>
+  </sc-for>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+const fmt = n => n.toLocaleString('en-US');
+const RAIL = ['The Basics', 'Dice & Body Parts', 'Mana & Cards', 'Keywords', 'Status Effects', 'Classes & Playstyles', 'Relic Table', 'Map & Rewards', 'Bosses', 'Difficulty & Keys', 'Guides'];
+const LEDE = ['One run, one turn, one action: the loop everything else sits inside.', 'Every Axie is a six-sided die, and its six faces are its six body parts.', 'The shared party resource, where it comes from, and the only thing it buys.', 'Every keyword a face can carry, and exactly what it does when it lands.', 'Every status a unit can be carrying, what applies it, and when it wears off.', 'The six classes and the always-on passive that gives each one its archetype.', 'The full relic pool, by rarity, with what each one hooks into.', 'What each node type puts in front of you, and what it costs to take it.', 'Six bosses, six mechanics. Three or four of them per run, in a random order.', 'Ascension: what each level stacks on top of the run before it.', 'Sample teams that work, with one press to load them into Run Setup.'];
+const tbl = (cols, rows, head) => ({ cols, rows: [...(head ? [{ c: head, bg: '#3B2618', ink: '#FFC79B', w: 800, ff: "'Baloo 2'" }] : []), ...rows.map((c, i) => ({ c, bg: i % 2 ? '#F8EBD2' : '#FFF8EA', ink: '#3A2214', w: 600, ff: "'Work Sans'" }))] });
+const BLOCKS = {
+  0: [
+    { h: 'A run', p: 'A run\u2019s map is a branching path of nodes: several nodes are open on a row at once, and every row funnels back down to a single mandatory node: a required fight, or a boss. After every node you clear, you pick one of up to three rewards. After every fight your party heals to full and any fallen Axie is revived, so the difficulty sits inside each fight. Losing a fight ends the run, but you keep every Gene Shard and point of Lunacia XP you earned.' },
+    { h: 'A turn in combat', ...tbl('160px 1fr', [['1 · Roll', 'All five of your dice and every enemy die roll at once. Whatever an enemy rolls is shown on its card, so its intent is public.'], ['2 · Reroll', 'Pick which dice to reroll and press Reroll. Pick none and every die rerolls. You get 2 rerolls per turn by default.'], ['3 · Act', 'Click a die, then click a target. Undo is available until you Reroll or press End Turn.'], ['4 · End turn', 'Enemies act out exactly the intent they showed, one at a time. Then Poison, Burn and Regen tick.']], ['Step', 'What happens']) },
+    { h: 'Winning and losing', ...tbl('160px 1fr', [['Win a fight', 'Every enemy is reduced to 0 HP.'], ['Lose', 'All five of your main Axies are down. Summoned Axie Eggs do not count.'], ['Win the run', 'Defeat the final boss on the last row of the map.']], ['', 'Condition']) },
+  ],
+  9: [
+    { h: 'Ascension rules (cumulative)', ...tbl('60px 150px 1fr', [['A1', 'Lean Pack', 'Shop prices +15% · selling refunds 40%, not 50%'], ['A2', 'Elite Escort', 'Every elite fight brings 1 extra monster'], ['A3', 'Short Dice', 'Base rerolls 2 → 1'], ['A4', 'Boss Clock', 'Full boss clock: from turn 10, +20%/turn, max +100%'], ['A5', 'Eternal Gift', 'Elite relics are Eternal (cannot be sold, max 2) · weakened Axie announced'], ['A6', 'First Pact', 'First boss forces a pact'], ['A7', 'Narrow Offer', 'Reward screens show 2 cards'], ['A8', 'Cramped Pack', 'Passive slots 8 → 7'], ['A9', 'Hunted', '+2 elites · boss clock from turn 8'], ['A10', 'Last Stand', 'Every boss forces a pact · no reward reroll']], ['Lv', 'Name', 'Rule']) },
+    { h: 'Boss clock and attrition', ...tbl('220px 1fr', [['Light clock · A0–A3', 'From turn 14: +10% per turn, max +30%.'], ['Full clock · A4+', 'From turn 10 (turn 8 at A9+): +20% per turn, max +100%.'], ['Attrition · every fight', 'From turn 6: +5% per turn, max +25% at turn 10.'], ['Intent shown', 'base × (1 + enrage + attrition) × spike, rounded half up. The plate shows the final number.']], ['', '']) },
+    { h: 'Aid prices (Gem) · 90 Gem ≈ 1 USD', ...tbl('1fr 120px 1fr', [['Continue', '90 · boss 180', 'defeat screen · 1 a run · Moon Card 68 / 135'], ['Extra reroll', '15 · 3-pack 38', '4 a run · 2 a fight · 1 a fight from A3'], ['Delay boss clock', '60', '1 a boss'], ['Swap pact', '15', '1 a pact'], ['Shop refresh', '18', '2 a run'], ['Scout', '12', '3 a run'], ['Starting Boon / Run Kit', '38 / 60', '1 Boon a run'], ['Total cap', '6 a run', '4 at A9–A10 · Boon counts']], ['Aid', 'Price', 'Cap']), fair: true },
+  ],
+  10: [{ h: 'Sample teams', p: 'Four compositions that work for new players. "Use this team" loads it into Run Setup with starter Axies; the same list is the Sample teams tab in Team presets.', teams: true }],
+  6: [{ h: 'Relics by rarity', ...tbl('60px 200px 110px 1fr', Array.from({ length: 13 }, (_, i) => [String(i + 1), ['Thornmail', 'Regrowth Seed', 'Ember Fang', 'Tide Shell', 'Venom Sac', 'Lucky Clover', 'Infinite Die', 'Moon Lantern', 'Stone Heart', 'Quill Pouch', 'Bubble Charm', 'Root Anchor', 'Gale Feather'][i], ['Common', 'Common', 'Rare', 'Rare', 'Common', 'Epic', 'Legendary', 'Epic', 'Rare', 'Common', 'Common', 'Rare', 'Epic'][i], ['Reflect 2 damage when hit', 'Heal 3 at turn start', '+2 damage on Horn faces', 'Back faces shield +2', 'Poison lasts 1 more turn', '+1 reroll on turn 1', 'Undo survives Reroll', 'Gain 1 Mana per crit', '+8 max HP to the front Axie', 'Tail faces hit +1 target', 'First shield each fight +4', 'Cannot be pushed below 1 HP once', 'Ears faces trigger twice'][i]]), ['#', 'Relic', 'Rarity', 'Effect']) }],
+};
+const SECT = ['Audio', 'Accessibility', 'Aid and spending', 'How to play', 'Run', 'Account', 'Language', 'Controls', 'About'];
+const tog = (on, t, d, x = {}) => ({ t, d, tog: on ? 'On' : 'Off', tBg: on ? '#7DBE4E' : '#9A7650', tX: on ? 33 : 3, bg: '#F8EBD2', bd: '2px solid #B89A74', sh: 'none', ...x });
+const segs = (opts, sel) => opts.map((t, i) => ({ t, bg: i === sel ? '#FF9345' : '#FFF8EA', ink: i === sel ? '#2A1505' : '#3A2214' }));
+const row = (t, d, x = {}) => ({ t, d, bg: '#F8EBD2', bd: '2px solid #B89A74', sh: 'none', ...x });
+const SECBTN = { btnBg: 'linear-gradient(180deg,#FFF8EA,#EBD3A8)', btnBd: '#24140B', btnInk: '#3A2214' };
+function settings(o) {
+  const l1 = !!o.l1;
+  const top = [
+    { h: 'Audio', rows: [row('Music', '', { slider: 60 }), row('Effects', '', { slider: 80 }), tog(false, 'Mute all', '', { sh: o.ring ? '0 0 0 4px #FFC445,0 0 0 7px #24140B' : 'none' })] },
+    { h: 'Accessibility', rows: [tog(!!o.rf, 'Reduce flashing and screen shake', 'Box openings, claim bursts, badges and level-ups use their static versions.'), row('Text size [INF]', '', { segs: segs(['100%', '115%', '130%'], 0) }), row('UI scale', '', { segs: segs(['90%', '100%', '110%'], 1) }), row('Colour-blind-safe glyphs', 'Always on: every mechanic colour ships with its glyph and word.', { btn: 'Always on', btnBg: '#E8D6B4', btnBd: '#9A7650', btnInk: '#6E4A30' })] },
+    { h: 'Aid and spending', rows: [tog(false, 'Hide Aid suggestions', 'Aid stays available in the tray, only the offers stop.'),
+      row('Spending limit (monthly)', l1 ? 'Applies when purchases open.' : 'This month: 14.97 USD spent. Limit takes effect immediately; raising it takes 24 hours [INF].', { segs: segs(['None', '10', '25', '50', '100', 'Custom'], l1 ? 0 : 3) })] },
+  ];
+  const bottom = [
+    { h: 'How to play', rows: [row('Replay tutorial', 'Plays the first-fight coach marks again.', { btn: 'Replay', ...SECBTN })] },
+    { h: 'Run', rows: [row(o.mission ? 'Abandon mission run' : 'Abandon run', o.mission ? 'You will lose your stake (500 Shard). This cannot be undone.' : 'Ends the open run as a loss. Aid you used is not refunded.', { btn: o.inRun ? 'Abandon…' : 'No open run', ...(o.inRun ? SECBTN : { btnBg: '#E8D6B4', btnBd: '#9A7650', btnInk: '#6E4A30' }) })] },
+    { h: 'Account', rows: [row(o.guest ? 'Playing as guest' : 'Liam · liam@skymavis.com', o.guest ? 'Progress stays on this computer.' : 'Sync: ✓ Saved · 14:02', { btn: o.guest ? 'Sign in' : 'Manage', ...(o.guest ? { btnBg: 'linear-gradient(180deg,#FFB070,#FF8A3A)', btnBd: '#24140B', btnInk: '#2A1505' } : SECBTN) })] },
+    { h: 'Language [INF]', rows: [row('English', 'Tiếng Việt and others later.', { btn: 'Change', ...SECBTN })] },
+    { h: 'Controls', rows: [row('Keyboard map', 'View the full map; remapping comes later.', { btn: 'View', ...SECBTN }), row('Gamepad', 'A select · B back · X reroll · Y end turn · LB/RB tabs [INF]', { btn: 'View', ...SECBTN })] },
+    { h: 'About', rows: [row('Terms · Privacy · Licences', 'Build L1-internal · 3 Nov 2026', { btn: 'Open', ...SECBTN })] },
+  ];
+  const secs = o.scroll ? bottom : o.inRun ? [bottom[1], top[1], top[0]] : top;
+  const active = o.scroll ? 3 : o.inRun ? 4 : 0;
+  return { settings: true, codex: false, land: false, px: 200, py: 116, pw: 1520, ph: 880, thumb: 'asc/fx/settings.svg', title: 'Settings', backLabel: o.inRun ? 'Back to run' : 'Back',
+    headSub: o.inRun ? 'Opened from the combat menu · the run is paused' : 'Every toggle states On / Off in words', sections: secs, sbTop: o.scroll ? 52 : 2, sbH: 46,
+    secNav: SECT.map((t, i) => ({ t, bg: i === active ? '#FFE3A6' : '#F8EBD2', bd: i === active ? '#24140B' : '#B89A74', ink: '#3A2214' })) };
+}
+const TIERS = [['Savannah', 0, 'radial-gradient(ellipse,#FAD27C,#DE9A3C)', 'Portal, House, Missions, Echo Box, Season Pass, Vault, Store · 3 preset slots'], ['Forest', 40000, 'radial-gradient(ellipse,#B8E08A,#5E9E3A)', '+3 preset slots (6) [INF] · decor up to Rare [INF]'],
+  ['Arctic', 100000, 'radial-gradient(ellipse,#F4FBF9,#B4D6D2)', 'Adds the Mastery Hall · +3 preset slots (9) [INF]'], ['Mystic', 180000, 'radial-gradient(ellipse,#D8C2F4,#7E5CB8)', 'Decor up to Epic [INF]'], ['Genesis', 500000, 'radial-gradient(ellipse,#FFE3A6,#D79A58)', 'Adds the Gallery'], ['LunaLanding', 1000000, 'radial-gradient(ellipse,#C9D6F2,#5A6EA8)', 'Decor up to Legendary [INF] · top tier']];
+function land(o) {
+  const cur = o.cur ?? 0, stone = o.stone ?? 3860, later = !!o.later;
+  let cum = 0;
+  const tiers = TIERS.map(([n, cost, ground, adds], i) => {
+    cum += cost;
+    const isCur = i === cur, next = i === cur + 1, done = i < cur;
+    const afford = later && next && stone >= cost;
+    let b;
+    if (isCur) b = { btn: i === TIERS.length - 1 ? 'Max tier' : 'Current', btnSub: '', btnBg: '#A8D878', btnBd: '#24140B', btnInk: '#183A0C', btnSh: 'none' };
+    else if (done) b = { btn: '✓ Built', btnSub: '', btnBg: '#A8D878', btnBd: '#24140B', btnInk: '#183A0C', btnSh: 'none' };
+    else if (!later) b = { btn: 'Not in this build', btnSub: next ? `needs ${fmt(Math.max(0, cost - stone))} more` : '', btnBg: '#DDBF8C', btnBd: '#9A7650', btnInk: '#6E4A30', btnSh: 'none' };
+    else if (afford) b = { btn: 'Upgrade', btnSub: `${fmt(cost)} Stone`, btnBg: 'linear-gradient(180deg,#FFB070,#FF8A3A)', btnBd: '#24140B', btnInk: '#2A1505', btnSh: '3px 5px 0 #8A3E22,0 0 0 7px #FFC445,0 0 0 10px #24140B' };
+    else b = { btn: next ? `Needs ${fmt(cost - stone)} more` : `Build ${TIERS[i - 1][0]} first`, btnSub: '', btnBg: '#DDBF8C', btnBd: '#9A7650', btnInk: '#6E4A30', btnSh: 'none' };
+    return { n, ground, adds, cost: cost ? fmt(cost) : '', cum: i > 1 ? `total ${fmt(cum)}` : '', state: isCur ? 'current tier' : done ? 'built' : i > cur + 1 ? 'locked' : 'next tier',
+      bg: isCur ? '#FFE3A6' : done ? '#F3E9D6' : '#FFF8EA', bd: isCur ? '#24140B' : next ? '#8A3E22' : '#B89A74', sh: isCur ? '3px 4px 0 rgba(74,34,14,.35)' : 'none', ink: '#3A2214', ink2: i > cur + 1 ? '#6E4A30' : '#3A2214', ...b };
+  });
+  return { land: true, codex: false, settings: false, px: 410, py: 176, pw: 1100, ph: 760, thumb: 'hl/i/stone.png', title: 'Land upgrade', backLabel: 'Back', headSub: later ? 'Spend Land Stone to grow the Land' : 'L1 playtest: Savannah only · every tier shown with its price', stone: fmt(stone), tiers };
+}
+function codex(t, x = {}) {
+  return { codex: true, settings: false, land: false, px: 200, py: 116, pw: 1520, ph: 880, thumb: 'hl/b/portal.png', title: 'Codex', backLabel: 'Back', headSub: 'Rule book · Guides', cTitle: RAIL[t], cLede: LEDE[t], blocks: BLOCKS[t] || [],
+    rail: RAIL.map((n, i) => ({ t: n.toUpperCase(), bg: i === t ? '#FF9345' : '#F8EBD2', bd: i === t ? '3px solid #24140B' : '2px solid #B89A74', ink: i === t ? '#2A1505' : '#3A2214', sh: i === t ? '0 3px 0 #8A3E22' : 'none' })), sbTop: 2, sbH: 40, ...x };
+}
+class Component extends DCLogic {
+  renderVals() {
+    const F = [];
+    const add = (id, caption, note, base, x = {}) => F.push({ id, caption, note, guest: false, stone: '3,860', modal: false, toast: '', ...base, ...x });
+    add('M10a', 'Codex · The Basics', 'Left rail: 10 existing tabs + Guides (11th). Body Work Sans 16, striped tables. Long tabs scroll inside the body with a visible bar.', codex(0));
+    add('M10b', 'Codex · Difficulty & Keys', 'Adds the Ascension list, clock + attrition numbers and the Aid price list with the fairness line verbatim.', codex(9, { sbTop: 30, sbH: 34 }));
+    add('M10c', 'Codex · Relic Table (scrolled)', 'Live data from RelicRegistry in the build; rows here are placeholders for layout. 133 relics → the body scrolls.', codex(6, { sbTop: 10, sbH: 12 }));
+    add('M10d', 'Codex · Guides', 'Sample teams with "Use this team" (loads into Run Setup).', codex(10));
+    add('M11a', 'Settings · top', 'Single column with H3 headers; every toggle shows On / Off as text. Focus starts on the first control.', settings({ ring: true }));
+    add('M11b', 'Settings · lower sections', 'Scrolled: How to play, Run, Account, Language, Controls, About. Scroll bar visible.', settings({ scroll: true }));
+    add('M11c', 'Settings · opened in a mission run', 'From the combat menu: Back returns to the run; the Run section comes first and states the stake loss.', settings({ inRun: true, mission: true }));
+    add('M11d', 'Settings · L1 · guest', 'L1: spending limit "Applies when purchases open". Reduce flashing switched on.', settings({ l1: true, rf: true, guest: true }), { guest: true });
+    add('M15a', 'Land upgrade · L1', 'Every Upgrade disabled with "Not in this build" (words, not a lock alone); all future tiers and prices readable.', land({ cur: 0, stone: 3860 }));
+    add('M15b', 'Land upgrade · can afford (later build)', 'Upgrade enabled when Stone ≥ cost; focus ring on it.', land({ cur: 0, stone: 41200, later: true }), { stone: '41,200' });
+    add('M15c', 'Land upgrade · confirm', 'Cannot be undone; decline same size, focus on Keep Stone.', land({ cur: 0, stone: 41200, later: true }), { stone: '41,200', modal: true, mLeft: 246, mTop: 200, mTitle: 'Spend 40,000 Stone?', mLines: ['Savannah becomes Forest. This cannot be undone.', 'Stone after: 1,200.'], mNo: 'Keep Stone', mYes: 'Upgrade to Forest' });
+    add('M15d', 'Land upgrade · cannot afford · success toast', 'After upgrading to Forest: toast confirms; Arctic needs more.', land({ cur: 1, stone: 1200, later: true }), { stone: '1,200', toast: 'Your Land is now Forest', toastSub: '+3 preset slots · new decor set' });
+    add('M15e', 'Land upgrade · max tier', 'Top tier reached; nothing to buy.', land({ cur: 5, stone: 82000, later: true }), { stone: '82,000' });
+    const only = (location.hash.match(/f=([\w,]+)/) || [])[1];
+    return { frames: only ? F.filter(f => only.split(',').includes(f.id)) : F,
+      teams: [['Wall and thorns', 'plant reptile plant aqua reptile', 'Two shields up front, thorns punish attackers, a healer keeps it going.'], ['Poison clock', 'bug aqua plant reptile aqua', 'Stack poison early, survive while it ticks. Good against high-HP bosses.'], ['Fast hitters', 'reptile beast bug aqua aqua', 'Spend every die on damage and end fights before the clock starts.'], ['Two healers', 'plant aqua plant reptile reptile', 'Forgiving for first runs: two heal faces cover most mistakes.']]
+        .map(([n, p, d]) => ({ n, d, p: p.split(' ').map(c => `asc/portrait/${c}.png`) })) };
+  }
+  componentDidMount() { this._h = () => this.forceUpdate(); window.addEventListener('hashchange', this._h); }
+  componentWillUnmount() { window.removeEventListener('hashchange', this._h); }
+}
+</script>
+</body>
+</html>

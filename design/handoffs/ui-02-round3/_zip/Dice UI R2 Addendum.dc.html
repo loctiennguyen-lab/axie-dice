@@ -1,0 +1,161 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<script src="_ds/dango-design-system-b8da985f-efd5-488e-ae62-d508e48befe9/_ds_bundle.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&amp;family=Work+Sans:wght@500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#2A1C12}
+a{color:#FF9345;text-decoration:none}a:hover{color:#FFB275}
+</style>
+</helmet>
+<div style="display:flex;flex-direction:column;gap:64px;padding:64px;width:max-content;background:#2A1C12;font-family:'Work Sans',sans-serif;color:#3A2214;-webkit-font-smoothing:antialiased">
+  <div style="display:flex;flex-direction:column;gap:8px;max-width:1920px">
+    <div style="font-family:'Baloo 2';font-weight:800;font-size:15px;letter-spacing:.18em;color:#D79A58">AXIE DICE · UI REQUEST 02 · ROUND 2 ADDENDUM (§B)</div>
+    <div style="font-family:'Baloo 2';font-weight:800;font-size:60px;line-height:1;color:#FFF8EA">Run flow gaps · B1–B10</div>
+    <div style="font-size:17px;line-height:1.5;color:#DDBF8C;max-width:1300px;text-wrap:pretty">The ten gaps listed in the Round 3 brief §B. Combat chrome is simplified to a stub (same anchors as R1 Combat) so the new element reads first. <a href="Dice UI R3 README.md">R3 README</a> · <a href="Dice UI R1 - Combat.dc.html">R1 Combat</a> · <a href="Dice UI R3 - Codex Settings Land.dc.html">← M10–M15</a></div>
+  </div>
+
+  <sc-for list="{{ frames }}" as="f" hint-placeholder-count="2">
+    <div data-screen-label="{{ f.id }}" style="display:flex;flex-direction:column;gap:12px">
+      <div style="display:flex;align-items:center;gap:12px">
+        <div style="height:34px;padding:0 12px;display:flex;align-items:center;border-radius:9px;background:#FF9345;border:3px solid #24140B;font-family:'Baloo 2';font-size:17px;font-weight:800;color:#2A1505">{{ f.id }}</div>
+        <div style="font-family:'Baloo 2';font-size:26px;font-weight:800;color:#FFF8EA">{{ f.caption }}</div>
+        <div style="font-size:14px;font-weight:600;color:#B89A74">1920 × 1080</div>
+      </div>
+      <div style="font-size:15px;color:#DDBF8C;max-width:1600px">{{ f.note }}</div>
+      <div style="position:relative;width:1920px;height:1080px;overflow:hidden;background:#3B2618">
+        <sc-if value="{{ f.arena }}" hint-placeholder-val="{{ true }}">
+          <img src="asc/bg/river.jpg" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;filter:saturate(.9)">
+          <div style="position:absolute;left:16px;right:16px;top:12px;height:64px;display:flex;align-items:center;gap:10px;padding:0 10px;border-radius:16px;background:linear-gradient(180deg,#F8EBD2,#EBD3A8);border:3px solid #24140B;box-sizing:border-box">
+            <sc-for list="{{ eight }}" as="x" hint-placeholder-count="8"><div style="width:44px;height:44px;border-radius:10px;background:#FFF8EA;border:2px solid #B89A74"></div></sc-for>
+            <div style="flex:1;display:flex;justify-content:center"><div style="width:300px;display:flex;flex-direction:column;align-items:center"><div style="font-family:'Baloo 2';font-weight:800;font-size:26px;line-height:1">{{ f.turn }}</div><div style="font-size:12px;font-weight:700;color:#6E4A30">{{ f.where }}</div></div></div>
+            <sc-if value="{{ f.mChip }}" hint-placeholder-val="{{ false }}"><div style="height:44px;display:flex;align-items:center;gap:6px;padding:0 10px;border-radius:10px;background:#3B2618;border:3px solid #24140B;font-family:'Baloo 2';font-weight:800;font-size:14px;color:#FFF8EA;box-sizing:border-box"><img src="hl/b/mastery.png" alt="" style="width:24px;height:24px">{{ f.mChip }}</div></sc-if>
+            <sc-if value="{{ f.badge }}" hint-placeholder-val="{{ true }}"><div style="height:44px;padding:0 12px;display:flex;align-items:center;border-radius:10px;background:#C9302B;border:3px solid #24140B;font-family:'Baloo 2';font-weight:800;font-size:20px;color:#FFF8EA;box-sizing:border-box">{{ f.badge }} ▾</div></sc-if>
+            <div style="height:44px;padding:0 12px;display:flex;align-items:center;gap:6px;border-radius:10px;background:#FFF8EA;border:3px solid #24140B;font-family:'Baloo 2';font-weight:800;font-size:17px;box-sizing:border-box"><img src="asc/fx/shard.png" alt="" style="width:24px;height:24px">340</div>
+            <div style="height:44px;padding:0 14px;display:flex;align-items:center;border-radius:10px;background:{{ f.menuBg }};border:3px solid #24140B;box-shadow:{{ f.menuSh }};font-family:'Baloo 2';font-weight:800;font-size:17px;box-sizing:border-box">Menu</div>
+          </div>
+          <sc-if value="{{ f.attr }}" hint-placeholder-val="{{ true }}"><div style="position:absolute;right:16px;top:88px;width:310px;height:60px;display:flex;align-items:center;gap:10px;padding:0 12px;border-radius:14px;background:#FFF8EA;border:3px solid #24140B;box-sizing:border-box"><img src="hl/icons/attrition.svg" alt="" style="width:30px;height:30px"><div style="display:flex;flex-direction:column"><div style="font-family:'Baloo 2';font-weight:800;font-size:17px;line-height:1">ATTRITION · NOT YET</div><div style="font-size:12px;font-weight:700;color:#6E4A30">starts turn 6 · +5%/turn · max +25%</div></div></div></sc-if>
+          <sc-if value="{{ f.boss }}" hint-placeholder-val="{{ false }}">
+            <div style="position:absolute;left:640px;top:92px;width:640px;height:104px;display:flex;border-radius:16px;background:linear-gradient(180deg,#FFF8EA,#EBD3A8);border:3px solid #24140B;overflow:hidden;box-sizing:border-box">
+              <div style="flex:1;padding:8px 12px;display:flex;flex-direction:column;gap:6px"><div style="display:flex;align-items:center;gap:8px"><div style="font-family:'Baloo 2';font-weight:800;font-size:24px;line-height:1">Grimroot Colossus</div><div style="height:20px;padding:0 6px;border-radius:5px;background:#3B2618;color:#FFF8EA;font-family:'Baloo 2';font-weight:800;font-size:12px;line-height:20px">BOSS</div></div><div style="height:30px;border-radius:9px;background:#4A2A1A;border:3px solid #24140B;overflow:hidden;box-sizing:border-box"><div style="width:100%;height:100%;background:linear-gradient(180deg,#F58A5E,#D9472B)"></div></div><div style="font-size:12px;font-weight:700;color:#6E4A30">640 / 640 · PHASE 1 OF 3</div></div>
+              <div style="width:128px;background:#DDBF8C;display:flex;flex-direction:column;align-items:center;justify-content:center"><div style="font-size:12px;font-weight:700">NEXT</div><div style="font-family:'Baloo 2';font-weight:800;font-size:44px;line-height:1">38</div><div style="font-size:12px;font-weight:700">Smash</div></div>
+            </div>
+            <sc-if value="{{ f.clockTab }}" hint-placeholder-val="{{ true }}"><div style="position:absolute;left:654px;top:192px;width:612px;height:32px;display:flex;align-items:center;gap:8px;padding:0 12px;border-radius:0 0 12px 12px;background:#3B2618;border:3px solid #24140B;border-top:0;box-sizing:border-box;font-family:'Baloo 2';font-weight:800;font-size:15px;color:#FFC79B"><img src="asc/new-icons/boss-clock.svg" alt="" style="width:20px;height:20px">{{ f.clockTab }}</div></sc-if>
+            <div style="position:absolute;left:740px;top:262px;width:440px;height:280px;border-radius:24px;border:3px dashed #FFF8EA;background:rgba(36,20,11,.18);display:flex;align-items:center;justify-content:center;font-family:'Baloo 2';font-weight:800;font-size:18px;color:#FFF8EA">BOSS 3D</div>
+          </sc-if>
+          <div style="position:absolute;left:248px;bottom:16px;display:flex;gap:16px;opacity:{{ f.trayOp }}">
+            <sc-for list="{{ five }}" as="x" hint-placeholder-count="5"><div style="width:272px;height:176px;border-radius:20px;background:linear-gradient(180deg,#F8EBD2,#EBD3A8);border:3px solid #8A3E22;display:flex;align-items:center;gap:10px;padding:12px;box-sizing:border-box"><div style="width:104px;height:104px;border-radius:22px;background:linear-gradient(180deg,#FFF8EA,#FFD9C9);border:3px solid #24140B;display:flex;align-items:center;justify-content:center;font-family:'Baloo 2';font-weight:800;font-size:34px">{{ x.v }}</div><div style="flex:1;display:flex;flex-direction:column;gap:6px"><div style="font-family:'Baloo 2';font-weight:800;font-size:18px">{{ x.n }}</div><div style="height:26px;border-radius:9px;background:#4A2A1A;border:3px solid #24140B;overflow:hidden;box-sizing:border-box"><div style="width:80%;height:100%;background:linear-gradient(180deg,#86D65E,#4FA62F)"></div></div></div></div></sc-for>
+          </div>
+          <div style="position:absolute;right:16px;bottom:16px;width:200px;height:104px;border-radius:16px;background:linear-gradient(180deg,#FFB070,#FF8A3A);border:4px solid #24140B;display:flex;flex-direction:column;align-items:center;justify-content:center;box-sizing:border-box;opacity:{{ f.trayOp }}"><div style="font-family:'Baloo 2';font-weight:800;font-size:28px;line-height:1;color:#2A1505">END TURN</div><div style="font-size:12px;font-weight:700;color:#4A2208">E · 5 dice unused</div></div>
+          <div style="position:absolute;right:16px;bottom:208px;width:200px;height:56px;border-radius:14px;background:linear-gradient(180deg,#FFF8EA,#EBD3A8);border:3px solid #24140B;display:flex;align-items:center;justify-content:center;gap:6px;font-family:'Baloo 2';font-weight:800;font-size:18px;box-sizing:border-box;opacity:{{ f.trayOp }}"><img src="hl/icons/reroll.svg" alt="" style="width:24px;height:24px">Reroll · 2 left</div>
+          <sc-if value="{{ f.aid }}" hint-placeholder-val="{{ true }}"><div style="position:absolute;left:16px;bottom:16px;width:216px;height:104px;border-radius:16px;background:linear-gradient(180deg,#FFF8EA,#E6DAF6);border:3px solid #4E2E8A;display:flex;align-items:center;gap:8px;padding:0 12px;box-sizing:border-box"><img src="hl/icons/aid.svg" alt="" style="width:44px;height:44px"><div style="display:flex;flex-direction:column"><div style="font-family:'Baloo 2';font-weight:800;font-size:22px;line-height:1">Aid ▴</div><div style="font-size:12px;font-weight:700;color:#3A2A50">used 0 of 6</div></div></div></sc-if>
+          <sc-if value="{{ f.noAid }}" hint-placeholder-val="{{ false }}"><div style="position:absolute;left:16px;bottom:16px;width:216px;min-height:56px;display:flex;align-items:center;gap:8px;padding:8px 12px;border-radius:14px;background:#3B2618;border:3px solid #24140B;box-sizing:border-box"><img src="asc/new-icons/lock.svg" alt="" style="width:24px;height:24px"><div style="font-family:'Baloo 2';font-weight:800;font-size:15px;line-height:1.15;color:#FFC79B">{{ f.noAid }}</div></div></sc-if>
+        </sc-if>
+
+        <sc-if value="{{ f.scrim }}" hint-placeholder-val="{{ false }}"><div style="position:absolute;inset:0;background:rgba(36,20,11,{{ f.scrim }})"></div></sc-if>
+
+        <sc-for list="{{ f.plates }}" as="p" hint-placeholder-count="0">
+          <div style="position:absolute;left:{{ p.x }}px;top:{{ p.y }}px;width:{{ p.w }}px;border-radius:{{ p.r }}px;background:{{ p.bg }};border:{{ p.bd }};box-shadow:4px 6px 0 rgba(36,20,11,.45);overflow:hidden;box-sizing:border-box">
+            <sc-if value="{{ p.head }}" hint-placeholder-val="{{ false }}"><div style="min-height:56px;display:flex;align-items:center;gap:10px;padding:8px 20px;background:{{ p.headBg }};border-bottom:4px solid #8A3E22"><sc-if value="{{ p.headIcon }}" hint-placeholder-val="{{ false }}"><img src="{{ p.headIcon }}" alt="" style="width:30px;height:30px"></sc-if><div style="font-family:'Baloo 2';font-weight:800;font-size:{{ p.headFs }}px;line-height:1.05;color:{{ p.headInk }}">{{ p.head }}</div><div style="flex:1"></div><div style="font-size:13px;font-weight:700;color:{{ p.headInk }}">{{ p.headR }}</div></div></sc-if>
+            <div style="padding:{{ p.pad }};display:flex;flex-direction:column;gap:10px">
+              <sc-for list="{{ p.lines }}" as="l" hint-placeholder-count="0"><div style="font-size:{{ l.fs }}px;font-weight:{{ l.w }};line-height:1.4;color:{{ l.ink }};font-family:{{ l.ff }}">{{ l.t }}</div></sc-for>
+              <sc-for list="{{ p.rows }}" as="r" hint-placeholder-count="0"><div style="min-height:44px;display:flex;align-items:center;gap:10px;padding:4px 12px;border-radius:12px;background:{{ r.bg }};border:2px solid {{ r.bd }}"><sc-if value="{{ r.icon }}" hint-placeholder-val="{{ false }}"><img src="{{ r.icon }}" alt="" style="width:24px;height:24px"></sc-if><div style="flex:1;display:flex;flex-direction:column"><div style="font-family:'Baloo 2';font-weight:800;font-size:16px;line-height:1.15;color:{{ r.ink }}">{{ r.t }}</div><sc-if value="{{ r.d }}" hint-placeholder-val="{{ false }}"><div style="font-size:13px;font-weight:600;color:{{ r.ink2 }}">{{ r.d }}</div></sc-if></div><div style="font-family:'Baloo 2';font-weight:800;font-size:17px;color:{{ r.ink }}">{{ r.v }}</div></div></sc-for>
+              <sc-if value="{{ p.cards }}" hint-placeholder-val="{{ false }}"><div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px"><sc-for list="{{ p.cards }}" as="c" hint-placeholder-count="3"><div style="display:flex;flex-direction:column;align-items:center;gap:8px;padding:16px 12px;border-radius:18px;background:#FFF8EA;border:3px solid {{ c.bd }};box-shadow:{{ c.sh }};text-align:center"><img src="{{ c.icon }}" alt="" style="width:56px;height:56px"><div style="font-family:'Baloo 2';font-weight:800;font-size:19px;line-height:1.1">{{ c.t }}</div><div style="font-size:13px;font-weight:600;color:#6E4A30">{{ c.d }}</div></div></sc-for></div></sc-if>
+              <sc-if value="{{ p.btns }}" hint-placeholder-val="{{ false }}"><div style="display:grid;grid-template-columns:{{ p.cols }};gap:12px"><sc-for list="{{ p.btns }}" as="b" hint-placeholder-count="2"><div style="height:{{ b.h }}px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;padding:0 8px;border-radius:14px;background:{{ b.bg }};border:3px solid #24140B;box-shadow:{{ b.sh }};text-align:center;box-sizing:border-box"><div style="display:flex;align-items:center;gap:5px;font-family:'Baloo 2';font-weight:800;font-size:19px;line-height:1.05;color:{{ b.ink }}"><sc-if value="{{ b.icon }}" hint-placeholder-val="{{ false }}"><img src="{{ b.icon }}" alt="" style="width:20px;height:20px"></sc-if>{{ b.t }}</div><sc-if value="{{ b.s }}" hint-placeholder-val="{{ false }}"><div style="font-size:12px;font-weight:700;color:{{ b.ink }}">{{ b.s }}</div></sc-if></div></sc-for></div></sc-if>
+            </div>
+          </div>
+        </sc-for>
+
+        <sc-if value="{{ f.seq }}" hint-placeholder-val="{{ false }}">
+          <div style="position:absolute;left:60px;right:60px;top:120px;display:flex;flex-direction:column;gap:28px">
+            <sc-for list="{{ f.seq }}" as="row" hint-placeholder-count="2">
+              <div style="display:flex;flex-direction:column;gap:12px">
+                <div style="font-family:'Baloo 2';font-weight:800;font-size:22px;color:#FFC79B">{{ row.h }}</div>
+                <div style="display:flex;align-items:center;gap:10px">
+                  <sc-for list="{{ row.steps }}" as="s" hint-placeholder-count="7">
+                    <div style="width:{{ s.w }}px;min-height:150px;display:flex;flex-direction:column;gap:6px;padding:12px;border-radius:16px;background:{{ s.bg }};border:3px solid {{ s.bd }};box-sizing:border-box"><div style="display:flex;align-items:center;gap:6px"><img src="{{ s.icon }}" alt="" style="width:26px;height:26px"><div style="font-family:'Baloo 2';font-weight:800;font-size:17px;line-height:1.05">{{ s.t }}</div></div><div style="font-size:13px;font-weight:600;line-height:1.4;color:#6E4A30">{{ s.d }}</div><div style="flex:1"></div><div style="font-size:12px;font-weight:700;color:#8A3E22">{{ s.ref }}</div></div>
+                    <sc-if value="{{ s.arrow }}" hint-placeholder-val="{{ true }}"><div style="font-family:'Baloo 2';font-weight:800;font-size:28px;color:#FFC79B">→</div></sc-if>
+                  </sc-for>
+                </div>
+              </div>
+            </sc-for>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ f.map }}" hint-placeholder-val="{{ false }}">
+          <img src="asc/bg/crossroad.jpg" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;filter:saturate(.8) brightness(.95)">
+          <div style="position:absolute;left:560px;top:80px;width:800px;height:920px">
+            <sc-for list="{{ f.nodes }}" as="n" hint-placeholder-count="12"><div style="position:absolute;left:{{ n.x }}px;top:{{ n.y }}px;width:88px;height:88px;border-radius:50%;background:{{ n.bg }};border:4px solid #24140B;display:flex;align-items:center;justify-content:center;box-sizing:border-box;opacity:{{ n.op }}"><img src="{{ n.icon }}" alt="" style="width:52px;height:52px;opacity:{{ n.iop }}"></div></sc-for>
+          </div>
+          <div style="position:absolute;right:40px;top:120px;width:380px;display:flex;flex-direction:column;gap:10px;padding:16px;border-radius:20px;background:linear-gradient(180deg,#F8EBD2,#EBD3A8);border:4px solid #8A3E22;box-shadow:4px 6px 0 rgba(36,20,11,.45)">
+            <div style="font-family:'Baloo 2';font-weight:800;font-size:20px">Map legend · A9</div>
+            <sc-for list="{{ legend }}" as="l" hint-placeholder-count="5"><div style="display:flex;align-items:center;gap:10px"><img src="{{ l.icon }}" alt="" style="width:28px;height:28px"><div style="flex:1;font-size:14px;font-weight:700">{{ l.t }}</div></div></sc-for>
+            <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:12px;background:#FFE3A6;border:3px solid #24140B"><img src="asc/fx/elite.png" alt="" style="width:30px;height:30px"><div style="display:flex;flex-direction:column"><div style="font-family:'Baloo 2';font-weight:800;font-size:18px">Elites on this map: 5 (A9 +2)</div><div style="font-size:12px;font-weight:700;color:#6E4A30">Positions stay in the fog 2+ rows ahead [INF · Liam decides]</div></div></div>
+            <div style="font-size:12px;font-weight:600;line-height:1.4;color:#6E4A30">Node previews (A2 escort, A5 Eternal, weaken) appear only on visible nodes, as before.</div>
+          </div>
+        </sc-if>
+      </div>
+    </div>
+  </sc-for>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+const PRI = { bg: 'linear-gradient(180deg,#FFB070,#FF8A3A)', ink: '#2A1505', sh: 'inset 2px 2px 0 rgba(255,248,234,.65),3px 5px 0 #8A3E22' };
+const SEC = { bg: 'linear-gradient(180deg,#FFF8EA,#EBD3A8)', ink: '#3A2214', sh: '3px 5px 0 rgba(74,34,14,.35)' };
+const GEM = { bg: 'linear-gradient(180deg,#C2A6F4,#9A72E6)', ink: '#1E1236', sh: 'inset 2px 2px 0 rgba(255,248,234,.5),3px 5px 0 #4E2E8A' };
+const RING = ',0 0 0 7px #FFC445,0 0 0 10px #24140B';
+const B = (t, k, x = {}) => ({ t, h: 60, ...(k === 'p' ? PRI : k === 'g' ? GEM : SEC), ...x });
+const L = (t, x = {}) => ({ t, fs: 16, w: 600, ink: '#3A2214', ff: "'Work Sans'", ...x });
+const R = (t, d, v, icon, x = {}) => ({ t, d, v, icon, bg: '#FFF8EA', bd: '#B89A74', ink: '#3A2214', ink2: '#6E4A30', ...x });
+const plate = (x) => ({ x: 660, y: 240, w: 600, r: 24, bg: 'linear-gradient(180deg,#F8EBD2,#EBD3A8)', bd: '4px solid #8A3E22', head: '', headBg: 'linear-gradient(180deg,#D79A58,#B87440)', headInk: '#2A1505', headFs: 24, headIcon: '', headR: '', pad: '18px 22px 22px', lines: [], rows: [], cards: null, btns: null, cols: '1fr 1fr', ...x });
+const base = { arena: true, turn: 'TURN 3', where: 'Act 1 · Floor 4 · fight', badge: 'A6', attr: true, aid: true, noAid: '', mChip: '', boss: false, clockTab: '', trayOp: 1, scrim: '', plates: [], seq: null, map: false, menuBg: 'linear-gradient(180deg,#FFF8EA,#EBD3A8)', menuSh: 'none' };
+const step = (t, d, ref, icon, x = {}) => ({ t, d, ref, icon, w: 230, bg: '#FFF8EA', bd: '#8A3E22', arrow: true, ...x });
+class Component extends DCLogic {
+  renderVals() {
+    const F = [];
+    const add = (id, caption, note, x) => F.push({ id, caption, note, ...base, ...x });
+    add('B1a', 'Sequence · boss node to map, act end, run end', 'Where the boss intro and the pact screen sit. Each plate names the frame that draws it.', { arena: false, seq: [
+      { h: 'Boss node', steps: [step('Map', 'Player picks the boss node.', 'R2 map', 'asc/node/boss.png'), step('Boss intro', 'Name, phases, clock line. Delay clock offer (60 Gem, 1 a boss).', 'B1b', 'asc/new-icons/boss-clock.svg', { bg: '#FFE3A6', bd: '#24140B' }), step('Fight', 'Combat as R1. Defeat → 03a–c.', 'R1 02a–02o', 'asc/fx/dmg.png'), step('Victory', 'Banner, "Pick your reward".', 'R1 02j', 'asc/fx/buff.svg'), step('Pact', 'A6 first boss / A10 every boss forced; Swap pact 15 Gem.', 'Asc v2 3.6', 'asc/new-icons/pact.svg'), step('Reward', 'Shared reward frame (2 cards at A7+).', 'R2 reward', 'asc/fx/chest.png'), step('Map', 'Next act, or run end.', 'B1c / B1d', 'asc/node/battle.png', { arrow: false })] },
+      { h: 'After the last boss of an act / of the run', steps: [step('Act complete', 'Act-end banner over the arena: act name, bosses left, party healed. One button "Continue to Act 2".', 'B1c', 'asc/node/treasure.png', { w: 300, bg: '#FFE3A6', bd: '#24140B' }), step('Run complete', 'Last boss: "Run complete" banner, then the Result screen (win, R2).', 'B1d', 'asc/fx/boss.png', { w: 300, bg: '#FFE3A6', bd: '#24140B' }), step('Result', 'Win result exists (R2). Loss result is new: B6.', 'R2 · B6', 'asc/fx/elite.png', { w: 300, arrow: false })] },
+    ] });
+    add('B1b', 'Boss intro · clock line · Delay clock offer', 'Shown before the first turn of a boss fight. The offer is once, no timer, decline same size. Newcomers and mission runs get the intro without the offer.', { boss: true, turn: 'TURN 1', where: 'Act 1 · Floor 8 · boss', clockTab: 'ENRAGE IN 9 · then +20%/turn', scrim: '.45', trayOp: .5, plates: [plate({ x: 560, y: 300, w: 800, head: 'Grimroot Colossus · Act 1 boss', headIcon: 'asc/fx/boss.png', headR: 'A6 · pact after this boss', lines: [L('640 HP · 3 phases. Big hit every 4 turns. Enrage from turn 10: +20% per turn, max +100% (turn 14). Attrition from turn 6 adds +5% per turn, max +25%.')],
+      rows: [R('Delay boss clock', 'Enrage starts 2 turns later (turn 12). 1 a boss · Aid this run 0 of 6', '', 'asc/new-icons/boss-clock.svg', { bg: '#E6DAF6', bd: '#4E2E8A', ink: '#1E1236', ink2: '#3A2A50' })],
+      btns: [B('Start the fight', 's', { sh: SEC.sh + RING, s: 'Enter' }), B('Delay clock · 60 Gem', 'g', { s: '≈ 0.67 USD', icon: 'hl/i/gem.png' })] })] });
+    add('B1c', 'Act end', 'After the act\u2019s boss + pact + reward. Party heals; attrition and clock reset with the next fight.', { boss: false, scrim: '.55', trayOp: .4, plates: [plate({ x: 560, y: 300, w: 800, bg: 'linear-gradient(180deg,#FFD78A,#FFB23F)', bd: '4px solid #24140B', pad: '28px 28px 26px', lines: [L('ACT 1 COMPLETE', { fs: 56, w: 800, ff: "'Baloo 2'", ink: '#2A1505' }), L('Grimroot Colossus beaten on turn 13 · 2 bosses left (Short) · party healed to full', { fs: 17, w: 700, ink: '#3A1E07' })], btns: [B('Continue to Act 2', 'p', { sh: PRI.sh + RING })], cols: '1fr' })] });
+    add('B1d', 'Run end (win) → Result', 'Last boss down: banner, then the win Result (R2). The banner never offers anything for sale.', { boss: false, scrim: '.6', trayOp: .3, plates: [plate({ x: 560, y: 300, w: 800, bg: 'linear-gradient(180deg,#FFD78A,#FFB23F)', bd: '4px solid #24140B', pad: '28px 28px 26px', lines: [L('RUN COMPLETE', { fs: 56, w: 800, ff: "'Baloo 2'", ink: '#2A1505' }), L('3 of 3 bosses · A6 · Short · 41 turns · Aid used 1', { fs: 17, w: 700, ink: '#3A1E07' })], btns: [B('See results', 'p', { sh: PRI.sh + RING })], cols: '1fr' })] });
+    add('B2', 'Starting Boon pick (1 of 3) · strip component', 'Opens at the start of a run that bought a Boon (or Kit / Moon Card Boon). Boon names are placeholders [INF]. The Kit/Boon strip itself is drawn in M1 (Run Setup) and reused as is.', { arena: false, scrim: '', plates: [plate({ x: 360, y: 200, w: 1200, head: 'Pick your Boon', headR: 'From: Starting Boon · counts as 1 of 6 Aid · max 1 Boon a run', cards: [
+      { icon: 'asc/fx/reroll.svg', t: '+1 reroll in the first fight', d: 'Placeholder Boon [INF]', bd: '#FFC445', sh: '0 0 0 4px #FFC445,0 0 0 7px #24140B' }, { icon: 'asc/fx/shield.png', t: 'Shield in turn 1 of the first fight', d: 'Placeholder Boon [INF]', bd: '#8A3E22', sh: 'none' }, { icon: 'asc/fx/heal.png', t: 'Heal 10 after the first elite', d: 'Placeholder Boon [INF]', bd: '#8A3E22', sh: 'none' }],
+      lines: [L('← → choose · Enter takes it. The Boon was paid at Begin; picking cannot be skipped, so nothing is lost.', { fs: 14, ink: '#6E4A30' })], btns: [B('Take this Boon', 'p')], cols: '1fr' })] });
+    add('B3a', 'Newcomer in a run (first 5 runs)', 'No Aid button (not a dead one), no attrition card, no light clock tab, no paid offers. A0 also hides the Ascension badge (B10).', { aid: false, attr: false, badge: '', turn: 'TURN 3', where: 'Act 1 · Floor 2 · fight · run 2 of 5' });
+    add('B3b', 'Mission run · no Aid', 'Mission chip in the top HUD; the Aid slot shows a static plate "No Aid in this mission". Attrition and clock behave as in the mission rules.', { aid: false, noAid: 'No Aid in this mission', mChip: 'N3 · A6 · Spike rush · Heavy blows', badge: 'A6' });
+    add('B4', 'In-run menu', 'Menu button (focused) opens a 600 modal. Abandon shows its consequence before the confirm. Cancel same size as Abandon.', { scrim: '.55', menuBg: '#FFE3A6', menuSh: '0 0 0 4px #FFC445,0 0 0 7px #24140B', plates: [plate({ x: 660, y: 200, head: 'Menu · run paused', headR: 'Esc closes', btns: [B('Resume', 'p', { sh: PRI.sh + RING, s: 'Esc' }), B('Settings', 's'), B('Codex', 's'), B('Abandon run…', 's', { s: 'Aid you used is not refunded' })], cols: '1fr' }), plate({ x: 1300, y: 420, w: 560, head: 'Abandon this run?', headBg: 'linear-gradient(180deg,#4A3A30,#3B2618)', headInk: '#FFF8EA', lines: [L('The run ends as a loss. Aid you used is not refunded.'), L('Mission run: "You lose your stake (500 Shard)."', { fs: 14, ink: '#6E4A30' })], btns: [B('Cancel', 's', { sh: SEC.sh + RING }), B('Abandon run', 'p')] })] });
+    add('B5a', 'Connection · Rolling… and Reconnecting…', 'Rolling…: a chip in the turn plate under 1 s, no layout change. Reconnecting: banner under the HUD, input paused, the run is kept and not counted as abandoned.', { turn: 'TURN 4 · Rolling…', trayOp: .6, plates: [plate({ x: 560, y: 96, w: 800, r: 16, bg: '#3B2618', bd: '3px solid #24140B', pad: '12px 18px', lines: [L('Reconnecting… Your run is kept. Input is paused until the server answers.', { fs: 17, w: 700, ink: '#FFF8EA' }), L('Mission runs: your stake is safe.', { fs: 14, ink: '#DDBF8C' })] })] });
+    add('B5b', 'Connection · Offline, cannot continue', 'After the reconnect window: modal with Try again / Back to Land. The run stays open for later.', { scrim: '.6', trayOp: .5, plates: [plate({ head: 'Offline — cannot continue', headBg: 'linear-gradient(180deg,#4A3A30,#3B2618)', headInk: '#FFF8EA', lines: [L('The server rolls the dice, so the fight cannot go on without it. Your run is saved at the start of this turn.'), L('Mission run: your stake is safe.', { fs: 14, ink: '#6E4A30' })], btns: [B('Try again', 'p', { sh: PRI.sh + RING }), B('Back to Land', 's')] })] });
+    add('B6', 'Run result · loss', 'After "End run" on the defeat screen. Neutral and specific; no sale. Mission runs show the M6 result instead.', { arena: false, plates: [plate({ x: 360, y: 140, w: 1200, head: 'Run over · Act 2 boss · A6', headBg: 'linear-gradient(180deg,#4A3A30,#3B2618)', headInk: '#FFF8EA', headR: 'Normal · Short · 11 Oct 2026', rows: [
+      R('Grimroot Colossus beat your party on turn 14', 'Boss had 132 / 640 HP left · clock +100% · big hit was due in 1 turn', '', 'asc/fx/boss.png'), R('Reached', '2 of 3 bosses · 11 floors · 39 turns', '', 'asc/node/battle.png'), R('Kept', 'Gene Shard earned this run', '+212', 'asc/fx/shard.png'), R('Season Pass XP', 'Counted toward today\u2019s cap (1,180 of 1,500)', '+420', 'hl/b/pass.png'), R('Leaderboard', 'Counts as a loss on A6 · All (Aid used 1)', '', 'hl/icons/aid.svg')],
+      btns: [B('Back to Land', 's', { sh: SEC.sh + RING }), B('New run', 'p')] })] });
+    add('B7', 'Fog vs A9 elites [INF]', 'Proposal: the legend states the elite count; positions stay fogged 2+ rows ahead. Liam decides.', { arena: false, map: true,
+      nodes: [[356, 820, 'battle', 1], [196, 680, 'battle', 1], [516, 680, 'merchant', 1], [100, 540, 'event', 1], [356, 540, 'elite', 1], [612, 540, 'battle', 1], [196, 400, 'x', .9], [516, 400, 'x', .9], [100, 260, 'x', .8], [356, 260, 'x', .8], [612, 260, 'x', .8], [356, 100, 'boss', 1]]
+        .map(([x, y, t, op]) => ({ x, y, op, icon: t === 'x' ? 'asc/new-icons/lock.svg' : `asc/node/${t}.png`, iop: t === 'x' ? .35 : 1, bg: t === 'x' ? '#8A7A6A' : '#FFF8EA' })) });
+    add('B8', 'Relic detail card', 'Hover / focus on a relic chip. 360 wide under the top HUD, aligned to the chip.', { plates: [plate({ x: 24, y: 88, w: 380, r: 18, head: 'Thornmail', headIcon: 'asc/fx/thorns.png', headFs: 22, headR: 'EPIC', pad: '12px 16px 16px', lines: [L('Passive · Reflect 2 damage to the attacker each time an ally is hit.', { fs: 15 }), L('ETERNAL · cannot be sold (A5 elite reward)', { fs: 13, w: 800, ink: '#8A3E22', ff: "'Baloo 2'" })], rows: [R('Sell value', 'Eternal relics cannot be sold', '—', 'asc/fx/shard.png'), R('Tags', 'defence · on-hit · reptile synergy', '', 'asc/fx/buff.svg')] })] });
+    add('B9', 'Tutorial coach-mark (optional)', 'One component: plate + arrow + Next / Skip. Points at a live element; everything else stays usable.', { plates: [plate({ x: 560, y: 600, w: 460, r: 18, head: 'Reroll', headFs: 22, headR: 'Tip 2 of 6', pad: '12px 16px 16px', lines: [L('Pick dice you want to change, then press Reroll. Pick none and all five reroll.', { fs: 15 }), L('↓ points at Reroll', { fs: 12, ink: '#6E4A30' })], btns: [B('Skip tips', 's', { h: 48 }), B('Next', 'p', { h: 48, sh: PRI.sh + RING })] })] });
+    add('B10', 'Light clock at A0', 'The clock tab stays (light: 3 pips, from turn 14); the Ascension badge is hidden at A0 because A0 has no rules. Stated once by the run rail "SHORT · A0".', { boss: true, badge: '', turn: 'TURN 12', where: 'Act 1 · Floor 8 · boss · A0', clockTab: 'ENRAGE IN 2 · then +10%/turn · max +30%' });
+    const only = (location.hash.match(/f=([\w,]+)/) || [])[1];
+    return { frames: only ? F.filter(f => only.split(',').includes(f.id)) : F, eight: [1, 2, 3, 4, 5, 6, 7, 8],
+      five: [['Rex', 6], ['Bubbles', 4], ['Buzz', 3], ['Moss', 5], ['Fang', 8]].map(([n, v]) => ({ n, v })),
+      legend: [['asc/node/battle.png', 'Fight'], ['asc/node/elite.png', 'Elite (visible rows only)'], ['asc/node/merchant.png', 'Shop'], ['asc/node/event.png', 'Event'], ['asc/new-icons/lock.svg', 'Fog: 2+ rows ahead, type hidden']].map(([icon, t]) => ({ icon, t })) };
+  }
+  componentDidMount() { this._h = () => this.forceUpdate(); window.addEventListener('hashchange', this._h); }
+  componentWillUnmount() { window.removeEventListener('hashchange', this._h); }
+}
+</script>
+</body>
+</html>

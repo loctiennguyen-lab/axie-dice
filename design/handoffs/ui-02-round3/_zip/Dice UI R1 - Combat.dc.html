@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<script src="_ds/dango-design-system-b8da985f-efd5-488e-ae62-d508e48befe9/_ds_bundle.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&amp;family=Work+Sans:wght@500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#2A1C12}
+a{color:#FF9345;text-decoration:none}a:hover{color:#FFB275}
+</style>
+</helmet>
+<div style="display:flex;flex-direction:column;gap:64px;padding:64px;width:max-content;background:#2A1C12;font-family:'Work Sans',sans-serif;color:#3A2214;-webkit-font-smoothing:antialiased;font-variant-numeric:tabular-nums">
+  <div style="display:flex;flex-direction:column;gap:8px;max-width:1920px">
+    <div style="font-family:'Baloo 2';font-weight:800;font-size:15px;letter-spacing:.18em;color:#D79A58">AXIE DICE · UI REQUEST 02 · ROUND 1 · 02 + 03</div>
+    <div style="font-family:'Baloo 2';font-weight:800;font-size:60px;line-height:1;color:#FFF8EA">Combat, Aid offers, defeat</div>
+    <div style="font-size:17px;line-height:1.5;color:#DDBF8C;max-width:1400px;text-wrap:pretty">Full 3D arena: monsters in the upper half facing camera, the 5 Axies in the lower half with their backs to camera. HUD lives on the edges. Party HP lives only in the dice tray; nothing from the party ever overlaps a monster, its nameplate or its intent. Paid Aid sits bottom-left; Undo, Reroll and END TURN sit bottom-right, 1,472 px away. Keyboard map at the end of the page. <a href="Dice UI R1 - Land Hub.dc.html">← Land hub</a></div>
+  </div>
+
+  <sc-for list="{{ frames }}" as="f" hint-placeholder-count="3">
+    <div data-screen-label="{{ f.id }}" style="display:flex;flex-direction:column;gap:12px">
+      <div style="display:flex;align-items:center;gap:12px">
+        <div style="height:34px;padding:0 12px;display:flex;align-items:center;border-radius:9px;background:#FF9345;border:3px solid #24140B;font-family:'Baloo 2';font-size:17px;font-weight:800;color:#2A1505">{{ f.id }}</div>
+        <div style="font-family:'Baloo 2';font-size:26px;font-weight:800;color:#FFF8EA">{{ f.caption }}</div>
+        <div style="font-size:14px;font-weight:600;color:#B89A74">1920 × {{ f.H }}</div>
+      </div>
+      <div style="font-size:15px;color:#DDBF8C;max-width:1700px;text-wrap:pretty">{{ f.note }}</div>
+
+      <div style="position:relative;width:1920px;height:{{ f.H }}px;overflow:hidden;background:linear-gradient(180deg,#9FD6EA 0%,#CFE8E6 {{ f.horizonPct }}%,#F2C46A {{ f.horizonPct2 }}%,#E8A848 70%,#C98A3E 100%)">
+        <!-- arena (Homeland kit, 3D) -->
+        <div style="position:absolute;left:-200px;right:-200px;top:{{ f.horizon }}px;height:120px;background:linear-gradient(180deg,rgba(138,62,34,0),rgba(138,62,34,.10))"></div>
+        <img src="hl/e/s_tree02.png" alt="" style="position:absolute;left:-30px;top:{{ f.treeY }}px;width:300px">
+        <img src="hl/e/s_tree03.png" alt="" style="position:absolute;left:1660px;top:{{ f.treeY }}px;width:290px">
+        <img src="hl/e/s_tree01.png" alt="" style="position:absolute;left:250px;top:{{ f.treeY2 }}px;width:150px">
+        <img src="hl/e/s_rock02.png" alt="" style="position:absolute;left:1520px;top:{{ f.rockY }}px;width:200px">
+        <img src="hl/e/s_shrub01.png" alt="" style="position:absolute;left:60px;top:{{ f.rockY }}px;width:160px">
+        <img src="hl/e/s_shrub03.png" alt="" style="position:absolute;left:1740px;top:{{ f.rockY2 }}px;width:150px">
+        <div style="position:absolute;left:24px;bottom:{{ f.arenaTagBottom }}px;font-family:'Baloo 2';font-weight:700;font-size:13px;color:rgba(90,40,18,.55)">Savannah arena · Homeland kit · 3D scene</div>
+
+        <!-- ENEMIES -->
+        <sc-for list="{{ f.enemies }}" as="e" hint-placeholder-count="3">
+          <div style="position:absolute;left:{{ e.boxX }}px;top:{{ e.boxY }}px;width:{{ e.boxW }}px;height:{{ e.boxH }}px;opacity:{{ e.boxOp }}">
+            <sc-if value="{{ e.ring }}" hint-placeholder-val="{{ false }}"><div style="position:absolute;left:-20px;right:-20px;bottom:-26px;height:64px;border-radius:50%;border:5px solid #FFC445;box-shadow:0 0 0 3px #24140B,0 0 28px 8px rgba(255,196,69,.65);background:rgba(255,196,69,.18)"></div></sc-if>
+            <div style="position:absolute;left:10px;right:10px;bottom:-14px;height:34px;border-radius:50%;background:rgba(74,34,14,.25)"></div>
+            <div style="position:absolute;inset:0;border-radius:28px;border:3px dashed #8A3E22;background:rgba(255,248,234,.30);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px">
+              <div style="font-family:'Baloo 2';font-weight:800;font-size:{{ e.labelSize }}px;color:#5A2812">{{ e.boxLabel }}</div>
+              <div style="font-size:12px;font-weight:700;color:#8A3E22">facing camera · {{ e.boxW }}×{{ e.boxH }}</div>
+            </div>
+            <sc-if value="{{ e.float }}" hint-placeholder-val="{{ false }}"><div style="position:absolute;left:0;right:0;top:40px;text-align:center;font-family:'Baloo 2';font-weight:800;font-size:56px;color:#FFF8EA;text-shadow:-3px -3px 0 #24140B,3px -3px 0 #24140B,-3px 3px 0 #24140B,3px 3px 0 #24140B,0 -3px 0 #24140B,0 3px 0 #24140B,-3px 0 0 #24140B,3px 0 0 #24140B,3px 6px 0 #24140B">{{ e.float }}</div></sc-if>
+          </div>
+
+          <div style="position:absolute;left:{{ e.plateX }}px;top:{{ e.plateY }}px;width:{{ e.plateW }}px;opacity:{{ e.plateOp }}">
+            <div style="position:relative;z-index:2;display:flex;border-radius:16px;background:linear-gradient(180deg,#FFF8EA,#EBD3A8);border:{{ e.border }};box-shadow:inset 2px 2px 0 rgba(255,248,234,.65),3px 5px 0 rgba(74,34,14,.35);overflow:hidden">
+              <div style="flex:1 1 auto;min-width:0;padding:8px 10px 8px 12px;display:flex;flex-direction:column;gap:5px">
+                <div style="display:flex;align-items:center;gap:6px"><div style="font-family:'Baloo 2';font-weight:800;font-size:{{ e.nameSize }}px;line-height:1.1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ e.name }}</div><sc-if value="{{ e.tag }}" hint-placeholder-val="{{ false }}"><div style="height:20px;padding:0 6px;border-radius:6px;background:#3B2618;color:#FFF8EA;font-family:'Baloo 2';font-weight:800;font-size:12px;display:flex;align-items:center">{{ e.tag }}</div></sc-if></div>
+                <div style="position:relative;height:{{ e.barH }}px;border-radius:8px;background:#4A2A1A;border:3px solid #24140B;overflow:hidden">
+                  <div style="position:absolute;left:0;top:0;bottom:0;width:{{ e.hpPct }}%;background:linear-gradient(180deg,#F58A5E,#D9472B)"></div>
+                  <sc-if value="{{ e.prev }}" hint-placeholder-val="{{ false }}"><div style="position:absolute;top:0;bottom:0;left:{{ e.prevL }}%;width:{{ e.prevW }}%;background:repeating-linear-gradient(135deg,#FFC445 0 6px,#E8A23A 6px 12px)"></div></sc-if>
+                  <sc-for list="{{ e.marks }}" as="m" hint-placeholder-count="0"><div style="position:absolute;top:0;bottom:0;left:{{ m }}%;width:3px;background:#24140B"></div></sc-for>
+                  <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:'Baloo 2';font-weight:800;font-size:{{ e.hpSize }}px;color:#FFF8EA;text-shadow:-2px 0 0 #24140B,2px 0 0 #24140B,0 -2px 0 #24140B,0 2px 0 #24140B,-1px -1px 0 #24140B,1px 1px 0 #24140B">{{ e.hpText }}</div>
+                </div>
+                <sc-if value="{{ e.boss }}" hint-placeholder-val="{{ false }}"><div style="display:flex;justify-content:space-between;font-family:'Baloo 2';font-weight:800;font-size:12px;color:#6E4A30;margin-top:-3px"><span>PHASE {{ e.phase }} OF 3</span><span>phase marks 66% · 33%</span></div></sc-if>
+                <div style="display:flex;align-items:center;gap:4px;height:26px">
+                  <sc-for list="{{ e.chips }}" as="c" hint-placeholder-count="0">
+                    <div style="height:26px;padding:0 6px 0 3px;display:flex;align-items:center;gap:2px;border-radius:8px;background:{{ c.bg }};border:2px solid #24140B;box-sizing:border-box"><img src="{{ c.icon }}" alt="" style="width:18px;height:18px"><span style="font-family:'Baloo 2';font-weight:800;font-size:14px">{{ c.n }}</span></div>
+                  </sc-for>
+                  <div style="flex:1"></div>
+                  <div style="font-family:'Baloo 2';font-weight:800;font-size:13px;color:#6E4A30;white-space:nowrap">→ {{ e.target }}</div>
+                </div>
+              </div>
+              <div style="flex:0 0 {{ e.intentW }}px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0;background:{{ e.intentBg }};border-left:3px solid #24140B">
+                <div style="font-family:'Baloo 2';font-weight:800;font-size:12px;letter-spacing:.06em;color:#3A2214">NEXT</div>
+                <div style="display:flex;align-items:center;gap:3px"><img src="{{ e.intentIcon }}" alt="" style="width:{{ e.intentIco }}px;height:{{ e.intentIco }}px"><div style="font-family:'Baloo 2';font-weight:800;font-size:{{ e.intentSize }}px;line-height:1;color:#24140B">{{ e.intentNum }}</div></div>
+                <div style="font-family:'Baloo 2';font-weight:800;font-size:12px;color:#3A2214">{{ e.intentLabel }}</div>
+              </div>
+            </div>
+            <sc-if value="{{ e.tab }}" hint-placeholder-val="{{ false }}">
+              <div style="position:relative;z-index:1;margin:-4px 14px 0;height:32px;padding:4px 10px 0;display:flex;align-items:center;gap:6px;border-radius:0 0 12px 12px;background:{{ e.tabBg }};border:3px solid #24140B;border-top:0;box-shadow:3px 4px 0 rgba(74,34,14,.35)">
+                <img src="{{ e.tabIcon }}" alt="" style="width:20px;height:20px">
+                <div style="font-family:'Baloo 2';font-weight:800;font-size:14px;letter-spacing:.03em;color:{{ e.tabInk }};white-space:nowrap">{{ e.tab }}</div>
+                <div style="flex:1"></div>
+                <sc-for list="{{ e.pips }}" as="p" hint-placeholder-count="0"><div style="width:9px;height:14px;border-radius:3px;border:2px solid #24140B;background:{{ p }}"></div></sc-for>
+                <div style="font-family:'Baloo 2';font-weight:800;font-size:13px;color:{{ e.tabInk }};white-space:nowrap">{{ e.tabRight }}</div>
+              </div>
+            </sc-if>
+            <sc-if value="{{ e.reason }}" hint-placeholder-val="{{ false }}">
+              <div style="margin:6px auto 0;width:max-content;height:30px;padding:0 10px 0 6px;display:flex;align-items:center;gap:6px;border-radius:9px;background:#3B2618;border:3px solid #24140B"><img src="asc/new-icons/lock.svg" alt="" style="width:18px;height:18px"><span style="font-family:'Baloo 2';font-weight:800;font-size:14px;color:#FFF8EA">{{ e.reason }}</span></div>
+            </sc-if>
+            <sc-if value="{{ e.prevChip }}" hint-placeholder-val="{{ false }}">
+              <div style="margin:6px auto 0;width:max-content;height:34px;padding:0 12px 0 6px;display:flex;align-items:center;gap:6px;border-radius:10px;background:{{ e.prevBg }};border:3px solid #24140B;box-shadow:3px 4px 0 rgba(74,34,14,.35)"><img src="{{ e.prevIcon }}" alt="" style="width:24px;height:24px"><span style="font-family:'Baloo 2';font-weight:800;font-size:17px;color:#24140B">{{ e.prevChip }}</span></div>
+            </sc-if>
+          </div>
+        </sc-for>
+
+        <!-- PARTY 3D -->
+        <sc-for list="{{ f.party }}" as="p" hint-placeholder-count="5">
+          <div style="position:absolute;left:{{ p.ax }}px;top:{{ f.axieTop }}px;width:200px;height:200px;opacity:{{ p.axOp }}">
+            <sc-if value="{{ p.ring }}" hint-placeholder-val="{{ false }}"><div style="position:absolute;left:-10px;right:-10px;bottom:-18px;height:52px;border-radius:50%;border:5px solid #FFC445;box-shadow:0 0 0 3px #24140B;background:rgba(255,196,69,.18);box-sizing:border-box"></div></sc-if>
+            <div style="position:absolute;left:14px;right:14px;bottom:-12px;height:30px;border-radius:50%;background:rgba(74,34,14,.25)"></div>
+            <div style="position:absolute;inset:0;border-radius:50% 50% 24px 24px;border:3px dashed #8A3E22;background:rgba(255,248,234,.30);display:flex;flex-direction:column;align-items:center;justify-content:center"><div style="font-family:'Baloo 2';font-weight:800;font-size:18px;color:#5A2812">Axie 3D</div><div style="font-size:12px;font-weight:700;color:#8A3E22">back to camera</div></div>
+            <sc-if value="{{ p.float }}" hint-placeholder-val="{{ false }}"><div style="position:absolute;left:0;right:0;top:20px;text-align:center;font-family:'Baloo 2';font-weight:800;font-size:52px;color:#FFD0C0;text-shadow:-3px -3px 0 #24140B,3px -3px 0 #24140B,-3px 3px 0 #24140B,3px 3px 0 #24140B,0 -3px 0 #24140B,0 3px 0 #24140B,-3px 0 0 #24140B,3px 0 0 #24140B,3px 6px 0 #24140B">{{ p.float }}</div></sc-if>
+          </div>
+        </sc-for>
+
+        <!-- TOP HUD -->
+        <div style="position:absolute;left:16px;top:12px;height:64px;display:flex;align-items:center;gap:4px;padding:0 8px;border-radius:16px;background:linear-gradient(180deg,#F8EBD2,#EBD3A8);border:3px solid #24140B;box-shadow:3px 5px 0 rgba(74,34,14,.35);box-sizing:border-box">
+          <sc-for list="{{ relics }}" as="r" hint-placeholder-count="8"><div style="width:44px;height:44px;border-radius:10px;background:#FFF8EA;border:2px solid #24140B;display:flex;align-items:center;justify-content:center;box-sizing:border-box"><img src="{{ r }}" alt="" style="width:36px;height:36px;object-fit:contain"></div></sc-for>
+          <div style="width:3px;height:44px;margin:0 6px;border-radius:2px;background:#8A3E22"></div>
+          <sc-for list="{{ actives }}" as="r" hint-placeholder-count="3"><div style="position:relative;width:48px;height:48px;border-radius:12px;background:{{ r.bg }};border:3px solid #24140B;display:flex;align-items:center;justify-content:center;box-sizing:border-box"><img src="{{ r.src }}" alt="" style="width:36px;height:36px;object-fit:contain;opacity:{{ r.op }}"><div style="position:absolute;right:-6px;bottom:-6px;min-width:20px;height:20px;padding:0 4px;border-radius:7px;background:#3B2618;border:2px solid #24140B;color:#FFF8EA;font-family:'Baloo 2';font-weight:800;font-size:12px;display:flex;align-items:center;justify-content:center;box-sizing:border-box">{{ r.n }}</div></div></sc-for>
+        </div>
+        <div style="position:absolute;left:810px;top:12px;width:300px;height:64px;display:flex;flex-direction:column;align-items:center;justify-content:center;border-radius:16px;background:linear-gradient(180deg,#F8EBD2,#EBD3A8);border:3px solid #24140B;box-shadow:3px 5px 0 rgba(74,34,14,.35);box-sizing:border-box">
+          <div style="font-family:'Baloo 2';font-weight:800;font-size:26px;line-height:1">TURN {{ f.turn }}</div>
+          <div style="font-size:12px;font-weight:700;color:#6E4A30">{{ f.actLine }}</div>
+        </div>
+        <div style="position:absolute;right:16px;top:12px;height:64px;display:flex;align-items:center;gap:6px;padding:0 8px;border-radius:16px;background:linear-gradient(180deg,#F8EBD2,#EBD3A8);border:3px solid #24140B;box-shadow:3px 5px 0 rgba(74,34,14,.35);box-sizing:border-box">
+          <div style="height:44px;padding:0 10px 0 12px;display:flex;align-items:center;gap:4px;border-radius:11px;background:#C9302B;border:3px solid #24140B;font-family:'Baloo 2';font-weight:800;font-size:20px;color:#FFF8EA;box-sizing:border-box">{{ f.asc }} <span style="font-size:13px;color:#FFC3C0">▾</span></div>
+          <div style="height:44px;display:flex;align-items:center;gap:4px;padding:0 10px 0 4px;border-radius:11px;background:#FFF8EA;border:3px solid #24140B;box-sizing:border-box"><img src="asc/fx/shard.png" alt="" style="width:28px;height:28px"><span style="font-family:'Baloo 2';font-weight:800;font-size:18px">214</span></div>
+          <div style="width:44px;height:44px;border-radius:11px;background:linear-gradient(180deg,#FFF8EA,#EBD3A8);border:3px solid #24140B;display:flex;align-items:center;justify-content:center;box-sizing:border-box"><img src="asc/fx/settings.svg" alt="Menu" style="width:24px;height:24px;filter:brightness(0) saturate(100%) invert(10%) sepia(30%) saturate(1500%) hue-rotate(350deg)"></div>
+        </div>
+        <div style="position:absolute;right:16px;top:88px;width:310px;height:60px;display:flex;align-items:center;gap:8px;padding:0 10px 0 8px;border-radius:14px;background:{{ f.attrBg }};border:3px solid #24140B;box-shadow:3px 5px 0 rgba(74,34,14,.35);box-sizing:border-box">
+          <img src="hl/icons/attrition.svg" alt="" style="width:36px;height:36px">
+          <div style="display:flex;flex-direction:column"><div style="font-family:'Baloo 2';font-weight:800;font-size:18px;line-height:1.05">{{ f.attrTitle }}</div><div style="font-size:12px;font-weight:700;color:#6E4A30">{{ f.attrSub }}</div></div>
+        </div>
+
+        <!-- BANNER -->
+        <sc-if value="{{ f.banner }}" hint-placeholder-val="{{ false }}">
+          <div style="position:absolute;left:660px;top:{{ f.bannerTop }}px;width:600px;display:flex;flex-direction:column;align-items:center;gap:10px">
+            <div style="padding:10px 40px 12px;border-radius:22px;background:{{ f.bannerBg }};border:4px solid #24140B;box-shadow:inset 2px 2px 0 rgba(255,248,234,.6),4px 6px 0 rgba(74,34,14,.4);display:flex;flex-direction:column;align-items:center">
+              <div style="font-family:'Baloo 2';font-weight:800;font-size:{{ f.bannerSize }}px;line-height:1;color:{{ f.bannerInk }}">{{ f.banner }}</div>
+              <div style="font-size:15px;font-weight:700;color:{{ f.bannerInk }}">{{ f.bannerSub }}</div>
+            </div>
+            <sc-if value="{{ f.bannerBtn }}" hint-placeholder-val="{{ false }}"><div style="width:320px;height:60px;border-radius:14px;background:linear-gradient(180deg,#FFB070,#FF8A3A);border:3px solid #24140B;box-shadow:inset 2px 2px 0 rgba(255,248,234,.65),3px 5px 0 #8A3E22;display:flex;align-items:center;justify-content:center;font-family:'Baloo 2';font-weight:800;font-size:21px;color:#2A1505">{{ f.bannerBtn }}</div></sc-if>
+          </div>
+        </sc-if>
+
+        <!-- DICE TRAY -->
+        <sc-for list="{{ f.party }}" as="p" hint-placeholder-count="5">
+          <div style="position:absolute;left:{{ p.cx }}px;top:{{ f.trayTop }}px;width:272px;height:176px;box-sizing:border-box;padding:12px;display:flex;flex-direction:column;gap:10px;border-radius:20px;background:linear-gradient(180deg,#F8EBD2,#EBD3A8);border:{{ p.border }};box-shadow:inset 2px 2px 0 rgba(255,248,234,.65),3px 5px 0 rgba(74,34,14,.35);opacity:{{ f.trayOp }}">
+            <div style="display:flex;gap:10px;height:104px">
+              <div style="position:relative;flex:0 0 104px;height:104px">
+                <div style="position:absolute;left:0;top:{{ p.dieY }}px;width:104px;height:104px;box-sizing:border-box;border-radius:22px;background:{{ p.dieBg }};border:3px solid #24140B;box-shadow:{{ p.dieShadow }};display:flex;flex-direction:column;align-items:center;justify-content:center;gap:0">
+                  <img src="{{ p.dieIcon }}" alt="" style="width:40px;height:40px">
+                  <div style="font-family:'Baloo 2';font-weight:800;font-size:34px;line-height:1;color:#24140B">{{ p.dieNum }}</div>
+                </div>
+              </div>
+              <div style="flex:1 1 auto;min-width:0;display:flex;flex-direction:column;gap:6px">
+                <div style="display:flex;align-items:center;gap:6px"><img src="{{ p.cls }}" alt="" style="width:24px;height:24px;border-radius:7px;border:2px solid #24140B;background:#FFF8EA"><div style="font-family:'Baloo 2';font-weight:800;font-size:18px;line-height:1">{{ p.name }}</div></div>
+                <div style="position:relative;height:26px;border-radius:9px;background:#4A2A1A;border:3px solid #24140B;overflow:hidden;box-sizing:border-box">
+                  <div style="position:absolute;left:0;top:0;bottom:0;width:{{ p.pct }}%;background:{{ p.hpFill }}"></div>
+                  <sc-if value="{{ p.lost }}" hint-placeholder-val="{{ false }}"><div style="position:absolute;top:0;bottom:0;left:{{ p.pct }}%;width:{{ p.lost }}%;background:#FFF8EA;opacity:.85"></div></sc-if>
+                  <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:'Baloo 2';font-weight:800;font-size:16px;color:#FFF8EA;text-shadow:-2px 0 0 #24140B,2px 0 0 #24140B,0 -2px 0 #24140B,0 2px 0 #24140B,-1px -1px 0 #24140B,1px 1px 0 #24140B">{{ p.hpText }}</div>
+                </div>
+                <div style="display:flex;gap:4px;flex-wrap:wrap">
+                  <sc-for list="{{ p.chips }}" as="c" hint-placeholder-count="0">
+                    <div style="height:26px;padding:0 6px 0 3px;display:flex;align-items:center;gap:2px;border-radius:8px;background:{{ c.bg }};border:2px solid #24140B;box-sizing:border-box"><img src="{{ c.icon }}" alt="" style="width:18px;height:18px"><span style="font-family:'Baloo 2';font-weight:800;font-size:14px">{{ c.n }}</span></div>
+                  </sc-for>
+                </div>
+              </div>
+            </div>
+            <div style="display:flex;gap:4px;height:34px">
+              <sc-for list="{{ p.faces }}" as="d" hint-placeholder-count="6">
+                <div style="flex:1 1 0;border-radius:9px;background:{{ d.bg }};border:2px solid {{ d.border }};display:flex;align-items:center;justify-content:center;gap:1px;opacity:{{ d.op }};box-sizing:border-box"><img src="{{ d.icon }}" alt="" style="width:18px;height:18px"><span style="font-family:'Baloo 2';font-weight:800;font-size:15px;color:#24140B">{{ d.n }}</span></div>
+              </sc-for>
+            </div>
+          </div>
+        </sc-for>
+        <sc-if value="{{ f.lockLabel }}" hint-placeholder-val="{{ false }}">
+          <div style="position:absolute;left:810px;top:{{ f.lockTop }}px;width:300px;height:36px;border-radius:10px;background:#3B2618;border:3px solid #24140B;display:flex;align-items:center;justify-content:center;font-family:'Baloo 2';font-weight:800;font-size:16px;color:#FFF8EA">{{ f.lockLabel }}</div>
+        </sc-if>
+
+        <!-- RIGHT ZONE: free actions -->
+        <div style="position:absolute;right:16px;top:{{ f.trayTop }}px;width:200px;height:56px;box-sizing:border-box;border-radius:14px;background:{{ f.rerollBg }};border:3px solid {{ f.rerollBorder }};box-shadow:3px 5px 0 rgba(74,34,14,.35);display:flex;align-items:center;justify-content:center;gap:8px;opacity:{{ f.trayOp }}">
+          <img src="hl/icons/reroll.svg" alt="" style="width:30px;height:30px;opacity:{{ f.rerollIcoOp }}">
+          <div style="font-family:'Baloo 2';font-weight:800;font-size:19px;color:{{ f.rerollInk }}">Reroll · {{ f.rerolls }} left</div>
+        </div>
+        <sc-if value="{{ f.undoShow }}" hint-placeholder-val="{{ true }}">
+          <div style="position:absolute;right:16px;top:{{ f.undoTop }}px;width:200px;height:52px;box-sizing:border-box;padding:0 12px;border-radius:12px;background:{{ f.undoBg }};border:3px solid {{ f.undoBorder }};box-shadow:{{ f.undoShadow }};display:flex;align-items:center;gap:10px;opacity:{{ f.trayOp }}">
+            <img src="hl/icons/undo.svg" alt="" style="width:28px;height:28px;opacity:{{ f.undoIcoOp }}">
+            <div style="display:flex;flex-direction:column"><div style="font-family:'Baloo 2';font-weight:800;font-size:18px;line-height:1.05;color:{{ f.undoInk }}">Undo · Z</div><div style="font-size:12px;font-weight:700;color:{{ f.undoInk }}">{{ f.undoSub }}</div></div>
+          </div>
+        </sc-if>
+        <div style="position:absolute;right:16px;bottom:16px;width:200px;height:104px;box-sizing:border-box;border-radius:18px;background:{{ f.endBg }};border:4px solid #24140B;box-shadow:inset 2px 2px 0 rgba(255,248,234,.6),4px 6px 0 #8A3E22;display:flex;flex-direction:column;align-items:center;justify-content:center;opacity:{{ f.trayOp }}">
+          <div style="font-family:'Baloo 2';font-weight:800;font-size:28px;line-height:1;color:#2A1505">END TURN</div>
+          <div style="font-size:13px;font-weight:700;color:#4A2208">{{ f.endSub }}</div>
+        </div>
+        <sc-if value="{{ f.speed }}" hint-placeholder-val="{{ false }}">
+          <div style="position:absolute;right:16px;top:{{ f.speedTop }}px;height:52px;display:flex;gap:4px;padding:4px;border-radius:14px;background:#3B2618;border:3px solid #24140B;box-sizing:border-box">
+            <div style="width:52px;border-radius:10px;background:#FFF8EA;display:flex;align-items:center;justify-content:center;font-family:'Baloo 2';font-weight:800;font-size:17px">1×</div>
+            <div style="width:52px;border-radius:10px;background:#5A3A26;display:flex;align-items:center;justify-content:center;font-family:'Baloo 2';font-weight:800;font-size:17px;color:#FFF8EA">2×</div>
+            <div style="padding:0 10px;border-radius:10px;background:#5A3A26;display:flex;align-items:center;gap:6px;font-family:'Baloo 2';font-weight:800;font-size:17px;color:#FFF8EA"><img src="hl/icons/skip.svg" alt="" style="width:20px;height:20px">Skip · Space</div>
+          </div>
+        </sc-if>
+
+        <!-- LEFT ZONE: paid Aid -->
+        <div style="position:absolute;left:16px;bottom:16px;width:216px;height:104px;box-sizing:border-box;padding:0 12px;border-radius:18px;background:{{ f.aidBg }};border:3px solid #4E2E8A;box-shadow:3px 5px 0 rgba(74,34,14,.35);display:flex;align-items:center;gap:10px;opacity:{{ f.trayOp }}">
+          <img src="hl/icons/aid.svg" alt="" style="width:44px;height:44px">
+          <div style="display:flex;flex-direction:column"><div style="font-family:'Baloo 2';font-weight:800;font-size:22px;line-height:1">Aid {{ f.aidCaret }}</div><div style="font-size:13px;font-weight:700;color:#4E2E8A">used {{ f.aidUsed }} of {{ f.aidCap }}</div><div style="font-size:12px;font-weight:600;color:#6E4A30">Hide offers: Settings</div></div>
+        </div>
+        <sc-if value="{{ f.offer }}" hint-placeholder-val="{{ false }}">
+          <div style="position:absolute;left:16px;bottom:{{ f.offerBottom }}px;width:216px;box-sizing:border-box;padding:12px;border-radius:18px;background:linear-gradient(180deg,#FFF8EA,#EBD3A8);border:3px solid #4E2E8A;box-shadow:3px 5px 0 rgba(74,34,14,.35);display:flex;flex-direction:column;gap:8px">
+            <div style="font-family:'Baloo 2';font-weight:800;font-size:12px;letter-spacing:.08em;color:#4E2E8A">{{ f.offerKicker }}</div>
+            <div style="font-family:'Baloo 2';font-weight:800;font-size:20px;line-height:1.05">{{ f.offer }}</div>
+            <div style="font-size:13px;font-weight:600;line-height:1.35;color:#3A2214">{{ f.offerSub }}</div>
+            <div style="display:flex;flex-direction:column;gap:4px">
+              <sc-for list="{{ f.offerCaps }}" as="c" hint-placeholder-count="2"><div style="display:flex;align-items:center;justify-content:space-between;gap:6px;padding:3px 8px;border-radius:8px;background:#F3EAFE;border:2px solid #4E2E8A;font-size:12px;font-weight:700;color:#1E1236"><span>{{ c.k }}</span><span style="font-family:'Baloo 2';font-weight:800;font-size:14px;white-space:nowrap">{{ c.v }}</span></div></sc-for>
+            </div>
+            <div style="height:48px;border-radius:12px;background:linear-gradient(180deg,#C2A6F4,#9A72E6);border:3px solid #24140B;box-shadow:3px 4px 0 #4E2E8A;display:flex;align-items:center;justify-content:center;gap:6px;font-family:'Baloo 2';font-weight:800;font-size:19px;color:#1E1236;box-sizing:border-box"><img src="hl/i/gem.png" alt="" style="width:22px;height:22px">{{ f.offerPrice }}</div>
+            <div style="height:48px;border-radius:12px;background:linear-gradient(180deg,#FFF8EA,#EBD3A8);border:3px solid #24140B;box-shadow:3px 4px 0 rgba(74,34,14,.35);display:flex;align-items:center;justify-content:center;font-family:'Baloo 2';font-weight:800;font-size:18px;box-sizing:border-box">Not now</div>
+          </div>
+        </sc-if>
+
+        <!-- AID TRAY OPEN -->
+        <sc-if value="{{ f.aidOpen }}" hint-placeholder-val="{{ false }}">
+          <div style="position:absolute;z-index:6;left:16px;bottom:{{ f.aidPanelBottom }}px;width:252px;box-sizing:border-box;border-radius:20px;background:linear-gradient(180deg,#F8EBD2,#EBD3A8);border:4px solid #4E2E8A;box-shadow:inset 2px 2px 0 rgba(255,248,234,.65),4px 6px 0 rgba(36,20,11,.4);overflow:hidden">
+            <div style="height:44px;display:flex;align-items:center;gap:8px;padding:0 10px;background:linear-gradient(180deg,#C2A6F4,#9A72E6);border-bottom:3px solid #4E2E8A">
+              <img src="hl/icons/aid.svg" alt="" style="width:26px;height:26px">
+              <div style="font-family:'Baloo 2';font-weight:800;font-size:20px;color:#1E1236">Aid</div>
+              <div style="flex:1"></div>
+              <div style="height:28px;padding:0 8px;border-radius:8px;background:#1E1236;color:#FFF8EA;font-family:'Baloo 2';font-weight:800;font-size:14px;display:flex;align-items:center">used {{ f.aidUsed }} of {{ f.aidCap }}</div>
+            </div>
+            <div style="padding:9px;display:flex;flex-direction:column;gap:7px">
+              <sc-for list="{{ f.aidRows }}" as="a" hint-placeholder-count="4">
+                <div style="display:flex;align-items:center;gap:6px;min-height:52px;padding:4px 5px 4px 6px;border-radius:12px;background:{{ a.bg }};border:3px solid {{ a.border }};box-shadow:{{ a.focus }};box-sizing:border-box">
+                  <img src="{{ a.icon }}" alt="" style="width:26px;height:26px;flex:0 0 auto;opacity:{{ a.icoOp }}">
+                  <div style="flex:1 1 auto;min-width:0;display:flex;flex-direction:column"><div style="font-family:'Baloo 2';font-weight:800;font-size:15px;line-height:1.1;color:{{ a.titleInk }};white-space:nowrap">{{ a.title }}</div><div style="font-size:12px;font-weight:700;line-height:1.2;color:#6E4A30">{{ a.cap }}</div></div>
+                  <div style="flex:0 0 58px;height:38px;border-radius:10px;background:{{ a.btnBg }};border:3px solid {{ a.btnBorder }};display:flex;align-items:center;justify-content:center;gap:3px;font-family:'Baloo 2';font-weight:800;font-size:16px;color:{{ a.btnInk }};box-sizing:border-box"><img src="hl/i/gem.png" alt="" style="width:16px;height:16px;opacity:{{ a.gemOp }}">{{ a.price }}</div>
+                </div>
+              </sc-for>
+              <div style="padding:4px 3px 1px;font-size:12px;font-weight:600;line-height:1.35;color:#3A2214">Aid makes you stronger for one run. Players who buy more can win more. The Pure leaderboard only counts runs without Aid.</div>
+            </div>
+          </div>
+        </sc-if>
+        <sc-for list="{{ f.rings }}" as="r" hint-placeholder-count="0"><div style="position:absolute;z-index:7;left:{{ r.x }}px;top:{{ r.y }}px;width:{{ r.w }}px;height:{{ r.h }}px;border-radius:{{ r.r }}px;border:4px solid #FFC445;box-shadow:0 0 0 3px #24140B,inset 0 0 0 2px #24140B;box-sizing:border-box;pointer-events:none"></div></sc-for>
+        <sc-for list="{{ f.badges }}" as="b" hint-placeholder-count="0"><div style="position:absolute;z-index:8;left:{{ b.x }}px;top:{{ b.y }}px;height:32px;padding:0 9px;border-radius:10px;background:#3B2618;border:3px solid #FFC445;box-sizing:border-box;display:flex;align-items:center;font-family:'Baloo 2';font-weight:800;font-size:16px;color:#FFF8EA;white-space:nowrap">{{ b.n }}</div></sc-for>
+
+        <!-- FIRST PURCHASE CONFIRM -->
+        <sc-if value="{{ f.confirm }}" hint-placeholder-val="{{ false }}">
+          <div style="position:absolute;inset:0;z-index:10;background:rgba(36,20,11,.55)"></div>
+          <div style="position:absolute;z-index:11;left:660px;top:{{ f.confirmTop }}px;width:600px;border-radius:26px;background:linear-gradient(180deg,#F8EBD2,#EBD3A8);border:4px solid #4E2E8A;box-shadow:5px 8px 0 rgba(36,20,11,.45);overflow:hidden">
+            <div style="height:56px;display:flex;align-items:center;padding:0 22px;background:linear-gradient(180deg,#C2A6F4,#9A72E6);border-bottom:3px solid #4E2E8A;font-family:'Baloo 2';font-weight:800;font-size:24px;color:#1E1236">Confirm purchase</div>
+            <div style="padding:20px 24px 24px;display:flex;flex-direction:column;gap:14px">
+              <div style="display:flex;align-items:center;gap:14px;padding:12px;border-radius:14px;background:#FFF8EA;border:3px solid #24140B">
+                <img src="hl/icons/reroll.svg" alt="" style="width:48px;height:48px">
+                <div style="flex:1;display:flex;flex-direction:column"><div style="font-family:'Baloo 2';font-weight:800;font-size:22px;line-height:1.1">Extra reroll</div><div style="font-size:13px;font-weight:600;color:#6E4A30">+1 reroll this turn · after buying: this fight 1 of 1 · this run 1 of 4</div></div>
+                <div style="display:flex;flex-direction:column;align-items:flex-end"><div style="display:flex;align-items:center;gap:5px;font-family:'Baloo 2';font-weight:800;font-size:30px;line-height:1"><img src="hl/i/gem.png" alt="" style="width:28px;height:28px">15</div><div style="font-size:13px;font-weight:700;color:#6E4A30">≈ 0.17 USD</div></div>
+              </div>
+              <div style="display:flex;justify-content:space-between;font-size:14px;font-weight:600;color:#3A2214"><span>Your Gem: 35 → 20</span><span>Aid this run: 2 → 3 of 6</span></div>
+              <div style="font-size:13px;font-weight:600;color:#6E4A30">We ask once per session. Your spending limit and the option to hide Aid offers are in Settings. Focus starts on Cancel; Esc cancels.</div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+                <div style="height:60px;border-radius:14px;background:linear-gradient(180deg,#FFF8EA,#EBD3A8);border:3px solid #24140B;box-shadow:0 0 0 3px #F8EBD2,0 0 0 7px #FFC445,0 0 0 10px #24140B;display:flex;align-items:center;justify-content:center;font-family:'Baloo 2';font-weight:800;font-size:20px">Cancel</div>
+                <div style="height:60px;border-radius:14px;background:linear-gradient(180deg,#C2A6F4,#9A72E6);border:3px solid #24140B;box-shadow:3px 5px 0 #4E2E8A;display:flex;align-items:center;justify-content:center;gap:6px;font-family:'Baloo 2';font-weight:800;font-size:20px;color:#1E1236"><img src="hl/i/gem.png" alt="" style="width:24px;height:24px">Pay 15</div>
+              </div>
+            </div>
+          </div>
+        </sc-if>
+
+        <!-- DEFEAT -->
+        <sc-if value="{{ f.defeat }}" hint-placeholder-val="{{ false }}">
+          <div style="position:absolute;inset:0;z-index:10;background:rgba(36,20,11,.62)"></div>
+          <div style="position:absolute;z-index:11;left:300px;top:{{ f.defeatTop }}px;width:1320px;border-radius:28px;background:linear-gradient(180deg,#F8EBD2,#EBD3A8);border:4px solid #8A3E22;box-shadow:inset 2px 2px 0 rgba(255,248,234,.65),5px 8px 0 rgba(36,20,11,.45);overflow:hidden">
+            <div style="height:72px;display:flex;align-items:center;gap:14px;padding:0 28px;background:linear-gradient(180deg,#6A4430,#4A2C1C);border-bottom:4px solid #8A3E22">
+              <div style="font-family:'Baloo 2';font-weight:800;font-size:36px;color:#FFF8EA">Defeat</div>
+              <div style="font-size:16px;font-weight:600;color:#EBD3A8">{{ f.defeat.head }}</div>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;padding:24px 28px 28px">
+              <div style="display:flex;flex-direction:column;gap:12px">
+                <div style="font-family:'Baloo 2';font-weight:800;font-size:15px;letter-spacing:.08em;color:#8A3E22">RECAP</div>
+                <div style="padding:14px;border-radius:16px;background:#FFF8EA;border:3px solid #24140B;display:flex;flex-direction:column;gap:8px">
+                  <div style="display:flex;justify-content:space-between;align-items:baseline"><div style="font-family:'Baloo 2';font-weight:800;font-size:20px">Grimroot Colossus had</div><div style="font-family:'Baloo 2';font-weight:800;font-size:26px">132 / 640 HP</div></div>
+                  <div style="position:relative;height:30px;border-radius:9px;background:#4A2A1A;border:3px solid #24140B;overflow:hidden;box-sizing:border-box"><div style="position:absolute;left:0;top:0;bottom:0;width:20.6%;background:linear-gradient(180deg,#F58A5E,#D9472B)"></div><div style="position:absolute;top:0;bottom:0;left:66%;width:3px;background:#24140B"></div><div style="position:absolute;top:0;bottom:0;left:33%;width:3px;background:#24140B"></div></div>
+                  <div style="font-size:13px;font-weight:600;color:#6E4A30">21% left · phase 3 of 3 · big hit was due in 1 turn</div>
+                </div>
+                <div style="display:flex;flex-direction:column;gap:6px">
+                  <sc-for list="{{ f.defeat.recap }}" as="r" hint-placeholder-count="4">
+                    <div style="display:grid;grid-template-columns:64px 1fr auto;align-items:center;gap:10px;min-height:44px;padding:4px 12px;border-radius:12px;background:{{ r.bg }};border:2px solid #24140B;box-sizing:border-box">
+                      <div style="font-family:'Baloo 2';font-weight:800;font-size:15px;color:#6E4A30">Turn {{ r.t }}</div>
+                      <div style="font-size:14px;font-weight:600;line-height:1.3">{{ r.what }}</div>
+                      <div style="font-family:'Baloo 2';font-weight:800;font-size:16px;white-space:nowrap">{{ r.res }}</div>
+                    </div>
+                  </sc-for>
+                </div>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:12px">
+                <div style="display:flex;align-items:center;justify-content:space-between"><div style="font-family:'Baloo 2';font-weight:800;font-size:15px;letter-spacing:.08em;color:#8A3E22">SECOND WIND</div><div style="font-family:'Baloo 2';font-weight:800;font-size:14px;color:#4E2E8A">{{ f.defeat.aidLine }}</div></div>
+                <div style="padding:16px;border-radius:16px;background:#FFF8EA;border:3px solid {{ f.defeat.cardBorder }};display:flex;flex-direction:column;gap:12px">
+                  <sc-if value="{{ f.defeat.tag }}" hint-placeholder-val="{{ false }}"><div style="align-self:flex-start;height:32px;padding:0 12px 0 6px;border-radius:999px;background:{{ f.defeat.tagBg }};border:3px solid #24140B;display:flex;align-items:center;gap:6px;font-family:'Baloo 2';font-weight:800;font-size:15px;color:{{ f.defeat.tagInk }}"><img src="{{ f.defeat.tagIcon }}" alt="" style="width:22px;height:22px">{{ f.defeat.tag }}</div></sc-if>
+                  <div style="font-family:'Baloo 2';font-weight:800;font-size:26px;line-height:1.1">Revive the party at {{ f.defeat.pct }}% HP and keep fighting</div>
+                  <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:6px">
+                    <sc-for list="{{ f.defeat.heals }}" as="h" hint-placeholder-count="5"><div style="padding:6px 4px;border-radius:10px;background:#E5F3D6;border:2px solid #24140B;display:flex;flex-direction:column;align-items:center"><div style="font-family:'Baloo 2';font-weight:800;font-size:14px">{{ h.n }}</div><div style="font-family:'Baloo 2';font-weight:800;font-size:18px;color:#24140B">+{{ h.v }}</div></div></sc-for>
+                  </div>
+                  <div style="display:flex;flex-direction:column;gap:5px;font-size:14px;font-weight:600;line-height:1.35">
+                    <div style="display:flex;gap:8px"><img src="asc/fx/boss.png" alt="" style="width:20px;height:20px">Boss stays at 132 HP, phase 3. Big hit in 1 is kept.</div>
+                    <div style="display:flex;gap:8px"><img src="asc/new-icons/boss-clock.svg" alt="" style="width:20px;height:20px">{{ f.defeat.resetLine }}</div>
+                  </div>
+                </div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:4px">
+                  <div style="height:72px;border-radius:16px;background:linear-gradient(180deg,#FFF8EA,#EBD3A8);border:3px solid #24140B;box-shadow:3px 5px 0 rgba(74,34,14,.35);display:flex;flex-direction:column;align-items:center;justify-content:center"><div style="font-family:'Baloo 2';font-weight:800;font-size:22px;line-height:1">End run</div><div style="font-size:12px;font-weight:700;color:#6E4A30">Keep rewards earned so far</div></div>
+                  <div style="height:72px;border-radius:16px;background:{{ f.defeat.btnBg }};border:3px solid #24140B;box-shadow:3px 5px 0 {{ f.defeat.btnShelf }};display:flex;flex-direction:column;align-items:center;justify-content:center">
+                    <div style="display:flex;align-items:center;gap:6px;font-family:'Baloo 2';font-weight:800;font-size:22px;line-height:1;color:{{ f.defeat.btnInk }}">Continue · <sc-if value="{{ f.defeat.gem }}" hint-placeholder-val="{{ true }}"><img src="hl/i/gem.png" alt="" style="width:22px;height:22px"></sc-if>{{ f.defeat.price }}<sc-if value="{{ f.defeat.was }}" hint-placeholder-val="{{ false }}"><span style="font-size:16px;text-decoration:line-through;opacity:.7">{{ f.defeat.was }}</span></sc-if></div>
+                    <div style="font-size:12px;font-weight:700;color:{{ f.defeat.btnInk }}">{{ f.defeat.btnSub }}</div>
+                  </div>
+                </div>
+                <div style="font-size:12px;font-weight:600;color:#6E4A30;text-align:center">{{ f.defeat.foot }}</div>
+              </div>
+            </div>
+          </div>
+        </sc-if>
+      </div>
+    </div>
+  </sc-for>
+  <div data-screen-label="02 Keyboard map" style="width:1920px;box-sizing:border-box;padding:28px;border-radius:24px;background:linear-gradient(180deg,#FFF8EA,#F3E2C2);border:4px solid #8A3E22;display:flex;flex-direction:column;gap:14px">
+    <div style="font-family:'Baloo 2';font-weight:800;font-size:30px">Combat keyboard map · keyboard-only must work (no gamepad)</div>
+    <div style="font-size:15px;line-height:1.5;color:#6E4A30;max-width:1500px">Focus ring on every focusable element: 4 px #FFC445 ring + 3 px #24140B outline, 3–6 px outside the element, never animated. Tab order is shown on frame 02o. All bindings are proposals [INF] until Liam confirms.</div>
+    <div style="display:grid;grid-template-columns:240px 1fr 1fr;border-radius:14px;overflow:hidden;border:3px solid #8A3E22;font-size:15px;line-height:1.4">
+      <div style="padding:10px 14px;background:#B87440;color:#FFF8EA;font-family:'Baloo 2';font-weight:800;font-size:16px">Key</div><div style="padding:10px 14px;background:#B87440;color:#FFF8EA;font-family:'Baloo 2';font-weight:800;font-size:16px">Does</div><div style="padding:10px 14px;background:#B87440;color:#FFF8EA;font-family:'Baloo 2';font-weight:800;font-size:16px">Notes</div>
+      <sc-for list="{{ keyMap }}" as="k" hint-placeholder-count="12">
+        <div style="padding:9px 14px;background:{{ k.bg }};display:flex;gap:6px;flex-wrap:wrap;align-items:center"><sc-for list="{{ k.keys }}" as="c" hint-placeholder-count="1"><span style="height:30px;min-width:30px;padding:0 9px;border-radius:8px;background:#3B2618;border:2px solid #24140B;box-shadow:2px 3px 0 rgba(74,34,14,.35);color:#FFF8EA;font-family:'Baloo 2';font-weight:800;font-size:15px;display:inline-flex;align-items:center;justify-content:center;box-sizing:border-box">{{ c }}</span></sc-for></div>
+        <div style="padding:9px 14px;background:{{ k.bg }};font-weight:700;color:#3A2214">{{ k.does }}</div>
+        <div style="padding:9px 14px;background:{{ k.bg }};color:#6E4A30">{{ k.note }}</div>
+      </sc-for>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  renderVals() {
+    const FX = 'asc/fx/';
+    const R = (x) => Math.floor(x + 0.5 + 1e-9);
+    const attrPct = (t) => t < 6 ? 0 : Math.min(25, (t - 5) * 5);
+    const tint = { dmg: '#FFD9C9', shield: '#CFE7F7', heal: '#D6F0C2', buff: '#F2E0FF', poison: '#DDF2C4' };
+    const ico = { dmg: FX + 'dmg.png', shield: FX + 'shield.png', heal: FX + 'heal.png', buff: FX + 'buff.svg', poison: FX + 'poison.png' };
+    const chip = (k, n) => ({ icon: (k === 'boss-clock' ? 'asc/new-icons/' + k + '.svg' : FX + k + (k === 'buff' || k === 'debuff' ? '.svg' : '.png')), n, bg: k === 'shield' ? '#CFE7F7' : '#FFF8EA' });
+    const PARTY = [
+      { name: 'Bubbles', cls: 'asc/portrait/aqua.png', max: 52, faces: [['dmg', 6], ['dmg', 8], ['shield', 5], ['heal', 4], ['dmg', 6], ['poison', 2]] },
+      { name: 'Thornie', cls: 'asc/portrait/plant.png', max: 64, faces: [['shield', 8], ['heal', 6], ['shield', 6], ['dmg', 4], ['heal', 5], ['buff', 1]] },
+      { name: 'Rex', cls: 'asc/portrait/reptile.png', max: 58, faces: [['dmg', 9], ['dmg', 7], ['shield', 4], ['dmg', 12], ['poison', 3], ['dmg', 5]] },
+      { name: 'Buzz', cls: 'asc/portrait/bug.png', max: 44, faces: [['poison', 3], ['dmg', 5], ['dmg', 6], ['buff', 1], ['dmg', 18], ['shield', 3]] },
+      { name: 'Fang', cls: 'asc/portrait/beast.png', max: 60, faces: [['dmg', 10], ['dmg', 8], ['dmg', 14], ['shield', 5], ['dmg', 6], ['heal', 3]] },
+    ];
+    const party = (o = {}) => PARTY.map((p, i) => {
+      const hp = (o.hp || [34, 51, 40, 29, 47])[i];
+      const rolled = (o.roll || [1, 0, 3, 4, 2])[i];
+      const [fk, fn] = p.faces[rolled];
+      const sel = o.sel === i, lit = !!(o.lit && o.lit.includes(i)), ko = hp <= 0;
+      return {
+        name: p.name, cls: p.cls, cx: 248 + i * 288, ax: 248 + i * 288 + 36,
+        hpText: `${Math.max(0, hp)} / ${p.max}`, pct: Math.max(0, hp) / p.max * 100,
+        hpFill: ko ? '#4A2A1A' : 'linear-gradient(180deg,#86D65E,#4FA62F)',
+        lost: (o.lost && o.lost[i]) ? o.lost[i] / p.max * 100 : 0,
+        chips: ((o.chips && o.chips[i]) || [[], [chip('shield', 6)], [chip('poison', 2)], [chip('weaken', 1)], []][i]).slice(0, 4),
+        dieIcon: ico[fk], dieNum: fk === 'buff' ? '' : fn, dieBg: `linear-gradient(160deg,#FFF8EA,${tint[fk]})`,
+        dieY: sel ? -26 : 0,
+        dieShadow: sel ? (o.calm ? '0 0 0 4px #FFC445,0 0 0 7px #24140B,3px 8px 0 rgba(74,34,14,.35)' : '0 0 0 4px #FFC445,0 0 0 7px #24140B,0 0 34px 12px rgba(255,196,69,.75),3px 10px 0 rgba(74,34,14,.35)') : 'inset 2px 2px 0 rgba(255,248,234,.7),3px 4px 0 rgba(74,34,14,.35)',
+        border: sel || lit ? '4px solid #FFC445' : '3px solid #8A3E22', ring: lit,
+        faces: p.faces.map(([k, n], j) => ({ icon: ico[k], n: k === 'buff' ? '' : n, bg: tint[k], border: j === rolled ? '#24140B' : '#B89A74', op: j === rolled ? 1 : .8 })),
+        float: o.float && o.float[i] ? o.float[i] : '', axOp: ko ? .35 : 1,
+      };
+    });
+    const enemy = (cx, o) => ({
+      boxX: cx - 120, boxY: 268, boxW: 240, boxH: 220, boxLabel: 'Atia monster 3D', labelSize: 18, boxOp: 1,
+      plateX: cx - 160, plateY: 96, plateW: 320, plateOp: 1, border: '3px solid #24140B', nameSize: 18, barH: 24, hpSize: 15,
+      intentW: 88, intentBg: '#DDBF8C', intentIco: 26, intentSize: 30, intentIcon: FX + 'dmg.png', intentLabel: 'ATTACK',
+      marks: [], chips: [], pips: [], tabRight: '', tab: '', reason: '', prevChip: '', prev: false, ring: false, boss: false, float: '', tag: '',
+      ...o, hpPct: o.hp / o.max * 100, hpText: o.hpText || `${o.hp} / ${o.max}`,
+    });
+    // base intents: Grub 8, Thornling 13 (spike x2.5), Wisp 5; boss Smash 38, Root Lash 20
+    const E3 = (t, o = {}) => {
+      const m = 1 + attrPct(t) / 100;
+      return [
+        enemy(600, { name: 'Mossback Grub', hp: 38, max: 50, intentNum: R(8 * m), target: 'Rex', chips: [chip('poison', 2)], ...(o.a || {}) }),
+        enemy(960, { name: 'Thornling', tag: 'ELITE', hp: 11, max: 70, intentNum: R(13 * m), target: 'Bubbles', chips: [chip('weaken', 1), chip('thorns', 3)], tab: 'BIG HIT IN 2', tabBg: '#FFE3A6', tabInk: '#3A2A12', tabIcon: 'hl/icons/spike.svg', tabRight: `HITS ${R(13 * m * 2.5)}`, ...(o.b || {}) }),
+        enemy(1320, { name: 'Ember Wisp', hp: 22, max: 34, intentNum: R(5 * m), intentIcon: FX + 'debuff.svg', intentLabel: 'BURN ×2', target: 'all', chips: [chip('shield', 8)], ...(o.c || {}) }),
+      ];
+    };
+    const CLK = { full: { start: 10, step: 20, max: 100, n: 5 }, light: { start: 14, step: 10, max: 30, n: 3 } };
+    const enr = (t, c) => t < c.start ? 0 : Math.min(c.max, (t - c.start + 1) * c.step);
+    const smash = (t, c) => R(38 * (1 + (enr(t, c) + attrPct(t)) / 100));
+    const clockTab = (t, c) => {
+      const e = enr(t, c), it = smash(t, c), s = e / c.step, ic = 'asc/new-icons/boss-clock.svg';
+      const fills = c.n === 5 ? ['#FFB23F', '#FF9345', '#F56A40', '#F54540', '#C9302B'] : ['#FFB23F', '#F56A40', '#C9302B'];
+      const pips = Array.from({ length: c.n }, (_, i) => i < s ? (e === c.max ? '#FFF8EA' : fills[s - 1]) : '#4A2A1A');
+      if (t < c.start - 1) return { tab: `ENRAGE IN ${c.start - t}`, tabBg: '#3B2618', tabInk: '#FFC79B', tabIcon: ic, tabRight: `then +${c.step}%/turn`, pips: [] };
+      if (t === c.start - 1) return { tab: 'ENRAGE NEXT TURN', tabBg: '#FFC445', tabInk: '#3A2A12', tabIcon: ic, tabRight: `+${c.step}%/turn`, pips: [] };
+      if (e === c.max) return { tab: `ENRAGE MAX +${e}%`, tabBg: '#C9302B', tabInk: '#FFF8EA', tabIcon: ic, tabRight: `incl. in ${it}`, pips };
+      return { tab: `ENRAGE +${e}%`, tabBg: '#FFE3A6', tabInk: '#3A2A12', tabIcon: ic, tabRight: `incl. in ${it}`, pips };
+    };
+    const boss = (t, c, o = {}) => enemy(960, {
+      boxX: 740, boxY: 262, boxW: 440, boxH: 280, boxLabel: 'Boss 3D', labelSize: 24,
+      plateX: 640, plateY: 92, plateW: 640, nameSize: 24, barH: 30, hpSize: 17, intentW: 128, intentIco: 34, intentSize: 44,
+      name: 'Grimroot Colossus', tag: 'BOSS', boss: true, marks: [66, 33], hp: 212, max: 640, phase: 3, target: 'Fang',
+      chips: [chip('thorns', 4), chip('shield', 20)], intentNum: smash(t, c), intentLabel: 'SMASH', intentBg: enr(t, c) ? '#FFC445' : '#DDBF8C',
+      ...clockTab(t, c), ...o,
+    });
+    const lit = { ring: true, border: '4px solid #FFC445' };
+    const undoOff = { undoBg: '#E8D6B4', undoBorder: '#9A7650', undoInk: '#6E4A30', undoIcoOp: .5, undoShadow: 'none', undoSub: 'nothing to undo' };
+    const undoOn = (sub) => ({ undoBg: 'linear-gradient(180deg,#FFF8EA,#EBD3A8)', undoBorder: '#24140B', undoInk: '#3A2214', undoIcoOp: 1, undoShadow: '3px 4px 0 rgba(74,34,14,.35)', undoSub: sub });
+    const undoLocked = { ...undoOff, undoSub: 'locked after reroll' };
+    const FOCUS = '0 0 0 2px #F8EBD2,0 0 0 5px #FFC445,0 0 0 7px #24140B';
+    const aidRowsFor = (f) => {
+      const fc = f.ascN >= 3 ? 1 : 2;
+      const on = { bg: '#FFF8EA', border: '#24140B', titleInk: '#3A2214', btnBg: 'linear-gradient(180deg,#C2A6F4,#9A72E6)', btnBorder: '#24140B', btnInk: '#1E1236', gemOp: 1, icoOp: 1 };
+      const off = { bg: '#EFE2C8', border: '#B89A74', titleInk: '#6E4A30', btnBg: '#DDBF8C', btnBorder: '#9A7650', btnInk: '#6E4A30', gemOp: .55, icoOp: .55 };
+      return [
+        { icon: 'hl/icons/reroll.svg', title: 'Extra reroll', cap: `fight 0/${fc} · run 0/4`, price: 15, ...on },
+        { icon: 'asc/new-icons/boss-clock.svg', title: 'Delay boss clock', cap: f.isBoss ? '+2 turns · 0/1 per boss' : 'Boss fight only · 1 per boss', price: 60, ...(f.isBoss ? on : off) },
+        { icon: 'asc/new-icons/pact.svg', title: 'Swap pact', cap: 'Pact screen only · 1 per pact', price: 15, ...off },
+        { icon: 'hl/icons/aid.svg', title: 'Continue', cap: 'Defeat screen only · 1 per run', price: f.isBoss ? 180 : 90, ...off },
+      ].map((r, i) => ({ ...r, focus: f.aidFocus && i === 0 ? FOCUS : 'none' }));
+    };
+    const base = (o) => {
+      const H = o.H || 1080, dy = H - 1080, trayTop = H - 192, turn = o.turn ?? 7, a = attrPct(turn);
+      const attr = a === 0 ? { attrTitle: 'ATTRITION · NOT YET', attrSub: 'starts turn 6 · +5%/turn · max +25%', attrBg: '#FFF8EA' }
+        : a < 25 ? { attrTitle: `ATTRITION +${a}%`, attrSub: 'all enemies · +5%/turn · max +25%', attrBg: '#FFF8EA' }
+        : { attrTitle: 'ATTRITION +25% · MAX', attrSub: 'all enemies · since turn 10', attrBg: '#FFE3A6' };
+      const ov = {
+        H, horizon: 330, horizonPct: Math.round(300 / H * 100), horizonPct2: Math.round(380 / H * 100),
+        treeY: 140, treeY2: 220, rockY: 420 + dy * .5, rockY2: 470 + dy * .5, arenaTagBottom: 208,
+        trayTop, axieTop: trayTop - 222, lockTop: trayTop - 48, undoTop: trayTop - 60, undoShow: true, ...undoOff,
+        trayOp: 1, rerolls: 1,
+        endBg: 'linear-gradient(180deg,#FFB070,#FF8A3A)', endSub: 'E · 2 dice unused',
+        aidBg: 'linear-gradient(180deg,#FFF8EA,#E6DAF6)', aidUsed: 2, aidCap: 6, aidCaret: '▴', asc: 'A6', ascN: 6, isBoss: false,
+        offerBottom: 132, aidPanelBottom: H - trayTop + 8, speedTop: trayTop - 66, bannerTop: 120, confirmTop: 330 + dy / 2, defeatTop: 150 + dy / 2,
+        turn, actLine: 'Act 1 · Floor 4 · Elite fight', ...attr, offerCaps: [], rings: [], badges: [],
+        party: party({}), banner: '', offer: '', aidOpen: false, confirm: false, defeat: false, speed: false, lockLabel: '',
+      };
+      const f = { ...ov, ...o };
+      f.enemies = o.enemiesFn ? o.enemiesFn(f) : E3(turn);
+      f.aidRows = aidRowsFor(f);
+      Object.assign(f, f.rerolls <= 0
+        ? { rerollBg: '#E8D6B4', rerollBorder: '#9A7650', rerollInk: '#6E4A30', rerollIcoOp: .5 }
+        : { rerollBg: 'linear-gradient(180deg,#FFF8EA,#EBD3A8)', rerollBorder: '#24140B', rerollInk: '#3A2214', rerollIcoOp: 1 });
+      return f;
+    };
+    const KO = { hp: [0, 0, 0, 0, 0], chips: [[], [], [], [], []] };
+    const heals = (pct) => PARTY.map(p => ({ n: p.name, v: R(p.max * pct / 100) }));
+    const recapA6 = [
+      { t: 12, what: `Smash ${smash(12, CLK.full)} (enrage +60%, attrition +25%) hit Buzz`, res: 'Buzz KO', bg: '#FFF8EA' },
+      { t: 13, what: `Root Lash ${R(20 * (1 + (enr(13, CLK.full) + 25) / 100))} (enrage +80%, attrition +25%) hit Bubbles · poison 3 ticked`, res: 'Bubbles KO', bg: '#FFF8EA' },
+      { t: 13, what: 'Thorns 4 reflected on Rex\u2019s attack', res: 'Rex 6 HP', bg: '#FFF8EA' },
+      { t: 14, what: `Smash ${smash(14, CLK.full)} (enrage MAX +100%, attrition +25%) hit all`, res: 'Rex, Thornie, Fang KO', bg: '#FFE3A6' },
+    ];
+    const recapA1 = [
+      { t: 12, what: `Smash ${smash(12, CLK.light)} (attrition +25%) hit Buzz`, res: 'Buzz KO', bg: '#FFF8EA' },
+      { t: 13, what: `Root Lash ${R(20 * 1.25)} (attrition +25%) hit Bubbles · poison 3 ticked`, res: 'Bubbles KO', bg: '#FFF8EA' },
+      { t: 13, what: 'Thorns 4 reflected on Rex\u2019s attack', res: 'Rex 6 HP', bg: '#FFF8EA' },
+      { t: 14, what: `Smash ${smash(14, CLK.light)} (enrage +10%, attrition +25%) hit all`, res: 'Rex, Thornie, Fang KO', bg: '#FFE3A6' },
+    ];
+    const defA6 = { head: 'Act 1 boss · A6 · your party fell on turn 14', aidLine: 'Aid used 2 of 6 · Continue 0 of 1', pct: 25, heals: heals(25), recap: recapA6, resetLine: 'Enrage resets to \u201cEnrage in 10\u201d. Attrition resets to 0%.' };
+    const violet = { cardBorder: '#4E2E8A', gem: true, btnBg: 'linear-gradient(180deg,#C2A6F4,#9A72E6)', btnShelf: '#4E2E8A', btnInk: '#1E1236' };
+    const defeatBase = { turn: 14, actLine: 'Act 1 · Floor 12 · Boss', isBoss: true, party: party(KO), trayOp: .5, undoShow: false };
+    const frames = [
+      base({ id: '02a', caption: 'Player turn · nothing selected', turn: 3,
+        note: `Default state, turn 3, no attrition yet, so every intent is its base number (Grub 8, Thornling 13, Wisp 5; Thornling big hit 13 × 2.5 = 32.5 → 33). Undo is disabled: nothing done this turn yet. Dice tray: each column holds the Axie\u2019s rolled die, HP, statuses and all 6 faces (rolled face outlined).` }),
+      base({ id: '02b', caption: 'Die selected · legal targets lit', party: party({ sel: 2 }),
+        enemiesFn: (f) => E3(f.turn, { a: lit, b: lit, c: lit }),
+        note: 'Turn 7, attrition +10%: intents 9 / 14 / 6, big hit 36. Rex\u2019s die (Dmg 12) lifts 26 px with a gold halo. All three monsters are legal: gold ground ring + 4 px gold plate border. The dim-with-reason treatment for illegal targets is on 02m.' }),
+      base({ id: '02c', caption: 'Hover on a lethal target · damage preview', party: party({ sel: 2 }),
+        enemiesFn: (f) => E3(f.turn, { a: { ...lit, prev: true, prevL: 52, prevW: 24, prevChip: '\u221212 · 38 → 26', prevBg: '#FFE3A6', prevIcon: FX + 'dmg.png' }, b: { ring: true, border: '4px solid #D9472B', prev: true, prevL: 0, prevW: 15.7, hpText: '11 / 70 → 0', prevChip: 'WILL DIE · \u221212', prevBg: '#FFC445', prevIcon: 'hl/icons/lethal.svg' }, c: lit }),
+        note: 'Hovering Rex\u2019s die over Thornling previews the hit as a gold hatched segment on its HP bar. Lethal: plate border turns threat red, HP readout shows “→ 0”, and a WILL DIE chip with the skull appears under the big-hit tab; the tab stays visible.' }),
+      base({ id: '02d', caption: 'Enemy turn · resolve feedback', speed: true, trayOp: .55, lockLabel: 'ENEMY TURN · input locked', endBg: '#DDBF8C', endSub: 'wait', undoShow: false,
+        party: party({ hp: [34, 51, 31, 29, 47], lost: [0, 0, 9, 0, 0], float: ['', '', '\u22129', '', ''] }),
+        enemiesFn: (f) => E3(f.turn, { a: { border: '4px solid #FFC445', intentLabel: 'ACTING' } }),
+        banner: 'ENEMY TURN', bannerSub: 'Mossback Grub attacks Rex for 9', bannerBg: 'linear-gradient(180deg,#FFF8EA,#EBD3A8)', bannerInk: '#3A2214', bannerSize: 40, bannerTop: 530,
+        note: 'Acting monster gets the gold border. The hit lands for exactly its intent (9). The number rises from the Axie; Rex\u2019s HP bar shows the lost chunk in cream for 400 ms, then ticks down. Speed control (1× / 2× / Skip, Space) takes the Undo slot while input is locked.' }),
+      base({ id: '02e', caption: 'Boss · enraged at max stacks', turn: 16, actLine: 'Act 1 · Floor 12 · Boss', isBoss: true, ...undoOn('1 die used this turn'),
+        enemiesFn: (f) => [boss(f.turn, CLK.full)],
+        note: `A6 full clock, starts turn 10, +20% per turn, max +100% from turn 14. Turn 16: enrage +100%, attrition +25% → 38 × (1 + 1.00 + 0.25) = 85.5 → ${smash(16, CLK.full)}. Plate and clock tab show the same number.` }),
+      base({ id: '02f', caption: 'Boss · enrage in 2 · Delay-clock offer', turn: 8, actLine: 'Act 1 · Floor 12 · Boss', isBoss: true, ...undoOn('1 die used this turn'),
+        enemiesFn: (f) => [boss(f.turn, CLK.full, { hp: 402, phase: 2 })],
+        offer: 'Delay boss clock', offerKicker: 'AID OFFER · ONCE', offerSub: '+2 turns before enrage starts.', offerPrice: '60',
+        offerCaps: [{ k: 'Delay clock · per boss', v: '0 of 1' }, { k: 'Aid this run', v: '2 of 6' }],
+        note: `Turn 8, attrition +15%, no enrage yet: 38 × 1.15 = 43.7 → ${smash(8, CLK.full)}. With enrage 2 turns away the Aid zone offers Delay boss clock once. The card shows both caps: the item cap (1 per boss) and the run cap. Buy and Not now are both 192 × 48.` }),
+      base({ id: '02g', caption: 'Out of rerolls · Extra reroll offer', rerolls: 0, party: party({ sel: 0 }), ...undoLocked,
+        offer: 'Extra reroll', offerKicker: 'AID OFFER · ONCE', offerSub: '+1 reroll this turn.', offerPrice: '15',
+        offerCaps: [{ k: 'This fight (A3+)', v: '0 of 1' }, { k: 'Extra reroll · run', v: '0 of 4' }, { k: 'Aid this run', v: '2 of 6' }],
+        note: 'Rerolls hit 0: Reroll goes disabled in place (ink #6E4A30, 5.6:1) and the paid offer appears on the far side. Undo is locked because a reroll was used this turn. From A3 the Extra reroll cap is 1 per fight.' }),
+      base({ id: '02h', caption: 'Aid tray open · first row focused', aidOpen: true, aidFocus: true, aidCaret: '▾', aidBg: 'linear-gradient(180deg,#E6DAF6,#C9B4F0)', rerolls: 0, ...undoLocked,
+        note: 'The tray is 252 wide so it stays left of Axie 1. Its bottom sits 8 px above the dice tray and its top stays ≥ 16 px below the lowest monster box. Every row shows the price, including rows that do not apply now, plus the reason and cap. Footer states plainly what Aid does to fairness.' }),
+      base({ id: '02i', caption: 'First purchase this session · confirm', confirm: true, rerolls: 0, ...undoLocked,
+        note: 'The first paid Aid in a session asks once: 15 Gem ≈ 0.17 USD (90 Gem ≈ 1 USD), Gem 35 → 20, Aid 2 → 3 of 6. Focus starts on Cancel; Esc cancels. Cancel and Pay are 268 × 60.' }),
+      base({ id: '02j', caption: 'Victory moment', turn: 9, enemiesFn: () => [], undoShow: false, banner: 'VICTORY', bannerSub: 'Thornling and 2 others defeated · turn 9', bannerBg: 'linear-gradient(180deg,#FFD78A,#FFB23F)', bannerInk: '#3A2A12', bannerSize: 64, bannerBtn: 'Pick your reward', bannerTop: 200,
+        party: party({ hp: [34, 51, 31, 29, 47] }), endBg: '#DDBF8C', endSub: '—', trayOp: .8,
+        note: 'Monsters dissolve; the party stays standing in the arena. The banner hands over to the reward panel on this same scene (Round 2).' }),
+      base({ id: '02k', H: 1240, caption: 'Taller window · die selected', party: party({ sel: 4 }),
+        enemiesFn: (f) => E3(f.turn, { a: lit, b: lit, c: lit }),
+        note: 'At 1240 the top HUD and nameplates stay anchored to the top edge; tray, Axies, Undo/Reroll/END TURN and Aid to the bottom edge. The extra 160 px opens between monsters and party.' }),
+      base({ id: '02l', caption: 'Reduce flashing ON · same state as 02b', party: party({ sel: 2, calm: true }),
+        enemiesFn: (f) => { const t = { border: '4px solid #FFC445', prevChip: 'TARGET', prevBg: '#FFC445', prevIcon: FX + 'dmg.png' }; return E3(f.turn, { a: t, b: t, c: t }); },
+        note: 'No halo, no pulsing ground ring. The selected die keeps the 26 px lift and a static double ring; legal targets show a static TARGET chip instead of the animated ring.' }),
+      base({ id: '02m', caption: 'Heal die selected · monsters dimmed with a reason', party: party({ sel: 1, roll: [1, 1, 3, 4, 2], lit: [0, 1, 2, 3, 4] }),
+        enemiesFn: (f) => { const d = { boxOp: .4, plateOp: .6, reason: 'Heal face: allies only' }; return E3(f.turn, { a: d, b: d, c: d }); },
+        note: 'Thornie\u2019s die shows Heal 6. Allies are the legal targets: gold ground ring under each Axie and a gold border on its tray column. Monsters are dimmed (box 40%, plate 60%) and say why. A blank face would say “Blank face: nothing to use”.' }),
+      base({ id: '02n', caption: 'A9 run · Aid cap 4', asc: 'A9', ascN: 9, aidCap: 4, aidUsed: 1, aidOpen: true, aidCaret: '▾', aidBg: 'linear-gradient(180deg,#E6DAF6,#C9B4F0)', rerolls: 0, ...undoLocked,
+        note: 'From A9 the Aid cap is 4 instead of 6. Same tray, the header and the Aid button read “used 1 of 4”. At most 1 Boon per run and it counts toward this cap.' }),
+      base({ id: '02o', caption: 'Keyboard focus · Tab order', ...undoOn('1 die used this turn'),
+        rings: [{ x: 818, y: 882, w: 284, h: 188, r: 24 }],
+        badges: [0, 1, 2, 3, 4].map(i => ({ x: 248 + i * 288 - 8, y: 868, n: `Tab ${i + 1} · key ${i + 1}` }))
+          .concat([{ x: 1836, y: 812, n: '6 · Z' }, { x: 1836, y: 873, n: '7 · R' }, { x: 1836, y: 944, n: '8 · E' }, { x: 168, y: 944, n: '9 · A' }]),
+        note: 'Focus on column 3 (Rex). Tab order: dice columns 1–5 → Undo → Reroll → END TURN → Aid → top HUD (relics, actives, Ascension, Menu). The free actions come before the paid one. Full key list below the frames.' }),
+      base({ id: '03a', caption: 'Defeat · A6 boss fight · Continue 180 Gem', ...defeatBase,
+        enemiesFn: (f) => [boss(f.turn, CLK.full, { hp: 132 })],
+        defeat: { ...defA6, ...violet, price: '180', btnSub: '≈ 2.00 USD · boss fight price', foot: 'Continue: 90 in a normal fight, 180 in a boss fight. Once per run. No VIP offer on this screen.' },
+        note: 'Recap first: every lethal hit with its real intent number (70, 41, 86, same formula as the plates). Then Continue: heal 25% of max HP per Axie at A6, what the boss keeps, what resets, price and remaining caps. End run and Continue are both 302 × 72.' }),
+      base({ id: '03b', caption: 'Defeat · A1 · free sample Continue (gift)', ...defeatBase, asc: 'A1', ascN: 1, aidUsed: 0,
+        enemiesFn: (f) => [boss(f.turn, CLK.light, { hp: 132 })],
+        defeat: { head: 'Act 1 boss · A1 · your party fell on turn 14', aidLine: 'Aid used 0 of 6 · Continue 0 of 1', pct: 40, heals: heals(40), recap: recapA1, resetLine: 'Enrage resets to \u201cEnrage in 14\u201d (light clock). Attrition resets to 0%.',
+          cardBorder: '#4FA62F', tag: 'A GIFT · ONCE PER ACCOUNT', tagBg: '#8CC85A', tagInk: '#183A0C', tagIcon: 'hl/icons/gift.svg', price: 'Free', gem: false, btnBg: 'linear-gradient(180deg,#A8D878,#7DBE4E)', btnShelf: '#3F7A24', btnInk: '#183A0C', btnSub: 'first elite or boss loss · A0–A2', foot: 'This gift is offered once per account and is used as this run\u2019s Continue.' },
+        note: `A1 run, so the light clock applies (from turn 14, +10% per turn, max +30%): Smash on turn 14 = 38 × 1.35 = 51.3 → ${smash(14, CLK.light)}. Heal is 40% of max HP. Green gift treatment, never violet.` }),
+      base({ id: '03c', caption: 'Defeat · A6 · Moon Card discount (−25%)', ...defeatBase,
+        enemiesFn: (f) => [boss(f.turn, CLK.full, { hp: 132 })],
+        defeat: { ...defA6, ...violet, tag: 'MOON CARD \u221225%', tagBg: '#A27BEA', tagInk: '#1E1236', tagIcon: 'hl/icons/mooncard.svg', price: '135', was: '180', btnSub: '≈ 1.50 USD · Moon Card price', foot: 'Moon Card price: 68 in a normal fight, 135 in a boss fight. Once per run. No VIP offer on this screen.' },
+        note: 'Player owns the Moon Card: 135 with 180 struck through and the source of the discount. The screen never sells the Moon Card itself.' }),
+    ];
+    const relics = ['hl/r/r1.png', 'hl/r/r2.png', 'hl/r/r3.png', 'hl/r/r4.png', 'hl/r/r5.png', 'hl/r/r6.png', 'hl/r/r7.png', 'hl/r/r8.png'];
+    const actives = [{ src: FX + 'heal.png', n: '2', bg: '#FFF8EA', op: 1 }, { src: FX + 'shield.png', n: '1', bg: '#FFF8EA', op: 1 }, { src: FX + 'reroll.svg', n: '0', bg: '#E8D6B4', op: .4 }];
+    const keyMap = [
+      { keys: ['Tab', 'Shift+Tab'], does: 'Move focus', note: 'Dice columns 1–5 → Undo → Reroll → END TURN → Aid → top HUD. Skips anything disabled except Reroll/Undo, which stay focusable to read why.' },
+      { keys: ['1', '2', '3', '4', '5'], does: 'Select the die in column 1–5', note: 'Same as Tab to it + Enter. Pressing the same key again deselects.' },
+      { keys: ['←', '→'], does: 'With a die selected: move between legal targets', note: 'Monsters left → right, or allies left → right for heal/shield faces. Illegal targets are skipped; their reason chip is shown.' },
+      { keys: ['Enter'], does: 'Select focused die · confirm target · press focused button', note: 'Damage preview (02c) shows while a target is focused, same as hover.' },
+      { keys: ['Esc'], does: 'Back one step', note: 'Deselect die → close Aid tray → cancel confirm modal (02i). With nothing open: open Menu.' },
+      { keys: ['Z'], does: 'Undo', note: 'Free, inside the current turn, until a reroll or END TURN. Disabled state reads why.' },
+      { keys: ['R'], does: 'Reroll', note: 'During the reroll animation R or Space skips it.' },
+      { keys: ['E'], does: 'END TURN', note: 'If dice are unused the sub-line already says so; no extra confirm.' },
+      { keys: ['A'], does: 'Open / close Aid tray', note: '↑ ↓ move between rows, Enter buys (first purchase → confirm), Esc closes. Not bound to anything near R / E.' },
+      { keys: ['Space'], does: 'Skip resolve animation', note: 'Enemy turn, reroll FX. Never used to confirm a target or a purchase.' },
+      { keys: ['S'], does: 'Cycle speed 1× / 2×', note: 'Only while the speed control is showing (02d).' },
+      { keys: ['Tab', 'Enter'], does: 'Modals (02i, defeat)', note: 'Focus is trapped in the modal. 02i starts on Cancel. Defeat starts on End run; Continue is one Tab away.' },
+    ].map((k, i) => ({ ...k, bg: i % 2 ? '#F6E7CB' : '#FFF8EA' }));
+    const only = (location.hash.match(/f=([\w,]+)/) || [])[1];
+    const shown = only ? frames.filter(f => only.split(',').includes(f.id)) : frames;
+    return { frames: shown, relics, actives, keyMap };
+  }
+  componentDidMount() { this._h = () => this.forceUpdate(); window.addEventListener('hashchange', this._h); }
+  componentWillUnmount() { window.removeEventListener('hashchange', this._h); }
+}
+
+</script>
+</body>
+</html>

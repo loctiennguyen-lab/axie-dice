@@ -1,9 +1,54 @@
 # Axie Dice — trạng thái hiện tại
 
 Cập nhật: 2026-10-12. Nhánh `godot-port`, push lên `axiedice` (`git push axiedice godot-port:main`).
+
+## ⇢ BẮT ĐẦU TỪ ĐÂY (bàn giao tối 12/10/2026 — session mới đọc mục này trước)
+
+**Đang làm: sprint L1 — playtest nội bộ tải về, ra mắt 3/11/2026.** Kế hoạch: `production/l1-sprint-plan.md` (khối quyết định
+đầu file), giao diện giữa các làn: `production/l1-interfaces.md`, bảng làn/worktree/quy tắc merge: `production/l1-lanes.md`,
+nợ của làn I: `production/l1-tasks-I.md`, làn S: `production/l1-tasks-S.md`.
+
+**Quy tắc làm việc đêm nay / sprint (Liam):** commit + push tự do (`git push axiedice godot-port:main`), duyệt theo tuần,
+chạy liên tục; KHÔNG deploy (Worker/R2) khi chưa hỏi; mọi việc xong phải có agent khác review rồi mới merge.
+**Dùng token cẩn thận:** đọc `production/agent-token-rules.md`, tối đa 4 agent cùng lúc, prompt gọn, agent mới cho việc mới.
+
+**Worktree** `/Users/loc.tien.nguyen/my-game-wt/<A|B|C|E|L|M|R|S|U>` (nhánh `l1/<làn>`), mỗi cái có `godot/override.cfg`
+(user dir riêng, khoá Godot riêng). Mọi lần chạy Godot qua `godot/tools/with_lock.sh`; worktree làn dùng
+`AXIE_SKIP_RULES_FINGERPRINT=1`; cây chính thì không (phải xanh không SKIP). Sau rebase cần `--import` (class_name mới).
+Nếu rebase bị chặn bởi `.import` untracked của echobox: xoá chúng (godot-port đã track).
+
+**godot-port (= axiedice/main) hiện có:** ngày 0 (khoá, worktree), S (RunDO, canon, ví Gem server, login desktop),
+R (build mac/win), A PR1 epoch + PR2 (hook H1–H8, Ascension v2, đồng hồ, attrition, spike, Continue, Aid R4/R6, Boon),
+B relic v2 (133 relic, slots), C sổ Atia, E kinh tế + Store fixes. RULES_VERSION `godot-2026-10-12-c`. Suite 68/68 trước merge S.
+**Cây chính còn sửa chưa commit:** `godot/tests/t_rules_version.gd` (FINGERPRINT sau merge S d9fbe77, không bump) +
+`production/l1-tasks-I.md` — chạy suite ở cây chính, xanh thì commit + push.
+
+**Chưa merge (theo làn, việc kế tiếp):**
+| Làn | Commit chưa merge | Trạng thái / việc tiếp |
+|---|---|---|
+| A | 24b8d76 luật Nhiệm vụ, b7f270d end_run gọi record_run_outcome/pass_add_run_xp | 24b8d76 đang chờ review (lead-programmer). Tiếp: nối offer_ctx của B vào RunState (reward/shop/event/treasure/pact boss, shop_relic_count), R5 pact_reroll/pact_pick + ALLOWED_FNS + replay |
+| B | 7ffcbb7 mô tả EN+boss immune (đã duyệt), ee2b582 offer v2 (đã duyệt), 83aefe9 thân 22 relic H1–H8 + 7 rework, 24dd998 pact live | 2 commit đầu đã duyệt MERGE (bump `-d`). 2 commit sau cần review. Còn: trục G/A, trần reroll a_chaos 6/4, relaybaton, Eternal sticker, pact bắt buộc A6/A10, mở nốt relic ẩn |
+| C | 3f389e4, 8353d24, 011971f (Atia 3D + sửa review), 2935916 sân 6 biome, ef4bf9f ảnh lineup/arena | Review lần 2 báo commit cũ thiếu file arena — nay đã commit arena; cần review lại cả chuỗi + kiểm checkout sạch. Ảnh ở production/qa/evidence/ |
+| E | 7f68d62 ví Gem remote (đã duyệt MERGE), 7ce7560 Pass v2 | 7ce7560 cần review. Tiếp: Việc tuần (3/tuần, 500 XP), MissionBoard theo `params.mission`/`mission_outcome` khi A merge |
+| L | 50b016b LandNav, 888ec56 hub Savannah, a6ebd95 đủ 6 tier + nâng Land | Review lần đầu dở (agent bị ngắt). Tiếp: **xoay cổng Portal 90° (Liam)**, **làm đẹp hub (Liam duyệt ưu tiên)**: ánh sáng ấm + bóng mềm, nền đất/mảnh địa hình biome thật, decor dày hơn, Pass ghi 29 Dec 2026 |
+| U | 3 commit WIP (theme v3, khay 5 cột, AidPanel, DefeatPanel, banner) | CHƯA xanh. Tiếp: cho xanh, gọi `_combat.set_epoch(RunState.epoch)` sau `from_data`, màn đăng nhập desktop (AccountService.begin_desktop_sign_in), newcomer ẩn nút Aid, dòng "2 elite ẩn" ở A9, số build |
+| S | e0fc845 (h_0 run_start) | Tiếp: nối RemoteGemWallet khi đăng nhập / set_gem_wallet(null) khi đăng xuất, RunSession + RemoteEpochSource (seq từ 0), giá Continue boss 180, kiểm nhảy hàng M7, endpoint quà mùa 2×90 Gem, tài khoản khách tối thiểu |
+| M | chưa mở | Mở làn M: các màn meta theo Round 3 (`design/handoffs/ui-02-round3/_zip/`, README normative, 135 khung): ưu tiên Run Setup, Echo Box, Nhiệm vụ, Store+Daily, Pass |
+
+**Claude Design Round 3 + phụ lục Round 2 đã về** (`design/handoffs/ui-02-round3/`), chưa review. Việc: art-director review
+→ ghi chú sửa cho Liam gửi; làn M + U làm theo.
+
+**Liam trả lời tối 12/10:** Pass: hết mùa vẫn nhận được thưởng đã đạt, chỉ dừng cộng XP · ưu tiên làm đẹp Land hub: CÓ.
+**Chưa trả lời (hỏi lại đầu session):** (3) mặc định chấp nhận các chỗ [INF] của Round 3 rồi gom danh sách sửa;
+(4) bỏ phần gamepad trong R3 (game không hỗ trợ); (5) không deploy Worker trong đêm; (6) thứ tự ưu tiên: merge chờ → U xanh →
+màn meta R3 → đẹp Land → relic ẩn → sân biome → RunSession. Khuyến nghị cả 4 là "đồng ý".
+
+**Trước deploy Worker (hỏi Liam):** áp migration 0002–0004 lên D1 `axie-dice-db`, `wrangler secret put RUN_TOKEN_KEY`, có
+thể thêm redirect URI desktop cho Google OAuth; Cloudflare gói Free.
+
 Bản đầy đủ trước khi rút gọn: `archive/active-2026-10-12-before-rewrite.md`. Backlog trước 20/9: `archive/2026-09-pre-cowork/` (đã bỏ).
 
-## ⇢ BẮT ĐẦU TỪ ĐÂY
+## (cũ, sáng 12/10) BẮT ĐẦU TỪ ĐÂY
 
 **Cập nhật cuối 12/10:** đã chốt + review xong: kiến trúc server RNG (local `docs/architecture/`), monetization-v1
 (cách B, PA-1, quà 180 Gem, status CHỐT — chờ sim), ascension-v2 bảng răng cưa, prompt UI

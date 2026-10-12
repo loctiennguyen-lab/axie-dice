@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<script src="_ds/dango-design-system-b8da985f-efd5-488e-ae62-d508e48befe9/_ds_bundle.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&amp;family=Work+Sans:wght@500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#2A1C12}
+a{color:#FF9345;text-decoration:none}a:hover{color:#FFB275}
+</style>
+</helmet>
+<div style="display:flex;flex-direction:column;gap:64px;padding:64px;width:max-content;background:#2A1C12;font-family:'Work Sans',sans-serif;color:#3A2214;-webkit-font-smoothing:antialiased">
+  <div style="display:flex;flex-direction:column;gap:8px;max-width:1920px">
+    <div style="font-family:'Baloo 2';font-weight:800;font-size:15px;letter-spacing:.18em;color:#D79A58">AXIE DICE · UI REQUEST 02 · ROUND 3 · M5</div>
+    <div style="font-family:'Baloo 2';font-weight:800;font-size:60px;line-height:1;color:#FFF8EA">Echo Box</div>
+    <div style="font-size:17px;line-height:1.5;color:#DDBF8C;max-width:1300px;text-wrap:pretty">Alchemy house, key 4. One building, two tabs, one ticket bar. Every pull gives exactly one reward: Land Stone or one cosmetic. Odds and pity are inside the screen. L1 ships the Regular tab only. <a href="Dice UI R3 README.md">R3 README</a> · <a href="Dice UI R3 - Vault and Pass.dc.html">← M3/M4</a> · <a href="Dice UI R3 - Missions.dc.html">M6 →</a></div>
+  </div>
+
+  <sc-for list="{{ frames }}" as="f" hint-placeholder-count="2">
+    <div data-screen-label="{{ f.id }}" style="display:flex;flex-direction:column;gap:12px">
+      <div style="display:flex;align-items:center;gap:12px">
+        <div style="height:34px;padding:0 12px;display:flex;align-items:center;border-radius:9px;background:#FF9345;border:3px solid #24140B;font-family:'Baloo 2';font-size:17px;font-weight:800;color:#2A1505">{{ f.id }}</div>
+        <div style="font-family:'Baloo 2';font-size:26px;font-weight:800;color:#FFF8EA">{{ f.caption }}</div>
+        <div style="font-size:14px;font-weight:600;color:#B89A74">1920 × {{ f.H }}</div>
+      </div>
+      <div style="font-size:15px;color:#DDBF8C;max-width:1600px">{{ f.note }}</div>
+      <div style="position:relative;width:1920px;height:{{ f.H }}px;overflow:hidden">
+        <dc-import name="R3 Land Backdrop" h="{{ f.H }}" guest="{{ f.guest }}" dots="{{ f.dots }}" style="position:absolute;inset:0" hint-size="1920px,1080px"></dc-import>
+        <div style="position:absolute;left:200px;top:116px;width:1520px;height:{{ f.ph }}px;border-radius:28px;background:linear-gradient(180deg,#F8EBD2,#EBD3A8);border:4px solid #8A3E22;box-shadow:inset 2px 2px 0 rgba(255,248,234,.65),5px 8px 0 rgba(36,20,11,.45);overflow:hidden;display:flex;flex-direction:column;box-sizing:border-box">
+          <div style="height:64px;flex:none;display:flex;align-items:center;gap:14px;padding:0 16px 0 8px;background:linear-gradient(180deg,#D79A58,#B87440);border-bottom:4px solid #8A3E22">
+            <div style="height:48px;padding:0 14px 0 10px;display:flex;align-items:center;gap:8px;border-radius:12px;background:linear-gradient(180deg,#FFF8EA,#EBD3A8);border:3px solid #24140B;box-shadow:inset 2px 2px 0 rgba(255,248,234,.65),3px 4px 0 rgba(74,34,14,.35);font-family:'Baloo 2';font-weight:800;font-size:18px;box-sizing:border-box"><span style="font-size:20px">←</span>Back<span style="height:22px;padding:0 6px;border-radius:6px;background:#3B2618;color:#FFF8EA;font-size:13px;display:flex;align-items:center">Esc</span></div>
+            <img src="hl/b/echobox.png" alt="" style="width:36px;height:36px;object-fit:contain">
+            <div style="font-family:'Baloo 2';font-weight:800;font-size:36px;line-height:1;color:#2A1505">Echo Box</div>
+            <div style="font-size:14px;font-weight:700;color:#3A1E07">Open with tickets · odds and pity are published below</div>
+          </div>
+          <sc-if value="{{ f.banner }}" hint-placeholder-val="{{ false }}">
+            <div style="margin:12px 24px 0;min-height:60px;flex:none;display:flex;align-items:center;gap:14px;padding:6px 10px 6px 16px;border-radius:16px;background:#3B2618;border:3px solid #24140B">
+              <img src="asc/fx/vuln.png" alt="" style="width:28px;height:28px">
+              <div style="flex:1;display:flex;flex-direction:column"><div style="font-family:'Baloo 2';font-weight:800;font-size:18px;color:#FFF8EA">{{ f.banner }}</div><div style="font-size:13px;font-weight:600;color:#DDBF8C">{{ f.bannerSub }}</div></div>
+              <div style="height:44px;width:160px;display:flex;align-items:center;justify-content:center;border-radius:12px;background:linear-gradient(180deg,#FFB070,#FF8A3A);border:3px solid #24140B;box-shadow:3px 5px 0 #8A3E22;font-family:'Baloo 2';font-weight:800;font-size:17px;color:#2A1505;box-sizing:border-box">{{ f.bannerBtn }}</div>
+              <div style="height:44px;width:160px;display:flex;align-items:center;justify-content:center;border-radius:12px;background:linear-gradient(180deg,#FFF8EA,#EBD3A8);border:3px solid #24140B;font-family:'Baloo 2';font-weight:800;font-size:17px;box-sizing:border-box">Back to Land</div>
+            </div>
+          </sc-if>
+          <div style="margin:12px 24px 0;height:64px;flex:none;display:flex;align-items:center;gap:14px;padding:0 10px 0 14px;border-radius:16px;background:#FFF8EA;border:3px solid #8A3E22;opacity:{{ f.barOp }}">
+            <img src="asc/fx/chest.png" alt="" style="width:34px;height:34px">
+            <div style="display:flex;flex-direction:column"><div style="font-family:'Baloo 2';font-weight:800;font-size:26px;line-height:1">{{ f.tickets }}</div><div style="font-size:12px;font-weight:700;color:#6E4A30">tickets (max 999)</div></div>
+            <div style="width:3px;height:40px;background:#DDBF8C"></div>
+            <div style="display:flex;flex-direction:column;gap:4px;width:170px"><div style="font-size:12px;font-weight:700;color:#6E4A30">Fragments {{ f.frag }} / 10 → 1 ticket</div><div style="height:12px;border-radius:6px;background:#4A2A1A;border:2px solid #24140B;overflow:hidden;box-sizing:border-box"><div style="width:{{ f.fragPct }}%;height:100%;background:#5FCFCB"></div></div></div>
+            <div style="width:3px;height:40px;background:#DDBF8C"></div>
+            <div style="display:flex;flex-direction:column"><div style="display:flex;align-items:center;gap:4px;font-family:'Baloo 2';font-weight:800;font-size:18px">Next ticket <img src="asc/fx/shard.png" alt="" style="width:20px;height:20px">{{ f.nextPrice }}</div><div style="font-size:12px;font-weight:700;color:#6E4A30">bought today {{ f.bought }} / 30 · price resets 00:00 UTC</div></div>
+            <div style="flex:1"></div>
+            <sc-if value="{{ f.buyEnough }}" hint-placeholder-val="{{ false }}"><div style="height:48px;padding:0 14px;display:flex;flex-direction:column;align-items:center;justify-content:center;border-radius:12px;background:linear-gradient(180deg,#FFF8EA,#EBD3A8);border:3px solid #24140B;box-shadow:3px 4px 0 rgba(74,34,14,.35);box-sizing:border-box"><div style="font-family:'Baloo 2';font-weight:800;font-size:16px;line-height:1">Buy enough for 1 pull</div><div style="display:flex;align-items:center;gap:3px;font-size:12px;font-weight:700;color:#6E4A30">1 ticket · <img src="asc/fx/shard.png" alt="" style="width:14px;height:14px">200</div></div></sc-if>
+            <div style="width:210px;height:48px;display:flex;align-items:center;justify-content:center;gap:6px;border-radius:12px;background:{{ f.buyBg }};border:3px solid {{ f.buyBd }};box-shadow:{{ f.buySh }};font-family:'Baloo 2';font-weight:800;font-size:17px;color:{{ f.buyInk }};box-sizing:border-box">{{ f.buyLabel }}</div>
+          </div>
+          <div style="margin:10px 24px 0;display:flex;align-items:flex-end;gap:6px;flex:none">
+            <sc-for list="{{ f.tabs }}" as="t" hint-placeholder-count="2">
+              <div style="height:48px;padding:0 22px;display:flex;align-items:center;gap:8px;border-radius:14px 14px 0 0;background:{{ t.bg }};border:3px solid #8A3E22;border-bottom:0;font-family:'Baloo 2';font-weight:800;font-size:19px;color:{{ t.ink }};box-sizing:border-box">{{ t.t }}<sc-if value="{{ t.tag }}" hint-placeholder-val="{{ false }}"><span style="height:22px;padding:0 8px;border-radius:999px;background:{{ t.tagBg }};border:2px solid #24140B;font-size:12px;line-height:18px;color:{{ t.tagInk }}">{{ t.tag }}</span></sc-if></div>
+            </sc-for>
+            <div style="flex:1"></div>
+            <div style="font-size:13px;font-weight:700;color:#6E4A30;padding-bottom:10px">{{ f.tabLine }}</div>
+          </div>
+          <div style="flex:1;min-height:0;margin:0 24px 20px;display:grid;grid-template-columns:780px minmax(0,1fr);gap:16px;padding:16px;border-radius:0 18px 18px 18px;background:#FFF8EA;border:3px solid #8A3E22">
+            <!-- STAGE -->
+            <div style="position:relative;display:flex;flex-direction:column;border-radius:18px;background:{{ f.stageBg }};border:3px solid #24140B;overflow:hidden">
+              <div style="height:44px;flex:none;display:flex;align-items:center;padding:0 16px;font-size:15px;font-weight:700;color:{{ f.stageInk }}">{{ f.oneLine }}</div>
+              <div style="position:relative;flex:1;min-height:0;display:flex;align-items:center;justify-content:center">
+                <sc-if value="{{ f.single }}" hint-placeholder-val="{{ true }}">
+                  <div style="position:relative;width:360px;height:300px;display:flex;align-items:center;justify-content:center">
+                    <div style="position:absolute;left:30px;right:30px;bottom:6px;height:60px;border-radius:50%;background:rgba(36,20,11,.35)"></div>
+                    <div style="position:absolute;inset:{{ f.rimInset }}px;border-radius:50%;border:{{ f.rim }};box-shadow:{{ f.rimGlow }}"></div>
+                    <img src="{{ f.chest }}" alt="" style="position:relative;width:{{ f.chestW }}px;object-fit:contain;transform:{{ f.chestT }};opacity:{{ f.chestOp }}">
+                  </div>
+                </sc-if>
+                <sc-if value="{{ f.reveal }}" hint-placeholder-val="{{ false }}">
+                  <div style="position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:{{ f.cardW }}px;display:flex;flex-direction:column;align-items:center;gap:10px;padding:18px;border-radius:22px;background:{{ f.cardBg }};border:4px solid {{ f.cardBd }};box-shadow:4px 6px 0 rgba(36,20,11,.45),0 0 0 6px {{ f.cardRim }};box-sizing:border-box">
+                    <sc-if value="{{ f.isStone }}" hint-placeholder-val="{{ false }}">
+                      <img src="hl/i/stone.png" alt="" style="width:110px;height:110px">
+                      <div style="font-family:'Baloo 2';font-weight:800;font-size:56px;line-height:1;color:#3A2214">{{ f.stoneAmt }}</div>
+                      <div style="font-family:'Baloo 2';font-weight:800;font-size:20px">Land Stone</div>
+                      <div style="height:26px;padding:0 10px;border-radius:999px;background:{{ f.stackBg }};border:2px solid #24140B;font-family:'Baloo 2';font-weight:800;font-size:14px;line-height:22px;color:{{ f.stackInk }}">{{ f.stackName }}</div>
+                    </sc-if>
+                    <sc-if value="{{ f.isCos }}" hint-placeholder-val="{{ false }}">
+                      <div style="display:flex;gap:6px"><div style="height:28px;padding:0 10px;border-radius:999px;background:{{ f.rBg }};border:3px solid {{ f.rBd }};font-family:'Baloo 2';font-weight:800;font-size:15px;line-height:22px;color:{{ f.rInk }}">{{ f.rName }}</div><div style="height:28px;padding:0 10px;border-radius:999px;background:{{ f.nBg }};border:3px solid #24140B;font-family:'Baloo 2';font-weight:800;font-size:15px;line-height:22px;color:{{ f.nInk }}">{{ f.nTag }}</div></div>
+                      <div style="width:150px;height:150px;border-radius:30px;background:{{ f.artBg }};border:4px solid {{ f.rBd }};display:flex;align-items:center;justify-content:center;font-family:'Baloo 2';font-weight:800;font-size:16px;color:{{ f.artInk }};text-align:center">{{ f.artLabel }}</div>
+                      <div style="font-family:'Baloo 2';font-weight:800;font-size:28px;line-height:1.1;text-align:center;color:{{ f.cardInk }}">{{ f.itemName }}</div>
+                      <div style="font-size:14px;font-weight:700;text-align:center;color:{{ f.cardInk2 }}">{{ f.itemLine }}</div>
+                    </sc-if>
+                  </div>
+                </sc-if>
+                <sc-if value="{{ f.ten }}" hint-placeholder-val="{{ false }}">
+                  <div style="display:grid;grid-template-columns:repeat(5,128px);gap:10px">
+                    <sc-for list="{{ f.cells }}" as="c" hint-placeholder-count="10">
+                      <div style="height:150px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;border-radius:16px;background:{{ c.bg }};border:3px solid {{ c.bd }};box-shadow:{{ c.sh }};box-sizing:border-box;opacity:{{ c.op }}">
+                        <img src="{{ c.img }}" alt="" style="width:{{ c.w }}px;height:64px;object-fit:contain">
+                        <div style="font-family:'Baloo 2';font-weight:800;font-size:15px;line-height:1.1;text-align:center;color:{{ c.ink }}">{{ c.t }}</div>
+                        <sc-if value="{{ c.tag }}" hint-placeholder-val="{{ false }}"><div style="height:20px;padding:0 6px;border-radius:999px;background:{{ c.tagBg }};border:2px solid {{ c.tagBd }};font-family:'Baloo 2';font-weight:800;font-size:12px;line-height:16px;color:{{ c.tagInk }}">{{ c.tag }}</div></sc-if>
+                      </div>
+                    </sc-for>
+                  </div>
+                </sc-if>
+                <sc-if value="{{ f.summary }}" hint-placeholder-val="{{ false }}">
+                  <div style="width:640px;display:flex;flex-direction:column;gap:10px;padding:18px;border-radius:20px;background:#FFF8EA;border:4px solid #8A3E22;box-shadow:4px 6px 0 rgba(36,20,11,.45)">
+                    <div style="font-family:'Baloo 2';font-weight:800;font-size:26px">{{ f.sumTitle }}</div>
+                    <sc-for list="{{ f.sumRows }}" as="r" hint-placeholder-count="4">
+                      <div style="min-height:44px;display:flex;align-items:center;gap:10px;padding:4px 12px;border-radius:12px;background:#F8EBD2;border:2px solid #B89A74">
+                        <img src="{{ r.icon }}" alt="" style="width:26px;height:26px">
+                        <div style="flex:1;font-size:15px;font-weight:700">{{ r.t }}</div>
+                        <div style="font-family:'Baloo 2';font-weight:800;font-size:18px">{{ r.v }}</div>
+                      </div>
+                    </sc-for>
+                  </div>
+                </sc-if>
+                <sc-if value="{{ f.locked }}" hint-placeholder-val="{{ false }}">
+                  <div style="display:flex;flex-direction:column;align-items:center;gap:12px;text-align:center">
+                    <img src="r3/chests/mystic.png" alt="" style="width:260px;object-fit:contain;filter:grayscale(.85) brightness(.9);opacity:.75">
+                    <div style="height:34px;padding:0 14px;display:flex;align-items:center;gap:6px;border-radius:10px;background:#3B2618;border:3px solid #24140B;font-family:'Baloo 2';font-weight:800;font-size:18px;color:#FFC79B"><img src="asc/new-icons/lock.svg" alt="" style="width:18px;height:18px">Season box — coming later</div>
+                    <div style="font-size:15px;font-weight:600;color:#DDBF8C;max-width:460px;line-height:1.45">The seasonal Echo Box opens after this playtest build. Tickets you hold work in the Regular box today and will also open the Season box later.</div>
+                  </div>
+                </sc-if>
+                <sc-if value="{{ f.skip }}" hint-placeholder-val="{{ false }}"><div style="position:absolute;right:14px;top:6px;height:44px;padding:0 14px;display:flex;align-items:center;gap:8px;border-radius:12px;background:linear-gradient(180deg,#FFF8EA,#EBD3A8);border:3px solid #24140B;box-shadow:3px 4px 0 rgba(74,34,14,.35);font-family:'Baloo 2';font-weight:800;font-size:17px"><img src="hl/icons/skip.svg" alt="" style="width:22px;height:22px">Skip<span style="height:22px;padding:0 6px;border-radius:6px;background:#3B2618;color:#FFF8EA;font-size:13px;display:flex;align-items:center">Space</span></div></sc-if>
+                <sc-if value="{{ f.phase }}" hint-placeholder-val="{{ false }}"><div style="position:absolute;left:16px;bottom:8px;height:28px;padding:0 10px;display:flex;align-items:center;border-radius:8px;background:rgba(36,20,11,.55);font-family:'Baloo 2';font-weight:800;font-size:14px;color:#FFF8EA">{{ f.phase }}</div></sc-if>
+              </div>
+              <sc-if value="{{ f.controls }}" hint-placeholder-val="{{ true }}">
+                <div style="flex:none;display:flex;align-items:center;gap:12px;padding:12px 16px 16px">
+                  <sc-for list="{{ f.btns }}" as="b" hint-placeholder-count="2">
+                    <div style="flex:1;height:60px;display:flex;flex-direction:column;align-items:center;justify-content:center;border-radius:14px;background:{{ b.bg }};border:3px solid {{ b.bd }};box-shadow:{{ b.sh }};box-sizing:border-box">
+                      <div style="font-family:'Baloo 2';font-weight:800;font-size:21px;line-height:1;color:{{ b.ink }}">{{ b.t }}</div>
+                      <div style="display:flex;align-items:center;gap:3px;font-size:12px;font-weight:700;color:{{ b.ink }}"><img src="asc/fx/chest.png" alt="" style="width:14px;height:14px">{{ b.s }}</div>
+                    </div>
+                  </sc-for>
+                  <div style="width:150px;height:60px;display:flex;align-items:center;justify-content:center;border-radius:14px;background:linear-gradient(180deg,#FFF8EA,#EBD3A8);border:3px solid #24140B;box-shadow:3px 5px 0 rgba(74,34,14,.35);font-family:'Baloo 2';font-weight:800;font-size:19px;box-sizing:border-box">Rates</div>
+                </div>
+              </sc-if>
+              <sc-if value="{{ f.ctlReason }}" hint-placeholder-val="{{ false }}"><div style="flex:none;padding:0 16px 12px;font-size:13px;font-weight:700;color:{{ f.stageInk }}">{{ f.ctlReason }}</div></sc-if>
+            </div>
+
+            <!-- RIGHT -->
+            <div style="display:flex;flex-direction:column;gap:12px;min-width:0;opacity:{{ f.rightOp }}">
+              <sc-if value="{{ f.reg }}" hint-placeholder-val="{{ true }}">
+                <div style="display:flex;flex-direction:column;gap:6px;padding:12px;border-radius:16px;background:#F8EBD2;border:2px solid #B89A74">
+                  <div style="font-family:'Baloo 2';font-weight:800;font-size:15px;letter-spacing:.06em;color:#8A3E22">PITY · COSMETIC PULLS ONLY</div>
+                  <sc-for list="{{ f.pity }}" as="p" hint-placeholder-count="4">
+                    <div style="display:flex;align-items:center;gap:8px">
+                      <div style="width:104px;height:24px;flex:none;border-radius:999px;background:{{ p.bg }};border:2px solid {{ p.bd }};font-family:'Baloo 2';font-weight:800;font-size:13px;line-height:20px;text-align:center;color:{{ p.ink }}">{{ p.r }}</div>
+                      <div style="flex:1;height:16px;border-radius:7px;background:#4A2A1A;border:2px solid #24140B;overflow:hidden;box-sizing:border-box"><div style="width:{{ p.pct }}%;height:100%;background:#FFB23F"></div></div>
+                      <div style="width:150px;font-size:13px;font-weight:700;text-align:right;white-space:nowrap">{{ p.t }}</div>
+                    </div>
+                  </sc-for>
+                </div>
+                <div style="display:flex;flex-direction:column;gap:6px;padding:12px;border-radius:16px;background:#F8EBD2;border:2px solid #B89A74">
+                  <div style="display:flex;align-items:center"><div style="font-family:'Baloo 2';font-weight:800;font-size:15px;letter-spacing:.06em;color:#8A3E22">POOL · COLLECTED</div><div style="flex:1"></div><div style="font-family:'Baloo 2';font-weight:800;font-size:16px">{{ f.poolTotal }}</div></div>
+                  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px">
+                    <sc-for list="{{ f.pool }}" as="p" hint-placeholder-count="6">
+                      <div style="height:48px;display:flex;flex-direction:column;justify-content:center;gap:2px;padding:0 10px;border-radius:10px;background:#FFF8EA;border:3px solid {{ p.bd }}">
+                        <div style="font-family:'Baloo 2';font-weight:800;font-size:13px;line-height:1;color:#3A2214">{{ p.r }}</div>
+                        <div style="font-family:'Baloo 2';font-weight:800;font-size:17px;line-height:1">{{ p.t }}</div>
+                      </div>
+                    </sc-for>
+                  </div>
+                  <div style="font-size:12px;font-weight:600;color:#6E4A30">Regular Mythic items are decor, pets, accessories and titles. Mythic dice, frames and FX only come from the Season box.</div>
+                </div>
+                <div style="display:flex;flex-direction:column;gap:4px;padding:12px;border-radius:16px;background:#F8EBD2;border:2px solid #B89A74">
+                  <div style="font-family:'Baloo 2';font-weight:800;font-size:15px;letter-spacing:.06em;color:#8A3E22">DUPLICATES</div>
+                  <div style="font-size:13px;font-weight:600;line-height:1.45">A duplicate gives fragments: Common 3 · Uncommon 5 · Rare 10 · Epic 20 · Legendary 40 · Mythic 80. 10 fragments = 1 ticket. Nothing turns into Shard or Stone.</div>
+                </div>
+              </sc-if>
+              <sc-if value="{{ f.sea }}" hint-placeholder-val="{{ false }}">
+                <div style="display:flex;flex-direction:column;gap:8px;padding:12px;border-radius:16px;background:#F8EBD2;border:2px solid #B89A74">
+                  <div style="display:flex;align-items:center;gap:8px"><div style="font-family:'Baloo 2';font-weight:800;font-size:20px">Lunar Echo · Series 1</div><div style="flex:1"></div><div style="font-family:'Baloo 2';font-weight:800;font-size:17px">{{ f.owned }} / 11</div></div>
+                  <div style="font-size:12px;font-weight:700;color:#6E4A30">Series ends 26 Jan 2027 · pulls opened {{ f.opened }} · max 80 pulls (400 tickets) to complete</div>
+                  <div style="display:grid;grid-template-columns:repeat(6,1fr);gap:6px">
+                    <sc-for list="{{ f.slots }}" as="s" hint-placeholder-count="11">
+                      <div style="height:74px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;padding:2px;border-radius:12px;background:{{ s.bg }};border:3px solid {{ s.bd }};box-sizing:border-box;grid-column:{{ s.col }}">
+                        <div style="width:30px;height:30px;border-radius:8px;background:{{ s.art }};border:2px solid {{ s.bd }};opacity:{{ s.op }}"></div>
+                        <div style="font-family:'Baloo 2';font-weight:800;font-size:12px;line-height:1.05;text-align:center;color:{{ s.ink }}">{{ s.n }}</div>
+                        <div style="font-size:12px;font-weight:700;line-height:1;color:{{ s.ink2 }}">{{ s.r }}</div>
+                      </div>
+                    </sc-for>
+                  </div>
+                  <div style="display:flex;gap:6px">
+                    <sc-for list="{{ f.miles }}" as="m" hint-placeholder-count="3"><div style="flex:1;height:44px;display:flex;flex-direction:column;justify-content:center;padding:0 8px;border-radius:10px;background:{{ m.bg }};border:2px solid {{ m.bd }}"><div style="font-family:'Baloo 2';font-weight:800;font-size:13px;line-height:1.1;color:{{ m.ink }}">{{ m.t }}</div><div style="font-size:12px;font-weight:700;color:{{ m.ink2 }}">{{ m.s }}</div></div></sc-for>
+                  </div>
+                </div>
+                <div style="display:flex;flex-direction:column;gap:6px;padding:12px;border-radius:16px;background:#2A0F2E;border:3px solid #0A0408">
+                  <div style="display:flex;align-items:center;gap:8px"><div style="font-family:'Baloo 2';font-weight:800;font-size:15px;letter-spacing:.06em;color:#FF9FB8">LUNAR BAR</div><div style="height:20px;padding:0 6px;border-radius:999px;background:#FF3D6E;border:2px solid #0A0408;font-family:'Baloo 2';font-weight:800;font-size:12px;line-height:16px;color:#2A0F2E">MYTHIC</div><div style="flex:1"></div><div style="font-family:'Baloo 2';font-weight:800;font-size:15px;color:#FFF8EA">{{ f.lunarLine }}</div></div>
+                  <div style="height:22px;border-radius:9px;background:#4A2A1A;border:3px solid #0A0408;overflow:hidden;box-sizing:border-box"><div style="width:{{ f.mPct }}%;height:100%;background:{{ f.mFill }}"></div></div>
+                  <sc-for list="{{ f.thin }}" as="t" hint-placeholder-count="2">
+                    <div style="display:flex;align-items:center;gap:8px"><div style="width:96px;font-family:'Baloo 2';font-weight:800;font-size:13px;color:{{ t.c }}">{{ t.r }}</div><div style="flex:1;height:10px;border-radius:5px;background:#4A2A1A;overflow:hidden"><div style="width:{{ t.pct }}%;height:100%;background:{{ t.fill }}"></div></div><div style="width:150px;font-size:12px;font-weight:700;text-align:right;color:#F2D8E2">{{ t.t }}</div></div>
+                  </sc-for>
+                  <div style="font-size:12px;font-weight:600;color:#F2D8E2">Bars turn brighter past 50%. Certain at 40 / 20 / 10; a hit resets that bar.</div>
+                </div>
+                <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:14px;background:#E8D6B4;border:2px dashed #9A7650">
+                  <div style="font-family:'Baloo 2';font-weight:800;font-size:15px;color:#3A2214">Earlier series — odds are 2× slower</div><div style="flex:1"></div><div style="font-size:13px;font-weight:700;color:#6E4A30">No earlier series yet</div>
+                </div>
+              </sc-if>
+            </div>
+          </div>
+
+          <sc-if value="{{ f.modal }}" hint-placeholder-val="{{ false }}">
+            <div style="position:absolute;inset:68px 0 0;background:rgba(36,20,11,.55)"></div>
+            <div style="position:absolute;left:{{ f.mLeft }}px;top:{{ f.mTop }}px;width:{{ f.mW }}px;border-radius:24px;background:linear-gradient(180deg,#F8EBD2,#EBD3A8);border:4px solid #8A3E22;box-shadow:5px 8px 0 rgba(36,20,11,.45);overflow:hidden">
+              <div style="height:56px;display:flex;align-items:center;gap:12px;padding:0 12px 0 20px;background:linear-gradient(180deg,#D79A58,#B87440);border-bottom:4px solid #8A3E22"><div style="font-family:'Baloo 2';font-weight:800;font-size:24px;color:#2A1505">{{ f.mTitle }}</div><div style="flex:1"></div><div style="height:40px;padding:0 12px;display:flex;align-items:center;border-radius:10px;background:linear-gradient(180deg,#FFF8EA,#EBD3A8);border:3px solid #24140B;font-family:'Baloo 2';font-weight:800;font-size:15px;box-sizing:border-box">Close · Esc</div></div>
+              <div style="padding:18px 22px 22px;display:flex;flex-direction:column;gap:12px">
+                <sc-for list="{{ f.mLines }}" as="l" hint-placeholder-count="2"><div style="font-size:15px;font-weight:600;line-height:1.45">{{ l }}</div></sc-for>
+                <sc-if value="{{ f.mTables }}" hint-placeholder-val="{{ false }}">
+                  <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+                    <sc-for list="{{ f.mTables }}" as="tb" hint-placeholder-count="2">
+                      <div style="display:flex;flex-direction:column;border-radius:14px;overflow:hidden;border:3px solid #8A3E22">
+                        <div style="height:36px;display:flex;align-items:center;padding:0 12px;background:#3B2618;font-family:'Baloo 2';font-weight:800;font-size:16px;color:#FFF8EA">{{ tb.h }}</div>
+                        <sc-for list="{{ tb.rows }}" as="r" hint-placeholder-count="6"><div style="height:30px;display:flex;align-items:center;gap:8px;padding:0 12px;background:{{ r.bg }}"><div style="flex:1;font-size:14px;font-weight:700">{{ r.a }}</div><div style="font-family:'Baloo 2';font-weight:800;font-size:15px">{{ r.b }}</div></div></sc-for>
+                      </div>
+                    </sc-for>
+                  </div>
+                </sc-if>
+                <sc-if value="{{ f.mBtns }}" hint-placeholder-val="{{ false }}">
+                  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:4px">
+                    <div style="height:60px;display:flex;align-items:center;justify-content:center;border-radius:14px;background:linear-gradient(180deg,#FFF8EA,#EBD3A8);border:3px solid #24140B;box-shadow:3px 5px 0 rgba(74,34,14,.35),0 0 0 7px #FFC445,0 0 0 10px #24140B;font-family:'Baloo 2';font-weight:800;font-size:20px;box-sizing:border-box">{{ f.mNo }}</div>
+                    <div style="height:60px;display:flex;align-items:center;justify-content:center;border-radius:14px;background:linear-gradient(180deg,#FFB070,#FF8A3A);border:3px solid #24140B;box-shadow:3px 5px 0 #8A3E22;font-family:'Baloo 2';font-weight:800;font-size:20px;color:#2A1505;box-sizing:border-box">{{ f.mYes }}</div>
+                  </div>
+                </sc-if>
+              </div>
+            </div>
+          </sc-if>
+        </div>
+      </div>
+    </div>
+  </sc-for>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+const RC = { Common: ['#C6CEDA', '#1C2230', '#24140B', 'bronze'], Uncommon: ['#40CC3D', '#0A2A09', '#24140B', 'silver'], Rare: ['#33B8FF', '#062538', '#24140B', 'gold'], Epic: ['#BF6BFF', '#24083A', '#24140B', 'platinum'], Legendary: ['#FF9445', '#2A1505', '#24140B', 'diamond'], Mythic: ['#FF3D6E', '#2A0F2E', '#0A0408', 'lunacian'] };
+const STONE_CHEST = { 100: 'bronze', 250: 'bronze', 500: 'silver', 1000: 'gold', 2500: 'platinum', 5000: 'platinum', 10000: 'lunacian', 25000: 'lunacian' };
+const CH = k => `r3/chests/${k}.png`;
+const shelf = '3px 4px 0 rgba(74,34,14,.35)';
+const RING = ',0 0 0 7px #FFC445,0 0 0 10px #24140B';
+const PRI = { bg: 'linear-gradient(180deg,#FFB070,#FF8A3A)', bd: '#24140B', ink: '#2A1505', sh: 'inset 2px 2px 0 rgba(255,248,234,.65),3px 5px 0 #8A3E22' };
+const DIS = { bg: '#DDBF8C', bd: '#9A7650', ink: '#6E4A30', sh: 'none' };
+const pM = c => (2 * c - 1) / (1600 - (c - 1) ** 2);
+const pct = x => (x * 100 < 10 ? (x * 100).toFixed(1) : (x * 100).toFixed(0)) + '%';
+const price = k => Math.round(200 * Math.pow(1.05, k - 1) / 5) * 5;
+const fmt = n => n.toLocaleString('en-US');
+function base(o) {
+  const t = o.tickets ?? 7, sea = !!o.sea, online = !o.offline && !o.guest;
+  const canBuy = online && (o.bought ?? 4) < 30;
+  return {
+    H: 1080, ph: 880, guest: !!o.guest, dots: '', banner: '', tickets: o.guest ? '—' : String(t), frag: o.frag ?? 6, fragPct: (o.frag ?? 6) * 10,
+    nextPrice: fmt(price((o.bought ?? 4) + 1)), bought: o.bought ?? 4, buyEnough: !!o.buyEnough, barOp: o.guest ? .6 : 1,
+    buyBg: canBuy ? PRI.bg : DIS.bg, buyBd: canBuy ? PRI.bd : DIS.bd, buyInk: canBuy ? PRI.ink : DIS.ink, buySh: canBuy ? '3px 5px 0 #8A3E22' : 'none',
+    buyLabel: o.guest ? 'Sign in to buy' : o.offline ? 'Needs a connection' : `Buy ticket · ${fmt(price((o.bought ?? 4) + 1))}`,
+    tabs: [{ t: 'Regular', bg: sea ? '#E8D6B4' : '#FFF8EA', ink: sea ? '#6E4A30' : '#3A2214', tag: '' },
+      { t: 'Seasonal', bg: sea ? '#FFF8EA' : '#E8D6B4', ink: sea ? '#3A2214' : '#6E4A30', tag: o.l1 ? 'COMING LATER' : 'NEW', tagBg: o.l1 ? '#3B2618' : '#FFC445', tagInk: o.l1 ? '#FFC79B' : '#3A2A12' }],
+    tabLine: sea ? (o.l1 ? 'Not in this playtest build' : `Pulls left today ${o.left ?? 5} / 8 · resets 00:00 UTC`) : 'Many items, fixed rates',
+    reg: !sea, sea: sea && !o.l1, rightOp: o.guest || o.offline ? .65 : 1,
+    stageBg: sea ? 'radial-gradient(ellipse at 50% 60%,#4E2E8A 0%,#2A0F2E 75%)' : 'radial-gradient(ellipse at 50% 60%,#FFE3A6 0%,#D79A58 70%,#B87440 100%)', stageInk: sea ? '#F2D8E2' : '#3A1E07',
+    oneLine: sea ? '5 tickets per pull. A small set of rare items. A full set is guaranteed within 80 pulls (400 tickets). Max 8 pulls a day.' : '1 ticket per pull. Many items, fixed rates. 6 pulls in 10 give Land Stone.',
+    single: true, reveal: false, ten: false, summary: false, locked: false, skip: false, phase: '', controls: true, ctlReason: '', modal: false,
+    chest: sea ? CH('mystic') : CH('gold'), chestW: 300, chestT: 'none', chestOp: 1, rim: '0 solid transparent', rimGlow: 'none', rimInset: 0,
+    pity: [['Rare', 9, 15], ['Epic', 22, 60], ['Legendary', 87, 200], ['Mythic', 87, 1000]].map(([r, c, n]) => ({ r: r.toUpperCase(), pct: c / n * 100, t: `${c} / ${n} · certain at ${n}`, bg: RC[r][0], ink: RC[r][1], bd: RC[r][2] })),
+    pool: [['Common', 18, 61], ['Uncommon', 9, 55], ['Rare', 4, 47], ['Epic', 1, 28], ['Legendary', 0, 20], ['Mythic', 0, 12]].map(([r, c, n]) => ({ r: r.toUpperCase(), t: `${c} / ${n}`, bd: RC[r][0] })), poolTotal: '32 / 223',
+    ...seaRight(o),
+    btns: sea ? seaBtns(o, t) : regBtns(o, t),
+  };
+}
+function regBtns(o, t) {
+  const on1 = !o.offline && !o.guest && t >= 1, on10 = on1 && t >= 10;
+  return [{ t: 'Open 1', s: '1 ticket', ...(on1 ? PRI : DIS), sh: on1 ? PRI.sh + (o.ring ? RING : '') : 'none' }, { t: 'Open 10', s: '10 tickets', ...(on10 ? PRI : DIS), sh: on10 ? PRI.sh : 'none' }];
+}
+function seaBtns(o, t) {
+  const left = o.left ?? 5, n = Math.min(left, 10), on = !o.offline && !o.guest && left > 0 && t >= 5, onN = on && t >= 5 * n;
+  return [{ t: 'Open 1', s: '5 tickets', ...(on ? PRI : DIS), sh: on ? PRI.sh + (o.ring ? RING : '') : 'none' }, { t: `Open ${n || 0}`, s: `${5 * n} tickets`, ...(onN ? PRI : DIS), sh: onN ? PRI.sh : 'none' }];
+}
+function seaRight(o) {
+  const owned = o.owned ?? 3, c = o.mc ?? 31;
+  const SL = [['Moon die', 'Epic'], ['Tide frame', 'Epic'], ['Glow FX', 'Epic'], ['Lantern pet', 'Epic'], ['Crescent tint', 'Epic'], ['Night decor', 'Epic'], ['Lunar frame', 'Legendary'], ['Comet FX', 'Legendary'], ['Eclipse die', 'Legendary'], ['Moonfall FX', 'Mythic'], ['Moon crown frame', 'Mythic']];
+  const has = [0, 3, 6].slice(0, owned).concat(owned > 3 ? [1, 2, 4, 5, 7, 8, 9, 10].slice(0, owned - 3) : []);
+  const slots = SL.map(([n, r], i) => {
+    const got = has.includes(i), my = r === 'Mythic';
+    return { n, r: my ? 'MYTHIC' : r, col: i === 9 ? '1 / span 3' : i === 10 ? '4 / span 3' : 'auto', op: got ? 1 : .35,
+      bg: got ? (my ? '#2A0F2E' : '#FFF8EA') : '#E8D6B4', bd: got ? RC[r][2] === '#0A0408' ? '#0A0408' : '#24140B' : my ? '#0A0408' : '#B89A74',
+      art: RC[r][0], ink: got ? (my ? '#FF9FB8' : '#3A2214') : '#6E4A30', ink2: got ? (my ? '#FF9FB8' : '#6E4A30') : '#6E4A30' };
+  });
+  const op = o.opened ?? 31;
+  const mile = (t, s, done) => ({ t, s, bg: done ? '#A8D878' : '#FFF8EA', bd: done ? '#24140B' : '#B89A74', ink: done ? '#183A0C' : '#3A2214', ink2: done ? '#183A0C' : '#6E4A30' });
+  const fill = (x, a, b) => x > .5 ? b : a;
+  return {
+    owned, opened: op, slots,
+    miles: [mile('12 pulls · title', op >= 12 ? '✓ "Moonwatcher"' : `${op} / 12`, op >= 12), mile('40 pulls · Moon die + title', op >= 40 ? '✓ earned' : `${op} / 40 · ≤ ${40 - op} pulls`, op >= 40), mile('Full set · title + badge', owned >= 11 ? '✓ Series 1 complete' : `${owned} / 11 · ≤ ${80 - op} pulls`, owned >= 11)],
+    lunarLine: `Pull ${c}/40 — ${pct(pM(c))} this pull — certain at 40`, mPct: c / 40 * 100, mFill: fill(c / 40, '#C2577A', '#FF3D6E'),
+    thin: [{ r: 'LEGENDARY', c: '#FF9445', pct: 11 / 20 * 100, fill: fill(11 / 20, '#B86A32', '#FF9445'), t: '11 / 20' }, { r: 'EPIC', c: '#BF6BFF', pct: 4 / 10 * 100, fill: fill(.4, '#8A55B8', '#BF6BFF'), t: '4 / 10' }],
+  };
+}
+function stoneReveal(amt, x = {}) {
+  const k = STONE_CHEST[amt];
+  return { single: false, reveal: true, isStone: true, isCos: false, stoneAmt: '+' + fmt(amt), cardW: 360, cardBg: '#FFF8EA', cardBd: '#24140B', cardRim: '#FFC445',
+    stackName: `${fmt(amt)} stack · ${k} chest`, stackBg: amt >= 2500 ? '#BF6BFF' : amt >= 1000 ? '#FFC445' : amt >= 500 ? '#C6CEDA' : '#D79A58', stackInk: amt >= 2500 ? '#24083A' : '#3A2214', ...x };
+}
+function cosReveal(r, name, line, tag, x = {}) {
+  const [bg, ink, bd] = RC[r], my = r === 'Mythic';
+  const dup = tag.startsWith('DUPLICATE');
+  return { single: false, reveal: true, isStone: false, isCos: true, cardW: 400, cardBg: my ? '#2A0F2E' : '#FFF8EA', cardBd: bd, cardRim: bg, rName: r.toUpperCase(), rBg: bg, rInk: ink, rBd: bd,
+    nTag: tag, nBg: dup ? '#5FCFCB' : '#FFC445', nInk: dup ? '#0E3533' : '#3A2A12', artBg: my ? '#2A0F2E' : `linear-gradient(160deg,#FFF8EA,${bg})`, artInk: my ? '#FF9FB8' : '#3A2214', artLabel: 'item art',
+    itemName: name, itemLine: line, cardInk: my ? '#FF9FB8' : '#3A2214', cardInk2: my ? '#F2D8E2' : '#6E4A30', ...x };
+}
+const REG_TABLES = [
+  { h: 'Land Stone · 60% of pulls', rows: [['100 Stone', '15.30%'], ['250 Stone', '24.08%'], ['500 Stone', '13.00%'], ['1,000 Stone', '6.00%'], ['2,500 Stone', '1.60%'], ['10,000 Stone (1 in 5,000)', '0.02%']] },
+  { h: 'Cosmetic · 40% of pulls', rows: [['Common', '24.07%'], ['Uncommon', '9.72%'], ['Rare', '4.52%'], ['Epic', '1.264%'], ['Legendary', '0.360%'], ['Mythic (decor, pets, accessories, titles)', '0.0632%']] },
+].map(t => ({ h: t.h, rows: t.rows.map(([a, b], i) => ({ a, b, bg: i % 2 ? '#F8EBD2' : '#FFF8EA' })) }));
+const SEA_TABLES = [
+  { h: 'Mythic chance by pull c · p(c) = (2c−1) / (N² − (c−1)²)', rows: [[1, 0.06], [10, 1.25], [20, 3.15], [30, 7.77], [35, 15.5], [39, 49.4], [40, 100]].map(([c, p]) => [`pull ${c} of 40`, p + '%']) },
+  { h: 'No tier hit → Land Stone (≈ 78% of pulls)', rows: [['500 Stone', '32.74%'], ['1,000 Stone', '45.13%'], ['2,500 Stone', '17.50%'], ['5,000 Stone', '4.60%'], ['25,000 Stone', '0.03%']] },
+].map(t => ({ h: t.h, rows: t.rows.map(([a, b], i) => ({ a, b, bg: i % 2 ? '#F8EBD2' : '#FFF8EA' })) }));
+function cells(revealedN) {
+  const items = [['s', 250], ['s', 100], ['c', 'Common', 'Pebble decor', 'NEW'], ['s', 500], ['s', 250], ['c', 'Uncommon', 'Fern frame', 'DUPLICATE +5'], ['s', 1000], ['c', 'Rare', 'Ripple FX', 'NEW'], ['s', 100], ['s', 250]];
+  return items.map((it, i) => {
+    if (i >= revealedN) return { img: CH('bronze'), w: 90, t: i === revealedN ? 'opening…' : `pull ${i + 1}`, bg: '#F8EBD2', bd: i === revealedN ? '#FFC445' : '#B89A74', sh: i === revealedN ? '0 0 0 4px #FFC445' : 'none', op: i === revealedN ? 1 : .7, ink: '#6E4A30', tag: '' };
+    if (it[0] === 's') return { img: 'hl/i/stone.png', w: 60, t: '+' + fmt(it[1]) + ' Stone', bg: '#FFF8EA', bd: '#24140B', sh: shelf, op: 1, ink: '#3A2214', tag: '' };
+    const [bg, ink] = RC[it[1]], dup = it[3].startsWith('DUP');
+    return { img: CH(RC[it[1]][3]), w: 90, t: it[2], bg: '#FFF8EA', bd: bg, sh: shelf, op: 1, ink: '#3A2214', tag: it[3], tagBg: dup ? '#5FCFCB' : bg, tagInk: dup ? '#0E3533' : ink, tagBd: '#24140B' };
+  });
+}
+class Component extends DCLogic {
+  renderVals() {
+    const F = [];
+    const add = (id, caption, note, o, x = {}) => F.push({ id, caption, note, ...base(o), ...x });
+    add('M5a', 'Regular · idle', 'Focus starts on Open 1 (ring). Chest art = gold tier chest as the house default. Rates is one press from the Open buttons.', { ring: true }, { ctlReason: 'Open 10 needs 10 tickets · you have 7' });
+    add('M5b', 'Regular · pressed / charging ≈ 0.3 s', 'Chest squashes (scale .94) while the server answers. No spinner, no countdown.', {}, { chestT: 'scale(.94,.9) translateY(8px)', phase: 'charging · 0.3 s', controls: false });
+    add('M5c', 'Regular · opening ≈ 1.2 s · rim = tier colour', 'The rim ring takes the reward tier colour (here Rare blue). Rim grows 0 → 6 px, no full-screen flash.', {}, { chest: CH('gold'), rim: '6px solid #33B8FF', rimGlow: '0 0 0 3px #24140B,0 0 40px 10px rgba(51,184,255,.55)', rimInset: 10, phase: 'opening · 1.2 s', controls: false });
+    add('M5d', 'Reveal · Land Stone', 'Stone result: amount Numeral 56, stack name and the matching tier chest. 60% of regular pulls look like this.', { tickets: 6 }, { ...stoneReveal(1000), phase: 'reveal · Enter or click to continue' });
+    add('M5e', 'Reveal · cosmetic NEW', 'Cosmetic card: rarity chip with the word, NEW tag, item art slot, source.', { tickets: 6 }, { ...cosReveal('Epic', 'Ember Rim die', 'Dice skin · Regular box · now in Cosmetics', 'NEW') });
+    add('M5f', 'Reveal · duplicate → fragments', 'A duplicate shows its fragments and the new fragment count. At 10 the line adds "+1 ticket".', { tickets: 7, frag: 6 }, { ...cosReveal('Rare', 'Ripple FX', '+10 fragments · 6 → 16 = +1 ticket, 6/10 left', 'DUPLICATE +10') });
+    add('M5g', 'Open 10 · cells opening in order', 'Skip is visible from the first frame. Cells open left → right, top → bottom; 7 of 10 done.', { tickets: 0 }, { single: false, ten: true, cells: cells(7), skip: true, controls: false });
+    add('M5h', 'Open 10 · summary', 'Summary after 10: total Stone, new items, duplicates, pity bars updated (Rare counter reset by the Rare pull).', { tickets: 0, frag: 1 }, { single: false, summary: true, sumTitle: '10 pulls opened', sumRows: [
+      { icon: 'hl/i/stone.png', t: 'Land Stone from 7 pulls', v: '+2,450' }, { icon: 'asc/fx/buff.svg', t: 'New: Pebble decor (Common), Ripple FX (Rare)', v: '2 new' },
+      { icon: 'asc/fx/chest.png', t: 'Duplicate: Fern frame → +5 fragments', v: '1 / 10' }, { icon: 'asc/fx/reroll.svg', t: 'Pity: Rare reset to 0/15 · Epic 25/60', v: 'updated' }], btns: [{ t: 'Open 10 again', s: '10 tickets', ...DIS }, { t: 'Done', s: 'back to the box', ...PRI }] });
+    add('M5i', 'Regular · rates disclosure', 'Full tables inside the screen. Same numbers as the README.', {}, { modal: true, mLeft: 260, mTop: 110, mW: 1000, mTitle: 'Regular box · rates and pity', mTables: REG_TABLES,
+      mLines: ['Each pull gives exactly one reward. Pity counts cosmetic pulls only: Rare guaranteed at 15, Epic at 60, Legendary at 200, Mythic at 1,000. A hit of that tier or higher resets its counter.'] });
+    add('M5j', 'No tickets', 'Open buttons disabled with the reason; "Buy enough" shortcut shows the Shard total.', { tickets: 0, buyEnough: true }, { ctlReason: 'No tickets. Buy one with Shard, or get them from Pass, Moon Card, bundles and duplicates.' });
+    add('M5k', 'Offline', 'Opening needs a connection; nothing is spent. Cached counts greyed.', { offline: true }, { banner: 'Opening needs a connection.', bannerSub: 'Nothing was spent. Counts shown from 14:02.', bannerBtn: 'Try again', ctlReason: 'Needs a connection · nothing is spent' });
+    add('M5l', 'Guest', 'A guest can look but has no tickets or wallet.', { guest: true }, { banner: 'Sign in to use this.', bannerSub: 'Guests can read the rates and pool. Tickets and pulls need an account.', bannerBtn: 'Sign in', ctlReason: 'Sign in to open boxes' });
+    add('M5m', 'L1 playtest · Seasonal tab locked', 'L1: tab drawn as "Season box — coming later", no Open button. The Regular tab is complete.', { sea: true, l1: true }, { single: false, locked: true, controls: false, oneLine: 'Season box' });
+    add('M5n', 'Seasonal · idle (later build)', 'Open always says "5 tickets". Open N = pulls left today (max 10). Series card shows every slot by name; Mythic slots use the night field and the word.', { sea: true, tickets: 42, left: 5, ring: true });
+    add('M5o', 'Seasonal · first pull confirm', 'First seasonal pull in a session asks once. Decline same size; focus on Not now.', { sea: true, tickets: 42, left: 5 }, { modal: true, mLeft: 460, mTop: 220, mW: 600, mTitle: 'Open the Season box?', mBtns: true, mNo: 'Not now', mYes: 'Open · 5 tickets',
+      mLines: ['You spend 5 tickets. Tickets after: 37.', 'Pulls left today after this: 4 of 8. Resets 00:00 UTC.', 'This is asked once per session.'] });
+    add('M5p', 'Seasonal · result + summary lines', 'Legendary hit: its bar resets; card + "≤ X pulls to the exclusive" and "≤ Y pulls to complete".', { sea: true, tickets: 37, left: 4, owned: 4, opened: 32, mc: 32 }, { ...cosReveal('Legendary', 'Comet FX', 'Dice FX · Series 1 · ≤ 8 pulls to the Moon die · ≤ 48 pulls to complete', 'NEW') });
+    add('M5q', 'Seasonal · Mythic reveal (longest beat ≤ 2 s)', 'Mythic: night field #2A0F2E, ink #FF9FB8 (no white), border #0A0408, word MYTHIC. Lunar bar resets to 0/40.', { sea: true, tickets: 32, left: 3, owned: 5, opened: 33, mc: 1 }, { ...cosReveal('Mythic', 'Moonfall FX', 'Dice FX · Series 1 · Lunar bar back to 0/40', 'NEW'), phase: 'reveal · 2.0 s max' });
+    add('M5r', 'Seasonal · rates', 'Formula and sample table published.', { sea: true, tickets: 42 }, { modal: true, mLeft: 260, mTop: 110, mW: 1000, mTitle: 'Season box · rates', mTables: SEA_TABLES,
+      mLines: ['Each pull tests Mythic, then Legendary, then Epic. The chance rises every pull and resets on a hit; certain at Mythic 40, Legendary 20, Epic 10. Legendary and Epic use the same formula with N = 20 and N = 10.'] });
+    add('M5s', 'Seasonal · daily cap reached', '8 of 8 today. Open disabled with the reset written as a time.', { sea: true, tickets: 30, left: 0 }, { ctlReason: '8 of 8 pulls today · resets 13 Oct 2026, 00:00 UTC' });
+    add('M5t', 'Seasonal · first visit explainer', 'Shown once, dismissible. Three lines.', { sea: true, tickets: 42 }, { modal: true, mLeft: 460, mTop: 200, mW: 600, mTitle: 'How the Season box differs', mBtns: true, mNo: 'Show rates', mYes: 'Got it',
+      mLines: ['1 · A pull costs 5 tickets and you can open 8 a day.', '2 · Only 11 items, all Epic or better. Every slot is shown; nothing is hidden.', '3 · The full set is guaranteed within 80 pulls. Mythic dice, frames and FX come only from here.'] });
+    add('M5u', 'Reduce flashing · reveal', 'Same reveal with Reduce flashing on: no rim glow, no burst, the card fades in over 200 ms; the rim stays as a static 6 px ring.', { tickets: 6 }, { ...cosReveal('Epic', 'Ember Rim die', 'Dice skin · Regular box', 'NEW'), cardRim: '#BF6BFF', phase: 'reduce flashing on' });
+    add('M5v', 'Your last pull (window closed mid-pull)', 'The server kept the result. On return the box shows it before anything else.', { tickets: 5 }, { ...stoneReveal(500), oneLine: 'Your last pull · the window closed while it was opening. The result was kept.', btns: [{ t: 'Open 1', s: '1 ticket', ...PRI }, { t: 'Open 10', s: '10 tickets', ...DIS }] });
+    const tall = { ...F[13] }; F.push({ ...tall, id: 'M5w', caption: 'Seasonal · taller window', H: 1240, ph: 1040, note: 'Extra height goes to the body: the stage and series card grow; header and ticket bar stay.' });
+    const only = (location.hash.match(/f=([\w,]+)/) || [])[1];
+    return { frames: only ? F.filter(f => only.split(',').includes(f.id)) : F };
+  }
+  componentDidMount() { this._h = () => this.forceUpdate(); window.addEventListener('hashchange', this._h); }
+  componentWillUnmount() { window.removeEventListener('hashchange', this._h); }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<script src="_ds/dango-design-system-b8da985f-efd5-488e-ae62-d508e48befe9/_ds_bundle.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&amp;family=Work+Sans:wght@500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#2A1C12}
+a{color:#FF9345;text-decoration:none}a:hover{color:#FFB275}
+</style>
+</helmet>
+<div style="display:flex;flex-direction:column;gap:64px;padding:64px;width:max-content;background:#2A1C12;font-family:'Work Sans',sans-serif;color:#3A2214;-webkit-font-smoothing:antialiased">
+  <div style="display:flex;flex-direction:column;gap:8px;max-width:1920px">
+    <div style="font-family:'Baloo 2';font-weight:800;font-size:15px;letter-spacing:.18em;color:#D79A58">AXIE DICE · UI REQUEST 02 · ROUND 3 · M7 + M8</div>
+    <div style="font-family:'Baloo 2';font-weight:800;font-size:60px;line-height:1;color:#FFF8EA">Store · Daily gift</div>
+    <div style="font-size:17px;line-height:1.5;color:#DDBF8C;max-width:1300px;text-wrap:pretty">Store (Jeweler, key 7): violet = Gem surfaces, orange = USD buttons. No loot box and no seasonal item is sold here. L1 is the main state: every USD button disabled with the reason, Gem is a free daily gift. Daily (D) collects the daily things. <a href="Dice UI R3 README.md">R3 README</a> · <a href="Dice UI R3 - Missions.dc.html">← M6</a> · <a href="Dice UI R3 - Profile and Account.dc.html">M9, M12–M14 →</a></div>
+  </div>
+
+  <sc-for list="{{ frames }}" as="f" hint-placeholder-count="2">
+    <div data-screen-label="{{ f.id }}" style="display:flex;flex-direction:column;gap:12px">
+      <div style="display:flex;align-items:center;gap:12px">
+        <div style="height:34px;padding:0 12px;display:flex;align-items:center;border-radius:9px;background:#FF9345;border:3px solid #24140B;font-family:'Baloo 2';font-size:17px;font-weight:800;color:#2A1505">{{ f.id }}</div>
+        <div style="font-family:'Baloo 2';font-size:26px;font-weight:800;color:#FFF8EA">{{ f.caption }}</div>
+        <div style="font-size:14px;font-weight:600;color:#B89A74">1920 × {{ f.H }}</div>
+      </div>
+      <div style="font-size:15px;color:#DDBF8C;max-width:1600px">{{ f.note }}</div>
+      <div style="position:relative;width:1920px;height:{{ f.H }}px;overflow:hidden">
+        <dc-import name="R3 Land Backdrop" h="{{ f.H }}" guest="{{ f.guest }}" gem="{{ f.gem }}" daily-claim="{{ f.dailyDot }}" dots="{{ f.dots }}" style="position:absolute;inset:0" hint-size="1920px,1080px"></dc-import>
+
+        <sc-if value="{{ f.store }}" hint-placeholder-val="{{ true }}">
+        <div style="position:absolute;left:200px;top:116px;width:1520px;height:{{ f.ph }}px;border-radius:28px;background:linear-gradient(180deg,#F8EBD2,#EBD3A8);border:4px solid #8A3E22;box-shadow:inset 2px 2px 0 rgba(255,248,234,.65),5px 8px 0 rgba(36,20,11,.45);overflow:hidden;display:flex;flex-direction:column;box-sizing:border-box">
+          <div style="height:72px;flex:none;display:flex;align-items:center;gap:14px;padding:0 16px 0 10px;background:linear-gradient(180deg,#4A3570,#33244F);border-bottom:4px solid #8A3E22">
+            <div style="height:48px;padding:0 14px 0 10px;display:flex;align-items:center;gap:8px;border-radius:12px;background:linear-gradient(180deg,#FFF8EA,#EBD3A8);border:3px solid #24140B;box-shadow:inset 2px 2px 0 rgba(255,248,234,.65),3px 4px 0 rgba(36,20,11,.45);font-family:'Baloo 2';font-weight:800;font-size:18px;box-sizing:border-box"><span style="font-size:20px">←</span>Back<span style="height:22px;padding:0 6px;border-radius:6px;background:#3B2618;color:#FFF8EA;font-size:13px;display:flex;align-items:center">Esc</span></div>
+            <img src="hl/b/gallery.png" alt="" style="width:36px;height:36px;object-fit:contain">
+            <div style="font-family:'Baloo 2';font-weight:800;font-size:36px;line-height:1;color:#FFF8EA">Store</div>
+            <div style="font-size:14px;font-weight:700;color:#D7C8F2">Lunar Gem · Moon Card · bundles · cosmetics</div>
+            <div style="flex:1"></div>
+            <div style="height:48px;display:flex;align-items:center;gap:8px;padding:0 6px 0 8px;border-radius:12px;background:#FFF8EA;border:3px solid #24140B;box-sizing:border-box"><img src="hl/i/gem.png" alt="" style="width:28px;height:28px"><div style="display:flex;flex-direction:column"><div style="font-family:'Baloo 2';font-weight:800;font-size:19px;line-height:1">{{ f.gem }} Gem</div><div style="font-size:12px;font-weight:700;color:#3A2A50">{{ f.gemSub }}</div></div><div style="height:34px;padding:0 10px;display:flex;align-items:center;border-radius:9px;background:linear-gradient(180deg,#C2A6F4,#9A72E6);border:2px solid #24140B;font-family:'Baloo 2';font-weight:800;font-size:14px;color:#1E1236">Buy Gem</div></div>
+          </div>
+          <sc-if value="{{ f.banner }}" hint-placeholder-val="{{ false }}">
+            <div style="margin:12px 24px 0;min-height:56px;flex:none;display:flex;align-items:center;gap:14px;padding:6px 10px 6px 16px;border-radius:16px;background:#3B2618;border:3px solid #24140B">
+              <img src="{{ f.bannerIcon }}" alt="" style="width:28px;height:28px">
+              <div style="flex:1;display:flex;flex-direction:column"><div style="font-family:'Baloo 2';font-weight:800;font-size:18px;color:#FFF8EA">{{ f.banner }}</div><div style="font-size:13px;font-weight:600;color:#DDBF8C">{{ f.bannerSub }}</div></div>
+              <div style="height:44px;width:160px;display:flex;align-items:center;justify-content:center;border-radius:12px;background:linear-gradient(180deg,#FFB070,#FF8A3A);border:3px solid #24140B;box-shadow:3px 5px 0 #8A3E22;font-family:'Baloo 2';font-weight:800;font-size:17px;color:#2A1505;box-sizing:border-box">{{ f.bannerBtn }}</div>
+              <div style="height:44px;width:160px;display:flex;align-items:center;justify-content:center;border-radius:12px;background:linear-gradient(180deg,#FFF8EA,#EBD3A8);border:3px solid #24140B;font-family:'Baloo 2';font-weight:800;font-size:17px;box-sizing:border-box">Back to Land</div>
+            </div>
+          </sc-if>
+          <sc-if value="{{ f.l1 }}" hint-placeholder-val="{{ false }}">
+            <div style="margin:12px 24px 0;height:64px;flex:none;display:flex;align-items:center;gap:14px;padding:0 10px 0 14px;border-radius:16px;background:linear-gradient(180deg,#FFF8EA,#E6DAF6);border:3px solid #4E2E8A">
+              <img src="hl/icons/gift.svg" alt="" style="width:34px;height:34px">
+              <div style="display:flex;flex-direction:column"><div style="font-family:'Baloo 2';font-weight:800;font-size:20px;line-height:1.1;color:#1E1236">Playtest: Gem is free</div><div style="font-size:13px;font-weight:600;color:#3A2A50">300 Gem a day, balance cap 900. Gift Gem is reset when the real store opens.</div></div>
+              <div style="flex:1"></div>
+              <div style="font-size:13px;font-weight:700;color:#3A2A50;text-align:right">{{ f.l1Next }}</div>
+              <div style="width:220px;height:48px;display:flex;align-items:center;justify-content:center;gap:6px;border-radius:12px;background:{{ f.l1Bg }};border:3px solid {{ f.l1Bd }};box-shadow:{{ f.l1Sh }};font-family:'Baloo 2';font-weight:800;font-size:18px;color:{{ f.l1Ink }};box-sizing:border-box">{{ f.l1Btn }}</div>
+            </div>
+          </sc-if>
+          <div style="margin:10px 24px 0;height:40px;flex:none;display:flex;align-items:center;gap:10px;padding:0 6px 0 14px;border-radius:12px;background:#FFF8EA;border:2px solid #B89A74">
+            <img src="asc/fx/shield.png" alt="" style="width:20px;height:20px">
+            <div style="font-size:14px;font-weight:700">{{ f.limitLine }}</div>
+            <div style="flex:1"></div>
+            <div style="height:30px;padding:0 12px;display:flex;align-items:center;border-radius:9px;background:linear-gradient(180deg,#FFF8EA,#EBD3A8);border:2px solid #24140B;font-family:'Baloo 2';font-weight:800;font-size:14px">Change limit</div>
+          </div>
+          <div style="margin:10px 24px 0;display:flex;gap:6px;flex:none">
+            <sc-for list="{{ f.tabs }}" as="t" hint-placeholder-count="5">
+              <div style="height:46px;padding:0 20px;display:flex;align-items:center;border-radius:14px 14px 0 0;background:{{ t.bg }};border:3px solid {{ t.bd }};border-bottom:0;font-family:'Baloo 2';font-weight:800;font-size:18px;color:{{ t.ink }};box-sizing:border-box">{{ t.t }}</div>
+            </sc-for>
+          </div>
+          <div style="flex:1;min-height:0;margin:0 24px 20px;padding:16px;border-radius:0 18px 18px 18px;background:#FFF8EA;border:3px solid #4E2E8A;display:flex;flex-direction:column;gap:14px;overflow:hidden">
+            <sc-if value="{{ f.tGem }}" hint-placeholder-val="{{ false }}">
+              <div style="flex:1;min-height:0;display:grid;grid-template-columns:repeat(6,1fr);gap:12px">
+                <sc-for list="{{ f.gemCards }}" as="c" hint-placeholder-count="6">
+                  <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:14px 10px 12px;border-radius:18px;background:linear-gradient(180deg,#FFF8EA,#E6DAF6);border:3px solid #4E2E8A;box-shadow:3px 4px 0 rgba(78,46,138,.35)">
+                    <div style="height:120px;display:flex;align-items:flex-end;justify-content:center"><sc-for list="{{ c.stack }}" as="s" hint-placeholder-count="1"><img src="hl/i/gem.png" alt="" style="width:{{ s }}px;height:{{ s }}px;margin-left:-14px;transform:scale(1.5);transform-origin:50% 100%"></sc-for></div>
+                    <div style="font-family:'Baloo 2';font-weight:800;font-size:34px;line-height:1;color:#1E1236">{{ c.amt }}</div>
+                    <div style="font-size:13px;font-weight:700;color:#3A2A50">Lunar Gem · ≈ {{ c.per }} per USD</div>
+                    <div style="width:100%;height:60px;margin-top:4px;display:flex;flex-direction:column;align-items:center;justify-content:center;border-radius:14px;background:{{ f.usdBg }};border:3px solid {{ f.usdBd }};box-shadow:{{ c.sh }};box-sizing:border-box"><div style="font-family:'Baloo 2';font-weight:800;font-size:21px;line-height:1;color:{{ f.usdInk }}">{{ c.usd }} USD</div><sc-if value="{{ f.usdOff }}" hint-placeholder-val="{{ false }}"><div style="font-size:12px;font-weight:700;color:#6E4A30">{{ f.usdOff }}</div></sc-if></div>
+                  </div>
+                </sc-for>
+              </div>
+              <div style="font-size:14px;font-weight:600;color:#3A2A50">Bonus is at most 20%. Lunar Gem cannot be turned into Gene Shard or Land Stone, and cannot be gifted. Every buy opens a confirm with the price in USD and Gem before → after.</div>
+              <sc-if value="{{ f.starter }}" hint-placeholder-val="{{ false }}">
+                <div style="display:flex;align-items:center;gap:18px;padding:14px 16px;border-radius:18px;background:linear-gradient(180deg,#FFF8EA,#E6DAF6);border:3px solid #4E2E8A">
+                  <div style="height:28px;padding:0 10px;border-radius:999px;background:#FFC445;border:2px solid #24140B;font-family:'Baloo 2';font-weight:800;font-size:14px;line-height:24px;color:#3A2A12">FIRST PURCHASE ONLY</div>
+                  <div style="display:flex;flex-direction:column"><div style="font-family:'Baloo 2';font-weight:800;font-size:24px;color:#1E1236">Starter Pack</div><div style="font-size:14px;font-weight:600;color:#3A2A50">160 Gem + 3 tickets + 1 Boon · one per account · shown after your 3rd finished run</div></div>
+                  <div style="flex:1"></div>
+                  <div style="display:flex;gap:8px;align-items:center"><img src="hl/i/gem.png" alt="" style="width:36px;height:36px"><img src="asc/fx/chest.png" alt="" style="width:36px;height:36px"><img src="asc/fx/buff.svg" alt="" style="width:30px;height:30px"></div>
+                  <div style="width:220px;height:60px;display:flex;flex-direction:column;align-items:center;justify-content:center;border-radius:14px;background:{{ f.usdBg }};border:3px solid {{ f.usdBd }};box-shadow:{{ f.usdSh }};box-sizing:border-box"><div style="font-family:'Baloo 2';font-weight:800;font-size:21px;line-height:1;color:{{ f.usdInk }}">0.99 USD</div><sc-if value="{{ f.usdOff }}" hint-placeholder-val="{{ false }}"><div style="font-size:12px;font-weight:700;color:#6E4A30">{{ f.usdOff }}</div></sc-if></div>
+                </div>
+              </sc-if>
+            </sc-if>
+            <sc-if value="{{ f.tMoon }}" hint-placeholder-val="{{ false }}">
+              <div style="flex:1;display:grid;grid-template-columns:1.3fr 1fr;gap:16px">
+                <div style="display:flex;flex-direction:column;gap:12px;padding:18px;border-radius:18px;background:linear-gradient(180deg,#FFF8EA,#E6DAF6);border:3px solid #4E2E8A">
+                  <div style="display:flex;align-items:center;gap:12px"><img src="hl/icons/mooncard.svg" alt="" style="width:48px;height:48px"><div style="font-family:'Baloo 2';font-weight:800;font-size:32px;color:#1E1236">Moon Card</div><div style="flex:1"></div><div style="font-size:14px;font-weight:700;color:#3A2A50">30 days · stack up to 180 days</div></div>
+                  <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+                    <sc-for list="{{ vipRows }}" as="v" hint-placeholder-count="6">
+                      <div style="min-height:58px;display:flex;align-items:center;gap:10px;padding:6px 12px;border-radius:12px;background:#FFF8EA;border:3px solid {{ v.border }}"><img src="{{ v.icon }}" alt="" style="width:28px;height:28px;opacity:{{ v.op }}"><div style="display:flex;flex-direction:column"><div style="font-family:'Baloo 2';font-weight:800;font-size:17px;line-height:1.1;color:{{ v.ink }}">{{ v.title }}</div><div style="font-size:12px;font-weight:600;color:#6E4A30">{{ v.sub }}</div></div></div>
+                    </sc-for>
+                  </div>
+                  <div style="font-size:13px;font-weight:600;color:#3A2A50">Same content as the hub popup (R1 01c). Unclaimed days do not stack. Does not renew by itself.</div>
+                </div>
+                <div style="display:flex;flex-direction:column;gap:12px;padding:18px;border-radius:18px;background:#F8EBD2;border:3px solid #8A3E22">
+                  <sc-if value="{{ f.moonActive }}" hint-placeholder-val="{{ false }}">
+                    <div style="height:30px;align-self:flex-start;padding:0 12px;display:flex;align-items:center;border-radius:999px;background:#A8D878;border:2px solid #24140B;font-family:'Baloo 2';font-weight:800;font-size:15px;color:#183A0C">Active · ends 11 Nov 2026</div>
+                    <div style="font-size:15px;font-weight:600;line-height:1.45">Today: 20 Gem to claim · 1 ticket added · Boon ready for your first normal run · Continue −25% once this run.</div>
+                    <div style="height:60px;display:flex;align-items:center;justify-content:center;gap:6px;border-radius:14px;background:linear-gradient(180deg,#C2A6F4,#9A72E6);border:3px solid #24140B;box-shadow:3px 5px 0 #4E2E8A,0 0 0 7px #FFC445,0 0 0 10px #24140B;font-family:'Baloo 2';font-weight:800;font-size:20px;color:#1E1236;box-sizing:border-box"><img src="hl/i/gem.png" alt="" style="width:24px;height:24px">Claim today's 20 Gem</div>
+                    <div style="font-size:13px;font-weight:600;color:#6E4A30">Next claim 13 Oct 2026, 00:00 UTC. Buying again adds 30 days (now 30 of 180).</div>
+                  </sc-if>
+                  <div style="display:flex;flex-direction:column;gap:2px"><div style="font-family:'Baloo 2';font-weight:800;font-size:15px;letter-spacing:.06em;color:#8A3E22">PRICE</div><div style="display:flex;align-items:baseline;gap:10px"><div style="font-family:'Baloo 2';font-weight:800;font-size:44px;line-height:1">4.99 USD</div><div style="display:flex;align-items:center;gap:4px;font-family:'Baloo 2';font-weight:800;font-size:19px;color:#6E4A30">= <img src="hl/i/gem.png" alt="" style="width:20px;height:20px">420 Gem</div></div></div>
+                  <div style="flex:1"></div>
+                  <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+                    <div style="height:60px;display:flex;align-items:center;justify-content:center;border-radius:14px;background:linear-gradient(180deg,#FFF8EA,#EBD3A8);border:3px solid #24140B;box-shadow:3px 5px 0 rgba(74,34,14,.35);font-family:'Baloo 2';font-weight:800;font-size:20px;box-sizing:border-box">Not now</div>
+                    <div style="height:60px;display:flex;flex-direction:column;align-items:center;justify-content:center;border-radius:14px;background:{{ f.usdBg }};border:3px solid {{ f.usdBd }};box-shadow:{{ f.usdSh }};box-sizing:border-box"><div style="font-family:'Baloo 2';font-weight:800;font-size:20px;line-height:1;color:{{ f.usdInk }}">{{ f.moonBuy }}</div><sc-if value="{{ f.usdOff }}" hint-placeholder-val="{{ false }}"><div style="font-size:12px;font-weight:700;color:#6E4A30">{{ f.usdOff }}</div></sc-if></div>
+                  </div>
+                  <sc-if value="{{ f.l1 }}" hint-placeholder-val="{{ false }}"><div style="font-size:13px;font-weight:700;color:#6E4A30">No free trial in this playtest. The card is shown so you can read it.</div></sc-if>
+                </div>
+              </div>
+            </sc-if>
+            <sc-if value="{{ f.tTix }}" hint-placeholder-val="{{ false }}">
+              <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px">
+                <sc-for list="{{ f.tixList }}" as="c" hint-placeholder-count="4">
+                  <div style="display:flex;flex-direction:column;align-items:center;gap:8px;padding:16px 12px 14px;border-radius:18px;background:linear-gradient(180deg,#FFF8EA,#E6DAF6);border:3px solid #4E2E8A;box-shadow:3px 4px 0 rgba(78,46,138,.35)">
+                    <div style="height:96px;display:flex;align-items:flex-end"><sc-for list="{{ c.stack }}" as="s" hint-placeholder-count="1"><img src="asc/fx/chest.png" alt="" style="width:{{ s }}px;height:{{ s }}px;margin-left:-14px"></sc-for></div>
+                    <div style="font-family:'Baloo 2';font-weight:800;font-size:34px;line-height:1;color:#1E1236">{{ c.n }} tickets</div>
+                    <div style="font-size:13px;font-weight:700;color:#3A2A50">{{ c.per }} Gem per ticket</div>
+                    <div style="width:100%;height:60px;display:flex;align-items:center;justify-content:center;gap:6px;border-radius:14px;background:{{ c.bg }};border:3px solid {{ c.bd }};box-shadow:{{ c.sh }};font-family:'Baloo 2';font-weight:800;font-size:21px;color:{{ c.ink }};box-sizing:border-box"><img src="hl/i/gem.png" alt="" style="width:24px;height:24px;opacity:{{ c.op }}">{{ c.price }}</div>
+                    <sc-if value="{{ c.short }}" hint-placeholder-val="{{ false }}"><div style="font-size:12px;font-weight:700;color:#6E4A30">{{ c.short }}</div></sc-if>
+                  </div>
+                </sc-for>
+              </div>
+              <div style="display:flex;align-items:center;gap:12px;font-size:14px;font-weight:600;color:#3A2A50">
+                <div style="flex:1">Bundle tickets open both boxes like normal tickets and do not raise the daily Shard price. Every pull gives exactly one reward; see the published rates before you buy.</div>
+                <div style="height:40px;padding:0 14px;display:flex;align-items:center;border-radius:10px;background:linear-gradient(180deg,#FFF8EA,#EBD3A8);border:3px solid #24140B;font-family:'Baloo 2';font-weight:800;font-size:16px;color:#3A2214;box-sizing:border-box">Rates (Echo Box)</div>
+              </div>
+            </sc-if>
+            <sc-if value="{{ f.tCos }}" hint-placeholder-val="{{ false }}">
+              <div style="flex:1;display:grid;grid-template-columns:repeat(4,1fr);grid-template-rows:repeat(2,minmax(0,1fr));gap:12px">
+                <sc-for list="{{ cos }}" as="c" hint-placeholder-count="8">
+                  <div style="display:flex;align-items:center;gap:12px;padding:12px;border-radius:18px;background:{{ c.bg }};border:3px solid {{ c.bd }};box-shadow:{{ c.sh }}">
+                    <div style="width:104px;height:104px;flex:none;border-radius:22px;background:{{ c.art }};border:3px solid {{ c.rbd }};display:flex;align-items:center;justify-content:center;font-family:'Baloo 2';font-weight:800;font-size:13px;color:#3A2214;opacity:{{ c.op }}">art</div>
+                    <div style="flex:1;display:flex;flex-direction:column;gap:6px;min-width:0">
+                      <div style="font-family:'Baloo 2';font-weight:800;font-size:18px;line-height:1.1">{{ c.name }}</div>
+                      <div style="display:flex;gap:4px;flex-wrap:wrap"><div style="height:22px;padding:0 8px;border-radius:999px;background:{{ c.rbg }};border:2px solid {{ c.rbd }};font-family:'Baloo 2';font-weight:800;font-size:12px;line-height:18px;color:{{ c.rink }}">{{ c.r }}</div><div style="height:22px;padding:0 8px;border-radius:999px;background:#F8EBD2;border:2px solid #B89A74;font-size:12px;font-weight:700;line-height:18px">{{ c.kind }}</div></div>
+                      <div style="flex:1"></div>
+                      <div style="height:40px;display:flex;align-items:center;justify-content:center;gap:4px;padding:0 6px;border-radius:10px;background:{{ c.btnBg }};border:{{ c.btnBd }};box-shadow:{{ c.btnSh }};font-family:'Baloo 2';font-weight:800;font-size:{{ c.btnFs }}px;line-height:1.05;text-align:center;color:{{ c.btnInk }};box-sizing:border-box"><sc-if value="{{ c.gem }}" hint-placeholder-val="{{ false }}"><img src="hl/i/gem.png" alt="" style="width:18px;height:18px"></sc-if>{{ c.btn }}</div>
+                    </div>
+                  </div>
+                </sc-for>
+              </div>
+              <div style="font-size:13px;font-weight:600;color:#3A2A50">Fixed-price cosmetics up to Epic. Never Mythic, never Season-series or Pass items. Prices are placeholders [INF]: Common 90 · Uncommon 180 · Rare 360 · Epic 720 Gem. Focus or hover opens the M14 preview.</div>
+            </sc-if>
+            <sc-if value="{{ f.tAid }}" hint-placeholder-val="{{ false }}">
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+                <sc-for list="{{ aid }}" as="a" hint-placeholder-count="8">
+                  <div style="min-height:56px;display:flex;align-items:center;gap:12px;padding:6px 14px;border-radius:12px;background:#F8EBD2;border:2px solid #B89A74"><img src="{{ a.icon }}" alt="" style="width:28px;height:28px"><div style="flex:1;display:flex;flex-direction:column"><div style="font-family:'Baloo 2';font-weight:800;font-size:17px;line-height:1.1">{{ a.t }}</div><div style="font-size:12px;font-weight:600;color:#6E4A30">{{ a.cap }}</div></div><div style="display:flex;align-items:center;gap:4px;font-family:'Baloo 2';font-weight:800;font-size:19px;color:#1E1236"><img src="hl/i/gem.png" alt="" style="width:20px;height:20px">{{ a.p }}</div></div>
+                </sc-for>
+              </div>
+              <div style="display:flex;gap:12px;align-items:center;font-size:14px;font-weight:700"><div style="padding:8px 12px;border-radius:10px;background:#F8EBD2;border:2px solid #B89A74">Total Aid cap: 6 a run (4 at A9–A10). The Boon counts in it.</div><div style="padding:8px 12px;border-radius:10px;background:#F8EBD2;border:2px solid #B89A74">90 Gem ≈ 1 USD</div><div style="color:#6E4A30">Read-only. Aid is bought inside a run, never here.</div></div>
+              <div style="padding:12px 16px;border-radius:12px;background:#E6DAF6;border:3px solid #4E2E8A;font-size:16px;font-weight:700;line-height:1.45;color:#1E1236">Aid makes you stronger for one run. Players who buy more can win more. The Pure leaderboard only counts runs without Aid.</div>
+            </sc-if>
+          </div>
+
+          <sc-if value="{{ f.modal }}" hint-placeholder-val="{{ false }}">
+            <div style="position:absolute;inset:76px 0 0;background:rgba(36,20,11,.55)"></div>
+            <div style="position:absolute;left:460px;top:{{ f.mTop }}px;width:600px;border-radius:24px;background:linear-gradient(180deg,#F8EBD2,#EBD3A8);border:4px solid #8A3E22;box-shadow:5px 8px 0 rgba(36,20,11,.45);overflow:hidden">
+              <div style="height:60px;display:flex;align-items:center;gap:12px;padding:0 20px;background:linear-gradient(180deg,#4A3570,#33244F);border-bottom:4px solid #8A3E22"><div style="font-family:'Baloo 2';font-weight:800;font-size:24px;color:#FFF8EA">{{ f.mTitle }}</div></div>
+              <div style="padding:18px 22px 22px;display:flex;flex-direction:column;gap:10px">
+                <sc-for list="{{ f.mRows }}" as="r" hint-placeholder-count="3"><div style="min-height:40px;display:flex;align-items:center;gap:10px;padding:4px 12px;border-radius:12px;background:#FFF8EA;border:2px solid #B89A74"><img src="{{ r.icon }}" alt="" style="width:22px;height:22px"><div style="flex:1;font-size:15px;font-weight:600">{{ r.t }}</div><div style="font-family:'Baloo 2';font-weight:800;font-size:18px">{{ r.v }}</div></div></sc-for>
+                <sc-for list="{{ f.mLines }}" as="l" hint-placeholder-count="0"><div style="font-size:14px;font-weight:600;line-height:1.45;color:#3A2214">{{ l }}</div></sc-for>
+                <sc-if value="{{ f.mBtns }}" hint-placeholder-val="{{ true }}">
+                  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:6px">
+                    <div style="height:60px;display:flex;align-items:center;justify-content:center;border-radius:14px;background:linear-gradient(180deg,#FFF8EA,#EBD3A8);border:3px solid #24140B;box-shadow:3px 5px 0 rgba(74,34,14,.35),0 0 0 7px #FFC445,0 0 0 10px #24140B;font-family:'Baloo 2';font-weight:800;font-size:20px;box-sizing:border-box">{{ f.mNo }}</div>
+                    <div style="height:60px;display:flex;align-items:center;justify-content:center;gap:6px;border-radius:14px;background:{{ f.mYesBg }};border:3px solid #24140B;box-shadow:3px 5px 0 {{ f.mYesShelf }};font-family:'Baloo 2';font-weight:800;font-size:20px;color:{{ f.mYesInk }};box-sizing:border-box">{{ f.mYes }}</div>
+                  </div>
+                </sc-if>
+                <sc-if value="{{ f.mBusy }}" hint-placeholder-val="{{ false }}"><div style="height:60px;display:flex;align-items:center;justify-content:center;gap:10px;border-radius:14px;background:#DDBF8C;border:3px solid #9A7650;font-family:'Baloo 2';font-weight:800;font-size:19px;color:#6E4A30">Processing… Do not close the game.</div></sc-if>
+              </div>
+            </div>
+          </sc-if>
+          <sc-if value="{{ f.toast }}" hint-placeholder-val="{{ false }}">
+            <div style="position:absolute;right:24px;bottom:24px;width:420px;display:flex;align-items:center;gap:12px;padding:12px 12px 12px 16px;border-radius:16px;background:#3B2618;border:3px solid #24140B;box-shadow:4px 6px 0 rgba(36,20,11,.45)">
+              <img src="{{ f.toastIcon }}" alt="" style="width:30px;height:30px">
+              <div style="flex:1;display:flex;flex-direction:column"><div style="font-family:'Baloo 2';font-weight:800;font-size:18px;color:#FFF8EA">{{ f.toast }}</div><div style="font-size:13px;font-weight:600;color:#DDBF8C">{{ f.toastSub }}</div></div>
+              <div style="width:36px;height:36px;display:flex;align-items:center;justify-content:center;border-radius:10px;background:#FFF8EA;border:2px solid #24140B;font-family:'Baloo 2';font-weight:800;font-size:18px">×</div>
+            </div>
+          </sc-if>
+        </div>
+        </sc-if>
+
+        <sc-if value="{{ f.daily }}" hint-placeholder-val="{{ false }}">
+          <div style="position:absolute;left:560px;top:180px;width:800px;border-radius:28px;background:linear-gradient(180deg,#F8EBD2,#EBD3A8);border:4px solid #8A3E22;box-shadow:inset 2px 2px 0 rgba(255,248,234,.65),5px 8px 0 rgba(36,20,11,.45);overflow:hidden">
+            <div style="height:64px;display:flex;align-items:center;gap:14px;padding:0 16px 0 8px;background:linear-gradient(180deg,#D79A58,#B87440);border-bottom:4px solid #8A3E22">
+              <div style="height:48px;padding:0 14px 0 10px;display:flex;align-items:center;gap:8px;border-radius:12px;background:linear-gradient(180deg,#FFF8EA,#EBD3A8);border:3px solid #24140B;font-family:'Baloo 2';font-weight:800;font-size:18px;box-sizing:border-box"><span style="font-size:20px">←</span>Back<span style="height:22px;padding:0 6px;border-radius:6px;background:#3B2618;color:#FFF8EA;font-size:13px;display:flex;align-items:center">Esc</span></div>
+              <img src="hl/icons/gift.svg" alt="" style="width:36px;height:36px">
+              <div style="font-family:'Baloo 2';font-weight:800;font-size:36px;line-height:1;color:#2A1505">Daily</div>
+              <div style="font-size:14px;font-weight:700;color:#3A1E07">12 Oct 2026 (UTC) · resets 00:00 UTC</div>
+            </div>
+            <div style="padding:18px 22px 22px;display:flex;flex-direction:column;gap:12px">
+              <sc-if value="{{ f.dBanner }}" hint-placeholder-val="{{ false }}"><div style="display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:14px;background:#3B2618;border:3px solid #24140B"><img src="{{ f.dBannerIcon }}" alt="" style="width:26px;height:26px"><div style="flex:1;font-size:14px;font-weight:700;color:#FFF8EA">{{ f.dBanner }}</div><div style="height:40px;padding:0 14px;display:flex;align-items:center;border-radius:10px;background:linear-gradient(180deg,#FFB070,#FF8A3A);border:3px solid #24140B;font-family:'Baloo 2';font-weight:800;font-size:16px;color:#2A1505">{{ f.dBannerBtn }}</div></div></sc-if>
+              <sc-for list="{{ f.dCards }}" as="c" hint-placeholder-count="3">
+                <div style="display:flex;align-items:center;gap:14px;padding:14px;border-radius:18px;background:{{ c.bg }};border:3px solid {{ c.bd }}">
+                  <img src="{{ c.icon }}" alt="" style="width:48px;height:48px;opacity:{{ c.op }}">
+                  <div style="flex:1;display:flex;flex-direction:column;gap:4px">
+                    <div style="font-family:'Baloo 2';font-weight:800;font-size:21px;line-height:1.1;color:{{ c.ink }}">{{ c.t }}</div>
+                    <div style="font-size:14px;font-weight:600;line-height:1.4;color:#6E4A30">{{ c.d }}</div>
+                    <sc-if value="{{ c.dots }}" hint-placeholder-val="{{ false }}"><div style="display:flex;gap:6px;align-items:center"><sc-for list="{{ c.dots }}" as="d" hint-placeholder-count="4"><div style="width:22px;height:22px;border-radius:50%;background:{{ d }};border:2px solid #24140B"></div></sc-for><div style="font-size:13px;font-weight:700;color:#6E4A30">{{ c.dotLine }}</div></div></sc-if>
+                  </div>
+                  <div style="width:190px;height:56px;display:flex;flex-direction:column;align-items:center;justify-content:center;border-radius:14px;background:{{ c.btnBg }};border:3px solid {{ c.btnBd }};box-shadow:{{ c.btnSh }};box-sizing:border-box"><div style="font-family:'Baloo 2';font-weight:800;font-size:18px;line-height:1.05;color:{{ c.btnInk }}">{{ c.btn }}</div><sc-if value="{{ c.btnSub }}" hint-placeholder-val="{{ false }}"><div style="font-size:12px;font-weight:700;color:{{ c.btnInk }}">{{ c.btnSub }}</div></sc-if></div>
+                </div>
+              </sc-for>
+              <div style="font-size:13px;font-weight:600;color:#6E4A30">Dates and resets are UTC dates and times. Nothing here counts down. A claim shows a toast; nothing expires before the reset.</div>
+            </div>
+          </div>
+          <sc-if value="{{ f.toast }}" hint-placeholder-val="{{ false }}">
+            <div style="position:absolute;left:750px;top:{{ f.toastTop }}px;width:420px;display:flex;align-items:center;gap:12px;padding:12px 12px 12px 16px;border-radius:16px;background:#3B2618;border:3px solid #24140B;box-shadow:4px 6px 0 rgba(36,20,11,.45)">
+              <img src="{{ f.toastIcon }}" alt="" style="width:30px;height:30px"><div style="flex:1;display:flex;flex-direction:column"><div style="font-family:'Baloo 2';font-weight:800;font-size:18px;color:#FFF8EA">{{ f.toast }}</div><div style="font-size:13px;font-weight:600;color:#DDBF8C">{{ f.toastSub }}</div></div>
+              <div style="width:36px;height:36px;display:flex;align-items:center;justify-content:center;border-radius:10px;background:#FFF8EA;border:2px solid #24140B;font-family:'Baloo 2';font-weight:800;font-size:18px">×</div>
+            </div>
+          </sc-if>
+        </sc-if>
+      </div>
+    </div>
+  </sc-for>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+const fmt = n => n.toLocaleString('en-US');
+const RING = ',0 0 0 7px #FFC445,0 0 0 10px #24140B';
+const USD_ON = { usdBg: 'linear-gradient(180deg,#FFB070,#FF8A3A)', usdBd: '#24140B', usdInk: '#2A1505', usdSh: 'inset 2px 2px 0 rgba(255,248,234,.65),3px 5px 0 #8A3E22', usdOff: '' };
+const USD_OFF = r => ({ usdBg: '#DDBF8C', usdBd: '#9A7650', usdInk: '#6E4A30', usdSh: 'none', usdOff: r });
+const GEM_BTN = { bg: 'linear-gradient(180deg,#C2A6F4,#9A72E6)', bd: '#24140B', ink: '#1E1236', sh: 'inset 2px 2px 0 rgba(255,248,234,.5),3px 5px 0 #4E2E8A', op: 1 };
+const GEM_OFF = { bg: '#E8D6B4', bd: '#9A7650', ink: '#6E4A30', sh: 'none', op: .55 };
+const TABS = ['Gem', 'Moon Card', 'Tickets', 'Cosmetics', 'Aid prices'];
+function store(o) {
+  const l1 = !!o.l1, tab = o.tab ?? 0, gem = o.gem ?? (l1 ? 300 : 120);
+  const usdReason = o.guest ? 'Sign in to buy' : o.offline ? 'Needs a connection' : l1 ? 'Playtest: purchases disabled' : '';
+  const usd = usdReason ? USD_OFF(usdReason) : USD_ON;
+  const claimOn = l1 && !o.l1Claimed && !o.guest && !o.offline;
+  return {
+    H: 1080, ph: 880, store: true, daily: false, guest: !!o.guest, gem: o.guest ? '—' : fmt(gem), gemSub: l1 ? 'gift Gem · cap 900' : 'Lunar Gem', dots: 'store', dailyDot: false,
+    banner: '', l1, l1Btn: claimOn ? 'Claim 300 Gem' : o.l1Claimed ? '✓ Claimed today' : 'Claim 300 Gem', l1Next: o.l1Claimed ? 'Next claim 13 Oct 2026, 00:00 UTC' : `Balance ${fmt(gem)} of 900`,
+    l1Bg: claimOn ? GEM_BTN.bg : '#E8D6B4', l1Bd: claimOn ? '#24140B' : '#9A7650', l1Ink: claimOn ? '#1E1236' : '#6E4A30', l1Sh: claimOn ? GEM_BTN.sh : 'none',
+    limitLine: l1 ? 'Spending limit: applies when purchases open' : o.limitLine || 'This month: 14.97 USD of your limit 50 USD',
+    tabs: TABS.map((t, i) => ({ t, bg: i === tab ? '#FFF8EA' : '#E6DAF6', bd: i === tab ? '#4E2E8A' : '#B8A4DC', ink: i === tab ? '#1E1236' : '#3A2A50' })),
+    tGem: tab === 0, tMoon: tab === 1, tTix: tab === 2, tCos: tab === 3, tAid: tab === 4, ...usd, starter: !!o.starter, moonActive: !!o.moonActive,
+    moonBuy: o.moonActive ? 'Add 30 days · 4.99 USD' : 'Buy · 4.99 USD',
+    gemCards: [[0.99, 80, 81, [44]], [4.99, 420, 84, [44, 50]], [9.99, 880, 88, [44, 52, 44]], [19.99, 1800, 90, [46, 56, 46]], [49.99, 4650, 93, [48, 60, 48, 40]], [99.99, 9600, 96, [50, 64, 50, 44]]]
+      .map(([u, g, per, stack], i) => ({ usd: u.toFixed(2), amt: fmt(g), per, stack, sh: usd.usdSh + (i === 0 && o.ring && !usdReason ? RING : '') })),
+    modal: false, toast: '', mBtns: true, mBusy: false, mYesBg: GEM_BTN.bg, mYesInk: '#1E1236', mYesShelf: '#4E2E8A', mTop: 220,
+  };
+}
+const R = { Common: ['#C6CEDA', '#1C2230'], Uncommon: ['#40CC3D', '#0A2A09'], Rare: ['#33B8FF', '#062538'], Epic: ['#BF6BFF', '#24083A'] };
+const PRICE = { Common: 90, Uncommon: 180, Rare: 360, Epic: 720 };
+function cosCards(gem) {
+  return [['Sandstone die', 'Common', 'Dice skin', 'buy'], ['Reed frame', 'Uncommon', 'Avatar frame', 'own'], ['Spark trail FX', 'Rare', 'Dice FX', 'buy'], ['Dusk tint', 'Rare', 'Axie tint', 'buy'],
+    ['Amber die', 'Epic', 'Dice skin', 'buy'], ['Moon die', 'Epic', 'Season 1 · Series item', 'season'], ['Clover frame', 'Common', 'Avatar frame', 'own'], ['Tide FX', 'Uncommon', 'Dice FX', 'buy']].map(([name, r, kind, st]) => {
+    const [rbg, rink] = R[r], p = PRICE[r];
+    let b;
+    if (st === 'own') b = { btn: '✓ Owned', btnBg: 'linear-gradient(180deg,#A8D878,#7DBE4E)', btnBd: '3px solid #24140B', btnInk: '#183A0C', btnSh: 'none', gem: false, btnFs: 16 };
+    else if (st === 'season') b = { btn: 'Only from the Seasonal Echo Box', btnBg: '#E8D6B4', btnBd: '2px solid #9A7650', btnInk: '#6E4A30', btnSh: 'none', gem: false, btnFs: 13 };
+    else b = { btn: String(p), btnBg: GEM_BTN.bg, btnBd: '3px solid #24140B', btnInk: '#1E1236', btnSh: '2px 3px 0 #4E2E8A', gem: true, btnFs: 17 };
+    return { name, r: r.toUpperCase(), kind, rbg, rink, rbd: '#24140B', art: `linear-gradient(160deg,#FFF8EA,${rbg})`, op: st === 'season' ? .6 : 1,
+      bg: st === 'season' ? '#F3E9D6' : '#FFF8EA', bd: st === 'season' ? '#B89A74' : '#4E2E8A', sh: st === 'season' ? 'none' : '3px 4px 0 rgba(78,46,138,.3)', ...b };
+  });
+}
+function daily(o) {
+  const g = !!o.guest, off = !!o.offline;
+  const btn = (state, label, sub = '') => state === 'claim' && !g && !off ? { btn: label, btnSub: sub, btnBg: 'linear-gradient(180deg,#FFB070,#FF8A3A)', btnBd: '#24140B', btnInk: '#2A1505', btnSh: 'inset 2px 2px 0 rgba(255,248,234,.65),3px 5px 0 #8A3E22' }
+    : state === 'done' ? { btn: '✓ Claimed', btnSub: sub, btnBg: '#A8D878', btnBd: '#24140B', btnInk: '#183A0C', btnSh: 'none' }
+    : { btn: g ? 'Sign in to use this' : off ? 'Needs a connection' : label, btnSub: g || off ? '' : sub, btnBg: '#E8D6B4', btnBd: '#9A7650', btnInk: '#6E4A30', btnSh: 'none' };
+  const card = (icon, t, d, b, x = {}) => ({ icon, t, d, op: 1, ink: '#3A2214', bg: '#FFF8EA', bd: '#8A3E22', dots: null, ...b, ...x });
+  const wk = o.week ?? 2;
+  const cards = [
+    card('asc/fx/chest.png', 'Daily reward', 'Finish 1 run today (UTC): 60 Shard + 500 Land Stone + 100 Pass XP.', btn(o.d1, o.d1 === 'wait' ? 'Not yet' : 'Claim', o.d1 === 'wait' ? 'finish 1 run first' : '')),
+    card('hl/i/stone.png', 'Weekly bonus', 'Claim the daily reward on 4 different days this week: +150 Shard + 2,000 Stone. Week resets Monday 19 Oct, 00:00 UTC.', btn(wk >= 4 ? 'claim' : 'wait', wk >= 4 ? 'Claim bonus' : `${wk} of 4 days`), { dots: [0, 1, 2, 3].map(i => i < wk ? '#FF9345' : '#DDBF8C'), dotLine: `${wk} of 4 days this week` }),
+  ];
+  if (o.l1 !== false) cards.push(card('hl/i/gem.png', 'Gem gift · playtest', '300 Gem a day, balance cap 900.', o.gemState === 'cap' ? { ...btn('wait', 'At cap'), btnSub: '' } : (() => { const b = btn(o.gemState, 'Claim 300 Gem', o.gemState === 'done' ? 'next 13 Oct, 00:00 UTC' : ''); return o.gemState === 'claim' && !g && !off ? { ...b, btnBg: 'linear-gradient(180deg,#C2A6F4,#9A72E6)', btnInk: '#1E1236', btnSh: 'inset 2px 2px 0 rgba(255,248,234,.5),3px 5px 0 #4E2E8A' } : b; })(), { bg: 'linear-gradient(180deg,#FFF8EA,#E6DAF6)', bd: '#4E2E8A', ...(o.gemState === 'cap' ? { d: 'You hold 900, nothing to claim. Spend some Gem and the gift comes back tomorrow.' } : {}) }));
+  if (o.ringFirst && !g && !off) cards[0].btnSh += RING;
+  return { H: 1080, ph: 880, store: false, daily: true, guest: g, gem: g ? '—' : o.gemBal ?? '300', dailyDot: !!o.dot, dots: '', dCards: cards, dBanner: '', toast: '' };
+}
+class Component extends DCLogic {
+  renderVals() {
+    const F = [];
+    const add = (id, caption, note, base, x = {}) => F.push({ id, caption, note, ...base, ...x });
+    add('M7a', 'L1 playtest · Gem tab (main L1 state)', 'Every USD button: grey, ink #6E4A30, "Playtest: purchases disabled". Playtest strip with the daily free Gem claim (focus ring). Spending strip says it applies later.', store({ l1: true, tab: 0 }), {});
+    F[0].l1Sh += RING;
+    add('M7b', 'Gem tab · full game · Starter Pack', 'Six Gem tiers, bonus ≤ 20%. Starter Pack appears after the 3rd finished run; one per account. Focus on the first price.', store({ tab: 0, starter: true, ring: true }));
+    add('M7c', 'L1 · Moon Card tab', 'Shown in full; buy disabled with the reason. No free trial in L1. Decline button same size.', store({ l1: true, tab: 1, l1Claimed: true, gem: 600 }));
+    add('M7d', 'Moon Card · active', 'Active state: end date, hand claim of today\u2019s 20 Gem, "Add 30 days" (stack to 180).', store({ tab: 1, moonActive: true, gem: 140 }));
+    add('M7e', 'Tickets tab · Gem short', 'Bundles priced in Gem (violet). When short, the button greys and says how much Gem is missing; Buy Gem stays in the header.', store({ tab: 2, gem: 300 }), {});
+    add('M7f', 'Cosmetics tab', 'Fixed-price items up to Epic. Season-series item shows no price, only its source.', store({ l1: true, tab: 3, l1Claimed: true, gem: 600 }));
+    add('M7g', 'Aid prices tab', 'Read-only list with the fairness line verbatim under it.', store({ l1: true, tab: 4, l1Claimed: true, gem: 600 }));
+    add('M7h', 'Purchase · confirm (first of session)', 'Item, price, ≈USD, what you get, Gem before → after. Decline same size, focus on Cancel, Esc cancels.', store({ l1: true, tab: 2, l1Claimed: true, gem: 600 }), { modal: true, mTitle: 'Buy 15 tickets?',
+      mRows: [{ icon: 'asc/fx/chest.png', t: '15 Echo tickets · open both boxes', v: '+15' }, { icon: 'hl/i/gem.png', t: 'Price · ≈ 3.17 USD', v: '285 Gem' }, { icon: 'hl/i/gem.png', t: 'Your Gem', v: '600 → 315' }],
+      mLines: ['Asked once per session. Playtest: paid with gift Gem [open question in README].'], mNo: 'Cancel', mYes: 'Pay 285 Gem' });
+    add('M7i', 'Purchase · processing', 'Buttons replaced by one disabled line until the server answers. Esc does nothing while processing.', store({ tab: 0, gem: 120 }), { modal: true, mTitle: 'Buying 880 Gem · 9.99 USD', mBtns: false, mBusy: true,
+      mRows: [{ icon: 'hl/i/gem.png', t: '880 Lunar Gem', v: '9.99 USD' }], mLines: ['The store window may ask you to confirm the payment.'] });
+    add('M7j', 'Purchase · success toast + receipt', 'Toast (dusk, 4 s, dismissible). The receipt stays in Settings › Account › Purchases [INF].', store({ tab: 0, gem: 1000 }), { toast: '880 Gem added', toastSub: 'Receipt #A-20261012-0042 · 9.99 USD', toastIcon: 'hl/i/gem.png' });
+    add('M7k', 'Purchase · failed', 'Plain sentence and a way forward. Nothing was charged.', store({ tab: 0, gem: 120 }), { modal: true, mTitle: 'The purchase did not go through', mRows: [{ icon: 'asc/fx/vuln.png', t: 'The payment was declined. Nothing was charged.', v: '' }], mLines: [], mNo: 'Close', mYes: 'Try again', mYesBg: 'linear-gradient(180deg,#FFB070,#FF8A3A)', mYesInk: '#2A1505', mYesShelf: '#8A3E22' });
+    add('M7l', 'Spending limit · extra confirmation at 250 USD [INF]', 'Soft warning at 100 USD/month, extra confirm at 250, hard stop at 500. No age text anywhere.', store({ tab: 0, gem: 900, limitLine: 'This month: 241.95 USD of your limit 500 USD' }), { modal: true, mTitle: 'This buy takes you past 250 USD this month',
+      mRows: [{ icon: 'asc/fx/shield.png', t: 'Spent this month', v: '241.95 USD' }, { icon: 'hl/i/gem.png', t: 'After this buy (1,800 Gem)', v: '261.94 USD' }],
+      mLines: ['You can lower your limit in Settings › Aid and spending. Lowering takes effect now; raising takes 24 hours.'], mNo: 'Do not buy', mYes: 'Buy anyway · 19.99 USD', mYesBg: 'linear-gradient(180deg,#FFB070,#FF8A3A)', mYesInk: '#2A1505', mYesShelf: '#8A3E22' });
+    add('M7m', 'Guest', 'Browse only; every buy says "Sign in to buy".', store({ tab: 0, guest: true }), { banner: 'Sign in to buy.', bannerSub: 'You can look at every price. Purchases and Gem need an account.', bannerBtn: 'Sign in', bannerIcon: 'asc/fx/shield.png' });
+    add('M7n', 'Offline', 'Prices shown from cache; buying disabled.', store({ tab: 2, offline: true }), { banner: 'You are offline.', bannerSub: 'Prices shown from 14:02. Buying needs a connection.', bannerBtn: 'Try again', bannerIcon: 'asc/fx/vuln.png' });
+    const t = F.find(f => f.id === 'M7e'); t.tixShort = true;
+    const tix = [[6, 120, 20, [56]], [15, 285, 19, [52, 60]], [40, 720, 18, [50, 62, 50]], [100, 1700, 17, [52, 66, 52, 44]]].map(([n, p, per, stack]) => ({ n, per, stack, price: fmt(p), ...GEM_BTN, short: '' }));
+    add('M8a', 'Daily · claimable', 'Small panel 800 wide. Daily chip in the top bar carries CLAIM until claimed. Focus on the first Claim.', daily({ d1: 'claim', gemState: 'claim', dot: true, ringFirst: true, week: 2 }));
+    add('M8b', 'Daily · run not finished yet', 'Before the first finished run of the UTC day: "Not yet" with the reason. Gem gift claimed.', daily({ d1: 'wait', gemState: 'done', week: 2, gemBal: '600' }));
+    add('M8c', 'Daily · all claimed · weekly bonus ready', 'Toast confirms the claim. Gem gift at cap.', daily({ d1: 'done', gemState: 'cap', week: 4, gemBal: '900' }), { toast: '+60 Shard · +500 Stone · +100 Pass XP', toastSub: 'Daily reward claimed', toastIcon: 'hl/icons/gift.svg', toastTop: 760 });
+    add('M8d', 'Daily · guest', 'Nothing can be claimed without an account.', daily({ guest: true, d1: 'claim', gemState: 'claim' }), { dBanner: 'Sign in to use this. Guests have no wallet and no rewards.', dBannerBtn: 'Sign in', dBannerIcon: 'asc/fx/shield.png' });
+    add('M8e', 'Daily · offline', 'Cached state greyed; claims disabled.', daily({ offline: true, d1: 'claim', gemState: 'claim' }), { dBanner: 'You are offline. Last updated 14:02.', dBannerBtn: 'Try again', dBannerIcon: 'asc/fx/vuln.png' });
+    const only = (location.hash.match(/f=([\w,]+)/) || [])[1];
+    const frames = (only ? F.filter(f => only.split(',').includes(f.id)) : F);
+    const tixShort = tix.map(c => { const p = Number(c.price.replace(/,/g, '')); return p > 300 ? { ...c, ...GEM_OFF, short: `need ${fmt(p - 300)} more Gem` } : c; });
+    return {
+      frames: frames.map(f => { const g = Number(String(f.gem).replace(/,/g, '')) || 0; const off = f.guest ? 'Sign in to buy' : f.banner && !f.guest ? 'Needs a connection' : ''; return { ...f, tixList: tix.map(c => { const p = Number(c.price.replace(/,/g, '')); return off ? { ...c, ...GEM_OFF, short: off } : p > g ? { ...c, ...GEM_OFF, short: `need ${fmt(p - g)} more Gem` } : c; }) }; }), cos: cosCards(600),
+      aid: [['hl/icons/aid.svg', 'Continue', 'defeat screen only · 1 a run · boss fight 180 · Moon Card 68 / 135', '90'], ['asc/fx/reroll.svg', 'Extra reroll', '4 a run · 2 a fight · 1 a fight from A3 · 3-pack 38', '15'],
+        ['asc/new-icons/boss-clock.svg', 'Delay boss clock', 'boss intro only · 1 a boss', '60'], ['asc/new-icons/pact.svg', 'Swap pact', 'pact screen only · 1 a pact', '15'],
+        ['asc/fx/shop.png', 'Shop refresh', '2 a run', '18'], ['asc/fx/elite.png', 'Scout', '3 a run', '12'], ['asc/fx/buff.svg', 'Starting Boon', '1 a run · from any source', '38'], ['hl/icons/aid.svg', 'Run Kit', '2 rerolls + 1 Scout + 1 Boon', '60']].map(([icon, t, cap, p]) => ({ icon, t, cap, p })),
+      vipRows: [
+        { icon: 'hl/i/gem.png', title: '20 Gem a day', sub: 'Claim it yourself each day · no stacking', border: '#24140B', ink: '#3A2214', op: 1 },
+        { icon: 'asc/fx/chest.png', title: '1 Echo ticket a day', sub: 'For 30 days', border: '#24140B', ink: '#3A2214', op: 1 },
+        { icon: 'asc/fx/buff.svg', title: '1 Boon a day', sub: 'First normal run · counts as the run\u2019s Boon', border: '#24140B', ink: '#3A2214', op: 1 },
+        { icon: 'hl/icons/aid.svg', title: 'Continue at \u221225%', sub: 'Once per run · 68 / 135 Gem', border: '#24140B', ink: '#3A2214', op: 1 },
+        { icon: 'asc/fx/shard.png', title: 'No Gene Shard boost', sub: 'Shard income is the same for everyone', border: '#B89A74', ink: '#6E4A30', op: .55 },
+        { icon: 'hl/i/stone.png', title: 'No Land Stone boost', sub: 'Stone income is the same for everyone', border: '#B89A74', ink: '#6E4A30', op: .55 },
+      ],
+    };
+  }
+  componentDidMount() { this._h = () => this.forceUpdate(); window.addEventListener('hashchange', this._h); }
+  componentWillUnmount() { window.removeEventListener('hashchange', this._h); }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<script src="_ds/dango-design-system-b8da985f-efd5-488e-ae62-d508e48befe9/_ds_bundle.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&amp;family=Work+Sans:wght@500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#2A1C12}
+a{color:#FF9345;text-decoration:none}a:hover{color:#FFB275}
+</style>
+</helmet>
+<div style="display:flex;flex-direction:column;gap:64px;padding:64px;width:max-content;background:#2A1C12;font-family:'Work Sans',sans-serif;color:#3A2214;-webkit-font-smoothing:antialiased">
+  <div style="display:flex;flex-direction:column;gap:8px;max-width:1920px">
+    <div style="font-family:'Baloo 2';font-weight:800;font-size:15px;letter-spacing:.18em;color:#D79A58">AXIE DICE · UI REQUEST 02 · ROUND 3 · M9 · M12 · M13 · M14</div>
+    <div style="font-family:'Baloo 2';font-weight:800;font-size:60px;line-height:1;color:#FFF8EA">Leaderboard · Profile · Account · Cosmetics</div>
+    <div style="font-size:17px;line-height:1.5;color:#DDBF8C;max-width:1300px;text-wrap:pretty">Leaderboard (B) opens from Run Setup and Profile. Profile (P) holds Overview, Cosmetics (M14) and Titles. Account (M13) is a chain of 600-wide modals; desktop signs in through the system browser. <a href="Dice UI R3 README.md">R3 README</a> · <a href="Dice UI R3 - Store and Daily.dc.html">← M7/M8</a> · <a href="Dice UI R3 - Codex Settings Land.dc.html">M10, M11, M15 →</a></div>
+  </div>
+
+  <sc-for list="{{ frames }}" as="f" hint-placeholder-count="2">
+    <div data-screen-label="{{ f.id }}" style="display:flex;flex-direction:column;gap:12px">
+      <div style="display:flex;align-items:center;gap:12px">
+        <div style="height:34px;padding:0 12px;display:flex;align-items:center;border-radius:9px;background:#FF9345;border:3px solid #24140B;font-family:'Baloo 2';font-size:17px;font-weight:800;color:#2A1505">{{ f.id }}</div>
+        <div style="font-family:'Baloo 2';font-size:26px;font-weight:800;color:#FFF8EA">{{ f.caption }}</div>
+        <div style="font-size:14px;font-weight:600;color:#B89A74">1920 × 1080</div>
+      </div>
+      <div style="font-size:15px;color:#DDBF8C;max-width:1600px">{{ f.note }}</div>
+      <div style="position:relative;width:1920px;height:1080px;overflow:hidden">
+        <dc-import name="R3 Land Backdrop" h="1080" guest="{{ f.guest }}" newcomer="{{ f.newbie }}" style="position:absolute;inset:0" hint-size="1920px,1080px"></dc-import>
+
+        <sc-if value="{{ f.wide }}" hint-placeholder-val="{{ true }}">
+        <div style="position:absolute;left:200px;top:116px;width:1520px;height:880px;border-radius:28px;background:linear-gradient(180deg,#F8EBD2,#EBD3A8);border:4px solid #8A3E22;box-shadow:inset 2px 2px 0 rgba(255,248,234,.65),5px 8px 0 rgba(36,20,11,.45);overflow:hidden;display:flex;flex-direction:column;box-sizing:border-box">
+          <div style="height:64px;flex:none;display:flex;align-items:center;gap:14px;padding:0 16px 0 8px;background:linear-gradient(180deg,#D79A58,#B87440);border-bottom:4px solid #8A3E22">
+            <div style="height:48px;padding:0 14px 0 10px;display:flex;align-items:center;gap:8px;border-radius:12px;background:linear-gradient(180deg,#FFF8EA,#EBD3A8);border:3px solid #24140B;box-shadow:inset 2px 2px 0 rgba(255,248,234,.65),3px 4px 0 rgba(74,34,14,.35);font-family:'Baloo 2';font-weight:800;font-size:18px;box-sizing:border-box"><span style="font-size:20px">←</span>Back<span style="height:22px;padding:0 6px;border-radius:6px;background:#3B2618;color:#FFF8EA;font-size:13px;display:flex;align-items:center">Esc</span></div>
+            <img src="{{ f.thumb }}" alt="" style="width:36px;height:36px;object-fit:contain">
+            <div style="font-family:'Baloo 2';font-weight:800;font-size:36px;line-height:1;color:#2A1505">{{ f.title }}</div>
+            <div style="font-size:14px;font-weight:700;color:#3A1E07">{{ f.headSub }}</div>
+            <div style="flex:1"></div>
+            <sc-if value="{{ f.tabs }}" hint-placeholder-val="{{ false }}">
+              <div style="display:flex;gap:4px;padding:4px;border-radius:14px;background:#8A4E28;border:3px solid #24140B"><sc-for list="{{ f.tabs }}" as="t" hint-placeholder-count="3"><div style="height:40px;padding:0 16px;display:flex;align-items:center;border-radius:10px;background:{{ t.bg }};font-family:'Baloo 2';font-weight:800;font-size:16px;color:{{ t.ink }}">{{ t.t }}</div></sc-for></div>
+            </sc-if>
+          </div>
+          <sc-if value="{{ f.banner }}" hint-placeholder-val="{{ false }}">
+            <div style="margin:12px 24px 0;min-height:56px;flex:none;display:flex;align-items:center;gap:14px;padding:6px 10px 6px 16px;border-radius:16px;background:#3B2618;border:3px solid #24140B">
+              <img src="{{ f.bannerIcon }}" alt="" style="width:28px;height:28px">
+              <div style="flex:1;display:flex;flex-direction:column"><div style="font-family:'Baloo 2';font-weight:800;font-size:18px;color:#FFF8EA">{{ f.banner }}</div><div style="font-size:13px;font-weight:600;color:#DDBF8C">{{ f.bannerSub }}</div></div>
+              <div style="height:44px;width:160px;display:flex;align-items:center;justify-content:center;border-radius:12px;background:linear-gradient(180deg,#FFB070,#FF8A3A);border:3px solid #24140B;box-shadow:3px 5px 0 #8A3E22;font-family:'Baloo 2';font-weight:800;font-size:17px;color:#2A1505;box-sizing:border-box">{{ f.bannerBtn }}</div>
+            </div>
+          </sc-if>
+
+          <!-- M9 -->
+          <sc-if value="{{ f.lb }}" hint-placeholder-val="{{ false }}">
+            <div style="flex:1;min-height:0;display:flex;flex-direction:column;gap:12px;padding:14px 24px 20px">
+              <div style="display:flex;align-items:center;gap:14px">
+                <div style="display:flex;gap:6px"><sc-for list="{{ f.chips }}" as="c" hint-placeholder-count="11"><div style="width:44px;height:44px;border-radius:10px;background:{{ c.bg }};border:3px solid {{ c.bd }};box-shadow:{{ c.sh }};display:flex;flex-direction:column;align-items:center;justify-content:center;font-family:'Baloo 2';font-weight:800;font-size:16px;line-height:1;color:{{ c.ink }};box-sizing:border-box">{{ c.t }}<sc-if value="{{ c.lock }}" hint-placeholder-val="{{ false }}"><img src="asc/new-icons/lock.svg" alt="" style="width:12px;height:12px"></sc-if></div></sc-for></div>
+                <div style="flex:1"></div>
+                <div style="display:flex;gap:4px;padding:4px;border-radius:14px;background:#DDBF8C;border:3px solid #24140B"><sc-for list="{{ f.filters }}" as="t" hint-placeholder-count="3"><div style="height:40px;padding:0 14px;display:flex;align-items:center;gap:6px;border-radius:10px;background:{{ t.bg }};border:{{ t.bd }};font-family:'Baloo 2';font-weight:800;font-size:16px;color:{{ t.ink }};box-sizing:border-box"><sc-if value="{{ t.icon }}" hint-placeholder-val="{{ false }}"><img src="{{ t.icon }}" alt="" style="width:18px;height:18px"></sc-if>{{ t.t }}</div></sc-for></div>
+                <div style="display:flex;gap:4px;padding:4px;border-radius:14px;background:#DDBF8C;border:3px solid #24140B"><sc-for list="{{ f.periods }}" as="t" hint-placeholder-count="3"><div style="height:40px;padding:0 14px;display:flex;align-items:center;border-radius:10px;background:{{ t.bg }};border:{{ t.bd }};font-family:'Baloo 2';font-weight:800;font-size:16px;color:{{ t.ink }};box-sizing:border-box">{{ t.t }}</div></sc-for></div>
+              </div>
+              <div style="display:flex;align-items:center;gap:10px;font-size:13px;font-weight:700;color:#6E4A30"><div style="font-family:'Baloo 2';font-weight:800;font-size:20px;color:#3A2214">{{ f.boardTitle }}</div><div>{{ f.boardLine }}</div><div style="flex:1"></div><div>Last updated 14:02</div></div>
+              <div style="position:relative;flex:1;min-height:0;display:flex;flex-direction:column;border-radius:18px;background:#FFF8EA;border:3px solid #8A3E22;overflow:hidden;opacity:{{ f.tblOp }}">
+                <div style="height:40px;flex:none;display:grid;grid-template-columns:80px minmax(0,1fr) 140px 90px 130px 170px 130px 24px;align-items:center;padding:0 16px;background:#3B2618;font-family:'Baloo 2';font-weight:800;font-size:14px;letter-spacing:.04em;color:#FFC79B"><div>RANK</div><div>PLAYER</div><div>LAND</div><div>AID</div><div style="text-align:right">SCORE</div><div style="padding-left:20px">MODE</div><div>DATE</div><div></div></div>
+                <sc-if value="{{ f.rowsOn }}" hint-placeholder-val="{{ true }}">
+                  <div style="flex:1;min-height:0;display:flex;overflow:hidden">
+                    <div style="flex:1;display:flex;flex-direction:column">
+                      <sc-for list="{{ f.rows }}" as="r" hint-placeholder-count="10">
+                        <div style="height:46px;flex:none;display:grid;grid-template-columns:80px minmax(0,1fr) 140px 90px 130px 170px 130px;align-items:center;padding:0 16px;background:{{ r.bg }};border-bottom:1px solid #EBD3A8">
+                          <div style="font-family:'Baloo 2';font-weight:800;font-size:19px">{{ r.rank }}</div>
+                          <div style="display:flex;align-items:center;gap:8px;min-width:0"><img src="{{ r.av }}" alt="" style="width:30px;height:30px;border-radius:50%;border:2px solid #24140B;background:#F8EBD2"><div style="font-family:'Baloo 2';font-weight:800;font-size:17px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ r.name }}</div></div>
+                          <div><div style="display:inline-flex;height:24px;padding:0 8px;align-items:center;border-radius:7px;background:{{ r.landBg }};border:2px solid #24140B;font-family:'Baloo 2';font-weight:800;font-size:13px;color:#3A2214">{{ r.land }}</div></div>
+                          <div style="display:flex;align-items:center;gap:4px;font-size:13px;font-weight:700;color:#6E4A30"><img src="{{ r.aidIcon }}" alt="" style="width:20px;height:20px;opacity:{{ r.aidOp }}">{{ r.aid }}</div>
+                          <div style="font-family:'Baloo 2';font-weight:800;font-size:19px;text-align:right">{{ r.score }}</div>
+                          <div style="padding-left:20px;font-size:14px;font-weight:700">{{ r.mode }}</div>
+                          <div style="font-size:14px;font-weight:600;color:#6E4A30">{{ r.date }}</div>
+                        </div>
+                      </sc-for>
+                    </div>
+                    <div style="width:14px;margin:6px 6px 6px 4px;border-radius:7px;background:#DDBF8C;position:relative"><div style="position:absolute;left:2px;right:2px;top:2px;height:28%;border-radius:5px;background:#3B2618"></div></div>
+                  </div>
+                  <div style="height:54px;flex:none;display:grid;grid-template-columns:80px minmax(0,1fr) 140px 90px 130px 170px 130px 24px;align-items:center;padding:0 16px;background:#FFE3A6;border-top:3px solid #24140B">
+                    <div style="font-family:'Baloo 2';font-weight:800;font-size:19px">{{ f.me.rank }}</div>
+                    <div style="display:flex;align-items:center;gap:8px"><img src="asc/portrait/plant.png" alt="" style="width:30px;height:30px;border-radius:50%;border:2px solid #24140B;background:#F8EBD2"><div style="font-family:'Baloo 2';font-weight:800;font-size:17px">{{ f.me.name }}</div><div style="height:20px;padding:0 6px;border-radius:6px;background:#3B2618;font-family:'Baloo 2';font-weight:800;font-size:12px;line-height:20px;color:#FFF8EA">YOU</div></div>
+                    <div><div style="display:inline-flex;height:24px;padding:0 8px;align-items:center;border-radius:7px;background:#F8B848;border:2px solid #24140B;font-family:'Baloo 2';font-weight:800;font-size:13px">Savannah</div></div>
+                    <div style="font-size:13px;font-weight:700;color:#6E4A30">{{ f.me.aid }}</div>
+                    <div style="font-family:'Baloo 2';font-weight:800;font-size:19px;text-align:right">{{ f.me.score }}</div>
+                    <div style="padding-left:20px;font-size:14px;font-weight:700">{{ f.me.mode }}</div>
+                    <div style="font-size:14px;font-weight:600;color:#6E4A30">{{ f.me.date }}</div><div></div>
+                  </div>
+                </sc-if>
+                <sc-if value="{{ f.lbEmpty }}" hint-placeholder-val="{{ false }}">
+                  <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px"><div style="font-family:'Baloo 2';font-weight:800;font-size:28px">{{ f.emptyT }}</div><div style="font-size:15px;font-weight:600;color:#6E4A30;max-width:520px;text-align:center">{{ f.emptyD }}</div></div>
+                </sc-if>
+                <sc-if value="{{ f.lbLoad }}" hint-placeholder-val="{{ false }}">
+                  <div style="flex:1;display:flex;flex-direction:column;gap:6px;padding:10px 16px"><sc-for list="{{ ten }}" as="x" hint-placeholder-count="10"><div style="height:40px;border-radius:10px;background:#DDBF8C"></div></sc-for></div>
+                </sc-if>
+                <sc-if value="{{ f.detail }}" hint-placeholder-val="{{ false }}">
+                  <div style="position:absolute;right:40px;top:96px;width:420px;display:flex;flex-direction:column;gap:10px;padding:16px;border-radius:18px;background:#FFF8EA;border:4px solid #8A3E22;box-shadow:5px 8px 0 rgba(36,20,11,.45)">
+                    <div style="display:flex;align-items:center;gap:8px"><div style="font-family:'Baloo 2';font-weight:800;font-size:22px">#3 · Tamsin</div><div style="flex:1"></div><div style="font-size:12px;font-weight:700;color:#6E4A30">Esc closes</div></div>
+                    <div style="font-size:14px;font-weight:600;line-height:1.45">Won · Full · A6 · 52 turns · 14 nodes · 186 HP left · 11 Oct 2026</div>
+                    <div style="display:flex;gap:6px"><sc-for list="{{ party5 }}" as="p" hint-placeholder-count="5"><img src="{{ p }}" alt="" style="width:44px;height:44px;border-radius:50%;border:3px solid #24140B;background:#F8EBD2"></sc-for></div>
+                    <div style="display:flex;gap:6px;flex-wrap:wrap"><sc-for list="{{ relics }}" as="r" hint-placeholder-count="6"><div style="width:36px;height:36px;border-radius:9px;background:{{ r.bg }};border:2px solid #24140B;display:flex;align-items:center;justify-content:center"><img src="{{ r.icon }}" alt="" style="width:22px;height:22px"></div></sc-for></div>
+                    <div style="display:flex;align-items:center;gap:6px;padding:8px 10px;border-radius:10px;background:#E6DAF6;border:2px solid #4E2E8A;font-size:14px;font-weight:700;color:#1E1236"><img src="hl/icons/aid.svg" alt="" style="width:20px;height:20px">Aid used 2 · Extra reroll, Delay clock</div>
+                  </div>
+                </sc-if>
+              </div>
+            </div>
+          </sc-if>
+
+          <!-- M12 / M14 -->
+          <sc-if value="{{ f.prof }}" hint-placeholder-val="{{ false }}">
+            <div style="flex:1;min-height:0;display:flex;flex-direction:column;gap:14px;padding:14px 24px 20px">
+              <div style="display:flex;align-items:center;gap:18px;padding:14px 18px;border-radius:20px;background:#FFF8EA;border:3px solid #8A3E22">
+                <div style="position:relative;width:96px;height:96px;flex:none"><img src="asc/portrait/plant.png" alt="" style="position:absolute;inset:10px;width:76px;height:76px;border-radius:50%;background:#DDBF8C"><sc-if value="{{ f.frame }}" hint-placeholder-val="{{ false }}"><img src="{{ f.frame }}" alt="" style="position:absolute;inset:0;width:96px;height:96px;object-fit:contain"></sc-if></div>
+                <div style="display:flex;flex-direction:column;gap:6px">
+                  <div style="display:flex;align-items:center;gap:10px"><div style="font-family:'Baloo 2';font-weight:800;font-size:34px;line-height:1">{{ f.pName }}</div><sc-if value="{{ f.sm }}" hint-placeholder-val="{{ false }}"><div style="height:26px;padding:0 10px;display:flex;align-items:center;border-radius:999px;background:#5FCFCB;border:2px solid #24140B;font-family:'Baloo 2';font-weight:800;font-size:13px;color:#0E3533">SKY MAVIS</div></sc-if><div style="height:36px;padding:0 12px;display:flex;align-items:center;border-radius:10px;background:linear-gradient(180deg,#FFF8EA,#EBD3A8);border:3px solid #24140B;font-family:'Baloo 2';font-weight:800;font-size:15px">Edit name</div></div>
+                  <div style="display:flex;align-items:center;gap:8px;font-size:14px;font-weight:700;color:#6E4A30"><div style="height:24px;padding:0 8px;display:flex;align-items:center;border-radius:7px;background:#F8B848;border:2px solid #24140B;font-family:'Baloo 2';font-weight:800;font-size:13px;color:#3A2214">Savannah Land</div>{{ f.pTitle }}</div>
+                </div>
+                <div style="flex:1"></div>
+                <div style="height:34px;padding:0 12px;display:flex;align-items:center;gap:6px;border-radius:999px;background:{{ f.syncBg }};border:2px solid #24140B;font-family:'Baloo 2';font-weight:800;font-size:15px;color:{{ f.syncInk }}">{{ f.sync }}</div>
+                <sc-if value="{{ f.guest }}" hint-placeholder-val="{{ false }}"><div style="height:60px;width:220px;display:flex;align-items:center;justify-content:center;border-radius:14px;background:linear-gradient(180deg,#FFB070,#FF8A3A);border:3px solid #24140B;box-shadow:3px 5px 0 #8A3E22,0 0 0 7px #FFC445,0 0 0 10px #24140B;font-family:'Baloo 2';font-weight:800;font-size:20px;color:#2A1505;box-sizing:border-box">Sign in</div></sc-if>
+              </div>
+              <sc-if value="{{ f.ov }}" hint-placeholder-val="{{ false }}">
+                <div style="display:grid;grid-template-columns:repeat(6,1fr);gap:10px">
+                  <sc-for list="{{ f.stats }}" as="s" hint-placeholder-count="6"><div style="height:84px;display:flex;flex-direction:column;justify-content:center;gap:2px;padding:0 14px;border-radius:16px;background:#FFF8EA;border:3px solid #8A3E22"><div style="font-size:13px;font-weight:700;color:#6E4A30">{{ s.k }}</div><div style="font-family:'Baloo 2';font-weight:800;font-size:28px;line-height:1">{{ s.v }}</div><div style="font-size:12px;font-weight:700;color:#6E4A30">{{ s.s }}</div></div></sc-for>
+                </div>
+                <div style="flex:1;min-height:0;display:flex;flex-direction:column;border-radius:18px;background:#FFF8EA;border:3px solid #8A3E22;overflow:hidden">
+                  <div style="height:40px;flex:none;display:flex;align-items:center;padding:0 16px;background:#3B2618;font-family:'Baloo 2';font-weight:800;font-size:15px;letter-spacing:.04em;color:#FFC79B">LAST 10 RUNS</div>
+                  <sc-if value="{{ f.runsEmpty }}" hint-placeholder-val="{{ false }}"><div style="flex:1;display:flex;align-items:center;justify-content:center;font-family:'Baloo 2';font-weight:800;font-size:24px;color:#6E4A30">Your first run will show here</div></sc-if>
+                  <sc-for list="{{ f.runs }}" as="r" hint-placeholder-count="10">
+                    <div style="height:42px;flex:none;display:grid;grid-template-columns:140px 200px 80px minmax(0,1fr) 150px 120px;align-items:center;padding:0 16px;background:{{ r.bg }};font-size:14px;font-weight:700">
+                      <div style="color:#6E4A30">{{ r.date }}</div><div>{{ r.mode }}</div><div style="font-family:'Baloo 2';font-weight:800;font-size:16px">{{ r.a }}</div><div style="font-family:'Baloo 2';font-weight:800;font-size:16px;color:{{ r.resInk }}">{{ r.res }}</div>
+                      <div style="display:flex;align-items:center;gap:4px;color:#6E4A30"><img src="{{ r.aidIcon }}" alt="" style="width:18px;height:18px;opacity:{{ r.aidOp }}">{{ r.aid }}</div>
+                      <div><sc-if value="{{ r.pure }}" hint-placeholder-val="{{ false }}"><span style="height:22px;padding:0 8px;display:inline-flex;align-items:center;gap:3px;border-radius:999px;background:#FFF8EA;border:2px solid #24140B;font-family:'Baloo 2';font-weight:800;font-size:12px"><img src="asc/fx/shield.png" alt="" style="width:14px;height:14px">PURE</span></sc-if></div>
+                    </div>
+                  </sc-for>
+                </div>
+              </sc-if>
+              <sc-if value="{{ f.cos }}" hint-placeholder-val="{{ false }}">
+                <div style="flex:1;min-height:0;display:grid;grid-template-columns:230px minmax(0,1fr) 380px;gap:14px">
+                  <div style="display:flex;flex-direction:column;gap:6px;padding:10px;border-radius:18px;background:#FFF8EA;border:3px solid #8A3E22">
+                    <sc-for list="{{ f.cats }}" as="c" hint-placeholder-count="7"><div style="height:46px;display:flex;align-items:center;gap:8px;padding:0 12px;border-radius:12px;background:{{ c.bg }};border:2px solid {{ c.bd }};font-family:'Baloo 2';font-weight:800;font-size:16px;color:{{ c.ink }}"><div style="flex:1">{{ c.t }}</div><div style="font-size:13px;font-family:'Work Sans';font-weight:700;color:#6E4A30">{{ c.n }}</div></div></sc-for>
+                  </div>
+                  <div style="display:flex;flex-direction:column;gap:10px;padding:12px;border-radius:18px;background:#FFF8EA;border:3px solid #8A3E22;min-height:0">
+                    <div style="display:flex;align-items:center"><div style="font-family:'Baloo 2';font-weight:800;font-size:20px">{{ f.catTitle }}</div><div style="flex:1"></div><div style="font-size:13px;font-weight:700;color:#6E4A30">{{ f.catLine }}</div></div>
+                    <sc-if value="{{ f.cosEmpty }}" hint-placeholder-val="{{ false }}"><div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;border-radius:14px;border:3px dashed #B89A74;text-align:center"><div style="font-family:'Baloo 2';font-weight:800;font-size:24px">Nothing here yet</div><div style="font-size:15px;font-weight:600;color:#6E4A30">Open an Echo Box or claim Pass rewards.</div></div></sc-if>
+                    <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px">
+                      <sc-for list="{{ f.items }}" as="i" hint-placeholder-count="15">
+                        <div style="height:138px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;padding:6px;border-radius:14px;background:{{ i.bg }};border:3px solid {{ i.bd }};box-shadow:{{ i.sh }};box-sizing:border-box">
+                          <div style="width:56px;height:56px;border-radius:14px;background:{{ i.art }};border:3px solid {{ i.abd }};opacity:{{ i.op }}"></div>
+                          <div style="font-family:'Baloo 2';font-weight:800;font-size:13px;line-height:1.05;text-align:center;color:{{ i.ink }}">{{ i.n }}</div>
+                          <div style="height:18px;padding:0 6px;border-radius:999px;background:{{ i.rbg }};border:2px solid {{ i.rbd }};font-family:'Baloo 2';font-weight:800;font-size:12px;line-height:14px;color:{{ i.rink }}">{{ i.r }}</div>
+                          <div style="font-size:12px;font-weight:700;line-height:1.1;text-align:center;color:{{ i.ink2 }}">{{ i.src }}</div>
+                        </div>
+                      </sc-for>
+                    </div>
+                  </div>
+                  <div style="display:flex;flex-direction:column;gap:10px;padding:14px;border-radius:18px;background:{{ f.pvBg }};border:3px solid {{ f.pvBd }}">
+                    <div style="display:flex;align-items:center;gap:6px"><div style="font-family:'Baloo 2';font-weight:800;font-size:20px;color:{{ f.pvInk }}">{{ f.pvName }}</div><div style="height:22px;padding:0 8px;border-radius:999px;background:{{ f.pvRbg }};border:2px solid {{ f.pvRbd }};font-family:'Baloo 2';font-weight:800;font-size:12px;line-height:18px;color:{{ f.pvRink }}">{{ f.pvR }}</div></div>
+                    <div style="font-size:13px;font-weight:700;color:{{ f.pvInk2 }}">{{ f.pvSrc }}</div>
+                    <div style="font-family:'Baloo 2';font-weight:800;font-size:13px;letter-spacing:.06em;color:{{ f.pvInk2 }}">AS USED IN COMBAT · 104 / 64 / 36</div>
+                    <div style="display:flex;align-items:flex-end;gap:14px;padding:12px;border-radius:14px;background:#DDBF8C">
+                      <sc-for list="{{ dieSizes }}" as="d" hint-placeholder-count="3"><div style="width:{{ d.s }}px;height:{{ d.s }}px;border-radius:{{ d.r }}px;background:{{ f.pvArt }};border:3px solid {{ f.pvRbd }};display:flex;align-items:center;justify-content:center;gap:2px;box-sizing:border-box"><img src="asc/fx/dmg.png" alt="" style="width:{{ d.i }}px;height:{{ d.i }}px"><span style="font-family:'Baloo 2';font-weight:800;font-size:{{ d.f }}px;color:{{ f.pvNum }}">6</span></div></sc-for>
+                    </div>
+                    <div style="font-family:'Baloo 2';font-weight:800;font-size:13px;letter-spacing:.06em;color:{{ f.pvInk2 }}">AVATAR · 96 / 40</div>
+                    <div style="display:flex;align-items:flex-end;gap:14px;padding:12px;border-radius:14px;background:#DDBF8C"><img src="assets/frames/frame_2.png" alt="" style="width:96px;height:96px;object-fit:contain"><img src="assets/frames/frame_2.png" alt="" style="width:40px;height:40px;object-fit:contain"></div>
+                    <sc-if value="{{ f.pvRf }}" hint-placeholder-val="{{ false }}"><div style="font-size:12px;font-weight:700;color:{{ f.pvInk2 }}">{{ f.pvRf }}</div></sc-if>
+                    <div style="flex:1"></div>
+                    <div style="display:flex;gap:8px"><div style="flex:1;height:56px;display:flex;align-items:center;justify-content:center;border-radius:14px;background:{{ f.eqBg }};border:3px solid #24140B;box-shadow:{{ f.eqSh }};font-family:'Baloo 2';font-weight:800;font-size:19px;color:{{ f.eqInk }};box-sizing:border-box">{{ f.eq }}</div><div style="width:140px;height:56px;display:flex;align-items:center;justify-content:center;border-radius:14px;background:linear-gradient(180deg,#FFF8EA,#EBD3A8);border:3px solid #24140B;font-family:'Baloo 2';font-weight:800;font-size:16px;box-sizing:border-box">Per class…</div></div>
+                  </div>
+                </div>
+              </sc-if>
+              <sc-if value="{{ f.titles }}" hint-placeholder-val="{{ false }}">
+                <div style="flex:1;display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(3,minmax(0,1fr));gap:12px">
+                  <sc-for list="{{ titleList }}" as="t" hint-placeholder-count="9"><div style="display:flex;flex-direction:column;justify-content:center;gap:4px;padding:12px 16px;border-radius:16px;background:{{ t.bg }};border:3px solid {{ t.bd }}"><div style="font-family:'Baloo 2';font-weight:800;font-size:20px;letter-spacing:.04em;color:{{ t.ink }}">{{ t.t }}</div><div style="font-size:13px;font-weight:700;color:#6E4A30">{{ t.s }}</div><div style="font-family:'Baloo 2';font-weight:800;font-size:14px;color:{{ t.stInk }}">{{ t.st }}</div></div></sc-for>
+                </div>
+              </sc-if>
+            </div>
+          </sc-if>
+        </div>
+        </sc-if>
+
+        <!-- M13 MODALS -->
+        <sc-if value="{{ f.acct }}" hint-placeholder-val="{{ false }}">
+          <div style="position:absolute;left:{{ f.mLeft }}px;top:{{ f.mTop }}px;width:{{ f.mW }}px;border-radius:24px;background:linear-gradient(180deg,#F8EBD2,#EBD3A8);border:4px solid #8A3E22;box-shadow:5px 8px 0 rgba(36,20,11,.45);overflow:hidden">
+            <div style="height:60px;display:flex;align-items:center;gap:12px;padding:0 20px;background:linear-gradient(180deg,#D79A58,#B87440);border-bottom:4px solid #8A3E22"><div style="font-family:'Baloo 2';font-weight:800;font-size:24px;color:#2A1505">{{ f.mTitle }}</div><div style="flex:1"></div><div style="font-size:13px;font-weight:700;color:#3A1E07">{{ f.mStep }}</div></div>
+            <div style="padding:18px 22px 22px;display:flex;flex-direction:column;gap:12px">
+              <sc-for list="{{ f.mLines }}" as="l" hint-placeholder-count="1"><div style="font-size:15px;font-weight:600;line-height:1.45">{{ l }}</div></sc-for>
+              <sc-if value="{{ f.mCards }}" hint-placeholder-val="{{ false }}">
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+                  <sc-for list="{{ f.mCards }}" as="c" hint-placeholder-count="2"><div style="display:flex;flex-direction:column;gap:6px;padding:12px;border-radius:14px;background:#FFF8EA;border:3px solid #8A3E22"><div style="font-family:'Baloo 2';font-weight:800;font-size:18px">{{ c.t }}</div><sc-for list="{{ c.rows }}" as="r" hint-placeholder-count="4"><div style="display:flex;font-size:14px;font-weight:600"><div style="flex:1;color:#6E4A30">{{ r.k }}</div><div style="font-family:'Baloo 2';font-weight:800">{{ r.v }}</div></div></sc-for></div></sc-for>
+                </div>
+              </sc-if>
+              <sc-if value="{{ f.mWho }}" hint-placeholder-val="{{ false }}">
+                <div style="display:flex;align-items:center;gap:12px;padding:12px;border-radius:14px;background:#FFF8EA;border:3px solid #8A3E22"><img src="asc/portrait/plant.png" alt="" style="width:52px;height:52px;border-radius:50%;border:3px solid #24140B;background:#DDBF8C"><div style="flex:1;display:flex;flex-direction:column"><div style="display:flex;align-items:center;gap:8px"><div style="font-family:'Baloo 2';font-weight:800;font-size:20px">Liam</div><div style="height:22px;padding:0 8px;border-radius:999px;background:#5FCFCB;border:2px solid #24140B;font-family:'Baloo 2';font-weight:800;font-size:12px;line-height:18px;color:#0E3533">SKY MAVIS</div></div><div style="font-size:14px;font-weight:600;color:#6E4A30">liam@skymavis.com</div></div><div style="height:30px;padding:0 10px;display:flex;align-items:center;border-radius:999px;background:#A8D878;border:2px solid #24140B;font-family:'Baloo 2';font-weight:800;font-size:14px;color:#183A0C">✓ Saved</div></div>
+              </sc-if>
+              <div style="display:grid;grid-template-columns:{{ f.mCols }};gap:12px;margin-top:4px">
+                <sc-for list="{{ f.mBtns }}" as="b" hint-placeholder-count="2"><div style="height:{{ b.h }}px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;padding:0 8px;border-radius:14px;background:{{ b.bg }};border:3px solid #24140B;box-shadow:{{ b.sh }};text-align:center;box-sizing:border-box"><div style="font-family:'Baloo 2';font-weight:800;font-size:19px;line-height:1.1;color:{{ b.ink }}">{{ b.t }}</div><sc-if value="{{ b.s }}" hint-placeholder-val="{{ false }}"><div style="font-size:12px;font-weight:700;color:{{ b.ink }}">{{ b.s }}</div></sc-if></div></sc-for>
+              </div>
+              <sc-if value="{{ f.mFoot }}" hint-placeholder-val="{{ false }}"><div style="font-size:13px;font-weight:600;line-height:1.45;color:#6E4A30">{{ f.mFoot }}</div></sc-if>
+            </div>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ f.sheet }}" hint-placeholder-val="{{ false }}">
+          <div style="position:absolute;left:60px;top:116px;right:60px;bottom:40px;display:grid;grid-template-columns:repeat(3,1fr);gap:20px;align-content:start">
+            <sc-for list="{{ f.sheetItems }}" as="e" hint-placeholder-count="9">
+              <div style="display:flex;flex-direction:column;gap:10px;padding:16px;border-radius:20px;background:linear-gradient(180deg,#F8EBD2,#EBD3A8);border:4px solid #8A3E22;box-shadow:4px 6px 0 rgba(36,20,11,.45)">
+                <div style="display:flex;align-items:center;gap:8px"><img src="{{ e.icon }}" alt="" style="width:24px;height:24px"><div style="font-family:'Baloo 2';font-weight:800;font-size:19px">{{ e.t }}</div></div>
+                <div style="font-size:14px;font-weight:600;line-height:1.45">{{ e.d }}</div>
+                <div style="display:flex;gap:8px"><sc-for list="{{ e.btns }}" as="b" hint-placeholder-count="2"><div style="flex:1;height:44px;display:flex;align-items:center;justify-content:center;padding:0 6px;border-radius:12px;background:{{ b.bg }};border:3px solid #24140B;font-family:'Baloo 2';font-weight:800;font-size:15px;line-height:1.05;text-align:center;color:{{ b.ink }};box-sizing:border-box">{{ b.t }}</div></sc-for></div>
+              </div>
+            </sc-for>
+          </div>
+        </sc-if>
+      </div>
+    </div>
+  </sc-for>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+const CLS = ['plant', 'aqua', 'bug', 'reptile', 'beast'];
+const fmt = n => n.toLocaleString('en-US');
+const RINGS = ',0 0 0 7px #FFC445,0 0 0 10px #24140B';
+const PRI = { bg: 'linear-gradient(180deg,#FFB070,#FF8A3A)', ink: '#2A1505', sh: 'inset 2px 2px 0 rgba(255,248,234,.65),3px 5px 0 #8A3E22' };
+const SEC = { bg: 'linear-gradient(180deg,#FFF8EA,#EBD3A8)', ink: '#3A2214', sh: '3px 5px 0 rgba(74,34,14,.35)' };
+const seg = (items, sel, icons = []) => items.map((t, i) => ({ t, icon: icons[i] || '', bg: i === sel ? 'linear-gradient(180deg,#FFB070,#FF8A3A)' : '#FFF8EA', bd: i === sel ? '3px solid #24140B' : '2px solid #B89A74', ink: i === sel ? '#2A1505' : '#3A2214' }));
+const LAND = [['Savannah', '#F8B848'], ['Forest', '#88C858'], ['Arctic', '#98D8B8'], ['Mystic', '#C2A6F4']];
+const NAMES = ['Kito', 'Mara_v', 'Tamsin', 'Okonkwo', 'lunarfox', 'Bao Tran', 'Hikari', 'Petra', 'dicegoblin', 'Quang', 'Ines R.', 'Ruben'];
+function lb(o) {
+  const a = o.a ?? 6, maxA = o.maxA ?? 6, filter = o.filter ?? 0, aidOn = filter === 1;
+  const rows = NAMES.slice(0, 11).map((n, i) => {
+    const aid = aidOn && [1, 2, 5, 8].includes(i), land = LAND[[3, 2, 2, 1, 2, 1, 0, 1, 0, 0, 0][i]];
+    return { rank: i + 1, name: n, av: `asc/portrait/${CLS[i % 5]}.png`, land: land[0], landBg: land[1], aid: aid ? 'Aid' : filter === 2 ? `N${[3, 3, 2, 3, 2, 1, 2, 1, 1, 2, 1][i]}` : 'Pure',
+      aidIcon: aid ? 'hl/icons/aid.svg' : filter === 2 ? 'hl/b/mastery.png' : 'asc/fx/shield.png', aidOp: 1,
+      score: fmt(Math.round(2480 - i * 61 - (i * i) * 2)), mode: ['Full', 'Short'][i % 3 === 0 ? 0 : 1] + (filter === 2 ? ' · mission' : ' · ranked'), date: `${11 - (i % 4)} Oct 2026`,
+      bg: i === 2 && o.detail ? '#FFE3A6' : i % 2 ? '#F8EBD2' : '#FFF8EA' };
+  });
+  const locked = a > maxA;
+  return {
+    wide: true, lb: true, prof: false, acct: false, sheet: false, thumb: 'hl/b/portal.png', title: 'Leaderboard', headSub: 'One board per Ascension · every created run counts', tabs: null,
+    chips: Array.from({ length: 11 }, (_, i) => ({ t: 'A' + i, lock: i > maxA, bg: i === a ? '#FF9345' : i > maxA ? '#E8D6B4' : '#FFF8EA', bd: i > maxA ? '#9A7650' : '#24140B', ink: i > maxA ? '#6E4A30' : i === a ? '#2A1505' : '#3A2214', sh: i === a ? '0 4px 0 #8A3E22' : 'none' })),
+    filters: seg(['Pure', 'All', 'Nhiệm vụ'], filter, ['asc/fx/shield.png', '', 'hl/b/mastery.png']), periods: seg(['Today', 'This week', 'Season'], o.period ?? 1),
+    boardTitle: `A${a} · ${['Pure', 'All runs', 'Nhiệm vụ'][filter]} · ${['Today', 'This week', 'Season'][o.period ?? 1]}`,
+    boardLine: locked ? `Locked for you: win a run at A${a - 1} to unlock A${a}. You can read it.` : filter === 0 ? 'Pure = runs with no Aid. Quit runs count as losses. Score formula not shown.' : filter === 1 ? 'Aid glyph marks runs that used Aid.' : 'Mission runs only, every tier [INF: also per tier].',
+    rows, rowsOn: !o.empty && !o.loading, lbEmpty: !!o.empty, lbLoad: !!o.loading, detail: !!o.detail, tblOp: locked ? .6 : 1,
+    emptyT: 'No runs here yet', emptyD: 'Nobody has finished a ranked run at this Ascension this week. Yours would be the first.',
+    me: o.guest ? { rank: '—', name: 'Guest', aid: '', score: 'Sign in to appear here', mode: '', date: '' } : o.newbie ? { rank: '—', name: 'Liam', aid: '', score: '—', mode: 'Ranked opens after 5 runs', date: '' }
+      : { rank: '48', name: 'Liam', aid: filter === 1 ? 'Aid' : 'Pure', score: '1,612', mode: 'Short · ranked', date: '10 Oct 2026' },
+  };
+}
+const RC = { COMMON: ['#C6CEDA', '#1C2230', '#24140B'], UNCOMMON: ['#40CC3D', '#0A2A09', '#24140B'], RARE: ['#33B8FF', '#062538', '#24140B'], EPIC: ['#BF6BFF', '#24083A', '#24140B'], LEGENDARY: ['#FF9445', '#2A1505', '#24140B'], MYTHIC: ['#FF3D6E', '#2A0F2E', '#0A0408'] };
+function items(sel, empty) {
+  if (empty) return [];
+  const L = [['Sandstone', 'COMMON', 'Store', 1], ['Moss die', 'UNCOMMON', 'Pass lv 21', 1], ['Ember Rim', 'EPIC', 'Regular box', 1], ['Founder die', 'EPIC', 'Pass lv 25', 0], ['Moon die', 'EPIC', 'Series 1', 0],
+    ['Eclipse die', 'LEGENDARY', 'Series 1', 0], ['Moonfall die', 'MYTHIC', 'Series 1', 1], ['Pebble', 'COMMON', 'Regular box', 1], ['Ripple', 'RARE', 'Regular box', 1], ['Amber die', 'EPIC', 'Store', 0],
+    ['Reed die', 'UNCOMMON', 'Regular box', 0], ['Tide die', 'RARE', 'Regular box', 0], ['Clover die', 'COMMON', 'Regular box', 1], ['Dune die', 'UNCOMMON', 'Store', 0], ['Coral die', 'RARE', 'Regular box', 0]];
+  return L.map(([n, r, src, own], i) => {
+    const [bg, ink, bd] = RC[r], my = r === 'MYTHIC';
+    return { n: own ? n : n, r, src: own ? (i === 0 ? 'Equipped' : 'Owned') : src, rbg: bg, rink: ink, rbd: bd, art: own ? (my ? '#2A0F2E' : `linear-gradient(160deg,#FFF8EA,${bg})`) : '#DDBF8C', abd: own ? bd : '#B89A74', op: own ? 1 : .5,
+      bg: own ? (my ? '#2A0F2E' : '#FFF8EA') : '#F3E9D6', bd: i === sel ? '#FFC445' : own ? (my ? '#0A0408' : '#8A3E22') : '#B89A74', sh: i === sel ? '0 0 0 4px #FFC445,0 0 0 7px #24140B' : 'none', ink: my && own ? '#FF9FB8' : '#3A2214', ink2: my && own ? '#F2D8E2' : '#6E4A30' };
+  });
+}
+function prof(o) {
+  const tab = o.tab ?? 0, g = !!o.guest;
+  const runs = o.empty ? [] : [['11 Oct 2026', 'Ranked · Short', 'A6', 'Won', 0, 1], ['11 Oct 2026', 'Mission N2', 'A4', 'Lost · boss 2, turn 9', 0, 0], ['10 Oct 2026', 'Normal · Short', 'A6', 'Won', 2, 0], ['10 Oct 2026', 'Daily', 'A2', 'Lost · act 2 elite', 0, 1],
+    ['09 Oct 2026', 'Ranked · Full', 'A5', 'Won', 1, 0], ['09 Oct 2026', 'Normal · Short', 'A5', 'Quit · counts as loss', 0, 0], ['08 Oct 2026', 'Mission N1', 'A3', 'Won', 0, 0], ['08 Oct 2026', 'Normal · Short', 'A4', 'Won', 0, 1],
+    ['07 Oct 2026', 'Daily', 'A1', 'Won', 0, 1], ['07 Oct 2026', 'Normal · Short', 'A3', 'Lost · boss 1', 3, 0]].map(([date, mode, a, res, aid, pure], i) => ({ date, mode, a, res, resInk: res.startsWith('Won') ? '#2F6E1A' : '#3A2214',
+    aid: mode.startsWith('Mission') ? 'no Aid (mission)' : aid ? `Aid ${aid}` : 'no Aid', aidIcon: aid ? 'hl/icons/aid.svg' : 'asc/fx/shield.png', aidOp: aid ? 1 : .5, pure: !!pure, bg: i % 2 ? '#F8EBD2' : '#FFF8EA' }));
+  const cats = [['Dice skins', '7 / 41'], ['Avatar frames', '3 / 32'], ['Dice FX', '2 / 28'], ['Axie skins / tints', '1 / 36'], ['Pets', '0 / 18'], ['Decor', '4 / 46'], ['Titles', '3 / 22']];
+  const sel = o.sel ?? 2, it = items(sel, o.cosEmpty)[sel] || null;
+  const my = it && it.r === 'MYTHIC';
+  return {
+    wide: true, lb: false, prof: true, acct: false, sheet: false, thumb: 'hl/b/house.png', title: 'Profile', headSub: g ? 'Guest · local stats on this computer' : 'Liam · Savannah Land',
+    tabs: [{ t: 'Overview', bg: tab === 0 ? '#FFF8EA' : 'transparent', ink: tab === 0 ? '#3A2214' : '#FFF8EA' }, { t: 'Cosmetics', bg: tab === 1 ? '#FFF8EA' : 'transparent', ink: tab === 1 ? '#3A2214' : '#FFF8EA' }, { t: 'Titles', bg: tab === 2 ? '#FFF8EA' : 'transparent', ink: tab === 2 ? '#3A2214' : '#FFF8EA' }],
+    pName: g ? 'Guest' : 'Liam', sm: !g, frame: o.cosEmpty ? '' : 'assets/frames/frame_2.png', pTitle: g ? 'No title' : 'Title: "Moonwatcher" · used on leaderboards',
+    sync: g ? 'Guest · not saved to cloud' : o.sync || '✓ Saved', syncBg: g ? '#E8D6B4' : '#A8D878', syncInk: g ? '#6E4A30' : '#183A0C',
+    ov: tab === 0, cos: tab === 1, titles: tab === 2, runs, runsEmpty: !!o.empty,
+    stats: [['Runs', o.empty ? '0' : '64', 'created · quits count'], ['Wins', o.empty ? '0' : '29', o.empty ? '—' : '45%'], ['Best Ascension', o.empty ? '—' : 'A6', 'won'], ['Pure wins', o.empty ? '0' : '17', 'no Aid'], ['Nhiệm vụ', o.empty ? '—' : '5 / 9', 'won / played'], ['Mission net', o.empty ? '—' : '+1,940', 'Shard [INF]']].map(([k, v, s]) => ({ k, v, s })),
+    cats: cats.map(([t, n], i) => ({ t, n, bg: i === (o.cat ?? 0) ? '#FFE3A6' : '#F8EBD2', bd: i === (o.cat ?? 0) ? '#24140B' : '#B89A74', ink: '#3A2214' })),
+    catTitle: cats[o.cat ?? 0][0], catLine: o.cosEmpty ? '0 owned' : `${cats[o.cat ?? 0][1]} owned · slot: one dice skin at a time`, items: items(sel, o.cosEmpty), cosEmpty: !!o.cosEmpty,
+    pvName: o.cosEmpty ? 'Default die' : it.n, pvR: o.cosEmpty ? 'DEFAULT' : it.r, pvRbg: o.cosEmpty ? '#F8EBD2' : it.rbg, pvRink: o.cosEmpty ? '#3A2214' : it.rink, pvRbd: o.cosEmpty ? '#24140B' : it.rbd,
+    pvSrc: o.cosEmpty ? 'Nothing equipped: the default plate is used.' : my ? 'Series 1 · Season box · MYTHIC' : `Source: ${it.src === 'Owned' || it.src === 'Equipped' ? 'Regular box' : it.src}`,
+    pvArt: o.cosEmpty ? 'linear-gradient(180deg,#FFF8EA,#FFD9C9)' : my ? '#2A0F2E' : `linear-gradient(160deg,#FFF8EA,${it.rbg})`, pvNum: my ? '#FF9FB8' : '#3A2214',
+    pvBg: my ? '#2A0F2E' : '#FFF8EA', pvBd: my ? '#0A0408' : '#8A3E22', pvInk: my ? '#FF9FB8' : '#3A2214', pvInk2: my ? '#F2D8E2' : '#6E4A30',
+    pvRf: o.rf ? 'Reduce flashing on: FX preview shows its first and last frame side by side, no loop.' : my ? 'Mythic: night field #2A0F2E, border #0A0408, ink #FF9FB8, word MYTHIC. No white text.' : '',
+    eq: o.cosEmpty ? 'Nothing to equip' : it.src === 'Equipped' ? 'Unequip' : 'Equip', eqBg: o.cosEmpty ? '#DDBF8C' : PRI.bg, eqInk: o.cosEmpty ? '#6E4A30' : PRI.ink, eqSh: o.cosEmpty ? 'none' : PRI.sh + RINGS,
+  };
+}
+const acctBase = { wide: false, lb: false, prof: false, acct: true, sheet: false, mLeft: 660, mTop: 220, mW: 600, mCards: null, mWho: false, mFoot: '', mCols: '1fr 1fr', guest: true };
+const B = (t, kind, x = {}) => ({ t, h: 60, ...(kind === 'p' ? PRI : SEC), ...x });
+class Component extends DCLogic {
+  renderVals() {
+    const F = [];
+    const add = (id, caption, note, base, x = {}) => F.push({ id, caption, note, guest: false, newbie: false, banner: '', ...base, ...x });
+    add('M9a', 'Leaderboard · Pure · A6 (default)', 'Pure is the default tab. Board preselects your best Ascension. Own row pinned at the bottom. The table scrolls inside its frame (visible bar).', lb({ a: 6 }));
+    add('M9b', 'All runs · row detail', 'Aid glyph + word on runs that used Aid (never colour alone). Click / Enter on a row opens its detail.', lb({ a: 6, filter: 1, detail: true }));
+    add('M9c', 'Nhiệm vụ filter · season', 'Mission runs only; tier shown in the Aid column (missions never allow Aid).', lb({ a: 4, filter: 2, period: 2 }));
+    add('M9d', 'Empty board', 'One sentence. Filters stay live.', lb({ a: 8, maxA: 10, period: 0, empty: true }));
+    add('M9e', 'Loading', 'Skeleton rows; header, chips and Back stay live.', lb({ a: 6, loading: true }));
+    add('M9f', 'Locked Ascension · guest', 'A board above your unlock is visible and greyed with the reason. Guest: "Sign in to appear here" in the pinned row.', lb({ a: 9, maxA: 6, guest: true }), { guest: true, banner: 'Sign in to appear here.', bannerSub: 'Anyone can read the boards. Entries need an account.', bannerBtn: 'Sign in', bannerIcon: 'asc/fx/shield.png' });
+    add('M9g', 'Newcomer', 'Ranked opens after 5 runs; the pinned row says so.', lb({ a: 0, maxA: 1, newbie: true }), { newbie: true });
+    add('M12a', 'Profile · overview', 'Avatar with the equipped frame, name (Edit name), Land tier, Sky Mavis badge, sync chip. Last 10 runs with Aid marker and Pure mark (glyph + word).', prof({ tab: 0 }));
+    add('M12b', 'Profile · guest', 'Local stats with the sign-in action as the first focus.', prof({ tab: 0, guest: true }), { guest: true, banner: 'Sign in to keep them.', bannerSub: 'These stats live on this computer only.', bannerBtn: 'Sign in', bannerIcon: 'asc/fx/shield.png' });
+    add('M12c', 'Profile · empty', 'No runs yet.', prof({ tab: 0, empty: true }));
+    add('M12d', 'Profile · Titles', 'Titles from Ascension goals, Pass, Echo Box series. One title at a time.', prof({ tab: 2 }));
+    add('M14a', 'Cosmetics · dice skins', 'Left categories with counts; grid owned (full colour) / missing (named silhouette + source); right preview at combat sizes 104/64/36 and avatar 96/40. Focus on Equip.', prof({ tab: 1, sel: 2 }));
+    add('M14b', 'Cosmetics · Mythic item selected', 'Mythic die from Series 1 (Season box only). Night field, near-black border, MYTHIC word, no white text.', prof({ tab: 1, sel: 6 }));
+    add('M14c', 'Cosmetics · empty · nothing equipped', 'Default plate shown; Equip disabled with its reason.', prof({ tab: 1, cosEmpty: true, cat: 4 }));
+    add('M14d', 'Cosmetics · Dice FX · reduce flashing', 'Animated FX preview replaced by a static pair of frames when Reduce flashing is on.', prof({ tab: 1, cat: 2, sel: 8, rf: true }));
+    add('M13a', 'Account 1 · Choose', 'Both buttons same size. One line says what guest means.', acctBase, { mTitle: 'Save your progress', mStep: '1 of 5',
+      mLines: ['Sign in with Google so progress, Gem, Echo Box and Nhiệm vụ follow you to any computer.'], mBtns: [B('Continue with Google', 'p', { sh: PRI.sh + RINGS, s: 'opens your browser' }), B('Play as guest', 's', { s: 'stay on this computer' })],
+      mFoot: 'Guest: progress stays on this computer; no Echo Box, Nhiệm vụ, Ranked or Gem.' });
+    add('M13b', 'Account 2 · Waiting for the browser', 'No timer text. After 10 minutes the timeout error replaces this (sheet M13f).', acctBase, { mTitle: 'Finish signing in', mStep: '2 of 5',
+      mLines: ['A browser window opened. Finish signing in there.', 'Then come back here; the game picks it up by itself.'], mBtns: [B('Open it again', 's'), B('Cancel', 's', { sh: SEC.sh + RINGS })] });
+    add('M13c', 'Account 3 · First sign-in with guest progress', 'Both choices say what moves.', acctBase, { mTitle: 'You played as a guest', mStep: '3 of 5', mW: 600,
+      mLines: ['This account has no progress yet. Move what you did on this computer into it?'],
+      mCards: [{ t: 'On this computer', rows: [{ k: 'Runs', v: '12' }, { k: 'Gene Shard', v: '1,240' }, { k: 'Vault', v: '3 Axies' }, { k: 'Last played', v: '12 Oct' }] }, { t: 'This account', rows: [{ k: 'Runs', v: '0' }, { k: 'Gene Shard', v: '0' }, { k: 'Vault', v: 'empty' }, { k: 'Last played', v: '—' }] }],
+      mBtns: [B('Move progress', 'p', { s: 'runs, Shard, Vault, presets', sh: PRI.sh + RINGS }), B('Start fresh', 's', { s: 'guest data stays as a backup' })] });
+    add('M13d', 'Account 4 · Conflict', 'Never merged. The other copy is kept as a 7-day backup and the modal says so.', acctBase, { mTitle: 'Two different saves', mStep: '4 of 5', mTop: 180,
+      mLines: ['Cloud has progress and this computer has different progress. Pick one.'],
+      mCards: [{ t: 'This computer', rows: [{ k: 'Runs', v: '38' }, { k: 'Gene Shard', v: '2,960' }, { k: 'Vault', v: '6 Axies' }, { k: 'Last played', v: '12 Oct, 13:40' }] }, { t: 'Cloud', rows: [{ k: 'Runs', v: '41' }, { k: 'Gene Shard', v: '1,880' }, { k: 'Vault', v: '7 Axies' }, { k: 'Last played', v: '11 Oct, 22:05' }] }],
+      mBtns: [B('Keep this computer', 's', { sh: SEC.sh + RINGS }), B('Keep cloud', 's')], mFoot: 'The save you do not keep is stored as a backup for 7 days (Settings › Account › Backups).' });
+    add('M13e', 'Account 5 · Signed in', 'Sign out needs a second press; when unsynced it reads "Sync and sign out".', { ...acctBase, guest: false }, { mTitle: 'Account', mStep: '5 of 5', mWho: true,
+      mLines: [], mCols: '1fr 1fr', mBtns: [B('Switch account', 's'), B('Sign out', 's', { s: 'press again to confirm' })], mFoot: 'Sync: Saved · last sync 14:02.' });
+    const btn = (t, p) => ({ t, bg: p ? PRI.bg : SEC.bg, ink: p ? PRI.ink : SEC.ink });
+    add('M13f', 'Account · errors (sheet)', 'Each error is the M13 modal body: a plain sentence + a way forward. Drawn together for review.', { wide: false, lb: false, prof: false, acct: false, sheet: true, guest: true }, { sheetItems: [
+      { icon: 'asc/fx/vuln.png', t: 'Sign-in cancelled', d: 'You closed the Google window before finishing.', btns: [btn('Try again', 1), btn('Play as guest')] },
+      { icon: 'asc/fx/vuln.png', t: 'Sign-in timed out', d: 'We waited 10 minutes and did not hear back from the browser.', btns: [btn('Start again', 1), btn('Play as guest')] },
+      { icon: 'asc/fx/vuln.png', t: 'No network', d: 'Your computer is offline. You can keep playing as a guest.', btns: [btn('Try again', 1), btn('Play as guest')] },
+      { icon: 'asc/new-icons/lock.svg', t: 'Company workspace blocked', d: 'This Google account belongs to a workspace that does not allow game sign-in.', btns: [btn('Use another account', 1), btn('Play as guest')] },
+      { icon: 'asc/fx/vuln.png', t: 'Session expired', d: 'Please sign in again. Your progress on this computer is safe.', btns: [btn('Sign in', 1), btn('Later')] },
+      { icon: 'asc/fx/vuln.png', t: 'Save failed', d: 'Your last run was not saved to the cloud. It is kept here and will sync later.', btns: [btn('Sync now', 1), btn('Close')] },
+      { icon: 'asc/fx/vuln.png', t: 'Sign-out failed', d: 'We could not reach the server, so you are still signed in.', btns: [btn('Try again', 1), btn('Close')] },
+      { icon: 'asc/fx/reroll.svg', t: 'Sync chip · four states', d: '✓ Saved (green) · Syncing… (cream) · Offline — will sync + "Sync now" (dusk) · This account was played somewhere else (gold).', btns: [btn('Keep this device'), btn('Keep cloud')] },
+      { icon: 'asc/fx/shield.png', t: 'Hub plate · guest (once per session)', d: 'Slim plate under the top bar once the server answered: "Save your progress · Sign in to keep runs, Gem and Echo Box." Closable.', btns: [btn('Sign in', 1), btn('Not now')] },
+    ] });
+    const only = (location.hash.match(/f=([\w,]+)/) || [])[1];
+    return {
+      frames: only ? F.filter(f => only.split(',').includes(f.id)) : F, ten: Array.from({ length: 10 }, (_, i) => i),
+      party5: CLS.map(c => `asc/portrait/${c}.png`),
+      relics: ['asc/fx/thorns.png', 'asc/fx/regen.png', 'asc/fx/dmg.png', 'asc/fx/shield.png', 'asc/fx/poison.png', 'asc/fx/buff.svg'].map((icon, i) => ({ icon, bg: ['#BF6BFF', '#40CC3D', '#FF9445', '#33B8FF', '#C6CEDA', '#40CC3D'][i] })),
+      dieSizes: [{ s: 104, r: 22, i: 40, f: 34 }, { s: 64, r: 14, i: 24, f: 22 }, { s: 36, r: 9, i: 14, f: 14 }],
+      titleList: [['MOONWATCHER', 'Series 1 · 12 pulls', 'Equipped', 1], ['A5 ASCENDANT', 'Win a run at A5', 'Owned', 0], ['LUNACIA SOVEREIGN', 'Pass level 30', 'Not yet · level 12 of 30', -1], ['A10 TITLE', 'Win a run at A10 · name pending', 'Not yet', -1],
+        ['FIRST STAKE', 'Win any mission', 'Owned', 0], ['SERIES 1 COMPLETE', 'Collect all 11 Series 1 items', 'Not yet · 3 of 11', -1], ['DAILY DOZEN', 'Win 12 Daily runs [INF]', 'Not yet · 4 of 12', -1], ['PURE HEART', '10 Pure wins [INF]', 'Owned', 0], ['MOON MARKED', 'Series 1 · 40 pulls', 'Not yet · 31 of 40', -1]]
+        .map(([t, s, st, k]) => ({ t, s, st, bg: k === 1 ? '#FFE3A6' : k === 0 ? '#FFF8EA' : '#F3E9D6', bd: k === 1 ? '#24140B' : k === 0 ? '#8A3E22' : '#B89A74', ink: k < 0 ? '#6E4A30' : '#3A2214', stInk: k === 1 ? '#8A3E22' : k === 0 ? '#2F6E1A' : '#6E4A30' })),
+    };
+  }
+  componentDidMount() { this._h = () => this.forceUpdate(); window.addEventListener('hashchange', this._h); }
+  componentWillUnmount() { window.removeEventListener('hashchange', this._h); }
+}
+</script>
+</body>
+</html>

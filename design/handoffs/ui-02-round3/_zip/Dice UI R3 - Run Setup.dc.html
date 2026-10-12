@@ -1,0 +1,571 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<script src="_ds/dango-design-system-b8da985f-efd5-488e-ae62-d508e48befe9/_ds_bundle.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&amp;family=Work+Sans:wght@500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#2A1C12}
+a{color:#FF9345;text-decoration:none}a:hover{color:#FFB275}
+</style>
+</helmet>
+<div style="display:flex;flex-direction:column;gap:64px;padding:64px;width:max-content;background:#2A1C12;font-family:'Work Sans',sans-serif;color:#3A2214;-webkit-font-smoothing:antialiased">
+  <div style="display:flex;flex-direction:column;gap:8px;max-width:1920px">
+    <div style="font-family:'Baloo 2';font-weight:800;font-size:15px;letter-spacing:.18em;color:#D79A58">AXIE DICE · UI REQUEST 02 · ROUND 3 · M1 + M2</div>
+    <div style="font-family:'Baloo 2';font-weight:800;font-size:60px;line-height:1;color:#FFF8EA">Run Setup · Team presets</div>
+    <div style="font-size:17px;line-height:1.5;color:#DDBF8C;max-width:1300px;text-wrap:pretty">Portal (key 1) and House (key 2). Wide panel 1520 × 880 over the blurred Land; the shortcut bar stays live above the scrim. Numbers and rules: <a href="Dice UI R3 README.md">R3 README</a> · <a href="Dice UI R3 - Shared Components.dc.html">Shared components</a></div>
+  </div>
+
+  <sc-for list="{{ m1 }}" as="f" hint-placeholder-count="2">
+    <div data-screen-label="{{ f.id }}" style="display:flex;flex-direction:column;gap:12px">
+      <div style="display:flex;align-items:center;gap:12px">
+        <div style="height:34px;padding:0 12px;display:flex;align-items:center;border-radius:9px;background:#FF9345;border:3px solid #24140B;font-family:'Baloo 2';font-size:17px;font-weight:800;color:#2A1505">{{ f.id }}</div>
+        <div style="font-family:'Baloo 2';font-size:26px;font-weight:800;color:#FFF8EA">{{ f.caption }}</div>
+        <div style="font-size:14px;font-weight:600;color:#B89A74">1920 × {{ f.H }}</div>
+      </div>
+      <div style="font-size:15px;color:#DDBF8C;max-width:1600px">{{ f.note }}</div>
+      <div style="position:relative;width:1920px;height:{{ f.H }}px;overflow:hidden">
+        <dc-import name="R3 Land Backdrop" h="{{ f.H }}" gem="{{ f.gem }}" guest="{{ f.guest }}" newcomer="{{ f.newbie }}" style="position:absolute;inset:0" hint-size="1920px,1080px"></dc-import>
+        <div style="position:absolute;left:200px;top:116px;width:1520px;height:{{ f.ph }}px;border-radius:28px;background:linear-gradient(180deg,#F8EBD2,#EBD3A8);border:4px solid #8A3E22;box-shadow:inset 2px 2px 0 rgba(255,248,234,.65),5px 8px 0 rgba(36,20,11,.45);overflow:hidden;display:flex;flex-direction:column;box-sizing:border-box">
+          <div style="height:64px;flex:none;display:flex;align-items:center;gap:14px;padding:0 16px 0 8px;background:linear-gradient(180deg,#D79A58,#B87440);border-bottom:4px solid #8A3E22">
+            <div style="height:48px;padding:0 14px 0 10px;display:flex;align-items:center;gap:8px;border-radius:12px;background:linear-gradient(180deg,#FFF8EA,#EBD3A8);border:3px solid #24140B;box-shadow:inset 2px 2px 0 rgba(255,248,234,.65),3px 4px 0 rgba(74,34,14,.35);font-family:'Baloo 2';font-weight:800;font-size:18px;box-sizing:border-box"><span style="font-size:20px">←</span>Back<span style="height:22px;padding:0 6px;border-radius:6px;background:#3B2618;color:#FFF8EA;font-size:13px;display:flex;align-items:center">Esc</span></div>
+            <img src="hl/b/portal.png" alt="" style="width:36px;height:36px;object-fit:contain">
+            <div style="font-family:'Baloo 2';font-weight:800;font-size:36px;line-height:1;color:#2A1505">Run Setup</div>
+            <div style="font-size:14px;font-weight:700;color:#3A1E07">{{ f.headSub }}</div>
+            <div style="flex:1"></div>
+            <div style="height:48px;padding:0 14px;display:flex;align-items:center;gap:8px;border-radius:12px;background:linear-gradient(180deg,#FFF8EA,#EBD3A8);border:3px solid #24140B;box-shadow:3px 4px 0 rgba(74,34,14,.35);font-family:'Baloo 2';font-weight:800;font-size:17px;box-sizing:border-box">Leaderboard<span style="height:22px;padding:0 6px;border-radius:6px;background:#3B2618;color:#FFF8EA;font-size:13px;display:flex;align-items:center">B</span></div>
+          </div>
+
+          <sc-if value="{{ f.offline }}" hint-placeholder-val="{{ false }}">
+            <div style="margin:10px 24px 0;min-height:60px;flex:none;display:flex;align-items:center;gap:14px;padding:4px 8px 4px 16px;border-radius:16px;background:#3B2618;border:3px solid #24140B;box-shadow:3px 4px 0 rgba(74,34,14,.35)">
+              <img src="asc/fx/vuln.png" alt="" style="width:32px;height:32px">
+              <div style="flex:1;display:flex;flex-direction:column;gap:2px"><div style="font-family:'Baloo 2';font-weight:800;font-size:19px;color:#FFF8EA">No connection to the game server.</div><div style="font-size:13px;font-weight:600;color:#DDBF8C">Dice are rolled by the server, so a run cannot start. Your setup is kept. Last updated 14:02.</div></div>
+              <div style="height:48px;width:170px;display:flex;align-items:center;justify-content:center;border-radius:12px;background:linear-gradient(180deg,#FFB070,#FF8A3A);border:3px solid #24140B;box-shadow:3px 5px 0 #8A3E22;font-family:'Baloo 2';font-weight:800;font-size:18px;color:#2A1505;box-sizing:border-box">Try again</div>
+              <div style="height:48px;width:170px;display:flex;align-items:center;justify-content:center;border-radius:12px;background:linear-gradient(180deg,#FFF8EA,#EBD3A8);border:3px solid #24140B;box-shadow:3px 4px 0 rgba(74,34,14,.35);font-family:'Baloo 2';font-weight:800;font-size:18px;box-sizing:border-box">Back to Land</div>
+            </div>
+          </sc-if>
+
+          <sc-if value="{{ f.loading }}" hint-placeholder-val="{{ false }}">
+            <div style="flex:1;display:flex;flex-direction:column;gap:20px;padding:20px 24px">
+              <div style="width:220px;height:22px;border-radius:8px;background:#DDBF8C"></div>
+              <div style="display:flex;gap:16px"><sc-for list="{{ five }}" as="x" hint-placeholder-count="5"><div style="width:272px;height:176px;border-radius:20px;background:#DDBF8C;border:3px solid #CDAE7C;box-sizing:border-box"></div></sc-for></div>
+              <div style="flex:1;display:grid;grid-template-columns:440px 1fr 400px;gap:20px"><div style="border-radius:18px;background:#DDBF8C"></div><div style="border-radius:18px;background:#DDBF8C"></div><div style="border-radius:18px;background:#DDBF8C"></div></div>
+              <div style="display:flex;align-items:center;gap:12px;font-family:'Baloo 2';font-weight:800;font-size:17px;color:#6E4A30">Checking for an open run…<span style="font-family:'Work Sans';font-weight:600;font-size:14px">Ascension —  ·  Tries left —</span></div>
+            </div>
+          </sc-if>
+
+          <sc-if value="{{ f.cont }}" hint-placeholder-val="{{ false }}">
+            <div style="flex:1;display:flex;align-items:center;justify-content:center">
+              <div style="width:640px;display:flex;flex-direction:column;gap:14px;padding:28px;border-radius:24px;background:#FFF8EA;border:4px solid #8A3E22;box-shadow:4px 6px 0 rgba(74,34,14,.30)">
+                <div style="font-family:'Baloo 2';font-weight:800;font-size:15px;letter-spacing:.06em;color:#8A3E22">RUN IN PROGRESS</div>
+                <div style="font-family:'Baloo 2';font-weight:800;font-size:26px;line-height:1.15">{{ f.contTitle }}</div>
+                <div style="height:60px;border-radius:14px;background:linear-gradient(180deg,#FFB070,#FF8A3A);border:3px solid #24140B;box-shadow:inset 2px 2px 0 rgba(255,248,234,.65),3px 5px 0 #8A3E22,0 0 0 7px #FFC445,0 0 0 10px #24140B;display:flex;flex-direction:column;align-items:center;justify-content:center;box-sizing:border-box">
+                  <div style="font-family:'Baloo 2';font-weight:800;font-size:22px;line-height:1;color:#2A1505">Continue run</div>
+                  <div style="font-size:13px;font-weight:700;color:#4A2208">{{ f.contLine }}</div>
+                </div>
+                <div style="height:48px;border-radius:12px;background:linear-gradient(180deg,#FFF8EA,#EBD3A8);border:3px solid #24140B;box-shadow:3px 4px 0 rgba(74,34,14,.35);display:flex;align-items:center;justify-content:center;font-family:'Baloo 2';font-weight:800;font-size:18px;box-sizing:border-box">{{ f.newLabel }}</div>
+                <div style="font-size:14px;font-weight:600;line-height:1.45;color:#6E4A30">{{ f.newNote }}</div>
+              </div>
+            </div>
+          </sc-if>
+
+          <sc-if value="{{ f.main }}" hint-placeholder-val="{{ true }}">
+            <div style="flex:1;min-height:0;overflow:hidden;display:flex;flex-direction:column;gap:14px;padding:14px 24px 14px">
+              <div style="display:flex;flex-direction:column;gap:10px">
+                <div style="display:flex;align-items:center;gap:10px">
+                  <div style="font-family:'Baloo 2';font-weight:800;font-size:15px;letter-spacing:.06em;color:#8A3E22">PARTY · {{ f.partyCount }} OF 5</div>
+                  <div style="font-size:13px;font-weight:600;color:#6E4A30">Same Axie cannot sit in two slots. NFT Axies from the Vault play in every mode.</div>
+                  <div style="flex:1"></div>
+                  <div style="height:36px;padding:0 14px;display:flex;align-items:center;border-radius:10px;background:linear-gradient(180deg,#FFF8EA,#EBD3A8);border:3px solid #24140B;box-shadow:3px 4px 0 rgba(74,34,14,.35);font-family:'Baloo 2';font-weight:800;font-size:15px;box-sizing:border-box">Load preset</div>
+                  <div style="height:36px;padding:0 14px;display:flex;align-items:center;border-radius:10px;background:linear-gradient(180deg,#FFF8EA,#EBD3A8);border:3px solid #24140B;box-shadow:3px 4px 0 rgba(74,34,14,.35);font-family:'Baloo 2';font-weight:800;font-size:15px;box-sizing:border-box">Save as preset</div>
+                </div>
+                <div style="display:flex;gap:16px">
+                  <sc-for list="{{ f.slots }}" as="s" hint-placeholder-count="5">
+                    <div style="width:272px;height:{{ s.h }}px;flex:none;box-sizing:border-box;border-radius:20px;background:{{ s.bg }};border:3px {{ s.bstyle }} {{ s.bcol }};box-shadow:{{ s.shadow }};padding:12px;display:flex;flex-direction:column;gap:10px">
+                      <sc-if value="{{ s.empty }}" hint-placeholder-val="{{ false }}">
+                        <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px">
+                          <div style="width:52px;height:52px;border-radius:50%;border:3px dashed #8A3E22;display:flex;align-items:center;justify-content:center;font-family:'Baloo 2';font-weight:800;font-size:30px;color:#8A3E22">+</div>
+                          <div style="font-family:'Baloo 2';font-weight:800;font-size:18px;color:#6E4A30">Pick an Axie</div>
+                          <div style="font-size:12px;font-weight:600;color:#6E4A30">Slot {{ s.n }} · Enter opens the list</div>
+                        </div>
+                      </sc-if>
+                      <sc-if value="{{ s.full }}" hint-placeholder-val="{{ true }}">
+                        <div style="display:flex;align-items:center;gap:10px">
+                          <img src="{{ s.portrait }}" alt="" style="width:52px;height:52px;border-radius:50%;background:#FFF8EA;border:3px solid #24140B;box-sizing:border-box;object-fit:cover">
+                          <div style="flex:1;min-width:0;display:flex;flex-direction:column"><div style="font-family:'Baloo 2';font-weight:800;font-size:19px;line-height:1.1">{{ s.name }}</div><div style="font-size:12px;font-weight:700;color:#6E4A30">{{ s.clsName }} · slot {{ s.n }}</div></div>
+                          <div style="height:24px;padding:0 8px;display:flex;align-items:center;border-radius:999px;background:{{ s.tagBg }};border:2px solid #24140B;font-family:'Baloo 2';font-weight:800;font-size:13px;color:{{ s.tagInk }}">{{ s.tag }}</div>
+                        </div>
+                        <sc-if value="{{ s.showFaces }}" hint-placeholder-val="{{ true }}"><div style="display:grid;grid-template-columns:repeat(6,1fr);gap:4px">
+                          <sc-for list="{{ s.faces }}" as="c" hint-placeholder-count="6">
+                            <div style="height:34px;border-radius:9px;background:{{ c.bg }};border:2px solid {{ c.bd }};display:flex;align-items:center;justify-content:center;gap:1px;box-sizing:border-box"><img src="{{ c.icon }}" alt="" style="width:16px;height:16px;opacity:{{ c.op }}"><span style="font-family:'Baloo 2';font-weight:800;font-size:15px">{{ c.n }}</span></div>
+                          </sc-for>
+                        </div></sc-if>
+                        <div style="display:flex;gap:6px">
+                          <div style="flex:1;height:36px;display:flex;align-items:center;justify-content:center;border-radius:10px;background:linear-gradient(180deg,#FFF8EA,#EBD3A8);border:3px solid #24140B;font-family:'Baloo 2';font-weight:800;font-size:15px;box-sizing:border-box">Swap</div>
+                          <div style="flex:1;height:36px;display:flex;align-items:center;justify-content:center;border-radius:10px;background:linear-gradient(180deg,#FFF8EA,#EBD3A8);border:3px solid #24140B;font-family:'Baloo 2';font-weight:800;font-size:15px;box-sizing:border-box">Clear</div>
+                        </div>
+                      </sc-if>
+                    </div>
+                  </sc-for>
+                </div>
+              </div>
+
+              <div style="flex:1;min-height:0;display:grid;grid-template-columns:440px minmax(0,1fr) {{ f.kitCol }};grid-template-rows:minmax(0,1fr);gap:20px">
+                <div style="display:flex;flex-direction:column;gap:{{ f.modeGap }}px;padding:{{ f.modePad }};border-radius:20px;background:#FFF8EA;border:3px solid #8A3E22;min-height:0;overflow:hidden">
+                  <div style="font-family:'Baloo 2';font-weight:800;font-size:15px;letter-spacing:.06em;color:#8A3E22">MODE</div>
+                  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;padding:4px;border-radius:14px;background:#DDBF8C;border:3px solid #24140B">
+                    <sc-for list="{{ f.modes }}" as="m" hint-placeholder-count="3">
+                      <div style="height:62px;border-radius:10px;background:{{ m.bg }};border:{{ m.bd }};box-shadow:{{ m.sh }};display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;box-sizing:border-box">
+                        <div style="display:flex;align-items:center;gap:4px;font-family:'Baloo 2';font-weight:800;font-size:18px;line-height:1;color:{{ m.ink }}"><sc-if value="{{ m.locked }}" hint-placeholder-val="{{ false }}"><img src="asc/new-icons/lock.svg" alt="" style="width:16px;height:16px"></sc-if>{{ m.label }}</div>
+                        <div style="font-size:12px;font-weight:700;color:{{ m.sub }}">{{ m.rule }}</div>
+                      </div>
+                    </sc-for>
+                  </div>
+                  <sc-if value="{{ f.modeBox }}" hint-placeholder-val="{{ true }}"><div style="min-height:58px;display:flex;flex-direction:column;justify-content:center;gap:2px;padding:8px 12px;border-radius:12px;background:{{ f.modeBoxBg }};border:2px solid #B89A74">
+                    <div style="font-family:'Baloo 2';font-weight:800;font-size:16px;line-height:1.2">{{ f.modeTitle }}</div>
+                    <div style="font-size:13px;font-weight:600;color:#6E4A30;line-height:1.35">{{ f.modeLine }}</div>
+                  </div></sc-if>
+                  <div style="font-family:'Baloo 2';font-weight:800;font-size:15px;letter-spacing:.06em;color:#8A3E22;margin-top:4px">LENGTH</div>
+                  <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;padding:4px;border-radius:14px;background:#DDBF8C;border:3px solid #24140B">
+                    <sc-for list="{{ f.lengths }}" as="m" hint-placeholder-count="2">
+                      <div style="height:54px;border-radius:10px;background:{{ m.bg }};border:{{ m.bd }};box-shadow:{{ m.sh }};display:flex;flex-direction:column;align-items:center;justify-content:center;box-sizing:border-box">
+                        <div style="display:flex;align-items:center;gap:4px;font-family:'Baloo 2';font-weight:800;font-size:18px;line-height:1;color:{{ m.ink }}"><sc-if value="{{ m.locked }}" hint-placeholder-val="{{ false }}"><img src="asc/new-icons/lock.svg" alt="" style="width:16px;height:16px"></sc-if>{{ m.label }}</div>
+                        <div style="font-size:12px;font-weight:700;color:{{ m.sub }}">{{ m.rule }}</div>
+                      </div>
+                    </sc-for>
+                  </div>
+                  <sc-if value="{{ f.fullLocked }}" hint-placeholder-val="{{ false }}"><div style="font-size:13px;font-weight:600;color:#6E4A30">Full: win a Short run to unlock Full.</div></sc-if>
+                  <div style="flex:1"></div>
+                  <div style="height:44px;display:flex;align-items:center;gap:10px;padding:0 12px;border-radius:12px;background:#DDBF8C;border:2px solid #B89A74">
+                    <div style="font-family:'Baloo 2';font-weight:800;font-size:15px;letter-spacing:.06em;color:#8A3E22">SEED</div>
+                    <div style="font-family:'Baloo 2';font-weight:800;font-size:17px">{{ f.seed }}</div>
+                    <div style="flex:1"></div>
+                    <div style="font-size:12px;font-weight:700;color:#6E4A30">{{ f.seedNote }}</div>
+                  </div>
+                </div>
+
+                <div style="position:relative;display:flex;flex-direction:column;gap:6px;padding:12px 16px;border-radius:20px;background:#FFF8EA;border:3px solid #8A3E22;min-width:0;min-height:0;overflow:hidden">
+                  <div style="display:flex;align-items:center;gap:8px">
+                    <div style="font-family:'Baloo 2';font-weight:800;font-size:15px;letter-spacing:.06em;color:#8A3E22">ASCENSION</div>
+                    <div style="font-size:12px;font-weight:700;color:#6E4A30">best win {{ f.best }} · unlocked to {{ f.maxA }}</div>
+                    <div style="flex:1"></div>
+                    <sc-for list="{{ f.goals }}" as="g" hint-placeholder-count="2">
+                      <div style="height:26px;padding:0 9px;display:flex;align-items:center;gap:4px;border-radius:8px;background:{{ g.bg }};border:2px solid {{ g.bd }};font-family:'Baloo 2';font-weight:800;font-size:13px;color:{{ g.ink }}">{{ g.t }}</div>
+                    </sc-for>
+                  </div>
+                  <div style="display:flex;gap:6px">
+                    <sc-for list="{{ f.chips }}" as="c" hint-placeholder-count="11">
+                      <div style="width:42px;height:44px;flex:none;border-radius:10px;background:{{ c.bg }};border:3px {{ c.bs }} {{ c.bd }};box-shadow:{{ c.sh }};display:flex;flex-direction:column;align-items:center;justify-content:center;font-family:'Baloo 2';font-weight:800;font-size:16px;line-height:1;color:{{ c.ink }};box-sizing:border-box">{{ c.t }}<sc-if value="{{ c.lock }}" hint-placeholder-val="{{ false }}"><img src="asc/new-icons/lock.svg" alt="" style="width:12px;height:12px;opacity:.8"></sc-if></div>
+                    </sc-for>
+                  </div>
+                  <div style="display:flex;align-items:baseline;gap:10px;margin-top:2px">
+                    <div style="font-family:'Baloo 2';font-weight:800;font-size:26px;line-height:1.1">{{ f.aTitle }}</div>
+                    <div style="flex:1"></div>
+                    <div style="font-family:'Baloo 2';font-weight:800;font-size:14px;color:#6E4A30">{{ f.aCount }}</div>
+                  </div>
+                  <div style="font-family:'Baloo 2';font-weight:800;font-size:14px;letter-spacing:.03em;color:#8A3E22">{{ f.aMult }}</div>
+                  <div style="flex:1;min-height:0;overflow:hidden;display:flex;flex-direction:column;gap:2px;padding:4px;border-radius:12px;background:#DDBF8C;border:2px solid #B89A74">
+                    <sc-if value="{{ f.aZero }}" hint-placeholder-val="{{ false }}"><div style="padding:8px 10px;font-size:15px;font-weight:600;line-height:1.45;color:#3A2214">No ascension rules at A0. Standard enemies, standard prices, 3 reward cards, 8 relic slots. Light boss clock (from turn 14, +10%/turn, max +30%). Win a run at A0 to unlock A1.</div></sc-if>
+                    <sc-for list="{{ f.rows }}" as="r" hint-placeholder-count="6">
+                      <div style="height:{{ r.h }}px;flex:none;display:flex;align-items:center;gap:8px;padding:0 8px;border-radius:7px;background:{{ r.bg }};border:2px {{ r.bs }} {{ r.bd }};box-sizing:border-box">
+                        <img src="{{ r.icon }}" alt="" style="width:18px;height:18px;opacity:{{ r.op }}">
+                        <div style="width:30px;font-family:'Baloo 2';font-weight:800;font-size:14px;color:{{ r.code }}">{{ r.c }}</div>
+                        <div style="width:112px;font-family:'Baloo 2';font-weight:800;font-size:13px;white-space:nowrap;color:{{ r.ink }}">{{ r.name }}</div>
+                        <div style="flex:1;min-width:0;font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:{{ r.ink2 }}">{{ r.d }}</div>
+                        <sc-if value="{{ r.isNew }}" hint-placeholder-val="{{ false }}"><div style="height:18px;padding:0 6px;border-radius:5px;background:#2A1505;color:#FFC79B;font-family:'Baloo 2';font-weight:800;font-size:12px;line-height:18px">NEW</div></sc-if>
+                      </div>
+                    </sc-for>
+                  </div>
+                  <sc-if value="{{ f.hoverTip }}" hint-placeholder-val="{{ false }}">
+                    <div style="position:absolute;left:{{ f.tipX }}px;top:100px;width:300px;padding:10px 12px;border-radius:12px;background:#3B2618;border:3px solid #24140B;box-shadow:3px 4px 0 rgba(74,34,14,.35);display:flex;flex-direction:column;gap:4px">
+                      <div style="display:flex;align-items:center;gap:6px;font-family:'Baloo 2';font-weight:800;font-size:16px;color:#FFF8EA"><img src="asc/new-icons/lock.svg" alt="" style="width:16px;height:16px">{{ f.hoverTip }}</div>
+                      <div style="font-size:13px;font-weight:600;color:#DDBF8C">Preview below is dashed: you can read the rule, not pick it.</div>
+                    </div>
+                  </sc-if>
+                </div>
+
+                <sc-if value="{{ f.kit }}" hint-placeholder-val="{{ true }}">
+                  <div style="display:flex;flex-direction:column;gap:{{ f.kitGap }}px;padding:0 0 10px;border-radius:20px;background:linear-gradient(180deg,#FFF8EA,#E6DAF6);border:3px solid #4E2E8A;overflow:hidden;min-height:0">
+                    <div style="height:44px;flex:none;display:flex;align-items:center;gap:8px;padding:0 14px;background:linear-gradient(180deg,#4A3570,#33244F);border-bottom:3px solid #4E2E8A">
+                      <img src="hl/icons/aid.svg" alt="" style="width:26px;height:26px"><div style="font-family:'Baloo 2';font-weight:800;font-size:18px;color:#FFF8EA">Aid for this run</div><div style="flex:1"></div><div style="font-size:13px;font-weight:700;color:#D7C8F2;white-space:nowrap">{{ f.aidLine }}</div>
+                    </div>
+                    <sc-if value="{{ f.l1 }}" hint-placeholder-val="{{ false }}"><div style="margin:0 12px;padding:6px 10px;border-radius:10px;background:#FFF8EA;border:2px dashed #4E2E8A;font-size:13px;font-weight:700;color:#1E1236">Playtest: these use your free gift Gem (balance 300). No real money.</div></sc-if>
+                    <sc-for list="{{ f.kitRows }}" as="k" hint-placeholder-count="2">
+                      <div style="margin:0 12px;min-height:54px;display:flex;align-items:center;gap:10px;padding:4px 10px;border-radius:12px;background:#FFF8EA;border:3px solid {{ k.bd }}">
+                        <img src="{{ k.icon }}" alt="" style="width:30px;height:30px">
+                        <div style="flex:1;min-width:0;display:flex;flex-direction:column"><div style="font-family:'Baloo 2';font-weight:800;font-size:16px;line-height:1.15;color:#1E1236">{{ k.t }}</div><div style="font-size:12px;font-weight:600;line-height:1.35;color:#3A2A50">{{ k.d }}</div></div>
+                        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:2px"><div style="display:flex;align-items:center;gap:3px;font-family:'Baloo 2';font-weight:800;font-size:16px;color:#1E1236"><img src="hl/i/gem.png" alt="" style="width:18px;height:18px">{{ k.price }}</div><div style="font-size:12px;font-weight:700;color:#3A2A50">{{ k.usd }}</div></div>
+                        <div style="width:84px;height:36px;display:flex;align-items:center;justify-content:center;border-radius:10px;background:{{ k.btnBg }};border:3px solid #24140B;box-shadow:{{ k.btnSh }};font-family:'Baloo 2';font-weight:800;font-size:15px;color:{{ k.btnInk }};box-sizing:border-box">{{ k.btn }}</div>
+                      </div>
+                    </sc-for>
+                    <sc-if value="{{ f.kitRules }}" hint-placeholder-val="{{ true }}"><div style="margin:0 12px;display:flex;flex-direction:column;gap:3px;font-size:12px;font-weight:600;line-height:1.4;color:#3A2A50">
+                      <div>· Max 1 Boon per run from any source (Boon, Kit, Moon Card, Starter).</div>
+                      <div>· The Boon counts toward the Aid cap: 6 a run, 4 at A9–A10.</div>
+                      <div>· Nothing is charged until Begin. No Boon in mission runs.</div>
+                    </div></sc-if>
+                    <div style="flex:1"></div>
+                    <div style="margin:0 12px;padding:8px 10px;border-radius:10px;background:#E6DAF6;border:2px solid #4E2E8A;font-size:12px;font-weight:700;line-height:1.4;color:#1E1236">Aid makes you stronger for one run. Players who buy more can win more. The Pure leaderboard only counts runs without Aid.</div>
+                  </div>
+                </sc-if>
+                <sc-if value="{{ f.kitGuest }}" hint-placeholder-val="{{ false }}">
+                  <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:20px;border-radius:20px;background:#E8D6B4;border:3px dashed #9A7650;text-align:center">
+                    <img src="asc/new-icons/lock.svg" alt="" style="width:36px;height:36px">
+                    <div style="font-family:'Baloo 2';font-weight:800;font-size:20px;color:#3A2214">Sign in to use this</div>
+                    <div style="font-size:13px;font-weight:600;color:#6E4A30;max-width:300px">Aid needs a wallet. Guests can play Normal and Daily with local progress.</div>
+                    <div style="height:48px;width:200px;display:flex;align-items:center;justify-content:center;border-radius:12px;background:linear-gradient(180deg,#FFB070,#FF8A3A);border:3px solid #24140B;box-shadow:3px 5px 0 #8A3E22;font-family:'Baloo 2';font-weight:800;font-size:18px;color:#2A1505;box-sizing:border-box">Sign in</div>
+                  </div>
+                </sc-if>
+              </div>
+            </div>
+            <div style="height:84px;flex:none;display:flex;align-items:center;gap:16px;padding:0 24px;background:#DDBF8C;border-top:3px solid #8A3E22">
+              <div style="display:flex;flex-direction:column;gap:2px"><div style="font-family:'Baloo 2';font-weight:800;font-size:20px">{{ f.summary }}</div><div style="font-size:13px;font-weight:600;color:#6E4A30">{{ f.summary2 }}</div></div>
+              <div style="flex:1"></div>
+              <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px">
+                <div style="width:380px;height:60px;border-radius:14px;background:{{ f.beginBg }};border:3px solid {{ f.beginBd }};box-shadow:{{ f.beginSh }};display:flex;flex-direction:column;align-items:center;justify-content:center;box-sizing:border-box">
+                  <div style="font-family:'Baloo 2';font-weight:800;font-size:22px;line-height:1;color:{{ f.beginInk }}">{{ f.begin }}</div>
+                  <sc-if value="{{ f.beginSub }}" hint-placeholder-val="{{ false }}"><div style="font-size:12px;font-weight:700;color:{{ f.beginInk }}">{{ f.beginSub }}</div></sc-if>
+                </div>
+                <sc-if value="{{ f.reason }}" hint-placeholder-val="{{ false }}"><div style="font-size:13px;font-weight:700;color:#6E4A30">{{ f.reason }}</div></sc-if>
+              </div>
+            </div>
+          </sc-if>
+
+          <sc-if value="{{ f.picker }}" hint-placeholder-val="{{ false }}">
+            <div style="position:absolute;inset:68px 0 0;background:rgba(36,20,11,.45)"></div>
+            <div style="position:absolute;left:260px;top:120px;width:1000px;border-radius:24px;background:linear-gradient(180deg,#F8EBD2,#EBD3A8);border:4px solid #8A3E22;box-shadow:5px 8px 0 rgba(36,20,11,.45);overflow:hidden">
+              <div style="height:56px;display:flex;align-items:center;gap:12px;padding:0 12px;background:linear-gradient(180deg,#D79A58,#B87440);border-bottom:4px solid #8A3E22">
+                <div style="height:40px;padding:0 12px;display:flex;align-items:center;gap:6px;border-radius:10px;background:linear-gradient(180deg,#FFF8EA,#EBD3A8);border:3px solid #24140B;font-family:'Baloo 2';font-weight:800;font-size:16px;box-sizing:border-box">← Back · Esc</div>
+                <div style="font-family:'Baloo 2';font-weight:800;font-size:26px;color:#2A1505">Run Setup › Pick an Axie for slot 4</div>
+              </div>
+              <div style="padding:16px 20px 20px;display:flex;flex-direction:column;gap:12px">
+                <div style="display:flex;gap:8px"><sc-for list="{{ pickTabs }}" as="t" hint-placeholder-count="3"><div style="height:36px;padding:0 14px;display:flex;align-items:center;border-radius:10px;background:{{ t.bg }};border:3px solid #24140B;font-family:'Baloo 2';font-weight:800;font-size:15px;color:{{ t.ink }}">{{ t.t }}</div></sc-for></div>
+                <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:10px">
+                  <sc-for list="{{ pickGrid }}" as="p" hint-placeholder-count="10">
+                    <div style="position:relative;height:124px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;border-radius:16px;background:{{ p.bg }};border:3px solid {{ p.bd }};box-shadow:{{ p.sh }};opacity:{{ p.op }};box-sizing:border-box">
+                      <img src="{{ p.img }}" alt="" style="width:52px;height:52px;border-radius:50%;background:#FFF8EA;border:3px solid #24140B;box-sizing:border-box">
+                      <div style="font-family:'Baloo 2';font-weight:800;font-size:17px;line-height:1">{{ p.name }}</div>
+                      <div style="font-size:12px;font-weight:700;color:#6E4A30">{{ p.line }}</div>
+                    </div>
+                  </sc-for>
+                </div>
+                <div style="font-size:13px;font-weight:600;color:#6E4A30">Arrows move · Enter places the Axie · Axies already in the party show "In slot n" and cannot be picked twice.</div>
+              </div>
+            </div>
+          </sc-if>
+        </div>
+      </div>
+    </div>
+  </sc-for>
+
+  <div style="height:4px;background:#8A3E22;border-radius:2px"></div>
+
+  <sc-for list="{{ m2 }}" as="f" hint-placeholder-count="1">
+    <div data-screen-label="{{ f.id }}" style="display:flex;flex-direction:column;gap:12px">
+      <div style="display:flex;align-items:center;gap:12px">
+        <div style="height:34px;padding:0 12px;display:flex;align-items:center;border-radius:9px;background:#FF9345;border:3px solid #24140B;font-family:'Baloo 2';font-size:17px;font-weight:800;color:#2A1505">{{ f.id }}</div>
+        <div style="font-family:'Baloo 2';font-size:26px;font-weight:800;color:#FFF8EA">{{ f.caption }}</div>
+        <div style="font-size:14px;font-weight:600;color:#B89A74">1920 × 1080</div>
+      </div>
+      <div style="font-size:15px;color:#DDBF8C;max-width:1600px">{{ f.note }}</div>
+      <div style="position:relative;width:1920px;height:1080px;overflow:hidden">
+        <dc-import name="R3 Land Backdrop" h="1080" guest="{{ f.guest }}" style="position:absolute;inset:0" hint-size="1920px,1080px"></dc-import>
+        <div style="position:absolute;left:200px;top:116px;width:1520px;height:880px;border-radius:28px;background:linear-gradient(180deg,#F8EBD2,#EBD3A8);border:4px solid #8A3E22;box-shadow:inset 2px 2px 0 rgba(255,248,234,.65),5px 8px 0 rgba(36,20,11,.45);overflow:hidden;display:flex;flex-direction:column;box-sizing:border-box">
+          <div style="height:64px;flex:none;display:flex;align-items:center;gap:14px;padding:0 16px 0 8px;background:linear-gradient(180deg,#D79A58,#B87440);border-bottom:4px solid #8A3E22">
+            <div style="height:48px;padding:0 14px 0 10px;display:flex;align-items:center;gap:8px;border-radius:12px;background:linear-gradient(180deg,#FFF8EA,#EBD3A8);border:3px solid #24140B;box-shadow:inset 2px 2px 0 rgba(255,248,234,.65),3px 4px 0 rgba(74,34,14,.35);font-family:'Baloo 2';font-weight:800;font-size:18px;box-sizing:border-box"><span style="font-size:20px">←</span>Back<span style="height:22px;padding:0 6px;border-radius:6px;background:#3B2618;color:#FFF8EA;font-size:13px;display:flex;align-items:center">Esc</span></div>
+            <img src="hl/b/house.png" alt="" style="width:36px;height:36px;object-fit:contain">
+            <div style="font-family:'Baloo 2';font-weight:800;font-size:36px;line-height:1;color:#2A1505">{{ f.title }}</div>
+            <div style="font-size:14px;font-weight:700;color:#3A1E07">{{ f.headSub }}</div>
+            <div style="flex:1"></div>
+            <div style="display:flex;gap:4px;padding:4px;border-radius:14px;background:#8A4E28;border:3px solid #24140B">
+              <sc-for list="{{ f.tabs }}" as="t" hint-placeholder-count="2"><div style="height:40px;padding:0 16px;display:flex;align-items:center;border-radius:10px;background:{{ t.bg }};font-family:'Baloo 2';font-weight:800;font-size:16px;color:{{ t.ink }}">{{ t.t }}</div></sc-for>
+            </div>
+          </div>
+          <sc-if value="{{ f.guest }}" hint-placeholder-val="{{ false }}">
+            <div style="margin:16px 24px 0;height:52px;display:flex;align-items:center;gap:12px;padding:0 8px 0 14px;border-radius:14px;background:#FFF8EA;border:3px solid #24140B">
+              <img src="asc/fx/shield.png" alt="" style="width:24px;height:24px"><div style="flex:1;font-size:14px;font-weight:700">Presets are saved on this computer only. Sign in to keep them across devices.</div>
+              <div style="height:36px;padding:0 16px;display:flex;align-items:center;border-radius:10px;background:linear-gradient(180deg,#FFB070,#FF8A3A);border:3px solid #24140B;font-family:'Baloo 2';font-weight:800;font-size:15px;color:#2A1505">Sign in</div>
+            </div>
+          </sc-if>
+          <sc-if value="{{ f.empty }}" hint-placeholder-val="{{ false }}">
+            <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px">
+              <img src="hl/b/house.png" alt="" style="width:160px;height:150px;object-fit:contain;opacity:.85">
+              <div style="font-family:'Baloo 2';font-weight:800;font-size:30px">No saved teams yet</div>
+              <div style="font-size:16px;font-weight:600;color:#6E4A30;max-width:520px;text-align:center">Save a party of 5 here and load it in Run Setup with one press. You have 3 preset slots at Savannah Land.</div>
+              <div style="height:60px;width:340px;display:flex;align-items:center;justify-content:center;border-radius:14px;background:linear-gradient(180deg,#FFB070,#FF8A3A);border:3px solid #24140B;box-shadow:inset 2px 2px 0 rgba(255,248,234,.65),3px 5px 0 #8A3E22,0 0 0 7px #FFC445,0 0 0 10px #24140B;font-family:'Baloo 2';font-weight:800;font-size:21px;color:#2A1505;box-sizing:border-box">Build your first team</div>
+            </div>
+          </sc-if>
+          <sc-if value="{{ f.grid }}" hint-placeholder-val="{{ true }}">
+            <div style="flex:1;display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(3,1fr);gap:16px;padding:20px 24px 24px">
+              <sc-for list="{{ f.cards }}" as="c" hint-placeholder-count="9">
+                <div style="display:flex;flex-direction:column;gap:10px;padding:14px;border-radius:20px;background:{{ c.bg }};border:3px {{ c.bs }} {{ c.bd }};box-shadow:{{ c.sh }};box-sizing:border-box">
+                  <sc-if value="{{ c.locked }}" hint-placeholder-val="{{ false }}">
+                    <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px"><img src="asc/new-icons/lock.svg" alt="" style="width:30px;height:30px"><div style="font-family:'Baloo 2';font-weight:800;font-size:18px;color:#6E4A30">Preset slot {{ c.n }}</div><div style="font-size:13px;font-weight:700;color:#6E4A30">{{ c.when }}</div></div>
+                  </sc-if>
+                  <sc-if value="{{ c.open }}" hint-placeholder-val="{{ false }}">
+                    <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px"><div style="width:44px;height:44px;border-radius:50%;border:3px dashed #8A3E22;display:flex;align-items:center;justify-content:center;font-family:'Baloo 2';font-weight:800;font-size:26px;color:#8A3E22">+</div><div style="font-family:'Baloo 2';font-weight:800;font-size:18px;color:#6E4A30">New team</div></div>
+                  </sc-if>
+                  <sc-if value="{{ c.filled }}" hint-placeholder-val="{{ true }}">
+                    <div style="display:flex;align-items:center;gap:8px">
+                      <div style="font-size:16px;color:#9A7650;letter-spacing:-2px">⋮⋮</div>
+                      <div style="font-family:'Baloo 2';font-weight:800;font-size:21px;line-height:1.1;flex:1">{{ c.name }}</div>
+                      <sc-if value="{{ c.nft }}" hint-placeholder-val="{{ false }}"><div style="height:24px;padding:0 8px;display:flex;align-items:center;border-radius:999px;background:#FFC445;border:2px solid #24140B;font-family:'Baloo 2';font-weight:800;font-size:13px;color:#3A2A12">NFT</div></sc-if>
+                    </div>
+                    <div style="display:flex;gap:6px">
+                      <sc-for list="{{ c.party }}" as="p" hint-placeholder-count="5">
+                        <div style="flex:1;height:58px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;border-radius:12px;background:{{ p.bg }};border:2px {{ p.bs }} {{ p.bd }}">
+                          <img src="{{ p.img }}" alt="" style="width:32px;height:32px;border-radius:50%;opacity:{{ p.op }}">
+                          <div style="font-size:12px;font-weight:700;color:{{ p.ink }};white-space:nowrap">{{ p.name }}</div>
+                        </div>
+                      </sc-for>
+                    </div>
+                    <div style="font-size:13px;font-weight:700;color:{{ c.lineInk }}">{{ c.line }}</div>
+                    <div style="flex:1"></div>
+                    <div style="display:flex;gap:6px">
+                      <div style="flex:1.6;height:36px;display:flex;align-items:center;justify-content:center;border-radius:10px;background:{{ c.useBg }};border:3px solid {{ c.useBd }};box-shadow:{{ c.useSh }};font-family:'Baloo 2';font-weight:800;font-size:15px;color:{{ c.useInk }};box-sizing:border-box">{{ c.use }}</div>
+                      <sc-for list="{{ c.acts }}" as="a" hint-placeholder-count="3"><div style="flex:1;height:36px;display:flex;align-items:center;justify-content:center;border-radius:10px;background:linear-gradient(180deg,#FFF8EA,#EBD3A8);border:3px solid #24140B;font-family:'Baloo 2';font-weight:800;font-size:14px;box-sizing:border-box">{{ a }}</div></sc-for>
+                    </div>
+                  </sc-if>
+                </div>
+              </sc-for>
+            </div>
+          </sc-if>
+          <sc-if value="{{ f.samples }}" hint-placeholder-val="{{ false }}">
+            <div style="flex:1;display:flex;flex-direction:column;gap:14px;padding:20px 24px 24px">
+              <div style="font-size:15px;font-weight:600;color:#6E4A30">Read-only. Four compositions from Guides that work for new players. "Use this team" loads it into Run Setup with starter Axies.</div>
+              <div style="flex:1;display:grid;grid-template-columns:1fr 1fr;gap:16px">
+                <sc-for list="{{ samples }}" as="c" hint-placeholder-count="4">
+                  <div style="display:flex;flex-direction:column;gap:10px;padding:16px;border-radius:20px;background:#FFF8EA;border:3px solid #8A3E22">
+                    <div style="font-family:'Baloo 2';font-weight:800;font-size:22px">{{ c.name }}</div>
+                    <div style="display:flex;gap:6px"><sc-for list="{{ c.party }}" as="p" hint-placeholder-count="5"><div style="flex:1;height:58px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;border-radius:12px;background:#F8EBD2;border:2px solid #B89A74"><img src="{{ p.img }}" alt="" style="width:32px;height:32px;border-radius:50%"><div style="font-size:12px;font-weight:700;color:#3A2214">{{ p.name }}</div></div></sc-for></div>
+                    <div style="font-size:14px;font-weight:600;line-height:1.45;color:#3A2214">{{ c.how }}</div>
+                    <div style="flex:1"></div>
+                    <div style="align-self:flex-start;height:36px;padding:0 16px;display:flex;align-items:center;border-radius:10px;background:linear-gradient(180deg,#FFB070,#FF8A3A);border:3px solid #24140B;box-shadow:3px 4px 0 #8A3E22;font-family:'Baloo 2';font-weight:800;font-size:15px;color:#2A1505">Use this team</div>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+          </sc-if>
+          <sc-if value="{{ f.editor }}" hint-placeholder-val="{{ false }}">
+            <div style="flex:1;display:flex;flex-direction:column;gap:16px;padding:20px 24px 24px">
+              <div style="display:flex;align-items:center;gap:12px">
+                <div style="font-family:'Baloo 2';font-weight:800;font-size:15px;letter-spacing:.06em;color:#8A3E22">NAME</div>
+                <div style="width:360px;height:48px;display:flex;align-items:center;padding:0 14px;border-radius:12px;background:#FFF8EA;border:3px solid #24140B;box-shadow:0 0 0 4px #FFC445,0 0 0 7px #24140B;font-family:'Baloo 2';font-weight:800;font-size:20px;box-sizing:border-box">Thorn Wall<span style="width:2px;height:24px;background:#3A2214;margin-left:2px"></span></div>
+                <div style="font-size:13px;font-weight:700;color:#6E4A30">10 / 16 characters</div>
+              </div>
+              <div style="font-size:14px;font-weight:600;color:#6E4A30">The 5-slot editor is the Run Setup party component (M1). Swap / Clear per slot; the picker opens on Enter.</div>
+              <div style="display:flex;gap:16px">
+                <sc-for list="{{ editSlots }}" as="s" hint-placeholder-count="5">
+                  <div style="width:272px;height:176px;flex:none;box-sizing:border-box;border-radius:20px;background:{{ s.bg }};border:3px {{ s.bstyle }} {{ s.bcol }};box-shadow:{{ s.shadow }};padding:12px;display:flex;flex-direction:column;gap:10px">
+                    <sc-if value="{{ s.empty }}" hint-placeholder-val="{{ false }}"><div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px"><div style="font-family:'Baloo 2';font-weight:800;font-size:18px;color:#6E4A30">Pick a replacement</div><div style="font-size:12px;font-weight:700;color:#6E4A30;text-align:center">Bloomtail #11778888 was removed from your Vault</div></div></sc-if>
+                    <sc-if value="{{ s.full }}" hint-placeholder-val="{{ true }}">
+                      <div style="display:flex;align-items:center;gap:10px"><img src="{{ s.portrait }}" alt="" style="width:52px;height:52px;border-radius:50%;background:#FFF8EA;border:3px solid #24140B;box-sizing:border-box"><div style="flex:1;display:flex;flex-direction:column"><div style="font-family:'Baloo 2';font-weight:800;font-size:19px;line-height:1.1">{{ s.name }}</div><div style="font-size:12px;font-weight:700;color:#6E4A30">{{ s.clsName }}</div></div><div style="height:24px;padding:0 8px;display:flex;align-items:center;border-radius:999px;background:{{ s.tagBg }};border:2px solid #24140B;font-family:'Baloo 2';font-weight:800;font-size:13px;color:{{ s.tagInk }}">{{ s.tag }}</div></div>
+                      <div style="display:grid;grid-template-columns:repeat(6,1fr);gap:4px"><sc-for list="{{ s.faces }}" as="c" hint-placeholder-count="6"><div style="height:34px;border-radius:9px;background:{{ c.bg }};border:2px solid {{ c.bd }};display:flex;align-items:center;justify-content:center;gap:1px;box-sizing:border-box"><img src="{{ c.icon }}" alt="" style="width:16px;height:16px;opacity:{{ c.op }}"><span style="font-family:'Baloo 2';font-weight:800;font-size:15px">{{ c.n }}</span></div></sc-for></div>
+                      <div style="display:flex;gap:6px"><div style="flex:1;height:36px;display:flex;align-items:center;justify-content:center;border-radius:10px;background:linear-gradient(180deg,#FFF8EA,#EBD3A8);border:3px solid #24140B;font-family:'Baloo 2';font-weight:800;font-size:15px;box-sizing:border-box">Swap</div><div style="flex:1;height:36px;display:flex;align-items:center;justify-content:center;border-radius:10px;background:linear-gradient(180deg,#FFF8EA,#EBD3A8);border:3px solid #24140B;font-family:'Baloo 2';font-weight:800;font-size:15px;box-sizing:border-box">Clear</div></div>
+                    </sc-if>
+                  </div>
+                </sc-for>
+              </div>
+              <div style="flex:1"></div>
+              <div style="display:flex;gap:16px;justify-content:flex-end">
+                <div style="width:240px;height:60px;display:flex;align-items:center;justify-content:center;border-radius:14px;background:linear-gradient(180deg,#FFF8EA,#EBD3A8);border:3px solid #24140B;box-shadow:3px 5px 0 rgba(74,34,14,.35);font-family:'Baloo 2';font-weight:800;font-size:20px;box-sizing:border-box">Cancel</div>
+                <div style="width:240px;height:60px;display:flex;flex-direction:column;align-items:center;justify-content:center;border-radius:14px;background:#DDBF8C;border:3px solid #9A7650;font-family:'Baloo 2';font-weight:800;font-size:20px;line-height:1;color:#6E4A30;box-sizing:border-box">Save team<span style="font-family:'Work Sans';font-size:12px;font-weight:700">Fill slot 5 first</span></div>
+              </div>
+            </div>
+          </sc-if>
+          <sc-if value="{{ f.confirm }}" hint-placeholder-val="{{ false }}">
+            <div style="position:absolute;inset:68px 0 0;background:rgba(36,20,11,.45)"></div>
+            <div style="position:absolute;left:460px;top:250px;width:600px;border-radius:24px;background:linear-gradient(180deg,#F8EBD2,#EBD3A8);border:4px solid #8A3E22;box-shadow:5px 8px 0 rgba(36,20,11,.45);overflow:hidden">
+              <div style="height:56px;display:flex;align-items:center;padding:0 22px;background:linear-gradient(180deg,#D79A58,#B87440);border-bottom:4px solid #8A3E22;font-family:'Baloo 2';font-weight:800;font-size:24px;color:#2A1505">Delete "Bug Swarm"?</div>
+              <div style="padding:20px 24px 24px;display:flex;flex-direction:column;gap:18px">
+                <div style="font-size:16px;font-weight:600;line-height:1.45">The preset is removed. Your Axies stay in the Vault and the starter roster. This cannot be undone.</div>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+                  <div style="height:60px;display:flex;align-items:center;justify-content:center;border-radius:14px;background:linear-gradient(180deg,#FFF8EA,#EBD3A8);border:3px solid #24140B;box-shadow:3px 5px 0 rgba(74,34,14,.35),0 0 0 7px #FFC445,0 0 0 10px #24140B;font-family:'Baloo 2';font-weight:800;font-size:20px;box-sizing:border-box">Keep it</div>
+                  <div style="height:60px;display:flex;align-items:center;justify-content:center;border-radius:14px;background:linear-gradient(180deg,#FFB070,#FF8A3A);border:3px solid #24140B;box-shadow:3px 5px 0 #8A3E22;font-family:'Baloo 2';font-weight:800;font-size:20px;color:#2A1505;box-sizing:border-box">Delete preset</div>
+                </div>
+              </div>
+            </div>
+          </sc-if>
+        </div>
+      </div>
+    </div>
+  </sc-for>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+const IC = { shop: 'asc/fx/shop.png', elite: 'asc/fx/elite.png', reroll: 'asc/fx/reroll.svg', clock: 'asc/new-icons/boss-clock.svg', eternal: 'asc/new-icons/eternal.svg', pact: 'asc/new-icons/pact.svg', chest: 'asc/fx/chest.png', lock: 'asc/new-icons/lock.svg' };
+const RULES = [
+  [1, 'Lean Pack', 'Shop prices +15% · selling refunds 40%, not 50%', 'shop'],
+  [2, 'Elite Escort', 'Every elite fight brings 1 extra monster', 'elite'],
+  [3, 'Short Dice', 'Base rerolls 2 → 1 · relic rerolls still add', 'reroll'],
+  [4, 'Boss Clock', 'Enrage from turn 10: +20%/turn, max +100%', 'clock'],
+  [5, 'Eternal Gift', 'Elite relics are Eternal (max 2) · weaken announced', 'eternal'],
+  [6, 'First Pact', 'First boss: you must take 1 of 3 pacts', 'pact'],
+  [7, 'Narrow Offer', 'Reward screens offer 2 cards, not 3', 'chest'],
+  [8, 'Cramped Pack', 'Passive relic slots 8 → 7', 'lock'],
+  [9, 'Hunted', '+2 elites on the map · boss clock from turn 8', 'elite'],
+  [10, 'Last Stand', 'Every boss requires a pact · no reward reroll', 'pact'],
+];
+const FACE = { a: 'asc/fx/dmg.png', s: 'asc/fx/shield.png', h: 'asc/fx/heal.png', b: 'asc/fx/buff.svg', p: 'asc/fx/poison.png', x: 'asc/new-icons/lock.svg' };
+const FT = { a: '#FFD9C9', s: '#CFE7F7', h: '#D6F0C2', b: '#F2E0FF', p: '#DDF2C4', x: '#EBD3A8' };
+const AX = {
+  rex: ['Rex', 'reptile', 'Reptile', 'Starter', 'a6 s5 a4 s3 b2 x'],
+  bubbles: ['Bubbles', 'aqua', 'Aqua', 'Starter', 'a4 h5 a3 h3 s4 x'],
+  buzz: ['Buzz', 'bug', 'Bug', 'Starter', 'p3 a5 p2 a3 b2 x'],
+  moss: ['Moss', 'plant', 'Plant', 'Vault', 'h6 s4 h4 s3 b3 h2'],
+  fang: ['Fang', 'beast', 'Beast', 'NFT', 'a8 a6 a4 b3 s3 a2'],
+  pip: ['Pip', 'aqua', 'Aqua', 'Starter', 'a3 s3 h3 a2 b2 x'],
+  thorn: ['Thorn', 'plant', 'Plant', 'Starter', 's6 s5 h3 a3 s2 x'],
+  scute: ['Scute', 'reptile', 'Reptile', 'Vault', 's5 a5 s4 a3 b2 x'],
+};
+const TAG = { Starter: ['#3B2618', '#FFF8EA'], Vault: ['#FFF8EA', '#3A2214'], NFT: ['#FFC445', '#3A2A12'] };
+const shelf = '3px 4px 0 rgba(74,34,14,.35)';
+const RING = ',0 0 0 7px #FFC445,0 0 0 10px #24140B';
+function slot(key, n, ring) {
+  if (!key) return { n, empty: true, full: false, bg: 'rgba(255,248,234,.5)', bstyle: 'dashed', bcol: '#8A3E22', shadow: ring ? '0 0 0 4px #FFC445,0 0 0 7px #24140B' : 'none', faces: [] };
+  const [name, cls, clsName, tag, faces] = AX[key];
+  return { n, empty: false, full: true, name, clsName, tag, tagBg: TAG[tag][0], tagInk: TAG[tag][1], portrait: `asc/portrait/${cls}.png`,
+    bg: 'linear-gradient(180deg,#FFF8EA,#F3E2C2)', bstyle: 'solid', bcol: ring ? '#FFC445' : '#8A3E22', shadow: shelf + (ring ? ',0 0 0 4px #FFC445,0 0 0 7px #24140B' : ''),
+    faces: faces.split(' ').map((f, i) => ({ icon: FACE[f[0]], n: f.slice(1) || '–', bg: FT[f[0]], bd: i === 0 ? '#24140B' : '#B89A74', op: f[0] === 'x' ? .35 : 1 })) };
+}
+const mult = n => { const f = x => '×' + x.toFixed(2); return `Enemy HP ${f(Math.pow(1.1, [1, 6, 10].filter(l => l <= n).length))} · Enemy DMG ${f(Math.pow(1.1, [3, 8, 10].filter(l => l <= n).length))} · Boss HP ${n >= 4 ? '×1.15' : '×1.00'}`; };
+function asc(n, maxA, hover) {
+  const chips = Array.from({ length: 11 }, (_, i) => {
+    const locked = i > maxA, sel = i === n, hv = hover === i;
+    return { t: 'A' + i, lock: locked, bg: sel ? '#FF9345' : locked ? '#E8D6B4' : '#FFF8EA', ink: sel ? '#2A1505' : locked ? '#6E4A30' : '#3A2214', bd: hv ? '#24140B' : locked ? '#9A7650' : '#24140B', bs: hv ? 'dashed' : 'solid',
+      sh: sel ? '0 4px 0 #8A3E22' : hv ? '0 0 0 4px #FFC445,0 0 0 7px #24140B' : 'none' };
+  });
+  const rows = RULES.filter(r => r[0] <= n).map(([l, name, d, ic]) => {
+    let desc = d, sup = false;
+    if (l === 4 && n >= 9) desc = 'Enrage from turn 8 (A9): +20%/turn, max +100%';
+    if (l === 6 && n >= 10) { desc = 'Replaced by A10 — every boss requires a pact'; sup = true; }
+    const isNew = l === n;
+    return { c: 'A' + l, name, d: desc, icon: IC[ic], op: sup ? .4 : 1, isNew, bs: 'solid', h: n >= 9 ? 23 : 26,
+      bg: isNew ? '#FF9345' : sup ? '#E8D6B4' : '#FFF8EA', bd: isNew ? '#24140B' : 'transparent',
+      code: isNew ? '#2A1505' : '#8A3E22', ink: sup ? '#6E4A30' : isNew ? '#2A1505' : '#3A2214', ink2: sup ? '#6E4A30' : isNew ? '#3A1E07' : '#6E4A30' };
+  });
+  if (hover != null) { const r = RULES[hover - 1]; rows.push({ c: 'A' + hover, h: 26, name: r[1], d: r[2], icon: IC[r[3]], op: .5, isNew: false, bs: 'dashed', bg: 'transparent', bd: '#8A3E22', code: '#6E4A30', ink: '#6E4A30', ink2: '#6E4A30' }); }
+  const nm = n === 0 ? 'Standard' : RULES[n - 1][1];
+  return { chips, rows, aZero: n === 0, aTitle: `A${n} · ${nm}`, aCount: n === 0 ? 'no rules active' : `${n} rules active`, aMult: n === 0 ? 'Enemy HP ×1.00 · Enemy DMG ×1.00 · Boss HP ×1.00' : mult(n),
+    hoverTip: hover != null ? `Win a run at A${hover - 1} to unlock A${hover}` : '', tipX: 16 + hover * 48 - 120 };
+}
+function seg(items, selIdx, lockedIdx = []) {
+  return items.map(([label, rule], i) => {
+    const sel = i === selIdx, lk = lockedIdx.includes(i);
+    return { label, rule, locked: lk, bg: sel ? 'linear-gradient(180deg,#FFB070,#FF8A3A)' : lk ? '#E8D6B4' : '#FFF8EA', bd: sel ? '3px solid #24140B' : lk ? '2px solid #9A7650' : '2px solid #B89A74',
+      sh: sel ? '0 3px 0 #8A3E22' : 'none', ink: sel ? '#2A1505' : lk ? '#6E4A30' : '#3A2214', sub: sel ? '#4A2208' : '#6E4A30' };
+  });
+}
+const MODES = [['Normal', 'free choice'], ['Daily', 'same seed for all'], ['Ranked', 'counts for boards']];
+const LENS = [['Short', '3 bosses'], ['Full', '4 bosses']];
+function kitRows(o) {
+  const btn = on => on ? { btn: 'Remove', btnBg: 'linear-gradient(180deg,#FFF8EA,#EBD3A8)', btnInk: '#3A2214', btnSh: 'none', bd: '#4E2E8A' }
+    : { btn: 'Add', btnBg: 'linear-gradient(180deg,#C2A6F4,#9A72E6)', btnInk: '#1E1236', btnSh: '2px 3px 0 #4E2E8A', bd: '#C2A6F4' };
+  const rows = [
+    { icon: 'asc/fx/buff.svg', t: 'Starting Boon', d: 'Pick 1 of 3 small Boons at the start', price: '38', usd: '≈ 0.42 USD', ...btn(o.boon) },
+    { icon: 'hl/icons/aid.svg', t: 'Run Kit', d: '2 rerolls + 1 Scout + 1 Boon · ≈ 25% off', price: '60', usd: '≈ 0.67 USD', ...btn(o.kitOn) },
+  ];
+  if (o.vip) rows.unshift({ icon: 'hl/icons/mooncard.svg', t: 'Moon Card Boon', d: 'Free · first normal run today', price: '0', usd: 'Moon Card', ...btn(true), btn: 'Added' });
+  return rows;
+}
+function m1(o) {
+  const H = o.H || 1080, n = o.a ?? 0, maxA = o.maxA ?? 6, a = asc(n, maxA, o.hover);
+  const party = o.party || ['rex', 'bubbles', 'buzz', 'moss', 'fang'];
+  const count = party.filter(Boolean).length, cap = n >= 9 ? 4 : 6;
+  const aidUsed = (o.kitOn ? 1 : 0) + (o.boon ? 1 : 0) + (o.vip ? 1 : 0);
+  const gemTotal = (o.kitOn ? 60 : 0) + (o.boon ? 38 : 0);
+  const mode = o.mode ?? 0, len = o.len ?? 0;
+  const modeBox = [
+    ['Normal', 'Free choice of party, length, Ascension and Aid. Counts for your stats, not for boards.'],
+    ['Daily · tries left 3 of 3', 'Same seed for everyone today. Resets 13 Oct 2026, 00:00 UTC.'],
+    o.newbie ? ['Ranked · opens after 5 runs', '2 of 5 runs done. Ranked counts for the leaderboards.'] : o.guest ? ['Ranked · sign in to use this', 'Leaderboard entries need an account.'] : ['Ranked', 'Counts for the leaderboards (M9). Aid is allowed and marked on your entry.'],
+  ][mode];
+  const ok = count === 5 && !o.offline;
+  const reason = o.offline ? 'Needs a connection to roll dice' : count < 5 ? `Pick ${5 - count} more Axie${5 - count > 1 ? 's' : ''} to begin` : '';
+  return {
+    ...o, H, ph: 880 + (H - 1080), gem: o.l1 ? '300' : (o.gem || '420'),
+    main: !o.cont && !o.loading, headSub: o.cont ? 'An open run was found' : 'Party · mode · length · Ascension',
+    slots: party.map((k, i) => ({ ...slot(k, i + 1, i === (o.ringSlot ?? 0) && !o.noRing), h: o.offline ? 132 : 176, showFaces: !o.offline })), kitRules: !o.vip && !o.offline, modeBox: !o.offline, modeGap: o.offline ? 8 : 12, modePad: o.offline ? '12px 16px' : '16px', kitGap: o.vip || o.offline ? 6 : 8, partyCount: count,
+    modes: seg(MODES, mode, (o.newbie || o.guest) ? [2] : []), modeTitle: modeBox[0], modeLine: modeBox[1], modeBoxBg: mode === 2 && (o.newbie || o.guest) ? '#E8D6B4' : '#F8EBD2',
+    lengths: seg(LENS, len, o.fullLocked ? [1] : []), fullLocked: !!o.fullLocked,
+    seed: mode === 1 ? 'Daily · 2026-10-12 · #48213' : 'Random', seedNote: mode === 1 ? 'same for everyone' : mode === 2 ? 'no editing in Ranked' : 'new each run',
+    best: o.best || 'A5', maxA: 'A' + maxA, ...a,
+    goals: [{ t: maxA > 5 ? '✓ A5 TITLE' : 'A5 TITLE', bg: maxA > 5 ? '#A8D878' : '#E8D6B4', bd: maxA > 5 ? '#24140B' : '#9A7650', ink: maxA > 5 ? '#183A0C' : '#6E4A30' },
+      { t: maxA > 10 ? '✓ A10 TITLE' : 'A10 TITLE', bg: '#E8D6B4', bd: '#9A7650', ink: '#6E4A30' }],
+    kit: !o.newbie && !o.guest, kitGuest: !!o.guest, kitCol: o.newbie ? '0px' : '400px', kitRows: kitRows(o), aidLine: `Aid this run ${aidUsed} of ${cap}`,
+    summary: `${MODES[mode][0]} · ${LENS[len][0]} · A${n} · party ${count} of 5`,
+    summary2: o.newbie ? 'Run 3 of your first 5. No paid offers appear during these runs.' : `Aid at start: ${aidUsed} · ${gemTotal ? gemTotal + ' Gem charged when the run begins' : 'nothing charged'}`,
+    begin: gemTotal ? `Begin run · ${gemTotal} Gem` : 'Begin run', beginSub: gemTotal ? `≈ ${(gemTotal / 90).toFixed(2)} USD · first buy this session asks to confirm` : 'Enter',
+    beginBg: ok ? 'linear-gradient(180deg,#FFB070,#FF8A3A)' : '#DDBF8C', beginBd: ok ? '#24140B' : '#9A7650', beginInk: ok ? '#2A1505' : '#6E4A30',
+    beginSh: ok ? 'inset 2px 2px 0 rgba(255,248,234,.65),3px 5px 0 #8A3E22' + (o.ringBegin ? RING : '') : 'none', reason,
+  };
+}
+class Component extends DCLogic {
+  renderVals() {
+    const M1 = [
+      m1({ id: 'M1a', caption: 'A0 · Normal · Short · party complete', a: 0, maxA: 6, note: 'First focus target is party slot 1 (ring drawn). Light clock is stated in the A0 sentence. Kit/Boon strip shows both offers un-added: nothing is pre-selected.' }),
+      m1({ id: 'M1b', caption: 'A6 · Run Kit added', a: 6, maxA: 6, kitOn: true, noRing: true, ringBegin: true, note: 'Selected level row is orange with NEW. Begin shows the total Gem and ≈USD. Aid this run 1 of 6 (Kit counts once; its Boon fills the 1-Boon slot).' }),
+      m1({ id: 'M1c', caption: 'A10 · Ranked · Full', a: 10, maxA: 10, best: 'A9', mode: 2, len: 1, noRing: true, vip: true, note: 'A9+ rewrites the A4 row; A10 greys the A6 row with "Replaced by A10". Aid cap 4 at A9–A10. Moon Card Boon appears as a free added row.' }),
+      m1({ id: 'M1d', caption: 'Locked level on hover / focus', a: 6, maxA: 6, hover: 7, noRing: true, note: 'A7 is past the unlocked maximum (best win A5 + 1 = A6). Hover or focus shows a dashed chip, a dashed preview row and the unlock requirement. Enter does nothing.' }),
+      m1({ id: 'M1e', caption: 'Daily mode', a: 2, maxA: 6, mode: 1, noRing: true, note: 'Daily: same seed for everyone, 3 tries per UTC day [INF]. Reset written as a date and time, never a countdown. Kit/Boon stays available [INF].' }),
+      m1({ id: 'M1f', caption: 'Newcomer · Ranked locked · 3 of 5 picked', a: 0, maxA: 1, best: 'A0', newbie: true, fullLocked: true, mode: 2, party: ['rex', 'bubbles', 'buzz', null, null], ringSlot: 3, note: 'First 5 runs: Kit/Boon strip is hidden (column removed, Ascension widens), Ranked and Full locked with the reason. Begin disabled with the reason under it. Missions shortcut shows its lock.' }),
+      m1({ id: 'M1g', caption: 'Unfinished run', cont: true, contTitle: 'Act 2 · Floor 6 · Normal · Short · A3', contLine: 'Act 2 · Floor 6 · A3 · party 4 of 5 standing', newLabel: 'New run', newNote: 'A new run asks to confirm before it ends the current run. Aid you used is not refunded.', note: 'Panel opens on the open run. Focus starts on Continue run. New run reveals the normal setup (M1a) after a confirm.' }),
+      m1({ id: 'M1h', caption: 'Unfinished mission run', cont: true, contTitle: 'Mission N2 · Short · A4 · Boss 1 next', contLine: 'Mission N2 · Floor 4 · A4 · party 5 of 5 standing · stake 500', newLabel: 'Abandon (stake is lost)', newNote: 'Abandon opens a confirm: "You lose your 500 Shard stake. No refund." Only one run can be open at a time.', note: 'For a Nhiệm vụ run, New run is replaced by Abandon with its consequence in the label.' }),
+      m1({ id: 'M1i', caption: 'Axie picker (slot 4)', a: 3, maxA: 6, picker: true, party: ['rex', 'bubbles', 'buzz', null, null], noRing: true, note: 'Sub-view inside Run Setup: header shows the path, Back = one step. Starter roster + Vault Axies in one grid; tabs filter.' }),
+      m1({ id: 'M1j', caption: 'Loading', loading: true, note: 'Checking for an open run: skeleton plates, numbers show "—". Header and Back stay live.' }),
+      m1({ id: 'M1k', caption: 'Offline', a: 3, maxA: 6, offline: true, noRing: true, note: 'L1 rolls dice on the server, so Begin is disabled with "Needs a connection to roll dice". Setup stays editable.' }),
+      m1({ id: 'M1l', caption: 'Guest', a: 0, maxA: 2, best: 'A1', guest: true, mode: 0, noRing: true, note: 'Guest can set up Normal and Daily runs. Ranked shows "sign in"; the Aid column becomes a Sign in plate (opens M13).' }),
+      m1({ id: 'M1m', caption: 'L1 playtest · taller window', H: 1240, a: 4, maxA: 6, boon: true, l1: true, noRing: true, note: 'Extra 160 px goes to the panel body (lower row grows). Gem strip says it uses free gift Gem.' }),
+    ];
+    const P = keys => keys.map(k => k ? { img: `asc/portrait/${AX[k][1]}.png`, name: AX[k][0], bg: '#F8EBD2', bs: 'solid', bd: '#B89A74', ink: '#3A2214', op: 1 } : { img: 'asc/new-icons/lock.svg', name: 'Missing', bg: '#E8D6B4', bs: 'dashed', bd: '#8A3E22', ink: '#6E4A30', op: .5 });
+    const card = (name, keys, line, x = {}) => ({ filled: true, locked: false, open: false, name, party: P(keys), nft: keys.includes('fang'), line, lineInk: '#6E4A30', bg: 'linear-gradient(180deg,#FFF8EA,#F3E2C2)', bs: 'solid', bd: '#8A3E22', sh: shelf,
+      use: 'Use for next run', useBg: 'linear-gradient(180deg,#FFB070,#FF8A3A)', useBd: '#24140B', useInk: '#2A1505', useSh: '2px 3px 0 #8A3E22', acts: ['Edit', 'Copy', 'Delete'], ...x });
+    const locked = (n, when) => ({ locked: true, filled: false, open: false, n, when, bg: '#E8D6B4', bs: 'dashed', bd: '#9A7650', sh: 'none' });
+    const openC = { open: true, locked: false, filled: false, bg: 'rgba(255,248,234,.5)', bs: 'dashed', bd: '#8A3E22', sh: 'none' };
+    const lockedRest = [locked(4, 'Opens at Forest Land [INF]'), locked(5, 'Opens at Forest Land [INF]'), locked(6, 'Opens at Forest Land [INF]'), locked(7, 'Opens at Arctic Land [INF]'), locked(8, 'Opens at Arctic Land [INF]'), locked(9, 'Opens at Arctic Land [INF]')];
+    const tabs = s => [{ t: 'My teams', bg: s === 0 ? '#FFF8EA' : 'transparent', ink: s === 0 ? '#3A2214' : '#FFF8EA' }, { t: 'Sample teams', bg: s === 1 ? '#FFF8EA' : 'transparent', ink: s === 1 ? '#3A2214' : '#FFF8EA' }];
+    const filled = [
+      card('Thorn Wall', ['thorn', 'moss', 'scute', 'bubbles', 'rex'], 'Best Ascension won with it: A5 [INF]', { sh: shelf + ',0 0 0 4px #FFC445,0 0 0 7px #24140B', bd: '#FFC445' }),
+      card('Fang Rush', ['fang', 'rex', 'buzz', 'pip', 'bubbles'], 'Best Ascension won with it: A3'),
+      card('Bug Swarm', ['buzz', 'buzz', 'rex', 'pip', 'moss'].map((k, i) => i === 1 ? 'scute' : k), 'Not won yet'),
+    ];
+    const M2 = [
+      { id: 'M2a', caption: 'Empty', title: 'Team presets', headSub: '0 of 3 slots used', tabs: tabs(0), empty: true, grid: false, note: 'No presets yet: one primary action, focused. Locked slots are not shown until the first preset exists.' },
+      { id: 'M2b', caption: 'Filled · locked slots', title: 'Team presets', headSub: '3 of 3 slots used · more at higher Land tiers', tabs: tabs(0), grid: true, cards: [...filled, ...lockedRest], note: 'Grid 3 × 3. Drag handle ⋮⋮ reorders (keyboard: Alt + ←/→). Locked slots name the Land tier that opens them. Focus ring on the first card.' },
+      { id: 'M2c', caption: 'Preset with a removed Vault Axie', title: 'Team presets', headSub: '3 of 3 slots used', tabs: tabs(0), grid: true,
+        cards: [filled[0], card('Bloom Guard', ['moss', 'thorn', 'bubbles', 'pip', null], 'Slot 5 is empty: the Axie left your Vault', { lineInk: '#8A3E22', use: 'Pick a replacement', useBg: 'linear-gradient(180deg,#FFF8EA,#EBD3A8)', useInk: '#3A2214', useSh: 'none' }), filled[2], ...lockedRest], note: 'The gap is drawn as a dashed "Missing" seat; Use is replaced by "Pick a replacement".' },
+      { id: 'M2d', caption: 'Editor (rename + slots)', title: 'Team presets', headSub: 'Team presets › Bloom Guard', tabs: tabs(0), grid: false, editor: true, note: 'Edit opens the M1 party component. Name field 16 characters. Save is disabled with the reason until 5 slots are set.' },
+      { id: 'M2e', caption: 'Delete confirm', title: 'Team presets', headSub: '3 of 3 slots used', tabs: tabs(0), grid: true, cards: [...filled, ...lockedRest], confirm: true, note: 'Confirm modal 600 wide, decline same size; focus starts on Keep it.' },
+      { id: 'M2f', caption: 'Sample teams tab · guest', title: 'Team presets', headSub: 'From Guides', tabs: tabs(1), grid: false, samples: true, guest: true, note: 'Read-only second tab. Guest banner: presets are local until sign-in.' },
+    ];
+    const pickGrid = ['rex', 'bubbles', 'buzz', 'pip', 'thorn', 'moss', 'scute', 'fang'].map((k, i) => {
+      const inSlot = i < 3; const [name, cls, clsName, tag] = AX[k];
+      return { img: `asc/portrait/${cls}.png`, name, line: inSlot ? `In slot ${i + 1}` : `${clsName} · ${tag}`, op: inSlot ? .55 : 1, bg: i === 3 ? '#FFE3A6' : '#FFF8EA', bd: i === 3 ? '#FFC445' : '#8A3E22', sh: i === 3 ? '0 0 0 4px #FFC445,0 0 0 7px #24140B' : shelf };
+    });
+    const only = (location.hash.match(/f=([\w,]+)/) || [])[1];
+    const filt = a => only ? a.filter(f => only.split(',').includes(f.id)) : a;
+    return {
+      m1: filt(M1), m2: filt(M2).map(f => ({ guest: false, empty: false, grid: false, editor: false, samples: false, confirm: false, cards: [], ...f })),
+      five: [1, 2, 3, 4, 5], pickGrid,
+      pickTabs: [{ t: 'All 8', bg: '#FF9345', ink: '#2A1505' }, { t: 'Starter 5', bg: '#FFF8EA', ink: '#3A2214' }, { t: 'Vault 3 of 20', bg: '#FFF8EA', ink: '#3A2214' }],
+      editSlots: ['moss', 'thorn', 'bubbles', 'pip', null].map((k, i) => slot(k, i + 1, false)),
+      samples: [
+        { name: 'Wall and thorns', party: P(['thorn', 'scute', 'moss', 'bubbles', 'rex']), how: 'Two shields up front, thorns punish attackers, Moss heals. Slow but safe through Act 1.' },
+        { name: 'Poison clock', party: P(['buzz', 'pip', 'moss', 'rex', 'bubbles']), how: 'Buzz stacks poison while the rest survive. Good against bosses with high HP.' },
+        { name: 'Fast hitters', party: P(['rex', 'fang', 'buzz', 'pip', 'bubbles']), how: 'Spend every die on damage, end fights before turn 10 and the boss clock.' },
+        { name: 'Two healers', party: P(['moss', 'bubbles', 'thorn', 'scute', 'rex']), how: 'Forgiving team for first runs: two heal faces cover most mistakes.' },
+      ],
+    };
+  }
+  componentDidMount() { this._h = () => this.forceUpdate(); window.addEventListener('hashchange', this._h); }
+  componentWillUnmount() { window.removeEventListener('hashchange', this._h); }
+}
+</script>
+</body>
+</html>

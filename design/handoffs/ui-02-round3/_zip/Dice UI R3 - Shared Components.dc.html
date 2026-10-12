@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<script src="_ds/dango-design-system-b8da985f-efd5-488e-ae62-d508e48befe9/_ds_bundle.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&amp;family=Work+Sans:wght@500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#2A1C12}
+a{color:#FF9345;text-decoration:none}a:hover{color:#FFB275}
+</style>
+</helmet>
+<div data-screen-label="00b Style sheet addendum" style="width:1920px;box-sizing:border-box;padding:56px 64px 72px;background:linear-gradient(180deg,#F8EBD2 0%,#EBD3A8 100%);font-family:'Work Sans',sans-serif;color:#3A2214;display:flex;flex-direction:column;gap:28px;-webkit-font-smoothing:antialiased">
+  <div style="display:flex;flex-direction:column;gap:6px">
+    <div style="font-family:'Baloo 2';font-weight:800;font-size:15px;letter-spacing:.18em;color:#8A3E22">AXIE DICE · UI REQUEST 02 · ROUND 3 · 00b</div>
+    <div style="font-family:'Baloo 2';font-weight:800;font-size:60px;line-height:1">Style sheet addendum · meta components</div>
+    <div style="font-size:17px;line-height:1.5;color:#6E4A30;max-width:1300px;text-wrap:pretty">Drawn once, used by every Round 3 screen. Everything here is built from the R1 sheet (<a href="Dice UI R1 - Style Sheet.dc.html">00</a>). Two sizes are new and listed in the README: the wood header band on wide meta panels is 64 (R1 says 52; the M 48 Back button needs 8 px air), and the violet Store header is 72 (inside R1's 56–72 range).</div>
+  </div>
+
+  <div style="display:grid;grid-template-columns:1.2fr 1fr;gap:24px">
+    <div style="display:flex;flex-direction:column;gap:14px;padding:22px;border-radius:24px;background:linear-gradient(180deg,#FFF8EA,#F3E2C2);border:4px solid #8A3E22;box-shadow:4px 6px 0 rgba(74,34,14,.30)">
+      <div style="font-family:'Baloo 2';font-weight:800;font-size:26px">1 · Panel shell + header + Back</div>
+      <div style="border-radius:28px;background:linear-gradient(180deg,#F8EBD2,#EBD3A8);border:4px solid #8A3E22;overflow:hidden;box-shadow:5px 8px 0 rgba(36,20,11,.45)">
+        <div style="height:64px;display:flex;align-items:center;gap:14px;padding:0 16px 0 8px;background:linear-gradient(180deg,#D79A58,#B87440);border-bottom:4px solid #8A3E22">
+          <div style="height:48px;padding:0 14px 0 10px;display:flex;align-items:center;gap:8px;border-radius:12px;background:linear-gradient(180deg,#FFF8EA,#EBD3A8);border:3px solid #24140B;box-shadow:inset 2px 2px 0 rgba(255,248,234,.65),3px 4px 0 rgba(74,34,14,.35);font-family:'Baloo 2';font-weight:800;font-size:18px;box-sizing:border-box"><span style="font-size:20px">←</span>Back<span style="height:22px;padding:0 6px;border-radius:6px;background:#3B2618;color:#FFF8EA;font-size:13px;display:flex;align-items:center">Esc</span></div>
+          <img src="hl/b/echobox.png" alt="" style="width:36px;height:36px;object-fit:contain">
+          <div style="font-family:'Baloo 2';font-weight:800;font-size:36px;line-height:1;color:#2A1505">Echo Box</div>
+          <div style="font-size:14px;font-weight:700;color:#3A1E07">sub-line Work Sans 14</div>
+        </div>
+        <div style="height:56px;display:flex;align-items:center;gap:14px;padding:0 16px 0 10px;background:linear-gradient(180deg,#4A3570,#33244F);border-bottom:4px solid #8A3E22"><div style="font-family:'Baloo 2';font-weight:800;font-size:15px;color:#D7C8F2;letter-spacing:.06em">VIOLET HEADER 72 · PAID / GEM SURFACES (STORE)</div></div>
+        <div style="padding:18px 24px;font-size:14px;font-weight:600;line-height:1.5;color:#6E4A30">Wide 1520 × 880 at left 200, top 116 (16 px under the bar). Corner 28, border 4. Body padding 14–24. Taller window: the panel grows by (H − 1080), header stays. Modals 600–800 wide, scrim #24140B @ 55% over the panel. Back always returns to the hub, except inside a sub-view (header then shows the path "Run Setup › Pick an Axie").</div>
+      </div>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:14px;padding:22px;border-radius:24px;background:linear-gradient(180deg,#FFF8EA,#F3E2C2);border:4px solid #8A3E22;box-shadow:4px 6px 0 rgba(74,34,14,.30)">
+      <div style="font-family:'Baloo 2';font-weight:800;font-size:26px">2 · Currency chips · never mixed</div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap">
+        <div style="height:44px;display:flex;align-items:center;gap:6px;padding:0 12px 0 6px;border-radius:12px;background:#FFF8EA;border:3px solid #24140B"><img src="asc/fx/shard.png" alt="" style="width:28px;height:28px"><div style="font-family:'Baloo 2';font-weight:800;font-size:18px">1,240</div></div>
+        <div style="height:44px;display:flex;align-items:center;gap:6px;padding:0 12px 0 6px;border-radius:12px;background:#FFF8EA;border:3px solid #24140B"><img src="hl/i/stone.png" alt="" style="width:28px;height:28px"><div style="font-family:'Baloo 2';font-weight:800;font-size:18px">3,860</div></div>
+        <div style="height:44px;display:flex;align-items:center;gap:6px;padding:0 6px;border-radius:12px;background:#FFF8EA;border:3px solid #24140B"><img src="hl/i/gem.png" alt="" style="width:28px;height:28px"><div style="font-family:'Baloo 2';font-weight:800;font-size:18px">300</div><div style="width:26px;height:26px;border-radius:8px;background:#A27BEA;border:2px solid #24140B;display:flex;align-items:center;justify-content:center;font-family:'Baloo 2';font-weight:800;font-size:18px;color:#1E1236">+</div></div>
+        <div style="position:relative;height:44px;display:flex;align-items:center;gap:6px;padding:0 10px 0 6px;border-radius:12px;background:#FFE3A6;border:3px solid #24140B"><img src="hl/icons/gift.svg" alt="" style="width:26px;height:26px"><div style="display:flex;flex-direction:column"><div style="font-family:'Baloo 2';font-weight:800;font-size:15px;line-height:1">Daily</div><div style="font-size:12px;font-weight:700;color:#6E4A30">D</div></div><div style="position:absolute;right:-6px;top:-10px;height:20px;padding:0 6px;border-radius:999px;background:#FF9345;border:2px solid #24140B;font-family:'Baloo 2';font-weight:800;font-size:12px;line-height:16px;color:#2A1505">CLAIM</div></div>
+      </div>
+      <div style="font-size:14px;font-weight:600;line-height:1.5;color:#6E4A30">Gene Shard: Echo tickets, mission stakes, run shop. Land Stone: Land upgrades only. Lunar Gem: paid and gift surfaces only; "+" only on Gem. A price always carries its icon. Guest: all three read "—".</div>
+      <div style="font-family:'Baloo 2';font-weight:800;font-size:20px;margin-top:4px">Rarity chip with word · Mythic night card</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+        <div style="height:28px;padding:0 10px;border-radius:999px;background:#C6CEDA;border:3px solid #24140B;font-family:'Baloo 2';font-weight:800;font-size:14px;line-height:22px;color:#1C2230">COMMON</div>
+        <div style="height:28px;padding:0 10px;border-radius:999px;background:#40CC3D;border:3px solid #24140B;font-family:'Baloo 2';font-weight:800;font-size:14px;line-height:22px;color:#0A2A09">UNCOMMON</div>
+        <div style="height:28px;padding:0 10px;border-radius:999px;background:#33B8FF;border:3px solid #24140B;font-family:'Baloo 2';font-weight:800;font-size:14px;line-height:22px;color:#062538">RARE</div>
+        <div style="height:28px;padding:0 10px;border-radius:999px;background:#BF6BFF;border:3px solid #24140B;font-family:'Baloo 2';font-weight:800;font-size:14px;line-height:22px;color:#24083A">EPIC</div>
+        <div style="height:28px;padding:0 10px;border-radius:999px;background:#FF9445;border:3px solid #24140B;font-family:'Baloo 2';font-weight:800;font-size:14px;line-height:22px;color:#2A1505">LEGENDARY</div>
+        <div style="height:28px;padding:0 10px;border-radius:999px;background:#FF3D6E;border:3px solid #0A0408;font-family:'Baloo 2';font-weight:800;font-size:14px;line-height:22px;color:#2A0F2E">MYTHIC</div>
+        <div style="height:56px;display:flex;align-items:center;gap:8px;padding:0 12px;border-radius:12px;background:#2A0F2E;border:3px solid #0A0408"><div style="width:32px;height:32px;border-radius:8px;background:#FF3D6E;border:2px solid #0A0408"></div><div style="display:flex;flex-direction:column"><div style="font-family:'Baloo 2';font-weight:800;font-size:15px;color:#FF9FB8">Moonfall FX</div><div style="font-size:12px;font-weight:700;color:#F2D8E2">MYTHIC · Series 1</div></div></div>
+      </div>
+      <div style="font-size:13px;font-weight:600;color:#6E4A30">Mythic night ink is #FF9FB8 (≈ 7.9:1 on #2A0F2E) and #F2D8E2 for small lines. New colours, added to the sheet here.</div>
+    </div>
+  </div>
+
+  <div style="display:flex;flex-direction:column;gap:14px;padding:22px;border-radius:24px;background:linear-gradient(180deg,#FFF8EA,#F3E2C2);border:4px solid #8A3E22;box-shadow:4px 6px 0 rgba(74,34,14,.30)">
+    <div style="font-family:'Baloo 2';font-weight:800;font-size:26px">3 · Price buttons · normal / hover / pressed / disabled with reason / owned · decline same size</div>
+    <div style="display:grid;grid-template-columns:120px repeat(5,1fr);gap:12px;align-items:center">
+      <div style="font-family:'Baloo 2';font-weight:800;font-size:15px;color:#8A3E22">USD / SHARD</div>
+      <div style="height:60px;display:flex;align-items:center;justify-content:center;border-radius:14px;background:linear-gradient(180deg,#FFB070,#FF8A3A);border:3px solid #24140B;box-shadow:inset 2px 2px 0 rgba(255,248,234,.65),3px 5px 0 #8A3E22;font-family:'Baloo 2';font-weight:800;font-size:20px;color:#2A1505">4.99 USD</div>
+      <div style="height:60px;display:flex;align-items:center;justify-content:center;border-radius:14px;background:linear-gradient(180deg,#FFC48E,#FF9A50);border:3px solid #24140B;box-shadow:inset 2px 2px 0 rgba(255,248,234,.65),3px 7px 0 #8A3E22;transform:translateY(-2px);font-family:'Baloo 2';font-weight:800;font-size:20px;color:#2A1505">hover</div>
+      <div style="height:60px;display:flex;align-items:center;justify-content:center;border-radius:14px;background:#E8742A;border:3px solid #24140B;box-shadow:1px 2px 0 #8A3E22;transform:translateY(3px);font-family:'Baloo 2';font-weight:800;font-size:20px;color:#2A1505">pressed</div>
+      <div style="height:60px;display:flex;flex-direction:column;align-items:center;justify-content:center;border-radius:14px;background:#DDBF8C;border:3px solid #9A7650;font-family:'Baloo 2';font-weight:800;font-size:20px;line-height:1;color:#6E4A30">4.99 USD<span style="font-family:'Work Sans';font-size:12px;font-weight:700">Playtest: purchases disabled</span></div>
+      <div style="height:60px;display:flex;align-items:center;justify-content:center;border-radius:14px;background:linear-gradient(180deg,#A8D878,#7DBE4E);border:3px solid #24140B;font-family:'Baloo 2';font-weight:800;font-size:20px;color:#183A0C">✓ Owned</div>
+      <div style="font-family:'Baloo 2';font-weight:800;font-size:15px;color:#4E2E8A">GEM</div>
+      <div style="height:60px;display:flex;align-items:center;justify-content:center;gap:6px;border-radius:14px;background:linear-gradient(180deg,#C2A6F4,#9A72E6);border:3px solid #24140B;box-shadow:inset 2px 2px 0 rgba(255,248,234,.5),3px 5px 0 #4E2E8A;font-family:'Baloo 2';font-weight:800;font-size:20px;color:#1E1236"><img src="hl/i/gem.png" alt="" style="width:22px;height:22px">285</div>
+      <div style="height:60px;display:flex;align-items:center;justify-content:center;gap:6px;border-radius:14px;background:linear-gradient(180deg,#D4BEF8,#AE8CEE);border:3px solid #24140B;box-shadow:3px 7px 0 #4E2E8A;transform:translateY(-2px);font-family:'Baloo 2';font-weight:800;font-size:20px;color:#1E1236"><img src="hl/i/gem.png" alt="" style="width:22px;height:22px">hover</div>
+      <div style="height:60px;display:flex;align-items:center;justify-content:center;gap:6px;border-radius:14px;background:#8A62D6;border:3px solid #24140B;box-shadow:1px 2px 0 #4E2E8A;transform:translateY(3px);font-family:'Baloo 2';font-weight:800;font-size:20px;color:#1E1236"><img src="hl/i/gem.png" alt="" style="width:22px;height:22px">pressed</div>
+      <div style="height:60px;display:flex;flex-direction:column;align-items:center;justify-content:center;border-radius:14px;background:#E8D6B4;border:3px solid #9A7650;font-family:'Baloo 2';font-weight:800;font-size:20px;line-height:1;color:#6E4A30"><span style="display:flex;align-items:center;gap:6px"><img src="hl/i/gem.png" alt="" style="width:22px;height:22px;opacity:.55">720</span><span style="font-family:'Work Sans';font-size:12px;font-weight:700">need 420 more Gem</span></div>
+      <div style="height:60px;display:flex;align-items:center;justify-content:center;border-radius:14px;background:#E8D6B4;border:2px solid #9A7650;font-family:'Baloo 2';font-weight:800;font-size:15px;line-height:1.1;text-align:center;color:#6E4A30">Only from the Seasonal Echo Box</div>
+    </div>
+    <div style="font-size:14px;font-weight:600;color:#6E4A30">Gem hover #D4BEF8 → #AE8CEE and pressed #8A62D6 are new (derived from the R1 Gem button), listed in the README. A seasonal item never shows a price: its button slot carries the source line instead.</div>
+  </div>
+
+  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:24px">
+    <div style="display:flex;flex-direction:column;gap:12px;padding:22px;border-radius:24px;background:linear-gradient(180deg,#FFF8EA,#F3E2C2);border:4px solid #8A3E22;box-shadow:4px 6px 0 rgba(74,34,14,.30)">
+      <div style="font-family:'Baloo 2';font-weight:800;font-size:22px">4 · Confirm modal 600</div>
+      <div style="border-radius:24px;background:linear-gradient(180deg,#F8EBD2,#EBD3A8);border:4px solid #8A3E22;overflow:hidden">
+        <div style="height:56px;display:flex;align-items:center;padding:0 18px;background:linear-gradient(180deg,#D79A58,#B87440);border-bottom:4px solid #8A3E22;font-family:'Baloo 2';font-weight:800;font-size:22px;color:#2A1505">Spend 40,000 Stone?</div>
+        <div style="padding:14px 16px 18px;display:flex;flex-direction:column;gap:12px"><div style="font-size:15px;font-weight:600">What happens, the price with its icon, balance before → after.</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:12px"><div style="height:56px;display:flex;align-items:center;justify-content:center;border-radius:14px;background:linear-gradient(180deg,#FFF8EA,#EBD3A8);border:3px solid #24140B;box-shadow:0 0 0 4px #FFC445,0 0 0 7px #24140B;font-family:'Baloo 2';font-weight:800;font-size:18px">Not now</div><div style="height:56px;display:flex;align-items:center;justify-content:center;border-radius:14px;background:linear-gradient(180deg,#FFB070,#FF8A3A);border:3px solid #24140B;box-shadow:3px 5px 0 #8A3E22;font-family:'Baloo 2';font-weight:800;font-size:18px;color:#2A1505">Confirm</div></div></div>
+      </div>
+      <div style="font-size:13px;font-weight:600;color:#6E4A30">Focus starts on the decline. Esc = decline. First paid action per session always confirms (Gem price + ≈USD).</div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:12px;padding:22px;border-radius:24px;background:linear-gradient(180deg,#FFF8EA,#F3E2C2);border:4px solid #8A3E22;box-shadow:4px 6px 0 rgba(74,34,14,.30)">
+      <div style="font-family:'Baloo 2';font-weight:800;font-size:22px">5 · Toast · error banner</div>
+      <div style="display:flex;align-items:center;gap:12px;padding:12px 12px 12px 16px;border-radius:16px;background:#3B2618;border:3px solid #24140B"><img src="hl/icons/gift.svg" alt="" style="width:30px;height:30px"><div style="flex:1;display:flex;flex-direction:column"><div style="font-family:'Baloo 2';font-weight:800;font-size:18px;color:#FFF8EA">+300 Gem claimed</div><div style="font-size:13px;font-weight:600;color:#DDBF8C">Toast · 4 s · dismissible · never a sale</div></div><div style="width:36px;height:36px;display:flex;align-items:center;justify-content:center;border-radius:10px;background:#FFF8EA;border:2px solid #24140B;font-family:'Baloo 2';font-weight:800">×</div></div>
+      <div style="display:flex;flex-direction:column;gap:8px;padding:12px;border-radius:16px;background:#3B2618;border:3px solid #24140B"><div style="display:flex;align-items:center;gap:8px"><img src="asc/fx/vuln.png" alt="" style="width:26px;height:26px"><div style="font-family:'Baloo 2';font-weight:800;font-size:17px;color:#FFF8EA">You are offline.</div></div><div style="font-size:13px;font-weight:600;color:#DDBF8C">One plain sentence. Last updated 14:02.</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><div style="height:44px;display:flex;align-items:center;justify-content:center;border-radius:12px;background:linear-gradient(180deg,#FFB070,#FF8A3A);border:3px solid #24140B;font-family:'Baloo 2';font-weight:800;font-size:16px;color:#2A1505">Try again</div><div style="height:44px;display:flex;align-items:center;justify-content:center;border-radius:12px;background:linear-gradient(180deg,#FFF8EA,#EBD3A8);border:3px solid #24140B;font-family:'Baloo 2';font-weight:800;font-size:16px">Back to Land</div></div></div>
+      <div style="font-size:13px;font-weight:600;color:#6E4A30">Banner sits under the header; cached data stays visible at 60–65% with its time. Server actions disabled with the reason.</div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:12px;padding:22px;border-radius:24px;background:linear-gradient(180deg,#FFF8EA,#F3E2C2);border:4px solid #8A3E22;box-shadow:4px 6px 0 rgba(74,34,14,.30)">
+      <div style="font-family:'Baloo 2';font-weight:800;font-size:22px">6 · Loading · lock plate · Season 2 ribbon</div>
+      <div style="display:flex;flex-direction:column;gap:6px;padding:10px;border-radius:14px;background:#FFF8EA;border:2px solid #B89A74"><div style="width:50%;height:18px;border-radius:6px;background:#DDBF8C"></div><div style="height:40px;border-radius:10px;background:#DDBF8C"></div><div style="font-family:'Baloo 2';font-weight:800;font-size:15px;color:#6E4A30">Tickets — · Shard —</div></div>
+      <div style="display:flex;flex-direction:column;gap:4px;padding:10px;border-radius:12px;background:#E8D6B4;border:2px solid #9A7650"><div style="display:flex;align-items:center;gap:6px;font-family:'Baloo 2';font-weight:800;font-size:16px"><img src="asc/new-icons/lock.svg" alt="" style="width:18px;height:18px">Not in this build</div><div style="font-size:12px;font-weight:700;color:#6E4A30">Later: needs Mission house level 3</div></div>
+      <div style="position:relative;height:56px;border-radius:12px;background:#E8D6B4;border:3px dashed #9A7650"><div style="position:absolute;left:-6px;top:12px;height:28px;padding:0 16px;background:#3B2618;border:2px solid #24140B;border-radius:0 8px 8px 0;font-family:'Baloo 2';font-weight:800;font-size:14px;line-height:24px;color:#FFC79B">SEASON 2</div></div>
+      <div style="font-size:13px;font-weight:600;color:#6E4A30">Skeleton = cream-300 wells, no spinner-only screens; numbers "—". A lock never stands alone: always words.</div>
+    </div>
+  </div>
+
+  <div style="display:grid;grid-template-columns:1.3fr 1fr;gap:24px">
+    <div style="display:flex;flex-direction:column;gap:14px;padding:22px;border-radius:24px;background:linear-gradient(180deg,#FFF8EA,#F3E2C2);border:4px solid #8A3E22;box-shadow:4px 6px 0 rgba(74,34,14,.30)">
+      <div style="font-family:'Baloo 2';font-weight:800;font-size:26px">7 · Tabs · segmented · toggle · scrollbar · date line · focus</div>
+      <div style="display:flex;gap:6px;align-items:flex-end"><div style="height:46px;padding:0 20px;display:flex;align-items:center;border-radius:14px 14px 0 0;background:#FFF8EA;border:3px solid #8A3E22;border-bottom:0;font-family:'Baloo 2';font-weight:800;font-size:18px">Regular</div><div style="height:46px;padding:0 20px;display:flex;align-items:center;border-radius:14px 14px 0 0;background:#E8D6B4;border:3px solid #8A3E22;border-bottom:0;font-family:'Baloo 2';font-weight:800;font-size:18px;color:#6E4A30">Seasonal</div><div style="flex:1"></div><div style="display:flex;gap:4px;padding:4px;border-radius:14px;background:#8A4E28;border:3px solid #24140B"><div style="height:40px;padding:0 16px;display:flex;align-items:center;border-radius:10px;background:#FFF8EA;font-family:'Baloo 2';font-weight:800;font-size:16px">Overview</div><div style="height:40px;padding:0 16px;display:flex;align-items:center;border-radius:10px;font-family:'Baloo 2';font-weight:800;font-size:16px;color:#FFF8EA">Cosmetics</div></div></div>
+      <div style="display:flex;gap:16px;align-items:center;flex-wrap:wrap">
+        <div style="display:flex;gap:6px;padding:4px;border-radius:14px;background:#DDBF8C;border:3px solid #24140B"><div style="height:48px;padding:0 16px;display:flex;flex-direction:column;align-items:center;justify-content:center;border-radius:10px;background:linear-gradient(180deg,#FFB070,#FF8A3A);border:3px solid #24140B;box-shadow:0 3px 0 #8A3E22;font-family:'Baloo 2';font-weight:800;font-size:17px;line-height:1;color:#2A1505;box-sizing:border-box">Normal<span style="font-family:'Work Sans';font-size:12px;font-weight:700;color:#4A2208">free choice</span></div><div style="height:48px;padding:0 16px;display:flex;flex-direction:column;align-items:center;justify-content:center;border-radius:10px;background:#E8D6B4;border:2px solid #9A7650;font-family:'Baloo 2';font-weight:800;font-size:17px;line-height:1;color:#6E4A30;box-sizing:border-box"><span style="display:flex;align-items:center;gap:4px"><img src="asc/new-icons/lock.svg" alt="" style="width:14px;height:14px">Ranked</span><span style="font-family:'Work Sans';font-size:12px;font-weight:700">5 runs</span></div></div>
+        <div style="display:flex;align-items:center;gap:8px"><div style="font-family:'Baloo 2';font-weight:800;font-size:16px">On</div><div style="width:64px;height:34px;border-radius:999px;background:#7DBE4E;border:3px solid #24140B;position:relative;box-sizing:border-box"><div style="position:absolute;top:3px;left:33px;width:22px;height:22px;border-radius:50%;background:#FFF8EA;border:2px solid #24140B;box-sizing:border-box"></div></div></div>
+        <div style="display:flex;align-items:center;gap:8px"><div style="font-family:'Baloo 2';font-weight:800;font-size:16px">Off</div><div style="width:64px;height:34px;border-radius:999px;background:#9A7650;border:3px solid #24140B;position:relative;box-sizing:border-box"><div style="position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:50%;background:#FFF8EA;border:2px solid #24140B;box-sizing:border-box"></div></div></div>
+        <div style="width:14px;height:110px;border-radius:7px;background:#DDBF8C;position:relative"><div style="position:absolute;left:2px;right:2px;top:20px;height:40px;border-radius:5px;background:#3B2618"></div></div>
+        <div style="display:flex;flex-direction:column;gap:6px"><div style="font-family:'Baloo 2';font-weight:800;font-size:17px">Season 1 · ends 29 Dec 2026</div><div style="font-size:14px;font-weight:700;color:#6E4A30">Resets 13 Oct 2026, 00:00 UTC</div><div style="font-size:12px;font-weight:700;color:#8A3E22">Dates only. No countdown anywhere.</div></div>
+        <div style="height:48px;padding:0 18px;display:flex;align-items:center;border-radius:12px;background:linear-gradient(180deg,#FFF8EA,#EBD3A8);border:3px solid #24140B;box-shadow:0 0 0 4px #FFC445,0 0 0 7px #24140B;font-family:'Baloo 2';font-weight:800;font-size:17px">Focus ring 4 + 3</div>
+      </div>
+      <div style="font-size:13px;font-weight:600;color:#6E4A30">Scrollbar 14 wide, track cream-300, thumb dusk #3B2618 r5; only on long lists (Leaderboard, Vault, Pass track, Codex, Settings). Toggles always print On / Off.</div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:14px;padding:22px;border-radius:24px;background:linear-gradient(180deg,#FFF8EA,#F3E2C2);border:4px solid #8A3E22;box-shadow:4px 6px 0 rgba(74,34,14,.30)">
+      <div style="font-family:'Baloo 2';font-weight:800;font-size:26px">8 · Badges and notifications</div>
+      <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+        <div style="height:30px;padding:0 11px 0 6px;border-radius:999px;background:#8CC85A;border:3px solid #24140B;display:flex;align-items:center;gap:4px;font-family:'Baloo 2';font-weight:800;font-size:15px;color:#183A0C"><img src="hl/icons/gift.svg" alt="" style="width:20px;height:20px">FREE</div>
+        <div style="height:30px;padding:0 11px 0 6px;border-radius:999px;background:#FF9345;border:3px solid #24140B;display:flex;align-items:center;gap:4px;font-family:'Baloo 2';font-weight:800;font-size:15px;color:#2A1505"><img src="hl/icons/gift.svg" alt="" style="width:20px;height:20px">CLAIM</div>
+        <div style="height:30px;padding:0 11px 0 6px;border-radius:999px;background:#FFC445;border:3px solid #24140B;display:flex;align-items:center;gap:4px;font-family:'Baloo 2';font-weight:800;font-size:15px;color:#3A2A12"><img src="asc/fx/buff.svg" alt="" style="width:20px;height:20px">NEW</div>
+        <div style="height:30px;padding:0 11px 0 6px;border-radius:999px;background:#A27BEA;border:3px solid #24140B;display:flex;align-items:center;gap:4px;font-family:'Baloo 2';font-weight:800;font-size:15px;color:#1E1236"><img src="hl/icons/mooncard.svg" alt="" style="width:20px;height:20px">VIP</div>
+        <div style="width:18px;height:18px;border-radius:50%;background:#FF9345;border:3px solid #24140B"></div><div style="font-size:13px;font-weight:700;color:#6E4A30">shortcut dot</div>
+      </div>
+      <div style="display:flex;flex-direction:column;border-radius:12px;overflow:hidden;border:2px solid #B89A74;font-size:13px;font-weight:600">
+        <div style="display:grid;grid-template-columns:130px 1fr 1fr;gap:8px;padding:6px 10px;background:#3B2618;color:#FFC79B;font-family:'Baloo 2';font-weight:800">Badge<span>Shows when</span><span>Clears when</span></div>
+        <div style="display:grid;grid-template-columns:130px 1fr 1fr;gap:8px;padding:6px 10px;background:#FFF8EA">Pass · CLAIM<span>a level reward is claimable</span><span>claimed</span></div>
+        <div style="display:grid;grid-template-columns:130px 1fr 1fr;gap:8px;padding:6px 10px;background:#F8EBD2">Echo · FREE<span>≥ 1 unused gift ticket</span><span>screen opened</span></div>
+        <div style="display:grid;grid-template-columns:130px 1fr 1fr;gap:8px;padding:6px 10px;background:#FFF8EA">Echo · NEW<span>a new series starts</span><span>screen opened</span></div>
+        <div style="display:grid;grid-template-columns:130px 1fr 1fr;gap:8px;padding:6px 10px;background:#F8EBD2">Missions · NEW<span>board changed, not opened today (UTC)</span><span>screen opened</span></div>
+        <div style="display:grid;grid-template-columns:130px 1fr 1fr;gap:8px;padding:6px 10px;background:#FFF8EA">Daily · CLAIM<span>reward or Gem gift unclaimed</span><span>claimed</span></div>
+        <div style="display:grid;grid-template-columns:130px 1fr 1fr;gap:8px;padding:6px 10px;background:#F8EBD2">Store · VIP<span>per R1 (day 2+)</span><span>bought / dismissed for the day</span></div>
+        <div style="display:grid;grid-template-columns:130px 1fr 1fr;gap:8px;padding:6px 10px;background:#FFF8EA">Vault<span>never</span><span>—</span></div>
+      </div>
+      <div style="font-size:13px;font-weight:600;color:#6E4A30">Max one badge per house. No red numbers, no counters, no blinking. Reduce flashing: badges never animate in; claim bursts become a 200 ms fade.</div>
+    </div>
+  </div>
+</div>
+</x-dc>
+</body>
+</html>

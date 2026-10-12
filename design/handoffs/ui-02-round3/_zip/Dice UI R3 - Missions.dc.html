@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<script src="_ds/dango-design-system-b8da985f-efd5-488e-ae62-d508e48befe9/_ds_bundle.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&amp;family=Work+Sans:wght@500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#2A1C12}
+a{color:#FF9345;text-decoration:none}a:hover{color:#FFB275}
+</style>
+</helmet>
+<div style="display:flex;flex-direction:column;gap:64px;padding:64px;width:max-content;background:#2A1C12;font-family:'Work Sans',sans-serif;color:#3A2214;-webkit-font-smoothing:antialiased">
+  <div style="display:flex;flex-direction:column;gap:8px;max-width:1920px">
+    <div style="font-family:'Baloo 2';font-weight:800;font-size:15px;letter-spacing:.18em;color:#D79A58">AXIE DICE · UI REQUEST 02 · ROUND 3 · M6</div>
+    <div style="font-family:'Baloo 2';font-weight:800;font-size:60px;line-height:1;color:#FFF8EA">Nhiệm vụ · staked missions</div>
+    <div style="font-size:17px;line-height:1.5;color:#DDBF8C;max-width:1300px;text-wrap:pretty">Missions house (Weaponsmith), key 3. Pay a stake in Gene Shard, play one harder run, win the payout or lose the stake. Nothing here is sold for real money. L1 ships N1–N3; N4–N6 and house levels are drawn for later. <a href="Dice UI R3 README.md">R3 README</a> · <a href="Dice UI R3 - Echo Box.dc.html">← M5</a> · <a href="Dice UI R3 - Store and Daily.dc.html">M7 →</a></div>
+  </div>
+
+  <sc-for list="{{ frames }}" as="f" hint-placeholder-count="2">
+    <div data-screen-label="{{ f.id }}" style="display:flex;flex-direction:column;gap:12px">
+      <div style="display:flex;align-items:center;gap:12px">
+        <div style="height:34px;padding:0 12px;display:flex;align-items:center;border-radius:9px;background:#FF9345;border:3px solid #24140B;font-family:'Baloo 2';font-size:17px;font-weight:800;color:#2A1505">{{ f.id }}</div>
+        <div style="font-family:'Baloo 2';font-size:26px;font-weight:800;color:#FFF8EA">{{ f.caption }}</div>
+        <div style="font-size:14px;font-weight:600;color:#B89A74">1920 × {{ f.H }}</div>
+      </div>
+      <div style="font-size:15px;color:#DDBF8C;max-width:1600px">{{ f.note }}</div>
+      <div style="position:relative;width:1920px;height:{{ f.H }}px;overflow:hidden">
+        <dc-import name="R3 Land Backdrop" h="{{ f.H }}" guest="{{ f.guest }}" newcomer="{{ f.newbie }}" shard="{{ f.shard }}" style="position:absolute;inset:0" hint-size="1920px,1080px"></dc-import>
+        <div style="position:absolute;left:200px;top:116px;width:1520px;height:{{ f.ph }}px;border-radius:28px;background:linear-gradient(180deg,#F8EBD2,#EBD3A8);border:4px solid #8A3E22;box-shadow:inset 2px 2px 0 rgba(255,248,234,.65),5px 8px 0 rgba(36,20,11,.45);overflow:hidden;display:flex;flex-direction:column;box-sizing:border-box">
+          <div style="height:64px;flex:none;display:flex;align-items:center;gap:14px;padding:0 16px 0 8px;background:linear-gradient(180deg,#D79A58,#B87440);border-bottom:4px solid #8A3E22">
+            <div style="height:48px;padding:0 14px 0 10px;display:flex;align-items:center;gap:8px;border-radius:12px;background:linear-gradient(180deg,#FFF8EA,#EBD3A8);border:3px solid #24140B;box-shadow:inset 2px 2px 0 rgba(255,248,234,.65),3px 4px 0 rgba(74,34,14,.35);font-family:'Baloo 2';font-weight:800;font-size:18px;box-sizing:border-box"><span style="font-size:20px">←</span>Back<span style="height:22px;padding:0 6px;border-radius:6px;background:#3B2618;color:#FFF8EA;font-size:13px;display:flex;align-items:center">Esc</span></div>
+            <img src="hl/b/mastery.png" alt="" style="width:36px;height:36px;object-fit:contain">
+            <div style="font-family:'Baloo 2';font-weight:800;font-size:36px;line-height:1;color:#2A1505">Missions</div>
+            <div style="font-size:14px;font-weight:700;color:#3A1E07">Board changes 00:00 UTC · today: rule set A</div>
+            <div style="flex:1"></div>
+            <div style="height:48px;display:flex;align-items:center;gap:8px;padding:0 12px 0 8px;border-radius:12px;background:#FFF8EA;border:3px solid #24140B;box-sizing:border-box"><img src="asc/fx/shard.png" alt="" style="width:28px;height:28px"><div style="display:flex;flex-direction:column"><div style="font-family:'Baloo 2';font-weight:800;font-size:19px;line-height:1">{{ f.shard }} Shard</div><div style="font-size:12px;font-weight:700;color:#6E4A30">Usable for stakes: {{ f.usable }} [INF]</div></div></div>
+          </div>
+          <sc-if value="{{ f.banner }}" hint-placeholder-val="{{ false }}">
+            <div style="margin:12px 24px 0;min-height:58px;flex:none;display:flex;align-items:center;gap:14px;padding:6px 10px 6px 16px;border-radius:16px;background:#3B2618;border:3px solid #24140B">
+              <img src="{{ f.bannerIcon }}" alt="" style="width:28px;height:28px">
+              <div style="flex:1;display:flex;flex-direction:column"><div style="font-family:'Baloo 2';font-weight:800;font-size:18px;color:#FFF8EA">{{ f.banner }}</div><div style="font-size:13px;font-weight:600;color:#DDBF8C">{{ f.bannerSub }}</div></div>
+              <sc-if value="{{ f.bannerBtn }}" hint-placeholder-val="{{ false }}"><div style="height:44px;width:160px;display:flex;align-items:center;justify-content:center;border-radius:12px;background:linear-gradient(180deg,#FFB070,#FF8A3A);border:3px solid #24140B;box-shadow:3px 5px 0 #8A3E22;font-family:'Baloo 2';font-weight:800;font-size:17px;color:#2A1505;box-sizing:border-box">{{ f.bannerBtn }}</div>
+              <div style="height:44px;width:160px;display:flex;align-items:center;justify-content:center;border-radius:12px;background:linear-gradient(180deg,#FFF8EA,#EBD3A8);border:3px solid #24140B;font-family:'Baloo 2';font-weight:800;font-size:17px;box-sizing:border-box">Back to Land</div></sc-if>
+            </div>
+          </sc-if>
+          <div style="flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,1fr) 340px;grid-template-rows:minmax(0,1fr);gap:16px;padding:12px 24px 20px">
+            <div style="display:flex;flex-direction:column;gap:12px;min-width:0">
+              <div style="height:48px;flex:none;display:flex;align-items:center;gap:10px;padding:0 8px 0 14px;border-radius:14px;background:#FFF8EA;border:3px solid #8A3E22">
+                <div style="font-family:'Baloo 2';font-weight:800;font-size:15px;letter-spacing:.06em;color:#8A3E22">HOUSE</div>
+                <sc-for list="{{ f.levels }}" as="l" hint-placeholder-count="4">
+                  <div style="height:36px;display:flex;align-items:center;gap:6px;padding:0 10px;border-radius:10px;background:{{ l.bg }};border:2px solid {{ l.bd }};font-size:12px;font-weight:700;color:{{ l.ink }};white-space:nowrap"><span style="font-family:'Baloo 2';font-weight:800;font-size:15px">Lv {{ l.n }}</span>{{ l.t }}</div>
+                </sc-for>
+                <div style="flex:1"></div>
+                <div style="height:40px;padding:0 14px;display:flex;flex-direction:column;align-items:center;justify-content:center;border-radius:10px;background:{{ f.upBg }};border:3px solid {{ f.upBd }};box-shadow:{{ f.upSh }};box-sizing:border-box"><div style="font-family:'Baloo 2';font-weight:800;font-size:15px;line-height:1;color:{{ f.upInk }}">{{ f.upT }}</div><div style="font-size:12px;font-weight:700;color:{{ f.upInk }}">{{ f.upS }}</div></div>
+              </div>
+              <div style="flex:1;min-height:0;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));grid-template-rows:repeat(2,minmax(0,1fr));gap:10px">
+                <sc-for list="{{ f.cards }}" as="c" hint-placeholder-count="6">
+                  <div style="position:relative;display:flex;flex-direction:column;gap:5px;padding:8px 10px 10px;border-radius:18px;background:{{ c.bg }};border:3px {{ c.bs }} {{ c.bd }};box-shadow:{{ c.sh }};box-sizing:border-box;min-height:0;overflow:hidden">
+                    <div style="display:flex;align-items:center;gap:8px">
+                      <div style="height:30px;padding:0 10px;display:flex;align-items:center;border-radius:9px;background:{{ c.tierBg }};border:3px solid #24140B;font-family:'Baloo 2';font-weight:800;font-size:18px;color:{{ c.tierInk }}">{{ c.tier }}</div>
+                      <div style="font-family:'Baloo 2';font-weight:800;font-size:17px">{{ c.mode }}</div>
+                      <div style="flex:1"></div>
+                      <div style="display:flex;flex-direction:column;align-items:flex-end"><div style="font-family:'Baloo 2';font-weight:800;font-size:20px;line-height:1;color:{{ c.ink }}">{{ c.m }}</div><div style="font-size:12px;font-weight:700;color:#6E4A30">{{ c.mLine }}</div></div>
+                    </div>
+                    <sc-if value="{{ c.open }}" hint-placeholder-val="{{ true }}">
+                      <div style="display:flex;flex-direction:column;gap:3px">
+                        <sc-for list="{{ c.rules }}" as="r" hint-placeholder-count="3">
+                          <div style="min-height:24px;display:flex;align-items:center;gap:6px;padding:1px 6px;border-radius:7px;background:{{ r.bg }};border:2px {{ r.bs }} {{ r.bd }}"><img src="{{ r.icon }}" alt="" style="width:16px;height:16px"><div style="font-family:'Baloo 2';font-weight:800;font-size:12px;color:#8A3E22;white-space:nowrap">{{ r.k }}</div><div style="flex:1;font-size:12px;font-weight:600;line-height:1.25">{{ r.t }}</div></div>
+                        </sc-for>
+                      </div>
+                      <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px">
+                        <sc-for list="{{ c.nums }}" as="n" hint-placeholder-count="4">
+                          <div style="height:38px;display:flex;flex-direction:column;justify-content:center;padding:0 8px;border-radius:9px;background:#F8EBD2;border:2px solid #B89A74"><div style="font-size:12px;font-weight:700;line-height:1.1;color:#6E4A30">{{ n.k }}</div><div style="display:flex;align-items:center;gap:3px;font-family:'Baloo 2';font-weight:800;font-size:17px;line-height:1.1"><img src="{{ n.icon }}" alt="" style="width:16px;height:16px">{{ n.v }}</div></div>
+                        </sc-for>
+                      </div>
+                      <div style="font-family:'Baloo 2';font-weight:800;font-size:15px;line-height:1.2">{{ c.ret }}</div>
+                      <sc-if value="{{ c.you }}" hint-placeholder-val="{{ false }}"><div style="font-size:12px;font-weight:700;color:#6E4A30;line-height:1.3">{{ c.you }}</div></sc-if>
+                      <div style="flex:1"></div>
+                      <div style="padding:2px 8px;border-radius:8px;background:#3B2618;font-size:12px;font-weight:700;color:#FFC79B;line-height:1.3">No Aid, no Continue, no Boon in this run. One life.</div>
+                      <div style="height:40px;flex:none;display:flex;flex-direction:column;align-items:center;justify-content:center;border-radius:12px;background:{{ c.btnBg }};border:3px solid {{ c.btnBd }};box-shadow:{{ c.btnSh }};box-sizing:border-box">
+                        <div style="display:flex;align-items:center;gap:4px;font-family:'Baloo 2';font-weight:800;font-size:17px;line-height:1;color:{{ c.btnInk }}">{{ c.btn }}</div>
+                        <sc-if value="{{ c.btnSub }}" hint-placeholder-val="{{ false }}"><div style="font-size:12px;font-weight:700;color:{{ c.btnInk }}">{{ c.btnSub }}</div></sc-if>
+                      </div>
+                    </sc-if>
+                    <sc-if value="{{ c.locked }}" hint-placeholder-val="{{ false }}">
+                      <div style="display:flex;flex-direction:column;gap:3px;opacity:.75;max-height:84px;overflow:hidden">
+                        <sc-for list="{{ c.rules }}" as="r" hint-placeholder-count="3"><div style="min-height:24px;display:flex;align-items:center;gap:6px;padding:1px 6px;border-radius:7px;background:#F3E9D6"><img src="{{ r.icon }}" alt="" style="width:16px;height:16px;opacity:.6"><div style="font-family:'Baloo 2';font-weight:800;font-size:12px;color:#6E4A30;white-space:nowrap">{{ r.k }}</div><div style="flex:1;font-size:12px;font-weight:600;color:#6E4A30">{{ r.t }}</div></div></sc-for>
+                      </div>
+                      <div style="font-size:13px;font-weight:700;color:#6E4A30">Stake {{ c.stake }} · pays {{ c.pay }} · {{ c.stone }} Stone</div>
+                      <div style="flex:1"></div>
+                      <div style="display:flex;flex-direction:column;gap:4px;padding:10px;border-radius:12px;background:#E8D6B4;border:2px solid #9A7650">
+                        <div style="display:flex;align-items:center;gap:6px;font-family:'Baloo 2';font-weight:800;font-size:16px;color:#3A2214"><img src="asc/new-icons/lock.svg" alt="" style="width:18px;height:18px">{{ c.lockT }}</div>
+                        <sc-for list="{{ c.lockLines }}" as="l" hint-placeholder-count="1"><div style="font-size:12px;font-weight:700;color:#6E4A30">{{ l }}</div></sc-for>
+                      </div>
+                    </sc-if>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:10px;padding:14px;border-radius:18px;background:#FFF8EA;border:3px solid #8A3E22;min-height:0;overflow:hidden">
+              <div style="font-family:'Baloo 2';font-weight:800;font-size:19px">Rules of every mission</div>
+              <sc-for list="{{ ruleCol }}" as="r" hint-placeholder-count="5">
+                <div style="display:flex;gap:8px;align-items:flex-start"><img src="{{ r.icon }}" alt="" style="width:20px;height:20px;margin-top:1px"><div style="font-size:13px;font-weight:600;line-height:1.4">{{ r.t }}</div></div>
+              </sc-for>
+              <div style="font-family:'Baloo 2';font-weight:800;font-size:15px;letter-spacing:.06em;color:#8A3E22;margin-top:2px">EXTRA RULES (MAX 2 PER CARD)</div>
+              <sc-for list="{{ extras }}" as="r" hint-placeholder-count="5">
+                <div style="display:flex;gap:8px;align-items:flex-start"><img src="{{ r.icon }}" alt="" style="width:18px;height:18px;margin-top:1px"><div style="font-size:12px;font-weight:600;line-height:1.35"><b>{{ r.k }}</b> · {{ r.t }}</div></div>
+              </sc-for>
+              <div style="display:flex;gap:8px;align-items:flex-start;padding:6px 8px;border-radius:10px;border:2px dashed #8A3E22"><img src="asc/fx/buff.svg" alt="" style="width:18px;height:18px"><div style="font-size:12px;font-weight:600;line-height:1.35"><b>Side condition · later</b> · One house (1 class, N2–N4) or All colours (4+ classes, N1). Not in L1.</div></div>
+              
+            </div>
+          </div>
+
+          <sc-if value="{{ f.modal }}" hint-placeholder-val="{{ false }}">
+            <div style="position:absolute;inset:68px 0 0;background:rgba(36,20,11,.55)"></div>
+            <div style="position:absolute;left:{{ f.mLeft }}px;top:{{ f.mTop }}px;width:{{ f.mW }}px;border-radius:24px;background:linear-gradient(180deg,#F8EBD2,#EBD3A8);border:4px solid #8A3E22;box-shadow:5px 8px 0 rgba(36,20,11,.45);overflow:hidden">
+              <div style="height:60px;display:flex;align-items:center;gap:12px;padding:0 20px;background:{{ f.mHead }};border-bottom:4px solid #8A3E22"><div style="font-family:'Baloo 2';font-weight:800;font-size:26px;color:{{ f.mHeadInk }}">{{ f.mTitle }}</div></div>
+              <div style="padding:18px 22px 22px;display:flex;flex-direction:column;gap:12px">
+                <sc-for list="{{ f.mRows }}" as="r" hint-placeholder-count="3">
+                  <div style="min-height:40px;display:flex;align-items:center;gap:10px;padding:4px 12px;border-radius:12px;background:{{ r.bg }};border:2px solid #B89A74"><img src="{{ r.icon }}" alt="" style="width:22px;height:22px"><div style="flex:1;font-size:15px;font-weight:600;line-height:1.4">{{ r.t }}</div><div style="font-family:'Baloo 2';font-weight:800;font-size:18px">{{ r.v }}</div></div>
+                </sc-for>
+                <sc-for list="{{ f.mLines }}" as="l" hint-placeholder-count="1"><div style="font-size:15px;font-weight:600;line-height:1.45">{{ l }}</div></sc-for>
+                <sc-if value="{{ f.mSoft }}" hint-placeholder-val="{{ false }}"><div style="padding:8px 12px;border-radius:10px;background:#FFF8EA;border:2px dashed #8A3E22;font-size:13px;font-weight:600;color:#6E4A30">{{ f.mSoft }}</div></sc-if>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:4px">
+                  <div style="height:64px;padding:0 10px;display:flex;align-items:center;justify-content:center;text-align:center;border-radius:14px;background:linear-gradient(180deg,#FFF8EA,#EBD3A8);border:3px solid #24140B;box-shadow:3px 5px 0 rgba(74,34,14,.35){{ f.mNoRing }};font-family:'Baloo 2';font-weight:800;font-size:19px;line-height:1.1;box-sizing:border-box">{{ f.mNo }}</div>
+                  <div style="height:64px;padding:0 10px;display:flex;align-items:center;justify-content:center;text-align:center;border-radius:14px;background:{{ f.mYesBg }};border:3px solid #24140B;box-shadow:3px 5px 0 #8A3E22;font-family:'Baloo 2';font-weight:800;font-size:19px;line-height:1.1;color:#2A1505;box-sizing:border-box">{{ f.mYes }}</div>
+                </div>
+              </div>
+            </div>
+          </sc-if>
+        </div>
+      </div>
+    </div>
+  </sc-for>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+const RULE = { std: ['asc/fx/dmg.png', 'Standard', '+10% enemy dmg · +10% elite HP'], clock: ['asc/new-icons/boss-clock.svg', 'Harsh clock', 'Clock from turn 6, +20%/turn, max +100%'],
+  spike: ['hl/icons/spike.svg', 'Spike rush', 'Big hits come 1 turn sooner'], hunt: ['asc/fx/elite.png', 'Hunted', '+2 elite nodes'], heavy: ['asc/fx/vuln.png', 'Heavy blows', '+15% enemy damage'],
+  thick: ['asc/fx/boss.png', 'Thick boss', '+25% boss HP'], allc: ['asc/fx/buff.svg', 'Side · later', 'All colours: 4+ classes'], oneh: ['asc/fx/buff.svg', 'Side · later', 'One house: Aqua only'] };
+const T = [
+  ['N1', 'Short · A3', 300, 1.60, 480, 4, ['std', 'allc'], .58, null, 'A3'], ['N2', 'Short · A4', 500, 1.95, 975, 8, ['std', 'clock', 'oneh'], .41, .30, 'A4'],
+  ['N3', 'Short · A6', 800, 2.45, 1960, 14, ['std', 'spike', 'heavy'], .31, .25, 'A6'], ['N4', 'Short · A7', 1200, 3.30, 3960, 22, ['std', 'hunt', 'thick'], .24, null, 'A7'],
+  ['N5', 'Short · A9', 1800, 3.78, 6805, 34, ['std', 'clock', 'heavy'], null, null, 'A9'], ['N6', 'Full · A9', 2500, 6.48, 16200, 60, ['std', 'spike', 'thick'], .12, null, 'A9 Full'],
+];
+const fmt = n => n.toLocaleString('en-US');
+const shelf = '3px 4px 0 rgba(74,34,14,.35)';
+const RING = ',0 0 0 4px #FFC445,0 0 0 7px #24140B';
+const PRI = { btnBg: 'linear-gradient(180deg,#FFB070,#FF8A3A)', btnBd: '#24140B', btnInk: '#2A1505', btnSh: 'inset 2px 2px 0 rgba(255,248,234,.65),3px 5px 0 #8A3E22' };
+const DIS = { btnBg: '#DDBF8C', btnBd: '#9A7650', btnInk: '#6E4A30', btnSh: 'none' };
+function card(i, o) {
+  const [tier, mode, stake, m, pay, stone, rules, wr, you, asc] = T[i];
+  const r = rules.map(k => ({ icon: RULE[k][0], k: RULE[k][1], t: RULE[k][2], bg: k.length === 4 && k !== 'hunt' && k !== 'std' ? '#FFF8EA' : '#F8EBD2', bs: RULE[k][1].startsWith('Side') ? 'dashed' : 'solid', bd: RULE[k][1].startsWith('Side') ? '#8A3E22' : '#B89A74' }));
+  const locked = o.lockFrom != null && i >= o.lockFrom || o.newbie || (o.lockTier && o.lockTier[i]);
+  const base = { tier, mode, m: '×' + m.toFixed(2), mLine: `table ×${m.toFixed(2)} · updated 12 Oct`, stake: fmt(stake), pay: fmt(pay), stone, rules: r, ink: '#3A2214' };
+  if (locked) {
+    let lockT = 'Not in this build', lockLines = [`Later: needs Mission house level ${i - 1}${i === 5 ? ' and a Full run won at A9' : ''}`];
+    if (o.newbie) { lockT = 'Opens after 5 runs · 2 of 5'; lockLines = [`Then: win a run at ${asc.split(' ')[0]} to unlock`]; }
+    else if (o.lockTier && o.lockTier[i]) { lockT = o.lockTier[i][0]; lockLines = o.lockTier[i].slice(1); }
+    return { ...base, open: false, locked: true, lockT, lockLines, bg: '#EFE2C8', bs: 'dashed', bd: '#9A7650', sh: 'none', tierBg: '#E8D6B4', tierInk: '#6E4A30' };
+  }
+  const rate = you ?? wr, ret = rate ? Math.round(rate * m * 100) : null;
+  const test = i >= 4;
+  const short = o.shard < stake, busy = o.busy, off = o.offline || o.guest;
+  const btn = busy ? { btn: 'Finish or abandon your open run first', btnSub: '' , ...DIS } : off ? { btn: o.guest ? 'Sign in to stake' : 'Needs a connection', btnSub: '', ...DIS }
+    : short ? { btn: `Stake ${fmt(stake)}`, btnSub: `need ${fmt(stake - o.shard)} more Shard`, ...DIS } : { btn: `Stake ${fmt(stake)} and play`, btnSub: 'stake is lost if you fail', ...PRI };
+  if (i === (o.ring ?? 0) && !busy && !off && !short) btn.btnSh += RING;
+  return { ...base, open: true, locked: false, bg: 'linear-gradient(180deg,#FFF8EA,#F3E2C2)', bs: 'solid', bd: '#8A3E22', sh: shelf, tierBg: '#FF9345', tierInk: '#2A1505',
+    nums: [{ k: 'Stake', v: fmt(stake), icon: 'asc/fx/shard.png' }, { k: 'Pay if you win', v: `${fmt(pay)} (+${fmt(pay - stake)})`, icon: 'asc/fx/shard.png' },
+      { k: 'Stone if you win', v: String(stone), icon: 'hl/i/stone.png' }, { k: 'All players win', v: wr ? `about ${Math.round(wr * 100)}%` : 'Not enough data', icon: 'asc/fx/elite.png' }],
+    ret: ret ? `Expected return: about ${ret}% of your stake` + (you ? ' · your figure' : ' · all players') : 'Expected return: not enough data yet',
+    you: you ? `You win about ${Math.round(you * 100)}% (shown after 10 runs, in steps of 5)` : test ? 'Test tier: on average players get back less than 100%.' : '',
+    ...btn };
+}
+const LV = [[1, 'N1–N3 · free'], [2, '+N4 · 3,000 Shard + 4,000 Stone'], [3, '+N5 · 8,000 + 12,000'], [4, '+N6 · 20,000 + 30,000']];
+function board(o) {
+  const cur = o.house ?? 1;
+  const later = !!o.later;
+  return {
+    H: 1080, ph: 880, guest: !!o.guest, newbie: !!o.newbie, shard: fmt(o.shard ?? 1240), usable: fmt((o.shard ?? 1240) - 300), banner: '', modal: false,
+    levels: LV.map(([n, t]) => ({ n, t, bg: n === cur ? '#FFE3A6' : n < cur ? '#A8D878' : '#F8EBD2', bd: n === cur ? '#24140B' : '#B89A74', ink: '#3A2214' })),
+    upT: later ? `Upgrade to level ${cur + 1}` : 'Upgrade', upS: later ? (cur === 2 ? '8,000 Shard + 12,000 Stone' : '') : 'Not in this build',
+    ...(later && o.canUp ? { upBg: 'linear-gradient(180deg,#FFB070,#FF8A3A)', upBd: '#24140B', upInk: '#2A1505', upSh: '3px 4px 0 #8A3E22' } : { upBg: '#DDBF8C', upBd: '#9A7650', upInk: '#6E4A30', upSh: 'none' }),
+    cards: T.map((_, i) => card(i, { shard: o.shard ?? 1240, ...o })),
+  };
+}
+class Component extends DCLogic {
+  renderVals() {
+    const F = [];
+    const add = (id, caption, note, o, x = {}) => F.push({ id, caption, note, ...board(o), ...x });
+    add('M6a', 'Board · L1 playtest (N1–N3)', 'L1: N4–N6 shown locked with "Not in this build" and their later requirement; house upgrade disabled with the same reason. Everything the player pays for is on the card before staking. Focus on N1 Stake.', { lockFrom: 3, shard: 1240 });
+    add('M6b', 'Board · later build, house level 2', 'N4 open via house level 2. N5/N6 locked with exact requirements. Upgrade button enabled when affordable.', { later: true, house: 2, canUp: true, shard: 9400, ring: 3,
+      lockTier: { 4: ['Needs Mission house level 3', 'And a run won at A9'], 5: ['Needs Mission house level 4', 'And a Full run won at A9'] } });
+    add('M6c', 'Confirm stake (N2)', 'Modal 600 wide. Decline same size; focus starts on Not now. The soft line is information, not a block.', { lockFrom: 3, shard: 1240 }, { modal: true, mLeft: 460, mTop: 130, mW: 600,
+      mHead: 'linear-gradient(180deg,#D79A58,#B87440)', mHeadInk: '#2A1505', mTitle: 'Stake for mission N2?', mNoRing: ',0 0 0 7px #FFC445,0 0 0 10px #24140B',
+      mRows: [{ icon: 'asc/fx/dmg.png', t: 'Short · A4 · Standard + Harsh clock', v: 'N2', bg: '#FFF8EA' }, { icon: 'asc/fx/shard.png', t: 'Balance after payment', v: '1,240 → 740', bg: '#FFF8EA' }, { icon: 'hl/icons/aid.svg', t: 'No Aid, no Continue, no Boon in this run. One life.', v: '', bg: '#3B261822' }],
+      mLines: ['You pay 500 Shard. Win: you get 975 (+475) and 8 Stone. Lose or quit: you lose 500, no refund. Expected return for you: about 59%.'],
+      mSoft: 'Today\u2019s stakes would be 62% of your estimated weekly Shard income. You can still continue.', mNo: 'Not now', mYes: 'Stake 500 and play (stake is lost if you fail)', mYesBg: 'linear-gradient(180deg,#FFB070,#FF8A3A)' });
+    add('M6d', 'Result · mission won', 'Neutral and specific. Two equal buttons. Returns to this board.', { lockFrom: 3, shard: 2215 }, { modal: true, mLeft: 360, mTop: 120, mW: 800, mHead: 'linear-gradient(180deg,#A8D878,#7DBE4E)', mHeadInk: '#183A0C', mTitle: 'Mission won · N2', mNoRing: '',
+      mRows: [{ icon: 'asc/fx/shard.png', t: '+975 Shard · stake 500 returned in that total', v: '+975', bg: '#FFF8EA' }, { icon: 'hl/i/stone.png', t: 'Land Stone', v: '+8', bg: '#FFF8EA' }, { icon: 'asc/fx/boss.png', t: '3 bosses beaten · 41 turns · party 4 of 5 standing · boss clock max +40%', v: '', bg: '#FFF8EA' }],
+      mLines: ['Shard balance 1,240 → 2,215.'], mNo: 'Back to missions', mYes: 'Play a normal run', mYesBg: 'linear-gradient(180deg,#FFF8EA,#EBD3A8)' });
+    add('M6e', 'Result · mission lost', 'States what happened, no "so close", no buy-back, no discount.', { lockFrom: 3, shard: 740 }, { modal: true, mLeft: 360, mTop: 120, mW: 800, mHead: 'linear-gradient(180deg,#4A3A30,#3B2618)', mHeadInk: '#FFF8EA', mTitle: 'Mission lost · N2', mNoRing: '',
+      mRows: [{ icon: 'asc/fx/boss.png', t: 'Boss 2 beat your team on turn 9, boss clock was +60%.', v: '', bg: '#FFF8EA' }, { icon: 'asc/fx/shard.png', t: 'You lost 500 Shard.', v: '−500', bg: '#FFF8EA' }, { icon: 'asc/fx/elite.png', t: 'Floors cleared 9 of 15 · 1 boss beaten', v: '', bg: '#FFF8EA' }],
+      mLines: ['Shard balance 740.'], mNo: 'Back to missions', mYes: 'Play a normal run', mYesBg: 'linear-gradient(180deg,#FFF8EA,#EBD3A8)' });
+    add('M6f', 'Result · run cancelled by the server', 'Verifier error: full refund, no reward.', { lockFrom: 3, shard: 1240 }, { modal: true, mLeft: 360, mTop: 160, mW: 800, mHead: 'linear-gradient(180deg,#4A3A30,#3B2618)', mHeadInk: '#FFF8EA', mTitle: 'Run cancelled by the server', mNoRing: '',
+      mRows: [{ icon: 'asc/fx/shard.png', t: 'Your stake was refunded in full.', v: '+500', bg: '#FFF8EA' }], mLines: ['The server could not verify this run, so it does not count as a win or a loss. No Shard reward. Balance back to 1,240.'], mNo: 'Back to missions', mYes: 'Play a normal run', mYesBg: 'linear-gradient(180deg,#FFF8EA,#EBD3A8)' });
+    add('M6g', 'Newcomer · all locked', 'Fewer than 5 runs: every card locked with the count. Missions shortcut shows its lock.', { newbie: true, shard: 600 });
+    add('M6h', 'Not enough Shard', 'Stake button disabled and shows the missing amount. Stakes cannot use the starter allowance (shown in the header).', { lockFrom: 3, shard: 640 });
+    add('M6i', 'Open run exists', 'Only one run can be open. Cards disabled with the reason.', { lockFrom: 3, busy: true, shard: 1240 }, { banner: 'A normal run is open: Act 2 · Floor 6.', bannerSub: 'Finish or abandon it in Run Setup before you stake.', bannerIcon: 'hl/b/portal.png', bannerBtn: '' });
+    add('M6j', 'Offline', 'Cards readable, stakes disabled "Needs a connection".', { lockFrom: 3, offline: true, shard: 1240 }, { banner: 'You are offline.', bannerSub: 'Board shown from 14:02. Staking needs a connection.', bannerIcon: 'asc/fx/vuln.png', bannerBtn: 'Try again' });
+    add('M6k', 'Guest', 'Guest can read every card; staking needs an account.', { lockFrom: 3, guest: true, shard: 0 }, { banner: 'Sign in to stake.', bannerSub: 'Missions use Gene Shard from your account. Guests can read the board.', bannerIcon: 'asc/fx/shield.png', bannerBtn: 'Sign in' });
+    const tall = { ...F[0], id: 'M6l', caption: 'Board · taller window', H: 1240, ph: 1040, note: 'Extra height goes to the card rows; nothing scrolls.' };
+    F.push(tall);
+    const only = (location.hash.match(/f=([\w,]+)/) || [])[1];
+    return {
+      frames: only ? F.filter(f => only.split(',').includes(f.id)) : F,
+      ruleCol: [
+        { icon: 'asc/fx/shard.png', t: 'You pay the stake before the run. Win: the stake comes back inside the payout. Lose or quit: the stake is gone.' },
+        { icon: 'hl/icons/aid.svg', t: 'No Aid, no Continue, no Boon. One life.' },
+        { icon: 'asc/fx/dmg.png', t: 'Standard set on every card: enemies +10% damage, elites +10% HP.' },
+        { icon: 'asc/fx/reroll.svg', t: 'Multiplier m is public and can only go down; the date shows the last change.' },
+        { icon: 'asc/fx/elite.png', t: 'Unlock a tier by winning a run at its Ascension: N1 A3 · N2 A4 · N3 A6 · N4 A7.' },
+      ],
+      extras: ['clock', 'spike', 'hunt', 'heavy', 'thick'].map(k => ({ icon: RULE[k][0], k: RULE[k][1], t: RULE[k][2] })),
+    };
+  }
+  componentDidMount() { this._h = () => this.forceUpdate(); window.addEventListener('hashchange', this._h); }
+  componentWillUnmount() { window.removeEventListener('hashchange', this._h); }
+}
+</script>
+</body>
+</html>

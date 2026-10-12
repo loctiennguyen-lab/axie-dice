@@ -1,5 +1,7 @@
 Trạng thái: ĐỀ XUẤT — chờ Liam review
 
+> **QUYẾT ĐỊNH LIAM (12/10 tối):** hết mùa vẫn nhận được phần thưởng Pass đã đạt mà chưa nhận; chỉ dừng cộng XP.
+
 > **LIAM ĐÍNH CHÍNH + XÁC NHẬN (10/10):** mỗi lượt quay ra ĐÚNG MỘT phần thưởng — Land Stone là một loại
 > phần thưởng trong bảng rơi (tỉ lệ cao), không kèm mọi lượt. Hộp mùa cũng ra Stone, lượng cao hơn hộp thường.
 > **QUYẾT ĐỊNH LIAM (10/10, 5 câu sau bản 2 hộp):** (1) **giá vé cơ sở = 200 Shard** (không hỏi lại) ·

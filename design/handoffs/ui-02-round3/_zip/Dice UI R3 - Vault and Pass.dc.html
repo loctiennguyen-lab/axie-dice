@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<script src="_ds/dango-design-system-b8da985f-efd5-488e-ae62-d508e48befe9/_ds_bundle.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&amp;family=Work+Sans:wght@500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0;background:#2A1C12}
+a{color:#FF9345;text-decoration:none}a:hover{color:#FFB275}
+</style>
+</helmet>
+<div style="display:flex;flex-direction:column;gap:64px;padding:64px;width:max-content;background:#2A1C12;font-family:'Work Sans',sans-serif;color:#3A2214;-webkit-font-smoothing:antialiased">
+  <div style="display:flex;flex-direction:column;gap:8px;max-width:1920px">
+    <div style="font-family:'Baloo 2';font-weight:800;font-size:15px;letter-spacing:.18em;color:#D79A58">AXIE DICE · UI REQUEST 02 · ROUND 3 · M3 + M4</div>
+    <div style="font-family:'Baloo 2';font-weight:800;font-size:60px;line-height:1;color:#FFF8EA">Vault · Season Pass</div>
+    <div style="font-size:17px;line-height:1.5;color:#DDBF8C;max-width:1300px;text-wrap:pretty">Vault (key 6, GemStorage) imports real Axies; Season Pass (key 5, EquipmentStall) shows Season 1. <a href="Dice UI R3 README.md">R3 README</a> · <a href="Dice UI R3 - Run Setup.dc.html">← M1/M2</a> · <a href="Dice UI R3 - Echo Box.dc.html">M5 →</a></div>
+  </div>
+
+  <sc-for list="{{ frames }}" as="f" hint-placeholder-count="2">
+    <div data-screen-label="{{ f.id }}" style="display:flex;flex-direction:column;gap:12px">
+      <div style="display:flex;align-items:center;gap:12px">
+        <div style="height:34px;padding:0 12px;display:flex;align-items:center;border-radius:9px;background:#FF9345;border:3px solid #24140B;font-family:'Baloo 2';font-size:17px;font-weight:800;color:#2A1505">{{ f.id }}</div>
+        <div style="font-family:'Baloo 2';font-size:26px;font-weight:800;color:#FFF8EA">{{ f.caption }}</div>
+        <div style="font-size:14px;font-weight:600;color:#B89A74">1920 × 1080</div>
+      </div>
+      <div style="font-size:15px;color:#DDBF8C;max-width:1600px">{{ f.note }}</div>
+      <div style="position:relative;width:1920px;height:1080px;overflow:hidden">
+        <dc-import name="R3 Land Backdrop" h="1080" guest="{{ f.guest }}" dots="{{ f.dots }}" style="position:absolute;inset:0" hint-size="1920px,1080px"></dc-import>
+        <div style="position:absolute;left:200px;top:116px;width:1520px;height:880px;border-radius:28px;background:linear-gradient(180deg,#F8EBD2,#EBD3A8);border:4px solid #8A3E22;box-shadow:inset 2px 2px 0 rgba(255,248,234,.65),5px 8px 0 rgba(36,20,11,.45);overflow:hidden;display:flex;flex-direction:column;box-sizing:border-box">
+          <div style="height:64px;flex:none;display:flex;align-items:center;gap:14px;padding:0 16px 0 8px;background:linear-gradient(180deg,#D79A58,#B87440);border-bottom:4px solid #8A3E22">
+            <div style="height:48px;padding:0 14px 0 10px;display:flex;align-items:center;gap:8px;border-radius:12px;background:linear-gradient(180deg,#FFF8EA,#EBD3A8);border:3px solid #24140B;box-shadow:inset 2px 2px 0 rgba(255,248,234,.65),3px 4px 0 rgba(74,34,14,.35);font-family:'Baloo 2';font-weight:800;font-size:18px;box-sizing:border-box"><span style="font-size:20px">←</span>Back<span style="height:22px;padding:0 6px;border-radius:6px;background:#3B2618;color:#FFF8EA;font-size:13px;display:flex;align-items:center">Esc</span></div>
+            <img src="{{ f.thumb }}" alt="" style="width:36px;height:36px;object-fit:contain">
+            <div style="font-family:'Baloo 2';font-weight:800;font-size:36px;line-height:1;color:#2A1505">{{ f.title }}</div>
+            <div style="font-size:14px;font-weight:700;color:#3A1E07">{{ f.headSub }}</div>
+            <div style="flex:1"></div>
+            <sc-if value="{{ f.headRight }}" hint-placeholder-val="{{ false }}"><div style="height:44px;padding:0 14px;display:flex;align-items:center;gap:8px;border-radius:12px;background:#FFF8EA;border:3px solid #24140B;font-family:'Baloo 2';font-weight:800;font-size:17px">{{ f.headRight }}</div></sc-if>
+          </div>
+          <sc-if value="{{ f.banner }}" hint-placeholder-val="{{ false }}">
+            <div style="margin:14px 24px 0;min-height:64px;flex:none;display:flex;align-items:center;gap:14px;padding:8px 10px 8px 16px;border-radius:16px;background:#3B2618;border:3px solid #24140B;box-shadow:3px 4px 0 rgba(74,34,14,.35)">
+              <img src="{{ f.bannerIcon }}" alt="" style="width:30px;height:30px">
+              <div style="flex:1;display:flex;flex-direction:column;gap:2px"><div style="font-family:'Baloo 2';font-weight:800;font-size:18px;color:#FFF8EA">{{ f.banner }}</div><div style="font-size:13px;font-weight:600;color:#DDBF8C">{{ f.bannerSub }}</div></div>
+              <div style="height:48px;width:170px;display:flex;align-items:center;justify-content:center;border-radius:12px;background:linear-gradient(180deg,#FFB070,#FF8A3A);border:3px solid #24140B;box-shadow:3px 5px 0 #8A3E22;font-family:'Baloo 2';font-weight:800;font-size:18px;color:#2A1505;box-sizing:border-box">{{ f.bannerBtn }}</div>
+              <div style="height:48px;width:170px;display:flex;align-items:center;justify-content:center;border-radius:12px;background:linear-gradient(180deg,#FFF8EA,#EBD3A8);border:3px solid #24140B;box-shadow:3px 4px 0 rgba(74,34,14,.35);font-family:'Baloo 2';font-weight:800;font-size:18px;box-sizing:border-box">Back to Land</div>
+            </div>
+          </sc-if>
+
+          <!-- M3 VAULT -->
+          <sc-if value="{{ f.vault }}" hint-placeholder-val="{{ false }}">
+            <div style="flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,1fr) 560px;gap:20px;padding:16px 24px 24px">
+              <div style="display:flex;flex-direction:column;gap:12px;padding:16px;border-radius:20px;background:#FFF8EA;border:3px solid #8A3E22;opacity:{{ f.gridOp }}">
+                <div style="display:flex;align-items:center;gap:10px">
+                  <div style="font-family:'Baloo 2';font-weight:800;font-size:15px;letter-spacing:.06em;color:#8A3E22">COLLECTION</div>
+                  <div style="font-family:'Baloo 2';font-weight:800;font-size:18px">{{ f.count }} / 20 imported</div>
+                  <sc-if value="{{ f.full }}" hint-placeholder-val="{{ false }}"><div style="height:26px;padding:0 10px;display:flex;align-items:center;border-radius:999px;background:#FFC445;border:2px solid #24140B;font-family:'Baloo 2';font-weight:800;font-size:14px;color:#3A2A12">FULL</div></sc-if>
+                  <div style="flex:1"></div>
+                  <div style="font-size:13px;font-weight:600;color:#6E4A30">NFT Axies play in every run, including Ranked and missions.</div>
+                </div>
+                <sc-if value="{{ f.vEmpty }}" hint-placeholder-val="{{ false }}">
+                  <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;border-radius:16px;border:3px dashed #B89A74">
+                    <img src="hl/b/vault.png" alt="" style="width:150px;height:150px;object-fit:contain;opacity:.85">
+                    <div style="font-family:'Baloo 2';font-weight:800;font-size:28px">No Axies imported yet</div>
+                    <div style="font-size:15px;font-weight:600;color:#6E4A30;max-width:480px;text-align:center">Type the ID of an Axie you own. Its six body parts become the six faces of its die.</div>
+                  </div>
+                </sc-if>
+                <sc-if value="{{ f.vGrid }}" hint-placeholder-val="{{ true }}">
+                  <div style="flex:1;display:grid;grid-template-columns:repeat(5,1fr);grid-template-rows:repeat(4,1fr);gap:10px">
+                    <sc-for list="{{ f.tiles }}" as="t" hint-placeholder-count="20">
+                      <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;border-radius:14px;background:{{ t.bg }};border:3px {{ t.bs }} {{ t.bd }};box-shadow:{{ t.sh }};box-sizing:border-box">
+                        <sc-if value="{{ t.on }}" hint-placeholder-val="{{ true }}">
+                          <img src="{{ t.img }}" alt="" style="width:52px;height:52px;border-radius:50%;background:#FFF8EA;border:3px solid #24140B;box-sizing:border-box">
+                          <div style="font-family:'Baloo 2';font-weight:800;font-size:16px;line-height:1">{{ t.name }}</div>
+                          <div style="font-size:12px;font-weight:700;color:#6E4A30">#{{ t.axid }} · {{ t.cls }}</div>
+                        </sc-if>
+                      </div>
+                    </sc-for>
+                  </div>
+                </sc-if>
+              </div>
+
+              <div style="display:flex;flex-direction:column;gap:12px;padding:16px;border-radius:20px;background:#FFF8EA;border:3px solid #8A3E22">
+                <div style="font-family:'Baloo 2';font-weight:800;font-size:15px;letter-spacing:.06em;color:#8A3E22">{{ f.rightLabel }}</div>
+                <div style="display:flex;gap:10px">
+                  <div style="flex:1;height:48px;display:flex;align-items:center;padding:0 14px;border-radius:12px;background:{{ f.fieldBg }};border:3px solid {{ f.fieldBd }};box-shadow:{{ f.fieldSh }};font-family:'Baloo 2';font-weight:800;font-size:19px;color:{{ f.fieldInk }};box-sizing:border-box">{{ f.field }}</div>
+                  <div style="width:120px;height:48px;display:flex;align-items:center;justify-content:center;border-radius:12px;background:{{ f.scanBg }};border:3px solid {{ f.scanBd }};box-shadow:{{ f.scanSh }};font-family:'Baloo 2';font-weight:800;font-size:18px;color:{{ f.scanInk }};box-sizing:border-box">Scan</div>
+                </div>
+                <sc-if value="{{ f.scanNote }}" hint-placeholder-val="{{ false }}"><div style="font-size:13px;font-weight:700;color:#6E4A30">{{ f.scanNote }}</div></sc-if>
+                <sc-for list="{{ f.status }}" as="s" hint-placeholder-count="0">
+                  <div style="display:flex;align-items:flex-start;gap:10px;padding:12px;border-radius:14px;background:{{ s.bg }};border:3px solid {{ s.bd }}">
+                    <img src="{{ s.icon }}" alt="" style="width:26px;height:26px">
+                    <div style="flex:1;display:flex;flex-direction:column;gap:2px"><div style="font-family:'Baloo 2';font-weight:800;font-size:17px;color:{{ s.ink }}">{{ s.t }}</div><div style="font-size:13px;font-weight:600;line-height:1.4;color:{{ s.ink2 }}">{{ s.d }}</div></div>
+                  </div>
+                </sc-for>
+                <sc-if value="{{ f.found }}" hint-placeholder-val="{{ false }}">
+                  <div style="display:flex;gap:12px">
+                    <div style="width:190px;height:160px;flex:none;border-radius:16px;border:3px dashed #8A3E22;background:rgba(221,191,140,.4);display:flex;align-items:center;justify-content:center;font-family:'Baloo 2';font-weight:800;font-size:16px;color:#5A2812">Axie 3D</div>
+                    <div style="flex:1;display:flex;flex-direction:column;gap:6px">
+                      <div style="font-family:'Baloo 2';font-weight:800;font-size:24px;line-height:1.1">{{ f.fName }}</div>
+                      <div style="font-size:13px;font-weight:700;color:#6E4A30">{{ f.fLine }}</div>
+                      <div style="display:flex;gap:6px;flex-wrap:wrap">
+                        <div style="height:26px;padding:0 8px;display:flex;align-items:center;gap:4px;border-radius:8px;background:#F8EBD2;border:2px solid #24140B;font-family:'Baloo 2';font-weight:800;font-size:14px"><img src="{{ f.fCls }}" alt="" style="width:18px;height:18px;border-radius:50%">{{ f.fClsName }}</div>
+                        <div style="height:26px;padding:0 8px;display:flex;align-items:center;border-radius:8px;background:#FFC445;border:2px solid #24140B;font-family:'Baloo 2';font-weight:800;font-size:14px;color:#3A2A12">NFT</div>
+                        <sc-if value="{{ f.secret }}" hint-placeholder-val="{{ false }}"><div style="height:26px;padding:0 8px;display:flex;align-items:center;border-radius:8px;background:#3B2618;border:2px solid #24140B;font-family:'Baloo 2';font-weight:800;font-size:14px;color:#FFC79B">Secret · plays as Beast</div></sc-if>
+                      </div>
+                    </div>
+                  </div>
+                  <div style="display:flex;flex-direction:column;gap:4px;padding:6px;border-radius:12px;background:#DDBF8C;border:2px solid #B89A74">
+                    <sc-for list="{{ parts }}" as="p" hint-placeholder-count="6">
+                      <div style="height:38px;display:flex;align-items:center;gap:10px;padding:0 8px;border-radius:9px;background:#FFF8EA">
+                        <img src="{{ p.icon }}" alt="" style="width:28px;height:28px">
+                        <div style="width:58px;font-size:12px;font-weight:700;color:#6E4A30">{{ p.slot }}</div>
+                        <div style="flex:1;font-family:'Baloo 2';font-weight:800;font-size:16px">{{ p.name }}</div>
+                        <div style="font-size:13px;color:#6E4A30;white-space:nowrap">→ face {{ p.n }}</div>
+                        <div style="width:58px;height:30px;display:flex;align-items:center;justify-content:center;gap:2px;border-radius:8px;background:{{ p.bg }};border:2px solid #24140B;box-sizing:border-box"><img src="{{ p.fi }}" alt="" style="width:16px;height:16px"><span style="font-family:'Baloo 2';font-weight:800;font-size:15px">{{ p.v }}</span></div>
+                      </div>
+                    </sc-for>
+                  </div>
+                  <div style="flex:1"></div>
+                  <div style="display:flex;gap:10px">
+                    <div style="flex:1.3;height:60px;display:flex;align-items:center;justify-content:center;border-radius:14px;background:{{ f.addBg }};border:3px solid {{ f.addBd }};box-shadow:{{ f.addSh }};font-family:'Baloo 2';font-weight:800;font-size:20px;color:{{ f.addInk }};box-sizing:border-box;text-align:center;line-height:1.05">{{ f.addLabel }}</div>
+                    <div style="flex:1;height:60px;display:flex;align-items:center;justify-content:center;border-radius:14px;background:linear-gradient(180deg,#FFF8EA,#EBD3A8);border:3px solid #24140B;box-shadow:3px 5px 0 rgba(74,34,14,.35);font-family:'Baloo 2';font-weight:800;font-size:18px;box-sizing:border-box">Use in team</div>
+                    <sc-if value="{{ f.canRemove }}" hint-placeholder-val="{{ false }}"><div style="width:120px;height:60px;display:flex;align-items:center;justify-content:center;border-radius:14px;background:linear-gradient(180deg,#FFF8EA,#EBD3A8);border:3px solid #24140B;box-shadow:3px 5px 0 rgba(74,34,14,.35);font-family:'Baloo 2';font-weight:800;font-size:18px;box-sizing:border-box">Remove</div></sc-if>
+                  </div>
+                </sc-if>
+                <sc-if value="{{ f.idle }}" hint-placeholder-val="{{ false }}">
+                  <div style="flex:1;display:flex;flex-direction:column;gap:10px;justify-content:center;padding:16px;border-radius:14px;background:#F8EBD2;border:2px solid #B89A74;font-size:14px;font-weight:600;line-height:1.5;color:#6E4A30">
+                    <div style="font-family:'Baloo 2';font-weight:800;font-size:18px;color:#3A2214">How import works</div>
+                    <div>1 · Type the Axie ID from the marketplace or your wallet.</div>
+                    <div>2 · Scan reads its genes; the six body parts become six die faces.</div>
+                    <div>3 · Add to Vault. Up to 20 Axies. Remove frees a slot at any time.</div>
+                  </div>
+                </sc-if>
+              </div>
+            </div>
+          </sc-if>
+
+          <!-- M4 PASS -->
+          <sc-if value="{{ f.pass }}" hint-placeholder-val="{{ false }}">
+            <div style="flex:1;min-height:0;display:flex;flex-direction:column;gap:12px;padding:14px 24px 18px;opacity:{{ f.passOp }}">
+              <div style="display:flex;align-items:center;gap:18px;padding:12px 16px;border-radius:20px;background:#FFF8EA;border:3px solid #8A3E22">
+                <div style="width:72px;height:72px;flex:none;border-radius:18px;background:linear-gradient(180deg,#FFB070,#FF8A3A);border:3px solid #24140B;box-shadow:3px 4px 0 #8A3E22;display:flex;flex-direction:column;align-items:center;justify-content:center;box-sizing:border-box"><div style="font-family:'Baloo 2';font-weight:800;font-size:13px;color:#4A2208;line-height:1">LEVEL</div><div style="font-family:'Baloo 2';font-weight:800;font-size:34px;line-height:1;color:#2A1505">{{ f.lv }}</div></div>
+                <div style="flex:1;display:flex;flex-direction:column;gap:6px">
+                  <div style="display:flex;align-items:baseline;gap:12px"><div style="font-family:'Baloo 2';font-weight:800;font-size:22px">{{ f.seasonLine }}</div><div style="font-size:13px;font-weight:700;color:#6E4A30">{{ f.xpNote }}</div></div>
+                  <div style="position:relative;height:26px;border-radius:9px;background:#4A2A1A;border:3px solid #24140B;overflow:hidden;box-sizing:border-box">
+                    <div style="position:absolute;left:0;top:0;bottom:0;width:{{ f.xpPct }}%;background:linear-gradient(180deg,#FFD78A,#FFB23F)"></div>
+                    <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:'Baloo 2';font-weight:800;font-size:15px;color:#FFF8EA;text-shadow:-2px 0 #24140B,2px 0 #24140B,0 -2px #24140B,0 2px #24140B">{{ f.xpText }}</div>
+                  </div>
+                  <div style="font-size:12px;font-weight:600;color:#6E4A30">XP: runs give XP up to 1,500 a UTC day, then 20% (max 2,000 a day). First run each day +100 XP. Level L needs 500 + 40 × (L − 1) XP.</div>
+                </div>
+                <div style="width:220px;height:60px;display:flex;flex-direction:column;align-items:center;justify-content:center;border-radius:14px;background:{{ f.allBg }};border:3px solid {{ f.allBd }};box-shadow:{{ f.allSh }};box-sizing:border-box"><div style="font-family:'Baloo 2';font-weight:800;font-size:20px;line-height:1;color:{{ f.allInk }}">Claim all</div><div style="font-size:12px;font-weight:700;color:{{ f.allInk }}">{{ f.allSub }}</div></div>
+              </div>
+              <div style="display:flex;align-items:stretch;gap:10px">
+                <div style="width:150px;flex:none;display:flex;flex-direction:column;justify-content:center"><div style="font-family:'Baloo 2';font-weight:800;font-size:15px;letter-spacing:.06em;color:#8A3E22">WEEKLY TASKS</div><div style="font-size:12px;font-weight:700;color:#6E4A30">Week of 12 Oct · each 500 XP · claimable until the season ends</div></div>
+                <sc-for list="{{ f.tasks }}" as="t" hint-placeholder-count="3">
+                  <div style="flex:1;height:64px;display:flex;align-items:center;gap:10px;padding:0 10px 0 14px;border-radius:14px;background:{{ t.bg }};border:3px solid {{ t.bd }};box-sizing:border-box">
+                    <div style="flex:1;display:flex;flex-direction:column;gap:4px"><div style="font-family:'Baloo 2';font-weight:800;font-size:16px;line-height:1">{{ t.t }}</div>
+                      <div style="height:12px;border-radius:6px;background:#4A2A1A;border:2px solid #24140B;overflow:hidden;box-sizing:border-box"><div style="width:{{ t.pct }}%;height:100%;background:#FFB23F"></div></div></div>
+                    <div style="font-family:'Baloo 2';font-weight:800;font-size:15px;width:44px;text-align:right">{{ t.p }}</div>
+                    <div style="width:96px;height:36px;display:flex;align-items:center;justify-content:center;border-radius:10px;background:{{ t.btnBg }};border:3px solid {{ t.btnBd }};font-family:'Baloo 2';font-weight:800;font-size:14px;color:{{ t.btnInk }};box-sizing:border-box">{{ t.btn }}</div>
+                  </div>
+                </sc-for>
+              </div>
+              <div style="position:relative;flex:1;min-height:0;display:flex;flex-direction:column;gap:6px;padding:10px 0 0;border-radius:20px;background:#DDBF8C;border:3px solid #8A3E22;overflow:hidden">
+                <div style="display:flex;align-items:center;gap:10px;padding:0 14px"><div style="font-family:'Baloo 2';font-weight:800;font-size:15px;letter-spacing:.06em;color:#8A3E22">FREE TRACK · SEASON 1</div><div style="font-size:12px;font-weight:700;color:#6E4A30">{{ f.trackRange }} · ← → or the scroll bar · Shift+Tab back to the header</div></div>
+                <div style="position:relative;height:262px;overflow:hidden">
+                  <div style="position:absolute;top:0;left:{{ f.trackX }}px;display:flex;gap:8px;padding:0 14px">
+                    <sc-for list="{{ f.nodes }}" as="n" hint-placeholder-count="10">
+                      <div style="position:relative;width:132px;height:254px;flex:none;display:flex;flex-direction:column;align-items:center;gap:8px;padding:10px 6px;border-radius:16px;background:{{ n.bg }};border:3px solid {{ n.bd }};box-shadow:{{ n.sh }};box-sizing:border-box">
+                        <div style="height:22px;padding:0 8px;display:flex;align-items:center;border-radius:7px;background:{{ n.lvBg }};font-family:'Baloo 2';font-weight:800;font-size:13px;color:{{ n.lvInk }}">LV {{ n.lv }}</div>
+                        <div style="display:flex;align-items:center;gap:2px;height:72px"><sc-for list="{{ n.icons }}" as="i" hint-placeholder-count="1"><img src="{{ i }}" alt="" style="width:{{ n.isz }}px;height:{{ n.isz }}px;object-fit:contain;opacity:{{ n.iop }}"></sc-for></div>
+                        <div style="font-family:'Baloo 2';font-weight:800;font-size:14px;line-height:1.15;text-align:center;color:{{ n.ink }}">{{ n.label }}</div>
+                        <div style="display:flex;gap:3px;flex-wrap:wrap;justify-content:center"><sc-for list="{{ n.tags }}" as="g" hint-placeholder-count="0"><div style="height:20px;padding:0 6px;border-radius:999px;background:{{ g.bg }};border:2px solid {{ g.bd }};font-family:'Baloo 2';font-weight:800;font-size:12px;line-height:16px;color:{{ g.ink }}">{{ g.t }}</div></sc-for></div>
+                        <div style="flex:1"></div>
+                        <div style="width:112px;height:32px;display:flex;align-items:center;justify-content:center;gap:4px;border-radius:9px;background:{{ n.stBg }};border:{{ n.stBd }};font-family:'Baloo 2';font-weight:800;font-size:14px;color:{{ n.stInk }};box-sizing:border-box">{{ n.st }}</div>
+                      </div>
+                    </sc-for>
+                  </div>
+                </div>
+                <div style="position:relative;height:96px;margin:0 14px;border-radius:14px;background:#E8D6B4;border:3px dashed #9A7650;display:flex;align-items:center;gap:8px;padding:0 12px;overflow:hidden">
+                  <div style="position:absolute;left:-6px;top:10px;height:28px;padding:0 16px;background:#3B2618;border:2px solid #24140B;border-radius:0 8px 8px 0;font-family:'Baloo 2';font-weight:800;font-size:14px;line-height:24px;color:#FFC79B">SEASON 2</div>
+                  <div style="width:150px;flex:none;margin-top:30px;font-size:12px;font-weight:700;color:#6E4A30">Premium track opens in Season 2. No price yet, nothing to buy.</div>
+                  <sc-for list="{{ f.prem }}" as="n" hint-placeholder-count="9">
+                    <div style="width:116px;height:72px;flex:none;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;border-radius:12px;background:#DDBF8C;border:2px solid #B89A74"><img src="asc/new-icons/lock.svg" alt="" style="width:20px;height:20px;opacity:.6"><div style="font-family:'Baloo 2';font-weight:800;font-size:13px;color:#6E4A30">LV {{ n }} · Season 2</div></div>
+                  </sc-for>
+                </div>
+                <div style="height:14px;margin:4px 14px 10px;border-radius:7px;background:#B89A74;border:2px solid #8A3E22;position:relative;box-sizing:border-box"><div style="position:absolute;top:1px;bottom:1px;left:{{ f.thumbX }}%;width:33%;border-radius:5px;background:#3B2618"></div></div>
+                <sc-if value="{{ f.popover }}" hint-placeholder-val="{{ false }}">
+                  <div style="position:absolute;left:{{ f.popX }}px;top:300px;width:300px;padding:12px 14px;border-radius:16px;background:#3B2618;border:3px solid #24140B;box-shadow:4px 6px 0 rgba(36,20,11,.45);display:flex;flex-direction:column;gap:6px">
+                    <div style="display:flex;align-items:center;gap:8px"><div style="font-family:'Baloo 2';font-weight:800;font-size:18px;color:#FFF8EA">Bubble burst FX</div><div style="height:22px;padding:0 8px;border-radius:999px;background:#33B8FF;border:2px solid #24140B;font-family:'Baloo 2';font-weight:800;font-size:12px;line-height:18px;color:#062538">RARE</div></div>
+                    <div style="font-size:13px;font-weight:600;line-height:1.45;color:#DDBF8C">Dice FX · bubbles pop when a die lands. Cosmetic only. Season 1 item, also + 2,000 Land Stone.</div>
+                    <div style="font-size:12px;font-weight:700;color:#FFC79B">Level 15 · 1,980 XP after level 14 [focus or hover]</div>
+                  </div>
+                </sc-if>
+              </div>
+              <div style="height:60px;flex:none;display:flex;align-items:center;gap:14px;padding:0 14px;border-radius:16px;background:{{ f.loopBg }};border:3px solid #8A3E22">
+                <img src="asc/fx/shard.png" alt="" style="width:30px;height:30px">
+                <div style="font-family:'Baloo 2';font-weight:800;font-size:17px;width:300px">After level 30: every 2,000 XP = 50 Shard</div>
+                <div style="flex:1;height:20px;border-radius:8px;background:#4A2A1A;border:2px solid #24140B;overflow:hidden;box-sizing:border-box"><div style="width:{{ f.loopPct }}%;height:100%;background:#FFB23F"></div></div>
+                <div style="font-family:'Baloo 2';font-weight:800;font-size:15px;width:330px;text-align:right">{{ f.loopText }}</div>
+              </div>
+            </div>
+          </sc-if>
+        </div>
+      </div>
+    </div>
+  </sc-for>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+const AXN = [['Bloomtail', 'plant', 'Plant'], ['Reefy', 'aqua', 'Aqua'], ['Stinger', 'bug', 'Bug'], ['Shellback', 'reptile', 'Reptile'], ['Mane', 'beast', 'Beast']];
+const shelf = '3px 4px 0 rgba(74,34,14,.35)';
+const RING = '0 0 0 4px #FFC445,0 0 0 7px #24140B';
+const PRI = { bg: 'linear-gradient(180deg,#FFB070,#FF8A3A)', bd: '#24140B', ink: '#2A1505', sh: 'inset 2px 2px 0 rgba(255,248,234,.65),3px 5px 0 #8A3E22' };
+const DIS = { bg: '#DDBF8C', bd: '#9A7650', ink: '#6E4A30', sh: 'none' };
+function tiles(n, sel) {
+  return Array.from({ length: 20 }, (_, i) => {
+    if (i >= n) return { on: false, bg: 'transparent', bs: 'dashed', bd: '#CDAE7C', sh: 'none' };
+    const a = AXN[i % 5];
+    return { on: true, name: a[0] + (i >= 5 ? ' ' + (Math.floor(i / 5) + 1) : ''), cls: a[2], img: `asc/portrait/${a[1]}.png`, axid: String(11778888 + i * 7351).slice(0, 8),
+      bg: i === sel ? '#FFE3A6' : 'linear-gradient(180deg,#FFF8EA,#F3E2C2)', bs: 'solid', bd: i === sel ? '#FFC445' : '#8A3E22', sh: i === sel ? RING : shelf };
+  });
+}
+const ST = {
+  look: { icon: 'asc/fx/reroll.svg', t: 'Looking up Axie #11778888…', d: 'Reading genes from the chain. This takes a few seconds.', bg: '#F8EBD2', bd: '#B89A74', ink: '#3A2214', ink2: '#6E4A30' },
+  nf: { icon: 'asc/fx/vuln.png', t: 'No Axie with ID 99999999', d: 'Check the number on the marketplace page. IDs are digits only.', bg: '#FFE3A6', bd: '#24140B', ink: '#3A2214', ink2: '#6E4A30' },
+  gene: { icon: 'asc/fx/vuln.png', t: 'Axie #4120 came back without gene data', d: 'So there is nothing to build a die from. Eggs and some very old Axies have no genes yet.', bg: '#FFE3A6', bd: '#24140B', ink: '#3A2214', ink2: '#6E4A30' },
+  net: { icon: 'asc/fx/vuln.png', t: 'Could not reach the lookup service', d: 'Nothing was added. Try again in a moment.', bg: '#3B2618', bd: '#24140B', ink: '#FFF8EA', ink2: '#DDBF8C' },
+  full: { icon: 'asc/new-icons/lock.svg', t: 'VAULT FULL 20/20', d: 'Remove an Axie to import a new one. Scan still works so you can look.', bg: '#FFE3A6', bd: '#24140B', ink: '#3A2214', ink2: '#6E4A30' },
+};
+function vault(o) {
+  const scanOn = !o.offline && !o.looking;
+  return {
+    vault: true, pass: false, thumb: 'hl/b/vault.png', title: 'Vault', headSub: 'Import real Axies to use in runs', headRight: '',
+    count: o.n, full: o.n >= 20, vEmpty: o.n === 0, vGrid: o.n > 0, tiles: tiles(o.n, o.sel ?? -1), gridOp: o.offline ? .6 : 1,
+    rightLabel: o.detail ? 'IN YOUR VAULT · BLOOMTAIL' : 'IMPORT AN AXIE',
+    field: o.field || 'e.g. 11778888', fieldInk: o.field ? '#3A2214' : '#9A7650', fieldBg: '#FFF8EA', fieldBd: '#24140B', fieldSh: o.focusField ? RING : 'none',
+    scanBg: scanOn ? PRI.bg : DIS.bg, scanBd: scanOn ? PRI.bd : DIS.bd, scanInk: scanOn ? PRI.ink : DIS.ink, scanSh: scanOn ? '3px 5px 0 #8A3E22' : 'none',
+    scanNote: o.offline ? 'Scan needs a connection.' : '', status: (o.status || []).map(k => ST[k]), found: !!o.found, idle: !o.found && !(o.status || []).length,
+    fName: 'Bloomtail #11778888', fLine: 'Plant · Secret class genes · breed count 2', fCls: 'asc/portrait/plant.png', fClsName: 'Plant', secret: !!o.secret,
+    addLabel: o.detail ? 'Update entry' : o.n >= 20 ? 'Vault full 20/20' : 'Add to Vault', canRemove: !!o.detail,
+    ...(o.n >= 20 && !o.detail ? { addBg: DIS.bg, addBd: DIS.bd, addInk: DIS.ink, addSh: 'none' } : { addBg: PRI.bg, addBd: PRI.bd, addInk: PRI.ink, addSh: PRI.sh }),
+  };
+}
+const SH = 'asc/fx/shard.png', TK = 'asc/fx/chest.png', STN = 'hl/i/stone.png', UN = 'asc/fx/buff.svg', GEM = 'hl/i/gem.png', FR = 'assets/frames/frame_1.png';
+const R = { c: ['COMMON', '#C6CEDA', '#1C2230'], u: ['UNCOMMON', '#40CC3D', '#0A2A09'], r: ['RARE', '#33B8FF', '#062538'], e: ['EPIC', '#BF6BFF', '#24083A'], l: ['LEGENDARY', '#FF9445', '#2A1505'] };
+const rar = k => ({ t: R[k][0], bg: R[k][1], bd: '#24140B', ink: R[k][2] });
+const tg = (t, bg, ink) => ({ t, bg, bd: '#24140B', ink });
+const S1 = tg('Season 1', '#3B2618', '#FFC79B'), STAT = tg('Stat unlock', '#FFC445', '#3A2A12'), GIFT = tg('Season gift', '#A27BEA', '#1E1236');
+const TRACK = [
+  [[SH], '300 Shard'], [[TK], '1 ticket'], [[STN], '1,000 Stone'], [[UN], 'Unlock: +1 reroll', [STAT]], [['asc/fx/regen.png', SH], 'Leaf FX + 300 Shard', [rar('c'), S1]],
+  [[TK], '1 ticket'], [[STN], '1,500 Stone'], [[UN], 'Unlock: + max HP', [STAT]], [[FR], 'Vine frame', [rar('u'), S1]], [[SH, TK, GEM], '500 Shard + 1 ticket + 90 Gem', [GIFT]],
+  [[STN], '1,500 Stone'], [[UN], 'Unlock: start shield', [STAT]], [[SH], '500 Shard'], [[TK], '1 ticket'], [['asc/fx/freeze.png', STN], 'Bubble FX + 2,000 Stone', [rar('r'), S1]],
+  [[UN], 'Unlock: +1 reroll II', [STAT]], [[SH], '500 Shard'], [[TK], '1 ticket'], [[STN], '2,000 Stone'], [[UN, SH, GEM], 'HP II + 500 Shard + 90 Gem', [STAT, GIFT]],
+  [['asc/fx/shield.png'], 'Moss die', [rar('u'), S1]], [[SH], '500 Shard'], [[TK, TK], '2 tickets'], [[STN], '2,500 Stone'], [['asc/fx/shield.png', SH], 'Founder die + 500 Shard', [rar('e'), S1]],
+  [[SH], '600 Shard'], [['assets/frames/frame_2.png'], 'Founder frame', [rar('e'), S1]], [[TK, STN], '1 ticket + 3,000 Stone'], [[SH], '600 Shard'], [['assets/frames/frame_3.png', TK, STN], 'Sovereign frame + title + 4 tickets + 3,000 Stone', [rar('l'), S1]],
+];
+function nodes(lv, claimedTo, from, over, focusLv) {
+  return TRACK.slice(from - 1, from + 9).map(([icons, label, tags = []], k) => {
+    const L = from + k, reached = L <= lv, claimed = L <= claimedTo, claim = reached && !claimed && !over;
+    const base = { lv: L, icons, label, tags, isz: icons.length > 2 ? 34 : icons.length > 1 ? 44 : 64, iop: reached ? 1 : .7, ink: '#3A2214' };
+    let st;
+    if (claimed) st = { st: '✓ Claimed', stBg: '#A8D878', stBd: '3px solid #24140B', stInk: '#183A0C', bg: '#F3E9D6', bd: '#B89A74', sh: 'none', lvBg: '#A8D878', lvInk: '#183A0C' };
+    else if (claim) st = { st: 'CLAIM', stBg: 'linear-gradient(180deg,#FFB070,#FF8A3A)', stBd: '3px solid #24140B', stInk: '#2A1505', bg: '#FFF8EA', bd: '#24140B', sh: shelf, lvBg: '#FF9345', lvInk: '#2A1505' };
+    else if (over && reached) st = { st: 'Not claimed', stBg: '#E8D6B4', stBd: '2px solid #9A7650', stInk: '#6E4A30', bg: '#F3E9D6', bd: '#B89A74', sh: 'none', lvBg: '#DDBF8C', lvInk: '#6E4A30' };
+    else st = { st: L === lv + 1 ? 'Next' : `Reach LV ${L}`, stBg: '#E8D6B4', stBd: '2px solid #9A7650', stInk: '#6E4A30', bg: '#F8EBD2', bd: '#B89A74', sh: 'none', lvBg: '#3B2618', lvInk: '#FFF8EA' };
+    if (L === focusLv) { st.sh = RING; st.bd = '#FFC445'; }
+    return { ...base, ...st };
+  });
+}
+const cum = L => L * 500 + 20 * L * (L - 1);
+function pass(o) {
+  const lv = o.lv, from = o.from ?? 1, over = !!o.over;
+  const need = 500 + 40 * lv, into = o.into ?? 0;
+  const claimable = TRACK.slice(0, lv).filter((_, i) => i + 1 > (o.claimed ?? 0)).length;
+  const allOn = claimable > 0 && !over && !o.offline && !o.guest;
+  const tasks = (o.tasks || [[0, 5], [0, 2], [0, 1]]).map(([d, n], i) => {
+    const t = ['Finish 5 runs', 'Win 2 runs', 'Reach a boss once'][i], done = d >= n, cl = o.taskClaimed && i === 0;
+    return { t, p: `${d}/${n}`, pct: Math.min(100, d / n * 100), bg: done && !cl ? '#FFE3A6' : '#FFF8EA', bd: done && !cl ? '#24140B' : '#B89A74',
+      btn: cl ? '✓ 500 XP' : done ? 'Claim' : '500 XP', btnBg: cl ? '#A8D878' : done ? 'linear-gradient(180deg,#FFB070,#FF8A3A)' : '#E8D6B4', btnBd: done || cl ? '#24140B' : '#9A7650', btnInk: cl ? '#183A0C' : done ? '#2A1505' : '#6E4A30' };
+  });
+  return {
+    vault: false, pass: true, thumb: 'hl/b/pass.png', title: 'Season Pass', headSub: over ? 'Season 1 ended 29 Dec 2026 · read-only' : 'Season 1 · free track', headRight: over ? '' : 'Season 1 · ends 29 Dec 2026',
+    lv, seasonLine: over ? 'Season 1 ended 29 Dec 2026' : lv === 0 ? 'Finish a run to earn XP' : lv >= 30 ? 'Level 30 reached · all rewards earned' : `Level ${lv} → ${lv + 1}`,
+    xpNote: `Season total ${(cum(lv) + into).toLocaleString('en-US')} / 32,400 XP`,
+    xpPct: lv >= 30 ? 100 : Math.round(into / need * 100), xpText: lv >= 30 ? 'MAX' : `${into.toLocaleString('en-US')} / ${need.toLocaleString('en-US')} XP`,
+    allBg: allOn ? PRI.bg : DIS.bg, allBd: allOn ? PRI.bd : DIS.bd, allInk: allOn ? PRI.ink : DIS.ink, allSh: allOn ? PRI.sh + (o.ringAll ? ',' + RING : '') : 'none',
+    allSub: over ? 'season over' : o.offline ? 'needs a connection' : o.guest ? 'sign in to claim' : claimable ? `${claimable} reward${claimable > 1 ? 's' : ''} ready` : 'nothing to claim',
+    tasks, nodes: nodes(lv, o.claimed ?? 0, from, over, o.focusLv), trackX: 0, trackRange: `Levels ${from}–${from + 9} of 30`,
+    thumbX: Math.round((from - 1) / 30 * 100), prem: Array.from({ length: 9 }, (_, i) => from + i),
+    popover: !!o.popover, popX: o.popX ?? 0, passOp: 1,
+    loopBg: lv >= 30 ? '#FFF8EA' : '#E8D6B4', loopPct: lv >= 30 ? 64 : 0, loopText: lv >= 30 ? '1,280 / 2,000 XP · 3 loops done · 150 Shard so far' : 'Opens after level 30',
+  };
+}
+class Component extends DCLogic {
+  renderVals() {
+    const F = [
+      { id: 'M3a', caption: 'Vault · empty', note: 'Empty grid explains itself; the ID field has focus (ring).', ...vault({ n: 0, focusField: true }) },
+      { id: 'M3b', caption: 'Vault · Axie found', note: 'Scan found the Axie: 3D placeholder, class, Secret badge, six parts → six die faces with type glyphs. Add to Vault is the primary.', ...vault({ n: 7, field: '11778888', found: true, secret: true }) },
+      { id: 'M3c', caption: 'Vault · lookup states', note: 'Status plates drawn together for review; in the game only one shows at a time under the field. Errors keep the typed ID.', ...vault({ n: 7, field: '99999999', looking: true, status: ['look', 'nf', 'gene', 'net'] }) },
+      { id: 'M3d', caption: 'Vault · full 20/20 · entry selected', note: 'Counter shows FULL. Selecting a tile opens its detail on the right (Update entry, Use in team, Remove with confirm).', ...vault({ n: 20, sel: 0, field: '11778888', found: true, detail: true }) },
+      { id: 'M3e', caption: 'Vault · full, scanning a new Axie', note: 'Add is disabled with the reason; Scan still works so the player can look before removing one.', ...vault({ n: 20, field: '20114471', found: true, status: ['full'] }) },
+      { id: 'M3f', caption: 'Vault · offline', note: 'Grid stays readable (greyed). Scan disabled with the reason. Banner: one sentence, Try again, Back to Land.', banner: 'You are offline.', bannerSub: 'Your Vault list is cached. Last updated 14:02. Scanning needs a connection.', bannerBtn: 'Try again', bannerIcon: 'asc/fx/vuln.png', ...vault({ n: 7, offline: true }) },
+      { id: 'M3g', caption: 'Vault · guest', guest: true, note: 'Guest Vault is local. Banner asks to sign in to keep it across devices.', banner: 'Your Vault is saved on this computer only.', bannerSub: 'Sign in to keep it across devices and to use NFT Axies in Ranked.', bannerBtn: 'Sign in', bannerIcon: 'asc/fx/shield.png', ...vault({ n: 3 }) },
+      { id: 'M4a', caption: 'Pass · empty (level 0)', note: 'Nothing reached yet: Claim all disabled with "nothing to claim". Weekly tasks show 0 progress.', ...pass({ lv: 0, into: 0 }) },
+      { id: 'M4b', caption: 'Pass · claimable', dots: 'pass', note: 'Levels 1–4 reached and unclaimed: CLAIM on each, Claim all primary (focus ring). One weekly task finished.', ...pass({ lv: 4, into: 220, claimed: 0, ringAll: true, tasks: [[5, 5], [1, 2], [1, 1]] }) },
+      { id: 'M4c', caption: 'Pass · mid-season · reward detail', note: 'Level 12; track scrolled to 9–18. Level 10 Season gift (90 Gem, violet) claimed by hand. Focus on level 15 opens its detail.', ...pass({ lv: 12, into: 620, claimed: 12, from: 9, focusLv: 15, popover: true, popX: 834, tasks: [[5, 5], [2, 2], [0, 1]], taskClaimed: true }) },
+      { id: 'M4d', caption: 'Pass · level 30 · loop row', note: 'Track scrolled to the end. After 30 the loop bar runs: every 2,000 XP = 50 Shard, with a running total.', ...pass({ lv: 30, into: 0, claimed: 30, from: 21, tasks: [[5, 5], [2, 2], [1, 1]], taskClaimed: true }) },
+      { id: 'M4e', caption: 'Pass · season over', note: 'Read-only after 29 Dec 2026. Unclaimed nodes say "Not claimed"; nothing can be claimed.', ...pass({ lv: 18, into: 300, claimed: 14, from: 9, over: true }) },
+      { id: 'M4f', caption: 'Pass · offline', note: 'Claims disabled with the reason; progress readable.', banner: 'You are offline.', bannerSub: 'Your progress is shown from 14:02. Claiming needs a connection.', bannerBtn: 'Try again', bannerIcon: 'asc/fx/vuln.png', ...pass({ lv: 6, into: 140, claimed: 3, offline: true }) },
+    ];
+    const FI = { a: 'asc/fx/dmg.png', s: 'asc/fx/shield.png', h: 'asc/fx/heal.png', b: 'asc/fx/buff.svg' };
+    const FB = { a: '#FFD9C9', s: '#CFE7F7', h: '#D6F0C2', b: '#F2E0FF' };
+    const parts = [
+      ['assets/part/ears_plant.svg', 'Eyes', 'Papi', 'h', 4], ['assets/part/ears_plant.svg', 'Ears', 'Leafy', 'h', 6], ['assets/part/back_plant.svg', 'Back', 'Pumpkin', 's', 5],
+      ['assets/part/horn_plant.svg', 'Mouth', 'Serious', 'a', 3], ['assets/part/horn_plant.svg', 'Horn', 'Cactus', 'a', 5], ['assets/part/tail_plant.svg', 'Tail', 'Carrot', 'b', 2],
+    ].map(([icon, slot, name, t, v], i) => ({ icon, slot, name, n: i + 1, fi: FI[t], bg: FB[t], v }));
+    const only = (location.hash.match(/f=([\w,]+)/) || [])[1];
+    return { frames: (only ? F.filter(f => only.split(',').includes(f.id)) : F).map(f => ({ guest: false, dots: '', banner: '', ...f })), parts };
+  }
+  componentDidMount() { this._h = () => this.forceUpdate(); window.addEventListener('hashchange', this._h); }
+  componentWillUnmount() { window.removeEventListener('hashchange', this._h); }
+}
+</script>
+</body>
+</html>
