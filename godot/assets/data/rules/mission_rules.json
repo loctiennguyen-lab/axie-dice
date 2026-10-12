@@ -1,0 +1,42 @@
+{
+ "version": 1,
+ "_doc": "design/proposals/nhiem-vu-risk-to-earn.md 3.2. `standard` applies to every mission fight. M1..M5 are the extra rules a tier names (<=2 per offer). Each rule is a dict of mods: enemy_dmg/elite_hp/boss_hp multiply, extra_elite/spike_period_delta add, clock override REPLACES the Ascension clock (never stacks). min/max_ascension gate a rule the Ascension already grants (M3 below A9).",
+ "standard": {
+  "enemy_dmg": 1.1,
+  "elite_hp": 1.1
+ },
+ "rules": {
+  "M1": {
+   "clock_override": {
+    "start": 6,
+    "step_pct": 20,
+    "max_stacks": 5
+   }
+  },
+  "M2": {
+   "spike_period_delta": -1
+  },
+  "M3": {
+   "extra_elite": 2,
+   "max_ascension": 8
+  },
+  "M4": {
+   "enemy_dmg": 1.15
+  },
+  "M5": {
+   "boss_hp": 1.25
+  }
+ },
+ "conditions": {
+  "one_house": {
+   "kind": "classes_exactly",
+   "n": 1,
+   "name_key": "mission.cond.one_house"
+  },
+  "multicolor": {
+   "kind": "classes_at_least",
+   "n": 4,
+   "name_key": "mission.cond.multicolor"
+  }
+ }
+}

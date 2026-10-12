@@ -107,6 +107,10 @@ var clock_turn_base: int = 0
 ## How many times the party was revived in this fight (the `attempt` of the epoch protocol). Fight state,
 ## not a purchase flag: no rule reads it except to key the next epoch request (MON-13).
 var attempt: int = 0
+## Mission (risk-to-earn) run: standard + named extra rules, and no Continue / Aid. A fact about the
+## RUN, fixed at setup (header), not about anything bought.
+var mission: bool = false
+var mission_rules: Array = []
 ## Newcomer account (first runs): attrition and the light A0-A3 clock are off. A fixed header fact.
 var newcomer: bool = false
 ## Pure numbers handed in by RunState (a Boon, a mission rule, anything): the engine neither knows nor
@@ -150,6 +154,8 @@ func setup_new(combat_setup: Dictionary) -> void:
 	newcomer = bool(combat_setup.get("newcomer", false))
 	clock_turn_base = 0
 	attempt = 0
+	mission = bool(combat_setup.get("mission", false))
+	mission_rules = (combat_setup.get("mission_rules", []) as Array).duplicate()
 	start_shield_all = int(combat_setup.get("start_shield_all", 0))
 	start_mana = int(combat_setup.get("start_mana", 0))
 	first_dmg_face_bonus = int(combat_setup.get("first_dmg_face_bonus", 0))
@@ -285,6 +291,8 @@ func _state_dict() -> Dictionary:
 		"end_fired": _end_fired,
 		"clock_turn_base": clock_turn_base,
 		"attempt": attempt,
+		"mission": mission,
+		"mission_rules": mission_rules.duplicate(),
 		"newcomer": newcomer,
 		"start_shield_all": start_shield_all,
 		"start_mana": start_mana,
@@ -326,6 +334,8 @@ func _apply_state_dict(d: Dictionary) -> void:
 	_end_fired = bool(d.get("end_fired", false))
 	clock_turn_base = int(d.get("clock_turn_base", 0))
 	attempt = int(d.get("attempt", 0))
+	mission = bool(d.get("mission", false))
+	mission_rules = (d.get("mission_rules", []) as Array).duplicate()
 	newcomer = bool(d.get("newcomer", false))
 	start_shield_all = int(d.get("start_shield_all", 0))
 	start_mana = int(d.get("start_mana", 0))
@@ -569,13 +579,15 @@ func reroll_dice(uids: Array, seed: int = -1, from_aid: bool = false) -> bool:
 			push_error("CombatEngine.reroll_dice: epoch refused (%s)" % r.code)
 			return false
 		use_seed = r.seed
-	if use_seed >= 0:
-		_rng = Rng.new(use_seed)
-	reroll_k += 1
+	# can_reroll() already ran the veto / Mana check BEFORE the epoch was asked for. The live pass below
+	# may still refuse; nothing (RNG, reroll_k, Mana) is touched until it has agreed.
 	var list: Array = _rerollable(uids)
 	var hook := _before_reroll(uids, from_aid, false)
 	if bool(hook["veto"]) or mana < int(hook["mana_cost"]):
 		return false
+	if use_seed >= 0:
+		_rng = Rng.new(use_seed)
+	reroll_k += 1
 	mana -= int(hook["mana_cost"])
 	_set_turn_phase(CombatPhase.REROLL)
 	if not from_aid:
@@ -614,6 +626,8 @@ func can_reroll(uids: Array, from_aid: bool = false) -> bool:
 		return false
 	if rerolls <= 0 and not from_aid:
 		return false
+	if from_aid and mission:
+		return false   # no Aid in a mission run
 	if _rerollable(uids).is_empty():
 		return false
 	var h := _before_reroll(uids, from_aid, true)
@@ -1418,7 +1432,7 @@ func _boss_turn_traits() -> void:
 
 ## Whole real party down and the fight is not won.
 func can_continue() -> bool:
-	return lost and not won
+	return lost and not won and not mission
 
 
 ## Revives the real party at `heal_pct` of Max HP (ceil), keeps every enemy exactly as it was (HP, phase,
@@ -1485,9 +1499,17 @@ func _clock_cfg() -> Dictionary:
 	if kind != "boss":
 		return {}
 	var c: Dictionary = ContentDB.ascension_mods(ascension).get("clock", {})
+	var ov: Dictionary = _mission_mods().get("clock_override", {})
+	if not ov.is_empty():
+		return {"start": int(ov["start"]), "step_pct": int(ov["step_pct"]),
+			"max_stacks": int(ov["max_stacks"]), "light": false}   # replaces, never stacks
 	if c.is_empty() or (bool(c.get("light", false)) and newcomer):
 		return {}
 	return c
+
+
+func _mission_mods() -> Dictionary:
+	return ContentDB.mission_mods(mission_rules, ascension) if mission else {}
 
 
 func clock_state() -> Dictionary:
@@ -1514,9 +1536,14 @@ func _spike_period(e: Unit) -> int:
 	var sp: Dictionary = ContentDB.combat_tune.get("spike", {})
 	if sp.is_empty() or ascension < int(sp.get("from_ascension", 3)):
 		return 0
+	var base := 0
 	if e.is_boss:
-		return int(sp.get("boss_period", 0)) if int(e.custom_state.get("phase", 1)) >= int(sp.get("boss_from_phase", 2)) else 0
-	return int(sp.get("elite_period", 0)) if kind == "elite" else 0
+		base = int(sp.get("boss_period", 0)) if int(e.custom_state.get("phase", 1)) >= int(sp.get("boss_from_phase", 2)) else 0
+	elif kind == "elite":
+		base = int(sp.get("elite_period", 0))
+	if base > 0 and mission:
+		base = maxi(1, base + int(_mission_mods().get("spike_period_delta", 0)))   # M2: a turn sooner
+	return base
 
 
 ## Turns until this enemy's next spike, counting this turn as 0; -1 when it never spikes.
@@ -1696,6 +1723,11 @@ func _alloc_token_uid() -> int:
 ##    modifier (`s.runMods.enemyHp`) only; `mods.hp` belongs to mkMonster alone.
 func _generate_encounter(p_kind: String, p_pw: int) -> Array:
 	var amods := ContentDB.ascension_mods(ascension)
+	var mm := _mission_mods()
+	if mission:
+		amods = amods.duplicate()
+		amods["dmg"] = float(amods.get("dmg", 1.0)) * float(mm.get("enemy_dmg", 1.0))
+		amods["boss_hp"] = float(amods.get("boss_hp", 1.0)) * float(mm.get("boss_hp", 1.0))
 
 	if p_kind == "boss":
 		return [_mk_boss(_boss_key_for_this_node(), p_pw, amods)]
@@ -1731,7 +1763,8 @@ func _generate_encounter(p_kind: String, p_pw: int) -> Array:
 	for k in keys:
 		tot += float((ContentDB.enemies.get(k, {}) as Dictionary).get("cost", 1))
 	var sc: float = clamp(budget_v / max(tot, 1.0), 0.55, 3.4)
-	var em := {"hp": amods.get("hp", 1.0), "dmg": float(amods.get("dmg", 1.0)) * _run_mod("enemy_dmg")}
+	var em := {"hp": float(amods.get("hp", 1.0)) * (float(mm.get("elite_hp", 1.0)) if is_elite else 1.0),
+		"dmg": float(amods.get("dmg", 1.0)) * _run_mod("enemy_dmg")}
 
 	var out: Array = []
 	for k in keys:

@@ -138,7 +138,10 @@ const WATCHED_FILES: Array[String] = ["res://assets/data/part_faces.json"]
 ## boss immune to instant kills, relic offer v2 (rarity by source, gating, exclusions, boss pact offer), bodies for
 ## 22 H1-H8 relics + 7 reworks, live pacts (twinfates/devilsreroll/tithepips), pipfile tweak cleared per roll.
 ## Changes the run result: YES.
-const FINGERPRINT := "4bce3209454ed58597df5a9b0ddb893fa4c6bd22dcc99f9c45675e05060aca21"
+## BUMPED, 2026-10-12 night: `ActionLog.RULES_VERSION` -> `godot-2026-10-12-e`. Lane A merge: mission rules
+## (mission_rules.json, ContentDB.mission_mods), reroll hook veto checked before RNG/reroll_k/Mana, is_refresh fix,
+## end_run -> record_run_outcome {mode, ascension, ranked, reached_boss}. Changes the run result: YES.
+const FINGERPRINT := "c39fe57a44dffe4924a570c1c0b80b7cb578c811c601ae4875bc0011901af433"
 
 
 func _ready() -> void:

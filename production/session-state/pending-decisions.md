@@ -28,3 +28,7 @@ hạn/ngày, NFT dùng được) · UI request 02 + Round 1 · L1 = 3/11 nội b
 - R3 Q6/Q7: nhận cả hai — M1 party lên trên; header 64 trên panel meta rộng thành quy tắc style sheet.
 - R3 Q3/Q4: giữ 3 việc tuần Pass (5 run, thắng 2, chạm boss 1; 500 XP/việc; tuần từ thứ Hai UTC). game-designer đề xuất tên A5/A10 + số Nhiệm vụ, ghi ở đây để Liam duyệt sáng; code dùng tạm.
 - (Đã chốt trước: R3 Q2 [INF] nhận; Q8 gamepad bỏ.)
+
+## G. Ghi chú đêm 12/10 (agent chọn tạm, Liam xem)
+- Việc tuần Pass (lane E): doc echobox-pass-v2 không nói XP việc tuần có tính vào trần XP run/ngày không. Chọn tạm: 500 XP/việc KHÔNG bị trần ngày (như thưởng ngày +100), nhưng hết mùa thì không nhận.
+- Việc tuần chưa nhận khi qua tuần: chọn tạm là MẤT (chỉ nhận được việc của tuần hiện tại, tới hết Chủ nhật UTC; hết mùa cũng không nhận). An toàn về XP; nếu muốn nhận bù tuần cũ tới hết mùa thì bỏ check `week_over` trong PassV2.claim_weekly.
