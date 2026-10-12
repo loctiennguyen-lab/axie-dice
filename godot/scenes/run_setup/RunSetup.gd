@@ -39,6 +39,10 @@ const RULES := [
 
 ## "normal" | "loading" | "offline" | "open_run". Set before add_child or call set_state().
 var state := "normal"
+## Derive state from AccountService (offline). Tests that drive state by hand turn this off.
+var use_account := true
+## Tests: replaces AccountService.status. Returns an AccountService.Status int.
+var account_status_hook: Callable
 ## Tests: skip the scene change after a successful Begin.
 var no_scene_change := false
 ## Tests: replace the real RunState call. Receives the params Dictionary, returns {ok, code}.
@@ -75,7 +79,17 @@ func _ready() -> void:
 		party = _initial_party()
 	ascension = clampi(ascension, 0, ascension_ceiling())
 	_build()
+	if use_account:
+		state = account_state()
 	set_state(state)
+
+
+## Run Setup state from the account: only a signed-in player who lost the connection is
+## "offline". Guests play locally, so a guest is "normal". Reads AccountService.status unless
+## account_status_hook is set (tests).
+func account_state() -> String:
+	var st: int = account_status_hook.call() if account_status_hook.is_valid() else AccountService.status
+	return "offline" if st == AccountService.Status.OFFLINE else "normal"
 
 
 func _unhandled_key_input(ev: InputEvent) -> void:
@@ -196,6 +210,8 @@ func set_state(s: String) -> void:
 
 ## Begin. Uses start_hook if set (tests), otherwise RunState.begin_run().
 func begin() -> Dictionary:
+	if use_account and state in ["normal", "offline"] and account_state() != state:
+		set_state(account_state())
 	if begin_block_reason() != "":
 		return {"ok": false, "code": "blocked"}
 	var params := start_params()

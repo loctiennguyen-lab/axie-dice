@@ -38,6 +38,10 @@ var pull_hook: Callable = Callable()
 var rng := RandomNumberGenerator.new()
 var results: Array = []
 var error_text := ""
+## Derive state from AccountService (guest/offline). Tests that drive state by hand turn this off.
+var use_account := true
+## Tests: replaces AccountService.status. Returns an AccountService.Status int.
+var account_status_hook: Callable
 
 var _panel: PanelContainer
 var _col: VBoxContainer
@@ -54,7 +58,34 @@ var _skip := false
 func _ready() -> void:
 	rng.randomize()
 	_build()
+	if use_account:
+		state = account_state()
 	set_state(state)
+
+
+## Echo Box state from the account: guest and expired sign-in cannot hold tickets (R3 M5l),
+## offline blocks pulls (M5k), everything else is "normal". Reads AccountService.status unless
+## account_status_hook is set (tests).
+func account_state() -> String:
+	var st: int = account_status_hook.call() if account_status_hook.is_valid() else AccountService.status
+	match st:
+		AccountService.Status.GUEST, AccountService.Status.EXPIRED:
+			return "guest"
+		AccountService.Status.OFFLINE:
+			return "offline"
+	return "normal"
+
+
+## Re-derive before a spend. Leaves transient states (loading/error/last_pull) alone unless the
+## account itself blocks.
+func _recheck_account() -> void:
+	if not use_account:
+		return
+	var a := account_state()
+	if a != "normal" and state != a:
+		set_state(a)
+	elif a == "normal" and (state == "guest" or state == "offline"):
+		set_state("normal")
 
 
 func _unhandled_key_input(ev: InputEvent) -> void:
@@ -109,6 +140,7 @@ func pull_block_reason(n: int) -> String:
 
 ## Real pull: n tickets through EchoBox.open_normal (or pull_hook). Returns the result list.
 func pull(n: int) -> Array:
+	_recheck_account()
 	if pull_block_reason(n) != "":
 		return []
 	var out: Array = []
@@ -124,6 +156,8 @@ func pull(n: int) -> Array:
 		error_text = "Could not open the box. Your tickets were not spent."
 		set_state("error")
 		return out
+	if out.size() < n:
+		error_text = "Opened %d of %d" % [out.size(), n]
 	results = out
 	_refresh_all()
 	await _play_ceremony(out)
@@ -132,6 +166,7 @@ func pull(n: int) -> Array:
 
 ## Buy one ticket for Shards (EchoBox.buy_tickets). Returns the logic result.
 func buy_ticket() -> Dictionary:
+	_recheck_account()
 	if state == "offline" or state == "guest":
 		return {"ok": false, "reason": "state"}
 	var r := EchoBox.buy_tickets(MetaState, today(), 1)
@@ -464,7 +499,7 @@ func _refresh_stage() -> void:
 		row.alignment = BoxContainer.ALIGNMENT_CENTER
 		row.add_theme_constant_override("separation", 14)
 		v.add_child(row)
-		var n_big := clampi(tickets(), PULL_N, PULL_N)
+		var n_big := PULL_N
 		var o1 := _button("Open 1", 200, 60, true)
 		o1.name = "Open1"
 		o1.pressed.connect(func() -> void: pull(1))
