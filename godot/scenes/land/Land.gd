@@ -359,7 +359,8 @@ func _build_buildings() -> void:
 			w_units / maxf((box.size.x + box.size.z) * 0.7071, 0.01))
 		n.scale = Vector3.ONE * s
 		n.position = ground - Vector3(0, box.position.y * s, 0)
-		n.rotation_degrees.y = float(b["yaw"])
+		# Facing fix per house lives in houses.json ("yaw"); the table default is 0.
+		n.rotation_degrees.y = float((_house_defs.get(String(b["id"]), {}) as Dictionary).get("yaw", b["yaw"]))
 		add_child(n)
 		_nodes3d[String(b["id"])] = {"node": n, "scale": s}
 		var reach := (box.size.x + box.size.z) * 0.5 * s * 0.5

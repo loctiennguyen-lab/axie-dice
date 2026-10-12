@@ -1,5 +1,5 @@
 [
-	{"house_id": "portal",     "screen_id": "run_setup",   "badge_screen_id": "",         "unlock": {}},
+	{"house_id": "portal",     "screen_id": "run_setup",   "badge_screen_id": "",         "unlock": {}, "yaw": 90},
 	{"house_id": "house",      "screen_id": "team_select", "badge_screen_id": "",         "unlock": {}},
 	{"house_id": "missions",   "screen_id": "missions",    "badge_screen_id": "missions", "unlock": {}},
 	{"house_id": "echobox",    "screen_id": "echobox",     "badge_screen_id": "echobox",  "unlock": {}},
