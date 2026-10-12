@@ -1,6 +1,6 @@
 import { handleLegal } from './legal.js';
 import { handleAccounts, isAccountsPath } from './accounts.js';
-import { handleRuns, isRunsPath } from './runs.js';
+import { handleRuns, isRunsPath, sweepPending } from './runs.js';
 /**
  * Axie Dice, served entirely from Cloudflare.
  *
@@ -248,6 +248,7 @@ async function serveGame(request, env, url) {
 export { RunDO } from './run_do.js';
 
 export default {
+  async scheduled(_event, env, ctx) { ctx.waitUntil(sweepPending(env)); },
   async fetch(request, env) {
     const url = new URL(request.url);
     if (url.pathname === '/api/axie') return handleAxie(request, url);

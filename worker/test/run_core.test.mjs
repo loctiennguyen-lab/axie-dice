@@ -378,3 +378,52 @@ test('golden vectors (lane A epoch_golden.json)', { skip: !existsSync(GOLDEN) &&
   const g = JSON.parse(readFileSync(GOLDEN, 'utf8'));
   assert.ok(g, 'file parses; wire the vector kinds here once its schema is known');
 });
+
+test('run token works with no Buffer global (Workers without nodejs_compat)', async () => {
+  const saved = globalThis.Buffer;
+  delete globalThis.Buffer;
+  try {
+    assert.equal(typeof globalThis.Buffer, 'undefined');
+    const t = await signRunToken(ENV, { player_id: 'p', run_id: RUN, rules_version: RULES }, 1000);
+    assert.equal((await verifyRunToken(ENV, t, 1001)).player_id, 'p');
+    assert.equal(await verifyRunToken(ENV, t + 'x', 1001), null);
+  } finally { globalThis.Buffer = saved; }
+});
+
+test('args are whitelisted per kind and range-checked', async () => {
+  const { c } = await fresh();
+  await c.hello();
+  await start(c);
+  await c.epoch('node', { node_id: 1 }, []);
+  const ro = { turn: 1, k: 1, source: 'base', uids: [1] };
+  const act = [A('enter_node', { node_id: 1 })];
+  for (const bad of [
+    { ...ro, extra: 1 }, { ...ro, source: 'free' }, { ...ro, turn: 0 }, { ...ro, turn: 1.5 }, { ...ro, k: 999 },
+    { ...ro, turn: 2 ** 53 }, { ...ro, uids: [] }, { ...ro, uids: [-1] }, { turn: 1, k: 1, uids: [1] },
+  ]) assert.equal((await c.epoch('reroll', bad, act)).code, 'bad_request', JSON.stringify(bad));
+  assert.equal((await c.epoch('node', { node_id: 1, gold: 5 }, act)).code, 'bad_request');
+  assert.equal((await c.epoch('end_turn', {}, act)).code, 'bad_request');
+  assert.equal((await c.epoch('reroll', ro, act)).t, 'epoch_res');
+});
+
+test('RunDO shell: two messages back to back on one socket both see fresh attachment state', async () => {
+  const { RunDO } = await import('../src/run_do.js');
+  const sql = fakeSql();
+  const sent = [];
+  let attach = null;
+  const ws = {
+    serializeAttachment: (v) => { attach = structuredClone(v); },
+    deserializeAttachment: () => (attach ? structuredClone(attach) : null),
+    send: (m) => sent.push(JSON.parse(m)), close() {},
+  };
+  const env = { ...ENV };
+  const doObj = new RunDO({ storage: { sql }, getWebSockets: () => [ws], setWebSocketAutoResponse() {} }, env);
+  await doObj.core.init({ run_id: RUN, player_id: 'google:1', rules_version: RULES });
+  const token = await signRunToken(env, { player_id: 'google:1', run_id: RUN, rules_version: RULES });
+  const h = await chainNext(await chainStart(RUN), []);
+  // Not awaited in between: the second message must not read the pre-hello attachment.
+  const p1 = doObj.webSocketMessage(ws, JSON.stringify({ t: 'hello', run_token: token, last_seq: 0 }));
+  const p2 = doObj.webSocketMessage(ws, JSON.stringify({ t: 'epoch_req', seq: 1, kind: 'run_start', args: {}, log_delta: [], h, log_len: 0, client_nonce: NONCE }));
+  await Promise.all([p1, p2]);
+  assert.deepEqual(sent.map((m) => m.t), ['welcome', 'epoch_res']);
+});

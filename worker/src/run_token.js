@@ -4,7 +4,16 @@
 const enc = new TextEncoder();
 export const RUN_TOKEN_TTL_S = 2 * 3600;
 
-const b64url = (buf) => Buffer.from(buf).toString('base64url');
+// No Buffer: Workers only has it behind nodejs_compat, which this project does not enable.
+const b64url = (buf) => {
+  let bin = '';
+  for (const b of new Uint8Array(buf)) bin += String.fromCharCode(b);
+  return btoa(bin).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '');
+};
+const unb64url = (str) => {
+  const bin = atob(str.replace(/-/g, '+').replace(/_/g, '/') + '==='.slice((str.length + 3) % 4));
+  return Uint8Array.from(bin, (c) => c.charCodeAt(0));
+};
 const key = (env) => {
   if (!env.RUN_TOKEN_KEY) throw new Error('RUN_TOKEN_KEY is not set');
   return crypto.subtle.importKey('raw', enc.encode(env.RUN_TOKEN_KEY), { name: 'HMAC', hash: 'SHA-256' }, false, ['sign', 'verify']);
@@ -22,9 +31,9 @@ export async function verifyRunToken(env, token, nowS = Math.floor(Date.now() / 
   const [body, sig, extra] = token.split('.');
   if (!body || !sig || extra !== undefined) return null;
   try {
-    const ok = await crypto.subtle.verify('HMAC', await key(env), Buffer.from(sig, 'base64url'), enc.encode(`run.${body}`));
+    const ok = await crypto.subtle.verify('HMAC', await key(env), unb64url(sig), enc.encode(`run.${body}`));
     if (!ok) return null;
-    const claims = JSON.parse(Buffer.from(body, 'base64url').toString('utf8'));
+    const claims = JSON.parse(new TextDecoder().decode(unb64url(body)));
     return claims.v === 1 && typeof claims.exp === 'number' && claims.exp > nowS ? claims : null;
   } catch { return null; }
 }

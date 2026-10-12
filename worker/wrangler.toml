@@ -61,6 +61,10 @@ class_name = "RunDO"
 tag = "v1"
 new_sqlite_classes = ["RunDO"]
 
+# Cron: sweeps runs stuck in 'pending' (src/runs.js sweepPending).
+[triggers]
+crons = ["*/5 * * * *"]
+
 # Secrets (never here): RUN_TOKEN_KEY signs run tokens; it is separate from SESSION_SIGNING_KEY.
 # Optional vars: RUNS_PER_DAY (default 20), SUPPORTED_RULES (comma list, default in src/run_do.js).
 
@@ -86,10 +90,15 @@ namespace_id = "1003"
 name = "axie-dice-staging"
 workers_dev = true
 
+[env.staging.triggers]
+crons = ["*/5 * * * *"]
+
 [env.staging.observability]
 enabled = true
 
 [env.staging.vars]
+# Lets staging create ranked/mission runs (refused with 403 not_available elsewhere).
+ALLOW_GATED_MODES = "1"
 GOOGLE_CLIENT_ID = "597753927078-rn7b186qo0obgalq3hgpiv6k7g0mk7dl.apps.googleusercontent.com"
 
 [[env.staging.r2_buckets]]

@@ -14,6 +14,10 @@ export const SUPPORTED_RULES = new Set(['godot-2026-09-21-a']);
 const json = (body, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } });
 
+/** Whether this build still serves a rules version (env var SUPPORTED_RULES overrides the default). */
+export const rulesSupported = (env, v) =>
+  (env.SUPPORTED_RULES ? env.SUPPORTED_RULES.split(',').includes(v) : SUPPORTED_RULES.has(v));
+
 export class RunDO {
   constructor(ctx, env) {
     this.ctx = ctx;
@@ -21,7 +25,7 @@ export class RunDO {
     RunCore.initSchema(ctx.storage.sql);
     this.core = new RunCore(ctx.storage.sql, {
       verifyToken: (t) => verifyRunToken(env, t),
-      supportsRules: (v) => (env.SUPPORTED_RULES ? env.SUPPORTED_RULES.split(',').includes(v) : SUPPORTED_RULES.has(v)),
+      supportsRules: (v) => rulesSupported(env, v),
       // No `charge` yet: paid requests (Aid, Continue, pact/shop reroll) are refused until the wallet
       // decision (Gem on server, LIAM-2) lands. See RunCore._charge.
       log: (event, detail) => console.warn('run anomaly', event, JSON.stringify(detail)),
@@ -51,9 +55,10 @@ export class RunDO {
   }
 
   async webSocketMessage(ws, message) {
-    const conn = ws.deserializeAttachment() || { authed: false, epoch: 0 };
-    const out = await this.core.handle(conn, typeof message === 'string' ? message : '');
-    ws.serializeAttachment(conn);
+    const out = await this.core.handle(null, typeof message === 'string' ? message : '', {
+      load: () => ws.deserializeAttachment(),
+      save: (c) => ws.serializeAttachment(c),
+    });
     for (const r of out.replies) ws.send(JSON.stringify(r));
     if (out.evictOthers) {
       for (const other of this.ctx.getWebSockets()) {

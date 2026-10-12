@@ -38,6 +38,53 @@ export const KINDS = {
 };
 
 const IDENT = /^[a-z0-9_]+$/;
+
+// Allowed arg keys per kind. Anything else is refused: args feed the seed and the ledger, so an
+// open vocabulary would let a client vary them to fish for seeds. Values are checked in _argsProblem.
+const ARG_KEYS = {
+  run_start: ['mode', 'ascension'],
+  node: ['node_id'],
+  end_turn: ['turn'],
+  reroll: ['turn', 'k', 'source', 'uids'],
+  reward: ['node_id'],
+  reward_reroll: ['k', 'node_id'],
+  event_choice: ['choice', 'index', 'node_id'],
+  shop_roll: ['node_id', 'item'],
+  shop_refresh: ['node_id', 'k'],
+  continue: ['node_id', 'attempt'],
+  pact_reroll: ['node_id', 'slot'],
+};
+const SOURCES = new Set(['base', 'aid']);
+const MODES = new Set(['normal', 'mission', 'ranked']);
+const MAX_TURN = 200;
+const MAX_K = 20;
+const MAX_ID = 100000;
+
+/** null when args are acceptable for the kind, else an internal reason. */
+export function argsProblem(kind, args) {
+  const allowed = ARG_KEYS[kind];
+  if (!allowed) return 'kind';
+  for (const [k, v] of Object.entries(args)) {
+    if (!allowed.includes(k)) return `key_${k}`;
+    if (k === 'source') { if (!SOURCES.has(v)) return 'source'; continue; }
+    if (k === 'mode') { if (!MODES.has(v)) return 'mode'; continue; }
+    if (k === 'uids') {
+      if (!Array.isArray(v) || v.length === 0 || v.length > 16 || !v.every((x) => Number.isSafeInteger(x) && x >= 0 && x <= MAX_ID)) return 'uids';
+      continue;
+    }
+    if (k === 'turn') { if (!Number.isSafeInteger(v) || v < 1 || v > MAX_TURN) return 'turn'; continue; }
+    if (k === 'k') { if (!Number.isSafeInteger(v) || v < 1 || v > MAX_K) return 'k'; continue; }
+    if (k === 'item') { if (typeof v !== 'string' || !IDENT.test(v)) return 'item'; continue; }
+    if (!Number.isSafeInteger(v) || v < 0 || v > MAX_ID) return `val_${k}`;
+  }
+  if (kind === 'end_turn' && args.turn === undefined) return 'turn';
+  if (kind === 'reroll' && (args.turn === undefined || args.k === undefined || args.source === undefined)) return 'reroll_args';
+  return null;
+}
+// NOTE for the verifier (P3): the server only checks that turn/k are in range. The verifier MUST
+// check that the (turn, k) of each reroll epoch matches the real turn and reroll count at that log
+// position, otherwise a client could request seeds under invented keys.
+
 const fail = (seq, code) => ({ t: 'epoch_err', seq, code });
 const isPaid = (kind, args) => KINDS[kind].paid || (kind === 'reroll' && args.source === 'aid');
 
@@ -98,8 +145,15 @@ export class RunCore {
   // ------------------------------------------------------------------ message entry
 
   /** Serialised entry point. conn = per-socket state {authed, epoch}. Returns {replies, close?}. */
-  handle(conn, raw) {
-    const run = this.queue.then(() => this._handle(conn, raw));
+  handle(conn, raw, io = {}) {
+    // io.load()/io.save(conn) read and write the socket attachment INSIDE the queue, so two messages
+    // arriving back to back on one socket cannot both read the same stale state.
+    const run = this.queue.then(async () => {
+      const c = io.load ? (io.load() || { authed: false, epoch: 0 }) : conn;
+      const out = await this._handle(c, raw);
+      if (io.save) io.save(c);
+      return out;
+    });
     this.queue = run.catch(() => {});
     return run;
   }
@@ -199,6 +253,8 @@ export class RunCore {
     const spec = KINDS[m.kind];
     const args = m.args && typeof m.args === 'object' && !Array.isArray(m.args) ? m.args : null;
     if (!spec || !args || seq < 1) return fail(seq, 'bad_request');
+    const argBad = argsProblem(m.kind, args);
+    if (argBad) { this._anomaly('args_rejected', { seq, why: argBad }); return fail(seq, 'bad_request'); }
     const delta = m.log_delta ?? [];
 
     let digest;
@@ -249,7 +305,7 @@ export class RunCore {
     let seed;
     let uids = null;
     if (m.kind === 'reroll') {
-      if (!Array.isArray(args.uids) || args.uids.length === 0 || !args.uids.every(Number.isSafeInteger)) return fail(seq, 'bad_request');
+      if (!Array.isArray(args.uids)) return fail(seq, 'bad_request');
       uids = args.uids.join(',');
       pin = `${this._battleSeq()}:${attempt}:${args.turn}:${args.k}`;
       const pinned = this.sql.exec('SELECT seed FROM epochs WHERE pin_key = ? ORDER BY seq LIMIT 1', pin).toArray()[0];

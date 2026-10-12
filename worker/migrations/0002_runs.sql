@@ -15,7 +15,8 @@ CREATE TABLE runs (
   closed_at      INTEGER,
   outcome        TEXT,                       -- won | lost (client claim until the verifier exists)
   battles_done   INTEGER NOT NULL DEFAULT 0,
-  summary_json   TEXT                        -- run_close.summary, telemetry only
+  summary_json   TEXT,                       -- run_close.summary, telemetry only
+  commit_hash    TEXT                        -- commitment returned at creation; /api/run/open returns it again
 );
 CREATE UNIQUE INDEX runs_one_open_per_player ON runs(player_id) WHERE state IN ('pending', 'open');
 CREATE INDEX runs_by_player_day ON runs(player_id, created_at);
