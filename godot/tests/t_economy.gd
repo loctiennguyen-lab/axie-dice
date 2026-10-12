@@ -30,7 +30,7 @@ class Stub extends RefCounted:
 	var ledger: Array = []
 	func add_stone(n: int, _r: String) -> void:
 		stone += n
-	func spend(cur: String, n: int, _r: String) -> bool:
+	func spend(cur: String, n: int, _r: String, _save: bool = true) -> bool:
 		if cur == "shard":
 			if shard_pool < n: return false
 			shard_pool -= n
@@ -121,6 +121,13 @@ func test_gem_gift() -> void:
 	_assert(not w.spend(901, "x") and s.gems_cache == 900, "không đủ Gem thì không trừ")
 	w.grant(90, "season_gift")
 	_assert(s.gems_cache == 990, "quà mùa không bị trần 900")
+	# quay đồng hồ lùi về ngày đã nhận: không nhận lại
+	var s3 := Stub.new()
+	var w3 := LocalGemWallet.new(s3)
+	w3.claim_daily_gift(day0 + 5 * 86400)
+	s3.gems_cache = 0
+	var back := w3.claim_daily_gift(day0 + 2 * 86400)
+	_assert(not back["ok"] and back["reason"] == "already_claimed" and s3.gems_cache == 0, "đồng hồ lùi: already_claimed")
 	# 00:00 UTC chính xác vẫn là ngày mới (biên)
 	var s2 := Stub.new()
 	var w2 := LocalGemWallet.new(s2)
@@ -195,6 +202,17 @@ func test_aid_catalog() -> void:
 	_assert(AidCatalog.offer("R8", _ctx({"node_kind": "setup"}))["price"] == 38, "Boon 38")
 	_assert(not AidCatalog.offer("R8", _ctx({"node_kind": "setup", "boon_used": true}))["enabled"], "1 Boon/run")
 	_assert(not AidCatalog.offer("R9", _ctx({"node_kind": "setup", "boon_used": true}))["enabled"], "Kit có Boon: không khi đã có Boon")
+	# Quy ước đếm: R8/R9 không nằm trong uses; dòng lỡ có cũng KHÔNG tính vào trần tổng
+	var junk := [{"aid": "R8", "node_id": 0, "turn": 0}, {"aid": "R9", "node_id": 0, "turn": 0}]
+	var cj := _ctx({"rerolls_left": 0, "node_id": 99, "uses": junk})
+	_assert(AidCatalog.offer("R2", cj)["enabled"], "R8/R9 trong uses không tính vào trần tổng")
+	# Kit: Boon trong Kit = 1 ô (boon_used) + R2/R7 dùng thật là các dòng uses. Kit đủ dùng = 1 + 2 R2 + 1 R7 = 4 ô
+	var kit_uses := [{"aid": "R2", "node_id": 1, "turn": 1}, {"aid": "R2", "node_id": 2, "turn": 1}, {"aid": "R7", "node_id": 3, "turn": 0}]
+	var ck := _ctx({"rerolls_left": 0, "node_id": 99, "boon_used": true, "uses": kit_uses})
+	_assert(AidCatalog.offer("R2", ck)["enabled"], "sau Kit đủ dùng vẫn còn ô (4/6)")
+	ck["uses"] = kit_uses + [{"aid": "R1", "node_id": 4, "turn": 2}, {"aid": "R4", "node_id": 5, "turn": 2}]
+	_assert(AidCatalog.offer("R2", ck)["reason"] == "cap_total", "Kit + Continue + R4 = 6 ô: đầy trần tổng")
+	_assert(not AidCatalog.offer("R8", _ctx({"node_kind": "setup", "boon_used": true}))["enabled"], "Kit/Boon: 1 Boon/run")
 	_assert(AidCatalog.offer("R9", _ctx({"node_kind": "setup"}))["price"] == 60, "Kit 60")
 	# trần tổng 6 (A0-A8) / 4 (A9-A10); Boon chiếm 1 ô
 	var mix: Array = []
@@ -348,6 +366,10 @@ func test_ticket_buy_cap_and_cost() -> void:
 	_assert(not rp["ok"] and rp["reason"] == "no_shards" and poor.tickets["normal"] == 0, "thiếu Shard: không mua")
 	EchoBox.grant_tickets(s, 5, "pass")
 	_assert(EchoBox.bought_today(s, day) == 10, "vé Pass không tăng bậc giá")
+	_assert(s.ledger.has(["ticket", 10, "buy"]), "mua vé có dòng sổ cái")
+	var saves_before := s.saves
+	EchoBox.buy_tickets(s, day, 1)
+	_assert(s.saves == saves_before + 1, "mua vé = đúng MỘT lần save (Shard và vé cùng lúc)")
 	var hold := Stub.new()
 	hold.shard_pool = 100000
 	hold.tickets["normal"] = 995
@@ -393,8 +415,18 @@ func test_migration_resets_old_save() -> void:
 		"unlocks": ["u_hp", "u_reroll"], "xp": 7000, "bp_claimed": [1, 2, 3], "perks": {"hp4": 2},
 		"asc_max": 5, "runs": 12, "wins": 4, "best": 17, "audio_muted": true, "daily_date": "2026-09-01",
 		"tutorial_seen": true}
-	SaveStore.write_text(MetaState.SAVE_PATH, JSON.stringify(old))
+	var old_text := JSON.stringify(old)
+	var had_bak := SaveStore.exists(MetaState.V1_BACKUP_PATH)
+	var prior_bak := SaveStore.read_text(MetaState.V1_BACKUP_PATH)
+	SaveStore.erase(MetaState.V1_BACKUP_PATH)
+	SaveStore.write_text(MetaState.SAVE_PATH, old_text)
 	MetaState.reload_from_store()
+	_assert(SaveStore.read_text(MetaState.V1_BACKUP_PATH) == old_text, "migrate v1 ghi meta_save.v1.bak nguyên bản")
+	var bak_ledger := false
+	for e in MetaState.ledger:
+		if e["c"] == "ticket" and e["r"] == "starter":
+			bak_ledger = true
+	_assert(bak_ledger, "vé khởi đầu có dòng sổ cái")
 	_assert(MetaState.unlocks.is_empty() and MetaState.perks.is_empty(), "unlock + perk cũ bị bỏ")
 	_assert(MetaState.xp == 0 and MetaState.bp_claimed.is_empty() and MetaState.battle_pass_level == 1, "Pass cũ reset")
 	_assert(MetaState.shard_pool == int(starter["shards"]), "số dư cũ thay bằng khoản khởi đầu (%d)" % MetaState.shard_pool)
@@ -412,6 +444,14 @@ func test_migration_resets_old_save() -> void:
 	MetaState.reload_from_store()
 	_assert(MetaState.shard_pool == spent_once, "nạp lại save mới KHÔNG cấp khởi đầu lần hai")
 	_assert(MetaState.has_unlock("u_hp") == false, "unlock cũ không quay lại")
+	# Bản sao chỉ ghi một lần: save v1 khác đi không đè bản đầu
+	SaveStore.write_text(MetaState.SAVE_PATH, JSON.stringify({"shard_pool": 1, "runs": 1}))
+	MetaState.reload_from_store()
+	_assert(SaveStore.read_text(MetaState.V1_BACKUP_PATH) == old_text, "bản sao v1 không bị ghi đè lần hai")
+	# trả lại bản sao của người chơi thật (nếu có)
+	SaveStore.erase(MetaState.V1_BACKUP_PATH)
+	if had_bak:
+		SaveStore.write_text_as(SaveStore.profile, MetaState.V1_BACKUP_PATH, prior_bak, false)
 	# Tài khoản mới tinh (không có save): có khoản khởi đầu
 	SaveStore.erase(MetaState.SAVE_PATH)
 	MetaState.reload_from_store()

@@ -5,6 +5,11 @@ extends RefCounted
 ##
 ## MON-13: hàm này chỉ cho UI. Không luật chiến đấu nào được đọc `uses` hay kết quả của nó.
 ##
+## QUY ƯỚC ĐẾM TRẦN (A theo đúng quy ước này khi ghi `aid_uses`):
+##  - R8 (Boon) và R9 (Kit) KHÔNG BAO GIỜ nằm trong `uses`. Boon chỉ đếm qua `boon_used` (1 ô trần tổng).
+##  - Mua Kit = đặt `boon_used = true` (Boon trong Kit chiếm 1 ô) và từ đó R2/R7 lấy từ Kit được ghi
+##    vào `uses` như R2/R7 thường MỖI LẦN dùng thật, nên chúng tính vào trần từng loại + trần tổng.
+##  - Tổng đã dùng = (số dòng `uses`, trừ R8/R9 nếu lỡ có) + (1 nếu `boon_used`).
 ## ctx (UI dựng từ RunState.aid_context()):
 ##   mode, mission:bool, newcomer:bool, ascension:int, node_kind:String
 ##   ("setup"|"map"|"combat"|"elite"|"boss"|"shop"|"pact"), node_id (tuỳ chọn, để đếm trần theo
@@ -39,7 +44,9 @@ static func offer(aid_id: String, ctx: Dictionary) -> Dictionary:
 		return _no("newcomer")
 
 	var uses: Array = ctx.get("uses", [])
-	var total_used := uses.size() + (1 if bool(ctx.get("boon_used", false)) else 0)
+	var total_used := _count(uses, "R2", null, false) + _count(uses, "R1", null, false) + _count(uses, "R4", null, false) \
+		+ _count(uses, "R5", null, false) + _count(uses, "R6", null, false) + _count(uses, "R7", null, false) \
+		+ (1 if bool(ctx.get("boon_used", false)) else 0)
 	var total_cap := _total_cap(cfg, asc)
 
 	# "Khi nào chào" (monetization-v1 2.2) -> show.
@@ -63,12 +70,10 @@ static func offer(aid_id: String, ctx: Dictionary) -> Dictionary:
 	var reason := ""
 	if total_cap > 0 and total_used >= total_cap and price > 0:
 		reason = "cap_total"
-	elif aid_id == "R9" and (bool(ctx.get("boon_used", false)) or _count(uses, "R9", null, false) > 0):
-		reason = "cap_type"
+	elif aid_id in ["R8", "R9"] and bool(ctx.get("boon_used", false)):
+		reason = "cap_boon"   # 1 Boon/run từ mọi nguồn; Kit có Boon nên cũng bị chặn
 	elif _type_capped(aid_id, a, uses, node_id, asc, ctx):
 		reason = "cap_type"
-	elif aid_id == "R8" and bool(ctx.get("boon_used", false)):
-		reason = "cap_boon"
 	elif ctx.has("gems") and int(ctx["gems"]) < price:
 		reason = "no_gems"
 	return {"show": true, "enabled": reason == "", "price": price, "reason": reason}
@@ -104,6 +109,8 @@ static func _count(uses: Array, aid: String, node_id, by_node: bool) -> int:
 
 
 static func _type_capped(aid_id: String, a: Dictionary, uses: Array, node_id, asc: int, ctx: Dictionary) -> bool:
+	if aid_id in ["R8", "R9"]:
+		return false   # không nằm trong uses; chặn bằng boon_used
 	if a.has("cap_run") and _count(uses, aid_id, null, false) >= int(a["cap_run"]):
 		return true
 	if a.has("cap_per_boss") and _count(uses, aid_id, node_id, true) >= int(a["cap_per_boss"]):

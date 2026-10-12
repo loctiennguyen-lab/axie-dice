@@ -6,6 +6,8 @@ extends Node
 ## (architecture plan §4, §9 self-critique #A "over-engineered" note on ResourceSaver).
 
 const SAVE_PATH := "user://meta_save.json"
+## Bản sao save v1 trước lần migrate đầu tiên (ghi một lần, qua SaveStore, không đè nếu đã có).
+const V1_BACKUP_PATH := "user://meta_save.v1.bak"
 const EconomyDBScript := preload("res://scripts/meta/economy_db.gd")
 
 ## src/client.html:3216. Twenty slots, and a full vault REFUSES a new import with a message
@@ -125,7 +127,7 @@ func add_stone(n: int, reason: String = "earn") -> void:
 
 
 ## Trừ `n` của `currency` ("shard" | "stone" | "gem"). false (không trừ gì) nếu không đủ.
-func spend(currency: String, n: int, reason: String) -> bool:
+func spend(currency: String, n: int, reason: String, save: bool = true) -> bool:
 	if n < 0:
 		return false
 	match currency:
@@ -138,12 +140,13 @@ func spend(currency: String, n: int, reason: String) -> bool:
 				return false
 			stone -= n
 		"gem":
-			return gem_wallet().spend(n, reason)
+			return gem_wallet().spend(n, reason)   # ví Gem tự lo save/server
 		_:
 			push_warning("MetaState.spend: tiền tệ lạ '%s'" % currency)
 			return false
 	ledger_add(currency, -n, reason)
-	save_to_disk()
+	if save:
+		save_to_disk()
 	return true
 
 
@@ -299,12 +302,15 @@ func load_from_disk() -> void:
 	# through the tutorial retroactively.
 	if not tutorial_seen and runs > 0:
 		tutorial_seen = true
-	_economy_from_json(parsed)
+	_economy_from_json(parsed, text)
 
 
 ## Đọc field economy L1 và migrate save cũ. Xem SAVE_VERSION. Không ghi file.
-func _economy_from_json(parsed: Dictionary) -> void:
+func _economy_from_json(parsed: Dictionary, raw_text: String = "") -> void:
 	var ver := int(parsed.get("save_version", 1))
+	if ver < SAVE_VERSION and not raw_text.is_empty() and not SaveStore.exists_as(SaveStore.profile, V1_BACKUP_PATH):
+		# notify=false: bản sao không được kích hoạt upload cloud.
+		SaveStore.write_text_as(SaveStore.profile, V1_BACKUP_PATH, raw_text, false)
 	stone = int(parsed.get("stone", 0))
 	gems_cache = int(parsed.get("gems_cache", 0))
 	gem_claim_next_utc = int(parsed.get("gem_claim_next_utc", 0))
@@ -359,7 +365,12 @@ func _apply_starter_if_needed() -> void:
 	gems_cache += int(st.get("gems", 0))
 	tickets["normal"] = int(tickets.get("normal", 0)) + int(st.get("tickets", 0))
 	starter_granted = true
-	ledger_add("shard", int(st.get("shards", 0)), "starter")
+	if int(st.get("shards", 0)) > 0:
+		ledger_add("shard", int(st.get("shards", 0)), "starter")
+	if int(st.get("tickets", 0)) > 0:
+		ledger_add("ticket", int(st.get("tickets", 0)), "starter")
+	if int(st.get("gems", 0)) > 0:
+		ledger_add("gem", int(st.get("gems", 0)), "starter")
 
 
 static func _pity_from_json(raw) -> Dictionary:

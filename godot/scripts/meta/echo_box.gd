@@ -53,13 +53,15 @@ static func buy_tickets(store: Object, day: String, n: int) -> Dictionary:
 		return {"ok": false, "cost": 0, "reason": "daily_cap"}
 	if int(store.tickets.get("normal", 0)) + n > hold_cap:
 		return {"ok": false, "cost": 0, "reason": "hold_cap"}
-	if not store.spend("shard", cost, "ticket_buy"):
+	# Trừ Shard + cộng vé trong bộ nhớ rồi save MỘT lần: ngắt giữa chừng không mất Shard không vé.
+	if not store.spend("shard", cost, "ticket_buy", false):
 		return {"ok": false, "cost": cost, "reason": "no_shards"}
 	var p: Dictionary = store.echobox_pity
 	var count := bought_today(store, day) + n
 	p["buy_day"] = day
 	p["buy_count"] = count
 	store.tickets["normal"] = int(store.tickets.get("normal", 0)) + n
+	store.ledger_add("ticket", n, "buy")
 	store.save_to_disk()
 	return {"ok": true, "cost": cost, "reason": ""}
 

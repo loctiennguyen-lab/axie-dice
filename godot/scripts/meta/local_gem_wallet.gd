@@ -49,7 +49,8 @@ func claim_daily_gift(now_unix: int) -> Dictionary:
 	var cap := int(cfg.get("balance_cap", 900))
 	var today := GemWallet.utc_day(now_unix)
 	var next := GemWallet.next_utc_midnight(now_unix)
-	if String(store.gem_gift_day) == today:
+	# `>=` chứ không `==`: quay đồng hồ lùi về ngày cũ cũng không nhận lại được.
+	if String(store.gem_gift_day) != "" and today <= String(store.gem_gift_day):
 		return {"ok": false, "granted": 0, "reason": "already_claimed", "next_utc": next}
 	var room := cap - int(store.gems_cache)
 	if room <= 0:

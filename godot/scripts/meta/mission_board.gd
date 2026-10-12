@@ -92,8 +92,9 @@ static func upgrade_house(store: Object) -> String:
 		return "no_shards"
 	if int(store.stone) < int(cost.get("cost_stone", 0)):
 		return "no_stone"
-	store.spend("shard", int(cost.get("cost_shards", 0)), "mission_house")
-	store.spend("stone", int(cost.get("cost_stone", 0)), "mission_house")
+	# Hai khoản trừ + đổi cấp rồi save một lần.
+	store.spend("shard", int(cost.get("cost_shards", 0)), "mission_house", false)
+	store.spend("stone", int(cost.get("cost_stone", 0)), "mission_house", false)
 	store.mission_house_level = int(cost["level"])
 	store.save_to_disk()
 	return ""
