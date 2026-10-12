@@ -760,6 +760,8 @@ func end_run(won: bool) -> void:
 	# JS: saveRun() writes the slot only while phase is neither 'won' nor 'lost', and removes it
 	# otherwise (client.html:3420). Doing it here rather than in a save guard means a finished
 	# run cannot leave a resumable save behind even if some later call site forgets.
+	# Lane E: settle the mission escrow (and save) BEFORE the saved run is cleared (kill-safe).
+	MetaState.settle_mission_for_run(String(mission.get("mission_id", "")), bool(mission_outcome(won)["won"]))
 	clear_saved_run()
 	if epoch != null:
 		var mo := mission_outcome(won)
@@ -784,7 +786,8 @@ func end_run(won: bool) -> void:
 		# the RunVerifier replay digest differ). `won` here is the MISSION-aware win (final boss fell AND
 		# the offer condition held); MetaState.wins/asc_max above use the raw `won` as the JS ladder does.
 		MetaState.call("record_run_outcome", {"mode": mode, "ascension": ascension, "ranked": ranked,
-			"reached_boss": bosses_started > 0}, bool(mission_outcome(won)["won"]))
+			"reached_boss": bosses_started > 0, "mission_id": String(mission.get("mission_id", ""))},
+			bool(mission_outcome(won)["won"]))
 	if MetaState.has_method("pass_add_run_xp"):
 		MetaState.call("pass_add_run_xp", last_run_xp)
 	# Daily Mission. Granted on ANY run end — win, loss or quit — exactly as JS does it

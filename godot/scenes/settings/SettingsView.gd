@@ -122,6 +122,8 @@ func _build_abandon_section() -> void:
 	confirm.toggled.connect(func(on: bool) -> void:
 		btn.disabled = not on)
 	btn.pressed.connect(func() -> void:
+		if RunState.has_saved_run():
+			MetaState.settle_mission_stake(false)   # lane E: abandon = mission loss (no-op without escrow)
 		RunState.clear_saved_run()
 		RunState.reset()
 		btn.disabled = true

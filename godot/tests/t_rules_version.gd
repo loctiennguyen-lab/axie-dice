@@ -154,7 +154,9 @@ const WATCHED_FILES: Array[String] = ["res://assets/data/part_faces.json"]
 ## (ironvow, lonewolf, hollowchalice, alphafang, falconhood, heartrootgrove, shedskin, tidecaller, venomlineage),
 ## value hooks shield_value / reroll_allowed / active_cost / face_final / field, CombatEngine.active_cost.
 ## Changes the run result: YES.
-const FINGERPRINT := "66a830a0bba4b9242c323c2bc584fc0c47efdf8964dabdee37c7c1cec2204132"
+## Moved 2026-10-13 by lane E (3a3764a..95f3304): MetaState mission stake escrow (nonce id via Crypto, not game
+## RNG) + RunState.end_run settles the escrow before clearing the saved run. Meta only. Run result: NO, stays -g.
+const FINGERPRINT := "c43de44dadc980868a9eb51b78470bd758f240a4c0e41c5a498d78eac4744a72"
 
 
 func _ready() -> void:
