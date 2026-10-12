@@ -429,5 +429,26 @@
 		"unlock_season": 2,
 		"label": "Season 2",
 		"locked_in_l1": true
+	},
+	"weekly_tasks": {
+		"week_starts": "monday_utc",
+		"xp_each": 500,
+		"tasks": [
+			{
+				"id": "play_runs",
+				"counter": "runs",
+				"target": 5
+			},
+			{
+				"id": "win_runs",
+				"counter": "wins",
+				"target": 2
+			},
+			{
+				"id": "reach_boss",
+				"counter": "boss",
+				"target": 1
+			}
+		]
 	}
 }
