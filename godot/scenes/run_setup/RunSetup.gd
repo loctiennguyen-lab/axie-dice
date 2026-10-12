@@ -19,17 +19,8 @@ const ASC_MAX := 10
 const PARTY_SIZE := 5
 const NEWCOMER_RUNS := 5
 
-# Round 3 sheet colours the shared theme does not carry yet (lane U: add as tokens).
-const WOOD := Color("8A3E22")
+# TODO lane U token: darker wood for small-caps section labels on cream.
 const WOOD_DARK := Color("6E2F18")
-const INK_STRONG := Color("2A1505")
-const CREAM_300 := Color("E8D6B4")
-const LOCKED_INK := Color("6E4A30")     # decided: not #9A7650
-const VIOLET_SURFACE := Color("E6DAF6")
-const VIOLET_BORDER := Color("4E2E8A")
-const VIOLET_HEADER := Color("33244F")
-const DUSK := Color("3B2618")
-const DUSK_INK := Color("FFC79B")
 
 const FAIRNESS := "Aid makes you stronger for one run. Players who buy more can win more. The Pure leaderboard only counts runs without Aid."
 
@@ -247,10 +238,8 @@ func _initial_party() -> Array[String]:
 
 
 func _build() -> void:
-	var scrim := ColorRect.new()
-	scrim.color = Color(0x24 / 255.0, 0x14 / 255.0, 0x0B / 255.0, 0.55)
-	scrim.set_anchors_preset(Control.PRESET_FULL_RECT)
-	add_child(scrim)
+	# Placeholder plate until lane L's blurred Land backdrop exists; DangoScreen supplies PlateHost + scrim.
+	DangoScreen.build(self, MockupAssets.tex("assets/bg/rocky.jpg"), DangoTheme.Scrim.DEFAULT, false)
 
 	_panel = PanelContainer.new()
 	_panel.name = "Panel"
@@ -264,7 +253,7 @@ func _build() -> void:
 	sb.bg_color = DangoTheme.CREAM
 	sb.set_corner_radius_all(28)
 	sb.set_border_width_all(4)
-	sb.border_color = WOOD
+	sb.border_color = DangoTheme.LINE
 	sb.set_content_margin_all(0)
 	_panel.add_theme_stylebox_override("panel", sb)
 	_panel.clip_contents = true
@@ -316,7 +305,7 @@ func _build() -> void:
 	_refresh_asc()
 
 
-func _label(text: String, size: int, color: Color = INK_STRONG, display := false) -> Label:
+func _label(text: String, size: int, color: Color = DangoTheme.INK, display := false) -> Label:
 	var l := Label.new()
 	l.text = text
 	l.add_theme_font_size_override("font_size", size)
@@ -340,7 +329,7 @@ func _build_header() -> Control:
 	var band := PanelContainer.new()
 	band.custom_minimum_size = Vector2(0, 64)
 	var sb := StyleBoxFlat.new()
-	sb.bg_color = WOOD
+	sb.bg_color = DangoTheme.LINE
 	sb.corner_radius_top_left = 24
 	sb.corner_radius_top_right = 24
 	sb.content_margin_left = 16
@@ -412,7 +401,7 @@ func _build_slot(i: int) -> Control:
 	card.add_child(v)
 	if key == "":
 		sb.bg_color = DangoTheme.CREAM_RAISED.darkened(0.04)
-		sb.border_color = WOOD
+		sb.border_color = DangoTheme.LINE
 		sb.draw_center = true
 		card.add_theme_stylebox_override("panel", sb)
 		var pick := _button("Pick an Axie", 0, 52)
@@ -424,7 +413,7 @@ func _build_slot(i: int) -> Control:
 	var def: Dictionary = ContentDB.heroes.get(key, {})
 	var cls := String(def.get("cls", ""))
 	sb.bg_color = DangoTheme.CREAM_RAISED
-	sb.border_color = WOOD
+	sb.border_color = DangoTheme.LINE
 	card.add_theme_stylebox_override("panel", sb)
 	var top := HBoxContainer.new()
 	top.add_theme_constant_override("separation", 10)
@@ -435,11 +424,11 @@ func _build_slot(i: int) -> Control:
 	top.add_child(dot)
 	var names := VBoxContainer.new()
 	names.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	names.add_child(_label(String(def.get("n", key)), 19, INK_STRONG, true))
+	names.add_child(_label(String(def.get("n", key)), 19, DangoTheme.INK, true))
 	names.add_child(_label("%s · HP %d" % [cls.capitalize(), int(def.get("max_hp", 0))], 14, DangoTheme.INK_ON_CREAM_MUTED))
 	top.add_child(names)
 	var vault := MetaState.is_vault_key(key)
-	var tag := _label("Vault" if vault else "Starter", 14, INK_STRONG)
+	var tag := _label("Vault" if vault else "Starter", 14, DangoTheme.INK)
 	tag.custom_minimum_size = Vector2(0, 24)
 	v.add_child(tag)
 	var faces := HBoxContainer.new()
@@ -473,7 +462,7 @@ func _build_slot(i: int) -> Control:
 	return card
 
 
-func _plate(min_w: float, border: Color = WOOD, fill: Color = CREAM_300) -> PanelContainer:
+func _plate(min_w: float, border: Color = DangoTheme.LINE, fill: Color = DangoTheme.CREAM_DISABLED) -> PanelContainer:
 	var p := PanelContainer.new()
 	p.custom_minimum_size = Vector2(min_w, 0)
 	var sb := StyleBoxFlat.new()
@@ -492,7 +481,7 @@ func _chip_style(fill: Color, border: Color, shelf := 0) -> StyleBoxFlat:
 	s.set_corner_radius_all(10)
 	s.set_border_width_all(2)
 	s.border_color = border
-	s.shadow_color = WOOD
+	s.shadow_color = DangoTheme.LINE
 	s.shadow_size = 0
 	s.shadow_offset = Vector2(0, shelf)
 	return s
@@ -549,25 +538,25 @@ func _build_mode_col() -> Control:
 	if not is_full_unlocked():
 		_full_btn.tooltip_text = "Win a Short run to unlock Full"
 	lrow.add_child(_full_btn)
-	_mode_detail = _label("", 15, INK_STRONG)
+	_mode_detail = _label("", 15, DangoTheme.INK)
 	_mode_detail.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	v.add_child(_mode_detail)
 	return p
 
 
 func _style_seg(b: Button, on: bool) -> void:
-	var fill := DangoTheme.PRIMARY if on else CREAM_300
-	var border := WOOD
+	var fill := DangoTheme.PRIMARY if on else DangoTheme.CREAM_DISABLED
+	var border := DangoTheme.LINE
 	for k in ["normal", "hover", "pressed", "disabled", "focus"]:
 		var st := _chip_style(fill, border, 4 if on else 0)
 		if k == "focus":
 			st.draw_center = false
-			st.border_color = Color("FFC445")
+			st.border_color = DangoTheme.GOLD
 			st.set_border_width_all(4)
 		b.add_theme_stylebox_override(k, st)
 	for c in ["font_color", "font_pressed_color", "font_hover_color", "font_hover_pressed_color"]:
-		b.add_theme_color_override(c, INK_STRONG)
-	b.add_theme_color_override("font_disabled_color", LOCKED_INK)
+		b.add_theme_color_override(c, DangoTheme.INK)
+	b.add_theme_color_override("font_disabled_color", DangoTheme.INK_DISABLED)
 
 
 func _refresh_mode() -> void:
@@ -580,7 +569,7 @@ func _refresh_mode() -> void:
 	_style_seg(_full_btn, mode == "full" and full_ok)
 	if not full_ok:
 		_full_btn.text = "Full  🔒"
-		_full_btn.add_theme_color_override("font_color", LOCKED_INK)
+		_full_btn.add_theme_color_override("font_color", DangoTheme.INK_DISABLED)
 	var cfg: Dictionary = RunMapGenerator.MODE_CONFIG.get(mode, {})
 	var txt := "%s · %d rows · %d bosses" % [mode.capitalize(), int(cfg.get("total_rows", 0)),
 		(cfg.get("boss_rows", []) as Array).size()]
@@ -610,13 +599,13 @@ func _build_asc_col() -> Control:
 		b.pressed.connect(_on_asc_pressed.bind(n))
 		chips.add_child(b)
 		_asc_chips.append(b)
-	_asc_title = _label("", 26, INK_STRONG, true)
+	_asc_title = _label("", 26, DangoTheme.INK, true)
 	v.add_child(_asc_title)
-	_asc_mult = _label("", 15, WOOD)
+	_asc_mult = _label("", 15, DangoTheme.LINE)
 	v.add_child(_asc_mult)
-	_asc_tip = _label("", 14, DUSK_INK)
+	_asc_tip = _label("", 14, DangoTheme.DUSK_INK)
 	v.add_child(_asc_tip)
-	var well := _plate(0, CREAM_300.darkened(0.15), DangoTheme.CREAM_TRACK)
+	var well := _plate(0, DangoTheme.LINE, DangoTheme.CREAM_TRACK)
 	v.add_child(well)
 	_asc_rules = VBoxContainer.new()
 	_asc_rules.add_theme_constant_override("separation", 2)
@@ -638,15 +627,15 @@ func _refresh_asc() -> void:
 		var b := _asc_chips[n]
 		var locked := n > ceil
 		var sel := n == ascension
-		var fill := DangoTheme.PRIMARY if sel else (CREAM_300 if locked else DangoTheme.CREAM_RAISED)
+		var fill := DangoTheme.PRIMARY if sel else (DangoTheme.CREAM_DISABLED if locked else DangoTheme.CREAM_RAISED)
 		for k in ["normal", "hover", "pressed", "disabled"]:
-			b.add_theme_stylebox_override(k, _chip_style(fill, WOOD, 4 if sel else 0))
-		var f := _chip_style(fill, Color("FFC445"))
+			b.add_theme_stylebox_override(k, _chip_style(fill, DangoTheme.LINE, 4 if sel else 0))
+		var f := _chip_style(fill, DangoTheme.GOLD)
 		f.draw_center = false
 		f.set_border_width_all(4)
 		b.add_theme_stylebox_override("focus", f)
 		for c in ["font_color", "font_hover_color", "font_pressed_color"]:
-			b.add_theme_color_override(c, LOCKED_INK if locked else INK_STRONG)
+			b.add_theme_color_override(c, DangoTheme.INK_DISABLED if locked else DangoTheme.INK)
 		b.tooltip_text = "Win a run at A%d to unlock A%d" % [n - 1, n] if locked else ""
 		b.text = "A%d" % n + ("🔒" if locked else "")
 	var m: Dictionary = ContentDB.ascension_mods(ascension)
@@ -689,7 +678,7 @@ func _rule_row(lvl: int, nm: String, line: String, current: bool, grey: bool) ->
 	var h := HBoxContainer.new()
 	h.add_theme_constant_override("separation", 10)
 	row.add_child(h)
-	var ink := LOCKED_INK if grey else INK_STRONG
+	var ink := DangoTheme.INK_DISABLED if grey else DangoTheme.INK
 	var code := _label("A%d" % lvl, 15, ink, true)
 	code.custom_minimum_size = Vector2(36, 0)
 	h.add_child(code)
@@ -700,31 +689,31 @@ func _rule_row(lvl: int, nm: String, line: String, current: bool, grey: bool) ->
 	d.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	h.add_child(d)
 	if current:
-		h.add_child(_label("NEW", 12, INK_STRONG, true))
+		h.add_child(_label("NEW", 12, DangoTheme.INK, true))
 	return row
 
 
 func _build_kit_col() -> Control:
-	var p := _plate(400, VIOLET_BORDER, VIOLET_SURFACE)
+	var p := _plate(400, DangoTheme.GEM_SHELF, DangoTheme.GEM_PANEL_TINT)
 	p.name = "KitBoon"
 	var v := VBoxContainer.new()
 	v.add_theme_constant_override("separation", 8)
 	p.add_child(v)
-	v.add_child(_label("AID FOR THIS RUN", 16, VIOLET_HEADER, true))
+	v.add_child(_label("AID FOR THIS RUN", 16, DangoTheme.GEM_INK, true))
 	for t in [["Starting Boon", "38 Gem ≈ 0.42 USD"], ["Run Kit", "60 Gem ≈ 0.67 USD"]]:
 		var row := HBoxContainer.new()
 		row.custom_minimum_size = Vector2(0, 58)
 		var names := VBoxContainer.new()
 		names.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		names.add_child(_label(t[0], 17, VIOLET_HEADER, true))
-		names.add_child(_label(t[1], 14, VIOLET_HEADER))
+		names.add_child(_label(t[0], 17, DangoTheme.GEM_INK, true))
+		names.add_child(_label(t[1], 14, DangoTheme.GEM_INK))
 		row.add_child(names)
 		var add := _button("Add", 90, 44)
 		add.disabled = true
 		add.tooltip_text = "Aid purchase is not in this build"
 		row.add_child(add)
 		v.add_child(row)
-	var f := _label(FAIRNESS, 14, VIOLET_HEADER)
+	var f := _label(FAIRNESS, 14, DangoTheme.GEM_INK)
 	f.name = "Fairness"
 	f.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	v.add_child(f)
@@ -735,7 +724,7 @@ func _build_footer() -> Control:
 	var band := PanelContainer.new()
 	band.custom_minimum_size = Vector2(0, 84)
 	var sb := StyleBoxFlat.new()
-	sb.bg_color = CREAM_300
+	sb.bg_color = DangoTheme.CREAM_DISABLED
 	sb.corner_radius_bottom_left = 24
 	sb.corner_radius_bottom_right = 24
 	sb.content_margin_left = 24
@@ -743,7 +732,7 @@ func _build_footer() -> Control:
 	band.add_theme_stylebox_override("panel", sb)
 	var h := HBoxContainer.new()
 	band.add_child(h)
-	_footer_msg = _label("", 17, INK_STRONG)
+	_footer_msg = _label("", 17, DangoTheme.INK)
 	_footer_msg.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_footer_msg.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	_footer_msg.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -771,7 +760,7 @@ func _add_banner(msg: String, detail: String, with_retry: bool) -> void:
 	var p := PanelContainer.new()
 	p.name = "Banner"
 	var sb := StyleBoxFlat.new()
-	sb.bg_color = DUSK
+	sb.bg_color = DangoTheme.DUSK
 	sb.content_margin_left = 24
 	sb.content_margin_right = 24
 	sb.content_margin_top = 8
@@ -780,11 +769,11 @@ func _add_banner(msg: String, detail: String, with_retry: bool) -> void:
 	var h := HBoxContainer.new()
 	h.add_theme_constant_override("separation", 14)
 	p.add_child(h)
-	h.add_child(_label("⚠", 28, DUSK_INK))
+	h.add_child(_label("⚠", 28, DangoTheme.DUSK_INK))
 	var t := VBoxContainer.new()
 	t.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	t.add_child(_label(msg, 18, DUSK_INK, true))
-	t.add_child(_label(detail, 14, DUSK_INK))
+	t.add_child(_label(msg, 18, DangoTheme.DUSK_INK, true))
+	t.add_child(_label(detail, 14, DangoTheme.DUSK_INK))
 	h.add_child(t)
 	if with_retry:
 		var r := _button("Try again", 160, 44, true)
@@ -818,7 +807,7 @@ func _build_open_run() -> void:
 	var v := VBoxContainer.new()
 	v.add_theme_constant_override("separation", 10)
 	card.add_child(v)
-	v.add_child(_label("You have an unfinished run", 26, INK_STRONG, true))
+	v.add_child(_label("You have an unfinished run", 26, DangoTheme.INK, true))
 	var line := "Saved run on disk"
 	v.add_child(_label(line, 16, DangoTheme.INK_ON_CREAM_MUTED))
 	var cont := _button("Continue run", 0, 60, true)
@@ -829,7 +818,7 @@ func _build_open_run() -> void:
 	nw.name = "NewRun"
 	nw.pressed.connect(func() -> void: set_state("normal"))
 	v.add_child(nw)
-	v.add_child(_label("A new run ends the current run. Aid you used is not refunded.", 14, INK_STRONG))
+	v.add_child(_label("A new run ends the current run. Aid you used is not refunded.", 14, DangoTheme.INK))
 	holder.add_child(card)
 	_panel.get_node("Col").add_child(holder)
 	_panel.get_node("Col").move_child(holder, 2)
@@ -879,7 +868,7 @@ func _show_picker() -> void:
 	var c := CenterContainer.new()
 	c.set_anchors_preset(Control.PRESET_FULL_RECT)
 	dim.add_child(c)
-	var p := _plate(1000, WOOD, DangoTheme.CREAM)
+	var p := _plate(1000, DangoTheme.LINE, DangoTheme.CREAM)
 	p.name = "Picker"
 	c.add_child(p)
 	var v := VBoxContainer.new()
@@ -891,7 +880,7 @@ func _show_picker() -> void:
 	var back := _button("← Back", 120, 44)
 	back.pressed.connect(close_modal)
 	head.add_child(back)
-	var t := _label("Run Setup › Party › Slot %d" % (_picker_slot + 1), 24, INK_STRONG, true)
+	var t := _label("Run Setup › Party › Slot %d" % (_picker_slot + 1), 24, DangoTheme.INK, true)
 	t.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	head.add_child(t)
 	for tab in ["all", "starter", "vault"]:
