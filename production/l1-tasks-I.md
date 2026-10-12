@@ -16,5 +16,10 @@ Cập nhật 12/10, sau merge A PR1 (3220402) + B (6ae29ef) và bump `RULES_VERS
 
 ## Sau merge E (12/10, RULES_VERSION -> godot-2026-10-12-b)
 
-7. **Ranked nhận `run_bonuses` từ unlock cày (B3)** nhưng verifier chưa đọc loadout từ header của log. Replay ranked chỉ khớp trên máy có cùng unlock. Phải làm (A + S): ghi loadout vào header, verifier dùng nó thay cho `MetaState`, trước khi chấm leaderboard thật. Đã bump `-b` vì cùng actions + seed cho run khác.
+7. ~~Verifier chưa đọc loadout từ header~~ — ĐÃ XONG (A PR2): verifier đọc `header.loadout`, có `t_replay_loadout`. Bump `-b` vẫn đúng vì cùng actions + seed cho run khác.
 8. Fingerprint giờ phủ thêm `scripts/meta/` (Aid catalog ảnh hưởng combat). `assets/data/economy/*.json` chưa phủ (ví/Pass, không đổi kết quả run); nếu Aid hoặc luật đọc dữ liệu từ đó thì phải thêm.
+
+## Sau merge A PR2 (12/10, RULES_VERSION -> godot-2026-10-12-c)
+
+9. `t_mon13` là quét văn bản (cấm `aid_*`, `continue_used`, `boon_used` trong `scripts/core`; `boon_id` chỉ trong `_reward_count`). Hiện `_reward_count` chưa có trong `scripts/core` nên `boon_id` bị cấm hẳn; khi làn B/A thêm hàm đó thì ngoại lệ có hiệu lực. Chưa chạy thử đột biến (thêm dòng vi phạm để xem test đỏ).
+10. Hook H1-H8 đang rỗng; khi B nối thân relic vào hook thì cần bump lại (nếu đổi kết quả run) hoặc cập nhật fingerprint.

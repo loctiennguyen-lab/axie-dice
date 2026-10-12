@@ -124,7 +124,11 @@ const WATCHED_FILES: Array[String] = ["res://assets/data/part_faces.json"]
 ## matches on a machine with the same unlocks (see production/l1-tasks-I.md).
 ## Moved 2026-10-12 by lane E Store fixes (store_catalog/gem_wallet spend(save)): wallet + shop only,
 ## no run outcome change, so RULES_VERSION was NOT bumped.
-const FINGERPRINT := "22a7952f1ead309270726b61fe7d8d093027a0acc3bd64c8e327e3d2a8e56841"
+## BUMPED again, 2026-10-12: `ActionLog.RULES_VERSION` -> `godot-2026-10-12-c`. Lane A PR2: Ascension v2
+## rule tables (assets/data/rules/*.json, now fingerprinted), boss clock, attrition, spike, Continue (form B),
+## Aid effects, Boons as numbers, relic hook points H1-H8 (inert until lane B fills them), set_epoch.
+## Changes the run result: YES. `t_mon13` guards that no scripts/core rule reads Aid/Continue/Boon state.
+const FINGERPRINT := "a268957b8a5affbfaea1968139fbd818c8c884a22c67a1529b5685ee2c30028a"
 
 
 func _ready() -> void:
