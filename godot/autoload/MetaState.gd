@@ -6,6 +6,7 @@ extends Node
 ## (architecture plan §4, §9 self-critique #A "over-engineered" note on ResourceSaver).
 
 const SAVE_PATH := "user://meta_save.json"
+const EconomyDBScript := preload("res://scripts/meta/economy_db.gd")
 
 ## src/client.html:3216. Twenty slots, and a full vault REFUSES a new import with a message
 ## rather than quietly dropping the oldest one — a silent LRU on a list the player curated by
@@ -63,6 +64,35 @@ var daily_date: String = ""
 ## run/main_scene — unlike the JS build, this port does not need a second gate point).
 var tutorial_seen: bool = false
 
+# --- L1 economy (lane E; contract production/l1-interfaces.md 5.2) -----------------------------
+## Save schema. 1 = trước L1 (không có field này). 2 = economy L1. Save cũ (<2) được MIGRATE khi nạp:
+## unlock + perk + Pass cũ + số dư Shard bị bỏ, thay bằng khoản khởi đầu cố định
+## (docs/architecture/server-authoritative-rng.md 9.1/9.2: unlock cũ không nhập). Vault, thống kê
+## run, cài đặt, tutorial_seen được giữ. Migrate CHỈ trong bộ nhớ; file ghi lại ở lần save kế tiếp
+## (nạp không được tự ghi, nếu không mỗi lần chạy test sẽ đè save thật).
+const SAVE_VERSION := 2
+var save_version: int = SAVE_VERSION
+var starter_granted: bool = false
+var stone: int = 0                       # Land Stone
+var gems_cache: int = 0                  # Gem (local) / bộ đệm hiển thị nếu Gem ở server [LIAM-2]
+var gem_claim_next_utc: int = 0          # unix 00:00 UTC kế tiếp được nhận Gem tặng
+var gem_gift_day: String = ""            # ngày UTC đã nhận Gem tặng gần nhất
+var tickets: Dictionary = {"normal": 0, "season": 0}   # MỘT loại vé: dùng "normal"; "season" dự trữ = 0
+var echobox_pity: Dictionary = {}        # bộ đếm pity, mảnh, số lượt mở, đếm mua vé theo ngày
+var cosmetics_owned: Array[String] = []
+var pass_season: Dictionary = {"id": "", "xp": 0, "level": 0, "claimed_free": []}
+var vip_until_utc: int = 0
+var vip_trial_used: bool = false
+var mission_house_level: int = 0
+var asc_wins: Dictionary = {}            # "asc" -> số run thắng
+var full_a9_won: bool = false
+var aid_hints_off: bool = false
+var last_daily_reward_utc: String = ""
+## Sổ cái (200 dòng cuối): {t, c, d, r, b} = thời điểm, tiền tệ, thay đổi, lý do, số dư sau.
+var ledger: Array = []
+const LEDGER_MAX := 200
+var _gem_wallet: GemWallet = null
+
 
 ## `needs_tutorial()` mirrors the JS `needsTutorial` formula's belt-and-suspenders shape
 ## (design doc §3.2/§4): `runs == 0` is a second, independent guard so a save whose
@@ -79,18 +109,103 @@ func _ready() -> void:
 	# A deferred call runs once the whole autoload set is up.
 	ensure_vault_heroes.call_deferred()
 
-func add_shards(amount: int) -> void:
+func add_shards(amount: int, reason: String = "earn") -> void:
 	shard_pool += amount
+	ledger_add("shard", amount, reason)
 	save_to_disk()
 
-## L1 contract §5.2 — A gọi từ RunState.end_run. 14/10: bản NO-OP (E điền thân sau: asc_wins,
-## full_a9_won, mở bậc Nhiệm vụ). Không ghi save.
-func record_run_outcome(_params: Dictionary, _won: bool) -> void:
-	pass
+
+## Land Stone. n > 0. Vào sổ cái.
+func add_stone(n: int, reason: String = "earn") -> void:
+	if n <= 0:
+		return
+	stone += n
+	ledger_add("stone", n, reason)
+	save_to_disk()
 
 
-## L1 contract §5.2 — L đọc để hiện chấm đỏ/badge trên màn `screen_id`. 14/10: luôn 0.
-func badge_count(_screen_id: String) -> int:
+## Trừ `n` của `currency` ("shard" | "stone" | "gem"). false (không trừ gì) nếu không đủ.
+func spend(currency: String, n: int, reason: String) -> bool:
+	if n < 0:
+		return false
+	match currency:
+		"shard":
+			if shard_pool < n:
+				return false
+			shard_pool -= n
+		"stone":
+			if stone < n:
+				return false
+			stone -= n
+		"gem":
+			return gem_wallet().spend(n, reason)
+		_:
+			push_warning("MetaState.spend: tiền tệ lạ '%s'" % currency)
+			return false
+	ledger_add(currency, -n, reason)
+	save_to_disk()
+	return true
+
+
+## Ví Gem (interface). Hôm nay là bản local; lane S thay bằng bản server qua set_gem_wallet().
+func gem_wallet() -> GemWallet:
+	if _gem_wallet == null:
+		_gem_wallet = LocalGemWallet.new(self)
+	return _gem_wallet
+
+
+func set_gem_wallet(w: GemWallet) -> void:
+	_gem_wallet = w
+
+
+## Nhận Gem tặng hôm nay (giờ UTC thật của máy; bản server sẽ do server xác nhận).
+func claim_gem_gift_now() -> Dictionary:
+	return gem_wallet().claim_daily_gift(int(Time.get_unix_time_from_system()))
+
+
+## Ghi một dòng sổ cái (chưa save; người gọi tự save). `c` = "shard"|"stone"|"gem"|"ticket".
+func ledger_add(c: String, delta: int, reason: String) -> void:
+	var bal := 0
+	match c:
+		"shard": bal = shard_pool
+		"stone": bal = stone
+		"gem": bal = gems_cache
+		"ticket": bal = int(tickets.get("normal", 0))
+	ledger.append({"t": int(Time.get_unix_time_from_system()), "c": c, "d": delta, "r": reason, "b": bal})
+	if ledger.size() > LEDGER_MAX:
+		ledger = ledger.slice(ledger.size() - LEDGER_MAX)
+
+
+## S gọi sau khi gọi server: ghi đè bộ đệm ví từ snapshot {gems?, gem_claim_next_utc?, ...}.
+func apply_server_wallet(snapshot: Dictionary) -> void:
+	if snapshot.has("gems"):
+		gems_cache = int(snapshot["gems"])
+	if snapshot.has("gem_claim_next_utc"):
+		gem_claim_next_utc = int(snapshot["gem_claim_next_utc"])
+	save_to_disk()
+
+## L1 contract 5.2 — A gọi từ RunState.end_run (A không ghi field trực tiếp). Ghi thắng theo Ascension
+## và "đã thắng Full A9" để mở bậc Nhiệm vụ. `params`: {mode:"short"|"full", ascension:int, ...}.
+## runs/wins/best vẫn do end_run ghi như hôm nay.
+func record_run_outcome(params: Dictionary, won: bool) -> void:
+	if not won:
+		return
+	var asc := int(params.get("ascension", 0))
+	asc_wins[str(asc)] = int(asc_wins.get(str(asc), 0)) + 1
+	if String(params.get("mode", "short")) == "full" and asc >= 9:
+		full_a9_won = true
+	save_to_disk()
+
+
+## L1 contract 5.2 — chấm đỏ cho màn `screen_id`. Chỉ đếm cái nhận được ngay, không tính toán nặng.
+func badge_count(screen_id: String) -> int:
+	match screen_id:
+		"store":
+			var cap := int((EconomyDBScript.get_table("gem").get("gift", {}) as Dictionary).get("balance_cap", 900))
+			var today := GemWallet.utc_day(int(Time.get_unix_time_from_system()))
+			return 1 if gem_gift_day != today and gems_cache < cap else 0
+		"echobox":
+			return 1 if int(tickets.get("normal", 0)) > 0 else 0
 	return 0
 
 
@@ -119,8 +234,30 @@ func reload_from_store() -> void:
 	reduce_flash = false
 	daily_date = ""
 	tutorial_seen = false
+	_reset_economy_fields()
 	load_from_disk()
 	ensure_vault_heroes()
+
+
+func _reset_economy_fields() -> void:
+	save_version = SAVE_VERSION
+	starter_granted = false
+	stone = 0
+	gems_cache = 0
+	gem_claim_next_utc = 0
+	gem_gift_day = ""
+	tickets = {"normal": 0, "season": 0}
+	echobox_pity = {}
+	cosmetics_owned.clear()
+	pass_season = {"id": "", "xp": 0, "level": 0, "claimed_free": []}
+	vip_until_utc = 0
+	vip_trial_used = false
+	mission_house_level = 0
+	asc_wins = {}
+	full_a9_won = false
+	aid_hints_off = false
+	last_daily_reward_utc = ""
+	ledger = []
 
 
 func load_from_disk() -> void:
@@ -129,6 +266,7 @@ func load_from_disk() -> void:
 	# measurement.
 	var text := SaveStore.read_text(SAVE_PATH)
 	if text.is_empty():
+		_apply_starter_if_needed()
 		return
 	var parsed = JSON.parse_string(text)
 	if typeof(parsed) != TYPE_DICTIONARY:
@@ -161,6 +299,77 @@ func load_from_disk() -> void:
 	# through the tutorial retroactively.
 	if not tutorial_seen and runs > 0:
 		tutorial_seen = true
+	_economy_from_json(parsed)
+
+
+## Đọc field economy L1 và migrate save cũ. Xem SAVE_VERSION. Không ghi file.
+func _economy_from_json(parsed: Dictionary) -> void:
+	var ver := int(parsed.get("save_version", 1))
+	stone = int(parsed.get("stone", 0))
+	gems_cache = int(parsed.get("gems_cache", 0))
+	gem_claim_next_utc = int(parsed.get("gem_claim_next_utc", 0))
+	gem_gift_day = str(parsed.get("gem_gift_day", ""))
+	var t = parsed.get("tickets", {})
+	tickets = {"normal": int((t as Dictionary).get("normal", 0)) if t is Dictionary else 0,
+		"season": int((t as Dictionary).get("season", 0)) if t is Dictionary else 0}
+	echobox_pity = _pity_from_json(parsed.get("echobox_pity", {}))
+	cosmetics_owned.clear()
+	for c in (parsed.get("cosmetics_owned", []) as Array):
+		cosmetics_owned.append(str(c))
+	var ps = parsed.get("pass_season", {})
+	pass_season = {"id": "", "xp": 0, "level": 0, "claimed_free": []}
+	if ps is Dictionary:
+		pass_season = {"id": str((ps as Dictionary).get("id", "")), "xp": int((ps as Dictionary).get("xp", 0)),
+			"level": int((ps as Dictionary).get("level", 0)),
+			"claimed_free": _ints((ps as Dictionary).get("claimed_free", []))}
+	vip_until_utc = int(parsed.get("vip_until_utc", 0))
+	vip_trial_used = bool(parsed.get("vip_trial_used", false))
+	mission_house_level = int(parsed.get("mission_house_level", 0))
+	asc_wins = _int_values(parsed.get("asc_wins", {}))
+	full_a9_won = bool(parsed.get("full_a9_won", false))
+	aid_hints_off = bool(parsed.get("aid_hints_off", false))
+	last_daily_reward_utc = str(parsed.get("last_daily_reward_utc", ""))
+	ledger = (parsed.get("ledger", []) as Array).duplicate(true) if parsed.get("ledger", []) is Array else []
+	starter_granted = bool(parsed.get("starter_granted", false))
+	if ver < SAVE_VERSION:
+		_migrate_pre_economy()
+	save_version = SAVE_VERSION
+	_apply_starter_if_needed()
+
+
+## v1 -> v2 (docs/architecture/server-authoritative-rng.md 9.2): unlock/perk/Pass cũ và số dư Shard
+## cũ không nhập; chỉ còn khoản khởi đầu cố định. Giữ vault, thống kê run, asc_max, cài đặt.
+func _migrate_pre_economy() -> void:
+	unlocks.clear()
+	perks = {}
+	shard_pool = 0
+	battle_pass_xp = 0
+	battle_pass_level = 1
+	xp = 0
+	bp_claimed.clear()
+	starter_granted = false
+
+
+## Khoản khởi đầu cố định, một lần (daily.json -> starter, SỐ TẠM). Tài khoản mới và save vừa migrate.
+func _apply_starter_if_needed() -> void:
+	if starter_granted:
+		return
+	var st: Dictionary = EconomyDBScript.get_table("daily").get("starter", {})
+	shard_pool += int(st.get("shards", 0))
+	gems_cache += int(st.get("gems", 0))
+	tickets["normal"] = int(tickets.get("normal", 0)) + int(st.get("tickets", 0))
+	starter_granted = true
+	ledger_add("shard", int(st.get("shards", 0)), "starter")
+
+
+static func _pity_from_json(raw) -> Dictionary:
+	var out: Dictionary = {}
+	if not (raw is Dictionary):
+		return out
+	for k in (raw as Dictionary):
+		var v = (raw as Dictionary)[k]
+		out[String(k)] = str(v) if v is String else int(v)
+	return out
 
 func save_to_disk() -> void:
 	var data := {
@@ -182,6 +391,24 @@ func save_to_disk() -> void:
 		"reduce_flash": reduce_flash,
 		"daily_date": daily_date,
 		"tutorial_seen": tutorial_seen,
+		"save_version": SAVE_VERSION,
+		"starter_granted": starter_granted,
+		"stone": stone,
+		"gems_cache": gems_cache,
+		"gem_claim_next_utc": gem_claim_next_utc,
+		"gem_gift_day": gem_gift_day,
+		"tickets": tickets,
+		"echobox_pity": echobox_pity,
+		"cosmetics_owned": cosmetics_owned,
+		"pass_season": pass_season,
+		"vip_until_utc": vip_until_utc,
+		"vip_trial_used": vip_trial_used,
+		"mission_house_level": mission_house_level,
+		"asc_wins": asc_wins,
+		"full_a9_won": full_a9_won,
+		"aid_hints_off": aid_hints_off,
+		"last_daily_reward_utc": last_daily_reward_utc,
+		"ledger": ledger,
 	}
 	if not SaveStore.write_text(SAVE_PATH, JSON.stringify(data, "\t")):
 		push_error("MetaState: could not write %s — this player's progress is not being saved"

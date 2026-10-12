@@ -1,0 +1,234 @@
+{
+	"version": 1,
+	"_source": "echobox-pass-v2 §2.3-2.8 / economy-v2 §3-5 (đồng bộ 10/10). weight = phần trăm mỗi lượt; code chuẩn hoá theo tổng",
+	"tickets": {
+		"base_price": 200,
+		"growth": 1.05,
+		"round_to": 5,
+		"buy_cap_day": 30,
+		"hold_cap": 999,
+		"starter_tickets": 3
+	},
+	"stone_server_guard_day": 80000,
+	"fragments_per_ticket": 10,
+	"dup_fragments": {
+		"common": 3,
+		"uncommon": 5,
+		"rare": 10,
+		"epic": 20,
+		"legendary": 40,
+		"mythic": 80
+	},
+	"boxes": {
+		"normal": {
+			"enabled": true,
+			"ticket_cost": 1,
+			"table": [
+				{
+					"id": "stone_100",
+					"kind": "stone",
+					"amount": 100,
+					"weight": 15.3
+				},
+				{
+					"id": "stone_250",
+					"kind": "stone",
+					"amount": 250,
+					"weight": 24.08
+				},
+				{
+					"id": "stone_500",
+					"kind": "stone",
+					"amount": 500,
+					"weight": 13.0
+				},
+				{
+					"id": "stone_1000",
+					"kind": "stone",
+					"amount": 1000,
+					"weight": 6.0
+				},
+				{
+					"id": "stone_2500",
+					"kind": "stone",
+					"amount": 2500,
+					"weight": 1.6
+				},
+				{
+					"id": "stone_10000",
+					"kind": "stone",
+					"amount": 10000,
+					"weight": 0.02
+				},
+				{
+					"id": "cos_common",
+					"kind": "cosmetic",
+					"rarity": "common",
+					"weight": 24.08
+				},
+				{
+					"id": "cos_uncommon",
+					"kind": "cosmetic",
+					"rarity": "uncommon",
+					"weight": 9.72
+				},
+				{
+					"id": "cos_rare",
+					"kind": "cosmetic",
+					"rarity": "rare",
+					"weight": 4.52
+				},
+				{
+					"id": "cos_epic",
+					"kind": "cosmetic",
+					"rarity": "epic",
+					"weight": 1.264
+				},
+				{
+					"id": "cos_legendary",
+					"kind": "cosmetic",
+					"rarity": "legendary",
+					"weight": 0.36
+				},
+				{
+					"id": "cos_mythic",
+					"kind": "cosmetic",
+					"rarity": "mythic",
+					"weight": 0.0632
+				}
+			],
+			"pool": {
+				"common": {
+					"count": 61,
+					"id_prefix": "std_c"
+				},
+				"uncommon": {
+					"count": 55,
+					"id_prefix": "std_u"
+				},
+				"rare": {
+					"count": 47,
+					"id_prefix": "std_r"
+				},
+				"epic": {
+					"count": 28,
+					"id_prefix": "std_e"
+				},
+				"legendary": {
+					"count": 20,
+					"id_prefix": "std_l"
+				},
+				"mythic": {
+					"count": 12,
+					"id_prefix": "std_m"
+				}
+			},
+			"no_repeat_until_tier_complete": true,
+			"pity": {
+				"basis": "cosmetic_pulls",
+				"steps": [
+					{
+						"pulls": 15,
+						"min_rarity": "rare"
+					},
+					{
+						"pulls": 60,
+						"min_rarity": "epic"
+					},
+					{
+						"pulls": 200,
+						"min_rarity": "legendary"
+					},
+					{
+						"pulls": 1000,
+						"min_rarity": "mythic"
+					}
+				]
+			},
+			"_note_ids": "id_prefix + số thứ tự 001.. là ID tạm; art-director/curate gán món thật sau"
+		},
+		"season": {
+			"enabled": false,
+			"_note": "Dữ liệu Series 1; logic hộp mùa chưa viết ở L1 nên tắt",
+			"ticket_cost": 5,
+			"pull_cap_day": 8,
+			"series_id": "s1",
+			"series_weeks": 12,
+			"escalation_k": 2,
+			"full_set_pity": 80,
+			"vault_cap_scale": 2,
+			"tiers": {
+				"epic": {
+					"n": 6,
+					"N": 10,
+					"dup_rate": 0.08,
+					"dup_tickets": 2
+				},
+				"legendary": {
+					"n": 3,
+					"N": 20,
+					"dup_rate": 0.03,
+					"dup_tickets": 4
+				},
+				"mythic": {
+					"n": 2,
+					"N": 40,
+					"dup_rate": 0.01,
+					"dup_tickets": 8
+				}
+			},
+			"items": {
+				"epic": [
+					"die_e_rune",
+					"die_e_spore",
+					"frame_e_runering",
+					"frame_e_firefly",
+					"fx_e_rune",
+					"fx_e_spore"
+				],
+				"legendary": [
+					"die_l_relic_stone",
+					"frame_l_sunburst",
+					"fx_l_starfall"
+				],
+				"mythic": [
+					"fx_m_lunar",
+					"frame_m_eclipse"
+				]
+			},
+			"milestones": [
+				{
+					"opens": 12,
+					"reward": "title_s1_echo"
+				},
+				{
+					"opens": 40,
+					"reward": "die_m_moon",
+					"also": "title_s1_lunar40"
+				}
+			],
+			"stone_table": [
+				{
+					"amount": 500,
+					"weight": 32.74
+				},
+				{
+					"amount": 1000,
+					"weight": 45.13
+				},
+				{
+					"amount": 2500,
+					"weight": 17.5
+				},
+				{
+					"amount": 5000,
+					"weight": 4.6
+				},
+				{
+					"amount": 25000,
+					"weight": 0.03
+				}
+			]
+		}
+	}
+}

@@ -1,0 +1,425 @@
+{
+	"version": 1,
+	"_source": "echobox-pass-v2 §3 (bảng 30 level). Premium từ mùa 2: L1 chỉ đọc free",
+	"season_id": "s1",
+	"weeks": 8,
+	"levels": [
+		{
+			"lv": 1,
+			"xp": 500,
+			"xp_total": 500,
+			"free": [
+				{
+					"type": "shard",
+					"value": 300
+				}
+			],
+			"premium": []
+		},
+		{
+			"lv": 2,
+			"xp": 540,
+			"xp_total": 1040,
+			"free": [
+				{
+					"type": "ticket",
+					"value": 1
+				}
+			],
+			"premium": []
+		},
+		{
+			"lv": 3,
+			"xp": 580,
+			"xp_total": 1620,
+			"free": [
+				{
+					"type": "stone",
+					"value": 1000
+				}
+			],
+			"premium": []
+		},
+		{
+			"lv": 4,
+			"xp": 620,
+			"xp_total": 2240,
+			"free": [
+				{
+					"type": "unlock",
+					"value": "u_reroll"
+				}
+			],
+			"premium": []
+		},
+		{
+			"lv": 5,
+			"xp": 660,
+			"xp_total": 2900,
+			"free": [
+				{
+					"type": "cosmetic",
+					"value": "fx_c_leaf"
+				},
+				{
+					"type": "shard",
+					"value": 300
+				}
+			],
+			"premium": []
+		},
+		{
+			"lv": 6,
+			"xp": 700,
+			"xp_total": 3600,
+			"free": [
+				{
+					"type": "ticket",
+					"value": 1
+				}
+			],
+			"premium": []
+		},
+		{
+			"lv": 7,
+			"xp": 740,
+			"xp_total": 4340,
+			"free": [
+				{
+					"type": "stone",
+					"value": 1500
+				}
+			],
+			"premium": []
+		},
+		{
+			"lv": 8,
+			"xp": 780,
+			"xp_total": 5120,
+			"free": [
+				{
+					"type": "unlock",
+					"value": "u_hp"
+				}
+			],
+			"premium": []
+		},
+		{
+			"lv": 9,
+			"xp": 820,
+			"xp_total": 5940,
+			"free": [
+				{
+					"type": "cosmetic",
+					"value": "frame_u_vine"
+				}
+			],
+			"premium": []
+		},
+		{
+			"lv": 10,
+			"xp": 860,
+			"xp_total": 6800,
+			"free": [
+				{
+					"type": "shard",
+					"value": 500
+				},
+				{
+					"type": "ticket",
+					"value": 1
+				},
+				{
+					"type": "gem",
+					"value": 90
+				}
+			],
+			"premium": []
+		},
+		{
+			"lv": 11,
+			"xp": 900,
+			"xp_total": 7700,
+			"free": [
+				{
+					"type": "stone",
+					"value": 1500
+				}
+			],
+			"premium": []
+		},
+		{
+			"lv": 12,
+			"xp": 940,
+			"xp_total": 8640,
+			"free": [
+				{
+					"type": "unlock",
+					"value": "u_start"
+				}
+			],
+			"premium": []
+		},
+		{
+			"lv": 13,
+			"xp": 980,
+			"xp_total": 9620,
+			"free": [
+				{
+					"type": "shard",
+					"value": 500
+				}
+			],
+			"premium": []
+		},
+		{
+			"lv": 14,
+			"xp": 1020,
+			"xp_total": 10640,
+			"free": [
+				{
+					"type": "ticket",
+					"value": 1
+				}
+			],
+			"premium": []
+		},
+		{
+			"lv": 15,
+			"xp": 1060,
+			"xp_total": 11700,
+			"free": [
+				{
+					"type": "cosmetic",
+					"value": "fx_r_bubble"
+				},
+				{
+					"type": "stone",
+					"value": 2000
+				}
+			],
+			"premium": []
+		},
+		{
+			"lv": 16,
+			"xp": 1100,
+			"xp_total": 12800,
+			"free": [
+				{
+					"type": "unlock",
+					"value": "u_reroll2"
+				}
+			],
+			"premium": []
+		},
+		{
+			"lv": 17,
+			"xp": 1140,
+			"xp_total": 13940,
+			"free": [
+				{
+					"type": "shard",
+					"value": 500
+				}
+			],
+			"premium": []
+		},
+		{
+			"lv": 18,
+			"xp": 1180,
+			"xp_total": 15120,
+			"free": [
+				{
+					"type": "ticket",
+					"value": 1
+				}
+			],
+			"premium": []
+		},
+		{
+			"lv": 19,
+			"xp": 1220,
+			"xp_total": 16340,
+			"free": [
+				{
+					"type": "stone",
+					"value": 2000
+				}
+			],
+			"premium": []
+		},
+		{
+			"lv": 20,
+			"xp": 1260,
+			"xp_total": 17600,
+			"free": [
+				{
+					"type": "unlock",
+					"value": "u_hp2"
+				},
+				{
+					"type": "shard",
+					"value": 500
+				},
+				{
+					"type": "gem",
+					"value": 90
+				}
+			],
+			"premium": []
+		},
+		{
+			"lv": 21,
+			"xp": 1300,
+			"xp_total": 18900,
+			"free": [
+				{
+					"type": "cosmetic",
+					"value": "die_u_moss"
+				}
+			],
+			"premium": []
+		},
+		{
+			"lv": 22,
+			"xp": 1340,
+			"xp_total": 20240,
+			"free": [
+				{
+					"type": "shard",
+					"value": 500
+				}
+			],
+			"premium": []
+		},
+		{
+			"lv": 23,
+			"xp": 1380,
+			"xp_total": 21620,
+			"free": [
+				{
+					"type": "ticket",
+					"value": 2
+				}
+			],
+			"premium": []
+		},
+		{
+			"lv": 24,
+			"xp": 1420,
+			"xp_total": 23040,
+			"free": [
+				{
+					"type": "stone",
+					"value": 2500
+				}
+			],
+			"premium": []
+		},
+		{
+			"lv": 25,
+			"xp": 1460,
+			"xp_total": 24500,
+			"free": [
+				{
+					"type": "cosmetic",
+					"value": "die_e_s1_founder"
+				},
+				{
+					"type": "shard",
+					"value": 500
+				}
+			],
+			"premium": []
+		},
+		{
+			"lv": 26,
+			"xp": 1500,
+			"xp_total": 26000,
+			"free": [
+				{
+					"type": "shard",
+					"value": 600
+				}
+			],
+			"premium": []
+		},
+		{
+			"lv": 27,
+			"xp": 1540,
+			"xp_total": 27540,
+			"free": [
+				{
+					"type": "cosmetic",
+					"value": "frame_e_s1_founder"
+				}
+			],
+			"premium": []
+		},
+		{
+			"lv": 28,
+			"xp": 1580,
+			"xp_total": 29120,
+			"free": [
+				{
+					"type": "ticket",
+					"value": 1
+				},
+				{
+					"type": "stone",
+					"value": 3000
+				}
+			],
+			"premium": []
+		},
+		{
+			"lv": 29,
+			"xp": 1620,
+			"xp_total": 30740,
+			"free": [
+				{
+					"type": "shard",
+					"value": 600
+				}
+			],
+			"premium": []
+		},
+		{
+			"lv": 30,
+			"xp": 1660,
+			"xp_total": 32400,
+			"free": [
+				{
+					"type": "cosmetic",
+					"value": "frame_l_sovereign"
+				},
+				{
+					"type": "title",
+					"value": "LUNACIA SOVEREIGN"
+				},
+				{
+					"type": "ticket",
+					"value": 4
+				},
+				{
+					"type": "stone",
+					"value": 3000
+				}
+			],
+			"premium": []
+		}
+	],
+	"post30_loop": {
+		"xp": 2000,
+		"shard": 50
+	},
+	"xp": {
+		"run_cap_day": 2000,
+		"run_full_rate_until": 1500,
+		"run_over_rate": 0.2,
+		"daily_bonus": 100,
+		"weekly_task_xp": 500,
+		"weekly_tasks": 3
+	},
+	"unlock_refund_if_owned": "shop_price"
+}

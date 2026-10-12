@@ -1,0 +1,28 @@
+{
+	"version": 1,
+	"_source": "phase-plan-v1 'Gem tặng ở L1' (Q9) + monetization-v1 T2a/T3",
+	"gift": {
+		"per_day": 300,
+		"balance_cap": 900,
+		"source_tag": "playtest_grant",
+		"reset_at": "L2"
+	},
+	"season_gift": {
+		"total": 180,
+		"source_tag": "season_gift",
+		"milestones": [
+			{
+				"pass_level": 10,
+				"gems": 90
+			},
+			{
+				"pass_level": 20,
+				"gems": 90
+			}
+		]
+	},
+	"vip_trial": {
+		"days": 7,
+		"once_per_account": true
+	}
+}
