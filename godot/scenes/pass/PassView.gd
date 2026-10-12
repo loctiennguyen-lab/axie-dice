@@ -1,446 +1,509 @@
+class_name PassView
 extends Control
-## LUNACIA PASS — the 30-level permanent-progression track. Restyle target: docs/design-handoff-v2
-## §PASS ("Godot Meta Screens v2.dc.html"), screenshot `screenshots/10-pass.png`.
-##
-## THIS SCREEN CLOSES A REAL REGRESSION, NOT A COSMETIC GAP. v1 rendered the Pass track inline on
-## the scrolling Main Menu; v2 deleted that when the menu became a fixed title screen, and until
-## this scene existed the LUNACIA PASS nav tile was wired disabled (see MainMenu.gd's now-resolved
-## "GAP FLAGGED" note). Spending Gene Shard and claiming rewards the pass had already earned was
-## unreachable in the UI, with no other screen or shortcut to reach it.
-##
-## All data is real and already existed before this screen did: `MetaState.bp_level()` /
-## `bp_progress()` / `bp_claimed` / `claim_bp_reward()`, and `ContentDB.BP_TRACK` (30 entries,
-## `BP_MAX_LEVEL == 30`, matching the mockup's 6x5 grid exactly). Nothing here invents new rules —
-## it is presentation over state that already worked.
+## M4 Season Pass (key 5), R3 frames M4a-M4f. Spec: design/handoffs/ui-02-round3 README section 2 M4.
+## Data and every claim go through MetaState -> PassV2 (pass_claim_free, pass_claim_weekly); this
+## screen only draws state and calls the API, so a double claim is refused by PassV2 itself.
+## Drawn: level badge + XP bar, Claim all, 3 weekly cards, 30-node track (horizontal scroll),
+## premium row (locked, "Season 2", no purchase), post-30 loop row, reward detail card, banners for
+## offline/guest, before-season and season-over. Rewards already reached stay claimable after the
+## season ends; only XP and weekly claims stop (PassV2). Not drawn: loading skeleton (no async data).
+## Title names for A5/A10 are Ascension rewards, not Pass, and are not touched here.
+## Gaps for E: MetaState has no pass_claim_post30 wrapper (loop row calls PassV2.claim_post30) and no
+## pass-state getter (view reads MetaState.pass_season + PassV2 statics).
 
-const MAIN_MENU_SCENE := "res://scenes/main_menu/MainMenu.tscn"
+const _Econ := preload("res://scripts/meta/economy_db.gd")
+const MONTHS := ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
+const TASK_NAMES := {"play_runs": "Play %d runs", "win_runs": "Win %d runs", "reach_boss": "Reach a boss in %d run"}
+const NODE_W := 132.0
+const NODE_H := 254.0
+const REASONS := {
+	"gem_needs_server": "Gem gifts need a connection", "not_reached": "Not reached yet",
+	"already_claimed": "Already claimed", "season_over": "The season is over, no more XP",
+	"week_over": "That week is over", "not_done": "Task not finished",
+}
 
-# The plate the mockup asks for. The whole painted set already ships under
-# `assets/backgrounds/origins/scene/`, under the kit's own numbered names — the short names the
-# handoff uses (`temple.jpg`, `deep-forest.jpg`, `rocky.jpg`) are the same art, renamed for the
-# HTML mockups. Three screens briefly fell back to the wrong plate on the belief that these
-# images were missing; they never were. Look in that directory before concluding a background
-# does not exist, and do not copy the handoff's copies in — that is how a project ends up with
-# two of every background and no rule about which one is canonical.
-const BG_MOCKUP_PLATE := "assets/bg/temple.jpg"
+## "normal" | "offline" | "guest"
+var state := "normal"
+var no_scene_change := false
+var use_account := true
+var remote_on: bool = String(ProjectSettings.get_setting("axie/gem_wallet", "")) == "remote"
+var account_status_hook: Callable
+## Tests: ISO day to act as "today"; empty = real UTC day.
+var today_override := ""
+var last_result := ""
 
-var _grid: GridContainer
-var _level_label: Label
-var _level_max_label: Label
-var _xp_label: Label
-var _xp_fill: Control
-var _status_label: Label
-var _track_panel: PanelContainer
-var _track_scroll: ScrollContainer
-var _track_fade: TextureRect
-
-## FIX-PASS-02 §1 item 4: every child goes into the shell's `content`, never `self` — `content`
-## is already inside the safe area and the 84px rail (`DangoScreen.RAIL_X`), and re-centres on
-## resize. Screens built before this pass hand-rolled that same 84px rail themselves; now that
-## `content` supplies it, this screen's own left/right offsets against it are 0, not 84 again.
-var _content: Control
-
-## Vertical space the grid may use before scrolling kicks in: viewport height, minus the panel's
-## own top offset, minus the shared footer's safe area, minus the panel's own top+bottom content
-## margin (20 + 20 from `_build_track_panel()`'s `surface_style` pad). Computed rather than
-## hand-picked so a future change to `BP_MAX_LEVEL` or the footer height cannot silently reopen
-## the 400px-empty-panel bug (FIX-PASS-01 P2) from the other direction (a grid that no longer fits
-## and clips with no scrollbar, FIX-PASS-01 L2).
-##
-## FIXED 2026-09-20 (mockup pass): this was 202 on the belief that "a redline's offset_top = 202
-## stays 202" against `content`. It does not — `DangoScreen.build()` sets `content.offset_top =
-## SAFE`, so a child at 202 lands at 250 on the 1080 canvas. The mockup's `top:202` is 154 here.
-const TRACK_PANEL_TOP := 202.0 - 48.0
-const TRACK_PANEL_PAD_V := 20.0
+var _root: VBoxContainer
+var _banner_host: VBoxContainer
+var _body: VBoxContainer
+var _detail: Label
 
 
 func _ready() -> void:
-	var shell := DangoScreen.build(self, MockupAssets.tex(BG_MOCKUP_PLATE),
-		DangoTheme.Scrim.DEFAULT, true)
-	_content = shell["content"]
-
-	_build_header()
-	_build_track_panel()
-	_build_footer(shell["footer"])
-	refresh()
-
-
-# ── Header: eyebrow + title left, level card right (redline: top 50, left/right 84 — the 84 is
-# now supplied by `content`'s own rail, so this row sits flush against it) ─────────────────────
-func _build_header() -> void:
-	var row := HBoxContainer.new()
-	row.name = "HeaderRow"
-	row.set_anchors_preset(Control.PRESET_TOP_WIDE)
-	row.offset_left = 0.0
-	row.offset_right = 0.0
-	# Mockup `top:50`, measured against `content`'s own top edge (the 48px safe line).
-	row.offset_top = 50.0 - 48.0
-	row.alignment = BoxContainer.ALIGNMENT_BEGIN
-	_content.add_child(row)
-
-	var title_col := VBoxContainer.new()
-	title_col.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
-	title_col.add_theme_constant_override("separation", 10)
-	row.add_child(title_col)
-
-	# Mockup: `letter-spacing:.18em` on this chip.
-	var eyebrow := _eyebrow_chip("PERMANENT PROGRESSION", 0.18)
-	title_col.add_child(eyebrow)
-
-	var title := DangoTheme.display_label("LUNACIA PASS", 56, DangoTheme.CREAM_RAISED,
-		800, 0.02)
-	title_col.add_child(title)
-
-	var spacer := Control.new()
-	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	row.add_child(spacer)
-
-	row.add_child(_build_level_card())
-
-
-func _eyebrow_chip(text: String, tracking_em: float = 0.0) -> PanelContainer:
-	var chip := PanelContainer.new()
-	chip.custom_minimum_size = Vector2(0, 34)
-	chip.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
-	var sb := DangoTheme.solid_chip_style(DangoTheme.PRIMARY, 9, 3, Vector2(14, 6))
-	chip.add_theme_stylebox_override("panel", sb)
-	var lbl := DangoTheme.display_label(text, 14, DangoTheme.INK_ON_PRIMARY, 800, tracking_em)
-	lbl.add_theme_constant_override("line_spacing", 0)
-	chip.add_child(lbl)
-	return chip
-
-
-func _build_level_card() -> PanelContainer:
-	var card := PanelContainer.new()
-	card.name = "LevelCard"
-	card.custom_minimum_size = Vector2(540, 0)
-	card.add_theme_stylebox_override("panel",
-		DangoTheme.surface_style(DangoTheme.Surface.PANEL, 14, 4, 5.0, Vector2(18, 14)))
-
-	var col := VBoxContainer.new()
-	col.add_theme_constant_override("separation", 10)
-	card.add_child(col)
-
-	var top_row := HBoxContainer.new()
-	col.add_child(top_row)
-
-	_level_label = DangoTheme.display_label("LEVEL 1", 38, DangoTheme.CREAM_RAISED)
-	_level_label.name = "LevelLabel"
-	top_row.add_child(_level_label)
-
-	# The mockup's "/ 30" is a 22px run in #5C6573 on the same baseline, not part of the 38px
-	# number. Two Labels, bottom-aligned in the row, rather than one flattened string.
-	_level_max_label = DangoTheme.display_label(" / %d" % ContentDB.BP_MAX_LEVEL, 22,
-		DangoTheme.FAINT_TEXT)
-	_level_max_label.name = "LevelMaxLabel"
-	_level_max_label.size_flags_vertical = Control.SIZE_SHRINK_END
-	top_row.add_child(_level_max_label)
-
-	var xp_spacer := Control.new()
-	xp_spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	top_row.add_child(xp_spacer)
-
-	_xp_label = Label.new()
-	_xp_label.name = "XpLabel"
-	_xp_label.add_theme_font_size_override("font_size", 14)
-	_xp_label.add_theme_color_override("font_color", DangoTheme.MUTED_TEXT)
-	_xp_label.size_flags_vertical = Control.SIZE_SHRINK_END
-	top_row.add_child(_xp_label)
-
-	var well := PanelContainer.new()
-	well.custom_minimum_size = Vector2(0, 18)
-	well.add_theme_stylebox_override("panel",
-		DangoTheme.surface_style(DangoTheme.Surface.WELL_DEEP, 10, 3, 0.0, Vector2(-1, -1)))
-	col.add_child(well)
-
-	var track := Control.new()
-	track.custom_minimum_size = Vector2(0, 12)
-	well.add_child(track)
-
-	_xp_fill = ColorRect.new()
-	_xp_fill.name = "XpFill"
-	_xp_fill.color = DangoTheme.PRIMARY
-	_xp_fill.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_xp_fill.set_anchors_preset(Control.PRESET_FULL_RECT)
-	_xp_fill.anchor_right = 0.0
-	track.add_child(_xp_fill)
-
-	return card
-
-
-# ── Reward grid panel: PANEL surface, radius 18 / border 5 / shelf 7 (redline) ─────────────────
-##
-## FIX-PASS-01 L3: this panel used to be `anchor_bottom = 1.0` / `offset_bottom = -96.0` — pinned
-## to the viewport regardless of how tall the grid actually was, which is exactly the "400px of
-## empty PANEL under a short list" case the audit names this function for. It now only anchors
-## its TOP; the height comes from the grid, computed in `refresh()` (the grid's contents, and
-## therefore its natural height, are not known until `BP_TRACK` is populated into it there).
-func _build_track_panel() -> void:
-	var panel := PanelContainer.new()
-	panel.name = "TrackPanel"
-	panel.set_anchors_preset(Control.PRESET_TOP_WIDE)
-	panel.offset_left = 0.0
-	panel.offset_right = 0.0
-	panel.offset_top = TRACK_PANEL_TOP
-	panel.add_theme_stylebox_override("panel",
-		DangoTheme.surface_style(DangoTheme.Surface.PANEL, 18, 5, 7.0, Vector2(20, TRACK_PANEL_PAD_V)))
-	_content.add_child(panel)
-	_track_panel = panel
-
+	var shell := DangoScreen.build(self, MockupAssets.tex("assets/bg/temple.jpg"), DangoTheme.Scrim.DEFAULT, true)
+	DangoScreen.add_back_button(shell["footer"], _on_back)
 	var scroll := ScrollContainer.new()
-	scroll.name = "TrackScroll"
+	scroll.name = "PageScroll"
+	scroll.set_anchors_preset(Control.PRESET_FULL_RECT)
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	DangoTheme.style_scrollbars(scroll)
-	# ScrollContainer does not clip its content by default in this Godot version — without
-	# this, a list longer than the container's rect draws straight through it and over
-	# whatever sits below (found on the Unlocks QA capture: row 10 bled past the panel and
-	# over the BACK button).
-	scroll.clip_contents = true
-	panel.add_child(scroll)
-	_track_scroll = scroll
-
-	_grid = GridContainer.new()
-	_grid.name = "RewardGrid"
-	_grid.columns = 6
-	_grid.add_theme_constant_override("h_separation", 12)
-	_grid.add_theme_constant_override("v_separation", 12)
-	_grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	scroll.add_child(_grid)
-
-	# L2's 24px "there is more below" fade — only shown when `refresh()` finds the grid taller
-	# than the room it has (see `_apply_track_height()`); on the normal 30-level track this never
-	# triggers, and an always-visible fade over the last, complete row would be its own lie.
-	#
-	# Added as a sibling of `panel`, not a child of it: `PanelContainer` fits EVERY child to its
-	# full content rect (it is built for exactly one), so a second child cannot be positioned as a
-	# thin strip inside it. `_apply_track_height()` places this in the PassView root's own
-	# coordinate space instead, once the panel's real (content-driven) height is known.
-	_track_fade = DangoTheme.scroll_fade(DangoTheme.PANEL)
-	_track_fade.name = "TrackScrollFade"
-	_track_fade.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_track_fade.visible = false
-	_track_fade.anchor_left = 0.0
-	_track_fade.anchor_right = 1.0
-	_track_fade.anchor_top = 0.0
-	_track_fade.anchor_bottom = 0.0
-	_track_fade.offset_left = 0.0
-	_track_fade.offset_right = 0.0
-	_content.add_child(_track_fade)
-
-	_status_label = Label.new()
-	_status_label.name = "StatusLabel"
-	_status_label.visible = false
-	_status_label.add_theme_font_size_override("font_size", 13)
-	_status_label.add_theme_color_override("font_color", DangoTheme.DANGER)
-	_content.add_child(_status_label)
-
-
-## FIX-PASS-01 L4/P3: BACK lives in the shared footer bar, not floating on the art.
-## §1 item 4: the footer itself is now `DangoScreen.build()`'s, not a screen-built one.
-func _build_footer(footer: HBoxContainer) -> void:
-	DangoScreen.add_back_button(footer, func() -> void:
-		get_tree().change_scene_to_file(MAIN_MENU_SCENE))
-
-
-## Rebuilds the level card and the 30-tile grid from live state. Public so a test can drive it
-## after a claim, mirroring VaultView.refresh()/GuidesView's own re-render-on-mutation pattern.
-func refresh() -> void:
-	var prog := MetaState.bp_progress()
-	var level: int = int(prog.get("level", 0))
-	_level_label.text = "LEVEL %d" % level
-	_level_max_label.text = " / %d" % ContentDB.BP_MAX_LEVEL
-
-	var needed: int = int(prog.get("needed", 0))
-	if needed <= 0:
-		_xp_label.text = "MAX LEVEL"
-	else:
-		_xp_label.text = "%d / %d XP to Lv %d" % [int(prog.get("into_level", 0)), needed, level + 1]
-	var pct: float = clampf(float(prog.get("percent", 0.0)) / 100.0, 0.0, 1.0)
-	_xp_fill.anchor_right = pct
-
-	for child in _grid.get_children():
-		child.queue_free()
-		_grid.remove_child(child)
-	for entry in ContentDB.BP_TRACK:
-		_grid.add_child(_build_tile(entry))
-
-	# `queue_free()`'d tiles are still in the tree (and counted by `get_combined_minimum_size()`)
-	# until the end of this frame — measure next frame, once they are actually gone, or a refresh
-	# after a claim briefly "sees" 54 tiles instead of 30 and mis-sizes the panel for one frame.
-	call_deferred("_apply_track_height")
-
-
-## FIX-PASS-01 L3 + L2, done together because they are the same measurement: ask the grid how
-## tall it actually wants to be, and either let the panel hug that (the normal case — 30 levels in
-## 6 columns is 5 rows, comfortably under the safe area) or cap it and let the ScrollContainer
-## take over, with the L2 fade to say there is more. This is what replaces the old
-## `anchor_bottom = 1.0` / `offset_bottom = -96.0`, which sized the panel to the VIEWPORT
-## regardless of the grid, and is exactly the "P2: 400px of empty panel" defect.
-func _apply_track_height() -> void:
-	if _grid == null or _track_scroll == null or _track_panel == null:
-		return
-	var natural := _grid.get_combined_minimum_size().y
-	var viewport_h := get_viewport_rect().size.y
-	# §1 shell pass: `content`'s own height already excludes BOTH safe-area edges (top AND
-	# bottom-plus-footer) — TRACK_PANEL_TOP is now measured from content's top, so this must
-	# subtract content's full top+bottom budget, not only the bottom half as before.
-	var max_scroll_h := viewport_h - DangoScreen.SAFE * 2.0 - DangoScreen.FOOTER_H \
-		- TRACK_PANEL_TOP - TRACK_PANEL_PAD_V * 2.0
-	var overflow := natural > max_scroll_h
-	var scroll_h: float = minf(natural, max_scroll_h) if max_scroll_h > 0.0 else natural
-	_track_scroll.custom_minimum_size.y = scroll_h
-
-	_track_fade.visible = overflow
-	if overflow:
-		# The panel is now pinned at `max_scroll_h` (it cannot grow further), so its bottom edge
-		# is at a fixed, known Y — TRACK_PANEL_TOP + the panel's own top+bottom content margin +
-		# the scroll's height.
-		var panel_bottom := TRACK_PANEL_TOP + TRACK_PANEL_PAD_V * 2.0 + scroll_h
-		_track_fade.offset_top = panel_bottom - DangoTheme.SCROLL_FADE_HEIGHT
-		_track_fade.offset_bottom = panel_bottom
-
-
-func _build_tile(entry: Dictionary) -> Button:
-	var lv := int(entry.get("lv", 0))
-	var reward_type := String(entry.get("type", ""))
-	var claimed := MetaState.bp_claimed.has(lv)
-	var reached := lv <= MetaState.bp_level()
-	# FACE_POOL is unported; MetaState.claim_bp_reward() already refuses "face" rewards outright
-	# (see its own comment). Rendering these as an ordinary "CLAIM NOW" once the level is hit would
-	# be a button that fails after being pressed — the same lie the event system already shipped
-	# once. They stay in the WELL "locked" fill forever, with their own state text saying why.
-	var blocked := reward_type == "face"
-	var claimable := reached and not claimed and not blocked
-
-	var btn := Button.new()
-	btn.name = "PassTile_%d" % lv
-	btn.custom_minimum_size = Vector2(0, 72)
-	btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	btn.disabled = not claimable
-	btn.clip_text = false
-	btn.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND if claimable else Control.CURSOR_ARROW
-
-	var tile_bg: Color
-	var lv_bg: Color
-	var lv_fg: Color
-	var title_fg: Color
-	var state_fg: Color
-	var state_text: String
-	if claimed:
-		tile_bg = DangoTheme.CREAM
-		lv_bg = DangoTheme.CREAM_TRACK
-		lv_fg = DangoTheme.INK_ON_CREAM_SOFT
-		title_fg = DangoTheme.INK_ON_CREAM_SOFT
-		state_fg = DangoTheme.INK_ON_CREAM_MUTED
-		state_text = "CLAIMED"
-	# FIX-PASS-01 P1, checked against `production/qa/evidence/2026-09-20_meta-v2_pass.png`
-	# (settled by state, not by eye — see the ui-programmer session's report for the check): the
-	# evidence's "24 identical green tiles" is a real `xp`-maxed / `bp_claimed == []` save (
-	# `MetaState.bp_level()` reads only `xp`, entirely independent of `bp_claimed`), not a broken
-	# predicate. This ladder already matches L5 exactly (claimed -> CREAM/"CLAIMED", claimable ->
-	# SUCCESS/"CLAIM NOW", locked -> WELL/"NEEDS LV n") and needed no change.
-	elif claimable:
-		tile_bg = DangoTheme.SUCCESS
-		lv_bg = DangoTheme.CREAM_RAISED
-		lv_fg = DangoTheme.INK_ON_SUCCESS
-		title_fg = DangoTheme.INK_ON_SUCCESS
-		state_fg = DangoTheme.INK_ON_SUCCESS
-		state_text = "CLAIM NOW"
-	else:
-		tile_bg = DangoTheme.WELL
-		lv_bg = DangoTheme.WELL
-		lv_fg = DangoTheme.FAINT_TEXT
-		title_fg = DangoTheme.MUTED_TEXT
-		state_fg = DangoTheme.FAINT_TEXT
-		state_text = ("GENE REWARD · LOCKED" if blocked and reached else "NEEDS LV %d" % lv)
-
-	var normal_sb := DangoTheme.surface_style(DangoTheme.Surface.PANEL, 12, 3, 0.0, Vector2(12, 10))
-	normal_sb.bg_color = tile_bg
-	btn.add_theme_stylebox_override("normal", normal_sb)
-	var hover_sb := normal_sb.duplicate() as StyleBoxFlat
-	hover_sb.bg_color = tile_bg.lightened(0.08) if claimable else tile_bg
-	btn.add_theme_stylebox_override("hover", hover_sb)
-	btn.add_theme_stylebox_override("pressed", hover_sb)
-	var disabled_sb := normal_sb.duplicate() as StyleBoxFlat
-	btn.add_theme_stylebox_override("disabled", disabled_sb)
-
-	var content := HBoxContainer.new()
-	content.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	content.set_anchors_preset(Control.PRESET_FULL_RECT)
-	content.add_theme_constant_override("separation", 11)
-	btn.add_child(content)
-
-	var lv_badge := PanelContainer.new()
-	# Fixed square, so a two-digit level cannot widen the badge and shift the title column's
-	# baseline next to it (FIX-PASS-01 P4). RESTORED to the mockup's 38 from the 32 that fix
-	# used — "30" at 18px is ~22px wide, well inside 38 minus the 3px outline.
-	lv_badge.custom_minimum_size = Vector2(38, 38)
-	lv_badge.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	lv_badge.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-	lv_badge.clip_contents = true
-	var badge_sb := StyleBoxFlat.new()
-	badge_sb.bg_color = lv_bg
-	badge_sb.border_color = Color.BLACK
-	badge_sb.set_border_width_all(3)
-	badge_sb.set_corner_radius_all(10)
-	lv_badge.add_theme_stylebox_override("panel", badge_sb)
-	var lv_lbl := DangoTheme.display_label(str(lv), 18, lv_fg)
-	lv_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	lv_lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	lv_badge.add_child(lv_lbl)
-	content.add_child(lv_badge)
-
-	var text_col := VBoxContainer.new()
-	text_col.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	text_col.add_theme_constant_override("separation", 2)
-	content.add_child(text_col)
-
-	var reward_lbl := DangoTheme.display_label(_reward_label(entry), 14, title_fg, 800, 0.02)
-	reward_lbl.clip_text = true
-	reward_lbl.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
-	reward_lbl.add_theme_constant_override("line_spacing", 0)
-	text_col.add_child(reward_lbl)
-
-	var state_lbl := DangoTheme.display_label(state_text, 12, state_fg, 800, 0.08)
-	state_lbl.add_theme_constant_override("line_spacing", 0)
-	text_col.add_child(state_lbl)
-
-	if claimable:
-		btn.pressed.connect(_on_claim_pressed.bind(lv))
-	return btn
-
-
-## Turns one BP_TRACK entry into its display line. Lives here rather than in ContentDB —
-## ContentDB is inside `t_rules_version.gd`'s fingerprinted set (`res://autoload`) and a pure
-## display formatter cannot change what a run produces, so it does not belong in a file that
-## exists to answer "can this change a replay". A second caller would be reason to move it; there
-## is only this one.
-func _reward_label(entry: Dictionary) -> String:
-	match String(entry.get("type", "")):
-		"shard":
-			return "%d Gene Shard" % int(entry.get("value", 0))
-		"unlock":
-			var id := String(entry.get("value", ""))
-			for u in ContentDB.UNLOCKS:
-				if String((u as Dictionary).get("id", "")) == id:
-					return String((u as Dictionary).get("n", id))
-			return id
-		"perk":
-			return String(entry.get("note", "Perk"))
-		"face":
-			# FLAGGED: no player-facing name exists for these in this port (FACE_POOL is
-			# unported). `title` only appears on the lv-30 capstone; everything else gets a
-			# generic, honest placeholder rather than inventing gene-mutation flavour text.
-			return String(entry.get("title", "Gene Mutation"))
-		_:
-			return "Reward"
-
-
-func _on_claim_pressed(level: int) -> void:
-	var err := MetaState.claim_bp_reward(level)
-	if err != "":
-		_status_label.text = err
-		_status_label.visible = true
-		return
-	_status_label.visible = false
+	shell["content"].add_child(scroll)
+	_root = VBoxContainer.new()
+	_root.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_root.add_theme_constant_override("separation", 12)
+	scroll.add_child(_root)
+	_banner_host = VBoxContainer.new()
+	_body = VBoxContainer.new()
+	_body.add_theme_constant_override("separation", 12)
+	_root.add_child(_banner_host)
+	_root.add_child(_body)
+	if use_account:
+		state = derive_state()
 	refresh()
+
+
+func derive_state() -> String:
+	var st: int = account_status_hook.call() if account_status_hook.is_valid() else AccountService.status
+	match st:
+		AccountService.Status.GUEST, AccountService.Status.EXPIRED:
+			return "guest"
+		AccountService.Status.OFFLINE:
+			return "offline"
+	return "normal"
+
+
+func _unhandled_key_input(ev: InputEvent) -> void:
+	if ev is InputEventKey and ev.pressed and not ev.echo and ev.keycode == KEY_ESCAPE:
+		_on_back()
+		get_viewport().set_input_as_handled()
+
+
+func _on_back() -> void:
+	if is_inside_tree() and not no_scene_change:
+		LandNav.back_to_land()
+
+
+# ---------------------------------------------------------------- state (also tests)
+
+func today() -> String:
+	return today_override if today_override != "" else MetaState.today_utc()
+
+
+func cfg() -> Dictionary:
+	return _Econ.get_table("pass_v2")
+
+
+## "before" | "active" | "over"
+func season_phase() -> String:
+	if today() < String(cfg().get("start_day", "")):
+		return "before"
+	return "active" if PassV2.season_active(today()) else "over"
+
+
+func _same_season() -> bool:
+	return String(MetaState.pass_season.get("id", "")) == String(cfg().get("season_id", ""))
+
+
+## Pass progress of the current season; a save from another season reads as empty (no mutation).
+func ps() -> Dictionary:
+	return MetaState.pass_season if _same_season() else PassV2.new_state(String(cfg().get("season_id", "")))
+
+
+func xp() -> int:
+	return int(ps().get("xp", 0))
+
+
+func level() -> int:
+	return PassV2.level_for_xp(xp())
+
+
+## "claimed" | "claimable" | "next" | "locked" (not reached) for node `lv`.
+func node_state(lv: int) -> String:
+	if (ps().get("claimed_free", []) as Array).has(lv):
+		return "claimed"
+	if lv <= level():
+		return "claimable"
+	return "next" if lv == level() + 1 else "locked"
+
+
+func claim_level(lv: int) -> Dictionary:
+	var r: Dictionary = MetaState.pass_claim_free(lv)
+	last_result = "Level %d claimed" % lv if bool(r.get("ok", false)) else String(REASONS.get(r.get("reason", ""), "Could not claim"))
+	refresh()
+	return r
+
+
+func claim_all() -> int:
+	var n := 0
+	for lv in PassV2.claimable_levels(MetaState):
+		var r: Dictionary = MetaState.pass_claim_free(int(lv))
+		if not bool(r.get("ok", false)):
+			last_result = String(REASONS.get(r.get("reason", ""), "Could not claim"))
+			break
+		n += 1
+	if n > 0:
+		last_result = "Claimed %d levels" % n
+	refresh()
+	return n
+
+
+func claim_weekly(task_id: String) -> Dictionary:
+	var r: Dictionary
+	if today_override == "":
+		r = MetaState.pass_claim_weekly(today(), task_id)
+	else:
+		r = PassV2.claim_weekly(MetaState, today(), task_id, today())   # test clock, same rules
+	last_result = "+%d XP" % int(r.get("xp", 0)) if bool(r.get("ok", false)) else String(REASONS.get(r.get("reason", ""), "Could not claim"))
+	refresh()
+	return r
+
+
+func claim_loop() -> int:
+	var s := PassV2.claim_post30(MetaState)
+	last_result = "+%d Shard" % s if s > 0 else "Nothing to claim"
+	refresh()
+	return s
+
+
+## XP needed to go from level lv-1 to lv ("Level L needs 500 + 40 x (L - 1)").
+func need_for(lv: int) -> int:
+	return int(PassV2.level_def(lv).get("xp", 0))
+
+
+static func fmt_day(iso: String) -> String:
+	var p := iso.split("-")
+	if p.size() != 3:
+		return iso
+	return "%d %s %s" % [int(p[2]), MONTHS[clampi(int(p[1]) - 1, 0, 11)], p[0]]
+
+
+## Next Monday 00:00 UTC after the current week.
+func week_reset_text() -> String:
+	var mon := PassV2.week_key(today())
+	var nxt := GemWallet.utc_day(int(Time.get_unix_time_from_datetime_string(mon + "T00:00:00")) + 7 * 86400)
+	return "resets Mon %s, 00:00 UTC" % fmt_day(nxt)
+
+
+func season_text() -> String:
+	var c := cfg()
+	match season_phase():
+		"before": return "Season 1 · starts %s" % fmt_day(String(c.get("start_day", "")))
+		"over": return "Season 1 · ended %s" % fmt_day(String(c.get("end_day", "")))
+	return "Season 1 · ends %s" % fmt_day(String(c.get("end_day", "")))
+
+
+func reward_text(r: Dictionary) -> String:
+	var v = r.get("value")
+	match String(r.get("type", "")):
+		"shard": return "%d Shard" % int(v)
+		"stone": return "%s Stone" % _thousands(int(v))
+		"ticket": return "%d ticket%s" % [int(v), "" if int(v) == 1 else "s"]
+		"gem": return "%d Gem" % int(v)
+		"cosmetic": return _pretty(String(v))
+		"title": return "Title: %s" % String(v).capitalize()
+		"unlock": return "Stat unlock: %s" % _pretty(String(v))
+	return String(v)
+
+
+func _pretty(id: String) -> String:
+	var out: Array[String] = []
+	for p in id.split("_"):
+		out.append(String(p).capitalize())
+	return " ".join(out)
+
+
+func _thousands(n: int) -> String:
+	var s := str(n)
+	return s if n < 1000 else "%s,%s" % [s.substr(0, s.length() - 3), s.substr(s.length() - 3)]
+
+
+# ---------------------------------------------------------------- build
+
+func refresh() -> void:
+	if _body == null:
+		return
+	for host in [_banner_host, _body]:
+		for c in host.get_children():
+			host.remove_child(c)   # detach now so lookups never see the old tree
+			c.queue_free()
+	match state:
+		"offline":
+			_banner("Can't reach the dice server" if remote_on else "You're offline",
+				"Gem gifts need a connection." if remote_on else "Your pass progress is kept on this device.")
+		"guest":
+			_banner("Playing as a guest", "Pass progress is kept on this device. Sign in to keep it.")
+	match season_phase():
+		"before":
+			_banner("The season has not started", "XP starts counting on %s." % fmt_day(String(cfg().get("start_day", ""))))
+		"over":
+			_banner("The season is over", "XP stopped. Rewards you already reached can still be claimed.")
+	_build_header()
+	_build_level_card()
+	_build_weekly()
+	_build_track()
+	_build_extra_rows()
+	_detail = _label("Hover or focus a level to see its reward.", 14, DangoTheme.DUSK_INK)
+	_detail.name = "DetailText"
+	_detail.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	var dp := _plate(DangoTheme.DUSK, DangoTheme.OUTLINE)
+	dp.name = "DetailCard"
+	dp.custom_minimum_size = Vector2(300, 0)
+	dp.add_child(_detail)
+	_body.add_child(dp)
+	if last_result != "":
+		var res := _label(last_result, 16, DangoTheme.CREAM_RAISED, true)
+		res.name = "ResultLine"
+		_body.add_child(res)
+
+
+func _build_header() -> void:
+	var row := HBoxContainer.new()
+	var t := _label("Season Pass", DangoTheme.T_H1, DangoTheme.CREAM_RAISED, true)
+	t.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	row.add_child(t)
+	var s := _label(season_text(), 20, DangoTheme.CREAM_RAISED)
+	s.name = "SeasonText"
+	row.add_child(s)
+	_body.add_child(row)
+
+
+func _build_level_card() -> void:
+	var card := _plate(DangoTheme.CREAM_RAISED, DangoTheme.LINE)
+	card.name = "LevelCard"
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 16)
+	card.add_child(row)
+	var lv := level()
+	var badge := _plate(DangoTheme.GOLD, DangoTheme.OUTLINE)
+	badge.custom_minimum_size = Vector2(72, 72)
+	var bl := _label(str(lv), DangoTheme.T_NUM_L, DangoTheme.GOLD_INK, true)
+	bl.name = "LevelNumber"
+	bl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	badge.add_child(bl)
+	row.add_child(badge)
+	var mid := VBoxContainer.new()
+	mid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var cur_total := int(PassV2.level_def(lv).get("xp_total", 0))
+	var bar := ProgressBar.new()
+	bar.name = "XpBar"
+	bar.custom_minimum_size = Vector2(0, 26)
+	bar.show_percentage = false
+	var info := ""
+	if PassV2.level_def(lv + 1).size() > 0:
+		var need := need_for(lv + 1)
+		bar.max_value = need
+		bar.value = xp() - cur_total
+		info = "%s / %s XP to level %d" % [_thousands(xp() - cur_total), _thousands(need), lv + 1]
+	else:
+		var loop := int((cfg().get("post30_loop", {}) as Dictionary).get("xp", 2000))
+		bar.max_value = loop
+		bar.value = (xp() - PassV2.max_xp()) % loop
+		info = "Loop: %s / %s XP" % [_thousands(int(bar.value)), _thousands(loop)]
+	var fill := StyleBoxFlat.new()
+	fill.bg_color = DangoTheme.GOLD
+	var back := StyleBoxFlat.new()
+	back.bg_color = DangoTheme.BAR_TRACK
+	fill.set_corner_radius_all(8)
+	back.set_corner_radius_all(8)
+	bar.add_theme_stylebox_override("fill", fill)
+	bar.add_theme_stylebox_override("background", back)
+	mid.add_child(bar)
+	var il := _label(info, 16)
+	il.name = "XpInfo"
+	mid.add_child(il)
+	mid.add_child(_label("Level L needs 500 + 40 × (L − 1) XP", 14, DangoTheme.INK_2))
+	row.add_child(mid)
+	var all := _button("Claim all", 220, 60, true)
+	all.name = "ClaimAll"
+	all.disabled = PassV2.claimable_levels(MetaState).is_empty() if _same_season() else true
+	all.pressed.connect(claim_all)
+	row.add_child(all)
+	_body.add_child(card)
+
+
+func _build_weekly() -> void:
+	_body.add_child(_label("Weekly tasks · %s" % week_reset_text(), 18, DangoTheme.CREAM_RAISED, true))
+	var row := HBoxContainer.new()
+	row.name = "WeeklyRow"
+	row.add_theme_constant_override("separation", 12)
+	var xp_each := int((cfg().get("weekly_tasks", {}) as Dictionary).get("xp_each", 500))
+	var live := season_phase() == "active"
+	for st in PassV2.weekly_status(MetaState, today()):
+		var id := String(st["id"])
+		var card := _plate(DangoTheme.CREAM_RAISED, DangoTheme.LINE)
+		card.name = "Weekly_" + id
+		card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		var h := HBoxContainer.new()
+		h.add_theme_constant_override("separation", 10)
+		card.add_child(h)
+		var v := VBoxContainer.new()
+		v.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		v.add_child(_label(String(TASK_NAMES.get(id, id)) % int(st["target"]), 16))
+		var pl := _label("%d / %d · +%d XP" % [int(st["progress"]), int(st["target"]), xp_each], 14, DangoTheme.INK_2)
+		pl.name = "Progress"
+		v.add_child(pl)
+		h.add_child(v)
+		var b := _button("Claimed" if st["claimed"] else "Claim", 120, 44, bool(st["done"]) and not bool(st["claimed"]))
+		b.name = "WeeklyClaim_" + id
+		b.disabled = bool(st["claimed"]) or not bool(st["done"]) or not live
+		b.pressed.connect(claim_weekly.bind(id))
+		h.add_child(b)
+		row.add_child(card)
+	_body.add_child(row)
+
+
+func _build_track() -> void:
+	_body.add_child(_label("Free track", 18, DangoTheme.CREAM_RAISED, true))
+	var sc := ScrollContainer.new()
+	sc.name = "TrackScroll"
+	sc.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	sc.custom_minimum_size = Vector2(0, NODE_H + 20)
+	DangoTheme.style_scrollbars(sc)
+	var h := HBoxContainer.new()
+	h.add_theme_constant_override("separation", 8)
+	sc.add_child(h)
+	for def in cfg().get("levels", []):
+		h.add_child(_node(def))
+	_body.add_child(sc)
+
+
+func _node(def: Dictionary) -> Control:
+	var lv := int(def["lv"])
+	var st := node_state(lv)
+	var p := _plate(DangoTheme.CREAM_RAISED if st != "locked" else DangoTheme.CREAM_DISABLED,
+		DangoTheme.GOLD if st == "claimable" else DangoTheme.LINE)
+	p.name = "Node_%d" % lv
+	p.custom_minimum_size = Vector2(NODE_W, NODE_H)
+	var v := VBoxContainer.new()
+	v.add_theme_constant_override("separation", 4)
+	p.add_child(v)
+	v.add_child(_label("LV %d" % lv, 15, DangoTheme.INK, true))
+	for r in def.get("free", []):
+		var rd: Dictionary = r
+		var l := _label(reward_text(rd), 14, DangoTheme.INK_DISABLED if st == "locked" else DangoTheme.INK)
+		l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		v.add_child(l)
+		match String(rd.get("type", "")):
+			"gem": v.add_child(_label("Season gift", 12, DangoTheme.GEM_SHELF))
+			"unlock": v.add_child(_label("Stat unlock", 12, DangoTheme.GOLD_INK))
+	var sp := Control.new()
+	sp.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	v.add_child(sp)
+	var b := _button("", 100, 44, st == "claimable")
+	b.name = "NodeBtn_%d" % lv
+	match st:
+		"claimed":
+			b.text = "✓ Claimed"
+			b.disabled = true
+		"claimable":
+			b.text = "CLAIM"
+			b.pressed.connect(claim_level.bind(lv))
+		"next":
+			b.text = "Next"
+			b.disabled = true
+		_:
+			b.text = "Reach LV %d" % lv if season_phase() != "over" else "Not claimed"
+			b.disabled = true
+	b.add_theme_font_size_override("font_size", 14)
+	b.focus_entered.connect(_show_detail.bind(def))
+	b.mouse_entered.connect(_show_detail.bind(def))
+	v.add_child(b)
+	p.mouse_entered.connect(_show_detail.bind(def))
+	return p
+
+
+func _show_detail(def: Dictionary) -> void:
+	if _detail == null:
+		return
+	var parts: Array[String] = []
+	for r in def.get("free", []):
+		parts.append(reward_text(r))
+		if String((r as Dictionary).get("type", "")) == "unlock":
+			parts.append("(if you already own it, you get its Shard price instead)")
+	_detail.text = "Level %d: %s" % [int(def["lv"]), ", ".join(parts)]
+
+
+func _build_extra_rows() -> void:
+	var prem := PassV2.premium_state()
+	var pr := _plate(DangoTheme.CREAM_DISABLED, DangoTheme.INK_3)
+	pr.name = "PremiumRow"
+	var ph := HBoxContainer.new()
+	pr.add_child(ph)
+	var rib := _label(String(prem["label"]).to_upper(), 15, DangoTheme.GOLD_INK, true)
+	rib.name = "PremiumRibbon"
+	ph.add_child(rib)
+	var pt := _label("   Premium track: locked, opens in season %d. Nothing to buy now." % int(prem["unlock_season"]), 16, DangoTheme.INK_DISABLED)
+	pt.name = "PremiumText"
+	ph.add_child(pt)
+	_body.add_child(pr)
+
+	var loop: Dictionary = cfg().get("post30_loop", {})
+	var shard := int(loop.get("shard", 50))
+	var lr := _plate(DangoTheme.CREAM_RAISED, DangoTheme.LINE)
+	lr.name = "LoopRow"
+	var lh := HBoxContainer.new()
+	lh.add_theme_constant_override("separation", 12)
+	lr.add_child(lh)
+	var done := int(ps().get("post30_claimed", 0)) * shard
+	var pend := PassV2.post30_pending(MetaState) if _same_season() else 0
+	var ll := _label("After level 30: every %s XP = %d Shard · claimed so far %d Shard" % [
+		_thousands(int(loop.get("xp", 2000))), shard, done], 16)
+	ll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	ll.name = "LoopText"
+	lh.add_child(ll)
+	var lb := _button("Claim %d Shard" % (pend * shard) if pend > 0 else "Nothing yet", 220, 44, pend > 0)
+	lb.name = "LoopClaim"
+	lb.disabled = pend <= 0
+	lb.pressed.connect(claim_loop)
+	lh.add_child(lb)
+	_body.add_child(lr)
+
+
+# ---------------------------------------------------------------- widgets
+
+func _label(text: String, size: int, color: Color = DangoTheme.INK, display := false) -> Label:
+	var l := Label.new()
+	l.text = text
+	l.add_theme_font_size_override("font_size", maxi(size, 12))
+	l.add_theme_color_override("font_color", color)
+	if display:
+		l.add_theme_font_override("font", DangoTheme.FONT_DISPLAY)
+	return l
+
+
+func _button(text: String, w: float, h: float, primary := false) -> Button:
+	var b := Button.new()
+	b.text = text
+	b.custom_minimum_size = Vector2(w, maxf(h, 44))
+	b.add_theme_font_override("font", DangoTheme.FONT_DISPLAY)
+	b.add_theme_font_size_override("font_size", 18)
+	DangoTheme.style_button(b, primary)
+	return b
+
+
+func _plate(fill: Color, border: Color) -> PanelContainer:
+	var p := PanelContainer.new()
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = fill
+	sb.set_corner_radius_all(16)
+	sb.set_border_width_all(3)
+	sb.border_color = border
+	sb.set_content_margin_all(12)
+	p.add_theme_stylebox_override("panel", sb)
+	return p
+
+
+func _banner(msg: String, detail: String) -> void:
+	var p := PanelContainer.new()
+	p.name = "Banner"
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = DangoTheme.DUSK
+	sb.content_margin_left = 24
+	sb.content_margin_right = 24
+	sb.content_margin_top = 8
+	sb.content_margin_bottom = 8
+	p.add_theme_stylebox_override("panel", sb)
+	var t := VBoxContainer.new()
+	t.add_child(_label(msg, 18, DangoTheme.DUSK_INK, true))
+	t.add_child(_label(detail, 14, DangoTheme.DUSK_INK))
+	p.add_child(t)
+	_banner_host.add_child(p)

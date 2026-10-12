@@ -22,9 +22,6 @@ const PASS_SCENE := "res://scenes/pass/Pass.tscn"
 const UNLOCKS_SCENE := "res://scenes/unlocks/Unlocks.tscn"
 
 const EXPECTED_TESTS: Array[String] = [
-	"test_pass_screen_renders_all_thirty_track_levels",
-	"test_claiming_a_claim_now_reward_updates_state_and_view",
-	"test_a_face_type_reward_never_becomes_claimable",
 	"test_unlocks_screen_renders_all_ten_ladder_rows",
 	"test_buying_an_available_unlock_spends_shards_and_flips_the_row",
 	"test_the_no_effect_yet_tag_appears_on_exactly_the_four_inert_ids",
@@ -44,9 +41,6 @@ func _ready() -> void:
 	await get_tree().process_frame
 	_save_guard.capture()
 
-	await test_pass_screen_renders_all_thirty_track_levels()
-	await test_claiming_a_claim_now_reward_updates_state_and_view()
-	await test_a_face_type_reward_never_becomes_claimable()
 	await test_unlocks_screen_renders_all_ten_ladder_rows()
 	await test_buying_an_available_unlock_spends_shards_and_flips_the_row()
 	await test_the_no_effect_yet_tag_appears_on_exactly_the_four_inert_ids()
@@ -94,101 +88,7 @@ func _free_and_wait(node: Node) -> void:
 # PASS
 # ===========================================================================
 
-func test_pass_screen_renders_all_thirty_track_levels() -> void:
-	var screen := _spawn(PASS_SCENE)
-	await get_tree().process_frame
-	await get_tree().process_frame
-
-	var tiles := screen.find_children("PassTile_*", "Button", true, false)
-	_assert(tiles.size() == ContentDB.BP_TRACK.size(),
-		"Pass screen rendered %d tiles, expected %d (one per BP_TRACK entry)"
-		% [tiles.size(), ContentDB.BP_TRACK.size()])
-	for lv in range(1, ContentDB.BP_MAX_LEVEL + 1):
-		_assert(screen.find_child("PassTile_%d" % lv, true, false) != null,
-			"no tile for level %d" % lv)
-
-	await _free_and_wait(screen)
-	_done("test_pass_screen_renders_all_thirty_track_levels")
-
-
-func test_claiming_a_claim_now_reward_updates_state_and_view() -> void:
-	# Arrange: a shard-type milestone with a known level, fully earned and not yet claimed.
-	MetaState.xp = 0
-	MetaState.bp_claimed.clear()
-	var target: Dictionary = {}
-	for e in ContentDB.BP_TRACK:
-		if String((e as Dictionary).get("type", "")) == "shard":
-			target = e
-			break
-	_assert(not target.is_empty(), "no shard-type BP_TRACK entry to test against")
-	if target.is_empty():
-		_done("test_claiming_a_claim_now_reward_updates_state_and_view")
-		return
-	var lv := int(target.get("lv", 0))
-	var need := 0
-	for i in range(1, lv + 1):
-		need += ContentDB.bp_xp_for_level(i)
-	MetaState.xp = need
-	_assert(MetaState.bp_level() >= lv, "granting %d xp did not reach level %d" % [need, lv])
-
-	var screen := _spawn(PASS_SCENE)
-	await get_tree().process_frame
-	await get_tree().process_frame
-	var tile := screen.find_child("PassTile_%d" % lv, true, false) as Button
-	_assert(tile != null, "no tile rendered for level %d" % lv)
-	if tile == null:
-		await _free_and_wait(screen)
-		_done("test_claiming_a_claim_now_reward_updates_state_and_view")
-		return
-	_assert(not tile.disabled, "an earned, unclaimed shard reward's tile is disabled")
-
-	var shards_before := MetaState.shard_pool
-	tile.pressed.emit()
-	await get_tree().process_frame
-
-	_assert(MetaState.bp_claimed.has(lv), "pressing the tile did not mark level %d claimed" % lv)
-	_assert(MetaState.shard_pool == shards_before + int(target.get("value", 0)),
-		"shard pool went %d -> %d, expected +%d"
-		% [shards_before, MetaState.shard_pool, int(target.get("value", 0))])
-
-	var tile_after := screen.find_child("PassTile_%d" % lv, true, false) as Button
-	_assert(tile_after != null and tile_after.disabled,
-		"the tile still accepts a press after its reward was claimed")
-
-	await _free_and_wait(screen)
-	_done("test_claiming_a_claim_now_reward_updates_state_and_view")
-
-
-## Regression guard for the exact failure named in this file's header comment #2.
-func test_a_face_type_reward_never_becomes_claimable() -> void:
-	MetaState.xp = 999999
-	MetaState.bp_claimed.clear()
-	var face_levels: Array[int] = []
-	for e in ContentDB.BP_TRACK:
-		if String((e as Dictionary).get("type", "")) == "face":
-			face_levels.append(int((e as Dictionary).get("lv", 0)))
-	_assert(not face_levels.is_empty(), "no face-type BP_TRACK entry to test against")
-
-	var screen := _spawn(PASS_SCENE)
-	await get_tree().process_frame
-	await get_tree().process_frame
-	for lv in face_levels:
-		var tile := screen.find_child("PassTile_%d" % lv, true, false) as Button
-		_assert(tile != null, "no tile rendered for face-type level %d" % lv)
-		if tile != null:
-			_assert(tile.disabled,
-				"level %d's face reward tile is CLICKABLE — pressing it would fail silently, "
-				% lv + "since claim_bp_reward() refuses 'face' rewards outright")
-			var shards_before := MetaState.shard_pool
-			tile.pressed.emit()
-			await get_tree().process_frame
-			_assert(not MetaState.bp_claimed.has(lv),
-				"level %d got marked claimed even though its reward cannot be granted" % lv)
-			_assert(MetaState.shard_pool == shards_before,
-				"level %d's blocked tile changed the shard pool anyway" % lv)
-
-	await _free_and_wait(screen)
-	_done("test_a_face_type_reward_never_becomes_claimable")
+# Pass tests moved to t_pass_r3 (Pass is PassV2 / R3 now; the old bp_* track screen is gone).
 
 
 # ===========================================================================
