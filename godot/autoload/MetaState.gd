@@ -217,6 +217,31 @@ func pass_claim_free(lv: int) -> Dictionary:
 	return PassV2.claim_free(self, lv)
 
 
+## Nhận hết vòng sau lv30 đang chờ (50 Shard/vòng, data). Trả số Shard nhận được.
+func pass_claim_post30() -> int:
+	return PassV2.claim_post30(self)
+
+
+## Ảnh chụp chỉ đọc của Pass v2 cho màn hình (đổi dict trả về không ảnh hưởng save).
+func pass_state() -> Dictionary:
+	var today := today_utc()
+	var wk := PassV2.week_key(today)
+	var xp := int(pass_season.get("xp", 0))
+	return {
+		"season_id": String(pass_season.get("id", "")),
+		"active": PassV2.season_active(today),
+		"xp": xp,
+		"level": PassV2.level_for_xp(xp),
+		"max_xp": PassV2.max_xp(),
+		"claimed_free": (pass_season.get("claimed_free", []) as Array).duplicate(),
+		"claimable_levels": PassV2.claimable_levels(self),
+		"post30_pending": PassV2.post30_pending(self),
+		"premium": PassV2.premium_state(),
+		"week_key": wk,
+		"weekly": PassV2.weekly_status(self, wk),
+	}
+
+
 func claim_gem_gift_now() -> Dictionary:
 	return gem_wallet().claim_daily_gift(int(Time.get_unix_time_from_system()))
 

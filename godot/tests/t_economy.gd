@@ -80,6 +80,7 @@ func _ready() -> void:
 	test_spend_and_ledger()
 	test_mission_stake()
 	test_daily_claim_stone()
+	test_pass_wrappers()
 	_guard.restore()
 	print("=== t_economy: %d checks, %d failure(s) ===" % [_checks, _failures.size()])
 	if _failures.is_empty():
@@ -912,3 +913,20 @@ func test_daily_claim_stone() -> void:
 	_assert(not MetaState.daily_done_today() and MetaState.weekly_daily_days() == 0, "daily: tuần cũ không tính")
 	MetaState.claim_daily_mission()
 	_assert(MetaState.weekly_daily_days() == 1, "daily: sang tuần mới đếm lại từ 1")
+
+
+## MetaState.pass_state() chỉ đọc + pass_claim_post30() đi qua PassV2.
+func test_pass_wrappers() -> void:
+	_fresh_meta(0, 0)
+	var st := MetaState.pass_state()
+	for k in ["season_id", "active", "xp", "level", "max_xp", "claimed_free", "claimable_levels", "post30_pending", "premium", "week_key", "weekly"]:
+		_assert(st.has(k), "pass_state có key %s" % k)
+	_assert(MetaState.pass_claim_post30() == 0, "post30: chưa có vòng thì 0")
+	MetaState.pass_season["id"] = "x"
+	MetaState.pass_season["xp"] = PassV2.max_xp() + 4000
+	_assert(int(MetaState.pass_state()["post30_pending"]) == 2, "post30_pending = 2 vòng")
+	var before := MetaState.shard_pool
+	var got := MetaState.pass_claim_post30()
+	_assert(got > 0 and MetaState.shard_pool == before + got and int(MetaState.pass_state()["post30_pending"]) == 0, "post30: nhận Shard, hết vòng chờ")
+	st["claimed_free"].append(99)
+	_assert(not (MetaState.pass_season["claimed_free"] as Array).has(99), "pass_state trả bản sao")
