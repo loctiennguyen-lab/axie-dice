@@ -230,7 +230,8 @@ func _build_header() -> void:
 	# label in its own docstring. MUTED_TEXT (`#8C95A4`) was a near-miss standing in for it.
 	sub.add_theme_color_override("font_color", DangoTheme.SUBTITLE_TEXT)
 	sub.custom_minimum_size.x = 900   # mockup: max-width 900
-	if state == "normal":
+	var show_banner := state == "offline" or (state == "guest" and remote_on)
+	if not show_banner:
 		col.add_child(sub)
 	else:
 		var banner := PanelContainer.new()
@@ -238,7 +239,7 @@ func _build_header() -> void:
 		banner.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
 		var bsb := DangoTheme.surface_style(DangoTheme.Surface.PANEL_RAISED, 11, 3, 0.0, Vector2(14, 8))
 		banner.add_theme_stylebox_override("panel", bsb)
-		sub.text = "You are offline. Your Vault list is cached. Scanning needs a connection." \
+		sub.text = "Offline — scanning needs a connection; your collection is kept on this device" \
 			if state == "offline" else "Your Vault is stored on this device. Sign in to keep it across devices."
 		sub.add_theme_color_override("font_color", DangoTheme.TEXT)
 		banner.add_child(sub)
@@ -583,7 +584,7 @@ func _build_import_preview(axie: Dictionary) -> void:
 		part_names.append("%s: %s" % [str((pt as Dictionary).get("type", "?")),
 			str((pt as Dictionary).get("name", "?"))])
 	var parts_lbl := _body_label(", ".join(part_names))
-	parts_lbl.add_theme_font_size_override("font_size", 11)
+	parts_lbl.add_theme_font_size_override("font_size", 12)
 	parts_lbl.add_theme_color_override("font_color", DangoTheme.MUTED_TEXT)
 	info.add_child(parts_lbl)
 

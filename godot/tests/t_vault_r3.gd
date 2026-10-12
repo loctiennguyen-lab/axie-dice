@@ -20,11 +20,12 @@ func _payload(id: String) -> Dictionary:
 	return {"id": id, "class": "plant", "parts": parts, "genes": "0x1234"}
 
 
-func _mk(st: String) -> VaultView:
+func _mk(st: String, remote := false) -> VaultView:
 	var s: VaultView = load("res://scenes/vault/Vault.tscn").instantiate()
 	s.use_account = false
 	s.no_scene_change = true
 	s.state = st
+	s.remote_on = remote
 	add_child(s)
 	return s
 
@@ -57,12 +58,24 @@ func _ready() -> void:
 	_ok((o.find_child("RecordScroll", true, false) as Control).modulate.a < 1.0, "grid greyed offline")
 	_ok(o.find_child("Row_11", true, false) != null, "cached rows still shown offline")
 	o.queue_free()
-	# guest
-	var g := _mk("guest")
+	# guest: banner only in remote mode; scan never blocked by guest
+	var g := _mk("guest", true)
 	await get_tree().process_frame
-	var b := g.find_child("Banner", true, false)
-	_ok(b != null and "Sign in" in (b.get_child(0) as Label).text, "guest banner asks to sign in")
+	var gb := g.find_child("Banner", true, false)
+	_ok(gb != null and "Sign in" in (gb.get_child(0) as Label).text, "guest + remote_on: banner asks to sign in")
 	g.queue_free()
+	var gl := _mk("guest", false)
+	await get_tree().process_frame
+	_ok(gl.find_child("Banner", true, false) == null, "guest + local mode: normal subtitle, no banner")
+	gl.queue_free()
+	# offline banner text identical in both modes, scan stays disabled
+	for rm in [false, true]:
+		var of := _mk("offline", rm)
+		await get_tree().process_frame
+		var ob := of.find_child("Banner", true, false)
+		_ok(ob != null and "scanning needs a connection" in (ob.get_child(0) as Label).text, "offline banner remote=%s" % rm)
+		_ok((of.find_child("ScanButton", true, false) as Button).disabled, "offline scan disabled remote=%s" % rm)
+		of.queue_free()
 	# full 20/20
 	MetaState.vault.clear()
 	for i in 20:
