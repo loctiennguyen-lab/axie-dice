@@ -23,6 +23,9 @@ B relic v2 (133 relic, slots), C sổ Atia, E kinh tế + Store fixes. RULES_VER
 **Cây chính còn sửa chưa commit:** `godot/tests/t_rules_version.gd` (FINGERPRINT sau merge S d9fbe77, không bump) +
 `production/l1-tasks-I.md` — chạy suite ở cây chính, xanh thì commit + push.
 
+**Lưu ý worktree bẩn lúc bàn giao** (agent bị ngắt do hết hạn mức): C 3 file, E 4, L 3, S 7 chưa commit — session mới
+xem `git status` từng worktree, giữ/commit nếu xanh, không xoá bừa. Agent cũ của session trước có thể vẫn đang chạy nền một lúc.
+
 **Chưa merge (theo làn, việc kế tiếp):**
 | Làn | Commit chưa merge | Trạng thái / việc tiếp |
 |---|---|---|
