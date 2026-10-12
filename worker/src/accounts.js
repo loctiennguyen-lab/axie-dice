@@ -513,3 +513,6 @@ export async function handleAccounts(request, env, url) {
 
 // Exposed for tests only.
 export const _test = { verifyIdToken, signValue, verifyValue, resetJwksCache: () => { jwksCache = { keys: null, at: 0 }; } };
+
+// Shared with src/runs.js (run creation needs the same session lookup and origin allowlist).
+export const shared = { currentPlayer, isAllowedOrigin, json };

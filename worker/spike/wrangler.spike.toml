@@ -1,0 +1,14 @@
+# Throwaway spike Worker. Deploy: cd worker/spike && npx wrangler deploy -c wrangler.spike.toml
+# Delete after measuring: npx wrangler delete -c wrangler.spike.toml   (and it needs Workers Paid for the DO)
+name = "axie-dice-rtt-spike"
+main = "rtt-worker.js"
+compatibility_date = "2026-09-21"
+workers_dev = true
+
+[[durable_objects.bindings]]
+name = "SPIKE"
+class_name = "SpikeDO"
+
+[[migrations]]
+tag = "s1"
+new_sqlite_classes = ["SpikeDO"]

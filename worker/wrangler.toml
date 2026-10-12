@@ -48,3 +48,96 @@ namespace_id = "1002"
   [ratelimits.simple]
   limit = 60
   period = 60
+
+# ---------------------------------------------------------------- RunDO (server-rolled dice)
+# One Durable Object per run (ADR server-authoritative-rng 4.6). Needs the Workers Paid plan.
+# The class name RunDO is frozen: renaming or deleting a DO class is a migration that cannot be
+# rolled back safely. Never edit an existing tag below; add a new [[migrations]] entry instead.
+[[durable_objects.bindings]]
+name = "RUN_DO"
+class_name = "RunDO"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["RunDO"]
+
+# Cron: sweeps runs stuck in 'pending' (src/runs.js sweepPending).
+[triggers]
+crons = ["*/5 * * * *"]
+
+# Secrets (never here): RUN_TOKEN_KEY signs run tokens; it is separate from SESSION_SIGNING_KEY.
+# Optional vars: RUNS_PER_DAY (default 20), SUPPORTED_RULES (comma list, default in src/run_do.js).
+
+[[ratelimits]]
+name = "RUN_LIMITER"
+namespace_id = "1003"
+
+  [ratelimits.simple]
+  limit = 30
+  period = 60
+
+# ---------------------------------------------------------------- staging
+# `wrangler deploy --env staging` makes a SEPARATE Worker "axie-dice-staging" with its own D1, R2
+# bucket and Durable Object namespace, so nothing here can touch production data. Wrangler does not
+# inherit bindings into an environment, so each one is repeated. Before first use (Liam, once):
+#   npx wrangler d1 create axie-dice-db-staging      -> paste the id below
+#   npx wrangler r2 bucket create axie-dice-staging
+#   npx wrangler d1 migrations apply axie-dice-db-staging --env staging --remote
+#   npx wrangler secret put SESSION_SIGNING_KEY --env staging   (and RUN_TOKEN_KEY, GOOGLE_CLIENT_SECRET)
+# Google sign-in on staging needs the staging origin added as a redirect URI in the Google Cloud
+# console, and PUBLIC_ORIGIN set to it. Until then, insert a test session straight into staging D1.
+[env.staging]
+name = "axie-dice-staging"
+workers_dev = true
+
+[env.staging.triggers]
+crons = ["*/5 * * * *"]
+
+[env.staging.observability]
+enabled = true
+
+[env.staging.vars]
+# Lets staging create ranked/mission runs (refused with 403 not_available elsewhere).
+ALLOW_GATED_MODES = "1"
+GOOGLE_CLIENT_ID = "597753927078-rn7b186qo0obgalq3hgpiv6k7g0mk7dl.apps.googleusercontent.com"
+
+[[env.staging.r2_buckets]]
+binding = "GAME"
+bucket_name = "axie-dice-staging"
+
+[[env.staging.d1_databases]]
+binding = "DB"
+database_name = "axie-dice-db-staging"
+database_id = "REPLACE_AFTER_d1_create"
+
+[[env.staging.durable_objects.bindings]]
+name = "RUN_DO"
+class_name = "RunDO"
+
+[[env.staging.migrations]]
+tag = "v1"
+new_sqlite_classes = ["RunDO"]
+
+[[env.staging.ratelimits]]
+name = "AUTH_LIMITER"
+namespace_id = "2001"
+
+  [env.staging.ratelimits.simple]
+  limit = 30
+  period = 60
+
+[[env.staging.ratelimits]]
+name = "SAVE_LIMITER"
+namespace_id = "2002"
+
+  [env.staging.ratelimits.simple]
+  limit = 60
+  period = 60
+
+[[env.staging.ratelimits]]
+name = "RUN_LIMITER"
+namespace_id = "2003"
+
+  [env.staging.ratelimits.simple]
+  limit = 30
+  period = 60

@@ -1,0 +1,93 @@
+// RunDO: one Durable Object per run. Thin shell over RunCore (src/run_core.js): it owns the sockets,
+// the SQLite handle and the D1 write-back, the rules live in RunCore. The class name `RunDO` is
+// frozen: renaming a Durable Object class needs a migration that cannot be rolled back safely.
+//
+// Hibernation rules (ADR 4.6 F12): nothing lives in memory that cannot be rebuilt from SQLite, no
+// setTimeout/setInterval, only alarm(), and ping/pong goes through setWebSocketAutoResponse so a
+// keep-alive does not wake the object.
+import { RunCore } from './run_core.js';
+import { verifyRunToken } from './run_token.js';
+
+// Rule versions this build can still serve (ADR 4.6 bye{version}). Extend at every RULES_VERSION bump.
+export const SUPPORTED_RULES = new Set(['godot-2026-09-21-a']);
+
+const json = (body, status = 200) =>
+  new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } });
+
+/** Whether this build still serves a rules version (env var SUPPORTED_RULES overrides the default). */
+export const rulesSupported = (env, v) =>
+  (env.SUPPORTED_RULES ? env.SUPPORTED_RULES.split(',').includes(v) : SUPPORTED_RULES.has(v));
+
+export class RunDO {
+  constructor(ctx, env) {
+    this.ctx = ctx;
+    this.env = env;
+    RunCore.initSchema(ctx.storage.sql);
+    this.core = new RunCore(ctx.storage.sql, {
+      verifyToken: (t) => verifyRunToken(env, t),
+      supportsRules: (v) => rulesSupported(env, v),
+      // No `charge` yet: paid requests (Aid, Continue, pact/shop reroll) are refused until the wallet
+      // decision (Gem on server, LIAM-2) lands. See RunCore._charge.
+      log: (event, detail) => console.warn('run anomaly', event, JSON.stringify(detail)),
+    });
+    if (typeof WebSocketRequestResponsePair !== 'undefined') {
+      ctx.setWebSocketAutoResponse(new WebSocketRequestResponsePair('ping', 'pong'));
+    }
+  }
+
+  async fetch(request) {
+    const url = new URL(request.url);
+    if (request.method === 'POST' && url.pathname === '/init') {
+      const out = await this.core.init(await request.json());
+      return json(out, out.ok ? 200 : 409);
+    }
+    if (request.method === 'POST' && url.pathname === '/abandon') {
+      const out = this.core.abandon();
+      return json(out, out.ok ? 200 : 404);
+    }
+    if (request.headers.get('Upgrade') === 'websocket') {
+      const pair = new WebSocketPair();
+      this.ctx.acceptWebSocket(pair[1]);
+      pair[1].serializeAttachment({ authed: false, epoch: 0 });
+      return new Response(null, { status: 101, webSocket: pair[0] });
+    }
+    return json({ error: 'not_found' }, 404);
+  }
+
+  async webSocketMessage(ws, message) {
+    const out = await this.core.handle(null, typeof message === 'string' ? message : '', {
+      load: () => ws.deserializeAttachment(),
+      save: (c) => ws.serializeAttachment(c),
+    });
+    for (const r of out.replies) ws.send(JSON.stringify(r));
+    if (out.evictOthers) {
+      for (const other of this.ctx.getWebSockets()) {
+        if (other === ws) continue;
+        try { other.send(JSON.stringify({ t: 'bye', reason: 'other_device' })); other.close(4000, 'other_device'); } catch { /* already gone */ }
+      }
+    }
+    if (out.close) ws.close(out.close.code, out.close.reason);
+    if (out.replies.some((r) => r.t === 'closed')) await this._syncClosed();
+  }
+
+  async webSocketClose(ws, code, reason) { try { ws.close(code, reason); } catch { /* already closed */ } }
+  async webSocketError(ws) { try { ws.close(1011, 'error'); } catch { /* already closed */ } }
+
+  /** Write the closed run back to D1; on failure retry from alarm() (the only timer a DO may use). */
+  async _syncClosed() {
+    const meta = this.core.meta();
+    if (!meta || !this.env.DB) return;
+    try {
+      const s = JSON.parse(meta.summary || '{}');
+      await this.env.DB.prepare(
+        `UPDATE runs SET state = 'closed', outcome = ?, closed_at = ?, battles_done = ?, summary_json = ?
+          WHERE run_id = ? AND state = 'open'`,
+      ).bind(meta.outcome, Math.floor(Date.now() / 1000), Number.isInteger(s.battles_done) ? s.battles_done : 0, meta.summary, meta.run_id).run();
+    } catch (err) {
+      console.error('run close sync failed', String(err));
+      await this.ctx.storage.setAlarm(Date.now() + 30_000);
+    }
+  }
+
+  async alarm() { await this._syncClosed(); }
+}
