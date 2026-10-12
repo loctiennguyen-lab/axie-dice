@@ -1,5 +1,12 @@
 # Kế hoạch sprint L1 — 13/10 → 3/11/2026
 
+> **QUYẾT ĐỊNH LIAM (12/10, tối):** desktop **có đăng nhập Google qua Worker** (S + màn đăng nhập của U) · **Gem lưu trên
+> server** · **duyệt trước toàn bộ danh sách cắt** (12 mục + 3b) — tới 24/10 làn trễ tự cắt theo thứ tự · cọc Nhiệm vụ do
+> server giữ, Shard/Stone trong save · thưởng Nhiệm vụ client tự báo, đánh dấu chưa kiểm · bắt buộc online · Liam duyệt
+> ~8 giờ/ngày (giữ đủ các làn) · app "Axie Dice", `fun.axiedice.game`, 0.1.0 · kênh báo lỗi: Slack riêng + form, người
+> nhận Liam · **Cloudflare giữ gói Free** (playtest vài chục người; không nâng Paid, không bắt buộc staging) · không có
+> danh sách máy người test — họ tự tải bản desktop.
+
 Trạng thái: ĐỀ XUẤT (12/10) — chờ Liam duyệt
 
 Người viết: producer · 12/10/2026 · Chỉ viết file này, không code, không commit.
