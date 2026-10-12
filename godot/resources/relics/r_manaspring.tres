@@ -12,3 +12,5 @@ archetype = "mana"
 mload = 0
 sort_index = 102055
 hook_key = "r_manaspring"
+tags = PackedStringArray("mana")
+layer = "enabler"

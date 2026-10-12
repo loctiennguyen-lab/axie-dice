@@ -13,3 +13,5 @@ mload = 0
 sort_index = 101025
 hook_key = "r_talonedge"
 mf_phase = "add"
+tags = PackedStringArray("pierce")
+layer = "enabler"

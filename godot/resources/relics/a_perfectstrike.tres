@@ -18,3 +18,5 @@ act = {
 "v": 8,
 "crit": 1
 }
+tags = PackedStringArray("crit")
+layer = "active"

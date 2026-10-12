@@ -19,3 +19,5 @@ act = {
 "kw": "thorns:5",
 "scope": "party"
 }
+tags = PackedStringArray("thorns")
+layer = "active"

@@ -13,3 +13,5 @@ mload = 0
 sort_index = 101014
 hook_key = "r_heart"
 mf_phase = "add"
+tags = PackedStringArray("shield")
+layer = "enabler"

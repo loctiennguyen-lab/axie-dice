@@ -13,3 +13,5 @@ mload = 1
 sort_index = 101035
 hook_key = ""
 cleaveRatio = 0.75
+tags = PackedStringArray("aoe")
+layer = "payoff"

@@ -17,3 +17,5 @@ act = {
 "kind": "grow",
 "v": 3
 }
+tags = PackedStringArray("growth")
+layer = "active"

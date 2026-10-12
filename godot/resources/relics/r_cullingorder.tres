@@ -12,3 +12,5 @@ archetype = "exec"
 mload = 0
 sort_index = 102051
 hook_key = "r_cullingorder"
+tags = PackedStringArray("exec")
+layer = "payoff"

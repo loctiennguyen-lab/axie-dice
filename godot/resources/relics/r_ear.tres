@@ -13,3 +13,6 @@ mload = 0
 sort_index = 101015
 hook_key = "r_ear"
 mf_phase = "add"
+tags = PackedStringArray("mana")
+layer = "enabler"
+needs_hook = "H4"

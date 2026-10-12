@@ -14,3 +14,5 @@ sort_index = 100013
 hook_key = ""
 growthPlus = 1.0
 growthAll = 1.0
+tags = PackedStringArray("growth")
+layer = "enabler"

@@ -19,3 +19,5 @@ act = {
 "kw": "burn:6",
 "scope": "allEnemies"
 }
+tags = PackedStringArray("burn")
+layer = "active"

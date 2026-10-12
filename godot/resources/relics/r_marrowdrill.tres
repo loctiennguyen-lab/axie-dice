@@ -13,3 +13,5 @@ mload = 0
 sort_index = 1026
 hook_key = "r_marrowdrill"
 mf_phase = "kw"
+tags = PackedStringArray("pierce")
+layer = "enabler"

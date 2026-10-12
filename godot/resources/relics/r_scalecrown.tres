@@ -12,3 +12,5 @@ archetype = "thorns"
 mload = 0
 sort_index = 103075
 hook_key = "r_scalecrown"
+tags = PackedStringArray("thorns")
+layer = "engine"

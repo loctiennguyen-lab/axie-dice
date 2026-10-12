@@ -14,3 +14,5 @@ sort_index = 103063
 hook_key = "r_plaguelord"
 plague = true
 mf_phase = "add"
+tags = PackedStringArray("poison")
+layer = "engine"

@@ -12,3 +12,5 @@ archetype = "exec"
 mload = 0
 sort_index = 101032
 hook_key = "r_scentofblood"
+tags = PackedStringArray("exec")
+layer = "payoff"

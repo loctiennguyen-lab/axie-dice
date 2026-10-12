@@ -15,3 +15,5 @@ hook_key = "r_soulforge"
 dr = 0.3
 noShieldCap = true
 mf_phase = "add"
+tags = PackedStringArray("shield")
+layer = "engine"

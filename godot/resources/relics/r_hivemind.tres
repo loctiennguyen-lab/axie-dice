@@ -13,3 +13,5 @@ mload = 1
 sort_index = 101022
 hook_key = ""
 hiveMind = 1.0
+tags = PackedStringArray("summon")
+layer = "scaling"

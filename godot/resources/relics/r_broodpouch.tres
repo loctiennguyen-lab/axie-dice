@@ -13,3 +13,5 @@ mload = 0
 sort_index = 100006
 hook_key = ""
 startSummon = 1.0
+tags = PackedStringArray("summon")
+layer = "enabler"

@@ -14,3 +14,7 @@ sort_index = 103061
 hook_key = "r_bloodpact"
 dmgMult = 1.6
 mf_phase = "add"
+tags = PackedStringArray("uni")
+layer = "pact"
+mult_axis = "G"
+pact_group = "reroll"

@@ -13,3 +13,5 @@ mload = 0
 sort_index = 3067
 hook_key = "r_stormcall"
 mf_phase = "kw"
+tags = PackedStringArray("aoe")
+layer = "engine"

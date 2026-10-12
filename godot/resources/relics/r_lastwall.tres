@@ -12,3 +12,5 @@ archetype = "shield"
 mload = 0
 sort_index = 100010
 hook_key = "r_lastwall"
+tags = PackedStringArray("shield")
+layer = "enabler"

@@ -17,3 +17,5 @@ act = {
 "kind": "heal",
 "v": 9
 }
+tags = PackedStringArray("shield")
+layer = "active"

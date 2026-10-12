@@ -13,3 +13,5 @@ mload = 1
 sort_index = 103077
 hook_key = "r_conduitcrown"
 actReuse = 2.0
+tags = PackedStringArray("mana")
+layer = "engine"

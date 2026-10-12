@@ -14,3 +14,5 @@ sort_index = 1023
 hook_key = "r_wildfire"
 burnSlow = true
 mf_phase = "kw"
+tags = PackedStringArray("burn")
+layer = "enabler"

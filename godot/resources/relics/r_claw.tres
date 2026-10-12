@@ -13,3 +13,6 @@ mload = 0
 sort_index = 100000
 hook_key = "r_claw"
 mf_phase = "add"
+tags = PackedStringArray("uni")
+layer = "enabler"
+needs_hook = "H1"

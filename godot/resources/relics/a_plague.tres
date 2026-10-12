@@ -17,3 +17,5 @@ act = {
 "kind": "poisonall",
 "v": 3
 }
+tags = PackedStringArray("poison")
+layer = "active"

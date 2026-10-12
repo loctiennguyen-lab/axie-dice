@@ -13,3 +13,5 @@ mload = 0
 sort_index = 4
 hook_key = "r_bloodmouth"
 mf_phase = "kw"
+tags = PackedStringArray("uni")
+layer = "enabler"

@@ -13,3 +13,5 @@ mload = 0
 sort_index = 101021
 hook_key = ""
 healShield = true
+tags = PackedStringArray("shield")
+layer = "enabler"

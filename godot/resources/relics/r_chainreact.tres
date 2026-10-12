@@ -12,3 +12,5 @@ archetype = "aoe"
 mload = 0
 sort_index = 102042
 hook_key = "r_chainreact"
+tags = PackedStringArray("aoe")
+layer = "payoff"

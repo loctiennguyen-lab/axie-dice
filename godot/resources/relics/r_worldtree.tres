@@ -13,3 +13,5 @@ mload = 1
 sort_index = 103072
 hook_key = ""
 growthKeep = true
+tags = PackedStringArray("growth")
+layer = "engine"

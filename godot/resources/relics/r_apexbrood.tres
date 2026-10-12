@@ -12,3 +12,5 @@ archetype = "summon"
 mload = 0
 sort_index = 102048
 hook_key = "r_apexbrood"
+tags = PackedStringArray("summon")
+layer = "payoff"

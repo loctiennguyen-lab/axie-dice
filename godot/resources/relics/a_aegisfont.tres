@@ -17,3 +17,5 @@ act = {
 "kind": "shieldall",
 "v": 8
 }
+tags = PackedStringArray("shield")
+layer = "active"

@@ -12,3 +12,5 @@ archetype = "crit"
 mload = 0
 sort_index = 101034
 hook_key = "r_bloodhymn"
+tags = PackedStringArray("crit")
+layer = "payoff"

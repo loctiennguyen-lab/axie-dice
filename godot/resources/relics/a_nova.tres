@@ -17,3 +17,5 @@ act = {
 "kind": "dmgall",
 "v": 10
 }
+tags = PackedStringArray("aoe")
+layer = "active"

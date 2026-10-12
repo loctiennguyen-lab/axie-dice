@@ -14,3 +14,5 @@ sort_index = 102045
 hook_key = "r_infinitedie"
 rerollUp = 2.0
 safeReroll = true
+tags = PackedStringArray("mana")
+layer = "enabler"
