@@ -14,7 +14,6 @@ extends Control
 const SCREEN_ID := "portal"
 const RUN_MAP := "res://scenes/run_map/RunMap.tscn"
 const COMBAT := "res://scenes/combat/Combat.tscn"
-const LAND_BACK := "res://scenes/main_menu/MainMenu.tscn"   # lane L replaces with the Land hub
 const ASC_MAX := 10
 const PARTY_SIZE := 5
 const NEWCOMER_RUNS := 5
@@ -858,7 +857,7 @@ func _on_continue() -> void:
 
 func _on_back() -> void:
 	if is_inside_tree() and not no_scene_change:
-		get_tree().change_scene_to_file(LAND_BACK)
+		LandNav.back_to_land()
 
 
 # ---------------------------------------------------------------- picker

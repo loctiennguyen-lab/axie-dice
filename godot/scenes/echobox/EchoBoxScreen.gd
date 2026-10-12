@@ -13,7 +13,6 @@ extends Control
 ## Skip, rates modal, buy confirm, reduce-flashing static reveal, "your last pull" recovery.
 ## Not drawn (no seasonal logic exists; EchoBox.open_season is missing): M5n/o/p/q/r/s/t/w.
 
-const LAND_BACK := "res://scenes/main_menu/MainMenu.tscn"   # lane L replaces with the Land hub
 const SCREEN_ID := "echobox"
 const _Econ := preload("res://scripts/meta/economy_db.gd")
 const PULL_N := 10
@@ -404,7 +403,7 @@ func _build_header() -> Control:
 
 func _on_back() -> void:
 	if is_inside_tree() and not no_scene_change:
-		get_tree().change_scene_to_file(LAND_BACK)
+		LandNav.back_to_land()
 
 
 # ---------------------------------------------------------------- refresh
