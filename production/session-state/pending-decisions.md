@@ -21,3 +21,10 @@ nguồn, không nằm ở đây nữa.
 ## E. Đã chốt hôm nay (để tham chiếu, không cần trả lời)
 Kiến trúc server RNG · monetization (cách B, PA-1, quà 180 Gem) · Ascension răng cưa · Nhiệm vụ bản cực khó (Bayes, không giới
 hạn/ngày, NFT dùng được) · UI request 02 + Round 1 · L1 = 3/11 nội bộ, phạm vi đầy đủ, Gem tặng 300/ngày · commit/push tự do, duyệt theo tuần.
+
+## F. Liam trả lời đêm 12/10 (đã chốt, không hỏi lại)
+- Việc thêm trong đêm (sau danh sách đã duyệt): Nhiệm vụ bản cực khó (doc + review), sim chốt số monetization + enrage Ascension, build thử Mac/Win (không deploy/upload), các màn meta R3 còn lại (Vault, Codex, Settings, Profile/Account, Leaderboard, Land upgrade).
+- R3 Q1: Gem tặng (quà mùa, Pass) MUA ĐƯỢC hàng giá Gem ở L1, như khung M7e–M7h.
+- R3 Q6/Q7: nhận cả hai — M1 party lên trên; header 64 trên panel meta rộng thành quy tắc style sheet.
+- R3 Q3/Q4: giữ 3 việc tuần Pass (5 run, thắng 2, chạm boss 1; 500 XP/việc; tuần từ thứ Hai UTC). game-designer đề xuất tên A5/A10 + số Nhiệm vụ, ghi ở đây để Liam duyệt sáng; code dùng tạm.
+- (Đã chốt trước: R3 Q2 [INF] nhận; Q8 gamepad bỏ.)

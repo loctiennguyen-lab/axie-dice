@@ -23,3 +23,12 @@ Cập nhật 12/10, sau merge A PR1 (3220402) + B (6ae29ef) và bump `RULES_VERS
 
 9. `t_mon13` là quét văn bản (cấm `aid_*`, `continue_used`, `boon_used` trong `scripts/core`; `boon_id` chỉ trong `_reward_count`). Hiện `_reward_count` chưa có trong `scripts/core` nên `boon_id` bị cấm hẳn; khi làn B/A thêm hàm đó thì ngoại lệ có hiệu lực. Chưa chạy thử đột biến (thêm dòng vi phạm để xem test đỏ).
 10. Hook H1-H8 đang rỗng; khi B nối thân relic vào hook thì cần bump lại (nếu đổi kết quả run) hoặc cập nhật fingerprint.
+
+## Sau merge S (12/10, RULES_VERSION vẫn -c, chỉ cập nhật FINGERPRINT)
+
+11. **Trước deploy Worker (Liam/devops làm, tôi không deploy):**
+    - Áp migration D1 `0002_runs.sql`, `0003_wallet.sql`, `0004_desktop_auth.sql` lên `axie-dice-db` (`wrangler d1 migrations apply`).
+    - `cd worker && npx wrangler secret put RUN_TOKEN_KEY` (chỉ đặt bằng wrangler secret, không ghi vào code).
+    - Thêm redirect URI cho login desktop vào Google OAuth console, nếu luồng desktop dùng Google (kiểm với làn S).
+    - Worker test phải 121/121 trước khi deploy.
+12. **`RemoteGemWallet` và `RemoteEpochSource` chưa được nối.** Cờ remote đang tắt; client vẫn chạy `LocalGemWallet` + `LocalEpochSource`. Bật remote cần: nợ #1 (combat resume `set_epoch`, đã có từ PR2 nhưng U phải gọi) và quyết định cờ cho Gem server.

@@ -128,7 +128,11 @@ const WATCHED_FILES: Array[String] = ["res://assets/data/part_faces.json"]
 ## rule tables (assets/data/rules/*.json, now fingerprinted), boss clock, attrition, spike, Continue (form B),
 ## Aid effects, Boons as numbers, relic hook points H1-H8 (inert until lane B fills them), set_epoch.
 ## Changes the run result: YES. `t_mon13` guards that no scripts/core rule reads Aid/Continue/Boon state.
-const FINGERPRINT := "a268957b8a5affbfaea1968139fbd818c8c884a22c67a1529b5685ee2c30028a"
+## Moved 2026-10-12 by lane S (338d371): AccountService.gd (desktop login + Bearer, rate-limit messages)
+## and scripts/net/ (RemoteGemWallet, run session plumbing). Accounts and network only; nothing here
+## is read while a die, enemy or reward resolves, and the remote sources are not wired in yet
+## (flag off). Changes the run result: NO, so RULES_VERSION was NOT bumped (still -c).
+const FINGERPRINT := "c686448cc035886fcffe5b1313e99a870e409ec1b0fa1c6e822f5fe525dad1f5"
 
 
 func _ready() -> void:
