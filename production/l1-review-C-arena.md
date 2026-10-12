@@ -35,5 +35,7 @@ Verdict: MERGE WITH FOLLOW-UPS
 - Arctic ground and sky are both near-white at the horizon; fine here, but check the lower edge of the sky band on a bright monitor.
 - Still not viewed: mystic and genesis.
 
+v3 (4350424): MERGE. Gold bar gone, savannah is now yellow-gold and clearly different from the orange boss ground, boss portal is whole and small (pushed back, so it does not read bigger; acceptable). Mystic and genesis still unviewed.
+
 ## Needs a second look (not viewed)
 Arctic, mystic and genesis: check portal crop, white-on-white readability in arctic, and fog contrast in mystic. FPS 120 is the vsync cap, so it says nothing about headroom.

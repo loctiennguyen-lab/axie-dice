@@ -1,3 +1,4 @@
+class_name VaultView
 extends Control
 ## The Vault screen — imported Axie NFTs, their derived dice, and the 3D preview built from each
 ## one's genes. Port of `scVaultHub()`'s VAULT tab (src/client.html:3311-3420).
@@ -78,6 +79,18 @@ var _pending_axie: Dictionary = {}
 ## (64px, not 84), so their offsets against `content` are `old_absolute_margin - RAIL_X` —
 ## preserving the same distance from the real screen edge the mockup asked for.
 var _content: Control
+
+## R3 (M3a-M3g). "normal" | "offline" | "guest". Offline greys the collection and disables SCAN;
+## guest shows the local-Vault banner. Both only describe the screen, MetaState is untouched.
+var state := "normal"
+var use_account := true
+var remote_on: bool = String(ProjectSettings.get_setting("axie/gem_wallet", "")) == "remote"
+var account_status_hook: Callable
+var no_scene_change := false
+var _confirm_layer: Control
+var _first_refresh := true
+const IMPORT_COL_W := 560.0      ## R3 M3: right column 560
+const COL_GAP := 24.0
 const HEADER_INSET := 64.0 - 84.0     # -20: 20px INSIDE the standard rail
 const IMPORT_LEFT := 64.0 - 84.0      # same column as the header
 ## Mockup: `left:620` for the record column (was 592 here, a 28px drift).
@@ -132,16 +145,22 @@ func _ready() -> void:
 	var shell := DangoScreen.build(self, MockupAssets.tex(BG_MOCKUP_PLATE),
 		DangoTheme.Scrim.DEFAULT, true)
 	_content = shell["content"]
+	if use_account:
+		state = derive_state()
 	# FIXED 2026-09-20: the bar above was being built and then left EMPTY - `shell["footer"]`
 	# was never read. So the screen carried a 72px chrome bar with nothing in it and still had
 	# no mouse way out, which is the exact defect the comment above says the owner asked to
 	# close. FIX-PASS-03 §8: BACK lives in the footer on all seven meta screens, never on art.
-	DangoScreen.add_back_button(shell["footer"] as HBoxContainer, func() -> void:
-		get_tree().change_scene_to_file(MAIN_MENU_SCENE))
+	DangoScreen.add_back_button(shell["footer"] as HBoxContainer, _on_back)
 
 	_build_header()
 	_build_import_panel()
 	_build_record_panel()
+	_confirm_layer = Control.new()
+	_confirm_layer.name = "ConfirmLayer"
+	_confirm_layer.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_confirm_layer.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(_confirm_layer)
 	refresh()
 
 
@@ -150,7 +169,25 @@ func _ready() -> void:
 func _unhandled_input(event: InputEvent) -> void:
 	if event.is_action_pressed("ui_cancel"):
 		get_viewport().set_input_as_handled()
-		get_tree().change_scene_to_file(MAIN_MENU_SCENE)
+		if _confirm_layer != null and _confirm_layer.get_child_count() > 0:
+			_close_confirm()      # Esc = back one step: close the modal first
+		else:
+			_on_back()
+
+
+func derive_state() -> String:
+	var st: int = account_status_hook.call() if account_status_hook.is_valid() else AccountService.status
+	match st:
+		AccountService.Status.GUEST, AccountService.Status.EXPIRED:
+			return "guest"
+		AccountService.Status.OFFLINE:
+			return "offline"
+	return "normal"
+
+
+func _on_back() -> void:
+	if is_inside_tree() and not no_scene_change:
+		LandNav.back_to_land()
 
 
 func _build_header() -> void:
@@ -193,7 +230,20 @@ func _build_header() -> void:
 	# label in its own docstring. MUTED_TEXT (`#8C95A4`) was a near-miss standing in for it.
 	sub.add_theme_color_override("font_color", DangoTheme.SUBTITLE_TEXT)
 	sub.custom_minimum_size.x = 900   # mockup: max-width 900
-	col.add_child(sub)
+	var show_banner := state == "offline" or (state == "guest" and remote_on)
+	if not show_banner:
+		col.add_child(sub)
+	else:
+		var banner := PanelContainer.new()
+		banner.name = "Banner"
+		banner.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+		var bsb := DangoTheme.surface_style(DangoTheme.Surface.PANEL_RAISED, 11, 3, 0.0, Vector2(14, 8))
+		banner.add_theme_stylebox_override("panel", bsb)
+		sub.text = "Offline — scanning needs a connection; your collection is kept on this device" \
+			if state == "offline" else "Your Vault is stored on this device. Sign in to keep it across devices."
+		sub.add_theme_color_override("font_color", DangoTheme.TEXT)
+		banner.add_child(sub)
+		col.add_child(banner)
 
 	var spacer := Control.new()
 	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -226,10 +276,11 @@ func _build_header() -> void:
 func _build_import_panel() -> void:
 	var panel := PanelContainer.new()
 	panel.name = "ImportPanel"
-	panel.set_anchors_preset(Control.PRESET_TOP_LEFT)
-	panel.offset_left = IMPORT_LEFT
+	panel.anchor_left = 1.0
+	panel.anchor_right = 1.0
+	panel.offset_right = -HEADER_INSET          # R3: import column on the RIGHT, 560 wide
+	panel.offset_left = -HEADER_INSET - IMPORT_COL_W
 	panel.offset_top = RECORD_TOP
-	panel.custom_minimum_size = Vector2(IMPORT_PANEL_W, 0)
 	panel.add_theme_stylebox_override("panel",
 		DangoTheme.surface_style(DangoTheme.Surface.PANEL, 16, 4, 5.0, Vector2(20, 18)))
 	_content.add_child(panel)
@@ -367,8 +418,8 @@ func _build_record_panel() -> void:
 	_record_scroll = DangoScreen.fit_or_scroll(_list, _record_max_height())
 	_record_scroll.name = "RecordScroll"
 	_record_scroll.set_anchors_preset(Control.PRESET_TOP_WIDE)
-	_record_scroll.offset_left = RECORD_LEFT
-	_record_scroll.offset_right = RECORD_RIGHT
+	_record_scroll.offset_left = IMPORT_LEFT     # R3: collection on the left
+	_record_scroll.offset_right = -HEADER_INSET - IMPORT_COL_W - COL_GAP
 	_record_scroll.offset_top = RECORD_TOP
 	_content.add_child(_record_scroll)
 
@@ -380,8 +431,8 @@ func _build_record_panel() -> void:
 	fade.anchor_right = 1.0
 	fade.anchor_top = 0.0
 	fade.anchor_bottom = 0.0
-	fade.offset_left = RECORD_LEFT
-	fade.offset_right = RECORD_RIGHT
+	fade.offset_left = IMPORT_LEFT
+	fade.offset_right = -HEADER_INSET - IMPORT_COL_W - COL_GAP
 	_content.add_child(fade)
 	_record_fade = fade
 
@@ -422,10 +473,14 @@ func refresh() -> void:
 	_count_caption.text = "FULL" if full else "IMPORTED"
 	_count_caption.add_theme_color_override("font_color",
 		DangoTheme.DANGER if full else DangoTheme.INK_ON_SHIELD)
+	_record_scroll.modulate.a = 0.62 if state == "offline" else 1.0   # M3f: greyed but readable
 	_empty_label.visible = entries.is_empty()
 	# Just the state, not the reason — the reason is already on screen two lines above, under the
 	# control it disables, and printing the same sentence twice in a row reads as a bug.
-	_empty_label.text = "No Axies imported yet." if entries.is_empty() else ""
+	_empty_label.text = "Your Vault is empty. Type an Axie ID on the right and press Scan." if entries.is_empty() else ""
+	if _first_refresh and entries.is_empty() and _id_field != null and _id_field.editable and is_inside_tree():
+		_id_field.grab_focus()    # M3a: the empty state focuses the ID field
+	_first_refresh = false
 
 	for entry in entries:
 		_list.add_child(_build_row(entry))
@@ -455,7 +510,7 @@ func _refresh_scan_enabled() -> void:
 	if _scan_button == null:
 		return
 	var busy := not _status_label.text.is_empty() and _status_label.text.begins_with("Looking up")
-	_scan_button.disabled = (not AxieApi.is_available()) or busy \
+	_scan_button.disabled = (not AxieApi.is_available()) or busy or state == "offline" \
 		or not AxieApi.is_valid_axie_id(_id_field.text)
 
 
@@ -529,7 +584,7 @@ func _build_import_preview(axie: Dictionary) -> void:
 		part_names.append("%s: %s" % [str((pt as Dictionary).get("type", "?")),
 			str((pt as Dictionary).get("name", "?"))])
 	var parts_lbl := _body_label(", ".join(part_names))
-	parts_lbl.add_theme_font_size_override("font_size", 11)
+	parts_lbl.add_theme_font_size_override("font_size", 12)
 	parts_lbl.add_theme_color_override("font_color", DangoTheme.MUTED_TEXT)
 	info.add_child(parts_lbl)
 
@@ -917,9 +972,58 @@ func _on_use_in_team_pressed(axie_id: String) -> void:
 	get_tree().change_scene_to_file("res://scenes/main_menu/TeamSelect.tscn")
 
 
+## M3d: Remove asks first. Focus lands on "Keep it" so a stray Enter never deletes.
 func _on_remove_pressed(axie_id: String) -> void:
-	MetaState.vault_remove(axie_id)
-	refresh()
+	_close_confirm()
+	var dim := ColorRect.new()
+	dim.name = "RemoveConfirm"
+	dim.color = Color(0.14, 0.08, 0.04, 0.6)
+	dim.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_confirm_layer.add_child(dim)
+	var center := CenterContainer.new()
+	center.set_anchors_preset(Control.PRESET_FULL_RECT)
+	dim.add_child(center)
+	var box := PanelContainer.new()
+	box.custom_minimum_size = Vector2(600, 0)
+	box.add_theme_stylebox_override("panel",
+		DangoTheme.surface_style(DangoTheme.Surface.PANEL, 16, 4, 5.0, Vector2(24, 20)))
+	center.add_child(box)
+	var v := VBoxContainer.new()
+	v.add_theme_constant_override("separation", 14)
+	box.add_child(v)
+	v.add_child(DangoTheme.display_label("REMOVE FROM VAULT?", 26, DangoTheme.CREAM_RAISED))
+	v.add_child(_body_label("Axie #%s leaves your Vault. You can import it again later." % axie_id))
+	var h := HBoxContainer.new()
+	h.add_theme_constant_override("separation", 12)
+	v.add_child(h)
+	var keep := Button.new()
+	keep.name = "KeepButton"
+	keep.text = "KEEP IT"
+	keep.custom_minimum_size = Vector2(0, 48)
+	keep.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	DangoTheme.style_button(keep, true)
+	keep.pressed.connect(_close_confirm)
+	h.add_child(keep)
+	var yes := Button.new()
+	yes.name = "ConfirmRemoveButton"
+	yes.text = "REMOVE"
+	yes.custom_minimum_size = Vector2(0, 48)
+	yes.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	DangoTheme.style_button(yes, false)
+	yes.pressed.connect(func() -> void:
+		MetaState.vault_remove(axie_id)
+		_close_confirm()
+		refresh())
+	h.add_child(yes)
+	keep.grab_focus.call_deferred()
+
+
+func _close_confirm() -> void:
+	if _confirm_layer == null:
+		return
+	for c in _confirm_layer.get_children():
+		_confirm_layer.remove_child(c)
+		c.queue_free()
 
 
 ## "" for a missing or null value, instead of GDScript's "<NULL>". Records carry real nulls
