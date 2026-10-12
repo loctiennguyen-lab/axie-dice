@@ -122,3 +122,53 @@ static func sprite_name_for(key: String, is_boss: bool = false) -> String:
 	if BOSS_SPRITES.has(key):
 		return String(BOSS_SPRITES[key])
 	return ""
+
+
+# ---------------------------------------------------------------------------------------------
+# Atia model registry (L1 lane C, contract 4.3 in production/l1-interfaces.md)
+# ---------------------------------------------------------------------------------------------
+
+const ATIA_REGISTRY_PATH := "res://assets/atia/atia_models.json"
+
+## The 27 enemy keys frozen for L1 (17 normal, 4 elite, 6 boss). ContentDB.enemies also holds
+## the "egg" summon token, which is not a roster enemy and is deliberately not listed here.
+## Adding or renaming a key means telling lane C (t_atia_coverage fails until it is covered).
+const NORMAL_KEYS := ["slime", "chomper", "bruiser", "cleaver", "ravenling", "stalker", "spikelet",
+	"thornback", "jellyfin", "warden", "bugling", "venomaw", "hexeye", "pyrewing", "broodmaw",
+	"bomblet", "totem"]
+const ELITE_KEYS := ["e_ravager", "e_plague", "e_bulwark", "e_archon"]
+const BOSS_KEYS := ["agony", "gooey_king", "mecha", "frost_lord", "plague_mother", "mirror"]
+
+static var _atia_cache: Dictionary = {}
+static var _atia_loaded := false
+
+
+## Registry entry for a unit: {kind: "glb"|"sprite"|"placeholder", path, height_m, facing_deg,
+## anims, anim_speed, fallback_sprite}. Never null and never errors: a key missing from the
+## JSON (or a missing JSON) resolves to what the game did before the registry existed — the
+## Chimera sprite when one is mapped, else "placeholder".
+static func resolve(unit_key: String, is_boss: bool = false) -> Dictionary:
+	var models := _atia_models()
+	if models.has(unit_key) and models[unit_key] is Dictionary:
+		var entry: Dictionary = (models[unit_key] as Dictionary).duplicate(true)
+		if not entry.has("kind"):
+			entry["kind"] = "placeholder"
+		if not entry.has("fallback_sprite"):
+			entry["fallback_sprite"] = sprite_name_for(unit_key, is_boss)
+		return entry
+	var sprite := sprite_name_for(unit_key, is_boss)
+	return {"kind": ("sprite" if sprite != "" else "placeholder"), "fallback_sprite": sprite}
+
+
+static func _atia_models() -> Dictionary:
+	if _atia_loaded:
+		return _atia_cache
+	_atia_loaded = true
+	if not FileAccess.file_exists(ATIA_REGISTRY_PATH):
+		return _atia_cache
+	var parsed: Variant = JSON.parse_string(FileAccess.get_file_as_string(ATIA_REGISTRY_PATH))
+	if parsed is Dictionary and (parsed as Dictionary).get("models") is Dictionary:
+		_atia_cache = (parsed as Dictionary)["models"]
+	else:
+		push_warning("MonsterArt: %s is not a valid registry, using sprite fallbacks" % ATIA_REGISTRY_PATH)
+	return _atia_cache
