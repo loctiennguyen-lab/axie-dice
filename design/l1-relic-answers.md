@@ -1,5 +1,7 @@
 # L1: trả lời câu hỏi spec của lane B (relic)
 
+> **QUYẾT ĐỊNH LIAM (12/10):** `relaybaton` **truyền bonus dọc chuỗi** đúng chữ spec (sim sau xem có quá mạnh) · boss **miễn nhiễm chết ngay**, áp cả `apexferal` (vẫn mạnh với quái thường/elite).
+
 Người viết: game-designer (lane D) · 12/10/2026. Trả lời 8 câu của lane B. Nguồn luật gốc là `design/proposals/relic-set-v2.md`
 (bộ relic đã khoá, Liam 11/10). File này chỉ lấp chỗ spec còn hở và sửa vài chỗ spec tự mâu thuẫn. Chỗ nào lệch spec có
 nhãn **[LỆCH SPEC]**. Con số vẫn là số đoán đầu, chốt sau sim (relic-set §6).

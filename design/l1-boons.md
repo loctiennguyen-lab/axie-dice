@@ -1,5 +1,7 @@
 # L1: 8 Boon (monetization R8)
 
+> **QUYẾT ĐỊNH LIAM (12/10):** Boon ở Run Setup hiện **3 trong 8** (rút ngẫu nhiên, thấy cả 3 trước khi trả Gem), người chơi chọn 1.
+
 Người viết: game-designer (lane D) · 12/10/2026. Lane A sở hữu `godot/assets/data/rules/boons.json` và chép từ file này.
 Nguồn luật: `design/proposals/monetization-v1.md` (R8, R9, Q2, Q3, MON-12, MON-13) và `production/l1-interfaces.md` §3.1, §3.3.
 
