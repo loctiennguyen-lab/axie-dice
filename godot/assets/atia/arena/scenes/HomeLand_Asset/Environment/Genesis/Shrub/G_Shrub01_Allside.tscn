@@ -1,0 +1,64 @@
+[gd_scene format=4]
+
+[ext_resource type="PackedScene" path="res://assets/atia/arena/meshsrc/HomeLand_Asset/Environment/Forest/Shrub/Source/SM_Shrub01_Allside.fbx" id="1_q8ipv"]
+[ext_resource type="Material" path="res://assets/atia/arena/materials/HomeLand_Asset/Environment/Genesis/Shrub/Source/M_G_Shrub_01_Allside.tres" id="2_gw32v"]
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_4tnf3"]
+resource_name = "lambert2"
+vertex_color_use_as_albedo = true
+albedo_color = Color(0.6651851, 0.6651851, 0.6651851, 1)
+emission_enabled = true
+
+[sub_resource type="ArrayMesh" id="ArrayMesh_wte7e"]
+_surfaces = [{
+"aabb": AABB(-1.4361937, -0.1390962, -1.6445645, 3.103305, 2.1268544, 3.103328),
+"format": 34359742465,
+"index_count": 78,
+"index_data": PackedByteArray("AAABAAIAAgADAAAABAAAAAMAAwAFAAQABAAFAAYABgAHAAQACAAJAAoACgALAAgADAANAA4ADgAPAAwAEAAMAA8ADwARABAAEAARABIAEgATABAAFAAVABYAFgAXABQAGAAUABcAFwAZABgAGAAZABoAGgAbABgAHAAdAB4AHgAfABwAIAAcAB8AHwAhACAAIAAhACIAIgAjACAA"),
+"name": "lambert2",
+"primitive": 3,
+"uv_scale": Vector4(0, 0, 0, 0),
+"vertex_count": 36,
+"vertex_data": PackedByteArray("aRO5PTxvDr6U5jM/iKs6v3suBz9Iznw/CXaCv+SMoz+8jTI/MVlGv6V0/T8mVCa+c/U6PwubBr7k9qY9wxoKvt1u/j+4nUi/KQs2P+SMoz+/NIS/2iWAP3suBz/0KD6/6GPVP0MYAD1zEgG+3KqpPTMYAD3DuLo/MtW3vz0YAD3hwHS9OKAXPkMYAD0XgdK/SBbevTxvDr7MgT+/LAs2P3suBz+/NIS/2iWAP+SMoz/zKD6/1LhBP6V0/T+Uzu890pU/vwubBr5U6AG+nzLvPd1u/j+AAj0/iKs6v+SMoz9Iznw/CXaCv3suBz+8jTI/XwQ8vzxvDr4AKJ09CXaCv3suBz/zKD6/iKs6v+SMoz+/NIS//dwFPqV0/T+d1km/M+XnvQubBr4GeDc/7n9AP91u/j92EBi+2iWAP+SMoz+9jTI/Kgs2P3suBz9Iznw/A2Q3PzxvDr64Afq92iWAP3suBz+9jTI/KQs2P+SMoz9Gznw/bl4YvqV0/T9lOz4/UuLCPQubBr4/E0O/SiBFv91u/j8pR9M9CXaCv+SMoz/0KD6/iKs6v3suBz+/NIS/")
+}]
+blend_shape_mode = 0
+
+[sub_resource type="ArrayMesh" id="ArrayMesh_q38nq"]
+resource_name = "SM_Shrub_01_FaceCam"
+_surfaces = [{
+"aabb": AABB(-1.4361937, -0.1390962, -1.6445645, 3.103305, 2.1268544, 3.103328),
+"attribute_data": PackedByteArray("YGKjPgAAAD8AAICzAMevPgAAgLMAzSw+YGKjPgAAAAAQ/C4/AAAAPzD8Lj8AAAAAAACAPwDNLD4AAIA/AMevPkgscz+5zQY/1C9zPzoceT+wAk09Ohx5P4A7TT25zQY/YGKjPgAAAD8AAICzAMevPgAAgLMAzSw+YGKjPgAAAAAQ/C4/AAAAPzD8Lj8AAAAAAACAPwDNLD4AAIA/AMevPmBioz4AAAA/AACAswDHrz4AAICzAM0sPmBioz4AAAAAEPwuPwAAAD8w/C4/AAAAAAAAgD8AzSw+AACAPwDHrz5gYqM+AAAAPwAAgLMAx68+AACAswDNLD5gYqM+AAAAABD8Lj8AAAA/MPwuPwAAAAAAAIA/AM0sPgAAgD8Ax68+"),
+"format": 34359742487,
+"index_count": 78,
+"index_data": PackedByteArray("AAABAAIAAgADAAAABAAAAAMAAwAFAAQABAAFAAYABgAHAAQACAAJAAoACgALAAgADAANAA4ADgAPAAwAEAAMAA8ADwARABAAEAARABIAEgATABAAFAAVABYAFgAXABQAGAAUABcAFwAZABgAGAAZABoAGgAbABgAHAAdAB4AHgAfABwAIAAcAB8AHwAhACAAIAAhACIAIgAjACAA"),
+"material": SubResource("StandardMaterial3D_4tnf3"),
+"name": "lambert2",
+"primitive": 3,
+"uv_scale": Vector4(0, 0, 0, 0),
+"vertex_count": 36,
+"vertex_data": PackedByteArray("aRO5PTxvDr6U5jM/iKs6v3suBz9Iznw/CXaCv+SMoz+8jTI/MVlGv6V0/T8mVCa+c/U6PwubBr7k9qY9wxoKvt1u/j+4nUi/KQs2P+SMoz+/NIS/2iWAP3suBz/0KD6/6GPVP0MYAD1zEgG+3KqpPTMYAD3DuLo/MtW3vz0YAD3hwHS9OKAXPkMYAD0XgdK/SBbevTxvDr7MgT+/LAs2P3suBz+/NIS/2iWAP+SMoz/zKD6/1LhBP6V0/T+Uzu890pU/vwubBr5U6AG+nzLvPd1u/j+AAj0/iKs6v+SMoz9Iznw/CXaCv3suBz+8jTI/XwQ8vzxvDr4AKJ09CXaCv3suBz/zKD6/iKs6v+SMoz+/NIS//dwFPqV0/T+d1km/M+XnvQubBr4GeDc/7n9AP91u/j92EBi+2iWAP+SMoz+9jTI/Kgs2P3suBz9Iznw/A2Q3PzxvDr64Afq92iWAP3suBz+9jTI/KQs2P+SMoz9Gznw/bl4YvqV0/T9lOz4/UuLCPQubBr4/E0O/SiBFv91u/j8pR9M9CXaCv+SMoz/0KD6/iKs6v3suBz+/NIS/Cq0FpZ3/29+0rr6kFv8zn7SuvqQR/zOfBq0GpZn/2t/HrAWlY//G38SsBqVi/8bfkq2+pPL/+t+Srb6k9//433B/4f4CwP+/cH/h/gLA/79wf+H+AsD/v3B/4f4CwP+/BSXz0rg/MMC+JEnRl0GKv74kSdGYQYi/BiX40rY/McAGJTfTjz9MwAclOdOOP03AviRs0vc/BcC+JGzS8z8DwBFSBaVWvzDAc1O+pK7Air9zU76kqsCIvw1SBqVQvzHAzVEFpfO+TMDMUQal8L5NwFFSvqTqvwXAUVK+pOu/A8D52hDSYQBT4EDbc9PoAFegQNtz0+0AVaD42gzSZQBW4PjazdGbAIXg99rL0ZwAhuBA21DSDAAJ4EDbUNIHAAng")
+}]
+blend_shape_mode = 0
+shadow_mesh = SubResource("ArrayMesh_wte7e")
+
+[sub_resource type="Animation" id="Animation_eef5o"]
+resource_name = "Take 001"
+length = 20.125
+
+[sub_resource type="AnimationLibrary" id="AnimationLibrary_lywsk"]
+_data = {
+&"Take 001": SubResource("Animation_eef5o")
+}
+
+[node name="G_Shrub01_Allside" type="Node3D" unique_id=349104966]
+
+[node name="G_Shrub01_Allside" parent="." unique_id=2136807892 instance=ExtResource("1_q8ipv")]
+
+[node name="SM_Shrub_01_FaceCam" parent="G_Shrub01_Allside" index="0" unique_id=944351842]
+mesh = SubResource("ArrayMesh_q38nq")
+surface_material_override/0 = ExtResource("2_gw32v")
+
+[node name="AnimationPlayer" parent="G_Shrub01_Allside" index="1" unique_id=428233152]
+libraries/ = SubResource("AnimationLibrary_lywsk")
+
+[editable path="G_Shrub01_Allside"]

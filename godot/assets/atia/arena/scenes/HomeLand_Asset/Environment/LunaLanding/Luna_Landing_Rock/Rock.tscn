@@ -1,0 +1,51 @@
+[gd_scene format=3]
+
+[ext_resource type="PackedScene" path="res://assets/atia/arena/scenes/HomeLand_Asset/Environment/LunaLanding/Luna_Landing_Rock/SM_Luna_Landing_Rock_1a Variant.tscn" id="1_gur6c"]
+[ext_resource type="PackedScene" path="res://assets/atia/arena/scenes/HomeLand_Asset/Environment/LunaLanding/Luna_Landing_Rock/SM_Luna_Landing_Rock_3 Variant.tscn" id="2_xpm4m"]
+[ext_resource type="PackedScene" path="res://assets/atia/arena/scenes/HomeLand_Asset/Environment/LunaLanding/Luna_Landing_Rock/SM_Luna_Landing_Rock_2 Variant.tscn" id="3_2ovwt"]
+[ext_resource type="PackedScene" path="res://assets/atia/arena/scenes/HomeLand_Asset/Environment/LunaLanding/Luna_Landing_Rock/SM_Luna_Landing_Rock_1 Variant.tscn" id="4_mcbec"]
+
+[node name="Rock" type="Node3D" unique_id=1027976770]
+
+[node name="Rock" type="Node3D" parent="." unique_id=2119706699]
+
+[node name="SM_Luna_Landing_Rock_1a Variant (2)" type="Node3D" parent="Rock" unique_id=533389383 instance=ExtResource("1_gur6c")]
+transform = Transform3D(0.8231363, 0, 0.5678438, 0, 1, 0, -0.5678438, 0, 0.8231363, -85.1, 0, 119.9)
+
+[node name="SM_Luna_Landing_Rock_3 Variant (3)" type="Node3D" parent="Rock" unique_id=2098725807 instance=ExtResource("2_xpm4m")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 99.4, 0, -102.7)
+
+[node name="SM_Luna_Landing_Rock_2 Variant" type="Node3D" parent="Rock" unique_id=1921701406 instance=ExtResource("3_2ovwt")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 99.1, 0, 102.1)
+
+[node name="SM_Luna_Landing_Rock_1a Variant" type="Node3D" parent="Rock" unique_id=1179535622 instance=ExtResource("1_gur6c")]
+transform = Transform3D(0.8231363, 0, 0.5678438, 0, 1, 0, -0.5678438, 0, 0.8231363, 15.9, 0, 20.6)
+
+[node name="SM_Luna_Landing_Rock_3 Variant (2)" type="Node3D" parent="Rock" unique_id=1581842907 instance=ExtResource("2_xpm4m")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -102.9, 0, 7.9)
+
+[node name="SM_Luna_Landing_Rock_1 Variant (1)" type="Node3D" parent="Rock" unique_id=1359031324 instance=ExtResource("4_mcbec")]
+transform = Transform3D(0.8682855, 0, 0.4960648, 0, 1, 0, -0.4960648, 0, 0.8682855, -101, 0, 99.3)
+
+[node name="SM_Luna_Landing_Rock_1a Variant (4)" type="Node3D" parent="Rock" unique_id=550147508 instance=ExtResource("1_gur6c")]
+transform = Transform3D(0.8231363, 0, 0.5678438, 0, 1, 0, -0.5678438, 0, 0.8231363, 85.4, 0, 21.4)
+
+[node name="SM_Luna_Landing_Rock_3 Variant (1)" type="Node3D" parent="Rock" unique_id=1259138251 instance=ExtResource("2_xpm4m")]
+transform = Transform3D(0.41323495, 0, -0.91062444, 0, 1, 0, 0.91062444, 0, 0.41323495, -98.684746, 0, -102.291824)
+
+[node name="SM_Luna_Landing_Rock_1 Variant" type="Node3D" parent="Rock" unique_id=1529779624 instance=ExtResource("4_mcbec")]
+
+[node name="SM_Luna_Landing_Rock_1 Variant (2)" type="Node3D" parent="Rock" unique_id=1307281598 instance=ExtResource("4_mcbec")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 108.1, 0, 13.9)
+
+[node name="SM_Luna_Landing_Rock_1a Variant (1)" type="Node3D" parent="Rock" unique_id=1357920750 instance=ExtResource("1_gur6c")]
+transform = Transform3D(0.8231363, 0, 0.5678438, 0, 1, 0, -0.5678438, 0, 0.8231363, 24.2, 0, -4.6)
+
+[node name="SM_Luna_Landing_Rock_1a Variant (3)" type="Node3D" parent="Rock" unique_id=1672634754 instance=ExtResource("1_gur6c")]
+transform = Transform3D(0.8231363, 0, 0.5678438, 0, 1, 0, -0.5678438, 0, 0.8231363, -115.1, 0, 118)
+
+[node name="SM_Luna_Landing_Rock_3 Variant" type="Node3D" parent="Rock" unique_id=1490778464 instance=ExtResource("2_xpm4m")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -10.9, 0, 104.3)
+
+[node name="SM_Luna_Landing_Rock_2 Variant (1)" type="Node3D" parent="Rock" unique_id=745642185 instance=ExtResource("3_2ovwt")]
+transform = Transform3D(0.9138392, 0, -0.40607613, 0, 1, 0, 0.40607613, 0, 0.9138392, 10.644743, 0, -95.92596)

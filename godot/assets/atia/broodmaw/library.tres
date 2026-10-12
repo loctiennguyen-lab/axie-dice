@@ -1,0 +1,14 @@
+[gd_resource type="AnimationLibrary" format=3]
+
+[ext_resource type="Animation" path="res://assets/atia/broodmaw/anims/Idle.res" id="a0"]
+[ext_resource type="Animation" path="res://assets/atia/broodmaw/anims/Attack.res" id="a1"]
+[ext_resource type="Animation" path="res://assets/atia/broodmaw/anims/GetHit.res" id="a2"]
+[ext_resource type="Animation" path="res://assets/atia/broodmaw/anims/Dead.res" id="a3"]
+
+[resource]
+_data = {
+&"Idle": ExtResource("a0"),
+&"Attack": ExtResource("a1"),
+&"GetHit": ExtResource("a2"),
+&"Dead": ExtResource("a3")
+}

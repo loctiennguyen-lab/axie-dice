@@ -2,101 +2,317 @@
  "version": 1,
  "models": {
   "slime": {
-   "kind": "sprite",
+   "kind": "glb",
+   "path": "res://assets/atia/slime/slime.tscn",
+   "height_m": 2.2,
+   "max_width_m": 4.2,
+   "facing_deg": 0,
+   "anims": {
+    "idle": "Idle",
+    "attack": "Attack",
+    "hit": "GetHit",
+    "die": "Dead"
+   },
+   "anim_speed": {},
    "fallback_sprite": "slime"
   },
   "chomper": {
-   "kind": "sprite",
+   "kind": "glb",
+   "path": "res://assets/atia/chomper/chomper.tscn",
+   "height_m": 2.2,
+   "max_width_m": 4.2,
+   "facing_deg": 0,
+   "anims": {
+    "idle": "Idle",
+    "attack": "Attack",
+    "die": "Dead"
+   },
+   "anim_speed": {},
    "fallback_sprite": "treant"
   },
   "bruiser": {
-   "kind": "sprite",
+   "kind": "glb",
+   "path": "res://assets/atia/bruiser/bruiser.tscn",
+   "height_m": 2.2,
+   "max_width_m": 4.2,
+   "facing_deg": 0,
+   "anims": {
+    "idle": "Idle",
+    "attack": "Attack",
+    "die": "Dead"
+   },
+   "anim_speed": {},
    "fallback_sprite": "daddy-bear"
   },
   "cleaver": {
-   "kind": "sprite",
+   "kind": "glb",
+   "path": "res://assets/atia/cleaver/cleaver.tscn",
+   "height_m": 2.2,
+   "max_width_m": 4.2,
+   "facing_deg": 0,
+   "anims": {
+    "idle": "Idle"
+   },
+   "anim_speed": {},
    "fallback_sprite": "alpha-wolf"
   },
   "ravenling": {
-   "kind": "sprite",
+   "kind": "glb",
+   "path": "res://assets/atia/ravenling/ravenling.tscn",
+   "height_m": 2.2,
+   "max_width_m": 4.2,
+   "facing_deg": 0,
+   "anims": {
+    "idle": "Idle",
+    "attack": "Skill1",
+    "die": "Dead"
+   },
+   "anim_speed": {},
    "fallback_sprite": "aqua-wolf"
   },
   "stalker": {
-   "kind": "sprite",
+   "kind": "glb",
+   "path": "res://assets/atia/stalker/stalker.tscn",
+   "height_m": 2.2,
+   "max_width_m": 4.2,
+   "facing_deg": 0,
+   "anims": {
+    "idle": "Idle",
+    "hit": "GetHit",
+    "die": "Dead"
+   },
+   "anim_speed": {},
    "fallback_sprite": "gray-wolf"
   },
   "spikelet": {
-   "kind": "sprite",
+   "kind": "glb",
+   "path": "res://assets/atia/spikelet/spikelet.tscn",
+   "height_m": 2.2,
+   "max_width_m": 4.2,
+   "facing_deg": 0,
+   "anims": {
+    "idle": "Idle",
+    "attack": "Skill1",
+    "hit": "GetHit",
+    "die": "Death"
+   },
+   "anim_speed": {},
    "fallback_sprite": "forest-slime-fighter"
   },
   "thornback": {
-   "kind": "sprite",
+   "kind": "glb",
+   "path": "res://assets/atia/thornback/thornback.tscn",
+   "height_m": 2.2,
+   "max_width_m": 4.2,
+   "facing_deg": 0,
+   "anims": {
+    "idle": "Idle"
+   },
+   "anim_speed": {},
    "fallback_sprite": "dryad-fighter"
   },
   "jellyfin": {
-   "kind": "sprite",
+   "kind": "glb",
+   "path": "res://assets/atia/jellyfin/jellyfin.tscn",
+   "height_m": 2.2,
+   "max_width_m": 4.2,
+   "facing_deg": 0,
+   "anims": {
+    "idle": "Idle",
+    "attack": "Attack",
+    "die": "Dead"
+   },
+   "anim_speed": {},
    "fallback_sprite": "aqua-slime-sup"
   },
   "warden": {
-   "kind": "sprite",
+   "kind": "glb",
+   "path": "res://assets/atia/warden/warden.tscn",
+   "height_m": 2.2,
+   "max_width_m": 4.2,
+   "facing_deg": 0,
+   "anims": {
+    "idle": "Idle",
+    "attack": "Attack",
+    "hit": "GetHit"
+   },
+   "anim_speed": {},
    "fallback_sprite": "aqua-slime-def"
   },
   "bugling": {
-   "kind": "sprite",
+   "kind": "glb",
+   "path": "res://assets/atia/bugling/bugling.tscn",
+   "height_m": 2.2,
+   "max_width_m": 4.2,
+   "facing_deg": 0,
+   "anims": {
+    "idle": "Idle",
+    "attack": "Attack",
+    "hit": "GetHit"
+   },
+   "anim_speed": {},
    "fallback_sprite": "aqua-slime-atk"
   },
   "venomaw": {
-   "kind": "sprite",
+   "kind": "glb",
+   "path": "res://assets/atia/venomaw/venomaw.tscn",
+   "height_m": 2.2,
+   "max_width_m": 4.2,
+   "facing_deg": 0,
+   "anims": {
+    "idle": "Idle",
+    "attack": "Attack",
+    "die": "Dead"
+   },
+   "anim_speed": {},
    "fallback_sprite": "forest-slime-flower"
   },
   "hexeye": {
-   "kind": "sprite",
+   "kind": "glb",
+   "path": "res://assets/atia/hexeye/hexeye.tscn",
+   "height_m": 2.2,
+   "max_width_m": 4.2,
+   "facing_deg": 0,
+   "anims": {
+    "idle": "Idle",
+    "attack": "Attack",
+    "die": "Dead"
+   },
+   "anim_speed": {},
    "fallback_sprite": "dryad-mage"
   },
   "pyrewing": {
-   "kind": "sprite",
+   "kind": "glb",
+   "path": "res://assets/atia/pyrewing/pyrewing.tscn",
+   "height_m": 2.2,
+   "max_width_m": 4.2,
+   "facing_deg": 0,
+   "anims": {
+    "idle": "Idle",
+    "attack": "RangeAttack",
+    "hit": "GetHit",
+    "die": "Dead"
+   },
+   "anim_speed": {},
    "fallback_sprite": "dryad-ranger"
   },
   "broodmaw": {
-   "kind": "sprite",
+   "kind": "glb",
+   "path": "res://assets/atia/broodmaw/broodmaw.tscn",
+   "height_m": 2.2,
+   "max_width_m": 4.2,
+   "facing_deg": 0,
+   "anims": {
+    "idle": "Idle",
+    "attack": "Attack",
+    "hit": "GetHit",
+    "die": "Dead"
+   },
+   "anim_speed": {},
    "fallback_sprite": "flowering-treant"
   },
   "bomblet": {
-   "kind": "sprite",
+   "kind": "glb",
+   "path": "res://assets/atia/bomblet/bomblet.tscn",
+   "height_m": 2.2,
+   "max_width_m": 4.2,
+   "facing_deg": 0,
+   "anims": {
+    "idle": "Idle"
+   },
+   "anim_speed": {},
    "fallback_sprite": "aqua-alpha-wolf"
   },
   "totem": {
-   "kind": "sprite",
+   "kind": "glb",
+   "path": "res://assets/atia/totem/totem.tscn",
+   "height_m": 2.2,
+   "max_width_m": 4.2,
+   "facing_deg": 0,
+   "anims": {
+    "idle": "Idle",
+    "hit": "GetHit",
+    "die": "Dead"
+   },
+   "anim_speed": {},
    "fallback_sprite": "treant-fighter"
   },
   "e_ravager": {
-   "kind": "sprite",
+   "kind": "glb",
+   "path": "res://assets/atia/e_ravager/e_ravager.tscn",
+   "height_m": 2.8,
+   "max_width_m": 4.2,
+   "facing_deg": 0,
+   "anims": {
+    "idle": "Idle",
+    "attack": "Skill1",
+    "die": "Dead"
+   },
+   "anim_speed": {},
    "fallback_sprite": "werewolf"
   },
   "e_plague": {
-   "kind": "sprite",
+   "kind": "glb",
+   "path": "res://assets/atia/e_plague/e_plague.tscn",
+   "height_m": 2.8,
+   "max_width_m": 4.2,
+   "facing_deg": 0,
+   "anims": {
+    "idle": "Idle",
+    "attack": "Skill1",
+    "die": "Dead"
+   },
+   "anim_speed": {},
    "fallback_sprite": "mommy-bear"
   },
   "e_bulwark": {
-   "kind": "sprite",
+   "kind": "glb",
+   "path": "res://assets/atia/e_bulwark/e_bulwark.tscn",
+   "height_m": 2.8,
+   "max_width_m": 4.2,
+   "facing_deg": 0,
+   "anims": {
+    "idle": "Idle",
+    "die": "Dead"
+   },
+   "anim_speed": {},
    "fallback_sprite": "treant-fighter"
   },
   "e_archon": {
-   "kind": "sprite",
+   "kind": "glb",
+   "path": "res://assets/atia/e_archon/e_archon.tscn",
+   "height_m": 2.8,
+   "max_width_m": 4.2,
+   "facing_deg": 0,
+   "anims": {
+    "idle": "Idle",
+    "attack": "Skill1"
+   },
+   "anim_speed": {},
    "fallback_sprite": "dryad-mage"
   },
   "gooey_king": {
    "kind": "sprite",
+   "source": "chimera",
    "fallback_sprite": "aqua-slime-boss"
   },
   "mecha": {
-   "kind": "sprite",
+   "kind": "glb",
+   "source": "mascot",
+   "path": "res://assets/bosses/xia.glb",
+   "height_m": 4.72,
+   "max_width_m": 6.5,
+   "facing_deg": 0,
+   "anims": {},
+   "anim_speed": {},
    "fallback_sprite": "shilin"
   },
   "agony": {
    "kind": "glb",
+   "source": "mascot",
    "path": "res://assets/bosses/paladill.glb",
    "height_m": 4.72,
+   "max_width_m": 6.5,
    "facing_deg": 0,
    "anims": {},
    "anim_speed": {},
@@ -104,28 +320,44 @@
   },
   "frost_lord": {
    "kind": "glb",
-   "path": "res://assets/bosses/kotaro.glb",
+   "path": "res://assets/atia/frost_lord/frost_lord.tscn",
    "height_m": 4.72,
+   "max_width_m": 6.5,
    "facing_deg": 0,
-   "anims": {},
+   "anims": {
+    "idle": "Idle",
+    "attack": "RangeAttack",
+    "hit": "GetHit",
+    "die": "Dead"
+   },
    "anim_speed": {},
    "fallback_sprite": "gray-wolf"
   },
   "plague_mother": {
    "kind": "glb",
-   "path": "res://assets/bosses/kibo.glb",
+   "path": "res://assets/atia/plague_mother/plague_mother.tscn",
    "height_m": 4.72,
+   "max_width_m": 6.5,
    "facing_deg": 0,
-   "anims": {},
+   "anims": {
+    "idle": "Idle",
+    "attack": "Skill1",
+    "die": "Dead"
+   },
    "anim_speed": {},
    "fallback_sprite": "mommy-bear"
   },
   "mirror": {
    "kind": "glb",
-   "path": "res://assets/bosses/xia.glb",
+   "path": "res://assets/atia/mirror/mirror.tscn",
    "height_m": 4.72,
+   "max_width_m": 6.5,
    "facing_deg": 0,
-   "anims": {},
+   "anims": {
+    "idle": "Idle",
+    "attack": "Skill1",
+    "die": "Dead"
+   },
    "anim_speed": {},
    "fallback_sprite": "dryad-fighter"
   }

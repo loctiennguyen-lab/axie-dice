@@ -1,0 +1,10 @@
+[gd_resource type="StandardMaterial3D" format=3]
+
+[ext_resource type="Texture2D" path="res://assets/atia/arena/meshsrc/HomeLand_Asset/Environment/Savannah/Shrub/Source/T_Shrub_savannah.png" id="1_rwtrd"]
+
+[resource]
+resource_name = "M_Shrub01_Savannah"
+transparency = 2
+alpha_scissor_threshold = 0.6
+alpha_antialiasing_mode = 0
+albedo_texture = ExtResource("1_rwtrd")

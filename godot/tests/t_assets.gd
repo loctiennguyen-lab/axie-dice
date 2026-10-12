@@ -301,7 +301,10 @@ func test_no_monster_or_boss_wears_a_hero_identity() -> void:
 	var mapped: Array = []
 	mapped.append_array(MonsterArt.MONSTER_SPRITES.values())
 	mapped.append_array(MonsterArt.BOSS_SPRITES.values())
-	mapped.append_array(CombatStage3D.BOSS_MODELS.values())
+	for k in MonsterArt.NORMAL_KEYS + MonsterArt.ELITE_KEYS + MonsterArt.BOSS_KEYS:
+		var reg := MonsterArt.resolve(k, MonsterArt.BOSS_KEYS.has(k))
+		if String(reg.get("kind", "")) == "glb":
+			mapped.append(String(reg.get("path", "")).get_file().get_basename())
 	for art in mapped:
 		var art_id := String(art).to_lower()
 		_assert(not forbidden.has(art_id),
@@ -377,8 +380,10 @@ func test_every_mapped_card_illustration_loads() -> void:
 
 
 func test_every_boss_model_is_on_disk() -> void:
-	for boss_key in CombatStage3D.BOSS_MODELS:
-		var path := "res://assets/bosses/%s.glb" % String(CombatStage3D.BOSS_MODELS[boss_key])
+	for boss_key in MonsterArt.BOSS_KEYS:
+		var path := String(MonsterArt.resolve(boss_key, true).get("path", ""))
+		if path == "":
+			continue   # sprite boss, nothing to check
 		_assert(ResourceLoader.exists(path),
 			"boss '%s' maps to %s, which is not there — the fight silently falls back to a "
 				% [boss_key, path] + "2D sprite")

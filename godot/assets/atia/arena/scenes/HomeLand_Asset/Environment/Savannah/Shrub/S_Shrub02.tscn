@@ -1,0 +1,51 @@
+[gd_scene format=4]
+
+[ext_resource type="PackedScene" path="res://assets/atia/arena/meshsrc/HomeLand_Asset/Environment/Savannah/Shrub/Source/SM_Shrub02.fbx" id="1_c66nr"]
+[ext_resource type="Material" path="res://assets/atia/arena/materials/HomeLand_Asset/Environment/Savannah/Shrub/Source/M_Shrub01_Savannah.tres" id="2_5vqxs"]
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_aeykt"]
+resource_name = "lambert2"
+vertex_color_use_as_albedo = true
+emission_enabled = true
+
+[sub_resource type="ArrayMesh" id="ArrayMesh_0nxbw"]
+_surfaces = [{
+"aabb": AABB(-0.44260445, -0.13798797, -1.0099738, 3.181818, 2.5096054, 3.1764948),
+"format": 34359742465,
+"index_count": 24,
+"index_data": PackedByteArray("AAABAAIAAgADAAAAAQAAAAQABAAFAAEABQAEAAYABgAHAAUACAAJAAoACgALAAgA"),
+"name": "lambert2",
+"primitive": 3,
+"uv_scale": Vector4(0, 0, 0, 0),
+"vertex_count": 12,
+"vertex_data": PackedByteArray("fzewPrSVfD9zGMI/7L3CPzN9gj+GBCo9navSP7rRmb1UcsM+G64HP7hMDb56ZNw/gjQYPuxa2z8DMpg/9XScP8Br4D8m7Ue+WGBYvitXFUBozC4/WqU4P5XIF0AVcgy/tOatP7nKCD3SRoG/Rk8vQLnKCD3TP8c+JSFwP7nKCD1IqApADZ3ivrnKCD2Yc0Q/")
+}]
+blend_shape_mode = 0
+
+[sub_resource type="ArrayMesh" id="ArrayMesh_r0fwg"]
+resource_name = "Mesh_002"
+_surfaces = [{
+"aabb": AABB(-0.44260445, -0.13798797, -1.0099738, 3.181818, 2.5096054, 3.1764948),
+"attribute_data": PackedByteArray("btoBPx7/Sz/RzkY/QOdJP2Z+QD/BkXM/mMUAP55Rdj/uTgY/SlIuP3xNRj9crSs/9RMMP/zFDj+re0Q/sOYLPzX03z5QDBs/iWnePsJSez/pX4s8h5R6P8EKpDwUTho/"),
+"format": 34359742487,
+"index_count": 24,
+"index_data": PackedByteArray("AAABAAIAAgADAAAAAQAAAAQABAAFAAEABQAEAAYABgAHAAUACAAJAAoACgALAAgA"),
+"material": SubResource("StandardMaterial3D_aeykt"),
+"name": "lambert2",
+"primitive": 3,
+"uv_scale": Vector4(0, 0, 0, 0),
+"vertex_count": 12,
+"vertex_data": PackedByteArray("fzewPrSVfD9zGMI/7L3CPzN9gj+GBCo9navSP7rRmb1UcsM+G64HP7hMDb56ZNw/gjQYPuxa2z8DMpg/9XScP8Br4D8m7Ue+WGBYvitXFUBozC4/WqU4P5XIF0AVcgy/tOatP7nKCD3SRoG/Rk8vQLnKCD3TP8c+JSFwP7nKCD1IqApADZ3ivrnKCD2Yc0Q/76sOmjj69t12xoqXFPl6lHfHgoaT/hea2MZ1hCr/IpuPpx2lG/iy3z/A4qLk9SmUzZbCx/L1WOOlq83GSvGElv9//////wSg/3//////BKD/f/////8EoP9//////wSg")
+}]
+blend_shape_mode = 0
+shadow_mesh = SubResource("ArrayMesh_0nxbw")
+
+[node name="S_Shrub02" type="Node3D" unique_id=1195332160]
+
+[node name="Shrub02" parent="." unique_id=226623573 instance=ExtResource("1_c66nr")]
+
+[node name="SM_Shrub_02" parent="Shrub02" index="0" unique_id=1470860645]
+mesh = SubResource("ArrayMesh_r0fwg")
+surface_material_override/0 = ExtResource("2_5vqxs")
+
+[editable path="Shrub02"]

@@ -1,0 +1,10 @@
+[gd_resource type="AnimationLibrary" format=3]
+
+[ext_resource type="Animation" path="res://assets/atia/e_archon/anims/Idle.res" id="a0"]
+[ext_resource type="Animation" path="res://assets/atia/e_archon/anims/Skill1.res" id="a1"]
+
+[resource]
+_data = {
+&"Idle": ExtResource("a0"),
+&"Skill1": ExtResource("a1")
+}

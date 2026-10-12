@@ -1,0 +1,16 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://assets/atia/atia_model.gd" id="1"]
+[ext_resource type="PackedScene" path="res://assets/atia/thornback/model.fbx" id="2"]
+[ext_resource type="AnimationLibrary" path="res://assets/atia/thornback/library.tres" id="3"]
+[ext_resource type="Texture2D" path="res://assets/atia/thornback/tex.png" id="4"]
+
+[node name="thornback" type="Node3D"]
+script = ExtResource("1")
+albedo = ExtResource("4")
+
+[node name="Model" parent="." instance=ExtResource("2")]
+
+[node name="Animations" type="AnimationPlayer" parent="."]
+root_node = NodePath("../Model")
+libraries/ = ExtResource("3")

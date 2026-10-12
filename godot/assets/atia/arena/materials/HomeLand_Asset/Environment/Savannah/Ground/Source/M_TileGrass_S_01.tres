@@ -1,0 +1,14 @@
+[gd_resource type="ShaderMaterial" format=3]
+
+[ext_resource type="Shader" path="res://assets/atia/arena/shaders/HomeLand_Asset/Environment/Savannah/Ground/Source/S_TileGrass_savannah_01.gdshader" id="1_jr7he"]
+[ext_resource type="Texture2D" path="res://assets/atia/arena/meshsrc/HomeLand_Asset/Environment/Savannah/Ground/Source/Land_Savannah_01_ground.png" id="2_lulxs"]
+
+[resource]
+resource_name = "M_TileGrass_S_01"
+render_priority = 0
+shader = ExtResource("1_jr7he")
+shader_parameter/pVector1_accdc7198b3b48109e4ec52e10198f83 = null
+shader_parameter/sg_shadow = null
+shader_parameter/pTexture2D_9ae3a7428cce439ea36c6913f36412a4 = ExtResource("2_lulxs")
+shader_parameter/sg_main_light_dir = null
+shader_parameter/sg_main_light_color = null

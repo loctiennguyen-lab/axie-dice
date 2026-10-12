@@ -1,0 +1,8 @@
+[gd_resource type="StandardMaterial3D" format=3]
+
+[ext_resource type="Texture2D" path="res://assets/atia/arena/meshsrc/HomeLand_Asset/Environment/LunaLanding/Luna_Landing_Rock/Source/T_Luna_Landing_Moon_C.png" id="1_fclyu"]
+
+[resource]
+resource_name = "M_Luna_Landing_Moon_C"
+shading_mode = 0
+albedo_texture = ExtResource("1_fclyu")

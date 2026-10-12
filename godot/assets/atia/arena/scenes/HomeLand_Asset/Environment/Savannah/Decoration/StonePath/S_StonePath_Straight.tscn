@@ -1,0 +1,82 @@
+[gd_scene format=4]
+
+[ext_resource type="PackedScene" path="res://assets/atia/arena/meshsrc/HomeLand_Asset/Environment/Forest/Decoration/StonePath/Road/SM_StonePath_Straight.fbx" id="1_vksll"]
+[ext_resource type="Material" path="res://assets/atia/arena/materials/HomeLand_Asset/Environment/Forest/Decoration/StonePath/M_StonePath_01_Random0-8.tres" id="2_ip3os"]
+[ext_resource type="Material" path="res://assets/atia/arena/materials/HomeLand_Asset/Environment/Savannah/Ground/Source/M_TileGrass_S_01.tres" id="3_cjepc"]
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_eeqyl"]
+resource_name = "M_StonePath"
+vertex_color_use_as_albedo = true
+albedo_color = Color(0.6651851, 0.6651851, 0.6651851, 1)
+emission_enabled = true
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_8md7n"]
+resource_name = "M_Ground"
+vertex_color_use_as_albedo = true
+albedo_color = Color(0.6651851, 0.6651851, 0.6651851, 1)
+emission_enabled = true
+
+[sub_resource type="ArrayMesh" id="ArrayMesh_2s788"]
+_surfaces = [{
+"aabb": AABB(-0.9446701, 0.024717731, -0.9446701, 1.8893402, 1e-05, 1.8893402),
+"format": 34359742465,
+"index_count": 6,
+"index_data": PackedByteArray("AAABAAIAAgADAAAA"),
+"name": "M_StonePath",
+"primitive": 3,
+"uv_scale": Vector4(0, 0, 0, 0),
+"vertex_count": 4,
+"vertex_data": PackedByteArray("5tVxv9d8yjzm1XG/5tVxP9d8yjzm1XG/5tVxP9d8yjzm1XE/5tVxv9d8yjzm1XE/")
+}, {
+"aabb": AABB(-0.80980843, 0, -0.80980843, 1.6196169, 1e-05, 1.6196169),
+"format": 34359742465,
+"index_count": 6,
+"index_data": PackedByteArray("AAABAAIAAgADAAAA"),
+"name": "M_Ground",
+"primitive": 3,
+"uv_scale": Vector4(0, 0, 0, 0),
+"vertex_count": 4,
+"vertex_data": PackedByteArray("m09PvwAAAACbT0+/m09PPwAAAACbT0+/m09PPwAAAACbT08/m09PvwAAAACbT08/")
+}]
+blend_shape_mode = 0
+
+[sub_resource type="ArrayMesh" id="ArrayMesh_xyjnu"]
+resource_name = "SM_StonePath_Straight"
+_surfaces = [{
+"aabb": AABB(-0.9446701, 0.024717731, -0.9446701, 1.8893402, 1e-05, 1.8893402),
+"attribute_data": PackedByteArray("AACAPwAAAAAAAIA/AACAPwAAAAAAAIA/AAAAAAAAAAA="),
+"format": 34359742487,
+"index_count": 6,
+"index_data": PackedByteArray("AAABAAIAAgADAAAA"),
+"material": SubResource("StandardMaterial3D_eeqyl"),
+"name": "M_StonePath",
+"primitive": 3,
+"uv_scale": Vector4(0, 0, 0, 0),
+"vertex_count": 4,
+"vertex_data": PackedByteArray("5tVxv9d8yjzm1XG/5tVxP9d8yjzm1XG/5tVxP9d8yjzm1XE/5tVxv9d8yjzm1XE//3//////////f/////////9//////////3////////8=")
+}, {
+"aabb": AABB(-0.80980843, 0, -0.80980843, 1.6196169, 1e-05, 1.6196169),
+"attribute_data": PackedByteArray("AACAPwAAAAAAAIA/AACAPwAAAAAAAIA/AAAAAAAAAAA="),
+"format": 34359742487,
+"index_count": 6,
+"index_data": PackedByteArray("AAABAAIAAgADAAAA"),
+"material": SubResource("StandardMaterial3D_8md7n"),
+"name": "M_Ground",
+"primitive": 3,
+"uv_scale": Vector4(0, 0, 0, 0),
+"vertex_count": 4,
+"vertex_data": PackedByteArray("m09PvwAAAACbT0+/m09PPwAAAACbT0+/m09PPwAAAACbT08/m09PvwAAAACbT08//3//////////f/////////9//////////3////////8=")
+}]
+blend_shape_mode = 0
+shadow_mesh = SubResource("ArrayMesh_2s788")
+
+[node name="S_StonePath_Straight" type="Node3D" unique_id=871542766]
+
+[node name="S_StonePath_Straight" parent="." unique_id=2097443101 instance=ExtResource("1_vksll")]
+
+[node name="SM_StonePath_Straight" parent="S_StonePath_Straight" index="0" unique_id=1422860362]
+mesh = SubResource("ArrayMesh_xyjnu")
+surface_material_override/0 = ExtResource("2_ip3os")
+surface_material_override/1 = ExtResource("3_cjepc")
+
+[editable path="S_StonePath_Straight"]
