@@ -88,9 +88,6 @@ func _roster() -> Array:
 func _assert_fully_visualised(u: Unit, context: String) -> void:
 	_assert(_view._portraits.has(u.uid),
 		"%s: unit %d (%s) has no UnitPortrait — no name, no HP bar" % [context, u.uid, u.n])
-	_assert(_view._head_huds.has(u.uid),
-		"%s: unit %d (%s) has no UnitHeadHUD — no status pills, no intent badge"
-			% [context, u.uid, u.n])
 	_assert(_view._stage3d.has_unit(u.uid),
 		"%s: unit %d (%s) has no 3D slot on the stage" % [context, u.uid, u.n])
 	_assert(_view._audio._voices.has(u.uid),

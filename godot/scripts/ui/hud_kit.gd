@@ -139,7 +139,7 @@ static func fill_status_row(row: Control, status: Dictionary, shield: int, icons
 	var items: Array = []
 	if shield > 0:
 		items.append({"icon": DangoTheme.face_type_icon("shield"), "n": shield,
-			"fill": DangoTheme.SHIELD_CHIP, "tip": tip_fn.call("shield", shield)})
+			"fill": DangoTheme.SHIELD_CHIP, "tip": tip_fn.call("shield", shield) if tip_fn.is_valid() else ""})
 	for key in icons:
 		var v := int(status.get(key, 0))
 		if v > 0:

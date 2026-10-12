@@ -370,6 +370,10 @@ func set_intent(intent: Dictionary) -> void:
 		_target_label.text = ""
 		return
 	_intent_icon.texture = DangoTheme.face_type_icon(String(intent.get("type", "blank")))
+	_intent_panel.mouse_filter = Control.MOUSE_FILTER_STOP
+	_intent_panel.tooltip_text = "Next: %s %d%s\nEnemy intent is public: this is the number that lands, with enrage, attrition and big hits already included." % [
+		String(intent.get("label", "")), int(intent.get("num", 0)),
+		(" on " + String(intent.get("target", ""))) if String(intent.get("target", "")) != "" else ""]
 	_intent_num.text = str(int(intent.get("num", 0)))
 	_intent_action.text = "ACTING" if _acting else String(intent.get("label", ""))
 	var tgt := String(intent.get("target", ""))

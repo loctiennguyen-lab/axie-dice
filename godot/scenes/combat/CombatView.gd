@@ -296,7 +296,12 @@ var _max_rerolls: int = 0
 # HUD's relic row so existing tests that hover a relic chip keep working.
 var _hud_frame: CombatHud
 var _relic_strip: HBoxContainer
+var _actives_row: HBoxContainer
 var _tray_root: Control
+var _aid: AidPanel
+var _aid_offer_dismissed := false
+var _defeat: DefeatPanel
+var _recap: Array = []        # last hits taken, for the defeat recap [{turn, what, result, uid}]
 
 ## The relic active waiting for a target, or "". Parallel to `_selected_die_uid`: exactly one
 ## of the two may be armed, and _on_target_clicked() serves whichever is.
@@ -508,15 +513,26 @@ func _exit_tree() -> void:
 func _unhandled_key_input(event: InputEvent) -> void:
 	if event is InputEventKey and event.pressed and not (event as InputEventKey).echo:
 		var code := (event as InputEventKey).keycode
-		if code == KEY_SPACE and not _end_turn_button.disabled and not _is_animating \
-				and not _reroll_fx_active:
+		# README 3 keymap: E ends the turn, Z undoes, R rerolls, 1-5 pick a die. Space still ends
+		# the turn when idle (tutorial copy and tests rely on it; README wants Space = skip only,
+		# pending Liam's call on the [INF] bindings).
+		if (code == KEY_SPACE or code == KEY_E) and not _end_turn_button.disabled \
+				and not _is_animating and not _reroll_fx_active:
 			_on_end_turn_pressed()
+		elif code == KEY_Z and not _undo_button.disabled and not _is_animating:
+			_on_undo_pressed()
+		elif code >= KEY_1 and code <= KEY_5 and not _is_animating and not _reroll_fx_active:
+			_on_die_slot_pressed(code - KEY_1)
 		elif code == KEY_R:
 			# R rerolls, and skips the tray while it is up (the tray's own "TAP TO SKIP  R").
 			if _reroll_fx_active:
 				_reroll_fx.skip()
 			elif not _reroll_button.disabled:
 				_on_reroll_pressed()
+		elif code == KEY_A and _aid != null and _aid.enabled and not _aid.modal_open():
+			_aid.toggle_tray()
+		elif code == KEY_ESCAPE and _aid != null and _aid.handle_escape():
+			pass
 		elif code == KEY_ESCAPE:
 			# The only way out of a fight now that combat-v2.html's four-chip utility row has no
 			# Quit button — the confirm dialog itself is unchanged.
@@ -877,7 +893,14 @@ func _build_hud_r1() -> void:
 	_hud_frame.z_index = 8
 	_shell_root.add_child(_hud_frame)
 	_relic_strip = _hud_frame.relic_strip
+	_actives_row = _hud_frame.actives_row
 	_hud_frame.adopt_right_zone(_undo_button, _reroll_button, _end_turn_button)
+	_aid = AidPanel.new()
+	_aid.name = "AidPanel"
+	_aid.z_index = 9
+	_shell_root.add_child(_aid)
+	_aid.purchase_confirmed.connect(_on_aid_purchase)
+	_aid.offer_dismissed.connect(func(): _aid_offer_dismissed = true)
 	_hud_frame.menu_pressed.connect(_on_menu_pressed)
 	_hud_frame.active_pressed.connect(_on_active_pressed)
 	# Die slots leave the hidden deck bar for a root of their own, laid out by _layout_tray().
@@ -888,8 +911,15 @@ func _build_hud_r1() -> void:
 	_tray_root.z_index = 6
 	_shell_root.add_child(_tray_root)
 	for b in _die_slot_buttons:
+		var nm: String = (b as Button).name
 		(b as Button).get_parent().remove_child(b)
 		_tray_root.add_child(b)
+		(b as Button).owner = self           # remove_child() cleared the owner, which is what
+		(b as Button).unique_name_in_owner = true   # makes %DieSlot0 resolvable; restore both
+		(b as Button).name = nm
+	for b in [_undo_button, _reroll_button, _end_turn_button]:
+		b.owner = self
+		b.unique_name_in_owner = true
 	_shell_root.resized.connect(_layout_tray)
 	get_viewport().size_changed.connect(_layout_tray)
 
@@ -922,16 +952,11 @@ func _update_hud() -> void:
 
 	var executing := _combat.phase == CombatPhase.EXECUTE and not (_combat.won or _combat.lost)
 	var undo_n := (_combat.undo_stack as Array).size()
-	var has_unused := false
-	for u in _party_dice_units():
-		if u.hp > 0 and u.has_rolled() and not u.roll_used():
-			has_unused += 0   # (kept simple below)
-			has_unused = true
-			break
 	var unused := 0
 	for u in _party_dice_units():
 		if u.hp > 0 and u.has_rolled() and not u.roll_used():
 			unused += 1
+	var has_unused := unused > 0
 	var undo_sub := "nothing to undo"
 	if undo_n > 0:
 		undo_sub = "%d die%s used this turn" % [undo_n, "" if undo_n == 1 else "s"]
@@ -941,8 +966,47 @@ func _update_hud() -> void:
 		{"sub": "E %s %d dice unused" % [HudKit.dot(), unused],
 		 "warn": has_unused and executing,
 		 "enabled": not (_combat.won or _combat.lost) and _combat.phase != CombatPhase.END_TURN})
+	_update_aid(hs, executing)
 	_hud_frame.set_resolving(_combat.phase == CombatPhase.END_TURN and not (_combat.won or _combat.lost))
 	_layout_tray()
+
+
+## STUB Aid data (lane E's AidCatalog.offer() replaces `rows`; lane A the rule effects). Prices are
+## PA-1: Extra reroll 15, Delay boss clock 60, Swap pact 15, Continue 90 (180 in a boss fight).
+func _update_aid(hs: Dictionary, executing: bool) -> void:
+	if _aid == null:
+		return
+	var newcomer := bool(hs.get("newcomer", false))
+	var boss_fight := String(_setup.get("kind", "")) == "boss"
+	var asc := RunState.ascension
+	var cap := 4 if asc >= 9 else 6
+	var clock_on := bool((hs.get("clock", {}) as Dictionary).get("active", false))
+	var rows := [
+		{"id": "extra_reroll", "title": "Extra reroll", "price": 15, "icon": HudKit.icon("reroll"),
+			"cap_text": "fight 0/1 %s run 0/4" % HudKit.dot(), "enabled": executing, "reason": ""},
+		{"id": "delay_clock", "title": "Delay boss clock", "price": 60, "icon": HudKit.icon("boss-clock"),
+			"cap_text": "1 per boss", "enabled": executing and boss_fight and clock_on,
+			"reason": "Boss only"},
+		{"id": "swap_pact", "title": "Swap pact", "price": 15, "icon": HudKit.icon("pact"),
+			"cap_text": "1 per pact", "enabled": false, "reason": "Pact screen only"},
+		{"id": "continue", "title": "Continue", "price": 180 if boss_fight else 90,
+			"icon": HudKit.icon("aid"), "cap_text": "1 per run", "enabled": false,
+			"reason": "Defeat screen only"},
+	]
+	var offer := {}
+	if executing and _combat.rerolls <= 0 and not _aid_offer_dismissed:
+		offer = {"id": "extra_reroll", "title": "Extra reroll", "price": 15,
+			"what": "+1 reroll this turn.", "icon": HudKit.icon("reroll"),
+			"cap_text": "+1 reroll this turn",
+			"caps": ["This fight (A3+) 0 of 1", "Aid this run 0 of %d" % cap]}
+	for r in rows:
+		r["gems"] = int(MetaState.get("gems")) if "gems" in MetaState else 0
+	_aid.set_state({"enabled": not newcomer and not _tutorial, "used": 0, "cap": cap,
+		"rows": rows, "offer": offer})
+
+
+func _on_aid_purchase(aid_id: String) -> void:
+	_append_log("[aid] STUB purchase '%s' - not wired yet (lane A rules / lane E catalog)" % aid_id)
 
 
 ## "Act 1 . Floor 3 . 3-foe fight" (turn plate sub-line). STUB: the act split is not in the run
@@ -997,7 +1061,12 @@ func _layout_tray() -> void:
 	for b in _die_slot_buttons:
 		if (b as Button).visible:
 			n += 1
-	var total := n * 272.0 + maxf(n - 1, 0.0) * 16.0
+	var col_w := 272.0
+	var gap := 16.0
+	if n > 5:   # summoned tokens: narrow the columns so one row still fits (R1 has no 2nd row)
+		col_w = maxf(150.0, (vs.x - 32.0 - gap * (n - 1)) / n)
+		col_w = minf(col_w, 272.0)
+	var total := n * col_w + maxf(n - 1, 0.0) * gap
 	var x0 := (vs.x - total) * 0.5
 	var top := vs.y - 16.0 - 176.0
 	var i := 0
@@ -1005,9 +1074,19 @@ func _layout_tray() -> void:
 		var btn: Button = b
 		if not btn.visible:
 			continue
-		btn.position = Vector2(x0 + i * 288.0, top)
-		btn.size = Vector2(272, 176)
+		btn.position = Vector2(x0 + i * (col_w + gap), top)
+		btn.size = Vector2(col_w, 176)
 		i += 1
+
+
+## A solid button box (fill, radius, border, shelf) — used by the inspector's CLOSE button.
+func _rail_button_style(fill: Color, radius: int, border_w: int, shelf: float) -> StyleBoxFlat:
+	var sb := DangoTheme.solid_chip_style(fill, radius, border_w, Vector2(16, 0))
+	if shelf > 0.0:
+		sb.shadow_color = DangoTheme.SHELF_DEEP if shelf >= 4.0 else DangoTheme.SHELF
+		sb.shadow_size = 0
+		sb.shadow_offset = Vector2(roundf(shelf * 0.7), shelf)
+	return sb
 
 
 ## A transparent-fill outline-only box — the "ring" shape behind the die-card selection ring and
@@ -1099,20 +1178,38 @@ func _icon_tile(icon_tex: Texture2D, tile_size: float, icon_size: float,
 ## colours; the FACE and the leading have to be set here, because a .tscn cannot reach
 ## DangoTheme's preloaded fonts without a second ext_resource per weight.
 func _style_turn_banner() -> void:
-	_banner_eyebrow.add_theme_font_override("font", DangoTheme.FONT_DISPLAY)
-	_banner_eyebrow.add_theme_constant_override("line_spacing",
-		DangoTheme.leading_for(DangoTheme.FONT_DISPLAY, 16))
-	# combat-v2.html: `letter-spacing:.3em` on the eyebrow, `.04em` on the phase. Applied after
-	# each plain face override above, which it replaces with the tracked FontVariation.
-	DangoTheme.apply_tracking(_banner_eyebrow, 0.3, 16, 800)
+	# R1: a cream plate, 600 wide: title Baloo (ENEMY TURN) over one line saying what happens.
+	var plate := _banner_phase.get_parent().get_parent() as PanelContainer
+	if plate != null:
+		var sb := HudKit.box(DangoTheme.CREAM_100, 22, 4, DangoTheme.OUTLINE, Vector2(4, 6),
+			DangoTheme.SHELF, Vector2(40, 10))
+		plate.add_theme_stylebox_override("panel", sb)
+		plate.custom_minimum_size = Vector2(600, 0)
+	_banner_eyebrow.add_theme_font_override("font", DangoTheme.FONT_UI_BOLD)
+	_banner_eyebrow.add_theme_font_size_override("font_size", 15)
+	_banner_eyebrow.add_theme_color_override("font_color", DangoTheme.INK_2)
 	_banner_phase.add_theme_font_override("font", DangoTheme.FONT_DISPLAY)
-	_banner_phase.add_theme_constant_override("line_spacing",
-		DangoTheme.leading_for(DangoTheme.FONT_DISPLAY, 56))
-	DangoTheme.apply_tracking(_banner_phase, 0.04, 56, 800)
-	_banner_phase.add_theme_color_override("font_shadow_color", Color(0, 0, 0, 0.35))
-	_banner_phase.add_theme_constant_override("shadow_offset_x", 0)
-	_banner_phase.add_theme_constant_override("shadow_offset_y", 4)
-	_banner_phase.add_theme_constant_override("shadow_outline_size", 0)
+	_banner_phase.add_theme_font_size_override("font_size", 40)
+	_banner_phase.add_theme_color_override("font_color", DangoTheme.INK)
+	_banner_phase.get_parent().move_child(_banner_phase, 0)   # title above the sub-line
+
+
+## "Mossback Grub attacks Rex for 9" for the first enemy with a telegraphed hit (banner sub-line).
+func _first_enemy_action_line() -> String:
+	for e in _combat.enemies:
+		if e.hp <= 0 or e.intent.is_empty():
+			continue
+		var fi := int(e.intent.get("face_index", -1))
+		if fi < 0 or fi >= e.die.size():
+			continue
+		var t := String((e.die[fi] as Dictionary).get("type", ""))
+		var tgt := _unit_name(int(e.intent.get("target_uid", -1)))
+		if t == "dmg":
+			var hs: Dictionary = _hud if not _hud.is_empty() else {}
+			var nx: Dictionary = ((hs.get("enemy_next", {}) as Dictionary).get(e.uid, {}) as Dictionary)
+			return "%s attacks %s for %d" % [e.n, tgt, int(nx.get("dmg", _live_face_value(e, fi)))]
+		return "%s acts" % e.n
+	return "Enemies act"
 
 
 ## The mockup's `bannerIn` keyframe: 1.5s total, scale .9 -> 1 at 26%, hold, then out at 1.04.
@@ -1162,284 +1259,94 @@ func _connect_event_bus() -> void:
 	EventBus.unit_spawned.connect(_on_unit_spawned)
 
 
-## Die-slot rich content tree — v2 UI redesign, design_handoff_axie_dice_ui redlines "Die card" /
-## "Die card · selected" (spec-data.js `redline`, `tree`'s DieSlot0..4 child list). Replaces the
-## whole pre-v2 tree (portrait+name+READY/SPENT label, a mini HP bar, a plain top_row/type_row).
-##
-## WHAT V2 DROPS AND WHY. The HP row and the READY/SPENT/DEAD `state_label` this card used to
-## carry are gone: neither appears anywhere in the v2 mockup's die-card DOM (`Godot Combat v2.dc.
-## html`, the `dice` sc-for block) or in the redline text (Header/FaceRow/Caption/KeywordRow/
-## FaceTrack only) — HP is public on every unit's Nameplate now (UnitPortrait, one HP readout per
-## unit, not two), and "spent" reads as the whole card dropping to 0.55 opacity (see
-## _update_dice_tray()), not a text label. The mockup's own `renderVals()` computes a `state`/
-## `stateBg` pair for each die and never once references them in the DOM — dead code in the
-## mockup itself, and per this bundle's own rule ("where the spec and a mockup disagree, the
-## mockup is right") that is read as "no state pill", not as a spec the mockup forgot to wire up.
-##
-## Built once per button; every field's content/visibility is repainted per-rebuild by
-## _update_die_slot_header()/_update_die_slot_content()/_update_face_track(). Every child sets
-## MOUSE_FILTER_IGNORE so the Button underneath still receives the actual click.
+
+
+
+
+## R1 tray column content — see TrayColumn. Returns the dictionary `_update_dice_tray()` repaints.
 func _build_die_slot_content(btn: Button) -> Dictionary:
-	var root := VBoxContainer.new()
-	root.set_anchors_preset(Control.PRESET_FULL_RECT)
-	root.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	root.add_theme_constant_override("separation", 0)
-	btn.add_child(root)
+	return TrayColumn.build(btn)
 
-	# --- Header (redline "Die card": "Header 36px in the class colour with a 3px black
-	# underline: 26px round portrait + name at FONT_DISPLAY 18/800"). `header_bg`'s StyleBoxFlat
-	# is rebuilt per-unit by _update_die_slot_header() (the class colour is data, not fixed) —
-	# top corners only (11 = card radius 15 − border 4), so it nests flush inside the cream card's
-	# own rounded top edge instead of showing a cream sliver in the corners.
-	var header_bg := PanelContainer.new()
-	header_bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	# C7 — 39, not 36. combat-v2.html gives the header `height:36px` with no `box-sizing`, so
-	# the 36 is its CONTENT box and `border-bottom:3px solid #000` sits outside it: 39 rendered
-	# pixels. Godot draws the border INSIDE the Control's rect, so a PanelContainer set to 36
-	# renders a 33px header and eats 3px off the portrait and name row inside it.
-	header_bg.custom_minimum_size = Vector2(0, 39)
-	header_bg.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
-	var header_style := StyleBoxFlat.new()
-	header_style.border_width_bottom = 3
-	header_style.border_color = Color.BLACK
-	header_style.corner_radius_top_left = 11
-	header_style.corner_radius_top_right = 11
-	header_style.content_margin_left = 9.0
-	header_style.content_margin_right = 9.0
-	header_bg.add_theme_stylebox_override("panel", header_style)
-	root.add_child(header_bg)
 
-	var header_row := HBoxContainer.new()
-	header_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	header_row.add_theme_constant_override("separation", 8)
-	header_bg.add_child(header_row)
+## One die slot's looks (R1: the column paints its own panel; only the base behaviour is set here).
+func _style_die_slot(btn: Button) -> void:
+	btn.text = ""
+	btn.focus_mode = Control.FOCUS_ALL
 
-	var portrait_frame := PanelContainer.new()
-	portrait_frame.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	portrait_frame.custom_minimum_size = Vector2(26, 26)
-	portrait_frame.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	portrait_frame.add_theme_stylebox_override("panel",
-		DangoTheme.solid_chip_style(DangoTheme.CREAM_RAISED, 13, 3, Vector2.ZERO))
-	header_row.add_child(portrait_frame)
-	var portrait_center := CenterContainer.new()
-	portrait_frame.add_child(portrait_center)
-	var portrait_rect := TextureRect.new()
-	portrait_rect.custom_minimum_size = Vector2(20, 20)
-	portrait_rect.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	portrait_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	portrait_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	portrait_center.add_child(portrait_rect)
 
-	var name_label := DangoTheme.display_label("", 18, DangoTheme.INK, 800, 0.01)
-	name_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
-	name_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	name_label.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	name_label.clip_text = true
-	name_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS   # property is
-		# `text_overrun_behavior` on this engine build, not `text_overflow_behavior` — confirmed
-		# against ResultView.gd/PassView.gd/RunMapController.gd, which already use it correctly.
-	header_row.add_child(name_label)
+## The tooltip on a tray column: the face's name and every keyword's rule, as before.
+func _tray_tooltip(u: Unit) -> String:
+	if u.hp <= 0:
+		return "%s is down. This die cannot be used." % u.n
+	if not u.has_rolled():
+		return "%s has not rolled this turn." % u.n
+	var fi := u.roll_face_index()
+	var f: Dictionary = u.die[fi]
+	var face_type := String(f.get("type", ""))
+	var part := String(f.get("part", ""))
+	var part_name := String(_PART_LABEL.get(part, ""))
+	var cap := ("%s %s %s" % [part_name, HudKit.dot(), DangoTheme.face_type_label(face_type)]) \
+		if part_name != "" else DangoTheme.face_type_label(face_type)
+	var value := _live_face_value(u, fi)
+	var lines := PackedStringArray(["%s  %s  %s" % [u.n, HudKit.dot(), cap]])
+	if value > 0:
+		lines.append("Value %d" % value)
+	for k in (f.get("keywords", []) as Array):
+		var kw_key := String(k).split(":")[0]
+		var kw_tip: Dictionary = _effect_tip(kw_key)
+		var kw_head := String(_KEYWORD_LABEL.get(kw_key, kw_key.to_upper()))
+		lines.append(kw_head if kw_tip.is_empty() else "%s: %s" % [kw_head, String(kw_tip["rule"])])
+	return "\n".join(lines)
 
-	# --- face_area: FaceRow + KeywordRow + FaceTrack as one bundle, toggled as a unit against
-	# `plain_label` below by _show_die_slot_plain()/_update_die_slot_content() — see that
-	# function's own comment for which states show which.
-	var face_area := VBoxContainer.new()
-	face_area.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	face_area.add_theme_constant_override("separation", 0)
-	face_area.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	root.add_child(face_area)
 
-	# FaceRow (redline: "Face row 62: 41px part-icon tile (icon 28) · value at 38/800 in ink ·
-	# 26px tile in the face-type colour carrying that type's real glyph. Caption PART · TYPE at
-	# 9px/700, nowrap").
-	var face_margin := MarginContainer.new()
-	face_margin.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	face_margin.custom_minimum_size = Vector2(0, 62)
-	for side_pair in [["left", 10.0], ["right", 10.0], ["top", 9.0], ["bottom", 0.0]]:
-		face_margin.add_theme_constant_override("margin_" + String(side_pair[0]), side_pair[1])
-	face_area.add_child(face_margin)
+func _update_dice_tray() -> void:
+	var units := _party_dice_units()
+	_ensure_die_slots(units.size())
+	for i in _die_slot_buttons.size():
+		var btn: Button = _die_slot_buttons[i]
+		var content: Dictionary = _die_slot_content[i]
+		if i >= units.size():
+			btn.visible = false
+			continue
+		var u: Unit = units[i]
+		btn.visible = true
+		var usable := u.hp > 0 and u.has_rolled() and not u.roll_used()
+		var used_this_turn := u.hp > 0 and u.has_rolled() and u.roll_used()
+		var is_sel := (u.uid == _selected_die_uid)
+		# A column stays clickable while a die is selected, so allies can be TARGETED (heal /
+		# shield): party HP lives only in the tray, so the column is the ally's click target.
+		var as_target := _selected_die_uid != -1 and not is_sel and u.hp > 0
+		btn.disabled = not (usable or as_target)
+		btn.button_pressed = is_sel
+		var faces: Array = []
+		for fi in u.die.size():
+			faces.append({"type": String((u.die[fi] as Dictionary).get("type", "")),
+				"value": _live_face_value(u, fi)})
+		TrayColumn.update(content, {
+			"name": "%s%s" % [u.n, _TIER_SUFFIX.get(u.tier, "")],
+			"class_icon": _class_portrait(u.cls), "hp": u.hp, "max_hp": u.max_hp,
+			"shield": u.shield, "status": u.status, "incoming": _incoming_damage_for(u),
+			"icons": UnitPortrait._STATUS_ICON, "status_tip": Callable(UnitPortrait, "_effect_tooltip"),
+			"faces": faces, "rolled": u.roll_face_index() if u.has_rolled() else -1,
+			"alive": u.hp > 0, "spent": used_this_turn, "selected": is_sel,
+			"legal_target": as_target and _selected_ally_target_ok(u),
+			"tip": _tray_tooltip(u)})
+		TrayColumn.set_lifted(self, content, is_sel, disable_juice_for_tests)
+		_maybe_play_roll_juice(u, btn)
+		_maybe_play_die_used_flip(u, btn)
 
-	var face_row := HBoxContainer.new()
-	face_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	face_row.add_theme_constant_override("separation", 9)
-	face_margin.add_child(face_row)
 
-	var part_tile := PanelContainer.new()
-	part_tile.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	part_tile.custom_minimum_size = Vector2(41, 41)
-	part_tile.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	part_tile.add_theme_stylebox_override("panel",
-		DangoTheme.solid_chip_style(DangoTheme.CREAM_RAISED, 11, 3, Vector2.ZERO))
-	face_row.add_child(part_tile)
-	var part_center := CenterContainer.new()
-	part_tile.add_child(part_center)
-	var part_icon_rect := TextureRect.new()
-	part_icon_rect.custom_minimum_size = Vector2(28, 28)
-	part_icon_rect.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	part_icon_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	part_icon_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	part_center.add_child(part_icon_rect)
-
-	var value_col := VBoxContainer.new()
-	value_col.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	value_col.add_theme_constant_override("separation", 3)
-	value_col.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	value_col.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	face_row.add_child(value_col)
-
-	var value_row := HBoxContainer.new()
-	value_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	value_row.add_theme_constant_override("separation", 6)
-	value_col.add_child(value_row)
-
-	# CB-23's `line-height:.9` on a 38px numeral. Baloo 2 reports a 61px font box at that size,
-	# so the bare Label forced the 62px face row to 88 and shoved the six-face track through the
-	# bottom of the card — `line_box()` puts it back on the mockup's 34px line.
-	var value_label := DangoTheme.display_label("", 38, DangoTheme.INK, 800)
-	value_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	value_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	value_row.add_child(DangoTheme.line_box(value_label, 38, 0.9))
-
-	# CB-23: 26x26, radius 8, 3px black, filled with the type colour, holding the 16px type icon.
-	# BUG FIXED 2026-09-20 (FIX-PASS-03 G-01): this PanelContainer had NO stylebox override, so
-	# the per-roll repaint below (`get_theme_stylebox("panel").bg_color = col`) was reaching past
-	# it and mutating the SHARED theme StyleBox in place — every themed PanelContainer in the
-	# game inherited the last-rolled die face's colour. It needs its own box to repaint.
-	var type_tile := PanelContainer.new()
-	type_tile.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	type_tile.custom_minimum_size = Vector2(26, 26)
-	type_tile.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	type_tile.add_theme_stylebox_override("panel",
-		DangoTheme.solid_chip_style(DangoTheme.die_type_color("blank"), 8, 3, Vector2.ZERO))
-	value_row.add_child(type_tile)
-	var type_center := CenterContainer.new()
-	type_tile.add_child(type_center)
-	var type_icon_rect := TextureRect.new()
-	type_icon_rect.custom_minimum_size = Vector2(16, 16)
-	type_icon_rect.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	type_icon_rect.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	type_icon_rect.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	type_center.add_child(type_icon_rect)
-
-	# Caption is the redline's one deliberate exception to the 12px display-type floor (9px,
-	# "sits on cream at 5.8:1 and was taken down on purpose so it can never wrap" — typeScale).
-	var caption_label := DangoTheme.display_label("", 9, DangoTheme.INK_ON_CREAM_MUTED, 700, 0.06)
-	caption_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	caption_label.clip_text = true
-	caption_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	value_col.add_child(DangoTheme.line_box(caption_label, 9, 1.2))
-
-	# KeywordRow (redline: "Keyword row at a FIXED 24px"). Fixed height so a 0/1/2-keyword face
-	# never reflows the rows below it. `kw_row`'s children are rebuilt per repaint (see
-	# _update_die_slot_content()), the row Control itself is not.
-	var kw_margin := MarginContainer.new()
-	kw_margin.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	kw_margin.custom_minimum_size = Vector2(0, 24)
-	for side_pair2 in [["left", 10.0], ["right", 10.0], ["top", 0.0], ["bottom", 0.0]]:
-		kw_margin.add_theme_constant_override("margin_" + String(side_pair2[0]), side_pair2[1])
-	face_area.add_child(kw_margin)
-	var kw_row := HBoxContainer.new()
-	kw_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	kw_row.add_theme_constant_override("separation", 4)
-	kw_margin.add_child(kw_row)
-
-	# FaceTrack (redline: "Face track: six 10px bars, the rolled one in its type colour, the rest
-	# CREAM_TRACK"). FLAGGED: the mockup's own `d.track` entries carry a colour only, no icon —
-	# dropped the per-face icon the pre-v2 track cells drew, to match.
-	var track_margin := MarginContainer.new()
-	track_margin.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	track_margin.custom_minimum_size = Vector2(0, 14)
-	for side_pair3 in [["left", 10.0], ["right", 10.0], ["top", 4.0], ["bottom", 0.0]]:
-		track_margin.add_theme_constant_override("margin_" + String(side_pair3[0]), side_pair3[1])
-	face_area.add_child(track_margin)
-	var face_track_row := HBoxContainer.new()
-	face_track_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	face_track_row.add_theme_constant_override("separation", 4)
-	track_margin.add_child(face_track_row)
-
-	var face_panels: Array = []
-	for _i in 6:
-		var cell := PanelContainer.new()
-		cell.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		cell.custom_minimum_size = Vector2(0, 10)
-		cell.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		face_track_row.add_child(cell)
-		face_panels.append(cell)
-
-	# Fallback plain caption for the states with no rollable face to show at all (dead / not
-	# rolled yet — FLAGGED: neither state exists in the mockup's static fixture, which always
-	# shows a rolled face; kept as the pre-v2 behaviour for these two states since nothing in the
-	# handoff supersedes it). NOT used for "spent" any more — see _update_dice_tray().
-	var plain_label := Label.new()
-	plain_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	plain_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	plain_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	plain_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	plain_label.add_theme_color_override("font_color", DangoTheme.INK_ON_CREAM_MUTED)
-	plain_label.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	plain_label.visible = false
-	root.add_child(plain_label)
-
-	# Reroll-toss overlay (see _start_reroll_toss()) — a separate full-rect child added AFTER
-	# `root` so it draws on top and fully occludes whatever face content is currently underneath.
-	var reroll_overlay := PanelContainer.new()
-	reroll_overlay.name = "RerollOverlay"
-	reroll_overlay.set_anchors_preset(Control.PRESET_FULL_RECT)
-	reroll_overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	reroll_overlay.visible = false
-	reroll_overlay.add_theme_stylebox_override("panel",
-		DangoTheme.cream_card_style(Color.TRANSPARENT, 15, 4, 0.0))
-	var reroll_icon := TextureRect.new()
-	reroll_icon.texture = _ICON_REROLL
-	reroll_icon.custom_minimum_size = Vector2(26, 26)
-	reroll_icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	reroll_icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	reroll_icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	reroll_icon.set_anchors_preset(Control.PRESET_CENTER)
-	reroll_overlay.add_child(reroll_icon)
-	btn.add_child(reroll_overlay)
-
-	# Selection ring (redline "Die card · selected": "ring inset -6, 4px PRIMARY + 0 0 0 3px
-	# #000"). Two concentric border-only rects rather than one box+shadow — see
-	# _ring_style()'s own comment for why (a local helper, not a DangoTheme addition — see that
-	# function's header comment for why this pass keeps its hands off DangoTheme.gd). Added after
-	# `root`/`reroll_overlay` so it draws on top and is free to extend past the Button's own rect
-	# (Godot does not clip a Control's children to its own size unless `clip_contents` is set,
-	# which this Button isn't).
-	var sel_ring_outer := Panel.new()
-	sel_ring_outer.name = "SelRingOuter"
-	sel_ring_outer.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	sel_ring_outer.set_anchors_preset(Control.PRESET_FULL_RECT)
-	sel_ring_outer.offset_left = -9.0
-	sel_ring_outer.offset_top = -9.0
-	sel_ring_outer.offset_right = 9.0
-	sel_ring_outer.offset_bottom = 9.0
-	sel_ring_outer.add_theme_stylebox_override("panel", _ring_style(Color.BLACK, 3, 24))
-	sel_ring_outer.visible = false
-	btn.add_child(sel_ring_outer)
-
-	var sel_ring_inner := Panel.new()
-	sel_ring_inner.name = "SelRingInner"
-	sel_ring_inner.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	sel_ring_inner.set_anchors_preset(Control.PRESET_FULL_RECT)
-	sel_ring_inner.offset_left = -6.0
-	sel_ring_inner.offset_top = -6.0
-	sel_ring_inner.offset_right = 6.0
-	sel_ring_inner.offset_bottom = 6.0
-	sel_ring_inner.add_theme_stylebox_override("panel", _ring_style(DangoTheme.PRIMARY, 4, 21))
-	sel_ring_inner.visible = false
-	btn.add_child(sel_ring_inner)
-
-	return {"button": btn,
-		"root": root, "plain_label": plain_label, "name_label": name_label,
-		"header_bg": header_bg, "portrait_rect": portrait_rect,
-		"value_label": value_label, "part_icon_rect": part_icon_rect,
-		"type_tile": type_tile, "type_icon_rect": type_icon_rect, "caption_label": caption_label,
-		"kw_row": kw_row, "reroll_overlay": reroll_overlay, "face_area": face_area,
-		"face_panels": face_panels, "sel_ring_outer": sel_ring_outer,
-		"sel_ring_inner": sel_ring_inner}
+## True when the selected die's face may be used on `target` (an ally column). Heal / shield
+## faces are the ally-targeting ones; the engine remains the authority (use_die() refuses).
+func _selected_ally_target_ok(target: Unit) -> bool:
+	var src := _combat.by_uid(_selected_die_uid) if _combat != null else null
+	if src == null or not src.has_rolled():
+		return false
+	var fi := src.roll_face_index()
+	if fi < 0 or fi >= src.die.size():
+		return false
+	var t := String((src.die[fi] as Dictionary).get("type", ""))
+	return t == "heal" or t == "shield" or t == "buff" or t == "mana"
 
 
 ## One hover line's {name, rule} for anything the player can see the NAME of but not the RULE:
@@ -2155,6 +2062,11 @@ func _on_die_slot_pressed(slot_index: int) -> void:
 	if slot_index >= units.size():
 		return
 	var u: Unit = units[slot_index]
+	# With a die already selected, a click on ANOTHER column targets that Axie (heal / shield).
+	if _selected_die_uid != -1 and u.uid != _selected_die_uid and u.hp > 0 \
+			and _selected_ally_target_ok(u):
+		_on_target_clicked(u.uid)
+		return
 	if u.hp <= 0 or not u.has_rolled() or u.roll_used():
 		return
 	_selected_active_id = ""   # a die and a relic active cannot both be waiting on one click
@@ -2593,6 +2505,7 @@ func _on_hit_landed(src_uid: int, uid: int, value: int, crit: bool) -> void:
 	# The log line is NOT deferred. It is a transcript, its order is the engine's, and
 	# interleaving it with animation timing is how a log stops matching the run it describes.
 	_append_log("[hit] %s -> %s : %d%s" % [_unit_name(src_uid), _unit_name(uid), value, " CRIT" if crit else ""])
+	_record_recap(src_uid, uid, value)
 	_after_impact(func():
 		if is_instance_valid(_stage3d):
 			_stage3d.play_hit_reaction(uid)   # `uid` is whoever just TOOK this hit — see
@@ -2665,7 +2578,7 @@ func _on_turn_phase_changed(old_phase: int, new_phase: int) -> void:
 			and not (_combat.won or _combat.lost):
 		var graph := RunMapGraph.from_data(RunState.map_graph)
 		var total := maxi(graph.rows.size(), 1)
-		_show_turn_banner("WAVE %d" % clampi(RunState.power_level + 1, 1, total), "ENEMY TURN")
+		_show_turn_banner(_first_enemy_action_line(), "ENEMY TURN")
 	_rebuild_all()
 
 func _on_combat_finished(won: bool) -> void:
@@ -2935,225 +2848,28 @@ func _update_enemy_plate(p: UnitPortrait, u: Unit) -> void:
 			int(u.custom_state.get("phase", 1)))))
 
 
-func _update_dice_tray() -> void:
-	var units := _party_dice_units()
-	# Grow the tray BEFORE laying it out: a summon adds a party member mid-combat, and the
-	# five cards Combat.tscn ships cannot show a sixth.
-	_ensure_die_slots(units.size())
-	for i in _die_slot_buttons.size():
-		var btn: Button = _die_slot_buttons[i]
-		var content: Dictionary = _die_slot_content[i]
-		if i >= units.size():
-			btn.visible = false
-			(content.root as VBoxContainer).visible = false
-			continue
-		var u: Unit = units[i]
-		btn.visible = true
-		(content.root as VBoxContainer).visible = true
-
-		# Header (portrait badge/name/READY-SPENT-DEAD) and the six-face track are always
-		# repainted, in every state — task defect 1 wants name/HP/die-composition visible even
-		# for a dead/not-yet-rolled/spent card, not just for a usable one.
-		_update_die_slot_header(content, u)
-		_update_face_track(content, u)
-
-		var usable := u.hp > 0 and u.has_rolled() and not u.roll_used()
-		var used_this_turn := u.hp > 0 and u.has_rolled() and u.roll_used()
-		btn.disabled = not usable
-		var is_sel := (u.uid == _selected_die_uid)
-		btn.button_pressed = is_sel
-
-		# v2 "Die card · selected" redline: SPENT drops the card to opacity .55 and ignores
-		# hover; a dead unit's card (no `roll_used` opinion of its own since it can never be
-		# selected either way) gets the same treatment by extension — FLAGGED: the mockup has no
-		# "dead die" state to copy, this reuses the SPENT look rather than inventing a third one.
-		# `used_this_turn`/`u.hp<=0` STILL shows the card's real content (see below) — the pre-v2
-		# card swapped to a blank "(đã dùng)" placeholder here, which the mockup's own SPENT
-		# example (Pomodoro) contradicts: it renders the last-rolled face, just dimmed.
-		(content.root as VBoxContainer).modulate = (
-			Color(1, 1, 1, 0.55) if (used_this_turn or u.hp <= 0) else Color(1, 1, 1, 1))
-
-		_update_die_slot_content(content, u)
-		btn.add_theme_stylebox_override("normal", _die_slot_base_style)
-		btn.add_theme_stylebox_override("hover", _die_slot_base_style)
-		btn.add_theme_stylebox_override("disabled", _die_slot_base_style)
-		# Selected slots have button_pressed=true (toggle_mode) — must override "pressed"/
-		# "focus" too, or Godot falls back to the theme default for those states (see the
-		# same note in _connect_ui_buttons()).
-		btn.add_theme_stylebox_override("pressed", _die_slot_base_style)
-		btn.add_theme_stylebox_override("focus", _die_slot_base_style)
-
-		var show_ring := is_sel   # SPENT/dead never reach here selected — _selected_die_uid is
-			# cleared on use elsewhere — but guard explicitly rather than trust call order.
-		(content.sel_ring_outer as Panel).visible = show_ring
-		(content.sel_ring_inner as Panel).visible = show_ring
-
-		_update_die_slot_lift(btn, i, is_sel)
-		_maybe_play_roll_juice(u, btn)
-		_maybe_play_die_used_flip(u, btn)
 
 
-## Shared "nothing to show but a caption" state (dead / not-rolled-yet — NOT spent any more, see
-## _update_dice_tray()'s comment) — hides `face_area` (FaceRow+KeywordRow+FaceTrack as one unit)
-## and shows only `plain_label`. Does NOT touch header_bg/name_label — those stay visible in
-## every state, see _update_die_slot_header(), called unconditionally before this runs.
-func _show_die_slot_plain(content: Dictionary, text: String) -> void:
-	(content.plain_label as Label).text = text
-	(content.plain_label as Label).visible = true
-	(content.face_area as VBoxContainer).visible = false
 
 
-## Header repaint (redline "Die card": "26px round portrait + name at FONT_DISPLAY 18/800"). No
-## READY/SPENT/DEAD word any more — see _build_die_slot_content()'s class comment for why v2
-## drops it. Called every rebuild for every slot, regardless of roll state, so name/portrait/class
-## colour stay visible even while dead/not-yet-rolled/spent.
-func _update_die_slot_header(content: Dictionary, u: Unit) -> void:
-	(content.portrait_rect as TextureRect).texture = _class_portrait(u.cls)
-	var name_label: Label = content.name_label
-	# Tier as a roman numeral rather than as a different portrait. The rig has no per-tier
-	# appearance at all (CombatStage3D._build_parts() uses one fixed part variant and one colour
-	# per class), so rendering "6 classes x 3 tiers" would produce twelve duplicate images
-	# pretending to be distinct. T1 shows nothing: every Axie starts there, so the marker only
-	# earns its space once it means something.
-	var base := "%s%s" % [u.n, _TIER_SUFFIX.get(u.tier, "")]
-	name_label.text = "%s ★" % base if u.roll_crit_now() else base
-
-	var header_bg: PanelContainer = content.header_bg
-	var style := header_bg.get_theme_stylebox("panel") as StyleBoxFlat
-	var cls_color := DangoTheme.class_color(u.cls)
-	style.bg_color = cls_color
-	# FIX-PASS-01 §2.1 C10 / L6 (2026-09-20): header ink now tracks the class fill via
-	# ink_on(class_color(cls)) instead of the fixed DangoTheme.INK constant it built with — INK
-	# happens to already be correct for all six current CLASS_COLORS (verified: every one is
-	# >0.42 luma), so this was not visibly wrong today, but a future dark class colour would have
-	# silently reintroduced white/near-white-on-dark with no call site left to fix.
-	name_label.add_theme_color_override("font_color", DangoTheme.ink_on(cls_color))
 
 
-## Six-face track repaint — `Unit.die` is the fixed 6-face composition (set once at spawn, never
-## reshuffled mid-combat, unlike `rolled` which only tracks this turn's single active face — see
-## unit.gd's own field comments). v2 "Die card" redline: "six 10px bars, the rolled one in its
-## type colour, the rest CREAM_TRACK" — a flat colour fill per bar, no icon (see
-## _build_die_slot_content()'s FLAGGED comment on why the pre-v2 per-cell icon is dropped).
-func _update_face_track(content: Dictionary, u: Unit) -> void:
-	var panels: Array = content.face_panels
-	var current_fi := u.roll_face_index() if u.has_rolled() else -1
-	for i in panels.size():
-		var panel: PanelContainer = panels[i]
-		if i >= u.die.size():
-			panel.visible = false
-			continue
-		panel.visible = true
-		var f: Dictionary = u.die[i]
-		var col := (DangoTheme.die_type_color(String(f.get("type", "")))
-			if i == current_fi else DangoTheme.CREAM_TRACK)
-		panel.add_theme_stylebox_override("panel", DangoTheme.solid_chip_style(col, 5, 2, Vector2.ZERO))
 
 
-## Rich per-face content (redline "Die card": part-icon tile, value, face-type tile+glyph,
-## PART · TYPE caption, keyword pills, six-bar track). Mirrors src/client.html's paintDieFace()/
-## FT_IC/FT_COLOR/DIE_LABEL/kwText() tables — see the class-level consts' header comments. Called
-## for every non-empty slot regardless of roll state; dead/not-rolled fall back to
-## _show_die_slot_plain() (nothing has_rolled() to display), everything else (including SPENT —
-## see _update_dice_tray()) shows the real face, dimmed by the caller's `modulate` instead.
-func _update_die_slot_content(content: Dictionary, u: Unit) -> void:
-	var plain_label: Label = content.plain_label
-	var face_area: VBoxContainer = content.face_area
-	var value_label: Label = content.value_label
-	var part_icon_rect: TextureRect = content.part_icon_rect
-	var type_tile: PanelContainer = content.type_tile
-	var type_icon_rect: TextureRect = content.type_icon_rect
-	var caption_label: Label = content.caption_label
-	var kw_row: HBoxContainer = content.kw_row
-
-	if u.hp <= 0:
-		_show_die_slot_plain(content, "(down)")
-		(content.button as Button).tooltip_text = "%s is down. This die cannot be used." % u.n
-		return
-	if not u.has_rolled():
-		_show_die_slot_plain(content, "(not rolled)")
-		(content.button as Button).tooltip_text = "%s has not rolled this turn." % u.n
-		return
-
-	plain_label.visible = false
-	face_area.visible = true
-	for c in kw_row.get_children():
-		c.queue_free()
-
-	var fi := u.roll_face_index()
-	var f: Dictionary = u.die[fi]
-	var face_type := String(f.get("type", ""))
-	var value := _live_face_value(u, fi)   # live, not printed — see _live_face_value()
-	var col := DangoTheme.die_type_color(face_type)
-
-	type_icon_rect.texture = _face_icon_for(face_type)
-	(type_tile.get_theme_stylebox("panel") as StyleBoxFlat).bg_color = col
-
-	# value<=0 faces (buff/debuff always roll value=0 in ContentDB) hide the number — a "0" badge
-	# would misleadingly read as "does nothing" — same guard the old corner-badge logic used.
-	value_label.visible = value > 0
-	if value_label.visible:
-		value_label.text = str(value)
-
-	var part := String(f.get("part", ""))
-	var part_icon := _part_icon_for(part, u.cls)   # body-part icon (web/part/<slot>_<class>.svg)
-	part_icon_rect.texture = part_icon
-	part_icon_rect.visible = part_icon != null
-	# A face whose part is not one of the six body slots shows the TYPE alone. "m" is the
-	# placeholder the engine gives every enemy face and every summoned token's face, and with
-	# tokens now owning a die card it reached the screen as the caption "M · ATTACK" — an
-	# internal key leaking into the UI.
-	var part_name := String(_PART_LABEL.get(part, ""))
-	caption_label.text = ("%s · %s" % [part_name, DangoTheme.face_type_label(face_type)]) \
-		if part_name != "" else DangoTheme.face_type_label(face_type)
-
-	# TOOLTIP, not per-chip hovers. The keyword pills are 20px tall and live INSIDE the die
-	# Button; giving each one MOUSE_FILTER_STOP so it could carry its own tooltip would punch a
-	# hole in the card's click area, which is the exact defect this pass is here to remove. The
-	# whole card carries one tooltip instead, and it explains every keyword on the face.
-	var tip_lines := PackedStringArray(["%s  ·  %s" % [u.n, caption_label.text]])
-	if value > 0:
-		tip_lines.append("Value %d" % value)
-	for k in (f.get("keywords", []) as Array):
-		var kw_key := String(k).split(":")[0]
-		var kw_tip: Dictionary = _effect_tip(kw_key)
-		var kw_head := String(_KEYWORD_LABEL.get(kw_key, kw_key.to_upper()))
-		tip_lines.append(kw_head if kw_tip.is_empty()
-			else "%s: %s" % [kw_head, String(kw_tip["rule"])])
-	(content.button as Button).tooltip_text = "\n".join(tip_lines)
-
-	for k in (f.get("keywords", []) as Array):
-		var kw_name := String(k).split(":")[0]
-		var chip := PanelContainer.new()
-		chip.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		chip.custom_minimum_size = Vector2(0, 20)
-		chip.add_theme_stylebox_override("panel",
-			DangoTheme.solid_chip_style(col, 999, 3, Vector2(7, 0)))
-		var lbl := DangoTheme.display_label(
-			String(_KEYWORD_LABEL.get(kw_name, kw_name.to_upper())),
-			12, DangoTheme.ink_on(col), 800, 0.03)
-		lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		chip.add_child(lbl)
-		kw_row.add_child(chip)
 
 
-## Lift (redline "Die card · selected": translateY(-16px)) — a `position` tween on the Button
-## itself. Safe against GridContainer's own layout pass because this only runs from
-## _update_dice_tray() (part of the sanctioned full-rebuild path), the same pattern
-## _play_die_roll_bounce() below already uses for scale/rotation on these same buttons without a
-## Container fighting it back. TRANS_BACK/EASE_OUT approximates the redline's
-## cubic-bezier(.2,.9,.3,1.3) overshoot — Godot's Tween has no arbitrary-bezier easing.
-func _update_die_slot_lift(btn: Button, i: int, lifted: bool) -> void:
-	if _die_slot_lifted[i] == lifted:
-		return
-	_die_slot_lifted[i] = lifted
-	var target_y := -_DIE_LIFT_PX if lifted else 0.0
-	if disable_juice_for_tests or not btn.is_inside_tree():
-		btn.position.y = target_y
-		return
-	var tw := create_tween()
-	tw.tween_property(btn, "position:y", target_y, _DIE_LIFT_DURATION) \
-		.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT if lifted else Tween.EASE_IN)
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 ## Flip-on-use juice (review P1 #6). Detects the unused->used transition here (inside
@@ -3250,28 +2966,8 @@ func _begin_hit_animation() -> Callable:
 	return release
 
 
-## One die slot's input wiring. Factored out of _ready() so _ensure_die_slots() can grow the
-## tray at runtime and get a slot that behaves identically to the five in Combat.tscn.
-## One die slot's looks. Factored out so _ensure_die_slots() can grow the tray for summoned
-## tokens and get a card that is identical to the five Combat.tscn ships.
-func _style_die_slot(btn: Button) -> void:
-	btn.add_theme_stylebox_override("normal", _die_slot_base_style)
-	btn.add_theme_stylebox_override("hover", _die_slot_base_style)
-	btn.add_theme_stylebox_override("disabled", _die_slot_disabled_style)
-	# `toggle_mode=true` (Combat.tscn) means a selected slot's `button_pressed` is true, so
-	# Godot's Button also consults the "pressed"/"focus" theme slots, not just "normal" —
-	# without these overrides too, a selected die silently fell back to the DEFAULT theme's
-	# pressed look (square corners, no border) instead of _die_slot_selected_style.
-	btn.add_theme_stylebox_override("pressed", _die_slot_base_style)
-	btn.add_theme_stylebox_override("focus", _die_slot_base_style)
-	# G3. The header band already carries matching 11px TOP corners (card radius 15 minus the
-	# 4px border), which fixes the two corners it touches; the cream body under it still
-	# squared off the bottom two. Clipping the frame covers all four, and keeps holding if D1
-	# changes either radius.
-	DangoTheme.clip_to_frame(btn)
-	btn.text = ""   # every state renders through _die_slot_content children instead — see
-		# _build_die_slot_content()/_update_die_slot_content(); "used"/"dead"/"not rolled"
-		# states still set a plain Label inside that same content tree, not btn.text.
+
+
 
 
 func _wire_die_slot(idx: int) -> void:
@@ -3300,31 +2996,21 @@ const _DIE_SLOT_H := 158.0
 
 func _ensure_die_slots(count: int) -> void:
 	var want := maxi(count, 5)         # never shrink below the roster's five
-	var grid := _die_slot_buttons[0].get_parent() as GridContainer
-	if grid == null:
+	if _tray_root == null:
 		return
 	while _die_slot_buttons.size() < want:
 		var btn := Button.new()
 		btn.name = "DieSlot%d" % _die_slot_buttons.size()
 		btn.toggle_mode = true
 		btn.text = ""
-		btn.custom_minimum_size = Vector2(_DIE_SLOT_W_MAX, _DIE_SLOT_H)
-		grid.add_child(btn)
+		btn.custom_minimum_size = Vector2(272, 176)
+		_tray_root.add_child(btn)
 		_die_slot_buttons.append(btn)
 		_style_die_slot(btn)
 		_die_slot_content.append(_build_die_slot_content(btn))
 		_die_slot_lifted.append(false)
 		_wire_die_slot(_die_slot_buttons.size() - 1)
-
-	# Width and column count follow the live tray size, so five cards look exactly as they
-	# always did and only a summon narrows them.
-	var w: float = _DIE_SLOT_W_MAX if want <= 5 else maxf(_DIE_SLOT_W_MIN,
-		_DIE_SLOT_W_MAX - float(want - 5) * 13.0)
-	grid.columns = want
-	for b in _die_slot_buttons:
-		# Width only. Visibility is _update_dice_tray()'s to set, per slot, from whether a
-		# unit actually occupies it — setting it here too would fight that on the same frame.
-		(b as Button).custom_minimum_size = Vector2(w, _DIE_SLOT_H)
+	_layout_tray()
 
 
 ## Everyone in the party who gets a die card, in tray order.
@@ -3447,6 +3133,11 @@ func _finish(won: bool) -> void:
 			await _play_victory_march()
 		tutorial_combat_finished.emit(won)
 		return
+	if not won and not disable_juice_for_tests and _hud_frame != null:
+		# R1: the defeat screen decides what happens next. The run result is applied only when
+		# the player picks End run, so a Continue (lane A) can still resume the same fight.
+		_show_defeat_panel()
+		return
 	RunState.apply_combat_result(_combat.get_result())   # unchanged position/ordering relative
 		# to the pre-animation-pass code — only the win branch below now awaits the march before
 		# its own overlay/scene-change lines; this call itself is not delayed.
@@ -3456,6 +3147,8 @@ func _finish(won: bool) -> void:
 		# "BẠN THẮNG" overlay was never actually visible for a frame in practice). See
 		# _play_victory_march()/CombatStage3D.play_victory_march().
 		await _play_victory_march()
+		if not disable_juice_for_tests and _hud_frame != null and RunState.phase != RunState.RunPhase.WON:
+			await _show_victory_banner()
 		_result_overlay.visible = true
 		# apply_combat_result() (above) already decided WON vs. a normal win-with-rewards:
 		# defeating the run's FINAL boss sets RunState.phase to WON directly (src/engine.js
@@ -3476,6 +3169,135 @@ func _finish(won: bool) -> void:
 		_result_overlay.visible = true
 		_result_label.text = "YOU LOSE"
 		get_tree().change_scene_to_file("res://scenes/result/Result.tscn")
+
+
+## Records a hit on the party for the defeat recap (newest last, last 12 kept).
+func _record_recap(src_uid: int, tgt_uid: int, value: int) -> void:
+	if _combat == null:
+		return
+	var t := _combat.by_uid(tgt_uid)
+	var src := _combat.by_uid(src_uid)
+	if t == null or t.side != "p" or src == null or src.side != "e":
+		return
+	_recap.append({"turn": _combat.turn, "what": "%s hits %s for %d" % [src.n, t.n, value],
+		"result": "%s KO" % t.n if t.hp <= 0 else "", "uid": tgt_uid})
+	if _recap.size() > 12:
+		_recap.pop_front()
+
+
+func _show_defeat_panel() -> void:
+	if _defeat == null:
+		_defeat = DefeatPanel.new()
+		_defeat.name = "DefeatPanel"
+		_defeat.z_index = 40
+		_shell_root.add_child(_defeat)
+		_defeat.end_run_pressed.connect(_on_defeat_end_run)
+		_defeat.continue_pressed.connect(func():
+			_append_log("[aid] STUB Continue - lane A continue_after_wipe not wired yet"))
+	var hs: Dictionary = _hud if not _hud.is_empty() else _hud_state()
+	var kind := String(_setup.get("kind", "battle"))
+	var asc := RunState.ascension
+	var boss_d := {}
+	for e in _combat.enemies:
+		if e.is_boss:
+			var spike_in := int(((hs.get("enemy_next", {}) as Dictionary).get(e.uid, {}) as Dictionary).get("turns_to_spike", 0))
+			boss_d = {"name": e.n, "hp": maxi(e.hp, 0), "max_hp": e.max_hp,
+				"phase": int(e.custom_state.get("phase", 1)), "phases": 3, "spike_in": spike_in}
+	# Final-turn rows, tinted.
+	var last_turn := _combat.turn
+	var rows: Array = []
+	for r in _recap:
+		rows.append({"turn": int(r["turn"]), "what": String(r["what"]), "result": String(r["result"]),
+			"final": int(r["turn"]) == last_turn})
+	rows = rows.slice(maxi(rows.size() - 5, 0))
+	var party: Array = []
+	for u in _combat.party:
+		if u.roster_index >= 0:
+			party.append({"name": u.n, "max_hp": u.max_hp})
+	var newcomer := bool(hs.get("newcomer", false))
+	var gift := newcomer and asc <= 2 and (kind == "elite" or kind == "boss")
+	var moon := bool(MetaState.get("vip")) if "vip" in MetaState else false
+	var boss_fight := kind == "boss"
+	var price := 180 if boss_fight else 90
+	var was := 0
+	var usd := "%s %.2f USD" % [HudKit.glyph(0x2248, "~"), float(price) / 90.0]
+	var variant := "paid"
+	if gift:
+		variant = "gift"
+		usd = "first elite or boss loss %s A0-A2" % HudKit.dot()
+	elif moon:
+		was = price
+		price = 135 if boss_fight else 68
+		variant = "moon"
+		usd = "%s %.2f USD" % [HudKit.glyph(0x2248, "~"), float(price) / 90.0]
+	var keep := ""
+	if not boss_d.is_empty():
+		keep = "Boss stays at %d HP, phase %d.%s" % [int(boss_d["hp"]), int(boss_d["phase"]),
+			(" Big hit in %d is kept." % int(boss_d["spike_in"])) if int(boss_d["spike_in"]) > 0 else ""]
+	else:
+		keep = "Enemies keep their HP."
+	var clock_on := bool((hs.get("clock", {}) as Dictionary).get("active", false))
+	_defeat.show_defeat({
+		"title_line": "%s %s A%d %s your party fell on turn %d" % [
+			"Boss fight" if boss_fight else ("Elite fight" if kind == "elite" else "Fight"),
+			HudKit.dot(), asc, HudKit.dot(), _combat.turn],
+		"boss": boss_d, "recap": rows, "aid_used": 0, "aid_cap": 4 if asc >= 9 else 6,
+		"continue_left": 1, "heal_pct": 25 if asc >= 6 else 40, "party": party,
+		"keep_line": keep,
+		"enrage_reset_line": "Enrage resets to 'Enrage in 10'." if clock_on else "",
+		"attrition_reset_line": "" if newcomer else "Attrition resets to 0%.",
+		"price": price, "price_was": was, "usd": usd, "variant": variant,
+		"foot": "Continue is offered once per run." if not gift else "This gift is offered once per account and is used as the run's Continue."})
+
+
+func _on_defeat_end_run() -> void:
+	RunState.apply_combat_result(_combat.get_result())
+	_result_overlay.visible = true
+	_result_label.text = "YOU LOSE"
+	get_tree().change_scene_to_file("res://scenes/result/Result.tscn")
+
+
+## 02j: the monsters are gone, the party stays; a banner says VICTORY and one button moves on
+## (Round 2 puts the reward panel on this same scene; until then it hands over to the run map).
+func _show_victory_banner() -> void:
+	var host := Control.new()
+	host.set_anchors_preset(Control.PRESET_FULL_RECT)
+	host.z_index = 35
+	host.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_shell_root.add_child(host)
+	var center := CenterContainer.new()
+	center.set_anchors_preset(Control.PRESET_FULL_RECT)
+	center.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	host.add_child(center)
+	var col := VBoxContainer.new()
+	col.add_theme_constant_override("separation", 10)
+	col.alignment = BoxContainer.ALIGNMENT_CENTER
+	col.custom_minimum_size = Vector2(600, 0)
+	center.add_child(col)
+	var plate := PanelContainer.new()
+	plate.add_theme_stylebox_override("panel", HudKit.box(Color("FFC45C"), 22, 4, DangoTheme.OUTLINE,
+		Vector2(4, 6), DangoTheme.SHELF, Vector2(40, 10)))
+	col.add_child(plate)
+	var pc := VBoxContainer.new()
+	pc.add_theme_constant_override("separation", 0)
+	plate.add_child(pc)
+	var t := HudKit.label("VICTORY", 64, DangoTheme.INK)
+	t.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	pc.add_child(DangoTheme.line_box(t, 64, 1.0))
+	var sub := HudKit.prose("Enemies defeated %s turn %d" % [HudKit.dot(), _combat.turn], 15, DangoTheme.INK)
+	sub.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	pc.add_child(sub)
+	var b := Button.new()
+	b.text = "Pick your reward"
+	b.custom_minimum_size = Vector2(320, 60)
+	b.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	DangoTheme.style_button(b, true)
+	DangoTheme.apply_tracking(b, 0.0, 21, 800)
+	col.add_child(b)
+	b.grab_focus()
+	await b.pressed
+	if is_instance_valid(host):
+		host.queue_free()
 
 
 ## Gathers the currently-alive party (dead members already faded out via play_death() and should
