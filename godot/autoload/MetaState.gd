@@ -140,7 +140,7 @@ func spend(currency: String, n: int, reason: String, save: bool = true) -> bool:
 				return false
 			stone -= n
 		"gem":
-			return gem_wallet().spend(n, reason)   # ví Gem tự lo save/server
+			return gem_wallet().spend(n, reason, save)   # ví Gem tự lo save/server
 		_:
 			push_warning("MetaState.spend: tiền tệ lạ '%s'" % currency)
 			return false
