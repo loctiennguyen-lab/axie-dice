@@ -46,11 +46,18 @@ func _ready() -> void:
 	for n in g["node_ids"]:
 		_check(EpochCanon.node_row(String(n["id"])) == int(n["row"]), "node_row %s" % n["id"])
 
-	# uid order is part of the canon (ADR H3): two orders, two different seeds.
-	var e2: Dictionary = g["epochs"][2]["request"]
-	var e3: Dictionary = g["epochs"][3]["request"]
-	_check(String(EpochCanon.request(e2)["canon"]) != String(EpochCanon.request(e3)["canon"]),
-		"uid order must change the canon")
+	for rt in g["rowtypes"]:
+		_check(EpochCanon.rowtype_digest(s_run, run_id, int(rt["row"])).hex_encode() == String(rt["digest"]),
+			"rowtype row %d" % int(rt["row"]))
+
+	# uids are NOT seed input: same canon, same seed whatever order or content (ADR-RNG 4.4).
+	var e2: Dictionary = g["epochs"][2]
+	var e3: Dictionary = g["epochs"][3]
+	_check(String(EpochCanon.request(e2["request"])["canon"]) == String(EpochCanon.request(e3["request"])["canon"]),
+		"uid order must not change the canon")
+	_check(int(e2["seed"]) == int(e3["seed"]), "golden: different uids, same seed")
+	_check(String(EpochCanon.request(e2["request"], true)["canon"]) != String(EpochCanon.request(e3["request"], true)["canon"]),
+		"with include_uids the lists differ")
 
 	if _fails.is_empty():
 		print("t_epoch_canon: PASS — %d checks OK" % _checks)

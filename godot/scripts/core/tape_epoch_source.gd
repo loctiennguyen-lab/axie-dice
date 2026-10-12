@@ -44,8 +44,8 @@ func _take(kind: String, args: Variant) -> EpochReply:
 	if String(e.get("kind", "")) != kind:
 		return EpochReply.fail("rejected", {"error": "kind %s, tape has %s" % [kind, e.get("kind", "?")]})
 	if args != null:
-		var a := EpochCanon.request({"args": args})
-		var b := EpochCanon.request({"args": e.get("args", {})})
+		var a := EpochCanon.request({"args": args}, true)
+		var b := EpochCanon.request({"args": e.get("args", {})}, true)
 		if not bool(a["ok"]) or not bool(b["ok"]) or String(a["canon"]) != String(b["canon"]):
 			return EpochReply.fail("rejected", {"error": "args differ from tape at seq %d" % _pos})
 	var peek := _chain_peek()

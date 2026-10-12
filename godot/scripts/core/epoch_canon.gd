@@ -122,11 +122,15 @@ static func _is_fn_name(fn: String) -> bool:
 
 ## Canon of one epoch request: nested dictionaries flattened with a `parent.` prefix, lines
 ## `key=value\n` sorted by key. Returns {ok, canon, error}.
-static func request(req: Dictionary) -> Dictionary:
+## `args.uids` is left OUT unless `include_uids` (ADR-RNG §4.4: the uid list is a commitment recorded
+## in the ledger, not seed input). Tape comparison passes true to compare the whole request.
+static func request(req: Dictionary, include_uids: bool = false) -> Dictionary:
 	var lines: Array = []
 	var err := _flatten("", req, lines)
 	if err != "":
 		return _err(err)
+	if not include_uids:
+		lines = lines.filter(func(kv): return String(kv[0]) != "args.uids")
 	lines.sort_custom(func(a, b): return String(a[0]) < String(b[0]))
 	var s := ""
 	for kv in lines:
@@ -187,6 +191,17 @@ static func commit(run_id: String, s_run: PackedByteArray) -> PackedByteArray:
 static func seed_from(s_run: PackedByteArray, canon_text: String) -> int:
 	var mac := Crypto.new().hmac_digest(HashingContext.HASH_SHA256, s_run, canon_text.to_utf8_buffer())
 	return (int(mac[0]) << 24) | (int(mac[1]) << 16) | (int(mac[2]) << 8) | int(mac[3])
+
+
+## Digest that decides the node types of one row (M7): HMAC-SHA256(S_run,
+## "axiedice/rowtype/v1" 0x7C run_id 0x7C row-as-4-byte-big-endian).
+static func rowtype_digest(s_run: PackedByteArray, run_id: String, row: int) -> PackedByteArray:
+	var msg := ("axiedice/rowtype/v1|" + run_id + "|").to_utf8_buffer()
+	msg.append((row >> 24) & 0xFF)
+	msg.append((row >> 16) & 0xFF)
+	msg.append((row >> 8) & 0xFF)
+	msg.append(row & 0xFF)
+	return Crypto.new().hmac_digest(HashingContext.HASH_SHA256, s_run, msg)
 
 
 static func _err(msg: String) -> Dictionary:
