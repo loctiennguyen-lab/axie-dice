@@ -66,8 +66,15 @@ async function newPair(env, deviceId, t) {
   return { access, refresh, accessHash: await sha(access), refreshHash: await sha(refresh), exp: t + ACCESS_TTL_S };
 }
 
+const MAX_BODY = 4096;
+
 async function readJson(request) {
-  try { const b = await request.json(); return b && typeof b === 'object' && !Array.isArray(b) ? b : null; } catch { return null; }
+  try {
+    const len = Number(request.headers.get('Content-Length'));
+    if (Number.isFinite(len) && len > MAX_BODY) return null;
+    const text = await request.text();
+    if (text.length > MAX_BODY) return null;
+    const b = JSON.parse(text); return b && typeof b === 'object' && !Array.isArray(b) ? b : null; } catch { return null; }
 }
 
 async function handleToken(request, env) {
@@ -102,6 +109,14 @@ async function handleRefresh(request, env) {
   const t = nowS();
   const h = await sha(b.refresh);
   const cur = await env.DB.prepare('SELECT * FROM device_sessions WHERE refresh_hash = ?').bind(h).first();
+  if (!cur) {
+    // A token that was handed out and then superseded during a grace retry must never come back.
+    const stale = await env.DB.prepare('SELECT id FROM device_sessions WHERE replaced_refresh_hash = ?').bind(h).first();
+    if (stale) {
+      await env.DB.prepare('UPDATE device_sessions SET revoked = 1 WHERE id = ?').bind(stale.id).run();
+      return json({ error: 'invalid_refresh' }, 401);
+    }
+  }
   let dev = cur;
   let graceHit = false;
   if (!cur) {
@@ -118,8 +133,8 @@ async function handleRefresh(request, env) {
   const p = await newPair(env, dev.id, t);
   const stmts = graceHit
     // Lost-response retry: keep the same prev (so further retries still work), just hand out a fresh pair.
-    ? [env.DB.prepare('UPDATE device_sessions SET refresh_hash = ?, last_seen = ? WHERE id = ?').bind(p.refreshHash, t, dev.id)]
-    : [env.DB.prepare('UPDATE device_sessions SET prev_refresh_hash = refresh_hash, refresh_hash = ?, rotated_at = ?, last_seen = ? WHERE id = ?').bind(p.refreshHash, t, t, dev.id)];
+    ? [env.DB.prepare('UPDATE device_sessions SET replaced_refresh_hash = refresh_hash, refresh_hash = ?, last_seen = ? WHERE id = ?').bind(p.refreshHash, t, dev.id)]
+    : [env.DB.prepare('UPDATE device_sessions SET prev_refresh_hash = refresh_hash, replaced_refresh_hash = NULL, refresh_hash = ?, rotated_at = ?, last_seen = ? WHERE id = ?').bind(p.refreshHash, t, t, dev.id)];
   stmts.push(
     env.DB.prepare('DELETE FROM device_tokens WHERE device_id = ? AND expires_at <= ?').bind(dev.id, t),
     env.DB.prepare('INSERT INTO device_tokens (token_hash, device_id, expires_at) VALUES (?, ?, ?)').bind(p.accessHash, dev.id, p.exp),

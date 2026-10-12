@@ -68,6 +68,12 @@ export async function handleWallet(request, env, url) {
   try {
     const player = await shared.currentPlayer(request, env);
     if (!player) return json({ error: 'unauthenticated' }, 401);
+    // Per player, not per IP: shared IPs (offices, CGNAT) must not eat each other's budget. SAVE_LIMITER
+    // is reused so the Free plan needs no extra binding; a missing binding (tests, dev) means no limit.
+    if (env.SAVE_LIMITER) {
+      const { success } = await env.SAVE_LIMITER.limit({ key: `w:${player.id}` });
+      if (!success) return json({ error: 'rate_limited' }, 429);
+    }
     if (url.pathname === '/api/wallet' && request.method === 'GET') {
       const tail = await env.DB.prepare('SELECT delta, reason, at FROM wallet_ledger WHERE player_id = ? ORDER BY id DESC LIMIT 20').bind(player.id).all();
       return json({ gem: await balanceOf(env, player.id), ledger_tail: tail.results });
@@ -83,7 +89,7 @@ export async function handleWallet(request, env, url) {
       const o = request.headers.get('Origin');
       if (o && !shared.isAllowedOrigin(o, url)) return json({ error: 'forbidden' }, 403);
       let b;
-      try { b = await request.json(); } catch { b = null; }
+      try { const txt = await request.text(); b = txt.length <= 1024 ? JSON.parse(txt) : null; } catch { b = null; }
       if (!b || !Number.isSafeInteger(b.amount) || b.amount < 1 || b.amount > MAX_SPEND
         || typeof b.reason !== 'string' || !/^[a-z0-9_:.-]{1,48}$/.test(b.reason)
         || typeof b.idem !== 'string' || !/^[A-Za-z0-9_-]{8,64}$/.test(b.idem)) return json({ error: 'bad_request' }, 400);

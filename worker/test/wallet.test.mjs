@@ -186,3 +186,15 @@ test('POST /api/wallet/spend: validates input, charges once per idem, 402 when p
   assert.equal(poor.status, 402);
   assert.equal((await poor.json()).balance, 80);
 });
+
+test('wallet endpoints are rate limited per player (limiter keyed by player id)', async () => {
+  const env = mkEnv();
+  const keys = [];
+  env.SAVE_LIMITER = { limit: async ({ key }) => { keys.push(key); return { success: keys.length <= 2 }; } };
+  const hash = Buffer.from(await crypto.subtle.digest('SHA-256', new TextEncoder().encode('tok'))).toString('base64url');
+  env.DB.db.prepare('INSERT INTO sessions (id_hash, player_id, created_at, expires_at) VALUES (?, ?, 1, 9999999999)').run(hash, 'p1');
+  assert.equal((await http(env, '/api/wallet')).status, 200);
+  assert.equal((await http(env, '/api/gem/claim', 'POST')).status, 200);
+  assert.equal((await http(env, '/api/wallet')).status, 429);
+  assert.deepEqual([...new Set(keys)], ['w:p1']);
+});

@@ -13,6 +13,7 @@ CREATE TABLE device_sessions (
   label              TEXT NOT NULL,
   refresh_hash       TEXT NOT NULL UNIQUE,
   prev_refresh_hash  TEXT,                -- the refresh token just rotated away, honoured for a grace window
+  replaced_refresh_hash TEXT,             -- refresh token handed out and then superseded during a grace retry; seeing it again = theft
   rotated_at         INTEGER,
   created_at         INTEGER NOT NULL,
   last_seen          INTEGER NOT NULL,

@@ -512,3 +512,14 @@ test('devices: list, revoke one, sign out everywhere', async () => {
   await post('/auth/devices', { all: true }, h(a));
   assert.equal((await worker.fetch(new Request(ORIGIN + '/api/me', { headers: h(a) }), env)).status, 401);
 });
+
+test('refresh grace: a token superseded during a retry that shows up again revokes the device; oversized bodies are refused', async () => {
+  const { tok } = await desktopTokens();
+  const r1 = await (await post('/auth/refresh', { refresh: tok.refresh })).json(); // R1 (response "lost")
+  const r2 = await (await post('/auth/refresh', { refresh: tok.refresh })).json(); // retry with R0 -> R2, R1 superseded
+  assert.ok(r2.refresh !== r1.refresh);
+  assert.equal((await post('/auth/refresh', { refresh: r1.refresh })).status, 401, 'R1 resurfacing = a copy exists elsewhere');
+  assert.equal((await post('/auth/refresh', { refresh: r2.refresh })).status, 401, 'device revoked');
+  assert.equal((await post('/auth/refresh', { refresh: 'x'.repeat(8000) })).status, 400);
+  assert.equal((await post('/auth/desktop/token', { code: 'c', verifier: 'v'.repeat(9000) })).status, 400);
+});
