@@ -7,7 +7,7 @@
 // What it enforces is the syntactic part of ADR server-authoritative-rng §4.3 / §4.6: append-only
 // log with a hash chain, one valid request per seq, no overlapping epochs, consume-in-place,
 // pinned reroll seeds, budgets. It never runs game rules: that is the verifier's job (later).
-import { canonKV, chainStart, chainNext, commitOf, epochSeed, _bytes } from './epoch_canon.js';
+import { canonKV, chainStart, chainNext, commitOf, epochSeed, isCanonScalar, nodeRow, MAX_PARAMS, _bytes } from './epoch_canon.js';
 
 export const MAX_EPOCHS = 400;
 export const MAX_ACTIONS = 3000;
@@ -55,7 +55,7 @@ const ARG_KEYS = {
   pact_reroll: ['node_id', 'slot'],
 };
 const SOURCES = new Set(['base', 'aid']);
-const MODES = new Set(['normal', 'mission', 'ranked']);
+const MODES = new Set(['short', 'full']); // game length (RunParams.mode); run kind lives in D1
 const MAX_TURN = 200;
 const MAX_K = 20;
 const MAX_ID = 100000;
@@ -75,6 +75,7 @@ export function argsProblem(kind, args) {
     if (k === 'turn') { if (!Number.isSafeInteger(v) || v < 1 || v > MAX_TURN) return 'turn'; continue; }
     if (k === 'k') { if (!Number.isSafeInteger(v) || v < 1 || v > MAX_K) return 'k'; continue; }
     if (k === 'item') { if (typeof v !== 'string' || !IDENT.test(v)) return 'item'; continue; }
+    if (k === 'node_id') { if (nodeRow(v) < 1) return 'node_id'; continue; }
     if (!Number.isSafeInteger(v) || v < 0 || v > MAX_ID) return `val_${k}`;
   }
   if (kind === 'end_turn' && args.turn === undefined) return 'turn';
@@ -220,12 +221,10 @@ export class RunCore {
     if (claimedLen !== prevLen + delta.length) return 'log_len';
     for (const a of delta) {
       if (!a || typeof a !== 'object' || !ALLOWED_FNS.has(a.fn)) return 'fn';
-      const args = a.args ?? {};
-      if (typeof args !== 'object' || Array.isArray(args)) return 'args';
-      for (const [k, v] of Object.entries(args)) {
-        if (!IDENT.test(k)) return 'arg_key';
-        const vs = Array.isArray(v) ? v : [v];
-        for (const x of vs) if (!(Number.isSafeInteger(x) || (typeof x === 'string' && /^[a-z0-9_.-]+$/.test(x)))) return 'arg_val';
+      const args = a.args ?? [];
+      if (!Array.isArray(args) || args.length > MAX_PARAMS) return 'args';
+      for (const v of args) {
+        if (Array.isArray(v)) { if (!v.every(isCanonScalar)) return 'arg_val'; } else if (!isCanonScalar(v)) return 'arg_val';
       }
     }
     return null;

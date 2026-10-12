@@ -12,7 +12,8 @@ export const PENDING_TTL_S = 5 * 60;
 // Modes that need the wallet / newcomer gate. Refused (fail closed) until those exist; staging can set
 // ALLOW_GATED_MODES=1 to test them.
 const GATED_MODES = new Set(['ranked', 'mission']);
-const MODES = new Set(['normal', 'mission', 'ranked']);
+// RunParams.kind (contract 3.6). RunParams.mode (short|full) is game length and goes in run_start args.
+const KINDS = new Set(['normal', 'daily', 'ranked', 'mission']);
 const { json } = shared;
 
 const hex = (bytes) => Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('');
@@ -31,11 +32,11 @@ async function createRun(request, env, url, player) {
   let body;
   try { body = await request.json(); } catch { return json({ error: 'bad_request' }, 400); }
   if (!body || typeof body !== 'object' || Array.isArray(body)) return json({ error: 'bad_request' }, 400);
-  const mode = body.mode ?? 'normal';
+  const mode = body.kind ?? 'normal'; // stored in runs.mode / DO meta.mode
   const ascension = Number.isInteger(body.ascension) ? body.ascension : 0;
   const rules = body.rules_version;
   const nonce = body.client_nonce ?? null;
-  if (!MODES.has(mode) || ascension < 0 || ascension > 10 || typeof rules !== 'string' || !/^[a-z0-9_.-]{1,40}$/.test(rules)) return json({ error: 'bad_request' }, 400);
+  if (!KINDS.has(mode) || ascension < 0 || ascension > 10 || typeof rules !== 'string' || !/^[a-z0-9_.-]{1,40}$/.test(rules)) return json({ error: 'bad_request' }, 400);
   if (nonce !== null && !/^[a-f0-9]{32}$/.test(nonce)) return json({ error: 'bad_request' }, 400);
   if (!rulesSupported(env, rules)) return json({ error: 'version' }, 409);
   if (GATED_MODES.has(mode) && env.ALLOW_GATED_MODES !== '1') return json({ error: 'not_available' }, 403);

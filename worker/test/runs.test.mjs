@@ -84,17 +84,17 @@ test('create: unauthenticated 401, null body 400, bad mode 400, unsupported rule
   const { call } = await setup();
   assert.equal((await create(call, {}, { token: 'nope' })).status, 401);
   assert.equal((await call('/api/run', { method: 'POST', body: 'null' })).status, 400);
-  assert.equal((await create(call, { mode: 'cheat' })).status, 400);
+  assert.equal((await create(call, { kind: 'cheat' })).status, 400);
   assert.equal((await create(call, { rules_version: 'ancient' })).status, 409);
 });
 
 test('create: ranked and mission fail closed (403) unless ALLOW_GATED_MODES=1', async () => {
   const a = await setup();
-  assert.equal((await create(a.call, { mode: 'ranked' })).status, 403);
-  assert.equal((await create(a.call, { mode: 'mission' })).status, 403);
-  assert.equal((await (await create(a.call, { mode: 'ranked' })).json()).error, 'not_available');
+  assert.equal((await create(a.call, { kind: 'ranked' })).status, 403);
+  assert.equal((await create(a.call, { kind: 'mission' })).status, 403);
+  assert.equal((await (await create(a.call, { kind: 'ranked' })).json()).error, 'not_available');
   const b = await setup({ env: { ALLOW_GATED_MODES: '1' } });
-  assert.equal((await create(b.call, { mode: 'mission' })).status, 200);
+  assert.equal((await create(b.call, { kind: 'mission' })).status, 200);
 });
 
 test('daily cap counts neither mission nor infra_error runs', async () => {
@@ -104,7 +104,7 @@ test('daily cap counts neither mission nor infra_error runs', async () => {
   const capped = await create(call);
   assert.equal(capped.status, 429);
   // a mission run is not capped
-  assert.equal((await create(call, { mode: 'mission' })).status, 200);
+  assert.equal((await create(call, { kind: 'mission' })).status, 200);
   // infra_error runs do not count: turn one of the earlier runs into one and a slot reopens
   DB.db.prepare(`UPDATE runs SET state = 'abandoned' WHERE mode = 'mission'`).run();
   DB.db.prepare(`UPDATE runs SET state = 'infra_error' WHERE mode = 'normal' AND rowid = (SELECT MIN(rowid) FROM runs WHERE mode = 'normal')`).run();

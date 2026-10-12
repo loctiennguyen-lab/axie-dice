@@ -1,11 +1,11 @@
 // Canon, hash chain and seed formula for server-rolled dice (ADR server-authoritative-rng §4.1).
+// Byte-exact against godot/tests/data/epoch_golden.json (lane A); test/epoch_golden.test.mjs runs
+// that file. The Godot side (EpochCanon) must produce the same bytes, so change nothing here
+// without changing the golden file in lane A first.
 //
-// STATUS: provisional. Lane A owns the canonical byte format and will land
-// godot/tests/data/epoch_golden.json; when it does, copy it to worker/test/epoch_golden.json and
-// make test/epoch_golden.test.mjs pass against it. Every byte-level choice that the ADR leaves
-// open is isolated in the functions marked [GOLDEN] below so that reconciling is a local edit.
-//
-// All functions are pure and async only because crypto.subtle is.
+// "|" in the ADR means plain byte concatenation, with no separator, except inside log lines and the
+// rowtype message where it is a literal 0x7C. All functions are pure and async only because
+// crypto.subtle is.
 
 const enc = new TextEncoder();
 
@@ -14,51 +14,50 @@ export const DOMAIN_LOG = 'axiedice/log/v1';
 export const DOMAIN_ROWTYPE = 'axiedice/rowtype/v1';
 
 const IDENT = /^[a-z0-9_]+$/;
-// Values also allow '-' and '.' because rules_version is "godot-2026-09-21-a". [GOLDEN: ADR says
-// [a-z0-9_] only; ask lane A whether rules_version is mapped or the charset widens.]
-const VALUE_STR = /^[a-z0-9_.-]+$/;
+const FN = /^[a-z_]+$/;
+const VALUE_STR = /^[a-z0-9_-]+$/; // '-' because rules_version contains it; '.' is not allowed
+export const MAX_PARAMS = 10;
 
-/** One canon value: integer -> decimal, array -> "a,b,c" (order kept), string -> [a-z0-9_]+. */
+/** True if v is a legal canon scalar: safe integer or non-empty [a-z0-9_-] string. */
+export const isCanonScalar = (v) =>
+  (typeof v === 'number' && Number.isSafeInteger(v)) || (typeof v === 'string' && VALUE_STR.test(v));
+
+/** One canon value: integer, string, or flat array of those (order kept, empty array = empty). */
 export function canonValue(v) {
-  if (Array.isArray(v)) return v.map(canonValue).join(',');
-  if (typeof v === 'number') {
-    if (!Number.isSafeInteger(v)) throw new Error('canon: non-integer number');
-    return String(v); // String(-0) is "0"; no "+", no leading zeros
+  if (Array.isArray(v)) {
+    if (!v.every(isCanonScalar)) throw new Error('canon: bad array element');
+    return v.map(String).join(',');
   }
-  if (typeof v === 'string') {
-    if (!VALUE_STR.test(v)) throw new Error('canon: string outside allowed charset');
-    return v;
-  }
-  if (typeof v === 'boolean') return v ? '1' : '0';
-  throw new Error('canon: unsupported value');
+  if (!isCanonScalar(v)) throw new Error('canon: unsupported value');
+  return String(v);
 }
 
+// Keys sort as bytes: JS default sort on ASCII strings is by UTF-16 code unit, identical for ASCII.
 const byKey = (a, b) => (a < b ? -1 : a > b ? 1 : 0);
 
-/** `k=v\n` lines sorted by key. Nested plain objects flatten to `outer.inner`. [GOLDEN] */
+/** `key=value\n` lines sorted by full key; nested objects flatten to `parent.child`. */
 export function canonKV(obj, prefix = '') {
   const lines = [];
-  for (const k of Object.keys(obj).sort(byKey)) {
-    if (!IDENT.test(k)) throw new Error('canon: key outside [a-z0-9_]');
-    const v = obj[k];
-    if (v && typeof v === 'object' && !Array.isArray(v)) lines.push(canonKV(v, `${prefix}${k}.`));
-    else lines.push(`${prefix}${k}=${canonValue(v)}\n`);
-  }
-  return lines.join('');
+  const walk = (o, pre) => {
+    for (const k of Object.keys(o)) {
+      if (!IDENT.test(k)) throw new Error('canon: key outside [a-z0-9_]');
+      const v = o[k];
+      if (v && typeof v === 'object' && !Array.isArray(v)) walk(v, `${pre}${k}.`);
+      else lines.push([`${pre}${k}`, canonValue(v)]);
+    }
+  };
+  walk(obj, prefix);
+  return lines.sort((a, b) => byKey(a[0], b[0])).map(([k, v]) => `${k}=${v}\n`).join('');
 }
 
-/** One action per line: `fn|k1=v1|k2=v2\n`, params sorted by key, actions in order. [GOLDEN] */
+/** `fn|p0=v0|p1=v1\n` per action (args are positional, max 10), in the order they happened. */
 export function canonDelta(actions) {
   let out = '';
   for (const a of actions) {
-    if (!a || typeof a.fn !== 'string' || !IDENT.test(a.fn)) throw new Error('canon: bad action fn');
-    const args = a.args || {};
-    let line = a.fn;
-    for (const k of Object.keys(args).sort(byKey)) {
-      if (!IDENT.test(k)) throw new Error('canon: key outside [a-z0-9_]');
-      line += `|${k}=${canonValue(args[k])}`;
-    }
-    out += `${line}\n`;
+    if (!a || typeof a.fn !== 'string' || !FN.test(a.fn)) throw new Error('canon: bad action fn');
+    const args = a.args ?? [];
+    if (!Array.isArray(args) || args.length > MAX_PARAMS) throw new Error('canon: bad action args');
+    out += a.fn + args.map((v, i) => `|p${i}=${canonValue(v)}`).join('') + '\n';
   }
   return out;
 }
@@ -74,29 +73,30 @@ const concat = (...parts) => {
 };
 const sha256 = async (bytes) => new Uint8Array(await crypto.subtle.digest('SHA-256', bytes));
 
-/** h_0 = SHA256("axiedice/log/v1" | run_id), lowercase hex. [GOLDEN: "|" is a literal 0x7c byte] */
+/** h_0 = SHA256("axiedice/log/v1" || run_id), lowercase hex. */
 export async function chainStart(runId) {
-  return hex(await sha256(concat(DOMAIN_LOG, '|', runId)));
+  return hex(await sha256(concat(DOMAIN_LOG, runId)));
 }
 
-/** h_n = SHA256("axiedice/log/v1" | h_{n-1} | canon(log_delta)). h is hex text, not raw bytes. [GOLDEN] */
+/** h_n = SHA256("axiedice/log/v1" || h_{n-1} (32 raw bytes) || canon_delta). h travels as hex. */
 export async function chainNext(prevHex, actions) {
-  return hex(await sha256(concat(DOMAIN_LOG, '|', prevHex, '|', canonDelta(actions))));
+  return hex(await sha256(concat(DOMAIN_LOG, fromHex(prevHex), canonDelta(actions))));
 }
 
-/** commit = SHA256("axiedice/commit/v1" | run_id | S_run), hex. S_run is raw bytes. [GOLDEN] */
+/** commit = SHA256("axiedice/commit/v1" || run_id || S_run), hex. S_run is 32 raw bytes. */
 export async function commitOf(runId, sRun) {
-  return hex(await sha256(concat(DOMAIN_COMMIT, '|', runId, '|', sRun)));
+  return hex(await sha256(concat(DOMAIN_COMMIT, runId, sRun)));
 }
 
 async function hmac(keyBytes, msgBytes) {
   const key = await crypto.subtle.importKey('raw', keyBytes, { name: 'HMAC', hash: 'SHA-256' }, false, ['sign']);
   return new Uint8Array(await crypto.subtle.sign('HMAC', key, msgBytes));
 }
+const u32 = (mac) => ((mac[0] << 24) | (mac[1] << 16) | (mac[2] << 8) | mac[3]) >>> 0;
 
 /**
- * seed = first 4 bytes (big-endian, unsigned) of HMAC-SHA256(S_run, canon{...}).
- * `args.uids` is deliberately NOT part of the seed (ADR 4.4): it is committed in the ledger only.
+ * seed = first 4 bytes (big-endian, unsigned) of HMAC-SHA256(S_run, canon_request).
+ * `args.uids` is dropped from the canon (ADR 4.4): it is a ledger commitment, not seed input.
  * fields: {run_id, seq, kind, args, h, log_len, rules_version, attempt, client_nonce}
  */
 export async function epochSeed(sRun, f) {
@@ -106,14 +106,24 @@ export async function epochSeed(sRun, f) {
     run_id: f.run_id, seq: f.seq, kind: f.kind, args, h: f.h, log_len: f.log_len,
     rules_version: f.rules_version, attempt: f.attempt ?? 0, client_nonce: f.client_nonce,
   });
-  const mac = await hmac(sRun, enc.encode(msg));
-  return ((mac[0] << 24) | (mac[1] << 16) | (mac[2] << 8) | mac[3]) >>> 0;
+  return u32(await hmac(sRun, enc.encode(msg)));
 }
 
-/** Node type of one map row: HMAC with its own domain, so it never leaks through epoch seeds. */
+/** Full 32-byte digest for a map row: HMAC(S_run, domain 0x7C run_id 0x7C row as 4-byte BE). */
+export async function rowTypeDigest(sRun, runId, row) {
+  const r = new Uint8Array(4);
+  new DataView(r.buffer).setUint32(0, row, false);
+  return hex(await hmac(sRun, concat(DOMAIN_ROWTYPE, '|', runId, '|', r)));
+}
+/** 32-bit view of the digest, for callers that only need a number. */
 export async function rowTypeSeed(sRun, runId, row) {
-  const mac = await hmac(sRun, concat(DOMAIN_ROWTYPE, '|', runId, '|', String(row)));
-  return ((mac[0] << 24) | (mac[1] << 16) | (mac[2] << 8) | mac[3]) >>> 0;
+  return parseInt((await rowTypeDigest(sRun, runId, row)).slice(0, 8), 16) >>> 0;
+}
+
+/** Row of a node id "r<row>_c<col>" (row >= 1, col >= 0, no leading zeros), or -1. */
+export function nodeRow(id) {
+  const m = /^r([1-9][0-9]*)_c(0|[1-9][0-9]*)$/.exec(typeof id === 'string' ? id : '');
+  return m ? Number(m[1]) : -1;
 }
 
 export const _bytes = { hex, fromHex, concat };
