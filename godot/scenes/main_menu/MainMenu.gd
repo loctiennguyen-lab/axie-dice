@@ -217,7 +217,7 @@ func _build_title_block() -> void:
 	chip_row.add_child(shard_chip)
 	if AccountService.enabled:
 		chip_row.add_child(AccountUI.build_chip(AccountService, func() -> void:
-			get_tree().change_scene_to_file("res://scenes/settings/Settings.tscn")))
+			LandNav.open(&"settings")))
 	shard_margin.add_child(chip_row)
 	vbox.add_child(shard_margin)
 
@@ -920,11 +920,11 @@ func _build_nav_tiles() -> void:
 	_nav_tiles["pass"] = _add_nav_tile(grid, "pass", "LUNACIA PASS",
 		"LV %d / %d" % [int(MetaState.bp_progress().get("level", 0)), ContentDB.BP_MAX_LEVEL],
 		DangoTheme.CREAM_HI, true, "",
-		func() -> void: get_tree().change_scene_to_file("res://scenes/pass/Pass.tscn"))
+		func() -> void: LandNav.open(&"pass"))
 	_nav_tiles["unlocks"] = _add_nav_tile(grid, "unlocks", "UNLOCKS",
 		"%d / %d" % [_owned_unlock_count(), ContentDB.UNLOCKS.size()],
 		DangoTheme.CREAM_RAISED, true, "",
-		func() -> void: get_tree().change_scene_to_file("res://scenes/unlocks/Unlocks.tscn"))
+		func() -> void: LandNav.open(&"unlocks"))
 	# The mockup inks this value #8BDCFF, a pale ice blue — NOT SHIELD_BLUE (#31C6FF).
 	# STATUS_FREEZE is the only exact match DangoTheme carries for that hex; the right fix is a
 	# named token of its own, which is in the task report rather than added here.
@@ -937,15 +937,15 @@ func _build_nav_tiles() -> void:
 			# button already uses — and if the player just comes back with BACK, this
 			# `_ready()` reads it again and the team is unchanged.
 			pending_team = _team_selection.duplicate()
-			get_tree().change_scene_to_file("res://scenes/vault/Vault.tscn"))
+			LandNav.open(&"vault"))
 	_nav_tiles["guides"] = _add_nav_tile(grid, "guides", "SAMPLE TEAMS",
 		"%d COMPS" % ContentDB.GUIDES.size(),
 		DangoTheme.CREAM_RAISED, true, "",
-		func() -> void: get_tree().change_scene_to_file("res://scenes/guides/Guides.tscn"))
+		func() -> void: LandNav.open(&"guides"))
 	_nav_tiles["codex"] = _add_nav_tile(grid, "codex", "CODEX",
 		"%d TABS" % CodexContent.TABS.size(),
 		DangoTheme.CREAM_RAISED, true, "",
-		func() -> void: get_tree().change_scene_to_file("res://scenes/codex/Codex.tscn"))
+		func() -> void: LandNav.open(&"codex"))
 	# MNU-06 names all six destinations of this grid, and Settings is the sixth. It used to be a
 	# 44px "⚙" floating in the screen's top-right corner next to a "?" — two pieces of chrome the
 	# mockup does not draw anywhere, sitting over the artwork, while the grid the mockup DOES
@@ -957,7 +957,7 @@ func _build_nav_tiles() -> void:
 	# takes the slot it left, so the grid is the full 3 x 2 the mockup draws.
 	_nav_tiles["settings"] = _add_nav_tile(grid, "settings", "SETTINGS", "AUDIO · SAVE",
 		DangoTheme.CREAM_RAISED, true, "",
-		func() -> void: get_tree().change_scene_to_file("res://scenes/settings/Settings.tscn"))
+		func() -> void: LandNav.open(&"settings"))
 
 
 func _owned_unlock_count() -> int:
@@ -1133,7 +1133,7 @@ func _build_team_row() -> void:
 
 func _on_edit_team_pressed() -> void:
 	pending_team = _team_selection.duplicate()
-	get_tree().change_scene_to_file("res://scenes/main_menu/TeamSelect.tscn")
+	LandNav.open(&"team_select")
 
 
 func _refresh_team_row() -> void:
