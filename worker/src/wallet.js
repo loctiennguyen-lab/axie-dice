@@ -3,7 +3,7 @@
 // CHECK(balance >= 0) rolls the whole batch back when funds are short. A duplicate idem_key trips the
 // UNIQUE index, rolls back, and is reported as an idempotent replay, never a second charge.
 import { shared } from './accounts.js';
-import { GIFT, SEASON_GIFT } from './aid_prices.js';
+import { GIFT, SEASON_GIFT, SEASONS, SEASON_GATES } from './aid_prices.js';
 
 const { json } = shared;
 const CUR = 'gem';
@@ -61,15 +61,33 @@ export async function claimDaily(env, playerId, at = nowS()) {
   return { ok: true, granted: amount, reason: '', balance: r.balance, next_utc: next };
 }
 
-/** Season gift milestone 1 or 2 (pass level 10 / 20). Idempotent per (account, season, milestone) through the
- *  ledger idem key, so at most 2 x 90 Gem per season. The pass level itself is client state (L1); the cap is the guard. */
+/** Season gift milestone 1 or 2 (pass level 10 / 20). The season id must be in the server SEASONS table (exact
+ *  match), the claim must fall in [start, end + grace], milestone 2 needs milestone 1 in the ledger, and each
+ *  milestone needs a minimum number of closed runs inside the season window (SEASON_GATES). The grant is
+ *  clipped to the room under the shared Gem balance cap. Idempotent per (account, season, milestone). */
 export async function claimSeasonGift(env, playerId, seasonId, milestone, at = nowS()) {
-  if (typeof seasonId !== 'string' || !/^[A-Za-z0-9_-]{1,24}$/.test(seasonId)) return { ok: false, reason: 'bad_request' };
+  if (typeof seasonId !== 'string' || !Object.hasOwn(SEASONS, seasonId)) return { ok: false, reason: 'bad_request' };
   if (!Number.isSafeInteger(milestone) || milestone < 1 || milestone > SEASON_GIFT.milestones) return { ok: false, reason: 'bad_request' };
-  const r = await applyDelta(env, playerId, SEASON_GIFT.per_milestone, 'grant:season_gift', `season:${playerId}:${seasonId}:${milestone}`, at);
+  const season = SEASONS[seasonId];
+  const start = Date.parse(`${season.start}T00:00:00Z`) / 1000;
+  const end = Date.parse(`${season.end}T00:00:00Z`) / 1000 + 86400; // end date inclusive
+  if (at < start || at >= end + SEASON_GATES.grace_days * 86400) return { ok: false, granted: 0, reason: 'out_of_season' };
+  const idem = (m) => `season:${playerId}:${seasonId}:${m}`;
+  const used = await replay(env, playerId, idem(milestone));
+  if (used) return { ok: false, granted: 0, reason: 'already_claimed', balance: used.balance };
+  if (milestone > 1 && !(await replay(env, playerId, idem(milestone - 1)))) return { ok: false, granted: 0, reason: 'need_previous' };
+  const row = await env.DB.prepare(
+    `SELECT COUNT(*) AS n FROM runs WHERE player_id = ? AND state = 'closed' AND battles_done >= ? AND closed_at >= ? AND closed_at < ?`,
+  ).bind(playerId, SEASON_GATES.min_battles, start, end).first();
+  if (((row && row.n) || 0) < SEASON_GATES.min_runs[milestone]) return { ok: false, granted: 0, reason: 'not_enough_runs' };
+  const bal = await balanceOf(env, playerId);
+  const room = SEASON_GATES.balance_cap - bal;
+  if (room <= 0) return { ok: false, granted: 0, reason: 'at_cap', balance: bal };
+  const amount = Math.min(SEASON_GIFT.per_milestone, room);
+  const r = await applyDelta(env, playerId, amount, 'grant:season_gift', idem(milestone), at);
   if (!r.ok) return { ok: false, reason: 'error' };
   if (r.dup) return { ok: false, granted: 0, reason: 'already_claimed', balance: r.balance };
-  return { ok: true, granted: SEASON_GIFT.per_milestone, reason: '', balance: r.balance };
+  return { ok: true, granted: amount, reason: '', balance: r.balance };
 }
 
 export const isWalletPath = (p) => p === '/api/gem/season_gift' || p === '/api/wallet' || p === '/api/gem/claim' || p === '/api/wallet/spend';

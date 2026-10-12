@@ -20,3 +20,8 @@ export const GIFT = { per_day: 300, balance_cap: 900 };
 export const BOSS_CONTINUE_PRICE = 180;
 /** Season Pass gift (gem.json season_gift): 90 Gem at pass level 10 and 90 at level 20, once per account per season. */
 export const SEASON_GIFT = { per_milestone: 90, milestones: 2 };
+/** Season table (UTC dates, inclusive). Claims are accepted from start until end + grace_days. Unknown ids are refused. */
+export const SEASONS = { S1: { start: '2026-11-03', end: '2026-12-29' } };
+/** Server gates for season gifts: min completed runs per milestone (closed runs in the season window with
+ *  battles_done >= min_battles), the grace after season end, and the balance cap shared with the daily gift. */
+export const SEASON_GATES = { min_runs: { 1: 3, 2: 8 }, min_battles: 1, grace_days: 7, balance_cap: GIFT.balance_cap };

@@ -271,6 +271,9 @@ Chỉ để trình bày, không ai trong luật nghe.
 | Aid | Đường server (ADR-RNG §4.9) | Hàm engine/RunState | Ghi chú MON-13 |
 |---|---|---|---|
 | R1 Continue | `epoch.request("continue", {node_id, attempt})`, trả tiền trong cùng yêu cầu | `CombatEngine.continue_after_wipe(seed, heal_pct)` với `heal_pct = ContentDB.ascension_mods(asc).continue_heal_pct` (40 / 25 từ A6) | Hồi đội thật (không token) `ceil(max_hp × pct/100)`, địch giữ HP/phase/bộ đếm spike, clock và attrition về 0 (engine lưu `clock_turn_base = turn`), roll lượt mới bằng seed. `attempt` là đếm số lần hồi sinh trong trận, là trạng thái trận chứ không phải trạng thái mua |
+
+> **Rủi ro L1 chấp nhận (S, 12/10):** giá Continue 90 vs 180 (boss) đọc từ dòng `enter_node` do client gửi; server chưa có bản đồ node từ seed nên không kiểm được loại node. Client gian lận có thể luôn khai node thường: mất tối đa 90 Gem/run (R1 cap_run = 1). Sửa đúng khi server sinh map từ seed (P0 thật).
+
 | R2 Reroll thêm | `request("reroll", {..., source:"aid"})` | `reroll_dice(uids, seed, from_aid = true)`: không trừ `rerolls` | Hook H1 chạy y như reroll thường (luật không phân biệt). `twinfates` không coi đây là nguồn relic vì nó không tăng `max_rerolls` |
 | R4 Hoãn đồng hồ | `epoch.aid("delay_clock", {node_id})` | `CombatEngine.delay_clock(turns: int)` (turns từ `aid_catalog`, dự kiến 2) | Chỉ dời `clock_turn_base` |
 | R5 Đổi pact | `request("pact_reroll", {node_id, slot})` | `RunState.reroll_pact_slot(slot, seed)` | |

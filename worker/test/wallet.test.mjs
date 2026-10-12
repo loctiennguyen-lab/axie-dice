@@ -199,16 +199,55 @@ test('wallet endpoints are rate limited per player (limiter keyed by player id)'
   assert.deepEqual([...new Set(keys)], ['w:p1']);
 });
 
-test('season gift: 90 per milestone, 2 per season, idempotent, new season pays again, bad input refused', async () => {
+const S1_START = Date.parse('2026-11-03T00:00:00Z') / 1000;
+const IN_SEASON = S1_START + 10 * 86400;
+const addRuns = (env, p, n, closedAt = IN_SEASON, battles = 3) => {
+  for (let i = 0; i < n; i++) {
+    env.DB.db.prepare(`INSERT INTO runs (run_id, player_id, mode, rules_version, state, created_at, closed_at, battles_done) VALUES (?, ?, 'normal', 'r', 'closed', ?, ?, ?)`)
+      .run(`${p}-${closedAt}-${battles}-${i}-${Math.random()}`, p, closedAt - 100, closedAt, battles);
+  }
+};
+
+test('season gift: gated by season table, window, run count and order; idempotent; cap respected', async () => {
   const env = mkEnv();
-  const a = await claimSeasonGift(env, 'p1', 's1', 1);
+  for (const bad of ['s1', 'S2', 'S1 ', 'bad id!', '__proto__', 'constructor']) {
+    assert.equal((await claimSeasonGift(env, 'p1', bad, 1, IN_SEASON)).reason, 'bad_request', bad);
+  }
+  assert.equal((await claimSeasonGift(env, 'p1', 'S1', 3, IN_SEASON)).reason, 'bad_request');
+  addRuns(env, 'p1', 8);
+  assert.equal((await claimSeasonGift(env, 'p1', 'S1', 1, S1_START - 1)).reason, 'out_of_season');
+  assert.equal((await claimSeasonGift(env, 'p1', 'S1', 1, Date.parse('2027-01-06T00:00:00Z') / 1000)).reason, 'out_of_season');
+  assert.equal((await claimSeasonGift(env, 'p1', 'S1', 2, IN_SEASON)).reason, 'need_previous');
+  const a = await claimSeasonGift(env, 'p1', 'S1', 1, IN_SEASON);
   assert.deepEqual([a.ok, a.granted, a.balance], [true, 90, 90]);
-  const dup = await claimSeasonGift(env, 'p1', 's1', 1);
+  const dup = await claimSeasonGift(env, 'p1', 'S1', 1, IN_SEASON);
   assert.deepEqual([dup.ok, dup.reason, dup.balance], [false, 'already_claimed', 90]);
-  assert.equal((await claimSeasonGift(env, 'p1', 's1', 2)).balance, 180);
-  assert.equal((await claimSeasonGift(env, 'p1', 's1', 3)).reason, 'bad_request');
-  assert.equal((await claimSeasonGift(env, 'p1', 'bad id!', 1)).reason, 'bad_request');
-  assert.equal(await balanceOf(env, 'p1'), 180, 'never more than 2 x 90 per season');
-  assert.equal((await claimSeasonGift(env, 'p1', 's2', 1)).balance, 270);
+  assert.equal((await claimSeasonGift(env, 'p1', 'S1', 2, Date.parse('2026-12-31T00:00:00Z') / 1000)).balance, 180, 'grace period works');
   assert.equal(await balanceOf(env, 'p2'), 0, 'other account untouched');
+});
+
+test('season gift: too few completed runs refused; runs outside the window, open or 0-battle runs do not count', async () => {
+  const env = mkEnv();
+  addRuns(env, 'p1', 2);
+  addRuns(env, 'p1', 5, S1_START - 5 * 86400);      // before the season
+  addRuns(env, 'p1', 5, IN_SEASON, 0);              // closed with no battles
+  env.DB.db.prepare(`INSERT INTO runs (run_id, player_id, mode, rules_version, state, created_at) VALUES ('open1', 'p1', 'normal', 'r', 'open', ?)`).run(IN_SEASON);
+  addRuns(env, 'p2', 3);                            // someone else's runs
+  assert.equal((await claimSeasonGift(env, 'p1', 'S1', 1, IN_SEASON)).reason, 'not_enough_runs');
+  addRuns(env, 'p1', 1);
+  assert.equal((await claimSeasonGift(env, 'p1', 'S1', 1, IN_SEASON)).ok, true);
+  assert.equal((await claimSeasonGift(env, 'p1', 'S1', 2, IN_SEASON)).reason, 'not_enough_runs', 'milestone 2 needs 8');
+  addRuns(env, 'p1', 5);
+  assert.equal((await claimSeasonGift(env, 'p1', 'S1', 2, IN_SEASON)).ok, true);
+});
+
+test('season gift: shares the 900 balance cap with the daily gift', async () => {
+  const env = mkEnv();
+  addRuns(env, 'p1', 8);
+  await applyDelta(env, 'p1', GIFT.balance_cap - 40, 'grant:test', 'fill');
+  const a = await claimSeasonGift(env, 'p1', 'S1', 1, IN_SEASON);
+  assert.deepEqual([a.ok, a.granted, a.balance], [true, 40, GIFT.balance_cap]);
+  const b = await claimSeasonGift(env, 'p1', 'S1', 2, IN_SEASON);
+  assert.deepEqual([b.ok, b.reason], [false, 'at_cap']);
+  assert.equal(await balanceOf(env, 'p1'), GIFT.balance_cap);
 });
