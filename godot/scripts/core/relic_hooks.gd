@@ -1788,6 +1788,8 @@ static func _owned_defs(combat) -> Array:
 ## (combat.relic_ids order) — mirrors JS `for(const r of rlist(s)) if(r.modDmg) v=r.modDmg(...)`.
 ## No-op today (no relics loaded): returns `value` unchanged.
 static func run_value_hook(combat, event: String, ctx: Dictionary, value) -> Variant:
+	if not _declares(combat, event):
+		return value
 	var v = value
 	for def in _owned_defs(combat):
 		var hk: String = def.hook_key if "hook_key" in def else ""
@@ -1797,6 +1799,28 @@ static func run_value_hook(combat, event: String, ctx: Dictionary, value) -> Var
 		if TABLE.has(hk) and (TABLE[hk] as Dictionary).has(event):
 			v = (TABLE[hk] as Dictionary)[event].call(ctx)
 	return v
+
+## True when at least one owned relic declares a handler for `event`. Cached on the combat object,
+## keyed by the relic_ids signature, so a pickup mid-combat invalidates it. Hot-path guard only:
+## skipping is result-identical because run_value_hook returns `value` untouched with no handler.
+static func _declares(combat, event: String) -> bool:
+	if combat == null or not (combat is Object) or not ("relic_ids" in combat):
+		return true
+	var sig: int = (combat.relic_ids as Array).hash()
+	var cache: Dictionary = combat.get_meta("_hook_decl", {})
+	if cache.get("sig", -1) != sig or not cache.has("ev"):
+		cache = {"sig": sig, "ev": {}}
+		combat.set_meta("_hook_decl", cache)
+	var ev: Dictionary = cache["ev"]
+	if not ev.has(event):
+		var found := false
+		for def in _owned_defs(combat):
+			var hk: String = def.hook_key if "hook_key" in def else ""
+			if hk != "" and TABLE.has(hk) and (TABLE[hk] as Dictionary).has(event):
+				found = true
+				break
+		ev[event] = found
+	return bool(ev[event])
 
 ## Fires every owned relic's hook for `event`, ignoring return values (pure side-effect
 ## hooks: onHit/onKill/onShield/onThorns/onDmgTaken/onTurnStart/onRollEnd). No-op today.

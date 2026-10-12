@@ -680,6 +680,15 @@ static func _int_list(a: Array) -> Array:
 ## used up this turn, or given an illegal target. That last case matters: JS originally had
 ## no `else` on the kind dispatch, so an unrecognised kind still charged the mana and burned
 ## the turn's use while doing nothing.
+## Mana cost of an active after relic hooks (hollowchalice etc). Accepts a RelicDef or a relic id.
+## The UI must use this, never the raw def.act_cost, for affordability.
+func active_cost(def_or_id) -> int:
+	var d = RelicRegistry.get_def(def_or_id) if def_or_id is String else def_or_id
+	if d == null:
+		return 0
+	return int(RelicHooks.run_value_hook(self, "active_cost", {"combat": self, "def": d}, int(d.act_cost)))
+
+
 func play_active(relic_id: String, target_uid: int = -1) -> bool:
 	if won or lost:
 		return false
@@ -689,7 +698,7 @@ func play_active(relic_id: String, target_uid: int = -1) -> bool:
 	var a: Dictionary = def.act if "act" in def else {}
 	if a.is_empty():
 		return false
-	var cost := int(RelicHooks.run_value_hook(self, "active_cost", {"combat": self, "def": def}, int(def.act_cost)))
+	var cost := active_cost(def)
 	if mana < cost:
 		return false
 

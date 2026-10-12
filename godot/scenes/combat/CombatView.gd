@@ -939,9 +939,10 @@ func _update_hud() -> void:
 		if def == null:
 			continue
 		if int(def.act_cost) > 0:
-			var affordable := _combat.mana >= int(def.act_cost)
+			var act_cost := _combat.active_cost(def)
+			var affordable := _combat.mana >= act_cost
 			actives.append({"id": String(def.id), "icon": _relic_icon_for(def),
-				"charges": int(def.act_cost), "spent": not affordable,
+				"charges": act_cost, "spent": not affordable,
 				"armed": _selected_active_id == String(def.id), "tip": _relic_tooltip(def)})
 		else:
 			relics.append({"icon": _relic_icon_for(def), "tip": _relic_tooltip(def)})
@@ -2104,7 +2105,7 @@ func _on_active_pressed(relic_id: String) -> void:
 	var def: RelicDef = RelicRegistry.get_def(relic_id)
 	if def == null:
 		return
-	if _combat.mana < int(def.act_cost):
+	if _combat.mana < _combat.active_cost(def):
 		return                                # the tile is already disabled; belt and braces
 
 	if def.act_target() == "none":

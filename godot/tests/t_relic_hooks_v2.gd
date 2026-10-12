@@ -400,6 +400,14 @@ func test_pacts_v2() -> void:
 	var m0 := h.mana
 	_assert(h.play_active("a_restore", h.party[0].uid), "chalice: active plays")
 	_assert(m0 - h.mana == maxi(1, cost0 - 2), "chalice: active cost %d -> %d" % [cost0, m0 - h.mana])
+	# the view's affordability check goes through active_cost(): cost-4 active playable at mana 2
+	var ch := _combat(["r_hollowchalice", "a_restore"], 93)
+	var rdef = RelicRegistry.get_def("a_restore")
+	var raw_cost := int(rdef.act_cost)
+	_assert(ch.active_cost(rdef) == maxi(1, raw_cost - 2) and ch.active_cost("a_restore") == ch.active_cost(rdef), "chalice: active_cost() applies the hook")
+	ch.mana = maxi(1, raw_cost - 2)
+	_assert(ch.mana < raw_cost and ch.mana >= ch.active_cost(rdef), "chalice: view affordability agrees (mana %d, raw %d)" % [ch.mana, raw_cost])
+	_assert(ch.play_active("a_restore", ch.party[0].uid), "chalice: playable below raw cost")
 	var u2: Unit = h.party[0]
 	var mfi := -1
 	for fi in 6:
@@ -450,6 +458,17 @@ func test_class_ups() -> void:
 	a4.alive_enemies()[0].hp = 2
 	DamagePipeline.resolve({"combat": a4, "src": a4.party[0], "tgt": a4.alive_enemies()[0], "value": 999, "attack": true, "face_type": "dmg"})
 	_assert(a2.rerolls == rr2 and a4.rerolls == rr2, "alphafang: tick kill and non-beast kill refund nothing")
+	# alphafang: an AoE beast face that kills counts as a beast-face kill
+	var a5 := _combat(["r_alphafang"], 101, keys)
+	var rr5 := a5.rerolls
+	var bu: Unit = a5.party[1]
+	bu.die[0] = {"type": "dmg", "value": 50, "keywords": ["aoe"]}
+	bu.set_roll(0, false)
+	for en in a5.alive_enemies():
+		en.hp = 1
+		en.shield = 0
+	_assert(a5.use_die(bu.uid, bu.uid), "alphafang: aoe face used")
+	_assert(a5.rerolls == rr5 + 1, "alphafang: AoE beast face kill refunds 1 Reroll (once per turn)")
 	# falconhood: pierce +5 for bird (was +3); bird pierce ignores Thorns.
 	var fb := _combat([], 102, keys)
 	var fc := _combat(["r_falconhood"], 102, keys)
