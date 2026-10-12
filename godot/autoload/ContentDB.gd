@@ -170,7 +170,39 @@ const CLASS_PASSIVE := {
 ## has not been fought yet. Measured, the real figure was +47%.
 ##
 ## Do not "restore" 1.15 to match src/data.js without also changing the row count back.
-const TUNE := {"base": 10.5, "growth": 1.125, "growth2": 1.05, "knee": 12, "elite_mult": 1.25}
+## Encounter-budget knobs. Defaults here; assets/data/rules/combat_tune.json overrides them at load.
+var TUNE: Dictionary = {"base": 10.5, "growth": 1.125, "growth2": 1.05, "knee": 12, "elite_mult": 1.25}
+
+## Rule tables (L1, contract 3.1): res://assets/data/rules/*.json. Designers tune these, not code.
+const RULES_DIR := "res://assets/data/rules/"
+var ascension_table: Array = []   ## index = ascension level 0..10, each a Dictionary (see ascension.json)
+var combat_tune: Dictionary = {}  ## attrition, spike, phase_thresholds, newcomer_runs
+var boons: Dictionary = {}        ## boon_id -> {id, name_key, effect}
+
+
+func _load_rules_json(file: String) -> Dictionary:
+	var f := FileAccess.open(RULES_DIR + file, FileAccess.READ)
+	if f == null:
+		push_error("ContentDB: cannot open %s%s" % [RULES_DIR, file])
+		return {}
+	var parsed = JSON.parse_string(f.get_as_text())
+	f.close()
+	if typeof(parsed) != TYPE_DICTIONARY:
+		push_error("ContentDB: %s%s is not a JSON object" % [RULES_DIR, file])
+		return {}
+	return parsed
+
+
+func _load_rules() -> void:
+	var asc := _load_rules_json("ascension.json")
+	ascension_table = (asc.get("levels", []) as Array).duplicate(true)
+	combat_tune = _load_rules_json("combat_tune.json")
+	if combat_tune.has("TUNE"):
+		for k in (combat_tune["TUNE"] as Dictionary):
+			TUNE[k] = (combat_tune["TUNE"] as Dictionary)[k]
+	boons = {}
+	for b in (_load_rules_json("boons.json").get("boons", []) as Array):
+		boons[String((b as Dictionary).get("id", ""))] = (b as Dictionary).duplicate(true)
 
 
 ## Populated in _init() (constructor), NOT _ready(): SceneTree scripts launched via
@@ -184,6 +216,7 @@ func _init() -> void:
 	_load_bosses()
 	_load_events()
 	_load_part_faces()
+	_load_rules()
 
 
 func _load_heroes() -> void:
@@ -686,31 +719,13 @@ func scale_die(die: Array, s: float) -> Array:
 ## (that stays hp/dmg/boss_hp/weaken, unchanged) — they exist purely for the reward/RunMap
 ## callers this dictionary is also handed to.
 func ascension_mods(a: int) -> Dictionary:
-	var m := {
-		"hp": 1.0, "dmg": 1.0, "boss_hp": 1.0, "weaken": false,
-		"elite_extra": 0, "rewards": 3, "extra_elite": 0,
-	}
-	if a >= 1:
-		m.hp *= 1.10
-	if a >= 2:
-		m.elite_extra = 1
-	if a >= 3:
-		m.dmg *= 1.10
-	if a >= 4:
-		m.boss_hp *= 1.15
-	if a >= 5:
-		m.weaken = true
-	if a >= 6:
-		m.hp *= 1.10
-	if a >= 7:
-		m.rewards = 2
-	if a >= 8:
-		m.dmg *= 1.15
-	if a >= 9:
-		m.extra_elite = 2
-	if a >= 10:
-		m.hp *= 1.20
-		m.dmg *= 1.20
+	var lvl := clampi(a, 0, maxi(0, ascension_table.size() - 1))
+	if ascension_table.is_empty():
+		push_error("ContentDB.ascension_mods: ascension.json did not load")
+		return {"hp": 1.0, "dmg": 1.0, "boss_hp": 1.0, "weaken": false,
+			"elite_extra": 0, "rewards": 3, "extra_elite": 0, "continue_heal_pct": 40}
+	var m: Dictionary = (ascension_table[lvl] as Dictionary).duplicate(true)
+	m["rewards"] = int(m.get("reward_cards", 3))   # the pre-L1 key name, kept for old callers
 	return m
 
 
