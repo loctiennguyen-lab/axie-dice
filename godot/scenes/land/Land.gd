@@ -75,7 +75,7 @@ const BIOMES: Array[Dictionary] = [
 		"trees": ["Mystic/Tree/M_Tree_01_Allside", "Mystic/Tree/M_Tree_02_Allside", "Mystic/Tree/M_Tree_03_Allside", "Mystic/Tree/M_Tree_04_Allside"],
 		"shrubs": ["Mystic/Shrub/M_Shrub01_Allside", "Mystic/Shrub/M_Shrub02_Allside"],
 		"rocks": ["Mystic/Rock/Rock_01", "Mystic/Rock/Rock_02"],
-		"tufts": ["Mystic/Ground/M_TileGround_02", "Mystic/Ground/M_TileGround_03", "Mystic/Ground/M_TileGround_04"]},
+		"tufts": []},
 	{"ground": ["FFF3C8", "F5D87E", "DDAE4E"], "cliff": "9A7A4A", "sky": ["9FD3F5", "FFF1D0"],
 		"trees": ["Genesis/Tree/SM_Tree_G_01", "Genesis/Tree/SM_Tree_G_02", "Genesis/Tree/SM_Tree_G_03", "Genesis/Tree/SM_Tree_G_06"],
 		"shrubs": ["Genesis/Shrub/G_Shrub01_Allside", "Genesis/Shrub/G_Shrub02_Allside"],
@@ -117,6 +117,8 @@ var _right := Vector3.ZERO
 var _scene_cache := {}
 var _nodes3d := {}                   # id -> {node, scale}
 var _blocked: Array[Dictionary] = [] # {p: Vector3, r: float}
+var _lanes: Array[Array] = []        # [from, to] ground segments the Axies walk; props stay off them
+var _hub := Vector3.ZERO             # where all lanes meet, in front of the Portal
 var _axies: Array[Dictionary] = []
 
 var _ui: Control
@@ -247,7 +249,7 @@ func _build_world() -> void:
 	env.background_mode = Environment.BG_CANVAS   # the sky gradient lives on a CanvasLayer behind
 	env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
 	var biome: Dictionary = BIOMES[_tier - 1]
-	env.ambient_light_color = Color("fff1d6") if _tier != 4 and _tier != 6 else Color("e6dcff")
+	env.ambient_light_color = Color("fff1d6")
 	env.ambient_light_energy = 0.75
 	env.tonemap_mode = Environment.TONE_MAPPER_FILMIC
 	var we := WorldEnvironment.new()
@@ -257,7 +259,7 @@ func _build_world() -> void:
 	var sun := DirectionalLight3D.new()
 	sun.rotation_degrees = Vector3(-52, -30, 0)
 	sun.light_energy = 1.25
-	sun.light_color = Color("ffe2b0") if _tier != 4 and _tier != 6 else Color("f3dcff")   # warm late-afternoon sun
+	sun.light_color = Color("ffe2b0")   # warm late-afternoon sun
 	sun.shadow_enabled = true
 	sun.shadow_blur = 2.2            # soft penumbra
 	sun.light_angular_distance = 0.6
@@ -367,10 +369,13 @@ uniform sampler2D tint : source_color, repeat_disable;
 uniform sampler2D dirt : source_color, repeat_enable, filter_linear_mipmap, hint_default_white;
 void fragment() {
 	vec3 t = texture(tint, UV).rgb;
-	float l1 = dot(texture(dirt, UV * 5.0).rgb, vec3(0.333));
-	float l2 = dot(texture(dirt, UV * 1.7 + vec2(0.31, 0.57)).rgb, vec3(0.333));
-	float m = clamp((l1 * 0.6 + l2 * 0.4 - 0.62) * 2.6 + 1.0, 0.65, 1.2);
-	ALBEDO = t * m;
+	// The source texture is low-contrast, so measure each sample against its own blurred mean and
+	// amplify the difference: mottled soil patches at two scales.
+	float d1 = dot(texture(dirt, UV * 5.0).rgb - textureLod(dirt, UV * 5.0, 9.0).rgb, vec3(0.333));
+	float d2 = dot(texture(dirt, UV * 1.7 + vec2(0.31, 0.57)).rgb - textureLod(dirt, UV * 1.7, 9.0).rgb, vec3(0.333));
+	float m = clamp(1.0 + d1 * 7.0 + d2 * 9.0, 0.5, 1.2);
+	// Darker patches shift toward damp earth brown, so the slab reads as soil, not paint.
+	ALBEDO = mix(t * vec3(0.74, 0.6, 0.5), t, smoothstep(0.45, 1.0, m)) * min(m, 1.12);
 	ROUGHNESS = 1.0;
 }
 """
@@ -399,8 +404,15 @@ func _build_buildings() -> void:
 		var reach := (box.size.x + box.size.z) * 0.5 * s * 0.5
 		_blocked.append({"p": ground, "r": reach + 0.8})
 		_blocked.append({"p": ground - _g * (reach + 1.5), "r": 2.6})   # name plate zone
-	# Run plate zone under the Portal.
+	# Run plate zone under the Portal, plus a ~150 px (design) keep-out ring around the Portal itself.
 	_blocked.append({"p": _ground_at(960, 700), "r": 4.5})
+	_blocked.append({"p": _ground_at(960, 540), "r": 9.0})
+	# Walking lanes: hub in front of the Portal -> the front of every other house.
+	_hub = _ground_at(960, 760)
+	for b in _live:
+		if String(b["id"]) == "portal":
+			continue
+		_lanes.append([_hub, _ground_at(float(b["cx"]), float(b["base"]) + 70.0)])
 	for p in _plots:
 		_blocked.append({"p": _ground_at(float(p["cx"]), float(p["base"]) - 40.0), "r": 6.0})
 
@@ -472,7 +484,20 @@ func _place_fit(path: String, p: Vector3, target: float, by_height: bool) -> voi
 	_blocked.append({"p": p, "r": 0.9})
 
 
+## True if `p` is closer than `margin` to a walking lane (props keep off the paths).
+func _on_lane(p: Vector3, margin: float) -> bool:
+	for l in _lanes:
+		var a: Vector3 = l[0]
+		var ab: Vector3 = (l[1] as Vector3) - a
+		var t := clampf((p - a).dot(ab) / maxf(ab.length_squared(), 0.001), 0.0, 1.0)
+		if p.distance_to(a + ab * t) < margin:
+			return true
+	return false
+
+
 func _blocked_at(p: Vector3, margin: float) -> bool:
+	if _on_lane(p, 1.6 + margin):
+		return true
 	for b in _blocked:
 		if (b["p"] as Vector3).distance_to(p) < float(b["r"]) + margin:
 			return true
@@ -517,12 +542,25 @@ func _spawn_axie() -> void:
 
 
 func _walk_point() -> Vector3:
-	var half := PLOT_SIDE * 0.5 - 2.5
-	for i in 40:
-		var p := Vector3(_rng.randf_range(-half, half), 0, _rng.randf_range(-half, half))
-		if not _blocked_at(p, 0.6):
-			return p
-	return _ground_at(960, 560)
+	if _lanes.is_empty():
+		return _hub
+	var l: Array = _lanes[_rng.randi() % _lanes.size()]
+	return (l[0] as Vector3).lerp(l[1], _rng.randf())
+
+
+## True if two ground points are not on the same lane segment (so the direct line is unsafe).
+func _on_other_lane(a: Vector3, b: Vector3) -> bool:
+	for l in _lanes:
+		var p0: Vector3 = l[0]
+		var ab: Vector3 = (l[1] as Vector3) - p0
+		var ok := true
+		for q in [a, b]:
+			var t := clampf(((q as Vector3) - p0).dot(ab) / maxf(ab.length_squared(), 0.001), 0.0, 1.0)
+			if (q as Vector3).distance_to(p0 + ab * t) > 0.6:
+				ok = false
+		if ok:
+			return false
+	return true
 
 
 func _process(delta: float) -> void:
@@ -532,7 +570,10 @@ func _process(delta: float) -> void:
 		if a["state"] == "idle":
 			a["t"] -= delta
 			if a["t"] <= 0.0:
-				a["target"] = _walk_point()
+				var dest := _walk_point()
+				# Different lane: go through the hub first so the straight line never cuts across props.
+				a["via"] = [dest] if _on_other_lane(node.position, dest) else []
+				a["target"] = _hub if not (a["via"] as Array).is_empty() else dest
 				var run := _rng.randf() < 0.2
 				a["speed"] = RUN_SPEED if run else WALK_SPEED
 				a["state"] = "move"
@@ -541,6 +582,9 @@ func _process(delta: float) -> void:
 			var to: Vector3 = a["target"] - node.position
 			to.y = 0
 			var d := to.length()
+			if d < 0.15 and not (a.get("via", []) as Array).is_empty():
+				a["target"] = (a["via"] as Array).pop_back()
+				continue
 			if d < 0.15:
 				a["state"] = "idle"
 				a["t"] = _rng.randf_range(1.0, 4.5)
@@ -636,7 +680,7 @@ func _lbl(text: String, size: int, color: Color, display: bool = true) -> Label:
 	return l
 
 
-func _key_chip(key: int, size: int = 20) -> PanelContainer:
+func _key_chip(key: int, size: int = 26) -> PanelContainer:
 	var chip := PanelContainer.new()
 	var sb := _style(DangoTheme.Surface.PANEL, 6, 0, Vector2(0, 0))
 	sb.bg_color = KEY_CHIP
@@ -670,14 +714,14 @@ func _make_plate(id: String) -> PanelContainer:
 	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	col.add_child(row)
 	row.add_child(_key_chip(int(m["key"])))
-	row.add_child(_lbl(String(m["name"]), 19, DangoTheme.INK))
+	row.add_child(_lbl(String(m["name"]), 22, DangoTheme.INK))
 	var sub := String(m["sub"])
 	if locked:
 		sub = "Builds at %s Land" % _need_name(id)
 	elif id == "gallery":
 		sub = "Coming soon"
 	if sub != "":
-		var s := _lbl(sub, 12, LOCK_TEXT if locked else DangoTheme.INK_ON_CREAM_MUTED, false)
+		var s := _lbl(sub, 18, LOCK_TEXT if locked else DangoTheme.INK_ON_CREAM_MUTED, false)
 		s.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		col.add_child(s)
 	return plate
@@ -1047,7 +1091,12 @@ func _layout() -> void:
 		if _badges.has(id):
 			var pill: Control = _badges[id]
 			pill.reset_size()
-			pill.position = Vector2(cx + w * 0.5 - 6.0 - pill.get_combined_minimum_size().x, base - h + 4.0)
+			if _plates.has(id):
+				var pl: Control = _plates[id]
+				var pr := pl.position + Vector2(pl.get_combined_minimum_size().x, 0.0)
+				pill.position = Vector2(pr.x - pill.get_combined_minimum_size().x * 0.6, pr.y - 20.0)
+			else:
+				pill.position = Vector2(cx + w * 0.5 - 6.0 - pill.get_combined_minimum_size().x, base - h + 4.0)
 	for p in _plots:
 		var id := String(p["id"])
 		var cx := float(p["cx"])
@@ -1061,9 +1110,9 @@ func _layout() -> void:
 	# Run plate / continue panel sit under the Portal.
 	var portal_base := 640.0 + dy
 	_run_plate.reset_size()
-	_run_plate.position = Vector2(960.0 - 170.0, portal_base + 4.0)
+	_run_plate.position = Vector2(960.0 - 170.0, portal_base + 14.0)
 	_continue_panel.reset_size()
-	_continue_panel.position = Vector2(960.0 - 210.0, portal_base + 4.0)
+	_continue_panel.position = Vector2(960.0 - 210.0, portal_base + 14.0)
 	var portal_hit: Button = _hits["portal"]
 	portal_hit.size.y = maxf(portal_hit.size.y, 1.0)
 

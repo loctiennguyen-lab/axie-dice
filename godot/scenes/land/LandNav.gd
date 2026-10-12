@@ -15,8 +15,8 @@ const LEGACY_MENU := "res://scenes/main_menu/MainMenu.tscn"
 const SCREENS: Dictionary = {
 	&"run_setup": {"scene": "res://scenes/run_setup/RunSetup.tscn", "fallback": LEGACY_MENU},
 	&"team_select": {"scene": "res://scenes/main_menu/TeamSelect.tscn"},
-	&"missions": {"scene": "res://scenes/missions/Missions.tscn"},
-	&"echobox": {"scene": "res://scenes/echobox/EchoBox.tscn"},
+	&"missions": {"scene": "res://scenes/missions/MissionsScreen.tscn"},
+	&"echobox": {"scene": "res://scenes/echobox/EchoBoxScreen.tscn"},
 	&"pass": {"scene": "res://scenes/pass/Pass.tscn"},
 	&"store": {"scene": "res://scenes/store/Store.tscn"},
 	&"vault": {"scene": "res://scenes/vault/Vault.tscn"},

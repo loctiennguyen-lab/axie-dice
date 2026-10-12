@@ -42,6 +42,13 @@ func _ready() -> void:
 		_check(LandNav.legacy_setup_open, "run_setup fallback phải bật legacy_setup_open")
 	LandNav.back_to_land()
 	_check(not LandNav.legacy_setup_open, "back_to_land phải tắt legacy_setup_open")
+	# Round 3 screens: keys 1 (Portal) and 4 (Echo Box) open the real scenes; Back returns to Land.
+	LandNav.open(&"run_setup")
+	_check(LandNav.last_path == "res://scenes/run_setup/RunSetup.tscn", "key 1 -> RunSetup: " + LandNav.last_path)
+	_check(not LandNav.legacy_setup_open, "RunSetup thật không được bật legacy_setup_open")
+	LandNav.open(&"echobox")
+	_check(LandNav.last_path == "res://scenes/echobox/EchoBoxScreen.tscn", "key 4 -> EchoBoxScreen: " + LandNav.last_path)
+	_check(LandNav.SCREENS[&"missions"]["scene"] == "res://scenes/missions/MissionsScreen.tscn", "missions route")
 	# houses.json
 	var txt := FileAccess.get_file_as_string("res://assets/land/houses.json")
 	var arr = JSON.parse_string(txt)
