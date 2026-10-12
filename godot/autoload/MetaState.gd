@@ -576,39 +576,41 @@ func buy_unlock(id: String) -> String:
 # What the meta grants a run (~= JS newRun(), client.html:4669-4673)
 # ===========================================================================
 
-## RANKED RUNS GET NOTHING. Every value below is zeroed for a ranked run, because meta
-## progression is local and never synced, so a replay on the server cannot reproduce it — a
-## ranked board where a player's local purchases change the outcome is not a board at all.
-## This is the single most important line in this file to keep true.
+## RANKED (B3, Liam 12/10): unlock cày ĐƯỢC dùng trong ranked (người cày không thua người nạp).
+## Ranked nhận bonus của các UNLOCK (u_reroll, u_reroll2, u_hp, u_hp2, u_start), nhưng KHÔNG nhận
+## perk của Pass cũ và không nhận reward-reroll bonus: những thứ đó không phải unlock cày.
+## HỆ QUẢ CHO VERIFIER (làn A, F9 trong docs/architecture/server-authoritative-rng.md): một replay
+## phía server không thể đọc MetaState của máy người chơi. Verifier phải nhận loadout unlock được
+## TIÊM VÀO (từ header run do server giữ) rồi tính bonus từ đó, không gọi hàm này. Tới khi A xong,
+## replay ranked chỉ khớp trên chính máy có cùng unlock.
 func run_bonuses(is_ranked: bool) -> Dictionary:
-	if is_ranked:
-		return {"bonus_reroll": 0, "hp_bonus": 0, "start_relic_max_rarity": -1,
-			"reward_reroll_max": 1}
 	var reroll := 0
 	if has_unlock("u_reroll"):
 		reroll += 1
 	if has_unlock("u_reroll2"):
 		reroll += 1
-	reroll += int(perks.get("reroll", 0))
+	if not is_ranked:
+		reroll += int(perks.get("reroll", 0))
 
 	var hp := 0
 	if has_unlock("u_hp"):
 		hp += 3
 	if has_unlock("u_hp2"):
 		hp += 2
-	hp += 4 * int(perks.get("hp4", 0))
+	if not is_ranked:
+		hp += 4 * int(perks.get("hp4", 0))
 
 	# JS: sr = u_start + perks.relic0 + perks.relic1 (a count), srRar = perks.relic1 ? 1 : 0.
 	# One starting relic is granted when any of those is present; the rarity ceiling rises to
 	# Rare only with the relic1 perk.
-	var grants_relic: bool = has_unlock("u_start") or int(perks.get("relic0", 0)) > 0 \
-		or int(perks.get("relic1", 0)) > 0
+	var perk_relic: bool = not is_ranked and (int(perks.get("relic0", 0)) > 0 or int(perks.get("relic1", 0)) > 0)
+	var grants_relic: bool = has_unlock("u_start") or perk_relic
 	var rarity_cap: int = -1
 	if grants_relic:
-		rarity_cap = 1 if int(perks.get("relic1", 0)) > 0 else 0
+		rarity_cap = 1 if (not is_ranked and int(perks.get("relic1", 0)) > 0) else 0
 
 	# src/client.html:4681 — the 'rrw' perk lets a reward set be rerolled more than once per node.
-	var reward_rerolls := 1 + int(perks.get("rrw", 0))
+	var reward_rerolls := 1 + (0 if is_ranked else int(perks.get("rrw", 0)))
 
 	return {"bonus_reroll": reroll, "hp_bonus": hp, "start_relic_max_rarity": rarity_cap,
 		"reward_reroll_max": reward_rerolls}
