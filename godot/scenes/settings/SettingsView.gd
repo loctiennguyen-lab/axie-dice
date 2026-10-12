@@ -1,34 +1,28 @@
 extends Control
-## Settings. Five controls, every one of them connected to something real.
-##
-## REPLAY THE TUTORIAL moved here on 2026-09-20 with MNU-06: Main Menu used to carry a "?" and a
-## "⚙" floating in its top-right corner, neither of which meta-screens-v2.html draws, while the
-## nav grid the mockup DOES draw was a tile short. Settings is that sixth tile now, and the
-## tutorial a player wants to see again belongs on the screen they go to to change things.
-##
-## The volume backend has existed since the audio pass (MetaState.audio_music_volume /
-## audio_sfx_volume / audio_muted, already persisted and already read by CombatAudioDirector) —
-## there was simply no screen to move them from. Reduce-flashing is new here, and is wired to
-## the two effects that actually flash (CombatView.flashes_suppressed()).
-##
-## ABANDON RUN is the one destructive control in the game, so it asks twice and says exactly
-## what it will destroy. It is also hidden — not greyed — when there is no saved run, because
-## "abandon" with nothing to abandon is a question the player should never be asked.
+## M11 Settings (Esc on the hub), Round 3. Spec: design/handoffs/ui-02-round3 README M11, frames M11a-d.
+## Section index (260) + one column (max 960), rows >= 56, toggles print On/Off, sliders 300.
+## Every control here is wired to something real: music/sfx/mute (MetaState + CombatAudioDirector),
+## reduce flashing (CombatView.flashes_suppressed), replay tutorial, abandon run, account.
+## Not drawn, because nothing backs them yet: text size, UI scale, spending presets, hide-Aid, language,
+## keyboard map, About. Gamepad row dropped on purpose (no gamepad). Spending limit shows only the L1 note.
+## ABANDON RUN asks twice and is absent (not greyed) when there is no saved run; with a mission stake
+## in escrow it warns the stake is lost and settles it (MetaState.settle_mission_stake(false)).
+## In-run mode (opened from the combat menu): set `SettingsView.in_run = true` and `return_scene`
+## before changing to Settings.tscn; Back reads "Back to run", the Run section goes first.
 
-const _ROW_SEP := 10
-
-const MAIN_MENU_SCENE := "res://scenes/main_menu/MainMenu.tscn"
-
-## FIX-PASS-02 §1 item 4: this screen had NO `DangoTheme` reference at all before this pass —
-## no plate, no scrim, no safe area, no shared footer (it rendered on whatever the previous scene
-## left behind). `DangoScreen.build()` requires a real plate texture and none is specified for
-## Settings anywhere in docs/design-handoff-v2 or the HTML handoff (no Settings mockup exists).
-## Picked an otherwise-unused background from the shared meta-screen set so the shell has
-## something to paint; this is a placeholder pending art-director sign-off, not a design choice.
 const BG_TEXTURE := "res://assets/backgrounds/origins/scene/4-entrance.jpg"
+const INDEX_W := 260.0
+const COL_MAX := 960.0
+const ROW_MIN := 56.0
+
+static var in_run: bool = false
+static var return_scene: String = ""
 
 var _content: VBoxContainer
 var _abandon_status: Label = null
+var _sections: Dictionary = {}   # name -> header Label
+var _scroll: ScrollContainer
+var _first_focus: Control = null
 
 
 func _ready() -> void:
@@ -37,13 +31,90 @@ func _ready() -> void:
 	var footer: HBoxContainer = shell["footer"]
 
 	_content = VBoxContainer.new()
-	_content.add_theme_constant_override("separation", _ROW_SEP)
+	_content.add_theme_constant_override("separation", 10)
 	_content.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 
-	_title("SETTINGS")
-	_section("ACCOUNT")
-	_build_account_section()
-	_section("AUDIO")
+	var order: Array[String] = ["Audio", "Accessibility", "Aid and spending", "How to play", "Run", "Account"]
+	if in_run:
+		order = ["Run", "Audio", "Accessibility", "Aid and spending", "How to play", "Account"]
+	for sec in order:
+		_section(sec)
+		match sec:
+			"Audio": _build_audio()
+			"Accessibility": _build_accessibility()
+			"Aid and spending":
+				_row("Spending limit (monthly)", "Applies when purchases open.")
+			"How to play": _build_tutorial()
+			"Run": _build_abandon_section()
+			"Account": _build_account_section()
+
+	var h := _settings_max_height()
+	_scroll = DangoScreen.fit_or_scroll(_content, h)
+	var top := VBoxContainer.new()
+	top.add_theme_constant_override("separation", 6)
+	top.add_child(DangoTheme.display_label("Settings", 34, DangoTheme.CREAM_RAISED, 800, 0.02))
+	top.add_child(DangoTheme.prose_label(
+		"Opened from the combat menu. The run is paused." if in_run else "Every toggle states On / Off in words.",
+		14, DangoTheme.CREAM_RAISED, 600))
+	var cols := HBoxContainer.new()
+	cols.add_theme_constant_override("separation", 24)
+	cols.add_child(_build_index(order))
+	var col_wrap := MarginContainer.new()
+	col_wrap.custom_minimum_size.x = 0
+	col_wrap.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	col_wrap.add_child(_scroll)
+	cols.add_child(col_wrap)
+	top.add_child(cols)
+	content.add_child(top)
+	_content.custom_minimum_size.x = 0
+
+	DangoScreen.add_back_button(footer, _on_back).text = "BACK TO RUN" if in_run else "BACK"
+	if _first_focus != null:
+		_first_focus.call_deferred("grab_focus")
+
+
+func _on_back() -> void:
+	if in_run and return_scene != "":
+		var to := return_scene
+		in_run = false
+		return_scene = ""
+		get_tree().change_scene_to_file(to)
+		return
+	LandNav.back_to_land()
+
+
+func _unhandled_key_input(ev: InputEvent) -> void:
+	if ev is InputEventKey and ev.pressed and not ev.echo and ev.keycode == KEY_ESCAPE:
+		_on_back()
+		get_viewport().set_input_as_handled()
+
+
+func _settings_max_height() -> float:
+	return get_viewport_rect().size.y - DangoScreen.SAFE * 2.0 - DangoScreen.FOOTER_H - 80.0
+
+
+func _build_index(order: Array[String]) -> Control:
+	var v := VBoxContainer.new()
+	v.name = "SectionIndex"
+	v.custom_minimum_size.x = INDEX_W
+	v.add_theme_constant_override("separation", 6)
+	for sec in order:
+		var b := Button.new()
+		b.name = "Index_" + sec.replace(" ", "")
+		b.text = sec
+		b.alignment = HORIZONTAL_ALIGNMENT_LEFT
+		b.custom_minimum_size = Vector2(INDEX_W, 48)
+		DangoTheme.style_button(b, false)
+		b.pressed.connect(func() -> void:
+			var hdr: Control = _sections.get(sec)
+			if hdr != null:
+				_scroll.scroll_vertical = int(hdr.position.y))
+		v.add_child(b)
+	return v
+
+
+func _build_audio() -> void:
 	_slider("Music", MetaState.audio_music_volume, func(v: float) -> void:
 		MetaState.audio_music_volume = v
 		MetaState.save_to_disk()
@@ -52,45 +123,30 @@ func _ready() -> void:
 		MetaState.audio_sfx_volume = v
 		MetaState.save_to_disk()
 		_apply_audio())
-	_checkbox("Mute everything", MetaState.audio_muted, func(on: bool) -> void:
+	_toggle("Mute everything", "", MetaState.audio_muted, func(on: bool) -> void:
 		MetaState.audio_muted = on
 		MetaState.save_to_disk()
 		_apply_audio())
 
-	_section("ACCESSIBILITY")
-	_checkbox("Reduce flashing and screen shake", MetaState.reduce_flash,
-		func(on: bool) -> void:
+
+func _build_accessibility() -> void:
+	_toggle("Reduce flashing and screen shake",
+		"Turns off the screen shake on a hit and the colour flash on a resonant Axie. Dice, actions and damage numbers are untouched, because those tell you what happened.",
+		MetaState.reduce_flash, func(on: bool) -> void:
 			MetaState.reduce_flash = on
 			MetaState.save_to_disk())
-	_body("Turns off the screen shake on a hit and the colour flash on a resonant Axie. "
-		+ "Dice, actions and damage numbers are untouched, because those tell you what happened.")
+	_row("Colour-blind-safe glyphs", "Always on: every mechanic colour ships with its glyph and word.")
 
-	_section("HOW TO PLAY")
-	_body("The tutorial teaches one turn end to end: roll, spend, target, end. It is the same "
-		+ "run the game opens with on a first launch, and replaying it changes nothing you own.")
-	var tutorial_btn := Button.new()
-	tutorial_btn.name = "ReplayTutorialButton"
-	tutorial_btn.text = "REPLAY THE TUTORIAL"
-	tutorial_btn.custom_minimum_size = Vector2(0, 44)
-	DangoTheme.style_button(tutorial_btn, false)
-	tutorial_btn.pressed.connect(func() -> void:
+
+func _build_tutorial() -> void:
+	var btn := Button.new()
+	btn.name = "ReplayTutorialButton"
+	btn.text = "REPLAY THE TUTORIAL"
+	btn.custom_minimum_size = Vector2(0, 44)
+	DangoTheme.style_button(btn, false)
+	btn.pressed.connect(func() -> void:
 		get_tree().change_scene_to_file("res://scenes/tutorial/Tutorial.tscn"))
-	_content.add_child(tutorial_btn)
-
-	_section("RUN")
-	_build_abandon_section()
-
-	# §1 item 4: replaces the manual full-rect MarginContainer + ScrollContainer(EXPAND_FILL) —
-	# same "hug when short, cap and scroll when long" behaviour, now shared with every other
-	# meta screen instead of hand-rolled here.
-	content.add_child(DangoScreen.fit_or_scroll(_content, _settings_max_height()))
-
-	DangoScreen.add_back_button(footer, func() -> void:
-		get_tree().change_scene_to_file(MAIN_MENU_SCENE))
-
-
-func _settings_max_height() -> float:
-	return get_viewport_rect().size.y - DangoScreen.SAFE * 2.0 - DangoScreen.FOOTER_H
+	_row("Replay tutorial", "One turn end to end: roll, spend, target, end. Replaying it changes nothing you own.", btn)
 
 
 ## Pushes the stored levels at the running audio buses immediately, so a slider is audible
@@ -104,21 +160,19 @@ func _apply_audio() -> void:
 
 func _build_abandon_section() -> void:
 	if not RunState.has_saved_run():
-		_body("No run in progress.")
+		_row("Abandon run", "No run in progress.")
 		return
-
-	_body("A run is saved. Abandoning it deletes that save. The Axies, relics and Gene Shard "
-		+ "in it are gone, and Gene Shard already banked from finished runs is not affected.")
+	var stake := int(MetaState.mission_escrow.get("stake", 0))
+	var warn := ("You will lose your stake (%d Shard). This cannot be undone." % stake) if stake > 0 \
+		else "A run is saved. Abandoning it deletes that save. The Axies, relics and Gene Shard in it are gone, and Gene Shard already banked from finished runs is not affected."
 	var confirm := CheckBox.new()
 	confirm.name = "ConfirmAbandonCheck"
 	confirm.text = "Yes, I want to abandon the saved run"
-	_content.add_child(confirm)
-
 	var btn := Button.new()
 	btn.text = "ABANDON RUN"
 	btn.custom_minimum_size = Vector2(0, 44)
 	btn.disabled = true
-	DangoTheme.style_button(btn, false)
+	DangoTheme.style_button(btn, false, true)
 	confirm.toggled.connect(func(on: bool) -> void:
 		btn.disabled = not on)
 	btn.pressed.connect(func() -> void:
@@ -132,8 +186,11 @@ func _build_abandon_section() -> void:
 		if _abandon_status != null:
 			_abandon_status.text = "The saved run has been deleted."
 			_abandon_status.visible = true)
-	_content.add_child(btn)
-
+	var box := HBoxContainer.new()
+	box.add_theme_constant_override("separation", 14)
+	box.add_child(confirm)
+	box.add_child(btn)
+	_row("Abandon mission run" if stake > 0 else "Abandon run", warn, box)
 	_abandon_status = _body("")
 	_abandon_status.visible = false
 
@@ -159,7 +216,7 @@ func _build_account_section() -> void:
 
 	var who := HBoxContainer.new()
 	who.add_theme_constant_override("separation", 10)
-	var name_lbl := DangoTheme.display_label(AccountService.display_name(), 22)
+	var name_lbl := DangoTheme.display_label(AccountService.display_name(), 22, DangoTheme.CREAM_RAISED)
 	who.add_child(name_lbl)
 	if bool(AccountService.account.get("sky_mavis", false)):
 		who.add_child(AccountUI.sky_mavis_badge())
@@ -224,68 +281,79 @@ func _build_account_section() -> void:
 
 # --- small builders ---------------------------------------------------------
 
-func _title(text: String) -> void:
-	var lbl := Label.new()
-	lbl.text = text
-	lbl.add_theme_font_size_override("font_size", 28)
-	lbl.add_theme_color_override("font_color", DangoTheme.PRIMARY)
-	_content.add_child(lbl)
-
-
 func _section(text: String) -> void:
-	var lbl := Label.new()
-	lbl.text = text
-	lbl.add_theme_font_size_override("font_size", 18)
-	lbl.add_theme_color_override("font_color", DangoTheme.PRIMARY)
+	var lbl := DangoTheme.display_label(text, 22, DangoTheme.CREAM_RAISED, 800, 0.02)
+	lbl.name = "Section_" + text.replace(" ", "")
 	_content.add_child(lbl)
+	_sections[text] = lbl
 
 
+## Plain info text under a row group (also used for transient status lines).
 func _body(text: String) -> Label:
-	var lbl := Label.new()
-	lbl.text = text
+	var lbl := DangoTheme.prose_label(text, 14, DangoTheme.CREAM_RAISED, 600)
 	lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	lbl.add_theme_font_size_override("font_size", 14)
-	lbl.add_theme_color_override("font_color", DangoTheme.TEXT_DIM)
 	_content.add_child(lbl)
 	return lbl
 
 
-## A slider with its value ON SCREEN. A bare slider tells the player where the handle is, not
-## what it is set to, and "somewhere near the right" is not a volume anyone can come back to.
+## One settings row: title + optional description on the left, `ctrl` (optional) on the right. Min 56.
+func _row(title: String, desc: String = "", ctrl: Control = null) -> HBoxContainer:
+	var card := PanelContainer.new()
+	card.custom_minimum_size = Vector2(0, ROW_MIN)
+	card.add_theme_stylebox_override("panel", DangoTheme.surface_style(DangoTheme.Surface.CREAM, 12, 2, 0.0, Vector2(16, 8)))
+	var h := HBoxContainer.new()
+	h.add_theme_constant_override("separation", 16)
+	card.add_child(h)
+	var left := VBoxContainer.new()
+	left.add_theme_constant_override("separation", 2)
+	left.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	left.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	var t := DangoTheme.display_label(title, 17, DangoTheme.INK, 800, 0.02)
+	left.add_child(t)
+	if desc != "":
+		var d := DangoTheme.prose_label(desc, 13, DangoTheme.INK_ON_CREAM_MUTED, 600)
+		d.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		left.add_child(d)
+	h.add_child(left)
+	if ctrl != null:
+		ctrl.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		h.add_child(ctrl)
+	_content.add_child(card)
+	return h
+
+
+## A toggle that prints On / Off as text next to the check.
+func _toggle(label: String, desc: String, pressed: bool, on_toggle: Callable) -> void:
+	var box := CheckBox.new()
+	box.name = "%sCheck" % label.split(" ")[0]
+	box.text = "On" if pressed else "Off"
+	box.button_pressed = pressed
+	box.toggled.connect(func(on: bool) -> void:
+		box.text = "On" if on else "Off"
+		on_toggle.call(on))
+	_row(label, desc, box)
+	if _first_focus == null:
+		_first_focus = box
+
+
+## A slider with its value ON SCREEN (300 wide).
 func _slider(label: String, value: float, on_change: Callable) -> void:
-	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", 12)
-	_content.add_child(row)
-
-	var name_lbl := Label.new()
-	name_lbl.text = label
-	name_lbl.custom_minimum_size = Vector2(160, 0)
-	row.add_child(name_lbl)
-
+	var box := HBoxContainer.new()
+	box.add_theme_constant_override("separation", 12)
 	var slider := HSlider.new()
 	slider.name = "%sSlider" % label.replace(" ", "")
 	slider.min_value = 0.0
 	slider.max_value = 1.0
 	slider.step = 0.05
 	slider.value = value
-	slider.custom_minimum_size = Vector2(260, 0)
-	slider.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	row.add_child(slider)
-
-	var value_lbl := Label.new()
-	value_lbl.text = "%d%%" % roundi(value * 100.0)
+	slider.custom_minimum_size = Vector2(300, 28)
+	box.add_child(slider)
+	var value_lbl := DangoTheme.prose_label("%d%%" % roundi(value * 100.0), 16, DangoTheme.INK, 700)
 	value_lbl.custom_minimum_size = Vector2(56, 0)
-	row.add_child(value_lbl)
-
+	box.add_child(value_lbl)
 	slider.value_changed.connect(func(v: float) -> void:
 		value_lbl.text = "%d%%" % roundi(v * 100.0)
 		on_change.call(v))
-
-
-func _checkbox(label: String, pressed: bool, on_toggle: Callable) -> void:
-	var box := CheckBox.new()
-	box.name = "%sCheck" % label.split(" ")[0]
-	box.text = label
-	box.button_pressed = pressed
-	box.toggled.connect(func(on: bool) -> void: on_toggle.call(on))
-	_content.add_child(box)
+	_row(label, "", box)
+	if _first_focus == null:
+		_first_focus = slider
