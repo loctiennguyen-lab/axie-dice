@@ -1025,6 +1025,7 @@ static var TABLE: Dictionary = {
 			return,
 	},
 	"r_relaybaton": {
+		# Slot-order dependent: the chain is built left to right, so the result depends on who is used first.
 		# After an Axie uses a face, the Axie in the next slot to the right gets +2 on its damage faces
 		# this turn, PLUS whatever bonus the user itself had (the chain adds up left to right, Liam 12/10).
 		"on_face_used": func(ctx: Dictionary):
@@ -1062,7 +1063,7 @@ static var TABLE: Dictionary = {
 			var t := String((ctx["face"] as Dictionary).get("type", ""))
 			if t != "shield" and t != "heal" and t != "mana":
 				return
-			var half: int = c._face_value(u, int(ctx["fi"])) / 2
+			var half: int = int(floor(float(c._face_value(u, int(ctx["fi"]))) / 2.0))
 			if half <= 0:
 				return
 			for n in RelicHooks.slot_neighbors(c, u):
@@ -1194,6 +1195,17 @@ static var TABLE: Dictionary = {
 		# NUDGE (shared budget of 2 Tweaks/turn): +1 or -1 on the main value of a rolled face (min 1).
 		"on_turn_start": func(ctx: Dictionary):
 			ctx["combat"].relic_combat["tweak_left"] = RelicSlots.tuning().tweak_budget_per_turn
+			return,
+		# The nudge is per-roll and never counted: it comes off a rerolled die, and off every die at turn end.
+		"on_roll_settled": func(ctx: Dictionary):
+			var c = ctx["combat"]
+			for u in c.party:
+				if int(u.uid) in (ctx.get("rerolled_uids", []) as Array):
+					RelicHooks.rb_clear(u, "tweak")
+			return,
+		"on_turn_end": func(ctx: Dictionary):
+			for u in ctx["combat"].party:
+				RelicHooks.rb_clear(u, "tweak")
 			return,
 		"roll_edit": func(ctx: Dictionary):
 			var c = ctx["combat"]

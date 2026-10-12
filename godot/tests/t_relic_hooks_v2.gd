@@ -24,6 +24,7 @@ func _ready() -> void:
 	test_tithepips()
 	test_amberdie()
 	test_tweaks()
+	test_pipfile_nudge_is_per_roll()
 	test_loadeddie()
 	test_h8_economy()
 	test_eggs()
@@ -254,7 +255,7 @@ func test_keystone() -> void:
 	_show(b, b.party[2], "shield")
 	c.use_die(plant.uid, plant.uid)
 	b.use_die(b.party[2].uid, b.party[2].uid)
-	var half: int = c._face_value(plant, plant.roll_face_index()) / 2
+	var half: int = int(floor(float(c._face_value(plant, plant.roll_face_index())) / 2.0))
 	_assert(half > 0, "sanity: a shield face of value >= 2")
 	_assert(c.party[1].shield - b.party[1].shield == half and c.party[3].shield - b.party[3].shield == half,
 		"keystone: both neighbours gain floor(50%%) = %d" % half)
@@ -491,6 +492,31 @@ func test_tweaks() -> void:
 	g.mark_used()
 	_assert(not c5.tweak("flip", g.uid), "Tweaks only touch unused dice")
 	_assert(base != null, "sanity")
+
+
+func _die_sum(u: Unit) -> int:
+	var t := 0
+	for f in u.die:
+		t += int((f as Dictionary).get("value", 0))
+	return t
+
+
+func test_pipfile_nudge_is_per_roll() -> void:
+	# nudge, then Reroll: the old face goes back to its printed value
+	var c := _combat(["r_pipfile"], 114)
+	var a: Unit = c.party[0]
+	var base := _die_sum(a)
+	_assert(c.tweak("nudge_up", a.uid), "pipfile: nudge applied")
+	_assert(_die_sum(a) == base + 1, "pipfile: die sum +1 after nudge")
+	c.reroll_dice([a.uid])
+	_assert(_die_sum(c.party[0]) == base, "pipfile: nudge gone after Reroll (die sum unchanged)")
+	# nudge, end turn: next turn the die is unchanged
+	var d := _combat(["r_pipfile"], 115)
+	var u: Unit = d.party[0]
+	var base2 := _die_sum(u)
+	_assert(d.tweak("nudge_up", u.uid), "pipfile: nudge applied (2)")
+	d.end_turn(9)
+	_assert(_die_sum(d.party[0]) == base2, "pipfile: nudge gone after end turn")
 
 
 func _index_of_face(u: Unit, face: Dictionary) -> int:
