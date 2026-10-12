@@ -65,6 +65,16 @@ AXIE_SKIP_RULES_FINGERPRINT=1 bash godot/tools/run_tests.sh
 
 Runner báo `SKIP t_rules_version`, in cảnh báo màu vàng, và dòng tổng ghi rõ "SKIPPED". Làn I và mọi lần kiểm trước merge/RC KHÔNG đặt cờ. Không đặt cờ thì chạy y như cũ.
 
+## Nhận bản with_lock.sh mới (bắt buộc)
+
+Bản `with_lock.sh` / `run_tests.sh` ngày 0 có lỗi (Godot mồ côi sau Ctrl-C hoặc hang-kill, save không được trả khi bị TERM). Bản đã sửa nằm trên `godot-port`. Mỗi làn chạy ngay trong worktree của mình:
+
+```
+git rebase godot-port
+```
+
+Chưa rebase thì đừng chạy Godot. Cờ `AXIE_SKIP_RULES_FINGERPRINT=1` giờ bị từ chối (exit 2) ở worktree chính và khi có biến `CI`. `run_tests.sh` mặc định có watchdog 900s. Test của khoá: `bash godot/tools/tests/with_lock_test.sh`.
+
 ## Mới tạo worktree
 
 Thư mục `godot/.godot/` (cache import) không nằm trong git. Lần đầu trong worktree mới, `run_tests.sh` tự import nếu thiếu `.uid`; nếu vẫn lỗi "Identifier not declared", chạy `--import` qua `with_lock.sh` rồi thử lại.

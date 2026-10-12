@@ -5,34 +5,49 @@
 # a line containing "FAIL" (tests also set exit codes via quit(1) where they can).
 set -uo pipefail
 
-# KHOÁ TOÀN CỤC (L1, 12/10): mọi lần chạy Godot trên máy này phải qua with_lock.sh, vì mọi worktree
-# dùng chung user://. Chạy thẳng script này sẽ tự xin khoá rồi chạy lại chính nó trong khoá.
-# Xem production/l1-lanes.md. AXIE_GODOT_LOCK_HELD=1 nghĩa là đã giữ khoá rồi.
-if [[ "${AXIE_GODOT_LOCK_HELD:-}" != 1 ]]; then
-  exec bash "$(dirname "${BASH_SOURCE[0]}")/with_lock.sh" bash "${BASH_SOURCE[0]}" "$@"
-fi
+ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd -P)"
+PROJ="$ROOT/godot"
+LOCK="${AXIE_GODOT_LOCK:-$HOME/Library/Caches/axie-dice-godot.lock}"
 
 # Cờ cho worktree của làn (không phải làn I): AXIE_SKIP_RULES_FINGERPRINT=1 -> t_rules_version
 # báo SKIP thay vì FAIL (FINGERPRINT chỉ làn I được tính lại, nên nó đỏ trong mọi worktree đã
 # sửa scripts/core/ hoặc autoload/). Làn I và CI KHÔNG BAO GIỜ đặt cờ này. Mặc định: chạy như cũ.
+# Cờ bị TỪ CHỐI (exit 2) ở worktree chính (làn I) hoặc khi có biến CI, trước khi xin khoá.
 SKIP_FP="${AXIE_SKIP_RULES_FINGERPRINT:-}"
+if [[ "$SKIP_FP" == 1 ]]; then
+  main_wt="$(git -C "$ROOT" worktree list --porcelain 2>/dev/null | sed -n '1s/^worktree //p')"
+  if [[ -z "$main_wt" || "$main_wt" == "$ROOT" || -n "${CI:-}" ]]; then
+    printf '\033[31mAXIE_SKIP_RULES_FINGERPRINT=1 bị TỪ CHỐI: đang ở worktree chính (làn I), không xác định được worktree chính, hoặc có biến CI. Cờ này chỉ dành cho worktree của làn.\033[0m\n' >&2
+    exit 2
+  fi
+fi
+
+# KHOÁ TOÀN CỤC (L1, 12/10): mọi lần chạy Godot trên máy này phải qua with_lock.sh, vì mọi worktree
+# dùng chung user://. Chạy thẳng script này sẽ tự xin khoá rồi chạy lại chính nó trong khoá.
+# Xem production/l1-lanes.md. Lồng khoá hợp lệ khi AXIE_GODOT_LOCK_HELD khớp pid chủ khoá.
+# Watchdog mặc định 900s cho cả suite: lỗi parse làm Godot treo, không để giữ khoá mãi.
+_held_ok() {
+  local o; o="$(cat "$LOCK/pid" 2>/dev/null || true)"
+  [[ -n "${AXIE_GODOT_LOCK_HELD:-}" && "${o%%|*}" == "$AXIE_GODOT_LOCK_HELD" ]]
+}
+if ! _held_ok; then
+  export AXIE_HANG_KILL="${AXIE_HANG_KILL:-900}"
+  exec bash "$ROOT/godot/tools/with_lock.sh" bash "$ROOT/godot/tools/run_tests.sh" "$@"
+fi
+
 
 # Godot binary: the Mac editor build when present, otherwise the Linux build vendored in
 # tools/bin/ (container, CI, headless box). Override with GODOT=/path/to/godot.
 _default_godot() {
-  local root
-  root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
   local c
   for c in "/Users/loc.tien.nguyen/Desktop/Godot.app/Contents/MacOS/Godot" \
-           "$root/tools/bin/Godot_v4.7.2-stable_linux.arm64" \
-           "$root/tools/bin/Godot_v4.7.2-stable_linux.x86_64"; do
+           "$ROOT/tools/bin/Godot_v4.7.2-stable_linux.arm64" \
+           "$ROOT/tools/bin/Godot_v4.7.2-stable_linux.x86_64"; do
     [[ -x "$c" ]] && { printf '%s' "$c"; return; }
   done
   command -v godot 2>/dev/null || true
 }
 GODOT="${1:-${GODOT:-$(_default_godot)}}"
-ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-PROJ="$ROOT/godot"
 
 # Godot chỉ đăng ký `class_name` cho script nó đã quét. Một file .gd mới chưa quét làm
 # MỌI test tham chiếu tới nó đỏ bằng "Identifier ... not declared in the current scope",
@@ -50,11 +65,9 @@ if [[ $unscanned -gt 0 ]]; then
     || "$GODOT" --headless --path "$PROJ" --editor --quit >/dev/null 2>&1 || true
 fi
 
-# Bảo vệ save THẬT của người chơi trên máy này (2026-10-10). MetaState/RunState là autoload ghi
-# thẳng vào user://, nên test nào quên SaveGuard (hoặc thoát trước khi restore) là ghi đè lên
-# progress thật — đo ngày 10/10: cả suite xoá run_save.json và sửa meta_save.json mà không ai
-# thấy. Giờ mỗi test được so hash save trước/sau; test nào để lại thay đổi thì FAIL, và save
-# được chép lại từ bản chụp đầu suite. Cuối suite luôn chép lại một lần nữa cho chắc.
+# Bảo vệ save THẬT của người chơi (2026-10-10). Với lệnh chạy qua with_lock.sh, save đã được
+# chụp và trả lại ở tầng with_lock (kể cả khi bị kill). Lớp này vẫn đo từng test: test nào để
+# lại thay đổi thì FAIL, và save được chép lại từ bản chụp đầu suite.
 _app_name="$(sed -n 's/^config\/name="\(.*\)"$/\1/p' "$PROJ/project.godot" | head -1)"
 if [[ "$(uname)" == Darwin ]]; then
   USERDIR="$HOME/Library/Application Support/Godot/app_userdata/$_app_name"
@@ -79,6 +92,10 @@ _save_restore() {
 }
 SAVE_FP0="$(_save_fp "$SAVE_SNAP")"
 trap '_save_restore; rm -rf "$SAVE_SNAP"' EXIT
+# bash không chạy EXIT trap khi bị TERM/INT/HUP mặc định: đổi thành exit để EXIT trap vẫn trả save.
+trap 'exit 130' INT
+trap 'exit 143' TERM
+trap 'exit 129' HUP
 
 pass=0; fail=0; skip=0; failed_names=()
 if [[ "$SKIP_FP" == 1 ]]; then
@@ -88,8 +105,8 @@ fi
 # Two kinds of test live side by side: scene tests (t_*.tscn, a Node _ready())
 # and SceneTree tests (t_*.gd with no .tscn, run via --script). Run both.
 targets=()
-for scene in "$PROJ"/tests/t_*.tscn; do targets+=("scene:$(basename "$scene" .tscn)"); done
-for gd in "$PROJ"/tests/t_*.gd; do
+for scene in "$PROJ"/tests/t_*.tscn; do [[ -e "$scene" ]] || continue; targets+=("scene:$(basename "$scene" .tscn)"); done
+for gd in "$PROJ"/tests/t_*.gd; do [[ -e "$gd" ]] || continue
   b="$(basename "$gd" .gd)"
   [[ -f "$PROJ/tests/$b.tscn" ]] || targets+=("script:$b")
 done
