@@ -12,6 +12,8 @@ func _ready() -> void:
 			out = a.get_slice("=", 1)
 		elif a.begins_with("--secs="):
 			secs = float(a.get_slice("=", 1))
+		elif a.begins_with("--tier="):
+			LandHub.tier_override = int(a.get_slice("=", 1))
 		elif a == "--run":
 			with_run = true
 	MetaState.tutorial_seen = true   # in memory only, never saved

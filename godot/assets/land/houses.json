@@ -6,6 +6,6 @@
 	{"house_id": "pass",       "screen_id": "pass",        "badge_screen_id": "pass",     "unlock": {}},
 	{"house_id": "vault",      "screen_id": "vault",       "badge_screen_id": "vault",    "unlock": {}},
 	{"house_id": "store",      "screen_id": "store",       "badge_screen_id": "store",    "unlock": {}},
-	{"house_id": "mastery",    "screen_id": "mastery",     "badge_screen_id": "mastery",  "unlock": {"tier": "arctic"}},
-	{"house_id": "gallery",    "screen_id": "gallery",     "badge_screen_id": "gallery",  "unlock": {"tier": "genesis"}}
+	{"house_id": "mastery",    "screen_id": "mastery",     "badge_screen_id": "mastery",  "unlock": {"min_tier": 3}},
+	{"house_id": "gallery",    "screen_id": "gallery",     "badge_screen_id": "gallery",  "unlock": {"min_tier": 5}}
 ]

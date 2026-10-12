@@ -1,0 +1,9 @@
+[gd_scene format=3]
+
+[ext_resource type="PackedScene" path="res://assets/land/homeland/src/HomeLand_Asset/Building_HomeLand/Armorsmith/Source/SM_Armorsmith_lv2.fbx" id="1_qo4y4"]
+
+[node name="Armorsmith_lv2" type="Node3D" unique_id=736606914]
+
+[node name="Armorsmith_lv2" type="Node3D" parent="." unique_id=638036807]
+
+[node name="Armorsmith_lv2" type="Node3D" parent="Armorsmith_lv2" unique_id=1438258978 instance=ExtResource("1_qo4y4")]

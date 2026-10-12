@@ -1,0 +1,9 @@
+[gd_scene format=3]
+
+[ext_resource type="PackedScene" path="res://assets/land/homeland/src/HomeLand_Asset/Building_HomeLand/EquipmentStall/Source/SM_EquipmentStall_lv3.fbx" id="1_dvef6"]
+
+[node name="EquipmentStall_lv3" type="Node3D" unique_id=1707915091]
+
+[node name="EquipmentStall_lv3" type="Node3D" parent="." unique_id=789581572]
+
+[node name="EquipmentStall_lv3" type="Node3D" parent="EquipmentStall_lv3" unique_id=1485695009 instance=ExtResource("1_dvef6")]

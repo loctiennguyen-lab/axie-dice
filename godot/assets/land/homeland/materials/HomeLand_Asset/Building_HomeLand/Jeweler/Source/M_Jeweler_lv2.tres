@@ -1,0 +1,11 @@
+[gd_resource type="StandardMaterial3D" format=3]
+
+[ext_resource type="Texture2D" path="res://assets/land/homeland/src/HomeLand_Asset/Building_HomeLand/Jeweler/Source/T_Jeweler_lv2_C.png" id="1_vb672"]
+
+[resource]
+resource_name = "M_Jeweler_lv2"
+transparency = 2
+alpha_scissor_threshold = 0.5
+alpha_antialiasing_mode = 0
+shading_mode = 0
+albedo_texture = ExtResource("1_vb672")

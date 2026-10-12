@@ -11,7 +11,6 @@ extends Node3D
 signal moon_card_requested
 
 const LIB := "res://assets/land/homeland/scenes/HomeLand_Asset/"
-const SAV := LIB + "Environment/Savannah/"
 const BLD := LIB + "Building_HomeLand/"
 const HOUSES_JSON := "res://assets/land/houses.json"
 
@@ -30,20 +29,61 @@ const BADGE_INK := {"FREE": Color("183A0C"), "CLAIM": Color("2A1505"), "NEW": Co
 const LOCK_FILL := Color("E8D6B4")
 const LOCK_BORDER := Color("9A7650")
 
-## Building table. cx/base/w/h are R1 numbers (design px). yaw is the model's own facing fix.
+## QA / tests: force a tier (1-6) instead of reading MetaState.
+static var tier_override: int = 0
+
+## Building table. cx/base/w/h are R1 numbers (design px). `lv` buildings step up with the Land tier
+## (core-loop-v2 §4.1: House lv1 at Savannah ... lv4 from Genesis, tier 5 and 6 stay lv4).
+## `min_tier` = tier that builds it (README: Mastery Hall at Arctic).
 const BUILDINGS: Array[Dictionary] = [
-	{"id": "portal", "scene": "Portal/SM_Portal_01", "cx": 960, "base": 640, "w": 360, "h": 360, "yaw": 0.0},
-	{"id": "house", "scene": "House/House_lv2", "cx": 560, "base": 470, "w": 250, "h": 230, "yaw": 0.0},
-	{"id": "missions", "scene": "Weaponsmith/Weaponsmith_lv3", "cx": 1360, "base": 470, "w": 210, "h": 250, "yaw": 0.0},
-	{"id": "echobox", "scene": "Alchemy/SM_Alchemy_lv2_Prefab", "cx": 470, "base": 770, "w": 190, "h": 230, "yaw": 0.0},
-	{"id": "pass", "scene": "EquipmentStall/EquipmentStall_lv2", "cx": 1450, "base": 770, "w": 210, "h": 230, "yaw": 0.0},
-	{"id": "vault", "scene": "GemStorage/GemStorage_lv2", "cx": 235, "base": 650, "w": 200, "h": 200, "yaw": 0.0},
-	{"id": "store", "scene": "Jeweler/Jeweler_lv3", "cx": 1685, "base": 650, "w": 190, "h": 230, "yaw": 0.0},
+	{"id": "portal", "dir": "Portal", "pat": "SM_Portal_01", "cx": 960, "base": 640, "w": 360, "h": 360, "yaw": 0.0},
+	{"id": "house", "dir": "House", "pat": "House_lv%d", "cx": 560, "base": 470, "w": 250, "h": 230, "yaw": 0.0},
+	{"id": "missions", "dir": "Weaponsmith", "pat": "Weaponsmith_lv%d", "cx": 1360, "base": 470, "w": 210, "h": 250, "yaw": 0.0},
+	{"id": "echobox", "dir": "Alchemy", "pat": "SM_Alchemy_lv%d_Prefab", "cx": 470, "base": 770, "w": 190, "h": 230, "yaw": 0.0},
+	{"id": "pass", "dir": "EquipmentStall", "pat": "EquipmentStall_lv%d", "cx": 1450, "base": 770, "w": 210, "h": 230, "yaw": 0.0},
+	{"id": "vault", "dir": "GemStorage", "pat": "GemStorage_lv%d", "cx": 235, "base": 650, "w": 200, "h": 200, "yaw": 0.0},
+	{"id": "store", "dir": "Jeweler", "pat": "Jeweler_lv%d", "cx": 1685, "base": 650, "w": 190, "h": 230, "yaw": 0.0},
+	{"id": "mastery", "dir": "Armorsmith", "pat": "Armorsmith_lv%d", "cx": 760, "base": 340, "w": 170, "h": 190, "yaw": 0.0, "min_tier": 3},
 ]
-## Plots not built yet (never hidden). cx/base are R1 numbers.
+## Plots (never hidden). A plot is drawn while its building is not built; Gallery has no model yet.
 const PLOTS: Array[Dictionary] = [
-	{"id": "mastery", "cx": 760, "base": 340, "w": 170, "h": 190, "tier": "Arctic"},
-	{"id": "gallery", "cx": 1160, "base": 330, "w": 200, "h": 108, "tier": "Genesis"},
+	{"id": "mastery", "cx": 760, "base": 340, "min_tier": 3},
+	{"id": "gallery", "cx": 1160, "base": 330, "min_tier": 5},
+]
+const TIER_NAMES: Array[String] = ["Savannah", "Forest", "Arctic", "Mystic", "Genesis", "LunaLanding"]
+## Fallback only: lane E's assets/data/economy/land_tiers.json is the source (cost to reach tier N+1).
+const FALLBACK_TIER_COSTS: Array[int] = [40000, 100000, 180000, 500000, 1000000]
+## Per biome look. Paths are under Environment/. ground = centre, mid, edge; cliff = top, bottom.
+const BIOMES: Array[Dictionary] = [
+	{"ground": ["FAD27C", "F2B652", "DE9A3C"], "cliff": "A9673A", "sky": ["8FCBF2", "F6E9C8"],
+		"trees": ["Savannah/Tree/S_Tree01_Allside", "Savannah/Tree/S_Tree02_Allside", "Savannah/Tree/S_Tree03_Allside", "Savannah/Tree/S_Tree03a_Allside"],
+		"shrubs": ["Savannah/Shrub/S_Shrub01_Allside", "Savannah/Shrub/S_Shrub02_Allside"],
+		"rocks": ["Savannah/Rock/SavannahRock_01", "Savannah/Rock/SavannahRock_02"],
+		"tufts": ["Savannah/Ground/S_TileGrass_02", "Savannah/Ground/S_TileGrass_03", "Savannah/Ground/S_TileGrass_04"]},
+	{"ground": ["B8E27A", "8DCB5A", "64A845"], "cliff": "8A6A3E", "sky": ["8FD0F5", "EAF4D2"],
+		"trees": ["Forest/Tree/F_Tree1_AllSide", "Forest/Tree/F_Tree2_AllSide"],
+		"shrubs": ["Forest/Shrub/F_Shrub01_Allside", "Forest/Shrub/F_Shrub02_Allside"],
+		"rocks": [],
+		"tufts": ["Forest/Ground/F_TileGrass_02", "Forest/Ground/F_TileGrass_03", "Forest/Ground/F_TileGrass_04", "Forest/Ground/Flower/Flower_RandomColor"]},
+	{"ground": ["F4FBF9", "D6ECE8", "B4D6D2"], "cliff": "7FA8A8", "sky": ["A9D8EE", "F2FAFA"],
+		"trees": ["Arctic/Tree/A_Tree01_AllSide", "Arctic/Tree/A_Tree02_AllSide"],
+		"shrubs": ["Arctic/Shrub/A_Shrub01_Allside", "Arctic/Shrub/A_Shrub02_Allside"],
+		"rocks": ["Arctic/Props/Stone_01", "Arctic/Props/Stone_02"],
+		"tufts": ["Arctic/Ground/TileSnow_02", "Arctic/Ground/TileSnow_03", "Arctic/Ground/TileSnow_04"]},
+	{"ground": ["C9B2F0", "9E82D6", "6F58AE"], "cliff": "4A3A78", "sky": ["7F8CE0", "E6D6F7"],
+		"trees": ["Mystic/Tree/M_Tree_01_Allside", "Mystic/Tree/M_Tree_02_Allside", "Mystic/Tree/M_Tree_03_Allside", "Mystic/Tree/M_Tree_04_Allside"],
+		"shrubs": ["Mystic/Shrub/M_Shrub01_Allside", "Mystic/Shrub/M_Shrub02_Allside"],
+		"rocks": ["Mystic/Rock/Rock_01", "Mystic/Rock/Rock_02"],
+		"tufts": ["Mystic/Ground/M_TileGround_02", "Mystic/Ground/M_TileGround_03", "Mystic/Ground/M_TileGround_04"]},
+	{"ground": ["FFF3C8", "F5D87E", "DDAE4E"], "cliff": "9A7A4A", "sky": ["9FD3F5", "FFF1D0"],
+		"trees": ["Genesis/Tree/SM_Tree_G_01", "Genesis/Tree/SM_Tree_G_02", "Genesis/Tree/SM_Tree_G_03", "Genesis/Tree/SM_Tree_G_06"],
+		"shrubs": ["Genesis/Shrub/G_Shrub01_Allside", "Genesis/Shrub/G_Shrub02_Allside"],
+		"rocks": [], "tufts": []},
+	{"ground": ["F6C2D0", "D8809F", "A34F78"], "cliff": "6A2E4C", "sky": ["2B2255", "9A5C8E"], "moon": true,
+		"trees": ["LunaLanding/Tree/Luna_Landing_Tree_1 Variant", "LunaLanding/Tree/Luna_Landing_Tree_2 Variant", "LunaLanding/Tree/Luna_Landing_Tree_3 Variant"],
+		"shrubs": ["LunaLanding/Shrub/L_Shrub01_Allside", "LunaLanding/Shrub/LunaLanding_Shrub_01"],
+		"rocks": ["LunaLanding/Luna_Landing_Rock/SM_Luna_Landing_Rock_1 Variant", "LunaLanding/Luna_Landing_Rock/SM_Luna_Landing_Rock_2 Variant", "LunaLanding/Rock/SM_Rocks_Luna_A1 Variant", "LunaLanding/Rock/SM_Rocks_Luna_B Variant"],
+		"tufts": []},
 ]
 ## Plate texts. key = shortcut number.
 const META: Dictionary = {
@@ -51,7 +91,7 @@ const META: Dictionary = {
 	"house": {"name": "House", "key": 2, "sub": "Team presets"},
 	"missions": {"name": "Missions", "key": 3, "sub": ""},
 	"echobox": {"name": "Echo Box", "key": 4, "sub": ""},
-	"pass": {"name": "Season Pass", "key": 5, "sub": "Season 1 · ends 30 Nov 2026"},
+	"pass": {"name": "Season Pass", "key": 5, "sub": "Season 1 · ends 29 Dec 2026"},
 	"vault": {"name": "Vault", "key": 6, "sub": ""},
 	"store": {"name": "Store", "key": 7, "sub": ""},
 	"mastery": {"name": "Mastery Hall", "key": 8, "sub": ""},
@@ -92,6 +132,10 @@ var _toast: PanelContainer
 var _toast_tween: Tween
 var _modal: Control
 var _has_run := false
+var _tier := 1
+var _live: Array[Dictionary] = []   # buildings built at this tier
+var _plots: Array[Dictionary] = []  # plots still empty at this tier
+var _upgrade_btn: Button
 var _force_run := false   # QA capture only: draw the unfinished-run state without a save
 
 
@@ -101,6 +145,16 @@ func _ready() -> void:
 		get_tree().change_scene_to_file("res://scenes/tutorial/Tutorial.tscn")
 		return
 	_rng.seed = 7
+	_tier = _current_tier()
+	for b in BUILDINGS:
+		if _tier >= int(b.get("min_tier", 1)):
+			_live.append(b)
+	var live_ids := {}
+	for b in _live:
+		live_ids[String(b["id"])] = true
+	for pl in PLOTS:
+		if not live_ids.has(String(pl["id"])):
+			_plots.append(pl)
 	_load_houses()
 	_has_run = _force_run or _has_open_run()
 	_build_world()
@@ -152,19 +206,37 @@ func _badge_count(house_id: String) -> int:
 	return int(MetaState.call("badge_count", StringName(sid)))
 
 
-## A house is locked when houses.json names a tier we do not ship in L1 (Arctic/Genesis), or a run count.
+## Tier the player is on: test override, else MetaState.land_tier (lane E), else 1.
+func _current_tier() -> int:
+	if tier_override > 0:
+		return clampi(tier_override, 1, 6)
+	return clampi(maxi(_meta_int("land_tier"), 1), 1, 6)
+
+
+## A house is locked while the Land tier is below houses.json `unlock.min_tier` (or runs below min_runs).
 func _is_locked(house_id: String) -> bool:
 	var u: Dictionary = (_house_defs.get(house_id, {}) as Dictionary).get("unlock", {})
-	if u.has("tier"):
+	if u.has("min_tier") and _tier < int(u["min_tier"]):
 		return true
 	return u.has("min_runs") and MetaState.runs < int(u["min_runs"])
 
 
-func _tier_of(house_id: String) -> String:
-	for p in PLOTS:
-		if p["id"] == house_id:
-			return String(p["tier"])
-	return ""
+## Name of the Land that builds this house ("Arctic"), "" if it is not tier-gated.
+func _need_name(house_id: String) -> String:
+	var u: Dictionary = (_house_defs.get(house_id, {}) as Dictionary).get("unlock", {})
+	if not u.has("min_tier"):
+		return ""
+	return TIER_NAMES[clampi(int(u["min_tier"]) - 1, 0, TIER_NAMES.size() - 1)]
+
+
+## Cost in Land Stone to go from the current tier to the next. EconomyDB (lane E) wins when it exists.
+func _upgrade_cost() -> int:
+	if _tier >= 6:
+		return 0
+	var db := get_node_or_null("/root/EconomyDB")
+	if db != null and db.has_method("land_tier_cost"):
+		return int(db.call("land_tier_cost", _tier))
+	return FALLBACK_TIER_COSTS[_tier - 1]
 
 
 # ================================================================ 3D world
@@ -173,7 +245,8 @@ func _build_world() -> void:
 	var env := Environment.new()
 	env.background_mode = Environment.BG_CANVAS   # the sky gradient lives on a CanvasLayer behind
 	env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
-	env.ambient_light_color = Color("fff1d6")
+	var biome: Dictionary = BIOMES[_tier - 1]
+	env.ambient_light_color = Color("fff1d6") if _tier != 4 and _tier != 6 else Color("e6dcff")
 	env.ambient_light_energy = 0.75
 	env.tonemap_mode = Environment.TONE_MAPPER_FILMIC
 	var we := WorldEnvironment.new()
@@ -209,8 +282,8 @@ func _build_world() -> void:
 	add_child(sky_layer)
 	var sky := TextureRect.new()
 	var grad := Gradient.new()
-	grad.set_color(0, Color("8FCBF2"))
-	grad.set_color(1, Color("F6E9C8"))
+	grad.set_color(0, Color(String(biome["sky"][0])))
+	grad.set_color(1, Color(String(biome["sky"][1])))
 	var gt := GradientTexture2D.new()
 	gt.gradient = grad
 	gt.fill_from = Vector2(0.5, 0.0)
@@ -219,6 +292,16 @@ func _build_world() -> void:
 	sky.stretch_mode = TextureRect.STRETCH_SCALE
 	sky.set_anchors_preset(Control.PRESET_FULL_RECT)
 	sky_layer.add_child(sky)
+	if biome.get("moon", false):
+		var moon := Panel.new()
+		var msb := StyleBoxFlat.new()
+		msb.bg_color = Color("FFF3D6")
+		msb.set_corner_radius_all(70)
+		moon.add_theme_stylebox_override("panel", msb)
+		moon.size = Vector2(140, 140)
+		moon.position = Vector2(1560, 120)
+		moon.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		sky_layer.add_child(moon)
 
 
 ## Design-canvas point (x, y on 1920x1080) -> ground point, with the Land centre at (960, 590).
@@ -234,7 +317,7 @@ func _build_ground() -> void:
 	box.size = Vector3(PLOT_SIDE, 3.0, PLOT_SIDE)
 	cliff.mesh = box
 	var cm := StandardMaterial3D.new()
-	cm.albedo_color = Color("A9673A")
+	cm.albedo_color = Color(String(BIOMES[_tier - 1]["cliff"]))
 	cm.roughness = 1.0
 	cliff.material_override = cm
 	cliff.position.y = -1.5 - 0.02
@@ -245,9 +328,10 @@ func _build_ground() -> void:
 	plane.size = Vector2(PLOT_SIDE, PLOT_SIDE)
 	top.mesh = plane
 	var grad := Gradient.new()
-	grad.set_color(0, Color("FAD27C"))
-	grad.add_point(0.55, Color("F2B652"))
-	grad.set_color(grad.get_point_count() - 1, Color("DE9A3C"))
+	var gc: Array = BIOMES[_tier - 1]["ground"]
+	grad.set_color(0, Color(String(gc[0])))
+	grad.add_point(0.55, Color(String(gc[1])))
+	grad.set_color(grad.get_point_count() - 1, Color(String(gc[2])))
 	var gt := GradientTexture2D.new()
 	gt.gradient = grad
 	gt.fill = GradientTexture2D.FILL_RADIAL
@@ -261,8 +345,10 @@ func _build_ground() -> void:
 
 
 func _build_buildings() -> void:
-	for b in BUILDINGS:
-		var n := _inst(BLD + String(b["scene"]) + ".tscn")
+	var lv := mini(_tier, 4)
+	for b in _live:
+		var pat := String(b["pat"])
+		var n := _inst(BLD + String(b["dir"]) + "/" + (pat % lv if "%d" in pat else pat) + ".tscn")
 		if n == null:
 			continue
 		var ground := _ground_at(float(b["cx"]), float(b["base"]))
@@ -281,7 +367,7 @@ func _build_buildings() -> void:
 		_blocked.append({"p": ground - _g * (reach + 1.5), "r": 2.6})   # name plate zone
 	# Run plate zone under the Portal.
 	_blocked.append({"p": _ground_at(960, 700), "r": 4.5})
-	for p in PLOTS:
+	for p in _plots:
 		_blocked.append({"p": _ground_at(float(p["cx"]), float(p["base"]) - 40.0), "r": 6.0})
 
 
@@ -301,44 +387,55 @@ func _aabb(n: Node, xf: Transform3D) -> AABB:
 
 
 func _build_props() -> void:
-	var trees := ["S_Tree01_Allside", "S_Tree02_Allside", "S_Tree03_Allside", "S_Tree03a_Allside"]
+	var biome: Dictionary = BIOMES[_tier - 1]
 	var half := PLOT_SIDE * 0.5 - 1.5
 	# Trees stand on the far rim (design-canvas points) so none ever hides a building or a plot.
+	var trees: Array = biome["trees"]
 	var spots := [Vector2(300, 430), Vector2(1580, 410), Vector2(960, 232), Vector2(430, 340),
 		Vector2(1490, 330), Vector2(700, 215), Vector2(1250, 215)]
 	for i in spots.size():
-		_place_prop(SAV + "Tree/" + trees[i % trees.size()] + ".tscn", _ground_at(spots[i].x, spots[i].y), 0.42)
+		_place_fit(LIB + "Environment/" + String(trees[i % trees.size()]) + ".tscn",
+			_ground_at(spots[i].x, spots[i].y), 6.0, true)
+	var scatter: Array = []
+	for k in (biome["shrubs"] as Array):
+		scatter.append([k, 1.5])
+	for k in (biome["rocks"] as Array):
+		scatter.append([k, 1.3])
 	var placed := 0
 	var tries := 0
-	var shrubs := ["Shrub/S_Shrub01_Allside", "Shrub/S_Shrub02_Allside", "Rock/SavannahRock_01", "Rock/SavannahRock_02"]
-	while placed < 12 and tries < 400:
+	while not scatter.is_empty() and placed < 12 and tries < 400:
 		tries += 1
 		var p := Vector3(_rng.randf_range(-half, half), 0, _rng.randf_range(-half, half))
 		if _blocked_at(p, 1.5):
 			continue
-		_place_prop(SAV + shrubs[placed % shrubs.size()] + ".tscn", p, 0.5)
+		var pick: Array = scatter[placed % scatter.size()]
+		_place_fit(LIB + "Environment/" + String(pick[0]) + ".tscn", p, float(pick[1]), true)
 		placed += 1
-	var tufts := ["S_TileGrass_02", "S_TileGrass_03", "S_TileGrass_04"]
+	var tufts: Array = biome["tufts"]
 	placed = 0
 	tries = 0
-	while placed < 24 and tries < 300:
+	while not tufts.is_empty() and placed < 24 and tries < 300:
 		tries += 1
 		var p := Vector3(_rng.randf_range(-half, half), 0, _rng.randf_range(-half, half))
 		if _blocked_at(p, 0.5):
 			continue
-		_place_prop(SAV + "Ground/" + tufts[placed % tufts.size()] + ".tscn", p, 1.4)
+		_place_fit(LIB + "Environment/" + String(tufts[placed % tufts.size()]) + ".tscn", p, 1.6, false)
 		placed += 1
 
 
-func _place_prop(path: String, p: Vector3, scale: float) -> void:
+## Place a prop scaled so its height (by_height) or footprint width is `target` world units.
+func _place_fit(path: String, p: Vector3, target: float, by_height: bool) -> void:
 	var n := _inst(path)
 	if n == null:
 		return
-	n.position = p
+	var box := _aabb(n, Transform3D.IDENTITY)
+	var dim := box.size.y if by_height else maxf(box.size.x, box.size.z)
+	var s := target / maxf(dim, 0.01) * _rng.randf_range(0.85, 1.15)
+	n.position = p - Vector3(0, box.position.y * s, 0)
 	n.rotation_degrees.y = _rng.randf() * 360.0
-	n.scale = Vector3.ONE * scale * _rng.randf_range(0.85, 1.15)
+	n.scale = Vector3.ONE * s
 	add_child(n)
-	_blocked.append({"p": p, "r": 0.9 * scale})
+	_blocked.append({"p": p, "r": 0.9})
 
 
 func _blocked_at(p: Vector3, margin: float) -> bool:
@@ -433,11 +530,11 @@ func _build_ui() -> void:
 	_ui.resized.connect(_layout)
 
 	# Click boxes first (under plates and bar).
-	for b in BUILDINGS:
+	for b in _live:
 		_add_house_hit(String(b["id"]))
-	for p in PLOTS:
+	for p in _plots:
 		_add_plot(String(p["id"]))
-	for b in BUILDINGS:
+	for b in _live:
 		var id := String(b["id"])
 		if id != "portal":
 			_plates[id] = _make_plate(id)
@@ -475,6 +572,7 @@ func _hover(id: String, on: bool) -> void:
 
 func _add_plot(id: String) -> void:
 	var mark := PlotMark.new()
+	mark.locked = _is_locked(id)
 	mark.name = "Plot_" + id
 	mark.mouse_filter = Control.MOUSE_FILTER_STOP
 	mark.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
@@ -541,7 +639,9 @@ func _make_plate(id: String) -> PanelContainer:
 	row.add_child(_lbl(String(m["name"]), 19, DangoTheme.INK))
 	var sub := String(m["sub"])
 	if locked:
-		sub = "Builds at %s Land" % _tier_of(id)
+		sub = "Builds at %s Land" % _need_name(id)
+	elif id == "gallery":
+		sub = "Coming soon"
 	if sub != "":
 		var s := _lbl(sub, 12, DangoTheme.INK_ON_CREAM_MUTED, false)
 		s.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -656,6 +756,9 @@ func _build_bar() -> void:
 	var sp := Control.new()
 	sp.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	row.add_child(sp)
+	if _tier < 6:
+		_upgrade_btn = _build_upgrade_button()
+		row.add_child(_upgrade_btn)
 	row.add_child(_currency("Gene Shard", _meta_int("shard_pool"), Color("FF9345"), false))
 	row.add_child(_currency("Land Stone", _meta_int("land_stone"), Color("B8A27A"), false))
 	row.add_child(_currency("Lunar Gem", _meta_int("lunar_gem"), Color("A27BEA"), true))
@@ -687,7 +790,7 @@ func _profile_chip() -> Control:
 	col.add_theme_constant_override("separation", -2)
 	col.alignment = BoxContainer.ALIGNMENT_CENTER
 	col.add_child(_lbl(name.left(14), 15, DangoTheme.INK))
-	col.add_child(_lbl("Savannah Land", 11, DangoTheme.INK_ON_CREAM_MUTED, false))
+	col.add_child(_lbl("%s Land" % TIER_NAMES[_tier - 1], 11, DangoTheme.INK_ON_CREAM_MUTED, false))
 	h.add_child(col)
 	return chip
 
@@ -725,7 +828,7 @@ func _shortcut(k: int) -> Button:
 	if locked:
 		btn.modulate.a = 0.8
 	btn.pressed.connect(_on_house_pressed.bind(id))
-	var hint := _lbl(_tier_of(id) if locked else str(k), 11, DangoTheme.INK_ON_CREAM_MUTED)
+	var hint := _lbl(_need_name(id) if locked else str(k), 11, DangoTheme.INK_ON_CREAM_MUTED)
 	hint.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
 	hint.grow_horizontal = Control.GROW_DIRECTION_BEGIN
 	hint.grow_vertical = Control.GROW_DIRECTION_BEGIN
@@ -796,6 +899,41 @@ func _currency(label: String, value: int, color: Color, plus: bool) -> Control:
 	return chip
 
 
+func _build_upgrade_button() -> Button:
+	var cost := _upgrade_cost()
+	var b := Button.new()
+	b.name = "UpgradeLand"
+	b.custom_minimum_size = Vector2(0, 44)
+	b.text = "Upgrade Land · %s" % _fmt(cost)
+	b.tooltip_text = "Land Stone %s / %s → %s Land" % [_fmt(_meta_int("land_stone")), _fmt(cost), TIER_NAMES[_tier]]
+	DangoTheme.style_button(b, true)
+	b.add_theme_font_size_override("font_size", 15)
+	b.disabled = _meta_int("land_stone") < cost
+	b.pressed.connect(_on_upgrade_pressed)
+	return b
+
+
+func _on_upgrade_pressed() -> void:
+	if _modal != null or _tier >= 6:
+		return
+	var cost := _upgrade_cost()
+	_open_confirm("Upgrade to %s Land?" % TIER_NAMES[_tier],
+		"Costs %s Land Stone. Your buildings level up and the Land changes look." % _fmt(cost),
+		"Upgrade", _do_upgrade)
+
+
+## Spending is lane E's job (MetaState.upgrade_land); this only asks and redraws the Land.
+func _do_upgrade() -> void:
+	_close_modal()
+	if not MetaState.has_method("upgrade_land"):
+		_show_toast("Land upgrades are not available yet")
+		return
+	if bool(MetaState.call("upgrade_land")):
+		get_tree().reload_current_scene()
+	else:
+		_show_toast("Not enough Land Stone")
+
+
 func _fmt(v: int) -> String:
 	var s := str(v)
 	var out := ""
@@ -860,7 +998,7 @@ func _layout() -> void:
 	if _ui == null:
 		return
 	var dy := (_ui.size.y - 1080.0) * 0.5
-	for b in BUILDINGS:
+	for b in _live:
 		var id := String(b["id"])
 		var w := float(b["w"])
 		var h := float(b["h"])
@@ -877,7 +1015,7 @@ func _layout() -> void:
 			var pill: Control = _badges[id]
 			pill.reset_size()
 			pill.position = Vector2(cx + w * 0.5 - 6.0 - pill.get_combined_minimum_size().x, base - h + 4.0)
-	for p in PLOTS:
+	for p in _plots:
 		var id := String(p["id"])
 		var cx := float(p["cx"])
 		var base := float(p["base"]) + dy
@@ -911,7 +1049,7 @@ func _on_house_pressed(id: String) -> void:
 		_on_run_pressed()
 		return
 	if _is_locked(id):
-		_show_toast("Builds at %s Land" % _tier_of(id))
+		_show_toast("Builds at %s Land" % _need_name(id))
 		return
 	var def: Dictionary = _house_defs.get(id, {})
 	_open_screen(StringName(String(def.get("screen_id", id))))
@@ -942,10 +1080,19 @@ func _on_continue_pressed() -> void:
 
 
 func _on_new_run_pressed() -> void:
+	_open_confirm("End the current run?",
+		"Starting a new run ends the one in progress. Its rewards so far are not kept.",
+		"End run, start new", func() -> void:
+			RunState.clear_saved_run()
+			_has_run = false
+			LandNav.open(&"run_setup"), true)
+
+
+func _open_confirm(title: String, body: String, ok_text: String, on_ok: Callable, warning: bool = false) -> void:
 	if _modal != null:
 		return
 	_modal = Control.new()
-	_modal.name = "ConfirmNewRun"
+	_modal.name = "Confirm"
 	_modal.set_anchors_preset(Control.PRESET_FULL_RECT)
 	var dim := ColorRect.new()
 	dim.color = Color(0, 0, 0, 0.45)
@@ -961,8 +1108,8 @@ func _on_new_run_pressed() -> void:
 	var v := VBoxContainer.new()
 	v.add_theme_constant_override("separation", 12)
 	panel.add_child(v)
-	v.add_child(_lbl("End the current run?", 26, DangoTheme.INK))
-	var msg := _lbl("Starting a new run ends the one in progress. Its rewards so far are not kept.", 14, DangoTheme.INK_ON_CREAM_SOFT, false)
+	v.add_child(_lbl(title, 26, DangoTheme.INK))
+	var msg := _lbl(body, 14, DangoTheme.INK_ON_CREAM_SOFT, false)
 	msg.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	msg.custom_minimum_size = Vector2(470, 0)
 	v.add_child(msg)
@@ -970,22 +1117,19 @@ func _on_new_run_pressed() -> void:
 	row.add_theme_constant_override("separation", 10)
 	v.add_child(row)
 	var cancel := Button.new()
-	cancel.text = "Keep my run"
+	cancel.text = "Cancel"
 	cancel.custom_minimum_size = Vector2(0, 52)
 	cancel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	DangoTheme.style_button(cancel, false)
 	cancel.pressed.connect(_close_modal)
 	row.add_child(cancel)
 	var ok := Button.new()
-	ok.name = "ConfirmEndRun"
-	ok.text = "End run, start new"
+	ok.name = "ConfirmOk"
+	ok.text = ok_text
 	ok.custom_minimum_size = Vector2(0, 52)
 	ok.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	DangoTheme.style_button(ok, true, true)
-	ok.pressed.connect(func() -> void:
-		RunState.clear_saved_run()
-		_has_run = false
-		LandNav.open(&"run_setup"))
+	DangoTheme.style_button(ok, true, warning)
+	ok.pressed.connect(on_ok)
 	row.add_child(ok)
 	_ui.add_child(_modal)
 	cancel.grab_focus()
@@ -1049,12 +1193,16 @@ func show_moon_card() -> void:
 
 ## Dashed diamond with a lock (R1 "Empty plot"): 200x108, 3 px dashed #8A3E22.
 class PlotMark extends Control:
+	var locked := true
+
 	func _draw() -> void:
 		var c := size * 0.5
 		var pts := PackedVector2Array([Vector2(c.x, 0), Vector2(size.x, c.y), Vector2(c.x, size.y), Vector2(0, c.y)])
 		draw_colored_polygon(pts, Color(0.91, 0.84, 0.71, 0.55))
 		for i in 4:
 			draw_dashed_line(pts[i], pts[(i + 1) % 4], Color("8A3E22"), 3.0, 9.0)
+		if not locked:
+			return
 		# Lock: body + shackle.
 		var body := Rect2(c.x - 11, c.y - 4, 22, 18)
 		draw_rect(body, Color("9A7650"))

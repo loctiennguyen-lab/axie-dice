@@ -1,7 +1,0 @@
-[gd_scene format=3]
-
-[ext_resource type="PackedScene" path="res://assets/land/homeland/src/HomeLand_Asset/Environment/Public/LandPlot_Module/Plot_Module_3x3.fbx" id="1_hvrlq"]
-
-[node name="Plot_Module_3x3" type="Node3D" unique_id=1852147636]
-
-[node name="Plot_Module_3x3" type="Node3D" parent="." unique_id=1230549340 instance=ExtResource("1_hvrlq")]

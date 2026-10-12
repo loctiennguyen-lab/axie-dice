@@ -71,6 +71,23 @@ func _ready() -> void:
 
 	hub.queue_free()
 	await get_tree().process_frame
+
+	# All six Lands build; Mastery opens at Arctic (3), Gallery at Genesis (5).
+	for tier in range(1, 7):
+		LandHub.tier_override = tier
+		var h := (load("res://scenes/land/Land.tscn") as PackedScene).instantiate() as LandHub
+		add_child(h)
+		await get_tree().process_frame
+		var mastery_built := h.find_child("Hit_mastery", true, false) != null
+		_check(mastery_built == (tier >= 3), "tier %d: Mastery built=%s" % [tier, mastery_built])
+		_check((h.find_child("Plot_mastery", true, false) != null) == (tier < 3), "tier %d: ô Mastery" % tier)
+		var gal := h.find_child("Plot_gallery", true, false)
+		_check(gal != null and bool(gal.get("locked")) == (tier < 5), "tier %d: Gallery khoá sai" % tier)
+		_check((h.find_child("UpgradeLand", true, false) != null) == (tier < 6), "tier %d: nút Upgrade" % tier)
+		_check(h.find_child("Hit_portal", true, false) != null, "tier %d: thiếu Portal" % tier)
+		h.queue_free()
+		await get_tree().process_frame
+	LandHub.tier_override = 0
 	LandNav.dry_run = false
 	MetaState.tutorial_seen = seen_was
 	if _fails.is_empty():

@@ -55,7 +55,7 @@ func _ready() -> void:
 				_check(not seen.has(h.get("house_id")), "house_id trùng " + str(h.get("house_id")))
 				seen[h.get("house_id")] = true
 				var sid := StringName(h.get("screen_id", ""))
-				var locked: bool = (h.get("unlock", {}) as Dictionary).has("tier")
+				var locked: bool = (h.get("unlock", {}) as Dictionary).has("min_tier")
 				_check(locked or LandNav.SCREENS.has(sid), "house %s trỏ id không có trong SCREENS" % h.get("house_id"))
 	LandNav.dry_run = false
 	if _fails.is_empty():

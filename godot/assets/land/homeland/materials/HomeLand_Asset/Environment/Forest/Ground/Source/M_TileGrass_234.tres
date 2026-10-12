@@ -1,0 +1,18 @@
+[gd_resource type="ShaderMaterial" format=3]
+
+[ext_resource type="Shader" path="res://assets/land/homeland/shaders/HomeLand_Asset/Environment/Forest/Ground/Source/S_TileGrass_234.gdshader" id="1_bsdyj"]
+[ext_resource type="Texture2D" path="res://assets/land/homeland/src/HomeLand_Asset/Environment/Forest/Ground/Source/T_TileGrass_Mask.png" id="2_op5k7"]
+[ext_resource type="Texture2D" path="res://assets/land/homeland/src/HomeLand_Asset/Environment/Forest/Ground/Source/Shader/T_Forest3.png" id="3_bij6o"]
+
+[resource]
+resource_name = "M_TileGrass_234"
+render_priority = 0
+shader = ExtResource("1_bsdyj")
+shader_parameter/pVector1_289664510415420d9e12f44557522d07 = null
+shader_parameter/pVector1_37c9937e6ef8422894b7fbbebb6a2d08 = null
+shader_parameter/p_GrassOff = 0.0
+shader_parameter/sg_shadow = null
+shader_parameter/pTexture2D_f296769a84014f6988cf8d206fe42724 = ExtResource("2_op5k7")
+shader_parameter/pTexture2D_ffc61b397b8f472cb54e2feee3640d9a = ExtResource("3_bij6o")
+shader_parameter/sg_main_light_dir = null
+shader_parameter/sg_main_light_color = null
