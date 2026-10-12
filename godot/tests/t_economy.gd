@@ -60,6 +60,7 @@ func _ready() -> void:
 	test_ticket_buy_cap_and_cost()
 	test_mission_board()
 	test_store_and_l1_flags()
+	test_remote_wallet_wiring()
 	test_migration_resets_old_save()
 	test_new_fields_survive_reload()
 	test_record_run_outcome_and_badges()
@@ -563,3 +564,37 @@ func test_store_and_l1_flags() -> void:
 	_assert(r["show"] and r["enabled"], "Boon hiện ở ranked")
 	var d: Dictionary = _Econ.get_table("daily")["daily_runs"]
 	_assert(int(d["max_per_day"]) == 3 and bool(d["shared_seed"]), "Daily tối đa 3 lần/ngày UTC, chung seed")
+
+
+class FakeNet extends RefCounted:
+	var balance := 100
+	func call_net(method: String, path: String, _body: String, done: Callable) -> void:
+		if path == "/api/gem/claim":
+			balance += 300
+			done.call(200, JSON.stringify({"ok": true, "granted": 300, "reason": "", "next_utc": 1_900_000_000, "balance": balance}))
+		else:
+			done.call(200, JSON.stringify({"gem": balance}))
+
+
+func test_remote_wallet_wiring() -> void:
+	SaveStore.erase(MetaState.SAVE_PATH)
+	MetaState.reload_from_store()
+	var net := FakeNet.new()
+	var w := RemoteGemWallet.new(net.call_net)
+	MetaState.use_remote_gem_wallet(w)
+	w.refresh()
+	_assert(MetaState.gems_cache == 100, "balance_changed cập nhật gems_cache (100)")
+	var got := {}
+	MetaState.claim_gem_gift_async(func(r: Dictionary) -> void: got.merge(r))
+	_assert(got.get("ok", false) and int(got.get("granted", 0)) == 300, "claim async remote trả kết quả server")
+	_assert(MetaState.gems_cache == 400 and MetaState.gem_claim_next_utc == 1_900_000_000, "gems_cache + next_utc đồng bộ")
+	_assert(MetaState.badge_count("store") == 0, "badge store tắt khi next_utc ở tương lai")
+	# ví local vẫn chạy cùng API async
+	MetaState.set_gem_wallet(LocalGemWallet.new(MetaState))
+	MetaState.gems_cache = 0
+	MetaState.gem_gift_day = ""
+	MetaState.gem_claim_next_utc = 0
+	var loc := {}
+	MetaState.claim_gem_gift_async(func(r: Dictionary) -> void: loc.merge(r))
+	_assert(loc.get("ok", false) and MetaState.gems_cache == 300, "claim async local")
+	MetaState.set_gem_wallet(null)

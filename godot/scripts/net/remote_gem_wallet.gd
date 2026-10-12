@@ -48,7 +48,7 @@ func refresh(done: Callable = Callable()) -> void:
 			done.call(ok))
 
 
-func spend(n: int, reason: String) -> bool:
+func spend(n: int, reason: String, _save: bool = true) -> bool:
 	if n < 0 or _balance < n:
 		return false
 	if n == 0:

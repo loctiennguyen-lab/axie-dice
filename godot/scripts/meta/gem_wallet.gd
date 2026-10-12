@@ -33,6 +33,14 @@ func claim_daily_gift(_now_unix: int) -> Dictionary:
 	return {"ok": false, "granted": 0, "reason": "unimplemented", "next_utc": 0}
 
 
+## Bản bất đồng bộ: done(result:Dictionary) cùng dạng với claim_daily_gift. Local trả ngay; Remote
+## (RemoteGemWallet) gọi server rồi mới done. UI nên dùng hàm này.
+func claim_daily_gift_async(done: Callable) -> void:
+	var r := claim_daily_gift(int(Time.get_unix_time_from_system()))
+	if done.is_valid():
+		done.call(r)
+
+
 ## Unix của 00:00 UTC kế tiếp sau `now_unix` (cho badge / đếm giờ).
 static func next_utc_midnight(now_unix: int) -> int:
 	return (now_unix / 86400 + 1) * 86400

@@ -161,6 +161,28 @@ func set_gem_wallet(w: GemWallet) -> void:
 	_gem_wallet = w
 
 
+## Dùng ví Gem server (làn S gọi khi đăng nhập). `balance_changed` của ví cập nhật bộ đệm gems_cache
+## để UI/badge đọc MetaState như cũ.
+func use_remote_gem_wallet(w: GemWallet) -> void:
+	set_gem_wallet(w)
+	gems_cache = w.balance()
+	if w.has_signal("balance_changed"):
+		w.connect("balance_changed", func(b: int) -> void: gems_cache = b)
+
+
+## Nhận Gem tặng, bất đồng bộ (bản remote hỏi server). done(result:{ok, granted, reason, next_utc}).
+## Sau kết quả: đồng bộ gems_cache + gem_claim_next_utc rồi save.
+func claim_gem_gift_async(done: Callable = Callable()) -> void:
+	var w := gem_wallet()
+	w.claim_daily_gift_async(func(r: Dictionary) -> void:
+		if int(r.get("next_utc", 0)) > 0:
+			gem_claim_next_utc = int(r["next_utc"])
+		gems_cache = w.balance()
+		save_to_disk()
+		if done.is_valid():
+			done.call(r))
+
+
 ## Nhận Gem tặng hôm nay (giờ UTC thật của máy; bản server sẽ do server xác nhận).
 func claim_gem_gift_now() -> Dictionary:
 	return gem_wallet().claim_daily_gift(int(Time.get_unix_time_from_system()))
@@ -205,8 +227,7 @@ func badge_count(screen_id: String) -> int:
 	match screen_id:
 		"store":
 			var cap := int((EconomyDBScript.get_table("gem").get("gift", {}) as Dictionary).get("balance_cap", 900))
-			var today := GemWallet.utc_day(int(Time.get_unix_time_from_system()))
-			return 1 if gem_gift_day != today and gems_cache < cap else 0
+			return 1 if int(Time.get_unix_time_from_system()) >= gem_claim_next_utc and gems_cache < cap else 0
 		"echobox":
 			return 1 if int(tickets.get("normal", 0)) > 0 else 0
 	return 0
