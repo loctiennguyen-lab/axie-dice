@@ -6,7 +6,7 @@
 script = ExtResource("1")
 id = "r_wellspringroots"
 name = "Wellspring Roots"
-description = "Mỗi 2 Mana đã tiêu: mọi mặt của đội +1 growth trong trận (tối đa +4)"
+description = "Every 2 Mana you spend: all your faces gain +1 Growth for this combat (max +4)."
 rarity = 1
 archetype = "growth"
 mload = 0

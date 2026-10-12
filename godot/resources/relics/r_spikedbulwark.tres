@@ -6,7 +6,7 @@
 script = ExtResource("1")
 id = "r_spikedbulwark"
 name = "Spiked Bulwark"
-description = "When an Axie gains Shield: +1 Thorns per 5 Shield it holds (max +4) until end of turn."
+description = "When an Axie gains Shield, its Thorns get +1 for every 5 Shield it has (max +4), through the enemy phase."
 rarity = 1
 archetype = "shield"
 mload = 0

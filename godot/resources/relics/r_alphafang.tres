@@ -6,7 +6,7 @@
 script = ExtResource("1")
 id = "r_alphafang"
 name = "Alpha's Fang"
-description = "FERAL: ngưỡng dưới 65% HP (thay 50%, chỉ FERAL; `is_wounded` của relic khác vẫn 50%), hệ số vẫn ×1.6; Axie Beast kill hoàn 1 Reroll (1/lượt). SỬA SAU REVIEW 11/10 (F-20): chỉ tính kill do **mặt của Axie Beast** gây; kill do tick/thorns/relic không tính. `on_kill` ctx thêm `killer` (§5)"
+description = "Beast's Feral triggers below 65% HP (was 50%); the ×1.6 stays. When a Beast Axie's face kills an enemy, refund 1 Reroll (once per turn)."
 rarity = 2
 archetype = "beast"
 mload = 0

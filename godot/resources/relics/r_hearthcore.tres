@@ -6,7 +6,7 @@
 script = ExtResource("1")
 id = "r_hearthcore"
 name = "Hearthcore"
-description = "RULE: Burn deals its damage twice per turn; the second tick deals 70%."
+description = "Burn deals +70% damage [Axis: Burn]."
 rarity = 2
 archetype = "burn"
 mload = 1

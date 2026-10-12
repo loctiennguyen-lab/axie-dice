@@ -6,7 +6,7 @@
 script = ExtResource("1")
 id = "r_mirrorshell"
 name = "Mirror Shell"
-description = "RULE: your Thorns deal double damage."
+description = "Thorns deal +100% damage [Axis: Thorns]."
 rarity = 3
 archetype = "thorns"
 mload = 1

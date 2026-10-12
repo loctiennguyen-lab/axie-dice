@@ -6,7 +6,7 @@
 script = ExtResource("1")
 id = "r_sporegale"
 name = "Spore Gale"
-description = "Mặt Cleave/AoE gắn 1 Poison lên mọi mục tiêu phụ; Poison lan 1 stack sang hàng xóm mỗi tick (bật `poisonSpread` có sẵn)"
+description = "Cleave and AoE faces apply 1 Poison to every secondary target. At each Poison tick, every poisoned enemy spreads 1 Poison to the enemies next to it."
 rarity = 1
 archetype = "poison"
 mload = 0

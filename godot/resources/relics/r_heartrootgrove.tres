@@ -6,7 +6,7 @@
 script = ExtResource("1")
 id = "r_heartrootgrove"
 name = "Heartroot Grove"
-description = "BULWARK: Thorns 2 từ ≥6 Shield (thay 10), Thorns 3; cuối lượt Axie Plant có ≥10 Shield cho 3 Shield mỗi Axie kề"
+description = "Plant's Bulwark gives Thorns 3 (was 2) from 6 Shield (was 10). At end of turn, each Plant Axie with 10+ Shield gives 3 Shield to each Axie next to it."
 rarity = 2
 archetype = "plant"
 mload = 0

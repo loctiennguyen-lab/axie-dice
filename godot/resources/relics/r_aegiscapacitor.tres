@@ -6,7 +6,7 @@
 script = ExtResource("1")
 id = "r_aegiscapacitor"
 name = "Aegis Capacitor"
-description = "Mỗi 2 Mana đã tiêu (đếm trong trận): Axie ít Shield nhất nhận 4 Shield"
+description = "Every 2 Mana you spend in a combat, the Axie with the least Shield gains 4 Shield."
 rarity = 2
 archetype = "shield"
 mload = 0

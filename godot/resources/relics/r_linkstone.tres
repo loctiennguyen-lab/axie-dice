@@ -6,7 +6,7 @@
 script = ExtResource("1")
 id = "r_linkstone"
 name = "Linkstone"
-description = "SỬA SAU REVIEW 11/10 (F-11, Q4): điều kiện **tĩnh**. Mỗi Axie đang đứng kề một Axie còn sống khác mà mặt đang hiện cùng loại (dmg, shield, heal, poison, mana; Egg/token không tính) nhận +2 giá trị chính của mặt đó. **Khác LINK gốc** (LINK gốc kích lúc dùng mặt và ×1.15 cho người dùng sau): linkstone xét theo mặt đang hiện, tính lại sau roll và mỗi reroll, và không cần ai dùng trước. ×1.15 của LINK gốc vẫn chạy riêng. \"Kề\" dùng đúng hàm của LINK (`combat_engine.gd` ~751, kiểm lúc làm)"
+description = "Each Axie standing next to a living Axie that shows the same face type (damage, shield, heal, poison, mana) gets +2 on that face. Rechecked after every Reroll."
 rarity = 0
 archetype = "crit"
 mload = 0

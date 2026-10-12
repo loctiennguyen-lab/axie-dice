@@ -6,7 +6,7 @@
 script = ExtResource("1")
 id = "r_merchantscale"
 name = "Merchant's Scale"
-description = "REDESIGN: Shop có **3 relic** thay vì 2, giá và giá bán giữ nguyên. Chỉ thêm lựa chọn để tiêu"
+description = "Shops offer 3 relics instead of 2. Prices and sell values do not change."
 rarity = 0
 archetype = "crit"
 mload = 0

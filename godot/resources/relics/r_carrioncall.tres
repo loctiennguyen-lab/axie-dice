@@ -6,7 +6,7 @@
 script = ExtResource("1")
 id = "r_carrioncall"
 name = "Carrion Call"
-description = "Enemies with 5 or more Poison count as wounded for every "below 50% HP" rule."
+description = "Enemies with 5 or more Poison count as Wounded for every effect that checks \"below 50% HP\". They no longer count as healthy for Dawn Lance."
 rarity = 2
 archetype = "exec"
 mload = 0

@@ -6,12 +6,13 @@
 script = ExtResource("1")
 id = "r_patientfang"
 name = "Patient Fang"
-description = "PACT: +2 damage per turn passed (max +14), but on turn 1 all damage faces deal 0."
+description = "PACT. Each turn after the first, all damage faces get +2 more (turn 2 = +2, turn 3 = +4, max +14). Drawback: on turn 1 all damage faces deal 0."
 rarity = 3
 archetype = "crit"
 mload = 0
 sort_index = 103525
 hook_key = "r_patientfang"
+zeroFirstTurn = true
 tags = PackedStringArray("uni")
 layer = "pact"
 pact_group = "dice"

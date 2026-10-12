@@ -6,7 +6,7 @@
 script = ExtResource("1")
 id = "r_heirloom"
 name = "Heirloom Seed"
-description = "Mỗi Elite/Boss thắng: mọi mặt dmg +1 vĩnh viễn trong run (tối đa +5). Mang qua trận, không mang qua run"
+description = "Each Elite or Boss you defeat: all damage faces get +1 for the rest of the run (max +5)."
 rarity = 1
 archetype = "crit"
 mload = 0

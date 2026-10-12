@@ -6,7 +6,7 @@
 script = ExtResource("1")
 id = "r_pipfile"
 name = "Pip File"
-description = "NUDGE: Tweak, +1 hoặc −1 giá trị chính của 1 mặt đã roll. Tối đa 2 lần/lượt"
+description = "Tweak: change the main value of one rolled face by +1 or −1 (min 1)."
 rarity = 0
 archetype = "crit"
 mload = 0

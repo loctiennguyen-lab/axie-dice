@@ -6,7 +6,7 @@
 script = ExtResource("1")
 id = "r_towershield"
 name = "Tower Shield"
-description = "A damage face of an Axie holding Shield: +1 damage per 4 Shield (max +6)."
+description = "An Axie with Shield gets +1 damage on its damage faces for every 4 Shield (max +6)."
 rarity = 0
 archetype = "shield"
 mload = 0

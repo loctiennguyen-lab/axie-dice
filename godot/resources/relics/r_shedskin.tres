@@ -6,7 +6,7 @@
 script = ExtResource("1")
 id = "r_shedskin"
 name = "Shed Skin"
-description = "SCALES: Thorns 4 (thay 2), Thorns gắn Poison 2 (thay 1); Axie Reptile bị đánh khi không có Shield: +4 Shield (1 lần/lượt/Axie)"
+description = "Reptile's Scales give Thorns 4 (was 2) and reflected Thorns apply Poison 2 (was 1). A Reptile Axie hit while it has no Shield gains 4 Shield (once per turn per Axie)."
 rarity = 2
 archetype = "reptile"
 mload = 0

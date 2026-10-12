@@ -6,7 +6,7 @@
 script = ExtResource("1")
 id = "r_devilsreroll"
 name = "Devil's Reroll"
-description = "Lợi: Reroll max +3. Hại: mỗi lần reroll tốn 1 Mana, hết Mana là không reroll được"
+description = "PACT. +3 max Rerolls. Drawback: every Reroll costs 1 Mana. With no Mana you cannot Reroll."
 rarity = 2
 archetype = "mana"
 mload = 0

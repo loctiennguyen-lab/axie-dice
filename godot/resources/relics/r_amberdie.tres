@@ -6,7 +6,7 @@
 script = ExtResource("1")
 id = "r_amberdie"
 name = "Amber Die"
-description = "HOLD: cuối lượt chọn 1 die chưa dùng: lượt sau Axie đó giữ nguyên mặt này (không roll lại, vẫn reroll được). 1 lần/lượt, không tính vào ngân sách Tweak"
+description = "At end of turn, pick 1 unused die. Next turn that Axie keeps this exact face (no new roll; you can still Reroll it). Free, once per turn."
 rarity = 1
 archetype = "crit"
 mload = 0

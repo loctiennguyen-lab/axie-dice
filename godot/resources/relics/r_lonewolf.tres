@@ -6,7 +6,7 @@
 script = ExtResource("1")
 id = "r_lonewolf"
 name = "Lone Wolf Contract"
-description = "Lợi: Axie slot 1 mọi mặt +100%. Hại: 4 Axie còn lại không được reroll"
+description = "PACT. The Axie in slot 1 deals +100% damage on all its damage faces [Global]. Drawback: the other 4 Axies cannot Reroll."
 rarity = 2
 archetype = "crit"
 mload = 0

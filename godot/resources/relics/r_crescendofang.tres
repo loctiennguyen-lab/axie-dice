@@ -6,7 +6,7 @@
 script = ExtResource("1")
 id = "r_crescendofang"
 name = "Crescendo Fang"
-description = "Mỗi mặt dmg dùng trong lượt: mặt dmg kế tiếp +1 (cộng dồn). Reset cuối lượt"
+description = "Each damage face you use this turn gives your next damage face +1 (stacks). Resets at end of turn."
 rarity = 0
 archetype = "exec"
 mload = 0

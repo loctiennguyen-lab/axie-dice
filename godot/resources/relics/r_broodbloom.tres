@@ -6,7 +6,7 @@
 script = ExtResource("1")
 id = "r_broodbloom"
 name = "Brood Bloom"
-description = "Cuối lượt mỗi Egg +1 growth; Egg mới nở nhận growth bằng Egg có growth cao nhất"
+description = "At end of turn, each Egg gains +1 Growth. A newly hatched Egg starts with the Growth of your highest-Growth Egg."
 rarity = 2
 archetype = "growth"
 mload = 0

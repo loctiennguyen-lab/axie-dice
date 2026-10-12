@@ -6,7 +6,7 @@
 script = ExtResource("1")
 id = "r_relaybaton"
 name = "Relay Baton"
-description = "Axie dùng xong 1 mặt: Axie slot kế bên phải +2 dmg cho mặt kế tiếp lượt này (cộng dồn đi trái sang phải)"
+description = "After an Axie uses a face, the Axie in the next slot to its right gets +2 on its next damage face this turn."
 rarity = 2
 archetype = "crit"
 mload = 0

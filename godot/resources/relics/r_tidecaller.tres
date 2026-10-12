@@ -6,7 +6,7 @@
 script = ExtResource("1")
 id = "r_tidecaller"
 name = "Tidecaller's Conch"
-description = "CONDUIT: mỗi 3 Mana tiêu cho 1 Reroll (thay 4), Reroll này được vượt max tới +2; mặt Mana của Axie Aqua +1"
+description = "Aqua's Conduit gives 1 Reroll per 3 Mana spent (was 4), and these Rerolls may go up to 2 above your max. Aqua Mana faces give +1 Mana."
 rarity = 2
 archetype = "aqua"
 mload = 0

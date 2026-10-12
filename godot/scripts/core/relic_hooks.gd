@@ -598,7 +598,8 @@ static var TABLE: Dictionary = {
 		# not re-enter onHit and recurse.
 		"on_hit": func(ctx: Dictionary):
 			var t: Unit = ctx["tgt"]
-			if t != null and t.side == "e" and t.hp > 0 and float(t.hp) <= float(t.max_hp) * 0.15:
+			# Bosses are immune to instant kills (design/l1-relic-answers.md §5, Liam 12/10).
+			if t != null and t.side == "e" and not t.is_boss and t.hp > 0 and float(t.hp) <= float(t.max_hp) * 0.15:
 				DamagePipeline.resolve({"combat": ctx["combat"], "src": null, "tgt": t,
 					"value": t.hp, "pierce": true, "attack": false})
 			return,
@@ -800,9 +801,10 @@ static var TABLE: Dictionary = {
 		# capped at +14. Only face damage reaches mod_dmg with a src (relic damage has src null).
 		"mod_dmg": func(ctx: Dictionary):
 			var v: float = float(ctx["value"])
+			# Turn 1 is zeroed by DamagePipeline (`zeroFirstTurn`) AFTER every bonus, crit included.
 			var turn: int = int(ctx["combat"].turn)
 			if turn <= 1:
-				return 0.0
+				return v
 			return v + float(mini(14, 2 * (turn - 1))),
 	},
 	"r_festermark": {
@@ -824,8 +826,8 @@ static var TABLE: Dictionary = {
 		"on_hit": func(ctx: Dictionary):
 			var t: Unit = ctx["tgt"]
 			var combat = ctx["combat"]
-			if not bool(ctx.get("crit", false)) or t == null or t.side != "e" or t.hp <= 0:
-				return
+			if not bool(ctx.get("crit", false)) or t == null or t.side != "e" or t.hp <= 0 or t.is_boss:
+				return   # bosses are immune to instant kills (l1-relic-answers §5)
 			var hp_before: int = t.hp + int(ctx.get("dealt", 0))
 			if not DamagePipeline.is_wounded_at(combat, t, hp_before):
 				return

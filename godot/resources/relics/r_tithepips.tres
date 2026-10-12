@@ -6,7 +6,7 @@
 script = ExtResource("1")
 id = "r_tithepips"
 name = "Tithe of Pips"
-description = "Lợi: +3 Mana mỗi lượt. Hại: mỗi lượt mặt có giá trị chính thấp nhất sau roll bị blank (không dùng được; reroll để thoát). Cờ blank được tính lại ở mỗi `on_roll_settled` (xoá cờ cũ rồi gắn lại)"
+description = "PACT. +3 Mana each turn. Drawback: after every roll, your lowest-value face is blanked and cannot be used. Reroll it to escape."
 rarity = 2
 archetype = "mana"
 mload = 0

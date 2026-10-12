@@ -6,7 +6,7 @@
 script = ExtResource("1")
 id = "r_assassinsneedle"
 name = "Assassin's Needle"
-description = "Mặt Pierce +25% crit chance; Pierce crit gắn Weaken 2 và hoàn 1 Mana"
+description = "Pierce faces get +25% Crit chance. A Pierce crit applies Weaken 2 and refunds 1 Mana."
 rarity = 3
 archetype = "crit"
 mload = 0

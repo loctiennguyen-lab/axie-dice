@@ -6,7 +6,7 @@
 script = ExtResource("1")
 id = "r_scalecrown"
 name = "Scale Crown"
-description = "RULE: every Axie gains the Reptile SCALES passive. Always Thorns 2, and your Thorns also apply Poison 1."
+description = "Your whole team gains Scales (Thorns 2, reflected Thorns apply 1 Poison) and every Axie has at least 2 Thorns."
 rarity = 3
 archetype = "thorns"
 mload = 0

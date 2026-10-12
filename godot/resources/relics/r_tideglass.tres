@@ -6,7 +6,7 @@
 script = ExtResource("1")
 id = "r_tideglass"
 name = "Tideglass"
-description = "Mỗi 3 Mana tiêu: mọi mặt dmg +1 đến hết trận (tối đa +6). Reset mỗi trận"
+description = "Every 3 Mana you spend: all damage faces get +1 for this combat (max +6)."
 rarity = 2
 archetype = "mana"
 mload = 0

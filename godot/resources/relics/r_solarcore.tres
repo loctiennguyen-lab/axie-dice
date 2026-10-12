@@ -6,7 +6,7 @@
 script = ExtResource("1")
 id = "r_solarcore"
 name = "Solar Core"
-description = "RULE: Burn deals double damage."
+description = "Burn deals +100% damage [Axis: Burn]."
 rarity = 3
 archetype = "burn"
 mload = 1

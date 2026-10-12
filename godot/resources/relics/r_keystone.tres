@@ -6,7 +6,7 @@
 script = ExtResource("1")
 id = "r_keystone"
 name = "Keystone"
-description = "Mặt Shield/Heal/Mana của Axie slot 3 cũng áp 50% cho 2 Axie kề"
+description = "The Shield, Heal and Mana faces of the Axie in slot 3 also give 50% (rounded down) to each Axie next to it. For Mana: +50% extra Mana per living neighbour."
 rarity = 2
 archetype = "crit"
 mload = 0

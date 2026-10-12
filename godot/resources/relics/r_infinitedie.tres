@@ -6,7 +6,7 @@
 script = ExtResource("1")
 id = "r_infinitedie"
 name = "Infinite Die"
-description = "Gain 2 maximum Rerolls, 1 Mana at the start of every fight, and rerolling no longer clears your undo history."
+description = "+2 max Rerolls and +1 Mana on turn 1. You can Undo past a Reroll."
 rarity = 2
 archetype = "mana"
 mload = 0

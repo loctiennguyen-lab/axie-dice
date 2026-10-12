@@ -64,6 +64,10 @@ static func resolve(ctx: Dictionary) -> int:
 				pierce = true
 				EventBus.relic_pulsed.emit("critPierce", tgt.uid)
 
+	if src != null and src.side == "p" and int(combat.turn) <= 1 and RelicHooks.has(combat, "zeroFirstTurn"):
+		v = 0.0                                                                  # patientfang drawback, after ALL bonuses
+		EventBus.float_text.emit(tgt.uid, "0", "dmg", 0)
+
 	# ---- target side (steps 6-13) — always ----
 	if tgt.status.get("vulnerable", 0) > 0:
 		v = ceil(v * 1.5)                                                        # 6. vulnerable
@@ -125,8 +129,11 @@ static func resolve(ctx: Dictionary) -> int:
 
 	# 11. THORNS — pierce+piercePlus relic bypasses it entirely
 	var skip_thorns := pierce and RelicHooks.has(combat, "piercePlus")
-	if src != null and attack and not skip_thorns and int(tgt.status.get("thorns", 0)) > 0 and src.hp > 0 and src != tgt:
-		var th := float(tgt.status.get("thorns", 0))
+	var thorns_now := int(tgt.status.get("thorns", 0))
+	if tgt.side == "p" and tgt.is_token:       # thornling: Eggs reflect at least this much from the moment they exist
+		thorns_now = maxi(thorns_now, int(RelicHooks.max_val(combat, "eggThorns", 0.0)))
+	if src != null and attack and not skip_thorns and thorns_now > 0 and src.hp > 0 and src != tgt:
+		var th := float(thorns_now)
 		if tgt.side == "p":
 			var tm := RelicHooks.max_val(combat, "thornsMult", 1.0)
 			var tp := RelicHooks.sum(combat, "thornsPlus")

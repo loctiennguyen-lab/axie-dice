@@ -6,7 +6,7 @@
 script = ExtResource("1")
 id = "r_festermark"
 name = "Festering Mark"
-description = "Enemies that are poisoned or burning take +2 per hit; both at once +4."
+description = "Enemies with Poison or Burn take +2 damage from each hit. Enemies with both take +4."
 rarity = 1
 archetype = "poison"
 mload = 0
