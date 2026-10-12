@@ -12,7 +12,6 @@ extends Control
 ## `MetaState.has_unlock()` / `buy_unlock()`. Nothing here invents a rule — it is presentation over
 ## state that already worked.
 
-const MAIN_MENU_SCENE := "res://scenes/main_menu/MainMenu.tscn"
 
 # The plate the mockup asks for. The whole painted set already ships under
 # `assets/backgrounds/origins/scene/`, under the kit's own numbered names — the short names the
@@ -181,7 +180,7 @@ func _update_list_fade() -> void:
 ## (now correctly scrolling) list. §1 item 4: the footer is `DangoScreen.build()`'s.
 func _build_footer(footer: HBoxContainer) -> void:
 	DangoScreen.add_back_button(footer, func() -> void:
-		get_tree().change_scene_to_file(MAIN_MENU_SCENE))
+		LandNav.back_to_land())
 
 
 func refresh() -> void:
