@@ -37,6 +37,11 @@ signal phase_changed(old_phase: int, new_phase: int)
 signal node_entered(node_type: String, node_id: String)
 signal combat_finished(won: bool)
 signal run_ended(won: bool)
+## Presentation only (L1 contract 3.2): nothing in the rules listens to these.
+signal combat_clock_changed(state: Dictionary)
+signal combat_attrition_changed(state: Dictionary)
+signal party_revived(uids: Array, heal_pct: int)
+signal boss_spike_warned(uid: int, turns: int)
 
 # --- Combat-internal turn FSM (added for CombatEngine, checklist step 4) ---
 # Deliberately separate from `phase_changed` above: that signal's ints are

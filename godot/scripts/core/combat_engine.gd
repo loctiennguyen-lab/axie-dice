@@ -94,6 +94,38 @@ var _rng: Rng = null
 var _epoch: EpochSource = null
 ## k-th reroll request this turn (reroll epoch key, ADR-RNG §4.4). In the snapshot so undo rewinds it.
 var reroll_k: int = 0
+## Relic scratch space for ONE combat (H6, contract 2.3): plain JSON, owned by lane B's handlers
+## (tweak_left, mana_paid_<id>, chaos_rerolls...). In the snapshot, so undo and resume restore it
+## together with Mana. `relic_run_in` is RunState.relic_state as the fight began; handlers write
+## run-level results into `relic_run_out`, which get_result() hands back.
+var relic_combat: Dictionary = {}
+var relic_run_in: Dictionary = {}
+var relic_run_out: Dictionary = {}
+## Combat pressure (ascension-v2 §2.4, monetization-v1 §1.2). Pure functions of `turn` and
+## `clock_turn_base`, so replay needs no extra input. Continue / the Aid "delay clock" move the base.
+var clock_turn_base: int = 0
+## How many times the party was revived in this fight (the `attempt` of the epoch protocol). Fight state,
+## not a purchase flag: no rule reads it except to key the next epoch request (MON-13).
+var attempt: int = 0
+## Newcomer account (first runs): attrition and the light A0-A3 clock are off. A fixed header fact.
+var newcomer: bool = false
+## Pure numbers handed in by RunState (a Boon, a mission rule, anything): the engine neither knows nor
+## cares where they came from (MON-13). See setup_new().
+var start_shield_all: int = 0
+var start_mana: int = 0
+var first_dmg_face_bonus: int = 0
+var start_eggs: int = 0
+var _first_dmg_used: bool = false
+var _end_fired: bool = false     ## on_combat_end fires once, from the first get_result()
+
+
+## Hands the engine the run's epoch source. setup_new() does it from the combat setup; a fight restored
+## with from_data() (resume, scene reload) has no setup, so the caller (CombatView, lane U) calls
+## `_combat.set_epoch(RunState.epoch)` right after from_data(). Without it the engine falls back to the
+## legacy continuing stream and the draw is not on the tape.
+func set_epoch(src: EpochSource) -> void:
+	_epoch = src
+
 var _next_token_uid: int = TOKEN_UID_BASE
 
 
@@ -115,6 +147,18 @@ func setup_new(combat_setup: Dictionary) -> void:
 	_run_mods = (combat_setup.get("run_mods", {}) as Dictionary).duplicate()
 	_rng = Rng.new(combat_seed)
 	_epoch = combat_setup.get("epoch", null) as EpochSource
+	newcomer = bool(combat_setup.get("newcomer", false))
+	clock_turn_base = 0
+	attempt = 0
+	start_shield_all = int(combat_setup.get("start_shield_all", 0))
+	start_mana = int(combat_setup.get("start_mana", 0))
+	first_dmg_face_bonus = int(combat_setup.get("first_dmg_face_bonus", 0))
+	start_eggs = int(combat_setup.get("start_eggs", 0))
+	_first_dmg_used = false
+	relic_combat = {}
+	relic_run_in = (combat_setup.get("relic_state", {}) as Dictionary).duplicate(true)
+	relic_run_out = relic_run_in.duplicate(true)
+	_end_fired = false
 	reroll_k = 0
 	_next_token_uid = TOKEN_UID_BASE
 	undo_stack = []
@@ -145,7 +189,12 @@ func setup_new(combat_setup: Dictionary) -> void:
 
 	enemies = _generate_encounter(kind, pw)
 
-	max_rerolls = 2 + int(combat_setup.get("bonus_reroll", 0)) + int(RelicHooks.sum(self, "rerollUp"))
+	# A3 "Short Dice": the BASE loses a reroll (never below the floor); every bonus still adds on top.
+	var amods_r := ContentDB.ascension_mods(ascension)
+	var base_rerolls := 2
+	if int(amods_r.get("reroll_base_delta", 0)) != 0:
+		base_rerolls = maxi(int(amods_r.get("reroll_base_floor", 1)), 2 + int(amods_r["reroll_base_delta"]))
+	max_rerolls = base_rerolls + int(combat_setup.get("bonus_reroll", 0)) + int(RelicHooks.sum(self, "rerollUp"))
 	rerolls = max_rerolls
 
 	for u in party:                                                    # SCALES passive
@@ -169,6 +218,16 @@ func setup_new(combat_setup: Dictionary) -> void:
 			eligible[_rng.next_int(eligible.size())].status["weaken"] = 2
 
 	turn = 1
+	# Start-of-fight numbers (no source attached): eggs first so they also get the shield, then Mana.
+	for i in start_eggs:
+		if _count_alive_tokens(party) < int(RelicHooks.max_val(self, "tokenCap", 4.0)):
+			party.append(_mk_ally())
+	if start_shield_all > 0:
+		for pu in party:
+			if not pu.is_token:
+				DamagePipeline.apply_shield(self, pu, start_shield_all)
+	mana += start_mana
+	RelicHooks.fire(self, "on_combat_start", {"combat": self, "node_kind": kind})   # H5a
 	# JS startCombat() fires onTurnStart BEFORE the first rollAll (engine.js:426). Omitting it
 	# made every on-turn-start relic silently skip turn 1 of every combat — the relic looked
 	# implemented and was simply one turn late, forever.
@@ -220,6 +279,18 @@ func _state_dict() -> Dictionary:
 		"result_shards_earned": result_shards_earned,
 		"rng_state": _rng.get_state() if _rng != null else 0,
 		"reroll_k": reroll_k,
+		"relic_combat": relic_combat.duplicate(true),
+		"relic_run_in": relic_run_in.duplicate(true),
+		"relic_run_out": relic_run_out.duplicate(true),
+		"end_fired": _end_fired,
+		"clock_turn_base": clock_turn_base,
+		"attempt": attempt,
+		"newcomer": newcomer,
+		"start_shield_all": start_shield_all,
+		"start_mana": start_mana,
+		"first_dmg_face_bonus": first_dmg_face_bonus,
+		"start_eggs": start_eggs,
+		"first_dmg_used": _first_dmg_used,
 		"next_token_uid": _next_token_uid,
 	}
 
@@ -249,6 +320,18 @@ func _apply_state_dict(d: Dictionary) -> void:
 	result_shards_earned = int(d.get("result_shards_earned", 0))
 	_rng = Rng.new(int(d.get("rng_state", 0)))
 	reroll_k = int(d.get("reroll_k", 0))
+	relic_combat = (d.get("relic_combat", {}) as Dictionary).duplicate(true)
+	relic_run_in = (d.get("relic_run_in", {}) as Dictionary).duplicate(true)
+	relic_run_out = (d.get("relic_run_out", {}) as Dictionary).duplicate(true)
+	_end_fired = bool(d.get("end_fired", false))
+	clock_turn_base = int(d.get("clock_turn_base", 0))
+	attempt = int(d.get("attempt", 0))
+	newcomer = bool(d.get("newcomer", false))
+	start_shield_all = int(d.get("start_shield_all", 0))
+	start_mana = int(d.get("start_mana", 0))
+	first_dmg_face_bonus = int(d.get("first_dmg_face_bonus", 0))
+	start_eggs = int(d.get("start_eggs", 0))
+	_first_dmg_used = bool(d.get("first_dmg_used", false))
 	_next_token_uid = int(d.get("next_token_uid", TOKEN_UID_BASE))
 
 
@@ -277,7 +360,14 @@ static func _dup_dict_array(arr: Array) -> Array:
 ## these two (plus s.step, which has no branching-RunMap equivalent, see rule spec §9 note)
 ## to pick a reward tier and rarity band.
 func get_result() -> Dictionary:
+	if not _end_fired and (won or lost):
+		# H5b: once per fight, only when the fight is truly over (a wiped party still on the Continue
+		# screen has not asked for a result yet). Guarded by a flag in the snapshot, not by luck.
+		_end_fired = true
+		RelicHooks.fire(self, "on_combat_end", {"combat": self, "result": "won" if won else "lost",
+			"node_kind": kind})
 	return {
+		"relic_state": relic_run_out.duplicate(true),
 		"won": won,
 		"shards_earned": result_shards_earned if won else 0,
 		"growth_keep": _compute_growth_keep(),
@@ -387,10 +477,13 @@ func roll_all() -> void:
 			e.intent = {}
 	_resolve_cantrips()
 	RelicHooks.fire(self, "on_roll_end", {"combat": self})
+	RelicHooks.fire(self, "on_roll_settled", {"combat": self, "rerolled_uids": []})   # H1b
 
 
 func _roll_unit(u: Unit) -> void:
 	var fi := _rng.next_int(6)
+	# H7: roll_face may redirect the face (loadeddie, twinfates draw more from the same stream).
+	fi = int(RelicHooks.run_value_hook(self, "roll_face", {"combat": self, "unit": u}, fi))
 	var f: Dictionary = u.die[fi]
 	u.heavy = _has_kw(f, "heavy")
 	var cc := _crit_chance(u, f)
@@ -467,8 +560,11 @@ func reroll_dice(uids: Array, seed: int = -1, from_aid: bool = false) -> bool:
 	# (the server expects the consuming action at log_len).
 	var use_seed := seed
 	if use_seed < 0 and _epoch != null:
-		var r := _epoch.request("reroll", {"turn": turn, "k": reroll_k + 1,
-			"source": "aid" if from_aid else "base", "uids": _int_list(uids)})
+		var rargs := {"turn": turn, "k": reroll_k + 1,
+			"source": "aid" if from_aid else "base", "uids": _int_list(uids)}
+		if attempt > 0:
+			rargs["attempt"] = attempt
+		var r := _epoch.request("reroll", rargs)
 		if not r.ok:
 			push_error("CombatEngine.reroll_dice: epoch refused (%s)" % r.code)
 			return false
@@ -477,6 +573,10 @@ func reroll_dice(uids: Array, seed: int = -1, from_aid: bool = false) -> bool:
 		_rng = Rng.new(use_seed)
 	reroll_k += 1
 	var list: Array = _rerollable(uids)
+	var hook := _before_reroll(uids, from_aid, false)
+	if bool(hook["veto"]) or mana < int(hook["mana_cost"]):
+		return false
+	mana -= int(hook["mana_cost"])
 	_set_turn_phase(CombatPhase.REROLL)
 	if not from_aid:
 		rerolls -= 1
@@ -490,6 +590,10 @@ func reroll_dice(uids: Array, seed: int = -1, from_aid: bool = false) -> bool:
 		if keep_crit and had_crit:
 			u.set_crit_now(true)
 	_resolve_cantrips()
+	var settled: Array[int] = []
+	for ru in list:
+		settled.append((ru as Unit).uid)
+	RelicHooks.fire(self, "on_roll_settled", {"combat": self, "rerolled_uids": settled})   # H1b
 	# JS clears the undo stack on reroll ONLY when the party lacks `safeReroll`
 	# (engine.js:502). Clearing unconditionally quietly disabled that relic's whole point.
 	if not RelicHooks.has(self, "safeReroll"):
@@ -510,7 +614,18 @@ func can_reroll(uids: Array, from_aid: bool = false) -> bool:
 		return false
 	if rerolls <= 0 and not from_aid:
 		return false
-	return not _rerollable(uids).is_empty()
+	if _rerollable(uids).is_empty():
+		return false
+	var h := _before_reroll(uids, from_aid, true)
+	return not bool(h["veto"]) and mana >= int(h["mana_cost"])
+
+
+## H1a. A handler may veto the reroll or charge Mana for it; dry_run tells it nothing may be spent.
+func _before_reroll(uids: Array, from_aid: bool, dry_run: bool) -> Dictionary:
+	var ctx := {"combat": self, "uids": _int_list(uids), "from_aid": from_aid, "veto": false,
+		"mana_cost": 0, "dry_run": dry_run}
+	RelicHooks.fire(self, "before_reroll", ctx)
+	return ctx
 
 
 func _rerollable(uids: Array) -> Array:
@@ -676,6 +791,7 @@ func play_active(relic_id: String, target_uid: int = -1) -> bool:
 	mana_spent += cost
 	used_actives.append(relic_id)
 	_grant_conduit_rerolls()
+	RelicHooks.fire(self, "on_active_played", {"combat": self, "act_id": relic_id, "cost": cost})   # H4
 	EventBus.relic_pulsed.emit(relic_id, (src.uid if src != null else 0))
 	_check_end()
 	_log("play_active", [relic_id, target_uid])
@@ -736,6 +852,40 @@ func _push_undo() -> void:
 		undo_stack.pop_front()
 
 
+## H7 — dice-editing relics (Tweak / Amber hold / Loaded die). Each call: legal only mid-EXECUTE, takes an
+## undo snapshot, lets the owning relic decide through `roll_edit` (ctx.ok = true), and is logged so a
+## replay re-applies it. Deterministic apart from draws the handler makes on the epoch's own stream.
+func tweak(kind: String, uid_a: int, uid_b: int = -1) -> bool:
+	return _roll_edit("tweak", kind, uid_a, uid_b, -1, [kind, uid_a, uid_b])
+
+
+func hold_pick(uid: int) -> bool:
+	return _roll_edit("hold_pick", "hold", uid, -1, -1, [uid])
+
+
+func loaded_pick(uid: int, face_index: int) -> bool:
+	return _roll_edit("loaded_pick", "loaded", uid, -1, face_index, [uid, face_index])
+
+
+## Tweaks the party may still spend this turn (relic_combat["tweak_left"], set by the relic).
+func tweak_budget_left() -> int:
+	return int(relic_combat.get("tweak_left", 0))
+
+
+func _roll_edit(fn: String, p_kind: String, uid_a: int, uid_b: int, face_index: int, log_args: Array) -> bool:
+	if won or lost or phase != CombatPhase.EXECUTE:
+		return false
+	_push_undo()
+	var ctx := {"combat": self, "kind": p_kind, "uid_a": uid_a, "uid_b": uid_b,
+		"face_index": face_index, "ok": false}
+	RelicHooks.fire(self, "roll_edit", ctx)
+	if not bool(ctx["ok"]):
+		undo_stack.pop_back()
+		return false
+	_log(fn, log_args)
+	return true
+
+
 ## Free undo within a turn, until reroll or a new turn clears the stack (rule spec §2).
 ## Snapshot-restore-in-place (architecture plan §4b) — NOT action-replay.
 func undo_last() -> bool:
@@ -789,6 +939,8 @@ func _exec_face(u: Unit, target_uid: int) -> bool:
 	if u.side == "p" and u.roll_crit_now():
 		u.set_crit_now(false)
 	u.resonant_now = false
+	RelicHooks.fire(self, "on_face_used", {"combat": self, "unit": u, "face": f, "fi": fi,
+		"target_uid": target_uid, "side": u.side, "depth": 0})   # H2
 	return true
 
 
@@ -833,6 +985,9 @@ func _face_value(u: Unit, fi: int) -> int:
 			v = ceil(v * 1.5)
 		if u.side == "p" and RelicHooks.has(self, "hiveMind"):
 			v += RelicHooks.sum(self, "hiveMind") * _count_alive_tokens(party)
+		if u.side == "e":
+			# base x (1 + enrage% + attrition%) x spike, rounded half up (monetization-v1 §1.2).
+			v = float(RulesMath.round_half_up(v * enemy_dmg_factor(u)))
 	if face_type == "mana" and u.side == "p" and u.cls == "aqua":
 		v += 1.0                                                        # CONDUIT passive
 	if u.side == "p" and u.resonant_now:
@@ -855,6 +1010,10 @@ func _do_face(u: Unit, target_uid: int, f: Dictionary, fi: int, is_echo: bool) -
 	var foes := (alive_enemies() if u.side == "p" else alive_party())
 	var friends := (alive_party() if u.side == "p" else alive_enemies())
 	var v := _face_value(u, fi)
+	if u.side == "p" and not is_echo and first_dmg_face_bonus > 0 and not _first_dmg_used \
+			and String(f.get("type", "")) == "dmg" and v > 0:
+		v += first_dmg_face_bonus   # flat, after everything else; once per turn
+		_first_dmg_used = true
 	var tgt: Unit = (by_uid(target_uid) if target_uid >= 0 else null)
 	var crit := u.roll_crit_now()
 	var kw_pure := _pure_keywords(f)
@@ -1068,7 +1227,10 @@ func begin_end_turn(seed: int = -1) -> bool:
 	# Epoch boundary (see reroll_dice): enemy phase + next turn's rolls + intents draw from `seed`.
 	var use_seed := seed
 	if use_seed < 0 and _epoch != null:
-		var r := _epoch.request("end_turn", {"turn": turn})
+		var eargs := {"turn": turn}
+		if attempt > 0:
+			eargs["attempt"] = attempt
+		var r := _epoch.request("end_turn", eargs)
 		if not r.ok:
 			push_error("CombatEngine.begin_end_turn: epoch refused (%s)" % r.code)
 			return false
@@ -1079,6 +1241,7 @@ func begin_end_turn(seed: int = -1) -> bool:
 	_set_turn_phase(CombatPhase.END_TURN)
 	undo_stack = []
 	first_used = false
+	RelicHooks.fire(self, "on_turn_end", {"combat": self})   # H3
 
 	# mana overflow (relic OR mythic `overflow` face) — no-op today: no relic and no
 	# ported tier-1 face carries `overflow`. Kept so wiring either in later is content-only.
@@ -1140,11 +1303,14 @@ func finish_end_turn() -> void:
 	stat["turns"] = int(stat.get("turns", 0)) + 1
 	rerolls = max_rerolls
 	reroll_k = 0
+	_first_dmg_used = false
 	used_actives = []
 	resonance_log = []
 	for u in party:
 		if u.frozen:
 			u.frozen = false
+	EventBus.combat_clock_changed.emit(clock_state())
+	EventBus.combat_attrition_changed.emit(attrition_state())
 	RelicHooks.fire(self, "on_turn_start", {"combat": self})
 	_boss_turn_traits()
 	_set_turn_phase(CombatPhase.ROLL)
@@ -1246,6 +1412,148 @@ func _boss_turn_traits() -> void:
 						b.die[0] = mirrored
 
 
+# ===========================================================================
+# Continue (monetization R1, dang B) and the Aid effects that touch a fight
+# ===========================================================================
+
+## Whole real party down and the fight is not won.
+func can_continue() -> bool:
+	return lost and not won
+
+
+## Revives the real party at `heal_pct` of Max HP (ceil), keeps every enemy exactly as it was (HP, phase,
+## spike schedule), sends clock and attrition back to 0 and rolls a fresh turn from `seed`. It is the
+## same fight: `turn` is not touched. `heal_pct < 0` reads the ascension rule. The server charges for
+## it inside the epoch request; here it is only a pure effect taking numbers (MON-13).
+func continue_after_wipe(seed: int = -1, heal_pct: int = -1) -> bool:
+	if not can_continue():
+		return false
+	var pct := heal_pct if heal_pct >= 0 else int(ContentDB.ascension_mods(ascension).get("continue_heal_pct", 40))
+	var use_seed := seed
+	if use_seed < 0 and _epoch != null:
+		var cargs := {"node_id": node_id, "attempt": attempt + 1}
+		var r := _epoch.request("continue", cargs)
+		if not r.ok:
+			push_error("CombatEngine.continue_after_wipe: epoch refused (%s)" % r.code)
+			return false
+		use_seed = r.seed
+	if use_seed >= 0:
+		_rng = Rng.new(use_seed)
+	attempt += 1
+	lost = false
+	var revived: Array = []
+	for u in party:
+		if u.is_token:
+			continue
+		u.hp = maxi(1, int(ceil(float(u.max_hp) * float(pct) / 100.0)))
+		u.shield = 0
+		u.status = {}
+		u.frozen = false
+		u.frozen_next = false
+		u.clear_roll()
+		revived.append(u.uid)
+	clock_turn_base = turn
+	undo_stack = []
+	rerolls = max_rerolls
+	reroll_k = 0
+	used_actives = []
+	resonance_log = []
+	_first_dmg_used = false
+	_set_turn_phase(CombatPhase.ROLL)
+	roll_all()
+	_set_turn_phase(CombatPhase.EXECUTE)
+	EventBus.party_revived.emit(revived, pct)
+	_log("continue", [attempt])
+	return true
+
+
+## Aid R4: pushes the boss clock (and attrition, they share the base) back `turns` turns.
+func delay_clock(turns: int) -> void:
+	clock_turn_base = mini(turn, clock_turn_base + maxi(0, turns))
+
+
+# ===========================================================================
+# Pressure: boss clock, attrition, spike (all pure in `turn`)
+# ===========================================================================
+
+func _eff_turn() -> int:
+	return turn - clock_turn_base
+
+
+## {} when this fight has no clock (not a boss, or the light clock for a newcomer).
+func _clock_cfg() -> Dictionary:
+	if kind != "boss":
+		return {}
+	var c: Dictionary = ContentDB.ascension_mods(ascension).get("clock", {})
+	if c.is_empty() or (bool(c.get("light", false)) and newcomer):
+		return {}
+	return c
+
+
+func clock_state() -> Dictionary:
+	var c := _clock_cfg()
+	if c.is_empty():
+		return {"active": false, "start_turn": 0, "turns_left": 0, "stacks": 0, "pct": 0}
+	var start := int(c["start"])
+	var stacks := clampi(_eff_turn() - start + 1, 0, int(c["max_stacks"]))
+	return {"active": true, "start_turn": start, "turns_left": start - _eff_turn(),
+		"stacks": stacks, "pct": stacks * int(c["step_pct"])}
+
+
+func attrition_state() -> Dictionary:
+	var a: Dictionary = ContentDB.combat_tune.get("attrition", {})
+	if a.is_empty() or newcomer:
+		return {"active": false, "start_turn": 0, "stacks": 0, "pct": 0}
+	var step := maxi(1, int(a["step_pct"]))
+	var stacks := clampi(_eff_turn() - int(a["start"]) + 1, 0, int(a["cap_pct"]) / step)
+	return {"active": true, "start_turn": int(a["start"]), "stacks": stacks, "pct": stacks * step}
+
+
+## Spike period for this enemy, 0 = never spikes (ascension < 3, normal battles, boss before phase 2).
+func _spike_period(e: Unit) -> int:
+	var sp: Dictionary = ContentDB.combat_tune.get("spike", {})
+	if sp.is_empty() or ascension < int(sp.get("from_ascension", 3)):
+		return 0
+	if e.is_boss:
+		return int(sp.get("boss_period", 0)) if int(e.custom_state.get("phase", 1)) >= int(sp.get("boss_from_phase", 2)) else 0
+	return int(sp.get("elite_period", 0)) if kind == "elite" else 0
+
+
+## Turns until this enemy's next spike, counting this turn as 0; -1 when it never spikes.
+func turns_to_spike(e: Unit) -> int:
+	var p := _spike_period(e)
+	return -1 if p <= 0 else (p - turn % p) % p
+
+
+func enemy_dmg_factor(e: Unit) -> float:
+	var pct := int(attrition_state()["pct"])
+	if e.is_boss:
+		pct += int(clock_state()["pct"])
+	var f := (100.0 + float(pct)) / 100.0
+	if turns_to_spike(e) == 0:
+		f *= float(ContentDB.combat_tune.get("spike", {}).get("mult", 1.0))
+	return f
+
+
+## Everything the HUD shows about pressure, in one pure call (contract 3.2).
+func hud_state() -> Dictionary:
+	var nxt: Dictionary = {}
+	var phases: Dictionary = {}
+	for e in alive_enemies():
+		var fi: int = e.roll_face_index() if not e.intent.is_empty() else -1
+		if fi >= 0 and fi < e.die.size():
+			var is_dmg: bool = String((e.die[fi] as Dictionary).get("type", "")) == "dmg"
+			var tts := turns_to_spike(e)
+			nxt[e.uid] = {"dmg": _face_value(e, fi) if is_dmg else 0, "spike": tts == 0 and is_dmg,
+				"turns_to_spike": tts}
+		if e.is_boss:
+			phases[e.uid] = {"phase": int(e.custom_state.get("phase", 1)),
+				"thresholds": (ContentDB.combat_tune.get("phase_thresholds", []) as Array).duplicate()}
+	return {"turn": turn, "rerolls": rerolls, "max_rerolls": max_rerolls, "mana": mana,
+		"tweak_left": tweak_budget_left(), "clock": clock_state(), "attrition": attrition_state(),
+		"enemy_next": nxt, "boss_phase": phases, "newcomer": newcomer}
+
+
 func _check_end() -> bool:
 	if alive_enemies().is_empty():
 		won = true
@@ -1282,6 +1590,7 @@ func _build_unit_from_roster(entry: Dictionary, index: int) -> Unit:
 	u.cls = String(hero_def.get("cls", ""))
 	u.tier = int(entry.get("tier", hero_def.get("tier", 1)))
 	u.roster_index = index
+	u.slot = index   # positional relics ("next to") read slot; reorder_party changes the roster order
 	u.max_hp = base_hp + int(entry.get("bonus_hp", 0))
 	u.die = (hero_def.get("die", []) as Array).duplicate(true)
 

@@ -1,0 +1,28 @@
+{
+ "version": 1,
+ "TUNE": {
+  "base": 10.5,
+  "growth": 1.125,
+  "growth2": 1.05,
+  "knee": 12,
+  "elite_mult": 1.25
+ },
+ "attrition": {
+  "start": 6,
+  "step_pct": 5,
+  "cap_pct": 25
+ },
+ "spike": {
+  "from_ascension": 3,
+  "elite_period": 4,
+  "boss_period": 3,
+  "boss_from_phase": 2,
+  "mult": 1.8
+ },
+ "phase_thresholds": [
+  66,
+  33
+ ],
+ "newcomer_runs": 5,
+ "_doc": "monetization-v1.md 1.2/1.5. Intent dmg = base x (1 + enrage% + attrition%) x spike_mult, rounded half up. The A0-A3 light clock and the A4+/A9 full clock live per level in ascension.json (clock)."
+}

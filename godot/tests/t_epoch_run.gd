@@ -99,6 +99,23 @@ func _ready() -> void:
 	g2.end_turn(31)
 	_check(JSON.stringify(g.to_data()) == JSON.stringify(g2.to_data()), "end_turn deterministic in its seed")
 
+	# --- a resumed fight (from_data) reconnects to the epoch with set_epoch() ---
+	RunState.start_new_run(31, TEAM, "short", 0, true)
+	RunState.enter_node(n.id, "battle")
+	var live := CombatEngine.new()
+	live.setup_new(RunState.pending_combat)
+	var snap := JSON.parse_string(JSON.stringify(live.to_data())) as Dictionary
+	var resumed := CombatEngine.new()
+	resumed.from_data(snap)
+	var before := RunState.epoch.tape().size()
+	resumed.end_turn()
+	_check(RunState.epoch.tape().size() == before, "without set_epoch the resumed engine is off the tape")
+	var resumed2 := CombatEngine.new()
+	resumed2.from_data(snap)
+	resumed2.set_epoch(RunState.epoch)
+	resumed2.end_turn()
+	_check(RunState.epoch.tape().size() == before + 1, "after set_epoch the end_turn epoch is on the tape")
+
 	# --- tape survives a save round trip and the run goes on from the same chain position ---
 	RunState.start_new_run(21, TEAM, "short", 0, true)
 	RunState.enter_node(n.id, "battle")

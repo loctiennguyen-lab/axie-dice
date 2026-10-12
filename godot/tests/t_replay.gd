@@ -362,6 +362,24 @@ func _sample_args(fn: String) -> Array:
 			return [[1]]
 		"take_reward", "event_choose", "shop_buy":
 			return [0]
+		"tweak":
+			return ["nudge_up", 1, -1]
+		"hold_pick":
+			return [1]
+		"loaded_pick":
+			return [1, 0]
+		"sell_relic":
+			return ["r_claw"]
+		"swap_on_full":
+			return ["r_claw", "r_horn"]
+		"reorder_party":
+			return [[1, 2, 3, 4, 5]]
+		"continue":
+			return [1]
+		"shop_refresh":
+			return [1]
+		"aid_use":
+			return ["delay_clock", 2]
 	return []
 
 

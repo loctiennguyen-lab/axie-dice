@@ -130,7 +130,28 @@ static func verify(log: ActionLog, tape: Array = [], loadout: Dictionary = {}) -
 					# it. Deterministic from (run_seed, node_id, salt 503), like every other
 					# offer in the run.
 					RunState.generate_treasure_rewards(String(args[0]))
-			"use_die", "play_active", "reroll_dice", "undo_last", "end_turn":
+			"sell_relic":
+				if args.size() < 1 or not RunState.sell_relic(String(args[0])):
+					return _fail(ERR_REJECTED, "A relic sale was recorded that the replay cannot make.", i)
+			"swap_on_full":
+				if args.size() < 2 or not RunState.acquire_relic(String(args[1]), "swap", String(args[0])):
+					return _fail(ERR_REJECTED, "A relic swap was recorded that the replay cannot make.", i)
+			"reorder_party":
+				if args.size() < 1 or not RunState.reorder_party(args[0] as Array):
+					return _fail(ERR_REJECTED, "A party reorder was recorded that the replay cannot make.", i)
+			"aid_use":
+				# Written by the server's DO; the replay only needs the effects that touch the rules.
+				# delay_clock moves the boss clock; scout/others change what the player knows, not the rules.
+				if args.size() < 1:
+					return _fail(ERR_REJECTED, "An Aid use has no id.", i)
+				if String(args[0]) == "delay_clock":
+					if engine == null or args.size() < 2:
+						return _fail(ERR_REJECTED, "delay_clock outside a combat.", i)
+					engine.delay_clock(int(args[1]))
+			"shop_refresh":
+				if not RunState.refresh_shop(-1):
+					return _fail(ERR_REJECTED, "A shop refresh was recorded that the replay cannot make.", i)
+			"use_die", "play_active", "reroll_dice", "undo_last", "end_turn", "tweak", "hold_pick", "loaded_pick", "continue":
 				if engine == null:
 					return _fail(ERR_REJECTED,
 						"A combat move was recorded outside a combat.", i)
@@ -139,7 +160,10 @@ static func verify(log: ActionLog, tape: Array = [], loadout: Dictionary = {}) -
 						"Move %d (%s) is not legal in the state the replay reached." % [i, fn], i)
 				# The moment a fight is decided, the run reacts — the same order CombatView
 				# uses, and the order the rewards depend on.
-				if (engine.won or engine.lost) and RunState.phase == RunState.RunPhase.COMBAT:
+				# A wiped party is not the end of the fight when the very next action is its Continue.
+				var continues_next: bool = engine.lost and i + 1 < log.entries.size() \
+					and String((log.entries[i + 1] as Dictionary).get("fn", "")) == "continue"
+				if (engine.won or engine.lost) and not continues_next and RunState.phase == RunState.RunPhase.COMBAT:
 					tape_src.set_visible_len(i + 1)
 					RunState.apply_combat_result(engine.get_result())
 					engine = null
@@ -199,6 +223,14 @@ static func _apply_combat(engine: CombatEngine, fn: String, args: Array) -> bool
 				args.size() > 1 and int(args[1]) != 0)
 		"undo_last":
 			return engine.undo_last()
+		"continue":
+			return engine.continue_after_wipe(-1, -1)
+		"tweak":
+			return args.size() >= 3 and engine.tweak(String(args[0]), int(args[1]), int(args[2]))
+		"hold_pick":
+			return args.size() >= 1 and engine.hold_pick(int(args[0]))
+		"loaded_pick":
+			return args.size() >= 2 and engine.loaded_pick(int(args[0]), int(args[1]))
 		"end_turn":
 			engine.end_turn()
 			return true

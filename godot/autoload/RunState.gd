@@ -119,6 +119,31 @@ var epoch: EpochSource = null
 ## True while an async request_* is waiting for a seed: every other action must be refused,
 ## because changing the log between request and reply would make the server's `h` disagree.
 var epoch_busy: bool = false
+## Relic run-level state (H6, contract 2.3): id -> plain-JSON Dictionary owned by that relic's handlers.
+## Copied into pending_combat as `relic_state` and written back from get_result()["relic_state"].
+var relic_state: Dictionary = {}
+## id -> "eternal" (ascension sticker). Eternal relics cannot be sold.
+var relic_stickers: Dictionary = {}
+## Pact relic ids taken this run, kept after they are sold (drawbacks/offers care about history).
+var pacts_taken: Array[String] = []
+## Loadout Boon (design/l1-boons.md). Never read by combat rules: boon_numbers_for_fight() turns it into
+## plain numbers on the combat setup (MON-13). "" when none, or when the run is a mission.
+var boon_id: String = ""
+## Account is in its first runs: attrition and the light clock are off. Fixed at run start (header).
+var newcomer: bool = false
+## Counters that scope a Boon to "your first 3 fights", "first Boss", "first Battle reward".
+var _rewarding_kind: String = ""
+## Aid uses this run [{aid, node_id}], ONLY written by record_aid_use() and read by aid_uses_view() / the
+## UI's AidCatalog. No rule may read it (t_mon13). The Boon (R8/R9) is not counted here: boon_used says so.
+var aid_uses: Array[Dictionary] = []
+var boon_used: bool = false
+var _shop_refreshes: int = 0
+var fights_started: int = 0
+var bosses_started: int = 0
+var first_battle_rewarded: bool = false
+## Number of relic items the shop offers, after the H8 `shop_relic_count` hook. Applied by the
+## shop generator once lane B's generate_shop_items takes a relic_count.
+var _shop_relic_count: int = 2
 ## Seed of the `node` epoch of the node being visited. Treasure rewards draw from it.
 var _node_seed: int = 0
 ## Rows whose node types the server has revealed (extra.row_types / Scout). {row:int -> Array}.
@@ -193,6 +218,18 @@ func reset() -> void:
 	_rng = null
 	epoch = null
 	epoch_busy = false
+	boon_id = ""
+	aid_uses = []
+	boon_used = false
+	_shop_refreshes = 0
+	newcomer = false
+	fights_started = 0
+	bosses_started = 0
+	first_battle_rewarded = false
+	relic_state = {}
+	relic_stickers = {}
+	pacts_taken = []
+	_shop_relic_count = 2
 	_node_seed = 0
 	row_types_known = {}
 	action_log = ActionLog.new()
@@ -301,7 +338,16 @@ func _start_core(start_reply: EpochReply, params: Dictionary, display_seed: int)
 	bonus_reroll = int(meta_bonus.get("bonus_reroll", 0))
 	var meta_hp := int(meta_bonus.get("hp_bonus", 0))
 	reward_reroll_max = int(meta_bonus.get("reward_reroll_max", 1))
+	# Ascension can cap the reward re-roll (A10 = none), whatever the meta granted.
+	var asc_rr := int(ContentDB.ascension_mods(ascension).get("reward_reroll_max", -1))
+	if asc_rr >= 0:
+		reward_reroll_max = mini(reward_reroll_max, asc_rr)
 	reward_reroll_charges = reward_reroll_max
+	var hdr: Dictionary = start_reply.extra.get("header", {}) as Dictionary
+	newcomer = bool(hdr.get("newcomer", params.get("newcomer", false)))
+	var is_mission := String(params.get("kind", "")) == "mission" or not (hdr.get("mission", {}) as Dictionary).is_empty()
+	var want_boon := String((params.get("loadout", {}) as Dictionary).get("boon_id", ""))
+	boon_id = want_boon if (not is_mission and ContentDB.boons.has(want_boon)) else ""
 
 	for hero_key in team_hero_keys:
 		var hero_def: Dictionary = ContentDB.heroes.get(hero_key, {})
@@ -349,10 +395,11 @@ func _start_core(start_reply: EpochReply, params: Dictionary, display_seed: int)
 		String(ContentDB.part_faces.get("engineVersion", "")), ranked)
 	var loadout: Dictionary = (params.get("loadout", {}) as Dictionary).duplicate(true)
 	loadout["bonuses"] = meta_bonus.duplicate(true)
+	loadout["boon_id"] = boon_id
 	var hdr_extra: Dictionary = start_reply.extra.get("header", {}) as Dictionary
 	action_log.set_epoch_header(String(start_reply.extra.get("run_id", "")),
 		String(start_reply.extra.get("client_nonce", "")), loadout,
-		bool(hdr_extra.get("newcomer", false)), (hdr_extra.get("mission", {}) as Dictionary))
+		newcomer, (hdr_extra.get("mission", {}) as Dictionary))
 	if epoch != null:
 		epoch.bind_log(action_log)
 	set_phase(RunPhase.MAP)
@@ -406,6 +453,80 @@ func set_phase(new_phase: int) -> void:
 	var old_phase := phase
 	phase = new_phase
 	EventBus.phase_changed.emit(old_phase, new_phase)
+
+## The loadout Boon as plain numbers for THIS fight. `fight_index` counts every Battle/Elite/Boss from 1
+## (a Continue stays in the same fight); `boss_index` is 1 for the first Boss, 0 when this is not a boss.
+## Combat receives only the numbers, never the Boon (MON-13).
+func boon_numbers_for_fight(fight_index: int, boss_index: int) -> Dictionary:
+	var out := {}
+	if boon_id == "":
+		return out
+	var fx: Dictionary = (ContentDB.boons[boon_id] as Dictionary).get("effect", {})
+	var scope: Dictionary = fx.get("scope", {})
+	var in_scope := false
+	if scope.has("fights"):
+		for fx_idx in (scope["fights"] as Array):   # JSON numbers are floats: compare as ints
+			if int(fx_idx) == fight_index:
+				in_scope = true
+	elif scope.has("boss_index"):
+		in_scope = boss_index > 0 and int(scope["boss_index"]) == boss_index
+	if not in_scope:
+		return out
+	out["bonus_reroll"] = int(fx.get("max_reroll_bonus", 0))
+	out["start_shield_all"] = int(fx.get("turn1_shield_all", 0))
+	out["start_mana"] = int(fx.get("start_mana", 0))
+	out["first_dmg_face_bonus"] = int(fx.get("first_dmg_face_bonus", 0))
+	out["start_eggs"] = int(fx.get("start_eggs", 0))
+	return out
+
+
+## The one writer of the Aid ledger. R8/R9 (Boon, Kit) only flip boon_used; they never enter `uses`.
+func record_aid_use(aid_id: String) -> void:
+	if aid_id == "boon" or aid_id == "kit":
+		boon_used = true
+		return
+	aid_uses.append({"aid": aid_id, "node_id": current_node_id})
+
+
+func aid_uses_view() -> Array:
+	return aid_uses.duplicate(true)
+
+
+## Appends the line the server returned for an Aid use to OUR log, so the hash chain matches
+## (contract 1.5), and counts it. `args` are the Aid's own positional parameters.
+func apply_aid_use(aid_id: String, args: Array = []) -> void:
+	var line: Array = [aid_id]
+	line.append_array(args)
+	action_log.record("aid_use", line)
+	record_aid_use(aid_id)
+
+
+## What the UI needs to decide which Aid to offer (AidCatalog, lane E). Pure read.
+func aid_context(combat: CombatEngine = null) -> Dictionary:
+	var hud: Dictionary = combat.hud_state() if combat != null else {}
+	return {"mode": mode, "mission": not (action_log.header.get("mission", {}) as Dictionary).is_empty(),
+		"newcomer": newcomer, "ascension": ascension,
+		"node_kind": String(pending_combat.get("kind", "")) if phase == RunPhase.COMBAT else "",
+		"in_shop": phase == RunPhase.SHOP, "at_pact": false,
+		"party_wiped": combat != null and combat.can_continue(),
+		"rerolls_left": int(hud.get("rerolls", 0)),
+		"clock_turns_left": int((hud.get("clock", {}) as Dictionary).get("turns_left", 0)),
+		"uses": aid_uses_view(), "boon_used": boon_used, "vip": false, "free_continue_left": false}
+
+
+## Aid R6: a new shop row from `seed` (the old items, bought or not, are replaced). Logged as
+## `shop_refresh` [k]. Price and the cap live with the server / AidCatalog, not here.
+func refresh_shop(seed: int = -1) -> bool:
+	if phase != RunPhase.SHOP:
+		return false
+	var sd := _epoch_seed("shop_refresh", {"node_id": current_node_id, "k": _shop_refreshes + 1}, seed)
+	if sd < 0:
+		return false
+	_shop_refreshes += 1
+	action_log.record("shop_refresh", [_shop_refreshes])
+	_open_shop(current_node_id, sd)
+	return true
+
 
 ## Seed for one boundary: the caller's, or (compat) one asked from the epoch source right now.
 ## Returns -1 and logs an error when none can be had; callers then do nothing.
@@ -478,6 +599,10 @@ func enter_node(node_id: String, node_kind: String, seed: int = -1) -> void:
 		"battle", "elite", "boss":
 			set_phase(RunPhase.COMBAT)
 			var combat_seed := node_sd
+			fights_started += 1
+			if node_kind == "boss":
+				bosses_started += 1
+			var boon_n := boon_numbers_for_fight(fights_started, bosses_started if node_kind == "boss" else 0)
 			pending_combat = {
 				"node_id": node_id,
 				"kind": node_kind,
@@ -486,8 +611,14 @@ func enter_node(node_id: String, node_kind: String, seed: int = -1) -> void:
 				"roster_snapshot": roster.duplicate(true),
 				"relic_ids": owned_relic_ids.duplicate(),
 				"combat_seed": combat_seed,
-				"bonus_reroll": bonus_reroll,
+				"bonus_reroll": bonus_reroll + int(boon_n.get("bonus_reroll", 0)),
+				"newcomer": newcomer,
+				"start_shield_all": int(boon_n.get("start_shield_all", 0)),
+				"start_mana": int(boon_n.get("start_mana", 0)),
+				"first_dmg_face_bonus": int(boon_n.get("first_dmg_face_bonus", 0)),
+				"start_eggs": int(boon_n.get("start_eggs", 0)),
 				"run_mods": run_mods.duplicate(),
+				"relic_state": relic_state.duplicate(true),
 				# Compatibility: lets CombatEngine ask for end_turn/reroll seeds itself until the UI
 				# does it (contract 1.4). Not serialised: pending_combat is consumed, never saved.
 				"epoch": epoch,
@@ -533,6 +664,8 @@ func apply_combat_result(res: Dictionary, reward_seed: int = -1) -> void:
 	# result screen that showed zeroes after a long losing run would be reporting the loss
 	# twice.
 	_fold_combat_stats(res.get("stat", {}))
+	if res.has("relic_state"):
+		relic_state = (res["relic_state"] as Dictionary).duplicate(true)
 	if res.get("won", false):
 		shards_this_run += int(res.get("shards_earned", 0))
 		_apply_growth_keep(res.get("growth_keep", {}))
@@ -671,7 +804,13 @@ func effective_max_rerolls() -> int:
 ## src/data.js ascMods(a).rewards: 3 normally, 2 at Ascension>=7 — thread through
 ## ContentDB.ascension_mods() rather than re-deriving the threshold here.
 func _reward_count() -> int:
-	return int(ContentDB.ascension_mods(ascension).get("rewards", 3))
+	var base := int(ContentDB.ascension_mods(ascension).get("rewards", 3))
+	if boon_id != "" and not first_battle_rewarded and _rewarding_kind == "battle":
+		var fx: Dictionary = (ContentDB.boons[boon_id] as Dictionary).get("effect", {})
+		if bool((fx.get("scope", {}) as Dictionary).get("first_battle_reward", false)):
+			base += int(fx.get("reward_extra_cards", 0))
+	return int(RelicHooks.run_value(owned_relic_ids, "reward_card_count",   # H8
+		{"ascension": ascension, "kind": "reward"}, base))
 
 
 ## Builds the reward-choice cards for a won combat (src/engine.js finishCombat() ->
@@ -686,6 +825,7 @@ func _reward_count() -> int:
 ## _on_reward_chosen() sharing the exact same path for the treasure node's own offer.
 func _generate_post_combat_rewards(res: Dictionary, reward_sd: int) -> void:
 	var kind := String(res.get("kind", "battle"))
+	_rewarding_kind = kind
 	var pw := int(res.get("pw", power_level))
 	# src/engine.js finishCombat(): s.rewardTier = boss?3 : elite?2 : (s.step%3===0?1:0). This
 	# vertical slice's branching RunMap has no linear "step" counter (rule spec §9 note: "cần
@@ -693,6 +833,9 @@ func _generate_post_combat_rewards(res: Dictionary, reward_sd: int) -> void:
 	# with power_level (0-indexed, standing in for JS's 1-indexed step) below.
 	var tier := 3 if kind == "boss" else (2 if kind == "elite" else (1 if (power_level + 1) % 3 == 0 else 0))
 	_set_pending_rewards(tier, pw, reward_sd)
+	if kind == "battle":
+		first_battle_rewarded = true   # the Boon's extra card applies to the FIRST battle reward only
+	_rewarding_kind = ""
 
 
 ## src/engine.js chooseNode() 'treasure' branch (engine.js:402): `s.rewardTier=1;
@@ -709,7 +852,8 @@ func _set_pending_rewards(tier: int, pw: int, seed: int) -> void:
 	_reward_reroll_pw = pw
 	_reward_reroll_count = _reward_count()
 	_reward_reroll_salt = 0   # now: how many rerolls this offer has had (the `k` of the epoch)
-	reward_reroll_charges = reward_reroll_max
+	reward_reroll_charges = int(RelicHooks.run_value(owned_relic_ids, "reward_reroll_charges",   # H8
+		{"ascension": ascension, "kind": "reward"}, reward_reroll_max))
 	var reward_rng := Rng.new(seed)
 	pending_rewards = RewardGenerator.generate(pw, tier, reward_rng, owned_relic_ids, roster,
 		effective_max_rerolls(), _reward_reroll_count)
@@ -776,7 +920,7 @@ func apply_chosen_reward(reward: Dictionary) -> void:
 		"relic":
 			var rid := String(reward.get("key", ""))
 			if rid != "" and not owned_relic_ids.has(rid):
-				owned_relic_ids.append(rid)
+				_grant_relic(rid, "reward")
 		"hp":
 			var entry3 := _roster_entry_by_pid(int(reward.get("persistent_id", -1)))
 			if not entry3.is_empty():
@@ -789,7 +933,7 @@ func apply_chosen_reward(reward: Dictionary) -> void:
 			# event fx already uses.
 			var rid2 := String(reward.get("key", ""))
 			if rid2 != "" and not owned_relic_ids.has(rid2):
-				owned_relic_ids.append(rid2)
+				_grant_relic(rid2, "reward")
 			_reduce_party_max_hp_pct(0.2)
 		"curse":
 			# src/engine.js applyReward() 'curse' (engine.js:1184-1185):
@@ -811,10 +955,17 @@ func apply_chosen_reward(reward: Dictionary) -> void:
 ## Builds this node's shop offer. Called from enter_node(), so a replay that applies the same
 ## `enter_node` action gets the same three items in the same order without being told them.
 func _open_shop(_node_id: String, seed: int) -> void:
+	_shop_refreshes = 0 if _node_seed == seed else _shop_refreshes
+	_shop_relic_count = int(RelicHooks.run_value(owned_relic_ids, "shop_relic_count",   # H8
+		{"ascension": ascension, "kind": "shop"}, 2))
 	_shop_rng = Rng.new(seed)
 	shop_items = []
+	var price_mult := float(ContentDB.ascension_mods(ascension).get("shop_price_mult", 1.0))
 	for raw in RewardGenerator.generate_shop_items(_shop_rng, owned_relic_ids):
-		shop_items.append((raw as Dictionary).duplicate(true))
+		var it: Dictionary = (raw as Dictionary).duplicate(true)
+		if price_mult != 1.0:
+			it["cost"] = RulesMath.round_half_up(float(it.get("cost", 0)) * price_mult)   # A1: x1.15
+		shop_items.append(it)
 
 
 ## Picks which event this node runs. Only events whose options actually DO something are
@@ -868,7 +1019,7 @@ func apply_event_fx(fx: String, rng: Rng) -> String:
 			if def == null:
 				def = RewardGenerator.pick_relic(rng, owned_relic_ids, 0, 2)
 			if def != null:
-				owned_relic_ids.append(def.id)
+				_grant_relic(def.id, "event")
 			_reduce_party_max_hp_pct(0.2)
 			return "Received %s. The whole party loses 20%% Max HP." % (def.name if def != null else "nothing")
 		"pray":
@@ -880,7 +1031,7 @@ func apply_event_fx(fx: String, rng: Rng) -> String:
 		"chest":
 			var def2 := RewardGenerator.pick_relic(rng, owned_relic_ids, 1, 3)
 			if def2 != null:
-				owned_relic_ids.append(def2.id)
+				_grant_relic(def2.id, "event")
 			return "You found a relic: %s" % (def2.name if def2 != null else "nothing")
 		"shards60":
 			shards_this_run += 60
@@ -910,7 +1061,7 @@ func apply_event_fx(fx: String, rng: Rng) -> String:
 			if rng.next_float() < 0.5:
 				var won_relic := RewardGenerator.pick_relic(rng, owned_relic_ids, 2, 3)
 				if won_relic != null:
-					owned_relic_ids.append(won_relic.id)
+					_grant_relic(won_relic.id, "event")
 				return "YOU WIN! Received %s" % (won_relic.name if won_relic != null else "nothing")
 			_reduce_party_max_hp_pct(0.1)
 			return "YOU LOSE. The whole party loses 10% Max HP."
@@ -957,7 +1108,7 @@ func try_buy_shop_item(index: int, seed: int = -1) -> bool:
 		"relic":
 			var rid := String(item.get("key", ""))
 			if rid != "" and not owned_relic_ids.has(rid):
-				owned_relic_ids.append(rid)
+				_grant_relic(rid, "reward")
 		"heal":
 			if not roster.is_empty():
 				var e: Dictionary = roster[rng.next_int(roster.size())]
@@ -976,6 +1127,76 @@ func shop_item_needs_epoch(index: int) -> bool:
 	if index < 0 or index >= shop_items.size():
 		return false
 	return String((shop_items[index] as Dictionary).get("kind", "")) == "heal"
+
+
+## Puts a relic in the owned list (order of pickup is the order hooks fire in) and tells the relics
+## that care. Slot capacity is NOT checked here: the UI asks acquire_relic() first when a slot may be
+## full; the plain reward/shop/event paths grant directly, as before the slot model existed.
+func _grant_relic(relic_id: String, source: String) -> void:
+	if relic_id == "" or owned_relic_ids.has(relic_id):
+		return
+	owned_relic_ids.append(relic_id)
+	if RelicSlots.is_pact(relic_id) and not pacts_taken.has(relic_id):
+		pacts_taken.append(relic_id)
+	RelicHooks.run_fire(owned_relic_ids, "on_relic_acquired", {"relic_id": relic_id, "source": source})   # H8
+
+
+## Takes a relic respecting the slot rules (RelicSlots.check_add). When every slot of its kind is
+## full the caller must name `sell_id` from check.sell_from; that is logged as `swap_on_full`.
+func acquire_relic(relic_id: String, source: String, sell_id: String = "") -> bool:
+	var chk := RelicSlots.check_add(owned_relic_ids, relic_stickers, relic_id, ascension, false)
+	if not bool(chk["ok"]):
+		return false
+	if bool(chk["needs_sell"]):
+		if sell_id == "" or not (chk["sell_from"] as Array).has(sell_id):
+			return false
+		shards_this_run += RelicSlots.sell_price(sell_id, ascension)
+		owned_relic_ids.erase(sell_id)
+		relic_state.erase(sell_id)
+		action_log.record("swap_on_full", [sell_id, relic_id])
+	elif sell_id != "":
+		return false
+	_grant_relic(relic_id, source)
+	return true
+
+
+## Sells an owned, non-Eternal relic for Gene Shards. Not while a fight is open.
+func sell_relic(relic_id: String) -> bool:
+	if not owned_relic_ids.has(relic_id) or relic_stickers.get(relic_id, "") == RelicSlots.STICKER_ETERNAL:
+		return false
+	if phase == RunPhase.COMBAT:
+		return false
+	shards_this_run += RelicSlots.sell_price(relic_id, ascension)
+	owned_relic_ids.erase(relic_id)
+	relic_state.erase(relic_id)
+	action_log.record("sell_relic", [relic_id])
+	return true
+
+
+## Re-orders the party (positional relics read the slot). `order` = persistent_ids, a permutation.
+## Only on the map: slot changes mid-fight would move "next to" under the player's feet.
+func reorder_party(order: Array) -> bool:
+	if phase != RunPhase.MAP or order.size() != roster.size():
+		return false
+	var by_pid: Dictionary = {}
+	for e in roster:
+		by_pid[int(e.get("persistent_id", -1))] = e
+	var out: Array[Dictionary] = []
+	for pid in order:
+		if not by_pid.has(int(pid)):
+			return false
+		out.append(by_pid[int(pid)])
+		by_pid.erase(int(pid))
+	roster = out
+	action_log.record("reorder_party", [_int_array(order)])
+	return true
+
+
+static func _int_array(a: Array) -> Array:
+	var out: Array = []
+	for x in a:
+		out.append(int(x))
+	return out
 
 
 func _roster_entry_by_pid(pid: int) -> Dictionary:
@@ -1079,6 +1300,12 @@ func to_data() -> Dictionary:
 		"epoch_seq": (epoch.tape().size() if epoch != null else 0),
 		"run_id": String(action_log.header.get("run_id", "")),
 		"node_seed": _node_seed,
+		"aid_uses": aid_uses.duplicate(true), "boon_used": boon_used, "shop_refreshes": _shop_refreshes,
+		"boon_id": boon_id, "newcomer": newcomer, "fights_started": fights_started,
+		"bosses_started": bosses_started, "first_battle_rewarded": first_battle_rewarded,
+		"relic_state": relic_state.duplicate(true),
+		"relic_stickers": relic_stickers.duplicate(true),
+		"pacts_taken": pacts_taken.duplicate(),
 		"row_types_known": row_types_known.duplicate(true),
 		"action_log": action_log.to_data(),
 	}
@@ -1129,6 +1356,17 @@ func from_data(d: Dictionary) -> void:
 	pending_rewards.assign(d.get("pending_rewards", []))
 	_rng = Rng.new(int(d.get("rng_state", run_seed)))
 	_node_seed = int(d.get("node_seed", 0))
+	aid_uses.assign(d.get("aid_uses", []))
+	boon_used = bool(d.get("boon_used", false))
+	_shop_refreshes = int(d.get("shop_refreshes", 0))
+	boon_id = String(d.get("boon_id", ""))
+	newcomer = bool(d.get("newcomer", false))
+	fights_started = int(d.get("fights_started", 0))
+	bosses_started = int(d.get("bosses_started", 0))
+	first_battle_rewarded = bool(d.get("first_battle_rewarded", false))
+	relic_state = (d.get("relic_state", {}) as Dictionary).duplicate(true)
+	relic_stickers = (d.get("relic_stickers", {}) as Dictionary).duplicate(true)
+	pacts_taken.assign(d.get("pacts_taken", []))
 	row_types_known = {}
 	for rk in (d.get("row_types_known", {}) as Dictionary).keys():
 		row_types_known[int(rk)] = ((d["row_types_known"] as Dictionary)[rk] as Array).duplicate()

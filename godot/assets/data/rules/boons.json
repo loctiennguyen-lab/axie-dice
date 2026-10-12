@@ -1,0 +1,100 @@
+{
+ "version": 1,
+ "_doc": "design/l1-boons.md. effect = pure numbers + a scope that only picks fights (never reads win/loss or Aid state). Run Setup shows 3 of 8 (lane M).",
+ "boons": [
+  {
+   "id": "boon_quick_hands",
+   "name_key": "boon.quick_hands",
+   "effect": {
+    "scope": {
+     "fights": [
+      1
+     ]
+    },
+    "max_reroll_bonus": 1
+   }
+  },
+  {
+   "id": "boon_iron_welcome",
+   "name_key": "boon.iron_welcome",
+   "effect": {
+    "scope": {
+     "fights": [
+      1
+     ]
+    },
+    "turn1_shield_all": 5
+   }
+  },
+  {
+   "id": "boon_spark",
+   "name_key": "boon.spark",
+   "effect": {
+    "scope": {
+     "fights": [
+      1,
+      2,
+      3
+     ]
+    },
+    "start_mana": 2
+   }
+  },
+  {
+   "id": "boon_opening_strike",
+   "name_key": "boon.opening_strike",
+   "effect": {
+    "scope": {
+     "fights": [
+      1,
+      2,
+      3
+     ]
+    },
+    "first_dmg_face_bonus": 3
+   }
+  },
+  {
+   "id": "boon_hatchling",
+   "name_key": "boon.hatchling",
+   "effect": {
+    "scope": {
+     "fights": [
+      1
+     ]
+    },
+    "start_eggs": 1
+   }
+  },
+  {
+   "id": "boon_wide_choice",
+   "name_key": "boon.wide_choice",
+   "effect": {
+    "scope": {
+     "first_battle_reward": true
+    },
+    "reward_extra_cards": 1
+   }
+  },
+  {
+   "id": "boon_boss_breath",
+   "name_key": "boon.boss_breath",
+   "effect": {
+    "scope": {
+     "boss_index": 1
+    },
+    "max_reroll_bonus": 1
+   }
+  },
+  {
+   "id": "boon_boss_ward",
+   "name_key": "boon.boss_ward",
+   "effect": {
+    "scope": {
+     "boss_index": 1
+    },
+    "turn1_shield_all": 5
+   }
+  }
+ ]
+}
