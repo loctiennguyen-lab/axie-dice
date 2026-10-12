@@ -14,10 +14,15 @@ extends Node3D
 const REGISTRY_PATH := "res://assets/atia/arenas.json"
 const GROUND_SIZE := 160.0
 
+const BOSS_LIGHT_MUL := 0.72
+const BOSS_FOG_DENSITY := 0.011
+const BOSS_PORTAL_MUL := 1.5
+
 static var _registry: Dictionary = {}
 static var _loaded := false
 
 var biome_id := ""
+var is_boss := false
 var _props_root: Node3D
 var _portal: Node3D
 var _portal_light: OmniLight3D
@@ -51,13 +56,17 @@ static func biome_for(row: int, is_boss: bool, total_rows: int = 18) -> String:
 
 ## Builds (or rebuilds) the arena for `id`. Returns false when the biome is unknown.
 ## `env`/`sun` are the stage's own, retinted instead of duplicated.
-func build(id: String, env: Environment, sun: DirectionalLight3D) -> bool:
+## `boss` builds the boss variant of the biome: darker/redder light and fog, a bigger portal that
+## glows red, a denser ring of flank props. Purely cosmetic and seeded by biome id, so it never
+## touches the game RNG.
+func build(id: String, env: Environment, sun: DirectionalLight3D, boss: bool = false) -> bool:
 	var reg := registry()
 	var biomes: Dictionary = reg.get("biomes", {})
 	if not biomes.has(id):
 		return false
 	clear()
 	biome_id = id
+	is_boss = boss
 	_env = env
 	_sun = sun
 	var b: Dictionary = biomes[id]
@@ -69,6 +78,8 @@ func build(id: String, env: Environment, sun: DirectionalLight3D) -> bool:
 	_add_path(b)
 	_scatter(b, reg.get("zones", {}))
 	_add_portal(reg.get("portal", {}))
+	if boss:
+		_apply_boss_look()
 	return true
 
 
@@ -79,6 +90,23 @@ func clear() -> void:
 	_portal = null
 	_portal_light = null
 	biome_id = ""
+	is_boss = false
+
+
+## Boss set piece: dim the sun and push it toward ember red, thicken and darken the fog, and
+## make the far portal 1.5x taller with a red glow. Called after the biome tint.
+func _apply_boss_look() -> void:
+	_sun.light_energy *= BOSS_LIGHT_MUL
+	_sun.light_color = _sun.light_color.lerp(Color(1.0, 0.55, 0.4), 0.35)
+	_env.fog_density = BOSS_FOG_DENSITY
+	_env.fog_light_color = _env.fog_light_color.lerp(Color(0.25, 0.1, 0.12), 0.45)
+	_env.ambient_light_energy = 0.7
+	if _portal != null:
+		_portal.scale *= BOSS_PORTAL_MUL
+	if _portal_light != null:
+		_portal_light.light_color = Color(1.0, 0.35, 0.25)
+		_portal_light.light_energy = 2.4
+		_portal_light.omni_range = 14.0
 
 
 func _tint_environment(b: Dictionary) -> void:
@@ -155,7 +183,7 @@ func _scatter(b: Dictionary, zones: Dictionary) -> void:
 		var zr: Array = zone.get("z", [-26.0, 3.0])
 		var hm: Array = entry.get("height_m", [])
 		var sc: Array = entry.get("scale", [1.0, 1.0])
-		for i in int(entry.get("count", 1)):
+		for i in int(ceil(float(entry.get("count", 1)) * (1.5 if is_boss else 1.0))):
 			var n := packed.instantiate() as Node3D
 			if n == null:
 				continue

@@ -538,7 +538,7 @@ func _build_world() -> void:
 ## clears it when `biome_id` is "" (back to the transparent stage over the 2D backdrop).
 ## Biome for a combat: CombatArena3D.biome_for(row, is_boss, total_rows). Returns false when the
 ## biome is unknown or the arena is disabled for tests.
-func set_arena(biome_id: String) -> bool:
+func set_arena(biome_id: String, boss: bool = false) -> bool:
 	if _world == null:
 		return false
 	if biome_id == "":
@@ -547,18 +547,36 @@ func set_arena(biome_id: String) -> bool:
 		_viewport.transparent_bg = true
 		_env.background_mode = Environment.BG_CLEAR_COLOR
 		_env.fog_enabled = false
+		_env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
+		_env.ambient_light_energy = 0.75
+		_sun.light_color = Color.WHITE
+		_sun.light_energy = 1.15
+		_sun.shadow_enabled = false
 		return true
 	if _arena == null:
 		_arena = CombatArena3D.new()
 		_arena.name = "Arena"
 		_world.add_child(_arena)
 		_world.move_child(_arena, 0)
-	if _arena.biome_id == biome_id:
+	if _arena.biome_id == biome_id and _arena.is_boss == boss:
 		return true
-	if not _arena.build(biome_id, _env, _sun):
+	if not _arena.build(biome_id, _env, _sun, boss):
 		return false
 	_viewport.transparent_bg = false
+	# Soft sun shadows under the Land props and units; only with an arena (flat 2D backdrop
+	# fights keep the cheap blob shadows). Short range keeps the shadow map sharp and cheap.
+	_sun.shadow_enabled = true
+	_sun.shadow_blur = 2.0
+	_sun.directional_shadow_max_distance = 45.0
+	_sun.shadow_opacity = 0.55
 	return true
+
+
+## Picks and builds the arena for a map node. Pure function of (row, is_boss, total_rows) -
+## no RNG, so replays and re-entering a fight always give the same battlefield.
+## `total_rows` = RunMapGraph rows.size() (18 standard, 30 full).
+func set_arena_for_node(row: int, is_boss: bool, total_rows: int = 18) -> bool:
+	return set_arena(CombatArena3D.biome_for(row, is_boss, total_rows), is_boss)
 
 
 ## Portal transition: white flash, swap to the next biome under it, fade back. Await-able.

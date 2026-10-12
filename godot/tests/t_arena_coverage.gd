@@ -32,6 +32,11 @@ func _ready() -> void:
 	_assert(CombatArena3D.biome_for(18, false) == String(journey[journey.size() - 1]), "row 18 should be the last biome")
 	_assert(CombatArena3D.biome_for(99, false) == String(journey[journey.size() - 1]), "row past the end clamps")
 	_assert(CombatArena3D.biome_for(0, false) == String(journey[0]), "row 0 clamps")
+	# a boss keeps its row's biome (journey stays consistent) and the choice is a pure function
+	for row in range(1, 19):
+		_assert(CombatArena3D.biome_for(row, true) == CombatArena3D.biome_for(row, false),
+			"boss row %d keeps the row biome" % row)
+		_assert(CombatArena3D.biome_for(row, true, 30) == CombatArena3D.biome_for(row, true, 30), "deterministic")
 	var seen := {}
 	for row in range(1, 19):
 		seen[CombatArena3D.biome_for(row, false)] = true
