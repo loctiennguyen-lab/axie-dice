@@ -3,7 +3,7 @@ extends Node
 ##
 ## THE ONE THAT MATTERS MOST
 ## -------------------------
-## `test_a_ranked_run_gets_no_meta_bonus_at_all()`. Meta progression is local and never synced,
+## `test_a_ranked_run_gets_unlock_bonuses_but_no_perks()`. Meta progression is local and never synced,
 ## so a ranked submission cannot be replayed by a server that does not know how many unlocks
 ## the player bought. If a single bonus leaks into a ranked run, every ranked score becomes a
 ## function of private local state — the board stops meaning anything, and nothing about it
@@ -45,7 +45,7 @@ func _ready() -> void:
 	test_every_pass_perk_actually_changes_a_run()
 	test_buying_an_unlock_spends_shards_and_refuses_when_short()
 	test_unlocks_and_perks_add_up_into_run_bonuses()
-	test_a_ranked_run_gets_no_meta_bonus_at_all()
+	test_a_ranked_run_gets_unlock_bonuses_but_no_perks()
 	test_run_xp_matches_the_source_formula()
 	test_winning_at_your_ceiling_raises_ascension_by_one()
 
@@ -300,38 +300,44 @@ func test_unlocks_and_perks_add_up_into_run_bonuses() -> void:
 
 
 ## If this ever fails, stop and fix it before anything else — see the file header.
-func test_a_ranked_run_gets_no_meta_bonus_at_all() -> void:
+func test_a_ranked_run_gets_unlock_bonuses_but_no_perks() -> void:
+	# B3 (Liam 12/10): grind unlocks DO apply in ranked; old Pass perks never do.
 	_wipe_meta()
 	MetaState.unlocks.assign(["u_reroll", "u_reroll2", "u_hp", "u_hp2", "u_start"])
-	MetaState.perks = {"reroll": 3, "hp4": 5, "relic1": 1}
+	MetaState.perks = {"reroll": 3, "hp4": 5, "relic1": 1, "rrw": 2}
 
 	var ranked: Dictionary = MetaState.run_bonuses(true)
-	_assert(int(ranked["bonus_reroll"]) == 0,
-		"a ranked run got %d bonus rerolls from local unlocks" % int(ranked["bonus_reroll"]))
-	_assert(int(ranked["hp_bonus"]) == 0,
-		"a ranked run got %d bonus Max HP from local unlocks" % int(ranked["hp_bonus"]))
-	_assert(int(ranked["start_relic_max_rarity"]) == -1,
-		"a ranked run was granted a starting relic from local unlocks")
+	_assert(int(ranked["bonus_reroll"]) == 2,
+		"ranked bonus rerolls should be exactly the 2 unlocks (perks excluded), got %d" % int(ranked["bonus_reroll"]))
+	_assert(int(ranked["hp_bonus"]) == 5,
+		"ranked bonus Max HP should be exactly the 5 from unlocks, got %d" % int(ranked["hp_bonus"]))
+	_assert(int(ranked["start_relic_max_rarity"]) == 0,
+		"ranked start relic is from u_start only (Common cap), got %d" % int(ranked["start_relic_max_rarity"]))
+	_assert(int(ranked["reward_reroll_max"]) == 1, "perk rrw leaked into ranked")
 
-	# And through the real entry point, not just the helper: a ranked run's roster and relics
-	# must come out identical to a fresh account's.
+	# Through the real entry point: the run carries the unlock bonuses.
 	var team: Array[String] = ["plant1", "beast1", "aqua1", "reptile1", "bug1"]
 	RunState.start_new_run(4321, team, "short", 0, true)
-	_assert(RunState.bonus_reroll == 0,
-		"start_new_run(ranked) carried %d bonus reroll" % RunState.bonus_reroll)
-	_assert(RunState.owned_relic_ids.is_empty(),
-		"start_new_run(ranked) handed out a starting relic: %s" % str(RunState.owned_relic_ids))
+	_assert(RunState.bonus_reroll == 2,
+		"start_new_run(ranked) bonus reroll should be 2, got %d" % RunState.bonus_reroll)
+	_assert(not RunState.owned_relic_ids.is_empty(), "start_new_run(ranked) should grant the u_start relic")
 	for entry in RunState.roster:
-		_assert(int((entry as Dictionary).get("bonus_hp", 0)) == 0,
-			"start_new_run(ranked) gave an Axie %d bonus Max HP"
+		_assert(int((entry as Dictionary).get("bonus_hp", 0)) == 5,
+			"start_new_run(ranked) gave an Axie %d bonus Max HP, expected 5"
 				% int((entry as Dictionary).get("bonus_hp", 0)))
 
-	# The same call unranked must show the bonuses, or this test would pass on a build where
-	# run_bonuses() is simply never consulted.
+	# A blank account still gets nothing in ranked.
+	_wipe_meta()
+	var blank: Dictionary = MetaState.run_bonuses(true)
+	_assert(int(blank["bonus_reroll"]) == 0 and int(blank["hp_bonus"]) == 0
+			and int(blank["start_relic_max_rarity"]) == -1, "blank account got a ranked bonus")
+
+	# Unranked with the same unlocks + perks gets the perks on top.
+	_wipe_meta()
+	MetaState.unlocks.assign(["u_reroll", "u_reroll2", "u_hp", "u_hp2", "u_start"])
+	MetaState.perks = {"reroll": 3}
 	RunState.start_new_run(4321, team, "short", 0, false)
-	_assert(RunState.bonus_reroll > 0,
-		"an UNRANKED run with five unlocks got no bonus reroll — the ranked assertion above "
-		+ "would then be passing for the wrong reason")
+	_assert(RunState.bonus_reroll == 5, "unranked: 2 unlocks + 3 perk = 5, got %d" % RunState.bonus_reroll)
 
 
 ## src/data.js runXp(), term by term.

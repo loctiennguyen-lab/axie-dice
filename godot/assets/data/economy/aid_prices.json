@@ -1,0 +1,80 @@
+{
+	"version": 1,
+	"_source": "monetization-v1 PA-1 (12/10): giá Gem phẳng theo mọi Ascension",
+	"aids": {
+		"R1": {
+			"price": 90,
+			"boss_price": 180,
+			"vip_price": 68,
+			"boss_vip_price": 135,
+			"cap_run": 1
+		},
+		"R2": {
+			"price": 15,
+			"pack3": 38,
+			"cap_run": 4,
+			"cap_battle_by_asc": {
+				"0": 2,
+				"1": 2,
+				"2": 2,
+				"3": 1,
+				"4": 1,
+				"5": 1,
+				"6": 1,
+				"7": 1,
+				"8": 1,
+				"9": 1,
+				"10": 1
+			}
+		},
+		"R4": {
+			"price": 60,
+			"cap_per_boss": 1,
+			"delay_turns": 2,
+			"offer_when_turns_left_max": 2
+		},
+		"R5": {
+			"price": 15,
+			"cap_per_pact": 1,
+			"min_asc": 6
+		},
+		"R6": {
+			"price": 18,
+			"cap_per_visit": 1,
+			"cap_run": 2
+		},
+		"R7": {
+			"price": 12,
+			"cap_run": 3
+		},
+		"R8": {
+			"price": 38,
+			"cap_run": 1
+		},
+		"R9": {
+			"price": 60,
+			"cap_run": 1,
+			"contents": {
+				"R2": 2,
+				"R7": 1,
+				"R8": 1
+			}
+		}
+	},
+	"total_cap": {
+		"a0_a8": 6,
+		"a9_a10": 4
+	},
+	"total_cap_split_asc": 9,
+	"boon_counts_in_total": true,
+	"free_continue": {
+		"per_account": 1,
+		"max_asc": 2,
+		"node_kinds": [
+			"elite",
+			"boss"
+		]
+	},
+	"vip_boon_per_day": 1,
+	"ranked_allows_kit_boon": true
+}

@@ -1,0 +1,38 @@
+{
+	"version": 1,
+	"_source": "economy-v2: Land chỉ trả bằng Land Stone; tổng tới LunaLanding 1.820.000. Chỉ hiện giá ở L1",
+	"tiers": [
+		{
+			"tier": 1,
+			"name": "Savannah",
+			"cost_stone": 0,
+			"cost_shards": 0
+		},
+		{
+			"tier": 2,
+			"cost_stone": 40000,
+			"cost_shards": 0
+		},
+		{
+			"tier": 3,
+			"cost_stone": 100000,
+			"cost_shards": 0
+		},
+		{
+			"tier": 4,
+			"cost_stone": 180000,
+			"cost_shards": 0
+		},
+		{
+			"tier": 5,
+			"cost_stone": 500000,
+			"cost_shards": 0
+		},
+		{
+			"tier": 6,
+			"name": "LunaLanding",
+			"cost_stone": 1000000,
+			"cost_shards": 0
+		}
+	]
+}

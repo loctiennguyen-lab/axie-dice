@@ -1,0 +1,28 @@
+{
+	"version": 1,
+	"_source": "echobox-pass-v2 §4, economy-v2 §5",
+	"daily_reward": {
+		"shards": 60,
+		"stone": 500,
+		"xp": 100
+	},
+	"weekly_bonus": {
+		"min_days": 4,
+		"shards": 150,
+		"stone": 2000
+	},
+	"reset": "00:00 UTC",
+	"guest_stone_wait_days": 7,
+	"starter": {
+		"_note": "SỐ TẠM (L1 playtest): khoản khởi đầu thay số dư cũ khi reset save (server-authoritative-rng 9.1/9.2). Chờ economy-designer chốt.",
+		"temporary": true,
+		"shards": 500,
+		"tickets": 3,
+		"gems": 0
+	},
+	"daily_runs": {
+		"max_per_day": 3,
+		"shared_seed": true,
+		"day": "UTC"
+	}
+}
