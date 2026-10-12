@@ -1,23 +1,46 @@
-# Quyết định đang chờ Liam (cập nhật 12/10/2026)
+# Câu hỏi và việc chờ Liam — bản gom (cập nhật 12/10/2026, tối)
 
-Liam đã trả lời 23 câu ngày 12/10. Câu đã chốt đã ghi vào đầu file nguồn:
-`design/handoffs/cosmetics-01/REVIEW.md` (A1–A5), `design/proposals/monetization-v1.md` (B2–B5, B8),
-`docs/architecture/server-authoritative-rng.md` (C1–C10). B1, B6 (bỏ R10), C8, D đã chốt 12/10 (lần 2). B7 chốt 12/10: giữ Gem, tặng 120 Gem/mùa, Pass premium từ mùa 2. Kiến trúc CHỐT 12/10 (ghi ở đầu `docs/architecture/server-authoritative-rng.md`). Không còn câu nào chờ. Đang làm: Liam draft ý tưởng UI → hỏi chi tiết → viết prompt Claude Design.
+Liam trả lời theo số, ví dụ "đồng ý hết, trừ 4: …". Mỗi câu có khuyến nghị. Các câu cũ đã trả lời đều đã ghi vào file
+nguồn, không nằm ở đây nữa.
 
-| # | Câu hỏi | Trạng thái |
-|---|---|---|
+## A. Gấp — đang chặn làn code
 
-## Việc sau khi Liam trả lời
-1. `technical-director` sửa `server-authoritative-rng.md` theo 2 review + quyết định C → review lại (lead-programmer hoặc security-engineer). **XONG 12/10** (3 vòng review security-engineer).
-2. `game-designer` sửa `monetization-v1.md` (đồng bộ §0–§3 với §9, MON-13, B1–B7) → `economy-designer` chỉnh số →
-   review lại (creative-director). **Đã đủ quyết định, làm được.**
-3. Gửi Claude Design ghi chú sửa Cosmetics (bản tiếng Anh trong `REVIEW.md`, sửa theo A1–A5) + contact sheet biome. **Làm được ngay.**
-4. A4 đã duyệt: thêm Mythic vào `DangoTheme.RARITY_COLORS`/`RARITY_NAMES` (+ test). **Làm được ngay.**
-5. Sau đó: viết lại kế hoạch phase cho cả dự án, rồi bắt đầu triển khai.
+| # | Câu hỏi | Khuyến nghị | Trả lời |
+|---|---|---|---|
+| 1 | **Đăng nhập cho bản desktop.** Hiện desktop luôn là khách (chỉ web đăng nhập được). Không có đăng nhập thì không có ví, Gem tặng, cọc Nhiệm vụ. Làm đăng nhập Google qua Worker (mở trình duyệt rồi quay lại game)? | Có. Làn S thêm ~2–3 ngày, làn U thêm màn đăng nhập | |
+| 2 | **Gem lưu ở đâu?** | Trên server (thêm ~1 ngày), để server kiểm trần 900 và trừ Gem khi Continue/Aid. Shard, Stone vẫn trong save | |
 
-## Monetization + Ascension (creative-director APPROVE WITH CHANGES 12/10, chờ Liam)
-Chi tiết khuyến nghị: báo cáo creative-director gửi Liam 12/10; nguồn `design/proposals/monetization-v1.md` §8.3,
-`design/proposals/ascension-v2.md` §6 câu 11–14. Sau khi Liam chốt: game-designer sửa → economy-designer tính lại
-MON-11 có Boon → sửa `echobox-pass-v2.md` INV-V10 + `core-loop-v2.md` Ranked profile theo B3 → sim F/G.
+## B. Sprint L1 (3/11)
 
-## UI request 02 (art-director review xong 12/10, chờ Liam 5 câu): `design/requests/ui-redesign-request-02.md` "Ghi chú cho Liam".
+| # | Câu hỏi | Khuyến nghị | Trả lời |
+|---|---|---|---|
+| 3 | Duyệt trước **danh sách cắt** (`production/l1-sprint-plan.md`, 12 mục + 3b "Land chỉ tier 1") để tới mốc 24/10 làn nào trễ thì tự cắt theo thứ tự? | Duyệt | |
+| 4 | Ở L1: Shard/Stone trong save, server chỉ ghi sổ; **cọc Nhiệm vụ do server giữ** để đối soát | Đồng ý | |
+| 5 | Chưa có verifier: thưởng Nhiệm vụ dựa vào client tự báo, đánh dấu "chưa kiểm" | Chấp nhận cho nhóm nội bộ | |
+| 6 | Game **bắt buộc online** (không có chế độ offline) | Đồng ý | |
+| 7 | Mỗi ngày anh duyệt được khoảng bao nhiêu giờ? | Nếu < 1 giờ/ngày, gộp làn meta vào làn UI và làn Land vào làn combat 3D | |
+
+## C. Bản phát hành
+
+| # | Câu hỏi | Khuyến nghị | Trả lời |
+|---|---|---|---|
+| 8 | **Tên app** (đổi tên làm đổi thư mục save, phải chốt trước RC1 29/10) | "Axie Dice" | |
+| 9 | Bundle id | `fun.axiedice.game` (đang dùng) | |
+| 10 | Số phiên bản hiển thị | `0.1.0` cho L1 | |
+| 11 | **Kênh báo lỗi** cho người test và người nhận | Một kênh Slack riêng + form ngắn; người nhận: Liam | |
+
+## D. Việc anh cần tự làm (agent không làm được)
+
+| Hạn | Việc |
+|---|---|
+| Ngay | Gửi Claude Design: **prompt menu/meta (Round 3)** — em đang viết, sẽ đưa link; và ghi chú cosmetics lượt 2 `design/handoffs/cosmetics-01/NOTE-TO-CLAUDE-DESIGN-02.md` nếu chưa gửi |
+| 13–14/10 | **Nâng Cloudflare Workers lên gói Paid** (Durable Object cần). Đừng `wrangler deploy` trước khi nâng |
+| 14/10 | Chạy đo độ trễ WebSocket (lệnh trong tin nhắn trước, em gửi lại khi anh sẵn sàng) và dựng staging một lần (em đưa từng bước) |
+| 20/10 | Hạn Claude Design giao Round 2 (run flow + Ascension) |
+| 22/10 | **Asset boss Atia** còn thiếu — làn C sẽ báo danh sách cụ thể |
+| 24/10 | Hạn Claude Design giao Round 3 (menu/meta) · **danh sách ~50 người mời + máy của họ (mac/win)** |
+| Khi rảnh | Chạy thử bản Windows trên một máy Windows (bản build đầu ở `~/my-game-wt/R/build/`) |
+
+## E. Đã chốt hôm nay (để tham chiếu, không cần trả lời)
+Kiến trúc server RNG · monetization (cách B, PA-1, quà 180 Gem) · Ascension răng cưa · Nhiệm vụ bản cực khó (Bayes, không giới
+hạn/ngày, NFT dùng được) · UI request 02 + Round 1 · L1 = 3/11 nội bộ, phạm vi đầy đủ, Gem tặng 300/ngày · commit/push tự do, duyệt theo tuần.

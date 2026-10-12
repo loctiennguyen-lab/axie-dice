@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<script src="_ds/dango-design-system-b8da985f-efd5-488e-ae62-d508e48befe9/_ds_bundle.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;700;800&amp;family=Work+Sans:wght@500;600;700&amp;display=swap" rel="stylesheet">
+<style>
+  body { margin:0; background:#0B0D12; }
+  a { color:#FF9345; text-decoration:none; }
+  a:hover { color:#FFB275; }
+</style>
+</helmet>
+
+<div style="display:flex;flex-direction:column;gap:72px;padding:72px;background:#0B0D12;font-family:'Work Sans',system-ui,sans-serif;color:#F3E7D3;-webkit-font-smoothing:antialiased;font-variant-numeric:tabular-nums;width:max-content">
+
+  <div style="display:flex;flex-direction:column;gap:10px;max-width:1920px">
+    <div style="font-family:'Baloo 2',cursive;font-size:15px;font-weight:800;letter-spacing:.2em;color:#8C95A4">UI REQUEST 01 · ASCENSION V2 · EXTENDS meta-screens-v2.html</div>
+    <div style="font-family:'Baloo 2',cursive;font-size:64px;font-weight:800;line-height:1;color:#FFF8EA">3.1 Ascension panel in Run Setup</div>
+    <div style="font-size:18px;font-weight:600;line-height:1.5;color:#A6B0BF;max-width:1300px;text-wrap:pretty">Replaces the −/A0/+ stepper and the four ascStats tiles inside the RUN SETUP panel (Main Menu, top 78, right 84, width 566). The SEED and RUN LENGTH blocks above it are unchanged. Data state: player's best unlocked level is A6 unless a frame says otherwise.</div>
+  </div>
+
+  <div data-screen-label="3.1-a Main Menu A6" style="display:flex;flex-direction:column;gap:14px">
+    <div style="display:flex;align-items:center;gap:12px">
+      <div style="height:34px;padding:0 12px;display:flex;align-items:center;border-radius:9px;background:#FF9345;border:3px solid #000;font-family:'Baloo 2',cursive;font-size:17px;font-weight:800;color:#2A1505">3.1-a</div>
+      <div style="font-family:'Baloo 2',cursive;font-size:24px;font-weight:800;color:#FFF8EA">Main Menu · A6 selected · best A6 · in context, 1920×1080</div>
+    </div>
+
+    <div style="position:relative;width:1920px;height:1080px;overflow:hidden;background:#0E1016">
+      <img src="asc/bg/entrance.jpg" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;filter:saturate(1.05) brightness(.82)">
+      <div style="position:absolute;inset:0;background:linear-gradient(100deg, rgba(14,16,22,.94) 0%, rgba(14,16,22,.8) 28%, rgba(14,16,22,.3) 52%, rgba(14,16,22,.52) 78%, rgba(14,16,22,.78) 100%)"></div>
+
+      <div style="position:absolute;top:78px;left:84px;width:640px">
+        <div style="display:inline-flex;align-items:center;height:36px;padding:0 15px;border-radius:9px;background:#FF9345;border:4px solid #000;box-shadow:0 5px 0 rgba(0,0,0,.5);font-family:'Baloo 2',cursive;font-size:15px;font-weight:800;letter-spacing:.24em;color:#2A1505">LUNACIA MUTANTS</div>
+        <div style="font-family:'Baloo 2',cursive;font-size:104px;font-weight:800;letter-spacing:.005em;line-height:.9;margin-top:16px;color:#FFF8EA;text-shadow:0 6px 0 rgba(0,0,0,.45)">AXIE DICE<br>TACTICS</div>
+        <div style="font-size:16px;line-height:1.55;font-weight:600;color:#C7BBD6;margin-top:18px;max-width:530px;text-wrap:pretty">Every Axie is a six-sided die and every face is a body part. Enemies telegraph first — nothing in combat is hidden.</div>
+        <div style="display:inline-flex;align-items:center;gap:11px;height:52px;padding:0 16px 0 10px;border-radius:12px;background:#F3E7D3;border:4px solid #000;box-shadow:0 5px 0 rgba(0,0,0,.5);margin-top:24px">
+          <img src="asc/fx/shard.png" alt="" style="width:28px;height:28px;object-fit:contain">
+          <div style="font-family:'Baloo 2',cursive;font-size:30px;font-weight:800;line-height:1;color:#1A1206">748</div>
+          <div style="font-family:'Baloo 2',cursive;font-size:13px;font-weight:800;letter-spacing:.12em;color:#6B5433">GENE SHARD</div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:12px;margin-top:28px;width:530px">
+          <div style="height:86px;box-sizing:border-box;border-radius:16px;display:flex;align-items:center;gap:18px;padding:0 24px;background:#FF9345;border:5px solid #000;box-shadow:0 7px 0 rgba(0,0,0,.5)">
+            <div style="flex:1 1 auto">
+              <div style="font-family:'Baloo 2',cursive;font-size:30px;font-weight:800;letter-spacing:.1em;line-height:1;color:#2A1505">BEGIN RUN</div>
+              <div style="font-size:13px;font-weight:600;color:#5A3310;margin-top:4px">Short · Ascension 6 · seed 3970737296</div>
+            </div>
+            <div style="font-family:'Baloo 2',cursive;font-size:34px;font-weight:800;color:#2A1505">→</div>
+          </div>
+          <div style="height:68px;box-sizing:border-box;border-radius:14px;display:flex;align-items:center;gap:16px;padding:0 22px;background:#1B1F27;border:4px solid #000;box-shadow:0 5px 0 rgba(0,0,0,.5)">
+            <div style="flex:1 1 auto">
+              <div style="font-family:'Baloo 2',cursive;font-size:20px;font-weight:800;letter-spacing:.1em;line-height:1;color:#FFC79B">CONTINUE RUN</div>
+              <div style="font-size:13px;font-weight:600;color:#8C95A4;margin-top:3px">Row 4 of 18 · Wave 3 · 4 Axies alive</div>
+            </div>
+            <div style="font-family:'Baloo 2',cursive;font-size:26px;font-weight:800;color:#FFC79B">↺</div>
+          </div>
+        </div>
+      </div>
+
+      <div style="position:absolute;top:22px;right:24px;width:52px;height:52px;box-sizing:border-box;border-radius:13px;display:grid;place-items:center;background:rgba(27,31,39,.94);border:4px solid #000;box-shadow:0 5px 0 rgba(0,0,0,.5);font-size:25px;line-height:1;color:#C7BBD6">⚙</div>
+
+      <sc-for list="{{ menuPanel }}" as="p" hint-placeholder-count="1">
+        <div style="position:absolute;top:78px;right:84px;width:566px;border-radius:18px;overflow:hidden;background:#1B1F27;border:5px solid #000;box-shadow:0 7px 0 rgba(0,0,0,.5);box-sizing:border-box">
+          <div style="padding:16px 22px;background:#262C36;border-bottom:4px solid #000">
+            <div style="font-family:'Baloo 2',cursive;font-size:28px;font-weight:800;letter-spacing:.02em;line-height:1;color:#FFF8EA">RUN SETUP</div>
+            <div style="font-size:13px;font-weight:600;color:#8C95A4;margin-top:3px">Seed + team + mode + ascension fully determine the run.</div>
+          </div>
+          <div style="padding:18px 22px 22px;display:flex;flex-direction:column;gap:20px">
+            <div>
+              <div style="font-family:'Baloo 2',cursive;font-size:13px;font-weight:800;letter-spacing:.16em;color:#8C95A4;margin-bottom:8px">SEED</div>
+              <div style="display:flex;gap:9px">
+                <div style="flex:1 1 auto;height:50px;box-sizing:border-box;border-radius:11px;display:flex;align-items:center;padding:0 14px;background:#10131A;border:3px solid #000;font-family:'Baloo 2',cursive;font-size:24px;font-weight:700;letter-spacing:.04em;color:#F3E7D3">3970737296</div>
+                <div style="width:136px;height:50px;box-sizing:border-box;border-radius:11px;display:flex;align-items:center;justify-content:center;gap:8px;background:#262C36;border:3px solid #000">
+                  <img src="asc/fx/reroll.svg" alt="" style="width:17px;height:17px;object-fit:contain">
+                  <div style="font-family:'Baloo 2',cursive;font-size:15px;font-weight:800;letter-spacing:.08em;color:#F3E7D3">RANDOM</div>
+                </div>
+              </div>
+            </div>
+            <div>
+              <div style="font-family:'Baloo 2',cursive;font-size:13px;font-weight:800;letter-spacing:.16em;color:#8C95A4;margin-bottom:8px">RUN LENGTH</div>
+              <div style="display:flex;gap:10px">
+                <div style="flex:1 1 0;padding:12px 14px;border-radius:12px;background:#FF9345;border:4px solid #000;box-shadow:0 4px 0 rgba(0,0,0,.45)">
+                  <div style="font-family:'Baloo 2',cursive;font-size:19px;font-weight:800;letter-spacing:.08em;line-height:1;color:#2A1505">SHORT</div>
+                  <div style="font-size:12px;font-weight:600;color:#5A3310;margin-top:3px">12 waves · ~15 min · 3 bosses</div>
+                </div>
+                <div style="flex:1 1 0;padding:12px 14px;border-radius:12px;background:#10131A;border:3px solid #000">
+                  <div style="display:flex;align-items:center;gap:7px">
+                    <div style="font-family:'Baloo 2',cursive;font-size:19px;font-weight:800;letter-spacing:.08em;line-height:1;color:#5C6573">FULL</div>
+                    <img src="asc/new-icons/lock.svg" alt="" style="width:14px;height:14px">
+                  </div>
+                  <div style="font-size:12px;font-weight:600;color:#5C6573;margin-top:3px">20 waves · unlock for 120 shard</div>
+                </div>
+              </div>
+            </div>
+
+            <div>
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;height:26px">
+                <div style="font-family:'Baloo 2',cursive;font-size:13px;font-weight:800;letter-spacing:.16em;color:#8C95A4">ASCENSION</div>
+                <div style="display:flex;align-items:center;gap:6px">
+                  <div style="font-family:'Baloo 2',cursive;font-size:11px;font-weight:800;letter-spacing:.14em;color:#6F7887;margin-right:2px">LADDER</div>
+                  <sc-for list="{{ p.ladder }}" as="l" hint-placeholder-count="2">
+                    <div title="{{ l.title }}" style="height:26px;box-sizing:border-box;padding:0 9px 0 6px;display:flex;align-items:center;gap:5px;border-radius:7px;background:{{ l.bg }};border:2px solid #000">
+                      <div style="width:14px;height:14px;box-sizing:border-box;border-radius:50%;background:{{ l.dot }};border:2px solid #000;display:grid;place-items:center;font-size:9px;font-weight:800;color:#07260A;line-height:1">{{ l.tick }}</div>
+                      <div style="font-family:'Baloo 2',cursive;font-size:12px;font-weight:800;letter-spacing:.06em;line-height:1;color:{{ l.fg }};white-space:nowrap">{{ l.label }}</div>
+                    </div>
+                  </sc-for>
+                </div>
+              </div>
+              <div style="display:flex;gap:6px">
+                <sc-for list="{{ p.chips }}" as="c" hint-placeholder-count="11">
+                  <div style="position:relative;width:42px;height:44px;box-sizing:border-box;border-radius:10px;display:grid;place-items:center;background:{{ c.bg }};border:3px solid #000;box-shadow:{{ c.shelf }};font-family:'Baloo 2',cursive;font-size:16px;font-weight:800;line-height:1;color:{{ c.fg }};outline:{{ c.focus }};outline-offset:2px">
+                    {{ c.label }}
+                    <img src="asc/new-icons/lock.svg" alt="" style="position:absolute;top:-6px;right:-6px;width:16px;height:16px;display:{{ c.lockDisp }}">
+                  </div>
+                </sc-for>
+              </div>
+              <div style="display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin-top:13px">
+                <div style="font-family:'Baloo 2',cursive;font-size:24px;font-weight:800;line-height:1;color:#FFF8EA">{{ p.title }}</div>
+                <div style="font-family:'Baloo 2',cursive;font-size:12px;font-weight:800;letter-spacing:.1em;color:#8C95A4">{{ p.count }}</div>
+              </div>
+              <div style="font-family:'Baloo 2',cursive;font-size:12px;font-weight:800;letter-spacing:.08em;color:#A6B0BF;margin-top:5px">{{ p.mods }}</div>
+              <div style="display:{{ p.lockDisp }};align-items:center;gap:8px;margin-top:9px;height:32px;box-sizing:border-box;padding:0 10px;border-radius:9px;background:#262C36;border:2px solid #000">
+                <img src="asc/new-icons/lock.svg" alt="" style="width:16px;height:16px">
+                <div style="font-family:'Baloo 2',cursive;font-size:13px;font-weight:800;letter-spacing:.06em;color:#FFC79B">{{ p.lockText }}</div>
+              </div>
+              <div style="margin-top:9px;border-radius:12px;background:#10131A;border:3px solid #000;padding:6px;display:flex;flex-direction:column;gap:2px;opacity:{{ p.listOp }}">
+                <div style="display:{{ p.emptyDisp }};padding:14px 10px;font-size:13px;font-weight:600;line-height:1.5;color:#A6B0BF">No ascension rules at A0. Standard enemies, standard prices, 3 reward cards, 8 relic slots. Win a run at A0 to unlock A1.</div>
+                <sc-for list="{{ p.rows }}" as="r" hint-placeholder-count="6">
+                  <div style="display:flex;align-items:center;gap:8px;height:26px;padding:0 6px;border-radius:7px;background:{{ r.bg }}">
+                    <img src="{{ r.icon }}" alt="" style="width:18px;height:18px;object-fit:contain;flex:0 0 auto;opacity:{{ r.iconOp }}">
+                    <div style="width:26px;flex:0 0 auto;font-family:'Baloo 2',cursive;font-size:13px;font-weight:800;line-height:1;color:{{ r.codeFg }}">{{ r.code }}</div>
+                    <div style="width:98px;flex:0 0 auto;font-family:'Baloo 2',cursive;font-size:12px;font-weight:800;letter-spacing:.04em;line-height:1;color:{{ r.nameFg }};white-space:nowrap">{{ r.name }}</div>
+                    <div style="flex:1 1 auto;min-width:0;font-size:12px;font-weight:600;line-height:1.1;color:{{ r.descFg }};text-decoration:{{ r.strike }}">{{ r.desc }}</div>
+                    <div style="display:{{ r.newDisp }};height:18px;padding:0 6px;align-items:center;border-radius:5px;background:#2A1505;font-family:'Baloo 2',cursive;font-size:11px;font-weight:800;letter-spacing:.08em;line-height:1;color:#FFC79B;flex:0 0 auto">NEW</div>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+          </div>
+        </div>
+      </sc-for>
+
+      <div style="position:absolute;bottom:46px;right:84px;width:452px;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px">
+        <sc-for list="{{ navTiles }}" as="n" hint-placeholder-count="6">
+          <div style="height:66px;box-sizing:border-box;border-radius:12px;padding:9px 11px;background:rgba(27,31,39,.94);border:3px solid #000;box-shadow:0 4px 0 rgba(0,0,0,.5);display:flex;flex-direction:column;justify-content:space-between">
+            <div style="font-family:'Baloo 2',cursive;font-size:12px;font-weight:800;letter-spacing:.08em;line-height:1.1;color:#C7BBD6">{{ n.label }}</div>
+            <div style="font-family:'Baloo 2',cursive;font-size:17px;font-weight:800;line-height:1;color:{{ n.color }}">{{ n.value }}</div>
+          </div>
+        </sc-for>
+      </div>
+
+      <div style="position:absolute;bottom:46px;left:84px">
+        <div style="display:flex;align-items:center;gap:12px;margin-bottom:12px">
+          <div style="font-family:'Baloo 2',cursive;font-size:13px;font-weight:800;letter-spacing:.16em;color:#8C95A4">YOUR TEAM</div>
+          <div style="height:26px;padding:0 10px;display:flex;align-items:center;border-radius:7px;background:#262C36;border:2px solid #000;font-family:'Baloo 2',cursive;font-size:13px;font-weight:800;letter-spacing:.06em;line-height:1;color:#FFC79B">EDIT TEAM →</div>
+        </div>
+        <div style="display:flex;gap:13px">
+          <sc-for list="{{ roster }}" as="r" hint-placeholder-count="5">
+            <div style="width:220px;border-radius:15px;overflow:hidden;background:#F3E7D3;border:4px solid #000;box-shadow:0 6px 0 rgba(0,0,0,.5);box-sizing:border-box">
+              <div style="height:34px;background:{{ r.cls }};border-bottom:3px solid #000;display:flex;align-items:center;justify-content:space-between;padding:0 11px">
+                <div style="font-family:'Baloo 2',cursive;font-size:16px;font-weight:800;line-height:1;color:#1A1206">{{ r.name }}</div>
+                <div style="font-family:'Baloo 2',cursive;font-size:13px;font-weight:800;letter-spacing:.06em;line-height:1;color:#1A1206">{{ r.clsName }}</div>
+              </div>
+              <div style="padding:8px 11px 11px">
+                <div style="height:124px;border-radius:10px;border:2px dashed #8A7450;display:grid;place-items:center;font-family:'Baloo 2',cursive;font-size:14px;font-weight:800;letter-spacing:.12em;color:#8A7450">AXIE 3D</div>
+                <div style="display:flex;align-items:center;justify-content:space-between;margin-top:5px">
+                  <div style="font-family:'Baloo 2',cursive;font-size:13px;font-weight:800;letter-spacing:.06em;color:#6B5433">TIER 1</div>
+                  <div style="font-family:'Baloo 2',cursive;font-size:19px;font-weight:800;line-height:1;color:#1A1206">{{ r.max }} HP</div>
+                </div>
+              </div>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div style="display:flex;flex-direction:column;gap:14px">
+    <div style="font-family:'Baloo 2',cursive;font-size:32px;font-weight:800;color:#FFF8EA">3.1 variants · RUN SETUP panel only, 566 wide, same coordinates as 3.1-a</div>
+    <div style="display:flex;gap:40px;align-items:flex-start">
+      <sc-for list="{{ variants }}" as="p" hint-placeholder-count="4">
+        <div style="display:flex;flex-direction:column;gap:12px;width:566px">
+          <div style="display:flex;align-items:center;gap:10px">
+            <div style="height:30px;padding:0 10px;display:flex;align-items:center;border-radius:8px;background:#FF9345;border:3px solid #000;font-family:'Baloo 2',cursive;font-size:15px;font-weight:800;color:#2A1505">{{ p.id }}</div>
+            <div style="font-family:'Baloo 2',cursive;font-size:19px;font-weight:800;color:#FFF8EA">{{ p.caption }}</div>
+          </div>
+          <div style="font-size:13px;font-weight:600;color:#8C95A4;line-height:1.45;min-height:38px">{{ p.state }}</div>
+          <div style="width:566px;border-radius:18px;overflow:hidden;background:#1B1F27;border:5px solid #000;box-shadow:0 7px 0 rgba(0,0,0,.5);box-sizing:border-box;padding:18px 22px 22px">
+            <div style="font-family:'Baloo 2',cursive;font-size:12px;font-weight:700;letter-spacing:.12em;color:#4A525F;margin-bottom:14px;text-align:center">· · · SEED and RUN LENGTH unchanged · · ·</div>
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;height:26px">
+              <div style="font-family:'Baloo 2',cursive;font-size:13px;font-weight:800;letter-spacing:.16em;color:#8C95A4">ASCENSION</div>
+              <div style="display:flex;align-items:center;gap:6px">
+                <div style="font-family:'Baloo 2',cursive;font-size:11px;font-weight:800;letter-spacing:.14em;color:#6F7887;margin-right:2px">LADDER</div>
+                <sc-for list="{{ p.ladder }}" as="l" hint-placeholder-count="2">
+                  <div title="{{ l.title }}" style="height:26px;box-sizing:border-box;padding:0 9px 0 6px;display:flex;align-items:center;gap:5px;border-radius:7px;background:{{ l.bg }};border:2px solid #000">
+                    <div style="width:14px;height:14px;box-sizing:border-box;border-radius:50%;background:{{ l.dot }};border:2px solid #000;display:grid;place-items:center;font-size:9px;font-weight:800;color:#07260A;line-height:1">{{ l.tick }}</div>
+                    <div style="font-family:'Baloo 2',cursive;font-size:12px;font-weight:800;letter-spacing:.06em;line-height:1;color:{{ l.fg }};white-space:nowrap">{{ l.label }}</div>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+            <div style="display:flex;gap:6px">
+              <sc-for list="{{ p.chips }}" as="c" hint-placeholder-count="11">
+                <div style="position:relative;width:42px;height:44px;box-sizing:border-box;border-radius:10px;display:grid;place-items:center;background:{{ c.bg }};border:3px solid #000;box-shadow:{{ c.shelf }};font-family:'Baloo 2',cursive;font-size:16px;font-weight:800;line-height:1;color:{{ c.fg }};outline:{{ c.focus }};outline-offset:2px">
+                  {{ c.label }}
+                  <img src="asc/new-icons/lock.svg" alt="" style="position:absolute;top:-6px;right:-6px;width:16px;height:16px;display:{{ c.lockDisp }}">
+                </div>
+              </sc-for>
+            </div>
+            <div style="display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin-top:13px">
+              <div style="font-family:'Baloo 2',cursive;font-size:24px;font-weight:800;line-height:1;color:#FFF8EA">{{ p.title }}</div>
+              <div style="font-family:'Baloo 2',cursive;font-size:12px;font-weight:800;letter-spacing:.1em;color:#8C95A4">{{ p.count }}</div>
+            </div>
+            <div style="font-family:'Baloo 2',cursive;font-size:12px;font-weight:800;letter-spacing:.08em;color:#A6B0BF;margin-top:5px">{{ p.mods }}</div>
+            <div style="display:{{ p.lockDisp }};align-items:center;gap:8px;margin-top:9px;height:32px;box-sizing:border-box;padding:0 10px;border-radius:9px;background:#262C36;border:2px solid #000">
+              <img src="asc/new-icons/lock.svg" alt="" style="width:16px;height:16px">
+              <div style="font-family:'Baloo 2',cursive;font-size:13px;font-weight:800;letter-spacing:.06em;color:#FFC79B">{{ p.lockText }}</div>
+            </div>
+            <div style="margin-top:9px;border-radius:12px;background:#10131A;border:3px solid #000;padding:6px;display:flex;flex-direction:column;gap:2px;opacity:{{ p.listOp }}">
+              <div style="display:{{ p.emptyDisp }};padding:14px 10px;font-size:13px;font-weight:600;line-height:1.5;color:#A6B0BF">No ascension rules at A0. Standard enemies, standard prices, 3 reward cards, 8 relic slots. Win a run at A0 to unlock A1.</div>
+              <sc-for list="{{ p.rows }}" as="r" hint-placeholder-count="6">
+                <div style="display:flex;align-items:center;gap:8px;height:26px;padding:0 6px;border-radius:7px;background:{{ r.bg }}">
+                  <img src="{{ r.icon }}" alt="" style="width:18px;height:18px;object-fit:contain;flex:0 0 auto;opacity:{{ r.iconOp }}">
+                  <div style="width:26px;flex:0 0 auto;font-family:'Baloo 2',cursive;font-size:13px;font-weight:800;line-height:1;color:{{ r.codeFg }}">{{ r.code }}</div>
+                  <div style="width:98px;flex:0 0 auto;font-family:'Baloo 2',cursive;font-size:12px;font-weight:800;letter-spacing:.04em;line-height:1;color:{{ r.nameFg }};white-space:nowrap">{{ r.name }}</div>
+                  <div style="flex:1 1 auto;min-width:0;font-size:12px;font-weight:600;line-height:1.1;color:{{ r.descFg }};text-decoration:{{ r.strike }}">{{ r.desc }}</div>
+                  <div style="display:{{ r.newDisp }};height:18px;padding:0 6px;align-items:center;border-radius:5px;background:#2A1505;font-family:'Baloo 2',cursive;font-size:11px;font-weight:800;letter-spacing:.08em;line-height:1;color:#FFC79B;flex:0 0 auto">NEW</div>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+        </div>
+      </sc-for>
+    </div>
+  </div>
+
+  <div style="display:flex;flex-direction:column;gap:14px;max-width:1920px">
+    <div style="font-family:'Baloo 2',cursive;font-size:32px;font-weight:800;color:#FFF8EA">Spec · 3.1</div>
+    <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px">
+      <sc-for list="{{ specs }}" as="s" hint-placeholder-count="6">
+        <div style="padding:16px 18px;border-radius:14px;background:#161A21;border:3px solid #000">
+          <div style="font-family:'Baloo 2',cursive;font-size:15px;font-weight:800;letter-spacing:.08em;color:#FFC79B">{{ s.k }}</div>
+          <div style="font-size:14px;font-weight:600;line-height:1.5;color:#C7CED9;margin-top:6px;text-wrap:pretty">{{ s.v }}</div>
+        </div>
+      </sc-for>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:2500,&quot;height&quot;:2400}}">
+const CLS = { plant:"#7DC943", beast:"#FFB23F", aqua:"#39C5F3", reptile:"#B679F7", bug:"#F2624F" };
+const IC = { shop:"asc/fx/shop.png", elite:"asc/fx/elite.png", reroll:"asc/fx/reroll.svg", clock:"asc/new-icons/boss-clock.svg",
+  eternal:"asc/new-icons/eternal.svg", pact:"asc/new-icons/pact.svg", chest:"asc/fx/chest.png", lock:"asc/new-icons/lock.svg" };
+const RULES = [
+  [1,"LEAN PACK","Shop prices +15% · selling refunds 40%, not 50%","shop"],
+  [2,"ELITE ESCORT","Every elite fight brings 1 extra monster","elite"],
+  [3,"SHORT DICE","Base rerolls 2 → 1 · relic rerolls still add","reroll"],
+  [4,"BOSS CLOCK","Bosses enrage from turn 10: +20%/turn, max +100%","clock"],
+  [5,"ETERNAL GIFT","Elite relics are Eternal · weaken announced first","eternal"],
+  [6,"FIRST PACT","First boss: you must take 1 of 3 pacts","pact"],
+  [7,"NARROW OFFER","Reward screens offer 2 cards, not 3","chest"],
+  [8,"CRAMPED PACK","Passive relic slots 8 → 7","lock"],
+  [9,"HUNTED","+2 elites on the map · boss clock from turn 8","elite"],
+  [10,"LAST STAND","Every boss requires a pact · no reward rerolls","pact"],
+];
+const NAMES = ["NO RULES", ...RULES.map(r => r[1])];
+const f2 = x => "×" + x.toFixed(2);
+function mods(n) {
+  const hp = Math.pow(1.1, [1,6,10].filter(l => l <= n).length);
+  const dmg = Math.pow(1.1, [3,8,10].filter(l => l <= n).length);
+  return `ENEMY HP ${f2(hp)} · ENEMY DMG ${f2(dmg)} · BOSS HP ${f2(n >= 4 ? 1.15 : 1)}`;
+}
+function rows(n, preview) {
+  const out = [];
+  for (const [l, name, desc0, ic] of RULES) {
+    if (l > n) break;
+    let desc = desc0, superseded = false;
+    if (l === 4 && n >= 9) desc = "Enrage from turn 8 (A9): +20%/turn, max +100%";
+    if (l === 6 && n >= 10) { desc = "Replaced by A10 — every boss requires a pact"; superseded = true; }
+    const isNew = l === n && !preview;
+    out.push({ code:`A${l}`, name, desc, icon:IC[ic],
+      bg: isNew ? "#FF9345" : "transparent",
+      codeFg: isNew ? "#2A1505" : "#FFC79B", nameFg: isNew ? "#2A1505" : superseded ? "#5C6573" : "#FFF8EA",
+      descFg: isNew ? "#3A1E07" : superseded ? "#5C6573" : "#C7CED9", strike: "none",
+      iconOp: superseded ? ".4" : "1", newDisp: isNew ? "flex" : "none" });
+  }
+  return out;
+}
+function panel(sel, best, opt = {}) {
+  const focus = opt.focus ?? sel;
+  const locked = focus > best;
+  const chips = [];
+  for (let i = 0; i <= 10; i++) {
+    const isSel = i === sel, isLocked = i > best, isFocus = i === focus && locked;
+    chips.push({ label:`A${i}`,
+      bg: isSel ? "#FF9345" : isLocked ? "#10131A" : "#262C36",
+      fg: isSel ? "#2A1505" : isLocked ? "#4A525F" : "#F3E7D3",
+      shelf: isSel ? "0 4px 0 rgba(0,0,0,.45)" : "none",
+      focus: isFocus ? "3px dashed #FFC79B" : "none",
+      lockDisp: isLocked ? "block" : "none" });
+  }
+  const earned5 = best >= 6 || opt.won5, earned10 = opt.won10;
+  const lad = (l, e) => ({ label: `A${l} TITLE`, title: `Cosmetic title for winning at A${l} (name TBD)`,
+    bg: e ? "#3FCD3C" : "#10131A", fg: e ? "#07260A" : "#8C95A4", dot: e ? "#FFF8EA" : "transparent", tick: e ? "✓" : "" });
+  const n = focus;
+  return { id: opt.id || "", caption: opt.caption || "", state: opt.state || "",
+    chips, ladder: [lad(5, earned5), lad(10, earned10)],
+    title: `A${n} · ${NAMES[n]}`, count: n ? `${n} RULE${n > 1 ? "S" : ""} ACTIVE` : "",
+    mods: mods(n), rows: rows(n, locked),
+    emptyDisp: n === 0 ? "block" : "none",
+    lockDisp: locked ? "flex" : "none",
+    lockText: locked ? `LOCKED · WIN A RUN AT A${best} TO UNLOCK A${best + 1}` : "",
+    listOp: locked ? ".55" : "1" };
+}
+
+class Component extends DCLogic {
+  renderVals() {
+    return {
+      menuPanel: [panel(6, 6)],
+      variants: [
+        panel(0, 6, { id:"3.1-b", caption:"A0 selected", state:"Best A6. Picker on A0: no rules, said plainly. Ladder A5 earned." }),
+        panel(6, 6, { id:"3.1-c", caption:"A6 selected (best)", state:"Best A6. A6 row highlighted as NEW. A7–A10 visible, disabled." }),
+        panel(10, 10, { id:"3.1-d", caption:"A10 selected", state:"Best A10, both titles earned. A4 shows turn 8 (A9 override); A6 line greyed — superseded by A10.", won10:true }),
+        panel(5, 5, { id:"3.1-e", caption:"Hover / focus on locked A8", focus:8, state:"Best A5. Pointer or keyboard focus on A8: rules preview read-only at 55% opacity. Selection stays A5; BEGIN RUN unchanged." }),
+      ],
+      navTiles: [
+        { label:"LUNACIA PASS", value:"LV 7 / 30", color:"#FFC79B" },
+        { label:"UNLOCKS", value:"3 / 10", color:"#FFF8EA" },
+        { label:"THE VAULT", value:"2 / 20", color:"#8BDCFF" },
+        { label:"SAMPLE TEAMS", value:"4 COMPS", color:"#FFF8EA" },
+        { label:"CODEX", value:"10 TABS", color:"#FFF8EA" },
+        { label:"COLLECTION", value:"41 / 155", color:"#FFF8EA" },
+      ],
+      roster: [["OLEK","plant",17],["BUBA","beast",12],["PUFFY","aqua",13],["MACHITO","reptile",16],["POMODORO","bug",14]]
+        .map(([name, c, max]) => ({ name, cls: CLS[c], clsName: c.toUpperCase(), max })),
+      specs: [
+        { k:"BLOCK POSITION", v:"Inside RUN SETUP (top 78, right 84, w 566, border 5, radius 18), after RUN LENGTH, body gap 20. Panel grows to ~744 tall at A10 → bottom ≈ 822, clear of nav tiles (top 893)." },
+        { k:"LEVEL PICKER", v:"11 chips A0–A10, each 42×44, radius 10, border 3 #000, gap 6 (row = 522). Selected #FF9345 / ink #2A1505 / shelf 0 4px 0. Unlocked #262C36 / #F3E7D3. Locked #10131A / #4A525F + lock.svg 16px at top −6 right −6. Baloo 2 16/800." },
+        { k:"LOCKED LEVELS", v:"Visible, not selectable. Hover or keyboard focus shows a dashed 3px #FFC79B outline and previews that level's rules at opacity .55 under a 32px lock strip: \"LOCKED · WIN A RUN AT A{best} TO UNLOCK A{best+1}\"." },
+        { k:"TITLE + MODIFIERS", v:"\"A{n} · {NAME}\" Baloo 24/800 #FFF8EA, right \"{n} RULES ACTIVE\" 12/800 #8C95A4. Below: ENEMY HP / ENEMY DMG / BOSS HP multipliers, 12/800 #A6B0BF (A10 = ×1.33 / ×1.33 / ×1.15)." },
+        { k:"RULE LIST", v:"Box #10131A, border 3, radius 12, padding 6, rows 26 tall, gap 2. Row: icon 18 · code w26 Baloo 13/800 #FFC79B · name w98 Baloo 12/800 · line Work Sans 12/600 #C7CED9. NEW row: fill #FF9345, ink #2A1505, NEW tag 18 tall #2A1505/#FFC79B." },
+        { k:"OVERRIDES", v:"A rule changed by a later level is rewritten, never hidden: A4 reads \"from turn 8 (A9)\" at A9+. A6 at A10 is greyed (#5C6573, icon .4) with \"Replaced by A10\"." },
+        { k:"LADDER GOALS", v:"Right of the ASCENSION label: two 26px chips \"A5 TITLE\", \"A10 TITLE\". Earned #3FCD3C + ✓ dot; not yet #10131A / #8C95A4, empty dot. Title text TBD (Liam) — tooltip carries the name." },
+        { k:"A0", v:"List box shows one sentence instead of rows: no rules, standard values, and how to unlock A1. Modifiers line reads ×1.00 ×3." },
+        { k:"BEGIN RUN SUBTITLE", v:"Echoes the selection: \"Short · Ascension 6 · seed …\" (existing string; only the number changes)." },
+      ],
+    };
+  }
+}
+</script>
+</body>
+</html>
