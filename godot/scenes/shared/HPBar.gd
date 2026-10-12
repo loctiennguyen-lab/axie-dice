@@ -1,80 +1,96 @@
 extends Control
 class_name HPBar
-## One stat bar — CB-10 / CB-11 (FIX-PASS-03 §4). Height 8, radius 5, trough `WELL_DEEP`, 2px
-## PURE BLACK border, fill `hp_color(pct)`, width animating over .3s.
+## One stat bar — Dice UI R1 (design/handoffs/ui-02-round1b README §1 "HP bar").
 ##
-## REBUILT 2026-09-20 (FIX-PASS-03). Three things the previous version did are now forbidden:
+## r 9 (8 on a plate), border 3 `OUTLINE`, track `BAR_TRACK`; fill is a vertical 2-stop gradient
+## (party green `#86D65E -> #4FA62F`, enemy `#F58A5E -> #D9472B`); numerals centred, 2px outlined
+## cream; the damage preview is a gold hatched segment (`#FFC445` / `#E8A23A`, 135 deg, 6 px)
+## sitting on the right end of the current fill; phase marks are 3px `OUTLINE` ticks.
 ##
-##  1. **Shield was drawn INSIDE this control** as a thin cyan cap along the bottom of the HP
-##     track. CB-10 is explicit — "Shield is its own bar under HP — it is never a segment inside
-##     the HP track and never a badge overlapping the HP number." A second instance of this same
-##     class, switched to fixed-fill mode via `use_fixed_fill()`, is that bar.
-##  2. **The trough was `Color(1,1,1,0.12)`** — a white alpha wash, which L4 forbids ("colour is
-##     a solid fill, never a wash"). It is `WELL_DEEP` now.
-##  3. **The border was `Color(0,0,0,0.55)` at 1.5px** — a translucent hairline, which L1
-##     forbids. It is pure black at 2px.
+## The class keeps the API CombatView / UnitPortrait already use (`set_stats`, `set_at_risk`,
+## `set_preview`, `use_fixed_fill`) so nothing upstream had to change; what is new is `text_mode`
+## (draw "34 / 52" in the bar), `kind`, `marks`, and `lost_ratio` (HP just lost, drawn cream for
+## 400 ms then shrinking away — README 02d).
 ##
-## The rounded geometry means this draws through StyleBoxFlat rather than `draw_rect`, which
-## cannot round corners.
-##
-## `set_preview()` (hover-driven damage preview, wired from CombatView's die-tray and enemy-intent
-## hover) is unchanged in meaning and is NOT the same thing as `set_at_risk()`: preview is a
-## transient "if you did this", at-risk is the committed incoming telegraph CB-11 specifies.
+## Gradients: StyleBoxFlat has none, so the fill is two rounded boxes (bottom colour full height,
+## top colour on the upper half). A true per-pixel gradient needs a shader; this reads the same
+## at 24 px and costs two draws.
 
-const _BAR_RADIUS := 5
-const _BORDER_W := 2
-## The rendered height of the whole bar: the mockup writes `height:8px; border:2px solid #000`
-## with no `box-sizing`, so 8 is the TROUGH and the border sits outside it — 12 rendered pixels.
-## Godot draws a StyleBoxFlat border inside the Control rect, so the Control has to be the 12.
-const BAR_HEIGHT := 8 + _BORDER_W * 2
+enum Kind { PARTY, ENEMY, SHIELD }
+
+const _BORDER_W := 3
+## Callers that sized a bar with BAR_HEIGHT get the plate bar (24 tall).
+const BAR_HEIGHT := 24
 const _ANIM_SECONDS := 0.3
-const _PREVIEW_ALPHA := 0.8
+const _HATCH := 12     # px period of the 135deg hatch tile (6 + 6)
+
+static var _hatch_tex: ImageTexture = null
+
+var kind: Kind = Kind.PARTY
+var bar_radius: int = 9
+var text_mode: bool = false        ## draw "hp / max" inside the bar
+var text_size: int = 16
+var marks: Array = []              ## fractions 0..1 where a 3px phase tick is drawn (boss)
 
 var _hp: int = 0
 var _max_hp: int = 1
 var _at_risk: int = 0
 var _preview_dmg: int = 0
-var _fixed_fill: Color = Color.TRANSPARENT   # non-transparent => shield-bar mode (CB-10 row 3)
+var _lethal_text: String = ""      ## when set, replaces "hp / max" (e.g. "11 / 70 -> 0")
+var _fixed_fill: Color = Color.TRANSPARENT
 var _fill_tween: Tween = null
+var _lost_tween: Tween = null
 
-## Animated fill fraction. `set_stats()` tweens this toward the real ratio rather than snapping,
-## which is CB-10's "width animates over .3s". Tweened by name, so it needs the setter to
-## repaint.
+## Animated fill fraction (tweened by `set_stats`).
 var display_ratio: float = 0.0:
 	set(value):
 		display_ratio = value
 		queue_redraw()
 
+## Fraction of max HP shown as the cream "just lost" slice right of the fill.
+var lost_ratio: float = 0.0:
+	set(value):
+		lost_ratio = value
+		queue_redraw()
+
 
 func _init() -> void:
-	custom_minimum_size = Vector2(96, BAR_HEIGHT)   # CB-10: 8px trough inside a 2px black border
+	custom_minimum_size = Vector2(96, BAR_HEIGHT)
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 
 
-## Switch this instance to the shield bar of CB-10's row 3: identical geometry, `INFO` fill, and
-## a ratio read against max_hp rather than a health percentage.
+## Switch this instance to a fixed-colour bar (the shield bar).
 func use_fixed_fill(fill: Color) -> void:
 	_fixed_fill = fill
+	kind = Kind.SHIELD
+
+
+func set_kind(p_kind: Kind, height: int = BAR_HEIGHT, radius: int = 9, p_text_size: int = 16) -> void:
+	kind = p_kind
+	bar_radius = radius
+	text_size = p_text_size
+	custom_minimum_size.y = height
+	queue_redraw()
 
 
 func set_stats(hp: int, max_hp: int, _unused_shield: int = 0) -> void:
+	var prev_hp := _hp
 	_hp = hp
 	_max_hp = maxi(max_hp, 1)
 	var target := clampf(float(_hp) / float(_max_hp), 0.0, 1.0)
 	if _fill_tween != null and _fill_tween.is_valid():
 		_fill_tween.kill()
-	# Only animate when the node is actually in the tree; a tween created outside it never runs
-	# and would leave the bar stuck at its old ratio (this is what tests and off-screen rebuilds
-	# hit).
 	if is_inside_tree() and not is_equal_approx(display_ratio, target):
-		# A DRAIN waits for the blow to land; a GAIN does not. CombatEngine resolves a face in
-		# one call, so without this the bar started emptying on the frame the attacker began
-		# moving — before anything had touched the target. CombatView.impact_delay() is the one
-		# definition of that moment (and is 0 in test mode, so this stays a plain tween there).
-		#
-		# Healing, shielding and the turn-start refill are not impacts and get no delay: making
-		# a heal hesitate would read as lag, not as timing.
-		var delay := CombatView.impact_delay() if target < display_ratio else 0.0
+		var dropping := target < display_ratio
+		var delay := CombatView.impact_delay() if dropping else 0.0
+		# Cream "lost" slice: shown at the old fill edge for 400 ms, then shrinks away.
+		if dropping and prev_hp > hp and not CombatView.disable_juice_for_tests:
+			if _lost_tween != null and _lost_tween.is_valid():
+				_lost_tween.kill()
+			lost_ratio = clampf(float(prev_hp - hp) / float(_max_hp), 0.0, 1.0)
+			_lost_tween = create_tween()
+			_lost_tween.tween_interval(0.4 + delay)
+			_lost_tween.tween_property(self, "lost_ratio", 0.0, 0.25)
 		_fill_tween = create_tween()
 		var step := _fill_tween.tween_property(self, "display_ratio", target, _ANIM_SECONDS) \
 			.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
@@ -85,79 +101,137 @@ func set_stats(hp: int, max_hp: int, _unused_shield: int = 0) -> void:
 	queue_redraw()
 
 
-## CB-11 — the at-risk slice. `amount` is HP already spoken for by committed incoming damage
-## (incoming minus shield, clamped by the caller). Party only; enemies never set it.
+## HP already spoken for by committed incoming damage (party only).
 func set_at_risk(amount: int) -> void:
 	_at_risk = maxi(amount, 0)
 	queue_redraw()
 
 
+## Hover preview: gold hatched segment of `dmg` HP at the right end of the fill.
 func set_preview(dmg: int) -> void:
 	_preview_dmg = maxi(dmg, 0)
 	queue_redraw()
 
 
 func clear_preview() -> void:
+	_lethal_text = ""
 	set_preview(0)
 
 
+## Replaces the numerals while a lethal hit is previewed ("11 / 70 -> 0").
+func set_lethal_text(t: String) -> void:
+	_lethal_text = t
+	queue_redraw()
+
+
+func set_marks(fracs: Array) -> void:
+	marks = fracs
+	queue_redraw()
+
+
 func _exit_tree() -> void:
-	# Godot 4 does not tie a Tween's lifetime to the node it animates — the same leak the run
-	# map's ring blink had to fix.
 	if _fill_tween != null and _fill_tween.is_valid():
 		_fill_tween.kill()
+	if _lost_tween != null and _lost_tween.is_valid():
+		_lost_tween.kill()
 
 
-func _bar_style(fill: Color, bordered: bool) -> StyleBoxFlat:
+static func hatch_texture() -> ImageTexture:
+	if _hatch_tex == null:
+		var img := Image.create(_HATCH, _HATCH, false, Image.FORMAT_RGBA8)
+		for y in _HATCH:
+			for x in _HATCH:
+				img.set_pixel(x, y, DangoTheme.GOLD if ((x + y) % _HATCH) < _HATCH / 2 \
+					else DangoTheme.GOLD_HATCH)
+		_hatch_tex = ImageTexture.create_from_image(img)
+	return _hatch_tex
+
+
+func _fill_colors() -> Array:
+	match kind:
+		Kind.ENEMY:
+			return [DangoTheme.HP_ENEMY_TOP, DangoTheme.HP_ENEMY_BOTTOM]
+		Kind.SHIELD:
+			var c: Color = _fixed_fill if _fixed_fill.a > 0.0 else DangoTheme.SHIELD_BLUE
+			return [c.lightened(0.15), c]
+	return [DangoTheme.HP_PARTY_TOP, DangoTheme.HP_PARTY_BOTTOM]
+
+
+func _box(fill: Color, radius: int, border: bool) -> StyleBoxFlat:
 	var sb := StyleBoxFlat.new()
 	sb.bg_color = fill
-	# An inset fill follows the trough's INNER radius, or it shows four cream-coloured pips in
-	# the corners of a bar that is meant to read as one rounded capsule.
-	sb.set_corner_radius_all(_BAR_RADIUS if bordered else maxi(_BAR_RADIUS - _BORDER_W, 1))
-	if bordered:
-		sb.border_color = Color.BLACK      # L1: pure black, never a translucent hairline
+	sb.set_corner_radius_all(radius)
+	if border:
+		sb.border_color = DangoTheme.OUTLINE
 		sb.set_border_width_all(_BORDER_W)
 	return sb
+
+
+func _draw_gradient_rounded(r: Rect2, radius: int, top: Color, bottom: Color) -> void:
+	draw_style_box(_box(bottom, radius, false), r)
+	var top_r := Rect2(r.position, Vector2(r.size.x, r.size.y * 0.5))
+	var sb := _box(top, radius, false)
+	sb.corner_radius_bottom_left = 0
+	sb.corner_radius_bottom_right = 0
+	draw_style_box(sb, top_r)
 
 
 func _draw() -> void:
 	if size.x <= 0.0 or size.y <= 0.0:
 		return
-	# Trough — a solid surface token, not an alpha wash (L4).
-	draw_style_box(_bar_style(DangoTheme.WELL_DEEP, true), Rect2(Vector2.ZERO, size))
-
-	# Every fill below is drawn INSIDE the border, never over it. Drawing them at
-	# `Rect2(0, 0, w, size.y)` is what made the bar read as a bare rounded fill with no outline
-	# at all in the 20 Sep capture: the trough's 2px black was painted first and then covered by
-	# the fill on the same rect. The mockup's fill is `position:absolute; inset:0` inside a
-	# bordered, `overflow:hidden` track — i.e. the content box, not the border box.
+	draw_style_box(_box(DangoTheme.BAR_TRACK, bar_radius, true), Rect2(Vector2.ZERO, size))
 	var inner := Rect2(float(_BORDER_W), float(_BORDER_W),
 		maxf(size.x - _BORDER_W * 2.0, 0.0), maxf(size.y - _BORDER_W * 2.0, 0.0))
 	if inner.size.x <= 0.0 or inner.size.y <= 0.0:
 		return
-
-	var fill_color: Color = _fixed_fill if _fixed_fill.a > 0.0 \
-		else DangoTheme.hp_color(float(_hp) / float(_max_hp))
+	var inner_r := maxi(bar_radius - _BORDER_W, 1)
+	var cols := _fill_colors()
 	var fill_w := inner.size.x * clampf(display_ratio, 0.0, 1.0)
 	if fill_w > 1.0:
-		draw_style_box(_bar_style(fill_color, false),
-			Rect2(inner.position.x, inner.position.y, fill_w, inner.size.y))
+		_draw_gradient_rounded(Rect2(inner.position, Vector2(fill_w, inner.size.y)),
+			inner_r, cols[0], cols[1])
 
-	# CB-11: the at-risk block sits ON the right end of the current fill, not beside it — the
-	# player reads "this much of what I have is already spoken for".
+	# Cream "just lost" slice right of the fill.
+	if lost_ratio > 0.0:
+		var lw := minf(inner.size.x * lost_ratio, inner.size.x - fill_w)
+		if lw > 1.0:
+			var c := DangoTheme.CREAM_RAISED
+			c.a = 0.85
+			draw_rect(Rect2(inner.position.x + fill_w, inner.position.y, lw, inner.size.y), c)
+
+	# At-risk (committed incoming) on the fill's right end.
 	if _at_risk > 0 and fill_w > 1.0:
 		var risk_w := minf(inner.size.x * (float(_at_risk) / float(_max_hp)), fill_w)
 		if risk_w > 1.0:
-			draw_style_box(_bar_style(DangoTheme.AT_RISK, false),
-				Rect2(inner.position.x + fill_w - risk_w, inner.position.y,
-					risk_w, inner.size.y))
+			var rc := DangoTheme.AT_RISK
+			rc.a = 0.55
+			draw_rect(Rect2(inner.position.x + fill_w - risk_w, inner.position.y, risk_w, inner.size.y), rc)
 
-	# Hover preview — transient, and deliberately a different thing from the at-risk block above.
-	if _preview_dmg > 0 and _hp > 0:
-		var preview_w := minf(inner.size.x * (float(_preview_dmg) / float(_max_hp)), fill_w)
-		if preview_w > 1.0:
-			var preview_color := DangoTheme.DANGER
-			preview_color.a = _PREVIEW_ALPHA
-			draw_style_box(_bar_style(preview_color, false),
-				Rect2(inner.position.x + fill_w - preview_w, inner.position.y,
-					preview_w, inner.size.y))
+	# Damage preview — gold hatched segment.
+	if _preview_dmg > 0 and _hp > 0 and fill_w > 1.0:
+		var pw := minf(inner.size.x * (float(_preview_dmg) / float(_max_hp)), fill_w)
+		if pw > 1.0:
+			draw_texture_rect(hatch_texture(),
+				Rect2(inner.position.x + fill_w - pw, inner.position.y, pw, inner.size.y), true)
+
+	# Phase marks.
+	for m in marks:
+		var mx := inner.position.x + inner.size.x * float(m) - 1.5
+		draw_rect(Rect2(mx, inner.position.y, 3.0, inner.size.y), DangoTheme.OUTLINE)
+
+	# Numerals.
+	if text_mode:
+		var txt := _lethal_text if _lethal_text != "" else "%d / %d" % [maxi(_hp, 0), _max_hp]
+		var font: Font = DangoTheme.FONT_DISPLAY
+		var ts := font.get_string_size(txt, HORIZONTAL_ALIGNMENT_LEFT, -1, text_size)
+		var pos := Vector2((size.x - ts.x) * 0.5,
+			(size.y + font.get_ascent(text_size) - font.get_descent(text_size)) * 0.5)
+		draw_string_outline(font, pos, txt, HORIZONTAL_ALIGNMENT_LEFT, -1, text_size, 4,
+			DangoTheme.OUTLINE)
+		draw_string(font, pos, txt, HORIZONTAL_ALIGNMENT_LEFT, -1, text_size,
+			DangoTheme.CREAM_RAISED)
+
+
+## The numerals currently drawn ("34 / 52", or the lethal override), for tests and tooltips.
+func shown_text() -> String:
+	return _lethal_text if _lethal_text != "" else "%d / %d" % [maxi(_hp, 0), _max_hp]

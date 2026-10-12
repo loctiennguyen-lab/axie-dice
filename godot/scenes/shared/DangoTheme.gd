@@ -23,7 +23,7 @@ class_name DangoTheme
 ## `build_theme()` and saved at `res://resources/theme/dango.tres`, applied on the root Control
 ## of every scene. A per-Label override is how a screen silently drifts off the type scale.
 
-const BG := Color(0x13 / 255.0, 0x16 / 255.0, 0x1B / 255.0)
+const BG := Color(0x2A / 255.0, 0x1C / 255.0, 0x12 / 255.0)
 # BG_PANEL and BG_PANEL_SOFT are DELETED (FIX-PASS-02 RC2). They were one translucent fill at
 # 0.82 / 0.55 alpha, and while they existed the combat HUD kept using them: a translucent plate,
 # a 2px non-black border and a blurred `shadow_size = 8` survived three redesign passes because
@@ -31,12 +31,12 @@ const BG := Color(0x13 / 255.0, 0x16 / 255.0, 0x1B / 255.0)
 # `surface_style()`. If you need a dark surface, pick the one whose JOB matches — PANEL for
 # chrome, PANEL_DEEP for a plate on artwork, WELL for something that holds something else.
 const PRIMARY := Color(0xFF / 255.0, 0x93 / 255.0, 0x45 / 255.0)   # Kam — primary/selection/CTA
-const SUCCESS := Color(0x3F / 255.0, 0xCD / 255.0, 0x3C / 255.0)   # high HP / heal
-const DANGER := Color(0xF5 / 255.0, 0x45 / 255.0, 0x40 / 255.0)    # low HP / warning / invalid
-const INFO := Color(0x00 / 255.0, 0xB8 / 255.0, 0xFF / 255.0)      # shield / mana / info accents
-const TEXT := Color(0.93, 0.94, 0.96)
-const TEXT_DIM := Color(0.93, 0.94, 0.96, 0.55)
-const BORDER := Color(0, 0, 0, 1)
+const SUCCESS := Color(0x5D / 255.0, 0xBB / 255.0, 0x3A / 255.0)   # high HP / heal
+const DANGER := Color(0xD9 / 255.0, 0x47 / 255.0, 0x2B / 255.0)    # low HP / warning / invalid
+const INFO := Color(0x5F / 255.0, 0xCF / 255.0, 0xCB / 255.0)      # shield / mana / info accents
+const TEXT := Color(0x3A / 255.0, 0x22 / 255.0, 0x14 / 255.0)
+const TEXT_DIM := Color(0x6E / 255.0, 0x4A / 255.0, 0x30 / 255.0)
+const BORDER := Color(0x24 / 255.0, 0x14 / 255.0, 0x0B / 255.0)
 
 ## Display face — Baloo 2. Three weights, because the type scale calls for 700 and 800 and the
 ## 600 is what keeps a 12px caption from turning into a blob at chip size.
@@ -67,7 +67,7 @@ const FONT: Font = FONT_UI
 ## a smaller/different palette for poison/debuff (reuses PRIMARY / a hand-picked purple) — this
 ## task's scope is the die tray only (CombatView._update_dice_tray()); the intent badge is left
 ## exactly as-is on purpose, not overlooked. A future pass could reconcile the two.
-const SHIELD_BLUE := Color(0x31 / 255.0, 0xC6 / 255.0, 0xFF / 255.0)
+const SHIELD_BLUE := Color(0x6C / 255.0, 0xB8 / 255.0, 0xEC / 255.0)
 const MANA_PURPLE := Color(0xBF / 255.0, 0x6B / 255.0, 0xFF / 255.0)
 const POISON_GREEN := Color(0xA8 / 255.0, 0xD8 / 255.0, 0x4A / 255.0)
 const DEBUFF_PINK := Color(0xFF / 255.0, 0x8F / 255.0, 0xC7 / 255.0)
@@ -213,6 +213,84 @@ static func type_swatch(face_type: String, size: int = 22, icon_size: int = 14,
 # with its label at `ink_on(rarity_color(rar))` — see RunMapController._solid_rarity_chip().
 
 
+
+# ═══════════════════════════════════════════════════════════════════════════════════════════
+# v3 HOMELAND TOKENS — Dice UI R1 style sheet (design/handoffs/ui-02-round1), Liam 12/10.
+# The old dark-slate / pure-black system is REPLACED: every legacy token name above now holds its
+# Homeland value (PANEL = cream panel, TEXT = ink, WELL = inset cream well ...), so screens that
+# have not been redrawn yet change look instead of breaking. New names below are the exact R1
+# sheet values. Light comes from the top-left; ONE contact shadow (SHELF).
+#
+# KNOWN SIMPLIFICATION: the sheet's vertical 2-stop gradients (panel #F8EBD2 -> #EBD3A8, primary
+# #FFB070 -> #FF8A3A ...) are a flat fill at the mid-point in StyleBoxFlat (no gradient support).
+# The inset highlight is not drawn either. HPBar draws its own gradient; see HPBar.gd.
+# ═══════════════════════════════════════════════════════════════════════════════════════════
+const OUTLINE := Color(0x24 / 255.0, 0x14 / 255.0, 0x0B / 255.0)        # chips, buttons, dice, badges 3px; <=24px 2px
+const LINE := Color(0x8A / 255.0, 0x3E / 255.0, 0x22 / 255.0)           # panel border 4px, warm red-brown
+const CREAM_100 := Color(0xF8 / 255.0, 0xEB / 255.0, 0xD2 / 255.0)      # panel top
+const CREAM_200 := Color(0xEB / 255.0, 0xD3 / 255.0, 0xA8 / 255.0)      # panel bottom
+const CREAM_300 := Color(0xDD / 255.0, 0xBF / 255.0, 0x8C / 255.0)      # inset well
+const CREAM_DISABLED := Color(0xE8 / 255.0, 0xD6 / 255.0, 0xB4 / 255.0) # disabled secondary / locked
+const WOOD_TOP := Color(0xD7 / 255.0, 0x9A / 255.0, 0x58 / 255.0)       # header band
+const WOOD_BOTTOM := Color(0xB8 / 255.0, 0x74 / 255.0, 0x40 / 255.0)
+const DUSK := Color(0x3B / 255.0, 0x26 / 255.0, 0x18 / 255.0)           # dusk plate, dark field
+const DUSK_INK := Color(0xFF / 255.0, 0xC7 / 255.0, 0x9B / 255.0)       # ink on a dusk tab
+const INK_2 := Color(0x6E / 255.0, 0x4A / 255.0, 0x30 / 255.0)          # secondary ink
+const INK_3 := Color(0x9A / 255.0, 0x76 / 255.0, 0x50 / 255.0)          # disabled ink, decor only (~2.4:1)
+## Disabled ink for anything a player must READ ("Reroll · 0 left"): REVIEW.md finding 7 asks for
+## #6E4A30 instead of the sheet's #9A7650. Border stays INK_3.
+const INK_DISABLED := INK_2
+const BAR_TRACK := Color(0x4A / 255.0, 0x2A / 255.0, 0x1A / 255.0)
+const SCRIM := Color(0x24 / 255.0, 0x14 / 255.0, 0x0B / 255.0, 0.55)
+const SCRIM_DEFEAT := Color(0x24 / 255.0, 0x14 / 255.0, 0x0B / 255.0, 0.62)
+const GOLD := Color(0xFF / 255.0, 0xC4 / 255.0, 0x45 / 255.0)           # select / warn
+const GOLD_INK := Color(0x3A / 255.0, 0x2A / 255.0, 0x12 / 255.0)
+const GOLD_HATCH := Color(0xE8 / 255.0, 0xA2 / 255.0, 0x3A / 255.0)     # 2nd stripe of the damage preview
+const GOLD_SOFT := Color(0xFF / 255.0, 0xE3 / 255.0, 0xA6 / 255.0)      # spike tab, final-turn rows, attrition max
+const THREAT := Color(0xD9 / 255.0, 0x47 / 255.0, 0x2B / 255.0)         # tabs / glyphs only, no text on it
+const PRIMARY_PRESSED := Color(0xE8 / 255.0, 0x74 / 255.0, 0x2A / 255.0)
+const HP_ENEMY_TOP := Color(0xF5 / 255.0, 0x8A / 255.0, 0x5E / 255.0)
+const HP_ENEMY_BOTTOM := Color(0xD9 / 255.0, 0x47 / 255.0, 0x2B / 255.0)
+const HP_PARTY_TOP := Color(0x86 / 255.0, 0xD6 / 255.0, 0x5E / 255.0)
+const HP_PARTY_BOTTOM := Color(0x4F / 255.0, 0xA6 / 255.0, 0x2F / 255.0)
+const SHIELD_CHIP := Color(0xCF / 255.0, 0xE7 / 255.0, 0xF7 / 255.0)
+const INK_ON_SHIELD_CHIP := Color(0x0F / 255.0, 0x2A / 255.0, 0x3D / 255.0)
+const ASCENSION_RED := Color(0xC9 / 255.0, 0x30 / 255.0, 0x2B / 255.0)  # the one dark-red fill with cream ink (5.6:1)
+const OWNED_TOP := Color(0xA8 / 255.0, 0xD8 / 255.0, 0x78 / 255.0)
+const OWNED_BOTTOM := Color(0x7D / 255.0, 0xBE / 255.0, 0x4E / 255.0)
+const INK_ON_OWNED := Color(0x18 / 255.0, 0x3A / 255.0, 0x0C / 255.0)
+# Lunar Gem: PAID surfaces only (never anything else).
+const GEM := Color(0xA2 / 255.0, 0x7B / 255.0, 0xEA / 255.0)
+const GEM_TOP := Color(0xC2 / 255.0, 0xA6 / 255.0, 0xF4 / 255.0)
+const GEM_BOTTOM := Color(0x9A / 255.0, 0x72 / 255.0, 0xE6 / 255.0)
+const GEM_PRESSED := Color(0x8A / 255.0, 0x62 / 255.0, 0xD6 / 255.0)
+const GEM_INK := Color(0x1E / 255.0, 0x12 / 255.0, 0x36 / 255.0)
+const GEM_SHELF := Color(0x4E / 255.0, 0x2E / 255.0, 0x8A / 255.0)
+const GEM_PANEL_TINT := Color(0xE6 / 255.0, 0xDA / 255.0, 0xF6 / 255.0)  # Aid button / panel fill
+# Die-face tints (tray die fill goes cream -> tint; flat tint here).
+const FACE_TINT := {
+	"dmg": Color(0xFF / 255.0, 0xD9 / 255.0, 0xC9 / 255.0),
+	"shield": Color(0xCF / 255.0, 0xE7 / 255.0, 0xF7 / 255.0),
+	"heal": Color(0xD6 / 255.0, 0xF0 / 255.0, 0xC2 / 255.0),
+	"buff": Color(0xF2 / 255.0, 0xE0 / 255.0, 0xFF / 255.0),
+	"poison": Color(0xDD / 255.0, 0xF2 / 255.0, 0xC4 / 255.0),
+}
+# Type scale (Baloo 800 unless noted). Sizes in px.
+const T_DISPLAY := 56
+const T_H1 := 36
+const T_H2 := 26
+const T_H3 := 20
+const T_LABEL := 15
+const T_NUM_L := 34
+const T_NUM_S := 17
+const T_BODY := 16     # Work Sans 600
+const T_SMALL := 14
+const T_MICRO := 12    # in-frame captions only; the floor for anything a player must read
+
+static func face_tint(face_type: String) -> Color:
+	return FACE_TINT.get(face_type, CREAM_100)
+
+
 enum ButtonState { NORMAL, HOVER, PRESSED, DISABLED }
 
 
@@ -226,23 +304,17 @@ enum ButtonState { NORMAL, HOVER, PRESSED, DISABLED }
 ## you have to stop and read the small text in each button to tell them apart. So OWNED keeps
 ## normal brightness and takes the SUCCESS colour, and only "cannot afford" stays dimmed.
 static func owned_button_style() -> StyleBoxFlat:
-	# v2: a solid SUCCESS fill with black ink, not an 18%-alpha wash of SUCCESS. Under the
-	# "colour is a solid fill, never a tint" rule the washed version lost the colour entirely —
-	# which defeated the whole point of this style existing separately from `disabled`.
+	# R1 "Owned": green fill, cream-dark ink, check disc. Flat mid of #A8D878 -> #7DBE4E.
 	var sb := StyleBoxFlat.new()
-	sb.bg_color = SUCCESS
-	sb.border_color = Color.BLACK
+	sb.bg_color = Color(0x92 / 255.0, 0xC9 / 255.0, 0x63 / 255.0)
+	sb.border_color = OUTLINE
 	sb.set_border_width_all(3)
 	sb.set_corner_radius_all(12)
 	sb.content_margin_left = 14.0
 	sb.content_margin_right = 14.0
 	sb.content_margin_top = 7.0
 	sb.content_margin_bottom = 7.0
-	sb.shadow_color = SHELF
-	sb.shadow_size = 0
-	sb.shadow_offset = Vector2(0, 4)
 	return sb
-
 
 ## A small coloured chip for a rarity tier. Common/Uncommon/Rare/Epic/Legendary = 0..4, matching
 ## the `rar` field `reward_generator.gd` already puts on every reward, shop item and relic.
@@ -405,58 +477,40 @@ static func scroll_fade(fill: Color = PANEL) -> TextureRect:
 ## `state` selects the hover/pressed/disabled variant (see `ButtonState` above and the state
 ## spec doc). Default stays NORMAL so every pre-existing call (`primary_button_style()`,
 ## `primary_button_style(warn)`) keeps compiling and rendering exactly as before.
-static func primary_button_style(warning: bool = false, state: ButtonState = ButtonState.NORMAL) -> StyleBoxFlat:
+static func primary_button_style(warning: bool = false, state: ButtonState = ButtonState.NORMAL,
+		radius: int = 14) -> StyleBoxFlat:
+	# R1 sheet: primary = #FFB070 -> #FF8A3A (flat mid #FF9D54), ink #2A1505, shelf 3px 5px 0 #8A3E22.
+	# Hover #FFC48E -> #FF9A50 (flat #FFAF6F), shelf y 7 (+ the -2 lift is a margin shift).
+	# Pressed: flat #E8742A, +3, shelf 1/2. Disabled: #DDBF8C, border + ink #9A7650, no shelf.
 	var sb := StyleBoxFlat.new()
-
-	if state == ButtonState.DISABLED:
-		# Disabled ignores `warning` entirely and never borrows hover/pressed's colour direction.
-		# v2 change: it flattens by DESATURATING the fill, not by dropping alpha — the ink on top
-		# stays at full strength, because the label on a button you cannot press is usually the
-		# reason you cannot press it.
-		var flat := PRIMARY.darkened(0.42)
-		sb.bg_color = Color(flat.r * 0.72 + 0.16, flat.g * 0.72 + 0.14, flat.b * 0.72 + 0.17)
-		sb.border_color = Color.BLACK
-		sb.set_border_width_all(4)
-		sb.set_corner_radius_all(15)
-		sb.content_margin_left = 18.0
-		sb.content_margin_right = 18.0
-		sb.content_margin_top = 10.0
-		sb.content_margin_bottom = 10.0
-		return sb
-
-	# v2 values, from the END TURN redline: hover lightens to #FFAC6B, active darkens to
-	# #E2761F. Spelled as hex rather than as .lightened()/.darkened() because these two are
-	# redlined colours, not derived ones.
-	match state:
-		ButtonState.HOVER:
-			sb.bg_color = Color(0xFF / 255.0, 0xAC / 255.0, 0x6B / 255.0)
-		ButtonState.PRESSED:
-			sb.bg_color = Color(0xE2 / 255.0, 0x76 / 255.0, 0x1F / 255.0)
-		_:
-			sb.bg_color = PRIMARY
-
-	# One outline, pure black — except on a warning button, where the border is carrying a
-	# meaning (abandon the run) that the fill cannot, since the fill is the primary colour.
-	sb.border_color = DANGER if warning else Color.BLACK
-	var border_w := 4
-	if state == ButtonState.PRESSED:
-		border_w += 1   # pressed = colour + geometry
-	sb.set_border_width_all(border_w)
-	sb.set_corner_radius_all(15)
+	sb.set_corner_radius_all(radius)
+	sb.set_border_width_all(3)
 	sb.content_margin_left = 18.0
 	sb.content_margin_right = 18.0
-	var margin_shift := 1.0 if state == ButtonState.PRESSED else 0.0
-	sb.content_margin_top = 10.0 + margin_shift
-	sb.content_margin_bottom = 10.0 - margin_shift
-
-	# The shelf, and the press taking it away. `shadow_size = 0` is what keeps it a hard offset
-	# block instead of the blurred drop shadow the whole v2 pass exists to remove.
-	if state != ButtonState.PRESSED:
-		sb.shadow_color = SHELF_DEEP
-		sb.shadow_size = 0
-		sb.shadow_offset = Vector2(0, 6)
+	sb.content_margin_top = 8.0
+	sb.content_margin_bottom = 8.0
+	if state == ButtonState.DISABLED:
+		sb.bg_color = CREAM_300
+		sb.border_color = INK_3
+		return sb
+	sb.border_color = DANGER if warning else OUTLINE
+	match state:
+		ButtonState.HOVER:
+			sb.bg_color = Color(0xFF / 255.0, 0xAF / 255.0, 0x6F / 255.0)
+			sb.shadow_offset = Vector2(3, 7)
+			sb.content_margin_top = 6.0
+			sb.content_margin_bottom = 10.0
+		ButtonState.PRESSED:
+			sb.bg_color = PRIMARY_PRESSED
+			sb.shadow_offset = Vector2(1, 2)
+			sb.content_margin_top = 11.0
+			sb.content_margin_bottom = 5.0
+		_:
+			sb.bg_color = Color(0xFF / 255.0, 0x9D / 255.0, 0x54 / 255.0)
+			sb.shadow_offset = Vector2(3, 5)
+	sb.shadow_color = SHELF_DEEP
+	sb.shadow_size = 0
 	return sb
-
 
 ## Secondary / utility button look — v2 rebuilds this as a PANEL_RAISED object rather than the
 ## v1 translucent outline.
@@ -474,35 +528,85 @@ static func primary_button_style(warning: bool = false, state: ButtonState = But
 ## outline, and a hover that fills PRIMARY (from the REROLL redline, "hover fill PRIMARY").
 ## `t_button_states.gd` was updated in the same commit and still asserts every one of those
 ## structural rules.
-static func secondary_button_style(state: ButtonState = ButtonState.NORMAL) -> StyleBoxFlat:
+static func secondary_button_style(state: ButtonState = ButtonState.NORMAL,
+		radius: int = 12) -> StyleBoxFlat:
+	# R1 secondary: #FFF8EA -> #EBD3A8 (flat #F5E5C9), ink #3A2214. Hover #FFFDF5 -> #F3E0BC,
+	# pressed #DDBF8C, disabled #E8D6B4 / border #B89A74.
 	var sb := StyleBoxFlat.new()
-	var border_w := 3
-
-	match state:
-		ButtonState.HOVER:
-			sb.bg_color = PRIMARY
-		ButtonState.PRESSED:
-			sb.bg_color = PRIMARY.darkened(0.22)
-			border_w = 4
-		ButtonState.DISABLED:
-			sb.bg_color = PANEL_RAISED.darkened(0.38)
-		_:
-			sb.bg_color = PANEL_RAISED
-
-	sb.border_color = Color.BLACK
-	sb.set_border_width_all(border_w)
-	sb.set_corner_radius_all(12)
+	sb.set_corner_radius_all(radius)
+	sb.set_border_width_all(3)
+	sb.border_color = OUTLINE
 	sb.content_margin_left = 14.0
 	sb.content_margin_right = 14.0
-	var margin_shift := 1.0 if state == ButtonState.PRESSED else 0.0
-	sb.content_margin_top = 7.0 + margin_shift
-	sb.content_margin_bottom = 7.0 - margin_shift
-	if state != ButtonState.PRESSED and state != ButtonState.DISABLED:
-		sb.shadow_color = SHELF
-		sb.shadow_size = 0
-		sb.shadow_offset = Vector2(0, 4)
+	sb.content_margin_top = 6.0
+	sb.content_margin_bottom = 6.0
+	sb.shadow_color = SHELF
+	sb.shadow_size = 0
+	match state:
+		ButtonState.HOVER:
+			sb.bg_color = Color(0xF9 / 255.0, 0xEE / 255.0, 0xD9 / 255.0)
+			sb.shadow_offset = Vector2(3, 6)
+			sb.content_margin_top = 4.0
+			sb.content_margin_bottom = 8.0
+		ButtonState.PRESSED:
+			sb.bg_color = CREAM_300
+			sb.shadow_offset = Vector2(0, 1)
+			sb.content_margin_top = 9.0
+			sb.content_margin_bottom = 3.0
+		ButtonState.DISABLED:
+			sb.bg_color = CREAM_DISABLED
+			sb.border_color = Color(0xB8 / 255.0, 0x9A / 255.0, 0x74 / 255.0)
+			sb.shadow_size = 0
+			sb.shadow_offset = Vector2.ZERO
+			sb.shadow_color = Color(0, 0, 0, 0)
+		_:
+			sb.bg_color = Color(0xF5 / 255.0, 0xE5 / 255.0, 0xC9 / 255.0)
+			sb.shadow_offset = Vector2(3, 4)
 	return sb
 
+
+## PAID (Gem) button — the only violet surface in the game. Always carries the Gem glyph at the
+## call site; a decline button next to it is the same width and height.
+static func gem_button_style(state: ButtonState = ButtonState.NORMAL, radius: int = 12) -> StyleBoxFlat:
+	var sb := StyleBoxFlat.new()
+	sb.set_corner_radius_all(radius)
+	sb.set_border_width_all(3)
+	sb.border_color = OUTLINE
+	sb.content_margin_left = 14.0
+	sb.content_margin_right = 14.0
+	sb.content_margin_top = 6.0
+	sb.content_margin_bottom = 6.0
+	sb.shadow_color = GEM_SHELF
+	sb.shadow_size = 0
+	match state:
+		ButtonState.HOVER:
+			sb.bg_color = Color(0xAA / 255.0, 0x86 / 255.0, 0xEC / 255.0)
+			sb.shadow_offset = Vector2(3, 6)
+		ButtonState.PRESSED:
+			sb.bg_color = GEM_PRESSED
+			sb.shadow_offset = Vector2(0, 1)
+			sb.content_margin_top = 9.0
+			sb.content_margin_bottom = 3.0
+		ButtonState.DISABLED:
+			sb.bg_color = CREAM_300
+			sb.border_color = INK_3
+			sb.shadow_color = Color(0, 0, 0, 0)
+		_:
+			sb.bg_color = Color(0xB2 / 255.0, 0x8E / 255.0, 0xEF / 255.0)
+			sb.shadow_offset = Vector2(3, 4)
+	return sb
+
+
+## Keyboard focus = the hover look + a 3px gold ring at offset 3 (R1). It is an OVERLAY style
+## (draw_center off), which is how Godot draws "focus" on top of the state style.
+static func focus_ring_style(radius: int = 12) -> StyleBoxFlat:
+	var sb := StyleBoxFlat.new()
+	sb.draw_center = false
+	sb.set_border_width_all(3)
+	sb.border_color = GOLD
+	sb.set_corner_radius_all(radius + 3)
+	sb.set_expand_margin_all(3.0)
+	return sb
 
 ## One-call convenience that applies all four StyleBox states (+ matching font colours across
 ## all four `font_*color` Button keys, if `font_color` is given) to `btn` in one place. Exists
@@ -529,36 +633,45 @@ static func secondary_button_style(state: ButtonState = ButtonState.NORMAL) -> S
 ## not clickable, so hover and pressed never really happen; giving them the same box stops Godot
 ## flashing a stock grey if it ever does).
 static func style_button(btn: Button, primary: bool, warning: bool = false,
-		font_color: Variant = null, owned: bool = false) -> void:
+		font_color: Variant = null, owned: bool = false, gem: bool = false) -> void:
+	btn.add_theme_stylebox_override("focus", focus_ring_style(14 if primary else 12))
 	if owned:
 		for state_key in ["normal", "hover", "pressed", "disabled"]:
 			btn.add_theme_stylebox_override(state_key, owned_button_style())
 		for color_key in ["font_color", "font_hover_color", "font_pressed_color",
-				"font_disabled_color"]:
-			btn.add_theme_color_override(color_key, INK)
+				"font_disabled_color", "font_focus_color"]:
+			btn.add_theme_color_override(color_key, INK_ON_OWNED)
 		return
+	var ink: Color = INK
 	if primary:
-		# v2 closes the flagged ~2.2:1 failure at its source: white on Kam orange is gone, and a
-		# primary button inks itself at #2A1505 (11.4:1) unless the call site names a colour.
-		# It is done HERE rather than at each call site so the pairing cannot come back.
 		if not (font_color is Color):
 			font_color = INK_ON_PRIMARY
 		btn.add_theme_stylebox_override("normal", primary_button_style(warning, ButtonState.NORMAL))
 		btn.add_theme_stylebox_override("hover", primary_button_style(warning, ButtonState.HOVER))
 		btn.add_theme_stylebox_override("pressed", primary_button_style(warning, ButtonState.PRESSED))
 		btn.add_theme_stylebox_override("disabled", primary_button_style(warning, ButtonState.DISABLED))
+	elif gem:
+		if not (font_color is Color):
+			font_color = GEM_INK
+		btn.add_theme_stylebox_override("normal", gem_button_style(ButtonState.NORMAL))
+		btn.add_theme_stylebox_override("hover", gem_button_style(ButtonState.HOVER))
+		btn.add_theme_stylebox_override("pressed", gem_button_style(ButtonState.PRESSED))
+		btn.add_theme_stylebox_override("disabled", gem_button_style(ButtonState.DISABLED))
 	else:
 		btn.add_theme_stylebox_override("normal", secondary_button_style(ButtonState.NORMAL))
 		btn.add_theme_stylebox_override("hover", secondary_button_style(ButtonState.HOVER))
 		btn.add_theme_stylebox_override("pressed", secondary_button_style(ButtonState.PRESSED))
 		btn.add_theme_stylebox_override("disabled", secondary_button_style(ButtonState.DISABLED))
-
-	if font_color is Color:
-		var c: Color = font_color
-		btn.add_theme_color_override("font_color", c)
-		btn.add_theme_color_override("font_hover_color", c)
-		btn.add_theme_color_override("font_pressed_color", c)
-		btn.add_theme_color_override("font_disabled_color", Color(c.r, c.g, c.b, c.a * 0.6))
+		if not (font_color is Color):
+			font_color = ink
+	var c: Color = font_color
+	btn.add_theme_color_override("font_color", c)
+	btn.add_theme_color_override("font_hover_color", c)
+	btn.add_theme_color_override("font_pressed_color", c)
+	btn.add_theme_color_override("font_focus_color", c)
+	# Disabled ink: the sheet's #9A7650 for decorative buttons, the darker INK_DISABLED for anything
+	# that carries information (REVIEW.md #7). One answer here: the darker one, on every button.
+	btn.add_theme_color_override("font_disabled_color", INK_DISABLED)
 
 
 # ═══════════════════════════════════════════════════════════════════════════════════════════
@@ -595,38 +708,38 @@ static func style_button(btn: Button, primary: bool, warning: bool = false,
 #      on y. A pressed button drops its shelf and translates down — the shelf being taken away
 #      IS the press. A blurred shadow is the single clearest tell of the look this replaces.
 
-const BG_DEEP := Color(0x07 / 255.0, 0x08 / 255.0, 0x0B / 255.0)          # behind the 3D stage
+const BG_DEEP := Color(0x3B / 255.0, 0x26 / 255.0, 0x18 / 255.0)          # behind the 3D stage
 const INK_ON_PRIMARY := Color(0x2A / 255.0, 0x15 / 255.0, 0x05 / 255.0)   # 11.4:1 on Kam orange
-const INK := Color(0x1A / 255.0, 0x12 / 255.0, 0x06 / 255.0)              # 12.9:1 on cream
+const INK := Color(0x3A / 255.0, 0x22 / 255.0, 0x14 / 255.0)              # 12.9:1 on cream
 
-const PANEL := Color(0x1B / 255.0, 0x1F / 255.0, 0x27 / 255.0)
-const PANEL_DEEP := Color(0x16 / 255.0, 0x1A / 255.0, 0x21 / 255.0)
-const PANEL_ON_ART := Color(0x1B / 255.0, 0x1F / 255.0, 0x27 / 255.0, 0.92)
-const PANEL_OVER_CLASS := Color(0x0B / 255.0, 0x0D / 255.0, 0x12 / 255.0, 0.90)
-const PANEL_RAISED := Color(0x26 / 255.0, 0x2C / 255.0, 0x36 / 255.0)
-const WELL := Color(0x10 / 255.0, 0x13 / 255.0, 0x1A / 255.0)
-const WELL_TRACK := Color(0x14 / 255.0, 0x18 / 255.0, 0x20 / 255.0)       # the wave track only
-const WELL_DEEP := Color(0x0B / 255.0, 0x0D / 255.0, 0x12 / 255.0)        # HP-bar trough
-const DECK := Color(0x17 / 255.0, 0x1A / 255.0, 0x21 / 255.0)             # the bottom action bar
+const PANEL := Color(0xF2 / 255.0, 0xDF / 255.0, 0xBD / 255.0)
+const PANEL_DEEP := Color(0xF8 / 255.0, 0xEB / 255.0, 0xD2 / 255.0)
+const PANEL_ON_ART := Color(0xF8 / 255.0, 0xEB / 255.0, 0xD2 / 255.0, 0.96)
+const PANEL_OVER_CLASS := Color(0xF8 / 255.0, 0xEB / 255.0, 0xD2 / 255.0, 0.96)
+const PANEL_RAISED := Color(0xFF / 255.0, 0xF8 / 255.0, 0xEA / 255.0)
+const WELL := Color(0xDD / 255.0, 0xBF / 255.0, 0x8C / 255.0)
+const WELL_TRACK := Color(0xDD / 255.0, 0xBF / 255.0, 0x8C / 255.0)       # the wave track only
+const WELL_DEEP := Color(0x4A / 255.0, 0x2A / 255.0, 0x1A / 255.0)        # HP-bar trough
+const DECK := Color(0xEB / 255.0, 0xD3 / 255.0, 0xA8 / 255.0)             # the bottom action bar
 
-const CREAM := Color(0xF3 / 255.0, 0xE7 / 255.0, 0xD3 / 255.0)
+const CREAM := Color(0xF8 / 255.0, 0xEB / 255.0, 0xD2 / 255.0)
 const CREAM_RAISED := Color(0xFF / 255.0, 0xF8 / 255.0, 0xEA / 255.0)
-const CREAM_TRACK := Color(0xD6 / 255.0, 0xC6 / 255.0, 0xA8 / 255.0)      # unrolled face bars
+const CREAM_TRACK := Color(0xDD / 255.0, 0xBF / 255.0, 0x8C / 255.0)      # unrolled face bars
 const CREAM_HI := Color(0xFF / 255.0, 0xC7 / 255.0, 0x9B / 255.0)         # current pip, SPACE chip
 
-const FUTURE := Color(0x39 / 255.0, 0x40 / 255.0, 0x4E / 255.0)           # spent pip, future wave
-const AT_RISK := Color(0x7A / 255.0, 0x1F / 255.0, 0x1C / 255.0)          # HP the telegraph takes
-const DISABLED_FILL := Color(0x4A / 255.0, 0x3F / 255.0, 0x58 / 255.0)    # unaffordable active
+const FUTURE := Color(0xB8 / 255.0, 0x9A / 255.0, 0x74 / 255.0)           # spent pip, future wave
+const AT_RISK := Color(0xFF / 255.0, 0xC4 / 255.0, 0x45 / 255.0)          # HP the telegraph takes
+const DISABLED_FILL := Color(0xDD / 255.0, 0xBF / 255.0, 0x8C / 255.0)    # unaffordable active
 
 ## The one fill that says "this is not an attack". Empty States Spec §1 puts the enemy's
 ## NO MOVE / HIDDEN badge on #242A34 precisely because it is OUTSIDE the die-type palette
 ## (red / blue / green / purple): the colour alone has to carry "there is no move here" before
 ## the player reads a single letter. It is close to PANEL_RAISED (#262C36) and deliberately not
 ## the same token — PANEL_RAISED is a surface you put things ON, this is the whole object.
-const INERT_FILL := Color(0x24 / 255.0, 0x2A / 255.0, 0x34 / 255.0)
+const INERT_FILL := Color(0xE8 / 255.0, 0xD6 / 255.0, 0xB4 / 255.0)
 
-const SHELF := Color(0, 0, 0, 0.50)     # plates
-const SHELF_DEEP := Color(0, 0, 0, 0.55)  # hero objects
+const SHELF := Color(0x4A / 255.0, 0x22 / 255.0, 0x0E / 255.0, 0.35)     # contact shadow, one style (R1 style sheet)
+const SHELF_DEEP := Color(0x8A / 255.0, 0x3E / 255.0, 0x22 / 255.0)  # primary shelf
 
 ## The one rule that governs `DISABLED`, written here because it is the one most often got wrong:
 ## a disabled surface is a flat DESATURATED FILL with its ink at FULL strength — never a blanket
@@ -647,15 +760,15 @@ const SHELF_DEEP := Color(0, 0, 0, 0.55)  # hero objects
 ## Guides bullet list) — folded into the one INK_ON_CREAM_SOFT below. The difference reads as
 ## noise, not signal, at this project's font sizes, and the whole point of this file is a small,
 ## reusable vocabulary rather than one token per pixel sample.
-const INK_ON_SUCCESS := Color(0x07 / 255.0, 0x26 / 255.0, 0x0A / 255.0)      # ink on a SUCCESS fill (Pass "CLAIM NOW" tile)
-const INK_ON_DANGER := Color(0x2A / 255.0, 0x08 / 255.0, 0x06 / 255.0)       # ink on a DANGER fill (Vault's disabled-import plate, REMOVE button)
-const INK_ON_SHIELD := Color(0x06 / 255.0, 0x22 / 255.0, 0x2E / 255.0)       # ink on SHIELD_BLUE (Vault's header eyebrow + imported-count chip)
-const INK_ON_CREAM_MUTED := Color(0x6B / 255.0, 0x54 / 255.0, 0x33 / 255.0)  # captions/meta text on cream (Vault subtitle, Guides difficulty tag, Pass "CLAIMED" state text)
-const INK_ON_CREAM_SOFT := Color(0x3A / 255.0, 0x2A / 255.0, 0x12 / 255.0)   # body prose on cream, one step lighter than INK (Guides "why"/"how" text)
-const MUTED_TEXT := Color(0x8C / 255.0, 0x95 / 255.0, 0xA4 / 255.0)         # secondary text on a dark panel — a solid grey, not TEXT_DIM's alpha wash (Unlocks row description, XP-to-next line)
-const FAINT_TEXT := Color(0x5C / 255.0, 0x65 / 255.0, 0x73 / 255.0)         # tertiary/locked text on a dark panel, dimmer than MUTED_TEXT (Pass "NEEDS LV n", Unlocks locked step number)
-const WARN_YELLOW := Color(0xFF / 255.0, 0xD7 / 255.0, 0x6A / 255.0)         # "NO EFFECT YET" and similar advisory-not-danger tags
-const INFO_TEXT_ON_WELL := Color(0xC7 / 255.0, 0xBB / 255.0, 0xD6 / 255.0)   # pale mana-tinted advisory text inside a WELL (Vault's RANKED RUN note)
+const INK_ON_SUCCESS := Color(0x18 / 255.0, 0x3A / 255.0, 0x0C / 255.0)      # ink on a SUCCESS fill (Pass "CLAIM NOW" tile)
+const INK_ON_DANGER := Color(0xFF / 255.0, 0xF8 / 255.0, 0xEA / 255.0)       # ink on a DANGER fill (Vault's disabled-import plate, REMOVE button)
+const INK_ON_SHIELD := Color(0x0F / 255.0, 0x2A / 255.0, 0x3D / 255.0)       # ink on SHIELD_BLUE (Vault's header eyebrow + imported-count chip)
+const INK_ON_CREAM_MUTED := Color(0x6E / 255.0, 0x4A / 255.0, 0x30 / 255.0)  # captions/meta text on cream (Vault subtitle, Guides difficulty tag, Pass "CLAIMED" state text)
+const INK_ON_CREAM_SOFT := Color(0x3A / 255.0, 0x22 / 255.0, 0x14 / 255.0)   # body prose on cream, one step lighter than INK (Guides "why"/"how" text)
+const MUTED_TEXT := Color(0x6E / 255.0, 0x4A / 255.0, 0x30 / 255.0)         # secondary text on a dark panel — a solid grey, not TEXT_DIM's alpha wash (Unlocks row description, XP-to-next line)
+const FAINT_TEXT := Color(0x9A / 255.0, 0x76 / 255.0, 0x50 / 255.0)         # tertiary/locked text on a dark panel, dimmer than MUTED_TEXT (Pass "NEEDS LV n", Unlocks locked step number)
+const WARN_YELLOW := Color(0xFF / 255.0, 0xC4 / 255.0, 0x45 / 255.0)         # "NO EFFECT YET" and similar advisory-not-danger tags
+const INFO_TEXT_ON_WELL := Color(0x6E / 255.0, 0x4A / 255.0, 0x30 / 255.0)   # pale mana-tinted advisory text inside a WELL (Vault's RANKED RUN note)
 
 ## ADDED 2026-09-20 consistency sweep: RunMapController and ResultView had each independently
 ## picked this exact hex for the same job (a caption one step dimmer than TEXT, brighter than
@@ -663,10 +776,10 @@ const INFO_TEXT_ON_WELL := Color(0xC7 / 255.0, 0xBB / 255.0, 0xD6 / 255.0)   # p
 ## labels. Promoted here rather than left as two file-local consts because that convergence is
 ## itself the signal a shared token belongs in the system (see this file's own "prefer fixing the
 ## SYSTEM" rule).
-const CAPTION_MUTED := Color(0x6F / 255.0, 0x78 / 255.0, 0x87 / 255.0)
+const CAPTION_MUTED := Color(0x6E / 255.0, 0x4A / 255.0, 0x30 / 255.0)
 ## ADDED 2026-09-20: RunMapController's tier chip ("T1") and relic-count ink on a WELL surface,
 ## used twice in that file with the same inline literal. One token so the two cannot drift apart.
-const CHIP_INK_ON_WELL := Color(0xA9 / 255.0, 0xB3 / 255.0, 0xC2 / 255.0)
+const CHIP_INK_ON_WELL := Color(0x3A / 255.0, 0x22 / 255.0, 0x14 / 255.0)
 
 # ── Mockup colours that had no token, added 20 Sep 2026 ──────────────────────────────────────
 # Each of these appears verbatim in the v2 mockups and had no name here, so three separate
@@ -689,23 +802,23 @@ const SUCCESS_ON_CREAM := Color(0x2E / 255.0, 0x7D / 255.0, 0x2B / 255.0)
 const INK_ON_PRIMARY_DIM := Color(0x5A / 255.0, 0x33 / 255.0, 0x10 / 255.0)
 
 ## `#98A2B1` — an eyebrow on a raised panel (the combat node chip's `BATTLE NODE`).
-const EYEBROW_TEXT := Color(0x98 / 255.0, 0xA2 / 255.0, 0xB1 / 255.0)
+const EYEBROW_TEXT := Color(0x8A / 255.0, 0x3E / 255.0, 0x22 / 255.0)
 
 ## `#7C8695` — the dimmed half of a paired numeral: the ` / 12` after `WAVE 3`. One step below
 ## EYEBROW_TEXT, and a different colour from MUTED_TEXT despite three passes treating them alike.
-const MUTED_TEXT_DIM := Color(0x7C / 255.0, 0x86 / 255.0, 0x95 / 255.0)
+const MUTED_TEXT_DIM := Color(0x9A / 255.0, 0x76 / 255.0, 0x50 / 255.0)
 
 ## `#DCE2EC` — the label on a PANEL_RAISED utility chip. Brighter than TEXT, because the chip
 ## fill is lighter than the bar behind it.
-const CHIP_TEXT := Color(0xDC / 255.0, 0xE2 / 255.0, 0xEC / 255.0)
+const CHIP_TEXT := Color(0x3A / 255.0, 0x22 / 255.0, 0x14 / 255.0)
 
 ## `#A6B0BF` — a subtitle under a screen title, on open artwork (Team Select, Vault, Reward).
-const SUBTITLE_TEXT := Color(0xA6 / 255.0, 0xB0 / 255.0, 0xBF / 255.0)
+const SUBTITLE_TEXT := Color(0x6E / 255.0, 0x4A / 255.0, 0x30 / 255.0)
 
 ## `rgba(0,0,0,.36)` — the softer of the two blacks the mockups fill small pills with (Team
 ## Select's TIER pill, the intent badge's inner icon tile at .26). SHELF is .50 and reads heavier.
-const SHELF_SOFT := Color(0, 0, 0, 0.36)
-const SHELF_FAINT := Color(0, 0, 0, 0.26)
+const SHELF_SOFT := Color(0x4A / 255.0, 0x22 / 255.0, 0x0E / 255.0, 0.25)
+const SHELF_FAINT := Color(0x4A / 255.0, 0x22 / 255.0, 0x0E / 255.0, 0.15)
 
 
 ## Every Axie class, at full strength. These are semantic: a class colour may never be
@@ -786,7 +899,8 @@ static func surface_style(kind: Surface, radius: int = 13, border_w: int = 3,
 		shelf: float = 0.0, pad: Vector2 = Vector2(12, 8)) -> StyleBoxFlat:
 	var sb := StyleBoxFlat.new()
 	sb.bg_color = surface_color(kind)
-	sb.border_color = Color.BLACK
+	# R1: panels (4px) carry the warm red-brown LINE, chips / small surfaces the dark OUTLINE.
+	sb.border_color = LINE if border_w >= 4 else OUTLINE
 	sb.set_border_width_all(border_w)
 	sb.set_corner_radius_all(radius)
 	if pad.x >= 0.0:
@@ -796,9 +910,9 @@ static func surface_style(kind: Surface, radius: int = 13, border_w: int = 3,
 		sb.content_margin_top = pad.y
 		sb.content_margin_bottom = pad.y
 	if shelf > 0.0:
-		sb.shadow_color = SHELF_DEEP if shelf >= 6.0 else SHELF
+		sb.shadow_color = SHELF
 		sb.shadow_size = 0
-		sb.shadow_offset = Vector2(0, shelf)
+		sb.shadow_offset = Vector2(roundf(shelf * 0.7), shelf)   # light top-left: x+3..4, y+4..6
 	return sb
 
 
@@ -815,7 +929,7 @@ static func frame_bar_style(edge: Side, kind: Surface = Surface.PANEL, width: in
 		pad: Vector2 = Vector2(20, 0)) -> StyleBoxFlat:
 	var sb := StyleBoxFlat.new()
 	sb.bg_color = surface_color(kind)
-	sb.border_color = Color.BLACK
+	sb.border_color = OUTLINE
 	match edge:
 		SIDE_TOP: sb.border_width_top = width
 		SIDE_BOTTOM: sb.border_width_bottom = width
@@ -835,7 +949,7 @@ static func cream_card_style(accent: Color = Color.TRANSPARENT, radius: int = 15
 	var sb := surface_style(Surface.CREAM_RAISED if raised else Surface.CREAM,
 		radius, border_w, shelf, Vector2(-1, -1))
 	if accent.a > 0.0:
-		sb.border_color = Color.BLACK
+		sb.border_color = OUTLINE
 		sb.expand_margin_top = 0.0
 	return sb
 
@@ -850,7 +964,7 @@ static func solid_chip_style(fill: Color, radius: int = 9, border_w: int = 3,
 		pad: Vector2 = Vector2(8, 1)) -> StyleBoxFlat:
 	var sb := StyleBoxFlat.new()
 	sb.bg_color = fill
-	sb.border_color = Color.BLACK
+	sb.border_color = OUTLINE
 	sb.set_border_width_all(border_w)
 	sb.set_corner_radius_all(radius)
 	sb.content_margin_left = pad.x
@@ -858,6 +972,15 @@ static func solid_chip_style(fill: Color, radius: int = 9, border_w: int = 3,
 	sb.content_margin_top = pad.y
 	sb.content_margin_bottom = pad.y
 	return sb
+
+
+## R1 numeral over the 3D scene / on a bar: cream fill, 2px dark outline (3px for >= 48px).
+## Godot has one outline per Label, so the sheet's 8-way text-shadow is `outline_size` and the
+## 2/4 drop is left to the caller (a second offset Label) where it matters.
+static func outline_text(lbl: Control, fill: Color = CREAM_RAISED, px: int = 2) -> void:
+	lbl.add_theme_color_override("font_color", fill)
+	lbl.add_theme_color_override("font_outline_color", OUTLINE)
+	lbl.add_theme_constant_override("outline_size", px)
 
 
 ## Ink that stays legible on `fill`. Used by every solid chip so a caller never has to guess
@@ -869,8 +992,12 @@ static func ink_on(fill: Color) -> Color:
 	# DANGER sits at ≈ 0.416 too and its cream ink is what every screen already shows.
 	if fill.is_equal_approx(RARITY_COLORS[RARITY_MYTHIC]):
 		return INK
+	if fill.is_equal_approx(ASCENSION_RED):
+		return CREAM_RAISED   # the one dark-red fill with cream ink (5.6:1)
+	if fill.is_equal_approx(GEM) or fill.is_equal_approx(GEM_TOP) or fill.is_equal_approx(GEM_BOTTOM):
+		return GEM_INK
 	var luma := fill.r * 0.2126 + fill.g * 0.7152 + fill.b * 0.0722
-	return INK if luma > 0.42 else CREAM
+	return INK if luma > 0.40 else CREAM_RAISED
 
 
 ## ADDED 2026-09-20 consistency sweep: a translucent PRIMARY wash for hairline dividers only —
@@ -894,7 +1021,7 @@ static func primary_divider_alpha() -> Color:
 
 enum Scrim { DEFAULT, COMBAT, RESULT, MENU }
 
-const SCRIM_INK := Color(0x0E / 255.0, 0x10 / 255.0, 0x16 / 255.0)
+const SCRIM_INK := Color(0x24 / 255.0, 0x14 / 255.0, 0x0B / 255.0)
 
 
 ## The scrim as a texture ready for a TextureRect stretched over the plate.
@@ -1206,7 +1333,7 @@ static func build_footer(host: Control, back_text: String = "BACK") -> HBoxConta
 	var bar := PanelContainer.new()
 	bar.name = "Footer"
 	var sb := surface_style(Surface.PANEL, 0, 0, 0.0, Vector2(SAFE_AREA_SIDE, 12))
-	sb.border_color = Color.BLACK
+	sb.border_color = OUTLINE
 	sb.border_width_top = 3
 	bar.add_theme_stylebox_override("panel", sb)
 	bar.set_anchors_preset(Control.PRESET_BOTTOM_WIDE)
@@ -1274,7 +1401,7 @@ static func list_state_style(state: ListState, accent: Color = SUCCESS,
 		radius: int = 12, shelf: float = 4.0) -> StyleBoxFlat:
 	var sb := StyleBoxFlat.new()
 	sb.bg_color = list_state_fill(state, accent)
-	sb.border_color = Color.BLACK
+	sb.border_color = OUTLINE
 	sb.set_border_width_all(3)
 	sb.set_corner_radius_all(radius)
 	sb.content_margin_left = 12.0
@@ -1285,5 +1412,5 @@ static func list_state_style(state: ListState, accent: Color = SUCCESS,
 		# A LOCKED row is a hole in the page, not an object sitting on it, so it gets no shelf.
 		sb.shadow_color = SHELF
 		sb.shadow_size = 0
-		sb.shadow_offset = Vector2(0, shelf)
+		sb.shadow_offset = Vector2(roundf(shelf * 0.7), shelf)
 	return sb

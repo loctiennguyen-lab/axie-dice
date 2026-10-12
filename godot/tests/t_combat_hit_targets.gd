@@ -229,8 +229,7 @@ func _test_every_hoverable_icon_explains_itself(tree: SceneTree) -> void:
 	_check(btn.tooltip_text.length() > 0, "the die card has no tooltip at all")
 
 	# 4 — the enemy intent badge, the documented hover target for "why is it doing that".
-	var huds: Dictionary = _view.get("_head_huds") as Dictionary
-	var hud = huds.get(enemy.uid)
+	var hud = portraits.get(enemy.uid)
 	if hud != null:
 		var panel: Control = hud.get("_intent_panel")
 		_check(panel.tooltip_text.length() > 20,

@@ -140,9 +140,24 @@ func _build_ui(s: Dictionary) -> void:
 	_build_stat_ribbon(s["stats"] as Dictionary)
 	_build_card_row(s)
 	_build_cta_row()
+	_build_version_tag()
 	# Deferred: the party columns have no size until the first layout pass, so measuring here
 	# would read zero and leave the ribbon at its mockup baseline whether or not that is clear.
 	_relayout_bands.call_deferred()
+
+
+## Build number, small, bottom-right. Only when application/config/version is set.
+func _build_version_tag() -> void:
+	var v := String(ProjectSettings.get_setting("application/config/version", ""))
+	if v == "":
+		return
+	var l := DangoTheme.display_label("v" + v, 12, DangoTheme.CAPTION_MUTED, 700, 0.06)
+	l.name = "BuildTag"
+	l.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	l.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_RIGHT, Control.PRESET_MODE_MINSIZE, 10)
+	l.grow_horizontal = Control.GROW_DIRECTION_BEGIN
+	l.grow_vertical = Control.GROW_DIRECTION_BEGIN
+	add_child(l)
 
 
 ## RES-03 / RES-04. See _BAND_GAP. Idempotent, and cheap enough to run on every party resize.

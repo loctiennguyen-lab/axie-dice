@@ -1,5 +1,20 @@
 # UI rules — read before touching any file under `godot/scenes/`
 
+## v3 HOMELAND (Liam 12/10) — READ THIS FIRST, IT OVERRIDES THE LOOK RULES BELOW
+
+The design source is now **Dice UI R1 (corrected)**: `design/handoffs/ui-02-round1b/_zip/` (README
+is normative, then the `.dc.html` frames). The old dark-slate / black-outline / flat look in the
+sections below is **replaced**: cream + wood + dusk surfaces, ink `#3A2214` text, outlines `#24140B`
+(chips 3 px, <= 24 px 2 px), panels 4 px `#8A3E22`, one contact shadow x+3..4 y+4..6 `#4A220E`@35%.
+Everything is in `DangoTheme` (legacy token names now hold Homeland values; new names: `OUTLINE`,
+`LINE`, `CREAM_100/200/300`, `DUSK`, `GOLD`, `THREAT`, `GEM*`, `T_*` type scale). Still in force:
+fit-or-scroll, expand canvas (anchor by relationship, never a mockup y), ink-on-fill via
+`ink_on()`, ONE surface API (`surface_style()`), no per-Label fonts, one generated theme
+(`tools/gen_theme.gd` -> `dango.tres`). Gem violet = paid surfaces only. Floor 12 px for anything the
+player must read; informative disabled ink is `INK_DISABLED` (#6E4A30). Gradients are flat mid-tones
+(StyleBoxFlat has none). New combat widgets live in `scripts/ui/` (`HudKit`, `TrayColumn`,
+`HudStateStub`) and `scenes/combat/` (`CombatHud`, `AidPanel`, `DefeatPanel`).
+
 These are not suggestions and they are not per-task. They hold for every UI change in this repo.
 
 ## The source of truth is the mockups, not a prose spec

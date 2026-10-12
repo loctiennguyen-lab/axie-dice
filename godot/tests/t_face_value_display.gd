@@ -85,7 +85,7 @@ func test_a_grown_die_card_shows_what_the_attack_actually_deals() -> void:
 	_view.call("_rebuild_all")
 
 	var content: Dictionary = (_view.get("_die_slot_content") as Array)[slot]
-	var shown := int(String((content["value_label"] as Label).text))
+	var shown := int(String((content["die_num"] as Label).text))
 	_check(shown == live,
 		"the die card reads %d but this face is worth %d — the card is showing the PRINTED "
 		% [shown, live] + "value again (printed is %d)" % printed)
@@ -129,12 +129,12 @@ func test_a_weakened_enemys_intent_badge_shows_what_it_will_really_hit_for() -> 
 	var live: int = combat._face_value(enemy, fi)
 	_view.call("_rebuild_all")
 
-	var huds: Dictionary = _view.get("_head_huds") as Dictionary
-	var hud = huds.get(enemy.uid)
-	_check(hud != null, "enemy uid=%d has no intent HUD" % enemy.uid)
+	var portraits: Dictionary = _view.get("_portraits") as Dictionary
+	var hud = portraits.get(enemy.uid)
+	_check(hud != null, "enemy uid=%d has no nameplate (R1: the intent block lives on it)" % enemy.uid)
 	if hud == null:
 		return
-	var badge: Label = hud.get("_intent_number")
+	var badge: Label = hud.get("_intent_num")
 	var shown := int(String(badge.text)) if badge.text != "" else 0
 	_check(shown == live,
 		"the intent badge promises %d but weaken makes this blow %d — the badge is reading "

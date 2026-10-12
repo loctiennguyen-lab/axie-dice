@@ -328,6 +328,27 @@ func _is_fogged(node: RunMapNode, current_row: int, reachable_ids: Array[String]
 	return node.row - current_row >= 2
 
 
+## A9+: true while the unavoidable all-elite row (INV10) is still ahead of the player.
+## No count, no position.
+func _forced_elite_row_ahead(current_row: int) -> bool:
+	if _graph == null or RunState.ascension < 9:
+		return false
+	for r in _graph.elite_rows:
+		if r <= current_row:
+			continue
+		var nodes := _graph.get_row(r)
+		if nodes.is_empty():
+			continue
+		var all_elite := true
+		for raw_node in nodes:
+			if (raw_node as RunMapNode).node_type != "elite":
+				all_elite = false
+				break
+		if all_elite:
+			return true
+	return false
+
+
 func _node_tier(node: RunMapNode, current_row: int, reachable_ids: Array[String]) -> String:
 	if node.id == RunState.current_node_id:
 		return "current"
@@ -1194,6 +1215,11 @@ func _build_rail_head(content: VBoxContainer) -> void:
 	var seed_lbl := DangoTheme.display_label("SEED %d" % RunState.run_seed, 12,
 		DangoTheme.CAPTION_MUTED, 800, 0.14)
 	content.add_child(seed_lbl)
+	# A9: one elite row cannot be dodged. The legend says it is ahead, nothing more.
+	if _forced_elite_row_ahead(_current_row()):
+		var hid_lbl := DangoTheme.display_label("Elite row ahead", 12, DangoTheme.CAPTION_MUTED, 800, 0.08)
+		hid_lbl.name = "EliteRowLegend"
+		content.add_child(hid_lbl)
 
 	content.add_child(_spacer(17.0))
 

@@ -52,7 +52,7 @@ func _label(theme: Theme) -> void:
 	# Every Label gets the black outline for free. On a screen whose whole premise is that the
 	# painted plate stays bright, a label with no outline is one stray placement away from
 	# being illegible — and the alternative the handoff explicitly forbids is darkening the art.
-	theme.set_color("font_outline_color", "Label", Color.BLACK)
+	theme.set_color("font_outline_color", "Label", DangoTheme.OUTLINE)
 	theme.set_constant("outline_size", "Label", 0)
 
 	theme.set_font("normal_font", "RichTextLabel", DangoTheme.FONT_UI)
@@ -69,26 +69,26 @@ func _button(theme: Theme) -> void:
 			["hover", DangoTheme.ButtonState.HOVER],
 			["pressed", DangoTheme.ButtonState.PRESSED],
 			["disabled", DangoTheme.ButtonState.DISABLED],
-			["focus", DangoTheme.ButtonState.HOVER]]:
+			]:
 		theme.set_stylebox(String(state[0]), "Button", DangoTheme.secondary_button_style(state[1]))
 
 	# Button LABELS are display type — they are one of the five things §02 names by hand.
 	theme.set_font("font", "Button", DangoTheme.FONT_DISPLAY_BOLD)
 	theme.set_font_size("font_size", "Button", 17)
 	theme.set_color("font_color", "Button", DangoTheme.TEXT)
-	theme.set_color("font_hover_color", "Button", DangoTheme.INK_ON_PRIMARY)
-	theme.set_color("font_pressed_color", "Button", DangoTheme.INK_ON_PRIMARY)
-	theme.set_color("font_focus_color", "Button", DangoTheme.INK_ON_PRIMARY)
+	theme.set_color("font_hover_color", "Button", DangoTheme.INK)
+	theme.set_color("font_pressed_color", "Button", DangoTheme.INK)
+	theme.set_color("font_focus_color", "Button", DangoTheme.INK)
 	# Full-strength ink on a flattened fill — never a dimmed label. See DangoTheme's DISABLED note.
-	theme.set_color("font_disabled_color", "Button", Color(DangoTheme.TEXT.r, DangoTheme.TEXT.g,
-		DangoTheme.TEXT.b, 0.72))
+	theme.set_color("font_disabled_color", "Button", DangoTheme.INK_DISABLED)
+	theme.set_stylebox("focus", "Button", DangoTheme.focus_ring_style(12))
 
 
 func _panels(theme: Theme) -> void:
 	# CHROME tone by default. A panel sitting on open artwork wants PANEL_DEEP and has to ask
 	# for it — that choice is about the job the surface is doing, so it cannot be a default.
 	theme.set_stylebox("panel", "PanelContainer", DangoTheme.surface_style(
-		DangoTheme.Surface.PANEL, 13, 3, 4.0))
+		DangoTheme.Surface.PANEL, 20, 4, 6.0, Vector2(16, 12)))
 	theme.set_stylebox("panel", "Panel", DangoTheme.surface_style(
 		DangoTheme.Surface.PANEL, 13, 3, 4.0))
 	theme.set_stylebox("panel", "PopupPanel", DangoTheme.surface_style(
@@ -132,12 +132,12 @@ func _scrollbars(theme: Theme) -> void:
 
 func _progress(theme: Theme) -> void:
 	theme.set_stylebox("background", "ProgressBar", DangoTheme.surface_style(
-		DangoTheme.Surface.WELL_DEEP, 7, 3, 0.0, Vector2(-1, -1)))
+		DangoTheme.Surface.WELL_DEEP, 9, 3, 0.0, Vector2(-1, -1)))
 	var fill := DangoTheme.surface_style(DangoTheme.Surface.PANEL, 5, 0, 0.0, Vector2(-1, -1))
 	fill.bg_color = DangoTheme.SUCCESS
 	theme.set_stylebox("fill", "ProgressBar", fill)
 	theme.set_font("font", "ProgressBar", DangoTheme.FONT_DISPLAY)
-	theme.set_font_size("font_size", "ProgressBar", 13)
+	theme.set_font_size("font_size", "ProgressBar", 15)
 
 
 # ── FIX-PASS-02 RC5 ─────────────────────────────────────────────────────────────────────────
@@ -166,7 +166,7 @@ func _tabs(theme: Theme) -> void:
 	theme.set_font_size("font_size", "TabBar", 15)
 	theme.set_color("font_selected_color", "TabBar", DangoTheme.INK_ON_PRIMARY)
 	theme.set_color("font_unselected_color", "TabBar", DangoTheme.TEXT)
-	theme.set_color("font_hovered_color", "TabBar", DangoTheme.INK_ON_PRIMARY)
+	theme.set_color("font_hovered_color", "TabBar", DangoTheme.INK)
 	theme.set_constant("h_separation", "TabBar", 8)
 
 
@@ -176,14 +176,14 @@ func _dropdown(theme: Theme) -> void:
 			["hover", DangoTheme.ButtonState.HOVER],
 			["pressed", DangoTheme.ButtonState.PRESSED],
 			["disabled", DangoTheme.ButtonState.DISABLED],
-			["focus", DangoTheme.ButtonState.HOVER]]:
+			]:
 		theme.set_stylebox(String(state[0]), "OptionButton",
 			DangoTheme.secondary_button_style(state[1]))
 	theme.set_font("font", "OptionButton", DangoTheme.FONT_DISPLAY_SEMI)
 	theme.set_font_size("font_size", "OptionButton", 15)
 	theme.set_color("font_color", "OptionButton", DangoTheme.TEXT)
-	theme.set_color("font_hover_color", "OptionButton", DangoTheme.INK_ON_PRIMARY)
-	theme.set_color("font_pressed_color", "OptionButton", DangoTheme.INK_ON_PRIMARY)
+	theme.set_color("font_hover_color", "OptionButton", DangoTheme.INK)
+	theme.set_color("font_pressed_color", "OptionButton", DangoTheme.INK)
 
 	# The POPUP is the half everyone forgets: an OptionButton styled through its Button states
 	# still drops a stock grey list when you click it, which is exactly what shipped on Vault.
@@ -214,6 +214,6 @@ func _checkbox(theme: Theme) -> void:
 		theme.set_font("font", cls, DangoTheme.FONT_DISPLAY_SEMI)
 		theme.set_font_size("font_size", cls, 15)
 		theme.set_color("font_color", cls, DangoTheme.TEXT)
-		theme.set_color("font_hover_color", cls, DangoTheme.INK_ON_PRIMARY)
-		theme.set_color("font_pressed_color", cls, DangoTheme.INK_ON_PRIMARY)
+		theme.set_color("font_hover_color", cls, DangoTheme.INK)
+		theme.set_color("font_pressed_color", cls, DangoTheme.INK)
 		theme.set_constant("h_separation", cls, 10)

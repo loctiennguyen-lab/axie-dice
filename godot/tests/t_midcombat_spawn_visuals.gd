@@ -88,9 +88,6 @@ func _roster() -> Array:
 func _assert_fully_visualised(u: Unit, context: String) -> void:
 	_assert(_view._portraits.has(u.uid),
 		"%s: unit %d (%s) has no UnitPortrait — no name, no HP bar" % [context, u.uid, u.n])
-	_assert(_view._head_huds.has(u.uid),
-		"%s: unit %d (%s) has no UnitHeadHUD — no status pills, no intent badge"
-			% [context, u.uid, u.n])
 	_assert(_view._stage3d.has_unit(u.uid),
 		"%s: unit %d (%s) has no 3D slot on the stage" % [context, u.uid, u.n])
 	_assert(_view._audio._voices.has(u.uid),
@@ -102,8 +99,10 @@ func _assert_fully_visualised(u: Unit, context: String) -> void:
 	# "does the nameplate say the right thing?".
 	var p: UnitPortrait = _view._portraits.get(u.uid)
 	if p != null and u.hp > 0:
-		var shown: String = p._hp_label.text          # what the player actually reads
-		var want := "%d/%d" % [u.hp, u.max_hp]
+		var shown: String = p.shown_hp_text()         # what the player actually reads
+		var want := "%d / %d" % [u.hp, u.max_hp]
+		if u.side == "p":
+			return    # R1: party HP lives only in the dice tray, party plates draw nothing
 		_assert(shown == want,
 			"%s: unit %d (%s) nameplate reads '%s' but the engine says '%s'"
 				% [context, u.uid, u.n, shown, want])

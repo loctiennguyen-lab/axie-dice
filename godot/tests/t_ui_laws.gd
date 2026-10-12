@@ -211,7 +211,10 @@ func _check_control(c: Control, scene_root: Node) -> void:
 				_bad(c, "L7", "shadow_size=%d — a shelf is shadow_size 0 + shadow_offset"
 					% f.shadow_size)
 			var b := f.border_color
-			var is_black := b.r < 0.02 and b.g < 0.02 and b.b < 0.02 and b.a > 0.98
+			# v3 Homeland: outlines are OUTLINE #24140B (chips, buttons, dice) or LINE #8A3E22
+			# (panels). Pure black is legacy and still tolerated in screens not yet redrawn.
+			var is_black := (b.r < 0.02 and b.g < 0.02 and b.b < 0.02 and b.a > 0.98) \
+				or b.is_equal_approx(DangoTheme.OUTLINE) or b.is_equal_approx(DangoTheme.LINE)
 			# The mockups draw exactly five non-black borders, and no others:
 			#   · the selection ring on a die card and a targetable enemy   → PRIMARY
 			#   · the targetable ring on a party member                     → SUCCESS
@@ -227,6 +230,9 @@ func _check_control(c: Control, scene_root: Node) -> void:
 				or b.is_equal_approx(DangoTheme.INFO) \
 				or b.is_equal_approx(DangoTheme.SUCCESS) \
 				or (c is Button and b.is_equal_approx(DangoTheme.DANGER)) \
+				or b.is_equal_approx(DangoTheme.GOLD) or b.is_equal_approx(DangoTheme.THREAT) \
+				or b.is_equal_approx(DangoTheme.GEM_SHELF) or b.is_equal_approx(DangoTheme.INK_3) \
+				or b.is_equal_approx(Color("B89A74")) \
 				or _is_class_color(b) or b.a == 0.0
 			if f.get_border_width_min() > 0 and not is_black and not is_state:
 				_bad(c, "L7", "border_color %s — the mockups use pure black everywhere except "
@@ -272,7 +278,7 @@ func _check_control(c: Control, scene_root: Node) -> void:
 	# this one. Measuring a scrolled card against the canvas reported the Codex's eleven status
 	# cards as eleven clipping bugs on a screen whose own capture shows every one of them inside
 	# the panel.
-	if c.visible and c.size.x > 1.0 and c.size.y > 1.0 \
+	if c.is_visible_in_tree() and c.size.x > 1.0 and c.size.y > 1.0 \
 			and not _is_full_bleed(c) and not _inside_scroll(c):
 		var r := Rect2(c.global_position, c.size)
 		if r.position.x < -0.5 or r.position.y < -0.5 \

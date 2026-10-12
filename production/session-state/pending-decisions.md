@@ -32,3 +32,5 @@ hạn/ngày, NFT dùng được) · UI request 02 + Round 1 · L1 = 3/11 nội b
 ## G. Ghi chú đêm 12/10 (agent chọn tạm, Liam xem)
 - Việc tuần Pass (lane E): doc echobox-pass-v2 không nói XP việc tuần có tính vào trần XP run/ngày không. Chọn tạm: 500 XP/việc KHÔNG bị trần ngày (như thưởng ngày +100), nhưng hết mùa thì không nhận.
 - Việc tuần chưa nhận khi qua tuần: chọn tạm là MẤT (chỉ nhận được việc của tuần hiện tại, tới hết Chủ nhật UTC; hết mùa cũng không nhận). An toàn về XP; nếu muốn nhận bù tuần cũ tới hết mùa thì bỏ check `week_over` trong PassV2.claim_weekly.
+- (Lane I, đêm 12/10) R3 Q5 "Fog vs A9": luật A9 là một hàng elite bắt buộc, không phải elite ẩn. Tạm cho bản đồ ghi "Elite row ahead" (không đếm số, không lộ vị trí). Anh chọn: giữ dòng này / hiện hàng đó không sương mù / bỏ hẳn.
+- (Lane I) Giá Aid trong CombatView (15/60/90/180, trần A9 = 4) đang viết cứng, nút mua chưa trừ Gem — chờ catalog Aid của làn E/S. Không chặn playtest nội bộ.

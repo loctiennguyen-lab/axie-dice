@@ -137,12 +137,14 @@ func test_primary_hover_changes_color_only_not_geometry() -> void:
 	_assert(hover.border_width_top == normal.border_width_top,
 		"primary hover: border_width changed (%d -> %d) — hover must only change colour"
 		% [normal.border_width_top, hover.border_width_top])
-	_assert(is_equal_approx(hover.content_margin_top, normal.content_margin_top)
-			and is_equal_approx(hover.content_margin_bottom, normal.content_margin_bottom),
-		"primary hover: content_margin changed (top %f->%f, bottom %f->%f) — hover must not "
+	# v3 Homeland (R1 sheet): hover LIFTS 2px (translateY -2, longer shelf). A StyleBox cannot
+	# translate, so the lift is a net-zero margin shift: the outer size never changes.
+	_assert(is_equal_approx(hover.content_margin_top + hover.content_margin_bottom,
+			normal.content_margin_top + normal.content_margin_bottom)
+			and hover.content_margin_top < normal.content_margin_top,
+		"primary hover: expected a net-zero 2px lift, got top %f->%f, bottom %f->%f"
 		% [normal.content_margin_top, hover.content_margin_top,
-			normal.content_margin_bottom, hover.content_margin_bottom]
-		+ "move geometry, only pressed does")
+			normal.content_margin_bottom, hover.content_margin_bottom])
 	_assert(hover.corner_radius_top_left == normal.corner_radius_top_left,
 		"primary hover: corner radius changed — hover must only change colour")
 	_done("test_primary_hover_changes_color_only_not_geometry")
@@ -165,14 +167,15 @@ func test_primary_pressed_changes_color_and_geometry_opposite_of_hover() -> void
 		+ "directions from normal, not the same one")
 
 	# Geometry: border_width +1, content_margin_top +1.0 / content_margin_bottom -1.0, net zero.
-	_assert(pressed.border_width_top == normal.border_width_top + 1,
-		"primary pressed: border_width is %d, expected normal(%d) + 1"
+	# v3: pressed sinks 3px (translateY +3) with the shelf shortened to 1/2: border stays 3.
+	_assert(pressed.border_width_top == normal.border_width_top,
+		"primary pressed: border_width is %d, expected normal(%d)"
 		% [pressed.border_width_top, normal.border_width_top])
-	_assert(is_equal_approx(pressed.content_margin_top, normal.content_margin_top + 1.0),
-		"primary pressed: content_margin_top is %f, expected normal(%f) + 1.0"
+	_assert(is_equal_approx(pressed.content_margin_top, normal.content_margin_top + 3.0),
+		"primary pressed: content_margin_top is %f, expected normal(%f) + 3.0"
 		% [pressed.content_margin_top, normal.content_margin_top])
-	_assert(is_equal_approx(pressed.content_margin_bottom, normal.content_margin_bottom - 1.0),
-		"primary pressed: content_margin_bottom is %f, expected normal(%f) - 1.0"
+	_assert(is_equal_approx(pressed.content_margin_bottom, normal.content_margin_bottom - 3.0),
+		"primary pressed: content_margin_bottom is %f, expected normal(%f) - 3.0"
 		% [pressed.content_margin_bottom, normal.content_margin_bottom])
 	# Net zero — minimum-size / outer Control rect must not move.
 	_assert(is_equal_approx(
@@ -201,9 +204,10 @@ func test_primary_pressed_changes_color_and_geometry_opposite_of_hover() -> void
 	_assert(hover_warn.shadow_size == 0,
 		"primary hover: shadow_size is %d, expected 0 — the only shadow in the v2 system is a "
 		% hover_warn.shadow_size + "hard offset shelf; any blur is the dark-dashboard tell")
-	_assert(pressed_warn.shadow_offset == Vector2.ZERO,
-		"primary pressed: shadow_offset is %s, expected (0, 0) — the shelf being taken away IS "
-		% pressed_warn.shadow_offset + "the press")
+	_assert(pressed_warn.shadow_offset.y < hover_warn.shadow_offset.y
+			and pressed_warn.shadow_offset.y <= 2.0,
+		"primary pressed: shadow_offset is %s, expected the shelf shortened to 1/2 — the shelf "
+		% pressed_warn.shadow_offset + "being taken away IS the press")
 	_done("test_primary_pressed_changes_color_and_geometry_opposite_of_hover")
 
 
@@ -297,17 +301,17 @@ func test_secondary_hover_changes_color_only_not_geometry() -> void:
 	_assert(hover_luma > normal_luma,
 		"secondary hover: bg_color (%s) is not brighter than normal (%s) — the REROLL redline "
 		% [hover.bg_color, normal.bg_color] + "calls for a PRIMARY fill on hover")
-	_assert(hover.border_color == Color.BLACK and normal.border_color == Color.BLACK,
-		"secondary: border is not pure black (normal %s, hover %s) — one outline, #000000, "
+	_assert(hover.border_color == DangoTheme.OUTLINE and normal.border_color == DangoTheme.OUTLINE,
+		"secondary: border is not OUTLINE #24140B (normal %s, hover %s) — one outline, "
 		% [normal.border_color, hover.border_color] + "never a coloured or translucent hairline")
 
 	_assert(hover.border_width_top == normal.border_width_top,
 		"secondary hover: border_width changed (%d -> %d) — hover must only change colour"
 		% [normal.border_width_top, hover.border_width_top])
-	_assert(is_equal_approx(hover.content_margin_top, normal.content_margin_top)
-			and is_equal_approx(hover.content_margin_bottom, normal.content_margin_bottom),
-		"secondary hover: content_margin changed — hover must not move geometry, only pressed "
-		+ "does")
+	_assert(is_equal_approx(hover.content_margin_top + hover.content_margin_bottom,
+			normal.content_margin_top + normal.content_margin_bottom)
+			and hover.content_margin_top < normal.content_margin_top,
+		"secondary hover: expected a net-zero 2px lift (v3), margins changed otherwise")
 	_done("test_secondary_hover_changes_color_only_not_geometry")
 
 
@@ -329,18 +333,18 @@ func test_secondary_pressed_changes_color_and_geometry_opposite_of_hover() -> vo
 		+ "from normal")
 	_assert(pressed.bg_color != normal.bg_color,
 		"secondary pressed: fill is identical to normal's (%s)" % pressed.bg_color)
-	_assert(pressed.shadow_offset == Vector2.ZERO and normal.shadow_offset.y > 0.0,
+	_assert(pressed.shadow_offset.y < normal.shadow_offset.y and normal.shadow_offset.y > 0.0,
 		"secondary: normal shelf %s / pressed shelf %s — the press is the shelf being taken away"
 		% [normal.shadow_offset, pressed.shadow_offset])
 
-	_assert(pressed.border_width_top == normal.border_width_top + 1,
-		"secondary pressed: border_width is %d, expected normal(%d) + 1"
+	_assert(pressed.border_width_top == normal.border_width_top,
+		"secondary pressed: border_width is %d, expected normal(%d)"
 		% [pressed.border_width_top, normal.border_width_top])
-	_assert(is_equal_approx(pressed.content_margin_top, normal.content_margin_top + 1.0),
-		"secondary pressed: content_margin_top is %f, expected normal(%f) + 1.0"
+	_assert(is_equal_approx(pressed.content_margin_top, normal.content_margin_top + 3.0),
+		"secondary pressed: content_margin_top is %f, expected normal(%f) + 3.0"
 		% [pressed.content_margin_top, normal.content_margin_top])
-	_assert(is_equal_approx(pressed.content_margin_bottom, normal.content_margin_bottom - 1.0),
-		"secondary pressed: content_margin_bottom is %f, expected normal(%f) - 1.0"
+	_assert(is_equal_approx(pressed.content_margin_bottom, normal.content_margin_bottom - 3.0),
+		"secondary pressed: content_margin_bottom is %f, expected normal(%f) - 3.0"
 		% [pressed.content_margin_bottom, normal.content_margin_bottom])
 	_assert(is_equal_approx(
 			pressed.content_margin_top + pressed.content_margin_bottom,
@@ -418,9 +422,9 @@ func test_style_button_helper_applies_all_four_states_and_respects_font_color_sc
 	_assert(secondary_btn.get_theme_color("font_pressed_color") == DangoTheme.TEXT,
 		"style_button(): font_pressed_color did not match the font_color passed in")
 	var disabled_font: Color = secondary_btn.get_theme_color("font_disabled_color")
-	_assert(disabled_font.a < DangoTheme.TEXT.a,
-		"style_button(): font_disabled_color alpha (%f) is not lower than the base font_color's alpha (%f) — a disabled button's text should read as dimmer"
-		% [disabled_font.a, DangoTheme.TEXT.a])
+	# v3: the disabled ink is a SOLID colour (INK_DISABLED #6E4A30, REVIEW finding 7), not a dimmer alpha.
+	_assert(disabled_font == DangoTheme.INK_DISABLED and disabled_font != DangoTheme.TEXT,
+		"style_button(): font_disabled_color is %s, expected the solid INK_DISABLED" % disabled_font)
 
 	# Cleanup — these two Buttons were never added to the tree (pure StyleBox/theme-override
 	# checks don't need it), so nothing else will free them.
