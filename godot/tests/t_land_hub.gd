@@ -67,6 +67,7 @@ func _ready() -> void:
 
 	# Layout follows the window: plate centre x stays on the house centre at any height.
 	var pass_plate := hub.find_child("Hit_pass", true, false) as Button
+	_check(String((hub.META["pass"] as Dictionary)["sub"]).ends_with("29 Dec 2026"), "Pass sub-line phải ghi 29 Dec 2026")
 	_check(absf(pass_plate.position.x + pass_plate.size.x * 0.5 - 1450.0) < 1.0, "hộp Pass lệch tâm x")
 
 	hub.queue_free()

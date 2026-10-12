@@ -438,6 +438,7 @@ func _on_continue_run_pressed() -> void:
 			_continue_button.queue_free()
 			_continue_button = null
 		return
+	LandNav.run_started()
 	if not RunState.resume_combat.is_empty():
 		get_tree().change_scene_to_file("res://scenes/combat/Combat.tscn")
 	else:
@@ -1335,4 +1336,5 @@ func _on_new_run_pressed() -> void:
 		_seed_value = int(_seed_edit.text)
 	var team: Array[String] = _team_selection.duplicate()
 	RunState.start_new_run(_seed_value, team, _mode, _ascension, false)
+	LandNav.run_started()
 	get_tree().change_scene_to_file("res://scenes/run_map/RunMap.tscn")

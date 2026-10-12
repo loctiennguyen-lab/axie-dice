@@ -69,6 +69,11 @@ static func open(screen_id: StringName, params: Dictionary = {}) -> void:
 	_change(path)
 
 
+## Gọi khi bắt đầu / tiếp tục run: tắt cờ menu cũ để hết run quay về Land, không về menu cũ.
+static func run_started() -> void:
+	legacy_setup_open = false
+
+
 ## Về Land. Màn meta gọi hàm này thay vì change_scene về MainMenu.
 static func back_to_land() -> void:
 	_params = {}

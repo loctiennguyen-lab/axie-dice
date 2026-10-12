@@ -28,6 +28,7 @@ const BADGE_FILL := {"FREE": Color("8CC85A"), "CLAIM": Color("FF9345"), "NEW": C
 const BADGE_INK := {"FREE": Color("183A0C"), "CLAIM": Color("2A1505"), "NEW": Color("3A2A12"), "VIP": Color("1E1236")}
 const LOCK_FILL := Color("E8D6B4")
 const LOCK_BORDER := Color("9A7650")
+const LOCK_TEXT := Color("6E4A30")
 
 ## QA / tests: force a tier (1-6) instead of reading MetaState.
 static var tier_override: int = 0
@@ -644,7 +645,7 @@ func _make_plate(id: String) -> PanelContainer:
 	elif id == "gallery":
 		sub = "Coming soon"
 	if sub != "":
-		var s := _lbl(sub, 12, DangoTheme.INK_ON_CREAM_MUTED, false)
+		var s := _lbl(sub, 12, LOCK_TEXT if locked else DangoTheme.INK_ON_CREAM_MUTED, false)
 		s.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		col.add_child(s)
 	return plate
@@ -791,7 +792,7 @@ func _profile_chip() -> Control:
 	col.add_theme_constant_override("separation", -2)
 	col.alignment = BoxContainer.ALIGNMENT_CENTER
 	col.add_child(_lbl(name.left(14), 15, DangoTheme.INK))
-	col.add_child(_lbl("%s Land" % TIER_NAMES[_tier - 1], 11, DangoTheme.INK_ON_CREAM_MUTED, false))
+	col.add_child(_lbl("%s Land" % TIER_NAMES[_tier - 1], 12, DangoTheme.INK_ON_CREAM_MUTED, false))
 	h.add_child(col)
 	return chip
 
@@ -826,10 +827,9 @@ func _shortcut(k: int) -> Button:
 		if st == "focus":
 			sb.border_color = DangoTheme.PRIMARY
 		btn.add_theme_stylebox_override(st, sb)
-	if locked:
-		btn.modulate.a = 0.8
 	btn.pressed.connect(_on_house_pressed.bind(id))
-	var hint := _lbl(_need_name(id) if locked else str(k), 11, DangoTheme.INK_ON_CREAM_MUTED)
+	var hint := _lbl(_need_name(id) if locked else str(k), 12,
+		LOCK_TEXT if locked else DangoTheme.INK_ON_CREAM_MUTED)
 	hint.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
 	hint.grow_horizontal = Control.GROW_DIRECTION_BEGIN
 	hint.grow_vertical = Control.GROW_DIRECTION_BEGIN
