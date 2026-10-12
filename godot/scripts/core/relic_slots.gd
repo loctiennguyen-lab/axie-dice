@@ -100,6 +100,15 @@ static func sell_price(relic_id: String, ascension: int) -> int:
 	return (cost * pct) / 100
 
 
+## Mandatory pact (relic-set-v2 §4.4): ascension.json `forced_pact` is "none" | "first" (first boss only,
+## A6-A9) | "all" (every boss, A10). `boss_index` is 0 for the run's first boss. When true the Pact screen
+## has no skip button and check_add(..., forced=true) gives a sale box without cancel.
+## Lane A's pact screen/RunState must call this: `can_skip = not RelicSlots.pact_forced(asc, idx)`.
+static func pact_forced(ascension: int, boss_index: int) -> bool:
+	var mode := String(ContentDB.ascension_mods(ascension).get("forced_pact", "none"))
+	return mode == "all" or (mode == "first" and boss_index == 0)
+
+
 ## True for pacts (boss-only relics with a drawback).
 static func is_pact(relic_id: String) -> bool:
 	var def = RelicRegistry.get_def(relic_id)

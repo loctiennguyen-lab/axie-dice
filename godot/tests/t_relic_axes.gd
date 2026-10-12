@@ -11,6 +11,7 @@ func _ready() -> void:
 	test_a_axes()
 	test_reroll_caps()
 	test_eternal()
+	test_forced_pact()
 	print("=== t_relic_axes: %d checks, %d failure(s) ===" % [_checks, _failures.size()])
 	if _failures.is_empty():
 		print("t_relic_axes: PASS — %d checks OK" % _checks)
@@ -160,3 +161,17 @@ func test_eternal() -> void:
 	RunState.owned_relic_ids = saved_owned
 	RunState.relic_stickers = saved_st
 	RunState.ascension = saved_asc
+
+
+func test_forced_pact() -> void:
+	for a in range(0, 6):
+		_assert(not RelicSlots.pact_forced(a, 0) and not RelicSlots.pact_forced(a, 1), "A%d: pact skippable" % a)
+	for a in range(6, 10):
+		_assert(RelicSlots.pact_forced(a, 0), "A%d: first boss pact forced" % a)
+		_assert(not RelicSlots.pact_forced(a, 1), "A%d: later boss pact skippable" % a)
+	_assert(RelicSlots.pact_forced(10, 0) and RelicSlots.pact_forced(10, 2), "A10: every boss pact forced")
+	var full: Array = ["r_claw", "r_seedling", "r_heart", "r_fang", "r_ear", "r_bloomscale", "r_rotmouth", "r_squallmark"]
+	var r := RelicSlots.check_add(full, {}, "r_brittledice", 10, RelicSlots.pact_forced(10, 0))
+	_assert(bool(r["needs_sell"]) and not bool(r["can_cancel"]), "forced pact on full slots: sale, no cancel")
+	var r2 := RelicSlots.check_add(full, {}, "r_brittledice", 0, RelicSlots.pact_forced(0, 0))
+	_assert(bool(r2["can_cancel"]), "unforced pact: can cancel")
