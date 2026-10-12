@@ -25,7 +25,7 @@ set -uo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 cd "$ROOT" || exit 1
 
-APP_VERSION="${APP_VERSION:-0.1.0}"          # marketing version, written into the presets
+APP_VERSION="${APP_VERSION:-0.1.0}"          # marketing version; must equal application/short_version in godot/export_presets.cfg (checked below)
 LABEL="${BUILD_LABEL:-L1}"                    # prefix tag for the artifact name
 WHAT="${1:-all}"
 case "$WHAT" in all|macos|windows) ;; *) echo "usage: $0 [all|macos|windows]" >&2; exit 64 ;; esac
@@ -56,6 +56,11 @@ rm -rf "$STAGE"; mkdir -p "$STAGE"
 
 echo "== $STAMP  ($WHAT)"
 echo "   godot: $GODOT ($("$GODOT" --version 2>/dev/null | head -1))"
+
+# Presets hold the version that ends up in Info.plist / the exe resources; the script does not edit
+# them. Fail loudly instead of shipping a file name that disagrees with the app's own version.
+grep -q "^application/short_version=\"${APP_VERSION}\"" "$ROOT/godot/export_presets.cfg" \
+  || die "APP_VERSION=$APP_VERSION does not match application/short_version in godot/export_presets.cfg (edit both)"
 
 # --- 1. export templates present? ------------------------------------------------------------
 TPL="$HOME/Library/Application Support/Godot/export_templates/$("$GODOT" --version 2>/dev/null | head -1 | cut -d. -f1-3).stable"

@@ -23,34 +23,29 @@ until lane R measures them.
 
 ## 2. macOS
 
-### Cách 1 (khuyên dùng): chuột phải → Open
+### Cách 1 (macOS 15 Sequoia trở lên, gồm macOS 26): System Settings
+
+Từ macOS 15, chuột phải → Open không còn bỏ qua cảnh báo cho app chưa ký. Làm theo các bước này:
+From macOS 15, right-click → Open no longer bypasses the warning for unsigned apps. Use these steps:
 
 1. Giải nén file `.zip` (nhấp đúp). Bạn sẽ có `AxieDice.app`. Nếu tải `.dmg`, kéo `AxieDice.app` vào
-   thư mục `Applications`.
-   Unzip the `.zip` (double-click). Or open the `.dmg` and drag `AxieDice.app` to `Applications`.
-2. Vào Applications (hoặc thư mục bạn đã đặt app). **Chuột phải** (hoặc Control-click) `AxieDice.app`
-   → chọn **Open** (Mở).
-   Right-click (or Control-click) `AxieDice.app` → **Open**.
-3. Hộp thoại hiện ra: "macOS cannot verify the developer..." hoặc "unidentified developer". Bấm **Open**.
-   A dialog appears. Click **Open**.
-4. Từ lần sau, nhấp đúp bình thường.
-   After the first time, a normal double-click works.
+   `Applications`. Unzip, or drag the app out of the `.dmg` into `Applications`.
+2. Nhấp đúp `AxieDice.app`. Cảnh báo hiện ra, bấm **Done** (không bấm Move to Trash).
+   Double-click the app; when the warning appears click **Done** (not Move to Trash).
+3. Vào **System Settings → Privacy & Security**, kéo xuống mục Security.
+   Open **System Settings → Privacy & Security** and scroll to Security.
+4. Bấm **Open Anyway** cạnh thông báo về `AxieDice`, nhập mật khẩu máy, rồi bấm **Open Anyway** lần nữa.
+   Click **Open Anyway** next to the message about `AxieDice`, enter your password, confirm.
+5. Từ lần sau, nhấp đúp bình thường. After the first time, a normal double-click works.
 
-### Cách 2: System Settings (macOS Sequoia trở lên)
+### Cách 2 (macOS 14 Sonoma trở xuống): chuột phải → Open
 
-Nếu chuột phải → Open không còn nút Open:
-If right-click → Open does not show an Open button:
+1. **Chuột phải** (hoặc Control-click) `AxieDice.app` → **Open**. Right-click → **Open**.
+2. Hộp thoại "unidentified developer" hiện ra, bấm **Open**. Click **Open** in the dialog.
 
-1. Thử mở app một lần (double-click), bấm **Done** hoặc **Cancel** khi được hỏi.
-   Double-click the app once, then dismiss the warning.
-2. Vào **System Settings → Privacy & Security**, kéo xuống mục bảo mật.
-   Open **System Settings → Privacy & Security** and scroll down to the security section.
-3. Bấm **Open Anyway** (Mở dù sao) cạnh thông báo về `AxieDice`, nhập mật khẩu máy.
-   Click **Open Anyway** next to the message about `AxieDice`, then enter your password.
+### Cách 3 (cho người rành, mọi phiên bản): xóa cờ quarantine
 
-### Cách 3 (cho người rành): xóa cờ quarantine
-
-Chỉ dùng khi hai cách trên không được. Lệnh này xóa cờ "tải từ internet" của riêng app đó:
+Chỉ dùng khi hai cách trên không được, hoặc app báo "damaged". Lệnh này xóa cờ "tải từ internet" của riêng app đó:
 Use only if the two methods above fail. This clears the download quarantine flag on that one app:
 
 ```
@@ -62,11 +57,11 @@ Change the path if the app is elsewhere. Do not use `sudo`, and do not run it on
 
 ### Ghi chú macOS / macOS notes
 
-- Bản này là x86_64 (Intel). Máy Apple Silicon (M1 trở lên) chạy qua Rosetta 2. Nếu máy chưa có,
-  macOS sẽ hỏi cài Rosetta; bấm **Install** và đợi xong. Lệnh cài tay: `softwareupdate --install-rosetta --agree-to-license`.
-  This build is Intel (x86_64). Apple Silicon Macs run it through Rosetta 2. If prompted, install Rosetta.
+- Bản này là universal: chạy native trên cả Apple Silicon và Intel (macOS 11 trở lên cho Apple Silicon, 10.13 cho Intel). Không cần Rosetta.
+  This build is universal (native on Apple Silicon and Intel). No Rosetta needed.
 - Nếu app "bị hỏng" ("is damaged and can't be opened"): đó là cờ quarantine, làm theo Cách 3.
   If the app says it is "damaged", that is the quarantine flag. Use Method 3.
+- Log nằm ở `logs/godot.log` cùng thư mục save. Logs are in `logs/godot.log` inside the same folder.
 - Dữ liệu (save) nằm ở `~/Library/Application Support/Godot/app_userdata/Axie Dice (Godot port)/`.
   Save data is stored there.
 
@@ -87,6 +82,8 @@ Change the path if the app is elsewhere. Do not use `sudo`, and do not run it on
 
 ### Ghi chú Windows / Windows notes
 
+- Mẹo: chuột phải file `.zip` → Properties → tick **Unblock** → OK TRƯỚC khi giải nén, đỡ bị SmartScreen hỏi.
+  Tip: right-click the zip → Properties → **Unblock** before extracting.
 - Bản này chỉ x86_64. Máy Windows ARM không chạy được (chạy qua giả lập có thể lỗi).
   x86_64 only. Windows on ARM is not supported in this build.
 - Cần driver đồ hoạ cập nhật (DirectX 12 hoặc Vulkan). Nếu app đen màn hình hoặc crash khi mở, cập nhật driver GPU rồi thử lại.
@@ -112,7 +109,7 @@ Placeholder. Lane R fills these in after measuring on clean machines.
 
 ## 5. Khi gặp lỗi / If something goes wrong
 
-Gửi báo cáo theo mẫu trong `l1-test-plan.md` (mục 4). Kèm: phiên bản (tên file zip, hoặc dòng
+Gửi báo cáo theo mẫu trong `l1-test-plan.md` (mục 4). Kèm file log (`logs/godot.log` trong thư mục save, xem test plan mục 4b), phiên bản (tên file zip, hoặc dòng
 `build:` trong file `BUILD_INFO.txt` nếu có), hệ điều hành, và ảnh chụp màn hình.
 Send a report using the template in `l1-test-plan.md` section 4. Include the file name (build number),
 OS version, and a screenshot.

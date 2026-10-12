@@ -11,7 +11,7 @@ Scope: bản tải về macOS + Windows, không ký, cho nội bộ Sky Mavis + 
 
 | Build | Máy test | Ai | Trạng thái |
 |---|---|---|---|
-| macOS universal (.zip, .dmg) | Mac Apple Silicon, Mac Intel (nếu có) | R + 2 người | Chặn: cần lane I bật `import_etc2_astc` (xem mục 6) |
+| macOS universal (.zip, .dmg) | Mac Apple Silicon, Mac Intel (nếu có) | R + 2 người | Đã build universal 12/10 (import_etc2_astc đã bật). Chưa thử máy sạch |
 | Windows x86_64 (.zip, exe embed pck) | Windows 10, Windows 11 | R + 2 người | Build 12/10 |
 | Web (dự phòng, nếu còn giữ) | Chrome, Safari, Edge | R | Không ưu tiên |
 
@@ -50,7 +50,7 @@ Thời lượng mục tiêu: 20 phút. Đánh dấu PASS / FAIL / N/A và ghi ng
 
 **Lỗi thường gặp**
 - [ ] Không có màn "Lỗi không xác định" khi bấm nút chính.
-- [ ] Log không có `SCRIPT ERROR` (xem mục 5 để lấy log).
+- [ ] Log không có `SCRIPT ERROR` (xem mục 4b để lấy log).
 
 ## 3. Kế hoạch soak / Soak plan
 
@@ -78,7 +78,7 @@ Dán vào kênh báo lỗi (TBD: kênh, ví dụ một thread chung). Một lỗ
 ```
 Tiêu đề: [ngắn, có chế độ + màn hình]  ví dụ: "Ranked: thua run xong kẹt ở màn kết quả"
 Mức độ: S1 chặn chơi / S2 lỗi lớn có cách tránh / S3 lỗi nhỏ / S4 chữ, hình
-Build: AxieDice-0.1.0-L1-bXXX-<hash>-<nền tảng>.zip  (tên file hoặc dòng build: trong BUILD_INFO.txt)
+Build: AxieDice-0.1.0-L1-bXXX-<hash>-<nền tảng>.zip  (đính kèm godot.log nếu S1/S2)  (tên file hoặc dòng build: trong BUILD_INFO.txt)
 Hệ điều hành: (ví dụ macOS 15.2 Apple Silicon / Windows 11 23H2)
 Tài khoản / chế độ / Ascension: 
 Có mạng không: có / không / chập chờn
@@ -97,6 +97,16 @@ Save: đã giữ thư mục save chưa (có / không)
 
 Lưu ý: không xóa thư mục save trước khi báo lỗi. Đường dẫn save nằm trong `l1-install-guide.md`.
 
+## 4b. Log, crash và save an toàn / Logs, crashes, save safety
+
+- Log: `logs/godot.log` trong thư mục save (đường dẫn trong `l1-install-guide.md`); Godot giữ vài file log cũ cạnh nó. Người test đính kèm file này khi báo S1/S2. Kiểm trước RC1: log có bật trong bản release và không chứa token/mật khẩu (grep `token`, `Bearer`, `password`).
+- Crash macOS: `~/Library/Logs/DiagnosticReports/` (file `.ips`). Windows: Event Viewer, Windows Logs, Application (lỗi AppCrash). Gửi kèm.
+- Crash không để lại log nào: ghi lại bước cuối, giờ, và chụp màn hình.
+- Trước khi test: copy thư mục save đi chỗ khác (backup). Người test thật dùng tài khoản mời, không dùng tài khoản có dữ liệu quan trọng.
+- Test save: (a) nâng cấp RC1 lên RC2 đè lên, save và tài khoản còn nguyên; (b) kill app giữa lúc ghi (Task Manager / Force Quit) rồi mở lại, không mất save, không kẹt; (c) save hỏng (cắt file giữa chừng): game báo rõ, không crash vòng lặp; (d) hai máy cùng tài khoản: save cloud khớp.
+- Gỡ cài đặt: xóa app KHÔNG xóa save; ghi rõ trong hướng dẫn nếu muốn xóa sạch.
+- Kiểm bản phát hành: không có màn/phím dev, không có cờ dev (đã kiểm: scenes/dev_review bị loại khỏi pck, xem build_desktop.sh).
+
 ## 5. Kiểm tra telemetry / Telemetry checks
 
 Mục đích: đảm bảo số liệu L1 (run, Nhiệm vụ, cọc) được ghi đúng để đối soát. Đây là việc của S và E, lane R chỉ kiểm.
@@ -114,7 +124,7 @@ Các mục TBD được hỏi lane S (server) và lane E (economy) trước 24/1
 
 | # | Việc | Ai | Hạn |
 |---|---|---|---|
-| 1 | Bật `rendering/textures/vram_compression/import_etc2_astc=true` trong `godot/project.godot` để xuất macOS universal. Template 4.7.2 không có bản x86_64 riêng, nên không có đường lùi. | Lane I | 14/10 |
+| 1 | XONG (f3a8e9b): `import_etc2_astc=true` đã bật, macOS universal xuất được. Còn: thử trên Mac Intel thật. | R | 24/10 |
 | 2 | Chọn tên bundle id (đang để `fun.axiedice.game`) và phiên bản hiển thị | Liam | 14/10 |
 | 3 | Danh sách máy của ~50 người mời (mac Intel/Apple Silicon, Windows) | Liam | 24/10 |
 | 4 | Số build hiển thị trong game (hiện chỉ có trong tên file và `BUILD_INFO.txt`) | Lane U | 24/10 |
