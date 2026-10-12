@@ -449,8 +449,7 @@ func _ready() -> void:
 	RunState.resume_combat = {}
 	if not resumed.is_empty():
 		_combat.from_data(resumed)
-		if _combat.has_method("set_epoch") and "epoch" in RunState:
-			_combat.call("set_epoch", RunState.get("epoch"))   # lane A (PR2): resume keeps the epoch
+		_combat.set_epoch(RunState.epoch)   # a resumed fight keeps the run's epoch source
 		_append_log("=== combat RESUMED from save: node=%s turn=%d ===" % [_combat.node_id, _combat.turn])
 	else:
 		_combat.setup_new(_setup)
