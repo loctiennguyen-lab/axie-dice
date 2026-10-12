@@ -104,6 +104,7 @@ func test_a_axes() -> void:
 	t.hp = 1000
 	DamagePipeline.resolve({"combat": c3, "src": src, "tgt": t, "value": 10, "attack": true, "crit": true, "face_type": "dmg"})
 	_assert(1000 - t.hp == 30, "apexpredator: crit x3")
+	_assert(RelicHooks.sum(c3, "critBonus") == 0.0, "apexpredator: adds no crit chance")
 	var c4 := _combat([])
 	t = c4.alive_enemies()[0]
 	t.hp = 1000

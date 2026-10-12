@@ -176,6 +176,9 @@ func _check_boss_phase_transition() -> void:
 # RelicHooks.sum/has/max_val call sites.
 # ===========================================================================
 func _check_relic_pure_data() -> void:
+	var c0 := _new_combat([])
+	_assert(RelicHooks.sum(c0, "critBonus") == 0.0, "no relics: critBonus baseline should be 0")
+	_assert(not RelicHooks.has(c0, "hiveMind"), "no relics: has(hiveMind) should be false")
 	var c1 := _new_combat(["r_luckycharm"])
 	_assert(RelicHooks.sum(c1, "critBonus") == 35.0, "r_luckycharm: critBonus should be 35.0")
 
