@@ -97,7 +97,7 @@ func test_hard_exclusions() -> void:
 	_assert(RewardGenerator.is_offerable(RelicRegistry.get_def("a_chaos"), _ctx([])), "a_chaos fine without twinfates")
 	_assert(RewardGenerator.twinfates_blocks_reroll(["r_twinfates"]) and not RewardGenerator.twinfates_blocks_reroll(["r_claw"]), "twinfates_blocks_reroll")
 	# hidden relics never offered
-	_assert(not RewardGenerator.is_offerable(RelicRegistry.get_def("r_hollowchalice"), _ctx([]), true), "hidden pact not offered yet")
+	_assert(not RewardGenerator.is_offerable(RelicRegistry.get_def("r_tidecaller"), _ctx([]), true), "hidden relic not offered yet")
 
 
 func test_weights() -> void:
@@ -237,7 +237,7 @@ func test_pact_offer() -> void:
 	for d in RewardGenerator.pick_pact_offer(Rng.new(1), eternal):
 		_assert(d.id != "r_bloodpact", "G pact that cannot be placed (only G relic is Eternal) is filtered")
 	var all_gone := _ctx([])
-	all_gone["pacts_taken"] = ["r_bloodpact", "r_brittledice", "r_patientfang", "r_twinfates", "r_devilsreroll", "r_tithepips"]
+	all_gone["pacts_taken"] = ["r_bloodpact", "r_brittledice", "r_patientfang", "r_twinfates", "r_devilsreroll", "r_tithepips", "r_ironvow", "r_lonewolf", "r_hollowchalice"]
 	_assert(RewardGenerator.pick_pact_offer(Rng.new(1), all_gone).is_empty(), "no valid pact -> no card")
 
 

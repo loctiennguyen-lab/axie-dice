@@ -21,6 +21,7 @@ func _ready() -> void:
 	test_heirloom()
 	test_devilsreroll()
 	test_twinfates()
+	test_pacts_v2()
 	test_tithepips()
 	test_amberdie()
 	test_tweaks()
@@ -356,6 +357,60 @@ func test_devilsreroll() -> void:
 	_assert(c.can_reroll(uids) and c.reroll_dice(uids, 9), "devilsreroll: with Mana the Reroll works")
 	_assert(c.mana == 1 and c.rerolls == r0 - 1, "devilsreroll: it cost exactly 1 Mana")
 	_assert(c.reroll_dice([c.party[1].uid], 9, true) and c.mana == 0, "devilsreroll: an Aid Reroll costs 1 Mana too")
+
+
+func test_pacts_v2() -> void:
+	# ironvow: shield x1.5 (round half up), +2 Thorns team, dmg faces -2 (floor 1).
+	var b := _combat([], 91)
+	var c := _combat(["r_ironvow"], 91)
+	for i in c.party.size():
+		var bu: Unit = b.party[i]
+		var u: Unit = c.party[i]
+		_assert(int(u.status.get("thorns", 0)) == int(bu.status.get("thorns", 0)) + 2, "ironvow: +2 Thorns on Axie %d" % i)
+		for fi in 6:
+			var bv := int(bu.die[fi].get("value", 0))
+			if String(bu.die[fi].get("type", "")) == "dmg" and bv > 0:
+				_assert(int(u.die[fi]["value"]) == maxi(1, bv - 2), "ironvow: dmg face %d/%d -2 min 1" % [i, fi])
+	var t: Unit = c.party[1]
+	var bt: Unit = b.party[1]
+	t.shield = 0
+	bt.shield = 0
+	DamagePipeline.apply_shield(c, t, 6)
+	DamagePipeline.apply_shield(b, bt, 6)
+	_assert(t.shield == int(RulesMath.round_half_up(float(bt.shield) * 1.5)), "ironvow: Shield x1.5 (%d vs %d)" % [t.shield, bt.shield])
+	var e: Unit = c.alive_enemies()[0]
+	e.shield = 0
+	DamagePipeline.apply_shield(c, e, 6)
+	_assert(e.shield == 6, "ironvow: enemy Shield untouched")
+	# lonewolf: only slot 1 may reroll.
+	var w := _combat(["r_lonewolf"], 92)
+	w.mana = 9
+	_assert(w.can_reroll([w.party[0].uid]), "lonewolf: slot 1 can reroll")
+	for i in range(1, 5):
+		_assert(not w.can_reroll([w.party[i].uid]), "lonewolf: slot %d cannot reroll" % (i + 1))
+	var rr := w.rerolls
+	_assert(w.reroll_dice([w.party[0].uid, w.party[2].uid], 5) and w.rerolls == rr - 1, "lonewolf: mixed set rerolls only slot 1")
+	# lonewolf G: +100% only for slot 1 (g_axie).
+	_assert(is_equal_approx(RelicHooks.g_axie(w, w.party[0]), 2.0) and is_equal_approx(RelicHooks.g_axie(w, w.party[1]), 1.0), "lonewolf: G +100% on slot 1 only")
+	# hollowchalice: active cost -2 (min 1), Mana faces give 0.
+	var h := _combat(["r_hollowchalice", "a_restore"], 93)
+	var cost0 := int(RelicRegistry.get_def("a_restore").act_cost)
+	h.mana = 9
+	var m0 := h.mana
+	_assert(h.play_active("a_restore", h.party[0].uid), "chalice: active plays")
+	_assert(m0 - h.mana == maxi(1, cost0 - 2), "chalice: active cost %d -> %d" % [cost0, m0 - h.mana])
+	var u2: Unit = h.party[0]
+	var mfi := -1
+	for fi in 6:
+		if String(u2.die[fi].get("type", "")) == "mana":
+			mfi = fi
+	if mfi < 0:
+		u2.die[2] = {"type": "mana", "value": 3, "keywords": []}
+		mfi = 2
+	_assert(h._face_value(u2, mfi) == 0, "chalice: Mana face gives 0")
+	var h0 := _combat([], 93)
+	h0.party[0].die[mfi] = {"type": "mana", "value": 3, "keywords": []}
+	_assert(h0._face_value(h0.party[0], mfi) >= 3, "chalice: baseline Mana face is not 0")
 
 
 func test_twinfates() -> void:

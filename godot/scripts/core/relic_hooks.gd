@@ -1134,6 +1134,43 @@ static var TABLE: Dictionary = {
 			var fi2: int = ctx["combat"]._rng.next_int(6)
 			return fi2 if int(u.die[fi2].get("value", 0)) > int(u.die[fi].get("value", 0)) else fi,
 	},
+	"r_ironvow": {
+		# Pact (dice group, axis A:shield). Benefit: every Shield a party Axie gains x1.5 (`shield_value`,
+		# DamagePipeline.apply_shield) and the whole team starts each fight with +2 Thorns. Drawback: every
+		# dmg face -2 but never below 1 (mul phase, so it lands after the +N relics). Faces already 0 stay 0.
+		"mod_face": func(ctx: Dictionary):
+			for f in ctx["unit"].die:
+				if String(f.get("type", "")) == "dmg" and int(f.get("value", 0)) > 0:
+					f["value"] = maxi(1, int(f.get("value", 0)) - 2)
+			return,
+		"shield_value": func(ctx: Dictionary):
+			var tgt: Unit = ctx["tgt"]
+			if tgt.side != "p":
+				return ctx["value"]
+			var m := 1.0 + RelicHooks.axis_sum(ctx["combat"], "A:shield")
+			return RulesMath.round_half_up(float(ctx["value"]) * m),
+		"on_combat_start": func(ctx: Dictionary):
+			for u in ctx["combat"].party:
+				if u.hp > 0:
+					u.status["thorns"] = mini(StatusEngine.THORNS_CAP, int(u.status.get("thorns", 0)) + 2)
+			return,
+	},
+	"r_lonewolf": {
+		# Pact (reroll group, axis G). Benefit is `g_axie` (slot 1 only, +100%). Drawback: only the Axie
+		# in slot 1 may be rerolled; CombatEngine._rerollable asks `reroll_allowed` per Axie.
+		"reroll_allowed": func(ctx: Dictionary):
+			return RelicHooks.slot_of(ctx["unit"]) == 0 and bool(ctx["value"]),
+	},
+	"r_hollowchalice": {
+		# Pact (mana group). +1 active slot is RelicSlots (chalice_id). Every active costs 2 less Mana
+		# (min 1) via `active_cost`; every Mana face gives 0 after ALL mods (`face_final`).
+		"active_cost": func(ctx: Dictionary):
+			return maxi(1, int(ctx["value"]) - 2),
+		"face_final": func(ctx: Dictionary):
+			if String(ctx["face_type"]) == "mana" and ctx["unit"].side == "p":
+				return 0
+			return ctx["value"],
+	},
 	"r_tithepips": {
 		# Pact (dice group): +3 Mana each turn; after every roll the lowest-value face is blanked (exactly
 		# one, living non-Egg Axies with an unused face, tie to the lower slot). Recomputed at every settle.

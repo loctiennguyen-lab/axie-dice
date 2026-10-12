@@ -217,6 +217,8 @@ static func apply_shield(combat, tgt: Unit, value: int) -> void:
 	var v := value
 	if tgt.side == "p" and tgt.cls == "plant":
 		v += 2                                                                   # BULWARK passive
+	if tgt.side == "p":
+		v = int(RelicHooks.run_value_hook(combat, "shield_value", {"combat": combat, "tgt": tgt}, v))   # ironvow
 	var no_cap: bool = tgt.side == "p" and RelicHooks.has(combat, "noShieldCap")
 	var cap: int = 999999 if no_cap else tgt.max_hp * 2
 	if no_cap and tgt.shield + v > tgt.max_hp * 2:

@@ -655,7 +655,8 @@ func _rerollable(uids: Array) -> Array:
 	for raw_id in uids:
 		var u := by_uid(int(raw_id))
 		if u != null and u.side == "p" and u.hp > 0 and u.has_rolled() and not u.roll_used() \
-				and not u.heavy and not u.frozen:
+				and not u.heavy and not u.frozen \
+				and bool(RelicHooks.run_value_hook(self, "reroll_allowed", {"combat": self, "unit": u}, true)):
 			list.append(u)
 	return list
 
@@ -688,7 +689,7 @@ func play_active(relic_id: String, target_uid: int = -1) -> bool:
 	var a: Dictionary = def.act if "act" in def else {}
 	if a.is_empty():
 		return false
-	var cost := int(def.act_cost)
+	var cost := int(RelicHooks.run_value_hook(self, "active_cost", {"combat": self, "def": def}, int(def.act_cost)))
 	if mana < cost:
 		return false
 
@@ -1027,7 +1028,7 @@ func _face_value(u: Unit, fi: int) -> int:
 		v += 1.0                                                        # CONDUIT passive
 	if u.side == "p" and u.resonant_now:
 		v = ceil(v * RESONANCE_MULT)
-	return int(v)
+	return int(RelicHooks.run_value_hook(self, "face_final", {"combat": self, "unit": u, "face_type": face_type}, int(v)))
 
 
 func _pure_keywords(f: Dictionary) -> Array:
