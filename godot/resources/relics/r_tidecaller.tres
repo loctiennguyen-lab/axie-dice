@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="RelicDef" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data_models/relic_def.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "r_tidecaller"
+name = "Tidecaller's Conch"
+description = "CONDUIT: mỗi 3 Mana tiêu cho 1 Reroll (thay 4), Reroll này được vượt max tới +2; mặt Mana của Axie Aqua +1"
+rarity = 2
+archetype = "aqua"
+mload = 0
+sort_index = 102516
+hook_key = ""
+tags = PackedStringArray("aqua", "mana")
+layer = "class-up"
+requires_class = "aqua"
+needs_hook = "FIELD"
+hidden_from_pool = true

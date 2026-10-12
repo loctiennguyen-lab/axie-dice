@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="RelicDef" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data_models/relic_def.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "r_hollowchalice"
+name = "Hollow Chalice"
+description = "Lợi: +1 ô active (4 ô), mọi active rẻ hơn 2 Mana (sàn 1). Hại: mặt Mana cho 0 Mana (Mana chỉ đến từ relic/class/lượt). SỬA SAU REVIEW 11/10 (F-17): \"sau mọi mod, mặt Mana = 0\" (`ear` +1, CONDUIT +1, `tidecaller` +1 đều không cứu); `ear`/`tidecaller` thành dead-draw `m=1` (§4.3)"
+rarity = 2
+archetype = "mana"
+mload = 0
+sort_index = 102522
+hook_key = ""
+tags = PackedStringArray("mana")
+layer = "pact"
+pact_group = "mana"
+needs_hook = "ACTIVE_SLOTS"
+hidden_from_pool = true

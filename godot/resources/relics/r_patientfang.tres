@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="RelicDef" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data_models/relic_def.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "r_patientfang"
+name = "Patient Fang"
+description = "Lợi: mỗi lượt đã qua, mọi mặt dmg +2 (lượt 2 = +2, lượt 3 = +4... tối đa +14). Hại: lượt 1 mọi mặt dmg ra 0 (Shield/Mana/utility vẫn chạy)"
+rarity = 3
+archetype = "crit"
+mload = 0
+sort_index = 103525
+hook_key = ""
+tags = PackedStringArray("uni")
+layer = "pact"
+pact_group = "dice"
+needs_hook = "BODY"
+hidden_from_pool = true

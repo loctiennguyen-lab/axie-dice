@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="RelicDef" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data_models/relic_def.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "r_tideglass"
+name = "Tideglass"
+description = "Mỗi 3 Mana tiêu: mọi mặt dmg +1 đến hết trận (tối đa +6). Reset mỗi trận"
+rarity = 2
+archetype = "mana"
+mload = 0
+sort_index = 102540
+hook_key = ""
+tags = PackedStringArray("mana")
+layer = "scaling"
+needs_hook = "H4,H5"
+hidden_from_pool = true

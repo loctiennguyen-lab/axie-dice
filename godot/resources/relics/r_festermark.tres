@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="RelicDef" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data_models/relic_def.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "r_festermark"
+name = "Festering Mark"
+description = "Địch có Poison hoặc Burn nhận +2 mỗi đòn; có cả hai thì +4. Số phẳng, không nhân"
+rarity = 1
+archetype = "poison"
+mload = 0
+sort_index = 101501
+hook_key = ""
+tags = PackedStringArray("poison", "burn")
+layer = "payoff"
+needs_hook = "BODY"
+hidden_from_pool = true

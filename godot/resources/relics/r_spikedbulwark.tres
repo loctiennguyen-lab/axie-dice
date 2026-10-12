@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="RelicDef" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data_models/relic_def.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "r_spikedbulwark"
+name = "Spiked Bulwark"
+description = "Axie nhận Shield: Thorns của nó +1 cho mỗi 5 Shield đang có (tối đa +4) đến hết lượt"
+rarity = 1
+archetype = "shield"
+mload = 0
+sort_index = 101505
+hook_key = ""
+tags = PackedStringArray("shield", "thorns")
+layer = "duo"
+needs_hook = "BODY"
+hidden_from_pool = true

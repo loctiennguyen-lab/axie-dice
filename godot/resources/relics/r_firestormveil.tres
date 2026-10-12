@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="RelicDef" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data_models/relic_def.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "r_firestormveil"
+name = "Firestorm Veil"
+description = "Mặt AoE gắn Burn 2 lên mọi địch trúng; địch đang Burn nhận +1 mỗi đòn AoE"
+rarity = 2
+archetype = "burn"
+mload = 0
+sort_index = 102504
+hook_key = ""
+tags = PackedStringArray("burn", "aoe")
+layer = "duo"
+needs_hook = "FACE_CTX"
+hidden_from_pool = true

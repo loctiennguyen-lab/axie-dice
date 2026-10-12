@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="RelicDef" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data_models/relic_def.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "r_wellspringroots"
+name = "Wellspring Roots"
+description = "Mỗi 2 Mana đã tiêu: mọi mặt của đội +1 growth trong trận (tối đa +4)"
+rarity = 1
+archetype = "growth"
+mload = 0
+sort_index = 101511
+hook_key = ""
+tags = PackedStringArray("growth", "mana")
+layer = "duo"
+needs_hook = "H4"
+hidden_from_pool = true

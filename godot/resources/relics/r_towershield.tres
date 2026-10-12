@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="RelicDef" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data_models/relic_def.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "r_towershield"
+name = "Tower Shield"
+description = "Mặt dmg của Axie đang có Shield: +1 dmg mỗi 4 Shield (tối đa +6). Shield thành sát thương"
+rarity = 0
+archetype = "shield"
+mload = 0
+sort_index = 100545
+hook_key = ""
+tags = PackedStringArray("shield")
+layer = "payoff"
+needs_hook = "BODY"
+hidden_from_pool = true

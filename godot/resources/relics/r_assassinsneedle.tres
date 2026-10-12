@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="RelicDef" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data_models/relic_def.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "r_assassinsneedle"
+name = "Assassin's Needle"
+description = "Mặt Pierce +25% crit chance; Pierce crit gắn Weaken 2 và hoàn 1 Mana"
+rarity = 3
+archetype = "crit"
+mload = 0
+sort_index = 103508
+hook_key = ""
+tags = PackedStringArray("crit", "pierce")
+layer = "duo"
+needs_hook = "FACE_CRIT"
+hidden_from_pool = true

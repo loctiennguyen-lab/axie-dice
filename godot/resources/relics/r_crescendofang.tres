@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="RelicDef" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data_models/relic_def.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "r_crescendofang"
+name = "Crescendo Fang"
+description = "Mỗi mặt dmg dùng trong lượt: mặt dmg kế tiếp +1 (cộng dồn). Reset cuối lượt"
+rarity = 0
+archetype = "exec"
+mload = 0
+sort_index = 100539
+hook_key = ""
+tags = PackedStringArray("exec")
+layer = "scaling"
+needs_hook = "H2"
+hidden_from_pool = true

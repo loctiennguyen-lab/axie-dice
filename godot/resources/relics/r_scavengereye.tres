@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="RelicDef" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data_models/relic_def.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "r_scavengereye"
+name = "Scavenger's Eye"
+description = "Reward Battle/Elite hiện 4 thẻ thay vì 3; Treasure có thêm 1 thẻ relic (F-21: Treasure hiện là reward tier 1 nhiều loại thẻ, không có thẻ \"chọn 1 trong 2 relic\")"
+rarity = 1
+archetype = "crit"
+mload = 0
+sort_index = 101544
+hook_key = ""
+tags = PackedStringArray("uni")
+layer = "economy"
+needs_hook = "H8"
+hidden_from_pool = true

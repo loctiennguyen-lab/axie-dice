@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="RelicDef" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data_models/relic_def.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "r_venomlineage"
+name = "Venom Lineage"
+description = "VIRULENT: Poison lên mục tiêu đã có Poison thêm 3 stack (thay 2); lần Poison đầu mỗi lượt của Axie Bug cũng lan 1 stack sang địch kề"
+rarity = 2
+archetype = "bug"
+mload = 0
+sort_index = 102518
+hook_key = ""
+tags = PackedStringArray("bug", "poison")
+layer = "class-up"
+requires_class = "bug"
+needs_hook = "FIELD"
+hidden_from_pool = true

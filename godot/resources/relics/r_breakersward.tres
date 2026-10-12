@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="RelicDef" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data_models/relic_def.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "r_breakersward"
+name = "Breaker's Ward"
+description = "Pierce phá Shield của địch: Axie ít Shield nhất nhận số Shield bị phá (tối đa 8/đòn). SỬA SAU REVIEW 11/10 (F-15): chỉ hưởng Shield **bị phá**, tự nó không phá; nguồn phá là `talonedge` / `a_pinning`. Gate offer: chỉ ra khi đang giữ `talonedge` hoặc `a_pinning` (§4.2 mục 4)"
+rarity = 1
+archetype = "shield"
+mload = 0
+sort_index = 101507
+hook_key = ""
+tags = PackedStringArray("shield", "pierce")
+layer = "duo"
+needs_hook = "SHIELD_BREAK"
+hidden_from_pool = true

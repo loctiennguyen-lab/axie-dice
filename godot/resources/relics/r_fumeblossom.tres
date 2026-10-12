@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="RelicDef" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data_models/relic_def.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "r_fumeblossom"
+name = "Fumeblossom"
+description = "Mỗi Burn tick lên một địch gắn thêm 1 Poison; mỗi Poison tick lên địch đang Burn cộng 1 Burn. Hai trục nuôi nhau. Giới hạn: mỗi chiều tối đa 1 lần/địch/lượt"
+rarity = 3
+archetype = "poison"
+mload = 0
+sort_index = 103502
+hook_key = ""
+tags = PackedStringArray("poison", "burn")
+layer = "duo"
+needs_hook = "TICK"
+hidden_from_pool = true

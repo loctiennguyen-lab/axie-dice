@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="RelicDef" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data_models/relic_def.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "r_relaybaton"
+name = "Relay Baton"
+description = "Axie dùng xong 1 mặt: Axie slot kế bên phải +2 dmg cho mặt kế tiếp lượt này (cộng dồn đi trái sang phải)"
+rarity = 2
+archetype = "crit"
+mload = 0
+sort_index = 102537
+hook_key = ""
+tags = PackedStringArray("uni")
+layer = "positional"
+needs_hook = "H2"
+hidden_from_pool = true

@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="RelicDef" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data_models/relic_def.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "r_carrioncall"
+name = "Carrion Call"
+description = "Địch có ≥5 Poison được tính là wounded trong `is_wounded()` (§3.5): FERAL, Scent of Blood, Death Spiral và mọi điều kiện \"dưới 50% HP\". Vì dùng đúng một hàm, địch đó cũng KHÔNG còn là \"trên 50% HP\" với `dawnlance` (SỬA SAU REVIEW 11/10)"
+rarity = 2
+archetype = "exec"
+mload = 0
+sort_index = 102513
+hook_key = ""
+tags = PackedStringArray("exec", "poison")
+layer = "duo"
+needs_hook = "BODY"
+hidden_from_pool = true

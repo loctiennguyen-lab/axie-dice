@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="RelicDef" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data_models/relic_def.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "r_sporegale"
+name = "Spore Gale"
+description = "Mặt Cleave/AoE gắn 1 Poison lên mọi mục tiêu phụ; Poison lan 1 stack sang hàng xóm mỗi tick (bật `poisonSpread` có sẵn)"
+rarity = 1
+archetype = "poison"
+mload = 0
+sort_index = 101503
+hook_key = ""
+tags = PackedStringArray("poison", "aoe")
+layer = "duo"
+needs_hook = "TICK"
+hidden_from_pool = true

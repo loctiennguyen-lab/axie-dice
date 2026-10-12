@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="RelicDef" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data_models/relic_def.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "r_devilsreroll"
+name = "Devil's Reroll"
+description = "Lợi: Reroll max +3. Hại: mỗi lần reroll tốn 1 Mana, hết Mana là không reroll được"
+rarity = 2
+archetype = "mana"
+mload = 0
+sort_index = 102521
+hook_key = ""
+tags = PackedStringArray("mana")
+layer = "pact"
+pact_group = "mana"
+needs_hook = "H1"
+hidden_from_pool = true

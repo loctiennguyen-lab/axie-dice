@@ -116,6 +116,28 @@ func _assert(cond: bool, msg: String) -> void:
 		_failures.append(msg)
 
 
+const V2_POS_MIN := 500
+
+
+func _pos(d) -> int:
+	var rank := {"kw": 0, "add": 1, "mul": 2}
+	return int(d.sort_index) - int(rank.get(String(d.mf_phase), 1)) * 100000 - int(d.rarity) * 1000
+
+
+## A relic with no hook_key can still be live through aggregate fields (piercePlus, ...).
+func _is_pure_data(d) -> bool:
+	for f in ["piercePlus", "dmgMult", "critMult", "critFlat", "critFlatPity", "critBonus", "dr",
+			"thornsMult", "thornsPlus", "rerollUp", "hiveMind", "tokenCap", "cleaveRatio", "poisonTicks",
+			"burnMult", "burnTicks", "burnTickRatio", "growthPlus", "growthAll", "startSummon", "actReuse"]:
+		if float(d.get(f)) != 0.0:
+			return true
+	for f in ["critPierce", "noShieldCap", "healShield", "manaOverflow", "plague", "burnSlow", "burnSpread",
+			"poisonSpread", "safeReroll", "critKeep", "growthKeep", "firstEcho", "eggInherit"]:
+		if bool(d.get(f)):
+			return true
+	return false
+
+
 func _defs() -> Array:
 	var out: Array = []
 	for d in RelicRegistry.all_defs_sorted():
@@ -129,8 +151,18 @@ func _defs() -> Array:
 ## src/data.js ships 94 relics. Anything missing here is content the Godot build simply does
 ## not have, which shows up as a thinner reward pool rather than as an error.
 func test_every_relic_in_the_source_has_a_resource() -> void:
-	_assert(_defs().size() == 94,
-		"expected 94 relics loaded, found %d — src/data.js RELICS[] has 94" % _defs().size())
+	# v2 relics (relic-set-v2, lane B) carry sort_index position >= V2_POS_MIN; the legacy
+	# src/data.js ones sit below it.
+	var legacy := 0
+	for d in _defs():
+		if _pos(d) < V2_POS_MIN:
+			legacy += 1
+	_assert(legacy == 94, "expected 94 legacy relics loaded, found %d — src/data.js RELICS[] has 94" % legacy)
+	# A v2 relic with no hook_key and no behaviour must not be offered (hidden until its hook lands).
+	for d in _defs():
+		if _pos(d) >= V2_POS_MIN and String(d.hook_key) == "" and d.act_cost <= 0:
+			_assert(d.hidden_from_pool or _is_pure_data(d),
+				"v2 relic '%s' has no hook_key, is not pure data, and is not hidden_from_pool" % d.id)
 
 
 func test_every_hook_key_exists_in_the_table() -> void:
@@ -197,6 +229,8 @@ func test_sort_index_matches_the_source_order() -> void:
 	for def in _defs():
 		var phase: int = int(rank.get(String(def.mf_phase), 1))
 		var remainder: int = int(def.sort_index) - phase * 100000 - int(def.rarity) * 1000
+		if remainder >= V2_POS_MIN:
+			continue
 		_assert(remainder >= 0 and remainder < 94,
 			"relic '%s' has sort_index %d, which does not decompose into "
 				% [def.id, def.sort_index]

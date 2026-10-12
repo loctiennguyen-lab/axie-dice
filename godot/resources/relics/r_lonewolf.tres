@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="RelicDef" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data_models/relic_def.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "r_lonewolf"
+name = "Lone Wolf Contract"
+description = "Lợi: Axie slot 1 mọi mặt +100%. Hại: 4 Axie còn lại không được reroll"
+rarity = 2
+archetype = "crit"
+mload = 0
+sort_index = 102524
+hook_key = ""
+tags = PackedStringArray("uni")
+layer = "pact"
+mult_axis = "G"
+pact_group = "reroll"
+needs_hook = "REROLL_RESTRICT"
+hidden_from_pool = true
