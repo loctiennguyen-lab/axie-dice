@@ -61,7 +61,8 @@ export async function claimDaily(env, playerId, at = nowS()) {
   return { ok: true, granted: amount, reason: '', balance: r.balance, next_utc: next };
 }
 
-export const isWalletPath = (p) => p === '/api/wallet' || p === '/api/gem/claim';
+export const isWalletPath = (p) => p === '/api/wallet' || p === '/api/gem/claim' || p === '/api/wallet/spend';
+const MAX_SPEND = 5000;
 
 export async function handleWallet(request, env, url) {
   try {
@@ -75,6 +76,19 @@ export async function handleWallet(request, env, url) {
       const o = request.headers.get('Origin');
       if (o && !shared.isAllowedOrigin(o, url)) return json({ error: 'forbidden' }, 403);
       return json(await claimDaily(env, player.id));
+    }
+    if (url.pathname === '/api/wallet/spend' && request.method === 'POST') {
+      // Store purchases (tickets, cosmetics). The player can only ever lose their OWN Gem here; what the
+      // purchase grants is still client-side in L1 (goods are not on the server yet).
+      const o = request.headers.get('Origin');
+      if (o && !shared.isAllowedOrigin(o, url)) return json({ error: 'forbidden' }, 403);
+      let b;
+      try { b = await request.json(); } catch { b = null; }
+      if (!b || !Number.isSafeInteger(b.amount) || b.amount < 1 || b.amount > MAX_SPEND
+        || typeof b.reason !== 'string' || !/^[a-z0-9_:.-]{1,48}$/.test(b.reason)
+        || typeof b.idem !== 'string' || !/^[A-Za-z0-9_-]{8,64}$/.test(b.idem)) return json({ error: 'bad_request' }, 400);
+      const r = await spendGem(env, player.id, b.amount, `spend:${b.reason}`, `spend:${b.idem}`);
+      return json(r.ok ? { ok: true, balance: r.balance, dup: !!r.dup } : { ok: false, code: r.code, balance: await balanceOf(env, player.id) }, r.ok ? 200 : 402);
     }
     return json({ error: 'not_found' }, 404);
   } catch (err) {

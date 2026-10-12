@@ -168,3 +168,21 @@ test('caps: R1 once per run, R2 four, total six; guests and missions never pay',
   assert.equal((await g.ep('continue', { node_id: 'r1_c0' }, [EN])).code, 'rejected');
   assert.equal(await balanceOf(g.env, 'p1'), 500);
 });
+
+test('POST /api/wallet/spend: validates input, charges once per idem, 402 when poor', async () => {
+  const env = mkEnv();
+  const hash = Buffer.from(await crypto.subtle.digest('SHA-256', new TextEncoder().encode('tok'))).toString('base64url');
+  env.DB.db.prepare('INSERT INTO sessions (id_hash, player_id, created_at, expires_at) VALUES (?, ?, 1, 9999999999)').run(hash, 'p1');
+  await applyDelta(env, 'p1', 200, 'grant:test', 'g');
+  const spend = (body) => worker.fetch(new Request('https://axiedice.fun/api/wallet/spend', { method: 'POST', headers: { cookie: 'ad_session=tok', 'content-type': 'application/json' }, body: JSON.stringify(body) }), env);
+  assert.equal((await spend({ amount: -5, reason: 'x', idem: 'abcdefgh' })).status, 400);
+  assert.equal((await spend({ amount: 5, reason: 'Bad Reason', idem: 'abcdefgh' })).status, 400);
+  assert.equal((await spend({ amount: 5, reason: 'ticket', idem: 'short' })).status, 400);
+  const a = await (await spend({ amount: 120, reason: 'ticket_bundle', idem: 'purchase_0001' })).json();
+  assert.equal(a.balance, 80);
+  const again = await (await spend({ amount: 120, reason: 'ticket_bundle', idem: 'purchase_0001' })).json();
+  assert.deepEqual([again.ok, again.dup, again.balance], [true, true, 80]);
+  const poor = await spend({ amount: 120, reason: 'ticket_bundle', idem: 'purchase_0002' });
+  assert.equal(poor.status, 402);
+  assert.equal((await poor.json()).balance, 80);
+});
