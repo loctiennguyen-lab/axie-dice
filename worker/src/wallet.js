@@ -3,7 +3,7 @@
 // CHECK(balance >= 0) rolls the whole batch back when funds are short. A duplicate idem_key trips the
 // UNIQUE index, rolls back, and is reported as an idempotent replay, never a second charge.
 import { shared } from './accounts.js';
-import { GIFT } from './aid_prices.js';
+import { GIFT, SEASON_GIFT } from './aid_prices.js';
 
 const { json } = shared;
 const CUR = 'gem';
@@ -61,7 +61,18 @@ export async function claimDaily(env, playerId, at = nowS()) {
   return { ok: true, granted: amount, reason: '', balance: r.balance, next_utc: next };
 }
 
-export const isWalletPath = (p) => p === '/api/wallet' || p === '/api/gem/claim' || p === '/api/wallet/spend';
+/** Season gift milestone 1 or 2 (pass level 10 / 20). Idempotent per (account, season, milestone) through the
+ *  ledger idem key, so at most 2 x 90 Gem per season. The pass level itself is client state (L1); the cap is the guard. */
+export async function claimSeasonGift(env, playerId, seasonId, milestone, at = nowS()) {
+  if (typeof seasonId !== 'string' || !/^[A-Za-z0-9_-]{1,24}$/.test(seasonId)) return { ok: false, reason: 'bad_request' };
+  if (!Number.isSafeInteger(milestone) || milestone < 1 || milestone > SEASON_GIFT.milestones) return { ok: false, reason: 'bad_request' };
+  const r = await applyDelta(env, playerId, SEASON_GIFT.per_milestone, 'grant:season_gift', `season:${playerId}:${seasonId}:${milestone}`, at);
+  if (!r.ok) return { ok: false, reason: 'error' };
+  if (r.dup) return { ok: false, granted: 0, reason: 'already_claimed', balance: r.balance };
+  return { ok: true, granted: SEASON_GIFT.per_milestone, reason: '', balance: r.balance };
+}
+
+export const isWalletPath = (p) => p === '/api/gem/season_gift' || p === '/api/wallet' || p === '/api/gem/claim' || p === '/api/wallet/spend';
 const MAX_SPEND = 5000;
 
 export async function handleWallet(request, env, url) {
@@ -82,6 +93,15 @@ export async function handleWallet(request, env, url) {
       const o = request.headers.get('Origin');
       if (o && !shared.isAllowedOrigin(o, url)) return json({ error: 'forbidden' }, 403);
       return json(await claimDaily(env, player.id));
+    }
+    if (url.pathname === '/api/gem/season_gift' && request.method === 'POST') {
+      const o = request.headers.get('Origin');
+      if (o && !shared.isAllowedOrigin(o, url)) return json({ error: 'forbidden' }, 403);
+      let b;
+      try { const txt = await request.text(); b = txt.length <= 256 ? JSON.parse(txt) : null; } catch { b = null; }
+      if (!b) return json({ error: 'bad_request' }, 400);
+      const r = await claimSeasonGift(env, player.id, b.season_id, b.milestone);
+      return json(r, r.reason === 'bad_request' ? 400 : 200);
     }
     if (url.pathname === '/api/wallet/spend' && request.method === 'POST') {
       // Store purchases (tickets, cosmetics). The player can only ever lose their OWN Gem here; what the

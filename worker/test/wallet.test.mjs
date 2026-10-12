@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { readFileSync, existsSync } from 'node:fs';
 import { DatabaseSync } from 'node:sqlite';
 import worker from '../src/index.js';
-import { applyDelta, spendGem, claimDaily, balanceOf } from '../src/wallet.js';
+import { applyDelta, spendGem, claimDaily, claimSeasonGift, balanceOf } from '../src/wallet.js';
 import { PRICES, GIFT, totalCap } from '../src/aid_prices.js';
 import { RunCore } from '../src/run_core.js';
 import { chainStart, chainNext } from '../src/epoch_canon.js';
@@ -197,4 +197,18 @@ test('wallet endpoints are rate limited per player (limiter keyed by player id)'
   assert.equal((await http(env, '/api/gem/claim', 'POST')).status, 200);
   assert.equal((await http(env, '/api/wallet')).status, 429);
   assert.deepEqual([...new Set(keys)], ['w:p1']);
+});
+
+test('season gift: 90 per milestone, 2 per season, idempotent, new season pays again, bad input refused', async () => {
+  const env = mkEnv();
+  const a = await claimSeasonGift(env, 'p1', 's1', 1);
+  assert.deepEqual([a.ok, a.granted, a.balance], [true, 90, 90]);
+  const dup = await claimSeasonGift(env, 'p1', 's1', 1);
+  assert.deepEqual([dup.ok, dup.reason, dup.balance], [false, 'already_claimed', 90]);
+  assert.equal((await claimSeasonGift(env, 'p1', 's1', 2)).balance, 180);
+  assert.equal((await claimSeasonGift(env, 'p1', 's1', 3)).reason, 'bad_request');
+  assert.equal((await claimSeasonGift(env, 'p1', 'bad id!', 1)).reason, 'bad_request');
+  assert.equal(await balanceOf(env, 'p1'), 180, 'never more than 2 x 90 per season');
+  assert.equal((await claimSeasonGift(env, 'p1', 's2', 1)).balance, 270);
+  assert.equal(await balanceOf(env, 'p2'), 0, 'other account untouched');
 });

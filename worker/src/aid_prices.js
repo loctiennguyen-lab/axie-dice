@@ -18,3 +18,5 @@ export const totalCap = (ascension) => (ascension >= 9 ? 4 : 6);
 export const GIFT = { per_day: 300, balance_cap: 900 };
 /** Continue on a boss node (aid_prices.json R1.boss_price). Applied by RunCore._price from the logged node kind. */
 export const BOSS_CONTINUE_PRICE = 180;
+/** Season Pass gift (gem.json season_gift): 90 Gem at pass level 10 and 90 at level 20, once per account per season. */
+export const SEASON_GIFT = { per_milestone: 90, milestones: 2 };
