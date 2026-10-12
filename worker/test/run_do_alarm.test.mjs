@@ -37,3 +37,15 @@ test('alarm with nothing waiting does not re-arm', async () => {
   await m.do.alarm();
   assert.equal(m.getAlarm(), null);
 });
+
+test('hello alarm leaves an open run alone in D1; a closed run is synced', async () => {
+  const m = mk();
+  const calls = [];
+  m.do.env.DB = { prepare: (q) => ({ bind: (...a) => ({ run: async () => { calls.push([q, a]); } }) }) };
+  await m.do.core.init({ run_id: 'a'.repeat(32), player_id: 'p', rules_version: 'godot-2026-09-21-a' });
+  await m.do.alarm();
+  assert.equal(calls.length, 0);
+  m.do.core.sql.exec(`UPDATE meta SET state = 'closed', outcome = 'won', summary = '{}' WHERE id = 1`);
+  await m.do.alarm();
+  assert.equal(calls.length, 1);
+});

@@ -480,3 +480,11 @@ test('hello asks D1 (checkHello): revoked or locked closes with auth, a pass wel
   verdict = 'boom';
   assert.equal((await c.hello()).close.reason, 'auth');
 });
+
+test('event_choice can be consumed by event_done', async () => {
+  const { c } = await fresh();
+  await c.hello();
+  await start(c);
+  assert.equal((await c.epoch('event_choice', { node_id: 'r1_c0', index: 1 }, [])).t, 'epoch_res');
+  assert.equal((await c.epoch('node', { node_id: 'r1_c1' }, [A('event_done')])).t, 'epoch_res');
+});

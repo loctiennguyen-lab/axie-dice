@@ -67,7 +67,9 @@ export class RunDO {
       const pair = new WebSocketPair();
       this.ctx.acceptWebSocket(pair[1]);
       pair[1].serializeAttachment({ authed: false, epoch: 0, at: Date.now() });
-      if ((await this.ctx.storage.getAlarm()) == null) await this.ctx.storage.setAlarm(Date.now() + HELLO_DEADLINE_MS);
+      const existing = await this.ctx.storage.getAlarm();
+      const want = Date.now() + HELLO_DEADLINE_MS;
+      if (existing == null || existing > want) await this.ctx.storage.setAlarm(want);
       return new Response(null, { status: 101, webSocket: pair[0] });
     }
     return json({ error: 'not_found' }, 404);
@@ -95,7 +97,7 @@ export class RunDO {
   /** Write the closed run back to D1; on failure retry from alarm() (the only timer a DO may use). */
   async _syncClosed() {
     const meta = this.core.meta();
-    if (!meta || !this.env.DB) return;
+    if (!meta || !this.env.DB || meta.state !== 'closed' || meta.outcome == null) return; // never touch an open run
     try {
       const s = JSON.parse(meta.summary || '{}');
       await this.env.DB.prepare(
@@ -109,7 +111,8 @@ export class RunDO {
   }
 
   async alarm() {
-    await this._syncClosed();
+    const m = this.core.meta();
+    if (m && m.state === 'closed') await this._syncClosed();
     // Close sockets that never said hello; re-arm for the youngest one still waiting.
     const now = Date.now();
     let next = null;
