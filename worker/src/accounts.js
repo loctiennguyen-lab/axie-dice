@@ -33,6 +33,8 @@ const CLOCK_SKEW_S = 60;
 const MAX_SAVE_BYTES = 512 * 1024;
 const JWKS_MAX_AGE_MS = 6 * 3600 * 1000;
 
+import { parseDesktopLogin, loopbackUrl, issueDesktopCode, bearerPlayer, DESKTOP_ROUTES } from './desktop_auth.js';
+
 const enc = new TextEncoder();
 const now = () => Math.floor(Date.now() / 1000);
 
@@ -224,6 +226,9 @@ async function verifyIdToken(idToken, env, expectedNonce) {
 // ---------------------------------------------------------------- sessions
 
 async function currentPlayer(request, env) {
+  // A Bearer header decides alone: an invalid one is signed-out, the cookie is never consulted.
+  const bearer = await bearerPlayer(request, env);
+  if (bearer !== null) return bearer || null;
   const token = readCookie(request, SESSION_COOKIE);
   if (!token) return null;
   const row = await env.DB.prepare(
@@ -244,6 +249,8 @@ const publicPlayer = (p) => ({
 
 /** Writes from a page must come from our own origin. SameSite=Lax already blocks most of this. */
 function sameOriginWrite(request, url) {
+  // A Bearer header cannot be attached by a cross-site page without a CORS preflight, which we never grant.
+  if (request.headers.get('Authorization')) return true;
   return isAllowedOrigin(request.headers.get('Origin'), url);
 }
 
@@ -261,7 +268,13 @@ async function handleLogin(request, env, url) {
   const nonce = randomToken();
   const verifier = randomToken(48);
   const returnTo = safeReturnTo(url.searchParams.get('return'), url, env);
-  const oauth = await signValue(env, { s: state, n: nonce, v: verifier, r: returnTo, exp: now() + OAUTH_TTL_S });
+  // Desktop: the loopback target is validated here and carried inside the signed cookie.
+  let desktop;
+  if (url.searchParams.get('desktop') === '1') {
+    desktop = parseDesktopLogin(url);
+    if (!desktop) return json({ error: 'bad_desktop_params' }, 400);
+  }
+  const oauth = await signValue(env, { s: state, n: nonce, v: verifier, r: returnTo, d: desktop, exp: now() + OAUTH_TTL_S });
 
   const params = new URLSearchParams({
     client_id: env.GOOGLE_CLIENT_ID,
@@ -286,7 +299,10 @@ async function handleCallback(request, env, url) {
   const clearOauth = cookie(OAUTH_COOKIE, '', url, { maxAge: 0, path: '/auth' });
   const oauth = await verifyValue(env, readCookie(request, OAUTH_COOKIE));
   const fallback = safeReturnTo(null, url, env);
-  const fail = (code, to = fallback) => redirect(withParam(to, 'auth_error', code), [clearOauth]);
+  const dk = oauth && oauth.d;
+  const fail = (code, to = fallback) => (dk
+    ? redirect(loopbackUrl(dk, { error: code }), [clearOauth])
+    : redirect(withParam(to, 'auth_error', code), [clearOauth]));
 
   // No cookie means it expired (10 min), was blocked, or this is a replayed URL.
   if (!oauth) return fail('expired');
@@ -332,6 +348,16 @@ async function handleCallback(request, env, url) {
 
   const t = now();
   const playerId = `google:${claims.sub}`;
+  if (dk) {
+    // Desktop: no cookie session. Upsert the player, mint the one-time code, hand it to the loopback port.
+    await env.DB.prepare(
+      `INSERT INTO players (id, email, display_name, hd, created_at, last_login_at) VALUES (?, ?, ?, ?, ?, ?)
+       ON CONFLICT(id) DO UPDATE SET email = excluded.email, display_name = excluded.display_name,
+                                     hd = excluded.hd, last_login_at = excluded.last_login_at`,
+    ).bind(playerId, claims.email || null, claims.name || null, claims.hd || null, t, t).run();
+    const code = await issueDesktopCode(env, playerId, dk);
+    return redirect(loopbackUrl(dk, { code }), [clearOauth]);
+  }
   const sessionToken = randomToken(32);
   await env.DB.batch([
     env.DB.prepare(
@@ -456,6 +482,7 @@ const ROUTES = {
   '/auth/logout': handleLogout,
   '/api/me': handleMe,
   '/api/save': handleSave,
+  ...DESKTOP_ROUTES,
 };
 
 export const isAccountsPath = (pathname) => Object.prototype.hasOwnProperty.call(ROUTES, pathname);
@@ -477,6 +504,8 @@ const LIMITERS = {
   '/auth/callback': 'AUTH_LIMITER',
   '/auth/logout': 'AUTH_LIMITER',
   '/api/save': 'SAVE_LIMITER',
+  '/auth/desktop/token': 'AUTH_LIMITER',
+  '/auth/refresh': 'AUTH_LIMITER',
 };
 
 async function overLimit(request, env, url) {
