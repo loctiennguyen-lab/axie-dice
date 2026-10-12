@@ -1,0 +1,68 @@
+# Art Director review: UI Round 3 + Round 2 addendum (12 Oct 2026)
+
+Reviewer: art-director. Scope: M1-M15, R2 addendum B1-B10, against `Dice UI R3 README.md` (normative), the R1 style sheet/README and request 02.
+
+**How far this review goes (read this first).** No shell was available, so I could not shrink the contact sheet or render frames. I viewed the contact sheet at the tool's auto-downscale (frames are thumbnails, layout only), read the whole R3 README and request section 6/7/9, and grepped the `.dc.html` sources (font sizes, opacity, key strings, tokens). I did not inspect each frame at 1:1. Anything below marked "(thumbnail)" is a visual read that Claude Design or the implementer should confirm at full size. The arithmetic in the README checks out: 135 frames match the frame ranges; Gem/USD rates (81/84/88/90/93/96 per USD); ticket price curve (245/310/395/505/825); level XP (lv30 = 1,660, total 32,400); Mythic pull 31/40 = 8.7%; contrast of Mythic ink `#FF9FB8` on `#2A0F2E` (about 9:1, README says 7.9) and chip ink `#2A0F2E` on `#FF3D6E` (about 5:1).
+
+## Global findings
+
+- **Text floor holds in source.** No `font-size` under 12 px in any R3 file or the addendum. R1 leftovers (section C) are fixed as claimed.
+- **Fairness line** is present in Run Setup, Store (Aid prices) and Codex (Difficulty & Keys). No countdown / "limited time" / "best value" strings found. Season dates read 3 Nov / 29 Dec / 26 Jan, no stale "30 Nov".
+- **12 px is legal but not readable at 1280x720.** R1 says the canvas is 1920x1080 and a taller window adds height, so 1280x720 is a uniform 0.667 scale: 12 px becomes 8 px, 13 px becomes 8.7 px, 16 px (Codex body) becomes 10.7 px. R3 uses 12-13 px for real information (rule lines, "Usable for stakes", row details, tooltips, status lines). The densest screens (M1, M6, M3 found card, M9 table) will be hard to read there.
+- **Gamepad is still drawn** (README section 0, tab-order notes, open question 8, and a "Gamepad" row in Settings, `Dice UI R3 - Codex Settings Land.dc.html` line 177). Liam dropped gamepad.
+- **Locked/disabled text colour.** `#9A7650` on `#E8D6B4` is about 2.9:1. The README already moves locked shortcuts to `#6E4A30` (about 5.4:1) but locked Ascension chips, "Reach LV n" buttons and greyed price rows still describe `#9A7650` / Gem at .55 for text.
+- **Backdrop inconsistency (thumbnail).** README section 0 says every meta frame sits on Land blurred 12 px + 55% scrim. M8a-e, M13a-e and M15 (small panels) look like a sharp, unscrimmed Land in the contact sheet. B2 and B6 sit on a flat dark-brown field, not over the map/combat.
+- **Violet border = identity use.** Paid surfaces (Kit/Boon, Store) use a violet border. That is R1 spec and fine, but it is the one place where border colour carries category, which our DangoTheme otherwise reserves for state alerts. Implementer: make it a separate "paid" panel variation, do not reuse the generic card border.
+
+## Verdict per screen
+
+Legend: APPROVE = ship to implementation as is plus notes · APPROVE+FIXES = fine after small items in the fix list · CONCERNS = needs a Claude Design revision before lane M builds it.
+
+| Screen | Verdict | Why |
+|---|---|---|
+| M1 Run Setup (M1a-m) | CONCERNS | Best-covered screen for states (normal, locked, newcomer, loading, offline, guest, open run, picker, L1, tall). Problems: 12-13 px rule list rows (26 high) and Mode/Kit detail lines unreadable at 720p; S 36 buttons (Swap/Clear, Save preset, Add/Remove 84x36) below the 44 target used everywhere else; locked A-chip contrast (see Global). Party-row-on-top is accepted. No state for "server rejected Begin" (roll failed) beyond the offline disable. |
+| M2 Team presets (M2a-f) | APPROVE+FIXES | Empty, guest, delete confirm, missing-Axie seat all drawn. No loading frame (README says "same recipe"; accepted if one States sheet shows it). Seat unlock counts (3 / 4-6 / 7-9) are [INF] and not decided by Liam yet. |
+| M3 Vault (M3a-g) | APPROVE | Empty, lookup, not found, no gene data, network error, full 20/20, offline, guest all present. Six-parts rows at 38 high are fine. |
+| M4 Season Pass (M4a-f) | APPROVE+FIXES | Weekly tasks match Liam's decision (grep shows "Win 2", boss task, 500 XP; confirm the first card reads "Play 5 runs"). Premium "SEASON 2" ribbon correct. Locked/empty/offline/season-over all there. No loading frame. Node label 14 px is OK; tags (rarity, Season 1, Stat unlock) at 12 px will be tiny at 720p. |
+| M5 Echo Box (M5a-w) | APPROVE+FIXES | Strongest set: ceremony, pity, rates tables, reduce-flashing static version (M5u), L1 "coming later", interrupted-pull recovery. Missing: a "pull/purchase failed (server error)" state distinct from offline; no loading frame. Mythic night-field colours pass contrast. |
+| M6 Nhiệm vụ (M6a-l) | CONCERNS | Six cards x (tier chip, mode, m line, up to 4 rule rows, 4 number tiles, expected-return line, dusk strip, button) is the densest layout in R3. At 1280x720 most of it is 8-9 px. Needs a decluttered card (move the dusk "no help" strip and "table x m updated" line to the card detail or header) or a 2-column layout with larger type. Locked/guest/insufficient/offline states are drawn. |
+| M7 Store (M7a-n) | APPROVE+FIXES | L1 main state M7a correct (greyed USD with reason, free Gem claim, gift Gem buys goods per Liam). No countdowns, decline same size as Buy. Needs one stated rule for the "about USD" figure on Gem prices (see fix 8). No loading frame. |
+| M8 Daily (M8a-e) | APPROVE+FIXES | Gift-at-cap wording good. Backdrop mismatch (Global). No loading. |
+| M9 Leaderboard (M9a-g) | APPROVE | Visible scrollbar, pinned own row, empty/loading/error all drawn. |
+| M10 Codex (M10a-d) | APPROVE | Body 16 px is the only screen readable at 720p. Search field in the rail is [INF], keep optional. |
+| M11 Settings (M11a-d) | CONCERNS (minor) | Remove the Gamepad row and the LB/RB wording. Otherwise fine. |
+| M12 Profile / M14 Cosmetics | APPROVE+FIXES | Empty and guest drawn. Missing: offline/sync-failed state, and a not-owned/locked tile state in M14 (a grid of 15 tiles must show owned vs locked vs equipped vs seasonal-only). Reduce-flash version M14d present. |
+| M13 Account (M13a-f) | APPROVE | Full error sheet and sync-chip states. Sky Mavis / company-workspace-blocked error is a good catch. |
+| M15 Land upgrade (M15a-e) | APPROVE | "Not in this build" on every button in L1. No offline frame but nothing is server-driven in L1; fine. |
+| R2 addendum (B1-B10) | APPROVE+FIXES | Flow and states cover the request (boss clock decline equal size, newcomer, mission run, Reconnecting banner "stake is safe"). B2 and B6 backdrop (Global). B7 (elite count vs reveal) is still open for Liam. B1a reads as a diagram, not a screen: fine as a sequence, but not a build target. |
+
+## Fix list to send Claude Design
+
+1. **Remove gamepad everywhere.** Delete: README section 0 "Keyboard + gamepad" gamepad sentence, the D-pad/LB/RB/X/Y mentions in the tab-order notes, open question 8's gamepad half, and the "Gamepad" row in Settings (frame M11b/M11c Controls section, `Codex Settings Land` line 177). Keep keyboard keys and focus ring.
+2. **Readability at 1280x720 (scale 0.667).** Raise functional text to 14 px minimum at 1920 canvas (rule lines, status lines, detail lines, tooltips, price captions, "Usable for stakes", table cells). Keep 12 px only for tags, key chips and pure duplicates of information shown elsewhere. Priority frames: M1a-c (Ascension rule list rows 26 high, Mode/Kit lines), M6a-b (all card text), M3d (found-card part rows), M4b (node tags), M9a (table cells). Then re-check each against its 1920 layout and tell us what moved.
+3. **M6 card declutter.** Reduce M6a/M6b cards to: tier + mode, stake / pay / Stone / all-players-win tiles, expected-return line, button. Move "table x m updated", Side-condition "later" row and the dusk no-help strip into the confirm modal (M6c) or the header. Re-draw M6a, M6b, M6l.
+4. **Locked/disabled text contrast.** Text must use `#6E4A30` (about 5.4:1 on `#E8D6B4`); `#9A7650` only for borders and icons. Apply to locked Ascension chips and their "Win a run at A{n-1}..." tip, "Reach LV n" buttons (M4), locked tabs, and disabled price rows (replace Gem at .55 opacity with a flat disabled fill + `#6E4A30` ink, still showing the real price). Add the pairing to the style sheet.
+5. **Small buttons.** Raise S 36 buttons (M1 Swap / Clear / Save preset / Load preset, Kit/Boon Add/Remove 84x36, M2 Edit/Copy/Delete, M7 small actions) to 40 high, or confirm in the README that the hit area is padded to 44 and say so in the sheet.
+6. **Missing states, in one "R3 States" frame set** (not one frame per screen): (a) loading skeleton for M2, M4, M5, M7, M8, M12, M14, M15 using the M1j recipe; (b) server-error for M5 (pull failed, ticket purchase failed, "Your tickets were not spent") and M1 (Begin rejected, "Could not roll dice, try again"); (c) M12 offline/sync-failed; (d) M14 tile states: owned, equipped, not owned (locked, shows how to get it), seasonal-only (Echo Box), Mythic.
+7. **Backdrop consistency.** Either draw M8, M13 and M15 on the blurred 12 px Land + 55% scrim like every other meta frame, or add a README line that small hub panels (800 wide, 600 modals, M15 1100) stay on the sharp Land with a lighter scrim, and give the scrim value. Draw B2 and B6 over the blurred map/combat, not on flat brown.
+8. **Gem to USD basis.** State the one rate used for "about USD" (Kit 38 Gem = 0.42, Run Kit 60 = 0.67 imply roughly 90 Gem per USD, the 4.99-tier-and-up rate). Say it in a footnote on M7 and the Kit/Boon strip so the figure is honest and the same everywhere.
+9. **Pass weekly tasks wording.** Confirm frames M4b-d read exactly "Play 5 runs / Win 2 runs / Reach a boss in 1 run", 500 XP each, and show the week-reset date in the section header ("resets Mon 19 Oct 2026, 00:00 UTC").
+10. **Update the README "decided" items.** Mark as decided: [INF] accepted, party row on top (M1), header band 64, gift Gem buys Gem goods in L1, Pass weekly tasks, season 3 Nov-29 Dec. Remove them from section 6 so the file is not read as still open.
+11. **Contact sheet.** Add 00b Shared Components to the sheet (the note says it lives on 00b but the sheet shows 135 frames without it), and add a 1280x720 render of M1a, M6a and M10b so we can see the scaled readability the reviewer could not.
+
+Still open for Liam (no designer action until he answers): README open questions 2 (Daily 3 tries, Ranked with Aid, offline Normal runs), 3 (mission win rates / "usable for stakes" split), A5/A10 title names, B7 fog vs elite count, M2 slot unlock counts, and the new hub keys C / P / D / B / L (only the gamepad half was decided).
+
+## Implementer notes (lane M / U: handle in code, no design change needed)
+
+- **Blurred Land backdrop.** A 12 px live blur needs a screen-texture shader plus `BackBufferCopy`; on the web export / compatibility renderer that is costly. Use a pre-blurred Land still (or a half-resolution blur captured once on open) plus the scrim `ColorRect`. Shortcut bar stays above on a higher `CanvasLayer`.
+- **Panel shell.** 1520x880 centred (left 200 at 1920); taller window = extra height to the panel body only (expand stretch). Build it once as a shared scene (header band 64 / violet 72, Back M 48, body, optional footer 84) and reuse for M1-M15. Modals share one scrim `ColorRect` over the panel only.
+- **Styles Godot cannot do natively.** Gradient fills, dashed borders, the 4 px "shelf" under primary buttons, the double focus ring (4 px gold + 3 px dark) and the Mythic rim glow need `StyleBoxTexture`/`GradientTexture2D`, a small custom `_draw()` control, or a shader. Do not fake them with extra `Panel` nodes per button; make them theme types in DangoTheme.
+- **Paid surfaces.** Violet-border cards are a distinct theme variation (see Global). Keep the existing rule: generic card border = state alerts only.
+- **Layout containers.** M6 3x2 grid: `GridContainer` with `size_flags` expand and `custom_minimum_size.y = 0` (the `minmax(0,1fr)` rule). M9 pinned own row: a separate row outside the `ScrollContainer`, always visible. Striped tables (M9, M10): row `Panel`s with alternating style, not `Tree`. Scrollbars must stay visible (set theme grabber min size 14 and do not auto-hide).
+- **Tap targets.** For any visual button under 44 high, set `custom_minimum_size` to 44 on the hit area (pad with theme content margins) so the look stays and the target grows.
+- **Text.** Numerals with outlines (HP, XP bar, chest counters) use `Label` outline settings; Baloo 2 / Work Sans from `assets/*.woff` need converting to TTF/OTF or WOFF-capable import in Godot 4.7 (check before the first screen is built).
+- **Keys and focus.** Esc steps back one level (close modal, leave sub-view, close panel); focus ring on the first focus target of each main frame; Tab order per README section 2. No gamepad actions to bind.
+- **Reduce flashing.** One global flag read by chest opening (M5), claim toasts, badges, level-up, M14d preview: static 6 px rim, 200 ms fade, no glow.
+- **No countdowns.** Every time is formatted as a date or "00:00 UTC"; do not add live timers even for Daily reset. Server-driven dates come from the server (dates in mocks are 12 Oct "today").
+- **L1 states.** USD buttons and Moon Card buy are disabled with reason text; every Land upgrade button reads "Not in this build"; Seasonal Echo Box tab reads "COMING LATER" with no Open button; Missions house upgrade disabled.
+- **Echo Box pricing and pity** are display only; the client must read the server's numbers (ticket price curve, pity counters), never compute them locally for any real purchase.

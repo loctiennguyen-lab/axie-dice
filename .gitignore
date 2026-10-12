@@ -185,7 +185,9 @@ production/leaderboard/verdicts/
 # The single-file vanilla-JS prototype this project started as. The Godot build under godot/
 # replaced it; these paths are kept on disk for reference on the machines that still have them
 # and are no longer part of the repository. See README "Disclosures".
-src/
+# Anchored to the repo root (12/10/2026): the bare `src/` also hid godot/assets/atia/arena/src and
+# godot/assets/land/homeland/src, so arenas and the Land hub broke on a clean checkout.
+/src/
 # ...but not the Cloudflare Worker, which lives in worker/src and IS part of the repo.
 # The bare `src/` above matches every src folder at any depth, which silently swallowed it
 # once already: the COOP/COEP headers were deployed straight to Cloudflare, never committed,
