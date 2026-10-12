@@ -140,6 +140,8 @@ var boon_used: bool = false
 var _shop_refreshes: int = 0
 ## Mission (risk-to-earn) header: {mission_id, tier, rules:[...], condition?, stake, m_base, m_scale, m_eff}.
 var mission: Dictionary = {}
+## The RunParams this run was started with (contract 3.6), kept for MetaState.record_run_outcome().
+var run_params: Dictionary = {}
 var fights_started: int = 0
 var bosses_started: int = 0
 var first_battle_rewarded: bool = false
@@ -225,6 +227,7 @@ func reset() -> void:
 	boon_used = false
 	_shop_refreshes = 0
 	mission = {}
+	run_params = {}
 	newcomer = false
 	fights_started = 0
 	bosses_started = 0
@@ -302,6 +305,7 @@ func reset_keep_epoch() -> void:
 
 
 func _start_core(start_reply: EpochReply, params: Dictionary, display_seed: int) -> void:
+	run_params = params.duplicate(true)
 	var p_seed := start_reply.seed
 	var team_hero_keys: Array[String] = []
 	for k in (params.get("team_keys", []) as Array):
@@ -775,6 +779,11 @@ func end_run(won: bool) -> void:
 			MetaState.asc_max = mini(10, ascension + 1)
 	last_run_xp = compute_run_xp(won)
 	MetaState.xp += last_run_xp
+	# Lane E hooks (present once l1/E is merged; has_method keeps this safe before that).
+	if MetaState.has_method("record_run_outcome"):
+		MetaState.call("record_run_outcome", run_params, bool(mission_outcome(won)["won"]))
+	if MetaState.has_method("pass_add_run_xp"):
+		MetaState.call("pass_add_run_xp", last_run_xp)
 	# Daily Mission. Granted on ANY run end — win, loss or quit — exactly as JS does it
 	# (client.html:5447 calls it unconditionally from onRunEnd()). Tying it to a win would make
 	# the day's reward a skill check, which is not what a daily is for.
@@ -1330,6 +1339,7 @@ func to_data() -> Dictionary:
 		"run_id": String(action_log.header.get("run_id", "")),
 		"node_seed": _node_seed,
 		"mission": mission.duplicate(true),
+		"run_params": run_params.duplicate(true),
 		"aid_uses": aid_uses.duplicate(true), "boon_used": boon_used, "shop_refreshes": _shop_refreshes,
 		"boon_id": boon_id, "newcomer": newcomer, "fights_started": fights_started,
 		"bosses_started": bosses_started, "first_battle_rewarded": first_battle_rewarded,
@@ -1387,6 +1397,7 @@ func from_data(d: Dictionary) -> void:
 	_rng = Rng.new(int(d.get("rng_state", run_seed)))
 	_node_seed = int(d.get("node_seed", 0))
 	mission = (d.get("mission", {}) as Dictionary).duplicate(true)
+	run_params = (d.get("run_params", {}) as Dictionary).duplicate(true)
 	aid_uses.assign(d.get("aid_uses", []))
 	boon_used = bool(d.get("boon_used", false))
 	_shop_refreshes = int(d.get("shop_refreshes", 0))
