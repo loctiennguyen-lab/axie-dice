@@ -19,6 +19,8 @@ extends RefCounted
 ##  - Whole-number floats are accepted as ints because JSON.parse_string turns every number into
 ##    a float on the way back in; 1.5 is still refused.
 
+## `seq` numbering (decided 12/10 with lane S): the `run_start` epoch is seq 0, then every later epoch
+## adds 1 (node = 1, ...). The golden vectors use that numbering; the server follows it.
 const DOMAIN_LOG := "axiedice/log/v1"
 const DOMAIN_COMMIT := "axiedice/commit/v1"
 const MAX_POSITIONAL := 10

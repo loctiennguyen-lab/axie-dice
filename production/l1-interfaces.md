@@ -60,6 +60,8 @@ func tape() -> Array
 func is_remote() -> bool
 ```
 
+**Đánh số `seq` (chốt với làn S):** epoch `run_start` là `seq = 0`, các epoch sau tăng dần từ 1. Vector vàng và `LocalEpochSource` dùng đúng cách đánh số này; server theo đó.
+
 Cách gọi chung: `var r := RunState.epoch.request(kind, args); if not r.done: await r.resolved; if not r.ok: <xử lý lỗi>`.
 Local/Tape trả `done = true` ngay, nên test headless và `RunVerifier` chạy đồng bộ, không `await` frame nào.
 

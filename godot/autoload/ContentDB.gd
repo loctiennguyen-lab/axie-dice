@@ -178,6 +178,7 @@ const RULES_DIR := "res://assets/data/rules/"
 var ascension_table: Array = []   ## index = ascension level 0..10, each a Dictionary (see ascension.json)
 var combat_tune: Dictionary = {}  ## attrition, spike, phase_thresholds, newcomer_runs
 var boons: Dictionary = {}        ## boon_id -> {id, name_key, effect}
+var mission_table: Dictionary = {}  ## mission_rules.json: standard, rules, conditions
 
 
 func _load_rules_json(file: String) -> Dictionary:
@@ -200,6 +201,7 @@ func _load_rules() -> void:
 	if combat_tune.has("TUNE"):
 		for k in (combat_tune["TUNE"] as Dictionary):
 			TUNE[k] = (combat_tune["TUNE"] as Dictionary)[k]
+	mission_table = _load_rules_json("mission_rules.json")
 	boons = {}
 	for b in (_load_rules_json("boons.json").get("boons", []) as Array):
 		boons[String((b as Dictionary).get("id", ""))] = (b as Dictionary).duplicate(true)
@@ -727,6 +729,53 @@ func ascension_mods(a: int) -> Dictionary:
 	var m: Dictionary = (ascension_table[lvl] as Dictionary).duplicate(true)
 	m["rewards"] = int(m.get("reward_cards", 3))   # the pre-L1 key name, kept for old callers
 	return m
+
+
+## Mission (risk-to-earn) rule mods, contract 3.5. `rules` = ids like ["M2","M3"]; the standard
+## mission mods always apply. Multipliers multiply, counts add, a clock override REPLACES the
+## Ascension clock (last one wins, never stacks). A rule whose min/max_ascension excludes
+## `ascension` is skipped (M3 is pointless at A9, which already has the extra elites).
+func mission_mods(rules: Array, ascension: int = 0) -> Dictionary:
+	var out := {"enemy_dmg": 1.0, "elite_hp": 1.0, "boss_hp": 1.0, "extra_elite": 0,
+		"spike_period_delta": 0, "clock_override": {}}
+	var applied: Array = [mission_table.get("standard", {})]
+	var table: Dictionary = mission_table.get("rules", {})
+	for r in rules:
+		var d: Dictionary = table.get(String(r), {})
+		if d.is_empty():
+			continue
+		if d.has("max_ascension") and ascension > int(d["max_ascension"]):
+			continue
+		if d.has("min_ascension") and ascension < int(d["min_ascension"]):
+			continue
+		applied.append(d)
+	for d in applied:
+		for k in ["enemy_dmg", "elite_hp", "boss_hp"]:
+			if d.has(k):
+				out[k] = float(out[k]) * float(d[k])
+		for k in ["extra_elite", "spike_period_delta"]:
+			if d.has(k):
+				out[k] = int(out[k]) + int(d[k])
+		if d.has("clock_override"):
+			out["clock_override"] = (d["clock_override"] as Dictionary).duplicate()
+	return out
+
+
+## Side condition of a mission offer ("one_house", "multicolor"), checked from the team the run STARTED
+## with (header team_keys). True for an unknown / empty condition id.
+func mission_condition_met(condition_id: String, team_keys: Array) -> bool:
+	var c: Dictionary = (mission_table.get("conditions", {}) as Dictionary).get(condition_id, {})
+	if c.is_empty():
+		return true
+	var classes: Dictionary = {}
+	for k in team_keys:
+		classes[String((heroes.get(String(k), {}) as Dictionary).get("cls", "?"))] = true
+	match String(c.get("kind", "")):
+		"classes_exactly":
+			return classes.size() == int(c.get("n", 1))
+		"classes_at_least":
+			return classes.size() >= int(c.get("n", 1))
+	return true
 
 
 func avg_face_value(die: Array) -> float:

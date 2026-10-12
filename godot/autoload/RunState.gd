@@ -138,6 +138,8 @@ var _rewarding_kind: String = ""
 var aid_uses: Array[Dictionary] = []
 var boon_used: bool = false
 var _shop_refreshes: int = 0
+## Mission (risk-to-earn) header: {mission_id, tier, rules:[...], condition?, stake, m_base, m_scale, m_eff}.
+var mission: Dictionary = {}
 var fights_started: int = 0
 var bosses_started: int = 0
 var first_battle_rewarded: bool = false
@@ -222,6 +224,7 @@ func reset() -> void:
 	aid_uses = []
 	boon_used = false
 	_shop_refreshes = 0
+	mission = {}
 	newcomer = false
 	fights_started = 0
 	bosses_started = 0
@@ -345,7 +348,8 @@ func _start_core(start_reply: EpochReply, params: Dictionary, display_seed: int)
 	reward_reroll_charges = reward_reroll_max
 	var hdr: Dictionary = start_reply.extra.get("header", {}) as Dictionary
 	newcomer = bool(hdr.get("newcomer", params.get("newcomer", false)))
-	var is_mission := String(params.get("kind", "")) == "mission" or not (hdr.get("mission", {}) as Dictionary).is_empty()
+	mission = (hdr.get("mission", params.get("mission", {})) as Dictionary).duplicate(true)
+	var is_mission := String(params.get("kind", "")) == "mission" or not mission.is_empty()
 	var want_boon := String((params.get("loadout", {}) as Dictionary).get("boon_id", ""))
 	boon_id = want_boon if (not is_mission and ContentDB.boons.has(want_boon)) else ""
 
@@ -383,7 +387,12 @@ func _start_core(start_reply: EpochReply, params: Dictionary, display_seed: int)
 	# RunMapGenerator.generate() is fail-hard on total retry exhaustion (returns null +
 	# push_error, architecture plan §7 "fail cứng, không âm thầm nhả map xấu") — calling
 	# .to_data() on that null is a deliberate crash, not a bug, if it ever happens.
-	map_graph = RunMapGenerator.generate(_rng, mode, ascension).to_data()
+	# M3 "Hunted" gives a mission run the two extra elites A9 already has; the generator keys them off
+	# ascension >= 9, so a mission with M3 below A9 asks for the same map shape.
+	var map_asc := ascension
+	if int(ContentDB.mission_mods(mission_rules(), ascension).get("extra_elite", 0)) > 0 and ascension < 9:
+		map_asc = 9
+	map_graph = RunMapGenerator.generate(_rng, mode, map_asc).to_data()
 	# Opened AFTER the map exists, so a log never describes a run that failed to start. The
 	# content version comes from part_faces.json's own stamp: the same actions against different
 	# face values produce a different run, so a verifier has to refuse the mismatch rather than
@@ -399,7 +408,7 @@ func _start_core(start_reply: EpochReply, params: Dictionary, display_seed: int)
 	var hdr_extra: Dictionary = start_reply.extra.get("header", {}) as Dictionary
 	action_log.set_epoch_header(String(start_reply.extra.get("run_id", "")),
 		String(start_reply.extra.get("client_nonce", "")), loadout,
-		newcomer, (hdr_extra.get("mission", {}) as Dictionary))
+		newcomer, mission)
 	if epoch != null:
 		epoch.bind_log(action_log)
 	set_phase(RunPhase.MAP)
@@ -480,8 +489,24 @@ func boon_numbers_for_fight(fight_index: int, boss_index: int) -> Dictionary:
 	return out
 
 
+func mission_rules() -> Array:
+	return (mission.get("rules", []) as Array).duplicate()
+
+
+## Mission win = the final boss fell AND the offer's side condition holds (checked on the team the run
+## started with). A normal run: just `won`.
+func mission_outcome(won: bool) -> Dictionary:
+	var cond_ok := true
+	if not mission.is_empty():
+		cond_ok = ContentDB.mission_condition_met(String(mission.get("condition", "")),
+			action_log.header.get("team_keys", []) as Array)
+	return {"won": won and cond_ok, "condition_ok": cond_ok}
+
+
 ## The one writer of the Aid ledger. R8/R9 (Boon, Kit) only flip boon_used; they never enter `uses`.
 func record_aid_use(aid_id: String) -> void:
+	if not mission.is_empty():
+		return   # no Aid in a mission run; nothing to count
 	if aid_id == "boon" or aid_id == "kit":
 		boon_used = true
 		return
@@ -524,7 +549,7 @@ func refresh_shop(seed: int = -1) -> bool:
 		return false
 	_shop_refreshes += 1
 	action_log.record("shop_refresh", [_shop_refreshes])
-	_open_shop(current_node_id, sd)
+	_open_shop(current_node_id, sd, true)
 	return true
 
 
@@ -613,6 +638,8 @@ func enter_node(node_id: String, node_kind: String, seed: int = -1) -> void:
 				"combat_seed": combat_seed,
 				"bonus_reroll": bonus_reroll + int(boon_n.get("bonus_reroll", 0)),
 				"newcomer": newcomer,
+				"mission": not mission.is_empty(),
+				"mission_rules": mission_rules(),
 				"start_shield_all": int(boon_n.get("start_shield_all", 0)),
 				"start_mana": int(boon_n.get("start_mana", 0)),
 				"first_dmg_face_bonus": int(boon_n.get("first_dmg_face_bonus", 0)),
@@ -732,7 +759,8 @@ func end_run(won: bool) -> void:
 	# run cannot leave a resumable save behind even if some later call site forgets.
 	clear_saved_run()
 	if epoch != null:
-		epoch.close("won" if won else "lost", {})
+		var mo := mission_outcome(won)
+		epoch.close("won" if bool(mo["won"]) else "lost", {"condition_ok": bool(mo["condition_ok"])})
 	MetaState.add_shards(shards_this_run)
 
 	# Lifetime stats and the Ascension ladder (src/client.html onRunEnd(), :5436-5446).
@@ -954,8 +982,9 @@ func apply_chosen_reward(reward: Dictionary) -> void:
 
 ## Builds this node's shop offer. Called from enter_node(), so a replay that applies the same
 ## `enter_node` action gets the same three items in the same order without being told them.
-func _open_shop(_node_id: String, seed: int) -> void:
-	_shop_refreshes = 0 if _node_seed == seed else _shop_refreshes
+func _open_shop(_node_id: String, seed: int, is_refresh: bool = false) -> void:
+	if not is_refresh:
+		_shop_refreshes = 0
 	_shop_relic_count = int(RelicHooks.run_value(owned_relic_ids, "shop_relic_count",   # H8
 		{"ascension": ascension, "kind": "shop"}, 2))
 	_shop_rng = Rng.new(seed)
@@ -1300,6 +1329,7 @@ func to_data() -> Dictionary:
 		"epoch_seq": (epoch.tape().size() if epoch != null else 0),
 		"run_id": String(action_log.header.get("run_id", "")),
 		"node_seed": _node_seed,
+		"mission": mission.duplicate(true),
 		"aid_uses": aid_uses.duplicate(true), "boon_used": boon_used, "shop_refreshes": _shop_refreshes,
 		"boon_id": boon_id, "newcomer": newcomer, "fights_started": fights_started,
 		"bosses_started": bosses_started, "first_battle_rewarded": first_battle_rewarded,
@@ -1356,6 +1386,7 @@ func from_data(d: Dictionary) -> void:
 	pending_rewards.assign(d.get("pending_rewards", []))
 	_rng = Rng.new(int(d.get("rng_state", run_seed)))
 	_node_seed = int(d.get("node_seed", 0))
+	mission = (d.get("mission", {}) as Dictionary).duplicate(true)
 	aid_uses.assign(d.get("aid_uses", []))
 	boon_used = bool(d.get("boon_used", false))
 	_shop_refreshes = int(d.get("shop_refreshes", 0))
