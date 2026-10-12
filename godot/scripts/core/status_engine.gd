@@ -116,6 +116,7 @@ static func tick_status(combat) -> void:
 				if u.hp > 0 and int(u.status.get("poison", 0)) > 0:
 					DamagePipeline.resolve({"combat": combat, "src": null, "tgt": u,
 						"value": int(int(u.status.get("poison", 0)) * pmult), "pierce": true})
+			RelicHooks.fire(combat, "on_status_tick", {"combat": combat, "tgt": u, "kind": "poison"})
 			# The decay below must also tolerate the status having been wiped mid-loop: there is
 			# nothing left to decay, and subtracting from a missing key would re-create it at -1.
 			if int(u.status.get("poison", 0)) > 0:
@@ -130,6 +131,7 @@ static func tick_status(combat) -> void:
 			var bm: float = 1.0 + RelicHooks.axis_sum(combat, "A:burn")
 			var base: int = int(int(u.status.get("burn", 0)) * (bm if u.side == "e" else 1.0))
 			DamagePipeline.resolve({"combat": combat, "src": null, "tgt": u, "value": base, "pierce": true})
+			RelicHooks.fire(combat, "on_status_tick", {"combat": combat, "tgt": u, "kind": "burn"})
 			var bt: int = int(RelicHooks.max_val(combat, "burnTicks", 1.0))
 			if u.side == "e" and bt > 1:
 				var ratio: float = RelicHooks.max_val(combat, "burnTickRatio", 0.7)

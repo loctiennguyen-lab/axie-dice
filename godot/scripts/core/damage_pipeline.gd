@@ -88,6 +88,8 @@ static func resolve(ctx: Dictionary) -> int:
 		iv -= ab
 		if ab > 0:
 			EventBus.float_text.emit(tgt.uid, "-%d" % ab, "shd", 0)
+			if src != null and src.side == "p" and tgt.side == "e" and attack:
+				RelicHooks.fire(combat, "on_shield_break", {"combat": combat, "tgt": tgt, "broken": ab, "src": src})
 
 	var hp_before_hit := tgt.hp   # pre-clamp remaining HP, for the RunStats accumulator below
 	if iv > 0:                                                                   # 9. subtract HP

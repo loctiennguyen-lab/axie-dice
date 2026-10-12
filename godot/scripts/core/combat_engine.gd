@@ -511,7 +511,8 @@ func _roll_unit(u: Unit) -> void:
 
 
 func _crit_chance(u: Unit, f: Dictionary) -> float:
-	return float(_kw_val(f, "crit")) + RelicHooks.sum(self, "critBonus")
+	return float(RelicHooks.run_value_hook(self, "face_crit", {"combat": self, "unit": u, "face": f},
+		float(_kw_val(f, "crit")) + RelicHooks.sum(self, "critBonus")))
 
 
 func _pick_enemy_intent(e: Unit) -> void:
@@ -813,6 +814,7 @@ func play_active(relic_id: String, target_uid: int = -1) -> bool:
 					tgt.shield = 0
 					EventBus.float_text.emit(tgt.uid, "-%d" % sh, "shd", 0)
 					EventBus.hp_changed.emit(tgt.uid, tgt.hp, tgt.max_hp, tgt.shield)
+					RelicHooks.fire(self, "on_shield_break", {"combat": self, "tgt": tgt, "broken": sh, "src": src})
 				DamagePipeline.resolve({"combat": self, "src": src, "tgt": tgt,
 					"value": max(int(a.get("min", 0)), sh), "pierce": true, "attack": true,
 					"face_type": "dmg"})
@@ -1064,6 +1066,7 @@ func _do_face(u: Unit, target_uid: int, f: Dictionary, fi: int, is_echo: bool) -
 	var kw_pure := _pure_keywords(f)
 	var face_type := String(f.get("type", ""))
 
+	var ctx_n := [0, false]   # [hits so far, secondary-target mode] for the on_face_hit hook (FACE_CTX)
 	var hit := func(t: Unit, amount: int) -> int:
 		var pierce: bool = _has_kw(f, "pierce") or (u.side == "p" and u.cls == "bird" and _has_kw(f, "aoe"))
 		var d: int = DamagePipeline.resolve({
@@ -1074,10 +1077,14 @@ func _do_face(u: Unit, target_uid: int, f: Dictionary, fi: int, is_echo: bool) -
 			DamagePipeline.apply_heal(self, u, d)
 		if kw_pure.size() > 0 and d >= 0:
 			StatusEngine.add_status(self, t, kw_pure, u)
+		ctx_n[0] = int(ctx_n[0]) + 1
+		RelicHooks.fire(self, "on_face_hit", {"combat": self, "unit": u, "face": f, "tgt": t, "crit": crit,
+			"dealt": d, "aoe": _has_kw(f, "aoe"), "secondary": bool(ctx_n[1]), "pierce": pierce, "first": int(ctx_n[0]) == 1})
 		return d
 
 	if face_type == "dmg":
 		if _has_kw(f, "aoe"):
+			ctx_n[1] = true
 			for t in foes.duplicate():
 				hit.call(t, v)
 		else:
@@ -1098,6 +1105,7 @@ func _do_face(u: Unit, target_uid: int, f: Dictionary, fi: int, is_echo: bool) -
 					if tgt.hp > 0 or i == 0:
 						hit.call(tgt, v)
 				if _has_kw(f, "cleave"):
+					ctx_n[1] = true
 					for t in _neighbors_of(foes, tgt):
 						hit.call(t, int(ceil(v * RelicHooks.max_val(self, "cleaveRatio", 0.5))))
 		if _has_kw(f, "selfkill"):

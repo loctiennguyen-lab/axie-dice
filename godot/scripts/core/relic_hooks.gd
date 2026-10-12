@@ -1257,6 +1257,90 @@ static var TABLE: Dictionary = {
 					EventBus.float_text.emit(x.uid, "PSN 1", "poi", 0)
 			return,
 	},
+	"r_assassinsneedle": {
+		# Duo (crit/pierce). FACE_CRIT: Pierce dmg faces +25 crit chance. FACE_CTX: a Pierce crit puts Weaken 2
+		# on the target and refunds 1 Mana (once per face use).
+		"face_crit": func(ctx: Dictionary):
+			var f: Dictionary = ctx["face"]
+			if String(f.get("type", "")) == "dmg" and (f["keywords"] as Array).has("pierce") and ctx["unit"].side == "p":
+				return float(ctx["value"]) + 25.0
+			return ctx["value"],
+		"on_face_hit": func(ctx: Dictionary):
+			var u: Unit = ctx["unit"]
+			var t: Unit = ctx["tgt"]
+			if u.side != "p" or not bool(ctx["crit"]) or not bool(ctx["pierce"]) or t.hp <= 0:
+				return
+			StatusEngine.add_status(ctx["combat"], t, ["weaken:2"], u)
+			if bool(ctx["first"]):
+				ctx["combat"].mana += 1
+				EventBus.float_text.emit(u.uid, "+1 MP", "man", 0)
+			return,
+	},
+	"r_breakersward": {
+		# Duo (shield/pierce). SHIELD_BREAK: when a party attack removes enemy Shield, the party Axie with the
+		# least Shield gains that much (max 8 per hit). Ties go to the lower slot.
+		"on_shield_break": func(ctx: Dictionary):
+			var c = ctx["combat"]
+			var got := mini(8, int(ctx["broken"]))
+			var low: Unit = null
+			for u in RelicHooks.party_line(c):
+				if low == null or u.shield < low.shield:
+					low = u
+			if low != null and got > 0:
+				DamagePipeline.apply_shield(c, low, got)
+			return,
+	},
+	"r_firestormveil": {
+		# Duo (burn/aoe). FACE_CTX: every enemy an AoE dmg face hits gets Burn 2, +1 more if it was already
+		# burning.
+		"on_face_hit": func(ctx: Dictionary):
+			var t: Unit = ctx["tgt"]
+			if not bool(ctx["aoe"]) or ctx["unit"].side != "p" or t.hp <= 0 or t.side != "e":
+				return
+			var was := int(t.status.get("burn", 0)) > 0
+			t.status["burn"] = int(t.status.get("burn", 0)) + (3 if was else 2)
+			EventBus.float_text.emit(t.uid, "BUR%d" % (3 if was else 2), "deb", 0)
+			return,
+	},
+	"r_fumeblossom": {
+		# Duo (poison/burn). TICK: a Burn tick on an enemy adds 1 Poison to it; a Poison tick on a burning
+		# enemy adds 1 Burn. Each direction at most once per enemy per turn.
+		"on_status_tick": func(ctx: Dictionary):
+			var c = ctx["combat"]
+			var t: Unit = ctx["tgt"]
+			if t.side != "e" or t.hp <= 0:
+				return
+			if String(ctx["kind"]) == "burn":
+				if RelicHooks.once_per_turn(c, "fume_b_%d" % t.uid):
+					t.status["poison"] = int(t.status.get("poison", 0)) + 1
+					EventBus.float_text.emit(t.uid, "PSN 1", "poi", 0)
+			elif int(t.status.get("burn", 0)) > 0 and RelicHooks.once_per_turn(c, "fume_p_%d" % t.uid):
+				t.status["burn"] = int(t.status.get("burn", 0)) + 1
+				EventBus.float_text.emit(t.uid, "BUR1", "deb", 0)
+			return,
+	},
+	"r_sporegale": {
+		# Duo (poison/aoe). FACE_CTX: Cleave/AoE dmg faces put 1 Poison on every secondary target. TICK: each
+		# Poison tick on an enemy spreads 1 Poison stack to its neighbours.
+		"on_face_hit": func(ctx: Dictionary):
+			var t: Unit = ctx["tgt"]
+			if not bool(ctx["secondary"]) or ctx["unit"].side != "p" or t.hp <= 0 or t.side != "e":
+				return
+			t.status["poison"] = int(t.status.get("poison", 0)) + 1
+			EventBus.float_text.emit(t.uid, "PSN 1", "poi", 0)
+			return,
+		"on_status_tick": func(ctx: Dictionary):
+			var t: Unit = ctx["tgt"]
+			if String(ctx["kind"]) != "poison" or t.side != "e" or t.hp <= 0:
+				return
+			var arr: Array = ctx["combat"].alive_enemies()
+			var i := arr.find(t)
+			for x in [arr[i - 1] if i > 0 else null, arr[i + 1] if i >= 0 and i < arr.size() - 1 else null]:
+				if x != null:
+					x.status["poison"] = int(x.status.get("poison", 0)) + 1
+					EventBus.float_text.emit(x.uid, "PSN 1", "poi", 0)
+			return,
+	},
 	"r_tithepips": {
 		# Pact (dice group): +3 Mana each turn; after every roll the lowest-value face is blanked (exactly
 		# one, living non-Egg Axies with an unused face, tie to the lower slot). Recomputed at every settle.

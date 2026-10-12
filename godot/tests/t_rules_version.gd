@@ -156,7 +156,10 @@ const WATCHED_FILES: Array[String] = ["res://assets/data/part_faces.json"]
 ## Changes the run result: YES.
 ## Moved 2026-10-13 by lane E (3a3764a..95f3304): MetaState mission stake escrow (nonce id via Crypto, not game
 ## RNG) + RunState.end_run settles the escrow before clearing the saved run. Meta only. Run result: NO, stays -g.
-const FINGERPRINT := "c43de44dadc980868a9eb51b78470bd758f240a4c0e41c5a498d78eac4744a72"
+## BUMPED, 2026-10-13: `ActionLog.RULES_VERSION` -> `godot-2026-10-13-h`. Lane B 4d97af8: last 5 hidden relics
+## live (assassinsneedle, breakersward, firestormveil, fumeblossom, sporegale); hooks face_crit, on_face_hit,
+## on_status_tick, on_shield_break. No relic is hidden now. Changes the run result: YES.
+const FINGERPRINT := "1a63297e5b115e3c6f9eb122159fbb5770094c9a258978cac38c3c47052b6e12"
 
 
 func _ready() -> void:
