@@ -132,13 +132,6 @@ const _EYE_LIGHT_SPAWN_DURATION := 0.15   # spec §10 "Eye-glow spawn: fade 0->t
 ## Boss key -> a .glb in res://assets/bosses/. Checked BEFORE the Chimera-sprite branch;
 ## MonsterArt.BOSS_SPRITES still maps all six keys, so a model that fails to load falls through
 ## to a sprite rather than to nothing.
-const BOSS_MODELS := {
-	"agony": "paladill",
-	"frost_lord": "kotaro",
-	"mirror": "xia",
-	"plague_mother": "kibo",
-}
-const _BOSS_MODEL_DIR := "res://assets/bosses/"
 
 ## What a boss model should stand at, in metres. Deliberately the same number the sprite branch
 ## lands on (_ENEMY_SPRITE_HEIGHT_M * _BOSS_SCALE) so the two kinds of boss read as the same
@@ -595,6 +588,7 @@ func _make_ground_shadow(width: float) -> MeshInstance3D:
 func spawn_unit(uid: int, cls: String, is_enemy: bool, slot_index: int, slot_count: int,
 		is_boss: bool = false, unit_key: String = "", genes: String = "") -> void:
 	var sheet_sprite_name := ""       # see the MonsterAnim block further down
+	var atia_info: Dictionary = {}
 	var sheet_target: Sprite3D = null
 	var slot := Node3D.new()
 	slot.name = "Slot_%d" % uid
@@ -607,12 +601,21 @@ func spawn_unit(uid: int, cls: String, is_enemy: bool, slot_index: int, slot_cou
 	var is_named_boss := is_enemy and is_boss
 	var shadow_width := _CHARACTER_SHADOW_WIDTH_M   # overwritten by whichever branch below runs
 
-	var boss_model: Node3D = (_make_boss_model(unit_key) if is_named_boss else null)
-	if boss_model != null:
-		slot.add_child(boss_model)
-		visual = boss_model
-		shadow_width = _CHARACTER_SHADOW_WIDTH_M * _BOSS_SCALE
-		_play_model_idle(boss_model)
+	# Atia 3D model from the registry (assets/atia/atia_models.json, via MonsterArt.resolve()).
+	# Any failure (kind != glb, missing file, no meshes) falls through to the Chimera sprite.
+	var atia: Dictionary = (_make_atia_model(unit_key, is_boss) if is_enemy else {})
+	if not atia.is_empty():
+		var model: Node3D = atia["node"]
+		slot.add_child(model)
+		_fit_atia_model(model, atia)
+		visual = model
+		shadow_width = clampf(float(atia["width"]) * 0.9, 1.0, 7.0)
+		atia_info = atia
+		if not CombatView.disable_juice_for_tests:
+			if (atia["anims"] as Dictionary).has("idle"):
+				_atia_play(atia, "idle", true)
+			else:
+				_play_model_idle(model)   # mascot .glb: first looping clip it ships with
 	elif is_enemy and MonsterArt.texture_for(unit_key, is_boss) != null:
 		# Real Chimera sprite branch (ui-programmer, real-monster-art follow-up — bug report:
 		# "4 quái là 4 bóng đen giống hệt nhau", production/qa/evidence/
@@ -694,6 +697,7 @@ func spawn_unit(uid: int, cls: String, is_enemy: bool, slot_index: int, slot_cou
 		"is_enemy": is_enemy, "rest_pos": slot.position, "action_tween": null,
 		# Frame-sheet animation for rigless monsters. `sheet_name` is "" for anything with a
 		# real rig (every party Axie), which is what every caller below tests.
+		"atia": atia_info,
 		"sheet_name": sheet_sprite_name, "sheet_sprite": sheet_target,
 		"sheet_tween": null, "sheet_base_tex": (sheet_target.texture if sheet_target != null else null),
 		"sheet_base_pixel_size": (sheet_target.pixel_size if sheet_target != null else 0.0),
@@ -701,7 +705,7 @@ func spawn_unit(uid: int, cls: String, is_enemy: bool, slot_index: int, slot_cou
 	# A real AxieCharacter3D rig breathes via its own looping Idle clip. Everything else — the
 	# Chimera sprite enemies and the capsule placeholder — has no animation rig, so it gets the
 	# code-driven Tween bob instead.
-	if character == null or character.playable == null:
+	if (character == null or character.playable == null) and not (atia_info.has("player") and atia_info["anims"].has("idle")):
 		_start_idle_bob(uid)
 
 
@@ -713,38 +717,85 @@ func spawn_unit(uid: int, cls: String, is_enemy: bool, slot_index: int, slot_cou
 ## _start_death_fade()'s scale-to-zero on `slot`, run from play_death()) collapses toward the
 ## origin alongside the death fade, independent of whether `visual` is a real rig, a capsule, or
 ## a billboard sprite.
-## Instantiates a boss's .glb and scales it to _BOSS_MODEL_HEIGHT_M. Returns null when this
-## boss has no model, or the file is missing — the caller then falls through to the sprite
-## branch, which is why this never pushes an error for a boss that simply is not modelled.
-func _make_boss_model(unit_key: String) -> Node3D:
-	if not BOSS_MODELS.has(unit_key):
-		return null
-	var path := _BOSS_MODEL_DIR + String(BOSS_MODELS[unit_key]) + ".glb"
+## Instantiates the Atia wrapper scene for `unit_key` from the registry. Returns {} when the
+## entry is not kind "glb", the file is missing, or it fails to load, so the caller falls through
+## to the Chimera sprite. The returned dict is kept in the unit entry as "atia".
+func _make_atia_model(unit_key: String, is_boss: bool) -> Dictionary:
+	var reg := MonsterArt.resolve(unit_key, is_boss)
+	if String(reg.get("kind", "")) != "glb":
+		return {}
+	var path := String(reg.get("path", ""))
 	if not ResourceLoader.exists(path):
-		push_warning("CombatStage3D: boss '%s' maps to %s, which is missing" % [unit_key, path])
-		return null
+		push_warning("CombatStage3D: '%s' maps to %s, which is missing" % [unit_key, path])
+		return {}
 	var packed := load(path) as PackedScene
 	if packed == null:
-		return null
+		return {}
 	var model := packed.instantiate() as Node3D
 	if model == null:
-		return null
+		return {}
+	var player: AnimationPlayer = null
+	for n in _descendants(model):
+		if n is AnimationPlayer:
+			player = n as AnimationPlayer
+			break
+	return {"node": model, "player": player, "reg": reg,
+		"anims": (reg.get("anims", {}) as Dictionary).duplicate(),
+		"speed": (reg.get("anim_speed", {}) as Dictionary).duplicate(), "width": 1.0}
 
-	# Scale from the model's OWN measured height, not from a number typed here. These models
-	# come from a different pipeline than anything else on this stage and there is no promise
-	# about their units; measuring is the only way the boss is the size it was asked to be.
-	#
-	# And STAND IT ON THE GROUND. The slot's origin is the floor, but a .glb's origin is
-	# wherever its author left it — these mascots are authored around their middle, so a model
-	# dropped in unadjusted hovers with its shadow under its waist. Measured, then corrected,
-	# rather than nudged by a hand-tuned constant per model.
-	var bounds := _visual_bounds(model)
-	var extent: float = bounds.y - bounds.x
-	if extent > 0.001:
-		var factor := _BOSS_MODEL_HEIGHT_M / extent
-		model.scale = Vector3.ONE * factor
-		model.position.y = -bounds.x * factor
-	return model
+
+## Scales the model to the registry's height_m (capped by max_width_m), centres it on the slot
+## and stands it on the floor. Bounds are measured in the model's own space with every node
+## transform applied: FBX imports carry arbitrary root scales (one of these is 0.01), so
+## measuring raw mesh AABBs would be wrong. Must run once the model is inside the tree.
+func _fit_atia_model(model: Node3D, atia: Dictionary) -> void:
+	var reg: Dictionary = atia["reg"]
+	model.rotation_degrees.y = float(reg.get("facing_deg", 0.0))
+	var box := _model_aabb(model)
+	if box.size.y < 0.0001:
+		return
+	var h := float(reg.get("height_m", 2.2))
+	var wmax := float(reg.get("max_width_m", 4.2))
+	var factor := minf(h / box.size.y, wmax / maxf(maxf(box.size.x, box.size.z), 0.0001))
+	model.scale = Vector3.ONE * factor
+	var c := box.get_center()
+	model.position = Vector3(-c.x * factor, -box.position.y * factor, -c.z * factor)
+	atia["width"] = maxf(box.size.x, box.size.z) * factor
+
+
+## AABB of all meshes in `root`, expressed in root's local space.
+static func _model_aabb(root: Node3D) -> AABB:
+	var inv := root.global_transform.affine_inverse()
+	var box := AABB()
+	var first := true
+	for node in _descendants(root):
+		var mi := node as MeshInstance3D
+		if mi == null or mi.mesh == null:
+			continue
+		var b: AABB = inv * mi.global_transform * mi.get_aabb()
+		box = b if first else box.merge(b)
+		first = false
+	return box
+
+
+## Plays one of the registry's clips ("idle"/"attack"/"hit"/"die") on a unit's Atia model.
+## Non-idle clips return to Idle when they end, except "die" which holds the last frame.
+## Returns the clip length in seconds, or 0 when the model has no such clip.
+func _atia_play(atia: Dictionary, slot_name: String, loop := false) -> float:
+	var player := atia.get("player") as AnimationPlayer
+	var clip := String((atia.get("anims", {}) as Dictionary).get(slot_name, ""))
+	if player == null or not is_instance_valid(player) or clip == "" or not player.has_animation(clip):
+		return 0.0
+	var anim := player.get_animation(clip)
+	anim.loop_mode = Animation.LOOP_LINEAR if loop else Animation.LOOP_NONE
+	var spd := float((atia.get("speed", {}) as Dictionary).get(slot_name, 1.0))
+	player.play(clip, 0.1, spd)
+	if not loop and slot_name != "die":
+		var idle := String((atia.get("anims", {}) as Dictionary).get("idle", ""))
+		if idle != "" and player.has_animation(idle):
+			player.get_animation(idle).loop_mode = Animation.LOOP_LINEAR
+			player.queue(idle)
+	return anim.length / maxf(spd, 0.01)
 
 
 ## The vertical extent of every VisualInstance3D in the tree, in the model's own space, as
@@ -1056,6 +1107,8 @@ func play_action(uid: int, face_type: String = "", target_uid: int = -1,
 	# The other half a rigless monster gets: the kit's own attack clip, played as a frame
 	# sheet alongside the lunge. No-op for anything with a real rig.
 	_play_sheet(entry, "attack")
+	if not CombatView.disable_juice_for_tests and (entry.get("atia", {}) as Dictionary).has("player"):
+		_atia_play(entry["atia"], "attack")
 	var character: AxieCharacter3D = entry.get("character")
 	if character == null or not is_instance_valid(character) or character.playable == null:
 		return
@@ -1344,6 +1397,8 @@ func play_hit_reaction(uid: int) -> void:
 		return
 	var character: AxieCharacter3D = entry.get("character")
 	_play_sheet(entry, "hit")      # the rigless half; no-op when a rig answers below
+	if not CombatView.disable_juice_for_tests and (entry.get("atia", {}) as Dictionary).has("player"):
+		_atia_play(entry["atia"], "hit")
 	if character == null or not is_instance_valid(character) or character.playable == null:
 		return
 	character.playable.play(AnimNames.IdleGetHit, "", false)
@@ -1379,6 +1434,13 @@ func play_death(uid: int) -> void:
 	var playable: AxiePlayable = null
 	if character != null and is_instance_valid(character):
 		playable = character.playable
+	var atia: Dictionary = entry.get("atia", {})
+	if not CombatView.disable_juice_for_tests and atia.has("player"):
+		var secs := _atia_play(atia, "die")
+		if secs > 0.0:
+			get_tree().create_timer(secs + 0.15).timeout.connect(
+				func() -> void: _start_death_fade(uid, entry))
+			return
 	if CombatView.disable_juice_for_tests or playable == null:
 		# A rigless monster with a `die` sheet plays it and only then fades, mirroring what
 		# the rigged path below does with the Dead clip. _play_sheet() calls back immediately
