@@ -48,12 +48,12 @@ static func resolve(ctx: Dictionary) -> int:
 			v = ceil(v * 1.6)                                                    # 1. EXECUTE
 		if pierce:
 			v += (3.0 if src.cls == "bird" else 0.0) + RelicHooks.sum(combat, "piercePlus")  # 2. PIERCE
-		var dm := RelicHooks.mul(combat, "dmgMult", 1.0)
+		var dm := RelicHooks.g_axie(combat, src) if String(ctx.get("face_type", "dmg")) == "dmg" else 1.0
 		if dm != 1.0:
 			v = ceil(v * dm)                                                     # 3. dmgMult
 		v = float(RelicHooks.run_value_hook(combat, "mod_dmg", {"src": src, "tgt": tgt, "combat": combat}, v))  # 4. modDmg
 		if crit:                                                                 # 5. CRIT
-			v *= RelicHooks.max_val(combat, "critMult", 2.0)
+			v *= 2.0 + RelicHooks.axis_sum(combat, "A:crit")   # x2 base; A:crit adds to the bonus half (x3 at +100%)
 			var cf := RelicHooks.sum(combat, "critFlat")
 			if pity_crit:
 				cf += RelicHooks.sum(combat, "critFlatPity")
@@ -135,7 +135,7 @@ static func resolve(ctx: Dictionary) -> int:
 	if src != null and attack and not skip_thorns and thorns_now > 0 and src.hp > 0 and src != tgt:
 		var th := float(thorns_now)
 		if tgt.side == "p":
-			var tm := RelicHooks.max_val(combat, "thornsMult", 1.0)
+			var tm := 1.0 + RelicHooks.axis_sum(combat, "A:thorns")
 			var tp := RelicHooks.sum(combat, "thornsPlus")
 			th = th * tm + tp
 			if tm != 1.0 or tp != 0.0:

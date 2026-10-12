@@ -1621,6 +1621,7 @@ func _build_unit_from_roster(entry: Dictionary, index: int) -> Unit:
 	u.max_hp = base_hp + int(entry.get("bonus_hp", 0))
 	u.die = (hero_def.get("die", []) as Array).duplicate(true)
 
+	var oc_prod := 1.0
 	for m in (entry.get("muts", []) as Array):
 		var mt := String(m.get("type", ""))
 		if mt == "part":
@@ -1637,10 +1638,18 @@ func _build_unit_from_roster(entry: Dictionary, index: int) -> Unit:
 				if int(u.die[idx2].get("rarity", 0)) < 1:
 					u.die[idx2]["rarity"] = 1
 		elif mt == "oc":
+			# relic-set-v2 §3.3: on damage faces ascend/forge no longer multiply at build time; they feed
+			# G_axie as an additive term (RelicHooks.g_axie). Shield/Heal/Mana keep the compounding
+			# multiplier, capped at oc_nondmg_cap, rounded once from the base value (after the loop).
 			var mult := float(m.get("mult", 1.5))
-			for f in u.die:
-				if int(f.get("value", 0)) > 0:
-					f["value"] = int(ceil(int(f["value"]) * mult))
+			u.g_oc_bonus += mult - 1.0
+			oc_prod *= mult
+
+	if oc_prod != 1.0:
+		var oc_m := minf(oc_prod, RelicSlots.tuning().oc_nondmg_cap)
+		for f in u.die:
+			if int(f.get("value", 0)) > 0 and String(f.get("type", "")) != "dmg":
+				f["value"] = int(ceil(int(f["value"]) * oc_m))
 
 	# ENG-3 — growth persisted between combats by the growthKeep relic. Seeded BEFORE the
 	# modFace pass, matching JS (engine.js buildUnit): growth is added to faceValue at use

@@ -105,6 +105,7 @@ static func tick_status(combat) -> void:
 		if int(u.status.get("poison", 0)) > 0:
 			resolved["poison"] = true
 			var t: int = poison_ticks if u.side == "e" else 1
+			var pmult: float = 1.0 + (RelicHooks.axis_sum(combat, "A:poison") if u.side == "e" else 0.0)
 			for i in t:
 				# Re-read each tick with a default, never `u.status["poison"]`. Dealing this
 				# damage can drop a boss to 0 and trip DamagePipeline.check_boss_phase(), which
@@ -113,7 +114,7 @@ static func tick_status(combat) -> void:
 				# entering phase 2 aborted the rest of the status tick for every unit after it.
 				if u.hp > 0 and int(u.status.get("poison", 0)) > 0:
 					DamagePipeline.resolve({"combat": combat, "src": null, "tgt": u,
-						"value": int(u.status.get("poison", 0)), "pierce": true})
+						"value": int(int(u.status.get("poison", 0)) * pmult), "pierce": true})
 			# The decay below must also tolerate the status having been wiped mid-loop: there is
 			# nothing left to decay, and subtracting from a missing key would re-create it at -1.
 			if int(u.status.get("poison", 0)) > 0:
@@ -125,7 +126,7 @@ static func tick_status(combat) -> void:
 
 		if int(u.status.get("burn", 0)) > 0:
 			resolved["burn"] = true
-			var bm: float = RelicHooks.max_val(combat, "burnMult", 1.0)
+			var bm: float = 1.0 + RelicHooks.axis_sum(combat, "A:burn")
 			var base: int = int(int(u.status.get("burn", 0)) * (bm if u.side == "e" else 1.0))
 			DamagePipeline.resolve({"combat": combat, "src": null, "tgt": u, "value": base, "pierce": true})
 			var bt: int = int(RelicHooks.max_val(combat, "burnTicks", 1.0))

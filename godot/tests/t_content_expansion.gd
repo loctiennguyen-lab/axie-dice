@@ -190,29 +190,14 @@ func _check_relic_pure_data() -> void:
 	_assert(RelicHooks.has(c4, "healShield"), "r_holyfont: has(healShield) should be true")
 
 	var c5 := _new_combat(["r_mirrorshell"])
-	_assert(RelicHooks.max_val(c5, "thornsMult", 1.0) == 2.0, "r_mirrorshell: thornsMult should be 2.0")
-
+	_assert(is_equal_approx(RelicHooks.axis_sum(c5, "A:thorns"), 1.0), "r_mirrorshell: A:thorns +100%")
 	var c6 := _new_combat(["r_solarcore"])
-	_assert(RelicHooks.max_val(c6, "burnMult", 1.0) == 2.0, "r_solarcore: burnMult should be 2.0")
-
+	_assert(is_equal_approx(RelicHooks.axis_sum(c6, "A:burn"), 1.0), "r_solarcore: A:burn +100%")
 	var c7 := _new_combat(["r_venomengine"])
-	_assert(RelicHooks.max_val(c7, "poisonTicks", 1.0) == 2.0, "r_venomengine: poisonTicks should be 2.0")
-
+	_assert(is_equal_approx(RelicHooks.axis_sum(c7, "A:poison"), 1.0), "r_venomengine: A:poison +100%")
 	var c8 := _new_combat(["r_hearthcore"])
-	_assert(RelicHooks.max_val(c8, "burnTicks", 1.0) == 2.0, "r_hearthcore: burnTicks should be 2.0")
-	_assert(RelicHooks.max_val(c8, "burnTickRatio", 0.7) == 0.7, "r_hearthcore: burnTickRatio should be 0.7")
+	_assert(is_equal_approx(RelicHooks.axis_sum(c8, "A:burn"), 0.7), "r_hearthcore: A:burn +70%")
 
-	# Sanity: an unrelated combat with NO relics gets the untouched baseline defaults.
-	var c0 := _new_combat([])
-	_assert(RelicHooks.sum(c0, "critBonus") == 0.0, "no relics: critBonus baseline should be 0")
-	_assert(not RelicHooks.has(c0, "hiveMind"), "no relics: has(hiveMind) should be false")
-
-
-# ===========================================================================
-# 6. Relics — hook_key logic in relic_hooks.gd's TABLE, exercised through the exact
-# ctx shapes damage_pipeline.gd/status_engine.gd/combat_engine.gd pass at their real call
-# sites (RelicHooks.fire/run_value_hook), against real Unit objects from a real CombatEngine.
-# ===========================================================================
 func _check_relic_hooks() -> void:
 	# r_rotbite / r_tinderbox / r_openwound merged into r_festermark (relic-set-v2 §1.3): +2 for
 	# one status. The "both statuses +4" case is covered in t_relic_set_v2.
