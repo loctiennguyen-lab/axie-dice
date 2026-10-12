@@ -21,8 +21,11 @@ extends Node
 ##   * Block play. Offline, expired or broken sign-in all leave the player in the game with their
 ##     progress saved locally, and the next successful contact catches up.
 ##
-## Web only. A desktop build has no session cookie to carry, so it stays a guest and this node
-## does nothing at all.
+## Web: the session is an HttpOnly cookie carried by the browser (`__adAcct` bridge).
+## Desktop: there is no cookie, so sign-in goes through the Worker (loopback + PKCE, ADR-RNG 4.8):
+## DesktopAuth opens the browser, DesktopTransport sends `Authorization: Bearer` and refreshes.
+## Tokens live in DeviceTokens (encrypted file; OS keychain is a known debt). A desktop player with
+## no tokens stays a guest and this node stays idle until `sign_in()` succeeds.
 
 signal changed
 
@@ -96,6 +99,8 @@ func _ready() -> void:
 	if SaveStore.is_web():
 		_install_js()
 		start(_web_transport)
+	elif _desktop_enabled():
+		_desktop_boot()
 
 
 ## Turns the service on. The web build calls this from _ready(); tests call it with a fake.
@@ -153,6 +158,7 @@ func play_as_guest() -> void:
 ## synchronously — so nothing is lost by navigating away mid-flow.
 func sign_in(switch_account: bool = false) -> void:
 	if not SaveStore.is_web():
+		begin_desktop_sign_in()
 		return
 	JavaScriptBridge.get_interface("__adAcct").go(switch_account)
 
@@ -160,6 +166,9 @@ func sign_in(switch_account: bool = false) -> void:
 ## Uploads anything pending first, then ends the session and returns this browser to guest.
 ## The signed-in player's local copy stays on the device under their own key.
 func sign_out() -> void:
+	if _dt != null:
+		_flush_then(_desktop_sign_out)
+		return
 	_flush_then(func() -> void:
 		transport.call("POST", "/auth/logout", "", func(code: int, _text: String) -> void:
 			# Only drop to guest once the server has ended the session. Offline, the cookie would
@@ -727,3 +736,98 @@ func _ask_with_ui(kind: String, info: Dictionary, done: Callable) -> void:
 
 func _toast_with_ui(code: String) -> void:
 	AccountUI.show_toast(_ui_layer(), code)
+
+
+# ============================================================================ desktop sign-in
+
+## Set by tests (and by a future setting) to switch the desktop path off.
+var desktop_enabled_override := true
+var _dt: DesktopTransport
+var _auth: DesktopAuth
+
+
+func _desktop_enabled() -> bool:
+	return desktop_enabled_override and not DisplayServer.get_name() == "headless"
+
+
+func server_url() -> String:
+	return String(ProjectSettings.get_setting("axie/server_url", "https://axiedice.fun"))
+
+
+## Called on desktop boot: tokens from a previous sign-in turn the service on straight away.
+func _desktop_boot() -> void:
+	_ensure_dt()
+	_dt.tokens = DeviceTokens.load_tokens()
+	if _dt.is_signed_in():
+		start(_dt.request)
+
+
+func _ensure_dt() -> void:
+	if _dt != null:
+		return
+	_dt = DesktopTransport.new()
+	_dt.server_url = server_url()
+	add_child(_dt)
+	_dt.signed_out.connect(func() -> void:
+		# Server refused the refresh token: same as an expired web session, local save keeps working.
+		status = Status.EXPIRED
+		_pending_error = "session_expired"
+		changed.emit())
+
+
+## Opens the system browser and waits for the loopback callback. The login screen is lane U's;
+## it calls this and listens to `changed` (and `toast` for a failure).
+func begin_desktop_sign_in() -> void:
+	if not _desktop_enabled() or (_auth != null and is_instance_valid(_auth)):
+		return
+	_ensure_dt()
+	_auth = DesktopAuth.new()
+	_auth.server_url = server_url()
+	_auth.exchange = func(url: String, body: String, done: Callable) -> void:
+		_dt.raw.call("POST", url, PackedStringArray(["Content-Type: application/json"]), body, done)
+	add_child(_auth)
+	_auth.finished.connect(_on_desktop_auth)
+	var err := _auth.begin()
+	if err != OK:
+		_auth.queue_free()
+		_auth = null
+		toast.call("network") if toast.is_valid() else null
+
+
+func cancel_desktop_sign_in() -> void:
+	if _auth != null and is_instance_valid(_auth):
+		_auth.cancel()
+
+
+func _on_desktop_auth(ok: bool, tokens: Dictionary, error: String) -> void:
+	if _auth != null:
+		_auth.queue_free()
+		_auth = null
+	if not ok:
+		if error != "cancelled":
+			_pending_error = error if error != "" else "token"
+			if toast.is_valid():
+				toast.call(_pending_error)
+		return
+	_dt.tokens = {"access": tokens["access"], "refresh": tokens["refresh"],
+		"device_id": String(tokens.get("device_id", ""))}
+	DeviceTokens.save(_dt.tokens)
+	_session_known = false
+	start(_dt.request)
+
+
+func _desktop_sign_out() -> void:
+	var device := String(_dt.tokens.get("device_id", ""))
+	var finish := func() -> void:
+		DeviceTokens.clear()
+		_dt.tokens = {}
+		_become_guest()
+	if device.is_empty():
+		finish.call()
+		return
+	# Revoke this device server-side first; offline, stay signed in so the next boot is not silently re-auth'd.
+	transport.call("POST", "/auth/devices", JSON.stringify({"id": device}), func(code: int, _t: String) -> void:
+		if code == 200 or code == 401:
+			finish.call()
+		else:
+			toast.call("sign_out_failed"))

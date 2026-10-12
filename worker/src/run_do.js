@@ -7,6 +7,8 @@
 // keep-alive does not wake the object.
 import { RunCore } from './run_core.js';
 import { verifyRunToken } from './run_token.js';
+import { spendGem } from './wallet.js';
+import { PRICES } from './aid_prices.js';
 
 // Rule versions this build can still serve (ADR 4.6 bye{version}). Extend at every RULES_VERSION bump.
 export const SUPPORTED_RULES = new Set(['godot-2026-09-21-a']);
@@ -26,8 +28,12 @@ export class RunDO {
     this.core = new RunCore(ctx.storage.sql, {
       verifyToken: (t) => verifyRunToken(env, t),
       supportsRules: (v) => rulesSupported(env, v),
-      // No `charge` yet: paid requests (Aid, Continue, pact/shop reroll) are refused until the wallet
-      // decision (Gem on server, LIAM-2) lands. See RunCore._charge.
+      // Gem is charged in D1 inside the request that earns the seed (ADR 4.9). The idem key is built by
+      // RunCore as aid:{run}:{seq}, so a retried request replays the old charge instead of paying twice.
+      charge: async (idem, aid, _args, meta) => {
+        const r = await spendGem(env, meta.player_id, PRICES[aid].price, `aid:${aid}`, idem);
+        return r.ok;
+      },
       log: (event, detail) => console.warn('run anomaly', event, JSON.stringify(detail)),
     });
     if (typeof WebSocketRequestResponsePair !== 'undefined') {

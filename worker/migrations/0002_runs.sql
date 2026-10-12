@@ -7,7 +7,7 @@
 CREATE TABLE runs (
   run_id         TEXT PRIMARY KEY,           -- 32 hex chars, also the Durable Object name
   player_id      TEXT NOT NULL REFERENCES players(id) ON DELETE CASCADE,
-  mode           TEXT NOT NULL,              -- normal | mission | ranked | tutorial_free (extend with the mode list)
+  mode           TEXT NOT NULL,              -- the run KIND: normal | daily | ranked | mission
   ascension      INTEGER NOT NULL DEFAULT 0,
   rules_version  TEXT NOT NULL,
   state          TEXT NOT NULL,              -- pending | open | closed | abandoned | infra_error

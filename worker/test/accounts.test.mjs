@@ -21,7 +21,7 @@ class Stmt {
   async run() { const r = this.db.prepare(this.sql).run(...this.args); return { success: true, meta: { changes: Number(r.changes) } }; }
 }
 class FakeD1 {
-  constructor() { this.db = new DatabaseSync(':memory:'); this.db.exec('PRAGMA foreign_keys = ON;'); this.db.exec(MIGRATION); }
+  constructor() { this.db = new DatabaseSync(':memory:'); this.db.exec('PRAGMA foreign_keys = ON;'); this.db.exec(MIGRATION); this.db.exec(readFileSync(new URL('../migrations/0004_desktop_auth.sql', import.meta.url), 'utf8')); }
   prepare(sql) { return new Stmt(this.db, sql); }
   async batch(stmts) {
     this.db.exec('BEGIN');
@@ -393,4 +393,133 @@ test('/api/me is never rate limited, and no binding means no limit', async () =>
   delete env.AUTH_LIMITER; delete env.SAVE_LIMITER;
   assert.equal((await call('/auth/login')).status, 302);
   assert.match((await call('/auth/login')).headers.get('Location'), /^https:\/\/accounts\.google\.com\//);
+});
+
+
+// ---------------------------------------------------------------- desktop login (loopback + PKCE)
+
+const sha256url = async (t) => b64url(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(t)));
+const D_VERIFIER = 'v'.repeat(64);
+const D_STATE = 's'.repeat(32);
+const post = (path, body, headers = {}) => worker.fetch(new Request(ORIGIN + path, { method: 'POST', headers: { 'Content-Type': 'application/json', ...headers }, body: JSON.stringify(body) }), env);
+
+/** Full desktop flow up to the code the loopback port would receive. */
+async function desktopCode({ port = 54321 } = {}) {
+  const challenge = await sha256url(D_VERIFIER);
+  const login = await call(`/auth/login?desktop=1&challenge=${challenge}&port=${port}&state=${D_STATE}`);
+  assert.equal(login.status, 302);
+  const g = new URL(login.headers.get('Location'));
+  google.challenge = g.searchParams.get('code_challenge');
+  google.nonce = g.searchParams.get('nonce');
+  const cb = await call(`/auth/callback?state=${g.searchParams.get('state')}&code=good-code`, { cookie: `ad_oauth=${cookieValue(login, 'ad_oauth')}` });
+  return { cb, challenge };
+}
+async function desktopTokens() {
+  const { cb } = await desktopCode();
+  const loc = new URL(cb.headers.get('Location'));
+  const res = await post('/auth/desktop/token', { code: loc.searchParams.get('code'), verifier: D_VERIFIER });
+  return { res, loc, tok: res.status === 200 ? await res.json() : null };
+}
+
+test('desktop login: callback redirects to loopback only, no cookie session is set', async () => {
+  const { cb } = await desktopCode();
+  assert.equal(cb.status, 302);
+  const loc = new URL(cb.headers.get('Location'));
+  assert.equal(loc.origin, 'http://127.0.0.1:54321');
+  assert.equal(loc.pathname, '/cb');
+  assert.equal(loc.searchParams.get('state'), D_STATE);
+  assert.ok(loc.searchParams.get('code'));
+  assert.equal(cookieValue(cb, 'ad_session'), null);
+});
+
+test('desktop login: bad port / challenge / state are refused before Google', async () => {
+  const ch = await sha256url(D_VERIFIER);
+  for (const q of [`port=80&challenge=${ch}&state=${D_STATE}`, `port=99999&challenge=${ch}&state=${D_STATE}`, `port=5000&challenge=short&state=${D_STATE}`, `port=5000&challenge=${ch}&state=x`]) {
+    assert.equal((await call(`/auth/login?desktop=1&${q}`)).status, 400, q);
+  }
+});
+
+test('desktop login: a Google error goes back to the loopback with the error, state kept', async () => {
+  const challenge = await sha256url(D_VERIFIER);
+  const login = await call(`/auth/login?desktop=1&challenge=${challenge}&port=54321&state=${D_STATE}`);
+  const g = new URL(login.headers.get('Location'));
+  const cb = await call(`/auth/callback?state=${g.searchParams.get('state')}&error=access_denied`, { cookie: `ad_oauth=${cookieValue(login, 'ad_oauth')}` });
+  const loc = new URL(cb.headers.get('Location'));
+  assert.equal(loc.origin, 'http://127.0.0.1:54321');
+  assert.equal(loc.searchParams.get('error'), 'access_denied');
+  assert.equal(loc.searchParams.get('state'), D_STATE);
+});
+
+test('token exchange: code is single use, bound to the PKCE verifier, and expires in 60 s', async () => {
+  const wrong = await desktopCode();
+  const code = new URL(wrong.cb.headers.get('Location')).searchParams.get('code');
+  assert.equal((await post('/auth/desktop/token', { code, verifier: 'x'.repeat(64) })).status, 400);
+  assert.equal((await post('/auth/desktop/token', { code, verifier: D_VERIFIER })).status, 400, 'a wrong verifier burns the code');
+
+  const ok = await desktopTokens();
+  assert.equal(ok.res.status, 200);
+  assert.ok(ok.tok.access && ok.tok.refresh && ok.tok.expires_in > 0);
+  assert.equal((await post('/auth/desktop/token', { code: ok.loc.searchParams.get('code'), verifier: D_VERIFIER })).status, 400, 'reuse');
+
+  const late = await desktopCode();
+  env.DB.db.prepare('UPDATE desktop_codes SET expires_at = ?').run(Math.floor(Date.now() / 1000) - 1);
+  assert.equal((await post('/auth/desktop/token', { code: new URL(late.cb.headers.get('Location')).searchParams.get('code'), verifier: D_VERIFIER })).status, 400);
+});
+
+test('Bearer authenticates alone: /api/me works, a bad Bearer is 401 even with a valid cookie', async () => {
+  const { tok } = await desktopTokens();
+  const me = await worker.fetch(new Request(ORIGIN + '/api/me', { headers: { Authorization: `Bearer ${tok.access}` } }), env);
+  assert.equal(me.status, 200);
+  assert.equal((await me.json()).email, 'liam@skymavis.com');
+  const { session } = await signIn();
+  const bad = await worker.fetch(new Request(ORIGIN + '/api/me', { headers: { Authorization: 'Bearer ' + 'z'.repeat(43), Cookie: `ad_session=${session}` } }), env);
+  assert.equal(bad.status, 401);
+  // a Bearer write needs no Origin header (desktop has none)
+  const put = await worker.fetch(new Request(ORIGIN + '/api/save', { method: 'PUT', headers: { Authorization: `Bearer ${tok.access}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ rev: 0, meta: { a: 1 } }) }), env);
+  assert.equal(put.status, 200);
+});
+
+test('refresh rotates; the old token works once more inside the grace window, then reuse revokes the device', async () => {
+  const { tok } = await desktopTokens();
+  const r1 = await (await post('/auth/refresh', { refresh: tok.refresh })).json();
+  assert.ok(r1.refresh && r1.refresh !== tok.refresh);
+  // lost response: the client retries with the old refresh, twice, and still gets a pair
+  const retry = await post('/auth/refresh', { refresh: tok.refresh });
+  assert.equal(retry.status, 200);
+  const retry2 = await post('/auth/refresh', { refresh: tok.refresh });
+  assert.equal(retry2.status, 200);
+  const latest = await retry2.json();
+  assert.equal((await post('/auth/refresh', { refresh: latest.refresh })).status, 200);
+  // outside the grace window an old token is treated as stolen
+  env.DB.db.prepare('UPDATE device_sessions SET rotated_at = rotated_at - 3600').run();
+  assert.equal((await post('/auth/refresh', { refresh: tok.refresh })).status, 401);
+  const cur = await post('/auth/refresh', { refresh: latest.refresh });
+  assert.equal(cur.status, 401, 'the whole device is revoked');
+  const me = await worker.fetch(new Request(ORIGIN + '/api/me', { headers: { Authorization: `Bearer ${latest.access}` } }), env);
+  assert.equal(me.status, 401);
+});
+
+test('devices: list, revoke one, sign out everywhere', async () => {
+  const a = (await desktopTokens()).tok;
+  const b = (await desktopTokens()).tok;
+  const h = (t) => ({ Authorization: `Bearer ${t.access}` });
+  const list = await (await worker.fetch(new Request(ORIGIN + '/auth/devices', { headers: h(a) }), env)).json();
+  assert.equal(list.devices.length, 2);
+  assert.equal(list.devices.filter((d) => d.current).length, 1);
+  await post('/auth/devices', { id: b.device_id }, h(a));
+  assert.equal((await worker.fetch(new Request(ORIGIN + '/api/me', { headers: h(b) }), env)).status, 401);
+  assert.equal((await worker.fetch(new Request(ORIGIN + '/api/me', { headers: h(a) }), env)).status, 200);
+  await post('/auth/devices', { all: true }, h(a));
+  assert.equal((await worker.fetch(new Request(ORIGIN + '/api/me', { headers: h(a) }), env)).status, 401);
+});
+
+test('refresh grace: a token superseded during a retry that shows up again revokes the device; oversized bodies are refused', async () => {
+  const { tok } = await desktopTokens();
+  const r1 = await (await post('/auth/refresh', { refresh: tok.refresh })).json(); // R1 (response "lost")
+  const r2 = await (await post('/auth/refresh', { refresh: tok.refresh })).json(); // retry with R0 -> R2, R1 superseded
+  assert.ok(r2.refresh !== r1.refresh);
+  assert.equal((await post('/auth/refresh', { refresh: r1.refresh })).status, 401, 'R1 resurfacing = a copy exists elsewhere');
+  assert.equal((await post('/auth/refresh', { refresh: r2.refresh })).status, 401, 'device revoked');
+  assert.equal((await post('/auth/refresh', { refresh: 'x'.repeat(8000) })).status, 400);
+  assert.equal((await post('/auth/desktop/token', { code: 'c', verifier: 'v'.repeat(9000) })).status, 400);
 });

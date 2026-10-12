@@ -7,7 +7,8 @@
 // What it enforces is the syntactic part of ADR server-authoritative-rng §4.3 / §4.6: append-only
 // log with a hash chain, one valid request per seq, no overlapping epochs, consume-in-place,
 // pinned reroll seeds, budgets. It never runs game rules: that is the verifier's job (later).
-import { canonKV, chainStart, chainNext, commitOf, epochSeed, _bytes } from './epoch_canon.js';
+import { AID_BY_KIND, PRICES, totalCap } from './aid_prices.js';
+import { canonKV, chainStart, chainNext, commitOf, epochSeed, isCanonScalar, nodeRow, MAX_PARAMS, _bytes } from './epoch_canon.js';
 
 export const MAX_EPOCHS = 400;
 export const MAX_ACTIONS = 3000;
@@ -20,6 +21,8 @@ export const ALLOWED_FNS = new Set([
   'enter_node', 'use_die', 'play_active', 'reroll_dice', 'end_turn', 'undo_last', 'take_reward',
   'reroll_rewards', 'event_choose', 'event_done', 'shop_buy', 'shop_done',
   'shop_refresh', 'continue', 'pact_reroll',
+  // lane A PR2
+  'tweak', 'hold_pick', 'loaded_pick', 'sell_relic', 'swap_on_full', 'reorder_party', 'aid_use',
 ]);
 
 /** kind -> action that consumes it at position log_len (ADR 4.2). null = consumed on reply. */
@@ -44,8 +47,8 @@ const IDENT = /^[a-z0-9_]+$/;
 const ARG_KEYS = {
   run_start: ['mode', 'ascension'],
   node: ['node_id'],
-  end_turn: ['turn'],
-  reroll: ['turn', 'k', 'source', 'uids'],
+  end_turn: ['turn', 'attempt'], // attempt only present when > 0 (lane A)
+  reroll: ['turn', 'k', 'source', 'uids', 'attempt'],
   reward: ['node_id'],
   reward_reroll: ['k', 'node_id'],
   event_choice: ['choice', 'index', 'node_id'],
@@ -55,7 +58,7 @@ const ARG_KEYS = {
   pact_reroll: ['node_id', 'slot'],
 };
 const SOURCES = new Set(['base', 'aid']);
-const MODES = new Set(['normal', 'mission', 'ranked']);
+const MODES = new Set(['short', 'full']); // game length (RunParams.mode); run kind lives in D1
 const MAX_TURN = 200;
 const MAX_K = 20;
 const MAX_ID = 100000;
@@ -75,6 +78,7 @@ export function argsProblem(kind, args) {
     if (k === 'turn') { if (!Number.isSafeInteger(v) || v < 1 || v > MAX_TURN) return 'turn'; continue; }
     if (k === 'k') { if (!Number.isSafeInteger(v) || v < 1 || v > MAX_K) return 'k'; continue; }
     if (k === 'item') { if (typeof v !== 'string' || !IDENT.test(v)) return 'item'; continue; }
+    if (k === 'node_id') { if (nodeRow(v) < 1) return 'node_id'; continue; }
     if (!Number.isSafeInteger(v) || v < 0 || v > MAX_ID) return `val_${k}`;
   }
   if (kind === 'end_turn' && args.turn === undefined) return 'turn';
@@ -104,7 +108,7 @@ export class RunCore {
   static initSchema(sql) {
     sql.exec(`CREATE TABLE IF NOT EXISTS meta (
       id INTEGER PRIMARY KEY CHECK (id = 1), run_id TEXT NOT NULL, player_id TEXT NOT NULL,
-      is_guest INTEGER NOT NULL, mode TEXT NOT NULL, rules_version TEXT NOT NULL,
+      is_guest INTEGER NOT NULL, mode TEXT NOT NULL, ascension INTEGER NOT NULL DEFAULT 0, rules_version TEXT NOT NULL,
       s_run BLOB NOT NULL, client_nonce TEXT, session_epoch INTEGER NOT NULL DEFAULT 0,
       state TEXT NOT NULL, outcome TEXT, summary TEXT, created_at INTEGER NOT NULL)`);
     sql.exec(`CREATE TABLE IF NOT EXISTS pending_aid (
@@ -114,22 +118,22 @@ export class RunCore {
     sql.exec(`CREATE TABLE IF NOT EXISTS epochs (
       seq INTEGER PRIMARY KEY, kind TEXT NOT NULL, args TEXT NOT NULL, h TEXT NOT NULL,
       log_len INTEGER NOT NULL, seed INTEGER NOT NULL, log_delta TEXT NOT NULL,
-      attempt INTEGER NOT NULL, req_digest TEXT NOT NULL, pin_key TEXT, uids TEXT, at INTEGER NOT NULL)`);
+      attempt INTEGER NOT NULL, req_digest TEXT NOT NULL, pin_key TEXT, uids TEXT, aid TEXT, at INTEGER NOT NULL)`);
   }
 
   // ------------------------------------------------------------------ creation
 
   /** Called once, right after the D1 batch inserted runs(state=pending). Returns the commitment. */
-  async init({ run_id, player_id, is_guest = false, mode = 'normal', rules_version, client_nonce = null }) {
+  async init({ run_id, player_id, is_guest = false, mode = 'normal', ascension = 0, rules_version, client_nonce = null }) {
     RunCore.initSchema(this.sql);
     if (this.meta()) throw new Error('run already initialised');
     if (!/^[a-f0-9]{32}$/.test(run_id)) throw new Error('bad run_id');
     if (this.deps.supportsRules && !this.deps.supportsRules(rules_version)) return { ok: false, code: 'version' };
     const sRun = crypto.getRandomValues(new Uint8Array(32)); // never leaves the DO while the run is open
     this.sql.exec(
-      `INSERT INTO meta (id, run_id, player_id, is_guest, mode, rules_version, s_run, client_nonce, state, created_at)
-       VALUES (1, ?, ?, ?, ?, ?, ?, ?, 'open', ?)`,
-      run_id, player_id, is_guest ? 1 : 0, mode, rules_version, sRun, client_nonce, this.deps.now(),
+      `INSERT INTO meta (id, run_id, player_id, is_guest, mode, ascension, rules_version, s_run, client_nonce, state, created_at)
+       VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?, 'open', ?)`,
+      run_id, player_id, is_guest ? 1 : 0, mode, ascension, rules_version, sRun, client_nonce, this.deps.now(),
     );
     return { ok: true, commit: await commitOf(run_id, sRun) };
   }
@@ -200,10 +204,10 @@ export class RunCore {
     conn.authed = true;
     conn.epoch = epoch;
     const last = this.last();
-    const seq = last ? last.seq : 0;
+    const seq = last ? last.seq : -1; // -1 = no epoch yet (seq starts at 0)
     const h = last ? last.h : await chainStart(meta.run_id);
     const logLen = last ? last.log_len : 0;
-    const from = Number.isInteger(msg.last_seq) && msg.last_seq >= 0 ? msg.last_seq : seq;
+    const from = Number.isInteger(msg.last_seq) && msg.last_seq >= -1 ? msg.last_seq : seq;
     if (from < seq) {
       const tail = this.sql.exec('SELECT seq, kind, seed FROM epochs WHERE seq > ? ORDER BY seq', from).toArray();
       return { replies: [{ t: 'resync', tail, seq, h, log_len: logLen }], evictOthers: true };
@@ -220,12 +224,10 @@ export class RunCore {
     if (claimedLen !== prevLen + delta.length) return 'log_len';
     for (const a of delta) {
       if (!a || typeof a !== 'object' || !ALLOWED_FNS.has(a.fn)) return 'fn';
-      const args = a.args ?? {};
-      if (typeof args !== 'object' || Array.isArray(args)) return 'args';
-      for (const [k, v] of Object.entries(args)) {
-        if (!IDENT.test(k)) return 'arg_key';
-        const vs = Array.isArray(v) ? v : [v];
-        for (const x of vs) if (!(Number.isSafeInteger(x) || (typeof x === 'string' && /^[a-z0-9_.-]+$/.test(x)))) return 'arg_val';
+      const args = a.args ?? [];
+      if (!Array.isArray(args) || args.length > MAX_PARAMS) return 'args';
+      for (const v of args) {
+        if (Array.isArray(v)) { if (!v.every(isCanonScalar)) return 'arg_val'; } else if (!isCanonScalar(v)) return 'arg_val';
       }
     }
     return null;
@@ -252,7 +254,7 @@ export class RunCore {
     const seq = Number.isInteger(m.seq) ? m.seq : 0;
     const spec = KINDS[m.kind];
     const args = m.args && typeof m.args === 'object' && !Array.isArray(m.args) ? m.args : null;
-    if (!spec || !args || seq < 1) return fail(seq, 'bad_request');
+    if (!spec || !args || !Number.isInteger(m.seq) || m.seq < 0) return fail(seq, 'bad_request');
     const argBad = argsProblem(m.kind, args);
     if (argBad) { this._anomaly('args_rejected', { seq, why: argBad }); return fail(seq, 'bad_request'); }
     const delta = m.log_delta ?? [];
@@ -260,18 +262,18 @@ export class RunCore {
     let digest;
     try { digest = await this._digest(m, delta, args); } catch { return fail(seq, 'bad_request'); }
     const last = this.last();
-    const lastSeq = last ? last.seq : 0;
+    const nextSeq = last ? last.seq + 1 : 0; // run_start is seq 0 (lane A golden)
 
     // Same seq again: identical content gets the old answer, different content gets nothing new.
-    if (seq <= lastSeq) {
+    if (last && seq <= last.seq) {
       const row = this.sql.exec('SELECT * FROM epochs WHERE seq = ?', seq).toArray()[0];
       if (row && row.req_digest === digest) return this._reply(row);
       this._anomaly('seq_replay_mismatch', { seq });
       return fail(seq, 'rejected');
     }
-    if (seq !== lastSeq + 1) return fail(seq, 'out_of_order');
-    if (lastSeq >= MAX_EPOCHS) return fail(seq, 'rejected');
-    if ((m.kind === 'run_start') !== (seq === 1)) return fail(seq, 'out_of_order');
+    if (seq !== nextSeq) return fail(seq, 'out_of_order');
+    if (nextSeq >= MAX_EPOCHS) return fail(seq, 'rejected');
+    if ((m.kind === 'run_start') !== (seq === 0)) return fail(seq, 'out_of_order');
 
     const prevLen = last ? last.log_len : 0;
     const bad = this._deltaProblem(delta, prevLen, m.log_len) || this._consumeProblem(last, delta);
@@ -291,13 +293,13 @@ export class RunCore {
 
     // Attempt counter is the server's, never the client's.
     const attempt = this._attemptFor(m.kind);
-    if (m.kind === 'continue' && args.attempt !== undefined && args.attempt !== attempt) return fail(seq, 'rejected');
+    if (args.attempt !== undefined && args.attempt !== attempt) return fail(seq, 'rejected');
 
-    // Paid requests: mission runs refuse them outright; others go through the wallet hook.
+    // Paid requests are checked here (cheap, no money moves)...
+    let aid = null;
     if (isPaid(m.kind, args)) {
-      if (meta.mode === 'mission') return fail(seq, 'rejected');
-      const ok = await this._charge(meta, seq, m.kind, args);
-      if (!ok) return fail(seq, 'rejected');
+      aid = AID_BY_KIND(m.kind, args);
+      if (meta.mode === 'mission' || meta.is_guest || !aid || this._overCap(meta, aid, m.kind, args)) return fail(seq, 'rejected');
     }
 
     // Reroll: the first request for a key fixes the seed; later requests for it get the same one.
@@ -317,10 +319,18 @@ export class RunCore {
         rules_version: meta.rules_version, attempt, client_nonce: nonce,
       });
     }
+    // ...and the money moves LAST, right before the row is written: nothing above can reject after a charge.
+    // The idem key carries the aid id, so a resend of the same seq as a different Aid is a different
+    // charge and can never ride on the first price. The seq-level replay above already returns the old
+    // answer for an identical resend without charging.
+    if (aid) {
+      const ok = await this._charge(meta, seq, aid, args);
+      if (!ok) return fail(seq, 'rejected');
+    }
     this.sql.exec(
-      `INSERT INTO epochs (seq, kind, args, h, log_len, seed, log_delta, attempt, req_digest, pin_key, uids, at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      seq, m.kind, JSON.stringify(args), h, m.log_len, seed, JSON.stringify(delta), attempt, digest, pin, uids, this.deps.now(),
+      `INSERT INTO epochs (seq, kind, args, h, log_len, seed, log_delta, attempt, req_digest, pin_key, uids, aid, at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      seq, m.kind, JSON.stringify(args), h, m.log_len, seed, JSON.stringify(delta), attempt, digest, pin, uids, aid, this.deps.now(),
     );
     return { t: 'epoch_res', seq, seed };
   }
@@ -344,9 +354,21 @@ export class RunCore {
     return kind === 'continue' ? n + 1 : n;
   }
 
+  /** Per-run caps (ADR 4.9, checked BEFORE charging): per aid, per node for R5, and the total. */
+  _overCap(meta, aid, kind, args) {
+    const used = (a) => this.sql.exec('SELECT COUNT(*) AS n FROM epochs WHERE aid = ?', a).toArray()[0].n;
+    if (used(aid) >= PRICES[aid].cap_run) return true;
+    if (kind === 'pact_reroll') {
+      const here = this.sql.exec(`SELECT COUNT(*) AS n FROM epochs WHERE aid = 'R5' AND args LIKE ?`, `%"node_id":"${args.node_id}"%`).toArray()[0].n;
+      if (here >= 1) return true; // cap_per_pact
+    }
+    const total = this.sql.exec('SELECT COUNT(*) AS n FROM epochs WHERE aid IS NOT NULL').toArray()[0].n;
+    return total >= totalCap(meta.ascension);
+  }
+
   async _charge(meta, seq, kind, args) {
     if (!this.deps.charge) return false; // no wallet wired (L1: pending the Gem decision) = refuse
-    const idem = `aid:${meta.run_id}:${seq}`;
+    const idem = `aid:${meta.run_id}:${seq}:${kind}`;
     this.sql.exec(`INSERT OR REPLACE INTO pending_aid (seq, aid, idem_key, state) VALUES (?, ?, ?, 'charging')`, seq, kind, idem);
     let ok = false;
     try { ok = await this.deps.charge(idem, kind, args, meta); } catch { ok = false; }
