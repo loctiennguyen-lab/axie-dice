@@ -64,6 +64,22 @@ func _ready() -> void:
 	_ok(bool(s.claim_weekly("play_runs").ok) and s.xp() == xp0 + 500, "weekly +500 XP")
 	_ok(not bool(s.claim_weekly("play_runs").ok) and s.xp() == xp0 + 500, "weekly once only")
 	_ok(not bool(s.claim_weekly("reach_boss").ok), "unfinished weekly refused")
+	# pressing the node button claims (level 5 was taken by claim_all, so use 6 after raising level)
+	MetaState.pass_season["xp"] = 3600
+	MetaState.pass_season["level"] = 6
+	s.refresh()
+	await get_tree().process_frame
+	var nb := s.find_child("NodeBtn_6", true, false) as Button
+	_ok(nb != null and nb.text == "CLAIM" and s.node_state(6) == "claimable", "lv6 claimable button")
+	nb.pressed.emit()
+	_ok(s.node_state(6) == "claimed", "pressing NodeBtn_6 claims it")
+	# post-30 loop through the view
+	MetaState.pass_season["xp"] = 200000
+	MetaState.pass_season["level"] = 30
+	var sh7 := MetaState.shard_pool
+	var lp := s.claim_loop()
+	_ok(lp > 0 and MetaState.shard_pool == sh7 + lp, "claim_loop pays shards post-30")
+	_ok(s.claim_loop() == 0, "claim_loop nothing left")
 	s.queue_free()
 	# season over: reached rewards still claimable, XP stops, weekly closed
 	MetaState.pass_season["xp"] = 6800
@@ -77,9 +93,9 @@ func _ready() -> void:
 	o.refresh()
 	_ok((o.find_child("WeeklyClaim_play_runs", true, false) as Button).disabled, "weekly disabled after season")
 	_ok(not bool(o.claim_weekly("play_runs").ok) and o.xp() == xp1, "weekly refused after season, no XP")
-	_ok((o.find_child("NodeBtn_6", true, false) as Button).text == "CLAIM", "reached level claimable after season")
+	_ok((o.find_child("NodeBtn_7", true, false) as Button).text == "CLAIM", "reached level claimable after season")
 	_ok((o.find_child("NodeBtn_12", true, false) as Button).text == "Not claimed", "unreached shows Not claimed")
-	_ok(bool(o.claim_level(6).ok) and o.xp() == xp1, "claim after season works, XP unchanged")
+	_ok(bool(o.claim_level(7).ok) and o.xp() == xp1, "claim after season works, XP unchanged")
 	o.queue_free()
 	# before season banner
 	var b := _mk("2026-10-12")
