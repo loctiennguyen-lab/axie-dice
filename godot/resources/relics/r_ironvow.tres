@@ -18,3 +18,4 @@ mult_axis = "A:shield"
 pact_group = "dice"
 needs_hook = "SHIELD_VALUE"
 hidden_from_pool = true
+mult_bonus = 0.50

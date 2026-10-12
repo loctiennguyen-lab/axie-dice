@@ -6,7 +6,7 @@
 script = ExtResource("1")
 id = "r_patientfang"
 name = "Patient Fang"
-description = "PACT. Each turn after the first, all damage faces get +2 more (turn 2 = +2, turn 3 = +4, max +14). Drawback: on turn 1 all damage faces deal 0."
+description = "PACT. Each turn after the first, all damage faces get +2 more (turn 2 = +2, turn 3 = +4, max +14). Drawback: on turn 1 all damage faces deal 0 damage (face keywords still apply)."
 rarity = 3
 archetype = "crit"
 mload = 0

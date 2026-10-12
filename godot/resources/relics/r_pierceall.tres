@@ -15,3 +15,4 @@ hook_key = "r_pierceall"
 mf_phase = "kw"
 tags = PackedStringArray("pierce")
 layer = "enabler"
+exsub_of = "r_worldpiercer"

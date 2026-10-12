@@ -16,3 +16,4 @@ thornsMult = 2.0
 tags = PackedStringArray("thorns")
 layer = "payoff"
 mult_axis = "A:thorns"
+mult_bonus = 1.00

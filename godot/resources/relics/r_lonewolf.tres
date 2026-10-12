@@ -18,3 +18,4 @@ mult_axis = "G"
 pact_group = "reroll"
 needs_hook = "REROLL_RESTRICT"
 hidden_from_pool = true
+mult_bonus = 1.00

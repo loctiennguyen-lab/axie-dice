@@ -16,3 +16,4 @@ mf_phase = "mul"
 tags = PackedStringArray("uni", "growth")
 layer = "engine"
 mult_axis = "G"
+mult_bonus = 0.30

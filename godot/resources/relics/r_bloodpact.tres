@@ -19,3 +19,4 @@ layer = "pact"
 mult_axis = "G"
 pact_group = "reroll"
 rerollUp = -2.0
+mult_bonus = 0.60

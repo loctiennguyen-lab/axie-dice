@@ -81,23 +81,36 @@ static func rarity_band(tier: int, pw: int) -> Array:
 ## mirroring src/engine.js's `if(s.maxRerolls<4) pool.push('reroll')`. `count` is the number
 ## of cards offered — src/data.js ascMods(a).rewards: 3 normally, 2 at Ascension>=7 (callers
 ## thread that through, RewardGenerator itself has no ascension input).
+## `offer_ctx` (optional, default {} = legacy behaviour): {ascension, pacts_taken, stickers[, source]}.
+## When non-empty the relic cards use the v2 offer system (rarity by source, lean tags on the first
+## relic card, gating, hard exclusions) and `twinfates` drops the `reroll`/`curse` cards.
 static func generate(pw: int, tier: int, rng: Rng, owned_relic_ids: Array = [],
-		roster: Array = [], max_rerolls_now: int = 2, count: int = 3) -> Array[Dictionary]:
+		roster: Array = [], max_rerolls_now: int = 2, count: int = 3,
+		offer_ctx: Dictionary = {}) -> Array[Dictionary]:
 	var band := rarity_band(tier, pw)
 	var pool := _type_pool(tier, max_rerolls_now, roster)
+	var v2: Dictionary = {}
+	if not offer_ctx.is_empty():
+		v2 = offer_ctx.duplicate()
+		v2["owned_ids"] = owned_relic_ids
+		v2["roster"] = roster
+		if not v2.has("source"):
+			v2["source"] = offer_source_for_tier(tier, pw)
+		if twinfates_blocks_reroll(owned_relic_ids):
+			pool = pool.filter(func(x): return x != "reroll" and x != "curse")
 	var out: Array[Dictionary] = []
 	var guard := 0
 	while out.size() < count and guard < 80:
 		guard += 1
 		var t: String = pool[rng.next_int(pool.size())]
-		var r := _make_reward(t, band, pw, rng, owned_relic_ids, roster, out)
+		var r := _make_reward(t, band, pw, rng, owned_relic_ids, roster, out, v2)
 		if not r.is_empty():
 			out.append(r)
 	# Fallback fill mirrors engine.js's `while(out.length<n){ const r=mkReward(s,'hp',...); ...
 	# else break; }` — guarantees a full offer even if every other type ran dry, but never
 	# spins forever if even "hp" can't produce one (empty roster).
 	while out.size() < count:
-		var r := _make_reward("hp", band, pw, rng, owned_relic_ids, roster, out)
+		var r := _make_reward("hp", band, pw, rng, owned_relic_ids, roster, out, v2)
 		if r.is_empty():
 			break
 		out.append(r)
@@ -135,7 +148,7 @@ static func _type_pool(tier: int, max_rerolls_now: int, roster: Array) -> Array:
 
 
 static func _make_reward(t: String, band: Array, pw: int, rng: Rng, owned_relic_ids: Array,
-		roster: Array, out: Array[Dictionary]) -> Dictionary:
+		roster: Array, out: Array[Dictionary], v2: Dictionary = {}) -> Dictionary:
 	match t:
 		"level":
 			return _make_level_reward(rng, roster, out)
@@ -146,7 +159,13 @@ static func _make_reward(t: String, band: Array, pw: int, rng: Rng, owned_relic_
 			for o in out:
 				if String(o.get("t", "")) == "relic":
 					already_offered.append(o.get("key"))
-			var def := pick_relic(rng, owned_relic_ids + already_offered, band[0], band[1])
+			var def: RelicDef
+			if v2.is_empty():
+				def = pick_relic(rng, owned_relic_ids + already_offered, band[0], band[1])
+			else:
+				var c := v2.duplicate()
+				c["offered_ids"] = already_offered
+				def = pick_offer_relic(rng, String(c["source"]), c, already_offered.is_empty())
 			if def == null:
 				return {}
 			return {
@@ -281,13 +300,311 @@ static func _hero_name(entry: Dictionary) -> String:
 	return String(hero_def.get("n", entry.get("hero_key", "?")))
 
 
+# ===========================================================================
+# RELIC OFFER v2 (relic-set-v2 §4, design/l1-relic-answers.md §8).
+#
+# Pure functions of (rng, ctx). Two steps: (1) pick a rarity by the source's weights, (2) pick a
+# relic inside that rarity by integer weights `m`. Candidates are sorted by id, weights are ints,
+# so the result depends only on the rng stream, never on UI order or float rounding. The rng is
+# ALWAYS the caller's (epoch stream); nothing here makes a Rng.
+#
+# ctx (all optional): {owned_ids: Array, roster: Array[{hero_key}], ascension: int,
+#   pacts_taken: Array, stickers: Dictionary, offered_ids: Array}
+# ===========================================================================
+
+## reward tier (RunState) -> offer source name. Tier 1 is "milestone"; Treasure/chest/event callers
+## pass their own source name instead.
+static func offer_source_for_tier(tier: int, pw: int) -> String:
+	if tier >= 3:
+		return "boss"
+	if tier == 2:
+		return "elite"
+	if tier == 1:
+		return "milestone"
+	return "battle_late" if pw > 6 else "battle"
+
+
+## Twinfates mutual exclusion also removes the reward `reroll`/`curse` cards, the shop `reroll` item
+## and the event `bless_reroll` option (Liam 11/10). Callers outside this file use this test.
+static func twinfates_blocks_reroll(owned_ids: Array) -> bool:
+	return owned_ids.has(RelicSlots.tuning().twinfates_id)
+
+
+static func _party_classes(roster: Array) -> Array:
+	var out: Array = []
+	for e in roster:
+		var hero: Dictionary = ContentDB.heroes.get(String((e as Dictionary).get("hero_key", "")), {})
+		var cls := String(hero.get("cls", ""))
+		if cls != "" and not out.has(cls):
+			out.append(cls)
+	return out
+
+
+static func _arch_tags(def) -> Array:
+	var order := RelicSlots.tuning().tag_order
+	var out: Array = []
+	for t in def.tags:
+		if order.has(t):
+			out.append(String(t))
+	return out
+
+
+## score(t) = owned relics carrying t + party Axies whose class maps to t (§4.3).
+static func tag_scores(owned_ids: Array, roster: Array) -> Dictionary:
+	var sc: Dictionary = {}
+	for id in owned_ids:
+		var d = RelicRegistry.get_def(String(id))
+		if d == null:
+			continue
+		for t in _arch_tags(d):
+			sc[t] = int(sc.get(t, 0)) + 1
+	for e in roster:
+		var hero: Dictionary = ContentDB.heroes.get(String((e as Dictionary).get("hero_key", "")), {})
+		var t2 := String((ContentDB.CLASS_PASSIVE.get(String(hero.get("cls", "")), {}) as Dictionary).get("a", ""))
+		if t2 != "":
+			sc[t2] = int(sc.get(t2, 0)) + 1
+	return sc
+
+
+## The 2 highest-score tags (score >= 1); ties by the fixed tag order.
+static func lean_tags(owned_ids: Array, roster: Array) -> Array:
+	var sc := tag_scores(owned_ids, roster)
+	var order := RelicSlots.tuning().tag_order
+	var tags: Array = []
+	for t in order:
+		if int(sc.get(t, 0)) >= 1:
+			tags.append(String(t))
+	tags.sort_custom(func(a, b):
+		var sa := int(sc[a])
+		var sb := int(sc[b])
+		if sa != sb:
+			return sa > sb
+		return order.find(a) < order.find(b))
+	return tags.slice(0, 2)
+
+
+static func _owned_has_tag(owned_ids: Array, tag: String) -> bool:
+	for id in owned_ids:
+		var d = RelicRegistry.get_def(String(id))
+		if d != null and d.tags.has(tag):
+			return true
+	return false
+
+
+## Hard exclusions (§4.2). `pact_mode` is true only for the boss Pact screen.
+static func is_offerable(def, ctx: Dictionary, pact_mode: bool = false) -> bool:
+	var t := RelicSlots.tuning()
+	var owned: Array = ctx.get("owned_ids", [])
+	var id := String(def.id)
+	if def.hidden_from_pool or id.begins_with("__") or owned.has(id) or (ctx.get("offered_ids", []) as Array).has(id):
+		return false
+	var is_pact := String(def.pact_group) != ""
+	if is_pact != pact_mode:
+		return false
+	if is_pact and (ctx.get("pacts_taken", []) as Array).has(id):
+		return false
+	if String(def.exsub_of) != "" and owned.has(String(def.exsub_of)):
+		return false
+	if def.requires_any.size() > 0:
+		var any := false
+		for r in def.requires_any:
+			if owned.has(String(r)):
+				any = true
+		if not any:
+			return false
+	if String(def.layer) == "duo":
+		for tg in def.tags:
+			if not _owned_has_tag(owned, String(tg)):
+				return false
+	if String(def.requires_class) != "" and not _party_classes(ctx.get("roster", [])).has(String(def.requires_class)):
+		return false
+	# twinfates <-> every relic Reroll source, both ways
+	if id == t.twinfates_id:
+		for x in t.twinfates_exclusive:
+			if owned.has(String(x)):
+				return false
+	elif owned.has(t.twinfates_id) and t.twinfates_exclusive.has(id):
+		return false
+	if id == t.fortune_id and int(ctx.get("ascension", 0)) >= t.fortune_blocked_from_ascension:
+		return false
+	if is_pact:   # a pact that can never be placed (multiplier slot held only by Eternal relics) is filtered
+		var chk := RelicSlots.check_add(owned, ctx.get("stickers", {}), id, int(ctx.get("ascension", 0)), false)
+		if not bool(chk["ok"]):
+			return false
+	return true
+
+
+## Integer weight `m` of one candidate (§4.3, answers §8.3). `lead` = this is the offer's first relic card.
+static func relic_weight(def, ctx: Dictionary, lean: Array, lead: bool) -> int:
+	var t := RelicSlots.tuning()
+	var owned: Array = ctx.get("owned_ids", [])
+	var sc := tag_scores(owned, ctx.get("roster", []))
+	var arch := _arch_tags(def)
+	var m := t.m_neutral
+	if lead:
+		for tg in arch:
+			if lean.has(tg):
+				m = t.m_lean
+				break
+	var payoff := t.payoff_layers.has(String(def.layer))
+	if payoff:
+		for tg in arch:
+			var enablers := 0
+			for id in owned:
+				var d = RelicRegistry.get_def(String(id))
+				if d != null and String(d.layer) == "enabler" and d.tags.has(tg):
+					enablers += 1
+			if enablers >= 2:
+				m *= t.m_payoff_mult
+				break
+	# overrides to the floor
+	if payoff and not arch.is_empty():
+		var any_src := false
+		for tg in arch:
+			if int(sc.get(tg, 0)) > 0:
+				any_src = true
+		if not any_src:
+			m = t.m_floor
+	if String(def.mult_axis) != "":
+		var cap := RelicSlots.capacity(int(ctx.get("ascension", 0)), owned)
+		var cls_g: bool = String(def.mult_axis) == "G"
+		var held := 0
+		for id in owned:
+			var d2 = RelicRegistry.get_def(String(id))
+			if d2 != null and (String(d2.mult_axis) == "G") == cls_g and String(d2.mult_axis) != "":
+				held += 1
+		if held >= int(cap["g"] if cls_g else cap["a"]):
+			m = t.m_floor
+	if owned.has(t.chalice_id) and t.chalice_dead_draws.has(String(def.id)):
+		m = t.m_floor
+	return m
+
+
+## One relic for `source` ("battle", "elite", "shop", ...), or null when nothing is valid.
+## Two draws from `rng` when there is a candidate: rarity, then relic.
+static func pick_offer_relic(rng: Rng, source: String, ctx: Dictionary, lead: bool = false):
+	var t := RelicSlots.tuning()
+	var weights: Array = t.rarity_weights.get(source, [25, 25, 25, 25])
+	var lean := lean_tags(ctx.get("owned_ids", []), ctx.get("roster", []))
+	var by_rar: Array = [[], [], [], []]
+	for def in RelicRegistry.offerable_defs_sorted():   # sorted by sort_index; re-sorted by id below
+		if is_offerable(def, ctx):
+			(by_rar[clampi(int(def.rarity), 0, 3)] as Array).append(def)
+	var total := 0
+	for r in 4:
+		if not (by_rar[r] as Array).is_empty():
+			total += int(weights[r])
+	if total <= 0:
+		return null
+	var roll := rng.next_int(total)
+	var rarity := 0
+	for r in 4:
+		if (by_rar[r] as Array).is_empty():
+			continue
+		if roll < int(weights[r]):
+			rarity = r
+			break
+		roll -= int(weights[r])
+	var cands: Array = by_rar[rarity]
+	cands.sort_custom(func(a, b): return String(a.id) < String(b.id))
+	var ws: Array = []
+	var wtotal := 0
+	for d in cands:
+		var w := relic_weight(d, ctx, lean, lead)
+		ws.append(w)
+		wtotal += w
+	var pick := rng.next_int(wtotal)
+	for i in cands.size():
+		if pick < int(ws[i]):
+			return cands[i]
+		pick -= int(ws[i])
+	return cands[cands.size() - 1]
+
+
+## Boss Pact screen (§4.4): one pact from each drawback group that still has one (reroll, dice,
+## mana), uniform inside the group (weight 4, or 1 when its multiplier slot is full), then topped
+## up from the same groups to `pact_offer_size` distinct pacts. Fewer valid pacts -> fewer cards.
+static func pick_pact_offer(rng: Rng, ctx: Dictionary) -> Array:
+	var t := RelicSlots.tuning()
+	var groups: Dictionary = {}
+	for g in t.pact_groups:
+		groups[String(g)] = []
+	for def in RelicRegistry.all_defs_sorted():
+		if is_offerable(def, ctx, true) and groups.has(String(def.pact_group)):
+			(groups[String(def.pact_group)] as Array).append(def)
+	for g in groups:
+		(groups[g] as Array).sort_custom(func(a, b): return String(a.id) < String(b.id))
+	var out: Array = []
+	for g in t.pact_groups:
+		if out.size() >= t.pact_offer_size:
+			break
+		var pick = _pick_pact_from(rng, groups[String(g)], ctx, out)
+		if pick != null:
+			out.append(pick)
+	var guard := 0
+	while out.size() < t.pact_offer_size and guard < 16:
+		guard += 1
+		var added := false
+		for g in t.pact_groups:
+			if out.size() >= t.pact_offer_size:
+				break
+			var pick2 = _pick_pact_from(rng, groups[String(g)], ctx, out)
+			if pick2 != null:
+				out.append(pick2)
+				added = true
+		if not added:
+			break
+	return out
+
+
+static func _pick_pact_from(rng: Rng, group: Array, ctx: Dictionary, already: Array):
+	var cands: Array = []
+	var ws: Array = []
+	var total := 0
+	var owned: Array = ctx.get("owned_ids", [])
+	var cap := RelicSlots.capacity(int(ctx.get("ascension", 0)), owned)
+	for d in group:
+		if already.has(d):
+			continue
+		var w := RelicSlots.tuning().pact_weight
+		if String(d.mult_axis) != "":
+			var cls_g: bool = String(d.mult_axis) == "G"
+			var held := 0
+			for id in owned:
+				var d2 = RelicRegistry.get_def(String(id))
+				if d2 != null and String(d2.mult_axis) != "" and (String(d2.mult_axis) == "G") == cls_g:
+					held += 1
+			if held >= int(cap["g"] if cls_g else cap["a"]):
+				w = RelicSlots.tuning().m_floor
+		cands.append(d)
+		ws.append(w)
+		total += w
+	if cands.is_empty():
+		return null
+	var pick := rng.next_int(total)
+	for i in cands.size():
+		if pick < int(ws[i]):
+			return cands[i]
+		pick -= int(ws[i])
+	return cands[cands.size() - 1]
+
+
 ## Shared by reward generation, event effects (RunState.apply_event_fx), and the shop —
 ## every place src/engine.js's relicPool()/pick() picked a random not-yet-owned relic.
 ## Simplification vs. src/engine.js relicConflict(): does NOT enforce RELIC_MLOAD_CAP,
 ## RELIC_CAP, or the ex/exSub keyword-conflict exclusion (rule spec §5) — those need the
 ## full per-relic mload/ex/exSub fields and a live party-die read that this vertical slice's
 ## RelicDef does not carry yet. Flagged as a scope reduction, not an oversight.
-static func pick_relic(rng: Rng, exclude_ids: Array, min_rar: int, max_rar: int) -> RelicDef:
+##
+## `offer_ctx` (optional): when non-empty AND it carries a "source", the v2 offer system runs instead
+## (rarity weights by source, lean tags, gating; see pick_offer_relic). Empty keeps the legacy
+## uniform pick inside [min_rar, max_rar], so callers can migrate one at a time.
+static func pick_relic(rng: Rng, exclude_ids: Array, min_rar: int, max_rar: int,
+		offer_ctx: Dictionary = {}) -> RelicDef:
+	if offer_ctx.has("source"):
+		var c := offer_ctx.duplicate()
+		c["offered_ids"] = (c.get("offered_ids", []) as Array) + exclude_ids   # owned + already on the table
+		return pick_offer_relic(rng, String(c["source"]), c, bool(c.get("lead", false)))
 	var pool: Array = []
 	for def in RelicRegistry.offerable_defs_sorted():
 		if exclude_ids.has(def.id):
@@ -304,11 +621,22 @@ static func pick_relic(rng: Rng, exclude_ids: Array, min_rar: int, max_rar: int)
 ## the REAL src/data.js prices (RELIC_SHOP_COST / 40 / 110), not invented placeholder
 ## numbers. Simplified vs. the source (which also offers 2 Gene Mutation face items) since
 ## the face/mutation pool isn't ported yet (see file header).
-static func generate_shop_items(rng: Rng, owned_relic_ids: Array) -> Array[Dictionary]:
+static func generate_shop_items(rng: Rng, owned_relic_ids: Array, offer_ctx: Dictionary = {},
+		relic_count: int = 2) -> Array[Dictionary]:
 	var items: Array[Dictionary] = []
 	var offered: Array = []
-	for i in 2:
-		var def := pick_relic(rng, owned_relic_ids + offered, 0, 3)
+	var shop_ctx: Dictionary = {}
+	if not offer_ctx.is_empty():
+		shop_ctx = offer_ctx.duplicate()
+		shop_ctx["owned_ids"] = owned_relic_ids
+		shop_ctx["source"] = "shop"
+	for i in relic_count:
+		var def: RelicDef
+		if shop_ctx.is_empty():
+			def = pick_relic(rng, owned_relic_ids + offered, 0, 3)
+		else:
+			shop_ctx["offered_ids"] = offered
+			def = pick_offer_relic(rng, "shop", shop_ctx, false)
 		if def == null:
 			break
 		offered.append(def.id)
@@ -321,10 +649,11 @@ static func generate_shop_items(rng: Rng, owned_relic_ids: Array) -> Array[Dicti
 		"kind": "heal", "title": "Serum", "desc": "One Axie gains %d Max HP" % HEAL_ITEM_V,
 		"cost": HEAL_ITEM_COST, "v": HEAL_ITEM_V, "bought": false, "rar": 0,
 	})
-	items.append({
-		"kind": "reroll", "title": "Instinct", "desc": "1 extra maximum Reroll",
-		"cost": REROLL_ITEM_COST, "bought": false, "rar": 0,
-	})
+	if shop_ctx.is_empty() or not twinfates_blocks_reroll(owned_relic_ids):   # twinfates: no Reroll sources
+		items.append({
+			"kind": "reroll", "title": "Instinct", "desc": "1 extra maximum Reroll",
+			"cost": REROLL_ITEM_COST, "bought": false, "rar": 0,
+		})
 	return items
 
 

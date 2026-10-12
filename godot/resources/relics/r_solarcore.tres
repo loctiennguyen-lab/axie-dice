@@ -16,3 +16,4 @@ burnMult = 2.0
 tags = PackedStringArray("burn")
 layer = "engine"
 mult_axis = "A:burn"
+mult_bonus = 1.00

@@ -56,6 +56,11 @@ extends Resource
 @export var mult_axis: String = ""      ## "" = no multiplier slot, "G" = global slot, "A:<axis>" = archetype slot
 @export var pact_group: String = ""     ## "" = not a pact; "reroll"|"dice"|"mana" = boss pact drawback group
 @export var requires_class: String = "" ## class upgrader: only offered when the party has this class
+@export var mult_bonus: float = 0.0     ## multiplier relics: the "+N" this relic adds on its axis (0.30 = +30%).
+                                         ## Lane A reads it for G_axie = min(2.5, 1 + ...) and the A-axis sums
+                                         ## (design/l1-relic-answers.md §3). Never multiplied here.
+@export var exsub_of: String = ""       ## "r_worldpiercer": this relic is a child of it; never offered while the parent is owned.
+@export var requires_any: PackedStringArray = PackedStringArray()  ## offered only while at least one of these ids is owned
 @export var hidden_from_pool: bool = false  ## cut list / not ready: never offered (still resolvable via get_def)
 @export var needs_hook: String = ""     ## "H2", "H3,H4"...: waits for these new hooks (lane A, 20/10).
                                         ## Informational; such relics also carry hidden_from_pool = true.

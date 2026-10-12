@@ -17,3 +17,4 @@ burnTickRatio = 0.7
 tags = PackedStringArray("burn")
 layer = "payoff"
 mult_axis = "A:burn"
+mult_bonus = 0.70

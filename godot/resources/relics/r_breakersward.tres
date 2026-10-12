@@ -16,3 +16,4 @@ tags = PackedStringArray("shield", "pierce")
 layer = "duo"
 needs_hook = "SHIELD_BREAK"
 hidden_from_pool = true
+requires_any = PackedStringArray("r_talonedge", "a_pinning")

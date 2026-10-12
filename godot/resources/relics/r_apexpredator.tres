@@ -17,3 +17,4 @@ critBonus = 35.0
 tags = PackedStringArray("crit")
 layer = "engine"
 mult_axis = "A:crit"
+mult_bonus = 1.00
