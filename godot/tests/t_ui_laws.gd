@@ -31,6 +31,7 @@ const SCENES := [
 	"res://scenes/codex/Codex.tscn",
 	"res://scenes/run_setup/RunSetup.tscn",
 	"res://scenes/echobox/EchoBoxScreen.tscn",
+	"res://scenes/missions/MissionsScreen.tscn",
 	"res://scenes/settings/Settings.tscn",
 	"res://scenes/tutorial/Tutorial.tscn",
 	"res://scenes/combat/Combat.tscn",
