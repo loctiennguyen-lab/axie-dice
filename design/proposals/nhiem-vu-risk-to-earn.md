@@ -1,511 +1,592 @@
-Trạng thái: ĐỀ XUẤT — chờ Liam review
+Trạng thái: CHỐT THIẾT KẾ (12/10) — chờ review nhanh
 
-> **Liam (11/10, bổ sung):** (6) nhà Nhiệm vụ nâng cấp bằng **Gene Shard + Land Stone**, KHÔNG tiền thật · (7) **CÓ** —
-> bậc khó nhất dùng Full mode · Nhiệm vụ **không gắn monetization**: không bán Thử lại / Bảo hiểm cược; chỉ khó và ức chế,
-> là bài test risk-to-earn.
+> **QUYẾT ĐỊNH LIAM còn hiệu lực (gom lại, ưu tiên hơn thân file). Chỗ nào ghi THAY là đã ghi đè quyết định cũ.**
+> - Nhiệm vụ = cược (stake) + thưởng tăng theo độ khó. Cược bằng **Gene Shard**; thắng có thêm **Land Stone rất ít**. Thua thì **mất cược, không hoàn, không an ủi gì** (12/10 chốt lại). Người chơi được phép lỗ bao nhiêu cũng được.
+> - **THAY (12/10): bỏ giới hạn "tối đa 5 Nhiệm vụ/người/ngày". Hiện tại KHÔNG có giới hạn số lần mua mỗi ngày** (chỉnh sau, xem §3.4 và §4.4). Chỉ còn một run mở tại một thời điểm.
+> - Chạy ở mọi Ascension. Server giữ số dư Shard (escrow). Màn xác nhận và thẻ offer hiện rõ dòng "kỳ vọng nhận lại". Độ khó và thưởng đi cùng nhau.
+> - **11/10: Nhiệm vụ cực khó.** Nhiệm vụ **không bán gì**: không Thử lại, không Bảo hiểm cược, không Gem. Đây là bài test risk-to-earn của Liam. (Hướng "tạo ức chế rồi bán giải pháp" chỉ nằm trong run thường, xem `monetization-v1.md`.)
+> - **Nhà Nhiệm vụ có cấp riêng**, nâng bằng **Gene Shard + Land Stone**, không tiền thật. **THAY (12/10): nâng nhà chỉ mở thêm bậc**, không còn cơ cấu 2/3/4/5 lần mỗi ngày. N4/N5/N6 vẫn mở theo cấp nhà. Chi phí nâng nhà giữ làm số khởi điểm, kiểm bằng sim sau.
+> - **Bậc khó nhất dùng Full mode.** Server tung xúc xắc ở mọi chế độ. **N6 chỉ mở cho người đã thắng một run Full ở A9** (12/10).
+> - `monetization-v1.md` MON-12/13: không Aid mua bằng tiền thật, **không Boon nào**, không Continue trong run Nhiệm vụ. Nhiệm vụ mở sau 5 run làm quen. **MON-5: không định giá hay chỉnh độ khó theo từng người** (áp cho cả cơ chế tự chỉnh m ở §11).
+> - **12/10: unlock cày dùng được trong Nhiệm vụ**, nhưng chỉ unlock có từ chơi và từ track miễn phí của Pass. Pass trả tiền không bao giờ cho sức mạnh.
+> - **12/10: run Nhiệm vụ đủ điều kiện VÀO bảng xếp hạng** (đảo khuyến nghị cũ "không lên bảng"), và tính là run đã tạo.
+> - **12/10: chưa có sim vẫn được bật**; chỉnh live bằng luật m tự chỉnh (§11). Chưa dùng AXS, chạy thử bằng Shard trước.
+> - **12/10: bảng giá N1–N4 đã dựng lại** (m = 1,60 / 1,95 / 2,45 / 3,30) để người chơi giỏi không lãi ở N1–N4. N5/N6 giữ m, có `m_scale` riêng.
+> - **12/10: N5/N6 là bậc "thử sức"**, kỳ vọng nhận lại < 100% với mọi hồ sơ, chấp nhận. Thẻ ghi rõ "kỳ vọng nhận lại".
+> - **12/10: RTP đo trên toàn dân, đích 0,75–0,95**, kèm điều kiện heavy không lãi ở N1–N4.
+> - **12/10: payout tối đa 20.000 mỗi run**: chấp nhận.
+> - **12/10: verifier lỗi (timeout/crash, canary qua, không tái lập) = huỷ Nhiệm vụ, chỉ hoàn cược, không trả R.** Lỗi tái lập được thì gắn cờ tài khoản (bậc C10).
+> - **12/10: điều kiện phụ (19 loại bản 11/10) đưa vào v1.0 nếu làm được**, xem §3.8.
+> - Kiến trúc (`docs/architecture/server-authoritative-rng.md`, khối đầu): cược trừ lúc **tạo run**, một batch D1; bỏ run = thua; **không run nào bị huỷ vì để không**; **không giới hạn resume, không reseed khi vào lại, không đếm resume**; engine từ chối hành động sau khi đã xin seed = Nhiệm vụ thua; khoản khởi đầu không dùng làm cược; không áp cổng 18+ cho cược Shard; có trần payout theo từng run, không có trần Shard theo ngày.
+> - **Bị bản này thay thế (đừng đọc lại bản cũ cho các điểm này):** seed xúc xắc theo trận, `resume{seed}`, "tối đa 3 resume", hạn chơi 72 giờ, hủy-trước-khi-bắt-đầu có hoàn, "Short là mode duy nhất", NV-7 "unlock = 0", **"tối đa 5/ngày"**, **"mỗi offer mua tối đa 1 lần/ngày"**, **"sim bắt buộc trước khi bật"**, **"không lên bảng ranked"**, **"để điều kiện phụ ngoài v1"**, **m cũ 1,85/2,30/2,80/3,65 và `m_scale` 0,90 chung cho mọi bậc**.
 
-> **QUYẾT ĐỊNH LIAM (11/10) sau bản viết lại — ưu tiên hơn thân file:** (1) Nhiệm vụ chạy ở mọi Ascension · (2) server
-> giữ số dư Shard làm chuẩn (escrow) · (3) hiện dòng "kỳ vọng nhận lại" ở màn xác nhận · (4) **bản này QUÁ DỄ — viết lại
-> CỰC KHÓ, tạo ức chế; hướng sản phẩm mới: tạo ức chế rồi bán giải pháp (tiện lợi + sức mạnh trong run, tiền thật, dùng
-> được cả ranked)** — xem `production/session-state/active.md` mục "HƯỚNG SẢN PHẨM MỚI" · (5) Stone 3–50 giữ · (6) **nhà
-> Nhiệm vụ có cấp riêng, cấp cao mở thêm số Nhiệm vụ/ngày**; số này phải chỉnh được (sau có thể giới hạn chặt, vd nếu đổi
-> sang AXS) · (7) chờ xác nhận: Full mode cho bậc khó nhất · (8) **server tung xúc xắc, ở mọi chế độ** (bỏ seed theo trận).
+# Nhiệm vụ (risk-to-earn) — bản CỰC KHÓ, v1.0
 
-> **QUYẾT ĐỊNH CỦA LIAM SAU REVIEW (10/10) — ưu tiên hơn nội dung bên dưới:**
-> - Thứ tự làm: **Economy → Relic → Nhiệm vụ** (Nhiệm vụ thiết kế lại SAU khi economy + relic chốt).
-> - **Echo Box**: reset theo NGÀY (UTC), tăng số lượt quay được nhưng hạ tương đối tỉ lệ đồ hiếm.
->   KHÔNG quay trực tiếp bằng Shard: dùng Shard **mua vé**, quay bằng vé. Cosmetic trùng **phân tách
->   thành vé** để quay tiếp. Học cơ chế gacha mới của **Dota 2** (người chơi rất hài lòng) và kết
->   hợp với các ý trên. Vé được thiết kế để sau này có thể bán bundle vé riêng (chưa có store).
-> - **Land chỉ trả bằng Land Stone.** Con số hiển thị phải TO: 40.000 / 100.000 / 180.000 /
->   500.000 (Liam xác nhận 10/10) / 1.000.000. Người chơi nhiều
->   tới LunaLanding mất ~**1 năm**. Muốn lên Land nhanh thì phải chơi gacha nhiều (Echo Box là
->   faucet Stone).
-> - Land Stone sink sau LunaLanding / Land Wonders: Liam tự tính sau, chưa cần.
-> - **Daily**: đồng ý đề xuất. Ngày tính theo **giờ UTC**, server xác nhận.
-> - **Battle Pass**: đổi đường cong XP; học **Battle Pass của LoL** — chơi càng nhiều lên càng
->   nhanh, nhưng chơi nhiều nhất cũng mất ~2 tuần mới xong. Đưa một số cosmetic vào làm thưởng Pass.
->   **5 unlock cộng chỉ số vẫn đưa vào Battle Pass được** — tinh chỉnh khéo cho hợp (Ranked profile
->   vẫn tắt chúng).
-> - **Nhiệm vụ**: CÓ trả Land Stone nhưng lượng rất nhỏ. **Bỏ** hai luật thêm (lỗ ngày ≤1R, stake
->   ≤40% số dư): người chơi được phép lỗ cả 5 nhiệm vụ. Đường cong độ khó và đường cong thưởng phải
->   đi cùng nhau: muốn kiếm nhiều thì phải chấp nhận khó và bỏ nhiều tiền. Mục đích: kiểm tra người
->   chơi có chấp nhận risk to earn không.
-> - Ba điều trong thiết kế Nhiệm vụ: (1) chạy trên ranked profile — đồng ý; (2) đổi tên Daily
->   Mission +60 thành "Thưởng ngày" — đồng ý; (3) save-scum — Liam chưa thấy vấn đề, đang hỏi lại.
-
-
-# Nhiệm vụ (risk-to-earn) — bản thiết kế lại sau khi economy và relic đã chốt
-
-Tác giả: game-designer · 11/10/2026 · Thay toàn bộ thân bản 10/10 (nội dung cũ vẫn còn trong git). Chỉ sửa file này, không code.
-Mọi con số tính tay, **chưa qua sim**. Chỗ nào chưa kiểm trong code thì ghi "chưa verify". Năng lực người chơi (tỉ lệ thắng run) là **giả định**, không phải số đo: phần 2.4 nói cách thay bằng số thật.
+Tác giả: game-designer · 12/10/2026 · Đã áp review của economy-designer (APPROVE WITH CHANGES) và quyết định Liam 12/10. Chỉ sửa file này, không code.
+**Mọi con số là tính tay, chưa qua sim.** Tỉ lệ thắng của casual/regular/heavy lấy từ **mục tiêu** của `ascension-v2.md` §5.1 (cũng chưa sim), không phải số đo người thật. Mọi "d" của luật Nhiệm vụ (độ khó cộng thêm, đơn vị logit) là **tôi ước**. Chỗ nào chưa kiểm trong code thì ghi "chưa verify". Vì Liam cho bật khi chưa sim, các số này sẽ được chỉnh live bằng §11, không chờ sim.
 
 ---
 
 ## 0. Đọc nhanh
 
-1. Mỗi lần mua Nhiệm vụ = trả **stake** bằng Shard, chơi **đúng một run ranked-profile** có thêm một điều kiện. Đạt thì nhận `stake × m` (đã gồm stake) cộng một ít Land Stone. Không đạt thì mất stake, không hoàn, không có Stone.
-2. Mỗi Nhiệm vụ có **một điểm khó D** (đơn vị logit). Từ D suy ra xác suất thành công của từng kiểu người chơi, và D quyết định **bậc** (T1 tới T7). Stake, hệ số m và Stone đều gắn vào bậc, nên **độ khó và thưởng đi cùng nhau** như Liam yêu cầu.
-3. Thang 7 bậc: stake 100 → 1.800 Shard, m 1,20 → 3,40, Stone 3 → 50. Tính ở R = 450: casual lỗ nhẹ, regular lỗ vừa, người giỏi (~70% thắng run) lãi nhỏ ở bậc giữa. **RTP toàn dân kịch bản cơ sở ≈ 0,94** (≤ 1). Chỉ có hai cách kiếm Shard thật: chọn bậc hợp sức mình và chơi giỏi hơn mức giá đã tính.
-4. Land Stone tối đa **130/ngày theo cấu trúc bảng** (dưới trần 150 của economy-v2); kỳ vọng thực tế 6–45/ngày tùy người, chưa tới 1% Stone tuần.
-5. Bảng mỗi ngày **giống nhau cho mọi người** (seed theo ngày UTC), 5 offer (nhà Nhiệm vụ lên cấp Land thì hiện thêm tới 8 offer, vẫn chỉ mua tối đa 5). Mỗi ngày chỉ có **một** offer bậc cao nhất, không ai "cày bậc 7 năm lần" được.
-6. Toàn bộ do **server** kiểm: server cấp seed, giữ stake (escrow), replay ActionLog, tính điều kiện từ replay rồi mới trả. Quy tắc resume mới (đổi RNG xúc xắc, server cấp seed) đóng lỗ save-scum: tối đa 3 lần resume mỗi Nhiệm vụ, mỗi lần đều ghi vào log.
-7. Câu hỏi của Liam ("người chơi có chấp nhận risk-to-earn không?") trả lời bằng 4 nhóm số ở §8, kèm ngưỡng xanh/vàng/đỏ.
+1. **Một Nhiệm vụ = một run**, chơi với luật khó hơn bản ranked thường. Trả cược lúc tạo run. Thắng thì nhận `cược × m` (đã gồm cược) cộng ít Stone. Thua hoặc bỏ giữa chừng thì mất cược, không Stone, không an ủi. Run vẫn trả Shard của run (R) như thường.
+2. **Sáu bậc (N1–N6)**, cược 300 → 2.500 Shard. m mới: **1,60 / 1,95 / 2,45 / 3,30 / 4,20 / 7,20**. Trả khi thắng (m_scale N5/N6 = 0,90 lúc ra mắt): **480 / 975 / 1.960 / 3.960 / 6.805 / 16.200**. N6 là Full mode.
+3. **Cực khó thật**: ngay N1, regular thắng ~40%, casual ~24%. N6 chỉ ~13% cho heavy, ~4% cho regular, ~1% cho casual. Không Aid, không Continue, không Boon, một mạng.
+4. **Kỳ vọng mới**: casual lấy lại **~35%** số cược (lỗ ~65%), regular **~55% (lỗ ~45% mỗi lần cược)**, heavy hợp lý (chỉ N1–N4) **~1,00** (hòa vốn, không lãi), heavy mua cả N5/N6 ~0,95. **RTP toàn dân ≈ 0,77**, nằm trong đích 0,75–0,95 nhưng sát đáy. N5/N6 là bậc thử sức, lỗ với mọi hồ sơ.
+5. **Không giới hạn số lần mua mỗi ngày.** Mỗi bậc có một offer trên bảng ngày, mua lặp lại được, nhưng chỉ một run mở. Người giỏi hơn heavy 0,5 logit chơi N4 liên tục có thể lãi ~+2.300 (5 run) tới ~+4.600 Shard/ngày (10 run), xem §4.4.
+6. **Nhà Nhiệm vụ 4 cấp** chỉ mở bậc: cấp 1 miễn phí (N1–N3), cấp 2/3/4 tốn **3.000 / 8.000 / 20.000 Shard + 4.000 / 12.000 / 30.000 Stone**, mở N4 / N5 / N6 (N6 còn cần đã thắng một run Full ở A9).
+7. **m tự chỉnh theo bậc bằng Bayes (Beta-Binomial)**, một số chung cho mọi người, hiện công khai trên thẻ, chỉ được hạ (không vượt bảng gốc), đổi chậm. §11.
+8. **Điều kiện phụ: 2 trong 19 loại vào v1.0** (Một nhà, Đa sắc), 1 loại gộp vào bậc (Leo thang), 16 loại để sau hoặc khó (§3.8).
 
 ---
 
-## 1. Mục tiêu, và thứ Nhiệm vụ không được trở thành
+## 1. Overview
 
-**Aesthetic chính (MDA)**: Challenge và Expression. Người chơi tự nói "run này tôi chơi theo luật khó hơn" và game trả công cho lời nói đó. **SDT**: Autonomy (tự chọn bậc và kiểu chơi), Competence (điều kiện đo được, thấy ngay vì sao thắng hay thua).
+Nhiệm vụ là chế độ cược Shard lấy kỹ năng làm ngưỡng. Người chơi chọn một offer trên bảng ngày, trả cược, rồi chơi **một run** có luật khó hơn. Server giữ tiền, tung xúc xắc, verify log. Thắng thì được trả theo bậc; thua là mất, không có đường lui, không có thứ gì để mua nhằm đỡ đau. Nhiệm vụ **không có SKU tiền thật**. Mục đích: cho Liam đo xem người chơi có chấp nhận risk-to-earn không (§8). Run đủ điều kiện lên bảng xếp hạng và tính là run đã tạo.
 
-Vị trí trong vòng lặp: tầng MESO (một run). Run vẫn trả thưởng như run ranked bình thường; Nhiệm vụ là phần **chồng thêm**. Thua Nhiệm vụ không lấy lại Shard mà run đã kiếm. "Thưởng ngày" (60 Shard + 500 Stone) là thứ khác và không đổi.
+Vị trí trong vòng lặp: tầng meso (một run). Nhiệm vụ chồng lên run thường, không thay nó. Thưởng ngày (60 Shard + 500 Stone) là thứ khác, không đổi.
 
-Nó **không được** trở thành:
-- **Máy đánh bạc.** Không "gấp đôi hoặc mất hết", không hệ số tăng khi thắng liên tiếp, không giảm giá mua lại sau khi thua, không hiệu ứng "suýt thắng".
-- **Cày đều.** Stone nhỏ tới mức không ai cày vì Stone. Bậc cao nhất chỉ có một offer mỗi ngày.
-- **Nguồn Shard cho người giỏi.** Population RTP ≤ 100%. Người giỏi được lãi, nhưng lãi bị chặn bởi giá đã tính theo năng lực cao.
-- **Bẫy cho người yếu.** Người yếu thấy rõ xác suất của chính mình trước khi trả tiền (§7), và bảng luôn có offer bậc thấp.
-- **Công việc phải làm.** Không phạt khi bỏ qua. Không đếm ngược gây áp lực ngoài giờ reset UTC (hiện thẳng, không nhấp nháy).
+## 2. Player Fantasy
 
-Chiều ngược lại cũng quan trọng với Liam: nếu thua mà không thấy đau thì không kiểm tra được gì. Vì vậy stake bậc cao đủ lớn để người chơi **cảm thấy** nó (1,1R tới 4R).
+**Aesthetic chính (MDA):** Challenge, rồi Expression. "Tôi cược vào chính mình và game không nương tay." Cảm giác muốn có: căng, có thật để mất, và khi thua thì biết rõ vì sao (đồng hồ boss, spike, thiếu build), không thấy bị lừa. **SDT:** Autonomy (tự chọn bậc, tự quyết cược và số lần), Competence (luật hiện sẵn, thua đọc được lý do).
+
+Nhiệm vụ **không phải**:
+- Máy đánh bạc: không "gấp đôi hoặc mất hết", không hệ số tăng khi thắng liên tiếp, không giảm giá mua lại sau khi thua, không hiệu ứng "suýt thắng".
+- Chỗ để bán giải pháp: không có thứ gì trả tiền thật chạm vào Nhiệm vụ (MON-12).
+- Bẫy giấu: mọi luật khó hiện trước khi mua, tỉ lệ thắng và "kỳ vọng nhận lại" hiện trước khi mua, m hiện tại hiện công khai.
+
+Thua mà không đau thì không đo được gì, nên cược từ 0,7R (N1) tới 5,6R (N6) và không có an ủi.
 
 ---
 
-## 2. Mô hình độ khó
+## 3. Detailed Rules
 
-### 2.1 Định nghĩa
+### 3.1 Mua = tạo run
 
-Mỗi Nhiệm vụ gồm: một **mục tiêu** (thắng, hoặc hạ boss k, hoặc tới boss k), một **mode** (Short ở bản đầu), một **Ascension** A (0 đến 10), và 0 đến 2 **điều kiện** phụ.
+1. Người chơi chạm offer trên bảng, xem màn xác nhận (§3.7), bấm "Mua và chơi".
+2. Server làm **một batch D1**: kiểm số dư *có thể cược* ≥ cược, kiểm chưa có run mở, kiểm bậc đã mở (nhà + điều kiện thắng §3.2), rồi trừ cược, ghi sổ, tạo bản ghi run. Sau đó mới tạo RunDO. Hết đường "mua rồi hủy lấy lại tiền": mua và tạo run là **một việc**. **Không có kiểm số lần mua trong ngày.**
+3. Header của run ghi cố định lúc tạo: `mission_id`, bậc, mode, Ascension, mã các luật Nhiệm vụ, điều kiện phụ (nếu có), **cược, m gốc, `m_scale` và m hiệu dụng đã chốt**. Sau đó đổi `m_scale`, bảng giá hay chạy lại §11 không ảnh hưởng run đang mở.
+4. Chỉ **một run mở/tài khoản**. Đang có run dở (thường hay Nhiệm vụ) thì phải xong hoặc bỏ nó trước. Đây là giới hạn tự nhiên duy nhất của tốc độ mua (thời gian chơi).
+5. **Số dư có thể cược** = số dư Shard − phần khoản khởi đầu còn lại. Khoản khởi đầu tiêu trước vào các khoản chi không phải cược (vé). Cần tài khoản đã đăng ký.
+6. Run Nhiệm vụ **tính là run đã tạo** (thống kê, mốc, bảng xếp hạng), kể cả khi thua hoặc bỏ. Run bị huỷ vì verifier lỗi hoặc run mồ côi được hoàn thì **không** tính.
 
-```
-D = D_obj + D_asc + Σ D_cond + D_adj(loại)
-D_asc  = 0,15 × A
-D_cond = −ln(q)            q = P(đạt điều kiện | thắng), từ sim hoặc telemetry
-```
+### 3.2 Độ khó: bậc, Ascension, luật Nhiệm vụ
 
-D là độ lệch logit: tăng 1 điểm D là giảm khoảng 1 logit xác suất thành công. `D_adj` là chỉnh theo dữ liệu thật (§2.4), mặc định 0.
+Không thêm trait khắc chế địch, không giấu thông tin, không đụng luật HP (đội hồi đầy mỗi trận), đúng khóa ở `core-loop-v2.md` và `ascension-v2.md`. Mọi luật chỉ chỉnh **ngân sách chiến đấu** bằng các núm đã có (HP, dmg, số elite, đồng hồ boss). Không luật nào nhắc tên quái nên Atia 3D thay Chimera vẫn chạy.
 
-| Mục tiêu (Short, 12 node, boss ở node 4/8/12) | D_obj |
-|---|---|
-| Tới boss 1 (chưa cần hạ) | −1,9 |
-| Hạ boss 1 | −1,3 |
-| Hạ boss 2 | −0,5 |
-| Thắng run (hạ boss 3) | 0 |
-| Thắng run Full (20 node, 4 boss) | +0,8 (để dành, xem câu hỏi mở) |
+**Chuẩn Nhiệm vụ** (bật ở mọi bậc): địch dmg +10%, HP elite +10%. Không Aid, không Continue, không Boon, và không luật nào đọc "trạng thái Aid" (MON-13). d ≈ 0,30.
 
-Các số D_obj suy từ mô hình "xác suất sống sót đều mỗi node" (thắng Short 50% → sống 94,4% mỗi node → tới boss 1 ≈ 79%, Full ≈ 32%). Thô, sẽ thay bằng sim.
+**Năm luật thêm** (hiện trên thẻ offer, d là ước tính):
 
-Vì sao `−ln(q)`: với điều kiện phụ độc lập, `p ≈ p_thắng × q`. Với p nhỏ đến vừa, nhân q tương đương dịch logit `−ln q`. Hai điều kiện thì cộng. Không phải đúng tuyệt đối, nhưng đủ gần để chia bậc, và bước 2.4 chỉnh lại theo dữ liệu.
-
-**Luật kiểm hợp lệ** (generator từ chối): điều kiện xung đột (Không mua sắm cùng Két sắt), điều kiện bị Ascension làm cho miễn phí hoặc bất khả thi (ở A6+ "giữ 1 pact" là miễn phí, ở A10 bắt buộc nhiều pact nên "≥2 pact" gần như chắc), D tổng ngoài [−2,3; +2,3].
-
-### 2.2 Từ D ra xác suất thành công
-
-Mỗi kiểu người chơi j có **năng lực** θ_j = logit(tỉ lệ thắng run Short A0 ranked-profile). Xác suất thành công của Nhiệm vụ độ khó D:
-
-```
-p_j(D) = 1 / (1 + e^(D − θ_j))
-```
-
-**Giả định năng lực (thay bằng số đo, §2.4):**
-
-| Persona | Thắng run Short A0 | θ |
+| Mã | Luật | d |
 |---|---|---|
-| Casual | 30% | −0,85 |
-| Regular | 50% | 0 |
-| Heavy | 70% | +0,85 |
+| M1 Đồng hồ gắt | Boss Clock bắt đầu từ lượt 6 (ghi đè `clock_start` của Ascension, không cộng chồng), +20%/lượt, tối đa +100% | 0,35 |
+| M2 Spike dồn | Chu kỳ lượt đòn lớn của elite/boss ngắn đi 1 lượt | 0,30 |
+| M3 Săn đuổi | +2 node elite (chỉ dùng ở A < 9, vì A9 đã có sẵn) | 0,30 |
+| M4 Đòn nặng | Địch dmg thêm +15% (nhân với Ascension) | 0,30 |
+| M5 Boss dày | HP boss +25% | 0,35 |
 
-(Bản cũ giả định 20/45/75, nhưng đó là run có unlock cộng chỉ số. Ranked-profile tắt unlock nên khoảng cách có thể hẹp hơn; chưa có số đo.)
+*(M2 giả định bộ "spike theo lịch" của `monetization-v1.md` §1.2-A được làm. Chưa verify. Nếu không làm thì thay M2 bằng M4 ở các bậc dùng nó và tính lại d.)*
 
-| D | −2 | −1 | 0 | +1 | +2 |
-|---|---|---|---|---|---|
-| Casual | 76,0% | 53,8% | 30,0% | 13,6% | 5,5% |
-| Regular | 88,1% | 73,1% | 50,0% | 26,9% | 11,9% |
-| Heavy | 94,5% | 86,4% | 70,0% | 46,2% | 24,0% |
+**Sáu bậc:**
 
-Khoảng cách giữa người giỏi và người yếu **giãn ra khi D tăng** (tỉ lệ heavy/casual: 1,2 ở D = −2, 4,4 ở D = +2). Đây là bản chất của risk-to-earn dựa trên kỹ năng, và là lý do §3 định giá theo năng lực tăng dần theo bậc.
+| Bậc | Mode | Ascension | Luật thêm (bộ A / bộ B xoay theo ngày) | d tổng |
+|---|---|---|---|---|
+| N1 | Short | A3 | — (chỉ Chuẩn) | 0,30 |
+| N2 | Short | A4 | M3 / M2 | 0,60 |
+| N3 | Short | A6 | M2 / M3 | 0,60 |
+| N4 | Short | A7 | M1+M4 / M5+M2 | 0,95 |
+| N5 | Short | A9 | M1+M4 / M5+M2 | 0,95 |
+| N6 | **Full** | A9 | M1+M4 / M5+M2 | 0,95 |
 
-### 2.3 Chia bậc
+Hai bộ A/B của cùng một bậc có cùng d (±0,05). **Bộ nào cũng không có quá 2 luật thêm** (xem §5, Slay the Spire). Điều kiện phụ (§3.8) chiếm một trong hai chỗ đó, không cộng thêm. Generator từ chối luật đã nằm sẵn trong Ascension của bậc đó.
 
-Mỗi bậc có một **tâm D**. Generator chọn mục tiêu, Ascension, điều kiện sao cho D tổng nằm trong **±0,15** quanh tâm (núm `eps_D`); không đạt thì thử tổ hợp khác. Nhờ vậy cùng một bậc thì xác suất sai lệch tối đa khoảng ±3,5 điểm phần trăm, và bảng thưởng giữ nguyên bất kể điều kiện là gì.
+**Mở khóa bậc** (đã chốt 12/10): người chơi phải đã **thắng ít nhất một run ở Ascension của bậc đó** (N1 A3, N2 A4, N3 A6, N4 A7, N5 A9). **N6 cần đã thắng một run Full ở A9** (điều kiện này đủ, vì thắng Full đã kéo theo Full đã mở). Bậc còn khóa vẫn hiện, xám, ghi điều kiện. Ngoài ra bậc phải được nhà mở (§3.3). Cần cả hai.
 
-### 2.4 Cách hiệu chỉnh p bằng sim và telemetry
+### 3.3 Nhà Nhiệm vụ (nâng bằng Shard + Stone)
 
-**Trước khi ra (sim):**
-1. Chạy sim A của `relic-set-v2.md` §6.1 (11 bot archetype, 300 seed mỗi bot) trên **ranked-profile** ở A0 và A5. Lấy tỉ lệ thắng trung bình `w̄` và của từng archetype `w_X`.
-2. Với mỗi loại điều kiện, đo `q` bằng cách chạy bot có và không có ràng buộc, tính `q = P(đạt | thắng)`. Ghi `D_cond = −ln q` vào `assets/data/` (không hardcode).
-3. Hiệu ứng từng luật Ascension: lấy từ sim G của `ascension-v2.md` (mục tiêu 2–5 điểm thắng mỗi luật) rồi đổi sang logit để thay `0,15 × A`.
-4. θ_j của người thật chưa có; dùng giả định ở 2.2 rồi **soft launch** (§8) đo.
+Nâng nhà **chỉ mở thêm bậc**, không đổi số lần mua.
 
-**Sau khi ra (hàng tuần):**
-1. Với mỗi lần mua, ghi `(θ̂_i của người chơi, đặc trưng Nhiệm vụ, thành công hay không)`. θ̂_i = logit của tỉ lệ thắng ranked-profile của người đó, co về 45% với trọng số 10 run giả.
-2. Hồi quy logistic `logit p = θ̂_i − D_loại` theo loại Nhiệm vụ. Co về D tiên nghiệm với **k = 200 lần thử giả**: `D_adj = (n·D_đo + k·D_tiên_nghiệm)/(n+k) − D_tiên_nghiệm`.
-3. **Giá trị cập nhật là D, không phải m.** Loại nào dễ hơn dự đoán thì D tăng → bị đẩy lên bậc cao hơn → stake và m cao hơn, p giảm. Bảng thưởng theo bậc ổn định, người chơi không bị đổi giá giữa chừng, và không có loại nào ở mãi trong "tiền dễ".
-4. Đạt chuẩn khi, với mỗi bậc, tỉ lệ thành công quan sát của nhóm tham chiếu nằm trong ±7 điểm của p_ref(bậc), với ≥ 1.000 lần thử mỗi bậc.
+| Cấp | Chi phí lên cấp | Bậc trên bảng |
+|---|---|---|
+| 1 | miễn phí (sau 5 run làm quen) | N1–N3 |
+| 2 | 3.000 Shard + 4.000 Stone | + N4 |
+| 3 | 8.000 Shard + 12.000 Stone | + N5 |
+| 4 | 20.000 Shard + 30.000 Stone | + N6 (Full, và cần đã thắng Full A9) |
+
+Tổng 31.000 Shard + 46.000 Stone. So sánh (`economy-v2.md`, R = 450): 46.000 Stone ~2,5% tổng 1.820k Stone tới LunaLanding, ~1,3 tuần Stone của heavy (34.814/tuần), ~3,4 tuần của casual (13.363/tuần). 31.000 Shard ~1,2 tuần thu nhập heavy (26.653/tuần), ~4,8 tuần của casual (6.423). **Giữ làm số khởi điểm (Liam 12/10), kiểm bằng sim sau** cùng `economy-v2.md` ECO-11. Giờ nhà chỉ là cổng bậc, không còn hạn chế tốc độ mua, nên người giỏi trả hết nhà rất nhanh; số tiền này là phần nhỏ của faucet ở §4.4. Bảng cấp nằm trong data.
+
+### 3.4 Bảng ngày (không có giới hạn mua)
+
+- Seed = `H(ngày UTC, "nv", rules_version)`. **Bảng giống nhau cho mọi người cùng cấp nhà.** Người chơi nói chuyện được về "bảng hôm nay", không ai chọn offer theo kỹ năng.
+- Mỗi bậc đang mở có đúng **một offer**; seed chọn bộ A hay bộ B. **Offer mua được nhiều lần trong ngày**, mỗi lần là một run mới với seed xúc xắc mới do server cấp (luật giữ nguyên trong ngày). Không có số lần mua tối đa, không có "đã mua hôm nay".
+- Giới hạn tốc độ duy nhất là chỉ một run mở tại một lúc, nên tốc độ mua bị chặn bởi thời gian chơi (Short ~25 phút/run là giả định của economy, chưa verify cho Nhiệm vụ).
+- Không đổi bảng (không reroll). Không đếm ngược, không nhấp nháy; chỉ một dòng "bảng đổi lúc 00:00 UTC".
+- Chơi lặp cùng bộ luật trong ngày cho người chơi luyện tay; hiệu ứng này làm tỉ lệ thắng thật cao hơn d ước tính. Không chặn, §11 tự bắt qua dữ liệu.
+- Núm `buy_cap_by_house` và `offer_per_day` **không còn ở v1.0**. Nếu sau này cần siết (ví dụ khi đổi sang AXS) thì thêm lại một núm giới hạn số mua/ngày, không cần đổi cấu trúc nhà.
+
+### 3.5 Thắng, thua, trả tiền
+
+- **Thắng** = hạ boss cuối của run (3 boss Short, 4 boss Full) theo replay đã verify, **và** thoả điều kiện phụ nếu offer có (§3.8).
+- **Thua** = đội bị tiêu diệt; hoặc bấm "Bỏ run" (có xác nhận ghi rõ "mất cược"); hoặc engine từ chối hành động sau khi đã xin seed (§6); hoặc không thoả điều kiện phụ khi hạ boss cuối.
+- Trả khi thắng: `payout = round5(cược × m_gốc × m_scale)` và Stone của bậc, **một transaction với việc đóng Nhiệm vụ**, khóa idempotency do server dựng. Stone bị cắt bởi trần ngày `mission_stone_day_cap`. Qua trần payout theo run (**20.000, Liam chấp nhận**) thì cắt ở trần và ghi cờ.
+- **Không có Stone khi thua. Không có an ủi nào khi thua** (Liam 12/10). Shard của run (R) trả như run thường trong mọi trường hợp đã verify.
+- Không có Thử lại, Bảo hiểm cược, hay bất cứ thứ gì giảm đau sau khi thua. Màn thua chỉ có hai nút ngang hàng: "Về nhà Nhiệm vụ", "Chơi run thường". (Không có nút "mua lại ngay": người chơi vẫn mua lại được từ nhà Nhiệm vụ, nhưng game không đẩy.)
+
+### 3.6 Bảng thưởng (R = 450 Shard)
+
+`m_scale` lúc ra mắt: N1–N4 = 1,00 (m đã dựng sát hòa vốn cho heavy), N5/N6 = 0,90. Cột "m hiệu dụng" là cái hiện trên thẻ; §11 chỉ có thể kéo `m_scale` xuống, không bao giờ lên quá 1,00.
+
+| Bậc | Cược | Cược/R | m gốc | `m_scale` | m hiệu dụng | Trả khi thắng | Lãi khi thắng | Stone khi thắng |
+|---|---|---|---|---|---|---|---|---|
+| N1 | 300 | 0,67 | 1,60 | 1,00 | 1,60 | 480 | +180 | 4 |
+| N2 | 500 | 1,11 | 1,95 | 1,00 | 1,95 | 975 | +475 | 8 |
+| N3 | 800 | 1,78 | 2,45 | 1,00 | 2,45 | 1.960 | +1.160 | 14 |
+| N4 | 1.200 | 2,67 | 3,30 | 1,00 | 3,30 | 3.960 | +2.760 | 22 |
+| N5 | 1.800 | 4,00 | 4,20 | 0,90 | 3,78 | 6.805 | +5.005 | 34 |
+| N6 | 2.500 | 5,56 | 7,20 | 0,90 | 6,48 | 16.200 | +13.700 | 60 |
+
+Không có trần số lần mua nên **trần Stone ngày 150 (`mission_stone_day_cap`, economy-v2 §9) giờ là giới hạn thật**, không còn tự nhiên ≤ 138 như bản cũ. Người chơi bình thường chạm rất xa trần (Stone kỳ vọng mỗi tuần: casual ~2, regular ~12, heavy ~90, dưới 0,3% Stone tuần). Người farm 10 run N4/ngày thắng ~4 lần × 22 = ~92 Stone/ngày, vẫn dưới trần.
+
+### 3.7 UX tối thiểu (cần mockup mới trước khi làm UI)
+
+- **Thẻ offer:** tên bậc, mode, Ascension, các luật thêm và điều kiện phụ bằng chữ, cược, trả khi thắng, Stone, **m hiệu dụng hiện tại kèm m gốc** (ví dụ "×3,23, bảng gốc ×3,30", cập nhật lần cuối), và hai dòng xác suất: tỉ lệ thắng gần đây của toàn bộ người chơi ở bậc đó (từ telemetry), và **ước tính cho bạn** dạng khoảng làm tròn 5 (cần ≥ 10 run, chưa đủ thì ghi "chưa đủ dữ liệu"). **Dòng "kỳ vọng nhận lại" luôn hiện trên thẻ**, không chỉ ở màn xác nhận: dùng số cá nhân khi có ước tính, chưa có thì dùng số toàn dân của bậc.
+- **N5/N6:** thẻ ghi "Bậc thử sức: trung bình mọi người nhận lại dưới 100% số cược."
+- **Xác nhận mua:** "Bạn trả **500** Shard. Thắng: nhận **975** (+475) và 8 Stone. Thua hoặc bỏ giữa chừng: **mất 500, không hoàn.** Với tỉ lệ ước tính của bạn, kỳ vọng nhận lại khoảng 59% số trả." Nút ghi "Mua, mất cược nếu thất bại". Cảnh báo thông tin (không chặn) khi tổng cược trong ngày > 50% thu nhập tuần ước tính; vì không có trần số lần mua nên cảnh báo này là lưới an toàn duy nhất.
+- **Trong run:** chip góc màn hình ghi bậc và các luật thêm. Đồng hồ boss hiện từ lượt 1 (luật chung).
+- **Màn thua:** trung tính, cụ thể ("Boss 2 hạ đội ở lượt 9, đồng hồ đang +60%. Mất 500 Shard."). Không "suýt thắng", không nút mua lại, không giảm giá.
+
+### 3.8 Điều kiện phụ (v1.0)
+
+**Nguồn:** danh mục 19 loại của bản 11/10 (§4 bản cũ, trong git). Cột `d` dưới đây là `D_cond = −ln q` của bản cũ, q là tiên nghiệm tôi đoán, **chưa sim**. Bản cũ chưa tính việc Nhiệm vụ không có Aid/Continue/Boon nên q thật có thể thấp hơn, tức d thật cao hơn; vì vậy lọc theo d cũ là lọc lỏng, không chặt hơn.
+
+**Cách hoạt động.** Điều kiện phụ là một mệnh đề thêm vào điều kiện thắng ("hạ boss cuối **và** điều kiện"). Nó được tính như một "luật thêm" (§3.2): có `d_cond ≈ −ln(q_ref)`, trong đó `q_ref` = xác suất thoả điều kiện, biết đã hạ được boss cuối, của người chơi tham chiếu. Chiếm một trong hai chỗ luật thêm của offer. Hiện trên thẻ trước khi mua. Không đổi cược; m không đổi tay mà để §11 điều chỉnh theo dữ liệu.
+
+**Tiêu chí vào v1.0 (phải đạt cả sáu):**
+1. Kiểm được từ action log / replay mà `RunVerifier` đã verify, không thêm đường tin client.
+2. Dùng key đã có. Nếu cần counter mới (bản cũ có 5: `axie_ko`, `dmg_dot`, `max_kills_turn`, `boss_turns[]`, `rerolls`) thì phải thêm ở **verifier**: `RunVerifier` phải tính lại từ replay ActionLog và trả số đó (chưa verify hiện chỉ trả thắng/thua hay cả counter), nạp lại trong `RunState.gd` ~930 khi resume (chỉ 6 key cố định), và đưa vào fingerprint `RULES_VERSION` kèm test replay. Điều kiện chính thức không đọc counter client. Counter mới = bump rules version, nên mặc định **không vào v1.0**.
+3. `q_ref ≥ 0,70` (tức `d_cond ≤ 0,36`) **và** `|d_cond − d của luật bị thay| ≤ 0,05`, để tổng d của bậc không lệch (lệch thì heavy RTP rời 1,00 vào ngày có điều kiện). Số q là **ước**, sim sau.
+4. Không đọc Aid/Continue/Boon (đã cấm), không dựa vào thông tin bị giấu.
+5. Không chồng lên luật thêm cùng cơ chế (ví dụ điều kiện "không mua sắm" không đi cùng luật đụng vào shop).
+6. Không nhắc tên quái hay node cụ thể.
+
+**Quy tắc v1.0:** mỗi bậc N1–N4 mỗi ngày có tối đa **một** điều kiện phụ, **thay cho** một trong hai luật thêm (tổng không quá 2). Ngoại lệ N1 (chỉ có Chuẩn, không có luật thêm để thay): điều kiện được **thêm vào**, d tổng N1 từ 0,30 lên ~0,46; tính tay heavy N1 còn ~58% thắng, RTP ~0,94 (dưới 1, an toàn). **N5/N6 không có điều kiện phụ** (p đã 1–23%; thêm điều kiện là chạm "gần như bất khả thi" của Slay the Spire). Điều kiện chọn theo seed ngày như bộ A/B.
+
+**Phân loại 19 loại cho v1.0.** Lọc: q_ref ≥ 0,70 (d ≤ 0,36), không cần counter mới, kiểm được từ log.
+
+| # | Loại | d (bản cũ) | Dữ liệu | Kết luận |
+|---|---|---|---|---|
+| 1 | Chớp nhoáng | 0,69 (Tia chớp 1,39) | `run_stats.turns` (có) | **Để sau.** q 0,50; ngưỡng P50 cần phân phối thật chưa có |
+| 2 | Không ai gục | 0,69 (1,39) | `axie_ko` (mới) | **KHÓ.** q 0,50 và cần counter mới ở verifier; Nhiệm vụ không Aid nên q còn thấp hơn |
+| 3 | Da dày | 0,92 | `run_stats.taken` (có) | **Để sau.** q 0,40; ngưỡng P40 cần phân phối thật |
+| 4 | Đòn tử huyệt | 0,92 (1,61) | `run_stats.max_hit` (có) | **Để sau.** q 0,40 |
+| 5 | Build X (11 loại) | ~0,4–1,0 | relic + tag (có) | **Để sau.** d thấp nhất ~0,45 > 0,36; cần `w_X` thật từ sim relic. Có thể vào v1.1 cho archetype mạnh nhất khi có số |
+| 6 | Hai kỳ ngộ | 0,80 | relic Duo (có) | **Để sau.** q 0,45 |
+| 7 | Giao kèo | 0,92 | relic, `pact_group` (có) | **Để sau.** q 0,40; ở A6+ pact bắt buộc nên q phải tính lại |
+| 8 | Trận đồ | 1,20 | relic + ActionLog | **KHÓ.** q 0,30; đòi hai điều kiện cùng lúc (relic positional + `reorder_party`) |
+| 9 | Tay trắng | 1,05 | `sell_relic` (mới) | **KHÓ.** q 0,35 và cần counter mới |
+| 10 | Không thần khí | 0,51 | rarity relic (có) | **Để sau (gần đạt).** q 0,60, thiếu ~0,15 logit; thử lại khi sim cho q thật |
+| 11 | Không mua sắm | 0,69 | ActionLog `shop_buy` (có) | **Để sau (gần đạt).** q 0,50, kiểm dễ nhất. Tôi từng ước 0,75 ở bản trước của §3.8; số cũ của bản 11/10 là 0,69 nên lấy số này |
+| 12 | Két sắt | 1,39 | Shard run (có) | **Để sau.** q 0,25 |
+| 13 | Một nhà | 0,16–0,51 theo class | `team_keys` (có) | **VÀO v1.0** ở N2–N4, **chỉ class có d trong 0,25–0,40** (khớp một luật M); class còn lại để sau. Danh sách class đạt chờ sim. |
+| 14 | Đa sắc (≥ 4 class) | 0,16 | `team_keys` (có) | **VÀO v1.0** ở **N1** (thêm vào, không thay). Ở N2–N4 d 0,16 quá dễ so với luật M 0,30–0,35 nên không dùng, trừ khi có biến thể chặt hơn (≥ 5 class, d chưa tính) |
+| 15 | Leo thang | 0,15 × k | header `ascension` (có) | **Gộp vào bậc, không dùng như điều kiện.** Mỗi bậc Nhiệm vụ đã gắn cứng một Ascension (A3…A9) và p lấy từ bảng Ascension; thêm "thắng ở Ak" chỉ lặp lại bậc hoặc làm bậc nhảy qua A khác, phá bảng §4.1. Phần "leo ladder" do chính bậc N1→N5 và điều kiện mở khóa bậc (§3.2) đảm nhiệm |
+| 16 | Săn boss | 1,05 | `boss_turns[]` (mới) | **KHÓ.** q 0,35, cần counter mới, và đụng M1/M5 (đồng hồ gắt, boss dày) cho cùng bậc |
+| 17 | Lửa ngầm | 1,39 | `dmg_dot` (mới) | **KHÓ.** q 0,25, counter mới, và ép riêng poison/burn/thorns |
+| 18 | Không reroll | 1,20 | đếm reroll (ActionLog) + `rerolls` (mới) | **KHÓ.** q 0,30; counter mới (đếm được từ ActionLog nhưng ngưỡng P30 cần phân phối) |
+| 19 | Quét sạch | 0,51 | `max_kills_turn` (mới) | **Để sau (gần đạt).** q 0,60 và cần counter mới ở verifier |
+
+**Kết quả: 2 loại vào v1.0 (13 Một nhà, 14 Đa sắc), 1 loại gộp vào bậc (15), 16 loại không vào.** Trong 16 loại đó, 6 loại cần counter mới ở verifier (2, 9, 16, 17, 18, 19); phần còn lại rớt vì q thấp (d > 0,36). Ba loại gần đạt (10, 11, 19, thiếu ≤ 0,2 logit) là ứng viên đầu tiên của v1.1 khi có sim.
+
+**Vì sao ít:** bản cũ đặt q bằng "ngưỡng khó đủ để có ý nghĩa" (thường q 0,25–0,50) nên d thường 0,5–1,4, nặng hơn cả một luật M (0,30–0,35). Với quy tắc "thay một luật, d lệch ≤ 0,05" thì chỉ điều kiện nhẹ mới vừa. Đây là điểm đánh đổi: muốn nhiều điều kiện nặng hơn thì phải bỏ luật M ở bậc đó và đổi bảng d (việc của sim, không làm ở v1.0).
 
 ---
 
-## 3. Thang stake và thưởng
+## 4. Formulas
 
-### 3.1 Nguyên tắc định giá
+**Biến:** `p_asc,j(A, mode)` = tỉ lệ thắng mục tiêu của hồ sơ j (casual/regular/heavy) ở Ascension A, bảng `ascension-v2.md` §5.1; `d` = tổng độ khó luật Nhiệm vụ (§3.2, gồm điều kiện phụ nếu có); `σ(x) = 1/(1+e^-x)`; `s` = `m_scale` của bậc.
 
-`m = 0,95 / p_ref`, làm tròn 0,05. `p_ref` là xác suất của **người chơi tham chiếu của bậc**, và năng lực tham chiếu **tăng dần theo bậc**: θ_ref = −0,565 + 0,282 × (bậc − 1), tức bậc thấp định giá cho người yếu, bậc cao cho người giỏi, và người tham chiếu nằm khoảng **nửa bậc cao hơn** người dự kiến mua (để bù chọn lọc ngược: người giỏi dồn vào bậc nào lãi). Người tham chiếu đạt RTP ≈ 0,95; 5% còn lại là sink Shard nhỏ.
+```
+Short:  p_j(bậc) = σ( logit(p_asc,j(A, Short)) − d )
+Full:   p_short = p_asc,j(A)^e          (e = full_exponent, mặc định 1,5)
+        p_j(bậc) = σ( logit(p_short) − d )
+Payout   = round5( cược × m_gốc × s )
+RTP_j    = p_j × m_gốc × s
+Lãi ròng kỳ vọng mỗi lần mua = cược × (RTP_j − 1)
+```
 
-Hai lựa chọn tôi đã thử và bỏ: (a) định giá theo regular cho mọi bậc: heavy lãi tới 1,8× ở T7, in Shard 6.000/ngày, phá economy; (b) định giá theo heavy cho mọi bậc: casual mất 55–75% mỗi lần, cảm giác săn mồi.
+**Cách dựng m gốc (đã đổi 12/10).** Không còn "người tham chiếu p_ref". Mỗi bậc neo vào **heavy**:
+- N1–N4: `m = round05( 1 / p_heavy )` để RTP heavy ≈ 1,00 (hòa vốn). N1: 1/0,623 = 1,605 → 1,60. N2: 1/0,516 = 1,938 → 1,95. N3: 1/0,411 = 2,433 → 2,45. N4: 1/0,304 = 3,289 → 3,30.
+- N5/N6: giữ m cũ (`0,95 / p_heavy`: 4,20 và 7,20) và hạ bằng `m_scale` 0,85–0,90 (lúc ra mắt 0,90). Hai bậc này là bậc thử sức, RTP heavy dưới 1.
+- Lý do: định theo heavy thì heavy hợp lý (chỉ mua N1–N4) không lãi, nhưng casual/regular lỗ nặng (regular lỗ ~45%, Liam chấp nhận 12/10). Đây là cái giá của "không cho heavy lãi" khi heavy đến 62% ở N1.
 
-### 3.2 Bảng thang (R = 450, Shard)
+**Về `e = 1,5` (giả định, chưa verify):** `ascension-v2.md` §5.1 chỉ có bảng Short. Full có 30 hàng thay vì 18 (`core-loop-v2.md` F1) nhưng chỉ thêm 1 boss. Mô hình "sống sót đều mỗi hàng" cho e = 1,67; "chỉ boss quyết định" cho e = 1,33. Tôi lấy giữa. Cần sim Full (hoặc để §11 tự bắt).
 
-| Bậc | Tâm D | p_ref | Stake | Stake / R | m | Trả khi thắng | Lãi ròng khi thắng | Stone khi thắng |
-|---|---|---|---|---|---|---|---|---|
-| T1 | −1,95 | 80% | 100 | 0,22 | 1,20 | 120 | +20 | 3 |
-| T2 | −1,15 | 70% | 200 | 0,44 | 1,35 | 270 | +70 | 6 |
-| T3 | −0,40 | 60% | 350 | 0,78 | 1,60 | 560 | +210 | 10 |
-| T4 | +0,30 | 50% | 500 | 1,11 | 1,90 | 950 | +450 | 16 |
-| T5 | +0,90 | 42% | 800 | 1,78 | 2,25 | 1.800 | +1.000 | 24 |
-| T6 | +1,45 | 35% | 1.200 | 2,67 | 2,70 | 3.240 | +2.040 | 34 |
-| T7 | +2,05 | 28% | 1.800 | 4,00 | 3,40 | 6.120 | +4.320 | 50 |
+**Ví dụ tính tay (N4, regular, bộ M1+M4):** A7 regular = 31% → logit −0,800; trừ d 0,95 → −1,750 → σ = 14,8%. m = 3,30. RTP = 0,148 × 3,30 = 0,488. Lãi ròng = 1.200 × (0,488 − 1) = **−614** Shard mỗi lần mua.
 
-Stake, m, Stone, D đều tăng nghiêm ngặt theo bậc (bất biến NV-2). Số bậc 7 là lựa chọn của tôi: 5 offer mỗi ngày cần phủ khoảng từ "dễ cho người mới" tới "khó cho người giỏi nhất" mà vẫn đủ khác biệt. Số 5–7 đều chạy được.
-
-**Stone**: giá trị Stone vào bậc đều nhỏ: 1 vé hộp thường ≈ 242 Stone mà tốn 200 Shard, nên 100 Shard stake bỏ ra ≈ 120 Stone giá trị vé. Stone thưởng 3–50 chỉ là "mùi vị" của Nhiệm vụ, không phải lý do để chơi. Giữ `stone_scale` làm núm (§9).
-
-### 3.3 Xác suất và RTP theo persona
-
-p_j = 1/(1 + e^(D − θ_j)) tại tâm D; RTP = p × m.
-
-| Bậc | p casual | p regular | p heavy | RTP casual | RTP regular | RTP heavy |
-|---|---|---|---|---|---|---|
-| T1 | 75,1% | 87,6% | 94,3% | 0,90 | 1,05 | 1,13 |
-| T2 | 57,5% | 76,0% | 88,0% | 0,78 | 1,03 | 1,19 |
-| T3 | 39,0% | 59,9% | 77,7% | 0,62 | 0,96 | 1,24 |
-| T4 | 24,1% | 42,6% | 63,3% | 0,46 | 0,81 | 1,20 |
-| T5 | 14,8% | 28,9% | 48,7% | 0,33 | 0,65 | 1,10 |
-| T6 | 9,1% | 19,0% | 35,4% | 0,25 | 0,51 | 0,95 |
-| T7 | 5,2% | 11,4% | 23,1% | 0,18 | 0,39 | 0,79 |
-
-Đọc bảng: mỗi bậc là một "cổng kỹ năng". Casual ngon ở T1–T2 (RTP 0,78–0,90), regular ở T2–T4, heavy ở T3–T5. Mua cao hơn sức mình thì RTP rơi mạnh, và đó là **cái giá của risk** Liam muốn thấy. Muốn kiếm nhiều Shard hơn: lên bậc (stake và m lớn hơn) **và** giỏi hơn mức giá đã tính cho bậc đó.
-
-**Lãi ròng kỳ vọng mỗi lần mua (Shard)** = stake × (RTP − 1):
+### 4.1 Tỉ lệ thắng theo hồ sơ (không đổi so với bản trước, vì d không đổi)
 
 | Bậc | Casual | Regular | Heavy |
 |---|---|---|---|
-| T1 | −10 | +5 | +13 |
-| T2 | −45 | +5 | +38 |
-| T3 | −132 | −15 | +85 |
-| T4 | −271 | −96 | +102 |
-| T5 | −533 | −280 | +77 |
-| T6 | −904 | −584 | −55 |
-| T7 | −1.480 | −1.102 | −387 |
+| N1 (A3) | 24,1% | 39,7% | 62,3% |
+| N2 (A4) | 17,6% | 30,1% | 51,6% |
+| N3 (A6) | 12,1% | 22,1% | 41,1% |
+| N4 (A7) | 7,8% | 14,8% | 30,4% |
+| N5 (A9) | 4,1% | 9,3% | 22,6% |
+| N6 (Full A9) | 1,3% | 4,0% | 13,2% |
 
-### 3.4 Population RTP (kịch bản cơ sở)
+Đối chiếu: run ranked thường A0 là 40/60/82, A9 là 10/21/43. N1 khó hơn A3 thường ~6–7 điểm cho mỗi hồ sơ, N5 khó hơn A9 thường 6–20 điểm.
 
-Giả định hành vi (tôi đoán, đo ở §8): số Nhiệm vụ mua mỗi tuần: casual 4 (1 mỗi ngày chơi), regular 7, heavy 21 (3 mỗi ngày). Phân bố bậc đã mua:
+### 4.2 RTP và lãi ròng kỳ vọng (Shard mỗi lần mua)
 
-| | T1 | T2 | T3 | T4 | T5 | T6 | T7 | Stake TB | RTP có trọng số | Stake/tuần | Lãi ròng/tuần | % thu nhập tuần (R = 450) |
-|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| Casual | 35% | 40% | 20% | 5% | | | | 210 | 0,709 | 840 | −245 | −3,8% (6.423) |
-| Regular | 10% | 25% | 30% | 25% | 10% | | | 370 | 0,853 | 2.590 | −381 | −5,1% (7.540) |
-| Heavy | | 5% | 15% | 25% | 25% | 20% | 10% | 807,5 | 1,012 | 16.958 | +200 | +0,8% (26.653) |
+`m_scale` = 1,00 ở N1–N4. N5/N6 hiện cả hai mức: 1,00 (tham khảo) và 0,90 (ra mắt).
 
-Với dân số 45% casual, 40% regular, 15% heavy: khối lượng stake/tuần/người = 378 + 1.036 + 2.544 = 3.958; tổng trả lại = 268 + 884 + 2.575 = 3.726 → **RTP toàn dân = 0,941 ≤ 1**. Phần chênh 0,059 là sink Shard (≈ 5,9% khối lượng stake, tức ≈ 2,3% thu nhập Shard TB của người chơi, trong đó phần lớn từ casual/regular).
+| Bậc | m | RTP casual | RTP regular | RTP heavy | Net casual | Net regular | Net heavy |
+|---|---|---|---|---|---|---|---|
+| N1 | 1,60 | 0,386 | 0,635 | 0,997 | −184 | −109 | −1 |
+| N2 | 1,95 | 0,343 | 0,587 | 1,006 | −328 | −207 | +3 |
+| N3 | 2,45 | 0,296 | 0,542 | 1,007 | −563 | −367 | +6 |
+| N4 | 3,30 | 0,257 | 0,488 | 1,003 | −891 | −614 | +4 |
+| N5 (s=1,00) | 4,20 | 0,172 | 0,391 | 0,949 | −1.490 | −1.097 | −91 |
+| N5 (s=0,90) | 3,78 | 0,155 | 0,352 | 0,854 | −1.521 | −1.166 | −263 |
+| N6 (s=1,00) | 7,20 | 0,094 | 0,288 | 0,950 | −2.266 | −1.780 | −124 |
+| N6 (s=0,90) | 6,48 | 0,084 | 0,259 | 0,855 | −2.290 | −1.852 | −361 |
 
-**Độ nhạy R** (stake cố định theo Shard; R chỉ đổi gánh nặng tương đối):
+Heavy ở N1–N4 trong khoảng 0,997–1,007: đúng điều kiện "heavy không lãi đáng kể ở N1–N4" của Liam (câu 13). Mức lãi +3…+6 Shard mỗi lần mua là rơi vào sai số làm tròn của m, không phải lợi thế thật. Nhưng đây chỉ đúng nếu tỉ lệ heavy đúng mục tiêu; sai số kỹ năng thì xem §4.4.
 
-| Thu nhập tuần | R = 350 | R = 450 | R = 570 |
-|---|---|---|---|
-| Casual (−245/tuần) | 5.223 → −4,7% | 6.423 → −3,8% | 7.863 → −3,1% |
-| Regular (−381) | 6.140 → −6,2% | 7.540 → −5,1% | 9.220 → −4,1% |
-| Heavy (+200) | 21.053 → +0,9% | 26.653 → +0,8% | 33.373 → +0,6% |
+### 4.3 EV theo hồ sơ (kịch bản cơ sở, R = 450, `m_scale` N5/N6 = 0,90)
 
-Stake bậc cao tính theo R: T7 = 5,1R / 4,0R / 3,2R ở R = 350 / 450 / 570. Khuyến nghị: lưu stake dưới dạng **số Shard cố định**, dựng lại cả bảng khi R đo được lệch > 15% so với 450.
+Hành vi giả định (tôi đoán, cần đo): casual mua 2 lần/tuần, regular 5, heavy 14. Đây là số lần **kỳ vọng**, không phải trần (bỏ trần 5/ngày không đổi giả định này vì những người này chưa chơi hơn thế). Phân bố bậc đã mua:
 
-**Độ nhạy năng lực heavy** (rủi ro lớn nhất của mô hình này): nếu heavy thật chỉ thắng 60% (θ = 0,41) thì RTP T4 ≈ 1,00, farm hết lãi; nếu thắng 80% (θ = 1,39) thì RTP T4 ≈ 1,42 (+210 mỗi lần). Population RTP vì thế dao động 0,90 tới ~1,05 theo hành vi heavy. **Chỉ chạy m thật sau khi có số đo** (xem NV-8 và `m_scale`).
+| | N1 | N2 | N3 | N4 | N5 | N6 | Cược TB | RTP gia quyền | Net/lần mua | Net/tuần | % thu nhập tuần |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| Casual | 60% | 30% | 10% | | | | 410 | **0,353** | −265 | −531 | −8,3% (6.423) |
+| Regular | 25% | 35% | 25% | 15% | | | 630 | **0,550** | −284 | −1.417 | −18,8% (7.540) |
+| Heavy (bảng cũ, mua cả N5/N6) | | 15% | 30% | 35% | 12% | 8% | 1.151 | **0,950** | −57 | −798 | −3,0% (26.653) |
+| **Heavy hợp lý (chỉ N1–N4)** | | 20% | 35% | 45% | | | 920 | **1,005** | +4 | +60 | +0,2% |
 
-Hành vi xấu cho dân số: nếu heavy dồn hết vào T3–T5 (RTP ~1,16) thì population RTP = (268 + 884 + 2.544 × 1,16)/3.958 ≈ **1,04 > 1**. Đó là ngưỡng khiến `m_scale` giảm 5–10% ở T3–T5 theo NV-8.
+**Regular giờ lỗ ~45% mỗi đồng cược** (RTP 0,55; bản trước là 0,63). Casual lỗ ~65%. Đây là hệ quả trực tiếp của việc định giá theo heavy ở N1–N4; Liam đã chấp nhận.
 
-### 3.5 Hai trường hợp Liam yêu cầu
+**Toàn dân 45% casual / 40% regular / 15% heavy** (tổng cược/người/tuần, và nhận lại):
 
-**Thua cả 5 trong một ngày.** Bảng mặc định có offer T2, T3, T4, T5, T7 (§5.1). Xác suất thua cả 5 (nhân xác suất thất bại từng bậc):
-
-| | Xác suất thua cả 5 | Mất | % thu nhập tuần |
-|---|---|---|---|
-| Casual | 15,9% | 3.650 | 57% (6.423) |
-| Regular | 3,5% | 3.650 | 48% (7.540) |
-| Heavy | 0,39% | 3.650 | 13,7% (26.653) |
-
-Casual và regular không có 3.650 Shard dư mỗi ngày (thu nhập ngày 1.606 / 1.077, và economy-v2 giả định họ tiêu hết vào vé), nên muốn mua cả 5 phải dành dụm nhiều ngày, và đó là **chọn của họ**. Liam đã bỏ trần nên không chặn; tôi chỉ đề nghị một dòng cảnh báo thông tin (§7, câu hỏi mở 5).
-Một ví dụ dễ xảy ra hơn: casual mua 5 × T1 (500 Shard, 31% thu nhập ngày), xác suất thua cả 5 = 0,249⁵ = 0,1%.
-
-**Người giỏi cày bậc cao.** Bốn trường hợp:
-- *Heavy 70%, bảng 5 offer, bỏ T7 (mua T2–T5)*: stake 1.850, lãi kỳ vọng **+301/ngày** (8% thu nhập ngày 3.808), Stone kỳ vọng ≈ 35.
-- *Heavy 70%, bảng 8 offer (Land cao), mua tối ưu 2×T3 + 2×T4 + T5*: stake 2.500 (66% thu nhập ngày), lãi **+450/ngày** (+3.150/tuần ≈ 11,8% thu nhập tuần; kéo LunaLanding nhanh hơn chừng 4 tuần trên 52, tính nhanh), Stone ≈ 47.
-- *Mua T7 mỗi ngày (chỉ 1 offer/ngày)*: heavy 70% có RTP 0,79 (−387/lần). Chỉ người thắng run ≥ ~76% mới có lãi ở T7 (p cần ≥ 29,4%). Người 80%: p = 34%, RTP 1,16, +283/ngày.
-- *Người cực giỏi (80%), 5 mua ở T3–T5*: RTP T4 ≈ 1,42 → khoảng **+1.000/ngày** (26% thu nhập ngày). Nhóm này rất nhỏ (tôi đoán ≤ 2% người chơi) nhưng đây là rủi ro faucet thật. Không có trần thắng trong bản đề xuất này; giám sát p99 lãi ròng 28 ngày (§8) và có `m_scale` theo bậc để hạ giá nếu cần.
-
-Stone: kể cả mua đúng bảng tốt nhất, Stone kỳ vọng ≤ 60/ngày, tối đa theo cấu trúc 130/ngày.
-
-### 3.6 Kiểm ngân sách Stone (ECO-12)
-
-Stone chỉ trả khi thắng, theo bậc: 3 / 6 / 10 / 16 / 24 / 34 / 50.
-
-- Bảng 5 offer (mỗi ngày): slot 1 ∈ {T1, T2}, slot 2 ∈ {T2, T3}, slot 3 ∈ {T3, T4}, slot 4 = T5, slot 5 ∈ {T6, T7}. Stone tối đa nếu thắng hết = 6 + 10 + 16 + 24 + 50 = **106** (≤ 150).
-- Bảng 8 offer (nhà Nhiệm vụ cao): chọn 5 tốt nhất trong {T2, T3, T4, T5, T7, T3, T4, T5} = 50 + 24 + 24 + 16 + 16 = **130** (≤ 150).
-- Kỳ vọng thực: casual 3,14 Stone/lần → 12,6/tuần; regular 5,60/lần → 39/tuần; heavy 10,4/lần → 219/tuần. Đó là 0,1% / 0,2% / 0,6% Stone tuần (economy-v2 §6.3: 13.363 / 16.728 / 34.814). Land kéo gần hơn chưa tới 0,4 tuần.
-- Trần cứng `mission_stone_day_cap` = 150 giữ làm hàng rào server (trường hợp bug hoặc bảng cấu hình sai), bình thường không bao giờ chạm tới.
-
-Nếu Liam muốn Stone có cảm giác hơn: `stone_scale` tới 2,5 (cùng 106 → 265 sẽ bị cắt ở trần 150). Tôi đề nghị ra mắt ở 1,0 rồi tăng theo telemetry (§8).
-
----
-
-## 4. Danh mục Nhiệm vụ
-
-Mỗi Nhiệm vụ = mục tiêu + (A) + điều kiện. Bảng dưới là các **loại điều kiện**; `D_cond = −ln q`, với q là **tiên nghiệm tôi đoán**, thay bằng sim (§2.4). Mọi điều kiện đọc từ dữ liệu run đã có hoặc từ ActionLog, **không đòi đổi relic nào**.
-
-| # | Tên | Điều kiện | Dữ liệu | D_cond | Khuyến khích |
+| Kịch bản heavy | Cược | Nhận lại | **RTP toàn dân** | Sink Shard/người/tuần | % thu nhập TB (9.904) |
 |---|---|---|---|---|---|
-| 1 | Chớp nhoáng | Thắng với `turns` ≤ P50 của run thắng (Tia chớp: ≤ P25) | `run_stats.turns` (có) | 0,69 (Tia chớp 1,39) | Burst, build crit/pierce/exec/aoe |
-| 2 | Không ai gục | Tổng Axie KO ≤ 2 (không KO: q = 25%) | `axie_ko` (mới) | 0,69 (1,39) | Shield/thorns, chơi an toàn |
-| 3 | Da dày | Thắng với `taken` ≤ P40 | `run_stats.taken` (có) | 0,92 | Bulwark, aegis, kiểm soát |
-| 4 | Đòn tử huyệt | Có đòn `max_hit` ≥ P60 của run thắng (P80: q = 20%) | `run_stats.max_hit` (có; không tính poison/thorns) | 0,92 (1,61) | Crit, exec, nhân ô G |
-| 5 | Build X (11 loại) | Thắng và cuối run giữ ≥ 4 relic có tag X (exec, shield, pierce, mana, thorns, summon, growth, poison, crit, aoe, burn) | Relic đang giữ + tag (có) | `−ln(0,5) + ln(w̄/w_X)` ≈ 0,4 đến 1,0 | Một Nhiệm vụ cho mỗi archetype |
-| 6 | Hai kỳ ngộ | Thắng khi đang giữ ≥ 1 relic Duo (12 relic) | Relic đang giữ (có) | 0,80 | Dựng hai archetype cùng lúc |
-| 7 | Giao kèo | Thắng khi đang giữ ≥ 2 pact (ở A6+ phải tính lại q) | Relic đang giữ, `pact_group` | 0,92 | Chấp nhận drawback có chủ đích |
-| 8 | Trận đồ | Thắng khi giữ ≥ 2 relic positional (linkstone, bookend, keystone, relaybaton, symmetrycharm) và có ≥ 1 `reorder_party` | Relic + ActionLog | 1,20 | Xếp đội thành quyết định |
-| 9 | Tay trắng | Thắng với ≤ 4 relic ở cuối run (8 ô passive, bán đi hoặc bỏ thẻ) | Số relic (có), `sell_relic` (mới trong bộ relic) | 1,05 | Build gọn, bán đổi |
-| 10 | Không thần khí | Thắng không giữ Legendary nào ở cuối run | Rarity relic (có) | 0,51 | Chọn Epic/Rare an toàn |
-| 11 | Không mua sắm | Thắng với 0 `shop_buy` | ActionLog (có) | 0,69 | Dựa vào thẻ thưởng/event |
-| 12 | Két sắt | Kết run còn ≥ P75 Shard của run (q = 25%) | Shard run (có) | 1,39 | Tiết kiệm, bỏ shop |
-| 13 | Một nhà | Cả 5 Axie cùng class (Plant, Beast, Aqua, Reptile, Bug, Bird, giá riêng theo class) | `team_keys` (có) | 0,16 đến 0,51 | Thử class hay bị bỏ |
-| 14 | Đa sắc | Đội có ≥ 4 class khác nhau | `team_keys` (có) | 0,16 | Đội đa dạng |
-| 15 | Leo thang | Thắng ở Ascension Ak | Header `ascension` (có) | 0,15 × k | Leo ladder |
-| 16 | Săn boss | Hạ mọi boss trong ≤ 8 lượt mỗi boss | `boss_turns[]` (mới) | 1,05 | Tránh build chờ, đối chọi enrage A4+ |
-| 17 | Lửa ngầm | ≥ 50% tổng `dmg` đến từ Poison/Burn/Thorns | `dmg_dot` (mới) | 1,39 | Poison, burn, thorns |
-| 18 | Không reroll | Thắng với ≤ P30 số reroll của run thắng | Đếm action reroll (có trong ActionLog); `rerolls` (mới) | 1,20 | Build không cần reroll, shield/summon |
-| 19 | Quét sạch | Có ≥ 1 lượt giết ≥ 3 địch | `max_kills_turn` (mới) | 0,51 | Aoe, summon, exec |
+| Heavy bảng cũ (có N5/N6) | 4.046 | 3.119 | **0,771** | 927 | 9,4% |
+| Heavy hợp lý (chỉ N1–N4) | 3.561 | 2.764 | **0,776** | 797 | 8,0% |
 
-**Counter mới** (không có trong 6 key `run_stats` hiện nay): `axie_ko`, `dmg_dot`, `max_kills_turn`, `boss_turns[]`, `rerolls`. `RunState.gd` ~930 chỉ nạp lại 6 key cố định lúc resume (F2 trong bản cũ, chưa đọc lại lần này), nên **phải thêm cả 5 vào danh sách nạp**, nếu không sẽ mất âm thầm sau resume. Tuy nhiên điều kiện chính thức **không đọc counter client**: server tính lại tất cả từ replay ActionLog. Counter client chỉ phục vụ tracker (§7). Chưa verify `RunVerifier` hiện có trả được các số này hay chỉ trả kết quả thắng/thua; nếu không thì cần mở rộng.
+Cả hai nằm trong đích 0,75–0,95 của Liam nhưng **sát đáy** (biên 0,02). Nếu casual/regular chơi nhiều hơn dự kiến thì RTP toàn dân còn thấp hơn, vì họ là nhóm lỗ nặng. §11 không nâng m vượt bảng, nên nếu RTP toàn dân xuống dưới 0,75 thì phải người chỉnh bảng gốc (§11.6).
 
-**Cân bằng giữa archetype.** Không archetype nào được thành tiền dễ, bằng ba lớp:
-1. **Giá theo thực tế**: loại 5 dùng `ln(w̄/w_X)`. Archetype mạnh (w_X cao) có D thấp, tức bậc thấp hơn và m thấp hơn; yếu thì ngược lại. Tỉ lệ thắng mục tiêu của relic-set là 35–60%, nên bù tối đa khoảng từ −0,24 đến +0,29.
-2. **Xoay vòng**: mỗi bảng không có hai Nhiệm vụ cùng loại, tối đa 2 loại 5. Hàng đợi xoay 11 archetype cho mỗi archetype xuất hiện đều nhau.
-3. **Tự điều chỉnh**: nếu một loại có tỉ lệ thành công thực − dự đoán > +8 điểm trong ≥ 2 tuần, `D_adj` tăng (§2.4). Loại 1 thuận cho burst; 3, 12 thuận cho shield/thorns; 17 thuận DoT; 18, 19 chia cho shield/summon/aoe; 7 thuận build pact. Mỗi archetype có ít nhất 3 loại thuận.
+**Ngày xấu (mua N1+N2+N3 một lần, cược 1.600):** casual thua cả ba 55%, regular 33%. **Ngày xấu nhất:** không còn trần, ví dụ mua một lượt N2–N6 (cược 6.800 như bản cũ), regular thua cả năm 40% (mất ~6,3 ngày thu nhập), casual 63%. Vì không có trần mua, người chơi có thể mua nhiều hơn nữa; chỉ có cảnh báo thông tin chặn nhẹ.
 
-**Ví dụ một bảng (D tính tay, tâm bậc ± 0,15):**
+### 4.4 Rủi ro faucet khi không có giới hạn mua
 
-| Slot | Bậc | Nhiệm vụ | D |
+**Rủi ro (ghi một lần, ở đây):** bỏ trần mua/ngày nghĩa là người chơi giỏi hơn mục tiêu "heavy" có thể mua lặp bậc có RTP > 1 theo thời gian chơi. Cái chặn duy nhất là thời gian (một run mở), trần payout 20.000/run, và §11 (chỉ bắt được xu hướng toàn dân, **không bắt được vài tài khoản giỏi hơn xa mức trung bình**) cùng theo dõi p99 lãi ròng.
+
+Giả định giỏi hơn heavy **0,5 logit** (heavy thắng ~89% ở A0 thay vì 82%), tính tay:
+
+| Bậc | p heavy +0,5 logit | RTP (s như ra mắt) | Lãi ròng mỗi lần mua |
 |---|---|---|---|
-| 1 | T2 (−1,15) | Hạ boss 1 + Không mua sắm (q = 80%) | −1,3 + 0,22 = −1,08 |
-| 2 | T3 (−0,40) | Hạ boss 2 + Một nhà: Reptile (q = 85%) | −0,5 + 0,16 = −0,34 |
-| 3 | T4 (+0,30) | Thắng Short ở A2 | 0,30 |
-| 4 | T5 (+0,90) | Thắng Short A1 + Build Poison ≥ 4 relic (−ln 0,5 + ln(0,47/0,45) = 0,73) | 0,15 + 0,73 = 0,88 |
-| 5 | T7 (+2,05) | Thắng Short A5 + Không ai gục (0 KO, q = 25%) | 0,75 + 1,39 = 2,14 |
+| N1 | 73,2% | 1,170 | +51 |
+| N2 | 63,7% | 1,243 | +121 |
+| N3 | 53,5% | 1,310 | +248 |
+| N4 | 41,9% | 1,382 | **+458** |
+| N5 (s=0,90) | 32,5% | 1,228 | +411 |
+| N6 (s=0,90) | 20,0% | 1,299 | +747 |
+
+(N5/N6 ở s=0,85: 1,160 và 1,227, tức +288 và +567.)
+
+**Faucet không có trần, người giỏi chơi N4 lặp lại** (N4 là bậc lãi tốt nhất mỗi giờ: Short, không rủi ro Full, m_scale = 1):
+- 5 run/ngày (~2 giờ): **+2.290 Shard/ngày** (60% thu nhập ngày của heavy, 3.808).
+- 10 run/ngày (~4 giờ): **+4.580 Shard/ngày** (120%).
+- Bản cũ có trần (mua N2–N6 mỗi bậc một lần): ~+1.985/ngày. Bỏ trần nâng mức tối đa theo giờ chơi, không theo số offer.
+- R của các run này không tính thêm: những run đó thay cho run thường vốn cũng trả R.
+
+**Cái chặn thật là thang vé ECO-2, nhưng chỉ ở đầu ra.** ECO-2 (vé thứ k giá `200 × 1,05^(k-1)`, tối đa 30 vé/ngày, tối đa tiêu 13.288 Shard/ngày) không chặn Shard vào, nó chặn tốc độ đổi Shard thành Stone qua vé. Tính tay (economy-v2: ~242 Stone/vé hộp thường): heavy hiện tiêu ~13,7 vé/ngày; cộng thêm +4.580 Shard thì ~23 vé/ngày, Stone/ngày từ ~4.970 lên ~7.300 (+9,5 vé × ~242 Stone), **Land ~36 tuần thay vì 52 tuần**. Trần cứng 30 vé/ngày cho Land khoảng **29 tuần**. Nghĩa là người giỏi chơi Nhiệm vụ nhiều đẩy Land nhanh hơn heavy ~30%, tới sàn ~29 tuần, không hơn. Còn Shard dư ngoài 13.288/ngày thì tồn lại không có chỗ tiêu (đúng ý sink của economy). Cần economy-designer chạy lại ECO-11 với kịch bản này.
+
+**Chấp nhận (Liam 12/10):** không sim trước, chỉnh live bằng §11, nên rủi ro này nằm trong tuần đầu. Theo dõi p99 lãi ròng 28 ngày và Shard tích lũy/ngày của top 1%.
+
+**Độ nhạy R:** cược lưu theo số Shard cố định, m không phụ thuộc R. Bảng giả định **R = 450 không đổi**. Nếu R đo được lệch > 15% so với 450 thì dựng lại tỉ lệ cược/R ở §3.6 (không đụng m). §11 theo dõi RTP thật nên không phụ thuộc R.
 
 ---
 
-## 5. Bảng mỗi ngày, mua, thời gian, thất bại
+## 5. Research: game khác làm cược khó thế nào
 
-### 5.1 Tạo bảng
+Chỉ ghi điều tôi tìm được và điều chưa kiểm được.
 
-- **Seed**: `H(ngày UTC, "nv", rules_version)`. **Bảng chung cho mọi người** (khuyến nghị). Lý do: (a) người chơi nói chuyện với nhau về "bảng hôm nay"; (b) không cần RNG theo từng người, nên server kiểm đơn giản và không ai bị "chọn offer" theo kỹ năng, điều dễ thành thao túng; (c) RTP tính được trên toàn bảng.
-- **Slot → bậc** (5 offer): slot 1 ∈ {T1, T2}, slot 2 ∈ {T2, T3}, slot 3 ∈ {T3, T4}, slot 4 = T5, slot 5 ∈ {T6, T7} xen kẽ theo ngày chẵn lẻ của seed. Casual luôn thấy 2 offer bậc thấp mỗi ngày; **chỉ có một offer bậc ≥ T6**, nên không thể mua năm T7.
-- **Offer bị khoá** (chưa mở Ascension hoặc chưa tới mức Full) vẫn hiện nhưng xám, kèm điều kiện mở khoá, và **không bao giờ** chiếm quá 1 slot bậc thấp (T1–T3). Generator ưu tiên Ascension ≤ 4 cho bậc ≤ T5; A5 trở lên chỉ ở T6–T7.
-- **Đổi bảng (reroll): không**, ở bản đầu. Lý do: bảng đã có 5 offer phủ thang; reroll mời người chơi "đào" archetype dễ nhất thay vì chấp nhận giá, và buộc bảng theo người. Có thể thêm sau nếu telemetry thấy người chơi bỏ board vì không có offer hợp.
-- **Slot theo Land** (chỉ thêm lựa chọn, không thêm cấp thưởng): nhà Nhiệm vụ mở 5 offer; Land cấp 2 thêm slot 6 (T3), cấp 4 thêm slot 7 (T4), cấp 5 thêm slot 8 (T5). Offer 6–8 lấy từ cùng một danh sách theo seed nên vẫn giống nhau cho mọi người cùng cấp. **Vẫn tối đa 5 lần mua/ngày.** Tôi đề nghị gắn vào "cấp nhà" chứ không vào "cấp Land" nếu Land không có cấp trung gian, câu hỏi cho Liam.
-
-### 5.2 Mua và thời gian
-
-1. **Mua**: người chơi chạm offer, xem màn xác nhận (§7), bấm "Mua". Server trừ stake **ngay** (escrow) trong một transaction, cấp `mission_id`. Cần chưa có Nhiệm vụ nào đang chạy.
-2. **Bắt đầu**: một lần bấm "Bắt đầu" (hoặc "Mua và bắt đầu"). Server cấp `run_seed`, `rules_version`, và chuỗi seed xúc xắc. Client dựng run bằng ranked-profile (`run_bonuses(true)` = toàn số 0). **Một Nhiệm vụ = đúng một run.** Run chỉ có một ô lưu như hiện nay, nên cần xong hoặc bỏ run đang dở trước khi bắt đầu.
-3. **Hủy trước khi bắt đầu**: hoàn 100% stake, không phí, và slot 5/ngày được trả lại (chưa có rủi ro). Tới 00:00 UTC mà chưa bắt đầu thì tự hủy hoàn tiền (huỷ hệ thống).
-4. **Cửa sổ chơi**: sau khi bắt đầu, run phải kết thúc trong **72 giờ** kể từ checkpoint cuối. Quá hạn mà không resume thì tính là bỏ (thua, mất stake). Đủ rộng cho đi xa, vẫn đủ gọn để dọn trạng thái server.
-5. **Kết quả**: điều kiện được đánh giá từ replay; **điều kiện hỏng sớm** thì hiện thất bại ngay trong run (§7), run vẫn chạy như run ranked bình thường để lấy Shard run. Trả tiền khi run kết thúc, hoặc khi server verify được tiền tố log nếu điều kiện đã đạt sớm (chưa verify `RunVerifier` có hỗ trợ replay tiền tố; nếu không thì trả khi run kết thúc).
-6. **Qua nửa đêm UTC trong run**: Nhiệm vụ vẫn tính cho ngày đã mua.
-
-### 5.3 Bảng định nghĩa thất bại
-
-| Sự kiện | Kết quả | Hoàn stake? | Ghi chú |
-|---|---|---|---|
-| Đội bị tiêu diệt (thua run) | Thất bại | Không | Mất stake |
-| Điều kiện hỏng giữa run | Thất bại ngay, run chạy tiếp như run thường | Không | Hiện lý do ngay |
-| Bấm "Bỏ run" (có xác nhận) | Thất bại | Không | Nút ghi rõ "mất stake" |
-| Đóng tab / crash / mất điện, quay lại trong 72 giờ | Resume từ checkpoint cuối, tính 1 lần resume | Không đổi | RNG xúc xắc đổi seed (server cấp, ghi log). Tối đa 3 resume mỗi Nhiệm vụ |
-| Resume lần thứ 4 | Thất bại | Không | Chặn "thử tới khi may" |
-| Quá 72 giờ không resume | Thất bại (bỏ) | Không | |
-| Mất mạng giữa run | Chơi tiếp offline, log đồng bộ khi có mạng; xúc xắc đã có seed của trận | Không đổi | Cần mạng ở đầu trận (xem §6). Chờ nộp tới 7 ngày, quá thì thất bại |
-| Đổi thiết bị | Resume được ở máy mới từ checkpoint đã đồng bộ, tính 1 resume; máy cũ bị vô hiệu | Không đổi | Chỉ máy có `session_epoch` mới nhất được nộp |
-| Đăng xuất giữa run | Run tạm dừng, resume khi đăng nhập lại **cùng tài khoản** | Không đổi | |
-| Đổi `rules_version` / `content_version` khi đang chạy | **Hủy hệ thống**, Nhiệm vụ vô hiệu | **Có, 100%** | Log không replay được (đúng như `run_verifier.gd`: không phải gian lận). Không có Stone. Chỉ hoàn nếu checkpoint cuối chưa ghi thất bại |
-| Lỗi server / replay sập (không phải lỗi người chơi) | Hủy hệ thống | **Có**, qua công cụ hỗ trợ | Ghi vào log kiểm toán |
-| Verify thất bại do log bị sửa | Thất bại + gắn cờ | Không | Xem §6 |
+- **Hearthstone Arena** ([Game Developer: The Math of Hearthstone Part II](https://www.gamedeveloper.com/design/the-math-of-hearthstone-part-ii-arena-the-american-dream-), [wiki](https://hearthstone.wiki.gg/wiki/Arena)): vào cửa 150 vàng, kết thúc khi thua 3 ván hoặc thắng 12. Số trận thắng kỳ vọng ≈ 3p/(1−p). Bảng thưởng lồi theo số thắng; một hướng dẫn cho rằng cần ~7 thắng mới hòa vốn 150 vàng, tôi suy ra ≈ p 70% mỗi ván. Bài học: game này **cố ý** để người trung bình lỗ, chỉ người giỏi hòa vốn hoặc lãi; đó là mô hình của ta. Khác biệt: Arena cho 3 "mạng", Nhiệm vụ chỉ 1, phương sai cao hơn (lý do N6 ở nhà cấp 4). **Chưa verify** bảng thưởng hiện tại.
+- **Marvel Snap Conquest** ([Untapped](https://blog.snap.untapped.gg/marvel-snap-wiki-conquest-mode-shop), [Prima](https://primagames.com/tips/everything-you-need-to-know-about-conquest-mode-in-marvel-snap)): vé Silver 80 / Gold 200 / Infinity 500 vàng; thua một ván là hết run và mất vé; Infinity chỉ mở tuần cuối mùa. **Vào cửa đã nhận Medal an ủi** (Gold 40, Infinity 100) đổi được đồ. Nhiệm vụ của Liam **không có an ủi** (Liam chốt 12/10), đây là điểm cần đo bằng chỉ số "đúng 1 lần rồi bỏ" ở §8. Số liệu 2023, **chưa verify** hiện tại.
+- **Hades, Pact of Punishment / Heat** ([RPG Site](https://www.rpgsite.net/feature/10287-hades-pact-of-punishment-heat-modifiers-and-how-to-maximize-your-rewards), [TheGamer](https://www.thegamer.com/hades-heat-pact-punishment-trivia/)): không cược, nhưng thưởng tăng theo điểm Heat; bậc cao nhất gây tranh cãi. Bài học: mỗi luật thêm đi kèm điểm khó và thưởng gắn vào điểm đó; đúng cách `d` hoạt động. Số Heat tối đa các nguồn nói khác nhau.
+- **Slay the Spire Daily Climb** ([Spine](https://intothespine.com/2018/03/05/slay-the-spire-daily-climb/), [wiki Custom Mode](https://slaythespire.wiki.gg/wiki/Custom_Mode)): cùng seed cho mọi người, 3 modifier mỗi ngày. Bản đầu 4 modifier và "gần như không thể" nên giảm còn 3. Bài học: tối đa 2 luật thêm + Chuẩn (đã áp, gồm cả điều kiện phụ), bảng chung (đã áp). N6 của ta (casual 1,3%) chạm ngưỡng đó, nên khóa sau nhà cấp 4 và đã thắng Full A9, và không có điều kiện phụ.
+- **Chưa kiểm được:** Balatro challenge deck, buy-in/rake của poker (từ trí nhớ). Không dẫn nguồn.
 
 ---
 
-## 6. Tính toàn vẹn
+## 6. Edge Cases
 
-### 6.1 Luồng
-
-1. **Mua**: server kiểm bảng ngày (tính lại từ seed), số dư, hạn 5/ngày, chưa có Nhiệm vụ đang chạy. Trừ stake, ghi `mission_purchases` (D1), idempotency key.
-2. **Bắt đầu**: server cấp `run_seed` (map, thẻ thưởng, shop, event vẫn tất định theo seed như quyết định Liam) và một **seed xúc xắc cho từng trận**, phát lúc bắt đầu trận (cần mạng ở đầu mỗi trận, khoảng 12 yêu cầu nhỏ cho một run Short).
-3. **Checkpoint**: cuối mỗi trận, client đẩy đoạn ActionLog mới cùng hash chuỗi. Server lưu.
-4. **Resume**: client gửi checkpoint cuối; server so hash, cấp **seed xúc xắc mới**, ghi action `resume {seed, index}` vào log. Lệch hash → từ chối.
-5. **Kết thúc**: client nộp log đầy đủ. Server replay bằng `RunVerifier`, **tính lại mọi counter và điều kiện từ replay** (không đọc counter client), rồi mới trả (Shard và Stone, idempotent, một transaction với đóng Nhiệm vụ).
-
-### 6.2 Cái gì được kiểm
-
-- Seed trùng với seed đã cấp; mọi `resume` có seed đã cấp, đúng thứ tự, ≤ 3 lần.
-- `rules_version`/`content_version` khớp.
-- Mọi action hợp lệ (đã có trong `RunVerifier`, bộ relic thêm `reorder_party`, `sell_relic`, `tweak`...).
-- Kết quả run và các counter của điều kiện, tính từ replay.
-- Profile ranked: unlock cộng chỉ số = 0 (assert `run_bonuses(true)` toàn 0 ở đầu replay).
-- Thời gian hợp lý: sàn thời gian tối thiểu một run (đo sau từ telemetry), gắn cờ run nhanh bất thường.
-
-### 6.3 Lỗ save-scum và cách đóng
-
-Quy tắc resume đã chốt (RNG xúc xắc đổi seed, trạng thái giữ nguyên) làm mất ý nghĩa của "load lại cho đến khi xúc xắc đẹp". Còn lại hai khe, và cách tôi xử lý:
-- **Kill app trước checkpoint để thử lại lượt vừa rồi.** Checkpoint chỉ cập nhật cuối trận, nên hành động giữa trận chưa ghi lên server có thể bị "hoàn tác" bằng cách kill app và resume (xúc xắc mới). Giới hạn bằng **ngân sách 3 resume** và ghi mỗi lần vào log; mỗi lần chỉ hoàn tác tối đa một trận. Chấp nhận phần dư này, theo dõi tỉ lệ resume và tỉ lệ thành công sau resume (§8) để thấy có bị lạm dụng không.
-- **Client sửa đổi tính trước xúc xắc.** Vì seed của trận biết được phía client, client độc hại có thể mô phỏng trước các lần reroll trong trận đó. Replay chỉ chứng minh **hợp lệ**, không chứng minh **người chơi thật** (cùng giới hạn với leaderboard hiện nay). Giảm bằng seed theo trận (không biết trận sau), và phát hiện thống kê: tỉ lệ reroll "hoàn hảo" bất thường, thời gian phản hồi không thể là người. Nếu lạm dụng thực sự xuất hiện thì đổi sang xúc xắc do server roll từng lượt. Tôi **không** làm sẵn vì tốn mạng; ghi vào câu hỏi mở.
-
-### 6.4 Các trường hợp lạm dụng khác
-
-| Trường hợp | Phản ứng |
+| Tình huống | Kết quả |
 |---|---|
-| Nhiều tài khoản cày Stone bậc thấp | Stone ≤ 130/ngày/tài khoản và Shard RTP < 1, nên lỗ. Không cần chặn. Rate-limit mua theo IP/tài khoản |
-| Mua rồi hủy liên tục | Rate-limit 20 lần/giờ; hoàn tiền không có phí nhưng không có lợi |
-| Chờ cập nhật để lấy hoàn tiền | Chỉ hoàn nếu checkpoint cuối chưa ghi thất bại |
-| Hai thiết bị cùng lúc | `session_epoch`: chỉ lần nộp có epoch mới nhất được nhận |
-| Chỉnh đồng hồ | Server chỉ dùng giờ UTC của nó |
-| Người chơi giỏi chơi hộ (boosting) | Không phát hiện được; giá trị thấp vì RTP ≤ 1 và Stone nhỏ. Bỏ qua |
-| Tài khoản bị khóa hoặc đóng băng khi đang có Nhiệm vụ | Stake giữ nguyên trong escrow tới khi giải quyết |
+| Mất mạng, đóng tab, crash, mất điện | Run **không bị huỷ**, không có hạn giờ, không đếm lần vào lại. Vào lại ở đúng epoch cuối, **không đổi seed**. Cược nằm trong escrow. Run mở chặn tạo run mới cho tới khi xong hoặc bỏ |
+| Vào lại từ thiết bị khác | Cho phép; máy cũ bị vô hiệu bằng `session_epoch` |
+| Bỏ run (nút hoặc endpoint bỏ) | Thua, mất cược. Rớt mạng rồi nối lại **không** tính là bỏ |
+| Xin seed rồi hành động khác với hành động đã khai (client sửa) | Engine từ chối; **Nhiệm vụ thua**. Client thật không bao giờ gặp vì có hàm kiểm thuần trước khi xin |
+| Verifier timeout/crash, canary qua, không tái lập | **Huỷ Nhiệm vụ, chỉ hoàn 100% cược** (Liam 12/10). **Không trả R**, không Stone, không tính là run đã tạo. Không còn "trả lại lần mua trong ngày" vì không có trần mua |
+| Log làm verifier sập **tái lập được** | Vẫn huỷ + hoàn cược, nhưng **gắn cờ tài khoản theo bậc C10** |
+| Verify fail do log bị sửa | Thua, mất cược, gắn cờ |
+| Đổi `rules_version` khi run đang mở | Run tiếp tục theo bản cũ nếu server còn trong `SUPPORTED_RULES`; chỉ chờ (`pending_version`), **không bao giờ mất cược**. Nếu bản cũ bị bỏ hẳn thì huỷ + hoàn cược. Bảng ngày dùng `rules_version` nên đổi bản sẽ đổi bảng; run đã tạo giữ cược/m/luật đã ghi ở header |
+| Chỉnh `m_scale`, bảng giá, hoặc cron §11 chạy khi run đang mở | Không ảnh hưởng run đó (payout chốt ở header) |
+| Hai tài khoản bấm mua cùng lúc cùng bậc | Cùng m hiệu dụng (§11 không nhận danh tính tài khoản) |
+| Số dư không đủ, hoặc chỉ đủ nhờ khoản khởi đầu | Từ chối mua. Không vay, không "cược một phần" |
+| Hai thiết bị bấm mua cùng lúc (một tài khoản) | Batch D1 có điều kiện (đã có run mở?): chỉ một bên thành công |
+| Mua qua 00:00 UTC | Run tính cho ngày tạo; run qua nửa đêm vẫn chạy bình thường |
+| Run mồ côi (đã trừ cược, chưa tạo được RunDO) | Cron dọn: **hoàn cược**. Không tính là thua, không tính là run đã tạo |
+| Log chứa `AID_USE`, `CONTINUE`, hoặc Boon trong run Nhiệm vụ | Server từ chối ngay ở `aid_req`/`epoch_req(continue)`; nếu lọt vào replay thì verify fail + cờ |
+| Payout vượt trần payout theo run | Cắt ở trần 20.000, ghi cờ xem xét. Trần ≥ payout lớn nhất của bảng (N6 = 16.200 ở s=0,90; 18.000 ở s=1,00) |
+| Tài khoản bị khóa/đóng băng khi có Nhiệm vụ mở | Cược giữ trong escrow tới khi giải quyết |
+| Hai tài khoản cày bậc thấp lấy Stone | Stone ≤ 150/ngày/tài khoản và RTP toàn dân < 1, nên lỗ; không cần chặn |
+| Người giỏi chơi hộ | Không phát hiện được; giá trị thấp vì Stone nhỏ. Bỏ qua |
+| Người giỏi mua lặp để farm Shard | Cho phép (không có trần); xem §4.4 và §11 giới hạn của nó |
+| Điều kiện phụ cần counter chưa có trong code | Điều kiện đó không vào v1.0 (§3.8), không dùng trong bảng ngày |
+| Run Nhiệm vụ lên bảng xếp hạng | Chỉ run đã verify xong (thắng hoặc thua theo luật bảng hiện hành); run huỷ vì verifier lỗi thì không. **Chưa quyết** hiện chung hay tách theo nhãn Nhiệm vụ (§10, mục B) |
+| Axie NFT import / part NFT trong run Nhiệm vụ | **Chưa quyết** (dễ phát sinh lợi thế mua được ở một chế độ có cược). Hỏi Liam (§10, mục C) |
+| Cược đổi sang AXS sau này | Chưa làm (Liam 12/10). Nếu đổi thì cần pháp lý duyệt lại, kể cả cổng 18+; bản này không giả định gì về AXS |
 
-**Phụ thuộc chưa verify**: (1) server có phải nơi giữ số dư Shard chính thức không (escrow cần), hay cloud save chỉ là ảnh chụp; (2) `RunVerifier` có xuất counter điều kiện hay chỉ kết quả; (3) tiền tố log; (4) run seed hiện sinh ở client hay đã có đường server cấp.
-
----
-
-## 7. UX
-
-*(Cần mockup mới trước khi làm UI, theo quy trình của Liam: Claude viết request cho Claude Design.)*
-
-**Nhà Nhiệm vụ (bảng).** 5 thẻ (tới 8), sắp theo bậc. Mỗi thẻ hiện: tên + câu điều kiện ngắn ("Hạ boss 2 và không mua gì ở shop"), huy hiệu bậc (T1–T7), **stake**, **trả khi thắng** (gồm stake), **lãi khi thắng**, Stone, và hai dòng xác suất:
-- **Tỉ lệ của người chơi gần đây**: "28% người chơi thành công trong 14 ngày qua" (số đo từ telemetry).
-- **Ước tính cho bạn**: "30–40%" (từ `p̂ = σ(θ̂_i − D)` với θ̂ của chính người đó; hiện dạng khoảng, làm tròn 5). Cần ≥ 10 run ranked-profile; chưa đủ thì ghi "chưa đủ dữ liệu".
-Đầu bảng: "Hôm nay còn 3/5 lần mua", đồng hồ tới reset UTC (số tĩnh, không nhấp nháy, không màu đỏ).
-
-**Xác nhận mua.** Một sheet ba dòng: "Bạn trả **500** Shard. Thắng: nhận **950** (+450) và 16 Stone. Thua hoặc bỏ giữa chừng: **mất 500, không hoàn**." Dòng thứ tư nhỏ hơn: "Với tỉ lệ ước tính của bạn, kỳ vọng nhận lại khoảng 80% số bạn trả." Nút ghi **"Mua, mất stake nếu thất bại"**. Cảnh báo thông tin (không chặn) khi tổng stake mở của ngày > 50% thu nhập tuần ước tính của người đó.
-
-**Trong run.** Một chip góc màn hình: "Nhiệm vụ: Hạ boss 2, không mua sắm" cùng trạng thái xanh (đang đạt), vàng (có nguy cơ), đỏ (đã hỏng). Số đếm liên quan (turns, KO, relic...) từ counter client. Điều kiện hỏng thì hiện **một lần**, bằng chữ, nói đúng lý do và nói "run vẫn tiếp tục như run thường". Không rung, không âm "thua".
-
-**Kết quả.** Liệt kê từng điều kiện kèm đạt/không, số liệu cụ thể ("Lượt: 34 / giới hạn 36"), stake, tiền nhận, Stone. Số Shard của chính run (R) tách riêng để không lẫn. Thắng: gọn, không pháo hoa lớn hơn thắng run thường.
-
-**Màn thua.** Giọng trung tính, cụ thể, không đổ lỗi, không an ủi giả: "Nhiệm vụ không đạt. Điều kiện hỏng ở trận 7: có 3 Axie bị KO. Mất 500 Shard." **Không** có dòng "suýt thắng", không nút "mua lại ngay", không giảm giá. Hai nút ngang hàng: "Về nhà Nhiệm vụ" và "Chơi run thường". Không popup nào hối thúc mua tiếp.
-
-**Cách ly với cờ bạc**: không bao giờ hiện số tiền "đã thắng/thua" dạng tổng liên tục kiểu sòng bạc; có một trang lịch sử trong nhà Nhiệm vụ, người chơi tự mở.
-
----
-
-## 8. Telemetry: người chơi có chấp nhận risk-to-earn không?
-
-**Thời gian**: soft launch ≥ 4 tuần. Quyết định chỉ sau khi mỗi nhánh có ≥ 2.000 lượt xem bảng.
-
-**Nhóm 1, tiếp nhận.** % DAU mở bảng; % người mua ≥ 1 mỗi tuần; số lần mua/ngày của người mua; stake/ngày so với thu nhập Shard ngày.
-
-**Nhóm 2, khẩu vị rủi ro.** Phân phối bậc đã mua so với bậc có mặt trên bảng; **tỉ lệ nâng bậc** (mua bậc cao hơn trong 7 ngày sau khi thắng); **chỉ số đuổi theo** (mua bậc cao hơn hoặc stake lớn hơn trong cùng phiên sau khi thua); tỉ lệ người chỉ mua T1–T2 sau lần thua đầu.
-
-**Nhóm 3, hậu quả.** Giữ chân D1/D7/D30 của người mua so với người không mua (ghép theo thu nhập Shard và số ngày chơi); thời gian quay lại sau chuỗi 3 thua liên tiếp; tỉ lệ bỏ run ngay sau khi điều kiện hỏng; tỉ lệ hủy trước khi bắt đầu; vé Echo Box/ngày của người mua so với người không (thay thế vé).
-
-**Nhóm 4, sức khỏe hệ thống.** RTP thực theo bậc, persona, và 28 ngày; p99 lãi ròng 28 ngày; sai lệch dự đoán `|p quan sát − p dự đoán|` theo loại; Stone/ngày thực so với 150; tỉ lệ resume và tỉ lệ thành công sau resume; số lần gắn cờ verify.
-
-**Dashboard**: (1) phễu mở bảng → mua → bắt đầu → xong; (2) thang bậc: mua/thắng/RTP; (3) hiệu chỉnh: p dự đoán so với thực mỗi loại; (4) lạm dụng: resume, thời gian run, cờ.
-
-**Ngưỡng quyết định (đề xuất, chỉnh sau khi thấy số):**
-
-| Chỉ số | Xanh (mở rộng: thêm Stone, thêm bậc) | Vàng (chỉnh) | Đỏ (rút lại) |
-|---|---|---|---|
-| WAU mua ≥ 1 lần (tuần 2–4) | ≥ 25% | 10–25% | < 10% |
-| Người mua nâng bậc trong 14 ngày | ≥ 35% | 15–35% | < 15% |
-| Retention D30 người mua − không mua | ≥ −2 điểm | −2 đến −5 | < −5 |
-| Quay lại ≤ 3 ngày sau chuỗi 3 thua (so với nền) | ≥ 70% nền | 50–70% | < 50% |
-| Chỉ số đuổi theo | ≤ 15% | 15–30% | > 30% |
-| RTP toàn dân 28 ngày | 0,85–0,97 | 0,97–1,00 | > 1,00 (tự giảm `m_scale`) |
-| p99 lãi ròng 28 ngày | ≤ 20% thu nhập | 20–35% | > 35% |
-
-Cách đọc: **xanh** = người chơi chấp nhận risk-to-earn và không bị hại. **Vàng** thường nghĩa là cách trình bày chưa tốt (đọc kỹ nhóm 3 trước khi sửa giá). **Đỏ** về retention hoặc đuổi theo thì rút lại, bất kể doanh số. Thử nghiệm A/B chỉ trên `stone_scale` (1× so với 2,5×) và cách xếp bảng, **không** thử nghiệm "ẩn xác suất"; hiển thị xác suất là tiêu chuẩn.
+**Degenerate strategies:**
+- *Farm bậc rẻ bằng người giỏi hơn bảng:* không còn giới hạn mua; chặn bằng m định giá theo heavy, `m_scale` tự hạ (§11, chỉ bắt xu hướng toàn dân), trần payout, giám sát p99 (§4.4).
+- *Mua rồi bỏ để "xem trước" boss:* mất cược, nên không có lợi. Seed không lộ trước khi tạo run.
+- *Thắng sớm rồi nghỉ:* không rút tiền giữa run; thắng = hạ boss cuối.
+- *Đuổi theo (mua liên tục sau thua):* dễ hơn khi không có trần. Chỉ có cảnh báo thông tin và chỉ số đuổi theo ở §8; đỏ thì rút lại.
 
 ---
 
-## 9. Núm, bất biến, nghiệm thu, câu hỏi mở
+## 7. Dependencies
 
-### 9.1 Núm (mọi số trong `assets/data/` hoặc cấu hình server, không hardcode)
+| Hệ thống | Hướng | Hợp đồng |
+|---|---|---|
+| `docs/architecture/server-authoritative-rng.md` | Nhiệm vụ cần | Cược trừ lúc tạo run (batch D1), một run mở, bỏ = thua, không huỷ vì để không, không reseed khi vào lại, verifier canary, C10, trần payout theo run, `SUPPORTED_RULES`. **Chưa verify** bảng `runs`/ledger có chỗ chứa `mission_id`, m gốc, `m_scale`, luật đã chốt. Cần thêm bảng cron cho §11 (một dòng `m_scale` mỗi bậc) |
+| `ascension-v2.md` §5.1 | Nhiệm vụ cần | Nguồn duy nhất của tỉ lệ thắng; Nhiệm vụ không tạo bảng độ khó thứ hai, chỉ cộng `d` |
+| `economy-v2.md` | Hai chiều | Nhiệm vụ cần R = 450, Stone ≤ 150/ngày (giờ là giới hạn thật), ECO-2. Economy cần biết: sink Shard ~800–930/người/tuần, sink Stone nhà 46.000, **faucet không trần của người giỏi §4.4 (~+2.300 tới +4.600 Shard/ngày) và Land ~36 tuần cho họ** |
+| `monetization-v1.md` | Nhiệm vụ cần | MON-5 (không giá theo người), MON-12, MON-13, không Boon, mở sau 5 run làm quen. Nhiệm vụ không có SKU |
+| `player-accounts.md` / `AccountService`, `SaveStore` | Nhiệm vụ cần | Ví chỉ ở tài khoản đăng ký; số dư thuộc server; **chưa verify** ledger tách "khoản khởi đầu còn lại" |
+| Unlock cày / Pass | Nhiệm vụ cần | Chỉ unlock từ chơi và Pass miễn phí dùng trong Nhiệm vụ; Pass trả tiền không cho sức mạnh. **Chưa verify** nguồn unlock có đánh dấu được nguồn gốc |
+| Leaderboard | Nhiệm vụ cần | Nhận run Nhiệm vụ đã verify; cách hiện (§10, mục B). Chưa verify cách chấm điểm với luật khó hơn |
+| `RunState` / `RULES_VERSION` | Điều kiện phụ cần | Counter mới nếu có (§3.8, tiêu chí 2) |
+| `relic-set-v2.md` | Không phụ thuộc | Nhiệm vụ không đổi relic; sim A hiệu chỉnh `d` khi có |
+| `design/gdd/build-spec.md` (INV-1..7) | Cần đối chiếu | Chưa đọc lại INV khi viết bản này; phải kiểm Nhiệm vụ không vi phạm bất biến Shard nào |
+| Daily board / Thưởng ngày | Tách | Không đụng nhau |
+
+Spike theo lịch (M2) là phụ thuộc mềm vào `monetization-v1.md` §1.2-A.
+
+---
+
+## 8. Tuning Knobs và telemetry
+
+Mọi số nằm trong `assets/data/` hoặc cấu hình server, không hardcode. Núm của §11 ở bảng riêng trong §11.5.
 
 | Núm | Mặc định | Khoảng | Loại | Lý do |
 |---|---|---|---|---|
-| `tier_stake[7]` | 100/200/350/500/800/1.200/1.800 | ±30%/bậc | Curve | Stake/R 0,22–4,0 ở R = 450 |
-| `tier_m[7]` | 1,20/1,35/1,60/1,90/2,25/2,70/3,40 | `0,95/p_ref` | Curve | RTP tham chiếu 0,95 |
-| `tier_stone[7]` | 3/6/10/16/24/34/50 | ×0,5–×2,5 | Curve | Tổng kiểm ≤ 130/ngày |
-| `tier_D_center[7]` | −1,95/−1,15/−0,40/0,30/0,90/1,45/2,05 | | Curve | Từ p_ref |
-| `m_scale[7]` | 1,0 | 0,85–1,0 | Curve | Hạ giá nếu RTP > 1 (server) |
-| `stone_scale` | 1,0 | 1–2,5 | Gate | A/B và tăng sau |
-| `eps_D` | 0,15 | 0,10–0,25 | Feel | Độ khít bậc |
-| `buy_cap_day` | 5 | Liam chốt | Gate | |
-| `board_size_by_land` | 5/5/6/6/7/8 | 5–8 | Gate | Chỉ thêm lựa chọn |
-| `top_tier_per_day` | 1 | 1–2 | Gate | Chặn cày bậc cao |
-| `resume_budget` | 3 | 1–5 | Gate | Cân crash và save-scum |
-| `play_window_hours` | 72 | 24–168 | Gate | |
-| `submit_grace_days` | 7 | 3–14 | Gate | Mất mạng |
-| `phat_min_runs` | 10 | 5–20 | Feel | Gợi ý cá nhân |
-| `calib_shrink_k` | 200 | 100–500 | Curve | Hiệu chỉnh D |
-| `d_asc_per_level` | 0,15 | 0,10–0,20 | Curve | Thay bằng sim G |
-| `mission_stone_day_cap` | 150 | 100–200 | Gate | ECO-12 |
+| `tier_stake[6]` | 300/500/800/1.200/1.800/2.500 | ±30% | Curve | 0,67R tới 5,6R |
+| `tier_m_base[6]` | **1,60/1,95/2,45/3,30**/4,20/7,20 | N1–N4 `1/p_heavy`; N5/N6 `0,95/p_heavy` | Curve | Heavy ≈ 1,00 ở N1–N4 |
+| `m_scale_init[6]` | 1,00/1,00/1,00/1,00/**0,90/0,90** | N1–N4 cố định 1,00; N5/N6 0,85–0,90; §11 chỉ hạ, tối đa 1,00 | Curve | Đệm cho sai số năng lực heavy |
+| `tier_stone[6]` | 4/8/14/22/34/60 | ×0,5–×2,5 | Curve | |
+| `d_base`, `d_M1..M5` | 0,30 / 0,35, 0,30, 0,30, 0,30, 0,35 | ±0,15 | Curve | Ước tính; §11 bù khi lệch |
+| `d_cond` (điều kiện phụ) | `−ln(q_ref)` | ≤ 0,36 | Curve | §3.8 |
+| `full_exponent` | 1,5 | 1,33–1,67 | Curve | §4 |
+| `house_cost_shard[3]` | 3.000/8.000/20.000 | ±50% | Gate | Số khởi điểm, sim sau |
+| `house_cost_stone[3]` | 4.000/12.000/30.000 | ±50% | Gate | Số khởi điểm, sim sau |
+| `house_tier_unlock[4]` | N1–N3 / +N4 / +N5 / +N6 | | Gate | Chỉ còn mở bậc |
+| `tier_unlock_ascension` | A3/A4/A6/A7/A9; N6 = thắng Full A9 | | Gate | Chỉ cho người đã thắng |
+| `mission_payout_cap` | 20.000 | ≥ payout bậc cao nhất | Gate | Chặn bug và verifier bị chiếm |
+| `mission_stone_day_cap` | 150 | 100–200 | Gate | ECO-12; giờ là giới hạn thật |
+| `phat_min_runs` | 10 | 5–20 | Feel | Gợi ý "ước tính cho bạn" |
+| ~~`buy_cap_by_house`, `offer_per_day`~~ | **đã bỏ** | | | Liam 12/10: không giới hạn mua |
 
-### 9.2 Bất biến (tiền tố NV)
+**Telemetry** (soft launch ≥ 4 tuần, quyết định khi mỗi nhánh ≥ 2.000 lượt xem bảng). Câu hỏi cần trả lời: người chơi có chấp nhận risk-to-earn không?
+1. *Tiếp nhận:* % DAU mở bảng; % mua ≥ 1 lần/tuần; **số lần mua/người/ngày (p50/p90/p99, giờ không có trần)**; cược/ngày so với thu nhập Shard ngày.
+2. *Khẩu vị rủi ro:* phân phối bậc đã mua so với bậc mở; tỉ lệ nâng bậc sau thắng; **chỉ số đuổi theo** (mua bậc cao hơn hoặc cược lớn hơn trong cùng phiên sau khi thua; thêm: mua lại ngay trong 2 phút sau thua).
+3. *Hậu quả:* retention D1/D7/D30 của người mua so với không mua (ghép theo thu nhập và số ngày chơi); thời gian quay lại sau 3 thua liên tiếp; tỉ lệ bỏ run ngay sau thua ở boss; **tỉ lệ người mua đúng 1 lần rồi không mua lại** (đo "khó quá", và đo luôn tác động của việc không an ủi).
+4. *Sức khỏe hệ thống:* RTP thật theo bậc, theo hồ sơ và toàn dân; p99 lãi ròng 28 ngày; **Shard tích lũy/ngày của top 1% từ Nhiệm vụ**; sai lệch p dự đoán so với thực theo bậc; Stone/ngày thực; nhật ký §11 (`m_scale` từng bậc theo ngày).
 
-| # | Bất biến |
-|---|---|
-| NV-1 | Stake trừ nguyên tử lúc mua; trả thưởng chỉ sau verify server; không bao giờ vừa hoàn vừa trả |
-| NV-2 | `tier_stake`, `tier_m`, `tier_stone`, `tier_D_center` tăng nghiêm ngặt theo bậc; payout = `round5(stake × m × m_scale)` |
-| NV-3 | Stone chỉ trả khi thắng; tối đa ≤ 150/ngày/tài khoản; Stone tối đa của bảng ≤ 150 theo cấu trúc (106 / 130) |
-| NV-4 | ≤ `buy_cap_day` lần mua mỗi ngày UTC; mỗi offer mua một lần; hủy trước khi bắt đầu trả lại slot |
-| NV-5 | Thất bại không hoàn, trừ ba trường hợp: hủy trước bắt đầu, hết hạn trước bắt đầu, hủy hệ thống (đổi `rules_version`, lỗi server) |
-| NV-6 | Bảng = hàm của (ngày UTC, `rules_version`, cấp nhà); giống nhau cho mọi người cùng cấp |
-| NV-7 | Mọi run Nhiệm vụ dùng ranked-profile, `run_bonuses(true)` toàn 0 |
-| NV-8 | RTP toàn dân 28 ngày ≤ 0,97 cảnh báo; > 1,00 tự động giảm `m_scale` bậc có RTP cao nhất |
-| NV-9 | Mỗi offer có `|D − tâm bậc| ≤ eps_D` |
-| NV-10 | Không có Nhiệm vụ bất khả thi hoặc miễn phí (validator §2.1) |
-| NV-11 | Kết quả và counter chỉ tính từ replay server |
-| NV-12 | Không loại Nhiệm vụ nào đòi đổi relic, hook, hay luật; chỉ đọc dữ liệu đã có hoặc 5 counter mới |
-| NV-13 | Không "gấp đôi hoặc mất hết", không giảm giá mua lại sau thua, không hiệu ứng suýt thắng |
+| Chỉ số | Xanh | Vàng | Đỏ |
+|---|---|---|---|
+| WAU mua ≥ 1 lần (tuần 2–4) | ≥ 15% | 6–15% | < 6% |
+| Người mua đúng 1 lần rồi bỏ | ≤ 50% | 50–70% | > 70% |
+| Retention D30 người mua − không mua | ≥ −3 điểm | −3 tới −6 | < −6 |
+| Chỉ số đuổi theo | ≤ 20% | 20–35% | > 35% |
+| RTP toàn dân 28 ngày | 0,75–0,95 | 0,95–1,00 hoặc 0,60–0,75 | > 1,00 hoặc < 0,60 |
+| RTP heavy ở N1–N4 (28 ngày) | ≤ 1,01 | 1,01–1,05 | > 1,05 |
+| p99 lãi ròng 28 ngày | ≤ 25% thu nhập | 25–40% | > 40% |
 
-### 9.3 Tiêu chí nghiệm thu
+Số đề xuất, chỉnh sau khi thấy số thật. Đỏ về retention hoặc đuổi theo thì rút lại, kể cả khi sink Shard tốt. Không A/B "ẩn xác suất". RTP toàn dân hiện ước tính 0,77: nằm ở rìa dưới của xanh nên chú ý sớm.
 
-**Chức năng (test tự động):**
-1. Mua → trừ đúng stake, hủy trước bắt đầu hoàn đúng, mua lần 6 trong ngày bị từ chối.
-2. Bảng cùng ngày cùng cấp là cùng một danh sách trên hai tài khoản; đổi `rules_version` thì danh sách đổi.
-3. 100.000 bảng sinh ngẫu nhiên: mọi offer `|D − tâm| ≤ eps_D`, không loại trùng, bậc ≥ T6 đúng 1 offer, Stone tối đa của bảng ≤ 130.
-4. Replay run Nhiệm vụ: server tính đúng điều kiện của 19 loại trên run mẫu (đạt và không đạt); tamper (đổi counter, đổi seed, resume lần 4, log lệch hash) đều thất bại.
-5. Đổi `rules_version` giữa run → hoàn 100%, không Stone.
-6. Resume: seed xúc xắc mới có trong log, hai lần resume từ cùng checkpoint cho hai chuỗi xúc xắc khác nhau.
-7. Counter mới sống sót qua resume (test trên `RunState`).
-8. Sim 100.000 lần mua theo bảng §3.3: RTP mỗi persona nằm trong ±0,02 của bảng.
+---
+
+## 9. Acceptance Criteria
+
+**Chức năng (test tự động, server):**
+1. Mua → trừ đúng cược trong một batch; mua khi số dư (không tính khoản khởi đầu) < cược bị từ chối; mua bậc chưa mở (nhà hoặc điều kiện thắng) bị từ chối; mua khi đang có run mở bị từ chối. **Mua nhiều lần cùng offer trong ngày được phép** (không có test "từ chối vượt cap").
+2. Batch lỗi giữa chừng không để lại trạng thái "trừ tiền chưa có run"; run mồ côi bị cron hoàn cược.
+3. Bảng cùng ngày, cùng cấp nhà là cùng danh sách trên hai tài khoản; đổi `rules_version` thì danh sách đổi.
+4. Run Nhiệm vụ: `aid_req`, `epoch_req(continue)`, Boon bị từ chối; log có `AID_USE`/`CONTINUE` thì verify fail.
+5. Hành động sau khi xin seed khác khai báo → Nhiệm vụ thua. Vào lại nhiều lần từ cùng epoch: không đổi seed, không có bộ đếm nào.
+6. Verifier timeout (canary qua) → huỷ + hoàn đúng cược, **không R**, không Stone, không tính run đã tạo; tái lập → huỷ + hoàn + cờ C10.
+7. Payout dùng m gốc và `m_scale` đã chốt ở header; đổi `m_scale` giữa chừng không đổi payout của run mở; payout > 20.000 bị cắt và có cờ.
+8. Nâng nhà: trừ đúng Shard + Stone, không nâng được nếu thiếu một trong hai; bậc mở đúng theo cấp; **không có tác dụng nào lên số lần mua**.
+9. Mở N6 chỉ khi tài khoản đã có một run Full thắng ở A9, bất kể cấp nhà.
+10. Stone ngày: tổng Stone từ Nhiệm vụ trong một ngày UTC ≤ 150, kể cả khi mua nhiều lần.
+11. Run Nhiệm vụ đã verify hiện trên bảng xếp hạng với nhãn bậc; run huỷ vì verifier lỗi không hiện; run tính vào "run đã tạo" đúng quy tắc §3.1.6.
+12. Unlock có nguồn Pass trả tiền hoặc tiền thật không áp dụng trong run Nhiệm vụ; unlock từ chơi và Pass miễn phí áp dụng.
+13. Điều kiện phụ (nếu có trong offer): thắng boss cuối mà không thoả điều kiện → thua; kiểm bằng replay đã verify.
+14. Sim 100.000 lần mua theo §4.2: RTP mỗi hồ sơ nằm trong ±0,02 của bảng (kiểm công thức, không kiểm game).
+15. **Sau khi bật** (không chặn bật, Liam 12/10): sim game thật so tỉ lệ thắng mỗi bậc với §4.1 trong ±5 điểm; lệch hơn thì chỉnh `d`, không chỉnh m.
+16. Các AC của §11 (11.7).
 
 **Trải nghiệm (playtest):**
-1. 8 người chơi thử, ≥ 7 giải thích đúng "mất gì nếu thua, nhận gì nếu thắng" chỉ từ màn xác nhận.
-2. Không ai nói màn thua "đổ lỗi" hoặc "dụ mua tiếp".
-3. Sau 4 tuần soft launch, telemetry §8 nằm ở xanh hoặc vàng ở mọi hàng, không có đỏ.
+1. ≥ 7/8 người thử giải thích đúng "mất gì nếu thua, nhận gì nếu thắng, kỳ vọng nhận lại khoảng bao nhiêu" chỉ từ thẻ offer và màn xác nhận.
+2. Không ai nói luật khó là "bất công" hoặc "giấu" (mọi luật hiện trước; thua đọc được lý do).
+3. Sau 4 tuần soft launch, §8 không có hàng đỏ.
 
-### 9.4 Câu hỏi mở cho Liam
+---
 
-| # | Câu hỏi | Đề xuất |
+## 10. Quyết định Liam 12/10 và việc còn mở
+
+12 câu hỏi cũ đã trả lời, cộng ba câu mới (13–15) và các điểm review (H1, M1–M3, L1).
+
+| # | Câu hỏi | Quyết định (12/10) | Đã áp ở |
+|---|---|---|---|
+| 1 | An ủi khi thua? | **Không** | §3.5, §5 |
+| 2 | Nhiệm vụ dùng unlock cày? | **Có**, chỉ từ chơi và Pass miễn phí | §3.2, §7, M2 |
+| 3 | Khóa bậc theo thắng ở Ascension đó | **Có.** N6 cần thắng một run Full ở A9 | §3.2 (M3) |
+| 4 | Giá và `m_scale` ra mắt | N1–N4 m = 1,60/1,95/2,45/3,30; N5/N6 giữ m, `m_scale` 0,85–0,90 (ra mắt 0,90) | §3.6, §4 (H1) |
+| 5 | Sim trước khi bật | **Không bắt buộc**, chỉnh live theo §11 | §4.4, §9 |
+| 6 | Lên bảng xếp hạng | **Có**, đủ điều kiện, tính run đã tạo | §3.1, §7 (M1) |
+| 7 | Số lần mua/ngày | **Không giới hạn** (thay "tối đa 5"); nhà chỉ mở bậc | §3.3, §3.4, §4.4 |
+| 8 | Chi phí nâng nhà | Giữ số khởi điểm, sim sau | §3.3 |
+| 9 | Verifier lỗi | Hoàn cược, **không R** | §6 |
+| 10 | Trần payout 20.000 | **Chấp nhận** | §3.5, §6 |
+| 11 | 19 điều kiện phụ | **Vào v1.0 nếu làm được.** Kết quả: 2 loại vào (13, 14), 1 gộp vào bậc (15), 16 để sau/khó | §3.8 |
+| 12 | AXS | Chưa; thử bằng Shard | §6 |
+| 13 | Cách đo RTP | Toàn dân 0,75–0,95, thêm điều kiện heavy không lãi ở N1–N4 | §4.3, §8 |
+| 14 | N5/N6 | Bậc thử sức, −EV mọi hồ sơ, thẻ hiện "kỳ vọng nhận lại" | §3.7, §4.2 |
+| 15 | Tự chỉnh m theo bậc | **Có**, theo Bayes (Beta-Binomial), ngưỡng duyệt một lần; không bao giờ theo người (MON-5) | §11 |
+
+**Còn mở, cần Liam hoặc người khác trả lời:**
+- **B. Bảng xếp hạng:** hiện chung với ranked thường (cùng bảng, thêm nhãn Nhiệm vụ + bậc) hay tách bảng "Nhiệm vụ" riêng? Luật khó hơn nên so điểm chung có thể không công bằng. Khuyến nghị: cùng bảng theo Ascension nhưng có bộ lọc Nhiệm vụ.
+- **C. Axie NFT / part NFT trong Nhiệm vụ:** cho dùng hay không? Khuyến nghị: không dùng trong Nhiệm vụ ở v1.0 vì lợi thế mua được trong chế độ có cược.
+- **D. Xác nhận ngưỡng §11** (`R_hi` = 0,95, `ε` = 0,10, bước tối đa 0,02/ngày), duyệt một lần.
+
+Phụ thuộc chưa verify: ledger server tách khoản khởi đầu; spike theo lịch (M2) có làm không; `RunVerifier` hiện chỉ trả thắng/thua hay cả counter; INV-1..7 của `build-spec.md`; counter mới cho điều kiện phụ.
+
+---
+
+## 11. Tự chỉnh m theo bậc (Beta-Binomial)
+
+### 11.1 Mục đích và ranh giới
+
+Giữ RTP của từng bậc (theo cả người chơi) không vượt `R_hi` = 0,95, dựa vào dữ liệu thật thay cho sim. Mô hình d-logit (§4) là **niềm tin ban đầu**; dữ liệu cập nhật niềm tin đó.
+
+Quy tắc cứng:
+1. **Chỉ `m_scale` của từng bậc thay đổi.** Đó là một số chung cho mọi người, hiện công khai trên thẻ (m hiệu dụng + m gốc). **Không có đầu vào nào là danh tính hay thành tích của một tài khoản**, không có kết quả nào theo từng người. Cùng lúc, cùng bậc, mọi tài khoản trả cùng m (MON-5).
+2. **Chỉ được hạ hoặc nhả về bảng gốc**: `m_scale ∈ [s_min, 1,00]`. Không bao giờ nâng m vượt bảng gốc, vì bảng gốc đã được dựng để heavy ≈ 1,00 ở N1–N4; nâng sẽ tạo lãi cho heavy.
+3. **Không chỉnh độ khó.** Dữ liệu thắng chỉ dùng để chỉnh m, không bao giờ đổi `d` hay luật.
+4. Mọi thay đổi có rate limit, và run đang mở không bị ảnh hưởng (header chốt).
+
+### 11.2 Mô hình
+
+Với bậc t, đặt θ_t = tỉ lệ thắng trung bình của các lần mua trong bậc đó trên toàn dân. Cược mọi người cùng bậc bằng nhau, nên **RTP của bậc = θ_t × m_gốc,t × s_t** (s = `m_scale`) chính xác, không cần phân theo hồ sơ.
+
+**Prior:** `θ_t ~ Beta(α0, β0)` với
+```
+μ0_t = Σ_j  w_j,t × p_j(t)       (p_j(t) là bảng §4.1; w_j,t = tỉ lệ lượt mua bậc t do hồ sơ j, từ giả định §4.3)
+α0 = n0 × μ0_t        β0 = n0 × (1 − μ0_t)       (n0 = sức nặng prior = số run "tương đương")
+```
+Với giả định §4.3 (dân 45/40/15, 2/5/14 lần mua/tuần, heavy bảng cũ), tính tay:
+
+| Bậc | Tỉ lệ lượt mua casual / regular / heavy | μ0 |
 |---|---|---|
-| 1 | Ascension có chạy trong run ranked/Nhiệm vụ không (câu 10 của ascension-v2 để tới bước ranked)? Loại 15 và nhiều ví dụ phụ thuộc | Có, header `ascension` đã có và replay kiểm được. Nếu không, tắt loại 15 bằng cờ; thang vẫn chạy bằng điều kiện |
-| 2 | Số dư Shard có được server giữ làm chuẩn (cần cho escrow) không? | Có, ít nhất cho phần escrow Nhiệm vụ: server là nguồn đúng của số dư |
-| 3 | Run Nhiệm vụ vẫn trả R như run ranked thường? Có tính bảng xếp hạng ranked không? | Trả R như thường. Bảng xếp hạng: có (nó đã là ranked-profile) |
-| 4 | Dòng "kỳ vọng nhận lại ~80%" trong màn xác nhận: hiện hay không? | Hiện, vì nó là sự thật và Liam muốn kiểm tra chấp nhận rủi ro thật; ẩn thì kết quả telemetry bị méo |
-| 5 | Cảnh báo thông tin khi tổng stake mở > 50% thu nhập tuần (không phải trần)? | Có. Liam đã bỏ trần; cảnh báo không chặn nên không đi ngược quyết định |
-| 6 | Đổi bảng (reroll): có không? | Không ở bản đầu; thêm sau nếu thấy người chơi bỏ bảng vì không có offer hợp |
-| 7 | Bảng chung hay riêng từng người? | Chung (§5.1) |
-| 8 | Ngân sách resume 3 lần và seed xúc xắc theo trận, đổi sang xúc xắc roll bằng server khi có lạm dụng | 3 lần, seed theo trận. Xúc xắc roll bằng server chỉ khi có bằng chứng lạm dụng |
-| 9 | Stone 3–50 (kỳ vọng < 1% Stone tuần) có "rất nhỏ" đủ ý Liam không, hay quá nhỏ? | Ra mắt ở 1,0 rồi nâng `stone_scale` theo telemetry; ngân sách 150/ngày cho phép tới ×2,5 |
-| 10 | Người cực giỏi (80% thắng run) có thể kiếm ≈ +1.000 Shard/ngày; có chấp nhận không? | Chấp nhận bản đầu, giám sát p99, `m_scale` giảm nếu cần. Không đặt trần thắng vì trái tinh thần "muốn kiếm nhiều phải chịu khó" |
-| 11 | Mode Full làm Nhiệm vụ không? | Bản đầu chỉ Short (run ngắn, hiệu chỉnh rẻ). Full thêm sau ở T6–T7, và cần mở khoá `u_full` |
-| 12 | Nhà Nhiệm vụ gắn "cấp Land" hay "cấp nhà riêng"? Land chỉ có 5 lần nâng | Gắn cấp nhà riêng nếu Land không đủ cấp trung gian; Liam quyết |
+| N1 | 0,52 / 0,48 / 0 | 0,316 |
+| N2 | 0,21 / 0,54 / 0,25 | 0,327 |
+| N3 | 0,07 / 0,41 / 0,52 | 0,312 |
+| N4 | 0 / 0,29 / 0,71 | 0,259 |
+| N5 | 0 / 0 / 1 | 0,226 |
+| N6 | 0 / 0 / 1 | 0,132 |
 
-Phụ thuộc vào công việc khác: bộ relic (hook `relic_state`, action `reorder_party`/`sell_relic`), resume rule (đang làm cùng combat), sim A và G (chưa chạy), ánh xạ run seed phía server (chưa verify).
+RTP prior của bậc (μ0 × m_gốc × s): N1 0,51 · N2 0,64 · N3 0,76 · N4 0,85 · N5 0,85 · N6 0,86. Bậc thấp nằm dưới 0,95 vì có nhiều casual/regular mua; không sao, §11.1(2) không cho nâng.
+
+**Dữ liệu:** trong cửa sổ cuốn, mỗi run Nhiệm vụ của bậc t đã đóng cho một quan sát: thắng (w) hoặc thua (l). Bỏ run bị huỷ vì verifier lỗi và run mồ côi. Bỏ run (bỏ giữa chừng) tính là thua (cược đã mất, nên RTP thật cũng thế).
+
+**Posterior (Beta-Binomial, liên hợp):** `θ_t | dữ liệu ~ Beta(α0 + w, β0 + l)`. Với n = w + l:
+```
+μ_t = (α0 + w) / (n0 + n)
+var  = μ_t (1 − μ_t) / (n0 + n + 1)           (xấp xỉ chuẩn khi n0 + n ≥ 30)
+θ_q  = quantile q của posterior   ≈ μ_t + z_q × sqrt(var)      (z_0,90 = 1,2816)
+RTP_t posterior = θ × m_gốc,t × s_t
+```
+Giữ giới hạn một người: mỗi tài khoản đóng góp tối đa `account_cap` = 30 run mỗi bậc trong cửa sổ (quan sát thừa bỏ), để vài tài khoản farm không kéo cả bảng.
+
+### 11.3 Luật cập nhật (cron 00:00 UTC mỗi ngày, mỗi bậc một dòng)
+
+1. Lấy cửa sổ: run đóng trong `window_days` ngày gần nhất, tối đa `window_max_runs` run mới nhất. Nếu n < `n_min` thì **không đổi** (giữ `s_t` hiện tại).
+2. Tính posterior và `θ_0,90`.
+3. Mục tiêu: chọn `s*` sao cho phân vị 90% của RTP posterior không vượt `R_hi`:
+   ```
+   s* = R_hi / ( m_gốc,t × θ_0,90 )
+   s_target = clamp( s*, s_min, 1,00 )
+   ```
+   (Tương đương: P(RTP_t > R_hi) ≤ ε = 0,10.)
+4. **Rate limit và dead band:** nếu |s_target − s_t| < `deadband` (0,01) thì không đổi. Ngược lại `s_t,mới = s_t + clamp(s_target − s_t, −step_day, +step_day)`, làm tròn 0,01. Giới hạn thêm theo tuần: tổng thay đổi trong 7 ngày ≤ `step_week` (0,08).
+5. Ghi nhật ký một dòng/bậc/ngày: n, w, μ, θ_0,90, s* , s mới. Hiện trong dashboard nội bộ.
+6. Nếu `s_t` nằm ở `s_min` quá 14 ngày liên tục thì báo động: bảng gốc hoặc `d` sai, cần người xem lại (không tự đổi bảng gốc).
+7. Công tắc đóng băng: đặt `bayes_enabled=0` để giữ nguyên `s_t`.
+
+Giá trị hiện trên thẻ là `m_hiệu_dụng = m_gốc × s_t`, kèm m gốc và thời điểm cập nhật cuối. Payout của run chốt theo giá trị lúc tạo run.
+
+### 11.4 Ví dụ có số (N4, m gốc 3,30, `s` = 1,00)
+
+Prior: μ0 = 0,2588, n0 = 60 → α0 = 15,53; β0 = 44,47. Sau một cửa sổ có n = 400 run đóng, w = 118 thắng (29,5%, cao hơn dự đoán 25,9% vì nhiều người giỏi mua N4), l = 282.
+
+- Posterior: α = 133,53; β = 326,47; tổng 460. μ = 0,2903. var = 0,2903 × 0,7097 / 461 = 0,000447 → sd = 0,02114.
+- RTP posterior trung bình = 0,2903 × 3,30 = **0,958**; P(RTP > 0,95) = P(θ > 0,2879) = P(z > −0,114) ≈ 55%. Lớn hơn ε = 10%, nên cần hạ.
+- θ_0,90 = 0,2903 + 1,2816 × 0,02114 = 0,3174. RTP ở phân vị 90% = 0,3174 × 3,30 = 1,047.
+- `s* = 0,95 / (3,30 × 0,3174) = 0,907`. Đích 0,907.
+- Rate limit 0,02/ngày: s đi 1,00 → 0,98 → 0,96 → 0,94 → 0,92 (bốn ngày, chạm step tuần 0,08 nên đứng ở 0,92), sau 7 ngày mới nhích tiếp về 0,91. Thẻ hiện: ngày 1 "×3,23 (gốc ×3,30)", payout N4 = round5(1.200 × 3,234) = 3.880.
+- Cùng ví dụ, nếu dữ liệu quay về 25% thắng, `s*` ra > 1 nên bị kẹp 1,00 và `s` nhích ngược lên 0,02/ngày về bảng gốc.
+- Ví dụ không đủ dữ liệu: n = 60 < `n_min` = 100 thì không đổi dù tỉ lệ thắng rất cao.
+
+Ghi chú: ví dụ này tính tay, dùng xấp xỉ chuẩn; triển khai dùng CDF Beta thật (regularized incomplete beta) khi n0 + n < 30.
+
+### 11.5 Núm (đều chỉnh live, không hardcode)
+
+| Núm | Mặc định | Khoảng | Loại | Lý do |
+|---|---|---|---|---|
+| `bayes_enabled` | 1 | 0/1 | Gate | Công tắc đóng băng |
+| `R_hi` | 0,95 | 0,90–1,00 | Curve | Trần RTP bậc; Liam duyệt một lần |
+| `eps` (xác suất vượt R_hi cho phép) | 0,10 | 0,05–0,20 | Curve | Càng nhỏ càng thận trọng |
+| `n0` (sức nặng prior) | 60 | 20–200 | Curve | ~11% trọng số khi n = 500 |
+| `n_min` | 100 | 50–300 | Gate | Dưới ngưỡng không đổi |
+| `window_days` / `window_max_runs` | 28 / 3.000 | 7–56 / 500–10.000 | Gate | Cuốn theo mùa kỹ năng |
+| `account_cap` | 30 run/bậc/cửa sổ | 10–100 | Gate | Chặn vài tài khoản kéo cả bảng |
+| `s_min` | 0,75 | 0,70–0,90 | Gate | Sàn hạ |
+| `step_day` / `step_week` | 0,02 / 0,08 | 0,01–0,05 / 0,03–0,15 | Feel | Đổi chậm, người chơi kịp thấy |
+| `deadband` | 0,01 | 0–0,02 | Feel | Tránh nhích vặt |
+| `prior_mix[tier][profile]` | Bảng §11.2 | | Curve | Cập nhật khi có dữ liệu mua thật |
+| `alarm_days_at_min` | 14 | 7–30 | Gate | §11.3 mục 6 |
+
+### 11.6 Giới hạn (nói thật)
+
+- **Chỉ bắt xu hướng toàn dân.** Vài tài khoản giỏi hơn hẳn mức trung bình có thể lãi lớn trong khi RTP toàn bậc vẫn dưới `R_hi` (§4.4). `account_cap` còn che bớt nhóm này khỏi dữ liệu. Phần đó do p99 lãi ròng bắt.
+- **Chỉ hạ, không nâng.** Nếu RTP toàn dân xuống dưới 0,75 (ước tính hiện 0,77) thì cần người chỉnh bảng gốc hoặc `d`; §11 không làm thay.
+- **Người chơi mới vào bậc cao thay đổi thành phần mua** nên θ_t trôi; cửa sổ cuốn bắt được nhưng chậm.
+- **Không phải sim.** n nhỏ ở N5/N6 (ít người mua) nên chủ yếu sống bằng prior tới khi đủ `n_min`.
+- Posterior nói về RTP, không nói về cảm nhận công bằng. Telemetry §8 vẫn bắt buộc.
+
+### 11.7 Acceptance Criteria riêng cho §11
+
+1. Cho dữ liệu cố định (n0 = 60, μ0 = 0,2588, w = 118, l = 282, m = 3,30), hàm tính ra `s*` = 0,907 ± 0,002 và `s_target` = 0,91.
+2. n < `n_min` → `s_t` không đổi.
+3. Mọi lần chạy: `s_min ≤ s_t ≤ 1,00`; |Δ| mỗi ngày ≤ `step_day`, mỗi 7 ngày ≤ `step_week`; không nhảy khi |s_target − s_t| < `deadband`.
+4. Hàm cập nhật chỉ nhận tổng hợp theo bậc (đếm thắng/thua đã bỏ danh tính, sau `account_cap`) và hằng số; **không có tham số `account_id`** (kiểm bằng chữ ký hàm và test: đổi mọi `account_id` cho cùng dữ liệu tổng hợp thì kết quả giống hệt).
+5. Hai tài khoản bất kỳ mua cùng bậc cùng giây có cùng m hiệu dụng và cùng payout.
+6. Run mở không đổi payout khi cron chạy; run tạo sau cron dùng `s_t` mới.
+7. Thẻ offer hiển thị đúng m hiệu dụng, m gốc, giờ cập nhật; khớp với giá trị server.
+8. `bayes_enabled=0` giữ `s_t`; mọi lần đổi có dòng nhật ký.
+9. Playtest: ≥ 7/8 người thử hiểu "m hiện tại" trên thẻ là số chung cho mọi người, không phải giá riêng.

@@ -1,5 +1,8 @@
 Trạng thái: CHỐT (12/10) — chờ review cuối rồi sim
 
+> **QUYẾT ĐỊNH LIAM (12/10, kiến trúc câu 17):** giai đoạn làm quen 5 run chỉ đếm run có **ít nhất một trận đã đánh
+> xong** (không đếm run tạo rồi bỏ ngay) — ghi đè câu "đếm cả run bị bỏ" ở §1.6.
+
 > **QUYẾT ĐỊNH LIAM (12/10, review cuối):** §7.4 (b) "người cày không thua người nạp" **chỉ đo**, không phải cổng — B3
 > nghĩa là "unlock cày dùng được trong ranked". Trần trên dải thắng Continue (80% A0–A5, 60% A6–A10) **chỉ là ngưỡng
 > cảnh báo telemetry**, không chặn. **Có câu công khai** cạnh bảng giá Aid trong store/codex: "Aid giúp bạn mạnh hơn
