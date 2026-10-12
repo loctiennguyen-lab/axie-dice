@@ -8,7 +8,7 @@
 #   GODOT_OVERRIDE=/path/to/Godot bash tools/build_desktop.sh
 #
 # Output goes to build/ (gitignored) at the repo root:
-#   build/AxieDice-<version>-b<build>-<hash>[-dirty]-macos.zip   (AxieDice.app, universal)
+#   build/AxieDice-<version>-b<build>-<hash>[-dirty]-macos.zip   (AxieDice.app, x86_64)
 #   build/AxieDice-<version>-b<build>-<hash>[-dirty]-macos.dmg   (same app, disk image)
 #   build/AxieDice-<version>-b<build>-<hash>[-dirty]-windows.zip (AxieDice.exe, x86_64, pck embedded)
 #   build/AxieDice-<version>-b<build>-<hash>[-dirty].sha256
@@ -45,7 +45,7 @@ die() { echo "build_desktop: $*" >&2; exit 1; }
 HASH="$(git rev-parse --short HEAD 2>/dev/null)" || die "not a git checkout"
 BUILD_NO="$(git rev-list --count HEAD)"
 DIRTY=""
-if [[ -n "$(git status --porcelain -- godot tools 2>/dev/null)" ]]; then
+if [[ -n "$(git status --porcelain --untracked-files=no -- godot tools 2>/dev/null)" ]]; then
   DIRTY="-dirty"
 fi
 STAMP="AxieDice-${APP_VERSION}-${LABEL}-b${BUILD_NO}-${HASH}${DIRTY}"
@@ -86,7 +86,7 @@ export_one() {   # $1 = preset name, $2 = output path (.app or .exe)
 
 # --- 3. macOS --------------------------------------------------------------------------------
 if [[ "$WHAT" == all || "$WHAT" == macos ]]; then
-  echo "-- macOS export (universal, ad-hoc signed)"
+  echo "-- macOS export (x86_64, ad-hoc signed; runs on Apple Silicon via Rosetta)"
   MAC_APP="$STAGE/AxieDice.app"
   export_one macOS "$MAC_APP" || die "macOS export failed"
   # Sanity: both slices present, and the ad-hoc signature verifies.
