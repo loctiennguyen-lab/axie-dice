@@ -15,7 +15,12 @@ extends Node
 ## Everything whose content can change what a replay produces: the rules themselves, and the
 ## balance table they read. NOT the UI, not the scenes — a screen cannot change an outcome, and
 ## including them would make this gate cry wolf every time a button moved.
-const WATCHED_DIRS: Array[String] = ["res://scripts/core", "res://autoload"]
+## L1 (2026-10-12): the relic set is data now (`resources/relics/*.tres`, incl. `relic_tuning.tres`)
+## and the rules JSON lane A/E add lives under `assets/data/rules/`. Every dir is walked
+## recursively for .gd / .tres / .json (never .uid / .import: Godot bookkeeping).
+const WATCHED_DIRS: Array[String] = ["res://scripts/core", "res://autoload",
+	"res://resources/relics", "res://assets/data/rules"]
+const WATCHED_EXTS: Array[String] = [".gd", ".tres", ".json"]
 const WATCHED_FILES: Array[String] = ["res://assets/data/part_faces.json"]
 
 ## Recorded when RULES_VERSION was last considered. Update it in the same commit that changes
@@ -102,7 +107,14 @@ const WATCHED_FILES: Array[String] = ["res://assets/data/part_faces.json"]
 ## `t_replay` still verifies a full run to the same score.
 ## Moved again the same day: `AccountService.error_message()` gained a "rate_limited" line for the
 ## Worker's new sign-in rate limit. Player-facing text only; RULES_VERSION was NOT bumped.
-const FINGERPRINT := "397eec37a3297afc1a0316c3eda8d766d313c05cddf6f6a91eab2e9ce0747d7e"
+## BUMPED, 2026-10-12 (L1 combat batch 1): `ActionLog.RULES_VERSION` -> `godot-2026-10-12-a`.
+## Changes the run result: YES. Lane A's PR1 routes every rules draw through EpochSource (the seed
+## of each draw now comes from the epoch, not the old stream) and lane B's relic set v2 (8/7 passive
+## and 3/4 active slots, G/A multiplier slots, 45 new relics, 9 new + 5 reworked bodies, 6 merged away).
+## The watch list now also covers resources/relics (*.tres incl. relic_tuning.tres) and
+## assets/data/rules (*.json), recursively, so the relic set is fingerprinted from here on.
+## Earlier today (88abaa4 B skeleton, d6e8f25 C MonsterArt.resolve) moved it with no behaviour change.
+const FINGERPRINT := "1221180ed728bfffa6b313e7e8f1e1fe715f652a648cb136a053bdf1393ff31e"
 
 
 func _ready() -> void:
@@ -149,15 +161,23 @@ func _ready() -> void:
 func _watched_files() -> Array[String]:
 	var out: Array[String] = []
 	for dir_path in WATCHED_DIRS:
-		var dir := DirAccess.open(dir_path)
-		if dir == null:
-			continue
-		for name in dir.get_files():
-			# `.uid` files are Godot's own bookkeeping and change on import, not on edit.
-			if String(name).ends_with(".gd"):
-				out.append("%s/%s" % [dir_path, name])
+		_collect(dir_path, out)
 	for path in WATCHED_FILES:
 		if FileAccess.file_exists(path):
 			out.append(path)
 	out.sort()
 	return out
+
+
+## Recursive; a missing directory is skipped (assets/data/rules does not exist until lane A/E add it).
+func _collect(dir_path: String, out: Array[String]) -> void:
+	var dir := DirAccess.open(dir_path)
+	if dir == null:
+		return
+	for name in dir.get_files():
+		for ext in WATCHED_EXTS:
+			if String(name).ends_with(ext):
+				out.append("%s/%s" % [dir_path, name])
+				break
+	for sub in dir.get_directories():
+		_collect("%s/%s" % [dir_path, sub], out)

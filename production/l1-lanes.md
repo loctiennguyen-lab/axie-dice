@@ -27,7 +27,7 @@ Làn I làm việc ngay trong `/Users/loc.tien.nguyen/my-game` (nhánh `godot-po
 3. Trước khi merge: nhánh làn rebase lên `godot-port` mới nhất (làn I hoặc làn chủ nhánh rebase, không để conflict trôi sang `godot-port`).
 4. Chỉ sửa file mình sở hữu. File chung (`FINGERPRINT`, `RULES_VERSION`, `project.godot`, `run_tests.sh`, mức sàn test) chỉ làn I sửa. Cần đổi thì gửi yêu cầu cho làn I.
 5. `FINGERPRINT` trong `t_rules_version.gd`: không làn nào tự sửa. Làn I tính lại sau mỗi merge và ghi "đổi kết quả run: có/không" vào mô tả merge. Conflict ở dòng này giải bằng cách tính lại, không chọn bên.
-6. Mức sàn test (hiện 56/56 trong `.claude/docs/technical-preferences.md`): đổi suite thì đổi con số trong cùng commit.
+6. Mức sàn test (hiện 62/62 từ 12/10, trong `.claude/docs/technical-preferences.md`): đổi suite thì đổi con số trong cùng commit.
 7. Push: chỉ `git push axiedice godot-port:main`, không bao giờ `origin`. Không deploy.
 
 ## user:// riêng cho mỗi worktree (override.cfg)
@@ -96,3 +96,9 @@ Chưa rebase thì đừng chạy Godot. Cờ `AXIE_SKIP_RULES_FINGERPRINT=1` gi�
 ## Mới tạo worktree
 
 Thư mục `godot/.godot/` (cache import) không nằm trong git. Lần đầu trong worktree mới, `run_tests.sh` tự import nếu thiếu `.uid`; nếu vẫn lỗi "Identifier not declared", chạy `--import` qua `with_lock.sh` rồi thử lại.
+
+## Sau merge A PR1 + B (12/10): việc của mỗi làn
+
+- `git rebase godot-port` rồi chạy `godot/tools/with_lock.sh "$GODOT" --headless --path godot --import` (class_name mới `EpochSource`, `EpochReply`, `LocalEpochSource`... chưa có trong cache nên test cũ báo "Could not find type"; `.uid` có sẵn nên runner không tự import).
+- `RULES_VERSION` giờ là `godot-2026-10-12-a`; `t_rules_version` phủ cả `resources/relics` và `assets/data/rules`.
+- Nợ còn mở của làn I: `production/l1-tasks-I.md`.
