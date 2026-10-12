@@ -42,6 +42,35 @@ export async function applyDelta(env, playerId, delta, reason, idem, at = nowS()
   return { ok: true, balance: await balanceOf(env, playerId) };
 }
 
+/** Grant up to `amount`, clipped so the balance never exceeds `cap`. The clip is computed INSIDE the batch from the
+ *  live balance (ledger row and balance update share one transaction), so concurrent claims cannot both read the
+ *  same old balance and overshoot. Returns {ok, granted, balance, dup?}; granted 0 = at cap (no ledger row kept). */
+export async function grantCapped(env, playerId, amount, cap, reason, idem, at = nowS()) {
+  if (!Number.isSafeInteger(amount) || amount < 1 || !Number.isSafeInteger(cap)) return { ok: false, code: 'bad_amount' };
+  const first = await replay(env, playerId, idem);
+  if (first) return { ...first, granted: 0 };
+  try {
+    await env.DB.batch([
+      env.DB.prepare('INSERT OR IGNORE INTO wallets (player_id, currency, balance) VALUES (?, ?, 0)').bind(playerId, CUR),
+      env.DB.prepare(
+        `INSERT INTO wallet_ledger (player_id, currency, delta, reason, idem_key, at)
+         SELECT player_id, currency, MAX(0, MIN(?, ? - balance)), ?, ?, ? FROM wallets WHERE player_id = ? AND currency = ?`,
+      ).bind(amount, cap, reason, idem, at, playerId, CUR),
+      env.DB.prepare(
+        `UPDATE wallets SET balance = balance + COALESCE((SELECT delta FROM wallet_ledger WHERE player_id = ? AND idem_key = ?), 0)
+          WHERE player_id = ? AND currency = ?`,
+      ).bind(playerId, idem, playerId, CUR),
+    ]);
+  } catch (e) {
+    if (isUnique(e)) { const d = await replay(env, playerId, idem); return d ? { ...d, granted: 0 } : { ok: false, code: 'error' }; }
+    throw e;
+  }
+  const row = await env.DB.prepare('SELECT delta FROM wallet_ledger WHERE player_id = ? AND idem_key = ?').bind(playerId, idem).first();
+  const granted = row ? row.delta : 0;
+  if (granted === 0) await env.DB.prepare('DELETE FROM wallet_ledger WHERE player_id = ? AND idem_key = ? AND delta = 0').bind(playerId, idem).run();
+  return { ok: true, granted, balance: await balanceOf(env, playerId) };
+}
+
 export const spendGem = (env, playerId, n, reason, idem) => applyDelta(env, playerId, -n, reason, idem);
 
 /** Daily gift: min(300, room under the 900 cap), once per UTC day. At the cap the day is NOT used up. */
@@ -51,14 +80,11 @@ export async function claimDaily(env, playerId, at = nowS()) {
   const idem = `grant:${playerId}:${day}`;
   const used = await replay(env, playerId, idem);
   if (used) return { ok: false, granted: 0, reason: 'already_claimed', balance: used.balance, next_utc: next };
-  const bal = await balanceOf(env, playerId);
-  const room = GIFT.balance_cap - bal;
-  if (room <= 0) return { ok: false, granted: 0, reason: 'at_cap', balance: bal, next_utc: at };
-  const amount = Math.min(GIFT.per_day, room);
-  const r = await applyDelta(env, playerId, amount, 'grant:playtest_grant', idem, at);
-  if (!r.ok) return { ok: false, granted: 0, reason: 'error', balance: bal, next_utc: next };
+  const r = await grantCapped(env, playerId, GIFT.per_day, GIFT.balance_cap, 'grant:playtest_grant', idem, at);
+  if (!r.ok) return { ok: false, granted: 0, reason: 'error', balance: await balanceOf(env, playerId), next_utc: next };
   if (r.dup) return { ok: false, granted: 0, reason: 'already_claimed', balance: r.balance, next_utc: next };
-  return { ok: true, granted: amount, reason: '', balance: r.balance, next_utc: next };
+  if (r.granted === 0) return { ok: false, granted: 0, reason: 'at_cap', balance: r.balance, next_utc: at };
+  return { ok: true, granted: r.granted, reason: '', balance: r.balance, next_utc: next };
 }
 
 /** Season gift milestone 1 or 2 (pass level 10 / 20). The season id must be in the server SEASONS table (exact
@@ -80,14 +106,11 @@ export async function claimSeasonGift(env, playerId, seasonId, milestone, at = n
     `SELECT COUNT(*) AS n FROM runs WHERE player_id = ? AND state = 'closed' AND battles_done >= ? AND closed_at >= ? AND closed_at < ?`,
   ).bind(playerId, SEASON_GATES.min_battles, start, end).first();
   if (((row && row.n) || 0) < SEASON_GATES.min_runs[milestone]) return { ok: false, granted: 0, reason: 'not_enough_runs' };
-  const bal = await balanceOf(env, playerId);
-  const room = SEASON_GATES.balance_cap - bal;
-  if (room <= 0) return { ok: false, granted: 0, reason: 'at_cap', balance: bal };
-  const amount = Math.min(SEASON_GIFT.per_milestone, room);
-  const r = await applyDelta(env, playerId, amount, 'grant:season_gift', idem(milestone), at);
+  const r = await grantCapped(env, playerId, SEASON_GIFT.per_milestone, SEASON_GATES.balance_cap, 'grant:season_gift', idem(milestone), at);
   if (!r.ok) return { ok: false, reason: 'error' };
   if (r.dup) return { ok: false, granted: 0, reason: 'already_claimed', balance: r.balance };
-  return { ok: true, granted: amount, reason: '', balance: r.balance };
+  if (r.granted === 0) return { ok: false, granted: 0, reason: 'at_cap', balance: r.balance };
+  return { ok: true, granted: r.granted, reason: '', balance: r.balance };
 }
 
 export const isWalletPath = (p) => p === '/api/gem/season_gift' || p === '/api/wallet' || p === '/api/gem/claim' || p === '/api/wallet/spend';
