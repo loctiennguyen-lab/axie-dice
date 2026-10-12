@@ -1,7 +1,7 @@
 # Kế hoạch sprint L1 — 13/10 → 3/11/2026
 
 > **QUYẾT ĐỊNH LIAM (12/10, tối):** desktop **có đăng nhập Google qua Worker** (S + màn đăng nhập của U) · **Gem lưu trên
-> server** · danh sách cắt §4: **chưa duyệt** (Liam hỏi "danh sách đâu", đang gửi lại) · cọc Nhiệm vụ do
+> server** · danh sách cắt §4: Liam **cắt ngay** 4 mục: #2 VIP thử 7 ngày, #3 hộp mùa (chỉ hộp thường), #4 Nhiệm vụ chỉ N1–N3 + nhà không nâng cấp, #10 boss thiếu asset → mascot có sẵn. Các mục khác **không được tự cắt**, phải hỏi Liam · cọc Nhiệm vụ do
 > server giữ, Shard/Stone trong save · thưởng Nhiệm vụ client tự báo, đánh dấu chưa kiểm · bắt buộc online · Liam duyệt
 > ~8 giờ/ngày (giữ đủ các làn) · app "Axie Dice", `fun.axiedice.game`, 0.1.0 · kênh báo lỗi: Slack riêng + form, người
 > nhận Liam · **Cloudflare giữ gói Free** (playtest vài chục người; không nâng Paid, không bắt buộc staging) · không có
