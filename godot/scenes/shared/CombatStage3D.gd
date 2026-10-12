@@ -813,10 +813,18 @@ func _fit_atia_model(model: Node3D, atia: Dictionary) -> void:
 	var reg: Dictionary = atia["reg"]
 	model.rotation_degrees.y = float(reg.get("facing_deg", 0.0))
 	var box := _model_aabb(model)
-	if box.size.y < 0.0001:
-		return
 	var h := float(reg.get("height_m", 2.2))
 	var wmax := float(reg.get("max_width_m", 4.2))
+	var raw := _visual_bounds(model)   # raw mesh AABBs; what the mascot .glb files were fitted with
+	if box.size.y < 0.05 or (raw.y - raw.x) > box.size.y * 20.0:
+		# Skinned .glb whose node transforms do not reflect in get_aabb(): the transformed box is
+		# tiny and would give a 200x scale. Fall back to the raw measure, height only.
+		if raw.y - raw.x > 0.001:
+			var f := h / (raw.y - raw.x)
+			model.scale = Vector3.ONE * f
+			model.position = Vector3(0.0, -raw.x * f, 0.0)
+			atia["width"] = wmax * 0.6
+		return
 	var factor := minf(h / box.size.y, wmax / maxf(maxf(box.size.x, box.size.z), 0.0001))
 	model.scale = Vector3.ONE * factor
 	var c := box.get_center()
