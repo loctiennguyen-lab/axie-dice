@@ -150,7 +150,11 @@ const WATCHED_FILES: Array[String] = ["res://assets/data/part_faces.json"]
 ## Moved 2026-10-12 night by lane S merge: AccountService.gd (RemoteGemWallet on sign-in, behind the
 ## axie/gem_wallet flag, default local), scripts/net RunSession + RemoteEpochSource (flag axie/epoch_source,
 ## default local). Network/accounts only, flags off. Changes the run result: NO, RULES_VERSION stays -f.
-const FINGERPRINT := "8b2521f0d954d9f3fb6224c9c77decc9e91cfa795e6b4101fc0cd27084e25cab"
+## BUMPED, 2026-10-13: `ActionLog.RULES_VERSION` -> `godot-2026-10-13-g`. Lane B: 9 hidden relics live
+## (ironvow, lonewolf, hollowchalice, alphafang, falconhood, heartrootgrove, shedskin, tidecaller, venomlineage),
+## value hooks shield_value / reroll_allowed / active_cost / face_final / field, CombatEngine.active_cost.
+## Changes the run result: YES.
+const FINGERPRINT := "66a830a0bba4b9242c323c2bc584fc0c47efdf8964dabdee37c7c1cec2204132"
 
 
 func _ready() -> void:

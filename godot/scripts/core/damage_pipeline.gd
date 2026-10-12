@@ -44,10 +44,12 @@ static func resolve(ctx: Dictionary) -> int:
 	# ---- source side (steps 1-5) — only when the attacker is a player-side unit ----
 	if src != null and src.side == "p":
 		var low_hp := is_wounded(combat, tgt)
-		if low_hp and (src.cls == "beast" or is_exec):
+		# alphafang widens the FERAL threshold (beast only); Execute keeps the plain 50%.
+		var feral: bool = src.cls == "beast" and is_wounded(combat, tgt, RelicHooks.field(combat, "feral_threshold", 0.5))
+		if (low_hp and is_exec) or feral:
 			v = ceil(v * 1.6)                                                    # 1. EXECUTE
 		if pierce:
-			v += (3.0 if src.cls == "bird" else 0.0) + RelicHooks.sum(combat, "piercePlus")  # 2. PIERCE
+			v += (RelicHooks.field(combat, "talon_pierce", 3.0) if src.cls == "bird" else 0.0) + RelicHooks.sum(combat, "piercePlus")  # 2. PIERCE
 		var dm := RelicHooks.g_axie(combat, src) if String(ctx.get("face_type", "dmg")) == "dmg" else 1.0
 		if dm != 1.0:
 			v = ceil(v * dm)                                                     # 3. dmgMult
@@ -77,6 +79,7 @@ static func resolve(ctx: Dictionary) -> int:
 			v = max(1.0, ceil(v * (1.0 - dr)))                                   # 7. damage reduction
 	var iv := int(v)
 	var dealt := 0
+	var had_shield: bool = tgt.shield > 0
 	EventBus.hit_landed.emit(src.uid if src != null else NO_SOURCE_UID, tgt.uid, iv, crit)
 
 	if not pierce and tgt.shield > 0:                                            # 8. shield absorbs first
@@ -125,10 +128,11 @@ static func resolve(ctx: Dictionary) -> int:
 			combat.stat["dmg_dealt_clamped"] = int(combat.stat.get("dmg_dealt_clamped", 0)) + clamped_hit
 
 	if tgt.side == "p":                                                          # 10. onDmgTaken hook
-		RelicHooks.fire(combat, "on_dmg_taken", {"src": src, "tgt": tgt, "dealt": dealt, "attack": attack, "combat": combat})
+		RelicHooks.fire(combat, "on_dmg_taken", {"src": src, "tgt": tgt, "dealt": dealt, "attack": attack, "combat": combat, "had_shield": had_shield})
 
 	# 11. THORNS — pierce+piercePlus relic bypasses it entirely
-	var skip_thorns := pierce and (RelicHooks.has(combat, "piercePlus") or RelicHooks.has(combat, "pierceThornProof"))
+	var skip_thorns := pierce and (RelicHooks.has(combat, "piercePlus") or RelicHooks.has(combat, "pierceThornProof")
+		or (src != null and src.side == "p" and src.cls == "bird" and RelicHooks.field(combat, "talon_ignore_thorns", 0.0) > 0.0))
 	var thorns_now := int(tgt.status.get("thorns", 0))
 	if tgt.side == "p" and tgt.is_token:       # thornling: Eggs reflect at least this much from the moment they exist
 		thorns_now = maxi(thorns_now, int(RelicHooks.max_val(combat, "eggThorns", 0.0)))
@@ -157,7 +161,7 @@ static func resolve(ctx: Dictionary) -> int:
 			if clamped_thorns > 0:
 				combat.stat["dmg_dealt_clamped"] = int(combat.stat.get("dmg_dealt_clamped", 0)) + clamped_thorns
 		if tgt.side == "p" and tgt.cls == "reptile":
-			StatusEngine.add_status(combat, src, ["poison:1"], tgt)
+			StatusEngine.add_status(combat, src, ["poison:%d" % int(RelicHooks.field(combat, "scales_poison", 1.0))], tgt)
 		if src.hp <= 0 and src.status.get("undying", 0):
 			src.status["undying"] = 0
 			src.hp = 1
@@ -177,7 +181,7 @@ static func resolve(ctx: Dictionary) -> int:
 		})
 
 	if tgt.side == "e" and tgt.hp <= 0:                                          # 13. death checks
-		on_enemy_death(combat, tgt)
+		on_enemy_death(combat, tgt, src if (attack and src != null and src.side == "p") else null)
 	if tgt.is_boss:
 		check_boss_phase(combat, tgt)
 	return dealt
@@ -217,6 +221,8 @@ static func apply_shield(combat, tgt: Unit, value: int) -> void:
 	var v := value
 	if tgt.side == "p" and tgt.cls == "plant":
 		v += 2                                                                   # BULWARK passive
+	if tgt.side == "p":
+		v = int(RelicHooks.run_value_hook(combat, "shield_value", {"combat": combat, "tgt": tgt}, v))   # ironvow
 	var no_cap: bool = tgt.side == "p" and RelicHooks.has(combat, "noShieldCap")
 	var cap: int = 999999 if no_cap else tgt.max_hp * 2
 	if no_cap and tgt.shield + v > tgt.max_hp * 2:
@@ -224,18 +230,18 @@ static func apply_shield(combat, tgt: Unit, value: int) -> void:
 	tgt.shield = min(cap, tgt.shield + v)
 	EventBus.float_text.emit(tgt.uid, "+%d" % v, "shd", 0)
 	EventBus.hp_changed.emit(tgt.uid, tgt.hp, tgt.max_hp, tgt.shield)
-	if tgt.side == "p" and tgt.cls == "plant" and tgt.shield >= 10:
-		tgt.status["thorns"] = min(StatusEngine.THORNS_CAP, max(int(tgt.status.get("thorns", 0)), 2))
+	if tgt.side == "p" and tgt.cls == "plant" and tgt.shield >= int(RelicHooks.field(combat, "bulwark_at", 10.0)):
+		tgt.status["thorns"] = min(StatusEngine.THORNS_CAP, max(int(tgt.status.get("thorns", 0)), int(RelicHooks.field(combat, "bulwark_thorns", 2.0))))
 	if tgt.side == "p":
 		RelicHooks.fire(combat, "on_shield", {"v": v, "tgt": tgt, "combat": combat})
 
 
-static func on_enemy_death(combat, e: Unit) -> void:
+static func on_enemy_death(combat, e: Unit, killer: Unit = null) -> void:
 	if e._dead:
 		return
 	e._dead = true
 	combat.stat["kills"] = int(combat.stat.get("kills", 0)) + 1
-	RelicHooks.fire(combat, "on_kill", {"tgt": e, "combat": combat})
+	RelicHooks.fire(combat, "on_kill", {"tgt": e, "combat": combat, "killer": killer})
 
 
 ## Boss on-damage traits (engine.js checkBossPhase, engine.js:877-888). Called for every

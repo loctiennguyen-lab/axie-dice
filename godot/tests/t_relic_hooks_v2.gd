@@ -21,6 +21,8 @@ func _ready() -> void:
 	test_heirloom()
 	test_devilsreroll()
 	test_twinfates()
+	test_pacts_v2()
+	test_class_ups()
 	test_tithepips()
 	test_amberdie()
 	test_tweaks()
@@ -356,6 +358,189 @@ func test_devilsreroll() -> void:
 	_assert(c.can_reroll(uids) and c.reroll_dice(uids, 9), "devilsreroll: with Mana the Reroll works")
 	_assert(c.mana == 1 and c.rerolls == r0 - 1, "devilsreroll: it cost exactly 1 Mana")
 	_assert(c.reroll_dice([c.party[1].uid], 9, true) and c.mana == 0, "devilsreroll: an Aid Reroll costs 1 Mana too")
+
+
+func test_pacts_v2() -> void:
+	# ironvow: shield x1.5 (round half up), +2 Thorns team, dmg faces -2 (floor 1).
+	var b := _combat([], 91)
+	var c := _combat(["r_ironvow"], 91)
+	for i in c.party.size():
+		var bu: Unit = b.party[i]
+		var u: Unit = c.party[i]
+		_assert(int(u.status.get("thorns", 0)) == int(bu.status.get("thorns", 0)) + 2, "ironvow: +2 Thorns on Axie %d" % i)
+		for fi in 6:
+			var bv := int(bu.die[fi].get("value", 0))
+			if String(bu.die[fi].get("type", "")) == "dmg" and bv > 0:
+				_assert(int(u.die[fi]["value"]) == maxi(1, bv - 2), "ironvow: dmg face %d/%d -2 min 1" % [i, fi])
+	var t: Unit = c.party[1]
+	var bt: Unit = b.party[1]
+	t.shield = 0
+	bt.shield = 0
+	DamagePipeline.apply_shield(c, t, 6)
+	DamagePipeline.apply_shield(b, bt, 6)
+	_assert(t.shield == int(RulesMath.round_half_up(float(bt.shield) * 1.5)), "ironvow: Shield x1.5 (%d vs %d)" % [t.shield, bt.shield])
+	var e: Unit = c.alive_enemies()[0]
+	e.shield = 0
+	DamagePipeline.apply_shield(c, e, 6)
+	_assert(e.shield == 6, "ironvow: enemy Shield untouched")
+	# lonewolf: only slot 1 may reroll.
+	var w := _combat(["r_lonewolf"], 92)
+	w.mana = 9
+	_assert(w.can_reroll([w.party[0].uid]), "lonewolf: slot 1 can reroll")
+	for i in range(1, 5):
+		_assert(not w.can_reroll([w.party[i].uid]), "lonewolf: slot %d cannot reroll" % (i + 1))
+	var rr := w.rerolls
+	_assert(w.reroll_dice([w.party[0].uid, w.party[2].uid], 5) and w.rerolls == rr - 1, "lonewolf: mixed set rerolls only slot 1")
+	# lonewolf G: +100% only for slot 1 (g_axie).
+	_assert(is_equal_approx(RelicHooks.g_axie(w, w.party[0]), 2.0) and is_equal_approx(RelicHooks.g_axie(w, w.party[1]), 1.0), "lonewolf: G +100% on slot 1 only")
+	# hollowchalice: active cost -2 (min 1), Mana faces give 0.
+	var h := _combat(["r_hollowchalice", "a_restore"], 93)
+	var cost0 := int(RelicRegistry.get_def("a_restore").act_cost)
+	h.mana = 9
+	var m0 := h.mana
+	_assert(h.play_active("a_restore", h.party[0].uid), "chalice: active plays")
+	_assert(m0 - h.mana == maxi(1, cost0 - 2), "chalice: active cost %d -> %d" % [cost0, m0 - h.mana])
+	# the view's affordability check goes through active_cost(): cost-4 active playable at mana 2
+	var ch := _combat(["r_hollowchalice", "a_restore"], 93)
+	var rdef = RelicRegistry.get_def("a_restore")
+	var raw_cost := int(rdef.act_cost)
+	_assert(ch.active_cost(rdef) == maxi(1, raw_cost - 2) and ch.active_cost("a_restore") == ch.active_cost(rdef), "chalice: active_cost() applies the hook")
+	ch.mana = maxi(1, raw_cost - 2)
+	_assert(ch.mana < raw_cost and ch.mana >= ch.active_cost(rdef), "chalice: view affordability agrees (mana %d, raw %d)" % [ch.mana, raw_cost])
+	_assert(ch.play_active("a_restore", ch.party[0].uid), "chalice: playable below raw cost")
+	var u2: Unit = h.party[0]
+	var mfi := -1
+	for fi in 6:
+		if String(u2.die[fi].get("type", "")) == "mana":
+			mfi = fi
+	if mfi < 0:
+		u2.die[2] = {"type": "mana", "value": 3, "keywords": []}
+		mfi = 2
+	_assert(h._face_value(u2, mfi) == 0, "chalice: Mana face gives 0")
+	var h0 := _combat([], 93)
+	h0.party[0].die[mfi] = {"type": "mana", "value": 3, "keywords": []}
+	_assert(h0._face_value(h0.party[0], mfi) >= 3, "chalice: baseline Mana face is not 0")
+
+
+func test_class_ups() -> void:
+	var keys := ["plant1", "beast1", "aqua1", "reptile1", "bird1"]
+	var wounded := func(c: CombatEngine, frac: float) -> Unit:
+		var e: Unit = c.alive_enemies()[0]
+		e.max_hp = 100
+		e.hp = int(100.0 * frac)
+		return e
+	# alphafang: FERAL x1.6 now up to 65% HP, not at 70%; Execute-only (non beast) stays at 50%.
+	var b := _combat([], 101, keys)
+	var a := _combat(["r_alphafang"], 101, keys)
+	for pair in [[b, false], [a, true]]:
+		var c: CombatEngine = pair[0]
+		var e: Unit = wounded.call(c, 0.6)
+		e.shield = 0
+		var hp0 := e.hp
+		DamagePipeline.resolve({"combat": c, "src": c.party[1], "tgt": e, "value": 10, "attack": true, "face_type": "dmg"})
+		var want := 16 if bool(pair[1]) else 10
+		_assert(hp0 - e.hp == want, "alphafang: beast at 60%% HP takes %d (got %d)" % [want, hp0 - e.hp])
+	var e2: Unit = wounded.call(a, 0.7)
+	e2.shield = 0
+	var h2 := e2.hp
+	DamagePipeline.resolve({"combat": a, "src": a.party[1], "tgt": e2, "value": 10, "attack": true, "face_type": "dmg"})
+	_assert(h2 - e2.hp == 10, "alphafang: beast at 70% HP no FERAL")
+	var a3 := _combat(["r_alphafang"], 101, keys)
+	var rr := a3.rerolls
+	a3.alive_enemies()[0].hp = 3
+	DamagePipeline.resolve({"combat": a3, "src": a3.party[1], "tgt": a3.alive_enemies()[0], "value": 10, "attack": true, "face_type": "dmg"})
+	_assert(a3.rerolls == rr + 1, "alphafang: beast face kill refunds 1 Reroll")
+	var a2 := _combat(["r_alphafang"], 101, keys)
+	var rr2 := a2.rerolls
+	a2.alive_enemies()[0].hp = 2
+	DamagePipeline.resolve({"combat": a2, "src": null, "tgt": a2.alive_enemies()[0], "value": 10, "attack": false, "face_type": "dmg"})
+	var a4 := _combat(["r_alphafang"], 101, keys)
+	a4.alive_enemies()[0].hp = 2
+	DamagePipeline.resolve({"combat": a4, "src": a4.party[0], "tgt": a4.alive_enemies()[0], "value": 999, "attack": true, "face_type": "dmg"})
+	_assert(a2.rerolls == rr2 and a4.rerolls == rr2, "alphafang: tick kill and non-beast kill refund nothing")
+	# alphafang: an AoE beast face that kills counts as a beast-face kill
+	var a5 := _combat(["r_alphafang"], 101, keys)
+	var rr5 := a5.rerolls
+	var bu: Unit = a5.party[1]
+	bu.die[0] = {"type": "dmg", "value": 50, "keywords": ["aoe"]}
+	bu.set_roll(0, false)
+	for en in a5.alive_enemies():
+		en.hp = 1
+		en.shield = 0
+	_assert(a5.use_die(bu.uid, bu.uid), "alphafang: aoe face used")
+	_assert(a5.rerolls == rr5 + 1, "alphafang: AoE beast face kill refunds 1 Reroll (once per turn)")
+	# falconhood: pierce +5 for bird (was +3); bird pierce ignores Thorns.
+	var fb := _combat([], 102, keys)
+	var fc := _combat(["r_falconhood"], 102, keys)
+	var dmg := []
+	for c in [fb, fc]:
+		var e: Unit = c.alive_enemies()[0]
+		e.shield = 0
+		e.status["thorns"] = 3
+		var h: int = e.hp
+		var bh: int = c.party[4].hp
+		DamagePipeline.resolve({"combat": c, "src": c.party[4], "tgt": e, "value": 5, "pierce": true, "attack": true, "face_type": "dmg"})
+		dmg.append([h - e.hp, bh - c.party[4].hp])
+	_assert(dmg[0][0] == 8 and dmg[1][0] == 10, "falconhood: pierce +3 -> +5 (%s)" % str(dmg))
+	_assert(dmg[0][1] == 3 and dmg[1][1] == 0, "falconhood: bird pierce ignores Thorns (%s)" % str(dmg))
+	# heartrootgrove: Thorns 3 from 6 Shield; end of turn Plant >=10 Shield gives neighbours 3.
+	var hb := _combat([], 103, keys)
+	var hc := _combat(["r_heartrootgrove"], 103, keys)
+	for c in [hb, hc]:
+		var p: Unit = c.party[0]
+		p.shield = 0
+		p.status["thorns"] = 0
+		DamagePipeline.apply_shield(c, p, 4)   # +2 plant bonus = 6
+	_assert(int(hb.party[0].status.get("thorns", 0)) == 0 and int(hc.party[0].status["thorns"]) == 3, "heartroot: Thorns 3 at 6 Shield")
+	var beast: Unit = hc.party[1]
+	var sh0: int = beast.shield
+	hc.party[0].shield = 12
+	RelicHooks.fire(hc, "on_turn_end", {"combat": hc})
+	_assert(beast.shield == sh0 + 3, "heartroot: neighbour +3 Shield at turn end")
+	# shedskin: Thorns 4 at start, thorns poison 2, hit with no Shield -> +4 Shield once a turn.
+	var sc := _combat(["r_shedskin"], 104, keys)
+	var rep: Unit = sc.party[3]
+	_assert(int(rep.status.get("thorns", 0)) == 4, "shedskin: SCALES Thorns 4")
+	rep.shield = 0
+	var atk: Unit = sc.alive_enemies()[0]
+	atk.hp = atk.max_hp
+	atk.status["poison"] = 0
+	DamagePipeline.resolve({"combat": sc, "src": atk, "tgt": rep, "value": 3, "attack": true, "face_type": "dmg"})
+	_assert(rep.shield == 4, "shedskin: unshielded Reptile hit gains 4 Shield (%d)" % rep.shield)
+	_assert(int(atk.status.get("poison", 0)) == 2, "shedskin: Thorns apply Poison 2 (%d)" % int(atk.status.get("poison", 0)))
+	rep.shield = 0
+	DamagePipeline.resolve({"combat": sc, "src": atk, "tgt": rep, "value": 3, "attack": true, "face_type": "dmg"})
+	_assert(rep.shield == 0, "shedskin: Shield trigger once per turn")
+	# tidecaller: 1 Reroll per 3 Mana (CONDUIT), Aqua Mana faces +1.
+	var tb := _combat([], 105, keys)
+	var tc := _combat(["r_tidecaller", "a_restore"], 105, keys)
+	for fi in 6:
+		if String(tb.party[2].die[fi].get("type", "")) == "mana":
+			_assert(int(tc.party[2].die[fi]["value"]) == int(tb.party[2].die[fi]["value"]) + 1, "tidecaller: aqua mana face +1")
+	var r0: int = tc.rerolls
+	tc.mana_spent = 3
+	tc._grant_conduit_rerolls()
+	_assert(tc.rerolls == r0 + 1, "tidecaller: 3 Mana spent = 1 Reroll")
+	var r1: int = tb.rerolls
+	tb.mana_spent = 3
+	tb._grant_conduit_rerolls()
+	_assert(tb.rerolls == r1, "tidecaller baseline: 3 Mana is not enough")
+	# venomlineage: VIRULENT +3 on already-poisoned target; first Poison each turn spreads 1 to neighbours.
+	var vk := ["bug1", "beast1", "aqua1", "reptile1", "bird1"]
+	var vc := _combat(["r_venomlineage"], 106, vk)
+	var bug: Unit = vc.party[0]
+	var ens: Array = vc.alive_enemies()
+	if ens.size() >= 2 and bug.cls == "bug":
+		for x in ens:
+			x.status["poison"] = 0
+		ens[1].status["poison"] = 0
+		StatusEngine.add_status(vc, ens[1], ["poison:1"], bug)
+		_assert(int(ens[1].status["poison"]) == 1 and int(ens[0].status.get("poison", 0)) == 1, "venomlineage: first Poison spreads 1 to neighbour")
+		StatusEngine.add_status(vc, ens[1], ["poison:1"], bug)
+		_assert(int(ens[1].status["poison"]) == 5, "venomlineage: already poisoned +3 (%d)" % int(ens[1].status["poison"]))
+		_assert(int(ens[0].status.get("poison", 0)) == 1, "venomlineage: spread only once per turn")
+	else:
+		_assert(false, "venomlineage: need a bug lead and 2 enemies")
 
 
 func test_twinfates() -> void:

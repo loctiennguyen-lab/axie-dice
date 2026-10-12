@@ -209,7 +209,7 @@ func setup_new(combat_setup: Dictionary) -> void:
 
 	for u in party:                                                    # SCALES passive
 		if u.cls == "reptile":
-			u.status["thorns"] = max(int(u.status.get("thorns", 0)), 2)
+			u.status["thorns"] = max(int(u.status.get("thorns", 0)), int(RelicHooks.field(self, "scales_thorns", 2.0)))
 
 	# JS: `s.enemies.forEach(e => { if(e.permThorns) e.st.thorns = e.permThorns; })`
 	# (engine.js:424). Without this the MECHA CHIMERA's RETALIATE trait — its entire
@@ -655,7 +655,8 @@ func _rerollable(uids: Array) -> Array:
 	for raw_id in uids:
 		var u := by_uid(int(raw_id))
 		if u != null and u.side == "p" and u.hp > 0 and u.has_rolled() and not u.roll_used() \
-				and not u.heavy and not u.frozen:
+				and not u.heavy and not u.frozen \
+				and bool(RelicHooks.run_value_hook(self, "reroll_allowed", {"combat": self, "unit": u}, true)):
 			list.append(u)
 	return list
 
@@ -679,6 +680,15 @@ static func _int_list(a: Array) -> Array:
 ## used up this turn, or given an illegal target. That last case matters: JS originally had
 ## no `else` on the kind dispatch, so an unrecognised kind still charged the mana and burned
 ## the turn's use while doing nothing.
+## Mana cost of an active after relic hooks (hollowchalice etc). Accepts a RelicDef or a relic id.
+## The UI must use this, never the raw def.act_cost, for affordability.
+func active_cost(def_or_id) -> int:
+	var d = RelicRegistry.get_def(def_or_id) if def_or_id is String else def_or_id
+	if d == null:
+		return 0
+	return int(RelicHooks.run_value_hook(self, "active_cost", {"combat": self, "def": d}, int(d.act_cost)))
+
+
 func play_active(relic_id: String, target_uid: int = -1) -> bool:
 	if won or lost:
 		return false
@@ -688,7 +698,7 @@ func play_active(relic_id: String, target_uid: int = -1) -> bool:
 	var a: Dictionary = def.act if "act" in def else {}
 	if a.is_empty():
 		return false
-	var cost := int(def.act_cost)
+	var cost := active_cost(def)
 	if mana < cost:
 		return false
 
@@ -844,7 +854,7 @@ func _grant_conduit_rerolls() -> void:
 			break
 	if not has_aqua:
 		return
-	var gained: int = int(floor(mana_spent / 4.0)) - _cond_given
+	var gained: int = int(floor(mana_spent / RelicHooks.field(self, "conduit_step", 4.0))) - _cond_given
 	if gained > 0:
 		rerolls += gained
 		_cond_given += gained
@@ -1027,7 +1037,7 @@ func _face_value(u: Unit, fi: int) -> int:
 		v += 1.0                                                        # CONDUIT passive
 	if u.side == "p" and u.resonant_now:
 		v = ceil(v * RESONANCE_MULT)
-	return int(v)
+	return int(RelicHooks.run_value_hook(self, "face_final", {"combat": self, "unit": u, "face_type": face_type}, int(v)))
 
 
 func _pure_keywords(f: Dictionary) -> Array:

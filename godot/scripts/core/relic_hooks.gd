@@ -1134,6 +1134,129 @@ static var TABLE: Dictionary = {
 			var fi2: int = ctx["combat"]._rng.next_int(6)
 			return fi2 if int(u.die[fi2].get("value", 0)) > int(u.die[fi].get("value", 0)) else fi,
 	},
+	"r_ironvow": {
+		# Pact (dice group, axis A:shield). Benefit: every Shield a party Axie gains x1.5 (`shield_value`,
+		# DamagePipeline.apply_shield) and the whole team starts each fight with +2 Thorns. Drawback: every
+		# dmg face -2 but never below 1 (mul phase, so it lands after the +N relics). Faces already 0 stay 0.
+		"mod_face": func(ctx: Dictionary):
+			for f in ctx["unit"].die:
+				if String(f.get("type", "")) == "dmg" and int(f.get("value", 0)) > 0:
+					f["value"] = maxi(1, int(f.get("value", 0)) - 2)
+			return,
+		"shield_value": func(ctx: Dictionary):
+			var tgt: Unit = ctx["tgt"]
+			if tgt.side != "p":
+				return ctx["value"]
+			var m := 1.0 + RelicHooks.axis_sum(ctx["combat"], "A:shield")
+			return RulesMath.round_half_up(float(ctx["value"]) * m),
+		"on_combat_start": func(ctx: Dictionary):
+			for u in ctx["combat"].party:
+				if u.hp > 0:
+					u.status["thorns"] = mini(StatusEngine.THORNS_CAP, int(u.status.get("thorns", 0)) + 2)
+			return,
+	},
+	"r_lonewolf": {
+		# Pact (reroll group, axis G). Benefit is `g_axie` (slot 1 only, +100%). Drawback: only the Axie
+		# in slot 1 may be rerolled; CombatEngine._rerollable asks `reroll_allowed` per Axie.
+		"reroll_allowed": func(ctx: Dictionary):
+			return RelicHooks.slot_of(ctx["unit"]) == 0 and bool(ctx["value"]),
+	},
+	"r_hollowchalice": {
+		# Pact (mana group). +1 active slot is RelicSlots (chalice_id). Every active costs 2 less Mana
+		# (min 1) via `active_cost`; every Mana face gives 0 after ALL mods (`face_final`).
+		"active_cost": func(ctx: Dictionary):
+			return maxi(1, int(ctx["value"]) - 2),
+		"face_final": func(ctx: Dictionary):
+			if String(ctx["face_type"]) == "mana" and ctx["unit"].side == "p":
+				return 0
+			return ctx["value"],
+	},
+	"r_alphafang": {
+		# Class-up (beast). FERAL threshold 65% (FERAL only). A Beast Axie's face kill refunds 1 Reroll,
+		# once per turn, through grant_relic_reroll (4/turn cap). Ticks/thorns/relic kills pass killer null.
+		"class_field": func(ctx: Dictionary):
+			return 0.65 if ctx["key"] == "feral_threshold" else ctx["value"],
+		"on_kill": func(ctx: Dictionary):
+			var k = ctx.get("killer", null)
+			if k != null and k.cls == "beast" and RelicHooks.once_per_turn(ctx["combat"], "alphafang_t"):
+				ctx["combat"].grant_relic_reroll(1)
+			return,
+	},
+	"r_falconhood": {
+		# Class-up (bird). TALON +5 (was +3); a Bird's Pierce hit ignores Thorns.
+		"class_field": func(ctx: Dictionary):
+			if ctx["key"] == "talon_pierce":
+				return 5.0
+			if ctx["key"] == "talon_ignore_thorns":
+				return 1.0
+			return ctx["value"],
+	},
+	"r_heartrootgrove": {
+		# Class-up (plant). BULWARK: Thorns 3 from >=6 Shield (was 2 from 10). End of turn a Plant with
+		# >=10 Shield gives 3 Shield to each adjacent Axie.
+		"class_field": func(ctx: Dictionary):
+			if ctx["key"] == "bulwark_at":
+				return 6.0
+			if ctx["key"] == "bulwark_thorns":
+				return 3.0
+			return ctx["value"],
+		"on_turn_end": func(ctx: Dictionary):
+			var c = ctx["combat"]
+			for u in RelicHooks.party_line(c):
+				if u.cls == "plant" and u.shield >= 10:
+					for n in RelicHooks.slot_neighbors(c, u):
+						DamagePipeline.apply_shield(c, n, 3)
+			return,
+	},
+	"r_shedskin": {
+		# Class-up (reptile). SCALES: Thorns 4 (was 2), Thorns poison 2 (was 1). A Reptile hit while it had
+		# no Shield gains 4 Shield (once per turn per Axie).
+		"class_field": func(ctx: Dictionary):
+			if ctx["key"] == "scales_thorns":
+				return 4.0
+			if ctx["key"] == "scales_poison":
+				return 2.0
+			return ctx["value"],
+		"on_dmg_taken": func(ctx: Dictionary):
+			var t: Unit = ctx["tgt"]
+			if t.side == "p" and t.cls == "reptile" and t.hp > 0 and not bool(ctx.get("had_shield", true)) \
+					and RelicHooks.once_per_turn(ctx["combat"], "shedskin_%d" % t.uid):
+				DamagePipeline.apply_shield(ctx["combat"], t, 4)
+			return,
+	},
+	"r_tidecaller": {
+		# Class-up (aqua). CONDUIT: 1 Reroll per 3 Mana spent (was 4); Aqua Mana faces +1 more.
+		# The "may exceed max by up to 2" clause needs no code: CONDUIT rerolls are not clamped to max today.
+		"class_field": func(ctx: Dictionary):
+			return 3.0 if ctx["key"] == "conduit_step" else ctx["value"],
+		"mod_face": func(ctx: Dictionary):
+			var u: Unit = ctx["unit"]
+			if u.cls == "aqua":
+				for f in u.die:
+					if String(f.get("type", "")) == "mana":
+						f["value"] = int(f.get("value", 0)) + 1
+			return,
+	},
+	"r_venomlineage": {
+		# Class-up (bug). VIRULENT +3 (was +2); a Bug's first Poison each turn also puts 1 stack on each
+		# neighbouring enemy.
+		"class_field": func(ctx: Dictionary):
+			return 3.0 if ctx["key"] == "virulent_bonus" else ctx["value"],
+		"on_poison_applied": func(ctx: Dictionary):
+			var s = ctx.get("src", null)
+			var t: Unit = ctx["tgt"]
+			if s == null or s.side != "p" or s.cls != "bug" or t.side != "e":
+				return
+			if not RelicHooks.once_per_turn(ctx["combat"], "venomlin_%d" % s.uid):
+				return
+			var arr: Array = ctx["combat"].alive_enemies()
+			var i := arr.find(t)
+			for x in [arr[i - 1] if i > 0 else null, arr[i + 1] if i >= 0 and i < arr.size() - 1 else null]:
+				if x != null:
+					x.status["poison"] = int(x.status.get("poison", 0)) + 1
+					EventBus.float_text.emit(x.uid, "PSN 1", "poi", 0)
+			return,
+	},
 	"r_tithepips": {
 		# Pact (dice group): +3 Mana each turn; after every roll the lowest-value face is blanked (exactly
 		# one, living non-Egg Axies with an unused face, tie to the lower slot). Recomputed at every settle.
@@ -1665,6 +1788,8 @@ static func _owned_defs(combat) -> Array:
 ## (combat.relic_ids order) — mirrors JS `for(const r of rlist(s)) if(r.modDmg) v=r.modDmg(...)`.
 ## No-op today (no relics loaded): returns `value` unchanged.
 static func run_value_hook(combat, event: String, ctx: Dictionary, value) -> Variant:
+	if not _declares(combat, event):
+		return value
 	var v = value
 	for def in _owned_defs(combat):
 		var hk: String = def.hook_key if "hook_key" in def else ""
@@ -1674,6 +1799,28 @@ static func run_value_hook(combat, event: String, ctx: Dictionary, value) -> Var
 		if TABLE.has(hk) and (TABLE[hk] as Dictionary).has(event):
 			v = (TABLE[hk] as Dictionary)[event].call(ctx)
 	return v
+
+## True when at least one owned relic declares a handler for `event`. Cached on the combat object,
+## keyed by the relic_ids signature, so a pickup mid-combat invalidates it. Hot-path guard only:
+## skipping is result-identical because run_value_hook returns `value` untouched with no handler.
+static func _declares(combat, event: String) -> bool:
+	if combat == null or not (combat is Object) or not ("relic_ids" in combat):
+		return true
+	var sig: int = (combat.relic_ids as Array).hash()
+	var cache: Dictionary = combat.get_meta("_hook_decl", {})
+	if cache.get("sig", -1) != sig or not cache.has("ev"):
+		cache = {"sig": sig, "ev": {}}
+		combat.set_meta("_hook_decl", cache)
+	var ev: Dictionary = cache["ev"]
+	if not ev.has(event):
+		var found := false
+		for def in _owned_defs(combat):
+			var hk: String = def.hook_key if "hook_key" in def else ""
+			if hk != "" and TABLE.has(hk) and (TABLE[hk] as Dictionary).has(event):
+				found = true
+				break
+		ev[event] = found
+	return bool(ev[event])
 
 ## Fires every owned relic's hook for `event`, ignoring return values (pure side-effect
 ## hooks: onHit/onKill/onShield/onThorns/onDmgTaken/onTurnStart/onRollEnd). No-op today.
@@ -1737,6 +1884,11 @@ static func g_axie(combat, src) -> float:
 	if src != null:
 		b += float(src.g_oc_bonus)
 	return minf(RelicSlots.tuning().g_cap, 1.0 + b)
+
+## FIELD hook: class-passive numbers (FERAL threshold, TALON pierce, BULWARK, SCALES, CONDUIT step,
+## VIRULENT). Call sites pass the base value; owned class-upgrade relics answer `class_field` by key.
+static func field(combat, key: String, base: float) -> float:
+	return float(run_value_hook(combat, "class_field", {"combat": combat, "key": key}, base))
 
 static func sum(combat, field: String, default_value: float = 0.0) -> float:
 	var total := default_value
