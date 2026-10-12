@@ -29,6 +29,7 @@ const SCENES := [
 	"res://scenes/vault/Vault.tscn",
 	"res://scenes/guides/Guides.tscn",
 	"res://scenes/codex/Codex.tscn",
+	"res://scenes/run_setup/RunSetup.tscn",
 	"res://scenes/settings/Settings.tscn",
 	"res://scenes/tutorial/Tutorial.tscn",
 	"res://scenes/combat/Combat.tscn",
