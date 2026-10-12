@@ -20,6 +20,7 @@ func _make(st := "normal") -> MissionsScreen:
 	s.use_account = false
 	s.remote_on = true
 	s.no_scene_change = true
+	s.test_mode = true
 	s.day_override = "2026-10-12"
 	add_child(s)
 	await get_tree().process_frame
@@ -71,6 +72,24 @@ func _ready() -> void:
 	_ok((m.rules as Array) == (s.offer("N2").rules as Array), "mission rules = today's rule set")
 	MetaState.refund_mission_stake()
 	_ok(MetaState.shard_pool == before, "refund restores the pool")
+	# re-entrancy: a second start() while the first awaits begin_run takes no second stake
+	var slow_n := [0]
+	s.start_hook = func(_p: Dictionary) -> Dictionary:
+		slow_n[0] += 1
+		await s.get_tree().create_timer(0.1).timeout
+		return {"ok": true, "code": ""}
+	var pool0 := MetaState.shard_pool
+	var fres: Array = [{}]
+	var runner := func() -> void:
+		fres[0] = await s.start("N1")
+	runner.call()
+	var second: Dictionary = await s.start("N1")
+	await get_tree().create_timer(0.3).timeout
+	var fr: Dictionary = fres[0]
+	_ok(String(second.get("code", "")) == "busy" and fr.ok and slow_n[0] == 1, "second start while busy is refused")
+	_ok(MetaState.shard_pool == pool0 - int(cfg.tiers.N1.stake), "exactly one stake taken")
+	MetaState.refund_mission_stake()
+	_ok(MetaState.shard_pool == pool0, "pool restored after double-start test")
 	# run start fails -> stake refunded
 	s.start_hook = func(_p: Dictionary) -> Dictionary: return {"ok": false, "code": "busy"}
 	var bf: Dictionary = await s.start("N1")

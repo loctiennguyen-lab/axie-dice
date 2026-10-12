@@ -26,6 +26,9 @@ var account_status_hook: Callable
 
 ## Tests: Callable(params) -> {ok, code}; default RunState.begin_run.
 var start_hook: Callable
+## start_hook is only honoured when a test sets this; the game path always uses RunState.begin_run.
+var test_mode := false
+var _starting := false
 var begin_error := ""
 var day_override := ""
 
@@ -96,7 +99,7 @@ func usable_shards() -> int:
 
 ## Why this tier cannot be staked right now, or "" when it can.
 ## Order: account/open run, tier lock, balance.
-func block_reason(tier_id: String) -> String:
+func block_reason(tier_id: String, own_start := false) -> String:
 	var o := offer(tier_id)
 	if o.is_empty():
 		return "Unknown mission"
@@ -104,6 +107,8 @@ func block_reason(tier_id: String) -> String:
 		return "Finish or abandon your open run first"
 	if state == "loading":
 		return "Loading..."
+	if _starting and not own_start:
+		return "Starting..."
 	if _account_blocks():
 		return "Needs a connection" if state == "offline" else "Sign in to stake Shard"
 	if not bool(o.unlocked):
@@ -185,11 +190,23 @@ func mission_params(tier_id: String, mission_id: String = "") -> Dictionary:
 
 ## Take the stake (MetaState escrow), then start the run with the mission header. {ok, code}.
 func start(tier_id: String) -> Dictionary:
+	if _starting:
+		return {"ok": false, "code": "busy"}
+	_starting = true
+	_refresh()   # block_reason() reports "Starting..." so every stake button is disabled
+	var res := await _start_inner(tier_id)
+	_starting = false
+	if is_inside_tree():
+		_refresh()
+	return res
+
+
+func _start_inner(tier_id: String) -> Dictionary:
 	if use_account and state in ["normal", "offline", "guest"]:
 		var d := derive_state()
 		if d != state:
 			set_state(d)
-	if block_reason(tier_id) != "":
+	if block_reason(tier_id, true) != "":
 		return {"ok": false, "code": "blocked"}
 	var o := offer(tier_id)
 	var mid := MetaState.take_mission_stake(tier_id, int(o.stake))
@@ -197,7 +214,7 @@ func start(tier_id: String) -> Dictionary:
 		_banner("Could not take the stake", "Nothing was spent.", true)
 		return {"ok": false, "code": "stake"}
 	var params := mission_params(tier_id, mid)
-	var r: Dictionary = (await start_hook.call(params)) if start_hook.is_valid() else (await RunState.begin_run(params))
+	var r: Dictionary = (await start_hook.call(params)) if (test_mode and start_hook.is_valid()) else (await RunState.begin_run(params))
 	if not r.get("ok", false):
 		MetaState.refund_mission_stake()
 		begin_error = "Could not start the mission, try again."
