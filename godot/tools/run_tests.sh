@@ -5,6 +5,18 @@
 # a line containing "FAIL" (tests also set exit codes via quit(1) where they can).
 set -uo pipefail
 
+# KHOÁ TOÀN CỤC (L1, 12/10): mọi lần chạy Godot trên máy này phải qua with_lock.sh, vì mọi worktree
+# dùng chung user://. Chạy thẳng script này sẽ tự xin khoá rồi chạy lại chính nó trong khoá.
+# Xem production/l1-lanes.md. AXIE_GODOT_LOCK_HELD=1 nghĩa là đã giữ khoá rồi.
+if [[ "${AXIE_GODOT_LOCK_HELD:-}" != 1 ]]; then
+  exec bash "$(dirname "${BASH_SOURCE[0]}")/with_lock.sh" bash "${BASH_SOURCE[0]}" "$@"
+fi
+
+# Cờ cho worktree của làn (không phải làn I): AXIE_SKIP_RULES_FINGERPRINT=1 -> t_rules_version
+# báo SKIP thay vì FAIL (FINGERPRINT chỉ làn I được tính lại, nên nó đỏ trong mọi worktree đã
+# sửa scripts/core/ hoặc autoload/). Làn I và CI KHÔNG BAO GIỜ đặt cờ này. Mặc định: chạy như cũ.
+SKIP_FP="${AXIE_SKIP_RULES_FINGERPRINT:-}"
+
 # Godot binary: the Mac editor build when present, otherwise the Linux build vendored in
 # tools/bin/ (container, CI, headless box). Override with GODOT=/path/to/godot.
 _default_godot() {
@@ -65,7 +77,10 @@ _save_restore() {
 SAVE_FP0="$(_save_fp "$SAVE_SNAP")"
 trap '_save_restore; rm -rf "$SAVE_SNAP"' EXIT
 
-pass=0; fail=0; failed_names=()
+pass=0; fail=0; skip=0; failed_names=()
+if [[ "$SKIP_FP" == 1 ]]; then
+  printf '\033[33m!! AXIE_SKIP_RULES_FINGERPRINT=1: t_rules_version BỊ BỎ QUA. Xanh ở đây KHÔNG có nghĩa là xanh ở godot-port; làn I chạy đủ sau merge.\033[0m\n'
+fi
 
 # Two kinds of test live side by side: scene tests (t_*.tscn, a Node _ready())
 # and SceneTree tests (t_*.gd with no .tscn, run via --script). Run both.
@@ -78,6 +93,10 @@ done
 
 for target in "${targets[@]}"; do
   kind="${target%%:*}"; name="${target#*:}"
+  if [[ "$SKIP_FP" == 1 && "$name" == t_rules_version ]]; then
+    skip=$((skip+1)); printf '  \033[33mSKIP\033[0m  %s — AXIE_SKIP_RULES_FINGERPRINT=1 (chỉ làn I được chạy gate này)\n' "$name"
+    continue
+  fi
   if [[ "$kind" == scene ]]; then
     out="$("$GODOT" --headless --path "$PROJ" "res://tests/$name.tscn" 2>&1)"
   else
@@ -107,5 +126,9 @@ for target in "${targets[@]}"; do
 done
 
 echo
-echo "================ $((pass+fail)) tests: $pass passed, $fail failed ================"
+if [[ $skip -gt 0 ]]; then
+  echo "================ $((pass+fail)) tests: $pass passed, $fail failed, $skip SKIPPED (t_rules_version — KHÔNG phải bản xanh đủ) ================"
+else
+  echo "================ $((pass+fail)) tests: $pass passed, $fail failed ================"
+fi
 if [[ $fail -gt 0 ]]; then printf 'failed: %s\n' "${failed_names[*]}"; exit 1; fi

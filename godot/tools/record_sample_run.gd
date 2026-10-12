@@ -12,8 +12,15 @@ extends Node
 ## trip IS the anti-cheat, run by hand.
 
 
+## Cả hai tool này chơi qua MetaState/RunState (autoload ghi vào save thật). SaveGuard chép save
+## trước và trả lại sau, để chạy tool không đè progress của người chơi (L1, 12/10). Chạy qua
+## godot/tools/with_lock.sh như mọi lần chạy Godot khác.
+var _guard := SaveGuard.new()
+
+
 func _ready() -> void:
 	await get_tree().process_frame
+	_guard.capture()
 	var args := _parse_args(OS.get_cmdline_user_args())
 	var seed_value := int(args.get("seed", 991237))
 	var out_path := String(args.get("out", "user://sample_run_log.json"))
@@ -23,6 +30,7 @@ func _ready() -> void:
 	var f := FileAccess.open(out_path, FileAccess.WRITE)
 	if f == null:
 		print("record_sample_run: cannot write '%s'" % out_path)
+		_guard.restore()
 		get_tree().quit(2)
 		return
 	f.store_string(JSON.stringify(log.to_data()))
@@ -31,6 +39,7 @@ func _ready() -> void:
 	print("record_sample_run: seed=%d actions=%d score=%d won=%s complete=%s -> %s"
 		% [seed_value, log.size(), int(played["score"]), str(played["won"]),
 			str(log.is_complete()), out_path])
+	_guard.restore()
 	get_tree().quit(0)
 
 

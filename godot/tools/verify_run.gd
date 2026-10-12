@@ -22,8 +22,14 @@ const EXIT_REJECTED := 1
 const EXIT_INPUT := 2
 
 
+## Replay chạm RunState/MetaState (autoload ghi vào save thật): SaveGuard chép save trước và trả
+## lại ở _emit, trước khi quit. Chạy qua godot/tools/with_lock.sh (L1, 12/10).
+var _guard := SaveGuard.new()
+
+
 func _ready() -> void:
 	await get_tree().process_frame
+	_guard.capture()
 	var args := _parse_args(OS.get_cmdline_user_args())
 	var log_path := String(args.get("log", ""))
 	if log_path.is_empty():
@@ -76,6 +82,7 @@ func _emit(verdict: Dictionary, out_path: String, code: int) -> void:
 		if f != null:
 			f.store_string(text)
 			f.close()
+	_guard.restore()
 	get_tree().quit(code)
 
 
