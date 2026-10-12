@@ -255,6 +255,7 @@ func _on_me(code: int, text: String) -> void:
 		else:
 			account = me
 			_write_json("", ACCOUNT_PATH, account)
+		_attach_remote_wallet()
 		transport.call("GET", "/api/save", "", _on_save_fetched)
 	elif code == 401:
 		if account.is_empty():
@@ -492,7 +493,31 @@ func _schedule_retry(what: Callable) -> void:
 
 # ============================================================================ local state
 
+## Server-side Gem wallet (lane S). OFF unless project setting `axie/gem_wallet` = "remote" (or a test sets
+## `remote_wallet_enabled`). Signed in -> RemoteGemWallet; signed out -> MetaState back to the local wallet.
+var remote_wallet_enabled := false
+var _remote_wallet: RemoteGemWallet = null
+
+
+func _attach_remote_wallet() -> void:
+	if not (remote_wallet_enabled or String(ProjectSettings.get_setting("axie/gem_wallet", "local")) == "remote"):
+		return
+	if _remote_wallet != null:
+		return
+	_remote_wallet = RemoteGemWallet.new(transport)
+	MetaState.use_remote_gem_wallet(_remote_wallet)
+	_remote_wallet.refresh()
+
+
+func _detach_remote_wallet() -> void:
+	if _remote_wallet == null:
+		return
+	_remote_wallet = null
+	MetaState.set_gem_wallet(null)   # gem_wallet() lazily rebuilds the local wallet
+
+
 func _become_guest() -> void:
+	_detach_remote_wallet()
 	SaveStore.erase_as("", ACCOUNT_PATH)
 	account = {}
 	SaveStore.profile = ""
