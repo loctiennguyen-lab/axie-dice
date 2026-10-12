@@ -41,6 +41,9 @@ const RULES := [
 var state := "normal"
 ## Derive state from AccountService (offline). Tests that drive state by hand turn this off.
 var use_account := true
+## Server-rolled dice on (ProjectSettings "axie/epoch_source" == "remote"; RemoteEpochSource.flag_on()
+## once lane S lands it). Only then does OFFLINE block Begin; otherwise it is just a banner.
+var remote_on: bool = String(ProjectSettings.get_setting("axie/epoch_source", "")) == "remote"
 ## Tests: replaces AccountService.status. Returns an AccountService.Status int.
 var account_status_hook: Callable
 ## Tests: skip the scene change after a successful Begin.
@@ -175,7 +178,7 @@ func start_params() -> Dictionary:
 
 ## Why Begin is disabled, or "" when it is allowed.
 func begin_block_reason() -> String:
-	if state == "offline":
+	if state == "offline" and remote_on:
 		return "Needs a connection to roll dice"
 	if state == "loading":
 		return "Loading…"
@@ -203,8 +206,11 @@ func set_state(s: String) -> void:
 	elif s == "open_run":
 		_build_open_run()
 	elif s == "offline":
-		_add_banner("Can't reach the dice server", "Last updated %s. Dice are rolled on the server in this build."
-			% Time.get_time_string_from_system().substr(0, 5), true)
+		if remote_on:
+			_add_banner("Can't reach the dice server", "Last updated %s. Dice are rolled on the server in this build."
+				% Time.get_time_string_from_system().substr(0, 5), true)
+		else:
+			_add_banner("You're offline", "Dice roll on this device for now; progress syncs when you reconnect.", false)
 	_refresh_footer()
 
 
