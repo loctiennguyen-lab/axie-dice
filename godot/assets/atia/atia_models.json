@@ -1,0 +1,133 @@
+{
+ "version": 1,
+ "models": {
+  "slime": {
+   "kind": "sprite",
+   "fallback_sprite": "slime"
+  },
+  "chomper": {
+   "kind": "sprite",
+   "fallback_sprite": "treant"
+  },
+  "bruiser": {
+   "kind": "sprite",
+   "fallback_sprite": "daddy-bear"
+  },
+  "cleaver": {
+   "kind": "sprite",
+   "fallback_sprite": "alpha-wolf"
+  },
+  "ravenling": {
+   "kind": "sprite",
+   "fallback_sprite": "aqua-wolf"
+  },
+  "stalker": {
+   "kind": "sprite",
+   "fallback_sprite": "gray-wolf"
+  },
+  "spikelet": {
+   "kind": "sprite",
+   "fallback_sprite": "forest-slime-fighter"
+  },
+  "thornback": {
+   "kind": "sprite",
+   "fallback_sprite": "dryad-fighter"
+  },
+  "jellyfin": {
+   "kind": "sprite",
+   "fallback_sprite": "aqua-slime-sup"
+  },
+  "warden": {
+   "kind": "sprite",
+   "fallback_sprite": "aqua-slime-def"
+  },
+  "bugling": {
+   "kind": "sprite",
+   "fallback_sprite": "aqua-slime-atk"
+  },
+  "venomaw": {
+   "kind": "sprite",
+   "fallback_sprite": "forest-slime-flower"
+  },
+  "hexeye": {
+   "kind": "sprite",
+   "fallback_sprite": "dryad-mage"
+  },
+  "pyrewing": {
+   "kind": "sprite",
+   "fallback_sprite": "dryad-ranger"
+  },
+  "broodmaw": {
+   "kind": "sprite",
+   "fallback_sprite": "flowering-treant"
+  },
+  "bomblet": {
+   "kind": "sprite",
+   "fallback_sprite": "aqua-alpha-wolf"
+  },
+  "totem": {
+   "kind": "sprite",
+   "fallback_sprite": "treant-fighter"
+  },
+  "e_ravager": {
+   "kind": "sprite",
+   "fallback_sprite": "werewolf"
+  },
+  "e_plague": {
+   "kind": "sprite",
+   "fallback_sprite": "mommy-bear"
+  },
+  "e_bulwark": {
+   "kind": "sprite",
+   "fallback_sprite": "treant-fighter"
+  },
+  "e_archon": {
+   "kind": "sprite",
+   "fallback_sprite": "dryad-mage"
+  },
+  "gooey_king": {
+   "kind": "sprite",
+   "fallback_sprite": "aqua-slime-boss"
+  },
+  "mecha": {
+   "kind": "sprite",
+   "fallback_sprite": "shilin"
+  },
+  "agony": {
+   "kind": "glb",
+   "path": "res://assets/bosses/paladill.glb",
+   "height_m": 4.72,
+   "facing_deg": 0,
+   "anims": {},
+   "anim_speed": {},
+   "fallback_sprite": "werewolf"
+  },
+  "frost_lord": {
+   "kind": "glb",
+   "path": "res://assets/bosses/kotaro.glb",
+   "height_m": 4.72,
+   "facing_deg": 0,
+   "anims": {},
+   "anim_speed": {},
+   "fallback_sprite": "gray-wolf"
+  },
+  "plague_mother": {
+   "kind": "glb",
+   "path": "res://assets/bosses/kibo.glb",
+   "height_m": 4.72,
+   "facing_deg": 0,
+   "anims": {},
+   "anim_speed": {},
+   "fallback_sprite": "mommy-bear"
+  },
+  "mirror": {
+   "kind": "glb",
+   "path": "res://assets/bosses/xia.glb",
+   "height_m": 4.72,
+   "facing_deg": 0,
+   "anims": {},
+   "anim_speed": {},
+   "fallback_sprite": "dryad-fighter"
+  }
+ }
+}
