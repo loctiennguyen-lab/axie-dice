@@ -129,7 +129,7 @@ with the reason under the button. Duplicate rules: **[INF]** the same Axie canno
 
 **Mode** (segmented control, 3 options, each with a one-line rule):
 - **Normal** — free choice of everything.
-- **Daily** — same seed for everyone, **[INF]** max 3 tries per UTC day, shows "Tries left 3 of 3", resets 00:00 UTC (date, not countdown).
+- **Daily** — same seed for everyone, max 3 tries per UTC day (confirmed), shows "Tries left 3 of 3", resets 00:00 UTC (date, not countdown).
 - **Ranked** — counts for the leaderboards (M9). Locked for newcomers ("Opens after 5 runs · n of 5").
 In Daily and Ranked the Kit/Boon strip stays available (Aid is allowed in ranked) **[INF]**.
 **Length:** Short (3 bosses) / Full (4 bosses). Full is locked until the player wins a Short run ("Win a Short run to unlock Full").
@@ -263,7 +263,7 @@ Violet = Gem surfaces; orange = USD buttons. Tabs: Gem · Moon Card · Tickets �
 - **Aid prices (read-only list, not buyable here), with the verbatim fairness line under it:** Continue 90 (boss fight 180; Moon Card 68 / 135) · Extra reroll 15 (3-pack 38; 4 a run, 2 a fight, 1 a fight from A3) · Delay boss clock 60 (1 a boss) · Swap pact 15 (1 a pact) · Shop refresh 18 (2 a run) · Scout 12 (3 a run) · Starting Boon 38 (1 a run) · Run Kit 60 · total Aid cap 6 a run (4 at A9–A10), Boon counts in it. 90 Gem ≈ 1 USD.
 - **Spending limit:** a strip at the top: "This month: n USD of your limit m USD" with "Change limit" (opens M11 section). Soft warning at 100 USD a month, extra confirmation at 250, hard stop at 500 (numbers are proposals in monetization §3.6, so **[INF]**). No age text.
 - **Purchase flow:** card → confirm modal (item, price, ≈USD, what you get, Gem before → after, decline same size as pay, Esc cancels) → success toast / receipt state. States: processing, failed (plain sentence + Try again), refunded **[INF]**.
-- **L1 playtest variant (draw it as the main state for L1):** every USD button is disabled and says **"Playtest: purchases disabled"** (grey, ink `#6E4A30`, with the reason, not just dimmed); a strip at the top "Playtest: Gem is free" with the **daily free Gem claim: 300 Gem a day, balance cap 900** (button "Claim 300 Gem", shows balance and "next claim {date/time UTC}" as a time, not a ticking countdown); a note "Gift Gem is reset when the real store opens." the Moon Card card is shown in full but its buy button is disabled "Playtest: purchases disabled" (no free trial in L1, Liam 12 Oct). Whether Gem-priced goods (bundles, cosmetics) can be bought with gift Gem in L1 is open: draw them enabled and list this as a question in the README.
+- **L1 playtest variant (draw it as the main state for L1):** every USD button is disabled and says **"Playtest: purchases disabled"** (grey, ink `#6E4A30`, with the reason, not just dimmed); a strip at the top "Playtest: Gem is free" with the **daily free Gem claim: 300 Gem a day, balance cap 900** (button "Claim 300 Gem", shows balance and "next claim {date/time UTC}" as a time, not a ticking countdown); a note "Gift Gem is reset when the real store opens." the Moon Card card is shown in full but its buy button is disabled "Playtest: purchases disabled" (no free trial in L1, Liam 12 Oct). Gem-priced goods (ticket bundles, cosmetics, Aid) **can be bought with gift Gem in L1** so testers try every feature (Liam, 12 Oct): draw them enabled. Only USD buttons are disabled.
 - **Other states:** newcomer (no extra nudges; Starter Pack appears only after run 3), guest (browse only, "Sign in to buy"), offline (buying disabled), loading, error.
 **Return:** Land.
 
@@ -343,6 +343,14 @@ I checked `ui-redesign-request-02.md` §4, §5, §7 against the Round 1 README a
 1b. The Land Hub Pass plate and README §2 still say "Season 1 · ends 30 Nov 2026". Change to "ends 29 Dec 2026". Also redraw the top bar once with the new Daily gift chip (M8) so it is shown to fit.
 2. The Style Sheet page still has 11 px text that the README does not list as decorative-only. Raise each to 12 px or list it explicitly in the README's decorative-only line.
 
+## E. Decisions from our side (12 Oct)
+- L1: gift Gem buys everything priced in Gem (bundles, cosmetics, Aid); only USD purchases are disabled.
+- Daily: 3 tries per UTC day, same seed for everyone. Ranked allows Kit/Boon.
+- Store cosmetic prices stay placeholders (90/180/360/720 Gem) for now.
+- Daily chip on the top bar, new shortcut keys (C, P, D, B, L, Esc = Settings), Leaderboard opened from Run Setup and Profile: accepted.
+- Fogged map at A9: show the count as text, e.g. "2 elites hidden on this map" (Ascension rules must stay visible).
+- Newcomer runs (first 5): no Aid button at all; the free sample Continue still appears on the defeat screen.
+
 ## D. Delivery
 
 Per `ui-redesign-request-02.md` §8: HTML mockups at 1920×1080 (plus one taller window, 1920×1240, for M1, M5, M6, M7), a normative README with exact numbers per element and [OBS]/[INF] tags, a contact sheet PNG of all states, new icons (dark outline, ≤ 128 px, transparent) listed by name, and a table "screen × state" showing which frames exist.
@@ -371,10 +379,5 @@ M1 Run Setup · M2 Đội lưu sẵn · M3 Vault · M4 Season Pass · M5 Echo Bo
 Phím tắt mới (C, P, D, B, L, Esc = Settings); chip Daily trên thanh trên; Leaderboard mở từ M1/Profile; Daily tối đa 3 lần/ngày; Ranked có Kit/Boon; ánh xạ rương bậc theo phần thưởng (Stone 100/250 → đồng …); rương chủ đề `mystic` cho Series 1; giá cosmetic Store là số tạm (90/180/360/720 Gem); số rương preset 3/6/9; số trần chi tiêu 100/250/500 USD; lợi ích các tier Land ngoài Mastery/Gallery; ngày mùa 29/12/2026 và 26/1/2027 (3/11 + 8 và 12 tuần), bỏ 30/11; tên 8 Boon (chưa viết); tab/ranh giới Profile–Cosmetics; điều kiện phụ Nhiệm vụ; fog vs A9 elite (đếm elite trên bản đồ).
 
 ## Câu hỏi cho Liam
-(Đã trả lời bằng docs/quyết định Liam, bỏ khỏi danh sách: ngày Mùa 1 = bắt đầu 3/11, Pass hết 29/12, hộp mùa 26/1/2027, không đếm ngược; điều kiện phụ vẽ trước, L1 chưa làm; Store không khoá với newcomer; Moon Card L1 không dùng thử; Nhiệm vụ L1 chỉ N1–N3, không nâng nhà; hộp mùa "coming later".)
-1. L1: Gem tặng có dùng mua được vé bundle/cosmetic trong Store không, hay chỉ cho Aid/Continue? Brief đang vẽ cả hai, chọn một.
-2. Daily: tối đa 3 lần/ngày, chung seed — số này tôi tự đặt ([INF]), được không? Ranked có cho dùng Kit/Boon không (đang để có)?
-3. Cosmetic bán trong Store gồm món nào, giá thật bao nhiêu (đang giá tạm 90/180/360/720 Gem)?
-4. Chip Daily trên thanh trên + phím tắt mới (C, P, D, B, L) + Leaderboard mở từ Run Setup: ổn không?
-5. Fog vs A9: có cho hiện "số elite trên bản đồ" không (mục B.7)? Docs ghi elite luôn hiện, còn quyết định map lại che cả elite.
-6. Newcomer trong run: có ẩn luôn khay Aid, hay chỉ ẩn các thẻ chào bán? (Brief đang ghi ẩn nút Aid, docs chỉ nói ẩn chào bán.)
+
+Đã trả lời hết 12/10, ghi ở mục E của brief.
