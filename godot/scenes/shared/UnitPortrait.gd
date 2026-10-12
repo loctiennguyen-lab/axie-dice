@@ -1,74 +1,38 @@
 extends Control
 class_name UnitPortrait
-## Feet-anchored unit HUD column — CB-07 … CB-13 (FIX-PASS-03 §4). Positioned every frame by
-## CombatView using CombatStage3D.get_unit_screen_pos(uid, FEET_HEIGHT).
+## Per-unit combat overlay — Dice UI R1 (design/handoffs/ui-02-round1b README §3).
 ##
-## Structure, top to bottom, per CB-07 (enemy) and CB-08 (party):
-##   StatusStrip  — CB-13. FIXED 28px tall whether or not it holds anything, so the nameplate
-##                  below it never moves as statuses come and go. Shield is the FIRST chip here.
-##   Card         — CB-09/CB-10. The nameplate proper.
-##     TopRow     — name (left, ellipsised) · incoming chip (party only) · HP cur/max (right)
-##     HPBar      — CB-10 row 2, plus CB-11's at-risk slice for the party
-##     ShieldBar  — CB-10 row 3, its OWN bar, fill INFO, width = shield / max_hp
-## The enemy's intent badge (CB-14) is a separate node above this one — see UnitHeadHUD.gd.
+## ENEMY: the nameplate. 320 wide (boss 640), r16, border 3 (4 when lit), built in code:
+##   left  : name (Baloo 18, + ELITE/BOSS tag) · HP bar (h24, boss h30 with phase marks) ·
+##           chips row (h26: shield, statuses, "+N") with "-> target" right-aligned
+##   right : INTENT block 88 wide (boss 128): "NEXT" 12 · icon 26 + number Baloo 30 (boss 44) ·
+##           action label 12. `#DDBF8C`, gold `#FFC445` when enrage is active.
+##   under : counter TAB (spike or boss clock) overlapping the plate by 4, h32, side inset 14.
+##   below : one transient chip (illegal-target reason / damage preview / lethal).
+## The intent number is the ONLY number the player needs: base x (1+enrage%+attrition%) x spike,
+## computed by the engine (`hud_state().enemy_next`), never summed here.
 ##
-## ── WHAT CHANGED, AND WHY IT MATTERS (FIX-PASS-03 G-04 / CB-09) ────────────────────────────
+## PARTY: no UI above heads (README §3 "Party"). A party UnitPortrait still exists because the
+## damage numbers rise from it and CombatView positions it at the Axie, but it draws nothing and
+## takes no mouse; party HP lives only in the dice tray.
 ##
-## This file is the spec's named example of a failure it has seen twice. The previous version
-## carried this comment, verbatim:
-##
-##     "Party nameplates are unchanged — C1 is enemy-only, and the party row already reads
-##      correctly at its current size."
-##
-## That is how the build ended up with enemy plates at 176 wide and party plates at a
-## text-measured width floored at 132 — two nameplate systems in one screen. CB-09 states its
-## scope explicitly ("Applies to EVERY nameplate in combat — all five party plates and every
-## enemy plate. One width, one height per side, regardless of how long the name is. No
-## text-measured widths.") so both sides are built from the same constants here:
-##
-##     176 wide, both sides. Enemy 64 tall, party 68 — the extra 4 is the class edge.
-##
-## The per-plate text measuring is GONE. It existed to stop long names clipping, and the
-## replacement for that is `text_overrun_behavior = TRIM_ELLIPSIS` on the name label (CB-10
-## says "ellipsised"), which solves the same problem without letting a name decide a plate's
-## geometry. "Venomaw" now reads "Venomaw"; a name too long for 176px reads "Venoma…", which is
-## a truncation the player can see, not the corrupt-looking mid-glyph cut this used to produce.
-##
-## The SHIELD BADGE IS DELETED. It was a pill overlapping the plate's top-right corner, and
-## CB-10 forbids it twice over — shield "is never a segment inside the HP track and never a
-## badge overlapping the HP number". Shield now reads in two sanctioned places: its own bar
-## (CB-10 row 3) and the first chip of the status strip (CB-13).
-##
-## Icon source: assets/icons/web/ (the live web build's own icon set) — the user's explicit
-## requirement is that both builds show the same icons, unchanged.
+## Public API kept from the pre-R1 file so CombatView keeps compiling: setup, set_incoming,
+## update_stats, set_selected, set_targetable, set_preview_damage, clear_preview_damage,
+## spawn_float_text, flash_resonance, play_death_fade, signals clicked / inspect_requested.
 
 signal clicked(uid: int)
-
-## Right-click anywhere on this nameplate — always the inspector, never a game action. Mirrors
-## CombatStage3D.unit_inspect_requested (right-clicking the model itself); CombatView connects
-## both to the same _open_unit_inspect(). Left-click stays context-dependent (a legal target is
-## a target), which is why "what does this do?" needs a door of its own.
 signal inspect_requested(uid: int)
 
-## CB-09 — ONE width for every nameplate in combat, both sides. Not a floor, not a minimum that
-## a long name may exceed: the width. See the class comment.
-const WIDTH := 176.0
-const ENEMY_HEIGHT := 64.0
-const PARTY_HEIGHT := 68.0          # +4 for the class edge
-const CLASS_EDGE_W := 6             # CB-09: the party plate's class-coloured top border —
-	# L1's first named exception to "one outline, pure black"
-const STATUS_STRIP_H := 28.0        # CB-13 — fixed, always
+const WIDTH := 320.0
+const BOSS_WIDTH := 640.0
+const ENEMY_HEIGHT := 98.0          ## plate only; tab + chip hang below it
+const BOSS_HEIGHT := 118.0
+const INTENT_W := 88.0
+const BOSS_INTENT_W := 128.0
+const TAB_H := 32.0
+## The vertical slot an enemy column reserves (plate + tab overlap + chip row).
+const SLOT_HEIGHT := ENEMY_HEIGHT + TAB_H - 4.0 + 6.0 + 34.0
 
-## Back-compat alias: CombatView._layout_unit_visuals() and tests refer to ENEMY_WIDTH. There is
-## only one width now (CB-09), so it points at the same constant rather than being a second
-## number that can drift from it.
-const ENEMY_WIDTH := WIDTH
-
-## status key -> web icon (assets/icons/web/, src/art7.js parity). Same 9 keys Unit.status can
-## ever hold (unit.gd: "poison/burn/regen/blind/weaken/vulnerable/thorns/stun/undying -> int
-## stack count" — freeze is deliberately NOT one of them, it's the separate `frozen`/
-## `frozen_next` bool pair). "vulnerable" is the one key whose web icon file is named
-## differently ("vuln.png"), confirmed against tests/t_assets.gd's own list.
 const _STATUS_ICON := {
 	"poison": preload("res://assets/icons/web/poison.png"),
 	"burn": preload("res://assets/icons/web/burn.png"),
@@ -80,309 +44,467 @@ const _STATUS_ICON := {
 	"stun": preload("res://assets/icons/web/stun.png"),
 	"undying": preload("res://assets/icons/web/undying.png"),
 }
-const _ICON_SHIELD := preload("res://assets/icons/web/shield.png")
-const _ICON_DMG := preload("res://assets/icons/web/dmg.png")
 
-# --- Juice tuning (unchanged from the pre-review pass) ---
-## Float-text color per EventBus.float_text `css_class` payload — see report for the original
-## grep across damage_pipeline.gd/status_engine.gd/combat_engine.gd float_text.emit() call sites.
+## Float text. R1: numerals over the scene = Baloo, cream/tint fill, dark 8-way outline; party
+## damage is Baloo 52 `#FFD0C0` with a 3px outline.
 const _FLOAT_COLOR := {
-	"dmg": Color(0.95, 0.25, 0.2), "heal": Color(0.35, 0.9, 0.45), "shd": Color(0.55, 0.8, 1.0),
-	"poi": Color(0.65, 0.35, 0.85), "buf": Color(1.0, 0.85, 0.3), "deb": Color(1.0, 0.55, 0.2),
-	"man": Color(0.3, 0.9, 0.85),
+	"dmg": Color("FFD0C0"), "heal": Color("D6F0C2"), "shd": Color("CFE7F7"),
+	"poi": Color("DDF2C4"), "buf": Color("F2E0FF"), "deb": Color("FFE3A6"),
+	"man": Color("F2E0FF"),
 }
-const _FLOAT_CRIT_COLOR := Color(1.0, 0.78, 0.15)
-const _CRIT_GLOW_OUTLINE_COLOR := Color(0.55, 0.08, 0.02)
-const _CRIT_GLOW_SHADOW_COLOR := Color(0.35, 0.95, 1.0, 0.9)
-const _CRIT_GLOW_OUTLINE_SIZE := 4
-const _CRIT_GLOW_SHADOW_SIZE := 5
-const _FLOAT_RISE := 40.0
+const _FLOAT_RISE := 48.0
+const _FLOAT_RISE_REDUCED := 24.0
 const _FLOAT_DURATION := 0.7
 const _RESONANCE_FLASH_COLOR := Color(1.6, 1.6, 0.8)
 const _RESONANCE_FLASH_IN := 0.12
 const _RESONANCE_FLASH_OUT := 0.18
 const _DEATH_FADE_DURATION := 0.45
 
-@onready var _card: PanelContainer = %Card
-@onready var _inner: PanelContainer = %Inner
-@onready var _column: VBoxContainer = %Column
-@onready var _status_strip: CenterContainer = %StatusStrip
-@onready var _status_row: HBoxContainer = %StatusRow
-@onready var _name_label: Label = %NameLabel
-@onready var _hp_label: Label = %HPLabel
-@onready var _hp_bar: HPBar = %HPBar
-@onready var _shield_bar: HPBar = %ShieldBar
-@onready var _incoming_chip: PanelContainer = %IncomingChip
-@onready var _incoming_icon: TextureRect = %IncomingIcon
-@onready var _incoming_label: Label = %IncomingLabel
-@onready var _click_catcher: Button = %ClickCatcher
-
 var uid: int = -1
-var _dying: bool = false   # true once play_death_fade() has been triggered — guards
-	# update_stats() from clobbering the fade Tween's modulate
-var _base_style: StyleBoxFlat
-var _selected_style: StyleBoxFlat
-var _targetable_style: StyleBoxFlat
-var _is_enemy: bool = false
-var _incoming: int = 0     # CB-11/CB-12 — committed incoming damage, party only
+var _is_enemy := false
+var _is_boss := false
+var _dying := false
+var _incoming := 0
+var _hp := 0
+var _max_hp := 1
+
+var _plate: PanelContainer
+var _plate_style: StyleBoxFlat
+var _name_label: Label
+var _tag_chip: PanelContainer
+var _tag_label: Label
+var _hp_bar: HPBar
+var _phase_label: Label
+var _status_row: HBoxContainer
+var _target_label: Label
+var _intent_panel: PanelContainer
+var _intent_style: StyleBoxFlat
+var _intent_next: Label
+var _intent_icon: TextureRect
+var _intent_num: Label
+var _intent_action: Label
+var _tab: PanelContainer
+var _tab_style: StyleBoxFlat
+var _tab_icon: TextureRect
+var _tab_text: Label
+var _tab_right: Label
+var _tab_pips: HBoxContainer
+var _chip: PanelContainer
+var _chip_style: StyleBoxFlat
+var _chip_icon: TextureRect
+var _chip_text: Label
+var _click_catcher: Button
+
+var _lit := false          # legal target / selected
+var _acting := false
+var _lethal := false
+var _illegal_reason := ""
+var _boosted := false
+var _preview := 0
 
 
 func _ready() -> void:
-	custom_minimum_size.x = WIDTH
-	_column.add_theme_constant_override("separation", 8 if _is_enemy else 5)   # CB-07 / CB-08
-	# C3 — combat-v2.html fills the shield track with #31C6FF, which is `SHIELD_BLUE`.
-	# `INFO` is #00B8FF: close enough to look deliberate and wrong enough to be a different
-	# blue from the shield chip beside it on the die card and in the status strip.
-	_shield_bar.use_fixed_fill(DangoTheme.SHIELD_BLUE)                        # CB-10 row 3
-	# CB-12's 12px dmg glyph. EXPAND_IGNORE_SIZE is NOT optional: the web icons do not ship at
-	# the slot sizes this UI asks for, and a TextureRect left on the default EXPAND_KEEP_SIZE
-	# reports the TEXTURE's natural size as its minimum. The QA capture of this pass showed
-	# exactly that — dmg.png at full size blew the incoming chip up into a block that covered
-	# two whole party nameplates. Same gotcha the status-chip icons already guard against.
-	_incoming_icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	_incoming_icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	_incoming_icon.texture = _ICON_DMG
-	_incoming_chip.mouse_filter = Control.MOUSE_FILTER_STOP   # so it can carry a tooltip; the
-		# handler below keeps it a click target for the plate all the same
-	_incoming_chip.gui_input.connect(_on_hud_chip_gui_input)
-	_click_catcher.pressed.connect(func(): clicked.emit(uid))
-	_click_catcher.gui_input.connect(_on_click_catcher_gui_input)
-	# THE CATCHER GOES FIRST, NOT LAST. Godot picks GUI input by walking children in REVERSE
-	# order, so a full-rect Button added last is in front of every sibling — including the
-	# status chips, which is why a chip could never be hovered and therefore could never show
-	# a tooltip (`Viewport._gui_get_tooltip()` only ever asks the control it actually picked).
-	# Moved behind the column instead: the chips (MOUSE_FILTER_STOP, see _status_chip()) take
-	# the hover where they are, and every other pixel of the plate still falls through to the
-	# catcher because the whole column above it is MOUSE_FILTER_IGNORE. `flat = true` means the
-	# catcher draws nothing in any state, so its depth has no visual consequence.
-	move_child(_click_catcher, 0)
-
-
-## CB-09 — the one plate style, for both sides.
-##
-## The party plate's 6px class-coloured top edge is L1's first named exception to "one outline,
-## pure black", and a StyleBoxFlat carries exactly ONE border colour — so it cannot be a border.
-## It is built as TWO NESTED PANELS instead: the outer `Card` is filled with the class colour and
-## carries the black outline, radius and shelf; the inner panel is `PANEL_DEEP` and is inset from
-## the top by 6px, leaving exactly that much of the outer fill showing as the edge.
-##
-## The first attempt here made the edge a second CHILD of `Card` with `PRESET_TOP_WIDE` anchors.
-## That does not work and the QA capture showed why: `PanelContainer` is a Container, so it
-## overrides its children's anchors and offsets and stretches each one to its full rect — the
-## "6px edge" rendered as a full-card block of class colour over the whole nameplate. A Container
-## child cannot position itself; it has to be given a slot.
-func _apply_card_styles(cls: String) -> StyleBoxFlat:
-	# The outer's content margins ARE the border. `PanelContainer` lays its child out inside the
-	# stylebox's content margins and nowhere else, so with those at 0 the inner panel covered the
-	# 3px black outline completely — which is why the 20 Sep capture showed nameplates with no
-	# outline on any side while the die cards beside them had one. Each margin equals the border
-	# width on that side.
-	var outer := DangoTheme.surface_style(
-		DangoTheme.Surface.PANEL_DEEP, 12, 3, 4.0, Vector2(3, 3))   # radius 12, 3px black, shelf 4
-	var inner := StyleBoxFlat.new()
-	inner.bg_color = DangoTheme.surface_color(DangoTheme.Surface.PANEL_DEEP)
-	inner.set_corner_radius_all(9)          # plate radius 12 minus the 3px border
-	inner.content_margin_left = 10.0        # CB-09 padding 5/10, applied on the inner panel so
-	inner.content_margin_right = 10.0       # the class edge above sits flush against the border
-	inner.content_margin_top = 5.0
-	# Top-aligned, no bottom padding. The mockup's own rows (20 + 4 + 12 + 4 + 12 = 52) already
-	# exceed the 49px its 5px bottom padding would leave, so the plate reads with ~2px under the
-	# shield bar and the padding never gets to apply. Reserving 5 here instead pushes the shield
-	# bar out of a fixed-height plate.
-	inner.content_margin_bottom = 0.0
-	if not _is_enemy:
-		outer.bg_color = DangoTheme.class_color(cls)   # shows through as the top edge
-		# C4 / C8 — the edge measured 3px in the build, half of what combat-v2.html draws, and
-		# this is why. `surface_style()` puts a 3px black border on all four sides; a
-		# `content_margin_top` of 6 then inset the inner panel 6px from the CARD's top edge, so
-		# the black border ate the first 3 of those 6 and only 3px of class colour was ever
-		# visible. The mockup's party plate has NO black top border at all —
-		# `border:3px #000` followed by `border-top:6px solid {{ p.cls }}` REPLACES the top
-		# border with the class colour — so the top border goes to 0 and the full 6px of the
-		# outer fill shows. Left/right/bottom stay pure black at 3 (L1), and 68 = 6 + 59 + 3
-		# keeps PARTY_HEIGHT exactly where CLAUDE.md pins it.
-		outer.border_width_top = 0
-		outer.content_margin_top = float(CLASS_EDGE_W)   # the class edge replaces the top border
-		inner.corner_radius_top_left = 0
-		inner.corner_radius_top_right = 0
-	_inner.add_theme_stylebox_override("panel", inner)
-	return outer
+	pass
 
 
 ## Called once per unit when a combat starts (CombatView._spawn_portrait).
-func setup(p_uid: int, display_name: String, cls: String, is_enemy: bool) -> void:
+func setup(p_uid: int, display_name: String, _cls: String, is_enemy: bool, is_boss: bool = false,
+		tag: String = "") -> void:
 	uid = p_uid
 	_is_enemy = is_enemy
-	_name_label.text = display_name
-
-	_column.add_theme_constant_override("separation", 8 if is_enemy else 5)
-
-	# CB-10 row 1 type. Both sides, one scale — the previous build gave the enemy 17/15 and left
-	# the party on the scene's own 15/17, which is the same enemy-only split CB-09 rejects.
-	# combat-v2.html draws the name at Baloo 17/700 with `letter-spacing:.02em` on BOTH sides —
-	# `apply_tracking()` sets the face, the size and the tracking in one call.
-	DangoTheme.apply_tracking(_name_label, 0.02, 17, 700)   # Baloo 700
-	# combat-v2.html inks the name #FFF8EA on both sides — CREAM_RAISED, not the generic TEXT
-	# grey-white the scene file shipped with.
-	_name_label.add_theme_color_override("font_color", DangoTheme.CREAM_RAISED)
-	_hp_label.add_theme_font_override("font", DangoTheme.FONT_DISPLAY)          # Baloo 800
-	_hp_label.add_theme_font_size_override("font_size", 18)
-	_incoming_label.add_theme_font_override("font", DangoTheme.FONT_DISPLAY)
-	_incoming_label.add_theme_font_size_override("font_size", 14)
-	_incoming_label.add_theme_color_override("font_color", DangoTheme.CREAM_RAISED)
-
-	# CB-12 — DANGER fill, radius 6, NO border.
-	_incoming_chip.add_theme_stylebox_override("panel",
-		DangoTheme.solid_chip_style(DangoTheme.DANGER, 6, 0, Vector2(5, 0)))
-
-	_base_style = _apply_card_styles(cls)
-	_selected_style = _base_style.duplicate()
-	_selected_style.border_color = DangoTheme.PRIMARY
-	_targetable_style = _base_style.duplicate()
-	_targetable_style.border_color = DangoTheme.INFO
-	_card.add_theme_stylebox_override("panel", _base_style)
-
-	# CB-09: fixed size, both sides. No text measuring — see the class comment.
-	_card.custom_minimum_size = Vector2(WIDTH, ENEMY_HEIGHT if is_enemy else PARTY_HEIGHT)
-	custom_minimum_size = Vector2(WIDTH, STATUS_STRIP_H
-		+ _column.get_theme_constant("separation")
-		+ (ENEMY_HEIGHT if is_enemy else PARTY_HEIGHT))
+	_is_boss = is_boss
+	mouse_filter = Control.MOUSE_FILTER_IGNORE
+	if not is_enemy:
+		# No UI above Axie heads. Size 0: it is only the anchor damage numbers rise from.
+		custom_minimum_size = Vector2(1, 1)
+		size = Vector2(1, 1)
+		return
+	var w := BOSS_WIDTH if is_boss else WIDTH
+	var plate_h := BOSS_HEIGHT if is_boss else ENEMY_HEIGHT
+	custom_minimum_size = Vector2(w, SLOT_HEIGHT)
 	size = custom_minimum_size
 
+	# --- click catcher goes FIRST (behind chips so chip tooltips still pick) ---
+	_click_catcher = Button.new()
+	_click_catcher.flat = true
+	_click_catcher.focus_mode = Control.FOCUS_NONE
+	_click_catcher.set_anchors_preset(Control.PRESET_TOP_LEFT)
+	_click_catcher.position = Vector2.ZERO
+	_click_catcher.custom_minimum_size = Vector2(w, plate_h)
+	_click_catcher.size = Vector2(w, plate_h)
+	_click_catcher.pressed.connect(func(): clicked.emit(uid))
+	_click_catcher.gui_input.connect(_on_click_catcher_gui_input)
+	add_child(_click_catcher)
 
-## CB-11 / CB-12 — committed incoming damage for this unit. Set by CombatView every rebuild;
-## party only, and 0 for everything else.
+	# --- plate ---
+	_plate = PanelContainer.new()
+	_plate.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_plate.position = Vector2.ZERO
+	_plate.custom_minimum_size = Vector2(w, plate_h)
+	_plate.size = Vector2(w, plate_h)
+	_plate_style = _make_plate_style(3)
+	_plate.add_theme_stylebox_override("panel", _plate_style)
+	_plate.z_index = 2
+	add_child(_plate)
+
+	var row := HBoxContainer.new()
+	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	row.add_theme_constant_override("separation", 0)
+	_plate.add_child(row)
+
+	var left := VBoxContainer.new()
+	left.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	left.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	left.add_theme_constant_override("separation", 5)
+	var lm := MarginContainer.new()
+	lm.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	lm.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	lm.add_theme_constant_override("margin_left", 12)
+	lm.add_theme_constant_override("margin_right", 10)
+	lm.add_theme_constant_override("margin_top", 6)
+	lm.add_theme_constant_override("margin_bottom", 6)
+	lm.add_child(left)
+	row.add_child(lm)
+
+	var name_row := HBoxContainer.new()
+	name_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	name_row.add_theme_constant_override("separation", 6)
+	left.add_child(name_row)
+	_name_label = HudKit.label(display_name, 24 if is_boss else 18, DangoTheme.INK, 800)
+	_name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_name_label.clip_text = true
+	_name_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	name_row.add_child(_name_label)
+	_tag_chip = PanelContainer.new()
+	_tag_chip.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_tag_chip.custom_minimum_size = Vector2(0, 20)
+	_tag_chip.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	_tag_chip.add_theme_stylebox_override("panel", HudKit.box(DangoTheme.DUSK, 6, 0,
+		DangoTheme.OUTLINE, Vector2.ZERO, DangoTheme.SHELF, Vector2(6, 0)))
+	_tag_label = HudKit.label(tag, 12, DangoTheme.CREAM_RAISED)
+	_tag_chip.add_child(_tag_label)
+	_tag_chip.visible = tag != ""
+	name_row.add_child(_tag_chip)
+
+	_hp_bar = HPBar.new()
+	_hp_bar.set_kind(HPBar.Kind.ENEMY, 30 if is_boss else 24, 8, 16)
+	_hp_bar.text_mode = true
+	_hp_bar.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	if is_boss:
+		_hp_bar.set_marks([0.66, 0.33])
+	left.add_child(_hp_bar)
+
+	if is_boss:
+		_phase_label = HudKit.label("PHASE 1 OF 3", 12, DangoTheme.INK_2)
+		left.add_child(_phase_label)
+
+	var chips_row := HBoxContainer.new()
+	chips_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	chips_row.custom_minimum_size = Vector2(0, 26)
+	chips_row.add_theme_constant_override("separation", 4)
+	left.add_child(chips_row)
+	_status_row = HBoxContainer.new()
+	_status_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_status_row.add_theme_constant_override("separation", 4)
+	chips_row.add_child(_status_row)
+	var spacer := Control.new()
+	spacer.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	chips_row.add_child(spacer)
+	_target_label = HudKit.label("", 13, DangoTheme.INK_2)
+	chips_row.add_child(_target_label)
+
+	# --- intent block ---
+	var iw := BOSS_INTENT_W if is_boss else INTENT_W
+	_intent_panel = PanelContainer.new()
+	_intent_panel.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_intent_panel.custom_minimum_size = Vector2(iw, 0)
+	_intent_style = HudKit.box(DangoTheme.CREAM_300, 0, 0)
+	_intent_style.border_width_left = 3
+	_intent_panel.add_theme_stylebox_override("panel", _intent_style)
+	row.add_child(_intent_panel)
+	var ic := VBoxContainer.new()
+	ic.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	ic.alignment = BoxContainer.ALIGNMENT_CENTER
+	ic.add_theme_constant_override("separation", 0)
+	_intent_panel.add_child(ic)
+	_intent_next = HudKit.label("NEXT", 12, DangoTheme.INK, 800, 0.06)
+	_intent_next.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	ic.add_child(_intent_next)
+	var num_row := HBoxContainer.new()
+	num_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	num_row.alignment = BoxContainer.ALIGNMENT_CENTER
+	num_row.add_theme_constant_override("separation", 3)
+	ic.add_child(num_row)
+	_intent_icon = HudKit.tex_rect(null, 34 if is_boss else 26)
+	num_row.add_child(_intent_icon)
+	_intent_num = HudKit.label("", 44 if is_boss else 30, DangoTheme.OUTLINE)
+	num_row.add_child(DangoTheme.line_box(_intent_num, 44 if is_boss else 30, 1.0))
+	_intent_action = HudKit.label("", 12, DangoTheme.INK)
+	_intent_action.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	ic.add_child(_intent_action)
+
+	# --- counter tab ---
+	_tab = PanelContainer.new()
+	_tab.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_tab.position = Vector2(14, plate_h - 4)
+	_tab.custom_minimum_size = Vector2(w - 28, TAB_H)
+	_tab.size = Vector2(w - 28, TAB_H)
+	_tab.z_index = 1
+	_tab_style = HudKit.box(DangoTheme.DUSK, 12, 3, DangoTheme.OUTLINE, Vector2(3, 4))
+	_tab_style.border_width_top = 0
+	_tab_style.corner_radius_top_left = 0
+	_tab_style.corner_radius_top_right = 0
+	_tab_style.content_margin_left = 10.0
+	_tab_style.content_margin_right = 10.0
+	_tab_style.content_margin_top = 4.0
+	_tab.add_theme_stylebox_override("panel", _tab_style)
+	var trow := HBoxContainer.new()
+	trow.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	trow.add_theme_constant_override("separation", 6)
+	_tab.add_child(trow)
+	_tab_icon = HudKit.tex_rect(null, 20)
+	trow.add_child(_tab_icon)
+	_tab_text = HudKit.label("", 14, DangoTheme.DUSK_INK, 800, 0.03)
+	trow.add_child(_tab_text)
+	var tsp := Control.new()
+	tsp.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	tsp.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	trow.add_child(tsp)
+	_tab_pips = HBoxContainer.new()
+	_tab_pips.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_tab_pips.add_theme_constant_override("separation", 3)
+	_tab_pips.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	trow.add_child(_tab_pips)
+	_tab_right = HudKit.label("", 13, DangoTheme.DUSK_INK)
+	trow.add_child(_tab_right)
+	_tab.visible = false
+	add_child(_tab)
+
+	# --- transient chip under the tab ---
+	_chip = PanelContainer.new()
+	_chip.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_chip.z_index = 1
+	_chip_style = HudKit.box(DangoTheme.DUSK, 9, 3, DangoTheme.OUTLINE, Vector2(3, 4))
+	_chip_style.content_margin_left = 6.0
+	_chip_style.content_margin_right = 12.0
+	_chip.add_theme_stylebox_override("panel", _chip_style)
+	var crow := HBoxContainer.new()
+	crow.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	crow.add_theme_constant_override("separation", 6)
+	_chip.add_child(crow)
+	_chip_icon = HudKit.tex_rect(null, 20)
+	crow.add_child(_chip_icon)
+	_chip_text = HudKit.label("", 14, DangoTheme.CREAM_RAISED)
+	crow.add_child(_chip_text)
+	_chip.visible = false
+	add_child(_chip)
+	_refresh_plate()
+
+
+func _make_plate_style(border_w: int) -> StyleBoxFlat:
+	var sb := HudKit.box(DangoTheme.PANEL, 16, border_w, DangoTheme.OUTLINE, Vector2(3, 5))
+	return sb
+
+
+func _refresh_plate() -> void:
+	if _plate_style == null:
+		return
+	var bw := 4 if (_lit or _acting or _lethal) else 3
+	_plate_style.set_border_width_all(bw)
+	_plate_style.border_color = DangoTheme.THREAT if _lethal \
+		else (DangoTheme.GOLD if (_lit or _acting) else DangoTheme.OUTLINE)
+	if not _dying:
+		modulate.a = 0.6 if _illegal_reason != "" else 1.0
+	_place_chip()
+
+
+func _place_chip() -> void:
+	if _chip == null:
+		return
+	var txt := _chip_text.text
+	_chip.visible = txt != ""
+	var top := (_tab.position.y + TAB_H + 6.0) if _tab.visible \
+		else (_plate.size.y + 6.0)
+	_chip.size = Vector2.ZERO
+	_chip.position = Vector2((size.x - _chip.get_combined_minimum_size().x) * 0.5, top)
+
+
+# ── State pushed by CombatView ───────────────────────────────────────────────────────────────
+
+## CB-11 / CB-12 compat: committed incoming damage. Party plates draw nothing, so only stored.
 func set_incoming(amount: int) -> void:
 	_incoming = maxi(amount, 0)
 
 
-## Called from CombatView._rebuild_all() — the single "read model, redraw" entry point.
+## The "single read-model entry point": HP, shield, statuses.
 func update_stats(hp: int, max_hp: int, shield: int, status: Dictionary) -> void:
-	var safe_max := maxi(max_hp, 1)
-	_hp_bar.set_stats(hp, safe_max)
-	_hp_label.text = "%d/%d" % [maxi(hp, 0), safe_max]
-	_hp_label.add_theme_color_override("font_color",
-		DangoTheme.hp_color(float(maxi(hp, 0)) / float(safe_max)))    # CB-10: hp_color(pct)
-
-	# CB-10 row 3 — shield as its own bar, width = shield / max_hp clamped to 100%.
-	#
-	# The bar is ALWAYS drawn, empty trough and all. combat-v2.html renders the shield row
-	# unconditionally (its `shieldPct` is simply "0%" on a unit with no shield), and hiding it
-	# was making the plate's two bars sit at two different heights depending on whether a unit
-	# happened to be shielded — inside a plate whose own height is fixed at 64/68.
-	_shield_bar.set_stats(mini(shield, safe_max), safe_max)
-
-	# CB-11 — the at-risk slice: min(hp, max(0, incoming - shield)). Party only; enemies never
-	# get an incoming value, so this is 0 for them and draws nothing.
-	_hp_bar.set_at_risk(mini(maxi(hp, 0), maxi(0, _incoming - shield)))
-
-	# CB-12 — hidden entirely when incoming is 0. Hidden, not dimmed.
-	_incoming_chip.visible = (not _is_enemy) and _incoming > 0
-	if _incoming_chip.visible:
-		_incoming_label.text = str(_incoming)
-		_incoming_chip.tooltip_text = ("Incoming %d\nDamage the enemies have already declared "
-			+ "against this Axie this turn. Shield is subtracted first.") % _incoming
-
-	_rebuild_status_chips(status, shield)
+	_hp = hp
+	_max_hp = maxi(max_hp, 1)
+	if not _is_enemy or _hp_bar == null:
+		return
+	_hp_bar.set_stats(hp, _max_hp)
+	HudKit.fill_status_row(_status_row, status, shield, _STATUS_ICON,
+		Callable(self, "_effect_tooltip"), 4)
 	if hp > 0:
 		_dying = false
 		visible = true
-		modulate = Color(1, 1, 1, 1)
+		modulate.a = 1.0 if _illegal_reason == "" else 0.6
 	elif not _dying:
-		modulate = Color(1, 1, 1, 0)
+		modulate.a = 0.0
 		visible = false
 
 
-## CB-13 — the status strip. A centred row in a strip of FIXED 28px height, so the nameplate
-## below never moves as statuses come and go (the old row hid itself at 0 height, which made
-## every plate jump the moment a poison stack landed). Shield is the FIRST chip, on SHIELD_BLUE.
-func _rebuild_status_chips(status: Dictionary, shield: int) -> void:
-	for c in _status_row.get_children():
+## Name + intent block + target. `intent` = {show:bool, type:String, num:int, label:String,
+## target:String, boosted:bool}. `show=false` renders "NO MOVE".
+func set_intent(intent: Dictionary) -> void:
+	if not _is_enemy or _intent_panel == null:
+		return
+	_boosted = bool(intent.get("boosted", false))
+	_intent_style.bg_color = DangoTheme.GOLD if _boosted else DangoTheme.CREAM_300
+	_intent_style.border_color = DangoTheme.OUTLINE
+	if not bool(intent.get("show", false)):
+		_intent_icon.texture = DangoTheme.face_type_icon("blank")
+		_intent_num.text = "-"
+		_intent_action.text = "NO MOVE"
+		_target_label.text = ""
+		return
+	_intent_icon.texture = DangoTheme.face_type_icon(String(intent.get("type", "blank")))
+	_intent_num.text = str(int(intent.get("num", 0)))
+	_intent_action.text = "ACTING" if _acting else String(intent.get("label", ""))
+	var tgt := String(intent.get("target", ""))
+	_target_label.text = "%s %s" % [HudKit.arrow(), tgt] if tgt != "" else ""
+
+
+## Boss phase line + marks (e.g. phase 2 of 3).
+func set_phase(phase: int, total: int = 3) -> void:
+	if _phase_label != null:
+		_phase_label.text = "PHASE %d OF %d" % [phase, total]
+
+
+## The counter tab. spec: {} hides it. Else {kind:"spike"|"clock", bg, ink, text, right, pips:[Color],
+## icon}. Built by HudKit.clock_tab() / CombatView for spikes.
+func set_tab(spec: Dictionary) -> void:
+	if _tab == null:
+		return
+	if spec.is_empty():
+		_tab.visible = false
+		_place_chip()
+		return
+	_tab.visible = true
+	_tab_style.bg_color = spec.get("bg", DangoTheme.DUSK)
+	var ink: Color = spec.get("ink", DangoTheme.DUSK_INK)
+	_tab_icon.texture = spec.get("icon", null)
+	_tab_text.text = String(spec.get("text", ""))
+	_tab_text.add_theme_color_override("font_color", ink)
+	_tab_right.text = String(spec.get("right", ""))
+	_tab_right.add_theme_color_override("font_color", ink)
+	for c in _tab_pips.get_children():
+		_tab_pips.remove_child(c)
 		c.queue_free()
-	if shield > 0:
-		_status_row.add_child(
-			_status_chip(_ICON_SHIELD, shield, DangoTheme.SHIELD_BLUE, "shield"))
-	for key in _STATUS_ICON:
-		var v := int(status.get(key, 0))
-		if v > 0:
-			_status_row.add_child(
-				_status_chip(_STATUS_ICON[key], v, DangoTheme.status_color(key), key))
-	# The STRIP stays visible and 28 tall regardless; only its contents come and go.
+	for col in spec.get("pips", []):
+		var pip := PanelContainer.new()
+		pip.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		pip.custom_minimum_size = Vector2(9, 14)
+		pip.add_theme_stylebox_override("panel", HudKit.box(col, 3, 2))
+		_tab_pips.add_child(pip)
+	_place_chip()
 
 
-## One status chip — height 28, radius 9, 3px black, solid status colour, 16px icon + count in
-## Baloo 16 inked by ink_on(). Never a wash of the status colour (L4), never white-on-colour (L5).
-##
-## `key` is the ENGINE's own status key ("poison", "burn", …, plus "shield"), and it is what
-## turns the chip from a coloured glyph into something a player can actually read: it looks the
-## rule up in CodexContent.status_tip() and hangs it off the chip as a tooltip. Before this the
-## strip was nine unlabelled icons and the only way to learn what one meant was the Codex
-## (bug report 2026-09-21, "chỉ vào Icon Effect không hiện mô tả").
-func _status_chip(icon_tex: Texture2D, count: int, fill: Color, key: String) -> PanelContainer:
-	var chip := PanelContainer.new()
-	# STOP, not IGNORE — a tooltip needs the chip to be the control the viewport picks. The
-	# plate underneath keeps its click because _on_hud_chip_gui_input() forwards it by hand;
-	# MOUSE_FILTER_PASS would NOT do that job, since it propagates to ANCESTORS (all IGNORE
-	# here) and never to the ClickCatcher sibling.
-	chip.mouse_filter = Control.MOUSE_FILTER_STOP
-	chip.tooltip_text = _effect_tooltip(key, count)
-	chip.gui_input.connect(_on_hud_chip_gui_input)
-	chip.custom_minimum_size = Vector2(0, STATUS_STRIP_H)
-	# combat-v2.html: padding `0 8px 0 4px` — the glyph sits tighter to the left edge than the
-	# count does to the right, which is what keeps a 1-digit and a 2-digit chip reading alike.
-	var chip_style := DangoTheme.solid_chip_style(fill, 9, 3, Vector2(-1, -1))
-	chip_style.content_margin_left = 4.0
-	chip_style.content_margin_right = 8.0
-	chip_style.content_margin_top = 0.0
-	chip_style.content_margin_bottom = 0.0
-	chip.add_theme_stylebox_override("panel", chip_style)
-	var row := HBoxContainer.new()
-	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	row.add_theme_constant_override("separation", 3)
-	row.alignment = BoxContainer.ALIGNMENT_CENTER
-	chip.add_child(row)
-	var icon := TextureRect.new()
-	icon.texture = icon_tex
-	icon.custom_minimum_size = Vector2(16, 16)
-	icon.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	row.add_child(icon)
-	var lbl := DangoTheme.display_label(str(count), 16, DangoTheme.ink_on(fill), 800)
-	lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	row.add_child(lbl)
-	return chip
+## Plate lit (legal target / selected).
+func set_selected(v: bool) -> void:
+	_lit = v
+	_refresh_plate()
 
 
-## "Poison 3" + the rule, off the ONE rule-book (CodexContent.statuses()). A key with no written
-## rule still gets a readable line rather than a blank tooltip — a missing entry should look like
-## missing text, not like a broken hover.
+## View-only "legal target" affordance (gold plate border; the ground ring is Stage3D's).
+func set_targetable(v: bool) -> void:
+	_lit = v
+	_refresh_plate()
+
+
+## Illegal target: plate at 60% + reason chip (dusk + lock). "" clears.
+func set_illegal(reason: String) -> void:
+	_illegal_reason = reason
+	if _chip_text == null:
+		return
+	if reason != "":
+		_show_chip(reason, DangoTheme.DUSK, DangoTheme.CREAM_RAISED, HudKit.icon("lock"))
+	elif _preview <= 0:
+		_hide_chip()
+	_refresh_plate()
+
+
+func set_acting(v: bool) -> void:
+	_acting = v
+	_refresh_plate()
+
+
+## Damage preview from a hovered/selected die: gold hatched HP segment + chip "-12 | 38 > 26",
+## or, if it kills, THREAT border, HP text "11 / 70 > 0" and the gold WILL DIE chip (the big-hit
+## tab stays visible).
+func set_preview_damage(dmg: int) -> void:
+	_preview = dmg
+	if _hp_bar == null:
+		return
+	_hp_bar.set_preview(dmg)
+	if dmg <= 0:
+		clear_preview_damage()
+		return
+	var after := maxi(_hp - dmg, 0)
+	_lethal = _hp > 0 and dmg >= _hp
+	if _lethal:
+		_hp_bar.set_lethal_text("%d / %d %s 0" % [_hp, _max_hp, HudKit.arrow()])
+		_show_chip("WILL DIE %s %s%d" % [HudKit.dot(), HudKit.minus(), dmg], DangoTheme.GOLD,
+			DangoTheme.OUTLINE, HudKit.icon("lethal"))
+	else:
+		_hp_bar.set_lethal_text("")
+		_show_chip("%s%d %s %d %s %d" % [HudKit.minus(), dmg, HudKit.dot(), _hp, HudKit.arrow(),
+			after], DangoTheme.GOLD, DangoTheme.OUTLINE, DangoTheme.face_type_icon("dmg"))
+	_refresh_plate()
+
+
+func clear_preview_damage() -> void:
+	_preview = 0
+	_lethal = false
+	if _hp_bar != null:
+		_hp_bar.clear_preview()
+	if _illegal_reason == "":
+		_hide_chip()
+	_refresh_plate()
+
+
+func _show_chip(text: String, fill: Color, ink: Color, icon_tex: Texture2D) -> void:
+	_chip_style.bg_color = fill
+	_chip_text.text = text
+	_chip_text.add_theme_color_override("font_color", ink)
+	_chip_icon.texture = icon_tex
+	_chip_icon.visible = icon_tex != null
+	_place_chip()
+
+
+func _hide_chip() -> void:
+	if _chip_text != null:
+		_chip_text.text = ""
+		_place_chip()
+
+
+## Shown HP text, for tests ("34 / 52").
+func shown_hp_text() -> String:
+	return _hp_bar.shown_text() if _hp_bar != null else ""
+
+
+## "Poison 3" + the rule, off the ONE rule-book (CodexContent).
 static func _effect_tooltip(key: String, count: int) -> String:
+	if key == "shield":
+		return "Shield %d\nAbsorbs damage before HP." % count
 	var tip: Dictionary = CodexContent.status_tip(key)
 	if tip.is_empty():
 		return "%s %d" % [key.to_upper(), count]
-	# The rule-book prints stacking statuses as "Poison N"; the chip already shows the real N.
 	var label := String(tip["name"]).trim_suffix(" N")
 	return "%s %d\n%s" % [label, count, String(tip["rule"])]
 
 
-## A status chip (or the incoming-damage chip) is not a button, but it sits on top of the
-## plate's own ClickCatcher, so it hands the click back rather than eating it. Without this,
-## clicking a poisoned enemy's poison pill would silently do nothing.
-func _on_hud_chip_gui_input(ev: InputEvent) -> void:
-	if not (ev is InputEventMouseButton) or not (ev as InputEventMouseButton).pressed:
-		return
-	match (ev as InputEventMouseButton).button_index:
-		MOUSE_BUTTON_LEFT:
-			clicked.emit(uid)
-			accept_event()
-		MOUSE_BUTTON_RIGHT:
-			inspect_requested.emit(uid)
-			accept_event()
-
-
-## Button only reports `pressed` for the LEFT button, so right-click gets its own path.
 func _on_click_catcher_gui_input(ev: InputEvent) -> void:
 	if not (ev is InputEventMouseButton) or not (ev as InputEventMouseButton).pressed:
 		return
@@ -391,64 +513,32 @@ func _on_click_catcher_gui_input(ev: InputEvent) -> void:
 		accept_event()
 
 
-func set_selected(v: bool) -> void:
-	_card.add_theme_stylebox_override("panel", _selected_style if v else _base_style)
-
-
-## View-only "plausible click target" affordance — see CombatStage3D.set_targetable(). Never
-## called for the currently-selected unit's own card (CombatView guards this).
-func set_targetable(v: bool) -> void:
-	_card.add_theme_stylebox_override("panel", _targetable_style if v else _base_style)
-
-
-## Damage-preview passthrough to the HP bar — hover-driven (die-tray / enemy-intent hover).
-## Distinct from CB-11's at-risk block, which is committed rather than hypothetical.
-func set_preview_damage(dmg: int) -> void:
-	_hp_bar.set_preview(dmg)
-
-
-func clear_preview_damage() -> void:
-	_hp_bar.clear_preview()
-
-
-# ===========================================================================
-# Juice (checklist step 7) — each triggered directly from a CombatView.gd EventBus handler
-# using ONLY that signal's own payload. Checks CombatView.disable_juice_for_tests first and, in
-# that mode, creates no Tween at all (see that file's HEADLESS TEST MODE comment).
-# ===========================================================================
+# ═══ Juice ═══════════════════════════════════════════════════════════════════════════════════
 
 func spawn_float_text(text: String, css_class: String, big: int) -> void:
 	if CombatView.disable_juice_for_tests or not is_inside_tree():
 		return
 	var lbl := Label.new()
 	lbl.text = text
-	var is_crit := css_class == "dmg" and big >= 2
-	var color: Color = _FLOAT_CRIT_COLOR if is_crit else _FLOAT_COLOR.get(css_class, Color.WHITE)
-	lbl.add_theme_color_override("font_color", color)
-	lbl.add_theme_font_size_override("font_size", 26 if big >= 2 else (20 if big == 1 else 15))
-	if is_crit:
-		lbl.add_theme_color_override("font_outline_color", _CRIT_GLOW_OUTLINE_COLOR)
-		lbl.add_theme_constant_override("outline_size", _CRIT_GLOW_OUTLINE_SIZE)
-		lbl.add_theme_color_override("font_shadow_color", _CRIT_GLOW_SHADOW_COLOR)
-		lbl.add_theme_constant_override("shadow_offset_x", 0)
-		lbl.add_theme_constant_override("shadow_offset_y", 0)
-		lbl.add_theme_constant_override("shadow_outline_size", _CRIT_GLOW_SHADOW_SIZE)
+	lbl.add_theme_font_override("font", DangoTheme.FONT_DISPLAY)
+	var color: Color = _FLOAT_COLOR.get(css_class, DangoTheme.CREAM_RAISED)
+	if css_class == "dmg" and _is_enemy:
+		color = DangoTheme.CREAM_RAISED     # enemy damage numbers are cream, party's are #FFD0C0
+	var fsize := 52 if (css_class == "dmg" and big >= 1) else (30 if big >= 1 else 22)
+	lbl.add_theme_font_size_override("font_size", fsize)
+	DangoTheme.outline_text(lbl, color, 3 if fsize >= 48 else 2)
 	lbl.z_index = 5
 	lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	lbl.position = Vector2(size.x * 0.5 - 20.0 + randf_range(-10.0, 10.0), -18.0)
 	add_child(lbl)
-
+	var rise := _FLOAT_RISE_REDUCED if CombatView.flashes_suppressed() else _FLOAT_RISE
 	var tw := create_tween()
 	tw.set_parallel(true)
-	tw.tween_property(lbl, "position:y", lbl.position.y - _FLOAT_RISE, _FLOAT_DURATION)
+	tw.tween_property(lbl, "position:y", lbl.position.y - rise, _FLOAT_DURATION)
 	tw.tween_property(lbl, "modulate:a", 0.0, _FLOAT_DURATION)
 	tw.chain().tween_callback(lbl.queue_free)
 
 
-## Brighten-then-settle flash (same recipe as the pre-review pass, just on `modulate` instead
-## of `self_modulate` — this card's tint is no longer "free" for juice to borrow now that
-## set_selected()/set_targetable() communicate via stylebox swaps instead of a self_modulate
-## tint). Respects whatever alpha update_stats()/play_death_fade() currently has it at.
 func flash_resonance() -> void:
 	if CombatView.flashes_suppressed() or not is_inside_tree():
 		return

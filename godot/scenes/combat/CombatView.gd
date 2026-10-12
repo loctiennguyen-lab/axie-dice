@@ -284,42 +284,23 @@ var _combat: CombatEngine
 var _info_overlay: CanvasLayer = null
 var _setup: Dictionary = {}
 var _portraits: Dictionary = {}     # uid -> UnitPortrait (feet nameplate)
-var _head_huds: Dictionary = {}     # uid -> UnitHeadHUD (above-head status/intent stack)
+var _head_huds: Dictionary = {}     # retired: the intent badge now lives on UnitPortrait (R1)
+var _hud: Dictionary = {}           # cached hud_state() for this rebuild
 var _selected_die_uid: int = -1
 var _log_lines: Array = []
 var _result_shown: bool = false
 var _max_rerolls: int = 0
 
-# --- Top bar / bottom deck (v2 UI redesign, design_handoff_axie_dice_ui §03/§04) — built once by
-# _build_top_bar()/_build_bottom_deck(), repainted every _rebuild_all() by _update_top_bar()/
-# _update_bottom_deck(). Not @onready %-lookups because these Controls don't exist in
-# Combat.tscn; they're constructed at runtime the same way _build_die_slot_content() already
-# builds the dice-tray's rich content.
-var _node_caption_label: Label
-var _wave_label: Label
-var _wave_track: HBoxContainer
-## combat-v2.html draws ONE pill: radius 999, a single PRIMARY fill, a blinking 9px dot, the
-## label, a 2px divider and "TURN n". FIX-PASS-01 C8's two adjoined segments (a PRIMARY left and
-## a PANEL_RAISED right sharing an outline) are gone — that was a prose restatement's shape, and
-## godot/CLAUDE.md is explicit that the screen mockup outranks it.
-var _turn_pill_style: StyleBoxFlat
-var _turn_dot: PanelContainer
-var _turn_divider: ColorRect
-var _turn_dot_tween: Tween = null
-var _turn_label: Label
-var _turn_number_label: Label
-var _wave_total_label: Label
+# --- R1 HUD (Dice UI R1). The frame (top HUD, attrition, right zone) is `CombatHud`, built once by
+# _build_hud_r1() and repainted every _rebuild_all() by _update_hud(). `_relic_strip` aliases the
+# HUD's relic row so existing tests that hover a relic chip keep working.
+var _hud_frame: CombatHud
 var _relic_strip: HBoxContainer
-var _shard_value_label: Label
-var _mana_value_label: Label
-var _active_count_label: Label
-var _actives_row: HBoxContainer
+var _tray_root: Control
 
 ## The relic active waiting for a target, or "". Parallel to `_selected_die_uid`: exactly one
 ## of the two may be armed, and _on_target_clicked() serves whichever is.
 var _selected_active_id := ""
-var _reroll_count_label: Label
-var _reroll_count_style: StyleBoxFlat
 var _part_icon_cache: Dictionary = {}   # "<slot>_<class>" -> Texture2D, lazily loaded (36 combos,
 	# not worth 36 preloads when a given combat only ever shows 5 party members' classes)
 
@@ -434,8 +415,7 @@ func _ready() -> void:
 
 	_build_stage_background()
 	_connect_event_bus()
-	_build_top_bar()
-	_build_bottom_deck()
+	_build_hud_r1()
 	_style_turn_banner()
 	_connect_ui_buttons()
 	_layout_stage_bands()
@@ -874,110 +854,160 @@ func _on_quit_confirmed() -> void:
 	get_tree().change_scene_to_file("res://scenes/main_menu/MainMenu.tscn")
 
 
-## v2 TopBar (design_handoff_axie_dice_ui §03 "TopBar"/§04 tree) — five plate groups left to
-## right: node chip · wave track · flexible spacer · turn pill · relics/shard/utilities. Replaces
-## the old plain "ICON + CAPTION / value" stat-cell row (_add_stat_cell()/_make_divider(), now
-## deleted) built into the same %StatsRow container Combat.tscn ships (same split as
-## _build_die_slot_content(): static skeleton in the .tscn, rich content built in code); every
-## value is repainted by _update_top_bar(), called from _rebuild_all().
-##
-## MOCKUP-VS-SPEC: the redline text says TopBar h 74; "Godot Combat v2.dc.html" itself (the source
-## of truth per this bundle's own rule) sets `height:60px` on the bar — Combat.tscn/_ready() use
-## 60, per "where the spec and the mockup disagree, the mockup is right."
-func _build_top_bar() -> void:
-	_stats_row.get_parent().add_theme_stylebox_override("panel", _top_bar_frame_style())
-
-	_build_node_chip()
-	_build_wave_track()
-
-	var spacer := Control.new()
-	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	spacer.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_stats_row.add_child(spacer)
-
-	# CB-04 puts the turn pill in the CENTRE OF THE BAR, "independent of the widths either side
-	# of it". In the flow it cannot be: sitting between the spacer and the relic strip, it is
-	# pushed by whatever the right-hand cluster happens to weigh, and the 20 Sep capture had it
-	# hard against UNDO with the middle of the bar empty. It is built into an overlay centred on
-	# the bar instead — see _build_turn_pill().
-	_build_turn_pill()
-	_build_relic_strip()
-	_build_shard_chip()
-
-	# %UndoButton/%InfoButton/%LogToggleButton are static children of %StatsRow in Combat.tscn
-	# (unique names are scene-wide, not depth-limited, so re-parenting them is safe) — moved here
-	# into their own trailing group so the five plate groups the redline calls for land in order.
-	# _build_sound_button() (called later, from _connect_ui_buttons()) already
-	# add their buttons via `_log_toggle_button.get_parent().add_child(...)`, which resolves to
-	# THIS group once Log lives here, so neither needed a change.
-	var buttons_row := HBoxContainer.new()
-	buttons_row.name = "ButtonsRow"
-	buttons_row.add_theme_constant_override("separation", 5)
-	buttons_row.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	_stats_row.add_child(buttons_row)
-	var trailing_buttons: Array[Button] = [_undo_button, _info_button, _log_toggle_button]
-	for btn in trailing_buttons:
-		var parent: Node = btn.get_parent()
-		if parent != null:
-			parent.remove_child(btn)
-		buttons_row.add_child(btn)
 
 
-## TopBar's own chrome. Edge to edge with a black rule along its bottom only — the bar IS the
-## top of the frame, not an inset floating rail with a border all round like v1 had.
-## `DangoTheme.frame_bar_style()` is the shared shape; the footer on every meta screen is the
-## same object mirrored, and this used to be a local StyleBoxFlat that duplicated it.
-func _top_bar_frame_style() -> StyleBoxFlat:
-	return DangoTheme.frame_bar_style(SIDE_BOTTOM, DangoTheme.Surface.PANEL, 4, Vector2(20, 0))
 
 
-## NodeChip — 31px icon tile (DANGER fill, per the mockup's own literal value — it does not vary
-## the tile colour by node kind) + "<KIND> NODE" caption + "WAVE n" value (repainted, see
-## _update_top_bar()).
-## combat-v2.html: a FIXED 155x36 chip, padding `0 12px 0 6px`, radius 11, PANEL_RAISED on 3px
-## black, gap 9. The 31px DANGER icon tile (radius 9, 3px, 20px glyph), then a two-line text
-## column: the "<KIND> NODE" eyebrow and "WAVE n / total" — the `/ total` half is its own label
-## in a dimmer ink, exactly as the mockup's `<span style="color:#7C8695"> / 12</span>` is.
-func _build_node_chip() -> void:
-	var chip := PanelContainer.new()
-	chip.custom_minimum_size = Vector2(155, 36)
-	chip.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	var chip_style := DangoTheme.surface_style(
-		DangoTheme.Surface.PANEL_RAISED, 11, 3, 0.0, Vector2(-1, -1))
-	chip_style.content_margin_left = 6.0
-	chip_style.content_margin_right = 12.0
-	chip_style.content_margin_top = 0.0
-	chip_style.content_margin_bottom = 0.0
-	chip.add_theme_stylebox_override("panel", chip_style)
-	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", 9)
-	chip.add_child(row)
 
+
+
+
+
+
+
+
+## Builds the R1 frame and moves the scene's right-zone buttons and die slots into it. The old
+## top bar and deck bar nodes stay in Combat.tscn (tests and unique names depend on them) but are
+## hidden: nothing is drawn by them any more.
+func _build_hud_r1() -> void:
+	$CanvasLayer/Root/TopBar.visible = false
+	_deck_bar_panel.visible = false
+	_hud_frame = CombatHud.new()
+	_hud_frame.name = "CombatHud"
+	_hud_frame.z_index = 8
+	_shell_root.add_child(_hud_frame)
+	_relic_strip = _hud_frame.relic_strip
+	_hud_frame.adopt_right_zone(_undo_button, _reroll_button, _end_turn_button)
+	_hud_frame.menu_pressed.connect(_on_menu_pressed)
+	_hud_frame.active_pressed.connect(_on_active_pressed)
+	# Die slots leave the hidden deck bar for a root of their own, laid out by _layout_tray().
+	_tray_root = Control.new()
+	_tray_root.name = "TrayRoot"
+	_tray_root.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_tray_root.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_tray_root.z_index = 6
+	_shell_root.add_child(_tray_root)
+	for b in _die_slot_buttons:
+		(b as Button).get_parent().remove_child(b)
+		_tray_root.add_child(b)
+	_shell_root.resized.connect(_layout_tray)
+	get_viewport().size_changed.connect(_layout_tray)
+
+
+## Pushes everything the R1 frame shows. Pure read of engine state + hud_state().
+func _update_hud() -> void:
+	if _hud_frame == null or _combat == null:
+		return
+	var hs: Dictionary = _hud if not _hud.is_empty() else _hud_state()
+	var newcomer := bool(hs.get("newcomer", false))
+	# Passive relics vs relic actives.
+	var relics: Array = []
+	var actives: Array = []
+	for rid in _combat.relic_ids:
+		var def: RelicDef = RelicRegistry.get_def(rid)
+		if def == null:
+			continue
+		if int(def.act_cost) > 0:
+			var affordable := _combat.mana >= int(def.act_cost)
+			actives.append({"id": String(def.id), "icon": _relic_icon_for(def),
+				"charges": int(def.act_cost), "spent": not affordable,
+				"armed": _selected_active_id == String(def.id), "tip": _relic_tooltip(def)})
+		else:
+			relics.append({"icon": _relic_icon_for(def), "tip": _relic_tooltip(def)})
+	_hud_frame.update_top({
+		"relics": relics, "actives": actives.slice(0, 3), "mana": _combat.mana,
+		"turn": _combat.turn, "act_line": _act_line(), "ascension": RunState.ascension,
+		"shards": RunState.shards_this_run, "newcomer": newcomer})
+	_hud_frame.update_attrition(hs.get("attrition", {}), _combat.turn, newcomer)
+
+	var executing := _combat.phase == CombatPhase.EXECUTE and not (_combat.won or _combat.lost)
+	var undo_n := (_combat.undo_stack as Array).size()
+	var has_unused := false
+	for u in _party_dice_units():
+		if u.hp > 0 and u.has_rolled() and not u.roll_used():
+			has_unused += 0   # (kept simple below)
+			has_unused = true
+			break
+	var unused := 0
+	for u in _party_dice_units():
+		if u.hp > 0 and u.has_rolled() and not u.roll_used():
+			unused += 1
+	var undo_sub := "nothing to undo"
+	if undo_n > 0:
+		undo_sub = "%d die%s used this turn" % [undo_n, "" if undo_n == 1 else "s"]
+	_hud_frame.update_right(
+		{"enabled": executing and undo_n > 0, "sub": undo_sub},
+		{"n": _combat.rerolls, "enabled": executing and _combat.rerolls > 0},
+		{"sub": "E %s %d dice unused" % [HudKit.dot(), unused],
+		 "warn": has_unused and executing,
+		 "enabled": not (_combat.won or _combat.lost) and _combat.phase != CombatPhase.END_TURN})
+	_hud_frame.set_resolving(_combat.phase == CombatPhase.END_TURN and not (_combat.won or _combat.lost))
+	_layout_tray()
+
+
+## "Act 1 . Floor 3 . 3-foe fight" (turn plate sub-line). STUB: the act split is not in the run
+## data yet, so it is derived from the map length (3 equal acts).
+func _act_line() -> String:
+	var graph := RunMapGraph.from_data(RunState.map_graph)
+	var total := maxi(graph.rows.size(), 1)
+	var floor_n := clampi(RunState.power_level + 1, 1, total)
+	var act := clampi(1 + (floor_n - 1) * 3 / total, 1, 3)
 	var kind := String(_setup.get("kind", "battle"))
-	var icon_path := "res://assets/icons/node/%s.png" % kind
-	var icon_tex: Texture2D = load(icon_path) if ResourceLoader.exists(icon_path) \
-		else load("res://assets/icons/node/battle.png")
-	var tile := _icon_tile(icon_tex, 31.0, 20.0,
-		DangoTheme.solid_chip_style(DangoTheme.DANGER, 9, 3, Vector2.ZERO))
-	tile.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	row.add_child(tile)
+	var fight := "boss fight" if kind == "boss" else ("elite fight" if kind == "elite" else "%d-foe fight" % _combat.enemies.size())
+	return "Act %d %s Floor %d %s %s" % [act, HudKit.dot(), floor_n, HudKit.dot(), fight]
 
-	var text_col := VBoxContainer.new()
-	text_col.add_theme_constant_override("separation", 0)
-	text_col.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	row.add_child(text_col)
-	_node_caption_label = _make_caption_label("%s NODE" % kind.to_upper())
-	text_col.add_child(_node_caption_label)
 
-	var wave_row := HBoxContainer.new()
-	wave_row.add_theme_constant_override("separation", 0)
-	text_col.add_child(wave_row)
-	_wave_label = DangoTheme.display_label("WAVE 1", 19, DangoTheme.CREAM_RAISED, 800)
-	wave_row.add_child(_wave_label)
-	_wave_total_label = DangoTheme.display_label(" / 1", 19, DangoTheme.MUTED_TEXT, 800)
-	wave_row.add_child(_wave_total_label)
+## Menu: Settings (leave the fight), Sound, Log, Info. One small popup next to the Menu button.
+func _on_menu_pressed() -> void:
+	if _menu_panel != null and is_instance_valid(_menu_panel):
+		_menu_panel.visible = not _menu_panel.visible
+		return
+	_menu_panel = PanelContainer.new()
+	_menu_panel.z_index = 20
+	_menu_panel.add_theme_stylebox_override("panel", HudKit.panel(16, 4, true, DangoTheme.PANEL, Vector2(10, 10)))
+	var col := VBoxContainer.new()
+	col.add_theme_constant_override("separation", 8)
+	_menu_panel.add_child(col)
+	var entries := [["Sound on/off", _on_sound_toggle_pressed], ["Battle log", _on_log_toggle_pressed],
+		["How to play", _on_info_toggle_pressed], ["Leave the fight", _on_quit_pressed]]
+	for e in entries:
+		var b := Button.new()
+		b.text = String(e[0])
+		b.custom_minimum_size = Vector2(190, 44)
+		DangoTheme.style_button(b, false)
+		b.pressed.connect(func():
+			_menu_panel.visible = false
+			(e[1] as Callable).call())
+		col.add_child(b)
+	_shell_root.add_child(_menu_panel)
+	_menu_panel.size = Vector2.ZERO
+	var vs := get_viewport_rect().size
+	_menu_panel.position = Vector2(vs.x - 16.0 - _menu_panel.get_combined_minimum_size().x, 156.0)
 
-	_stats_row.add_child(chip)
+
+var _menu_panel: PanelContainer = null
+
+
+## Dice tray: five 272 x 176 columns, gap 16, bottom 16, centred (x0 = 248 at 1920).
+func _layout_tray() -> void:
+	if _tray_root == null:
+		return
+	var vs := get_viewport_rect().size
+	var n := 0
+	for b in _die_slot_buttons:
+		if (b as Button).visible:
+			n += 1
+	var total := n * 272.0 + maxf(n - 1, 0.0) * 16.0
+	var x0 := (vs.x - total) * 0.5
+	var top := vs.y - 16.0 - 176.0
+	var i := 0
+	for b in _die_slot_buttons:
+		var btn: Button = b
+		if not btn.visible:
+			continue
+		btn.position = Vector2(x0 + i * 288.0, top)
+		btn.size = Vector2(272, 176)
+		i += 1
 
 
 ## A transparent-fill outline-only box — the "ring" shape behind the die-card selection ring and
@@ -1020,383 +1050,47 @@ func _icon_tile(icon_tex: Texture2D, tile_size: float, icon_size: float,
 	return tile
 
 
-## Wave track — one pip per wave in a WELL_TRACK well (redline "Wave track"). Built once as an
-## empty HBoxContainer; _update_wave_track() grows/shrinks the pip count to match the run's real
-## length and repaints every pip's colour/width per rebuild.
-## combat-v2.html: a 33px-tall WELL_TRACK well, padding `0 8px`, radius 10, 3px black, gap 4.
-func _build_wave_track() -> void:
-	var well := PanelContainer.new()
-	well.custom_minimum_size = Vector2(0, 33)
-	well.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	var well_style := DangoTheme.surface_style(
-		DangoTheme.Surface.WELL_TRACK, 10, 3, 0.0, Vector2(-1, -1))
-	well_style.content_margin_left = 8.0
-	well_style.content_margin_right = 8.0
-	well_style.content_margin_top = 0.0
-	well_style.content_margin_bottom = 0.0
-	well.add_theme_stylebox_override("panel", well_style)
-	_wave_track = HBoxContainer.new()
-	_wave_track.add_theme_constant_override("separation", 4)
-	_wave_track.alignment = BoxContainer.ALIGNMENT_CENTER
-	well.add_child(_wave_track)
-	_stats_row.add_child(well)
 
 
-## The turn pill, per combat-v2.html: ONE capsule — height 40, padding `0 18px`, radius 999, a
-## solid PRIMARY fill on a 3px black outline, shelf `0 4px 0`, gap 10 — carrying a blinking 9px
-## dot, "YOUR TURN" at Baloo 16/800, a 2px divider and "TURN n" at Baloo 15/700.
-##
-## REPLACES FIX-PASS-01 §2.1 C8's two adjoined segments (a PRIMARY left half and a PANEL_RAISED
-## right half sharing an outline). That shape is nowhere in the mockup, and godot/CLAUDE.md
-## settles the disagreement in the mockup's favour. The stray-dot defect C8 was fixing is fixed
-## differently here: the dot is a real child of the pill's own row, so it cannot bleed past an
-## edge it is laid out inside.
-func _build_turn_pill() -> void:
-	var pill := PanelContainer.new()
-	pill.name = "TurnPill"
-	pill.custom_minimum_size = Vector2(0, 40)
-	pill.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	_turn_pill_style = DangoTheme.solid_chip_style(DangoTheme.PRIMARY, 999, 3, Vector2(18, 0))
-	_turn_pill_style.shadow_color = DangoTheme.SHELF
-	_turn_pill_style.shadow_size = 0
-	_turn_pill_style.shadow_offset = Vector2(0, 4)
-	pill.add_theme_stylebox_override("panel", _turn_pill_style)
-
-	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", 10)
-	row.alignment = BoxContainer.ALIGNMENT_CENTER
-	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	pill.add_child(row)
-
-	_turn_dot = PanelContainer.new()
-	_turn_dot.custom_minimum_size = Vector2(9, 9)
-	_turn_dot.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	_turn_dot.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_turn_dot.add_theme_stylebox_override("panel",
-		DangoTheme.solid_chip_style(DangoTheme.INK_ON_PRIMARY, 5, 0, Vector2.ZERO))
-	row.add_child(_turn_dot)
-
-	_turn_label = DangoTheme.display_label("", 16, DangoTheme.INK_ON_PRIMARY, 800, 0.1)
-	_turn_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	_turn_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	row.add_child(_turn_label)
-
-	_turn_divider = ColorRect.new()
-	_turn_divider.custom_minimum_size = Vector2(2, 16)
-	_turn_divider.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	_turn_divider.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_turn_divider.color = Color(DangoTheme.INK_ON_PRIMARY.r, DangoTheme.INK_ON_PRIMARY.g,
-		DangoTheme.INK_ON_PRIMARY.b, 0.35)
-	row.add_child(_turn_divider)
-
-	_turn_number_label = DangoTheme.display_label("", 15, DangoTheme.INK_ON_PRIMARY, 700, 0.04)
-	_turn_number_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	_turn_number_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	row.add_child(_turn_number_label)
-
-	# CB-04 — centred on the BAR, not on what is left over between the two clusters. The host is
-	# a full-rect, click-through overlay on the bar panel, so the pill's position does not move
-	# when a relic is picked up or the shard count gains a digit.
-	var pill_host := CenterContainer.new()
-	pill_host.name = "TurnPillHost"
-	pill_host.set_anchors_preset(Control.PRESET_FULL_RECT)
-	pill_host.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_stats_row.get_parent().add_child(pill_host)
-	pill_host.add_child(pill)
-	_start_turn_dot_blink()
 
 
-## The mockup's `@keyframes blink` on the pill's dot — 1.6s, opacity 1 -> .35 -> 1. A looping
-## Tween rather than an AnimationPlayer so the headless test mode can skip it the same way every
-## other juice entry point on this screen does.
-func _start_turn_dot_blink() -> void:
-	if disable_juice_for_tests or _turn_dot == null:
-		return
-	if _turn_dot_tween != null and _turn_dot_tween.is_valid():
-		_turn_dot_tween.kill()
-	_turn_dot_tween = create_tween().set_loops()
-	_turn_dot_tween.tween_property(_turn_dot, "modulate:a", 0.35, 0.8) \
-		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
-	_turn_dot_tween.tween_property(_turn_dot, "modulate:a", 1.0, 0.8) \
-		.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
 
 
-## Relic strip — combat-v2.html draws these as fixed 33x33 tiles (radius 9, 3px black, an 18px
-## glyph on a solid fill), gap 6. See `_RELIC_ARCHETYPE_ICON` for where the glyph comes from and
-## why, and the task report for the RelicDef field that would replace that table.
-func _build_relic_strip() -> void:
-	_relic_strip = HBoxContainer.new()
-	_relic_strip.add_theme_constant_override("separation", 6)
-	_stats_row.add_child(_relic_strip)
 
 
-## Shard chip — the one CREAM surface on the bar (redline: shard readout is a cream pill, same
-## reading-surface rule as everywhere else a number must be legible against chrome).
-func _build_shard_chip() -> void:
-	# combat-v2.html: height 33, padding `0 11px 0 7px`, radius 9, 3px black, gap 7, 19px glyph.
-	var chip := PanelContainer.new()
-	# Same off-by-the-border as the utility chips: `height:33` is the content box, the 3px
-	# border adds outside it, and `padding:0 11px 0 7px` is measured inside that border.
-	chip.custom_minimum_size = Vector2(0, _UTIL_CHIP)
-	chip.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	var chip_style := DangoTheme.surface_style(
-		DangoTheme.Surface.CREAM, 9, 3, 0.0, Vector2(-1, -1))
-	chip_style.content_margin_left = 7.0 + 3.0
-	chip_style.content_margin_right = 11.0 + 3.0
-	chip_style.content_margin_top = 0.0
-	chip_style.content_margin_bottom = 0.0
-	chip.add_theme_stylebox_override("panel", chip_style)
-	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", 7)
-	row.alignment = BoxContainer.ALIGNMENT_CENTER
-	chip.add_child(row)
-	var icon := TextureRect.new()
-	icon.custom_minimum_size = Vector2(19, 19)
-	icon.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	icon.texture = _ICON_SHARD
-	row.add_child(icon)
-	_shard_value_label = DangoTheme.display_label("", 18, DangoTheme.INK, 800)
-	_shard_value_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	row.add_child(_shard_value_label)
-	_stats_row.add_child(chip)
 
 
-## Small uppercase caption Label (NodeChip/RELIC ACTIVES etc.) — one place so every caption in the
-## bar/deck shares the same size/colour per DangoTheme.
-## The node chip's eyebrow. combat-v2.html draws this ONE caption in the body face (Work Sans
-## 700) at 9px — it is the only label on the bar that is not Baloo, and the 9px is the mockup's
-## own number, which godot/CLAUDE.md rule 5 says outranks the project's 12px floor. The deck's
-## "RELIC ACTIVES" caption used to share this helper and no longer does: the mockup draws that
-## one at Baloo 13/800, a different object entirely.
-func _make_caption_label(text: String) -> Label:
-	var lbl := Label.new()
-	lbl.text = text
-	# combat-v2.html: `letter-spacing:.15em`. This is the one tracked label on the screen that
-	# is NOT Baloo, so it cannot go through `apply_tracking()` (that helper always resolves to a
-	# display face) — `tracked_font()` is the same conversion with the body face kept.
-	lbl.add_theme_font_override("font",
-		DangoTheme.tracked_font(DangoTheme.FONT_UI_BOLD, 0.15, 9))
-	lbl.add_theme_font_size_override("font_size", 9)
-	lbl.add_theme_color_override("font_color", DangoTheme.MUTED_TEXT)
-	return lbl
 
 
-# ===========================================================================
-# v2 BottomDeck (design_handoff_axie_dice_ui §03 "Bottom deck"/§04 tree) — three zones: mana +
-# relic actives (left) · the die tray (centre, unchanged this pass — see task report) · reroll +
-# end turn (right). Built once from _ready(); repainted every rebuild by _update_bottom_deck().
-# ===========================================================================
-
-## combat-v2.html's deck is a FULL-BLEED SOLID BAR, not a floating card, and the current build
-## had no bar at all — the mana card and the die cards sat straight on the painted battlefield.
-## `position:absolute; bottom:0; left:0; right:0; height:216; background:#171A21;
-## border-top:4px solid #000` — no radius, no shelf. Combat.tscn's `%DeckBar` IS that bar (a
-## PanelContainer since this pass), and its own content margins are the mockup's inner inset:
-## 24 left/right, 16 bottom, and 16 BELOW the 4px top rule, i.e. 20 from the bar's own top edge.
-func _build_bottom_deck() -> void:
-	var bar := DangoTheme.frame_bar_style(SIDE_TOP, DangoTheme.Surface.DECK, 4, Vector2(24, 16))
-	bar.content_margin_top = 20.0
-	_deck_bar_panel.add_theme_stylebox_override("panel", bar)
-	_build_deck_bar()
-	_style_reroll_button()
-	_style_end_turn_button()
 
 
-## The deck's left rail: TWO stacked WELL cards, gap 9 — a 54px mana row and the relic-actives
-## rack below it, exactly as combat-v2.html's left column draws them.
-##
-## REVERTS FIX-PASS-01 §2.1 C6, which merged the two into one DECK-surface card on the reasoning
-## that "two v1 floating panels" were the defect. They are not floating any more — they sit on
-## the deck BAR this pass finally builds, and against that bar the mockup's own two wells read as
-## two wells. godot/CLAUDE.md: the screen mockup outranks the prose restatement.
-func _build_deck_bar() -> void:
-	# --- Mana row: height 54, padding 0 12, radius 13, WELL on a 2px black outline, gap 11 ---
-	var mana_card := PanelContainer.new()
-	mana_card.name = "ManaCard"
-	mana_card.custom_minimum_size = Vector2(0, 54)
-	var mana_style := DangoTheme.surface_style(
-		DangoTheme.Surface.WELL, 13, 2, 0.0, Vector2(-1, -1))
-	mana_style.content_margin_left = 12.0
-	mana_style.content_margin_right = 12.0
-	mana_style.content_margin_top = 0.0
-	mana_style.content_margin_bottom = 0.0
-	mana_card.add_theme_stylebox_override("panel", mana_style)
-	var mana_row := HBoxContainer.new()
-	mana_row.add_theme_constant_override("separation", 11)
-	mana_row.alignment = BoxContainer.ALIGNMENT_CENTER
-	mana_card.add_child(mana_row)
-
-	var orb := PanelContainer.new()
-	orb.custom_minimum_size = Vector2(40, 40)
-	orb.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	orb.add_theme_stylebox_override("panel",
-		DangoTheme.solid_chip_style(DangoTheme.MANA_PURPLE, 20, 2, Vector2.ZERO))
-	var orb_center := CenterContainer.new()
-	orb.add_child(orb_center)
-	_mana_value_label = DangoTheme.display_label("", 21, DangoTheme.INK, 800)
-	orb_center.add_child(_mana_value_label)
-	mana_row.add_child(orb)
-
-	var mana_label := DangoTheme.display_label("MANA", 17, DangoTheme.CREAM, 800, 0.1)
-	mana_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	mana_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	mana_row.add_child(mana_label)
-
-	# The mockup sets this one in the body face (Work Sans 600/11) — it is prose, not a chip
-	# label, and it is the only string in the whole deck that is.
-	var hint := Label.new()
-	hint.text = "only spent\non actives"
-	hint.add_theme_font_override("font", DangoTheme.FONT_UI_SEMI)
-	hint.add_theme_font_size_override("font_size", 11)
-	hint.add_theme_color_override("font_color", DangoTheme.MUTED_TEXT)
-	hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	hint.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	mana_row.add_child(hint)
-	_deck_left_column.add_child(mana_card)
-
-	# --- Relic-actives rack: padding 9 top / 11 sides / 11 bottom, radius 13, WELL, 2px black --
-	var rack := PanelContainer.new()
-	rack.name = "ActivesRack"
-	var rack_style := DangoTheme.surface_style(
-		DangoTheme.Surface.WELL, 13, 2, 0.0, Vector2(11, 9))
-	rack_style.content_margin_bottom = 11.0
-	rack.add_theme_stylebox_override("panel", rack_style)
-	var col := VBoxContainer.new()
-	col.add_theme_constant_override("separation", 8)
-	rack.add_child(col)
-
-	var header := HBoxContainer.new()
-	col.add_child(header)
-	var cap := DangoTheme.display_label("RELIC ACTIVES", 13, DangoTheme.MUTED_TEXT, 800, 0.14)
-	cap.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	header.add_child(cap)
-	_active_count_label = DangoTheme.display_label("", 13, DangoTheme.INFO_TEXT_ON_WELL, 800)
-	header.add_child(_active_count_label)
-
-	_actives_row = HBoxContainer.new()
-	_actives_row.add_theme_constant_override("separation", 7)
-	col.add_child(_actives_row)
-
-	_deck_left_column.add_child(rack)
 
 
-## One right-rail button box. combat-v2.html gives REROLL its own shape (height 56, padding
-## `0 16px`, radius 14, PANEL_RAISED on 3px black, shelf `0 4px 0`, hover PRIMARY, press drops
-## the shelf to 2) which is NOT `secondary_button_style()`'s shape (radius 12, padding 14/7).
-func _rail_button_style(fill: Color, radius: int, border_w: int, shelf: float) -> StyleBoxFlat:
-	var sb := DangoTheme.solid_chip_style(fill, radius, border_w, Vector2(16, 0))
-	if shelf > 0.0:
-		sb.shadow_color = DangoTheme.SHELF_DEEP if shelf >= 6.0 else DangoTheme.SHELF
-		sb.shadow_size = 0
-		sb.shadow_offset = Vector2(0, shelf)
-	return sb
 
 
-## Reroll button content — icon + "REROLL" label + a "×n" count chip (NOT three pips: the
-## mockup's OWN renderVals() comment explains why — "relics and the Aqua passive both hand out
-## extra rerolls, so the number is open-ended and a fixed row of three dots would either lie or
-## wrap" — the redline text says pips, the mockup script overrides it, and per this bundle's own
-## rule the mockup wins). `_reroll_count_style`'s bg_color/`_reroll_count_label`'s text+colour are
-## repainted every rebuild by _update_reroll_count().
-func _style_reroll_button() -> void:
-	_reroll_button.focus_mode = Control.FOCUS_NONE
-	_reroll_button.text = ""
-	_reroll_button.add_theme_stylebox_override("normal",
-		_rail_button_style(DangoTheme.PANEL_RAISED, 14, 3, 4.0))
-	_reroll_button.add_theme_stylebox_override("focus",
-		_rail_button_style(DangoTheme.PANEL_RAISED, 14, 3, 4.0))
-	_reroll_button.add_theme_stylebox_override("hover",
-		_rail_button_style(DangoTheme.PRIMARY, 14, 3, 4.0))
-	_reroll_button.add_theme_stylebox_override("pressed",
-		_rail_button_style(DangoTheme.PRIMARY.darkened(0.22), 14, 4, 2.0))
-	_reroll_button.add_theme_stylebox_override("disabled",
-		_rail_button_style(DangoTheme.PANEL_RAISED.darkened(0.38), 14, 3, 0.0))
-
-	var row := HBoxContainer.new()
-	row.set_anchors_preset(Control.PRESET_FULL_RECT)
-	# `padding: 0 16px`. A Button is not a Container, so its stylebox content margins do not
-	# move an anchored child — the inset has to be spelled on the child itself.
-	row.offset_left = 16.0
-	row.offset_right = -16.0
-	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	row.add_theme_constant_override("separation", 9)
-	_reroll_button.add_child(row)
-
-	var icon := TextureRect.new()
-	icon.custom_minimum_size = Vector2(22, 22)
-	icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	icon.texture = _ICON_REROLL
-	icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	row.add_child(icon)
-
-	var label := DangoTheme.display_label("REROLL", 20, DangoTheme.CREAM, 800, 0.06)
-	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	row.add_child(label)
-
-	var count_chip := PanelContainer.new()
-	count_chip.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_reroll_count_style = StyleBoxFlat.new()
-	_reroll_count_style.border_color = Color.BLACK
-	_reroll_count_style.set_border_width_all(2)
-	_reroll_count_style.set_corner_radius_all(9)
-	_reroll_count_style.content_margin_left = 10.0
-	_reroll_count_style.content_margin_right = 10.0
-	_reroll_count_style.content_margin_top = 0.0
-	_reroll_count_style.content_margin_bottom = 0.0
-	count_chip.add_theme_stylebox_override("panel", _reroll_count_style)
-	count_chip.custom_minimum_size = Vector2(0, 28)   # mockup: the count chip is 28 tall
-	count_chip.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	_reroll_count_label = DangoTheme.display_label("", 17, DangoTheme.INK_ON_PRIMARY, 800, 0.02)
-	_reroll_count_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_reroll_count_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	count_chip.add_child(_reroll_count_label)
-	row.add_child(count_chip)
 
 
-## End Turn button content — "END TURN" label + a SPACE-key chip (redline "END TURN"). Also where
-## the flagged ~2.2:1 white-on-orange contrast failure (§02 problems list) is actually closed for
-## this button: the label below is inked INK_ON_PRIMARY directly, and _update_end_turn_ui() no
-## longer forces Color.WHITE onto the (now text-less) Button itself.
-func _style_end_turn_button() -> void:
-	_end_turn_button.text = ""
 
-	var wrap := CenterContainer.new()
-	wrap.set_anchors_preset(Control.PRESET_FULL_RECT)
-	wrap.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_end_turn_button.add_child(wrap)
 
-	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", 11)
-	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	wrap.add_child(row)
 
-	var label := DangoTheme.display_label("END TURN", 26, DangoTheme.INK_ON_PRIMARY, 800, 0.08)
-	label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	row.add_child(label)
 
-	var chip := PanelContainer.new()
-	chip.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var chip_style := StyleBoxFlat.new()
-	chip_style.bg_color = DangoTheme.INK_ON_PRIMARY
-	chip_style.set_corner_radius_all(7)
-	chip_style.content_margin_left = 8.0
-	chip_style.content_margin_right = 8.0
-	chip_style.content_margin_top = 0.0
-	chip_style.content_margin_bottom = 0.0
-	chip.add_theme_stylebox_override("panel", chip_style)
-	chip.custom_minimum_size = Vector2(0, 24)   # mockup: the SPACE chip is 24 tall
-	chip.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	var space_label := DangoTheme.display_label("SPACE", 13, DangoTheme.CREAM_HI, 800, 0.05)
-	space_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	space_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	chip.add_child(space_label)
-	row.add_child(chip)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 ## The turn banner's own type. combat-v2.html: eyebrow at Baloo 16/800 on #3A0A08, phase at
@@ -2224,17 +1918,16 @@ func _sync_unit_visuals() -> void:
 func _spawn_portrait(u: Unit, is_enemy: bool, slot_index: int, slot_count: int) -> void:
 	var p: UnitPortrait = _PORTRAIT_SCENE.instantiate()
 	_unit_visuals_root.add_child(p)
-	p.setup(u.uid, u.n, u.cls, is_enemy)
+	var tag := ""
+	if u.is_boss:
+		tag = "BOSS"
+	elif is_enemy and String(_setup.get("kind", "")) == "elite":
+		tag = "ELITE"
+	p.setup(u.uid, u.n, u.cls, is_enemy, u.is_boss, tag)
 	p.clicked.connect(_on_target_clicked)
 	p.inspect_requested.connect(_open_unit_inspect)   # right-click the nameplate, same door as
 		# right-clicking the model (CombatStage3D.unit_inspect_requested)
 	_portraits[u.uid] = p
-
-	var hud := UnitHeadHUD.new()
-	hud.uid = u.uid
-	hud.intent_hover_changed.connect(_on_enemy_intent_hover)
-	_unit_visuals_root.add_child(hud)
-	_head_huds[u.uid] = hud
 
 	# An imported Axie's genes ride along so the stage can build its real body. They live on
 	# the hero def MetaState._register_vault_hero() published into ContentDB, which is the only
@@ -2375,80 +2068,41 @@ func _layout_unit_visuals() -> void:
 	if _combat == null:
 		return
 	var stage_offset: Vector2 = _stage3d.position   # Stage3D no longer fills the whole Root
-		# (anchored to an inset "playfield" band in Combat.tscn) but UnitVisualsRoot DOES fill the
-		# whole Root — get_unit_screen_pos() returns Stage3D-LOCAL coordinates, so every result
-		# here must be re-based into the shared full-Root overlay space.
+	# R1 anchors: the enemy plates hang from the TOP edge (y 96) and are placed left to right
+	# around the centre of the canvas, so they do not move with the 3D projection. README 3:
+	# plates 320 wide (boss 640) on a 360 pitch; the 3D boxes sit under them (lane C: slot pitch).
+	var canvas_w: float = get_viewport_rect().size.x
+	var enemy_ps: Array = []
+	for e in _combat.enemies:
+		var ep: UnitPortrait = _portraits.get(e.uid)
+		if ep != null and ep.visible:
+			enemy_ps.append(ep)
+	var total := 0.0
+	for ep in enemy_ps:
+		total += (ep as UnitPortrait).size.x
+	var gap := _ENEMY_PLATE_GAP_R1
+	if enemy_ps.size() > 1:
+		gap = clampf((canvas_w - 32.0 - total) / float(enemy_ps.size() - 1), 8.0, _ENEMY_PLATE_GAP_R1)
+	total += gap * maxf(float(enemy_ps.size() - 1), 0.0)
+	var x := (canvas_w - total) * 0.5
+	for ep in enemy_ps:
+		(ep as UnitPortrait).position = Vector2(x, _ENEMY_PLATE_TOP_R1)
+		x += (ep as UnitPortrait).size.x + gap
 
-	var party_min_x := INF
-	var party_max_x := -INF
-	var enemy_max_bottom := -INF
 	for uid in _portraits.keys():
 		var p: UnitPortrait = _portraits[uid]
-		var is_enemy := _combat_is_enemy_uid(uid)
+		if _combat_is_enemy_uid(uid):
+			continue
+		# Party: the portrait is only the anchor damage numbers rise from (chest height).
 		var feet := _stage3d.get_unit_screen_pos(uid, CombatStage3D.FEET_HEIGHT)
 		if feet.x >= 0.0:
-			if is_enemy:
-				# C1, vertical — the column top is a CONSTANT, not a projection. See
-				# _ENEMY_COLUMN_TOP above for what the mockup does; here is why the projection
-				# cannot be made to agree with it. The enemy row sits at z=-6.5, which is depth
-				# ~20.2 from this camera, where the focal length of 1148px puts one world metre
-				# at ~57 screen px. HEAD_HEIGHT (1.55) therefore lands ~87px above the feet, and
-				# the badge — 8 + the 100px nameplate column + 8 + its own 42 — lands ~229. To
-				# pull it to 75 the head anchor would have to be ~4.15m, floating the plate
-				# 147px above a creature that only renders ~97px tall, because the real gap is
-				# that the mockup draws its monsters at ~190px and this stage renders them at
-				# ~97px. That is a stage-scale question, not an anchor question — reported, not
-				# guessed at here. Pinning the column is the half that IS the mockup's own
-				# behaviour, and it is the half the review measured.
-				p.position = Vector2(stage_offset.x + feet.x - p.size.x * 0.5,
-					_ENEMY_PLATE_TOP)
-				# The enemy "row" now bottoms out at the MODEL's own feet (the nameplate/badge
-				# sit above the head, not below), so that — not the nameplate — is what the
-				# front-line rule must clear.
-				enemy_max_bottom = maxf(enemy_max_bottom, stage_offset.y + feet.y)
-			else:
-				# combat-v2.html stacks a PARTY column the same way it stacks an enemy one:
-				# status strip, then nameplate, then MODEL, top to bottom (gap 5, against the
-				# enemy column's 8). The plate sits ABOVE the model, not under its feet — the
-				# `feet.y + 6.0` anchor this replaces put every party plate down inside the deck
-				# bar's own band, which is also why the party plates had no room to be 68 tall.
-				# Centres on the portrait's own measured width; since CB-09 that is always
-				# UnitPortrait.WIDTH (176) on both sides, so the two agree by construction.
-				var party_head := _stage3d.get_unit_screen_pos(uid, CombatStage3D.HEAD_HEIGHT)
-				# C5, the pitch half — the plate centres on the unit's FEET, not its head. Both
-				# rows' world spacings were solved against the feet plane and then read off the
-				# head plane, which is a different depth and so a different scale: the party row
-				# is at depth 8.608 at the feet and 8.233 at the head, so `_ROW_SPACING_PARTY`
-				# (1.455) projects to 1.455 * 1148.07 / 8.608 = 194.0px at the feet — exactly
-				# combat-v2.html's `width:180 + gap:14` — and to 203px at the head, which is the
-				# 198px pitch the review measured. The enemy row does the same thing: 5.103 *
-				# 1148.07 / 20.204 = 290.0px at the feet, exactly `width:186 + gap:104`.
-				#
-				# NOT changed, deliberately: the row stays centred on x=960. The mockup's
-				# `left:402` implies x=880, and the review flags that 80px shift as uncertain
-				# rather than asserting it — see the task report.
-				p.position = Vector2(stage_offset.x + feet.x - p.size.x * 0.5,
-					stage_offset.y + party_head.y - 5.0 - p.size.y)
-				party_min_x = minf(party_min_x, p.position.x)
-				party_max_x = maxf(party_max_x, p.position.x + p.size.x)
-
-		var hud: UnitHeadHUD = _head_huds.get(uid)
-		if hud == null:
-			continue
-		if feet.x >= 0.0:
-			# The intent badge sits one `gap:8` above its own nameplate — the enemy column's
-			# separation in combat-v2.html. With the plate pinned at _ENEMY_PLATE_TOP (125) this
-			# resolves to y = 125 - 8 - 42 = 75, the mockup's own column top.
-			#
-			# The slot is UnitHeadHUD.HEIGHT, a CONSTANT, and never `hud.total_height()`. Q3's
-			# no-intent enemies hide the badge entirely, a hidden badge measures zero, and
-			# measuring it here would slide that one enemy's nameplate 42px up out of the row —
-			# the same defect the fixed 28px status strip (UnitPortrait.STATUS_STRIP_H) exists
-			# to prevent one row further down.
-			hud.position = Vector2(p.position.x + (p.size.x - UnitHeadHUD.WIDTH) * 0.5,
-				p.position.y - 8.0 - UnitHeadHUD.HEIGHT)
-	_update_front_line(party_min_x, party_max_x, enemy_max_bottom)
+			var chest := _stage3d.get_unit_screen_pos(uid, CombatStage3D.HEAD_HEIGHT)
+			p.position = Vector2(stage_offset.x + chest.x - p.size.x * 0.5, stage_offset.y + chest.y)
 	_backdrop.apply_parallax(stage_offset)
+
+
+const _ENEMY_PLATE_TOP_R1 := 96.0
+const _ENEMY_PLATE_GAP_R1 := 40.0
 
 
 ## C5: true only while iterating _portraits in _layout_unit_visuals() above — kept as a tiny
@@ -3059,9 +2713,8 @@ func _rebuild_all() -> void:
 	# Reconcile BEFORE reading anything: a unit that appeared since the last rebuild has no
 	# portrait yet, and _update_portrait() silently returns for a uid it does not know.
 	_sync_unit_visuals()
-	_update_top_bar()
-	_update_bottom_deck()
-	_update_end_turn_ui()
+	_hud = _hud_state()
+	_update_hud()
 
 	for u in _combat.party:
 		_update_portrait(u)
@@ -3071,87 +2724,16 @@ func _rebuild_all() -> void:
 	_update_dice_tray()
 
 
-## v2 top bar — repaints every value _build_top_bar() constructed (node chip's WAVE line, wave
-## track, turn pill, relic strip, shard chip) plus the undo button's own gating.
-func _update_top_bar() -> void:
-	_update_wave_track()
-	_update_turn_pill()
-	_update_relic_strip()
-	_shard_value_label.text = str(RunState.shards_this_run)
-	_update_undo_ui()
 
 
-## WAVE progress. `total` reads RunState.map_graph's own row count (RunMapGraph.rows.size())
-## rather than the web build's fixed "12" — Godot's run-map graph (run_map_generator.gd) is a
-## longer branching structure (18/30 rows for short/full mode), not a linear 12-step gauntlet, so
-## hardcoding 12 would misreport real run length. Falls back to a single-segment "WAVE 1" if
-## map_graph is empty (e.g. t_combatview_smoke's synthetic setup, which sets
-## RunState.pending_combat directly and never calls RunState.start_new_run()).
-##
-## Pip geometry and colour come straight from combat-v2.html's own `waveTrack` builder: every
-## pip is 10 tall, radius 4, on a 2px black outline, and its WIDTH is 17 for the current wave,
-## 14 for the boss and 11 otherwise; its FILL is PRIMARY behind you, CREAM_HI for the wave you
-## are on, DANGER for the boss pip and FUTURE ahead — in that precedence order (current beats
-## boss, for both width and fill).
-##
-## This REVERTS FIX-PASS-01 §2.1 C7, which recoloured cleared pips CREAM_TRACK on the grounds
-## that it outranked the v2 handoff. godot/CLAUDE.md now settles that the other way: the screen
-## mockup wins, and the FIX-PASS docs are historical.
-func _update_wave_track() -> void:
-	var graph := RunMapGraph.from_data(RunState.map_graph)
-	var total := maxi(graph.rows.size(), 1)
-	var current := clampi(RunState.power_level + 1, 1, total)
-	_wave_label.text = "WAVE %d" % current
-	_wave_total_label.text = " / %d" % total
-
-	while _wave_track.get_child_count() < total:
-		var seg := PanelContainer.new()
-		seg.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		seg.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-		_wave_track.add_child(seg)
-	while _wave_track.get_child_count() > total:
-		var c := _wave_track.get_child(_wave_track.get_child_count() - 1)
-		_wave_track.remove_child(c)
-		c.queue_free()
-	for i in _wave_track.get_child_count():
-		var seg: PanelContainer = _wave_track.get_child(i)
-		var n := i + 1
-		var is_boss := n == total
-		var pip_w := 17 if n == current else (14 if is_boss else 11)
-		var pip_col: Color
-		if n < current:
-			pip_col = DangoTheme.PRIMARY
-		elif n == current:
-			pip_col = DangoTheme.CREAM_HI
-		elif is_boss:
-			pip_col = DangoTheme.DANGER
-		else:
-			pip_col = DangoTheme.FUTURE
-		seg.custom_minimum_size = Vector2(pip_w, 10)
-		seg.add_theme_stylebox_override("panel",
-			DangoTheme.solid_chip_style(pip_col, 4, 2, Vector2.ZERO))
 
 
-## Turn pill — ONE fill, and the dot, divider and "TURN n" all take their ink from it. PRIMARY
-## for the player's own phase, DANGER for the enemy phase (the mockup's static fixture only ever
-## shows the player's turn; the DANGER flip is real game state it does not cover, kept from the
-## previous pass). `ink_on()` picks black-or-cream for either fill.
-##
-## FLAGGED: combat-v2.html inks "TURN n" at a literal #5A3310, a mid-brown that exists only on
-## the Kam fill. DangoTheme has no token for it, and inlining a hex is forbidden, so this uses
-## INK_ON_PRIMARY at 0.72 alpha — which composites to ≈#663817 on PRIMARY. See the task report.
-func _update_turn_pill() -> void:
-	var acting := _combat.phase != CombatPhase.END_TURN
-	var bg := DangoTheme.PRIMARY if acting else DangoTheme.DANGER
-	_turn_pill_style.bg_color = bg
-	var ink := DangoTheme.ink_on(bg)
-	_turn_label.text = "YOUR TURN" if acting else "ENEMY TURN"
-	_turn_label.add_theme_color_override("font_color", ink)
-	(_turn_dot.get_theme_stylebox("panel") as StyleBoxFlat).bg_color = ink
-	_turn_divider.color = Color(ink.r, ink.g, ink.b, 0.35)
-	_turn_number_label.text = "TURN %d" % _combat.turn
-	_turn_number_label.add_theme_color_override("font_color",
-		Color(ink.r, ink.g, ink.b, 0.72))
+
+
+
+
+
+
 
 
 ## Relic hover copy — the NAME, what it costs if it is an active, and the relic's own sentence
@@ -3180,168 +2762,30 @@ func _relic_icon_for(def: RelicDef) -> Texture2D:
 	return DangoTheme.face_type_icon("dmg")
 
 
-## Relic strip — rebuilt every rebuild (relic_ids essentially never changes mid-combat, but a
-## relic reward/purchase mid-run means this scene is re-entered fresh each fight anyway, so a
-## from-scratch rebuild here costs nothing and can never drift from `_combat.relic_ids`).
-##
-## REVERTS the "coordinator follow-up fix #1" name-pill version (2026-09-20). That fix made the
-## chip hug the relic's own NAME, which is a text-measured width and is exactly what
-## combat-v2.html does not draw: `relics` there is a row of fixed 33x33 tiles, each a solid fill
-## with an 18px glyph. godot/CLAUDE.md is explicit that the screen mockup outranks a prose
-## restatement, and that a plate whose width depends on its text is the defect this screen keeps
-## re-acquiring.
-func _update_relic_strip() -> void:
-	for c in _relic_strip.get_children():
-		c.queue_free()
-	for rid in _combat.relic_ids:
-		var def: RelicDef = RelicRegistry.get_def(rid)
-		if def == null:
-			continue
-		var color := DangoTheme.rarity_color(int(def.rarity))
-		var chip := _icon_tile(_relic_icon_for(def), 33.0, 18.0,
-			DangoTheme.solid_chip_style(color, 9, 3, Vector2.ZERO))
-		chip.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-		chip.tooltip_text = _relic_tooltip(def)
-		_relic_strip.add_child(chip)
 
 
-## Undo button state — mirrors the reroll button's own gating (EXECUTE phase, not won/lost) plus
-## "is there anything to undo" (CombatEngine.undo_stack, rule spec §2's own free-undo scope: it
-## clears on reroll/new-turn, so an empty stack correctly disables this outside those bounds too).
-func _update_undo_ui() -> void:
-	_undo_button.disabled = _combat.won or _combat.lost or _combat.phase != CombatPhase.EXECUTE \
-		or (_combat.undo_stack as Array).is_empty()
 
 
-## v2 bottom deck — mana value, relic-active affordability, and the reroll count chip. End Turn's
-## own enabled/disabled + warn state stays in _update_end_turn_ui() (unchanged call site, still
-## invoked separately from _rebuild_all()).
-func _update_bottom_deck() -> void:
-	_mana_value_label.text = str(_combat.mana)
-	_update_actives()
-	_update_reroll_count()
+
+
+
+
+
+
 
 
 const _ACTIVE_SLOT_CAP := 4
 
-## Relic-active slots — mirrors the mockup's own `_activeSlots()` algorithm: up to 4 shown, a
-## "+n" tile if there are more, empty dashed tiles padding out to 4 if there are fewer.
-##
-## These are CLICKABLE now. The engine has had CombatEngine.play_active() all along; the
-## slots were built as display-only and the report was simply that they cannot be pressed.
-## A card the player cannot afford is `disabled` rather than hidden, so the cost stays
-## readable — that is the whole point of showing the MP number on the tile.
-func _update_actives() -> void:
-	for c in _actives_row.get_children():
-		c.queue_free()
-
-	var held: Array = []
-	for rid in _combat.relic_ids:
-		var def: RelicDef = RelicRegistry.get_def(rid)
-		if def != null and int(def.act_cost) > 0:
-			held.append(def)
-	_active_count_label.text = "%d / %d" % [mini(held.size(), _ACTIVE_SLOT_CAP), _ACTIVE_SLOT_CAP]
-
-	var overflow := held.size() > _ACTIVE_SLOT_CAP
-	var shown: Array = held.slice(0, _ACTIVE_SLOT_CAP - 1 if overflow else _ACTIVE_SLOT_CAP)
-	for def in shown:
-		var affordable := _combat.mana >= int(def.act_cost)
-		var armed := _selected_active_id == String(def.id)
-		var slot := Button.new()
-		slot.custom_minimum_size = Vector2(55, 55)
-		slot.tooltip_text = _relic_tooltip(def)
-		slot.focus_mode = Control.FOCUS_NONE
-		slot.text = ""
-		slot.disabled = not affordable
-		# An armed card reads as PRIMARY so it is obvious which one the next unit click will
-		# spend, the same way a selected die does.
-		var fill: Color = DangoTheme.PRIMARY if armed else (
-			DangoTheme.MANA_PURPLE if affordable else DangoTheme.DISABLED_FILL)
-		for st in ["normal", "hover", "pressed", "focus", "disabled"]:
-			slot.add_theme_stylebox_override(st, DangoTheme.solid_chip_style(
-				fill, 12, 3 if armed else 2, Vector2(0, 4)))
-		slot.pressed.connect(_on_active_pressed.bind(String(def.id)))
-		# Button is NOT a Container, so a plain child Control is never laid out: it keeps its
-		# minimum size at the button's top-left corner and spills over the chip's rounded
-		# border. The column has to anchor itself to the button's rect to sit centred in it.
-		var col := VBoxContainer.new()
-		col.set_anchors_preset(Control.PRESET_FULL_RECT)
-		col.offset_left = 0.0
-		col.offset_top = 0.0
-		col.offset_right = 0.0
-		col.offset_bottom = 0.0
-		col.mouse_filter = Control.MOUSE_FILTER_IGNORE   # the Button under it takes the click
-		col.alignment = BoxContainer.ALIGNMENT_CENTER
-		col.add_theme_constant_override("separation", 2)
-		slot.add_child(col)
-		var icon := TextureRect.new()
-		icon.custom_minimum_size = Vector2(22, 22)
-		icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-		icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-		icon.texture = _relic_icon_for(def)   # see _RELIC_ARCHETYPE_ICON / the task report
-		icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		icon.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-		col.add_child(icon)
-		var cost := Label.new()
-		cost.text = "MP %d" % int(def.act_cost)
-		cost.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		cost.add_theme_font_size_override("font_size", 12)
-		cost.add_theme_color_override("font_color",
-			DangoTheme.INK if affordable else Color(1.0, 0.604, 0.588))
-		col.add_child(cost)
-		_actives_row.add_child(slot)
-
-	if overflow:
-		var more := _icon_tile(null, 55.0, 0.0,
-			DangoTheme.solid_chip_style(DangoTheme.PANEL_RAISED, 12, 2, Vector2.ZERO))
-		var more_label := Label.new()
-		more_label.text = "+%d" % (held.size() - _ACTIVE_SLOT_CAP + 1)
-		more_label.add_theme_color_override("font_color", Color(0.78, 0.733, 0.839))
-		(more.get_child(0) as CenterContainer).add_child(more_label)
-		_actives_row.add_child(more)
-	else:
-		for _i in range(shown.size(), _ACTIVE_SLOT_CAP):
-			# FIX-PASS-01 C6: was a near-black fill with a 2px border that read as a "pure-black
-			# hole" — WELL (the token for "holds something else, currently empty") + the L7 chip
-			# outline width (3px), so an empty slot reads as an empty SOCKET, not missing art.
-			var empty := PanelContainer.new()
-			empty.custom_minimum_size = Vector2(55, 55)
-			empty.add_theme_stylebox_override("panel",
-				DangoTheme.solid_chip_style(DangoTheme.WELL, 12, 3, Vector2.ZERO))
-			_actives_row.add_child(empty)
 
 
-## Reroll count chip — PRIMARY/ink while any rerolls remain, WELL_TRACK/dim once they run out
-## (mirrors the mockup's own `rerollBg`/`rerollFg`). Also where the reroll button's own
-## enabled/disabled state is set — unchanged gating from the pre-v2 pass.
-func _update_reroll_count() -> void:
-	var n := _combat.rerolls
-	_reroll_count_label.text = "×%d" % n
-	var bg := DangoTheme.PRIMARY if n > 0 else DangoTheme.WELL_TRACK
-	_reroll_count_style.bg_color = bg
-	_reroll_count_label.add_theme_color_override("font_color",
-		DangoTheme.INK_ON_PRIMARY if n > 0 else Color(0x5C / 255.0, 0x65 / 255.0, 0x73 / 255.0))
-	_reroll_button.disabled = _combat.won or _combat.lost or n <= 0 or _combat.phase != CombatPhase.EXECUTE
 
 
-## End Turn warning state (still a colour-only warn, unchanged from the pre-v2 pass). Re-evaluated
-## every rebuild, not just on press — the button already looks like a warning before the player
-## even clicks it. No longer forces a font colour: End Turn's label is now a real child Label
-## inked INK_ON_PRIMARY once in _style_end_turn_button(), not Button.text/font_color — see that
-## function's comment for where the old ~2.2:1 white-on-orange pairing was actually removed.
-func _update_end_turn_ui() -> void:
-	var has_unused := false
-	for u in _party_dice_units():
-		if u.hp > 0 and u.has_rolled() and not u.roll_used():
-			has_unused = true
-			break
-	var warn := has_unused and _combat.phase == CombatPhase.EXECUTE and not (_combat.won or _combat.lost)
-	DangoTheme.style_button(_end_turn_button, true, warn)
-	# Disabled while the enemies are acting too, since 2026-09-21. That phase used to be one
-	# frame long, so an enabled button during it was unobservable; now it takes about a second
-	# per enemy and a live-looking button that does nothing is a broken button.
-	_end_turn_button.disabled = _combat.won or _combat.lost \
-		or _combat.phase == CombatPhase.END_TURN
+
+
+
+
+
+
 
 
 ## CB-11 / CB-12 — committed incoming damage on a party member: what the enemies have ALREADY
@@ -3387,6 +2831,36 @@ func _incoming_damage_for(target: Unit) -> int:
 	return int(total)
 
 
+## `hud_state()` — the REAL one the moment lane A ships it on CombatEngine, else the stub
+## (production/l1-interfaces.md §3.2). Read once per rebuild and cached in `_hud`.
+func _hud_state() -> Dictionary:
+	if _combat == null:
+		return {}
+	if _combat.has_method("hud_state"):
+		return _combat.call("hud_state")
+	return HudStateStub.from_engine(_combat)
+
+
+## Rule-based illegal-target reason for the selected die against `target` (README 3 "Targeting":
+## only reasons the engine really has — a heal face cannot hit a monster; a blank face does
+## nothing). "" = legal.
+func _illegal_reason_for(target: Unit) -> String:
+	if _selected_die_uid == -1 or _combat == null:
+		return ""
+	var src := _combat.by_uid(_selected_die_uid)
+	if src == null or not src.has_rolled():
+		return ""
+	var fi := src.roll_face_index()
+	if fi < 0 or fi >= src.die.size():
+		return ""
+	var t := String((src.die[fi] as Dictionary).get("type", ""))
+	if t == "blank":
+		return "Blank face: nothing to use"
+	if t == "heal" and target.side == "e":
+		return "Heal face: allies only"
+	return ""
+
+
 func _update_portrait(u: Unit) -> void:
 	var p: UnitPortrait = _portraits.get(u.uid)
 	if p == null:
@@ -3394,27 +2868,15 @@ func _update_portrait(u: Unit) -> void:
 	p.set_incoming(_incoming_damage_for(u))
 	p.update_stats(u.hp, u.max_hp, u.shield, u.status)
 	_stage3d.set_alive(u.uid, u.hp > 0)
-
-	var hud: UnitHeadHUD = _head_huds.get(u.uid)
-	if hud != null:
-		hud.visible = u.hp > 0
-		hud.set_status(u.status)
-		if u.side == "e":
-			_apply_intent_to_hud(hud, u)
-		else:
-			# A party unit owns no intent slot at all — the one path that hides the badge.
-			# Empty States Spec §1: for an ENEMY the badge is never hidden, so the two cases
-			# cannot share a call any more.
-			hud.hide_intent()
+	if u.side == "e":
+		_update_enemy_plate(p, u)
 
 	var is_selected := (u.uid == _selected_die_uid)
-	p.set_selected(is_selected)
 	if not is_selected:
-		# An armed relic active highlights only the SIDE it can legally hit — a heal lights up
-		# the party, a bolt lights up the enemies. A selected die keeps the old rule (anything
-		# alive), because a face's legality depends on data this screen is not the authority
-		# on; an active's does not, it is one word on the card.
+		# An armed relic active highlights only the SIDE it can legally hit; a selected die keeps
+		# the old rule (anything alive) plus the rule-based illegal reasons above.
 		var targetable := false
+		var reason := ""
 		if _selected_active_id != "":
 			var adef: RelicDef = RelicRegistry.get_def(_selected_active_id)
 			var want := adef.act_target() if adef != null else "none"
@@ -3422,28 +2884,55 @@ func _update_portrait(u: Unit) -> void:
 				or (want == "enemy" and u.side == "e"))
 		else:
 			targetable = _selected_die_uid != -1 and u.hp > 0
+			reason = _illegal_reason_for(u) if targetable else ""
+			if reason != "":
+				targetable = false
 		p.set_targetable(targetable)
+		p.set_illegal(reason if u.hp > 0 else "")
 		_stage3d.set_targetable(u.uid, targetable)
+	else:
+		p.set_selected(false)
+		p.set_illegal("")
 
 
-## Enemy intent is public information by design (rule spec §2 "minh bạch triệt để") — safe to
-## read directly off the Unit even before any playback system exists.
-func _apply_intent_to_hud(hud: UnitHeadHUD, u: Unit) -> void:
-	if u.hp <= 0 or u.intent.is_empty():
-		hud.set_intent(false, "", 0, "")
-		return
-	var fi := int(u.intent.get("face_index", -1))
-	if fi < 0 or fi >= u.die.size():
-		hud.set_intent(false, "", 0, "")
-		return
-	var f: Dictionary = u.die[fi]
-	var tgt_uid := int(u.intent.get("target_uid", -1))
-	var tgt_name := _unit_name(tgt_uid) if tgt_uid >= 0 else "?"
-	# Live, not printed. This one matters most: rule spec §2 is "minh bạch triệt để" — the
-	# telegraph is a promise about what is coming — and _incoming_damage_for() a few lines
-	# down already computed the at-risk slice from _face_value(), so a weakened or overdriven
-	# enemy showed one number on its badge and a different one on its target's HP bar.
-	hud.set_intent(true, String(f.get("type", "")), _live_face_value(u, fi), tgt_name)
+## The enemy plate's R1 content: ONE merged intent number, the counter tab (spike or boss clock),
+## the boss phase line and the acting state. Numbers come from `hud_state()`; nothing is summed
+## here (README 3a).
+func _update_enemy_plate(p: UnitPortrait, u: Unit) -> void:
+	var hs: Dictionary = _hud if not _hud.is_empty() else _hud_state()
+	var next: Dictionary = (hs.get("enemy_next", {}) as Dictionary).get(u.uid, {})
+	var newcomer := bool(hs.get("newcomer", false))
+	var intent := {"show": false}
+	var fi := int(u.intent.get("face_index", -1)) if not u.intent.is_empty() else -1
+	if u.hp > 0 and fi >= 0 and fi < u.die.size():
+		var f: Dictionary = u.die[fi]
+		var ftype := String(f.get("type", ""))
+		var tgt_uid := int(u.intent.get("target_uid", -1))
+		var num := int(next.get("dmg", _live_face_value(u, fi))) if ftype == "dmg" \
+			else _live_face_value(u, fi)
+		var clock: Dictionary = hs.get("clock", {})
+		intent = {"show": true, "type": ftype, "num": num,
+			"label": DangoTheme.face_type_label(ftype),
+			"target": _unit_name(tgt_uid) if tgt_uid >= 0 else "",
+			"boosted": u.is_boss and int(clock.get("stacks", 0)) > 0 and not newcomer}
+	p.set_acting(_end_turn_acting_uid == u.uid)
+	p.set_intent(intent)
+
+	var tab := {}
+	if u.hp > 0 and not newcomer:
+		if u.is_boss and bool((hs.get("clock", {}) as Dictionary).get("active", false)):
+			tab = HudKit.clock_tab(hs["clock"], int(hs.get("turn", _combat.turn)),
+				int(intent.get("num", 0)))
+		elif bool(next.get("spike", false)) and int(next.get("turns_to_spike", 0)) > 0:
+			var n := int(next.get("turns_to_spike", 0))
+			var hits := int(next.get("spike_dmg", int(round(float(next.get("dmg", 0)) * 2.5))))
+			tab = {"bg": DangoTheme.GOLD_SOFT, "ink": DangoTheme.GOLD_INK,
+				"icon": HudKit.icon("spike"), "text": "BIG HIT IN %d" % n,
+				"right": "HITS %d" % hits, "pips": []}
+	p.set_tab(tab)
+	if u.is_boss:
+		p.set_phase(int((hs.get("boss_phase", {}) as Dictionary).get(u.uid, {}).get("phase",
+			int(u.custom_state.get("phase", 1)))))
 
 
 func _update_dice_tray() -> void:
