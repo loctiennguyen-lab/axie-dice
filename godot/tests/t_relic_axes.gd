@@ -9,6 +9,7 @@ func _ready() -> void:
 	print("=== t_relic_axes: start ===")
 	test_g_axis()
 	test_a_axes()
+	test_reroll_caps()
 	print("=== t_relic_axes: %d checks, %d failure(s) ===" % [_checks, _failures.size()])
 	if _failures.is_empty():
 		print("t_relic_axes: PASS — %d checks OK" % _checks)
@@ -113,3 +114,24 @@ func test_a_axes() -> void:
 	t.max_hp = 1000
 	DamagePipeline.resolve({"combat": c5, "src": c5.party[0], "tgt": t, "value": 10, "attack": true, "face_type": "dmg"})
 	_assert(1000 - t.hp == 19, "dawnlance opener +90%")
+
+
+func test_reroll_caps() -> void:
+	var c := _combat(["a_chaos"])
+	c.mana = 10
+	c.rerolls = 0
+	var def: RelicDef = RelicRegistry.get_def("a_chaos")
+	_assert(def.act.get("v", 0) == 4, "a_chaos gives +4")
+	c.play_active("a_chaos")
+	_assert(c.rerolls == 4, "first a_chaos: +4 (rerolls=%d)" % c.rerolls)
+	c.chaos_reroll_given = 4
+	c.rerolls = 0
+	c.mana = 10
+	c.used_actives = []
+	c.play_active("a_chaos")
+	_assert(c.rerolls == 2, "second a_chaos capped at 6 per turn total: +2 (got %d)" % c.rerolls)
+	var d := _combat([])
+	d.rerolls = 0
+	_assert(d.grant_relic_reroll(3) == 3 and d.grant_relic_reroll(3) == 1 and d.rerolls == 4, "relic reroll cap 4/turn")
+	_assert(d.grant_relic_reroll(1) == 0, "cap holds")
+	_assert(int(d._state_dict()["relic_reroll_given"]) == 4, "cap counter is in the undo state")
