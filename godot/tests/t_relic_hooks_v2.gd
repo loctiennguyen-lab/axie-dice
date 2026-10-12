@@ -31,6 +31,7 @@ func _ready() -> void:
 	test_h8_economy()
 	test_eggs()
 	test_ear_and_keeneye()
+	test_tick_ctx_crit_break_group()
 	test_full_fight_all_live_relics()
 	print("=== t_relic_hooks_v2: %d checks, %d failure(s) ===" % [_checks, _failures.size()])
 	if _failures.is_empty():
@@ -786,6 +787,151 @@ func test_ear_and_keeneye() -> void:
 		if bool(u.custom_state.get("pity_crit", false)):
 			pity += 1
 	_assert(pity <= 1, "keeneye: settling repeatedly never stacks pity crits, got %d" % pity)
+
+
+## The FACE_CRIT / FACE_CTX / TICK / SHIELD_BREAK group: assassinsneedle, breakersward, firestormveil,
+## fumeblossom, sporegale. Hooks are fired with real unit/face data; the status ticks and the shield
+## break go through the real StatusEngine / DamagePipeline.
+func _pierce_face() -> Dictionary:
+	return {"type": "dmg", "value": 4, "keywords": ["pierce"]}
+
+
+func test_tick_ctx_crit_break_group() -> void:
+	# assassinsneedle: +25 crit on Pierce dmg faces only; a Pierce crit = Weaken 2 + 1 Mana (once per face use)
+	var c := _combat(["r_assassinsneedle"], 501)
+	var base := _combat([], 501)
+	var u: Unit = c.party[0]
+	var pf := _pierce_face()
+	var plain := {"type": "dmg", "value": 4, "keywords": []}
+	_assert(c._crit_chance(u, pf) - base._crit_chance(base.party[0], pf) == 25.0, "needle: +25 crit on a Pierce dmg face")
+	_assert(c._crit_chance(u, plain) == base._crit_chance(base.party[0], plain), "needle: no bonus on a non-Pierce face")
+	var e: Unit = c.alive_enemies()[0]
+	var m := c.mana
+	var hit_ctx := {"combat": c, "unit": u, "face": pf, "tgt": e, "crit": true, "dealt": 4, "aoe": false,
+		"secondary": false, "pierce": true, "first": true}
+	RelicHooks.fire(c, "on_face_hit", hit_ctx)
+	_assert(int(e.status.get("weaken", 0)) == 2 and c.mana == m + 1, "needle: Pierce crit = Weaken 2 and +1 Mana")
+	hit_ctx["first"] = false
+	RelicHooks.fire(c, "on_face_hit", hit_ctx)
+	_assert(c.mana == m + 1 and int(e.status.get("weaken", 0)) == 4, "needle: Mana refund once per face use, Weaken per hit")
+	var m2 := c.mana
+	hit_ctx["crit"] = false
+	RelicHooks.fire(c, "on_face_hit", hit_ctx)
+	hit_ctx["crit"] = true
+	hit_ctx["pierce"] = false
+	RelicHooks.fire(c, "on_face_hit", hit_ctx)
+	_assert(c.mana == m2 and int(e.status.get("weaken", 0)) == 4, "needle: nothing without crit or without pierce")
+
+	# firestormveil: AoE hit = Burn 2, +1 if already burning
+	var f := _combat(["r_firestormveil"], 502)
+	var fe: Unit = f.alive_enemies()[0]
+	var aoe := {"type": "dmg", "value": 3, "keywords": ["aoe"]}
+	var fc := {"combat": f, "unit": f.party[0], "face": aoe, "tgt": fe, "crit": false, "dealt": 3, "aoe": true,
+		"secondary": true, "pierce": false, "first": true}
+	RelicHooks.fire(f, "on_face_hit", fc)
+	_assert(int(fe.status.get("burn", 0)) == 2, "firestorm: fresh target burns for 2")
+	RelicHooks.fire(f, "on_face_hit", fc)
+	_assert(int(fe.status.get("burn", 0)) == 5, "firestorm: already burning = +3 (2 +1)")
+	fc["aoe"] = false
+	RelicHooks.fire(f, "on_face_hit", fc)
+	_assert(int(fe.status.get("burn", 0)) == 5, "firestorm: single-target hit does nothing")
+
+	# sporegale: secondary targets get 1 Poison; poison tick spreads 1 stack to both neighbours
+	var s := _combat(["r_sporegale"], 503, KEYS, {})
+	var en: Array = s.alive_enemies()
+	var sc := {"combat": s, "unit": s.party[0], "face": aoe, "tgt": en[0], "crit": false, "dealt": 3, "aoe": true,
+		"secondary": false, "pierce": false, "first": true}
+	RelicHooks.fire(s, "on_face_hit", sc)
+	_assert(int(en[0].status.get("poison", 0)) == 0, "sporegale: the primary target gets nothing")
+	sc["secondary"] = true
+	RelicHooks.fire(s, "on_face_hit", sc)
+	_assert(int(en[0].status.get("poison", 0)) == 1, "sporegale: a secondary target gets 1 Poison")
+	if en.size() >= 3:
+		var before1 := int(en[1].status.get("poison", 0))
+		var b0 := int(en[0].status.get("poison", 0))
+		var b2 := int(en[2].status.get("poison", 0))
+		RelicHooks.fire(s, "on_status_tick", {"combat": s, "tgt": en[1], "kind": "poison"})
+		_assert(int(en[0].status.get("poison", 0)) == b0 + 1 and int(en[2].status.get("poison", 0)) == b2 + 1
+			and int(en[1].status.get("poison", 0)) == before1, "sporegale: a tick spreads 1 Poison to each neighbour, not to itself")
+	RelicHooks.fire(s, "on_status_tick", {"combat": s, "tgt": en[0], "kind": "burn"})
+
+	# fumeblossom: burn tick +1 Poison, poison tick on a burning enemy +1 Burn, each once per enemy per turn
+	var fb := _combat(["r_fumeblossom"], 504)
+	var t: Unit = fb.alive_enemies()[0]
+	t.status["burn"] = 3
+	RelicHooks.fire(fb, "on_status_tick", {"combat": fb, "tgt": t, "kind": "burn"})
+	RelicHooks.fire(fb, "on_status_tick", {"combat": fb, "tgt": t, "kind": "burn"})
+	_assert(int(t.status.get("poison", 0)) == 1, "fumeblossom: burn tick -> 1 Poison, capped once per enemy per turn")
+	RelicHooks.fire(fb, "on_status_tick", {"combat": fb, "tgt": t, "kind": "poison"})
+	RelicHooks.fire(fb, "on_status_tick", {"combat": fb, "tgt": t, "kind": "poison"})
+	_assert(int(t.status.get("burn", 0)) == 4, "fumeblossom: poison tick on a burning enemy -> +1 Burn, once per turn")
+	var t2: Unit = fb.alive_enemies()[1] if fb.alive_enemies().size() > 1 else t
+	if t2 != t:
+		RelicHooks.fire(fb, "on_status_tick", {"combat": fb, "tgt": t2, "kind": "poison"})
+		_assert(int(t2.status.get("burn", 0)) == 0, "fumeblossom: poison tick on a non-burning enemy does nothing")
+	fb.turn += 1
+	RelicHooks.fire(fb, "on_status_tick", {"combat": fb, "tgt": t, "kind": "burn"})
+	_assert(int(t.status.get("poison", 0)) == 2, "fumeblossom: cap resets next turn")
+	# through the real tick: both statuses present, one StatusEngine pass
+	var ft := _combat(["r_fumeblossom"], 505)
+	var te: Unit = ft.alive_enemies()[0]
+	te.status["burn"] = 2
+	te.status["poison"] = 2
+	var no_relic := _combat([], 505)
+	var ne: Unit = no_relic.alive_enemies()[0]
+	ne.status["burn"] = 2
+	ne.status["poison"] = 2
+	StatusEngine.tick_status(ft)
+	StatusEngine.tick_status(no_relic)
+	# poison tick runs first (+1 Burn before the burn tick: 3 dmg instead of 2), then the burn tick adds 1 Poison
+	_assert(int(te.status.get("poison", 0)) == int(ne.status.get("poison", 0)) + 1
+		and te.hp == ne.hp - 1, "fumeblossom: a real tick pass feeds both axes (+1 Poison left, +1 Burn damage)")
+
+	# breakersward: shield removed by a party attack -> the least-shielded Axie gets it (max 8)
+	var bw := _combat(["r_breakersward"], 506)
+	var be: Unit = bw.alive_enemies()[0]
+	be.shield = 20
+	bw.party[0].shield = 5
+	bw.party[1].shield = 3
+	var line: Array = RelicHooks.party_line(bw)
+	var low: Unit = line[0]
+	for x in line:
+		if x.shield < low.shield:
+			low = x
+	var low_before := low.shield
+	DamagePipeline.resolve({"combat": bw, "src": bw.party[0], "tgt": be, "value": 12, "attack": true,
+		"face_type": "dmg"})
+	_assert(be.shield < 20, "breakersward: the hit really broke shield")
+	var gain := low.shield - low_before
+	_assert(gain >= 8 and gain <= 10, "breakersward: the weakest Axie gains the broken Shield, capped at 8 (+2 on a plant), got %d" % gain)
+	var low2: Unit = bw.party[2]
+	low2.shield = 0
+	be.shield = 3
+	DamagePipeline.resolve({"combat": bw, "src": bw.party[0], "tgt": be, "value": 2, "attack": true,
+		"face_type": "dmg"})
+	_assert(be.shield == 1, "breakersward: partial break leaves the rest")
+	var base_bw := _combat([], 506)
+	var bb: Unit = base_bw.alive_enemies()[0]
+	bb.shield = 20
+	base_bw.party[2].shield = 0
+	DamagePipeline.resolve({"combat": base_bw, "src": base_bw.party[0], "tgt": bb, "value": 12, "attack": true,
+		"face_type": "dmg"})
+	_assert(base_bw.party[2].shield == 0, "breakersward: nobody gains Shield without the relic")
+	# a pierce hit (does not touch shield) breaks nothing and pays nothing
+	var pw := _combat(["r_breakersward"], 507)
+	var pe: Unit = pw.alive_enemies()[0]
+	pe.shield = 10
+	var ps0: int = pw.party[1].shield
+	DamagePipeline.resolve({"combat": pw, "src": pw.party[0], "tgt": pe, "value": 5, "attack": true,
+		"pierce": true, "face_type": "dmg"})
+	_assert(pe.shield == 10 and pw.party[1].shield == ps0, "breakersward: a plain pierce hit removes no Shield, so pays nothing")
+	# an enemy hitting a party Axie's shield never pays out
+	var ew := _combat(["r_breakersward"], 508)
+	ew.party[0].shield = 6
+	var ps1: int = ew.party[1].shield
+	DamagePipeline.resolve({"combat": ew, "src": ew.alive_enemies()[0], "tgt": ew.party[0], "value": 4, "attack": true,
+		"face_type": "dmg"})
+	_assert(ew.party[1].shield == ps1, "breakersward: only party attacks on enemy Shield pay out")
 
 
 func test_full_fight_all_live_relics() -> void:
