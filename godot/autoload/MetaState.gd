@@ -198,6 +198,11 @@ func pass_add_run_xp(raw_xp: int) -> int:
 	return got
 
 
+## Nhận 500 XP của một việc tuần (xem PassV2.claim_weekly).
+func pass_claim_weekly(week_day: String, task_id: String) -> Dictionary:
+	return PassV2.claim_weekly(self, week_day, task_id, today_utc())
+
+
 ## Nhận phần thưởng free của level `lv` ở Pass v2 (xem PassV2.claim_free).
 func pass_claim_free(lv: int) -> Dictionary:
 	return PassV2.claim_free(self, lv)
@@ -232,6 +237,8 @@ func apply_server_wallet(snapshot: Dictionary) -> void:
 ## và "đã thắng Full A9" để mở bậc Nhiệm vụ. `params`: {mode:"short"|"full", ascension:int, ...}.
 ## runs/wins/best vẫn do end_run ghi như hôm nay.
 func record_run_outcome(params: Dictionary, won: bool) -> void:
+	# Việc tuần Pass v2: mọi run đã kết thúc đều tính; params.reached_boss (tuỳ chọn) cho việc "chạm boss".
+	PassV2.record_run(self, today_utc(), won, bool(params.get("reached_boss", false)))
 	if not won:
 		return
 	var asc := int(params.get("ascension", 0))
@@ -369,7 +376,8 @@ func _economy_from_json(parsed: Dictionary, raw_text: String = "") -> void:
 			"level": int((ps as Dictionary).get("level", 0)),
 			"claimed_free": _ints((ps as Dictionary).get("claimed_free", [])),
 			"day": str((ps as Dictionary).get("day", "")), "day_xp": int((ps as Dictionary).get("day_xp", 0)),
-			"post30_claimed": int((ps as Dictionary).get("post30_claimed", 0))}
+			"post30_claimed": int((ps as Dictionary).get("post30_claimed", 0)),
+			"weekly": _weekly_from_json((ps as Dictionary).get("weekly", {}))}
 	vip_until_utc = int(parsed.get("vip_until_utc", 0))
 	vip_trial_used = bool(parsed.get("vip_trial_used", false))
 	mission_house_level = int(parsed.get("mission_house_level", 0))
@@ -413,6 +421,22 @@ func _apply_starter_if_needed() -> void:
 		ledger_add("ticket", int(st.get("tickets", 0)), "starter")
 	if int(st.get("gems", 0)) > 0:
 		ledger_add("gem", int(st.get("gems", 0)), "starter")
+
+
+static func _weekly_from_json(raw) -> Dictionary:
+	var out: Dictionary = {}
+	if not (raw is Dictionary):
+		return out
+	for k in (raw as Dictionary):
+		var w = (raw as Dictionary)[k]
+		if not (w is Dictionary):
+			continue
+		var claimed: Array = []
+		for c in (w as Dictionary).get("claimed", []):
+			claimed.append(str(c))
+		out[String(k)] = {"runs": int((w as Dictionary).get("runs", 0)), "wins": int((w as Dictionary).get("wins", 0)),
+			"boss": int((w as Dictionary).get("boss", 0)), "claimed": claimed}
+	return out
 
 
 static func _pity_from_json(raw) -> Dictionary:

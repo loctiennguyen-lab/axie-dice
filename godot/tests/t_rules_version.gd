@@ -141,7 +141,9 @@ const WATCHED_FILES: Array[String] = ["res://assets/data/part_faces.json"]
 ## BUMPED, 2026-10-12 night: `ActionLog.RULES_VERSION` -> `godot-2026-10-12-e`. Lane A merge: mission rules
 ## (mission_rules.json, ContentDB.mission_mods), reroll hook veto checked before RNG/reroll_k/Mana, is_refresh fix,
 ## end_run -> record_run_outcome {mode, ascension, ranked, reached_boss}. Changes the run result: YES.
-const FINGERPRINT := "c39fe57a44dffe4924a570c1c0b80b7cb578c811c601ae4875bc0011901af433"
+## Moved 2026-10-12 night by lane E (467a478): MetaState.gd Pass v2 weekly tasks. Meta only, after a run
+## ends. Changes the run result: NO, RULES_VERSION stays -e.
+const FINGERPRINT := "3014469aaf6229d5b8e1045188f8dcf64355c7824a7093ef1210b65f41ba77b5"
 
 
 func _ready() -> void:

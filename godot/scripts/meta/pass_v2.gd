@@ -18,7 +18,7 @@ static func _cfg() -> Dictionary:
 
 
 static func new_state(season_id: String) -> Dictionary:
-	return {"id": season_id, "xp": 0, "level": 0, "claimed_free": [], "day": "", "day_xp": 0, "post30_claimed": 0}
+	return {"id": season_id, "xp": 0, "level": 0, "claimed_free": [], "day": "", "day_xp": 0, "post30_claimed": 0, "weekly": {}}
 
 
 ## Mùa đang chạy tại ngày `day` (start_day <= day < end_day, so chuỗi ISO là đúng thứ tự thời gian).
@@ -187,3 +187,90 @@ static func premium_state() -> Dictionary:
 	var p: Dictionary = _cfg().get("premium", {})
 	return {"locked": bool(p.get("locked_in_l1", true)), "label": String(p.get("label", "Season 2")),
 		"unlock_season": int(p.get("unlock_season", 2))}
+
+
+# --- Việc tuần (echobox-pass-v2 §3.2) --------------------------------------------------------
+# 3 việc đếm được mỗi tuần UTC (tuần bắt đầu thứ Hai 00:00 UTC): chơi 5 run, thắng 2 run, chạm boss
+# 1 lần. Mỗi việc xong thì nhận 500 XP (bấm nhận). Chỉ nhận được việc của TUẦN HIỆN TẠI (qua tuần là mất, chọn tạm, xem pending-decisions G); hết mùa thì không nhận. KHÔNG có bù tiến độ: run chỉ tính vào tuần hiện tại.
+# pass_season.weekly = { "<thứ Hai YYYY-MM-DD>": {runs, wins, boss, claimed:[id]} }.
+
+## Thứ Hai (UTC) của tuần chứa `day`.
+static func week_key(day: String) -> String:
+	var unix := int(Time.get_unix_time_from_datetime_string(day + "T00:00:00"))
+	var wd := int(Time.get_datetime_dict_from_unix_time(unix)["weekday"])   # 0 = Chủ nhật
+	var back := (wd + 6) % 7
+	return GemWallet.utc_day(unix - back * 86400)
+
+
+static func _week(store: Object, week: String) -> Dictionary:
+	var w: Dictionary = store.pass_season.get("weekly", {})
+	if not store.pass_season.has("weekly"):
+		store.pass_season["weekly"] = w
+	if not w.has(week):
+		w[week] = {"runs": 0, "wins": 0, "boss": 0, "claimed": []}
+	return w[week]
+
+
+## Ghi một run đã kết thúc vào tuần hiện tại. Ngoài mùa: bỏ qua.
+static func record_run(store: Object, day: String, won: bool, reached_boss: bool) -> void:
+	if not season_active(day):
+		return
+	ensure_season(store)
+	var w := _week(store, week_key(day))
+	w["runs"] = int(w["runs"]) + 1
+	if won:
+		w["wins"] = int(w["wins"]) + 1
+	if reached_boss:
+		w["boss"] = int(w["boss"]) + 1
+	store.save_to_disk()
+
+
+## Trạng thái các việc của tuần chứa `week_day`: [{id, progress, target, done, claimed}].
+static func weekly_status(store: Object, week_day: String) -> Array:
+	var wk := _week_peek(store, week_key(week_day))
+	var out: Array = []
+	for t in (_cfg().get("weekly_tasks", {}) as Dictionary).get("tasks", []):
+		var td: Dictionary = t
+		var prog := int(wk.get(String(td["counter"]), 0))
+		out.append({"id": td["id"], "progress": mini(prog, int(td["target"])), "target": int(td["target"]),
+			"done": prog >= int(td["target"]), "claimed": (wk.get("claimed", []) as Array).has(td["id"])})
+	return out
+
+
+static func _week_peek(store: Object, week: String) -> Dictionary:
+	return (store.pass_season.get("weekly", {}) as Dictionary).get(week, {})
+
+
+## Các việc đã xong nhưng chưa nhận của tuần chứa `today`: [{week, id}].
+static func weekly_claimable(store: Object, today: String) -> Array:
+	var out: Array = []
+	var wk := week_key(today)
+	if season_active(today):
+		for st in weekly_status(store, wk):
+			if st["done"] and not st["claimed"]:
+				out.append({"week": wk, "id": st["id"]})
+	return out
+
+
+## Nhận 500 XP của một việc (tuần `week` = ngày thứ Hai, hoặc ngày bất kỳ trong tuần đó).
+## reason: season_over | week_over (chỉ tuần hiện tại) | unknown_task | not_done | already_claimed. XP vào Pass, không bị trần run.
+static func claim_weekly(store: Object, week_day: String, task_id: String, today: String) -> Dictionary:
+	if not season_active(today):
+		return {"ok": false, "reason": "season_over", "xp": 0}
+	var wk := week_key(week_day)
+	if wk != week_key(today):
+		return {"ok": false, "reason": "week_over", "xp": 0}
+	ensure_season(store)
+	for st in weekly_status(store, wk):
+		if st["id"] != task_id:
+			continue
+		if st["claimed"]:
+			return {"ok": false, "reason": "already_claimed", "xp": 0}
+		if not st["done"]:
+			return {"ok": false, "reason": "not_done", "xp": 0}
+		var xp := int((_cfg().get("weekly_tasks", {}) as Dictionary).get("xp_each", 500))
+		(_week(store, wk)["claimed"] as Array).append(task_id)
+		_add_xp(store, xp)
+		store.save_to_disk()
+		return {"ok": true, "reason": "", "xp": xp}
+	return {"ok": false, "reason": "unknown_task", "xp": 0}

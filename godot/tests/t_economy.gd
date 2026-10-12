@@ -73,6 +73,7 @@ func _ready() -> void:
 	test_store_and_l1_flags()
 	test_remote_wallet_wiring()
 	test_pass_v2()
+	test_pass_weekly_tasks()
 	test_migration_resets_old_save()
 	test_new_fields_survive_reload()
 	test_record_run_outcome_and_badges()
@@ -706,3 +707,63 @@ func test_pass_v2() -> void:
 	_assert(int(MetaState.pass_season["day_xp"]) == 900 and String(MetaState.pass_season["day"]) == "2026-11-03"
 		and int(MetaState.pass_season["post30_claimed"]) == 2, "pass_season giữ day/day_xp/post30_claimed qua reload")
 	_assert(MetaState.unlock_price("u_reroll") > 0, "unlock_price đọc từ ContentDB")
+
+
+func test_pass_weekly_tasks() -> void:
+	# 3/11/2026 là thứ Ba -> thứ Hai của tuần đó là 2/11
+	_assert(PassV2.week_key("2026-11-03") == "2026-11-02", "tuần bắt đầu thứ Hai (3/11 -> 2/11)")
+	_assert(PassV2.week_key("2026-11-02") == "2026-11-02" and PassV2.week_key("2026-11-08") == "2026-11-02", "thứ Hai..Chủ nhật cùng tuần")
+	_assert(PassV2.week_key("2026-11-09") == "2026-11-09", "thứ Hai kế = tuần mới")
+	var s := Stub.new()
+	s.pass_season = PassV2.new_state("s1")
+	PassV2.record_run(s, "2026-10-30", true, true)
+	_assert((s.pass_season["weekly"] as Dictionary).is_empty(), "ngoài mùa không đếm")
+	var d := "2026-11-04"
+	for i in 4:
+		PassV2.record_run(s, d, false, false)
+	var st := PassV2.weekly_status(s, d)
+	_assert(st.size() == 3 and st[0]["id"] == "play_runs" and st[0]["progress"] == 4 and not st[0]["done"], "4/5 run: chưa xong")
+	_assert(not PassV2.claim_weekly(s, d, "play_runs", d)["ok"] and PassV2.claim_weekly(s, d, "play_runs", d)["reason"] == "not_done", "chưa xong thì không nhận")
+	PassV2.record_run(s, d, true, true)
+	PassV2.record_run(s, d, true, false)
+	st = PassV2.weekly_status(s, d)
+	_assert(st[0]["done"] and st[0]["progress"] == 5 and st[1]["done"] and st[1]["progress"] == 2 and st[2]["done"], "6 run, 2 thắng, 1 chạm boss: cả 3 xong (tiến độ kẹp ở target)")
+	_assert(PassV2.weekly_claimable(s, d).size() == 3, "3 việc chờ nhận")
+	var xp0 := int(s.pass_season.get("xp", 0))
+	var r := PassV2.claim_weekly(s, d, "win_runs", d)
+	_assert(r["ok"] and r["xp"] == 500 and int(s.pass_season["xp"]) == xp0 + 500, "nhận 500 XP")
+	_assert(PassV2.claim_weekly(s, d, "win_runs", d)["reason"] == "already_claimed", "không nhận trùng")
+	_assert(PassV2.claim_weekly(s, d, "nope", d)["reason"] == "unknown_task", "việc lạ")
+	PassV2.claim_weekly(s, d, "play_runs", d)
+	PassV2.claim_weekly(s, d, "reach_boss", d)
+	_assert(int(s.pass_season["xp"]) == xp0 + 1500, "tổng 1.500 XP/tuần")
+	# tuần sau: tiến độ riêng; tuần trước vẫn xem được
+	var nxt := "2026-11-10"
+	PassV2.record_run(s, nxt, true, false)
+	_assert(PassV2.weekly_status(s, nxt)[0]["progress"] == 1 and PassV2.weekly_status(s, d)[0]["progress"] == 5, "mỗi tuần một bộ đếm")
+	var late := Stub.new()
+	late.pass_season = PassV2.new_state("s1")
+	for i in 5:
+		PassV2.record_run(late, "2026-11-04", true, true)
+	_assert(PassV2.claim_weekly(late, "2026-11-04", "play_runs", "2026-11-20")["reason"] == "week_over", "qua tuần: không nhận được nữa")
+	_assert(PassV2.claim_weekly(late, "2026-11-04", "play_runs", "2026-11-08")["ok"], "Chủ nhật cuối tuần vẫn nhận được")
+	_assert(PassV2.weekly_claimable(late, "2026-11-10").is_empty(), "tuần mới: không còn gì chờ nhận của tuần cũ")
+	_assert(PassV2.claim_weekly(late, "2026-12-29", "win_runs", "2026-12-29")["reason"] == "season_over", "hết mùa: không nhận XP")
+	# MetaState: record_run_outcome đếm run (trong mùa theo ngày thật nên chỉ kiểm không lỗi) + qua reload
+	SaveStore.erase(MetaState.SAVE_PATH)
+	MetaState.reload_from_store()
+	MetaState.pass_season = PassV2.new_state("s1")
+	PassV2.record_run(MetaState, "2026-11-04", true, true)
+	MetaState.save_to_disk()
+	MetaState.reload_from_store()
+	var wk: Dictionary = MetaState.pass_season["weekly"]
+	_assert(wk.has("2026-11-02") and int(wk["2026-11-02"]["runs"]) == 1 and int(wk["2026-11-02"]["boss"]) == 1
+		and typeof(wk["2026-11-02"]["runs"]) == TYPE_INT, "weekly qua reload giữ kiểu int")
+	MetaState.record_run_outcome({"mode": "short", "ascension": 0, "reached_boss": true}, false)
+	# Save cũ không có "weekly": load được, đếm tiếp bình thường
+	MetaState.pass_season = {"id": "s1", "xp": 300, "level": 0, "claimed_free": [], "day": "", "day_xp": 0, "post30_claimed": 0}
+	MetaState.save_to_disk()
+	MetaState.reload_from_store()
+	_assert(int(MetaState.pass_season["xp"]) == 300 and (MetaState.pass_season.get("weekly", {}) as Dictionary).is_empty(), "save cũ không có weekly: load được, weekly rỗng")
+	PassV2.record_run(MetaState, "2026-11-04", false, false)
+	_assert(PassV2.weekly_status(MetaState, "2026-11-04")[0]["progress"] == 1, "save cũ: đếm run tiếp được")
