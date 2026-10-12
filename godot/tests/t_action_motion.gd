@@ -31,6 +31,7 @@ var _checks := 0
 func _ready() -> void:
 	var tree := get_tree()
 	CombatView.disable_juice_for_tests = false   # the whole point — see the class comment
+	MonsterArt.force_sprites = true   # these checks cover the rigless Chimera sprite path, not Atia 3D
 	print("=== t_action_motion: start ===")
 	_guard.capture()
 
@@ -60,6 +61,7 @@ func _ready() -> void:
 	await _test_dying_mid_lunge_puts_the_slot_back(tree, enemy.uid, ally.uid)
 
 	CombatView.disable_juice_for_tests = false
+	MonsterArt.force_sprites = false
 	if _fails.is_empty():
 		print("=== t_action_motion: %d checks, 0 failure(s) ===" % _checks)
 		print("t_action_motion: PASS — %d checks OK" % _checks)

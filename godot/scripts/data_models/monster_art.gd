@@ -139,6 +139,9 @@ const NORMAL_KEYS := ["slime", "chomper", "bruiser", "cleaver", "ravenling", "st
 const ELITE_KEYS := ["e_ravager", "e_plague", "e_bulwark", "e_archon"]
 const BOSS_KEYS := ["agony", "gooey_king", "mecha", "frost_lord", "plague_mother", "mirror"]
 
+## Tests that need the flat Chimera sprite path (frame-sheet animation) set this to true so
+## resolve() hides the 3D models. Never set in game code.
+static var force_sprites := false
 static var _atia_cache: Dictionary = {}
 static var _atia_loaded := false
 
@@ -148,7 +151,7 @@ static var _atia_loaded := false
 ## JSON (or a missing JSON) resolves to what the game did before the registry existed — the
 ## Chimera sprite when one is mapped, else "placeholder".
 static func resolve(unit_key: String, is_boss: bool = false) -> Dictionary:
-	var models := _atia_models()
+	var models := {} if force_sprites else _atia_models()
 	if models.has(unit_key) and models[unit_key] is Dictionary:
 		var entry: Dictionary = (models[unit_key] as Dictionary).duplicate(true)
 		if not entry.has("kind"):

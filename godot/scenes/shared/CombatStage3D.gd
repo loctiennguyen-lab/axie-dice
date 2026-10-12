@@ -129,15 +129,8 @@ const _EYE_LIGHT_SPAWN_DURATION := 0.15   # spec §10 "Eye-glow spawn: fade 0->t
 ## _ENEMY_COLOR_VARIANT above already read from — verified directly against the file, not
 ## guessed), picked to be a clearly MORE saturated/darker shade than the hero-class swatch of the
 ## same family already in use above, so a boss never reads as "an oversized party member":
-## Boss key -> a .glb in res://assets/bosses/. Checked BEFORE the Chimera-sprite branch;
-## MonsterArt.BOSS_SPRITES still maps all six keys, so a model that fails to load falls through
-## to a sprite rather than to nothing.
-
-## What a boss model should stand at, in metres. Deliberately the same number the sprite branch
-## lands on (_ENEMY_SPRITE_HEIGHT_M * _BOSS_SCALE) so the two kinds of boss read as the same
-## size on screen — a model that arrived in its own units would otherwise be either a speck or
-## a wall, and which one is pure luck.
-const _BOSS_MODEL_HEIGHT_M := _ENEMY_SPRITE_HEIGHT_M * _BOSS_SCALE
+## (Boss/monster 3D models now come from assets/atia/atia_models.json via MonsterArt.resolve(); see
+## _make_atia_model(). The old BOSS_MODELS table and _BOSS_MODEL_HEIGHT_M no longer exist.)
 
 const _BOSS_COLOR_VARIANT := {
 	"agony": 21,       # bug-04, primary=df2e54 (deep blood-red) — CHIMERA_NOTES.md's retired
@@ -468,6 +461,10 @@ const _IDLE_BOB_PERIOD_MAX := 2.0
 
 var _world: Node3D
 var _camera: Camera3D
+var _sun: DirectionalLight3D
+var _env: Environment
+var _arena: CombatArena3D = null
+var _flash: ColorRect = null
 var _shadow_texture: GradientTexture2D   # shared by every unit's ground shadow — see
 	# _make_ground_shadow()/_build_shadow_texture() and the "Ground-contact shadow" const block
 var _units: Dictionary = {}   # uid -> {"slot": Node3D, "character": AxieCharacter3D,
@@ -516,6 +513,7 @@ func _build_world() -> void:
 	sun.light_energy = 1.15
 	_world.add_child(sun)
 
+	_sun = sun
 	var we := WorldEnvironment.new()
 	var env := Environment.new()
 	env.background_mode = Environment.BG_CLEAR_COLOR
@@ -524,6 +522,7 @@ func _build_world() -> void:
 	env.ambient_light_energy = 0.75
 	we.environment = env
 	_world.add_child(we)
+	_env = env
 
 	_shadow_texture = _build_shadow_texture()
 
@@ -535,6 +534,53 @@ func _build_world() -> void:
 ## rationale). fill_to=(1.0, 0.5), not the diagonal corner CombatView.gd's vignette uses, so the
 ## gradient's radius reaches exactly the texture's own horizontal edge — a clean circular falloff
 ## for a shadow blob, rather than a softer corner-to-corner falloff meant for a screen vignette.
+## Builds the 3D battlefield for a biome id (see CombatArena3D / assets/atia/arenas.json), or
+## clears it when `biome_id` is "" (back to the transparent stage over the 2D backdrop).
+## Biome for a combat: CombatArena3D.biome_for(row, is_boss, total_rows). Returns false when the
+## biome is unknown or the arena is disabled for tests.
+func set_arena(biome_id: String) -> bool:
+	if _world == null:
+		return false
+	if biome_id == "":
+		if _arena != null:
+			_arena.clear()
+		_viewport.transparent_bg = true
+		_env.background_mode = Environment.BG_CLEAR_COLOR
+		_env.fog_enabled = false
+		return true
+	if _arena == null:
+		_arena = CombatArena3D.new()
+		_arena.name = "Arena"
+		_world.add_child(_arena)
+		_world.move_child(_arena, 0)
+	if _arena.biome_id == biome_id:
+		return true
+	if not _arena.build(biome_id, _env, _sun):
+		return false
+	_viewport.transparent_bg = false
+	return true
+
+
+## Portal transition: white flash, swap to the next biome under it, fade back. Await-able.
+func transition_to_arena(biome_id: String) -> void:
+	if CombatView.disable_juice_for_tests:
+		set_arena(biome_id)
+		return
+	if _flash == null:
+		_flash = ColorRect.new()
+		_flash.color = Color(1, 1, 1, 0)
+		_flash.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_flash.set_anchors_preset(Control.PRESET_FULL_RECT)
+		add_child(_flash)
+	var tw := create_tween()
+	tw.tween_property(_flash, "color:a", 1.0, 0.25).set_ease(Tween.EASE_IN)
+	await tw.finished
+	set_arena(biome_id)
+	var tw2 := create_tween()
+	tw2.tween_property(_flash, "color:a", 0.0, 0.35).set_ease(Tween.EASE_OUT)
+	await tw2.finished
+
+
 func _build_shadow_texture() -> GradientTexture2D:
 	var gradient := Gradient.new()
 	gradient.set_color(0, Color(0.0, 0.0, 0.0, _SHADOW_ALPHA))
@@ -705,7 +751,7 @@ func spawn_unit(uid: int, cls: String, is_enemy: bool, slot_index: int, slot_cou
 	# A real AxieCharacter3D rig breathes via its own looping Idle clip. Everything else — the
 	# Chimera sprite enemies and the capsule placeholder — has no animation rig, so it gets the
 	# code-driven Tween bob instead.
-	if (character == null or character.playable == null) and not (atia_info.has("player") and atia_info["anims"].has("idle")):
+	if (character == null or character.playable == null) and not (atia_info.get("player") != null and (atia_info["anims"] as Dictionary).has("idle")):
 		_start_idle_bob(uid)
 
 
@@ -739,6 +785,21 @@ func _make_atia_model(unit_key: String, is_boss: bool) -> Dictionary:
 		if n is AnimationPlayer:
 			player = n as AnimationPlayer
 			break
+	if player != null:
+		# Per-instance copy of the clips: Animation resources are shared by every unit that uses
+		# the model, so loop mode must not be written on the shared ones.
+		var anims_cfg: Dictionary = reg.get("anims", {})
+		var lib := AnimationLibrary.new()
+		for slot_name in anims_cfg.keys():
+			var clip := String(anims_cfg[slot_name])
+			if clip != "" and player.has_animation(clip) and not lib.has_animation(clip):
+				var copy := player.get_animation(clip).duplicate() as Animation
+				copy.loop_mode = Animation.LOOP_LINEAR if slot_name == "idle" else Animation.LOOP_NONE
+				lib.add_animation(clip, copy)
+		if lib.get_animation_list().size() > 0:
+			for lib_name in player.get_animation_library_list():
+				player.remove_animation_library(lib_name)
+			player.add_animation_library("", lib)
 	return {"node": model, "player": player, "reg": reg,
 		"anims": (reg.get("anims", {}) as Dictionary).duplicate(),
 		"speed": (reg.get("anim_speed", {}) as Dictionary).duplicate(), "width": 1.0}
@@ -787,13 +848,11 @@ func _atia_play(atia: Dictionary, slot_name: String, loop := false) -> float:
 	if player == null or not is_instance_valid(player) or clip == "" or not player.has_animation(clip):
 		return 0.0
 	var anim := player.get_animation(clip)
-	anim.loop_mode = Animation.LOOP_LINEAR if loop else Animation.LOOP_NONE
 	var spd := float((atia.get("speed", {}) as Dictionary).get(slot_name, 1.0))
 	player.play(clip, 0.1, spd)
 	if not loop and slot_name != "die":
 		var idle := String((atia.get("anims", {}) as Dictionary).get("idle", ""))
 		if idle != "" and player.has_animation(idle):
-			player.get_animation(idle).loop_mode = Animation.LOOP_LINEAR
 			player.queue(idle)
 	return anim.length / maxf(spd, 0.01)
 
