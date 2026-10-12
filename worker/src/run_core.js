@@ -21,6 +21,8 @@ export const ALLOWED_FNS = new Set([
   'enter_node', 'use_die', 'play_active', 'reroll_dice', 'end_turn', 'undo_last', 'take_reward',
   'reroll_rewards', 'event_choose', 'event_done', 'shop_buy', 'shop_done',
   'shop_refresh', 'continue', 'pact_reroll',
+  // lane A PR2
+  'tweak', 'hold_pick', 'loaded_pick', 'sell_relic', 'swap_on_full', 'reorder_party', 'aid_use',
 ]);
 
 /** kind -> action that consumes it at position log_len (ADR 4.2). null = consumed on reply. */
@@ -45,8 +47,8 @@ const IDENT = /^[a-z0-9_]+$/;
 const ARG_KEYS = {
   run_start: ['mode', 'ascension'],
   node: ['node_id'],
-  end_turn: ['turn'],
-  reroll: ['turn', 'k', 'source', 'uids'],
+  end_turn: ['turn', 'attempt'], // attempt only present when > 0 (lane A)
+  reroll: ['turn', 'k', 'source', 'uids', 'attempt'],
   reward: ['node_id'],
   reward_reroll: ['k', 'node_id'],
   event_choice: ['choice', 'index', 'node_id'],
@@ -291,7 +293,7 @@ export class RunCore {
 
     // Attempt counter is the server's, never the client's.
     const attempt = this._attemptFor(m.kind);
-    if (m.kind === 'continue' && args.attempt !== undefined && args.attempt !== attempt) return fail(seq, 'rejected');
+    if (args.attempt !== undefined && args.attempt !== attempt) return fail(seq, 'rejected');
 
     // Paid requests: mission runs refuse them outright; others go through the wallet hook.
     let aid = null;

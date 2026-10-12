@@ -389,3 +389,12 @@ test('node_id must look like r<row>_c<col>; log action args are positional and f
     assert.equal((await c.send(m)).code, 'rejected');
   }
 });
+
+test('lane A PR2: attempt in reroll/end_turn args must equal the server counter; new fns are allowed', async () => {
+  const { c } = await fresh({}, { charge: async () => true });
+  await c.hello();
+  await start(c);
+  await c.epoch('node', { node_id: 'r1_c0' }, []);
+  assert.equal((await c.epoch('end_turn', { turn: 1, attempt: 1 }, [A('enter_node', ['r1_c0', 'battle'])])).code, 'rejected');
+  assert.equal((await c.epoch('end_turn', { turn: 1, attempt: 0 }, [A('enter_node', ['r1_c0', 'battle']), A('tweak', [1]), A('reorder_party', [2, 1])])).t, 'epoch_res');
+});
