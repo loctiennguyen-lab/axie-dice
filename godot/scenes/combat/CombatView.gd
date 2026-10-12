@@ -465,6 +465,7 @@ func _ready() -> void:
 	# map graph rather than from power_level: power_level counts every node type, so it drifts
 	# away from the row number as soon as the player takes an event or a shop.
 	_backdrop.show_for_node(_current_map_row(), String(_setup.get("kind", "")) == "boss")
+	_apply_arena_for_node()
 	_grade_stage_art()
 	# Same two inputs the backdrop uses, so picture and music agree about which fight this is.
 	# The track itself is chosen from the node id's hash, never randomly — see CombatAudio.
@@ -505,6 +506,20 @@ func _current_map_row() -> int:
 		return 1
 	var node := RunMapGraph.from_data(RunState.map_graph).find_node(node_id)
 	return node.row if node != null else 1
+
+
+## Builds the 3D arena for this fight (CombatStage3D.set_arena_for_node: pure of row / boss /
+## total rows, no RNG). Skipped when there is no map to ask (tutorial, DevReview, test combat),
+## which leaves the flat 2D backdrop. Runs once per combat, so the graph is parsed once.
+func _apply_arena_for_node() -> void:
+	var node_id := String(_setup.get("node_id", ""))
+	if node_id == "" or RunState.map_graph.is_empty():
+		return
+	var graph := RunMapGraph.from_data(RunState.map_graph)
+	var node := graph.find_node(node_id)
+	if node == null or graph.rows.is_empty():
+		return
+	_stage3d.set_arena_for_node(node.row, String(_setup.get("kind", "")) == "boss", graph.rows.size())
 
 
 func _exit_tree() -> void:

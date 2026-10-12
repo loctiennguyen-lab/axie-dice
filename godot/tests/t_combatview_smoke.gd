@@ -57,6 +57,14 @@ func _ready() -> void:
 		"combat_seed": 13371337,
 	}
 
+	# A minimal 18-row map holding the fought node on row 10, so CombatView has a row to pick the
+	# 3D arena from (without a map it skips the arena entirely).
+	var rows_d: Array = []
+	for r in range(1, 19):
+		rows_d.append([{"id": "smoke_node" if r == 10 else "r%d" % r, "row": r, "col": 0,
+			"node_type": "battle", "next_ids": [], "visited": false, "locked": false}])
+	RunState.map_graph = {"rows": rows_d, "boss_rows": [], "elite_rows": [], "start_node_id": "r1"}
+
 	var combat_scene: Node = load("res://scenes/combat/Combat.tscn").instantiate()
 	add_child(combat_scene)
 	_view = combat_scene
@@ -70,6 +78,20 @@ func _ready() -> void:
 		return
 	_check(combat.party.size() == 5, "expected 5 party units, got %d" % combat.party.size())
 	_check(combat.enemies.size() > 0, "expected at least 1 enemy")
+
+	# Arena wiring: normal node on row 10 of 18, then the boss variant through the same helper.
+	var stage = _view.get("_stage3d")
+	var arena = stage.get("_arena")
+	_check(arena != null, "no 3D arena built for a normal map node")
+	if arena != null:
+		_check(arena.biome_id == CombatArena3D.biome_for(10, false, 18) and not arena.is_boss,
+			"normal node arena wrong: %s boss=%s" % [arena.biome_id, arena.is_boss])
+		var setup: Dictionary = _view.get("_setup")
+		setup["kind"] = "boss"
+		_view.call("_apply_arena_for_node")
+		_check(arena.is_boss and arena.biome_id == CombatArena3D.biome_for(10, true, 18),
+			"boss arena variant not applied: %s boss=%s" % [arena.biome_id, arena.is_boss])
+		setup["kind"] = "battle"
 
 	var portraits: Dictionary = _view.get("_portraits") as Dictionary
 	var expected_uids: Array = []
