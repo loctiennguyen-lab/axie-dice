@@ -159,7 +159,9 @@ const WATCHED_FILES: Array[String] = ["res://assets/data/part_faces.json"]
 ## BUMPED, 2026-10-13: `ActionLog.RULES_VERSION` -> `godot-2026-10-13-h`. Lane B 4d97af8: last 5 hidden relics
 ## live (assassinsneedle, breakersward, firestormveil, fumeblossom, sporegale); hooks face_crit, on_face_hit,
 ## on_status_tick, on_shield_break. No relic is hidden now. Changes the run result: YES.
-const FINGERPRINT := "1a63297e5b115e3c6f9eb122159fbb5770094c9a258978cac38c3c47052b6e12"
+## Moved 2026-10-13 by 1813525: RunState picks RemoteEpochSource only when axie/epoch_source == "remote"
+## (default local, unchanged path), RunSession as a lazy child node. Run result: NO, stays -h.
+const FINGERPRINT := "6cda3b980134ca164707bc79682c9a4ee0a82cc110bba8d5b64520f17a8c1011"
 
 
 func _ready() -> void:

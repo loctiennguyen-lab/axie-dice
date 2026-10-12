@@ -271,12 +271,26 @@ func start_run_with_epoch(src: EpochSource, params: Dictionary, display_seed: in
 	return true
 
 
+## Network session for RemoteEpochSource. A plain child node (not an autoload: an autoload named
+## `RunSession` would collide with the class_name). Created on first use; tests may assign `session` first.
+var session: RunSession = null
+
+
+func run_session() -> RunSession:
+	if session == null:
+		session = RunSession.new()
+		session.name = "RunSession"
+		add_child(session)
+	return session
+
+
 ## Async start used by the real menu flow (L/M wire it before the remote flag is switched on).
 ## Returns {ok, code}. Source = project setting `axie/epoch_source` ("local" by default).
 func begin_run(params: Dictionary) -> Dictionary:
 	if epoch_busy:
 		return {"ok": false, "code": "busy"}
-	var src: EpochSource = LocalEpochSource.new(PackedByteArray(), randi())
+	var src: EpochSource = RemoteEpochSource.new(run_session()) if RemoteEpochSource.flag_on() \
+			else LocalEpochSource.new(PackedByteArray(), randi())
 	reset()
 	epoch = src
 	epoch_busy = true
@@ -1425,10 +1439,17 @@ func from_data(d: Dictionary) -> void:
 		row_types_known[int(rk)] = ((d["row_types_known"] as Dictionary)[rk] as Array).duplicate()
 	if d.has("action_log"):
 		action_log = ActionLog.from_data(d["action_log"] as Dictionary)
-		var local := LocalEpochSource.new(PackedByteArray(), int(action_log.header.get("local_secret", 0)))
-		local.resume(ActionLog._restore_ints(d.get("epoch_tape", [])) as Array)
-		local.bind_log(action_log)
-		epoch = local
+		var tape_in := ActionLog._restore_ints(d.get("epoch_tape", [])) as Array
+		if RemoteEpochSource.flag_on():
+			var remote := RemoteEpochSource.new(run_session())
+			remote.resume(tape_in, run_session())
+			remote.bind_log(action_log)
+			epoch = remote
+		else:
+			var local := LocalEpochSource.new(PackedByteArray(), int(action_log.header.get("local_secret", 0)))
+			local.resume(tape_in)
+			local.bind_log(action_log)
+			epoch = local
 
 
 ## Roster entries survive JSON intact except for `growth`, whose keys are integers — see

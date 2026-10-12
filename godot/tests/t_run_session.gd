@@ -221,6 +221,31 @@ func _ready() -> void:
 	_check(src.request("node", {"node_id": "r9_c0"}).code == "out_of_order", "no requests after close")
 
 	await _offline_and_errors()
+	# RunState.begin_run picks the source from `axie/epoch_source`
+	var had_flag := ProjectSettings.has_setting("axie/epoch_source")
+	var old_flag: Variant = ProjectSettings.get_setting("axie/epoch_source", "local")
+	ProjectSettings.set_setting("axie/epoch_source", "local")
+	var rl: Dictionary = await RunState.begin_run({"mode": "short", "kind": "normal"})
+	_check(rl.ok and RunState.epoch is LocalEpochSource and not RunState.epoch.is_remote(), "flag local -> begin_run uses LocalEpochSource")
+	RunState.reset()
+	ProjectSettings.set_setting("axie/epoch_source", "remote")
+	var fs := FakeServer.new()
+	var fsess := RunSession.new()
+	add_child(fsess)
+	fsess.set_process(false)
+	fsess.http = func(_m: String, _p: String, _b: String, _d: Callable) -> void: pass   # never answers: no network
+	fsess.socket_factory = fs.make_socket
+	RunState.session = fsess
+	RunState.begin_run({"mode": "short", "kind": "normal"})   # suspended on the fake transport
+	_check(RunState.epoch is RemoteEpochSource and RunState.epoch.session == fsess and RunState.epoch_busy, "flag remote -> begin_run uses RemoteEpochSource on the given session")
+	RunState.reset()
+	RunState.session = null
+	fsess.queue_free()
+	if had_flag:
+		ProjectSettings.set_setting("axie/epoch_source", old_flag)
+	else:
+		ProjectSettings.set_setting("axie/epoch_source", "local")
+
 	print("t_run_session: ", "PASS" if _fails == 0 else "FAILED (%d)" % _fails)
 	get_tree().quit(1 if _fails > 0 else 0)
 
