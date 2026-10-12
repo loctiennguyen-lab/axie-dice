@@ -1,0 +1,22 @@
+[gd_resource type="ShaderMaterial" format=3]
+
+[ext_resource type="Shader" path="res://assets/atia/arena/shaders/HomeLand_Asset/Environment/Forest/Decoration/Road/Material/Forest/S_Road_Dirt_01_F.gdshader" id="1_ky5nh"]
+[ext_resource type="Texture2D" path="res://assets/atia/arena/src/HomeLand_Asset/Environment/Forest/Decoration/Road/Textures/T_Road_Edge_C_F.png" id="2_y1b0o"]
+[ext_resource type="Texture2D" path="res://assets/atia/arena/src/HomeLand_Asset/Environment/Forest/Decoration/Road/Textures/T_Road_Dirt_C_F.png" id="3_mv7pe"]
+[ext_resource type="Texture2D" path="res://assets/atia/arena/src/HomeLand_Asset/Terrain_Asset/Terrain_Grass/T_Grass_Billboard_Forest.png" id="4_1sx7m"]
+[ext_resource type="Texture2D" path="res://assets/atia/arena/src/HomeLand_Asset/Environment/Forest/Decoration/Road/Textures/T_Road_Dirt_01_Grass_A.png" id="5_3s2wq"]
+
+[resource]
+resource_name = "M_Road_Dirt_01_F"
+render_priority = 0
+shader = ExtResource("1_ky5nh")
+shader_parameter/pVector1_b3228f7d41a24386a067e4431559e5c1 = null
+shader_parameter/p_VariationCycle = 0.0
+shader_parameter/sg_shadow = null
+shader_parameter/pTexture2D_7ac346ea479446cea0bfe4186f5a27a2 = ExtResource("2_y1b0o")
+shader_parameter/pTexture2D_d549b8d6945d44ab93f2b539849b6188 = ExtResource("3_mv7pe")
+shader_parameter/pTexture2D_e1c84429c98f4a16a0d097a455ad46f0 = ExtResource("4_1sx7m")
+shader_parameter/t_3d94369c6b56 = ExtResource("5_3s2wq")
+shader_parameter/sg_main_light_dir = null
+shader_parameter/pColor_c0bef9d824a646a8be04642cb186fb4a = Color(0, 0, 0, 0)
+shader_parameter/sg_main_light_color = null

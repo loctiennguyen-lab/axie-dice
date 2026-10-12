@@ -1,0 +1,51 @@
+[gd_scene format=4]
+
+[ext_resource type="PackedScene" path="res://assets/atia/arena/src/HomeLand_Asset/Environment/LunaLanding/Shrub/Source/SM_Luna_Landing_Shrub_1.fbx" id="1_3f0ja"]
+[ext_resource type="Material" path="res://assets/atia/arena/materials/HomeLand_Asset/Environment/LunaLanding/Shrub/Source/M_Shrub01_LL.tres" id="2_dba7w"]
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_xnm07"]
+resource_name = "M_Luna_Landing_1"
+vertex_color_use_as_albedo = true
+emission_enabled = true
+
+[sub_resource type="ArrayMesh" id="ArrayMesh_y4p3b"]
+_surfaces = [{
+"aabb": AABB(-1.8386796, -0.1659668, -1.7483135, 4.137703, 2.5283399, 4.121275),
+"format": 34359742465,
+"index_count": 54,
+"index_data": PackedByteArray("AAABAAIAAAACAAMAAwAEAAAABQAEAAMABgAEAAUAAAAEAAYABQAHAAYABwAIAAYABgAJAAAAAQAAAAkACQAGAAgACQAKAAEACAALAAkACQALAAoADAANAA4ADgAPAAwAEAAMAA8ADwARABAA"),
+"name": "M_Luna_Landing_1",
+"primitive": 3,
+"uv_scale": Vector4(0, 0, 0, 0),
+"vertex_count": 18,
+"vertex_data": PackedByteArray("4ZroPRQm8T+k8Hk/w52NvzMLwj/ssaU/M+Mzv6SEFkAfBSc+MyNAPh8xF0Dh2jO/mmmAPylr8j/2KOE9Ch+nPxSWwj9cx42/AIisP49qgD+FK+k+hTvTP7gmIT8UVkO/UqCbP3s0H76k8KY+4TruPly/fz9c36k/wwVDv0gRID89ztE/M5umPjPzKb6uYJg/X4iIv5opTT7NApw/2lnrv4z5TD40Uec+2h69PgZuUD69yN+/gBeSP82IUD7hMHu/j4O6PaRwTT6a3hdAMyMTQI+6UD4UHjE+")
+}]
+blend_shape_mode = 0
+
+[sub_resource type="ArrayMesh" id="ArrayMesh_80jb6"]
+resource_name = "SM_Luna_Landing_Bush_1"
+_surfaces = [{
+"aabb": AABB(-1.8386796, -0.1659668, -1.7483135, 4.137703, 2.5283399, 4.121275),
+"attribute_data": PackedByteArray("ZuihPlDFqj4cVGM9UpMyP7CnrTyWrKI+V3iIPA0jMj8yWZQ+AAu+PModYj2gGQ4/DlgWP4BQzTwah8s9bv0NP7ztET+Eq6c+ASLMPdx2Mj9m6KE+UMWqPhxUYz1SkzI/MlmUPgALvjzKHWI9oBkOP/h7oj7IvBM/DtpjPXO1Vz+AfOs8z/AaP+p+iTwmQ1c/sKetPJasoj5XeIg8DSMyP2booT5Qxao+HFRjPVKTMj/4e6I+yLwTPw7aYz1ztVc/foaYPsQ/XT9EpWM9sHx4P4B86zzP8Bo/6n6JPCZDVz8C9Bg/gNhcP8FKzD2BYHg/foaYPsQ/XT9EpWM9sHx4P/h7oj7IvBM/DtpjPXO1Vz8kYhI/UA0SP5xjzD3ullc/JGISP1ANEj+cY8w97pZXP/h7oj7IvBM/DtpjPXO1Vz9m6KE+UMWqPhxUYz1SkzI/vO0RP4Srpz4BIsw93HYyP4aIWz+Q75k+ciwNPjDMMT+87RE/hKunPgEizD3cdjI/DlgWP4BQzTwah8s9bv0NPyZMXj81pxY/RU0NPkjsVj8C9Bg/gNhcP8FKzD2BYHg/JGISP1ANEj+cY8w97pZXP4aIWz+Q75k+ciwNPjDMMT8mTF4/NacWP0VNDT5I7FY/JGISP1ANEj+cY8w97pZXP7ztET+Eq6c+ASLMPdx2Mj9bZTU/+RBTPwH/VjxoE3I/XGU1PzLtMz9Oq1U87ENsPztfdj8y7TM/wLYiPUUwbD87X3Y/+RBTP6wLIz3A/3E/WmU1P780cj+0Ulg84uJ3Pztfdj/ANHI/l2AjPTrPdz8="),
+"format": 34359742519,
+"index_count": 54,
+"index_data": PackedByteArray("AAABAAIAAwAEAAUABQAGAAMABwAIAAkACQAKAAcACwAMAA0ADgAPABAAEAARAA4AEgATABQAFAAVABIAFgAXABgAGQAaABsAHAAdAB4AHgAfABwAIAAhACIAIgAjACAAJAAgACMAIwAlACQA"),
+"material": SubResource("StandardMaterial3D_xnm07"),
+"name": "M_Luna_Landing_1",
+"primitive": 3,
+"uv_scale": Vector4(0, 0, 0, 0),
+"vertex_count": 38,
+"vertex_data": PackedByteArray("4ZroPRQm8T+k8Hk/w52NvzMLwj/ssaU/M+Mzv6SEFkAfBSc+MyNAPh8xF0Dh2jO/mmmAPylr8j/2KOE94ZroPRQm8T+k8Hk/M+Mzv6SEFkAfBSc+4TruPly/fz9c36k/wwVDv0gRID89ztE/w52NvzMLwj/ssaU/4ZroPRQm8T+k8Hk/4TruPly/fz9c36k/M5umPjPzKb6uYJg/wwVDv0gRID89ztE/UqCbP3s0H76k8KY+M5umPjPzKb6uYJg/4TruPly/fz9c36k/AIisP49qgD+FK+k+AIisP49qgD+FK+k+4TruPly/fz9c36k/4ZroPRQm8T+k8Hk/mmmAPylr8j/2KOE9Ch+nPxSWwj9cx42/mmmAPylr8j/2KOE9MyNAPh8xF0Dh2jO/hTvTP7gmIT8UVkO/UqCbP3s0H76k8KY+AIisP49qgD+FK+k+Ch+nPxSWwj9cx42/hTvTP7gmIT8UVkO/AIisP49qgD+FK+k+mmmAPylr8j/2KOE9X4iIv5opTT7NApw/2lnrv4z5TD40Uec+2h69PgZuUD69yN+/gBeSP82IUD7hMHu/j4O6PaRwTT6a3hdAMyMTQI+6UD4UHjE+h3d6xpaHCuaHd3rGlY4B5Yd3esaIjSnlkZZF0WP/it+RlkXRkZai6JGWRdFj/4rfkZZF0UVRSIsligWktOda1yWKBaQGJBKFJYoFpHTok9UligWkJYoC0nyafnIjr1m8fJp+cjOxqbx8mn5yb9FGws+4uHL////fz7i4ckcNl+PPuLhy////38+4uHLPuFu5YK0NpGCtBtJgrQ2k////32CtDaQOJK+WYK0NpP//5N5TutbOzcvY51O61s7IyMXnU7rWzvPXJOjl2PRyb+o6puXY9HJC6va05dj0cv7pMbW10raj8uVVirXStqO10trRtdK2o/DlUoq10rajtiNZqeR/zv8wgA2A43/N/zKADYDjf83/5f/23+R/zv8ygA2A5H/O/8X//t/kf87/5H/n/w==")
+}]
+blend_shape_mode = 0
+shadow_mesh = SubResource("ArrayMesh_y4p3b")
+
+[node name="LunaLanding_Shrub_01" type="Node3D" unique_id=610360315]
+
+[node name="LunaLanding_Shrub_01" parent="." unique_id=1360041811 instance=ExtResource("1_3f0ja")]
+
+[node name="SM_Luna_Landing_Bush_1" parent="LunaLanding_Shrub_01" index="0" unique_id=116110417]
+mesh = SubResource("ArrayMesh_80jb6")
+surface_material_override/0 = ExtResource("2_dba7w")
+
+[editable path="LunaLanding_Shrub_01"]

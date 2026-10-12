@@ -1,0 +1,8 @@
+[gd_resource type="StandardMaterial3D" format=3]
+
+[ext_resource type="Texture2D" path="res://assets/atia/arena/src/HomeLand_Asset/Environment/Savannah/Rock/Source/T_SavannahRock_01_C.png" id="1_u7lno"]
+
+[resource]
+resource_name = "M_S_Rock_01"
+shading_mode = 0
+albedo_texture = ExtResource("1_u7lno")

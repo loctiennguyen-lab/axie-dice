@@ -1,0 +1,54 @@
+[gd_scene format=4]
+
+[ext_resource type="PackedScene" path="res://assets/atia/arena/src/HomeLand_Asset/Environment/Mystic/Shrub/Source/SM_Shrub01_M.fbx" id="1_40w2p"]
+[ext_resource type="Material" path="res://assets/atia/arena/materials/HomeLand_Asset/Environment/Mystic/Shrub/Source/M_Shrub01_M.tres" id="2_02xgo"]
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_6bkev"]
+resource_name = "lambert2"
+vertex_color_use_as_albedo = true
+albedo_color = Color(0.6651851, 0.6651851, 0.6651851, 1)
+emission_enabled = true
+
+[sub_resource type="ArrayMesh" id="ArrayMesh_ole7r"]
+_surfaces = [{
+"aabb": AABB(-1.1967932, -0.1390962, -1.399723, 3.1033049, 2.1268544, 3.1033278),
+"format": 34359742465,
+"index_count": 48,
+"index_data": PackedByteArray("DAABAAIADAACAAAAAAANAAwABQANAAAADgANAAUADAANAA4ABQAEAA4ABAAGAA4ADgAPAAwAAQAMAA8ADwAOAAYADwADAAEABgAHAA8ADwAHAAMACAAJAAoACgALAAgA"),
+"lods": [0.7385787, PackedByteArray("AAABAAIAAQAAAAMABAADAAAABAAAAAUAAwAEAAYABgAHAAMACAAJAAoACgALAAgA")],
+"name": "lambert2",
+"primitive": 3,
+"uv_scale": Vector4(0, 0, 0, 0),
+"vertex_count": 16,
+"vertex_data": PackedByteArray("QxXWPd1u/j/M7wm/uKJHv+SMoz+pO3E/2A8Jv6V0/T8Xx6g9XMT6vnsuBz8avp0/hsqeP3suBz8P9v6+g1RzP+SMoz+Su0m/zT54PwubBr6SGac+jNeoPjxvDr6BlHI/lAj0P/wkLj5/SvM9af2kPvgkLj64D9o/hTCZv/skLj56hz0+zmLGPvwkLj4gKrO/ztcZPoELyz+vnkQ/byFKPw/2yz+svRU+6DKKP04EWD+XZ98+lHHkPi5oVz/DMIg/")
+}]
+blend_shape_mode = 0
+
+[sub_resource type="ArrayMesh" id="ArrayMesh_q1xx8"]
+resource_name = "SM_Shrub_01"
+_surfaces = [{
+"aabb": AABB(-1.1967932, -0.1390962, -1.399723, 3.1033049, 2.1268544, 3.1033278),
+"attribute_data": PackedByteArray("MPwuPwAAAAAAAICzAM0sPmBioz4AAAAAAACAswDHrz4AAIA/AMevPgAAgD8AzSw+EPwuPwAAAD9gYqM+AAAAP0gscz+5zQY/1C9zPzoceT+wAk09Ohx5P4A7TT25zQY/YGKjPgDNLD4Q/C4/wMwsPhD8Lj/Axq8+YGKjPqDGrz4="),
+"format": 34359742487,
+"index_count": 48,
+"index_data": PackedByteArray("DAABAAIADAACAAAAAAANAAwABQANAAAADgANAAUADAANAA4ABQAEAA4ABAAGAA4ADgAPAAwAAQAMAA8ADwAOAAYADwADAAEABgAHAA8ADwAHAAMACAAJAAoACgALAAgA"),
+"lods": [0.7385787, PackedByteArray("AAABAAIAAQAAAAMABAADAAAABAAAAAUAAwAEAAYABgAHAAMACAAJAAoACgALAAgA")],
+"material": SubResource("StandardMaterial3D_6bkev"),
+"name": "lambert2",
+"primitive": 3,
+"uv_scale": Vector4(0, 0, 0, 0),
+"vertex_count": 16,
+"vertex_data": PackedByteArray("QxXWPd1u/j/M7wm/uKJHv+SMoz+pO3E/2A8Jv6V0/T8Xx6g9XMT6vnsuBz8avp0/hsqeP3suBz8P9v6+g1RzP+SMoz+Su0m/zT54PwubBr6SGac+jNeoPjxvDr6BlHI/lAj0P/wkLj5/SvM9af2kPvgkLj64D9o/hTCZv/skLj56hz0+zmLGPvwkLj4gKrO/ztcZPoELyz+vnkQ/byFKPw/2yz+svRU+6DKKP04EWD+XZ98+lHHkPi5oVz/DMIg/+55C0R/7+5hBf8+u6ePS1Z6ORdEN+jvb4Yj1mM7jz9Uf3+eYWuNLhxzSiK9a40yH5cDJcj30lJgNsadym/Mz3nB/4f4CwP+/cH/h/gLA/79wf+H+AsD/v3B/4f4CwP+/qZRJt9XzKduXsx23QvRqlSnIg5D98j2V7KZ9kNLymds=")
+}]
+blend_shape_mode = 0
+shadow_mesh = SubResource("ArrayMesh_ole7r")
+
+[node name="Shrub01_M" type="Node3D" unique_id=1924755077]
+
+[node name="Shrub01_M" parent="." unique_id=888480175 instance=ExtResource("1_40w2p")]
+
+[node name="SM_Shrub_01" parent="Shrub01_M/Shrub_01" parent_id_path=PackedInt32Array(888480175, 81661069) index="0" unique_id=1442857298]
+mesh = SubResource("ArrayMesh_q1xx8")
+surface_material_override/0 = ExtResource("2_02xgo")
+
+[editable path="Shrub01_M"]

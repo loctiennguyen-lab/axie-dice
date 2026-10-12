@@ -1,0 +1,11 @@
+[gd_resource type="StandardMaterial3D" format=3]
+
+[ext_resource type="Texture2D" path="res://assets/atia/arena/src/HomeLand_Asset/Environment/Genesis/Shrub/Source/T_Shrub01_G_C.png" id="1_dyvcp"]
+
+[resource]
+resource_name = "M_G_Shrub_01_Allside"
+transparency = 2
+alpha_scissor_threshold = 0.5
+alpha_antialiasing_mode = 0
+shading_mode = 0
+albedo_texture = ExtResource("1_dyvcp")

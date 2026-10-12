@@ -1,0 +1,426 @@
+{
+ "version": 1,
+ "comment": "Combat arenas. journey = biome per run segment, spread evenly over the run (row / total_rows). Edit to remap.",
+ "journey": [
+  "savannah",
+  "forest",
+  "arctic",
+  "mystic",
+  "genesis",
+  "luna"
+ ],
+ "boss_biome": "",
+ "portal": {
+  "scene": "res://assets/atia/arena/scenes/HomeLand_Asset/Building_HomeLand/Portal/SM_Portal_01.tscn",
+  "texture": "res://assets/atia/arena/src/HomeLand_Asset/Building_HomeLand/Portal/Source/T_Portal_01_C.png",
+  "z": -20.0,
+  "height_m": 8.0
+ },
+ "zones": {
+  "flank": {
+   "x": [
+    12.0,
+    26.0
+   ],
+   "z": [
+    -26.0,
+    3.0
+   ]
+  },
+  "back": {
+   "x": [
+    -24.0,
+    24.0
+   ],
+   "z": [
+    -34.0,
+    -22.0
+   ]
+  },
+  "low": {
+   "x": [
+    7.5,
+    22.0
+   ],
+   "z": [
+    -20.0,
+    1.0
+   ]
+  },
+  "sky": {
+   "x": [
+    16.0,
+    18.0
+   ],
+   "z": [
+    -45.0,
+    -44.0
+   ]
+  }
+ },
+ "biomes": {
+  "savannah": {
+   "ground": "#c9b46a",
+   "sky_top": "#6fb3e8",
+   "sky_horizon": "#f4e2b0",
+   "fog": "#efdcae",
+   "light": "#fff1cf",
+   "light_energy": 1.25,
+   "props": [
+    {
+     "scene": "res://assets/atia/arena/scenes/HomeLand_Asset/Environment/Savannah/Tree/S_Tree01.tscn",
+     "count": 5,
+     "zone": "flank",
+     "height_m": [
+      4.0,
+      6.5
+     ]
+    },
+    {
+     "scene": "res://assets/atia/arena/scenes/HomeLand_Asset/Environment/Savannah/Tree/S_Tree02.tscn",
+     "count": 4,
+     "zone": "flank",
+     "height_m": [
+      4.0,
+      6.5
+     ]
+    },
+    {
+     "scene": "res://assets/atia/arena/scenes/HomeLand_Asset/Environment/Savannah/Tree/S_Tree03.tscn",
+     "count": 3,
+     "zone": "back",
+     "height_m": [
+      6.0,
+      9.0
+     ]
+    },
+    {
+     "scene": "res://assets/atia/arena/scenes/HomeLand_Asset/Environment/Savannah/Rock/SavannahRock_01.tscn",
+     "count": 4,
+     "zone": "low",
+     "height_m": [
+      1.2,
+      2.6
+     ]
+    },
+    {
+     "scene": "res://assets/atia/arena/scenes/HomeLand_Asset/Environment/Savannah/Rock/SavannahRock_02.tscn",
+     "count": 3,
+     "zone": "low",
+     "height_m": [
+      1.2,
+      2.6
+     ]
+    }
+   ],
+   "path": "res://assets/atia/arena/scenes/HomeLand_Asset/Environment/Savannah/Decoration/StonePath/S_StonePath_Straight.tscn"
+  },
+  "forest": {
+   "ground": "#5f9a4a",
+   "sky_top": "#7ec0d8",
+   "sky_horizon": "#d4efc0",
+   "fog": "#c3e2b0",
+   "light": "#fff8dc",
+   "light_energy": 1.1,
+   "props": [
+    {
+     "scene": "res://assets/atia/arena/scenes/HomeLand_Asset/Environment/Forest/Tree/F_Tree1.tscn",
+     "count": 6,
+     "zone": "flank",
+     "height_m": [
+      4.0,
+      6.5
+     ]
+    },
+    {
+     "scene": "res://assets/atia/arena/scenes/HomeLand_Asset/Environment/Forest/Tree/F_Tree2.tscn",
+     "count": 5,
+     "zone": "flank",
+     "height_m": [
+      4.0,
+      6.5
+     ]
+    },
+    {
+     "scene": "res://assets/atia/arena/scenes/HomeLand_Asset/Environment/Forest/Tree/F_Tree1.tscn",
+     "count": 4,
+     "zone": "back",
+     "height_m": [
+      6.0,
+      9.0
+     ]
+    },
+    {
+     "scene": "res://assets/atia/arena/scenes/HomeLand_Asset/Environment/Forest/Shrub/F_Shrub01.tscn",
+     "count": 8,
+     "zone": "low",
+     "height_m": [
+      1.0,
+      1.8
+     ]
+    },
+    {
+     "scene": "res://assets/atia/arena/scenes/HomeLand_Asset/Environment/Forest/Shrub/F_Shrub02.tscn",
+     "count": 6,
+     "zone": "low",
+     "height_m": [
+      1.0,
+      1.8
+     ]
+    },
+    {
+     "scene": "res://assets/atia/arena/scenes/HomeLand_Asset/Environment/Forest/Quarry/F_Quarry_01.tscn",
+     "count": 2,
+     "zone": "low",
+     "height_m": [
+      3.0,
+      4.0
+     ]
+    },
+    {
+     "scene": "res://assets/atia/arena/scenes/HomeLand_Asset/Environment/Forest/Ground/Flower/Flower_RandomColor.tscn",
+     "count": 10,
+     "zone": "low",
+     "height_m": [
+      0.5,
+      0.8
+     ]
+    }
+   ],
+   "path": "res://assets/atia/arena/scenes/HomeLand_Asset/Environment/Forest/Decoration/StonePath/F_StonePath_Straight.tscn"
+  },
+  "arctic": {
+   "ground": "#e8f1f7",
+   "sky_top": "#9ec7e8",
+   "sky_horizon": "#eaf4fb",
+   "fog": "#dfecf5",
+   "light": "#e6f0ff",
+   "light_energy": 1.15,
+   "props": [
+    {
+     "scene": "res://assets/atia/arena/scenes/HomeLand_Asset/Environment/Arctic/Tree/A_Tree01.tscn",
+     "count": 5,
+     "zone": "flank",
+     "height_m": [
+      4.0,
+      6.5
+     ]
+    },
+    {
+     "scene": "res://assets/atia/arena/scenes/HomeLand_Asset/Environment/Arctic/Tree/A_Tree02.tscn",
+     "count": 5,
+     "zone": "flank",
+     "height_m": [
+      4.0,
+      6.5
+     ]
+    },
+    {
+     "scene": "res://assets/atia/arena/scenes/HomeLand_Asset/Environment/Arctic/Tree/A_Tree01.tscn",
+     "count": 3,
+     "zone": "back",
+     "height_m": [
+      6.0,
+      9.0
+     ]
+    },
+    {
+     "scene": "res://assets/atia/arena/scenes/HomeLand_Asset/Environment/Arctic/Shrub/A_Shrub01.tscn",
+     "count": 6,
+     "zone": "low",
+     "height_m": [
+      1.0,
+      1.8
+     ]
+    },
+    {
+     "scene": "res://assets/atia/arena/scenes/HomeLand_Asset/Environment/Arctic/Props/Stone_01.tscn",
+     "count": 4,
+     "zone": "low",
+     "height_m": [
+      1.2,
+      2.6
+     ]
+    },
+    {
+     "scene": "res://assets/atia/arena/scenes/HomeLand_Asset/Environment/Arctic/Props/Stone_02.tscn",
+     "count": 3,
+     "zone": "low",
+     "height_m": [
+      1.2,
+      2.6
+     ]
+    }
+   ],
+   "path": "res://assets/atia/arena/scenes/HomeLand_Asset/Environment/Arctic/Decoration/A_StonePath_Straight.tscn"
+  },
+  "mystic": {
+   "ground": "#6c5a96",
+   "sky_top": "#3b2a6b",
+   "sky_horizon": "#c79ae0",
+   "fog": "#8d74b8",
+   "light": "#e7d2ff",
+   "light_energy": 1.0,
+   "props": [
+    {
+     "scene": "res://assets/atia/arena/scenes/HomeLand_Asset/Environment/Mystic/Tree/M_Tree_01.tscn",
+     "count": 4,
+     "zone": "flank",
+     "height_m": [
+      4.0,
+      6.5
+     ]
+    },
+    {
+     "scene": "res://assets/atia/arena/scenes/HomeLand_Asset/Environment/Mystic/Tree/M_Tree_02.tscn",
+     "count": 4,
+     "zone": "flank",
+     "height_m": [
+      4.0,
+      6.5
+     ]
+    },
+    {
+     "scene": "res://assets/atia/arena/scenes/HomeLand_Asset/Environment/Mystic/Tree/M_Tree_03.tscn",
+     "count": 4,
+     "zone": "back",
+     "height_m": [
+      6.0,
+      9.0
+     ]
+    },
+    {
+     "scene": "res://assets/atia/arena/scenes/HomeLand_Asset/Environment/Mystic/Shrub/Shrub01_M.tscn",
+     "count": 7,
+     "zone": "low",
+     "height_m": [
+      1.0,
+      1.8
+     ]
+    },
+    {
+     "scene": "res://assets/atia/arena/scenes/HomeLand_Asset/Environment/Mystic/Rock/Rock_01.tscn",
+     "count": 3,
+     "zone": "low",
+     "height_m": [
+      1.2,
+      2.6
+     ]
+    },
+    {
+     "scene": "res://assets/atia/arena/scenes/HomeLand_Asset/Environment/Mystic/Rock/Rock_02.tscn",
+     "count": 3,
+     "zone": "low",
+     "height_m": [
+      1.2,
+      2.6
+     ]
+    }
+   ],
+   "path": "res://assets/atia/arena/scenes/HomeLand_Asset/Environment/Mystic/Decor/M_StonePath_Straight.tscn"
+  },
+  "genesis": {
+   "ground": "#8f7a56",
+   "sky_top": "#5a90c8",
+   "sky_horizon": "#f0d9a8",
+   "fog": "#e0cfa4",
+   "light": "#ffe9c0",
+   "light_energy": 1.2,
+   "props": [
+    {
+     "scene": "res://assets/atia/arena/scenes/HomeLand_Asset/Environment/Genesis/Tree/SM_Tree_G_01.tscn",
+     "count": 4,
+     "zone": "flank",
+     "height_m": [
+      4.0,
+      6.5
+     ]
+    },
+    {
+     "scene": "res://assets/atia/arena/scenes/HomeLand_Asset/Environment/Genesis/Tree/SM_Tree_G_02.tscn",
+     "count": 4,
+     "zone": "flank",
+     "height_m": [
+      4.0,
+      6.5
+     ]
+    },
+    {
+     "scene": "res://assets/atia/arena/scenes/HomeLand_Asset/Environment/Genesis/Tree/SM_Tree_G_03.tscn",
+     "count": 3,
+     "zone": "back",
+     "height_m": [
+      6.0,
+      9.0
+     ]
+    },
+    {
+     "scene": "res://assets/atia/arena/scenes/HomeLand_Asset/Environment/Genesis/Shrub/G_Shrub01_Allside.tscn",
+     "count": 8,
+     "zone": "low",
+     "height_m": [
+      1.0,
+      1.8
+     ]
+    }
+   ],
+   "path": ""
+  },
+  "luna": {
+   "ground": "#555a73",
+   "sky_top": "#0f1230",
+   "sky_horizon": "#4b3f7a",
+   "fog": "#2b2c52",
+   "light": "#bcd0ff",
+   "light_energy": 0.95,
+   "props": [
+    {
+     "scene": "res://assets/atia/arena/scenes/HomeLand_Asset/Environment/LunaLanding/Tree/Luna_Landing_Tree_1 Variant.tscn",
+     "count": 4,
+     "zone": "flank",
+     "height_m": [
+      4.0,
+      6.5
+     ]
+    },
+    {
+     "scene": "res://assets/atia/arena/scenes/HomeLand_Asset/Environment/LunaLanding/Tree/Luna_Landing_Tree_2 Variant.tscn",
+     "count": 4,
+     "zone": "flank",
+     "height_m": [
+      4.0,
+      6.5
+     ]
+    },
+    {
+     "scene": "res://assets/atia/arena/scenes/HomeLand_Asset/Environment/LunaLanding/Luna_Landing_Rock/SM_Luna_Landing_Rock_1 Variant.tscn",
+     "count": 5,
+     "zone": "low",
+     "height_m": [
+      1.2,
+      2.6
+     ]
+    },
+    {
+     "scene": "res://assets/atia/arena/scenes/HomeLand_Asset/Environment/LunaLanding/Luna_Landing_Rock/SM_Luna_Landing_Rock_2 Variant.tscn",
+     "count": 4,
+     "zone": "low",
+     "height_m": [
+      1.2,
+      2.6
+     ]
+    },
+    {
+     "scene": "res://assets/atia/arena/scenes/HomeLand_Asset/Environment/LunaLanding/Shrub/LunaLanding_Shrub_01.tscn",
+     "count": 6,
+     "zone": "low",
+     "height_m": [
+      1.0,
+      1.8
+     ]
+    }
+   ],
+   "path": ""
+  }
+ }
+}
