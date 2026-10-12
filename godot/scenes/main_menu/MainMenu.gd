@@ -115,7 +115,7 @@ func _ready() -> void:
 	# both the boot scene and the destination of every "return to menu" button, so this is the
 	# single choke point every entry funnels through.
 	if MetaState.needs_tutorial():
-		get_tree().change_scene_to_file("res://scenes/tutorial/Tutorial.tscn")
+		get_tree().change_scene_to_file.call_deferred("res://scenes/tutorial/Tutorial.tscn")
 		return
 	# The hub is the screen the game opens to. Only LandNav's run_setup fallback (no RunSetup scene
 	# yet) keeps this old menu alive, as the Run Setup screen.
