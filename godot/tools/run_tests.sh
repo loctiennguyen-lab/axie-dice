@@ -41,6 +41,9 @@ unscanned=0
 while IFS= read -r f; do
   [[ -f "$f.uid" ]] || unscanned=$((unscanned+1))
 done < <(find "$PROJ" -name '*.gd' -not -path '*/addons/*' -not -path '*/.godot/*')
+# Worktree mới tạo (git worktree add) không có godot/.godot (cache import, không nằm trong git):
+# .uid đủ cả nhưng class_name chưa đăng ký -> test treo. Thiếu cache cũng phải import.
+if [[ ! -f "$PROJ/.godot/global_script_class_cache.cfg" ]]; then unscanned=$((unscanned+1)); fi
 if [[ $unscanned -gt 0 ]]; then
   echo "$unscanned script chưa được Godot quét — nhập lại project trước khi chạy test..."
   "$GODOT" --headless --path "$PROJ" --import >/dev/null 2>&1 \

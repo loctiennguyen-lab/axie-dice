@@ -88,7 +88,9 @@ export AXIE_GODOT_LOCK_HELD=1
 "$@" &
 child=$!
 if [[ "${AXIE_HANG_KILL:-0}" -gt 0 ]]; then
-  ( sleep "$AXIE_HANG_KILL"; kill "$child" 2>/dev/null; sleep 5; kill -9 "$child" 2>/dev/null ) &
+  # kill cả cây con (run_tests.sh -> Godot), không chỉ tiến trình đầu, kẻo Godot mồ côi giữ user://.
+  ( sleep "$AXIE_HANG_KILL"; pkill -TERM -P "$child" 2>/dev/null; kill "$child" 2>/dev/null
+    sleep 5; pkill -KILL -P "$child" 2>/dev/null; kill -9 "$child" 2>/dev/null ) &
   watcher=$!
 fi
 wait "$child"; code=$?
