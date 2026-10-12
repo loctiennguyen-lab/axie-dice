@@ -151,7 +151,7 @@ func _build_version_tag() -> void:
 	var v := String(ProjectSettings.get_setting("application/config/version", ""))
 	if v == "":
 		return
-	var l := DangoTheme.display_label("v" + v, 11, DangoTheme.CAPTION_MUTED, 700, 0.06)
+	var l := DangoTheme.display_label("v" + v, 12, DangoTheme.CAPTION_MUTED, 700, 0.06)
 	l.name = "BuildTag"
 	l.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	l.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_RIGHT, Control.PRESET_MODE_MINSIZE, 10)

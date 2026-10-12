@@ -328,19 +328,25 @@ func _is_fogged(node: RunMapNode, current_row: int, reachable_ids: Array[String]
 	return node.row - current_row >= 2
 
 
-## Elite nodes still under the fog, counted for the A9 legend (positions are NOT revealed).
-## 0 below A9 and on a missing graph.
-func _hidden_elite_count(current_row: int) -> int:
+## A9+: true while the unavoidable all-elite row (INV10) is still ahead of the player.
+## No count, no position.
+func _forced_elite_row_ahead(current_row: int) -> bool:
 	if _graph == null or RunState.ascension < 9:
-		return 0
-	var reachable := _reachable_now_ids()
-	var n := 0
-	for row in _graph.rows:
-		for raw_node in row:
-			var nd: RunMapNode = raw_node
-			if nd.node_type == "elite" and _is_fogged(nd, current_row, reachable):
-				n += 1
-	return n
+		return false
+	for r in _graph.elite_rows:
+		if r <= current_row:
+			continue
+		var nodes := _graph.get_row(r)
+		if nodes.is_empty():
+			continue
+		var all_elite := true
+		for raw_node in nodes:
+			if (raw_node as RunMapNode).node_type != "elite":
+				all_elite = false
+				break
+		if all_elite:
+			return true
+	return false
 
 
 func _node_tier(node: RunMapNode, current_row: int, reachable_ids: Array[String]) -> String:
@@ -1209,12 +1215,10 @@ func _build_rail_head(content: VBoxContainer) -> void:
 	var seed_lbl := DangoTheme.display_label("SEED %d" % RunState.run_seed, 12,
 		DangoTheme.CAPTION_MUTED, 800, 0.14)
 	content.add_child(seed_lbl)
-	# A9: elites are fogged like any other far node; the legend only says how many are out there.
-	var hidden_elites := _hidden_elite_count(_current_row())
-	if hidden_elites > 0:
-		var hid_lbl := DangoTheme.display_label("%d hidden elites" % hidden_elites if hidden_elites != 1
-			else "1 hidden elite", 12, DangoTheme.CAPTION_MUTED, 800, 0.08)
-		hid_lbl.name = "HiddenElitesLegend"
+	# A9: one elite row cannot be dodged. The legend says it is ahead, nothing more.
+	if _forced_elite_row_ahead(_current_row()):
+		var hid_lbl := DangoTheme.display_label("Elite row ahead", 12, DangoTheme.CAPTION_MUTED, 800, 0.08)
+		hid_lbl.name = "EliteRowLegend"
 		content.add_child(hid_lbl)
 
 	content.add_child(_spacer(17.0))
