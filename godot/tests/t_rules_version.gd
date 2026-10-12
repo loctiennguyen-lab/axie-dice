@@ -147,7 +147,10 @@ const WATCHED_FILES: Array[String] = ["res://assets/data/part_faces.json"]
 ## (G cap 2.5 per Axie damage face, ascend/forge no longer baked into faces, A axes for ticks/thorns/crit/opener),
 ## reroll caps (a_chaos 6, relic sources 4 per turn), Eternal sticker, RelicSlots.pact_forced, apexpredator no
 ## crit chance. Touches combat_engine.gd / RunState.gd / unit.gd minimally. Changes the run result: YES.
-const FINGERPRINT := "36cc0b77be5f813e27e011b6e071053bd83e5e3e9b2b29db8f41453354eaf4a3"
+## Moved 2026-10-12 night by lane S merge: AccountService.gd (RemoteGemWallet on sign-in, behind the
+## axie/gem_wallet flag, default local), scripts/net RunSession + RemoteEpochSource (flag axie/epoch_source,
+## default local). Network/accounts only, flags off. Changes the run result: NO, RULES_VERSION stays -f.
+const FINGERPRINT := "8b2521f0d954d9f3fb6224c9c77decc9e91cfa795e6b4101fc0cd27084e25cab"
 
 
 func _ready() -> void:

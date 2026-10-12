@@ -44,7 +44,7 @@ class Client {
     return this.core.handle(this.conn, JSON.stringify({ t: 'hello', run_token: token, last_seq: lastSeq }));
   }
   async build(kind, args, actions = [], over = {}) {
-    const h = await chainNext(await this.hPromise, actions);
+    const h = this.seq < 0 ? await this.hPromise : await chainNext(await this.hPromise, actions); // run_start: h_0, no step
     return { t: 'epoch_req', seq: this.seq + 1, kind, args, log_delta: actions, h, log_len: this.len + actions.length, ...over };
   }
   async send(msg) { return (await this.core.handle(this.conn, JSON.stringify(msg))).replies[0]; }
@@ -417,4 +417,29 @@ test('money moves last: any rejection leaves the wallet alone; a different Aid a
   assert.ok(charges[0][0].endsWith(':R2') && charges[1][0].endsWith(':R1'));
   assert.equal((await c.send(good)).t, 'epoch_res');
   assert.equal(charges.length, 2, 'identical resend is a replay, not a second charge');
+});
+
+test('run_start carries h_0 itself (golden): a stepped hash is refused, h_0 is accepted', async () => {
+  const { c } = await fresh();
+  await c.hello();
+  const stepped = await chainNext(await chainStart(RUN), []);
+  const bad = await c.send({ t: 'epoch_req', seq: 0, kind: 'run_start', args: {}, log_delta: [], h: stepped, log_len: 0, client_nonce: NONCE });
+  assert.equal(bad.code, 'rejected');
+  const ok = await c.send({ t: 'epoch_req', seq: 0, kind: 'run_start', args: {}, log_delta: [], h: await chainStart(RUN), log_len: 0, client_nonce: NONCE });
+  assert.equal(ok.t, 'epoch_res');
+});
+
+test('continue price: 90 on a normal node, 180 when the logged node kind is boss (server-side)', async () => {
+  const prices = [];
+  const n = await fresh({}, { charge: async (_i, _k, _a, _m, price) => { prices.push(price); return true; } });
+  await n.c.hello();
+  await start(n.c);
+  await n.c.epoch('node', { node_id: 'r1_c0' }, []);
+  assert.equal((await n.c.epoch('continue', { node_id: 'r1_c0' }, [A('enter_node', ['r1_c0', 'battle'])])).t, 'epoch_res');
+  const b = await fresh({}, { charge: async (_i, _k, _a, _m, price) => { prices.push(price); return true; } });
+  await b.c.hello();
+  await start(b.c);
+  await b.c.epoch('node', { node_id: 'r1_c0' }, []);
+  assert.equal((await b.c.epoch('continue', { node_id: 'r1_c0' }, [A('enter_node', ['r1_c0', 'boss'])])).t, 'epoch_res');
+  assert.deepEqual(prices, [90, 180]);
 });
