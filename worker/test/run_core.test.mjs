@@ -38,7 +38,7 @@ async function fresh(opts = {}, deps = {}) {
 
 /** A client that tracks seq/h/log_len the way RemoteEpochSource will. */
 class Client {
-  constructor(core) { this.core = core; this.seq = 0; this.len = 0; this.log = []; this.conn = { authed: false, epoch: 0 }; this.hPromise = chainStart(RUN); }
+  constructor(core) { this.core = core; this.seq = -1; this.len = 0; this.log = []; this.conn = { authed: false, epoch: 0 }; this.hPromise = chainStart(RUN); }
   async hello(lastSeq = 0) {
     const token = await signRunToken(ENV, { player_id: 'google:1', run_id: RUN, rules_version: RULES });
     return this.core.handle(this.conn, JSON.stringify({ t: 'hello', run_token: token, last_seq: lastSeq }));
@@ -240,7 +240,7 @@ test('paid requests: refused with no wallet, refused in mission mode, charged on
   await w.c.epoch('node', { node_id: 'r1_c0' }, []);
   const r = await w.c.epoch('continue', { node_id: 'r1_c0' }, [A('enter_node', ['r1_c0', 'battle'])]);
   assert.equal(r.t, 'epoch_res');
-  assert.deepEqual(charges, [[`aid:${RUN}:3`, 'R1']]);
+  assert.deepEqual(charges, [[`aid:${RUN}:2:R1`, 'R1']]);
   assert.equal(w.sql.exec('SELECT COUNT(*) AS n FROM pending_aid').toArray()[0].n, 0);
 
   const m = await fresh({ mode: 'mission' }, { charge: async () => { throw new Error('must not be called'); } });
@@ -289,10 +289,10 @@ test('run_close: closes once, keeps the tape, refuses everything after', async (
   await c.epoch('node', { node_id: 'r1_c0' }, []);
   const delta = [A('enter_node', ['r1_c0', 'battle']), A('end_turn')];
   const h = await chainNext(await c.hPromise, delta);
-  const bad = await c.send({ t: 'run_close', seq: 3, log_delta: delta, h, log_len: 2, outcome: 'draw' });
+  const bad = await c.send({ t: 'run_close', seq: 2, log_delta: delta, h, log_len: 2, outcome: 'draw' });
   assert.equal(bad.code, 'bad_request');
-  const r = await c.send({ t: 'run_close', seq: 3, log_delta: delta, h, log_len: 2, outcome: 'lost', summary: { battles_done: 1 } });
-  assert.deepEqual(r, { t: 'closed', seq: 3 });
+  const r = await c.send({ t: 'run_close', seq: 2, log_delta: delta, h, log_len: 2, outcome: 'lost', summary: { battles_done: 1 } });
+  assert.deepEqual(r, { t: 'closed', seq: 2 });
   const meta = core.meta();
   assert.equal(meta.state, 'closed');
   assert.equal(meta.outcome, 'lost');
@@ -308,7 +308,7 @@ test('run_close refuses a delta whose first action does not consume the last epo
   await c.epoch('node', { node_id: 'r1_c0' }, []);
   const delta = [A('end_turn')];
   const h = await chainNext(await c.hPromise, delta);
-  assert.equal((await c.send({ t: 'run_close', seq: 3, log_delta: delta, h, log_len: 1, outcome: 'won' })).code, 'rejected');
+  assert.equal((await c.send({ t: 'run_close', seq: 2, log_delta: delta, h, log_len: 1, outcome: 'won' })).code, 'rejected');
 });
 
 test('abandon: state becomes abandoned (a loss), further messages are refused, idempotent', async () => {
@@ -326,12 +326,12 @@ test('resync: a reconnecting client with an old last_seq gets the seeds it misse
   const s1 = await start(c);
   const s2 = await c.epoch('node', { node_id: 'r1_c0' }, []);
   const again = new Client(core);
-  const out = await again.hello(0);
+  const out = await again.hello(-1);
   assert.equal(out.replies[0].t, 'resync');
-  assert.deepEqual(out.replies[0].tail.map((r) => [r.seq, r.seed]), [[1, s1.seed], [2, s2.seed]]);
-  const upToDate = await new Client(core).hello(2);
+  assert.deepEqual(out.replies[0].tail.map((r) => [r.seq, r.seed]), [[0, s1.seed], [1, s2.seed]]);
+  const upToDate = await new Client(core).hello(1);
   assert.equal(upToDate.replies[0].t, 'welcome');
-  assert.equal(upToDate.replies[0].seq, 2);
+  assert.equal(upToDate.replies[0].seq, 1);
 });
 
 test('budgets: oversize message, token bucket, action cap, epoch cap', async () => {
@@ -397,4 +397,24 @@ test('lane A PR2: attempt in reroll/end_turn args must equal the server counter;
   await c.epoch('node', { node_id: 'r1_c0' }, []);
   assert.equal((await c.epoch('end_turn', { turn: 1, attempt: 1 }, [A('enter_node', ['r1_c0', 'battle'])])).code, 'rejected');
   assert.equal((await c.epoch('end_turn', { turn: 1, attempt: 0 }, [A('enter_node', ['r1_c0', 'battle']), A('tweak', [1]), A('reorder_party', [2, 1])])).t, 'epoch_res');
+});
+
+test('money moves last: any rejection leaves the wallet alone; a different Aid at the same seq has its own idem key', async () => {
+  const charges = [];
+  const { c } = await fresh({}, { charge: async (idem, aid) => { charges.push([idem, aid]); return aid !== 'R2'; } });
+  await c.hello();
+  await start(c);
+  await c.epoch('node', { node_id: 'r1_c0' }, []);
+  const EN = A('enter_node', ['r1_c0', 'battle']);
+  const good = await c.build('continue', { node_id: 'r1_c0' }, [EN]);
+  assert.equal((await c.send({ ...good, h: '0'.repeat(64) })).code, 'rejected');
+  assert.equal((await c.send({ ...good, args: { node_id: 'r1_c0', attempt: 9 } })).code, 'rejected');
+  assert.equal((await c.send(await c.build('reroll', { turn: 1, k: 1, source: 'aid', uids: [1] }, [A('end_turn')]))).code, 'rejected');
+  assert.deepEqual(charges, [], 'no charge before every check has passed');
+  assert.equal((await c.send(await c.build('reroll', { turn: 1, k: 1, source: 'aid', uids: [1] }, [EN]))).code, 'rejected');
+  assert.equal((await c.send(good)).t, 'epoch_res');
+  assert.deepEqual(charges.map((x) => x[1]), ['R2', 'R1']);
+  assert.ok(charges[0][0].endsWith(':R2') && charges[1][0].endsWith(':R1'));
+  assert.equal((await c.send(good)).t, 'epoch_res');
+  assert.equal(charges.length, 2, 'identical resend is a replay, not a second charge');
 });

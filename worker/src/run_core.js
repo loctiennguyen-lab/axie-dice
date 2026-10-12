@@ -204,10 +204,10 @@ export class RunCore {
     conn.authed = true;
     conn.epoch = epoch;
     const last = this.last();
-    const seq = last ? last.seq : 0;
+    const seq = last ? last.seq : -1; // -1 = no epoch yet (seq starts at 0)
     const h = last ? last.h : await chainStart(meta.run_id);
     const logLen = last ? last.log_len : 0;
-    const from = Number.isInteger(msg.last_seq) && msg.last_seq >= 0 ? msg.last_seq : seq;
+    const from = Number.isInteger(msg.last_seq) && msg.last_seq >= -1 ? msg.last_seq : seq;
     if (from < seq) {
       const tail = this.sql.exec('SELECT seq, kind, seed FROM epochs WHERE seq > ? ORDER BY seq', from).toArray();
       return { replies: [{ t: 'resync', tail, seq, h, log_len: logLen }], evictOthers: true };
@@ -254,7 +254,7 @@ export class RunCore {
     const seq = Number.isInteger(m.seq) ? m.seq : 0;
     const spec = KINDS[m.kind];
     const args = m.args && typeof m.args === 'object' && !Array.isArray(m.args) ? m.args : null;
-    if (!spec || !args || seq < 1) return fail(seq, 'bad_request');
+    if (!spec || !args || !Number.isInteger(m.seq) || m.seq < 0) return fail(seq, 'bad_request');
     const argBad = argsProblem(m.kind, args);
     if (argBad) { this._anomaly('args_rejected', { seq, why: argBad }); return fail(seq, 'bad_request'); }
     const delta = m.log_delta ?? [];
@@ -262,18 +262,18 @@ export class RunCore {
     let digest;
     try { digest = await this._digest(m, delta, args); } catch { return fail(seq, 'bad_request'); }
     const last = this.last();
-    const lastSeq = last ? last.seq : 0;
+    const nextSeq = last ? last.seq + 1 : 0; // run_start is seq 0 (lane A golden)
 
     // Same seq again: identical content gets the old answer, different content gets nothing new.
-    if (seq <= lastSeq) {
+    if (last && seq <= last.seq) {
       const row = this.sql.exec('SELECT * FROM epochs WHERE seq = ?', seq).toArray()[0];
       if (row && row.req_digest === digest) return this._reply(row);
       this._anomaly('seq_replay_mismatch', { seq });
       return fail(seq, 'rejected');
     }
-    if (seq !== lastSeq + 1) return fail(seq, 'out_of_order');
-    if (lastSeq >= MAX_EPOCHS) return fail(seq, 'rejected');
-    if ((m.kind === 'run_start') !== (seq === 1)) return fail(seq, 'out_of_order');
+    if (seq !== nextSeq) return fail(seq, 'out_of_order');
+    if (nextSeq >= MAX_EPOCHS) return fail(seq, 'rejected');
+    if ((m.kind === 'run_start') !== (seq === 0)) return fail(seq, 'out_of_order');
 
     const prevLen = last ? last.log_len : 0;
     const bad = this._deltaProblem(delta, prevLen, m.log_len) || this._consumeProblem(last, delta);
@@ -295,13 +295,11 @@ export class RunCore {
     const attempt = this._attemptFor(m.kind);
     if (args.attempt !== undefined && args.attempt !== attempt) return fail(seq, 'rejected');
 
-    // Paid requests: mission runs refuse them outright; others go through the wallet hook.
+    // Paid requests are checked here (cheap, no money moves)...
     let aid = null;
     if (isPaid(m.kind, args)) {
       aid = AID_BY_KIND(m.kind, args);
       if (meta.mode === 'mission' || meta.is_guest || !aid || this._overCap(meta, aid, m.kind, args)) return fail(seq, 'rejected');
-      const ok = await this._charge(meta, seq, aid, args);
-      if (!ok) return fail(seq, 'rejected');
     }
 
     // Reroll: the first request for a key fixes the seed; later requests for it get the same one.
@@ -320,6 +318,14 @@ export class RunCore {
         run_id: meta.run_id, seq, kind: m.kind, args, h, log_len: m.log_len,
         rules_version: meta.rules_version, attempt, client_nonce: nonce,
       });
+    }
+    // ...and the money moves LAST, right before the row is written: nothing above can reject after a charge.
+    // The idem key carries the aid id, so a resend of the same seq as a different Aid is a different
+    // charge and can never ride on the first price. The seq-level replay above already returns the old
+    // answer for an identical resend without charging.
+    if (aid) {
+      const ok = await this._charge(meta, seq, aid, args);
+      if (!ok) return fail(seq, 'rejected');
     }
     this.sql.exec(
       `INSERT INTO epochs (seq, kind, args, h, log_len, seed, log_delta, attempt, req_digest, pin_key, uids, aid, at)
@@ -362,7 +368,7 @@ export class RunCore {
 
   async _charge(meta, seq, kind, args) {
     if (!this.deps.charge) return false; // no wallet wired (L1: pending the Gem decision) = refuse
-    const idem = `aid:${meta.run_id}:${seq}`;
+    const idem = `aid:${meta.run_id}:${seq}:${kind}`;
     this.sql.exec(`INSERT OR REPLACE INTO pending_aid (seq, aid, idem_key, state) VALUES (?, ?, ?, 'charging')`, seq, kind, idem);
     let ok = false;
     try { ok = await this.deps.charge(idem, kind, args, meta); } catch { ok = false; }

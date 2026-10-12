@@ -119,7 +119,7 @@ async function paidRun(gems, opts = {}) {
   await core.init({ run_id: RUN, player_id: 'p1', rules_version: RULES, client_nonce: NONCE, ...opts });
   const conn = { authed: false, epoch: 0 };
   await core.handle(conn, JSON.stringify({ t: 'hello', run_token: 'x', last_seq: 0 }));
-  let seq = 0, len = 0, h = await chainStart(RUN);
+  let seq = -1, len = 0, h = await chainStart(RUN);
   const ep = async (kind, args, actions = [], extra = {}) => {
     const nh = await chainNext(h, actions);
     const msg = { t: 'epoch_req', seq: seq + 1, kind, args, log_delta: actions, h: nh, log_len: len + actions.length, ...extra };
