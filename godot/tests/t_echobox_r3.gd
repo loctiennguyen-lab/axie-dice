@@ -17,6 +17,7 @@ func _ok(c: bool, msg: String) -> void:
 func _make(st := "normal") -> EchoBoxScreen:
 	var s: EchoBoxScreen = load("res://scenes/echobox/EchoBoxScreen.tscn").instantiate()
 	s.state = st
+	s.use_account = false
 	s.no_scene_change = true
 	s.instant = true
 	add_child(s)
@@ -87,6 +88,36 @@ func _ready() -> void:
 	var re: Array = await s.pull(1)
 	_ok(re.is_empty() and s.state == "error" and s.tickets() == 3, "failed pull: error state, tickets kept")
 	s.queue_free()
+	# State derived from a stubbed AccountService status (not set by hand)
+	s.queue_free()
+	await get_tree().process_frame
+	MetaState.tickets["normal"] = 3
+	for pair in [[AccountService.Status.GUEST, "guest"], [AccountService.Status.EXPIRED, "guest"], [AccountService.Status.OFFLINE, "offline"], [AccountService.Status.SAVED, "normal"]]:
+		var sa: EchoBoxScreen = load("res://scenes/echobox/EchoBoxScreen.tscn").instantiate()
+		var cur: Array = [pair[0]]
+		sa.account_status_hook = func() -> int: return cur[0]
+		sa.no_scene_change = true
+		sa.instant = true
+		add_child(sa)
+		await get_tree().process_frame
+		_ok(sa.state == pair[1], "account status %d -> %s" % [pair[0], pair[1]])
+		if pair[1] == "normal":
+			# goes offline between open and pull: re-check blocks, nothing spent
+			cur[0] = AccountService.Status.OFFLINE
+			var blocked: Array = await sa.pull(1)
+			_ok(blocked.is_empty() and sa.state == "offline" and sa.tickets() == 3, "pull re-checks account")
+			var by := sa.buy_ticket()
+			_ok(not by.get("ok", true), "buy re-checks account")
+		sa.queue_free()
+	# partial pull
+	var sp: EchoBoxScreen = await _make()
+	MetaState.tickets["normal"] = 5
+	sp.pull_hook = func(_n: int) -> Array:
+		var one := EchoBox.open_normal(MetaState, sp.rng)
+		return [one]
+	await sp.pull(3)
+	_ok(sp.error_text == "Opened 1 of 3", "partial pull text")
+	sp.queue_free()
 	_guard.restore()
 	if _fail.is_empty():
 		print("t_echobox_r3: PASS (%d checks)" % _checks)

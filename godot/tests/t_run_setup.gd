@@ -26,6 +26,7 @@ func _hook_fail(_p: Dictionary) -> Dictionary:
 func _make(st := "normal") -> RunSetup:
 	var s: RunSetup = load("res://scenes/run_setup/RunSetup.tscn").instantiate()
 	s.state = st
+	s.use_account = false
 	s.no_scene_change = true
 	add_child(s)
 	await get_tree().process_frame
@@ -93,6 +94,20 @@ func _ready() -> void:
 	_ok((s.find_child("Begin", true, false) as Button).disabled, "offline disables Begin")
 	s.queue_free()
 	await get_tree().process_frame
+	# State derived from a stubbed AccountService status
+	for pair in [[AccountService.Status.OFFLINE, "offline"], [AccountService.Status.GUEST, "normal"], [AccountService.Status.SAVED, "normal"]]:
+		var sa: RunSetup = load("res://scenes/run_setup/RunSetup.tscn").instantiate()
+		var cur: Array = [pair[0]]
+		sa.account_status_hook = func() -> int: return cur[0]
+		sa.no_scene_change = true
+		add_child(sa)
+		await get_tree().process_frame
+		_ok(sa.state == pair[1], "account status %d -> %s" % [pair[0], pair[1]])
+		if pair[1] == "normal":
+			cur[0] = AccountService.Status.OFFLINE
+			var rb := await sa.begin()
+			_ok(not rb.ok and sa.state == "offline", "begin re-checks account")
+		sa.queue_free()
 	# all ascensions render
 	MetaState.asc_max = 10
 	var s2 := await _make()
