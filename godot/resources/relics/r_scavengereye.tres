@@ -6,13 +6,11 @@
 script = ExtResource("1")
 id = "r_scavengereye"
 name = "Scavenger's Eye"
-description = "Reward Battle/Elite hiện 4 thẻ thay vì 3; Treasure có thêm 1 thẻ relic (F-21: Treasure hiện là reward tier 1 nhiều loại thẻ, không có thẻ \"chọn 1 trong 2 relic\")"
+description = "Battle and Elite rewards show 4 cards instead of 3. Treasure gives 1 extra relic card."
 rarity = 1
 archetype = "crit"
 mload = 0
 sort_index = 101544
-hook_key = ""
+hook_key = "r_scavengereye"
 tags = PackedStringArray("uni")
 layer = "economy"
-needs_hook = "H8"
-hidden_from_pool = true

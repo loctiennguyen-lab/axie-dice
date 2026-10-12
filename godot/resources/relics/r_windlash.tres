@@ -16,3 +16,4 @@ mf_phase = "kw"
 mf_phase2 = "add"
 tags = PackedStringArray("aoe")
 layer = "enabler"
+exsub_of = "r_stormcall"

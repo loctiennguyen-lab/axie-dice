@@ -6,14 +6,13 @@
 script = ExtResource("1")
 id = "r_twinfates"
 name = "Twin Fates"
-description = "Lợi: mỗi Axie roll 2 mặt, giữ mặt có giá trị chính cao hơn. Hại: Reroll max = 0, mọi nguồn Reroll vô hiệu"
+description = "PACT. Each Axie rolls 2 faces and keeps the one with the higher main value (tie keeps the first). Drawback: max Rerolls become 0 and no Reroll source works."
 rarity = 3
 archetype = "crit"
 mload = 0
 sort_index = 103523
-hook_key = ""
+hook_key = "r_twinfates"
 tags = PackedStringArray("uni")
 layer = "pact"
 pact_group = "reroll"
-needs_hook = "H7"
-hidden_from_pool = true
+mf_phase = "add"

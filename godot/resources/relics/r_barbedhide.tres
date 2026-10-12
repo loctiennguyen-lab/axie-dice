@@ -6,14 +6,12 @@
 script = ExtResource("1")
 id = "r_barbedhide"
 name = "Barbed Hide"
-description = "Your Thorns deal 1 more damage. Shield faces give 1 more."
+description = "Each time you use a Shield face, that Axie gains +1 Thorns through the enemy phase (stacks up to +3)."
 rarity = 0
 archetype = "thorns"
 mload = 0
 sort_index = 100007
 hook_key = "r_barbedhide"
-thornsPlus = 1.0
 mf_phase = "add"
 tags = PackedStringArray("thorns")
 layer = "enabler"
-needs_hook = "H2"

@@ -6,14 +6,13 @@
 script = ExtResource("1")
 id = "r_devilsreroll"
 name = "Devil's Reroll"
-description = "Lợi: Reroll max +3. Hại: mỗi lần reroll tốn 1 Mana, hết Mana là không reroll được"
+description = "PACT. +3 max Rerolls. Drawback: every Reroll costs 1 Mana. With no Mana you cannot Reroll."
 rarity = 2
 archetype = "mana"
 mload = 0
 sort_index = 102521
-hook_key = ""
+hook_key = "r_devilsreroll"
 tags = PackedStringArray("mana")
 layer = "pact"
 pact_group = "mana"
-needs_hook = "H1"
-hidden_from_pool = true
+rerollUp = 3.0

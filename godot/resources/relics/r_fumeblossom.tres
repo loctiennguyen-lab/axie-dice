@@ -6,7 +6,7 @@
 script = ExtResource("1")
 id = "r_fumeblossom"
 name = "Fumeblossom"
-description = "Mỗi Burn tick lên một địch gắn thêm 1 Poison; mỗi Poison tick lên địch đang Burn cộng 1 Burn. Hai trục nuôi nhau. Giới hạn: mỗi chiều tối đa 1 lần/địch/lượt"
+description = "Each Burn tick on an enemy adds 1 Poison. Each Poison tick on a burning enemy adds 1 Burn. Each direction triggers once per enemy per turn."
 rarity = 3
 archetype = "poison"
 mload = 0

@@ -6,7 +6,7 @@
 script = ExtResource("1")
 id = "r_falconhood"
 name = "Falconer's Hood"
-description = "TALON: Pierce +5 (thay +3); mặt Pierce của Axie Bird bỏ qua Thorns"
+description = "Bird's Talon gives Pierce +5 (was +3). Pierce faces of Bird Axies ignore Thorns."
 rarity = 2
 archetype = "bird"
 mload = 0

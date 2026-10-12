@@ -134,7 +134,11 @@ const WATCHED_FILES: Array[String] = ["res://assets/data/part_faces.json"]
 ## (flag off). Changes the run result: NO, so RULES_VERSION was NOT bumped (still -c).
 ## Moved 2026-10-12 night by lane E merge (7f68d62 + 7ce7560): MetaState.gd (remote Gem wallet wiring,
 ## Pass v2 XP/claims). Meta progression only, read after a run ends. Changes the run result: NO.
-const FINGERPRINT := "60e27dde342f63b2694db0c26cd43d68fcf9e0adb69530a9d177ae2b2c2aba3a"
+## BUMPED, 2026-10-12 night: `ActionLog.RULES_VERSION` -> `godot-2026-10-12-d`. Lane B merge: EN names/descriptions,
+## boss immune to instant kills, relic offer v2 (rarity by source, gating, exclusions, boss pact offer), bodies for
+## 22 H1-H8 relics + 7 reworks, live pacts (twinfates/devilsreroll/tithepips), pipfile tweak cleared per roll.
+## Changes the run result: YES.
+const FINGERPRINT := "4bce3209454ed58597df5a9b0ddb893fa4c6bd22dcc99f9c45675e05060aca21"
 
 
 func _ready() -> void:

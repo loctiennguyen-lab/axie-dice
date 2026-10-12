@@ -6,7 +6,7 @@
 script = ExtResource("1")
 id = "r_brittledice"
 name = "Brittle Dice"
-description = "PACT: all damage faces +4, but Shield and Heal faces are halved (rounded down)."
+description = "PACT. All damage faces +4. Drawback: all Shield and Heal faces are halved (rounded down)."
 rarity = 2
 archetype = "crit"
 mload = 0

@@ -6,13 +6,11 @@
 script = ExtResource("1")
 id = "r_flipside"
 name = "Flipside Die"
-description = "FLIP: Tweak, lật 1 mặt đã roll sang mặt đối (mặt i thành mặt i+3 mod 6, bảng cố định trong data)"
+description = "Tweak: flip one rolled face to the opposite side of its die."
 rarity = 2
 archetype = "crit"
 mload = 0
 sort_index = 102533
-hook_key = ""
+hook_key = "r_flipside"
 tags = PackedStringArray("uni")
 layer = "dice"
-needs_hook = "H7"
-hidden_from_pool = true

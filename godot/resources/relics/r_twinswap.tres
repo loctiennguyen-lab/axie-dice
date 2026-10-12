@@ -6,13 +6,11 @@
 script = ExtResource("1")
 id = "r_twinswap"
 name = "Twin Swap"
-description = "SWAP: Tweak, đổi chỗ mặt đã roll của 2 Axie chưa dùng mặt"
+description = "Tweak: swap the rolled faces of two Axies that have not used their face yet."
 rarity = 1
 archetype = "crit"
 mload = 0
 sort_index = 101531
-hook_key = ""
+hook_key = "r_twinswap"
 tags = PackedStringArray("uni")
 layer = "dice"
-needs_hook = "H7"
-hidden_from_pool = true

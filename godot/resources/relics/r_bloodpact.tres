@@ -6,7 +6,7 @@
 script = ExtResource("1")
 id = "r_bloodpact"
 name = "Blood Pact"
-description = "PACT: all damage is multiplied by 1.6, but your maximum Rerolls are reduced by 2. Takes the multiplier slot."
+description = "PACT. All damage faces +60% [Global]. Drawback: max Rerolls −2 (min 0)."
 rarity = 3
 archetype = "exec"
 mload = 2
@@ -19,3 +19,4 @@ layer = "pact"
 mult_axis = "G"
 pact_group = "reroll"
 rerollUp = -2.0
+mult_bonus = 0.60

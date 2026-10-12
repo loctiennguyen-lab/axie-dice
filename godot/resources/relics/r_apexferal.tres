@@ -6,7 +6,7 @@
 script = ExtResource("1")
 id = "r_apexferal"
 name = "Apex Feral"
-description = "RULE: every damage face gains Execute, and any enemy left at 15% HP or less dies immediately."
+description = "RULE: every damage face gains Execute, and any enemy left at 15% HP or less dies immediately. Bosses are immune to the instant kill."
 rarity = 3
 archetype = "exec"
 mload = 0

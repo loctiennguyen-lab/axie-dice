@@ -6,13 +6,11 @@
 script = ExtResource("1")
 id = "r_loadeddie"
 name = "Loaded Die"
-description = "LOCK: lúc nhận, chọn 1 mặt của 1 Axie; mặt đó nặng ×3 (xuất hiện 37.5% thay vì 16.7%) cả run"
+description = "When you get this, choose 1 face of 1 Axie. That face is 3× as likely to roll (37.5% instead of 16.7%) for the rest of the run."
 rarity = 1
 archetype = "crit"
 mload = 0
 sort_index = 101532
-hook_key = ""
+hook_key = "r_loadeddie"
 tags = PackedStringArray("uni")
 layer = "dice"
-needs_hook = "H6,H7"
-hidden_from_pool = true

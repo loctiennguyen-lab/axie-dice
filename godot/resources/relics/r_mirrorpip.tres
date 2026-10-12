@@ -6,13 +6,11 @@
 script = ExtResource("1")
 id = "r_mirrorpip"
 name = "Mirror Pip"
-description = "COPY: Tweak, chép mặt đã roll của Axie A sang Axie B (mặt cũ của B mất)"
+description = "Tweak: copy the rolled face of one Axie onto another. The target's old face is lost."
 rarity = 2
 archetype = "crit"
 mload = 0
 sort_index = 102529
-hook_key = ""
+hook_key = "r_mirrorpip"
 tags = PackedStringArray("uni")
 layer = "dice"
-needs_hook = "H7"
-hidden_from_pool = true

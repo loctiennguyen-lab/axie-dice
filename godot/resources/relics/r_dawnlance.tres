@@ -6,7 +6,7 @@
 script = ExtResource("1")
 id = "r_dawnlance"
 name = "Dawn Lance"
-description = "RULE: your attacks against an enemy above half HP deal 90% more damage."
+description = "Hits on an enemy that is not Wounded deal +90% damage [Axis: Opener]."
 rarity = 3
 archetype = "pierce"
 mload = 2
@@ -15,3 +15,4 @@ hook_key = "r_dawnlance"
 tags = PackedStringArray("uni")
 layer = "payoff"
 mult_axis = "A:opener"
+mult_bonus = 0.90

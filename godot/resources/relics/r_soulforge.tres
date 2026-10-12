@@ -6,7 +6,7 @@
 script = ExtResource("1")
 id = "r_soulforge"
 name = "Soul Forge"
-description = "RULE: Shield has no cap. Every 10 Shield an Axie holds adds +1 damage to its damage faces (max +6)."
+description = "Shield has no cap. For every 10 Shield on an Axie, its damage faces get +1 (max +6)."
 rarity = 3
 archetype = "shield"
 mload = 2

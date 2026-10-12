@@ -6,13 +6,11 @@
 script = ExtResource("1")
 id = "r_fortuneledger"
 name = "Fortune's Ledger"
-description = "+1 charge reroll phần thưởng mỗi màn reward (cộng vào `reward_reroll_max` từ meta, hiện = 1); charge cộng thêm này tốn 25 tiền in-run mỗi lần dùng. Reroll thẻ đã có sẵn trong code (`reroll_pending_rewards`), relic chỉ cộng charge; thẻ mới tất định theo số lần reroll. **A10: không offer** (A10 không còn reroll reward)"
+description = "+1 reward reroll on every reward screen. This extra reroll costs 25 Gene Shards."
 rarity = 1
 archetype = "crit"
 mload = 0
 sort_index = 101543
-hook_key = ""
+hook_key = "r_fortuneledger"
 tags = PackedStringArray("uni")
 layer = "economy"
-needs_hook = "H8"
-hidden_from_pool = true

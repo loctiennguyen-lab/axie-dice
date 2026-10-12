@@ -180,7 +180,7 @@ func _check_relic_pure_data() -> void:
 	_assert(RelicHooks.sum(c1, "critBonus") == 35.0, "r_luckycharm: critBonus should be 35.0")
 
 	var c2 := _new_combat(["r_hollowbone"])
-	_assert(RelicHooks.sum(c2, "piercePlus") == 3.0, "r_hollowbone: piercePlus should be 3.0")
+	_assert(RelicHooks.has(c2, "pierceThornProof"), "r_hollowbone: Pierce ignores Thorns (v2: no +3 any more)")
 
 	var c3 := _new_combat(["r_hivemind"])
 	_assert(RelicHooks.has(c3, "hiveMind"), "r_hivemind: has(hiveMind) should be true")

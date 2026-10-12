@@ -6,7 +6,7 @@
 script = ExtResource("1")
 id = "r_ancientgene"
 name = "Ancient Gene"
-description = "RULE: every damage face deals 30% more, and every face that already has Growth gains +1 Growth. Takes the multiplier slot."
+description = "All damage faces +30% [Global]. Every face that already has Growth gains +1 Growth."
 rarity = 3
 archetype = "growth"
 mload = 2
@@ -16,3 +16,4 @@ mf_phase = "mul"
 tags = PackedStringArray("uni", "growth")
 layer = "engine"
 mult_axis = "G"
+mult_bonus = 0.30

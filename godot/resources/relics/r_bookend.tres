@@ -6,7 +6,7 @@
 script = ExtResource("1")
 id = "r_bookend"
 name = "Bookend Pennants"
-description = "Axie in party slot 1 and slot 5: all damage faces +3."
+description = "The Axies in slot 1 and slot 5 get +3 on all damage faces."
 rarity = 0
 archetype = "crit"
 mload = 0

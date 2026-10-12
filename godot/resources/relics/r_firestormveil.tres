@@ -6,7 +6,7 @@
 script = ExtResource("1")
 id = "r_firestormveil"
 name = "Firestorm Veil"
-description = "Mặt AoE gắn Burn 2 lên mọi địch trúng; địch đang Burn nhận +1 mỗi đòn AoE"
+description = "AoE faces apply 2 Burn to every enemy they hit. Burning enemies take +1 damage from AoE faces."
 rarity = 2
 archetype = "burn"
 mload = 0

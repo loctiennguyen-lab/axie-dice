@@ -6,7 +6,7 @@
 script = ExtResource("1")
 id = "r_ironvow"
 name = "Iron Vow"
-description = "Lợi: mọi Shield tạo ra ×1.5 (+50% trên trục shield), Thorns +2 cả đội. Hại: mọi mặt dmg −2 (sàn 1)"
+description = "PACT. All Shield you create +50% [Axis: Shield], and your whole team gains +2 Thorns. Drawback: all damage faces −2 (min 1)."
 rarity = 2
 archetype = "shield"
 mload = 0
@@ -18,3 +18,4 @@ mult_axis = "A:shield"
 pact_group = "dice"
 needs_hook = "SHIELD_VALUE"
 hidden_from_pool = true
+mult_bonus = 0.50

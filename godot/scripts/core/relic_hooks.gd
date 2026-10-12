@@ -162,40 +162,6 @@ static var TABLE: Dictionary = {
 			EventBus.float_text.emit(p[0].uid, "+2 MP", "man", 0)
 			return,
 	},
-	# =======================================================================
-	# BUILD-TIME DIE MUTATION (modFace) — 2026-09-18 relic authoring pass.
-	#
-	# Every entry below is a transcription of that relic's `modFace` in src/data.js, not an
-	# interpretation of its description text. Where the two disagree the JS body wins: the
-	# description is what the player is promised, the body is what the live game does, and a
-	# port that "fixes" the difference stops being a port.
-	#
-	# Two JS-isms that matter and are easy to get wrong:
-	#   * `f.k.includes(x)` guards are NOT decoration. modFace runs once per unit per combat,
-	#     but a die already carrying the keyword must not gain a duplicate — engine.js reads
-	#     keywords with `includes`, so a second copy is inert for behaviour yet changes the
-	#     array a save round-trips, and t_combat_roundtrip compares those arrays.
-	#   * `f.k.some(k => k.startsWith('burn'))` is a PREFIX test, because these keywords carry
-	#     a value (`burn:6`). An equality test against "burn" would never match and the relic
-	#     would stack a second burn onto a face that already had one.
-	# =======================================================================
-	"r_claw": {
-		# JS: u.die.forEach(f=>{if(f.t==='dmg')f.v+=1;})
-		"mod_face": func(ctx: Dictionary):
-			for f in ctx["unit"].die:
-				if String(f.get("type", "")) == "dmg":
-					f["value"] = int(f.get("value", 0)) + 1
-			return,
-	},
-	"r_carapace": {
-		# JS: if(f.t==='shield'||f.t==='heal')f.v+=2
-		"mod_face": func(ctx: Dictionary):
-			for f in ctx["unit"].die:
-				var t := String(f.get("type", ""))
-				if t == "shield" or t == "heal":
-					f["value"] = int(f.get("value", 0)) + 2
-			return,
-	},
 	"r_pierceall": {
 		# JS: if(f.p==='horn'&&!f.k.includes('pierce'))f.k.push('pierce')
 		"mod_face": func(ctx: Dictionary):
@@ -233,14 +199,6 @@ static var TABLE: Dictionary = {
 					(f["keywords"] as Array).append("exec")
 			return,
 	},
-	"r_barbedhide": {
-		# The +1 Thorns half is the `thornsPlus` data field; only the Shield half is a modFace.
-		"mod_face": func(ctx: Dictionary):
-			for f in ctx["unit"].die:
-				if String(f.get("type", "")) == "shield":
-					f["value"] = int(f.get("value", 0)) + 1
-			return,
-	},
 	"r_heart": {
 		# v2 rework (§1.2): +8 Max HP for the whole party (runs in the INV-5 pass with the other
 		# max-HP changes); at turn start an Axie below 30% HP gains 6 Shield.
@@ -252,13 +210,6 @@ static var TABLE: Dictionary = {
 			for u in combat.party:
 				if u.hp > 0 and not u.is_token and float(u.hp) < float(u.max_hp) * 0.3:
 					DamagePipeline.apply_shield(combat, u, 6)
-			return,
-	},
-	"r_ear": {
-		"mod_face": func(ctx: Dictionary):
-			for f in ctx["unit"].die:
-				if String(f.get("type", "")) == "mana":
-					f["value"] = int(f.get("value", 0)) + 1
 			return,
 	},
 	"r_talonedge": {
@@ -464,14 +415,6 @@ static var TABLE: Dictionary = {
 		"growth_all_guard": func(ctx: Dictionary):
 			return ctx["combat"].turn > 1,
 	},
-	"r_eggshell": {
-		"on_turn_start": func(ctx: Dictionary):
-			var combat = ctx["combat"]
-			for u in combat.party:
-				if u.is_token and u.hp > 0:
-					DamagePipeline.apply_shield(combat, u, 2)
-			return,
-	},
 	"r_broodmother": {
 		# JS hatches through the same mkAlly/rollUnit path a summon face uses, and sets
 		# used=true so the new egg does not also act on the turn it arrives.
@@ -532,17 +475,6 @@ static var TABLE: Dictionary = {
 				DamagePipeline.apply_heal(ctx["combat"], tgt, int(ceil(float(th) / 3.0)))
 			return,
 	},
-	"r_regrow": {
-		"mod_face": func(ctx: Dictionary):
-			ctx["unit"].max_hp += 2
-			return,
-		# A floor, not an add — see the block header.
-		"on_turn_start": func(ctx: Dictionary):
-			for u in ctx["combat"].party:
-				if u.hp > 0:
-					u.status["regen"] = maxi(int(u.status.get("regen", 0)), 2)
-			return,
-	},
 	"r_growthcore": {
 		# Two phases: the keyword in "kw", the numbers in "add". Split this way in JS so the
 		# +1 lands after every other keyword-adder and before r_ancientgene's multiplier.
@@ -598,7 +530,8 @@ static var TABLE: Dictionary = {
 		# not re-enter onHit and recurse.
 		"on_hit": func(ctx: Dictionary):
 			var t: Unit = ctx["tgt"]
-			if t != null and t.side == "e" and t.hp > 0 and float(t.hp) <= float(t.max_hp) * 0.15:
+			# Bosses are immune to instant kills (design/l1-relic-answers.md §5, Liam 12/10).
+			if t != null and t.side == "e" and not t.is_boss and t.hp > 0 and float(t.hp) <= float(t.max_hp) * 0.15:
 				DamagePipeline.resolve({"combat": ctx["combat"], "src": null, "tgt": t,
 					"value": t.hp, "pierce": true, "attack": false})
 			return,
@@ -719,30 +652,6 @@ static var TABLE: Dictionary = {
 				EventBus.float_text.emit(u.uid, "GROW", "buf", 0)
 			return,
 	},
-	"r_keeneye": {
-		# Pity crit: if NOBODY rolled a crit this turn, the first Axie holding an unused damage
-		# face crits instead. The pity flag is cleared for everyone first, so last turn's pity
-		# never carries. The +4 crit damage half is the `critBonus` data field.
-		"on_roll_end": func(ctx: Dictionary):
-			var combat = ctx["combat"]
-			var p: Array = combat.alive_party()
-			for u in p:
-				u.custom_state["pity_crit"] = false
-			for u in p:
-				if u.roll_crit_now():
-					return
-			for u in p:
-				var fi: int = u.roll_face_index()
-				if fi < 0 or u.roll_used():
-					continue
-				if String((u.die[fi] as Dictionary).get("type", "")) != "dmg":
-					continue
-				u.set_crit_now(true)
-				u.custom_state["pity_crit"] = true
-				EventBus.float_text.emit(u.uid, "CRIT", "buf", 0)
-				return
-			return,
-	},
 	"r_dawnlance": {
 		# JS: ctx.tgt.side==='e' && ctx.tgt.hp > ctx.tgt.maxHp*0.5 ? ceil(v*1.9) : v
 		"mod_dmg": func(ctx: Dictionary):
@@ -800,9 +709,10 @@ static var TABLE: Dictionary = {
 		# capped at +14. Only face damage reaches mod_dmg with a src (relic damage has src null).
 		"mod_dmg": func(ctx: Dictionary):
 			var v: float = float(ctx["value"])
+			# Turn 1 is zeroed by DamagePipeline (`zeroFirstTurn`) AFTER every bonus, crit included.
 			var turn: int = int(ctx["combat"].turn)
 			if turn <= 1:
-				return 0.0
+				return v
 			return v + float(mini(14, 2 * (turn - 1))),
 	},
 	"r_festermark": {
@@ -824,8 +734,8 @@ static var TABLE: Dictionary = {
 		"on_hit": func(ctx: Dictionary):
 			var t: Unit = ctx["tgt"]
 			var combat = ctx["combat"]
-			if not bool(ctx.get("crit", false)) or t == null or t.side != "e" or t.hp <= 0:
-				return
+			if not bool(ctx.get("crit", false)) or t == null or t.side != "e" or t.hp <= 0 or t.is_boss:
+				return   # bosses are immune to instant kills (l1-relic-answers §5)
 			var hp_before: int = t.hp + int(ctx.get("dealt", 0))
 			if not DamagePipeline.is_wounded_at(combat, t, hp_before):
 				return
@@ -876,6 +786,572 @@ static var TABLE: Dictionary = {
 			return,
 	},
 
+
+	# =======================================================================
+	# RELIC SET V2, second batch: relics on the 8 new hooks (H1-H8, lane A PR2).
+	# Conventions (relic-set-v2 §5, interfaces §2):
+	#  * per-roll bonuses ("+4 on the lowest face", linkstone...) are attached to the rolled die face
+	#    by RelicHooks.rb_add() in on_roll_settled and removed/re-attached at every settle ("clear,
+	#    then attach again"), never counted;
+	#  * counters live in combat.relic_combat (snapshotted: undo and resume restore them);
+	#  * run-level results go into combat.relic_run_out[<relic id>];
+	#  * the only randomness is combat._rng (the epoch stream).
+	# =======================================================================
+	"r_claw": {
+		# v2 rework: the lowest-value damage face on the team gets +4, recomputed after every
+		# Reroll/Tweak. Ties go to the Axie in the lower slot.
+		"on_roll_settled": func(ctx: Dictionary):
+			var c = ctx["combat"]
+			for u in c.party:
+				RelicHooks.rb_clear(u, "claw")
+			var best: Unit = null
+			var best_v := 0
+			for u in RelicHooks.party_line(c):
+				var fi: int = u.roll_face_index()
+				if fi < 0 or u.roll_used():
+					continue
+				var f: Dictionary = u.die[fi]
+				var v := int(f.get("value", 0))
+				if String(f.get("type", "")) != "dmg" or v <= 0:
+					continue
+				if best == null or v < best_v:
+					best = u
+					best_v = v
+			if best != null:
+				RelicHooks.rb_add(best, "claw", 4)
+			return,
+	},
+	"r_carapace": {
+		# v2 rework: the first Shield face used each turn gives +5 Shield (to the Axie it shielded).
+		"on_face_used": func(ctx: Dictionary):
+			var c = ctx["combat"]
+			if String(ctx["side"]) != "p" or String((ctx["face"] as Dictionary).get("type", "")) != "shield":
+				return
+			if not RelicHooks.once_per_turn(c, "carapace_t"):
+				return
+			var t: Unit = c.by_uid(int(ctx["target_uid"]))
+			if t == null or t.side != "p" or t.hp <= 0:
+				t = ctx["unit"]
+			DamagePipeline.apply_shield(c, t, 5)
+			return,
+	},
+	"r_barbedhide": {
+		# v2 rework: each Shield face used gives that Axie +1 Thorns through the enemy phase (max +3).
+		"on_face_used": func(ctx: Dictionary):
+			if String(ctx["side"]) != "p" or String((ctx["face"] as Dictionary).get("type", "")) != "shield":
+				return
+			var u: Unit = ctx["unit"]
+			var n := int(u.custom_state.get("barbed", 0))
+			if n < 3:
+				u.status["thorns"] = mini(StatusEngine.THORNS_CAP, int(u.status.get("thorns", 0)) + 1)
+				u.custom_state["barbed"] = n + 1
+			return,
+		"on_turn_start": func(ctx: Dictionary):
+			for u in ctx["combat"].party:
+				var n := int(u.custom_state.get("barbed", 0))
+				if n > 0:
+					u.status["thorns"] = maxi(0, int(u.status.get("thorns", 0)) - n)
+					u.custom_state["barbed"] = 0
+			return,
+	},
+	"r_ear": {
+		# +1 on Mana faces (die build) and, v2: the first active played each turn refunds 1 Mana.
+		"mod_face": func(ctx: Dictionary):
+			for f in ctx["unit"].die:
+				if String(f.get("type", "")) == "mana":
+					f["value"] = int(f.get("value", 0)) + 1
+			return,
+		"on_active_played": func(ctx: Dictionary):
+			var c = ctx["combat"]
+			if RelicHooks.once_per_turn(c, "ear_t"):
+				c.mana += 1
+			return,
+	},
+	"r_eggshell": {
+		# v2 rework: at end of turn each living Egg gives 3 Shield to the Axies next to it.
+		"on_turn_end": func(ctx: Dictionary):
+			var c = ctx["combat"]
+			var line: Array = []
+			for u in c.party:
+				if u.hp > 0:
+					line.append(u)
+			for egg in line:
+				if not egg.is_token:
+					continue
+				for n in c._neighbors_of(line, egg):
+					if not n.is_token:
+						DamagePipeline.apply_shield(c, n, 3)
+			return,
+	},
+	"r_regrow": {
+		# v2 rework: each Shield/Heal face used gives that Axie +1 Growth on the face it used, for
+		# this combat (max +4 per Axie).
+		"on_face_used": func(ctx: Dictionary):
+			var t := String((ctx["face"] as Dictionary).get("type", ""))
+			if String(ctx["side"]) != "p" or (t != "shield" and t != "heal"):
+				return
+			var u: Unit = ctx["unit"]
+			var n := int(u.custom_state.get("regrow_n", 0))
+			if n < 4:
+				u.add_growth(int(ctx["fi"]), 1)
+				u.custom_state["regrow_n"] = n + 1
+			return,
+	},
+	"r_hollowbone": {
+		# Pierce ignoring Thorns is the `pierceThornProof` field. The first Pierce face each turn
+		# also hits the lowest-HP enemy for 50% (relic damage: src null, attack false, no on_hit).
+		"on_face_used": func(ctx: Dictionary):
+			var c = ctx["combat"]
+			var f: Dictionary = ctx["face"]
+			if String(ctx["side"]) != "p" or int(ctx.get("depth", 0)) > 0:
+				return
+			if String(f.get("type", "")) != "dmg" or not (f["keywords"] as Array).has("pierce"):
+				return
+			if not RelicHooks.once_per_turn(c, "hollowbone_t"):
+				return
+			var low: Unit = null
+			for e in c.alive_enemies():
+				if low == null or e.hp < low.hp:
+					low = e
+			if low == null:
+				return
+			var v := int(ceil(float(c._face_value(ctx["unit"], int(ctx["fi"]))) * 0.5))
+			DamagePipeline.resolve({"combat": c, "src": null, "tgt": low, "value": v, "pierce": true, "attack": false})
+			return,
+	},
+	"r_keeneye": {
+		# Pity crit, recomputed at every settle (v2): clear last settle's pity crit (unless that Axie
+		# just rerolled, whose crit is fresh), then give the first unused damage face a crit when
+		# nobody has one. The +4 crit damage half is the `critFlatPity` data field.
+		"on_roll_settled": func(ctx: Dictionary):
+			var combat = ctx["combat"]
+			var rerolled: Array = ctx.get("rerolled_uids", [])
+			var p: Array = combat.alive_party()
+			for u in p:
+				if bool(u.custom_state.get("pity_crit", false)) and not rerolled.has(u.uid):
+					u.set_crit_now(false)
+				u.custom_state["pity_crit"] = false
+			for u in p:
+				if u.roll_crit_now():
+					return
+			for u in p:
+				var fi: int = u.roll_face_index()
+				if fi < 0 or u.roll_used():
+					continue
+				if String((u.die[fi] as Dictionary).get("type", "")) != "dmg":
+					continue
+				u.set_crit_now(true)
+				u.custom_state["pity_crit"] = true
+				EventBus.float_text.emit(u.uid, "CRIT", "buf", 0)
+				return
+			return,
+	},
+	"r_aegiscapacitor": {
+		# Shield + Mana duo: every 2 Mana spent this combat, the Axie with the least Shield gains 4.
+		"on_active_played": func(ctx: Dictionary):
+			var c = ctx["combat"]
+			var due: int = RelicHooks.mana_steps_due(c, "r_aegiscapacitor", 2)
+			for i in due:
+				var w: Unit = null
+				for u in RelicHooks.party_line(c):
+					if w == null or u.shield < w.shield:
+						w = u
+				if w != null:
+					DamagePipeline.apply_shield(c, w, 4)
+			return,
+	},
+	"r_wellspringroots": {
+		# Growth + Mana duo: every 2 Mana spent, every face of the team +1 Growth this combat (max +4 times).
+		"on_active_played": func(ctx: Dictionary):
+			var c = ctx["combat"]
+			var due: int = RelicHooks.mana_steps_due(c, "r_wellspringroots", 2)
+			for i in due:
+				var n := int(c.relic_combat.get("wsr_n", 0))
+				if n >= 4:
+					break
+				for u in c.alive_party():
+					for fi in u.die.size():
+						u.add_growth(fi, 1)
+				c.relic_combat["wsr_n"] = n + 1
+			return,
+	},
+	"r_tideglass": {
+		# Every 3 Mana spent: all team damage faces +1 for this combat (max +6 times).
+		"on_active_played": func(ctx: Dictionary):
+			var c = ctx["combat"]
+			var due: int = RelicHooks.mana_steps_due(c, "r_tideglass", 3)
+			for i in due:
+				var n := int(c.relic_combat.get("tideglass_n", 0))
+				if n >= 6:
+					break
+				RelicHooks.add_to_dmg_faces(c, 1)
+				c.relic_combat["tideglass_n"] = n + 1
+			return,
+	},
+	"r_heirloom": {
+		# Each Elite/Boss won: all damage faces +1 for the rest of the RUN (max +5). Stored in the
+		# run-level relic state; applied at the start of every later fight.
+		"on_combat_start": func(ctx: Dictionary):
+			var c = ctx["combat"]
+			var n := int((c.relic_run_in.get("r_heirloom", {}) as Dictionary).get("n", 0))
+			if n > 0:
+				RelicHooks.add_to_dmg_faces(c, n)
+			return,
+		"on_combat_end": func(ctx: Dictionary):
+			var c = ctx["combat"]
+			if String(ctx["result"]) != "won" or not ["elite", "boss"].has(String(ctx.get("node_kind", ""))):
+				return
+			var n := int((c.relic_run_out.get("r_heirloom", {}) as Dictionary).get("n", 0))
+			c.relic_run_out["r_heirloom"] = {"n": mini(5, n + 1)}
+			return,
+	},
+	"r_crescendofang": {
+		# Each damage face used this turn: the next damage face +1 (stacks). Resets every turn.
+		"on_face_used": func(ctx: Dictionary):
+			if String(ctx["side"]) == "p" and String((ctx["face"] as Dictionary).get("type", "")) == "dmg":
+				var rc: Dictionary = ctx["combat"].relic_combat
+				rc["cresc"] = int(rc.get("cresc", 0)) + 1
+			return,
+		"mod_dmg": func(ctx: Dictionary):
+			var v: float = float(ctx["value"])
+			if ctx.get("src", null) == null:
+				return v
+			return v + float(int(ctx["combat"].relic_combat.get("cresc", 0))),
+		"on_turn_start": func(ctx: Dictionary):
+			ctx["combat"].relic_combat["cresc"] = 0
+			return,
+		"on_turn_end": func(ctx: Dictionary):
+			ctx["combat"].relic_combat["cresc"] = 0
+			return,
+	},
+	"r_relaybaton": {
+		# Slot-order dependent: the chain is built left to right, so the result depends on who is used first.
+		# After an Axie uses a face, the Axie in the next slot to the right gets +2 on its damage faces
+		# this turn, PLUS whatever bonus the user itself had (the chain adds up left to right, Liam 12/10).
+		"on_face_used": func(ctx: Dictionary):
+			var u: Unit = ctx["unit"]
+			if String(ctx["side"]) != "p" or u.is_token:
+				return
+			var s := RelicHooks.slot_of(u)
+			if s < 0:
+				return
+			var relay := RelicHooks.relay_of(ctx["combat"])
+			var nxt := str(s + 1)
+			relay[nxt] = maxi(int(relay.get(nxt, 0)), int(relay.get(str(s), 0)) + 2)
+			return,
+		"mod_dmg": func(ctx: Dictionary):
+			var v: float = float(ctx["value"])
+			var src: Unit = ctx.get("src", null)
+			if src == null or src.is_token:
+				return v
+			return v + float(int(RelicHooks.relay_of(ctx["combat"]).get(str(RelicHooks.slot_of(src)), 0))),
+		"on_turn_start": func(ctx: Dictionary):
+			ctx["combat"].relic_combat["relay"] = {}
+			return,
+		"on_turn_end": func(ctx: Dictionary):
+			ctx["combat"].relic_combat["relay"] = {}
+			return,
+	},
+	"r_keystone": {
+		# The Shield/Heal/Mana face of the Axie in slot 3 also gives floor(50%) to each living neighbour
+		# (slots 2 and 4). Mana is shared: +floor(50%) once per living neighbour.
+		"on_face_used": func(ctx: Dictionary):
+			var u: Unit = ctx["unit"]
+			var c = ctx["combat"]
+			if String(ctx["side"]) != "p" or RelicHooks.slot_of(u) != 2:
+				return
+			var t := String((ctx["face"] as Dictionary).get("type", ""))
+			if t != "shield" and t != "heal" and t != "mana":
+				return
+			var half: int = int(floor(float(c._face_value(u, int(ctx["fi"]))) / 2.0))
+			if half <= 0:
+				return
+			for n in RelicHooks.slot_neighbors(c, u):
+				if t == "shield":
+					DamagePipeline.apply_shield(c, n, half)
+				elif t == "heal":
+					DamagePipeline.apply_heal(c, n, half)
+				else:
+					c.mana += half
+			return,
+	},
+	"r_linkstone": {
+		# Each Axie next to a living Axie showing the same face type (dmg/shield/heal/poison/mana) gets +2
+		# on its face. Static, recomputed at every settle.
+		"on_roll_settled": func(ctx: Dictionary):
+			var c = ctx["combat"]
+			for u in c.party:
+				RelicHooks.rb_clear(u, "link")
+			var by_slot := RelicHooks.link_faces(c)
+			var bonus: Dictionary = {}
+			for s in by_slot:
+				var me: Dictionary = by_slot[s]
+				for d in [-1, 1]:
+					if by_slot.has(int(s) + d) and String((by_slot[int(s) + d] as Dictionary)["type"]) == String(me["type"]):
+						bonus[s] = 2
+			for s in bonus:
+				RelicHooks.rb_add((by_slot[s] as Dictionary)["unit"], "link", int(bonus[s]))
+			return,
+	},
+	"r_symmetrycharm": {
+		# Slots 1-5 and 2-4 showing the same face type: both +3. Both pairs matching: slot 3 gets +1.
+		"on_roll_settled": func(ctx: Dictionary):
+			var c = ctx["combat"]
+			for u in c.party:
+				RelicHooks.rb_clear(u, "sym")
+			var by_slot := RelicHooks.link_faces(c)
+			var pairs_ok := 0
+			for pr in [[0, 4], [1, 3]]:
+				if by_slot.has(pr[0]) and by_slot.has(pr[1]) \
+						and String((by_slot[pr[0]] as Dictionary)["type"]) == String((by_slot[pr[1]] as Dictionary)["type"]):
+					pairs_ok += 1
+					RelicHooks.rb_add((by_slot[pr[0]] as Dictionary)["unit"], "sym", 3)
+					RelicHooks.rb_add((by_slot[pr[1]] as Dictionary)["unit"], "sym", 3)
+			if pairs_ok == 2 and by_slot.has(2):
+				RelicHooks.rb_add((by_slot[2] as Dictionary)["unit"], "sym", 1)
+			return,
+	},
+	"r_devilsreroll": {
+		# Pact (mana group). The +3 max Rerolls is the `rerollUp` field; every Reroll (Aid included) costs 1 Mana.
+		# CombatEngine refuses the reroll when Mana is short, so "no Mana = no Reroll" is the engine's rule.
+		"before_reroll": func(ctx: Dictionary):
+			ctx["mana_cost"] = int(ctx.get("mana_cost", 0)) + 1
+			return,
+	},
+	"r_twinfates": {
+		# Pact (reroll group): every Axie rolls 2 faces and keeps the higher main value (tie keeps the
+		# first); max Rerolls 0 and every Reroll source is vetoed.
+		"before_reroll": func(ctx: Dictionary):
+			ctx["veto"] = true
+			return,
+		"on_combat_start": func(ctx: Dictionary):
+			var c = ctx["combat"]
+			c.max_rerolls = 0
+			c.rerolls = 0
+			return,
+		"roll_face": func(ctx: Dictionary):
+			var fi := int(ctx["value"])
+			var u: Unit = ctx["unit"]
+			if u.side != "p":
+				return fi
+			var fi2: int = ctx["combat"]._rng.next_int(6)
+			return fi2 if int(u.die[fi2].get("value", 0)) > int(u.die[fi].get("value", 0)) else fi,
+	},
+	"r_tithepips": {
+		# Pact (dice group): +3 Mana each turn; after every roll the lowest-value face is blanked (exactly
+		# one, living non-Egg Axies with an unused face, tie to the lower slot). Recomputed at every settle.
+		"on_turn_start": func(ctx: Dictionary):
+			var c = ctx["combat"]
+			var line := RelicHooks.party_line(c)
+			c.mana += 3
+			if not line.is_empty():
+				EventBus.float_text.emit((line[0] as Unit).uid, "+3 MP", "man", 0)
+			return,
+		"on_roll_settled": func(ctx: Dictionary):
+			var c = ctx["combat"]
+			for u in c.party:
+				RelicHooks.unblank(u)
+			var worst: Unit = null
+			var worst_v := 0
+			for u in RelicHooks.party_line(c):
+				var fi: int = u.roll_face_index()
+				if fi < 0 or u.roll_used() or String(u.die[fi].get("type", "")) == "blank":
+					continue
+				var v := int(u.die[fi].get("value", 0))
+				if worst == null or v < worst_v:
+					worst = u
+					worst_v = v
+			if worst != null:
+				RelicHooks.blank_face(worst)
+			return,
+	},
+	"r_amberdie": {
+		# HOLD (no Tweak cost, once per turn): pick one unused die; next turn that Axie keeps this exact face.
+		"on_turn_start": func(ctx: Dictionary):
+			ctx["combat"].relic_combat["tweak_left"] = RelicSlots.tuning().tweak_budget_per_turn
+			return,
+		"roll_edit": func(ctx: Dictionary):
+			var c = ctx["combat"]
+			if bool(ctx["ok"]) or String(ctx["kind"]) != "hold":
+				return
+			var u: Unit = RelicHooks.tweakable(c, int(ctx["uid_a"]))
+			if u == null or int(c.relic_combat.get("amber_t", -1)) == c.turn:
+				return
+			c.relic_combat["amber_t"] = c.turn
+			c.relic_combat["amber"] = {"uid": u.uid, "fi": u.roll_face_index(), "t": c.turn}
+			ctx["ok"] = true
+			return,
+		"roll_face": func(ctx: Dictionary):
+			var c = ctx["combat"]
+			var fi := int(ctx["value"])
+			var h: Dictionary = c.relic_combat.get("amber", {})
+			var u: Unit = ctx["unit"]
+			if not h.is_empty() and int(h["uid"]) == u.uid and c.turn > int(h["t"]):
+				c.relic_combat.erase("amber")
+				return int(h["fi"])
+			return fi,
+	},
+	"r_pipfile": {
+		# NUDGE (shared budget of 2 Tweaks/turn): +1 or -1 on the main value of a rolled face (min 1).
+		"on_turn_start": func(ctx: Dictionary):
+			ctx["combat"].relic_combat["tweak_left"] = RelicSlots.tuning().tweak_budget_per_turn
+			return,
+		# The nudge is per-roll and never counted: it comes off a rerolled die, and off every die at turn end.
+		"on_roll_settled": func(ctx: Dictionary):
+			var c = ctx["combat"]
+			for u in c.party:
+				if int(u.uid) in (ctx.get("rerolled_uids", []) as Array):
+					RelicHooks.rb_clear(u, "tweak")
+			return,
+		"on_turn_end": func(ctx: Dictionary):
+			for u in ctx["combat"].party:
+				RelicHooks.rb_clear(u, "tweak")
+			return,
+		"roll_edit": func(ctx: Dictionary):
+			var c = ctx["combat"]
+			var k := String(ctx["kind"])
+			if not RelicHooks.tweak_gate(ctx, ["nudge_up", "nudge_down"]):
+				return
+			var u: Unit = RelicHooks.tweakable(c, int(ctx["uid_a"]))
+			if u == null:
+				return
+			var f: Dictionary = u.die[u.roll_face_index()]
+			var v := int(f.get("value", 0))
+			if String(f.get("type", "")) == "blank" or v <= 0 or (k == "nudge_down" and v <= 1):
+				return
+			RelicHooks.rb_add(u, "tweak", 1 if k == "nudge_up" else -1)
+			RelicHooks.tweak_done(ctx)
+			return,
+	},
+	"r_mirrorpip": {
+		# COPY: the rolled face of Axie A replaces the rolled face of Axie B for this turn (restored at end of turn).
+		"on_turn_start": func(ctx: Dictionary):
+			ctx["combat"].relic_combat["tweak_left"] = RelicSlots.tuning().tweak_budget_per_turn
+			return,
+		"on_turn_end": func(ctx: Dictionary):
+			RelicHooks.restore_faces(ctx["combat"])
+			return,
+		"roll_edit": func(ctx: Dictionary):
+			var c = ctx["combat"]
+			if not RelicHooks.tweak_gate(ctx, ["copy"]):
+				return
+			var a: Unit = c.by_uid(int(ctx["uid_a"]))
+			var b: Unit = RelicHooks.tweakable(c, int(ctx["uid_b"]))
+			if a == null or b == null or a == b or a.side != "p" or a.hp <= 0 or a.is_token or not a.has_rolled():
+				return
+			if String(a.die[a.roll_face_index()].get("type", "")) == "blank":
+				return
+			RelicHooks.normalize(a)
+			RelicHooks.normalize(b)
+			var src_face: Dictionary = (a.die[a.roll_face_index()] as Dictionary).duplicate(true)
+			RelicHooks.backup_face(b, b.roll_face_index())
+			b.die[b.roll_face_index()] = src_face
+			RelicHooks.tweak_done(ctx)
+			return,
+	},
+	"r_twinswap": {
+		# SWAP: exchange the rolled faces of two Axies that have not used theirs (restored at end of turn).
+		"on_turn_start": func(ctx: Dictionary):
+			ctx["combat"].relic_combat["tweak_left"] = RelicSlots.tuning().tweak_budget_per_turn
+			return,
+		"on_turn_end": func(ctx: Dictionary):
+			RelicHooks.restore_faces(ctx["combat"])
+			return,
+		"roll_edit": func(ctx: Dictionary):
+			var c = ctx["combat"]
+			if not RelicHooks.tweak_gate(ctx, ["swap"]):
+				return
+			var a: Unit = RelicHooks.tweakable(c, int(ctx["uid_a"]))
+			var b: Unit = RelicHooks.tweakable(c, int(ctx["uid_b"]))
+			if a == null or b == null or a == b:
+				return
+			RelicHooks.normalize(a)
+			RelicHooks.normalize(b)
+			var fa := a.roll_face_index()
+			var fb := b.roll_face_index()
+			RelicHooks.backup_face(a, fa)
+			RelicHooks.backup_face(b, fb)
+			var tmp: Dictionary = a.die[fa]
+			a.die[fa] = b.die[fb]
+			b.die[fb] = tmp
+			RelicHooks.tweak_done(ctx)
+			return,
+	},
+	"r_flipside": {
+		# FLIP: the rolled face becomes the opposite face of the same die (index + flip_offset mod 6).
+		"on_turn_start": func(ctx: Dictionary):
+			ctx["combat"].relic_combat["tweak_left"] = RelicSlots.tuning().tweak_budget_per_turn
+			return,
+		"roll_edit": func(ctx: Dictionary):
+			var c = ctx["combat"]
+			if not RelicHooks.tweak_gate(ctx, ["flip"]):
+				return
+			var u: Unit = RelicHooks.tweakable(c, int(ctx["uid_a"]))
+			if u == null:
+				return
+			RelicHooks.normalize(u)
+			var nf: int = (u.roll_face_index() + RelicSlots.tuning().flip_offset) % 6
+			u.set_roll(nf, false)
+			u.heavy = (u.die[nf]["keywords"] as Array).has("heavy")
+			RelicHooks.tweak_done(ctx)
+			return,
+	},
+	"r_loadeddie": {
+		# LOCK (run-level): the chosen face of the chosen Axie weighs x3 (3/8 = 37.5% instead of 1/6) for the run.
+		# The pick happens once, in a fight, through CombatEngine.loaded_pick(uid, face_index).
+		"on_turn_start": func(ctx: Dictionary):
+			ctx["combat"].relic_combat["tweak_left"] = RelicSlots.tuning().tweak_budget_per_turn
+			return,
+		"roll_edit": func(ctx: Dictionary):
+			var c = ctx["combat"]
+			if bool(ctx["ok"]) or String(ctx["kind"]) != "loaded" or c.relic_run_out.has("r_loadeddie"):
+				return
+			var u: Unit = c.by_uid(int(ctx["uid_a"]))
+			var fi := int(ctx["face_index"])
+			if u == null or u.side != "p" or u.is_token or fi < 0 or fi >= u.die.size():
+				return
+			c.relic_run_out["r_loadeddie"] = {"uid": u.uid, "fi": fi}
+			ctx["ok"] = true
+			return,
+		"roll_face": func(ctx: Dictionary):
+			var c = ctx["combat"]
+			var u: Unit = ctx["unit"]
+			var pick: Dictionary = c.relic_run_out.get("r_loadeddie", {})
+			if pick.is_empty() or int(pick["uid"]) != u.uid:
+				return int(ctx["value"])
+			var loaded := int(pick["fi"])
+			var r: int = c._rng.next_int(8)
+			if r < 3:
+				return loaded
+			var idx := r - 3
+			return idx if idx < loaded else idx + 1,
+	},
+	"r_merchantscale": {
+		# Shops offer 3 relics instead of 2. Prices and sell values do not change.
+		"shop_relic_count": func(ctx: Dictionary):
+			return int(ctx["value"]) + 1,
+	},
+	"r_fortuneledger": {
+		# +1 reward reroll charge per reward screen (the 25 Gene Shard cost per use is RunState's).
+		"reward_reroll_charges": func(ctx: Dictionary):
+			return int(ctx["value"]) + 1,
+	},
+	"r_scavengereye": {
+		# Battle/Elite rewards show 4 cards instead of 3 (Treasure's extra relic card is RunState's).
+		"reward_card_count": func(ctx: Dictionary):
+			return int(ctx["value"]) + (1 if String(ctx.get("kind", "")) == "reward" else 0),
+	},
+	"r_broodbloom": {
+		# Growth + Summon duo: at end of turn each Egg +1 Growth on every face; a newly hatched Egg is
+		# brought up to the level of the highest Egg at the next turn boundary.
+		"on_turn_end": func(ctx: Dictionary):
+			RelicHooks.egg_growth_step(ctx["combat"], 1)
+			return,
+		"on_turn_start": func(ctx: Dictionary):
+			RelicHooks.egg_growth_step(ctx["combat"], 0)
+			return,
+	},
+
 }
 
 
@@ -888,6 +1364,212 @@ static func _has_kw_prefix(face: Dictionary, prefix: String) -> bool:
 		if String(k).begins_with(prefix):
 			return true
 	return false
+
+# ---------------------------------------------------------------------------
+# Helpers for the relic set v2 bodies (second batch). All static, all pure functions of the combat
+# state; per-fight scratch goes through combat.relic_combat so undo/resume keep it.
+# ---------------------------------------------------------------------------
+
+const LINK_TYPES := ["dmg", "shield", "heal", "poison", "mana"]
+
+
+## Slot of a party unit (positional relics). Falls back to roster_index until the engine assigns slots.
+static func slot_of(u) -> int:
+	return u.slot if u.slot >= 0 else u.roster_index
+
+
+## Living, non-Egg party Axies in slot order (ties and "lower slot wins" rely on this order).
+static func party_line(combat) -> Array:
+	var out: Array = []
+	for u in combat.party:
+		if u.hp > 0 and not u.is_token:
+			out.append(u)
+	out.sort_custom(func(a, b): return slot_of(a) < slot_of(b))
+	return out
+
+
+## Living non-Egg Axies standing in the slot right before/after `u`.
+static func slot_neighbors(combat, u) -> Array:
+	var out: Array = []
+	var s := slot_of(u)
+	for n in party_line(combat):
+		if absi(slot_of(n) - s) == 1:
+			out.append(n)
+	return out
+
+
+## True the first time it is asked in this turn for `key`; remembered in relic_combat (undo-safe).
+static func once_per_turn(combat, key: String) -> bool:
+	if int(combat.relic_combat.get(key, -1)) == int(combat.turn):
+		return false
+	combat.relic_combat[key] = int(combat.turn)
+	return true
+
+
+## How many whole `step`-Mana chunks were spent that this relic has not been paid for yet; marks them paid.
+static func mana_steps_due(combat, relic_id: String, step: int) -> int:
+	var key := "mana_paid_" + relic_id
+	var total: int = int(combat.mana_spent) / step
+	var due: int = total - int(combat.relic_combat.get(key, 0))
+	combat.relic_combat[key] = total
+	return maxi(0, due)
+
+
+static func relay_of(combat) -> Dictionary:
+	if not (combat.relic_combat.get("relay") is Dictionary):
+		combat.relic_combat["relay"] = {}
+	return combat.relic_combat["relay"]
+
+
+## +n on every damage face (value > 0) of every party unit, Eggs included.
+static func add_to_dmg_faces(combat, n: int) -> void:
+	for u in combat.party:
+		for f in u.die:
+			if String(f.get("type", "")) == "dmg" and int(f.get("value", 0)) > 0:
+				f["value"] = int(f.get("value", 0)) + n
+
+
+# --- per-roll bonuses: attached to the rolled face, removed and re-attached at every settle ---
+
+static func rb_add(unit, key: String, amount: int) -> void:
+	var fi: int = unit.roll_face_index()
+	if fi < 0 or amount == 0:
+		return
+	var f: Dictionary = unit.die[fi]
+	if String(f.get("type", "")) == "blank":
+		return
+	var rb: Dictionary = unit.custom_state.get("rb", {})
+	var e: Dictionary = rb.get(key, {})
+	if not e.is_empty() and int(e["fi"]) != fi:
+		rb_clear(unit, key)
+		rb = unit.custom_state.get("rb", {})
+		e = {}
+	f["value"] = int(f.get("value", 0)) + amount
+	rb[key] = {"fi": fi, "amt": int(e.get("amt", 0)) + amount}
+	unit.custom_state["rb"] = rb
+
+
+static func rb_clear(unit, key: String) -> void:
+	var rb: Dictionary = unit.custom_state.get("rb", {})
+	if not rb.has(key):
+		return
+	var e: Dictionary = rb[key]
+	var fi := int(e["fi"])
+	if fi >= 0 and fi < unit.die.size():
+		(unit.die[fi] as Dictionary)["value"] = int((unit.die[fi] as Dictionary).get("value", 0)) - int(e["amt"])
+	rb.erase(key)
+	unit.custom_state["rb"] = rb
+
+
+static func rb_clear_all(unit) -> void:
+	for k in (unit.custom_state.get("rb", {}) as Dictionary).keys():
+		rb_clear(unit, String(k))
+
+
+# --- tithepips blank ---
+
+static func blank_face(unit) -> void:
+	var fi: int = unit.roll_face_index()
+	if fi < 0:
+		return
+	unit.custom_state["blanked"] = {"fi": fi, "type": String(unit.die[fi].get("type", ""))}
+	unit.die[fi]["type"] = "blank"
+
+
+static func unblank(unit) -> void:
+	var b: Dictionary = unit.custom_state.get("blanked", {})
+	if b.is_empty():
+		return
+	var fi := int(b["fi"])
+	if fi >= 0 and fi < unit.die.size():
+		(unit.die[fi] as Dictionary)["type"] = String(b["type"])
+	unit.custom_state.erase("blanked")
+
+
+# --- dice Tweaks (shared budget in relic_combat["tweak_left"]) ---
+
+## The Axie a Tweak may touch: ours, alive, not an Egg, rolled and not yet used.
+static func tweakable(combat, uid: int):
+	var u = combat.by_uid(uid)
+	if u == null or u.side != "p" or u.hp <= 0 or u.is_token or not u.has_rolled() or u.roll_used():
+		return null
+	return u
+
+
+## True when this roll_edit is one of `kinds`, nobody handled it yet, and budget is left.
+static func tweak_gate(ctx: Dictionary, kinds: Array) -> bool:
+	return not bool(ctx["ok"]) and kinds.has(String(ctx["kind"])) \
+		and int(ctx["combat"].relic_combat.get("tweak_left", 0)) > 0
+
+
+## Spends one Tweak, answers ok and re-runs the settled hooks so every per-roll bonus is recomputed
+## for the edited faces.
+static func tweak_done(ctx: Dictionary) -> void:
+	var c = ctx["combat"]
+	c.relic_combat["tweak_left"] = int(c.relic_combat.get("tweak_left", 0)) - 1
+	ctx["ok"] = true
+	fire(c, "on_roll_settled", {"combat": c, "rerolled_uids": []})
+
+
+## Faces back to pristine (no per-roll bonus, no blank) before a Tweak swaps whole faces around.
+static func normalize(unit) -> void:
+	rb_clear_all(unit)
+	unblank(unit)
+
+
+static func backup_face(unit, fi: int) -> void:
+	var fb: Dictionary = unit.custom_state.get("fb", {})
+	if not fb.has(str(fi)):
+		fb[str(fi)] = (unit.die[fi] as Dictionary).duplicate(true)
+	unit.custom_state["fb"] = fb
+
+
+## End of turn: every Tweaked-in face goes back to the die's own face.
+static func restore_faces(combat) -> void:
+	for u in combat.party:
+		var fb: Dictionary = u.custom_state.get("fb", {})
+		if fb.is_empty():
+			continue
+		normalize(u)
+		for k in fb:
+			u.die[int(k)] = (fb[k] as Dictionary).duplicate(true)
+		u.custom_state.erase("fb")
+
+
+## slot -> {unit, type} for the faces positional relics compare: living non-Egg Axies with an unused,
+## linkable face showing.
+static func link_faces(combat) -> Dictionary:
+	var out: Dictionary = {}
+	for u in party_line(combat):
+		var fi: int = u.roll_face_index()
+		if fi < 0 or u.roll_used():
+			continue
+		var t := String(u.die[fi].get("type", ""))
+		if LINK_TYPES.has(t):
+			out[slot_of(u)] = {"unit": u, "type": t}
+	return out
+
+
+## brood bloom: bring unsynced Eggs up to the highest Egg's level, then (inc > 0) raise everyone.
+static func egg_growth_step(combat, inc: int) -> void:
+	var eggs: Array = []
+	var top := 0
+	for u in combat.party:
+		if u.is_token and u.hp > 0:
+			eggs.append(u)
+			top = maxi(top, int(u.custom_state.get("bb", 0)))
+	for e in eggs:
+		var lvl := int(e.custom_state.get("bb", -1))
+		if lvl < 0:            # a newly hatched Egg joins at the top Egg's level
+			for fi in e.die.size():
+				e.add_growth(fi, top)
+			lvl = top
+		if inc > 0:
+			for fi in e.die.size():
+				e.add_growth(fi, inc)
+			lvl += inc
+		e.custom_state["bb"] = lvl
+
 
 ## Looks up and calls a relic hook. ctx is whatever shape that hook expects (see rule
 ## spec §5 for the JS hook signatures this mirrors: modFace/modFace2/modDmg/onRollEnd/

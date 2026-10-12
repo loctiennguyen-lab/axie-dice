@@ -6,13 +6,11 @@
 script = ExtResource("1")
 id = "r_symmetrycharm"
 name = "Symmetry Charm"
-description = "SỬA SAU REVIEW 11/10 (F-11): cặp đối xứng (slot 1-5, 2-4) \"cùng loại\" = cùng loại mặt theo định nghĩa của `linkstone` (dmg, shield, heal, poison, mana; token loại), xét trên mặt đang hiện của hai Axie còn sống. Cặp khớp: cả hai +3 giá trị chính; slot 3 +1 nếu cả hai cặp khớp. Một Axie chết hoặc đã dùng die thì cặp đó không khớp (không tính lại bonus đã trao). Trigger `on_roll_settled`: tính lại sau roll và mỗi reroll, không giữ state"
+description = "If the Axies in slots 1 and 5 show the same face type, both get +3 on that face. Same for slots 2 and 4. If both pairs match, slot 3 gets +1. Rechecked after every Reroll."
 rarity = 2
 archetype = "crit"
 mload = 0
 sort_index = 102538
-hook_key = ""
+hook_key = "r_symmetrycharm"
 tags = PackedStringArray("uni")
 layer = "positional"
-needs_hook = "H1"
-hidden_from_pool = true

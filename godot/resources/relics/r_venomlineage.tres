@@ -6,7 +6,7 @@
 script = ExtResource("1")
 id = "r_venomlineage"
 name = "Venom Lineage"
-description = "VIRULENT: Poison lên mục tiêu đã có Poison thêm 3 stack (thay 2); lần Poison đầu mỗi lượt của Axie Bug cũng lan 1 stack sang địch kề"
+description = "Bug's Virulent adds 3 Poison (was 2) to an already-poisoned target. The first Poison a Bug Axie applies each turn also spreads 1 Poison to the enemies next to the target."
 rarity = 2
 archetype = "bug"
 mload = 0

@@ -6,7 +6,7 @@
 script = ExtResource("1")
 id = "r_carapace"
 name = "Stone Carapace"
-description = "All Shield and Heal faces give 2 more."
+description = "The first Shield face you use each turn gives +5 Shield."
 rarity = 0
 archetype = "shield"
 mload = 0
@@ -15,4 +15,3 @@ hook_key = "r_carapace"
 mf_phase = "add"
 tags = PackedStringArray("shield")
 layer = "enabler"
-needs_hook = "H2"

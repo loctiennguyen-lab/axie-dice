@@ -6,7 +6,7 @@
 script = ExtResource("1")
 id = "r_breakersward"
 name = "Breaker's Ward"
-description = "Pierce phá Shield của địch: Axie ít Shield nhất nhận số Shield bị phá (tối đa 8/đòn). SỬA SAU REVIEW 11/10 (F-15): chỉ hưởng Shield **bị phá**, tự nó không phá; nguồn phá là `talonedge` / `a_pinning`. Gate offer: chỉ ra khi đang giữ `talonedge` hoặc `a_pinning` (§4.2 mục 4)"
+description = "When your attack removes enemy Shield, the Axie with the least Shield gains that much Shield (max 8 per hit)."
 rarity = 1
 archetype = "shield"
 mload = 0
@@ -16,3 +16,4 @@ tags = PackedStringArray("shield", "pierce")
 layer = "duo"
 needs_hook = "SHIELD_BREAK"
 hidden_from_pool = true
+requires_any = PackedStringArray("r_talonedge", "a_pinning")

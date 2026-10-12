@@ -6,13 +6,12 @@
 script = ExtResource("1")
 id = "r_hollowbone"
 name = "Hollow Bone"
-description = "RULE: Pierce attacks ignore Thorns and deal 3 more damage."
+description = "Pierce ignores Thorns. The first Pierce face each turn also hits the lowest-HP enemy for 50% damage (this extra hit triggers no relics)."
 rarity = 2
 archetype = "pierce"
 mload = 1
 sort_index = 102040
-hook_key = ""
-piercePlus = 3.0
+hook_key = "r_hollowbone"
 tags = PackedStringArray("pierce")
 layer = "payoff"
-needs_hook = "H2"
+pierceThornProof = true

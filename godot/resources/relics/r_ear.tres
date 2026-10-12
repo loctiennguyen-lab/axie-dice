@@ -6,13 +6,12 @@
 script = ExtResource("1")
 id = "r_ear"
 name = "Keen Ears"
-description = "All Mana faces give 1 more."
-rarity = 1
+description = "Mana faces give +1 Mana. The first time each turn you use an active, refund 1 Mana."
+rarity = 0
 archetype = "mana"
 mload = 0
-sort_index = 101015
+sort_index = 100015
 hook_key = "r_ear"
 mf_phase = "add"
 tags = PackedStringArray("mana")
 layer = "enabler"
-needs_hook = "H4"

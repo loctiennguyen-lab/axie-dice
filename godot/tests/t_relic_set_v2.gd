@@ -17,6 +17,7 @@ func _ready() -> void:
 	test_festermark_merge()
 	test_is_wounded_and_carrioncall()
 	test_coupmark()
+	test_instant_kill_boss_immunity()
 	test_spikedbulwark()
 	test_thornling()
 	test_heart_rework()
@@ -78,7 +79,8 @@ func test_pool_shape() -> void:
 	_assert(offerable.size() == visible, "offerable pool == non-hidden defs")
 	for id in ["r_bookend", "r_festermark", "r_thornling", "r_twinfates", "r_fumeblossom"]:
 		_assert(RelicRegistry.get_def(id) != null, "%s has a def" % id)
-	_assert(RelicRegistry.get_def("r_twinfates").hidden_from_pool, "twinfates waits for H7")
+	_assert(RelicRegistry.get_def("r_fumeblossom").hidden_from_pool, "fumeblossom waits for a tick hook")
+	_assert(not RelicRegistry.get_def("r_twinfates").hidden_from_pool, "twinfates is live (H1/H7)")
 	_assert(not RelicRegistry.get_def("r_bookend").hidden_from_pool, "bookend is live")
 	for id in ["r_rotbite", "r_tinderbox", "r_openwound", "r_voidgene", "r_spines", "r_swarmnest"]:
 		_assert(RelicRegistry.get_def(id) == null, "%s merged away" % id)
@@ -148,7 +150,12 @@ func test_patientfang_pact() -> void:
 	var src: Unit = c.party[0]
 	var tgt: Unit = c.alive_enemies()[0]
 	c.turn = 1
-	_assert(_dmg_through(c, src, tgt, 10.0) == 0.0, "patientfang: turn 1 deals 0")
+	var hp0 := tgt.hp
+	var dealt := DamagePipeline.resolve({"combat": c, "src": src, "tgt": tgt, "value": 10, "attack": true, "crit": true})
+	_assert(dealt == 0 and tgt.hp == hp0, "patientfang: turn 1 deals exactly 0, even on a crit (after all bonuses)")
+	c.turn = 2
+	dealt = DamagePipeline.resolve({"combat": c, "src": src, "tgt": tgt, "value": 10, "attack": true})
+	_assert(dealt == 12, "patientfang: turn 2 deals 10 + 2, got %d" % dealt)
 	c.turn = 2
 	_assert(_dmg_through(c, src, tgt, 10.0) == 12.0, "patientfang: turn 2 +2")
 	c.turn = 4
@@ -239,6 +246,11 @@ func test_thornling() -> void:
 	var c := _combat(["r_thornling"])
 	var egg: Unit = c._mk_ally()
 	c.party.append(egg)
+	# Liam 12/10: Thorns 3 from the moment the Egg appears, not from the next turn start.
+	var foe: Unit = c.alive_enemies()[0]
+	var foe_hp := foe.hp
+	DamagePipeline.resolve({"combat": c, "src": foe, "tgt": egg, "value": 1, "attack": true})
+	_assert(foe_hp - foe.hp == 3, "thornling: a fresh Egg reflects 3 at once, got %d" % (foe_hp - foe.hp))
 	RelicHooks.fire(c, "on_turn_start", {"combat": c})
 	_assert(int(egg.status.get("thorns", 0)) == 3, "thornling: egg has thorns 3")
 	var left: Unit = c.party[c.party.size() - 2]
@@ -327,3 +339,19 @@ func test_state_survives_roundtrip() -> void:
 	var c2 := CombatEngine.new()
 	c2.from_data(c.to_data())
 	_assert(int(c2.party[0].custom_state.get("spiked_bonus", 0)) == 4, "spiked_bonus survives CombatEngine to_data/from_data")
+
+
+func test_instant_kill_boss_immunity() -> void:
+	# apexferal (<=15% HP dies) and coupmark both skip bosses; regular enemies still die.
+	for rid in ["r_apexferal", "r_coupmark"]:
+		var c := _combat([rid])
+		var src: Unit = c.party[0]
+		var t: Unit = c.alive_enemies()[0]
+		t.max_hp = 100
+		t.hp = 10
+		t.is_boss = true
+		RelicHooks.fire(c, "on_hit", {"type": "dmg", "dealt": 5, "tgt": t, "crit": true, "src": src, "combat": c})
+		_assert(t.hp == 10, "%s: boss is immune to the instant kill" % rid)
+		t.is_boss = false
+		RelicHooks.fire(c, "on_hit", {"type": "dmg", "dealt": 5, "tgt": t, "crit": true, "src": src, "combat": c})
+		_assert(t.hp <= 0, "%s: a normal enemy still dies" % rid)
