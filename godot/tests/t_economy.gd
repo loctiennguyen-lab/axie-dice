@@ -559,6 +559,16 @@ func test_store_and_l1_flags() -> void:
 	s.gems_cache = 1000
 	_assert(StoreCatalog.buy_ticket_bundle(s, 6) == "" and s.gems_cache == 880 and s.tickets["normal"] == 6, "bundle 6 vé = 120 Gem")
 	_assert(StoreCatalog.buy_ticket_bundle(s, 7) == "unknown_bundle", "gói lạ")
+	var packs := StoreCatalog.gem_packs()
+	var gems_l: Array = []
+	var bonus_ok := true
+	for pk in packs:
+		gems_l.append(int(pk["gems"]))
+		bonus_ok = bonus_ok and float(pk["gems"]) <= float(pk["usd"]) * 100.0 * 1.2
+	_assert(gems_l == [80, 420, 880, 1800, 4650, 9600] and is_equal_approx(float(packs[5]["usd"]), 99.99), "thang gói Gem 80..9600")
+	_assert(bonus_ok, "gói Gem: thưởng <= 20%")
+	var mc := StoreCatalog.moon_card()
+	_assert(not bool(mc.get("enabled", true)) and int(mc["daily_gem"]) == 20 and int(mc["days"]) == 30 and int(mc["max_stack_days"]) == 180, "Moon Card: cấu hình, tắt ở L1")
 	_assert(StoreCatalog.buy_ticket_bundle(s, 100) == "no_gems" and s.tickets["normal"] == 6, "thiếu Gem: không nhận vé")
 	_assert(EchoBox.bought_today(s, "2026-11-03") == 0, "vé bundle không tăng bậc giá Shard")
 	_assert(StoreCatalog.cosmetic_price("rare") == 90 and StoreCatalog.cosmetic_price("mythic") == 720, "giá cosmetic tạm 90..720")
