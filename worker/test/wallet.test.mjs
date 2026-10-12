@@ -251,3 +251,12 @@ test('season gift: shares the 900 balance cap with the daily gift', async () => 
   assert.deepEqual([b.ok, b.reason], [false, 'at_cap']);
   assert.equal(await balanceOf(env, 'p1'), GIFT.balance_cap);
 });
+
+test('cap is atomic: two concurrent claims on different days cannot push the balance over 900', async () => {
+  const env = mkEnv();
+  env.DB.db.prepare(`INSERT INTO wallets (player_id, currency, balance) VALUES ('p1', 'gem', 800)`).run();
+  const rs = await Promise.all([claimDaily(env, 'p1', DAY + 1), claimDaily(env, 'p1', DAY + 86400 + 1)]);
+  assert.equal(await balanceOf(env, 'p1'), 900);
+  assert.deepEqual(rs.map((r) => r.granted).sort((a, b) => a - b), [0, 100]);
+  assert.equal(env.DB.db.prepare(`SELECT COUNT(*) AS n FROM wallet_ledger WHERE delta = 0`).get().n, 0);
+});

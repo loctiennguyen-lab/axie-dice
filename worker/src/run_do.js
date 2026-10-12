@@ -20,6 +20,9 @@ const json = (body, status = 200) =>
 export const rulesSupported = (env, v) =>
   (env.SUPPORTED_RULES ? env.SUPPORTED_RULES.split(',').includes(v) : SUPPORTED_RULES.has(v));
 
+/** A socket that has not sent a valid hello within this long is closed by alarm() (ADR F12: alarm is the only timer). */
+export const HELLO_DEADLINE_MS = 10_000;
+
 export class RunDO {
   constructor(ctx, env) {
     this.ctx = ctx;
@@ -27,6 +30,13 @@ export class RunDO {
     RunCore.initSchema(ctx.storage.sql);
     this.core = new RunCore(ctx.storage.sql, {
       verifyToken: (t) => verifyRunToken(env, t),
+      checkHello: async (claims) => {
+        if (!env.DB || !claims.jti) return false;
+        const row = await env.DB.prepare(
+          `SELECT r.token_jti, p.locked_at FROM runs r JOIN players p ON p.id = r.player_id WHERE r.run_id = ? AND r.player_id = ?`,
+        ).bind(claims.run_id, claims.player_id).first();
+        return !!row && row.locked_at == null && row.token_jti === claims.jti;
+      },
       supportsRules: (v) => rulesSupported(env, v),
       // Gem is charged in D1 inside the request that earns the seed (ADR 4.9). The idem key is built by
       // RunCore as aid:{run}:{seq}, so a retried request replays the old charge instead of paying twice.
@@ -56,7 +66,10 @@ export class RunDO {
     if (request.headers.get('Upgrade') === 'websocket') {
       const pair = new WebSocketPair();
       this.ctx.acceptWebSocket(pair[1]);
-      pair[1].serializeAttachment({ authed: false, epoch: 0 });
+      pair[1].serializeAttachment({ authed: false, epoch: 0, at: Date.now() });
+      const existing = await this.ctx.storage.getAlarm();
+      const want = Date.now() + HELLO_DEADLINE_MS;
+      if (existing == null || existing > want) await this.ctx.storage.setAlarm(want);
       return new Response(null, { status: 101, webSocket: pair[0] });
     }
     return json({ error: 'not_found' }, 404);
@@ -84,7 +97,7 @@ export class RunDO {
   /** Write the closed run back to D1; on failure retry from alarm() (the only timer a DO may use). */
   async _syncClosed() {
     const meta = this.core.meta();
-    if (!meta || !this.env.DB) return;
+    if (!meta || !this.env.DB || meta.state !== 'closed' || meta.outcome == null) return; // never touch an open run
     try {
       const s = JSON.parse(meta.summary || '{}');
       await this.env.DB.prepare(
@@ -97,5 +110,19 @@ export class RunDO {
     }
   }
 
-  async alarm() { await this._syncClosed(); }
+  async alarm() {
+    const m = this.core.meta();
+    if (m && m.state === 'closed') await this._syncClosed();
+    // Close sockets that never said hello; re-arm for the youngest one still waiting.
+    const now = Date.now();
+    let next = null;
+    for (const ws of this.ctx.getWebSockets()) {
+      let att = null;
+      try { att = ws.deserializeAttachment(); } catch { /* unreadable = treat as unauthed */ }
+      if (att && att.authed) continue;
+      const due = ((att && att.at) || 0) + HELLO_DEADLINE_MS;
+      if (due <= now) { try { ws.close(1008, 'no_hello'); } catch { /* already gone */ } } else if (next === null || due < next) next = due;
+    }
+    if (next !== null) await this.ctx.storage.setAlarm(next);
+  }
 }

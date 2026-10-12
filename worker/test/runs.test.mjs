@@ -17,7 +17,7 @@ class Stmt {
   async run() { const r = this.db.prepare(this.sql).run(...this.args); return { success: true, meta: { changes: Number(r.changes) } }; }
 }
 class FakeD1 {
-  constructor() { this.db = new DatabaseSync(':memory:'); this.db.exec('PRAGMA foreign_keys = ON;'); this.db.exec(mig('0001_accounts.sql')); this.db.exec(mig('0002_runs.sql')); }
+  constructor() { this.db = new DatabaseSync(':memory:'); this.db.exec('PRAGMA foreign_keys = ON;'); this.db.exec(mig('0001_accounts.sql')); this.db.exec(mig('0002_runs.sql')); this.db.exec(mig('0005_token_revocation.sql')); }
   prepare(s) { return new Stmt(this.db, s); }
   async batch(stmts) { const out = []; for (const s of stmts) out.push(await s.run()); return out; }
 }
@@ -140,4 +140,17 @@ test('stuck pending: create sweeps the player own stale pending, abandon handles
   let waited;
   await worker.scheduled({}, env, { waitUntil: (p) => { waited = p; } });
   assert.equal(await waited, 1);
+});
+
+test('token jti: create stores it, /api/run/open mints a new one (the old token is revoked)', async () => {
+  const { call, DB } = await setup();
+  const claimsOf = (t) => JSON.parse(Buffer.from(t.split('.')[0], 'base64url'));
+  const j = await (await create(call)).json();
+  const c1 = claimsOf(j.run_token);
+  assert.ok(c1.jti && c1.kid);
+  assert.equal(DB.db.prepare('SELECT token_jti FROM runs WHERE run_id = ?').get(j.run_id).token_jti, c1.jti);
+  const o = await (await call('/api/run/open')).json();
+  const c2 = claimsOf(o.run_token);
+  assert.notEqual(c2.jti, c1.jti);
+  assert.equal(DB.db.prepare('SELECT token_jti FROM runs WHERE run_id = ?').get(j.run_id).token_jti, c2.jti);
 });

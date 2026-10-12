@@ -25,16 +25,16 @@ export const ALLOWED_FNS = new Set([
   'tweak', 'hold_pick', 'loaded_pick', 'sell_relic', 'swap_on_full', 'reorder_party', 'aid_use',
 ]);
 
-/** kind -> action that consumes it at position log_len (ADR 4.2). null = consumed on reply. */
+/** kind -> action(s) that consume it at position log_len (ADR 4.2). null = consumed on reply. A list means any of them. */
 export const KINDS = {
   run_start: { consume: null, paid: false },
   node: { consume: 'enter_node', paid: false },
   end_turn: { consume: 'end_turn', paid: false },
   reroll: { consume: 'reroll_dice', paid: false }, // paid when args.source === 'aid'
   reward: { consume: null, paid: false },
-  reward_reroll: { consume: 'reroll_rewards', paid: false },
-  event_choice: { consume: 'event_choose', paid: false },
-  shop_roll: { consume: 'shop_buy', paid: false },
+  reward_reroll: { consume: ['reroll_rewards', 'take_reward'], paid: false },
+  event_choice: { consume: ['event_choose', 'event_done'], paid: false },
+  shop_roll: { consume: ['shop_buy', 'shop_done'], paid: false }, // shop_done: leaving without buying must not soft-lock
   shop_refresh: { consume: 'shop_refresh', paid: true },
   continue: { consume: 'continue', paid: true },
   pact_reroll: { consume: 'pact_reroll', paid: true },
@@ -95,6 +95,7 @@ const isPaid = (kind, args) => KINDS[kind].paid || (kind === 'reroll' && args.so
 export class RunCore {
   /**
    * deps: { now():ms, charge?(idemKey, kind, args, meta) -> Promise<bool>,
+   *         checkHello?(claims) -> Promise<boolean> (D1: jti current, account not locked),
    *         verifyToken?(token) -> Promise<{player_id, run_id, rules_version}|null>,
    *         supportsRules?(v) -> bool, log?(event, detail) }
    */
@@ -198,6 +199,12 @@ export class RunCore {
     if (!claims || claims.run_id !== meta.run_id || claims.player_id !== meta.player_id) {
       return { replies: [], close: { code: 1008, reason: 'auth' } };
     }
+    // ADR 4.6: ask D1 again at hello (token not revoked, account not locked). Fail closed on any error.
+    if (this.deps.checkHello) {
+      let ok = false;
+      try { ok = await this.deps.checkHello(claims); } catch { ok = false; }
+      if (!ok) { this._anomaly('hello_revoked', { run_id: meta.run_id }); return { replies: [], close: { code: 1008, reason: 'auth' } }; }
+    }
     if (claims.rules_version !== meta.rules_version) return { replies: [{ t: 'bye', reason: 'version' }], close: { code: 4001, reason: 'version' } };
     const epoch = meta.session_epoch + 1; // newest socket wins, the DO shell evicts the older ones
     this.sql.exec('UPDATE meta SET session_epoch = ? WHERE id = 1', epoch);
@@ -238,7 +245,7 @@ export class RunCore {
     if (!prev) return null;
     const need = KINDS[prev.kind].consume;
     if (!need) return null;
-    if (delta.length === 0 || delta[0].fn !== need) return 'unconsumed';
+    if (delta.length === 0 || ![].concat(need).includes(delta[0].fn)) return 'unconsumed';
     return null;
   }
 

@@ -2,7 +2,7 @@
 // Auth today is the session cookie. TODO(LIAM-1): Bearer tokens for desktop once the loopback+PKCE
 // login lands. TODO: guests (ADR C3) need a server-issued guest account before this accepts them.
 import { shared } from './accounts.js';
-import { signRunToken } from './run_token.js';
+import { signRunToken, newJti } from './run_token.js';
 import { rulesSupported } from './run_do.js';
 
 const RULES_PER_DAY_DEFAULT = 20;
@@ -81,15 +81,19 @@ async function createRun(request, env, url, player) {
     await env.DB.prepare(`UPDATE runs SET state = 'infra_error', closed_at = ? WHERE run_id = ?`).bind(nowS, runId).run();
     return json({ error: init.code === 'version' ? 'version' : 'server' }, init.code === 'version' ? 409 : 502);
   }
-  await env.DB.prepare(`UPDATE runs SET state = 'open', commit_hash = ? WHERE run_id = ? AND state = 'pending'`).bind(init.commit, runId).run();
-  const run_token = await signRunToken(env, { player_id: player.id, run_id: runId, rules_version: rules });
+  const jti = newJti();
+  await env.DB.prepare(`UPDATE runs SET state = 'open', commit_hash = ?, token_jti = ? WHERE run_id = ? AND state = 'pending'`).bind(init.commit, jti, runId).run();
+  const run_token = await signRunToken(env, { player_id: player.id, run_id: runId, rules_version: rules, jti });
   return json({ run_id: runId, run_token, commit: init.commit, ws_url: wsUrl(url, runId), header: { newcomer: await newcomer(env, player.id) } });
 }
 
 async function openRun(env, url, player) {
   const row = await env.DB.prepare(`SELECT run_id, rules_version, mode, commit_hash FROM runs WHERE player_id = ? AND state = 'open'`).bind(player.id).first();
   if (!row) return json({});
-  const run_token = await signRunToken(env, { player_id: player.id, run_id: row.run_id, rules_version: row.rules_version });
+  // A new token revokes the previous one (other device, or a stolen copy): only the newest jti passes hello.
+  const jti = newJti();
+  await env.DB.prepare(`UPDATE runs SET token_jti = ? WHERE run_id = ? AND state = 'open'`).bind(jti, row.run_id).run();
+  const run_token = await signRunToken(env, { player_id: player.id, run_id: row.run_id, rules_version: row.rules_version, jti });
   return json({ run_id: row.run_id, run_token, commit: row.commit_hash, ws_url: wsUrl(url, row.run_id), header: { mode: row.mode, newcomer: await newcomer(env, player.id) } });
 }
 
