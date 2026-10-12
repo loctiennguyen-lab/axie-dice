@@ -30,6 +30,7 @@ func _make(st := "normal") -> MissionsScreen:
 func _ready() -> void:
 	print("=== t_missions_r3: start ===")
 	_guard.capture()
+	MetaState.saved_run_probe = func() -> bool: return false   # never depend on the real user dir
 	MetaState.runs = 8
 	MetaState.asc_wins = {"3": 1, "4": 1}
 	MetaState.full_a9_won = false
@@ -143,6 +144,7 @@ func _ready() -> void:
 	_ok(s.find_child("Grid", true, false) == null, "loading renders no cards")
 	MetaState.mission_escrow = {}
 	s.queue_free()
+	MetaState.saved_run_probe = Callable()
 	_guard.restore()
 	if _fail.is_empty():
 		print("t_missions_r3: PASS (%d checks)" % _checks)
