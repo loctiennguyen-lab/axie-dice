@@ -88,3 +88,4 @@ hạn/ngày, NFT dùng được) · UI request 02 + Round 1 · L1 = 3/11 nội b
 - C1 màn pact sau boss: LÀM CHO L1 (A).
 - Land v5: đồng ý khoá Nhiệm vụ + Leaderboard cho người mới (5 run đầu); phím xem tên nhà dùng N thay Alt.
 - Cosmetics v7: nhập 20 plate + 21 khung tĩnh vào game; còn thiếu (lane I đã kiểm): 13 file lớp animation `anim/*.png` không có trong zip (chỉ 7 `_anim.png` gộp, ảnh tĩnh), khung Common ở 40 px gần như giống nhau → danh sách sửa ở REVIEW-cosmetics-v7.md.
+- (Liam 13/10) Cosmetics phải dùng được trong game ở L1 (trang bị + hiện trong trận/Profile + pool Echo Box/Store thật) — checklist B12.
