@@ -20,7 +20,7 @@ func _ready() -> void:
 	var frames: Dictionary = m.get("frames", {})
 	_ok(dice.size() == 20 and frames.size() == 21, "20 dice + 21 frames (%d/%d)" % [dice.size(), frames.size()])
 	_ok(not m.has("frames_with_art") and not m.has("frames_waiting_for_art"), "old frame keys gone")
-	_ok(CosmeticArt.animation_pending(), "animated layers marked pending")
+	_ok(not CosmeticArt.animation_pending(), "animated layers delivered (v8)")
 
 	# every layer file exists, right size, has alpha, no loose file left unreferenced
 	var referenced := {}
@@ -36,7 +36,15 @@ func _ready() -> void:
 	for id in frames:
 		var ls := CosmeticArt.layers(id)
 		_ok(ls.size() >= 1 and ls[0].layer == "base", "%s has base" % id)
-		_ok(String(frames[id].get("static_overlay", "")) == "" or ls.size() == 2, "%s overlay listed" % id)
+		var al: Array = frames[id].get("anim_layers", [])
+		_ok(ls.size() == 1 + al.size(), "%s lists base + %d anim layers (%d)" % [id, al.size(), ls.size()])
+		_ok(ls.map(func(l): return l.layer).slice(1) == al.map(func(a): return a.name), "%s layer names match anim_layers" % id)
+		for a in al:
+			_ok(not CosmeticArt.anim_spec(id, a.name).is_empty(), "%s.%s has an anim spec" % [id, a.name])
+			for sp in CosmeticArt.anim_spec(id, a.name):
+				_ok(["spin", "pulse", "sweep"].has(sp.type), "%s.%s anim type %s" % [id, a.name, sp.type])
+		for pf in frames[id].get("preview_files", []):
+			referenced["res://assets/cosmetics/" + String(pf)] = true
 		for l in ls:
 			referenced[l.path] = true
 			_check_tex(l.path, 256)
@@ -60,6 +68,10 @@ func _ready() -> void:
 	# placeholder pool ids and non-art ids stay empty, never crash
 	for id in ["std_e_001", "fx_e_rune", "title_s1_echo", "frame_x_nope"]:
 		_ok(CosmeticArt.layers(id).is_empty() and CosmeticArt.make_node(id, 64) == null, "no art, no node: " + id)
+	var fn := CosmeticArt.make_node("frame_e_runering", 150)
+	_ok(fn != null and fn.get_child_count() == 3 and fn.get_node("rune_orbit") is TextureRect, "runering node stacks base + 2 layers")
+	if fn:
+		fn.free()
 	var n := CosmeticArt.make_node("die_m_moon", 104)
 	_ok(n != null and n.get_child_count() == 3, "moon die node has 3 layers")
 	_ok(n != null and (n.get_node("glow") as TextureRect).material is CanvasItemMaterial, "glow layer additive")
