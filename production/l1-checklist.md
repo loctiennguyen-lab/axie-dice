@@ -27,7 +27,7 @@ sẵn** · báo lỗi bằng **một Google Sheet** (Liam làm) · Cloudflare g�
   - [ ] Ghi nhận rủi ro L1: server chưa kiểm kết quả run (chỉ kiểm hash chain) → thắng/thua, payout Nhiệm vụ, điều kiện quà mùa tin client; không mở thưởng Gem/tiền thật theo kết quả run trước khi có verifier (P3).
   - [ ] Chạy trọn 1 run thật trên Worker: mất mạng giữa run, nối lại, hết hạn token, thoát app giữa trận.
   - [x] RunSession tắt `_process` khi không có run (13/10).
-- [ ] B2. **Aid + Continue bằng Gem tặng**: bảng giá Aid ra data (đang viết cứng trong CombatView), nút mua trừ Gem thật qua server, giới hạn 8/run, ẩn cho người mới.
+- [ ] B2. **Aid + Continue bằng Gem tặng**: bảng giá Aid ra data (đang viết cứng trong CombatView), nút mua trừ Gem thật qua server, giới hạn 6/run (4 từ A9, theo catalog + server), ẩn cho người mới. Còn mở: Continue miễn phí cho người mới (lần thua elite/boss đầu, A0–A2) — chưa làm.
 - [ ] B3. **Đăng nhập desktop**: màn đăng nhập có trạng thái chờ/huỷ/lỗi; thử đăng nhập Google thật trên bản build Mac + Win; redirect URI desktop trên Google OAuth console.
 - [ ] B4. **Ghi số liệu run + Nhiệm vụ**: kiểm tra server ghi đủ (run bắt đầu/kết thúc, Ascension, thắng/thua, Aid/Continue đã dùng, cược/payout Nhiệm vụ); có cách xuất ra bảng cho Liam xem.
 - [ ] B5. **Nhiệm vụ chỉ N1–N3**: N4–N6 khoá "Not in this build" (kiểm lại sau khi đổi luật), nhà Nhiệm vụ không nâng cấp; chạy trọn N1 từ cược → run → payout trên Worker.

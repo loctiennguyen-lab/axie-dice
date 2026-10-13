@@ -171,7 +171,9 @@ const WATCHED_FILES: Array[String] = ["res://assets/data/part_faces.json"]
 ## limit. Mission runs only. Changes the run result: YES.
 ## Moved 2026-10-13 by lane E e1bf15b (Liam H11): MetaState newcomer = runs_with_battle < newcomer_runs;
 ## RunState.apply_combat_result notes the run's first battle. Meta counter only. Run result: NO, stays -j.
-const FINGERPRINT := "b45389e4b67728c1242b578a1574bde46e722a41449a8cf997485e4b6a81418f"
+## Moved 2026-10-13 by B3 f6a5203: AccountService desktop sign-in phase/error/reopen. Accounts only.
+## Run result: NO, stays -j.
+const FINGERPRINT := "4462d1cd4b71f2803606e656235c29aec421d2dd2baac026f774b250dafd4d2b"
 
 
 func _ready() -> void:

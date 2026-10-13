@@ -769,6 +769,10 @@ func _toast_with_ui(code: String) -> void:
 var desktop_enabled_override := true
 var _dt: DesktopTransport
 var _auth: DesktopAuth
+## What the Account screen (lane M, B3) shows while the browser flow runs: "idle" | "waiting" | "error".
+## `desktop_error` is the DesktopAuth code ("timeout", "access_denied", "network", ...). `changed` fires on each move.
+var desktop_phase := "idle"
+var desktop_error := ""
 
 
 func _desktop_enabled() -> bool:
@@ -816,12 +820,38 @@ func begin_desktop_sign_in() -> void:
 	if err != OK:
 		_auth.queue_free()
 		_auth = null
+		desktop_phase = "error"
+		desktop_error = "network"
+		changed.emit()
 		toast.call("network") if toast.is_valid() else null
+		return
+	desktop_phase = "waiting"
+	desktop_error = ""
+	changed.emit()
 
 
+## Stops the loopback listener (DesktopAuth.cancel closes the TCP server) and goes back to "idle".
 func cancel_desktop_sign_in() -> void:
 	if _auth != null and is_instance_valid(_auth):
 		_auth.cancel()
+	elif desktop_phase != "idle":
+		desktop_phase = "idle"
+		desktop_error = ""
+		changed.emit()
+
+
+## "Open browser again": re-opens the same login URL while the listener is still waiting.
+func reopen_desktop_browser() -> void:
+	if _auth != null and is_instance_valid(_auth):
+		_auth.reopen()
+
+
+## Leaves the error frame without starting anything.
+func clear_desktop_error() -> void:
+	if desktop_phase == "error":
+		desktop_phase = "idle"
+		desktop_error = ""
+		changed.emit()
 
 
 func _on_desktop_auth(ok: bool, tokens: Dictionary, error: String) -> void:
@@ -829,11 +859,19 @@ func _on_desktop_auth(ok: bool, tokens: Dictionary, error: String) -> void:
 		_auth.queue_free()
 		_auth = null
 	if not ok:
-		if error != "cancelled":
+		if error == "cancelled":
+			desktop_phase = "idle"
+			desktop_error = ""
+		else:
 			_pending_error = error if error != "" else "token"
+			desktop_phase = "error"
+			desktop_error = _pending_error
 			if toast.is_valid():
 				toast.call(_pending_error)
+		changed.emit()
 		return
+	desktop_phase = "idle"
+	desktop_error = ""
 	_dt.tokens = {"access": tokens["access"], "refresh": tokens["refresh"],
 		"device_id": String(tokens.get("device_id", ""))}
 	DeviceTokens.save(_dt.tokens)

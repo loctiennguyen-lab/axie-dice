@@ -199,8 +199,20 @@ func _build_abandon_section() -> void:
 ## Switch account. Sign out takes two presses: the first says what happens, the second does it.
 func _build_account_section() -> void:
 	if not AccountService.enabled:
-		_body("Accounts are available in the web version at axiedice.fun. Progress here stays "
-			+ "on this computer.")
+		if SaveStore.is_web() or not AccountService.desktop_enabled_override:
+			_body("Accounts are available in the web version at axiedice.fun. Progress here stays "
+				+ "on this computer.")
+			return
+		# Desktop, signed out: the Account screen (B3) owns the browser flow, waiting and errors.
+		_body("You're playing as a guest. Progress stays on this computer. Sign in with Google to "
+			+ "keep it on every device.")
+		var open_acct := Button.new()
+		open_acct.name = "OpenAccountButton"
+		open_acct.text = "ACCOUNT"
+		open_acct.custom_minimum_size = Vector2(0, 44)
+		DangoTheme.style_button(open_acct, true)
+		open_acct.pressed.connect(func() -> void: LandNav.open(&"account"))
+		_content.add_child(open_acct)
 		return
 	if not AccountService.is_signed_in():
 		_body("You're playing as a guest. Progress stays on this browser only. Sign in with "
@@ -210,7 +222,11 @@ func _build_account_section() -> void:
 		sign_in.text = "CONTINUE WITH GOOGLE"
 		sign_in.custom_minimum_size = Vector2(0, 44)
 		DangoTheme.style_button(sign_in, true)
-		sign_in.pressed.connect(func() -> void: AccountService.sign_in())
+		sign_in.pressed.connect(func() -> void:
+			if SaveStore.is_web():
+				AccountService.sign_in()
+			else:
+				LandNav.open(&"account"))
 		_content.add_child(sign_in)
 		return
 
@@ -241,7 +257,11 @@ func _build_account_section() -> void:
 		again.text = "SIGN IN"
 		again.custom_minimum_size = Vector2(0, 44)
 		DangoTheme.style_button(again, true)
-		again.pressed.connect(func() -> void: AccountService.sign_in())
+		again.pressed.connect(func() -> void:
+			if SaveStore.is_web():
+				AccountService.sign_in()
+			else:
+				LandNav.open(&"account"))
 		_content.add_child(again)
 
 	var row := HBoxContainer.new()
