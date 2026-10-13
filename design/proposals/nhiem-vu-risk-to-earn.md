@@ -1,5 +1,14 @@
-Trạng thái: BẢN CỰC KHÓ, 12/10 đêm, chờ Liam duyệt
+Trạng thái: bản cực khó — Liam DUYỆT 13/10
 
+> **QUYẾT ĐỊNH LIAM 13/10 (trả lời G1–G6, `pending-decisions.md` mục H 1–7):**
+> - **RTP toàn dân ~0,70–0,75: chấp nhận** (game phải khó). Không hạ N1–N2.
+> - **Trần payout 20.000 giữ.** N6 là bậc danh hiệu (m kẹp 8,00).
+> - **Bỏ giới hạn "tối đa 2 luật thêm"** (N6 có 5 luật).
+> - **M6 Quân dày + M7 Elite hung: duyệt** → sửa `mission_mods` + engine + bump `RULES_VERSION`.
+> - **Giữ điều kiện phụ** (Một nhà, Đa sắc).
+> - **Bỏ cuộc = mất cược và KHÔNG nhận R** (Shard của run).
+> - **Danh hiệu:** A5 = "Người Giữ Ấn", A10 = "Người Đứng Cuối".
+>
 > **QUYẾT ĐỊNH LIAM còn hiệu lực (gom lại, ưu tiên hơn thân file).**
 > - **12/10 (sau review cuối):** leaderboard Nhiệm vụ **tách theo từng Ascension** · **NFT (Axie/part thật) dùng được trong mọi run, kể cả Nhiệm vụ** · duyệt ngưỡng Bayes (R_hi 0,95, ε 0,10, bước ≤ 0,02/ngày) · trần ~20 run mới/ngày của kiến trúc **không áp cho Nhiệm vụ**.
 > - Nhiệm vụ = cược (stake) + thưởng tăng theo độ khó. Cược bằng **Gene Shard**; thắng có thêm **Land Stone rất ít**. Thua thì **mất cược, không hoàn, không an ủi** (12/10). Lỗ bao nhiêu cũng được.
@@ -27,11 +36,11 @@ Khác bản chiều nay: bản chiều "cực khó" nhưng regular vẫn thắng
 
 ## 0. Đọc nhanh
 
-1. Một Nhiệm vụ = một run, luật khó hơn ranked. Trả cược lúc tạo run. Thắng nhận `cược × m` + ít Stone. Thua/bỏ mất cược. Run vẫn trả Shard R như thường.
+1. Một Nhiệm vụ = một run, luật khó hơn ranked. Trả cược lúc tạo run. Thắng nhận `cược × m` + ít Stone. Thua/bỏ mất cược. Thua do đội diệt vẫn trả Shard R như run thường; **bỏ cuộc thì mất cược và không có R**.
 2. **6 bậc N1–N6**, cược 300 / 500 / 800 / 1.200 / 1.800 / 2.500. Số luật thêm tăng 2 → 5. **m: 2,15 / 2,40 / 3,60 / 4,40 / 7,85 (×0,90) / 8,00**.
 3. Tỉ lệ thắng mục tiêu (§4.1): heavy 46 / 42 / 28 / 23 / 12 / 5%. Regular 26 / 22 / 13 / 10 / 5 / 1,4%. Casual 14 / 13 / 7 / 5 / 2 / 0,4%.
-4. Kỳ vọng nhận lại: casual ~0,30, regular ~0,50, heavy N1–N4 ~1,00. **RTP toàn dân ~0,70–0,75, dưới đích 0,75** (nói thẳng ở §4.3, câu hỏi G1).
-5. **N6 bị trần payout 20.000 kẹp m ở 8,00** nên heavy chỉ nhận lại 0,41. N6 thành bậc "danh dự" (câu hỏi G2).
+4. Kỳ vọng nhận lại: casual ~0,30, regular ~0,50, heavy N1–N4 ~1,00. **RTP toàn dân ~0,70–0,75, dưới đích 0,75: Liam chấp nhận (G1, 13/10).**
+5. **N6 bị trần payout 20.000 kẹp m ở 8,00** nên heavy chỉ nhận lại 0,41. N6 là bậc "danh dự" (G2: Liam giữ trần, 13/10).
 6. Hai luật mới M6, M7 và 2 khoá mới của `mission_mods` (§3.2, §7). Còn lại dùng được data/code có sẵn.
 7. Nhà Nhiệm vụ giữ nguyên (cấp 1 miễn phí, cấp 2/3/4 = 3.000 / 8.000 / 20.000 Shard + 4.000 / 12.000 / 30.000 Stone).
 8. Verify: sim 3 hồ sơ × 6 bậc × 2 bộ luật, sai số cho phép ±3 điểm (§4.5).
@@ -85,8 +94,9 @@ Số d là ước, cộng theo logit. Chồng nhiều nhân tử dmg/HP thì d t
 
 Ghi chú: N1 và N2 cùng bộ luật, khác Ascension (A3 vs A4) và cược. M3 không dùng ở A9 (A9 đã có sẵn). d ở bảng dùng N1 = 0,95 khi tính (M5+M6 = 0,70 nhưng d tổng 1,00 chỉ là danh nghĩa; **số tính ở §4 là d = 0,95 cho N1 và 1,00 cho N2**; sim sẽ chỉnh lại).
 **(sửa review 12/10)** Đoạn trên tự mâu thuẫn: 0,30 (chuẩn) + 0,35 (M5) + 0,35 (M6) = 1,00 theo đúng bảng d, nên d = 0,95 không có nguồn nào. Với d = 1,00, heavy N1 thắng 45,0%, RTP heavy = 0,968 (không phải 0,995), casual 13,6%, regular 24,6%. §4.1/§4.2 vẫn để d = 0,95 như tác giả viết, chờ Liam chọn (xem review cuối file): hoặc đổi cả bảng sang d = 1,00 (an toàn hơn vì heavy < 1), hoặc giữ 0,95 và sửa d của M5/M6 cho khớp.
+**(Lane I, 13/10)** Chốt d = 1,00 cho N1 theo bảng (0,95 không có nguồn). Liam đã chấp nhận RTP thấp (H1), nên không chỉnh m để bù; sim sẽ đo lại.
 
-Giờ **quy tắc "tối đa 2 luật thêm" bị bỏ** (Slay the Spire dừng ở 3 modifier vì "gần như không thể"). Đây là cố ý: N3–N6 là thử sức. Rủi ro: thua mà người chơi thấy "bất công". Giảm bằng chip luật trong run và thẻ offer liệt kê từng luật, và bằng việc N6 khoá sau điều kiện thắng Full A9.
+Giờ **quy tắc "tối đa 2 luật thêm" bị bỏ** (G3: Liam đồng ý 13/10; Slay the Spire dừng ở 3 modifier vì "gần như không thể"). Đây là cố ý: N3–N6 là thử sức. Rủi ro: thua mà người chơi thấy "bất công". Giảm bằng chip luật trong run và thẻ offer liệt kê từng luật, và bằng việc N6 khoá sau điều kiện thắng Full A9.
 
 **Mở khóa bậc:** phải đã thắng một run ở Ascension của bậc (N1 A3, N2 A4, N3 A6, N4 A7, N5 A9); N6 cần đã thắng một run **Full** ở A9. Ngoài ra bậc phải được nhà mở. Cần cả hai.
 
@@ -109,7 +119,7 @@ Seed = `H(ngày UTC, "nv", rules_version)`; bảng giống nhau mọi người c
 - **Thắng** = hạ boss cuối (3 boss Short, 4 boss Full) theo replay đã verify, và thoả điều kiện phụ nếu có.
 - **Thua** = đội diệt; hoặc bấm "Bỏ run" (xác nhận ghi "mất cược"); hoặc engine từ chối hành động sau khi xin seed; hoặc không thoả điều kiện phụ khi hạ boss cuối.
 - Trả khi thắng: `payout = min(20.000, round5(cược × m_gốc × m_scale))` + Stone của bậc (cắt bởi `mission_stone_day_cap` 150), một transaction với việc đóng Nhiệm vụ.
-- Không Stone, không an ủi khi thua. Shard R trả như run thường.
+- Không Stone, không an ủi khi thua. Thua do đội diệt: Shard R trả như run thường. **Bỏ cuộc: mất cược và không nhận R** (Liam 13/10; chặn kiểu mua N1 rồi bỏ ngay vẫn lãi nhờ R).
 - Màn thua: chỉ hai nút ngang hàng "Về nhà Nhiệm vụ", "Chơi run thường". Không nút mua lại, không giảm giá.
 
 ### 3.6 Bảng cược / thưởng (R = 450)
@@ -123,7 +133,7 @@ Seed = `H(ngày UTC, "nv", rules_version)`; bảng giống nhau mọi người c
 | N5 | 1.800 | 4,00 | 7,85 | 0,90 | 7,07 | 12.715 | +10.915 | 34 |
 | N6 | 2.500 | 5,56 | 8,00 (kẹp trần) | 1,00 | 8,00 | 20.000 | +17.500 | 60 |
 
-N6: m "đúng" theo công thức cũ (0,95/p_heavy) là ~18,7, payout ~42.000 vượt trần 20.000 mà Liam chấp nhận, nên m bị kẹp ở 8,00. Nếu Liam nâng trần thì N6 m gốc = 18,75, `m_scale` 0,90, payout ~42.190 (câu hỏi G2). Stone tuần kỳ vọng vẫn dưới 0,3% Stone tuần (thắng quá hiếm).
+N6: m "đúng" theo công thức cũ (0,95/p_heavy) là ~18,7, payout ~42.000 vượt trần 20.000 mà Liam giữ (G2, 13/10), nên m bị kẹp ở 8,00. Stone tuần kỳ vọng vẫn dưới 0,3% Stone tuần (thắng quá hiếm).
 
 ### 3.7 UX tối thiểu (cần mockup mới trước khi làm UI)
 - **Thẻ offer:** tên bậc, mode, Ascension, **từng luật thêm bằng chữ**, cược, trả khi thắng, Stone, m hiệu dụng kèm m gốc, hai dòng xác suất (toàn dân gần đây từ telemetry; ước tính cho bạn dạng khoảng làm tròn 5 khi đủ ≥ 10 run, chưa đủ ghi "chưa đủ dữ liệu"). **"Kỳ vọng nhận lại" luôn hiện trên thẻ.** Thêm dòng cố định ở N3+: "Đa số người chơi thua bậc này."
@@ -133,7 +143,7 @@ N6: m "đúng" theo công thức cũ (0,95/p_heavy) là ~18,7, payout ~42.000 v�
 - **Màn thua:** trung tính, cụ thể ("Boss 2 hạ đội ở lượt 9, đồng hồ +60%. Mất 800 Shard.").
 
 ### 3.8 Điều kiện phụ
-Giữ như bản chiều: 2 loại vào v1.0 (`one_house`, `multicolor` trong json), 16 loại để sau/khó, 1 gộp vào bậc. Trong bản cực khó có hai thay đổi: (1) điều kiện **thay** một luật thêm, d lệch ≤ 0,05 (N1 Đa sắc **thêm vào**, d 0,95 → ~1,11, heavy N1 còn ~42%, RTP ~0,91, an toàn vì dưới 1); (2) **N5/N6 không có điều kiện phụ**. Chỉ dùng điều kiện xong khi q_ref ≥ 0,70 (SIM). Nếu Liam muốn bỏ điều kiện phụ khỏi bản cực khó, bỏ được mà không đổi gì khác (câu hỏi G6).
+Giữ như bản chiều: 2 loại vào v1.0 (`one_house`, `multicolor` trong json), 16 loại để sau/khó, 1 gộp vào bậc. Trong bản cực khó có hai thay đổi: (1) điều kiện **thay** một luật thêm, d lệch ≤ 0,05 (N1 Đa sắc **thêm vào**, d 0,95 → ~1,11, heavy N1 còn ~42%, RTP ~0,91, an toàn vì dưới 1); (2) **N5/N6 không có điều kiện phụ**. Chỉ dùng điều kiện xong khi q_ref ≥ 0,70 (SIM). **G6: Liam giữ điều kiện phụ (13/10).**
 
 ---
 
@@ -148,6 +158,7 @@ Full:   p_short = p_asc,j ^ e        (e = full_exponent = 1,5, chưa verify)
 payout  = min(payout_cap, round5(cược × m_gốc × s))
 RTP_j   = p_j × payout / cược
 Lãi ròng kỳ vọng/lần mua = cược × (RTP_j − 1)
+Bỏ cuộc: payout = 0 và R = 0 (mất cược, không nhận Shard của run). Thua do đội diệt: payout = 0, R như run thường.
 ```
 
 **Dựng m:** N1–N4 `m = round05(1/p_heavy)` để heavy hòa vốn. N5: `0,95/p_heavy` rồi `m_scale` 0,90. N6: `0,95/p_heavy` bị kẹp bởi payout_cap/cược = 8,00.
@@ -194,8 +205,7 @@ Hành vi giả định (đoán, cần đo): casual mua 2 lần/tuần, regular 5
 - Heavy hợp lý: **~0,75** (sát đáy đích, thật ra 0,748).
 - Heavy bảng cũ có N5/N6: **~0,70**, **dưới đích 0,75**.
 
-Casual lỗ ~70% mỗi đồng cược, regular ~50%. Đây là cái giá của "heavy hòa vốn" khi heavy chỉ hơn regular 20 điểm: kéo độ khó lên thì casual/regular rơi nhanh hơn heavy. Nếu Liam không muốn RTP dưới 0,75: hạ d của N1–N2 xuống ~0,70 (RTP toàn dân lên ~0,78), hoặc hạ d toàn bảng 0,15. §11 không nâng m, nên không tự cứu. Hỏi Liam ở G1.
-**(sửa review 12/10)** Số "~0,78" ở trên không đúng. Hạ d mà giữ m = 1/p_heavy thì heavy N1 thắng 52% và RTP = 1,13 (lãi, phạm điều kiện heavy không lãi). Dựng lại m (≈1,9) thì casual/regular chỉ nhích khoảng +0,03 RTP, toàn dân lên ≈0,76–0,77 chứ không phải 0,78. Heavy chiếm ~54% khối lượng cược trong giả định hành vi ở trên và nằm sát 1,00, nên RTP toàn dân bị chặn quanh 0,75 bất kể chỉnh d. Muốn vào dải 0,75–0,95 thì phải để heavy nhận lại < 1 (vd m = 0,95/p_heavy cho N1–N4) hoặc thu hẹp khoảng cách kỹ năng casual/regular/heavy; xem review cuối file.
+Casual lỗ ~70% mỗi đồng cược, regular ~50%. Đây là cái giá của "heavy hòa vốn" khi heavy chỉ hơn regular 20 điểm: kéo độ khó lên thì casual/regular rơi nhanh hơn heavy. **G1: Liam chấp nhận RTP thấp (13/10), không hạ d N1–N2.** (Review 12/10 cũng chỉ ra hạ d không cứu được: heavy chiếm ~54% khối lượng cược và nằm sát 1,00, nên RTP toàn dân bị chặn quanh 0,75.)
 
 Ngày xấu (mua N1+N2+N3 một lần, cược 1.600): casual thua cả ba ~76%, regular ~54%.
 
@@ -226,7 +236,7 @@ Giữ từ bản chiều: Hearthstone Arena (cố ý để người trung bình 
 |---|---|
 | Mất mạng, đóng tab, crash | Run không huỷ, không hạn giờ, không đếm lần vào lại, không đổi seed. Run mở chặn run mới tới khi xong/bỏ |
 | Vào lại từ thiết bị khác | Cho phép; máy cũ vô hiệu bằng `session_epoch` |
-| Bỏ run (nút/endpoint) | Thua, mất cược. Rớt mạng rồi nối lại không tính bỏ |
+| Bỏ run (nút/endpoint) | Thua, **mất cược và không nhận R** (Liam 13/10). Rớt mạng rồi nối lại không tính bỏ |
 | Client sửa hành động sau khi xin seed | Engine từ chối, Nhiệm vụ thua |
 | Verifier timeout/crash, canary qua, không tái lập | Huỷ, **hoàn 100% cược**, không R, không Stone, không tính run đã tạo |
 | Log làm verifier sập tái lập được | Huỷ + hoàn, **gắn cờ C10** |
@@ -245,7 +255,7 @@ Giữ từ bản chiều: Hearthstone Arena (cố ý để người trung bình 
 
 **Degenerate strategies:**
 - *Farm bậc rẻ bằng người giỏi hơn heavy:* m định giá theo heavy, `m_scale` tự hạ chỉ bắt xu hướng toàn dân, trần payout, giám sát p99 (§4.4).
-- *Mua rồi bỏ để xem trước boss:* mất cược; seed không lộ trước khi tạo run.
+- *Mua rồi bỏ để xem trước boss:* mất cược và không có R; seed không lộ trước khi tạo run. (Bỏ ngay sau khi mua cũng không lãi nhờ R.)
 - *Đuổi theo (mua liên tục sau thua):* không có trần mua, bản cực khó thua nhiều hơn nên nguy hiểm hơn. Chỉ có cảnh báo thông tin + chỉ số đuổi theo (§8). Đỏ thì rút lại.
 - *Né bậc cao, chỉ farm N1–N2:* RTP regular ~0,54, vẫn lỗ; không có lợi ngoài người giỏi hơn heavy.
 - *Bộ luật lặp trong ngày để luyện:* hiệu ứng thật, §11 bắt, không chặn.
@@ -282,7 +292,7 @@ Mọi số nằm trong `assets/data/` hoặc cấu hình server.
 | `full_exponent` | 1,5 | 1,33–1,67 | Curve | SIM |
 | `house_cost_shard/stone[3]` | 3.000/8.000/20.000; 4.000/12.000/30.000 | ±50% | Gate | Giữ |
 | `tier_unlock_ascension` | A3/A4/A6/A7/A9; N6 = thắng Full A9 | | Gate | |
-| `mission_payout_cap` | 20.000 | ≥ 20.000 | Gate | Liam chấp nhận; N6 phụ thuộc (G2) |
+| `mission_payout_cap` | 20.000 | ≥ 20.000 | Gate | Liam giữ (G2, 13/10); N6 bị kẹp theo trần |
 | `mission_stone_day_cap` | 150 | 100–200 | Gate | |
 | `tier_stone[6]` | 4/8/14/22/34/60 | ×0,5–×2,5 | Curve | |
 | `phat_min_runs` | 10 | 5–20 | Feel | |
@@ -299,7 +309,7 @@ Mọi số nằm trong `assets/data/` hoặc cấu hình server.
 | RTP heavy N1–N4 | ≤ 1,01 | 1,01–1,05 | > 1,05 |
 | p99 lãi ròng 28 ngày | ≤ 25% thu nhập | 25–40% | > 40% |
 
-Ngưỡng xanh nới hơn bản chiều (WAU 15% → 12%, bỏ sau 1 lần 50% → 60%, RTP đáy 0,75 → 0,70) vì bản cực khó dự kiến mất người sớm hơn. Đây là số tôi đề xuất; đổi theo Liam (G5). Đỏ về retention hoặc đuổi theo thì rút lại.
+Ngưỡng xanh nới hơn bản chiều (WAU 15% → 12%, bỏ sau 1 lần 50% → 60%, RTP đáy 0,75 → 0,70) vì bản cực khó dự kiến mất người sớm hơn. Liam duyệt ngưỡng nới (G5, 13/10). Đỏ về retention hoặc đuổi theo thì rút lại.
 
 ## 9. Acceptance Criteria
 
@@ -326,20 +336,14 @@ Ngưỡng xanh nới hơn bản chiều (WAU 15% → 12%, bỏ sau 1 lần 50% �
 3. Ít nhất 1/8 người chơi giỏi thắng được N3 trong 5 lần thử (kiểm bậc không "bất khả thi" với người giỏi).
 4. 4 tuần soft launch: §8 không hàng đỏ.
 
-## 10. Danh hiệu A5 và A10 (Liam bảo agent đề xuất)
+## 10. Danh hiệu A5 và A10 — ĐÃ CHỐT (Liam 13/10)
 
-Cosmetic, không cho sức mạnh (quyết định 11/10 mục 7). Nhớ lại: A5 Eternal Gift (relic elite bị ấn Eternal, không đổi/bán được); A10 Last Stand (mọi boss ép pact, không reroll thẻ). Mỗi bậc 3 lựa chọn, tên Việt / English; khuyến nghị đánh dấu (R).
+Cosmetic, không cho sức mạnh (quyết định 11/10 mục 7). A5 Eternal Gift (relic elite bị ấn Eternal, không đổi/bán được); A10 Last Stand (mọi boss ép pact, không reroll thẻ).
 
 | | Việt | English | Ý |
 |---|---|---|---|
-| **A5 (1)** | **Người Giữ Ấn (R)** | Sigilbearer | Mang ấn Eternal qua cả run |
-| A5 (2) | Kẻ Mang Của Vĩnh Cửu | Keeper of the Eternal | Gần chữ A5 nhất, hơi dài |
-| A5 (3) | Bàn Tay Không Buông | Unyielding Grip | Nhấn việc không bán/đổi được |
-| **A10 (1)** | **Người Đứng Cuối (R)** | The Last Standing | Last Stand sát nghĩa, dễ đọc |
-| A10 (2) | Kẻ Gánh Mọi Giao Kèo | Pactbearer | Nhấn pact ép ở mọi boss |
-| A10 (3) | Chủ Của Ván Cuối | Master of the Last Hand | Hợp theme xúc xắc |
-
-Khuyến nghị (1) cho cả hai: ngắn, dùng được trên nameplate, không trùng tên tính năng. Liam chọn, tôi không tự khoá.
+| **A5** | **Người Giữ Ấn** | Sigilbearer | Mang ấn Eternal qua cả run |
+| **A10** | **Người Đứng Cuối** | The Last Standing | Last Stand sát nghĩa, dễ đọc |
 
 ## 11. Tự chỉnh m theo bậc (Bayes) — giữ nguyên luật, cập nhật prior
 
@@ -360,13 +364,14 @@ Tất cả dưới R_hi 0,95: ở bản cực khó §11 hầu như không hạ `
 
 ---
 
-## 12. Câu hỏi mở cho Liam (bản đầy đủ ở `pending-decisions.md` mục G)
-1. **G1** RTP toàn dân ~0,70–0,75, sát hoặc dưới đích 0,75. Chấp nhận, hay hạ d N1–N2 (~0,70) để lên ~0,78?
-2. **G2** Trần payout 20.000 kẹp N6 ở m = 8 (heavy nhận lại 0,41). Giữ N6 là bậc danh hiệu, hay nâng trần (~42.000) để N6 là cược lớn thật?
-3. **G3** Bỏ giới hạn "tối đa 2 luật thêm", cho tới 5 luật ở N6: duyệt?
-4. **G4** Duyệt M6 Quân dày + M7 Elite hung và việc sửa `mission_mods`/engine (§7), kèm bump `RULES_VERSION`.
-5. **G5** Ngưỡng telemetry nới (§8) và chọn tên A5/A10 (§10).
-6. **G6** Giữ hay bỏ điều kiện phụ (Một nhà, Đa sắc) ở bản cực khó.
+## 12. Câu hỏi mở — ĐÃ TRẢ LỜI (Liam 13/10, `pending-decisions.md` mục H)
+1. **G1** RTP toàn dân ~0,70–0,75: **chấp nhận**, không hạ d N1–N2.
+2. **G2** Trần payout 20.000: **giữ**, N6 là bậc danh hiệu.
+3. **G3** Bỏ "tối đa 2 luật thêm", N6 có 5 luật: **đồng ý**.
+4. **G4** M6 Quân dày + M7 Elite hung, sửa `mission_mods`/engine (§7), bump `RULES_VERSION`: **đồng ý**.
+5. **G5** Tên A5 "Người Giữ Ấn", A10 "Người Đứng Cuối" (§10); ngưỡng telemetry nới (§8) giữ như đề xuất.
+6. **G6** Điều kiện phụ (Một nhà, Đa sắc): **giữ**.
+Thêm: bỏ cuộc = mất cược, không nhận R (trả lời review mục 4).
 
 ---
 
@@ -380,13 +385,15 @@ Tất cả dưới R_hi 0,95: ở bản cực khó §11 hầu như không hạ `
 1. **N1 d = 0,95 vs 1,00.** Bảng d tự cộng ra 1,00. Dùng 1,00 thì heavy N1 RTP = 0,968 (an toàn), m 2,15 vẫn dùng được (hoặc 2,20). Khuyến nghị: đổi cả §4 sang d = 1,00. Giữ 0,95 thì heavy N1 = 0,995, sát ngưỡng 1,01 của §8.
 2. **RTP toàn dân bị chặn quanh 0,75.** Heavy ≈1,00 và chiếm ~54% khối lượng cược nên không chỉnh d nào đưa toàn dân lên 0,78 (sửa ở §4.3). Đích "0,75–0,95" của Liam và "heavy ≤ 1,00 ở N1–N4" chỉ cùng đứng được nếu heavy mua ít hơn giả định. Khuyến nghị: nói thẳng với Liam, hoặc m = 0,95/p_heavy cho N1–N4 (heavy ~0,95, toàn dân ~0,72) và chấp nhận dải xanh 0,70–0,95 ở §8 như đã nới.
 3. **N5 farm được.** Giỏi hơn heavy 0,5 logit thì RTP 1,31 ở N5 (§4.4 chỉ nói N4 và N6). Cần: nâng `m_scale` init N5 xuống ~0,80, hoặc cho §11 một mốc tối đa theo p99 từng tài khoản, hoặc `account_cap` run/bậc/ngày riêng cho N4–N5 (đây là quyết định thiết kế, không tự sửa).
-4. **Shard R khi thua/bỏ.** §0 và §3.5 nói "R trả như run thường" kể cả thua. R = 450 là trung bình run đủ dài; cược N1 chỉ 300. Nếu R không phụ thuộc tiến độ thì mua N1 rồi bỏ ngay vẫn lãi ròng +150 (farm không rủi ro, phá cả bài test risk-to-earn). Cần ghi rõ: R theo tiến độ run, bỏ ngay sau khi mua R = 0 (hoặc tối thiểu), và bảng "Net" §4.2/§4.3 tính có/không R.
+4. **Shard R khi thua/bỏ.** *(Liam 13/10: bỏ cuộc = không nhận R; đã sửa §0, §3.5, §4, §6. Phần dưới là lập luận gốc.)* §0 và §3.5 nói "R trả như run thường" kể cả thua. R = 450 là trung bình run đủ dài; cược N1 chỉ 300. Nếu R không phụ thuộc tiến độ thì mua N1 rồi bỏ ngay vẫn lãi ròng +150 (farm không rủi ro, phá cả bài test risk-to-earn). Cần ghi rõ: R theo tiến độ run, bỏ ngay sau khi mua R = 0 (hoặc tối thiểu), và bảng "Net" §4.2/§4.3 tính có/không R.
 5. **Hoàn cược khi verifier timeout.** Không tái lập thì hoàn 100%: kẻ gian có thể gửi log nặng đúng lúc sắp thua. Cần trần hoàn/ngày/tài khoản và đếm tần suất theo tài khoản (không chỉ cờ C10 khi tái lập được).
 6. **N1 và N2 gần như trùng:** cùng bộ luật, p chênh 4 điểm, m 2,15 vs 2,40, đều "heavy hòa vốn". Khác nhau thật chỉ là cược 300 vs 500 và A3/A4. Không vô nghĩa nhưng yếu về nấc thang: casual thua ~86% ở N1, nên với casual N1 đã là bậc "cực khó". Cân nhắc N1 d thấp hơn (hạ tới ~0,70) cho một bậc làm quen thật, với m dựng lại.
 7. **Tên khoá `enemy_hp` trùng** `RunState.run_mods["enemy_hp"]` và `_run_mod("enemy_hp")` (curse/event, `combat_engine.gd` ~1740), mà khoá đó nhân vào *budget* (ảnh hưởng cả HP lẫn số quái/xúc xắc). M6 muốn "chỉ HP quái thường" thì phải nhân per-monster như `mods.hp`, không qua budget, và đặt tên khác (vd `normal_hp`). M7 `elite_dmg` cũng phải nhân per-monster, chỉ elite. Quy tắc làm tròn HP (ceil/round) chưa nêu.
 8. **Stack dmg elite ở N6**: 1,10 × 1,15 × 1,25 = ×1,58, thêm clock +100%. Cộng logit d = 2,00 gần như chắc chắn thấp hơn thực tế; SIM §4.5 phải chạy N5/N6 trước khi tin bảng. `full_exponent` 1,5 chưa verify quyết định cả N6 (0,4/1,4/5,1%).
 9. **`mission_rules.json` `_doc` và `ContentDB`** còn ghi "≤2 rule per offer"; cần sửa kèm bump `RULES_VERSION`. Kiểm xem có chỗ nào (bảng ngày, server) thực sự chặn >2 luật.
 10. **Stone**: 4–60 Stone/lần thắng và trần 150/ngày không bao giờ chạm (heavy thắng vài lần/ngày); AC 9 gần như tầm thường. Nhà cấp 4 cần 30.000 Stone thì Nhiệm vụ gần như không đóng góp Stone nào: Stone phải đến từ nguồn khác, nên "nâng nhà bằng Shard + Stone" thực chất là cổng Stone.
+
+Liam 13/10: chấp nhận RTP thấp; không hạ N1–N2.
 
 **Exploit khác đã xét, ổn:** bỏ để né thua (cược trừ lúc tạo run, seed server cấp, không lộ trước → không né được); đa tài khoản (Shard không chuyển được và khoản khởi đầu không dùng làm cược → không thấy đường lợi, miễn là Shard không trade); cày N1–N2 (heavy hòa vốn, người giỏi hơn có lợi nhưng cần nhiều lần mua, một run mở/lần, §11 bắt xu hướng). Lỗ hổng đáng lo nhất là mục 4 và 3.
 
