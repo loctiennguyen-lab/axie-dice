@@ -67,5 +67,6 @@ sẵn** · báo lỗi bằng **một Google Sheet** (Liam làm) · Cloudflare g�
 ## Đã xong (để tham chiếu)
 
 - [x] Worker deploy 13/10 (migration 0001–0005, token kid/jti, quà mùa, Continue boss 180) — Liam.
+- [x] Worker deploy lần 2, 13/10 14:39 (version eb839d69): nhận RULES_VERSION -k, ghi số liệu run (B4), Continue miễn phí người mới (B10) — Liam.
 - [x] Merge đêm 12→13/10: A, B (bộ relic đủ, không còn relic ẩn), C (Atia 3D + 6 sân), E, L (Land 6 tier), U (combat v3), M (Run Setup, Echo Box, Nhiệm vụ, Store + Daily, Pass, Vault, Settings, Codex), S.
 - [x] Liam trả lời 16 câu (mục H) + luật Nhiệm vụ M6/M7, người mới = 5 run có trận, danh hiệu A5/A10 (merge 13/10, RULES_VERSION `-j`).
