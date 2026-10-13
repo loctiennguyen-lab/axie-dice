@@ -82,3 +82,4 @@ hạn/ngày, NFT dùng được) · UI request 02 + Round 1 · L1 = 3/11 nội b
 - Leaderboard = một công trình trên Land kiểu bảng thông báo. Lane I chọn asset HomeLand `SM_Billboard_Big` (tấm biển gỗ chim kéo), đặt ở ô Mastery Hall cũ, phím B. Dự phòng: cột cờ ConsumableStall.
 - Unlocks nằm trong Profile.
 - Mastery Hall: chưa làm ở bản này (bỏ khỏi Land, dock, phím).
+- (Liam 13/10) Save cũ v1 (trước kinh tế v2): GIỮ THIẾT KẾ — reset toàn bộ Shard, unlock, perk, XP, Pass khi chuyển; giữ runs/wins/best/asc_max/settings; có bản .bak.
