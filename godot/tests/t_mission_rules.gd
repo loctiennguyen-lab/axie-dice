@@ -150,6 +150,19 @@ func _ready() -> void:
 	_check(not ContentDB.mission_condition_met("one_house", TEAM), "five classes are not one house")
 	_check(ContentDB.mission_condition_met("multicolor", TEAM) and not ContentDB.mission_condition_met("multicolor", ["plant1", "beast1"]), "multicolor needs 4 classes")
 
+	# --- H6: abandoning banks no per-run Shard; a normal loss still banks R ---
+	RunState.start_new_run_seeded(5, {"team_keys": TEAM, "mode": "short", "ascension": 4, "ranked": false})
+	RunState.shards_this_run = 70
+	var before: int = MetaState.shard_pool
+	RunState.clear_saved_run()   # exactly what SettingsView ABANDON does (no end_run)
+	RunState.reset()
+	_check(MetaState.shard_pool == before and RunState.shards_this_run == 0, "abandon banks 0 Shard (R dropped)")
+	RunState.start_new_run_seeded(5, {"team_keys": TEAM, "mode": "short", "ascension": 4, "ranked": false})
+	RunState.shards_this_run = 70
+	before = MetaState.shard_pool
+	RunState.end_run(false)
+	_check(MetaState.shard_pool - before >= 70, "a normal loss still banks R (>= 70, extras are other bonuses) (%d)" % (MetaState.shard_pool - before))
+
 	if _fails.is_empty():
 		print("t_mission_rules: PASS — %d checks OK" % _checks)
 		_guard.restore()
