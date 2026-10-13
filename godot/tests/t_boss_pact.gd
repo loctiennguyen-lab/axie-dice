@@ -155,8 +155,21 @@ func _refused(log: ActionLog, tape: Array, what: String) -> void:
 	_assert(not bool(v["ok"]) and String(v["error"]) == RunVerifier.ERR_REJECTED, "%s: refused (got %s)" % [what, str(v["error"])])
 
 
+## Bot run that reaches a boss pact. A bot can die before the boss depending on meta state (unlocks, perks)
+## that lives in the user dir, so meta is blanked first and a handful of seeds are tried; the seeds are fixed.
+func _bot_run_with_pact(asc: int) -> Dictionary:
+	MetaState.unlocks.clear()
+	MetaState.perks = {}
+	MetaState.runs_with_battle = 0
+	for sd in [991237, 991238, 991239, 4242, 4243, 4244, 7001, 7002, 7003, 12345]:
+		var r := RunBot.play_run(sd, REPLAY_TEAM, "short", asc)
+		if _pact_index(r["log"]) >= 0:
+			return r
+	return RunBot.play_run(991237, REPLAY_TEAM, "short", asc)
+
+
 func test_verifier_refusals() -> void:
-	var played := RunBot.play_run(991237, REPLAY_TEAM, "short", 0)
+	var played := _bot_run_with_pact(0)
 	var log: ActionLog = played["log"]
 	var pi := _pact_index(log)
 	_assert(pi >= 0, "bot run recorded a pact_pick")
@@ -180,7 +193,7 @@ func test_verifier_refusals() -> void:
 	t.entries[pi] = {"fn": "reroll_rewards", "args": []}
 	_refused(t, played["tape"], "reroll_rewards while a pact is pending")
 	# Forced skip: a run at A6 whose first boss pact was edited into a skip.
-	var p6 := RunBot.play_run(991237, REPLAY_TEAM, "short", 6)
+	var p6 := _bot_run_with_pact(6)
 	var l6: ActionLog = p6["log"]
 	var p6i := _pact_index(l6)
 	_assert(p6i >= 0, "A6 bot run reached a boss pact")
