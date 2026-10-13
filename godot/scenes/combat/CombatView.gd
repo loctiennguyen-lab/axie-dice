@@ -988,42 +988,63 @@ func _update_hud() -> void:
 	_layout_tray()
 
 
-## STUB Aid data (lane E's AidCatalog.offer() replaces `rows`; lane A the rule effects). Prices are
-## PA-1: Extra reroll 15, Delay boss clock 60, Swap pact 15, Continue 90 (180 in a boss fight).
+## Aid tray. Prices, caps and "offered now" come from AidCatalog (aid_prices.json, one source, equal to the
+## server's worker/src/aid_prices.js); the balance is MetaState's Gem wallet (local or remote). Buying goes
+## through AidPurchase. R4 (delay clock) and R5 (pact swap) are not wired in this lane yet.
 func _update_aid(hs: Dictionary, executing: bool) -> void:
 	if _aid == null:
 		return
 	var newcomer := bool(hs.get("newcomer", false))
 	var boss_fight := String(_setup.get("kind", "")) == "boss"
-	var asc := RunState.ascension
-	var cap := 4 if asc >= 9 else 6
-	var clock_on := bool((hs.get("clock", {}) as Dictionary).get("active", false))
+	var gems := MetaState.gem_wallet().balance()
+	var o2 := AidPurchase.offer("extra_reroll", _combat, _tutorial)
+	var cap := int(o2["cap"])
+	var used := int(o2["used"])
+	var r2_used := 0
+	for u in RunState.aid_uses_view():
+		if String((u as Dictionary).get("aid", "")) == "R2":
+			r2_used += 1
+	var r2_ok := executing and bool(o2["enabled"])
+	var r2_reason := "" if r2_ok else (AidPurchase.reason_text(String(o2["reason"])) if executing else "Not now")
+	if String(o2["reason"]) == "not_now":
+		r2_reason = "Only with no rerolls left"
 	var rows := [
-		{"id": "extra_reroll", "title": "Extra reroll", "price": 15, "icon": HudKit.icon("reroll"),
-			"cap_text": "fight 0/1 %s run 0/4" % HudKit.dot(), "enabled": executing, "reason": ""},
-		{"id": "delay_clock", "title": "Delay boss clock", "price": 60, "icon": HudKit.icon("boss-clock"),
-			"cap_text": "1 per boss", "enabled": executing and boss_fight and clock_on,
-			"reason": "Boss only"},
-		{"id": "swap_pact", "title": "Swap pact", "price": 15, "icon": HudKit.icon("pact"),
+		{"id": "extra_reroll", "title": "Extra reroll", "price": AidPurchase.list_price("R2"), "icon": HudKit.icon("reroll"),
+			"cap_text": "run %d/%d" % [r2_used, AidPurchase.cap_run("R2")], "enabled": r2_ok, "reason": r2_reason},
+		{"id": "delay_clock", "title": "Delay boss clock", "price": AidPurchase.list_price("R4"), "icon": HudKit.icon("boss-clock"),
+			"cap_text": "1 per boss", "enabled": false, "reason": "Coming soon"},
+		{"id": "swap_pact", "title": "Swap pact", "price": AidPurchase.list_price("R5"), "icon": HudKit.icon("pact"),
 			"cap_text": "1 per pact", "enabled": false, "reason": "Pact screen only"},
-		{"id": "continue", "title": "Continue", "price": 180 if boss_fight else 90,
+		{"id": "continue", "title": "Continue", "price": AidPurchase.list_price("R1", boss_fight),
 			"icon": HudKit.icon("aid"), "cap_text": "1 per run", "enabled": false,
 			"reason": "Defeat screen only"},
 	]
 	var offer := {}
-	if executing and _combat.rerolls <= 0 and not _aid_offer_dismissed:
-		offer = {"id": "extra_reroll", "title": "Extra reroll", "price": 15,
+	if r2_ok and not _aid_offer_dismissed:
+		offer = {"id": "extra_reroll", "title": "Extra reroll", "price": int(o2["price"]),
 			"what": "+1 reroll this turn.", "icon": HudKit.icon("reroll"),
 			"cap_text": "+1 reroll this turn",
-			"caps": ["This fight (A3+) 0 of 1", "Aid this run 0 of %d" % cap]}
+			"caps": ["Aid this run %d of %d" % [used, cap]]}
 	for r in rows:
-		r["gems"] = int(MetaState.get("gems")) if "gems" in MetaState else 0
-	_aid.set_state({"enabled": not newcomer and not _tutorial, "used": 0, "cap": cap,
+		r["gems"] = gems
+	_aid.set_state({"enabled": not newcomer and not _tutorial, "used": used, "cap": cap,
 		"rows": rows, "offer": offer})
 
 
 func _on_aid_purchase(aid_id: String) -> void:
-	_append_log("[aid] STUB purchase '%s' - not wired yet (lane A rules / lane E catalog)" % aid_id)
+	if aid_id != "extra_reroll":
+		_append_log("[aid] '%s' is not available in this build" % aid_id)
+		return
+	var uids: Array = []
+	for u in _party_dice_units():
+		if u.hp > 0 and u.has_rolled() and not u.roll_used() and not u.heavy and not u.frozen:
+			uids.append(u.uid)
+	var res := AidPurchase.buy(aid_id, _combat, uids, _tutorial)
+	_append_log("[aid] %s : %s" % [aid_id, "ok (-%d Gem)" % int(res["charged"]) if bool(res["ok"]) else String(res["code"])])
+	if bool(res["ok"]):
+		_selected_die_uid = -1
+		_rebuild_all()
+		_save_run_progress()
 
 
 ## "Act 1 . Floor 3 . 3-foe fight" (turn plate sub-line). STUB: the act split is not in the run
@@ -3240,8 +3261,7 @@ func _show_defeat_panel() -> void:
 		_defeat.z_index = 40
 		_shell_root.add_child(_defeat)
 		_defeat.end_run_pressed.connect(_on_defeat_end_run)
-		_defeat.continue_pressed.connect(func():
-			_append_log("[aid] STUB Continue - lane A continue_after_wipe not wired yet"))
+		_defeat.continue_pressed.connect(_on_defeat_continue)
 	var hs: Dictionary = _hud if not _hud.is_empty() else _hud_state()
 	var kind := String(_setup.get("kind", "battle"))
 	var asc := RunState.ascension
@@ -3263,21 +3283,21 @@ func _show_defeat_panel() -> void:
 		if u.roster_index >= 0:
 			party.append({"name": u.n, "max_hp": u.max_hp})
 	var newcomer := bool(hs.get("newcomer", false))
-	var gift := newcomer and asc <= 2 and (kind == "elite" or kind == "boss")
-	var moon := bool(MetaState.get("vip")) if "vip" in MetaState else false
+	var co := AidPurchase.offer("continue", _combat, _tutorial)
 	var boss_fight := kind == "boss"
-	var price := 180 if boss_fight else 90
-	var was := 0
+	var price := AidPurchase.list_price("R1", boss_fight)
 	var usd := "%s %.2f USD" % [HudKit.glyph(0x2248, "~"), float(price) / 90.0]
 	var variant := "paid"
-	if gift:
-		variant = "gift"
-		usd = "first elite or boss loss %s A0-A2" % HudKit.dot()
-	elif moon:
+	var was := 0
+	var moon := bool(co.get("show", false)) and int(co["price"]) != price and int(co["price"]) > 0
+	if moon:
 		was = price
-		price = 135 if boss_fight else 68
+		price = int(co["price"])
 		variant = "moon"
 		usd = "%s %.2f USD" % [HudKit.glyph(0x2248, "~"), float(price) / 90.0]
+	if not bool(co["enabled"]):
+		usd = AidPurchase.reason_text(String(co["reason"]))
+	var gift := false
 	var keep := ""
 	if not boss_d.is_empty():
 		keep = "Boss stays at %d HP, phase %d.%s" % [int(boss_d["hp"]), int(boss_d["phase"]),
@@ -3289,13 +3309,26 @@ func _show_defeat_panel() -> void:
 		"title_line": "%s %s A%d %s your party fell on turn %d" % [
 			"Boss fight" if boss_fight else ("Elite fight" if kind == "elite" else "Fight"),
 			HudKit.dot(), asc, HudKit.dot(), _combat.turn],
-		"boss": boss_d, "recap": rows, "aid_used": 0, "aid_cap": 4 if asc >= 9 else 6,
+		"boss": boss_d, "recap": rows, "aid_used": int(co["used"]), "aid_cap": int(co["cap"]),
 		"continue_left": 1, "heal_pct": 25 if asc >= 6 else 40, "party": party,
 		"keep_line": keep,
 		"enrage_reset_line": "Enrage resets to 'Enrage in 10'." if clock_on else "",
 		"attrition_reset_line": "" if newcomer else "Attrition resets to 0%.",
 		"price": price, "price_was": was, "usd": usd, "variant": variant,
+		"continue_show": not newcomer and not _tutorial, "continue_enabled": bool(co["enabled"]),
+		"continue_reason": AidPurchase.reason_text(String(co["reason"])),
 		"foot": "Continue is offered once per run." if not gift else "This gift is offered once per account and is used as the run's Continue."})
+
+
+func _on_defeat_continue() -> void:
+	var res := AidPurchase.buy("continue", _combat, [], _tutorial)
+	_append_log("[aid] continue : %s" % ("ok (-%d Gem)" % int(res["charged"]) if bool(res["ok"]) else String(res["code"])))
+	if not bool(res["ok"]):
+		return
+	if _defeat != null:
+		_defeat.visible = false
+	_rebuild_all()
+	_save_run_progress()
 
 
 func _on_defeat_end_run() -> void:
