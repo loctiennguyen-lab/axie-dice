@@ -159,6 +159,7 @@ func _ready() -> void:
 		if not live_ids.has(String(pl["id"])):
 			_plots.append(pl)
 	_load_houses()
+	RunState.discard_unresumable_run()
 	_has_run = _force_run or _has_open_run()
 	_build_world()
 	_build_ground()
@@ -168,6 +169,9 @@ func _ready() -> void:
 	for i in WANDERERS:
 		_spawn_axie()
 	_layout()
+	var _notice := RunState.take_discard_notice()
+	if _notice != "":
+		_show_toast(_notice, 5.0)
 	_account_entered.call_deferred()
 	if _should_show_moon_card():
 		show_moon_card.call_deferred()
@@ -1055,7 +1059,7 @@ func _build_toast() -> void:
 	_ui.add_child(_toast)
 
 
-func _show_toast(text: String) -> void:
+func _show_toast(text: String, hold: float = 1.6) -> void:
 	(_toast.get_child(0) as Label).text = text
 	_toast.visible = true
 	_toast.modulate.a = 1.0
@@ -1064,7 +1068,7 @@ func _show_toast(text: String) -> void:
 	if _toast_tween != null:
 		_toast_tween.kill()
 	_toast_tween = create_tween()
-	_toast_tween.tween_interval(1.6)
+	_toast_tween.tween_interval(hold)
 	_toast_tween.tween_property(_toast, "modulate:a", 0.0, 0.4)
 	_toast_tween.tween_callback(func() -> void: _toast.visible = false)
 

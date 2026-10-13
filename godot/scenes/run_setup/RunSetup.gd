@@ -77,6 +77,7 @@ var _picker_grid: GridContainer
 
 
 func _ready() -> void:
+	RunState.discard_unresumable_run()
 	if party.is_empty():
 		party = _initial_party()
 	ascension = clampi(ascension, 0, ascension_ceiling())
@@ -84,6 +85,13 @@ func _ready() -> void:
 	if use_account:
 		state = account_state()
 	set_state(state)
+	var _notice := RunState.take_discard_notice()
+	if _notice != "":
+		var l := Label.new()
+		l.text = _notice
+		l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		_banner_host.add_child(l)
 
 
 ## Run Setup state from the account: only a signed-in player who lost the connection is

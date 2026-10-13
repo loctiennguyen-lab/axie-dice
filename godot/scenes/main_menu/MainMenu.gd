@@ -256,6 +256,7 @@ func _build_title_block() -> void:
 	_new_run_button = _build_begin_run_button()
 	buttons.add_child(_new_run_button)
 
+	RunState.discard_unresumable_run()
 	if RunState.has_saved_run():
 		_continue_button = _build_continue_run_button()
 		buttons.add_child(_continue_button)

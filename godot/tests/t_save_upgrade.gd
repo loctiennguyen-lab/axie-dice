@@ -25,6 +25,10 @@ func _ready() -> void:
 	test_v2_run_resumes()
 	test_other_version_run_refused_and_state_untouched()
 	test_garbage_files_do_not_crash()
+	test_rules_mismatch_refused_and_discarded_with_message()
+	test_missing_rules_version_refused()
+	test_v1_run_discarded_and_escrow_settled()
+	test_save_run_writes_rules_version()
 	_guard.restore()
 	print("=== t_save_upgrade: %d checks, %d failure(s) ===" % [_checks, _fails.size()])
 	if _fails.is_empty():
@@ -90,18 +94,28 @@ func test_v2_meta_kept_verbatim() -> void:
 	_ok(not SaveStore.exists_as(SaveStore.profile, MetaState.V1_BACKUP_PATH), "v2: spurious v1 backup")
 
 
+## Old v2 fixtures predate rules_version; stamp the current one so they stay a "resumable" case.
+func _stamped(run_fx: String, rules: Variant) -> String:
+	var d: Dictionary = JSON.parse_string(_fx(run_fx))
+	if rules == null:
+		d.erase("rules_version")
+	else:
+		d["rules_version"] = rules
+	return JSON.stringify(d)
+
+
 func _resume(run_fx: String) -> void:
 	var raw: Dictionary = JSON.parse_string(_fx(run_fx))
-	_install("", _fx(run_fx))
+	_install("", _stamped(run_fx, ActionLog.RULES_VERSION))
 	_ok(RunState.has_saved_run(), run_fx + ": not detected")
 	_ok(RunState.load_run(), run_fx + ": load_run returned false")
 	var rd: Dictionary = raw["run"]
 	_ok(RunState.run_seed == int(rd["run_seed"]), run_fx + ": seed")
 	_ok(RunState.roster.size() == (rd["roster"] as Array).size(), run_fx + ": roster")
 	_ok(RunState.current_node_id == String(rd["current_node_id"]), run_fx + ": node")
-	_ok(RunState.mission_escrow.is_empty() or RunState.mission_escrow is Dictionary, run_fx + ": escrow type")
+	_ok(MetaState.mission_escrow is Dictionary, run_fx + ": escrow type")
 	_ok(RunState.resume_combat.is_empty() == (raw["combat"] as Dictionary).is_empty(), run_fx + ": combat slot")
-	_ok(not RunState.map_graph.is_empty() and RunMapGraph.from_data(RunState.map_graph).find_node(RunState.current_node_id) != null, run_fx + ": map/current node broken")
+	_ok(not RunState.map_graph.is_empty() and (RunState.current_node_id == "" or RunMapGraph.from_data(RunState.map_graph).find_node(RunState.current_node_id) != null), run_fx + ": map/current node broken")
 
 
 ## Finding B9-1: a v1 run save (pre-21/09) is refused by load_run (SAVE_VERSION 2). Clean (no crash, state
@@ -110,7 +124,8 @@ func test_v1_run_cleanly_refused() -> void:
 	_install("", _fx("v1_run.json"))
 	RunState.reset()
 	var before := RunState.run_seed
-	_ok(RunState.has_saved_run(), "v1_run: not detected")
+	_ok(RunState.saved_run_file_exists(), "v1_run: not detected")
+	_ok(not RunState.has_saved_run() and RunState.saved_run_status()["reason"] == "version", "v1_run: should not count as resumable")
 	_ok(not RunState.load_run(), "v1_run: expected refusal (version 1)")
 	_ok(RunState.run_seed == before and RunState.roster.is_empty(), "v1_run: refused load changed RunState")
 
@@ -137,3 +152,51 @@ func test_garbage_files_do_not_crash() -> void:
 		_install(junk, "")
 		MetaState.reload_from_store()
 		_ok(MetaState.shard_pool >= 0, "junk meta crashed/negative: " + junk)
+
+
+func _open_escrow() -> void:
+	MetaState.reload_from_store()
+	MetaState.mission_escrow = {"tier": "N1", "mission_id": "ms_test", "stake": 50, "payout": 120, "stone": 0, "t": 1}
+	MetaState.saved_run_probe = Callable()
+
+
+func test_rules_mismatch_refused_and_discarded_with_message() -> void:
+	_install("", _stamped("v2_old_run.json", "godot-1999-01-01-a"))
+	_open_escrow()
+	var shards_before: int = MetaState.shard_pool
+	var st := RunState.saved_run_status()
+	_ok(bool(st["exists"]) and not bool(st["resumable"]) and st["reason"] == "rules", "rules mismatch: status")
+	_ok(not RunState.has_saved_run(), "rules mismatch: has_saved_run must be false (no CONTINUE)")
+	_ok(not RunState.load_run(), "rules mismatch: load_run must refuse")
+	RunState.take_discard_notice()
+	_ok(RunState.discard_unresumable_run(), "rules mismatch: not discarded")
+	_ok(not RunState.saved_run_file_exists(), "rules mismatch: file not erased")
+	_ok(RunState.take_discard_notice() == RunState.DISCARD_MESSAGE, "rules mismatch: message not set")
+	_ok(RunState.take_discard_notice() == "", "rules mismatch: message should show once")
+	_ok(MetaState.mission_escrow.is_empty(), "rules mismatch: escrow not settled")
+	_ok(MetaState.shard_pool == shards_before, "rules mismatch: loss must not pay out")
+
+
+func test_missing_rules_version_refused() -> void:
+	_install("", _stamped("v2_old_run.json", null))
+	_ok(RunState.saved_run_status()["reason"] == "rules" and not RunState.load_run(), "v2 without rules_version must be refused")
+	_ok(RunState.discard_unresumable_run(), "missing rules: discard should act")
+
+
+func test_v1_run_discarded_and_escrow_settled() -> void:
+	_install("", _fx("v1_run.json"))
+	_open_escrow()
+	_ok(not RunState.has_saved_run(), "v1 run: has_saved_run must be false")
+	_ok(RunState.discard_unresumable_run() and not RunState.saved_run_file_exists(), "v1 run: not discarded")
+	_ok(MetaState.mission_escrow.is_empty(), "v1 run: escrow not settled")
+	_ok(RunState.take_discard_notice() != "", "v1 run: no message")
+	_ok(not RunState.discard_unresumable_run(), "nothing left to discard")
+
+
+func test_save_run_writes_rules_version() -> void:
+	_install("", _stamped("v2_old_run.json", ActionLog.RULES_VERSION))
+	_ok(RunState.load_run(), "setup load")
+	RunState.save_run({})
+	var d: Dictionary = JSON.parse_string(SaveStore.read_text(RunState.SAVE_PATH))
+	_ok(d.get("rules_version", "") == ActionLog.RULES_VERSION, "save_run must write rules_version")
+	_ok(RunState.has_saved_run(), "fresh save resumable")
