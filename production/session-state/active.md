@@ -2,9 +2,34 @@
 
 Cập nhật: 2026-10-12. Nhánh `godot-port`, push lên `axiedice` (`git push axiedice godot-port:main`).
 
-**Checklist L1 (đọc trước mỗi phiên): `production/l1-checklist.md`.** Quyết định trưa 13/10: `pending-decisions.md` mục I.
+## ⇢ BẮT ĐẦU TỪ ĐÂY (bàn giao chiều 13/10/2026 — session mới đọc mục này trước)
 
-## ⇢ BẮT ĐẦU TỪ ĐÂY (bàn giao sáng 13/10/2026 — sau đêm chạy liên tục)
+**Việc đầu tiên: mở `production/l1-checklist.md`** (checklist L1, ô `[ ]` = còn làm). Quyết định của Liam: `production/session-state/pending-decisions.md` mục F–K + các dòng cuối file (đã chốt, không hỏi lại).
+
+**godot-port = axiedice/main.** Suite cây chính **92/92 không SKIP**, Worker **152/152**. RULES_VERSION **`godot-2026-10-13-l`**
+(Worker `SUPPORTED_RULE_VERSIONS` có tới -l). **Worker đã deploy 13/10 16:13** (gồm -l, pact_pick, telemetry, Continue miễn phí).
+
+**Đã xong chiều 13/10 (đều qua review + suite):** B1 (điều kiện bật online), B2 (Aid/Continue trừ Gem), B3 code (màn đăng nhập),
+B4 (số liệu + `worker/sql/l1_report.sql`), B5 (Nhiệm vụ N1–N3 + số bản cực khó -k), B6 (boss/elite đủ model), B9 (save cũ), B10
+(Continue miễn phí người mới), B12 (cosmetics trong game), C1 (màn pact, -l), C3 (menu trong run), C5 (Land hub v5), C11 (cosmetics v8).
+
+**Đang dở khi chuyển session (agent đã dừng cùng session cũ — kiểm tra rồi review + merge):**
+- l1/L có commit chưa merge: cd2475b (Land v5: "5 runs" từ data, nút + Gem 44 px, chạm-để-xem, UI scale 0.85) — review FIX FIRST:
+  `_is_touch()` chỉ dựa `is_touchscreen_available()` → laptop cảm ứng click chuột cũng 2 bước; cần chốt touch khi có
+  InputEventScreenTouch thật + test HUD không đè dock ở scale 1.275. Đã có commit sửa 1cd678d (touch chỉ bật khi chạm thật + test HUD ở 1.275) — CHƯA review: cho agent khác review cd2475b..1cd678d rồi merge.
+- l1/C: bỏ hẳn FrontLine (Liam chọn C) — agent có thể đã commit hoặc chưa (`git -C ../my-game-wt/C log godot-port..l1/C`, `git status`).
+- Worktree R: file nháp `godot/tests/qa_b12_capture.*` untracked — xoá.
+
+**Việc kế tiếp theo checklist:** B1 phần cuối (bật cờ remote trong `project.godot` [axie] + chạy trọn 1 run thật trên Worker),
+B3 (Liam thử đăng nhập Google trên bản Mac/Win), B7 (build lại Mac Apple Silicon + Win), B8 (web), B11 (Aid R4/R5), C2 (Daily/Ranked),
+C6 (màn R3 còn lại: Team presets, Leaderboard, Profile R3, Land upgrade), C7, C8, C9, rồi D1–D7 theo lịch.
+
+**Bẫy quan trọng (đã cắn hôm nay):** merge commit đã review chứ không merge đầu nhánh; không `| tail -1` output merge (giấu CONFLICT);
+test ở worktree xanh vẫn có thể đỏ ở cây chính vì save thật của Liam (có run_save + meta cũ) → test phải SaveGuard + tự đặt trạng thái
+(newcomer, saved_run_probe); vòng chờ `until … pgrep run_tests` không bao giờ thoát nếu worktree khác đang chạy suite. Xem memory
+`lane-merge-pitfalls`.
+
+## (cũ) bàn giao sáng 13/10/2026 — sau đêm chạy liên tục)
 
 **godot-port = axiedice/main** (đã push). Suite cây chính **85/85 không SKIP**, Worker **141/141**. RULES_VERSION
 `godot-2026-10-13-i`. Mức sàn trong `.claude/docs/technical-preferences.md` đã cập nhật (file đó nằm trong .gitignore, chỉ trên máy).
