@@ -49,3 +49,21 @@ hạn/ngày, NFT dùng được) · UI request 02 + Round 1 · L1 = 3/11 nội b
 - [S, 12/10] Run token revocation: only the newest jti (minted at create and every /api/run/open) passes hello; legacy tokens without jti are refused; hello fails closed if D1 errors. "Session alive" is NOT checked against sessions (token not bound to a session); logout does not revoke the run token. Lock = players.locked_at (migration 0005). shop_roll also consumed by shop_done, event_choice by event_done, reward_reroll by take_reward. Confirm or ask for session binding.
 - [E, 12/10] Hộp mùa: open_season làm theo §2.8 (5 vé/lượt, 8 lượt/ngày, N 10/20/40, Vault x2). Giữ enabled=false (UI lane M bật). Dup hộp mùa trả vé thẳng (2/4/8), không qua mảnh. 'Xác nhận lượt đầu' là việc UI. Danh hiệu/mốc cấp vào cosmetics_owned. Chờ Liam duyệt.
 - (Lane I, 13/10) Newcomer: client tính "người mới" = MetaState.runs < 5 (run đã kết thúc); Worker tính runs có battles_done ≥ 1; monetization-v1 §1.6 nói "run đã tạo" (kể cả bỏ dở). Anh chốt một định nghĩa. Từ -i, run người mới local được giảm độ khó đúng thiết kế (không attrition, không đồng hồ nhẹ, ẩn Aid) — trước đó vô tình không bao giờ bật.
+
+## H. Liam trả lời sáng 13/10 (đã chốt, không hỏi lại)
+1. RTP Nhiệm vụ ~0,70–0,75: CHẤP NHẬN (A) — game phải khó, người chơi phải khó chịu. Không hạ N1–N2.
+2. Trần payout 20.000 giữ; N6 là bậc danh hiệu (A).
+3. Bỏ giới hạn "tối đa 2 luật thêm" (N6 có 5 luật): ĐỒNG Ý.
+4. Luật mới M6 (quái thường HP ×1,20) + M7 (elite dmg ×1,25): ĐỒNG Ý → sửa mission_mods + engine + bump RULES_VERSION.
+5. Giữ điều kiện phụ (Một nhà, Đa sắc).
+6. Bỏ cuộc thì KHÔNG nhận R (Shard của run).
+7. Danh hiệu A5 = "Người Giữ Ấn", A10 = "Người Đứng Cuối".
+8. Eternal KHÔNG tính relic khởi đầu.
+9. breakersward giữ như đã làm (mọi đòn phá Shield + shatter).
+10. A9 giữ dòng "Elite row ahead".
+11. Người mới = dưới 5 run đã có ít nhất 1 trận (giống Worker).
+12. Việc tuần: 500 XP ngoài trần ngày; việc chưa nhận mất khi qua tuần. Đồng ý cả hai.
+13. Quà mùa: mốc 1 = 3 run, mốc 2 = 8 run, ân hạn 7 ngày: đồng ý.
+14. Ràng token với session: để sau L1 (không ảnh hưởng L1 vì cờ remote đang local).
+15. Hộp mùa: món trùng trả vé 2/4/8: đồng ý.
+16. KHÔNG thu nhỏ texture nguồn Land (Liam chưa xem Land thế nào; giữ nguyên chất lượng).
