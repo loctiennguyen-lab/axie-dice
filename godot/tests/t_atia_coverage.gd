@@ -16,6 +16,7 @@ func _ready() -> void:
 	print("=== t_atia_coverage: start ===")
 	test_frozen_key_list_matches_content()
 	test_every_key_resolves_to_a_valid_entry()
+	test_elites_and_bosses_are_fitted_and_animated()
 	test_unknown_key_falls_back_without_error()
 	print("=== t_atia_coverage: %d checks, %d failure(s) ===" % [_checks, _failures.size()])
 	if _failures.is_empty():
@@ -89,6 +90,21 @@ func test_every_key_resolves_to_a_valid_entry() -> void:
 				continue
 			_assert(clips.has(clip), "'%s' anim %s -> '%s' not in model (has %s)" % [key, slot, clip, clips.keys()])
 		inst.free()
+
+
+## B6: every elite/boss resolves to a real model (Atia or mascot) or its Chimera sprite, is sized
+## above rank-and-file (2.2 m), and a 3D one has at least an idle clip so it is never frozen.
+func test_elites_and_bosses_are_fitted_and_animated() -> void:
+	for pair in [[MonsterArt.ELITE_KEYS, false, 2.8], [MonsterArt.BOSS_KEYS, true, 4.0]]:
+		for key in pair[0]:
+			var e := MonsterArt.resolve(String(key), pair[1])
+			_assert(String(e.get("source", "")) != "" or String(e.get("kind")) == "glb", "'%s' registry entry has no source" % key)
+			if String(e.get("kind")) == "glb":
+				_assert(float(e.get("height_m", 0.0)) >= float(pair[2]), "'%s' height_m %s below %s" % [key, e.get("height_m"), pair[2]])
+				var a: Dictionary = e.get("anims", {})
+				_assert(a.has("idle") and (not pair[1] or a.has("die")), "'%s' glb needs idle (+ die for bosses), has %s" % [key, a.keys()])
+			else:
+				_assert(String(e.get("kind")) == "sprite", "'%s' is neither glb nor sprite" % key)
 
 
 func test_unknown_key_falls_back_without_error() -> void:

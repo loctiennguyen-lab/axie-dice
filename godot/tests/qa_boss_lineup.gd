@@ -20,12 +20,21 @@ func _ready() -> void:
 	await get_tree().process_frame
 	await get_tree().process_frame
 
-	for i in BOSS_ORDER.size():
-		stage.spawn_unit(100 + i, "bug", true, i, BOSS_ORDER.size(), true, String(BOSS_ORDER[i]))
+	# Roster order: 4 elites, then 6 bosses.
+	var all: Array = []
+	for k in MonsterArt.ELITE_KEYS:
+		all.append([k, false])
+	for k in BOSS_ORDER:
+		all.append([k, true])
+	# Half of the roster per run (user arg 0 or 1, default 0) so five units fit in frame.
+	var args := OS.get_cmdline_user_args()
+	var part := int(args[0]) if args.size() > 0 else 0
+	for i in 5:
+		var e: Array = all[part * 5 + i]
+		stage.spawn_unit(100 + i, "bug", true, i, 5, e[1], String(e[0]))
 	for _i in 90:
 		await get_tree().process_frame
-
-	var path := QaPaths.evidence_dir() + "/%s_boss-lineup.png" % _today()
+	var path := QaPaths.evidence_dir() + "/%s_boss-lineup-%d.png" % [_today(), part]
 	get_tree().root.get_texture().get_image().save_png(path)
 	print("QA: saved ", path)
 	get_tree().quit(0)
