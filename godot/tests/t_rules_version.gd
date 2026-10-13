@@ -177,7 +177,10 @@ const WATCHED_FILES: Array[String] = ["res://assets/data/part_faces.json"]
 ## Valid runs unchanged. Run result: NO, stays -j.
 ## Moved 2026-10-13 by B4 d4b3efb/0e48e63: RunState.close_summary() sent at run close (telemetry; never read
 ## by a rule; lane I merge fix: str() instead of String() on Variant fields). Run result: NO, stays -j.
-const FINGERPRINT := "ba13f61e794f1239b3b9a0480fb651277cb04be8466ae3c7f5e2cc5177d7f3f2"
+## BUMPED, 2026-10-13: `ActionLog.RULES_VERSION` -> `godot-2026-10-13-k`. missions.json now matches the approved
+## very-hard doc (rule sets A/B and multipliers N1–N6; L1 plays N1–N3). Changes the run result: YES (mission runs).
+## Worker SUPPORTED_RULE_VERSIONS gained -k in the same commit.
+const FINGERPRINT := "c6dda210733cf54c760961a663dad0791718c7d5b0a596974d42aee6fc414c78"
 
 
 func _ready() -> void:

@@ -177,8 +177,9 @@ func _l1_n1_to_n3_only(s: MissionsScreen, cfg: Dictionary) -> void:
 		_ok(bool(cfg.tiers[id].enabled) and MissionBoard.tier_enabled(id), "%s enabled in data" % id)
 		var rs: Dictionary = cfg.rule_sets[id]
 		for k in ["A", "B"]:
-			_ok((rs[k] as Array).size() <= 1 and not (rs[k] as Array).has("M1") and not (rs[k] as Array).has("M4") and not (rs[k] as Array).has("M5"),
-				"%s set %s has none of the N4-N6 rules" % [id, k])
+			# approved doc 13/10: rule count per tier matches doc (N1-N2 = 2, N3 = 3), not "<=1"
+			_ok((rs[k] as Array).size() == {"N1": 2, "N2": 2, "N3": 3}[id],
+				"%s set %s rule count matches missions.json/doc" % [id, k])
 	_ok(MissionBoard.house_level(MetaState) == 1, "house stays lv1 even with level 4 in the save")
 	_ok(MissionBoard.upgrade_house(MetaState) == "disabled", "house upgrade refused")
 	for id in big:

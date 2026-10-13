@@ -407,7 +407,12 @@ func test_ticket_buy_cap_and_cost() -> void:
 
 
 func test_mission_board() -> void:
-	var want := {"N1": 480, "N2": 975, "N3": 1960, "N4": 3960, "N5": 6805, "N6": 16200}
+	# approved doc 13/10: expected payout recomputed from the data (stake x m_base x m_scale, rounded to 5)
+	var want := {}
+	for k in ["N1", "N2", "N3", "N4", "N5", "N6"]:
+		var tt: Dictionary = _Econ.get_table("missions")["tiers"][k]
+		want[k] = int(roundf(float(tt["stake"]) * float(tt["m_base"]) * float(tt["m_scale"]) / 5.0) * 5.0)
+	_assert(want["N1"] == 645 and want["N6"] == 20000, "payout N1 645 / N6 20000 (approved doc 13/10)")
 	for k in want:
 		_assert(MissionBoard.payout(k) == want[k], "payout %s = %d, có %d" % [k, want[k], MissionBoard.payout(k)])
 	var s := Stub.new()
@@ -429,7 +434,9 @@ func test_mission_board() -> void:
 	for d in range(1, 29):
 		ruleset_days[MissionBoard.rule_set_key("2026-11-%02d" % d, "N2")] = true
 	_assert(ruleset_days.size() == 2, "bộ luật A/B đổi theo ngày")
-	_assert((a[0]["rules"] as Array).is_empty() and a[0]["stone"] == 4, "N1 chỉ luật chuẩn, 4 Stone")
+	# approved doc 13/10: N1 now carries 2 rules (A=M5+M6 / B=M1+M7), taken from missions.json
+	var n1_sets: Dictionary = _Econ.get_table("missions")["rule_sets"]["N1"]
+	_assert((a[0]["rules"] as Array).size() == 2 and (a[0]["rules"] == n1_sets["A"] or a[0]["rules"] == n1_sets["B"]) and a[0]["stone"] == 4, "N1 hai luật theo missions.json, 4 Stone")
 	# nâng nhà: tắt ở L1
 	s.shard_pool = 99999
 	s.stone = 99999
@@ -810,7 +817,7 @@ func test_mission_stake() -> void:
 func _test_mission_stake_body(has_run: Array) -> void:
 	var m1 := ""
 	var new_id := ""
-	var pay := MissionBoard.payout("N1")   # 300 x 1.6 = 480
+	var pay := MissionBoard.payout("N1")   # 300 x 2.15 = 645 (approved doc 13/10)
 	_fresh_meta(1000, 0)
 	m1 = MetaState.take_mission_stake("N1", 300)
 	_assert(m1 != "" and MetaState.shard_pool == 700 and int(MetaState.mission_escrow["stake"]) == 300, "take: trừ cược, ghi escrow")

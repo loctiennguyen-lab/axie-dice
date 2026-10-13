@@ -164,7 +164,7 @@ static func _validate_missions(errs: Array[String]) -> void:
 	var m := get_table("missions")
 	var tiers: Dictionary = m.get("tiers", {})
 	var stakes := [300, 500, 800, 1200]
-	var ms := [1.60, 1.95, 2.45, 3.30]
+	var ms := [2.15, 2.40, 3.60, 4.40]   # approved doc 13/10
 	for i in 4:
 		var t: Dictionary = tiers.get("N%d" % (i + 1), {})
 		if int(t.get("stake", 0)) != stakes[i] or absf(float(t.get("m_base", 0)) - ms[i]) > 0.0001:
