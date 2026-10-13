@@ -145,6 +145,7 @@ func _ready() -> void:
 		_ok(s.block_reason("N1") == "" and s.find_child("Banner", true, false) != null, "local: %s info banner only" % st)
 	s.set_state("loading")
 	_ok(s.find_child("Grid", true, false) == null, "loading renders no cards")
+	await _l1_n1_to_n3_only(s, cfg)
 	MetaState.mission_escrow = {}
 	s.queue_free()
 	MetaState.saved_run_probe = Callable()
@@ -157,3 +158,83 @@ func _ready() -> void:
 			print("FAIL: ", f)
 		print("t_missions_r3: FAIL")
 		get_tree().quit(1)
+
+
+## B5: L1 = only N1-N3. N4-N6 refused on every path; house stays lv1; N1 flow end to end (local run start).
+func _l1_n1_to_n3_only(s: MissionsScreen, cfg: Dictionary) -> void:
+	MetaState.runs = 8
+	MetaState.runs_with_battle = 8
+	MetaState.asc_wins = {"3": 1, "4": 1, "6": 1, "7": 1, "9": 1}
+	MetaState.full_a9_won = true
+	MetaState.shard_pool = 9000
+	MetaState.starter_shard_locked = 0
+	MetaState.mission_escrow = {}
+	MetaState.mission_house_level = 4   # even a tampered save cannot lift the house
+	s.set_state("normal")
+	s.remote_on = false
+	var big := ["N4", "N5", "N6"]
+	for id in ["N1", "N2", "N3"]:
+		_ok(bool(cfg.tiers[id].enabled) and MissionBoard.tier_enabled(id), "%s enabled in data" % id)
+		var rs: Dictionary = cfg.rule_sets[id]
+		for k in ["A", "B"]:
+			_ok((rs[k] as Array).size() <= 1 and not (rs[k] as Array).has("M1") and not (rs[k] as Array).has("M4") and not (rs[k] as Array).has("M5"),
+				"%s set %s has none of the N4-N6 rules" % [id, k])
+	_ok(MissionBoard.house_level(MetaState) == 1, "house stays lv1 even with level 4 in the save")
+	_ok(MissionBoard.upgrade_house(MetaState) == "disabled", "house upgrade refused")
+	for id in big:
+		_ok(not bool(cfg.tiers[id].enabled) and not MissionBoard.tier_enabled(id), "%s disabled in data" % id)
+		var o := s.offer(id)
+		_ok(not bool(o.enabled) and not bool(o.unlocked) and o.lock_reason == "disabled" and s.lock_text(o) == "Not in this build", "%s offer locked, Not in this build" % id)
+		_ok(s.block_reason(id) == "Not in this build", "%s block_reason" % id)
+		_ok(MetaState.take_mission_stake(id, int(cfg.tiers[id].stake)) == "" and MetaState.mission_escrow.is_empty() and MetaState.shard_pool == 9000, "%s: stake refused, nothing spent" % id)
+		var hit := [0]
+		s.start_hook = func(_p: Dictionary) -> Dictionary:
+			hit[0] += 1
+			return {"ok": true, "code": ""}
+		var r: Dictionary = await s.start(id)
+		_ok(not r.ok and hit[0] == 0 and MetaState.shard_pool == 9000, "%s: screen start refused" % id)
+		# direct API: forged header, no stake needed
+		var forged := {"team_keys": ["axie_aquatic"], "mode": "short", "ascension": 9, "ranked": false, "kind": "mission",
+			"mission": {"mission_id": "forged", "tier": int(id.substr(1)), "rules": [], "stake": 0, "m_base": 1.0, "m_scale": 1.0, "m_eff": 1.0}}
+		var fr: Dictionary = await RunState.begin_run(forged)
+		_ok(not fr.ok and String(fr.code) == "tier_disabled", "%s: RunState.begin_run refuses" % id)
+	# N1 end to end: stake -> begin_run (real, local) with the header -> win -> payout + Stone
+	var stake := int(cfg.tiers.N1.stake)
+	var pay := MissionBoard.payout("N1")
+	MetaState.shard_pool = 5000
+	MetaState.stone = 0
+	MetaState.mission_stone_day = {"day": "", "n": 0}
+	s.start_hook = Callable()
+	s.test_mode = false
+	var st: Dictionary = await s.start("N1")
+	s.test_mode = true
+	_ok(st.ok, "N1 starts through the real begin_run")
+	_ok(MetaState.shard_pool == 5000 - stake and not MetaState.mission_escrow.is_empty(), "stake in escrow")
+	var mid := MetaState.current_mission_id()
+	_ok(String(RunState.mission.get("mission_id", "")) == mid and int(RunState.mission.get("tier", 0)) == 1 and int(RunState.mission.get("stake", 0)) == stake, "run carries the mission header")
+	var run_shards := int(RunState.shards_this_run)   # normal run reward, paid on top by end_run
+	var stone0 := MetaState.stone
+	RunState.end_run(true)
+	_ok(MetaState.mission_escrow.is_empty() and int(MetaState.mission_stone_day["n"]) == int(cfg.tiers.N1.stone) and MetaState.stone >= stone0 + int(cfg.tiers.N1.stone), "win: escrow closed, mission Stone paid")
+	_ok(MetaState.shard_pool >= 5000 - stake + pay + run_shards, "win: payout %d paid (pool %d, run %d)" % [pay, MetaState.shard_pool, run_shards])
+	# lose: stake gone, no Stone
+	MetaState.shard_pool = 5000
+	s.test_mode = false
+	st = await s.start("N1")
+	s.test_mode = true
+	_ok(st.ok, "N1 starts again")
+	var loss_shards := int(RunState.shards_this_run)
+	var day_n := int(MetaState.mission_stone_day["n"])
+	RunState.end_run(false)
+	_ok(MetaState.mission_escrow.is_empty() and int(MetaState.mission_stone_day["n"]) == day_n and MetaState.shard_pool >= 5000 - stake + loss_shards and MetaState.shard_pool < 5000 - stake + pay,
+		"loss: stake lost, no payout, no mission Stone")
+	# abandon (Settings "Abandon run" path): stake lost, no Stone
+	MetaState.shard_pool = 5000
+	s.test_mode = false
+	st = await s.start("N1")
+	s.test_mode = true
+	var stone_ab := MetaState.stone
+	_ok(st.ok and MetaState.settle_mission_stake(false) and MetaState.shard_pool == 5000 - stake and MetaState.stone == stone_ab and MetaState.mission_escrow.is_empty(),
+		"abandon: stake lost, no Stone, no payout")
+	RunState.reset()
+	MetaState.mission_house_level = 0

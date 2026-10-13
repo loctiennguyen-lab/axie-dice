@@ -39,7 +39,15 @@ static func house_level(store: Object) -> int:
 	var lv := int(store.mission_house_level)
 	if lv < 1 and not store.is_newcomer():
 		lv = 1
+	if not bool(_cfg().get("house_upgrade_enabled", false)):
+		lv = mini(lv, 1)   # L1: nhà luôn lv1, kể cả save/test lỡ ghi cấp cao hơn
 	return lv
+
+
+## Bậc có bật trong bản này không (data `enabled`). Bậc lạ = false. L1: chỉ N1-N3.
+static func tier_enabled(tier_id: String) -> bool:
+	var t: Dictionary = (_cfg().get("tiers", {}) as Dictionary).get(tier_id, {})
+	return bool(t.get("enabled", false))
 
 
 ## Bộ luật A hay B hôm nay cho bậc này (cố định theo ngày UTC, mọi người như nhau).

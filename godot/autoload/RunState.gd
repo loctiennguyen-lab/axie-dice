@@ -289,6 +289,11 @@ func run_session() -> RunSession:
 func begin_run(params: Dictionary) -> Dictionary:
 	if epoch_busy:
 		return {"ok": false, "code": "busy"}
+	# L1: chỉ N1-N3. Đường API trực tiếp cũng bị chặn, không chỉ nút trên MissionsScreen.
+	var m_hdr: Dictionary = params.get("mission", {}) as Dictionary
+	if String(params.get("kind", "")) == "mission" or not m_hdr.is_empty():
+		if not MissionBoard.tier_enabled("N%d" % int(m_hdr.get("tier", 0))):
+			return {"ok": false, "code": "tier_disabled"}
 	var src: EpochSource = RemoteEpochSource.new(run_session()) if RemoteEpochSource.flag_on() \
 			else LocalEpochSource.new(PackedByteArray(), randi())
 	reset()

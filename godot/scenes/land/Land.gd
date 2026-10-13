@@ -39,7 +39,7 @@ static var tier_override: int = 0
 const BUILDINGS: Array[Dictionary] = [
 	{"id": "portal", "dir": "Portal", "pat": "SM_Portal_01", "cx": 960, "base": 640, "w": 360, "h": 360, "yaw": 0.0},
 	{"id": "house", "dir": "House", "pat": "House_lv%d", "cx": 560, "base": 470, "w": 250, "h": 230, "yaw": 0.0},
-	{"id": "missions", "dir": "Weaponsmith", "pat": "Weaponsmith_lv%d", "cx": 1360, "base": 470, "w": 210, "h": 250, "yaw": 0.0},
+	{"id": "missions", "dir": "Weaponsmith", "pat": "Weaponsmith_lv%d", "fixed_lv": 1, "cx": 1360, "base": 470, "w": 210, "h": 250, "yaw": 0.0},
 	{"id": "echobox", "dir": "Alchemy", "pat": "SM_Alchemy_lv%d_Prefab", "cx": 470, "base": 770, "w": 190, "h": 230, "yaw": 0.0},
 	{"id": "pass", "dir": "EquipmentStall", "pat": "EquipmentStall_lv%d", "cx": 1450, "base": 770, "w": 210, "h": 230, "yaw": 0.0},
 	{"id": "vault", "dir": "GemStorage", "pat": "GemStorage_lv%d", "cx": 235, "base": 650, "w": 200, "h": 200, "yaw": 0.0},
@@ -386,7 +386,7 @@ func _build_buildings() -> void:
 	var lv := mini(_tier, 4)
 	for b in _live:
 		var pat := String(b["pat"])
-		var n := _inst(BLD + String(b["dir"]) + "/" + (pat % lv if "%d" in pat else pat) + ".tscn")
+		var n := _inst(BLD + String(b["dir"]) + "/" + (pat % int(b.get("fixed_lv", lv)) if "%d" in pat else pat) + ".tscn")
 		if n == null:
 			continue
 		var ground := _ground_at(float(b["cx"]), float(b["base"]))
