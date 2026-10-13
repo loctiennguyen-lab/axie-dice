@@ -708,6 +708,7 @@ func apply_combat_result(res: Dictionary, reward_seed: int = -1) -> void:
 	# result screen that showed zeroes after a long losing run would be reporting the loss
 	# twice.
 	_fold_combat_stats(res.get("stat", {}))
+	MetaState.note_run_battle(run_seed)   # H11 newcomer counter (lane E)
 	if res.has("relic_state"):
 		relic_state = (res["relic_state"] as Dictionary).duplicate(true)
 	if res.get("won", false):

@@ -114,7 +114,7 @@ func is_full_unlocked() -> bool:
 
 
 func is_newcomer() -> bool:
-	return MetaState.runs < NEWCOMER_RUNS
+	return MetaState.is_newcomer()
 
 
 ## Returns false (and changes nothing) for a locked level.

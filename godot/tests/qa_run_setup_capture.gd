@@ -5,6 +5,7 @@ func _ready() -> void:
 	_guard.capture()
 	MetaState.asc_max = 6
 	MetaState.runs = 9
+	MetaState.runs_with_battle = 9
 	DisplayServer.window_set_size(Vector2i(1280, 720))
 	var s: RunSetup = load("res://scenes/run_setup/RunSetup.tscn").instantiate()
 	s.no_scene_change = true

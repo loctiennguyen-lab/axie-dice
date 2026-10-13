@@ -1,0 +1,8 @@
+{
+	"version": 1,
+	"_doc": "H7 (Liam 13/10): Ascension titles. en = display name in the English UI; Liam gave no English, so en keeps the Vietnamese name until he supplies one.",
+	"titles": {
+		"5": {"vi": "Người Giữ Ấn", "en": "Người Giữ Ấn"},
+		"10": {"vi": "Người Đứng Cuối", "en": "Người Đứng Cuối"}
+	}
+}

@@ -39,6 +39,7 @@ func _ready() -> void:
 	_guard.capture()
 	MetaState.asc_max = 3
 	MetaState.runs = 9
+	MetaState.runs_with_battle = 9
 	MetaState.unlocks.erase("u_full")
 	MainMenu.pending_team = []
 
@@ -134,6 +135,7 @@ func _ready() -> void:
 	# newcomer
 	s2.queue_free()
 	MetaState.runs = 1
+	MetaState.runs_with_battle = 1
 	var s3 := await _make("loading")
 	_ok(s3.find_child("KitBoon", true, false) == null, "newcomer hides Kit/Boon")
 	_ok(bool(s3.start_params().get("newcomer", false)), "start_params carries newcomer=true for a fresh save")

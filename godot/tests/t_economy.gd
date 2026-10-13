@@ -24,6 +24,8 @@ class Stub extends RefCounted:
 	var season_box := {}
 	var cosmetics_owned: Array = []
 	var runs := 0
+	func is_newcomer() -> bool:
+		return runs < 5
 	var asc_wins := {}
 	var full_a9_won := false
 	var mission_house_level := 0
@@ -83,6 +85,8 @@ func _ready() -> void:
 	test_daily_claim_stone()
 	test_pass_wrappers()
 	test_season_box()
+	test_newcomer_counter()
+	test_ascension_titles()
 	_guard.restore()
 	print("=== t_economy: %d checks, %d failure(s) ===" % [_checks, _failures.size()])
 	if _failures.is_empty():
@@ -1006,3 +1010,43 @@ func test_season_box() -> void:
 	var opens := int(EchoBox.season_state(MetaState)["opens"])
 	MetaState.reload_from_store()
 	_assert(opens == 1 and int(EchoBox.season_state(MetaState)["opens"]) == 1 and int(EchoBox.season_state(MetaState)["day_pulls"]) == 1, "season_box bền qua reload")
+
+
+## H11: newcomer = fewer than 5 runs with >= 1 battle (Worker parity). Counter hook = RunState.apply_combat_result.
+func test_newcomer_counter() -> void:
+	_fresh_meta(0, 0)
+	_assert(MetaState.is_newcomer(), "run mới: newcomer")
+	# 5 run, mỗi run 2 trận: chỉ tính 1 lần / run (run_seed khác nhau)
+	for i in 5:
+		_assert(MetaState.is_newcomer(), "newcomer trước run có trận thứ %d" % (i + 1))
+		MetaState.note_run_battle(1000 + i)
+		MetaState.note_run_battle(1000 + i)
+	_assert(MetaState.runs_with_battle == 5, "đếm đúng 5 (mỗi run 1 lần), có %d" % MetaState.runs_with_battle)
+	_assert(not MetaState.is_newcomer(), "hết newcomer sau run thứ 5 có trận")
+	# run bỏ cuộc trước trận đầu: không ai gọi note_run_battle, runs_with_battle không đổi
+	MetaState.runs = 9
+	_assert(MetaState.runs_with_battle == 5, "run bỏ trước trận đầu không tính")
+	# lưu/nạp giữ nguyên, kể cả khóa chống đếm đôi khi tiếp tục run
+	MetaState.reload_from_store()
+	_assert(MetaState.runs_with_battle == 5 and MetaState.battle_counted_seed == 1004, "counter sống qua reload")
+	MetaState.note_run_battle(1004)
+	_assert(MetaState.runs_with_battle == 5, "tiếp tục run đã đếm: không đếm lại")
+	# save cũ chưa có field: lấy từ runs
+	SaveStore.write_text(MetaState.SAVE_PATH, JSON.stringify({"runs": 3, "save_version": 2}))
+	MetaState.reload_from_store()
+	_assert(MetaState.runs_with_battle == 3 and MetaState.is_newcomer(), "save cũ 3 run -> 3, vẫn newcomer")
+	SaveStore.write_text(MetaState.SAVE_PATH, JSON.stringify({"runs": 8, "save_version": 2}))
+	MetaState.reload_from_store()
+	_assert(MetaState.runs_with_battle == 8 and not MetaState.is_newcomer(), "save cũ 8 run -> hết newcomer")
+	MetaState.runs_with_battle = 7
+	_assert(MissionBoard.lock_reason("N1", MetaState) != "newcomer", "MissionBoard theo is_newcomer")
+	MetaState.runs_with_battle = 2
+	_assert(MissionBoard.lock_reason("N1", MetaState) == "newcomer", "MissionBoard khoá khi newcomer")
+	_fresh_meta(0, 0)
+
+
+func test_ascension_titles() -> void:
+	var t: Dictionary = _Econ.get_table("ascension_titles").get("titles", {})
+	_assert(String((t.get("5", {}) as Dictionary).get("vi", "")) == "Người Giữ Ấn", "A5 title")
+	_assert(String((t.get("10", {}) as Dictionary).get("vi", "")) == "Người Đứng Cuối", "A10 title")
+	_assert(String((t.get("10", {}) as Dictionary).get("en", "")) != "", "A10 có tên hiển thị EN")
