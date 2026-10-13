@@ -159,6 +159,7 @@ var _names_on := false
 var _hover_id := ""
 var _focus_id := ""
 var _touch_id := ""
+var _touch_mode := false
 var _offline := false
 var _loading := false
 var _guest := false
@@ -194,6 +195,7 @@ func _ready() -> void:
 	_guest = _flag("guest", not AccountService.is_signed_in())
 	_newcomer = _flag("newcomer", MetaState.is_newcomer())
 	_first = _flag("first_launch", MetaState.runs == 0)
+	_touch_mode = _flag("touch", false)
 	_mission_run = _has_run and _flag("mission", not MetaState.mission_escrow.is_empty())
 	_build_world()
 	_build_ground()
@@ -738,8 +740,20 @@ func _add_house_hit(id: String) -> void:
 
 
 ## Touch: first tap shows the sign (with Open), second tap opens. Mouse click opens directly.
+## Latched by a real InputEventScreenTouch; mouse or keyboard input switches it back off.
 func _is_touch() -> bool:
-	return _flag("touch", DisplayServer.is_touchscreen_available())
+	return _touch_mode
+
+
+func _input(event: InputEvent) -> void:
+	var was := _touch_mode
+	if event is InputEventScreenTouch:
+		_touch_mode = true
+	elif event is InputEventKey or (event is InputEventMouseButton and event.device != InputEvent.DEVICE_ID_EMULATION):
+		_touch_mode = false
+		_touch_id = ""
+	if was != _touch_mode:
+		_refresh_signs()
 
 
 func _on_hit_pressed(id: String) -> void:
@@ -777,6 +791,9 @@ func _focus(id: String, on: bool) -> void:
 func _refresh_signs() -> void:
 	for id in _plates:
 		var always: bool = _plot_marks.has(id)
+		var op := (_plates[id] as Control).find_child("SignOpen", true, false)
+		if op != null:
+			op.visible = _touch_mode
 		(_plates[id] as Control).visible = always or _names_on or _hover_id == id or _focus_id == id or _touch_id == id
 	_layout()
 
@@ -889,9 +906,10 @@ func _make_plate(id: String) -> PanelContainer:
 		var w := _lbl(why, 14, Color("8A3E22"), false)
 		w.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		col.add_child(w)
-	if _is_touch() and id != "portal" and not _is_locked(id):
+	if id != "portal" and not _is_locked(id):
 		var open := Button.new()
 		open.name = "SignOpen"
+		open.visible = _touch_mode
 		open.text = "Open"
 		open.custom_minimum_size = Vector2(0, 44)
 		DangoTheme.style_button(open, true)

@@ -130,6 +130,21 @@ func _ready() -> void:
 	(ht.find_child("Hit_vault", true, false) as Button).emit_signal("pressed")
 	_check(LandNav.last_path == "res://scenes/vault/Vault.tscn", "chạm lần 2 mở Vault")
 	_check((ht.find_child("GemPlus", true, false) as Control).custom_minimum_size.x >= 44.0, "GemPlus >= 44 px")
+	# Mouse input switches touch mode off: click opens directly again.
+	var mb := InputEventMouseButton.new()
+	mb.pressed = true
+	ht._input(mb)
+	LandNav.last_path = ""
+	(ht.find_child("Hit_pass", true, false) as Button).emit_signal("pressed")
+	_check(LandNav.last_path == "res://scenes/pass/Pass.tscn", "chuột phải mở thẳng sau khi hết touch")
+	# UI scale floor (~1.275 at 1280x720): HUD stays in the viewport and clear of the dock.
+	ht.call("_place_hud", 1.275)
+	var vp := Rect2(Vector2.ZERO, (ht.get("_ui") as Control).size)
+	var dock := _srect(ht.get("_dock") as Control)
+	for n in ["_hud_tl", "_rail", "_wallet"]:
+		var r := _srect(ht.get(n) as Control)
+		_check(vp.encloses(r), "%s ra ngoài khung ở scale 1.275: %s" % [n, str(r)])
+		_check(not r.intersects(dock), "%s đè dock ở scale 1.275" % n)
 	ht.queue_free()
 	await get_tree().process_frame
 	LandHub.qa = {}
@@ -174,3 +189,7 @@ func _collect_scenes(dir_path: String, out: Array[String]) -> void:
 			out.append(dir_path.path_join(f))
 	for d in DirAccess.get_directories_at(dir_path):
 		_collect_scenes(dir_path.path_join(d), out)
+
+
+func _srect(c: Control) -> Rect2:
+	return Rect2(c.position, c.get_combined_minimum_size() * c.scale)
