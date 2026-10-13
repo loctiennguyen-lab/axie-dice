@@ -50,21 +50,23 @@ States not drawn at all:
 
 ## 4. Fix list for Claude Design (paste-ready)
 
+_Cập nhật 13/10 theo Liam: Leaderboard = nhà trên Land (Billboard Big), Unlocks trong Profile, bỏ Mastery Hall khỏi bản này._
+
 ```
 Land hub v4 - changes needed before build
 
 1. Remove everything VIP: frame 01c (Moon Card popup), the VIP badge colour, the VIP bubble on Store in 01b, "Store VIP" in the notes. No VIP trial in L1. Store may carry CLAIM/NEW/FREE badges only.
-2. Draw all 6 Land tiers (Savannah, Forest, Arctic, Mystic, Genesis, LunaLanding). Show at least: Savannah (2 empty plots), Arctic (Mastery built), Genesis or higher (Gallery built, all 8 slots full) with a distinct sky/ground palette each. Same lattice at every tier.
+2. Draw all 6 Land tiers (Savannah, Forest, Arctic, Mystic, Genesis, LunaLanding). Show at least: Savannah (2 empty plots), Arctic, Genesis or higher (Gallery built, all 8 slots full) with a distinct sky/ground palette each. Same lattice at every tier.
 3. Add a way to see the Land tier and upgrade it: tier name + Land Stone progress (placeholder numbers, e.g. "86 / 300") on the profile chip or next to the stone chip, with the key L. Land upgrades are paid with Land Stone only. (art-director 13/10) Draw the "can upgrade" badge state and the max-tier state (tier 6, no upgrade).
-4. Show a missing-entry plan: Profile (P), Leaderboard (B), Land upgrade (L), Unlocks, Guides, Account/sign-in. Say for each: a button on the hub, inside another screen, or not on the hub. (Unlocks = the screen listing what the player has unlocked so far.) (art-director 13/10) Put key chips (D, C, P) on the rail/profile buttons, and make the profile chip look tappable.
+4. Entry plan (decided): Leaderboard is a building on the Land - use the HomeLand "Billboard Big" wooden board (asset SM_Billboard_Big, the board carried by birds) in the slot that Mastery Hall used, key B, sign "Leaderboard". Unlocks lives inside Profile (no hub entry). Profile (P) opens from the profile chip - make it look tappable. Guides open from Codex. Account/sign-in opens from Profile and from Settings. Put key chips (D, C, P) on the rail/profile buttons.
 5. Dock badge dots must not rely on colour alone: use the same FREE / CLAIM / NEW text or a glyph (or a count) as the Land bubbles.
-6. Add Mastery Hall and Gallery to the discoverability story: either a "More" dock slot, or a visible line when they are built, so a touch player can find Mastery Hall (key 8, in the dock only on the Land) without hover. (art-director 13/10)
+6. Mastery Hall is NOT in this version: remove it from the Land, the dock and the key list. Its slot becomes the Leaderboard board (item 4). Gallery stays as drawn (built from Genesis tier).
 7. Touch/web: add a non-hover way to read a building's sign (long-press or a persistent label). The Pass end date (29 Dec 2026) and "Builds at X Land" must be readable without hover.
 8. New run while a run is open: draw the confirm dialog, in two versions: normal run (progress lost) and mission run (the mission stake is lost, state the amount). Default focus on Keep playing/Cancel, not on the destructive button.
 9. Fix the overlap in 01b: the "New run" tag and Continue block sit over the Vault. Move the tag or the Vault slot. Show the same check at the 8-slot tier.
 10. Draw states: guest (no name, "Playing as guest - sign in to save online"), offline (Store, Pass, Echo Box, Daily, Leaderboard disabled with a reason, one banner), loading (wallet + badges placeholders), newcomer (first 5 runs: what is hidden), first launch (RUN hint). Add a Missions badge and a Missions sign line ("N1-N3").
-11. Keys: state whether key 1 (the Portal / RUN button) still works alongside Enter, what Enter does when a dock/house button has focus, and that Esc closes sign/modal first, opens Settings only when nothing is open. List all keys in one table (1-8, Enter, N, C, P, D, B, L, Esc).
-12. Name the building for each entry: Missions = Weaponsmith, Store = Jeweler, Echo Box = Alchemy, Pass = EquipmentStall, Vault = GemStorage, House = House (call it "House" everywhere, not "Team"), Mastery Hall = Armorsmith. Current sprite names in the file look swapped.
+11. Keys: state whether key 1 (the Portal / RUN button) still works alongside Enter, what Enter does when a dock/house button has focus, and that Esc closes sign/modal first, opens Settings only when nothing is open. List all keys in one table (1-7, Enter, N, C, P, D, B, L, Esc).
+12. Name the building for each entry: Missions = Weaponsmith, Store = Jeweler, Echo Box = Alchemy, Pass = EquipmentStall, Vault = GemStorage, Leaderboard = Billboard Big, House = House (call it "House" everywhere, not "Team"). Current sprite names in the file look swapped.
 13. Min text: dock key hints and the New-run helper are 12 px, and at a 1280x720 window the whole 1920x1080 layout scales down to about 8 px. Raise them or say it is acceptable at minimum canvas.
 ```
 

@@ -77,3 +77,8 @@ hạn/ngày, NFT dùng được) · UI request 02 + Round 1 · L1 = 3/11 nội b
 - Nhiệm vụ L1: VẪN CẮT, chỉ N1–N3 (bản cực khó N1–N6 là thiết kế đầy đủ, mở dần sau L1).
 - L1 làm cả web và desktop.
 - Checklist L1: `production/l1-checklist.md`.
+
+## J. Liam trả lời chiều 13/10 (Land hub v4)
+- Leaderboard = một công trình trên Land kiểu bảng thông báo. Lane I chọn asset HomeLand `SM_Billboard_Big` (tấm biển gỗ chim kéo), đặt ở ô Mastery Hall cũ, phím B. Dự phòng: cột cờ ConsumableStall.
+- Unlocks nằm trong Profile.
+- Mastery Hall: chưa làm ở bản này (bỏ khỏi Land, dock, phím).
