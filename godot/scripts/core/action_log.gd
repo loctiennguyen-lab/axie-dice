@@ -69,13 +69,14 @@ const RULES_VERSION := "godot-2026-10-13-k"   # L1: đổi kết quả run: CÓ 
 ##   event_done         eventDone          event screen dismissed
 ##   shop_buy           shopBuy            which shop slot was bought
 ##   shop_done          shopDone           shop left
+##   pact_pick          (none — port only) boss Pact: [offer index] or [index, sold relic id]; [-1] = skipped
 const ALLOWED_FNS: Array[String] = [
 	"enter_node", "use_die", "play_active", "reroll_dice", "end_turn", "undo_last",
 	"take_reward", "reroll_rewards", "event_choose", "event_done", "shop_buy", "shop_done",
 	"tweak", "hold_pick", "loaded_pick", "sell_relic", "swap_on_full", "reorder_party",
-	"continue", "shop_refresh", "aid_use",
+	"continue", "shop_refresh", "aid_use", "pact_pick",
 	# Still to come, each in the PR that implements it AND teaches RunVerifier to replay it (t_replay
-	# refuses an action the referee cannot replay): pact_reroll, pact_pick.
+	# refuses an action the referee cannot replay): pact_reroll (R5, off).
 ]
 
 ## Same ceiling as the JS server (submit-run.js:30). A real run lands far below it; the limit is

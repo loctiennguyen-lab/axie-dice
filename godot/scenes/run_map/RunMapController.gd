@@ -1892,6 +1892,9 @@ func _tex_icon(tex: Texture2D, px: float) -> TextureRect:
 ## map still has to advance exactly once: after_node() is now ONLY ever called from
 ## _on_reward_chosen(), so nothing else would ever call it for this node.
 func _maybe_show_pending_reward() -> void:
+	if RunState.phase == RunState.RunPhase.PACT:
+		_show_pact_overlay()
+		return
 	if RunState.pending_rewards.is_empty():
 		if RunState.phase == RunState.RunPhase.REWARD:
 			RunState.after_node()
@@ -2158,6 +2161,27 @@ func _add_reward_card(r: Dictionary) -> PanelContainer:
 	take.pressed.connect(func(): _on_reward_chosen(r))
 	body_col.add_child(take)
 	return card
+
+
+## Boss Pact screen (scenes/pact/PactView.gd). Take/skip go through RunState; afterwards the normal
+## reward cards follow (phase REWARD), saved first so a quit here resumes on the right screen.
+func _show_pact_overlay() -> void:
+	var host := _open_screen(MockupAssets.tex("assets/bg/rocky.jpg"))
+	var view := PactView.new()
+	view.name = "PactView"
+	host.add_child(view)
+	view.setup(RunState.pact_cards(), RunState.pact_can_skip())
+	view.picked.connect(func(i: int, sell_id: String):
+		if RunState.take_pact(i, sell_id):
+			_after_pact())
+	view.skipped.connect(func():
+		if RunState.skip_pact():
+			_after_pact())
+
+
+func _after_pact() -> void:
+	_save_map_progress()
+	_maybe_show_pending_reward()
 
 
 func _on_reward_chosen(reward: Dictionary) -> void:

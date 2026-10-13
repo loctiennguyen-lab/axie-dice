@@ -272,6 +272,8 @@ func _resolve_node(node: RunMapNode, tag: String, force_win: bool) -> bool:
 				return false
 
 			# --- Property 2: a won combat offers rewards, and picking one returns to MAP. ---
+			if RunState.phase == RunState.RunPhase.PACT and not RunState.take_pact(0):
+				RunState.skip_pact()
 			if not RunState.pending_rewards.is_empty():
 				RunState.apply_chosen_reward(_preferred_reward(RunState.pending_rewards))
 			RunState.after_node()
