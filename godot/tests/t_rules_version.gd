@@ -175,7 +175,9 @@ const WATCHED_FILES: Array[String] = ["res://assets/data/part_faces.json"]
 ## Run result: NO, stays -j.
 ## Moved 2026-10-13 by B5 f88192a: RunState.begin_run refuses a disabled mission tier (early return, no RNG).
 ## Valid runs unchanged. Run result: NO, stays -j.
-const FINGERPRINT := "29dfcb6d8237b9f26b0f570fec2c5a518ff5193cf9cde9b3db564776844db648"
+## Moved 2026-10-13 by B4 d4b3efb/0e48e63: RunState.close_summary() sent at run close (telemetry; never read
+## by a rule; lane I merge fix: str() instead of String() on Variant fields). Run result: NO, stays -j.
+const FINGERPRINT := "ba13f61e794f1239b3b9a0480fb651277cb04be8466ae3c7f5e2cc5177d7f3f2"
 
 
 func _ready() -> void:

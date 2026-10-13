@@ -525,6 +525,24 @@ func mission_outcome(won: bool) -> Dictionary:
 	return {"won": won and cond_ok, "condition_ok": cond_ok}
 
 
+## Telemetry for the server's runs.summary_json (B4, production/l1-telemetry.md). Numbers only, no player data;
+## the server caps the whole thing at 2048 bytes. Never read by any rule. `escrow` = MetaState.mission_escrow
+## as it was just before settling (empty outside a mission).
+func close_summary(won: bool, condition_ok: bool, escrow: Dictionary = {}) -> Dictionary:
+	var aids: Array = []
+	for u in aid_uses:
+		aids.append(String((u as Dictionary).get("aid", "")))
+	var s := {"v": 1, "condition_ok": condition_ok, "battles_done": fights_started, "bosses_started": bosses_started,
+		"nodes_done": power_level, "pw": power_level, "len": mode, "newcomer": newcomer,
+		"client": str(ProjectSettings.get_setting("application/config/version", "")),
+		"aids": aids, "boon_used": boon_used, "pacts": pacts_taken.size(), "relics": owned_relic_ids.size(),
+		"shards": shards_this_run}
+	if not mission.is_empty():
+		s["mission"] = {"tier": str(mission.get("tier", "")), "stake": int(escrow.get("stake", mission.get("stake", 0))),
+			"payout": int(escrow.get("payout", 0)) if won else 0, "won": won}
+	return s
+
+
 ## The one writer of the Aid ledger. R8/R9 (Boon, Kit) only flip boon_used; they never enter `uses`.
 func record_aid_use(aid_id: String) -> void:
 	if not mission.is_empty():
@@ -781,11 +799,12 @@ func end_run(won: bool) -> void:
 	# otherwise (client.html:3420). Doing it here rather than in a save guard means a finished
 	# run cannot leave a resumable save behind even if some later call site forgets.
 	# Lane E: settle the mission escrow (and save) BEFORE the saved run is cleared (kill-safe).
+	var _esc: Dictionary = (MetaState.mission_escrow as Dictionary).duplicate()   # settle clears it; the summary needs the payout
 	MetaState.settle_mission_for_run(String(mission.get("mission_id", "")), bool(mission_outcome(won)["won"]))
 	clear_saved_run()
 	if epoch != null:
 		var mo := mission_outcome(won)
-		epoch.close("won" if bool(mo["won"]) else "lost", {"condition_ok": bool(mo["condition_ok"])})
+		epoch.close("won" if bool(mo["won"]) else "lost", close_summary(bool(mo["won"]), bool(mo["condition_ok"]), _esc))
 	MetaState.add_shards(shards_this_run)
 
 	# Lifetime stats and the Ascension ladder (src/client.html onRunEnd(), :5436-5446).

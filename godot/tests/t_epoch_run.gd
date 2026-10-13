@@ -127,6 +127,20 @@ func _ready() -> void:
 	_check(RunState.epoch != null and RunState.epoch.tape().size() == tape_len, "tape restored on resume")
 	_check(_next_seed() == after_live, "resumed run continues the same epoch chain")
 
+	# B4: the close summary carries what the L1 report reads (production/l1-telemetry.md).
+	RunState.fights_started = 4
+	RunState.power_level = 5
+	RunState.newcomer = true
+	RunState.aid_uses = [{"aid": "R1", "node_id": "n1"}]
+	RunState.mission = {"tier": "N2", "stake": 7}
+	var cs := RunState.close_summary(true, true, {"stake": 7, "payout": 12})
+	_check(int(cs["battles_done"]) == 4 and int(cs["nodes_done"]) == 5 and bool(cs["newcomer"]), "close_summary: battles/nodes/newcomer")
+	_check((cs["aids"] as Array) == ["R1"] and String(cs["client"]) != "", "close_summary: aids + client version")
+	_check(String(cs["mission"]["tier"]) == "N2" and int(cs["mission"]["payout"]) == 12 and int(cs["mission"]["stake"]) == 7, "close_summary: mission tier/stake/payout")
+	_check(int(RunState.close_summary(false, true, {"stake": 7, "payout": 12})["mission"]["payout"]) == 0, "close_summary: lost mission pays 0")
+	_check(JSON.stringify(cs).length() < 1024, "close_summary fits the server's 2 KB cap")
+	RunState.reset()
+
 	if _fails.is_empty():
 		print("t_epoch_run: PASS — %d checks OK" % _checks)
 		_guard.restore()

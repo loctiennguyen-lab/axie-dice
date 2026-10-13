@@ -412,7 +412,8 @@ export class RunCore {
     if (bad) { this._anomaly('close_rejected', { why: bad }); return fail(seq, 'rejected'); }
     const h = await this._verifyChain(meta, last, delta, m.h);
     if (!h) { this._anomaly('close_chain_mismatch', {}); return fail(seq, 'rejected'); }
-    const summary = JSON.stringify(m.summary && typeof m.summary === 'object' ? m.summary : {}).slice(0, 2048);
+    let summary = JSON.stringify(m.summary && typeof m.summary === 'object' && !Array.isArray(m.summary) ? m.summary : {});
+    if (summary.length > 2048) summary = '{"truncated":1}'; // never cut JSON mid-way: it must stay parseable
     // The closing delta is kept as the final epochs row (seed 0, kind 'close') so the tape is complete.
     this.sql.exec(
       `INSERT INTO epochs (seq, kind, args, h, log_len, seed, log_delta, attempt, req_digest, at)

@@ -45,7 +45,26 @@ test('hello alarm leaves an open run alone in D1; a closed run is synced', async
   await m.do.core.init({ run_id: 'a'.repeat(32), player_id: 'p', rules_version: 'godot-2026-09-21-a' });
   await m.do.alarm();
   assert.equal(calls.length, 0);
-  m.do.core.sql.exec(`UPDATE meta SET state = 'closed', outcome = 'won', summary = '{}' WHERE id = 1`);
+  m.do.core.sql.exec(`UPDATE meta SET state = 'closed', outcome = 'won', summary = '{"battles_done":4,"newcomer":true}' WHERE id = 1`);
+  m.do.core.sql.exec(`INSERT INTO epochs (seq, kind, args, h, log_len, seed, log_delta, attempt, req_digest, aid, at) VALUES (9, 'continue', '{}', 'h', 1, 1, '[]', 0, 'd', 'R1', 1)`);
   await m.do.alarm();
   assert.equal(calls.length, 1);
+  const stored = JSON.parse(calls[0][1][3]);
+  assert.equal(calls[0][1][2], 4);                       // battles_done column now filled from the summary
+  assert.deepEqual(stored.srv.aids, ['R1']);             // server-seen Aid kept next to the client claim
+  assert.equal(stored.newcomer, true);
+});
+
+test('unparseable summary and absurd battles_done still sync (no endless alarm)', async () => {
+  const m = mk();
+  const calls = [];
+  m.do.env.DB = { prepare: (q) => ({ bind: (...a) => ({ run: async () => { calls.push([q, a]); } }) }) };
+  await m.do.core.init({ run_id: 'b'.repeat(32), player_id: 'p', rules_version: 'godot-2026-09-21-a' });
+  m.do.core.sql.exec(`UPDATE meta SET state = 'closed', outcome = 'lost', summary = '{"battles_d' WHERE id = 1`);
+  await m.do.alarm();
+  assert.equal(calls.length, 1);
+  assert.equal(calls[0][1][2], 0);
+  m.do.core.sql.exec(`UPDATE meta SET summary = '{"battles_done":99999}' WHERE id = 1`);
+  await m.do.alarm();
+  assert.equal(calls[1][1][2], 0);
 });
