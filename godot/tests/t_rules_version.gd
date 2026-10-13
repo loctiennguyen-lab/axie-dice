@@ -173,7 +173,9 @@ const WATCHED_FILES: Array[String] = ["res://assets/data/part_faces.json"]
 ## RunState.apply_combat_result notes the run's first battle. Meta counter only. Run result: NO, stays -j.
 ## Moved 2026-10-13 by B3 f6a5203: AccountService desktop sign-in phase/error/reopen. Accounts only.
 ## Run result: NO, stays -j.
-const FINGERPRINT := "4462d1cd4b71f2803606e656235c29aec421d2dd2baac026f774b250dafd4d2b"
+## Moved 2026-10-13 by B5 f88192a: RunState.begin_run refuses a disabled mission tier (early return, no RNG).
+## Valid runs unchanged. Run result: NO, stays -j.
+const FINGERPRINT := "29dfcb6d8237b9f26b0f570fec2c5a518ff5193cf9cde9b3db564776844db648"
 
 
 func _ready() -> void:
