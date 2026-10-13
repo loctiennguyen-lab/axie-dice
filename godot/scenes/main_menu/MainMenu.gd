@@ -241,7 +241,7 @@ func _build_title_block() -> void:
 	chip_row.add_child(shard_chip)
 	if AccountService.enabled:
 		chip_row.add_child(AccountUI.build_chip(AccountService, func() -> void:
-			LandNav.open(&"settings")))
+			LandNav.open(&"settings" if SaveStore.is_web() else &"account")))
 	shard_margin.add_child(chip_row)
 	vbox.add_child(shard_margin)
 

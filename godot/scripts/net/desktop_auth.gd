@@ -32,6 +32,7 @@ var _port := 0
 var _peers: Array = []   # [{peer, buf, age}]
 var _age := 0.0
 var _done := false
+var _url := ""
 
 
 static func make_verifier() -> String:
@@ -80,9 +81,16 @@ func begin() -> int:
 	_state = _b64url(Crypto.new().generate_random_bytes(24))
 	var url := "%s/auth/login?desktop=1&challenge=%s&port=%d&state=%s" \
 		% [server_url, challenge_for(_verifier), _port, _state]
+	_url = url
 	open_url.call(url)
 	set_process(true)
 	return OK
+
+
+## Opens the same login URL again (same port/state/verifier) while still waiting.
+func reopen() -> void:
+	if not _done and _url != "":
+		open_url.call(_url)
 
 
 func cancel() -> void:

@@ -33,6 +33,7 @@ const SCENES := [
 	"res://scenes/echobox/EchoBoxScreen.tscn",
 	"res://scenes/missions/MissionsScreen.tscn",
 	"res://scenes/store/StoreScreen.tscn",
+	"res://scenes/account/Account.tscn",
 	"res://scenes/daily/DailyScreen.tscn",
 	"res://scenes/settings/Settings.tscn",
 	"res://scenes/tutorial/Tutorial.tscn",
