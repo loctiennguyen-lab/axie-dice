@@ -282,6 +282,20 @@ test('same-seq different-content cannot be used to fish for seeds', async () => 
   assert.equal(seeds.size, 1, 'only the first request for a seq may produce a seed');
 });
 
+let SUMMARY = { battles_done: 1 };
+test('run_close: oversize summary is stored as parseable {"truncated":1}', async () => {
+  SUMMARY = { junk: 'x'.repeat(3000) };
+  try {
+    const { c, core } = await fresh();
+    await c.hello(); await start(c);
+    await c.epoch('node', { node_id: 'r1_c0' }, []);
+    const delta = [A('enter_node', ['r1_c0', 'battle']), A('end_turn')];
+    const h = await chainNext(await c.hPromise, delta);
+    await c.send({ t: 'run_close', seq: 2, log_delta: delta, h, log_len: 2, outcome: 'lost', summary: SUMMARY });
+    assert.deepEqual(JSON.parse(core.meta().summary), { truncated: 1 });
+  } finally { SUMMARY = { battles_done: 1 }; }
+});
+
 test('run_close: closes once, keeps the tape, refuses everything after', async () => {
   const { c, sql, core } = await fresh();
   await c.hello();
@@ -291,7 +305,7 @@ test('run_close: closes once, keeps the tape, refuses everything after', async (
   const h = await chainNext(await c.hPromise, delta);
   const bad = await c.send({ t: 'run_close', seq: 2, log_delta: delta, h, log_len: 2, outcome: 'draw' });
   assert.equal(bad.code, 'bad_request');
-  const r = await c.send({ t: 'run_close', seq: 2, log_delta: delta, h, log_len: 2, outcome: 'lost', summary: { battles_done: 1 } });
+  const r = await c.send({ t: 'run_close', seq: 2, log_delta: delta, h, log_len: 2, outcome: 'lost', summary: SUMMARY });
   assert.deepEqual(r, { t: 'closed', seq: 2 });
   const meta = core.meta();
   assert.equal(meta.state, 'closed');

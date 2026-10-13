@@ -54,3 +54,17 @@ test('hello alarm leaves an open run alone in D1; a closed run is synced', async
   assert.deepEqual(stored.srv.aids, ['R1']);             // server-seen Aid kept next to the client claim
   assert.equal(stored.newcomer, true);
 });
+
+test('unparseable summary and absurd battles_done still sync (no endless alarm)', async () => {
+  const m = mk();
+  const calls = [];
+  m.do.env.DB = { prepare: (q) => ({ bind: (...a) => ({ run: async () => { calls.push([q, a]); } }) }) };
+  await m.do.core.init({ run_id: 'b'.repeat(32), player_id: 'p', rules_version: 'godot-2026-09-21-a' });
+  m.do.core.sql.exec(`UPDATE meta SET state = 'closed', outcome = 'lost', summary = '{"battles_d' WHERE id = 1`);
+  await m.do.alarm();
+  assert.equal(calls.length, 1);
+  assert.equal(calls[0][1][2], 0);
+  m.do.core.sql.exec(`UPDATE meta SET summary = '{"battles_done":99999}' WHERE id = 1`);
+  await m.do.alarm();
+  assert.equal(calls[1][1][2], 0);
+});

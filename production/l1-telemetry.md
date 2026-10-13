@@ -12,6 +12,11 @@ Muốn xem một truy vấn thì copy câu đó vào `--command="..."`. Thêm `-
 - `summary_json.srv.aids` = Aid/Continue server tự thấy trong epoch log (đáng tin hơn `aids`). R1 = Continue.
 - `wallet_ledger` (reason `aid:Rx`, delta âm) = Gem thật đã trừ cho Aid/Continue.
 
+## Client khai vs server thấy
+- Client khai (có thể sai/gian): `battles_done` (kẹp 0..500), `summary_json.aids`, `newcomer`, `client`, `len`, `nodes_done`, toàn bộ `mission{tier, stake, payout, won}`, `outcome`.
+- Server thấy: `summary_json.srv.aids` (epoch log), `wallet_ledger`, mode, ascension, rules_version, created_at/closed_at, state.
+- Summary > 2 KB hoặc hỏng được lưu thành `{"truncated":1}` / `{}`.
+
 ## Chưa có / giới hạn
 - Run bỏ giữa chừng (abandon) không có summary: chỉ biết state/mode/ascension/thời lượng; Aid vẫn thấy qua ledger. Mission bỏ = mất cược, chỉ đếm được số lần.
 - Cược/payout Nhiệm vụ là Shard phía client (escrow trong save), server không thấy: số trong báo cáo là client khai. Nhiệm vụ trên Worker chỉ mở khi `ALLOW_GATED_MODES=1`.

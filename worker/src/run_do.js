@@ -103,7 +103,9 @@ export class RunDO {
     const meta = this.core.meta();
     if (!meta || !this.env.DB || meta.state !== 'closed' || meta.outcome == null) return; // never touch an open run
     try {
-      const s = JSON.parse(meta.summary || '{}');
+      let s = {};
+      try { s = JSON.parse(meta.summary || '{}'); } catch { s = {}; }
+      if (!s || typeof s !== 'object' || Array.isArray(s)) s = {};
       // What the server itself saw (epoch log), next to the client's claim: Aid ids actually charged, in order.
       // Not trusted from the client, and no migration: reports read it with json_extract(summary_json, '$.srv.aids').
       let srv = { aids: [] };
@@ -112,7 +114,7 @@ export class RunDO {
       await this.env.DB.prepare(
         `UPDATE runs SET state = 'closed', outcome = ?, closed_at = ?, battles_done = ?, summary_json = ?
           WHERE run_id = ? AND state = 'open'`,
-      ).bind(meta.outcome, Math.floor(Date.now() / 1000), Number.isInteger(s.battles_done) ? s.battles_done : 0, merged, meta.run_id).run();
+      ).bind(meta.outcome, Math.floor(Date.now() / 1000), Number.isInteger(s.battles_done) && s.battles_done >= 0 && s.battles_done <= 500 ? s.battles_done : 0, merged, meta.run_id).run();
     } catch (err) {
       console.error('run close sync failed', String(err));
       await this.ctx.storage.setAlarm(Date.now() + 30_000);
