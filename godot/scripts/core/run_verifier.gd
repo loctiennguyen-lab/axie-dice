@@ -109,6 +109,8 @@ static func verify(log: ActionLog, tape: Array = [], loadout: Dictionary = {}) -
 		tape_src.set_visible_len(i)
 		match fn:
 			"enter_node":
+				if RunState.phase == RunState.RunPhase.PACT:
+					return _fail(ERR_REJECTED, "A node was entered before the boss Pact was settled.", i)
 				# A node ends when the next one is entered. Nothing logs "I left the node",
 				# and nothing should: leaving is not a decision, it is what the rules do once
 				# the decisions run out.
@@ -184,6 +186,8 @@ static func verify(log: ActionLog, tape: Array = [], loadout: Dictionary = {}) -
 						% [idx, RunState.pending_rewards.size()], i)
 				RunState.apply_chosen_reward(RunState.pending_rewards[idx])
 			"reroll_rewards":
+				if RunState.phase == RunState.RunPhase.PACT:
+					return _fail(ERR_REJECTED, "Rewards were re-rolled before the boss Pact was settled.", i)
 				if not RunState.reroll_pending_rewards():
 					return _fail(ERR_REJECTED, "A reward re-roll was recorded with none left.", i)
 			"event_choose":

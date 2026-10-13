@@ -6,6 +6,7 @@ var _failures: Array[String] = []
 var _checks := 0
 var _guard := SaveGuard.new()
 const TEAM: Array[String] = ["plant1", "beast1", "aqua1", "reptile1", "bird1"]
+const REPLAY_TEAM: Array[String] = ["plant1", "beast1", "aqua1", "reptile1", "bug1"]
 
 
 func _ready() -> void:
@@ -16,6 +17,7 @@ func _ready() -> void:
 	test_sell_on_full()
 	test_save_resume()
 	test_log_and_view()
+	test_verifier_refusals()
 	_guard.restore()
 	print("=== t_boss_pact: %d checks, %d failure(s) ===" % [_checks, _failures.size()])
 	if _failures.is_empty():
@@ -134,3 +136,55 @@ func test_log_and_view() -> void:
 	v2._unhandled_input(esc)
 	_assert(v2.skip_button != null and got[0] == 1, "optional view: skip button, Esc skips")
 	v2.queue_free()
+
+
+# --- verifier refusals (RunVerifier replays the log; a tampered pact step must not score) ---------------
+func _clone(source: ActionLog) -> ActionLog:
+	return ActionLog.from_data(JSON.parse_string(JSON.stringify(source.to_data())) as Dictionary)
+
+
+func _pact_index(log: ActionLog) -> int:
+	for i in log.entries.size():
+		if String((log.entries[i] as Dictionary).get("fn", "")) == "pact_pick":
+			return i
+	return -1
+
+
+func _refused(log: ActionLog, tape: Array, what: String) -> void:
+	var v := RunVerifier.verify(log, tape)
+	_assert(not bool(v["ok"]) and String(v["error"]) == RunVerifier.ERR_REJECTED, "%s: refused (got %s)" % [what, str(v["error"])])
+
+
+func test_verifier_refusals() -> void:
+	var played := RunBot.play_run(991237, REPLAY_TEAM, "short", 0)
+	var log: ActionLog = played["log"]
+	var pi := _pact_index(log)
+	_assert(pi >= 0, "bot run recorded a pact_pick")
+	if pi < 0:
+		return
+	_assert(bool(RunVerifier.verify(log, played["tape"])["ok"]), "honest run with a pact verifies")
+	var t := _clone(log)
+	t.entries[pi]["args"] = [9]
+	_refused(t, played["tape"], "out-of-range index")
+	t = _clone(log)
+	t.entries[pi]["args"] = [0, "r_notowned"]
+	_refused(t, played["tape"], "selling an unowned relic")
+	t = _clone(log)
+	t.entries.remove_at(pi)
+	_refused(t, played["tape"], "take_reward before the pact is settled")
+	t = _clone(log)
+	t.entries.remove_at(pi)
+	t.entries.remove_at(pi)   # the take_reward behind it: next entry is the following enter_node
+	_refused(t, played["tape"], "enter_node while a pact is pending")
+	t = _clone(log)
+	t.entries[pi] = {"fn": "reroll_rewards", "args": []}
+	_refused(t, played["tape"], "reroll_rewards while a pact is pending")
+	# Forced skip: a run at A6 whose first boss pact was edited into a skip.
+	var p6 := RunBot.play_run(991237, REPLAY_TEAM, "short", 6)
+	var l6: ActionLog = p6["log"]
+	var p6i := _pact_index(l6)
+	_assert(p6i >= 0, "A6 bot run reached a boss pact")
+	if p6i >= 0:
+		t = _clone(l6)
+		t.entries[p6i]["args"] = [-1]
+		_refused(t, p6["tape"], "forced pact skipped")

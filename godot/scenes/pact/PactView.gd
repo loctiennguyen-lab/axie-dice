@@ -113,12 +113,14 @@ func _show_sell(i: int) -> void:
 		var b := Button.new()
 		b.text = "Sell %s (+%d)" % [String(d.name) if d != null else String(rid),
 			RelicSlots.sell_price(String(rid), RunState.ascension)]
+		b.custom_minimum_size.y = 48
 		b.pressed.connect(func(): picked.emit(i, String(rid)))
 		hb.add_child(b)
 		sell_buttons.append(b)
 	if can_skip:
 		var back := Button.new()
 		back.text = "Back"
+		back.custom_minimum_size.y = 48
 		back.pressed.connect(func():
 			_sell_for = -1
 			for ch in _sell_box.get_children():
