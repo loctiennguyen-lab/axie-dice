@@ -972,7 +972,7 @@ func _profile_chip() -> Control:
 	ini.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	ini.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	av.add_child(ini)
-	h.add_child(av)
+	h.add_child(AvatarFrame.wrap(av, 56.0, MetaState.equipped_frame, 40.0))
 	var col := VBoxContainer.new()
 	col.add_theme_constant_override("separation", -2)
 	col.alignment = BoxContainer.ALIGNMENT_CENTER

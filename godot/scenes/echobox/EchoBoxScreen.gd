@@ -669,6 +669,16 @@ func _result_cell(r: Dictionary) -> Control:
 	c.custom_minimum_size = Vector2(128, 150)
 	var v := VBoxContainer.new()
 	c.add_child(v)
+	var art: Control = null
+	if String(r.get("kind")) == "cosmetic":
+		art = CosmeticTile.art(String(r.get("item", "")), 72.0)
+	if art != null:
+		c.custom_minimum_size = Vector2(128, 230)
+		v.add_child(art)
+		var nm: Label = _label(CosmeticTile.display_name(String(r.get("item", ""))), 13, DangoTheme.INK)
+		nm.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		nm.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		v.add_child(nm)
 	v.add_child(_label(_reward_title(r), 14, DangoTheme.INK, true))
 	var tag := "Stone"
 	if String(r.get("kind")) != "stone":

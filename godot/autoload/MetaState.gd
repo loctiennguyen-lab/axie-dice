@@ -92,6 +92,9 @@ var tickets: Dictionary = {"normal": 0, "season": 0}   # MỘT loại vé: dùng
 var season_box: Dictionary = {}
 var echobox_pity: Dictionary = {}        # bộ đếm pity, mảnh, số lượt mở, đếm mua vé theo ngày
 var cosmetics_owned: Array[String] = []
+## B12 equip (cosmetic only, no combat rule reads these): art ids, "" = none.
+var equipped_die_skin: String = ""
+var equipped_frame: String = ""
 var pass_season: Dictionary = {"id": "", "xp": 0, "level": 0, "claimed_free": []}
 var vip_until_utc: int = 0
 var vip_trial_used: bool = false
@@ -462,6 +465,8 @@ func _reset_economy_fields() -> void:
 	echobox_pity = {}
 	season_box = {}
 	cosmetics_owned.clear()
+	equipped_die_skin = ""
+	equipped_frame = ""
 	pass_season = {"id": "", "xp": 0, "level": 0, "claimed_free": []}
 	vip_until_utc = 0
 	vip_trial_used = false
@@ -541,6 +546,8 @@ func _economy_from_json(parsed: Dictionary, raw_text: String = "") -> void:
 	cosmetics_owned.clear()
 	for c in (parsed.get("cosmetics_owned", []) as Array):
 		cosmetics_owned.append(str(c))
+	equipped_die_skin = _equipped_or_none(str(parsed.get("equipped_die_skin", "")), Cosmetics.SLOT_DIE)
+	equipped_frame = _equipped_or_none(str(parsed.get("equipped_frame", "")), Cosmetics.SLOT_FRAME)
 	var ps = parsed.get("pass_season", {})
 	pass_season = {"id": "", "xp": 0, "level": 0, "claimed_free": []}
 	if ps is Dictionary:
@@ -671,6 +678,35 @@ func note_run_battle(run_seed_key: int) -> void:
 	save_to_disk()
 
 
+## Saved equip that is no longer owned / valid falls back to none.
+func _equipped_or_none(id: String, slot: String) -> String:
+	if id == "" or Cosmetics.slot_of(id) != slot or Cosmetics.can_equip(cosmetics_owned, id) != "":
+		return ""
+	return id
+
+
+## Equip an owned die skin or frame (slot from the id). Returns "" or the reason. Saves via SaveStore.
+func equip_cosmetic(art: String) -> String:
+	var why := Cosmetics.can_equip(cosmetics_owned, art)
+	if why != "":
+		return why
+	if Cosmetics.slot_of(art) == Cosmetics.SLOT_DIE:
+		equipped_die_skin = art
+	else:
+		equipped_frame = art
+	save_to_disk()
+	return ""
+
+
+## Back to the default (no skin / no frame). slot = Cosmetics.SLOT_DIE or SLOT_FRAME.
+func unequip_cosmetic(slot: String) -> void:
+	if slot == Cosmetics.SLOT_DIE:
+		equipped_die_skin = ""
+	else:
+		equipped_frame = ""
+	save_to_disk()
+
+
 func save_to_disk() -> void:
 	var data := {
 		"shard_pool": shard_pool,
@@ -704,6 +740,8 @@ func save_to_disk() -> void:
 		"echobox_pity": echobox_pity,
 		"season_box": season_box,
 		"cosmetics_owned": cosmetics_owned,
+		"equipped_die_skin": equipped_die_skin,
+		"equipped_frame": equipped_frame,
 		"pass_season": pass_season,
 		"vip_until_utc": vip_until_utc,
 		"vip_trial_used": vip_trial_used,

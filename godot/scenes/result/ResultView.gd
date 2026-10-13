@@ -141,9 +141,21 @@ func _build_ui(s: Dictionary) -> void:
 	_build_card_row(s)
 	_build_cta_row()
 	_build_version_tag()
+	_build_equipped_avatar()
 	# Deferred: the party columns have no size until the first layout pass, so measuring here
 	# would read zero and leave the ribbon at its mockup baseline whether or not that is clear.
 	_relayout_bands.call_deferred()
+
+
+## B12: the player's avatar in its equipped frame, top-left. Only drawn when a frame is equipped, so the
+## mockup layout is untouched for everyone else.
+func _build_equipped_avatar() -> void:
+	if MetaState.equipped_frame == "":
+		return
+	var av := ProfileView.make_avatar(88.0)
+	av.name = "EquippedAvatar"
+	av.position = Vector2(32, 32)
+	add_child(av)
 
 
 ## Build number, small, bottom-right. Only when application/config/version is set.

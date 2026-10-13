@@ -39,11 +39,11 @@ sẵn** · báo lỗi bằng **một Google Sheet** (Liam làm) · Cloudflare g�
 - [x] B10 (13/10, merge 1cf344d; cần deploy Worker). Continue miễn phí cho người mới (lần thua elite/boss đầu, A0–A2, monetization-v1 §2.6/E13) — cần bộ đếm theo tài khoản (server). Đang: người mới không có Continue.
 - [ ] B11. Aid R4 (dời đồng hồ) + R5 (đổi pact) đang hiện "Coming soon".
 
-- [ ] B12. **Dùng cosmetics trong game (Liam 13/10: BẮT BUỘC cho L1)**:
-  - [ ] Trang bị skin xúc xắc + khung avatar (Profile/Vault), lưu qua SaveStore.
-  - [ ] Xúc xắc mang skin trong trận; khung avatar ở Profile, chip trên Land, màn kết quả.
-  - [ ] Pool Echo Box + Store dùng 20 skin + 21 khung thật theo độ hiếm (thay ID giữ chỗ std_*).
-  - [ ] Thẻ phần thưởng Echo Box / Store / Pass hiện hình art.
+- [x] B12 (13/10 merge 951fc80; còn: chụp màn hình kiểm bằng mắt, màn Profile theo khung R3 M12/M14). **Dùng cosmetics trong game (Liam 13/10: BẮT BUỘC cho L1)**:
+  - [x] Trang bị skin xúc xắc + khung avatar (Profile/Vault), lưu qua SaveStore.
+  - [x] Xúc xắc mang skin trong trận; khung avatar ở Profile, chip trên Land, màn kết quả.
+  - [x] Pool Echo Box + Store dùng 20 skin + 21 khung thật theo độ hiếm (thay ID giữ chỗ std_*).
+  - [x] Thẻ phần thưởng Echo Box / Store / Pass hiện hình art.
 
 ## C. Nên có (cắt được nếu trễ — hỏi Liam trước)
 

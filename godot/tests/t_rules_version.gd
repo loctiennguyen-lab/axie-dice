@@ -183,7 +183,9 @@ const WATCHED_FILES: Array[String] = ["res://assets/data/part_faces.json"]
 ## Moved 2026-10-13 by B10 1cf344d: MetaState.free_continue_used + RunState ctx flag (price of the newcomer's
 ## first Continue only; no combat rule reads it). Run result: NO, stays -k.
 ## 2026-10-13 (R-save): RunState.gd writes/checks rules_version in run_save (resume refused on mismatch). Changes the run result: NO, RULES_VERSION stays -k.
-const FINGERPRINT := "cb53a5e47b266b080edb19a72e43ce9f8b4ff18aea97e301196ab6223d6583d2"
+## Moved 2026-10-13 by B12 951fc80: MetaState equipped_die_skin / equipped_frame (cosmetic only; t_mon13 +
+## scan confirm no rule reads them). Run result: NO, stays -k.
+const FINGERPRINT := "00b78840f76bd97eb1a2803c487fd733e78c5ef4934ea6f8d920ff4644a70ab5"
 
 
 func _ready() -> void:

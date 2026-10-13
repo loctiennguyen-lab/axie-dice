@@ -145,7 +145,58 @@
 					}
 				]
 			},
-			"_note_ids": "id_prefix + số thứ tự 001.. là ID tạm; art-director/curate gán món thật sau"
+			"_note_ids": "id_prefix + số thứ tự 001.. là ID tạm; art-director/curate gán món thật sau",
+			"art_map": {
+				"common": [
+					"die_c_reed",
+					"frame_c_plant",
+					"die_c_sunwood",
+					"frame_c_beast",
+					"die_c_clay",
+					"frame_c_aqua",
+					"frame_c_reptile",
+					"frame_c_bug",
+					"frame_c_bird"
+				],
+				"uncommon": [
+					"die_u_bark",
+					"frame_u_pond",
+					"die_u_berry",
+					"frame_u_mushroom",
+					"frame_u_campfire"
+				],
+				"rare": [
+					"die_r_plant",
+					"frame_r_frost",
+					"die_r_beast",
+					"frame_r_snowglobe",
+					"die_r_aqua",
+					"frame_r_aurora",
+					"die_r_reptile",
+					"frame_r_icicle",
+					"die_r_bug",
+					"die_r_bird"
+				],
+				"epic": [
+					"die_e_rune",
+					"frame_e_runering",
+					"die_e_spore",
+					"frame_e_firefly"
+				],
+				"legendary": [
+					"die_l_gold",
+					"frame_l_sunburst",
+					"die_l_relic_stone",
+					"die_l_kingdom"
+				],
+				"mythic": [
+					"die_m_redcrystal",
+					"frame_m_eclipse",
+					"die_m_moon",
+					"frame_m_crystal"
+				]
+			},
+			"_note_art_map": "B12: std_<r>_NNN (NNN-1) mod len(art_map[r]) -> art id (dice/frames interleaved). Pool counts and odds unchanged; art is reused across duplicate ids. Pass-exclusive ids (Moss die, Vine frame, S1 Founder, Sovereign) are left out."
 		},
 		"season": {
 			"enabled": false,
