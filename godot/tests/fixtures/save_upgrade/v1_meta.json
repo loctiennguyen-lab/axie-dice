@@ -1,0 +1,20 @@
+{
+	"asc_max": 1,
+	"audio_music_volume": 1.0,
+	"audio_muted": false,
+	"audio_sfx_volume": 1.0,
+	"battle_pass_level": 1,
+	"battle_pass_xp": 0,
+	"best": 17,
+	"bp_claimed": [],
+	"daily_date": "2026-09-21",
+	"perks": {},
+	"reduce_flash": false,
+	"runs": 6,
+	"shard_pool": 3300,
+	"tutorial_seen": true,
+	"unlocks": [],
+	"vault": [],
+	"wins": 6,
+	"xp": 3000
+}
