@@ -12,7 +12,7 @@ sẵn** · báo lỗi bằng **một Google Sheet** (Liam làm) · Cloudflare g�
 ## A. Việc của Liam
 
 - [ ] A1. Tạo Google Sheet báo lỗi (cột gợi ý: ngày, người báo, máy Mac/Win/Web, bản build, mô tả, các bước, ảnh, mức độ) và gửi link cho lane I để gắn vào hướng dẫn cài + màn Settings.
-- [ ] A2. Chốt hướng Land hub: bản Claude Design mới "Land hub v4 · town + dock" (`design/handoffs/ui-02-round4/_zip/Dice UI R1 - Land Hub v4.dc.html`, ảnh `screenshots/01-hub-v4.jpg`) có phải hướng sẽ làm cho L1 không.
+- [x] A2. (13/10: Liam chọn v4 cho L1) Chốt hướng Land hub: bản Claude Design mới "Land hub v4 · town + dock" (`design/handoffs/ui-02-round4/_zip/Dice UI R1 - Land Hub v4.dc.html`, ảnh `screenshots/01-hub-v4.jpg`) có phải hướng sẽ làm cho L1 không.
 - [ ] A3. Cosmetics lượt 2 (21 khung avatar còn thiếu + sửa plate xúc xắc) — chưa có trong bản zip 13/10. Gửi Claude Design hoặc chấp nhận dùng 20 plate + 5 khung hiện có cho L1. Hạn mềm 24/10.
 - [ ] A4. Danh sách người mời (~50) + kênh gửi link tải. Hạn 24/10.
 - [ ] A5. Nội dung thông báo phát hành: "Gem tặng sẽ reset ở L2", ngày Mùa 1 (3/11–29/12), link Google Sheet.
@@ -41,7 +41,7 @@ sẵn** · báo lỗi bằng **một Google Sheet** (Liam làm) · Cloudflare g�
 - [ ] C2. Chế độ **Daily** và **Ranked** trong Run Setup (đang vẽ nhưng khoá).
 - [ ] C3. Menu trong run → Settings ("Back to run", bỏ cuộc trừ cược đúng).
 - [ ] C4. Land "New run" khi còn run Nhiệm vụ dang dở → settle cược (đường này đang bỏ sót).
-- [ ] C5. Land hub theo hướng Liam chốt ở A2 (nếu là v4: lưới 3×3 quanh Portal, dock dưới, nút RUN giữa).
+- [ ] C5. Land hub v4 (Liam chốt 13/10; review: `design/handoffs/ui-02-round4/REVIEW-land-hub-v4.md`): lưới 3×3 quanh Portal, dock dưới, nút RUN giữa).
 - [ ] C6. Các màn R3 còn lại: Team presets, Leaderboard, Profile/Account, Cosmetics, Land upgrade (Land Stone).
 - [ ] C7. Danh hiệu A5/A10 hiện trong game (Profile / Result).
 - [ ] C8. Thưởng tuần Daily (4 ngày → 150 Shard + 2000 Stone) — có data, chưa có logic.
