@@ -21,7 +21,9 @@ func _ready() -> void:
 	await get_tree().process_frame
 	await _combat_roundtrip()
 	await _map_roundtrip()
+	LandNav.dry_run = true   # abandon -> back_to_land would load Land, which touches the save after restore()
 	await _abandon_from_run()
+	LandNav.dry_run = false
 	_guard.restore()
 	print("=== t_run_menu: %d checks, %d failure(s) ===" % [_checks, _failures.size()])
 	if _failures.is_empty():

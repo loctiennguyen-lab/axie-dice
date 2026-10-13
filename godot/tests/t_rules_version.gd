@@ -182,7 +182,8 @@ const WATCHED_FILES: Array[String] = ["res://assets/data/part_faces.json"]
 ## Worker SUPPORTED_RULE_VERSIONS gained -k in the same commit.
 ## Moved 2026-10-13 by B10 1cf344d: MetaState.free_continue_used + RunState ctx flag (price of the newcomer's
 ## first Continue only; no combat rule reads it). Run result: NO, stays -k.
-const FINGERPRINT := "344a62d1c2b15e021afec0fa349819ff47a8d39969090eb2f551cd1088d20f97"
+## 2026-10-13 (R-save): RunState.gd writes/checks rules_version in run_save (resume refused on mismatch). Changes the run result: NO, RULES_VERSION stays -k.
+const FINGERPRINT := "cb53a5e47b266b080edb19a72e43ce9f8b4ff18aea97e301196ab6223d6583d2"
 
 
 func _ready() -> void:

@@ -41,8 +41,12 @@ var _completed: Array[String] = []
 var _tutorial_seen_was := false
 
 
+var _save_guard := SaveGuard.new()
+
+
 func _ready() -> void:
 	print("=== t_mainmenu_ui: start ===")
+	_save_guard.capture()   # MainMenu/Land discard unresumable run saves
 	# MainMenu._ready() is the onboarding choke point: on a save that has never seen the tutorial
 	# it calls `change_scene_to_file()` and returns, which frees THIS node — every `get_tree()`
 	# after that is null and all eight tests abort with "Parameter data.tree is null".
@@ -73,6 +77,7 @@ func _ready() -> void:
 				+ "it part-way and every assertion after that point was skipped") % name)
 
 	MetaState.tutorial_seen = _tutorial_seen_was
+	_save_guard.restore()
 	print("=== t_mainmenu_ui: %d checks, %d failure(s) ===" % [_checks, _failures.size()])
 	if _failures.is_empty():
 		print("t_mainmenu_ui: PASS — %d checks OK" % _checks)

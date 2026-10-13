@@ -14,8 +14,12 @@ func _check(ok: bool, msg: String) -> void:
 		printerr("FAIL: ", msg)
 
 
+var _save_guard := SaveGuard.new()
+
+
 func _ready() -> void:
 	print("=== t_land_hub: start ===")
+	_save_guard.capture()   # Land discards unresumable run saves
 	var seen_was := MetaState.tutorial_seen
 	MetaState.tutorial_seen = true      # in memory only
 	LandNav.dry_run = true
@@ -92,6 +96,7 @@ func _ready() -> void:
 	LandNav.dry_run = false
 	MetaState.tutorial_seen = seen_was
 	_check_scene_deps("res://assets/land/homeland/scenes")
+	_save_guard.restore()
 	if _fails.is_empty():
 		print("=== t_land_hub: PASS (%d checks) ===" % _checks)
 		get_tree().quit(0)

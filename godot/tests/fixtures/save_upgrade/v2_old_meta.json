@@ -1,0 +1,63 @@
+{
+	"aid_hints_off": false,
+	"asc_max": 0,
+	"asc_wins": {},
+	"audio_music_volume": 1.0,
+	"audio_muted": false,
+	"audio_sfx_volume": 1.0,
+	"battle_pass_level": 1,
+	"battle_pass_xp": 0,
+	"best": 0,
+	"bp_claimed": [],
+	"cosmetics_owned": [],
+	"daily_date": "",
+	"echobox_pity": {},
+	"full_a9_won": false,
+	"gem_claim_next_utc": 0,
+	"gem_gift_day": "",
+	"gems_cache": 45,
+	"last_daily_reward_utc": "",
+	"ledger": [
+		{
+			"b": 500,
+			"c": "shard",
+			"d": 500,
+			"r": "starter",
+			"t": 1791876663
+		},
+		{
+			"b": 3,
+			"c": "ticket",
+			"d": 3,
+			"r": "starter",
+			"t": 1791876663
+		}
+	],
+	"mission_house_level": 0,
+	"pass_season": {
+		"claimed_free": [],
+		"id": "",
+		"level": 0,
+		"xp": 0
+	},
+	"perks": {},
+	"reduce_flash": false,
+	"runs": 9,
+	"save_version": 2,
+	"shard_pool": 777,
+	"starter_granted": true,
+	"stone": 123,
+	"tickets": {
+		"normal": 6,
+		"season": 0
+	},
+	"tutorial_seen": false,
+	"unlocks": [
+		"x_probe"
+	],
+	"vault": [],
+	"vip_trial_used": false,
+	"vip_until_utc": 0,
+	"wins": 3,
+	"xp": 0
+}

@@ -1513,6 +1513,7 @@ func save_run(combat_state: Dictionary = {}) -> void:
 		return
 	var payload := {
 		"version": SAVE_VERSION,
+		"rules_version": ActionLog.RULES_VERSION,   # a run must never continue under different rules
 		"run": to_data(),
 		"combat": combat_state.duplicate(true),
 	}
@@ -1523,8 +1524,56 @@ func save_run(combat_state: Dictionary = {}) -> void:
 		push_error("RunState: could not write %s — this run is not being saved" % SAVE_PATH)
 
 
+## True only when a save exists AND this build can resume it (see saved_run_status()).
 func has_saved_run() -> bool:
+	return bool(saved_run_status()["resumable"])
+
+
+## Raw file check, no judgement on whether the save is usable.
+func saved_run_file_exists() -> bool:
 	return SaveStore.exists(SAVE_PATH)
+
+
+const DISCARD_MESSAGE := "Your unfinished run was from an older version and can't be continued."
+
+## Set by discard_unresumable_run(); the first screen that shows it calls take_discard_notice().
+var discard_notice := ""
+
+
+## {"exists": bool, "resumable": bool, "reason": ""|"version"|"rules"|"corrupt"}. Pure: touches nothing.
+## "version" = file schema differs; "rules" = saved under another ActionLog.RULES_VERSION (or none recorded).
+func saved_run_status() -> Dictionary:
+	if not SaveStore.exists(SAVE_PATH):
+		return {"exists": false, "resumable": false, "reason": ""}
+	var parsed = JSON.parse_string(SaveStore.read_text(SAVE_PATH))
+	if typeof(parsed) != TYPE_DICTIONARY or typeof((parsed as Dictionary).get("run", null)) != TYPE_DICTIONARY:
+		return {"exists": true, "resumable": false, "reason": "corrupt"}
+	var payload: Dictionary = parsed
+	if int(payload.get("version", -1)) != SAVE_VERSION:
+		return {"exists": true, "resumable": false, "reason": "version"}
+	if str(payload.get("rules_version", "")) != ActionLog.RULES_VERSION:
+		return {"exists": true, "resumable": false, "reason": "rules"}
+	return {"exists": true, "resumable": true, "reason": ""}
+
+
+## If a save file exists that cannot be resumed: settle any open mission escrow as a loss (so the
+## stake is not stuck), erase the file and set discard_notice. Returns true when something was discarded.
+## Screens call this before they decide whether to offer CONTINUE.
+func discard_unresumable_run() -> bool:
+	var st := saved_run_status()
+	if not bool(st["exists"]) or bool(st["resumable"]):
+		return false
+	MetaState.settle_mission_stake(false, true)
+	SaveStore.erase(SAVE_PATH)
+	discard_notice = DISCARD_MESSAGE
+	return true
+
+
+## Returns the pending "run discarded" line once, then clears it.
+func take_discard_notice() -> String:
+	var m := discard_notice
+	discard_notice = ""
+	return m
 
 
 ## Restores a saved run into this autoload and returns true on success. Returns false — having
@@ -1543,6 +1592,10 @@ func load_run() -> bool:
 		push_warning("RunState: save file is version %s, this build reads %d — ignoring it"
 			% [payload.get("version", "?"), SAVE_VERSION])
 		return false
+	if str(payload.get("rules_version", "")) != ActionLog.RULES_VERSION:
+		push_warning("RunState: save was made under rules '%s', this build is '%s' — ignoring it"
+			% [payload.get("rules_version", "none"), ActionLog.RULES_VERSION])
+		return false
 	var run_data = payload.get("run", null)
 	if typeof(run_data) != TYPE_DICTIONARY:
 		push_warning("RunState: save file has no run data — ignoring it")
@@ -1556,7 +1609,7 @@ func load_run() -> bool:
 
 
 func clear_saved_run() -> void:
-	if not has_saved_run():
+	if not saved_run_file_exists():
 		return
 	# SaveStore, so ABANDON RUN deletes BOTH copies on a web build. Deleting only the file
 	# there would leave the localStorage copy behind, and the next launch would offer to

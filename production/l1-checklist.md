@@ -34,7 +34,7 @@ sẵn** · báo lỗi bằng **một Google Sheet** (Liam làm) · Cloudflare g�
 - [x] B6 (13/10, merge a1095a6: mọi boss/elite có model; mecha=xia, agony=paladill có animation). **Boss thiếu asset → mascot có sẵn** (`assets/bosses/`: kibo, kotaro, paladill, xia) cho từng boss còn thiếu.
 - [ ] B7. **Bản tải Mac (Apple Silicon) + Windows**: build từ godot-port mới nhất, cài thử trên máy sạch, hướng dẫn mở (Gatekeeper / SmartScreen) được kiểm.
 - [ ] B8. **Bản web**: `export-web.sh` → chạy được ≥ 30 FPS với Atia + Land → `deploy-r2.sh` (khi Liam cho deploy).
-- [ ] B9. Save không mất: chạy thử cập nhật bản cũ → bản mới trên save thật (bản sao), cloud save qua tài khoản.
+- [x] B9 (13/10, merge 462eefd: run lưu bằng luật cũ bị bỏ kèm thông báo + cược Nhiệm vụ tính thua; save cũ v1 reset tiền tệ theo thiết kế — Liam chọn A; test t_save_upgrade). Save không mất: chạy thử cập nhật bản cũ → bản mới trên save thật (bản sao), cloud save qua tài khoản.
 
 - [x] B10 (13/10, merge 1cf344d; cần deploy Worker). Continue miễn phí cho người mới (lần thua elite/boss đầu, A0–A2, monetization-v1 §2.6/E13) — cần bộ đếm theo tài khoản (server). Đang: người mới không có Continue.
 - [ ] B11. Aid R4 (dời đồng hồ) + R5 (đổi pact) đang hiện "Coming soon".
