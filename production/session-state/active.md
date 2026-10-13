@@ -17,7 +17,7 @@ B4 (số liệu + `worker/sql/l1_report.sql`), B5 (Nhiệm vụ N1–N3 + số b
 - l1/L có commit chưa merge: cd2475b (Land v5: "5 runs" từ data, nút + Gem 44 px, chạm-để-xem, UI scale 0.85) — review FIX FIRST:
   `_is_touch()` chỉ dựa `is_touchscreen_available()` → laptop cảm ứng click chuột cũng 2 bước; cần chốt touch khi có
   InputEventScreenTouch thật + test HUD không đè dock ở scale 1.275. Đã có commit sửa 1cd678d (touch chỉ bật khi chạm thật + test HUD ở 1.275) — CHƯA review: cho agent khác review cd2475b..1cd678d rồi merge.
-- l1/C: bỏ hẳn FrontLine (Liam chọn C) — agent có thể đã commit hoặc chưa (`git -C ../my-game-wt/C log godot-port..l1/C`, `git status`).
+- l1/C: bỏ hẳn FrontLine (Liam chọn C) — đã có commit 20d73ee (xoá node + code, `_update_front_line` để no-op vì TutorialView còn đọc; suite worktree 91/91), CHƯA review: cho agent khác review rồi merge.
 - Worktree R: file nháp `godot/tests/qa_b12_capture.*` untracked — xoá.
 
 **Việc kế tiếp theo checklist:** B1 phần cuối (bật cờ remote trong `project.godot` [axie] + chạy trọn 1 run thật trên Worker),
