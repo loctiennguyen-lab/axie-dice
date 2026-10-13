@@ -62,7 +62,7 @@ static func layers(id: String) -> Array:
 			continue
 		var stem := p.get_file().get_basename()
 		var layer := stem.trim_prefix(id + "_")
-		out.append({"layer": layer, "path": p, "add": layer == "glow"})
+		out.append({"layer": layer, "path": p, "add": layer == "glow" or String(((entry as Dictionary).get("blend", {}) as Dictionary).get(layer, "")) == "add"})
 	if missing:
 		# fallback: old combined overlay, shown static
 		for rel in (entry as Dictionary).get("preview_files", []):
@@ -132,6 +132,10 @@ static func _start_anims(root: Control, animated: Array, k: float) -> void:
 					var per := float(sp.reduce_period if reduce else sp.period)
 					tw.tween_property(tr, "rotation", TAU, per).from(0.0)
 				"pulse":
+					if reduce and sp.get("reduce_static", false):
+						tw.kill()
+						tr.modulate.a = 0.8
+						continue
 					var lo := float(sp.reduce_lo if reduce else sp.lo)
 					var hi := float(sp.reduce_hi if reduce else sp.hi)
 					var half := float(sp.period) / 2.0
@@ -144,12 +148,14 @@ static func _start_anims(root: Control, animated: Array, k: float) -> void:
 					var t_out := float(sp.out)
 					var total := t_in + float(sp.hold) + t_out
 					tr.modulate.a = 0.0
-					tw.tween_method(_sweep_step.bind(tr, sp, peak, k), 0.0, total, total)
+					tw.tween_method(_sweep_step.bind(tr, sp, 1.0 if (reduce and sp.get("reduce_fixed", false)) else peak, k, reduce and sp.get("reduce_fixed", false)), 0.0, total, total)
+					if reduce and sp.get("reduce_fixed", false):
+						tw.tween_callback(func() -> void: tr.modulate.a = 0.0)
 					tw.tween_interval(float(sp.rest))
 	root.set_meta("tweens", tweens)
 
 
-static func _sweep_step(t: float, tr: TextureRect, sp: Dictionary, peak: float, k: float) -> void:
+static func _sweep_step(t: float, tr: TextureRect, sp: Dictionary, peak: float, k: float, fixed := false) -> void:
 	var t_in := float(sp["in"])
 	var t_hold := float(sp.hold)
 	var t_out := float(sp.out)
@@ -166,7 +172,9 @@ static func _sweep_step(t: float, tr: TextureRect, sp: Dictionary, peak: float, 
 		var f := clampf((t - t_in - t_hold) / t_out, 0.0, 1.0)
 		u = f
 		a = 1.0 - f
-	if t_hold == 0.0:
+	if fixed:
+		a = 1.0  # reduce flashing: slide only, no brightness change
+	elif t_hold == 0.0:
 		# short sheen/glint: one smooth pass, fade in then out around the centre
 		a = 1.0 - absf(u)
 	tr.position = Vector2(u * float(sp.dx), u * float(sp.dy)) * k

@@ -1133,6 +1133,9 @@
       "reduce_hi": 0.65
      }
     ]
+   },
+   "blend": {
+    "rune_glow": "add"
    }
   },
   "frame_e_firefly": {
@@ -1192,7 +1195,8 @@
       "hi": 1.0,
       "period": 1.6,
       "reduce_lo": 0.6,
-      "reduce_hi": 1.0
+      "reduce_hi": 1.0,
+      "reduce_static": true
      }
     ],
     "lantern_glow": [
@@ -1205,6 +1209,9 @@
       "reduce_hi": 0.65
      }
     ]
+   },
+   "blend": {
+    "lantern_glow": "add"
    }
   },
   "frame_e_s1_founder": {
@@ -1259,7 +1266,8 @@
       "hi": 1.0,
       "period": 2.0,
       "reduce_lo": 0.6,
-      "reduce_hi": 1.0
+      "reduce_hi": 1.0,
+      "reduce_static": true
      }
     ],
     "shield_sheen": [
@@ -1275,6 +1283,9 @@
       "dy": 0
      }
     ]
+   },
+   "blend": {
+    "shield_sheen": "add"
    }
   },
   "frame_l_sunburst": {
@@ -1339,9 +1350,13 @@
       "hi": 1.0,
       "period": 1.6,
       "reduce_lo": 0.6,
-      "reduce_hi": 1.0
+      "reduce_hi": 1.0,
+      "reduce_static": true
      }
     ]
+   },
+   "blend": {
+    "sun_glow": "add"
    }
   },
   "frame_l_sovereign": {
@@ -1409,9 +1424,13 @@
       "hi": 1.0,
       "period": 1.6,
       "reduce_lo": 0.6,
-      "reduce_hi": 1.0
+      "reduce_hi": 1.0,
+      "reduce_static": true
      }
     ]
+   },
+   "blend": {
+    "crown_sheen": "add"
    }
   },
   "frame_m_eclipse": {
@@ -1470,7 +1489,8 @@
       "peak": 1,
       "reduce_peak": 1,
       "dx": 40,
-      "dy": 0
+      "dy": 0,
+      "reduce_fixed": true
      }
     ],
     "sparkles": [
@@ -1480,7 +1500,8 @@
       "hi": 1.0,
       "period": 1.6,
       "reduce_lo": 0.6,
-      "reduce_hi": 1.0
+      "reduce_hi": 1.0,
+      "reduce_static": true
      }
     ]
    }
@@ -1554,6 +1575,9 @@
       "dy": 14
      }
     ]
+   },
+   "blend": {
+    "core_glow": "add"
    }
   }
  },

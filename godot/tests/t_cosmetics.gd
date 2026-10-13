@@ -68,6 +68,20 @@ func _ready() -> void:
 	# placeholder pool ids and non-art ids stay empty, never crash
 	for id in ["std_e_001", "fx_e_rune", "title_s1_echo", "frame_x_nope"]:
 		_ok(CosmeticArt.layers(id).is_empty() and CosmeticArt.make_node(id, 64) == null, "no art, no node: " + id)
+	for pair in [["frame_e_runering", "rune_glow"], ["frame_e_firefly", "lantern_glow"], ["frame_e_s1_founder", "shield_sheen"], ["frame_l_sunburst", "sun_glow"], ["frame_l_sovereign", "crown_sheen"], ["frame_m_crystal", "core_glow"]]:
+		var hit := CosmeticArt.layers(pair[0]).filter(func(l): return l.layer == pair[1])
+		_ok(hit.size() == 1 and hit[0].add, "%s.%s additive" % pair)
+	_ok(not CosmeticArt.layers("frame_e_runering")[0].add, "base not additive")
+	# reduce flashing: twinkle layers static, eclipse has no brightness change
+	MetaState.reduce_flash = true
+	var sn := CosmeticArt.make_node("frame_m_eclipse", 150)
+	add_child(sn)
+	await get_tree().create_timer(0.3).timeout
+	_ok(is_equal_approx(sn.get_node("sparkles").modulate.a, 0.8), "reduce: sparkles static")
+	await get_tree().create_timer(2.3).timeout
+	_ok(is_equal_approx(sn.get_node("eclipse").modulate.a, 1.0), "reduce: eclipse sweep keeps full alpha")
+	sn.queue_free()
+	MetaState.reduce_flash = false
 	var fn := CosmeticArt.make_node("frame_e_runering", 150)
 	_ok(fn != null and fn.get_child_count() == 3 and fn.get_node("rune_orbit") is TextureRect, "runering node stacks base + 2 layers")
 	if fn:
