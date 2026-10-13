@@ -56,7 +56,7 @@ sẵn** · báo lỗi bằng **một Google Sheet** (Liam làm) · Cloudflare g�
 - [ ] C7. Danh hiệu A5/A10 hiện trong game (Profile / Result).
 - [ ] C8. Thưởng tuần Daily (4 ngày → 150 Shard + 2000 Stone) — có data, chưa có logic.
 - [ ] C9. Polish hình: xem sân mystic/genesis, Land tier 6 (trời tím/đất hồng), mảnh địa hình biome.
-- [~] C11 (13/10 merge d6b8eaa: đã nhập 20 plate + 21 khung tĩnh, loader CosmeticArt, t_cosmetics). Cosmetics v7: nhập 20 plate + 21 khung tĩnh; chờ Claude Design gửi 13 lớp anim + sửa khung Common/Rare ở 40 px.
+- [x] C11 (13/10 merge d6b8eaa + 0706365: cosmetics v8 — 20 plate, 21 khung, 14 lớp animation chạy thật, blend add, giảm nhấp nháy). Cosmetics v7: nhập 20 plate + 21 khung tĩnh; chờ Claude Design gửi 13 lớp anim + sửa khung Common/Rare ở 40 px.
 - [ ] C10. Danh sách sửa Round 3 của art-director (Liam đã gửi Claude Design) — áp phần nhận về.
 
 ## D. Kiểm tra trước phát hành (theo lịch)

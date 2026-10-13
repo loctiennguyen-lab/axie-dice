@@ -9,7 +9,7 @@ func _ready() -> void:
 	for id in dice:
 		var n := CosmeticArt.make_node(id, 150); n.position = Vector2(x, 20); add_child(n); x += 170
 	x = 20.0
-	var frames := ["frame_c_beast", "frame_u_pond", "frame_r_frost", "frame_e_runering", "frame_l_sunburst", "frame_m_eclipse"]
+	var frames := ["frame_c_bird", "frame_r_icicle", "frame_e_runering", "frame_l_sovereign", "frame_m_eclipse", "frame_m_crystal"]
 	for id in frames:
 		var av := ColorRect.new(); av.color = Color("#7ab"); av.size = Vector2(84, 84); av.position = Vector2(x + 33, 273); add_child(av)
 		var n := CosmeticArt.make_node(id, 150); n.position = Vector2(x, 240); add_child(n); x += 190
