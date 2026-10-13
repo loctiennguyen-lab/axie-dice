@@ -28,12 +28,21 @@ func _ready() -> void:
 	await get_tree().process_frame
 	await get_tree().process_frame
 
-	for id in ["portal", "house", "missions", "echobox", "pass", "vault", "store"]:
+	for id in ["portal", "house", "missions", "echobox", "pass", "vault", "store", "board"]:
 		_check(hub.find_child("Hit_" + id, true, false) != null, "thiếu hộp bấm cho " + id)
-	for id in ["mastery", "gallery"]:
-		_check(hub.find_child("Plot_" + id, true, false) != null, "thiếu ô đất khoá " + id)
-	for k in range(1, 10):
-		_check(hub.find_child("Shortcut%d" % k, true, false) != null, "thiếu phím tắt %d" % k)
+	_check(hub.find_child("Hit_mastery", true, false) == null, "Mastery Hall đã bỏ")
+	_check(hub.find_child("Plot_gallery", true, false) != null, "thiếu ô đất Gallery")
+	for id in ["house", "missions", "vault", "echobox", "pass", "store"]:
+		_check(hub.find_child("Dock_" + id, true, false) != null, "thiếu ô dock " + id)
+	for n in ["ProfileChip", "NamesToggle", "Rail_Daily", "Rail_Codex", "Wallet", "Dock", "Settings"]:
+		_check(hub.find_child(n, true, false) != null, "thiếu " + n)
+	# Signs hidden at rest; Names toggle (N) shows them all; Esc closes Names first.
+	var sign := hub.find_child("Sign_pass", true, false) as Control
+	_check(sign != null and not sign.visible, "biển tên phải ẩn khi nghỉ")
+	hub.call("_handle_key", KEY_N)
+	_check(sign.visible, "N phải bật biển tên")
+	hub.call("_handle_key", KEY_ESCAPE)
+	_check(not sign.visible, "Esc phải tắt biển tên trước")
 
 	# House -> screen through LandNav.
 	LandNav.last_path = ""
@@ -47,51 +56,67 @@ func _ready() -> void:
 	_check(LandNav.last_path == "res://scenes/main_menu/TeamSelect.tscn", "House path: " + LandNav.last_path)
 	# Shortcut 6 = Vault.
 	LandNav.last_path = ""
-	(hub.find_child("Shortcut6", true, false) as Button).emit_signal("pressed")
+	hub.call("_handle_key", KEY_6)
 	_check(LandNav.last_path == "res://scenes/vault/Vault.tscn", "phím 6 phải mở Vault")
-	# Locked shortcuts (Mastery 8, Gallery 9) must not navigate.
+	# Keys 8 / 9 are unused; Leaderboard has no screen yet and never navigates.
 	LandNav.last_path = ""
-	(hub.find_child("Shortcut8", true, false) as Button).emit_signal("pressed")
-	(hub.find_child("Shortcut9", true, false) as Button).emit_signal("pressed")
-	_check(LandNav.last_path == "", "Mastery/Gallery khoá không được điều hướng")
+	hub.call("_handle_key", KEY_8)
+	hub.call("_handle_key", KEY_B)
+	_check(LandNav.last_path == "", "phím 8 / B không được điều hướng")
 	# Screens that do not exist yet are 'Coming soon', not a crash or a blank scene.
 	LandNav.last_path = ""
 	(hub.find_child("Hit_missions", true, false) as Button).emit_signal("pressed")
 	_check(LandNav.last_path == "" or LandNav.is_available(&"missions"), "Missions chưa có màn thì không đổi scene")
 	# Run plate -> run_setup when there is no open run.
 	var plate := hub.find_child("RunPlate", true, false) as Button
-	var cont := hub.find_child("ContinuePanel", true, false) as Control
-	_check(plate != null and cont != null, "thiếu Run plate / Continue panel")
-	if plate != null and cont != null:
-		_check(plate.visible != cont.visible, "Run plate và Continue panel phải loại trừ nhau")
-		if plate.visible:
-			LandNav.last_path = ""
-			plate.emit_signal("pressed")
-			_check(LandNav.last_path == LandNav.resolve(&"run_setup"), "Run plate phải mở run_setup")
+	var newrun := hub.find_child("NewRunButton", true, false) as Control
+	_check(plate != null and newrun != null, "thiếu RUN / New run")
+	if plate != null and newrun != null:
+		_check(not newrun.visible, "New run chỉ hiện khi có run dở")
+		LandNav.last_path = ""
+		plate.emit_signal("pressed")
+		_check(LandNav.last_path == LandNav.resolve(&"run_setup"), "RUN phải mở run_setup")
 
 	# Layout follows the window: plate centre x stays on the house centre at any height.
 	var pass_plate := hub.find_child("Hit_pass", true, false) as Button
 	_check(String((hub.META["pass"] as Dictionary)["sub"]).ends_with("29 Dec 2026"), "Pass sub-line phải ghi 29 Dec 2026")
-	_check(absf(pass_plate.position.x + pass_plate.size.x * 0.5 - 1450.0) < 1.0, "hộp Pass lệch tâm x")
+	_check(absf(pass_plate.position.x + pass_plate.size.x * 0.5 - 1260.0) < 1.0, "hộp Pass lệch tâm x")
 
 	hub.queue_free()
 	await get_tree().process_frame
 
-	# All six Lands build; Mastery opens at Arctic (3), Gallery at Genesis (5).
+	# All six Lands build; Gallery is a plot until Genesis (5); newcomer locks Missions + Leaderboard.
+	LandHub.qa = {"newcomer": true}
 	for tier in range(1, 7):
 		LandHub.tier_override = tier
 		var h := (load("res://scenes/land/Land.tscn") as PackedScene).instantiate() as LandHub
 		add_child(h)
 		await get_tree().process_frame
-		var mastery_built := h.find_child("Hit_mastery", true, false) != null
-		_check(mastery_built == (tier >= 3), "tier %d: Mastery built=%s" % [tier, mastery_built])
-		_check((h.find_child("Plot_mastery", true, false) != null) == (tier < 3), "tier %d: ô Mastery" % tier)
-		var gal := h.find_child("Plot_gallery", true, false)
-		_check(gal != null and bool(gal.get("locked")) == (tier < 5), "tier %d: Gallery khoá sai" % tier)
+		_check((h.find_child("Hit_gallery", true, false) != null) == (tier >= 5), "tier %d: Gallery built" % tier)
+		_check((h.find_child("Plot_gallery", true, false) != null) == (tier < 5), "tier %d: ô Gallery" % tier)
 		_check((h.find_child("UpgradeLand", true, false) != null) == (tier < 6), "tier %d: nút Upgrade" % tier)
+		_check((h.find_child("LandChip", true, false) != null) == (tier == 6), "tier %d: chip max tier" % tier)
 		_check(h.find_child("Hit_portal", true, false) != null, "tier %d: thiếu Portal" % tier)
+		LandNav.last_path = ""
+		h.call("_handle_key", KEY_3)
+		_check(LandNav.last_path == "", "tier %d: newcomer phải khoá Missions" % tier)
 		h.queue_free()
 		await get_tree().process_frame
+	# States build: offline, guest, loading, first launch, mission run.
+	for st in [{"offline": true}, {"guest": true, "first_launch": true}, {"loading": true}, {"newcomer": false, "run": true}]:
+		LandHub.qa = st
+		LandHub.tier_override = 2
+		var h2 := (load("res://scenes/land/Land.tscn") as PackedScene).instantiate() as LandHub
+		add_child(h2)
+		await get_tree().process_frame
+		if st.has("offline"):
+			_check((h2.find_child("OfflineBanner", true, false) as Control).visible, "banner offline")
+			LandNav.last_path = ""
+			h2.call("_handle_key", KEY_5)
+			_check(LandNav.last_path == "", "offline: Pass không mở")
+		h2.queue_free()
+		await get_tree().process_frame
+	LandHub.qa = {}
 	LandHub.tier_override = 0
 	LandNav.dry_run = false
 	MetaState.tutorial_seen = seen_was
