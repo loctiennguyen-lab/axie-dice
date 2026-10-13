@@ -67,3 +67,5 @@ hạn/ngày, NFT dùng được) · UI request 02 + Round 1 · L1 = 3/11 nội b
 14. Ràng token với session: để sau L1 (không ảnh hưởng L1 vì cờ remote đang local).
 15. Hộp mùa: món trùng trả vé 2/4/8: đồng ý.
 16. KHÔNG thu nhỏ texture nguồn Land (Liam chưa xem Land thế nào; giữ nguyên chất lượng).
+- (Lane I, 13/10) M7 "elite dmg ×1,25" đang nhân MỌI mặt xúc xắc elite (cả Shield/hồi máu/buff), giống luật enemy_dmg sẵn có. Nếu anh muốn chỉ mặt sát thương thì báo, sửa nhỏ.
+- (Lane I, 13/10) TRƯỚC khi bật online: Worker chỉ nhận RULES_VERSION `godot-2026-09-21-a` (run_do.js SUPPORTED_RULES). Phải thêm bản hiện tại (hoặc đặt biến môi trường SUPPORTED_RULES) khi bật cờ remote, nếu không mọi run bị từ chối.

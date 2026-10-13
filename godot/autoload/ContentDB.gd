@@ -736,7 +736,7 @@ func ascension_mods(a: int) -> Dictionary:
 ## Ascension clock (last one wins, never stacks). A rule whose min/max_ascension excludes
 ## `ascension` is skipped (M3 is pointless at A9, which already has the extra elites).
 func mission_mods(rules: Array, ascension: int = 0) -> Dictionary:
-	var out := {"enemy_dmg": 1.0, "elite_hp": 1.0, "boss_hp": 1.0, "extra_elite": 0,
+	var out := {"enemy_dmg": 1.0, "elite_hp": 1.0, "boss_hp": 1.0, "normal_hp": 1.0, "elite_dmg": 1.0, "extra_elite": 0,
 		"spike_period_delta": 0, "clock_override": {}}
 	var applied: Array = [mission_table.get("standard", {})]
 	var table: Dictionary = mission_table.get("rules", {})
@@ -750,7 +750,7 @@ func mission_mods(rules: Array, ascension: int = 0) -> Dictionary:
 			continue
 		applied.append(d)
 	for d in applied:
-		for k in ["enemy_dmg", "elite_hp", "boss_hp"]:
+		for k in ["enemy_dmg", "elite_hp", "boss_hp", "normal_hp", "elite_dmg"]:
 			if d.has(k):
 				out[k] = float(out[k]) * float(d[k])
 		for k in ["extra_elite", "spike_period_delta"]:

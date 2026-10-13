@@ -1198,6 +1198,7 @@ func _grant_relic(relic_id: String, source: String) -> void:
 		pacts_taken.append(relic_id)
 	# Eternal sticker (ascension.json `eternal_max`, relic-set-v2 A5): the first N non-pact relics the run
 	# acquires are stuck (cannot be sold). Deterministic from the grant order, so replay needs no extra log.
+	# H8: the starting relic (u_start) is appended directly in start_new_run_seeded, never through here, so it never counts.
 	var eternal_max := int(ContentDB.ascension_mods(ascension).get("eternal_max", 0))
 	if eternal_max > 0 and not RelicSlots.is_pact(relic_id) and not relic_id.begins_with("__") \
 			and relic_stickers.size() < eternal_max:

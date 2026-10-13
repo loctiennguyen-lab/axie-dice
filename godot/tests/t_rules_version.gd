@@ -166,7 +166,10 @@ const WATCHED_FILES: Array[String] = ["res://assets/data/part_faces.json"]
 ## BUMPED, 2026-10-13: `ActionLog.RULES_VERSION` -> `godot-2026-10-13-i`. LocalEpochSource writes header.newcomer
 ## from run params (was always false), so local newcomer runs now get the designed softening (no attrition, no
 ## light boss clock, Aid hidden; monetization-v1 §1.6). Changes the run result: YES (newcomer runs only).
-const FINGERPRINT := "2c20012d9a8217273fe5a7efc3a654ca9fffddf42f394f6c723b74f53fc50220"
+## BUMPED, 2026-10-13: `ActionLog.RULES_VERSION` -> `godot-2026-10-13-j`. Lane A (Liam H3/H4): mission rules M6
+## normal_hp x1.20 (non-elite, non-boss) and M7 elite_dmg x1.25 (all elite die faces, like enemy_dmg), no 2-rule
+## limit. Mission runs only. Changes the run result: YES.
+const FINGERPRINT := "e3f9995bd5ca4b7f678c0aaed39caa7de2dc0266eff4d7c65d06d6bfb61ac570"
 
 
 func _ready() -> void:

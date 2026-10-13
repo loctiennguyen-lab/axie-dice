@@ -361,8 +361,7 @@ func settle_mission_for_run(mission_id: String, won: bool) -> bool:
 ## Đóng escrow. Thắng: trả `payout` (đã gồm cược, trần payout_cap) + Stone (trần stone_day_cap/ngày).
 ## Thua/bỏ: cược mất. Idempotent: không escrow -> trả false và không làm gì.
 ## Gọi `settle_mission_stake(false)` khi người chơi bấm Bỏ run (SettingsView) vì đường đó không qua end_run.
-## Shard R của run (RunState.shards_this_run) vẫn cộng như thường: nó tích theo tiến độ trận/sự kiện nên
-## bỏ ngay sau khi mua cho R = 0 và lỗ đủ cược; không có chỗ nào cộng R cố định cho mission.
+## H6 (13/10): bỏ run thì KHÔNG nhận Shard R của run (đường bỏ chỉ xoá save, không qua end_run). Thua/thắng bình thường vẫn cộng R.
 func settle_mission_stake(won: bool, save: bool = true) -> bool:
 	if mission_escrow.is_empty():
 		return false
