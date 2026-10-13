@@ -228,6 +228,11 @@ func _wind_column(d: Dictionary) -> Control:
 	if was > 0:
 		_continue_button.tooltip_text = "was %d" % was
 	_continue_button.pressed.connect(func(): continue_pressed.emit())
+	# B2: hidden for a newcomer / the tutorial; disabled with the reason (no Gem, cap) otherwise.
+	_continue_button.visible = bool(d.get("continue_show", true))
+	if not bool(d.get("continue_enabled", true)):
+		_continue_button.disabled = true
+		_continue_button.tooltip_text = String(d.get("continue_reason", ""))
 	brow.add_child(_continue_button)
 	var foot := HudKit.prose(String(d.get("foot", "")), 12, DangoTheme.INK_2)
 	foot.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
