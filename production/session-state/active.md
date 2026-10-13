@@ -37,7 +37,9 @@ thu nhỏ 72 MB texture nguồn, hộp mùa (dup trả vé).
 Review UI R3 để gửi Claude Design: `design/handoffs/ui-02-round3/REVIEW-art-director.md`. Sim nhanh: `production/qa/sim-quick-2026-10-12.md`.
 Smoke: `production/qa/smoke-2026-10-13.md`.
 
-**Deploy sáng nay (làm cùng Liam, theo thứ tự):**
+**Deploy Worker: XONG (Liam, sáng 13/10)** — đã kiểm: D1 không còn migration chờ (0001–0005 đã áp), secret RUN_TOKEN_KEY có (RUN_TOKEN_KID không đặt → mặc định "k1", đúng code), `/api/gem/season_gift` trả 401 khi chưa đăng nhập (code mới đang chạy). Web R2 + build desktop: chưa làm lại.
+
+**Các bước deploy (để tham chiếu lần sau):**
 1. `cd worker && node --test test/*.test.mjs` (141/141).
 2. `npx wrangler d1 migrations apply axie-dice-db --remote` — áp 0002, 0003, 0004, **0005_token_revocation** (0005 phải trước code).
 3. `npx wrangler secret put RUN_TOKEN_KEY` (và `RUN_TOKEN_KID`; khi xoay khoá thêm `RUN_TOKEN_KEY_PREV`/`RUN_TOKEN_KID_PREV`).
