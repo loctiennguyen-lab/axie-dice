@@ -852,6 +852,10 @@ func _profile_chip() -> Control:
 	var chip := PanelContainer.new()
 	chip.add_theme_stylebox_override("panel", _style(DangoTheme.Surface.CREAM_RAISED, 12, 3, Vector2(8, 4), INK_PLATE))
 	chip.custom_minimum_size = Vector2(0, 52)
+	chip.mouse_filter = Control.MOUSE_FILTER_STOP
+	chip.gui_input.connect(func(ev: InputEvent) -> void:
+		if ev is InputEventMouseButton and ev.pressed and ev.button_index == MOUSE_BUTTON_LEFT:
+			LandNav.open(&"profile"))
 	var h := HBoxContainer.new()
 	h.add_theme_constant_override("separation", 8)
 	chip.add_child(h)
@@ -867,7 +871,7 @@ func _profile_chip() -> Control:
 	ini.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	ini.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	av.add_child(ini)
-	h.add_child(av)
+	h.add_child(AvatarFrame.wrap(av, 56.0, MetaState.equipped_frame, 40.0))
 	var col := VBoxContainer.new()
 	col.add_theme_constant_override("separation", -2)
 	col.alignment = BoxContainer.ALIGNMENT_CENTER

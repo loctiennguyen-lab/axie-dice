@@ -19,6 +19,7 @@ const SCREENS: Dictionary = {
 	&"echobox": {"scene": "res://scenes/echobox/EchoBoxScreen.tscn"},
 	&"pass": {"scene": "res://scenes/pass/Pass.tscn"},
 	&"store": {"scene": "res://scenes/store/Store.tscn"},
+	&"profile": {"scene": "res://scenes/profile/Profile.tscn"},
 	&"vault": {"scene": "res://scenes/vault/Vault.tscn"},
 	&"codex": {"scene": "res://scenes/codex/Codex.tscn"},
 	&"settings": {"scene": "res://scenes/settings/Settings.tscn"},
