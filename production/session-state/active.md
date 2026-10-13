@@ -2,6 +2,8 @@
 
 Cập nhật: 2026-10-12. Nhánh `godot-port`, push lên `axiedice` (`git push axiedice godot-port:main`).
 
+**Checklist L1 (đọc trước mỗi phiên): `production/l1-checklist.md`.** Quyết định trưa 13/10: `pending-decisions.md` mục I.
+
 ## ⇢ BẮT ĐẦU TỪ ĐÂY (bàn giao sáng 13/10/2026 — sau đêm chạy liên tục)
 
 **godot-port = axiedice/main** (đã push). Suite cây chính **85/85 không SKIP**, Worker **141/141**. RULES_VERSION

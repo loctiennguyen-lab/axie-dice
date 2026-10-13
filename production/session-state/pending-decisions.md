@@ -69,3 +69,11 @@ hạn/ngày, NFT dùng được) · UI request 02 + Round 1 · L1 = 3/11 nội b
 16. KHÔNG thu nhỏ texture nguồn Land (Liam chưa xem Land thế nào; giữ nguyên chất lượng).
 - (Lane I, 13/10) M7 "elite dmg ×1,25" đang nhân MỌI mặt xúc xắc elite (cả Shield/hồi máu/buff), giống luật enemy_dmg sẵn có. Nếu anh muốn chỉ mặt sát thương thì báo, sửa nhỏ.
 - (Lane I, 13/10) TRƯỚC khi bật online: Worker chỉ nhận RULES_VERSION `godot-2026-09-21-a` (run_do.js SUPPORTED_RULES). Phải thêm bản hiện tại (hoặc đặt biến môi trường SUPPORTED_RULES) khi bật cờ remote, nếu không mọi run bị từ chối.
+
+## I. Liam trả lời trưa 13/10 (đã chốt)
+- Boss Atia thiếu asset → dùng mascot có sẵn.
+- Người test dùng Apple Silicon + Windows: làm 2 bản tải (mac arm64/universal + win).
+- Báo lỗi: một Google Sheet (Liam làm).
+- Nhiệm vụ L1: VẪN CẮT, chỉ N1–N3 (bản cực khó N1–N6 là thiết kế đầy đủ, mở dần sau L1).
+- L1 làm cả web và desktop.
+- Checklist L1: `production/l1-checklist.md`.

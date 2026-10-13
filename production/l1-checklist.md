@@ -1,0 +1,67 @@
+# Checklist L1 — ra mắt playtest nội bộ 3/11/2026
+
+Đánh dấu `[x]` khi xong (kèm ngày + commit nếu có). Làm theo thứ tự từng phần. Muốn biết "đã tới đâu" thì đếm ô trống.
+Nguồn: `production/l1-sprint-plan.md` (lịch + danh sách cắt), quyết định Liam ở `production/session-state/pending-decisions.md`.
+
+**Phạm vi L1 đã chốt (Liam 12–13/10):** bản tải về cho **Apple Silicon (macOS) + Windows**, **và cả bản web** · Nhiệm vụ chỉ
+**N1–N3**, nhà Nhiệm vụ không nâng cấp · không VIP thử · không hộp mùa (chỉ hộp thường) · boss Atia thiếu asset → **mascot có
+sẵn** · báo lỗi bằng **một Google Sheet** (Liam làm) · Cloudflare gói Free · không ký app (hướng dẫn mở thủ công).
+
+---
+
+## A. Việc của Liam
+
+- [ ] A1. Tạo Google Sheet báo lỗi (cột gợi ý: ngày, người báo, máy Mac/Win/Web, bản build, mô tả, các bước, ảnh, mức độ) và gửi link cho lane I để gắn vào hướng dẫn cài + màn Settings.
+- [ ] A2. Chốt hướng Land hub: bản Claude Design mới "Land hub v4 · town + dock" (`design/handoffs/ui-02-round4/_zip/Dice UI R1 - Land Hub v4.dc.html`, ảnh `screenshots/01-hub-v4.jpg`) có phải hướng sẽ làm cho L1 không.
+- [ ] A3. Cosmetics lượt 2 (21 khung avatar còn thiếu + sửa plate xúc xắc) — chưa có trong bản zip 13/10. Gửi Claude Design hoặc chấp nhận dùng 20 plate + 5 khung hiện có cho L1. Hạn mềm 24/10.
+- [ ] A4. Danh sách người mời (~50) + kênh gửi link tải. Hạn 24/10.
+- [ ] A5. Nội dung thông báo phát hành: "Gem tặng sẽ reset ở L2", ngày Mùa 1 (3/11–29/12), link Google Sheet.
+- [ ] A6. Dogfood RC2 (1–2/11) và chốt bản phát hành (2/11).
+
+## B. Phải có (không được cắt)
+
+- [ ] B1. **Bật chơi online thật** (xúc xắc server + ví Gem server):
+  - [ ] Worker nhận RULES_VERSION hiện tại (`run_do.js` SUPPORTED_RULES đang chỉ có `godot-2026-09-21-a`).
+  - [ ] Client gọi lại `/api/run/open` khi bị đóng kết nối 1008 (token cũ bị thu hồi).
+  - [ ] Bật cờ `axie/epoch_source` + `axie/gem_wallet` = remote trong bản build.
+  - [ ] Chạy trọn 1 run thật trên Worker: mất mạng giữa run, nối lại, hết hạn token, thoát app giữa trận.
+  - [ ] RunSession tắt `_process` khi không có run (review ghi chú).
+- [ ] B2. **Aid + Continue bằng Gem tặng**: bảng giá Aid ra data (đang viết cứng trong CombatView), nút mua trừ Gem thật qua server, giới hạn 8/run, ẩn cho người mới.
+- [ ] B3. **Đăng nhập desktop**: màn đăng nhập có trạng thái chờ/huỷ/lỗi; thử đăng nhập Google thật trên bản build Mac + Win; redirect URI desktop trên Google OAuth console.
+- [ ] B4. **Ghi số liệu run + Nhiệm vụ**: kiểm tra server ghi đủ (run bắt đầu/kết thúc, Ascension, thắng/thua, Aid/Continue đã dùng, cược/payout Nhiệm vụ); có cách xuất ra bảng cho Liam xem.
+- [ ] B5. **Nhiệm vụ chỉ N1–N3**: N4–N6 khoá "Not in this build" (kiểm lại sau khi đổi luật), nhà Nhiệm vụ không nâng cấp; chạy trọn N1 từ cược → run → payout trên Worker.
+- [ ] B6. **Boss thiếu asset → mascot có sẵn** (`assets/bosses/`: kibo, kotaro, paladill, xia) cho từng boss còn thiếu.
+- [ ] B7. **Bản tải Mac (Apple Silicon) + Windows**: build từ godot-port mới nhất, cài thử trên máy sạch, hướng dẫn mở (Gatekeeper / SmartScreen) được kiểm.
+- [ ] B8. **Bản web**: `export-web.sh` → chạy được ≥ 30 FPS với Atia + Land → `deploy-r2.sh` (khi Liam cho deploy).
+- [ ] B9. Save không mất: chạy thử cập nhật bản cũ → bản mới trên save thật (bản sao), cloud save qua tài khoản.
+
+## C. Nên có (cắt được nếu trễ — hỏi Liam trước)
+
+- [ ] C1. Màn pact boss bắt buộc ở A6/A10 gọi `RelicSlots.pact_forced` (luật đã có, màn chưa nối).
+- [ ] C2. Chế độ **Daily** và **Ranked** trong Run Setup (đang vẽ nhưng khoá).
+- [ ] C3. Menu trong run → Settings ("Back to run", bỏ cuộc trừ cược đúng).
+- [ ] C4. Land "New run" khi còn run Nhiệm vụ dang dở → settle cược (đường này đang bỏ sót).
+- [ ] C5. Land hub theo hướng Liam chốt ở A2 (nếu là v4: lưới 3×3 quanh Portal, dock dưới, nút RUN giữa).
+- [ ] C6. Các màn R3 còn lại: Team presets, Leaderboard, Profile/Account, Cosmetics, Land upgrade (Land Stone).
+- [ ] C7. Danh hiệu A5/A10 hiện trong game (Profile / Result).
+- [ ] C8. Thưởng tuần Daily (4 ngày → 150 Shard + 2000 Stone) — có data, chưa có logic.
+- [ ] C9. Polish hình: xem sân mystic/genesis, Land tier 6 (trời tím/đất hồng), mảnh địa hình biome.
+- [ ] C10. Danh sách sửa Round 3 của art-director (Liam đã gửi Claude Design) — áp phần nhận về.
+
+## D. Kiểm tra trước phát hành (theo lịch)
+
+- [ ] D1. **27/10** — bot chạy kiểm tra nhanh: không crash, win rate A0 không lệch quá xa; chỉnh số lần cuối (bump RULES_VERSION nếu cần).
+- [ ] D2. **28/10** — Đủ tính năng: mọi làn đã merge, suite xanh không SKIP, mức sàn test đúng.
+- [ ] D3. **29/10** — Code freeze + RC1 (Mac + Win + Web).
+- [ ] D4. **29–31/10** — QA + soak: ma trận chế độ (thường, Daily, Ranked, Nhiệm vụ N1–N3, Ascension 0/3/6/9), mất mạng giữa run, cài máy sạch.
+- [ ] D5. **31/10** — RC2 với bản sửa lỗi S1/S2.
+- [ ] D6. **2/11** — Chốt bản: link tải Mac + Win, web đã deploy, hướng dẫn cài, link Google Sheet, thông báo.
+- [ ] D7. **3/11** — Gửi link + theo dõi RunDO, lỗi, số Nhiệm vụ.
+
+---
+
+## Đã xong (để tham chiếu)
+
+- [x] Worker deploy 13/10 (migration 0001–0005, token kid/jti, quà mùa, Continue boss 180) — Liam.
+- [x] Merge đêm 12→13/10: A, B (bộ relic đủ, không còn relic ẩn), C (Atia 3D + 6 sân), E, L (Land 6 tier), U (combat v3), M (Run Setup, Echo Box, Nhiệm vụ, Store + Daily, Pass, Vault, Settings, Codex), S.
+- [x] Liam trả lời 16 câu (mục H) + luật Nhiệm vụ M6/M7, người mới = 5 run có trận, danh hiệu A5/A10 (merge 13/10, RULES_VERSION `-j`).
