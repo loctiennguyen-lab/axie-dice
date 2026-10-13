@@ -116,6 +116,22 @@ func _ready() -> void:
 			_check(LandNav.last_path == "", "offline: Pass không mở")
 		h2.queue_free()
 		await get_tree().process_frame
+	# Touch: first tap shows the sign (Open button), second tap opens.
+	LandHub.qa = {"touch": true, "newcomer": false}
+	LandHub.tier_override = 1
+	var ht := (load("res://scenes/land/Land.tscn") as PackedScene).instantiate() as LandHub
+	add_child(ht)
+	await get_tree().process_frame
+	LandNav.dry_run = true
+	LandNav.last_path = ""
+	(ht.find_child("Hit_vault", true, false) as Button).emit_signal("pressed")
+	_check(LandNav.last_path == "" and (ht.find_child("Sign_vault", true, false) as Control).visible, "chạm 1 lần: chỉ hiện biển")
+	_check(ht.find_child("SignOpen", true, false) != null, "biển cảm ứng có nút Open")
+	(ht.find_child("Hit_vault", true, false) as Button).emit_signal("pressed")
+	_check(LandNav.last_path == "res://scenes/vault/Vault.tscn", "chạm lần 2 mở Vault")
+	_check((ht.find_child("GemPlus", true, false) as Control).custom_minimum_size.x >= 44.0, "GemPlus >= 44 px")
+	ht.queue_free()
+	await get_tree().process_frame
 	LandHub.qa = {}
 	LandHub.tier_override = 0
 	LandNav.dry_run = false

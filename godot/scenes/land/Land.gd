@@ -23,6 +23,7 @@ const DIAMOND_CY := 530.0           # v5: design-canvas y of the Land centre (la
 const PLOT_SIDE := 31.0
 
 const INK_PLATE := Color("24140B")
+const _Econ := preload("res://scripts/meta/economy_db.gd")
 const KEY_CHIP := Color("4A3570")
 const BADGE_FILL := {"FREE": Color("8CC85A"), "CLAIM": Color("FF9345"), "NEW": Color("FFC445"),
 	"OFFLINE": Color("CFC4B0"), "LOCKED": Color("CFC4B0"), "···": Color("E6D9C0")}
@@ -157,6 +158,7 @@ var _run_title: Label
 var _names_on := false
 var _hover_id := ""
 var _focus_id := ""
+var _touch_id := ""
 var _offline := false
 var _loading := false
 var _guest := false
@@ -236,7 +238,7 @@ func _block_reason(id: String) -> String:
 	if _is_locked(id):
 		return "Builds at %s Land" % _need_name(id)
 	if _newcomer and id in NEWCOMER_LOCK:
-		return "Opens after 5 runs"
+		return "Opens after %d runs" % int(_Econ.get_table("missions").get("newcomer_runs", 5))
 	if _offline and id in ONLINE_ONLY:
 		return "Needs a connection"
 	if id == "board" and not LandNav.is_available(&"leaderboard"):
@@ -728,11 +730,24 @@ func _add_house_hit(id: String) -> void:
 	btn.flat = true
 	btn.focus_mode = Control.FOCUS_NONE
 	btn.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
-	btn.pressed.connect(_on_house_pressed.bind(id))
+	btn.pressed.connect(_on_hit_pressed.bind(id))
 	btn.mouse_entered.connect(_hover.bind(id, true))
 	btn.mouse_exited.connect(_hover.bind(id, false))
 	_ui.add_child(btn)
 	_hits[id] = btn
+
+
+## Touch: first tap shows the sign (with Open), second tap opens. Mouse click opens directly.
+func _is_touch() -> bool:
+	return _flag("touch", DisplayServer.is_touchscreen_available())
+
+
+func _on_hit_pressed(id: String) -> void:
+	if _is_touch() and id != "portal" and _touch_id != id:
+		_touch_id = id
+		_refresh_signs()
+		return
+	_on_house_pressed(id)
 
 
 func _hover(id: String, on: bool) -> void:
@@ -762,7 +777,7 @@ func _focus(id: String, on: bool) -> void:
 func _refresh_signs() -> void:
 	for id in _plates:
 		var always: bool = _plot_marks.has(id)
-		(_plates[id] as Control).visible = always or _names_on or _hover_id == id or _focus_id == id
+		(_plates[id] as Control).visible = always or _names_on or _hover_id == id or _focus_id == id or _touch_id == id
 	_layout()
 
 
@@ -874,6 +889,14 @@ func _make_plate(id: String) -> PanelContainer:
 		var w := _lbl(why, 14, Color("8A3E22"), false)
 		w.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		col.add_child(w)
+	if _is_touch() and id != "portal" and not _is_locked(id):
+		var open := Button.new()
+		open.name = "SignOpen"
+		open.text = "Open"
+		open.custom_minimum_size = Vector2(0, 44)
+		DangoTheme.style_button(open, true)
+		open.pressed.connect(_on_house_pressed.bind(id))
+		col.add_child(open)
 	return plate
 
 
@@ -936,11 +959,7 @@ func _build_hud() -> void:
 	_wallet = HBoxContainer.new()
 	_wallet.name = "Wallet"
 	_wallet.add_theme_constant_override("separation", 10)
-	_wallet.set_anchors_preset(Control.PRESET_TOP_RIGHT)
-	_wallet.grow_horizontal = Control.GROW_DIRECTION_BEGIN
-	_wallet.offset_right = -24
-	_wallet.offset_left = -24
-	_wallet.offset_top = 24
+	_wallet.position = Vector2(1500, 24)
 	_ui.add_child(_wallet)
 	_wallet.add_child(_currency("Gene Shard", _meta_int("shard_pool"), Color("FF9345"), false))
 	_wallet.add_child(_currency("Land Stone", _meta_int("land_stone"), Color("B8A27A"), false))
@@ -1141,7 +1160,7 @@ func _currency(label: String, value: int, color: Color, plus: bool) -> Control:
 		var b := Button.new()
 		b.name = "GemPlus"
 		b.text = "+"
-		b.custom_minimum_size = Vector2(26, 26)
+		b.custom_minimum_size = Vector2(44, 44)
 		b.focus_mode = Control.FOCUS_ALL
 		b.disabled = _offline
 		b.add_theme_font_override("font", DangoTheme.FONT_DISPLAY_BOLD)
@@ -1402,6 +1421,8 @@ func _layout() -> void:
 	if _ui == null or _dock == null:
 		return
 	var dy := (_ui.size.y - 1080.0) * 0.5
+	var f := _ui_floor()
+	_place_hud(f)
 	for b in _live:
 		var id := String(b["id"])
 		var w := float(b["w"])
@@ -1439,17 +1460,45 @@ func _layout() -> void:
 		plate.reset_size()
 		var pm := plate.get_combined_minimum_size()
 		plate.position = Vector2(cx - pm.x * 0.5, base - 54.0 - pm.y * 0.5)
-	# Bottom dock + New run + hint pinned to the bottom edge.
+
+
+## HUD scale boost so text never renders below 0.85 of design size (v5 "Min text"): the canvas
+## scales by min(w/1920, h/1080); where that is under 0.85 the HUD groups grow by the difference.
+func _ui_floor() -> float:
+	var win := get_window().size
+	var cs := minf(win.x / 1920.0, win.y / 1080.0)
+	return clampf(0.85 / cs, 1.0, 1.4) if cs > 0.0 and cs < 0.85 else 1.0
+
+
+func _place_hud(f: float) -> void:
+	var w := _ui.size.x
+	var h := _ui.size.y
+	var sc := Vector2(f, f)
+	_hud_tl.scale = sc
+	_hud_tl.position = Vector2(24, 24)
+	_rail.scale = sc
+	_rail.position = Vector2(24, 24 + 92.0 * f)
+	_wallet.reset_size()
+	_wallet.scale = sc
+	_wallet.position = Vector2(w - 24.0 - _wallet.get_combined_minimum_size().x * f, 24)
 	_dock.reset_size()
 	var dsz := _dock.get_combined_minimum_size()
-	_dock.position = Vector2((_ui.size.x - dsz.x) * 0.5, _ui.size.y - 20.0 - dsz.y)
-	_new_run_btn.position = Vector2(_ui.size.x * 0.5 + 554.0, _ui.size.y - 20.0 - 96.0)
+	_dock.scale = sc
+	_dock.pivot_offset = Vector2(dsz.x * 0.5, dsz.y)
+	_dock.position = Vector2((w - dsz.x) * 0.5, h - 20.0 - dsz.y)
+	_new_run_btn.scale = sc
+	_new_run_btn.pivot_offset = Vector2(0, 96)
+	_new_run_btn.position = Vector2(w * 0.5 + 554.0 * f, h - 20.0 - 96.0)
 	_start_hint.reset_size()
 	var hs := _start_hint.get_combined_minimum_size()
-	_start_hint.position = Vector2((_ui.size.x - hs.x) * 0.5, _ui.size.y - 166.0 - hs.y)
+	_start_hint.scale = sc
+	_start_hint.pivot_offset = Vector2(hs.x * 0.5, hs.y)
+	_start_hint.position = Vector2((w - hs.x) * 0.5, h - 20.0 - 146.0 * f - hs.y)
 	_offline_banner.reset_size()
 	var bs := _offline_banner.get_combined_minimum_size()
-	_offline_banner.position = Vector2((_ui.size.x - bs.x) * 0.5, 104.0)
+	_offline_banner.scale = sc
+	_offline_banner.pivot_offset = Vector2(bs.x * 0.5, 0)
+	_offline_banner.position = Vector2((w - bs.x) * 0.5, 24.0 + 80.0 * f)
 
 
 # ================================================================ actions
