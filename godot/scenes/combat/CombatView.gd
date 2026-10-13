@@ -1386,6 +1386,7 @@ func _update_dice_tray() -> void:
 			"class_icon": _class_portrait(u.cls), "hp": u.hp, "max_hp": u.max_hp,
 			"shield": u.shield, "status": u.status, "incoming": _incoming_damage_for(u),
 			"icons": UnitPortrait._STATUS_ICON, "status_tip": Callable(UnitPortrait, "_effect_tooltip"),
+			"skin": MetaState.equipped_die_skin,
 			"faces": faces, "rolled": u.roll_face_index() if u.has_rolled() else -1,
 			"alive": u.hp > 0, "spent": used_this_turn, "selected": is_sel,
 			"legal_target": as_target and _selected_ally_target_ok(u),

@@ -85,3 +85,23 @@ func _run() -> void:
 		(t.find_child("Equip", true, false) as Button).pressed.emit()
 		_ok(MetaState.equipped_die_skin == "die_c_clay", "Profile equip button equips")
 	pv.queue_free()
+	_tray_checks()
+
+
+func _tray_checks() -> void:
+	var btn := Button.new()
+	add_child(btn)
+	var c: Dictionary = TrayColumn.build(btn)
+	var faces := [{"type": "attack", "value": 4}]
+	var base := {"faces": faces, "rolled": 0, "alive": true, "hp": 5, "max_hp": 5, "name": "X"}
+	TrayColumn.update(c, base)
+	var txt0 := (c["die_num"] as Label).text
+	var d2 := base.duplicate()
+	d2["skin"] = "die_e_rune"
+	TrayColumn.update(c, d2)
+	_ok((c["die"] as Node).find_child("Skin", false, false) != null, "tray die shows the skin")
+	_ok((c["die"] as Node).find_child("glow", true, false) != null, "Epic skin has glow layer")
+	_ok((c["die_num"] as Label).text == txt0 and txt0 == "4", "skin does not change the value shown")
+	TrayColumn.update(c, base)
+	_ok(c["skin_node"] == null, "skin removed again")
+	btn.queue_free()

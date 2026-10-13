@@ -72,6 +72,11 @@ static func build(btn: Button) -> Dictionary:
 	var die_num := HudKit.label("", 34, DangoTheme.OUTLINE)
 	die_num.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	dcol.add_child(DangoTheme.line_box(die_num, 34, 1.0))
+	var skin_pad := Control.new()   # lifts the value into the skin's calm zone; only visible with a skin
+	skin_pad.custom_minimum_size = Vector2(0, DIE * 0.19)
+	skin_pad.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	skin_pad.visible = false
+	dcol.add_child(skin_pad)
 
 	# --- right column ---
 	var right := VBoxContainer.new()
@@ -151,7 +156,7 @@ static func build(btn: Button) -> Dictionary:
 	btn.add_child(overlay)
 
 	return {"button": btn, "root": root, "holder": holder, "die": die, "die_style": die_style,
-		"die_icon": die_icon, "die_num": die_num, "ring_gold": ring_gold, "ring_dark": ring_dark,
+		"dcol": dcol, "skin_pad": skin_pad, "skin_id": "", "skin_node": null, "die_icon": die_icon, "die_num": die_num, "ring_gold": ring_gold, "ring_dark": ring_dark,
 		"cls_icon": cls_icon, "name_label": name_label, "hp": hp, "chips": chips, "cells": cells,
 		"reroll_overlay": overlay, "lifted": false, "panel_style": null}
 
@@ -183,6 +188,7 @@ static func update(content: Dictionary, d: Dictionary) -> void:
 	HudKit.fill_status_row(content["chips"], d.get("status", {}), int(d.get("shield", 0)),
 		d.get("icons", {}), d.get("status_tip", Callable()), 4)
 
+	_apply_skin(content, String(d.get("skin", "")))
 	# The die: the rolled face's icon + number on its tint.
 	var die_style: StyleBoxFlat = content["die_style"]
 	var icon: TextureRect = content["die_icon"]
@@ -190,13 +196,13 @@ static func update(content: Dictionary, d: Dictionary) -> void:
 	if alive and rolled >= 0 and rolled < faces.size():
 		var f: Dictionary = faces[rolled]
 		var ftype := String(f.get("type", ""))
-		die_style.bg_color = DangoTheme.face_tint(ftype)
+		die_style.bg_color = DangoTheme.face_tint(ftype) if String(content["skin_id"]) == "" else Color(0, 0, 0, 0)
 		icon.texture = DangoTheme.face_type_icon(ftype)
 		icon.visible = true
 		var v := int(f.get("value", 0))
 		num.text = str(v) if v > 0 else ""
 	else:
-		die_style.bg_color = DangoTheme.CREAM_300
+		die_style.bg_color = DangoTheme.CREAM_300 if String(content["skin_id"]) == "" else Color(0, 0, 0, 0)
 		icon.visible = false
 		num.text = "KO" if not alive else "-"
 	# Strip.
@@ -231,6 +237,36 @@ static func update(content: Dictionary, d: Dictionary) -> void:
 	(content["ring_gold"] as Panel).visible = selected
 	(content["ring_dark"] as Panel).visible = selected
 	btn.tooltip_text = String(d.get("tip", ""))
+
+
+## B12 cosmetic dice skin (id from MetaState.equipped_die_skin, "" = none): the plate / base+glow art
+## sits under the face icon + number. The value sits in the plate's calm zone (lower ~45-80 %), so the
+## column is bottom-aligned with a margin. Purely visual; never read by any rule.
+static func _apply_skin(content: Dictionary, skin: String) -> void:
+	if String(content["skin_id"]) == skin:
+		return
+	content["skin_id"] = skin
+	var old: Variant = content["skin_node"]
+	if old != null and is_instance_valid(old):
+		(old as Node).queue_free()
+	content["skin_node"] = null
+	var dcol: VBoxContainer = content["dcol"]
+	var die: PanelContainer = content["die"]
+	if skin == "":
+		dcol.alignment = BoxContainer.ALIGNMENT_CENTER
+		(content["skin_pad"] as Control).visible = false
+		return
+	var node := CosmeticArt.make_node(skin, DIE)
+	if node == null:
+		content["skin_id"] = ""
+		return
+	node.name = "Skin"
+	node.clip_contents = true
+	die.add_child(node)
+	die.move_child(node, 0)
+	content["skin_node"] = node
+	dcol.alignment = BoxContainer.ALIGNMENT_END
+	(content["skin_pad"] as Control).visible = true
 
 
 ## Lifts / drops the die (selected: -26 px). Animated unless `instant`.
