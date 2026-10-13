@@ -51,7 +51,7 @@ sẵn** · báo lỗi bằng **một Google Sheet** (Liam làm) · Cloudflare g�
 - [ ] C2. Chế độ **Daily** và **Ranked** trong Run Setup (đang vẽ nhưng khoá).
 - [x] C3 (13/10, merge b21c841). Menu trong run → Settings ("Back to run", bỏ cuộc trừ cược đúng).
 - [ ] C4. Land "New run" khi còn run Nhiệm vụ dang dở → settle cược (đường này đang bỏ sót).
-- [ ] C5. Land hub **v5** (Liam duyệt 13/10, review `design/handoffs/ui-02-round5/REVIEW-land-hub-v5.md`; khoá Nhiệm vụ + Leaderboard cho người mới; phím N xem tên) — thay cho v4 (Liam chốt 13/10; review: `design/handoffs/ui-02-round4/REVIEW-land-hub-v4.md`): lưới 3×3 quanh Portal, dock dưới, nút RUN giữa).
+- [~] C5 (13/10 merge 87c5dcb: lưới 3×3, dock, chip, phím, trạng thái; còn: "5 runs" đọc từ data, nút + Gem 44 px, chạm-để-xem trên cảm ứng, tỉ lệ chữ ở 1280×720, màn Leaderboard). Land hub **v5** (Liam duyệt 13/10, review `design/handoffs/ui-02-round5/REVIEW-land-hub-v5.md`; khoá Nhiệm vụ + Leaderboard cho người mới; phím N xem tên) — thay cho v4 (Liam chốt 13/10; review: `design/handoffs/ui-02-round4/REVIEW-land-hub-v4.md`): lưới 3×3 quanh Portal, dock dưới, nút RUN giữa).
 - [ ] C6. Các màn R3 còn lại: Team presets, Leaderboard, Profile/Account, Cosmetics, Land upgrade (Land Stone).
 - [ ] C7. Danh hiệu A5/A10 hiện trong game (Profile / Result).
 - [ ] C8. Thưởng tuần Daily (4 ngày → 150 Shard + 2000 Stone) — có data, chưa có logic.

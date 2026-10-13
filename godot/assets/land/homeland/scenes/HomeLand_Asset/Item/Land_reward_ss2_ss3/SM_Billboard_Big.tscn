@@ -1,0 +1,7 @@
+[gd_scene format=3]
+
+[ext_resource type="PackedScene" path="res://assets/land/homeland/src/HomeLand_Asset/Item/Land_reward_ss2_ss3/Source/SM_Billboard_Big.fbx" id="1_qe3mn"]
+
+[node name="SM_Billboard_Big" type="Node3D" unique_id=1679396973]
+
+[node name="SM_Billboard_Big" type="Node3D" parent="." unique_id=823912038 instance=ExtResource("1_qe3mn")]

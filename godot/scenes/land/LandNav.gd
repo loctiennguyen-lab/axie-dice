@@ -24,8 +24,10 @@ const SCREENS: Dictionary = {
 	&"settings": {"scene": "res://scenes/settings/Settings.tscn"},
 	&"guides": {"scene": "res://scenes/guides/Guides.tscn"},
 	&"daily": {"scene": "res://scenes/daily/DailyScreen.tscn"},
-	# Mastery Hall / Gallery: no screens yet (lane M); the hub shows "Coming soon".
-	&"mastery": {"scene": "res://scenes/mastery/Mastery.tscn"},
+	# Gallery / Leaderboard: no screens yet (lane M); the hub shows "Coming soon".
+	&"leaderboard": {"scene": "res://scenes/leaderboard/Leaderboard.tscn"},
+	&"profile": {"scene": "res://scenes/profile/Profile.tscn",
+		"fallback": "res://scenes/account/Account.tscn"},
 	&"gallery": {"scene": "res://scenes/gallery/Gallery.tscn"},
 	&"unlocks": {"scene": "res://scenes/unlocks/Unlocks.tscn"},
 	# Tài khoản hiện nằm trong Settings (AccountUI chip), chưa có màn riêng.
