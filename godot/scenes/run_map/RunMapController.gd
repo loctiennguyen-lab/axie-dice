@@ -1126,13 +1126,23 @@ func _rebuild_rail() -> void:
 	footer.size_flags_vertical = Control.SIZE_SHRINK_END
 	vbox.add_child(footer)
 	var save_quit := _build_save_quit_button()
-	footer.add_child(save_quit)
+	var footer_col := VBoxContainer.new()
+	footer_col.add_theme_constant_override("separation", 8)
+	footer.add_child(footer_col)
+	var menu_btn := Button.new()
+	menu_btn.name = "RunMenuButton"
+	menu_btn.text = "MENU"
+	menu_btn.custom_minimum_size = Vector2(0, 52)
+	DangoTheme.style_button(menu_btn, false)
+	menu_btn.pressed.connect(open_run_menu)
+	footer_col.add_child(menu_btn)
+	footer_col.add_child(save_quit)
 
 	var rail_h: float = _rail_root.size.y if _rail_root.size.y > 0.0 else 1024.0
 	# Everything below the scroll inside the rail column: the card -> spacer gap, the spacer ->
 	# button gap (the rail's own 12px twice, since the flexible spacer is a real item between
 	# them) and the 52px button itself.
-	var reserved_below := 12.0 + 12.0 + save_quit.custom_minimum_size.y
+	var reserved_below := 12.0 + 12.0 + save_quit.custom_minimum_size.y + 60.0
 	var max_scroll_h: float = maxf(rail_h - card_and_head_h - reserved_below, 40.0)
 	scroll.custom_minimum_size.y = minf(natural_h, max_scroll_h)
 
@@ -1180,6 +1190,25 @@ func _build_save_quit_button() -> Button:
 	save_quit.add_theme_color_override("font_pressed_color", DangoTheme.CREAM)
 	save_quit.pressed.connect(_on_save_and_quit_pressed)
 	return save_quit
+
+
+## In-run menu (L1 C3): Esc or the MENU button. The map's state lives in RunState, so saving and
+## reloading RunMap.tscn on "Back to run" resumes exactly here.
+func open_run_menu() -> void:
+	prepare_run_menu()
+	get_tree().change_scene_to_file("res://scenes/settings/Settings.tscn")
+
+
+func prepare_run_menu() -> void:
+	RunState.save_run({})
+	SettingsView.in_run = true
+	SettingsView.return_scene = "res://scenes/run_map/RunMap.tscn"
+
+
+func _unhandled_key_input(ev: InputEvent) -> void:
+	if ev is InputEventKey and ev.pressed and not ev.echo and ev.keycode == KEY_ESCAPE:
+		open_run_menu()
+		get_viewport().set_input_as_handled()
 
 
 func _on_save_and_quit_pressed() -> void:

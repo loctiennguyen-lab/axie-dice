@@ -41,9 +41,9 @@ sẵn** · báo lỗi bằng **một Google Sheet** (Liam làm) · Cloudflare g�
 
 ## C. Nên có (cắt được nếu trễ — hỏi Liam trước)
 
-- [ ] C1. Màn pact boss bắt buộc ở A6/A10 gọi `RelicSlots.pact_forced` (luật đã có, màn chưa nối).
+- [ ] C1 (BỊ CHẶN 13/10: chưa có màn chọn pact sau boss trong game — chờ Liam chọn làm cho L1 hay để sau). Màn pact boss bắt buộc ở A6/A10 gọi `RelicSlots.pact_forced` (luật đã có, màn chưa nối).
 - [ ] C2. Chế độ **Daily** và **Ranked** trong Run Setup (đang vẽ nhưng khoá).
-- [ ] C3. Menu trong run → Settings ("Back to run", bỏ cuộc trừ cược đúng).
+- [x] C3 (13/10, merge b21c841). Menu trong run → Settings ("Back to run", bỏ cuộc trừ cược đúng).
 - [ ] C4. Land "New run" khi còn run Nhiệm vụ dang dở → settle cược (đường này đang bỏ sót).
 - [ ] C5. Land hub v4 (Liam chốt 13/10; review: `design/handoffs/ui-02-round4/REVIEW-land-hub-v4.md`): lưới 3×3 quanh Portal, dock dưới, nút RUN giữa).
 - [ ] C6. Các màn R3 còn lại: Team presets, Leaderboard, Profile/Account, Cosmetics, Land upgrade (Land Stone).

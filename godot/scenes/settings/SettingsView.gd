@@ -1,3 +1,4 @@
+class_name SettingsView
 extends Control
 ## M11 Settings (Esc on the hub), Round 3. Spec: design/handoffs/ui-02-round3 README M11, frames M11a-d.
 ## Section index (260) + one column (max 960), rows >= 56, toggles print On/Off, sliders 300.
@@ -180,6 +181,12 @@ func _build_abandon_section() -> void:
 			MetaState.settle_mission_stake(false)   # lane E: abandon = mission loss (no-op without escrow)
 		RunState.clear_saved_run()
 		RunState.reset()
+		if in_run:
+			# Nothing to go back to: leave in-run mode and head to Land (L1 C3).
+			in_run = false
+			return_scene = ""
+			LandNav.back_to_land()
+			return
 		btn.disabled = true
 		confirm.disabled = true
 		confirm.button_pressed = false

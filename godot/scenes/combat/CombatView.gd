@@ -551,8 +551,9 @@ func _unhandled_key_input(event: InputEvent) -> void:
 			pass
 		elif code == KEY_ESCAPE:
 			# The only way out of a fight now that combat-v2.html's four-chip utility row has no
-			# Quit button — the confirm dialog itself is unchanged.
-			_on_quit_pressed()
+			# Quit button. Esc opens the in-run Settings menu (L1 C3); "Leave the fight" in the
+			# info menu still has the save-and-quit confirm.
+			open_run_menu()
 
 
 # ===========================================================================
@@ -775,7 +776,7 @@ func _build_settings_button() -> void:
 	_settings_button.add_theme_color_override("icon_hover_color", DangoTheme.INK_ON_PRIMARY)
 	_settings_button.add_theme_color_override("icon_pressed_color", DangoTheme.INK_ON_PRIMARY)
 	_settings_button.add_theme_color_override("icon_disabled_color", DangoTheme.FAINT_TEXT)
-	_settings_button.pressed.connect(_on_quit_pressed)
+	_settings_button.pressed.connect(open_run_menu)
 	_log_toggle_button.get_parent().add_child(_settings_button)
 
 
@@ -802,6 +803,26 @@ func _refresh_sound_button() -> void:
 ## JS puts the same control behind a modal (client.html:7135) and so does this: a stray click on
 ## a bare "Quit" during a boss fight would cost a whole run, and the button sits next to
 ## Undo/Info/Log, which are all safe to press.
+## In-run menu (L1 C3): Esc or the gear. Snapshots the fight into RunState.resume_combat (the same
+## path CONTINUE RUN uses, so the engine is restored exactly, not re-rolled) and opens Settings in
+## in-run mode; "Back to run" reloads this scene from that snapshot. The tutorial has no run, so it
+## keeps the old leave-confirm.
+func open_run_menu() -> void:
+	if _tutorial or _combat == null or _result_shown:
+		_on_quit_pressed()
+		return
+	prepare_run_menu()
+	get_tree().change_scene_to_file("res://scenes/settings/Settings.tscn")
+
+
+## The state half of open_run_menu(), split out so a test can drive it without swapping scenes.
+func prepare_run_menu() -> void:
+	_save_run_progress()
+	RunState.resume_combat = _combat.to_data()
+	SettingsView.in_run = true
+	SettingsView.return_scene = "res://scenes/combat/Combat.tscn"
+
+
 func _on_quit_pressed() -> void:
 	if _quit_confirm != null and is_instance_valid(_quit_confirm):
 		_quit_confirm.visible = true
