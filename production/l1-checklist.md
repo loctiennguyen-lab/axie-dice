@@ -21,11 +21,12 @@ sẵn** · báo lỗi bằng **một Google Sheet** (Liam làm) · Cloudflare g�
 ## B. Phải có (không được cắt)
 
 - [ ] B1. **Bật chơi online thật** (xúc xắc server + ví Gem server):
-  - [ ] Worker nhận RULES_VERSION hiện tại (`run_do.js` SUPPORTED_RULES đang chỉ có `godot-2026-09-21-a`).
-  - [ ] Client gọi lại `/api/run/open` khi bị đóng kết nối 1008 (token cũ bị thu hồi).
-  - [ ] Bật cờ `axie/epoch_source` + `axie/gem_wallet` = remote trong bản build.
+  - [x] Worker nhận RULES_VERSION hiện tại — `SUPPORTED_RULE_VERSIONS` + test khoá theo action_log (13/10, merge B1). Cần Liam deploy Worker.
+  - [x] Client gọi lại `/api/run/open` khi bị đóng 1008 auth, thử 1 lần (13/10).
+  - [ ] Bật cờ `axie/epoch_source` + `axie/gem_wallet` = remote trong `godot/project.godot` mục [axie] (cách bật: l1-interfaces.md §6.5).
+  - [ ] Ghi nhận rủi ro L1: server chưa kiểm kết quả run (chỉ kiểm hash chain) → thắng/thua, payout Nhiệm vụ, điều kiện quà mùa tin client; không mở thưởng Gem/tiền thật theo kết quả run trước khi có verifier (P3).
   - [ ] Chạy trọn 1 run thật trên Worker: mất mạng giữa run, nối lại, hết hạn token, thoát app giữa trận.
-  - [ ] RunSession tắt `_process` khi không có run (review ghi chú).
+  - [x] RunSession tắt `_process` khi không có run (13/10).
 - [ ] B2. **Aid + Continue bằng Gem tặng**: bảng giá Aid ra data (đang viết cứng trong CombatView), nút mua trừ Gem thật qua server, giới hạn 8/run, ẩn cho người mới.
 - [ ] B3. **Đăng nhập desktop**: màn đăng nhập có trạng thái chờ/huỷ/lỗi; thử đăng nhập Google thật trên bản build Mac + Win; redirect URI desktop trên Google OAuth console.
 - [ ] B4. **Ghi số liệu run + Nhiệm vụ**: kiểm tra server ghi đủ (run bắt đầu/kết thúc, Ascension, thắng/thua, Aid/Continue đã dùng, cược/payout Nhiệm vụ); có cách xuất ra bảng cho Liam xem.
