@@ -467,6 +467,23 @@ continue_used, xp, shards_earned, mission_won}`. Server ghi `runs` + bảng `run
 Container verifier + thưởng do server tính (P3), escrow đầy đủ và ví Shard/Stone ở server (trừ khi [LIAM-2] chọn khác), loadout ký
 (`LOADOUT_KEY`), công bố `S_run`, Bayes `m_scale` (chỉ ghi số liệu), đếm IP/ASN cho khách, Steam, xuất/xoá dữ liệu, thanh toán.
 
+### 6.5 Cách bật online thật (chuẩn bị, chưa bật; L1-B1)
+
+Bật bằng 2 project setting, đặt trong `godot/project.godot` mục `[axie]` (KHÔNG dùng `override.cfg`: file đó chỉ có ở worktree, không vào bản export):
+
+```
+[axie]
+epoch_source="remote"   ; RunState.begin_run dùng RemoteEpochSource + RunSession (xúc xắc do server tung)
+gem_wallet="remote"     ; AccountService gắn RemoteGemWallet khi đã đăng nhập, đăng xuất thì về ví local
+```
+
+- Mặc định `local` / `local` (không có dòng nào = tắt). Bật cả hai cùng lúc.
+- `axie/server_url` mặc định `https://axiedice.fun` (Worker `axie-dice`); đổi khi thử staging.
+- Preset export (Web / macOS / Windows) cần: không `exclude_filter` loại `scripts/net/*` (hiện chỉ loại tests/tools/prototypes, ổn); không cần `custom_features`. Cờ nằm trong `project.godot` nên tự đi theo bản build; kiểm lại sau khi bật rằng `export_presets.cfg` không có preset nào ghi đè.
+- Worker phải nhận RULES_VERSION của client: thêm giá trị mới vào `SUPPORTED_RULE_VERSIONS` (`worker/src/run_do.js`) mỗi lần đổi `ActionLog.RULES_VERSION`; `worker/test/rules_supported.test.mjs` đỏ nếu quên. Worker chỉ kiểm chuỗi hash, không chạy lại luật chiến đấu (chưa có verifier, mục 6.4), nên chưa chống gian lận kết quả run.
+- Bị đóng 1008 'auth' (token cũ/bị thu hồi): RunSession gọi lại `GET /api/run/open` đúng 1 lần, lấy token mới, hello lại; lần 2 liên tiếp thì đóng (`expired`). Test: `t_run_session` (`_auth_refresh`, `_both_remote`).
+- Không có run thì `RunSession` tắt `_process`; `attach()` bật lại, `closed/idle` tắt.
+
 ---
 
 ## 7. Land hub ↔ màn meta (L ↔ M)
