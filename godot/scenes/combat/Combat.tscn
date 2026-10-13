@@ -1,22 +1,8 @@
-[gd_scene load_steps=8 format=3]
+[gd_scene load_steps=6 format=3]
 
 [ext_resource type="Script" path="res://scenes/combat/CombatView.gd" id="1"]
 [ext_resource type="PackedScene" path="res://scenes/shared/CombatStage3D.tscn" id="2"]
 [ext_resource type="Script" path="res://scenes/shared/BattleBackdrop.gd" id="bg_script"]
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_frontline_rule"]
-bg_color = Color(0, 0, 0, 1)
-corner_radius_top_left = 3
-corner_radius_top_right = 3
-corner_radius_bottom_right = 3
-corner_radius_bottom_left = 3
-
-[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_frontline_cap"]
-bg_color = Color(0, 0, 0, 1)
-corner_radius_top_left = 4
-corner_radius_top_right = 4
-corner_radius_bottom_right = 4
-corner_radius_bottom_left = 4
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_debuglog"]
 bg_color = Color(0.0745098, 0.0862745, 0.105882, 0.9)
@@ -111,63 +97,6 @@ anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 mouse_filter = 2
-
-[node name="FrontLine" type="Control" parent="CanvasLayer/Root"]
-unique_name_in_owner = true
-layout_mode = 1
-anchors_preset = 10
-anchor_right = 1.0
-offset_top = 480.0
-offset_bottom = 480.0
-mouse_filter = 2
-z_index = 3
-
-[node name="Rule" type="Panel" parent="CanvasLayer/Root/FrontLine"]
-unique_name_in_owner = true
-layout_mode = 1
-anchors_preset = 10
-anchor_right = 1.0
-offset_left = 40.0
-offset_right = -40.0
-offset_bottom = 6.0
-mouse_filter = 2
-theme_override_styles/panel = SubResource("StyleBoxFlat_frontline_rule")
-
-[node name="RuleHighlight" type="ColorRect" parent="CanvasLayer/Root/FrontLine"]
-layout_mode = 1
-anchors_preset = 10
-anchor_right = 1.0
-offset_left = 44.0
-offset_top = 1.0
-offset_right = -44.0
-offset_bottom = 3.0
-mouse_filter = 2
-color = Color(0.9529412, 0.9058824, 0.827451, 0.16)
-
-[node name="CapL" type="Panel" parent="CanvasLayer/Root/FrontLine"]
-layout_mode = 0
-offset_left = 32.0
-offset_top = -4.0
-offset_right = 46.0
-offset_bottom = 10.0
-pivot_offset = Vector2(7, 7)
-rotation = 0.7853982
-mouse_filter = 2
-theme_override_styles/panel = SubResource("StyleBoxFlat_frontline_cap")
-
-[node name="CapR" type="Panel" parent="CanvasLayer/Root/FrontLine"]
-layout_mode = 1
-anchors_preset = 1
-anchor_left = 1.0
-anchor_right = 1.0
-offset_left = -46.0
-offset_top = -4.0
-offset_right = -32.0
-offset_bottom = 10.0
-pivot_offset = Vector2(7, 7)
-rotation = 0.7853982
-mouse_filter = 2
-theme_override_styles/panel = SubResource("StyleBoxFlat_frontline_cap")
 
 [node name="TopBar" type="Control" parent="CanvasLayer/Root"]
 layout_mode = 1

@@ -258,9 +258,6 @@ var _skill_vfx: SkillVfxLayer = null
 @onready var _result_overlay: Control = %ResultOverlay
 @onready var _result_label: Label = %ResultLabel
 @onready var _deck_left_column: VBoxContainer = %DeckLeftColumn
-@onready var _front_line_rule: Panel = %Rule       # C6 — a Panel, not a ColorRect: the rule
-	# carries combat-v2.html's `border-radius:3px` and a ColorRect cannot round a corner.
-@onready var _front_line: Control = %FrontLine     # coordinator fix #3 — see _update_front_line()
 @onready var _die_slot_buttons: Array = [%DieSlot0, %DieSlot1, %DieSlot2, %DieSlot3, %DieSlot4]
 ## ROUTING TASK (FIX-PASS-02 §1 item 4 / godot/CLAUDE.md rule 2): Combat.tscn's scene ROOT is a
 ## Node2D (`t_combatview_smoke.gd`/`t_unit_inspect.gd`/etc. all type their loaded instance as
@@ -1975,7 +1972,7 @@ const _DECK_H := 204.0
 ## below uses it except to convert one of the mockup's own y values into a band fraction.
 const _MOCK_CANVAS_H := 1080.0
 const _MOCK_BAND_H := _MOCK_CANVAS_H - _TOP_BAR_H - _DECK_H          ## 804
-const _FRONT_LINE_F := (480.0 - _TOP_BAR_H) / _MOCK_BAND_H           ## mockup FrontLine top
+## (CB-06 removed by Liam 13/10: _FRONT_LINE_F gone with the node.)
 const _STAGE_TOP_F := (0.13 * _MOCK_CANVAS_H - _TOP_BAR_H) / _MOCK_BAND_H
 ## WAS `(0.78 * _MOCK_CANVAS_H - _TOP_BAR_H) / _MOCK_BAND_H`, i.e. the stage stopped at y=842
 ## and left a 22px strip of nothing between it and the deck bar. The strip was not the bug but it
@@ -1997,12 +1994,6 @@ const _STAGE_BOTTOM_F := 1.0
 func _layout_stage_bands() -> void:
 	var canvas_h: float = get_viewport_rect().size.y
 	var band: float = maxf(canvas_h - _TOP_BAR_H - _DECK_H, 1.0)
-	if _front_line != null:
-		# CB-06: the rule sits ON the boundary, so top and bottom are the same y — its children
-		# (Rule, RuleHighlight, the two caps) carry the 6px thickness themselves.
-		var y: float = _TOP_BAR_H + band * _FRONT_LINE_F
-		_front_line.offset_top = y
-		_front_line.offset_bottom = y
 	if _stage3d != null:
 		# Anchored to the TOP edge at both ends and driven by offsets, so the band arithmetic is
 		# the single place the stage's height is decided - not a second fraction of the canvas
@@ -2082,20 +2073,10 @@ func _combat_is_enemy_uid(uid: int) -> bool:
 	return false
 
 
-## combat-v2.html draws the front line at a FIXED y=480, full-bleed and STATIC: a 6px pure-black
-## rule inset 40 each side, a 2px cream-at-16% highlight one pixel below it inset 44, and a 14px
-## black square rotated 45° at each end, 32 in from each edge. All four now live as real geometry
-## in Combat.tscn (`FrontLine/Rule`, `RuleHighlight`, `CapL`, `CapR`) and nothing here moves them.
-##
-## THIS REVERTS FIX-PASS-01 §2.1 C5 and its round-3 follow-up, which between them shrank the rule
-## to the party's own bounding box, dropped it to 3px at 55% black, HID both end caps and the
-## highlight, and then re-anchored the whole band vertically off the live enemy feet. None of that
-## is in the mockup, and godot/CLAUDE.md is explicit that the screen mockup outranks a prose
-## restatement of it. The caller still passes the measured bounds so a future pass that wants a
-## live-anchored variant has them to hand; this one deliberately ignores them.
+## CB-06 removed by Liam 13/10: the front line (6px rule + caps) is gone from Combat.tscn. Kept as a
+## no-op so any caller of the old hook still works.
 func _update_front_line(_min_x: float, _max_x: float, _enemy_bottom_y: float) -> void:
-	if _front_line == null or _front_line_rule == null:
-		return
+	pass
 
 
 # ===========================================================================
