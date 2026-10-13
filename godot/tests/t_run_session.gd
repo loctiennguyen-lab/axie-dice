@@ -8,6 +8,7 @@ class FakeSocket extends RefCounted:
 	var state := WebSocketPeer.STATE_CONNECTING
 	var inbox: Array = []
 	var close_code := 1000
+	var close_reason := ""
 	var opened_after := 0   # polls before it opens
 	func connect_to_url(_u: String) -> int:
 		return OK
@@ -31,6 +32,8 @@ class FakeSocket extends RefCounted:
 		state = WebSocketPeer.STATE_CLOSED
 	func get_close_code() -> int:
 		return close_code
+	func get_close_reason() -> String:
+		return close_reason
 
 
 class FakeServer extends RefCounted:
@@ -43,6 +46,10 @@ class FakeServer extends RefCounted:
 	var swallow_next := false     # no answer at all (timeout test)
 	var sockets: Array = []
 	var closed := false
+	var revoked_token := ""       # hello with this token -> close 1008 'auth'
+	var fresh_token := "tok2"
+	var open_calls := 0
+	var open_ok := true
 	var received: Array = []
 	var http_error := ""
 
@@ -58,6 +65,13 @@ class FakeServer extends RefCounted:
 			received.append(b)
 			done.call(200, JSON.stringify({"run_id": run_id, "run_token": "tok", "commit": "c0ffee",
 				"ws_url": "wss://x/api/run/%s/ws" % run_id, "header": {"newcomer": true}}))
+		elif path == "/api/run/open":
+			open_calls += 1
+			if open_ok:
+				done.call(200, JSON.stringify({"run_id": run_id, "run_token": fresh_token, "commit": "c0ffee",
+					"ws_url": "wss://x/api/run/%s/ws" % run_id, "header": {}}))
+			else:
+				done.call(200, "{}")
 		elif path.ends_with("/abandon"):
 			done.call(200, "{}")
 		else:
@@ -73,6 +87,11 @@ class FakeServer extends RefCounted:
 		var m: Dictionary = JSON.parse_string(text)
 		match String(m["t"]):
 			"hello":
+				if revoked_token != "" and String(m.get("run_token", "")) == revoked_token:
+					s.state = WebSocketPeer.STATE_CLOSED
+					s.close_code = 1008
+					s.close_reason = "auth"
+					return
 				var seq := rows.size() - 1
 				var last_seq := int(m.get("last_seq", -1))
 				if last_seq < seq:
@@ -246,6 +265,9 @@ func _ready() -> void:
 	else:
 		ProjectSettings.set_setting("axie/epoch_source", "local")
 
+	await _auth_refresh()
+	await _both_remote()
+
 	print("t_run_session: ", "PASS" if _fails == 0 else "FAILED (%d)" % _fails)
 	get_tree().quit(1 if _fails > 0 else 0)
 
@@ -285,3 +307,80 @@ func _offline_and_errors() -> void:
 	sess3.tick(0.1)
 	_check(kicked[0] == "other_device" and sess3.state == "closed", "bye -> closed + kicked signal")
 	sess3.queue_free()
+
+
+## 1008 'auth' -> /api/run/open for a fresh token, hello again once; a second 'auth' in a row does not loop.
+func _auth_refresh() -> void:
+	var srv := FakeServer.new()
+	srv.revoked_token = "tok"
+	var parts := _make(srv)
+	var sess: RunSession = parts[0]
+	var src: RemoteEpochSource = parts[1]
+	var log: ActionLog = parts[2]
+	var r := src.start_run({"mode": "short"})
+	_run(sess, r, 5.0)
+	_check(r.ok and srv.open_calls == 1 and sess.state == "ready", "revoked token: re-open once, hello with the fresh token, ready")
+	log.record("enter_node", ["r1_c0", "battle"])
+	var r2 := src.request("node", {"node_id": "r1_c0"})
+	_run(sess, r2, 5.0)
+	_check(r2.ok and srv.open_calls == 1, "run goes on after the refresh")
+	sess.queue_free()
+
+	var s2 := FakeServer.new()
+	s2.revoked_token = "tok"
+	s2.fresh_token = "tok"   # server keeps handing out a dead token
+	var p2 := _make(s2)
+	var sess2: RunSession = p2[0]
+	var r3: EpochReply = (p2[1] as RemoteEpochSource).start_run({"mode": "short"})
+	_run(sess2, r3, 10.0)
+	_check(s2.open_calls == 1 and sess2.state == "closed" and r3.done and not r3.ok, "dead token twice: one refresh, then closed (no loop)")
+	sess2.queue_free()
+
+	var s3 := FakeServer.new()
+	s3.revoked_token = "tok"
+	s3.open_ok = false   # no open run any more
+	var p3 := _make(s3)
+	var sess3: RunSession = p3[0]
+	var r4: EpochReply = (p3[1] as RemoteEpochSource).start_run({"mode": "short"})
+	_run(sess3, r4, 10.0)
+	_check(sess3.state == "closed" and r4.done and not r4.ok and s3.open_calls == 1, "no open run on refresh: closed, request fails")
+	_check(not sess3.is_processing(), "closed session stops processing")
+	sess3.queue_free()
+
+
+## Both L1 flags remote: begin_run attaches a RunSession to the (fake) Worker and the wallet turns remote.
+func _both_remote() -> void:
+	var old_e: Variant = ProjectSettings.get_setting("axie/epoch_source", "local")
+	var old_g: Variant = ProjectSettings.get_setting("axie/gem_wallet", "local")
+	ProjectSettings.set_setting("axie/epoch_source", "remote")
+	ProjectSettings.set_setting("axie/gem_wallet", "remote")
+	var srv := FakeServer.new()
+	var sess := RunSession.new()
+	_check(not sess.is_processing(), "new RunSession does not process")
+	add_child(sess)
+	sess.http = srv.http
+	sess.socket_factory = srv.make_socket
+	RunState.session = sess
+	var pump := Timer.new()   # the real _process is off in tests: drive the clock from a timer
+	pump.wait_time = 0.02
+	pump.timeout.connect(func() -> void: sess.tick(0.25))
+	add_child(pump)
+	pump.start()
+	var res: Dictionary = await RunState.begin_run({"mode": "short", "kind": "normal"})
+	pump.queue_free()
+	_check(res.ok and RunState.epoch is RemoteEpochSource and sess.state == "ready" and sess.is_processing(), "both flags remote: full run starts on the fake transport, session processing")
+	var svc: Node = load("res://autoload/AccountService.gd").new()
+	svc.transport = func(_m: String, path: String, _b: String, done: Callable) -> void:
+		if path == "/api/wallet":
+			done.call(200, JSON.stringify({"gem": 5, "ledger_tail": []}))
+		else:
+			done.call(404, "")
+	svc._attach_remote_wallet()
+	_check(MetaState.gem_wallet() is RemoteGemWallet, "gem_wallet flag remote -> remote wallet")
+	svc._detach_remote_wallet()
+	svc.free()
+	RunState.reset()
+	RunState.session = null
+	sess.queue_free()
+	ProjectSettings.set_setting("axie/epoch_source", old_e)
+	ProjectSettings.set_setting("axie/gem_wallet", old_g)

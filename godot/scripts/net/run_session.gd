@@ -37,6 +37,8 @@ var _inflight: Dictionary = {}    # seq -> {msg, reply, sent, age, tries, queued
 var _backoff := 0
 var _retry_in := 0.0
 var _sent_hello := false
+var _refreshed := false    # one token refresh per connection loss; reset by welcome/resync (no infinite loop)
+var _refreshing := false   # /api/run/open in flight
 
 
 # ============================================================================ run creation
@@ -100,6 +102,9 @@ func attach(p_run_id: String, p_token: String, p_ws_url: String) -> void:
 	_token = p_token
 	_ws_url = p_ws_url
 	_last_ack = -1
+	_refreshed = false
+	_refreshing = false
+	set_process(true)
 	_connect()
 
 
@@ -145,13 +150,17 @@ func _schedule_retry() -> void:
 	_backoff += 1
 
 
+func _init() -> void:
+	set_process(false)   # nothing to poll until a run attaches (attach() turns it on, teardown to idle/closed off)
+
+
 func _process(delta: float) -> void:
 	tick(delta)
 
 
 ## Separate from _process so tests can drive time. delta in seconds.
 func tick(delta: float) -> void:
-	if state == "idle" or state == "closed":
+	if state == "idle" or state == "closed" or _refreshing:
 		return
 	if _sock == null:
 		_retry_in -= delta
@@ -168,13 +177,40 @@ func tick(delta: float) -> void:
 				_on_packet((_sock.get_packet() as PackedByteArray).get_string_from_utf8())
 		elif rs == WebSocketPeer.STATE_CLOSED:
 			var code: int = _sock.get_close_code()
+			var why: String = _sock.get_close_reason() if _sock.has_method("get_close_reason") else ""
 			_sock = null
+			if code == 1008 and why == "auth" and not _refreshed:
+				_refresh_token()
+				return
 			if code == 1008 or code == 4001:
 				_fail_all("expired" if code == 1008 else "version")
 				_teardown("closed")
 				return
 			_schedule_retry()
 	_age_requests(delta)
+
+
+## 1008 'auth' = the token was revoked or replaced: ask /api/run/open for a fresh one and say hello again, once.
+func _refresh_token() -> void:
+	_refreshed = true
+	_refreshing = true
+	_set_state("reconnecting")
+	var rid := run_id
+	_http().call("GET", "/api/run/open", "", func(code: int, text: String) -> void:
+		if not _refreshing or run_id != rid:
+			return   # torn down or re-attached while the request was out
+		_refreshing = false
+		var j: Variant = JSON.parse_string(text) if not text.is_empty() else null
+		if code == 200 and typeof(j) == TYPE_DICTIONARY and (j as Dictionary).has("run_token") \
+				and String((j as Dictionary).get("run_id", "")) == rid:
+			var d: Dictionary = j
+			_token = String(d["run_token"])
+			_ws_url = String(d.get("ws_url", _ws_url))
+			_backoff = 0
+			_connect()
+		else:
+			_fail_all("expired")
+			_teardown("closed"))
 
 
 func _age_requests(delta: float) -> void:
@@ -217,11 +253,13 @@ func _on_packet(text: String) -> void:
 	match String(m.get("t", "")):
 		"welcome":
 			_backoff = 0
+			_refreshed = false
 			_set_state("ready")
 			for seq in _inflight.keys():   # unanswered requests go out again; the server replays old answers
 				_send_inflight(int(seq))
 		"resync":
 			_backoff = 0
+			_refreshed = false
 			for row in m.get("tail", []):
 				var r: Dictionary = row
 				_answer(int(r["seq"]), true, int(r["seed"]), "", {})
@@ -261,9 +299,11 @@ func _fail_all(code: String) -> void:
 
 
 func _teardown(new_state: String) -> void:
+	_refreshing = false
 	if _sock != null:
 		_sock.close()
 		_sock = null
 	_set_state(new_state)
 	if new_state == "idle" or new_state == "closed":
 		_fail_all("offline")
+		set_process(false)
