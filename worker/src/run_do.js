@@ -10,8 +10,12 @@ import { verifyRunToken } from './run_token.js';
 import { spendGem } from './wallet.js';
 import { PRICES } from './aid_prices.js';
 
-// Rule versions this build can still serve (ADR 4.6 bye{version}). Extend at every RULES_VERSION bump.
-export const SUPPORTED_RULES = new Set(['godot-2026-09-21-a']);
+// Rule versions this build can still serve (ADR 4.6 bye{version}). THE one place to bump: add the new
+// ActionLog.RULES_VERSION (godot/scripts/core/action_log.gd) here at every bump; test/rules_supported.test.mjs
+// fails if the client's current value is missing. The Worker only checks the hash chain, it never runs game
+// rules (run_core.js header), so accepting a version needs no Worker rule change.
+export const SUPPORTED_RULE_VERSIONS = ['godot-2026-09-21-a', 'godot-2026-10-13-j'];
+export const SUPPORTED_RULES = new Set(SUPPORTED_RULE_VERSIONS);
 
 const json = (body, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } });
