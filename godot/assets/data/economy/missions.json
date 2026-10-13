@@ -6,7 +6,7 @@
 			"mode": "short",
 			"ascension": 3,
 			"stake": 300,
-			"m_base": 1.6,
+			"m_base": 2.15,
 			"m_scale": 1.0,
 			"stone": 4,
 			"unlock_win_asc": 3,
@@ -17,7 +17,7 @@
 			"mode": "short",
 			"ascension": 4,
 			"stake": 500,
-			"m_base": 1.95,
+			"m_base": 2.4,
 			"m_scale": 1.0,
 			"stone": 8,
 			"unlock_win_asc": 4,
@@ -28,7 +28,7 @@
 			"mode": "short",
 			"ascension": 6,
 			"stake": 800,
-			"m_base": 2.45,
+			"m_base": 3.6,
 			"m_scale": 1.0,
 			"stone": 14,
 			"unlock_win_asc": 6,
@@ -39,7 +39,7 @@
 			"mode": "short",
 			"ascension": 7,
 			"stake": 1200,
-			"m_base": 3.3,
+			"m_base": 4.4,
 			"m_scale": 1.0,
 			"stone": 22,
 			"unlock_win_asc": 7,
@@ -50,7 +50,7 @@
 			"mode": "short",
 			"ascension": 9,
 			"stake": 1800,
-			"m_base": 4.2,
+			"m_base": 7.85,
 			"m_scale": 0.9,
 			"stone": 34,
 			"unlock_win_asc": 9,
@@ -61,8 +61,8 @@
 			"mode": "full",
 			"ascension": 9,
 			"stake": 2500,
-			"m_base": 7.2,
-			"m_scale": 0.9,
+			"m_base": 8.0,
+			"m_scale": 1.0,
 			"stone": 60,
 			"unlock_win_asc": 9,
 			"unlock_full_a9": true,
@@ -72,53 +72,77 @@
 	},
 	"rule_sets": {
 		"N1": {
-			"A": [],
-			"B": []
+			"A": [
+				"M5",
+				"M6"
+			],
+			"B": [
+				"M1",
+				"M7"
+			]
 		},
 		"N2": {
 			"A": [
-				"M3"
+				"M5",
+				"M6"
 			],
 			"B": [
-				"M2"
+				"M1",
+				"M7"
 			]
 		},
 		"N3": {
 			"A": [
-				"M2"
+				"M2",
+				"M3",
+				"M4"
 			],
 			"B": [
-				"M3"
+				"M1",
+				"M2",
+				"M4"
 			]
 		},
 		"N4": {
 			"A": [
 				"M1",
-				"M4"
+				"M5",
+				"M6"
 			],
 			"B": [
 				"M5",
-				"M2"
+				"M6",
+				"M7"
 			]
 		},
 		"N5": {
 			"A": [
 				"M1",
-				"M4"
+				"M5",
+				"M6",
+				"M7"
 			],
 			"B": [
+				"M2",
+				"M4",
 				"M5",
-				"M2"
+				"M6"
 			]
 		},
 		"N6": {
 			"A": [
 				"M1",
-				"M4"
+				"M4",
+				"M5",
+				"M6",
+				"M7"
 			],
 			"B": [
+				"M1",
+				"M4",
 				"M5",
-				"M2"
+				"M6",
+				"M7"
 			]
 		}
 	},
