@@ -11,6 +11,7 @@ func _ready() -> void:
 	test_a_axes()
 	test_reroll_caps()
 	test_eternal()
+	test_eternal_skips_starter()
 	test_forced_pact()
 	print("=== t_relic_axes: %d checks, %d failure(s) ===" % [_checks, _failures.size()])
 	if _failures.is_empty():
@@ -138,6 +139,24 @@ func test_reroll_caps() -> void:
 	_assert(d.grant_relic_reroll(3) == 3 and d.grant_relic_reroll(3) == 1 and d.rerolls == 4, "relic reroll cap 4/turn")
 	_assert(d.grant_relic_reroll(1) == 0, "cap holds")
 	_assert(int(d._state_dict()["relic_reroll_given"]) == 4, "cap counter is in the undo state")
+
+
+## H8 (Liam 13/10): the starting relic (u_start) never takes an Eternal sticker; only relics granted after run start count.
+func test_eternal_skips_starter() -> void:
+	RunState.start_new_run_seeded(11, {"team_keys": ["plant1", "beast1", "aqua1"], "mode": "short", "ascension": 5,
+		"ranked": false, "bonuses": {"start_relic_max_rarity": 0}})
+	_assert(RunState.owned_relic_ids.size() >= 1, "starter relic granted (%s)" % str(RunState.owned_relic_ids))
+	var starter: String = String(RunState.owned_relic_ids[0]) if RunState.owned_relic_ids.size() > 0 else ""
+	_assert(RunState.relic_stickers.is_empty(), "starter relic carries no Eternal sticker")
+	var added: Array = []
+	for id in ["r_claw", "r_seedling", "r_heart", "r_fang"]:
+		if id != starter and added.size() < 3:
+			RunState._grant_relic(id, "reward")
+			added.append(id)
+	_assert(RunState.relic_stickers.size() == 2 and not RunState.relic_stickers.has(starter)
+		and RunState.relic_stickers.has(added[0]) and RunState.relic_stickers.has(added[1]),
+		"first two relics GRANTED after start are Eternal, starter is not")
+	_assert(RunState.sell_relic(starter) or RunState.phase == RunState.RunPhase.COMBAT, "starter stays sellable")
 
 
 func test_eternal() -> void:
