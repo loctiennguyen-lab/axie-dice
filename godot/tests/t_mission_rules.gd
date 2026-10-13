@@ -73,6 +73,45 @@ func _ready() -> void:
 	var b_m5 := _engine("boss", 4, true, ["M5"])
 	_check(b_m5.enemies[0].max_hp > int(float(b_plain.enemies[0].max_hp) * 1.2), "M5 boss is thicker")
 
+	# --- M6 / M7 (H4, nhiem-vu-risk-to-earn 3.2), value level; also no cap on rule count (H3, N6 = 5 rules) ---
+	_check(absf(float(ContentDB.mission_mods(["M6"], 4)["normal_hp"]) - 1.20) < 0.001, "M6 mod normal_hp x1.20")
+	_check(absf(float(ContentDB.mission_mods(["M7"], 4)["elite_dmg"]) - 1.25) < 0.001, "M7 mod elite_dmg x1.25")
+	var n6 := ContentDB.mission_mods(["M1", "M4", "M5", "M6", "M7"], 9)
+	_check(absf(float(n6["enemy_dmg"]) - 1.10 * 1.15) < 0.001 and absf(float(n6["boss_hp"]) - 1.25) < 0.001
+		and absf(float(n6["normal_hp"]) - 1.2) < 0.001 and absf(float(n6["elite_dmg"]) - 1.25) < 0.001
+		and int((n6["clock_override"] as Dictionary)["start"]) == 6, "N6 five-rule set all applies")
+	var b0 := _engine("battle", 3, true, [])
+	var b6 := _engine("battle", 3, true, ["M6"])
+	var hp_ok := b0.enemies.size() == b6.enemies.size() and b0.enemies.size() > 0
+	for i in mini(b0.enemies.size(), b6.enemies.size()):
+		var want: int = RulesMath.round_half_up(float(b0.enemies[i].max_hp) * 1.2)
+		hp_ok = hp_ok and absi(b6.enemies[i].max_hp - want) <= 1 and b6.enemies[i].max_hp > b0.enemies[i].max_hp
+	_check(hp_ok, "M6: every normal monster HP is x1.20 (+-1 rounding)")
+	var e0 := _engine("elite", 3, true, [])
+	var e6 := _engine("elite", 3, true, ["M6"])
+	var e7 := _engine("elite", 3, true, ["M7"])
+	var same_hp := true
+	for i in e0.enemies.size():
+		same_hp = same_hp and e6.enemies[i].max_hp == e0.enemies[i].max_hp and e7.enemies[i].max_hp == e0.enemies[i].max_hp
+	_check(same_hp, "M6 does not touch elite HP, M7 does not touch HP")
+	var d0 := 0
+	var d7 := 0
+	for i in e0.enemies.size():
+		for f in (e0.enemies[i].die as Array):
+			d0 += int(f.get("value", 0))
+		for f in (e7.enemies[i].die as Array):
+			d7 += int(f.get("value", 0))
+	_check(d7 > d0 and absf(float(d7) / float(d0) - 1.25) < 0.12, "M7: elite dice ~x1.25 (%d vs %d)" % [d7, d0])
+	var b7 := _engine("battle", 3, true, ["M7"])
+	var bd := 0
+	var bd7 := 0
+	for i in b0.enemies.size():
+		for f in (b0.enemies[i].die as Array):
+			bd += int(f.get("value", 0))
+		for f in (b7.enemies[i].die as Array):
+			bd7 += int(f.get("value", 0))
+	_check(bd == bd7, "M7 leaves normal monsters' dice alone")
+
 	# --- M1 replaces the Ascension clock, M2 moves the spike ---
 	var c1 := _engine("boss", 4, true, ["M1"])
 	c1.turn = 6

@@ -154,6 +154,10 @@ func _mods_text(m: Dictionary) -> String:
 		bits.append("elite HP x%s" % _num(float(m.elite_hp)))
 	if m.has("boss_hp"):
 		bits.append("boss HP x%s" % _num(float(m.boss_hp)))
+	if m.has("normal_hp"):
+		bits.append("normal enemy HP x%s" % _num(float(m.normal_hp)))
+	if m.has("elite_dmg"):
+		bits.append("elite damage x%s" % _num(float(m.elite_dmg)))
 	if m.has("extra_elite"):
 		bits.append("+%d elites" % int(m.extra_elite))
 	if m.has("spike_period_delta"):

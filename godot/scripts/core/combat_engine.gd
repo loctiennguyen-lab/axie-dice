@@ -1815,8 +1815,11 @@ func _generate_encounter(p_kind: String, p_pw: int) -> Array:
 	for k in keys:
 		tot += float((ContentDB.enemies.get(k, {}) as Dictionary).get("cost", 1))
 	var sc: float = clamp(budget_v / max(tot, 1.0), 0.55, 3.4)
-	var em := {"hp": float(amods.get("hp", 1.0)) * (float(mm.get("elite_hp", 1.0)) if is_elite else 1.0),
-		"dmg": float(amods.get("dmg", 1.0)) * _run_mod("enemy_dmg")}
+	# M6 (normal_hp) applies per monster to non-elite fights; M7 (elite_dmg) to elite fights.
+	# Distinct from run_mods["enemy_hp"] (the encounter budget). Rounding is the existing
+	# round-half-up on the final HP (_mk_monster) / die value (scale_die).
+	var em := {"hp": float(amods.get("hp", 1.0)) * (float(mm.get("elite_hp", 1.0)) if is_elite else float(mm.get("normal_hp", 1.0))),
+		"dmg": float(amods.get("dmg", 1.0)) * _run_mod("enemy_dmg") * (float(mm.get("elite_dmg", 1.0)) if is_elite else 1.0)}
 
 	var out: Array = []
 	for k in keys:
