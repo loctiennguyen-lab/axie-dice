@@ -180,7 +180,9 @@ const WATCHED_FILES: Array[String] = ["res://assets/data/part_faces.json"]
 ## BUMPED, 2026-10-13: `ActionLog.RULES_VERSION` -> `godot-2026-10-13-k`. missions.json now matches the approved
 ## very-hard doc (rule sets A/B and multipliers N1–N6; L1 plays N1–N3). Changes the run result: YES (mission runs).
 ## Worker SUPPORTED_RULE_VERSIONS gained -k in the same commit.
-const FINGERPRINT := "c6dda210733cf54c760961a663dad0791718c7d5b0a596974d42aee6fc414c78"
+## Moved 2026-10-13 by B10 1cf344d: MetaState.free_continue_used + RunState ctx flag (price of the newcomer's
+## first Continue only; no combat rule reads it). Run result: NO, stays -k.
+const FINGERPRINT := "344a62d1c2b15e021afec0fa349819ff47a8d39969090eb2f551cd1088d20f97"
 
 
 func _ready() -> void:

@@ -36,7 +36,7 @@ sẵn** · báo lỗi bằng **một Google Sheet** (Liam làm) · Cloudflare g�
 - [ ] B8. **Bản web**: `export-web.sh` → chạy được ≥ 30 FPS với Atia + Land → `deploy-r2.sh` (khi Liam cho deploy).
 - [ ] B9. Save không mất: chạy thử cập nhật bản cũ → bản mới trên save thật (bản sao), cloud save qua tài khoản.
 
-- [ ] B10. Continue miễn phí cho người mới (lần thua elite/boss đầu, A0–A2, monetization-v1 §2.6/E13) — cần bộ đếm theo tài khoản (server). Đang: người mới không có Continue.
+- [x] B10 (13/10, merge 1cf344d; cần deploy Worker). Continue miễn phí cho người mới (lần thua elite/boss đầu, A0–A2, monetization-v1 §2.6/E13) — cần bộ đếm theo tài khoản (server). Đang: người mới không có Continue.
 - [ ] B11. Aid R4 (dời đồng hồ) + R5 (đổi pact) đang hiện "Coming soon".
 
 ## C. Nên có (cắt được nếu trễ — hỏi Liam trước)

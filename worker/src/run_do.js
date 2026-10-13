@@ -7,7 +7,7 @@
 // keep-alive does not wake the object.
 import { RunCore } from './run_core.js';
 import { verifyRunToken } from './run_token.js';
-import { spendGem } from './wallet.js';
+import { spendGem, claimFreeContinue } from './wallet.js';
 import { PRICES } from './aid_prices.js';
 
 // Rule versions this build can still serve (ADR 4.6 bye{version}). THE one place to bump: add the new
@@ -50,6 +50,7 @@ export class RunDO {
         const r = await spendGem(env, meta.player_id, amount, `aid:${aid}`, idem);
         return r.ok;
       },
+      claimFreeContinue: (meta, seq) => claimFreeContinue(env, meta.player_id, meta.run_id, seq),
       log: (event, detail) => console.warn('run anomaly', event, JSON.stringify(detail)),
     });
     if (typeof WebSocketRequestResponsePair !== 'undefined') {

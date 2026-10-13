@@ -502,3 +502,34 @@ test('event_choice can be consumed by event_done', async () => {
   assert.equal((await c.epoch('event_choice', { node_id: 'r1_c0', index: 1 }, [])).t, 'epoch_res');
   assert.equal((await c.epoch('node', { node_id: 'r1_c1' }, [A('event_done')])).t, 'epoch_res');
 });
+
+test('free Continue: once per account, A0-A2, elite/boss only; second, A3 and a normal node pay', async () => {
+  const claimed = new Set();
+  const mk = (opts) => {
+    const charges = [];
+    return fresh(opts, {
+      charge: async (_i, _k, _a, _m, price) => { charges.push(price); return true; },
+      claimFreeContinue: async (meta) => { if (claimed.has(meta.player_id)) return false; claimed.add(meta.player_id); return true; },
+    }).then((x) => ({ ...x, charges }));
+  };
+  const go = async (x, kind) => {
+    await x.c.hello(); await start(x.c); await x.c.epoch('node', { node_id: 'r1_c0' }, []);
+    return x.c.epoch('continue', { node_id: 'r1_c0' }, [A('enter_node', ['r1_c0', kind])]);
+  };
+  const normal = await mk({});
+  assert.equal((await go(normal, 'battle')).t, 'epoch_res');
+  assert.deepEqual(normal.charges, [90], 'normal node: paid, free flag untouched');
+  assert.equal(claimed.size, 0);
+  const a3 = await mk({ ascension: 3 });
+  assert.equal((await go(a3, 'boss')).t, 'epoch_res');
+  assert.deepEqual(a3.charges, [180], 'A3: paid');
+  assert.equal(claimed.size, 0);
+  const first = await mk({ ascension: 2 });
+  assert.equal((await go(first, 'elite')).t, 'epoch_res');
+  assert.deepEqual(first.charges, [], 'first elite loss at A2: free');
+  const second = await mk({});
+  assert.equal((await go(second, 'boss')).t, 'epoch_res');
+  assert.deepEqual(second.charges, [180], 'second: refused as free, charged');
+  const broke = await fresh({}, { charge: async () => false, claimFreeContinue: async () => false });
+  assert.equal((await go(broke, 'boss')).code, 'rejected');
+});

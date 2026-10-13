@@ -70,6 +70,7 @@ func _fresh(gems: int) -> Array:
 	RunState.boon_used = false
 	RunState.epoch = null
 	MetaState.runs_with_battle = 99   # not a newcomer
+	MetaState.free_continue_used = true   # sample Continue already spent unless a test resets it
 	var st := StubStore.new()
 	st.gems_cache = gems
 	var w := CountingWallet.new(st)
@@ -127,6 +128,34 @@ func _ready() -> void:
 	_check(not bool(AidPurchase.buy("continue", ei)["ok"]) and ei.lost, "newcomer: buy refused")
 	MetaState.runs_with_battle = 99
 	_check(not bool(AidPurchase.offer("continue", ei, true)["show"]), "tutorial: Continue hidden")
+
+	# --- Free sample Continue (E13): once per account, A0-A2, elite/boss, never the tutorial
+	sw = _fresh(0)
+	st = sw[0]
+	w = sw[1]
+	MetaState.free_continue_used = false
+	MetaState.runs_with_battle = 0   # newcomer: the sample is the only Continue shown
+	var ef := _engine("elite", 1, true)
+	_wipe(ef)
+	var of := AidPurchase.offer("continue", ef)
+	_check(bool(of["show"]) and bool(of["enabled"]) and int(of["price"]) == 0, "newcomer A1 elite: free Continue shown, price 0, 0 Gem enough")
+	_check(not bool(AidPurchase.offer("continue", ef, true)["show"]), "tutorial: free Continue hidden")
+	var rf := AidPurchase.buy("continue", ef)
+	_check(bool(rf["ok"]) and int(rf["charged"]) == 0 and w.spends == 0 and not ef.lost, "free Continue applied, no Gem spent")
+	_check(MetaState.free_continue_used, "flag set after use")
+	var ef2 := _engine("boss", 0, true)
+	_wipe(ef2)
+	_check(not bool(AidPurchase.offer("continue", ef2)["show"]), "newcomer, second Continue: hidden")
+	MetaState.runs_with_battle = 99
+	_check(int(AidPurchase.offer("continue", ef2)["price"]) == 180, "non-newcomer after the sample: paid boss price")
+	MetaState.free_continue_used = false
+	var ea3 := _engine("boss", 3, true)
+	_wipe(ea3)
+	_check(int(AidPurchase.offer("continue", ea3)["price"]) == 180, "A3: not free")
+	var en := _engine("battle", 0, true)
+	_wipe(en)
+	_check(int(AidPurchase.offer("continue", en)["price"]) == 90, "normal node: not free")
+	MetaState.free_continue_used = true
 
 	# --- Extra reroll: charged 15 once, works with 0 rerolls, cap R2 = 4, total cap 6
 	sw = _fresh(1000)

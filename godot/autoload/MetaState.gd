@@ -38,6 +38,9 @@ var perks: Dictionary = {}             # perk key -> stack count (reroll/relic0/
 ## worker/src/runs.js newcomer()). Counted once per run by RunState.apply_combat_result, so runs
 ## abandoned after a battle count and runs abandoned before any battle do not.
 var runs_with_battle: int = 0
+## Sample Continue (monetization-v1 2.6, E13): true once the account has had its free Continue. Remote runs: the
+## server keeps the real flag (wallet ledger key free_continue); this copy is what the UI shows.
+var free_continue_used: bool = false
 var battle_counted_seed: int = -1       ## run_seed of the last run already counted (resume-safe)
 var asc_max: int = 0                   # highest Ascension the player may select
 var runs: int = 0
@@ -433,6 +436,7 @@ func reload_from_store() -> void:
 	asc_max = 0
 	runs = 0
 	runs_with_battle = 0
+	free_continue_used = false
 	battle_counted_seed = -1
 	wins = 0
 	best = 0
@@ -499,6 +503,7 @@ func load_from_disk() -> void:
 	runs = int(parsed.get("runs", 0))
 	# Old saves have no counter: runs is the best available stand-in.
 	runs_with_battle = int(parsed.get("runs_with_battle", runs))
+	free_continue_used = bool(parsed.get("free_continue_used", false))
 	battle_counted_seed = int(parsed.get("battle_counted_seed", -1))
 	wins = int(parsed.get("wins", 0))
 	best = int(parsed.get("best", 0))
@@ -645,6 +650,18 @@ func is_newcomer() -> bool:
 	return runs_with_battle < int(EconomyDBScript.get_table("missions").get("newcomer_runs", 5))
 
 
+func free_continue_left() -> bool:
+	return not free_continue_used
+
+
+## Marks the account's free Continue as spent (saved through SaveStore).
+func use_free_continue() -> void:
+	if free_continue_used:
+		return
+	free_continue_used = true
+	save_to_disk()
+
+
 ## Called by RunState when a battle of the run with `run_seed` finishes. Once per run.
 func note_run_battle(run_seed_key: int) -> void:
 	if battle_counted_seed == run_seed_key:
@@ -668,6 +685,7 @@ func save_to_disk() -> void:
 		"runs": runs,
 		"runs_with_battle": runs_with_battle,
 		"battle_counted_seed": battle_counted_seed,
+		"free_continue_used": free_continue_used,
 		"wins": wins,
 		"best": best,
 		"audio_music_volume": audio_music_volume,

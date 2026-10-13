@@ -3297,7 +3297,11 @@ func _show_defeat_panel() -> void:
 		usd = "%s %.2f USD" % [HudKit.glyph(0x2248, "~"), float(price) / 90.0]
 	if not bool(co["enabled"]):
 		usd = AidPurchase.reason_text(String(co["reason"]))
-	var gift := false
+	var gift := bool(co.get("show", false)) and bool(co["enabled"]) and int(co["price"]) == 0
+	if gift:
+		price = 0
+		variant = "gift"
+		usd = "free sample"
 	var keep := ""
 	if not boss_d.is_empty():
 		keep = "Boss stays at %d HP, phase %d.%s" % [int(boss_d["hp"]), int(boss_d["phase"]),
@@ -3315,7 +3319,7 @@ func _show_defeat_panel() -> void:
 		"enrage_reset_line": "Enrage resets to 'Enrage in 10'." if clock_on else "",
 		"attrition_reset_line": "" if newcomer else "Attrition resets to 0%.",
 		"price": price, "price_was": was, "usd": usd, "variant": variant,
-		"continue_show": not newcomer and not _tutorial, "continue_enabled": bool(co["enabled"]),
+		"continue_show": bool(co.get("show", false)) and not _tutorial, "continue_enabled": bool(co["enabled"]),
 		"continue_reason": AidPurchase.reason_text(String(co["reason"])),
 		"foot": "Continue is offered once per run." if not gift else "This gift is offered once per account and is used as the run's Continue."})
 

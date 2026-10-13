@@ -40,6 +40,7 @@ export const KINDS = {
   pact_reroll: { consume: 'pact_reroll', paid: true },
 };
 
+export const FREE_CONTINUE = { kinds: ['elite', 'boss'], max_asc: 2 }; // aid_prices.json free_continue
 const IDENT = /^[a-z0-9_]+$/;
 
 // Allowed arg keys per kind. Anything else is refused: args feed the seed and the ledger, so an
@@ -332,8 +333,16 @@ export class RunCore {
     // charge and can never ride on the first price. The seq-level replay above already returns the old
     // answer for an identical resend without charging.
     if (aid) {
-      const ok = await this._charge(meta, seq, aid, args, this._price(aid, args, delta));
-      if (!ok) return fail(seq, 'rejected');
+      // Sample Continue: once per account, A0-A2, elite/boss node, never the tutorial. The claim is the money move.
+      let free = false;
+      if (aid === 'R1' && this.deps.claimFreeContinue && FREE_CONTINUE.kinds.includes(this._nodeKind(args.node_id, delta))
+          && meta.ascension <= FREE_CONTINUE.max_asc && meta.mode !== 'tutorial') {
+        try { free = await this.deps.claimFreeContinue(meta, seq); } catch { free = false; }
+      }
+      if (!free) {
+        const ok = await this._charge(meta, seq, aid, args, this._price(aid, args, delta));
+        if (!ok) return fail(seq, 'rejected');
+      }
     }
     this.sql.exec(
       `INSERT INTO epochs (seq, kind, args, h, log_len, seed, log_delta, attempt, req_digest, pin_key, uids, aid, at)
@@ -378,13 +387,25 @@ export class RunCore {
    *  server's own copy of the log (the enter_node line for args.node_id, this request's delta included). */
   _price(aid, args, delta) {
     if (aid !== 'R1') return PRICES[aid].price;
-    const isBoss = (e) => e && e.fn === 'enter_node' && Array.isArray(e.args) && e.args[0] === args.node_id && e.args[1] === 'boss';
-    if (delta.some(isBoss)) return BOSS_CONTINUE_PRICE;
+    return this._nodeKind(args.node_id, delta) === 'boss' ? BOSS_CONTINUE_PRICE : PRICES.R1.price;
+  }
+
+  /** Node kind ('boss', 'elite', 'battle', ...) from the server's own log copy (the enter_node line for nodeId,
+   *  this request's delta included); null when no such line. */
+  _nodeKind(nodeId, delta) {
+    const find = (d) => {
+      if (!Array.isArray(d)) return null;
+      const e = d.find((x) => x && x.fn === 'enter_node' && Array.isArray(x.args) && x.args[0] === nodeId);
+      return e ? e.args[1] : null;
+    };
+    const here = find(delta);
+    if (here) return here;
+    let kind = null;
     for (const r of this.sql.exec('SELECT log_delta FROM epochs').toArray()) {
       let d; try { d = JSON.parse(r.log_delta); } catch { continue; }
-      if (Array.isArray(d) && d.some(isBoss)) return BOSS_CONTINUE_PRICE;
+      kind = find(d) || kind;
     }
-    return PRICES.R1.price;
+    return kind;
   }
 
   async _charge(meta, seq, kind, args, price) {
