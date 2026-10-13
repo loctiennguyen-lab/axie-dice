@@ -29,7 +29,7 @@ static func context(combat: CombatEngine, tutorial: bool = false) -> Dictionary:
 		"ascension": combat.ascension, "node_kind": "combat" if kind == "battle" else kind,
 		"node_id": combat.node_id, "party_wiped": combat.can_continue(), "rerolls_left": combat.rerolls,
 		"uses": RunState.aid_uses_view(), "boon_used": RunState.boon_used, "vip": false,
-		"free_continue_left": false, "gems": MetaState.gem_wallet().balance(),
+		"free_continue_left": MetaState.free_continue_left() and not tutorial, "gems": MetaState.gem_wallet().balance(),
 	}
 
 
@@ -98,6 +98,8 @@ static func buy(ui_id: String, combat: CombatEngine, uids: Array = [], tutorial:
 			MetaState.gem_wallet().grant(spent, "aid_refund")
 		return {"ok": false, "code": "refused", "charged": 0}
 	RunState.record_aid_use(aid_id)
+	if aid_id == "R1" and price == 0:
+		MetaState.use_free_continue()   # the account's one sample Continue is gone (remote: the server claimed it)
 	if remote:
 		var w := MetaState.gem_wallet()
 		if w.has_method("refresh"):

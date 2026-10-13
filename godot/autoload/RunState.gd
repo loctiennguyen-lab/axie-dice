@@ -576,7 +576,7 @@ func aid_context(combat: CombatEngine = null) -> Dictionary:
 		"party_wiped": combat != null and combat.can_continue(),
 		"rerolls_left": int(hud.get("rerolls", 0)),
 		"clock_turns_left": int((hud.get("clock", {}) as Dictionary).get("turns_left", 0)),
-		"uses": aid_uses_view(), "boon_used": boon_used, "vip": false, "free_continue_left": false}
+		"uses": aid_uses_view(), "boon_used": boon_used, "vip": false, "free_continue_left": MetaState.free_continue_left()}
 
 
 ## Aid R6: a new shop row from `seed` (the old items, bought or not, are replaced). Logged as

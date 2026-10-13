@@ -71,6 +71,23 @@ export async function grantCapped(env, playerId, amount, cap, reason, idem, at =
   return { ok: true, granted, balance: await balanceOf(env, playerId) };
 }
 
+/** Sample Continue (monetization-v1 2.6 / E13): once per account, recorded as a 0-delta ledger row under the fixed key
+ *  `free_continue` (UNIQUE(player_id, idem_key) is the once-only guard, no migration). The reason carries run:seq so a
+ *  retry of the SAME request after a crash still counts as the grant instead of falling through to a paid charge.
+ *  Returns true when this request owns the free Continue. */
+export async function claimFreeContinue(env, playerId, runId, seq, at = nowS()) {
+  const tag = `free_continue:${runId}:${seq}`;
+  try {
+    await env.DB.prepare('INSERT INTO wallet_ledger (player_id, currency, delta, reason, idem_key, at) VALUES (?, ?, 0, ?, ?, ?)')
+      .bind(playerId, CUR, tag, 'free_continue', at).run();
+    return true;
+  } catch (e) {
+    if (!isUnique(e)) throw e;
+    const row = await env.DB.prepare('SELECT reason FROM wallet_ledger WHERE player_id = ? AND idem_key = ?').bind(playerId, 'free_continue').first();
+    return !!row && row.reason === tag;
+  }
+}
+
 export const spendGem = (env, playerId, n, reason, idem) => applyDelta(env, playerId, -n, reason, idem);
 
 /** Daily gift: min(300, room under the 900 cap), once per UTC day. At the cap the day is NOT used up. */
