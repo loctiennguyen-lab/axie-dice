@@ -169,7 +169,9 @@ const WATCHED_FILES: Array[String] = ["res://assets/data/part_faces.json"]
 ## BUMPED, 2026-10-13: `ActionLog.RULES_VERSION` -> `godot-2026-10-13-j`. Lane A (Liam H3/H4): mission rules M6
 ## normal_hp x1.20 (non-elite, non-boss) and M7 elite_dmg x1.25 (all elite die faces, like enemy_dmg), no 2-rule
 ## limit. Mission runs only. Changes the run result: YES.
-const FINGERPRINT := "e3f9995bd5ca4b7f678c0aaed39caa7de2dc0266eff4d7c65d06d6bfb61ac570"
+## Moved 2026-10-13 by lane E e1bf15b (Liam H11): MetaState newcomer = runs_with_battle < newcomer_runs;
+## RunState.apply_combat_result notes the run's first battle. Meta counter only. Run result: NO, stays -j.
+const FINGERPRINT := "b45389e4b67728c1242b578a1574bde46e722a41449a8cf997485e4b6a81418f"
 
 
 func _ready() -> void:

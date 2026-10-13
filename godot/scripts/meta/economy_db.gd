@@ -6,7 +6,7 @@ extends Node
 ## monetization-v1,nhiem-vu-risk-to-earn}.md.
 
 const DATA_DIR := "res://assets/data/economy/"
-const TABLES := ["gem", "aid_prices", "echobox", "pass_v2", "daily", "missions", "land_tiers"]
+const TABLES := ["gem", "aid_prices", "echobox", "pass_v2", "daily", "missions", "land_tiers", "ascension_titles"]
 
 static var _cache: Dictionary = {}
 

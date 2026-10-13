@@ -125,7 +125,7 @@ func lock_text(o: Dictionary) -> String:
 			return "Not in this build"
 		"newcomer":
 			var need := int(_Econ.get_table("missions").get("newcomer_runs", 5))
-			return "Finish %d runs first (you have %d)" % [need, MetaState.runs]
+			return "Play %d runs first (you have %d)" % [need, MetaState.runs_with_battle]
 		"house":
 			return "Needs Mission House level %d" % int(t.get("house_level", 1))
 		"full_a9":

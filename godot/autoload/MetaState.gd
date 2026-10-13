@@ -34,6 +34,11 @@ var unlocks: Array[String] = []
 var xp: int = 0
 var bp_claimed: Array[int] = []        # levels already collected
 var perks: Dictionary = {}             # perk key -> stack count (reroll/relic0/relic1/hp4/rrw)
+## H11 (Liam 13/10): newcomer = fewer than `newcomer_runs` runs that had >= 1 battle (matches
+## worker/src/runs.js newcomer()). Counted once per run by RunState.apply_combat_result, so runs
+## abandoned after a battle count and runs abandoned before any battle do not.
+var runs_with_battle: int = 0
+var battle_counted_seed: int = -1       ## run_seed of the last run already counted (resume-safe)
 var asc_max: int = 0                   # highest Ascension the player may select
 var runs: int = 0
 var wins: int = 0
@@ -427,6 +432,8 @@ func reload_from_store() -> void:
 	perks = {}
 	asc_max = 0
 	runs = 0
+	runs_with_battle = 0
+	battle_counted_seed = -1
 	wins = 0
 	best = 0
 	audio_music_volume = 1.0
@@ -490,6 +497,9 @@ func load_from_disk() -> void:
 	perks = _int_values(parsed.get("perks", {}))
 	asc_max = int(parsed.get("asc_max", 0))
 	runs = int(parsed.get("runs", 0))
+	# Old saves have no counter: runs is the best available stand-in.
+	runs_with_battle = int(parsed.get("runs_with_battle", runs))
+	battle_counted_seed = int(parsed.get("battle_counted_seed", -1))
 	wins = int(parsed.get("wins", 0))
 	best = int(parsed.get("best", 0))
 	# Defaults are "on at full", so a save written before audio existed reads as sound enabled
@@ -631,6 +641,19 @@ static func _pity_from_json(raw) -> Dictionary:
 		out[String(k)] = str(v) if v is String else int(v)
 	return out
 
+func is_newcomer() -> bool:
+	return runs_with_battle < int(EconomyDBScript.get_table("missions").get("newcomer_runs", 5))
+
+
+## Called by RunState when a battle of the run with `run_seed` finishes. Once per run.
+func note_run_battle(run_seed_key: int) -> void:
+	if battle_counted_seed == run_seed_key:
+		return
+	battle_counted_seed = run_seed_key
+	runs_with_battle += 1
+	save_to_disk()
+
+
 func save_to_disk() -> void:
 	var data := {
 		"shard_pool": shard_pool,
@@ -643,6 +666,8 @@ func save_to_disk() -> void:
 		"perks": perks,
 		"asc_max": asc_max,
 		"runs": runs,
+		"runs_with_battle": runs_with_battle,
+		"battle_counted_seed": battle_counted_seed,
 		"wins": wins,
 		"best": best,
 		"audio_music_volume": audio_music_volume,

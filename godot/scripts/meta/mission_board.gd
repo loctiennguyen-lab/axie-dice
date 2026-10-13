@@ -37,7 +37,7 @@ static func payout(tier_id: String) -> int:
 ## Cấp nhà hiệu lực: cấp 1 mở miễn phí sau giai đoạn làm quen (newcomer_runs run).
 static func house_level(store: Object) -> int:
 	var lv := int(store.mission_house_level)
-	if lv < 1 and int(store.runs) >= int(_cfg().get("newcomer_runs", 5)):
+	if lv < 1 and not store.is_newcomer():
 		lv = 1
 	return lv
 
@@ -70,7 +70,7 @@ static func lock_reason(tier_id: String, store: Object) -> String:
 	var t: Dictionary = (_cfg().get("tiers", {}) as Dictionary).get(tier_id, {})
 	if not bool(t.get("enabled", false)):
 		return "disabled"
-	if int(store.runs) < int(_cfg().get("newcomer_runs", 5)):
+	if store.is_newcomer():
 		return "newcomer"
 	if house_level(store) < int(t.get("house_level", 1)):
 		return "house"

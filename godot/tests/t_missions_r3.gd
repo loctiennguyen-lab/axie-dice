@@ -32,6 +32,7 @@ func _ready() -> void:
 	_guard.capture()
 	MetaState.saved_run_probe = func() -> bool: return false   # never depend on the real user dir
 	MetaState.runs = 8
+	MetaState.runs_with_battle = 8
 	MetaState.asc_wins = {"3": 1, "4": 1}
 	MetaState.full_a9_won = false
 	MetaState.starter_granted = false
@@ -122,12 +123,14 @@ func _ready() -> void:
 	MetaState.shard_pool = 5000
 	# newcomer: every card locked
 	MetaState.runs = 2
+	MetaState.runs_with_battle = 2
 	s._refresh()
 	var all_locked := true
 	for o in s.offers():
 		all_locked = all_locked and not bool((o as Dictionary).unlocked) and s.block_reason(String((o as Dictionary).tier)) != ""
 	_ok(all_locked, "newcomer: every tier locked")
 	MetaState.runs = 8
+	MetaState.runs_with_battle = 8
 	# open run blocks
 	s.set_state("open_run")
 	_ok(s.block_reason("N1") != "" and (s.find_child("Stake_N1", true, false) as Button).disabled, "open run disables cards")
