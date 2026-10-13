@@ -379,6 +379,10 @@ func _node(def: Dictionary) -> Control:
 	v.add_child(_label("LV %d" % lv, 15, DangoTheme.INK, true))
 	for r in def.get("free", []):
 		var rd: Dictionary = r
+		if String(rd.get("type", "")) == "cosmetic":
+			var art := CosmeticTile.art(String(rd.get("value", "")), 56.0)
+			if art != null:
+				v.add_child(art)
 		var l := _label(reward_text(rd), 14, DangoTheme.INK_DISABLED if st == "locked" else DangoTheme.INK)
 		l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		v.add_child(l)

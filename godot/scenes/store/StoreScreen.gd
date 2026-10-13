@@ -523,7 +523,11 @@ func _tab_cosmetics() -> void:
 		var p := _plate(0)
 		p.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		var v := VBoxContainer.new()
-		v.add_child(_label(id, 18, DangoTheme.INK, true))
+		var art := CosmeticTile.art(id, 72.0)
+		if art != null:
+			v.add_child(art)
+		var nm := CosmeticTile.display_name(id)
+		v.add_child(_label(nm if nm != "" else id, 18, DangoTheme.INK, true))
 		v.add_child(_label(String(d.rarity).capitalize(), 14, DangoTheme.INK_2))
 		var why := "Owned" if owned else block_reason(price)
 		var b := _button(why if why != "" else "%s Gem" % _fmt(price), 0, 48, why == "")

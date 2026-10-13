@@ -86,6 +86,7 @@ func _run() -> void:
 		_ok(MetaState.equipped_die_skin == "die_c_clay", "Profile equip button equips")
 	pv.queue_free()
 	_tray_checks()
+	await _card_checks()
 
 
 func _tray_checks() -> void:
@@ -105,3 +106,33 @@ func _tray_checks() -> void:
 	TrayColumn.update(c, base)
 	_ok(c["skin_node"] == null, "skin removed again")
 	btn.queue_free()
+
+
+func _card_checks() -> void:
+	# Echo Box reveal card
+	var eb: Control = load("res://scenes/echobox/EchoBoxScreen.tscn").instantiate()
+	add_child(eb)
+	await get_tree().process_frame
+	var cell: Control = eb._result_cell({"kind": "cosmetic", "rarity": "epic", "item": "std_e_003", "duplicate": false})
+	_ok(cell.find_child("Art", true, false) != null, "Echo Box reveal card shows art")
+	var cell2: Control = eb._result_cell({"kind": "stone", "amount": 100})
+	_ok(cell2.find_child("Art", true, false) == null, "stone card has no art")
+	cell.free()
+	cell2.free()
+	eb.queue_free()
+	# Store cosmetics tile
+	MetaState.gem_gift_day = ""
+	var st: StoreScreen = load("res://scenes/store/StoreScreen.tscn").instantiate()
+	add_child(st)
+	await get_tree().process_frame
+	st.set_tab("cosmetics")
+	await get_tree().process_frame
+	var g := st.find_child("CosGrid", true, false)
+	_ok(g != null and g.find_children("Art", "Control", true, false).size() == g.get_child_count() and g.get_child_count() > 0, "Store cosmetic tiles all show art")
+	st.queue_free()
+	# Pass node for a cosmetic reward with art
+	var pv: Node = load("res://scenes/pass/Pass.tscn").instantiate()
+	add_child(pv)
+	await get_tree().process_frame
+	_ok(pv.find_children("Art", "Control", true, false).size() >= 1, "Pass cosmetic nodes show art")
+	pv.queue_free()
