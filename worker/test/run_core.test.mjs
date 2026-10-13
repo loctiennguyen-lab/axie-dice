@@ -413,6 +413,15 @@ test('lane A PR2: attempt in reroll/end_turn args must equal the server counter;
   assert.equal((await c.epoch('end_turn', { turn: 1, attempt: 0 }, [A('enter_node', ['r1_c0', 'battle']), A('tweak', [1]), A('reorder_party', [2, 1])])).t, 'epoch_res');
 });
 
+test('C1: a pact_pick delta (take, take+sell, skip) is accepted', async () => {
+  const { c } = await fresh({}, { charge: async () => true });
+  await c.hello();
+  await start(c);
+  await c.epoch('node', { node_id: 'r1_c0' }, []);
+  const r = await c.epoch('end_turn', { turn: 1, attempt: 0 }, [A('enter_node', ['r1_c0', 'battle']), A('pact_pick', [0]), A('pact_pick', [1, 'r_ironvow']), A('pact_pick', [-1])]);
+  assert.equal(r.t, 'epoch_res');
+});
+
 test('money moves last: any rejection leaves the wallet alone; a different Aid at the same seq has its own idem key', async () => {
   const charges = [];
   const { c } = await fresh({}, { charge: async (idem, aid) => { charges.push([idem, aid]); return aid !== 'R2'; } });

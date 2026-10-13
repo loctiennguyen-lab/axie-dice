@@ -34,6 +34,8 @@ static func play_run(seed_value: int, team: Array[String] = DEFAULT_TEAM,
 				engine.action_log = RunState.action_log
 				play_combat(engine)
 				RunState.apply_combat_result(engine.get_result())
+				if RunState.phase == RunState.RunPhase.PACT and not RunState.take_pact(0):
+					RunState.skip_pact()
 				if not RunState.pending_rewards.is_empty():
 					RunState.apply_chosen_reward(RunState.pending_rewards[0])
 			"event":

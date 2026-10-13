@@ -5,7 +5,9 @@ extends Node
 ## field added later and never wired into reset() is how JS's own UID-desync class of
 ## bug happened; re-instantiating wholesale removes that failure mode by construction).
 
-enum RunPhase { MENU, MAP, EVENT, SHOP, TREASURE, COMBAT, REWARD, WON, LOST }
+## PACT (appended last so saved phase numbers keep their meaning): after a non-final boss win, before the
+## reward cards. relic-set-v2 §4.4, ascension-v2 A6/A10.
+enum RunPhase { MENU, MAP, EVENT, SHOP, TREASURE, COMBAT, REWARD, WON, LOST, PACT }
 
 var phase: int = RunPhase.MENU
 
@@ -126,6 +128,14 @@ var relic_state: Dictionary = {}
 var relic_stickers: Dictionary = {}
 ## Pact relic ids taken this run, kept after they are sold (drawbacks/offers care about history).
 var pacts_taken: Array[String] = []
+## Boss Pact screen (relic-set-v2 §4.4). Relic ids on offer (empty = no pact phase), whether skipping is
+## refused (RelicSlots.pact_forced) and the boss' index (0 = first boss). Saved so a resume mid-phase works.
+var pending_pact: Array[String] = []
+var pending_pact_forced: bool = false
+var pending_pact_boss_index: int = 0
+## The pact offer's RNG is the boss reward epoch seed xor this salt: no new epoch kind (the Worker has none)
+## and no way to fish, since the reward seed is already fixed by the server.
+const PACT_SEED_SALT := 0x5AC7B055
 ## Loadout Boon (design/l1-boons.md). Never read by combat rules: boon_numbers_for_fight() turns it into
 ## plain numbers on the combat setup (MON-13). "" when none, or when the run is a mission.
 var boon_id: String = ""
@@ -234,6 +244,9 @@ func reset() -> void:
 	relic_state = {}
 	relic_stickers = {}
 	pacts_taken = []
+	pending_pact = []
+	pending_pact_forced = false
+	pending_pact_boss_index = 0
 	_shop_relic_count = 2
 	_node_seed = 0
 	row_types_known = {}
@@ -753,7 +766,10 @@ func apply_combat_result(res: Dictionary, reward_seed: int = -1) -> void:
 			if reward_sd < 0:
 				return
 			_generate_post_combat_rewards(res, reward_sd)
-			set_phase(RunPhase.REWARD)
+			if kind == "boss" and _open_pact_phase(reward_sd):
+				set_phase(RunPhase.PACT)
+			else:
+				set_phase(RunPhase.REWARD)
 	else:
 		set_phase(RunPhase.LOST)
 		EventBus.run_ended.emit(false)
@@ -1032,6 +1048,86 @@ func apply_chosen_reward(reward: Dictionary) -> void:
 				owned_relic_ids.append("__curse_dmg")
 			bonus_reroll += 1
 	pending_rewards = []
+
+
+# ---------------------------------------------------------------------------------------
+# BOSS PACT (relic-set-v2 §4.4; ascension-v2 A6 first boss / A10 every boss forced)
+# ---------------------------------------------------------------------------------------
+
+func _pact_ctx() -> Dictionary:
+	return {"owned_ids": owned_relic_ids, "roster": roster, "ascension": ascension,
+		"pacts_taken": pacts_taken, "stickers": relic_stickers}
+
+
+## Draws the Pact offer after a non-final boss win. False (no phase) when no valid pact is left.
+func _open_pact_phase(reward_sd: int) -> bool:
+	pending_pact = []
+	var idx := maxi(bosses_started - 1, 0)
+	var offer := RewardGenerator.pick_pact_offer(Rng.new(reward_sd ^ PACT_SEED_SALT), _pact_ctx())
+	for d in offer:
+		pending_pact.append(String(d.id))
+	if pending_pact.is_empty():
+		return false
+	pending_pact_boss_index = idx
+	pending_pact_forced = RelicSlots.pact_forced(ascension, idx)
+	return true
+
+
+## What the Pact screen draws: [{id, name, description, group, rarity, ok, needs_sell, sell_from}].
+func pact_cards() -> Array[Dictionary]:
+	var out: Array[Dictionary] = []
+	for id in pending_pact:
+		var d = RelicRegistry.get_def(id)
+		var chk := RelicSlots.check_add(owned_relic_ids, relic_stickers, id, ascension, pending_pact_forced)
+		out.append({"id": id, "name": String(d.name), "description": String(d.description),
+			"group": String(d.pact_group), "rarity": int(d.rarity), "ok": bool(chk["ok"]),
+			"needs_sell": bool(chk["needs_sell"]), "sell_from": (chk["sell_from"] as Array).duplicate()})
+	return out
+
+
+func pact_can_skip() -> bool:
+	return phase == RunPhase.PACT and not pending_pact_forced
+
+
+## Takes pact `index` of the offer. When the slot is full the caller names `sell_id` (one of
+## pact_cards()[index].sell_from); the sale is part of this one `pact_pick` log line, not a swap_on_full.
+func take_pact(index: int, sell_id: String = "") -> bool:
+	if phase != RunPhase.PACT or index < 0 or index >= pending_pact.size():
+		return false
+	var id := pending_pact[index]
+	var chk := RelicSlots.check_add(owned_relic_ids, relic_stickers, id, ascension, pending_pact_forced)
+	if not bool(chk["ok"]):
+		return false
+	if bool(chk["needs_sell"]):
+		if sell_id == "" or not (chk["sell_from"] as Array).has(sell_id):
+			return false
+		shards_this_run += RelicSlots.sell_price(sell_id, ascension)
+		owned_relic_ids.erase(sell_id)
+		relic_state.erase(sell_id)
+		relic_stickers.erase(sell_id)
+		action_log.record("pact_pick", [index, sell_id])
+	elif sell_id != "":
+		return false
+	else:
+		action_log.record("pact_pick", [index])
+	_grant_relic(id, "pact")
+	_close_pact_phase()
+	return true
+
+
+## Leaves the Pact screen with nothing. Refused when the pact is forced. Logged as pact_pick -1.
+func skip_pact() -> bool:
+	if not pact_can_skip():
+		return false
+	action_log.record("pact_pick", [-1])
+	_close_pact_phase()
+	return true
+
+
+func _close_pact_phase() -> void:
+	pending_pact = []
+	pending_pact_forced = false
+	set_phase(RunPhase.REWARD)
 
 
 ## Builds this node's shop offer. Called from enter_node(), so a replay that applies the same
@@ -1398,6 +1494,8 @@ func to_data() -> Dictionary:
 		"relic_state": relic_state.duplicate(true),
 		"relic_stickers": relic_stickers.duplicate(true),
 		"pacts_taken": pacts_taken.duplicate(),
+		"pending_pact": pending_pact.duplicate(), "pending_pact_forced": pending_pact_forced,
+		"pending_pact_boss_index": pending_pact_boss_index,
 		"row_types_known": row_types_known.duplicate(true),
 		"action_log": action_log.to_data(),
 	}
@@ -1460,6 +1558,9 @@ func from_data(d: Dictionary) -> void:
 	relic_state = (d.get("relic_state", {}) as Dictionary).duplicate(true)
 	relic_stickers = (d.get("relic_stickers", {}) as Dictionary).duplicate(true)
 	pacts_taken.assign(d.get("pacts_taken", []))
+	pending_pact.assign(d.get("pending_pact", []))
+	pending_pact_forced = bool(d.get("pending_pact_forced", false))
+	pending_pact_boss_index = int(d.get("pending_pact_boss_index", 0))
 	row_types_known = {}
 	for rk in (d.get("row_types_known", {}) as Dictionary).keys():
 		row_types_known[int(rk)] = ((d["row_types_known"] as Dictionary)[rk] as Array).duplicate()

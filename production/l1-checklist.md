@@ -47,7 +47,7 @@ sẵn** · báo lỗi bằng **một Google Sheet** (Liam làm) · Cloudflare g�
 
 ## C. Nên có (cắt được nếu trễ — hỏi Liam trước)
 
-- [ ] C1 (Liam 13/10: LÀM CHO L1 — màn chọn pact sau boss + bước trong run). Màn pact boss bắt buộc ở A6/A10 gọi `RelicSlots.pact_forced` (luật đã có, màn chưa nối).
+- [x] C1 (13/10 merge 1410f4c; RULES_VERSION -l; cần deploy Worker để nhận pact_pick + -l; màn PactView là bản đầu, chưa có khung Claude Design). Màn pact boss bắt buộc ở A6/A10 gọi `RelicSlots.pact_forced` (luật đã có, màn chưa nối).
 - [ ] C2. Chế độ **Daily** và **Ranked** trong Run Setup (đang vẽ nhưng khoá).
 - [x] C3 (13/10, merge b21c841). Menu trong run → Settings ("Back to run", bỏ cuộc trừ cược đúng).
 - [ ] C4. Land "New run" khi còn run Nhiệm vụ dang dở → settle cược (đường này đang bỏ sót).

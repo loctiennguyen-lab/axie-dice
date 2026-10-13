@@ -185,7 +185,10 @@ const WATCHED_FILES: Array[String] = ["res://assets/data/part_faces.json"]
 ## 2026-10-13 (R-save): RunState.gd writes/checks rules_version in run_save (resume refused on mismatch). Changes the run result: NO, RULES_VERSION stays -k.
 ## Moved 2026-10-13 by B12 951fc80: MetaState equipped_die_skin / equipped_frame (cosmetic only; t_mon13 +
 ## scan confirm no rule reads them). Run result: NO, stays -k.
-const FINGERPRINT := "00b78840f76bd97eb1a2803c487fd733e78c5ef4934ea6f8d920ff4644a70ab5"
+## BUMPED, 2026-10-13: `ActionLog.RULES_VERSION` -> `godot-2026-10-13-l`. C1: boss pact phase after non-final boss
+## wins (pick_pact_offer, pact_pick logged; verifier enforces forced A6/A10 and blocks other actions while pending).
+## Worker accepts -l and pact_pick. Changes the run result: YES.
+const FINGERPRINT := "b3c2c4ca62695cd96861f295fc726d8153c3daf5bccaa298fc76def63ff04810"
 
 
 func _ready() -> void:

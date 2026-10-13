@@ -109,6 +109,8 @@ static func verify(log: ActionLog, tape: Array = [], loadout: Dictionary = {}) -
 		tape_src.set_visible_len(i)
 		match fn:
 			"enter_node":
+				if RunState.phase == RunState.RunPhase.PACT:
+					return _fail(ERR_REJECTED, "A node was entered before the boss Pact was settled.", i)
 				# A node ends when the next one is entered. Nothing logs "I left the node",
 				# and nothing should: leaving is not a decision, it is what the rules do once
 				# the decisions run out.
@@ -167,7 +169,16 @@ static func verify(log: ActionLog, tape: Array = [], loadout: Dictionary = {}) -
 					tape_src.set_visible_len(i + 1)
 					RunState.apply_combat_result(engine.get_result())
 					engine = null
+			"pact_pick":
+				var pi := int(args[0]) if args.size() > 0 else -99
+				var ok_p := false
+				if RunState.phase == RunState.RunPhase.PACT:
+					ok_p = RunState.skip_pact() if pi == -1 else RunState.take_pact(pi, String(args[1]) if args.size() > 1 else "")
+				if not ok_p:
+					return _fail(ERR_REJECTED, "A pact pick was recorded that the replay cannot make.", i)
 			"take_reward":
+				if RunState.phase == RunState.RunPhase.PACT:
+					return _fail(ERR_REJECTED, "A reward was taken before the boss Pact was settled.", i)
 				var idx := int(args[0]) if args.size() > 0 else -1
 				if idx < 0 or idx >= RunState.pending_rewards.size():
 					return _fail(ERR_REJECTED,
@@ -175,6 +186,8 @@ static func verify(log: ActionLog, tape: Array = [], loadout: Dictionary = {}) -
 						% [idx, RunState.pending_rewards.size()], i)
 				RunState.apply_chosen_reward(RunState.pending_rewards[idx])
 			"reroll_rewards":
+				if RunState.phase == RunState.RunPhase.PACT:
+					return _fail(ERR_REJECTED, "Rewards were re-rolled before the boss Pact was settled.", i)
 				if not RunState.reroll_pending_rewards():
 					return _fail(ERR_REJECTED, "A reward re-roll was recorded with none left.", i)
 			"event_choose":
