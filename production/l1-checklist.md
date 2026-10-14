@@ -53,7 +53,7 @@ sẵn** · báo lỗi bằng **một Google Sheet** (Liam làm) · Cloudflare g�
 - [ ] C4. Land "New run" khi còn run Nhiệm vụ dang dở → settle cược (đường này đang bỏ sót).
 - [~] C5 (13/10 merge 87c5dcb: lưới 3×3, dock, chip, phím, trạng thái; còn: "5 runs" đọc từ data, nút + Gem 44 px, chạm-để-xem trên cảm ứng, tỉ lệ chữ ở 1280×720, màn Leaderboard). Land hub **v5** (Liam duyệt 13/10, review `design/handoffs/ui-02-round5/REVIEW-land-hub-v5.md`; khoá Nhiệm vụ + Leaderboard cho người mới; phím N xem tên) — thay cho v4 (Liam chốt 13/10; review: `design/handoffs/ui-02-round4/REVIEW-land-hub-v4.md`): lưới 3×3 quanh Portal, dock dưới, nút RUN giữa).
 - [ ] C6. Các màn R3 còn lại: Team presets, Leaderboard, Profile/Account, Cosmetics, Land upgrade (Land Stone).
-- [ ] C7. Danh hiệu A5/A10 hiện trong game (Profile / Result).
+- [x] C7 (14/10 merge, a1720d8 + bd8a2bf; Liam: thắng A≥5 nhận A5, A10 nhận cả hai; tên EN Liam đổi sau). Danh hiệu A5/A10 hiện trong game (Profile / Result).
 - [ ] C8. Thưởng tuần Daily (4 ngày → 150 Shard + 2000 Stone) — có data, chưa có logic.
 - [ ] C9. Polish hình: xem sân mystic/genesis, Land tier 6 (trời tím/đất hồng), mảnh địa hình biome.
 - [x] C11 (13/10 merge d6b8eaa + 0706365: cosmetics v8 — 20 plate, 21 khung, 14 lớp animation chạy thật, blend add, giảm nhấp nháy). Cosmetics v7: nhập 20 plate + 21 khung tĩnh; chờ Claude Design gửi 13 lớp anim + sửa khung Common/Rare ở 40 px.

@@ -188,7 +188,9 @@ const WATCHED_FILES: Array[String] = ["res://assets/data/part_faces.json"]
 ## BUMPED, 2026-10-13: `ActionLog.RULES_VERSION` -> `godot-2026-10-13-l`. C1: boss pact phase after non-final boss
 ## wins (pick_pact_offer, pact_pick logged; verifier enforces forced A6/A10 and blocks other actions while pending).
 ## Worker accepts -l and pact_pick. Changes the run result: YES.
-const FINGERPRINT := "b3c2c4ca62695cd96861f295fc726d8153c3daf5bccaa298fc76def63ff04810"
+## Moved 2026-10-14 by C7 titles bd8a2bf: MetaState grants Ascension titles in record_run_outcome +
+## equipped_title / equip_title (cosmetic meta, no combat/replay/verifier input). Run result: NO, stays -l.
+const FINGERPRINT := "84d1fca0c8720fd6d7d417e6e5e1b7d23219e5ecee6866f1d4d72ac648cdf144"
 
 
 func _ready() -> void:
