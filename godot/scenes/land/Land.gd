@@ -330,10 +330,8 @@ func _need_name(house_id: String) -> String:
 func _upgrade_cost() -> int:
 	if _tier >= 6:
 		return 0
-	var db := get_node_or_null("/root/EconomyDB")
-	if db != null and db.has_method("land_tier_cost"):
-		return int(db.call("land_tier_cost", _tier))
-	return FALLBACK_TIER_COSTS[_tier - 1]
+	var c: int = preload("res://scripts/meta/economy_db.gd").land_tier_cost(_tier)
+	return c if c >= 0 else FALLBACK_TIER_COSTS[_tier - 1]
 
 
 # ================================================================ 3D world
@@ -991,7 +989,7 @@ func _build_hud() -> void:
 	_wallet.position = Vector2(1500, 24)
 	_ui.add_child(_wallet)
 	_wallet.add_child(_currency("Gene Shard", _meta_int("shard_pool"), Color("FF9345"), false))
-	_wallet.add_child(_currency("Land Stone", _meta_int("land_stone"), Color("B8A27A"), false))
+	_wallet.add_child(_currency("Land Stone", _meta_int("stone"), Color("B8A27A"), false))
 	_wallet.add_child(_currency("Lunar Gem", _meta_int("lunar_gem"), Color("A27BEA"), true))
 	_wallet.add_child(_settings_button())
 
@@ -1062,7 +1060,7 @@ func _land_chip() -> Control:
 		col.add_child(_lbl("Max tier · no further upgrade", 14, DangoTheme.INK_ON_CREAM_MUTED, false))
 	else:
 		var need := _upgrade_cost()
-		var have := _meta_int("land_stone")
+		var have := _meta_int("stone")
 		var row := HBoxContainer.new()
 		row.add_theme_constant_override("separation", 6)
 		row.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -1097,7 +1095,7 @@ func _land_chip() -> Control:
 		row.add_child(_lbl("%s / %s" % [_fmt(have), _fmt(need)], 14, DangoTheme.INK, false))
 		col.add_child(row)
 	h.add_child(col)
-	var can_up := _tier < 6 and _meta_int("land_stone") >= _upgrade_cost()
+	var can_up := _tier < 6 and preload("res://scripts/meta/economy_db.gd").land_upgrade_enabled() and _meta_int("stone") >= _upgrade_cost()
 	if can_up:
 		var up := PanelContainer.new()
 		var usb := _style(DangoTheme.Surface.PANEL, 12, 3, Vector2(14, 0), INK_PLATE)
@@ -1573,13 +1571,9 @@ func _open_profile() -> void:
 
 
 func _on_land_pressed() -> void:
-	if _modal != null or _tier >= 6:
+	if _modal != null:
 		return
-	var cost := _upgrade_cost()
-	if _meta_int("land_stone") < cost:
-		_show_toast("Need %s Land Stone to upgrade" % _fmt(cost))
-		return
-	_on_upgrade_pressed()
+	_open_screen(&"land_upgrade")
 
 
 func _on_run_pressed() -> void:
@@ -1603,27 +1597,6 @@ func _on_continue_pressed() -> void:
 		get_tree().change_scene_to_file("res://scenes/combat/Combat.tscn")
 	else:
 		get_tree().change_scene_to_file("res://scenes/run_map/RunMap.tscn")
-
-
-func _on_upgrade_pressed() -> void:
-	if _modal != null or _tier >= 6:
-		return
-	var cost := _upgrade_cost()
-	_open_confirm("Upgrade to %s Land?" % TIER_NAMES[_tier],
-		"Costs %s Land Stone. Your buildings level up and the Land changes look." % _fmt(cost),
-		"Upgrade", _do_upgrade)
-
-
-## Spending is lane E's job (MetaState.upgrade_land); this only asks and redraws the Land.
-func _do_upgrade() -> void:
-	_close_modal()
-	if not MetaState.has_method("upgrade_land"):
-		_show_toast("Land upgrades are not available yet")
-		return
-	if bool(MetaState.call("upgrade_land")):
-		get_tree().reload_current_scene()
-	else:
-		_show_toast("Not enough Land Stone")
 
 
 ## N / New run. Only with an open run. Mission run: names the mission and the exact stake.

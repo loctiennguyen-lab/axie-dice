@@ -180,6 +180,27 @@ static func _validate_missions(errs: Array[String]) -> void:
 			errs.append("missions: %s phải tắt ở L1" % k)
 
 
+## Tier cap = highest tier row in land_tiers.json (6).
+static func land_max_tier() -> int:
+	var m := 1
+	for t in get_table("land_tiers").get("tiers", []):
+		m = maxi(m, int((t as Dictionary).get("tier", 1)))
+	return m
+
+
+## Land Stone to go from `tier` to tier+1; -1 when there is no next tier.
+static func land_tier_cost(tier: int) -> int:
+	for t in get_table("land_tiers").get("tiers", []):
+		if int((t as Dictionary).get("tier", 0)) == tier + 1:
+			return int((t as Dictionary).get("cost_stone", 0))
+	return -1
+
+
+## false at L1: R3 M15 draws every button as "Not in this build" (prices shown only). Flip in land_tiers.json.
+static func land_upgrade_enabled() -> bool:
+	return bool(get_table("land_tiers").get("upgrade_enabled", false))
+
+
 static func _validate_land(errs: Array[String]) -> void:
 	var total := 0
 	for t in get_table("land_tiers").get("tiers", []):

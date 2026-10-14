@@ -31,6 +31,7 @@ const SCREENS: Dictionary = {
 	&"profile": {"scene": "res://scenes/profile/Profile.tscn",
 		"fallback": "res://scenes/account/Account.tscn"},
 	&"gallery": {"scene": "res://scenes/gallery/Gallery.tscn"},
+	&"land_upgrade": {"scene": "res://scenes/land_upgrade/LandUpgrade.tscn"},
 	&"unlocks": {"scene": "res://scenes/unlocks/Unlocks.tscn"},
 	# Tài khoản hiện nằm trong Settings (AccountUI chip), chưa có màn riêng.
 	&"account": {"scene": "res://scenes/account/Account.tscn",

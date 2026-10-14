@@ -120,6 +120,8 @@ var daily_week: Dictionary = {"week": "", "n": 0, "paid": false}
 var ledger: Array = []
 ## Saved teams (R3 M2), see TeamPresets. Each {"name", "party": [5 hero keys]}.
 var team_presets: Array = []
+## Land tier 1..6 (R3 M15). Raised only by upgrade_land(); paid in Land Stone.
+var land_tier: int = 1
 const LEDGER_MAX := 200
 var _gem_wallet: GemWallet = null
 
@@ -264,6 +266,22 @@ func pass_state() -> Dictionary:
 
 func claim_gem_gift_now() -> Dictionary:
 	return gem_wallet().claim_daily_gift(int(Time.get_unix_time_from_system()))
+
+
+## Land upgrade (R3 M15): pays the Land Stone cost of the next tier (land_tiers.json) through
+## spend() so it is ledgered, then raises land_tier by exactly 1. false and nothing changes when
+## the upgrade is switched off in data, at max tier, or short on Stone. One call = one tier, so a
+## double tap cannot skip a tier (the second call pays the next price or is refused).
+func upgrade_land(save: bool = true) -> bool:
+	if not EconomyDBScript.land_upgrade_enabled() or land_tier >= EconomyDBScript.land_max_tier():
+		return false
+	var cost := EconomyDBScript.land_tier_cost(land_tier)
+	if cost < 0 or not spend("stone", cost, "land_tier_%d" % (land_tier + 1), false):
+		return false
+	land_tier += 1
+	if save:
+		save_to_disk()
+	return true
 
 
 ## Ghi một dòng sổ cái (chưa save; người gọi tự save). `c` = "shard"|"stone"|"gem"|"ticket".
@@ -495,6 +513,7 @@ func _reset_economy_fields() -> void:
 	daily_week = {"week": "", "n": 0, "paid": false}
 	ledger = []
 	team_presets = []
+	land_tier = 1
 
 
 func load_from_disk() -> void:
@@ -590,6 +609,7 @@ func _economy_from_json(parsed: Dictionary, raw_text: String = "") -> void:
 	daily_week = {"week": String(dw.get("week", "")), "n": maxi(0, int(dw.get("n", 0))), "paid": bool(dw.get("paid", false))} if dw is Dictionary else {"week": "", "n": 0, "paid": false}
 	ledger = (parsed.get("ledger", []) as Array).duplicate(true) if parsed.get("ledger", []) is Array else []
 	team_presets = TeamPresets.sanitize_list(parsed.get("team_presets", []))
+	land_tier = clampi(int(parsed.get("land_tier", 1)), 1, EconomyDBScript.land_max_tier())
 	starter_granted = bool(parsed.get("starter_granted", false))
 	if ver < SAVE_VERSION:
 		_migrate_pre_economy()
@@ -785,6 +805,7 @@ func save_to_disk() -> void:
 		"daily_week": daily_week,
 		"ledger": ledger,
 		"team_presets": team_presets,
+		"land_tier": land_tier,
 	}
 	if not SaveStore.write_text(SAVE_PATH, JSON.stringify(data, "\t")):
 		push_error("MetaState: could not write %s — this player's progress is not being saved"
