@@ -190,7 +190,9 @@ const WATCHED_FILES: Array[String] = ["res://assets/data/part_faces.json"]
 ## Worker accepts -l and pact_pick. Changes the run result: YES.
 ## Moved 2026-10-14 by C7 titles bd8a2bf: MetaState grants Ascension titles in record_run_outcome +
 ## equipped_title / equip_title (cosmetic meta, no combat/replay/verifier input). Run result: NO, stays -l.
-const FINGERPRINT := "84d1fca0c8720fd6d7d417e6e5e1b7d23219e5ecee6866f1d4d72ac648cdf144"
+## Moved 2026-10-14 by C8 67aa32d: MetaState daily weekly bonus (daily_week.paid, add_shards ledger for daily
+## Shard). Meta economy only. Run result: NO, stays -l.
+const FINGERPRINT := "6c38ac3ffc171bc1ecbba5138aaf25c5ceaf5bea0974f7ca8f5986501d8e008b"
 
 
 func _ready() -> void:
