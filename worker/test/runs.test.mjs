@@ -148,7 +148,7 @@ test('daily: infra_error run does not use a try', async () => {
 
 const closeRanked = (DB, id, player, { score, len = 'short', asc = 0, outcome = 'won', state = 'closed', mode = 'ranked', battles = 4 } = {}) => {
   DB.db.prepare(`INSERT INTO runs (run_id, player_id, mode, ascension, rules_version, state, created_at, closed_at, outcome, battles_done, summary_json)
-    VALUES (?, ?, ?, ?, ?, ?, 1, ?, ?, ?, ?)`).run(id, player, mode, asc, RULES, state, Math.floor(Date.now() / 1000), state === 'closed' ? outcome : null, battles, JSON.stringify({ score, len }));
+    VALUES (?, ?, ?, ?, ?, ?, 1, ?, ?, ?, ?)`).run(id, player, mode, asc, RULES, state, Math.floor(Date.now() / 1000), state === 'closed' ? outcome : null, battles, JSON.stringify({ score, len, pw: 8, bosses_started: 1, elites: 2 }));
 };
 const submit = (call, run_id, opts) => call('/api/leaderboard/submit', { method: 'POST', body: { run_id }, ...opts });
 const idN = (n) => String(n).padStart(32, 'e');
@@ -180,23 +180,23 @@ test('leaderboard read: best per player, ties share a rank, self rank, daily vie
   DB.db.prepare(`INSERT INTO players (id, email, display_name, created_at, last_login_at) VALUES ('google:3', 'c@x', 'Cara Long@x', 1, 1)`).run();
   const hash3 = Buffer.from(await crypto.subtle.digest('SHA-256', new TextEncoder().encode('tok3'))).toString('base64url');
   DB.db.prepare(`INSERT INTO sessions (id_hash, player_id, created_at, expires_at) VALUES (?, 'google:3', 1, 9999999999)`).run(hash3);
-  closeRanked(DB, idN(1), 'google:1', { score: 400 });
+  closeRanked(DB, idN(1), 'google:1', { score: 380 });
   closeRanked(DB, idN(2), 'google:1', { score: 250 });
-  closeRanked(DB, idN(3), 'google:2', { score: 400 });
+  closeRanked(DB, idN(3), 'google:2', { score: 380 });
   closeRanked(DB, idN(4), 'google:3', { score: 100 });
-  closeRanked(DB, idN(5), 'google:3', { score: 700, len: 'full', asc: 3 });
+  closeRanked(DB, idN(5), 'google:3', { score: 495, len: 'full', asc: 3 });
   await submit(call, idN(1)); await submit(call, idN(2)); await submit(call, idN(3), { token: 'tok2' });
   await submit(call, idN(4), { token: 'tok3' }); await submit(call, idN(5), { token: 'tok3' });
   const b = await (await call('/api/leaderboard?board=season&mode=short&asc=0')).json();
-  assert.deepEqual(b.entries.map((e) => [e.rank, e.score]), [[1, 400], [1, 400], [3, 100]]);
+  assert.deepEqual(b.entries.map((e) => [e.rank, e.score]), [[1, 380], [1, 380], [3, 100]]);
   assert.equal(b.entries[2].name, 'Cara');
   assert.equal(b.total, 3);
-  assert.deepEqual(b.self, { rank: 1, score: 400 });
+  assert.deepEqual(b.self, { rank: 1, score: 380 });
   const d = await (await call('/api/leaderboard?board=daily&mode=short&asc=0&limit=1')).json();
   assert.equal(d.entries.length, 1);
   assert.equal(d.day, new Date().toISOString().slice(0, 10));
   const f = await (await call('/api/leaderboard?mode=full&asc=3', { token: 'tok2' })).json();
-  assert.deepEqual(f.entries.map((e) => e.score), [700]);
+  assert.deepEqual(f.entries.map((e) => e.score), [495]);
   assert.equal(f.self, null);
   assert.equal((await call('/api/leaderboard?asc=99')).status, 400);
 });
@@ -257,4 +257,34 @@ test('token jti: create stores it, /api/run/open mints a new one (the old token 
   const c2 = claimsOf(o.run_token);
   assert.notEqual(c2.jti, c1.jti);
   assert.equal(DB.db.prepare('SELECT token_jti FROM runs WHERE run_id = ?').get(j.run_id).token_jti, c2.jti);
+});
+
+test('leaderboard score is clamped to what the run own numbers allow; an honest score is untouched', async () => {
+  const { call, DB } = await setup();
+  // cap for pw 8, 1 boss started, 2 elites, short, asc 2, won: 30 + 80 + 60 + 150 + 50 + 60 = 430
+  closeRanked(DB, idN(1), 'google:1', { score: 430, asc: 2 });
+  closeRanked(DB, idN(2), 'google:1', { score: 1400, asc: 2 });
+  closeRanked(DB, idN(3), 'google:1', { score: 1400, asc: 2, outcome: 'lost' });   // lost: no +150
+  assert.equal((await (await submit(call, idN(1))).json()).score, 430);
+  assert.equal((await (await submit(call, idN(2))).json()).score, 430);
+  assert.equal((await (await submit(call, idN(3))).json()).score, 280);
+  // a summary without the bounding fields is refused, not trusted
+  DB.db.prepare(`INSERT INTO runs (run_id, player_id, mode, ascension, rules_version, state, created_at, closed_at, outcome, battles_done, summary_json)
+    VALUES (?, 'google:1', 'ranked', 0, ?, 'closed', 1, 2, 'won', 3, ?)`).run(idN(4), RULES, JSON.stringify({ score: 100, len: 'short' }));
+  assert.equal((await submit(call, idN(4))).status, 422);
+});
+
+test('daily tries: the UTC midnight boundary resets the count (yesterday 23:59 does not count today)', async () => {
+  const { call, DB } = await setup();
+  const dayStart = Math.floor(Date.now() / 1000) - (Math.floor(Date.now() / 1000) % 86400);
+  const ins = (id, at) => DB.db.prepare(`INSERT INTO runs (run_id, player_id, mode, ascension, rules_version, state, created_at) VALUES (?, 'google:1', 'daily', 0, ?, 'abandoned', ?)`).run(id, RULES, at);
+  ins(idN(1), dayStart - 1); ins(idN(2), dayStart - 60); ins(idN(3), dayStart - 3600);   // yesterday
+  assert.equal((await (await call('/api/run/daily')).json()).used, 0);
+  assert.equal((await create(call, { kind: 'daily' })).status, 200);
+  const d = await (await call('/api/run/daily')).json();
+  assert.equal(d.used, 1);
+  assert.equal(d.resets_at, dayStart + 86400);
+  // exactly at 00:00:00 counts as today
+  ins(idN(4), dayStart); ins(idN(5), dayStart);
+  assert.equal((await (await call('/api/run/daily')).json()).used, 3);
 });

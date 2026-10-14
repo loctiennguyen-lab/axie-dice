@@ -22,14 +22,24 @@ const season = (env) => (typeof env.LB_SEASON === 'string' && /^[A-Za-z0-9_-]{1,
 
 export const isLeaderboardPath = (p) => p === '/api/leaderboard' || p === '/api/leaderboard/submit';
 
-/** Pure: pick a sane {score, mode} from a run's stored summary. null = refuse. */
-export function scoreFromSummary(summaryJson) {
+const intIn = (v, lo, hi) => Number.isInteger(v) && v >= lo && v <= hi;
+
+/**
+ * Pure: pick a sane {score, mode} from a run's stored summary. null = refuse.
+ * The client score is clamped to what the run's own numbers allow - the Pass XP formula with every term
+ * taken at its ceiling: 30 + 10*pw + 60*bosses_started + 150*won + 25*asc + 40*full + 30*elites.
+ * `asc` and `won` come from the runs row (the Durable Object's close), not from the summary. An honest
+ * run never exceeds it (the real formula uses pw-1 on a loss and bosses passed <= bosses started).
+ */
+export function scoreFromSummary(summaryJson, { asc = 0, won = false } = {}) {
   let s;
   try { s = JSON.parse(summaryJson || '{}'); } catch { return null; }
   if (!s || typeof s !== 'object' || Array.isArray(s)) return null;
   if (!Number.isInteger(s.score) || s.score < 0 || s.score > SCORE_MAX) return null;
   if (s.len !== 'short' && s.len !== 'full') return null;
-  return { score: s.score, mode: s.len };
+  if (!intIn(s.pw, 0, 200) || !intIn(s.bosses_started, 0, 10) || !intIn(s.elites, 0, 100)) return null;
+  const cap = 30 + 10 * s.pw + 60 * s.bosses_started + (won ? 150 : 0) + 25 * asc + (s.len === 'full' ? 40 : 0) + 30 * s.elites;
+  return { score: Math.min(s.score, cap), mode: s.len, clamped: s.score > cap };
 }
 
 async function submit(request, env, url, player) {
@@ -44,9 +54,9 @@ async function submit(request, env, url, player) {
   // Only a run the Durable Object closed counts: 'abandoned' and 'infra_error' never reach a board.
   if (run.state !== 'closed' || run.outcome == null) return json({ error: 'not_closed' }, 409);
   if (!(run.battles_done >= 1)) return json({ error: 'no_battles' }, 422);
-  const sc = scoreFromSummary(run.summary_json);
-  if (!sc) return json({ error: 'bad_score' }, 422);
   const won = run.outcome === 'won' ? 1 : 0;
+  const sc = scoreFromSummary(run.summary_json, { asc: run.ascension, won: !!won });
+  if (!sc) return json({ error: 'bad_score' }, 422);
   const at = run.closed_at || nowS();
   const seasonId = season(env);
   // INSERT OR IGNORE: the second submit of the same run is a harmless replay.

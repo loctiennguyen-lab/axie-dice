@@ -559,7 +559,7 @@ func close_summary(won: bool, condition_ok: bool, escrow: Dictionary = {}) -> Di
 		"aids": aids, "boon_used": boon_used, "pacts": pacts_taken.size(), "relics": owned_relic_ids.size(),
 		"shards": shards_this_run,
 		# Leaderboard score (design/gdd/leaderboard-system.md): the Pass XP formula. The server only bounds it (P3).
-		"score": compute_run_xp(won)}
+		"score": compute_run_xp(won), "elites": _visited_count("elite")}
 	if not mission.is_empty():
 		s["mission"] = {"tier": str(mission.get("tier", "")), "stake": int(escrow.get("stake", mission.get("stake", 0))),
 			"payout": int(escrow.get("payout", 0)) if won else 0, "won": won}
@@ -903,6 +903,18 @@ func _submit_ranked_score(close_reply: EpochReply, run_id: String) -> void:
 ## ported unchanged on purpose; the divergence belongs to the 18-row decision (still an open
 ## balance question, wayfinder ticket B), not to this function, and burying a compensating
 ## fudge factor here would hide it.
+## How many visited map nodes were of `node_type` (the server bounds the score with the elite count).
+func _visited_count(node_type: String) -> int:
+	var n := 0
+	if not map_graph.is_empty():
+		var graph := RunMapGraph.from_data(map_graph)
+		for node_id in visited_node_ids:
+			var node := graph.find_node(String(node_id))
+			if node != null and node.node_type == node_type:
+				n += 1
+	return n
+
+
 func compute_run_xp(won: bool) -> int:
 	var elites := 0
 	var bosses := 0
