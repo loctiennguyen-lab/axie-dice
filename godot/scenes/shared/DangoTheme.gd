@@ -230,6 +230,22 @@ const LINE := Color(0x8A / 255.0, 0x3E / 255.0, 0x22 / 255.0)           # panel 
 const CREAM_100 := Color(0xF8 / 255.0, 0xEB / 255.0, 0xD2 / 255.0)      # panel top
 const CREAM_200 := Color(0xEB / 255.0, 0xD3 / 255.0, 0xA8 / 255.0)      # panel bottom
 const CREAM_300 := Color(0xDD / 255.0, 0xBF / 255.0, 0x8C / 255.0)      # inset well
+# R3 Land tier badges (Leaderboard LAND column). Ink on them is INK.
+const LAND_SAVANNAH := Color(0xF8 / 255.0, 0xB8 / 255.0, 0x48 / 255.0)
+const LAND_FOREST := Color(0x88 / 255.0, 0xC8 / 255.0, 0x58 / 255.0)
+const LAND_ARCTIC := Color(0x98 / 255.0, 0xD8 / 255.0, 0xB8 / 255.0)
+const LAND_MYSTIC := Color(0xC2 / 255.0, 0xA6 / 255.0, 0xF4 / 255.0)
+
+
+static func land_color(land: String) -> Color:
+	match land:
+		"Savannah": return LAND_SAVANNAH
+		"Forest": return LAND_FOREST
+		"Arctic": return LAND_ARCTIC
+		"Mystic": return LAND_MYSTIC
+	return CREAM_DISABLED
+
+
 const CREAM_DISABLED := Color(0xE8 / 255.0, 0xD6 / 255.0, 0xB4 / 255.0) # disabled secondary / locked
 const WOOD_TOP := Color(0xD7 / 255.0, 0x9A / 255.0, 0x58 / 255.0)       # header band
 const WOOD_BOTTOM := Color(0xB8 / 255.0, 0x74 / 255.0, 0x40 / 255.0)
