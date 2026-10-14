@@ -4,17 +4,16 @@ Cập nhật: 2026-10-12. Nhánh `godot-port`, push lên `axiedice` (`git push a
 
 ## ⇢ BẮT ĐẦU TỪ ĐÂY (cập nhật 14/10/2026)
 
-**godot-port = axiedice/main (79f0204).** Suite cây chính **95/95 không SKIP**, Worker **163/163**. RULES_VERSION **`godot-2026-10-13-m`**.
+**godot-port = axiedice/main (4ed21e7).** Suite cây chính **96/96 không SKIP**, Worker **163/163**. RULES_VERSION **`godot-2026-10-13-m`**.
 Checklist: `production/l1-checklist.md`. Quyết định Liam 14/10: cuối `pending-decisions.md`.
 
 **Xong 14/10 (đều review + suite cây chính):** C (bỏ FrontLine), C7 danh hiệu, C8 thưởng tuần Daily, C4 test, C5 polish Land v5,
-C2 Daily + Ranked + leaderboard (Worker migration 0006), B11 R5 đổi thẻ pact (-m; R4 chờ ví chung LIAM-2), C6 phần 1 (Team presets + Leaderboard).
+C2 Daily + Ranked + leaderboard (Worker migration 0006), B11 R5 đổi thẻ pact (-m; R4 chờ ví chung LIAM-2), C6 Team presets + Leaderboard + Land upgrade (mở L1, giá gốc), C9 polish (cả 5 việc + MultiMesh lối đi).
 
 **CHỜ LIAM DEPLOY Worker** (C2 + B11): `git pull axiedice main` → `cd worker && node --test test/*.test.mjs` →
 `npx wrangler d1 migrations apply axie-dice-db --remote` (chỉ 0006) → `npx wrangler deploy`. Build game mới cũng cần (client gửi -m).
 
-**Việc kế tiếp:** C6 còn Profile/Account, Cosmetics, Land upgrade (MetaState chưa có `land_tier` — Land + presets đang đọc tạm tier 1),
-C9 polish hình, B1 cuối + B3 (cần Liam), B7/B8 build.
+**Việc kế tiếp:** C6 còn Profile/Account, Cosmetics; đo FPS web (lối đi sân + Land) ở B8; B1 cuối + B3 (cần Liam), B7/B8 build.
 
 **Bẫy hôm nay:** lỗi parse / thiếu `--import` sau rebase / dấu CONFLICT còn trong file → Godot TREO (luôn kill timer); test xanh ở
 worktree nhưng đỏ ở cây chính vì save thật của Liam (không còn newcomer) → test phải tự đặt trạng thái; agent con hay chạm giới hạn
