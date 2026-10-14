@@ -6,6 +6,7 @@ var _fail: Array[String] = []
 var _checks := 0
 var _guard := SaveGuard.new()
 var _got_params: Dictionary = {}
+var _daily_used := 1
 
 
 func _ok(c: bool, msg: String) -> void:
@@ -29,6 +30,7 @@ func _make(st := "normal") -> RunSetup:
 	s.use_account = false
 	s.remote_on = true
 	s.no_scene_change = true
+	s.daily_info_hook = func(cb: Callable) -> void: cb.call(true, {"used": _daily_used, "max": 3})
 	add_child(s)
 	await get_tree().process_frame
 	return s
@@ -140,6 +142,7 @@ func _ready() -> void:
 	_ok(s3.find_child("KitBoon", true, false) == null, "newcomer hides Kit/Boon")
 	_ok(bool(s3.start_params().get("newcomer", false)), "start_params carries newcomer=true for a fresh save")
 	s3.queue_free()
+	await _kind_tests()
 	_guard.restore()
 	if _fail.is_empty():
 		print("t_run_setup: PASS (%d checks)" % _checks)
@@ -149,3 +152,70 @@ func _ready() -> void:
 			print("FAIL: ", f)
 		print("t_run_setup: FAIL")
 		get_tree().quit(1)
+
+
+## L1 C2: Daily / Ranked in Run Setup, the Daily-run reward, kind carried by the run.
+func _kind_tests() -> void:
+	MetaState.runs = 9
+	MetaState.runs_with_battle = 9
+	_daily_used = 1
+	var s := await _make()
+	_ok(s.kind == "normal" and not bool(s.start_params()["ranked"]) and s.start_params()["kind"] == "normal", "kind starts normal")
+	_ok(s.select_kind("daily") and s.kind == "daily", "Daily pickable with tries left")
+	_ok(s.start_params()["kind"] == "daily" and not bool(s.start_params()["ranked"]), "Daily params: kind daily, not ranked")
+	_ok((s.find_child("ModeDaily", true, false) as Button).text.contains("2 of 3 left"), "Daily shows tries left")
+	_ok(s.select_kind("ranked") and bool(s.start_params()["ranked"]) and s.start_params()["kind"] == "ranked", "Ranked pickable for a non-newcomer")
+	# a vault Axie in the party blocks Ranked and drops it back to Normal
+	var keep := s.party[0]
+	s.party[0] = "vault_x1"
+	s._refresh_kind()
+	_ok(s.kind == "normal" and s.kind_block_reason("ranked").contains("Imported"), "vault Axie blocks Ranked")
+	_ok(not s.select_kind("ranked"), "Ranked refused with a vault Axie")
+	s.party[0] = keep
+	s._refresh_kind()
+	# offline blocks both
+	s.set_state("offline")
+	_ok(not s.select_kind("daily") and not s.select_kind("ranked"), "offline blocks Daily and Ranked")
+	s.queue_free()
+	# no tries left
+	_daily_used = 3
+	var s2 := await _make()
+	_ok(not s2.select_kind("daily") and s2.kind_block_reason("daily") == "No tries left today", "Daily disabled at 0 tries")
+	_ok((s2.find_child("ModeDaily", true, false) as Button).disabled, "Daily button disabled at 0 tries")
+	s2.queue_free()
+	# newcomer: Ranked locked with the count
+	MetaState.runs_with_battle = 2
+	var s3 := await _make()
+	_ok(s3.kind_block_reason("ranked") == "Opens after 5 runs · 2 of 5" and not s3.select_kind("ranked"), "newcomer: Ranked locked")
+	s3.queue_free()
+	# local (non-remote) build: both locked, begin untouched
+	var s4: RunSetup = load("res://scenes/run_setup/RunSetup.tscn").instantiate()
+	s4.use_account = false
+	s4.remote_on = false
+	add_child(s4)
+	await get_tree().process_frame
+	_ok(s4.kind_block_reason("daily") == "Needs the online build" and s4.begin_block_reason() == "", "local build: Daily/Ranked locked, Normal fine")
+	s4.queue_free()
+	# Daily-run reward: once per UTC day, ledgered, survives reload
+	var sh0 := MetaState.shard_pool
+	var st0 := MetaState.stone
+	MetaState.last_daily_reward_utc = ""
+	_ok(MetaState.claim_daily_run_reward(), "daily run reward claimed")
+	_ok(MetaState.shard_pool == sh0 + 60 and MetaState.stone == st0 + 500, "reward = 60 Shard + 500 Stone")
+	_ok(not MetaState.claim_daily_run_reward() and MetaState.shard_pool == sh0 + 60, "reward is once per UTC day")
+	MetaState.save_to_disk()
+	MetaState.last_daily_reward_utc = ""
+	MetaState.reload_from_store()
+	_ok(MetaState.last_daily_reward_utc == MetaState.today_utc() and not MetaState.claim_daily_run_reward(), "claim survives reload")
+	# the run carries its kind (and saves it)
+	var team: Array[String] = []
+	for k in ["bird1", "beast1", "plant1", "aquatic1", "reptile1"]:
+		if ContentDB.heroes.has(k):
+			team.append(k)
+	RunState.start_new_run_seeded(7, {"team_keys": team, "mode": "short", "ascension": 0, "kind": "daily"})
+	_ok(RunState.run_kind == "daily" and not RunState.ranked, "RunState keeps kind daily")
+	_ok(String(RunState.to_data().get("kind", "")) == "daily", "kind saved with the run")
+	RunState.start_new_run_seeded(8, {"team_keys": team, "mode": "short", "ascension": 0, "kind": "ranked"})
+	_ok(RunState.run_kind == "ranked" and RunState.ranked, "kind ranked sets ranked")
+	_ok(int(RunState.close_summary(true, true).get("score", -1)) >= 150, "close_summary carries the leaderboard score")
+	RunState.reset()

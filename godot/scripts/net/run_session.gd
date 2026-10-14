@@ -73,6 +73,19 @@ func open_existing(done: Callable) -> void:
 			done.call(false, {"code": _http_code(code, j)}))
 
 
+## GET /api/run/daily: Daily tries today. done(ok, {used, max, resets_at}) or (false, {code}).
+func daily_info(done: Callable) -> void:
+	if not _http().is_valid():
+		done.call(false, {"code": "offline"})
+		return
+	_http().call("GET", "/api/run/daily", "", func(code: int, text: String) -> void:
+		var j: Variant = JSON.parse_string(text) if not text.is_empty() else null
+		if code == 200 and typeof(j) == TYPE_DICTIONARY and (j as Dictionary).has("used"):
+			done.call(true, j)
+		else:
+			done.call(false, {"code": _http_code(code, j)}))
+
+
 func abandon(done: Callable) -> void:
 	_http().call("POST", "/api/run/%s/abandon" % run_id, "", func(code: int, _t: String) -> void:
 		if code == 200:

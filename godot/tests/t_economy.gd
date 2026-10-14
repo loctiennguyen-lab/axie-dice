@@ -602,7 +602,7 @@ func test_store_and_l1_flags() -> void:
 	var r := AidCatalog.offer("R8", _ctx({"node_kind": "setup", "mode": "ranked"}))
 	_assert(r["show"] and r["enabled"], "Boon hiện ở ranked")
 	var d: Dictionary = _Econ.get_table("daily")["daily_runs"]
-	_assert(int(d["max_per_day"]) == 3 and bool(d["shared_seed"]), "Daily tối đa 3 lần/ngày UTC, chung seed")
+	_assert(int(d["max_per_day"]) == 3 and not bool(d["shared_seed"]), "Daily tối đa 3 lần/ngày UTC, seed server riêng mỗi người (Liam 14/10)")
 
 
 class FakeNet extends RefCounted:

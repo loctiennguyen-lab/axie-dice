@@ -8,9 +8,11 @@ extends Control
 ##
 ## States drawn: normal, locked Full / locked Ascension chips, newcomer (no Kit/Boon column),
 ## loading (skeleton), offline (Begin disabled), open run (Continue / New run), Begin rejected,
-## picker sub-view. Not wired (no game logic exists yet): Daily / Ranked modes, Kit/Boon purchase,
+## picker sub-view. Daily (3 tries per UTC day) and Ranked (5 runs first, no imported Axies) are live in L1 C2
+## when dice are server-rolled. Not wired: Kit/Boon purchase,
 ## preset save/load, seed well, Leaderboard button. Those render disabled with the reason shown.
 
+const EconomyDBScript := preload("res://scripts/meta/economy_db.gd")
 const SCREEN_ID := "portal"
 const RUN_MAP := "res://scenes/run_map/RunMap.tscn"
 const COMBAT := "res://scenes/combat/Combat.tscn"
@@ -54,6 +56,13 @@ var party: Array[String] = []
 var mode := "short"
 var ascension := 0
 var begin_error := ""
+## L1 C2: "normal" | "daily" | "ranked". Only changes through select_kind().
+var kind := "normal"
+## Daily tries today, from GET /api/run/daily: {used, max}. Empty until loaded.
+var daily_tries: Dictionary = {}
+## Tests: replaces RunState.run_session().daily_info. Receives done(ok, data).
+var daily_info_hook: Callable = Callable()
+var _kind_btns: Dictionary = {}
 
 var _panel: PanelContainer
 var _body: VBoxContainer
@@ -85,6 +94,7 @@ func _ready() -> void:
 	if use_account:
 		state = account_state()
 	set_state(state)
+	load_daily_tries()
 	var _notice := RunState.take_discard_notice()
 	if _notice != "":
 		var l := Label.new()
@@ -180,8 +190,84 @@ func start_params() -> Dictionary:
 	for k in party:
 		if k != "":
 			keys.append(k)
-	return {"team_keys": keys, "mode": mode, "ascension": ascension, "ranked": false,
+	return {"team_keys": keys, "mode": mode, "ascension": ascension, "kind": kind, "ranked": kind == "ranked",
 		"newcomer": is_newcomer()}
+
+
+## Fetches the Daily tries. Only meaningful when dice are server-rolled; quiet on failure (the buttons
+## then stay disabled with the reason).
+func load_daily_tries() -> void:
+	if not remote_on and not daily_info_hook.is_valid():
+		return
+	var cb := func(ok: bool, data: Dictionary) -> void:
+		if ok:
+			daily_tries = {"used": int(data.get("used", 0)), "max": int(data.get("max", 3))}
+		_refresh_kind()
+		_refresh_footer()
+	if daily_info_hook.is_valid():
+		daily_info_hook.call(cb)
+	else:
+		RunState.run_session().daily_info(cb)
+
+
+func _party_has_vault() -> bool:
+	return MetaState.team_has_vault_pick(party)
+
+
+## Why `k` ("daily" | "ranked") cannot be picked right now, or "" when it can.
+func kind_block_reason(k: String) -> String:
+	if k == "normal":
+		return ""
+	if not remote_on:
+		return "Needs the online build"
+	if state == "offline":
+		return "Needs a connection"
+	if k == "daily":
+		if daily_tries.is_empty():
+			return "Loading tries…"
+		if int(daily_tries["used"]) >= int(daily_tries["max"]):
+			return "No tries left today"
+		return ""
+	if is_newcomer():
+		var need := int(EconomyDBScript.get_table("missions").get("newcomer_runs", 5))
+		return "Opens after %d runs · %d of %d" % [need, mini(MetaState.runs_with_battle, need), need]
+	if _party_has_vault():
+		return "Imported Axies can't play Ranked"
+	return ""
+
+
+## Picks Normal / Daily / Ranked. False (nothing changes) when blocked.
+func select_kind(k: String) -> bool:
+	if k != "normal" and k != "daily" and k != "ranked":
+		return false
+	if kind_block_reason(k) != "":
+		return false
+	kind = k
+	_refresh_kind()
+	_refresh_footer()
+	return true
+
+
+func _kind_sub(k: String) -> String:
+	var why := kind_block_reason(k)
+	if k == "daily" and not daily_tries.is_empty() and why == "":
+		return "%d of %d left" % [int(daily_tries["max"]) - int(daily_tries["used"]), int(daily_tries["max"])]
+	if why != "":
+		return why
+	return "free choice" if k == "normal" else "leaderboard"
+
+
+func _refresh_kind() -> void:
+	if kind != "normal" and kind_block_reason(kind) != "":
+		kind = "normal"   # e.g. a vault Axie was just added while Ranked was picked
+	for k in _kind_btns:
+		var b: Button = _kind_btns[k]
+		var why := kind_block_reason(k)
+		b.disabled = why != ""
+		b.tooltip_text = why
+		b.text = "%s\n%s" % [String(k).capitalize(), _kind_sub(k)]
+		b.set_pressed_no_signal(kind == k)
+		_style_seg(b, kind == k)
 
 
 ## Why Begin is disabled, or "" when it is allowed.
@@ -190,6 +276,10 @@ func begin_block_reason() -> String:
 		return "Needs a connection to roll dice"
 	if state == "loading":
 		return "Loading…"
+	if kind != "normal":
+		var kw := kind_block_reason(kind)
+		if kw != "":
+			return kw
 	var missing := PARTY_SIZE - filled_count()
 	if missing > 0:
 		return "Pick %d more Ax%s to begin" % [missing, "ie" if missing == 1 else "ies"]
@@ -414,6 +504,7 @@ func _refresh_party() -> void:
 	_party_label.text = "PARTY · %d OF %d" % [filled_count(), PARTY_SIZE]
 	for i in PARTY_SIZE:
 		_party_row.add_child(_build_slot(i))
+	_refresh_kind()
 
 
 func _build_slot(i: int) -> Control:
@@ -537,18 +628,13 @@ func _build_mode_col() -> Control:
 	var seg := HBoxContainer.new()
 	seg.add_theme_constant_override("separation", 6)
 	v.add_child(seg)
-	var normal := _seg_button("Normal", "free choice", 62)
-	normal.name = "ModeNormal"
-	normal.button_pressed = true
-	_style_seg(normal, true)
-	seg.add_child(normal)
-	for t in [["Daily", "not in this build"], ["Ranked", "not in this build"]]:
-		var b := _seg_button(t[0], t[1], 62)
-		b.name = "Mode" + t[0]
-		b.disabled = true
-		b.tooltip_text = "%s is not in this build" % t[0]
-		_style_seg(b, false)
+	for k in ["normal", "daily", "ranked"]:
+		var b := _seg_button(String(k).capitalize(), _kind_sub(k), 62)
+		b.name = "Mode" + String(k).capitalize()
+		b.pressed.connect(select_kind.bind(k))
+		_kind_btns[k] = b
 		seg.add_child(b)
+	_refresh_kind()
 	v.add_child(_label("LENGTH", 16, WOOD_DARK, true))
 	var lrow := HBoxContainer.new()
 	lrow.add_theme_constant_override("separation", 6)
@@ -781,6 +867,8 @@ func _refresh_footer() -> void:
 	var why := begin_block_reason()
 	_begin_btn.disabled = why != ""
 	var summary := "Party %d of %d · %s · A%d" % [filled_count(), PARTY_SIZE, mode.capitalize(), ascension]
+	if kind != "normal":
+		summary += " · " + kind.capitalize()
 	_footer_msg.text = summary if why == "" else "%s\n%s" % [summary, why]
 
 

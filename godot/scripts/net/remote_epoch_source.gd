@@ -43,6 +43,8 @@ func start_run(params: Dictionary) -> EpochReply:
 		"rules_version": _rules_version, "kind": String(params.get("kind", "normal")),
 		"ascension": int(params.get("ascension", 0)), "client_nonce": nonce,
 	}
+	if params.has("team_keys"):
+		body["team_keys"] = params["team_keys"]   # Ranked: the server refuses imported (vault) Axies
 	if params.has("mission_offer_id"):
 		body["mission_offer_id"] = params["mission_offer_id"]
 	session.create_run(body, func(ok: bool, data: Dictionary) -> void:
