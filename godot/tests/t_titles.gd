@@ -93,3 +93,17 @@ func _run() -> void:
 	# A10 win grants both
 	MetaState.record_run_outcome({"mode": "short", "ascension": 10}, true)
 	_ok(MetaState.last_run_new_titles.size() == 2, "A10 win grants A5 + A10")
+
+	# A5 already owned -> A10 win grants only A10
+	MetaState.cosmetics_owned.clear()
+	MetaState.cosmetics_owned.append(a5)
+	MetaState.record_run_outcome({"mode": "short", "ascension": 10}, true)
+	_ok(MetaState.last_run_new_titles.size() == 1 and MetaState.last_run_new_titles[0] == a10, "A10 win with A5 owned grants only A10")
+
+	# Pass title id equips and persists
+	var pass_t := "title:LUNACIA SOVEREIGN"
+	_ok(MetaState.equip_title(pass_t) != "", "unowned pass title refused")
+	MetaState.cosmetics_owned.append(pass_t)
+	_ok(MetaState.equip_title(pass_t) == "" and MetaState.equipped_title == pass_t, "pass title equips")
+	MetaState.reload_from_store()
+	_ok(MetaState.equipped_title == pass_t, "pass title equip persists across reload")

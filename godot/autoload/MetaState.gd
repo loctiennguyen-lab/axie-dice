@@ -713,7 +713,6 @@ func equip_cosmetic(art: String) -> String:
 	return ""
 
 
-## Back to the default (no skin / no frame). slot = Cosmetics.SLOT_DIE or SLOT_FRAME.
 ## C7: equip an owned title ("" = none). Returns "" or the reason. Saves via SaveStore.
 func equip_title(id: String) -> String:
 	if id != "" and not TitleNames.owned(cosmetics_owned).has(id):
@@ -723,6 +722,7 @@ func equip_title(id: String) -> String:
 	return ""
 
 
+## Back to the default (no skin / no frame). slot = Cosmetics.SLOT_DIE or SLOT_FRAME.
 func unequip_cosmetic(slot: String) -> void:
 	if slot == Cosmetics.SLOT_DIE:
 		equipped_die_skin = ""
