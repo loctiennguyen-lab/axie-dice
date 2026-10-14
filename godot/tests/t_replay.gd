@@ -378,6 +378,8 @@ func _sample_args(fn: String) -> Array:
 			return [1]
 		"shop_refresh":
 			return [1]
+		"pact_reroll":
+			return [0, 1]
 		"aid_use":
 			return ["delay_clock", 2]
 	return []

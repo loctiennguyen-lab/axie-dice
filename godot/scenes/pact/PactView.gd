@@ -7,10 +7,15 @@ extends Control
 
 signal picked(index: int, sell_id: String)
 signal skipped
+## Aid R5: the player asked to swap card `index`. The host buys it and calls setup() again.
+signal swap_requested(index: int)
 
 var cards: Array = []
 var can_skip: bool = true
 var take_buttons: Array[Button] = []
+var swap_buttons: Array[Button] = []
+## AidPurchase.pact_swap_offer() result ({} = no swap UI). {show, enabled, price, reason, used, cap}.
+var swap_offer: Dictionary = {}
 var skip_button: Button = null
 var sell_buttons: Array[Button] = []
 var _sell_for: int = -1
@@ -19,8 +24,10 @@ var _sell_box: VBoxContainer
 var _status: Label
 
 
-func setup(p_cards: Array, p_can_skip: bool) -> void:
+func setup(p_cards: Array, p_can_skip: bool, p_swap_offer: Dictionary = {}) -> void:
 	cards = p_cards
+	swap_offer = p_swap_offer
+	swap_buttons.clear()
 	can_skip = p_can_skip
 	for c in get_children():
 		c.queue_free()
@@ -86,6 +93,16 @@ func _card(i: int, c: Dictionary) -> Control:
 	b.pressed.connect(func(): _on_take(i))
 	v.add_child(b)
 	take_buttons.append(b)
+	if bool(swap_offer.get("show", false)):
+		var sw := Button.new()
+		var enabled := bool(swap_offer.get("enabled", false))
+		sw.text = "Swap  -  %d Gem" % int(swap_offer.get("price", 0)) if enabled \
+			else "Swap  -  %s" % AidPurchase.reason_text(String(swap_offer.get("reason", "")))
+		sw.disabled = not enabled
+		sw.custom_minimum_size.y = 44
+		sw.pressed.connect(func(): swap_requested.emit(i))
+		v.add_child(sw)
+		swap_buttons.append(sw)
 	return panel
 
 

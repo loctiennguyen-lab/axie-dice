@@ -105,3 +105,45 @@ static func buy(ui_id: String, combat: CombatEngine, uids: Array = [], tutorial:
 		if w.has_method("refresh"):
 			w.call("refresh")   # server charged inside the epoch request; update the display
 	return {"ok": true, "code": "", "charged": spent}
+
+
+## ---- R5: swap one boss Pact card (PactView) ----
+
+## AidCatalog.offer("R5") for the open Pact screen, plus used/cap for the panel. Price and caps from aid_prices.json.
+static func pact_swap_offer() -> Dictionary:
+	var ctx := {
+		"mission": not RunState.mission.is_empty(), "newcomer": MetaState.is_newcomer(),
+		"ascension": RunState.ascension, "node_kind": "pact", "at_pact": RunState.phase == RunState.RunPhase.PACT,
+		"node_id": RunState.current_node_id, "uses": RunState.aid_uses_view(), "boon_used": RunState.boon_used,
+		"vip": false, "gems": MetaState.gem_wallet().balance(),
+	}
+	var o := AidCatalog.offer("R5", ctx)
+	o["used"] = (ctx["uses"] as Array).size() + (1 if bool(ctx["boon_used"]) else 0)
+	o["cap"] = total_cap(RunState.ascension)
+	return o
+
+
+## Buys and applies R5 on card `slot`. Same charging rule as buy(): local spends here (refund if refused),
+## remote is charged by the RunDO inside the pact_reroll epoch request. Returns {ok, code, charged}.
+static func buy_pact_swap(slot: int) -> Dictionary:
+	var o := pact_swap_offer()
+	if not bool(o["show"]) or not bool(o["enabled"]):
+		return {"ok": false, "code": String(o["reason"]), "charged": 0}
+	var price := int(o["price"])
+	var remote := is_remote()
+	var spent := 0
+	if not remote and price > 0:
+		if not MetaState.spend("gem", price, "aid:R5"):
+			return {"ok": false, "code": "no_gems", "charged": 0}
+		spent = price
+	var r: Dictionary = await RunState.request_pact_reroll(slot)
+	if not bool(r["ok"]):
+		if spent > 0:
+			MetaState.gem_wallet().grant(spent, "aid_refund")
+		return {"ok": false, "code": String(r["code"]), "charged": 0}
+	RunState.record_aid_use("R5")
+	if remote:
+		var w := MetaState.gem_wallet()
+		if w.has_method("refresh"):
+			w.call("refresh")
+	return {"ok": true, "code": "", "charged": spent}

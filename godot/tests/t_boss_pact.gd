@@ -15,6 +15,7 @@ func _ready() -> void:
 	test_offer_and_forced_rules()
 	test_take_and_skip()
 	test_sell_on_full()
+	test_swap_one_card()
 	test_save_resume()
 	test_log_and_view()
 	test_verifier_refusals()
@@ -96,6 +97,44 @@ func test_sell_on_full() -> void:
 	var sell: String = (card["sell_from"] as Array)[0]
 	_assert(RunState.take_pact(0, sell), "sell + take")
 	_assert(not RunState.owned_relic_ids.has(sell) and RunState.owned_relic_ids.has(String(card["id"])), "sold one, got pact")
+
+
+func test_swap_one_card() -> void:
+	_boss_win(6)
+	var before := RunState.pending_pact.duplicate()
+	_assert(not RunState.reroll_pact_slot(3) and not RunState.reroll_pact_slot(-1), "bad slot refused")
+	_assert(RunState.reroll_pact_slot(1), "swap slot 1")
+	var after := RunState.pending_pact.duplicate()
+	_assert(after.size() == 3 and after[0] == before[0] and after[2] == before[2], "other two cards untouched")
+	_assert(after[1] != before[1] and not before.has(after[1]), "new card differs from all earlier cards")
+	_assert(RelicSlots.is_pact(String(after[1])), "new card is a pact")
+	var g_old := String(RelicRegistry.get_def(before[1]).pact_group)
+	var g_new := String(RelicRegistry.get_def(after[1]).pact_group)
+	_assert(g_old == g_new, "same drawback group when the pool allows (%s -> %s)" % [g_old, g_new])
+	var last: Dictionary = RunState.action_log.entries[RunState.action_log.entries.size() - 1]
+	_assert(String(last["fn"]) == "pact_reroll" and (last["args"] as Array)[0] == 1 and RunState.action_log.is_complete(),
+		"logged as pact_reroll [slot, n]")
+	_boss_win(6)
+	RunState.reroll_pact_slot(1)
+	_assert(RunState.pending_pact == after, "same run + same request -> same swap")
+	var data := RunState.to_data()
+	RunState.reset()
+	RunState.from_data(JSON.parse_string(JSON.stringify(data)) as Dictionary)
+	_assert(RunState.pending_pact == after and RunState.pending_pact_swaps == 1, "swapped offer + count survive a save")
+	_assert(RunState.take_pact(1), "can take the swapped-in card")
+	_assert(not RunState.reroll_pact_slot(0), "no swap outside the PACT phase")
+	_boss_win(0)
+	var v := PactView.new()
+	add_child(v)
+	v.setup(RunState.pact_cards(), true, {"show": true, "enabled": true, "price": 15, "reason": ""})
+	_assert(v.swap_buttons.size() == 3, "a Swap button under each card")
+	var got := [-1]
+	v.swap_requested.connect(func(i: int): got[0] = i)
+	v.swap_buttons[2].pressed.emit()
+	_assert(got[0] == 2, "swap button reports its card")
+	v.setup(RunState.pact_cards(), true, {})
+	_assert(v.swap_buttons.is_empty(), "no offer (newcomer / below A6): no Swap buttons")
+	v.queue_free()
 
 
 func test_save_resume() -> void:

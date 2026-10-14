@@ -133,9 +133,14 @@ var pacts_taken: Array[String] = []
 var pending_pact: Array[String] = []
 var pending_pact_forced: bool = false
 var pending_pact_boss_index: int = 0
+## Swaps made on this Pact screen (R5). Display/cap only, the rules never branch on it.
+var pending_pact_swaps: int = 0
 ## The pact offer's RNG is the boss reward epoch seed xor this salt: no new epoch kind (the Worker has none)
 ## and no way to fish, since the reward seed is already fixed by the server.
 const PACT_SEED_SALT := 0x5AC7B055
+## Aid R5 (swap one Pact card): the replacement is drawn from Rng(epoch seed of the `pact_reroll` request ^ this).
+## The epoch seed already binds run + pact node + slot + request seq (= the swap index), so it is deterministic.
+const PACT_REROLL_SALT := 0x70AC7E11
 ## Loadout Boon (design/l1-boons.md). Never read by combat rules: boon_numbers_for_fight() turns it into
 ## plain numbers on the combat setup (MON-13). "" when none, or when the run is a mission.
 var boon_id: String = ""
@@ -247,6 +252,7 @@ func reset() -> void:
 	pending_pact = []
 	pending_pact_forced = false
 	pending_pact_boss_index = 0
+	pending_pact_swaps = 0
 	_shop_relic_count = 2
 	_node_seed = 0
 	row_types_known = {}
@@ -1062,6 +1068,7 @@ func _pact_ctx() -> Dictionary:
 ## Draws the Pact offer after a non-final boss win. False (no phase) when no valid pact is left.
 func _open_pact_phase(reward_sd: int) -> bool:
 	pending_pact = []
+	pending_pact_swaps = 0
 	var idx := maxi(bosses_started - 1, 0)
 	var offer := RewardGenerator.pick_pact_offer(Rng.new(reward_sd ^ PACT_SEED_SALT), _pact_ctx())
 	for d in offer:
@@ -1115,6 +1122,45 @@ func take_pact(index: int, sell_id: String = "") -> bool:
 	return true
 
 
+## Aid R5: replaces card `slot` of the open Pact offer with a fresh one (see RewardGenerator.pick_pact_replacement).
+## Logs `pact_reroll` [slot, swap index]. Price and caps (1 per pact, 4 per run, total Aid cap) live with the
+## server / AidCatalog, not here. `seed` < 0 asks the epoch (local); a remote caller passes the seed it got.
+func reroll_pact_slot(slot: int, seed: int = -1) -> bool:
+	if phase != RunPhase.PACT or slot < 0 or slot >= pending_pact.size():
+		return false
+	var sd := _epoch_seed("pact_reroll", {"node_id": current_node_id, "slot": slot}, seed)
+	if sd < 0:
+		return false
+	var keep: Array = []
+	for i in pending_pact.size():
+		if i != slot:
+			keep.append(pending_pact[i])
+	var pick = RewardGenerator.pick_pact_replacement(Rng.new(sd ^ PACT_REROLL_SALT), _pact_ctx(), keep, pending_pact[slot])
+	if pick == null:
+		return false
+	pending_pact_swaps += 1
+	action_log.record("pact_reroll", [slot, pending_pact_swaps])
+	pending_pact[slot] = String(pick.id)
+	return true
+
+
+## Async twin for the Pact screen: asks the epoch (waiting if remote), then swaps.
+func request_pact_reroll(slot: int) -> Dictionary:
+	if epoch_busy or phase != RunPhase.PACT or slot < 0 or slot >= pending_pact.size():
+		return {"ok": false, "code": "busy" if epoch_busy else "illegal"}
+	_ensure_epoch()
+	epoch_busy = true
+	var r := epoch.request("pact_reroll", {"node_id": current_node_id, "slot": slot})
+	if not r.done:
+		await r.resolved
+	epoch_busy = false
+	if not r.ok:
+		return {"ok": false, "code": r.code}
+	if not reroll_pact_slot(slot, r.seed):
+		return {"ok": false, "code": "illegal"}
+	return {"ok": true, "code": ""}
+
+
 ## Leaves the Pact screen with nothing. Refused when the pact is forced. Logged as pact_pick -1.
 func skip_pact() -> bool:
 	if not pact_can_skip():
@@ -1127,6 +1173,7 @@ func skip_pact() -> bool:
 func _close_pact_phase() -> void:
 	pending_pact = []
 	pending_pact_forced = false
+	pending_pact_swaps = 0
 	set_phase(RunPhase.REWARD)
 
 
@@ -1495,7 +1542,7 @@ func to_data() -> Dictionary:
 		"relic_stickers": relic_stickers.duplicate(true),
 		"pacts_taken": pacts_taken.duplicate(),
 		"pending_pact": pending_pact.duplicate(), "pending_pact_forced": pending_pact_forced,
-		"pending_pact_boss_index": pending_pact_boss_index,
+		"pending_pact_boss_index": pending_pact_boss_index, "pending_pact_swaps": pending_pact_swaps,
 		"row_types_known": row_types_known.duplicate(true),
 		"action_log": action_log.to_data(),
 	}
@@ -1561,6 +1608,7 @@ func from_data(d: Dictionary) -> void:
 	pending_pact.assign(d.get("pending_pact", []))
 	pending_pact_forced = bool(d.get("pending_pact_forced", false))
 	pending_pact_boss_index = int(d.get("pending_pact_boss_index", 0))
+	pending_pact_swaps = int(d.get("pending_pact_swaps", 0))
 	row_types_known = {}
 	for rk in (d.get("row_types_known", {}) as Dictionary).keys():
 		row_types_known[int(rk)] = ((d["row_types_known"] as Dictionary)[rk] as Array).duplicate()

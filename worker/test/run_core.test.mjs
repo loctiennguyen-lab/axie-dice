@@ -542,3 +542,18 @@ test('free Continue: once per account, A0-A2, elite/boss only; second, A3 and a 
   const broke = await fresh({}, { charge: async () => false, claimFreeContinue: async () => false });
   assert.equal((await go(broke, 'boss')).code, 'rejected');
 });
+
+test('B11: pact_reroll (R5) is paid 15 once per pact node, args {node_id, slot} only', async () => {
+  const charges = [];
+  const { c } = await fresh({}, { charge: async (idem, kind, args, meta, price) => { charges.push([kind, price]); return true; } });
+  await c.hello();
+  await start(c);
+  await c.epoch('node', { node_id: 'r1_c0' }, []);
+  const base = [A('enter_node', ['r1_c0', 'boss']), A('pact_pick', [0])];
+  assert.equal((await c.epoch('pact_reroll', { node_id: 'r1_c0', slot: 1, extra: 1 }, base.slice(0, 1))).code, 'bad_request');
+  const ok = await c.epoch('pact_reroll', { node_id: 'r1_c0', slot: 1 }, base.slice(0, 1));
+  assert.equal(ok.t, 'epoch_res');
+  assert.deepEqual(charges, [['R5', 15]]);
+  const again = await c.epoch('pact_reroll', { node_id: 'r1_c0', slot: 2 }, [A('pact_reroll', [1, 1])]);
+  assert.equal(again.code, 'rejected', 'cap 1 per pact node');
+});

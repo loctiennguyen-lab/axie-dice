@@ -192,6 +192,9 @@ const WATCHED_FILES: Array[String] = ["res://assets/data/part_faces.json"]
 ## equipped_title / equip_title (cosmetic meta, no combat/replay/verifier input). Run result: NO, stays -l.
 ## Moved 2026-10-14 by C8 67aa32d: MetaState daily weekly bonus (daily_week.paid, add_shards ledger for daily
 ## Shard). Meta economy only. Run result: NO, stays -l.
+## BUMPED, 2026-10-14: `ActionLog.RULES_VERSION` -> `godot-2026-10-13-m`. L1 B11: Aid R5, swap ONE boss Pact card
+## (`RunState.reroll_pact_slot`, `RewardGenerator.pick_pact_replacement`, action `pact_reroll` [slot, n], replayed by
+## RunVerifier). Changes what a run can contain. FINGERPRINT is left for the main-tree merge.
 const FINGERPRINT := "6c38ac3ffc171bc1ecbba5138aaf25c5ceaf5bea0974f7ca8f5986501d8e008b"
 
 

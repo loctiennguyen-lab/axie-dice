@@ -557,6 +557,37 @@ static func pick_pact_offer(rng: Rng, ctx: Dictionary) -> Array:
 	return out
 
 
+## Aid R5 (swap one Pact card): one replacement for `replaced_id`. Never one of `keep_ids` (the other cards on
+## screen) and never the replaced card. Same drawback group when it still has a candidate, else any group
+## (groups in `pact_groups` order). null when nothing else is eligible. One draw from `rng` per attempt.
+static func pick_pact_replacement(rng: Rng, ctx: Dictionary, keep_ids: Array, replaced_id: String):
+	var t := RelicSlots.tuning()
+	var groups: Dictionary = {}
+	for g in t.pact_groups:
+		groups[String(g)] = []
+	var replaced_group := ""
+	for def in RelicRegistry.all_defs_sorted():
+		if String(def.id) == replaced_id:
+			replaced_group = String(def.pact_group)
+		if String(def.id) == replaced_id or keep_ids.has(String(def.id)):
+			continue
+		if is_offerable(def, ctx, true) and groups.has(String(def.pact_group)):
+			(groups[String(def.pact_group)] as Array).append(def)
+	for g in groups:
+		(groups[g] as Array).sort_custom(func(a, b): return String(a.id) < String(b.id))
+	if groups.has(replaced_group):
+		var same = _pick_pact_from(rng, groups[replaced_group], ctx, [])
+		if same != null:
+			return same
+	for g in t.pact_groups:
+		if String(g) == replaced_group:
+			continue
+		var other = _pick_pact_from(rng, groups[String(g)], ctx, [])
+		if other != null:
+			return other
+	return null
+
+
 static func _pick_pact_from(rng: Rng, group: Array, ctx: Dictionary, already: Array):
 	var cands: Array = []
 	var ws: Array = []

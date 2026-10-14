@@ -49,7 +49,7 @@ extends RefCounted
 ## imported Axie used to reach combat with six faces the engine could not read — it rolled
 ## 0-value blanks — and now rolls the die its parts describe. Any log recorded before this
 ## replays differently, which is exactly what this constant is for.
-const RULES_VERSION := "godot-2026-10-13-l"   # L1: đổi kết quả run: CÓ — -l = boss pact phase (pact_pick, forced at A6/A10); -k = -k = missions.json = approved very-hard doc (N1–N6 rule sets + multipliers); -j = -j = mission rules M6 normal_hp x1.20 / M7 elite_dmg x1.25, no 2-rule limit; -i = -i = local header.newcomer from run params (newcomer runs: no attrition, no light boss clock); -h = -h = last 5 hidden relics live (assassinsneedle, breakersward, firestormveil, fumeblossom, sporegale), hooks face_crit/on_face_hit/on_status_tick/on_shield_break; -g = -g = lane B 9 hidden relics live (ironvow, lonewolf, hollowchalice, alphafang, falconhood, heartrootgrove, shedskin, tidecaller, venomlineage) + value hooks; -f = -f = lane B G/A axes (G cap 2.5/Axie), reroll caps, Eternal, pact_forced, apexpredator no crit chance; -e = -e = lane A mission rules, reroll hook veto before RNG, is_refresh fix; -d = -d = lane B relic bodies H1–H8, offer v2, live pacts, boss immune to instant kills; -c = luật Ascension v2, đồng hồ, attrition, spike, Continue. -b = ranked run_bonuses (B3); -a = epoch seed + relic set v2
+const RULES_VERSION := "godot-2026-10-13-m"   # L1: đổi kết quả run: CÓ — -m = Aid R5 pact_reroll (swap one pact card, replayed by RunVerifier); -l = boss pact phase (pact_pick, forced at A6/A10); -k = -k = missions.json = approved very-hard doc (N1–N6 rule sets + multipliers); -j = -j = mission rules M6 normal_hp x1.20 / M7 elite_dmg x1.25, no 2-rule limit; -i = -i = local header.newcomer from run params (newcomer runs: no attrition, no light boss clock); -h = -h = last 5 hidden relics live (assassinsneedle, breakersward, firestormveil, fumeblossom, sporegale), hooks face_crit/on_face_hit/on_status_tick/on_shield_break; -g = -g = lane B 9 hidden relics live (ironvow, lonewolf, hollowchalice, alphafang, falconhood, heartrootgrove, shedskin, tidecaller, venomlineage) + value hooks; -f = -f = lane B G/A axes (G cap 2.5/Axie), reroll caps, Eternal, pact_forced, apexpredator no crit chance; -e = -e = lane A mission rules, reroll hook veto before RNG, is_refresh fix; -d = -d = lane B relic bodies H1–H8, offer v2, live pacts, boss immune to instant kills; -c = luật Ascension v2, đồng hồ, attrition, spike, Continue. -b = ranked run_bonuses (B3); -a = epoch seed + relic set v2
 
 ## Mirrors `ALLOWED_FNS` in api/submit-run.js, in this port's own vocabulary. A verifier reads
 ## this list to know what it must implement; anything absent from it is refused at record time,
@@ -69,14 +69,13 @@ const RULES_VERSION := "godot-2026-10-13-l"   # L1: đổi kết quả run: CÓ 
 ##   event_done         eventDone          event screen dismissed
 ##   shop_buy           shopBuy            which shop slot was bought
 ##   shop_done          shopDone           shop left
+##   pact_reroll        (none — port only) Aid R5: [slot, swap index] one boss Pact card swapped
 ##   pact_pick          (none — port only) boss Pact: [offer index] or [index, sold relic id]; [-1] = skipped
 const ALLOWED_FNS: Array[String] = [
 	"enter_node", "use_die", "play_active", "reroll_dice", "end_turn", "undo_last",
 	"take_reward", "reroll_rewards", "event_choose", "event_done", "shop_buy", "shop_done",
 	"tweak", "hold_pick", "loaded_pick", "sell_relic", "swap_on_full", "reorder_party",
-	"continue", "shop_refresh", "aid_use", "pact_pick",
-	# Still to come, each in the PR that implements it AND teaches RunVerifier to replay it (t_replay
-	# refuses an action the referee cannot replay): pact_reroll (R5, off).
+	"continue", "shop_refresh", "aid_use", "pact_pick", "pact_reroll",
 ]
 
 ## Same ceiling as the JS server (submit-run.js:30). A real run lands far below it; the limit is
