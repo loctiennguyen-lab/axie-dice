@@ -97,3 +97,7 @@ hạn/ngày, NFT dùng được) · UI request 02 + Round 1 · L1 = 3/11 nội b
 - (Liam 14/10, đã chốt) Danh hiệu: thắng ở A≥5 nhận danh hiệu A5, thắng ở A10 nhận cả hai (C7 làm đúng vậy). Tên tiếng Anh: giữ tiếng Việt tới khi làm xong hết, Liam sẽ tự đổi sang tiếng Anh sau (`ascension_titles.json` → `en`).
 - (Liam 14/10, đã chốt) Run Nhiệm vụ thắng ở A≥5 nhưng trượt điều kiện phụ → tính thua → KHÔNG nhận danh hiệu. Đúng.
 - (Liam 14/10, đã chốt) Thẻ Weekly: giữ "(n/4)", "Paid this week" và toast (phần thêm ngoài mockup R3).
+- (Liam 14/10, đã chốt) C2 Daily/Ranked cho L1: Daily = seed riêng mỗi người (server tung như run thường, chỉ khác thưởng);
+  3 lượt/ngày UTC, run bỏ dở vẫn tính 1 lượt; thưởng Daily (60 Shard + 500 Stone + 100 Pass XP sau 1 run xong) là QUÀ RIÊNG,
+  cộng thêm ngoài quà daily cũ. Ranked: MỞ ĐỦ + leaderboard trong L1 (Worker: bảng điểm + nộp/đọc điểm, bỏ chặn ALLOW_GATED_MODES
+  cho ranked, khoá newcomer, cấm Axie import).
