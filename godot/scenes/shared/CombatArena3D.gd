@@ -188,6 +188,13 @@ func _add_path(b: Dictionary) -> void:
 	var box := _aabb_of(probe)
 	probe.queue_free()
 	var len := maxf(box.size.z, 0.5)
+	var tint: Material = null   # optional per-biome recolour of the tiles: "path_tint": "#rrggbbaa"
+	if String(b.get("path_tint", "")) != "":
+		var tm := StandardMaterial3D.new()
+		tm.albedo_color = Color(String(b["path_tint"]))
+		tm.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		tm.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		tint = tm
 	var z := 8.0
 	var end_z := float(registry().get("portal", {}).get("z", -15.0)) - 2.0
 	var i := 0
@@ -195,8 +202,17 @@ func _add_path(b: Dictionary) -> void:
 		var t := packed.instantiate() as Node3D
 		_props_root.add_child(t)
 		t.position = Vector3(0.0, 0.0, z)
+		if tint != null:
+			_tint_meshes(t, tint)
 		z -= len
 		i += 1
+
+
+## Recolours the tiles with a translucent unshaded overlay (the kit's stone material is a custom
+## shader, so albedo can't be multiplied). `c`'s alpha is the strength. One shared material.
+static func _tint_meshes(root: Node3D, ov: Material) -> void:
+	for n in root.find_children("*", "MeshInstance3D", true, false):
+		(n as MeshInstance3D).material_overlay = ov
 
 
 func _scatter(b: Dictionary, zones: Dictionary) -> void:

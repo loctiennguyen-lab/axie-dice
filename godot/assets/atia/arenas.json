@@ -256,10 +256,10 @@
    "path": "res://assets/atia/arena/scenes/HomeLand_Asset/Environment/Arctic/Decoration/A_StonePath_Straight.tscn"
   },
   "mystic": {
-   "ground": "#6c5a96",
+   "ground": "#4f3f7a",
    "sky_top": "#3b2a6b",
-   "sky_horizon": "#c79ae0",
-   "fog": "#8d74b8",
+   "sky_horizon": "#e6b0e8",
+   "fog": "#9a82c8",
    "light": "#e7d2ff",
    "light_energy": 1.0,
    "props": [
@@ -268,8 +268,8 @@
      "count": 4,
      "zone": "flank",
      "height_m": [
-      4.0,
-      6.5
+      3.2,
+      5.0
      ]
     },
     {
@@ -277,8 +277,8 @@
      "count": 4,
      "zone": "flank",
      "height_m": [
-      4.0,
-      6.5
+      3.2,
+      5.0
      ]
     },
     {
@@ -286,8 +286,8 @@
      "count": 4,
      "zone": "back",
      "height_m": [
-      6.0,
-      9.0
+      4.5,
+      6.5
      ]
     },
     {
@@ -318,13 +318,19 @@
      ]
     }
    ],
-   "path": "res://assets/atia/arena/scenes/HomeLand_Asset/Environment/Mystic/Decor/M_StonePath_Straight.tscn"
+   "path": "res://assets/atia/arena/scenes/HomeLand_Asset/Environment/Mystic/Decor/M_StonePath_Straight.tscn",
+   "fog_density": 0.0035,
+   "flecks": {
+    "color": "#8f7ac0",
+    "count": 90
+   },
+   "path_tint": "#9a82e0b0"
   },
   "genesis": {
-   "ground": "#8f7a56",
+   "ground": "#8a6a3a",
    "sky_top": "#5a90c8",
-   "sky_horizon": "#f0d9a8",
-   "fog": "#e0cfa4",
+   "sky_horizon": "#bfe0f0",
+   "fog": "#e9dcb4",
    "light": "#ffe9c0",
    "light_energy": 1.2,
    "props": [
@@ -333,8 +339,8 @@
      "count": 4,
      "zone": "flank",
      "height_m": [
-      4.0,
-      6.5
+      3.2,
+      5.0
      ]
     },
     {
@@ -342,8 +348,8 @@
      "count": 4,
      "zone": "flank",
      "height_m": [
-      4.0,
-      6.5
+      3.2,
+      5.0
      ]
     },
     {
@@ -351,21 +357,27 @@
      "count": 3,
      "zone": "back",
      "height_m": [
-      6.0,
-      9.0
+      4.5,
+      6.5
      ]
     },
     {
      "scene": "res://assets/atia/arena/scenes/HomeLand_Asset/Environment/Genesis/Shrub/G_Shrub01_Allside.tscn",
-     "count": 8,
+     "count": 11,
      "zone": "low",
      "height_m": [
-      1.0,
-      1.8
+      1.8,
+      2.8
      ]
     }
    ],
-   "path": ""
+   "path": "res://assets/atia/arena/scenes/HomeLand_Asset/Environment/Savannah/Decoration/StonePath/S_StonePath_Straight.tscn",
+   "fog_density": 0.0035,
+   "flecks": {
+    "color": "#c4a468",
+    "count": 90
+   },
+   "path_tint": "#f2e2b080"
   },
   "luna": {
    "ground": "#555a73",

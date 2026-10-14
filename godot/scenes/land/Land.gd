@@ -66,6 +66,7 @@ const TIER_NAMES: Array[String] = ["Savannah", "Forest", "Arctic", "Mystic", "Ge
 ## Fallback only: lane E's assets/data/economy/land_tiers.json is the source (cost to reach tier N+1).
 const FALLBACK_TIER_COSTS: Array[int] = [40000, 100000, 180000, 500000, 1000000]
 ## Per biome look. Paths are under Environment/. ground = centre, mid, edge; cliff = top, bottom.
+## Optional: lip / strata (hex, cliff turf edge + rock band), stain (0..1, strength of the dirt mottling, default 1), tree_h (rim tree height in world units, default 6).
 const BIOMES: Array[Dictionary] = [
 	{"ground": ["FAD27C", "F2B652", "DE9A3C"], "cliff": "A9673A", "sky": ["8FCBF2", "F6E9C8"],
 		"trees": ["Savannah/Tree/S_Tree01_Allside", "Savannah/Tree/S_Tree02_Allside", "Savannah/Tree/S_Tree03_Allside", "Savannah/Tree/S_Tree03a_Allside"],
@@ -86,12 +87,14 @@ const BIOMES: Array[Dictionary] = [
 		"trees": ["Mystic/Tree/M_Tree_01_Allside", "Mystic/Tree/M_Tree_02_Allside", "Mystic/Tree/M_Tree_03_Allside", "Mystic/Tree/M_Tree_04_Allside"],
 		"shrubs": ["Mystic/Shrub/M_Shrub01_Allside", "Mystic/Shrub/M_Shrub02_Allside"],
 		"rocks": ["Mystic/Rock/Rock_01", "Mystic/Rock/Rock_02"],
-		"tufts": []},
+		"tufts": [],
+		"lip": "9E82D6", "strata": "3A2C66"},
 	{"ground": ["FFF3C8", "F5D87E", "DDAE4E"], "cliff": "9A7A4A", "sky": ["9FD3F5", "FFF1D0"],
 		"trees": ["Genesis/Tree/SM_Tree_G_01", "Genesis/Tree/SM_Tree_G_02", "Genesis/Tree/SM_Tree_G_03", "Genesis/Tree/SM_Tree_G_06"],
 		"shrubs": ["Genesis/Shrub/G_Shrub01_Allside", "Genesis/Shrub/G_Shrub02_Allside"],
-		"rocks": [], "tufts": []},
-	{"ground": ["F6C2D0", "D8809F", "A34F78"], "cliff": "6A2E4C", "sky": ["2B2255", "9A5C8E"], "moon": true,
+		"rocks": [], "tufts": [], "lip": "F5D87E", "strata": "7A5A32"},
+	{"ground": ["FBD3DD", "E69BB5", "BC6A8E"], "cliff": "7A3A5C", "sky": ["3E3480", "C77FAE"], "moon": true,
+		"stain": 0.4, "tree_h": 4.0,
 		"trees": ["LunaLanding/Tree/Luna_Landing_Tree_1 Variant", "LunaLanding/Tree/Luna_Landing_Tree_2 Variant", "LunaLanding/Tree/Luna_Landing_Tree_3 Variant"],
 		"shrubs": ["LunaLanding/Shrub/L_Shrub01_Allside", "LunaLanding/Shrub/LunaLanding_Shrub_01"],
 		"rocks": ["LunaLanding/Luna_Landing_Rock/SM_Luna_Landing_Rock_1 Variant", "LunaLanding/Luna_Landing_Rock/SM_Luna_Landing_Rock_2 Variant", "LunaLanding/Rock/SM_Rocks_Luna_A1 Variant", "LunaLanding/Rock/SM_Rocks_Luna_B Variant"],
@@ -396,10 +399,31 @@ func _build_world() -> void:
 	sky.set_anchors_preset(Control.PRESET_FULL_RECT)
 	sky_layer.add_child(sky)
 	if biome.get("moon", false):
+		# Soft halo (radial gradient, additive-looking via alpha) behind a lit disc.
+		var hg := Gradient.new()
+		hg.set_color(0, Color(1.0, 0.95, 0.85, 0.55))
+		hg.set_color(1, Color(1.0, 0.85, 0.9, 0.0))
+		var ht := GradientTexture2D.new()
+		ht.gradient = hg
+		ht.fill = GradientTexture2D.FILL_RADIAL
+		ht.fill_from = Vector2(0.5, 0.5)
+		ht.fill_to = Vector2(1.0, 0.5)
+		ht.width = 256
+		ht.height = 256
+		var halo := TextureRect.new()
+		halo.texture = ht
+		halo.size = Vector2(420, 420)
+		halo.position = Vector2(1630 - 210, 190 - 210)
+		halo.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		sky_layer.add_child(halo)
 		var moon := Panel.new()
 		var msb := StyleBoxFlat.new()
-		msb.bg_color = Color("FFF3D6")
+		msb.bg_color = Color("FFF1D0")
 		msb.set_corner_radius_all(70)
+		msb.border_color = Color("FFD9C4")
+		msb.set_border_width_all(6)
+		msb.shadow_color = Color(1.0, 0.9, 0.8, 0.45)
+		msb.shadow_size = 24
 		moon.add_theme_stylebox_override("panel", msb)
 		moon.size = Vector2(140, 140)
 		moon.position = Vector2(1560, 120)
@@ -425,6 +449,21 @@ func _build_ground() -> void:
 	cliff.material_override = cm
 	cliff.position.y = -1.5 - 0.02
 	add_child(cliff)
+	# Optional terrain edge ("lip" = turf colour, "strata" = darker rock band): two thin boxes
+	# just outside the slab so the cliff face reads as layered earth, not one flat block.
+	var bi: Dictionary = BIOMES[_tier - 1]
+	if bi.has("lip"):
+		for part in [["lip", 0.3, -0.17, 0.06], ["strata", 0.7, -1.35, 0.04]]:
+			var mi := MeshInstance3D.new()
+			var bm := BoxMesh.new()
+			bm.size = Vector3(PLOT_SIDE + float(part[3]), float(part[1]), PLOT_SIDE + float(part[3]))
+			mi.mesh = bm
+			var pm := StandardMaterial3D.new()
+			pm.albedo_color = Color(String(bi[part[0]]))
+			pm.roughness = 1.0
+			mi.material_override = pm
+			mi.position.y = float(part[2])
+			add_child(mi)
 
 	var top := MeshInstance3D.new()
 	var plane := PlaneMesh.new()
@@ -445,6 +484,7 @@ func _build_ground() -> void:
 	var tm := ShaderMaterial.new()
 	tm.shader = _ground_shader()
 	tm.set_shader_parameter("tint", gt)
+	tm.set_shader_parameter("stain", float(BIOMES[_tier - 1].get("stain", 1.0)))
 	var dirt := load(DIRT_TEX) as Texture2D
 	if dirt != null:
 		tm.set_shader_parameter("dirt", dirt)
@@ -461,13 +501,14 @@ func _ground_shader() -> Shader:
 render_mode diffuse_lambert, specular_disabled;
 uniform sampler2D tint : source_color, repeat_disable;
 uniform sampler2D dirt : source_color, repeat_enable, filter_linear_mipmap, hint_default_white;
+uniform float stain = 1.0;
 void fragment() {
 	vec3 t = texture(tint, UV).rgb;
 	// The source texture is low-contrast, so measure each sample against its own blurred mean and
 	// amplify the difference: mottled soil patches at two scales.
 	float d1 = dot(texture(dirt, UV * 5.0).rgb - textureLod(dirt, UV * 5.0, 9.0).rgb, vec3(0.333));
 	float d2 = dot(texture(dirt, UV * 1.7 + vec2(0.31, 0.57)).rgb - textureLod(dirt, UV * 1.7, 9.0).rgb, vec3(0.333));
-	float m = clamp(1.0 + d1 * 7.0 + d2 * 9.0, 0.5, 1.2);
+	float m = clamp(1.0 + (d1 * 7.0 + d2 * 9.0) * stain, 0.5, 1.2);
 	// Darker patches shift toward damp earth brown, so the slab reads as soil, not paint.
 	ALBEDO = mix(t * vec3(0.74, 0.6, 0.5), t, smoothstep(0.45, 1.0, m)) * min(m, 1.12);
 	ROUGHNESS = 1.0;
@@ -539,7 +580,7 @@ func _build_props() -> void:
 		Vector2(1490, 330), Vector2(700, 215), Vector2(1250, 215)]
 	for i in spots.size():
 		_place_fit(LIB + "Environment/" + String(trees[i % trees.size()]) + ".tscn",
-			_ground_at(spots[i].x, spots[i].y), 6.0, true)
+			_ground_at(spots[i].x, spots[i].y), float(biome.get("tree_h", 6.0)), true)
 	var scatter: Array = []
 	for k in (biome["shrubs"] as Array):
 		scatter.append([k, 1.5])
