@@ -116,6 +116,36 @@ func _ready() -> void:
 			_check(LandNav.last_path == "", "offline: Pass không mở")
 		h2.queue_free()
 		await get_tree().process_frame
+	# C4: "New run" on a Mission run settles the open stake as a loss (no refund, escrow cleared).
+	var sp0 := MetaState.shard_pool
+	var esc0 := MetaState.mission_escrow.duplicate(true)
+	var led0 := MetaState.ledger.duplicate(true)
+	MetaState.shard_pool = 4000
+	MetaState.mission_escrow = {"tier": "N1", "mission_id": "ms_testc4", "stake": 300, "payout": 600, "stone": 0, "t": 1}
+	LandHub.qa = {"newcomer": false}
+	var h3 := (load("res://scenes/land/Land.tscn") as PackedScene).instantiate() as LandHub
+	h3.set("_force_run", true)
+	add_child(h3)
+	await get_tree().process_frame
+	h3.call("_on_new_run_pressed")
+	await get_tree().process_frame
+	var okb := h3.find_child("ConfirmOk", true, false) as Button
+	_check(okb != null, "C4: mission new-run opens the abandon confirm")
+	if okb != null:
+		_check(not MetaState.mission_escrow.is_empty(), "C4: escrow still open before confirming")
+		okb.emit_signal("pressed")
+		_check(MetaState.mission_escrow.is_empty(), "C4: escrow cleared after confirm")
+		_check(MetaState.shard_pool == 4000, "C4: stake not refunded (pool unchanged)")
+		var lost := false
+		for l in MetaState.ledger:
+			if String(l.get("r", "")) == "mission_loss_N1":
+				lost = true
+		_check(lost, "C4: mission counted as a loss in the ledger")
+	h3.queue_free()
+	await get_tree().process_frame
+	MetaState.shard_pool = sp0
+	MetaState.mission_escrow = esc0
+	MetaState.ledger = led0
 	LandHub.qa = {}
 	LandHub.tier_override = 0
 	LandNav.dry_run = false
