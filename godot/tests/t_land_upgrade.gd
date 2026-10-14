@@ -111,7 +111,12 @@ func _ready() -> void:
 	b2.pressed.emit()
 	await get_tree().process_frame
 	_ok(s.find_child("ConfirmPlate", true, false) != null, "confirm shown")
-	_ok(s.confirm_upgrade() and MetaState.land_tier == 2 and MetaState.stone == 1200, "confirm upgrades")
+	_ok(s.confirm_upgrade(2) and MetaState.land_tier == 2 and MetaState.stone == 1200, "confirm upgrades")
+	MetaState.stone = 5000000
+	_ok(not s.confirm_upgrade(2) and MetaState.land_tier == 2 and MetaState.stone == 5000000, "double press (stale target) refused")
+	_ok(not s.confirm_upgrade(4) and MetaState.land_tier == 2, "skipping a tier refused")
+	MetaState.stone = 1200
+	s.call("_redraw")
 	await get_tree().process_frame
 	_ok(s.find_child("Toast", true, false) != null, "toast")
 	_ok((s.find_child("Tier3", true, false).find_child("Btn", true, false) as Button).text.begins_with("Need"), "tier 3 shows shortfall")

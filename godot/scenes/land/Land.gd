@@ -63,8 +63,6 @@ const PLOTS: Array[Dictionary] = [
 	{"id": "gallery", "cx": 660, "base": 440, "min_tier": 5},
 ]
 const TIER_NAMES: Array[String] = ["Savannah", "Forest", "Arctic", "Mystic", "Genesis", "LunaLanding"]
-## Fallback only: lane E's assets/data/economy/land_tiers.json is the source (cost to reach tier N+1).
-const FALLBACK_TIER_COSTS: Array[int] = [40000, 100000, 180000, 500000, 1000000]
 ## Per biome look. Paths are under Environment/. ground = centre, mid, edge; cliff = top, bottom.
 const BIOMES: Array[Dictionary] = [
 	{"ground": ["FAD27C", "F2B652", "DE9A3C"], "cliff": "A9673A", "sky": ["8FCBF2", "F6E9C8"],
@@ -330,8 +328,7 @@ func _need_name(house_id: String) -> String:
 func _upgrade_cost() -> int:
 	if _tier >= 6:
 		return 0
-	var c: int = preload("res://scripts/meta/economy_db.gd").land_tier_cost(_tier)
-	return c if c >= 0 else FALLBACK_TIER_COSTS[_tier - 1]
+	return maxi(preload("res://scripts/meta/economy_db.gd").land_tier_cost(_tier), 0)
 
 
 # ================================================================ 3D world
@@ -989,7 +986,7 @@ func _build_hud() -> void:
 	_wallet.position = Vector2(1500, 24)
 	_ui.add_child(_wallet)
 	_wallet.add_child(_currency("Gene Shard", _meta_int("shard_pool"), Color("FF9345"), false))
-	_wallet.add_child(_currency("Land Stone", _meta_int("stone"), Color("B8A27A"), false))
+	_wallet.add_child(_currency("Land Stone", _meta_int("stone"), DangoTheme.LAND_STONE, false))
 	_wallet.add_child(_currency("Lunar Gem", _meta_int("lunar_gem"), Color("A27BEA"), true))
 	_wallet.add_child(_settings_button())
 
@@ -1066,7 +1063,7 @@ func _land_chip() -> Control:
 		row.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		var dot := Panel.new()
 		var dsb := StyleBoxFlat.new()
-		dsb.bg_color = Color("B8A27A")
+		dsb.bg_color = DangoTheme.LAND_STONE
 		dsb.set_corner_radius_all(9)
 		dsb.set_border_width_all(2)
 		dsb.border_color = INK_PLATE

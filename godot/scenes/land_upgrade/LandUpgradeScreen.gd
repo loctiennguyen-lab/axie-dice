@@ -10,8 +10,6 @@ const _Shell := preload("res://scenes/shared/R3Shell.gd")
 const _Eco := preload("res://scripts/meta/economy_db.gd")
 const TIER_NAMES: Array[String] = ["Savannah", "Forest", "Arctic", "Mystic", "Genesis", "LunaLanding"]
 const ROW_H := 84.0
-## Thumbnail colours per tier (the Land's ground tone); the Land itself draws the real look.
-const TIER_TINT: Array[String] = ["F2B652", "8DCB5A", "BFE3F2", "9A7BD0", "5FBF9A", "E8D27A"]
 ## Tier gates that Land.gd reads from houses.json are listed here only by name.
 const ADDS: Dictionary = {
 	2: "+3 preset slots · new decor set",
@@ -109,6 +107,12 @@ func _redraw() -> void:
 		_rows.add_child(l)
 
 
+## Thumbnail colour per tier (the Land's ground tone); the Land itself draws the real look.
+static func _tint(tier: int) -> Color:
+	return [DangoTheme.LAND_SAVANNAH, DangoTheme.LAND_FOREST, DangoTheme.LAND_ARCTIC,
+		DangoTheme.LAND_MYSTIC, DangoTheme.LAND_GENESIS, DangoTheme.LAND_LUNA][clampi(tier, 1, 6) - 1]
+
+
 func _row(tier: int) -> Control:
 	var st := row_state(tier)
 	var p := PanelContainer.new()
@@ -124,7 +128,7 @@ func _row(tier: int) -> Control:
 	p.add_child(h)
 	var thumb := Panel.new()
 	thumb.custom_minimum_size = Vector2(110, 62)
-	var tb := _Shell.surface(DangoTheme.Surface.CREAM_RAISED, 12, 3, Vector2(0, 0), Color(TIER_TINT[tier - 1]))
+	var tb := _Shell.surface(DangoTheme.Surface.CREAM_RAISED, 12, 3, Vector2(0, 0), _tint(tier))
 	thumb.add_theme_stylebox_override("panel", tb)
 	h.add_child(thumb)
 	var mid := VBoxContainer.new()
@@ -176,7 +180,7 @@ func _ask(tier: int) -> void:
 	_modal = _Shell.confirm(_shell["modal_layer"], "Spend %s Stone?" % fmt(cost),
 		"%s becomes %s. This cannot be undone.\nStone after: %s." % [
 			TIER_NAMES[tier - 2], TIER_NAMES[tier - 1], fmt(MetaState.stone - cost)],
-		"Keep Stone", "Upgrade to %s" % TIER_NAMES[tier - 1], confirm_upgrade, _close_modal)
+		"Keep Stone", "Upgrade to %s" % TIER_NAMES[tier - 1], confirm_upgrade.bind(tier), _close_modal)
 
 
 func _close_modal() -> void:
@@ -186,9 +190,11 @@ func _close_modal() -> void:
 
 
 ## Runs the upgrade (also what the confirm button calls). True when the tier went up.
-func confirm_upgrade() -> bool:
+## `target` is the tier the dialog promised; anything but land_tier + 1 is refused, so a stale
+## or double press cannot buy a second tier.
+func confirm_upgrade(target: int) -> bool:
 	_close_modal()
-	var ok := MetaState.upgrade_land()
+	var ok := target == MetaState.land_tier + 1 and MetaState.upgrade_land()
 	if ok:
 		_toast("Your Land is now %s" % TIER_NAMES[MetaState.land_tier - 1])
 	else:
