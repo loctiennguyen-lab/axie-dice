@@ -308,7 +308,7 @@ func _redraw_table() -> void:
 	head.add_child(hr)
 	var names := ["RANK", "PLAYER", "LAND", "AID", "SCORE", "MODE", "DATE"]
 	for i in names.size():
-		hr.add_child(_cell(names[i], COLS[i], 14, true, DangoTheme.DUSK_INK,
+		hr.add_child(_cell(("   " + names[i]) if i == 5 else names[i], COLS[i], 14, true, DangoTheme.DUSK_INK,
 			HORIZONTAL_ALIGNMENT_RIGHT if i == 4 else HORIZONTAL_ALIGNMENT_LEFT))
 	v.add_child(head)
 	var body := Control.new()
@@ -435,7 +435,10 @@ func _fill_cells(h: HBoxContainer, r: Dictionary, you: bool) -> void:
 	nm.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	nm.add_theme_constant_override("separation", 8)
 	nm.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	nm.add_child(_cell(String(r.get("name", "")), 0, 17, true))
+	var nl := _cell(String(r.get("name", "")), 0, 17, true)
+	if you:
+		nl.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+	nm.add_child(nl)
 	if you:
 		var y := PanelContainer.new()
 		y.mouse_filter = Control.MOUSE_FILTER_IGNORE

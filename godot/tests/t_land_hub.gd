@@ -53,7 +53,7 @@ func _ready() -> void:
 	_check(LandNav.last_path == "res://scenes/vault/Vault.tscn", "Vault path: " + LandNav.last_path)
 	LandNav.last_path = ""
 	(hub.find_child("Hit_house", true, false) as Button).emit_signal("pressed")
-	_check(LandNav.last_path == "res://scenes/main_menu/TeamSelect.tscn", "House path: " + LandNav.last_path)
+	_check(LandNav.last_path == "res://scenes/team_presets/TeamPresets.tscn", "House path: " + LandNav.last_path)
 	# Shortcut 6 = Vault.
 	LandNav.last_path = ""
 	hub.call("_handle_key", KEY_6)
