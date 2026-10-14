@@ -95,6 +95,11 @@ var cosmetics_owned: Array[String] = []
 ## B12 equip (cosmetic only, no combat rule reads these): art ids, "" = none.
 var equipped_die_skin: String = ""
 var equipped_frame: String = ""
+## C7: equipped player title ("title:<NAME>", must be owned), "" = none. Cosmetic only.
+var equipped_title: String = ""
+## C7: titles granted by the LAST record_run_outcome (ids). Not saved; overwritten on every run end, so
+## only the run that earned a title shows "New title" on the Result screen.
+var last_run_new_titles: Array[String] = []
 var pass_season: Dictionary = {"id": "", "xp": 0, "level": 0, "claimed_free": []}
 var vip_until_utc: int = 0
 var vip_trial_used: bool = false
@@ -284,6 +289,7 @@ func apply_server_wallet(snapshot: Dictionary) -> void:
 ## và "đã thắng Full A9" để mở bậc Nhiệm vụ. `params`: {mode:"short"|"full", ascension:int, ...}.
 ## runs/wins/best vẫn do end_run ghi như hôm nay.
 func record_run_outcome(params: Dictionary, won: bool) -> void:
+	last_run_new_titles = []
 	# Quyết toán cược Nhiệm vụ (một lần; settle lần hai không làm gì). `won` đã gồm điều kiện phụ.
 	# Run thường kết thúc khi đang có escrow của run khác: params.mission_id rỗng -> không đụng escrow.
 	if not mission_escrow.is_empty() and String(params.get("mission_id", "")) == String(mission_escrow.get("mission_id", "")) \
@@ -295,6 +301,11 @@ func record_run_outcome(params: Dictionary, won: bool) -> void:
 		return
 	var asc := int(params.get("ascension", 0))
 	asc_wins[str(asc)] = int(asc_wins.get(str(asc), 0)) + 1
+	# C7: a win at A5 / A10 or higher grants that Ascension's title (and any lower one still missing).
+	for t in TitleNames.ascension_titles():
+		if asc >= int(t["asc"]) and not cosmetics_owned.has(String(t["id"])):
+			cosmetics_owned.append(String(t["id"]))
+			last_run_new_titles.append(String(t["id"]))
 	if String(params.get("mode", "short")) == "full" and asc >= 9:
 		full_a9_won = true
 	save_to_disk()
@@ -467,6 +478,7 @@ func _reset_economy_fields() -> void:
 	cosmetics_owned.clear()
 	equipped_die_skin = ""
 	equipped_frame = ""
+	equipped_title = ""
 	pass_season = {"id": "", "xp": 0, "level": 0, "claimed_free": []}
 	vip_until_utc = 0
 	vip_trial_used = false
@@ -548,6 +560,9 @@ func _economy_from_json(parsed: Dictionary, raw_text: String = "") -> void:
 		cosmetics_owned.append(str(c))
 	equipped_die_skin = _equipped_or_none(str(parsed.get("equipped_die_skin", "")), Cosmetics.SLOT_DIE)
 	equipped_frame = _equipped_or_none(str(parsed.get("equipped_frame", "")), Cosmetics.SLOT_FRAME)
+	equipped_title = str(parsed.get("equipped_title", ""))
+	if not TitleNames.owned(cosmetics_owned).has(equipped_title):
+		equipped_title = ""
 	var ps = parsed.get("pass_season", {})
 	pass_season = {"id": "", "xp": 0, "level": 0, "claimed_free": []}
 	if ps is Dictionary:
@@ -698,6 +713,15 @@ func equip_cosmetic(art: String) -> String:
 	return ""
 
 
+## C7: equip an owned title ("" = none). Returns "" or the reason. Saves via SaveStore.
+func equip_title(id: String) -> String:
+	if id != "" and not TitleNames.owned(cosmetics_owned).has(id):
+		return "You don't own this."
+	equipped_title = id
+	save_to_disk()
+	return ""
+
+
 ## Back to the default (no skin / no frame). slot = Cosmetics.SLOT_DIE or SLOT_FRAME.
 func unequip_cosmetic(slot: String) -> void:
 	if slot == Cosmetics.SLOT_DIE:
@@ -742,6 +766,7 @@ func save_to_disk() -> void:
 		"cosmetics_owned": cosmetics_owned,
 		"equipped_die_skin": equipped_die_skin,
 		"equipped_frame": equipped_frame,
+		"equipped_title": equipped_title,
 		"pass_season": pass_season,
 		"vip_until_utc": vip_until_utc,
 		"vip_trial_used": vip_trial_used,
