@@ -1946,6 +1946,7 @@ const _ENEMY_PLATE_GAP := 16.0
 
 
 # ── The combat band frame (CB-01 / CB-06 / CB-18) ──────────────────────────────
+# History note: the front line itself was removed 13/10 (Liam, CB-06); the band math below stays.
 # combat-v2.html's vertical structure is: top bar (60, anchored top) · enemy band · front line ·
 # party band · deck (216, anchored bottom). The two bars are full-bleed and already anchored to
 # a real viewport edge in Combat.tscn. Everything BETWEEN them was not: `%FrontLine` sat at a
@@ -1972,7 +1973,6 @@ const _DECK_H := 204.0
 ## below uses it except to convert one of the mockup's own y values into a band fraction.
 const _MOCK_CANVAS_H := 1080.0
 const _MOCK_BAND_H := _MOCK_CANVAS_H - _TOP_BAR_H - _DECK_H          ## 804
-## (CB-06 removed by Liam 13/10: _FRONT_LINE_F gone with the node.)
 const _STAGE_TOP_F := (0.13 * _MOCK_CANVAS_H - _TOP_BAR_H) / _MOCK_BAND_H
 ## WAS `(0.78 * _MOCK_CANVAS_H - _TOP_BAR_H) / _MOCK_BAND_H`, i.e. the stage stopped at y=842
 ## and left a 22px strip of nothing between it and the deck bar. The strip was not the bug but it
@@ -1997,7 +1997,7 @@ func _layout_stage_bands() -> void:
 	if _stage3d != null:
 		# Anchored to the TOP edge at both ends and driven by offsets, so the band arithmetic is
 		# the single place the stage's height is decided - not a second fraction of the canvas
-		# that would drift away from the front line it has to agree with.
+		# that would drift away from the rest of the layout.
 		_stage3d.anchor_top = 0.0
 		_stage3d.anchor_bottom = 0.0
 		_stage3d.offset_top = _TOP_BAR_H + band * _STAGE_TOP_F
@@ -2071,12 +2071,6 @@ func _combat_is_enemy_uid(uid: int) -> bool:
 		if e.uid == uid:
 			return true
 	return false
-
-
-## CB-06 removed by Liam 13/10: the front line (6px rule + caps) is gone from Combat.tscn. Kept as a
-## no-op so any caller of the old hook still works.
-func _update_front_line(_min_x: float, _max_x: float, _enemy_bottom_y: float) -> void:
-	pass
 
 
 # ===========================================================================
