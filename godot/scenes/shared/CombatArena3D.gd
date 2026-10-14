@@ -26,6 +26,9 @@ const LAND_SUN_ENERGY := 1.25
 const LAND_AMBIENT := Color("fff1d6")
 const LAND_AMBIENT_ENERGY := 0.75
 const BASE_FOG_DENSITY := 0.006
+## Default for registry "path_end_gap": the path lane ends this far in front of the portal origin
+## (tile centre), so the pedestal stays visible.
+const PATH_END_GAP := 2.8
 ## Prop keep-out (|x| / z): enemy flanks (enemy row z -6.5, x 0/+-5.1) and the portal line.
 const KEEPOUT_ENEMY_Z := [-11.0, -2.0]
 const KEEPOUT_ENEMY_X := 10.5
@@ -186,7 +189,6 @@ func _add_path(b: Dictionary) -> void:
 	var probe := packed.instantiate() as Node3D
 	_props_root.add_child(probe)
 	var box := _aabb_of(probe)
-	probe.queue_free()
 	var len := maxf(box.size.z, 0.5)
 	var tint: Material = null   # optional per-biome recolour of the tiles: "path_tint": "#rrggbbaa"
 	if String(b.get("path_tint", "")) != "":
@@ -196,23 +198,38 @@ func _add_path(b: Dictionary) -> void:
 		tm.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 		tint = tm
 	var z := 8.0
-	var end_z := float(registry().get("portal", {}).get("z", -15.0)) - 2.0
-	var i := 0
-	while z > end_z and i < 40:
-		var t := packed.instantiate() as Node3D
-		_props_root.add_child(t)
-		t.position = Vector3(0.0, 0.0, z)
-		if tint != null:
-			_tint_meshes(t, tint)
+	var end_z := float(registry().get("portal", {}).get("z", -15.0)) + float(registry().get("path_end_gap", PATH_END_GAP))   # stop short of the pedestal
+	var zs: Array[float] = []
+	while z > end_z and zs.size() < 40:
+		zs.append(z)
 		z -= len
-		i += 1
-
-
-## Recolours the tiles with a translucent unshaded overlay (the kit's stone material is a custom
-## shader, so albedo can't be multiplied). `c`'s alpha is the strength. One shared material.
-static func _tint_meshes(root: Node3D, ov: Material) -> void:
-	for n in root.find_children("*", "MeshInstance3D", true, false):
-		(n as MeshInstance3D).material_overlay = ov
+	if zs.is_empty():
+		probe.queue_free()
+		return
+	# One MultiMeshInstance3D per mesh in the tile scene (a tile has 2 surfaces) instead of one node
+	# per tile: ~3 draw calls for the whole lane. Surface materials are copied from the scene.
+	for n in probe.find_children("*", "MeshInstance3D", true, false):
+		var mi := n as MeshInstance3D
+		if mi.mesh == null:
+			continue
+		var mesh := mi.mesh.duplicate() as Mesh
+		for k in mesh.get_surface_count():
+			mesh.surface_set_material(k, mi.get_active_material(k))
+		var local := probe.global_transform.affine_inverse() * mi.global_transform
+		var mm := MultiMesh.new()
+		mm.transform_format = MultiMesh.TRANSFORM_3D
+		mm.mesh = mesh
+		mm.instance_count = zs.size()
+		for k in zs.size():
+			mm.set_instance_transform(k, Transform3D(Basis.IDENTITY, Vector3(0.0, 0.0, zs[k])) * local)
+		var mmi := MultiMeshInstance3D.new()
+		mmi.name = "PathLane"
+		mmi.multimesh = mm
+		mmi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		if tint != null:
+			mmi.material_overlay = tint
+		_props_root.add_child(mmi)
+	probe.queue_free()
 
 
 func _scatter(b: Dictionary, zones: Dictionary) -> void:
@@ -285,6 +302,8 @@ func _add_flecks(b: Dictionary) -> void:
 	var mat := StandardMaterial3D.new()
 	mat.albedo_color = Color(String(cfg.get("color", "#7a80a6")))
 	mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+	if mat.albedo_color.a < 1.0:
+		mat.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 	mesh.material = mat
 	var mm := MultiMesh.new()
 	mm.transform_format = MultiMesh.TRANSFORM_3D

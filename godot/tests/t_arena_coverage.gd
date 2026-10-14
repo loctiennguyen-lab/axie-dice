@@ -24,7 +24,7 @@ func _ready() -> void:
 			var sp := String(e.get("scene", ""))
 			_assert(ResourceLoader.exists(sp), "biome '%s' prop %s missing" % [b, sp])
 			_assert(sp.begins_with("res://assets/") and not sp.contains("asset-library"), "prop %s must live under res://assets/" % sp)
-			_assert(["flank", "back", "low", "sky"].has(String(e.get("zone", ""))), "bad zone in '%s'" % b)
+			_assert(["flank", "back", "low", "low_g", "sky"].has(String(e.get("zone", ""))), "bad zone in '%s'" % b)
 		var path := String(bb.get("path", ""))
 		_assert(path == "" or ResourceLoader.exists(path), "biome '%s' path %s missing" % [b, path])
 	_assert(ResourceLoader.exists(String(reg.get("portal", {}).get("scene", ""))), "portal scene missing")
