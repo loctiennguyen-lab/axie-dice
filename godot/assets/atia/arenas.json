@@ -323,7 +323,8 @@
    "flecks": {
     "color": "#8f7ac0",
     "count": 90
-   }
+   },
+   "path_tint": "#9a82e0b0"
   },
   "genesis": {
    "ground": "#8a6a3a",
