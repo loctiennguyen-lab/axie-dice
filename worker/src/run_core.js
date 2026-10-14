@@ -80,6 +80,7 @@ export function argsProblem(kind, args) {
     }
     if (k === 'turn') { if (!Number.isSafeInteger(v) || v < 1 || v > MAX_TURN) return 'turn'; continue; }
     if (k === 'k') { if (!Number.isSafeInteger(v) || v < 1 || v > MAX_K) return 'k'; continue; }
+    if (k === 'slot') { if (!Number.isSafeInteger(v) || v < 0 || v > 2) return 'slot'; continue; } // pact_offer_size 3
     if (k === 'item') { if (typeof v !== 'string' || !IDENT.test(v)) return 'item'; continue; }
     if (k === 'node_id') { if (nodeRow(v) < 1) return 'node_id'; continue; }
     if (!Number.isSafeInteger(v) || v < 0 || v > MAX_ID) return `val_${k}`;

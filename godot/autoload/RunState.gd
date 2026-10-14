@@ -1088,6 +1088,7 @@ func pact_cards() -> Array[Dictionary]:
 		var chk := RelicSlots.check_add(owned_relic_ids, relic_stickers, id, ascension, pending_pact_forced)
 		out.append({"id": id, "name": String(d.name), "description": String(d.description),
 			"group": String(d.pact_group), "rarity": int(d.rarity), "ok": bool(chk["ok"]),
+			"swap_ok": pact_swap_possible(out.size()),
 			"needs_sell": bool(chk["needs_sell"]), "sell_from": (chk["sell_from"] as Array).duplicate()})
 	return out
 
@@ -1144,9 +1145,23 @@ func reroll_pact_slot(slot: int, seed: int = -1) -> bool:
 	return true
 
 
-## Async twin for the Pact screen: asks the epoch (waiting if remote), then swaps.
+## True when card `slot` can be swapped right now: PACT phase, slot in range, and at least one eligible
+## replacement exists. `pick_pact_replacement` returns null only when its candidate list is empty, whatever the
+## seed, so this answer cannot change between the check and the draw (a paid request that then fails is impossible).
+func pact_swap_possible(slot: int) -> bool:
+	if phase != RunPhase.PACT or slot < 0 or slot >= pending_pact.size():
+		return false
+	var keep: Array = []
+	for i in pending_pact.size():
+		if i != slot:
+			keep.append(pending_pact[i])
+	return RewardGenerator.pick_pact_replacement(Rng.new(0), _pact_ctx(), keep, pending_pact[slot]) != null
+
+
+## Async twin for the Pact screen: asks the epoch (waiting if remote), then swaps. Validates BEFORE the request,
+## because a remote request charges the Gem.
 func request_pact_reroll(slot: int) -> Dictionary:
-	if epoch_busy or phase != RunPhase.PACT or slot < 0 or slot >= pending_pact.size():
+	if epoch_busy or not pact_swap_possible(slot):
 		return {"ok": false, "code": "busy" if epoch_busy else "illegal"}
 	_ensure_epoch()
 	epoch_busy = true

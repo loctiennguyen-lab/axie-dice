@@ -18,6 +18,10 @@ const DEFAULT_TEAM: Array[String] = ["plant1", "beast1", "aqua1", "reptile1", "b
 ## Plays a whole run into the live RunState, recording as it goes, and returns
 ## {log, state, score, won, nodes}. Ranked by default, because an unranked run cannot be
 ## verified anywhere but on the machine that played it.
+## Test hook: >= 0 makes the bot pay one Aid R5 swap on that Pact card before taking card 0.
+static var swap_pact_slot: int = -1
+
+
 static func play_run(seed_value: int, team: Array[String] = DEFAULT_TEAM,
 		mode: String = "short", ascension: int = 0) -> Dictionary:
 	RunState.start_new_run(seed_value, team, mode, ascension, true)
@@ -34,6 +38,8 @@ static func play_run(seed_value: int, team: Array[String] = DEFAULT_TEAM,
 				engine.action_log = RunState.action_log
 				play_combat(engine)
 				RunState.apply_combat_result(engine.get_result())
+				if RunState.phase == RunState.RunPhase.PACT and swap_pact_slot >= 0:
+					RunState.reroll_pact_slot(swap_pact_slot)
 				if RunState.phase == RunState.RunPhase.PACT and not RunState.take_pact(0):
 					RunState.skip_pact()
 				if not RunState.pending_rewards.is_empty():

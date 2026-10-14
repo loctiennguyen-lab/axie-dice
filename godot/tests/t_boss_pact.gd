@@ -16,6 +16,7 @@ func _ready() -> void:
 	test_take_and_skip()
 	test_sell_on_full()
 	test_swap_one_card()
+	test_swap_in_a_full_run_replays()
 	test_save_resume()
 	test_log_and_view()
 	test_verifier_refusals()
@@ -135,6 +136,42 @@ func test_swap_one_card() -> void:
 	v.setup(RunState.pact_cards(), true, {})
 	_assert(v.swap_buttons.is_empty(), "no offer (newcomer / below A6): no Swap buttons")
 	v.queue_free()
+
+
+## Full run recorded with one paid swap: the referee accepts it, then each tamper is refused or changes the outcome.
+func test_swap_in_a_full_run_replays() -> void:
+	RunBot.swap_pact_slot = 1
+	var played := _bot_run_with_pact(0)
+	RunBot.swap_pact_slot = -1
+	var log: ActionLog = played["log"]
+	var si := -1
+	for i in log.entries.size():
+		if String((log.entries[i] as Dictionary).get("fn", "")) == "pact_reroll":
+			si = i
+			break
+	_assert(si >= 0, "bot run recorded a pact_reroll")
+	if si < 0:
+		return
+	var ok := RunVerifier.verify(log, played["tape"])
+	_assert(bool(ok["ok"]) and int(ok["score"]) == int(played["score"]), "honest run with a swap verifies: %s" % str(ok["message"]))
+	var t := _clone(log)
+	t.entries.insert(si + 1, {"fn": "pact_reroll", "args": [1, 2]})
+	var extra := RunVerifier.verify(t, played["tape"])
+	# The referee cannot see the price; an extra swap has no tape seed so the replay must refuse or diverge.
+	_assert(not bool(extra["ok"]) or int(extra["score"]) != int(ok["score"]) or _run_swapped_id(extra) != _run_swapped_id(ok),
+		"an extra swap changes something the referee can see")
+	t = _clone(log)
+	t.entries[si]["args"] = [7, 1]
+	_refused(t, played["tape"], "swap of a slot outside the offer")
+	t = _clone(log)
+	t.entries.remove_at(si)
+	var gone := RunVerifier.verify(t, played["tape"])
+	_assert(not bool(gone["ok"]) or _run_swapped_id(gone) != _run_swapped_id(ok),
+		"deleting the swap changes which pact card pick 0 takes (or is refused)")
+
+
+func _run_swapped_id(v: Dictionary) -> String:
+	return str(((v.get("state", {}) as Dictionary).get("pacts_taken", [])))
 
 
 func test_save_resume() -> void:

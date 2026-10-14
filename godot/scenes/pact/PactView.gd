@@ -95,9 +95,10 @@ func _card(i: int, c: Dictionary) -> Control:
 	take_buttons.append(b)
 	if bool(swap_offer.get("show", false)):
 		var sw := Button.new()
-		var enabled := bool(swap_offer.get("enabled", false))
+		var enabled := bool(swap_offer.get("enabled", false)) and bool(c.get("swap_ok", true))
 		sw.text = "Swap  -  %d Gem" % int(swap_offer.get("price", 0)) if enabled \
-			else "Swap  -  %s" % AidPurchase.reason_text(String(swap_offer.get("reason", "")))
+			else "Swap  -  %s" % ("no other pact" if bool(swap_offer.get("enabled", false)) \
+			else AidPurchase.reason_text(String(swap_offer.get("reason", ""))))
 		sw.disabled = not enabled
 		sw.custom_minimum_size.y = 44
 		sw.pressed.connect(func(): swap_requested.emit(i))

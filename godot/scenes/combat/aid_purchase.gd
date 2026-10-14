@@ -123,27 +123,30 @@ static func pact_swap_offer() -> Dictionary:
 	return o
 
 
-## Buys and applies R5 on card `slot`. Same charging rule as buy(): local spends here (refund if refused),
-## remote is charged by the RunDO inside the pact_reroll epoch request. Returns {ok, code, charged}.
-static func buy_pact_swap(slot: int) -> Dictionary:
+## Buys and applies R5 on card `slot`. Validated first (slot + a replacement exists), so a paid request cannot fail
+## on the rules afterwards. Local: the swap is applied, `save_cb` writes the run, and ONLY THEN the Gem is spent, so a
+## kill in between loses at most a free swap and never a charge without the swap. Remote: the RunDO charges inside the
+## pact_reroll request. Returns {ok, code, charged}.
+static func buy_pact_swap(slot: int, save_cb: Callable = Callable()) -> Dictionary:
 	var o := pact_swap_offer()
 	if not bool(o["show"]) or not bool(o["enabled"]):
 		return {"ok": false, "code": String(o["reason"]), "charged": 0}
+	if not RunState.pact_swap_possible(slot):
+		return {"ok": false, "code": "illegal", "charged": 0}
 	var price := int(o["price"])
 	var remote := is_remote()
-	var spent := 0
-	if not remote and price > 0:
-		if not MetaState.spend("gem", price, "aid:R5"):
-			return {"ok": false, "code": "no_gems", "charged": 0}
-		spent = price
 	var r: Dictionary = await RunState.request_pact_reroll(slot)
 	if not bool(r["ok"]):
-		if spent > 0:
-			MetaState.gem_wallet().grant(spent, "aid_refund")
 		return {"ok": false, "code": String(r["code"]), "charged": 0}
 	RunState.record_aid_use("R5")
+	var spent := 0
 	if remote:
 		var w := MetaState.gem_wallet()
 		if w.has_method("refresh"):
 			w.call("refresh")
+	else:
+		if save_cb.is_valid():
+			save_cb.call()
+		if price > 0 and MetaState.spend("gem", price, "aid:R5"):
+			spent = price
 	return {"ok": true, "code": "", "charged": spent}
