@@ -58,11 +58,20 @@ func _ready() -> void:
 	LandNav.last_path = ""
 	hub.call("_handle_key", KEY_6)
 	_check(LandNav.last_path == "res://scenes/vault/Vault.tscn", "phím 6 phải mở Vault")
-	# Keys 8 / 9 are unused; Leaderboard has no screen yet and never navigates.
+	# Key 8 is unused. B opens the Leaderboard (C6), except for a newcomer (locked). The hub's newcomer
+	# flag comes from the real save, so set it here instead of trusting the machine's save.
 	LandNav.last_path = ""
 	hub.call("_handle_key", KEY_8)
+	_check(LandNav.last_path == "", "phím 8 không được điều hướng")
+	var nc_was: bool = hub.get("_newcomer")
+	hub.set("_newcomer", true)
 	hub.call("_handle_key", KEY_B)
-	_check(LandNav.last_path == "", "phím 8 / B không được điều hướng")
+	_check(LandNav.last_path == "", "người mới: phím B không mở Leaderboard (khoá)")
+	hub.set("_newcomer", false)
+	hub.call("_handle_key", KEY_B)
+	_check(LandNav.last_path == "res://scenes/leaderboard/Leaderboard.tscn", "phím B mở Leaderboard")
+	LandNav.last_path = ""
+	hub.set("_newcomer", nc_was)
 	# Screens that do not exist yet are 'Coming soon', not a crash or a blank scene.
 	LandNav.last_path = ""
 	(hub.find_child("Hit_missions", true, false) as Button).emit_signal("pressed")

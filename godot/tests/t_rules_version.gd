@@ -197,7 +197,8 @@ const WATCHED_FILES: Array[String] = ["res://assets/data/part_faces.json"]
 ## BUMPED, 2026-10-14: `ActionLog.RULES_VERSION` -> `godot-2026-10-13-m`. L1 B11: Aid R5, swap ONE boss Pact card
 ## (`RunState.reroll_pact_slot`, `RewardGenerator.pick_pact_replacement`, action `pact_reroll` [slot, n], replayed by
 ## RunVerifier). Changes what a run can contain. Worker SUPPORTED_RULE_VERSIONS gained -m.
-const FINGERPRINT := "4d128f302fa02aaf3f415e1541134372ecd746cd75960e45ebe3f64fba167f03"
+## Moved 2026-10-14 by C6 a2ceadd: MetaState team_presets field (meta only). Run result: NO, stays -m.
+const FINGERPRINT := "9658bce10d5c4f1b4b466ae8c288d454ff863125ba61459a505c03b56ef47e3a"
 
 
 func _ready() -> void:
