@@ -247,8 +247,15 @@ func _refresh() -> void:
 	_body.add_child(_card("DailyCard", "Daily reward",
 		"%d Shard + %d Pass XP. Resets at %s." % [int(d.get("shards", 0)), int(d.get("xp", 0)), String(_Econ.get_table("daily").get("reset", "00:00 UTC"))], cb))
 	var w: Dictionary = _Econ.get_table("daily").get("weekly_bonus", {})
-	_body.add_child(_card("WeeklyCard", "Weekly bonus",
-		"Claim the daily reward on %d days in a week: +%d Shard + %d Stone." % [int(w.get("min_days", 4)), int(w.get("shards", 0)), int(w.get("stone", 0))], null))
+	var need := int(w.get("min_days", 4))
+	var have := MetaState.weekly_daily_days()
+	var dots := ""
+	for i in need:
+		dots += "● " if i < have else "○ "
+	var wtxt := "Claim the daily reward on %d days in a week: +%d Shard + %d Stone.\n%s(%d/%d)" % [need, int(w.get("shards", 0)), int(w.get("stone", 0)), dots, mini(have, need), need]
+	if MetaState.weekly_bonus_paid():
+		wtxt += "  Paid this week."
+	_body.add_child(_card("WeeklyCard", "Weekly bonus", wtxt, null))
 	var g: Dictionary = _Econ.get_table("gem").get("gift", {})
 	var gs := gift_state()
 	var gb := _button("Claimed" if gs == "done" else ("Claim %d Gem" % int(g.get("per_day", 300))), 190, 56, gs == "claim")
