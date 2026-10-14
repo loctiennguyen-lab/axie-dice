@@ -363,20 +363,21 @@
     },
     {
      "scene": "res://assets/atia/arena/scenes/HomeLand_Asset/Environment/Genesis/Shrub/G_Shrub01_Allside.tscn",
-     "count": 8,
+     "count": 11,
      "zone": "low",
      "height_m": [
-      1.0,
-      1.8
+      1.8,
+      2.8
      ]
     }
    ],
-   "path": "",
+   "path": "res://assets/atia/arena/scenes/HomeLand_Asset/Environment/Savannah/Decoration/StonePath/S_StonePath_Straight.tscn",
    "fog_density": 0.0035,
    "flecks": {
     "color": "#c4a468",
     "count": 90
-   }
+   },
+   "path_tint": "#f2e2b080"
   },
   "luna": {
    "ground": "#555a73",
