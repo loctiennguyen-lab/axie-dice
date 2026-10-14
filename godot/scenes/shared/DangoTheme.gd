@@ -235,6 +235,9 @@ const LAND_SAVANNAH := Color(0xF8 / 255.0, 0xB8 / 255.0, 0x48 / 255.0)
 const LAND_FOREST := Color(0x88 / 255.0, 0xC8 / 255.0, 0x58 / 255.0)
 const LAND_ARCTIC := Color(0x98 / 255.0, 0xD8 / 255.0, 0xB8 / 255.0)
 const LAND_MYSTIC := Color(0xC2 / 255.0, 0xA6 / 255.0, 0xF4 / 255.0)
+const LAND_GENESIS := Color(0x5F / 255.0, 0xBF / 255.0, 0x9A / 255.0)
+const LAND_LUNA := Color(0xE8 / 255.0, 0xD2 / 255.0, 0x7A / 255.0)
+const LAND_STONE := Color(0xB8 / 255.0, 0xA2 / 255.0, 0x7A / 255.0)   # Land Stone currency dot
 
 
 static func land_color(land: String) -> Color:
