@@ -101,3 +101,5 @@ hạn/ngày, NFT dùng được) · UI request 02 + Round 1 · L1 = 3/11 nội b
   3 lượt/ngày UTC, run bỏ dở vẫn tính 1 lượt; thưởng Daily (60 Shard + 500 Stone + 100 Pass XP sau 1 run xong) là QUÀ RIÊNG,
   cộng thêm ngoài quà daily cũ. Ranked: MỞ ĐỦ + leaderboard trong L1 (Worker: bảng điểm + nộp/đọc điểm, bỏ chặn ALLOW_GATED_MODES
   cho ranked, khoá newcomer, cấm Axie import).
+- (Liam 14/10, đã chốt) B11: R4 (dời đồng hồ) giữ "Coming soon" tới khi chốt ví chung (LIAM-2). R5 (đổi pact): đổi 1 thẻ,
+  nút Swap dưới mỗi thẻ, thẻ mới cùng pool, khác 2 thẻ còn lại và thẻ bị thay, cùng nhóm drawback nếu pool đủ, seed tất định.
