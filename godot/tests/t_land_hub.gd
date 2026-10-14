@@ -137,6 +137,27 @@ func _ready() -> void:
 	LandNav.last_path = ""
 	(ht.find_child("Hit_pass", true, false) as Button).emit_signal("pressed")
 	_check(LandNav.last_path == "res://scenes/pass/Pass.tscn", "chuột phải mở thẳng sau khi hết touch")
+	# Touch latch: ScreenTouch -> on; emulated mouse keeps it; real mouse (device 0) clears it.
+	var tt := InputEventScreenTouch.new()
+	tt.pressed = true
+	ht._input(tt)
+	_check(ht.call("_is_touch"), "ScreenTouch bật touch")
+	var em := InputEventMouseButton.new()
+	em.pressed = true
+	em.device = InputEvent.DEVICE_ID_EMULATION
+	ht._input(em)
+	_check(ht.call("_is_touch"), "chuột giả lập từ touch giữ touch")
+	# Tap on empty ground closes the open sign.
+	(ht.find_child("Hit_vault", true, false) as Button).emit_signal("pressed")
+	_check(not (ht.find_child("Sign_vault", true, false) as Control).visible or ht.get("_touch_id") == "vault", "mở biển")
+	ht._unhandled_input(tt)
+	_check(ht.get("_touch_id") == "", "chạm đất trống đóng biển")
+	var rm := InputEventMouseButton.new()
+	rm.pressed = true
+	rm.device = 0
+	ht._input(rm)
+	_check(not ht.call("_is_touch"), "chuột thật tắt touch")
+	ht.set("_touch_mode", true)
 	# UI scale floor (~1.275 at 1280x720): HUD stays in the viewport and clear of the dock.
 	ht.call("_place_hud", 1.275)
 	var vp := Rect2(Vector2.ZERO, (ht.get("_ui") as Control).size)
@@ -191,5 +212,8 @@ func _collect_scenes(dir_path: String, out: Array[String]) -> void:
 		_collect_scenes(dir_path.path_join(d), out)
 
 
+## Real on-screen rect: transforms the control's own rect through its global transform (scale + pivot).
 func _srect(c: Control) -> Rect2:
-	return Rect2(c.position, c.get_combined_minimum_size() * c.scale)
+	var xf := c.get_global_transform()
+	var sz := c.get_combined_minimum_size()
+	return xf * Rect2(Vector2.ZERO, sz)

@@ -756,6 +756,17 @@ func _input(event: InputEvent) -> void:
 		_refresh_signs()
 
 
+## Touch: a tap that no sign/button/HUD control consumed (empty ground) closes the open sign.
+func _unhandled_input(event: InputEvent) -> void:
+	if not _touch_mode or _touch_id == "":
+		return
+	var tap: bool = (event is InputEventScreenTouch and event.pressed) \
+		or (event is InputEventMouseButton and event.pressed and event.device == InputEvent.DEVICE_ID_EMULATION)
+	if tap:
+		_touch_id = ""
+		_refresh_signs()
+
+
 func _on_hit_pressed(id: String) -> void:
 	if _is_touch() and id != "portal" and _touch_id != id:
 		_touch_id = id
