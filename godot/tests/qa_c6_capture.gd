@@ -38,7 +38,7 @@ func _ready() -> void:
 		rows.append({"rank": i + 1, "name": ["Kito", "Mara_v", "Tamsin", "Okonkwo", "lunarfox", "Bao Tran", "Hikari", "Petra", "dicegoblin", "Quang", "Ines R."][i],
 			"land": lands[i], "aid": "Aid" if i in [1, 5] else "", "score": 2480 - i * 61, "mode": "Short · ranked", "date": "%d Oct 2026" % (11 - i % 4),
 			"detail": {"summary": "Won · Full · A6 · 52 turns", "party": ["plant1", "beast1", "aqua1"], "aid_note": "Aid used 2"}})
-	stub.boards["6|pure|week"] = {"rows": rows, "me": {"rank": 48, "name": "Liam", "land": "Savannah", "aid": "", "score": 1612, "mode": "Short · ranked", "date": "10 Oct 2026"}}
+	stub.boards["6|season"] = {"rows": rows, "me": {"rank": 48, "name": "Liam", "land": "Savannah", "aid": "", "score": 1612, "mode": "Short · ranked", "date": "10 Oct 2026"}}
 	var lb: LeaderboardScreen = load("res://scenes/leaderboard/Leaderboard.tscn").instantiate()
 	lb.use_account = false
 	lb.no_scene_change = true

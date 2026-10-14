@@ -46,13 +46,38 @@ func _ready() -> void:
 	var got := {"_": 1}
 	LeaderboardSource.new().fetch({"asc": 1}, func(r: Dictionary) -> void: got.clear(); got.merge(r))
 	_ok(got.get("ok") == false and got.get("reason") == "no_endpoint", "base source: no_endpoint")
-	_ok(LeaderboardSource.query_key({"asc": 6, "filter": "pure", "period": "week"}) == "6|pure|week", "query key")
+	_ok(LeaderboardSource.query_key({"asc": 6, "period": "season"}) == "6|season", "query key")
 	var stub := LeaderboardSourceStub.new()
-	stub.boards["6|pure|week"] = {"rows": _rows(12), "me": {"rank": 48, "name": "Liam", "land": "Savannah", "aid": "", "score": 1612, "mode": "Short · ranked", "date": "10 Oct 2026"}}
-	stub.fetch({"asc": 6, "filter": "pure", "period": "week"}, func(r: Dictionary) -> void: got.clear(); got.merge(r))
+	stub.boards["6|season"] = {"rows": _rows(12), "me": {"rank": 48, "name": "Liam", "land": "Savannah", "aid": "", "score": 1612, "mode": "Short · ranked", "date": "10 Oct 2026"}}
+	stub.fetch({"asc": 6, "period": "season"}, func(r: Dictionary) -> void: got.clear(); got.merge(r))
 	_ok(got.get("ok") == true and (got["rows"] as Array).size() == 12 and int(got["me"]["rank"]) == 48, "stub returns board")
-	stub.fetch({"asc": 2, "filter": "pure", "period": "week"}, func(r: Dictionary) -> void: got.clear(); got.merge(r))
+	stub.fetch({"asc": 2, "period": "season"}, func(r: Dictionary) -> void: got.clear(); got.merge(r))
 	_ok(got.get("ok") == true and (got["rows"] as Array).is_empty(), "stub: missing board is empty")
+
+	# ---- adapter: Worker JSON -> rows, season/today -> board, optional columns hidden
+	var seen := {}
+	var ad := RemoteLeaderboardAdapter.new()
+	ad.remote.http = func(_m: String, path: String, _b: String, cb: Callable) -> void:
+		seen["path"] = path
+		cb.call(200, JSON.stringify({"season": "s1", "board": "daily", "mode": "short", "ascension": 3, "entries": [{"rank": 1, "name": "Kito", "score": 2480, "won": true}, {"rank": 2, "name": "Mara", "score": 2400, "won": false}], "self": {"rank": 9, "score": 1500}, "total": 40}))
+	ad.fetch({"asc": 3, "period": "today"}, func(r: Dictionary) -> void: got.clear(); got.merge(r))
+	_ok(String(seen["path"]).contains("board=daily") and String(seen["path"]).contains("asc=3") and String(seen["path"]).contains("mode=short"), "today -> board=daily")
+	_ok(got["ok"] == true and got["rows"].size() == 2 and got["rows"][0]["won"] == true and int(got["me"]["rank"]) == 9, "adapter maps entries + self")
+	ad.fetch({"asc": 3, "period": "season"}, func(r: Dictionary) -> void: got.clear(); got.merge(r))
+	_ok(String(seen["path"]).contains("board=season"), "season -> board=season")
+	ad.remote.http = func(_m: String, _p: String, _b: String, cb: Callable) -> void: cb.call(0, "")
+	ad.fetch({"asc": 3, "period": "season"}, func(r: Dictionary) -> void: got.clear(); got.merge(r))
+	_ok(got["ok"] == false and got["reason"] == "offline", "code 0 -> offline")
+	ad.remote.http = func(_m: String, _p: String, _b: String, cb: Callable) -> void: cb.call(500, "{}")
+	ad.fetch({"asc": 3, "period": "season"}, func(r: Dictionary) -> void: got.clear(); got.merge(r))
+	_ok(got["ok"] == false and got["reason"] == "error", "server error -> error")
+	var worker_stub := LeaderboardSourceStub.new()
+	worker_stub.boards["6|season"] = {"rows": [{"rank": 1, "name": "Kito", "score": 2480, "won": true}, {"rank": 2, "name": "Mara", "score": 2400, "won": false}], "me": {"rank": 9, "score": 1500}}
+	var w := await _make(worker_stub)
+	var keys: Array = w.columns().map(func(c): return c[0])
+	_ok(keys == ["rank", "name", "score", "won"], "only the columns the Worker sends: %s" % str(keys))
+	_ok(w.find_child("Pinned", true, false).find_children("*", "Label", true, false).any(func(l): return (l as Label).text == "1,500"), "pinned self row from {rank, score}")
+	w.queue_free()
 
 	# ---- default source: failed banner with Try again + Back to Land
 	var d := await _make(LeaderboardSource.new())
@@ -62,7 +87,7 @@ func _ready() -> void:
 
 	# ---- normal board
 	var s := await _make(stub)
-	_ok(s.asc == 6, "best Ascension preselected")
+	_ok(s.asc == 6 and s.period == "season", "best Ascension + Season preselected")
 	_ok(s.status == "ok" and s.rows.size() == 12, "rows loaded")
 	_ok(s.find_child("Row11", true, false) != null, "12 rows drawn")
 	_ok(s.find_child("Pinned", true, false) != null, "own row pinned")
@@ -80,21 +105,20 @@ func _ready() -> void:
 	await get_tree().process_frame
 	_ok(s.find_child("Detail", true, false) == null, "detail closes")
 	# filters / periods / chips drive the query
-	s.set_filter("all")
-	s.set_period("season")
+	s.set_period("today")
 	s.set_asc(4)
 	var last: Dictionary = stub.calls[stub.calls.size() - 1]
-	_ok(last["asc"] == 4 and last["filter"] == "all" and last["period"] == "season", "controls drive the query")
+	_ok(last["asc"] == 4 and last["period"] == "today" and not last.has("filter"), "controls drive the query (Season/Today only)")
+	_ok(s.find_child("Seg_week", true, false) == null and s.find_child("Seg_pure", true, false) == null, "no Week, no Pure/All/Mission controls")
+	_ok(s.find_child("Seg_season", true, false) != null and s.find_child("Seg_today", true, false) != null, "Season + Today present")
 	_ok(s.status == "empty" and s.find_child("Empty", true, false) != null, "empty board state")
 	s.set_asc(9)
 	_ok(s.is_locked() and String(s._line_lbl.text).begins_with("Locked for you: win a run at A8"), "locked board is readable with a reason")
-	_ok(s.filter == "all", "filter unchanged by bad value")
 
 	# ---- loading
 	stub.pending = true
 	s.set_asc(6)
-	s.set_filter("pure")
-	s.set_period("week")
+	s.set_period("season")
 	await get_tree().process_frame
 	_ok(s.status == "loading" and s.find_child("Skeleton", true, false) != null, "loading skeleton")
 	_ok(s.find_child("Back", true, false) != null and s.find_child("Asc3", true, false) != null, "header and chips stay live while loading")
@@ -132,7 +156,7 @@ func _ready() -> void:
 	g.queue_free()
 	var n := await _make(stub, {"newcomer": true})
 	var nt := n.find_child("Pinned", true, false).find_children("*", "Label", true, false).map(func(l): return (l as Label).text)
-	_ok(nt.any(func(t): return String(t).begins_with("   Ranked opens after")), "newcomer pinned row text")
+	_ok(nt.any(func(t): return String(t).begins_with("Ranked opens after")), "newcomer pinned row text")
 	n.queue_free()
 
 	# ---- Land: hub no longer says Coming soon for the board

@@ -216,6 +216,7 @@ static func confirm(modal_layer: Control, title: String, body: String, keep_text
 ## fit_or_scroll whose cap follows `panel`'s height (minus `reserve` px of chrome) instead of a
 ## fixed number, so it re-fits on every window size.
 static func fit_in(inner: Control, panel: Control, reserve: float) -> ScrollContainer:
+	inner.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	var vp_h: float = panel.get_viewport_rect().size.y
 	var sc := DangoScreen.fit_or_scroll(inner, maxf(220.0, vp_h - 2.0 * DangoScreen.SAFE - reserve))
 	var refit := func() -> void:
