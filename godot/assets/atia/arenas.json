@@ -56,6 +56,16 @@
     -45.0,
     -44.0
    ]
+  },
+  "low_g": {
+   "x": [
+    9.5,
+    22.0
+   ],
+   "z": [
+    -20.0,
+    1.0
+   ]
   }
  },
  "biomes": {
@@ -321,10 +331,10 @@
    "path": "res://assets/atia/arena/scenes/HomeLand_Asset/Environment/Mystic/Decor/M_StonePath_Straight.tscn",
    "fog_density": 0.0035,
    "flecks": {
-    "color": "#8f7ac0",
+    "color": "#8f7ac060",
     "count": 90
    },
-   "path_tint": "#9a82e0b0"
+   "path_tint": "#c9b8ffd0"
   },
   "genesis": {
    "ground": "#8a6a3a",
@@ -364,7 +374,7 @@
     {
      "scene": "res://assets/atia/arena/scenes/HomeLand_Asset/Environment/Genesis/Shrub/G_Shrub01_Allside.tscn",
      "count": 11,
-     "zone": "low",
+     "zone": "low_g",
      "height_m": [
       1.8,
       2.8
@@ -374,7 +384,7 @@
    "path": "res://assets/atia/arena/scenes/HomeLand_Asset/Environment/Savannah/Decoration/StonePath/S_StonePath_Straight.tscn",
    "fog_density": 0.0035,
    "flecks": {
-    "color": "#c4a468",
+    "color": "#c4a46860",
     "count": 90
    },
    "path_tint": "#f2e2b080"
