@@ -398,9 +398,7 @@ func _enemy_rect() -> Rect2:
 			box = r if box.size == Vector2.ZERO else box.merge(r)
 	if box.size == Vector2.ZERO:
 		return Rect2()
-	var line := _node("_front_line")
-	var bottom: float = line.global_position.y if line != null else box.end.y
-	box = box.grow_individual(46.0, 6.0, 46.0, maxf(bottom - box.end.y, 0.0))
+	box = box.grow_individual(46.0, 6.0, 46.0, 6.0)
 	return box
 
 
