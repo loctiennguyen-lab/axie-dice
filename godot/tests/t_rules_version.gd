@@ -198,7 +198,8 @@ const WATCHED_FILES: Array[String] = ["res://assets/data/part_faces.json"]
 ## (`RunState.reroll_pact_slot`, `RewardGenerator.pick_pact_replacement`, action `pact_reroll` [slot, n], replayed by
 ## RunVerifier). Changes what a run can contain. Worker SUPPORTED_RULE_VERSIONS gained -m.
 ## Moved 2026-10-14 by C6 a2ceadd: MetaState team_presets field (meta only). Run result: NO, stays -m.
-const FINGERPRINT := "9658bce10d5c4f1b4b466ae8c288d454ff863125ba61459a505c03b56ef47e3a"
+## Moved 2026-10-14 by C6 Land upgrade 664b1a0: MetaState land_tier + upgrade_land (meta only). Run result: NO, stays -m.
+const FINGERPRINT := "2ffc8c198c98ba988dbfee680d0c0fc6dc34a9dd42d074cd4c201000a2e70129"
 
 
 func _ready() -> void:
