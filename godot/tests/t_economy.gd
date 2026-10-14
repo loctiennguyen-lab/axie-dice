@@ -960,6 +960,36 @@ func test_daily_claim_stone() -> void:
 	MetaState.save_to_disk()
 	MetaState.reload_from_store()
 	_assert(MetaState.weekly_bonus_paid(), "weekly: cờ đã trả bền qua reload")
+	var led_w := 0
+	var led_ws := 0
+	for l in MetaState.ledger:
+		if String(l.get("r", "")) == "daily_weekly":
+			if String(l.get("c", "")) == "stone": led_w += int(l.get("d", 0))
+			if String(l.get("c", "")) == "shard": led_ws += int(l.get("d", 0))
+	_assert(led_w == int(wb.stone) and led_ws == int(wb.shards), "weekly: Shard + Stone vào sổ cái")
+	# cùng ngày claim lần hai: không trả lại
+	var same := MetaState.shard_pool
+	MetaState.claim_daily_mission()
+	_assert(MetaState.shard_pool == same, "weekly: claim lần hai cùng ngày không trả thêm")
+	# save cũ không có `paid`: coi là chưa trả, trả đúng một lần
+	_fresh_meta(0, 0)
+	MetaState.daily_date = "2000-01-01"
+	MetaState.daily_week = {"week": wk, "n": int(wb.min_days) - 1}
+	MetaState.save_to_disk()
+	MetaState.reload_from_store()
+	_assert(not MetaState.weekly_bonus_paid() and not bool(MetaState.daily_week.get("paid", true)), "weekly: save cũ thiếu paid = chưa trả")
+	MetaState.claim_daily_mission()
+	_assert(MetaState.weekly_bonus_paid(), "weekly: save cũ vẫn trả khi đủ ngày")
+	# sang tuần mới: paid + n reset, trả lại ở tuần sau
+	MetaState.daily_date = "2000-01-01"
+	MetaState.daily_week = {"week": "2000-01-03", "n": int(wb.min_days), "paid": true}
+	MetaState.claim_daily_mission()
+	_assert(MetaState.weekly_daily_days() == 1 and not bool(MetaState.daily_week["paid"]), "weekly: tuần mới reset n và paid")
+	MetaState.daily_week["n"] = int(wb.min_days) - 1
+	MetaState.daily_date = "2000-01-01"
+	var pre := MetaState.stone
+	MetaState.claim_daily_mission()
+	_assert(MetaState.weekly_bonus_paid() and MetaState.stone == pre + int((_Econ.get_table("daily").daily_reward as Dictionary).stone) + int(wb.stone), "weekly: trả lại ở tuần kế")
 
 
 ## MetaState.pass_state() chỉ đọc + pass_claim_post30() đi qua PassV2.

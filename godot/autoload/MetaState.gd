@@ -115,7 +115,7 @@ var full_a9_won: bool = false
 var aid_hints_off: bool = false
 var last_daily_reward_utc: String = ""
 ## Số ngày UTC đã nhận daily trong tuần (thứ Hai UTC): {"week": "YYYY-MM-DD", "n": 0}. Cho chấm tuần M8.
-var daily_week: Dictionary = {"week": "", "n": 0}
+var daily_week: Dictionary = {"week": "", "n": 0, "paid": false}
 ## Sổ cái (200 dòng cuối): {t, c, d, r, b} = thời điểm, tiền tệ, thay đổi, lý do, số dư sau.
 var ledger: Array = []
 const LEDGER_MAX := 200
@@ -490,7 +490,7 @@ func _reset_economy_fields() -> void:
 	full_a9_won = false
 	aid_hints_off = false
 	last_daily_reward_utc = ""
-	daily_week = {"week": "", "n": 0}
+	daily_week = {"week": "", "n": 0, "paid": false}
 	ledger = []
 
 
@@ -584,7 +584,7 @@ func _economy_from_json(parsed: Dictionary, raw_text: String = "") -> void:
 	aid_hints_off = bool(parsed.get("aid_hints_off", false))
 	last_daily_reward_utc = str(parsed.get("last_daily_reward_utc", ""))
 	var dw = parsed.get("daily_week", {})
-	daily_week = {"week": String(dw.get("week", "")), "n": maxi(0, int(dw.get("n", 0))), "paid": bool(dw.get("paid", false))} if dw is Dictionary else {"week": "", "n": 0}
+	daily_week = {"week": String(dw.get("week", "")), "n": maxi(0, int(dw.get("n", 0))), "paid": bool(dw.get("paid", false))} if dw is Dictionary else {"week": "", "n": 0, "paid": false}
 	ledger = (parsed.get("ledger", []) as Array).duplicate(true) if parsed.get("ledger", []) is Array else []
 	starter_granted = bool(parsed.get("starter_granted", false))
 	if ver < SAVE_VERSION:
@@ -1248,7 +1248,7 @@ func claim_daily_mission() -> bool:
 	if daily_date == today:
 		return false
 	daily_date = today
-	shard_pool += ContentDB.DAILY_MISSION_SHARD
+	add_shards(ContentDB.DAILY_MISSION_SHARD, "daily", false)
 	var stone_n := int((EconomyDBScript.get_table("daily").get("daily_reward", {}) as Dictionary).get("stone", 0))
 	if stone_n > 0:
 		add_stone(stone_n, "daily", false)
@@ -1282,7 +1282,7 @@ func _grant_weekly_bonus_if_due() -> bool:
 	if need <= 0 or bool(daily_week.get("paid", false)) or int(daily_week.get("n", 0)) < need:
 		return false
 	daily_week["paid"] = true
-	shard_pool += int(w.get("shards", 0))
+	add_shards(int(w.get("shards", 0)), "daily_weekly", false)
 	add_stone(int(w.get("stone", 0)), "daily_weekly", false)
 	return true
 
