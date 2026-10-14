@@ -2170,7 +2170,12 @@ func _show_pact_overlay() -> void:
 	var view := PactView.new()
 	view.name = "PactView"
 	host.add_child(view)
-	view.setup(RunState.pact_cards(), RunState.pact_can_skip())
+	view.setup(RunState.pact_cards(), RunState.pact_can_skip(), AidPurchase.pact_swap_offer())
+	view.swap_requested.connect(func(i: int):
+		var res: Dictionary = await AidPurchase.buy_pact_swap(i, _save_map_progress)
+		if bool(res["ok"]) and is_instance_valid(view):
+			_save_map_progress()
+			view.setup(RunState.pact_cards(), RunState.pact_can_skip(), AidPurchase.pact_swap_offer()))
 	view.picked.connect(func(i: int, sell_id: String):
 		if RunState.take_pact(i, sell_id):
 			_after_pact())

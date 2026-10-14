@@ -260,3 +260,31 @@ test('cap is atomic: two concurrent claims on different days cannot push the bal
   assert.deepEqual(rs.map((r) => r.granted).sort((a, b) => a - b), [0, 100]);
   assert.equal(env.DB.db.prepare(`SELECT COUNT(*) AS n FROM wallet_ledger WHERE delta = 0`).get().n, 0);
 });
+
+const PR = (slot = 0) => ({ fn: 'pact_reroll', args: [slot, 1] });
+test('R5 pact_reroll: slot must be 0..2; per-run cap 4 across nodes; 15 Gem each', async () => {
+  const { ep, env } = await paidRun(2000);
+  for (const slot of [3, -1, 99, 1.5, '1']) {
+    assert.equal((await ep('pact_reroll', { node_id: 'r1_c0', slot }, [EN])).code, 'bad_request', `slot ${slot}`);
+  }
+  let ok = 0;
+  for (let n = 1; n <= 6; n++) {
+    const r = await ep('pact_reroll', { node_id: `r${n}_c0`, slot: n % 3 }, [n === 1 ? EN : PR(n % 3)]);
+    if (r.t === 'epoch_res') ok++;
+  }
+  assert.equal(ok, 4); // cap_run 4
+  assert.equal(await balanceOf(env, 'p1'), 2000 - 4 * 15);
+});
+
+test('R5 counts toward the total Aid cap (6 at A0, 4 at A9) and is refused with no charge', async () => {
+  const { ep, env } = await paidRun(2000);
+  let first = true;
+  for (let k = 1; k <= 4; k++) {
+    await ep('reroll', { turn: 1, k, source: 'aid', uids: [1] }, [first ? EN : { fn: 'reroll_dice', args: [[1], 0] }]);
+    first = false;
+  }
+  assert.equal((await ep('pact_reroll', { node_id: 'r1_c0', slot: 0 }, [{ fn: 'reroll_dice', args: [[1], 0] }])).t, 'epoch_res');
+  assert.equal((await ep('pact_reroll', { node_id: 'r2_c0', slot: 0 }, [PR()])).t, 'epoch_res'); // 6th paid use
+  assert.equal((await ep('pact_reroll', { node_id: 'r3_c0', slot: 0 }, [PR()])).code, 'rejected'); // total cap
+  assert.equal(await balanceOf(env, 'p1'), 2000 - 6 * 15);
+});

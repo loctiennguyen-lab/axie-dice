@@ -105,3 +105,48 @@ static func buy(ui_id: String, combat: CombatEngine, uids: Array = [], tutorial:
 		if w.has_method("refresh"):
 			w.call("refresh")   # server charged inside the epoch request; update the display
 	return {"ok": true, "code": "", "charged": spent}
+
+
+## ---- R5: swap one boss Pact card (PactView) ----
+
+## AidCatalog.offer("R5") for the open Pact screen, plus used/cap for the panel. Price and caps from aid_prices.json.
+static func pact_swap_offer() -> Dictionary:
+	var ctx := {
+		"mission": not RunState.mission.is_empty(), "newcomer": MetaState.is_newcomer(),
+		"ascension": RunState.ascension, "node_kind": "pact", "at_pact": RunState.phase == RunState.RunPhase.PACT,
+		"node_id": RunState.current_node_id, "uses": RunState.aid_uses_view(), "boon_used": RunState.boon_used,
+		"vip": false, "gems": MetaState.gem_wallet().balance(),
+	}
+	var o := AidCatalog.offer("R5", ctx)
+	o["used"] = (ctx["uses"] as Array).size() + (1 if bool(ctx["boon_used"]) else 0)
+	o["cap"] = total_cap(RunState.ascension)
+	return o
+
+
+## Buys and applies R5 on card `slot`. Validated first (slot + a replacement exists), so a paid request cannot fail
+## on the rules afterwards. Local: the swap is applied, `save_cb` writes the run, and ONLY THEN the Gem is spent, so a
+## kill in between loses at most a free swap and never a charge without the swap. Remote: the RunDO charges inside the
+## pact_reroll request. Returns {ok, code, charged}.
+static func buy_pact_swap(slot: int, save_cb: Callable = Callable()) -> Dictionary:
+	var o := pact_swap_offer()
+	if not bool(o["show"]) or not bool(o["enabled"]):
+		return {"ok": false, "code": String(o["reason"]), "charged": 0}
+	if not RunState.pact_swap_possible(slot):
+		return {"ok": false, "code": "illegal", "charged": 0}
+	var price := int(o["price"])
+	var remote := is_remote()
+	var r: Dictionary = await RunState.request_pact_reroll(slot)
+	if not bool(r["ok"]):
+		return {"ok": false, "code": String(r["code"]), "charged": 0}
+	RunState.record_aid_use("R5")
+	var spent := 0
+	if remote:
+		var w := MetaState.gem_wallet()
+		if w.has_method("refresh"):
+			w.call("refresh")
+	else:
+		if save_cb.is_valid():
+			save_cb.call()
+		if price > 0 and MetaState.spend("gem", price, "aid:R5"):
+			spent = price
+	return {"ok": true, "code": "", "charged": spent}

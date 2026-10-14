@@ -176,6 +176,10 @@ static func verify(log: ActionLog, tape: Array = [], loadout: Dictionary = {}) -
 					ok_p = RunState.skip_pact() if pi == -1 else RunState.take_pact(pi, String(args[1]) if args.size() > 1 else "")
 				if not ok_p:
 					return _fail(ERR_REJECTED, "A pact pick was recorded that the replay cannot make.", i)
+			"pact_reroll":
+				var rs := int(args[0]) if args.size() > 0 else -1
+				if RunState.phase != RunState.RunPhase.PACT or not RunState.reroll_pact_slot(rs):
+					return _fail(ERR_REJECTED, "A pact swap was recorded that the replay cannot make.", i)
 			"take_reward":
 				if RunState.phase == RunState.RunPhase.PACT:
 					return _fail(ERR_REJECTED, "A reward was taken before the boss Pact was settled.", i)

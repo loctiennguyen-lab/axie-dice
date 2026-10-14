@@ -37,7 +37,7 @@ sẵn** · báo lỗi bằng **một Google Sheet** (Liam làm) · Cloudflare g�
 - [x] B9 (13/10, merge 462eefd: run lưu bằng luật cũ bị bỏ kèm thông báo + cược Nhiệm vụ tính thua; save cũ v1 reset tiền tệ theo thiết kế — Liam chọn A; test t_save_upgrade). Save không mất: chạy thử cập nhật bản cũ → bản mới trên save thật (bản sao), cloud save qua tài khoản.
 
 - [x] B10 (13/10, merge 1cf344d; cần deploy Worker). Continue miễn phí cho người mới (lần thua elite/boss đầu, A0–A2, monetization-v1 §2.6/E13) — cần bộ đếm theo tài khoản (server). Đang: người mới không có Continue.
-- [ ] B11. Aid R4 (dời đồng hồ) + R5 (đổi pact) đang hiện "Coming soon".
+- [~] B11 (14/10 merge 9632915: R5 đổi 1 thẻ pact xong, RULES_VERSION -m, cần deploy Worker; R4 chờ ví chung LIAM-2). Aid R4 (dời đồng hồ) + R5 (đổi pact) đang hiện "Coming soon".
 
 - [x] B12 (13/10 merge 951fc80; còn: chụp màn hình kiểm bằng mắt, màn Profile theo khung R3 M12/M14). **Dùng cosmetics trong game (Liam 13/10: BẮT BUỘC cho L1)**:
   - [x] Trang bị skin xúc xắc + khung avatar (Profile/Vault), lưu qua SaveStore.

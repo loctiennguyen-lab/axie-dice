@@ -194,7 +194,10 @@ const WATCHED_FILES: Array[String] = ["res://assets/data/part_faces.json"]
 ## Shard). Meta economy only. Run result: NO, stays -l.
 ## Moved 2026-10-14 by C2 f05dd91: RunState run_kind saved + close_summary score/elites + ranked submit;
 ## MetaState daily-run reward. Run result: NO (seed path unchanged), stays -l.
-const FINGERPRINT := "99848d8d7028082859db7f2b192489fd041930adf8f69995db2c83e3e64b75af"
+## BUMPED, 2026-10-14: `ActionLog.RULES_VERSION` -> `godot-2026-10-13-m`. L1 B11: Aid R5, swap ONE boss Pact card
+## (`RunState.reroll_pact_slot`, `RewardGenerator.pick_pact_replacement`, action `pact_reroll` [slot, n], replayed by
+## RunVerifier). Changes what a run can contain. Worker SUPPORTED_RULE_VERSIONS gained -m.
+const FINGERPRINT := "4d128f302fa02aaf3f415e1541134372ecd746cd75960e45ebe3f64fba167f03"
 
 
 func _ready() -> void:
