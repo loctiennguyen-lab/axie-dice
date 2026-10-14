@@ -104,3 +104,5 @@ hạn/ngày, NFT dùng được) · UI request 02 + Round 1 · L1 = 3/11 nội b
 - (Liam 14/10, đã chốt) B11: R4 (dời đồng hồ) giữ "Coming soon" tới khi chốt ví chung (LIAM-2). R5 (đổi pact): đổi 1 thẻ,
   nút Swap dưới mỗi thẻ, thẻ mới cùng pool, khác 2 thẻ còn lại và thẻ bị thay, cùng nhóm drawback nếu pool đủ, seed tất định.
 - (Liam 14/10, đã chốt) C6: Team presets 3/6/9 ô theo tier Land như mockup. Leaderboard L1 chỉ hiện bảng Worker có: Season + Today, lọc A0–A10; ẩn Week và lọc Pure/All/Nhiệm vụ.
+- (Liam 14/10, đã chốt) Land upgrade MỞ trong L1 (khác README R3 M15a "Not in this build"): `land_tiers.json` upgrade_enabled = true.
+- (Liam 14/10, đã chốt) C9 polish: làm cả 5 việc trong L1 (màu đất/trời + sương + khung cây sân mystic/genesis, tier 6 màu + trăng, đá lối đi mystic, lối đi + cỏ bụi genesis, mảnh vách/địa hình Land tier 4–5).
