@@ -118,6 +118,8 @@ var last_daily_reward_utc: String = ""
 var daily_week: Dictionary = {"week": "", "n": 0, "paid": false}
 ## Sổ cái (200 dòng cuối): {t, c, d, r, b} = thời điểm, tiền tệ, thay đổi, lý do, số dư sau.
 var ledger: Array = []
+## Saved teams (R3 M2), see TeamPresets. Each {"name", "party": [5 hero keys]}.
+var team_presets: Array = []
 const LEDGER_MAX := 200
 var _gem_wallet: GemWallet = null
 
@@ -492,6 +494,7 @@ func _reset_economy_fields() -> void:
 	last_daily_reward_utc = ""
 	daily_week = {"week": "", "n": 0, "paid": false}
 	ledger = []
+	team_presets = []
 
 
 func load_from_disk() -> void:
@@ -586,6 +589,7 @@ func _economy_from_json(parsed: Dictionary, raw_text: String = "") -> void:
 	var dw = parsed.get("daily_week", {})
 	daily_week = {"week": String(dw.get("week", "")), "n": maxi(0, int(dw.get("n", 0))), "paid": bool(dw.get("paid", false))} if dw is Dictionary else {"week": "", "n": 0, "paid": false}
 	ledger = (parsed.get("ledger", []) as Array).duplicate(true) if parsed.get("ledger", []) is Array else []
+	team_presets = TeamPresets.sanitize_list(parsed.get("team_presets", []))
 	starter_granted = bool(parsed.get("starter_granted", false))
 	if ver < SAVE_VERSION:
 		_migrate_pre_economy()
@@ -780,6 +784,7 @@ func save_to_disk() -> void:
 		"last_daily_reward_utc": last_daily_reward_utc,
 		"daily_week": daily_week,
 		"ledger": ledger,
+		"team_presets": team_presets,
 	}
 	if not SaveStore.write_text(SAVE_PATH, JSON.stringify(data, "\t")):
 		push_error("MetaState: could not write %s — this player's progress is not being saved"

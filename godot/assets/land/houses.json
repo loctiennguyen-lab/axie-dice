@@ -8,7 +8,7 @@
  },
  {
   "house_id": "house",
-  "screen_id": "team_select",
+  "screen_id": "team_presets",
   "badge_screen_id": "",
   "unlock": {}
  },

@@ -15,6 +15,8 @@ const LEGACY_MENU := "res://scenes/main_menu/MainMenu.tscn"
 const SCREENS: Dictionary = {
 	&"run_setup": {"scene": "res://scenes/run_setup/RunSetup.tscn", "fallback": LEGACY_MENU},
 	&"team_select": {"scene": "res://scenes/main_menu/TeamSelect.tscn"},
+	&"team_presets": {"scene": "res://scenes/team_presets/TeamPresets.tscn",
+		"fallback": "res://scenes/main_menu/TeamSelect.tscn"},
 	&"missions": {"scene": "res://scenes/missions/MissionsScreen.tscn"},
 	&"echobox": {"scene": "res://scenes/echobox/EchoBoxScreen.tscn"},
 	&"pass": {"scene": "res://scenes/pass/Pass.tscn"},
@@ -24,7 +26,7 @@ const SCREENS: Dictionary = {
 	&"settings": {"scene": "res://scenes/settings/Settings.tscn"},
 	&"guides": {"scene": "res://scenes/guides/Guides.tscn"},
 	&"daily": {"scene": "res://scenes/daily/DailyScreen.tscn"},
-	# Gallery / Leaderboard: no screens yet (lane M); the hub shows "Coming soon".
+	# Leaderboard (R3 M9) reads through LeaderboardSource; Gallery has no screen yet ("Coming soon").
 	&"leaderboard": {"scene": "res://scenes/leaderboard/Leaderboard.tscn"},
 	&"profile": {"scene": "res://scenes/profile/Profile.tscn",
 		"fallback": "res://scenes/account/Account.tscn"},

@@ -119,6 +119,14 @@ func _unhandled_key_input(ev: InputEvent) -> void:
 		else:
 			_on_back()
 		get_viewport().set_input_as_handled()
+	elif ev is InputEventKey and ev.pressed and not ev.echo and not ev.alt_pressed and not ev.ctrl_pressed \
+			and not ev.meta_pressed and _modal_layer.get_child_count() == 0:
+		if ev.keycode == KEY_B and not is_newcomer():
+			open_leaderboard()
+			get_viewport().set_input_as_handled()
+		elif ev.keycode == KEY_S:
+			open_save_preset()
+			get_viewport().set_input_as_handled()
 
 
 # ---------------------------------------------------------------- public API (also used by tests)
@@ -340,6 +348,110 @@ func open_picker(slot: int) -> void:
 	_show_picker()
 
 
+func open_leaderboard() -> void:
+	if is_newcomer():
+		return
+	if is_inside_tree() and not no_scene_change:
+		LandNav.open(&"leaderboard")
+
+
+# ---------------------------------------------------------------- team presets (R3 M2)
+
+## Loads a saved team into the party. Seats whose Axie is gone stay empty. False if no such preset.
+func load_preset(i: int) -> bool:
+	if i < 0 or i >= TeamPresets.count():
+		return false
+	var usable := TeamPresets.usable_party(MetaState.team_presets[i])
+	party = []
+	for k in usable:
+		party.append(k)
+	_refresh_party()
+	_refresh_footer()
+	close_modal()
+	return true
+
+
+## Saves the current party under `name` in the first free slot. Returns "" or the reason it failed.
+func save_preset(name: String) -> String:
+	var padded: Array = []
+	for i in PARTY_SIZE:
+		padded.append(party[i] if i < party.size() else "")
+	var r := TeamPresets.add(name, padded)
+	if r == "":
+		close_modal()
+	return r
+
+
+func _preset_dim(width: float) -> VBoxContainer:
+	close_modal()
+	var dim := ColorRect.new()
+	dim.color = Color(0x24 / 255.0, 0x14 / 255.0, 0x0B / 255.0, 0.55)
+	dim.set_anchors_preset(Control.PRESET_FULL_RECT)
+	dim.offset_left = 200
+	dim.offset_right = -200
+	dim.offset_top = 116
+	dim.offset_bottom = -84
+	_modal_layer.add_child(dim)
+	var c := CenterContainer.new()
+	c.set_anchors_preset(Control.PRESET_FULL_RECT)
+	dim.add_child(c)
+	var p := _plate(width, DangoTheme.LINE, DangoTheme.CREAM)
+	c.add_child(p)
+	var v := VBoxContainer.new()
+	v.add_theme_constant_override("separation", 10)
+	p.add_child(v)
+	return v
+
+
+func open_load_presets() -> void:
+	var v := _preset_dim(640)
+	v.get_parent().get_parent().get_parent().name = "LoadPresets"
+	v.add_child(_label("Load preset", 24, DangoTheme.INK, true))
+	if TeamPresets.count() == 0:
+		v.add_child(_label("No saved teams yet. Build one in Team presets (House).", 16, DangoTheme.INK_ON_CREAM_MUTED))
+	for i in TeamPresets.count():
+		var e: Dictionary = MetaState.team_presets[i]
+		var miss := TeamPresets.missing_count(e)
+		var b := _button("%s%s" % [String(e["name"]), "   (%d seats empty)" % miss if miss > 0 else ""], 0, 52)
+		b.name = "Preset%d" % i
+		b.pressed.connect(load_preset.bind(i))
+		v.add_child(b)
+	var cancel := _button("Cancel", 160, 44)
+	cancel.name = "ClosePresets"
+	cancel.pressed.connect(close_modal)
+	v.add_child(cancel)
+
+
+func open_save_preset() -> void:
+	var v := _preset_dim(560)
+	v.get_parent().get_parent().get_parent().name = "SavePresetModal"
+	v.add_child(_label("Save as preset", 24, DangoTheme.INK, true))
+	var edit := LineEdit.new()
+	edit.name = "PresetName"
+	edit.max_length = TeamPresets.NAME_MAX
+	edit.text = "Team %d" % (TeamPresets.count() + 1)
+	edit.custom_minimum_size = Vector2(0, 48)
+	v.add_child(edit)
+	var save := _button("Save team", 0, 52, true)
+	save.name = "ConfirmSavePreset"
+	var refresh_save := func(_t := "") -> void:
+		var why := TeamPresets.save_block_reason(party)
+		if why == "" and TeamPresets.clean_name(edit.text) == "":
+			why = "Give the team a name"
+		if why == "" and not TeamPresets.has_room():
+			why = "All preset slots are used"
+		save.disabled = why != ""
+		save.text = "Save team" if why == "" else "Save team\n" + why
+	edit.text_changed.connect(refresh_save)
+	refresh_save.call()
+	save.pressed.connect(func() -> void: save_preset(edit.text))
+	v.add_child(save)
+	var cancel := _button("Cancel", 160, 44)
+	cancel.pressed.connect(close_modal)
+	v.add_child(cancel)
+	edit.grab_focus.call_deferred()
+
+
 func close_modal() -> void:
 	for c in _modal_layer.get_children():
 		c.queue_free()
@@ -470,8 +582,10 @@ func _build_header() -> Control:
 	sub.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	row.add_child(sub)
 	var lb := _button("Leaderboard  B", 190, 48)
-	lb.disabled = true
-	lb.tooltip_text = "Leaderboard is not in this build"
+	lb.name = "LeaderboardBtn"
+	lb.disabled = is_newcomer()
+	lb.tooltip_text = "Opens after %d runs" % NEWCOMER_RUNS if is_newcomer() else ""
+	lb.pressed.connect(open_leaderboard)
 	row.add_child(lb)
 	return band
 
@@ -483,11 +597,14 @@ func _build_party_block() -> void:
 	_party_label = _label("", 18, WOOD_DARK, true)
 	_party_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	head.add_child(_party_label)
-	for t in ["Load preset", "Save as preset  S"]:
-		var b := _button(t, 170, 40)
-		b.disabled = true
-		b.tooltip_text = "Team presets are not in this build"
-		head.add_child(b)
+	var load_b := _button("Load preset", 170, 40)
+	load_b.name = "LoadPreset"
+	load_b.pressed.connect(open_load_presets)
+	head.add_child(load_b)
+	var save_b := _button("Save as preset  S", 170, 40)
+	save_b.name = "SavePreset"
+	save_b.pressed.connect(open_save_preset)
+	head.add_child(save_b)
 	_body.add_child(head)
 	_party_row = HBoxContainer.new()
 	_party_row.name = "PartyRow"
