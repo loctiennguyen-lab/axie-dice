@@ -90,6 +90,10 @@ var last_run_xp: int = 0
 ## True only when THIS run end was the one that granted the day's Daily Mission shards. Read by
 ## the result screen, which must show the line on the day it happened and not on every run.
 var daily_mission_granted: bool = false
+## L1 C2: the run kind the player chose ("normal" | "daily" | "ranked" | "mission"). Saved with the run.
+var run_kind: String = "normal"
+## True when this run's end paid the separate Daily-run reward (MetaState.claim_daily_run_reward).
+var daily_run_reward_granted: bool = false
 
 # --- Reward/event/shop/treasure loop (checklist step 4, reward-system pass) ---
 # Reward-choice cards offered after a won combat (RewardGenerator.generate() output),
@@ -226,6 +230,8 @@ func reset() -> void:
 	_run_end_processed = false
 	last_run_xp = 0
 	daily_mission_granted = false
+	run_kind = "normal"
+	daily_run_reward_granted = false
 	pending_rewards = []
 	pending_combat = {}
 	resume_combat = {}
@@ -342,7 +348,9 @@ func _start_core(start_reply: EpochReply, params: Dictionary, display_seed: int)
 		team_hero_keys.append(String(k))
 	var p_mode := String(params.get("mode", "short"))
 	var p_ascension := int(params.get("ascension", 0))
-	var p_ranked := bool(params.get("ranked", false))
+	var p_kind := String(params.get("kind", "normal"))
+	var p_ranked := bool(params.get("ranked", false)) or p_kind == "ranked"
+	run_kind = p_kind
 	run_seed = display_seed
 	mode = p_mode
 	ascension = p_ascension
@@ -549,7 +557,9 @@ func close_summary(won: bool, condition_ok: bool, escrow: Dictionary = {}) -> Di
 		"nodes_done": power_level, "pw": power_level, "len": mode, "newcomer": newcomer,
 		"client": str(ProjectSettings.get_setting("application/config/version", "")),
 		"aids": aids, "boon_used": boon_used, "pacts": pacts_taken.size(), "relics": owned_relic_ids.size(),
-		"shards": shards_this_run}
+		"shards": shards_this_run,
+		# Leaderboard score (design/gdd/leaderboard-system.md): the Pass XP formula. The server only bounds it (P3).
+		"score": compute_run_xp(won), "elites": _visited_count("elite")}
 	if not mission.is_empty():
 		s["mission"] = {"tier": str(mission.get("tier", "")), "stake": int(escrow.get("stake", mission.get("stake", 0))),
 			"payout": int(escrow.get("payout", 0)) if won else 0, "won": won}
@@ -820,7 +830,9 @@ func end_run(won: bool) -> void:
 	clear_saved_run()
 	if epoch != null:
 		var mo := mission_outcome(won)
-		epoch.close("won" if bool(mo["won"]) else "lost", close_summary(bool(mo["won"]), bool(mo["condition_ok"]), _esc))
+		var close_reply := epoch.close("won" if bool(mo["won"]) else "lost", close_summary(bool(mo["won"]), bool(mo["condition_ok"]), _esc))
+		if run_kind == "ranked" and ranked:
+			_submit_ranked_score(close_reply, String(action_log.header.get("run_id", "")))
 	MetaState.add_shards(shards_this_run)
 
 	# Lifetime stats and the Ascension ladder (src/client.html onRunEnd(), :5436-5446).
@@ -849,9 +861,34 @@ func end_run(won: bool) -> void:
 	# (client.html:5447 calls it unconditionally from onRunEnd()). Tying it to a win would make
 	# the day's reward a skill check, which is not what a daily is for.
 	daily_mission_granted = MetaState.claim_daily_mission()
+	# Daily run: a separate reward for the first FINISHED Daily run of the UTC day (end_run is win or loss;
+	# an abandoned run never reaches here). Once per day, kept in MetaState.last_daily_reward_utc.
+	if run_kind == "daily":
+		daily_run_reward_granted = MetaState.claim_daily_run_reward()
 	MetaState.save_to_disk()
 
 	EventBus.run_ended.emit(won)
+
+
+## L1 C2: once the server has closed a Ranked run, ask it to put the score on the board. Best effort: the
+## server reads the score from its own closed run row, so a failed or skipped submit loses nothing but a
+## retry (POST is idempotent per run_id). `submit_hook` lets tests observe it.
+var submit_hook: Callable = Callable()
+
+func _submit_ranked_score(close_reply: EpochReply, run_id: String) -> void:
+	if run_id == "":
+		return
+	var go := func() -> void:
+		if not close_reply.ok:
+			return
+		if submit_hook.is_valid():
+			submit_hook.call(run_id)
+		else:
+			RemoteLeaderboardSource.new().submit_run(run_id, func(_ok: bool, _d: Dictionary) -> void: pass)
+	if close_reply.done:
+		go.call()
+	else:
+		close_reply.resolved.connect(go, CONNECT_ONE_SHOT)
 
 
 ## src/data.js runXp() (:1034), verbatim:
@@ -866,6 +903,18 @@ func end_run(won: bool) -> void:
 ## ported unchanged on purpose; the divergence belongs to the 18-row decision (still an open
 ## balance question, wayfinder ticket B), not to this function, and burying a compensating
 ## fudge factor here would hide it.
+## How many visited map nodes were of `node_type` (the server bounds the score with the elite count).
+func _visited_count(node_type: String) -> int:
+	var n := 0
+	if not map_graph.is_empty():
+		var graph := RunMapGraph.from_data(map_graph)
+		for node_id in visited_node_ids:
+			var node := graph.find_node(String(node_id))
+			if node != null and node.node_type == node_type:
+				n += 1
+	return n
+
+
 func compute_run_xp(won: bool) -> int:
 	var elites := 0
 	var bosses := 0
@@ -1444,6 +1493,7 @@ func to_data() -> Dictionary:
 		"phase": phase,
 		"run_seed": run_seed,
 		"ranked": ranked,
+		"kind": run_kind,
 		"mode": mode,
 		"ascension": ascension,
 		"roster": roster.duplicate(true),
@@ -1505,6 +1555,7 @@ func from_data(d: Dictionary) -> void:
 	phase = int(d.get("phase", RunPhase.MAP))
 	run_seed = int(d.get("run_seed", 0))
 	ranked = bool(d.get("ranked", false))
+	run_kind = String(d.get("kind", "ranked" if ranked else "normal"))
 	mode = String(d.get("mode", "short"))
 	ascension = int(d.get("ascension", 0))
 

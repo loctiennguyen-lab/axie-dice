@@ -11,7 +11,9 @@ const NEWCOMER_RUNS = 5;
 export const PENDING_TTL_S = 5 * 60;
 // Modes that need the wallet / newcomer gate. Refused (fail closed) until those exist; staging can set
 // ALLOW_GATED_MODES=1 to test them.
-const GATED_MODES = new Set(['ranked', 'mission']);
+const GATED_MODES = new Set(['mission']);   // ranked opened in L1 C2 (newcomer gate below)
+const DAILY_TRIES_DEFAULT = 3;               // Daily tries per UTC day, abandoned runs count (Liam 14/10)
+const VAULT_PREFIX = 'vault_';               // MetaState.VAULT_KEY_PREFIX: an imported Axie, never allowed in Ranked
 // RunParams.kind (contract 3.6). RunParams.mode (short|full) is game length and goes in run_start args.
 const KINDS = new Set(['normal', 'daily', 'ranked', 'mission']);
 const { json } = shared;
@@ -20,7 +22,7 @@ const hex = (bytes) => Array.from(bytes, (b) => b.toString(16).padStart(2, '0'))
 const stub = (env, runId) => env.RUN_DO.get(env.RUN_DO.idFromName(runId));
 const wsUrl = (url, runId) => `wss://${url.host}/api/run/${runId}/ws`;
 
-export const isRunsPath = (p) => p === '/api/run' || p === '/api/run/open' || /^\/api\/run\/[a-f0-9]{32}\/(ws|abandon)$/.test(p);
+export const isRunsPath = (p) => p === '/api/run' || p === '/api/run/open' || /^\/api\/run\/[a-f0-9]{32}\/(ws|abandon)$/.test(p) || p === '/api/run/daily';
 
 async function newcomer(env, playerId) {
   const r = await env.DB.prepare('SELECT COUNT(*) AS n FROM runs WHERE player_id = ? AND battles_done >= 1').bind(playerId).first();
@@ -40,7 +42,15 @@ async function createRun(request, env, url, player) {
   if (nonce !== null && !/^[a-f0-9]{32}$/.test(nonce)) return json({ error: 'bad_request' }, 400);
   if (!rulesSupported(env, rules)) return json({ error: 'version' }, 409);
   if (GATED_MODES.has(mode) && env.ALLOW_GATED_MODES !== '1') return json({ error: 'not_available' }, 403);
-  // TODO(wallet/LIAM-2): mission stake, Boon source, newcomer gating for ranked/mission go in this batch.
+  // Ranked: newcomers (< 5 runs with a fight) wait; imported (vault) Axies are refused. The server cannot see
+  // the team, so team_keys is the client's word - an honest-client check until the verifier (P3) lands.
+  if (mode === 'ranked') {
+    if (body.team_keys !== undefined && (!Array.isArray(body.team_keys) || body.team_keys.length > 5 || body.team_keys.some((k) => typeof k !== 'string' || k.length > 80))) return json({ error: 'bad_request' }, 400);
+    if (Array.isArray(body.team_keys) && body.team_keys.some((k) => k.startsWith(VAULT_PREFIX))) return json({ error: 'vault_banned' }, 403);
+    if (env.ALLOW_GATED_MODES !== '1' && await newcomer(env, player.id)) return json({ error: 'newcomer_locked' }, 403);
+  }
+  // TODO(wallet/LIAM-2): mission stake and Boon source go in this batch.
+  const dailyMax = Number(env.DAILY_TRIES) || DAILY_TRIES_DEFAULT;
 
   const runId = hex(crypto.getRandomValues(new Uint8Array(16)));
   const nowS = Math.floor(Date.now() / 1000);
@@ -56,15 +66,20 @@ async function createRun(request, env, url, player) {
       env.DB.prepare(
         `INSERT INTO runs (run_id, player_id, mode, ascension, rules_version, state, created_at)
          SELECT ?, ?, ?, ?, ?, 'pending', ?
-          WHERE ? = 'mission'
-             OR (SELECT COUNT(*) FROM runs WHERE player_id = ? AND created_at >= ? AND mode != 'mission' AND state != 'infra_error') < ?`,
-      ).bind(runId, player.id, mode, ascension, rules, nowS, mode, player.id, dayStart, cap),
+          WHERE (? = 'mission'
+             OR (SELECT COUNT(*) FROM runs WHERE player_id = ? AND created_at >= ? AND mode != 'mission' AND state != 'infra_error') < ?)
+           AND (? != 'daily'
+             OR (SELECT COUNT(*) FROM runs WHERE player_id = ? AND mode = 'daily' AND created_at >= ? AND state != 'infra_error') < ?)`,
+      ).bind(runId, player.id, mode, ascension, rules, nowS, mode, player.id, dayStart, cap, mode, player.id, dayStart, dailyMax),
     ]);
   } catch (err) {
     if (/UNIQUE/i.test(String(err && err.message || err))) return json({ error: 'run_open' }, 409);
     throw err;
   }
-  if (res[0].meta.changes !== 1) return json({ error: 'daily_cap' }, 429);
+  if (res[0].meta.changes !== 1) {
+    if (mode === 'daily' && (await dailyUsed(env, player.id, dayStart)) >= dailyMax) return json({ error: 'daily_tries' }, 429);
+    return json({ error: 'daily_cap' }, 429);
+  }
 
   let init;
   try {
@@ -85,6 +100,19 @@ async function createRun(request, env, url, player) {
   await env.DB.prepare(`UPDATE runs SET state = 'open', commit_hash = ?, token_jti = ? WHERE run_id = ? AND state = 'pending'`).bind(init.commit, jti, runId).run();
   const run_token = await signRunToken(env, { player_id: player.id, run_id: runId, rules_version: rules, jti });
   return json({ run_id: runId, run_token, commit: init.commit, ws_url: wsUrl(url, runId), header: { newcomer: await newcomer(env, player.id) } });
+}
+
+async function dailyUsed(env, playerId, dayStart) {
+  const r = await env.DB.prepare(`SELECT COUNT(*) AS n FROM runs WHERE player_id = ? AND mode = 'daily' AND created_at >= ? AND state != 'infra_error'`).bind(playerId, dayStart).first();
+  return r.n;
+}
+
+/** GET /api/run/daily: tries used today (UTC), the limit, and when the day turns over. */
+async function dailyInfo(env, player) {
+  const nowS = Math.floor(Date.now() / 1000);
+  const dayStart = nowS - (nowS % 86400);
+  const max = Number(env.DAILY_TRIES) || DAILY_TRIES_DEFAULT;
+  return json({ used: await dailyUsed(env, player.id, dayStart), max, resets_at: dayStart + 86400 });
 }
 
 async function openRun(env, url, player) {
@@ -141,6 +169,7 @@ export async function handleRuns(request, env, url) {
     }
     if (url.pathname === '/api/run' && request.method === 'POST') return await createRun(request, env, url, player);
     if (url.pathname === '/api/run/open' && request.method === 'GET') return await openRun(env, url, player);
+    if (url.pathname === '/api/run/daily' && request.method === 'GET') return await dailyInfo(env, player);
     if (m && m[2] === 'abandon' && request.method === 'POST') return await abandon(request, env, url, player, m[1]);
     return json({ error: 'not_found' }, 404);
   } catch (err) {

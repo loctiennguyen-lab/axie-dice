@@ -6,6 +6,12 @@
 		"stone": 500,
 		"xp": 100
 	},
+	"daily_run_reward": {
+		"_note": "L1 C2: first FINISHED Daily-mode run of the UTC day. Separate from daily_reward above (any run). Liam 14/10.",
+		"shards": 60,
+		"stone": 500,
+		"xp": 100
+	},
 	"weekly_bonus": {
 		"min_days": 4,
 		"shards": 150,
@@ -22,7 +28,7 @@
 	},
 	"daily_runs": {
 		"max_per_day": 3,
-		"shared_seed": true,
+		"shared_seed": false,
 		"day": "UTC"
 	}
 }

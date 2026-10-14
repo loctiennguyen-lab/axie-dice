@@ -1261,6 +1261,26 @@ func claim_daily_mission() -> bool:
 	return true
 
 
+## L1 C2: reward for the first FINISHED Daily-mode run of the UTC day (daily.json -> daily_run_reward). It is
+## a SEPARATE reward from claim_daily_mission (that one is the any-run daily). Ledgered through add_shards /
+## add_stone, idempotent per UTC day via `last_daily_reward_utc` (already saved + reloaded). Caller saves.
+func claim_daily_run_reward() -> bool:
+	var today := today_utc()
+	if last_daily_reward_utc == today:
+		return false
+	var cfg: Dictionary = EconomyDBScript.get_table("daily").get("daily_run_reward", {})
+	last_daily_reward_utc = today
+	var sh := int(cfg.get("shards", 0))
+	var st := int(cfg.get("stone", 0))
+	if sh > 0:
+		add_shards(sh, "daily_run", false)
+	if st > 0:
+		add_stone(st, "daily_run", false)
+	if int(cfg.get("xp", 0)) > 0:
+		PassV2.add_daily_bonus_xp(self, today)
+	return true
+
+
 ## Đã nhận daily hôm nay (= đã xong một run hôm nay: claim_daily_mission chạy ở cuối run). Cho chấm ngày M8.
 func daily_done_today() -> bool:
 	return daily_date == today_utc()
