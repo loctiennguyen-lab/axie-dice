@@ -26,7 +26,8 @@ const LAND_SUN_ENERGY := 1.25
 const LAND_AMBIENT := Color("fff1d6")
 const LAND_AMBIENT_ENERGY := 0.75
 const BASE_FOG_DENSITY := 0.006
-## Path lane ends this far in front of the portal origin (tile centre), so the pedestal stays visible.
+## Default for registry "path_end_gap": the path lane ends this far in front of the portal origin
+## (tile centre), so the pedestal stays visible.
 const PATH_END_GAP := 2.8
 ## Prop keep-out (|x| / z): enemy flanks (enemy row z -6.5, x 0/+-5.1) and the portal line.
 const KEEPOUT_ENEMY_Z := [-11.0, -2.0]
@@ -197,12 +198,13 @@ func _add_path(b: Dictionary) -> void:
 		tm.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 		tint = tm
 	var z := 8.0
-	var end_z := float(registry().get("portal", {}).get("z", -15.0)) + PATH_END_GAP   # stop short of the pedestal
+	var end_z := float(registry().get("portal", {}).get("z", -15.0)) + float(registry().get("path_end_gap", PATH_END_GAP))   # stop short of the pedestal
 	var zs: Array[float] = []
 	while z > end_z and zs.size() < 40:
 		zs.append(z)
 		z -= len
 	if zs.is_empty():
+		probe.queue_free()
 		return
 	# One MultiMeshInstance3D per mesh in the tile scene (a tile has 2 surfaces) instead of one node
 	# per tile: ~3 draw calls for the whole lane. Surface materials are copied from the scene.
@@ -228,13 +230,6 @@ func _add_path(b: Dictionary) -> void:
 			mmi.material_overlay = tint
 		_props_root.add_child(mmi)
 	probe.queue_free()
-
-
-## Recolours the tiles with a translucent unshaded overlay (the kit's stone material is a custom
-## shader, so albedo can't be multiplied). `c`'s alpha is the strength. One shared material.
-static func _tint_meshes(root: Node3D, ov: Material) -> void:
-	for n in root.find_children("*", "MeshInstance3D", true, false):
-		(n as MeshInstance3D).material_overlay = ov
 
 
 func _scatter(b: Dictionary, zones: Dictionary) -> void:
