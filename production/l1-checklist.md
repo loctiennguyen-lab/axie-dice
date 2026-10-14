@@ -48,7 +48,7 @@ sẵn** · báo lỗi bằng **một Google Sheet** (Liam làm) · Cloudflare g�
 ## C. Nên có (cắt được nếu trễ — hỏi Liam trước)
 
 - [x] C1 (13/10 merge 1410f4c; RULES_VERSION -l; cần deploy Worker để nhận pact_pick + -l; màn PactView là bản đầu, chưa có khung Claude Design). Màn pact boss bắt buộc ở A6/A10 gọi `RelicSlots.pact_forced` (luật đã có, màn chưa nối).
-- [ ] C2. Chế độ **Daily** và **Ranked** trong Run Setup (đang vẽ nhưng khoá).
+- [x] C2 (14/10 merge f05dd91; CẦN Liam deploy Worker + migration 0006). Chế độ **Daily** và **Ranked** trong Run Setup (đang vẽ nhưng khoá).
 - [x] C3 (13/10, merge b21c841). Menu trong run → Settings ("Back to run", bỏ cuộc trừ cược đúng).
 - [x] C4 (14/10: code có từ C5 87c5dcb, test thêm ở t_land_hub, merge C8). Land "New run" khi còn run Nhiệm vụ dang dở → settle cược (đường này đang bỏ sót).
 - [~] C5 (13/10 merge 87c5dcb: lưới 3×3, dock, chip, phím, trạng thái; 14/10 merge 4816900: "5 runs" từ data, nút + Gem 44 px, chạm-để-xem trên cảm ứng (chỉ bật khi chạm thật), HUD scale tối thiểu 0.85; còn: màn Leaderboard → C6). Land hub **v5** (Liam duyệt 13/10, review `design/handoffs/ui-02-round5/REVIEW-land-hub-v5.md`; khoá Nhiệm vụ + Leaderboard cho người mới; phím N xem tên) — thay cho v4 (Liam chốt 13/10; review: `design/handoffs/ui-02-round4/REVIEW-land-hub-v4.md`): lưới 3×3 quanh Portal, dock dưới, nút RUN giữa).

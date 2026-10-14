@@ -192,7 +192,9 @@ const WATCHED_FILES: Array[String] = ["res://assets/data/part_faces.json"]
 ## equipped_title / equip_title (cosmetic meta, no combat/replay/verifier input). Run result: NO, stays -l.
 ## Moved 2026-10-14 by C8 67aa32d: MetaState daily weekly bonus (daily_week.paid, add_shards ledger for daily
 ## Shard). Meta economy only. Run result: NO, stays -l.
-const FINGERPRINT := "6c38ac3ffc171bc1ecbba5138aaf25c5ceaf5bea0974f7ca8f5986501d8e008b"
+## Moved 2026-10-14 by C2 f05dd91: RunState run_kind saved + close_summary score/elites + ranked submit;
+## MetaState daily-run reward. Run result: NO (seed path unchanged), stays -l.
+const FINGERPRINT := "99848d8d7028082859db7f2b192489fd041930adf8f69995db2c83e3e64b75af"
 
 
 func _ready() -> void:
