@@ -95,4 +95,5 @@ hạn/ngày, NFT dùng được) · UI request 02 + Round 1 · L1 = 3/11 nội b
 - Pass-exclusive art (Moss die, Vine frame, S1 Founder die/frame, Sovereign frame) is left out of the normal pool; Season-box items (rune, spore, runering, firefly, relic_stone, sunburst, eclipse, moon) ARE in it, since Epic would otherwise have no art. Season exclusivity is not kept while the season box is disabled.
 - (Liam 13/10) Vạch tiền tuyến (FrontLine, spec CB-06 cũ) trong combat: BỎ HẲN.
 - (Liam 14/10, đã chốt) Danh hiệu: thắng ở A≥5 nhận danh hiệu A5, thắng ở A10 nhận cả hai (C7 làm đúng vậy). Tên tiếng Anh: giữ tiếng Việt tới khi làm xong hết, Liam sẽ tự đổi sang tiếng Anh sau (`ascension_titles.json` → `en`).
-- (Chờ Liam, 14/10) Run Nhiệm vụ thắng ở A≥5 nhưng trượt điều kiện phụ → run tính thua → hiện KHÔNG nhận danh hiệu. Đúng ý không?
+- (Liam 14/10, đã chốt) Run Nhiệm vụ thắng ở A≥5 nhưng trượt điều kiện phụ → tính thua → KHÔNG nhận danh hiệu. Đúng.
+- (Liam 14/10, đã chốt) Thẻ Weekly: giữ "(n/4)", "Paid this week" và toast (phần thêm ngoài mockup R3).
