@@ -130,6 +130,7 @@ func _ready() -> void:
 	snapshot["xp_gained"] = RunState.last_run_xp
 	snapshot["pass_level"] = MetaState.bp_level()
 	snapshot["daily_mission_granted"] = RunState.daily_mission_granted
+	snapshot["new_titles"] = MetaState.last_run_new_titles.duplicate()   # C7: only this run's grants
 
 	_build_ui(snapshot)
 
@@ -252,6 +253,19 @@ func _build_title_band(s: Dictionary) -> void:
 	subtitle.add_theme_color_override("font_color", DangoTheme.TEXT)
 	_screen_shadow(subtitle)
 	col.add_child(subtitle)
+
+	# C7: "New title: X" only on the run that earned it (MetaState.last_run_new_titles is rebuilt per run).
+	var new_titles: Array = s.get("new_titles", [])
+	if not new_titles.is_empty():
+		var names: Array[String] = []
+		for id in new_titles:
+			names.append(TitleNames.display(String(id)))
+		col.add_child(_spacer(6.0))
+		var nt := DangoTheme.display_label("New title: %s" % ", ".join(names), 22, DangoTheme.GOLD, 800, 0.04)
+		nt.name = "NewTitle"
+		nt.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		_screen_shadow(nt)
+		col.add_child(nt)
 
 
 ## The mockup gives the two lines that sit directly on the painted plate a soft drop shadow

@@ -61,11 +61,85 @@ func refresh() -> void:
 	var nm := "Player"
 	if AccountService.is_signed_in():
 		nm = AccountService.display_name()
-	head.add_child(DangoTheme.display_label(nm, 30, DangoTheme.INK))
+	var who := VBoxContainer.new()
+	who.add_theme_constant_override("separation", -2)
+	who.alignment = BoxContainer.ALIGNMENT_CENTER
+	who.add_child(DangoTheme.display_label(nm, 30, DangoTheme.INK))
+	if MetaState.equipped_title != "":
+		var tl := DangoTheme.display_label(TitleNames.display(MetaState.equipped_title), 16, DangoTheme.INK_DISABLED)
+		tl.name = "EquippedTitle"
+		who.add_child(tl)
+	head.add_child(who)
 	_host.add_child(head)
+	_titles_section()
 	_host.add_child(DangoTheme.display_label("Appearance", 24, DangoTheme.INK))
 	_section("Dice skins", Cosmetics.SLOT_DIE, MetaState.equipped_die_skin)
 	_section("Avatar frames", Cosmetics.SLOT_FRAME, MetaState.equipped_frame)
+
+
+## C7 (R3 M12d): title cards, 3 per row. Owned titles can be equipped (one at a time); the Ascension
+## titles you have not earned yet show as "Not yet". Names and goals come from ascension_titles.json.
+func _titles_section() -> void:
+	_host.add_child(DangoTheme.display_label("Titles", 18, DangoTheme.INK))
+	var grid := GridContainer.new()
+	grid.name = "Grid_titles"
+	grid.columns = 3
+	grid.add_theme_constant_override("h_separation", 12)
+	grid.add_theme_constant_override("v_separation", 12)
+	grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_host.add_child(grid)
+	var owned := TitleNames.owned(MetaState.cosmetics_owned)
+	var goals := {}
+	for t in TitleNames.ascension_titles():
+		goals[String(t["id"])] = "Win a run at A%d" % int(t["asc"])
+	grid.add_child(_title_card("", "No title", "", MetaState.equipped_title == "", true))
+	for id in owned:
+		grid.add_child(_title_card(id, TitleNames.display(id), String(goals.get(id, "")), MetaState.equipped_title == id, true))
+	for t in TitleNames.ascension_titles():
+		if not owned.has(String(t["id"])):
+			grid.add_child(_title_card(String(t["id"]), String(t["name"]), String(goals[t["id"]]), false, false))
+
+
+func _title_card(id: String, label: String, goal: String, on: bool, have: bool) -> Control:
+	var card := PanelContainer.new()
+	card.name = "Title_" + (id.replace(":", "_") if id != "" else "none")
+	card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = Color("FFE3A6") if on else (Color("FFF8EA") if have else Color("F3E9D6"))
+	sb.border_color = DangoTheme.OUTLINE if on else (Color("8A3E22") if have else Color("B89A74"))
+	sb.set_border_width_all(3)
+	sb.set_corner_radius_all(16)
+	sb.content_margin_left = 16
+	sb.content_margin_right = 16
+	sb.content_margin_top = 12
+	sb.content_margin_bottom = 12
+	card.add_theme_stylebox_override("panel", sb)
+	var col := VBoxContainer.new()
+	col.add_theme_constant_override("separation", 4)
+	card.add_child(col)
+	var nm := DangoTheme.display_label(label, 20, DangoTheme.INK if have else DangoTheme.INK_DISABLED)
+	nm.name = "Name"
+	nm.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	col.add_child(nm)
+	if goal != "":
+		var g := Label.new()
+		g.text = goal
+		g.add_theme_font_size_override("font_size", 13)
+		g.add_theme_color_override("font_color", DangoTheme.INK_DISABLED)
+		col.add_child(g)
+	if have:
+		var b := _button("Equipped" if on else ("Equip" if id != "" else "Use default"), 0)
+		b.name = "Equip"
+		b.disabled = on
+		b.pressed.connect(func() -> void:
+			MetaState.equip_title(id)
+			refresh())
+		col.add_child(b)
+	else:
+		var st := DangoTheme.display_label("Not yet", 14, DangoTheme.INK_DISABLED)
+		st.name = "Status"
+		col.add_child(st)
+	return card
 
 
 ## Initial-letter avatar wearing the equipped frame (same look as the Land chip).

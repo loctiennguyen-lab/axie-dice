@@ -978,7 +978,10 @@ func _profile_chip() -> Control:
 	col.alignment = BoxContainer.ALIGNMENT_CENTER
 	col.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	col.add_child(_lbl(name.left(14), 20, DangoTheme.INK))
-	col.add_child(_lbl("Sign in to save online" if _guest else "Profile · Unlocks", 14,
+	var sub := "Sign in to save online" if _guest else "Profile · Unlocks"
+	if not _guest and MetaState.equipped_title != "":
+		sub = TitleNames.display(MetaState.equipped_title)
+	col.add_child(_lbl(sub.left(22), 14,
 		Color("A3261A") if _guest else DangoTheme.INK_ON_CREAM_MUTED, false))
 	h.add_child(col)
 	h.add_child(_key_chip("P"))
