@@ -40,9 +40,10 @@ func _ready() -> void:
 	_reset()
 	_ok(Eco.land_max_tier() == 6, "max tier 6")
 	_ok(Eco.land_tier_cost(1) == 40000 and Eco.land_tier_cost(5) == 1000000 and Eco.land_tier_cost(6) == -1, "costs from data")
-	_ok(not Eco.land_upgrade_enabled(), "L1 default: upgrade switched off")
+	_ok(Eco.land_upgrade_enabled(), "L1 default: upgrade live")
+	_switch(false)
 
-	# switched off (L1): nothing moves even with plenty of Stone
+	# switched off in data: nothing moves even with plenty of Stone
 	MetaState.stone = 5000000
 	_ok(not MetaState.upgrade_land(false) and MetaState.land_tier == 1 and MetaState.stone == 5000000, "off in data -> refused")
 	_switch(true)

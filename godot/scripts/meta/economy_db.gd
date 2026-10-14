@@ -196,7 +196,7 @@ static func land_tier_cost(tier: int) -> int:
 	return -1
 
 
-## false at L1: R3 M15 draws every button as "Not in this build" (prices shown only). Flip in land_tiers.json.
+## Switch in land_tiers.json (live at L1 since 14/10; false would draw "Not in this build", M15a).
 static func land_upgrade_enabled() -> bool:
 	return bool(get_table("land_tiers").get("upgrade_enabled", false))
 

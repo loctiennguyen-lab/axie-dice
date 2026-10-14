@@ -1,7 +1,7 @@
 {
 	"version": 1,
 	"_source": "economy-v2: Land chỉ trả bằng Land Stone; tổng tới LunaLanding 1.820.000. Chỉ hiện giá ở L1",
-	"upgrade_enabled": false,
+	"upgrade_enabled": true,
 	"tiers": [
 		{
 			"tier": 1,
