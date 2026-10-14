@@ -73,6 +73,15 @@ func _unhandled_key_input(ev: InputEvent) -> void:
 		else:
 			_on_back()
 		get_viewport().set_input_as_handled()
+	elif not k.alt_pressed and not k.ctrl_pressed and not k.meta_pressed and view == "grid" \
+			and (_shell["modal_layer"] as Control).get_child_count() == 0 and k.keycode in [KEY_E, KEY_S, KEY_M]:
+		if k.keycode == KEY_S:
+			switch_tab("samples")
+		elif k.keycode == KEY_M:
+			switch_tab("mine")
+		elif tab == "mine" and _focus_idx >= 0 and _focus_idx < TeamPresets.count():
+			open_editor(_focus_idx)
+		get_viewport().set_input_as_handled()
 	elif k.alt_pressed and (k.keycode == KEY_LEFT or k.keycode == KEY_RIGHT) and view == "grid" and tab == "mine":
 		reorder(_focus_idx, -1 if k.keycode == KEY_LEFT else 1)
 		get_viewport().set_input_as_handled()
@@ -240,27 +249,27 @@ func refresh() -> void:
 					LandNav.open(&"account")}])
 	if view == "editor":
 		sub.text = "Team presets › %s" % (edit_name if edit_name != "" else "New team")
-		_body.add_child(_build_editor())
+		_body.add_child(_Shell.fit_in(_build_editor(), _shell["panel"], 160))
 		return
-	for t in [["mine", "My teams"], ["samples", "Sample teams"]]:
+	for t in [["mine", "My teams  M"], ["samples", "Sample teams  S"]]:
 		var b := _Shell.button(t[1], 0, 40, t[0] == tab)
-		b.name = "Tab_" + t[0]
+		b.name = "Tab_" + String(t[0])
 		b.pressed.connect(switch_tab.bind(t[0]))
 		_tabs_box.add_child(b)
 	if tab == "samples":
 		sub.text = "From Guides"
-		_body.add_child(_build_samples())
+		_body.add_child(_Shell.fit_in(_build_samples(), _shell["panel"], 160))
 	else:
 		sub.text = "%d of %d slots used%s" % [TeamPresets.count(), TeamPresets.slot_count(),
 			" · more at higher Land tiers" if TeamPresets.slot_count() < TeamPresets.MAX_SLOTS else ""]
-		_body.add_child(_build_empty() if TeamPresets.count() == 0 else _build_grid())
+		_body.add_child(_build_empty() if TeamPresets.count() == 0 else _Shell.fit_in(_build_grid(), _shell["panel"], 160))
 
 
 func _seat_cell(key: String, missing: bool) -> Control:
 	var p := PanelContainer.new()
 	p.custom_minimum_size = Vector2(0, 58)
 	p.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	var sb := _Shell.box(Color("E8D6B4") if missing else DangoTheme.CREAM, Color("8A3E22") if missing else Color("B89A74"), 12, 2, 4)
+	var sb := _Shell.surface(DangoTheme.Surface.CREAM_RAISED, 12, 2, Vector2(4, 4), DangoTheme.CREAM_DISABLED if missing else DangoTheme.CREAM, DangoTheme.LINE if missing else DangoTheme.FUTURE)
 	p.add_theme_stylebox_override("panel", sb)
 	var v := VBoxContainer.new()
 	v.alignment = BoxContainer.ALIGNMENT_CENTER
@@ -295,7 +304,7 @@ func _build_empty() -> Control:
 	var t := _Shell.label("No saved teams yet", 30, DangoTheme.INK, true)
 	t.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	v.add_child(t)
-	var d := _Shell.label("Save a party of 5 here and load it in Run Setup with one press. You have %d preset slots at Savannah Land." % TeamPresets.slots_for_tier(1), 16, DangoTheme.INK_ON_CREAM_MUTED)
+	var d := _Shell.label("Save a party of 5 here and load it in Run Setup with one press. You have %d preset slots at %s Land." % [TeamPresets.slot_count(), TeamPresets.tier_name()], 16, DangoTheme.INK_ON_CREAM_MUTED)
 	d.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	d.custom_minimum_size = Vector2(520, 0)
 	d.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -332,12 +341,12 @@ func _cell(fill: Color, border: Color, dashed := false) -> PanelContainer:
 	p.custom_minimum_size = Vector2(0, 200)
 	p.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	p.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	p.add_theme_stylebox_override("panel", _Shell.box(fill, border, 20, 3, 14))
+	p.add_theme_stylebox_override("panel", _Shell.surface(DangoTheme.Surface.CREAM_RAISED, 20, 3, Vector2(14, 14), fill, border))
 	return p
 
 
 func _locked_card(n: int) -> Control:
-	var p := _cell(DangoTheme.CREAM_DISABLED, Color("9A7650"))
+	var p := _cell(DangoTheme.CREAM_DISABLED, DangoTheme.INK_3)
 	p.name = "Locked%d" % n
 	var v := VBoxContainer.new()
 	v.alignment = BoxContainer.ALIGNMENT_CENTER
@@ -352,7 +361,7 @@ func _locked_card(n: int) -> Control:
 
 
 func _open_card(n: int) -> Control:
-	var p := _cell(Color(1, 0.97, 0.92, 0.5), DangoTheme.LINE)
+	var p := _cell(Color(DangoTheme.CREAM_RAISED, 0.5), DangoTheme.LINE)
 	p.name = "Open%d" % (n + 1)
 	var b := _Shell.button("+  New team", 0, 60)
 	b.name = "New%d" % (n + 1)
@@ -373,7 +382,7 @@ func _preset_card(i: int) -> Control:
 	var head := HBoxContainer.new()
 	head.add_theme_constant_override("separation", 8)
 	v.add_child(head)
-	var handle := _Shell.label("⋮⋮", 16, Color("9A7650"))
+	var handle := _Shell.label("⋮⋮", 16, DangoTheme.INK_3)
 	handle.tooltip_text = "Alt + Left / Right moves this team"
 	head.add_child(handle)
 	var nm := _Shell.label(String(e["name"]), 21, DangoTheme.INK, true)
@@ -382,7 +391,7 @@ func _preset_card(i: int) -> Control:
 	head.add_child(nm)
 	if TeamPresets.has_nft(e):
 		var tag := PanelContainer.new()
-		tag.add_theme_stylebox_override("panel", _Shell.box(DangoTheme.GOLD, DangoTheme.OUTLINE, 12, 2, 4))
+		tag.add_theme_stylebox_override("panel", _Shell.surface(DangoTheme.Surface.CREAM_RAISED, 12, 2, Vector2(4, 4), DangoTheme.GOLD, DangoTheme.OUTLINE))
 		tag.add_child(_Shell.label("NFT", 13, DangoTheme.GOLD_INK, true))
 		head.add_child(tag)
 	var seats := HBoxContainer.new()
@@ -391,7 +400,7 @@ func _preset_card(i: int) -> Control:
 	for k in (e["party"] as Array):
 		seats.add_child(_seat_cell(String(k), not TeamPresets.seat_ok(String(k))))
 	if miss > 0:
-		v.add_child(_Shell.label("%d of 5 seats empty: the Axie left your Vault" % miss, 13, Color("8A3E22")))
+		v.add_child(_Shell.label("%d of 5 seats empty: the Axie left your Vault" % miss, 13, DangoTheme.LINE))
 	var sp := Control.new()
 	sp.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	v.add_child(sp)
@@ -408,9 +417,9 @@ func _preset_card(i: int) -> Control:
 		use.pressed.connect(use_preset.bind(i))
 	use.focus_entered.connect(func() -> void: _focus_idx = i)
 	row.add_child(use)
-	for a in [["Edit", open_editor.bind(i)], ["Copy", copy_preset.bind(i)], ["Delete", request_delete.bind(i)]]:
+	for a in [["Edit  E", open_editor.bind(i)], ["Copy", copy_preset.bind(i)], ["Delete", request_delete.bind(i)]]:
 		var b := _Shell.button(a[0], 0, 36)
-		b.name = a[0]
+		b.name = String(a[0]).split(" ")[0]
 		b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		b.pressed.connect(a[1])
 		b.focus_entered.connect(func() -> void: _focus_idx = i)
@@ -439,7 +448,7 @@ func _build_samples() -> Control:
 		c.name = "Sample%d" % i
 		c.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		c.size_flags_vertical = Control.SIZE_EXPAND_FILL
-		c.add_theme_stylebox_override("panel", _Shell.box(DangoTheme.CREAM_RAISED, DangoTheme.LINE, 20, 3, 16))
+		c.add_theme_stylebox_override("panel", _Shell.surface(DangoTheme.Surface.CREAM_RAISED, 20, 3, Vector2(16, 16), DangoTheme.CREAM_RAISED, DangoTheme.LINE))
 		var cv := VBoxContainer.new()
 		cv.add_theme_constant_override("separation", 10)
 		c.add_child(cv)
@@ -476,7 +485,6 @@ func _build_editor() -> Control:
 	_name_edit.max_length = TeamPresets.NAME_MAX
 	_name_edit.text = edit_name
 	_name_edit.custom_minimum_size = Vector2(360, 48)
-	_name_edit.add_theme_font_override("font", DangoTheme.FONT_DISPLAY)
 	_name_edit.add_theme_font_size_override("font_size", 20)
 	_name_edit.text_changed.connect(set_edit_name)
 	nrow.add_child(_name_edit)
@@ -520,7 +528,7 @@ func _edit_seat(s: int) -> Control:
 	var c := PanelContainer.new()
 	c.name = "EditSeat%d" % s
 	c.custom_minimum_size = Vector2(272, 176)
-	c.add_theme_stylebox_override("panel", _Shell.box(DangoTheme.CREAM_RAISED if key != "" else Color("E8D6B4"), DangoTheme.LINE, 20, 3, 12))
+	c.add_theme_stylebox_override("panel", _Shell.surface(DangoTheme.Surface.CREAM_RAISED, 20, 3, Vector2(12, 12), DangoTheme.CREAM_RAISED if key != "" else DangoTheme.CREAM_DISABLED, DangoTheme.LINE))
 	var v := VBoxContainer.new()
 	v.add_theme_constant_override("separation", 8)
 	c.add_child(v)
@@ -576,20 +584,9 @@ func _pick_keys() -> Array[String]:
 
 func _show_picker(slot: int) -> void:
 	close_modal()
-	var dim := ColorRect.new()
-	dim.name = "Picker"
-	dim.color = DangoTheme.SCRIM
-	dim.set_anchors_preset(Control.PRESET_FULL_RECT)
-	dim.offset_left = 200
-	dim.offset_right = -200
-	dim.offset_top = 116 + 68
-	dim.offset_bottom = -84
-	_shell["modal_layer"].add_child(dim)
-	var c := CenterContainer.new()
-	c.set_anchors_preset(Control.PRESET_FULL_RECT)
-	dim.add_child(c)
+	var c := _Shell.scrim(_shell["modal_layer"], "Picker")
 	var p := PanelContainer.new()
-	p.add_theme_stylebox_override("panel", _Shell.box(DangoTheme.CREAM, DangoTheme.LINE, 20, 4, 16))
+	p.add_theme_stylebox_override("panel", _Shell.surface(DangoTheme.Surface.CREAM, 20, 4, Vector2(16, 16)))
 	c.add_child(p)
 	var v := VBoxContainer.new()
 	v.add_theme_constant_override("separation", 10)

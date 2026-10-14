@@ -1,18 +1,34 @@
 class_name R3Shell
 extends RefCounted
-## Round 3 wide meta panel pieces shared by Team presets (M2) and Leaderboard (M9):
-## panel 1520 x (880 + extra) at left 200 / top 116, wood header band 64, dusk state banner,
-## skeleton wells, modal layer. Numbers are from design/handoffs/ui-02-round3 README section 0.
-## Positions are relationships (inset from the viewport edges), never a mockup y.
+## Round 3 wide meta panel pieces shared by Team presets (M2) and Leaderboard (M9): the panel
+## (width capped at PANEL_W, extra width becomes margin) inside the column DangoScreen.build()
+## returns, wood header band 64, dusk state banner, confirm modal. Numbers: design/handoffs/
+## ui-02-round3 README section 0. Positions are relationships, never a mockup y.
+
+const PANEL_W := 1520.0
+const BAND_H := 64.0
 
 
+## DangoTheme.surface_style() with optional fill / border colour tokens for the few R3 cells
+## (locked, dusk, pinned) that are not one of the Surface kinds.
+static func surface(kind: DangoTheme.Surface = DangoTheme.Surface.CREAM_RAISED, radius := 20,
+		border_w := 3, pad := Vector2(12, 12), fill: Variant = null, border: Variant = null) -> StyleBoxFlat:
+	var sb := DangoTheme.surface_style(kind, radius, border_w, 0.0, pad)
+	if fill is Color:
+		sb.bg_color = fill
+	if border is Color:
+		sb.border_color = border
+	return sb
+
+
+## Plain label; `display` uses the project's Baloo helper (no per-Label font override here).
 static func label(text: String, size: int, color: Color = DangoTheme.INK, display := false) -> Label:
+	if display:
+		return DangoTheme.display_label(text, size, color)
 	var l := Label.new()
 	l.text = text
 	l.add_theme_font_size_override("font_size", size)
 	l.add_theme_color_override("font_color", color)
-	if display:
-		l.add_theme_font_override("font", DangoTheme.FONT_DISPLAY)
 	return l
 
 
@@ -20,42 +36,41 @@ static func button(text: String, w: float, h: float, primary := false) -> Button
 	var b := Button.new()
 	b.text = text
 	b.custom_minimum_size = Vector2(w, maxf(h, 36))
-	b.add_theme_font_override("font", DangoTheme.FONT_DISPLAY)
 	b.add_theme_font_size_override("font_size", 16 if h < 44 else 18)
 	DangoTheme.style_button(b, primary)
 	return b
 
 
-static func box(fill: Color, border: Color, radius: int, border_w := 3, margin := 12) -> StyleBoxFlat:
-	var sb := StyleBoxFlat.new()
-	sb.bg_color = fill
-	sb.set_corner_radius_all(radius)
-	sb.set_border_width_all(border_w)
-	sb.border_color = border
-	sb.set_content_margin_all(margin)
-	return sb
-
-
-## Builds the shell inside `host`. Returns {panel, col, header_right, banner_host, modal_layer, back}.
+## Builds the shell inside `host`. Returns {content, panel, col, header_right, banner_host,
+## modal_layer, back, sub}.
 static func build(host: Control, title: String, sub: String, on_back: Callable) -> Dictionary:
-	DangoScreen.build(host, MockupAssets.tex("assets/bg/rocky.jpg"), DangoTheme.Scrim.DEFAULT, false)
+	var shell := DangoScreen.build(host, MockupAssets.tex("assets/bg/rocky.jpg"),
+		DangoTheme.Scrim.DEFAULT, false)
+	var content: Control = shell["content"]
 	var panel := PanelContainer.new()
 	panel.name = "Panel"
-	panel.anchor_right = 1.0
-	panel.anchor_bottom = 1.0
-	panel.offset_left = 200
-	panel.offset_right = -200
-	panel.offset_top = 116
-	panel.offset_bottom = -84
 	panel.clip_contents = true
-	panel.add_theme_stylebox_override("panel", box(DangoTheme.CREAM, DangoTheme.LINE, 28, 4, 0))
-	host.add_child(panel)
+	panel.add_theme_stylebox_override("panel", surface(DangoTheme.Surface.CREAM, 28, 4, Vector2(-1, -1)))
+	content.add_child(panel)
+	# Full column height; width capped at PANEL_W and centred, so extra width is margin.
+	var fit := func() -> void:
+		var w := minf(content.size.x, PANEL_W)
+		panel.anchor_left = 0.5
+		panel.anchor_right = 0.5
+		panel.anchor_top = 0.0
+		panel.anchor_bottom = 1.0
+		panel.offset_left = -w * 0.5
+		panel.offset_right = w * 0.5
+		panel.offset_top = 0
+		panel.offset_bottom = 0
+	fit.call()
+	content.resized.connect(fit)
 	var col := VBoxContainer.new()
 	col.name = "Col"
 	col.add_theme_constant_override("separation", 0)
 	panel.add_child(col)
 	var band := PanelContainer.new()
-	band.custom_minimum_size = Vector2(0, 64)
+	band.custom_minimum_size = Vector2(0, BAND_H)
 	var hb := StyleBoxFlat.new()
 	hb.bg_color = DangoTheme.WOOD_TOP
 	hb.border_color = DangoTheme.LINE
@@ -70,10 +85,10 @@ static func build(host: Control, title: String, sub: String, on_back: Callable) 
 	back.name = "Back"
 	back.pressed.connect(on_back)
 	row.add_child(back)
-	var t := label(title, 36, Color("2A1505"), true)
+	var t := label(title, 36, DangoTheme.INK_ON_PRIMARY, true)
 	t.name = "Title"
 	row.add_child(t)
-	var s := label(sub, 14, Color("3A1E07"))
+	var s := label(sub, 14, DangoTheme.INK)
 	s.name = "Sub"
 	s.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	row.add_child(s)
@@ -88,17 +103,18 @@ static func build(host: Control, title: String, sub: String, on_back: Callable) 
 	var banner_host := VBoxContainer.new()
 	banner_host.name = "BannerHost"
 	col.add_child(banner_host)
+	# Modals dim the whole column, above the panel.
 	var modal := Control.new()
 	modal.name = "Modals"
 	modal.set_anchors_preset(Control.PRESET_FULL_RECT)
 	modal.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	host.add_child(modal)
-	return {"panel": panel, "col": col, "header_right": right, "banner_host": banner_host,
-		"modal_layer": modal, "back": back, "sub": s}
+	content.add_child(modal)
+	return {"content": content, "panel": panel, "col": col, "header_right": right,
+		"banner_host": banner_host, "modal_layer": modal, "back": back, "sub": s}
 
 
 ## Dusk banner under the header: warning glyph, one sentence, one detail line, optional buttons
-## [{text, primary, cb}] on the right. Returns the banner node.
+## [{text, primary, cb}] on the right.
 static func banner(host: VBoxContainer, msg: String, detail: String, buttons: Array = []) -> PanelContainer:
 	var p := PanelContainer.new()
 	p.name = "Banner"
@@ -135,25 +151,27 @@ static func clear(host: Node) -> void:
 		c.queue_free()
 
 
-## Confirm modal 600 wide over the panel only; focus starts on the decline button.
-## Returns the dim layer (child of modal_layer).
-static func confirm(modal_layer: Control, title: String, body: String, keep_text: String,
-		do_text: String, on_do: Callable, on_close: Callable) -> Control:
+## Full-column scrim with a centred child plate; returns the scrim (child of modal_layer).
+static func scrim(modal_layer: Control, name: String) -> CenterContainer:
 	var dim := ColorRect.new()
-	dim.name = "Confirm"
+	dim.name = name
 	dim.color = DangoTheme.SCRIM
 	dim.set_anchors_preset(Control.PRESET_FULL_RECT)
-	dim.offset_left = 200
-	dim.offset_right = -200
-	dim.offset_top = 116 + 68
-	dim.offset_bottom = -84
 	modal_layer.add_child(dim)
 	var c := CenterContainer.new()
 	c.set_anchors_preset(Control.PRESET_FULL_RECT)
 	dim.add_child(c)
+	return c
+
+
+## Confirm modal 600 wide; focus starts on the decline button.
+static func confirm(modal_layer: Control, title: String, body: String, keep_text: String,
+		do_text: String, on_do: Callable, on_close: Callable) -> Control:
+	var c := scrim(modal_layer, "Confirm")
 	var p := PanelContainer.new()
+	p.name = "ConfirmPlate"
 	p.custom_minimum_size = Vector2(600, 0)
-	p.add_theme_stylebox_override("panel", box(DangoTheme.CREAM, DangoTheme.LINE, 24, 4, 0))
+	p.add_theme_stylebox_override("panel", surface(DangoTheme.Surface.CREAM, 24, 4, Vector2(-1, -1)))
 	c.add_child(p)
 	var v := VBoxContainer.new()
 	v.add_theme_constant_override("separation", 0)
@@ -166,7 +184,7 @@ static func confirm(modal_layer: Control, title: String, body: String, keep_text
 	hs.border_color = DangoTheme.LINE
 	hs.content_margin_left = 22
 	head.add_theme_stylebox_override("panel", hs)
-	head.add_child(label(title, 24, Color("2A1505"), true))
+	head.add_child(label(title, 24, DangoTheme.INK_ON_PRIMARY, true))
 	v.add_child(head)
 	var pad := MarginContainer.new()
 	for s in ["left", "right", "top", "bottom"]:
@@ -192,4 +210,18 @@ static func confirm(modal_layer: Control, title: String, body: String, keep_text
 	ok.pressed.connect(on_do)
 	row.add_child(ok)
 	keep.grab_focus.call_deferred()
-	return dim
+	return c.get_parent()
+
+
+## fit_or_scroll whose cap follows `panel`'s height (minus `reserve` px of chrome) instead of a
+## fixed number, so it re-fits on every window size.
+static func fit_in(inner: Control, panel: Control, reserve: float) -> ScrollContainer:
+	var vp_h: float = panel.get_viewport_rect().size.y
+	var sc := DangoScreen.fit_or_scroll(inner, maxf(220.0, vp_h - 2.0 * DangoScreen.SAFE - reserve))
+	var refit := func() -> void:
+		if not is_instance_valid(sc):
+			return
+		sc.custom_minimum_size.y = minf(inner.get_combined_minimum_size().y,
+			maxf(220.0, panel.size.y - reserve))
+	panel.resized.connect(refit)
+	return sc

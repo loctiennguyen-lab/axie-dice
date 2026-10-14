@@ -38,6 +38,10 @@ func _ready() -> void:
 	# ---- data layer
 	_ok(TeamPresets.slots_for_tier(1) == 3 and TeamPresets.slots_for_tier(2) == 6 and TeamPresets.slots_for_tier(3) == 9, "slots by tier 3/6/9")
 	_ok(TeamPresets.slot_count() == 3, "Savannah has 3 slots")
+	for t in [[1, 3], [2, 6], [3, 9]]:
+		TeamPresets.tier_override = t[0]
+		_ok(TeamPresets.slot_count() == t[1], "tier %d -> %d slots" % [t[0], t[1]])
+	TeamPresets.tier_override = 0
 	_ok(TeamPresets.add("Thorn Wall", _party()) == "", "add ok")
 	_ok(TeamPresets.add("", _party()) != "", "empty name refused")
 	_ok(TeamPresets.add("x", ["plant1", "", "", "", ""]) != "", "incomplete party refused")
@@ -130,6 +134,29 @@ func _ready() -> void:
 	var first := String((MetaState.team_presets[0] as Dictionary)["name"])
 	s.reorder(0, 1)
 	_ok(String((MetaState.team_presets[1] as Dictionary)["name"]) == first, "reorder 0 -> 1")
+	# keyboard: E edits the focused preset, S / M switch tab
+	var ev := InputEventKey.new()
+	ev.pressed = true
+	ev.keycode = KEY_S
+	s._unhandled_key_input(ev)
+	_ok(s.tab == "samples", "S opens Sample teams")
+	ev = InputEventKey.new()
+	ev.pressed = true
+	ev.keycode = KEY_M
+	s._unhandled_key_input(ev)
+	_ok(s.tab == "mine", "M opens My teams")
+	s._focus_idx = 1
+	ev = InputEventKey.new()
+	ev.pressed = true
+	ev.keycode = KEY_E
+	s._unhandled_key_input(ev)
+	_ok(s.view == "editor" and s.edit_index == 1, "E edits the focused preset")
+	s.cancel_editor()
+	# more slots at higher tier
+	TeamPresets.tier_override = 2
+	s.refresh()
+	_ok(s.find_child("Open4", true, false) != null and s.find_child("Locked7", true, false) != null, "tier 2: slots 4-6 open, 7+ locked")
+	TeamPresets.tier_override = 0
 	s.queue_free()
 
 	# ---- empty + guest

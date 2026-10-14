@@ -106,12 +106,26 @@ static func save_block_reason(party: Array) -> String:
 
 # ---------------------------------------------------------------- mutations (persist via MetaState / SaveStore)
 
-static func slot_count() -> int:
-	var tier := 1
+## Tests: force a Land tier (0 = use the real one).
+static var tier_override := 0
+
+
+## Land tier the player is on. Same source as Land.gd (_current_tier): MetaState.land_tier once
+## lane E adds it, else tier 1 (Savannah).
+static func current_tier() -> int:
+	if tier_override > 0:
+		return tier_override
 	var v: Variant = MetaState.get("land_tier")
-	if v != null:
-		tier = int(v)
-	return slots_for_tier(tier)
+	return maxi(int(v), 1) if v != null else 1
+
+
+static func tier_name(tier: int = -1) -> String:
+	var t := clampi(current_tier() if tier < 0 else tier, 1, 3)
+	return "Savannah" if t == 1 else String(TIER_NAME[t])
+
+
+static func slot_count() -> int:
+	return slots_for_tier(current_tier())
 
 
 static func count() -> int:
