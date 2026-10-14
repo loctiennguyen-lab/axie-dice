@@ -147,11 +147,25 @@ func _ready() -> void:
 	em.device = InputEvent.DEVICE_ID_EMULATION
 	ht._input(em)
 	_check(ht.call("_is_touch"), "chuột giả lập từ touch giữ touch")
-	# Tap on empty ground closes the open sign.
-	(ht.find_child("Hit_vault", true, false) as Button).emit_signal("pressed")
-	_check(not (ht.find_child("Sign_vault", true, false) as Control).visible or ht.get("_touch_id") == "vault", "mở biển")
-	ht._unhandled_input(tt)
-	_check(ht.get("_touch_id") == "", "chạm đất trống đóng biển")
+	# Real input pipeline (viewport.push_input): tap on the sign button, then Open, then empty ground.
+	LandNav.dry_run = true
+	LandNav.last_path = ""
+	ht.set("_touch_id", "")
+	var vpt := ht.get_viewport()
+	var hit := ht.find_child("Hit_vault", true, false) as Button
+	var pt := hit.get_global_rect().get_center()
+	await _tap(vpt, pt)
+	_check(ht.get("_touch_id") == "vault" and LandNav.last_path == "", "pipeline: chạm 1 chỉ hiện biển")
+	# A raw ScreenTouch reaching _unhandled_input must NOT close the sign (Controls never consume it).
+	var raw := InputEventScreenTouch.new()
+	raw.pressed = true
+	ht._unhandled_input(raw)
+	_check(ht.get("_touch_id") == "vault", "ScreenTouch thô không đóng biển")
+	await _tap(vpt, pt)
+	_check(ht.get("_touch_id") == "vault" and LandNav.last_path == "res://scenes/vault/Vault.tscn", "pipeline: chạm 2 mở Vault (không đóng biển)")
+	LandNav.last_path = ""
+	await _tap(vpt, Vector2(vpt.get_visible_rect().size.x * 0.5, 4.0))
+	_check(ht.get("_touch_id") == "" and LandNav.last_path == "", "pipeline: chạm đất trống đóng biển")
 	var rm := InputEventMouseButton.new()
 	rm.pressed = true
 	rm.device = 0
@@ -210,6 +224,30 @@ func _collect_scenes(dir_path: String, out: Array[String]) -> void:
 			out.append(dir_path.path_join(f))
 	for d in DirAccess.get_directories_at(dir_path):
 		_collect_scenes(dir_path.path_join(d), out)
+
+
+## One touch tap as the engine delivers it: ScreenTouch + emulated mouse press/release.
+func _tap(vp: Viewport, ui_pos: Vector2) -> void:
+	# Window pixels: the headless window is tiny and the stretch transform maps it onto the UI canvas.
+	var pos := vp.get_final_transform() * ui_pos
+	var mm := InputEventMouseMotion.new()
+	mm.position = pos
+	mm.global_position = pos
+	Input.parse_input_event(mm)
+	for down in [true, false]:
+		var st := InputEventScreenTouch.new()
+		st.position = pos
+		st.pressed = down
+		Input.parse_input_event(st)
+		var mb := InputEventMouseButton.new()
+		mb.position = pos
+		mb.global_position = pos
+		mb.button_index = MOUSE_BUTTON_LEFT
+		mb.pressed = down
+		mb.device = InputEvent.DEVICE_ID_EMULATION
+		Input.parse_input_event(mb)
+		await get_tree().process_frame
+	await get_tree().process_frame
 
 
 ## Real on-screen rect: transforms the control's own rect through its global transform (scale + pivot).

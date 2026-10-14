@@ -760,8 +760,8 @@ func _input(event: InputEvent) -> void:
 func _unhandled_input(event: InputEvent) -> void:
 	if not _touch_mode or _touch_id == "":
 		return
-	var tap: bool = (event is InputEventScreenTouch and event.pressed) \
-		or (event is InputEventMouseButton and event.pressed and event.device == InputEvent.DEVICE_ID_EMULATION)
+	# Only the emulated mouse press: Controls consume it when hit, ScreenTouch is never consumed.
+	var tap: bool = event is InputEventMouseButton and event.pressed and event.device == InputEvent.DEVICE_ID_EMULATION
 	if tap:
 		_touch_id = ""
 		_refresh_signs()
