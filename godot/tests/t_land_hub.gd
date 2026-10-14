@@ -146,6 +146,72 @@ func _ready() -> void:
 	MetaState.shard_pool = sp0
 	MetaState.mission_escrow = esc0
 	MetaState.ledger = led0
+	# Touch: first tap shows the sign (Open button), second tap opens.
+	LandHub.qa = {"touch": true, "newcomer": false}
+	LandHub.tier_override = 1
+	var ht := (load("res://scenes/land/Land.tscn") as PackedScene).instantiate() as LandHub
+	add_child(ht)
+	await get_tree().process_frame
+	LandNav.dry_run = true
+	LandNav.last_path = ""
+	(ht.find_child("Hit_vault", true, false) as Button).emit_signal("pressed")
+	_check(LandNav.last_path == "" and (ht.find_child("Sign_vault", true, false) as Control).visible, "chạm 1 lần: chỉ hiện biển")
+	_check(ht.find_child("SignOpen", true, false) != null, "biển cảm ứng có nút Open")
+	(ht.find_child("Hit_vault", true, false) as Button).emit_signal("pressed")
+	_check(LandNav.last_path == "res://scenes/vault/Vault.tscn", "chạm lần 2 mở Vault")
+	_check((ht.find_child("GemPlus", true, false) as Control).custom_minimum_size.x >= 44.0, "GemPlus >= 44 px")
+	# Mouse input switches touch mode off: click opens directly again.
+	var mb := InputEventMouseButton.new()
+	mb.pressed = true
+	ht._input(mb)
+	LandNav.last_path = ""
+	(ht.find_child("Hit_pass", true, false) as Button).emit_signal("pressed")
+	_check(LandNav.last_path == "res://scenes/pass/Pass.tscn", "chuột phải mở thẳng sau khi hết touch")
+	# Touch latch: ScreenTouch -> on; emulated mouse keeps it; real mouse (device 0) clears it.
+	var tt := InputEventScreenTouch.new()
+	tt.pressed = true
+	ht._input(tt)
+	_check(ht.call("_is_touch"), "ScreenTouch bật touch")
+	var em := InputEventMouseButton.new()
+	em.pressed = true
+	em.device = InputEvent.DEVICE_ID_EMULATION
+	ht._input(em)
+	_check(ht.call("_is_touch"), "chuột giả lập từ touch giữ touch")
+	# Real input pipeline (viewport.push_input): tap on the sign button, then Open, then empty ground.
+	LandNav.dry_run = true
+	LandNav.last_path = ""
+	ht.set("_touch_id", "")
+	var vpt := ht.get_viewport()
+	var hit := ht.find_child("Hit_vault", true, false) as Button
+	var pt := hit.get_global_rect().get_center()
+	await _tap(vpt, pt)
+	_check(ht.get("_touch_id") == "vault" and LandNav.last_path == "", "pipeline: chạm 1 chỉ hiện biển")
+	# A raw ScreenTouch reaching _unhandled_input must NOT close the sign (Controls never consume it).
+	var raw := InputEventScreenTouch.new()
+	raw.pressed = true
+	ht._unhandled_input(raw)
+	_check(ht.get("_touch_id") == "vault", "ScreenTouch thô không đóng biển")
+	await _tap(vpt, pt)
+	_check(ht.get("_touch_id") == "vault" and LandNav.last_path == "res://scenes/vault/Vault.tscn", "pipeline: chạm 2 mở Vault (không đóng biển)")
+	LandNav.last_path = ""
+	await _tap(vpt, Vector2(vpt.get_visible_rect().size.x * 0.5, 4.0))
+	_check(ht.get("_touch_id") == "" and LandNav.last_path == "", "pipeline: chạm đất trống đóng biển")
+	var rm := InputEventMouseButton.new()
+	rm.pressed = true
+	rm.device = 0
+	ht._input(rm)
+	_check(not ht.call("_is_touch"), "chuột thật tắt touch")
+	ht.set("_touch_mode", true)
+	# UI scale floor (~1.275 at 1280x720): HUD stays in the viewport and clear of the dock.
+	ht.call("_place_hud", 1.275)
+	var vp := Rect2(Vector2.ZERO, (ht.get("_ui") as Control).size)
+	var dock := _srect(ht.get("_dock") as Control)
+	for n in ["_hud_tl", "_rail", "_wallet"]:
+		var r := _srect(ht.get(n) as Control)
+		_check(vp.encloses(r), "%s ra ngoài khung ở scale 1.275: %s" % [n, str(r)])
+		_check(not r.intersects(dock), "%s đè dock ở scale 1.275" % n)
+	ht.queue_free()
+	await get_tree().process_frame
 	LandHub.qa = {}
 	LandHub.tier_override = 0
 	LandNav.dry_run = false
@@ -188,3 +254,34 @@ func _collect_scenes(dir_path: String, out: Array[String]) -> void:
 			out.append(dir_path.path_join(f))
 	for d in DirAccess.get_directories_at(dir_path):
 		_collect_scenes(dir_path.path_join(d), out)
+
+
+## One touch tap as the engine delivers it: ScreenTouch + emulated mouse press/release.
+func _tap(vp: Viewport, ui_pos: Vector2) -> void:
+	# Window pixels: the headless window is tiny and the stretch transform maps it onto the UI canvas.
+	var pos := vp.get_final_transform() * ui_pos
+	var mm := InputEventMouseMotion.new()
+	mm.position = pos
+	mm.global_position = pos
+	Input.parse_input_event(mm)
+	for down in [true, false]:
+		var st := InputEventScreenTouch.new()
+		st.position = pos
+		st.pressed = down
+		Input.parse_input_event(st)
+		var mb := InputEventMouseButton.new()
+		mb.position = pos
+		mb.global_position = pos
+		mb.button_index = MOUSE_BUTTON_LEFT
+		mb.pressed = down
+		mb.device = InputEvent.DEVICE_ID_EMULATION
+		Input.parse_input_event(mb)
+		await get_tree().process_frame
+	await get_tree().process_frame
+
+
+## Real on-screen rect: transforms the control's own rect through its global transform (scale + pivot).
+func _srect(c: Control) -> Rect2:
+	var xf := c.get_global_transform()
+	var sz := c.get_combined_minimum_size()
+	return xf * Rect2(Vector2.ZERO, sz)
