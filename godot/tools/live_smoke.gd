@@ -126,7 +126,10 @@ func _ready() -> void:
 			await _cleanup()
 			if _full:
 				await _discard_scenes()
-				await _phase_daily()
+				if _failed:
+					_skip("daily", "an earlier step failed; not spending one of the 3 daily tries")
+				else:
+					await _phase_daily()
 	await _cleanup()
 	_quit()
 
