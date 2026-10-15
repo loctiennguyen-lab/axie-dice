@@ -1631,6 +1631,14 @@ func _on_continue_pressed() -> void:
 		_new_run_btn.visible = false
 		_show_toast("That run could not be loaded")
 		return
+	var st: String = await RunContinue.reconnect(self, _on_continue_pressed)
+	if st == "gone":
+		_has_run = false
+		_new_run_btn.visible = false
+		_show_toast(RunState.take_discard_notice(), 5.0)
+		return
+	if st != "ok":
+		return
 	if not RunState.resume_combat.is_empty():
 		get_tree().change_scene_to_file("res://scenes/combat/Combat.tscn")
 	else:

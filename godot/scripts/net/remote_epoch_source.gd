@@ -17,6 +17,11 @@ var _started := false
 var _closed := false
 ## Tests: replaces the local-save lookup. Returns the run_id of the saved run that can be resumed, or "".
 var local_run_id: Callable = Callable()
+## Set by resume(): this source was rebuilt from a save, so the session is NOT attached to the run yet.
+var _resumed := false
+var _attached := true
+var _reconnecting := false
+var _waiters: Array = []   # EpochReply of reconnect() callers waiting for the answer
 
 
 func _init(p_session: RunSession = null, rules_version: String = "") -> void:
@@ -133,6 +138,10 @@ static func _saved_resumable_run_id() -> String:
 
 
 func request(kind: String, args: Dictionary) -> EpochReply:
+	return _gated(func() -> EpochReply: return _request_now(kind, args))
+
+
+func _request_now(kind: String, args: Dictionary) -> EpochReply:
 	if not _started or kind == "run_start" or _closed:
 		return EpochReply.fail("out_of_order")
 	var peek := _chain_peek()
@@ -162,6 +171,10 @@ func request(kind: String, args: Dictionary) -> EpochReply:
 ## chain itself and returns the new h / log_len; the CALLER must record `aid_use` in its ActionLog
 ## right after, so the next request's delta (which starts at the server's position) matches.
 func aid(aid_id: String, args: Dictionary) -> EpochReply:
+	return _gated(func() -> EpochReply: return _aid_now(aid_id, args))
+
+
+func _aid_now(aid_id: String, args: Dictionary) -> EpochReply:
 	if not _started or _closed:
 		return EpochReply.fail("out_of_order")
 	var peek := _chain_peek()
@@ -189,6 +202,10 @@ func aid(aid_id: String, args: Dictionary) -> EpochReply:
 
 
 func close(outcome: String, summary: Dictionary) -> EpochReply:
+	return _gated(func() -> EpochReply: return _close_now(outcome, summary))
+
+
+func _close_now(outcome: String, summary: Dictionary) -> EpochReply:
 	if not _started or _closed:
 		return EpochReply.fail("out_of_order")
 	var peek := _chain_peek()
@@ -227,6 +244,71 @@ func resume(p_tape: Array, p_session: RunSession) -> void:
 	_prev_h = String(lx.get("h", "")).hex_decode()
 	_sent_len = int(lx.get("log_len", 0))
 	_first_epoch = false
+	_resumed = true
+	_attached = false
+
+
+## True when a source rebuilt from a save has not (or no longer has) a live session on its run.
+func needs_reconnect() -> bool:
+	if not _resumed or _closed:
+		return false
+	return not _attached or session.state == "idle" or session.state == "closed" or session.run_id != _run_id
+
+
+## Runs `op` (which builds the real request) once the session is attached to the saved run. A request made while
+## the reconnect is still going waits for it instead of failing; if the reconnect fails, the request fails with
+## the reconnect's code (offline, unauthenticated, run_gone) and the next try reconnects again.
+func _gated(op: Callable) -> EpochReply:
+	if not needs_reconnect():
+		return op.call()
+	var reply := EpochReply.new()
+	var rc := reconnect()
+	_when_done(rc, func() -> void:
+		if not rc.ok:
+			reply.settle(false, 0, rc.code)
+			return
+		var inner: EpochReply = op.call()
+		_when_done(inner, func() -> void:
+			reply.settle(inner.ok, inner.seed, inner.code, inner.extra)))
+	return reply
+
+
+## Reconnects the session to the saved run: GET /api/run/open, the run_id must be the saved one, then attach()
+## (the socket's hello{last_seq} fetches whatever the server did after our last save). Concurrent callers share
+## one attempt. Settles ok, or:
+##   run_gone   the server has no open run, or another one: this save cannot continue online (caller discards it)
+##   offline / unauthenticated / ...   open_existing failed: nothing changed, try again later
+func reconnect() -> EpochReply:
+	var reply := EpochReply.new()
+	if not needs_reconnect():
+		reply.settle(true, 0)
+		return reply
+	_attached = false
+	_waiters.append(reply)
+	if _reconnecting:
+		return reply
+	_reconnecting = true
+	var saved_id := _run_id
+	session.open_existing(func(ok: bool, d: Dictionary) -> void:
+		var code := ""
+		if not ok:
+			code = _map_http_code(String(d.get("code", "server")))
+		else:
+			var open_id := String(d.get("run_id", ""))
+			if open_id == "":
+				code = "run_gone"
+			elif open_id != saved_id:
+				session.release()   # open_existing attached us to a run we do not own here: let it go
+				code = "run_gone"
+			else:
+				session.note_acked(_seq - 1)
+				_attached = true
+		_reconnecting = false
+		var waiting := _waiters
+		_waiters = []
+		for w in waiting:
+			(w as EpochReply).settle(code == "", 0, code))
+	return reply
 
 
 # ---------------------------------------------------------------------------

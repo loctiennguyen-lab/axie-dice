@@ -439,6 +439,12 @@ func _on_continue_run_pressed() -> void:
 			_continue_button.queue_free()
 			_continue_button = null
 		return
+	var st: String = await RunContinue.reconnect(self, _on_continue_run_pressed)
+	if st == "gone":
+		LandNav.back_to_land()   # Land shows RunState's discard notice
+		return
+	if st != "ok":
+		return
 	LandNav.run_started()
 	if not RunState.resume_combat.is_empty():
 		get_tree().change_scene_to_file("res://scenes/combat/Combat.tscn")

@@ -56,6 +56,8 @@ class FakeServer extends RefCounted:
 	var abandon_ok := true
 	var abandon_calls := 0
 	var create_calls := 0
+	var open_other_id := ""       # /api/run/open names another run than the saved one
+	var open_offline := false     # /api/run/open unreachable (code 0)
 
 	func _init() -> void:
 		last_h = EpochCanon.h0(run_id)
@@ -75,7 +77,12 @@ class FakeServer extends RefCounted:
 				"ws_url": "wss://x/api/run/%s/ws" % run_id, "header": {"newcomer": true}}))
 		elif path == "/api/run/open":
 			open_calls += 1
-			if stale_id != "":
+			if open_offline:
+				done.call(0, "")
+			elif open_other_id != "":
+				done.call(200, JSON.stringify({"run_id": open_other_id, "run_token": "other", "commit": "c0ffee",
+					"ws_url": "wss://x/api/run/%s/ws" % open_other_id, "header": {"mode": "normal"}}))
+			elif stale_id != "":
 				done.call(200, JSON.stringify({"run_id": stale_id, "run_token": "stale", "commit": "c0ffee",
 					"ws_url": "wss://x/api/run/%s/ws" % stale_id, "header": {"mode": "normal"}}))
 			elif open_ok:
@@ -173,6 +180,7 @@ class FakeServer extends RefCounted:
 
 
 var _fails := 0
+var _guard := SaveGuard.new()
 
 
 func _check(cond: bool, what: String) -> void:
@@ -284,6 +292,10 @@ func _ready() -> void:
 
 	await _auth_refresh()
 	await _both_remote()
+	await _resume_after_restart()
+	_guard.capture()
+	await _continue_through_run_state()
+	_guard.restore()
 
 	print("t_run_session: ", "PASS" if _fails == 0 else "FAILED (%d)" % _fails)
 	get_tree().quit(1 if _fails > 0 else 0)
@@ -464,3 +476,164 @@ func _both_remote() -> void:
 	sess.queue_free()
 	ProjectSettings.set_setting("axie/epoch_source", old_e)
 	ProjectSettings.set_setting("axie/gem_wallet", old_g)
+
+
+## A run saved mid-way and continued after the app was closed: a brand-new RunSession (no run, no socket) must
+## reconnect to the saved run by itself (open_existing -> same run_id -> attach -> hello) before the first
+## request goes out. Source level: no scenes, FakeServer plays the Worker.
+func _resume_after_restart() -> void:
+	# a run with two epochs behind it, then "quit the app": only the tape and the log survive
+	var s1 := FakeServer.new()
+	var p1 := _make(s1)
+	var log: ActionLog = p1[2]
+	var r := (p1[1] as RemoteEpochSource).start_run({"mode": "short", "ascension": 0, "kind": "normal"})
+	_run(p1[0], r, 5.0)
+	log.record("enter_node", ["r1_c0", "battle"])
+	r = (p1[1] as RemoteEpochSource).request("node", {"node_id": "r1_c0"})
+	_run(p1[0], r, 5.0)
+	var saved_tape: Array = (p1[1] as RemoteEpochSource).tape()
+	(p1[0] as RunSession).queue_free()
+	_check(saved_tape.size() == 2 and s1.rows.size() == 2, "resume: setup, two epochs on the server")
+
+	# (a) fresh session + resumed source: first epoch after Continue is answered by the server
+	var sess := RunSession.new()
+	add_child(sess)
+	sess.set_process(false)
+	sess.http = s1.http
+	sess.socket_factory = s1.make_socket
+	var src := RemoteEpochSource.new(sess)
+	src.resume(saved_tape, sess)
+	src.bind_log(log)
+	log.record("use_die", [1, 100001])
+	log.record("end_turn", [])
+	var r2 := src.request("end_turn", {"turn": 1})
+	_check(not r2.done, "resume: the request waits for the reconnect, it does not fail")
+	_run(sess, r2, 10.0)
+	_check(r2.done and r2.ok and r2.seed == 1000 + 2 * 7, "resume (a): first epoch after Continue is server-answered")
+	_check(s1.rows.size() == 3 and s1.open_calls == 1 and sess.run_id == s1.run_id and sess.state == "ready",
+		"resume (a): one open_existing, attached to the saved run, one new epoch")
+	var r2b := src.request("end_turn", {"turn": 2})
+	_run(sess, r2b, 10.0)
+	_check(s1.open_calls == 1 and r2b.done, "resume (a): later requests do not reconnect again")
+	sess.queue_free()
+
+
+## Runs a coroutine without awaiting it; the box fills in when it finishes.
+func _launch(f: Callable) -> Dictionary:
+	var box := {"done": false, "res": null}
+	(func() -> void:
+		box["res"] = await f.call()
+		box["done"] = true).call()
+	return box
+
+
+## Pumps `sess` until the launched call finished.
+func _pump_busy(sess: RunSession, box: Dictionary) -> void:
+	var t := 0.0
+	while not bool(box["done"]) and t < 20.0:
+		sess.tick(0.25)
+		t += 0.25
+		await get_tree().process_frame
+
+
+## Starts a real remote run on `srv`, saves it, forgets everything in memory and returns a fresh session wired to
+## the same server, with the run loaded back from the save (what the Continue button does before RunContinue).
+func _saved_run_then_restart(srv: FakeServer) -> RunSession:
+	var s1 := RunSession.new()
+	add_child(s1)
+	s1.set_process(false)
+	s1.http = srv.http
+	s1.socket_factory = srv.make_socket
+	RunState.reset()
+	RunState.session = s1
+	var begin := _launch(func() -> Variant: return await RunState.begin_run({"mode": "short", "kind": "normal"}))
+	await _pump_busy(s1, begin)
+	RunState.save_run()
+	s1.queue_free()
+	RunState.reset()
+	var s2 := RunSession.new()
+	add_child(s2)
+	s2.set_process(false)
+	s2.http = srv.http
+	s2.socket_factory = srv.make_socket
+	RunState.session = s2
+	return s2 if RunState.load_run() else null
+
+
+func _continue_through_run_state() -> void:
+	var old_e: Variant = ProjectSettings.get_setting("axie/epoch_source", "local")
+	ProjectSettings.set_setting("axie/epoch_source", "remote")
+	RunState.discard_notice = ""
+
+	# (a) through RunState: Continue -> reconnect -> the first epoch is answered by the server
+	var sa := FakeServer.new()
+	var sess_a := await _saved_run_then_restart(sa)
+	_check(sess_a != null and RunState.epoch is RemoteEpochSource and RunState.epoch.needs_reconnect(), "continue: loaded run has a source that must reconnect")
+	var ra := _launch(func() -> Variant: return await RunState.resume_online())
+	await _pump_busy(sess_a, ra)
+	var res_a: Dictionary = ra["res"]
+	_check(res_a.ok and sa.open_calls == 1 and sess_a.run_id == sa.run_id, "continue (a): resume_online reconnects to the saved run")
+	var ea := RunState.epoch.request("node", {"node_id": "r1_c0"})
+	_run(sess_a, ea, 10.0)
+	_check(ea.done and ea.ok and ea.seed == 1000 + 1 * 7, "continue (a): first epoch after Continue is server-answered")
+	RunState.reset()
+	sess_a.queue_free()
+
+	# (b) the server has no open run: discard notice, save gone, no stuck run
+	var sb := FakeServer.new()
+	var sess_b := await _saved_run_then_restart(sb)
+	_check(RunState.saved_run_file_exists(), "continue (b): save exists before")
+	sb.open_ok = false
+	var rb := _launch(func() -> Variant: return await RunState.resume_online())
+	await _pump_busy(sess_b, rb)
+	var res_b: Dictionary = rb["res"]
+	_check(not res_b.ok and res_b.code == "run_gone", "continue (b): no open run -> run_gone")
+	_check(not RunState.saved_run_file_exists() and RunState.epoch == null and not RunState.epoch_busy, "continue (b): save erased, run cleared")
+	_check(RunState.take_discard_notice() == RunState.GONE_MESSAGE, "continue (b): discard notice set")
+	sess_b.queue_free()
+
+	# (c) the server has a different open run: same, and the session lets go of it
+	var sc := FakeServer.new()
+	var sess_c := await _saved_run_then_restart(sc)
+	sc.open_other_id = "ffffffffffffffffffffffffffffffff"
+	var rc := _launch(func() -> Variant: return await RunState.resume_online())
+	await _pump_busy(sess_c, rc)
+	var res_c: Dictionary = rc["res"]
+	_check(not res_c.ok and res_c.code == "run_gone" and not RunState.saved_run_file_exists(), "continue (c): other run_id -> run_gone, save erased")
+	_check(sess_c.state == "idle", "continue (c): session released from the other run")
+	_check(RunState.take_discard_notice() == RunState.GONE_MESSAGE, "continue (c): discard notice set")
+	sess_c.queue_free()
+
+	# (d) offline at Continue: NetNotice RETRY really retries the reconnect
+	var sd := FakeServer.new()
+	var sess_d := await _saved_run_then_restart(sd)
+	sd.open_offline = true
+	var host := Node.new()
+	add_child(host)
+	var outcome := ["", ""]
+	var retry_box := {"done": true}
+	var first := _launch(func() -> Variant:
+		return await RunContinue.reconnect(host, func() -> void:
+			retry_box["done"] = false
+			outcome[1] = await RunContinue.reconnect(host, Callable())
+			retry_box["done"] = true))
+	await _pump_busy(sess_d, first)
+	outcome[0] = first["res"]
+	_check(outcome[0] == "failed" and RunState.saved_run_file_exists(), "continue (d): offline -> failed, save kept")
+	var notice := host.get_node_or_null("NetNotice")
+	var retry_btn: Button = notice.find_child("RetryButton", true, false) as Button if notice != null else null
+	_check(retry_btn != null, "continue (d): NetNotice offers RETRY")
+	sd.open_offline = false
+	if retry_btn != null:
+		retry_btn.pressed.emit()
+		await _pump_busy(sess_d, retry_box)
+	_check(outcome[1] == "ok" and sd.open_calls == 2 and sess_d.run_id == sd.run_id, "continue (d): RETRY reconnects (second open_existing), then ok")
+	var ed := RunState.epoch.request("node", {"node_id": "r1_c0"})
+	_run(sess_d, ed, 10.0)
+	_check(ed.done and ed.ok, "continue (d): epoch works after the retry")
+	host.queue_free()
+	RunState.reset()
+	RunState.session = null
+	sess_d.queue_free()
+
+	ProjectSettings.set_setting("axie/epoch_source", old_e)

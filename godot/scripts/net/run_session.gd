@@ -148,6 +148,12 @@ func last_ack() -> int:
 	return _last_ack
 
 
+## After attach() to a run the client already holds answers up to `seq` for (a resumed save): the next
+## hello{last_seq} then asks only for what came after, instead of the whole tail.
+func note_acked(seq: int) -> void:
+	_last_ack = maxi(_last_ack, seq)
+
+
 func _connect() -> void:
 	_sock = socket_factory.call()
 	_sent_hello = false
