@@ -2001,13 +2001,17 @@ func _layout_stage_bands() -> void:
 	var canvas_h: float = get_viewport_rect().size.y
 	var band: float = maxf(canvas_h - _TOP_BAR_H - _DECK_H, 1.0)
 	if _stage3d != null:
-		# Anchored to the TOP edge at both ends and driven by offsets, so the band arithmetic is
-		# the single place the stage's height is decided - not a second fraction of the canvas
-		# that would drift away from the rest of the layout.
+		# L6 (Liam 16/10, "remove the horizontal bar in the middle of the combat screen"): the
+		# stage used to be a rectangle from y=140 to the deck. Its opaque sky/ground started with a
+		# hard edge at y=140 and met the dark painted plate above it, which read as a horizontal
+		# band across the screen. The 3D view now fills the WHOLE canvas and the arena runs behind
+		# the top bar and the deck; the camera is re-framed so the units land on exactly the same
+		# pixels they did inside the old band (see CombatStage3D.frame_band()).
 		_stage3d.anchor_top = 0.0
 		_stage3d.anchor_bottom = 0.0
-		_stage3d.offset_top = _TOP_BAR_H + band * _STAGE_TOP_F
-		_stage3d.offset_bottom = _TOP_BAR_H + band * _STAGE_BOTTOM_F
+		_stage3d.offset_top = 0.0
+		_stage3d.offset_bottom = canvas_h
+		_stage3d.frame_band(canvas_h, _TOP_BAR_H + band * _STAGE_TOP_F, _TOP_BAR_H + band * _STAGE_BOTTOM_F)
 
 
 ## C1 — where the enemy HUD column starts, in CANVAS pixels.

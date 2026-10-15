@@ -495,6 +495,30 @@ func _ready() -> void:
 	_build_world()
 
 
+## Camera framing constants (kept here so frame_band() can re-derive them).
+const _CAM_FOV := 34.0
+const _CAM_PITCH_DEG := -14.0
+
+
+## L6: the stage control now covers the whole canvas (height `canvas_h`) instead of a band
+## [top, bottom], so the arena has no hard rectangular edge. This widens the vertical fov and
+## tips the camera so a world point still lands on the SAME canvas pixel it used to inside the band:
+## the focal length in pixels is unchanged (fov grows by canvas_h / band_h) and the optical axis
+## moves from the band's centre to the canvas centre by a pure pitch about the camera centre.
+## Pure maths, no RNG; safe to call on every resize.
+func frame_band(canvas_h: float, top: float, bottom: float) -> void:
+	if _camera == null:
+		return
+	var band_h := maxf(bottom - top, 1.0)
+	canvas_h = maxf(canvas_h, band_h)
+	var half_tan := tan(deg_to_rad(_CAM_FOV) * 0.5)
+	_camera.fov = rad_to_deg(2.0 * atan(half_tan * canvas_h / band_h))
+	var focal_px := (band_h * 0.5) / half_tan
+	var band_centre := (top + bottom) * 0.5
+	var pitch := atan((canvas_h * 0.5 - band_centre) / focal_px)
+	_camera.rotation_degrees = Vector3(_CAM_PITCH_DEG - rad_to_deg(pitch), 0.0, 0.0)
+
+
 func _build_world() -> void:
 	_world = Node3D.new()
 	_world.name = "World"
@@ -502,8 +526,8 @@ func _build_world() -> void:
 
 	var cam := Camera3D.new()
 	cam.position = Vector3(0.0, 4.5, 13.2)
-	cam.rotation_degrees = Vector3(-14.0, 0.0, 0.0)
-	cam.fov = 34.0
+	cam.rotation_degrees = Vector3(_CAM_PITCH_DEG, 0.0, 0.0)
+	cam.fov = _CAM_FOV
 	cam.current = true
 	_world.add_child(cam)
 	_camera = cam
