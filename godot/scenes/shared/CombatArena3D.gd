@@ -29,6 +29,8 @@ const BASE_FOG_DENSITY := 0.006
 ## Default for registry "path_end_gap": the path lane ends this far in front of the portal origin
 ## (tile centre), so the pedestal stays visible.
 const PATH_END_GAP := 2.8
+## Default for registry portal "yaw_deg": gate turned 90 degrees about Y (Liam 16/10).
+const PORTAL_YAW_DEG := 90.0
 ## Prop keep-out (|x| / z): enemy flanks (enemy row z -6.5, x 0/+-5.1) and the portal line.
 const KEEPOUT_ENEMY_Z := [-11.0, -2.0]
 const KEEPOUT_ENEMY_X := 10.5
@@ -132,6 +134,7 @@ func _apply_boss_look() -> void:
 	if _portal != null:
 		var z := float(registry().get("portal", {}).get("z", -20.0))
 		_portal.scale *= BOSS_PORTAL_MUL
+		_portal.position.x -= (_portal.transform * _aabb_of(_portal).get_center()).x   # scaling about the origin pushed the centre off x = 0
 		_portal.position.z += BOSS_PORTAL_Z - z
 		if _portal_light != null:
 			_portal_light.position.z += BOSS_PORTAL_Z - z
@@ -341,7 +344,14 @@ func _add_portal(cfg: Dictionary) -> void:
 	if box.size.y > 0.001:
 		var f := float(cfg.get("height_m", 4.5)) / box.size.y
 		_portal.scale = Vector3.ONE * f
-		_portal.position = Vector3(-box.get_center().x * f, -box.position.y * f, float(cfg.get("z", -15.0)))
+		# Yaw about Y (registry portal.yaw_deg, default PORTAL_YAW_DEG). The mesh-local centre
+		# is rotated with the node, so re-solve the origin so the tower stays on x = 0 and keeps
+		# the same z it had at yaw 0 (arena z = origin z at yaw 0).
+		var yaw := deg_to_rad(float(cfg.get("yaw_deg", PORTAL_YAW_DEG)))
+		_portal.rotation.y = yaw
+		var c := box.get_center()
+		var off := Basis(Vector3.UP, yaw) * Vector3(c.x * f, 0.0, c.z * f)
+		_portal.position = Vector3(-off.x, -box.position.y * f, float(cfg.get("z", -15.0)) + c.z * f - off.z)
 	for m in _portal.find_children("*", "MeshInstance3D", true, false):
 		_drop_finial(m as MeshInstance3D)
 	_portal_light = OmniLight3D.new()
