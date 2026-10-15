@@ -1886,14 +1886,14 @@ func saved_run_status() -> Dictionary:
 	return {"exists": true, "resumable": true, "reason": ""}
 
 
-## If a save file exists that cannot be resumed: settle any open mission escrow as a loss (so the
-## stake is not stuck), erase the file and set discard_notice. Returns true when something was discarded.
+## If a save file exists that cannot be resumed: close any open mission mirror (from the server's settlement
+## when it follows a server run, else as a local loss, see MissionEscrowSync.settle_dead_run_mirror), erase the file and set discard_notice. Returns true when something was discarded.
 ## Screens call this before they decide whether to offer CONTINUE.
 func discard_unresumable_run() -> bool:
 	var st := saved_run_status()
 	if not bool(st["exists"]) or bool(st["resumable"]):
 		return false
-	MetaState.settle_mission_stake(false, true)
+	MissionEscrowSync.settle_dead_run_mirror()
 	SaveStore.erase(SAVE_PATH)
 	discard_notice = DISCARD_MESSAGE
 	return true
@@ -1921,10 +1921,12 @@ func resume_online() -> Dictionary:
 	return {"ok": false, "code": r.code}
 
 
-## The saved run cannot continue online (closed or abandoned elsewhere): settle any mission stake as a loss,
-## erase the save, leave GONE_MESSAGE for the next screen and clear the in-memory run.
+## The saved run cannot continue online (closed or abandoned elsewhere): the SERVER already settled its stake,
+## so the mirror follows that settlement (offline: it stays open and reconciles later, never a local loss; only a
+## server with no record falls back to a loss). Then erase the save, leave GONE_MESSAGE for the next screen and
+## clear the in-memory run.
 func discard_gone_run() -> void:
-	MetaState.settle_mission_stake(false, true)
+	MissionEscrowSync.settle_dead_run_mirror()
 	SaveStore.erase(SAVE_PATH)
 	reset()
 	discard_notice = GONE_MESSAGE

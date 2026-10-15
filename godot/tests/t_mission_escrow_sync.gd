@@ -138,6 +138,76 @@ func _ready() -> void:
 	RunState.end_run(true)
 	_ok(calls[0] == 0 and MetaState.mission_escrow.is_empty() and MetaState.shard_pool >= p0 + 645, "local mission: settled locally, no request")
 
+	# --- security review: the SERVER's settlement is the truth (dead-run discard, offline close, new stake) ---
+	ProjectSettings.set_setting("axie/epoch_source", "remote")
+	code[0] = 200
+	# run_gone: the server settled it while we were away -> the mirror takes the server payout, not a local loss
+	_open_escrow("g1", 300, 1)
+	board.clear()
+	board.merge({"open": null, "settled": [{"run_id": "g1", "state": "won", "payout": 645}]}, true)
+	p0 = MetaState.shard_pool
+	RunState.discard_gone_run()
+	_ok(MetaState.mission_escrow.is_empty() and MetaState.shard_pool == p0 + 645, "run_gone: mirror closed from the server settlement (won 645), not a local loss")
+	_ok(RunState.take_discard_notice() != "", "run_gone: notice still set")
+	# run_gone while the answer cannot be had: mirror stays open, nothing marked as a loss, later reconcile closes it
+	_open_escrow("g2", 300, 645)
+	code[0] = 0
+	p0 = MetaState.shard_pool
+	var loss_rows := MetaState.ledger.size() if "ledger" in MetaState else 0
+	RunState.discard_gone_run()
+	_ok(not MetaState.mission_escrow.is_empty() and MetaState.shard_pool == p0, "run_gone offline: mirror kept open, no loss")
+	if "ledger" in MetaState:
+		_ok(MetaState.ledger.size() == loss_rows, "run_gone offline: no ledger row written")
+	code[0] = 200
+	board.clear()
+	board.merge({"open": null, "settled": [{"run_id": "g2", "state": "refunded", "payout": 300}]}, true)
+	MissionEscrowSync.reconcile(cb)
+	_ok(applied[0] == true and MetaState.mission_escrow.is_empty() and MetaState.shard_pool == p0 + 300, "later reconcile applies the server refund")
+	# run_gone and the server has no record of that run: only then the local loss
+	_open_escrow("g3", 300, 645)
+	board.clear()
+	board.merge({"open": null, "settled": []}, true)
+	p0 = MetaState.shard_pool
+	RunState.discard_gone_run()
+	_ok(MetaState.mission_escrow.is_empty() and MetaState.shard_pool == p0, "run_gone, no server record: local loss fallback")
+	RunState.take_discard_notice()
+	# unbound mirror (local dice / never bound): the old local loss, no request
+	MetaState.mission_escrow = {"tier": "N1", "mission_id": "ms_u", "stake": 300, "payout": 645, "stone": 4, "t": 1}
+	calls[0] = 0
+	RunState.discard_gone_run()
+	_ok(calls[0] == 0 and MetaState.mission_escrow.is_empty(), "unbound mirror: local loss, no request")
+	RunState.take_discard_notice()
+
+	# close failed offline, then a new stake: reconcile first; unknown -> blocked, never a loss; known -> applied once
+	_open_escrow("n1", 300, 1)
+	code[0] = 0
+	p0 = MetaState.shard_pool
+	var w1 := MissionEscrowSync.prepare_new_stake()
+	_ok(w1.done and w1.value == MissionEscrowSync.MSG_SYNCING, "offline: new stake blocked with 'Syncing your last mission…'")
+	_ok(MetaState.take_mission_stake("N1", 300) == "" and not MetaState.mission_escrow.is_empty() and MetaState.shard_pool == p0, "take_mission_stake never settles a server-bound mirror as a loss")
+	code[0] = 200
+	board.clear()
+	board.merge({"open": {"run_id": "n1", "tier": "N1", "stake": 300}, "settled": []}, true)
+	var w2 := MissionEscrowSync.prepare_new_stake()
+	_ok(w2.value == MissionEscrowSync.MSG_STILL_OPEN and not MetaState.mission_escrow.is_empty(), "server still has it open: blocked, mirror intact")
+	board.clear()
+	board.merge({"open": null, "settled": [{"run_id": "n1", "state": "won", "payout": 645}]}, true)
+	var w3 := MissionEscrowSync.prepare_new_stake()
+	_ok(w3.value == "" and MetaState.mission_escrow.is_empty() and MetaState.shard_pool == p0 + 645, "server settled: applied (won 645), stake unblocked")
+	var mid := MetaState.take_mission_stake("N1", 300)
+	_ok(mid != "" and MetaState.shard_pool == p0 + 645 - 300, "new stake taken once after the reconcile")
+	MissionEscrowSync.reconcile(cb)
+	var w4 := MissionEscrowSync.prepare_new_stake()
+	_ok(w4.value == "" and MetaState.shard_pool == p0 + 645 - 300 and String(MetaState.mission_escrow.get("mission_id", "")) == mid, "no double credit: replaying the old settlement changes nothing")
+	# server has no record of the old mirror: local loss, then the stake goes ahead
+	MetaState.mission_escrow = {}
+	_open_escrow("n2", 300, 645)
+	board.clear()
+	board.merge({"open": null, "settled": []}, true)
+	var w5 := MissionEscrowSync.prepare_new_stake()
+	_ok(w5.value == "" and MetaState.mission_escrow.is_empty(), "no server record: local loss, unblocked")
+	ProjectSettings.set_setting("axie/epoch_source", "local")
+
 	MissionEscrowSync.transport_override = Callable()
 	RunState.reset()
 	MetaState.mission_escrow = {}

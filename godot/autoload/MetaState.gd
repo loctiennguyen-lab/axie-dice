@@ -404,6 +404,10 @@ func take_mission_stake(tier_id: String, stake: int = -1) -> String:
 	if not mission_escrow.is_empty():
 		if _saved_run_exists():
 			return ""
+		# Mirror of a SERVER stake (bound to a run_id, remote dice): only the server's settlement may close it
+		# (MissionEscrowSync.prepare_new_stake runs first). Never settle it as a loss here.
+		if String(ProjectSettings.get_setting("axie/epoch_source", "local")) == "remote" and not String(mission_escrow.get("run_id", "")).is_empty():   # = MissionEscrowSync.needed() (not called: autoload cycle)
+			return ""
 		settle_mission_stake(false, false)   # run đã mất mà escrow còn: coi như bỏ = thua
 	if stake_usable_shards() < cost:
 		return ""
