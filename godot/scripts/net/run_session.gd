@@ -94,6 +94,12 @@ func abandon(done: Callable) -> void:
 		done.call(code == 200))
 
 
+## Drops the socket and forgets the attached run without telling the server (used when open_existing()
+## attached us to a run we decided not to play; the run itself stays as it is on the server).
+func release() -> void:
+	_teardown("idle")
+
+
 ## Server error mapped to an EpochReply code: run_open / daily_cap / not_available / version / server.
 static func _http_code(code: int, j: Variant) -> String:
 	if code == 0:

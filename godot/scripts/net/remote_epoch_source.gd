@@ -15,6 +15,8 @@ var _tape: Array = []
 var _rules_version := ""
 var _started := false
 var _closed := false
+## Tests: replaces the local-save lookup. Returns the run_id of the saved run that can be resumed, or "".
+var local_run_id: Callable = Callable()
 
 
 func _init(p_session: RunSession = null, rules_version: String = "") -> void:
@@ -47,10 +49,27 @@ func start_run(params: Dictionary) -> EpochReply:
 		body["team_keys"] = params["team_keys"]   # Ranked: the server refuses imported (vault) Axies
 	if params.has("mission_offer_id"):
 		body["mission_offer_id"] = params["mission_offer_id"]
+	_create(params, body, nonce, reply, false)
+	return reply
+
+
+## POST /api/run. The server allows ONE open run per player, so a stale run (an earlier attempt that died
+## before the first battle, or a run another device left behind) answers 409 run_open on every Begin.
+## `recovered` makes sure we abandon at most once and retry the create at most once: never a loop.
+func _create(params: Dictionary, body: Dictionary, nonce: String, reply: EpochReply, recovered: bool) -> void:
 	session.create_run(body, func(ok: bool, data: Dictionary) -> void:
 		if not ok:
+			var code := String(data.get("code", "server"))
+			if code == "run_open" and not recovered:
+				_recover_open_run(func(res: String) -> void:
+					if res == "retry":
+						_create(params, body, nonce, reply, true)
+					else:
+						_started = false
+						reply.settle(false, 0, res))
+				return
 			_started = false
-			reply.settle(false, 0, _map_http_code(String(data.get("code", "server"))))
+			reply.settle(false, 0, _map_http_code(code))
 			return
 		_chain_begin(String(data["run_id"]))
 		var args := {"mode": String(params.get("mode", "short")), "ascension": int(params.get("ascension", 0))}
@@ -72,7 +91,45 @@ func start_run(params: Dictionary) -> EpochReply:
 				"h": String(peek["h"]), "log_len": 0}
 			_record("run_start", args, inner.seed, extra)
 			reply.settle(true, inner.seed, "", extra)))
-	return reply
+
+
+## Asks the server which run holds the slot. done(result): "retry" = the slot is free now (try the create
+## once more); anything else is the final EpochReply code:
+##   "run_in_progress"  a local save that can resume that very run exists: do NOT abandon it (UI offers Continue)
+##   "run_open"         the stale run could not be abandoned
+##   other              open_existing failed (offline, unauthenticated, ...)
+func _recover_open_run(done: Callable) -> void:
+	session.open_existing(func(ok: bool, d: Dictionary) -> void:
+		if not ok:
+			done.call(_map_http_code(String(d.get("code", "server"))))
+			return
+		var open_id := String(d.get("run_id", ""))
+		if open_id == "":
+			done.call("retry")   # the slot was freed between the two calls
+			return
+		var local_id: String = local_run_id.call() if local_run_id.is_valid() else _saved_resumable_run_id()
+		if local_id != "" and local_id == open_id:
+			session.release()
+			done.call("run_in_progress")
+			return
+		session.abandon(func(abandoned: bool) -> void:
+			if abandoned:
+				done.call("retry")
+			else:
+				session.release()
+				done.call("run_open")))
+
+
+## Local save that can resume a run: its run_id, or "" (no save, not resumable under this RULES_VERSION,
+## or a save from before server-rolled dice). Reads through RunState/SaveStore, never the file directly.
+static func _saved_resumable_run_id() -> String:
+	if not bool(RunState.saved_run_status()["resumable"]):
+		return ""
+	var parsed: Variant = JSON.parse_string(SaveStore.read_text(RunState.SAVE_PATH))
+	if typeof(parsed) != TYPE_DICTIONARY:
+		return ""
+	var run: Variant = (parsed as Dictionary).get("run", {})
+	return String((run as Dictionary).get("run_id", "")) if typeof(run) == TYPE_DICTIONARY else ""
 
 
 func request(kind: String, args: Dictionary) -> EpochReply:
@@ -203,7 +260,11 @@ func _map_http_code(c: String) -> String:
 			return "version"
 		"bad_request":
 			return "bad_request"
-	return "rejected"   # run_open, daily_cap, not_available, unauthenticated, ...
+		# Each of these has its own message in RunSetup; a generic "rejected" told the player nothing.
+		"run_open", "daily_cap", "daily_tries", "not_available", "newcomer_locked", "vault_banned", \
+		"unauthenticated", "forbidden", "rate_limited":
+			return c
+	return "rejected"
 
 
 func _when_done(r: EpochReply, cb: Callable) -> void:

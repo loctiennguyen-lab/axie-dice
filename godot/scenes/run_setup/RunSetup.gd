@@ -308,8 +308,7 @@ func set_state(s: String) -> void:
 	state = s
 	if _panel == null:
 		return
-	for c in _banner_host.get_children():
-		c.queue_free()
+	_clear_banners()
 	_body.visible = s != "loading" and s != "open_run"
 	var sk := _panel.get_node_or_null("Skeleton")
 	if sk:
@@ -349,13 +348,43 @@ func begin() -> Dictionary:
 			# Session expired or revoked after the screen opened: same message as a guest, no retry banner.
 			set_state("guest")
 			return r
-		begin_error = "Could not roll dice, try again."
-		_add_banner(begin_error, "Nothing was spent. Code: %s" % String(r.get("code", "?")), false)
+		var code := String(r.get("code", "?"))
+		if code == "run_in_progress":
+			# A saved run can resume the run the server still holds: offer Continue, never abandon it here.
+			begin_error = ""
+			set_state("open_run")
+			return r
+		var msg := begin_error_text(code)
+		begin_error = msg[0]
+		_add_banner(msg[0], msg[1], false)
 		return r
 	begin_error = ""
 	if not no_scene_change and is_inside_tree():
 		get_tree().change_scene_to_file(RUN_MAP)
 	return r
+
+
+## [title, detail] shown when Begin fails with `code` (RunState.begin_run -> RemoteEpochSource create error).
+## Pure, so a test can check every code. "Nothing was spent" holds: no run was created.
+static func begin_error_text(code: String) -> Array:
+	match code:
+		"run_open":
+			return ["An old run is still open on the server", "We could not close it. Nothing was spent. Try again in a moment."]
+		"daily_tries":
+			return ["No Daily tries left today", "Daily resets at 00:00 UTC. Nothing was spent."]
+		"daily_cap":
+			return ["No runs left today", "You reached today's run limit. It resets at 00:00 UTC. Nothing was spent."]
+		"not_available":
+			return ["Not available yet", "This kind of run is not open right now. Nothing was spent."]
+		"newcomer_locked":
+			return ["Ranked unlocks after 5 runs", "Play 5 runs with at least one fight first. Nothing was spent."]
+		"vault_banned":
+			return ["Imported Axies can't play Ranked", "Take them out of the party or pick another kind. Nothing was spent."]
+		"version":
+			return ["Update the game", "This version is too old to start a run. Reload to get the latest. Nothing was spent."]
+		"offline":
+			return ["Can't reach the dice server", "Check your connection and try again. Nothing was spent."]
+	return ["Could not roll dice, try again.", "Nothing was spent. Code: %s" % code]
 
 
 func open_picker(slot: int) -> void:
@@ -1007,7 +1036,15 @@ func _refresh_footer() -> void:
 
 # ---------------------------------------------------------------- states
 
+## One banner at a time: a new one replaces the old (two identical errors used to stack up).
+func _clear_banners() -> void:
+	for c in _banner_host.get_children():
+		_banner_host.remove_child(c)   # out of the tree now, so a count right after this is already right
+		c.queue_free()
+
+
 func _add_banner(msg: String, detail: String, with_retry: bool, with_sign_in: bool = false) -> void:
+	_clear_banners()
 	var p := PanelContainer.new()
 	p.name = "Banner"
 	var sb := StyleBoxFlat.new()
@@ -1080,13 +1117,21 @@ func _build_open_run() -> void:
 	v.add_child(cont)
 	var nw := _button("New run", 0, 48)
 	nw.name = "NewRun"
-	nw.pressed.connect(func() -> void: set_state("normal"))
+	nw.pressed.connect(_on_new_run)
 	v.add_child(nw)
 	v.add_child(_label("A new run ends the current run. Aid you used is not refunded.", 14, DangoTheme.INK))
 	holder.add_child(card)
 	_panel.get_node("Col").add_child(holder)
 	_panel.get_node("Col").move_child(holder, 2)
 	cont.grab_focus.call_deferred()
+
+
+## "New run" on the unfinished-run card: the old run ends here (stake lost, save gone), as the card says.
+## Without this the save would stay, and with server dice every Begin would answer "run in progress" again.
+func _on_new_run() -> void:
+	MetaState.settle_mission_stake(false, true)   # no-op unless a mission stake is open
+	RunState.clear_saved_run()
+	set_state("normal")
 
 
 func _on_continue() -> void:
