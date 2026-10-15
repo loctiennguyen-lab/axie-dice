@@ -10,6 +10,9 @@ var _failures: Array[String] = []
 var _checks := 0
 var _guard := SaveGuard.new()
 var _run_backup := ""
+## The real save may already hold a kept backup profile (user://acct/backup). The test creates and
+## deletes its own; snapshot the player's files first and put them back in _cleanup().
+var _acct_backup_files: Dictionary = {}
 var _had_run := false
 
 const META := "user://meta_save.json"
@@ -30,6 +33,8 @@ func _ready() -> void:
 	_guard.capture()
 	_had_run = FileAccess.file_exists(RUN)
 	_run_backup = FileAccess.get_file_as_string(RUN) if _had_run else ""
+	for fname in DirAccess.get_files_at("user://acct/backup"):
+		_acct_backup_files[fname] = FileAccess.get_file_as_bytes("user://acct/backup/" + fname)
 	await get_tree().process_frame
 
 	test_savestore_namespacing()
@@ -460,6 +465,12 @@ func _cleanup() -> void:
 	_reset_storage()
 	for d in ["user://acct/google_test-1", "user://acct/google_test-2", "user://acct/backup"]:
 		DirAccess.remove_absolute(ProjectSettings.globalize_path(d))
+	if not _acct_backup_files.is_empty():
+		DirAccess.make_dir_recursive_absolute(ProjectSettings.globalize_path("user://acct/backup"))
+		for fname in _acct_backup_files:
+			var bf := FileAccess.open("user://acct/backup/" + String(fname), FileAccess.WRITE)
+			bf.store_buffer(_acct_backup_files[fname])
+			bf.close()
 	_guard.restore()
 	if _had_run:
 		var f := FileAccess.open(RUN, FileAccess.WRITE)
