@@ -28,7 +28,7 @@ fi
 # shellcheck source=userdir.sh
 source "$HERE/userdir.sh"
 axie_resolve_userdir "$PROJ" || { echo "live_smoke: cannot resolve user dir" >&2; exit 2; }
-if pgrep -f "AxieDice.app" >/dev/null 2>&1; then
+if pgrep -f "AxieDice[.]app/Contents/MacOS/" >/dev/null 2>&1; then   # binary path only: a bare name matches any shell mentioning it
   echo "live_smoke: refusing to run while the desktop app (AxieDice.app) is running; close it first" >&2
   exit 2
 fi
