@@ -16,11 +16,26 @@ extends Node
 ## `-- --cleanup-only`: only the open -> abandon check (live_smoke.sh runs it as a second pass when the first
 ## pass died or was killed after preflight). Works with AXIE_TEST_NO_NET=1 (then it just reports it cannot reach the server).
 ##
+## `-- --full` (live_smoke.sh --full): three extra phases on top of the default run, each prints OK/FAIL/SKIP lines.
+##   resume  - mid-run (the default run, after the gates): release() the RunSession, drop the scene, go through the
+##             Continue path (RunState.load_run from run_save, RunSession.open_existing -> attach), enter one more
+##             node and check the epoch tape grew with a server answer. The game's own Continue buttons call only
+##             load_run(); the attach step is done by this tool (see the note in _phase_resume).
+##   retry   - during the first end_turn of a fight the session is flipped to "closed" for that one request, so the
+##             epoch fails with "offline" exactly once. Expects NetNotice with RETRY, presses it, expects the turn to
+##             finish with a server-answered epoch. (end_turn travels over the WebSocket, which the HTTP wrapper
+##             cannot intercept, hence the flip; no game code is touched.)
+##   daily   - after the run above is abandoned: GET /api/run/daily, begin kind=daily, enter one node, abandon, tries
+##             used must be +1. COSTS ONE OF THE 3 DAILY TRIES (a warning line is printed first). SKIP at 0 left.
+## Default run is unchanged. Full run budget: soft limit 245 s, hard 255 s, live_smoke.sh kills at 280 s.
+##
 ## Safety: cloud save uploads are impossible here (SaveStore.on_changed cleared, and the transport wrapper
 ## refuses every write except /api/run*). Tokens are never printed.
 
 const HARD_TIMEOUT_S := 140.0   # soft: abort the drive, clean up (abandon), quit 1
 const KILL_AT_S := 150.0        # hard quit(1), after a short cleanup
+const FULL_HARD_TIMEOUT_S := 245.0   # same two limits for --full (live_smoke.sh kills at 280 s)
+const FULL_KILL_AT_S := 255.0
 const HARD_CLEANUP_MS := 8000   # budget for the cleanup that runs inside the hard quit
 const MAX_ATTEMPTS := 2         # a lost fight is retried once (fresh run)
 const PREFLIGHT_MARKER := "user://live_smoke_preflight_ok"   # tells live_smoke.sh a cleanup-only pass is safe
@@ -34,6 +49,10 @@ var _fail_code := ""
 var _blocked: Array[String] = []
 var _began := false
 var _cleanup_only := false
+var _full := false
+var _soft_s := HARD_TIMEOUT_S
+var _kill_s := KILL_AT_S
+var _retry_done := false
 var _preflight_ok := false
 var _cleaning := false
 var _fight_lost := false
@@ -52,6 +71,10 @@ func _step(name: String, ok: bool, detail: String = "") -> void:
 	print("[%s] %s%s" % ["OK  " if ok else "FAIL", name, (" - " + detail) if detail != "" else ""])
 
 
+func _skip(name: String, detail: String = "") -> void:
+	print("[SKIP] %s%s" % [name, (" - " + detail) if detail != "" else ""])
+
+
 func _ready() -> void:
 	_tree = get_tree()
 	_t0 = Time.get_ticks_msec()
@@ -63,17 +86,21 @@ func _ready() -> void:
 		_step("env", false, "AXIE_TEST_NO_NET=1 is set, this tool needs the network")
 		_quit()
 		return
-	_tree.create_timer(HARD_TIMEOUT_S).timeout.connect(func() -> void:
+	_full = not _cleanup_only and ("--full" in OS.get_cmdline_user_args() or "--full" in OS.get_cmdline_args())
+	if _full:
+		_soft_s = FULL_HARD_TIMEOUT_S
+		_kill_s = FULL_KILL_AT_S
+	_tree.create_timer(_soft_s).timeout.connect(func() -> void:
 		_aborted = true
-		_step("timeout", false, "%d s soft limit hit, aborting" % int(HARD_TIMEOUT_S)))
-	_tree.create_timer(KILL_AT_S).timeout.connect(_hard_quit)
-	_tree.create_timer(KILL_AT_S + 15.0).timeout.connect(func() -> void:
+		_step("timeout", false, "%d s soft limit hit, aborting" % int(_soft_s)))
+	_tree.create_timer(_kill_s).timeout.connect(_hard_quit)
+	_tree.create_timer(_kill_s + 15.0).timeout.connect(func() -> void:
 		print("[FAIL] timeout - cleanup itself did not finish, quitting")
 		_tree.quit(1))
 	CombatView.disable_juice_for_tests = true
 	RunState.epoch_failed.connect(func(code: String) -> void: _fail_code = code)
 	print("live_smoke: server=%s rules=%s%s" % [AccountService.server_url(), ActionLog.RULES_VERSION,
-		" (cleanup-only)" if _cleanup_only else ""])
+		" (cleanup-only)" if _cleanup_only else (" (full: resume + retry + daily)" if _full else "")])
 	if await _boot_session():
 		if _cleanup_only:
 			pass   # the cleanup below is the whole job
@@ -93,13 +120,21 @@ func _ready() -> void:
 				await _discard_scenes()
 			if not _failed and not _aborted:
 				_gates()
+			if _full:
+				await _phase_resume()
+				if not _retry_done:
+					_skip("offline retry", "no end_turn was pressed in any fight of this run")
+			await _cleanup()
+			if _full:
+				await _discard_scenes()
+				await _phase_daily()
 	await _cleanup()
 	_quit()
 
 
 ## Hard limit: clean up first (own short budget), then quit(1). Never leaves our run open.
 func _hard_quit() -> void:
-	print("[FAIL] timeout - %d s hard limit, cleaning up then quitting" % int(KILL_AT_S))
+	print("[FAIL] timeout - %d s hard limit, cleaning up then quitting" % int(_kill_s))
 	_failed = true
 	_aborted = true
 	await _cleanup(HARD_CLEANUP_MS)
@@ -235,11 +270,18 @@ func _preflight() -> bool:
 
 # ---------------------------------------------------------------- 2. Begin (real RunSetup)
 
-func _begin() -> bool:
+func _begin(kind: String = "normal") -> bool:
 	var setup: RunSetup = load("res://scenes/run_setup/RunSetup.tscn").instantiate()
 	_tree.root.add_child(setup)
 	_tree.current_scene = setup
 	await _frames(3)
+	if kind != "normal":
+		var tw := Time.get_ticks_msec()
+		while setup.daily_tries.is_empty() and Time.get_ticks_msec() - tw < 10000 and not _aborted:
+			await _tree.process_frame
+		if not setup.select_kind(kind):
+			_step("begin", false, "kind %s not selectable in RunSetup: %s" % [kind, setup.kind_block_reason(kind)])
+			return false
 	var why := setup.begin_block_reason()
 	if why != "":
 		_step("begin", false, "Begin blocked in RunSetup: " + why)
@@ -376,7 +418,10 @@ func _play_fight(view: Node) -> void:
 				break
 		if combat.won or combat.lost:
 			break
-		await view.call("_on_end_turn_pressed")
+		if _full and not _retry_done:
+			await _end_turn_with_fault(view, combat)
+		else:
+			await view.call("_on_end_turn_pressed")
 		if _fail_code != "" or (is_instance_valid(view) and view.get_node_or_null("NetNotice") != null):
 			return
 	if combat.lost:
@@ -444,3 +489,179 @@ func _cleanup(budget_ms: int = 30000) -> void:
 		RunState.reset()
 		_began = false
 	_cleaning = false
+
+
+# ---------------------------------------------------------------- --full: shared helpers
+
+func _tape_size() -> int:
+	return (RunState.epoch as RemoteEpochSource).tape().size() if RunState.epoch is RemoteEpochSource else 0
+
+
+## Waits for `cond` (a Callable returning bool) up to timeout_ms; false on timeout or abort.
+func _wait_until(cond: Callable, timeout_ms: int) -> bool:
+	var t := Time.get_ticks_msec()
+	while Time.get_ticks_msec() - t < timeout_ms and not _aborted:
+		if cond.call():
+			return true
+		await _tree.process_frame
+	return bool(cond.call())
+
+
+## GET /api/run/daily through RunSession.daily_info -> {ok, used, max, code}.
+func _daily_info() -> Dictionary:
+	var box := {"done": false, "ok": false, "d": {}}
+	RunState.run_session().daily_info(func(ok: bool, d: Dictionary) -> void:
+		box["ok"] = ok
+		box["d"] = d
+		box["done"] = true)
+	await _wait_until(func() -> bool: return bool(box["done"]), 15000)
+	var d: Dictionary = box["d"]
+	return {"ok": bool(box["ok"]), "used": int(d.get("used", 0)), "max": int(d.get("max", 3)), "code": String(d.get("code", "timeout"))}
+
+
+# ---------------------------------------------------------------- --full: offline -> RETRY
+
+## Presses END TURN once with a one-shot failure: the RunSession is flipped to "closed" for that single request, so
+## RunSession.submit() settles it "offline" (end_turn travels over the WebSocket, which the HTTP wrapper cannot
+## intercept). Expects NetNotice + RETRY, presses RETRY, expects the turn to finish with a server-answered epoch.
+func _end_turn_with_fault(view: Node, combat: CombatEngine) -> void:
+	_retry_done = true
+	var sess := RunState.run_session()
+	var prev := sess.state
+	if prev != "ready" or not (RunState.epoch is RemoteEpochSource):
+		_step("offline retry", false, "cannot inject: session state=%s" % prev)
+		return
+	var tape_before := _tape_size()
+	var turn_before := combat.turn
+	print("  (offline retry: failing the next end_turn request once)")
+	sess.state = "closed"
+	await view.call("_on_end_turn_pressed")
+	sess.state = prev   # one-shot: the request already settled, the socket was never touched
+	var notice: Node = view.get_node_or_null("NetNotice") if is_instance_valid(view) else null
+	var retry_btn: Button = null
+	if notice != null:
+		retry_btn = notice.find_child("RetryButton", true, false) as Button
+	_fail_code = ""
+	if retry_btn == null:
+		_step("offline retry", false, "no NetNotice with a RETRY button after the failed end_turn (notice=%s)" % str(notice != null))
+		return
+	_step("offline notice", true, "NetNotice shown with RETRY")
+	retry_btn.pressed.emit()
+	var ok := await _wait_until(func() -> bool:
+		return _tape_size() > tape_before and (combat.turn > turn_before or combat.won or combat.lost), 25000)
+	if is_instance_valid(view):
+		await _wait_anim(view)
+	var gone: bool = not is_instance_valid(view) or view.get_node_or_null("NetNotice") == null
+	_step("offline retry", ok and gone, "RETRY -> turn %d -> %d, tape %d -> %d" % [turn_before, combat.turn, tape_before, _tape_size()])
+
+
+# ---------------------------------------------------------------- --full: resume after quit
+
+func _saved_tape_size() -> int:
+	var parsed: Variant = JSON.parse_string(SaveStore.read_text(RunState.SAVE_PATH))
+	if typeof(parsed) != TYPE_DICTIONARY:
+		return -1
+	var run: Variant = (parsed as Dictionary).get("run", {})
+	if typeof(run) != TYPE_DICTIONARY:
+		return -1
+	return ((run as Dictionary).get("epoch_tape", []) as Array).size()
+
+
+## Mid-run quit and Continue. NOTE: MainMenu/Land/RunSetup "Continue" call RunState.load_run() only; nothing in the
+## game calls RunSession.open_existing()/attach() afterwards, so the first epoch of a resumed run would answer
+## "offline". This tool attaches explicitly (open_existing) to prove the server side of a resume works.
+func _phase_resume() -> void:
+	if _failed or _aborted or not _began:
+		_skip("resume", "no healthy open run (earlier failure)")
+		return
+	var sess := RunState.run_session()
+	var rid := sess.run_id
+	await _frames(10)   # let a pending scene change and its autosave land
+	var live_tape := _tape_size()
+	var st := RunState.saved_run_status()
+	if not bool(st["resumable"]):
+		_step("resume", false, "no resumable run_save (exists=%s reason=%s)" % [str(st["exists"]), st["reason"]])
+		return
+	var saved_tape := _saved_tape_size()
+	if saved_tape != live_tape:
+		print("  (note: run_save holds %d epochs, the live run %d)" % [saved_tape, live_tape])
+	sess.release()
+	await _discard_scenes()
+	if not RunState.load_run() or not (RunState.epoch is RemoteEpochSource):
+		_step("resume", false, "RunState.load_run() failed or did not restore a remote epoch source")
+		return
+	LandNav.run_started()
+	var box := {"done": false, "ok": false, "d": {}}
+	sess.open_existing(func(ok: bool, d: Dictionary) -> void:
+		box["ok"] = ok
+		box["d"] = d
+		box["done"] = true)
+	await _wait_until(func() -> bool: return bool(box["done"]), 15000)
+	var d: Dictionary = box["d"]
+	if not bool(box["ok"]) or String(d.get("run_id", "")) != rid:
+		_step("resume", false, "open_existing ok=%s run_id match=%s code=%s" % [str(box["ok"]), str(String(d.get("run_id", "")) == rid), String(d.get("code", ""))])
+		return
+	var ready := await _wait_until(func() -> bool: return sess.state == "ready", 15000)
+	_step("resume attach", ready, "run %s... state=%s, tape restored %d epochs" % [rid.substr(0, 8), sess.state, _tape_size()])
+	if not ready:
+		return
+	var path := "res://scenes/combat/Combat.tscn" if not RunState.resume_combat.is_empty() else "res://scenes/run_map/RunMap.tscn"
+	var scene: Node = load(path).instantiate()
+	_tree.root.add_child(scene)
+	_tree.current_scene = scene
+	_fight_lost = false
+	_fail_code = ""
+	var nodes_before := _nodes_entered
+	var tape_before := _tape_size()
+	await _drive()   # flags from the default run are set, so the map step presses exactly one more node
+	if _fight_lost:
+		_step("resume", false, "fight lost after resume")
+		return
+	var grew := _tape_size() > tape_before
+	_step("resume: one more node", not _failed and not _aborted and _nodes_entered > nodes_before and grew,
+		"nodes %d -> %d, tape %d -> %d, ws=%s" % [nodes_before, _nodes_entered, tape_before, _tape_size(), sess.state])
+
+
+# ---------------------------------------------------------------- --full: Daily
+
+func _phase_daily() -> void:
+	if _aborted:
+		_skip("daily", "aborted by the time limit")
+		return
+	var o := await _open_run()
+	if o["code"] != 200 or String(o["run_id"]) != "":
+		_step("daily", false, "account not clean before Daily (open run or unreadable: http %d)" % o["code"])
+		return
+	var before := await _daily_info()
+	if not bool(before["ok"]):
+		_step("daily tries", false, "GET /api/run/daily failed: %s" % before["code"])
+		return
+	if int(before["used"]) >= int(before["max"]):
+		_skip("daily", "0 tries left today (%d of %d used)" % [before["used"], before["max"]])
+		return
+	print("WARNING: the Daily phase spends 1 of %d Daily tries today (%d used so far); abandoning does not give it back" % [before["max"], before["used"]])
+	_step("daily tries", true, "%d of %d used before" % [before["used"], before["max"]])
+	_reset_attempt()
+	if not await _begin("daily"):
+		return
+	_step("daily kind", RunState.run_kind == "daily", "run_kind=%s" % RunState.run_kind)
+	var tape_before := _tape_size()
+	var found := await _wait_until(func() -> bool:
+		var c := _tree.current_scene
+		return c != null and is_instance_valid(c) and c.is_node_ready() and c.has_method("_on_node_pressed"), 10000)
+	if not found:
+		_step("daily node", false, "RunMap did not appear after Begin")
+	else:
+		var ctrl := _tree.current_scene
+		var ids: Array = ctrl.call("_reachable_now_ids")
+		if ids.is_empty():
+			_step("daily node", false, "map has no reachable node")
+		else:
+			await ctrl.call("_on_node_pressed", ids[0])
+			_step("daily node", _fail_code == "" and RunState.phase != RunState.RunPhase.MAP and _tape_size() > tape_before,
+				"phase=%d code=%s tape %d -> %d" % [RunState.phase, _fail_code, tape_before, _tape_size()])
+	await _cleanup()   # real abandon + "no open run left"
+	await _discard_scenes()
+	var after := await _daily_info()
+	_step("daily tries after abandon", bool(after["ok"]) and int(after["used"]) == int(before["used"]) + 1,
+		"used %d -> %d of %d" % [before["used"], after["used"], after["max"]])

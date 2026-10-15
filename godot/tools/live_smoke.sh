@@ -2,6 +2,7 @@
 # LIVE SMOKE against the PRODUCTION Worker (see live_smoke.gd). Not a test: network is on.
 #
 #   godot/tools/live_smoke.sh            # runs under with_lock.sh, own user dir, 200 s kill timer
+#   godot/tools/live_smoke.sh --full     # + resume after quit, offline RETRY, Daily (1 of 3 daily tries); 280 s kill timer
 #
 # Needs godot/override.cfg (custom_user_dir_name): the run uses THAT user dir, never the desktop app's. Only
 # account.json, account_prefs.json, device_tokens.dat and acct/ are copied in from
@@ -22,7 +23,22 @@ PROJ="$(cd "$HERE/.." && pwd -P)"
 SRC="${LIVE_SMOKE_SRC_DIR:-$HOME/Library/Application Support/Godot/app_userdata/Axie Dice}"
 
 if [[ "${1:-}" != "--inner" ]]; then
-  exec "$HERE/with_lock.sh" bash "$HERE/live_smoke.sh" --inner
+  exec "$HERE/with_lock.sh" bash "$HERE/live_smoke.sh" --inner "$@"
+fi
+shift
+FULL=0
+for a in "$@"; do
+  case "$a" in
+    --full) FULL=1 ;;
+    *) echo "usage: live_smoke.sh [--full]" >&2; exit 2 ;;
+  esac
+done
+KILL_S=200
+GODOT_ARGS=()
+if [[ "$FULL" == 1 ]]; then
+  KILL_S=280   # tool: soft 245 s, hard 255 s (+8 s cleanup), last-resort quit 270 s
+  GODOT_ARGS=(-- --full)
+  echo "live_smoke: --full also runs resume-after-quit, offline RETRY and Daily (spends 1 of 3 Daily tries)"
 fi
 
 # shellcheck source=userdir.sh
@@ -56,9 +72,9 @@ done
 COPIED_SUM="$(shasum "$SRC/device_tokens.dat" | cut -d' ' -f1)"
 
 unset AXIE_TEST_NO_NET
-"$GODOT" --headless --path "$PROJ" res://tools/live_smoke.tscn &
+"$GODOT" --headless --path "$PROJ" res://tools/live_smoke.tscn ${GODOT_ARGS[@]+"${GODOT_ARGS[@]}"} &
 p=$!
-( sleep 200; kill "$p" 2>/dev/null ) & w=$!
+( sleep "$KILL_S"; kill "$p" 2>/dev/null ) & w=$!
 wait "$p"; code=$?
 kill "$w" 2>/dev/null
 
