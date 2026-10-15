@@ -169,6 +169,7 @@ func _ready() -> void:
 	_ok(bool(s3.start_params().get("newcomer", false)), "start_params carries newcomer=true for a fresh save")
 	s3.queue_free()
 	await _kind_tests()
+	await _begin_error_tests()
 	_guard.restore()
 	if _fail.is_empty():
 		print("t_run_setup: PASS (%d checks)" % _checks)
@@ -178,6 +179,44 @@ func _ready() -> void:
 			print("FAIL: ", f)
 		print("t_run_setup: FAIL")
 		get_tree().quit(1)
+
+
+func _banners(s: RunSetup) -> int:
+	var n := 0
+	for c in s.find_child("Panel", true, false).find_children("Banner", "PanelContainer", true, false):
+		if not (c as Node).is_queued_for_deletion():
+			n += 1
+	return n
+
+
+## 15/10: every create error has its own message (no generic "rejected"), and a new error replaces the old banner.
+func _begin_error_tests() -> void:
+	var expect := {
+		"run_open": "old run", "daily_tries": "No Daily tries left today", "daily_cap": "No runs left today",
+		"not_available": "Not available", "newcomer_locked": "Ranked unlocks", "vault_banned": "Imported Axies",
+		"version": "Update the game", "offline": "Can't reach"}
+	for code in expect.keys():
+		var t := RunSetup.begin_error_text(code)
+		_ok(String(t[0]).contains(expect[code]), "error text for %s: %s" % [code, t[0]])
+		_ok(not String(t[1]).contains("Code:"), "%s: no raw code in the detail" % code)
+	_ok(String(RunSetup.begin_error_text("zzz")[1]).contains("Code: zzz"), "unknown code keeps the raw code")
+	var s := await _make("normal")
+	var codes := ["daily_tries"]
+	s.start_hook = func(_p: Dictionary) -> Dictionary: return {"ok": false, "code": codes[0]}
+	await s.begin()
+	_ok(s.begin_error == "No Daily tries left today" and _banners(s) == 1, "failure shows its message, one banner")
+	await s.begin()
+	_ok(_banners(s) == 1, "second identical failure replaces the banner, never stacks")
+	codes[0] = "version"
+	await s.begin()
+	_ok(_banners(s) == 1 and s.begin_error == "Update the game", "a different failure replaces it too")
+	# a saved run can resume the server run: route to the Continue card, no error banner
+	codes[0] = "run_in_progress"
+	await s.begin()
+	_ok(s.state == "open_run" and s.begin_error == "" and s.find_child("Continue", true, false) != null, "run_in_progress -> Continue card")
+	_ok(_banners(s) == 0, "no error banner on the Continue card")
+	s.queue_free()
+	await get_tree().process_frame
 
 
 ## L1 C2: Daily / Ranked in Run Setup, the Daily-run reward, kind carried by the run.
