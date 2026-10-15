@@ -483,6 +483,7 @@ gem_wallet="remote"     ; AccountService gắn RemoteGemWallet khi đã đăng n
 - Worker phải nhận RULES_VERSION của client: thêm giá trị mới vào `SUPPORTED_RULE_VERSIONS` (`worker/src/run_do.js`) mỗi lần đổi `ActionLog.RULES_VERSION`; `worker/test/rules_supported.test.mjs` đỏ nếu quên. Worker chỉ kiểm chuỗi hash, không chạy lại luật chiến đấu (chưa có verifier, mục 6.4), nên chưa chống gian lận kết quả run.
 - Bị đóng 1008 'auth' (token cũ/bị thu hồi): RunSession gọi lại `GET /api/run/open` đúng 1 lần, lấy token mới, hello lại; lần 2 liên tiếp thì đóng (`expired`). Test: `t_run_session` (`_auth_refresh`, `_both_remote`).
 - Không có run thì `RunSession` tắt `_process`; `attach()` bật lại, `closed/idle` tắt.
+- **Rủi ro (chưa có verifier P3):** server chỉ kiểm chuỗi hash nên thắng/thua, tiền thưởng nhiệm vụ, điều kiện quà mùa và điểm bảng xếp hạng đang tin client trong giới hạn cho phép. Không trao Gem hay phần thưởng tiền thật theo kết quả run cho đến khi có verifier P3.
 
 ---
 
