@@ -5,14 +5,25 @@ extends Node
 ##
 ## Run it through godot/tools/live_smoke.sh (own user dir + session copy + lock + kill timer).
 ##
-## Steps (one line each, OK/FAIL + server code): session, begin, node press, combat won, reward, second node,
-## abandon (real endpoint), no open run left. Exit 0 only if every step passed.
+## Steps (one line each, OK/FAIL + server code): session, preflight (no open run), begin, node press, combat won,
+## reward, second node, gates, abandon (real endpoint), no open run left. Exit 0 only if every step passed.
+## Exit 2 = preflight found an open run on the account: it is NOT ours, the tool leaves it alone (never calls begin).
+##
+## Never touch the player's own run: preflight GETs /api/run/open BEFORE Begin. Because preflight proved nothing
+## was open, whatever is open at exit is ours, so cleanup always abandons it (even if Begin failed half way, on a
+## soft timeout, and on the hard quit). A lost fight is retried once with a fresh run (costs one more RUNS_PER_DAY).
+##
+## `-- --cleanup-only`: only the open -> abandon check (live_smoke.sh runs it as a second pass when the first
+## pass died or was killed after preflight). Works with AXIE_TEST_NO_NET=1 (then it just reports it cannot reach the server).
 ##
 ## Safety: cloud save uploads are impossible here (SaveStore.on_changed cleared, and the transport wrapper
 ## refuses every write except /api/run*). Tokens are never printed.
 
 const HARD_TIMEOUT_S := 140.0   # soft: abort the drive, clean up (abandon), quit 1
-const KILL_AT_S := 150.0        # hard quit(1)
+const KILL_AT_S := 150.0        # hard quit(1), after a short cleanup
+const HARD_CLEANUP_MS := 8000   # budget for the cleanup that runs inside the hard quit
+const MAX_ATTEMPTS := 2         # a lost fight is retried once (fresh run)
+const PREFLIGHT_MARKER := "user://live_smoke_preflight_ok"   # tells live_smoke.sh a cleanup-only pass is safe
 const MAX_NODES := 6
 const STUCK_LIMIT := 150
 
@@ -22,6 +33,11 @@ var _aborted := false
 var _fail_code := ""
 var _blocked: Array[String] = []
 var _began := false
+var _cleanup_only := false
+var _preflight_ok := false
+var _cleaning := false
+var _fight_lost := false
+var _exit_code := 0
 var _combat_won := false
 var _reward_taken := false
 var _nodes_entered := 0
@@ -42,34 +58,80 @@ func _ready() -> void:
 	await _tree.process_frame
 	reparent(_tree.root)
 	_tree.current_scene = null
-	if OS.get_environment("AXIE_TEST_NO_NET") == "1":
+	_cleanup_only = "--cleanup-only" in OS.get_cmdline_user_args() or "--cleanup-only" in OS.get_cmdline_args()
+	if not _cleanup_only and OS.get_environment("AXIE_TEST_NO_NET") == "1":
 		_step("env", false, "AXIE_TEST_NO_NET=1 is set, this tool needs the network")
 		_quit()
 		return
 	_tree.create_timer(HARD_TIMEOUT_S).timeout.connect(func() -> void:
 		_aborted = true
 		_step("timeout", false, "%d s soft limit hit, aborting" % int(HARD_TIMEOUT_S)))
-	_tree.create_timer(KILL_AT_S).timeout.connect(func() -> void:
-		print("[FAIL] timeout - %d s hard limit, quitting" % int(KILL_AT_S))
+	_tree.create_timer(KILL_AT_S).timeout.connect(_hard_quit)
+	_tree.create_timer(KILL_AT_S + 15.0).timeout.connect(func() -> void:
+		print("[FAIL] timeout - cleanup itself did not finish, quitting")
 		_tree.quit(1))
 	CombatView.disable_juice_for_tests = true
 	RunState.epoch_failed.connect(func(code: String) -> void: _fail_code = code)
-	print("live_smoke: server=%s rules=%s" % [AccountService.server_url(), ActionLog.RULES_VERSION])
+	print("live_smoke: server=%s rules=%s%s" % [AccountService.server_url(), ActionLog.RULES_VERSION,
+		" (cleanup-only)" if _cleanup_only else ""])
 	if await _boot_session():
-		if await _begin():
-			await _drive()
+		if _cleanup_only:
+			pass   # the cleanup below is the whole job
+		elif await _preflight():
+			for attempt in MAX_ATTEMPTS:
+				_reset_attempt()
+				if not await _begin():
+					break
+				await _drive()
+				if not _fight_lost or _failed or _aborted:
+					break
+				if attempt + 1 >= MAX_ATTEMPTS:
+					_step("combat", false, "party lost the fight in %d runs (the bot is unskilled; pick another team)" % MAX_ATTEMPTS)
+					break
+				print("  (fight lost: abandoning this run and retrying once with a fresh run)")
+				await _cleanup()
+				await _discard_scenes()
+			if not _failed and not _aborted:
+				_gates()
 	await _cleanup()
 	_quit()
 
 
+## Hard limit: clean up first (own short budget), then quit(1). Never leaves our run open.
+func _hard_quit() -> void:
+	print("[FAIL] timeout - %d s hard limit, cleaning up then quitting" % int(KILL_AT_S))
+	_failed = true
+	_aborted = true
+	await _cleanup(HARD_CLEANUP_MS)
+	_tree.quit(1)
+
+
+func _reset_attempt() -> void:
+	_began = false
+	_combat_won = false
+	_reward_taken = false
+	_nodes_entered = 0
+	_fight_lost = false
+	_fail_code = ""
+
+
+## Frees whatever scene the previous attempt left behind so the next Begin starts clean.
+func _discard_scenes() -> void:
+	var cur := _tree.current_scene
+	if cur != null and is_instance_valid(cur):
+		cur.queue_free()
+	_tree.current_scene = null
+	await _frames(3)
+
+
 func _quit() -> void:
-	var rotated: bool = String(DeviceTokens.load_tokens().get("refresh", "")) != _tokens_before
+	var rotated: bool = _tokens_before != "" and String(DeviceTokens.load_tokens().get("refresh", "")) != _tokens_before
 	if rotated:
 		print("note: refresh token rotated (the wrapper writes it back to the desktop app if untouched)")
 	if not _blocked.is_empty():
 		print("note: refused %d write request(s): %s" % [_blocked.size(), str(_blocked.slice(0, 5))])
 	print("LIVE SMOKE %s (%.1f s)" % ["FAIL" if _failed else "PASS", (Time.get_ticks_msec() - _t0) / 1000.0])
-	_tree.quit(1 if _failed else 0)
+	_tree.quit(_exit_code if _exit_code != 0 else (1 if _failed else 0))
 
 
 # ---------------------------------------------------------------- plumbing
@@ -95,16 +157,28 @@ func _guarded(method: String, path: String, body: String, done: Callable) -> voi
 		done.call(code, text))
 
 
-func _http(method: String, path: String) -> Array:
+func _http(method: String, path: String, timeout_ms: int = 15000) -> Array:
+	if not AccountService.transport.is_valid():
+		return [0, ""]
 	var box := {"done": false, "code": 0, "text": ""}
 	AccountService.transport.call(method, path, "", func(code: int, text: String) -> void:
 		box["done"] = true
 		box["code"] = code
 		box["text"] = text)
 	var t := Time.get_ticks_msec()
-	while not box["done"] and Time.get_ticks_msec() - t < 15000:
+	while not box["done"] and Time.get_ticks_msec() - t < timeout_ms:
 		await _tree.process_frame
 	return [int(box["code"]), String(box["text"])]
+
+
+## GET /api/run/open -> {code:int, run_id:String ("" = none open)}.
+func _open_run(timeout_ms: int = 15000) -> Dictionary:
+	var o := await _http("GET", "/api/run/open", timeout_ms)
+	var j: Variant = JSON.parse_string(o[1]) if String(o[1]) != "" else null
+	var rid := ""
+	if o[0] == 200 and typeof(j) == TYPE_DICTIONARY and (j as Dictionary).has("run_id"):
+		rid = String((j as Dictionary)["run_id"])
+	return {"code": o[0], "run_id": rid}
 
 
 # ---------------------------------------------------------------- 1. session
@@ -136,6 +210,29 @@ func _boot_session() -> bool:
 	return false
 
 
+# ---------------------------------------------------------------- 1b. preflight: never touch the player's own run
+
+## True only when the account has NO open run. An open run is the player's: report, exit 2, do not call Begin
+## and do not clean up (cleanup is gated on _preflight_ok).
+func _preflight() -> bool:
+	var o := await _open_run()
+	if o["code"] != 200:
+		_step("preflight", false, "cannot read GET /api/run/open (http %d), not starting" % o["code"])
+		return false
+	if String(o["run_id"]) != "":
+		print("[FAIL] preflight - account has an open run, not touching it")
+		_failed = true
+		_exit_code = 2
+		return false
+	_preflight_ok = true
+	var f := FileAccess.open(PREFLIGHT_MARKER, FileAccess.WRITE)
+	if f != null:
+		f.store_string("1")
+		f.close()
+	_step("preflight", true, "no open run on the account; anything open from here on is ours")
+	return true
+
+
 # ---------------------------------------------------------------- 2. Begin (real RunSetup)
 
 func _begin() -> bool:
@@ -152,11 +249,12 @@ func _begin() -> bool:
 		var code := String(r.get("code", "?"))
 		var extra := ""
 		if code == "rejected" or code == "server":   # RemoteEpochSource folds run_open into "rejected"
-			var o := await _http("GET", "/api/run/open")
-			var j: Variant = JSON.parse_string(o[1]) if String(o[1]) != "" else null
-			if o[0] == 200 and typeof(j) == TYPE_DICTIONARY and (j as Dictionary).has("run_id"):
+			var o := await _open_run()
+			if String(o["run_id"]) != "":
 				code = "run_open"
-				extra = " (stuck server run %s..., not ours: left untouched)" % String((j as Dictionary)["run_id"]).substr(0, 8)
+				# Preflight proved nothing was open, so this run came from our own Begin (e.g. the create reply
+				# got lost). Cleanup abandons it.
+				extra = " (run %s... is open; created by our Begin, cleanup will abandon it)" % String(o["run_id"]).substr(0, 8)
 		_step("begin", false, "code=%s%s" % [code, extra])
 		return false
 	_began = true
@@ -174,6 +272,8 @@ func _drive() -> void:
 	var same := 0
 	while not _aborted and not _failed:
 		await _frames(2)
+		if _fight_lost:
+			return
 		if RunState.phase == RunState.RunPhase.WON or RunState.phase == RunState.RunPhase.LOST:
 			_step("drive", false, "run ended (phase %d) before the smoke path finished" % RunState.phase)
 			return
@@ -280,7 +380,7 @@ func _play_fight(view: Node) -> void:
 		if _fail_code != "" or (is_instance_valid(view) and view.get_node_or_null("NetNotice") != null):
 			return
 	if combat.lost:
-		_step("combat", false, "party lost the fight (the bot is unskilled; rerun or pick another team)")
+		_fight_lost = true   # _ready retries once with a fresh run, then fails
 		return
 	if combat.won and not _combat_won and not _aborted:
 		_combat_won = true
@@ -295,25 +395,52 @@ func _wait_anim(view: Node) -> void:
 		g += 1
 
 
-# ---------------------------------------------------------------- 4. leave nothing open
+# ---------------------------------------------------------------- 4. gates (run still open, before abandon)
 
-func _cleanup() -> void:
-	if not _began:
+func _gates() -> void:
+	var epochs := 0
+	var remote := RunState.epoch != null and RunState.epoch.is_remote()
+	if RunState.epoch is RemoteEpochSource:
+		epochs = (RunState.epoch as RemoteEpochSource).tape().size()
+	var ws := RunState.run_session().state
+	_step("gate combat won", _combat_won)
+	_step("gate reward taken", _reward_taken)
+	_step("gate nodes entered >= 2", _nodes_entered >= 2, "entered %d" % _nodes_entered)
+	_step("gate epoch source still remote", remote)
+	_step("gate session ready", ws == "ready", "state=%s" % ws)
+	_step("gate server-answered epochs > 0", epochs > 0, "%d epochs on the tape" % epochs)
+
+
+# ---------------------------------------------------------------- 5. leave nothing open
+
+## Always runs. Gated only on "preflight proved no open run" (or --cleanup-only, where live_smoke.sh checked the
+## marker): then anything open on the server is ours. Abandons it and checks again.
+func _cleanup(budget_ms: int = 30000) -> void:
+	if _cleaning:   # another cleanup (e.g. the hard quit) is in flight: wait for it, bounded
+		var w := Time.get_ticks_msec()
+		while _cleaning and Time.get_ticks_msec() - w < budget_ms:
+			await _tree.process_frame
 		return
-	var sess := RunState.run_session()
-	var rid := sess.run_id
-	var box := {"done": false, "ok": false}
-	sess.abandon(func(ok: bool) -> void:
-		box["done"] = true
-		box["ok"] = ok)
-	var t := Time.get_ticks_msec()
-	while not box["done"] and Time.get_ticks_msec() - t < 12000:
-		await _tree.process_frame
-	_step("abandon", bool(box["ok"]), "POST /api/run/%s.../abandon" % rid.substr(0, 8) if bool(box["ok"]) \
-		else "POST /api/run/%s.../abandon did not answer 200" % rid.substr(0, 8))
-	var o := await _http("GET", "/api/run/open")
-	var j: Variant = JSON.parse_string(o[1]) if String(o[1]) != "" else null
-	var open_left: bool = o[0] == 200 and typeof(j) == TYPE_DICTIONARY and (j as Dictionary).has("run_id")
-	_step("no open run left", o[0] == 200 and not open_left, "GET /api/run/open -> %d%s" % [o[0], " (still open!)" if open_left else ""])
-	RunState.clear_saved_run()
-	RunState.reset()
+	if not (_preflight_ok or _cleanup_only):
+		return   # never proved the account was clean: whatever is open might be the player's
+	_cleaning = true
+	var deadline := Time.get_ticks_msec() + budget_ms
+	if _began:
+		RunState.run_session().release()   # drop our socket, the server run is handled below
+	var o := await _open_run(clampi(deadline - Time.get_ticks_msec(), 1000, 15000))
+	if o["code"] != 200:
+		_step("cleanup", false, "cannot reach server: GET /api/run/open -> %d (a run of ours may still be open)" % o["code"])
+	elif String(o["run_id"]) == "":
+		_step("no open run left", true, "GET /api/run/open -> 200, none open")
+	else:
+		var rid := String(o["run_id"])
+		var a := await _http("POST", "/api/run/%s/abandon" % rid, clampi(deadline - Time.get_ticks_msec(), 1000, 12000))
+		_step("abandon", a[0] == 200, "POST /api/run/%s.../abandon -> %d" % [rid.substr(0, 8), a[0]])
+		var o2 := await _open_run(clampi(deadline - Time.get_ticks_msec(), 1000, 15000))
+		var open_left: bool = o2["code"] != 200 or String(o2["run_id"]) != ""
+		_step("no open run left", not open_left, "GET /api/run/open -> %d%s" % [o2["code"], " (still open or unreadable!)" if open_left else ""])
+	if _began:
+		RunState.clear_saved_run()
+		RunState.reset()
+		_began = false
+	_cleaning = false

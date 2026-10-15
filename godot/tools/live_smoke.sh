@@ -10,7 +10,12 @@
 # Refresh tokens ROTATE: if the run refreshed, the desktop app's old token would be revoked after the grace
 # window. So when the tool's token file changed AND the desktop app's file is still byte-identical to what we
 # copied, the new file is written back (atomic mv). Set LIVE_SMOKE_NO_WRITEBACK=1 to skip.
-# Token values are never printed. Costs one of the account's RUNS_PER_DAY (20) slots.
+# Token values are never printed. Costs one of the account's RUNS_PER_DAY (20) slots (two if a fight is lost and retried).
+#
+# Safety: refuses to start while the desktop app is running (pgrep -f AxieDice.app), on the user dir "Axie Dice", or
+# on the real user dir. The tool itself refuses (exit 2) if the account already has an open run (the player's own).
+# If Godot dies / is killed / exits non-zero AFTER preflight proved the account clean, a second pass
+# (`live_smoke.tscn -- --cleanup-only`, 60 s kill timer) abandons whatever run is still open.
 set -uo pipefail
 HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
 PROJ="$(cd "$HERE/.." && pwd -P)"
@@ -23,6 +28,14 @@ fi
 # shellcheck source=userdir.sh
 source "$HERE/userdir.sh"
 axie_resolve_userdir "$PROJ" || { echo "live_smoke: cannot resolve user dir" >&2; exit 2; }
+if pgrep -f "AxieDice.app" >/dev/null 2>&1; then
+  echo "live_smoke: refusing to run while the desktop app (AxieDice.app) is running; close it first" >&2
+  exit 2
+fi
+if [[ "$(basename "$AXIE_USERDIR")" == "Axie Dice" ]]; then
+  echo "live_smoke: refusing to run on the user dir named 'Axie Dice' (the real player's)" >&2
+  exit 2
+fi
 if [[ ! -f "$PROJ/override.cfg" || "$AXIE_USERDIR" == "$SRC" ]]; then
   echo "live_smoke: refusing to run on the real user dir (need godot/override.cfg with custom_user_dir_name)" >&2
   exit 2
@@ -35,7 +48,7 @@ done
 
 UD="$AXIE_USERDIR"
 mkdir -p "$UD"
-rm -rf "$UD/acct" "$UD/account.json" "$UD/account_prefs.json" "$UD/device_tokens.dat" "$UD/account_sync.json" "$UD/meta_save.json" "$UD/run_save.json"
+rm -rf "$UD/acct" "$UD/account.json" "$UD/account_prefs.json" "$UD/device_tokens.dat" "$UD/account_sync.json" "$UD/meta_save.json" "$UD/run_save.json" "$UD/live_smoke_preflight_ok"
 for f in account.json account_prefs.json device_tokens.dat; do
   [[ -e "$SRC/$f" ]] && cp -p "$SRC/$f" "$UD/$f"
 done
@@ -48,6 +61,18 @@ p=$!
 ( sleep 200; kill "$p" 2>/dev/null ) & w=$!
 wait "$p"; code=$?
 kill "$w" 2>/dev/null
+
+# Second pass: first pass died / was killed / failed AFTER preflight proved the account had no open run, so any open
+# run is ours. Never after exit 2 (open run = the player's) and never without the marker (preflight not proven).
+if [[ "$code" -ne 0 && "$code" -ne 2 && -f "$UD/live_smoke_preflight_ok" ]]; then
+  echo "live_smoke: first pass exited $code, running --cleanup-only pass"
+  "$GODOT" --headless --path "$PROJ" res://tools/live_smoke.tscn -- --cleanup-only &
+  p2=$!
+  ( sleep 60; kill "$p2" 2>/dev/null ) & w2=$!
+  wait "$p2"; code2=$?
+  kill "$w2" 2>/dev/null
+  [[ "$code2" -ne 0 ]] && echo "live_smoke: WARNING cleanup-only pass exited $code2; check the account for an open run" >&2
+fi
 
 # Token write-back (see header).
 if [[ "${LIVE_SMOKE_NO_WRITEBACK:-}" != 1 && -f "$UD/device_tokens.dat" ]]; then
@@ -63,5 +88,5 @@ if [[ "${LIVE_SMOKE_NO_WRITEBACK:-}" != 1 && -f "$UD/device_tokens.dat" ]]; then
   fi
 fi
 # Leave no session copy behind.
-rm -rf "$UD/acct" "$UD/account.json" "$UD/account_prefs.json" "$UD/device_tokens.dat" "$UD/account_sync.json" "$UD/meta_save.json" "$UD/run_save.json"
+rm -rf "$UD/acct" "$UD/account.json" "$UD/account_prefs.json" "$UD/device_tokens.dat" "$UD/account_sync.json" "$UD/meta_save.json" "$UD/run_save.json" "$UD/live_smoke_preflight_ok"
 exit "$code"
