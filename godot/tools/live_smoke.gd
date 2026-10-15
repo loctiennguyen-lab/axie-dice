@@ -18,9 +18,8 @@ extends Node
 ##
 ## `-- --full` (live_smoke.sh --full): three extra phases on top of the default run, each prints OK/FAIL/SKIP lines.
 ##   resume  - mid-run (the default run, after the gates): release() the RunSession, drop the scene, go through the
-##             Continue path (RunState.load_run from run_save, RunSession.open_existing -> attach), enter one more
-##             node and check the epoch tape grew with a server answer. The game's own Continue buttons call only
-##             load_run(); the attach step is done by this tool (see the note in _phase_resume).
+##             game's own Continue path (RunState.load_run from run_save; the game must reconnect the session itself,
+##             the tool never calls open_existing/attach), enter one more node, check the epoch tape grew.
 ##   retry   - during the first end_turn of a fight the session is flipped to "closed" for that one request, so the
 ##             epoch fails with "offline" exactly once. Expects NetNotice with RETRY, presses it, expects the turn to
 ##             finish with a server-answered epoch. (end_turn travels over the WebSocket, which the HTTP wrapper
@@ -567,9 +566,8 @@ func _saved_tape_size() -> int:
 	return ((run as Dictionary).get("epoch_tape", []) as Array).size()
 
 
-## Mid-run quit and Continue. NOTE: MainMenu/Land/RunSetup "Continue" call RunState.load_run() only; nothing in the
-## game calls RunSession.open_existing()/attach() afterwards, so the first epoch of a resumed run would answer
-## "offline". This tool attaches explicitly (open_existing) to prove the server side of a resume works.
+## Mid-run quit and Continue, using ONLY the game's own path (RunState.load_run + the resumed scene). The tool does
+## not attach the session itself, so this fails until the game reconnects a resumed remote run on its own.
 func _phase_resume() -> void:
 	if _failed or _aborted or not _began:
 		_skip("resume", "no healthy open run (earlier failure)")
@@ -591,24 +589,15 @@ func _phase_resume() -> void:
 		_step("resume", false, "RunState.load_run() failed or did not restore a remote epoch source")
 		return
 	LandNav.run_started()
-	var box := {"done": false, "ok": false, "d": {}}
-	sess.open_existing(func(ok: bool, d: Dictionary) -> void:
-		box["ok"] = ok
-		box["d"] = d
-		box["done"] = true)
-	await _wait_until(func() -> bool: return bool(box["done"]), 15000)
-	var d: Dictionary = box["d"]
-	if not bool(box["ok"]) or String(d.get("run_id", "")) != rid:
-		_step("resume", false, "open_existing ok=%s run_id match=%s code=%s" % [str(box["ok"]), str(String(d.get("run_id", "")) == rid), String(d.get("code", ""))])
-		return
-	var ready := await _wait_until(func() -> bool: return sess.state == "ready", 15000)
-	_step("resume attach", ready, "run %s... state=%s, tape restored %d epochs" % [rid.substr(0, 8), sess.state, _tape_size()])
-	if not ready:
-		return
 	var path := "res://scenes/combat/Combat.tscn" if not RunState.resume_combat.is_empty() else "res://scenes/run_map/RunMap.tscn"
 	var scene: Node = load(path).instantiate()
 	_tree.root.add_child(scene)
 	_tree.current_scene = scene
+	# Only the game's own Continue path from here: the tool does NOT call open_existing()/attach().
+	var ready := await _wait_until(func() -> bool: return sess.state == "ready" and sess.run_id == rid, 15000)
+	_step("resume reconnect (game's Continue path)", ready, "session state=%s run_id match=%s, tape restored %d epochs" % [sess.state, str(sess.run_id == rid), _tape_size()])
+	if not ready:
+		return
 	_fight_lost = false
 	_fail_code = ""
 	var nodes_before := _nodes_entered
