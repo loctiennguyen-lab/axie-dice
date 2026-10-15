@@ -7,7 +7,7 @@ Cập nhật: 2026-10-12. Nhánh `godot-port`, push lên `axiedice` (`git push a
 **Đọc `production/l1-plan-16-10.md`** (thứ tự việc, định nghĩa "xong", câu hỏi cho Liam L1–L7).
 godot-port = axiedice/main (770afa1). Suite cây chính **100/100**. Worker 163/163, deploy d7b97e18, RULES_VERSION `-n`.
 **Live smoke `--full` PASS trên production 16/10 01:05** (run thường, mất mạng→RETRY, thoát→Continue, Daily).
-Bản Mac cho Liam: `build/AxieDice-0.1.0-L1-b595-770afa1-macos.dmg` (đã gắn ổ "Axie Dice L1"; bản cũ trong build/old/).
+Bản Mac cho Liam: `build/AxieDice-0.1.0-L1-b615-bbfc8fb-macos.dmg` (16/10 03:00: Nhiệm vụ online A, L6 màn trận, animation quái) (đã gắn ổ "Axie Dice L1"; bản cũ trong build/old/).
 Windows: build b556 (cũ hơn) nằm trong build/old/, cần build lại từ bản mới khi cần; chưa thử trên máy Windows thật.
 
 Xong 16/10 sáng: B3 phản hồi đăng nhập desktop, Continue online nối lại server (+ chống bấm 2 lần, timeout 20 s),
