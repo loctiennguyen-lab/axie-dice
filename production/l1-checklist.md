@@ -74,6 +74,7 @@ sẵn** · báo lỗi bằng **một Google Sheet** (Liam làm) · Cloudflare g�
 ## Đã xong (để tham chiếu)
 
 - [x] Worker deploy 13/10 (migration 0001–0005, token kid/jti, quà mùa, Continue boss 180) — Liam.
+- [x] Worker deploy lần 4, 15/10 (version d7b97e18): RULES_VERSION -n + epoch_args.json (sửa run online). Claude chạy theo lệnh Liam; /api/leaderboard 200.
 - [x] Worker deploy lần 3, 15/10 (version 0a2acf58): migration 0006_leaderboard, Ranked + leaderboard + Daily 3 lượt (C2), RULES_VERSION -m + pact_reroll (B11). Đã gọi thử /api/leaderboard season + daily: 200 — Liam.
 - [x] Worker deploy lần 2, 13/10 14:39 (version eb839d69): nhận RULES_VERSION -k, ghi số liệu run (B4), Continue miễn phí người mới (B10) — Liam.
 - [x] Merge đêm 12→13/10: A, B (bộ relic đủ, không còn relic ẩn), C (Atia 3D + 6 sân), E, L (Land 6 tier), U (combat v3), M (Run Setup, Echo Box, Nhiệm vụ, Store + Daily, Pass, Vault, Settings, Codex), S.
