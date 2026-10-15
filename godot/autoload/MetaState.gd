@@ -377,7 +377,7 @@ static func _escrow_from_json(raw) -> Dictionary:
 	var d: Dictionary = raw
 	return {"tier": String(d.get("tier", "")), "mission_id": String(d.get("mission_id", "")),
 		"stake": int(d.get("stake", 0)), "payout": int(d.get("payout", 0)), "stone": int(d.get("stone", 0)),
-		"t": int(d.get("t", 0))}
+		"t": int(d.get("t", 0)), "run_id": String(d.get("run_id", ""))}
 
 
 ## Nhiệm vụ (nhiem-vu-risk-to-earn §3, economy missions.json): trừ cược lúc tạo run, ghi escrow vào save.
@@ -446,18 +446,56 @@ func settle_mission_stake(won: bool, save: bool = true) -> bool:
 	mission_escrow = {}   # xoá trước khi trả: lỗi giữa chừng cũng không trả hai lần
 	if won:
 		add_shards(int(e.get("payout", 0)), "mission_win", false)
-		var day := today_utc()
-		if String(mission_stone_day.get("day", "")) != day:
-			mission_stone_day = {"day": day, "n": 0}
-		var room := maxi(0, int(MissionBoard.config().get("stone_day_cap", 0)) - int(mission_stone_day["n"]))
-		var st := mini(int(e.get("stone", 0)), room)
-		if st > 0:
-			mission_stone_day["n"] = int(mission_stone_day["n"]) + st
-			add_stone(st, "mission_win", false)
+		_grant_mission_stone(e)
 	else:
 		ledger_add("shard", 0, "mission_loss_%s" % String(e.get("tier", "")))
 	if save:
 		save_to_disk()
+	return true
+
+
+## Stone for a won mission, capped per UTC day (stone_day_cap). Stone stays client-side in L1.
+func _grant_mission_stone(e: Dictionary) -> void:
+	var day := today_utc()
+	if String(mission_stone_day.get("day", "")) != day:
+		mission_stone_day = {"day": day, "n": 0}
+	var room := maxi(0, int(MissionBoard.config().get("stone_day_cap", 0)) - int(mission_stone_day["n"]))
+	var st := mini(int(e.get("stone", 0)), room)
+	if st > 0:
+		mission_stone_day["n"] = int(mission_stone_day["n"]) + st
+		add_stone(st, "mission_win", false)
+
+
+## Remote dice: tie the local escrow mirror to the server run (id returned by POST /api/run) so a settlement
+## can be matched later. Only for the escrow that belongs to `mission_id`. Saves.
+func bind_mission_run(mission_id: String, run_id: String) -> bool:
+	if mission_id.is_empty() or run_id.is_empty() or mission_id != current_mission_id():
+		return false
+	mission_escrow["run_id"] = run_id
+	save_to_disk()
+	return true
+
+
+## Close the local mirror from the SERVER's settlement ({run_id, state: won|lost|refunded, payout}, GET
+## /api/missions/escrow). Matches by run_id; the payout is the server's number, not local math. Idempotent:
+## no escrow or another run -> false. Won: payout + Stone (client side). Refunded: payout is the stake back.
+func apply_mission_settlement(s: Dictionary) -> bool:
+	if mission_escrow.is_empty() or String(s.get("run_id", "")) == "" \
+			or String(mission_escrow.get("run_id", "")) != String(s.get("run_id", "")):
+		return false
+	var e := mission_escrow
+	mission_escrow = {}
+	var payout := maxi(0, int(s.get("payout", 0)))
+	match String(s.get("state", "")):
+		"won":
+			add_shards(payout, "mission_win", false)
+			_grant_mission_stone(e)
+		"refunded":
+			shard_pool += payout
+			ledger_add("shard", payout, "mission_refund")
+		_:
+			ledger_add("shard", 0, "mission_loss_%s" % String(e.get("tier", "")))
+	save_to_disk()
 	return true
 
 

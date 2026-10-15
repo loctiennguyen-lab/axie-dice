@@ -61,6 +61,10 @@ func start_run(params: Dictionary) -> EpochReply:
 		body["team_keys"] = params["team_keys"]   # Ranked: the server refuses imported (vault) Axies
 	if params.has("mission_offer_id"):
 		body["mission_offer_id"] = params["mission_offer_id"]
+	if String(params.get("kind", "")) == "mission":
+		# The server checks tier and stake against its copy of missions.json and holds the stake in escrow.
+		var mh: Dictionary = params.get("mission", {}) as Dictionary
+		body["mission"] = {"tier": "N%d" % int(mh.get("tier", 0)), "stake": int(mh.get("stake", 0))}
 	_create(params, body, nonce, reply, false)
 	return reply
 
@@ -389,6 +393,7 @@ func _map_http_code(c: String) -> String:
 			return "bad_request"
 		# Each of these has its own message in RunSetup; a generic "rejected" told the player nothing.
 		"run_open", "daily_cap", "daily_tries", "not_available", "newcomer_locked", "vault_banned", \
+		"tier_locked", "stake_mismatch", "tier_mismatch", \
 		"unauthenticated", "forbidden", "rate_limited":
 			return c
 	return "rejected"

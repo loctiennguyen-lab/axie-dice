@@ -42,6 +42,10 @@ var _modal_layer: Control
 
 func _ready() -> void:
 	_build()
+	if remote_on:
+		MissionEscrowSync.reconcile(func(applied: bool) -> void:
+			if applied and is_inside_tree():
+				_refresh())
 	if use_account:
 		state = derive_state()
 	set_state(state)
