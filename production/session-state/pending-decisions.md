@@ -109,3 +109,7 @@ hạn/ngày, NFT dùng được) · UI request 02 + Round 1 · L1 = 3/11 nội b
 - (Liam 14/10, đã chốt) Giá nâng Land L1: GIỮ GIÁ GỐC (tổng 1,82 triệu Stone). economy-designer ước: ít chơi tới tier 2 ~ngày 16, tier 3 cuối mùa; nhiều chơi tier 3 ~ngày 25; tier 4–6 gần như không ai tới trong 8 tuần.
 - (Liam 15/10, đã chốt) Bật online (B1): L1 BẮT ĐĂNG NHẬP mới chơi (run thường, Daily, Ranked, Nhiệm vụ). Khách thấy 'Sign in to play' + nút đăng nhập. Tutorial vẫn chơi không cần đăng nhập. Không làm tài khoản khách trên Worker cho L1.
 - (Liam 15/10) Sau khi chơi bản Mac online đầu tiên: UI còn RẤT xấu, phase Polish phải làm lại cực nhiều. Trước khi lên plan Polish: xin Liam danh sách màn xấu + art-director/ux-designer audit bản build thật.
+- (Liam 16/10, đã chốt) L1 Nhiệm vụ online: làm phương án A (server giữ ký quỹ Shard + trả thưởng khi đóng run), đẩy nhanh, mục tiêu 1 buổi.
+- (Liam 16/10) L2 test bản b595: sáng 17/10. L3 đăng nhập Windows: ok. L4 (Google Sheet / danh sách mời / thông báo): bỏ qua. L5 cosmetics lượt 2: làm cùng đợt Polish.
+- (Liam 16/10) L6 hình: mọi màn đều xấu (Polish). Việc làm ngay: (1) bỏ thanh gạch ngang ở giữa màn trận (chưa bỏ); (2) xoay cổng (gate) trong màn chơi 90°; Axie chạy XUYÊN qua cổng khi qua màn, không chạy tới giữa rồi hiện popup; (3) quái/boss có animation nhưng đang đơ hoàn toàn → phải chuyển động; thiếu animation thì dùng Blender tự làm.
+- (Liam 16/10) L7 cắt dung lượng: CHỈ bản web. Bản desktop giữ nguyên chất lượng hoàn toàn.
