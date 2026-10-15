@@ -73,12 +73,14 @@ fi
 # lại thay đổi thì FAIL, và save được chép lại từ bản chụp đầu suite.
 USERDIR="$AXIE_USERDIR"   # theo override.cfg của worktree nếu có (xem userdir.sh)
 SAVE_SNAP="$(mktemp -d)"
-_save_items=(meta_save.json run_save.json acct)
+# The desktop app and the main-tree suite share user:// (config/name "Axie Dice"): the sign-in files must be
+# guarded too, or account tests delete Liam's real desktop session (happened 15/10).
+_save_items=(meta_save.json run_save.json acct account.json account_prefs.json account_sync.json device_tokens.dat)
 for it in "${_save_items[@]}"; do
   [[ -e "$USERDIR/$it" ]] && cp -Rp "$USERDIR/$it" "$SAVE_SNAP/"
 done
 _save_fp() {   # dấu vân tay nội dung các file save (bỏ qua thư mục rỗng)
-  (cd "$1" 2>/dev/null && find meta_save.json run_save.json acct -type f 2>/dev/null \
+  (cd "$1" 2>/dev/null && find meta_save.json run_save.json acct account.json account_prefs.json account_sync.json device_tokens.dat -type f 2>/dev/null \
      | LC_ALL=C sort | while IFS= read -r f; do printf '%s ' "$f"; cksum < "$f"; done)
 }
 _save_restore() {

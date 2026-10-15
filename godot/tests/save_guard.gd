@@ -39,14 +39,24 @@ extends RefCounted
 ## so a gate that forgets SaveGuard (or quits before `restore()`) is caught, not silent.
 
 const _PATHS := [MetaState.SAVE_PATH, RunState.SAVE_PATH]
+## SIGN-IN FILES (2026-10-15): since 12/10 the project's config/name is "Axie Dice", the same user:// as the
+## shipped desktop app, so account tests were deleting Liam's real desktop session (account.json +
+## device_tokens.dat). These are copied byte for byte at capture() and put back (or removed) at restore().
+const _RAW_PATHS := ["user://account.json", "user://account_prefs.json", "user://account_sync.json",
+	"user://device_tokens.dat"]
 
 var _backup := {}       # path -> text, only for files that existed at capture()
+var _raw := {}          # user:// path -> bytes, sign-in files that existed at capture()
 var _captured := false
 
 
 func capture() -> void:
 	_captured = true
 	_backup.clear()
+	_raw.clear()
+	for rp in _RAW_PATHS:
+		if FileAccess.file_exists(rp):
+			_raw[rp] = FileAccess.get_file_as_bytes(rp)
 	for p in _PATHS:
 		var real := SaveStore.path_for(SaveStore.profile, p)
 		if FileAccess.file_exists(real):
@@ -71,4 +81,14 @@ func restore() -> void:
 			# There was no save before the test ran. Leaving one behind would hand a fresh install a
 			# progression history (or a run) it never played.
 			DirAccess.remove_absolute(ProjectSettings.globalize_path(real))
+	for rp in _RAW_PATHS:
+		if _raw.has(rp):
+			var rf := FileAccess.open(rp, FileAccess.WRITE)
+			if rf == null:
+				push_error("SaveGuard: could not reopen %s to restore it" % rp)
+				continue
+			rf.store_buffer(_raw[rp])
+			rf.close()
+		elif FileAccess.file_exists(rp):
+			DirAccess.remove_absolute(ProjectSettings.globalize_path(rp))
 	MetaState.load_from_disk()

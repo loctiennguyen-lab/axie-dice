@@ -3,6 +3,7 @@ extends Node
 ## transport's refresh-once-and-retry, and a full loopback round trip with a fake browser.
 
 var _fails := 0
+var _guard := SaveGuard.new()   # the loopback test writes the real user://device_tokens.dat
 
 
 func _check(cond: bool, what: String) -> void:
@@ -14,6 +15,7 @@ func _check(cond: bool, what: String) -> void:
 
 
 func _ready() -> void:
+	_guard.capture()
 	# PKCE: RFC 7636 appendix B vector
 	_check(DesktopAuth.challenge_for("dBjftJeZ4CVP-mB92K27uhbUJU1p1r_wW1gFWFOEjXk") == "E9Melhoa2OwvFrEMTJguCHaoeK1t8URWbuGJSstw-cM", "PKCE S256 matches RFC 7636 vector")
 	var v := DesktopAuth.make_verifier()
@@ -38,6 +40,7 @@ func _ready() -> void:
 
 	await _transport_tests()
 	await _loopback_test()
+	_guard.restore()
 	print("t_desktop_auth: ", "PASS" if _fails == 0 else "FAILED (%d)" % _fails)
 	get_tree().quit(1 if _fails > 0 else 0)
 
