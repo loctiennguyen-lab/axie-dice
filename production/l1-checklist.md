@@ -37,7 +37,7 @@ sẵn** · báo lỗi bằng **một Google Sheet** (Liam làm) · Cloudflare g�
 - [x] B9 (13/10, merge 462eefd: run lưu bằng luật cũ bị bỏ kèm thông báo + cược Nhiệm vụ tính thua; save cũ v1 reset tiền tệ theo thiết kế — Liam chọn A; test t_save_upgrade). Save không mất: chạy thử cập nhật bản cũ → bản mới trên save thật (bản sao), cloud save qua tài khoản.
 
 - [x] B10 (13/10, merge 1cf344d; cần deploy Worker). Continue miễn phí cho người mới (lần thua elite/boss đầu, A0–A2, monetization-v1 §2.6/E13) — cần bộ đếm theo tài khoản (server). Đang: người mới không có Continue.
-- [~] B11 (14/10 merge 9632915: R5 đổi 1 thẻ pact xong, RULES_VERSION -m, cần deploy Worker; R4 chờ ví chung LIAM-2). Aid R4 (dời đồng hồ) + R5 (đổi pact) đang hiện "Coming soon".
+- [~] B11 (14/10 merge 9632915: R5 đổi 1 thẻ pact xong, RULES_VERSION -m, Worker deploy 15/10; R4 chờ ví chung LIAM-2). Aid R4 (dời đồng hồ) + R5 (đổi pact) đang hiện "Coming soon".
 
 - [x] B12 (13/10 merge 951fc80; còn: chụp màn hình kiểm bằng mắt, màn Profile theo khung R3 M12/M14). **Dùng cosmetics trong game (Liam 13/10: BẮT BUỘC cho L1)**:
   - [x] Trang bị skin xúc xắc + khung avatar (Profile/Vault), lưu qua SaveStore.
@@ -48,7 +48,7 @@ sẵn** · báo lỗi bằng **một Google Sheet** (Liam làm) · Cloudflare g�
 ## C. Nên có (cắt được nếu trễ — hỏi Liam trước)
 
 - [x] C1 (13/10 merge 1410f4c; RULES_VERSION -l; cần deploy Worker để nhận pact_pick + -l; màn PactView là bản đầu, chưa có khung Claude Design). Màn pact boss bắt buộc ở A6/A10 gọi `RelicSlots.pact_forced` (luật đã có, màn chưa nối).
-- [x] C2 (14/10 merge f05dd91; CẦN Liam deploy Worker + migration 0006). Chế độ **Daily** và **Ranked** trong Run Setup (đang vẽ nhưng khoá).
+- [x] C2 (14/10 merge f05dd91; Worker deploy 15/10 0a2acf58). Chế độ **Daily** và **Ranked** trong Run Setup (đang vẽ nhưng khoá).
 - [x] C3 (13/10, merge b21c841). Menu trong run → Settings ("Back to run", bỏ cuộc trừ cược đúng).
 - [x] C4 (14/10: code có từ C5 87c5dcb, test thêm ở t_land_hub, merge C8). Land "New run" khi còn run Nhiệm vụ dang dở → settle cược (đường này đang bỏ sót).
 - [~] C5 (13/10 merge 87c5dcb: lưới 3×3, dock, chip, phím, trạng thái; 14/10 merge 4816900: "5 runs" từ data, nút + Gem 44 px, chạm-để-xem trên cảm ứng (chỉ bật khi chạm thật), HUD scale tối thiểu 0.85; còn: màn Leaderboard → C6). Land hub **v5** (Liam duyệt 13/10, review `design/handoffs/ui-02-round5/REVIEW-land-hub-v5.md`; khoá Nhiệm vụ + Leaderboard cho người mới; phím N xem tên) — thay cho v4 (Liam chốt 13/10; review: `design/handoffs/ui-02-round4/REVIEW-land-hub-v4.md`): lưới 3×3 quanh Portal, dock dưới, nút RUN giữa).
@@ -74,6 +74,7 @@ sẵn** · báo lỗi bằng **một Google Sheet** (Liam làm) · Cloudflare g�
 ## Đã xong (để tham chiếu)
 
 - [x] Worker deploy 13/10 (migration 0001–0005, token kid/jti, quà mùa, Continue boss 180) — Liam.
+- [x] Worker deploy lần 3, 15/10 (version 0a2acf58): migration 0006_leaderboard, Ranked + leaderboard + Daily 3 lượt (C2), RULES_VERSION -m + pact_reroll (B11). Đã gọi thử /api/leaderboard season + daily: 200 — Liam.
 - [x] Worker deploy lần 2, 13/10 14:39 (version eb839d69): nhận RULES_VERSION -k, ghi số liệu run (B4), Continue miễn phí người mới (B10) — Liam.
 - [x] Merge đêm 12→13/10: A, B (bộ relic đủ, không còn relic ẩn), C (Atia 3D + 6 sân), E, L (Land 6 tier), U (combat v3), M (Run Setup, Echo Box, Nhiệm vụ, Store + Daily, Pass, Vault, Settings, Codex), S.
 - [x] Liam trả lời 16 câu (mục H) + luật Nhiệm vụ M6/M7, người mới = 5 run có trận, danh hiệu A5/A10 (merge 13/10, RULES_VERSION `-j`).
