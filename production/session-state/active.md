@@ -2,7 +2,14 @@
 
 Cập nhật: 2026-10-12. Nhánh `godot-port`, push lên `axiedice` (`git push axiedice godot-port:main`).
 
-## ⇢ BẮT ĐẦU TỪ ĐÂY (cập nhật 14/10/2026)
+## ⇢ BẮT ĐẦU TỪ ĐÂY (cập nhật 16/10/2026 sáng)
+
+**Đọc `production/l1-plan-16-10.md` trước** (thứ tự việc, định nghĩa "xong", câu hỏi cho Liam L1–L6).
+godot-port = axiedice/main. Suite cây chính 98/98. Worker 163/163, deploy 15/10 bản d7b97e18, RULES_VERSION `-n`.
+Online đã chạy được: live smoke PASS trên production 16/10 00:10 (làn R, chưa merge). Bản Mac để Liam test: build/AxieDice-0.1.0-L1-b555-4f154f9.
+Đang làm: làn U (đăng nhập desktop có phản hồi), làn R (công cụ live smoke chờ review).
+
+## (cũ) ⇢ BẮT ĐẦU TỪ ĐÂY (cập nhật 14/10/2026)
 
 **godot-port = axiedice/main (4ed21e7).** Suite cây chính **96/96 không SKIP**, Worker **163/163**. RULES_VERSION **`godot-2026-10-13-m`**.
 Checklist: `production/l1-checklist.md`. Quyết định Liam 14/10: cuối `pending-decisions.md`.
