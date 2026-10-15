@@ -48,6 +48,9 @@ const PUSH_DELAY := 3.0
 const RETRY_DELAYS: Array[float] = [5.0, 15.0, 60.0, 120.0]
 const MAIN_MENU := "res://scenes/main_menu/MainMenu.tscn"
 const TUTORIAL := "res://scenes/tutorial/Tutorial.tscn"
+const ACCOUNT_SCENE := "res://scenes/account/Account.tscn"
+const RUN_SETUP_SCENE := "res://scenes/run_setup/RunSetup.tscn"
+const LAND_SCENE := "res://scenes/land/Land.tscn"
 
 var enabled := false
 var status: int = Status.GUEST
@@ -77,6 +80,15 @@ var _welcome_shown := false
 ## Google looks exactly like a guest (nothing is cached yet), so the welcome panel must wait.
 var _session_known := false
 var _profile_changed := false
+## True when the last reload put different save data in front of the player (not just the same
+## data re-read). Run Setup only rebuilds itself for a real change.
+var _data_changed := false
+var _loaded_hash := ""
+## True from "/api/me answered, signed in" until the cloud save has been reconciled (or the attempt
+## failed). Screens that start a run (Run Setup) stay blocked while this is set: the active profile
+## has switched and the save may still be replaced.
+var reconciling := false
+var _refresh_waiting := false
 ## A cloud save that arrived while the player was in a run. Applying it then would reset the run
 ## under them; it waits for the next visit to the menu instead.
 var _deferred_server: Dictionary = {}
@@ -158,6 +170,11 @@ func play_as_guest() -> void:
 ## synchronously — so nothing is lost by navigating away mid-flow.
 func sign_in(switch_account: bool = false) -> void:
 	if not SaveStore.is_web():
+		# One flow at a time: a second click while the browser is open (or the answer is being
+		# checked) must not start another listener, it just brings the waiting state back.
+		if desktop_phase == "waiting" or desktop_phase == "finishing":
+			_show_desktop_flow()
+			return
 		begin_desktop_sign_in()
 		return
 	JavaScriptBridge.get_interface("__adAcct").go(switch_account)
@@ -248,16 +265,29 @@ func _on_me(code: int, text: String) -> void:
 		_close_welcome()
 		var me: Variant = JSON.parse_string(text)
 		if typeof(me) != TYPE_DICTIONARY or not (me as Dictionary).has("id"):
+			_end_desktop_finishing("token")
 			_go_offline()
 			return
+		reconciling = true
+		_note_loaded()
 		if String(account.get("id", "")) != String(me["id"]):
 			_switch_to(me)
 		else:
 			account = me
 			_write_json("", ACCOUNT_PATH, account)
+		# The player is signed in from this moment. Tell every open screen now, not after the cloud
+		# save has been reconciled (which can wait for the menu): a screen that only hears "guest"
+		# keeps offering "Sign in" and the player signs in twice.
+		if status == Status.GUEST:
+			status = Status.CHECKING
+		if desktop_phase == "finishing":
+			desktop_phase = "signed_in"
+		changed.emit()
 		_attach_remote_wallet()
 		transport.call("GET", "/api/save", "", _on_save_fetched)
 	elif code == 401:
+		reconciling = false
+		_end_desktop_finishing("token")
 		if account.is_empty():
 			status = Status.GUEST
 			_offer_welcome_on_menu()
@@ -269,6 +299,7 @@ func _on_me(code: int, text: String) -> void:
 				_pending_error = "session_expired"
 		changed.emit()
 	else:
+		_end_desktop_finishing("network")
 		_go_offline()
 
 
@@ -287,6 +318,7 @@ func _on_save_fetched(code: int, text: String) -> void:
 			if _safe_scene():
 				_reconcile(server)
 			else:
+				reconciling = false
 				_deferred_server = server
 			return
 	if code == 401:
@@ -365,6 +397,7 @@ func _conflict(server: Dictionary) -> void:
 
 
 func _after_reconcile() -> void:
+	reconciling = false
 	if _dirty:
 		_push()
 	else:
@@ -373,7 +406,9 @@ func _after_reconcile() -> void:
 		changed.emit()
 	if _profile_changed:
 		_profile_changed = false
-		_refresh_scene()
+		var data_changed := _data_changed
+		_data_changed = false
+		_refresh_scene(data_changed)
 
 
 ## Makes `snap` this account's save and marks it for upload on top of `base_rev`.
@@ -476,6 +511,7 @@ func _run_after_push() -> void:
 
 
 func _go_offline() -> void:
+	reconciling = false
 	status = Status.OFFLINE if not account.is_empty() else Status.GUEST
 	changed.emit()
 	if not account.is_empty() and not _push_in_flight:
@@ -531,12 +567,27 @@ func _become_guest() -> void:
 
 func _reload_game_state() -> void:
 	_profile_changed = true
+	var h := _current_hash()
+	if h != _loaded_hash:
+		_data_changed = true
+	_loaded_hash = h
 	var meta := get_node_or_null("/root/MetaState")
 	if meta != null:
 		meta.reload_from_store()
 	var run := get_node_or_null("/root/RunState")
 	if run != null:
 		run.reset()
+
+
+## Fingerprint of the save the game is showing now (meta + run of the active profile).
+func _current_hash() -> String:
+	return JSON.stringify(_snapshot(SaveStore.profile), "", true).md5_text()
+
+
+## Remembers what the game is showing before a sign-in changes the profile, so the reload after the
+## reconcile can tell "same data" from "different data".
+func _note_loaded() -> void:
+	_loaded_hash = _current_hash()
 
 
 ## The menu asks for the welcome panel in _ready(), which is usually before /api/me has
@@ -563,17 +614,57 @@ func _safe_scene() -> bool:
 	if tree == null or tree.current_scene == null:
 		return true
 	var path := tree.current_scene.scene_file_path
-	return path == MAIN_MENU or path == TUTORIAL or path.get_file().begins_with("Settings")
+	return path == MAIN_MENU or path == TUTORIAL or path.get_file().begins_with("Settings") \
+		or path == ACCOUNT_SCENE or path == RUN_SETUP_SCENE or path == LAND_SCENE
+
+
+## What `_refresh_scene` does for the scene at `path`: "none" | "skip" | "defer" | "reload" | "menu".
+## Run Setup keeps the player's picks unless the save data really changed; Run Setup and Land never
+## rebuild under an open modal (the player is mid-action).
+static func refresh_action(path: String, scene: Node, data_changed: bool) -> String:
+	if path == ACCOUNT_SCENE:
+		return "none"   # the screen redraws itself from `changed`
+	if path == RUN_SETUP_SCENE or path == LAND_SCENE:
+		if path == RUN_SETUP_SCENE and not data_changed:
+			return "skip"
+		if scene != null and scene.has_method("has_modal") and bool(scene.call("has_modal")):
+			return "defer"
+		return "reload"
+	return "menu"
 
 
 ## Rebuilds the menu so it shows the save that just became active. Never pulls a player out of a
 ## run: account changes only happen from the menu, Settings or at boot.
-func _refresh_scene() -> void:
+func _refresh_scene(data_changed: bool = true) -> void:
 	var tree := get_tree()
 	if tree == null or tree.current_scene == null:
 		return
-	if _safe_scene():
-		tree.change_scene_to_file.call_deferred(MAIN_MENU)
+	if not _safe_scene():
+		return
+	var path := tree.current_scene.scene_file_path
+	match refresh_action(path, tree.current_scene, data_changed):
+		"defer":
+			_defer_refresh(path)
+		"reload":
+			tree.reload_current_scene.call_deferred()   # rebuild on the save that just became active
+		"menu":
+			tree.change_scene_to_file.call_deferred(MAIN_MENU)
+
+
+## Waits until the screen has no modal open, then rebuilds it (only if it is still the same screen).
+func _defer_refresh(path: String) -> void:
+	if _refresh_waiting:
+		return
+	_refresh_waiting = true
+	while true:
+		await get_tree().create_timer(0.4).timeout
+		var tree := get_tree()
+		if tree == null or tree.current_scene == null or tree.current_scene.scene_file_path != path:
+			break
+		if refresh_action(path, tree.current_scene, true) == "reload":
+			tree.reload_current_scene.call_deferred()
+			break
+	_refresh_waiting = false
 
 
 func _load_sync() -> void:
@@ -771,12 +862,19 @@ var _dt: DesktopTransport
 var _auth: DesktopAuth
 ## What the Account screen (lane M, B3) shows while the browser flow runs: "idle" | "waiting" | "error".
 ## `desktop_error` is the DesktopAuth code ("timeout", "access_denied", "network", ...). `changed` fires on each move.
+## "finishing" = the browser called back, the token is being exchanged and /api/me checked.
+## "signed_in" = that worked; stays until the next flow starts (the overlay shows it, then dismisses).
 var desktop_phase := "idle"
 var desktop_error := ""
+## Tests: let the browser flow run under the headless display server.
+var desktop_test_mode := false
+## Tests: replaces OS.shell_open for the login URL (no real browser).
+var desktop_open_url: Callable = Callable()
+var _flow_ui: Control
 
 
 func _desktop_enabled() -> bool:
-	return desktop_enabled_override and not DisplayServer.get_name() == "headless"
+	return desktop_enabled_override and (desktop_test_mode or not DisplayServer.get_name() == "headless")
 
 
 func server_url() -> String:
@@ -807,15 +905,20 @@ func _ensure_dt() -> void:
 ## Opens the system browser and waits for the loopback callback. The login screen is lane U's;
 ## it calls this and listens to `changed` (and `toast` for a failure).
 func begin_desktop_sign_in() -> void:
-	if not _desktop_enabled() or (_auth != null and is_instance_valid(_auth)):
+	if not _desktop_enabled() or (_auth != null and is_instance_valid(_auth)) or desktop_phase == "finishing":
 		return
 	_ensure_dt()
 	_auth = DesktopAuth.new()
 	_auth.server_url = server_url()
 	_auth.exchange = func(url: String, body: String, done: Callable) -> void:
 		_dt.raw.call("POST", url, PackedStringArray(["Content-Type: application/json"]), body, done)
+	if desktop_open_url.is_valid():
+		_auth.open_url = desktop_open_url
 	add_child(_auth)
 	_auth.finished.connect(_on_desktop_auth)
+	_auth.callback_received.connect(func() -> void:
+		desktop_phase = "finishing"
+		changed.emit())
 	var err := _auth.begin()
 	if err != OK:
 		_auth.queue_free()
@@ -828,13 +931,41 @@ func begin_desktop_sign_in() -> void:
 	desktop_phase = "waiting"
 	desktop_error = ""
 	changed.emit()
+	_show_desktop_flow()
+
+
+## The "Waiting for the browser…" overlay, for every screen except the Account screen (which draws
+## the same states itself). Without it a sign-in started from Run Setup, Settings or a notice
+## showed nothing at all while the browser was open, and nothing when it finished.
+func _show_desktop_flow() -> void:
+	if _flow_ui != null and is_instance_valid(_flow_ui):
+		return
+	var tree := get_tree()
+	if tree != null and tree.current_scene != null and tree.current_scene.scene_file_path == ACCOUNT_SCENE:
+		return
+	_flow_ui = AccountUI.show_desktop_flow(_ui_layer(), self)
+
+
+## The overlay calls this once the player has seen "Signed in".
+func dismiss_desktop_result() -> void:
+	if desktop_phase == "signed_in":
+		desktop_phase = "idle"
+		changed.emit()
+
+
+func _end_desktop_finishing(code: String) -> void:
+	if desktop_phase != "finishing":
+		return
+	desktop_phase = "error"
+	desktop_error = code
+	_pending_error = ""
 
 
 ## Stops the loopback listener (DesktopAuth.cancel closes the TCP server) and goes back to "idle".
 func cancel_desktop_sign_in() -> void:
 	if _auth != null and is_instance_valid(_auth):
 		_auth.cancel()
-	elif desktop_phase != "idle":
+	elif desktop_phase == "waiting" or desktop_phase == "error":
 		desktop_phase = "idle"
 		desktop_error = ""
 		changed.emit()
@@ -870,8 +1001,9 @@ func _on_desktop_auth(ok: bool, tokens: Dictionary, error: String) -> void:
 				toast.call(_pending_error)
 		changed.emit()
 		return
-	desktop_phase = "idle"
+	desktop_phase = "finishing"
 	desktop_error = ""
+	DesktopAuth.raise_game_window()
 	_dt.tokens = {"access": tokens["access"], "refresh": tokens["refresh"],
 		"device_id": String(tokens.get("device_id", ""))}
 	DeviceTokens.save(_dt.tokens)

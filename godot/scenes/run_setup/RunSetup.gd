@@ -47,6 +47,8 @@ var use_account := true
 var remote_on: bool = String(ProjectSettings.get_setting("axie/epoch_source", "")) == "remote"
 ## Tests: replaces AccountService.status. Returns an AccountService.Status int.
 var account_status_hook: Callable
+## Tests: a stand-in for the AccountService autoload (needs `status` and `changed`).
+var account_service: Node
 ## Tests: replaces AccountService.sign_in().
 var sign_in_hook: Callable = Callable()
 ## Tests: skip the scene change after a successful Begin.
@@ -93,8 +95,16 @@ func _ready() -> void:
 		party = _initial_party()
 	ascension = clampi(ascension, 0, ascension_ceiling())
 	_build()
+	if account_service == null:
+		account_service = AccountService
 	if use_account:
 		state = account_state()
+		# Sign-in can finish while this screen is open (browser flow): re-evaluate instead of
+		# keeping a stale "Sign in to play".
+		account_service.changed.connect(_on_account_changed)
+		tree_exiting.connect(func() -> void:
+			if is_instance_valid(account_service) and account_service.changed.is_connected(_on_account_changed):
+				account_service.changed.disconnect(_on_account_changed))
 	set_state(state)
 	load_daily_tries()
 	var _notice := RunState.take_discard_notice()
@@ -110,12 +120,32 @@ func _ready() -> void:
 ## "offline"; a guest or an expired/revoked session is "guest" (L1: sign-in required to play, only
 ## enforced while remote_on). Reads AccountService.status unless account_status_hook is set (tests).
 func account_state() -> String:
-	var st: int = account_status_hook.call() if account_status_hook.is_valid() else AccountService.status
+	var svc: Node = account_service if account_service != null else AccountService
+	var st: int = account_status_hook.call() if account_status_hook.is_valid() else svc.status
 	if st == AccountService.Status.OFFLINE:
 		return "offline"
+	# Signing in / reconciling the cloud save: the active profile may still switch or be replaced.
+	if st == AccountService.Status.CHECKING:
+		return "loading"
+	if bool(svc.get("reconciling")):
+		return "loading"
+	var phase: Variant = svc.get("desktop_phase")
+	if phase != null and String(phase) != "idle":
+		return "loading"
 	if remote_on and (st == AccountService.Status.GUEST or st == AccountService.Status.EXPIRED):
 		return "guest"
 	return "normal"
+
+
+## True while a modal (hero picker, preset, leaderboard...) is open. AccountService waits for this
+## before rebuilding the screen.
+func has_modal() -> bool:
+	return _modal_layer != null and _modal_layer.get_child_count() > 0
+
+
+func _on_account_changed() -> void:
+	if use_account and state in ["normal", "loading", "offline", "guest"] and account_state() != state:
+		set_state(account_state())
 
 
 func _unhandled_key_input(ev: InputEvent) -> void:
@@ -293,7 +323,7 @@ func begin_block_reason() -> String:
 	if state == "offline" and remote_on:
 		return "Needs a connection to roll dice"
 	if state == "loading":
-		return "Loading…"
+		return "Signing you in…" if use_account and account_state() == "loading" else "Loading…"
 	if kind != "normal":
 		var kw := kind_block_reason(kind)
 		if kw != "":
@@ -333,7 +363,7 @@ func set_state(s: String) -> void:
 
 ## Begin. Uses start_hook if set (tests), otherwise RunState.begin_run().
 func begin() -> Dictionary:
-	if use_account and state in ["normal", "offline", "guest"] and account_state() != state:
+	if use_account and state in ["normal", "loading", "offline", "guest"] and account_state() != state:
 		set_state(account_state())
 	if begin_block_reason() != "":
 		return {"ok": false, "code": "blocked"}
@@ -1080,7 +1110,7 @@ func _on_sign_in() -> void:
 	if sign_in_hook.is_valid():
 		sign_in_hook.call()
 	else:
-		AccountService.sign_in()
+		(account_service if account_service != null else AccountService).sign_in()
 
 
 func _build_skeleton() -> void:

@@ -11,7 +11,7 @@ const PANEL_W := 600.0
 
 var service: Node
 var no_scene_change := false
-## "signed_out" | "waiting" | "signed_in" | "error" | "expired"
+## "signed_out" | "waiting" | "finishing" | "signed_in" | "error" | "expired"
 var state := ""
 var _host: VBoxContainer
 var _sign_out_armed := false
@@ -32,6 +32,8 @@ func derive_state() -> String:
 	var phase: String = service.get("desktop_phase") if service.get("desktop_phase") != null else "idle"
 	if phase == "waiting":
 		return "waiting"
+	if phase == "finishing":
+		return "finishing"
 	if phase == "error":
 		return "error"
 	if int(service.status) == AccountService.Status.EXPIRED:
@@ -107,8 +109,14 @@ func _refresh() -> void:
 	match state:
 		"waiting":
 			_draw_waiting()
+		"finishing":
+			_title("Signing you in…")
+			_text("Google said yes. Checking your account.")
 		"signed_in":
 			_draw_signed_in()
+			# the flow result has been shown; let the service forget it
+			if service.has_method("dismiss_desktop_result") and String(service.get("desktop_phase")) == "signed_in":
+				service.dismiss_desktop_result.call_deferred()
 		"error":
 			_draw_error()
 		"expired":

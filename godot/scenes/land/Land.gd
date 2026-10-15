@@ -1753,6 +1753,11 @@ func _open_confirm(title: String, body: String, ok_text: String, on_ok: Callable
 	cancel.grab_focus()
 
 
+## True while the confirm dialog is open. AccountService waits for this before rebuilding the screen.
+func has_modal() -> bool:
+	return _modal != null
+
+
 func _close_modal() -> void:
 	if _modal != null:
 		_modal.queue_free()
