@@ -42,6 +42,10 @@ var _modal_layer: Control
 
 func _ready() -> void:
 	_build()
+	if remote_on:
+		MissionEscrowSync.reconcile(func(applied: bool) -> void:
+			if applied and is_inside_tree():
+				_refresh())
 	if use_account:
 		state = derive_state()
 	set_state(state)
@@ -213,6 +217,15 @@ func _start_inner(tier_id: String) -> Dictionary:
 	if block_reason(tier_id, true) != "":
 		return {"ok": false, "code": "blocked"}
 	var o := offer(tier_id)
+	# An old mirror of a server stake whose run is gone from this device: close it from the server's settlement
+	# first. Still unknown (e.g. the last close failed offline): block, never mark it a loss.
+	if not MetaState.mission_escrow.is_empty() and not MetaState._saved_run_exists():
+		var w := MissionEscrowSync.prepare_new_stake()
+		if not w.done:
+			await w.finished
+		if w.value != "":
+			_banner(w.value, "Nothing was spent.", true)
+			return {"ok": false, "code": "syncing"}
 	var mid := MetaState.take_mission_stake(tier_id, int(o.stake))
 	if mid == "":
 		_banner("Could not take the stake", "Nothing was spent.", true)

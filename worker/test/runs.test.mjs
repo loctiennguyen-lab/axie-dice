@@ -18,7 +18,7 @@ class Stmt {
   async run() { const r = this.db.prepare(this.sql).run(...this.args); return { success: true, meta: { changes: Number(r.changes) } }; }
 }
 class FakeD1 {
-  constructor() { this.db = new DatabaseSync(':memory:'); this.db.exec('PRAGMA foreign_keys = ON;'); this.db.exec(mig('0001_accounts.sql')); this.db.exec(mig('0002_runs.sql')); this.db.exec(mig('0005_token_revocation.sql')); this.db.exec(mig('0006_leaderboard.sql')); }
+  constructor() { this.db = new DatabaseSync(':memory:'); this.db.exec('PRAGMA foreign_keys = ON;'); this.db.exec(mig('0001_accounts.sql')); this.db.exec(mig('0002_runs.sql')); this.db.exec(mig('0003_wallet.sql')); this.db.exec(mig('0007_mission_escrow.sql')); this.db.exec(mig('0005_token_revocation.sql')); this.db.exec(mig('0006_leaderboard.sql')); }
   prepare(s) { return new Stmt(this.db, s); }
   async batch(stmts) { const out = []; for (const s of stmts) out.push(await s.run()); return out; }
 }
@@ -89,15 +89,14 @@ test('create: unauthenticated 401, null body 400, bad mode 400, unsupported rule
   assert.equal((await create(call, { rules_version: 'ancient' })).status, 409);
 });
 
-test('create: mission fails closed (403) unless ALLOW_GATED_MODES=1; ranked is open but newcomer-gated', async () => {
+test('create: ranked is open but newcomer-gated; ALLOW_GATED_MODES=1 (staging) still lifts the gate; mission is no longer not_available', async () => {
   const a = await setup();
-  assert.equal((await create(a.call, { kind: 'mission' })).status, 403);
-  assert.equal((await (await create(a.call, { kind: 'mission' })).json()).error, 'not_available');
+  assert.notEqual((await (await create(a.call, { kind: 'mission' })).json()).error, 'not_available');
   const r = await create(a.call, { kind: 'ranked' });
   assert.equal(r.status, 403);
   assert.equal((await r.json()).error, 'newcomer_locked');
   const b = await setup({ env: { ALLOW_GATED_MODES: '1' } });
-  assert.equal((await create(b.call, { kind: 'mission' })).status, 200);
+  assert.equal((await create(b.call, { kind: 'ranked' })).status, 200);
 });
 
 const seedRuns = (DB, n, over = {}) => {
@@ -208,7 +207,7 @@ test('daily cap counts neither mission nor infra_error runs', async () => {
   const capped = await create(call);
   assert.equal(capped.status, 429);
   // a mission run is not capped
-  assert.equal((await create(call, { kind: 'mission' })).status, 200);
+  assert.equal((await create(call, { kind: 'mission', ascension: 3, mission: { tier: 'N1', stake: 300 } })).status, 200);
   // infra_error runs do not count: turn one of the earlier runs into one and a slot reopens
   DB.db.prepare(`UPDATE runs SET state = 'abandoned' WHERE mode = 'mission'`).run();
   DB.db.prepare(`UPDATE runs SET state = 'infra_error' WHERE mode = 'normal' AND rowid = (SELECT MIN(rowid) FROM runs WHERE mode = 'normal')`).run();

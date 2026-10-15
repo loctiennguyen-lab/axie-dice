@@ -190,6 +190,7 @@ func _ready() -> void:
 			_plots.append(pl)
 	_load_houses()
 	RunState.discard_unresumable_run()
+	MissionEscrowSync.reconcile()   # remote dice: close a stake the server settled while we were away (no-op otherwise)
 	_has_run = _force_run or _has_open_run()
 	_offline = _flag("offline", _detect_offline())
 	_loading = _flag("loading", false)
