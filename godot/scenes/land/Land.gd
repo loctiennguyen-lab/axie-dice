@@ -143,6 +143,7 @@ var _run_plate: Control
 var _toast: PanelContainer
 var _toast_tween: Tween
 var _modal: Control
+var _moon_card: Node   # Moon Card popup while it is open (has_modal)
 var _has_run := false
 var _tier := 1
 var _live: Array[Dictionary] = []   # buildings built at this tier
@@ -1765,9 +1766,19 @@ func _open_confirm(title: String, body: String, ok_text: String, on_ok: Callable
 	cancel.grab_focus()
 
 
-## True while the confirm dialog is open. AccountService waits for this before rebuilding the screen.
+## True while anything the hub shows over the land is open: the confirm dialog, the net notice (RunContinue
+## failed), the Moon Card popup, the account welcome panel.
+## Not the touch sign preview: it is only a label that a tap-away clears, and a rebuild merely closes it, so it must
+## never be able to hold the account rebuild (AccountService polls this with no cap). AccountService waits for
+## this before rebuilding the screen, so a reload never eats a panel the player is reading.
 func has_modal() -> bool:
-	return _modal != null
+	if _modal != null:
+		return true
+	if get_node_or_null(NetNotice.NODE_NAME) != null:
+		return true
+	if is_instance_valid(_moon_card) and not _moon_card.is_queued_for_deletion():
+		return true
+	return AccountService.find_child("AccountWelcome", true, false) != null
 
 
 func _close_modal() -> void:
@@ -1853,6 +1864,7 @@ func show_moon_card() -> void:
 	var path := "res://scenes/store/MoonCardPopup.tscn"
 	if ResourceLoader.exists(path):
 		var popup := (load(path) as PackedScene).instantiate()
+		_moon_card = popup
 		_ui.add_child(popup)
 
 
