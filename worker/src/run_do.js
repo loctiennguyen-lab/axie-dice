@@ -9,6 +9,7 @@ import { RunCore } from './run_core.js';
 import { verifyRunToken } from './run_token.js';
 import { spendGem, claimFreeContinue } from './wallet.js';
 import { PRICES } from './aid_prices.js';
+import { settleEscrow } from './missions.js';
 
 // Rule versions this build can still serve (ADR 4.6 bye{version}). THE one place to bump: add the new
 // ActionLog.RULES_VERSION (godot/scripts/core/action_log.gd) here at every bump; test/rules_supported.test.mjs
@@ -85,6 +86,10 @@ export class RunDO {
       load: () => ws.deserializeAttachment(),
       save: (c) => ws.serializeAttachment(c),
     });
+    // A closing run is written back (and its mission stake settled) BEFORE the client hears 'closed', so the
+    // client's next GET /api/missions/escrow already sees the settlement. _syncClosed never throws.
+    const closing = out.replies.some((r) => r.t === 'closed');
+    if (closing) await this._syncClosed();
     for (const r of out.replies) ws.send(JSON.stringify(r));
     if (out.evictOthers) {
       for (const other of this.ctx.getWebSockets()) {
@@ -93,7 +98,6 @@ export class RunDO {
       }
     }
     if (out.close) ws.close(out.close.code, out.close.reason);
-    if (out.replies.some((r) => r.t === 'closed')) await this._syncClosed();
   }
 
   async webSocketClose(ws, code, reason) { try { ws.close(code, reason); } catch { /* already closed */ } }
@@ -116,6 +120,9 @@ export class RunDO {
         `UPDATE runs SET state = 'closed', outcome = ?, closed_at = ?, battles_done = ?, summary_json = ?
           WHERE run_id = ? AND state = 'open'`,
       ).bind(meta.outcome, Math.floor(Date.now() / 1000), Number.isInteger(s.battles_done) && s.battles_done >= 0 && s.battles_done <= 500 ? s.battles_done : 0, merged, meta.run_id).run();
+      // Mission stake: settle once the run row is closed. A failure here retries from alarm() with the sync
+      // (idempotent), and GET /api/missions/escrow reconciles anything left over.
+      if (meta.mode === 'mission') await settleEscrow(this.env, meta.run_id, meta.outcome);
     } catch (err) {
       console.error('run close sync failed', String(err));
       await this.ctx.storage.setAlarm(Date.now() + 30_000);

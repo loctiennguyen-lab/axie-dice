@@ -4,14 +4,16 @@
 import { shared } from './accounts.js';
 import { signRunToken, newJti } from './run_token.js';
 import { rulesSupported } from './run_do.js';
+import { validateMission, escrowStatements, settleEscrow, reconcileEscrows } from './missions.js';
 
 const RULES_PER_DAY_DEFAULT = 20;
 const NEWCOMER_RUNS = 5;
 // A run still 'pending' after this long never got its DO confirmed: it is our failure, not the player's.
 export const PENDING_TTL_S = 5 * 60;
-// Modes that need the wallet / newcomer gate. Refused (fail closed) until those exist; staging can set
-// ALLOW_GATED_MODES=1 to test them.
-const GATED_MODES = new Set(['mission']);   // ranked opened in L1 C2 (newcomer gate below)
+// Modes refused (fail closed) unless ALLOW_GATED_MODES=1. Empty now: ranked opened in L1 C2 and mission in
+// L1 S (stake escrow, src/missions.js); both keep the newcomer gate below. ALLOW_GATED_MODES=1 (staging) still
+// lifts that gate, so it must NOT be set on production.
+const GATED_MODES = new Set([]);
 const DAILY_TRIES_DEFAULT = 3;               // Daily tries per UTC day, abandoned runs count (Liam 14/10)
 const VAULT_PREFIX = 'vault_';               // MetaState.VAULT_KEY_PREFIX: an imported Axie, never allowed in Ranked
 // RunParams.kind (contract 3.6). RunParams.mode (short|full) is game length and goes in run_start args.
@@ -49,7 +51,15 @@ async function createRun(request, env, url, player) {
     if (Array.isArray(body.team_keys) && body.team_keys.some((k) => k.startsWith(VAULT_PREFIX))) return json({ error: 'vault_banned' }, 403);
     if (env.ALLOW_GATED_MODES !== '1' && await newcomer(env, player.id)) return json({ error: 'newcomer_locked' }, 403);
   }
-  // TODO(wallet/LIAM-2): mission stake and Boon source go in this batch.
+  // Mission: stake and tier are checked against the server's table; N4..N6 are locked in this build. Same
+  // newcomer gate as ranked. The escrow rows go in the run's own batch below.
+  let mission = null;
+  if (mode === 'mission') {
+    mission = validateMission(body.mission, ascension);
+    if (!mission.ok) return json({ error: mission.error }, mission.status);
+    if (env.ALLOW_GATED_MODES !== '1' && await newcomer(env, player.id)) return json({ error: 'newcomer_locked' }, 403);
+  } else if (body.mission !== undefined) return json({ error: 'bad_request' }, 400);
+  // TODO(wallet/LIAM-2): Boon source goes in this batch.
   const dailyMax = Number(env.DAILY_TRIES) || DAILY_TRIES_DEFAULT;
 
   const runId = hex(crypto.getRandomValues(new Uint8Array(16)));
@@ -59,6 +69,7 @@ async function createRun(request, env, url, player) {
   // A pending run of this player that never got confirmed would block them forever (unique index).
   await env.DB.prepare(`UPDATE runs SET state = 'infra_error', closed_at = ? WHERE player_id = ? AND state = 'pending' AND created_at < ?`)
     .bind(nowS, player.id, nowS - PENDING_TTL_S).run();
+  if (mission) await reconcileEscrows(env, player.id); // a swept pending mission run gets its stake back
   let res;
   try {
     // Cap check and insert are one statement, so concurrent requests cannot both slip under the cap.
@@ -71,6 +82,7 @@ async function createRun(request, env, url, player) {
            AND (? != 'daily'
              OR (SELECT COUNT(*) FROM runs WHERE player_id = ? AND mode = 'daily' AND created_at >= ? AND state != 'infra_error') < ?)`,
       ).bind(runId, player.id, mode, ascension, rules, nowS, mode, player.id, dayStart, cap, mode, player.id, dayStart, dailyMax),
+      ...(mission ? escrowStatements(env, { runId, playerId: player.id, tier: mission.tier, stake: mission.stake, mult: mission.mult, at: nowS }) : []),
     ]);
   } catch (err) {
     if (/UNIQUE/i.test(String(err && err.message || err))) return json({ error: 'run_open' }, 409);
@@ -94,6 +106,7 @@ async function createRun(request, env, url, player) {
   if (!init.ok) {
     // Our fault, not the player's: free the slot (a stake, once it exists, is refunded here).
     await env.DB.prepare(`UPDATE runs SET state = 'infra_error', closed_at = ? WHERE run_id = ?`).bind(nowS, runId).run();
+    if (mission) await settleEscrow(env, runId, 'refunded');
     return json({ error: init.code === 'version' ? 'version' : 'server' }, init.code === 'version' ? 409 : 502);
   }
   const jti = newJti();
@@ -134,11 +147,13 @@ async function abandon(request, env, url, player, runId) {
     await stub(env, runId).fetch('https://do/abandon', { method: 'POST' }).catch(() => {});
     await env.DB.prepare(`UPDATE runs SET state = 'abandoned', outcome = 'lost', closed_at = ? WHERE run_id = ? AND state = 'pending'`)
       .bind(Math.floor(Date.now() / 1000), runId).run();
+    await settleEscrow(env, runId, 'refunded'); // never started: the stake comes back
   } else if (row.state === 'open') {
     const r = await stub(env, runId).fetch('https://do/abandon', { method: 'POST' });
     if (!r.ok) return json({ error: 'server' }, 502);
     await env.DB.prepare(`UPDATE runs SET state = 'abandoned', outcome = 'lost', closed_at = ? WHERE run_id = ? AND state = 'open'`)
       .bind(Math.floor(Date.now() / 1000), runId).run();
+    await settleEscrow(env, runId, 'lost'); // abandon = the stake is lost (no-op for a run without escrow)
   }
   return json({ ok: true });
 }
@@ -183,5 +198,6 @@ export async function handleRuns(request, env, url) {
 export async function sweepPending(env, nowS = Math.floor(Date.now() / 1000)) {
   const r = await env.DB.prepare(`UPDATE runs SET state = 'infra_error', closed_at = ? WHERE state = 'pending' AND created_at < ?`)
     .bind(nowS, nowS - PENDING_TTL_S).run();
+  try { await reconcileEscrows(env); } catch (err) { console.error('escrow reconcile failed', String(err)); } // e.g. migration 0007 not applied yet
   return r.meta.changes;
 }

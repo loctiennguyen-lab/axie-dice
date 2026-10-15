@@ -144,7 +144,7 @@ export async function handleWallet(request, env, url) {
       if (!success) return json({ error: 'rate_limited' }, 429);
     }
     if (url.pathname === '/api/wallet' && request.method === 'GET') {
-      const tail = await env.DB.prepare('SELECT delta, reason, at FROM wallet_ledger WHERE player_id = ? ORDER BY id DESC LIMIT 20').bind(player.id).all();
+      const tail = await env.DB.prepare('SELECT delta, reason, at FROM wallet_ledger WHERE player_id = ? AND currency = ? ORDER BY id DESC LIMIT 20').bind(player.id, CUR).all();
       return json({ gem: await balanceOf(env, player.id), ledger_tail: tail.results });
     }
     if (url.pathname === '/api/gem/claim' && request.method === 'POST') {
