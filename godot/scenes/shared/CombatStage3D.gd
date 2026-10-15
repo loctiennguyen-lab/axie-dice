@@ -465,6 +465,12 @@ var _sun: DirectionalLight3D
 var _env: Environment
 var _arena: CombatArena3D = null
 var _flash: ColorRect = null
+var _exit_tween: Tween = null   # the running victory march/run, so skip_victory_march() can fast-forward it
+## Victory run to the gate: x spread kept (fraction), how far past the portal origin they end, and
+## how long the closing white flash takes (it ends exactly when the run does).
+const _EXIT_X_PULL := 0.15
+const _EXIT_PAST_GATE := 1.0
+const _EXIT_FLASH := 0.3
 var _shadow_texture: GradientTexture2D   # shared by every unit's ground shadow — see
 	# _make_ground_shadow()/_build_shadow_texture() and the "Ground-contact shadow" const block
 var _units: Dictionary = {}   # uid -> {"slot": Node3D, "character": AxieCharacter3D,
@@ -495,6 +501,30 @@ func _ready() -> void:
 	_build_world()
 
 
+## Camera framing constants (kept here so frame_band() can re-derive them).
+const _CAM_FOV := 34.0
+const _CAM_PITCH_DEG := -14.0
+
+
+## L6: the stage control now covers the whole canvas (height `canvas_h`) instead of a band
+## [top, bottom], so the arena has no hard rectangular edge. This widens the vertical fov and
+## tips the camera so a world point still lands on the SAME canvas pixel it used to inside the band:
+## the focal length in pixels is unchanged (fov grows by canvas_h / band_h) and the optical axis
+## moves from the band's centre to the canvas centre by a pure pitch about the camera centre.
+## Pure maths, no RNG; safe to call on every resize.
+func frame_band(canvas_h: float, top: float, bottom: float) -> void:
+	if _camera == null:
+		return
+	var band_h := maxf(bottom - top, 1.0)
+	canvas_h = maxf(canvas_h, band_h)
+	var half_tan := tan(deg_to_rad(_CAM_FOV) * 0.5)
+	_camera.fov = rad_to_deg(2.0 * atan(half_tan * canvas_h / band_h))
+	var focal_px := (band_h * 0.5) / half_tan
+	var band_centre := (top + bottom) * 0.5
+	var pitch := atan((canvas_h * 0.5 - band_centre) / focal_px)
+	_camera.rotation_degrees = Vector3(_CAM_PITCH_DEG - rad_to_deg(pitch), 0.0, 0.0)
+
+
 func _build_world() -> void:
 	_world = Node3D.new()
 	_world.name = "World"
@@ -502,8 +532,8 @@ func _build_world() -> void:
 
 	var cam := Camera3D.new()
 	cam.position = Vector3(0.0, 4.5, 13.2)
-	cam.rotation_degrees = Vector3(-14.0, 0.0, 0.0)
-	cam.fov = 34.0
+	cam.rotation_degrees = Vector3(_CAM_PITCH_DEG, 0.0, 0.0)
+	cam.fov = _CAM_FOV
 	cam.current = true
 	_world.add_child(cam)
 	_camera = cam
@@ -590,17 +620,17 @@ func set_arena_for_node(row: int, is_boss: bool, total_rows: int = 18) -> bool:
 	return set_arena(CombatArena3D.biome_for(row, is_boss, total_rows), is_boss)
 
 
+## True when this stage's arena has a gate the party can run through.
+func has_gate() -> bool:
+	return _arena != null and _arena.portal_position() != Vector3.ZERO
+
+
 ## Portal transition: white flash, swap to the next biome under it, fade back. Await-able.
 func transition_to_arena(biome_id: String) -> void:
 	if CombatView.disable_juice_for_tests:
 		set_arena(biome_id)
 		return
-	if _flash == null:
-		_flash = ColorRect.new()
-		_flash.color = Color(1, 1, 1, 0)
-		_flash.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		_flash.set_anchors_preset(Control.PRESET_FULL_RECT)
-		add_child(_flash)
+	_ensure_flash()
 	var tw := create_tween()
 	tw.tween_property(_flash, "color:a", 1.0, 0.25).set_ease(Tween.EASE_IN)
 	await tw.finished
@@ -608,6 +638,16 @@ func transition_to_arena(biome_id: String) -> void:
 	var tw2 := create_tween()
 	tw2.tween_property(_flash, "color:a", 0.0, 0.35).set_ease(Tween.EASE_OUT)
 	await tw2.finished
+
+
+func _ensure_flash() -> void:
+	if _flash != null:
+		return
+	_flash = ColorRect.new()
+	_flash.color = Color(1, 1, 1, 0)
+	_flash.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_flash.set_anchors_preset(Control.PRESET_FULL_RECT)
+	add_child(_flash)
 
 
 func _build_shadow_texture() -> GradientTexture2D:
@@ -1665,8 +1705,13 @@ func _start_death_fade(uid: int, entry: Dictionary) -> void:
 func play_victory_march(uids: Array, distance: float, duration: float) -> void:
 	if CombatView.disable_juice_for_tests or uids.is_empty():
 		return
+	# Arena with a gate (real fights): run along the path THROUGH the portal and flash out at it
+	# (Liam 16/10). No arena/portal (tutorial, DevReview): the short fixed-distance march.
+	var portal := _arena.portal_position() if _arena != null else Vector3.ZERO
+	var to_gate := portal != Vector3.ZERO
 	var tw := create_tween()
 	tw.set_parallel(true)
+	_exit_tween = tw
 	var moved := false
 	for uid in uids:
 		var entry: Dictionary = _units.get(uid, {})
@@ -1684,18 +1729,39 @@ func play_victory_march(uids: Array, distance: float, duration: float) -> void:
 		if character != null and is_instance_valid(character) and character.playable != null:
 			character.playable.set_default(AnimNames.Run)
 			character.playable.play(AnimNames.Run, "", true)
-		# Local +Z is this addon's own documented "front" axis (see comment above) — transforming
-		# it through the slot's own basis gives the world-space direction the unit is actually
-		# facing right now, regardless of row/rotation convention.
-		var world_dir: Vector3 = slot.transform.basis * Vector3(0.0, 0.0, 1.0)
-		var target: Vector3 = slot.position + world_dir * distance
+		var target: Vector3
+		if to_gate:
+			# Converge on the gate (x pulled to 15% of the row spread so five Axies fit the
+			# archway), ending just past the portal origin. Pure function of the arena, no RNG.
+			target = Vector3(slot.position.x * _EXIT_X_PULL, slot.position.y, portal.z - _EXIT_PAST_GATE)
+		else:
+			# Local +Z is this addon's own documented "front" axis (see comment above) —
+			# transforming it through the slot's own basis gives the world-space direction the
+			# unit is actually facing right now, regardless of row/rotation convention.
+			var world_dir: Vector3 = slot.transform.basis * Vector3(0.0, 0.0, 1.0)
+			target = slot.position + world_dir * distance
 		tw.tween_property(slot, "position", target, duration) \
-			.set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN)
+			.set_trans(Tween.TRANS_SINE if not to_gate else Tween.TRANS_QUAD).set_ease(Tween.EASE_IN)
 		moved = true
 	if not moved:
 		tw.kill()
+		_exit_tween = null
 		return
+	if to_gate and not CombatView.flashes_suppressed():
+		# Same white flash as transition_to_arena(), but it only rises (the scene changes under it).
+		_ensure_flash()
+		_flash.color.a = 0.0
+		tw.tween_property(_flash, "color:a", 1.0, _EXIT_FLASH) \
+			.set_delay(maxf(duration - _EXIT_FLASH, 0.0)).set_ease(Tween.EASE_IN)
 	await tw.finished
+	_exit_tween = null
+
+
+## Skip button for the exit run: finish the running tween on the next frame (units land on their
+## targets, flash completes) instead of killing it, so `await play_victory_march()` still resolves.
+func skip_victory_march() -> void:
+	if _exit_tween != null and _exit_tween.is_valid():
+		_exit_tween.set_speed_scale(1000.0)
 
 
 ## Screen shake (EventBus.hit_landed handler, CombatView.gd) — offsets this whole
