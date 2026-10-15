@@ -30,7 +30,7 @@ sẵn** · báo lỗi bằng **một Google Sheet** (Liam làm) · Cloudflare g�
 - [x] B2 (13/10, merge df8bb75; còn mở bên dưới). **Aid + Continue bằng Gem tặng**: bảng giá Aid ra data (đang viết cứng trong CombatView), nút mua trừ Gem thật qua server, giới hạn 6/run (4 từ A9, theo catalog + server), ẩn cho người mới. Còn mở: Continue miễn phí cho người mới (lần thua elite/boss đầu, A0–A2) — chưa làm.
 - [~] B3 (16/10 merge c1400a1: đăng nhập web xong game có phản hồi + Run Setup chờ đồng bộ cloud; 13/10: màn đăng nhập xong, merge f6a5203; CÒN: Liam thử đăng nhập Google thật trên bản Mac + Win, thêm redirect URI desktop). **Đăng nhập desktop**: màn đăng nhập có trạng thái chờ/huỷ/lỗi; thử đăng nhập Google thật trên bản build Mac + Win; redirect URI desktop trên Google OAuth console.
 - [x] B4 (13/10, merge 0e48e63; Liam chạy: `cd ~/my-game/worker && npx wrangler d1 execute axie-dice-db --remote --file=sql/l1_report.sql`, đọc `production/l1-telemetry.md`). **Ghi số liệu run + Nhiệm vụ**: kiểm tra server ghi đủ (run bắt đầu/kết thúc, Ascension, thắng/thua, Aid/Continue đã dùng, cược/payout Nhiệm vụ); có cách xuất ra bảng cho Liam xem.
-- [x] B5 (13/10, merge f88192a + e9fcc76; số liệu N1–N6 theo bản cực khó, RULES_VERSION -k; còn: chạy N1 trên Worker khi bật online). **Nhiệm vụ chỉ N1–N3**: N4–N6 khoá "Not in this build" (kiểm lại sau khi đổi luật), nhà Nhiệm vụ không nâng cấp; chạy trọn N1 từ cược → run → payout trên Worker.
+- [x] B5 (16/10: Nhiệm vụ online phương án A deploy 4055be9c; 13/10, merge f88192a + e9fcc76; số liệu N1–N6 theo bản cực khó, RULES_VERSION -k; còn: chạy N1 trên Worker khi bật online). **Nhiệm vụ chỉ N1–N3**: N4–N6 khoá "Not in this build" (kiểm lại sau khi đổi luật), nhà Nhiệm vụ không nâng cấp; chạy trọn N1 từ cược → run → payout trên Worker.
 - [x] B6 (13/10, merge a1095a6: mọi boss/elite có model; mecha=xia, agony=paladill có animation). **Boss thiếu asset → mascot có sẵn** (`assets/bosses/`: kibo, kotaro, paladill, xia) cho từng boss còn thiếu.
 - [ ] B7. **Bản tải Mac (Apple Silicon) + Windows**: build từ godot-port mới nhất, cài thử trên máy sạch, hướng dẫn mở (Gatekeeper / SmartScreen) được kiểm.
 - [ ] B8. **Bản web**: `export-web.sh` → chạy được ≥ 30 FPS với Atia + Land → `deploy-r2.sh` (khi Liam cho deploy).
@@ -74,6 +74,7 @@ sẵn** · báo lỗi bằng **một Google Sheet** (Liam làm) · Cloudflare g�
 ## Đã xong (để tham chiếu)
 
 - [x] Worker deploy 13/10 (migration 0001–0005, token kid/jti, quà mùa, Continue boss 180) — Liam.
+- [x] Worker deploy lần 5, 16/10 (version 4055be9c): migration 0007_mission_escrow, Nhiệm vụ online phương án A (server giữ ký quỹ Shard, chỉ hoàn cược khi run chưa bắt đầu). Claude chạy theo lệnh Liam; live smoke PASS sau deploy.
 - [x] Worker deploy lần 4, 15/10 (version d7b97e18): RULES_VERSION -n + epoch_args.json (sửa run online). Claude chạy theo lệnh Liam; /api/leaderboard 200.
 - [x] Worker deploy lần 3, 15/10 (version 0a2acf58): migration 0006_leaderboard, Ranked + leaderboard + Daily 3 lượt (C2), RULES_VERSION -m + pact_reroll (B11). Đã gọi thử /api/leaderboard season + daily: 200 — Liam.
 - [x] Worker deploy lần 2, 13/10 14:39 (version eb839d69): nhận RULES_VERSION -k, ghi số liệu run (B4), Continue miễn phí người mới (B10) — Liam.
