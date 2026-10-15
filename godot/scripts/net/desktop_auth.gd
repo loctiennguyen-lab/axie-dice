@@ -12,6 +12,8 @@ extends Node
 ## Emits `finished(ok, tokens, error)`: tokens = {access, refresh, expires_in, device_id}.
 
 signal finished(ok: bool, tokens: Dictionary, error: String)
+## A valid /cb arrived (state matched, code present). The token exchange is now in flight.
+signal callback_received
 
 const LOGIN_TIMEOUT_S := 300.0
 const PORT_MIN := 49152
@@ -33,6 +35,10 @@ var _peers: Array = []   # [{peer, buf, age}]
 var _age := 0.0
 var _done := false
 var _url := ""
+var _saved_low_cpu := false
+var _power_held := false
+## Seam for tests: brings the game window to the front once the browser has called back.
+var raise_window: Callable = func() -> void: DesktopAuth.raise_game_window()
 
 
 static func make_verifier() -> String:
@@ -66,6 +72,33 @@ static func parse_callback(request_line: String) -> Dictionary:
 	return out
 
 
+## Brings the game window in front of the browser and, if the OS refuses to hand over focus
+## (macOS 14+ often does), bounces the dock icon / flashes the taskbar entry instead.
+static func raise_game_window() -> void:
+	if DisplayServer.get_name() == "headless":
+		return
+	DisplayServer.window_move_to_foreground()
+	DisplayServer.window_request_attention()
+
+
+## The page the browser tab shows after /cb (and for errors). Static text, no external assets.
+static func page_html(title: String, detail: String, ok: bool) -> String:
+	var accent := "#2F8F4E" if ok else "#B2432B"
+	var mark := "&#10003;" if ok else "!"
+	return ("<!doctype html><html lang='en'><head><meta charset='utf-8'><title>Axie Dice</title>"
+		+ "<meta name='viewport' content='width=device-width,initial-scale=1'>"
+		+ "<style>body{margin:0;min-height:100vh;display:flex;align-items:center;justify-content:center;"
+		+ "background:#F6E7C8;font-family:-apple-system,'Segoe UI',Roboto,sans-serif;color:#3A2214}"
+		+ ".card{background:#FFF6E0;border:4px solid #8A3E22;border-radius:24px;padding:40px 48px;"
+		+ "max-width:460px;text-align:center;box-shadow:4px 6px 0 rgba(74,34,14,.35)}"
+		+ ".mark{width:72px;height:72px;line-height:72px;border-radius:50%%;margin:0 auto 18px;"
+		+ "background:%s;color:#fff;font-size:40px;font-weight:800;border:3px solid #24140B}"
+		+ "h1{font-size:26px;margin:0 0 10px}p{font-size:17px;margin:0;line-height:1.45}"
+		+ "small{display:block;margin-top:18px;font-size:13px;opacity:.7}</style></head><body>"
+		+ "<div class='card'><div class='mark'>%s</div><h1>%s</h1><p>%s</p>"
+		+ "<small>Axie Dice</small></div></body></html>") % [accent, mark, title, detail]
+
+
 ## Starts the flow. Returns OK, or an Error if no loopback port could be opened.
 func begin() -> int:
 	_tcp = TCPServer.new()
@@ -82,6 +115,12 @@ func begin() -> int:
 	var url := "%s/auth/login?desktop=1&challenge=%s&port=%d&state=%s" \
 		% [server_url, challenge_for(_verifier), _port, _state]
 	_url = url
+	# Keep the loop at full rate while the player is in the browser: the /cb accept loop is in _process.
+	_saved_low_cpu = OS.low_processor_usage_mode
+	OS.low_processor_usage_mode = false
+	if DisplayServer.get_name() != "headless":
+		DisplayServer.screen_set_keep_on(true)
+		_power_held = true
 	open_url.call(url)
 	set_process(true)
 	return OK
@@ -143,23 +182,26 @@ func _handle_request(entry: Dictionary, line: String) -> void:
 	var peer: StreamPeerTCP = entry["peer"]
 	var cb := parse_callback(line)
 	if cb.is_empty() or String(cb["state"]) != _state:
-		_reply(peer, 404 if cb.is_empty() else 400, "Not the sign-in callback.")
+		_reply(peer, 404 if cb.is_empty() else 400, "Not the sign-in page", "This address only works for the Axie Dice sign-in.", false)
 		_drop(entry)
 		return
 	if not String(cb["error"]).is_empty():
-		_reply(peer, 200, "Sign-in did not work. Go back to the game and try again.")
+		_reply(peer, 200, "Sign-in did not finish", "Go back to Axie Dice and try again.", false)
 		_drop(entry)
+		raise_window.call()
 		_finish(false, {}, String(cb["error"]))
 		return
 	var code := String(cb["code"])
 	if code.is_empty():
-		_reply(peer, 400, "Missing code.")
+		_reply(peer, 400, "Sign-in did not finish", "The sign-in answer was empty. Go back to Axie Dice and try again.", false)
 		_drop(entry)
 		return
-	_reply(peer, 200, "Signed in. You can close this tab and go back to the game.")
+	_reply(peer, 200, "Signed in \u2014 you can return to Axie Dice", "You can close this tab. The game is already waiting for you.", true)
 	_drop(entry)
 	_done = true   # stop polling; the exchange below is async
 	_stop_listening()
+	raise_window.call()
+	callback_received.emit()
 	exchange.call(server_url + "/auth/desktop/token",
 		JSON.stringify({"code": code, "verifier": _verifier, "label": OS.get_name()}),
 		func(http: int, text: String) -> void:
@@ -170,15 +212,22 @@ func _handle_request(entry: Dictionary, line: String) -> void:
 				_emit(false, {}, "token"))
 
 
-func _reply(peer: StreamPeerTCP, status: int, message: String) -> void:
-	var body := "<html><body style='font-family:sans-serif;text-align:center;margin-top:20vh'><h2>%s</h2></body></html>" % message
+func _reply(peer: StreamPeerTCP, status: int, title: String, detail: String, ok: bool) -> void:
+	var body := page_html(title, detail, ok)
 	var resp := "HTTP/1.1 %d %s\r\nContent-Type: text/html; charset=utf-8\r\nContent-Length: %d\r\nConnection: close\r\nCache-Control: no-store\r\n\r\n%s" \
 		% [status, "OK" if status == 200 else "Error", body.to_utf8_buffer().size(), body]
 	peer.put_data(resp.to_utf8_buffer())
 
 
 func _drop(entry: Dictionary) -> void:
-	(entry["peer"] as StreamPeerTCP).disconnect_from_host()
+	var peer: StreamPeerTCP = entry["peer"]
+	# Read what the browser still has in flight: closing a socket with unread bytes makes the OS send a
+	# reset, and the browser may then throw the page away instead of showing it.
+	peer.poll()
+	var left := peer.get_available_bytes()
+	if left > 0:
+		peer.get_data(left)
+	peer.disconnect_from_host()
 	_peers.erase(entry)
 
 
@@ -198,4 +247,8 @@ func _emit(ok: bool, tokens: Dictionary, error: String) -> void:
 	_done = true
 	_stop_listening()
 	set_process(false)
+	OS.low_processor_usage_mode = _saved_low_cpu
+	if _power_held:
+		DisplayServer.screen_set_keep_on(false)
+		_power_held = false
 	finished.emit(ok, tokens, error)

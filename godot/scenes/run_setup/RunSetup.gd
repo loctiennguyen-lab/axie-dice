@@ -47,6 +47,8 @@ var use_account := true
 var remote_on: bool = String(ProjectSettings.get_setting("axie/epoch_source", "")) == "remote"
 ## Tests: replaces AccountService.status. Returns an AccountService.Status int.
 var account_status_hook: Callable
+## Tests: a stand-in for the AccountService autoload (needs `status` and `changed`).
+var account_service: Node
 ## Tests: replaces AccountService.sign_in().
 var sign_in_hook: Callable = Callable()
 ## Tests: skip the scene change after a successful Begin.
@@ -93,8 +95,16 @@ func _ready() -> void:
 		party = _initial_party()
 	ascension = clampi(ascension, 0, ascension_ceiling())
 	_build()
+	if account_service == null:
+		account_service = AccountService
 	if use_account:
 		state = account_state()
+		# Sign-in can finish while this screen is open (browser flow): re-evaluate instead of
+		# keeping a stale "Sign in to play".
+		account_service.changed.connect(_on_account_changed)
+		tree_exiting.connect(func() -> void:
+			if is_instance_valid(account_service) and account_service.changed.is_connected(_on_account_changed):
+				account_service.changed.disconnect(_on_account_changed))
 	set_state(state)
 	load_daily_tries()
 	var _notice := RunState.take_discard_notice()
@@ -110,12 +120,18 @@ func _ready() -> void:
 ## "offline"; a guest or an expired/revoked session is "guest" (L1: sign-in required to play, only
 ## enforced while remote_on). Reads AccountService.status unless account_status_hook is set (tests).
 func account_state() -> String:
-	var st: int = account_status_hook.call() if account_status_hook.is_valid() else AccountService.status
+	var svc: Node = account_service if account_service != null else AccountService
+	var st: int = account_status_hook.call() if account_status_hook.is_valid() else svc.status
 	if st == AccountService.Status.OFFLINE:
 		return "offline"
 	if remote_on and (st == AccountService.Status.GUEST or st == AccountService.Status.EXPIRED):
 		return "guest"
 	return "normal"
+
+
+func _on_account_changed() -> void:
+	if use_account and state in ["normal", "offline", "guest"] and account_state() != state:
+		set_state(account_state())
 
 
 func _unhandled_key_input(ev: InputEvent) -> void:
@@ -1080,7 +1096,7 @@ func _on_sign_in() -> void:
 	if sign_in_hook.is_valid():
 		sign_in_hook.call()
 	else:
-		AccountService.sign_in()
+		(account_service if account_service != null else AccountService).sign_in()
 
 
 func _build_skeleton() -> void:

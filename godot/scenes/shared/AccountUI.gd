@@ -71,6 +71,84 @@ static func show_welcome(layer: CanvasLayer) -> Control:
 	return overlay
 
 
+# ============================================================================ desktop browser flow
+
+## Overlay for the desktop sign-in, shown over whatever screen started it. It only mirrors
+## `service.desktop_phase` ("waiting" | "finishing" | "signed_in" | "error") and calls the service;
+## it frees itself when the phase goes back to "idle". "signed_in" shows the name, then dismisses.
+static func show_desktop_flow(layer: CanvasLayer, service: Node, auto_dismiss_s: float = 1.6) -> Control:
+	var overlay := _overlay(layer)
+	overlay.name = "DesktopSignInFlow"
+	var box := _modal(overlay, 640.0)
+	var dismissed := [false]
+	var refresh := Callable()
+	refresh = func() -> void:
+		if not is_instance_valid(overlay):
+			return
+		for c in box.get_children():
+			box.remove_child(c)
+			c.queue_free()
+		var phase := String(service.get("desktop_phase"))
+		box.add_child(_eyebrow("ACCOUNT"))
+		match phase:
+			"waiting":
+				var t := DangoTheme.display_label("Waiting for the browser…", 36)
+				t.name = "Title"
+				box.add_child(t)
+				box.add_child(_prose("Finish signing in in your browser. Then come back here; the game picks it up by itself.",
+					18, DangoTheme.TEXT_DIM))
+				var again := _button("OPEN BROWSER AGAIN", false, 48)
+				again.name = "OpenAgain"
+				again.pressed.connect(func() -> void: service.reopen_desktop_browser())
+				box.add_child(_gap(again, 8))
+				var cancel := _button("CANCEL", false, 48)
+				cancel.name = "Cancel"
+				cancel.pressed.connect(func() -> void: service.cancel_desktop_sign_in())
+				box.add_child(cancel)
+			"finishing":
+				var t := DangoTheme.display_label("Signing you in…", 36)
+				t.name = "Title"
+				box.add_child(t)
+				box.add_child(_prose("Google said yes. Checking your account.", 18, DangoTheme.TEXT_DIM))
+			"signed_in":
+				var t := DangoTheme.display_label("Signed in as %s" % String(service.display_name()), 36)
+				t.name = "Title"
+				box.add_child(t)
+				var go := _button("CONTINUE", true, 48)
+				go.name = "Continue"
+				go.pressed.connect(func() -> void: service.dismiss_desktop_result())
+				box.add_child(_gap(go, 8))
+				if auto_dismiss_s > 0.0 and not dismissed[0] and overlay.is_inside_tree():
+					dismissed[0] = true
+					overlay.get_tree().create_timer(auto_dismiss_s).timeout.connect(func() -> void:
+						if is_instance_valid(service):
+							service.dismiss_desktop_result())
+			"error":
+				var copy: Array = AccountScreen.error_copy(String(service.get("desktop_error")))
+				var t := DangoTheme.display_label(String(copy[0]), 36)
+				t.name = "Title"
+				box.add_child(t)
+				box.add_child(_prose(String(copy[1]), 18, DangoTheme.TEXT_DIM))
+				var retry := _button(String(copy[2]).to_upper(), true, 48)
+				retry.name = "Retry"
+				retry.pressed.connect(func() -> void:
+					service.clear_desktop_error()
+					service.sign_in())
+				box.add_child(_gap(retry, 8))
+				var close := _button("CLOSE", false, 48)
+				close.name = "Close"
+				close.pressed.connect(func() -> void: service.clear_desktop_error())
+				box.add_child(close)
+			_:
+				overlay.queue_free()
+	service.changed.connect(refresh)
+	overlay.tree_exiting.connect(func() -> void:
+		if is_instance_valid(service) and service.changed.is_connected(refresh):
+			service.changed.disconnect(refresh))
+	refresh.call()
+	return overlay
+
+
 # ============================================================================ B · chip
 
 ## A button showing who is signed in and whether the save is in the cloud. It rebuilds itself
