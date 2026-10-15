@@ -34,7 +34,7 @@ _held_ok() {
   [[ -n "${AXIE_GODOT_LOCK_HELD:-}" && "${o%%|*}" == "$AXIE_GODOT_LOCK_HELD" ]]
 }
 if ! _held_ok; then
-  export AXIE_HANG_KILL="${AXIE_HANG_KILL:-300}"
+  export AXIE_HANG_KILL="${AXIE_HANG_KILL:-600}"   # cả suite (~90–150s), chừa dư cho máy chậm
   exec bash "$ROOT/godot/tools/with_lock.sh" bash "$ROOT/godot/tools/run_tests.sh" "$@"
 fi
 

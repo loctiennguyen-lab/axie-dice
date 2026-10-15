@@ -96,7 +96,7 @@ if [[ "${AXIE_SKIP_PREFLIGHT:-}" != 1 ]]; then
   bad="$(_preflight_conflicts)"
   if [[ -n "$bad" ]]; then
     echo "with_lock: PREFLIGHT tu choi chay Godot, co dau conflict git trong:" >&2
-    printf '  %s\n' $bad >&2
+    printf '%s\n' "$bad" | sed 's/^/  /' >&2
     exit 66
   fi
 fi
@@ -233,7 +233,9 @@ if [[ "${AXIE_SKIP_PREFLIGHT:-}" != 1 ]] && _preflight_cache_stale; then
     echo "with_lock: cache class_name cu, tu chay --import (toi da 240s)..." >&2
     "$gb" --headless --path "$PROJ" --import >/dev/null 2>&1 & ip=$!
     ( sleep 240; kill "$ip" 2>/dev/null ) & iw=$!
-    wait "$ip" 2>/dev/null; kill "$iw" 2>/dev/null
+    wait "$ip" 2>/dev/null; ic=$?; kill "$iw" 2>/dev/null
+    # Import xong mà không viết lại cache (vd checkout chỉ đổi mtime) thì chạm cache, để lần sau không import lại vô ích.
+    [[ "$ic" == 0 && -f "$PROJ/.godot/global_script_class_cache.cfg" ]] && touch "$PROJ/.godot/global_script_class_cache.cfg"
   fi
 fi
 export AXIE_GODOT_LOCK_HELD="$$"
