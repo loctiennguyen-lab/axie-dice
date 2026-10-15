@@ -930,7 +930,8 @@ static func _model_aabb(root: Node3D) -> AABB:
 
 
 ## Plays one of the registry's clips ("idle"/"attack"/"hit"/"die") on a unit's Atia model.
-## Non-idle clips return to Idle when they end, except "die" which holds the last frame.
+## Non-idle clips return to Idle when they end (or to the rest pose when the model has no idle clip),
+## except "die" which holds the last frame.
 ## Returns the clip length in seconds, or 0 when the model has no such clip.
 func _atia_play(atia: Dictionary, slot_name: String, loop := false) -> float:
 	var player := atia.get("player") as AnimationPlayer
@@ -944,7 +945,26 @@ func _atia_play(atia: Dictionary, slot_name: String, loop := false) -> float:
 		var idle := String((atia.get("anims", {}) as Dictionary).get("idle", ""))
 		if idle != "" and player.has_animation(idle):
 			player.queue(idle)
+		elif not atia.has("rest_hooked"):
+			# No idle clip to queue: without this the model would freeze on the last pose of attack/hit.
+			# When a one-shot ends, drop back to rest and let the code bob (_start_idle_bob) carry on.
+			atia["rest_hooked"] = true
+			var die_clip := String((atia.get("anims", {}) as Dictionary).get("die", ""))
+			player.animation_finished.connect(func(finished: StringName) -> void:
+				if not is_instance_valid(player) or String(finished) == die_clip \
+						or String(finished) == "RESET":
+					return
+				_atia_rest(player))
 	return anim.length / maxf(spd, 0.01)
+
+
+## Rest pose for a model that has no idle clip: the glTF "RESET" clip when it ships one (applied once),
+## else just stop the player. Never called for the die clip (that one holds its last frame on purpose).
+static func _atia_rest(player: AnimationPlayer) -> void:
+	if player.has_animation("RESET"):
+		player.play("RESET")
+		player.advance(0.0)
+	player.stop()
 
 
 ## The vertical extent of every VisualInstance3D in the tree, in the model's own space, as
