@@ -1057,7 +1057,13 @@ func _on_aid_purchase(aid_id: String) -> void:
 	for u in _party_dice_units():
 		if u.hp > 0 and u.has_rolled() and not u.roll_used() and not u.heavy and not u.frozen:
 			uids.append(u.uid)
-	var res := AidPurchase.buy(aid_id, _combat, uids, _tutorial)
+	if _combat.epoch_pending:
+		return
+	var res: Dictionary = await AidPurchase.buy(aid_id, _combat, uids, _tutorial)
+	if not _still_running():
+		return
+	if not bool(res["ok"]) and String(res["code"]) == "net":
+		NetNotice.show(self, String(res.get("net_code", "offline")))
 	_append_log("[aid] %s : %s" % [aid_id, "ok (-%d Gem)" % int(res["charged"]) if bool(res["ok"]) else String(res["code"])])
 	if bool(res["ok"]):
 		_selected_die_uid = -1
@@ -2204,7 +2210,7 @@ func _on_reroll_pressed() -> void:
 	if _reroll_fx_active:
 		_reroll_fx.skip()
 		return
-	if _gated("reroll"):
+	if _gated("reroll") or _combat.epoch_pending:
 		return
 	var uids: Array = []
 	var slot_indices: Array = []
@@ -2230,8 +2236,13 @@ func _on_reroll_pressed() -> void:
 	elif not slot_indices.is_empty() and _combat.rerolls > 0:
 		# (no rerolls left = reroll_dice() refuses, so there is nothing to toss)
 		_start_reroll_toss(slot_indices)
-	var ok := _combat.reroll_dice(uids)
+	var rr: Dictionary = await _combat.request_reroll_dice(uids)
+	if not _still_running():
+		return
+	var ok := bool(rr["ok"])
 	_append_log("[input] reroll %d dice : %s" % [uids.size(), "ok" if ok else "failed"])
+	if not ok and String(rr["code"]) not in ["illegal", "busy"]:
+		NetNotice.show(self, String(rr["code"]))
 	_selected_die_uid = -1
 	_rebuild_all()
 	if use_fx:
@@ -2385,12 +2396,25 @@ func _start_reroll_toss(slot_indices: Array) -> void:
 ## refuses because the phase is already END_TURN, and returns here immediately. The button is
 ## disabled for the duration as well (see _update_end_turn_ui()), so the guard is the backstop
 ## rather than the mechanism.
+## Greys the END TURN button while its seed is in flight (the real guard is `_combat.epoch_pending`).
+func _end_turn_button_lock(on: bool) -> void:
+	if _end_turn_button != null:
+		_end_turn_button.disabled = on
+
+
 func _on_end_turn_pressed() -> void:
-	if _gated("end_turn"):
+	if _gated("end_turn") or _combat.epoch_pending:
 		return
 	_selected_die_uid = -1
 	_clear_all_previews()
-	if not _combat.begin_end_turn():
+	_end_turn_button_lock(true)
+	var et: Dictionary = await _combat.request_begin_end_turn()
+	if not _still_running():
+		return
+	if not bool(et["ok"]):
+		_end_turn_button_lock(false)
+		if String(et["code"]) not in ["illegal", "busy"]:
+			NetNotice.show(self, String(et["code"]), _on_end_turn_pressed)
 		return
 	_rebuild_all()   # the phase flip and the turn banner go up BEFORE the first enemy moves
 	await _run_enemy_phase()
@@ -3204,9 +3228,17 @@ func _finish(won: bool) -> void:
 		# the player picks End run, so a Continue (lane A) can still resume the same fight.
 		_show_defeat_panel()
 		return
-	RunState.apply_combat_result(_combat.get_result())   # unchanged position/ordering relative
-		# to the pre-animation-pass code — only the win branch below now awaits the march before
-		# its own overlay/scene-change lines; this call itself is not delayed.
+	var applied: Dictionary = await RunState.request_apply_combat_result(_combat.get_result())
+		# (was a sync apply_combat_result: the `reward` epoch may need a remote reply now)
+	if not bool(applied["ok"]):
+		# Nothing was applied. A transient refusal re-arms so the same result can be tried again.
+		var code := String(applied["code"])
+		if code in ["offline", "timeout", "rejected"]:
+			_result_shown = false
+			NetNotice.show(self, code, func(): _finish(won))
+		else:
+			NetNotice.show(self, code)
+		return
 	if won:
 		# Juice pass B: let the surviving party actually march off the field before cutting to
 		# RunMap, instead of the previous same-frame overlay-then-scene-change (which meant the
@@ -3322,7 +3354,11 @@ func _show_defeat_panel() -> void:
 
 
 func _on_defeat_continue() -> void:
-	var res := AidPurchase.buy("continue", _combat, [], _tutorial)
+	if _combat.epoch_pending:
+		return
+	var res: Dictionary = await AidPurchase.buy("continue", _combat, [], _tutorial)
+	if is_inside_tree() and not bool(res["ok"]) and String(res["code"]) == "net":
+		NetNotice.show(self, String(res.get("net_code", "offline")), _on_defeat_continue)
 	_append_log("[aid] continue : %s" % ("ok (-%d Gem)" % int(res["charged"]) if bool(res["ok"]) else String(res["code"])))
 	if not bool(res["ok"]):
 		return
@@ -3333,7 +3369,7 @@ func _on_defeat_continue() -> void:
 
 
 func _on_defeat_end_run() -> void:
-	RunState.apply_combat_result(_combat.get_result())
+	RunState.apply_combat_result(_combat.get_result())   # a lost fight draws no epoch
 	_result_overlay.visible = true
 	_result_label.text = "YOU LOSE"
 	get_tree().change_scene_to_file("res://scenes/result/Result.tscn")

@@ -569,6 +569,82 @@ func _resolve_cantrips() -> void:
 			_roll_unit(u)
 
 
+## ---- async twins (L1 B1): the view awaits the seed, then calls the sync rule with it -------------------
+## True while one of the request_* below waits for its reply; the view disables input meanwhile.
+var epoch_pending: bool = false
+
+
+func _reroll_args(uids: Array, from_aid: bool) -> Dictionary:
+	var rargs := {"turn": turn, "k": reroll_k + 1,
+		"source": "aid" if from_aid else "base", "uids": _int_list(uids)}
+	if attempt > 0:
+		rargs["attempt"] = attempt
+	return rargs
+
+
+func _end_turn_args() -> Dictionary:
+	var eargs := {"turn": turn}
+	if attempt > 0:
+		eargs["attempt"] = attempt
+	return eargs
+
+
+func _continue_args() -> Dictionary:
+	return {"node_id": node_id, "attempt": attempt + 1}
+
+
+## Waits for one epoch reply. Returns {ok, seed, code}. No epoch source = seed -1 (the sync path rolls on
+## the engine's own rng, as before).
+func _await_seed(kind: String, args: Dictionary) -> Dictionary:
+	if _epoch == null:
+		return {"ok": true, "seed": -1, "code": ""}
+	epoch_pending = true
+	var r := _epoch.request(kind, args)
+	if not r.done:
+		await r.resolved
+	epoch_pending = false
+	return {"ok": r.ok, "seed": r.seed, "code": r.code}
+
+
+## Async reroll_dice(). Returns {ok, code}; code "illegal" = rules refused, "busy" = a request is in flight.
+func request_reroll_dice(uids: Array, from_aid: bool = false) -> Dictionary:
+	if epoch_pending:
+		return {"ok": false, "code": "busy"}
+	if not can_reroll(uids, from_aid):
+		return {"ok": false, "code": "illegal"}
+	var a := await _await_seed("reroll", _reroll_args(uids, from_aid))
+	if not bool(a["ok"]):
+		return {"ok": false, "code": String(a["code"])}
+	var ok := reroll_dice(uids, int(a["seed"]), from_aid)
+	return {"ok": ok, "code": "" if ok else "illegal"}
+
+
+## Async begin_end_turn().
+func request_begin_end_turn() -> Dictionary:
+	if epoch_pending:
+		return {"ok": false, "code": "busy"}
+	if not can_end_turn():
+		return {"ok": false, "code": "illegal"}
+	var a := await _await_seed("end_turn", _end_turn_args())
+	if not bool(a["ok"]):
+		return {"ok": false, "code": String(a["code"])}
+	var ok := begin_end_turn(int(a["seed"]))
+	return {"ok": ok, "code": "" if ok else "illegal"}
+
+
+## Async continue_after_wipe() (Aid R1).
+func request_continue_after_wipe(heal_pct: int = -1) -> Dictionary:
+	if epoch_pending:
+		return {"ok": false, "code": "busy"}
+	if not can_continue():
+		return {"ok": false, "code": "illegal"}
+	var a := await _await_seed("continue", _continue_args())
+	if not bool(a["ok"]):
+		return {"ok": false, "code": String(a["code"])}
+	var ok := continue_after_wipe(int(a["seed"]), heal_pct)
+	return {"ok": ok, "code": "" if ok else "illegal"}
+
+
 ## REROLL — see the class-level DESIGN DECISION comment: this is a transient marker, not
 ## a blocking gate. engine.js doReroll(s, uids).
 func reroll_dice(uids: Array, seed: int = -1, from_aid: bool = false) -> bool:
@@ -579,11 +655,7 @@ func reroll_dice(uids: Array, seed: int = -1, from_aid: bool = false) -> bool:
 	# (the server expects the consuming action at log_len).
 	var use_seed := seed
 	if use_seed < 0 and _epoch != null:
-		var rargs := {"turn": turn, "k": reroll_k + 1,
-			"source": "aid" if from_aid else "base", "uids": _int_list(uids)}
-		if attempt > 0:
-			rargs["attempt"] = attempt
-		var r := _epoch.request("reroll", rargs)
+		var r := _epoch.request("reroll", _reroll_args(uids, from_aid))
 		if not r.ok:
 			push_error("CombatEngine.reroll_dice: epoch refused (%s)" % r.code)
 			return false
@@ -1280,10 +1352,7 @@ func begin_end_turn(seed: int = -1) -> bool:
 	# Epoch boundary (see reroll_dice): enemy phase + next turn's rolls + intents draw from `seed`.
 	var use_seed := seed
 	if use_seed < 0 and _epoch != null:
-		var eargs := {"turn": turn}
-		if attempt > 0:
-			eargs["attempt"] = attempt
-		var r := _epoch.request("end_turn", eargs)
+		var r := _epoch.request("end_turn", _end_turn_args())
 		if not r.ok:
 			push_error("CombatEngine.begin_end_turn: epoch refused (%s)" % r.code)
 			return false
@@ -1486,8 +1555,7 @@ func continue_after_wipe(seed: int = -1, heal_pct: int = -1) -> bool:
 	var pct := heal_pct if heal_pct >= 0 else int(ContentDB.ascension_mods(ascension).get("continue_heal_pct", 40))
 	var use_seed := seed
 	if use_seed < 0 and _epoch != null:
-		var cargs := {"node_id": node_id, "attempt": attempt + 1}
-		var r := _epoch.request("continue", cargs)
+		var r := _epoch.request("continue", _continue_args())
 		if not r.ok:
 			push_error("CombatEngine.continue_after_wipe: epoch refused (%s)" % r.code)
 			return false
