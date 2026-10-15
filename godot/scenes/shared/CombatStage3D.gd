@@ -809,11 +809,17 @@ func _make_atia_model(unit_key: String, is_boss: bool) -> Dictionary:
 	var model := packed.instantiate() as Node3D
 	if model == null:
 		return {}
-	var player: AnimationPlayer = null
-	for n in _descendants(model):
-		if n is AnimationPlayer:
-			player = n as AnimationPlayer
-			break
+	# The wrapper's own "Animations" player carries the clips named in the registry. The FBX
+	# inside it (Model) often embeds a second AnimationPlayer holding only "Take 001"; taking
+	# the first player found in depth-first order picked that one, found none of the registry's
+	# clips, and left 13 of the 27 enemies frozen (L6 audit, 16/10). Mascot .glb files have no
+	# wrapper, so they fall through to the first player.
+	var player: AnimationPlayer = model.get_node_or_null("Animations") as AnimationPlayer
+	if player == null:
+		for n in _descendants(model):
+			if n is AnimationPlayer:
+				player = n as AnimationPlayer
+				break
 	if player != null:
 		# Per-instance copy of the clips: Animation resources are shared by every unit that uses
 		# the model, so loop mode must not be written on the shared ones.
@@ -829,8 +835,15 @@ func _make_atia_model(unit_key: String, is_boss: bool) -> Dictionary:
 			for lib_name in player.get_animation_library_list():
 				player.remove_animation_library(lib_name)
 			player.add_animation_library("", lib)
+	# Keep only the slots whose clip this player really has, so a wrong name in the registry
+	# degrades to the code-driven fallbacks instead of a silent no-op (idle bob, flinch).
+	var usable := {}
+	var cfg_all: Dictionary = reg.get("anims", {})
+	for slot_name in cfg_all.keys():
+		if player != null and player.has_animation(String(cfg_all[slot_name])):
+			usable[slot_name] = cfg_all[slot_name]
 	return {"node": model, "player": player, "reg": reg,
-		"anims": (reg.get("anims", {}) as Dictionary).duplicate(),
+		"anims": usable,
 		"speed": (reg.get("anim_speed", {}) as Dictionary).duplicate(), "width": 1.0}
 
 
@@ -1494,10 +1507,50 @@ func play_hit_reaction(uid: int) -> void:
 	var character: AxieCharacter3D = entry.get("character")
 	_play_sheet(entry, "hit")      # the rigless half; no-op when a rig answers below
 	if not CombatView.disable_juice_for_tests and (entry.get("atia", {}) as Dictionary).has("player"):
-		_atia_play(entry["atia"], "hit")
+		if _atia_play(entry["atia"], "hit") <= 0.0:
+			_atia_flinch(entry)   # no GetHit clip for this model: squash + recoil in code
 	if character == null or not is_instance_valid(character) or character.playable == null:
 		return
 	character.playable.play(AnimNames.IdleGetHit, "", false)
+
+
+## Code-driven hit reaction for Atia models that ship no GetHit clip (chomper, bruiser,
+## cleaver...): a quick squash and a small recoil away from the party, relative to the pose the
+## model was fitted at. Overlapping hits restart it from the fitted pose, never from mid-flinch.
+func _atia_flinch(entry: Dictionary) -> void:
+	var visual := entry.get("visual") as Node3D
+	if visual == null or not is_instance_valid(visual):
+		return
+	if not entry.has("flinch_base"):
+		entry["flinch_base"] = {"scale": visual.scale, "pos": visual.position}
+	var old = entry.get("flinch_tween")
+	if old is Tween and (old as Tween).is_valid():
+		(old as Tween).kill()
+	var base_s: Vector3 = entry["flinch_base"]["scale"]
+	var base_p: Vector3 = entry["flinch_base"]["pos"]
+	visual.scale = base_s
+	var tw := create_tween()
+	entry["flinch_tween"] = tw
+	tw.set_parallel(true)
+	tw.tween_property(visual, "scale", base_s * Vector3(1.1, 0.88, 1.1), 0.07) \
+		.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	tw.tween_property(visual, "position:x", base_p.x + 0.18, 0.07) \
+		.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+	tw.chain().set_parallel(true)
+	tw.tween_property(visual, "scale", base_s, 0.2) \
+		.set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	tw.tween_property(visual, "position:x", base_p.x, 0.2) \
+		.set_trans(Tween.TRANS_QUAD).set_ease(Tween.EASE_OUT)
+
+
+func _stop_atia_flinch(entry: Dictionary) -> void:
+	var tw = entry.get("flinch_tween")
+	if tw is Tween and (tw as Tween).is_valid():
+		(tw as Tween).kill()
+	var visual := entry.get("visual") as Node3D
+	if entry.has("flinch_base") and visual != null and is_instance_valid(visual):
+		visual.scale = entry["flinch_base"]["scale"]
+		visual.position = entry["flinch_base"]["pos"]
 
 
 ## Death juice (EventBus.unit_died handler, CombatView.gd — now calls play_death(), not the fade
@@ -1526,6 +1579,7 @@ func play_death(uid: int) -> void:
 	# back to ONE — whichever finishes last wins, which is how a corpse ends up full size and
 	# frozen. Kill it and put the slot back on its mark first.
 	_stop_action_motion(entry)
+	_stop_atia_flinch(entry)
 	var character: AxieCharacter3D = entry.get("character")
 	var playable: AxiePlayable = null
 	if character != null and is_instance_valid(character):
@@ -1707,6 +1761,9 @@ func dispose_all() -> void:
 		if idle_tween is Tween and (idle_tween as Tween).is_valid():
 			(idle_tween as Tween).kill()
 		_stop_action_motion(entry)
+		var ft = entry.get("flinch_tween")
+		if ft is Tween and (ft as Tween).is_valid():
+			(ft as Tween).kill()
 		var character = entry.get("character")
 		if character != null:
 			(character as AxieCharacter3D).dispose()

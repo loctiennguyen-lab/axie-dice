@@ -35,11 +35,7 @@ func _ready() -> void:
 		var atia: Dictionary = ent.get("atia", {})
 		var vis: Node3D = ent["visual"]
 		var reg := MonsterArt.resolve(k, MonsterArt.BOSS_KEYS.has(k))
-		var player: AnimationPlayer = null
-		for n in CombatStage3D._descendants(vis):
-			if n is AnimationPlayer:
-				player = n
-				break
+		var player: AnimationPlayer = atia.get("player")
 		for _i in 3:
 			await get_tree().process_frame
 		var p0 := _pose(vis)
