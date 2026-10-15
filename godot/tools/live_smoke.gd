@@ -620,8 +620,17 @@ func _phase_resume() -> void:
 	var grew := _tape_size() > tape_before
 	_step("resume: action answered by the server", not _failed and not _aborted and remote and grew and _nodes_entered > nodes_before,
 		"epoch source %s, nodes %d -> %d, tape %d -> %d" % ["remote" if remote else "NOT remote", nodes_before, _nodes_entered, tape_before, _tape_size()])
+	# The socket may still be finishing a reconnect right after the answered action; give it up to 5 s
+	# before calling it stuck, and record the states seen so a real loop (connecting forever) shows.
+	var seen: Array = [sess.state]
+	var waited := 0.0
+	while sess.state != "ready" and waited < 5.0:
+		await get_tree().create_timer(0.25).timeout
+		waited += 0.25
+		if seen[seen.size() - 1] != sess.state:
+			seen.append(sess.state)
 	_step("resume: session ready after the action", sess.state == "ready" and sess.run_id == rid,
-		"state=%s run_id match=%s" % [sess.state, str(sess.run_id == rid)])
+		"state=%s run_id match=%s, states seen %s in %.2f s" % [sess.state, str(sess.run_id == rid), str(seen), waited])
 
 
 # ---------------------------------------------------------------- --full: Daily
