@@ -199,6 +199,10 @@ const WATCHED_FILES: Array[String] = ["res://assets/data/part_faces.json"]
 ## RunVerifier). Changes what a run can contain. Worker SUPPORTED_RULE_VERSIONS gained -m.
 ## Moved 2026-10-14 by C6 a2ceadd: MetaState team_presets field (meta only). Run result: NO, stays -m.
 ## Moved 2026-10-14 by C6 Land upgrade 664b1a0: MetaState land_tier + upgrade_land (meta only). Run result: NO, stays -m.
+## BUMPED, 2026-10-15: `ActionLog.RULES_VERSION` -> `godot-2026-10-13-n`. L1 B1 fix: the `shop_roll` epoch arg `item` is the
+## string "<kind>_<index>" (RunState._shop_item_arg) instead of an int, because the Worker requires an identifier. Args feed
+## EpochCanon.seed_from, so heal-buy seeds change and RunVerifier recomputes from them. Worker SUPPORTED_RULE_VERSIONS gained -n.
+## FINGERPRINT left for the main merge (lane I recomputes it).
 const FINGERPRINT := "2ffc8c198c98ba988dbfee680d0c0fc6dc34a9dd42d074cd4c201000a2e70129"
 
 

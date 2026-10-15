@@ -899,7 +899,9 @@ func _on_node_pressed(id: String) -> void:
 	var node: RunMapNode = entry.get("node")
 	if node == null:
 		return
-	RunState.enter_node(id, node.node_type)
+	var res: Dictionary = await RunState.request_enter_node(id, node.node_type)
+	if not bool(res["ok"]) and String(res["code"]) != "busy":
+		NetNotice.show(self, String(res["code"]), _on_node_pressed.bind(id))
 
 
 # ===========================================================================
@@ -2173,6 +2175,9 @@ func _show_pact_overlay() -> void:
 	view.setup(RunState.pact_cards(), RunState.pact_can_skip(), AidPurchase.pact_swap_offer())
 	view.swap_requested.connect(func(i: int):
 		var res: Dictionary = await AidPurchase.buy_pact_swap(i, _save_map_progress)
+		if not bool(res["ok"]) and String(res["code"]) in ["offline", "timeout", "expired", "version",
+				"unauthenticated", "rejected", "out_of_order", "bad_request"]:
+			NetNotice.show(self, String(res["code"]), func(): view.swap_requested.emit(i))
 		if bool(res["ok"]) and is_instance_valid(view):
 			_save_map_progress()
 			view.setup(RunState.pact_cards(), RunState.pact_can_skip(), AidPurchase.pact_swap_offer()))
@@ -2195,7 +2200,11 @@ func _on_reward_chosen(reward: Dictionary) -> void:
 
 
 func _on_reward_reroll(title: String) -> void:
-	RunState.reroll_pending_rewards()
+	var res: Dictionary = await RunState.request_reroll_pending_rewards()
+	if not bool(res["ok"]):
+		if String(res["code"]) not in ["illegal", "busy"]:
+			NetNotice.show(self, String(res["code"]), _on_reward_reroll.bind(title))
+		return
 	_show_reward_overlay(title)
 
 
@@ -2515,7 +2524,9 @@ func _build_shop_buy_button(index: int, cost: int, bought: bool, afford: bool) -
 func _on_shop_buy(index: int) -> void:
 	# `bought` is marked inside try_buy_shop_item() now. Marking it here meant a replay, which
 	# has no screen, left every item buyable forever.
-	RunState.try_buy_shop_item(index)
+	var res: Dictionary = await RunState.request_buy_shop_item(index)
+	if not bool(res["ok"]) and String(res["code"]) not in ["illegal", "busy"]:
+		NetNotice.show(self, String(res["code"]), _on_shop_buy.bind(index))
 	_render_shop()   # rebuild so shard total / afford/bought states stay in sync
 
 
@@ -2695,7 +2706,12 @@ func _add_event_option(raw: Dictionary, index: int) -> Control:
 
 
 func _on_event_choice(index: int) -> void:
-	var msg := RunState.choose_event_option(index)
+	var res: Dictionary = await RunState.request_choose_event_option(index)
+	if not bool(res["ok"]):
+		if String(res["code"]) not in ["illegal", "busy"]:
+			NetNotice.show(self, String(res["code"]), _on_event_choice.bind(index))
+		return
+	var msg := String(res["msg"])
 	_save_map_progress()   # the effect is already applied; quitting on the outcome screen must
 		# not hand it back
 	# FLAGGED: the mockup has no screen for an event's OUTCOME - it stops at the offer. This

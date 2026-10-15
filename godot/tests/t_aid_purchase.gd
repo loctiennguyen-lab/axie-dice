@@ -89,7 +89,7 @@ func _ready() -> void:
 	var e := _engine("battle", 0, true)
 	_wipe(e)
 	_check(e.can_continue(), "wiped")
-	var r := AidPurchase.buy("continue", e)
+	var r := await AidPurchase.buy("continue", e)
 	_check(bool(r["ok"]) and int(r["charged"]) == 90, "local Continue ok, charged 90")
 	_check(st.gems_cache == 110 and w.spends == 1, "deducted exactly once (200 -> 110, 1 spend call)")
 	_check(not e.lost and e.attempt == 1, "party revived through continue_after_wipe")
@@ -97,7 +97,7 @@ func _ready() -> void:
 	_check(String(st.ledger[0][2]) == "aid:R1", "wallet reason aid:R1")
 	# second Continue refused by cap_run 1 (party is alive again anyway)
 	_wipe(e)
-	var r2 := AidPurchase.buy("continue", e)
+	var r2 := await AidPurchase.buy("continue", e)
 	_check(not bool(r2["ok"]) and String(r2["code"]) == "cap_type" and st.gems_cache == 110, "Continue cap 1/run, nothing charged")
 
 	# --- Continue on a boss = 180
@@ -106,7 +106,7 @@ func _ready() -> void:
 	var eb := _engine("boss", 0, true)
 	_wipe(eb)
 	_check(AidPurchase.offer("continue", eb)["price"] == 180, "boss Continue price 180 from the catalog")
-	_check(bool(AidPurchase.buy("continue", eb)["ok"]) and st.gems_cache == 320, "boss Continue charged 180")
+	_check(bool((await AidPurchase.buy("continue", eb))["ok"]) and st.gems_cache == 320, "boss Continue charged 180")
 
 	# --- Insufficient Gem: disabled with reason, nothing spent, no effect
 	sw = _fresh(89)
@@ -115,7 +115,7 @@ func _ready() -> void:
 	_wipe(ei)
 	var oi := AidPurchase.offer("continue", ei)
 	_check(not bool(oi["enabled"]) and String(oi["reason"]) == "no_gems", "89 Gem: disabled, reason no_gems")
-	var ri := AidPurchase.buy("continue", ei)
+	var ri := await AidPurchase.buy("continue", ei)
 	_check(not bool(ri["ok"]) and st.gems_cache == 89 and ei.lost, "no charge, no revive")
 
 	# --- Gift Gem pays like any Gem: the wallet balance is the only thing read
@@ -125,7 +125,7 @@ func _ready() -> void:
 	# --- Newcomer and tutorial: hidden
 	MetaState.runs_with_battle = 0
 	_check(not bool(AidPurchase.offer("continue", ei)["show"]), "newcomer: Continue hidden")
-	_check(not bool(AidPurchase.buy("continue", ei)["ok"]) and ei.lost, "newcomer: buy refused")
+	_check(not bool((await AidPurchase.buy("continue", ei))["ok"]) and ei.lost, "newcomer: buy refused")
 	MetaState.runs_with_battle = 99
 	_check(not bool(AidPurchase.offer("continue", ei, true)["show"]), "tutorial: Continue hidden")
 
@@ -140,7 +140,7 @@ func _ready() -> void:
 	var of := AidPurchase.offer("continue", ef)
 	_check(bool(of["show"]) and bool(of["enabled"]) and int(of["price"]) == 0, "newcomer A1 elite: free Continue shown, price 0, 0 Gem enough")
 	_check(not bool(AidPurchase.offer("continue", ef, true)["show"]), "tutorial: free Continue hidden")
-	var rf := AidPurchase.buy("continue", ef)
+	var rf := await AidPurchase.buy("continue", ef)
 	_check(bool(rf["ok"]) and int(rf["charged"]) == 0 and w.spends == 0 and not ef.lost, "free Continue applied, no Gem spent")
 	_check(MetaState.free_continue_used, "flag set after use")
 	var ef2 := _engine("boss", 0, true)
@@ -168,14 +168,14 @@ func _ready() -> void:
 			uids.append(u.uid)
 	_check(not uids.is_empty(), "has dice to reroll")
 	_check(bool(AidPurchase.offer("extra_reroll", er)["enabled"]), "R2 offered with 0 rerolls")
-	var rr := AidPurchase.buy("extra_reroll", er, uids)
+	var rr := await AidPurchase.buy("extra_reroll", er, uids)
 	_check(bool(rr["ok"]) and st.gems_cache == 985 and er.rerolls == 0, "R2 charged 15, base rerolls untouched")
 	for i in 3:
 		er.rerolls = 0
-		AidPurchase.buy("extra_reroll", er, uids)
+		await AidPurchase.buy("extra_reroll", er, uids)
 	_check(st.gems_cache == 940, "4 R2 bought = 60 Gem")
 	er.rerolls = 0
-	var r5 := AidPurchase.buy("extra_reroll", er, uids)
+	var r5 := await AidPurchase.buy("extra_reroll", er, uids)
 	_check(not bool(r5["ok"]) and String(r5["code"]) == "cap_type" and st.gems_cache == 940, "5th R2 refused (cap 4)")
 	# total cap 6 (A0) / 4 (A9)
 	_check(AidPurchase.total_cap(0) == 6 and AidPurchase.total_cap(8) == 6 and AidPurchase.total_cap(9) == 4, "total cap 6 / 4 from A9")
@@ -193,7 +193,7 @@ func _ready() -> void:
 	erm.set_epoch(fake)
 	_wipe(erm)
 	fake.reqs.clear()
-	var rm := AidPurchase.buy("continue", erm)
+	var rm := await AidPurchase.buy("continue", erm)
 	_check(bool(rm["ok"]) and int(rm["charged"]) == 0, "remote Continue ok, client charged 0")
 	_check(w.spends == 0 and st.gems_cache == 1000, "remote: wallet.spend never called")
 	_check(fake.reqs.size() == 1 and String(fake.reqs[0][0]) == "continue", "exactly one epoch 'continue' request")
@@ -206,7 +206,7 @@ func _ready() -> void:
 			u2.append(u.uid)
 	fake.reqs.clear()
 	RunState.aid_uses = []
-	var rm2 := AidPurchase.buy("extra_reroll", erm2, u2)
+	var rm2 := await AidPurchase.buy("extra_reroll", erm2, u2)
 	_check(bool(rm2["ok"]) and w.spends == 0, "remote R2 ok, no local spend")
 	_check(fake.reqs.size() == 1 and fake.reqs[0][1]["source"] == "aid", "one epoch 'reroll' with source=aid")
 

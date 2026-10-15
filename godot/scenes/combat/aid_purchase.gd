@@ -88,14 +88,17 @@ static func buy(ui_id: String, combat: CombatEngine, uids: Array = [], tutorial:
 		if not MetaState.spend("gem", price, "aid:" + aid_id):
 			return {"ok": false, "code": "no_gems", "charged": 0}
 		spent = price
-	var done := false
+	var rr: Dictionary
 	if aid_id == "R2":
-		done = combat.reroll_dice(uids, -1, true)
+		rr = await combat.request_reroll_dice(uids, true)
 	else:
-		done = combat.continue_after_wipe(-1, -1)
-	if not done:
+		rr = await combat.request_continue_after_wipe(-1)
+	if not bool(rr["ok"]):
 		if spent > 0:
 			MetaState.gem_wallet().grant(spent, "aid_refund")
+		if String(rr["code"]) not in ["illegal", "busy", ""]:
+			# the epoch itself was refused (offline / expired ...): the view shows NetNotice with this code
+			return {"ok": false, "code": "net", "net_code": String(rr["code"]), "charged": 0}
 		return {"ok": false, "code": "refused", "charged": 0}
 	RunState.record_aid_use(aid_id)
 	if aid_id == "R1" and price == 0:

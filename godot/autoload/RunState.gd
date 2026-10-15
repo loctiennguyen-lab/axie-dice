@@ -125,6 +125,8 @@ var epoch: EpochSource = null
 ## True while an async request_* is waiting for a seed: every other action must be refused,
 ## because changing the log between request and reply would make the server's `h` disagree.
 var epoch_busy: bool = false
+## A request_* got refused (offline / expired / rejected ...). Views show a notice; code is the EpochReply code.
+signal epoch_failed(code: String)
 ## Relic run-level state (H6, contract 2.3): id -> plain-JSON Dictionary owned by that relic's handlers.
 ## Copied into pending_combat as `relic_state` and written back from get_result()["relic_state"].
 var relic_state: Dictionary = {}
@@ -659,6 +661,7 @@ func request_enter_node(node_id: String, node_kind: String) -> Dictionary:
 		await r.resolved
 	epoch_busy = false
 	if not r.ok:
+		epoch_failed.emit(r.code)
 		return {"ok": false, "code": r.code}
 	if r.extra.has("row_types"):
 		reveal_rows(r.extra["row_types"] as Dictionary)
@@ -670,6 +673,86 @@ func request_enter_node(node_id: String, node_kind: String) -> Dictionary:
 func request_epoch(kind: String, args: Dictionary) -> EpochReply:
 	_ensure_epoch()
 	return epoch.request(kind, args)
+
+
+## Shared by the request_* twins below: asks the epoch (waiting if remote) with epoch_busy held, so no other
+## action can slip between the request and the reply. Returns the settled reply, or a `busy` failure.
+func _await_epoch(kind: String, args: Dictionary) -> EpochReply:
+	if epoch_busy:
+		return EpochReply.fail("busy")
+	_ensure_epoch()
+	epoch_busy = true
+	var r := epoch.request(kind, args)
+	if not r.done:
+		await r.resolved
+	epoch_busy = false
+	if not r.ok:
+		epoch_failed.emit(r.code)
+	return r
+
+
+## Async twin of try_buy_shop_item(): only a `heal` item draws, so only that one asks the epoch.
+## Returns {ok, code}; code "illegal" = the rules refused (not enough shards, already bought).
+func request_buy_shop_item(index: int) -> Dictionary:
+	if index < 0 or index >= shop_items.size() or epoch_busy:
+		return {"ok": false, "code": "busy" if epoch_busy else "illegal"}
+	var item: Dictionary = shop_items[index]
+	if bool(item.get("bought", false)) or shards_this_run < int(item.get("cost", 0)):
+		return {"ok": false, "code": "illegal"}
+	var sd := -1
+	if shop_item_needs_epoch(index):
+		var r := await _await_epoch("shop_roll", {"node_id": current_node_id, "item": _shop_item_arg(index)})
+		if not r.ok:
+			return {"ok": false, "code": r.code}
+		sd = r.seed
+	return {"ok": try_buy_shop_item(index, sd), "code": ""}
+
+
+## Async twin of choose_event_option(). Returns {ok, code, msg}.
+func request_choose_event_option(index: int) -> Dictionary:
+	if index < 0 or index >= event_options().size() or epoch_busy:
+		return {"ok": false, "code": "busy" if epoch_busy else "illegal", "msg": ""}
+	var r := await _await_epoch("event_choice", {"index": index})
+	if not r.ok:
+		return {"ok": false, "code": r.code, "msg": ""}
+	return {"ok": true, "code": "", "msg": choose_event_option(index, r.seed)}
+
+
+## Async twin of reroll_pending_rewards().
+func request_reroll_pending_rewards() -> Dictionary:
+	if reward_reroll_charges <= 0 or pending_rewards.is_empty() or epoch_busy:
+		return {"ok": false, "code": "busy" if epoch_busy else "illegal"}
+	var r := await _await_epoch("reward_reroll", {"k": _reward_reroll_salt + 1})
+	if not r.ok:
+		return {"ok": false, "code": r.code}
+	return {"ok": reroll_pending_rewards(r.seed), "code": ""}
+
+
+## Async twin of refresh_shop().
+func request_refresh_shop() -> Dictionary:
+	if phase != RunPhase.SHOP or epoch_busy:
+		return {"ok": false, "code": "busy" if epoch_busy else "illegal"}
+	var r := await _await_epoch("shop_refresh", {"node_id": current_node_id, "k": _shop_refreshes + 1})
+	if not r.ok:
+		return {"ok": false, "code": r.code}
+	return {"ok": refresh_shop(r.seed), "code": ""}
+
+
+## Async twin of apply_combat_result(): only a won fight that is not the final boss draws (the `reward`
+## epoch). Everything else applies at once. On failure nothing was applied: the caller may retry.
+func request_apply_combat_result(res: Dictionary) -> Dictionary:
+	var needs := bool(res.get("won", false)) \
+		and not (String(res.get("kind", "battle")) == "boss" and _is_final_boss_row(current_node_id))
+	if not needs:
+		apply_combat_result(res)
+		return {"ok": true, "code": ""}
+	if epoch_busy:
+		return {"ok": false, "code": "busy"}
+	var r := await _await_epoch("reward", {"node_id": current_node_id})
+	if not r.ok:
+		return {"ok": false, "code": r.code}
+	apply_combat_result(res, r.seed)
+	return {"ok": true, "code": ""}
 
 
 ## Rows whose node types were revealed to the player (Scout / node epoch). Recorded so a resumed
@@ -1219,6 +1302,7 @@ func request_pact_reroll(slot: int) -> Dictionary:
 		await r.resolved
 	epoch_busy = false
 	if not r.ok:
+		epoch_failed.emit(r.code)
 		return {"ok": false, "code": r.code}
 	if not reroll_pact_slot(slot, r.seed):
 		return {"ok": false, "code": "illegal"}
@@ -1388,7 +1472,7 @@ func try_buy_shop_item(index: int, seed: int = -1) -> bool:
 		return false
 	var rng: Rng = null
 	if shop_item_needs_epoch(index):
-		var sd := _epoch_seed("shop_roll", {"node_id": current_node_id, "item": index}, seed)
+		var sd := _epoch_seed("shop_roll", {"node_id": current_node_id, "item": _shop_item_arg(index)}, seed)
 		if sd < 0:
 			return false
 		rng = Rng.new(sd)
@@ -1409,6 +1493,12 @@ func try_buy_shop_item(index: int, seed: int = -1) -> bool:
 	# replay — which has no screen — left every item buyable forever.
 	item["bought"] = true
 	return true
+
+
+## Epoch arg `item` for shop_roll: the server wants an identifier string (/^[a-z0-9_]+$/, worker/src/epoch_args.json),
+## so "<kind>_<index>", e.g. "heal_1". Part of the seed derivation: both the request and the retry use this form.
+func _shop_item_arg(index: int) -> String:
+	return "%s_%d" % [String((shop_items[index] as Dictionary).get("kind", "item")).to_lower(), index]
 
 
 ## True when buying this item draws randomness (today only "heal": it picks the Axie), so the UI

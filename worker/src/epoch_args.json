@@ -1,0 +1,30 @@
+{
+  "_doc": "Single contract for the args of every epoch request (L1 B1). Read by worker/src/run_core.js argsProblem and by godot/tests/t_remote_epoch_ui_run.gd (the fake remote source rejects exactly like the server). Change a shape here and both sides see it. Args feed the seed derivation, so the vocabulary is closed: a key not listed for the kind is refused.",
+  "args": {
+    "mode":      { "type": "enum", "values": ["short", "full"], "code": "mode" },
+    "source":    { "type": "enum", "values": ["base", "aid"], "code": "source" },
+    "ascension": { "type": "int", "min": 0, "max": 100000 },
+    "attempt":   { "type": "int", "min": 0, "max": 100000 },
+    "index":     { "type": "int", "min": 0, "max": 100000 },
+    "choice":    { "type": "int", "min": 0, "max": 100000 },
+    "turn":      { "type": "int", "min": 1, "max": 200, "code": "turn" },
+    "k":         { "type": "int", "min": 1, "max": 20, "code": "k" },
+    "slot":      { "type": "int", "min": 0, "max": 2, "code": "slot" },
+    "uids":      { "type": "int_list", "min_len": 1, "max_len": 16, "min": 0, "max": 100000, "code": "uids" },
+    "item":      { "type": "ident", "regex": "^[a-z0-9_]+$", "code": "item" },
+    "node_id":   { "type": "node_id", "regex": "^r([1-9][0-9]*)_c(0|[1-9][0-9]*)$", "code": "node_id" }
+  },
+  "kinds": {
+    "run_start":     { "keys": ["mode", "ascension"], "required": [] },
+    "node":          { "keys": ["node_id"], "required": [] },
+    "end_turn":      { "keys": ["turn", "attempt"], "required": ["turn"], "required_code": "turn" },
+    "reroll":        { "keys": ["turn", "k", "source", "uids", "attempt"], "required": ["turn", "k", "source"], "required_code": "reroll_args" },
+    "reward":        { "keys": ["node_id"], "required": [] },
+    "reward_reroll": { "keys": ["k", "node_id"], "required": [] },
+    "event_choice":  { "keys": ["choice", "index", "node_id"], "required": [] },
+    "shop_roll":     { "keys": ["node_id", "item"], "required": [] },
+    "shop_refresh":  { "keys": ["node_id", "k"], "required": [] },
+    "continue":      { "keys": ["node_id", "attempt"], "required": [] },
+    "pact_reroll":   { "keys": ["node_id", "slot"], "required": [] }
+  }
+}

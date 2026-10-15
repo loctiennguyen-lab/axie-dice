@@ -46,9 +46,14 @@ func _ready() -> void:
 
 	CombatView.disable_juice_for_tests = true   # see file-level JUICE comment above
 
+	# A real started run (local epoch), so the `reward` epoch CombatView asks for after a win is answerable.
+	# Without one the hand-built state made that request fail and the screen (rightly) re-armed with a notice.
+	RunState.start_new_run(13371337, ["plant1", "beast1", "aqua1", "reptile1", "bug1"], "short", 0, false)
+	RunState.current_node_id = "r10_c0"   # the fought node (enter_node would have set it)
+
 	# Arrange: same CombatSetup shape RunMapController would hand off (RunState.gd, enter_node()).
 	RunState.pending_combat = {
-		"node_id": "smoke_node",
+		"node_id": "r10_c0",
 		"kind": "battle",
 		"pw": 2,
 		"ascension": 0,
@@ -61,7 +66,7 @@ func _ready() -> void:
 	# 3D arena from (without a map it skips the arena entirely).
 	var rows_d: Array = []
 	for r in range(1, 19):
-		rows_d.append([{"id": "smoke_node" if r == 10 else "r%d" % r, "row": r, "col": 0,
+		rows_d.append([{"id": "r10_c0" if r == 10 else "r%d" % r, "row": r, "col": 0,
 			"node_type": "battle", "next_ids": [], "visited": false, "locked": false}])
 	RunState.map_graph = {"rows": rows_d, "boss_rows": [], "elite_rows": [], "start_node_id": "r1"}
 
