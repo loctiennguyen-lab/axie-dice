@@ -52,12 +52,20 @@ class FakeServer extends RefCounted:
 	var open_ok := true
 	var received: Array = []
 	var http_error := ""
+	var stale_id := ""            # a run left open by an earlier attempt: POST /api/run answers 409 run_open
+	var abandon_ok := true
+	var abandon_calls := 0
+	var create_calls := 0
 
 	func _init() -> void:
 		last_h = EpochCanon.h0(run_id)
 
 	func http(method: String, path: String, body: String, done: Callable) -> void:
 		if path == "/api/run":
+			create_calls += 1
+			if stale_id != "":
+				done.call(409, JSON.stringify({"error": "run_open"}))
+				return
 			if http_error != "":
 				done.call(409, JSON.stringify({"error": http_error}))
 				return
@@ -67,13 +75,22 @@ class FakeServer extends RefCounted:
 				"ws_url": "wss://x/api/run/%s/ws" % run_id, "header": {"newcomer": true}}))
 		elif path == "/api/run/open":
 			open_calls += 1
-			if open_ok:
+			if stale_id != "":
+				done.call(200, JSON.stringify({"run_id": stale_id, "run_token": "stale", "commit": "c0ffee",
+					"ws_url": "wss://x/api/run/%s/ws" % stale_id, "header": {"mode": "normal"}}))
+			elif open_ok:
 				done.call(200, JSON.stringify({"run_id": run_id, "run_token": fresh_token, "commit": "c0ffee",
 					"ws_url": "wss://x/api/run/%s/ws" % run_id, "header": {}}))
 			else:
 				done.call(200, "{}")
 		elif path.ends_with("/abandon"):
-			done.call(200, "{}")
+			abandon_calls += 1
+			if abandon_ok:
+				if path.contains(stale_id):
+					stale_id = ""
+				done.call(200, "{}")
+			else:
+				done.call(502, JSON.stringify({"error": "server"}))
 		else:
 			done.call(404, "")
 
@@ -272,14 +289,77 @@ func _ready() -> void:
 	get_tree().quit(1 if _fails > 0 else 0)
 
 
+## A stale open run on the server (Liam 15/10: one run stuck `open` made every Begin fail with "rejected").
+func _open_run_recovery() -> void:
+	var stale := "ffffffffffffffffffffffffffffffff"
+	# (a) no local save for it: abandon exactly once, create exactly once more, run starts
+	var s1 := FakeServer.new()
+	s1.stale_id = stale
+	var p1 := _make(s1)
+	var src1: RemoteEpochSource = p1[1]
+	src1.local_run_id = func() -> String: return ""
+	var r1 := src1.start_run({"mode": "short"})
+	_run(p1[0], r1, 5.0)
+	_check(r1.done and r1.ok and r1.seed == 1000, "stale run_open + no local save: abandoned, retried, run started")
+	_check(s1.abandon_calls == 1 and s1.create_calls == 2 and s1.open_calls == 1, "exactly one open(), one abandon, one retry")
+	_check(String(r1.extra.get("run_id", "")) == s1.run_id, "the new run, not the stale one")
+	(p1[0] as RunSession).queue_free()
+	# (b) abandon fails: clear code, no loop, session detached from the stale run
+	var s2 := FakeServer.new()
+	s2.stale_id = stale
+	s2.abandon_ok = false
+	var p2 := _make(s2)
+	var src2: RemoteEpochSource = p2[1]
+	src2.local_run_id = func() -> String: return ""
+	var r2 := src2.start_run({"mode": "short"})
+	_check(r2.done and not r2.ok and r2.code == "run_open", "abandon fails -> run_open")
+	_check(s2.abandon_calls == 1 and s2.create_calls == 1 and (p2[0] as RunSession).state == "idle", "no retry and no second abandon after a failed abandon")
+	var r2b := src2.start_run({"mode": "short"})   # the player taps Begin again: allowed, still bounded per tap
+	_check(r2b.done and r2b.code == "run_open" and s2.abandon_calls == 2 and s2.create_calls == 2, "a second tap is a fresh attempt (one abandon per tap)")
+	(p2[0] as RunSession).queue_free()
+	# (c) a resumable local save for that very run: no abandon, distinct code
+	var s3 := FakeServer.new()
+	s3.stale_id = stale
+	var p3 := _make(s3)
+	var src3: RemoteEpochSource = p3[1]
+	src3.local_run_id = func() -> String: return stale
+	var r3 := src3.start_run({"mode": "short"})
+	_check(r3.done and not r3.ok and r3.code == "run_in_progress", "resumable local save -> run_in_progress")
+	_check(s3.abandon_calls == 0 and s3.create_calls == 1 and s3.stale_id == stale, "the server run is left alone")
+	(p3[0] as RunSession).queue_free()
+	# (c2) a local save of a DIFFERENT run does not protect the stale one
+	var s4 := FakeServer.new()
+	s4.stale_id = stale
+	var p4 := _make(s4)
+	var src4: RemoteEpochSource = p4[1]
+	src4.local_run_id = func() -> String: return "00000000000000000000000000000000"
+	var r4 := src4.start_run({"mode": "short"})
+	_run(p4[0], r4, 5.0)
+	_check(r4.ok and s4.abandon_calls == 1, "local save of another run: stale one is abandoned")
+	(p4[0] as RunSession).queue_free()
+	# (c3) the real lookup: RunState save with the same RULES_VERSION and run_id; other rules -> not resumable
+	var guard := SaveGuard.new()
+	guard.capture()
+	var payload := {"version": RunState.SAVE_VERSION, "rules_version": ActionLog.RULES_VERSION, "run": {"run_id": stale}}
+	SaveStore.write_text(RunState.SAVE_PATH, JSON.stringify(payload))
+	_check(RemoteEpochSource._saved_resumable_run_id() == stale, "lookup: save with this RULES_VERSION gives its run_id")
+	payload["rules_version"] = "-old"
+	SaveStore.write_text(RunState.SAVE_PATH, JSON.stringify(payload))
+	_check(RemoteEpochSource._saved_resumable_run_id() == "", "lookup: save under other rules cannot resume -> no run_id")
+	SaveStore.erase(RunState.SAVE_PATH)
+	_check(RemoteEpochSource._saved_resumable_run_id() == "", "lookup: no save -> no run_id")
+	guard.restore()
+
+
 func _offline_and_errors() -> void:
 	# POST /api/run refused
 	var s1 := FakeServer.new()
 	s1.http_error = "run_open"
 	var p1 := _make(s1)
 	var r1: EpochReply = (p1[1] as RemoteEpochSource).start_run({"mode": "short"})
-	_check(r1.done and not r1.ok and r1.code == "rejected", "run_open -> rejected")
+	_check(r1.done and not r1.ok and r1.code == "run_open", "run_open (open() empty/stuck) keeps its own code, not generic rejected")
 	(p1[0] as RunSession).queue_free()
+	await _open_run_recovery()
 
 	# socket never opens: the request is "offline" after 30 s
 	var s2 := FakeServer.new()
