@@ -6,11 +6,11 @@ extends RefCounted
 ## --------------------------
 ## `godot/assets/audio/` holds the Axie Origins Kit's own sound set, curated and resampled to
 ## 24 kHz mono (see the state file for why: no ffmpeg on this machine, so the downsample is
-## done in `tools/`-style Python; Godot then compresses to QOA on import).
+## done in `tools/`-style Python), then encoded to Ogg Vorbis (music q5, SFX q4) to keep the web pck small.
 ##
-##   sfx/class/<class>_<action>_<phase>.wav   78 files — 6 classes x 13 combat sounds
-##   sfx/status/<name>.wav                    38 files — status effects and one-shots
-##   music/<track>.wav                         5 tracks, all set to loop forward
+##   sfx/class/<class>_<action>_<phase>.ogg   78 files — 6 classes x 13 combat sounds
+##   sfx/status/<name>.ogg                    38 files — status effects and one-shots
+##   music/<track>.ogg                        5 tracks, all set to loop forward
 ##
 ## WHY A MAPPING LAYER
 ## -------------------
@@ -123,13 +123,13 @@ static func face_sfx_path(unit_class: String, face_part: String, face_type: Stri
 	var action := String(PART_TO_ACTION.get(face_part, ""))
 	if action == "":
 		action = String(TYPE_TO_ACTION.get(face_type, "slash"))
-	var path := "%s%s_%s_%s.wav" % [SFX_CLASS_DIR, kit_class, action, phase]
+	var path := "%s%s_%s_%s.ogg" % [SFX_CLASS_DIR, kit_class, action, phase]
 	if ResourceLoader.exists(path):
 		return path
 	if not allow_fallback:
 		return ""
 	# Melee actions have no fly/hit recording; fall back to the swing so the face is not silent.
-	var fallback := "%s%s_%s_attack.wav" % [SFX_CLASS_DIR, kit_class, action]
+	var fallback := "%s%s_%s_attack.ogg" % [SFX_CLASS_DIR, kit_class, action]
 	return fallback if ResourceLoader.exists(fallback) else ""
 
 
@@ -184,7 +184,7 @@ static func status_sfx_path(status_or_effect: String) -> String:
 	var file := String(STATUS_SFX.get(status_or_effect, ""))
 	if file == "":
 		return ""
-	var path := SFX_STATUS_DIR + file + ".wav"
+	var path := SFX_STATUS_DIR + file + ".ogg"
 	return path if ResourceLoader.exists(path) else ""
 
 
@@ -192,7 +192,7 @@ static func music_path(situation: String) -> String:
 	var track := String(MUSIC.get(situation, ""))
 	if track == "":
 		return ""
-	var path := MUSIC_DIR + track + ".wav"
+	var path := MUSIC_DIR + track + ".ogg"
 	return path if ResourceLoader.exists(path) else ""
 
 
