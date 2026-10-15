@@ -102,3 +102,12 @@ Thư mục `godot/.godot/` (cache import) không nằm trong git. Lần đầu t
 - `git rebase godot-port` rồi chạy `godot/tools/with_lock.sh "$GODOT" --headless --path godot --import` (class_name mới `EpochSource`, `EpochReply`, `LocalEpochSource`... chưa có trong cache nên test cũ báo "Could not find type"; `.uid` có sẵn nên runner không tự import).
 - `RULES_VERSION` giờ là `godot-2026-10-12-a`; `t_rules_version` phủ cả `resources/relics` và `assets/data/rules`.
 - Nợ còn mở của làn I: `production/l1-tasks-I.md`.
+
+
+## Live smoke trước khi đưa build cho Liam (16/10)
+
+`godot/tools/live_smoke.sh` (chạy ở worktree có `godot/override.cfg`, ví dụ R): chép phiên đăng nhập của app desktop
+vào user dir riêng, chạy một run online thật trên production (Begin → vào ô → thắng trận → nhận thưởng → ô 2 →
+bỏ run), in `LIVE SMOKE PASS` mới được đưa bản build cho Liam. Cần: Liam đã đăng nhập trên app desktop, app đang tắt,
+tài khoản không có run dở (preflight sẽ từ chối, không đụng vào). Tốn 1/20 run trong ngày. Không chạy trong sandbox
+không có mạng.
