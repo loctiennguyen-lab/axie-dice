@@ -2,17 +2,23 @@
 
 Cập nhật: 2026-10-12. Nhánh `godot-port`, push lên `axiedice` (`git push axiedice godot-port:main`).
 
-## ⇢ BẮT ĐẦU TỪ ĐÂY (cập nhật 16/10/2026 01:15)
+## ⇢ BẮT ĐẦU TỪ ĐÂY (bàn giao 16/10/2026 03:10)
 
-**Đọc `production/l1-plan-16-10.md`** (thứ tự việc, định nghĩa "xong", câu hỏi cho Liam L1–L7).
-godot-port = axiedice/main (770afa1). Suite cây chính **100/100**. Worker 163/163, deploy d7b97e18, RULES_VERSION `-n`.
-**Live smoke `--full` PASS trên production 16/10 01:05** (run thường, mất mạng→RETRY, thoát→Continue, Daily).
-Bản Mac cho Liam: `build/AxieDice-0.1.0-L1-b615-bbfc8fb-macos.dmg` (16/10 03:00: Nhiệm vụ online A, L6 màn trận, animation quái) (đã gắn ổ "Axie Dice L1"; bản cũ trong build/old/).
-Windows: build b556 (cũ hơn) nằm trong build/old/, cần build lại từ bản mới khi cần; chưa thử trên máy Windows thật.
+**Đọc `production/l1-plan-16-10.md`** (định nghĩa "xong", thứ tự việc, quy tắc chống treo + tiết kiệm token).
+godot-port = axiedice/main. Suite cây chính **102/102**. Worker **184/184**, deploy **4055be9c** (16/10, migration 0007 đã áp),
+RULES_VERSION `-n`. Live smoke PASS trên production với code mới nhất.
+Bản Mac cho Liam test sáng 17/10 (L2): `build/AxieDice-0.1.0-L1-b615-bbfc8fb-macos.dmg` (ổ "Axie Dice L1" đang gắn).
 
-Xong 16/10 sáng: B3 phản hồi đăng nhập desktop, Continue online nối lại server (+ chống bấm 2 lần, timeout 20 s),
-C6 Profile/Cosmetics, live smoke + `--full`, wav→ogg (−27,5 MB), báo cáo D1 bot, B8 web FPS, rà dung lượng.
-Chờ Liam: L1 (cách cược Nhiệm vụ online, `production/proposals/missions-online-l1.md`), L7 (cắt dung lượng ảnh hưởng hình).
+**Đang chạy lúc bàn giao (session cũ, kiểm kết quả trước khi làm tiếp):**
+1. Build Windows từ bbfc8fb (`bash tools/build_desktop.sh windows`) → xem `build/` có zip b615 chưa; chưa có thì chạy lại.
+2. art-director viết `production/polish/polish-plan-draft.md` (commit thẳng cây chính, chưa push) → review rồi đưa Liam duyệt.
+3. godot-gdscript-specialist ở worktree U (nhánh l1/U): 3 việc nhỏ sau review (open_existing trễ không attach run lạ;
+   Land has_modal phủ mọi panel; _atia_play không kẹt tư thế khi thiếu idle) + test. Xem `git -C ../my-game-wt/U log godot-port..`,
+   cho agent khác review rồi merge.
+4. Chưa làm: export bản web gọn (`bash godot/tools/export_web_slim.sh`, ~215 MB) để sẵn, KHÔNG deploy R2 khi chưa hỏi.
+
+**Chờ Liam:** L2 test b615 (chơi run thường + Nhiệm vụ N1 + tắt wifi giữa trận + thoát rồi Continue); L3 đăng nhập trên Windows;
+duyệt kế hoạch Polish. Quyết định Liam 16/10 ở cuối `pending-decisions.md` (L1 A đã làm, L4 bỏ, L5 vào Polish, L6 đã làm, L7 web-only đã làm).
 
 ## (cũ) ⇢ BẮT ĐẦU TỪ ĐÂY (cập nhật 14/10/2026)
 
