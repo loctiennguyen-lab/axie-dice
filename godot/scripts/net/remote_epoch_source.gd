@@ -9,6 +9,8 @@ extends EpochSource
 ##
 ## Usage (from RunState): `var r := epoch.request(kind, args); if not r.done: await r.resolved`.
 
+const RECONNECT_TIMEOUT_S := 20.0
+
 var session: RunSession
 var _seq := 0
 var _tape: Array = []
@@ -21,7 +23,12 @@ var local_run_id: Callable = Callable()
 var _resumed := false
 var _attached := true
 var _reconnecting := false
+var _reconnect_gen := 0    # bumps whenever an attempt settles: a late open_existing reply of an old attempt is ignored
 var _waiters: Array = []   # EpochReply of reconnect() callers waiting for the answer
+var _gate_queue: Array = []   # {op, reply} of _gated() callers, served one at a time
+var _gate_busy := false
+## reconnect() gives up after this long (the HTTP call may never settle) and settles "offline". Tests shorten it.
+var reconnect_timeout_s: float = RECONNECT_TIMEOUT_S
 
 
 func _init(p_session: RunSession = null, rules_version: String = "") -> void:
@@ -258,19 +265,41 @@ func needs_reconnect() -> bool:
 ## Runs `op` (which builds the real request) once the session is attached to the saved run. A request made while
 ## the reconnect is still going waits for it instead of failing; if the reconnect fails, the request fails with
 ## the reconnect's code (offline, unauthenticated, run_gone) and the next try reconnects again.
+## Waiting requests are served ONE AT A TIME: each op builds its message from `_seq` and the chain, and both only
+## move when the previous request settled, so two ops started together would both claim the same seq.
 func _gated(op: Callable) -> EpochReply:
-	if not needs_reconnect():
+	if not _gate_busy and not needs_reconnect():
 		return op.call()
 	var reply := EpochReply.new()
+	_gate_queue.append({"op": op, "reply": reply})
+	if not _gate_busy:
+		_gate_next()
+	return reply
+
+
+func _gate_next() -> void:
+	if _gate_queue.is_empty():
+		_gate_busy = false
+		return
+	_gate_busy = true
+	var item: Dictionary = _gate_queue.pop_front()
+	var reply: EpochReply = item["reply"]
+	var op: Callable = item["op"]
 	var rc := reconnect()
 	_when_done(rc, func() -> void:
 		if not rc.ok:
+			# the others were waiting on the same dead connection: they get the same answer
+			var failed := _gate_queue
+			_gate_queue = []
 			reply.settle(false, 0, rc.code)
+			for w in failed:
+				(w["reply"] as EpochReply).settle(false, 0, rc.code)
+			_gate_busy = false
 			return
 		var inner: EpochReply = op.call()
 		_when_done(inner, func() -> void:
-			reply.settle(inner.ok, inner.seed, inner.code, inner.extra)))
-	return reply
+			reply.settle(inner.ok, inner.seed, inner.code, inner.extra)
+			_gate_next()))
 
 
 ## Reconnects the session to the saved run: GET /api/run/open, the run_id must be the saved one, then attach()
@@ -288,8 +317,16 @@ func reconnect() -> EpochReply:
 	if _reconnecting:
 		return reply
 	_reconnecting = true
+	_reconnect_gen += 1
+	var gen := _reconnect_gen
 	var saved_id := _run_id
+	var tree := Engine.get_main_loop() as SceneTree
+	if tree != null and reconnect_timeout_s > 0.0:
+		tree.create_timer(reconnect_timeout_s).timeout.connect(func() -> void:
+			_finish_reconnect(gen, "offline"))
 	session.open_existing(func(ok: bool, d: Dictionary) -> void:
+		if gen != _reconnect_gen:
+			return   # timed out already: this reply is too late to mean anything
 		var code := ""
 		if not ok:
 			code = _map_http_code(String(d.get("code", "server")))
@@ -303,12 +340,20 @@ func reconnect() -> EpochReply:
 			else:
 				session.note_acked(_seq - 1)
 				_attached = true
-		_reconnecting = false
-		var waiting := _waiters
-		_waiters = []
-		for w in waiting:
-			(w as EpochReply).settle(code == "", 0, code))
+		_finish_reconnect(gen, code))
 	return reply
+
+
+## Settles every reconnect() waiter with `code` ("" = attached). Only the attempt `gen` may do it, once.
+func _finish_reconnect(gen: int, code: String) -> void:
+	if gen != _reconnect_gen or not _reconnecting:
+		return
+	_reconnect_gen += 1
+	_reconnecting = false
+	var waiting := _waiters
+	_waiters = []
+	for w in waiting:
+		(w as EpochReply).settle(code == "", 0, code)
 
 
 # ---------------------------------------------------------------------------

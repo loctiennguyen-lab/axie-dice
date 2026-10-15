@@ -432,6 +432,8 @@ func _continue_run_subtitle() -> String:
 
 
 func _on_continue_run_pressed() -> void:
+	if RunContinue.busy:
+		return
 	if not RunState.load_run():
 		push_warning("MainMenu: saved run could not be loaded")
 		RunState.clear_saved_run()
@@ -439,7 +441,7 @@ func _on_continue_run_pressed() -> void:
 			_continue_button.queue_free()
 			_continue_button = null
 		return
-	var st: String = await RunContinue.reconnect(self, _on_continue_run_pressed)
+	var st: String = await RunContinue.reconnect(self, _on_continue_run_pressed, _continue_button)
 	if st == "gone":
 		LandNav.back_to_land()   # Land shows RunState's discard notice
 		return
