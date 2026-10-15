@@ -453,6 +453,8 @@ export class RunCore {
     if (!out.ok) return out;
     let battles = null; // null = unknown: the Worker treats it as "had battles" (fail closed = a loss)
     try { battles = Number(this.sql.exec(`SELECT COUNT(*) AS n FROM epochs WHERE kind = 'node'`).toArray()[0].n); } catch { /* unknown */ }
-    return { ...out, battles };
+    let epochs = null; // any answered epoch, run_start included; 0 = the run never really started
+    try { epochs = Number(this.sql.exec(`SELECT COUNT(*) AS n FROM epochs`).toArray()[0].n); } catch { /* unknown */ }
+    return { ...out, battles, epochs };
   }
 }

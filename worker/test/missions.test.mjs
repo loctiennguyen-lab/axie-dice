@@ -251,6 +251,16 @@ test('abandon of a mission run that never entered a battle refunds the stake (ru
   assert.deepEqual(e.settled.map((x) => [x.state, x.payout]), [['refunded', 300]]);
 });
 
+test('abandon after run_start but before any battle is a LOSS: the map was seen, no free reroll (Liam 16/10)', async () => {
+  const { mission, call, row, env, shardRows } = await setup();
+  const a = await (await mission('N1')).json();
+  env.RUN_DO.cores.get(a.run_id).sql.exec(   // run_start answered (seq 0), no node epoch yet
+    `INSERT INTO epochs (seq, kind, args, h, log_len, seed, log_delta, attempt, req_digest, at) VALUES (0, 'run_start', '{}', 'h', 0, 1, '[]', 0, 'd', 1)`);
+  await call(`/api/run/${a.run_id}/abandon`, { method: 'POST' });
+  assert.equal(row(a.run_id).state, 'lost'); assert.equal(row(a.run_id).payout, 0);
+  assert.deepEqual(shardRows().map((r) => r.delta), [-300]);
+});
+
 test('abandon with a battle entered stays a loss; an unknown battle count fails closed to a loss', async () => {
   const { mission, call, row, env } = await setup();
   const a = await (await mission('N1')).json();

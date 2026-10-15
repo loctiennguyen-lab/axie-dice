@@ -162,9 +162,10 @@ async function abandon(request, env, url, player, runId) {
     if (out && out.state === 'closed') return json({ ok: true });
     const u = await env.DB.prepare(`UPDATE runs SET state = 'abandoned', outcome = 'lost', closed_at = ? WHERE run_id = ? AND state = 'open'`)
       .bind(at, runId).run();
-    // Abandon = the stake is lost, except a run that never entered a battle (run_start failed on the client,
-    // or the player backed out before any fight): that stake comes back. Unknown battle count = lost.
-    if (changed(u)) await settleEscrow(env, runId, out && out.battles === 0 ? 'refunded' : 'lost'); // no-op for a run without escrow
+    // Abandon = the stake is lost. Only a run that never really started (no epoch answered, i.e. run_start
+    // failed) gets the stake back: once run_start is answered the player has seen the map, and a free refund
+    // would let them reroll maps (Liam 16/10). Unknown count = lost.
+    if (changed(u)) await settleEscrow(env, runId, out && out.epochs === 0 ? 'refunded' : 'lost'); // no-op for a run without escrow
   }
   return json({ ok: true });
 }
