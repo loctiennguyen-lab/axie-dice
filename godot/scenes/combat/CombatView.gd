@@ -1063,7 +1063,7 @@ func _on_aid_purchase(aid_id: String) -> void:
 	if not _still_running():
 		return
 	if not bool(res["ok"]) and String(res["code"]) == "net":
-		NetNotice.show(self, String(res.get("net_code", "offline")))
+		NetNotice.show(self, String(res.get("net_code", "offline")), _on_aid_purchase.bind(aid_id))
 	_append_log("[aid] %s : %s" % [aid_id, "ok (-%d Gem)" % int(res["charged"]) if bool(res["ok"]) else String(res["code"])])
 	if bool(res["ok"]):
 		_selected_die_uid = -1
@@ -2241,8 +2241,10 @@ func _on_reroll_pressed() -> void:
 		return
 	var ok := bool(rr["ok"])
 	_append_log("[input] reroll %d dice : %s" % [uids.size(), "ok" if ok else "failed"])
-	if not ok and String(rr["code"]) not in ["illegal", "busy"]:
-		NetNotice.show(self, String(rr["code"]))
+	if not ok:
+		_end_reroll_fx()   # the toss overlays go back down whether or not the fx was running
+		if String(rr["code"]) not in ["illegal", "busy"]:
+			NetNotice.show(self, String(rr["code"]), _on_reroll_pressed)
 	_selected_die_uid = -1
 	_rebuild_all()
 	if use_fx:
@@ -3231,13 +3233,10 @@ func _finish(won: bool) -> void:
 	var applied: Dictionary = await RunState.request_apply_combat_result(_combat.get_result())
 		# (was a sync apply_combat_result: the `reward` epoch may need a remote reply now)
 	if not bool(applied["ok"]):
-		# Nothing was applied. A transient refusal re-arms so the same result can be tried again.
-		var code := String(applied["code"])
-		if code in ["offline", "timeout", "rejected"]:
-			_result_shown = false
-			NetNotice.show(self, code, func(): _finish(won))
-		else:
-			NetNotice.show(self, code)
+		# Nothing was applied: re-arm for EVERY code so the same result can be tried again (RETRY), or, when
+		# the session is gone, NetNotice offers SIGN IN / BACK TO MENU. Never a dead screen.
+		_result_shown = false
+		NetNotice.show(self, String(applied["code"]), func(): _finish(won))
 		return
 	if won:
 		# Juice pass B: let the surviving party actually march off the field before cutting to

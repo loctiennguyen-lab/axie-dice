@@ -9,6 +9,7 @@
 // pinned reroll seeds, budgets. It never runs game rules: that is the verifier's job (later).
 import { AID_BY_KIND, BOSS_CONTINUE_PRICE, PRICES, totalCap } from './aid_prices.js';
 import { canonKV, chainStart, chainNext, commitOf, epochSeed, isCanonScalar, nodeRow, MAX_PARAMS, _bytes } from './epoch_canon.js';
+import epochArgsSpec from './epoch_args.json' with { type: 'json' };
 
 export const MAX_EPOCHS = 400;
 export const MAX_ACTIONS = 3000;
@@ -43,50 +44,38 @@ export const KINDS = {
 };
 
 export const FREE_CONTINUE = { kinds: ['elite', 'boss'], max_asc: 2 }; // aid_prices.json free_continue
-const IDENT = /^[a-z0-9_]+$/;
 
-// Allowed arg keys per kind. Anything else is refused: args feed the seed and the ledger, so an
-// open vocabulary would let a client vary them to fish for seeds. Values are checked in _argsProblem.
-const ARG_KEYS = {
-  run_start: ['mode', 'ascension'],
-  node: ['node_id'],
-  end_turn: ['turn', 'attempt'], // attempt only present when > 0 (lane A)
-  reroll: ['turn', 'k', 'source', 'uids', 'attempt'],
-  reward: ['node_id'],
-  reward_reroll: ['k', 'node_id'],
-  event_choice: ['choice', 'index', 'node_id'],
-  shop_roll: ['node_id', 'item'],
-  shop_refresh: ['node_id', 'k'],
-  continue: ['node_id', 'attempt'],
-  pact_reroll: ['node_id', 'slot'],
-};
-const SOURCES = new Set(['base', 'aid']);
-const MODES = new Set(['short', 'full']); // game length (RunParams.mode); run kind lives in D1
-const MAX_TURN = 200;
-const MAX_K = 20;
-const MAX_ID = 100000;
+// Allowed arg keys + value shapes per kind: ONE contract file, also read by the Godot e2e test's fake remote
+// source (worker/src/epoch_args.json). Anything not listed is refused: args feed the seed and the ledger, so an
+// open vocabulary would let a client vary them to fish for seeds.
+const SPEC = epochArgsSpec;
+
+function valueProblem(k, v) {
+  const sp = SPEC.args[k];
+  const code = sp?.code ?? `val_${k}`;
+  if (!sp) return `val_${k}`;
+  switch (sp.type) {
+    case 'enum': return sp.values.includes(v) ? null : code;
+    case 'int': return Number.isSafeInteger(v) && v >= sp.min && v <= sp.max ? null : code;
+    case 'int_list':
+      return Array.isArray(v) && v.length >= sp.min_len && v.length <= sp.max_len
+        && v.every((x) => Number.isSafeInteger(x) && x >= sp.min && x <= sp.max) ? null : code;
+    case 'ident': return typeof v === 'string' && new RegExp(sp.regex).test(v) ? null : code;
+    case 'node_id': return nodeRow(v) >= 1 ? null : code;
+    default: return code;
+  }
+}
 
 /** null when args are acceptable for the kind, else an internal reason. */
 export function argsProblem(kind, args) {
-  const allowed = ARG_KEYS[kind];
-  if (!allowed) return 'kind';
+  const ks = SPEC.kinds[kind];
+  if (!ks) return 'kind';
   for (const [k, v] of Object.entries(args)) {
-    if (!allowed.includes(k)) return `key_${k}`;
-    if (k === 'source') { if (!SOURCES.has(v)) return 'source'; continue; }
-    if (k === 'mode') { if (!MODES.has(v)) return 'mode'; continue; }
-    if (k === 'uids') {
-      if (!Array.isArray(v) || v.length === 0 || v.length > 16 || !v.every((x) => Number.isSafeInteger(x) && x >= 0 && x <= MAX_ID)) return 'uids';
-      continue;
-    }
-    if (k === 'turn') { if (!Number.isSafeInteger(v) || v < 1 || v > MAX_TURN) return 'turn'; continue; }
-    if (k === 'k') { if (!Number.isSafeInteger(v) || v < 1 || v > MAX_K) return 'k'; continue; }
-    if (k === 'slot') { if (!Number.isSafeInteger(v) || v < 0 || v > 2) return 'slot'; continue; } // pact_offer_size 3
-    if (k === 'item') { if (typeof v !== 'string' || !IDENT.test(v)) return 'item'; continue; }
-    if (k === 'node_id') { if (nodeRow(v) < 1) return 'node_id'; continue; }
-    if (!Number.isSafeInteger(v) || v < 0 || v > MAX_ID) return `val_${k}`;
+    if (!ks.keys.includes(k)) return `key_${k}`;
+    const p = valueProblem(k, v);
+    if (p) return p;
   }
-  if (kind === 'end_turn' && args.turn === undefined) return 'turn';
-  if (kind === 'reroll' && (args.turn === undefined || args.k === undefined || args.source === undefined)) return 'reroll_args';
+  if (ks.required.some((k) => args[k] === undefined)) return ks.required_code;
   return null;
 }
 // NOTE for the verifier (P3): the server only checks that turn/k are in range. The verifier MUST

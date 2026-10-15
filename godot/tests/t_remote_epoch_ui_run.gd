@@ -5,7 +5,10 @@ extends Node
 ## reroll, end turn, reward + reroll, shop buy, event choice, Pact swap/pick), against an in-process fake
 ## remote source whose replies arrive one frame LATER (is_remote() true). Passing means: no
 ## "needs the async request_*" error was logged, every epoch kind the UI uses was answered late, and the run
-## reached the first boss. No network (the fake never opens a socket).
+## reached the first boss. The fake also VALIDATES every request against worker/src/epoch_args.json (the same file
+## the Worker's argsProblem reads) and rejects like the server would, and it injects failures: `expired` on the first
+## node press (NetNotice must offer SIGN IN, input must not stay locked), `offline` once on a mid-combat end_turn and
+## once on the reward request (NetNotice -> RETRY -> the run goes on). No network (the fake never opens a socket).
 ##
 ## Run: godot --headless --path godot res://tests/t_remote_epoch_ui_run.tscn
 
@@ -20,20 +23,83 @@ var _tree: SceneTree
 var _fake: FakeRemote
 var _logger: ErrCatcher
 var _nodes_by_type: Dictionary = {}
+var _signin_seen := 0
+var _retries := 0
+var _last_combat: CombatEngine = null
 
 
 ## Same seeds as LocalEpochSource (so rules are unchanged), but every reply settles one frame later.
 class FakeRemote extends LocalEpochSource:
 	var late_kinds: Dictionary = {}
 	var tree: SceneTree
+	var spec: Dictionary = {}
+	var rejected: Array[String] = []
+	## [{kind, code}] each fires once, on the first matching request, and does not advance the hash chain
+	var fail_plan: Array = []
+	var injected := 0
+
+	static func load_spec() -> Dictionary:
+		var path := ProjectSettings.globalize_path("res://").path_join("../worker/src/epoch_args.json")
+		var f := FileAccess.open(path, FileAccess.READ)
+		return JSON.parse_string(f.get_as_text()) as Dictionary if f != null else {}
+
+	## null-string when the args are acceptable for the kind, else why not (mirrors run_core.js argsProblem).
+	func problem(kind: String, args: Dictionary) -> String:
+		var ks: Dictionary = (spec.get("kinds", {}) as Dictionary).get(kind, {})
+		if ks.is_empty():
+			return "kind"
+		for k in args.keys():
+			if not (ks["keys"] as Array).has(k):
+				return "key_" + String(k)
+			var sp: Dictionary = (spec["args"] as Dictionary).get(k, {})
+			if sp.is_empty() or not _value_ok(sp, args[k]):
+				return "value_" + String(k)
+		for k in ks["required"]:
+			if not args.has(k):
+				return "missing_" + String(k)
+		return ""
+
+	func _is_int(v) -> bool:
+		return typeof(v) == TYPE_INT or (typeof(v) == TYPE_FLOAT and v == floor(v))
+
+	func _value_ok(sp: Dictionary, v) -> bool:
+		match String(sp["type"]):
+			"enum": return (sp["values"] as Array).has(v)
+			"int": return _is_int(v) and v >= sp["min"] and v <= sp["max"]
+			"int_list":
+				if not (v is Array) or v.size() < int(sp["min_len"]) or v.size() > int(sp["max_len"]):
+					return false
+				for x in v:
+					if not _is_int(x) or x < sp["min"] or x > sp["max"]:
+						return false
+				return true
+			"ident", "node_id":
+				if typeof(v) != TYPE_STRING:
+					return false
+				var re := RegEx.new()
+				re.compile(String(sp["regex"]))
+				return re.search(v) != null
+		return false
 
 	func is_remote() -> bool:
 		return true
 
 	func request(kind: String, args: Dictionary) -> EpochReply:
-		var inner := super.request(kind, args)
 		var r := EpochReply.new()
 		late_kinds[kind] = int(late_kinds.get(kind, 0)) + 1
+		var why := problem(kind, args)
+		if why != "":
+			rejected.append("%s: %s %s" % [kind, why, str(args)])
+			tree.process_frame.connect(func(): r.settle(false, 0, "bad_request"), CONNECT_ONE_SHOT)
+			return r
+		for i in fail_plan.size():
+			if String(fail_plan[i]["kind"]) == kind:
+				var code := String(fail_plan[i]["code"])
+				fail_plan.remove_at(i)
+				injected += 1
+				tree.process_frame.connect(func(): r.settle(false, 0, code), CONNECT_ONE_SHOT)
+				return r
+		var inner := super.request(kind, args)
 		tree.process_frame.connect(func(): r.settle(inner.ok, inner.seed, inner.code, inner.extra),
 			CONNECT_ONE_SHOT)
 		return r
@@ -70,6 +136,10 @@ func _ready() -> void:
 	_tree.current_scene = null
 	_fake = FakeRemote.new(PackedByteArray(), 424242)
 	_fake.tree = _tree
+	_fake.spec = FakeRemote.load_spec()
+	_check(not _fake.spec.is_empty(), "worker/src/epoch_args.json not readable")
+	_fake.fail_plan = [{"kind": "node", "code": "expired"}, {"kind": "end_turn", "code": "offline"},
+		{"kind": "reward", "code": "offline"}]
 	_check(RunState.start_run_with_epoch(_fake, {"team_keys": TEAM.duplicate(), "mode": "short",
 		"ascension": 0, "ranked": false}, 424242), "run did not start on the fake remote source")
 	RunState.shards_this_run = 999   # so the shop's heal item (a `shop_roll` epoch) can be bought
@@ -82,6 +152,15 @@ func _finish_test() -> void:
 	OS.remove_logger(_logger)
 	CombatView.disable_juice_for_tests = false
 	_check(_logger.async_errors == 0, "%d 'needs the async request_*' errors" % _logger.async_errors)
+	RunState.shop_items = [{"kind": "heal", "cost": 1}, {"kind": "relic", "cost": 1}]
+	_check(_fake.problem("shop_roll", {"node_id": "r2_c0", "item": RunState._shop_item_arg(0)}) == "",
+		"shop_roll item arg '%s' would be refused by the server" % RunState._shop_item_arg(0))
+	_check(_fake.problem("shop_roll", {"node_id": "r2_c0", "item": 0}) != "", "validator accepts an int item")
+	_check(_fake.rejected.is_empty(), "requests the server would refuse: %s" % str(_fake.rejected))
+	_check(_fake.fail_plan.is_empty(), "injected failures never fired: %s" % str(_fake.fail_plan))
+	_check(_signin_seen >= 1, "expired: NetNotice never showed SIGN IN")
+	_check(_retries >= 2, "offline: NetNotice RETRY pressed %d times (want >= 2)" % _retries)
+	_check(not RunState.epoch_busy and not (_last_combat != null and _last_combat.epoch_pending), "input lock left on")
 	_check(_logger.other.is_empty(), "epoch refusals logged: %s" % str(_logger.other))
 	_check(RunState.bosses_started >= 1, "the run never reached the first boss (bosses_started=0)")
 	for k in ["node", "reroll", "end_turn", "reward"]:
@@ -124,6 +203,8 @@ func _drive() -> void:
 		if same > STUCK_LIMIT:
 			_check(false, "stuck for %d iterations at %s" % [STUCK_LIMIT, sig])
 			return
+		if await _handle_notice(scene):
+			continue
 		if scene.has_method("_on_end_turn_pressed"):
 			await _play_fight(scene)
 		elif scene.has_method("_on_node_pressed"):
@@ -131,6 +212,29 @@ func _drive() -> void:
 		else:
 			return   # Result screen
 	_check(false, "run did not finish within %d ms" % BUDGET_MS)
+
+
+## A NetNotice on `scene`: RETRY when offered, else (fatal code) check SIGN IN is there and dismiss with OK.
+## Returns true when there was one.
+func _handle_notice(scene: Node) -> bool:
+	if scene == null or not is_instance_valid(scene):
+		return false
+	var n := scene.get_node_or_null("NetNotice")
+	if n == null:
+		return false
+	var retry := n.find_child("RetryButton", true, false) as Button
+	if retry != null:
+		_retries += 1
+		retry.pressed.emit()
+	else:
+		_check(n.find_child("SignInButton", true, false) != null and n.find_child("BackButton", true, false) != null,
+			"fatal notice without SIGN IN / BACK TO MENU")
+		_signin_seen += 1
+		(n.find_child("OkButton", true, false) as Button).pressed.emit()
+	await _frames(4)
+	while RunState.epoch_busy or (_last_combat != null and _last_combat.epoch_pending):
+		await _tree.process_frame
+	return true
 
 
 func _map_step(ctrl: Node, rerolled_reward: bool) -> bool:
@@ -178,6 +282,7 @@ func _play_fight(view: Node) -> void:
 	var combat: CombatEngine = view.get("_combat") as CombatEngine
 	if combat == null:
 		return
+	_last_combat = combat
 	var rolls := 0
 	while is_instance_valid(view) and not (combat.won or combat.lost) and rolls < 200:
 		rolls += 1
@@ -203,6 +308,8 @@ func _play_fight(view: Node) -> void:
 		if combat.won or combat.lost:
 			break
 		await view.call("_on_end_turn_pressed")
+		if is_instance_valid(view) and await _handle_notice(view):
+			continue
 	await _frames(4)   # let _finish() apply the result and change the scene
 
 

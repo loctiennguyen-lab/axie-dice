@@ -701,7 +701,7 @@ func request_buy_shop_item(index: int) -> Dictionary:
 		return {"ok": false, "code": "illegal"}
 	var sd := -1
 	if shop_item_needs_epoch(index):
-		var r := await _await_epoch("shop_roll", {"node_id": current_node_id, "item": index})
+		var r := await _await_epoch("shop_roll", {"node_id": current_node_id, "item": _shop_item_arg(index)})
 		if not r.ok:
 			return {"ok": false, "code": r.code}
 		sd = r.seed
@@ -1472,7 +1472,7 @@ func try_buy_shop_item(index: int, seed: int = -1) -> bool:
 		return false
 	var rng: Rng = null
 	if shop_item_needs_epoch(index):
-		var sd := _epoch_seed("shop_roll", {"node_id": current_node_id, "item": index}, seed)
+		var sd := _epoch_seed("shop_roll", {"node_id": current_node_id, "item": _shop_item_arg(index)}, seed)
 		if sd < 0:
 			return false
 		rng = Rng.new(sd)
@@ -1493,6 +1493,12 @@ func try_buy_shop_item(index: int, seed: int = -1) -> bool:
 	# replay — which has no screen — left every item buyable forever.
 	item["bought"] = true
 	return true
+
+
+## Epoch arg `item` for shop_roll: the server wants an identifier string (/^[a-z0-9_]+$/, worker/src/epoch_args.json),
+## so "<kind>_<index>", e.g. "heal_1". Part of the seed derivation: both the request and the retry use this form.
+func _shop_item_arg(index: int) -> String:
+	return "%s_%d" % [String((shop_items[index] as Dictionary).get("kind", "item")).to_lower(), index]
 
 
 ## True when buying this item draws randomness (today only "heal": it picks the Axie), so the UI
