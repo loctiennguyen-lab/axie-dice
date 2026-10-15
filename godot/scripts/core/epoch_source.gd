@@ -86,3 +86,9 @@ func tape() -> Array:
 
 func is_remote() -> bool:
 	return false
+
+
+## After a resume: bring the network side back to the saved run. Local/Tape sources have none, so ok at once.
+## RemoteEpochSource answers ok, or offline / unauthenticated / run_gone (the server no longer holds that run).
+func reconnect() -> EpochReply:
+	return EpochReply.ok_reply(0, {})

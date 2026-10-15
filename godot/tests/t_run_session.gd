@@ -56,6 +56,8 @@ class FakeServer extends RefCounted:
 	var abandon_ok := true
 	var abandon_calls := 0
 	var create_calls := 0
+	var open_other_id := ""       # /api/run/open names another run than the saved one
+	var open_offline := false     # /api/run/open unreachable (code 0)
 
 	func _init() -> void:
 		last_h = EpochCanon.h0(run_id)
@@ -75,7 +77,12 @@ class FakeServer extends RefCounted:
 				"ws_url": "wss://x/api/run/%s/ws" % run_id, "header": {"newcomer": true}}))
 		elif path == "/api/run/open":
 			open_calls += 1
-			if stale_id != "":
+			if open_offline:
+				done.call(0, "")
+			elif open_other_id != "":
+				done.call(200, JSON.stringify({"run_id": open_other_id, "run_token": "other", "commit": "c0ffee",
+					"ws_url": "wss://x/api/run/%s/ws" % open_other_id, "header": {"mode": "normal"}}))
+			elif stale_id != "":
 				done.call(200, JSON.stringify({"run_id": stale_id, "run_token": "stale", "commit": "c0ffee",
 					"ws_url": "wss://x/api/run/%s/ws" % stale_id, "header": {"mode": "normal"}}))
 			elif open_ok:
@@ -284,6 +291,7 @@ func _ready() -> void:
 
 	await _auth_refresh()
 	await _both_remote()
+	await _resume_after_restart()
 
 	print("t_run_session: ", "PASS" if _fails == 0 else "FAILED (%d)" % _fails)
 	get_tree().quit(1 if _fails > 0 else 0)
@@ -464,3 +472,43 @@ func _both_remote() -> void:
 	sess.queue_free()
 	ProjectSettings.set_setting("axie/epoch_source", old_e)
 	ProjectSettings.set_setting("axie/gem_wallet", old_g)
+
+
+## A run saved mid-way and continued after the app was closed: a brand-new RunSession (no run, no socket) must
+## reconnect to the saved run by itself (open_existing -> same run_id -> attach -> hello) before the first
+## request goes out. Source level: no scenes, FakeServer plays the Worker.
+func _resume_after_restart() -> void:
+	# a run with two epochs behind it, then "quit the app": only the tape and the log survive
+	var s1 := FakeServer.new()
+	var p1 := _make(s1)
+	var log: ActionLog = p1[2]
+	var r := (p1[1] as RemoteEpochSource).start_run({"mode": "short", "ascension": 0, "kind": "normal"})
+	_run(p1[0], r, 5.0)
+	log.record("enter_node", ["r1_c0", "battle"])
+	r = (p1[1] as RemoteEpochSource).request("node", {"node_id": "r1_c0"})
+	_run(p1[0], r, 5.0)
+	var saved_tape: Array = (p1[1] as RemoteEpochSource).tape()
+	(p1[0] as RunSession).queue_free()
+	_check(saved_tape.size() == 2 and s1.rows.size() == 2, "resume: setup, two epochs on the server")
+
+	# (a) fresh session + resumed source: first epoch after Continue is answered by the server
+	var sess := RunSession.new()
+	add_child(sess)
+	sess.set_process(false)
+	sess.http = s1.http
+	sess.socket_factory = s1.make_socket
+	var src := RemoteEpochSource.new(sess)
+	src.resume(saved_tape, sess)
+	src.bind_log(log)
+	log.record("use_die", [1, 100001])
+	log.record("end_turn", [])
+	var r2 := src.request("end_turn", {"turn": 1})
+	_check(not r2.done, "resume: the request waits for the reconnect, it does not fail")
+	_run(sess, r2, 10.0)
+	_check(r2.done and r2.ok and r2.seed == 1000 + 2 * 7, "resume (a): first epoch after Continue is server-answered")
+	_check(s1.rows.size() == 3 and s1.open_calls == 1 and sess.run_id == s1.run_id and sess.state == "ready",
+		"resume (a): one open_existing, attached to the saved run, one new epoch")
+	var r2b := src.request("end_turn", {"turn": 2})
+	_run(sess, r2b, 10.0)
+	_check(s1.open_calls == 1 and r2b.done, "resume (a): later requests do not reconnect again")
+	sess.queue_free()
