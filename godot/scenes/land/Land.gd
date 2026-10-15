@@ -1624,6 +1624,8 @@ func _on_run_pressed() -> void:
 
 
 func _on_continue_pressed() -> void:
+	if RunContinue.busy:
+		return
 	if not RunState.load_run():
 		push_warning("LandHub: saved run could not be loaded")
 		RunState.clear_saved_run()
@@ -1631,7 +1633,8 @@ func _on_continue_pressed() -> void:
 		_new_run_btn.visible = false
 		_show_toast("That run could not be loaded")
 		return
-	var st: String = await RunContinue.reconnect(self, _on_continue_pressed)
+	var st: String = await RunContinue.reconnect(self, _on_continue_pressed,
+			find_child("RunPlate", true, false) as BaseButton)
 	if st == "gone":
 		_has_run = false
 		_new_run_btn.visible = false

@@ -58,6 +58,9 @@ class FakeServer extends RefCounted:
 	var create_calls := 0
 	var open_other_id := ""       # /api/run/open names another run than the saved one
 	var open_offline := false     # /api/run/open unreachable (code 0)
+	var hold_open := false        # /api/run/open is counted but not answered until release_open()
+	var _held: Array = []
+	var _replaying := false
 
 	func _init() -> void:
 		last_h = EpochCanon.h0(run_id)
@@ -77,6 +80,9 @@ class FakeServer extends RefCounted:
 				"ws_url": "wss://x/api/run/%s/ws" % run_id, "header": {"newcomer": true}}))
 		elif path == "/api/run/open":
 			open_calls += 1
+			if hold_open and not _replaying:
+				_held.append([method, path, body, done])
+				return
 			if open_offline:
 				done.call(0, "")
 			elif open_other_id != "":
@@ -100,6 +106,17 @@ class FakeServer extends RefCounted:
 				done.call(502, JSON.stringify({"error": "server"}))
 		else:
 			done.call(404, "")
+
+	## Answers every held /api/run/open now (late replies included), without counting them twice.
+	func release_open() -> void:
+		hold_open = false
+		_replaying = true
+		var held := _held
+		_held = []
+		for h in held:
+			open_calls -= 1
+			http(h[0], h[1], h[2], h[3])
+		_replaying = false
 
 	func make_socket() -> FakeSocket:
 		var s := FakeSocket.new()
@@ -295,6 +312,7 @@ func _ready() -> void:
 	await _resume_after_restart()
 	_guard.capture()
 	await _continue_through_run_state()
+	await _continue_hardening()
 	_guard.restore()
 
 	print("t_run_session: ", "PASS" if _fails == 0 else "FAILED (%d)" % _fails)
@@ -636,4 +654,87 @@ func _continue_through_run_state() -> void:
 	RunState.session = null
 	sess_d.queue_free()
 
+	ProjectSettings.set_setting("axie/epoch_source", old_e)
+
+
+## Real-time wait (the reconnect timeout is a SceneTree timer) until the launched call finished.
+func _wait_box(sess: RunSession, box: Dictionary, secs: float) -> void:
+	var t := 0.0
+	while not bool(box["done"]) and t < secs:
+		sess.tick(0.05)
+		await get_tree().create_timer(0.05).timeout
+		t += 0.05
+
+
+func _continue_hardening() -> void:
+	var old_e: Variant = ProjectSettings.get_setting("axie/epoch_source", "local")
+	ProjectSettings.set_setting("axie/epoch_source", "remote")
+	RunState.discard_notice = ""
+	var host := Node.new()
+	add_child(host)
+
+	# (1) double Continue: the second press is ignored, one open_existing, button locked meanwhile
+	var s1 := FakeServer.new()
+	var sess1 := await _saved_run_then_restart(s1)
+	s1.hold_open = true
+	var btn := Button.new()
+	host.add_child(btn)
+	var first := _launch(func() -> Variant: return await RunContinue.reconnect(host, Callable(), btn))
+	_check(RunContinue.busy and btn.disabled and s1.open_calls == 1, "hardening 1: first Continue in flight, busy, button disabled")
+	var second := _launch(func() -> Variant: return await RunContinue.reconnect(host, Callable(), btn))
+	_check(bool(second["done"]) and second["res"] == "busy" and s1.open_calls == 1, "hardening 1: second press ignored, still one open_existing")
+	s1.release_open()
+	await _pump_busy(sess1, first)
+	_check(first["res"] == "ok" and s1.open_calls == 1 and not RunContinue.busy and not btn.disabled, "hardening 1: ok after release, busy cleared, button back")
+	RunState.reset()
+	sess1.queue_free()
+
+	# (2) the reconnect never answers: timeout -> offline (NetNotice path), the late reply is ignored, RETRY works
+	var s2 := FakeServer.new()
+	var sess2 := await _saved_run_then_restart(s2)
+	var src2 := RunState.epoch as RemoteEpochSource
+	src2.reconnect_timeout_s = 0.3
+	s2.hold_open = true
+	var a := _launch(func() -> Variant: return await RunState.resume_online())
+	_check(RunState.epoch_busy and not bool(a["done"]), "hardening 2: waiting on a reconnect that does not answer")
+	await _wait_box(sess2, a, 5.0)
+	_check(bool(a["done"]) and not a["res"].ok and a["res"].code == "offline", "hardening 2: timeout settles offline")
+	_check(not RunState.epoch_busy and RunState.saved_run_file_exists(), "hardening 2: epoch_busy released, save kept")
+	s2.release_open()   # the late answer: names the saved run, would mark it attached if it counted
+	_check(src2.needs_reconnect(), "hardening 2: late reply after the timeout is ignored")
+	var b := _launch(func() -> Variant: return await RunState.resume_online())
+	await _pump_busy(sess2, b)
+	_check(b["res"].ok and s2.open_calls == 2 and not src2.needs_reconnect(), "hardening 2: RETRY reconnects (second open_existing)")
+	RunState.reset()
+	RunState.session = null
+	sess2.queue_free()
+
+	# (3) two requests wait on the same reconnect: served one after the other, distinct seqs
+	var s3 := FakeServer.new()
+	var p3 := _make(s3)
+	var lg: ActionLog = p3[2]
+	var r0 := (p3[1] as RemoteEpochSource).start_run({"mode": "short", "ascension": 0, "kind": "normal"})
+	_run(p3[0], r0, 5.0)
+	var tape: Array = (p3[1] as RemoteEpochSource).tape()
+	(p3[0] as RunSession).queue_free()
+	var sess3 := RunSession.new()
+	add_child(sess3)
+	sess3.set_process(false)
+	sess3.http = s3.http
+	sess3.socket_factory = s3.make_socket
+	var src3 := RemoteEpochSource.new(sess3)
+	src3.resume(tape, sess3)
+	src3.bind_log(lg)
+	s3.hold_open = true
+	var q1 := src3.request("end_turn", {"turn": 1})
+	var q2 := src3.request("end_turn", {"turn": 2})
+	_check(not q1.done and not q2.done and s3.open_calls == 1, "hardening 3: both wait on one reconnect")
+	s3.release_open()
+	_run(sess3, q2, 10.0)
+	_run(sess3, q1, 10.0)
+	_check(q1.ok and q2.ok and q1.seed == 1000 + 1 * 7 and q2.seed == 1000 + 2 * 7 and s3.rows.size() == 3,
+		"hardening 3: gated requests got seq 1 then seq 2, no shared seq")
+	sess3.queue_free()
+
+	host.queue_free()
 	ProjectSettings.set_setting("axie/epoch_source", old_e)

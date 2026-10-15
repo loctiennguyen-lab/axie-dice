@@ -1165,11 +1165,14 @@ func _on_new_run() -> void:
 
 
 func _on_continue() -> void:
+	if RunContinue.busy:
+		return
 	if not RunState.load_run():
 		RunState.clear_saved_run()
 		set_state("normal")
 		return
-	var st: String = await RunContinue.reconnect(self, _on_continue)
+	var st: String = await RunContinue.reconnect(self, _on_continue,
+			find_child("Continue", true, false) as BaseButton)
 	if st == "gone":
 		set_state("normal")
 		_on_back()   # Land shows RunState's discard notice
