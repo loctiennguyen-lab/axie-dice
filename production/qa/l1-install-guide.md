@@ -62,7 +62,7 @@ Change the path if the app is elsewhere. Do not use `sudo`, and do not run it on
 - Nếu app "bị hỏng" ("is damaged and can't be opened"): đó là cờ quarantine, làm theo Cách 3.
   If the app says it is "damaged", that is the quarantine flag. Use Method 3.
 - Log nằm ở `logs/godot.log` cùng thư mục save. Logs are in `logs/godot.log` inside the same folder.
-- Dữ liệu (save) nằm ở `~/Library/Application Support/Godot/app_userdata/Axie Dice (Godot port)/`.
+- Dữ liệu (save) nằm ở `~/Library/Application Support/Godot/app_userdata/Axie Dice/`.
   Save data is stored there.
 
 ---
@@ -87,7 +87,7 @@ Change the path if the app is elsewhere. Do not use `sudo`, and do not run it on
 - Bản này chỉ x86_64. Máy Windows ARM không chạy được (chạy qua giả lập có thể lỗi).
   x86_64 only. Windows on ARM is not supported in this build.
 - Cần driver đồ hoạ cập nhật (DirectX 12 hoặc Vulkan). Nếu app đen màn hình hoặc crash khi mở, cập nhật driver GPU rồi thử lại.
-- Dữ liệu (save) nằm ở `%APPDATA%\Godot\app_userdata\Axie Dice (Godot port)\`.
+- Dữ liệu (save) nằm ở `%APPDATA%\Godot\app_userdata\Axie Dice\`.
 
 ---
 
@@ -103,7 +103,7 @@ Placeholder. Lane R fills these in after measuring on clean machines.
 | RAM | TBD | TBD |
 | GPU / đồ hoạ | TBD | TBD |
 | Ổ cứng trống | TBD (app ~ size của zip, cộng save) | TBD |
-| Mạng | Cần để đăng nhập và gửi kết quả run | Cần để đăng nhập và gửi kết quả run |
+| Mạng | Bắt buộc: phải đăng nhập Google và có mạng mới chơi được (xúc xắc do server tung). Tutorial chơi được không cần đăng nhập | Như Mac |
 
 ---
 
