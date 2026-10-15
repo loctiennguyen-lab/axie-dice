@@ -205,7 +205,8 @@ const WATCHED_FILES: Array[String] = ["res://assets/data/part_faces.json"]
 ## FINGERPRINT left for the main merge (lane I recomputes it).
 ## Moved 2026-10-16 by sign-in feedback c1400a1: AccountService desktop_phase/reconciling (account UI only). Run result: NO, stays -n.
 ## Moved 2026-10-16 by C6 Profile 53a6981: MetaState run_log/profile_stats, RunState passes kind/aid_used to record_run_outcome (meta only). Run result: NO, stays -n.
-const FINGERPRINT := "00f34c17b9d5b709c7174f291267ff564102f6dfdf9dc786f7eb92ad8e893346"
+## Moved 2026-10-16 by online Continue fix d8a60c0: EpochSource.reconnect()/needs_reconnect() + RunState.resume_online/discard_gone_run (session plumbing, no rule/replay change). Run result: NO, stays -n.
+const FINGERPRINT := "499a63eec1eb8d097c7d72e0bc27b8fb3dae041cff53cb6560381107e9fc8abd"
 
 
 func _ready() -> void:
