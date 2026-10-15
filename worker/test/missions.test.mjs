@@ -8,6 +8,7 @@ import worker from '../src/index.js';
 import { RunCore } from '../src/run_core.js';
 import { settleEscrow, payoutFor, PAYOUT_CAP } from '../src/missions.js';
 import { sweepPending, PENDING_TTL_S } from '../src/runs.js';
+import { RunDO } from '../src/run_do.js';
 
 const RULES = 'godot-2026-09-21-a';
 const mig = (f) => readFileSync(new URL(`../migrations/${f}`, import.meta.url), 'utf8');
@@ -45,7 +46,7 @@ function fakeDo({ failInit = false } = {}) {
           cores.set(name, core);
         }
         if (path === '/init') { const o = await core.init(JSON.parse(init.body)); return new Response(JSON.stringify(o), { status: o.ok ? 200 : 409 }); }
-        if (path === '/abandon') return new Response(JSON.stringify(core.abandon()), { status: 200 });
+        if (path === '/abandon') return new Response(JSON.stringify(core.abandonInfo()), { status: 200 });
         return new Response('{}', { status: 404 });
       },
     }),
@@ -76,6 +77,8 @@ async function setup(extra = {}) {
   const row = (runId) => DB.db.prepare('SELECT * FROM mission_escrow WHERE run_id = ?').get(runId);
   return { DB, env, call, mission, escrow, shardRows, row };
 }
+const enterBattle = (env, runId) => env.RUN_DO.cores.get(runId).sql.exec(   // the DO's own log now has a 'node' epoch
+  `INSERT INTO epochs (seq, kind, args, h, log_len, seed, log_delta, attempt, req_digest, at) VALUES (1, 'node', '{}', 'h', 1, 1, '[]', 0, 'd', 1)`);
 const close = async (env, DB, runId, outcome) => {   // what RunDO._syncClosed does after run_close
   DB.db.prepare(`UPDATE runs SET state = 'closed', outcome = ?, closed_at = 5 WHERE run_id = ?`).run(outcome, runId);
   return settleEscrow(env, runId, outcome);
@@ -158,8 +161,9 @@ test('settle lost: no payout, no second ledger row; a late won/refund cannot reo
 });
 
 test('abandon = lost (open run); abandoning a pending run that never started refunds it', async () => {
-  const { mission, call, row, shardRows, DB } = await setup();
+  const { mission, call, row, shardRows, DB, env } = await setup();
   const a = await (await mission('N1')).json();
+  enterBattle(env, a.run_id);
   assert.equal((await call(`/api/run/${a.run_id}/abandon`, { method: 'POST' })).status, 200);
   assert.equal(row(a.run_id).state, 'lost');
   assert.deepEqual(shardRows().map((r) => r.delta), [-300]);
@@ -216,4 +220,133 @@ test('wallet: /api/wallet ledger_tail shows Gem rows only, shard rows never mix 
   const w = await (await call('/api/wallet')).json();
   assert.equal(w.gem, 10);
   assert.deepEqual(w.ledger_tail.map((r) => r.reason), ['grant:x']);
+});
+
+// ---- security review fixes (16/10): server settlement is the truth, races, bounded close ----
+
+const closedDo = async (env, runId, { outcome = 'won', mode = 'mission', player = 'google:1', alarmFails = false } = {}) => {
+  const sent = []; let alarm = null;
+  const ctx = { storage: { sql: (() => { const db = new DatabaseSync(':memory:'); return { exec(q, ...b) { const st = db.prepare(q); if (/^\s*select/i.test(q)) { const r = st.all(...b); return { toArray: () => r }; } if (/^\s*(insert|update|delete)/i.test(q)) { st.run(...b); return { toArray: () => [] }; } db.exec(q); return { toArray: () => [] }; } }; })(),
+    getAlarm: async () => alarm, setAlarm: async (t) => { if (alarmFails) throw new Error('alarm down'); alarm = t; } }, getWebSockets: () => [], acceptWebSocket() {} };
+  const d = new RunDO(ctx, env);
+  await d.core.init({ run_id: runId, player_id: player, mode, ascension: 0, rules_version: RULES });
+  ctx.storage.sql.exec(`UPDATE meta SET state = 'closed', outcome = ?, summary = '{"battles_done":3}' WHERE id = 1`, outcome);
+  const ws = { send: (m) => sent.push(JSON.parse(m)), close() {}, serializeAttachment() {}, deserializeAttachment: () => ({}) };
+  d.core.handle = async () => ({ replies: [{ t: 'closed', seq: 9 }] });   // the chain check is run_core's own test; here only the close plumbing
+  return { d, ws, sent, alarm: () => alarm };
+};
+
+test('abandon of a mission run that never entered a battle refunds the stake (run_start failed on the client)', async () => {
+  const { mission, call, row, shardRows, DB } = await setup();
+  const a = await (await mission('N1')).json();   // POST /api/run done, no run_start / node ever sent
+  assert.equal((await call(`/api/run/${a.run_id}/abandon`, { method: 'POST' })).status, 200);
+  assert.equal(DB.db.prepare('SELECT state FROM runs WHERE run_id = ?').get(a.run_id).state, 'abandoned');
+  assert.equal(row(a.run_id).state, 'refunded'); assert.equal(row(a.run_id).payout, 300);
+  assert.deepEqual(shardRows().map((r) => r.delta), [-300, 300]);
+  // idempotent: a second abandon neither refunds nor loses anything
+  await call(`/api/run/${a.run_id}/abandon`, { method: 'POST' });
+  assert.deepEqual(shardRows().map((r) => r.delta), [-300, 300]);
+  // GET reflects the server's settlement, which is what the client mirror applies
+  const e = await (await call('/api/missions/escrow')).json();
+  assert.deepEqual(e.settled.map((x) => [x.state, x.payout]), [['refunded', 300]]);
+});
+
+test('abandon with a battle entered stays a loss; an unknown battle count fails closed to a loss', async () => {
+  const { mission, call, row, env } = await setup();
+  const a = await (await mission('N1')).json();
+  enterBattle(env, a.run_id);
+  await call(`/api/run/${a.run_id}/abandon`, { method: 'POST' });
+  assert.equal(row(a.run_id).state, 'lost');
+  const b = await setup();
+  const j = await (await b.mission('N1')).json();
+  const real = b.env.RUN_DO.get;
+  b.env.RUN_DO.get = (n) => { const s = real(n); return { fetch: async (u, i) => (new URL(u).pathname === '/abandon' ? new Response(JSON.stringify({ ok: true, state: 'abandoned' })) : s.fetch(u, i)) }; };
+  await b.call(`/api/run/${j.run_id}/abandon`, { method: 'POST' });
+  assert.equal(b.row(j.run_id).state, 'lost');
+});
+
+test('race: abandon wins the runs row, a late close sync must not settle the escrow as won', async () => {
+  const { mission, call, env, DB, row, shardRows } = await setup();
+  const { run_id } = await (await mission('N1')).json();
+  enterBattle(env, run_id);
+  await call(`/api/run/${run_id}/abandon`, { method: 'POST' });   // runs=abandoned, escrow=lost
+  const { d } = await closedDo(env, run_id, { outcome: 'won' });  // the DO closed 'won' just as the abandon landed
+  await d._syncClosed();
+  assert.equal(DB.db.prepare('SELECT state, outcome FROM runs WHERE run_id = ?').get(run_id).state, 'abandoned');
+  assert.equal(row(run_id).state, 'lost'); assert.equal(row(run_id).payout, 0);
+  assert.deepEqual(shardRows().map((r) => r.delta), [-300]);
+});
+
+test('race: the run closed in the DO (write-back pending) when abandon arrives: abandon does not mark it lost, the close settles it', async () => {
+  const { mission, call, env, DB, row, shardRows } = await setup();
+  const { run_id } = await (await mission('N1')).json();
+  // worker side: the DO answers /abandon with state 'closed' -> runs and escrow untouched by abandon
+  env.RUN_DO.cores.get(run_id).sql.exec(`UPDATE meta SET state = 'closed', outcome = 'won' WHERE id = 1`);
+  assert.equal((await call(`/api/run/${run_id}/abandon`, { method: 'POST' })).status, 200);
+  assert.equal(DB.db.prepare('SELECT state FROM runs WHERE run_id = ?').get(run_id).state, 'open');
+  assert.equal(row(run_id).state, 'open');
+  // DO side: /abandon on a closed run writes the close back first, then answers
+  const { d } = await closedDo(env, run_id, { outcome: 'won' });
+  const r = await d.fetch(new Request('https://do/abandon', { method: 'POST' }));
+  assert.equal((await r.json()).state, 'closed');
+  assert.equal(DB.db.prepare('SELECT state, outcome FROM runs WHERE run_id = ?').get(run_id).state, 'closed');
+  assert.equal(row(run_id).state, 'won'); assert.equal(row(run_id).payout, 645);
+  assert.deepEqual(shardRows().map((x) => x.delta), [-300, 645]);
+});
+
+test('close sync retried after a failed settle still settles (run row already closed by the first attempt)', async () => {
+  const { mission, env, DB, row } = await setup();
+  const { run_id } = await (await mission('N1')).json();
+  const { d } = await closedDo(env, run_id, { outcome: 'won' });
+  const realBatch = env.DB.batch.bind(env.DB);
+  env.DB.batch = async () => { throw new Error('d1 down'); };
+  await d._syncClosed();   // runs UPDATE lands, settle fails, retry armed
+  assert.equal(DB.db.prepare('SELECT state FROM runs WHERE run_id = ?').get(run_id).state, 'closed');
+  assert.equal(row(run_id).state, 'open');
+  env.DB.batch = realBatch;
+  await d._syncClosed();   // alarm retry: UPDATE changes 0, but the row is closed by us -> settle
+  assert.equal(row(run_id).state, 'won');
+});
+
+test('concurrent settle: close sync vs GET /escrow vs abandon on one closed run pays exactly once', async () => {
+  const { mission, call, env, DB, row, shardRows } = await setup();
+  const { run_id } = await (await mission('N1')).json();
+  enterBattle(env, run_id);
+  DB.db.prepare(`UPDATE runs SET state = 'closed', outcome = 'won', closed_at = 5 WHERE run_id = ?`).run(run_id);
+  env.RUN_DO.cores.get(run_id).sql.exec(`UPDATE meta SET state = 'closed', outcome = 'won' WHERE id = 1`);
+  const results = await Promise.all([
+    settleEscrow(env, run_id, 'won'),
+    call('/api/missions/escrow').then((r) => r.json()),
+    call(`/api/run/${run_id}/abandon`, { method: 'POST' }),
+    settleEscrow(env, run_id, 'won'),
+    call('/api/missions/escrow').then((r) => r.json()),
+  ]);
+  assert.equal(results[2].status, 200);
+  assert.equal(row(run_id).state, 'won'); assert.equal(row(run_id).payout, 645);
+  assert.deepEqual(shardRows().map((x) => x.delta), [-300, 645]);
+  const e = await (await call('/api/missions/escrow')).json();
+  assert.deepEqual(e.settled.map((x) => [x.state, x.payout]), [['won', 645]]);
+});
+
+test('close path: a D1 failure (and a failing setAlarm) still sends the closed reply', async () => {
+  const { mission, env } = await setup();
+  const { run_id } = await (await mission('N1')).json();
+  const { d, ws, sent } = await closedDo(env, run_id, { alarmFails: true });
+  env.DB.prepare = () => { throw new Error('d1 down'); };
+  const errs = []; const log = console.error; console.error = (...a) => errs.push(a.join(' '));
+  try { await d.webSocketMessage(ws, '{}'); } finally { console.error = log; }
+  assert.deepEqual(sent, [{ t: 'closed', seq: 9 }]);
+  assert.ok(errs.some((e) => /close sync failed/.test(e)) && errs.some((e) => /retry alarm failed/.test(e)));
+});
+
+test('close path: a hung D1 is bounded; the reply goes out and an alarm is armed for the retry', async () => {
+  const { mission, env } = await setup({ env: { CLOSE_SYNC_BUDGET_MS: '25' } });
+  const { run_id } = await (await mission('N1')).json();
+  const { d, ws, sent, alarm } = await closedDo(env, run_id);
+  env.DB.prepare = () => ({ bind: () => ({ run: () => new Promise(() => {}), first: () => new Promise(() => {}) }) });
+  const t0 = Date.now();
+  await d.webSocketMessage(ws, '{}');
+  assert.ok(Date.now() - t0 < 1000);
+  assert.deepEqual(sent, [{ t: 'closed', seq: 9 }]);
+  assert.ok(alarm() > Date.now());
 });

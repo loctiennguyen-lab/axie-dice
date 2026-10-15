@@ -445,4 +445,14 @@ export class RunCore {
     if (meta.state === 'open') this.sql.exec(`UPDATE meta SET state = 'abandoned', outcome = 'lost' WHERE id = 1`);
     return { ok: true, state: this.meta().state };
   }
+
+  /** abandon() plus how many battles the player entered ('node' epochs). RunDO answers /abandon with this so
+   *  the Worker can refund a mission stake for a run that never reached a fight (mission_escrow, L1 S). */
+  abandonInfo() {
+    const out = this.abandon();
+    if (!out.ok) return out;
+    let battles = null; // null = unknown: the Worker treats it as "had battles" (fail closed = a loss)
+    try { battles = Number(this.sql.exec(`SELECT COUNT(*) AS n FROM epochs WHERE kind = 'node'`).toArray()[0].n); } catch { /* unknown */ }
+    return { ...out, battles };
+  }
 }

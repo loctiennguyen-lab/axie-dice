@@ -138,22 +138,33 @@ async function openRun(env, url, player) {
   return json({ run_id: row.run_id, run_token, commit: row.commit_hash, ws_url: wsUrl(url, row.run_id), header: { mode: row.mode, newcomer: await newcomer(env, player.id) } });
 }
 
+const changed = (r) => ((r && r.meta && r.meta.changes) || 0) > 0;
+
 async function abandon(request, env, url, player, runId) {
   if (request.headers.get('Origin') && !shared.isAllowedOrigin(request.headers.get('Origin'), url)) return json({ error: 'forbidden' }, 403);
   const row = await env.DB.prepare('SELECT state FROM runs WHERE run_id = ? AND player_id = ?').bind(runId, player.id).first();
   if (!row) return json({ error: 'not_found' }, 404);
+  const at = Math.floor(Date.now() / 1000);
+  // Every settle below is gated on THIS request's UPDATE having changed the row: if a close, a cron sweep or
+  // createRun's confirm got there first, the escrow belongs to that path (a lost here would contradict it).
   if (row.state === 'pending') {
     // Creation never confirmed: free the slot. The DO may or may not exist, so its answer is ignored.
     await stub(env, runId).fetch('https://do/abandon', { method: 'POST' }).catch(() => {});
-    await env.DB.prepare(`UPDATE runs SET state = 'abandoned', outcome = 'lost', closed_at = ? WHERE run_id = ? AND state = 'pending'`)
-      .bind(Math.floor(Date.now() / 1000), runId).run();
-    await settleEscrow(env, runId, 'refunded'); // never started: the stake comes back
+    const u = await env.DB.prepare(`UPDATE runs SET state = 'abandoned', outcome = 'lost', closed_at = ? WHERE run_id = ? AND state = 'pending'`)
+      .bind(at, runId).run();
+    if (changed(u)) await settleEscrow(env, runId, 'refunded'); // never started: the stake comes back
   } else if (row.state === 'open') {
     const r = await stub(env, runId).fetch('https://do/abandon', { method: 'POST' });
     if (!r.ok) return json({ error: 'server' }, 502);
-    await env.DB.prepare(`UPDATE runs SET state = 'abandoned', outcome = 'lost', closed_at = ? WHERE run_id = ? AND state = 'open'`)
-      .bind(Math.floor(Date.now() / 1000), runId).run();
-    await settleEscrow(env, runId, 'lost'); // abandon = the stake is lost (no-op for a run without escrow)
+    let out = {};
+    try { out = await r.json(); } catch { out = {}; }
+    // The run had already closed (its own write-back and settlement decide the escrow): never mark it lost.
+    if (out && out.state === 'closed') return json({ ok: true });
+    const u = await env.DB.prepare(`UPDATE runs SET state = 'abandoned', outcome = 'lost', closed_at = ? WHERE run_id = ? AND state = 'open'`)
+      .bind(at, runId).run();
+    // Abandon = the stake is lost, except a run that never entered a battle (run_start failed on the client,
+    // or the player backed out before any fight): that stake comes back. Unknown battle count = lost.
+    if (changed(u)) await settleEscrow(env, runId, out && out.battles === 0 ? 'refunded' : 'lost'); // no-op for a run without escrow
   }
   return json({ ok: true });
 }
