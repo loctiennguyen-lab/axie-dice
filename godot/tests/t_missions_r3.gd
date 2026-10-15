@@ -30,6 +30,7 @@ func _make(st := "normal") -> MissionsScreen:
 func _ready() -> void:
 	print("=== t_missions_r3: start ===")
 	_guard.capture()
+	_force_local()
 	MetaState.saved_run_probe = func() -> bool: return false   # never depend on the real user dir
 	MetaState.runs = 8
 	MetaState.runs_with_battle = 8
@@ -239,3 +240,9 @@ func _l1_n1_to_n3_only(s: MissionsScreen, cfg: Dictionary) -> void:
 		"abandon: stake lost, no Stone, no payout")
 	RunState.reset()
 	MetaState.mission_house_level = 0
+
+
+## L1: project defaults are remote/remote; this test runs the local path and must never touch the network.
+func _force_local() -> void:
+	ProjectSettings.set_setting("axie/epoch_source", "local")
+	ProjectSettings.set_setting("axie/gem_wallet", "local")

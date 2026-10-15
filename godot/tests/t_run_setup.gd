@@ -39,6 +39,9 @@ func _make(st := "normal") -> RunSetup:
 func _ready() -> void:
 	print("=== t_run_setup: start ===")
 	_guard.capture()
+	# L1: defaults are remote; the real RunState.begin_run below runs the local path.
+	ProjectSettings.set_setting("axie/epoch_source", "local")
+	ProjectSettings.set_setting("axie/gem_wallet", "local")
 	MetaState.asc_max = 3
 	MetaState.runs = 9
 	MetaState.runs_with_battle = 9
@@ -107,7 +110,7 @@ func _ready() -> void:
 	s.queue_free()
 	await get_tree().process_frame
 	# State derived from a stubbed AccountService status
-	for pair in [[AccountService.Status.OFFLINE, "offline"], [AccountService.Status.GUEST, "normal"], [AccountService.Status.SAVED, "normal"]]:
+	for pair in [[AccountService.Status.OFFLINE, "offline"], [AccountService.Status.GUEST, "guest"], [AccountService.Status.EXPIRED, "guest"], [AccountService.Status.SAVED, "normal"]]:
 		var sa: RunSetup = load("res://scenes/run_setup/RunSetup.tscn").instantiate()
 		var cur: Array = [pair[0]]
 		sa.account_status_hook = func() -> int: return cur[0]
@@ -121,6 +124,29 @@ func _ready() -> void:
 			var rb := await sa.begin()
 			_ok(not rb.ok and sa.state == "offline", "begin re-checks account")
 		sa.queue_free()
+	# L1: guest / expired session cannot begin any kind, sees "Sign in to play" + a Sign in button
+	var sg := await _make("guest")
+	sg.set_state("guest")
+	var signed := [0]
+	sg.sign_in_hook = func() -> void: signed[0] += 1
+	_ok(sg.begin_block_reason() == "Sign in to play", "guest: Begin reason")
+	_ok((sg.find_child("Begin", true, false) as Button).disabled, "guest: Begin disabled")
+	for k in ["daily", "ranked"]:
+		_ok(sg.kind_block_reason(k) == "Sign in to play", "guest: %s reason" % k)
+	var sib := sg.find_child("SignInButton", true, false) as Button
+	_ok(sib != null, "guest: Sign in button")
+	if sib != null:
+		sib.pressed.emit()
+	_ok(signed[0] == 1, "guest: Sign in button calls sign-in")
+	_ok((await sg.begin()).get("code", "") == "blocked", "guest: begin refused")
+	sg.queue_free()
+	# Session revoked after the screen opened: server says unauthenticated -> guest state, no retry banner
+	var se := await _make("normal")
+	se.start_hook = func(_p: Dictionary) -> Dictionary: return {"ok": false, "code": "unauthenticated"}
+	await se.begin()
+	_ok(se.state == "guest" and se.begin_error == "", "unauthenticated -> Sign in to play")
+	_ok(se.find_child("SignInButton", true, false) != null and se.find_child("Try again", true, false) == null, "no retry banner")
+	se.queue_free()
 	# Local dice (remote flag off): OFFLINE shows the banner, Begin stays enabled
 	var sl := await _make("offline")
 	sl.remote_on = false

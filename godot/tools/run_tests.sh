@@ -34,7 +34,7 @@ _held_ok() {
   [[ -n "${AXIE_GODOT_LOCK_HELD:-}" && "${o%%|*}" == "$AXIE_GODOT_LOCK_HELD" ]]
 }
 if ! _held_ok; then
-  export AXIE_HANG_KILL="${AXIE_HANG_KILL:-900}"
+  export AXIE_HANG_KILL="${AXIE_HANG_KILL:-300}"
   exec bash "$ROOT/godot/tools/with_lock.sh" bash "$ROOT/godot/tools/run_tests.sh" "$@"
 fi
 
@@ -94,6 +94,9 @@ trap '_save_restore; rm -rf "$SAVE_SNAP"' EXIT
 trap 'exit 130' INT
 trap 'exit 143' TERM
 trap 'exit 129' HUP
+
+# L1: tests never open real sockets/HTTP (see scripts/net/net_guard.gd).
+export AXIE_TEST_NO_NET=1
 
 pass=0; fail=0; skip=0; failed_names=()
 if [[ "$SKIP_FP" == 1 ]]; then

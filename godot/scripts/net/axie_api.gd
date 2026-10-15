@@ -329,6 +329,9 @@ func request_axie(id: String) -> bool:
 	if not is_valid_axie_id(id):
 		completed.emit(_fail("bad_id", "An Axie ID is a number, like 123."))
 		return true
+	if NetGuard.blocked():
+		completed.emit(_fail("network", "Could not reach the Axie service. Check your connection."))
+		return true
 	match active_transport():
 		Transport.CURL:
 			return _request_via_curl(id)
