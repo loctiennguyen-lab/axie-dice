@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """Web-only texture slimming. Run on a STAGING COPY of godot/, never on the real project.
 
-Usage:  web_slim.py <path to staged godot/ dir> [--dry-run]
+Usage:  python3 -I web_slim.py <path to staged godot/ dir> [--dry-run]
+Refuses unless <dir>/.web_stage_marker exists and <dir> is not inside the real godot/ tree.
 Normally called by godot/tools/export_web_slim.sh, which makes the copy, runs this, re-imports
 and exports the Web preset. Desktop (macOS/Windows) exports are made from the untouched
 godot/ tree and never see any of this.
@@ -196,11 +197,26 @@ def step_cap(g):
     print("cap: %d 3D textures limited to %d px" % (n, CAP_PX))
 
 
+MARKER = ".web_stage_marker"  # written by export_web_slim.sh into the staged godot/ dir
+REAL_GODOT = os.path.realpath(os.path.join(os.path.dirname(os.path.abspath(__file__)), ".."))
+
+
+def refuse_unless_stage(g):
+    """Exit unless g is a staged godot/ copy made by export_web_slim.sh, never the real tree."""
+    if not os.path.isfile(os.path.join(g, "project.godot")):
+        sys.exit("refusing: %s has no project.godot" % g)
+    if not os.path.isfile(os.path.join(g, MARKER)):
+        sys.exit("refusing: %s has no %s (only export_web_slim.sh writes it)" % (g, MARKER))
+    if os.path.commonpath([g, REAL_GODOT]) == REAL_GODOT:
+        sys.exit("refusing: %s is inside the real godot/ tree %s" % (g, REAL_GODOT))
+
+
 def main():
     args = [a for a in sys.argv[1:] if not a.startswith("--")]
-    if len(args) != 1 or not os.path.isfile(os.path.join(args[0], "project.godot")):
+    if len(args) != 1:
         sys.exit("usage: web_slim.py <staged godot dir> [--dry-run]")
-    g = os.path.abspath(args[0])
+    g = os.path.realpath(args[0])
+    refuse_unless_stage(g)
     step_dedupe(g)
     step_lossy(g)
     step_cap(g)
