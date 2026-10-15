@@ -17,9 +17,10 @@ extends Node
 ## pass died or was killed after preflight). Works with AXIE_TEST_NO_NET=1 (then it just reports it cannot reach the server).
 ##
 ## `-- --full` (live_smoke.sh --full): three extra phases on top of the default run, each prints OK/FAIL/SKIP lines.
-##   resume  - mid-run (the default run, after the gates): release() the RunSession, drop the scene, go through the
-##             game's own Continue path (RunState.load_run from run_save; the game must reconnect the session itself,
-##             the tool never calls open_existing/attach), enter one more node, check the epoch tape grew.
+##   resume  - mid-run (the default run, after the gates): release() the RunSession, drop the scene, RunState.load_run
+##             from run_save, then the game's own Continue helper (RunContinue.reconnect, as Land calls it; the tool
+##             never calls open_existing/attach), land on the resumed scene, enter one more node (or end_turn if
+##             resumed in combat): the tape must grow from a remote source and the session must be "ready" after.
 ##   retry   - during the first end_turn of a fight the session is flipped to "closed" for that one request, so the
 ##             epoch fails with "offline" exactly once. Expects NetNotice with RETRY, presses it, expects the turn to
 ##             finish with a server-answered epoch. (end_turn travels over the WebSocket, which the HTTP wrapper
@@ -569,8 +570,10 @@ func _saved_tape_size() -> int:
 	return ((run as Dictionary).get("epoch_tape", []) as Array).size()
 
 
-## Mid-run quit and Continue, using ONLY the game's own path (RunState.load_run + the resumed scene). The tool does
-## not attach the session itself, so this fails until the game reconnects a resumed remote run on its own.
+## Mid-run quit and Continue like a player: drop the scene, RunState.load_run(), then the SAME helper the Continue
+## buttons use (RunContinue.reconnect, called as Land does), land on the resumed scene and do one real action that
+## needs an epoch (map node press, or the fight's end_turn). The tool never calls open_existing()/attach(): the
+## session only counts as reconnected when the game's own path got it back to "ready" and the server answered.
 func _phase_resume() -> void:
 	if _failed or _aborted or not _began:
 		_skip("resume", "no healthy open run (earlier failure)")
@@ -591,27 +594,43 @@ func _phase_resume() -> void:
 	if not RunState.load_run() or not (RunState.epoch is RemoteEpochSource):
 		_step("resume", false, "RunState.load_run() failed or did not restore a remote epoch source")
 		return
+	# The Continue buttons' online half, exactly as Land calls it. The tool itself is the host for NetNotice.
+	var cont: String = await RunContinue.reconnect(self, func() -> void: pass)
+	if cont != "ok":
+		_step("resume Continue (RunContinue.reconnect)", false, "helper answered '%s'%s" % [cont,
+			(" (" + RunState.take_discard_notice() + ")") if cont == "gone" else " (NetNotice up)"])
+		return
+	_step("resume Continue (RunContinue.reconnect)", true, "helper answered ok")
 	LandNav.run_started()
 	var path := "res://scenes/combat/Combat.tscn" if not RunState.resume_combat.is_empty() else "res://scenes/run_map/RunMap.tscn"
 	var scene: Node = load(path).instantiate()
 	_tree.root.add_child(scene)
 	_tree.current_scene = scene
-	# Only the game's own Continue path from here: the tool does NOT call open_existing()/attach().
-	var ready := await _wait_until(func() -> bool: return sess.state == "ready" and sess.run_id == rid, 15000)
-	_step("resume reconnect (game's Continue path)", ready, "session state=%s run_id match=%s, tape restored %d epochs" % [sess.state, str(sess.run_id == rid), _tape_size()])
-	if not ready:
-		return
+	# One real action that needs an epoch, through the resumed scene: the map step presses one node, a resumed fight
+	# plays on with end_turn. Flags from the default run are set, so the map step presses exactly one more node.
 	_fight_lost = false
 	_fail_code = ""
 	var nodes_before := _nodes_entered
 	var tape_before := _tape_size()
-	await _drive()   # flags from the default run are set, so the map step presses exactly one more node
+	await _drive()
 	if _fight_lost:
 		_step("resume", false, "fight lost after resume")
 		return
+	var remote := RunState.epoch is RemoteEpochSource
 	var grew := _tape_size() > tape_before
-	_step("resume: one more node", not _failed and not _aborted and _nodes_entered > nodes_before and grew,
-		"nodes %d -> %d, tape %d -> %d, ws=%s" % [nodes_before, _nodes_entered, tape_before, _tape_size(), sess.state])
+	_step("resume: action answered by the server", not _failed and not _aborted and remote and grew and _nodes_entered > nodes_before,
+		"epoch source %s, nodes %d -> %d, tape %d -> %d" % ["remote" if remote else "NOT remote", nodes_before, _nodes_entered, tape_before, _tape_size()])
+	# The socket may still be finishing a reconnect right after the answered action; give it up to 5 s
+	# before calling it stuck, and record the states seen so a real loop (connecting forever) shows.
+	var seen: Array = [sess.state]
+	var waited := 0.0
+	while sess.state != "ready" and waited < 5.0:
+		await get_tree().create_timer(0.25).timeout
+		waited += 0.25
+		if seen[seen.size() - 1] != sess.state:
+			seen.append(sess.state)
+	_step("resume: session ready after the action", sess.state == "ready" and sess.run_id == rid,
+		"state=%s run_id match=%s, states seen %s in %.2f s" % [sess.state, str(sess.run_id == rid), str(seen), waited])
 
 
 # ---------------------------------------------------------------- --full: Daily
