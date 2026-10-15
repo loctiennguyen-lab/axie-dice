@@ -13,7 +13,7 @@ extends RefCounted
 ## WHY THIS SHARES CombatAudio'S MAPPINGS RATHER THAN REPEATING THEM
 ## -----------------------------------------------------------------
 ## The kit names a VFX folder and a sound file by the SAME two things: its class prefix and
-## its action (`plant_slash` the atlas, `plant_slash_attack.wav` the sound). CombatAudio
+## its action (`plant_slash` the atlas, `plant_slash_attack.ogg` the sound). CombatAudio
 ## already owns the two tables that get from this game's vocabulary to that one -
 ## CLASS_TO_KIT (aqua -> aquatic) and PART_TO_ACTION (horn -> gore) - so this file reads them
 ## instead of declaring its own. A horn face therefore CANNOT gore in the speakers and slash
