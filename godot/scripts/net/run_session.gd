@@ -60,8 +60,12 @@ func create_run(params: Dictionary, done: Callable) -> void:
 
 
 ## GET /api/run/open: resume an unfinished run. done(ok, data) with data {} when there is none.
-func open_existing(done: Callable) -> void:
+## `still_wanted` (optional, () -> bool): asked when the reply arrives; false = the caller gave up (e.g. its
+## reconnect timed out) so the reply is dropped: no attach(), no done(). A late reply must never attach us to a run.
+func open_existing(done: Callable, still_wanted: Callable = Callable()) -> void:
 	_http().call("GET", "/api/run/open", "", func(code: int, text: String) -> void:
+		if still_wanted.is_valid() and not bool(still_wanted.call()):
+			return
 		var j: Variant = JSON.parse_string(text) if not text.is_empty() else null
 		if code == 200 and typeof(j) == TYPE_DICTIONARY:
 			var d: Dictionary = j

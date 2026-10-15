@@ -44,6 +44,26 @@ func _ready() -> void:
 	hub.call("_handle_key", KEY_ESCAPE)
 	_check(not sign.visible, "Esc phải tắt biển tên trước")
 
+	# has_modal(): what holds back AccountService's rebuild. A touch sign preview must not.
+	_check(not hub.has_modal(), "has_modal: false khi không có panel nào")
+	var note := Node.new()
+	note.name = NetNotice.NODE_NAME
+	hub.add_child(note)
+	_check(hub.has_modal(), "has_modal: NetNotice đang mở")
+	hub.remove_child(note)
+	note.free()
+	_check(not hub.has_modal(), "has_modal: hết NetNotice thì false")
+	var moon := Node.new()
+	hub.add_child(moon)
+	hub.set("_moon_card", moon)
+	_check(hub.has_modal(), "has_modal: Moon Card popup đang mở")
+	moon.queue_free()
+	await get_tree().process_frame
+	_check(not hub.has_modal(), "has_modal: Moon Card đóng thì false")
+	hub.set("_touch_id", "pass")
+	_check(not hub.has_modal(), "has_modal: biển xem trước trên touch không giữ rebuild")
+	hub.set("_touch_id", "")
+
 	# House -> screen through LandNav.
 	LandNav.last_path = ""
 	(hub.find_child("Hit_pass", true, false) as Button).emit_signal("pressed")

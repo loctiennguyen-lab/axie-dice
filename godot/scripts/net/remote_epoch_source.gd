@@ -344,7 +344,7 @@ func reconnect() -> EpochReply:
 			else:
 				session.note_acked(_seq - 1)
 				_attached = true
-		_finish_reconnect(gen, code))
+		_finish_reconnect(gen, code), func() -> bool: return gen == _reconnect_gen)
 	return reply
 
 

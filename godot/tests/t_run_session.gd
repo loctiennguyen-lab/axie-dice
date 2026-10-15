@@ -313,10 +313,36 @@ func _ready() -> void:
 	_guard.capture()
 	await _continue_through_run_state()
 	await _continue_hardening()
+	_late_open_reply()
 	_guard.restore()
 
 	print("t_run_session: ", "PASS" if _fails == 0 else "FAILED (%d)" % _fails)
 	get_tree().quit(1 if _fails > 0 else 0)
+
+
+## open_existing(done, still_wanted): a reply that arrives after the caller gave up is dropped, so it can
+## neither attach the session to a run nor call done().
+func _late_open_reply() -> void:
+	var srv := FakeServer.new()
+	var sess := RunSession.new()
+	add_child(sess)
+	sess.set_process(false)
+	sess.http = srv.http
+	sess.socket_factory = srv.make_socket
+	var wanted := {"v": true}
+	var called := {"n": 0}
+	srv.hold_open = true
+	sess.open_existing(func(_ok: bool, _d: Dictionary) -> void: called["n"] += 1,
+		func() -> bool: return bool(wanted["v"]))
+	wanted["v"] = false
+	srv.release_open()
+	_check(called["n"] == 0 and sess.run_id == "", "late open reply (still_wanted=false): no attach, done not called")
+	srv.hold_open = true
+	sess.open_existing(func(_ok: bool, _d: Dictionary) -> void: called["n"] += 1,
+		func() -> bool: return true)
+	srv.release_open()
+	_check(called["n"] == 1 and sess.run_id == srv.run_id, "open reply while still wanted: attaches and calls done")
+	sess.queue_free()
 
 
 ## A stale open run on the server (Liam 15/10: one run stuck `open` made every Begin fail with "rejected").
