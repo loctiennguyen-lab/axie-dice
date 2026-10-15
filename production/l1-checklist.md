@@ -23,8 +23,8 @@ sẵn** · báo lỗi bằng **một Google Sheet** (Liam làm) · Cloudflare g�
 - [ ] B1. **Bật chơi online thật** (xúc xắc server + ví Gem server):
   - [x] Worker nhận RULES_VERSION hiện tại — `SUPPORTED_RULE_VERSIONS` + test khoá theo action_log (13/10, merge B1). Cần Liam deploy Worker.
   - [x] Client gọi lại `/api/run/open` khi bị đóng 1008 auth, thử 1 lần (13/10).
-  - [ ] Bật cờ `axie/epoch_source` + `axie/gem_wallet` = remote trong `godot/project.godot` mục [axie] (cách bật: l1-interfaces.md §6.5).
-  - [ ] Ghi nhận rủi ro L1: server chưa kiểm kết quả run (chỉ kiểm hash chain) → thắng/thua, payout Nhiệm vụ, điều kiện quà mùa tin client; không mở thưởng Gem/tiền thật theo kết quả run trước khi có verifier (P3).
+  - [x] (15/10 merge 5e371dd; Liam: bắt đăng nhập mới chơi, tutorial không cần) Bật cờ `axie/epoch_source` + `axie/gem_wallet` = remote trong `godot/project.godot` mục [axie] (cách bật: l1-interfaces.md §6.5).
+  - [x] (15/10, l1-interfaces.md §6.5) Ghi nhận rủi ro L1: server chưa kiểm kết quả run (chỉ kiểm hash chain) → thắng/thua, payout Nhiệm vụ, điều kiện quà mùa tin client; không mở thưởng Gem/tiền thật theo kết quả run trước khi có verifier (P3).
   - [ ] Chạy trọn 1 run thật trên Worker: mất mạng giữa run, nối lại, hết hạn token, thoát app giữa trận.
   - [x] RunSession tắt `_process` khi không có run (13/10).
 - [x] B2 (13/10, merge df8bb75; còn mở bên dưới). **Aid + Continue bằng Gem tặng**: bảng giá Aid ra data (đang viết cứng trong CombatView), nút mua trừ Gem thật qua server, giới hạn 6/run (4 từ A9, theo catalog + server), ẩn cho người mới. Còn mở: Continue miễn phí cho người mới (lần thua elite/boss đầu, A0–A2) — chưa làm.
