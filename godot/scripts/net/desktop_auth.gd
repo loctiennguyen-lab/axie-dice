@@ -37,6 +37,7 @@ var _done := false
 var _url := ""
 var _saved_low_cpu := false
 var _power_held := false
+var _cpu_held := false
 ## Seam for tests: brings the game window to the front once the browser has called back.
 var raise_window: Callable = func() -> void: DesktopAuth.raise_game_window()
 
@@ -117,6 +118,7 @@ func begin() -> int:
 	_url = url
 	# Keep the loop at full rate while the player is in the browser: the /cb accept loop is in _process.
 	_saved_low_cpu = OS.low_processor_usage_mode
+	_cpu_held = true
 	OS.low_processor_usage_mode = false
 	if DisplayServer.get_name() != "headless":
 		DisplayServer.screen_set_keep_on(true)
@@ -224,9 +226,10 @@ func _drop(entry: Dictionary) -> void:
 	# Read what the browser still has in flight: closing a socket with unread bytes makes the OS send a
 	# reset, and the browser may then throw the page away instead of showing it.
 	peer.poll()
-	var left := peer.get_available_bytes()
-	if left > 0:
-		peer.get_data(left)
+	if peer.get_status() == StreamPeerTCP.STATUS_CONNECTED:
+		var left := peer.get_available_bytes()
+		if left > 0:
+			peer.get_data(left)
 	peer.disconnect_from_host()
 	_peers.erase(entry)
 
@@ -245,10 +248,23 @@ func _finish(ok: bool, tokens: Dictionary, error: String) -> void:
 
 func _emit(ok: bool, tokens: Dictionary, error: String) -> void:
 	_done = true
-	_stop_listening()
 	set_process(false)
-	OS.low_processor_usage_mode = _saved_low_cpu
+	_release()
+	finished.emit(ok, tokens, error)
+
+
+## Closes the listener and gives back the power settings taken in begin(). Safe to call twice.
+func _release() -> void:
+	_stop_listening()
+	if _cpu_held:
+		OS.low_processor_usage_mode = _saved_low_cpu
+		_cpu_held = false
 	if _power_held:
 		DisplayServer.screen_set_keep_on(false)
 		_power_held = false
-	finished.emit(ok, tokens, error)
+
+
+## The node can be freed mid-flow (scene change, quit): never leave the port open or the screen forced on.
+func _exit_tree() -> void:
+	_done = true
+	_release()

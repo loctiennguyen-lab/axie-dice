@@ -80,6 +80,15 @@ var _welcome_shown := false
 ## Google looks exactly like a guest (nothing is cached yet), so the welcome panel must wait.
 var _session_known := false
 var _profile_changed := false
+## True when the last reload put different save data in front of the player (not just the same
+## data re-read). Run Setup only rebuilds itself for a real change.
+var _data_changed := false
+var _loaded_hash := ""
+## True from "/api/me answered, signed in" until the cloud save has been reconciled (or the attempt
+## failed). Screens that start a run (Run Setup) stay blocked while this is set: the active profile
+## has switched and the save may still be replaced.
+var reconciling := false
+var _refresh_waiting := false
 ## A cloud save that arrived while the player was in a run. Applying it then would reset the run
 ## under them; it waits for the next visit to the menu instead.
 var _deferred_server: Dictionary = {}
@@ -259,6 +268,8 @@ func _on_me(code: int, text: String) -> void:
 			_end_desktop_finishing("token")
 			_go_offline()
 			return
+		reconciling = true
+		_note_loaded()
 		if String(account.get("id", "")) != String(me["id"]):
 			_switch_to(me)
 		else:
@@ -275,6 +286,7 @@ func _on_me(code: int, text: String) -> void:
 		_attach_remote_wallet()
 		transport.call("GET", "/api/save", "", _on_save_fetched)
 	elif code == 401:
+		reconciling = false
 		_end_desktop_finishing("token")
 		if account.is_empty():
 			status = Status.GUEST
@@ -306,6 +318,7 @@ func _on_save_fetched(code: int, text: String) -> void:
 			if _safe_scene():
 				_reconcile(server)
 			else:
+				reconciling = false
 				_deferred_server = server
 			return
 	if code == 401:
@@ -384,6 +397,7 @@ func _conflict(server: Dictionary) -> void:
 
 
 func _after_reconcile() -> void:
+	reconciling = false
 	if _dirty:
 		_push()
 	else:
@@ -392,7 +406,9 @@ func _after_reconcile() -> void:
 		changed.emit()
 	if _profile_changed:
 		_profile_changed = false
-		_refresh_scene()
+		var data_changed := _data_changed
+		_data_changed = false
+		_refresh_scene(data_changed)
 
 
 ## Makes `snap` this account's save and marks it for upload on top of `base_rev`.
@@ -495,6 +511,7 @@ func _run_after_push() -> void:
 
 
 func _go_offline() -> void:
+	reconciling = false
 	status = Status.OFFLINE if not account.is_empty() else Status.GUEST
 	changed.emit()
 	if not account.is_empty() and not _push_in_flight:
@@ -550,12 +567,27 @@ func _become_guest() -> void:
 
 func _reload_game_state() -> void:
 	_profile_changed = true
+	var h := _current_hash()
+	if h != _loaded_hash:
+		_data_changed = true
+	_loaded_hash = h
 	var meta := get_node_or_null("/root/MetaState")
 	if meta != null:
 		meta.reload_from_store()
 	var run := get_node_or_null("/root/RunState")
 	if run != null:
 		run.reset()
+
+
+## Fingerprint of the save the game is showing now (meta + run of the active profile).
+func _current_hash() -> String:
+	return JSON.stringify(_snapshot(SaveStore.profile), "", true).md5_text()
+
+
+## Remembers what the game is showing before a sign-in changes the profile, so the reload after the
+## reconcile can tell "same data" from "different data".
+func _note_loaded() -> void:
+	_loaded_hash = _current_hash()
 
 
 ## The menu asks for the welcome panel in _ready(), which is usually before /api/me has
@@ -586,21 +618,53 @@ func _safe_scene() -> bool:
 		or path == ACCOUNT_SCENE or path == RUN_SETUP_SCENE or path == LAND_SCENE
 
 
+## What `_refresh_scene` does for the scene at `path`: "none" | "skip" | "defer" | "reload" | "menu".
+## Run Setup keeps the player's picks unless the save data really changed; Run Setup and Land never
+## rebuild under an open modal (the player is mid-action).
+static func refresh_action(path: String, scene: Node, data_changed: bool) -> String:
+	if path == ACCOUNT_SCENE:
+		return "none"   # the screen redraws itself from `changed`
+	if path == RUN_SETUP_SCENE or path == LAND_SCENE:
+		if path == RUN_SETUP_SCENE and not data_changed:
+			return "skip"
+		if scene != null and scene.has_method("has_modal") and bool(scene.call("has_modal")):
+			return "defer"
+		return "reload"
+	return "menu"
+
+
 ## Rebuilds the menu so it shows the save that just became active. Never pulls a player out of a
 ## run: account changes only happen from the menu, Settings or at boot.
-func _refresh_scene() -> void:
+func _refresh_scene(data_changed: bool = true) -> void:
 	var tree := get_tree()
 	if tree == null or tree.current_scene == null:
 		return
 	if not _safe_scene():
 		return
 	var path := tree.current_scene.scene_file_path
-	if path == ACCOUNT_SCENE:
-		return   # the screen redraws itself from `changed`
-	if path == RUN_SETUP_SCENE or path == LAND_SCENE:
-		tree.reload_current_scene.call_deferred()   # rebuild on the save that just became active
+	match refresh_action(path, tree.current_scene, data_changed):
+		"defer":
+			_defer_refresh(path)
+		"reload":
+			tree.reload_current_scene.call_deferred()   # rebuild on the save that just became active
+		"menu":
+			tree.change_scene_to_file.call_deferred(MAIN_MENU)
+
+
+## Waits until the screen has no modal open, then rebuilds it (only if it is still the same screen).
+func _defer_refresh(path: String) -> void:
+	if _refresh_waiting:
 		return
-	tree.change_scene_to_file.call_deferred(MAIN_MENU)
+	_refresh_waiting = true
+	while true:
+		await get_tree().create_timer(0.4).timeout
+		var tree := get_tree()
+		if tree == null or tree.current_scene == null or tree.current_scene.scene_file_path != path:
+			break
+		if refresh_action(path, tree.current_scene, true) == "reload":
+			tree.reload_current_scene.call_deferred()
+			break
+	_refresh_waiting = false
 
 
 func _load_sync() -> void:

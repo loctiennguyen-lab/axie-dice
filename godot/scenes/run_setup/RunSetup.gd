@@ -124,13 +124,27 @@ func account_state() -> String:
 	var st: int = account_status_hook.call() if account_status_hook.is_valid() else svc.status
 	if st == AccountService.Status.OFFLINE:
 		return "offline"
+	# Signing in / reconciling the cloud save: the active profile may still switch or be replaced.
+	if st == AccountService.Status.CHECKING:
+		return "loading"
+	if bool(svc.get("reconciling")):
+		return "loading"
+	var phase: Variant = svc.get("desktop_phase")
+	if phase != null and String(phase) != "idle":
+		return "loading"
 	if remote_on and (st == AccountService.Status.GUEST or st == AccountService.Status.EXPIRED):
 		return "guest"
 	return "normal"
 
 
+## True while a modal (hero picker, preset, leaderboard...) is open. AccountService waits for this
+## before rebuilding the screen.
+func has_modal() -> bool:
+	return _modal_layer != null and _modal_layer.get_child_count() > 0
+
+
 func _on_account_changed() -> void:
-	if use_account and state in ["normal", "offline", "guest"] and account_state() != state:
+	if use_account and state in ["normal", "loading", "offline", "guest"] and account_state() != state:
 		set_state(account_state())
 
 
@@ -309,7 +323,7 @@ func begin_block_reason() -> String:
 	if state == "offline" and remote_on:
 		return "Needs a connection to roll dice"
 	if state == "loading":
-		return "Loading…"
+		return "Signing you in…" if use_account and account_state() == "loading" else "Loading…"
 	if kind != "normal":
 		var kw := kind_block_reason(kind)
 		if kw != "":
@@ -349,7 +363,7 @@ func set_state(s: String) -> void:
 
 ## Begin. Uses start_hook if set (tests), otherwise RunState.begin_run().
 func begin() -> Dictionary:
-	if use_account and state in ["normal", "offline", "guest"] and account_state() != state:
+	if use_account and state in ["normal", "loading", "offline", "guest"] and account_state() != state:
 		set_state(account_state())
 	if begin_block_reason() != "":
 		return {"ok": false, "code": "blocked"}
