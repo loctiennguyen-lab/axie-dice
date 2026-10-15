@@ -2,12 +2,17 @@
 
 Cập nhật: 2026-10-12. Nhánh `godot-port`, push lên `axiedice` (`git push axiedice godot-port:main`).
 
-## ⇢ BẮT ĐẦU TỪ ĐÂY (cập nhật 16/10/2026 sáng)
+## ⇢ BẮT ĐẦU TỪ ĐÂY (cập nhật 16/10/2026 01:15)
 
-**Đọc `production/l1-plan-16-10.md` trước** (thứ tự việc, định nghĩa "xong", câu hỏi cho Liam L1–L6).
-godot-port = axiedice/main. Suite cây chính 98/98. Worker 163/163, deploy 15/10 bản d7b97e18, RULES_VERSION `-n`.
-Online đã chạy được: live smoke PASS trên production 16/10 00:10 (làn R, chưa merge). Bản Mac để Liam test: build/AxieDice-0.1.0-L1-b555-4f154f9.
-Đang làm: làn U (đăng nhập desktop có phản hồi), làn R (công cụ live smoke chờ review).
+**Đọc `production/l1-plan-16-10.md`** (thứ tự việc, định nghĩa "xong", câu hỏi cho Liam L1–L7).
+godot-port = axiedice/main (770afa1). Suite cây chính **100/100**. Worker 163/163, deploy d7b97e18, RULES_VERSION `-n`.
+**Live smoke `--full` PASS trên production 16/10 01:05** (run thường, mất mạng→RETRY, thoát→Continue, Daily).
+Bản Mac cho Liam: `build/AxieDice-0.1.0-L1-b595-770afa1-macos.dmg` (đã gắn ổ "Axie Dice L1"; bản cũ trong build/old/).
+Windows: build b556 (cũ hơn) nằm trong build/old/, cần build lại từ bản mới khi cần; chưa thử trên máy Windows thật.
+
+Xong 16/10 sáng: B3 phản hồi đăng nhập desktop, Continue online nối lại server (+ chống bấm 2 lần, timeout 20 s),
+C6 Profile/Cosmetics, live smoke + `--full`, wav→ogg (−27,5 MB), báo cáo D1 bot, B8 web FPS, rà dung lượng.
+Chờ Liam: L1 (cách cược Nhiệm vụ online, `production/proposals/missions-online-l1.md`), L7 (cắt dung lượng ảnh hưởng hình).
 
 ## (cũ) ⇢ BẮT ĐẦU TỪ ĐÂY (cập nhật 14/10/2026)
 
