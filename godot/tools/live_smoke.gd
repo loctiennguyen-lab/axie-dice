@@ -85,7 +85,14 @@ func _guarded(method: String, path: String, body: String, done: Callable) -> voi
 		_blocked.append("%s %s" % [method, path])
 		done.call(0, "")
 		return
-	AccountService._dt.request(method, path, body, done)
+	AccountService._dt.request(method, path, body, func(code: int, text: String) -> void:
+		if code != 200 and code != 204:
+			var err := ""
+			var j: Variant = JSON.parse_string(text) if text != "" else null
+			if typeof(j) == TYPE_DICTIONARY and (j as Dictionary).has("error"):
+				err = " error=" + String((j as Dictionary)["error"])
+			print("  (http %s %s -> %d%s)" % [method, path.get_slice("?", 0), code, err])
+		done.call(code, text))
 
 
 func _http(method: String, path: String) -> Array:
