@@ -9,13 +9,14 @@ godot-port = axiedice/main. Suite cây chính **102/102**. Worker **184/184**, d
 RULES_VERSION `-n`. Live smoke PASS trên production với code mới nhất.
 Bản Mac cho Liam test sáng 17/10 (L2): `build/AxieDice-0.1.0-L1-b615-bbfc8fb-macos.dmg` (ổ "Axie Dice L1" đang gắn).
 
-**Đang chạy lúc bàn giao (session cũ, kiểm kết quả trước khi làm tiếp):**
-1. Build Windows từ bbfc8fb (`bash tools/build_desktop.sh windows`) → xem `build/` có zip b615 chưa; chưa có thì chạy lại.
-2. art-director viết `production/polish/polish-plan-draft.md` (commit thẳng cây chính, chưa push) → review rồi đưa Liam duyệt.
-3. godot-gdscript-specialist ở worktree U (nhánh l1/U): 3 việc nhỏ sau review (open_existing trễ không attach run lạ;
-   Land has_modal phủ mọi panel; _atia_play không kẹt tư thế khi thiếu idle) + test. Xem `git -C ../my-game-wt/U log godot-port..`,
-   cho agent khác review rồi merge.
-4. Chưa làm: export bản web gọn (`bash godot/tools/export_web_slim.sh`, ~215 MB) để sẵn, KHÔNG deploy R2 khi chưa hỏi.
+**Xong sáng 16/10 (session sau bàn giao):**
+1. Build Windows: `build/AxieDice-0.1.0-L1-b616-9574922-windows.zip` (9574922 chỉ thêm doc so với bbfc8fb). Bản Win cũ b556 đã ở `build/old/`.
+2. Polish plan v2 (`production/polish/polish-plan-draft.md`, 4fe15e4): ux-designer review → art-director sửa (vạch freeze sau Batch 2,
+   Reward/Shop/Event vào Batch 2, mỗi mục có cách kiểm, còn 3 câu hỏi). Chờ Liam duyệt.
+3. Làn U 3 việc (a95d2dc, 6a631e6, c8d8d18) → lead-programmer review MERGE → merge c88c997, suite cây chính 102/102 không SKIP,
+   push. Live smoke `--full` PASS trên production (R ở c88c997). Còn nhỏ: test _atia_play chưa kiểm die/RESET/không connect 2 lần.
+   b615 KHÔNG có 3 sửa này (build sau sẽ có).
+4. Web gọn đã export: `web/index.pck` 205 MB (từ a100cf6 = code bbfc8fb). CHƯA deploy R2.
 
 **Chờ Liam:** L2 test b615 (chơi run thường + Nhiệm vụ N1 + tắt wifi giữa trận + thoát rồi Continue); L3 đăng nhập trên Windows;
 duyệt kế hoạch Polish. Quyết định Liam 16/10 ở cuối `pending-decisions.md` (L1 A đã làm, L4 bỏ, L5 vào Polish, L6 đã làm, L7 web-only đã làm).
