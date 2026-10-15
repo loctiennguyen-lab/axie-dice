@@ -86,8 +86,11 @@ const _REROLL_TOSS_DURATION := 0.36
 ## CombatStage3D.play_victory_march() for the actual Tween/anim-clip logic; this file only owns
 ## the tuning numbers, same split as _SHAKE_AMPLITUDE/_SHAKE_DURATION above (CombatView owns
 ## timing, CombatStage3D executes).
-const _VICTORY_MARCH_DISTANCE := 3.2   # meters, world space
-const _VICTORY_MARCH_DURATION := 1.2   # seconds — "ngắn ~1-1.5s" per task spec
+## Real fights run to the arena's portal and through it (distance comes from the arena; the
+## distance below is only the fallback for stages with no gate: tutorial, DevReview).
+const _VICTORY_MARCH_DISTANCE := 3.2   # meters, world space (no-gate fallback only)
+const _VICTORY_MARCH_DURATION := 1.2   # seconds, no-gate fallback
+const _VICTORY_RUN_DURATION := 1.1     # seconds, run to the gate + closing flash (<= 1.5 s total)
 
 ## v2 UI redesign (design_handoff_axie_dice_ui, §00/§03 "the art lives") REPLACES the whole
 ## dynamic vignette/spotlight system that used to live here (design/ux/
@@ -521,6 +524,24 @@ func _apply_arena_for_node() -> void:
 
 func _exit_tree() -> void:
 	_stage3d.dispose_all()
+
+
+## True while the party runs to the gate after a win; any click / Space / Enter / Esc skips it.
+var _exit_running := false
+
+
+func _input(event: InputEvent) -> void:
+	if not _exit_running:
+		return
+	var skip := false
+	if event is InputEventMouseButton:
+		skip = (event as InputEventMouseButton).pressed
+	elif event is InputEventKey:
+		var k := event as InputEventKey
+		skip = k.pressed and not k.echo and [KEY_SPACE, KEY_ENTER, KEY_KP_ENTER, KEY_ESCAPE].has(k.keycode)
+	if skip:
+		_stage3d.skip_victory_march()
+		get_viewport().set_input_as_handled()
 
 
 func _unhandled_key_input(event: InputEvent) -> void:
@@ -3247,9 +3268,7 @@ func _finish(won: bool) -> void:
 		# RunMap, instead of the previous same-frame overlay-then-scene-change (which meant the
 		# "BẠN THẮNG" overlay was never actually visible for a frame in practice). See
 		# _play_victory_march()/CombatStage3D.play_victory_march().
-		await _play_victory_march()
-		if not disable_juice_for_tests and _hud_frame != null and RunState.phase != RunState.RunPhase.WON:
-			await _show_victory_banner()
+		await _play_victory_march()   # runs through the gate, flash, straight on: no mid-screen banner
 		_result_overlay.visible = true
 		# apply_combat_result() (above) already decided WON vs. a normal win-with-rewards:
 		# defeating the run's FINAL boss sets RunState.phase to WON directly (src/engine.js
@@ -3378,49 +3397,6 @@ func _on_defeat_end_run() -> void:
 	get_tree().change_scene_to_file("res://scenes/result/Result.tscn")
 
 
-## 02j: the monsters are gone, the party stays; a banner says VICTORY and one button moves on
-## (Round 2 puts the reward panel on this same scene; until then it hands over to the run map).
-func _show_victory_banner() -> void:
-	var host := Control.new()
-	host.set_anchors_preset(Control.PRESET_FULL_RECT)
-	host.z_index = 35
-	host.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_shell_root.add_child(host)
-	var center := CenterContainer.new()
-	center.set_anchors_preset(Control.PRESET_FULL_RECT)
-	center.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	host.add_child(center)
-	var col := VBoxContainer.new()
-	col.add_theme_constant_override("separation", 10)
-	col.alignment = BoxContainer.ALIGNMENT_CENTER
-	col.custom_minimum_size = Vector2(600, 0)
-	center.add_child(col)
-	var plate := PanelContainer.new()
-	plate.add_theme_stylebox_override("panel", HudKit.box(Color("FFC45C"), 22, 4, DangoTheme.OUTLINE,
-		Vector2(4, 6), DangoTheme.SHELF, Vector2(40, 10)))
-	col.add_child(plate)
-	var pc := VBoxContainer.new()
-	pc.add_theme_constant_override("separation", 0)
-	plate.add_child(pc)
-	var t := HudKit.label("VICTORY", 64, DangoTheme.INK)
-	t.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	pc.add_child(DangoTheme.line_box(t, 64, 1.0))
-	var sub := HudKit.prose("Enemies defeated %s turn %d" % [HudKit.dot(), _combat.turn], 15, DangoTheme.INK)
-	sub.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	pc.add_child(sub)
-	var b := Button.new()
-	b.text = "Pick your reward"
-	b.custom_minimum_size = Vector2(320, 60)
-	b.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-	DangoTheme.style_button(b, true)
-	DangoTheme.apply_tracking(b, 0.0, 21, 800)
-	col.add_child(b)
-	b.grab_focus()
-	await b.pressed
-	if is_instance_valid(host):
-		host.queue_free()
-
-
 ## Gathers the currently-alive party (dead members already faded out via play_death() and should
 ## not un-hide/move) and hands their uids to CombatStage3D's actual Tween/anim-clip logic.
 func _play_victory_march() -> void:
@@ -3430,4 +3406,7 @@ func _play_victory_march() -> void:
 	for u in _combat.party:
 		if u.hp > 0:
 			uids.append(u.uid)
-	await _stage3d.play_victory_march(uids, _VICTORY_MARCH_DISTANCE, _VICTORY_MARCH_DURATION)
+	_exit_running = true
+	await _stage3d.play_victory_march(uids, _VICTORY_MARCH_DISTANCE,
+		_VICTORY_RUN_DURATION if _stage3d.has_gate() else _VICTORY_MARCH_DURATION)
+	_exit_running = false
