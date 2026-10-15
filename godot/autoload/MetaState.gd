@@ -122,6 +122,11 @@ var ledger: Array = []
 var team_presets: Array = []
 ## Land tier 1..6 (R3 M15). Raised only by upgrade_land(); paid in Land Stone.
 var land_tier: int = 1
+## Profile (R3 M12): last RUN_LOG_MAX finished runs, newest first. Each {"date","kind","mode","asc","won",
+## "aid","mission"}. Written only by record_run_outcome. `profile_stats` = lifetime {pure_wins, ms_played, ms_won}.
+var run_log: Array = []
+var profile_stats: Dictionary = {"pure_wins": 0, "ms_played": 0, "ms_won": 0}
+const RUN_LOG_MAX := 10
 const LEDGER_MAX := 200
 var _gem_wallet: GemWallet = null
 
@@ -310,6 +315,7 @@ func apply_server_wallet(snapshot: Dictionary) -> void:
 ## runs/wins/best vẫn do end_run ghi như hôm nay.
 func record_run_outcome(params: Dictionary, won: bool) -> void:
 	last_run_new_titles = []
+	_log_run(params, won)
 	# Quyết toán cược Nhiệm vụ (một lần; settle lần hai không làm gì). `won` đã gồm điều kiện phụ.
 	# Run thường kết thúc khi đang có escrow của run khác: params.mission_id rỗng -> không đụng escrow.
 	if not mission_escrow.is_empty() and String(params.get("mission_id", "")) == String(mission_escrow.get("mission_id", "")) \
@@ -329,6 +335,35 @@ func record_run_outcome(params: Dictionary, won: bool) -> void:
 	if String(params.get("mode", "short")) == "full" and asc >= 9:
 		full_a9_won = true
 	save_to_disk()
+
+
+## Profile run list + lifetime counters. Pure = no Aid used. Mission runs never allow Aid.
+func _log_run(params: Dictionary, won: bool) -> void:
+	var mission := not String(params.get("mission_id", "")).is_empty()
+	var aid := maxi(0, int(params.get("aid_used", 0)))
+	run_log.push_front({"date": today_utc(), "kind": String(params.get("kind", "normal")),
+		"mode": String(params.get("mode", "short")), "asc": int(params.get("ascension", 0)),
+		"won": won, "aid": aid, "mission": mission})
+	while run_log.size() > RUN_LOG_MAX:
+		run_log.pop_back()
+	if won and aid == 0 and not mission:
+		profile_stats["pure_wins"] = int(profile_stats.get("pure_wins", 0)) + 1
+	if mission:
+		profile_stats["ms_played"] = int(profile_stats.get("ms_played", 0)) + 1
+		if won:
+			profile_stats["ms_won"] = int(profile_stats.get("ms_won", 0)) + 1
+
+
+static func _sanitize_run_log(raw) -> Array:
+	var out: Array = []
+	if not raw is Array:
+		return out
+	for e in raw:
+		if e is Dictionary and out.size() < RUN_LOG_MAX:
+			out.append({"date": str(e.get("date", "")), "kind": str(e.get("kind", "normal")),
+				"mode": str(e.get("mode", "short")), "asc": int(e.get("asc", 0)), "won": bool(e.get("won", false)),
+				"aid": maxi(0, int(e.get("aid", 0))), "mission": bool(e.get("mission", false))})
+	return out
 
 
 ## Shard dùng được làm cược = số dư trừ phần khoản khởi đầu chưa tiêu.
@@ -514,6 +549,8 @@ func _reset_economy_fields() -> void:
 	ledger = []
 	team_presets = []
 	land_tier = 1
+	run_log = []
+	profile_stats = {"pure_wins": 0, "ms_played": 0, "ms_won": 0}
 
 
 func load_from_disk() -> void:
@@ -610,6 +647,12 @@ func _economy_from_json(parsed: Dictionary, raw_text: String = "") -> void:
 	ledger = (parsed.get("ledger", []) as Array).duplicate(true) if parsed.get("ledger", []) is Array else []
 	team_presets = TeamPresets.sanitize_list(parsed.get("team_presets", []))
 	land_tier = clampi(int(parsed.get("land_tier", 1)), 1, EconomyDBScript.land_max_tier())
+	run_log = _sanitize_run_log(parsed.get("run_log", []))
+	var ps2 = parsed.get("profile_stats", {})
+	profile_stats = {"pure_wins": 0, "ms_played": 0, "ms_won": 0}
+	if ps2 is Dictionary:
+		for k in profile_stats:
+			profile_stats[k] = maxi(0, int((ps2 as Dictionary).get(k, 0)))
 	starter_granted = bool(parsed.get("starter_granted", false))
 	if ver < SAVE_VERSION:
 		_migrate_pre_economy()
@@ -806,6 +849,8 @@ func save_to_disk() -> void:
 		"ledger": ledger,
 		"team_presets": team_presets,
 		"land_tier": land_tier,
+		"run_log": run_log,
+		"profile_stats": profile_stats,
 	}
 	if not SaveStore.write_text(SAVE_PATH, JSON.stringify(data, "\t")):
 		push_error("MetaState: could not write %s — this player's progress is not being saved"

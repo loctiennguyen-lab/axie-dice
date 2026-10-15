@@ -75,13 +75,15 @@ func _run() -> void:
 	pv.no_scene_change = true
 	add_child(pv)
 	await get_tree().process_frame
+	pv.set_tab(2)
 	var card := pv.find_child("Title_" + a5.replace(":", "_"), true, false)
 	_ok(card != null and card.find_child("Equip", true, false) != null, "Profile lists owned A5 title with Equip")
 	_ok(pv.find_child("Title_" + a10.replace(":", "_"), true, false).find_child("Status", true, false) != null, "A10 shown as Not yet")
 	(card.find_child("Equip", true, false) as Button).pressed.emit()
 	_ok(MetaState.equipped_title == a5, "Equip button equips")
 	await get_tree().process_frame
-	_ok(pv.find_child("EquippedTitle", true, false) != null, "equipped title shown under name")
+	pv.set_tab(0)
+	_ok(pv.find_child("EquippedTitle", true, false) != null and "Title:" in (pv.find_child("EquippedTitle", true, false) as Label).text, "equipped title shown under name")
 	pv.queue_free()
 	MetaState.reload_from_store()
 	_ok(MetaState.equipped_title == a5 and MetaState.cosmetics_owned.has(a5), "equip survives reload_from_store")

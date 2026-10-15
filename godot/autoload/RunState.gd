@@ -942,7 +942,7 @@ func end_run(won: bool) -> void:
 		# the RunVerifier replay digest differ). `won` here is the MISSION-aware win (final boss fell AND
 		# the offer condition held); MetaState.wins/asc_max above use the raw `won` as the JS ladder does.
 		MetaState.call("record_run_outcome", {"mode": mode, "ascension": ascension, "ranked": ranked,
-			"reached_boss": bosses_started > 0, "mission_id": String(mission.get("mission_id", ""))},
+			"reached_boss": bosses_started > 0, "kind": run_kind, "aid_used": aid_uses.size(), "mission_id": String(mission.get("mission_id", ""))},
 			bool(mission_outcome(won)["won"]))
 	if MetaState.has_method("pass_add_run_xp"):
 		MetaState.call("pass_add_run_xp", last_run_xp)

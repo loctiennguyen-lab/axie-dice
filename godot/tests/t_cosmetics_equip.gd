@@ -79,10 +79,12 @@ func _run() -> void:
 	pv.no_scene_change = true
 	add_child(pv)
 	await get_tree().process_frame
+	pv.set_tab(1)
 	var t := pv.find_child("Tile_die_c_clay", true, false)
 	_ok(t != null, "Profile shows owned skin tile")
 	if t != null:
-		(t.find_child("Equip", true, false) as Button).pressed.emit()
+		(t as Button).pressed.emit()
+		(pv.find_child("Equip", true, false) as Button).pressed.emit()
 		_ok(MetaState.equipped_die_skin == "die_c_clay", "Profile equip button equips")
 	pv.queue_free()
 	_tray_checks()
