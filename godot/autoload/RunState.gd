@@ -1874,6 +1874,37 @@ func discard_unresumable_run() -> bool:
 	return true
 
 
+const GONE_MESSAGE := "Your unfinished run is no longer open on the server, so it can't be continued."
+
+
+## After load_run(): lets a remote epoch source reconnect to the saved run (no-op for a local one).
+## Returns {ok, code}. code "run_gone" = the server holds no such run: the save is already discarded
+## (stake settled, file erased, notice set) and the caller goes to Land. Other codes (offline, unauthenticated...)
+## leave everything as it is so the caller can show NetNotice and call this again.
+func resume_online() -> Dictionary:
+	if epoch == null:
+		return {"ok": true, "code": ""}
+	epoch_busy = true
+	var r := epoch.reconnect()
+	if not r.done:
+		await r.resolved
+	epoch_busy = false
+	if r.ok:
+		return {"ok": true, "code": ""}
+	if r.code == "run_gone":
+		discard_gone_run()
+	return {"ok": false, "code": r.code}
+
+
+## The saved run cannot continue online (closed or abandoned elsewhere): settle any mission stake as a loss,
+## erase the save, leave GONE_MESSAGE for the next screen and clear the in-memory run.
+func discard_gone_run() -> void:
+	MetaState.settle_mission_stake(false, true)
+	SaveStore.erase(SAVE_PATH)
+	reset()
+	discard_notice = GONE_MESSAGE
+
+
 ## Returns the pending "run discarded" line once, then clears it.
 func take_discard_notice() -> String:
 	var m := discard_notice

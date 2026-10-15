@@ -1169,6 +1169,13 @@ func _on_continue() -> void:
 		RunState.clear_saved_run()
 		set_state("normal")
 		return
+	var st: String = await RunContinue.reconnect(self, _on_continue)
+	if st == "gone":
+		set_state("normal")
+		_on_back()   # Land shows RunState's discard notice
+		return
+	if st != "ok":
+		return
 	if not no_scene_change:
 		get_tree().change_scene_to_file(COMBAT if not RunState.resume_combat.is_empty() else RUN_MAP)
 
