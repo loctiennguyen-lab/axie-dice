@@ -108,3 +108,4 @@ hạn/ngày, NFT dùng được) · UI request 02 + Round 1 · L1 = 3/11 nội b
 - (Liam 14/10, đã chốt) C9 polish: làm cả 5 việc trong L1 (màu đất/trời + sương + khung cây sân mystic/genesis, tier 6 màu + trăng, đá lối đi mystic, lối đi + cỏ bụi genesis, mảnh vách/địa hình Land tier 4–5).
 - (Liam 14/10, đã chốt) Giá nâng Land L1: GIỮ GIÁ GỐC (tổng 1,82 triệu Stone). economy-designer ước: ít chơi tới tier 2 ~ngày 16, tier 3 cuối mùa; nhiều chơi tier 3 ~ngày 25; tier 4–6 gần như không ai tới trong 8 tuần.
 - (Liam 15/10, đã chốt) Bật online (B1): L1 BẮT ĐĂNG NHẬP mới chơi (run thường, Daily, Ranked, Nhiệm vụ). Khách thấy 'Sign in to play' + nút đăng nhập. Tutorial vẫn chơi không cần đăng nhập. Không làm tài khoản khách trên Worker cho L1.
+- (Liam 15/10) Sau khi chơi bản Mac online đầu tiên: UI còn RẤT xấu, phase Polish phải làm lại cực nhiều. Trước khi lên plan Polish: xin Liam danh sách màn xấu + art-director/ux-designer audit bản build thật.
