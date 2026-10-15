@@ -40,6 +40,8 @@ general/default_playback_type.web=0
 [axie]
 
 proxy_url="https://axiedice.vercel.app/api/axie"
+epoch_source="remote"
+gem_wallet="remote"
 
 [display]
 

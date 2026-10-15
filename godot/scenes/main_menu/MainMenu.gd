@@ -1333,6 +1333,11 @@ func _apply_hero_button_style(btn: Button, fill: Color, radius: int, border_w: i
 # ===========================================================================
 
 func _on_new_run_pressed() -> void:
+	# L1: with server-rolled dice the only way to start a run is Run Setup (begin_run, sign-in check).
+	# This old menu is unreachable while RunSetup.tscn exists (LandNav.legacy_setup_open), kept as a guard.
+	if RemoteEpochSource.flag_on():
+		LandNav.open(&"run_setup")
+		return
 	if _seed_edit.text.is_valid_int():
 		_seed_value = int(_seed_edit.text)
 	var team: Array[String] = _team_selection.duplicate()

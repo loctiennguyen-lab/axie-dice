@@ -67,6 +67,40 @@ _owner_alive() {   # $1 = nội dung file pid, dạng "pid|lstart"
 _held_ok() { [[ -n "${AXIE_GODOT_LOCK_HELD:-}" && "$(_owner_pid)" == "$AXIE_GODOT_LOCK_HELD" ]]; }
 if _held_ok; then exec "$@"; fi
 
+# --- PREFLIGHT (chong treo, 15/10) -------------------------------------------
+# (a) Conflict marker trong .gd/.tscn/.tres/.cfg/project.godot -> Godot parse loi va TREO thay vi bao loi:
+#     tu choi chay, exit 66. (b) Cache class_name cu hon file .gd moi nhat co class_name -> can --import,
+#     tu import (toi da 240s) truoc khi chay tiep. Bo qua bang AXIE_SKIP_PREFLIGHT=1.
+_preflight_conflicts() {
+  grep -rIlE '^(<<<<<<< |=======$|>>>>>>> )' \
+    --include='*.gd' --include='*.tscn' --include='*.tres' --include='*.cfg' --include='project.godot' \
+    --exclude-dir=addons --exclude-dir=.godot "$PROJ" 2>/dev/null
+}
+_preflight_godot_bin() {
+  local c
+  for c in "${GODOT:-}" "/Users/loc.tien.nguyen/Desktop/Godot.app/Contents/MacOS/Godot" \
+           "$PROJ/../tools/bin/Godot_v4.7.2-stable_linux.arm64" "$PROJ/../tools/bin/Godot_v4.7.2-stable_linux.x86_64"; do
+    [[ -n "$c" && -x "$c" ]] && { printf '%s' "$c"; return; }
+  done
+  command -v godot 2>/dev/null || true
+}
+_preflight_cache_stale() {
+  local cache="$PROJ/.godot/global_script_class_cache.cfg" f
+  [[ -f "$cache" ]] || return 0
+  f="$(grep -rlE '^class_name ' --include='*.gd' --exclude-dir=addons --exclude-dir=.godot "$PROJ" 2>/dev/null \
+       | while IFS= read -r x; do printf '%s %s\n' "$(stat -f %m "$x" 2>/dev/null || stat -c %Y "$x")" "$x"; done \
+       | sort -rn | head -1 | cut -d' ' -f2-)"
+  [[ -n "$f" && "$f" -nt "$cache" ]]
+}
+if [[ "${AXIE_SKIP_PREFLIGHT:-}" != 1 ]]; then
+  bad="$(_preflight_conflicts)"
+  if [[ -n "$bad" ]]; then
+    echo "with_lock: PREFLIGHT tu choi chay Godot, co dau conflict git trong:" >&2
+    printf '%s\n' "$bad" | sed 's/^/  /' >&2
+    exit 66
+  fi
+fi
+
 _stale() {
   [[ -d "$LOCK" ]] || return 1
   local o; o="$(_owner)"
@@ -192,6 +226,18 @@ trap '_on_signal 143' TERM
 trap '_on_signal 129' HUP
 trap _cleanup EXIT
 
+
+if [[ "${AXIE_SKIP_PREFLIGHT:-}" != 1 ]] && _preflight_cache_stale; then
+  gb="$(_preflight_godot_bin)"
+  if [[ -n "$gb" ]]; then
+    echo "with_lock: cache class_name cu, tu chay --import (toi da 240s)..." >&2
+    "$gb" --headless --path "$PROJ" --import >/dev/null 2>&1 & ip=$!
+    ( sleep 240; kill "$ip" 2>/dev/null ) & iw=$!
+    wait "$ip" 2>/dev/null; ic=$?; kill "$iw" 2>/dev/null
+    # Import xong mà không viết lại cache (vd checkout chỉ đổi mtime) thì chạm cache, để lần sau không import lại vô ích.
+    [[ "$ic" == 0 && -f "$PROJ/.godot/global_script_class_cache.cfg" ]] && touch "$PROJ/.godot/global_script_class_cache.cfg"
+  fi
+fi
 export AXIE_GODOT_LOCK_HELD="$$"
 "$@" &
 child=$!

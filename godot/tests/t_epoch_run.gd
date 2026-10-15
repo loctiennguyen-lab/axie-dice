@@ -37,6 +37,7 @@ func _engine(seed_value: int) -> CombatEngine:
 func _ready() -> void:
 	await get_tree().process_frame
 	_guard.capture()
+	_force_local()
 
 	# --- run start is a function of the epoch secret only ---
 	RunState.start_new_run(11, TEAM, "short", 0, true)
@@ -157,3 +158,9 @@ func _ready() -> void:
 ## that were advanced identically.
 func _next_seed() -> int:
 	return RunState.epoch.request("end_turn", {"turn": 1}).seed
+
+
+## L1: project defaults are remote/remote; this test runs the local path and must never touch the network.
+func _force_local() -> void:
+	ProjectSettings.set_setting("axie/epoch_source", "local")
+	ProjectSettings.set_setting("axie/gem_wallet", "local")

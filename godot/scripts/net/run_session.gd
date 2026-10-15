@@ -27,7 +27,8 @@ var state := "idle"   # idle | connecting | ready | reconnecting | closed
 ## http.call(method, path, body_text, done(code:int, text:String)); defaults to AccountService.transport.
 var http: Callable
 ## socket_factory.call() -> object with WebSocketPeer's methods. Tests inject a fake.
-var socket_factory: Callable = func() -> Object: return WebSocketPeer.new()
+var socket_factory: Callable = func() -> Object:
+	return null if NetGuard.blocked() else WebSocketPeer.new()
 
 var _sock: Object = null
 var _token := ""
@@ -145,6 +146,9 @@ func _connect() -> void:
 	_sock = socket_factory.call()
 	_sent_hello = false
 	_set_state("connecting" if _backoff == 0 and state != "reconnecting" else "reconnecting")
+	if _sock == null:   # NetGuard: no real socket in tests
+		_schedule_retry()
+		return
 	var err: int = _sock.connect_to_url(_ws_url)
 	if err != OK:
 		_schedule_retry()

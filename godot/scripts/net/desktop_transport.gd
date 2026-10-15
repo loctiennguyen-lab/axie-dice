@@ -69,6 +69,9 @@ func _refresh_then(next: Callable) -> void:
 
 
 func _http(method: String, url: String, headers: PackedStringArray, body: String, done: Callable) -> void:
+	if NetGuard.blocked():
+		done.call(0, "")   # same as "never reached the server"
+		return
 	var req := HTTPRequest.new()
 	req.timeout = 12.0
 	add_child(req)

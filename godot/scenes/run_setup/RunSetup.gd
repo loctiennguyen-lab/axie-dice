@@ -47,6 +47,8 @@ var use_account := true
 var remote_on: bool = String(ProjectSettings.get_setting("axie/epoch_source", "")) == "remote"
 ## Tests: replaces AccountService.status. Returns an AccountService.Status int.
 var account_status_hook: Callable
+## Tests: replaces AccountService.sign_in().
+var sign_in_hook: Callable = Callable()
 ## Tests: skip the scene change after a successful Begin.
 var no_scene_change := false
 ## Tests: replace the real RunState call. Receives the params Dictionary, returns {ok, code}.
@@ -105,11 +107,15 @@ func _ready() -> void:
 
 
 ## Run Setup state from the account: only a signed-in player who lost the connection is
-## "offline". Guests play locally, so a guest is "normal". Reads AccountService.status unless
-## account_status_hook is set (tests).
+## "offline"; a guest or an expired/revoked session is "guest" (L1: sign-in required to play, only
+## enforced while remote_on). Reads AccountService.status unless account_status_hook is set (tests).
 func account_state() -> String:
 	var st: int = account_status_hook.call() if account_status_hook.is_valid() else AccountService.status
-	return "offline" if st == AccountService.Status.OFFLINE else "normal"
+	if st == AccountService.Status.OFFLINE:
+		return "offline"
+	if remote_on and (st == AccountService.Status.GUEST or st == AccountService.Status.EXPIRED):
+		return "guest"
+	return "normal"
 
 
 func _unhandled_key_input(ev: InputEvent) -> void:
@@ -228,6 +234,8 @@ func kind_block_reason(k: String) -> String:
 		return ""
 	if not remote_on:
 		return "Needs the online build"
+	if state == "guest":
+		return "Sign in to play"
 	if state == "offline":
 		return "Needs a connection"
 	if k == "daily":
@@ -280,6 +288,8 @@ func _refresh_kind() -> void:
 
 ## Why Begin is disabled, or "" when it is allowed.
 func begin_block_reason() -> String:
+	if state == "guest" and remote_on:
+		return "Sign in to play"
 	if state == "offline" and remote_on:
 		return "Needs a connection to roll dice"
 	if state == "loading":
@@ -311,6 +321,8 @@ func set_state(s: String) -> void:
 		_build_skeleton()
 	elif s == "open_run":
 		_build_open_run()
+	elif s == "guest":
+		_add_banner("Sign in to play", "Dice are rolled on the server, so runs need an account.", false, true)
 	elif s == "offline":
 		if remote_on:
 			_add_banner("Can't reach the dice server", "Last updated %s. Dice are rolled on the server in this build."
@@ -322,7 +334,7 @@ func set_state(s: String) -> void:
 
 ## Begin. Uses start_hook if set (tests), otherwise RunState.begin_run().
 func begin() -> Dictionary:
-	if use_account and state in ["normal", "offline"] and account_state() != state:
+	if use_account and state in ["normal", "offline", "guest"] and account_state() != state:
 		set_state(account_state())
 	if begin_block_reason() != "":
 		return {"ok": false, "code": "blocked"}
@@ -333,6 +345,10 @@ func begin() -> Dictionary:
 	else:
 		r = await RunState.begin_run(params)
 	if not r.get("ok", false):
+		if String(r.get("code", "")) == "unauthenticated":
+			# Session expired or revoked after the screen opened: same message as a guest, no retry banner.
+			set_state("guest")
+			return r
 		begin_error = "Could not roll dice, try again."
 		_add_banner(begin_error, "Nothing was spent. Code: %s" % String(r.get("code", "?")), false)
 		return r
@@ -991,7 +1007,7 @@ func _refresh_footer() -> void:
 
 # ---------------------------------------------------------------- states
 
-func _add_banner(msg: String, detail: String, with_retry: bool) -> void:
+func _add_banner(msg: String, detail: String, with_retry: bool, with_sign_in: bool = false) -> void:
 	var p := PanelContainer.new()
 	p.name = "Banner"
 	var sb := StyleBoxFlat.new()
@@ -1014,7 +1030,20 @@ func _add_banner(msg: String, detail: String, with_retry: bool) -> void:
 		var r := _button("Try again", 160, 44, true)
 		r.pressed.connect(func() -> void: set_state("normal"))
 		h.add_child(r)
+	if with_sign_in:
+		var si := _button("Sign in", 160, 44, true)
+		si.name = "SignInButton"
+		si.pressed.connect(_on_sign_in)
+		h.add_child(si)
 	_banner_host.add_child(p)
+
+
+## Opens the existing sign-in flow (AccountService: Google on web, browser flow on desktop).
+func _on_sign_in() -> void:
+	if sign_in_hook.is_valid():
+		sign_in_hook.call()
+	else:
+		AccountService.sign_in()
 
 
 func _build_skeleton() -> void:

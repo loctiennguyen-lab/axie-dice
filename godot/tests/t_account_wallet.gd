@@ -14,6 +14,7 @@ func _check(cond: bool, what: String) -> void:
 
 func _ready() -> void:
 	_guard.capture()
+	_force_local()
 	await get_tree().process_frame
 	var net := func(_m: String, path: String, _b: String, done: Callable) -> void:
 		if path == "/api/wallet":
@@ -35,3 +36,9 @@ func _ready() -> void:
 	_guard.restore()
 	print("t_account_wallet: ", "PASS" if _fails == 0 else "FAILED (%d)" % _fails)
 	get_tree().quit(1 if _fails > 0 else 0)
+
+
+## L1: project defaults are remote/remote; this test runs the local path and must never touch the network.
+func _force_local() -> void:
+	ProjectSettings.set_setting("axie/epoch_source", "local")
+	ProjectSettings.set_setting("axie/gem_wallet", "local")
