@@ -203,7 +203,8 @@ const WATCHED_FILES: Array[String] = ["res://assets/data/part_faces.json"]
 ## string "<kind>_<index>" (RunState._shop_item_arg) instead of an int, because the Worker requires an identifier. Args feed
 ## EpochCanon.seed_from, so heal-buy seeds change and RunVerifier recomputes from them. Worker SUPPORTED_RULE_VERSIONS gained -n.
 ## FINGERPRINT left for the main merge (lane I recomputes it).
-const FINGERPRINT := "837ee96363d5be44705db741c2c07c7bea6b510bd217f6bdab5ca7c553e07844"
+## Moved 2026-10-16 by sign-in feedback c1400a1: AccountService desktop_phase/reconciling (account UI only). Run result: NO, stays -n.
+const FINGERPRINT := "df8728a5059378f6b280a815ed8d81a5ca13577580d7c81393f7063cfd03ff26"
 
 
 func _ready() -> void:
