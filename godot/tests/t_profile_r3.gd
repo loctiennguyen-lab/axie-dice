@@ -10,6 +10,8 @@ class StubService extends Node:
 	func is_signed_in() -> bool: return not account.is_empty()
 	func display_name() -> String: return String(account.get("name", ""))
 
+const TEAM: Array[String] = ["plant1", "beast1", "aqua1", "reptile1", "bug1"]
+
 var _fail := 0
 var _n := 0
 var _guard := SaveGuard.new()
@@ -119,3 +121,23 @@ func _run() -> void:
 	await get_tree().process_frame
 	_ok(pv.find_child("Grid_frame", true, false) != null, "frames category")
 	pv.queue_free()
+
+	# real path: RunState.end_run puts kind + aid_used in run_log; tutorial and abandoned runs add nothing
+	MetaState.run_log = []
+	RunState.start_new_run(11, TEAM, "short", 0, false)
+	RunState.run_kind = "daily"
+	RunState.aid_uses.append({"aid": "a_x", "node_id": "n1"})
+	RunState.aid_uses.append({"aid": "a_y", "node_id": "n2"})
+	RunState.end_run(false)
+	_ok(MetaState.run_log.size() == 1, "end_run adds exactly one run_log entry")
+	if MetaState.run_log.size() == 1:
+		var le: Dictionary = MetaState.run_log[0]
+		_ok(String(le["kind"]) == "daily" and int(le["aid"]) == 2 and not bool(le["won"]), "end_run: kind + aid_used reach run_log")
+	RunState.start_new_run(12, TEAM, "short", 0, false)   # abandon (Land New run / Settings): no end_run
+	RunState.clear_saved_run()
+	RunState.reset()
+	_ok(MetaState.run_log.size() == 1, "abandoned run adds no entry")
+	RunState.pending_combat = {"node_id": "tutorial", "kind": "battle", "pw": 0, "ascension": 0, "tutorial": true}   # what TutorialView sets; it never calls end_run
+	RunState.reset()
+	_ok(MetaState.run_log.size() == 1, "tutorial run adds no entry")
+	MetaState.run_log = []

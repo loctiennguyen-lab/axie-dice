@@ -107,7 +107,7 @@ func _overview_tab() -> void:
 	var head := HBoxContainer.new()
 	head.name = "HeaderCard"
 	head.add_theme_constant_override("separation", 18)
-	head.add_child(make_avatar(96.0))
+	head.add_child(make_avatar(96.0, service))
 	var who := VBoxContainer.new()
 	who.add_theme_constant_override("separation", 2)
 	who.alignment = BoxContainer.ALIGNMENT_CENTER
@@ -154,7 +154,7 @@ func _overview_tab() -> void:
 		list.add_child(_run_row(MetaState.run_log[i] as Dictionary, i))
 
 
-## [{k, v, s}] x 6 from saved data. Missing data reads "—", never a made-up number.
+## [{k, v, s}] x 5 from saved data. Missing data reads "—", never a made-up number.
 static func stat_tiles() -> Array[Dictionary]:
 	var best := -1
 	for k in MetaState.asc_wins:
@@ -164,7 +164,7 @@ static func stat_tiles() -> Array[Dictionary]:
 	var ps: Dictionary = MetaState.profile_stats
 	var ms_played := int(ps.get("ms_played", 0))
 	return [
-		{"k": "Runs", "v": str(runs), "s": "created · quits count"},
+		{"k": "Runs", "v": str(runs), "s": "finished runs"},
 		{"k": "Wins", "v": str(MetaState.wins), "s": "%d%%" % int(round(100.0 * MetaState.wins / runs)) if runs > 0 else "—"},
 		{"k": "Best Ascension", "v": ("A%d" % best) if best >= 0 else "—", "s": "won"},
 		{"k": "Pure wins", "v": str(int(ps.get("pure_wins", 0))), "s": "no Aid"},
@@ -191,7 +191,7 @@ func _stat_tile(t: Dictionary) -> Control:
 
 static func run_mode_text(e: Dictionary) -> String:
 	if bool(e.get("mission", false)):
-		return "Nhiệm vụ"
+		return "Mission"
 	var kind := String(e.get("kind", "normal"))
 	var mode := "Full" if String(e.get("mode", "short")) == "full" else "Short"
 	match kind:
@@ -358,11 +358,11 @@ func _preview(owned: Array[String]) -> Control:
 	var e := _entry(selected)
 	var tier := int(e.get("tier", 0))
 	var mythic := tier == DangoTheme.RARITY_MYTHIC
-	var fill: Color = Color("2A0F2E") if mythic else DangoTheme.CREAM_100
-	var ink: Color = Color("FF9FB8") if mythic else DangoTheme.INK
-	var ink2: Color = Color("F2D8E2") if mythic else DangoTheme.INK_ON_CREAM_MUTED
+	var fill: Color = DangoTheme.MYTHIC_NIGHT if mythic else DangoTheme.CREAM_100
+	var ink: Color = DangoTheme.MYTHIC_INK if mythic else DangoTheme.INK
+	var ink2: Color = DangoTheme.MYTHIC_INK_2 if mythic else DangoTheme.INK_ON_CREAM_MUTED
 	p.add_theme_stylebox_override("panel", R3Shell.surface(DangoTheme.Surface.CREAM_RAISED, 20, 3, Vector2(16, 16), fill,
-		Color("0A0408") if mythic else null))
+		DangoTheme.MYTHIC_EDGE if mythic else null))
 	var v := VBoxContainer.new()
 	v.add_theme_constant_override("separation", 10)
 	p.add_child(v)
@@ -446,8 +446,8 @@ func _title_card(id: String, label: String, goal: String, on: bool, have: bool) 
 	card.name = "Title_" + (id.replace(":", "_") if id != "" else "none")
 	card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	var sb := StyleBoxFlat.new()
-	sb.bg_color = Color("FFE3A6") if on else (Color("FFF8EA") if have else Color("F3E9D6"))
-	sb.border_color = DangoTheme.OUTLINE if on else (Color("8A3E22") if have else Color("B89A74"))
+	sb.bg_color = DangoTheme.GOLD_SOFT if on else (DangoTheme.CREAM_RAISED if have else DangoTheme.CREAM_LOCKED)
+	sb.border_color = DangoTheme.OUTLINE if on else (DangoTheme.LINE if have else DangoTheme.FUTURE)
 	sb.set_border_width_all(3)
 	sb.set_corner_radius_all(16)
 	sb.content_margin_left = 16
@@ -484,13 +484,16 @@ func _title_card(id: String, label: String, goal: String, on: bool, have: bool) 
 
 
 ## Initial-letter avatar wearing the equipped frame (same look as the Land chip).
-static func make_avatar(total_px: float) -> Control:
+## `svc` = the account service (is_signed_in / display_name); null falls back to the AccountService autoload.
+static func make_avatar(total_px: float, svc: Node = null) -> Control:
+	if svc == null:
+		svc = AccountService
 	var nm := "P"
-	if AccountService.is_signed_in():
-		nm = AccountService.display_name().left(1).to_upper()
+	if svc.is_signed_in():
+		nm = svc.display_name().left(1).to_upper()
 	var av := PanelContainer.new()
 	av.name = "Avatar"
-	av.add_theme_stylebox_override("panel", DangoTheme.solid_chip_style(Color("FFC445"), 20, 3))
+	av.add_theme_stylebox_override("panel", DangoTheme.solid_chip_style(DangoTheme.GOLD, 20, 3))
 	var ini := DangoTheme.display_label(nm, int(total_px * 0.3), DangoTheme.INK)
 	ini.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	ini.vertical_alignment = VERTICAL_ALIGNMENT_CENTER

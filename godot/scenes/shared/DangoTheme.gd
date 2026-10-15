@@ -363,6 +363,12 @@ const RARITY_COLORS: Array[Color] = [
 ]
 ## The one night background Mythic cosmetics sit on (approved with the Mythic colour, 12/10).
 const MYTHIC_NIGHT := Color(0x2A / 255.0, 0x0F / 255.0, 0x2E / 255.0)
+## Ink on MYTHIC_NIGHT (Profile cosmetics preview): title, secondary, and the plate's edge.
+const MYTHIC_INK := Color(0xFF / 255.0, 0x9F / 255.0, 0xB8 / 255.0)
+const MYTHIC_INK_2 := Color(0xF2 / 255.0, 0xD8 / 255.0, 0xE2 / 255.0)
+const MYTHIC_EDGE := Color(0x0A / 255.0, 0x04 / 255.0, 0x08 / 255.0)
+## Locked / not-yet card fill (Titles tab): a step below CREAM_DISABLED, still lighter than FUTURE.
+const CREAM_LOCKED := Color(0xF3 / 255.0, 0xE9 / 255.0, 0xD6 / 255.0)
 
 
 static func rarity_color(rar: int) -> Color:
