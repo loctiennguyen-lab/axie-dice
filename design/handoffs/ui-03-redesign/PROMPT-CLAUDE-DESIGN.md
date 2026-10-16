@@ -25,7 +25,13 @@ Why we redo it. The owner looked at every screen: ugly, cluttered, too many elem
 
 You may redraw everything and draw new art (icons, frames, panels, dice faces, chests, item art, avatars). **Use the Terrariums design system** as the visual base for everything. It replaces our old Dango design system (the cream/wood look); do not carry Dango over. The Main Menu no longer exists: after the boot/sign-in screen the player lands in the 3D Land hub, and every meta screen opens from it.
 
-**Sent with this brief:** a contact sheet of the current build (what not to repeat), game data (Axie names and classes, the 6 face types, relic and pact names, currencies), the current fonts, and the art we already have (Axie portraits, die face art, chest art, currency icons). Redraw any of it if your variant needs to.
+**Sent with this brief** (same zip):
+- `world-3d/`: the 3D Land hub and combat arenas as they are today. The 3D world stays; your UI sits on top of it. **The HUD in these shots is the old UI: ignore it completely** and look only at the world behind it (colours, where the party and enemies stand, what space is free). We send no screenshots of the old screens on purpose: start from a blank page.
+- `game-data.md`: real names and strings (Axie classes, the 8 die face types, relics, pacts, actives, currencies, map nodes, longest strings). Use these, do not invent names.
+- `art/`: art already in the game (class portraits, face/status/map-node icons, UI icons, Echo Box chests). Redraw any of it if your variant needs to.
+- `design-library/`: contact sheets and icons of Homeland art we are allowed to use (read its `INDEX.md`; refer to an image by its path).
+
+**No Axie drawings.** In the game an Axie is always a live 3D model. Wherever a screen shows an Axie, leave a labelled frame "AXIE 3D" (same rule as the 3D viewport placeholders).
 
 ## 2. Process: three rounds, we approve each
 
@@ -78,7 +84,7 @@ Everything below is a requirement. If an idea breaks one, say so and propose the
 
 **Components: one fixed set**
 Each with named variants and separate styles for normal, hover, pressed, disabled, focus, selected (where it applies). Say whether pressed shifts the label. Selected (current tab, equipped item) and focus (keyboard) are different states and must look different. The focus ring must not rely on colour alone. Disabled controls show the reason as text.
-Minimum set: Button (primary, secondary, quiet, danger; M and L), IconButton, Tab, Chip/Badge, Panel (shell, card, plate), Modal, Confirm dialog (normal, warning, price), Tooltip / Info panel, ProgressBar, Slider, Toggle, Dropdown, ListRow, Tile (item, Axie, die), Toast, Network notice (offline with Retry), ScrollBar, Currency pill, Die face tile (6 face types), Axie card, HP bar with shield and poison, Enemy intent marker, Turn banner.
+Minimum set: Button (primary, secondary, quiet, danger; M and L), IconButton, Tab, Chip/Badge, Panel (shell, card, plate), Modal, Confirm dialog (normal, warning, price), Tooltip / Info panel, ProgressBar, Slider, Toggle, Dropdown, ListRow, Tile (item, Axie, die), Toast, Network notice (offline with Retry), ScrollBar, Currency pill, Die face tile (8 face types + blank), Axie card, HP bar with shield and poison, Enemy intent marker, Turn banner.
 
 **Art and assets**
 - Prefer flat rounded boxes with borders (free in Godot) over textured frames. Textures only where they pay off.
