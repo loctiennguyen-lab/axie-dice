@@ -25,15 +25,15 @@ Why we redo it. The owner looked at every screen: ugly, cluttered, too many elem
 
 You may redraw everything and draw new art (icons, frames, panels, dice faces, chests, item art, avatars). **Use the Terrariums design system** as the visual base for everything. It replaces our old Dango design system (the cream/wood look); do not carry Dango over. The Main Menu no longer exists: after the boot/sign-in screen the player lands in the 3D Land hub, and every meta screen opens from it.
 
-**Sent with this brief:** a contact sheet of the current build (what not to repeat), game data (Axie names and classes, the 6 face types, relic and pact names, currencies), the current fonts, and the art we already have (Axie portraits, die face art, chest art, currency icons). Redraw any of it if your direction needs to.
+**Sent with this brief:** a contact sheet of the current build (what not to repeat), game data (Axie names and classes, the 6 face types, relic and pact names, currencies), the current fonts, and the art we already have (Axie portraits, die face art, chest art, currency icons). Redraw any of it if your variant needs to.
 
 ## 2. Process: three rounds, we approve each
 
-**Round A: three ways to apply Terrariums.** All three use the Terrariums design system. They differ in layout, density and how the HUD sits over the 3D world, not in colour swaps. Each one is drawn on the same four screens at 1920×1080: Land hub HUD, Combat HUD (player turn, a die selected), Run Map (mid-run), Store (Gem packs tab: proves the direction can carry a dense list). Per variant add one style tile showing how Terrariums is applied (palette with the one named accent colour, type pairing, a panel, primary and secondary button, six icons, one die face) and a one-line rationale. Add one 1280×720 frame of the Combat HUD per direction so we can judge text size. Say what each direction costs to build in Godot (low/medium/high, and why).
+**Round A: three ways to apply Terrariums.** All three use the Terrariums design system. They differ in layout, density and how the HUD sits over the 3D world, not in colour swaps. Each one is drawn on the same four screens at 1920×1080: Land hub HUD, Combat HUD (player turn, a die selected), Run Map (mid-run), Store (Gem packs tab: proves the variant can carry a dense list). Per variant add one style tile showing how Terrariums is applied (palette with the one named accent colour, type pairing, a panel, primary and secondary button, six icons, one die face) and a one-line rationale. Add one 1280×720 frame of the Combat HUD per variant so we can judge text size. Say what each variant costs to build in Godot (low/medium/high, and why).
 
-**Nothing past Round A happens until Liam picks a direction.** Do not start Round B or C early and do not blend directions on your own. Liam may ask for one revision of the chosen direction.
+**Nothing past Round A happens until Liam picks a variant.** Do not start Round B or C early and do not blend variants on your own. Liam may ask for one revision of the chosen variant.
 
-**Round B: design system** for the chosen direction: tokens and components (section 4), one frame per component with all variants and states.
+**Round B: design system**: Terrariums as applied in the chosen variant, plus the game-specific pieces: tokens and components (section 4), one frame per component with all variants and states.
 
 **Round C: all screens** (section 5) in priority order, built only from Round B components. A screen that needs a new component sends that component back to Round B first.
 
@@ -43,7 +43,7 @@ Countable rules, per screen:
 - At most 1 primary action and 2 secondary actions visible at once.
 - At most 7 information groups. A group is one block the eye reads as a unit (a card, a stat row, a list, a header). If a screen needs more, split it or move detail behind hover/click (the Info panel).
 - At most 3 text sizes and 2 weights per panel.
-- One named accent colour per direction, and it means one thing (for example "act now"). Every other colour carries meaning (state, rarity, face type, damage) and is listed with that meaning in tokens.json.
+- One named accent colour per variant, taken from Terrariums, and it means one thing (for example "act now"). Every other colour carries meaning (state, rarity, face type, damage) and is listed with that meaning in tokens.json.
 
 Banned unless you write down why: glow, glass/frosted panels, neon rims, gradient fills across panels, sparkles, ornament flourishes, decorative dividers, empty frames, stacked shadows, inner glow, more than one stroke on an object, emoji-style icons, generic fantasy icons. Where Terrariums itself uses one of these, Terrariums wins: note where, and keep it to that use.
 
@@ -90,7 +90,7 @@ Minimum set: Button (primary, secondary, quiet, danger; M and L), IconButton, Ta
 **Effects**
 - OK: flat and rounded StyleBox, borders, hard offset shadows, solid fills, textures, text outline up to 4 px (thin outlines only on large text, they get costly as font size grows), simple tweens (fade, slide, scale).
 - Behind modals: a flat dark scrim (solid colour with alpha). No live blur; it needs a viewport capture and is slow on the web renderer.
-- Not OK: gradients across panels, dashed borders, inner glow, backdrop blur, blend modes, SVG filters, clip-path and masks, animated shaders on UI, text on a curve, stacked semi-transparent layers, full-screen translucent overlays other than the modal scrim.
+- Not OK: gradients across panels, dashed borders, inner glow, backdrop blur, blend modes, SVG filters, clip-path and masks, animated shaders on UI, text on a curve, stacked semi-transparent layers (one translucent fill per panel is fine), full-screen translucent overlays other than the modal scrim.
 
 **Motion**
 A table per component and screen, including the hand-off between the 3D view and the HUD (opening a building, entering a fight, the victory run through the gate): trigger, property, duration (ms), Godot Tween transition and ease (e.g. `TRANS_CUBIC`, `EASE_OUT`), delay, and the reduce-motion behaviour (usually instant). Nothing flashes more than 3 times a second.
