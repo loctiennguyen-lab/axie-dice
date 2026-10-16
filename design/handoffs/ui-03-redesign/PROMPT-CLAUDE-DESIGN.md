@@ -1,8 +1,8 @@
 # Prompt cho Claude Design: làm lại toàn bộ UI Axie Dice (UI-03)
 
 **Tóm tắt cho Liam:**
-1. Làm lại từ đầu, không vá. Claude Design được vẽ lại và vẽ art mới. Main Menu bỏ, Land hub 3D là màn đầu tiên sau đăng nhập.
-2. 3 vòng: A = 3 hướng phong cách, mỗi hướng vẽ trên 4 màn (Land HUD, Combat HUD, Run Map, Store). Anh chọn 1 hướng. B = design system. C = tất cả màn, theo thứ tự ưu tiên. Anh chưa chọn xong vòng A thì không làm tiếp.
+1. Làm lại từ đầu, không vá. Dùng **Terrariums design system** (thay Dango). Claude Design được vẽ lại và vẽ art mới. Main Menu bỏ, Land hub 3D là màn đầu tiên sau đăng nhập.
+2. 3 vòng: A = 3 cách áp Terrariums vào game (khác nhau về bố cục, mật độ, cách HUD nằm trên 3D), mỗi cách vẽ trên 4 màn (Land HUD, Combat HUD, Run Map, Store). Anh chọn 1. B = design system. C = tất cả màn, theo thứ tự ưu tiên. Anh chưa chọn xong vòng A thì không làm tiếp.
 3. Chống "trông như AI": luật đếm được (tối đa 1 nút chính, 3 cỡ chữ, 2 độ đậm, 7 nhóm thông tin mỗi màn), có danh sách cấm, mỗi màn có checklist tự kiểm.
 4. Hợp đồng code khớp với project: 1920×1080, `canvas_items` + `expand`, chỉ dùng flex/grid (map thẳng sang container Godot), tokens.json theo schema cố định, 9-slice có margin, bảng motion theo Tween, chữ tối thiểu 18 px ở 1920.
 5. Danh sách màn chia 3 mức Must/Should/Could, mỗi màn ghi rõ trạng thái cần vẽ.
@@ -23,13 +23,13 @@ Why we redo it. The owner looked at every screen: ugly, cluttered, too many elem
 - Store, Presets, Profile: 20-60% of each panel empty, six identical grey buttons, flat colour squares where art should be.
 - Past mockup rounds were dense (10+ elements per card), too small (12 px at 1920 is 8 px at 1280), and hard to build because every screen invented its own components.
 
-You may redraw everything and draw new art (icons, frames, panels, dice faces, chests, item art, avatars). Ignore the old cream/wood look unless a direction earns it back. The Main Menu no longer exists: after the boot/sign-in screen the player lands in the 3D Land hub, and every meta screen opens from it.
+You may redraw everything and draw new art (icons, frames, panels, dice faces, chests, item art, avatars). **Use the Terrariums design system** as the visual base for everything. It replaces our old Dango design system (the cream/wood look); do not carry Dango over. The Main Menu no longer exists: after the boot/sign-in screen the player lands in the 3D Land hub, and every meta screen opens from it.
 
 **Sent with this brief:** a contact sheet of the current build (what not to repeat), game data (Axie names and classes, the 6 face types, relic and pact names, currencies), the current fonts, and the art we already have (Axie portraits, die face art, chest art, currency icons). Redraw any of it if your direction needs to.
 
 ## 2. Process: three rounds, we approve each
 
-**Round A: style directions.** Three clearly different directions, not three colour swaps of one idea. Each one is drawn on the same four screens at 1920×1080: Land hub HUD, Combat HUD (player turn, a die selected), Run Map (mid-run), Store (Gem packs tab: proves the direction can carry a dense list). Per direction add one style tile (palette with the one named accent colour, type pairing, a panel, primary and secondary button, six icons, one die face) and a one-line rationale. Add one 1280×720 frame of the Combat HUD per direction so we can judge text size. Say what each direction costs to build in Godot (low/medium/high, and why).
+**Round A: three ways to apply Terrariums.** All three use the Terrariums design system. They differ in layout, density and how the HUD sits over the 3D world, not in colour swaps. Each one is drawn on the same four screens at 1920×1080: Land hub HUD, Combat HUD (player turn, a die selected), Run Map (mid-run), Store (Gem packs tab: proves the direction can carry a dense list). Per variant add one style tile showing how Terrariums is applied (palette with the one named accent colour, type pairing, a panel, primary and secondary button, six icons, one die face) and a one-line rationale. Add one 1280×720 frame of the Combat HUD per direction so we can judge text size. Say what each direction costs to build in Godot (low/medium/high, and why).
 
 **Nothing past Round A happens until Liam picks a direction.** Do not start Round B or C early and do not blend directions on your own. Liam may ask for one revision of the chosen direction.
 
@@ -45,7 +45,7 @@ Countable rules, per screen:
 - At most 3 text sizes and 2 weights per panel.
 - One named accent colour per direction, and it means one thing (for example "act now"). Every other colour carries meaning (state, rarity, face type, damage) and is listed with that meaning in tokens.json.
 
-Banned unless you write down why: glow, glass/frosted panels, neon rims, gradient fills across panels, sparkles, ornament flourishes, decorative dividers, empty frames, stacked shadows, inner glow, more than one stroke on an object, emoji-style icons, generic fantasy icons.
+Banned unless you write down why: glow, glass/frosted panels, neon rims, gradient fills across panels, sparkles, ornament flourishes, decorative dividers, empty frames, stacked shadows, inner glow, more than one stroke on an object, emoji-style icons, generic fantasy icons. Where Terrariums itself uses one of these, Terrariums wins: note where, and keep it to that use.
 
 Also:
 - Panels hug their content. Space is fine; a panel sized taller than its content is not.
@@ -56,7 +56,7 @@ Also:
 
 ## 4. Codeability contract
 
-Everything below is a requirement. If an idea breaks one, say so and propose the closest buildable thing.
+Everything below is a requirement. If an idea breaks one, say so and propose the closest buildable thing. Terrariums decides the look; this section decides how it is built. If Terrariums uses an effect from the not-OK list (for example frosted glass), keep the look with the buildable version (a flat translucent fill instead of live blur) and list where you did that.
 
 **Canvas and scaling**
 - The project uses Godot stretch mode `canvas_items`, aspect `expand`, base 1920×1080. Scale = min(w/1920, h/1080); extra width or height becomes extra space, never letterbox. Draw for that: say for every screen where extra space goes (the 3D view or the panel body, never a stretched HUD element). 1280×720 is the smallest supported size.
@@ -69,6 +69,7 @@ Everything below is a requirement. If an idea breaks one, say so and propose the
 - HUD over 3D: give the safe-area rectangle in 1920 px and each HUD block's anchor (edge or corner) and margin.
 
 **tokens.json, fixed schema**
+- Export the Terrariums tokens (plus anything added for the game) into this schema.
 - Top-level keys: `color`, `font`, `size`, `radius`, `space`, `stroke`, `shadow`, `motion`, `z`. `font` maps each family and weight to its TTF file name.
 - Colours as `#RRGGBB` or `#RRGGBBAA`. Sizes as plain integers in px, not strings.
 - Each colour entry: value, meaning. Every text/background pair used, with its contrast ratio.
@@ -83,7 +84,7 @@ Minimum set: Button (primary, secondary, quiet, danger; M and L), IconButton, Ta
 - Prefer flat rounded boxes with borders (free in Godot) over textured frames. Textures only where they pay off.
 - 9-slice art: `slices.json` lists file, margins l/t/r/b, minimum size, and whether the centre stretches or tiles. Content margins (padding) are given separately.
 - Raster assets as PNG at @1x and @2x; say which one the 1920 layout uses. Monochrome icons as SVG plus a @2x PNG, with a flag saying they are tinted in code (modulate). File names `[category]_[name]_[variant]_[size].png`, e.g. `ui_btn_primary_hover.png`, `icon_gem_24.svg`.
-- Fonts: we currently ship Baloo 2 (display, numerals) and Work Sans (body), both OFL. Keep them or propose others with a reason. Any font must be OFL, cover Vietnamese diacritics, and come as one static TTF per weight (no variable fonts) with the licence file.
+- Fonts: use the Terrariums fonts (we currently ship Baloo 2 and Work Sans from Dango; they go unless Terrariums uses them). Any font must be OFL, cover Vietnamese diacritics, and come as one static TTF per weight (no variable fonts) with the licence file.
 - 3D areas (Land view, combat stage, Axie previews) are flat grey placeholders labelled "3D VIEWPORT: combat stage", with the safe area marked.
 
 **Effects**
