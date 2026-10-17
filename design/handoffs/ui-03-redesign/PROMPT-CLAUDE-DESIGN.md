@@ -31,7 +31,7 @@ You may redraw everything and draw new art (icons, frames, panels, dice faces, c
 - `art/`: art already in the game (class portraits, face/status/map-node icons, UI icons, Echo Box chests). Redraw any of it if your variant needs to.
 - `design-library/`: contact sheets and icons of Homeland art we are allowed to use (read its `INDEX.md`; refer to an image by its path).
 
-**No Axie drawings.** In the game an Axie is always a live 3D model. Wherever a screen shows an Axie, leave a labelled frame "AXIE 3D" (same rule as the 3D viewport placeholders).
+**No Axie drawings.** In the game an Axie is always a live 3D model. Wherever a screen shows an Axie, leave a labelled frame "AXIE 3D" (same rule as the 3D viewport placeholders). Draw those frames at the real on-screen sizes in `game-data.md` ("Axie and enemy size on screen"): in combat the party row takes x 455–1460, y 630–890 at 1920×1080, and the HUD must not cover it.
 
 ## 2. Process: three rounds, we approve each
 
