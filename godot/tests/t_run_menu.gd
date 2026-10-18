@@ -21,6 +21,7 @@ func _ready() -> void:
 	await get_tree().process_frame
 	await _combat_roundtrip()
 	await _map_roundtrip()
+	await _pause_menu()
 	LandNav.dry_run = true   # abandon -> back_to_land would load Land, which touches the save after restore()
 	await _abandon_from_run()
 	LandNav.dry_run = false
@@ -82,6 +83,50 @@ func _map_roundtrip() -> void:
 	m.queue_free()
 	SettingsView.in_run = false
 	SettingsView.return_scene = ""
+
+
+## UI-03 14: the pause plate opens on the map, Resume closes it, Abandon asks first (focus on Keep playing,
+## stake line only for a Mission run) and abandoning clears the run.
+func _pause_menu() -> void:
+	var team: Array[String] = ["plant1", "beast1", "aqua1", "reptile1", "bug1"]
+	RunState.start_new_run(780, team, "short", 0, false)
+	var m: Node = (load("res://scenes/run_map/RunMap.tscn") as PackedScene).instantiate()
+	add_child(m)
+	await get_tree().process_frame
+	await get_tree().process_frame
+	m.open_run_menu()
+	await get_tree().process_frame
+	var pm := m.find_child("RunPauseMenu", true, false) as RunPauseMenu
+	_assert(pm != null, "open_run_menu shows the pause plate")
+	if pm != null:
+		for k in ["Resume", "Relics", "Map", "Settings", "SaveQuit", "Abandon"]:
+			_assert(pm.rows.has(k) and (pm.rows[k] as Button).custom_minimum_size.y >= 64.0, "pause row %s" % k)
+		pm.show_side("map")
+		_assert(pm.find_child("SidePanel", true, false) != null and pm.side_name == "map", "side panel switches")
+		MetaState.mission_escrow = {}
+		(pm.rows["Abandon"] as Button).pressed.emit()
+		await get_tree().process_frame
+		_assert(pm.find_child("ConfirmDialog", true, false) != null, "Abandon asks first")
+		var texts := pm.find_child("ConfirmDialog", true, false).find_children("*", "Label", true, false).map(func(l): return (l as Label).text)
+		_assert(not texts.any(func(t): return String(t).contains("mission stake")), "no stake line outside Mission runs")
+		(pm.find_child("ConfirmKeep", true, false) as Button).pressed.emit()
+		await get_tree().process_frame
+		MetaState.mission_escrow = {"stake": 25}
+		(pm.rows["Abandon"] as Button).pressed.emit()
+		await get_tree().process_frame
+		texts = pm.find_child("ConfirmDialog", true, false).find_children("*", "Label", true, false).map(func(l): return (l as Label).text)
+		_assert(texts.any(func(t): return String(t).contains("You lose your 25 Shard mission stake")), "Mission run shows the stake line")
+		(pm.find_child("ConfirmKeep", true, false) as Button).pressed.emit()
+		await get_tree().process_frame
+		_assert(RunState.roster.size() == 5, "Keep playing leaves the run alone")
+		MetaState.mission_escrow = {}
+		var resumed := [0]
+		pm.resumed.connect(func(): resumed[0] += 1)
+		(pm.rows["Resume"] as Button).pressed.emit()
+		await get_tree().process_frame
+		_assert(resumed[0] == 1 and m.find_child("RunPauseMenu", true, false) == null, "Resume closes the plate")
+	m.queue_free()
+	await get_tree().process_frame
 
 
 func _abandon_from_run() -> void:
