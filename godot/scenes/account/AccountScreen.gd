@@ -59,7 +59,9 @@ static func error_copy(code: String) -> Array:
 
 func _unhandled_key_input(ev: InputEvent) -> void:
 	if ev is InputEventKey and ev.pressed and not ev.echo and ev.keycode == KEY_ESCAPE:
-		if state == "waiting":
+		if state == "finishing":
+			pass  # loading: Esc does nothing
+		elif state == "waiting":
 			service.cancel_desktop_sign_in()
 		else:
 			_on_back()
@@ -197,8 +199,10 @@ func _draw_signed_in() -> void:
 func _draw_error() -> void:
 	var code := String(service.get("desktop_error"))
 	var copy := error_copy(code)
-	_title(String(copy[0])).add_theme_color_override("font_color", UI3Theme.color("hp_enemy"))
+	_title(String(copy[0])).add_theme_color_override("font_color", UI3Theme.color("danger_text"))
 	_text(String(copy[1]))
+	var ec := _text("Error code: %s" % code, true)
+	ec.name = "ErrorCode"
 	_row_btn("RetryButton", String(copy[2]), true, func() -> void: service.sign_in(code in ["admin_policy_enforced", "org_internal"]))
 	_row_btn("GuestButton", "Play as guest", false, _play_guest)
 

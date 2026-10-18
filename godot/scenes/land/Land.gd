@@ -141,7 +141,7 @@ var _plot_marks := {}                # id -> Control
 var _house_defs := {}                # house_id -> dictionary from houses.json
 var _run_plate: Control
 var _toast: PanelContainer
-var _toast_tween: Tween
+var _toasts: Array = []
 var _modal: Control
 var _moon_card: Node   # Moon Card popup while it is open (has_modal)
 var _has_run := false
@@ -1458,23 +1458,36 @@ func _build_toast() -> void:
 
 
 func _show_toast(text: String, hold: float = 1.6, tone: StringName = &"ok") -> void:
-	if _toast != null and is_instance_valid(_toast):
-		_toast.queue_free()
-	_toast = UI3.toast(text, tone)
-	_toast.name = "Toast"
-	_toast.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_ui.add_child(_toast)
-	_toast.reset_size()
-	_toast.position = Vector2((_ui.size.x - _toast.size.x) * 0.5, 24)
-	var tw := _toast
-	if _toast_tween != null:
-		_toast_tween.kill()
-	_toast_tween = create_tween()
-	_toast_tween.tween_interval(hold)
-	_toast_tween.tween_property(tw, "modulate:a", 0.0, 0.4)
-	_toast_tween.tween_callback(func() -> void:
-		if is_instance_valid(tw):
-			tw.queue_free())
+	# Stack of at most 3, top-centre, 24 px from the top, 8 px gap (UI-03 18-system).
+	_toasts = _toasts.filter(func(t: Variant) -> bool: return is_instance_valid(t))
+	while _toasts.size() >= 3:
+		(_toasts.pop_front() as Node).queue_free()
+	var tw_node := UI3.toast(text, tone)
+	tw_node.name = "Toast"
+	tw_node.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_ui.add_child(tw_node)
+	_toasts.append(tw_node)
+	_toast = tw_node
+	_layout_toasts()
+	var tw := create_tween()
+	tw.tween_interval(hold)
+	tw.tween_property(tw_node, "modulate:a", 0.0, 0.4)
+	tw.tween_callback(func() -> void:
+		if is_instance_valid(tw_node):
+			tw_node.queue_free()
+		_toasts.erase(tw_node)
+		_layout_toasts())
+
+
+func _layout_toasts() -> void:
+	var y := 24.0
+	for t in _toasts:
+		if not is_instance_valid(t) or t.is_queued_for_deletion():
+			continue
+		var c := t as Control
+		c.reset_size()
+		c.position = Vector2((_ui.size.x - c.size.x) * 0.5, y)
+		y += c.size.y + 8.0
 
 
 func _fmt(v: int) -> String:
@@ -1697,8 +1710,10 @@ func _open_confirm(title: String, body: String, ok_text: String, on_ok: Callable
 	if destructive:
 		var row := ok.get_parent()
 		var lb := UI3.plate(&"row")
+		lb.name = "LossRow"
+		lb.custom_minimum_size = Vector2(0, 48)
 		var lv := VBoxContainer.new()
-		lv.add_child(UI3.label(String(loss[0]), "LabelDisplay"))
+		lv.add_child(UI3.label(String(loss[0])))
 		lv.add_child(UI3.label(String(loss[1]), "LabelMuted"))
 		lb.add_child(lv)
 		row.get_parent().add_child(lb)
