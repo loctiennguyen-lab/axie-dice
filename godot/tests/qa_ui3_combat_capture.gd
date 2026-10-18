@@ -48,6 +48,8 @@ func _open(kind: String, node_id: String, pw: int) -> Node:
 
 
 func _normal(size: Vector2i) -> void:
+	MetaState.runs_with_battle = 99
+	MetaState.gems_cache = 500
 	var scene: Node = await _open("battle", "r4_c0", 3)
 	scene._land_dice_now()
 	await _shot("turn", size)
@@ -58,9 +60,25 @@ func _normal(size: Vector2i) -> void:
 	scene._rebuild_all()
 	await _shot("picked", size)
 	scene._selected_die_uid = -1
+	await _shot("aid-closed", size)
+	scene._combat.rerolls = 0   # the offer shows only when no reroll is left
+	scene._rebuild_all()
+	await _shot("aid-offer-violet", size)
+	var foe: Unit = scene._combat.alive_enemies()[0]
+	scene._open_unit_inspect(foe.uid)
+	await _shot("inspect-enemy", size)
+	scene._close_unit_inspect()
+	scene._open_unit_inspect(scene._combat.alive_party()[0].uid)
+	await _shot("inspect-party", size)
+	scene._close_unit_inspect()
+	scene._selected_die_uid = -1
 	scene._aid.set_open(true)
 	await _shot("aid", size)
 	scene._aid.set_open(false)
+	await _shot("aid-offer", size)
+	scene._aid._show_modal("extra_reroll")
+	await _shot("aid-confirm", size)
+	scene._aid._close_modal()
 	scene._show_defeat_panel()
 	await _shot("defeat", size)
 	scene.queue_free()

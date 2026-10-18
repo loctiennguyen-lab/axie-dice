@@ -570,6 +570,10 @@ func _unhandled_key_input(event: InputEvent) -> void:
 			_aid.toggle_tray()
 		elif code == KEY_ESCAPE and _aid != null and _aid.handle_escape():
 			pass
+		elif code == KEY_ESCAPE and _inspect_panel != null and is_instance_valid(_inspect_panel):
+			_close_unit_inspect()
+		elif code == KEY_I:
+			_inspect_hotkey()
 		elif code == KEY_ESCAPE:
 			# The only way out of a fight now that combat-v2.html's four-chip utility row has no
 			# Quit button. Esc opens the in-run Settings menu (L1 C3); "Leave the fight" in the
@@ -958,6 +962,7 @@ func _build_hud_r1() -> void:
 	_aid.z_index = 9
 	_shell_root.add_child(_aid)
 	_aid.purchase_confirmed.connect(_on_aid_purchase)
+	_aid.tray_toggled.connect(func(_o): _hud_frame.set_info_bottom(_aid.top_y() - 12.0))
 	_aid.offer_dismissed.connect(func(): _aid_offer_dismissed = true)
 	_hud_frame.menu_pressed.connect(_on_menu_pressed)
 	_hud_frame.active_pressed.connect(_on_active_pressed)
@@ -1048,13 +1053,15 @@ func _update_aid(hs: Dictionary, executing: bool) -> void:
 	for u in RunState.aid_uses_view():
 		if String((u as Dictionary).get("aid", "")) == "R2":
 			r2_used += 1
-	var r2_ok := executing and bool(o2["enabled"])
+	var r2_ok := executing and bool(o2["enabled"]) and gems >= int(o2["price"])
 	var r2_reason := "" if r2_ok else (AidPurchase.reason_text(String(o2["reason"])) if executing else "Not now")
+	if executing and bool(o2["enabled"]) and gems < int(o2["price"]):
+		r2_reason = "Need %d more Gem" % (int(o2["price"]) - gems)
 	if String(o2["reason"]) == "not_now":
 		r2_reason = "Only with no rerolls left"
 	var rows := [
 		{"id": "extra_reroll", "title": "Extra reroll", "price": AidPurchase.list_price("R2"), "icon": HudKit.icon("reroll"),
-			"cap_text": "run %d/%d" % [r2_used, AidPurchase.cap_run("R2")], "enabled": r2_ok, "reason": r2_reason},
+			"cap_text": "Used %d of %d this run" % [r2_used, AidPurchase.cap_run("R2")], "enabled": r2_ok, "reason": r2_reason},
 		{"id": "delay_clock", "title": "Delay boss clock", "price": AidPurchase.list_price("R4"), "icon": HudKit.icon("boss-clock"),
 			"cap_text": "1 per boss", "enabled": false, "reason": "Coming soon"},
 		{"id": "swap_pact", "title": "Swap pact", "price": AidPurchase.list_price("R5"), "icon": HudKit.icon("pact"),
@@ -1068,10 +1075,11 @@ func _update_aid(hs: Dictionary, executing: bool) -> void:
 		offer = {"id": "extra_reroll", "title": "Extra reroll", "price": int(o2["price"]),
 			"what": "+1 reroll this turn.", "icon": HudKit.icon("reroll"),
 			"cap_text": "+1 reroll this turn",
-			"caps": ["Aid this run %d of %d" % [used, cap]]}
+			"caps": ["Aid this run %d of %d" % [used, cap]], "gems": gems}
 	for r in rows:
 		r["gems"] = gems
-	_aid.set_state({"enabled": not newcomer and not _tutorial, "used": used, "cap": cap,
+	var mission := String(o2["reason"]) == "mission_run"   # Mission runs have no Aid zone at all
+	_aid.set_state({"enabled": not newcomer and not _tutorial and not mission, "used": used, "cap": cap,
 		"rows": rows, "offer": offer})
 
 
@@ -1622,6 +1630,22 @@ func _open_unit_inspect(uid: int) -> void:
 	_inspect_panel = _build_unit_inspect(u)
 
 
+## I: the unit under the cursor, else the first living enemy (keyboard-only play). I again closes it.
+func _inspect_hotkey() -> void:
+	if _inspect_panel != null and is_instance_valid(_inspect_panel):
+		_close_unit_inspect()
+		return
+	if _combat == null or _aid != null and _aid.modal_open():
+		return
+	var uid := _stage3d.pick_unit_at_global(get_viewport().get_mouse_position())
+	if uid == -1:
+		var foes := _combat.alive_enemies()
+		if foes.is_empty():
+			return
+		uid = foes[0].uid
+	_open_unit_inspect(uid)
+
+
 func _close_unit_inspect() -> void:
 	if _inspect_panel != null and is_instance_valid(_inspect_panel):
 		var layer := _inspect_panel.get_parent()
@@ -1636,225 +1660,140 @@ func _close_unit_inspect() -> void:
 	_inspect_panel = null
 
 
-## The unit inspector, rebuilt to combat-v2.html's own markup: a 500-wide CREAM card (radius 20,
-## 5px black, shelf 8) whose HEADER is a solid band in the unit's class colour with a 4px black
-## underline, over a cream body holding the passive card, the six-face list and CLOSE.
-##
-## It used to be a 560-wide PANEL_DEEP panel of small grey text — chrome, where the mockup draws
-## a reading surface. Rule 4 of godot/CLAUDE.md is the reason that matters: text the player has
-## to read gets its own cream plate, never a darker background.
-##
-## TWO DELIBERATE DEPARTURES FROM THE MOCKUP, both stated here rather than left to be discovered:
-##   * The mockup gives an ENEMY `faces: []` — no face list at all, just a "TELEGRAPH" paragraph.
-##     This build keeps the six-face list for enemies. `tests/t_unit_inspect.gd` asserts it
-##     (`test_clicking_an_enemy_with_no_die_selected_opens_the_inspector`, `_count_face_rows()`
-##     == 6) and the rule spec's "minh bạch triệt để" is that an enemy's die is public. The
-##     mockup's static fixture is the weaker authority here; flagged in the report.
-##   * The mockup has no status row. Statuses live on the nameplate's own strip, so the stacks
-##     are folded into the header's meta line rather than getting a row of their own.
+## The unit inspector (UI-03 round 2 screen 42): a 520 wide wood plate beside the unit (flips to the other
+## side at the screen edge). It reads state and changes none: no scrim, no input capture outside the plate, so
+## a die can stay selected while it is open. Openers: right-click (stage or nameplate), I, long-press 500 ms
+## on a unit (touch, see CombatStage3D). Esc closes. Focus starts on the plate; Tab walks the face rows.
+## Header: name + HP, bar. Rows: statuses, next move (enemy), passive, then all six faces with LIVE values
+## (CombatEngine._face_value: growth, weaken, blind and overdrive are in the number).
+## States: enemy, party Axie, egg (a summoned token, roster_index < 0).
+const INSPECT_W := 520.0
+
+
 func _build_unit_inspect(u: Unit) -> Control:
 	var layer := CanvasLayer.new()
 	layer.layer = 28          # under the quit confirm (30), over the HUD
 	add_child(layer)
-
-	var dim := ColorRect.new()
-	# The mockup's own scrim: rgba(11,13,18,.82) — WELL_DEEP at 82%, not flat black.
-	dim.color = Color(DangoTheme.WELL_DEEP.r, DangoTheme.WELL_DEEP.g, DangoTheme.WELL_DEEP.b, 0.82)
-	dim.set_anchors_preset(Control.PRESET_FULL_RECT)
-	dim.mouse_filter = Control.MOUSE_FILTER_STOP
-	dim.gui_input.connect(func(ev: InputEvent):
-		# Click anywhere off the card to dismiss — the web build's own overlay behaviour.
-		if ev is InputEventMouseButton and (ev as InputEventMouseButton).pressed:
-			_close_unit_inspect())
-	layer.add_child(dim)
-
-	var center := CenterContainer.new()
-	center.set_anchors_preset(Control.PRESET_FULL_RECT)
-	center.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	dim.add_child(center)
-
-	var card := PanelContainer.new()
-	card.custom_minimum_size = Vector2(500, 0)
-	card.add_theme_stylebox_override("panel",
-		DangoTheme.cream_card_style(Color.TRANSPARENT, 20, 5, 8.0))
-	DangoTheme.clip_to_frame(card)   # G3
-	center.add_child(card)
-
+	var plate := UI3.plate(&"dialog")
+	plate.name = "UnitInspector"
+	plate.custom_minimum_size = Vector2(INSPECT_W, 0)
+	plate.focus_mode = Control.FOCUS_ALL
+	layer.add_child(plate)
 	var col := VBoxContainer.new()
-	col.add_theme_constant_override("separation", 0)
-	card.add_child(col)
+	col.add_theme_constant_override("separation", UI3Theme.space("16"))
+	plate.add_child(col)
 
-	_inspect_header(col, u)
+	var is_egg := u.side == "p" and u.roster_index < 0
+	var head := HBoxContainer.new()
+	col.add_child(head)
+	var nm := UI3.label(u.n, "LabelTitle")
+	nm.name = "UnitName"
+	nm.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	nm.clip_text = true
+	head.add_child(nm)
+	var tag := "Egg" if is_egg else ("Boss" if (u.side == "e" and u.is_boss) else ("Enemy" if u.side == "e" else "Axie"))
+	var hp_l := UI3.label("%s · %d / %d HP" % [TranslationServer.translate(tag), maxi(u.hp, 0), maxi(u.max_hp, 1)], "LabelDisplay")
+	hp_l.add_theme_font_size_override("font_size", 18)
+	head.add_child(hp_l)
+	col.add_child(UI3.hp_bar(maxi(u.hp, 0), maxi(u.max_hp, 1), maxi(u.shield, 0), int(u.status.get("poison", 0)),
+		&"enemy" if u.side == "e" else &"axie"))
 
-	var body := MarginContainer.new()
-	body.add_theme_constant_override("margin_left", 18)
-	body.add_theme_constant_override("margin_right", 18)
-	body.add_theme_constant_override("margin_top", 16)
-	body.add_theme_constant_override("margin_bottom", 18)
-	col.add_child(body)
-
-	var body_col := VBoxContainer.new()
-	body_col.add_theme_constant_override("separation", 0)
-	body.add_child(body_col)
-
-	_inspect_context(body_col, u)
-	_inspect_faces(body_col, u)
-
-	# CLOSE — mockup: margin-top 16, height 50, radius 13, PRIMARY on 4px black, shelf 4.
-	var close_pad := Control.new()
-	close_pad.custom_minimum_size = Vector2(0, 16)
-	close_pad.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	body_col.add_child(close_pad)
-	var close := Button.new()
-	close.text = "CLOSE"
-	close.focus_mode = Control.FOCUS_NONE
-	close.custom_minimum_size = Vector2(0, 50)
-	# Baloo 19/800 at the mockup's `letter-spacing:.12em`.
-	DangoTheme.apply_tracking(close, 0.12, 19, 800)
-	# The hover/press FILLS are read back off DangoTheme's own primary button rather than
-	# re-typed as hex here — this button borrows that state ladder, it does not define one.
-	var hover_fill := DangoTheme.primary_button_style(
-		false, DangoTheme.ButtonState.HOVER).bg_color
-	var press_fill := DangoTheme.primary_button_style(
-		false, DangoTheme.ButtonState.PRESSED).bg_color
-	close.add_theme_stylebox_override("normal", _rail_button_style(DangoTheme.PRIMARY, 13, 4, 4.0))
-	close.add_theme_stylebox_override("focus", _rail_button_style(DangoTheme.PRIMARY, 13, 4, 4.0))
-	close.add_theme_stylebox_override("hover", _rail_button_style(hover_fill, 13, 4, 4.0))
-	close.add_theme_stylebox_override("pressed", _rail_button_style(press_fill, 13, 5, 2.0))
-	for key in ["font_color", "font_hover_color", "font_pressed_color"]:
-		close.add_theme_color_override(key, DangoTheme.INK_ON_PRIMARY)
-	close.pressed.connect(_close_unit_inspect)
-	body_col.add_child(close)
-
-	return dim
-
-
-## Header band — the class colour (DANGER for an enemy, which is what the mockup uses), a 4px
-## black underline, padding 13/18, gap 12. Its top corners are the card's radius minus the card's
-## border so it nests flush instead of showing a cream sliver in the corners.
-func _inspect_header(col: VBoxContainer, u: Unit) -> void:
-	var fill := DangoTheme.DANGER if u.side == "e" else DangoTheme.class_color(u.cls)
-	var ink := DangoTheme.ink_on(fill)
-	var band := PanelContainer.new()
-	var band_style := StyleBoxFlat.new()
-	band_style.bg_color = fill
-	band_style.border_color = Color.BLACK
-	band_style.border_width_bottom = 4
-	band_style.corner_radius_top_left = 15
-	band_style.corner_radius_top_right = 15
-	band_style.content_margin_left = 18.0
-	band_style.content_margin_right = 18.0
-	band_style.content_margin_top = 13.0
-	band_style.content_margin_bottom = 13.0
-	band.add_theme_stylebox_override("panel", band_style)
-	col.add_child(band)
-
-	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", 12)
-	band.add_child(row)
-
-	var frame := PanelContainer.new()
-	frame.custom_minimum_size = Vector2(54, 54)
-	frame.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	frame.add_theme_stylebox_override("panel",
-		DangoTheme.solid_chip_style(DangoTheme.CREAM_RAISED, 27, 3, Vector2.ZERO))
-	var frame_center := CenterContainer.new()
-	frame.add_child(frame_center)
-	var portrait := TextureRect.new()
-	portrait.custom_minimum_size = Vector2(46, 46)
-	portrait.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	portrait.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	# Party Axies have a rendered portrait; enemies wear their Chimera sprite. Both already
-	# exist, so the header shows the same creature the board does.
-	portrait.texture = (MonsterArt.texture_for(u.key, u.is_boss) if u.side == "e"
-		else _class_portrait(u.cls))
-	frame_center.add_child(portrait)
-	row.add_child(frame)
-
-	var text_col := VBoxContainer.new()
-	text_col.add_theme_constant_override("separation", 0)
-	text_col.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	text_col.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	row.add_child(text_col)
-
-	var name_label := DangoTheme.display_label(u.n.to_upper(), 27, ink, 800, 0.01)
-	name_label.clip_text = true
-	name_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
-	text_col.add_child(name_label)
-
-	# The mockup's meta line is body copy (Work Sans 600/13) at 74% ink on the class fill.
-	var bits: Array = ["%d/%d HP" % [maxi(u.hp, 0), maxi(u.max_hp, 1)]]
-	if u.side == "p":
-		bits.append("Tier %d" % u.tier)
-	bits.append("Shield %d" % maxi(u.shield, 0))
+	var chips := HFlowContainer.new()
+	chips.name = "Statuses"
+	chips.add_theme_constant_override("h_separation", 8)
+	chips.add_theme_constant_override("v_separation", 8)
+	if u.shield > 0:
+		chips.add_child(UI3.status_label_chip("shield", u.shield))
 	for key in u.status.keys():
 		if int(u.status[key]) > 0:
-			bits.append("%s %d" % [String(key).capitalize(), int(u.status[key])])
-	var sub := Label.new()
-	sub.text = "  ·  ".join(PackedStringArray(bits))
-	sub.add_theme_font_override("font", DangoTheme.FONT_UI_SEMI)
-	sub.add_theme_font_size_override("font_size", 13)
-	sub.add_theme_color_override("font_color", Color(ink.r, ink.g, ink.b, 0.74))
-	sub.clip_text = true
-	sub.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
-	text_col.add_child(sub)
+			chips.add_child(UI3.status_label_chip(String(key), int(u.status[key])))
+	if chips.get_child_count() > 0:
+		col.add_child(chips)
 
-	# Class pill — height 24, padding 0 10, radius 999, an INK fill with cream on it.
-	var tag := "ENEMY" if u.side == "e" else String(u.cls).to_upper()
-	if u.side == "e" and u.is_boss:
-		tag = "BOSS"
-	var pill := PanelContainer.new()
-	pill.custom_minimum_size = Vector2(0, 24)
-	pill.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	pill.add_theme_stylebox_override("panel",
-		DangoTheme.solid_chip_style(DangoTheme.INK, 999, 0, Vector2(10, 0)))
-	var pill_label := DangoTheme.display_label(tag, 12, DangoTheme.CREAM, 800, 0.1)
-	pill_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	pill.add_child(pill_label)
-	row.add_child(pill)
+	_inspect_rows(col, u)
+	_inspect_faces(col, u)
+	col.add_child(_inspect_close_hint())
+	_place_unit_inspect(plate, u)
+	plate.grab_focus.call_deferred()
+	return plate
 
 
-## The passive card — CREAM_RAISED, radius 12, 3px black, padding 11/13. A party Axie gets its
-## class passive; an enemy gets the mockup's own TELEGRAPH paragraph, which is the one thing a
-## player actually needs told about an enemy's plate.
-func _inspect_context(col: VBoxContainer, u: Unit) -> void:
-	var label := ""
-	var body := ""
-	if u.side == "p" and ContentDB.CLASS_PASSIVE.has(u.cls):
+func _inspect_close_hint() -> Control:
+	var row := HBoxContainer.new()
+	row.name = "CloseHint"
+	row.alignment = BoxContainer.ALIGNMENT_END
+	row.add_theme_constant_override("separation", UI3Theme.space("8"))
+	row.add_child(UI3.label(TranslationServer.translate("Close"), "LabelMuted"))
+	row.add_child(UI3.key_hint("Esc"))
+	return row
+
+
+## One labelled text row on a wood-2 cell: muted label over wrapped value (max 120 chars, ~320 wide).
+func _cell_pad(cell: Control, inner: Control) -> void:
+	var pad := MarginContainer.new()
+	for side in ["left", "right", "top", "bottom"]:
+		pad.add_theme_constant_override("margin_" + side, 12)
+	cell.add_child(pad)
+	pad.add_child(inner)
+
+
+func _inspect_info_row(label_text: String, value: String) -> Control:
+	var cell := UI3.plate(&"row")
+	cell.name = "InfoRow"
+	cell.focus_mode = Control.FOCUS_ALL
+	UI3.attach_focus_ring(cell)
+	var v := VBoxContainer.new()
+	v.add_theme_constant_override("separation", 0)
+	_cell_pad(cell, v)
+	v.add_child(UI3.label(TranslationServer.translate(label_text), "LabelMuted"))
+	var b := UI3.label(value)
+	b.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	b.custom_minimum_size = Vector2(INSPECT_W - 100.0, 0)
+	v.add_child(b)
+	return cell
+
+
+func _inspect_rows(col: VBoxContainer, u: Unit) -> void:
+	if u.side == "e":
+		var ri: int = u.roll_face_index()
+		if ri >= 0 and ri < u.die.size():
+			var f: Dictionary = u.die[ri]
+			var ft := String(f.get("type", ""))
+			var txt: String = TranslationServer.translate("Does nothing") if ft == "blank" else _face_description(
+				ft, _live_face_value(u, ri), _face_has_kw(f, "aoe"))
+			col.add_child(_inspect_info_row("Next move", txt))
+		var role := String(u.role)
+		col.add_child(_inspect_info_row("Passive" if role == "" else role.capitalize(),
+			"Enemies roll and commit before you act. The plate above its head is exactly what it will do this turn."))
+	elif u.side == "p" and not (u.roster_index < 0) and ContentDB.CLASS_PASSIVE.has(u.cls):
 		var pas: Dictionary = ContentDB.CLASS_PASSIVE[u.cls]
-		label = "PASSIVE · %s" % String(pas.get("n", "")).to_upper()
-		body = String(pas.get("d", ""))
-	elif u.side == "e":
-		label = "PASSIVE · TELEGRAPH"
-		body = ("Enemies roll and commit before you act. The plate above its head is exactly "
-			+ "what it will do this turn.")
-		if String(u.role) != "":
-			label = "%s · TELEGRAPH" % String(u.role).to_upper()
-	if label == "":
-		return
+		col.add_child(_inspect_info_row("Passive · %s" % String(pas.get("n", "")), String(pas.get("d", ""))))
+	elif u.roster_index < 0:
+		col.add_child(_inspect_info_row("Egg", "A summoned token. It rolls a small die and falls when its HP runs out."))
 
-	var card := PanelContainer.new()
-	var card_style := DangoTheme.surface_style(
-		DangoTheme.Surface.CREAM_RAISED, 12, 3, 0.0, Vector2(13, 11))
-	card.add_theme_stylebox_override("panel", card_style)
-	col.add_child(card)
 
-	var inner := VBoxContainer.new()
-	inner.add_theme_constant_override("separation", 4)
-	card.add_child(inner)
+## Maps a game face type to the UI3 face key (dmg is "attack"; debuff is "weaken").
+static func _ui3_face(game_type: String) -> StringName:
+	match game_type:
+		"dmg": return &"attack"
+		"debuff": return &"weaken"
+	var k := StringName(game_type)
+	return k if UI3.FACE_TYPES.has(k) else &"buff"
 
-	# FLAGGED: the mockup inks this eyebrow #B4600C, a burnt orange that exists nowhere else and
-	# has no DangoTheme token; PRIMARY itself is only ~1.9:1 on cream and is not a substitute.
-	# INK_ON_CREAM_MUTED is the nearest sanctioned token. See the task report.
-	inner.add_child(DangoTheme.display_label(label, 13, DangoTheme.INK_ON_CREAM_MUTED, 800, 0.12))
-	if body != "":
-		var b := Label.new()
-		b.text = body
-		b.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		b.add_theme_font_override("font", DangoTheme.FONT_UI_SEMI)
-		b.add_theme_font_size_override("font_size", 13)
-		b.add_theme_color_override("font_color", DangoTheme.INK_ON_CREAM_SOFT)
-		inner.add_child(b)
+
+## Puts the plate beside the unit: right of it when it fits, else left; clamped inside the screen.
+func _place_unit_inspect(plate: Control, u: Unit) -> void:
+	var vp := get_viewport_rect().size
+	var ph := plate.get_combined_minimum_size().y
+	var at := _stage3d.get_unit_screen_pos(u.uid, 1.0)
+	var origin := _stage3d.get_global_rect().position + (at if at.x >= 0.0 else _stage3d.size * 0.5)
+	var x := origin.x + 110.0
+	if x + INSPECT_W > vp.x - 16.0:
+		x = origin.x - 110.0 - INSPECT_W
+	x = clampf(x, 16.0, maxf(vp.x - INSPECT_W - 16.0, 16.0))
+	var y := clampf(origin.y - ph * 0.5, 16.0, maxf(vp.y - ph - 16.0, 16.0))
+	plate.position = Vector2(x, y)
+	plate.size = Vector2(INSPECT_W, ph)
 
 
 ## THE number a face will actually produce — and the ONLY one the player should ever be shown.
@@ -1879,98 +1818,59 @@ func _live_face_value(u: Unit, fi: int) -> int:
 	return _combat._face_value(u, fi)
 
 
-## All six faces. Values come from CombatEngine._face_value(), NOT the raw face data: growth,
-## weaken, blind, vital and overdrive all change what a face is worth right now, and a panel
-## that showed the base number would be lying at exactly the moment the player consults it.
-##
-## Row geometry is the mockup's: height 44, padding 0 11, radius 11, CREAM_RAISED on 3px black,
-## gap 10 — a 32px part tile (22px glyph), the value at Baloo 24/800 in a fixed 30px column, the
-## 22px type swatch (14px glyph), the caption, and the ROLLED tag.
+## All six faces, live values. Each row (focusable, named FaceRow): face word in its colour, value (Rowdies 24),
+## part and keyword caption, "Rolled" on the face showing now. Colour never carries it alone: the word does.
 func _inspect_faces(col: VBoxContainer, u: Unit) -> void:
-	var heading_pad := Control.new()
-	heading_pad.custom_minimum_size = Vector2(0, 15)
-	heading_pad.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	col.add_child(heading_pad)
-	col.add_child(DangoTheme.display_label(
-		"ALL SIX FACES · LIVE VALUES", 13, DangoTheme.INK_ON_CREAM_MUTED, 800, 0.14))
-
-	var list_pad := Control.new()
-	list_pad.custom_minimum_size = Vector2(0, 8)
-	list_pad.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	col.add_child(list_pad)
-
+	col.add_child(UI3.label(TranslationServer.translate("All six faces · live values"), "LabelMuted"))
 	var list := VBoxContainer.new()
-	list.add_theme_constant_override("separation", 6)
+	list.add_theme_constant_override("separation", UI3Theme.space("8"))
 	col.add_child(list)
-
 	var rolled_index: int = u.roll_face_index()
 	for i in u.die.size():
 		var f: Dictionary = u.die[i]
 		var face_type := String(f.get("type", ""))
-		var row_panel := PanelContainer.new()
-		row_panel.custom_minimum_size = Vector2(0, 44)
-		var row_style := DangoTheme.surface_style(
-			DangoTheme.Surface.CREAM_RAISED, 11, 3, 0.0, Vector2(-1, -1))
-		row_style.content_margin_left = 11.0
-		row_style.content_margin_right = 11.0
-		row_style.content_margin_top = 0.0
-		row_style.content_margin_bottom = 0.0
-		row_panel.add_theme_stylebox_override("panel", row_style)
-		list.add_child(row_panel)
-
+		var fk := _ui3_face(face_type)
+		var cell := UI3.plate(&"row")
+		cell.name = "FaceRow"
+		cell.add_to_group("inspect_face_row")
+		cell.focus_mode = Control.FOCUS_ALL
+		UI3.attach_focus_ring(cell)
 		var row := HBoxContainer.new()
-		row.add_theme_constant_override("separation", 10)
-		row.alignment = BoxContainer.ALIGNMENT_CENTER
-		row_panel.add_child(row)
-
-		var raw_part := String(f.get("part", ""))
-		var part_tex := _part_icon_for(raw_part, u.cls)
-		if part_tex == null:
-			# Non-hero enemies carry cls == "" and part "m", so no body-part SVG exists for them.
-			# The face's own type glyph is the honest fallback — never an empty tile.
-			part_tex = DangoTheme.face_type_icon(face_type)
-		var tile := _icon_tile(part_tex, 32.0, 22.0,
-			DangoTheme.solid_chip_style(DangoTheme.CREAM, 9, 3, Vector2.ZERO))
-		tile.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-		row.add_child(tile)
-
-		var value := DangoTheme.display_label(
-			"·" if face_type == "blank" else str(_combat._face_value(u, i)),
-			24, DangoTheme.INK, 800)
-		value.custom_minimum_size = Vector2(30, 0)
-		value.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		row.add_theme_constant_override("separation", UI3Theme.space("16"))
+		_cell_pad(cell, row)
+		var ic := TextureRect.new()
+		ic.texture = UI3.icon(String(UI3.FACE_ICON[fk]))
+		ic.custom_minimum_size = Vector2(32, 32)
+		ic.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		ic.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		row.add_child(ic)
+		var value := UI3.label("–" if face_type == "blank" else str(_live_face_value(u, i)), "LabelDisplay")
+		value.add_theme_font_size_override("font_size", 24)
+		value.custom_minimum_size = Vector2(36, 0)
 		row.add_child(value)
-
-		# G-01 / L7 — the mechanic's own glyph inside the swatch, built by the one shared helper.
-		row.add_child(DangoTheme.type_swatch(face_type, 22, 14, 7, 3))
-
-		var caption := DangoTheme.display_label("", 14, DangoTheme.INK_ON_CREAM_SOFT, 700, 0.03)
-		# Same fallback the die card uses. Enemy faces all carry part "m", which is not a real
-		# body part and correctly yields no part label; anything else shows its own name even if
-		# _PART_LABEL has not heard of it yet.
-		var part_name := String(_PART_LABEL.get(raw_part, raw_part.to_upper())) if _PART_LABEL.has(raw_part) else ""
-		var type_name := DangoTheme.face_type_label(face_type)
-		var text := ("%s · %s" % [part_name, type_name]) if part_name != "" else type_name
+		var word := UI3.label(UI3.face_word(fk), "LabelDisplay")
+		word.add_theme_font_size_override("font_size", 18)
+		word.add_theme_color_override("font_color", UI3Theme.color(String(UI3.FACE_WORD_COLOR[fk])))
+		word.custom_minimum_size = Vector2(88, 0)
+		row.add_child(word)
+		var raw_part := String(f.get("part", ""))
+		var text := String(_PART_LABEL.get(raw_part, "")).capitalize() if _PART_LABEL.has(raw_part) else ""
 		var names: Array = []
 		for k in (f.get("keywords", []) as Array):
-			# Value-carrying keywords are stored as "burn:6"; show the family name.
 			var base_kw := String(k).split(":")[0]
 			names.append(String(_KEYWORD_LABEL.get(base_kw, base_kw.to_upper())))
 		if not names.is_empty():
-			text += "  ·  " + " ".join(PackedStringArray(names))
-		caption.text = text
-		caption.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		caption.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-		caption.clip_text = true
-		caption.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
-		row.add_child(caption)
-
-		# FLAGGED: the mockup inks ROLLED #2E7D2B — a dark green readable on cream, which SUCCESS
-		# (#3FCD3C) is not. INK_ON_SUCCESS is the nearest token DangoTheme has. See the report.
-		var mark := DangoTheme.display_label(
-			"ROLLED" if i == rolled_index else "", 12, DangoTheme.INK_ON_SUCCESS, 800, 0.07)
-		mark.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-		row.add_child(mark)
+			text += ("  ·  " if text != "" else "") + " ".join(PackedStringArray(names))
+		var cap := UI3.label(text, "LabelMuted")
+		cap.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		cap.clip_text = true
+		row.add_child(cap)
+		if i == rolled_index:
+			var mark := UI3.label(TranslationServer.translate("Rolled"), "LabelDisplay")
+			mark.add_theme_font_size_override("font_size", 18)
+			mark.add_theme_color_override("font_color", UI3Theme.color("success_text"))
+			row.add_child(mark)
+		list.add_child(cell)
 
 
 ## A unit joined the fight. Goes through the full rebuild, not just the reconcile: building the
@@ -3578,6 +3478,7 @@ func _show_defeat_panel() -> void:
 			"Boss fight" if boss_fight else ("Elite fight" if kind == "elite" else "Fight"),
 			HudKit.dot(), asc, HudKit.dot(), _combat.turn],
 		"boss": boss_d, "recap": rows, "turn": _combat.turn, "enemies_left": _combat.alive_enemies().size(), "aid_used": int(co["used"]), "aid_cap": int(co["cap"]),
+		"asc": asc, "kind_label": "Boss" if boss_fight else ("Elite" if kind == "elite" else "Fight"),
 		"continue_left": 1, "heal_pct": 25 if asc >= 6 else 40, "party": party,
 		"keep_line": keep,
 		"enrage_reset_line": "Enrage resets to 'Enrage in 10'." if clock_on else "",

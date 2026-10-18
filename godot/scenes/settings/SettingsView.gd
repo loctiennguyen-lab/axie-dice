@@ -182,14 +182,7 @@ func _build_abandon_section() -> void:
 	confirm.toggled.connect(func(on: bool) -> void:
 		btn.disabled = not on)
 	btn.pressed.connect(func() -> void:
-		if RunState.has_saved_run():
-			MetaState.settle_mission_stake(false)   # lane E: abandon = mission loss (no-op without escrow)
-		# Online: close the run on the server too, or it stays `open` and the next Begin hits run_open
-		# (Liam 15/10). Fire and forget: if this fails (offline), Begin's run_open recovery abandons it later.
-		if RemoteEpochSource.flag_on() and RunState.session != null and RunState.session.run_id != "":
-			RunState.session.abandon(func(_ok: bool) -> void: pass)
-		RunState.clear_saved_run()
-		RunState.reset()
+		abandon_current_run()
 		if in_run:
 			# Nothing to go back to: leave in-run mode and head to Land (L1 C3).
 			in_run = false
@@ -210,6 +203,19 @@ func _build_abandon_section() -> void:
 	_row("Abandon mission run" if stake > 0 else "Abandon run", warn, box)
 	_abandon_status = _body("")
 	_abandon_status.visible = false
+
+
+## The abandon steps shared by Settings and the in-run pause menu: settle the mission stake as a loss, close the run
+## on the server, delete the save, reset RunState. Callers navigate afterwards.
+static func abandon_current_run() -> void:
+	if RunState.has_saved_run():
+		MetaState.settle_mission_stake(false)   # lane E: abandon = mission loss (no-op without escrow)
+	# Online: close the run on the server too, or it stays `open` and the next Begin hits run_open
+	# (Liam 15/10). Fire and forget: if this fails (offline), Begin's run_open recovery abandons it later.
+	if RemoteEpochSource.flag_on() and RunState.session != null and RunState.session.run_id != "":
+		RunState.session.abandon(func(_ok: bool) -> void: pass)
+	RunState.clear_saved_run()
+	RunState.reset()
 
 
 ## Settings → Account (claude/ACCOUNT_SYSTEM_v1.md §7 C). The only place with Sign out and

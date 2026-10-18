@@ -167,20 +167,33 @@ func _card(i: int, c: Dictionary) -> Control:
 	return card
 
 
+## Swap states (spec 12 R5): available (button + gem chip), used (cap_type), not enough Gem (chip tinted, "Need n more"),
+## "No other pact" (nothing left in the pool), anything else shows AidPurchase.reason_text. Price comes from the offer.
 func _swap_row(i: int, c: Dictionary) -> Control:
 	var h := HBoxContainer.new()
 	h.add_theme_constant_override("separation", 12)
 	var offered := bool(swap_offer.get("enabled", false))
-	var can := offered and bool(c.get("swap_ok", true))
+	var reason := String(swap_offer.get("reason", ""))
+	var price := int(swap_offer.get("price", 0))
 	var sw := UI3.button(tr("Swap"), &"secondary", &"S")
 	sw.name = "SwapPact%d" % i
-	if can:
+	if offered and bool(c.get("swap_ok", true)):
 		sw.pressed.connect(func() -> void: swap_requested.emit(i))
 		h.add_child(sw)
-		h.add_child(UI3.cost_chip(&"gem", int(swap_offer.get("price", 0))))
+		h.add_child(UI3.cost_chip(&"gem", price))
+	elif offered:
+		UI3.set_disabled_reason(sw, tr("No other pact"))
+		h.add_child(sw)
+	elif reason == "no_gems":
+		var have := MetaState.gem_wallet().balance()
+		UI3.set_disabled_reason(sw, tr("Need %d more Gem") % maxi(price - have, 1))
+		h.add_child(sw)
+		h.add_child(UI3.cost_chip(&"gem", price, true))
+	elif reason == "cap_type":
+		UI3.set_disabled_reason(sw, tr("Swap used"))
+		h.add_child(sw)
 	else:
-		UI3.set_disabled_reason(sw, tr("No other pact") if offered
-			else AidPurchase.reason_text(String(swap_offer.get("reason", ""))))
+		UI3.set_disabled_reason(sw, AidPurchase.reason_text(reason))
 		h.add_child(sw)
 	swap_buttons.append(sw)
 	return h
