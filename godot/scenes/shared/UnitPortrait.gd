@@ -406,9 +406,7 @@ func update_stats(hp: int, max_hp: int, shield: int, status: Dictionary) -> void
 		return
 	_hp_bar.set_stats(hp, _max_hp)
 	_hp_label.text = "%d / %d" % [maxi(hp, 0), _max_hp]
-	_fill_status_row(status, shield)
-	for chip in _status_row.get_children():
-		(chip as Control).gui_input.connect(_on_forward_gui_input)   # chips hand clicks back
+	_fill_status_row(status, shield)   # also wires the chips' click forwarding, once
 	if hp > 0:
 		_dying = false
 		visible = true
