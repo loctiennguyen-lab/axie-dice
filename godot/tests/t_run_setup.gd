@@ -75,6 +75,8 @@ func _ready() -> void:
 	_ok(s.find_child("Picker", true, false) != null, "picker renders")
 	_ok((s.find_child("Tile_%s" % s.party[0], true, false) as Button).disabled, "taken tile disabled in picker")
 	(s.find_child("Tile_bird1", true, false) as Button).pressed.emit()
+	_ok(s.party.size() < 5 or s.party[4] != "bird1", "tile only selects")
+	(s.find_child("PutInSlot", true, false) as Button).pressed.emit()
 	await get_tree().process_frame
 	_ok(s.party[4] == "bird1" and s.filled_count() == 5, "picker fills slot")
 	_ok(s.find_child("Picker", true, false) == null or s.find_child("Picker", true, false).is_queued_for_deletion(), "picker closed")

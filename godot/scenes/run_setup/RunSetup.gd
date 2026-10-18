@@ -87,6 +87,11 @@ var _banner_host: VBoxContainer
 var _modal_layer: Control
 var _picker_slot := -1
 var _picker_tab := "all"
+var _picker_cls := "all"
+var _picker_sel := ""
+var _presets_tab := "load"
+## Test/QA hook: leaderboard popup source (null = LeaderboardSource.make_default()).
+var lb_source: LeaderboardSource = null
 var _picker_grid: GridContainer
 
 
@@ -425,14 +430,96 @@ static func begin_error_text(code: String) -> Array:
 func open_picker(slot: int) -> void:
 	_picker_slot = slot
 	_picker_tab = "all"
+	_picker_cls = "all"
+	_picker_sel = ""
 	_show_picker()
 
 
 func open_leaderboard() -> void:
 	if is_newcomer():
 		return
+	_show_leaderboard_popup()
+
+
+## Full Leaderboard screen (the popup's secondary button).
+func open_full_leaderboard() -> void:
+	if is_newcomer():
+		return
 	if is_inside_tree() and not no_scene_change:
 		LandNav.open(&"leaderboard")
+
+
+## UI-03 35: top 5 for the picked Ascension, own row pinned under them. States: loading, error, normal.
+func _show_leaderboard_popup() -> void:
+	var v := _modal_box(640, "LeaderboardPopup")
+	var asc_n := ascension
+	v.add_child(_lbl(tr("Leaderboard"), "LabelScreenTitle"))
+	var sub := _lbl(tr("Ascension %d · this season") % asc_n, "LabelMuted")
+	sub.name = "LbSub"
+	v.add_child(sub)
+	var rows_box := VBoxContainer.new()
+	rows_box.name = "LbRows"
+	rows_box.add_theme_constant_override("separation", 8)
+	v.add_child(rows_box)
+	var loading := _lbl(tr("Loading..."), "LabelMuted")
+	rows_box.add_child(loading)
+	var acts := HBoxContainer.new()
+	acts.add_theme_constant_override("separation", 16)
+	acts.alignment = BoxContainer.ALIGNMENT_END
+	v.add_child(acts)
+	var close := UI3.button(tr("Close"), &"secondary", &"M")
+	close.name = "CloseLeaderboard"
+	close.pressed.connect(close_modal)
+	acts.add_child(close)
+	var full := UI3.button(tr("Full Leaderboard"), &"primary", &"M")
+	full.name = "FullLeaderboard"
+	full.pressed.connect(open_full_leaderboard)
+	acts.add_child(full)
+	_focus_later(close)
+	var src: LeaderboardSource = lb_source if lb_source != null else LeaderboardSource.make_default()
+	src.fetch({"asc": asc_n, "period": "season", "mode": mode}, func(res: Dictionary) -> void:
+		if not is_instance_valid(rows_box):
+			return
+		for c in rows_box.get_children():
+			c.queue_free()
+		if not bool(res.get("ok", false)):
+			var e := _lbl(tr("Can't load the board right now. Try again later."), "LabelMuted")
+			e.name = "LbError"
+			e.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+			rows_box.add_child(e)
+			return
+		var rows: Array = res.get("rows", [])
+		if rows.is_empty():
+			rows_box.add_child(_lbl(tr("No scores yet this season."), "LabelMuted"))
+		for i in mini(5, rows.size()):
+			rows_box.add_child(_lb_row(rows[i], false))
+		var me: Dictionary = res.get("me", {})
+		if not me.is_empty():
+			var mr := _lb_row(me, true)
+			mr.name = "LbMe"
+			rows_box.add_child(mr)
+		if String(res.get("updated", "")) != "":
+			rows_box.add_child(_lbl(tr("Last updated %s") % String(res["updated"]), "LabelMuted")))
+
+
+func _lb_row(r: Dictionary, own: bool) -> PanelContainer:
+	var p := UI3.plate(&"plate")
+	p.custom_minimum_size.y = 56
+	if own:
+		p.theme_type_variation = "PanelCardSelected"
+	var h := HBoxContainer.new()
+	h.add_theme_constant_override("separation", 16)
+	p.add_child(h)
+	var rk := _lbl("#%d" % int(r.get("rank", 0)), "LabelTitle")
+	rk.custom_minimum_size.x = 64
+	h.add_child(rk)
+	var nm := _lbl(String(r.get("name", tr("You"))).substr(0, 20), "LabelTitle")
+	nm.clip_text = true
+	nm.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	nm.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	h.add_child(nm)
+	h.add_child(_lbl(UI3.fmt(int(r.get("score", 0))), "LabelTitle"))
+	return p
 
 
 # ---------------------------------------------------------------- team presets (R3 M2)
@@ -485,6 +572,26 @@ func _mark_selected(b: Button, on: bool) -> void:
 			b.remove_theme_stylebox_override(k)
 
 
+## 4 px cream outline drawn as an overlay child, for tall buttons (picker tile, preset row).
+func _outline(b: Button, on: bool) -> void:
+	var o := b.get_node_or_null("SelOutline") as Panel
+	if o == null:
+		if not on:
+			return
+		o = Panel.new()
+		o.name = "SelOutline"
+		o.set_anchors_preset(Control.PRESET_FULL_RECT)
+		o.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		var sb := StyleBoxFlat.new()
+		sb.draw_center = false
+		sb.border_color = UI3Theme.color("selected_outline")
+		sb.set_border_width_all(UI3Theme.stroke("selected"))
+		sb.set_corner_radius_all(UI3Theme.radius("m"))
+		o.add_theme_stylebox_override("panel", sb)
+		b.add_child(o)
+	o.visible = on
+
+
 ## Narrower horizontal padding so six difficulty cells fit the 384 px inside the plate.
 func _tight(b: Button) -> void:
 	for k in ["normal", "hover", "pressed", "disabled"]:
@@ -520,35 +627,85 @@ func _modal_box(width: float, plate_name: String) -> VBoxContainer:
 
 
 func open_load_presets() -> void:
-	var v := _modal_box(560, "LoadPresets")
+	_show_presets("load")
+
+
+func open_save_preset() -> void:
+	_show_presets("save")
+
+
+## UI-03 34: one modal, two tabs (Load / Save current). Load rows are 72 high; a row with a missing Axie says so.
+func _show_presets(tab: String) -> void:
+	_presets_tab = tab
+	var v := _modal_box(640, "LoadPresets" if tab == "load" else "SavePresetModal")
 	v.add_child(_lbl(tr("Team presets"), "LabelScreenTitle"))
+	var tabs := HBoxContainer.new()
+	tabs.add_theme_constant_override("separation", 8)
+	v.add_child(tabs)
+	var tl := UI3.tab(tr("Load"), tab == "load")
+	tl.name = "TabLoad"
+	tl.pressed.connect(func() -> void: _show_presets("load"))
+	tabs.add_child(tl)
+	var ts := UI3.tab(tr("Save current"), tab == "save")
+	ts.name = "TabSave"
+	ts.pressed.connect(func() -> void: _show_presets("save"))
+	tabs.add_child(ts)
+	var acts := HBoxContainer.new()
+	acts.add_theme_constant_override("separation", 16)
+	acts.alignment = BoxContainer.ALIGNMENT_END
+	var cancel := UI3.button(tr("Cancel"), &"secondary", &"M")
+	cancel.name = "ClosePresets"
+	cancel.pressed.connect(close_modal)
+	if tab == "load":
+		_presets_load_body(v, acts)
+	else:
+		_presets_save_body(v, acts)
+	v.add_child(acts)
+	acts.add_child(cancel)
+	acts.move_child(cancel, 0)
+	if tab == "load":
+		_focus_later(cancel)
+
+
+func _presets_load_body(v: VBoxContainer, acts: HBoxContainer) -> void:
 	if TeamPresets.count() == 0:
 		var none := _lbl(tr("No saved teams yet. Build one in Team presets (House)."), "LabelMuted")
 		none.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		v.add_child(none)
+	var go := UI3.button(tr("Load team"), &"primary", &"M")
+	go.name = "ConfirmLoadPreset"
+	UI3.set_disabled_reason(go, tr("Load team") + " · " + tr("Pick a team"))
+	var rows: Array[Button] = []
 	for i in TeamPresets.count():
 		var e: Dictionary = MetaState.team_presets[i]
 		var miss := TeamPresets.missing_count(e)
-		var b := UI3.button("%s%s" % [String(e["name"]), " · %d seats empty" % miss if miss > 0 else ""], &"secondary", &"M")
+		var b := UI3.button("%s%s" % [String(e["name"]).substr(0, 20), " · %d seats empty" % miss if miss > 0 else ""], &"secondary", &"M")
 		b.name = "Preset%d" % i
-		b.pressed.connect(load_preset.bind(i))
+		b.custom_minimum_size.y = 72
+		b.alignment = HORIZONTAL_ALIGNMENT_LEFT
+		b.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+		b.pressed.connect(func() -> void:
+			for o in rows:
+				_outline(o, o == b)
+			go.set_meta("preset", i)
+			UI3.clear_disabled_reason(go))
+		rows.append(b)
 		v.add_child(b)
-	var cancel := UI3.button(tr("Cancel"), &"secondary", &"S")
-	cancel.name = "ClosePresets"
-	cancel.pressed.connect(close_modal)
-	v.add_child(cancel)
-	cancel.grab_focus.call_deferred()
+	go.pressed.connect(func() -> void:
+		if go.has_meta("preset"):
+			load_preset(int(go.get_meta("preset"))))
+	acts.add_child(go)
 
 
-func open_save_preset() -> void:
-	var v := _modal_box(560, "SavePresetModal")
-	v.add_child(_lbl(tr("Save as preset"), "LabelScreenTitle"))
+func _presets_save_body(v: VBoxContainer, acts: HBoxContainer) -> void:
 	var edit := LineEdit.new()
 	edit.name = "PresetName"
 	edit.max_length = TeamPresets.NAME_MAX
 	edit.text = "Team %d" % (TeamPresets.count() + 1)
 	edit.custom_minimum_size = Vector2(0, 48)
 	v.add_child(edit)
+	var slotline := _lbl(tr("Saves to slot %d") % (TeamPresets.count() + 1), "LabelMuted")
+	v.add_child(slotline)
 	var save := UI3.button(tr("Save team"), &"primary", &"M")
 	save.name = "ConfirmSavePreset"
 	var refresh_save := func(_t := "") -> void:
@@ -564,11 +721,15 @@ func open_save_preset() -> void:
 	edit.text_changed.connect(refresh_save)
 	refresh_save.call()
 	save.pressed.connect(func() -> void: save_preset(edit.text))
-	v.add_child(save)
-	var cancel := UI3.button(tr("Cancel"), &"secondary", &"S")
-	cancel.pressed.connect(close_modal)
-	v.add_child(cancel)
-	edit.grab_focus.call_deferred()
+	acts.add_child(save)
+	_focus_later(edit)
+
+
+func _focus_later(c: Control) -> void:
+	var f := func() -> void:
+		if is_instance_valid(c) and c.is_inside_tree():
+			c.grab_focus()
+	f.call_deferred()
 
 
 func close_modal() -> void:
@@ -1076,7 +1237,7 @@ func _build_open_run() -> void:
 	holder.add_child(card)
 	add_child(holder)
 	move_child(holder, get_child_count() - 2)   # under the modal layer
-	cont.grab_focus.call_deferred()
+	_focus_later(cont)
 
 
 ## "New run" on the unfinished-run card: the old run ends here (stake lost, save gone), as the card says.
@@ -1127,40 +1288,142 @@ func _pick_keys() -> Array[String]:
 	return keys
 
 
+func _pick_classes() -> Array[String]:
+	var cl: Array[String] = []
+	for k in _pick_keys():
+		var c := String(ContentDB.heroes[k].get("cls", ""))
+		if c != "" and not cl.has(c):
+			cl.append(c)
+	return cl
+
+
+## UI-03 33: modal 1120, class filter chips, 5-column grid of square previews, Cancel / "Put in slot n".
+## A tile only selects; the primary button commits through set_slot().
 func _show_picker() -> void:
-	var v := _modal_box(1000, "Picker")
+	var v := _modal_box(1120, "Picker")
 	var head := HBoxContainer.new()
 	head.add_theme_constant_override("separation", 12)
 	v.add_child(head)
-	var back := UI3.button(tr("← Back  Esc"), &"quiet")
-	back.pressed.connect(close_modal)
-	head.add_child(back)
 	var t := _lbl(tr("Pick an Axie · slot %d") % (_picker_slot + 1), "LabelScreenTitle")
 	t.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	head.add_child(t)
-	for tab in ["all", "starter", "vault"]:
-		var tb := UI3.button(tab.capitalize(), &"primary" if tab == _picker_tab else &"secondary", &"M")
-		tb.name = "Tab_" + tab
+	var chips := HBoxContainer.new()
+	chips.name = "PickerFilters"
+	chips.add_theme_constant_override("separation", 8)
+	v.add_child(chips)
+	var opts: Array = [["all", tr("All")], ["starter", tr("Starter")], ["vault", tr("Vault")]]
+	for o in opts:
+		var tb := UI3.tab(String(o[1]), _picker_tab == o[0])
+		tb.name = "Tab_" + String(o[0])
+		tb.custom_minimum_size.y = 44
 		tb.pressed.connect(func() -> void:
-			_picker_tab = tab
+			_picker_tab = o[0]
 			_show_picker())
-		head.add_child(tb)
+		chips.add_child(tb)
+	for c in _pick_classes():
+		var cb := UI3.tab(c.capitalize(), _picker_cls == c)
+		cb.name = "Class_" + c
+		cb.custom_minimum_size.y = 44
+		cb.pressed.connect(func() -> void:
+			_picker_cls = "all" if _picker_cls == c else c
+			_show_picker())
+		chips.add_child(cb)
+	var scroll := ScrollContainer.new()
+	scroll.custom_minimum_size.y = 570
+	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	v.add_child(scroll)
 	_picker_grid = GridContainer.new()
 	_picker_grid.columns = 5
 	_picker_grid.add_theme_constant_override("h_separation", 12)
 	_picker_grid.add_theme_constant_override("v_separation", 12)
-	v.add_child(_picker_grid)
+	scroll.add_child(_picker_grid)
+	var put := UI3.button(tr("Put in slot %d") % (_picker_slot + 1), &"primary", &"M")
+	put.name = "PutInSlot"
+	var tiles: Array[Button] = []
+	var shown := 0
 	for k in _pick_keys():
 		var def: Dictionary = ContentDB.heroes[k]
+		var cls := String(def.get("cls", ""))
+		if _picker_cls != "all" and cls != _picker_cls:
+			continue
+		shown += 1
 		var taken := party.has(k) and party.find(k) != _picker_slot
-		var b := UI3.button("%s\n%s" % [String(def.get("n", k)), String(def.get("cls", "")).capitalize()], &"secondary", &"M")
-		b.custom_minimum_size = Vector2(168, 72)
-		b.name = "Tile_" + k
-		b.disabled = taken
-		b.tooltip_text = tr("Already in another slot") if taken else ""
+		var b := _picker_tile(k, def, taken)
 		b.pressed.connect(func() -> void:
-			if set_slot(_picker_slot, k):
-				close_modal())
+			_picker_sel = k
+			for o in tiles:
+				_outline(o, o == b)
+			UI3.clear_disabled_reason(put))
+		tiles.append(b)
 		_picker_grid.add_child(b)
-	if _picker_tab == "vault" and _pick_keys().is_empty():
-		v.add_child(_lbl(tr("Your Vault is empty. Import an Axie in the Vault."), "LabelMuted"))
+		if k == _picker_sel and not taken:
+			_outline.call_deferred(b, true)
+	if shown == 0:
+		var msg := tr("Your Vault is empty. Import an Axie in the Vault.") if _picker_tab == "vault" and _picker_cls == "all" else tr("No Axie matches this filter.")
+		var em := _lbl(msg, "LabelMuted")
+		em.name = "PickerEmpty"
+		v.add_child(em)
+	if _picker_sel == "" or not _pick_keys().has(_picker_sel):
+		UI3.set_disabled_reason(put, tr("Put in slot %d") % (_picker_slot + 1) + " · " + tr("Pick an Axie"))
+	put.pressed.connect(func() -> void:
+		if _picker_sel != "" and set_slot(_picker_slot, _picker_sel):
+			close_modal())
+	var acts := HBoxContainer.new()
+	acts.add_theme_constant_override("separation", 16)
+	acts.alignment = BoxContainer.ALIGNMENT_END
+	v.add_child(acts)
+	var cancel := UI3.button(tr("Cancel"), &"secondary", &"M")
+	cancel.name = "CancelPicker"
+	cancel.pressed.connect(close_modal)
+	acts.add_child(cancel)
+	acts.add_child(put)
+
+
+## Square preview (portrait >= 160), name (ellipsis), class and Max HP. 50% and disabled when the Axie sits in another slot.
+func _picker_tile(k: String, def: Dictionary, taken: bool) -> Button:
+	var b := UI3.button("", &"secondary", &"M")
+	b.name = "Tile_" + k
+	b.custom_minimum_size = Vector2(188, 276)
+	b.disabled = taken
+	b.tooltip_text = tr("Already in another slot") if taken else ""
+	b.set_meta("base_normal", b.get_theme_stylebox("normal"))
+	var col := VBoxContainer.new()
+	col.set_anchors_preset(Control.PRESET_FULL_RECT)
+	col.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	col.add_theme_constant_override("separation", 4)
+	col.offset_left = 8
+	col.offset_top = 8
+	col.offset_right = -8
+	col.offset_bottom = -8
+	b.add_child(col)
+	var cls := String(def.get("cls", ""))
+	var pv := Panel.new()
+	pv.custom_minimum_size = Vector2(168, 168)
+	pv.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	pv.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var psb := StyleBoxFlat.new()
+	psb.bg_color = UI3Theme.color("viewport")
+	psb.set_corner_radius_all(UI3Theme.radius("m"))
+	pv.add_theme_stylebox_override("panel", psb)
+	col.add_child(pv)
+	var port_path := "res://assets/portraits/%s.png" % cls
+	if ResourceLoader.exists(port_path):
+		var pic := TextureRect.new()
+		pic.texture = load(port_path)
+		pic.set_anchors_preset(Control.PRESET_FULL_RECT)
+		pic.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		pic.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		pic.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		pv.add_child(pic)
+	var nm := _lbl(String(def.get("n", k)).substr(0, 20), "LabelTitle")
+	nm.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	nm.clip_text = true
+	nm.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	col.add_child(nm)
+	var sub := _lbl("%s · %s %d" % [cls.capitalize(), tr("HP"), int(def.get("max_hp", 0))], "LabelMuted")
+	sub.clip_text = true
+	sub.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	col.add_child(sub)
+	if taken:
+		b.modulate.a = 0.5
+	return b
