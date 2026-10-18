@@ -188,6 +188,54 @@
     "face_attack_text": {
       "value": "#ff6460",
       "meaning": "red-7 · the ATTACK word under a die (red-6 is 4.28:1 on a plate, below 4.5)"
+    },
+    "gem_bg": {
+      "value": "#2c0965",
+      "meaning": "purple-2 · CostChip Gem fill, paid surfaces only"
+    },
+    "gem_border": {
+      "value": "#894dff",
+      "meaning": "purple-5 · CostChip Gem border, Aid offer card, Gem gift card"
+    },
+    "gem_text": {
+      "value": "#f8bbff",
+      "meaning": "purple-9 · Gem price text"
+    },
+    "trade_gain_bg": {
+      "value": "#093322",
+      "meaning": "green-2 · TradeBox gain"
+    },
+    "trade_cost_bg": {
+      "value": "#3d0d11",
+      "meaning": "red-2 · TradeBox cost / stake lost"
+    },
+    "intent_attack": {
+      "value": "#f54540",
+      "meaning": "red-6 border"
+    },
+    "intent_shield": {
+      "value": "#31c6ff",
+      "meaning": "blue-7 border"
+    },
+    "intent_buff": {
+      "value": "#ff9345",
+      "meaning": "kam-5 border"
+    },
+    "intent_debuff": {
+      "value": "#fa59a0",
+      "meaning": "axie-bird border"
+    },
+    "status_buff_border": {
+      "value": "#3fcd3c",
+      "meaning": "green-6"
+    },
+    "status_debuff_border": {
+      "value": "#f54540",
+      "meaning": "red-6"
+    },
+    "phase_tick": {
+      "value": "#ffe5b4",
+      "meaning": "kam-9, 2 px"
     }
   },
   "contrast": [
@@ -429,7 +477,23 @@
     "axie_land": {
       "w": 65,
       "h": 75
-    }
+    },
+    "undo_btn": {
+      "w": 88,
+      "h": 48
+    },
+    "intent_badge_h": 36,
+    "status_chip_h": 32,
+    "float_0": 24,
+    "float_1": 32,
+    "float_2": 40,
+    "float_stroke": 3,
+    "cost_chip_h": 40,
+    "tooltip_max_w": 360,
+    "inspector_w": 520,
+    "phase_bar_h": 16,
+    "defeat_panel_w": 720,
+    "slot_cell_min_h": 120
   },
   "radius": {
     "s": 4,
@@ -497,7 +561,19 @@
     "roll_total": 1500,
     "trans_default": "TRANS_CUBIC",
     "ease_default": "EASE_OUT",
-    "see": "motion.md"
+    "see": "motion.md",
+    "float_rise": {
+      "px": 48,
+      "ms": 700,
+      "trans": "TRANS_CUBIC",
+      "ease": "EASE_OUT",
+      "fade_last_ms": 200
+    },
+    "phase_banner": {
+      "hold_ms": 700
+    },
+    "tooltip_delay_ms": 300,
+    "inspector_longpress_ms": 500
   },
   "z": {
     "viewport": 0,
