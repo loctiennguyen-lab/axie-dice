@@ -194,6 +194,7 @@ static func build_theme() -> Theme:
 	_build_line_edit(t, cream)
 	_build_progress(t)
 	_build_scroll(t)
+	_build_slider_check(t, cream)
 	_build_tooltip(t, cream)
 	return t
 
@@ -583,3 +584,71 @@ static func contrast_ratio(fg: Color, bg: Color, under: Color) -> float:
 	var a := luminance(front)
 	var b := luminance(back)
 	return (maxf(a, b) + 0.05) / (minf(a, b) + 0.05)
+
+
+## HSlider + CheckBox (Settings rows; components.md: row-embedded Slider / Toggle). Track = hp_track,
+## filled part = accent, grabber = cream disc with an accent ring; check box = cream-outlined square
+## on wood, accent fill + dark tick when on. Drawn into images so no new asset files are needed.
+static func _build_slider_check(t: Theme, cream: Color) -> void:
+	var rad := radius("s")
+	var track := flat(color("hp_track"), rad)
+	track.content_margin_top = 6
+	track.content_margin_bottom = 6
+	var fill := flat(color("accent"), rad)
+	fill.content_margin_top = 6
+	fill.content_margin_bottom = 6
+	t.set_stylebox("slider", "HSlider", track)
+	t.set_stylebox("grabber_area", "HSlider", fill)
+	t.set_stylebox("grabber_area_highlight", "HSlider", fill)
+	var knob := _disc_icon(28, cream, color("accent"), 3)
+	var knob_hi := _disc_icon(28, color("accent_text"), color("accent"), 3)
+	t.set_icon("grabber", "HSlider", knob)
+	t.set_icon("grabber_highlight", "HSlider", knob_hi)
+	t.set_icon("grabber_disabled", "HSlider", _disc_icon(28, color("disabled"), color("disabled_border"), 3))
+	t.set_constant("center_grabber", "HSlider", 0)
+
+	var off := _box_icon(28, color("panel"), cream, false)
+	var on := _box_icon(28, color("accent"), cream, true)
+	t.set_icon("unchecked", "CheckBox", off)
+	t.set_icon("checked", "CheckBox", on)
+	t.set_icon("unchecked_disabled", "CheckBox", _box_icon(28, color("panel"), color("disabled_border"), false))
+	t.set_icon("checked_disabled", "CheckBox", _box_icon(28, color("disabled"), color("disabled_border"), true))
+	t.set_constant("h_separation", "CheckBox", 12)
+	t.set_color("font_color", "CheckBox", cream)
+	t.set_color("font_hover_color", "CheckBox", cream)
+	t.set_color("font_pressed_color", "CheckBox", cream)
+	t.set_color("font_focus_color", "CheckBox", cream)
+	t.set_font_size("font_size", "CheckBox", size_of("text_body"))
+
+
+static func _disc_icon(px: int, fill_col: Color, ring: Color, ring_px: int) -> ImageTexture:
+	var img := Image.create(px, px, false, Image.FORMAT_RGBA8)
+	var c := (px - 1) / 2.0
+	for y in px:
+		for x in px:
+			var d := Vector2(x - c, y - c).length()
+			var r := px / 2.0
+			if d <= r - ring_px:
+				img.set_pixel(x, y, fill_col)
+			elif d <= r:
+				img.set_pixel(x, y, ring)
+	return ImageTexture.create_from_image(img)
+
+
+static func _box_icon(px: int, fill_col: Color, border: Color, ticked: bool) -> ImageTexture:
+	var img := Image.create(px, px, false, Image.FORMAT_RGBA8)
+	var bw := 3
+	var tick := color("bg")
+	for y in px:
+		for x in px:
+			var edge := x < bw or y < bw or x >= px - bw or y >= px - bw
+			img.set_pixel(x, y, border if edge else fill_col)
+	if ticked:
+		# Two strokes: down-right short, then up-right long.
+		for i in 6:
+			for w in 3:
+				img.set_pixel(7 + i, 14 + i - 1 + w, tick)
+		for i in 11:
+			for w in 3:
+				img.set_pixel(12 + i, 19 - i + w, tick)
+	return ImageTexture.create_from_image(img)

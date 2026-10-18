@@ -301,6 +301,13 @@ func _render(_first: bool) -> void:
 				"All three are good picks. This is where you start shaping your build.",
 				_REWARD_FLAVORS)
 		Step.DONE:
+			# Replay from Settings: the pack was granted long ago (MetaState grants it at first load, so
+			# starter_granted is true on a first run too and can't tell the two apart; tutorial_seen can).
+			if MetaState.tutorial_seen:
+				_coach.show_curtain("Nice work. You're ready.",
+					"That's the whole tutorial again. Your starter pack is already in your wallet.",
+					"Go to the Land")
+				return
 			var st := _starter_pack()
 			var entries: Array = []
 			if int(st.get("shards", 0)) > 0:
