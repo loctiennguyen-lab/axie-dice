@@ -139,8 +139,10 @@ static func clear_disabled_reason(btn: Button) -> void:
 
 ## Marks a card selected or not: swaps PanelCard / PanelCardSelected (4 px cream outline, padding kept) and
 ## lifts it 18 px (components.md). Inside a Container the lift is re-applied after every layout pass.
-static func set_card_selected(card: PanelContainer, on: bool) -> void:
+static func set_card_selected(card: PanelContainer, on: bool, lift := true) -> void:
 	card.theme_type_variation = "PanelCardSelected" if on else "PanelCard"
+	if not lift:
+		return
 	var lifted := card.has_meta("ui3_lift")
 	var par := card.get_parent()
 	if on and not lifted:
@@ -493,6 +495,207 @@ static func net_notice(text: String, retry_text: String, on_retry: Callable, rec
 			b.pressed.connect(on_retry)
 		row.add_child(b)
 	return p
+
+
+## TradeBox (round 2): one labelled box. kind gain = green-2 box + "Gain" label; cost / gamble / curse = red-2 box
+## + "Cost" / "Gamble" / "Curse" label. The label is a word, never colour alone. Pad 12, radius 8.
+static func trade_box(kind: StringName, text: String) -> PanelContainer:
+	var gain := kind == &"gain"
+	var words := {&"gain": "Gain", &"cost": "Cost", &"gamble": "Gamble", &"curse": "Curse"}
+	var p := PanelContainer.new()
+	p.name = "TradeBox_%s" % String(kind)
+	p.theme = UI3Theme.get_theme()
+	p.add_theme_stylebox_override("panel", UI3Theme.flat(
+		UI3Theme.color("trade_gain_bg" if gain else "trade_cost_bg"), UI3Theme.radius("m"), 0,
+		Color.TRANSPARENT, Vector4(12, 12, 12, 12)))
+	var v := VBoxContainer.new()
+	v.add_theme_constant_override("separation", 4)
+	p.add_child(v)
+	var l := label(TranslationServer.translate(String(words.get(kind, "Cost"))), "LabelMuted")
+	l.name = "TradeLabel"
+	l.add_theme_color_override("font_color", UI3Theme.color("success_text" if gain else "danger_text"))
+	v.add_child(l)
+	var b := label(text)
+	b.name = "TradeText"
+	b.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	v.add_child(b)
+	return p
+
+
+## Title Case for names the data stores in capitals ("LUNACIA ULTIMA", "CURSE PACT"). Names already in mixed
+## case are returned untouched, so "Devil's Reroll" and "HP" keep their form.
+static func title_case(raw: String) -> String:
+	if raw != raw.to_upper():
+		return raw
+	var words := raw.split(" ")
+	var out: Array[String] = []
+	for w in words:
+		var word := String(w)
+		if word.length() <= 2 and word == "HP":
+			out.append(word)
+		elif word != "":
+			out.append(word.substr(0, 1).to_upper() + word.substr(1).to_lower())
+		else:
+			out.append(word)
+	return " ".join(out)
+
+
+# ===== CostChip (shared with lane C: keep ONE definition when merging) =====
+## CostChip (round 2): h 40, radius 8, icon + Rowdies 18. kind gem (purple, paid surfaces only), shard, stone, or
+## free ("Free"). `amount` is the price (ignored for free). not_enough tints the amount red.
+static func cost_chip(kind: StringName, amount: int, not_enough := false) -> PanelContainer:
+	var p := PanelContainer.new()
+	p.name = "CostChip"
+	p.theme = UI3Theme.get_theme()
+	var gem := kind == &"gem"
+	p.add_theme_stylebox_override("panel", UI3Theme.flat(
+		UI3Theme.color("gem_bg" if gem else "panel_raised"), UI3Theme.radius("m"),
+		2 if (gem or not_enough) else 0, UI3Theme.color("danger_text" if not_enough else "gem_border"),
+		Vector4(10, 4, 10, 4)))
+	p.custom_minimum_size = Vector2(0, 40)
+	var h := HBoxContainer.new()
+	h.add_theme_constant_override("separation", 8)
+	h.alignment = BoxContainer.ALIGNMENT_CENTER
+	p.add_child(h)
+	if kind != &"free":
+		var t := TextureRect.new()
+		t.texture = icon("cur_gem" if gem else ("cur_stone" if kind == &"stone" else "cur_shard"))
+		t.custom_minimum_size = Vector2(24, 24)
+		t.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		t.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		h.add_child(t)
+	var l := label(TranslationServer.translate("Free") if kind == &"free" else fmt(amount), "LabelDisplay")
+	l.add_theme_color_override("font_color", UI3Theme.color("danger_text" if not_enough else ("gem_text" if gem else "text")))
+	h.add_child(l)
+	return p
+# ===== end CostChip =====
+
+
+## SlotSwapSheet (round 2, spec 32): modal 1200, new item row (amber outline) + grid of SlotCells (min 120:
+## name, kind, sell value or "Can't sell" for Eternal) + actions. `cells` = [{id, name, kind, sell, eternal}].
+## Primary "Sell X and take" stays disabled until a cell is picked and says why. "Leave it" is absent when
+## `forced`; Esc = Leave it (ignored when forced). on_confirm(sell_id: String), on_leave(). cols 4 (3 for active).
+static func slot_swap_sheet(header: String, new_title: String, new_sub: String, rule: String, cells: Array,
+		forced: bool, on_confirm: Callable, on_leave: Callable, cols := 4) -> ModalRoot:
+	var root := ModalRoot.new()
+	root.name = "SlotSwapSheet"
+	root.theme = UI3Theme.get_theme()
+	root.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	root.mouse_filter = Control.MOUSE_FILTER_STOP
+	var scrim := ColorRect.new()
+	scrim.color = UI3Theme.color("scrim")
+	scrim.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	scrim.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	root.add_child(scrim)
+	var center := CenterContainer.new()
+	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	center.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	root.add_child(center)
+	var dlg := plate(&"dialog")
+	dlg.name = "Dialog"
+	dlg.custom_minimum_size = Vector2(1200, 0)
+	center.add_child(dlg)
+	var col := VBoxContainer.new()
+	col.add_theme_constant_override("separation", 24)
+	dlg.add_child(col)
+	col.add_child(label(header, "LabelScreenTitle"))
+	var rl := label(rule, "LabelMuted")
+	rl.name = "RuleLine"
+	rl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	col.add_child(rl)
+	var nrow := PanelContainer.new()
+	nrow.name = "NewItem"
+	nrow.add_theme_stylebox_override("panel", UI3Theme.flat(UI3Theme.color("panel_raised"), UI3Theme.radius("m"), 2,
+		UI3Theme.color("accent"), Vector4(16, 12, 16, 12)))
+	var nv := VBoxContainer.new()
+	nrow.add_child(nv)
+	nv.add_child(label(new_title, "LabelTitle"))
+	var ns := label(new_sub)
+	ns.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	nv.add_child(ns)
+	col.add_child(nrow)
+	var grid := GridContainer.new()
+	grid.name = "SlotGrid"
+	grid.columns = cols
+	grid.add_theme_constant_override("h_separation", 16)
+	grid.add_theme_constant_override("v_separation", 16)
+	col.add_child(grid)
+	var acts := HBoxContainer.new()
+	acts.alignment = BoxContainer.ALIGNMENT_END
+	acts.add_theme_constant_override("separation", 16)
+	var confirm := button(TranslationServer.translate("Pick one to sell"), &"primary", &"M")
+	confirm.name = "SwapConfirm"
+	set_disabled_reason(confirm, TranslationServer.translate("Pick one to sell"))
+	var state := {"sel": ""}
+	var btns: Array[Button] = []
+	var sellable := 0
+	for c in cells:
+		var cell: Dictionary = c
+		var b := Button.new()
+		b.name = "SlotCell_%s" % String(cell.get("id", ""))
+		b.theme = UI3Theme.get_theme()
+		b.theme_type_variation = "ButtonSecondary"
+		b.custom_minimum_size = Vector2(120, 120)
+		b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		b.focus_mode = Control.FOCUS_ALL
+		var eternal := bool(cell.get("eternal", false))
+		var sell_text: String = TranslationServer.translate("Can't sell") if eternal else "%s · +%d" % [
+			TranslationServer.translate("Sell"), int(cell.get("sell", 0))]
+		var cv := VBoxContainer.new()
+		cv.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT, Control.PRESET_MODE_MINSIZE, 8)
+		cv.alignment = BoxContainer.ALIGNMENT_CENTER
+		cv.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		b.add_child(cv)
+		var nl := label(title_case(String(cell.get("name", ""))), "LabelDisplay")
+		nl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		nl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		nl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		cv.add_child(nl)
+		for t in [String(cell.get("kind", "")), sell_text]:
+			var tl := label(String(t), "LabelMuted")
+			tl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+			tl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			cv.add_child(tl)
+		if eternal:
+			b.disabled = true
+			b.modulate.a = 0.5
+		else:
+			sellable += 1
+			var id := String(cell.get("id", ""))
+			b.toggle_mode = true
+			b.pressed.connect(func() -> void:
+				state["sel"] = id
+				for o in btns:
+					o.set_pressed_no_signal(o == b)
+					for sn in ["normal", "pressed", "hover", "hover_pressed"]:
+						o.remove_theme_stylebox_override(sn)
+						if o == b:
+							o.add_theme_stylebox_override(sn, UI3Theme.flat(UI3Theme.color("btn_secondary"),
+								UI3Theme.radius("m"), UI3Theme.stroke("selected"), UI3Theme.color("selected_outline")))
+				clear_disabled_reason(confirm)
+				confirm.text = TranslationServer.translate("Sell %s and take") % title_case(String(cell.get("name", ""))))
+		btns.append(b)
+		grid.add_child(b)
+	if sellable == 0:
+		confirm.text = TranslationServer.translate("Nothing to sell")
+		set_disabled_reason(confirm, TranslationServer.translate("Every candidate is Eternal"))
+	confirm.pressed.connect(func() -> void:
+		if String(state["sel"]) != "":
+			on_confirm.call(String(state["sel"])))
+	var list: Array = []
+	list.append_array(btns.filter(func(x: Button) -> bool: return not x.disabled))
+	list.append(confirm)
+	if not forced:
+		var leave := button(TranslationServer.translate("Leave it"), &"secondary", &"M")
+		leave.name = "SwapLeave"
+		leave.pressed.connect(func() -> void: on_leave.call())
+		acts.add_child(leave)
+		list.append(leave)
+		root.cancelled.connect(func() -> void: on_leave.call())
+	acts.add_child(confirm)
+	col.add_child(acts)
+	root.actions = list
+	return root
 
 
 ## Skeleton row for loading lists: flat neutral-2 block, radius 8, default 72 high. Static (no pulse), so
