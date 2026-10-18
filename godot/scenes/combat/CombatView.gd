@@ -548,6 +548,8 @@ func _input(event: InputEvent) -> void:
 
 
 func _unhandled_key_input(event: InputEvent) -> void:
+	if pause_menu_open():
+		return   # the pause plate owns the keyboard (its own Esc = Resume)
 	if event is InputEventKey and event.pressed and not (event as InputEventKey).echo:
 		var code := (event as InputEventKey).keycode
 		# README 3 keymap: E ends the turn, Z undoes, R rerolls, 1-5 pick a die. Space still ends
@@ -576,7 +578,7 @@ func _unhandled_key_input(event: InputEvent) -> void:
 			_inspect_hotkey()
 		elif code == KEY_ESCAPE:
 			# The only way out of a fight now that combat-v2.html's four-chip utility row has no
-			# Quit button. Esc opens the in-run Settings menu (L1 C3); "Leave the fight" in the
+			# Quit button. Esc opens the in-run pause menu (UI-03 14, same as the run map); "Leave the fight" in the
 			# info menu still has the save-and-quit confirm.
 			open_run_menu()
 
@@ -836,6 +838,39 @@ func open_run_menu() -> void:
 	if _tutorial or _combat == null or _result_shown:
 		_on_quit_pressed()
 		return
+	if pause_menu_open():
+		return
+	var graph := RunMapGraph.from_data(RunState.map_graph)
+	var node := graph.find_node(String(_setup.get("node_id", "")))
+	var layer := CanvasLayer.new()
+	layer.name = "PauseLayer"
+	layer.layer = 40          # over the inspector (28) and the quit confirm (30)
+	add_child(layer)
+	var menu := RunPauseMenu.new()
+	menu.build({"floor": node.row + 1 if node != null else 0, "total": graph.rows.size(),
+		"ascension": RunState.ascension, "shards": RunState.shards_this_run})
+	layer.add_child(menu)
+	var close := func() -> void:
+		if is_instance_valid(layer):
+			if layer.get_parent() != null:
+				layer.get_parent().remove_child(layer)
+			layer.queue_free()
+	menu.resumed.connect(close)
+	menu.settings_requested.connect(open_settings_from_menu)
+	menu.save_quit_confirmed.connect(func() -> void:
+		prepare_run_menu()
+		get_tree().change_scene_to_file("res://scenes/main_menu/MainMenu.tscn"))
+	menu.abandon_confirmed.connect(func() -> void:
+		SettingsView.abandon_current_run()
+		LandNav.back_to_land())
+
+
+func pause_menu_open() -> bool:
+	return find_child("RunPauseMenu", true, false) != null
+
+
+## The Settings row of the pause plate: the in-run Settings screen; "Back to run" reloads this fight.
+func open_settings_from_menu() -> void:
 	prepare_run_menu()
 	get_tree().change_scene_to_file("res://scenes/settings/Settings.tscn")
 
