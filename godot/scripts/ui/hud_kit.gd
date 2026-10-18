@@ -1,7 +1,7 @@
 class_name HudKit
 extends RefCounted
 ## Small builders for the Dice UI R1 combat HUD (design/handoffs/ui-02-round1b). Everything here
-## resolves colours / outlines / type through DangoTheme, so the HUD cannot drift from the sheet.
+## resolves colours / outlines / type through UI3Theme tokens.
 ## Pure UI: no game state is read or written here.
 
 const ICON_DIR := "res://assets/icons/web/"
@@ -22,7 +22,7 @@ static func icon(name: String) -> Texture2D:
 ## A glyph the display font actually has, else its ASCII fallback (U+2713 and the music note were
 ## already missing from every project font; do not assume arrows exist).
 static func glyph(codepoint: int, fallback: String) -> String:
-	var f: Font = DangoTheme.FONT_DISPLAY
+	var f: Font = UI3Theme.font_display()
 	return String.chr(codepoint) if f != null and f.has_char(codepoint) else fallback
 
 
@@ -38,21 +38,6 @@ static func dot() -> String:
 	return glyph(0x00B7, "-")
 
 
-## Baloo label. weight 800 default; `outline` > 0 draws the R1 numeral-over-scene outline.
-static func label(text: String, size: int, color: Color = DangoTheme.INK, weight: int = 800,
-		tracking_em: float = 0.0) -> Label:
-	var l := DangoTheme.display_label(text, size, color, weight, tracking_em)
-	l.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	return l
-
-
-## Work Sans (prose) label.
-static func prose(text: String, size: int, color: Color = DangoTheme.INK_2) -> Label:
-	var l := DangoTheme.prose_label(text, size, color)
-	l.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	return l
-
-
 static func tex_rect(tex: Texture2D, px: int, modulate: Color = Color.WHITE) -> TextureRect:
 	var t := TextureRect.new()
 	t.texture = tex
@@ -66,8 +51,8 @@ static func tex_rect(tex: Texture2D, px: int, modulate: Color = Color.WHITE) -> 
 
 
 ## Flat box on the R1 outline. `fill` = mid of the sheet's 2-stop gradient.
-static func box(fill: Color, radius: int, border_w: int = 3, border: Color = DangoTheme.OUTLINE,
-		shelf: Vector2 = Vector2.ZERO, shelf_color: Color = DangoTheme.SHELF,
+static func box(fill: Color, radius: int, border_w: int = 3, border: Color = Color.TRANSPARENT,
+		shelf: Vector2 = Vector2.ZERO, shelf_color: Color = Color(0, 0, 0, 0.35),
 		pad: Vector2 = Vector2.ZERO) -> StyleBoxFlat:
 	var sb := StyleBoxFlat.new()
 	sb.bg_color = fill
@@ -86,71 +71,11 @@ static func box(fill: Color, radius: int, border_w: int = 3, border: Color = Dan
 
 
 ## The standard raised panel: cream, 3px outline (HUD bars) or 4px LINE (panels).
-static func panel(radius: int = 16, border_w: int = 3, line: bool = false, fill: Color = DangoTheme.PANEL,
+static func panel(radius: int = 16, border_w: int = 3, line: bool = false, fill: Color = Color.TRANSPARENT,
 		pad: Vector2 = Vector2(8, 0)) -> StyleBoxFlat:
-	return box(fill, radius, border_w, DangoTheme.LINE if line else DangoTheme.OUTLINE,
-		Vector2(3, 5), DangoTheme.SHELF, pad)
-
-
-## Status chip: h26 (tray / plates), r8, border 2, icon 18, Baloo 14. `fill` CREAM_RAISED or
-## SHIELD_CHIP. Tooltip optional.
-static func status_chip(icon_tex: Texture2D, n: Variant, fill: Color = DangoTheme.CREAM_RAISED,
-		tip: String = "") -> PanelContainer:
-	var chip := PanelContainer.new()
-	chip.custom_minimum_size = Vector2(0, 26)
-	chip.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	chip.add_theme_stylebox_override("panel", box(fill, 8, 2, DangoTheme.OUTLINE, Vector2.ZERO,
-		DangoTheme.SHELF, Vector2(5, 0)))
-	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", 2)
-	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	chip.add_child(row)
-	if icon_tex != null:
-		row.add_child(tex_rect(icon_tex, 18))
-	var ink := DangoTheme.INK_ON_SHIELD_CHIP if fill == DangoTheme.SHIELD_CHIP else DangoTheme.INK
-	row.add_child(label(str(n), 14, ink))
-	if tip != "":
-		chip.tooltip_text = tip
-		chip.mouse_filter = Control.MOUSE_FILTER_STOP
-	else:
-		chip.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	return chip
-
-
-## "+N" overflow chip (dusk).
-static func more_chip(n: int) -> PanelContainer:
-	var chip := PanelContainer.new()
-	chip.custom_minimum_size = Vector2(0, 26)
-	chip.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	chip.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	chip.add_theme_stylebox_override("panel", box(DangoTheme.DUSK, 8, 2, DangoTheme.OUTLINE,
-		Vector2.ZERO, DangoTheme.SHELF, Vector2(6, 0)))
-	chip.add_child(label("+%d" % n, 14, DangoTheme.CREAM_RAISED))
-	return chip
-
-
-## Fill a chip row from a status dictionary + shield: shield first, max `cap` chips, then "+N".
-## `icons` maps status key -> Texture2D, `tips` is a Callable(key, n) -> String.
-static func fill_status_row(row: Control, status: Dictionary, shield: int, icons: Dictionary,
-		tip_fn: Callable, cap: int = 4) -> void:
-	for c in row.get_children():
-		row.remove_child(c)
-		c.queue_free()
-	var items: Array = []
-	if shield > 0:
-		items.append({"icon": DangoTheme.face_type_icon("shield"), "n": shield,
-			"fill": DangoTheme.SHIELD_CHIP, "tip": tip_fn.call("shield", shield) if tip_fn.is_valid() else ""})
-	for key in icons:
-		var v := int(status.get(key, 0))
-		if v > 0:
-			items.append({"icon": icons[key], "n": v, "fill": DangoTheme.CREAM_RAISED,
-				"tip": tip_fn.call(key, v)})
-	var shown := mini(items.size(), cap if items.size() <= cap else cap - 1)
-	for i in shown:
-		var it: Dictionary = items[i]
-		row.add_child(status_chip(it["icon"], it["n"], it["fill"], it["tip"]))
-	if items.size() > shown:
-		row.add_child(more_chip(items.size() - shown))
+	var f := fill if fill.a > 0.0 else UI3Theme.color("panel")
+	var edge := UI3Theme.color("btn_secondary") if line else UI3Theme.color("panel_raised")
+	return box(f, radius, border_w, edge, Vector2.ZERO, Color.TRANSPARENT, pad)
 
 
 # ── Boss clock / spike tab model (README 3) ─────────────────────────────────────────────────
@@ -172,7 +97,7 @@ static func clock_tab(clock: Dictionary, turn: int, intent_total: int) -> Dictio
 	var step := int(clock.get("step_pct", 10 if max_stacks == 3 else 20))
 	var light := max_stacks == 3
 	var pips: Array[Color] = PIPS_LIGHT if light else PIPS_FULL
-	var out := {"bg": DangoTheme.DUSK, "ink": DangoTheme.DUSK_INK, "text": "", "right": "",
+	var out := {"bg": UI3Theme.color("panel_raised"), "ink": UI3Theme.color("accent"), "text": "", "right": "",
 		"pips": [], "icon": icon("boss-clock"), "maxed": false}
 	if stacks <= 0:
 		var left := start - turn
@@ -180,24 +105,24 @@ static func clock_tab(clock: Dictionary, turn: int, intent_total: int) -> Dictio
 			out["text"] = "ENRAGE IN %d" % left
 			out["right"] = "then +%d%%/turn" % step
 		else:
-			out["bg"] = DangoTheme.GOLD
-			out["ink"] = DangoTheme.GOLD_INK
+			out["bg"] = UI3Theme.color("accent")
+			out["ink"] = UI3Theme.color("accent_text")
 			out["text"] = "ENRAGE NEXT TURN"
 			out["right"] = "+%d%%/turn" % step
 		return out
 	if stacks >= max_stacks:
-		out["bg"] = DangoTheme.ASCENSION_RED
-		out["ink"] = DangoTheme.CREAM_RAISED
+		out["bg"] = UI3Theme.color("danger")
+		out["ink"] = UI3Theme.color("text")
 		out["text"] = "ENRAGE MAX +%d%%" % pct
 		out["right"] = "incl. in %d" % intent_total
 		out["maxed"] = true
 		for i in max_stacks:
-			out["pips"].append(DangoTheme.CREAM_RAISED)
+			out["pips"].append(UI3Theme.color("text"))
 		return out
-	out["bg"] = DangoTheme.GOLD_SOFT
-	out["ink"] = DangoTheme.GOLD_INK
+	out["bg"] = UI3Theme.color("accent")
+	out["ink"] = UI3Theme.color("accent_text")
 	out["text"] = "ENRAGE +%d%%" % pct
 	out["right"] = "incl. in %d" % intent_total
 	for i in max_stacks:
-		out["pips"].append(pips[i] if i < stacks else DangoTheme.CREAM_300)
+		out["pips"].append(pips[i] if i < stacks else UI3Theme.color("btn_secondary"))
 	return out
