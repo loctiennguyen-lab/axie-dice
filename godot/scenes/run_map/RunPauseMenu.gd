@@ -11,7 +11,7 @@ signal abandon_confirmed
 
 const MENU_W := 480.0
 const SIDE_W := 560.0
-const SIDE_H := 576.0   # relics list height; Map/Settings hug their content
+const SIDE_H := 576.0   # shared plate + side panel height (they always match)
 const ROW_H := 64.0
 
 ## {floor, total, ascension, shards, kind} for the Run map panel (filled by the host from the real run).
@@ -43,7 +43,8 @@ func build(p_map_info: Dictionary) -> void:
 
 	var menu := UI3.plate(&"dialog")
 	menu.name = "MenuPlate"
-	menu.custom_minimum_size = Vector2(MENU_W, 0)
+	menu.custom_minimum_size = Vector2(MENU_W, SIDE_H)
+	menu.size_flags_vertical = Control.SIZE_FILL
 	pair.add_child(menu)
 	var col := VBoxContainer.new()
 	col.add_theme_constant_override("separation", 12)
@@ -65,7 +66,7 @@ func build(p_map_info: Dictionary) -> void:
 	_side = UI3.plate(&"dialog")
 	_side.name = "SidePanel"
 	_side.custom_minimum_size = Vector2(SIDE_W, 0)
-	_side.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	_side.size_flags_vertical = Control.SIZE_FILL   # same top and height as the menu plate
 	pair.add_child(_side)
 	show_side("relics")
 	(rows["Resume"] as Button).grab_focus.call_deferred()
@@ -85,7 +86,7 @@ func _row(col: VBoxContainer, key: String, text: String, variant: StringName, on
 ## Fills the side panel: "relics" (owned list), "map" (progress summary) or "settings" (button to the screen).
 func show_side(which: String) -> void:
 	side_name = which
-	_side.custom_minimum_size.y = SIDE_H if which == "relics" else 0.0
+	_side.custom_minimum_size.y = SIDE_H
 	for c in _side.get_children():
 		_side.remove_child(c)
 		c.queue_free()
