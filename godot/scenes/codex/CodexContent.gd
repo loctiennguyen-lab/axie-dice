@@ -210,7 +210,7 @@ static func keyword_tip(key: String) -> Dictionary:
 ## (poison/burn/regen/blind/weaken/vulnerable/thorns/stun/undying) plus "shield" — which is not
 ## a stack at all but is drawn as the first chip of the same strip (CB-13) — and "freeze".
 ##
-## Shield's row carries no `tone` (it has no DangoTheme.status_color() case), so its `icon`
+## Shield's row carries no `tone` (it has no UI3Theme status colours case), so its `icon`
 ## field is the key; every other row's `tone` IS the engine key. Both are read here rather
 ## than maintaining a third name for the same eleven things.
 static func status_tip(key: String) -> Dictionary:
@@ -251,7 +251,7 @@ static func _kw() -> String:
 ## same content on a dark panel and has no grid — but it now builds its two tables FROM this
 ## list rather than repeating the copy. Edit a rule here and both screens change.
 ##
-## `tone` is the key DangoTheme.status_color() knows. Shield is the one entry it has no case
+## `tone` is the key UI3Theme status colours knows. Shield is the one entry it has no case
 ## for (it is not a stack in Unit.status; CB-13 draws it as an INFO chip), so it carries its
 ## colour directly. `icon` is the mockup-side name — MockupAssets maps it to assets/icons/web/.
 ## "vulnerable" is the one key whose icon file is spelled differently, which is why the two

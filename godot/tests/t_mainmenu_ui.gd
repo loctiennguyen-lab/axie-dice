@@ -1,7 +1,7 @@
 extends Node
 ## MainMenu.tscn is a pure router now (Liam dropped the Main Menu, 16/10): this gate checks the
-## redirect (tutorial / Land), that the scene draws nothing, and the TeamSelect class-passive
-## rule that used to live here. The old menu-UI tests were retired with the menu itself.
+## redirect (tutorial / Land) and that the scene draws nothing. The old menu-UI tests and the
+## TeamSelect class-passive check were retired with those screens (RunSetup's picker shows no passive).
 ##
 ## Run: godot --headless --path godot res://tests/t_mainmenu_ui.tscn
 
@@ -9,7 +9,6 @@ const EXPECTED_TESTS: Array[String] = [
 	"test_routes_to_tutorial_until_seen",
 	"test_routes_to_land_once_tutorial_seen",
 	"test_main_menu_scene_draws_nothing",
-	"test_team_select_shows_every_slots_class_passive",
 ]
 
 var _failures: Array[String] = []
@@ -30,7 +29,6 @@ func _ready() -> void:
 	test_routes_to_tutorial_until_seen()
 	test_routes_to_land_once_tutorial_seen()
 	test_main_menu_scene_draws_nothing()
-	await test_team_select_shows_every_slots_class_passive()
 
 	for name in EXPECTED_TESTS:
 		if not _completed.has(name):
@@ -80,53 +78,6 @@ func test_main_menu_scene_draws_nothing() -> void:
 	_assert(menu.get_child_count() == 0, "MainMenu must build no UI, has %d children" % menu.get_child_count())
 	menu.free()
 	_done("test_main_menu_scene_draws_nothing")
-
-
-func _instantiate_team_select() -> Node:
-	var screen := (load("res://scenes/main_menu/TeamSelect.tscn") as PackedScene).instantiate()
-	add_child(screen)
-	return screen
-
-
-## UPDATED 2026-09-20, replaces `test_every_team_slot_shows_its_class_passive`. The 5-slot
-## picker this test used to check on MainMenu.tscn now lives entirely on TeamSelect.tscn (see
-## that file's header for why) — MainMenu's own team row is read-only and shows no passive text
-## at all, so re-running the old assertion against MainMenu would either false-fail or, worse,
-## silently pass on an empty sweep. The rule is unchanged (picking a team is picking five
-## always-on rules, so the passive must be on screen, straight from ContentDB.CLASS_PASSIVE,
-## never retyped) — only the screen under test moved.
-func test_team_select_shows_every_slots_class_passive() -> void:
-	MainMenu.pending_team = MainMenu.DEFAULT_TEAM.duplicate()
-	var screen := _instantiate_team_select()
-	await get_tree().process_frame
-
-	var all_text := ""
-	for node in _descendants(screen):
-		var lbl := node as Label
-		if lbl != null:
-			all_text += lbl.text + "\n"
-
-	var seen := 0
-	for hero_key in MainMenu.DEFAULT_TEAM:
-		var hero_def: Dictionary = ContentDB.heroes.get(String(hero_key), {})
-		var passive: Dictionary = ContentDB.CLASS_PASSIVE.get(String(hero_def.get("cls", "")), {})
-		_assert(not passive.is_empty(),
-			"hero '%s' has a class with no passive defined" % hero_key)
-		if passive.is_empty():
-			continue
-		seen += 1
-		_assert(all_text.contains(String(passive.get("n", ""))),
-			"the team slot for '%s' does not name its passive (%s)"
-			% [hero_key, passive.get("n", "")])
-		_assert(all_text.contains(String(passive.get("d", "")).substr(0, 24)),
-			"the team slot for '%s' names %s but does not say what it does"
-			% [hero_key, passive.get("n", "")])
-	_assert(seen == 5, "checked %d team slots, expected 5" % seen)
-
-	screen.queue_free()
-	await get_tree().process_frame
-	MainMenu.pending_team = []
-	_done("test_team_select_shows_every_slots_class_passive")
 
 
 func _descendants(node: Node) -> Array[Node]:

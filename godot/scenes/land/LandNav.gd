@@ -13,9 +13,7 @@ const LAND_SCENE := "res://scenes/land/Land.tscn"
 ## screen_id -> {scene, fallback}. M gửi yêu cầu cho L nếu cần thêm id.
 const SCREENS: Dictionary = {
 	&"run_setup": {"scene": "res://scenes/run_setup/RunSetup.tscn"},
-	&"team_select": {"scene": "res://scenes/main_menu/TeamSelect.tscn"},
-	&"team_presets": {"scene": "res://scenes/team_presets/TeamPresets.tscn",
-		"fallback": "res://scenes/main_menu/TeamSelect.tscn"},
+	&"team_presets": {"scene": "res://scenes/team_presets/TeamPresets.tscn"},
 	&"missions": {"scene": "res://scenes/missions/MissionsScreen.tscn"},
 	&"echobox": {"scene": "res://scenes/echobox/EchoBoxScreen.tscn"},
 	&"pass": {"scene": "res://scenes/pass/Pass.tscn"},

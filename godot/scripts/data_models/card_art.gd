@@ -63,7 +63,7 @@ const RELIC_ART_BY_RARITY: Array[String] = [
 ]
 
 
-## `rarity` is DangoTheme.RARITY_NAMES' index (0 Common .. 4 Legendary), or -1 when the caller
+## `rarity` is the rarity names' index (0 Common .. 4 Legendary), or -1 when the caller
 ## has none. Out-of-range falls back to Common rather than to nothing: a relic with a strange
 ## rarity is still a relic, and a blank card would be the more confusing failure.
 static func texture_for_reward(reward_type: String, rarity: int = -1) -> Texture2D:
