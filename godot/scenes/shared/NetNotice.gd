@@ -16,7 +16,7 @@ static func text_for(code: String) -> String:
 		"offline":
 			return "Can't reach the server. Your run is saved."
 		"timeout":
-			return "The server is slow to answer. Trying again\u2026"
+			return "The server is slow to answer. Try again."
 		"expired", "unauthenticated":
 			return "Your session expired. Sign in again to continue this run."
 		"version":

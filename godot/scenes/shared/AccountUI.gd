@@ -61,7 +61,7 @@ static func show_welcome(layer: CanvasLayer) -> Control:
 		DangoTheme.TEXT_DIM)
 	hint.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	row.add_child(hint)
-	var guest := _button("PLAY AS GUEST", false, 44)
+	var guest := _button("CONTINUE WITHOUT SIGNING IN", false, 44)
 	guest.name = "PlayAsGuest"
 	guest.pressed.connect(func() -> void:
 		overlay.queue_free()
@@ -285,7 +285,7 @@ static func show_choice(layer: CanvasLayer, kind: String, info: Dictionary, done
 
 	if kind == "move":
 		box.add_child(DangoTheme.display_label("Move your guest progress?", 40))
-		box.add_child(_prose("This browser has progress from playing as a guest, and your account "
+		box.add_child(_prose("This browser has progress from before you signed in, and your account "
 			+ "is empty. Move it to your account to keep it on every device.", 18,
 			DangoTheme.TEXT_DIM))
 		box.add_child(_gap(_save_card("This device (guest)", "", info.get("local", {})), 8))
@@ -419,7 +419,7 @@ static func show_toast(layer: CanvasLayer, code: String) -> Control:
 		"access_denied", "network":
 			actions = [["TRY AGAIN" if code == "access_denied" else "RETRY", true,
 					func() -> void: service.sign_in()],
-				["PLAY AS GUEST", false, func() -> void: service.play_as_guest()]]
+				["CONTINUE WITHOUT SIGNING IN", false, func() -> void: service.play_as_guest()]]
 		"admin_policy_enforced", "org_internal":
 			actions = [["USE ANOTHER ACCOUNT", true, func() -> void: service.sign_in(true)]]
 		"session_expired":

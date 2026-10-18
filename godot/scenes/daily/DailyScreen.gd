@@ -103,7 +103,7 @@ func set_state(s: String) -> void:
 		_banner("You are offline" if not remote_on else "Can't reach the dice server",
 			"Claims run on this device for now." if not remote_on else "Claims need a connection.")
 	elif s == "guest":
-		_banner("Playing as a guest" if not remote_on else "Sign in to claim",
+		_banner("You're signed out" if not remote_on else "Sign in to claim",
 			"Rewards are kept on this device." if not remote_on else "Guests have no wallet and no rewards.")
 	_refresh()
 

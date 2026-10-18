@@ -221,7 +221,7 @@ func _build_account_section() -> void:
 				+ "on this computer.")
 			return
 		# Desktop, signed out: the Account screen (B3) owns the browser flow, waiting and errors.
-		_body("You're playing as a guest. Progress stays on this computer. Sign in with Google to "
+		_body("You're signed out. You can browse and play the tutorial; runs need an account. Progress stays on this computer. Sign in with Google to "
 			+ "keep it on every device.")
 		var open_acct := UI3.button("Account", &"primary")
 		open_acct.name = "OpenAccountButton"
@@ -229,7 +229,7 @@ func _build_account_section() -> void:
 		_content.add_child(open_acct)
 		return
 	if not AccountService.is_signed_in():
-		_body("You're playing as a guest. Progress stays on this browser only. Sign in with "
+		_body("You're signed out. You can browse and play the tutorial; runs need an account. Progress stays on this browser only. Sign in with "
 			+ "Google to keep it on every device. Your Sky Mavis work account works too.")
 		var sign_in := UI3.button("Continue with Google", &"primary")
 		sign_in.name = "SignInButton"
@@ -293,8 +293,8 @@ func _build_account_section() -> void:
 			var unsynced: bool = AccountService.has_unsynced_changes()
 			out_btn.text = "Sync and sign out" if unsynced else "Confirm sign out"
 			confirm_lbl.text = ("Sign out? Your progress is saved to your account. This browser "
-				+ "goes back to guest mode.") if not unsynced else ("Sign out? Your latest "
-				+ "progress uploads first, then this browser goes back to guest mode.")
+				+ "is signed out.") if not unsynced else ("Sign out? Your latest "
+				+ "progress uploads first, then this browser is signed out.")
 			confirm_lbl.visible = true
 			return
 		out_btn.disabled = true

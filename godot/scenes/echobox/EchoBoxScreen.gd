@@ -205,7 +205,7 @@ func set_state(s: String) -> void:
 		if remote_on:
 			_banner("Sign in to use this.", "Guests can read the rates and pool. Tickets and pulls need an account.", false)
 		else:
-			_banner("Playing as a guest", "Boxes open on this device. Sign in to keep your tickets across devices.", false)
+			_banner("You're signed out", "Boxes open on this device. Sign in to keep your tickets across devices.", false)
 	elif s == "error":
 		_banner("Pull failed (server error)", error_text if error_text != "" else "Your tickets were not spent.", true)
 	elif s == "last_pull":
