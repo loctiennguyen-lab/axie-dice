@@ -180,7 +180,6 @@ func _overview_tab() -> void:
 	nrow.add_theme_constant_override("separation", UI3Theme.space("8"))
 	var nm := UI3.label(_name(), "LabelScreenTitle")
 	nm.name = "PlayerName"
-	nm.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	nrow.add_child(nm)
 	if _signed_in() and bool(service.account.get("sky_mavis", false)):
 		nrow.add_child(UI3Meta.tag("Sky Mavis"))
@@ -400,6 +399,7 @@ func _cos_detail(v: VBoxContainer, owned: Array[String]) -> void:
 		for px in sizes:
 			var a := CosmeticArt.make_node(selected, px)
 			if a != null:
+				a.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 				if not have:
 					a.modulate = Color(1, 1, 1, 0.4)
 				art_row.add_child(a)
@@ -450,8 +450,7 @@ func _titles_tab() -> void:
 	left.add_child(head)
 	var grid := GridContainer.new()
 	grid.name = "Grid_titles"
-	grid.columns = 3
-	grid.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	grid.columns = 3   # few tiles: keep them tile-sized instead of stretching to the full height
 	grid.add_theme_constant_override("h_separation", UI3Theme.space("16"))
 	grid.add_theme_constant_override("v_separation", UI3Theme.space("16"))
 	left.add_child(grid)
@@ -479,6 +478,8 @@ func _titles_tab() -> void:
 			badge = "Equipped" if MetaState.equipped_title == id else "Owned"
 		var tile := _tile("Title_" + (id.replace(":", "_") if id != "" else "none"), id == cur, null,
 			String(e[1]), badge, not have)
+		tile.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+		tile.custom_minimum_size.y = 160
 		tile.pressed.connect(func() -> void:
 			title_sel = id
 			_title_sel_set = true
