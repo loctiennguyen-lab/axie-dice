@@ -185,6 +185,11 @@ func _combat_esc_opens_pause_menu() -> void:
 	pm.resumed.emit()
 	await get_tree().process_frame
 	_assert(not c.pause_menu_open(), "Resume closes the pause plate")
+	# Save and quit must not leave Settings in in-run mode (it goes to the main menu, not Settings)
+	SettingsView.in_run = true
+	SettingsView.return_scene = "res://scenes/combat/Combat.tscn"
+	c.pause_save_quit_state()
+	_assert(not SettingsView.in_run and SettingsView.return_scene == "", "save-quit from combat leaves Settings not in-run")
 	_assert(JSON.stringify(c._combat.to_data()) == before, "pausing changed the fight")
 	c.queue_free()
 	await get_tree().process_frame

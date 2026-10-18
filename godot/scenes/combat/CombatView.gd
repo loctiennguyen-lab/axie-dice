@@ -857,12 +857,24 @@ func open_run_menu() -> void:
 			layer.queue_free()
 	menu.resumed.connect(close)
 	menu.settings_requested.connect(open_settings_from_menu)
-	menu.save_quit_confirmed.connect(func() -> void:
-		prepare_run_menu()
-		get_tree().change_scene_to_file("res://scenes/main_menu/MainMenu.tscn"))
+	menu.save_quit_confirmed.connect(_on_pause_save_quit)
 	menu.abandon_confirmed.connect(func() -> void:
 		SettingsView.abandon_current_run()
 		LandNav.back_to_land())
+
+
+## Save and quit from the pause plate: same save as the old leave-confirm, and the in-run Settings flags
+## stay cleared so Settings opened later from the Land is not "in run".
+func _on_pause_save_quit() -> void:
+	pause_save_quit_state()
+	get_tree().change_scene_to_file("res://scenes/main_menu/MainMenu.tscn")
+
+
+## The state half of _on_pause_save_quit(), so a test can drive it without swapping scenes.
+func pause_save_quit_state() -> void:
+	_save_run_progress()
+	SettingsView.in_run = false
+	SettingsView.return_scene = ""
 
 
 func pause_menu_open() -> bool:
