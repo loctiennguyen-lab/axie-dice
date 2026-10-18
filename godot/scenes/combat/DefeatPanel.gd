@@ -35,12 +35,23 @@ func _init() -> void:
 func set_busy(on: bool) -> void:
 	if _continue_button == null:
 		return
+	var spin := _continue_button.get_node_or_null("BusySpinner")
 	if on:
 		_busy_label = _continue_button.text
 		_continue_button.text = TranslationServer.translate("Reviving…")
-	elif _busy_label != "":
-		_continue_button.text = _busy_label
-		_busy_label = ""
+		if spin == null:
+			spin = UI3.Spinner.new()   # holds still under the reduce-flash setting
+			spin.tint = UI3Theme.color("accent_text")
+			spin.name = "BusySpinner"
+			spin.set_anchors_preset(Control.PRESET_CENTER_LEFT)
+			spin.position = Vector2(24, -12)
+			_continue_button.add_child(spin)
+	else:
+		if spin != null:
+			spin.queue_free()
+		if _busy_label != "":
+			_continue_button.text = _busy_label
+			_busy_label = ""
 	_continue_button.disabled = on
 	_end_button.disabled = on
 
@@ -104,9 +115,13 @@ func _unhandled_key_input(event: InputEvent) -> void:
 func _boss_block(boss: Dictionary) -> Control:
 	var box := UI3.plate(&"row")
 	box.name = "BossBlock"
+	var pad := MarginContainer.new()
+	for side in ["left", "right", "top", "bottom"]:
+		pad.add_theme_constant_override("margin_" + side, 16)
+	box.add_child(pad)
 	var v := VBoxContainer.new()
 	v.add_theme_constant_override("separation", UI3Theme.space("8"))
-	box.add_child(v)
+	pad.add_child(v)
 	var top := HBoxContainer.new()
 	v.add_child(top)
 	var nm := UI3.label(String(boss.get("name", "")), "LabelDisplay")
@@ -130,22 +145,18 @@ func _recap_grid(d: Dictionary) -> Control:
 	g.columns = 2
 	g.add_theme_constant_override("h_separation", UI3Theme.space("24"))
 	g.add_theme_constant_override("v_separation", UI3Theme.space("8"))
-	var rows: Array = d.get("recap", [])
-	var n := mini(rows.size(), 3)
-	for r in rows.slice(rows.size() - n):
-		var lab := UI3.label("Turn %d · %s" % [int(r.get("turn", 0)), String(r.get("what", ""))], "LabelMuted")
+	# 2 columns x 3 rows: label muted / value Rowdies 18. Labels are our copy (spec 30 flags this).
+	var rows := [
+		["Fell on turn", str(int(d.get("turn", 0)))],
+		["Aid used", "%d of %d" % [int(d.get("aid_used", 0)), int(d.get("aid_cap", 6))]],
+		["Enemies left", str(int(d.get("enemies_left", 0)))]]
+	for r in rows:
+		var lab := UI3.label(TranslationServer.translate(String(r[0])), "LabelMuted")
 		lab.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		lab.clip_text = true
-		lab.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 		g.add_child(lab)
-		var val := UI3.label(String(r.get("result", "")), "LabelDisplay")
+		var val := UI3.label(String(r[1]), "LabelDisplay")
 		val.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 		g.add_child(val)
-	var aid := UI3.label("Aid used", "LabelMuted")
-	g.add_child(aid)
-	var av := UI3.label("%d of %d" % [int(d.get("aid_used", 0)), int(d.get("aid_cap", 6))], "LabelDisplay")
-	av.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	g.add_child(av)
 	return g
 
 
@@ -153,13 +164,21 @@ func _continue_block(d: Dictionary) -> Control:
 	if bool(d.get("mission", false)):
 		var m := UI3.plate(&"row")
 		m.name = "ContinueBlock"
-		m.add_child(UI3.label(TranslationServer.translate("Mission runs have no Continue."), "LabelMuted"))
+		var mp := MarginContainer.new()
+		for side in ["left", "right", "top", "bottom"]:
+			mp.add_theme_constant_override("margin_" + side, 16)
+		m.add_child(mp)
+		mp.add_child(UI3.label(TranslationServer.translate("Mission runs have no Continue."), "LabelMuted"))
 		return m
 	var box := UI3.plate(&"row")
 	box.name = "ContinueBlock"
+	var pad := MarginContainer.new()
+	for side in ["left", "right", "top", "bottom"]:
+		pad.add_theme_constant_override("margin_" + side, 16)
+	box.add_child(pad)
 	var v := VBoxContainer.new()
 	v.add_theme_constant_override("separation", UI3Theme.space("16"))
-	box.add_child(v)
+	pad.add_child(v)
 	var top := HBoxContainer.new()
 	top.add_theme_constant_override("separation", UI3Theme.space("16"))
 	v.add_child(top)

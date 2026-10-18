@@ -404,6 +404,11 @@ static func die_tile(face: StringName, value: int, size := &"axie", state := &"n
 ## text; paid surfaces only) | shard | stone (wood-2 fill, cream text) | free (the word "Free"). `amount` is shown
 ## as given (already from data); `not_enough` dims it (the button beside it says "Need n more").
 static func cost_chip(kind: StringName, amount: int, not_enough := false) -> PanelContainer:
+	if kind == &"free":
+		var fc := chip(TranslationServer.translate("Free"))   # the real accent chip, 40 high here
+		fc.name = "CostChip"
+		fc.custom_minimum_size = Vector2(0, 40)
+		return fc
 	var gem := kind == &"gem"
 	var sb := UI3Theme.flat(UI3Theme.color("gem_bg") if gem else UI3Theme.color("panel_raised"),
 		UI3Theme.radius("s"), 2 if gem else 0, UI3Theme.color("gem_border"),
@@ -842,7 +847,10 @@ class HpBarView extends VBoxContainer:
 ## 24 px rotating arc ("reconnecting"). Holds still when the Settings "reduce flashing" option is on
 ## (MetaState.reduce_flash), so the motion preference is respected.
 class Spinner extends Control:
+	var tint := UI3Theme.color("text")   # set accent_text when drawn on a primary (amber) button
+
 	func _init() -> void:
+		mouse_filter = Control.MOUSE_FILTER_IGNORE
 		custom_minimum_size = Vector2(24, 24)
 		size_flags_vertical = Control.SIZE_SHRINK_CENTER
 
@@ -854,7 +862,7 @@ class Spinner extends Control:
 		pivot_offset = Vector2(12, 12)
 
 	func _draw() -> void:
-		draw_arc(Vector2(12, 12), 9, 0.0, TAU * 0.75, 24, UI3Theme.color("text"), 3.0, true)
+		draw_arc(Vector2(12, 12), 9, 0.0, TAU * 0.75, 24, tint, 3.0, true)
 
 
 ## Player-facing text for a relic / pact / active description: strips the internal tags the data carries

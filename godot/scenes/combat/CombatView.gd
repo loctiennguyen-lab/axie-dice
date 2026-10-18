@@ -3577,7 +3577,7 @@ func _show_defeat_panel() -> void:
 		"title_line": "%s %s A%d %s your party fell on turn %d" % [
 			"Boss fight" if boss_fight else ("Elite fight" if kind == "elite" else "Fight"),
 			HudKit.dot(), asc, HudKit.dot(), _combat.turn],
-		"boss": boss_d, "recap": rows, "aid_used": int(co["used"]), "aid_cap": int(co["cap"]),
+		"boss": boss_d, "recap": rows, "turn": _combat.turn, "enemies_left": _combat.alive_enemies().size(), "aid_used": int(co["used"]), "aid_cap": int(co["cap"]),
 		"continue_left": 1, "heal_pct": 25 if asc >= 6 else 40, "party": party,
 		"keep_line": keep,
 		"enrage_reset_line": "Enrage resets to 'Enrage in 10'." if clock_on else "",
