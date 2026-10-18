@@ -97,7 +97,7 @@ var _empty_bg: PanelContainer
 ## `CREAM_RAISED` with a 14px radius, and a square `WELL` block dropped into it read as a flat
 ## black rectangle with a failure message in it — Q4/V1's "the biggest element on the card is an
 ## error". A host that knows what is behind this control says so with `set_empty_backing()`.
-var _empty_surface: int = DangoTheme.Surface.WELL
+var _empty_fill: Color = Color.TRANSPARENT   # TRANSPARENT = the UI3 panel_raised default
 var _empty_radius: int = 0
 var _empty_ink: Color = Color(1.0, 0.84, 0.42)
 
@@ -149,7 +149,7 @@ func _ready() -> void:
 	_empty_bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_empty_bg.set_anchors_preset(Control.PRESET_FULL_RECT)
 	_empty_bg.add_theme_stylebox_override("panel",
-		DangoTheme.surface_style(_empty_surface, _empty_radius, 0, 0.0, Vector2(-1, -1)))
+		UI3Theme.flat(_empty_fill_color(), _empty_radius))
 	_empty_bg.visible = false
 	add_child(_empty_bg)
 	move_child(_empty_bg, _frame.get_index() + 1)   # behind Warning, in front of the (empty) Frame
@@ -231,13 +231,18 @@ func set_genes(genes: String) -> Dictionary:
 ## this only restyles the same node/label rather than swapping in a second one.
 ## Tells this control what the host has drawn behind it, so the empty state can sit on the same
 ## surface instead of punching a dark hole in it. Call it before `set_genes()`.
-func set_empty_backing(surface: int, radius: int, ink: Color) -> void:
-	_empty_surface = surface
+## `surface` is the backing fill as a Color; a legacy non-Color value means the UI3 default.
+func set_empty_backing(surface: Variant, radius: int, ink: Color) -> void:
+	_empty_fill = surface if surface is Color else Color.TRANSPARENT
 	_empty_radius = radius
 	_empty_ink = ink
 	if _empty_bg != null:
 		_empty_bg.add_theme_stylebox_override("panel",
-			DangoTheme.surface_style(_empty_surface, _empty_radius, 0, 0.0, Vector2(-1, -1)))
+			UI3Theme.flat(_empty_fill_color(), _empty_radius))
+
+
+func _empty_fill_color() -> Color:
+	return _empty_fill if _empty_fill.a > 0.0 else UI3Theme.color("panel_raised")
 
 
 func _apply_bare_style(bare: bool) -> void:
@@ -247,7 +252,7 @@ func _apply_bare_style(bare: bool) -> void:
 	if bare:
 		_warning.set_anchors_preset(Control.PRESET_FULL_RECT)
 		_warning.add_theme_stylebox_override("panel", StyleBoxEmpty.new())
-		_warning_label.add_theme_font_size_override("font_size", DangoTheme.TYPE_COMBAT_MIN)
+		_warning_label.add_theme_font_size_override("font_size", UI3Theme.size_of("text_body"))
 		_warning_label.add_theme_color_override("font_color", _empty_ink)
 		_warning_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	else:
