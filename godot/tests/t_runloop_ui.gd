@@ -432,6 +432,25 @@ func test_reward_and_shop_cards_show_a_rarity_chip_matching_rar() -> void:
 	runmap.call("_select_reward", 1)
 	_assert(int(runmap.get("_reward_sel")) == 1, "selecting card 1 did not stick")
 
+	# UI-03 31: Chaos / Curse draw Gain + Gamble/Curse boxes and ask "This lasts the whole run" before applying.
+	var none: Array[Dictionary] = []
+	var chaos := RewardGenerator._make_chaos_reward(Rng.new(5), RunState.owned_relic_ids, none)
+	var curse := RewardGenerator._make_curse_reward(none)
+	_assert(not chaos.is_empty() and not curse.is_empty(), "generator gave a chaos and a curse card")
+	RunState.pending_rewards = [chaos, curse]
+	runmap.call("_show_reward_overlay", "CHOOSE A REWARD")
+	await get_tree().process_frame
+	_assert(runmap.find_child("TradeBox_gain", true, false) != null and runmap.find_child("TradeBox_gamble", true, false) != null
+		and runmap.find_child("TradeBox_curse", true, false) != null, "chaos/curse cards show TradeBoxes")
+	var reroll_before := RunState.bonus_reroll
+	runmap.call("_select_reward", 1)
+	runmap.call("_take_selected_reward")
+	await get_tree().process_frame
+	_assert(runmap.find_child("LastingConfirm", true, false) != null, "curse Take asks for confirmation")
+	_assert(RunState.bonus_reroll == reroll_before and RunState.pending_rewards.size() == 2, "curse not applied before confirm")
+	runmap.call("_close_overlay")
+	await get_tree().process_frame
+
 	# Shop cards go through the same call site with a different dict shape.
 	# _close_overlay()'s _clear_overlay_content() only queue_free()s the old reward cards —
 	# they are still in the tree until the next frame, so a frame must pass before the

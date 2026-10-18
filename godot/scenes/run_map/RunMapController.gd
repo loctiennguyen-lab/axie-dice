@@ -1218,7 +1218,48 @@ func _select_reward(i: int) -> void:
 
 func _take_selected_reward() -> void:
 	if _reward_sel >= 0 and _reward_sel < RunState.pending_rewards.size():
-		_on_reward_chosen(RunState.pending_rewards[_reward_sel])
+		var r: Dictionary = RunState.pending_rewards[_reward_sel]
+		if String(r.get("t", "")) in ["chaos", "curse"]:
+			_ask_lasting_reward(r)
+			return
+		_on_reward_chosen(r)
+
+
+## Chaos / Curse last the whole run: inline confirm under the actions (spec 31). Back keeps the pick open.
+func _ask_lasting_reward(r: Dictionary) -> void:
+	var col := _overlay_vbox.get_parent() as Control if _overlay_vbox != null else null
+	if col == null or col.find_child("LastingConfirm", true, false) != null:
+		return
+	var row := HBoxContainer.new()
+	row.name = "LastingConfirm"
+	row.alignment = BoxContainer.ALIGNMENT_CENTER
+	row.add_theme_constant_override("separation", 16)
+	row.add_child(UI3.label(tr("This lasts the whole run. Take it?")))
+	var back := UI3.button(tr("Back"), &"secondary", &"S")
+	back.name = "LastingBack"
+	back.pressed.connect(row.queue_free)
+	row.add_child(back)
+	var go := UI3.button(tr("Take it"), &"secondary", &"S")
+	go.name = "LastingTake"
+	go.pressed.connect(func() -> void: _on_reward_chosen(r))
+	row.add_child(go)
+	col.add_child(row)
+	back.grab_focus()
+
+
+## Chaos / Curse card body split into Gain and Gamble/Curse text, from the generator's real strings.
+func _trade_parts(r: Dictionary) -> Dictionary:
+	var sub := String(r.get("sub", ""))
+	var desc := String(r.get("desc", ""))
+	if String(r.get("t", "")) == "chaos":
+		var lines := sub.split("\n")
+		var cost := String(lines[0]).trim_prefix("GAMBLE: ")
+		cost = cost.substr(0, 1).to_upper() + cost.substr(1)
+		cost = cost.substr(0, 1).to_upper() + cost.substr(1)
+		var gain := UI3.describe(String(lines[1]) if lines.size() > 1 else "")
+		return {"gain": ("MP %d · " % int(gain["mp"]) if int(gain["mp"]) >= 0 else "") + String(gain["text"]),
+			"cost": cost, "cost_kind": &"gamble"}
+	return {"gain": sub.trim_prefix("IN EXCHANGE: you gain ").trim_suffix("."), "cost": desc, "cost_kind": &"curse"}
 
 
 func _add_reward_card(r: Dictionary, wide := false) -> PanelContainer:
@@ -1303,6 +1344,15 @@ func _add_reward_card(r: Dictionary, wide := false) -> PanelContainer:
 	rar_lbl.name = "RarityLabel"
 	rar_lbl.add_theme_color_override("font_color", accent)
 	col.add_child(rar_lbl)
+	if t in ["chaos", "curse"]:
+		var tp := _trade_parts(r)
+		if t == "chaos":
+			name_lbl.text = UI3.player_text(String(r.get("desc", "")))
+		else:
+			name_lbl.text = UI3.player_text(String(r.get("title", "")))
+		col.add_child(UI3.trade_box(&"gain", String(tp["gain"])))
+		col.add_child(UI3.trade_box(tp["cost_kind"], String(tp["cost"])))
+		return card
 	var desc := UI3.label(body_text)
 	desc.name = "RewardDesc"
 	desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART

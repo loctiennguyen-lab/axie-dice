@@ -438,6 +438,59 @@ static func net_notice(text: String, retry_text: String, on_retry: Callable, rec
 	return p
 
 
+## TradeBox (round 2): one labelled box. kind gain = green-2 box + "Gain" label; cost / gamble / curse = red-2 box
+## + "Cost" / "Gamble" / "Curse" label. The label is a word, never colour alone. Pad 12, radius 8.
+static func trade_box(kind: StringName, text: String) -> PanelContainer:
+	var gain := kind == &"gain"
+	var words := {&"gain": "Gain", &"cost": "Cost", &"gamble": "Gamble", &"curse": "Curse"}
+	var p := PanelContainer.new()
+	p.name = "TradeBox_%s" % String(kind)
+	p.theme = UI3Theme.get_theme()
+	p.add_theme_stylebox_override("panel", UI3Theme.flat(
+		UI3Theme.color("trade_gain_bg" if gain else "trade_cost_bg"), UI3Theme.radius("m"), 0,
+		Color.TRANSPARENT, Vector4(12, 12, 12, 12)))
+	var v := VBoxContainer.new()
+	v.add_theme_constant_override("separation", 4)
+	p.add_child(v)
+	var l := label(TranslationServer.translate(String(words.get(kind, "Cost"))), "LabelMuted")
+	l.name = "TradeLabel"
+	l.add_theme_color_override("font_color", UI3Theme.color("success_text" if gain else "danger_text"))
+	v.add_child(l)
+	var b := label(text)
+	b.name = "TradeText"
+	b.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	v.add_child(b)
+	return p
+
+
+## CostChip (round 2): h 40, radius 8, icon + Rowdies 18. kind gem (purple, paid surfaces only), shard, stone, or
+## free ("Free"). `value` is the price; ignored for free.
+static func cost_chip(kind: StringName, value := 0) -> PanelContainer:
+	var p := PanelContainer.new()
+	p.name = "CostChip"
+	p.theme = UI3Theme.get_theme()
+	var gem := kind == &"gem"
+	p.add_theme_stylebox_override("panel", UI3Theme.flat(
+		UI3Theme.color("gem_bg" if gem else "panel_raised"), UI3Theme.radius("m"),
+		2 if gem else 0, UI3Theme.color("gem_border"), Vector4(10, 4, 10, 4)))
+	p.custom_minimum_size = Vector2(0, 40)
+	var h := HBoxContainer.new()
+	h.add_theme_constant_override("separation", 8)
+	h.alignment = BoxContainer.ALIGNMENT_CENTER
+	p.add_child(h)
+	if kind != &"free":
+		var t := TextureRect.new()
+		t.texture = icon("cur_gem" if gem else ("cur_stone" if kind == &"stone" else "cur_shard"))
+		t.custom_minimum_size = Vector2(24, 24)
+		t.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		t.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		h.add_child(t)
+	var l := label(TranslationServer.translate("Free") if kind == &"free" else fmt(value), "LabelDisplay")
+	l.add_theme_color_override("font_color", UI3Theme.color("gem_text" if gem else "text"))
+	h.add_child(l)
+	return p
+
+
 ## Skeleton row for loading lists: flat neutral-2 block, radius 8, default 72 high. Static (no pulse), so
 ## it respects reduce-motion by construction.
 static func skeleton_row(height := SKELETON_H) -> Panel:
