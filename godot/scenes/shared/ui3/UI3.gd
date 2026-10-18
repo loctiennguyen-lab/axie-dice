@@ -309,20 +309,28 @@ static func tab(text: String, selected := false, key := "") -> Button:
 
 ## Status chip above an Axie head: wood-2 pill, icon 22 + Rowdies 20 count in `tint`.
 static func status_chip(icon_name: String, count: int, tint: Color) -> PanelContainer:
+	return status_tex_chip(icon(icon_name), count, tint)
+
+
+## Same chip with the icon given as a texture (combat status icons live outside assets/ui3/icons).
+static func status_tex_chip(tex: Texture2D, count: int, tint: Color) -> PanelContainer:
 	var p := plate(&"info")
 	p.theme_type_variation = "PanelInfo"
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 4)
 	var ic := TextureRect.new()
-	ic.texture = icon(icon_name)
+	ic.texture = tex
 	ic.custom_minimum_size = Vector2.ONE * STATUS_ICON
 	ic.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	ic.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	ic.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	row.add_child(ic)
 	var n := label(str(count), "LabelDisplay")
 	n.add_theme_font_size_override("font_size", 20)
 	n.add_theme_color_override("font_color", tint)
+	n.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	row.add_child(n)
+	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	p.add_child(row)
 	return p
 
@@ -331,7 +339,7 @@ static func status_chip(icon_name: String, count: int, tint: Color) -> PanelCont
 ## red-6 (debuff). Never colour alone: the code is a word.
 const STATUS_CODE := {
 	"poison": "POI", "burn": "BRN", "regen": "REG", "blind": "BLD", "weaken": "WKN", "vulnerable": "VUL",
-	"thorns": "THN", "stun": "STN", "undying": "UND", "enrage": "ENR", "shield": "SHD",
+	"thorns": "THN", "stun": "STN", "undying": "UND", "enrage": "ENR", "shield": "SHD", "freeze": "FRZ",
 }
 const STATUS_BUFFS := ["regen", "thorns", "undying", "enrage", "shield"]
 

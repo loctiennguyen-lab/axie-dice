@@ -257,12 +257,6 @@ func _on_finish_pressed() -> void:
 func _render(_first: bool) -> void:
 	var ph := _phase()
 	_last_phase = ph
-	# An end screen must never sit on top of a reroll tray still showing "GREAT ROLL!": skip it first.
-	if ph == Step.REWARD or ph == Step.DONE or ph == Step.LOST:
-		if _view != null and bool(_view.get("_reroll_fx_active")):
-			var fx: Variant = _view.get("_reroll_fx")
-			if fx != null:
-				(fx as Object).call("skip")
 	match ph:
 		Step.WELCOME:
 			_coach.show_curtain("Welcome to Axie Dice!",

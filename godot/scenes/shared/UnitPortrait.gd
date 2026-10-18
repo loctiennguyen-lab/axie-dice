@@ -45,6 +45,7 @@ const _STATUS_ICON := {
 	"thorns": preload("res://assets/icons/web/thorns.png"),
 	"stun": preload("res://assets/icons/web/stun.png"),
 	"undying": preload("res://assets/icons/web/undying.png"),
+	"freeze": preload("res://assets/icons/web/freeze.png"),
 }
 
 ## Float text. R1: numerals over the scene = Baloo, cream/tint fill, dark 8-way outline; party
@@ -78,7 +79,6 @@ var _tag_label: Label
 var _hp_bar: HPBar
 var _hp_label: Label
 var _phase_label: Label
-var _status_row: HBoxContainer
 var _target_label: Label
 var _intent_panel: PanelContainer
 var _intent_style: StyleBoxFlat
@@ -214,10 +214,6 @@ func setup(p_uid: int, display_name: String, _cls: String, is_enemy: bool, is_bo
 	chips_row.custom_minimum_size = Vector2(0, UI3.CHIP_H)
 	chips_row.add_theme_constant_override("separation", 4)
 	left.add_child(chips_row)
-	_status_row = HBoxContainer.new()
-	_status_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_status_row.add_theme_constant_override("separation", 4)
-	chips_row.add_child(_status_row)
 	var spacer := Control.new()
 	spacer.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -406,9 +402,6 @@ func update_stats(hp: int, max_hp: int, shield: int, status: Dictionary) -> void
 		return
 	_hp_bar.set_stats(hp, _max_hp)
 	_hp_label.text = "%d / %d" % [maxi(hp, 0), _max_hp]
-	_fill_status_row(status, shield)
-	for chip in _status_row.get_children():
-		(chip as Control).gui_input.connect(_on_forward_gui_input)   # chips hand clicks back
 	if hp > 0:
 		_dying = false
 		visible = true
@@ -416,31 +409,6 @@ func update_stats(hp: int, max_hp: int, shield: int, status: Dictionary) -> void
 	elif not _dying:
 		modulate.a = 0.0
 		visible = false
-
-
-## Round 2 StatusChips (3-letter code + count), shield first, max 4 then "+n".
-func _fill_status_row(status: Dictionary, shield: int) -> void:
-	for c in _status_row.get_children():
-		_status_row.remove_child(c)
-		c.queue_free()
-	var items: Array = []
-	if shield > 0:
-		items.append(["shield", shield])
-	for k in UI3.STATUS_CODE:
-		if k != "shield" and int(status.get(k, 0)) > 0:
-			items.append([k, int(status[k])])
-	var shown := mini(items.size(), 4 if items.size() <= 4 else 3)
-	for i in shown:
-		var chip := UI3.status_label_chip(String(items[i][0]), int(items[i][1]))
-		chip.tooltip_text = _effect_tooltip(String(items[i][0]), int(items[i][1]))
-		chip.mouse_filter = Control.MOUSE_FILTER_STOP
-		_status_row.add_child(chip)
-	if items.size() > shown:
-		var more := UI3.plate(&"info")
-		more.add_child(UI3.label("+%d" % (items.size() - shown), "LabelDisplay"))
-		_status_row.add_child(more)
-	for chip in _status_row.get_children():
-		(chip as Control).gui_input.connect(_on_forward_gui_input)   # chips hand clicks back
 
 
 ## Name + intent block + target. `intent` = {show:bool, type:String, num:int, label:String,
