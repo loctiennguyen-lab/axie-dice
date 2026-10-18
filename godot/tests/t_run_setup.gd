@@ -1,6 +1,6 @@
 extends Node
 ## M1 Run Setup: scene loads, every state renders, Begin passes the chosen params to the run start,
-## locked Ascension / Full cannot be picked, a duplicate Axie cannot take two slots.
+## locked Ascension / Full cannot be picked, starters may repeat, a Vault Axie fits one slot only.
 
 var _fail: Array[String] = []
 var _checks := 0
@@ -76,7 +76,13 @@ func _ready() -> void:
 	MetaState.unlocks.append("u_full")
 	_ok(s.select_length("full"), "Full accepted once unlocked")
 	# Slots
-	_ok(not s.set_slot(1, s.party[0]), "same Axie cannot be in two slots")
+	_ok(s.set_slot(1, s.party[0]) and s.party[1] == s.party[0], "a starter may take two slots")
+	s.set_slot(1, "beast1")
+	ContentDB.heroes["vault_dup1"] = (ContentDB.heroes["plant1"] as Dictionary).duplicate(true)
+	_ok(s.set_slot(0, "vault_dup1"), "a Vault Axie takes a slot")
+	_ok(not s.set_slot(1, "vault_dup1"), "the same Vault Axie cannot take a second slot")
+	s.set_slot(0, "plant1")
+	ContentDB.heroes.erase("vault_dup1")
 	s.clear_slot(4)
 	_ok(s.filled_count() == 4, "clear removes")
 	_ok(s.begin_block_reason().begins_with("Pick 1 more Axie"), "reason for missing Axie")
@@ -93,9 +99,9 @@ func _ready() -> void:
 	_ok(s.find_child("Picker", true, false) == null or s.find_child("Picker", true, false).is_queued_for_deletion(), "picker closed")
 	var a0: String = s.party[0]
 	var a4: String = s.party[4]
-	_ok(s.swap_into_slot(4, a0) and s.party[4] == a0 and s.party[0] == a4, "swap exchanges two slots")
+	_ok(s.swap_into_slot(4, a0) and s.party[4] == a0 and s.party[0] == a0 and s.filled_count() == 5, "picking a starter copies it")
 	s.swap_into_slot(4, a4)
-	_ok(s.party[4] == a4 and s.party[0] == a0 and s.filled_count() == 5, "swap back restores")
+	_ok(s.party[4] == a4 and s.party[0] == a0 and s.filled_count() == 5, "starter copy undone")
 	# Begin -> params
 	s.start_hook = _hook
 	await s.begin()

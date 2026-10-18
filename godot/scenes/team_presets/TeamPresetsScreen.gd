@@ -180,12 +180,12 @@ func request_cancel() -> void:
 		"Keep editing", "Discard", cancel_editor, close_modal)
 
 
-## Picker rule (spec 33): an Axie that sits in another slot swaps places with whatever is in `slot`.
+## Picker rule (spec 33): a Vault Axie that sits in another slot swaps places with whatever is in `slot`; a starter is copied.
 func swap_edit_seat(slot: int, key: String) -> bool:
 	if slot < 0 or slot >= TeamPresets.PARTY_SIZE or not TeamPresets.seat_ok(key):
 		return false
 	var other := edit_party.find(key)
-	if other >= 0 and other != slot:
+	if other >= 0 and other != slot and not TeamPresets.may_repeat(key):
 		edit_party[other] = edit_party[slot]
 	edit_party[slot] = key
 	if view == "editor":
@@ -204,9 +204,8 @@ func set_edit_seat(slot: int, key: String) -> bool:
 	if key != "":
 		if not TeamPresets.seat_ok(key):
 			return false
-		for j in edit_party.size():
-			if j != slot and edit_party[j] == key:
-				return false
+		if TeamPresets.seat_taken(edit_party, slot, key):
+			return false
 	edit_party[slot] = key
 	if view == "editor":
 		refresh()
@@ -667,7 +666,7 @@ func _pick_keys() -> Array[String]:
 
 
 ## Slot picker (spec 33): 1120 modal, class chips, 5-column grid of square previews, Cancel / Put in slot n.
-## An Axie already in another slot is drawn at 50% and swaps places when chosen.
+## A Vault Axie already in another slot is drawn at 50% and swaps places when chosen; starters can repeat.
 func _show_picker(slot: int) -> void:
 	_close_picker()
 	_pick_slot = slot
@@ -785,7 +784,7 @@ func _refresh_put() -> void:
 
 func _pick_tile(k: String, def: Dictionary) -> Control:
 	var other := edit_party.find(k)
-	var in_other: bool = other >= 0 and other != _pick_slot
+	var in_other: bool = other >= 0 and other != _pick_slot and not TeamPresets.may_repeat(k)
 	var b := UI3.button("", &"secondary", &"M")
 	b.name = "Tile_" + k
 	b.toggle_mode = true

@@ -66,6 +66,14 @@ var _left_root: Control = null
 var _detail_root: Control = null
 var _node_visuals: Dictionary = {}   # node_id -> {"node": RunMapNode, "root": Button, "caption": Label|null}
 var _selected_id := ""
+## Mouse/touch "second press travels": the node last pressed and when (ms). Cleared whenever the
+## selection moves to another node.
+var _pressed_once_id := ""
+var _pressed_once_ms := 0
+const _DOUBLE_PRESS_MS := 400
+## Tests: stop _on_node_pressed before it asks RunState to enter the node.
+var no_travel := false
+signal travel_requested(node_id: String)
 var _travel_btn: Button = null
 
 
@@ -134,7 +142,7 @@ func _ready() -> void:
 	_detail_root.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_board.add_child(_detail_root)
 
-	var hint := UI3.key_hint(tr("Arrows pick · Enter travels · Esc menu"))
+	var hint := UI3.key_hint(tr("Arrows pick · Enter or double-click travels · Esc menu"))
 	hint.name = "KeyHint"
 	hint.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
 	hint.grow_horizontal = Control.GROW_DIRECTION_BEGIN
@@ -408,6 +416,9 @@ func _build_token(node: RunMapNode, current_row: int, reachable: Array) -> void:
 	var fogged := tier == "fog"
 	var passed := node.visited and not is_here
 	var locked := fogged or (tier == "dim" and not node.visited) or passed
+	# Lock glyph = a future node you cannot reach. Anything at or behind the player's row (taken or
+	# not) keeps its own type icon, dimmed.
+	var show_lock := fogged or (tier == "dim" and not node.visited and node.row > current_row)
 	var size: float = _NODE_SIZE.get(node.node_type, 56.0)
 	var selected := node.id == _selected_id
 	var centre := _node_pos(node, current_row)
@@ -458,7 +469,7 @@ func _build_token(node: RunMapNode, current_row: int, reachable: Array) -> void:
 
 	var icon_px: float = _NODE_ICON_PX.get(node.node_type, 32.0)
 	var icon := TextureRect.new()
-	icon.texture = UI3.icon("ui_lock" if locked else "node_%s" % node.node_type)
+	icon.texture = UI3.icon("ui_lock" if show_lock else "node_%s" % node.node_type)
 	icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	icon.set_anchors_preset(Control.PRESET_CENTER)
@@ -468,6 +479,20 @@ func _build_token(node: RunMapNode, current_row: int, reachable: Array) -> void:
 	icon.offset_bottom = icon_px * 0.5
 	icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	btn.add_child(icon)
+	if passed:
+		var done := TextureRect.new()
+		done.name = "DoneMark"
+		done.texture = UI3.cream_icon("ui_check")
+		done.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		done.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		done.custom_minimum_size = Vector2(18, 18)
+		done.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
+		done.offset_left = -18.0 - size * 0.04
+		done.offset_top = -18.0 - size * 0.04
+		done.offset_right = -size * 0.04
+		done.offset_bottom = -size * 0.04
+		done.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		btn.add_child(done)
 
 	var base := Vector2.ONE
 	if node.node_type == "boss" and not locked:
@@ -477,7 +502,7 @@ func _build_token(node: RunMapNode, current_row: int, reachable: Array) -> void:
 	btn.set_meta("base_scale", base)
 	btn.scale = base
 	if locked or passed:
-		btn.modulate.a = 0.4
+		btn.modulate.a = 0.55
 	var id := node.id
 	btn.gui_input.connect(_on_token_input.bind(id))
 	btn.mouse_entered.connect(_hover_token.bind(btn, true))
@@ -511,6 +536,16 @@ func _hover_token(btn: Button, on: bool) -> void:
 
 func _on_token_input(ev: InputEvent, id: String) -> void:
 	if ev is InputEventMouseButton and ev.pressed and ev.button_index == MOUSE_BUTTON_LEFT:
+		# First press selects; a second press on the same reachable node (or a double-click) travels.
+		var now := Time.get_ticks_msec()
+		var second := _pressed_once_id == id and now - _pressed_once_ms <= _DOUBLE_PRESS_MS
+		if _reachable_now_ids().has(id) and (second or ev.double_click):
+			_pressed_once_id = ""
+			get_viewport().set_input_as_handled()
+			_on_node_pressed(id)
+			return
+		_pressed_once_id = id
+		_pressed_once_ms = now
 		_select_node(id)
 	elif ev.is_action_pressed("ui_accept") and not ev.is_echo():
 		if _reachable_now_ids().has(id):
@@ -522,6 +557,8 @@ func _on_token_input(ev: InputEvent, id: String) -> void:
 func _select_node(id: String) -> void:
 	if id == _selected_id or not _node_visuals.has(id):
 		return
+	if id != _pressed_once_id:
+		_pressed_once_id = ""
 	_selected_id = id
 	_reselect.call_deferred()
 
@@ -538,6 +575,9 @@ func _on_node_pressed(id: String) -> void:
 	var entry: Dictionary = _node_visuals.get(id, {})
 	var node: RunMapNode = entry.get("node")
 	if node == null:
+		return
+	travel_requested.emit(id)
+	if no_travel:
 		return
 	var res: Dictionary = await RunState.request_enter_node(id, node.node_type)
 	if not bool(res["ok"]) and String(res["code"]) != "busy":

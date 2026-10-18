@@ -49,6 +49,35 @@ static func sanitize_list(raw) -> Array:
 	return out
 
 
+## THE party-duplicate rule, shared by Run Setup, the Team Presets editor and saved presets:
+## free starter Axies may sit in any number of seats; a Vault Axie fits one seat only.
+static func may_repeat(key: String) -> bool:
+	return key != "" and not MetaState.is_vault_key(key)
+
+
+## True when `key` cannot go into `slot` of `party` because it is a Vault Axie already seated elsewhere.
+static func seat_taken(party: Array, slot: int, key: String) -> bool:
+	if key == "" or may_repeat(key):
+		return false
+	for j in party.size():
+		if j != slot and String(party[j]) == key:
+			return true
+	return false
+
+
+## True when `party` holds the same Vault Axie in two seats.
+static func has_vault_duplicate(party: Array) -> bool:
+	var seen := {}
+	for k in party:
+		var s := String(k)
+		if s == "" or may_repeat(s):
+			continue
+		if seen.has(s):
+			return true
+		seen[s] = true
+	return false
+
+
 ## True when this seat key still resolves to a playable hero (starter or Vault Axie still held).
 static func seat_ok(key: String) -> bool:
 	if key == "" or not ContentDB.heroes.has(key):
@@ -74,7 +103,7 @@ static func usable_party(entry: Dictionary) -> Array[String]:
 	var seen := {}
 	for k in (entry.get("party", []) as Array):
 		var s := String(k)
-		if seat_ok(s) and not seen.has(s):
+		if seat_ok(s) and (may_repeat(s) or not seen.has(s)):
 			out.append(s)
 			seen[s] = true
 		else:
@@ -89,18 +118,16 @@ static func has_nft(entry: Dictionary) -> bool:
 	return false
 
 
-## Why a party cannot be saved ("" = fine): needs 5 distinct seats.
+## Why a party cannot be saved ("" = fine): needs 5 filled seats, no Vault Axie twice.
 static func save_block_reason(party: Array) -> String:
-	var seen := {}
 	var filled := 0
 	for k in party:
 		if String(k) != "":
 			filled += 1
-			seen[String(k)] = true
 	if filled < PARTY_SIZE:
 		return "Fill slot %d first" % (party.find("") + 1) if party.has("") else "Fill every slot first"
-	if seen.size() < PARTY_SIZE:
-		return "Each Axie only once"
+	if has_vault_duplicate(party):
+		return "Each Vault Axie only once"
 	return ""
 
 

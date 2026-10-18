@@ -205,13 +205,13 @@ func select_length(m: String) -> bool:
 	return true
 
 
-## Puts hero `key` into slot `i`. Refused when the key is unknown or already in another slot.
+## Puts hero `key` into slot `i`. Refused when the key is unknown, or it is a Vault Axie already in
+## another slot (starters may repeat, see TeamPresets.may_repeat).
 func set_slot(i: int, key: String) -> bool:
 	if i < 0 or i >= PARTY_SIZE or not ContentDB.heroes.has(key):
 		return false
-	for j in party.size():
-		if j != i and party[j] == key:
-			return false
+	if TeamPresets.seat_taken(party, i, key):
+		return false
 	while party.size() < PARTY_SIZE:
 		party.append("")
 	party[i] = key
@@ -220,13 +220,13 @@ func set_slot(i: int, key: String) -> bool:
 	return true
 
 
-## Picker rule (UI-03 33): an Axie already in another slot moves to slot `i`; slot i's previous Axie
-## takes its old slot (or that slot is left empty). Plain set_slot() still refuses duplicates.
+## Picker rule (UI-03 33): a Vault Axie already in another slot moves to slot `i`; slot i's previous
+## Axie takes its old slot. A starter is copied (it may repeat), the other seat is left alone.
 func swap_into_slot(i: int, key: String) -> bool:
 	if i < 0 or i >= PARTY_SIZE or not ContentDB.heroes.has(key):
 		return false
 	var from := party.find(key)
-	if from < 0 or from == i:
+	if from < 0 or from == i or TeamPresets.may_repeat(key):
 		return set_slot(i, key)
 	while party.size() < PARTY_SIZE:
 		party.append("")
@@ -789,7 +789,7 @@ func _initial_party() -> Array[String]:
 	MainMenu.pending_team = []
 	var out: Array[String] = []
 	for k in src:
-		if ContentDB.heroes.has(k) and out.size() < PARTY_SIZE and not out.has(k):
+		if ContentDB.heroes.has(k) and out.size() < PARTY_SIZE and (TeamPresets.may_repeat(k) or not out.has(k)):
 			out.append(k)
 	return out
 
@@ -1391,7 +1391,7 @@ func _show_picker() -> void:
 		if _picker_cls != "all" and cls != _picker_cls:
 			continue
 		shown += 1
-		var taken := party.has(k) and party.find(k) != _picker_slot
+		var taken := TeamPresets.seat_taken(party, _picker_slot, k)
 		var b := _picker_tile(k, def, taken)
 		b.pressed.connect(func() -> void:
 			_picker_sel = k

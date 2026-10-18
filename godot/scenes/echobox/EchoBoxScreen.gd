@@ -631,13 +631,24 @@ func _result_cell(r: Dictionary) -> Control:
 	var art: Control = null
 	if String(r.get("kind")) == "cosmetic":
 		art = CosmeticTile.art(String(r.get("item", "")), 72.0)
+	elif String(r.get("kind")) == "stone":
+		var ic := TextureRect.new()
+		ic.name = "StoneIcon"
+		ic.texture = UI3.icon("cur_stone")
+		ic.custom_minimum_size = Vector2(72, 72)
+		ic.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		ic.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		ic.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+		ic.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		art = ic
 	if art != null:
 		c.custom_minimum_size = Vector2(128, 230)
 		v.add_child(art)
-		var nm: Label = UI3.label(CosmeticTile.display_name(String(r.get("item", ""))))
-		nm.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		nm.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		v.add_child(nm)
+		if String(r.get("kind")) == "cosmetic":
+			var nm: Label = UI3.label(CosmeticTile.display_name(String(r.get("item", ""))))
+			nm.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+			nm.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+			v.add_child(nm)
 	v.add_child(UI3.label(_reward_title(r), "LabelTitle"))
 	var tag := "Stone"
 	if String(r.get("kind")) != "stone":
