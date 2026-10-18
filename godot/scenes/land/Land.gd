@@ -1242,6 +1242,7 @@ func _build_run_button() -> Button:
 	hv.add_child(UI3.label("Start here", "LabelTitle"))
 	var hb := UI3.label("Your first run is a short guided one", "LabelMuted")
 	hb.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	hb.custom_minimum_size.x = 592   # card 640 minus 24 padding each side
 	hv.add_child(hb)
 	card.add_child(hv)
 	_start_hint.add_child(card)
