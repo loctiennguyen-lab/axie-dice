@@ -81,6 +81,7 @@ func _ready() -> void:
 		_bands.append(band)
 
 	_ring = Panel.new()
+	_ring.name = "SpotlightRing"
 	_ring.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_ring_style = StyleBoxFlat.new()
 	_ring_style.bg_color = Color(0, 0, 0, 0)

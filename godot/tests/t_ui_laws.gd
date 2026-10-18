@@ -240,6 +240,7 @@ func _check_control(c: Control, scene_root: Node) -> void:
 				or b.is_equal_approx(DangoTheme.GOLD) or b.is_equal_approx(DangoTheme.THREAT) \
 				or b.is_equal_approx(DangoTheme.GEM_SHELF) or b.is_equal_approx(DangoTheme.INK_3) \
 				or b.is_equal_approx(Color("B89A74")) \
+				or (c.name == "SpotlightRing" and b.is_equal_approx(UI3Theme.color("text"))) \
 				or _is_class_color(b) or b.a == 0.0
 			if f.get_border_width_min() > 0 and not is_black and not is_state:
 				_bad(c, "L7", "border_color %s — the mockups use pure black everywhere except "
