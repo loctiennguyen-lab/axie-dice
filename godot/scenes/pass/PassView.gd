@@ -63,7 +63,8 @@ func derive_state() -> String:
 
 func _unhandled_key_input(ev: InputEvent) -> void:
 	if UI3Meta.esc_back(ev, _shell, _on_back):
-		get_viewport().set_input_as_handled()
+		if is_inside_tree():   # a handler above may have changed scene
+			get_viewport().set_input_as_handled()
 
 
 func _on_back() -> void:

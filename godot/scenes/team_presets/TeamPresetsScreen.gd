@@ -80,7 +80,8 @@ func _unhandled_key_input(ev: InputEvent) -> void:
 			request_cancel()
 		else:
 			_on_back()
-		get_viewport().set_input_as_handled()
+		if is_inside_tree():   # a handler above may have changed scene
+			get_viewport().set_input_as_handled()
 	elif not k.alt_pressed and not k.ctrl_pressed and not k.meta_pressed and view == "grid" \
 			and (_shell["modal_layer"] as Control).get_child_count() == 0 and k.keycode in [KEY_E, KEY_S, KEY_M]:
 		if k.keycode == KEY_S:
@@ -89,10 +90,12 @@ func _unhandled_key_input(ev: InputEvent) -> void:
 			switch_tab("mine")
 		elif tab == "mine" and _focus_idx >= 0 and _focus_idx < TeamPresets.count():
 			open_editor(_focus_idx)
-		get_viewport().set_input_as_handled()
+		if is_inside_tree():   # a handler above may have changed scene
+			get_viewport().set_input_as_handled()
 	elif k.alt_pressed and (k.keycode == KEY_LEFT or k.keycode == KEY_RIGHT) and view == "grid" and tab == "mine":
 		reorder(_focus_idx, -1 if k.keycode == KEY_LEFT else 1)
-		get_viewport().set_input_as_handled()
+		if is_inside_tree():   # a handler above may have changed scene
+			get_viewport().set_input_as_handled()
 
 
 func _on_back() -> void:

@@ -1610,8 +1610,11 @@ func _unhandled_key_input(event: InputEvent) -> void:
 		return
 	if ke.alt_pressed or ke.ctrl_pressed or ke.meta_pressed:
 		return
-	if _handle_key(ke.keycode):
-		get_viewport().set_input_as_handled()
+	# A key can navigate away (LandNav -> change_scene): the hub leaves the tree inside _handle_key and
+	# get_viewport() is then null. Take the viewport first.
+	var vp := get_viewport()
+	if _handle_key(ke.keycode) and vp != null:
+		vp.set_input_as_handled()
 
 
 # ================================================================ accounts + Moon Card hook

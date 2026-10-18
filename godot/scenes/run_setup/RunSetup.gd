@@ -160,15 +160,18 @@ func _unhandled_key_input(ev: InputEvent) -> void:
 			close_modal()
 		else:
 			_on_back()
-		get_viewport().set_input_as_handled()
+		if is_inside_tree():   # a handler above may have changed scene
+			get_viewport().set_input_as_handled()
 	elif ev is InputEventKey and ev.pressed and not ev.echo and not ev.alt_pressed and not ev.ctrl_pressed \
 			and not ev.meta_pressed and _modal_layer.get_child_count() == 0:
 		if ev.keycode == KEY_B and not is_newcomer():
 			open_leaderboard()
-			get_viewport().set_input_as_handled()
+			if is_inside_tree():   # a handler above may have changed scene
+				get_viewport().set_input_as_handled()
 		elif ev.keycode == KEY_S:
 			open_save_preset()
-			get_viewport().set_input_as_handled()
+			if is_inside_tree():   # a handler above may have changed scene
+				get_viewport().set_input_as_handled()
 
 
 # ---------------------------------------------------------------- public API (also used by tests)
