@@ -48,6 +48,7 @@ func _ready() -> void:
 	test_selecting_a_die_then_clicking_an_enemy_still_attacks()
 	test_the_inspector_closes_and_leaves_nothing_behind()
 	test_inspect_with_a_die_selected_changes_nothing()
+	await test_plate_never_covers_party_row_or_tray()
 
 	print("=== t_unit_inspect: %d checks, %d failure(s) ===" % [_checks, _failures.size()])
 	if _failures.is_empty():
@@ -287,3 +288,27 @@ func _count_inspect_layers() -> int:
 		if c is CanvasLayer and (c as CanvasLayer).layer == 28:
 			n += 1
 	return n
+
+
+## Screen 42 placement: for every unit, the plate stays out of the party row / dice tray / Aid / End turn zones
+## and inside the screen, with all six face rows still present (scrolling is allowed, covering is not).
+func test_plate_never_covers_party_row_or_tray() -> void:
+	await get_tree().process_frame
+	var vs: Vector2 = _view.get_viewport_rect().size
+	var units: Array = []
+	units.append_array(_view._combat.alive_party())
+	units.append_array(_view._combat.alive_enemies())
+	for u in units:
+		_view._open_unit_inspect(u.uid)
+		var plate: Control = _view._inspect_panel
+		_assert(plate != null, "inspector did not open for %s" % u.n)
+		if plate == null:
+			continue
+		var r := Rect2(plate.position, plate.size)
+		for b in _view._inspect_blockers():
+			_assert(not r.intersects(b), "inspector for %s (%s) covers a protected zone %s" % [u.n, r, b])
+		_assert(r.position.x >= 0.0 and r.end.x <= vs.x and r.position.y >= 0.0 and r.end.y <= vs.y,
+			"inspector for %s leaves the screen: %s in %s" % [u.n, r, vs])
+		_assert(_face_rows() == 6, "six face rows for %s" % u.n)
+		_assert(plate.find_child("InspectScroll", true, false) == null, "inspector for %s needs a scrollbar (plate %s, col %s)" % [u.n, plate.size, plate.find_child("InspectCol", true, false).get_combined_minimum_size()])
+		_view._close_unit_inspect()

@@ -383,7 +383,7 @@ func _active_slot(a: Dictionary) -> Control:
 	ic.modulate.a = 0.4 if spent else 1.0
 	b.add_child(ic)
 	var badge := UI3.label(str(a.get("charges", "")), "LabelDisplay")
-	badge.add_theme_font_size_override("font_size", 16)
+	badge.add_theme_font_size_override("font_size", 18)
 	badge.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	badge.position = Vector2(34, 26)
 	b.add_child(badge)

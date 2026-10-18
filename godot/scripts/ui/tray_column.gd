@@ -42,7 +42,7 @@ static func build(btn: Button) -> Dictionary:
 	plate.set_anchors_preset(Control.PRESET_FULL_RECT)
 	body.add_child(plate)
 	var name_label := UI3.label("")
-	name_label.add_theme_font_size_override("font_size", 16)
+	name_label.add_theme_font_size_override("font_size", 18)
 	name_label.add_theme_color_override("font_color", UI3Theme.color("text"))
 	name_label.clip_text = true
 	name_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS

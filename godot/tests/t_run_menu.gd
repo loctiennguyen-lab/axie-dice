@@ -20,6 +20,7 @@ func _ready() -> void:
 	_guard.capture()
 	await get_tree().process_frame
 	await _combat_roundtrip()
+	await _combat_esc_opens_pause_menu()
 	await _map_roundtrip()
 	await _pause_menu()
 	LandNav.dry_run = true   # abandon -> back_to_land would load Land, which touches the save after restore()
@@ -169,3 +170,39 @@ func _abandon_from_run() -> void:
 	_assert(not RunState.has_saved_run(), "abandon left the save on disk")
 	_assert(not SettingsView.in_run and SettingsView.return_scene == "",
 		"abandon left in-run mode on (Back would return to a dead run)")
+
+
+## Esc in a fight opens the pause plate (not Settings); Esc again resumes; the fight is untouched.
+func _combat_esc_opens_pause_menu() -> void:
+	var team: Array[String] = ["plant1", "beast1", "aqua1", "reptile1", "bug1"]
+	RunState.start_new_run(781, team, "short", 0, false)
+	RunState.enter_node("r1_c0", "battle")
+	var c := await _new_combat()
+	var before := JSON.stringify(c._combat.to_data())
+	var esc := InputEventKey.new()
+	esc.keycode = KEY_ESCAPE
+	esc.pressed = true
+	c._unhandled_key_input(esc)
+	await get_tree().process_frame
+	_assert(c.pause_menu_open(), "Esc in combat opens the pause plate")
+	_assert(get_tree().current_scene == null or get_tree().current_scene.scene_file_path != "res://scenes/settings/Settings.tscn",
+		"Esc in combat must not jump to Settings")
+	var pm := c.find_child("RunPauseMenu", true, false) as RunPauseMenu
+	_assert(pm != null and pm.rows.has("Abandon") and pm.rows.has("SaveQuit"), "pause plate has its rows in combat")
+	# keys behind the plate do nothing
+	var e := InputEventKey.new()
+	e.keycode = KEY_E
+	e.pressed = true
+	c._unhandled_key_input(e)
+	_assert(JSON.stringify(c._combat.to_data()) == before, "keys do not reach the fight while paused")
+	pm.resumed.emit()
+	await get_tree().process_frame
+	_assert(not c.pause_menu_open(), "Resume closes the pause plate")
+	# Save and quit must not leave Settings in in-run mode (it goes to the main menu, not Settings)
+	SettingsView.in_run = true
+	SettingsView.return_scene = "res://scenes/combat/Combat.tscn"
+	c.pause_save_quit_state()
+	_assert(not SettingsView.in_run and SettingsView.return_scene == "", "save-quit from combat leaves Settings not in-run")
+	_assert(JSON.stringify(c._combat.to_data()) == before, "pausing changed the fight")
+	c.queue_free()
+	await get_tree().process_frame
