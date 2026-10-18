@@ -1021,7 +1021,7 @@ func _update_hud() -> void:
 		undo_sub = "%d die%s used this turn" % [undo_n, "" if undo_n == 1 else "s"]
 	_hud_frame.update_right(
 		{"enabled": executing and undo_n > 0, "sub": undo_sub},
-		{"n": _combat.rerolls, "enabled": executing and _combat.rerolls > 0},
+		{"n": _combat.rerolls, "max": _combat.max_rerolls, "enabled": executing and _combat.rerolls > 0},
 		{"sub": "E %s %d dice unused" % [HudKit.dot(), unused],
 		 "warn": has_unused and executing,
 		 "resolving": _combat.phase != CombatPhase.EXECUTE,
@@ -2094,7 +2094,8 @@ func _layout_unit_visuals() -> void:
 	total += gap * maxf(float(enemy_ps.size() - 1), 0.0)
 	var x := (canvas_w - total) * 0.5
 	for ep in enemy_ps:
-		(ep as UnitPortrait).position = Vector2(x, _ENEMY_PLATE_TOP_R1)
+		var boss_card := (ep as UnitPortrait).size.x > UnitPortrait.WIDTH + 1.0
+		(ep as UnitPortrait).position = Vector2(x, 24.0 if boss_card else _ENEMY_PLATE_TOP_R1)
 		x += (ep as UnitPortrait).size.x + gap
 
 	for uid in _portraits.keys():

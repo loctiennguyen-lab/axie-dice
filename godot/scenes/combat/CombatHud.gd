@@ -20,6 +20,7 @@ const GAP := 12.0
 const END_H := 64.0
 const SMALL_H := 48.0
 const HINT_H := 24.0
+const UNDO_W := 88.0
 
 var relic_strip: HBoxContainer      ## kept as a public name: tests hover relic chips here
 var actives_row: HBoxContainer
@@ -212,13 +213,17 @@ func adopt_right_zone(undo: Button, reroll: Button, end_turn: Button) -> void:
 	for b in [undo, reroll]:
 		b.add_theme_font_size_override("font_size", 18)
 	undo.theme_type_variation = "ButtonSecondaryS"
-	undo.text = "Undo · Z"
+	undo.text = "Z"
+	undo.icon = UI3.cream_icon("ui_undo")
+	undo.expand_icon = true
+	undo.add_theme_constant_override("icon_max_width", 20)
 	reroll.theme_type_variation = "ButtonSecondaryS"
-	reroll.text = "Reroll · R"
+	reroll.text = "Reroll"
+	reroll.tooltip_text = "Reroll unused dice (R)"
 	end_turn.theme_type_variation = "ButtonPrimaryL"
 	end_turn.text = "End turn"
-	undo.custom_minimum_size = Vector2(RIGHT_W, SMALL_H)
-	reroll.custom_minimum_size = Vector2(RIGHT_W, SMALL_H)
+	undo.custom_minimum_size = Vector2(UNDO_W, SMALL_H)
+	reroll.custom_minimum_size = Vector2(RIGHT_W - UNDO_W - GAP, SMALL_H)
 	end_turn.custom_minimum_size = Vector2(RIGHT_W, END_H)
 	_hint = UI3.label("", "LabelMuted")
 	_hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -364,11 +369,14 @@ func update_right(undo: Dictionary, reroll: Dictionary, end: Dictionary) -> void
 	if undo_button == null:
 		return
 	undo_button.disabled = not bool(undo.get("enabled", false))
-	undo_button.text = "Undo · Z" if not undo_button.disabled else "Nothing to undo"
+	undo_button.text = "Z"
+	undo_button.tooltip_text = "Undo the last die (Z)" if not undo_button.disabled else "Nothing to undo this turn"
 	var n := int(reroll.get("n", 0))
+	var mx := int(reroll.get("max", 0))
+	var nm := "%d / %d" % [n, mx] if mx > 0 else str(n)
 	reroll_button.disabled = not bool(reroll.get("enabled", false))
-	reroll_button.text = "Reroll · R · %d left" % n if not reroll_button.disabled else \
-		("No rerolls left" if n <= 0 else "Reroll · R · %d left" % n)
+	reroll_button.text = "Reroll · %s" % nm if not reroll_button.disabled else \
+		("No rerolls left" if n <= 0 else "Reroll · %s" % nm)
 	end_turn_button.disabled = not bool(end.get("enabled", true))
 	end_turn_button.text = "Enemy turn…" if (end_turn_button.disabled and bool(end.get("resolving", false))) else "End turn"
 	_hint.text = String(end.get("sub", ""))
@@ -419,11 +427,10 @@ func layout() -> void:
 		end_turn_button.position = Vector2(x, y)
 		end_turn_button.size = Vector2(RIGHT_W, END_H)
 		y -= GAP + SMALL_H
-		reroll_button.position = Vector2(x, y)
-		reroll_button.size = Vector2(RIGHT_W, SMALL_H)
-		y -= GAP + SMALL_H
 		undo_button.position = Vector2(x, y)
-		undo_button.size = Vector2(RIGHT_W, SMALL_H)
+		undo_button.size = Vector2(UNDO_W, SMALL_H)
+		reroll_button.position = Vector2(x + UNDO_W + GAP, y)
+		reroll_button.size = Vector2(RIGHT_W - UNDO_W - GAP, SMALL_H)
 		_tray_top = y
 		# Undo is hidden while input is locked: the speed control takes the slot.
 		undo_button.visible = not _speed.visible
