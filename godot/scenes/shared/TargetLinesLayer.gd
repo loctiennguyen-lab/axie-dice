@@ -90,7 +90,7 @@ func _draw_one(entry: Dictionary) -> void:
 	if from.x < 0.0 or to.x < 0.0:
 		return
 	var highlighted: bool = entry.get("highlighted", false)
-	var base_color: Color = entry.get("color", DangoTheme.DANGER)
+	var base_color: Color = entry.get("color", UI3Theme.color("danger_text"))
 	var soft_color := base_color.lerp(Color.WHITE, _SOFTEN_TOWARD_WHITE)
 	var peak_alpha := _ALPHA_PEAK_HL if highlighted else _ALPHA_PEAK
 	var w_src := _WIDTH_SOURCE_HL if highlighted else _WIDTH_SOURCE
