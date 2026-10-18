@@ -37,9 +37,9 @@ func setup(p_cards: Array, p_can_skip: bool, p_swap_offer: Dictionary = {}) -> v
 		remove_child(c)
 		c.queue_free()
 	theme = UI3Theme.get_theme()
-	set_anchors_preset(Control.PRESET_FULL_RECT)
+	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	var center := CenterContainer.new()
-	center.set_anchors_preset(Control.PRESET_FULL_RECT)
+	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	add_child(center)
 	var col := VBoxContainer.new()
 	col.name = "PactColumn"
@@ -85,7 +85,7 @@ func setup(p_cards: Array, p_can_skip: bool, p_swap_offer: Dictionary = {}) -> v
 func select(i: int) -> void:
 	selected = i
 	for k in card_panels.size():
-		UI3.set_card_selected(card_panels[k], k == i)
+		UI3.set_card_selected(card_panels[k], k == i, false)
 	if accept_button == null or i < 0 or i >= cards.size():
 		return
 	if bool((cards[i] as Dictionary).get("ok", false)):
@@ -150,13 +150,13 @@ func _card(i: int, c: Dictionary) -> Control:
 	icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	art.add_child(icon)
 	v.add_child(art)
-	var nm := UI3.label(UI3.player_text(String(c.get("name", ""))), "LabelTitle")
+	var nm := UI3.label(UI3.title_case(UI3.player_text(String(c.get("name", "")))), "LabelTitle")
 	nm.name = "PactName"
 	nm.clip_text = true
 	nm.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	v.add_child(nm)
 	var rl := UI3.label(["Common", "Uncommon", "Rare", "Epic", "Legendary"][clampi(rar, 0, 4)])
-	rl.add_theme_color_override("font_color", accent)
+	rl.add_theme_color_override("font_color", UI3Theme.color("text_muted") if rar == 0 else accent)
 	v.add_child(rl)
 	var sp := split_description(String(c.get("description", "")))
 	v.add_child(UI3.trade_box(&"gain", String(sp["gain"])))
@@ -230,12 +230,12 @@ func _commit(i: int) -> void:
 		var eternal := String(RunState.relic_stickers.get(id, "")) == RelicSlots.STICKER_ETERNAL
 		if not sell_from.has(id) and not eternal:
 			continue
-		cells.append({"id": id, "name": UI3.player_text(String(od.name)),
+		cells.append({"id": id, "name": UI3.title_case(UI3.player_text(String(od.name))),
 			"kind": tr("Active") if RelicSlots._is_active(od) else tr("Passive"),
 			"sell": RelicSlots.sell_price(id, RunState.ascension), "eternal": eternal})
 	var active: bool = nd != null and RelicSlots._is_active(nd)
 	var forced := not can_skip
-	var sheet := UI3.slot_swap_sheet(tr("Make room"), UI3.player_text(String(c.get("name", ""))),
+	var sheet := UI3.slot_swap_sheet(tr("Make room"), UI3.title_case(UI3.player_text(String(c.get("name", "")))),
 		tr("Forced pact: you cannot cancel.") if forced else String(split_description(String(c.get("description", "")))["gain"]),
 		tr("Slots are full. Sell one relic to take this pact."), cells, forced,
 		func(sell_id: String) -> void:

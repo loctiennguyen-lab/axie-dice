@@ -44,10 +44,14 @@ func _ready() -> void:
 		scene.queue_free()
 		for i in 3:
 			await get_tree().process_frame
-	# forced pact: no Leave it
-	var sheet := UI3.slot_swap_sheet("Make room", "Pact relic", "Forced boss pact: you cannot cancel.", "Passive slots are full (8 of 8). Sell one to take the pact.",
+	# forced pact: no Leave it, real relic names
+	var pact := "r_brittledice"
+	var pd = RelicRegistry.get_def(pact)
+	var sheet := UI3.slot_swap_sheet("Make room", UI3.title_case(String(pd.name)), "Forced pact: you cannot cancel.",
+		"Slots are full. Sell one relic to take this pact.",
 		passives.map(func(id: String) -> Dictionary:
-			return {"id": id, "name": id, "kind": "Passive", "sell": 20, "eternal": id == "r_heart"}), true, func(_s): pass, func(): pass)
+			var od = RelicRegistry.get_def(id)
+			return {"id": id, "name": String(od.name), "kind": "Passive", "sell": RelicSlots.sell_price(id, 0), "eternal": id == "r_heart"}), true, func(_s): pass, func(): pass)
 	add_child(sheet)
 	await _shot(tag, "forced")
 	_guard.restore()

@@ -139,8 +139,10 @@ static func clear_disabled_reason(btn: Button) -> void:
 
 ## Marks a card selected or not: swaps PanelCard / PanelCardSelected (4 px cream outline, padding kept) and
 ## lifts it 18 px (components.md). Inside a Container the lift is re-applied after every layout pass.
-static func set_card_selected(card: PanelContainer, on: bool) -> void:
+static func set_card_selected(card: PanelContainer, on: bool, lift := true) -> void:
 	card.theme_type_variation = "PanelCardSelected" if on else "PanelCard"
+	if not lift:
+		return
 	var lifted := card.has_meta("ui3_lift")
 	var par := card.get_parent()
 	if on and not lifted:
@@ -463,6 +465,24 @@ static func trade_box(kind: StringName, text: String) -> PanelContainer:
 	return p
 
 
+## Title Case for names the data stores in capitals ("LUNACIA ULTIMA", "CURSE PACT"). Names already in mixed
+## case are returned untouched, so "Devil's Reroll" and "HP" keep their form.
+static func title_case(raw: String) -> String:
+	if raw != raw.to_upper():
+		return raw
+	var words := raw.split(" ")
+	var out: Array[String] = []
+	for w in words:
+		var word := String(w)
+		if word.length() <= 2 and word == "HP":
+			out.append(word)
+		elif word != "":
+			out.append(word.substr(0, 1).to_upper() + word.substr(1).to_lower())
+		else:
+			out.append(word)
+	return " ".join(out)
+
+
 # ===== CostChip (shared with lane C: keep ONE definition when merging) =====
 ## CostChip (round 2): h 40, radius 8, icon + Rowdies 18. kind gem (purple, paid surfaces only), shard, stone, or
 ## free ("Free"). `amount` is the price (ignored for free). not_enough tints the amount red.
@@ -558,18 +578,30 @@ static func slot_swap_sheet(header: String, new_title: String, new_sub: String, 
 		b.name = "SlotCell_%s" % String(cell.get("id", ""))
 		b.theme = UI3Theme.get_theme()
 		b.theme_type_variation = "ButtonSecondary"
-		b.custom_minimum_size = Vector2(120, 96)
+		b.custom_minimum_size = Vector2(120, 120)
 		b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		b.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		b.focus_mode = Control.FOCUS_ALL
 		var eternal := bool(cell.get("eternal", false))
 		var sell_text: String = TranslationServer.translate("Can't sell") if eternal else "%s · +%d" % [
 			TranslationServer.translate("Sell"), int(cell.get("sell", 0))]
-		b.text = "%s\n%s\n%s" % [String(cell.get("name", "")), String(cell.get("kind", "")), sell_text]
+		var cv := VBoxContainer.new()
+		cv.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT, Control.PRESET_MODE_MINSIZE, 8)
+		cv.alignment = BoxContainer.ALIGNMENT_CENTER
+		cv.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		b.add_child(cv)
+		var nl := label(title_case(String(cell.get("name", ""))), "LabelDisplay")
+		nl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		nl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		nl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		cv.add_child(nl)
+		for t in [String(cell.get("kind", "")), sell_text]:
+			var tl := label(String(t), "LabelMuted")
+			tl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+			tl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			cv.add_child(tl)
 		if eternal:
 			b.disabled = true
 			b.modulate.a = 0.5
-			b.add_theme_color_override("font_disabled_color", UI3Theme.color("danger_text"))
 		else:
 			sellable += 1
 			var id := String(cell.get("id", ""))
@@ -584,7 +616,7 @@ static func slot_swap_sheet(header: String, new_title: String, new_sub: String, 
 							o.add_theme_stylebox_override(sn, UI3Theme.flat(UI3Theme.color("btn_secondary"),
 								UI3Theme.radius("m"), UI3Theme.stroke("selected"), UI3Theme.color("selected_outline")))
 				clear_disabled_reason(confirm)
-				confirm.text = TranslationServer.translate("Sell %s and take") % String(cell.get("name", "")))
+				confirm.text = TranslationServer.translate("Sell %s and take") % title_case(String(cell.get("name", ""))))
 		btns.append(b)
 		grid.add_child(b)
 	if sellable == 0:

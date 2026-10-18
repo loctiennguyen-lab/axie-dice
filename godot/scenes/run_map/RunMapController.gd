@@ -1069,8 +1069,8 @@ func _cleared_eyebrow() -> String:
 
 ## Reward `t` -> kind label and card icon (assets/ui3/icons). Unlisted types fall back to "Reward".
 const _REWARD_KIND := {
-	"relic": "Relic", "level": "Tier up", "ascend": "Ascend", "hp": "Max HP",
-	"reroll": "Reroll", "chaos": "Chaos deal", "curse": "Curse pact",
+	"relic": "Relic", "level": "Tier Up", "ascend": "Ascend", "hp": "Max HP",
+	"reroll": "Reroll", "chaos": "Chaos Deal", "curse": "Curse Pact",
 }
 const _REWARD_ICON := {
 	"relic": "ui_mooncard", "level": "face_buff", "ascend": "node_boss", "hp": "face_heal",
@@ -1197,7 +1197,7 @@ func _ask_skip_reward(col: VBoxContainer) -> void:
 func _select_reward(i: int) -> void:
 	_reward_sel = clampi(i, 0, maxi(_reward_cards.size() - 1, 0))
 	for k in _reward_cards.size():
-		UI3.set_card_selected(_reward_cards[k], k == _reward_sel)
+		UI3.set_card_selected(_reward_cards[k], k == _reward_sel, false)
 
 
 func _take_selected_reward() -> void:
@@ -1316,7 +1316,7 @@ func _add_reward_card(r: Dictionary, wide := false) -> PanelContainer:
 		body_text = String(r.get("sub", ""))
 	elif String(r.get("sub", "")) != "":
 		body_text += "\n" + String(r.get("sub", ""))
-	name_text = UI3.player_text(name_text)
+	name_text = UI3.title_case(UI3.player_text(name_text))
 	var dsc := UI3.describe(body_text)
 	body_text = ("MP %d · " % int(dsc["mp"]) if int(dsc["mp"]) >= 0 else "") + String(dsc["text"])
 	var name_lbl := UI3.label(name_text, "LabelTitle")
@@ -1326,14 +1326,14 @@ func _add_reward_card(r: Dictionary, wide := false) -> PanelContainer:
 	col.add_child(name_lbl)
 	var rar_lbl := UI3.label(_rarity_name(rar))
 	rar_lbl.name = "RarityLabel"
-	rar_lbl.add_theme_color_override("font_color", accent)
+	rar_lbl.add_theme_color_override("font_color", UI3Theme.color("text_muted") if rar == 0 else accent)
 	col.add_child(rar_lbl)
 	if t in ["chaos", "curse"]:
 		var tp := _trade_parts(r)
 		if t == "chaos":
-			name_lbl.text = UI3.player_text(String(r.get("desc", "")))
+			name_lbl.text = UI3.title_case(UI3.player_text(String(r.get("desc", ""))))
 		else:
-			name_lbl.text = UI3.player_text(String(r.get("title", "")))
+			name_lbl.text = UI3.title_case(UI3.player_text(String(r.get("title", ""))))
 		col.add_child(UI3.trade_box(&"gain", String(tp["gain"])))
 		col.add_child(UI3.trade_box(tp["cost_kind"], String(tp["cost"])))
 		return card
@@ -1420,14 +1420,14 @@ func open_slot_swap(reward: Dictionary, chk: Dictionary) -> void:
 		var eternal := String(RunState.relic_stickers.get(id, "")) == RelicSlots.STICKER_ETERNAL
 		if not sell_from.has(id) and not (eternal and RelicSlots._is_active(od) == active):
 			continue
-		cells.append({"id": id, "name": UI3.player_text(String(od.name)),
+		cells.append({"id": id, "name": UI3.title_case(UI3.player_text(String(od.name))),
 			"kind": tr("Active") if RelicSlots._is_active(od) else tr("Passive"),
 			"sell": RelicSlots.sell_price(id, RunState.ascension), "eternal": eternal})
 	var rule := (tr("Active slots are full (%d of %d). Sell one to take the new relic.") if active
 		else tr("Passive slots are full (%d of %d). Sell one to take the new relic.")) % [
 		cells.size(), int(cap["active"] if active else cap["passive"])]
 	var dsc := UI3.describe(RewardGenerator.relic_desc(nd))
-	var sheet := UI3.slot_swap_sheet(tr("Make room"), UI3.player_text(String(nd.name)),
+	var sheet := UI3.slot_swap_sheet(tr("Make room"), UI3.title_case(UI3.player_text(String(nd.name))),
 		("MP %d · " % int(dsc["mp"]) if int(dsc["mp"]) >= 0 else "") + String(dsc["text"]), rule, cells,
 		false, func(sell_id: String) -> void:
 			var ok := RunState.acquire_relic(key, "reward", sell_id)
