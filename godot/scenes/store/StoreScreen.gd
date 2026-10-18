@@ -174,6 +174,8 @@ func open_confirm(title: String, detail: String, price: int, action: Callable) -
 	var why := block_reason(price)
 	if why != "":
 		UI3.set_disabled_reason(yes, why)
+	for cb in [no, yes]:
+		(cb as Button).add_theme_stylebox_override("focus", UI3Theme.focus_style(UI3Theme.radius("l")))
 	yes.pressed.connect(func() -> void:
 		close_modal()
 		action.call())
@@ -295,6 +297,22 @@ func _tile_text(v: VBoxContainer, title: String, sub: String) -> void:
 	v.add_child(m)
 
 
+## Badge: neutral wood tag, or (token != "") outlined in the colour token, text in the same colour.
+func _badge(text: String, token := "") -> Control:
+	if token == "":
+		return UI3Meta.tag(text)
+	var c := PanelContainer.new()
+	c.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	c.custom_minimum_size = Vector2(0, UI3.CHIP_H)
+	var col := UI3Theme.color(token)
+	c.add_theme_stylebox_override("panel", UI3Theme.flat(UI3Theme.color("notice_bg"), UI3Theme.radius("s"), 2, col, Vector4(12, 0, 12, 0)))
+	var l := UI3.label(text, "LabelDisplay")
+	l.add_theme_color_override("font_color", col)
+	l.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	c.add_child(l)
+	return c
+
+
 func _gem_art(px: float) -> Control:
 	var t := TextureRect.new()
 	t.texture = UI3.icon("cur_gem")
@@ -309,7 +327,7 @@ func _gem_art(px: float) -> Control:
 ## Right-hand detail plate: art, title + badge, body, price rows, reason, one 72 primary ("DetailBuy").
 ## `art` may be null; `reason` != "" disables the primary and replaces its label.
 func _show_detail(art: Control, title: String, badge: String, body: String, rows: Array,
-		action_text: String, reason: String, on_press: Callable) -> void:
+		action_text: String, reason: String, on_press: Callable, badge_color := "") -> void:
 	_clear(_detail)
 	var v := VBoxContainer.new()
 	v.add_theme_constant_override("separation", UI3Theme.space("16"))
@@ -328,10 +346,12 @@ func _show_detail(art: Control, title: String, badge: String, body: String, rows
 	tl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	th.add_child(tl)
 	if badge != "":
-		th.add_child(UI3.chip(badge))
+		th.add_child(_badge(badge, badge_color))
 	v.add_child(th)
 	var bl := _note(body)
 	bl.name = "DetailBody"
+	bl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	bl.custom_minimum_size = Vector2(DETAIL_W - 64, 0)
 	v.add_child(bl)
 	for r in rows:
 		var h := HBoxContainer.new()
@@ -346,7 +366,7 @@ func _show_detail(art: Control, title: String, badge: String, body: String, rows
 		UI3.set_disabled_reason(b, reason)
 		var rl := UI3.label(reason)
 		rl.name = "DetailReason"
-		rl.add_theme_color_override("font_color", UI3Theme.color("danger_text"))
+		rl.theme_type_variation = "LabelMuted"   # a missing resource is not an error
 		rl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		v.add_child(rl)
 	else:
@@ -543,4 +563,5 @@ func _tab_cosmetics() -> void:
 		"Adds this cosmetic to your collection. Season items: only from the Seasonal Echo Box. Prices are placeholders.",
 		[["Cost", "%s Gem" % _fmt(price)], ["You hold", "%s Gem" % _fmt(gems())]],
 		"Buy for %s Gem" % _fmt(price), "Owned" if owned else block_reason(price),
-		open_confirm.bind(nm2 if nm2 != "" else id2, "Adds this cosmetic to your collection.", price, buy_cosmetic.bind(id2, String(cur.rarity))))
+		open_confirm.bind(nm2 if nm2 != "" else id2, "Adds this cosmetic to your collection.", price, buy_cosmetic.bind(id2, String(cur.rarity))),
+		String(RARITY_TOKEN.get(cur.rarity, "rarity_rare")))
