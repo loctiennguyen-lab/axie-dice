@@ -1467,14 +1467,48 @@ func _update_dice_tray() -> void:
 ## True when the selected die's face may be used on `target` (an ally column). Heal / shield
 ## faces are the ally-targeting ones; the engine remains the authority (use_die() refuses).
 func _selected_ally_target_ok(target: Unit) -> bool:
+	return target.side == "p" and _illegal_reason_for(target) == "" and _selected_face_type() != ""
+
+
+## The picked die's face type ("" when nothing usable is picked).
+func _selected_face_type() -> String:
 	var src := _combat.by_uid(_selected_die_uid) if _combat != null else null
 	if src == null or not src.has_rolled():
-		return false
+		return ""
 	var fi := src.roll_face_index()
 	if fi < 0 or fi >= src.die.size():
-		return false
-	var t := String((src.die[fi] as Dictionary).get("type", ""))
-	return t == "heal" or t == "shield" or t == "buff" or t == "mana"
+		return ""
+	return String((src.die[fi] as Dictionary).get("type", ""))
+
+
+## Which side a face may be aimed at, mirroring CombatEngine._do_face (view-only copy: the engine has no
+## read-only legality helper): "foe" (dmg / poison / debuff), "friend" (shield / heal / buff), "any"
+## (mana / summon: the click target does not matter), "none" (blank). An aoe face still lights the one
+## side it hits as a whole.
+static func face_target_rule(face_type: String) -> String:
+	match face_type:
+		"dmg", "poison", "debuff":
+			return "foe"
+		"shield", "heal", "buff":
+			return "friend"
+		"mana", "summon":
+			return "any"
+	return "none"
+
+
+## "" when a `face_type` die may be used on a unit of `target_side` (src_side "p"), else the reason line.
+static func face_target_reason(face_type: String, target_side: String, src_side := "p") -> String:
+	var word := DangoTheme.face_type_label(face_type)
+	match face_target_rule(face_type):
+		"none":
+			return "Blank face: nothing to use"
+		"foe":
+			if target_side == src_side:
+				return "%s can only target enemies" % word
+		"friend":
+			if target_side != src_side:
+				return "%s can only target allies" % word
+	return ""
 
 
 ## One hover line's {name, rule} for anything the player can see the NAME of but not the RULE:
@@ -2265,6 +2299,11 @@ func _on_target_clicked(uid: int) -> void:
 	if _selected_die_uid == -1 or u == null or u.hp <= 0:
 		_open_unit_inspect(uid)
 		return
+	# An illegal target keeps the die picked and keeps showing its reason (the plate's red label).
+	if _illegal_reason_for(u) != "":
+		_append_log("[input] use %s -> %s : illegal (%s)" % [_unit_name(_selected_die_uid), _unit_name(uid),
+			_illegal_reason_for(u)])
+		return
 	var ok := _combat.use_die(_selected_die_uid, uid)
 	_append_log("[input] use %s -> %s : %s" % [_unit_name(_selected_die_uid), _unit_name(uid), "ok" if ok else "invalid"])
 	if not ok:
@@ -2925,18 +2964,10 @@ func _hud_state() -> Dictionary:
 func _illegal_reason_for(target: Unit) -> String:
 	if _selected_die_uid == -1 or _combat == null:
 		return ""
-	var src := _combat.by_uid(_selected_die_uid)
-	if src == null or not src.has_rolled():
+	var t := _selected_face_type()
+	if t == "":
 		return ""
-	var fi := src.roll_face_index()
-	if fi < 0 or fi >= src.die.size():
-		return ""
-	var t := String((src.die[fi] as Dictionary).get("type", ""))
-	if t == "blank":
-		return "Blank face: nothing to use"
-	if t == "heal" and target.side == "e":
-		return "Heal face: allies only"
-	return ""
+	return face_target_reason(t, target.side)
 
 
 func _update_portrait(u: Unit) -> void:
