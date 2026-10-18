@@ -400,6 +400,71 @@ static func die_tile(face: StringName, value: int, size := &"axie", state := &"n
 	return DieTile.new(face, value, size, state, tilt, stamp)
 
 
+## CostChip (round 2): h 40, radius 8, icon 24 + Rowdies 20. kind: gem (purple-2 fill, purple-5 border, purple-9
+## text; paid surfaces only) | shard | stone (wood-2 fill, cream text) | free (the word "Free"). `amount` is shown
+## as given (already from data); `not_enough` dims it (the button beside it says "Need n more").
+static func cost_chip(kind: StringName, amount: int, not_enough := false) -> PanelContainer:
+	var gem := kind == &"gem"
+	var sb := UI3Theme.flat(UI3Theme.color("gem_bg") if gem else UI3Theme.color("panel_raised"),
+		UI3Theme.radius("s"), 2 if gem else 0, UI3Theme.color("gem_border"),
+		Vector4(10, 0, 12, 0))
+	var chip := PanelContainer.new()
+	chip.name = "CostChip"
+	chip.theme = UI3Theme.get_theme()
+	chip.custom_minimum_size = Vector2(0, 40)
+	chip.add_theme_stylebox_override("panel", sb)
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", UI3Theme.space("8"))
+	row.alignment = BoxContainer.ALIGNMENT_CENTER
+	chip.add_child(row)
+	var col := UI3Theme.color("gem_text") if gem else UI3Theme.color("text")
+	if kind != &"free":
+		var ic := TextureRect.new()
+		ic.texture = icon("cur_" + String(kind))
+		ic.custom_minimum_size = Vector2(24, 24)
+		ic.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		ic.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		ic.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		row.add_child(ic)
+	var l := label(TranslationServer.translate("Free") if kind == &"free" else fmt(amount), "LabelDisplay")
+	l.add_theme_font_size_override("font_size", 20)
+	l.add_theme_color_override("font_color", col)
+	row.add_child(l)
+	if not_enough:
+		chip.modulate.a = 0.6
+	return chip
+
+
+## PhaseBar (round 2): 16 h bar, 2 px kam-9 ticks at every phase threshold (fractions 0..1 of max HP).
+static func phase_bar(hp: int, max_hp: int, marks: Array) -> Control:
+	var bar := PhaseBarView.new()
+	bar.setup(hp, max_hp, marks)
+	return bar
+
+
+class PhaseBarView extends Control:
+	var _hp := 0
+	var _max := 1
+	var _marks: Array = []
+
+	func setup(hp: int, max_hp: int, marks: Array) -> void:
+		_hp = maxi(hp, 0)
+		_max = maxi(max_hp, 1)
+		_marks = marks
+		custom_minimum_size = Vector2(0, 16)
+		queue_redraw()
+
+	func _draw() -> void:
+		var r := UI3Theme.radius("s")
+		draw_style_box(UI3Theme.flat(UI3Theme.color("hp_track"), r), Rect2(0, 0, size.x, 16))
+		var w := maxf(size.x * float(_hp) / float(_max), float(r) * 2.0) if _hp > 0 else 0.0
+		if w > 0.0:
+			draw_style_box(UI3Theme.flat(UI3Theme.color("hp_enemy"), r), Rect2(0, 0, w, 16))
+		for m in _marks:
+			var x := size.x * float(m)
+			draw_rect(Rect2(x - 1.0, 0, 2.0, 16), UI3Theme.color("phase_tick"))
+
+
 ## Localized word for a face type ("ATTACK", "SHIELD", ...). Blank is "–" per the spec.
 static func face_word(face: StringName) -> String:
 	if face == &"blank":

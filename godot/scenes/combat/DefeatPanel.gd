@@ -1,27 +1,28 @@
 extends Control
 class_name DefeatPanel
-## Defeat screen — Dice UI R1 README 4 (03a-03c). Pure view: CombatView fills `show_defeat(d)` and
-## listens to `end_run_pressed` / `continue_pressed`. The Continue effect (heal %, boss kept at its
-## HP/phase, clock and attrition reset) is lane A's `continue_after_wipe`; this panel only states
-## it and reports the click.
+## Defeat panel, UI-03 round 2 screen 30. Pure view: CombatView fills `show_defeat(d)` and listens to
+## `end_run_pressed` / `continue_pressed`. The Continue effect (heal %, boss kept at HP/phase, clock and
+## attrition reset) is the engine's `continue_after_wipe`; this panel only states it and reports the click.
+## Prices, heal % and phase ticks all come in through `d` (aid_prices.json, ascension, combat_tune).
 ##
 ## d = {
-##   title_line: "Act 1 boss · A6 · your party fell on turn 14",
-##   boss: {name, hp, max_hp, phase, phases, spike_in}  or {}        # {} for a normal fight
-##   recap: [{turn, what, result, final: bool}]                       # newest last, <= 6 rows
-##   aid_used, aid_cap, continue_left (0|1),
-##   heal_pct: 25|40, party: [{name, max_hp}],
-##   enrage_reset_line, attrition_reset_line,
-##   price: int, price_was: int (0 = none), usd: String,
-##   variant: "paid"|"gift"|"moon",
-##   foot: String }
+##   title_line: String                                  # context line, e.g. "Boss fight · A6 · turn 14"
+##   boss: {name, hp, max_hp, phase, phases, spike_in, marks:[0.66, 0.33]} or {}
+##   recap: [{turn, what, result, final}]                 # newest last
+##   aid_used, aid_cap, heal_pct, party:[{name,max_hp}], keep_line, enrage_reset_line, attrition_reset_line
+##   price: int, variant: "paid"|"gift"|"moon", price_was: int
+##   continue_show: bool, continue_enabled: bool, continue_reason: String, need_more: int (Gem short, 0 = none)
+##   mission: bool, foot: String }
+## Esc does nothing: the panel must be answered. Focus: Continue, then End run (End run when Continue is off).
 
 signal end_run_pressed
 signal continue_pressed
 
-var _panel: PanelContainer
+const PANEL_W := 720
+
 var _end_button: Button
 var _continue_button: Button
+var _busy_label := ""
 
 
 func _init() -> void:
@@ -30,240 +31,175 @@ func _init() -> void:
 	visible = false
 
 
+## Locks input and shows "Reviving…" while the purchase is in flight; false restores the panel.
+func set_busy(on: bool) -> void:
+	if _continue_button == null:
+		return
+	if on:
+		_busy_label = _continue_button.text
+		_continue_button.text = TranslationServer.translate("Reviving…")
+	elif _busy_label != "":
+		_continue_button.text = _busy_label
+		_busy_label = ""
+	_continue_button.disabled = on
+	_end_button.disabled = on
+
+
 func show_defeat(d: Dictionary) -> void:
 	for c in get_children():
 		c.queue_free()
 	visible = true
+	theme = UI3Theme.get_theme()
 	var dim := ColorRect.new()
-	dim.color = DangoTheme.SCRIM_DEFEAT
+	dim.name = "Scrim"
+	var sc := UI3Theme.color("bg")
+	sc.a = 0.9
+	dim.color = sc
 	dim.set_anchors_preset(Control.PRESET_FULL_RECT)
 	add_child(dim)
 	var center := CenterContainer.new()
 	center.set_anchors_preset(Control.PRESET_FULL_RECT)
 	add_child(center)
-
-	_panel = PanelContainer.new()
-	_panel.custom_minimum_size = Vector2(1320, 0)
-	var psb := HudKit.box(DangoTheme.CREAM_100, 28, 4, DangoTheme.LINE, Vector2(5, 8))
-	psb.content_margin_left = 0.0
-	psb.content_margin_right = 0.0
-	psb.content_margin_top = 0.0
-	psb.content_margin_bottom = 0.0
-	_panel.add_theme_stylebox_override("panel", psb)
-	center.add_child(_panel)
+	var panel := UI3.plate(&"dialog")
+	panel.name = "Panel"
+	panel.custom_minimum_size = Vector2(PANEL_W, 0)
+	center.add_child(panel)
 	var col := VBoxContainer.new()
-	col.add_theme_constant_override("separation", 0)
-	_panel.add_child(col)
+	col.add_theme_constant_override("separation", UI3Theme.space("24"))
+	panel.add_child(col)
 
-	# Header 72, dusk-brown.
-	var head := PanelContainer.new()
-	head.custom_minimum_size = Vector2(0, 72)
-	var hsb := HudKit.box(Color("5A3A26"), 24, 0, DangoTheme.LINE, Vector2.ZERO, DangoTheme.SHELF,
-		Vector2(28, 0))
-	hsb.border_width_bottom = 4
-	head.add_theme_stylebox_override("panel", hsb)
+	var head := VBoxContainer.new()
+	head.add_theme_constant_override("separation", UI3Theme.space("8"))
 	col.add_child(head)
-	var hrow := HBoxContainer.new()
-	hrow.add_theme_constant_override("separation", 14)
-	head.add_child(hrow)
-	var ht := HudKit.label("Defeat", 36, DangoTheme.CREAM_RAISED)
-	hrow.add_child(ht)
-	var hs := HudKit.prose(String(d.get("title_line", "")), 16, DangoTheme.CREAM_200)
-	hs.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	hrow.add_child(hs)
+	var t := UI3.label(TranslationServer.translate("Party down"), "LabelScreenTitle")
+	t.add_theme_color_override("font_color", UI3Theme.color("danger_text"))
+	head.add_child(t)
+	var ctx := UI3.label(String(d.get("title_line", "")), "LabelMuted")
+	head.add_child(ctx)
 
-	var body := MarginContainer.new()
-	body.add_theme_constant_override("margin_left", 28)
-	body.add_theme_constant_override("margin_right", 28)
-	body.add_theme_constant_override("margin_top", 24)
-	body.add_theme_constant_override("margin_bottom", 28)
-	col.add_child(body)
-	var cols := HBoxContainer.new()
-	cols.add_theme_constant_override("separation", 24)
-	body.add_child(cols)
-	cols.add_child(_recap_column(d))
-	cols.add_child(_wind_column(d))
-	_end_button.grab_focus()   # focus starts on End run (README 4)
-
-
-func _recap_column(d: Dictionary) -> Control:
-	var col := VBoxContainer.new()
-	col.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	col.custom_minimum_size = Vector2(600, 0)
-	col.add_theme_constant_override("separation", 12)
-	col.add_child(HudKit.label("RECAP", 15, DangoTheme.LINE, 800, 0.08))
 	var boss: Dictionary = d.get("boss", {})
 	if not boss.is_empty():
-		var card := PanelContainer.new()
-		card.add_theme_stylebox_override("panel", HudKit.box(DangoTheme.CREAM_RAISED, 16, 3,
-			DangoTheme.OUTLINE, Vector2.ZERO, DangoTheme.SHELF, Vector2(14, 14)))
-		col.add_child(card)
-		var cc := VBoxContainer.new()
-		cc.add_theme_constant_override("separation", 8)
-		card.add_child(cc)
-		var top := HBoxContainer.new()
-		cc.add_child(top)
-		var nm := HudKit.label("%s had" % String(boss.get("name", "")), 20, DangoTheme.INK)
-		nm.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		top.add_child(nm)
-		top.add_child(HudKit.label("%d / %d HP" % [int(boss.get("hp", 0)), int(boss.get("max_hp", 1))],
-			26, DangoTheme.INK))
-		var bar := HPBar.new()
-		bar.set_kind(HPBar.Kind.ENEMY, 30, 9, 16)
-		bar.set_marks([0.66, 0.33])
-		bar.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		bar.set_stats(int(boss.get("hp", 0)), int(boss.get("max_hp", 1)))
-		cc.add_child(bar)
-		var pct := int(round(100.0 * float(boss.get("hp", 0)) / maxf(float(boss.get("max_hp", 1)), 1.0)))
-		var line := "%d%% left %s phase %d of %d" % [pct, HudKit.dot(), int(boss.get("phase", 1)),
-			int(boss.get("phases", 3))]
-		if int(boss.get("spike_in", 0)) > 0:
-			line += " %s big hit was due in %d turn%s" % [HudKit.dot(), int(boss.get("spike_in", 0)),
-				"" if int(boss.get("spike_in", 0)) == 1 else "s"]
-		cc.add_child(HudKit.prose(line, 13, DangoTheme.INK_2))
-	var rows := VBoxContainer.new()
-	rows.add_theme_constant_override("separation", 6)
-	col.add_child(rows)
-	for r in d.get("recap", []):
-		var p := PanelContainer.new()
-		p.custom_minimum_size = Vector2(0, 44)
-		p.add_theme_stylebox_override("panel", HudKit.box(
-			DangoTheme.GOLD_SOFT if bool(r.get("final", false)) else DangoTheme.CREAM_RAISED, 12, 2,
-			DangoTheme.OUTLINE, Vector2.ZERO, DangoTheme.SHELF, Vector2(12, 4)))
-		var row := HBoxContainer.new()
-		row.add_theme_constant_override("separation", 10)
-		p.add_child(row)
-		var t := HudKit.label("Turn %d" % int(r.get("turn", 0)), 15, DangoTheme.INK_2)
-		t.custom_minimum_size = Vector2(64, 0)
-		row.add_child(t)
-		var w := HudKit.prose(String(r.get("what", "")), 14, DangoTheme.INK)
-		w.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		w.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		row.add_child(w)
-		row.add_child(HudKit.label(String(r.get("result", "")), 16, DangoTheme.INK))
-		rows.add_child(p)
-	return col
+		col.add_child(_boss_block(boss))
+	col.add_child(_recap_grid(d))
+	col.add_child(_continue_block(d))
 
-
-func _wind_column(d: Dictionary) -> Control:
-	var col := VBoxContainer.new()
-	col.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	col.custom_minimum_size = Vector2(600, 0)
-	col.add_theme_constant_override("separation", 12)
-	var top := HBoxContainer.new()
-	col.add_child(top)
-	var k := HudKit.label("SECOND WIND", 15, DangoTheme.LINE, 800, 0.08)
-	k.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	top.add_child(k)
-	top.add_child(HudKit.label("Aid used %d of %d %s Continue %d of 1" % [int(d.get("aid_used", 0)),
-		int(d.get("aid_cap", 6)), HudKit.dot(), 1 - int(d.get("continue_left", 1))], 14, DangoTheme.GEM_SHELF))
-
-	var variant := String(d.get("variant", "paid"))
-	var card := PanelContainer.new()
-	card.add_theme_stylebox_override("panel", HudKit.box(DangoTheme.CREAM_RAISED, 16, 3,
-		DangoTheme.OWNED_BOTTOM if variant == "gift" else (DangoTheme.GEM_SHELF if variant == "moon" else DangoTheme.OUTLINE),
-		Vector2.ZERO, DangoTheme.SHELF, Vector2(16, 16)))
-	col.add_child(card)
-	var cc := VBoxContainer.new()
-	cc.add_theme_constant_override("separation", 12)
-	card.add_child(cc)
-	if variant != "paid":
-		var tag := PanelContainer.new()
-		tag.custom_minimum_size = Vector2(0, 32)
-		tag.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
-		var gift := variant == "gift"
-		tag.add_theme_stylebox_override("panel", HudKit.box(Color("8CC85A") if gift else DangoTheme.GEM, 999, 3,
-			DangoTheme.OUTLINE, Vector2.ZERO, DangoTheme.SHELF, Vector2(8, 0)))
-		var trow := HBoxContainer.new()
-		trow.add_theme_constant_override("separation", 6)
-		tag.add_child(trow)
-		trow.add_child(HudKit.tex_rect(HudKit.icon("gift" if gift else "mooncard"), 22))
-		trow.add_child(HudKit.label("A GIFT %s ONCE PER ACCOUNT" % HudKit.dot() if gift else "MOON CARD %s -25%%" % HudKit.dot(),
-			15, DangoTheme.INK_ON_OWNED if gift else DangoTheme.GEM_INK))
-		cc.add_child(tag)
-	var title := HudKit.label("Revive the party at %d%% HP and keep fighting" % int(d.get("heal_pct", 25)),
-		26, DangoTheme.INK)
-	title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	title.custom_minimum_size = Vector2(540, 0)
-	cc.add_child(title)
-	var grid := HBoxContainer.new()
-	grid.add_theme_constant_override("separation", 6)
-	cc.add_child(grid)
-	for m in d.get("party", []):
-		var heal := int(ceil(float(m.get("max_hp", 0)) * float(d.get("heal_pct", 25)) / 100.0))
-		var cell := PanelContainer.new()
-		cell.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		cell.add_theme_stylebox_override("panel", HudKit.box(DangoTheme.FACE_TINT["heal"], 10, 2,
-			DangoTheme.OUTLINE, Vector2.ZERO, DangoTheme.SHELF, Vector2(4, 6)))
-		var cv := VBoxContainer.new()
-		cv.alignment = BoxContainer.ALIGNMENT_CENTER
-		cv.add_theme_constant_override("separation", 0)
-		cell.add_child(cv)
-		var n := HudKit.label(String(m.get("name", "")), 14, DangoTheme.INK)
-		n.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		cv.add_child(n)
-		var v := HudKit.label("+%d" % heal, 18, DangoTheme.OUTLINE)
-		v.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		cv.add_child(v)
-		grid.add_child(cell)
-	for line in [d.get("keep_line", ""), d.get("enrage_reset_line", ""), d.get("attrition_reset_line", "")]:
-		if String(line) == "":
-			continue
-		var l := HudKit.prose(String(line), 14, DangoTheme.INK)
-		l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		l.custom_minimum_size = Vector2(540, 0)
-		cc.add_child(l)
-
-	var brow := HBoxContainer.new()
-	brow.add_theme_constant_override("separation", 14)
-	col.add_child(brow)
-	# End run / Continue: BOTH 302 x 72.
-	_end_button = _big_button("End run", "Keep rewards earned so far", false, "")
-	_end_button.pressed.connect(func(): end_run_pressed.emit())
-	brow.add_child(_end_button)
-	var price := int(d.get("price", 90))
-	var was := int(d.get("price_was", 0))
-	var label := "Continue %s Free" % HudKit.dot() if variant == "gift" else "Continue %s %d" % [HudKit.dot(), price]
-	_continue_button = _big_button(label, String(d.get("usd", "")), true, variant)
-	if was > 0:
-		_continue_button.tooltip_text = "was %d" % was
-	_continue_button.pressed.connect(func(): continue_pressed.emit())
-	# B2: hidden for a newcomer / the tutorial; disabled with the reason (no Gem, cap) otherwise.
-	_continue_button.visible = bool(d.get("continue_show", true))
-	if not bool(d.get("continue_enabled", true)):
-		_continue_button.disabled = true
-		_continue_button.tooltip_text = String(d.get("continue_reason", ""))
-	brow.add_child(_continue_button)
-	var foot := HudKit.prose(String(d.get("foot", "")), 12, DangoTheme.INK_2)
-	foot.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	foot.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	foot.custom_minimum_size = Vector2(600, 0)
+	var foot := HBoxContainer.new()
+	foot.alignment = BoxContainer.ALIGNMENT_END
 	col.add_child(foot)
-	return col
+	var mission := bool(d.get("mission", false))
+	_end_button = UI3.button(TranslationServer.translate("End run"), &"primary" if mission else &"secondary")
+	_end_button.name = "EndRun"
+	_end_button.pressed.connect(func(): end_run_pressed.emit())
+	foot.add_child(_end_button)
+	# Esc is swallowed on purpose.
+	var usable := _continue_button != null and _continue_button.visible and not _continue_button.disabled
+	(_continue_button if usable else _end_button).grab_focus()
 
 
-func _big_button(text: String, sub: String, paid: bool, variant: String) -> Button:
-	var b := Button.new()
-	b.custom_minimum_size = Vector2(302, 72)
-	b.focus_mode = Control.FOCUS_ALL
-	if paid and variant == "gift":
-		DangoTheme.style_button(b, false, false, DangoTheme.INK_ON_OWNED, true)
-	elif paid:
-		DangoTheme.style_button(b, false, false, DangoTheme.GEM_INK, false, true)
-	else:
-		DangoTheme.style_button(b, false)
-	var col := VBoxContainer.new()
-	col.set_anchors_preset(Control.PRESET_FULL_RECT)
-	col.alignment = BoxContainer.ALIGNMENT_CENTER
-	col.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	col.add_theme_constant_override("separation", 0)
-	b.add_child(col)
-	var ink := DangoTheme.INK_ON_OWNED if variant == "gift" else (DangoTheme.GEM_INK if paid else DangoTheme.INK)
-	var l := HudKit.label(text, 22, ink)
-	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	col.add_child(l)
-	var s := HudKit.prose(sub, 12, ink if paid else DangoTheme.INK_2)
-	s.add_theme_font_override("font", DangoTheme.FONT_UI_BOLD)
-	s.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	col.add_child(s)
-	return b
+func _unhandled_key_input(event: InputEvent) -> void:
+	if visible and event.is_action_pressed("ui_cancel"):
+		get_viewport().set_input_as_handled()
+
+
+func _boss_block(boss: Dictionary) -> Control:
+	var box := UI3.plate(&"row")
+	box.name = "BossBlock"
+	var v := VBoxContainer.new()
+	v.add_theme_constant_override("separation", UI3Theme.space("8"))
+	box.add_child(v)
+	var top := HBoxContainer.new()
+	v.add_child(top)
+	var nm := UI3.label(String(boss.get("name", "")), "LabelDisplay")
+	nm.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	top.add_child(nm)
+	var hp := int(boss.get("hp", 0))
+	var mx := maxi(int(boss.get("max_hp", 1)), 1)
+	var line := UI3.label("%d%% left · phase %d of %d" % [int(round(100.0 * hp / mx)),
+		int(boss.get("phase", 1)), int(boss.get("phases", 3))])
+	top.add_child(line)
+	v.add_child(UI3.phase_bar(hp, mx, boss.get("marks", [])))
+	if int(boss.get("spike_in", 0)) > 0:
+		var n := int(boss["spike_in"])
+		v.add_child(UI3.label("Big hit was due in %d turn%s" % [n, "" if n == 1 else "s"], "LabelMuted"))
+	return box
+
+
+func _recap_grid(d: Dictionary) -> Control:
+	var g := GridContainer.new()
+	g.name = "Recap"
+	g.columns = 2
+	g.add_theme_constant_override("h_separation", UI3Theme.space("24"))
+	g.add_theme_constant_override("v_separation", UI3Theme.space("8"))
+	var rows: Array = d.get("recap", [])
+	var n := mini(rows.size(), 3)
+	for r in rows.slice(rows.size() - n):
+		var lab := UI3.label("Turn %d · %s" % [int(r.get("turn", 0)), String(r.get("what", ""))], "LabelMuted")
+		lab.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		lab.clip_text = true
+		lab.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+		g.add_child(lab)
+		var val := UI3.label(String(r.get("result", "")), "LabelDisplay")
+		val.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+		g.add_child(val)
+	var aid := UI3.label("Aid used", "LabelMuted")
+	g.add_child(aid)
+	var av := UI3.label("%d of %d" % [int(d.get("aid_used", 0)), int(d.get("aid_cap", 6))], "LabelDisplay")
+	av.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	g.add_child(av)
+	return g
+
+
+func _continue_block(d: Dictionary) -> Control:
+	if bool(d.get("mission", false)):
+		var m := UI3.plate(&"row")
+		m.name = "ContinueBlock"
+		m.add_child(UI3.label(TranslationServer.translate("Mission runs have no Continue."), "LabelMuted"))
+		return m
+	var box := UI3.plate(&"row")
+	box.name = "ContinueBlock"
+	var v := VBoxContainer.new()
+	v.add_theme_constant_override("separation", UI3Theme.space("16"))
+	box.add_child(v)
+	var top := HBoxContainer.new()
+	top.add_theme_constant_override("separation", UI3Theme.space("16"))
+	v.add_child(top)
+	var texts := VBoxContainer.new()
+	texts.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	top.add_child(texts)
+	texts.add_child(UI3.label(TranslationServer.translate("Revive and keep fighting"), "LabelDisplay"))
+	var eff := UI3.label(_effect_line(d), "LabelMuted")
+	eff.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	eff.custom_minimum_size = Vector2(440, 0)
+	texts.add_child(eff)
+	var variant := String(d.get("variant", "paid"))
+	var shown := bool(d.get("continue_show", true))
+	var enabled := bool(d.get("continue_enabled", true))
+	var price := int(d.get("price", 0))
+	if shown:
+		top.add_child(UI3.cost_chip(&"free" if variant == "gift" else &"gem", price, not enabled))
+	_continue_button = UI3.button("", &"primary", &"L")
+	_continue_button.name = "Continue"
+	_continue_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_continue_button.text = "Continue · %s" % (TranslationServer.translate("Free") if variant == "gift"
+		else "%d Gem" % price)
+	_continue_button.pressed.connect(func(): continue_pressed.emit())
+	_continue_button.visible = shown
+	if shown and not enabled:
+		var need := int(d.get("need_more", 0))
+		UI3.set_disabled_reason(_continue_button, "Need %d more Gem" % need if need > 0
+			else String(d.get("continue_reason", "Not available now")))
+		var why := UI3.label(String(d.get("continue_reason", "")), "LabelMuted")
+		why.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		v.add_child(why)
+	if not shown:
+		box.visible = false
+	v.add_child(_continue_button)
+	return box
+
+
+func _effect_line(d: Dictionary) -> String:
+	var parts: Array = ["Party back at %d%% HP." % int(d.get("heal_pct", 25))]
+	for k in ["keep_line", "enrage_reset_line", "attrition_reset_line"]:
+		if String(d.get(k, "")) != "":
+			parts.append(String(d[k]))
+	return " ".join(parts)
