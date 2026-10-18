@@ -29,6 +29,7 @@ const EXPECTED_TESTS: Array[String] = [
 	"test_shop_bought_and_unaffordable_buttons_use_different_styleboxes",
 	"test_reward_and_shop_cards_show_a_rarity_chip_matching_rar",
 	"test_event_and_treasure_ui3",
+	"test_player_text_strips_internal_tags",
 	"test_level_up_description_never_reads_as_x_arrow_x",
 ]
 
@@ -54,6 +55,7 @@ func _ready() -> void:
 	await test_shop_bought_and_unaffordable_buttons_use_different_styleboxes()
 	await test_reward_and_shop_cards_show_a_rarity_chip_matching_rar()
 	await test_event_and_treasure_ui3()
+	await test_player_text_strips_internal_tags()
 	test_level_up_description_never_reads_as_x_arrow_x()
 
 	for name in EXPECTED_TESTS:
@@ -353,7 +355,7 @@ func test_shop_bought_and_unaffordable_buttons_use_different_styleboxes() -> voi
 	var buy1: Button = runmap.find_child("BuyButton", true, false)
 	_assert(buy1 != null and buy1.disabled and buy1.text == "Need 999 Shards",
 		"unaffordable item: Buy must be disabled and say 'Need 999 Shards', got '%s'" % (buy1.text if buy1 else ""))
-	_assert(runmap.find_child("BlockReason", true, false) != null, "unaffordable item shows no reason on the detail")
+	_assert(runmap.find_child("BlockReason", true, false) == null, "the reason is on the button only, not repeated above it")
 	_assert(runmap.find_child("NothingAffordable", true, false) != null, "nothing affordable: notice missing")
 	runmap.call("_select_shop", 0)
 	RunState.shards_this_run = 100
@@ -557,7 +559,7 @@ func test_event_and_treasure_ui3() -> void:
 	var opts: Array = runmap.get("_event_opts")
 	_assert(opts.size() >= 1 and runmap.find_child("EventOption0", true, false) != null, "event: no choice rows")
 	runmap.call("_select_event", 0)
-	_assert(not go.disabled and go.text == "Choose %s" % String(opts[0].get("text", "")), "event: action must name the picked choice")
+	_assert(not go.disabled and go.text == "Choose", "event: action must read 'Choose' once a choice is picked")
 	runmap.call("_build_event_screen", 0, "Result text")
 	await get_tree().process_frame
 	go = runmap.find_child("EventAction", true, false)
@@ -573,3 +575,17 @@ func test_event_and_treasure_ui3() -> void:
 	_assert(runmap.find_child("TakeButton", true, false) != null, "treasure: opened state needs 'Take and continue'")
 	runmap.queue_free()
 	_done("test_event_and_treasure_ui3")
+
+
+## UI3.describe(): no internal tag may reach a label.
+func test_player_text_strips_internal_tags() -> void:
+	for raw in ["RULE: Burn loses only 1 stack.", "PACT. +3 max Rerolls.", "[Global] [Axis: Burn] Deal 4.", "[INF] Say \\\"hi\\\"", "[MP 7] Apply Burn 6."]:
+		var t := UI3.player_text(raw)
+		_assert(not t.contains("RULE:") and not t.contains("[") and not t.contains("PACT.") and not t.contains("\\"), "tag leaked: '%s' -> '%s'" % [raw, t])
+	_assert(int(UI3.describe("[MP 7] Apply Burn 6.")["mp"]) == 7 and UI3.player_text("[MP 7] Apply Burn 6.") == "Apply Burn 6.", "MP not lifted out")
+	# every real relic description renders clean
+	for def in RelicRegistry.all_defs_sorted():
+		var rid := String(def.id)
+		var t2 := UI3.player_text(String(def.description))
+		_assert(not t2.contains("RULE:") and not t2.contains("["), "relic %s leaks a tag: %s" % [rid, t2])
+	_done("test_player_text_strips_internal_tags")

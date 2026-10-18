@@ -1291,6 +1291,9 @@ func _add_reward_card(r: Dictionary, wide := false) -> PanelContainer:
 		body_text = String(r.get("sub", ""))
 	elif String(r.get("sub", "")) != "":
 		body_text += "\n" + String(r.get("sub", ""))
+	name_text = UI3.player_text(name_text)
+	var dsc := UI3.describe(body_text)
+	body_text = ("MP %d · " % int(dsc["mp"]) if int(dsc["mp"]) >= 0 else "") + String(dsc["text"])
 	var name_lbl := UI3.label(name_text, "LabelTitle")
 	name_lbl.name = "RewardName"
 	name_lbl.clip_text = true
@@ -1666,7 +1669,8 @@ func _select_shop(index: int) -> void:
 	var rl := UI3.label(_rarity_name(rar))
 	rl.add_theme_color_override("font_color", accent)
 	dv.add_child(rl)
-	var desc := UI3.label(String(it.get("desc", "")))
+	var dsc := UI3.describe(String(it.get("desc", "")))
+	var desc := UI3.label(("MP %d · " % int(dsc["mp"]) if int(dsc["mp"]) >= 0 else "") + String(dsc["text"]))
 	desc.name = "DetailDesc"
 	desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	desc.size_flags_vertical = Control.SIZE_EXPAND_FILL
@@ -1677,11 +1681,6 @@ func _select_shop(index: int) -> void:
 	if why == "":
 		buy.pressed.connect(func() -> void: _on_shop_buy(index))
 	else:
-		var reason := UI3.label(why)
-		reason.name = "BlockReason"
-		reason.add_theme_color_override("font_color", UI3Theme.color("danger_text"))
-		reason.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		dv.add_child(reason)
 		UI3.set_disabled_reason(buy, why)
 	dv.add_child(buy)
 
@@ -1813,7 +1812,7 @@ func _select_event(index: int) -> void:
 	var go := _overlay_root.find_child("EventAction", true, false) as Button
 	if go != null and index >= 0 and index < _event_opts.size():
 		UI3.clear_disabled_reason(go)
-		go.text = tr("Choose %s") % String(_event_opts[index].get("text", ""))
+		go.text = tr("Choose")
 
 
 func _add_event_option(raw: Dictionary, index: int, picked: int) -> Control:

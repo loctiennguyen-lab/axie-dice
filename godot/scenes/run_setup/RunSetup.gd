@@ -631,7 +631,7 @@ func _build() -> void:
 	area.name = "PartyArea"
 	area.set_anchors_preset(Control.PRESET_TOP_LEFT)
 	area.offset_left = 480
-	area.offset_top = 420
+	area.offset_top = 40
 	area.offset_right = 1896
 	area.add_theme_constant_override("separation", 16)
 	_stage.add_child(area)
@@ -644,10 +644,9 @@ func _build() -> void:
 
 	if not is_newcomer():
 		var kit := _build_kit_col()
-		kit.set_anchors_preset(Control.PRESET_TOP_RIGHT)
-		kit.grow_horizontal = Control.GROW_DIRECTION_BEGIN
-		kit.offset_right = -24
-		kit.offset_top = 24
+		kit.set_anchors_preset(Control.PRESET_TOP_LEFT)   # under the party block, same left edge
+		kit.offset_left = 480
+		kit.offset_top = 520
 		_stage.add_child(kit)
 
 	# Bottom right: reason line above, actions below.
@@ -956,10 +955,19 @@ func _build_kit_col() -> Control:
 		names.add_child(_lbl(t[0]))
 		var sub := _lbl(t[1], "LabelMuted")
 		names.add_child(sub)
+		var nib_row := HBoxContainer.new()
+		nib_row.add_theme_constant_override("separation", 8)
+		var lock := TextureRect.new()
+		lock.texture = UI3.icon("ui_lock")
+		lock.custom_minimum_size = Vector2(20, 20)
+		lock.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		lock.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		nib_row.add_child(lock)
 		var nib := _lbl(tr("Not in this build"), "LabelMuted")
 		nib.name = "NotInBuild"
-		nib.add_theme_color_override("font_color", UI3Theme.color("danger_text"))
-		names.add_child(nib)
+		nib_row.add_child(nib)
+		names.add_child(nib_row)
+		row.modulate.a = 0.6
 		h.add_child(names)
 		v.add_child(row)
 	var f := _lbl(FAIRNESS, "LabelMuted")
