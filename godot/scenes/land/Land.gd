@@ -1018,7 +1018,11 @@ func _build_hud() -> void:
 	prof.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
 	prof.add_child(_profile_cell())
 	_hud_tl.add_child(prof)
-	_hud_tl.add_child(_land_link())
+	var lp := UI3.plate(&"plate")
+	lp.name = "LandPlate"
+	lp.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+	lp.add_child(_land_link())
+	_hud_tl.add_child(lp)
 
 	# Top-right: currencies + settings.
 	_wallet = HBoxContainer.new()
@@ -1109,7 +1113,7 @@ func _profile_cell() -> Control:
 	col.alignment = BoxContainer.ALIGNMENT_CENTER
 	var nl := UI3.label(name.left(16), "LabelTitle")
 	nl.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
-	nl.custom_minimum_size.x = 0
+	col.custom_minimum_size.x = 220   # name budget 220 px, best line 260 px (ellipsis)
 	col.add_child(nl)
 	var sub := "Sign in to save online"
 	if not _guest:
@@ -1118,6 +1122,7 @@ func _profile_cell() -> Control:
 			sub = TitleNames.display(MetaState.equipped_title)
 	var bl := UI3.label(sub.left(24), "LabelMuted")
 	bl.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	bl.custom_minimum_size.x = 220
 	col.add_child(bl)
 	h.add_child(col)
 	h.add_child(UI3.key_hint("P"))
@@ -1208,6 +1213,9 @@ func _build_banners() -> void:
 		"Retry", _on_retry)
 	_offline_banner.name = "OfflineBanner"
 	_offline_banner.custom_minimum_size = Vector2(600, 0)
+	var msg := _offline_banner.find_children("*", "Label", true, false)
+	if not msg.is_empty():
+		(msg[0] as Label).custom_minimum_size.x = 440
 	var rb := _offline_banner.find_child("Retry", true, false)
 	if rb != null:
 		rb.name = "RetryButton"
