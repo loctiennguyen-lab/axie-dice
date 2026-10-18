@@ -546,7 +546,33 @@ func _on_node_pressed(id: String) -> void:
 
 ## In-run menu (L1 C3): Esc or the MENU button. The map's state lives in RunState, so saving and
 ## reloading RunMap.tscn on "Back to run" resumes exactly here.
+## UI-03 14: the pause plate over the map. Settings still goes to the Settings screen (see open_settings_from_menu).
 func open_run_menu() -> void:
+	if _overlay_root != null and _overlay_root.find_child("RunPauseMenu", true, false) != null:
+		return
+	if _overlay_root == null:
+		return
+	_overlay_root.theme = UI3Theme.get_theme()
+	_overlay_root.visible = true
+	var menu := RunPauseMenu.new()
+	menu.build({"floor": maxi(_current_row(), 0), "total": _graph.rows.size() if _graph != null else 0,
+		"ascension": RunState.ascension, "shards": RunState.shards_this_run})
+	_overlay_root.add_child(menu)
+	var close := func() -> void:
+		if is_instance_valid(menu):
+			_overlay_root.remove_child(menu)
+			menu.queue_free()
+		if _overlay_root.get_child_count() == 0:
+			_overlay_root.visible = false
+	menu.resumed.connect(close)
+	menu.settings_requested.connect(open_settings_from_menu)
+	menu.save_quit_confirmed.connect(_on_save_and_quit_pressed)
+	menu.abandon_confirmed.connect(func() -> void:
+		SettingsView.abandon_current_run()
+		LandNav.back_to_land())
+
+
+func open_settings_from_menu() -> void:
 	prepare_run_menu()
 	get_tree().change_scene_to_file("res://scenes/settings/Settings.tscn")
 
