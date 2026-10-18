@@ -7,13 +7,12 @@ extends RefCounted
 ## Màn chưa có ("scene" không tồn tại) thì dùng "fallback" (màn cũ); không có cả hai thì
 ## `is_available()` trả false và `open()` không làm gì (hub hiện nhãn SOON).
 
-## Cảnh Land. Giai đoạn skeleton trỏ về MainMenu cũ; Land.tscn thay vào khi hub xong.
+## Cảnh Land. MainMenu.tscn chỉ còn là router khởi động, không có UI.
 const LAND_SCENE := "res://scenes/land/Land.tscn"
-const LEGACY_MENU := "res://scenes/main_menu/MainMenu.tscn"
 
 ## screen_id -> {scene, fallback}. M gửi yêu cầu cho L nếu cần thêm id.
 const SCREENS: Dictionary = {
-	&"run_setup": {"scene": "res://scenes/run_setup/RunSetup.tscn", "fallback": LEGACY_MENU},
+	&"run_setup": {"scene": "res://scenes/run_setup/RunSetup.tscn"},
 	&"team_select": {"scene": "res://scenes/main_menu/TeamSelect.tscn"},
 	&"team_presets": {"scene": "res://scenes/team_presets/TeamPresets.tscn",
 		"fallback": "res://scenes/main_menu/TeamSelect.tscn"},
@@ -39,8 +38,6 @@ const SCREENS: Dictionary = {
 }
 
 static var _params: Dictionary = {}
-## Cờ cho MainMenu cũ: true = đang được mở như màn Run Setup tạm, đừng đá về Land.
-static var legacy_setup_open: bool = false
 ## Test: không đổi scene thật, chỉ ghi lại đường dẫn định mở.
 static var dry_run: bool = false
 static var last_path: String = ""
@@ -71,19 +68,17 @@ static func open(screen_id: StringName, params: Dictionary = {}) -> void:
 		push_warning("LandNav.open: '%s' chưa có màn nào để mở" % screen_id)
 		return
 	_params = params.duplicate()
-	legacy_setup_open = (path == LEGACY_MENU)
 	_change(path)
 
 
-## Gọi khi bắt đầu / tiếp tục run: tắt cờ menu cũ để hết run quay về Land, không về menu cũ.
+## Gọi khi bắt đầu / tiếp tục run (giữ cho chỗ gọi cũ; không còn cờ nào để tắt).
 static func run_started() -> void:
-	legacy_setup_open = false
+	pass
 
 
 ## Về Land. Màn meta gọi hàm này thay vì change_scene về MainMenu.
 static func back_to_land() -> void:
 	_params = {}
-	legacy_setup_open = false
 	_change(land_scene())
 
 
@@ -91,9 +86,8 @@ static func current_params() -> Dictionary:
 	return _params
 
 
-## Land.tscn nếu đã có, không thì MainMenu cũ (giai đoạn skeleton).
 static func land_scene() -> String:
-	return LAND_SCENE if ResourceLoader.exists(LAND_SCENE) else LEGACY_MENU
+	return LAND_SCENE
 
 
 static func _change(path: String) -> void:

@@ -785,6 +785,8 @@ func close_modal() -> void:
 func _initial_party() -> Array[String]:
 	var src: Array[String] = MainMenu.pending_team if not MainMenu.pending_team.is_empty() \
 		else MainMenu.DEFAULT_TEAM
+	# One-shot hand-off (Vault / Guides / Presets): consume it so it never leaks into a later setup.
+	MainMenu.pending_team = []
 	var out: Array[String] = []
 	for k in src:
 		if ContentDB.heroes.has(k) and out.size() < PARTY_SIZE and not out.has(k):

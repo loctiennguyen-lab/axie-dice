@@ -59,32 +59,7 @@ func _shot(name: String) -> void:
 # ===========================================================================
 
 func _capture_main_menu() -> void:
-	# v2: MainMenu.tscn is a fixed, non-scrolling title screen (docs/design-handoff-v2) — one
-	# capture of the default state is now enough to see the whole screen at once; the old
-	# scroll-to-bottom step no longer applies (there is nothing to scroll to). The team picker
-	# (hero dropdown/passive/faces) moved to its own screen, captured separately below.
-	var menu: Control = load("res://scenes/main_menu/MainMenu.tscn").instantiate()
-	add_child(menu)
-	await _settle()
-	_shot("01_mainmenu_default")
-
-	# Reconfigure away from defaults to prove every control actually drives state: Full mode,
-	# Ascension 7, a custom seed.
-	menu._mode_full_btn.button_pressed = true
-	menu._mode_full_btn.toggled.emit(true)
-	for _i in 7:
-		menu._ascension = min(menu.ASCENSION_MAX, menu._ascension + 1)
-	menu._refresh_ascension()
-
-	menu._seed_edit.text = "123456789"
-	menu._seed_edit.text_changed.emit("123456789")
-
-	await _settle()
-	_shot("02_mainmenu_reconfigured")
-
-	menu.queue_free()
-	await _settle()
-
+	# MainMenu.tscn is a pure router now (no UI to photograph); only TeamSelect is captured.
 	await _capture_team_select()
 
 

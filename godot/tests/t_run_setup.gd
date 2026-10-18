@@ -48,6 +48,17 @@ func _ready() -> void:
 	MetaState.unlocks.erase("u_full")
 	MainMenu.pending_team = []
 
+	# pending_team is a one-shot hand-off: applied once, then cleared.
+	var handoff: Array[String] = ["bird1", "bug1", "reptile1", "aqua1", "beast1"]
+	MainMenu.pending_team = handoff.duplicate()
+	var hs := await _make()
+	_ok(hs.party == handoff, "pending team applied: %s" % str(hs.party))
+	_ok(MainMenu.pending_team.is_empty(), "pending team cleared after Run Setup read it")
+	hs.queue_free()
+	var hs2 := await _make()
+	_ok(hs2.party == MainMenu.DEFAULT_TEAM, "second open uses default, not the old hand-off: %s" % str(hs2.party))
+	hs2.queue_free()
+
 	var s := await _make()
 	_ok(s.filled_count() == 5, "default party has 5")
 	_ok(s.get_node_or_null("Panel/Col/Scroll") == null and s.find_child("PartyRow", true, false) != null, "party row exists")

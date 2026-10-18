@@ -20,7 +20,6 @@ extends Node
 ## Copy to: godot/tests/t_ui_laws.gd
 
 const SCENES := [
-	"res://scenes/main_menu/MainMenu.tscn",
 	"res://scenes/main_menu/TeamSelect.tscn",
 	"res://scenes/run_map/RunMap.tscn",
 	"res://scenes/result/Result.tscn",
@@ -124,7 +123,6 @@ func _ready() -> void:
 ## plate. Seeding per scene costs nothing and cannot be ordered wrong.
 func _seed_state_the_scenes_need() -> void:
 	MetaState.tutorial_seen = true
-	LandNav.legacy_setup_open = true   # MainMenu redirects to Land otherwise
 	CombatView.disable_juice_for_tests = true
 	var roster: Array = []
 	var keys := ["plant1", "beast1", "aqua1", "reptile1", "bug1"]
