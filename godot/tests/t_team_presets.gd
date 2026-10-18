@@ -45,7 +45,11 @@ func _ready() -> void:
 	_ok(TeamPresets.add("Thorn Wall", _party()) == "", "add ok")
 	_ok(TeamPresets.add("", _party()) != "", "empty name refused")
 	_ok(TeamPresets.add("x", ["plant1", "", "", "", ""]) != "", "incomplete party refused")
-	_ok(TeamPresets.add("x", _party("plant1", "plant1")) != "", "duplicate seat refused")
+	_ok(TeamPresets.add("x", _party("plant1", "plant1")) == "", "starter twice accepted")
+	TeamPresets.remove(TeamPresets.count() - 1)
+	_ok(TeamPresets.add("x", _party("vault_7", "vault_7")) != "", "vault twice refused")
+	_ok(TeamPresets.save_block_reason(_party("vault_7", "vault_7")) == "Each Vault Axie only once", "vault wording")
+	_ok(TeamPresets.usable_party({"party": _party("plant1", "plant1")})[1] == "plant1", "usable keeps repeated starter")
 	_ok(TeamPresets.add("A very long preset name indeed", _party()) == "", "long name accepted (trimmed)")
 	_ok(String((MetaState.team_presets[1] as Dictionary)["name"]).length() == 16, "name trimmed to 16")
 	_ok(TeamPresets.add("Third", _party()) == "", "third fits")
@@ -105,7 +109,8 @@ func _ready() -> void:
 	for i in 4:
 		_ok(s.set_edit_seat(i, _party()[i]), "seat %d set" % i)
 	_ok(s.save_block_reason() == "Fill slot 5 first", "reason: slot 5")
-	_ok(not s.set_edit_seat(4, "plant1"), "duplicate seat refused in editor")
+	_ok(s.set_edit_seat(4, "plant1") and s.edit_party[4] == "plant1", "starter repeat allowed in editor")
+	s.set_edit_seat(4, "")
 	_ok(not s.set_edit_seat(4, "vault_1"), "unplayable seat refused")
 	_ok(s.set_edit_seat(4, "bug1") and s.save_block_reason() == "", "complete -> can save")
 	_ok(s.save_editor() and TeamPresets.count() == 3 and s.view == "grid", "saved, back to grid")
@@ -150,7 +155,7 @@ func _ready() -> void:
 	s._pick_sel = other_key
 	s._put_in_slot()
 	await get_tree().process_frame
-	_ok(s.edit_party[0] == other_key and s.edit_party[2] == first_key and s.find_child("Picker", true, false) == null, "picker swaps with the other slot")
+	_ok(s.edit_party[0] == other_key and s.edit_party[2] == other_key and first_key != other_key and s.find_child("Picker", true, false) == null, "picker copies a starter into the slot")
 	_ok(s.find_child("Editor", true, false) != null, "editor still open after picking")
 	s.request_delete(1)
 	await get_tree().process_frame
