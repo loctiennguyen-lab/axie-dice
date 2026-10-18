@@ -5,6 +5,7 @@ extends Control
 ## copy of the rules. Esc clears the search first, then goes back. Public for t_codex / qa_codex_capture:
 ## `_select_tab(key)`, `_body`.
 
+const READ_W := 920   # max reading measure, px (spec 29: 880-960)
 const DETAIL_W := 440
 
 var _shell: Dictionary
@@ -94,7 +95,9 @@ func _build_reading(host: HBoxContainer) -> void:
 	_body.bbcode_enabled = true
 	_body.fit_content = true
 	_body.scroll_active = false
-	_body.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	# Readable measure (spec 29): the reading column is capped, not stretched across the panel.
+	_body.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+	_body.custom_minimum_size.x = READ_W
 	_body.add_theme_font_override("normal_font", UI3Theme.font_body())
 	_body.add_theme_font_override("bold_font", UI3Theme.font_body())
 	_body.add_theme_font_size_override("normal_font_size", UI3Theme.size_of("text_body"))

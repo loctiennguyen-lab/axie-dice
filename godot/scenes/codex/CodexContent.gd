@@ -45,7 +45,9 @@ const INFO_TABS: Array = [
 	["st", "STATUS EFFECTS"], ["kw", "KEYWORDS"], ["mana", "MANA"],
 ]
 
-const _H := "[b][color=#ffd76a]%s[/color][/b]\n"
+## Section label: 24 px (type scale) in the UI3 accent token, built from the tokens, not hard-coded.
+static var _H: String = "[font_size=%d][b][color=#%s]%%s[/color][/b][/font_size]\n" % [
+	UI3Theme.size_of("text_title"), UI3Theme.color("accent").to_html(false)]
 
 
 static func tab_text(key: String) -> String:

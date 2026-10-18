@@ -5,7 +5,7 @@ extends RefCounted
 ## Settings → Account (C) lives in SettingsView and uses the same service calls.
 ##
 ## UI-03: welcome, desktop sign-in, save choice and toasts are on UI3 (round-2 screens 16 and 26).
-## The account chip (B) is still Dango styled.
+## The account chip (B) is on UI3 tokens too (AccountChip, round-2 components.md).
 
 const WELCOME_W := 760.0
 const CHOICE_W := 980.0
@@ -156,13 +156,13 @@ static func show_desktop_flow(layer: CanvasLayer, service: Node, auto_dismiss_s:
 static func build_chip(service: Node, on_open_settings: Callable) -> Button:
 	var btn := Button.new()
 	btn.name = "AccountChip"
-	btn.custom_minimum_size = Vector2(0, 60)
+	btn.custom_minimum_size = Vector2(0, 64)
 	btn.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
 	btn.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	for key in ["normal", "hover", "pressed", "focus"]:
-		var kind := DangoTheme.Surface.PANEL_RAISED if key == "hover" else DangoTheme.Surface.PANEL
-		btn.add_theme_stylebox_override(key,
-			DangoTheme.surface_style(kind, 30, 3, 5.0, Vector2(8, 6)))
+	for key in ["normal", "hover", "pressed"]:
+		var bg := UI3Theme.color("panel_raised") if key == "hover" else UI3Theme.color("panel")
+		btn.add_theme_stylebox_override(key, UI3Theme.flat(bg, UI3Theme.radius("m")))
+	btn.add_theme_stylebox_override("focus", UI3Theme.focus_style(UI3Theme.radius("m")))
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 10)
 	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -176,9 +176,9 @@ static func build_chip(service: Node, on_open_settings: Callable) -> Button:
 			row.remove_child(c)
 			c.queue_free()
 		_fill_chip(row, service)
-		btn.custom_minimum_size.x = 0
-		btn.custom_minimum_size.x = row.get_combined_minimum_size().x + 24
+		_fit_chip.call_deferred(btn, row)   # label sizes (theme fonts) exist only once in the tree
 	refresh.call()
+	btn.tree_entered.connect(func() -> void: _fit_chip.call_deferred(btn, row))
 	service.changed.connect(refresh)
 	btn.tree_exiting.connect(func() -> void:
 		if service.changed.is_connected(refresh):
@@ -196,16 +196,23 @@ static func build_chip(service: Node, on_open_settings: Callable) -> Button:
 	return btn
 
 
+static func _fit_chip(btn: Button, row: HBoxContainer) -> void:
+	if not is_instance_valid(btn) or not is_instance_valid(row):
+		return
+	btn.custom_minimum_size.x = 0
+	btn.custom_minimum_size.x = row.get_combined_minimum_size().x + 24
+
+
 static func _fill_chip(row: HBoxContainer, service: Node) -> void:
 	var signed_in: bool = service.is_signed_in()
 	var avatar := PanelContainer.new()
-	avatar.custom_minimum_size = Vector2(40, 40)
+	avatar.custom_minimum_size = Vector2(48, 48)
 	avatar.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	var fill := DangoTheme.INFO if signed_in else DangoTheme.FUTURE
-	avatar.add_theme_stylebox_override("panel", DangoTheme.solid_chip_style(fill, 20, 3))
-	var initial := DangoTheme.display_label(
-		String(service.display_name()).left(1).to_upper() if signed_in else "?", 20,
-		DangoTheme.ink_on(fill))
+	var fill := UI3Theme.color("panel_raised")
+	# Amber 3 px ring only when the save is synced (signed in); a plain neutral ring for guests.
+	var ring := UI3Theme.color("accent") if signed_in else UI3Theme.color("disabled_border")
+	avatar.add_theme_stylebox_override("panel", UI3Theme.flat(fill, 24, 3, ring))
+	var initial := UI3.label(String(service.display_name()).left(1).to_upper() if signed_in else "?", "LabelTitle")
 	initial.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	initial.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	initial.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -220,7 +227,7 @@ static func _fill_chip(row: HBoxContainer, service: Node) -> void:
 	var name_row := HBoxContainer.new()
 	name_row.add_theme_constant_override("separation", 8)
 	name_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var nm := DangoTheme.display_label(service.display_name() if signed_in else "Guest", 18)
+	var nm := UI3.label(service.display_name() if signed_in else "Guest", "LabelTitle")
 	nm.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	name_row.add_child(nm)
 	if signed_in and bool(service.account.get("sky_mavis", false)):
@@ -237,7 +244,9 @@ static func _fill_chip(row: HBoxContainer, service: Node) -> void:
 	dot.color = line[1]
 	dot.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	st.add_child(dot)
-	var lbl := _chip_prose(line[0], 13, DangoTheme.TEXT_DIM if signed_in else DangoTheme.PRIMARY)
+	var lbl := UI3.label(line[0], "LabelMuted" if signed_in else "")
+	if not signed_in:
+		lbl.add_theme_color_override("font_color", UI3Theme.color("accent"))
 	lbl.autowrap_mode = TextServer.AUTOWRAP_OFF
 	lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	st.add_child(lbl)
@@ -486,25 +495,11 @@ static func _modal(overlay: Control, width: float) -> VBoxContainer:
 	return box
 
 
-## Wrapped body text. `variation` "" = body, "LabelMuted" = muted. (The chip below still uses _chip_prose.)
+## Wrapped body text. `variation` "" = body, "LabelMuted" = muted.
 static func _prose(text: String, variation := "") -> Label:
 	var l := UI3.label(text, variation)
 	l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	return l
-
-
-static func _chip_prose(text: String, size: int, color: Color) -> Label:
-	var l := DangoTheme.prose_label(text, size, color)
-	l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	return l
-
-
-static func _button(text: String, primary: bool, height: float) -> Button:
-	var b := Button.new()
-	b.text = text
-	b.custom_minimum_size = Vector2(0, height)
-	DangoTheme.style_button(b, primary)
-	return b
 
 
 static func _gap(node: Control, top: int) -> MarginContainer:

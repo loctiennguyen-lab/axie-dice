@@ -15,7 +15,7 @@ const MAIN_MENU_SCENE := "res://scenes/main_menu/MainMenu.tscn"
 const IMPORT_UNAVAILABLE_PREFIX := "Import is unavailable on this build. "
 const DETAIL_W := 440
 const COLS := 3
-const PREVIEW_H := 200
+const PREVIEW_H := 260
 
 var _list: GridContainer
 var _record_scroll: ScrollContainer
@@ -118,6 +118,9 @@ func _build_record_panel() -> void:
 	_empty_label = UI3.label("", "LabelMuted")
 	_empty_label.name = "EmptyLabel"
 	_empty_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_empty_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_empty_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	_empty_label.size_flags_vertical = Control.SIZE_EXPAND_FILL   # centred in the empty area
 	left.add_child(_empty_label)
 
 
@@ -129,7 +132,12 @@ func _build_import_panel() -> void:
 	var col := VBoxContainer.new()
 	col.add_theme_constant_override("separation", UI3Theme.space("16"))
 	col.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	panel.add_child(UI3Meta.scroll(col))   # a taller import preview scrolls, never clips
+	# Right margin = scrollbar width + gap so the Scan button is never under the scrollbar.
+	var pad := MarginContainer.new()
+	pad.add_theme_constant_override("margin_right", UI3Theme.SCROLL_W + UI3Theme.space("8"))
+	pad.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	pad.add_child(col)
+	panel.add_child(UI3Meta.scroll(pad))   # a taller import preview scrolls, never clips
 	_right = col
 	var available := AxieApi.is_available()
 	col.add_child(UI3.label("Import by Axie ID", "LabelScreenTitle"))
@@ -202,6 +210,7 @@ func refresh() -> void:
 	_count_caption.text = "FULL" if full else "IMPORTED"   # the word, not only the colour
 	_record_scroll.modulate.a = 0.62 if state == "offline" else 1.0   # greyed but readable
 	_empty_label.visible = entries.is_empty()
+	_record_scroll.visible = not entries.is_empty()
 	_empty_label.text = "Your Vault is empty. Type an Axie ID on the right and press Scan." if entries.is_empty() else ""
 	if _first_refresh and entries.is_empty() and _id_field != null and _id_field.editable and is_inside_tree():
 		_id_field.grab_focus()   # the empty state focuses the ID field
@@ -252,10 +261,10 @@ func _build_import_preview(axie: Dictionary) -> void:
 	_preview_box.add_child(v)
 	var preview := (load(PREVIEW_SCENE) as PackedScene).instantiate() as AxiePreview3D
 	preview.name = "Preview"
-	preview.custom_minimum_size = Vector2(200, 200)
+	preview.custom_minimum_size = Vector2(220, 220)
 	var square := AspectRatioContainer.new()
 	square.ratio = 1.0
-	square.custom_minimum_size = Vector2(0, 200)
+	square.custom_minimum_size = Vector2(0, 220)
 	square.add_child(preview)
 	v.add_child(square)
 	preview.set_genes(str(axie.get("genes", "")))
