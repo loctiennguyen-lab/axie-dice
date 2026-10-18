@@ -226,14 +226,14 @@ func _test_every_hoverable_icon_explains_itself(tree: SceneTree) -> void:
 
 	# 3 — the die card names its face and spells out every keyword on it.
 	var btn: Button = _view.get_node("%DieSlot0")
-	_check(btn.tooltip_text.length() > 0, "the die card has no tooltip at all")
+	_check(UI3Tooltip.text_of(btn).length() > 0, "the die card has no tooltip at all")
 
 	# 4 — the enemy intent badge, the documented hover target for "why is it doing that".
 	var hud = portraits.get(enemy.uid)
 	if hud != null:
 		var panel: Control = hud.get("_intent_panel")
-		_check(panel.tooltip_text.length() > 20,
-			"the enemy intent badge explains nothing on hover: '%s'" % panel.tooltip_text)
+		_check(UI3Tooltip.text_of(panel).length() > 20,
+			"the enemy intent badge explains nothing on hover: '%s'" % UI3Tooltip.text_of(panel))
 
 
 # ---------------------------------------------------------------------------
@@ -280,8 +280,8 @@ func _handler_at(at: Vector2) -> Control:
 func _tooltip_at(at: Vector2) -> String:
 	var c := _picked_at(at)
 	while c != null:
-		if not c.tooltip_text.is_empty():
-			return c.tooltip_text
+		if not UI3Tooltip.text_of(c).is_empty():
+			return UI3Tooltip.text_of(c)
 		if c.mouse_filter == Control.MOUSE_FILTER_STOP:
 			return ""
 		c = c.get_parent_control()

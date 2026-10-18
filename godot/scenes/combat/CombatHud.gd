@@ -339,7 +339,7 @@ func _slot(px: int, icon_tex: Variant, icon_px: int, tip: String) -> PanelContai
 		tr.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		cc.add_child(tr)
 	if tip != "":
-		s.tooltip_text = tip
+		UI3Tooltip.bind(s, tip)
 		s.mouse_filter = Control.MOUSE_FILTER_STOP
 	else:
 		s.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -367,7 +367,7 @@ func _active_slot(a: Dictionary) -> Control:
 	b.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	b.focus_mode = Control.FOCUS_ALL
 	b.disabled = spent
-	b.tooltip_text = String(a.get("tip", ""))
+	UI3Tooltip.bind(b, String(a.get("tip", "")))
 	var fill := UI3Theme.color("disabled") if spent else UI3Theme.color("panel_raised")
 	var border: Color = UI3Theme.color("selected_outline") if armed else UI3Theme.color("text_muted")
 	var sb := UI3Theme.flat(fill, UI3Theme.radius("s"), 4 if armed else 2, border)
