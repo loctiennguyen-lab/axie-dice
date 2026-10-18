@@ -542,7 +542,8 @@ func _input(event: InputEvent) -> void:
 		skip = k.pressed and not k.echo and [KEY_SPACE, KEY_ENTER, KEY_KP_ENTER, KEY_ESCAPE].has(k.keycode)
 	if skip:
 		_stage3d.skip_victory_march()
-		get_viewport().set_input_as_handled()
+		if is_inside_tree():   # a handler above may have changed scene
+			get_viewport().set_input_as_handled()
 
 
 func _unhandled_key_input(event: InputEvent) -> void:

@@ -549,7 +549,8 @@ func _on_token_input(ev: InputEvent, id: String) -> void:
 		_select_node(id)
 	elif ev.is_action_pressed("ui_accept") and not ev.is_echo():
 		if _reachable_now_ids().has(id):
-			get_viewport().set_input_as_handled()
+			if is_inside_tree():   # a handler above may have changed scene
+				get_viewport().set_input_as_handled()
 			_on_node_pressed(id)
 
 
@@ -626,7 +627,8 @@ func prepare_run_menu() -> void:
 func _unhandled_key_input(ev: InputEvent) -> void:
 	if ev is InputEventKey and ev.pressed and not ev.echo and ev.keycode == KEY_ESCAPE:
 		open_run_menu()
-		get_viewport().set_input_as_handled()
+		if is_inside_tree():   # a handler above may have changed scene
+			get_viewport().set_input_as_handled()
 
 
 func _on_save_and_quit_pressed() -> void:

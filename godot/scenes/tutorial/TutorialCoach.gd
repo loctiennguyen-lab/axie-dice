@@ -238,13 +238,15 @@ func _ask_skip() -> void:
 func _input(event: InputEvent) -> void:
 	if event.is_action_pressed("ui_cancel") and _starter != null and _starter.is_visible_in_tree():
 		cta_pressed.emit()   # 38: Esc = Go to the Land
-		get_viewport().set_input_as_handled()
+		if is_inside_tree():   # a handler above may have changed scene
+			get_viewport().set_input_as_handled()
 		return
 	# Esc = Skip tutorial (asks to confirm). The open modal handles its own Esc (Cancel).
 	if event.is_action_pressed("ui_cancel") and (_card.visible or _curtain.visible) \
 			and (_skip_modal == null or not is_instance_valid(_skip_modal)):
 		_ask_skip()
-		get_viewport().set_input_as_handled()
+		if is_inside_tree():   # a handler above may have changed scene
+			get_viewport().set_input_as_handled()
 
 
 # ===========================================================================

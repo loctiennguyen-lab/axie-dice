@@ -21,23 +21,16 @@ const PITCH := 27.0
 const YAW := 45.0
 const DIAMOND_CY := 530.0           # v5: design-canvas y of the Land centre (lattice moved up 60 px)
 const PLOT_SIDE := 31.0
+const SHRINK_STEPS: Array[float] = [0.8, 0.7, 0.6, 0.5]
+const LAND_EDGE_MARGIN := 0.4       # world units kept free between any prop / Axie and the land edge
 
-const INK_PLATE := Color("24140B")
 const _Econ := preload("res://scripts/meta/economy_db.gd")
-const KEY_CHIP := Color("4A3570")
-const BADGE_FILL := {"FREE": Color("8CC85A"), "CLAIM": Color("FF9345"), "NEW": Color("FFC445"),
-	"OFFLINE": Color("CFC4B0"), "LOCKED": Color("CFC4B0"), "···": Color("E6D9C0")}
-const BADGE_INK := {"FREE": Color("183A0C"), "CLAIM": Color("2A1505"), "NEW": Color("3A2A12"),
-	"OFFLINE": Color("3A2214"), "LOCKED": Color("3A2214"), "···": Color("8A6E50")}
 ## Word on the pill when the entry has something waiting (MetaState.badge_count > 0).
 const BADGE_KIND := {"echobox": "FREE", "vault": "NEW", "store": "NEW", "pass": "CLAIM", "missions": "CLAIM", "daily": "CLAIM"}
 const ONLINE_ONLY := ["echobox", "pass", "store", "board", "daily"]
 const NEWCOMER_LOCK := ["missions", "board"]
 ## Keys 1-7 -> entry id (v5 key table; 8 is unused: Mastery Hall is cut).
 const NUM_KEYS := ["portal", "house", "missions", "echobox", "pass", "vault", "store"]
-const LOCK_FILL := Color("E8D6B4")
-const LOCK_BORDER := Color("9A7650")
-const LOCK_TEXT := Color("6E4A30")
 
 ## QA / tests: force a tier (1-6) instead of reading MetaState.
 static var tier_override: int = 0
@@ -46,21 +39,22 @@ static var tier_override: int = 0
 ## (core-loop-v2 §4.1: House lv1 at Savannah ... lv4 from Genesis, tier 5 and 6 stay lv4).
 ## `min_tier` = tier that builds it (README: Mastery Hall at Arctic).
 const BUILDINGS: Array[Dictionary] = [
-	# v5 3x3 lattice around the Portal: step (300, 150) / (300, -150) design px; c = 530 is the centre.
+	# v5 3x3 lattice around the Portal, pulled in to 0.86 (x) / 0.85 (y) of its old spread about the centre (960, 530)
+	# so every footprint, plot and Axie lane stays well inside the diamond (Liam, b831 review).
 	{"id": "portal", "dir": "Portal", "pat": "SM_Portal_01", "cx": 960, "base": 580, "w": 300, "h": 300, "yaw": 0.0},
-	{"id": "house", "dir": "House", "pat": "House_lv%d", "cx": 360, "base": 590, "w": 200, "h": 196, "w3": 200, "h3": 178},
-	{"id": "missions", "dir": "Weaponsmith", "pat": "Weaponsmith_lv%d", "fixed_lv": 1, "cx": 1260, "base": 440, "w": 190, "h": 213},
-	{"id": "echobox", "dir": "Alchemy", "pat": "SM_Alchemy_lv%d_Prefab", "cx": 660, "base": 740, "w": 150, "h": 176, "w3": 140, "h3": 204},
-	{"id": "pass", "dir": "EquipmentStall", "pat": "EquipmentStall_lv%d", "cx": 1260, "base": 740, "w": 190, "h": 188, "w3": 150, "h3": 213},
-	{"id": "vault", "dir": "GemStorage", "pat": "GemStorage_lv%d", "cx": 960, "base": 890, "w": 170, "h": 168, "w3": 125, "h3": 201},
-	{"id": "store", "dir": "Jeweler", "pat": "Jeweler_lv%d", "cx": 1560, "base": 590, "w": 150, "h": 183, "w3": 160, "h3": 194},
-	{"id": "board", "path": "Item/Land_reward_ss2_ss3/SM_Billboard_Big", "cx": 960, "base": 290, "w": 130, "h": 190, "yaw": 45.0},
+	{"id": "house", "dir": "House", "pat": "House_lv%d", "cx": 444, "base": 581, "w": 200, "h": 196, "w3": 200, "h3": 178},
+	{"id": "missions", "dir": "Weaponsmith", "pat": "Weaponsmith_lv%d", "fixed_lv": 1, "cx": 1218, "base": 453, "w": 190, "h": 213},
+	{"id": "echobox", "dir": "Alchemy", "pat": "SM_Alchemy_lv%d_Prefab", "cx": 702, "base": 708, "w": 150, "h": 176, "w3": 140, "h3": 204},
+	{"id": "pass", "dir": "EquipmentStall", "pat": "EquipmentStall_lv%d", "cx": 1218, "base": 708, "w": 190, "h": 188, "w3": 150, "h3": 213},
+	{"id": "vault", "dir": "GemStorage", "pat": "GemStorage_lv%d", "cx": 960, "base": 836, "w": 170, "h": 168, "w3": 125, "h3": 201},
+	{"id": "store", "dir": "Jeweler", "pat": "Jeweler_lv%d", "cx": 1476, "base": 581, "w": 150, "h": 183, "w3": 160, "h3": 194},
+	{"id": "board", "path": "Item/Land_reward_ss2_ss3/SM_Billboard_Big", "cx": 960, "base": 326, "w": 130, "h": 190, "yaw": 45.0},
 	# Gallery: stand-in mesh (old Armorsmith) until lane I names the real one. Built from Genesis (5).
-	{"id": "gallery", "dir": "Armorsmith", "pat": "Armorsmith_lv%d", "cx": 660, "base": 440, "w": 160, "h": 135, "yaw": 0.0, "min_tier": 5},
+	{"id": "gallery", "dir": "Armorsmith", "pat": "Armorsmith_lv%d", "cx": 702, "base": 453, "w": 160, "h": 135, "yaw": 0.0, "min_tier": 5},
 ]
 ## Empty plot (never hidden) shows while its building is not built.
 const PLOTS: Array[Dictionary] = [
-	{"id": "gallery", "cx": 660, "base": 440, "min_tier": 5},
+	{"id": "gallery", "cx": 702, "base": 453, "min_tier": 5},
 ]
 const TIER_NAMES: Array[String] = ["Savannah", "Forest", "Arctic", "Mystic", "Genesis", "LunaLanding"]
 ## Per biome look. Paths are under Environment/. ground = centre, mid, edge; cliff = top, bottom.
@@ -129,14 +123,14 @@ var _right := Vector3.ZERO
 var _scene_cache := {}
 var _nodes3d := {}                   # id -> {node, scale}
 var _blocked: Array[Dictionary] = [] # {p: Vector3, r: float}
+var _bld_rects: Array[Rect2] = []   # design-px screen rect of every building and empty plot: props keep off them
+var _footprints: Array[Dictionary] = []  # {p, r} of every building and prop, for the stay-on-the-land test
 var _lanes: Array[Array] = []        # [from, to] ground segments the Axies walk; props stay off them
 var _hub := Vector3.ZERO             # where all lanes meet, in front of the Portal
 var _axies: Array[Dictionary] = []
 
 var _ui: Control
 var _hits := {}                      # id -> Button (clickable box)
-var _plates := {}                    # id -> Control (name plate / run plate)
-var _badges := {}                    # id -> Control (pill on the box)
 var _plot_marks := {}                # id -> Control
 var _house_defs := {}                # house_id -> dictionary from houses.json
 var _run_plate: Button
@@ -154,12 +148,9 @@ var _hud_bl: PanelContainer
 var _hud_br: HBoxContainer
 var _currencies: Control
 var _daily_btn: Button
-var _names_lbl: Label
 var _new_run_btn: Button
 var _start_hint: VBoxContainer
 var _offline_banner: Control
-var _names_btn: Button
-var _names_on := false
 var _hover_id := ""
 var _focus_id := ""
 var _touch_id := ""
@@ -549,7 +540,8 @@ func _build_buildings() -> void:
 		_nodes3d[String(b["id"])] = {"node": n, "scale": s}
 		var reach := (box.size.x + box.size.z) * 0.5 * s * 0.5
 		_blocked.append({"p": ground, "r": reach + 0.8})
-		_blocked.append({"p": ground - _g * (reach + 1.5), "r": 2.6})   # name plate zone
+		_footprints.append({"p": ground, "r": reach, "h": h_units, "rs": 0.0})
+		_bld_rects.append(Rect2(float(b["cx"]) - float(b["w"]) * 0.5, float(b["base"]) - float(b["h"]), float(b["w"]), float(b["h"])))
 	# Run plate zone under the Portal, plus a ~150 px (design) keep-out ring around the Portal itself.
 	_blocked.append({"p": _ground_at(960, 530), "r": 8.0})
 	# Walking lanes: hub in front of the Portal -> the front of every other house.
@@ -557,9 +549,10 @@ func _build_buildings() -> void:
 	for b in _live:
 		if String(b["id"]) == "portal":
 			continue
-		_lanes.append([_hub, _ground_at(float(b["cx"]), float(b["base"]) + 70.0)])
+		_lanes.append([_hub, _clamp_in(_ground_at(float(b["cx"]), float(b["base"]) + 60.0), 1.0)])
 	for p in _plots:
 		_blocked.append({"p": _ground_at(float(p["cx"]), float(p["base"]) - 40.0), "r": 6.0})
+		_bld_rects.append(Rect2(float(p["cx"]) - 100.0, float(p["base"]) - 108.0, 200.0, 108.0))
 
 
 func _aabb(n: Node, xf: Transform3D) -> AABB:
@@ -600,8 +593,8 @@ func _build_props() -> void:
 		if _blocked_at(p, 1.5):
 			continue
 		var pick: Array = scatter[placed % scatter.size()]
-		_place_fit(LIB + "Environment/" + String(pick[0]) + ".tscn", p, float(pick[1]), true)
-		placed += 1
+		if _place_fit(LIB + "Environment/" + String(pick[0]) + ".tscn", p, float(pick[1]), true):
+			placed += 1
 	var tufts: Array = biome["tufts"]
 	placed = 0
 	tries = 0
@@ -610,23 +603,104 @@ func _build_props() -> void:
 		var p := Vector3(_rng.randf_range(-half, half), 0, _rng.randf_range(-half, half))
 		if _blocked_at(p, 0.5):
 			continue
-		_place_fit(LIB + "Environment/" + String(tufts[placed % tufts.size()]) + ".tscn", p, 1.6, false)
-		placed += 1
+		if _place_fit(LIB + "Environment/" + String(tufts[placed % tufts.size()]) + ".tscn", p, 1.6, false):
+			placed += 1
 
 
 ## Place a prop scaled so its height (by_height) or footprint width is `target` world units.
-func _place_fit(path: String, p: Vector3, target: float, by_height: bool) -> void:
+func _place_fit(path: String, p: Vector3, target: float, by_height: bool) -> bool:
 	var n := _inst(path)
 	if n == null:
-		return
+		return false
 	var box := _aabb(n, Transform3D.IDENTITY)
 	var dim := box.size.y if by_height else maxf(box.size.x, box.size.z)
 	var s := target / maxf(dim, 0.01) * _rng.randf_range(0.85, 1.15)
+	# Keep the whole prop visibly on the land: footprint (canopy radius) inside the square, and its projected
+	# top inside the land diamond on screen. A tall prop on the back rim sticks out above the back edge, so it is
+	# first shifted toward the camera, then shrunk a little if it still does not fit.
+	var r := maxf(box.size.x, box.size.z) * s * 0.5
+	var hh := box.size.y * s
+	var p0 := _clamp_in(p, r)
+	# Candidates: toward the camera, then sideways, then the same again 7% smaller each time. The first
+	# spot that is visibly on the land AND whose screen rect touches no building wins; else the prop is dropped.
+	var found := false
+	var wide := target >= 3.0   # trees: if the near spots are taken, search the whole land (they may shrink to 50%)
+	for shrink in (9 if wide else 5):
+		var k: float = pow(0.93, shrink) if shrink < 5 else float(SHRINK_STEPS[shrink - 5])
+		var rr := r * k
+		var hk := hh * k
+		var cands: Array[Vector3] = []
+		for st in 13:
+			cands.append(_clamp_in(p0 - _g * 0.5 * st, rr))
+		for st in range(1, 11):
+			for sd in [-1.0, 1.0]:
+				cands.append(_clamp_in(p0 + _right * sd * 0.7 * st, rr))
+		if wide and shrink >= 3:
+			var grid: Array[Vector3] = []
+			for gx in range(-14, 15):
+				for gz in range(-14, 15):
+					grid.append(_clamp_in(Vector3(gx, 0, gz), rr))
+			grid.sort_custom(func(a: Vector3, b: Vector3) -> bool: return a.distance_squared_to(p0) < b.distance_squared_to(p0))
+			for gp in grid:
+				if not _blocked_at(gp, 0.6):
+					cands.append(gp)
+		for c in cands:
+			if _screen_fits(c, rr, hk) and not _hits_building(c, rr, hk):
+				p = c
+				s *= k
+				r = rr
+				hh = hk
+				found = true
+				break
+		if found:
+			break
+	if not found:
+		n.free()
+		return false
 	n.position = p - Vector3(0, box.position.y * s, 0)
 	n.rotation_degrees.y = _rng.randf() * 360.0
 	n.scale = Vector3.ONE * s
 	add_child(n)
 	_blocked.append({"p": p, "r": 0.9})
+	_footprints.append({"p": p, "r": r, "h": hh, "prop": true})
+	return true
+
+
+## Screen rect (design px) a prop covers: canopy width, from its foot up to its top.
+func _prop_rect(p: Vector3, r: float, hh: float) -> Rect2:
+	var cx := 960.0 + p.dot(_right) * PPU
+	var cy := DIAMOND_CY - p.dot(_g) * sin(deg_to_rad(PITCH)) * PPU
+	var up := hh * cos(deg_to_rad(PITCH)) * PPU
+	return Rect2(cx - r * PPU, cy - up, r * 2.0 * PPU, up)
+
+
+func _hits_building(p: Vector3, r: float, hh: float) -> bool:
+	var pr := _prop_rect(p, r, hh)
+	for br in _bld_rects:
+		if pr.intersects(br):
+			return true
+	return false
+
+
+## True when a prop at ground point `p` (footprint radius `r`, height `hh`, world units) lies inside the land
+## diamond on screen: the base ring and the top ring, `margin` design px inside the edge.
+func _screen_fits(p: Vector3, r: float, hh: float, margin: float = 6.0) -> bool:
+	var half_w := PLOT_SIDE * 0.5 * sqrt(2.0) * PPU - margin
+	var half_h := PLOT_SIDE * 0.5 * sqrt(2.0) * sin(deg_to_rad(PITCH)) * PPU - margin
+	var cx := 960.0 + p.dot(_right) * PPU
+	var cy := DIAMOND_CY - p.dot(_g) * sin(deg_to_rad(PITCH)) * PPU
+	var up := hh * cos(deg_to_rad(PITCH)) * PPU
+	for dx in [-r * PPU, 0.0, r * PPU]:
+		for dy in [0.0, -up]:
+			if absf(cx + dx - 960.0) / half_w + absf(cy + dy - DIAMOND_CY) / half_h > 1.0:
+				return false
+	return true
+
+
+## Pulls a ground point in so a disc of radius `r` around it stays on the land (the top is a PLOT_SIDE square).
+func _clamp_in(p: Vector3, r: float) -> Vector3:
+	var lim := PLOT_SIDE * 0.5 - r - LAND_EDGE_MARGIN
+	return Vector3(clampf(p.x, -lim, lim), p.y, clampf(p.z, -lim, lim))
 
 
 ## True if `p` is closer than `margin` to a walking lane (props keep off the paths).
@@ -757,14 +831,6 @@ func _build_ui() -> void:
 		_add_house_hit(String(b["id"]))
 	for p in _plots:
 		_add_plot(String(p["id"]))
-	for b in _live:
-		var id := String(b["id"])
-		_plates[id] = _make_plate(id)
-		_ui.add_child(_plates[id])
-		var pill := _make_badge_pill(id)
-		if pill != null:
-			_badges[id] = pill
-			_ui.add_child(pill)
 	_build_hud()
 	_build_banners()
 	_build_toast()
@@ -829,6 +895,8 @@ func _unhandled_input(event: InputEvent) -> void:
 	# Only the emulated mouse press: Controls consume it when hit, ScreenTouch is never consumed.
 	var tap: bool = event is InputEventMouseButton and event.pressed and event.device == InputEvent.DEVICE_ID_EMULATION
 	if tap:
+		if _hits.has(_touch_id):
+			UI3Tooltip.hide_for(_hits[_touch_id] as Control)
 		_touch_id = ""
 		_refresh_signs()
 
@@ -837,6 +905,7 @@ func _on_hit_pressed(id: String) -> void:
 	if _is_touch() and id != "portal" and _touch_id != id:
 		_touch_id = id
 		_refresh_signs()
+		UI3Tooltip.show_now(_hits[id] as Control)   # first tap shows the name, second tap opens
 		return
 	_on_house_pressed(id)
 
@@ -863,19 +932,49 @@ func _focus(id: String, on: bool) -> void:
 	_refresh_signs()
 
 
-## Signs are hidden at rest. Hover, keyboard focus on the dock tile, or the Names toggle shows them.
-## An empty plot keeps its label on always (no hover needed on touch).
+## Names live in a UI3 tooltip only: hover, keyboard focus, or the first touch tap. The text is rebuilt on every
+## hover / focus / state change so status and lock reasons are current.
 func _refresh_signs() -> void:
-	for id in _plates:
-		var always: bool = _plot_marks.has(id)
-		var op := (_plates[id] as Control).find_child("SignOpen", true, false)
-		if op != null:
-			op.visible = _touch_mode
-		var sub := (_plates[id] as Control).find_child("SignSub", true, false)
-		if sub != null:   # every place keeps its name plate; hover / focus / Names adds the sub-line
-			sub.visible = always or _names_on or _hover_id == id or _focus_id == id or _touch_id == id
-		(_plates[id] as Control).visible = true
+	for id in _hits:
+		UI3Tooltip.bind(_hits[id] as Control, _tip_text(id))
+	for id in _plot_marks:
+		UI3Tooltip.bind(_plot_marks[id] as Control, _tip_text(id))
 	_layout()
+
+
+## "Name  [key]" title, then the lock reason if locked, else the useful status and the sub-line.
+func _tip_text(id: String) -> String:
+	var m: Dictionary = META.get(id, {"name": id, "key": "", "sub": ""})
+	var head := String(m["name"])
+	if String(m["key"]) != "":
+		head += " · " + String(m["key"])
+	var why := _block_reason(id)
+	var lines: Array[String] = []
+	if why != "":
+		lines.append(why)
+	else:
+		var st := _tag_words(id)
+		if st != "":
+			lines.append(st)
+		var sub := String(m["sub"])
+		if id == "portal":
+			sub = _continue_line() if _has_run else ""
+		if sub != "":
+			lines.append(sub)
+	if lines.is_empty():
+		return head
+	return head + "\n" + " · ".join(lines)
+
+
+func _tag_words(id: String) -> String:
+	match _tag(id):
+		"FREE":
+			return "Free roll ready"
+		"CLAIM":
+			return "Reward ready to claim"
+		"NEW":
+			return "Something new"
+	return ""
 
 
 func _add_plot(id: String) -> void:
@@ -889,91 +988,7 @@ func _add_plot(id: String) -> void:
 			_on_house_pressed(id))
 	_ui.add_child(mark)
 	_plot_marks[id] = mark
-	var plate := _make_plate(id)
-	_ui.add_child(plate)
-	_plates[id] = plate
 
-
-## World label (UI-03): UI3 plate, key hint + Rowdies name; hover/focus adds the sub-line (node "SignSub"); a locked
-## place shows lock + its rule.
-func _make_plate(id: String) -> PanelContainer:
-	var m: Dictionary = META[id]
-	var why := _block_reason(id)
-	var plate := UI3.plate(&"plate")
-	plate.name = "Sign_" + id
-	plate.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var col := VBoxContainer.new()
-	col.add_theme_constant_override("separation", 0)
-	col.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	plate.add_child(col)
-	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", UI3Theme.space("8"))
-	row.alignment = BoxContainer.ALIGNMENT_CENTER
-	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	col.add_child(row)
-	if why != "":
-		var lock := TextureRect.new()
-		lock.name = "SignLock"
-		lock.texture = UI3.cream_icon("ui_lock")
-		lock.custom_minimum_size = Vector2.ONE * UI3Theme.size_of("icon_m")
-		lock.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-		lock.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-		lock.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		row.add_child(lock)
-	if String(m["key"]) != "":
-		var kh := UI3.key_hint(String(m["key"]))
-		kh.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		row.add_child(kh)
-	var nm := UI3.label(String(m["name"]), "LabelTitle")
-	nm.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	row.add_child(nm)
-	if why != "":
-		var w := UI3.label(why, "LabelMuted")
-		w.name = "SignRule"
-		w.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		w.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		col.add_child(w)
-	var sub := String(m["sub"])
-	if sub != "" and why == "":
-		var s := UI3.label(sub, "LabelMuted")
-		s.name = "SignSub"
-		s.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		s.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		col.add_child(s)
-	if id != "portal" and why == "":
-		var open := UI3.button("Open", &"secondary", &"S")
-		open.name = "SignOpen"
-		open.visible = _touch_mode
-		open.pressed.connect(_on_house_pressed.bind(id))
-		col.add_child(open)
-	return plate
-
-
-## Status chip on a place (never colour only): FREE / CLAIM / NEW / OFFLINE / LOCKED / "···".
-func _make_badge_pill(id: String) -> Control:
-	var tag := _tag(id)
-	if tag == "":
-		return null
-	return _status_chip(tag)
-
-
-## Status chip: wood-2 fill (not kam-6, that is primary only), Rowdies 18; the word carries the meaning.
-func _status_chip(tag: String) -> PanelContainer:
-	var c := PanelContainer.new()
-	c.theme = UI3Theme.get_theme()
-	c.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	c.custom_minimum_size = Vector2(0, UI3.CHIP_H)
-	c.add_theme_stylebox_override("panel", UI3Theme.flat(UI3Theme.color("notice_bg"), UI3Theme.radius("s"),
-		2, UI3Theme.color("text_muted"), Vector4(12, 0, 12, 0)))
-	var l := UI3.label(tag, "LabelDisplay")
-	l.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	match tag:
-		"FREE", "NEW":
-			l.add_theme_color_override("font_color", UI3Theme.color("success_text"))
-		"LOCKED", "OFFLINE":
-			l.add_theme_color_override("font_color", UI3Theme.color("danger_text"))
-	c.add_child(l)
-	return c
 
 # ---------------------------------------------------------------- HUD (UI-03: 4 corner groups)
 
@@ -1041,14 +1056,6 @@ func _build_hud() -> void:
 	var blr := HBoxContainer.new()
 	blr.add_theme_constant_override("separation", UI3Theme.space("24"))
 	_hud_bl.add_child(blr)
-	var nrow := HBoxContainer.new()
-	nrow.add_theme_constant_override("separation", UI3Theme.space("12"))
-	nrow.add_child(UI3.key_hint("N"))
-	_names_lbl = UI3.label("Show names")
-	nrow.add_child(_names_lbl)
-	var ncell := _cell("NamesToggle", nrow, _toggle_names)
-	_names_btn = ncell.get_node("NamesToggle")
-	blr.add_child(ncell)
 	var crow := HBoxContainer.new()
 	crow.add_theme_constant_override("separation", UI3Theme.space("12"))
 	crow.add_child(UI3.key_hint("C"))
@@ -1130,7 +1137,7 @@ func _profile_cell() -> Control:
 	ini.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	ini.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	av.add_child(ini)
-	h.add_child(AvatarFrame.wrap(av, 56.0, MetaState.equipped_frame, 40.0))
+	h.add_child(AvatarFrame.wrap(av, 72.0, MetaState.equipped_frame, 48.0, 48.0))
 	var col := VBoxContainer.new()
 	col.add_theme_constant_override("separation", 0)
 	col.alignment = BoxContainer.ALIGNMENT_CENTER
@@ -1180,13 +1187,6 @@ func _land_link() -> Control:
 	cell.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
 	cell.get_node("UpgradeLand").tooltip_text = "%s / %s Land Stone" % [_fmt(have), _fmt(need)]
 	return cell
-
-
-func _toggle_names() -> void:
-	_names_on = not _names_on
-	if _names_lbl != null:
-		_names_lbl.text = "Hide names" if _names_on else "Show names"
-	_refresh_signs()
 
 
 ## Primary "Start run" (signed out: "Sign in to play"). Name stays RunPlate.
@@ -1335,23 +1335,6 @@ func _layout() -> void:
 		var hit: Button = _hits[id]
 		hit.position = Vector2(cx - w * 0.5, base - h)
 		hit.size = Vector2(w, h)
-		var top := base - h
-		var pill: Control = _badges.get(id)
-		if pill != null:
-			pill.reset_size()
-		var pms := pill.get_combined_minimum_size() if pill != null else Vector2.ZERO
-		if _plates.has(id):
-			var plate: Control = _plates[id]
-			plate.reset_size()
-			var pm := plate.get_combined_minimum_size()
-			plate.position = Vector2(cx - pm.x * 0.5, top + 4.0 - pm.y)
-			if pill != null:
-				if plate.visible:
-					pill.position = Vector2(plate.position.x + pm.x - pms.x + 16.0, plate.position.y - 15.0)
-				else:
-					pill.position = Vector2(cx - pms.x * 0.5, top + 6.0 - pms.y)
-		elif pill != null:
-			pill.position = Vector2(cx - pms.x * 0.5, top + 6.0 - pms.y)
 	for p in _plots:
 		var id := String(p["id"])
 		var cx := float(p["cx"])
@@ -1359,10 +1342,6 @@ func _layout() -> void:
 		var mark: Control = _plot_marks[id]
 		mark.size = Vector2(200, 108)
 		mark.position = Vector2(cx - 100.0, base - 108.0)
-		var plate: Control = _plates[id]
-		plate.reset_size()
-		var pm := plate.get_combined_minimum_size()
-		plate.position = Vector2(cx - pm.x * 0.5, base - 54.0 - pm.y * 0.5)
 
 
 ## HUD scale boost so text never renders below 0.85 of design size (v5 "Min text"): the canvas
@@ -1459,6 +1438,7 @@ func _on_run_pressed() -> void:
 
 func _on_continue_pressed() -> void:
 	if RunContinue.busy:
+		_show_toast("Still reconnecting to the server…")   # never a silent press
 		return
 	if not RunState.load_run():
 		push_warning("LandHub: saved run could not be loaded")
@@ -1467,19 +1447,36 @@ func _on_continue_pressed() -> void:
 		_new_run_btn.visible = false
 		_show_toast("That run could not be loaded", 1.6, &"error")
 		return
-	var st: String = await RunContinue.reconnect(self, _on_continue_pressed,
-			find_child("RunPlate", true, false) as BaseButton)
+	var plate := find_child("RunPlate", true, false) as Button
+	_set_continue_busy(plate, true)
+	var st: String = await RunContinue.reconnect(self, _on_continue_pressed, plate)
+	if not is_inside_tree():
+		return
+	_set_continue_busy(plate, false)
 	if st == "gone":
 		_has_run = false
 		_new_run_btn.visible = false
 		_show_toast(RunState.take_discard_notice(), 5.0)
 		return
 	if st != "ok":
+		# "failed": NetNotice (with RETRY / SIGN IN) is up. If it could not show, say so with a toast.
+		if st == "failed" and get_node_or_null(NetNotice.NODE_NAME) == null:
+			_show_toast("Could not reconnect to your run. Try again.", 3.0, &"error")
 		return
 	if not RunState.resume_combat.is_empty():
 		get_tree().change_scene_to_file("res://scenes/combat/Combat.tscn")
 	else:
 		get_tree().change_scene_to_file("res://scenes/run_map/RunMap.tscn")
+
+
+## Run plate shows "Reconnecting…" (disabled, with its reason) while Continue is out; restored after.
+func _set_continue_busy(plate: Button, on: bool) -> void:
+	if plate == null or not is_instance_valid(plate):
+		return
+	if on:
+		UI3.set_disabled_reason(plate, "Reconnecting…")
+	else:
+		UI3.clear_disabled_reason(plate)
 
 
 ## N / New run. Only with an open run. Mission run: names the mission and the exact stake.
@@ -1565,8 +1562,6 @@ func _handle_key(keycode: int) -> bool:
 	if keycode == KEY_ESCAPE:
 		if _modal != null:
 			_close_modal()
-		elif _names_on:
-			_toggle_names()
 		else:
 			_open_screen(&"settings")
 		return true
@@ -1585,8 +1580,6 @@ func _handle_key(keycode: int) -> bool:
 		KEY_N:
 			if _has_run:
 				_on_new_run_pressed()
-			else:
-				_toggle_names()
 		KEY_L:
 			_on_land_pressed()
 		KEY_P:
@@ -1610,8 +1603,11 @@ func _unhandled_key_input(event: InputEvent) -> void:
 		return
 	if ke.alt_pressed or ke.ctrl_pressed or ke.meta_pressed:
 		return
-	if _handle_key(ke.keycode):
-		get_viewport().set_input_as_handled()
+	# A key can navigate away (LandNav -> change_scene): the hub leaves the tree inside _handle_key and
+	# get_viewport() is then null. Take the viewport first.
+	var vp := get_viewport()
+	if _handle_key(ke.keycode) and vp != null:
+		vp.set_input_as_handled()
 
 
 # ================================================================ accounts + Moon Card hook
