@@ -46,4 +46,12 @@ func _make(screen: String) -> Node:
 		elif screen == "presets-delete":
 			s.request_delete(0)
 		return s
+	if screen.begins_with("upgrade"):
+		MetaState.land_tier = 1
+		MetaState.stone = 1200 if screen == "upgrade-short" else 41200
+		var u: LandUpgradeScreen = load("res://scenes/land_upgrade/LandUpgrade.tscn").instantiate()
+		u.no_scene_change = true
+		add_child(u)
+		await get_tree().process_frame
+		return u
 	return null

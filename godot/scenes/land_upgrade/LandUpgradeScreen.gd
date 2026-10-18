@@ -160,6 +160,7 @@ func _draw_detail() -> void:
 	var t := UI3.label("%s Land" % TIER_NAMES[tier - 1], "LabelScreenTitle")
 	t.name = "DetailTitle"
 	t.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	t.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	head.add_child(t)
 	if st in ["current", "done"]:
 		head.add_child(UI3Meta.tag("You are here" if st == "current" else "Owned"))
@@ -172,7 +173,8 @@ func _draw_detail() -> void:
 		v.add_child(_info_row("Cost", "%s Stone" % fmt(cost), "Cost"))
 		if tier > MetaState.land_tier:
 			v.add_child(_info_row("Total from here", "%s Stone" % fmt(cumulative(tier)), "Cumulative"))
-			v.add_child(_info_row("Stone after", fmt(MetaState.stone - cost) if MetaState.stone >= cost else "·", "After"))
+			if MetaState.stone >= cost:
+				v.add_child(_info_row("Stone after", fmt(MetaState.stone - cost), "After"))
 	var up := UI3.button("Upgrade", &"primary", &"L")
 	up.name = "DetailUpgrade"
 	up.pressed.connect(_ask.bind(tier))
@@ -234,6 +236,7 @@ func _row(tier: int) -> Control:
 	h.add_child(mid)
 	var nl := UI3.label("%s Land" % TIER_NAMES[tier - 1], "LabelTitle")
 	nl.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	nl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	mid.add_child(nl)
 	var adds := UI3.label(String(ADDS.get(tier, "Starting Land")), "LabelMuted")
 	adds.name = "Adds"
@@ -254,6 +257,7 @@ func _row(tier: int) -> Control:
 	b.name = "Btn"
 	b.disabled = st != "afford"
 	b.custom_minimum_size.x = 200
+	b.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	b.pressed.connect(_ask.bind(tier))
 	b.focus_entered.connect(_select.bind(tier))
 	b.mouse_entered.connect(_select.bind(tier))
