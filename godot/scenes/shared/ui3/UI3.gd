@@ -12,8 +12,7 @@ const ICON_DIR := "res://assets/ui3/icons/"
 const DIE_GLYPH := 36
 const DIE_GLYPH_EGG := 22
 const DIE_LIFT := 18
-const DIE_CELL_MIN_W := 90
-const DIE_WORD_MIN_PX := 12
+const DIE_CELL_MIN_W := 90   # >= 88: WEAKEN at 18 px fits the egg label box
 const STATUS_ICON := 22
 const CHIP_H := 32
 const MODAL_W := 560
@@ -166,12 +165,38 @@ static func set_card_selected(card: PanelContainer, on: bool) -> void:
 			card.position.y += CARD_LIFT
 
 
+static var _cream_cache: Dictionary = {}
+
+
+## `icon()` with every pixel multiplied by the cream text colour, so white glyphs (the gear) read as
+## cream #FFE5B4 and never as white. Baked into the texture rather than left to the Button's icon colour.
+static func cream_icon(icon_name: String) -> Texture2D:
+	if _cream_cache.has(icon_name):
+		return _cream_cache[icon_name]
+	var tex := icon(icon_name)
+	if tex == null:
+		return null
+	var img := tex.get_image()
+	if img == null:
+		return tex
+	img.decompress()
+	img.convert(Image.FORMAT_RGBA8)
+	var tint := UI3Theme.color("text")
+	for y in img.get_height():
+		for x in img.get_width():
+			var c := img.get_pixel(x, y)
+			img.set_pixel(x, y, Color(c.r * tint.r, c.g * tint.g, c.b * tint.b, c.a))
+	var out := ImageTexture.create_from_image(img)
+	_cream_cache[icon_name] = out
+	return out
+
+
 ## 48x48 icon button, radius 8, icon 32 (icon_name from assets/ui3/icons, e.g. "ui_settings").
 static func icon_button(icon_name: String, tooltip := "") -> Button:
 	var b := Button.new()
 	b.theme = UI3Theme.get_theme()
 	b.theme_type_variation = "IconButton"
-	b.icon = icon(icon_name)
+	b.icon = cream_icon(icon_name)
 	b.expand_icon = true
 	b.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	b.custom_minimum_size = Vector2.ONE * UI3Theme.size_of("btn_s")
@@ -484,8 +509,9 @@ class DieTile extends VBoxContainer:
 		word.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		word.custom_minimum_size.x = cell_w
 		word.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		word.clip_text = true
-		word.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+		# Must-read (colour-blind cue): always 18 px, never shrunk, clipped or ellipsized. The box may be
+		# wider than the tile (min DIE_CELL_MIN_W, centred) so WEAKEN fits on an egg.
+		word.add_theme_font_size_override("font_size", UI3Theme.size_of("text_body"))
 		add_child(word)
 
 		_focus_ring = UI3.attach_focus_ring(self, tile)
@@ -516,25 +542,14 @@ class DieTile extends VBoxContainer:
 			tile.add_child(_outline)
 		var text := UI3.face_word(face)
 		if state == &"used":
-			text += TranslationServer.translate(" · used")
+			text += "\n" + TranslationServer.translate("· used")   # second line, same 18 px
 		word.text = text
-		_fit_word(cell_w)
 		var live := state == &"normal" or state == &"selected"
 		modulate.a = 1.0 if live else 0.4
 		focus_mode = Control.FOCUS_ALL if live else Control.FOCUS_NONE
 		if not live and has_focus():
 			release_focus()
 		_focus_ring.visible = false
-
-	# One line always: shrink the word (down to a floor) until it fits the cell, ellipsis beyond that.
-	func _fit_word(cell_w: int) -> void:
-		var size_px := UI3Theme.size_of("text_key_hint")
-		if state == &"used":
-			size_px = DIE_WORD_MIN_PX   # same size on every used die so a row stays even
-		var font := word.get_theme_font("font")
-		while size_px > DIE_WORD_MIN_PX and font.get_string_size(word.text, HORIZONTAL_ALIGNMENT_LEFT, -1, size_px).x > cell_w:
-			size_px -= 1
-		word.add_theme_font_size_override("font_size", size_px)
 
 	func _gui_input(event: InputEvent) -> void:
 		if state != &"normal" and state != &"selected":

@@ -168,6 +168,15 @@ func _test_builders() -> void:
 	var ib := UI3.icon_button("ui_settings", "Settings")
 	host.add_child(ib)
 	_ok(ib.custom_minimum_size == Vector2(48, 48) and ib.icon != null, "icon button 48x48 with icon")
+	var gimg := ib.icon.get_image()
+	var brightest := Color.BLACK
+	for gy in gimg.get_height():
+		for gx in gimg.get_width():
+			var gc := gimg.get_pixel(gx, gy)
+			if gc.a > 0.9 and gc.r + gc.g + gc.b > brightest.r + brightest.g + brightest.b:
+				brightest = gc
+	var cr := UI3Theme.color("text")
+	_ok(brightest.r <= cr.r + 0.01 and brightest.g <= cr.g + 0.01 and brightest.b <= cr.b + 0.01 and brightest.b < 0.75, "gear glyph is cream, never white (brightest %s)" % brightest)
 
 	var chip := UI3.chip("New best")
 	host.add_child(chip)
@@ -222,11 +231,20 @@ func _test_builders() -> void:
 	dt.set_state(&"used")
 	dt._gui_input(accept)
 	_ok(hits[0] == 2 and dt.focus_mode == Control.FOCUS_NONE and is_equal_approx(dt.modulate.a, 0.4), "used die is inert, unfocusable, 40%")
-	var word_w := (dt.word.get_theme_font("font") as Font).get_string_size(dt.word.text, HORIZONTAL_ALIGNMENT_LEFT, -1, dt.word.get_theme_font_size("font_size")).x
-	_ok(word_w <= 96.0 and not dt.word.text.contains("\n"), "used word fits one line in the cell")
+	_ok(dt.word.text.contains("\n"), "used word puts 'used' on a second line")
 	dt.set_state(&"normal")
 	_ok(dt.find_child("SelectedOutline", true, false) == null and dt.focus_mode == Control.FOCUS_ALL, "set_state normal restores")
 
+	for sz in [&"axie", &"egg"]:
+		for f in UI3.FACE_TYPES:
+			for st in [&"normal", &"used"]:
+				var w := UI3.die_tile(f, 1, sz, st)
+				host.add_child(w)
+				_ok(w.word.get_theme_font_size("font_size") >= 18, "die word %s/%s/%s font >= 18" % [sz, f, st])
+				_ok(not w.word.clip_text and w.word.text_overrun_behavior == TextServer.OVERRUN_NO_TRIMMING, "die word %s/%s/%s never truncated" % [sz, f, st])
+				var line_w := (w.word.get_theme_font("font") as Font).get_string_size(String(w.word.text).split("\n")[0], HORIZONTAL_ALIGNMENT_LEFT, -1, 18).x
+				_ok(line_w <= w.word.custom_minimum_size.x, "die word %s/%s fits its box (%.0f <= %.0f)" % [sz, f, line_w, w.word.custom_minimum_size.x])
+				w.queue_free()
 	var egg := UI3.die_tile(&"summon", 2, &"egg")
 	host.add_child(egg)
 	_ok((egg.find_child("Tile", true, false) as Panel).size == Vector2(56, 56), "egg die 56")
