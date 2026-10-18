@@ -1171,13 +1171,15 @@ func _land_link() -> Control:
 	var need := _upgrade_cost()
 	var have := _meta_int("stone")
 	var can_up := preload("res://scripts/meta/economy_db.gd").land_upgrade_enabled() and have >= need
-	var txt := "Upgrade %s Land · L" % tn if can_up else "%s Land %d/6 · L" % [tn, _tier]
-	var b := UI3.button(txt, &"quiet")
-	b.name = "UpgradeLand"
-	b.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
-	b.tooltip_text = "%s / %s Land Stone" % [_fmt(have), _fmt(need)]
-	b.pressed.connect(_on_land_pressed)
-	return b
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", UI3Theme.space("8"))
+	row.add_child(UI3.key_hint("L"))
+	var txt := "Upgrade Land · %s %d/6" % [tn, _tier]
+	row.add_child(UI3.label(txt + (" · ready" if can_up else "")))
+	var cell := _cell("UpgradeLand", row, _on_land_pressed)
+	cell.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+	cell.get_node("UpgradeLand").tooltip_text = "%s / %s Land Stone" % [_fmt(have), _fmt(need)]
+	return cell
 
 
 func _toggle_names() -> void:
