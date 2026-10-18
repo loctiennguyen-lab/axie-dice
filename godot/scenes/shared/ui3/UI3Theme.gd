@@ -614,6 +614,15 @@ static func _build_slider_check(t: Theme, cream: Color) -> void:
 	t.set_icon("unchecked_disabled", "CheckBox", _box_icon(28, color("panel"), color("disabled_border"), false))
 	t.set_icon("checked_disabled", "CheckBox", _box_icon(28, color("disabled"), color("disabled_border"), true))
 	t.set_constant("h_separation", "CheckBox", 12)
+	# No button plate behind a check box: the row is the plate (otherwise cream text on a cream pill).
+	for st in ["normal", "hover", "pressed", "hover_pressed", "disabled"]:
+		var none := StyleBoxEmpty.new()
+		none.content_margin_left = 4
+		none.content_margin_right = 4
+		none.content_margin_top = 4
+		none.content_margin_bottom = 4
+		t.set_stylebox(st, "CheckBox", none)
+	t.set_stylebox("focus", "CheckBox", focus_style(rad))
 	t.set_color("font_color", "CheckBox", cream)
 	t.set_color("font_hover_color", "CheckBox", cream)
 	t.set_color("font_pressed_color", "CheckBox", cream)
