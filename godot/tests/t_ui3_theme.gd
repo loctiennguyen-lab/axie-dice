@@ -118,6 +118,7 @@ func _test_contrast() -> void:
 
 
 func _test_fonts() -> void:
+	_ok(UI3Theme.fonts_are_final(), "Rowdies Bold + Work Sans Regular are present (no fallback)")
 	_ok(UI3Theme.font_display() != null and UI3Theme.font_body() != null, "fonts resolve (real or fallback)")
 	_ok(UI3Theme.get_theme().default_font == UI3Theme.font_body(), "theme default font is the body face")
 
@@ -174,6 +175,32 @@ func _test_builders() -> void:
 				_ok(is_equal_approx(d.modulate.a, 0.4), "die %s/%s is 40%%" % [face, st])
 			if st == &"used":
 				_ok((d.find_child("Word", true, false) as Label).text.ends_with("used"), "used die says used")
+	# DieTile: pressed signal, Enter/Space, set_state, dead states are inert.
+	var dt := UI3.die_tile(&"attack", 4)
+	host.add_child(dt)
+	var hits := [0]
+	dt.pressed.connect(func() -> void: hits[0] += 1)
+	var accept := InputEventAction.new()
+	accept.action = "ui_accept"
+	accept.pressed = true
+	dt._gui_input(accept)
+	_ok(hits[0] == 1, "die tile: Enter/Space emits pressed")
+	var click := InputEventMouseButton.new()
+	click.button_index = MOUSE_BUTTON_LEFT
+	click.pressed = true
+	click.position = Vector2(48, 40)
+	dt._gui_input(click)
+	_ok(hits[0] == 2, "die tile: click on the tile emits pressed")
+	dt.set_state(&"selected")
+	_ok(dt.find_child("SelectedOutline", true, false) != null and dt.tile.position.y == -18.0, "set_state selected adds outline + lift")
+	dt.set_state(&"used")
+	dt._gui_input(accept)
+	_ok(hits[0] == 2 and dt.focus_mode == Control.FOCUS_NONE and is_equal_approx(dt.modulate.a, 0.4), "used die is inert, unfocusable, 40%")
+	var word_w := (dt.word.get_theme_font("font") as Font).get_string_size(dt.word.text, HORIZONTAL_ALIGNMENT_LEFT, -1, dt.word.get_theme_font_size("font_size")).x
+	_ok(word_w <= 96.0 and not dt.word.text.contains("\n"), "used word fits one line in the cell")
+	dt.set_state(&"normal")
+	_ok(dt.find_child("SelectedOutline", true, false) == null and dt.focus_mode == Control.FOCUS_ALL, "set_state normal restores")
+
 	var egg := UI3.die_tile(&"summon", 2, &"egg")
 	host.add_child(egg)
 	_ok((egg.find_child("Tile", true, false) as Panel).size == Vector2(56, 56), "egg die 56")
@@ -193,6 +220,20 @@ func _test_builders() -> void:
 	_ok(m.mouse_filter == Control.MOUSE_FILTER_STOP, "modal blocks input behind it")
 	_ok((m.find_child("Dialog", true, false) as Control).custom_minimum_size.x == 560, "modal 560 w")
 	_ok(cancel.has_focus(), "modal focuses the requested action")
+	var cancelled := [false]
+	m.cancelled.connect(func() -> void: cancelled[0] = true)
+	var tab := InputEventAction.new()
+	tab.action = "ui_focus_next"
+	tab.pressed = true
+	m._input(tab)
+	_ok(ok.has_focus(), "modal Tab moves to the next action")
+	m._input(tab)
+	_ok(cancel.has_focus(), "modal Tab wraps inside the dialog (focus trap)")
+	var esc := InputEventAction.new()
+	esc.action = "ui_cancel"
+	esc.pressed = true
+	m._input(esc)
+	_ok(cancelled[0], "modal Esc emits cancelled")
 
 	var t := UI3.toast("Saved")
 	host.add_child(t)

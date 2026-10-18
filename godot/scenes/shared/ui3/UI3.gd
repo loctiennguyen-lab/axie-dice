@@ -8,6 +8,18 @@ extends RefCounted
 ## each screen spec; this file only owns the reusable parts.
 
 const ICON_DIR := "res://assets/ui3/icons/"
+# Sizes that components.md states but tokens.json has no key for.
+const DIE_GLYPH := 36
+const DIE_GLYPH_EGG := 22
+const DIE_LIFT := 18
+const DIE_CELL_MIN_W := 80
+const DIE_WORD_MIN_PX := 12
+const STATUS_ICON := 22
+const CHIP_H := 32
+const MODAL_W := 560
+const TOAST_H := 56
+const SKELETON_H := 72
+const CARD_LIFT := 18
 
 ## Face type -> icon file (without extension) in assets/ui3/icons.
 const FACE_ICON := {
@@ -125,7 +137,7 @@ static func chip(text: String) -> PanelContainer:
 	var p := PanelContainer.new()
 	p.theme = UI3Theme.get_theme()
 	p.theme_type_variation = "PanelChip"
-	p.custom_minimum_size = Vector2(0, 32)
+	p.custom_minimum_size = Vector2(0, CHIP_H)
 	var l := label(text, "LabelDisplay")
 	l.add_theme_color_override("font_color", UI3Theme.color("accent_text"))
 	l.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
@@ -174,7 +186,7 @@ static func status_chip(icon_name: String, count: int, tint: Color) -> PanelCont
 	row.add_theme_constant_override("separation", 4)
 	var ic := TextureRect.new()
 	ic.texture = icon(icon_name)
-	ic.custom_minimum_size = Vector2.ONE * 22
+	ic.custom_minimum_size = Vector2.ONE * STATUS_ICON
 	ic.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	ic.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	row.add_child(ic)
@@ -195,84 +207,13 @@ static func hp_bar(hp: int, max_hp: int, shield := 0, poison := 0, kind := &"axi
 	return b
 
 
-## Die face tile. face: attack|shield|heal|poison|mana|buff|weaken|summon|blank. size: axie (88, radius 20)
-## or egg (56, radius 14). state: normal (tilted by `tilt` degrees) | selected (lift -18, upright, deep
-## shadow, 3 px cream outline at offset 5) | used (40% + "· used") | disabled (40%). The returned Control
-## is focusable and shows the amber focus ring around the tile. Hit area = the tile itself.
-static func die_tile(face: StringName, value: int, size := &"axie", state := &"normal", tilt := 0.0) -> Control:
-	var egg := size == &"egg"
-	var px := UI3Theme.size_of("die_egg" if egg else "die")
-	var rad := UI3Theme.radius("die_egg" if egg else "die")
-	var col := UI3Theme.color(String(FACE_COLOR.get(face, "face_blank")))
-	var selected := state == &"selected"
-
-	var root := VBoxContainer.new()
-	root.theme = UI3Theme.get_theme()
-	root.add_theme_constant_override("separation", 6)
-	root.focus_mode = Control.FOCUS_ALL
-	root.set_meta("face", face)
-	root.set_meta("state", state)
-
-	var holder := Control.new()
-	holder.custom_minimum_size = Vector2(maxi(px + 8, 80), px + 12)   # room for the hard side shadow
-	holder.name = "Holder"
-	root.add_child(holder)
-
-	var tile := Panel.new()
-	tile.name = "Tile"
-	tile.size = Vector2.ONE * px
-	tile.position = Vector2((maxi(px + 8, 80) - px) / 2.0, -18 if selected else 0)
-	tile.pivot_offset = tile.size * 0.5
-	tile.rotation_degrees = 0.0 if selected else tilt
-	tile.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var sb := UI3Theme.flat(UI3Theme.color("die_body"), rad, 0, Color.TRANSPARENT, Vector4(0, 0, 0, 0),
-		{"y": 12 if selected else 6, "color": col, "size": 1})
-	tile.add_theme_stylebox_override("panel", sb)
-	holder.add_child(tile)
-
-	var col_box := VBoxContainer.new()
-	col_box.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	col_box.alignment = BoxContainer.ALIGNMENT_CENTER
-	col_box.add_theme_constant_override("separation", 0)
-	col_box.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	tile.add_child(col_box)
-	var glyph := TextureRect.new()
-	glyph.texture = icon(String(FACE_ICON.get(face, "face_blank")))
-	var gpx := 22 if egg else 36
-	glyph.custom_minimum_size = Vector2.ONE * gpx
-	glyph.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	glyph.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	glyph.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	col_box.add_child(glyph)
-	var num := label("–" if face == &"blank" else str(value), "LabelDisplay")
-	num.add_theme_font_size_override("font_size", UI3Theme.size_of("num_die_egg" if egg else "num_die"))
-	num.add_theme_color_override("font_color", UI3Theme.color("die_ink"))
-	num.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	num.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	col_box.add_child(num)
-
-	if selected:
-		var ring := Panel.new()
-		ring.name = "SelectedOutline"
-		ring.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-		ring.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		ring.add_theme_stylebox_override("panel", UI3Theme.selected_style(rad + 5, 3, 5))
-		tile.add_child(ring)
-
-	var word := label(face_word(face) + (TranslationServer.translate(" · used") if state == &"used" else ""), "LabelKeyHint")
-	word.name = "Word"
-	word.add_theme_color_override("font_color", UI3Theme.color(String(FACE_WORD_COLOR.get(face, "text"))))
-	word.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	word.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART   # "WEAKEN · used" wraps instead of widening the tile
-	word.custom_minimum_size.x = maxi(px + 8, 80)
-	root.add_child(word)
-
-	if state == &"used" or state == &"disabled":
-		root.modulate.a = 0.4
-		root.focus_mode = Control.FOCUS_NONE
-	else:
-		attach_focus_ring(root, tile)
-	return root
+## Die face tile (a `DieTile`: focusable, emits `pressed` on click or Enter/Space, `set_state` to change
+## state). face: attack|shield|heal|poison|mana|buff|weaken|summon|blank. size: axie (88, radius 20) or egg
+## (56, radius 14). state: normal (tilted by `tilt` degrees) | selected (lift -18, upright, deep shadow, 3 px
+## cream outline at offset 5) | used (40% + "· used", not interactive) | disabled (40%, not interactive).
+## The amber focus ring surrounds the tile. Hit area = the tile itself.
+static func die_tile(face: StringName, value: int, size := &"axie", state := &"normal", tilt := 0.0) -> DieTile:
+	return DieTile.new(face, value, size, state, tilt)
 
 
 ## Localized word for a face type ("ATTACK", "SHIELD", ...). Blank is "–" per the spec.
@@ -282,12 +223,14 @@ static func face_word(face: StringName) -> String:
 	return TranslationServer.translate(String(face).to_upper())
 
 
-## Modal / confirm dialog: full-rect root (mouse blocked) = neutral-1 @ 80% scrim + centred 560 w dialog
-## (wood-1, radius 12, pad 32) with title (Rowdies 24), body (wrapped) and the `actions` Buttons right-aligned
-## (build them with `button()`; connect their signals yourself). Add the result to a CanvasLayer (z 60).
-## `focus_index` picks which action gets focus when the modal enters the tree (destructive: Cancel).
-static func modal(title: String, body: String, actions: Array, focus_index := 0) -> Control:
-	var root := Control.new()
+## Modal / confirm dialog (a `ModalRoot`): full-rect root (mouse blocked) = neutral-1 @ 80% scrim + centred
+## 560 w dialog (wood-1, radius 12, pad 32) with title (Rowdies 24), body (wrapped) and the `actions` Buttons
+## right-aligned (build them with `button()`; connect their signals yourself). Add the result to a
+## CanvasLayer (z 60). Focus is trapped: Tab / arrows cycle through `actions` only. Esc (ui_cancel) emits
+## `cancelled`; the owner decides what that means (usually the Cancel action). `focus_index` picks which
+## action gets focus when the modal enters the tree (destructive: Cancel).
+static func modal(title: String, body: String, actions: Array, focus_index := 0) -> ModalRoot:
+	var root := ModalRoot.new()
 	root.theme = UI3Theme.get_theme()
 	root.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	root.mouse_filter = Control.MOUSE_FILTER_STOP
@@ -304,7 +247,7 @@ static func modal(title: String, body: String, actions: Array, focus_index := 0)
 	root.add_child(center)
 	var dlg := plate(&"dialog")
 	dlg.name = "Dialog"
-	dlg.custom_minimum_size = Vector2(560, 0)
+	dlg.custom_minimum_size = Vector2(MODAL_W, 0)
 	center.add_child(dlg)
 	var col := VBoxContainer.new()
 	col.add_theme_constant_override("separation", UI3Theme.space("16"))
@@ -319,9 +262,8 @@ static func modal(title: String, body: String, actions: Array, focus_index := 0)
 	col.add_child(row)
 	for a in actions:
 		row.add_child(a)
-	if not actions.is_empty():
-		var target: Control = actions[clampi(focus_index, 0, actions.size() - 1)]
-		root.ready.connect(func() -> void: target.grab_focus.call_deferred())
+	root.actions = actions
+	root.focus_index = focus_index
 	return root
 
 
@@ -331,7 +273,7 @@ static func toast(text: String, tone := &"ok") -> PanelContainer:
 	var p := PanelContainer.new()
 	p.theme = UI3Theme.get_theme()
 	p.theme_type_variation = "PanelToast"
-	p.custom_minimum_size = Vector2(0, 56)
+	p.custom_minimum_size = Vector2(0, TOAST_H)
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", UI3Theme.space("12"))
 	row.alignment = BoxContainer.ALIGNMENT_CENTER
@@ -371,7 +313,7 @@ static func net_notice(text: String, retry_text: String, on_retry: Callable, rec
 
 ## Skeleton row for loading lists: flat neutral-2 block, radius 8, default 72 high. Static (no pulse), so
 ## it respects reduce-motion by construction.
-static func skeleton_row(height := 72) -> Panel:
+static func skeleton_row(height := SKELETON_H) -> Panel:
 	var p := Panel.new()
 	p.theme = UI3Theme.get_theme()
 	p.custom_minimum_size = Vector2(0, height)
@@ -397,6 +339,165 @@ static func attach_focus_ring(control: Control, host: Control = null) -> Panel:
 
 
 # ---------------------------------------------------------------- inner controls
+
+## Modal root: traps keyboard focus inside `actions` and turns Esc into `cancelled`.
+class ModalRoot extends Control:
+	## Emitted when the player presses Esc (ui_cancel). The owner closes or maps it to Cancel.
+	signal cancelled
+	var actions: Array = []
+	var focus_index := 0
+
+	func _ready() -> void:
+		if not actions.is_empty():
+			var target: Control = actions[clampi(focus_index, 0, actions.size() - 1)]
+			target.grab_focus.call_deferred()
+
+	func _input(event: InputEvent) -> void:
+		if not is_visible_in_tree():
+			return
+		if event.is_action_pressed("ui_cancel"):
+			cancelled.emit()
+			get_viewport().set_input_as_handled()
+			return
+		var step := 0
+		if event.is_action_pressed("ui_focus_next") or event.is_action_pressed("ui_right") or event.is_action_pressed("ui_down"):
+			step = 1
+		elif event.is_action_pressed("ui_focus_prev") or event.is_action_pressed("ui_left") or event.is_action_pressed("ui_up"):
+			step = -1
+		if step == 0 or actions.is_empty():
+			return
+		get_viewport().set_input_as_handled()
+		var cur := actions.find(get_viewport().gui_get_focus_owner())
+		var nxt := 0 if cur == -1 else posmod(cur + step, actions.size())
+		(actions[nxt] as Control).grab_focus()
+
+
+## Die face tile control. Build with `UI3.die_tile()`.
+class DieTile extends VBoxContainer:
+	## Click or Enter/Space on an interactive (normal/selected) tile.
+	signal pressed
+	var face: StringName
+	var value: int
+	var egg := false
+	var tilt := 0.0
+	var state: StringName = &"normal"
+	var tile: Panel
+	var word: Label
+	var _outline: Panel = null
+	var _focus_ring: Panel
+
+	func _init(face_: StringName, value_: int, size_: StringName, state_: StringName, tilt_: float) -> void:
+		face = face_
+		value = value_
+		egg = size_ == &"egg"
+		tilt = tilt_
+		theme = UI3Theme.get_theme()
+		add_theme_constant_override("separation", 6)
+		mouse_filter = Control.MOUSE_FILTER_STOP
+		var px := UI3Theme.size_of("die_egg" if egg else "die")
+		var cell_w := maxi(px + 8, DIE_CELL_MIN_W)
+
+		var holder := Control.new()
+		holder.name = "Holder"
+		holder.custom_minimum_size = Vector2(cell_w, px + 12)   # room for the hard side shadow
+		holder.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		add_child(holder)
+
+		tile = Panel.new()
+		tile.name = "Tile"
+		tile.size = Vector2.ONE * px
+		tile.pivot_offset = tile.size * 0.5
+		tile.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		holder.add_child(tile)
+
+		var col_box := VBoxContainer.new()
+		col_box.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		col_box.alignment = BoxContainer.ALIGNMENT_CENTER
+		col_box.add_theme_constant_override("separation", 0)
+		col_box.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		tile.add_child(col_box)
+		var glyph := TextureRect.new()
+		glyph.texture = UI3.icon(String(UI3.FACE_ICON.get(face, "face_blank")))
+		glyph.custom_minimum_size = Vector2.ONE * (DIE_GLYPH_EGG if egg else DIE_GLYPH)
+		glyph.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		glyph.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		glyph.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		col_box.add_child(glyph)
+		var num := UI3.label("–" if face == &"blank" else str(value), "LabelDisplay")
+		num.add_theme_font_size_override("font_size", UI3Theme.size_of("num_die_egg" if egg else "num_die"))
+		num.add_theme_color_override("font_color", UI3Theme.color("die_ink"))
+		num.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		num.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		col_box.add_child(num)
+
+		word = UI3.label("", "LabelKeyHint")
+		word.name = "Word"
+		word.add_theme_color_override("font_color", UI3Theme.color(String(UI3.FACE_WORD_COLOR.get(face, "text"))))
+		word.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		word.custom_minimum_size.x = cell_w
+		word.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		word.clip_text = true
+		word.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+		add_child(word)
+
+		_focus_ring = UI3.attach_focus_ring(self, tile)
+		set_state(state_)
+
+	## Switches normal / selected / used / disabled and re-styles the tile.
+	func set_state(new_state: StringName) -> void:
+		state = new_state
+		var px := UI3Theme.size_of("die_egg" if egg else "die")
+		var rad := UI3Theme.radius("die_egg" if egg else "die")
+		var selected := state == &"selected"
+		var cell_w := maxi(px + 8, DIE_CELL_MIN_W)
+		tile.position = Vector2((cell_w - px) / 2.0, -DIE_LIFT if selected else 0)
+		tile.rotation_degrees = 0.0 if selected else tilt
+		var col := UI3Theme.color(String(UI3.FACE_COLOR.get(face, "face_blank")))
+		tile.add_theme_stylebox_override("panel", UI3Theme.flat(UI3Theme.color("die_body"), rad, 0,
+			Color.TRANSPARENT, Vector4(0, 0, 0, 0), {"y": 12 if selected else 6, "color": col, "size": 1}))
+		if _outline != null:
+			_outline.get_parent().remove_child(_outline)
+			_outline.queue_free()
+			_outline = null
+		if selected:
+			_outline = Panel.new()
+			_outline.name = "SelectedOutline"
+			_outline.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+			_outline.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			_outline.add_theme_stylebox_override("panel", UI3Theme.selected_style(rad + 5, 3, 5))
+			tile.add_child(_outline)
+		var text := UI3.face_word(face)
+		if state == &"used":
+			text += TranslationServer.translate(" · used")
+		word.text = text
+		_fit_word(cell_w)
+		var live := state == &"normal" or state == &"selected"
+		modulate.a = 1.0 if live else 0.4
+		focus_mode = Control.FOCUS_ALL if live else Control.FOCUS_NONE
+		if not live and has_focus():
+			release_focus()
+		_focus_ring.visible = false
+
+	# One line always: shrink the word (down to a floor) until it fits the cell, ellipsis beyond that.
+	func _fit_word(cell_w: int) -> void:
+		var size_px := UI3Theme.size_of("text_key_hint")
+		var font := word.get_theme_font("font")
+		while size_px > DIE_WORD_MIN_PX and font.get_string_size(word.text, HORIZONTAL_ALIGNMENT_LEFT, -1, size_px).x > cell_w:
+			size_px -= 1
+		word.add_theme_font_size_override("font_size", size_px)
+
+	func _gui_input(event: InputEvent) -> void:
+		if state != &"normal" and state != &"selected":
+			return
+		var hit := false
+		if event is InputEventMouseButton:
+			var mb := event as InputEventMouseButton
+			hit = mb.pressed and mb.button_index == MOUSE_BUTTON_LEFT and tile.get_rect().has_point(mb.position - tile.get_parent().position)
+		elif event.is_action_pressed("ui_accept"):
+			hit = true
+		if hit:
+			accept_event()
+			pressed.emit()
 
 ## HP bar control: optional shield/poison chips above, then a 10/8/16 px track. Use `set_values` to update.
 class HpBarView extends VBoxContainer:
