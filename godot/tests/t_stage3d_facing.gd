@@ -43,25 +43,18 @@ func _ready() -> void:
 	var party_slot: Node3D = units[101]["slot"]
 	var enemy_slot: Node3D = units[202]["slot"]
 
-	# Act/Assert: exact numeric contract, not a visual guess.
-	_check(is_equal_approx(party_slot.rotation_degrees.y, 180.0),
-		"party slot rotation.y expected 180.0 (back to camera, facing enemy row), got %f" %
-			party_slot.rotation_degrees.y)
-	_check(is_equal_approx(enemy_slot.rotation_degrees.y, 0.0),
-		"enemy slot rotation.y expected 0.0 (facing camera, per JRPG convention), got %f" %
-			enemy_slot.rotation_degrees.y)
-
-	# Cross-check against the addon's own documented default: forward at rotation.y=0 is +Z
-	# (third_party demo comments) — the party's z position (_POS_Z_PARTY, positive) is closer to
-	# the camera (also positive Z) than the enemy row (_POS_Z_ENEMY, negative) is. A 180-degree
-	# turn is exactly what points local forward from +Z to -Z, i.e. away from a +Z camera.
-	_check(CombatStage3D._POS_Z_PARTY > CombatStage3D._POS_Z_ENEMY,
-		"assumption broken: party row is no longer nearer +Z than the enemy row — the whole " +
-		"180-degree-turn argument above depends on this")
+	# Horizontal layout: a unit's forward is local +Z, so the world direction it faces is basis * +Z.
+	var party_fwd: Vector3 = party_slot.global_transform.basis * Vector3(0.0, 0.0, 1.0)
+	var enemy_fwd: Vector3 = enemy_slot.global_transform.basis * Vector3(0.0, 0.0, 1.0)
+	_check(party_fwd.distance_to(Vector3(1.0, 0.0, 0.0)) < 0.001,
+		"party must face +X (toward the enemies on the right), faces %s" % str(party_fwd))
+	_check(enemy_fwd.distance_to(Vector3(-1.0, 0.0, 0.0)) < 0.001,
+		"enemies must face -X (toward the party on the left), faces %s" % str(enemy_fwd))
+	_check(party_slot.position.x < enemy_slot.position.x,
+		"party must stand left of the enemies (party x %f, enemy x %f)" % [party_slot.position.x, enemy_slot.position.x])
 
 	if _anomaly == "":
-		print("t_stage3d_facing: PASS — party rotation.y=180 (back to camera), enemy " +
-			"rotation.y=0 (facing camera)")
+		print("t_stage3d_facing: PASS — party faces +X on the left, enemy faces -X on the right")
 		stage.dispose_all()
 		tree.quit(0)
 	else:

@@ -31,6 +31,8 @@ signal all_arrived
 const MAX_DICE := 11
 const STAGGER := 0.110
 const FLIGHT := 0.480
+const LAND_CENTER_X := 3.0   ## world x the dice fan out around (between the teams)
+const LAND_Z := 7.0          ## world z of the first landing line (the open floor in front of both teams)
 const TUMBLE_STEP := 0.090
 const TUMBLE_TOTAL := 1.080
 const SQUASH_TIME := 0.300
@@ -401,10 +403,11 @@ func _launch(d: Dictionary) -> void:
 		start = (slot as Node3D).global_position + Vector3(0.0, 1.6, 0.0)
 	var n := _dice.size()
 	var i := int(d["i"])
-	# Aim at the stage centre, fanned out sideways so the cubes do not land on one spot.
-	var gap := minf(2.6, 15.0 / maxf(float(n - 1), 1.0))   # one lane per slot across the stage
-	var target := Vector3((float(i) - float(n - 1) * 0.5) * gap, 0.5,
-		0.6 + float(i % 2) * 1.8 + _rng.randf_range(-0.3, 0.3))
+	# Land on the open floor in FRONT of both teams (between the party's front row and the camera), fanned
+	# out sideways, so a die never comes to rest on a unit (horizontal layout: teams left / right).
+	var gap := minf(1.6, 6.4 / maxf(float(n - 1), 1.0))
+	var target := Vector3(LAND_CENTER_X + (float(i) - float(n - 1) * 0.5) * gap, 0.5,
+		LAND_Z + float(i % 2) * 1.1 + _rng.randf_range(-0.2, 0.2))
 	var g := 9.8 * body.gravity_scale
 	var v := (target - start - Vector3(0.0, -0.5 * g * FLIGHT * FLIGHT, 0.0)) / FLIGHT
 	body.global_position = start

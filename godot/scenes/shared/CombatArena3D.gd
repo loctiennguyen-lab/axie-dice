@@ -16,8 +16,8 @@ const GROUND_SIZE := 160.0
 
 const BOSS_LIGHT_MUL := 0.72
 const BOSS_FOG_DENSITY := 0.0035
-const BOSS_PORTAL_MUL := 1.3
-const BOSS_PORTAL_Z := -46.0   # pushed back so the 1.3x tower still fits under the frame top
+const BOSS_PORTAL_MUL := 1.15
+const BOSS_PORTAL_Z := -9.6   # pushed back so the 1.3x tower still fits under the frame top
 ## SM_Portal_01 has a detached spire (separate piece, mesh-local y > 7.5) that floats above the tower; dropped.
 const PORTAL_FINIAL_Y := 7.5
 ## Same sun / ambient as the Land hub; a biome only tints these a little (it owns sky + ground).
@@ -32,10 +32,10 @@ const PATH_END_GAP := 2.8
 ## Default for registry portal "yaw_deg": gate turned 90 degrees about Y (Liam 16/10).
 const PORTAL_YAW_DEG := 90.0
 ## Prop keep-out (|x| / z): enemy flanks (enemy row z -6.5, x 0/+-5.1) and the portal line.
-const KEEPOUT_ENEMY_Z := [-11.0, -2.0]
-const KEEPOUT_ENEMY_X := 10.5
-const KEEPOUT_PORTAL_Z := -20.0   # anything behind this z keeps |x| >= KEEPOUT_PORTAL_X
-const KEEPOUT_PORTAL_X := 6.5
+const KEEPOUT_ENEMY_Z := [-12.0, 10.0]   # arena z = world -x: the whole fight line incl. party
+const KEEPOUT_ENEMY_X := 8.0
+const KEEPOUT_PORTAL_Z := -6.5   # anything behind this z keeps |x| >= KEEPOUT_PORTAL_X
+const KEEPOUT_PORTAL_X := 6.0
 
 static var _registry: Dictionary = {}
 static var _loaded := false
@@ -200,7 +200,7 @@ func _add_path(b: Dictionary) -> void:
 		tm.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 		tm.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 		tint = tm
-	var z := 8.0
+	var z := float(registry().get("path_start_z", 0.8))
 	var end_z := float(registry().get("portal", {}).get("z", -15.0)) + float(registry().get("path_end_gap", PATH_END_GAP))   # stop short of the pedestal
 	var zs: Array[float] = []
 	while z > end_z and zs.size() < 40:
@@ -260,7 +260,8 @@ func _scatter(b: Dictionary, zones: Dictionary) -> void:
 			for _try in 12:   # rejection sampling against the keep-out zones (deterministic rng)
 				x = rng.randf_range(float(xr[0]), float(xr[1]))
 				# flank / low zones are given as positive |x|; mirror half of them to the left
-				if float(xr[0]) >= 0.0 and rng.randf() < 0.5:
+				# (the arena is turned -90 deg: arena +x is toward the camera, so props only go to the far side)
+				if float(xr[0]) >= 0.0:
 					x = -x
 				z = rng.randf_range(float(zr[0]), float(zr[1]))
 				if not in_keepout(x, z):
