@@ -22,3 +22,12 @@ static func display_name(id: String) -> String:
 	var m := CosmeticArt.manifest()
 	var e: Variant = (m.get("dice", {}) as Dictionary).get(a, (m.get("frames", {}) as Dictionary).get(a, null))
 	return String((e as Dictionary).get("name", "")) if e is Dictionary else ""
+
+
+## Player-facing name of any cosmetic id: dice/frame/fx manifest name, else "" (no guess, no raw id).
+static func any_name(id: String) -> String:
+	var n := display_name(id)
+	if n != "":
+		return n
+	var fx: Variant = (CosmeticArt.manifest().get("fx", {}) as Dictionary).get(id, null)
+	return String((fx as Dictionary).get("name", "")) if fx is Dictionary else ""

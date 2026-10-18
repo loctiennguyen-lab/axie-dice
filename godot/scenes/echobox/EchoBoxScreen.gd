@@ -453,17 +453,18 @@ func _refresh_stage() -> void:
 		row.add_theme_constant_override("separation", UI3Theme.space("16"))
 		v.add_child(row)
 		var n_big := PULL_N
-		var o1 := UI3.button("Open 1", &"secondary", &"M")
+		# One primary: Open N when usable, else Open 1, else (below) the buy button.
+		var n_ok := pull_block_reason(n_big) == ""
+		var one_ok := pull_block_reason(1) == ""
+		var o1 := UI3.button("Open 1", &"primary" if (one_ok and not n_ok) else &"secondary", &"L" if (one_ok and not n_ok) else &"M")
 		o1.name = "Open1"
 		o1.pressed.connect(func() -> void: pull(1))
 		# A disabled reason must not be taller than "Open 1": only a usable Open N gets the big size.
-		var on := UI3.button("Open %d" % n_big, &"primary", &"L" if pull_block_reason(n_big) == "" else &"M")
+		var on := UI3.button("Open %d" % n_big, &"primary" if n_ok else &"secondary", &"L" if n_ok else &"M")
 		on.name = "OpenN"
 		on.pressed.connect(func() -> void: pull(n_big))
-		var rt := UI3.button("Rates", &"quiet", &"M")
+		var rt := UI3.button("Rates", &"secondary", &"S")   # a visible button, not a bare underline
 		rt.name = "Rates"
-		rt.add_theme_font_size_override("font_size", 20)
-		rt.add_theme_color_override("font_color", UI3Theme.color("text"))
 		rt.pressed.connect(open_rates)
 		for b in [o1, on]:
 			var why := pull_block_reason(1 if b == o1 else n_big)
@@ -477,10 +478,11 @@ func _refresh_stage() -> void:
 		# The reason lives inside the disabled buttons only (one place in every state).
 		if why1 != "":
 			if why1.begins_with("Not enough") and not _account_blocks():
-				var sc := UI3.button("Buy enough for 1 pull", &"secondary", &"S")
+				var can_buy := not (next_price() < 0 or MetaState.shard_pool < next_price())
+				var sc := UI3.button("Buy enough for 1 pull", &"primary" if can_buy else &"secondary", &"M")
 				sc.name = "BuyEnough"
 				sc.pressed.connect(buy_ticket)
-				sc.disabled = next_price() < 0 or MetaState.shard_pool < next_price()
+				sc.disabled = not can_buy
 				v.add_child(sc)
 	_stage_host.add_child(stage)
 	if not results.is_empty():

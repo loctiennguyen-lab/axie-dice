@@ -128,7 +128,8 @@ func _build_import_panel() -> void:
 	_body.add_child(panel)
 	var col := VBoxContainer.new()
 	col.add_theme_constant_override("separation", UI3Theme.space("16"))
-	panel.add_child(col)
+	col.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	panel.add_child(UI3Meta.scroll(col))   # a taller import preview scrolls, never clips
 	_right = col
 	var available := AxieApi.is_available()
 	col.add_child(UI3.label("Import by Axie ID", "LabelScreenTitle"))
@@ -214,6 +215,8 @@ func _refresh_scan_enabled() -> void:
 	if _scan_button == null:
 		return
 	var busy := not _status_label.text.is_empty() and _status_label.text.begins_with("Looking up")
+	# One primary at a time: once a looked-up Axie waits to be added, "Add to Vault" is it.
+	_scan_button.theme_type_variation = "ButtonSecondary" if not _pending_axie.is_empty() else "ButtonPrimaryM"
 	_scan_button.disabled = (not AxieApi.is_available()) or busy or state == "offline" \
 		or not AxieApi.is_valid_axie_id(_id_field.text)
 

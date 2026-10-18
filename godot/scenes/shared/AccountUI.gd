@@ -4,8 +4,8 @@ extends RefCounted
 ## account_ui_mock_v1.html): A welcome panel, B account chip, D save-choice dialog, E toasts.
 ## Settings → Account (C) lives in SettingsView and uses the same service calls.
 ##
-## Interim styling (Liam, 10 Oct 2026: "dùng tạm", full UI polish comes last). Everything goes
-## through DangoTheme surfaces, buttons and labels so the polish pass only has numbers to change.
+## UI-03: welcome, desktop sign-in, save choice and toasts are on UI3 (round-2 screens 16 and 26).
+## The account chip (B) is still Dango styled.
 
 const WELCOME_W := 760.0
 const CHOICE_W := 980.0
@@ -16,58 +16,59 @@ const TOAST_SECONDS := 10.0
 
 # ============================================================================ A · welcome
 
+## UI-03 (round 2, screen 16 / 26): plate dialog on a scrim, UI3 labels and buttons. One primary.
 static func show_welcome(layer: CanvasLayer) -> Control:
 	var service: Node = layer.get_parent()
 	var overlay := _overlay(layer)
 	overlay.name = "AccountWelcome"
 	var box := _modal(overlay, WELCOME_W)
 
-	box.add_child(_eyebrow("ACCOUNT"))
-	box.add_child(DangoTheme.display_label("Save your progress", 40))
-	box.add_child(_prose("Sign in with Google to keep your Axies, shards and runs on any device. "
-		+ "Your Sky Mavis work account works too. No new registration needed.", 18,
-		DangoTheme.TEXT_DIM))
+	var t := UI3.label("Save your progress", "LabelScreenTitle")
+	t.name = "Title"
+	box.add_child(t)
+	box.add_child(_prose("Sign in with Google to keep your Axies, Shards and runs on any device. "
+		+ "Your Sky Mavis work account works too. No new registration needed."))
 
 	var perks := HBoxContainer.new()
-	perks.add_theme_constant_override("separation", 12)
+	perks.add_theme_constant_override("separation", UI3Theme.space("16"))
 	for p in [["Vault", "your imported Axies"], ["Shards & Pass", "every unlock you earned"],
 			["Continue", "pick up a run on another device"]]:
-		var well := PanelContainer.new()
-		well.add_theme_stylebox_override("panel",
-			DangoTheme.surface_style(DangoTheme.Surface.WELL, 12, 3, 0.0, Vector2(12, 12)))
+		var well := UI3.plate(&"card")
 		well.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		var col := VBoxContainer.new()
-		col.alignment = BoxContainer.ALIGNMENT_CENTER
-		var t := DangoTheme.display_label(p[0], 22, DangoTheme.CREAM)
-		t.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		col.add_child(t)
-		var c := _prose(p[1], 14, DangoTheme.TEXT_DIM)
+		col.add_theme_constant_override("separation", UI3Theme.space("8"))
+		var pt := UI3.label(p[0], "LabelTitle")
+		pt.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		col.add_child(pt)
+		var c := _prose(p[1], "LabelMuted")
 		c.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		col.add_child(c)
 		well.add_child(col)
 		perks.add_child(well)
-	box.add_child(_gap(perks, 8))
+	box.add_child(perks)
 
-	var google := _button("CONTINUE WITH GOOGLE", true, 64)
+	var google := UI3.button("Continue with Google", &"primary", &"L")
 	google.name = "ContinueWithGoogle"
+	google.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	google.pressed.connect(func() -> void:
 		overlay.queue_free()
 		service.sign_in())
-	box.add_child(_gap(google, 8))
+	box.add_child(google)
 
 	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", 16)
-	var hint := _prose("No Google account? You can create one on the next screen.", 14,
-		DangoTheme.TEXT_DIM)
+	row.add_theme_constant_override("separation", UI3Theme.space("16"))
+	var hint := _prose("No Google account? You can create one on the next screen.", "LabelMuted")
 	hint.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	hint.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	row.add_child(hint)
-	var guest := _button("CONTINUE WITHOUT SIGNING IN", false, 44)
+	var guest := UI3.button("Continue without signing in", &"secondary", &"M")
 	guest.name = "PlayAsGuest"
 	guest.pressed.connect(func() -> void:
 		overlay.queue_free()
 		service.play_as_guest())
 	row.add_child(guest)
 	box.add_child(row)
+	google.call_deferred("grab_focus")
 	return overlay
 
 
@@ -89,35 +90,33 @@ static func show_desktop_flow(layer: CanvasLayer, service: Node, auto_dismiss_s:
 			box.remove_child(c)
 			c.queue_free()
 		var phase := String(service.get("desktop_phase"))
-		box.add_child(_eyebrow("ACCOUNT"))
 		match phase:
 			"waiting":
-				var t := DangoTheme.display_label("Waiting for the browser…", 36)
+				var t := UI3.label("Waiting for the browser…", "LabelScreenTitle")
 				t.name = "Title"
 				box.add_child(t)
-				box.add_child(_prose("Finish signing in in your browser. Then come back here; the game picks it up by itself.",
-					18, DangoTheme.TEXT_DIM))
-				var again := _button("OPEN BROWSER AGAIN", false, 48)
+				box.add_child(_prose("Finish signing in in your browser. Then come back here; the game picks it up by itself."))
+				var again := UI3.button("Open browser again", &"primary", &"M")
 				again.name = "OpenAgain"
 				again.pressed.connect(func() -> void: service.reopen_desktop_browser())
-				box.add_child(_gap(again, 8))
-				var cancel := _button("CANCEL", false, 48)
+				box.add_child(again)
+				var cancel := UI3.button("Cancel", &"secondary", &"M")
 				cancel.name = "Cancel"
 				cancel.pressed.connect(func() -> void: service.cancel_desktop_sign_in())
 				box.add_child(cancel)
 			"finishing":
-				var t := DangoTheme.display_label("Signing you in…", 36)
+				var t := UI3.label("Signing you in…", "LabelScreenTitle")
 				t.name = "Title"
 				box.add_child(t)
-				box.add_child(_prose("Google said yes. Checking your account.", 18, DangoTheme.TEXT_DIM))
+				box.add_child(_prose("Google said yes. Checking your account."))
 			"signed_in":
-				var t := DangoTheme.display_label("Signed in as %s" % String(service.display_name()), 36)
+				var t := UI3.label("Signed in as %s" % String(service.display_name()), "LabelScreenTitle")
 				t.name = "Title"
 				box.add_child(t)
-				var go := _button("CONTINUE", true, 48)
+				var go := UI3.button("Continue", &"primary", &"M")
 				go.name = "Continue"
 				go.pressed.connect(func() -> void: service.dismiss_desktop_result())
-				box.add_child(_gap(go, 8))
+				box.add_child(go)
 				if auto_dismiss_s > 0.0 and not dismissed[0] and overlay.is_inside_tree():
 					dismissed[0] = true
 					overlay.get_tree().create_timer(auto_dismiss_s).timeout.connect(func() -> void:
@@ -125,17 +124,18 @@ static func show_desktop_flow(layer: CanvasLayer, service: Node, auto_dismiss_s:
 							service.dismiss_desktop_result())
 			"error":
 				var copy: Array = AccountScreen.error_copy(String(service.get("desktop_error")))
-				var t := DangoTheme.display_label(String(copy[0]), 36)
+				var t := UI3.label(String(copy[0]), "LabelScreenTitle")
 				t.name = "Title"
+				t.add_theme_color_override("font_color", UI3Theme.color("danger_text"))
 				box.add_child(t)
-				box.add_child(_prose(String(copy[1]), 18, DangoTheme.TEXT_DIM))
-				var retry := _button(String(copy[2]).to_upper(), true, 48)
+				box.add_child(_prose(String(copy[1])))
+				var retry := UI3.button(String(copy[2]), &"primary", &"M")
 				retry.name = "Retry"
 				retry.pressed.connect(func() -> void:
 					service.clear_desktop_error()
 					service.sign_in())
-				box.add_child(_gap(retry, 8))
-				var close := _button("CLOSE", false, 48)
+				box.add_child(retry)
+				var close := UI3.button("Close", &"secondary", &"M")
 				close.name = "Close"
 				close.pressed.connect(func() -> void: service.clear_desktop_error())
 				box.add_child(close)
@@ -237,7 +237,7 @@ static func _fill_chip(row: HBoxContainer, service: Node) -> void:
 	dot.color = line[1]
 	dot.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	st.add_child(dot)
-	var lbl := _prose(line[0], 13, DangoTheme.TEXT_DIM if signed_in else DangoTheme.PRIMARY)
+	var lbl := _chip_prose(line[0], 13, DangoTheme.TEXT_DIM if signed_in else DangoTheme.PRIMARY)
 	lbl.autowrap_mode = TextServer.AUTOWRAP_OFF
 	lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	st.add_child(lbl)
@@ -249,26 +249,21 @@ static func _fill_chip(row: HBoxContainer, service: Node) -> void:
 static func status_line(service: Node) -> Array:
 	var st := int(service.status)
 	if st == AccountServiceScript.Status.SAVED:
-		return ["Saved", DangoTheme.SUCCESS]
+		return ["Saved", UI3Theme.color("success_text")]
 	if st == AccountServiceScript.Status.SAVING:
-		return ["Saving…", DangoTheme.PRIMARY]
+		return ["Saving…", UI3Theme.color("accent")]
 	if st == AccountServiceScript.Status.CHECKING:
-		return ["Checking…", DangoTheme.PRIMARY]
+		return ["Checking…", UI3Theme.color("accent")]
 	if st == AccountServiceScript.Status.OFFLINE:
-		return ["Offline — will sync", DangoTheme.DANGER]
+		return ["Offline — will sync", UI3Theme.color("danger_text")]
 	if st == AccountServiceScript.Status.EXPIRED:
-		return ["Signed out — sign in to save", DangoTheme.DANGER]
-	return ["Sign in to save", DangoTheme.PRIMARY]
+		return ["Signed out — sign in to save", UI3Theme.color("danger_text")]
+	return ["Sign in to save", UI3Theme.color("accent")]
 
 
 static func sky_mavis_badge() -> PanelContainer:
-	var b := PanelContainer.new()
-	b.add_theme_stylebox_override("panel", DangoTheme.solid_chip_style(DangoTheme.SHIELD_BLUE, 6, 2))
+	var b := UI3Meta.tag("SKY MAVIS")
 	b.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	b.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var l := DangoTheme.display_label("SKY MAVIS", 11, DangoTheme.INK_ON_SHIELD)
-	l.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	b.add_child(l)
 	return b
 
 
@@ -278,26 +273,25 @@ static func sky_mavis_badge() -> PanelContainer:
 ## this device) or "conflict" (the account moved on elsewhere since this device last synced).
 ## done(choice) gets "move"/"fresh" or "local"/"cloud". The dialog cannot be dismissed without
 ## choosing — the whole point is that nothing is decided for the player.
+## UI-03: "Choose a save" shows two cards; exactly one primary (the newer save), the other secondary.
 static func show_choice(layer: CanvasLayer, kind: String, info: Dictionary, done: Callable) -> Control:
 	var overlay := _overlay(layer)
 	var box := _modal(overlay, MOVE_W if kind == "move" else CHOICE_W)
-	box.add_child(_eyebrow("CHOOSE A SAVE"))
 
 	if kind == "move":
-		box.add_child(DangoTheme.display_label("Move your guest progress?", 40))
+		box.add_child(UI3.label("Move your guest progress?", "LabelScreenTitle"))
 		box.add_child(_prose("This browser has progress from before you signed in, and your account "
-			+ "is empty. Move it to your account to keep it on every device.", 18,
-			DangoTheme.TEXT_DIM))
-		box.add_child(_gap(_save_card("This device (guest)", "", info.get("local", {})), 8))
+			+ "is empty. Move it to your account to keep it on every device."))
+		box.add_child(_save_card("This device (guest)", "", info.get("local", {})))
 		var row := HBoxContainer.new()
-		row.add_theme_constant_override("separation", 12)
-		var move := _button("MOVE PROGRESS", true, 56)
+		row.add_theme_constant_override("separation", UI3Theme.space("16"))
+		var move := UI3.button("Move progress", &"primary", &"M")
 		move.name = "MoveProgress"
 		move.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		move.pressed.connect(func() -> void:
 			overlay.queue_free()
 			done.call("move"))
-		var fresh := _button("START FRESH", false, 56)
+		var fresh := UI3.button("Start fresh", &"secondary", &"M")
 		fresh.name = "StartFresh"
 		fresh.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		fresh.pressed.connect(func() -> void:
@@ -305,7 +299,8 @@ static func show_choice(layer: CanvasLayer, kind: String, info: Dictionary, done
 			done.call("fresh"))
 		row.add_child(move)
 		row.add_child(fresh)
-		box.add_child(_gap(row, 8))
+		box.add_child(row)
+		move.call_deferred("grab_focus")
 		return overlay
 
 	var title := "This device has guest progress" if kind == "choose" \
@@ -314,56 +309,62 @@ static func show_choice(layer: CanvasLayer, kind: String, info: Dictionary, done
 		+ "other one stays on this device for %d days in case you change your mind.") if kind == "choose" \
 		else ("This device and your account both changed since they last matched. Pick the one "
 		+ "to keep. The other one stays on this device for %d days in case you change your mind.")
-	box.add_child(DangoTheme.display_label(title, 40))
-	box.add_child(_prose(body % AccountServiceScript.BACKUP_DAYS, 18, DangoTheme.TEXT_DIM))
+	var tl := UI3.label("Choose a save", "LabelScreenTitle")
+	tl.name = "Title"
+	box.add_child(tl)
+	box.add_child(UI3.label(title, "LabelTitle"))
+	box.add_child(_prose(body % AccountServiceScript.BACKUP_DAYS, "LabelMuted"))
 
 	var cards := HBoxContainer.new()
-	cards.add_theme_constant_override("separation", 14)
+	cards.add_theme_constant_override("separation", UI3Theme.space("16"))
 	var local_title := "This device (guest)" if kind == "choose" else "This device"
 	var cloud: Dictionary = info.get("cloud", {})
 	var cloud_when := ""
 	if int(cloud.get("updated_at", 0)) > 0:
 		cloud_when = "Saved " + ago(int(cloud["updated_at"]))
-	# Both cards carry a "when" line so they are the same height and the two buttons line up.
-	for side in [["local", local_title, "On this browser", "KEEP THIS DEVICE", true],
-			["cloud", "Cloud (your account)", cloud_when, "KEEP CLOUD", false]]:
+	# Primary goes to the save with more XP (the further-along one); a tie keeps the account's cloud save.
+	var local_xp := int((info.get("local", {}) as Dictionary).get("xp", 0))
+	var cloud_xp := int(cloud.get("xp", 0))
+	var local_primary := local_xp > cloud_xp
+	for side in [["local", local_title, "On this browser", "Keep this device", local_primary],
+			["cloud", "Cloud (your account)", cloud_when, "Keep cloud", not local_primary]]:
 		var col := VBoxContainer.new()
-		col.add_theme_constant_override("separation", 10)
+		col.add_theme_constant_override("separation", UI3Theme.space("16"))
 		col.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		col.add_child(_save_card(side[1], side[2], info.get(side[0], {})))
-		var b := _button(side[3], side[4], 52)
+		var b := UI3.button(side[3], &"primary" if side[4] else &"secondary", &"M")
 		b.name = "Keep" + String(side[0]).capitalize()
+		b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		var choice: String = side[0]
 		b.pressed.connect(func() -> void:
 			overlay.queue_free()
 			done.call(choice))
 		col.add_child(b)
 		cards.add_child(col)
-	box.add_child(_gap(cards, 8))
+		# No auto-focus: either button overwrites the other save, so Enter must never pick one by itself.
+	box.add_child(cards)
 	return overlay
 
 
 static func _save_card(title: String, when: String, s: Dictionary) -> PanelContainer:
-	var card := PanelContainer.new()
-	card.add_theme_stylebox_override("panel",
-		DangoTheme.surface_style(DangoTheme.Surface.CREAM, 14, 3, 4.0, Vector2(18, 14)))
+	var card := UI3.plate(&"card")
 	card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	var col := VBoxContainer.new()
-	col.add_theme_constant_override("separation", 4)
+	col.add_theme_constant_override("separation", UI3Theme.space("8"))
 	card.add_child(col)
-	col.add_child(DangoTheme.display_label(title, 22, DangoTheme.INK))
+	col.add_child(UI3.label(title, "LabelTitle"))
 	if not when.is_empty():
-		col.add_child(_prose(when, 13, DangoTheme.INK_ON_CREAM_MUTED))
-	for r in [["Gene shards", str(int(s.get("shards", 0)))],
+		col.add_child(UI3.label(when, "LabelMuted"))
+	for r in [["Gene Shards", str(int(s.get("shards", 0)))],
 			["XP", str(int(s.get("xp", 0)))],
 			["Vault", "%d / 20" % int(s.get("vault", 0))],
 			["Runs · wins", "%d · %d" % [int(s.get("runs", 0)), int(s.get("wins", 0))]],
 			["Run in progress", String(s.get("run", "")) if not String(s.get("run", "")).is_empty() else "—"]]:
 		var row := HBoxContainer.new()
-		var k := _prose(r[0], 15, DangoTheme.INK_ON_CREAM_MUTED)
+		var k := UI3.label(r[0], "LabelMuted")
 		k.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		row.add_child(k)
-		row.add_child(DangoTheme.display_label(r[1], 20, DangoTheme.INK))
+		row.add_child(UI3.label(r[1]))
 		col.add_child(row)
 	return card
 
@@ -381,9 +382,8 @@ static func show_toast(layer: CanvasLayer, code: String) -> Control:
 	holder.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	layer.add_child(holder)
 
-	var panel := PanelContainer.new()
-	panel.add_theme_stylebox_override("panel",
-		DangoTheme.surface_style(DangoTheme.Surface.PANEL, 12, 3, 6.0, Vector2(3, 3)))
+	var warn := code in ["session_expired", "save_failed", "sign_out_failed"]
+	var panel := UI3.plate(&"notice")
 	panel.anchor_left = 0.5
 	panel.anchor_right = 0.5
 	panel.anchor_top = 1.0
@@ -393,54 +393,47 @@ static func show_toast(layer: CanvasLayer, code: String) -> Control:
 	panel.custom_minimum_size = Vector2(TOAST_W, 0)
 	panel.offset_left = -TOAST_W / 2.0
 	panel.offset_right = TOAST_W / 2.0
-	panel.offset_bottom = -(DangoScreen.SAFE + DangoScreen.FOOTER_H + 24.0)
+	panel.offset_bottom = -UI3Theme.space("24")
 	holder.add_child(panel)
 
 	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", 14)
+	row.add_theme_constant_override("separation", UI3Theme.space("16"))
 	panel.add_child(row)
-	var warn := code in ["session_expired", "save_failed", "sign_out_failed"]
-	var bar := ColorRect.new()
-	bar.custom_minimum_size = Vector2(8, 0)
-	bar.color = DangoTheme.PRIMARY if warn else DangoTheme.DANGER
-	row.add_child(bar)
-	var msg := _prose(AccountServiceScript.error_message(code), 16, DangoTheme.TEXT)
+	# Status dot, then the message in words (red only for a real failure of sign-in).
+	var dot := ColorRect.new()
+	dot.custom_minimum_size = Vector2(8, 8)
+	dot.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	dot.color = UI3Theme.color("accent") if warn else UI3Theme.color("danger")
+	row.add_child(dot)
+	var msg := _prose(AccountServiceScript.error_message(code))
 	msg.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	msg.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	var msg_box := MarginContainer.new()
-	msg_box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	msg_box.add_theme_constant_override("margin_top", 14)
-	msg_box.add_theme_constant_override("margin_bottom", 14)
-	msg_box.add_child(msg)
-	row.add_child(msg_box)
+	row.add_child(msg)
 
 	var actions: Array = []
 	match code:
 		"access_denied", "network":
-			actions = [["TRY AGAIN" if code == "access_denied" else "RETRY", true,
+			actions = [["Try again" if code == "access_denied" else "Retry", true,
 					func() -> void: service.sign_in()],
-				["CONTINUE WITHOUT SIGNING IN", false, func() -> void: service.play_as_guest()]]
+				["Continue without signing in", false, func() -> void: service.play_as_guest()]]
 		"admin_policy_enforced", "org_internal":
-			actions = [["USE ANOTHER ACCOUNT", true, func() -> void: service.sign_in(true)]]
+			actions = [["Use another account", true, func() -> void: service.sign_in(true)]]
 		"session_expired":
-			actions = [["SIGN IN", true, func() -> void: service.sign_in()]]
+			actions = [["Sign in", true, func() -> void: service.sign_in()]]
 		"save_failed":
-			actions = [["SYNC NOW", false, func() -> void: service.sync_now()]]
+			actions = [["Sync now", false, func() -> void: service.sync_now()]]
 		"sign_out_failed":
 			actions = []
 		_:
-			actions = [["TRY AGAIN", true, func() -> void: service.sign_in()]]
+			actions = [["Try again", true, func() -> void: service.sign_in()]]
 	for a in actions:
-		var b := _button(a[0], a[1], 44)
+		var b := UI3.button(a[0], &"primary" if a[1] else &"secondary", &"M")
 		b.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 		var act: Callable = a[2]
 		b.pressed.connect(func() -> void:
 			holder.queue_free()
 			act.call())
 		row.add_child(b)
-	var pad := Control.new()
-	pad.custom_minimum_size = Vector2(4, 0)
-	row.add_child(pad)
 
 	var timer := holder.get_tree().create_timer(TOAST_SECONDS)
 	timer.timeout.connect(func() -> void:
@@ -467,9 +460,12 @@ static func _overlay(layer: CanvasLayer) -> Control:
 	overlay.name = "AccountOverlay"
 	overlay.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	overlay.mouse_filter = Control.MOUSE_FILTER_STOP
+	overlay.theme = UI3Theme.get_theme()
 	var scrim := ColorRect.new()
+	scrim.name = "Scrim"
 	scrim.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	scrim.color = Color(DangoTheme.SCRIM_INK, 0.82)
+	scrim.color = UI3Theme.color("scrim")
+	scrim.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	overlay.add_child(scrim)
 	layer.add_child(overlay)
 	return overlay
@@ -478,23 +474,26 @@ static func _overlay(layer: CanvasLayer) -> Control:
 static func _modal(overlay: Control, width: float) -> VBoxContainer:
 	var center := CenterContainer.new()
 	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	center.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	overlay.add_child(center)
-	var panel := PanelContainer.new()
-	panel.add_theme_stylebox_override("panel",
-		DangoTheme.surface_style(DangoTheme.Surface.PANEL, 18, 3, 8.0, Vector2(32, 28)))
+	var panel := UI3.plate(&"dialog")
+	panel.name = "Dialog"
 	panel.custom_minimum_size = Vector2(width, 0)
 	center.add_child(panel)
 	var box := VBoxContainer.new()
-	box.add_theme_constant_override("separation", 12)
+	box.add_theme_constant_override("separation", UI3Theme.space("16"))
 	panel.add_child(box)
 	return box
 
 
-static func _eyebrow(text: String) -> Label:
-	return DangoTheme.display_label(text, 13, DangoTheme.PRIMARY, 800, 0.18)
+## Wrapped body text. `variation` "" = body, "LabelMuted" = muted. (The chip below still uses _chip_prose.)
+static func _prose(text: String, variation := "") -> Label:
+	var l := UI3.label(text, variation)
+	l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	return l
 
 
-static func _prose(text: String, size: int, color: Color) -> Label:
+static func _chip_prose(text: String, size: int, color: Color) -> Label:
 	var l := DangoTheme.prose_label(text, size, color)
 	l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	return l

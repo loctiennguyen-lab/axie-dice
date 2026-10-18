@@ -187,17 +187,24 @@ func reward_text(r: Dictionary) -> String:
 		"stone": return "%s Stone" % _thousands(int(v))
 		"ticket": return "%d ticket%s" % [int(v), "" if int(v) == 1 else "s"]
 		"gem": return "%d Gem" % int(v)
-		"cosmetic": return _pretty(String(v))
+		"cosmetic": return cosmetic_name(String(v))
 		"title": return "Title: %s" % String(v).capitalize()
-		"unlock": return "Stat unlock: %s" % _pretty(String(v))
+		"unlock": return "Unlock: %s" % unlock_name(String(v))
 	return String(v)
 
 
-func _pretty(id: String) -> String:
-	var out: Array[String] = []
-	for p in id.split("_"):
-		out.append(String(p).capitalize())
-	return " ".join(out)
+## Player name of a cosmetic id (manifest), never the internal id.
+static func cosmetic_name(id: String) -> String:
+	var n := CosmeticTile.any_name(id)
+	return n if n != "" else "Cosmetic reward"
+
+
+## Player name of a Shard unlock id (ContentDB.UNLOCKS "n"), never the internal id.
+static func unlock_name(id: String) -> String:
+	for d in ContentDB.UNLOCKS:
+		if String((d as Dictionary)["id"]) == id:
+			return String((d as Dictionary)["n"]).capitalize() if String((d as Dictionary)["n"]).to_upper() == String((d as Dictionary)["n"]) else String((d as Dictionary)["n"])
+	return "Permanent unlock"
 
 
 func _thousands(n: int) -> String:
