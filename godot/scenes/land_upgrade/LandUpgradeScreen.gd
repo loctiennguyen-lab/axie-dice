@@ -63,11 +63,7 @@ func _default_sel() -> int:
 
 
 func _unhandled_key_input(ev: InputEvent) -> void:
-	if ev is InputEventKey and ev.pressed and not ev.echo and ev.keycode == KEY_ESCAPE:
-		if _modal != null:
-			_close_modal()
-		else:
-			_on_back()
+	if UI3Meta.esc_back(ev, _shell, _on_back):
 		get_viewport().set_input_as_handled()
 
 
@@ -77,13 +73,7 @@ func _on_back() -> void:
 
 
 static func fmt(n: int) -> String:
-	var s := str(absi(n))
-	var out := ""
-	for i in s.length():
-		if i > 0 and (s.length() - i) % 3 == 0:
-			out += ","
-		out += s[i]
-	return ("-" if n < 0 else "") + out
+	return UI3.fmt(n)
 
 
 ## Cumulative Stone from the tier you are on up to `tier` (what it takes to reach it from here).
@@ -289,7 +279,7 @@ func _ask(tier: int) -> void:
 	_modal = UI3Meta.confirm(_shell["modal_layer"], "Spend %s Stone?" % fmt(cost),
 		"%s becomes %s. This cannot be undone.\nStone after: %s." % [
 			TIER_NAMES[tier - 2], TIER_NAMES[tier - 1], fmt(MetaState.stone - cost)],
-		"Keep Stone", "Upgrade to %s" % TIER_NAMES[tier - 1], confirm_upgrade.bind(tier), _close_modal)
+		"Keep Stone", "Upgrade to %s" % TIER_NAMES[tier - 1], confirm_upgrade.bind(tier), _close_modal, false)
 
 
 func _close_modal() -> void:

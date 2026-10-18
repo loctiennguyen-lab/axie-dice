@@ -8,7 +8,8 @@ extends Control
 ## Not built: mouse drag of the handle (Alt + Left/Right on a focused card reorders), the
 ## "Best Ascension won with it" line (no per-team result history exists), house thumbnail.
 
-const SEAT := 160   # square Axie preview (spec 27)
+const SEAT := 160   # largest square Axie preview (spec 27)
+const TILE_H := 284.0
 
 ## "mine" | "samples"
 var tab := "mine"
@@ -239,15 +240,15 @@ func refresh() -> void:
 	if guest:
 		UI3Meta.banner(_shell["banner_host"], "Presets are saved on this computer only.",
 			"Sign in to keep them across devices.",
-			[{"text": "Sign in", "primary": true, "cb": func() -> void:
+			[{"name": "SignIn", "text": "Sign in", "primary": true, "cb": func() -> void:
 				if is_inside_tree() and not no_scene_change:
 					LandNav.open(&"account")}])
 	if view == "editor":
 		sub.text = "› %s" % (edit_name if edit_name != "" else "New team")
 		_body.add_child(UI3Meta.scroll(_build_editor()))
 		return
-	for t in [["mine", "My teams  M"], ["samples", "Sample teams  S"]]:
-		var b := UI3Meta.tab(t[1], t[0] == tab)
+	for t in [["mine", "My teams", "M"], ["samples", "Sample teams", "S"]]:
+		var b := UI3Meta.tab(t[1], t[0] == tab, t[2])
 		b.name = "Tab_" + String(t[0])
 		b.pressed.connect(switch_tab.bind(t[0]))
 		_tabs_box.add_child(b)
@@ -263,7 +264,7 @@ func refresh() -> void:
 ## Square Axie preview 160x160 (portrait + name); a missing Axie gets a red-8 frame and "Missing".
 func _seat_cell(key: String, missing: bool) -> Control:
 	var p := PanelContainer.new()
-	p.custom_minimum_size = Vector2(SEAT, SEAT)
+	p.custom_minimum_size = Vector2(0, 0)
 	p.theme = UI3Theme.get_theme()
 	p.add_theme_stylebox_override("panel", UI3Theme.flat(UI3Theme.color("danger_bg") if missing else UI3Theme.color("panel_raised"),
 		8, 2 if missing else 0, UI3Theme.color("danger_text"), Vector4(8, 8, 8, 8)))
@@ -290,12 +291,26 @@ func _seat_cell(key: String, missing: bool) -> Control:
 	return p
 
 
+## Five square previews in a row: each takes an equal share of the width (up to SEAT px) and stays square.
+func _seat_row(keys: Array, missing_of: Callable) -> HBoxContainer:
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 8)
+	for k in keys:
+		var a := AspectRatioContainer.new()
+		a.ratio = 1.0
+		a.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		a.custom_minimum_size = Vector2(64, 0)
+		a.add_child(_seat_cell(String(k), missing_of.call(String(k))))
+		row.add_child(a)
+	return row
+
+
 func _build_empty() -> Control:
 	var c := CenterContainer.new()
 	c.name = "Empty"
 	c.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	var v := VBoxContainer.new()
-	v.add_theme_constant_override("separation", UI3Theme.space("16"))
+	v.add_theme_constant_override("separation", UI3Theme.space("32"))   # body-to-button gap
 	v.alignment = BoxContainer.ALIGNMENT_CENTER
 	c.add_child(v)
 	var t := UI3.label("No saved teams yet", "LabelScreenTitle")
@@ -318,7 +333,7 @@ func _build_empty() -> Control:
 func _build_grid() -> Control:
 	var g := GridContainer.new()
 	g.name = "Grid"
-	g.columns = 2
+	g.columns = 3   # 3 / 6 / 9 slots by Land tier = 3 x 3 at most
 	g.add_theme_constant_override("h_separation", 16)
 	g.add_theme_constant_override("v_separation", 16)
 	g.size_flags_vertical = Control.SIZE_EXPAND_FILL
@@ -343,13 +358,14 @@ func _tile(kind := &"card") -> PanelContainer:
 	var p := UI3.plate(kind)
 	p.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	p.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	p.size_flags_stretch_ratio = 1.0
+	p.custom_minimum_size = Vector2(0, TILE_H)   # all tiles the same height
 	return p
 
 
 func _locked_card(n: int) -> Control:
 	var p := _tile(&"row")
 	p.modulate.a = 0.6   # locked = 0.6 (components.md ListRow)
-	p.custom_minimum_size = Vector2(0, 96)
 	p.name = "Locked%d" % n
 	var v := VBoxContainer.new()
 	v.alignment = BoxContainer.ALIGNMENT_CENTER
@@ -365,7 +381,6 @@ func _locked_card(n: int) -> Control:
 
 func _open_card(n: int) -> Control:
 	var p := _tile(&"row")
-	p.custom_minimum_size = Vector2(0, 96)
 	p.name = "Open%d" % (n + 1)
 	var b := UI3.button("+  New team", &"secondary", &"M")
 	b.name = "New%d" % (n + 1)
@@ -382,16 +397,12 @@ func _preset_card(i: int) -> Control:
 	var p := _tile(&"card")
 	p.name = "Preset%d" % i
 	var v := VBoxContainer.new()
-	v.add_theme_constant_override("separation", UI3Theme.space("8"))
+	v.add_theme_constant_override("separation", UI3Theme.space("4"))
 	p.add_child(v)
-	var seats := HBoxContainer.new()
-	seats.add_theme_constant_override("separation", 8)
-	v.add_child(seats)
+	v.add_child(_seat_row(e["party"], func(k: String) -> bool: return not TeamPresets.seat_ok(k)))
 	var names: Array[String] = []
 	for k in (e["party"] as Array):
-		var ok := TeamPresets.seat_ok(String(k))
-		seats.add_child(_seat_cell(String(k), not ok))
-		if ok:
+		if TeamPresets.seat_ok(String(k)):
 			names.append(String((ContentDB.heroes.get(String(k), {}) as Dictionary).get("n", k)))
 	var head := HBoxContainer.new()
 	head.add_theme_constant_override("separation", UI3Theme.space("8"))
@@ -399,6 +410,7 @@ func _preset_card(i: int) -> Control:
 	var nm := UI3.label(String(e["name"]), "LabelTitle")
 	nm.name = "Name"
 	nm.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	nm.size_flags_horizontal = Control.SIZE_EXPAND_FILL   # takes the free width: ellipsis only when truly too long
 	head.add_child(nm)
 	head.add_child(UI3.label("%d / 5" % (5 - miss), "LabelMuted"))
 	if TeamPresets.has_nft(e):
@@ -408,6 +420,7 @@ func _preset_card(i: int) -> Control:
 	line.clip_text = true
 	line.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	line.custom_minimum_size.x = 0
+	line.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	if miss > 0:
 		line.add_theme_color_override("font_color", UI3Theme.color("danger_text"))
 	v.add_child(line)
@@ -454,11 +467,7 @@ func _build_samples() -> Control:
 		cv.add_theme_constant_override("separation", UI3Theme.space("8"))
 		c.add_child(cv)
 		cv.add_child(UI3.label(String(gd.get("n", "")).capitalize(), "LabelTitle"))
-		var seats := HBoxContainer.new()
-		seats.add_theme_constant_override("separation", 8)
-		cv.add_child(seats)
-		for k in gd.get("team", []):
-			seats.add_child(_seat_cell(String(k), not ContentDB.heroes.has(str(k))))
+		cv.add_child(_seat_row(gd.get("team", []), func(k: String) -> bool: return not ContentDB.heroes.has(k)))
 		var why := UI3.label(String(gd.get("why", "")))
 		why.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		why.custom_minimum_size.x = 400
@@ -500,6 +509,7 @@ func _build_editor() -> Control:
 	v.add_child(foot)
 	var cancel := UI3.button("Cancel", &"secondary", &"M")
 	cancel.name = "Cancel"
+	cancel.custom_minimum_size.y = 56
 	cancel.pressed.connect(cancel_editor)
 	foot.add_child(cancel)
 	_save_btn = UI3.button("Save team", &"primary", &"L")
@@ -550,6 +560,7 @@ func _edit_seat(s: int) -> Control:
 		names.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		var nl := UI3.label(String(def.get("n", key)), "LabelTitle")
 		nl.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+		nl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		names.add_child(nl)
 		names.add_child(UI3.label(String(def.get("cls", "")).capitalize(), "LabelMuted"))
 		top.add_child(names)

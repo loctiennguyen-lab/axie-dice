@@ -8,6 +8,8 @@ extends RefCounted
 
 const MARGIN := 24
 const GAP := 24
+## Tooltip of the back button; one place for the English (localisation hook).
+const BACK_HINT := "Back · Esc"
 
 
 ## Builds the shell inside `host` (the scene root Control). `on_back` runs for the back button; Esc is the
@@ -43,7 +45,7 @@ static func build(host: Control, title: String, sub: String, on_back: Callable) 
 	var back := UI3.button("←", &"secondary", &"S")
 	back.name = "Back"
 	back.custom_minimum_size = Vector2(48, 48)
-	back.tooltip_text = "Back · Esc"
+	back.tooltip_text = BACK_HINT
 	back.pressed.connect(on_back)
 	trow.add_child(back)
 	var t := UI3.label(title, "LabelScreenTitle")
@@ -75,49 +77,19 @@ static func build(host: Control, title: String, sub: String, on_back: Callable) 
 		"banner_host": banner_host, "modal_layer": modal, "back": back, "sub": s}
 
 
-## Currency plate (Gem, Shard, Stone) from the real wallet; node "Currencies".
-static func currency_plate() -> PanelContainer:
-	var f := func(field: String) -> String:
-		var v: Variant = MetaState.get(field)
-		return _fmt(int(v) if v != null else 0)
-	var p := UI3.currency_pill([
-		{"icon": "cur_gem", "value": f.call("lunar_gem")},
-		{"icon": "cur_shard", "value": f.call("shard_pool")},
-		{"icon": "cur_stone", "value": f.call("stone")}])
+## Currency plate (node "Currencies"). Default = the wallet in Land hub order (UI3.currency_entries).
+## `entries` overrides the cells ([{icon, value}]), `loading` shows "···", `hidden` hides the plate
+## (signed out).
+static func currency_plate(entries: Array = [], loading := false, hidden := false) -> PanelContainer:
+	var p := UI3.currency_pill(entries if not entries.is_empty() else UI3.currency_entries(loading))
 	p.name = "Currencies"
+	p.visible = not hidden
 	return p
 
 
-static func _fmt(v: int) -> String:
-	var s := str(absi(v))
-	var out := ""
-	while s.length() > 3:
-		out = "," + s.substr(s.length() - 3) + out
-		s = s.substr(0, s.length() - 3)
-	return ("-" if v < 0 else "") + s + out
-
-
-## Tab button: h 56, wood-1; selected = wood-3 + 3 px cream outline (tokens Tab/styles).
-static func tab(text: String, selected: bool) -> Button:
-	var b := Button.new()
-	b.theme = UI3Theme.get_theme()
-	b.text = text
-	b.focus_mode = Control.FOCUS_ALL
-	b.custom_minimum_size = Vector2(0, 56)
-	b.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
-	b.add_theme_font_override("font", UI3Theme.font_display())
-	b.add_theme_font_size_override("font_size", 18)
-	var cream := UI3Theme.color("text")
-	for c in ["font_color", "font_hover_color", "font_pressed_color", "font_focus_color"]:
-		b.add_theme_color_override(c, cream)
-	var m := Vector4(UI3Theme.space("24"), 0, UI3Theme.space("24"), 0)
-	var wood1 := UI3Theme.flat(UI3Theme.color("panel"), 8, 0, Color.TRANSPARENT, m)
-	var wood3 := UI3Theme.flat(UI3Theme.hex("#58321d"), 8, 3, cream, m)
-	b.add_theme_stylebox_override("normal", wood3 if selected else wood1)
-	b.add_theme_stylebox_override("hover", wood3 if selected else UI3Theme.flat(UI3Theme.color("panel_raised"), 8, 0, Color.TRANSPARENT, m))
-	b.add_theme_stylebox_override("pressed", wood3)
-	b.add_theme_stylebox_override("focus", UI3Theme.focus_style(8))
-	return b
+## Tab button with optional key letter chip. Selected = toggled on.
+static func tab(text: String, selected: bool, key := "") -> Button:
+	return UI3.tab(text, selected, key)
 
 
 ## Small wood-2 tag ("NFT", "Equipped"): never amber (kam-6 is primary only).
@@ -134,7 +106,8 @@ static func tag(text: String) -> PanelContainer:
 	return c
 
 
-## Notice row under the header: one sentence, one detail line, optional buttons [{text, primary, cb}].
+## Notice row under the header: one sentence, one detail line, optional buttons [{name, text, primary, cb}]
+## (`name` is the node name, required).
 static func banner(host: VBoxContainer, msg: String, detail: String, buttons: Array = []) -> PanelContainer:
 	var p := UI3.plate(&"notice")
 	p.name = "Banner"
@@ -151,7 +124,7 @@ static func banner(host: VBoxContainer, msg: String, detail: String, buttons: Ar
 	h.add_child(t)
 	for b in buttons:
 		var btn := UI3.button(String(b["text"]), &"primary" if bool(b.get("primary", false)) else &"secondary", &"M")
-		btn.name = "Btn_" + String(b["text"]).replace(" ", "")
+		btn.name = String(b["name"])
 		btn.pressed.connect(b["cb"])
 		h.add_child(btn)
 	host.add_child(p)
@@ -177,20 +150,32 @@ static func scrim(modal_layer: Control, name: String) -> CenterContainer:
 	return c
 
 
-## Confirm dialog (UI3.modal, 560 w); focus starts on `keep_text` (destructive = Cancel side). Esc keeps.
+## Confirm dialog (UI3.modal, 560 w). `destructive` (default): OK is the danger button and focus starts
+## on `keep_text` (Cancel side). Otherwise OK is primary and has focus. Esc = keep.
 static func confirm(modal_layer: Control, title: String, body: String, keep_text: String,
-		do_text: String, on_do: Callable, on_close: Callable) -> Control:
+		do_text: String, on_do: Callable, on_close: Callable, destructive := true) -> Control:
 	var keep := UI3.button(keep_text, &"secondary", &"M")
 	keep.name = "Keep"
 	keep.pressed.connect(on_close)
-	var ok := UI3.button(do_text, &"danger", &"M")
+	var ok := UI3.button(do_text, &"danger" if destructive else &"primary", &"M")
 	ok.name = "Do"
 	ok.pressed.connect(on_do)
-	var m := UI3.modal(title, body, [keep, ok], 0)
+	var m := UI3.modal(title, body, [keep, ok], 0 if destructive else 1)
 	m.name = "Confirm"
 	m.cancelled.connect(on_close)
 	modal_layer.add_child(m)
 	return m
+
+
+## Esc = back, unless a modal is open (the modal owns Esc then). True when the key was used.
+static func esc_back(ev: InputEvent, shell: Dictionary, on_back: Callable) -> bool:
+	var k := ev as InputEventKey
+	if k == null or not k.pressed or k.echo or k.keycode != KEY_ESCAPE:
+		return false
+	if (shell["modal_layer"] as Control).get_child_count() > 0:
+		return false
+	on_back.call()
+	return true
 
 
 ## Scrolls `inner` when it is taller than the space left in the column; never clips.
