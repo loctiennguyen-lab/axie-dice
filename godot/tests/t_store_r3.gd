@@ -34,13 +34,16 @@ func _ready() -> void:
 	MetaState.gems_cache = 1000
 	s._refresh()
 	_ok((s.find_child("ClaimGift", true, false) as Button).disabled, "gift disabled when full, says why")
-	_ok((s.find_child("BuyGem", true, false) as Button).disabled, "Buy Gem (USD) disabled in L1")
-	_ok((s.find_child("BuyGem", true, false) as Button).text == StoreScreen.USD_REASON, "Buy Gem says why it is disabled")
+	var db := s.find_child("DetailBuy", true, false) as Button
+	_ok(db.disabled and db.text == StoreScreen.USD_REASON, "USD buy disabled once, in the detail plate, with reason")
 	var packs: Array = gem.store.gem_packs
 	_ok(packs.size() == 6, "6 packs from gem.json")
 	for pk in packs:
 		var b := s.find_child("Usd_%d" % int(pk.gems), true, false) as Button
-		_ok(b != null and b.disabled and b.text == StoreScreen.USD_REASON, "USD pack %d disabled with reason" % int(pk.gems))
+		_ok(b != null and b.text == "", "USD pack %d tile selects" % int(pk.gems))
+		s.select("usd_%d" % int(pk.gems))
+		db = s.find_child("DetailBuy", true, false) as Button
+		_ok(db.disabled and db.text == StoreScreen.USD_REASON, "USD pack %d buy disabled with reason" % int(pk.gems))
 	_ok(s.find_child("Tab_moon", true, false) != null and s.find_child("Tab_cosmetics", true, false) != null, "tabs")
 	_ok(s.find_child("Currencies", true, false) != null, "currency plate")
 	# tickets tab: prices from data, purchase through the wallet
@@ -58,13 +61,19 @@ func _ready() -> void:
 	_ok(s.buy_bundle(int(big.tickets)) == "need 10 more Gem", "short: shows missing amount")
 	_ok(int(MetaState.tickets.normal) == before and MetaState.gem_wallet().balance() == int(big.gems) - 10, "short: nothing changed")
 	s._refresh()
-	var bb := s.find_child("Ticket_%d" % int(big.tickets), true, false) as Button
+	s.select("ticket_%d" % int(big.tickets))
+	var bb := s.find_child("DetailBuy", true, false) as Button
 	_ok(bb.disabled and bb.text == "need 10 more Gem", "short bundle greyed with reason")
 	# confirm modal focuses Not now
 	MetaState.gems_cache = 5000
 	s.open_confirm("x", "y", 10, func() -> void: pass)
 	await get_tree().process_frame
 	_ok((s.find_child("NotNow", true, false) as Button).has_focus(), "confirm focus on Not now")
+	var primaries := 0
+	for n in s.find_children("*", "Button", true, false):
+		if (n as Button).theme_type_variation.begins_with("ButtonPrimary") and (n as Button).is_visible_in_tree():
+			primaries += 1
+	_ok(primaries == 2, "one primary on the screen + the open dialog's own")
 	s.close_modal()
 	# cosmetics
 	s.set_tab("cosmetics")
@@ -73,6 +82,10 @@ func _ready() -> void:
 	var it: Dictionary = items[0]
 	var g0 := MetaState.gem_wallet().balance()
 	_ok(s.buy_cosmetic(it.id, it.rarity) == "", "buy cosmetic")
+	s._refresh()
+	s.select("cos_" + String(it.id))
+	var ob := s.find_child("DetailBuy", true, false) as Button
+	_ok(ob.disabled and ob.text == "Owned", "owned cosmetic says Owned")
 	_ok(MetaState.cosmetics_owned.has(it.id) and MetaState.gem_wallet().balance() == g0 - int(it.price), "owned, price from data")
 	_ok(s.buy_cosmetic(it.id, it.rarity) == "owned" and MetaState.gem_wallet().balance() == g0 - int(it.price), "no double buy")
 	# moon card disabled

@@ -17,6 +17,7 @@ const _SB := preload("res://scripts/meta/store_catalog.gd")
 const VIOLET := Color("6B4AA8")
 const TABS := ["gem", "cosmetics", "tickets", "moon"]
 const TAB_NAMES := {"gem": "Gem packs", "cosmetics": "Cosmetics", "tickets": "Tickets", "moon": "Moon Card"}
+const DETAIL_W := 440
 const USD_REASON := "Buying disabled in the playtest"
 const RARITY_TOKEN := {"rare": "rarity_rare", "epic": "rarity_epic", "legendary": "rarity_legendary", "mythic": "rarity_legendary"}
 const REASONS := {
@@ -41,6 +42,9 @@ var _strip_host: HBoxContainer
 var _body_host: VBoxContainer
 var _modal_layer: Control
 var _tab_btns: Dictionary = {}
+var _detail: PanelContainer
+## Selected tile key per tab ("" = first item). Tiles only select; the buy action is the detail plate.
+var selected := ""
 
 
 func _ready() -> void:
@@ -147,9 +151,16 @@ func set_state(s: String) -> void:
 	_refresh()
 
 
+## Selects a tile (key like "usd_80", "ticket_6", "cos_<id>", "moon").
+func select(key: String) -> void:
+	selected = key
+	_refresh()
+
+
 func set_tab(t: String) -> void:
 	tab = t
 	last_result = ""
+	selected = ""
 	_refresh()
 
 
@@ -217,10 +228,21 @@ func _build() -> void:
 	_strip_host.add_theme_constant_override("separation", UI3Theme.space("16"))
 	strip.add_child(_strip_host)
 	col.add_child(strip)
+	(_shell["sub"] as Label).theme_type_variation = ""   # readable cream, not the muted token
+	var body := HBoxContainer.new()
+	body.name = "BodyRow"
+	body.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	body.add_theme_constant_override("separation", UI3Meta.GAP)
+	col.add_child(body)
 	_body_host = VBoxContainer.new()
 	_body_host.name = "Body"
+	_body_host.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_body_host.add_theme_constant_override("separation", UI3Theme.space("16"))
-	col.add_child(UI3Meta.scroll(_body_host))
+	body.add_child(_body_host)
+	_detail = UI3.plate(&"plate")
+	_detail.name = "Detail"
+	_detail.custom_minimum_size = Vector2(DETAIL_W, 0)
+	body.add_child(_detail)
 
 
 func _clear(n: Node) -> void:
@@ -237,23 +259,99 @@ func _note(text: String) -> Label:
 	return l
 
 
-func _grid(node_name: String, cols: int) -> GridContainer:
-	var g := GridContainer.new()
-	g.name = node_name
-	g.columns = cols
-	g.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	g.add_theme_constant_override("h_separation", UI3Theme.space("16"))
-	g.add_theme_constant_override("v_separation", UI3Theme.space("16"))
-	return g
-
-
-func _tile() -> Array:
-	var p := UI3.plate(&"card")
+## Tile: a selectable card. Returns [card, content VBox]; `key` names the invisible select button `btn_name`.
+func _tile(key: String, btn_name: String) -> Array:
+	var on := key == selected
+	var p := UI3.plate(&"card_selected" if on else &"card")
 	p.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	p.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	var v := VBoxContainer.new()
+	v.alignment = BoxContainer.ALIGNMENT_CENTER
+	v.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	v.add_theme_constant_override("separation", UI3Theme.space("8"))
 	p.add_child(v)
+	var b := Button.new()
+	b.name = btn_name
+	b.flat = true
+	b.focus_mode = Control.FOCUS_ALL
+	b.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+	for st in ["normal", "hover", "pressed", "disabled", "hover_pressed"]:
+		b.add_theme_stylebox_override(st, StyleBoxEmpty.new())
+	b.add_theme_stylebox_override("focus", UI3Theme.focus_style(UI3Theme.radius("l")))
+	b.pressed.connect(select.bind(key))
+	p.add_child(b)
 	return [p, v]
+
+
+func _tile_text(v: VBoxContainer, title: String, sub: String) -> void:
+	var t := UI3.label(title, "LabelTitle")
+	t.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	t.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	t.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	v.add_child(t)
+	var m := UI3.label(sub, "LabelMuted")
+	m.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	m.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	v.add_child(m)
+
+
+func _gem_art(px: float) -> Control:
+	var t := TextureRect.new()
+	t.texture = UI3.icon("cur_gem")
+	t.custom_minimum_size = Vector2.ONE * px
+	t.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	t.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	t.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	t.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	return t
+
+
+## Right-hand detail plate: art, title + badge, body, price rows, reason, one 72 primary ("DetailBuy").
+## `art` may be null; `reason` != "" disables the primary and replaces its label.
+func _show_detail(art: Control, title: String, badge: String, body: String, rows: Array,
+		action_text: String, reason: String, on_press: Callable) -> void:
+	_clear(_detail)
+	var v := VBoxContainer.new()
+	v.add_theme_constant_override("separation", UI3Theme.space("16"))
+	_detail.add_child(v)
+	var ah := CenterContainer.new()
+	ah.custom_minimum_size = Vector2(0, 200)
+	ah.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	if art != null:
+		ah.add_child(art)
+	v.add_child(ah)
+	var th := HBoxContainer.new()
+	th.add_theme_constant_override("separation", UI3Theme.space("8"))
+	var tl := UI3.label(title, "LabelScreenTitle")
+	tl.name = "DetailTitle"
+	tl.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	tl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	th.add_child(tl)
+	if badge != "":
+		th.add_child(UI3.chip(badge))
+	v.add_child(th)
+	var bl := _note(body)
+	bl.name = "DetailBody"
+	v.add_child(bl)
+	for r in rows:
+		var h := HBoxContainer.new()
+		var k := UI3.label(String(r[0]), "LabelMuted")
+		k.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		h.add_child(k)
+		h.add_child(UI3.label(String(r[1])))
+		v.add_child(h)
+	var b := UI3.button(action_text, &"primary", &"L")
+	b.name = "DetailBuy"
+	if reason != "":
+		UI3.set_disabled_reason(b, reason)
+		var rl := UI3.label(reason)
+		rl.name = "DetailReason"
+		rl.add_theme_color_override("font_color", UI3Theme.color("danger_text"))
+		rl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		v.add_child(rl)
+	else:
+		b.pressed.connect(on_press)
+	v.add_child(b)
 
 
 # ---------------------------------------------------------------- refresh
@@ -268,6 +366,7 @@ func _refresh() -> void:
 	for t in _tab_btns:
 		(_tab_btns[t] as Button).set_pressed_no_signal(t == tab)
 	_clear(_body_host)
+	_clear(_detail)
 	if state == "loading":
 		_body_host.add_child(_note("Loading..."))
 		return
@@ -299,7 +398,8 @@ func _refresh_strip() -> void:
 	nl.name = "GiftNote"
 	nl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_strip_host.add_child(nl)
-	var c := UI3.button("Claim %d Gem" % per, &"primary", &"M")
+	# Secondary: the screen's one primary is the detail plate's buy button.
+	var c := UI3.button("Claim %d Gem" % per, &"secondary", &"M")
 	c.name = "ClaimGift"
 	if _account_blocks():
 		UI3.set_disabled_reason(c, "Needs a connection" if state == "offline" else "Sign in to claim")
@@ -309,95 +409,138 @@ func _refresh_strip() -> void:
 		UI3.set_disabled_reason(c, "Gem full")
 	c.pressed.connect(claim_gift)
 	_strip_host.add_child(c)
-	var buy := UI3.button("Buy Gem", &"secondary", &"M")
-	buy.name = "BuyGem"
-	_disable_usd(buy)
-	_strip_host.add_child(buy)
 
 
-func _disable_usd(b: Button) -> void:
-	if not usd_enabled():
-		UI3.set_disabled_reason(b, USD_REASON)
+## Tile grid as a VBox of HBox rows (rows and tiles stretch to fill the height; BoxContainer rows).
+func _grid(node_name: String, cols: int) -> VBoxContainer:
+	var g := VBoxContainer.new()
+	g.name = node_name
+	g.set_meta("cols", cols)
+	g.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	g.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	g.add_theme_constant_override("separation", UI3Theme.space("16"))
+	return g
+
+
+func _put(g: VBoxContainer, tile: Control) -> void:
+	var cols := int(g.get_meta("cols"))
+	var row: HBoxContainer = null
+	if g.get_child_count() > 0:
+		row = g.get_child(g.get_child_count() - 1) as HBoxContainer
+	if row == null or row.get_child_count() >= cols:
+		row = HBoxContainer.new()
+		row.size_flags_vertical = Control.SIZE_EXPAND_FILL
+		row.add_theme_constant_override("separation", UI3Theme.space("16"))
+		g.add_child(row)
+	row.add_child(tile)
 
 
 func _tab_gem() -> void:
+	var packs := _SB.gem_packs()
+	if packs.is_empty():
+		return
+	if not selected.begins_with("usd_"):
+		selected = "usd_%d" % int((packs[0] as Dictionary).gems)
 	var grid := _grid("GemGrid", 3)
-	for pk in _SB.gem_packs():
+	var cur: Dictionary = packs[0]
+	for pk in packs:
 		var n := int((pk as Dictionary).gems)
-		var t := _tile()
+		var key := "usd_%d" % n
+		if key == selected:
+			cur = pk
+		var t := _tile(key, "Usd_%d" % n)
 		var v: VBoxContainer = t[1]
-		v.add_child(UI3.label("%s Gem" % _fmt(n), "LabelTitle"))
-		v.add_child(UI3.label("$%.2f" % float((pk as Dictionary).usd), "LabelMuted"))
-		var b := UI3.button("Buy with USD", &"secondary", &"M")
-		b.name = "Usd_%d" % n
-		_disable_usd(b)
-		v.add_child(b)
-		grid.add_child(t[0])
+		v.add_child(_gem_art(72))
+		_tile_text(v, "%s Gem" % _fmt(n), "$%.2f" % float((pk as Dictionary).usd))
+		_put(grid, t[0])
 	_body_host.add_child(grid)
+	var usd_on := usd_enabled()
+	_show_detail(_gem_art(160), "%s Gem" % _fmt(int(cur.gems)), "$%.2f" % float(cur.usd),
+		"Gem pays for tickets and cosmetics.", [["You hold", "%s Gem" % _fmt(gems())]],
+		"Buy with USD", "" if usd_on else USD_REASON, func() -> void: pass)
 
 
 func _tab_moon() -> void:
-	var t := _tile()
-	var v: VBoxContainer = t[1]
+	selected = "moon"
 	var mc := _SB.moon_card()
-	v.add_child(UI3.label("Moon Card", "LabelTitle"))
-	v.add_child(_note("A daily Gem, ticket and boon for %d days. Coming soon: not in this playtest." % int(mc.get("days", 30))))
-	var b := UI3.button("Buy Moon Card", &"secondary", &"M")
-	b.name = "MoonBuy"
-	UI3.set_disabled_reason(b, "Coming soon")
-	v.add_child(b)
-	(t[0] as Control).size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
-	(t[0] as Control).custom_minimum_size.x = 560
-	_body_host.add_child(t[0])
+	var grid := _grid("MoonGrid", 1)
+	var t := _tile("moon", "MoonTile")
+	var v: VBoxContainer = t[1]
+	v.add_child(_gem_art(72))
+	_tile_text(v, "Moon Card", "%d days" % int(mc.get("days", 30)))
+	_put(grid, t[0])
+	_body_host.add_child(grid)
+	_show_detail(_gem_art(160), "Moon Card", "Coming soon",
+		"A daily Gem, ticket and boon for %d days. Not in this playtest." % int(mc.get("days", 30)),
+		[["Daily Gem", str(int(mc.get("daily_gem", 0)))], ["Daily tickets", str(int(mc.get("daily_tickets", 0)))]],
+		"Buy Moon Card", "Coming soon", func() -> void: pass)
+	# keep the old node name for the disabled buy button
+	(_detail.find_child("DetailBuy", true, false) as Button).name = "MoonBuy"
 
 
 func _tab_tickets() -> void:
+	var bundles := _SB.bundles()
+	if bundles.is_empty():
+		return
+	if not selected.begins_with("ticket_"):
+		selected = "ticket_%d" % int((bundles[0] as Dictionary).tickets)
 	var grid := _grid("TicketGrid", 4)
-	for bd in _SB.bundles():
+	var cur: Dictionary = bundles[0]
+	for bd in bundles:
 		var d: Dictionary = bd
 		var n := int(d.tickets)
-		var price := int(d.gems)
-		var t := _tile()
+		var key := "ticket_%d" % n
+		if key == selected:
+			cur = d
+		var t := _tile(key, "Ticket_%d" % n)
 		var v: VBoxContainer = t[1]
-		v.add_child(UI3.label("%d tickets" % n, "LabelTitle"))
-		v.add_child(UI3.label("Echo Box tickets", "LabelMuted"))
-		var why := block_reason(price)
-		var b := UI3.button("%s Gem" % _fmt(price), &"secondary", &"M")
-		b.name = "Ticket_%d" % n
-		if why != "":
-			UI3.set_disabled_reason(b, why)
-		b.pressed.connect(open_confirm.bind("%d tickets" % n, "Adds %d Echo Box tickets." % n, price, buy_bundle.bind(n)))
-		v.add_child(b)
-		grid.add_child(t[0])
+		v.add_child(_gem_art(56))
+		_tile_text(v, "%d tickets" % n, "%s Gem" % _fmt(int(d.gems)))
+		_put(grid, t[0])
 	_body_host.add_child(grid)
+	var n2 := int(cur.tickets)
+	var price := int(cur.gems)
+	_show_detail(null, "%d tickets" % n2, "%s Gem" % _fmt(price), "Adds %d Echo Box tickets." % n2,
+		[["Cost", "%s Gem" % _fmt(price)], ["You hold", "%s Gem" % _fmt(gems())]],
+		"Buy for %s Gem" % _fmt(price), block_reason(price),
+		open_confirm.bind("%d tickets" % n2, "Adds %d Echo Box tickets." % n2, price, buy_bundle.bind(n2)))
 
 
 func _tab_cosmetics() -> void:
+	var items := cosmetic_items()
+	if items.is_empty():
+		return
+	var ids: Array = items.map(func(i: Dictionary) -> String: return "cos_" + String(i.id))
+	if not ids.has(selected):
+		selected = ids[0]
 	var grid := _grid("CosGrid", 4)
-	for it in cosmetic_items():
+	var cur: Dictionary = items[0]
+	for it in items:
 		var d: Dictionary = it
 		var id := String(d.id)
-		var price := int(d.price)
-		var owned := MetaState.cosmetics_owned.has(id)
-		var t := _tile()
+		var key := "cos_" + id
+		if key == selected:
+			cur = d
+		var t := _tile(key, "Cos_" + id)
 		var v: VBoxContainer = t[1]
 		var art := CosmeticTile.art(id, 72.0)
 		if art != null:
+			art.mouse_filter = Control.MOUSE_FILTER_IGNORE
 			v.add_child(art)
 		var nm := CosmeticTile.display_name(id)
-		var nl := UI3.label(nm if nm != "" else id, "LabelTitle")
-		nl.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
-		v.add_child(nl)
-		var rl := UI3.label(String(d.rarity).capitalize(), "LabelMuted")
+		_tile_text(v, nm if nm != "" else id, "")
+		var rl := v.get_child(v.get_child_count() - 1) as Label
+		rl.text = String(d.rarity).capitalize()
 		rl.add_theme_color_override("font_color", UI3Theme.color(String(RARITY_TOKEN.get(d.rarity, "rarity_rare"))))
-		v.add_child(rl)
-		var why := "Owned" if owned else block_reason(price)
-		var b := UI3.button("%s Gem" % _fmt(price), &"secondary", &"M")
-		b.name = "Cos_" + id
-		if why != "":
-			UI3.set_disabled_reason(b, why)
-		b.pressed.connect(open_confirm.bind(id if nm == "" else nm, "Adds this cosmetic to your collection.", price, buy_cosmetic.bind(id, String(d.rarity))))
-		v.add_child(b)
-		grid.add_child(t[0])
+		_put(grid, t[0])
 	_body_host.add_child(grid)
-	_body_host.add_child(_note("Season items: only from the Seasonal Echo Box. Cosmetic prices are placeholders."))
+	var id2 := String(cur.id)
+	var price := int(cur.price)
+	var nm2 := CosmeticTile.display_name(id2)
+	var owned := MetaState.cosmetics_owned.has(id2)
+	var art2 := CosmeticTile.art(id2, 160.0)
+	_show_detail(art2, nm2 if nm2 != "" else id2, String(cur.rarity).capitalize(),
+		"Adds this cosmetic to your collection. Season items: only from the Seasonal Echo Box. Prices are placeholders.",
+		[["Cost", "%s Gem" % _fmt(price)], ["You hold", "%s Gem" % _fmt(gems())]],
+		"Buy for %s Gem" % _fmt(price), "Owned" if owned else block_reason(price),
+		open_confirm.bind(nm2 if nm2 != "" else id2, "Adds this cosmetic to your collection.", price, buy_cosmetic.bind(id2, String(cur.rarity))))
