@@ -151,11 +151,11 @@ func _fight(state: String, node_id: String, kind: String, size: Vector2i) -> voi
 		await get_tree().process_frame
 	if state == "march" or state == "marchluna":
 		scene._play_victory_march()
-		await get_tree().create_timer(0.6).timeout
+		await get_tree().create_timer(0.3).timeout
 		await _shot(state + "-a", size)
-		await get_tree().create_timer(0.5).timeout
+		await get_tree().create_timer(0.3).timeout
 		await _shot(state + "-b", size)
-		await get_tree().create_timer(0.5).timeout
+		await get_tree().create_timer(0.2).timeout
 		await _shot(state + "-c", size)
 		scene._stage3d.skip_victory_march()
 	else:
