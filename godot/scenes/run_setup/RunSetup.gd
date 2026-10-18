@@ -631,7 +631,7 @@ func _build() -> void:
 	area.name = "PartyArea"
 	area.set_anchors_preset(Control.PRESET_TOP_LEFT)
 	area.offset_left = 480
-	area.offset_top = 300
+	area.offset_top = 420
 	area.offset_right = 1896
 	area.add_theme_constant_override("separation", 16)
 	_stage.add_child(area)
@@ -669,16 +669,22 @@ func _build() -> void:
 	acts.alignment = BoxContainer.ALIGNMENT_END
 	acts.add_theme_constant_override("separation", 16)
 	br.add_child(acts)
-	var lb := UI3.button(tr("Leaderboard · B"), &"quiet")
+	var lb := UI3.button(tr("Leaderboard"), &"quiet")
 	lb.name = "LeaderboardBtn"
 	lb.disabled = is_newcomer()
 	lb.tooltip_text = tr("Opens after %d runs") % NEWCOMER_RUNS if is_newcomer() else ""
 	lb.pressed.connect(open_leaderboard)
 	acts.add_child(lb)
-	var save_b := UI3.button(tr("Save preset · S"), &"quiet")
+	var khB := UI3.key_hint("B")
+	khB.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	acts.add_child(khB)
+	var save_b := UI3.button(tr("Save preset"), &"quiet")
 	save_b.name = "SavePreset"
 	save_b.pressed.connect(open_save_preset)
 	acts.add_child(save_b)
+	var khS := UI3.key_hint("S")
+	khS.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	acts.add_child(khS)
 	var load_b := UI3.button(tr("Team presets"), &"secondary", &"M")
 	load_b.name = "LoadPreset"
 	load_b.pressed.connect(open_load_presets)
@@ -702,7 +708,7 @@ func _build() -> void:
 func _build_header() -> Control:
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 16)
-	var back := UI3.icon_button("ui_undo", tr("Back · Esc"))
+	var back := UI3.button(tr("← Back  Esc"), &"quiet")
 	back.name = "Back"
 	back.pressed.connect(_on_back)
 	row.add_child(back)
@@ -756,11 +762,22 @@ func _build_slot(i: int) -> Control:
 	var def: Dictionary = ContentDB.heroes.get(key, {})
 	var cls := String(def.get("cls", ""))
 	psb.bg_color = UI3Theme.color("viewport")
-	var initial := _lbl(String(def.get("n", key)).substr(0, 1), "LabelScreenTitle")
-	initial.set_anchors_preset(Control.PRESET_FULL_RECT)
-	initial.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	initial.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	preview.add_child(initial)
+	var port_path := "res://assets/portraits/%s.png" % cls
+	if ResourceLoader.exists(port_path):
+		var pic := TextureRect.new()
+		pic.name = "Portrait"
+		pic.texture = load(port_path)
+		pic.set_anchors_preset(Control.PRESET_FULL_RECT)
+		pic.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		pic.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		pic.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		preview.add_child(pic)
+	else:
+		var initial := _lbl(String(def.get("n", key)).substr(0, 1), "LabelScreenTitle")
+		initial.set_anchors_preset(Control.PRESET_FULL_RECT)
+		initial.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		initial.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		preview.add_child(initial)
 	var plate := UI3.plate(&"plate")
 	card.add_child(plate)
 	var v := VBoxContainer.new()
@@ -937,12 +954,13 @@ func _build_kit_col() -> Control:
 		var names := VBoxContainer.new()
 		names.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		names.add_child(_lbl(t[0]))
-		names.add_child(_lbl(t[1], "LabelMuted"))
+		var sub := _lbl(t[1], "LabelMuted")
+		names.add_child(sub)
+		var nib := _lbl(tr("Not in this build"), "LabelMuted")
+		nib.name = "NotInBuild"
+		nib.add_theme_color_override("font_color", UI3Theme.color("danger_text"))
+		names.add_child(nib)
 		h.add_child(names)
-		var add := UI3.button(tr("Add"), &"secondary", &"S")
-		add.tooltip_text = tr("Aid purchase is not in this build")
-		UI3.set_disabled_reason(add, tr("Not in this build"))
-		h.add_child(add)
 		v.add_child(row)
 	var f := _lbl(FAIRNESS, "LabelMuted")
 	f.name = "Fairness"
@@ -1106,7 +1124,7 @@ func _show_picker() -> void:
 	var head := HBoxContainer.new()
 	head.add_theme_constant_override("separation", 12)
 	v.add_child(head)
-	var back := UI3.icon_button("ui_undo", tr("Back · Esc"))
+	var back := UI3.button(tr("← Back  Esc"), &"quiet")
 	back.pressed.connect(close_modal)
 	head.add_child(back)
 	var t := _lbl(tr("Pick an Axie · slot %d") % (_picker_slot + 1), "LabelScreenTitle")

@@ -37,7 +37,7 @@ extends Node2D
 ## "merchant" : t}.png` - and translated by MockupAssets rather than by a hand-written res://
 ## string, which is the rule for anything the mockups name (godot/CLAUDE.md, "Asset paths").
 func _node_icon(node_type: String) -> Texture2D:
-	return UI3.icon("node_%s" % _tone_key_for_type(node_type))
+	return UI3.icon("node_%s" % ("shop" if node_type == "shop" else node_type))
 
 
 ## UI-03 (A4 Blend) run map, spec screens/03-run-map. Built from UI3Theme / UI3 only.
@@ -458,7 +458,7 @@ func _build_token(node: RunMapNode, current_row: int, reachable: Array) -> void:
 
 	var icon_px: float = _NODE_ICON_PX.get(node.node_type, 32.0)
 	var icon := TextureRect.new()
-	icon.texture = UI3.icon("ui_lock" if locked else "node_%s" % _tone_key_for_type(node.node_type))
+	icon.texture = UI3.icon("ui_lock" if locked else "node_%s" % node.node_type)
 	icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	icon.set_anchors_preset(Control.PRESET_CENTER)
@@ -719,7 +719,7 @@ func _rebuild_detail() -> void:
 	head.add_theme_constant_override("separation", 16)
 	col.add_child(head)
 	var icon := TextureRect.new()
-	icon.texture = UI3.icon("node_%s" % _tone_key_for_type(node.node_type))
+	icon.texture = UI3.icon("node_%s" % node.node_type)
 	icon.custom_minimum_size = Vector2(64, 64)
 	icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
