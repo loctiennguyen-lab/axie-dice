@@ -207,7 +207,10 @@ const WATCHED_FILES: Array[String] = ["res://assets/data/part_faces.json"]
 ## Moved 2026-10-16 by C6 Profile 53a6981: MetaState run_log/profile_stats, RunState passes kind/aid_used to record_run_outcome (meta only). Run result: NO, stays -n.
 ## Moved 2026-10-16 by online Continue fix d8a60c0: EpochSource.reconnect()/needs_reconnect() + RunState.resume_online/discard_gone_run (session plumbing, no rule/replay change). Run result: NO, stays -n.
 ## Moved 2026-10-16 by Missions online A 8a00dc0: MetaState mission mirror bound to the server escrow, RunState sends tier/stake + server settlement (meta/economy only). Run result: NO, stays -n.
-const FINGERPRINT := "673f4815012c86612afd9685e906cc0dfd720518175a50a53bee0a7b5b670b9a"
+## Moved 2026-10-18 by lane M 0ea6b45: TeamPresets.may_repeat/seat_taken/has_vault_duplicate (starter Axies may repeat in a
+## party, Vault once). Party building only; the engine already took team_keys as given and the Worker never checked
+## uniqueness. Run result: NO, stays -n.
+const FINGERPRINT := "d1aa28413af5b45bbe9c1b4618554ff8534654a65aa488feeaa624675eb54c1c"
 
 
 func _ready() -> void:
