@@ -20,6 +20,8 @@ const MODAL_W := 560
 const TOAST_H := 56
 const SKELETON_H := 72
 const CARD_LIFT := 18
+const QUIET_PAD := 8
+const QUIET_UNDERLINE_Y := 12   # below the centre line of an 18 px label
 
 ## Face type -> icon file (without extension) in assets/ui3/icons.
 const FACE_ICON := {
@@ -100,22 +102,68 @@ static func button(text: String, variant := &"primary", size := &"M") -> Button:
 	b.focus_mode = Control.FOCUS_ALL
 	b.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
 	if variant == &"quiet":
-		var line := ColorRect.new()  # the link underline (Button has no underline in a Theme)
+		var line := ColorRect.new()  # thin link underline (a Theme has no Button underline)
+		line.name = "Underline"
 		line.color = UI3Theme.color("text_muted")
 		line.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		line.set_anchors_and_offsets_preset(Control.PRESET_BOTTOM_WIDE)
-		line.offset_top = -UI3Theme.stroke("hairline") - 8
-		line.offset_bottom = -8
-		line.offset_left = 8
-		line.offset_right = -8
+		line.anchor_left = 0.0
+		line.anchor_right = 1.0
+		line.anchor_top = 0.5
+		line.anchor_bottom = 0.5
+		line.offset_left = QUIET_PAD
+		line.offset_right = -QUIET_PAD
+		line.offset_top = QUIET_UNDERLINE_Y
+		line.offset_bottom = QUIET_UNDERLINE_Y + 1
 		b.add_child(line)
 	return b
 
 
-## Disables `btn` and replaces its text with the reason (design rule: disabled controls say why).
+## Disables `btn` and replaces its text with the reason (design rule: disabled controls say why). The reason
+## is required and must say what is missing, e.g. "Locked · needs 50 Shards"; an empty reason is an error.
+## The original label is kept and restored by `clear_disabled_reason`.
 static func set_disabled_reason(btn: Button, reason: String) -> void:
+	if reason.strip_edges() == "":
+		push_error("UI3.set_disabled_reason: a disabled button must say why")
+	if not btn.has_meta("ui3_label"):
+		btn.set_meta("ui3_label", btn.text)
 	btn.disabled = true
 	btn.text = reason
+
+
+## Re-enables `btn` and restores the label it had before `set_disabled_reason`.
+static func clear_disabled_reason(btn: Button) -> void:
+	btn.disabled = false
+	if btn.has_meta("ui3_label"):
+		btn.text = String(btn.get_meta("ui3_label"))
+		btn.remove_meta("ui3_label")
+
+
+## Marks a card selected or not: swaps PanelCard / PanelCardSelected (4 px cream outline, padding kept) and
+## lifts it 18 px (components.md). Inside a Container the lift is re-applied after every layout pass.
+static func set_card_selected(card: PanelContainer, on: bool) -> void:
+	card.theme_type_variation = "PanelCardSelected" if on else "PanelCard"
+	var lifted := card.has_meta("ui3_lift")
+	var par := card.get_parent()
+	if on and not lifted:
+		card.set_meta("ui3_lift", true)
+		if par is Container:
+			var fn := func() -> void:
+				if card.has_meta("ui3_lift"):
+					card.position.y -= CARD_LIFT
+			card.set_meta("ui3_lift_fn", fn)
+			(par as Container).sort_children.connect(fn)
+			(par as Container).queue_sort()
+		else:
+			card.position.y -= CARD_LIFT
+	elif not on and lifted:
+		card.remove_meta("ui3_lift")
+		if par is Container:
+			var fn: Callable = card.get_meta("ui3_lift_fn")
+			if (par as Container).sort_children.is_connected(fn):
+				(par as Container).sort_children.disconnect(fn)
+			(par as Container).queue_sort()
+		else:
+			card.position.y += CARD_LIFT
 
 
 ## 48x48 icon button, radius 8, icon 32 (icon_name from assets/ui3/icons, e.g. "ui_settings").

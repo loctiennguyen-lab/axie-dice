@@ -139,6 +139,32 @@ func _test_builders() -> void:
 	UI3.set_disabled_reason(dis, "Needs 20 Shards")
 	_ok(dis.disabled and dis.text == "Needs 20 Shards", "set_disabled_reason")
 
+	var rowc := HBoxContainer.new()
+	host.add_child(rowc)
+	var card := UI3.plate(&"card")
+	card.custom_minimum_size = Vector2(150, 100)
+	rowc.add_child(card)
+	var csb := UI3Theme.get_theme().get_stylebox("panel", "PanelCardSelected") as StyleBoxFlat
+	_ok(csb.content_margin_left == 24.0 and csb.content_margin_top == 24.0, "selected card keeps 24 px padding")
+	await get_tree().process_frame
+	var y0 := card.position.y
+	UI3.set_card_selected(card, true)
+	await get_tree().process_frame
+	_ok(card.position.y == y0 - 18.0 and card.theme_type_variation == "PanelCardSelected", "selected card lifts 18 px in a container")
+	UI3.set_card_selected(card, false)
+	await get_tree().process_frame
+	_ok(card.position.y == y0 and card.theme_type_variation == "PanelCard", "deselect drops the card back")
+	var rb := UI3.button("Buy", &"primary")
+	UI3.set_disabled_reason(rb, "Locked · needs 50 Shards")
+	UI3.clear_disabled_reason(rb)
+	_ok(not rb.disabled and rb.text == "Buy", "clear_disabled_reason restores label")
+	rb.free()
+	var qb := UI3.button("Skip", &"quiet")
+	host.add_child(qb)
+	_ok(qb.get_theme_color("font_color") == UI3Theme.color("text_muted") and qb.find_child("Underline", true, false) != null, "quiet button: neutral-8 text + underline")
+	var th_ib := UI3Theme.get_theme()
+	_ok(th_ib.get_color("icon_normal_color", "IconButton") == UI3Theme.color("text"), "icon button glyph tinted cream")
+
 	var ib := UI3.icon_button("ui_settings", "Settings")
 	host.add_child(ib)
 	_ok(ib.custom_minimum_size == Vector2(48, 48) and ib.icon != null, "icon button 48x48 with icon")

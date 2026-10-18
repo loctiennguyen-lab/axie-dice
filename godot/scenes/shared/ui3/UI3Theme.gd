@@ -398,18 +398,24 @@ static func _build_buttons(t: Theme, cream: Color) -> void:
 	t.set_constant("min_height", "IconButton", size_of("btn_s"))
 	for c in ["font_color", "font_hover_color", "font_pressed_color", "font_focus_color"]:
 		t.set_color(c, "IconButton", cream)
-	t.set_color("icon_normal_color", "IconButton", Color.WHITE)
-	t.set_color("icon_disabled_color", "IconButton", Color(1, 1, 1, 0.5))
+	# Glyphs ship white: tint them cream (never white text/icons) in every state, dimmed when disabled.
+	for c in ["icon_normal_color", "icon_hover_color", "icon_pressed_color", "icon_focus_color", "icon_hover_pressed_color"]:
+		t.set_color(c, "IconButton", cream)
+	t.set_color("icon_disabled_color", "IconButton", Color(cream, 0.5))
 
 
 static func _build_panels(t: Theme) -> void:
 	var map := {"PanelPlate": "Panel/plate", "PanelCard": "Panel/card",
 		"PanelCardSelected": "Panel/card_selected", "PanelDialog": "Panel/dialog",
 		"PanelRow": "Panel/row", "PanelNotice": "Panel/notice"}
+	var card_margins := _margins(_theme_entry("Panel/card"))
 	for type_name in map:
 		var e := _theme_entry(map[type_name])
+		# card_selected has no content_margin in the tokens: it must keep the card's 24 px padding, the
+		# 4 px outline is drawn inside the border width and must not eat it.
+		var m := _margins(e, card_margins if type_name == "PanelCardSelected" else Vector4(0, 0, 0, 0))
 		var sb := flat(hex(String(e["bg"])), int(e["radius"]), int(e.get("border", 0)),
-			hex(String(e.get("border_color", "#00000000"))), _margins(e), _shadow(e))
+			hex(String(e.get("border_color", "#00000000"))), m, _shadow(e))
 		t.set_type_variation(type_name, "PanelContainer")
 		t.set_stylebox("panel", type_name, sb)
 	# Plain defaults: PanelContainer/Panel get the plate.
