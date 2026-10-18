@@ -432,12 +432,14 @@ func _refresh_stage() -> void:
 	v.alignment = BoxContainer.ALIGNMENT_CENTER
 	v.add_theme_constant_override("separation", UI3Theme.space("16"))
 	cc.add_child(v)
-	# Chest stand-in (300): tier chest art is not in the build yet.
-	var chest := UI3.label("Mystic Chest" if seasonal else "Gold Chest", "LabelScreenTitle")
+	# Real chest art (assets/echobox/chests): Gold tier for the daily box, Mystic themed for the season box.
+	var chest := TextureRect.new()
 	chest.name = "Chest"
-	chest.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	chest.custom_minimum_size = Vector2(0, 200)
-	chest.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	chest.texture = load("res://assets/echobox/chests/themed/mystic-chest.png" if seasonal else "res://assets/echobox/chests/tiers/chest_gold.png")
+	chest.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	chest.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	chest.custom_minimum_size = Vector2(240, 200)
+	chest.tooltip_text = "Mystic Chest" if seasonal else "Gold Chest"
 	v.add_child(chest)
 	if seasonal:
 		var l := UI3.label("Season box · coming later", "LabelTitle")
@@ -454,11 +456,14 @@ func _refresh_stage() -> void:
 		var o1 := UI3.button("Open 1", &"secondary", &"M")
 		o1.name = "Open1"
 		o1.pressed.connect(func() -> void: pull(1))
-		var on := UI3.button("Open %d" % n_big, &"primary", &"L")
+		# A disabled reason must not be taller than "Open 1": only a usable Open N gets the big size.
+		var on := UI3.button("Open %d" % n_big, &"primary", &"L" if pull_block_reason(n_big) == "" else &"M")
 		on.name = "OpenN"
 		on.pressed.connect(func() -> void: pull(n_big))
 		var rt := UI3.button("Rates", &"quiet", &"M")
 		rt.name = "Rates"
+		rt.add_theme_font_size_override("font_size", 20)
+		rt.add_theme_color_override("font_color", UI3Theme.color("text"))
 		rt.pressed.connect(open_rates)
 		for b in [o1, on]:
 			var why := pull_block_reason(1 if b == o1 else n_big)

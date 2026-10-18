@@ -43,8 +43,8 @@ func _ready() -> void:
 	_ok(e.find_child("Banner", true, false) == null, "no banner when normal")
 	var imp := e.find_child("ImportPanel", true, false) as Control
 	var sc := e.find_child("RecordScroll", true, false) as Control
-	_ok(imp.position.x > sc.position.x, "collection left, import column right")
-	_ok(absf(imp.size.x - 560.0) < 2.0, "import column 560 wide: %f" % imp.size.x)
+	_ok(imp.global_position.x > sc.global_position.x, "collection left, import column right")
+	_ok(absf(imp.size.x - 440.0) < 2.0, "import column 440 wide (round 2 detail plate): %f" % imp.size.x)
 	e.queue_free()
 	# offline with entries
 	MetaState.vault_import(_payload("11"))
@@ -57,12 +57,19 @@ func _ready() -> void:
 	_ok((o.find_child("ScanButton", true, false) as Button).disabled, "scan stays disabled offline with a valid ID")
 	_ok((o.find_child("RecordScroll", true, false) as Control).modulate.a < 1.0, "grid greyed offline")
 	_ok(o.find_child("Row_11", true, false) != null, "cached rows still shown offline")
+	# Use in team seeds the party for Run Setup (no scene change in tests) and is not a primary button.
+	var ub := o.find_child("UseInTeamButton", true, false) as Button
+	_ok(ub != null and ub.theme_type_variation == "ButtonSecondary", "Use in team is secondary")
+	var saved_team: Array[String] = MainMenu.pending_team.duplicate()
+	o._on_use_in_team_pressed("11")
+	_ok(MainMenu.pending_team.has(MetaState.VAULT_KEY_PREFIX + "11"), "Use in team puts the Axie in the pending team")
+	MainMenu.pending_team = saved_team
 	o.queue_free()
 	# guest: banner only in remote mode; scan never blocked by guest
 	var g := _mk("guest", true)
 	await get_tree().process_frame
 	var gb := g.find_child("Banner", true, false)
-	_ok(gb != null and "Sign in" in (gb.get_child(0) as Label).text, "guest + remote_on: banner asks to sign in")
+	_ok(gb != null and "Sign in" in (gb.find_children("*","Label",true,false)[0] as Label).text, "guest + remote_on: banner asks to sign in")
 	g.queue_free()
 	var gl := _mk("guest", false)
 	await get_tree().process_frame
@@ -73,7 +80,7 @@ func _ready() -> void:
 		var of := _mk("offline", rm)
 		await get_tree().process_frame
 		var ob := of.find_child("Banner", true, false)
-		_ok(ob != null and "scanning needs a connection" in (ob.get_child(0) as Label).text, "offline banner remote=%s" % rm)
+		_ok(ob != null and "scanning needs a connection" in (ob.find_children("*","Label",true,false)[0] as Label).text, "offline banner remote=%s" % rm)
 		_ok((of.find_child("ScanButton", true, false) as Button).disabled, "offline scan disabled remote=%s" % rm)
 		of.queue_free()
 	# full 20/20

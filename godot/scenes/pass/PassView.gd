@@ -322,6 +322,7 @@ func _draw_detail() -> void:
 	var v := VBoxContainer.new()
 	v.add_theme_constant_override("separation", UI3Theme.space("16"))
 	_detail.add_child(v)
+	var has_art := false
 	var head := HBoxContainer.new()
 	head.add_theme_constant_override("separation", UI3Theme.space("16"))
 	var t := UI3.label("Level %d" % lv, "LabelScreenTitle")
@@ -332,11 +333,13 @@ func _draw_detail() -> void:
 	v.add_child(head)
 	for r in def.get("free", []):
 		if String((r as Dictionary).get("type", "")) == "cosmetic":
-			var art := CosmeticTile.art(String(r.get("value", "")), 128.0)
+			var art := CosmeticTile.art(String(r.get("value", "")), 200.0)
 			if art != null:
 				var art_host := CenterContainer.new()
+				art_host.custom_minimum_size = Vector2(0, 200)
 				art_host.add_child(art)
 				v.add_child(art_host)
+				has_art = true
 				break
 	var dt := UI3.label("\n".join(reward_lines(def)))
 	dt.name = "DetailText"
@@ -348,9 +351,12 @@ func _draw_detail() -> void:
 		wl.name = "DetailReason"
 		wl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		v.add_child(wl)
-	var sp := Control.new()
-	sp.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	v.add_child(sp)
+	# No art for this level: the plate hugs its content instead of stretching an empty gap.
+	_detail.size_flags_vertical = Control.SIZE_EXPAND_FILL if has_art else Control.SIZE_SHRINK_BEGIN
+	if has_art:
+		var sp := Control.new()
+		sp.size_flags_vertical = Control.SIZE_EXPAND_FILL
+		v.add_child(sp)
 	var b := UI3.button("Claim level %d" % lv, &"primary", &"L")
 	b.name = "DetailClaim"
 	b.size_flags_horizontal = Control.SIZE_EXPAND_FILL

@@ -1,410 +1,212 @@
 extends Control
-## The Codex — the rule book (godot-port-gap-inventory.md §2.1). All ten tabs are built
-## procedurally from CodexContent.gd so the same text can be reused by the in-combat InfoPanel
-## (godot/scenes/combat/InfoPanelView.gd) without a second copy.
-##
-## v2 LAYOUT (docs/design-handoff-v2/mockups-v2/meta-screens-v2.html, CODEX screen — read from
-## the mockup's own markup, 2026-09-20). This replaces the stock horizontal Button row over one
-## full-width dark RichTextLabel. The mockup draws:
-##   - eyebrow "THE RULE BOOK" + a 52px CODEX title at the top
-##   - a 294px-wide vertical rail of ten 50px tabs down the left (top 164, left 64)
-##   - a cream reading panel to its right (left 382, right 64), radius 18 / 5px outline /
-##     7px shelf, with a CREAM_RAISED header strip carrying the current tab's title and the
-##     rules text below it
-##
-## THREE THINGS FROM THAT MOCKUP ARE DELIBERATELY NOT BUILT. All three are authoring metadata
-## rather than anything a player reads, and godot/CLAUDE.md forbids shipping a visible
-## placeholder. They are named here and in the task report rather than skipped silently:
-##
-##   1. The per-tab DONE / TODO chip on each rail item. It reports whether the DESIGN team has
-##      written that tab's copy yet. Every tab in this build has real, authored text, so the
-##      chip would read "DONE" ten times and carry no information at all.
-##   2. The "CONTENT IN" / "LAYOUT ONLY · CONTENT PENDING" state chip and the
-##      `codex.statuses[] · {icon, name, body}` binding line in the panel header. Both are
-##      notes from the designer to the implementer about where the data will come from.
-##   3. The six body ARCHETYPES (steps / split / grid / status / cards / table) and their grey
-##      skeleton bars, dashed "ICON"/"ART" boxes and striped table rows. Nine of the ten are
-##      drawn as empty wireframes, and the mockup's own script says so in as many words:
-##      "Codex: layout archetypes only. Copy is authored later against the Godot rules, not
-##      lifted from the JS build". CodexContent.gd IS that later-authored copy — it was checked
-##      line by line against `godot/scripts/core/` and `godot/autoload/`. Replacing it with the
-##      mockup's placeholders would delete the finished work the mockup was asking for.
-##
-## What that leaves is the mockup's SHELL, built exactly, with the real rules text inside it.
-## When the per-archetype Codex content is authored, it drops into `_body`'s place.
-##
-## Opened as its own scene. MainMenu.gd opens it with:
-##   get_tree().change_scene_to_file("res://scenes/codex/Codex.tscn")
-## BACK returns to the main menu through the shared footer.
+## The Codex (UI-03 round-2 screen 29, on UI3Meta): the rule book. Header tabs Codex / Guides / Unlocks,
+## content = search plate + reading plate (title, lede, rules text or the status card grid), right 440 plate =
+## the topic list. Text still comes from CodexContent.gd (shared with the in-combat InfoPanel), so there is one
+## copy of the rules. Esc clears the search first, then goes back. Public for t_codex / qa_codex_capture:
+## `_select_tab(key)`, `_body`.
 
+const DETAIL_W := 440
 
-## The mockup's own plate for this screen (it is the same temple backdrop the Lunacia Pass
-## uses). Resolved through MockupAssets, never as a hand-written res:// string.
-const BG_MOCKUP_PLATE := "assets/bg/temple.jpg"
-
-## The mockup's left/right rail for this screen; `content` already supplies 84, so every
-## offset below is expressed against that.
-const RAIL := 64.0
-const TAB_RAIL_W := 300.0   # R3 M10: rail 300
-const PANEL_LEFT := 382.0
-## Mockup `top:164` for both columns, measured against `content`'s own top edge — which is
-## already the 48px safe line, so it is 116 here and not 164.
-const COLUMNS_TOP := 8.0   # R3: no page heading above the rail, the panel header carries the title
-
-var _tab_row: VBoxContainer
+var _shell: Dictionary
+var _search: LineEdit
+var _count: Label
+var _title: Label
+var _lede: Label
 var _body: RichTextLabel
-var _panel_title: Label
-var _panel_lede: Label              ## X4
-var _status_grid: GridContainer     ## X3 - the STATUS EFFECTS tab's body
-var _body_scroll: ScrollContainer
-var _panel: PanelContainer
-var _panel_header: PanelContainer
-
-var _current_tab: String = "basic"
+var _status_grid: GridContainer
+var _scroll: ScrollContainer
+var _topic_col: VBoxContainer
+var _no_match: Label
+var _current_tab := "basic"
 var _tab_buttons: Dictionary = {}   # key -> Button
 
 
 func _ready() -> void:
-	var shell := DangoScreen.build(self, MockupAssets.tex(BG_MOCKUP_PLATE),
-		DangoTheme.Scrim.DEFAULT, true)
-	var content: Control = shell["content"]
-	var footer: HBoxContainer = shell["footer"]
-
-	_build_tab_rail(content)
-	_build_reading_panel(content)
-
-	DangoScreen.add_back_button(footer, func() -> void: LandNav.back_to_land())
-
+	_shell = UI3Meta.build(self, "Codex", "The rule book", _on_back)
+	(_shell["panel"] as Control).name = "PlateHost"   # t_ui_laws L0
+	UI3Meta.doc_tabs(_shell, "codex")
+	var body := HBoxContainer.new()
+	body.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	body.add_theme_constant_override("separation", UI3Meta.GAP)
+	(_shell["col"] as VBoxContainer).add_child(body)
+	_build_reading(body)
+	_build_topics(body)
 	_select_tab(_current_tab)
-	get_viewport().size_changed.connect(_apply_body_height)
-	_panel.resized.connect(_apply_body_height)
-	call_deferred("_apply_body_height")
 
 
-# ── The 300px tab rail ─────────────────────────────────────────────────────────────────────
-func _build_tab_rail(content: Control) -> void:
-	_tab_row = VBoxContainer.new()
-	_tab_row.name = "TabRow"
-	_tab_row.set_anchors_preset(Control.PRESET_TOP_LEFT)
-	_tab_row.anchor_bottom = 1.0
-	_tab_row.offset_left = RAIL - DangoScreen.RAIL_X
-	_tab_row.offset_right = RAIL - DangoScreen.RAIL_X + TAB_RAIL_W
-	_tab_row.offset_top = COLUMNS_TOP
-	_tab_row.offset_bottom = 0.0
-	_tab_row.add_theme_constant_override("separation", 7)
-	content.add_child(_tab_row)
-
-	_tab_buttons.clear()
-	for pair in CodexContent.TABS:
-		var key: String = pair[0]
-		var label: String = pair[1]
-		var b := Button.new()
-		b.name = "CodexTab_%s" % key
-		b.text = label
-		b.toggle_mode = true
-		b.custom_minimum_size = Vector2(0, 50)
-		b.alignment = HORIZONTAL_ALIGNMENT_LEFT
-		b.clip_text = true
-		b.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
-		b.add_theme_font_override("font", DangoTheme.FONT_DISPLAY)
-		b.add_theme_font_size_override("font_size", 16)
-		DangoTheme.apply_tracking(b, 0.06, 16)
-		b.pressed.connect(_select_tab.bind(key))
-		_tab_row.add_child(b)
-		_tab_buttons[key] = b
-	# R3 M10: the rail ends with Guides, which is its own screen.
-	var gb := Button.new()
-	gb.name = "CodexTab_guides"
-	gb.text = "GUIDES"
-	gb.custom_minimum_size = Vector2(0, 50)
-	gb.alignment = HORIZONTAL_ALIGNMENT_LEFT
-	gb.add_theme_font_override("font", DangoTheme.FONT_DISPLAY)
-	gb.add_theme_font_size_override("font_size", 16)
-	_style_tab(gb, false)
-	gb.pressed.connect(func() -> void: LandNav.open(&"guides"))
-	_tab_row.add_child(gb)
+func _on_back() -> void:
+	LandNav.back_to_land()
 
 
-## X3 — STATUS EFFECTS as the mockup's card grid instead of two BBCode tables.
-##
-## Three columns, one card per status, all eleven in one grid (the helpful/harmful split stays
-## on the in-combat InfoPanel, which has no grid — see CodexContent._st()). Built from
-## CodexContent.statuses(), so the copy is the build's and the layout is the mockup's.
-func _build_status_grid() -> GridContainer:
-	var grid := GridContainer.new()
-	grid.name = "StatusGrid"
-	grid.columns = 3
-	grid.add_theme_constant_override("h_separation", 12)
-	grid.add_theme_constant_override("v_separation", 12)
-	grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-
-	for st in CodexContent.statuses():
-		var tone: Color = (DangoTheme.INFO if String(st["tone"]) == ""
-			else DangoTheme.status_color(String(st["tone"])))
-
-		var card := PanelContainer.new()
-		card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		var card_sb := StyleBoxFlat.new()
-		card_sb.bg_color = DangoTheme.CREAM_RAISED
-		card_sb.border_color = Color.BLACK
-		card_sb.set_border_width_all(3)
-		card_sb.set_corner_radius_all(13)
-		card_sb.content_margin_left = 15.0
-		card_sb.content_margin_right = 15.0
-		card_sb.content_margin_top = 13.0
-		card_sb.content_margin_bottom = 13.0
-		card.add_theme_stylebox_override("panel", card_sb)
-		grid.add_child(card)
-
-		var row := HBoxContainer.new()
-		row.add_theme_constant_override("separation", 12)
-		row.alignment = BoxContainer.ALIGNMENT_BEGIN
-		card.add_child(row)
-
-		var tile := PanelContainer.new()
-		tile.custom_minimum_size = Vector2(46, 46)
-		tile.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
-		tile.add_theme_stylebox_override("panel",
-			DangoTheme.solid_chip_style(tone, 12, 3, Vector2.ZERO))
-		row.add_child(tile)
-		var tile_center := CenterContainer.new()
-		tile.add_child(tile_center)
-		var glyph := TextureRect.new()
-		glyph.texture = MockupAssets.tex("assets/fx/%s.png" % String(st["icon"]))
-		glyph.custom_minimum_size = Vector2(28, 28)
-		glyph.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-		glyph.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-		tile_center.add_child(glyph)
-
-		var text_col := VBoxContainer.new()
-		text_col.add_theme_constant_override("separation", 4)   # mockup: rule `margin-top:4`
-		text_col.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		row.add_child(text_col)
-
-		var name_lbl := DangoTheme.display_label(String(st["name"]), 16, DangoTheme.INK, 800, 0.06)
-		name_lbl.add_theme_constant_override("line_spacing", 0)
-		text_col.add_child(name_lbl)
-
-		var rule := DangoTheme.prose_label(String(st["rule"]), 12,
-			DangoTheme.INK_ON_CREAM_SOFT, 600)
-		rule.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		rule.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		rule.add_theme_constant_override("line_spacing",
-			DangoTheme.leading_for(DangoTheme.FONT_UI_SEMI, 12, 1.45))
-		text_col.add_child(rule)
-
-	return grid
+func _unhandled_key_input(ev: InputEvent) -> void:
+	var k := ev as InputEventKey
+	if k != null and k.pressed and not k.echo and k.keycode == KEY_ESCAPE and _search != null \
+			and not _search.text.is_empty():
+		_search.text = ""
+		_on_search_changed("")
+		get_viewport().set_input_as_handled()
+		return
+	if UI3Meta.esc_back(ev, _shell, _on_back):
+		get_viewport().set_input_as_handled()
 
 
-## A rail tab: PRIMARY when it is the open one, PANEL when it is not. Radius 11, 3px outline,
-## 15px side padding and no shelf, exactly as the mockup draws the pair.
-func _style_tab(btn: Button, selected: bool) -> void:
-	var sb := StyleBoxFlat.new()
-	sb.bg_color = DangoTheme.PRIMARY if selected else DangoTheme.surface_color(
-		DangoTheme.Surface.PANEL)
-	sb.border_color = Color.BLACK
-	sb.set_border_width_all(3)
-	sb.set_corner_radius_all(11)
-	sb.content_margin_left = 15.0
-	# X2: the mockup lays the tab out `space-between` — label left, tag chip right. The chip is
-	# an overlay child (a Button has no second slot), so the label has to be kept off it by
-	# reserving its width here instead: 15 of the mockup's own right padding, plus the chip and
-	# a gap. Without this a long tab name ellipsises UNDER the chip rather than before it.
-	sb.content_margin_right = 15.0
-	sb.content_margin_top = 0.0
-	sb.content_margin_bottom = 0.0
-	var hover := sb.duplicate() as StyleBoxFlat
-	if not selected:
-		hover.bg_color = DangoTheme.PANEL_RAISED
-	btn.add_theme_stylebox_override("normal", sb)
-	btn.add_theme_stylebox_override("hover", hover)
-	btn.add_theme_stylebox_override("pressed", sb)
-	btn.add_theme_stylebox_override("disabled", sb)
+func _build_reading(host: HBoxContainer) -> void:
+	var left := VBoxContainer.new()
+	left.name = "Content"
+	left.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	left.add_theme_constant_override("separation", UI3Theme.space("16"))
+	host.add_child(left)
+	var head := UI3.plate(&"plate")
+	var hr := HBoxContainer.new()
+	hr.add_theme_constant_override("separation", UI3Theme.space("16"))
+	head.add_child(hr)
+	_search = LineEdit.new()
+	_search.theme = UI3Theme.get_theme()
+	_search.name = "SearchField"
+	_search.placeholder_text = "Search the rule book"
+	_search.clear_button_enabled = true
+	_search.custom_minimum_size = Vector2(0, 56)
+	_search.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_search.text_changed.connect(_on_search_changed)
+	hr.add_child(_search)
+	_count = UI3.label("", "LabelMuted")
+	_count.name = "SearchCount"
+	_count.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	hr.add_child(_count)
+	left.add_child(head)
 
-	var ink: Color = DangoTheme.INK_ON_PRIMARY if selected else DangoTheme.INFO_TEXT_ON_WELL
-	for color_key in ["font_color", "font_hover_color", "font_pressed_color",
-			"font_disabled_color"]:
-		btn.add_theme_color_override(color_key, ink)
-
-
-# ── The cream reading panel ────────────────────────────────────────────────────────────────
-func _build_reading_panel(content: Control) -> void:
-	_panel = PanelContainer.new()
-	_panel.name = "ReadingPanel"
-	_panel.set_anchors_preset(Control.PRESET_TOP_LEFT)
-	_panel.anchor_right = 1.0
-	_panel.anchor_bottom = 1.0
-	_panel.offset_left = PANEL_LEFT - DangoScreen.RAIL_X
-	_panel.offset_right = DangoScreen.RAIL_X - RAIL
-	_panel.offset_top = COLUMNS_TOP
-	_panel.offset_bottom = 0.0
-	_panel.clip_contents = true
-	_panel.add_theme_stylebox_override("panel",
-		DangoTheme.cream_card_style(Color.TRANSPARENT, 18, 5, 7.0))
-	DangoTheme.clip_to_frame(_panel)   # G3
-	content.add_child(_panel)
-
-	# X5 / CDX-01: the panel runs "from under the header to the footer" and stops there.
-	#
-	# It did not. `PanelContainer` sizes itself to at least its child's minimum, and the child is
-	# a column ending in the body — so a long tab (STATUS EFFECTS is eleven cards) pushed the
-	# panel's minimum past its own anchored rect, and Godot will not shrink a Control below its
-	# minimum. The panel then ran off the bottom of the screen: no bottom edge, no radius, no
-	# outline, and the footer drawn underneath it. `clip_contents` hid nothing, because the panel
-	# itself was the thing overflowing.
-	#
-	# A plain `Control` breaks the chain: it does not propagate its children's minimum size, so
-	# the panel's minimum is its own and its ANCHORS decide its height. The body then does what
-	# CDX-03 says and scrolls inside it.
-	var frame := Control.new()
-	frame.name = "PanelFrame"
-	frame.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	frame.set_anchors_preset(Control.PRESET_FULL_RECT)
-	_panel.add_child(frame)
-
+	var panel := UI3.plate(&"plate")
+	panel.name = "ReadingPanel"
+	panel.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	left.add_child(panel)
 	var col := VBoxContainer.new()
-	col.add_theme_constant_override("separation", 0)
-	col.set_anchors_preset(Control.PRESET_FULL_RECT)
-	frame.add_child(col)
-
-	# Header strip — CREAM_RAISED, one black rule along its bottom edge, 15px/24px padding.
-	_panel_header = PanelContainer.new()
-	_panel_header.name = "PanelHeader"
-	var head_sb := StyleBoxFlat.new()
-	head_sb.bg_color = DangoTheme.CREAM_RAISED
-	head_sb.border_color = Color.BLACK
-	head_sb.set_border_width(SIDE_BOTTOM, 4)
-	# The card's own radius is 18 with a 5px outline, so its inner corner is 13.
-	head_sb.corner_radius_top_left = 13
-	head_sb.corner_radius_top_right = 13
-	head_sb.content_margin_left = 24.0
-	head_sb.content_margin_right = 24.0
-	head_sb.content_margin_top = 15.0
-	head_sb.content_margin_bottom = 15.0
-	_panel_header.add_theme_stylebox_override("panel", head_sb)
-	col.add_child(_panel_header)
-
-	# X4 — the header is two columns, not a lone title on an empty band. Left: title over a
-	# one-line lede capped at 900. Right: the content-state chip, bottom-aligned against them.
-	var head_row := HBoxContainer.new()
-	head_row.name = "HeaderRow"
-	head_row.add_theme_constant_override("separation", 18)
-	head_row.alignment = BoxContainer.ALIGNMENT_BEGIN
-	_panel_header.add_child(head_row)
-
-	var head_left := VBoxContainer.new()
-	head_left.add_theme_constant_override("separation", 4)   # mockup: lede `margin-top:4`
-	head_left.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	head_row.add_child(head_left)
-
-	_panel_title = DangoTheme.display_label("", 26, DangoTheme.INK, 800, 0.02)
-	_panel_title.name = "PanelTitle"
-	_panel_title.clip_text = true
-	_panel_title.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
-	_panel_title.add_theme_constant_override("line_spacing", 0)
-	head_left.add_child(_panel_title)
-
-	_panel_lede = DangoTheme.prose_label("", 14, DangoTheme.INK_ON_CREAM_MUTED, 600)
-	_panel_lede.name = "PanelLede"
-	_panel_lede.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_panel_lede.size_flags_horizontal = Control.SIZE_FILL
-	# Mockup: `max-width:900` on this line. Not enforced, and deliberately so — a Godot Control
-	# has no max-width, and the honest ways to get one (a resize clamp, or a spacer that fights
-	# the HBox) would buy nothing here: the panel is ~1100 wide, so after its 24px padding, the
-	# 18px gap and the state chip this column already lands within a few px of 900. If the
-	# panel ever gets much wider, this is the line that needs the clamp.
-	head_left.add_child(_panel_lede)
-
-	var body_margin := MarginContainer.new()
-	body_margin.name = "BodyMargin"
-	body_margin.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	body_margin.add_theme_constant_override("margin_left", 22)
-	body_margin.add_theme_constant_override("margin_right", 22)
-	body_margin.add_theme_constant_override("margin_top", 18)
-	body_margin.add_theme_constant_override("margin_bottom", 18)
-	col.add_child(body_margin)
-
-	_body_scroll = ScrollContainer.new()
-	_body_scroll.name = "BodyScroll"
-	_body_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	_body_scroll.clip_contents = true
-	DangoTheme.style_scrollbars(_body_scroll)
-	body_margin.add_child(_body_scroll)
-
+	col.add_theme_constant_override("separation", UI3Theme.space("8"))
+	panel.add_child(col)
+	_title = UI3.label("", "LabelScreenTitle")
+	_title.name = "PanelTitle"
+	col.add_child(_title)
+	_lede = UI3.label("", "LabelMuted")
+	_lede.name = "PanelLede"
+	_lede.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	col.add_child(_lede)
 	_body = RichTextLabel.new()
 	_body.name = "Body"
 	_body.bbcode_enabled = true
 	_body.fit_content = true
 	_body.scroll_active = false
 	_body.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	# The rules text is prose — Work Sans, per rule 5 — inked for a CREAM surface rather than
-	# for the dark panel this screen used to render on.
-	_body.add_theme_font_override("normal_font", DangoTheme.FONT_UI)
-	_body.add_theme_font_override("bold_font", DangoTheme.FONT_UI_BOLD)
-	_body.add_theme_font_size_override("normal_font_size", 16)
-	_body.add_theme_font_size_override("bold_font_size", 16)
-	_body.add_theme_color_override("default_color", DangoTheme.INK_ON_CREAM_SOFT)
+	_body.add_theme_font_override("normal_font", UI3Theme.font_body())
+	_body.add_theme_font_override("bold_font", UI3Theme.font_body())
+	_body.add_theme_font_size_override("normal_font_size", UI3Theme.size_of("text_body"))
+	_body.add_theme_font_size_override("bold_font_size", UI3Theme.size_of("text_body"))
+	_body.add_theme_color_override("default_color", UI3Theme.color("text"))
 	_body.add_theme_constant_override("table_h_separation", 18)
 	_body.add_theme_constant_override("table_v_separation", 6)
-
-	# X3. The two bodies are siblings in the same scroll region and only one is ever visible;
-	# _select_tab() swaps them. A VBox holds both so the ScrollContainer still has exactly one
-	# child to size itself against.
-	var body_stack := VBoxContainer.new()
-	body_stack.name = "BodyStack"
-	body_stack.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	body_stack.add_theme_constant_override("separation", 0)
-	_body_scroll.add_child(body_stack)
-	body_stack.add_child(_body)
+	var stack := VBoxContainer.new()
+	stack.name = "BodyStack"
+	stack.add_theme_constant_override("separation", 0)
+	stack.add_child(_body)
 	_status_grid = _build_status_grid()
 	_status_grid.visible = false
-	body_stack.add_child(_status_grid)
+	stack.add_child(_status_grid)
+	_scroll = UI3Meta.scroll(stack)
+	_scroll.name = "BodyScroll"
+	col.add_child(_scroll)
+	_no_match = UI3.label("", "LabelMuted")
+	_no_match.name = "NoMatch"
+	_no_match.visible = false
+	col.add_child(_no_match)
 
 
-## L3: the reading panel's height comes from its anchors (it runs to the bottom of the content
-## column, as the mockup draws it), so the column inside it has to claim that height too —
-## otherwise the panel measures as "hundreds of px of empty cream under its content". The
-## scroll region takes whatever the header does not.
-func _apply_body_height() -> void:
-	if _panel == null or _panel_header == null or _body_scroll == null:
-		return
-	var inner := _panel.size.y - 10.0            # the card's own 5px outline, both edges
-	var head := _panel_header.get_combined_minimum_size().y
-	var body_h := maxf(0.0, inner - head - 36.0)   # the body margin's 18 top + 18 bottom
-	# Only on a real change: this feeds a minimum size back into the layout that just produced
-	# `_panel.size`, and re-assigning an identical value every pass would loop `resized`.
-	if not is_equal_approx(_body_scroll.custom_minimum_size.y, body_h):
-		_body_scroll.custom_minimum_size.y = body_h
+func _build_status_grid() -> GridContainer:
+	var grid := GridContainer.new()
+	grid.name = "StatusGrid"
+	grid.columns = 2
+	grid.add_theme_constant_override("h_separation", UI3Theme.space("16"))
+	grid.add_theme_constant_override("v_separation", UI3Theme.space("16"))
+	grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	for st in CodexContent.statuses():
+		var card := UI3.plate(&"card")
+		card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		var row := HBoxContainer.new()
+		row.add_theme_constant_override("separation", UI3Theme.space("16"))
+		card.add_child(row)
+		var glyph := TextureRect.new()
+		glyph.texture = MockupAssets.tex("assets/fx/%s.png" % String(st["icon"]))
+		glyph.custom_minimum_size = Vector2(48, 48)
+		glyph.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+		glyph.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		glyph.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		row.add_child(glyph)
+		var tc := VBoxContainer.new()
+		tc.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		tc.add_theme_constant_override("separation", UI3Theme.space("8"))
+		row.add_child(tc)
+		tc.add_child(UI3.label(String(st["name"]), "LabelTitle"))
+		var rule := UI3.label(String(st["rule"]), "LabelMuted")
+		rule.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		tc.add_child(rule)
+		grid.add_child(card)
+	return grid
 
 
-## Public so `tests/qa_codex_capture.gd` and `tests/t_codex.gd` can drive the screen — both
-## call this by name, so the signature does not change.
+func _build_topics(host: HBoxContainer) -> void:
+	var panel := UI3.plate(&"plate")
+	panel.name = "TopicPanel"
+	panel.custom_minimum_size = Vector2(DETAIL_W, 0)
+	host.add_child(panel)
+	var outer := VBoxContainer.new()
+	outer.add_theme_constant_override("separation", UI3Theme.space("16"))
+	panel.add_child(outer)
+	outer.add_child(UI3.label("Topics", "LabelScreenTitle"))
+	_topic_col = VBoxContainer.new()
+	_topic_col.name = "TabRow"
+	_topic_col.add_theme_constant_override("separation", UI3Theme.space("8"))
+	outer.add_child(UI3Meta.scroll(_topic_col))
+	for pair in CodexContent.TABS:
+		var key: String = pair[0]
+		var b := UI3Meta.tab(String(pair[1]), false)
+		b.name = "CodexTab_%s" % key
+		b.alignment = HORIZONTAL_ALIGNMENT_LEFT
+		b.pressed.connect(_select_tab.bind(key))
+		_topic_col.add_child(b)
+		_tab_buttons[key] = b
+
+
+## Topics whose title or text contains the query stay; the others are hidden. The count says how many remain.
+func _on_search_changed(q: String) -> void:
+	var needle := q.strip_edges().to_lower()
+	var n := 0
+	var first := ""
+	for pair in CodexContent.TABS:
+		var key: String = pair[0]
+		var hit := needle.is_empty() or String(pair[1]).to_lower().contains(needle) \
+			or CodexContent.tab_text(key).to_lower().contains(needle)
+		(_tab_buttons[key] as Button).visible = hit
+		if hit:
+			n += 1
+			if first.is_empty():
+				first = key
+	_count.text = "" if needle.is_empty() else ("%d result%s" % [n, "" if n == 1 else "s"])
+	_no_match.visible = n == 0
+	_no_match.text = "" if n > 0 else "Nothing matches '%s'. Clear the search to see every topic." % q.strip_edges()
+	if n > 0 and not (_tab_buttons[_current_tab] as Button).visible:
+		_select_tab(first)
+
+
+## Public so `tests/qa_codex_capture.gd` and `tests/t_codex.gd` can drive the screen.
 func _select_tab(key: String) -> void:
 	_current_tab = key
 	for k in _tab_buttons.keys():
-		var btn: Button = _tab_buttons[k]
-		btn.button_pressed = (k == key)
-		_style_tab(btn, k == key)
-	_panel_title.text = _tab_label(key)
-	_panel_lede.text = String(CodexContent.TAB_LEDE.get(key, ""))   # X4
-	# X3: STATUS EFFECTS is the one tab with a real layout of its own. Everything else is still
-	# the authored BBCode until its archetype is built.
+		(_tab_buttons[k] as Button).button_pressed = (k == key)
+	_title.text = _tab_label(key)
+	_lede.text = String(CodexContent.TAB_LEDE.get(key, ""))
 	var is_status := key == "st"
 	_status_grid.visible = is_status
 	_body.visible = not is_status
 	if not is_status:
-		_body.text = _ink_for_cream(CodexContent.tab_text(key))
-	_body_scroll.scroll_vertical = 0
-	call_deferred("_apply_body_height")
-
-
-## CodexContent's section headings carry one hardcoded colour, picked when this text rendered on
-## a dark panel. On the mockup's cream reading surface that colour fails contrast outright. The
-## swap happens HERE rather than in CodexContent.gd because the in-combat InfoPanel shares that
-## file and still renders on a dark surface — changing the source string would break the screen
-## this file does not own.
-func _ink_for_cream(bbcode: String) -> String:
-	return bbcode.replace("#ffd76a", "#" + DangoTheme.INK.to_html(false))
+		_body.text = CodexContent.tab_text(key)
+	_scroll.scroll_vertical = 0
 
 
 func _tab_label(key: String) -> String:

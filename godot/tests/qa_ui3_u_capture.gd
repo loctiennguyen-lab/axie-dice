@@ -3,6 +3,8 @@ extends Node
 ## godot/tools/with_lock.sh bash godot/tools/shot.sh res://tests/qa_ui3_u_capture.tscn 1920x1080
 ## Writes $ADT_EVIDENCE_DIR/ui3-<screen>-<W>x<H>.png (window size of the run).
 var _guard := SaveGuard.new()
+## A real Axie gene string (same as qa_vault_combat_capture); fake genes render as "0/6 parts".
+const GENES := "0x180000000000030002018040810800000001000c080043040001000c0800800200010014084083020001000c1860430600010008100085060001000408604506"
 
 
 func _ready() -> void:
@@ -17,7 +19,7 @@ func _ready() -> void:
 			await get_tree().process_frame
 		await RenderingServer.frame_post_draw
 		get_viewport().get_texture().get_image().save_png("%s/ui3-%s-%dx%d.png" % [dir, sc, win.x, win.y])
-		print("U_CAPTURE ", sc)
+		print("U_CAPTURE ", sc, " ", (node as Control).size if node is Control else "-", " ", node.get_child_count() if node != null else -1, " ", node.visible if node is CanvasItem else "")
 		if node != null:
 			node.queue_free()
 		await get_tree().process_frame
@@ -46,4 +48,59 @@ func _make(sc: String) -> Node:
 			s.state = "guest"
 			s.refresh()
 		return s
+	if sc.begins_with("codex") or sc.begins_with("guides") or sc.begins_with("unlocks"):
+		MetaState.shard_pool = 400
+		var scn := {"codex": "res://scenes/codex/Codex.tscn", "guides": "res://scenes/guides/Guides.tscn",
+			"unlocks": "res://scenes/unlocks/Unlocks.tscn"}[sc.split("-")[0]]
+		var cs: Control = load(scn).instantiate()
+		add_child(cs)
+		await get_tree().process_frame
+		if sc == "codex-status":
+			cs._select_tab("st")
+		elif sc == "codex-search":
+			cs._search.text = "shield"
+			cs._on_search_changed("shield")
+		elif sc == "codex-empty":
+			cs._search.text = "zzzq"
+			cs._on_search_changed("zzzq")
+		return cs
+	if sc.begins_with("echo"):
+		MetaState.tickets = {"normal": 0 if sc == "echo-none" else 3}
+		MetaState.shard_pool = 900
+		var es: EchoBoxScreen = load("res://scenes/echobox/EchoBoxScreen.tscn").instantiate()
+		es.use_account = false
+		es.no_scene_change = true
+		es.instant = true
+		add_child(es)
+		await get_tree().process_frame
+		if sc == "echo-seasonal":
+			es.select_tab("seasonal")
+		return es
+	if sc.begins_with("vault"):
+		MetaState.vault.clear()
+		if sc != "vault-empty":
+			for id in ["11778888", "2402", "910"]:
+				var parts: Array = []
+				for slot in ["mouth", "horn", "back", "tail", "eyes", "ears"]:
+					parts.append({"id": "plant-%s" % slot, "name": "Leaf %s" % slot, "class": "plant", "type": slot, "specialGenes": null})
+				MetaState.vault_import({"id": id, "class": "plant", "parts": parts, "genes": GENES})
+		var v: VaultView = load("res://scenes/vault/Vault.tscn").instantiate()
+		v.use_account = false
+		v.no_scene_change = true
+		v.state = "guest" if sc == "vault-guest" else "normal"
+		v.remote_on = sc == "vault-guest"
+		add_child(v)
+		await get_tree().process_frame
+		if sc == "vault-lookup":
+			v._id_field.text = "11778888"
+			v._set_status("Looking up Axie #11778888…")
+		elif sc == "vault-notfound":
+			v._id_field.text = "99999999"
+			v._on_fetch_completed({"ok": false, "message": "No Axie with ID 99999999 was found."})
+		elif sc == "vault-error":
+			v._id_field.text = "11778888"
+			v._on_fetch_completed({"ok": false, "message": "Could not reach the Axie service. Check your connection and try again."})
+		elif sc == "vault-remove":
+			v._on_remove_pressed("2402")
+		return v
 	return null
