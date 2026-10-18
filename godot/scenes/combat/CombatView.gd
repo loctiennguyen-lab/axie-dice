@@ -298,6 +298,9 @@ var _hud_frame: CombatHud
 var _relic_strip: HBoxContainer
 var _actives_row: HBoxContainer
 var _tray_root: Control
+var _dice_pending: Dictionary = {}   # uid -> true while its 3D die is still flying
+var _throw_uids: Array[int] = []
+var _throw_slots: Array = []
 var _aid: AidPanel
 var _aid_offer_dismissed := false
 var _defeat: DefeatPanel
@@ -1383,6 +1386,7 @@ func _tray_tooltip(u: Unit) -> String:
 
 
 func _update_dice_tray() -> void:
+	var fresh: Array = []
 	var units := _party_dice_units()
 	_ensure_die_slots(units.size())
 	for i in _die_slot_buttons.size():
@@ -1416,8 +1420,12 @@ func _update_dice_tray() -> void:
 			"legal_target": as_target and _selected_ally_target_ok(u),
 			"tip": _tray_tooltip(u)})
 		TrayColumn.set_lifted(self, content, is_sel, disable_juice_for_tests)
-		_maybe_play_roll_juice(u, btn)
+		if _maybe_play_roll_juice(u, btn):
+			fresh.append({"slot": i, "u": u})
 		_maybe_play_die_used_flip(u, btn)
+		if _dice_pending.has(u.uid):
+			btn.modulate.a = 0.0   # the die is still in the air; its card shows on arrival
+	_start_dice_throw(fresh)
 
 
 ## True when the selected die's face may be used on `target` (an ally column). Heal / shield
@@ -2121,6 +2129,7 @@ func set_tutorial_gate(allows: Callable) -> void:
 
 
 func _on_die_slot_pressed(slot_index: int) -> void:
+	_land_dice_now()
 	if _is_animating:
 		return
 	if _gated("die:%d" % slot_index):
@@ -2232,6 +2241,7 @@ func _on_target_clicked(uid: int) -> void:
 
 
 func _on_reroll_pressed() -> void:
+	_land_dice_now()
 	if _reroll_fx_active:
 		_reroll_fx.skip()
 		return
@@ -2430,6 +2440,7 @@ func _end_turn_button_lock(on: bool) -> void:
 
 
 func _on_end_turn_pressed() -> void:
+	_land_dice_now()
 	if _gated("end_turn") or _combat.epoch_pending:
 		return
 	_selected_die_uid = -1
@@ -3012,18 +3023,82 @@ func _play_die_flip(btn: Button) -> void:
 ## Roll-bounce juice (unchanged from the pre-review pass — see original file history/report for
 ## why this lives here instead of a signal handler: EventBus has no dedicated "die just
 ## rolled" signal with the right payload).
-func _maybe_play_roll_juice(u: Unit, btn: Button) -> void:
+## Returns true when this die was rolled for the first time since it was last unrolled (turn
+## start, hatched Egg), i.e. it should be thrown in 3D.
+func _maybe_play_roll_juice(u: Unit, btn: Button) -> bool:
 	if not u.has_rolled():
 		_last_die_face.erase(u.uid)
-		return
+		return false
 	var fi := u.roll_face_index()
 	var prev = _last_die_face.get(u.uid, null)
 	_last_die_face[u.uid] = fi
-	if prev == null or prev == fi:
-		return
+	if prev == null:
+		return not _reroll_fx_active
+	if prev == fi:
+		return false
 	if _reroll_fx_active:
-		return   # the reroll tray lands this card itself (RerollFX._land_card())
+		return false   # the reroll tray lands this card itself (RerollFX._land_card())
 	_play_die_roll_bounce(btn)
+	return false
+
+
+## 3D throw for freshly rolled dice (DiceRoller3D). Visual only: values are the engine's. Skipped
+## in tests, headless and with Reduce flashing on, so those paths are unchanged.
+func _start_dice_throw(fresh: Array) -> void:
+	if fresh.is_empty() or disable_juice_for_tests or MetaState.reduce_flash \
+			or not is_instance_valid(_stage3d):
+		return
+	var roller := _stage3d.get_dice_roller()
+	if roller == null or roller.will_skip():
+		return
+	var entries: Array = []
+	var slots: Array = []
+	for f in fresh:
+		var u: Unit = f["u"]
+		var fi := u.roll_face_index()
+		if fi < 0 or fi >= u.die.size():
+			continue
+		slots.append(int(f["slot"]))
+		_dice_pending[u.uid] = true
+		entries.append({"slot_node": _stage3d.slot_node_of(u.uid),
+			"face_type": String((u.die[fi] as Dictionary).get("type", "blank")),
+			"value": _live_face_value(u, fi), "crit": u.roll_crit_now(), "small": u.is_token,
+			"uid": u.uid})
+	if entries.is_empty():
+		return
+	if roller.die_arrived.is_connected(_on_throw_arrived):
+		roller.die_arrived.disconnect(_on_throw_arrived)
+	_throw_uids.clear()
+	for e in entries:
+		_throw_uids.append(int(e["uid"]))
+	_throw_slots = slots
+	roller.die_arrived.connect(_on_throw_arrived)
+	roller.roll(entries, _throw_tray_target)
+
+
+func _throw_tray_target(i: int) -> Vector2:
+	if i < 0 or i >= _throw_slots.size():
+		return Vector2.ZERO
+	var btn: Button = _die_slot_buttons[int(_throw_slots[i])]
+	return btn.get_global_rect().get_center() - _stage3d.global_position
+
+
+func _on_throw_arrived(i: int) -> void:
+	if i >= 0 and i < _throw_uids.size():
+		_dice_pending.erase(_throw_uids[i])
+		if i < _throw_slots.size() and int(_throw_slots[i]) < _die_slot_buttons.size():
+			(_die_slot_buttons[int(_throw_slots[i])] as Button).modulate.a = 1.0
+	if is_inside_tree() and _combat != null:
+		_update_dice_tray()
+
+
+## Any HUD action while dice are still flying lands them first.
+func _land_dice_now() -> void:
+	if is_instance_valid(_stage3d) and _stage3d.get_dice_roller() != null:
+		_stage3d.get_dice_roller().skip()
+	_dice_pending.clear()
+	for btn in _die_slot_buttons:
+		(btn as Button).modulate.a = 1.0
 
 
 func _play_die_roll_bounce(btn: Button) -> void:

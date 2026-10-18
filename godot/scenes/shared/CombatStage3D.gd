@@ -464,6 +464,7 @@ var _camera: Camera3D
 var _sun: DirectionalLight3D
 var _env: Environment
 var _arena: CombatArena3D = null
+var _roller: DiceRoller3D = null
 var _flash: ColorRect = null
 var _exit_tween: Tween = null   # the running victory march/run, so skip_victory_march() can fast-forward it
 ## Victory run to the gate: x spread kept (fraction), how far past the portal origin they end, and
@@ -499,6 +500,21 @@ func _ready() -> void:
 	_viewport.own_world_3d = true
 	_base_position = position
 	_build_world()
+	_roller = DiceRoller3D.new()
+	_roller.name = "DiceRoller3D"
+	add_child(_roller)
+	_roller.setup(_world, _camera, self)
+
+
+## The dice throw this stage owns (see DiceRoller3D). CombatView feeds it the turn's rolls.
+func get_dice_roller() -> DiceRoller3D:
+	return _roller
+
+
+## The 3D slot node of a unit (where its die is thrown from), or null.
+func slot_node_of(uid: int) -> Node3D:
+	var entry: Dictionary = _units.get(uid, {})
+	return entry.get("slot")
 
 
 ## Camera framing constants (kept here so frame_band() can re-derive them).
@@ -1176,6 +1192,10 @@ func _gui_input(event: InputEvent) -> void:
 		return
 	var mb := event as InputEventMouseButton
 	if not mb.pressed:
+		return
+	if mb.button_index == MOUSE_BUTTON_LEFT and _roller != null and _roller.is_rolling():
+		_roller.skip()   # click on the stage while dice fly = jump every die to the tray
+		accept_event()
 		return
 	if mb.button_index != MOUSE_BUTTON_LEFT and mb.button_index != MOUSE_BUTTON_RIGHT:
 		return
