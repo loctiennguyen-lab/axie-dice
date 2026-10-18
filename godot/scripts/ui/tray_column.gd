@@ -48,9 +48,14 @@ static func build(btn: Button) -> Dictionary:
 	name_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	name_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	body.add_child(name_label)
+	var hp_label := UI3.label("", "LabelDisplay")
+	hp_label.add_theme_font_size_override("font_size", 18)
+	hp_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	hp_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	body.add_child(hp_label)
 	var hp := HPBar.new()
-	hp.set_kind(HPBar.Kind.PARTY, 16, 6, 12)
-	hp.text_mode = true
+	hp.ui3_look = true
+	hp.set_kind(HPBar.Kind.PARTY, 10, 5, 12)
 	hp.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	body.add_child(hp)
 	var chips := HBoxContainer.new()
@@ -76,7 +81,7 @@ static func build(btn: Button) -> Dictionary:
 	overlay.add_child(oi)
 	btn.add_child(overlay)
 	return {"button": btn, "root": root, "body": body, "plate": plate, "chips": chips,
-		"name_label": name_label, "hp": hp, "reroll_overlay": overlay, "lifted": false,
+		"name_label": name_label, "hp": hp, "hp_label": hp_label, "reroll_overlay": overlay, "lifted": false,
 		"skin_id": "", "skin_node": null, "tile": null, "tile_key": "", "die": null,
 		"die_num": Label.new(), "holder": body, "panel_style": null}
 
@@ -140,15 +145,23 @@ static func update(content: Dictionary, d: Dictionary) -> void:
 		_apply_skin(content, skin)
 
 	var row_y := TILE_Y + HOLDER_H + 6.0 + 22.0 + 2.0
+	var hp_now := int(d.get("hp", 0))
+	var hp_max := int(d.get("max_hp", 1))
+	var hl: Label = content["hp_label"]
+	hl.text = "%d/%d" % [maxi(hp_now, 0), hp_max]
+	var hw := hl.get_minimum_size().x + 2.0
+	hl.position = Vector2(W - PAD - hw, row_y - 2.0)
+	hl.size = Vector2(hw, 24)
 	var nl: Label = content["name_label"]
 	nl.text = String(d.get("name", ""))
-	nl.position = Vector2(PAD, row_y)
-	nl.size = Vector2(W - PAD * 2.0, 20)
+	nl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	nl.position = Vector2(PAD, row_y - 2.0)
+	nl.size = Vector2(W - PAD * 2.0 - hw - 4.0, 24)
 	var hp: HPBar = content["hp"]
-	hp.set_stats(int(d.get("hp", 0)), int(d.get("max_hp", 1)))
-	hp.set_at_risk(mini(int(d.get("hp", 0)), maxi(0, int(d.get("incoming", 0)) - int(d.get("shield", 0)))))
-	hp.position = Vector2(PAD, row_y + 22.0)
-	hp.size = Vector2(W - PAD * 2.0, 16)
+	hp.set_stats(hp_now, hp_max)
+	hp.set_at_risk(mini(hp_now, maxi(0, int(d.get("incoming", 0)) - int(d.get("shield", 0)))))
+	hp.position = Vector2(PAD, row_y + 26.0)
+	hp.size = Vector2(W - PAD * 2.0, 10)
 
 	_fill_chips(content["chips"], d.get("status", {}), int(d.get("shield", 0)), d.get("status_tip", Callable()))
 	(content["chips"] as Control).position = Vector2(PAD, H - body_h - 34.0)
@@ -179,7 +192,7 @@ static func _fill_chips(row: HBoxContainer, status: Dictionary, shield: int, tip
 			var tint := UI3Theme.color("poison") if k == "poison" else UI3Theme.color("text")
 			items.append([k, v, UI3.status_chip(String(_STATUS_ICON[k]), v, tint)])
 		else:
-			items.append([k, v, UI3.chip("%s %d" % [TranslationServer.translate(String(k).to_upper()), v])])
+			items.append([k, v, _word_chip(String(k), v)])
 	var shown := mini(items.size(), 3 if items.size() > 3 else items.size())
 	for i in shown:
 		var it: Array = items[i]
@@ -189,9 +202,19 @@ static func _fill_chips(row: HBoxContainer, status: Dictionary, shield: int, tip
 			chip.mouse_filter = Control.MOUSE_FILTER_PASS
 		row.add_child(chip)
 	if items.size() > shown:
-		row.add_child(UI3.chip("+%d" % (items.size() - shown)))
+		var more := UI3.plate(&"info")
+		more.theme_type_variation = "PanelInfo"
+		var ml := UI3.label("+%d" % (items.size() - shown), "LabelDisplay")
+		ml.add_theme_font_size_override("font_size", 20)
+		more.add_child(ml)
+		row.add_child(more)
 	for i in range(shown, items.size()):
 		(items[i][2] as Node).queue_free()
+
+
+## Status without an own icon (weaken, ...): wood-2 pill with the UI3 debuff glyph + count.
+static func _word_chip(_status: String, count: int) -> PanelContainer:
+	return UI3.status_chip("face_debuff", count, UI3Theme.color("text"))
 
 
 ## B12 cosmetic dice skin: art under the face glyph + number, inside the DieTile's panel. Visual only.

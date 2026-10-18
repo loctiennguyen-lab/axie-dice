@@ -27,11 +27,11 @@ var actives_row: HBoxContainer
 var _top_plate: PanelContainer
 var _fight_label: Label
 var _turn_label: Label
-var _asc_chip: PanelContainer
 var _shard_box: HBoxContainer
 var _shard_label: Label
 var _menu_button: Button
 var _relic_plate: PanelContainer
+var _divider: Control
 var _mana_box: HBoxContainer
 var _mana_holder: Control
 var _attr_card: PanelContainer
@@ -79,7 +79,7 @@ func _build_top() -> void:
 	row.add_theme_constant_override("separation", GAP)
 	row.alignment = BoxContainer.ALIGNMENT_CENTER
 	_top_plate.add_child(row)
-	_menu_button = UI3.icon_button("ui_settings", "Menu")
+	_menu_button = UI3.icon_button("ui_menu", "Menu")
 	_menu_button.pressed.connect(func(): menu_pressed.emit())
 	row.add_child(_menu_button)
 	_fight_label = UI3.label("", "LabelDisplay")
@@ -89,9 +89,6 @@ func _build_top() -> void:
 	_turn_label = UI3.label("", "LabelMuted")
 	_ignore(_turn_label)
 	row.add_child(_turn_label)
-	_asc_chip = UI3.chip("A0")
-	_asc_chip.tooltip_text = "Ascension rules"
-	row.add_child(_asc_chip)
 	_shard_box = HBoxContainer.new()
 	_shard_box.mouse_filter = Control.MOUSE_FILTER_STOP
 	_shard_box.tooltip_text = "Gene Shards earned this run"
@@ -133,6 +130,7 @@ func _build_top() -> void:
 	div_box.add_theme_constant_override("margin_right", 6)
 	div_box.add_child(div)
 	rrow.add_child(div_box)
+	_divider = div_box
 	actives_row = HBoxContainer.new()
 	actives_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	actives_row.add_theme_constant_override("separation", 8)
@@ -171,7 +169,7 @@ func _build_attrition() -> void:
 	_ignore(_attr_title)
 	col.add_child(_attr_title)
 	_attr_sub = UI3.label("", "LabelMuted")
-	_attr_sub.add_theme_font_size_override("font_size", 16)
+	_attr_sub.add_theme_font_size_override("font_size", 18)
 	_ignore(_attr_sub)
 	col.add_child(_attr_sub)
 
@@ -211,6 +209,8 @@ func adopt_right_zone(undo: Button, reroll: Button, end_turn: Button) -> void:
 		b.focus_mode = Control.FOCUS_ALL
 		b.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
 		add_child(b)
+	for b in [undo, reroll]:
+		b.add_theme_font_size_override("font_size", 18)
 	undo.theme_type_variation = "ButtonSecondaryS"
 	undo.text = "Undo · Z"
 	reroll.theme_type_variation = "ButtonSecondaryS"
@@ -259,10 +259,10 @@ func update_top(d: Dictionary) -> void:
 		mc.tooltip_text = "Mana: spent only on relic actives"
 		mc.mouse_filter = Control.MOUSE_FILTER_STOP
 		_mana_box.add_child(mc)
+	_divider.visible = (d.get("actives", []) as Array).size() > 0
 	_fight_label.text = String(d.get("title", ""))
 	var asc := int(d.get("ascension", 0))
 	_turn_label.text = ("A%d · " % asc if asc > 0 else "") + TranslationServer.translate("Turn") + " %d" % int(d.get("turn", 1))
-	_asc_chip.visible = false   # ascension is in the turn label now ("A3 · Turn 2")
 	_shard_label.text = str(int(d.get("shards", 0)))
 	layout()
 
@@ -271,8 +271,8 @@ func _slot(px: int, icon_tex: Variant, icon_px: int, tip: String) -> PanelContai
 	var s := PanelContainer.new()
 	s.custom_minimum_size = Vector2(px, px)
 	s.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	s.add_theme_stylebox_override("panel", UI3Theme.flat(UI3Theme.color("panel"), UI3Theme.radius("s"),
-		2, UI3Theme.color("text_muted")))
+	s.add_theme_stylebox_override("panel", UI3Theme.flat(UI3Theme.color("panel"), UI3Theme.radius("s")) \
+		if tip == "" else UI3Theme.flat(UI3Theme.color("panel"), UI3Theme.radius("s"), 2, UI3Theme.color("text_muted")))
 	var cc := CenterContainer.new()
 	cc.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	s.add_child(cc)
@@ -289,7 +289,7 @@ func _slot(px: int, icon_tex: Variant, icon_px: int, tip: String) -> PanelContai
 		s.mouse_filter = Control.MOUSE_FILTER_STOP
 	else:
 		s.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		s.modulate.a = 0.6
+		s.modulate.a = 0.5
 	return s
 
 
