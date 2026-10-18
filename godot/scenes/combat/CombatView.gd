@@ -74,12 +74,6 @@ const _DIE_LIFT_PX := 16.0
 const _DIE_LIFT_DURATION := 0.16
 const _DIE_FLIP_DURATION := 0.22
 
-## Reroll "tung xúc xắc" toss (ui-programmer follow-up pass — user report: reroll had no clear
-## "you just re-rolled" motion, unlike the roll-bounce/flip juice every other die-state change
-## already gets). Total wall time ~0.35s, inside the task's requested 0.3-0.4s window. See
-## _start_reroll_toss()/_die_slot_content's "reroll_overlay" entry for how the old face value is
-## hidden for the whole toss and the new value is only revealed once it settles.
-const _REROLL_TOSS_DURATION := 0.36
 
 ## Victory march (juice pass — animation task A+B): after a win, before change_scene_to_file(),
 ## the surviving party marches forward off the field instead of an abrupt cut. See
@@ -320,13 +314,13 @@ var _part_icon_cache: Dictionary = {}   # "<slot>_<class>" -> Texture2D, lazily 
 var _die_slot_content: Array = []        # {root, plain_label, name_label, icon_rect, value_label,
 	# type_label, kw_row} per slot — see _build_die_slot_content()
 var _die_slot_lifted: Array = [false, false, false, false, false]
-## Reroll presentation — scenes/combat/reroll_fx/, ported from the Claude Design file
-## "Godot Combat Reroll FX v2". Built on the first reroll and never in test mode, where a reroll
-## still repaints in the same frame it always has. While `_reroll_fx_active` the rerolled cards
-## keep their toss overlay up (hiding the new face) until their cube lands back in them.
-var _reroll_fx: RerollFX = null
-var _reroll_fx_active: bool = false
-var _reroll_fx_slot_by_uid: Dictionary = {}
+## Reroll: the rerolled dice are thrown in 3D with DiceRoller3D like the first roll; RerollTags adds the
+## MAX! tag and the +2 / -1 / NEW / MAX chip when each die lands.
+var _reroll_prev: Dictionary = {}   # uid -> face index before the reroll, until its 3D throw starts
+var _reroll_tags: RerollTags = null
+var _throw_info: Array = []         # per thrown die: {uid, slot, faces, prev, final, small}
+## Last throw handed to DiceRoller3D (or that would have gone, headless): {uids, reroll}. Read by tests.
+var last_throw: Dictionary = {}
 var _last_die_used: Dictionary = {}       # uid -> bool — drives the flip-on-use juice
 var _hovered_enemy_uid: int = -1          # enemy whose intent badge is currently hovered
 var _end_turn_acting_uid: int = -1        # most recent EventBus.enemy_intent_executed(uid) seen
@@ -559,16 +553,16 @@ func _unhandled_key_input(event: InputEvent) -> void:
 		# the turn when idle (tutorial copy and tests rely on it; README wants Space = skip only,
 		# pending Liam's call on the [INF] bindings).
 		if (code == KEY_SPACE or code == KEY_E) and not _end_turn_button.disabled \
-				and not _is_animating and not _reroll_fx_active:
+				and not _is_animating:
 			_on_end_turn_pressed()
 		elif code == KEY_Z and not _undo_button.disabled and not _is_animating:
 			_on_undo_pressed()
-		elif code >= KEY_1 and code <= KEY_5 and not _is_animating and not _reroll_fx_active:
+		elif code >= KEY_1 and code <= KEY_5 and not _is_animating:
 			_on_die_slot_pressed(code - KEY_1)
 		elif code == KEY_R:
-			# R rerolls, and skips the tray while it is up (the tray's own "TAP TO SKIP  R").
-			if _reroll_fx_active:
-				_reroll_fx.skip()
+			# R rerolls; while the dice are in the air it only lands them.
+			if _dice_in_air():
+				_land_dice_now()
 			elif not _reroll_button.disabled:
 				_on_reroll_pressed()
 		elif code == KEY_A and _aid != null and _aid.enabled and not _aid.modal_open():
@@ -2409,187 +2403,60 @@ func _on_target_clicked(uid: int) -> void:
 
 
 func _on_reroll_pressed() -> void:
-	_land_dice_now()
-	if _reroll_fx_active:
-		_reroll_fx.skip()
+	# Reroll pressed (or R) while the dice are still in the air: just land them, do not reroll again.
+	if _dice_in_air():
+		_land_dice_now()
 		return
+	_land_dice_now()
 	if _gated("reroll") or _combat.epoch_pending:
 		return
 	var uids: Array = []
-	var slot_indices: Array = []
 	var units := _party_dice_units()
 	for i in units.size():
 		var u: Unit = units[i]
 		if u.hp > 0 and u.has_rolled() and not u.roll_used() and not u.heavy and not u.frozen:
 			uids.append(u.uid)
-			slot_indices.append(i)
-	# The face each die showed BEFORE the reroll — the tray's +2 / -1 / NEW chips and its
-	# "power vs last roll" line are measured against it.
-	var prev_faces := {}
-	for uid in uids:
-		prev_faces[uid] = _combat.by_uid(uid).roll_face_index()
-	var use_fx := not disable_juice_for_tests and not slot_indices.is_empty() and _combat.rerolls > 0
-	# Toss overlay must go up BEFORE reroll_dice()/_rebuild_all() below repaint the new face —
-	# see _start_reroll_toss()'s own comment for why this ordering is what makes "hide old value,
-	# reveal new only once the toss settles" work with zero engine changes. With the tray the
-	# overlay stays up until that die's cube is back in its card (_on_reroll_fx_die_returned()).
-	if use_fx:
-		_hold_reroll_overlays(slot_indices)
-		_reroll_fx_active = true   # before _rebuild_all(): no roll-bounce under the tray
-	elif not slot_indices.is_empty() and _combat.rerolls > 0:
-		# (no rerolls left = reroll_dice() refuses, so there is nothing to toss)
-		_start_reroll_toss(slot_indices)
+	# The face each die showed BEFORE the reroll: the +2 / -1 / NEW chips are measured against it.
+	_reroll_prev.clear()
+	if _combat.rerolls > 0:
+		for uid in uids:
+			_reroll_prev[uid] = _combat.by_uid(uid).roll_face_index()
 	var rr: Dictionary = await _combat.request_reroll_dice(uids)
 	if not _still_running():
 		return
 	var ok := bool(rr["ok"])
 	_append_log("[input] reroll %d dice : %s" % [uids.size(), "ok" if ok else "failed"])
 	if not ok:
-		_end_reroll_fx()   # the toss overlays go back down whether or not the fx was running
+		_reroll_prev.clear()
 		if String(rr["code"]) not in ["illegal", "busy"]:
 			NetNotice.show(self, String(rr["code"]), _on_reroll_pressed)
 	_selected_die_uid = -1
+	# The rebuild sees the rerolled dice in _reroll_prev and throws them in 3D, like the first roll.
 	_rebuild_all()
-	if use_fx:
-		if ok:
-			_play_reroll_fx(uids, slot_indices, prev_faces)
-		else:
-			_end_reroll_fx()
 	_save_run_progress()
 
 
-## Shows the rerolled cards' toss overlay and leaves it up — no spin, the cube in the tray is the
-## motion now. Each one comes down when its own cube lands (see _on_reroll_fx_die_returned()).
-func _hold_reroll_overlays(slot_indices: Array) -> void:
-	for i in slot_indices:
-		var overlay := _reroll_overlay_at(i)
-		if overlay == null:
-			continue
-		overlay.visible = true
-		overlay.modulate = Color(1, 1, 1, 1)
-		overlay.rotation_degrees = 0.0
-		overlay.scale = Vector2.ONE
+## True while DiceRoller3D has dice in the air.
+func _dice_in_air() -> bool:
+	return is_instance_valid(_stage3d) and _stage3d.get_dice_roller() != null \
+		and _stage3d.get_dice_roller().is_rolling()
 
 
-func _reroll_overlay_at(slot: int) -> PanelContainer:
-	if slot < 0 or slot >= _die_slot_content.size():
-		return null
-	var overlay: PanelContainer = (_die_slot_content[slot] as Dictionary).get("reroll_overlay")
-	if overlay == null or not is_instance_valid(overlay):
-		return null
-	return overlay
+func _ensure_reroll_tags() -> RerollTags:
+	if not is_instance_valid(_reroll_tags):
+		_reroll_tags = RerollTags.new()
+		_reroll_tags.name = "RerollTags"
+		_shell_root.add_child(_reroll_tags)
+	return _reroll_tags
 
 
-func _ensure_reroll_fx() -> RerollFX:
-	if _reroll_fx == null:
-		_reroll_fx = RerollFX.new()
-		_reroll_fx.display_font = UI3Theme.font_display()
-		_reroll_fx.reroll_icon = _ICON_REROLL
-		for t in ["dmg", "shield", "heal", "poison", "mana", "buff", "debuff", "summon", "blank"]:
-			_reroll_fx.type_icons[t] = _face_icon_for(t)
-			_reroll_fx.type_colors[t] = UI3Theme.color(String(UI3.FACE_COLOR[UI3.face_key(t)]))
-		add_child(_reroll_fx)
-		_reroll_fx.die_returned.connect(_on_reroll_fx_die_returned)
-		_reroll_fx.finished.connect(func(_grade): _end_reroll_fx())
-		_reroll_fx.shake_requested.connect(_on_reroll_fx_shake)
-	# Settings -> Reduce flashing turns off the shake and the gold flashes, same as a hit's.
-	_reroll_fx.screen_shake = not MetaState.reduce_flash
-	_reroll_fx.flashes = not MetaState.reduce_flash
-	_reroll_fx.sound = not MetaState.audio_muted
-	return _reroll_fx
-
-
-## One tray entry per rerolled die. Faces carry the LIVE value (_face_value(): growth, relics,
-## weaken) so the cube shows the same number the card will. The roll itself is already decided
-## by reroll_dice() above; the tray only performs it.
-func _play_reroll_fx(uids: Array, slot_indices: Array, prev_faces: Dictionary) -> void:
-	var entries: Array = []
-	_reroll_fx_slot_by_uid.clear()
-	for n in uids.size():
-		var u := _combat.by_uid(int(uids[n]))
-		var slot: int = slot_indices[n]
-		if u == null or not u.has_rolled() or slot >= _die_slot_buttons.size():
-			continue
-		var faces: Array = []
-		for i in u.die.size():
-			faces.append({"type": String((u.die[i] as Dictionary).get("type", "blank")),
-				"value": _combat._face_value(u, i)})
-		if faces.size() != 6:
-			continue
-		var btn: Button = _die_slot_buttons[slot]
-		_reroll_fx_slot_by_uid[u.uid] = slot
-		entries.append({
-			"id": u.uid, "card": btn, "faces": faces,
-			"final": u.roll_face_index(), "prev": maxi(0, int(prev_faces.get(u.uid, 0))),
-			"class_color": _class_color(u.cls),
-			"egg": u.roster_index < 0,   # summoned tokens ride as the small die
-			"rest_position": btn.position,
-		})
-	if entries.is_empty():
-		_end_reroll_fx()
+## MAX! tag + delta chip for one rerolled die, once its card is back in the tray.
+func _show_reroll_tags(info: Dictionary) -> void:
+	var slot := int(info["slot"])
+	if slot < 0 or slot >= _die_slot_buttons.size() or int(info["prev"]) < 0 or bool(info["small"]):
 		return
-	_ensure_reroll_fx().play(entries, {"rerolls_left": _combat.rerolls})
-
-
-func _on_reroll_fx_die_returned(uid: Variant, _face: int, _is_max: bool) -> void:
-	var overlay := _reroll_overlay_at(int(_reroll_fx_slot_by_uid.get(uid, -1)))
-	if overlay != null:
-		overlay.visible = false
-
-
-func _on_reroll_fx_shake(amplitude: float) -> void:
-	# The tray layer shakes itself; the 3D stage behind it only takes the big moments.
-	if amplitude >= 7.0 and is_instance_valid(_stage3d):
-		_stage3d.shake(amplitude * 0.5, 0.16)
-
-
-## Always leaves the tray closed and every card showing its real face — also the path taken
-## when reroll_dice() refused after the overlays went up.
-func _end_reroll_fx() -> void:
-	_reroll_fx_active = false
-	for i in _die_slot_content.size():
-		var overlay := _reroll_overlay_at(i)
-		if overlay != null:
-			overlay.visible = false
-	_rebuild_all()
-
-
-## "Tung xúc xắc" toss juice (ui-programmer follow-up pass, task C). Each rerolled slot's
-## `reroll_overlay` (see _build_die_slot_content()) is shown IMMEDIATELY, before reroll_dice()/
-## _rebuild_all() below ever run — so the instant those repaint this slot with the brand-new face
-## value, the overlay is already sitting on top hiding it. The overlay itself then spins+bounces
-## for _REROLL_TOSS_DURATION and hides again at the very end, "revealing" the new value that was
-## underneath the whole time. No gameplay state is touched and no engine file is read/written —
-## purely a Control Tween, gated behind disable_juice_for_tests like every other juice entry point
-## in this file.
-func _start_reroll_toss(slot_indices: Array) -> void:
-	if disable_juice_for_tests:
-		return
-	for i in slot_indices:
-		if i < 0 or i >= _die_slot_content.size():
-			continue
-		var content: Dictionary = _die_slot_content[i]
-		var overlay: PanelContainer = content.get("reroll_overlay")
-		if overlay == null or not is_instance_valid(overlay) or not overlay.is_inside_tree():
-			continue
-		overlay.visible = true
-		overlay.modulate = Color(1, 1, 1, 1)
-		overlay.rotation_degrees = 0.0
-		overlay.pivot_offset = overlay.size * 0.5
-		overlay.scale = Vector2.ONE
-		var tw := create_tween()
-		# Spin + bounce-up, then settle back to rest — "tung lên rồi rơi xuống ổn định".
-		tw.tween_property(overlay, "rotation_degrees", randf_range(300.0, 420.0),
-			_REROLL_TOSS_DURATION * 0.7).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
-		tw.parallel().tween_property(overlay, "scale", Vector2(1.28, 1.28),
-			_REROLL_TOSS_DURATION * 0.4).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
-		tw.tween_property(overlay, "scale", Vector2.ONE, _REROLL_TOSS_DURATION * 0.3) \
-			.set_trans(Tween.TRANS_ELASTIC).set_ease(Tween.EASE_OUT)
-		tw.tween_callback(func():
-			if is_instance_valid(overlay):
-				overlay.visible = false
-				overlay.rotation_degrees = 0.0
-				overlay.scale = Vector2.ONE)
+	_ensure_reroll_tags().show_for(_die_slot_buttons[slot], info["faces"], int(info["prev"]),
+		int(info["final"]), not MetaState.reduce_flash)
 
 
 ## END TURN, paced. The engine still resolves each enemy the instant it is asked to; what this
@@ -3192,12 +3059,12 @@ func _maybe_play_roll_juice(u: Unit, btn: Button) -> bool:
 	var fi := u.roll_face_index()
 	var prev = _last_die_face.get(u.uid, null)
 	_last_die_face[u.uid] = fi
+	if _reroll_prev.has(u.uid):
+		return true   # rerolled: thrown in 3D again, even when it lands on the same face
 	if prev == null:
-		return not _reroll_fx_active
+		return true
 	if prev == fi:
 		return false
-	if _reroll_fx_active:
-		return false   # the reroll tray lands this card itself (RerollFX._land_card())
 	_play_die_roll_bounce(btn)
 	return false
 
@@ -3205,38 +3072,53 @@ func _maybe_play_roll_juice(u: Unit, btn: Button) -> bool:
 ## 3D throw for freshly rolled dice (DiceRoller3D). Visual only: values are the engine's. Skipped
 ## in tests, headless and with Reduce flashing on, so those paths are unchanged.
 func _start_dice_throw(fresh: Array) -> void:
-	if fresh.is_empty() or disable_juice_for_tests or MetaState.reduce_flash \
-			or not is_instance_valid(_stage3d):
+	if fresh.is_empty():
 		return
-	var roller := _stage3d.get_dice_roller()
-	if roller == null or roller.will_skip():
+	if disable_juice_for_tests or not is_instance_valid(_stage3d):
+		_reroll_prev.clear()
 		return
-	_land_dice_now()   # an older roll still in the air lands first (its arrivals reach the handler)
 	var entries: Array = []
 	var slots: Array = []
+	var info: Array = []
 	for f in fresh:
 		var u: Unit = f["u"]
 		var fi := u.roll_face_index()
 		if fi < 0 or fi >= u.die.size():
 			continue
 		slots.append(int(f["slot"]))
-		_dice_pending[u.uid] = true
 		var faces: Array = []
 		for k in u.die.size():
 			faces.append({"type": String((u.die[k] as Dictionary).get("type", "blank")),
 				"value": _live_face_value(u, k)})
+		info.append({"uid": u.uid, "slot": int(f["slot"]), "faces": faces, "final": fi,
+			"prev": int(_reroll_prev.get(u.uid, -1)), "small": u.is_token})
 		entries.append({"slot_node": _stage3d.slot_node_of(u.uid), "faces": faces, "result_index": fi,
 			"face_type": String((u.die[fi] as Dictionary).get("type", "blank")),
 			"value": _live_face_value(u, fi), "crit": u.roll_crit_now(), "small": u.is_token,
 			"uid": u.uid})
+	var rerolled := false
+	for i in info:
+		rerolled = rerolled or int(i["prev"]) >= 0
+	_reroll_prev.clear()
 	if entries.is_empty():
 		return
+	last_throw = {"uids": entries.map(func(e): return int(e["uid"])), "reroll": rerolled}
+	var roller := _stage3d.get_dice_roller()
+	if MetaState.reduce_flash or roller == null or roller.will_skip():
+		# No throw: the cards are already showing, the tags still go up.
+		for i in info:
+			_show_reroll_tags(i)
+		return
+	_land_dice_now()   # an older roll still in the air lands first (its arrivals reach the handler)
+	for i in info:
+		_dice_pending[int(i["uid"])] = true
 	if roller.die_arrived.is_connected(_on_throw_arrived):
 		roller.die_arrived.disconnect(_on_throw_arrived)
 	_throw_uids.clear()
 	for e in entries:
 		_throw_uids.append(int(e["uid"]))
 	_throw_slots = slots
+	_throw_info = info
 	for sl in slots:
 		(_die_slot_buttons[int(sl)] as Button).modulate.a = 0.0
 	roller.die_arrived.connect(_on_throw_arrived)
@@ -3259,6 +3141,8 @@ func _on_throw_arrived(i: int) -> void:
 		_dice_pending.erase(_throw_uids[i])
 		if i < _throw_slots.size() and int(_throw_slots[i]) < _die_slot_buttons.size():
 			(_die_slot_buttons[int(_throw_slots[i])] as Button).modulate.a = 1.0
+		if i < _throw_info.size():
+			_show_reroll_tags(_throw_info[i])
 	if is_inside_tree() and _combat != null:
 		_update_dice_tray()
 
