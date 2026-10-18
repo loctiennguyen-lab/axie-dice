@@ -30,3 +30,16 @@ Merge nền theme trước, mọi làn màn sau đều dựa vào nó.
 - Mỗi màn: ảnh ở 1920×1080 và 1280×720 (`godot/tools/shot.sh`) vào `production/qa/evidence/ui3-<màn>-*.png`, art-director xem ảnh so với spec.
 - Định nghĩa "xong" như `l1-plan-16-10.md`: review bởi agent khác → merge đúng commit → kiểm xung đột + `--import` → suite cây chính xanh không SKIP → push. Màn chạm online (boot, account, run setup, result, missions, store): live smoke PASS trước khi đưa build cho Liam.
 - Placeholder trong spec (giá, tỉ lệ Echo Box, phần thưởng Pass…) lấy số thật từ data của game, không dùng số trong mockup.
+
+## Round 2 (18/10, Claude Design) — `design/handoffs/ui-03-redesign/round-2/handoff/`
+Round 2 thắng round 1 khi lệch. Token mới đã gộp vào `godot/assets/data/ui/tokens_ui3.json` (chỉ thêm, 46 khoá).
+Component mới (CostChip, TradeBox, SlotSwapSheet, IntentBadge, FloatText, StatusChip, PhaseBar, Tooltip, UnitInspector,
+AccountChip, SkyMavisBadge, StakeTableRow, Curtain, Undo) đưa vào `UI3.gd` bởi làn dùng nó đầu tiên, không làm hai lần.
+
+| Làn | Màn round 2 (mới / cập nhật) |
+|---|---|
+| C | 02 (cập nhật), 30 defeat, 39 aid zone, 42 unit inspector, 43 tooltips, 45 victory march, 46 battle backdrop (Could) |
+| M | 06 (cập nhật), 31 reward types, 32 slots full, 33 axie picker, 34 presets popup, 35 leaderboard popup, 10, 12, 13, 14 |
+| U | 16, 18 (cập nhật), 36 toast/copy theo mã lỗi, 37 tutorial curtain, 38 tutorial rewards, 26 settings |
+| L | 01, 23, 24, 27 (cập nhật), 44 preset editor |
+| E | 20 echo box, 21 pass, 25 vault, 29 codex, 40 missions (thay 22), 41 daily |
