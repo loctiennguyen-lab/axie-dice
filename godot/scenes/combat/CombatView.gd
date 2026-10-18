@@ -318,6 +318,7 @@ var _die_slot_lifted: Array = [false, false, false, false, false]
 ## MAX! tag and the +2 / -1 / NEW / MAX chip when each die lands.
 var _reroll_prev: Dictionary = {}   # uid -> face index before the reroll, until its 3D throw starts
 var _reroll_tags: RerollTags = null
+var _status_heads: StatusHeads = null
 var _throw_info: Array = []         # per thrown die: {uid, slot, faces, prev, final, small}
 ## Last throw handed to DiceRoller3D (or that would have gone, headless): {uids, reroll}. Read by tests.
 var last_throw: Dictionary = {}
@@ -2225,34 +2226,41 @@ func _layout_unit_visuals() -> void:
 		if feet.x >= 0.0:
 			var chest := _stage3d.get_unit_screen_pos(uid, CombatStage3D.HEAD_HEIGHT)
 			p.position = Vector2(stage_offset.x + chest.x - p.size.x * 0.5, stage_offset.y + chest.y)
-			_place_status_chips(uid, p, stage_offset)
+	_layout_status_heads(stage_offset)
 	_backdrop.apply_parallax(stage_offset)
 
 
-## UI-03: the status chips of an Axie float centred above its head (world label), and never into the
-## party row zone (y 630-890 at 1920): the row's bottom edge is clamped to y 622.
-func _place_status_chips(uid: int, p: UnitPortrait, stage_offset: Vector2) -> void:
-	var idx := -1
-	var units := _party_dice_units()
-	for i in units.size():
-		if (units[i] as Unit).uid == uid:
-			idx = i
-			break
-	if idx < 0 or idx >= _die_slot_content.size():
-		return
-	var chips: HBoxContainer = (_die_slot_content[idx] as Dictionary)["chips"]
-	if chips.get_parent() != p:
-		chips.get_parent().remove_child(chips)
-		p.add_child(chips)
-		p.z_index = 3
+## UI-03: status icons above the head of every unit (StatusHeads). THE one place that decides where that
+## is: change this function (and only this) when the units move to another layout. `stage_offset` is the
+## stage's position in this view; returns Vector2(-1, -1) when the unit has no point on screen (dead,
+## hidden, behind the camera).
+func _status_head_anchor(uid: int, is_party: bool, stage_offset: Vector2) -> Vector2:
 	var head := _stage3d.get_unit_screen_pos(uid, CombatStage3D.HEAD_HEIGHT)
-	chips.visible = head.x >= 0.0 and chips.get_child_count() > 0
-	if not chips.visible:
-		return
-	chips.size = chips.get_combined_minimum_size()
-	var bottom := minf(stage_offset.y + head.y - 8.0, PARTY_ZONE_TOP)
-	var global_top_left := Vector2(stage_offset.x + head.x - chips.size.x * 0.5, bottom - chips.size.y)
-	chips.position = global_top_left - p.position
+	if head.x < 0.0:
+		return Vector2(-1, -1)
+	var at := stage_offset + head - Vector2(0, 8.0)
+	if is_party:
+		at.y = minf(at.y, PARTY_ZONE_TOP)   # never into the party row / dice tray
+	return at
+
+
+func _layout_status_heads(stage_offset: Vector2) -> void:
+	if not is_instance_valid(_status_heads):
+		_status_heads = StatusHeads.new()
+		_status_heads.name = "StatusHeads"
+		_status_heads.z_index = 3
+		_unit_visuals_root.add_child(_status_heads)
+		_status_heads.unit_clicked.connect(_on_target_clicked)
+		_status_heads.unit_inspect.connect(_open_unit_inspect)
+	var entries: Array = []
+	for group in [_combat.party, _combat.enemies]:
+		var is_party: bool = group == _combat.party
+		for u in group:
+			var alive: bool = u.hp > 0
+			entries.append({"uid": u.uid, "shield": u.shield, "status": u.status,
+				"hidden": not alive or _exit_running,
+				"anchor": _status_head_anchor(u.uid, is_party, stage_offset) if alive else Vector2(-1, -1)})
+	_status_heads.sync(entries)
 
 
 const _ENEMY_COLUMN_TOP_UI3 := 24.0

@@ -2,7 +2,7 @@ class_name TrayColumn
 extends RefCounted
 ## One party card in the dice tray, UI-03 (screens/02-combat/spec.md): 152 w, UI3 card plate, a
 ## UI3.DieTile (96 slot, face word under it, "· used" second line), name + HP row, HP bar.
-## Status chips (UI3.status_chip / UI3.chip) float above the card. The card is still a Button
+## Status icons live above the Axie's head now (StatusHeads), not on the card. The card is still a Button
 ## (toggle) so `%DieSlot0`, focus, keys and the tests keep working; the DieTile is click-through.
 ## The card is bottom-anchored in a fixed 164 px button: "used" is a stamp on the tile, the word stays one line, so the tray top never moves.
 
@@ -59,30 +59,8 @@ static func build(btn: Button) -> Dictionary:
 	hp.set_kind(HPBar.Kind.PARTY, 10, 5, 12)
 	hp.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	body.add_child(hp)
-	var chips := HBoxContainer.new()
-	chips.name = "Chips"
-	chips.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	chips.add_theme_constant_override("separation", 4)
-	root.add_child(chips)
-	var overlay := PanelContainer.new()
-	overlay.name = "RerollOverlay"
-	overlay.set_anchors_preset(Control.PRESET_FULL_RECT)
-	overlay.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	overlay.visible = false
-	overlay.theme = UI3Theme.get_theme()
-	overlay.theme_type_variation = "PanelCard"
-	var oi := TextureRect.new()
-	oi.texture = UI3.icon("ui_reroll")
-	oi.custom_minimum_size = Vector2(40, 40)
-	oi.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	oi.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	oi.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-	oi.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	oi.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	overlay.add_child(oi)
-	btn.add_child(overlay)
-	return {"button": btn, "root": root, "body": body, "plate": plate, "chips": chips,
-		"name_label": name_label, "hp": hp, "hp_label": hp_label, "reroll_overlay": overlay, "lifted": false,
+	return {"button": btn, "root": root, "body": body, "plate": plate,
+		"name_label": name_label, "hp": hp, "hp_label": hp_label, "lifted": false,
 		"skin_id": "", "skin_node": null, "tile": null, "tile_key": "", "die": null,
 		"die_num": Label.new(), "holder": body, "panel_style": null}
 
@@ -164,8 +142,6 @@ static func update(content: Dictionary, d: Dictionary) -> void:
 	hp.position = Vector2(PAD, row_y + 26.0)
 	hp.size = Vector2(W - PAD * 2.0, 10)
 
-	_fill_chips(content["chips"], d.get("status", {}), int(d.get("shield", 0)), d.get("status_tip", Callable()))
-
 	# Card frame: selected / legal ally target = selected plate; focus ring on the button.
 	var lit := selected or bool(d.get("legal_target", false))
 	(content["plate"] as PanelContainer).theme_type_variation = "PanelCardSelected" if lit else "PanelCard"
@@ -176,41 +152,6 @@ static func update(content: Dictionary, d: Dictionary) -> void:
 	body.modulate.a = 0.55 if not alive else 1.0
 	UI3Tooltip.bind(btn, String(d.get("tip", "")))
 	btn.set_meta("ui3_tip_side_of_row", true)
-
-
-static func _fill_chips(row: HBoxContainer, status: Dictionary, shield: int, tip_fn: Callable) -> void:
-	for c in row.get_children():
-		row.remove_child(c)
-		c.queue_free()
-	var items: Array = []
-	if shield > 0:
-		items.append(["shield", shield, UI3.status_chip("face_shield", shield, UI3Theme.color("shield"))])
-	for k in status:
-		var v := int(status[k])
-		if v <= 0:
-			continue
-		if _STATUS_ICON.has(k):
-			var tint := UI3Theme.color("poison") if k == "poison" else UI3Theme.color("text")
-			items.append([k, v, UI3.status_chip(String(_STATUS_ICON[k]), v, tint)])
-		else:
-			items.append([k, v, UI3.status_label_chip(String(k), v)])
-	var shown := mini(items.size(), 3 if items.size() > 3 else items.size())
-	for i in shown:
-		var it: Array = items[i]
-		var chip: Control = it[2]
-		if tip_fn.is_valid():
-			UI3Tooltip.bind(chip, String(tip_fn.call(it[0], it[1])))
-			chip.mouse_filter = Control.MOUSE_FILTER_PASS
-		row.add_child(chip)
-	if items.size() > shown:
-		var more := UI3.plate(&"info")
-		more.theme_type_variation = "PanelInfo"
-		var ml := UI3.label("+%d" % (items.size() - shown), "LabelDisplay")
-		ml.add_theme_font_size_override("font_size", 20)
-		more.add_child(ml)
-		row.add_child(more)
-	for i in range(shown, items.size()):
-		(items[i][2] as Node).queue_free()
 
 
 ## B12 cosmetic dice skin: art under the face glyph + number, inside the DieTile's panel. Visual only.

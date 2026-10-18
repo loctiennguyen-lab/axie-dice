@@ -200,12 +200,13 @@ func _test_every_hoverable_icon_explains_itself(tree: SceneTree) -> void:
 	enemy.status["poison"] = 3
 	_view.call("_rebuild_all")
 	await tree.process_frame
+	await tree.process_frame   # the head chips are laid out in _process, one frame after the rebuild
 
-	# 1 — a status chip on a nameplate.
-	var p: Control = portraits.get(enemy.uid)
-	var row: HBoxContainer = p.get("_status_row")
-	_check(row.get_child_count() > 0, "poison 3 produced no status chip on the nameplate")
-	if row.get_child_count() > 0:
+	# 1 — a status chip above the enemy's head (StatusHeads).
+	var heads: StatusHeads = _view.get("_status_heads")
+	var row: HBoxContainer = heads.row_of(enemy.uid) if heads != null else null
+	_check(row != null and row.visible and row.get_child_count() > 0, "poison 3 produced no status chip above the head")
+	if row != null and row.get_child_count() > 0:
 		var chip: Control = row.get_child(0)
 		var at := chip.global_position + chip.size * 0.5
 		var tip := _tooltip_at(at)
