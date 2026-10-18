@@ -759,7 +759,12 @@ func _draw_picker_body() -> void:
 			continue
 		g.add_child(_pick_tile(k, def))
 		shown += 1
-	var sc := UI3Meta.scroll(g)
+	# Inner padding so the focused tile's cream outline and lift are not clipped by the scroll area.
+	var pad := MarginContainer.new()
+	for side in ["left", "right", "top", "bottom"]:
+		pad.add_theme_constant_override("margin_" + side, 8)
+	pad.add_child(g)
+	var sc := UI3Meta.scroll(pad)
 	sc.custom_minimum_size = Vector2(0, 440)
 	_pick_grid_host.add_child(sc)
 	if shown == 0:
