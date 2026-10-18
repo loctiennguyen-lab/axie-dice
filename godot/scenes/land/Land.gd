@@ -149,14 +149,14 @@ var _tier := 1
 var _live: Array[Dictionary] = []   # buildings built at this tier
 var _plots: Array[Dictionary] = []  # plots still empty at this tier
 var _hud_tl: VBoxContainer
-var _wallet: HBoxContainer
+var _wallet: PanelContainer
 var _hud_bl: PanelContainer
 var _hud_br: HBoxContainer
-var _currencies: PanelContainer
+var _currencies: Control
 var _daily_btn: Button
 var _names_lbl: Label
 var _new_run_btn: Button
-var _start_hint: Control
+var _start_hint: VBoxContainer
 var _offline_banner: Control
 var _names_btn: Button
 var _names_on := false
@@ -752,9 +752,8 @@ func _build_ui() -> void:
 		_add_plot(String(p["id"]))
 	for b in _live:
 		var id := String(b["id"])
-		if id != "portal":
-			_plates[id] = _make_plate(id)
-			_ui.add_child(_plates[id])
+		_plates[id] = _make_plate(id)
+		_ui.add_child(_plates[id])
 		var pill := _make_badge_pill(id)
 		if pill != null:
 			_badges[id] = pill
@@ -866,9 +865,9 @@ func _refresh_signs() -> void:
 		if op != null:
 			op.visible = _touch_mode
 		var sub := (_plates[id] as Control).find_child("SignSub", true, false)
-		if sub != null:
-			sub.visible = always or _hover_id == id or _focus_id == id or _touch_id == id
-		(_plates[id] as Control).visible = always or _names_on or _hover_id == id or _focus_id == id or _touch_id == id
+		if sub != null:   # every place keeps its name plate; hover / focus / Names adds the sub-line
+			sub.visible = always or _names_on or _hover_id == id or _focus_id == id or _touch_id == id
+		(_plates[id] as Control).visible = true
 	_layout()
 
 
@@ -979,8 +978,25 @@ func _make_badge_pill(id: String) -> Control:
 	var tag := _tag(id)
 	if tag == "":
 		return null
-	var c := UI3.chip(tag)
+	return _status_chip(tag)
+
+
+## Status chip: wood-2 fill (not kam-6, that is primary only), Rowdies 18; the word carries the meaning.
+func _status_chip(tag: String) -> PanelContainer:
+	var c := PanelContainer.new()
+	c.theme = UI3Theme.get_theme()
 	c.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	c.custom_minimum_size = Vector2(0, UI3.CHIP_H)
+	c.add_theme_stylebox_override("panel", UI3Theme.flat(UI3Theme.color("notice_bg"), UI3Theme.radius("s"),
+		2, UI3Theme.color("text_muted"), Vector4(12, 0, 12, 0)))
+	var l := UI3.label(tag, "LabelDisplay")
+	l.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	match tag:
+		"FREE", "NEW":
+			l.add_theme_color_override("font_color", UI3Theme.color("success_text"))
+		"LOCKED", "OFFLINE":
+			l.add_theme_color_override("font_color", UI3Theme.color("danger_text"))
+	c.add_child(l)
 	return c
 
 # ---------------------------------------------------------------- HUD (UI-03: 4 corner groups)
@@ -1024,24 +1040,28 @@ func _build_hud() -> void:
 	lp.add_child(_land_link())
 	_hud_tl.add_child(lp)
 
-	# Top-right: currencies + settings.
-	_wallet = HBoxContainer.new()
+	# Top-right: one plate, currencies then settings (spec 01).
+	_wallet = UI3.plate(&"plate")
 	_wallet.name = "Wallet"
-	_wallet.theme = UI3Theme.get_theme()
-	_wallet.add_theme_constant_override("separation", UI3Theme.space("16"))
-	_ui.add_child(_wallet)
+	var wrow := HBoxContainer.new()
+	wrow.add_theme_constant_override("separation", UI3Theme.space("24"))
+	_wallet.add_child(wrow)
 	var vals := func(v: int) -> String: return "···" if _loading else _fmt(v)
-	_currencies = UI3.currency_pill([
+	var cur := UI3.currency_pill([
 		{"icon": "cur_shard", "value": vals.call(_meta_int("shard_pool"))},
 		{"icon": "cur_stone", "value": vals.call(_meta_int("stone"))},
 		{"icon": "cur_gem", "value": vals.call(_meta_int("lunar_gem"))}])
+	_currencies = cur.get_child(0) as Control   # the pill's own row of icon + value cells
+	cur.remove_child(_currencies)
+	cur.free()
 	_currencies.name = "Currencies"
 	_currencies.visible = not _guest   # signed out: currencies hidden
-	_wallet.add_child(_currencies)
+	wrow.add_child(_currencies)
 	var st := UI3.icon_button("ui_settings", "Settings")
 	st.name = "Settings"
 	st.pressed.connect(_open_screen.bind(&"settings"))
-	_wallet.add_child(st)
+	wrow.add_child(st)
+	_ui.add_child(_wallet)
 
 	# Bottom-left: Show names (N) and Codex (C).
 	_hud_bl = UI3.plate(&"plate")
@@ -1086,8 +1106,33 @@ func _build_hud() -> void:
 		_daily_btn.text = "Daily run · claim"
 	_daily_btn.visible = not (_first and not _has_run)   # first visit: Daily hidden
 	_hud_br.add_child(_daily_btn)
+	_load_daily_tries()
 	_run_plate = _build_run_button()
 	_hud_br.add_child(_run_plate)
+
+
+## Daily tries left today ("Daily run · 2 of 3"), the same numbers Run Setup shows. Quiet when offline,
+## signed out or not server-rolled: the button then keeps its plain label.
+func _load_daily_tries() -> void:
+	if qa.has("daily_tries"):
+		_apply_daily_tries(qa["daily_tries"])
+		return
+	if _offline or _guest or String(ProjectSettings.get_setting("axie/epoch_source", "")) != "remote":
+		return
+	var ref: WeakRef = weakref(self)
+	RunState.run_session().daily_info(func(ok: bool, data: Dictionary) -> void:
+		var me: Variant = ref.get_ref()
+		if ok and me != null:
+			me._apply_daily_tries({"used": int(data.get("used", 0)), "max": int(data.get("max", 3))}))
+
+
+func _apply_daily_tries(t: Dictionary) -> void:
+	if _daily_btn == null or _daily_btn.disabled:
+		return
+	var mx := int(t.get("max", 3))
+	_daily_btn.text = "Daily run · %d of %d" % [maxi(mx - int(t.get("used", 0)), 0), mx]
+	if _offline_banner != null:   # HUD still building when the QA hook answers at once
+		_layout()
 
 
 func _profile_cell() -> Control:
@@ -1184,14 +1229,31 @@ func _build_run_button() -> Button:
 	plate.pressed.connect(_on_run_pressed)
 	if _first and not _has_run:
 		plate.grab_focus.call_deferred()
-	# "Start here" coach card above the primary until the first run starts.
-	_start_hint = UI3.plate(&"card")
+	# "Start here" coach card (640 wide, 32x20 arrow toward the Start run spotlight).
+	_start_hint = VBoxContainer.new()
 	_start_hint.name = "StartHint"
+	_start_hint.theme = UI3Theme.get_theme()
 	_start_hint.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_start_hint.add_theme_constant_override("separation", 0)
+	var card := UI3.plate(&"dialog")
+	card.custom_minimum_size.x = 640
+	card.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var hv := VBoxContainer.new()
 	hv.add_child(UI3.label("Start here", "LabelTitle"))
-	hv.add_child(UI3.label("Your first run is a short guided one", "LabelMuted"))
-	_start_hint.add_child(hv)
+	var hb := UI3.label("Your first run is a short guided one", "LabelMuted")
+	hb.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	hv.add_child(hb)
+	card.add_child(hv)
+	_start_hint.add_child(card)
+	var arrow := Control.new()
+	arrow.name = "HintArrow"
+	arrow.custom_minimum_size = Vector2(640, 20)
+	arrow.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	arrow.draw.connect(func() -> void:
+		var cx := 640.0 - plate.size.x * 0.5
+		arrow.draw_colored_polygon(PackedVector2Array([Vector2(cx - 16, 0), Vector2(cx + 16, 0), Vector2(cx, 20)]),
+			UI3Theme.color("panel")))
+	_start_hint.add_child(arrow)
 	_start_hint.visible = _first and not _has_run and not _guest
 	_ui.add_child(_start_hint)
 	return plate
@@ -1339,11 +1401,11 @@ func _place_hud(f: float) -> void:
 	_start_hint.reset_size()
 	var hs := _start_hint.get_combined_minimum_size()
 	_start_hint.scale = sc
-	_start_hint.position = Vector2(w - 24.0 - hs.x * f, h - 24.0 - bsz.y * f - 16.0 * f - hs.y * f)
+	_start_hint.position = Vector2(w - 24.0 - hs.x * f, h - 24.0 - bsz.y * f - 4.0 * f - hs.y * f)
 	_offline_banner.reset_size()
 	var os := _offline_banner.get_combined_minimum_size()
 	_offline_banner.scale = sc
-	_offline_banner.position = Vector2((w - os.x * f) * 0.5, 24.0)
+	_offline_banner.position = Vector2((w - os.x * f) * 0.5, h - 24.0 - os.y * f)   # bottom centre: clear of every place chip
 
 
 # ================================================================ actions

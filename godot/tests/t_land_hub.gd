@@ -39,12 +39,20 @@ func _ready() -> void:
 	for n in ["ProfileChip", "NamesToggle", "Rail_Daily", "Codex", "Wallet", "Currencies", "HudBottomLeft", "HudBottomRight", "Settings"]:
 		_check(hub.find_child(n, true, false) != null, "thiếu " + n)
 	# Signs hidden at rest; Names toggle (N) shows them all; Esc closes Names first.
-	var sign := hub.find_child("Sign_pass", true, false) as Control
-	_check(sign != null and not sign.visible, "biển tên phải ẩn khi nghỉ")
+	# UI-03: every place keeps its name plate; the sub-line shows on hover/focus or with Names (N).
+	for id in ["portal", "house", "missions", "echobox", "pass", "vault", "store", "board"]:
+		var pl := hub.find_child("Sign_" + id, true, false) as Control
+		_check(pl != null and pl.visible, "biển tên " + id + " phải luôn hiện")
+	var sign_p := hub.find_child("Sign_pass", true, false) as Control
+	var subp := sign_p.find_child("SignSub", true, false) as Control
+	_check(subp != null and not subp.visible, "dòng phụ ẩn khi nghỉ")
 	hub.call("_handle_key", KEY_N)
-	_check(sign.visible, "N phải bật biển tên")
+	_check(subp.visible, "N phải bật dòng phụ")
 	hub.call("_handle_key", KEY_ESCAPE)
-	_check(not sign.visible, "Esc phải tắt biển tên trước")
+	_check(not subp.visible, "Esc phải tắt Names trước")
+	_check(sign_p.visible, "biển tên vẫn hiện sau khi tắt Names")
+	_check((hub.find_child("Settings", true, false) as Control).get_parent().get_parent() == hub.find_child("Wallet", true, false),
+		"Settings nằm chung plate với tiền")
 
 	# has_modal(): what holds back AccountService's rebuild. A touch sign preview must not.
 	_check(not hub.has_modal(), "has_modal: false khi không có panel nào")
@@ -147,6 +155,9 @@ func _ready() -> void:
 			_check(LandNav.last_path == "", "offline: Pass không mở")
 			var db := h2.find_child("Rail_Daily", true, false) as Button
 			_check(db.disabled and "needs connection" in db.text, "offline: Daily tắt và ghi lý do")
+			var ob := h2.find_child("OfflineBanner", true, false) as Control
+			for pid in h2.get("_badges"):
+				_check(not _srect(ob).intersects(_srect(h2.get("_badges")[pid] as Control)), "offline: banner đè chip " + str(pid))
 		if st.has("guest"):
 			_check((h2.find_child("RunPlate", true, false) as Button).text == "Sign in to play", "chưa đăng nhập: nút chính là Sign in to play")
 			_check(not (h2.find_child("Currencies", true, false) as Control).visible, "chưa đăng nhập: ẩn tiền")
@@ -189,6 +200,14 @@ func _ready() -> void:
 	MetaState.mission_escrow = esc0
 	MetaState.ledger = led0
 	# Touch: first tap shows the sign (Open button), second tap opens.
+	# Daily label carries the real tries left.
+	LandHub.qa = {"guest": false, "newcomer": false, "first_launch": false, "daily_tries": {"used": 1, "max": 3}}
+	var hd := (load("res://scenes/land/Land.tscn") as PackedScene).instantiate() as LandHub
+	add_child(hd)
+	await get_tree().process_frame
+	_check((hd.find_child("Rail_Daily", true, false) as Button).text == "Daily run · 2 of 3", "Daily ghi số lượt còn")
+	hd.queue_free()
+	await get_tree().process_frame
 	LandHub.qa = {"touch": true, "newcomer": false}
 	LandHub.tier_override = 1
 	var ht := (load("res://scenes/land/Land.tscn") as PackedScene).instantiate() as LandHub
