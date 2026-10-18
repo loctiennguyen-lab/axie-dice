@@ -56,7 +56,8 @@ func _ready() -> void:
 	MetaState.mission_escrow = {}
 	MetaState.starter_shard_locked = 0
 	_ok(s.block_reason("N1") == "", "N1 startable with enough usable Shard")
-	_ok(not (s.find_child("Stake_N1", true, false) as Button).disabled, "Stake button enabled")
+	s.select_tier("N1")
+	_ok(not (s.find_child("Stake", true, false) as Button).disabled, "Stake button enabled")
 	var got: Array = []
 	s.start_hook = func(p: Dictionary) -> Dictionary:
 		got.append(p)
@@ -112,6 +113,7 @@ func _ready() -> void:
 	# confirm modal, focus on Not now, rules text from data
 	s.open_confirm("N2")
 	await get_tree().process_frame
+	await get_tree().process_frame
 	_ok(s.find_child("NotNow", true, false) != null and s.find_child("ConfirmStake", true, false) != null, "confirm modal")
 	_ok((s.find_child("NotNow", true, false) as Button).has_focus(), "focus starts on Not now")
 	_ok(s.rule_lines(s.offer("N2")).size() == 1 + (s.offer("N2").rules as Array).size(), "rule lines: standard + extras")
@@ -120,7 +122,8 @@ func _ready() -> void:
 	MetaState.shard_pool = int(cfg.tiers.N1.stake) - 50
 	s._refresh()
 	_ok(s.block_reason("N1") == "Need 50 more Shard", "missing amount shown")
-	_ok((s.find_child("Stake_N1", true, false) as Button).text == "Need 50 more Shard", "button shows missing amount")
+	s.select_tier("N1")
+	_ok((s.find_child("Stake", true, false) as Button).text == "Need 50 more Shard", "button shows missing amount")
 	MetaState.shard_pool = 5000
 	# newcomer: every card locked
 	MetaState.runs = 2
@@ -134,7 +137,7 @@ func _ready() -> void:
 	MetaState.runs_with_battle = 8
 	# open run blocks
 	s.set_state("open_run")
-	_ok(s.block_reason("N1") != "" and (s.find_child("Stake_N1", true, false) as Button).disabled, "open run disables cards")
+	_ok(s.block_reason("N1") != "" and (s.find_child("Stake", true, false) as Button).disabled, "open run disables cards")
 	_ok(s.find_child("Banner", true, false) != null, "open run banner")
 	# offline / guest block only with remote flag
 	for st in ["offline", "guest"]:

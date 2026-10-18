@@ -32,16 +32,21 @@ var _starting := false
 var begin_error := ""
 var day_override := ""
 
-var _panel: PanelContainer
-var _col: VBoxContainer
+## Tier shown in the detail plate (UI-03 screen 40).
+var selected := ""
+
+var _shell: Dictionary
 var _banner_host: VBoxContainer
-var _strip_host: HBoxContainer
-var _grid_host: VBoxContainer
 var _modal_layer: Control
+var _balance: Label
+var _table_host: VBoxContainer
+var _house_host: HBoxContainer
+var _detail: PanelContainer
 
 
 func _ready() -> void:
 	_build()
+	selected = _default_tier()
 	if remote_on:
 		MissionEscrowSync.reconcile(func(applied: bool) -> void:
 			if applied and is_inside_tree():
@@ -65,16 +70,27 @@ func derive_state() -> String:
 	return "normal"
 
 
+## First tier you can stake, else the first on the board.
+func _default_tier() -> String:
+	var all := offers()
+	for o in all:
+		if bool((o as Dictionary).unlocked):
+			return String((o as Dictionary).tier)
+	return String((all[0] as Dictionary).tier) if not all.is_empty() else ""
+
+
+func select_tier(tier_id: String) -> void:
+	if not offer(tier_id).is_empty():
+		selected = tier_id
+		_refresh()
+
+
 func _account_blocks() -> bool:
 	return remote_on and (state == "offline" or state == "guest")
 
 
 func _unhandled_key_input(ev: InputEvent) -> void:
-	if ev is InputEventKey and ev.pressed and not ev.echo and ev.keycode == KEY_ESCAPE:
-		if _modal_layer.get_child_count() > 0:
-			close_modal()
-		else:
-			_on_back()
+	if UI3Meta.esc_back(ev, _shell, _on_back):
 		get_viewport().set_input_as_handled()
 
 
@@ -245,10 +261,9 @@ func _start_inner(tier_id: String) -> Dictionary:
 
 func set_state(s: String) -> void:
 	state = s
-	if _panel == null:
+	if _shell.is_empty():
 		return
-	for c in _banner_host.get_children():
-		c.queue_free()
+	UI3Meta.clear(_banner_host)
 	match s:
 		"offline":
 			if remote_on:
@@ -270,158 +285,83 @@ func open_confirm(tier_id: String) -> void:
 	var o := offer(tier_id)
 	if o.is_empty():
 		return
-	var m := _modal("Stake %d Shard?" % int(o.stake), 600)
-	var v: VBoxContainer = m.find_child("V", true, false)
-	v.add_child(_label("%s - %s, Ascension %d" % [tier_id, String(o.mode).capitalize(), int(o.ascension)], 18, DangoTheme.INK_2))
+	var lines: Array[String] = ["%s · %s, Ascension %d" % [tier_id, String(o.mode).capitalize(), int(o.ascension)], ""]
 	for line in rule_lines(o):
-		v.add_child(_label(String(line), 16))
-	var pay := _label("If you win you get %d Shard back (x%s). If you fail, the stake is lost." % [
-		int(o.payout), _num(float(o.m))], 16)
-	pay.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	v.add_child(pay)
-	v.add_child(_label("No Aid in a mission run.", 14, DangoTheme.INK_2))
-	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", 12)
-	var no := _button("Not now", 260, 48)
+		lines.append(String(line))
+	lines.append("")
+	lines.append("If you win you get %d Shard back (×%s). If you fail, the stake is lost." % [int(o.payout), _num(float(o.m))])
+	lines.append("No Continue and no Aid in a mission run.")
+	var no := UI3.button("Not now", &"secondary", &"M")
 	no.name = "NotNow"
-	no.pressed.connect(close_modal)
-	var yes := _button("Stake %d and play" % int(o.stake), 260, 48, true)
+	var yes := UI3.button("Stake %d and play" % int(o.stake), &"primary", &"M")
 	yes.name = "ConfirmStake"
 	yes.disabled = block_reason(tier_id) != ""
+	no.pressed.connect(close_modal)
 	yes.pressed.connect(func() -> void:
 		close_modal()
 		start(tier_id))
-	row.add_child(no)
-	row.add_child(yes)
-	v.add_child(row)
-	no.grab_focus()   # focus starts on the safe choice
+	var m := UI3.modal("Stake %d Shard?" % int(o.stake), "\n".join(lines), [no, yes], 0)   # focus starts on the safe choice
+	m.cancelled.connect(close_modal)
+	_modal_layer.add_child(m)
 
 
 func close_modal() -> void:
-	for c in _modal_layer.get_children():
-		c.queue_free()
+	if _modal_layer != null:
+		UI3Meta.clear(_modal_layer)
 
 
 # ---------------------------------------------------------------- build
 
+const COLS := [["TIER", 120, false], ["MODE", 140, false], ["STAKE", 160, true], ["PAY IF YOU WIN", 160, true],
+	["STONE", 120, true], ["RULES", 0, false]]
+const ROW_H := 96
+const DETAIL_W := 440
+
+
 func _build() -> void:
-	DangoScreen.build(self, MockupAssets.tex("assets/bg/rocky.jpg"), DangoTheme.Scrim.DEFAULT, false)
-	_panel = PanelContainer.new()
-	_panel.name = "Panel"
-	_panel.anchor_right = 1.0
-	_panel.anchor_bottom = 1.0
-	_panel.offset_left = 120
-	_panel.offset_right = -120
-	_panel.offset_top = 116
-	_panel.offset_bottom = -84
-	var sb := StyleBoxFlat.new()
-	sb.bg_color = DangoTheme.CREAM
-	sb.set_corner_radius_all(28)
-	sb.set_border_width_all(4)
-	sb.border_color = DangoTheme.LINE
-	_panel.add_theme_stylebox_override("panel", sb)
-	_panel.clip_contents = true
-	add_child(_panel)
-	_col = VBoxContainer.new()
-	_col.name = "Col"
-	_col.add_theme_constant_override("separation", 0)
-	_panel.add_child(_col)
-	_col.add_child(_build_header())
-	_banner_host = VBoxContainer.new()
-	_col.add_child(_banner_host)
-	var strip := PanelContainer.new()
-	strip.custom_minimum_size = Vector2(0, 48)
-	var ssb := StyleBoxFlat.new()
-	ssb.bg_color = DangoTheme.CREAM_200
-	ssb.content_margin_left = 24
-	ssb.content_margin_right = 24
-	strip.add_theme_stylebox_override("panel", ssb)
-	_strip_host = HBoxContainer.new()
-	_strip_host.name = "HouseStrip"
-	_strip_host.add_theme_constant_override("separation", 20)
-	strip.add_child(_strip_host)
-	_col.add_child(strip)
-	var scroll := ScrollContainer.new()
-	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	_col.add_child(scroll)
-	DangoTheme.style_scrollbars(scroll)
-	var pad := MarginContainer.new()
-	pad.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	for s in ["left", "right", "top", "bottom"]:
-		pad.add_theme_constant_override("margin_" + s, 20)
-	scroll.add_child(pad)
-	_grid_host = VBoxContainer.new()
-	_grid_host.name = "GridHost"
-	_grid_host.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	pad.add_child(_grid_host)
-	_modal_layer = Control.new()
-	_modal_layer.name = "Modals"
-	_modal_layer.set_anchors_preset(Control.PRESET_FULL_RECT)
-	_modal_layer.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	add_child(_modal_layer)
-
-
-func _label(text: String, size: int, color: Color = DangoTheme.INK, display := false) -> Label:
-	var l := Label.new()
-	l.text = text
-	l.add_theme_font_size_override("font_size", maxi(size, 12))
-	l.add_theme_color_override("font_color", color)
-	if display:
-		l.add_theme_font_override("font", DangoTheme.FONT_DISPLAY)
-	return l
-
-
-func _button(text: String, w: float, h: float, primary := false) -> Button:
-	var b := Button.new()
-	b.text = text
-	b.custom_minimum_size = Vector2(w, maxf(h, 44))
-	b.add_theme_font_override("font", DangoTheme.FONT_DISPLAY)
-	b.add_theme_font_size_override("font_size", 18)
-	DangoTheme.style_button(b, primary)
-	return b
-
-
-func _plate(min_w: float, border: Color = DangoTheme.LINE, fill: Color = DangoTheme.CREAM_RAISED) -> PanelContainer:
-	var p := PanelContainer.new()
-	p.custom_minimum_size = Vector2(min_w, 0)
-	var sb := StyleBoxFlat.new()
-	sb.bg_color = fill
-	sb.set_corner_radius_all(16)
-	sb.set_border_width_all(3)
-	sb.border_color = border
-	sb.set_content_margin_all(14)
-	p.add_theme_stylebox_override("panel", sb)
-	return p
-
-
-func _build_header() -> Control:
-	var band := PanelContainer.new()
-	band.custom_minimum_size = Vector2(0, 64)
-	var sb := StyleBoxFlat.new()
-	sb.bg_color = DangoTheme.LINE
-	sb.corner_radius_top_left = 24
-	sb.corner_radius_top_right = 24
-	sb.content_margin_left = 16
-	sb.content_margin_right = 16
-	band.add_theme_stylebox_override("panel", sb)
-	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", 14)
-	band.add_child(row)
-	var back := _button("← Back  Esc", 150, 48)
-	back.name = "Back"
-	back.pressed.connect(_on_back)
-	row.add_child(back)
-	row.add_child(_label("Missions", 36, DangoTheme.CREAM_RAISED, true))
-	var sub := _label("Stake Shard, win it back with a bonus", 16, DangoTheme.CREAM)
-	sub.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	sub.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	row.add_child(sub)
-	var bal := _label("", 18, DangoTheme.CREAM_RAISED)
-	bal.name = "Balance"
-	bal.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	row.add_child(bal)
-	return band
+	_shell = UI3Meta.build(self, "Missions", "Stake Shards on a hard Short run", _on_back)
+	_banner_host = _shell["banner_host"]
+	_modal_layer = _shell["modal_layer"]
+	var col: VBoxContainer = _shell["col"]
+	var note := UI3.plate(&"plate")
+	note.name = "Explainer"
+	var nrow := HBoxContainer.new()
+	nrow.add_theme_constant_override("separation", UI3Theme.space("24"))
+	note.add_child(nrow)
+	var ex := UI3.label("Win a hard Short run to get your stake back with a bonus. Lose it and the stake is gone.", "LabelMuted")
+	ex.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	ex.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	nrow.add_child(ex)
+	_balance = UI3.label("", "LabelTitle")
+	_balance.name = "Balance"
+	nrow.add_child(_balance)
+	col.add_child(note)
+	var body := HBoxContainer.new()
+	body.name = "Body"
+	body.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	body.add_theme_constant_override("separation", UI3Meta.GAP)
+	col.add_child(body)
+	var left := VBoxContainer.new()
+	left.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	left.add_theme_constant_override("separation", UI3Theme.space("16"))
+	body.add_child(left)
+	_table_host = VBoxContainer.new()
+	_table_host.name = "TableHost"
+	_table_host.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	_table_host.add_theme_constant_override("separation", UI3Theme.space("8"))
+	left.add_child(_table_host)
+	var hp := UI3.plate(&"plate")
+	hp.name = "HousePlate"
+	hp.size_flags_vertical = Control.SIZE_SHRINK_END
+	_house_host = HBoxContainer.new()
+	_house_host.name = "HouseStrip"
+	_house_host.add_theme_constant_override("separation", UI3Theme.space("16"))
+	hp.add_child(_house_host)
+	left.add_child(hp)
+	_detail = UI3.plate(&"plate")
+	_detail.name = "Detail"
+	_detail.custom_minimum_size = Vector2(DETAIL_W, 0)
+	body.add_child(_detail)
 
 
 func _on_back() -> void:
@@ -429,155 +369,187 @@ func _on_back() -> void:
 		LandNav.back_to_land()
 
 
-func _clear(n: Node) -> void:
-	for c in n.get_children():
-		n.remove_child(c)
-		c.queue_free()
-
-
 func _banner(msg: String, detail: String, with_retry: bool) -> void:
-	var p := PanelContainer.new()
-	p.name = "Banner"
-	var sb := StyleBoxFlat.new()
-	sb.bg_color = DangoTheme.DUSK
-	sb.content_margin_left = 24
-	sb.content_margin_right = 24
-	sb.content_margin_top = 8
-	sb.content_margin_bottom = 8
-	p.add_theme_stylebox_override("panel", sb)
-	var h := HBoxContainer.new()
-	h.add_theme_constant_override("separation", 14)
-	p.add_child(h)
-	var t := VBoxContainer.new()
-	t.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	t.add_child(_label(msg, 18, DangoTheme.DUSK_INK, true))
-	t.add_child(_label(detail, 14, DangoTheme.DUSK_INK))
-	h.add_child(t)
+	var btns: Array = []
 	if with_retry:
-		var r := _button("Try again", 160, 44, true)
-		r.pressed.connect(func() -> void: set_state("normal"))
-		h.add_child(r)
-	_banner_host.add_child(p)
-
-
-func _modal(title: String, w: float) -> Control:
-	var scrim := ColorRect.new()
-	scrim.name = "Modal"
-	scrim.color = DangoTheme.SCRIM
-	scrim.set_anchors_preset(Control.PRESET_FULL_RECT)
-	var cc := CenterContainer.new()
-	cc.set_anchors_preset(Control.PRESET_FULL_RECT)
-	scrim.add_child(cc)
-	var card := _plate(w, DangoTheme.LINE, DangoTheme.CREAM)
-	card.name = "Card"
-	cc.add_child(card)
-	var v := VBoxContainer.new()
-	v.name = "V"
-	v.add_theme_constant_override("separation", 10)
-	card.add_child(v)
-	v.add_child(_label(title, 26, DangoTheme.INK, true))
-	_modal_layer.add_child(scrim)
-	return scrim
+		btns.append({"name": "TryAgain", "text": "Try again", "primary": true, "cb": func() -> void: set_state("normal")})
+	UI3Meta.banner(_banner_host, msg, detail, btns)
 
 
 # ---------------------------------------------------------------- refresh
 
+func _cell(text: String, w: int, variation := "", right := false) -> Label:
+	var l := UI3.label(text, variation)
+	if w > 0:
+		l.custom_minimum_size = Vector2(w, 0)
+	else:
+		l.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT if right else HORIZONTAL_ALIGNMENT_LEFT
+	l.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	l.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	return l
+
+
 func _refresh() -> void:
-	if _panel == null:
+	if _shell.is_empty():
 		return
-	var bal: Label = _panel.find_child("Balance", true, false)
-	bal.text = "Shard %d   Usable for stakes %d" % [MetaState.shard_pool, usable_shards()]
-	_clear(_strip_host)
-	var lv := MissionBoard.house_level(MetaState)
+	var usable := usable_shards()
+	_balance.text = "Stakeable %s · Starter %s (can't be staked)" % [
+		UI3.fmt(usable), UI3.fmt(maxi(MetaState.shard_pool - usable, 0))]
+	_refresh_house()
+	UI3Meta.clear(_table_host)
+	if state == "loading":
+		for i in 4:
+			_table_host.add_child(UI3.skeleton_row(ROW_H))
+		UI3Meta.clear(_detail)
+		return
+	if offer(selected).is_empty():
+		selected = _default_tier()
+	var head := HBoxContainer.new()
+	head.name = "Head"
+	head.add_theme_constant_override("separation", UI3Theme.space("16"))
+	var hpad := MarginContainer.new()
+	hpad.add_theme_constant_override("margin_left", 24)
+	hpad.add_theme_constant_override("margin_right", 24)
+	hpad.add_child(head)
+	for c in COLS:
+		head.add_child(_cell(String(c[0]), int(c[1]), "LabelMuted", bool(c[2])))
+	_table_host.add_child(hpad)
+	var rows := VBoxContainer.new()
+	rows.name = "Grid"
+	rows.add_theme_constant_override("separation", UI3Theme.space("8"))
+	for o in offers():
+		rows.add_child(_row(o))
+	var sc := UI3Meta.scroll(rows)
+	sc.name = "Scroll"
+	_table_host.add_child(sc)
+	_draw_detail()
+
+
+func _refresh_house() -> void:
+	UI3Meta.clear(_house_host)
 	var cfg := _Econ.get_table("missions")
-	_strip_host.add_child(_label("Mission House Lv %d" % lv, 18, DangoTheme.INK))
+	var ht := UI3.label("Mission House Lv %d" % MissionBoard.house_level(MetaState), "LabelTitle")
+	ht.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	_house_host.add_child(ht)
 	var parts: Array[String] = []
 	for h in cfg.get("house", []):
 		var d: Dictionary = h
 		parts.append("Lv %d: %d Shard + %d Stone" % [int(d.level), int(d.cost_shards), int(d.cost_stone)])
-	var costs := _label("   ".join(parts), 14, DangoTheme.INK_2)
-	costs.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	costs.clip_text = true
-	_strip_host.add_child(costs)
-	var up := _button("Upgrade", 160, 44)
+	var costs := _cell("   ".join(parts), 0, "LabelMuted")
+	costs.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	costs.autowrap_mode = TextServer.AUTOWRAP_OFF
+	_house_host.add_child(costs)
+	var up := UI3.button("Upgrade", &"secondary", &"S")
 	up.name = "UpgradeHouse"
-	up.disabled = not bool(cfg.get("house_upgrade_enabled", false))
-	up.tooltip_text = "Not in this build" if up.disabled else ""
-	if up.disabled:
-		up.text = "Upgrade (not in this build)"
-		up.custom_minimum_size.x = 260
-	_strip_host.add_child(up)
-	_clear(_grid_host)
-	if state == "loading":
-		_grid_host.add_child(_label("Loading...", 18, DangoTheme.INK_2))
-		return
-	var grid := GridContainer.new()
-	grid.name = "Grid"
-	grid.columns = 3
-	grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	grid.add_theme_constant_override("h_separation", 16)
-	grid.add_theme_constant_override("v_separation", 16)
-	_grid_host.add_child(grid)
-	for o in offers():
-		grid.add_child(_card(o))
+	if not bool(cfg.get("house_upgrade_enabled", false)):
+		UI3.set_disabled_reason(up, "Not in this build")
+	_house_host.add_child(up)
 
 
-func _tile(caption: String, value: String) -> Control:
-	var p := _plate(0, DangoTheme.LINE, DangoTheme.CREAM_200)
-	p.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	var v := VBoxContainer.new()
-	v.add_child(_label(caption, 14, DangoTheme.INK_2))
-	v.add_child(_label(value, 22, DangoTheme.INK, true))
-	p.add_child(v)
-	return p
-
-
-func _card(o: Dictionary) -> Control:
-	var id := String(o.tier)
-	var locked := not bool(o.unlocked)
-	var p := _plate(0, DangoTheme.LINE, DangoTheme.CREAM_RAISED)
-	p.name = "Card_" + id
-	p.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	p.custom_minimum_size.x = 0
-	var v := VBoxContainer.new()
-	v.add_theme_constant_override("separation", 8)
-	p.add_child(v)
-	var head := HBoxContainer.new()
-	head.add_child(_label(id, 26, DangoTheme.INK, true))
-	var mode := _label("  %s - Ascension %d" % [String(o.mode).capitalize(), int(o.ascension)], 18, DangoTheme.INK_2)
-	mode.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	head.add_child(mode)
-	v.add_child(head)
-	var tiles := GridContainer.new()
-	tiles.columns = 3
-	tiles.add_theme_constant_override("h_separation", 8)
-	tiles.add_child(_tile("Stake", str(int(o.stake))))
-	tiles.add_child(_tile("Pay if you win", str(int(o.payout))))
-	tiles.add_child(_tile("Stone", "+%d" % int(o.stone)))
-	v.add_child(tiles)
+func _rule_names(o: Dictionary) -> String:
 	var names: Array[String] = []
 	for r in (o.rules as Array):
 		names.append(String(RULE_NAMES.get(String(r), String(r))))
-	var rl := _label("Rules: " + (", ".join(names) if not names.is_empty() else "standard only"), 16,
-		DangoTheme.INK_DISABLED if locked else DangoTheme.INK)
-	rl.name = "Rules"
-	rl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	v.add_child(rl)
-	var why := block_reason(id)
+	return ", ".join(names) if not names.is_empty() else "Standard only"
+
+
+func _row(o: Dictionary) -> Control:
+	var id := String(o.tier)
+	var locked := not bool(o.unlocked)
+	var b := UI3.button("", &"secondary", &"M")
+	b.name = "Card_" + id
+	b.toggle_mode = true
+	b.button_pressed = id == selected
+	b.custom_minimum_size = Vector2(0, ROW_H)
+	b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	var h := HBoxContainer.new()
+	h.add_theme_constant_override("separation", UI3Theme.space("16"))
+	h.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	h.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	h.offset_left = 24
+	h.offset_right = -24
+	b.add_child(h)
+	h.add_child(_cell(id, 120, "LabelScreenTitle"))
+	h.add_child(_cell("%s · A%d" % [String(o.mode).capitalize(), int(o.ascension)], 140))
+	h.add_child(_cell(UI3.fmt(int(o.stake)), 160, "LabelTitle", true))
+	h.add_child(_cell("%s (×%s)" % [UI3.fmt(int(o.payout)), _num(float(o.m))], 160, "", true))
+	h.add_child(_cell("+%d" % int(o.stone), 120, "", true))
 	if locked:
-		var lk := _label("Locked: " + why, 16, DangoTheme.INK_DISABLED)
+		var lk := _cell("Locked: " + lock_text(o), 0, "LabelMuted")
 		lk.name = "LockNote"
-		lk.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		v.add_child(lk)
-	var b := _button("Stake %d and play" % int(o.stake), 0, 48, true)
-	b.name = "Stake_" + id
-	b.disabled = why != ""
+		h.add_child(lk)
+		b.modulate.a = 0.75
+	else:
+		var rl := _cell(_rule_names(o), 0)
+		rl.name = "Rules"
+		h.add_child(rl)
+	b.pressed.connect(select_tier.bind(id))
+	return b
+
+
+func _tinted(kind: String, title: String, text: String) -> Control:
+	var win := kind == "win"
+	var p := PanelContainer.new()
+	p.name = "Win" if win else "Lose"
+	p.theme = UI3Theme.get_theme()
+	p.add_theme_stylebox_override("panel", UI3Theme.flat(
+		UI3Theme.color("success_bg" if win else "danger_bg"), UI3Theme.radius("m"), 0, Color.TRANSPARENT,
+		Vector4(16, 12, 16, 12)))
+	var v := VBoxContainer.new()
+	p.add_child(v)
+	var t := UI3.label(title, "LabelTitle")
+	t.add_theme_color_override("font_color", UI3Theme.color("success_text" if win else "danger_text"))
+	v.add_child(t)
+	var d := UI3.label(text)
+	d.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	v.add_child(d)
+	return p
+
+
+func _draw_detail() -> void:
+	UI3Meta.clear(_detail)
+	var o := offer(selected)
+	if o.is_empty():
+		return
+	var id := selected
+	var v := VBoxContainer.new()
+	v.add_theme_constant_override("separation", UI3Theme.space("16"))
+	_detail.add_child(v)
+	var t := UI3.label("%s · %s, A%d" % [id, String(o.mode).capitalize(), int(o.ascension)], "LabelScreenTitle")
+	t.name = "DetailTitle"
+	v.add_child(t)
+	var st := HBoxContainer.new()
+	var sl := UI3.label("Stake", "LabelMuted")
+	sl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	st.add_child(sl)
+	var sv := UI3.label("%s Shards" % UI3.fmt(int(o.stake)), "LabelScreenTitle")
+	sv.name = "StakeValue"
+	st.add_child(sv)
+	v.add_child(st)
+	v.add_child(_tinted("win", "Win", "%s Shards back (×%s) and +%d Stone." % [UI3.fmt(int(o.payout)), _num(float(o.m)), int(o.stone)]))
+	v.add_child(_tinted("lose", "Lose", "The stake is gone. No Stone."))
+	var rules := VBoxContainer.new()
+	rules.name = "RuleLines"
+	rules.add_theme_constant_override("separation", UI3Theme.space("8"))
+	for line in rule_lines(o):
+		var rl := UI3.label(String(line))
+		rl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		rules.add_child(rl)
+	var rl2 := UI3.label("No Continue and no Aid.", "LabelMuted")
+	rules.add_child(rl2)
+	v.add_child(rules)
+	var sp := Control.new()
+	sp.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	v.add_child(sp)
+	var why := block_reason(id)
+	var b := UI3.button("Stake %d and play" % int(o.stake), &"primary", &"M")
+	b.name = "Stake"
 	b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	if why != "":
-		b.tooltip_text = why
-		if not locked:
-			b.text = why
-			b.add_theme_font_size_override("font_size", 16)
+		UI3.set_disabled_reason(b, why)
+		b.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		b.custom_minimum_size.y = 72
 	b.pressed.connect(open_confirm.bind(id))
 	v.add_child(b)
-	return p

@@ -54,4 +54,25 @@ func _make(screen: String) -> Node:
 		add_child(u)
 		await get_tree().process_frame
 		return u
+	if screen.begins_with("missions"):
+		MetaState.shard_pool = 1240
+		MetaState.starter_shard_locked = 200
+		MetaState.asc_wins = {"3": 1, "4": 1}
+		MetaState.mission_escrow = {}
+		if screen == "missions-newcomer":
+			MetaState.runs_with_battle = 2
+		var ms: MissionsScreen = load("res://scenes/missions/MissionsScreen.tscn").instantiate()
+		ms.use_account = false
+		ms.no_scene_change = true
+		ms.day_override = "2026-10-12"
+		add_child(ms)
+		await get_tree().process_frame
+		if screen == "missions-confirm":
+			ms.open_confirm("N2")
+		elif screen == "missions-short":
+			MetaState.shard_pool = 350
+			ms.select_tier("N2")
+		elif screen == "missions-guest":
+			ms.set_state("guest")
+		return ms
 	return null
