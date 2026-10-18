@@ -45,7 +45,7 @@ const INFO_TABS: Array = [
 	["st", "STATUS EFFECTS"], ["kw", "KEYWORDS"], ["mana", "MANA"],
 ]
 
-const _H := "[b][color=#ffd76a]%s[/color][/b]\n"
+const _H := "[font_size=22][b][color=#ffd76a]%s[/color][/b][/font_size]\n"
 
 
 static func tab_text(key: String) -> String:
