@@ -12,12 +12,15 @@ gửi Liam: `design/handoffs/ui-03-redesign/PROMPT-ROUND-2.md`. Quyết định 
 **Đã merge 18/10:** xúc xắc 3D (`DiceRoller3D.gd`, mô hình Blender `godot/assets/dice/axie_die.glb`, nguồn `tools/art/dice/axie_die.blend`)
 và nền UI-03 (`godot/scenes/shared/ui3/UI3Theme.gd`, `UI3.gd`, `tokens_ui3.json`, font). Suite cây chính **104/104**.
 
-**Đã merge lên axiedice/main (1effc14, suite 104/104):** nền UI3 + font, xúc xắc 3D Blender, 18 system, 16 boot (r1),
-01 Land HUD, 03 run map, 07 reward (không Skip), UI3Meta + 27 presets, 28 land upgrade, 24 profile, 23 leaderboard,
-06 run setup, 08 shop, 09 event, 13 treasure, `UI3.describe()` lọc tag nội bộ. Round 2 đã vào repo + token (3955f5f).
-**Đang chạy:** U = settings lên UI3Meta, đổi chữ lối vào khách, tutorial đã sửa (chưa merge: 26, 17, 37, 38, 16/18 r2, 36);
-C = sửa nhãn mục tiêu theo luật engine + bố cục combat (02 chưa merge); L = 27 r2 + 44 + 01 r2; M = 33, 34, 35, 31, 32, 12, 14, 10.
-Còn: làn E (20, 21, 25, 29, 40, 41), C (30, 39, 42, 43, 45). `godot/CLAUDE.md` còn mô tả luật Dango cũ, cần viết lại cho UI3 khi port xong.
+**Đã merge lên axiedice/main (9263c52, suite 109/109 không SKIP):** nền UI3 + font, xúc xắc 3D Blender, 01 Land (r2), 03 run map,
+06 run setup + 33/34/35 popup (đổi chỗ Axie), 07 reward (không Skip) + 31 reward types, 32 slots full, 08 shop, 09 event, 13 treasure,
+12 pact (+ swap trả phí), 14 in-run menu (+ abandon_current_run dùng chung), 10 result, 02 combat (khay, nút, thẻ quái/boss + phase,
+nhãn mục tiêu khớp engine), 30 defeat, 39 aid, 42 unit inspector, 16 boot r2 (bắt đăng nhập), 17/37/38 tutorial, 18 system, 36 toast theo mã,
+26 settings (UI3Meta), UI3Meta + 27/44 presets, 28 land upgrade, 24 profile, 23 leaderboard, 40 missions, 41 daily, 20 echo box, 21 pass.
+**Còn:** C = sửa bug save-quit trong trận (SettingsView.in_run kẹt), 4 điểm hình, 43 tooltips, 45 victory march; U = 25 vault (đã sửa preview),
+nút chính Pass/Echo, 29 codex, AccountUI (welcome, chọn save). Sau đó: build + live smoke + viết lại `godot/CLAUDE.md` cho UI3 + bỏ Dango.
+**Bẫy mới 18/10:** `t_rules_version` lấy dấu cả `autoload/` (làn chạy cờ skip nên không thấy); `git stash` dùng chung mọi worktree;
+hai làn cùng thêm hàm vào UI3.gd = hàm trùng = treo; agent không được `pkill` theo tên chung.
 Mỗi màn: review code + art-director xem ảnh 2 cỡ → merge đúng commit → --import → suite cây chính → push.
 
 ## (cũ 16/10) ⇢ BẮT ĐẦU TỪ ĐÂY (bàn giao 16/10/2026 03:10)

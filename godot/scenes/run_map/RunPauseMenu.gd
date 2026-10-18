@@ -11,7 +11,7 @@ signal abandon_confirmed
 
 const MENU_W := 480.0
 const SIDE_W := 560.0
-const SIDE_H := 576.0
+const SIDE_H := 576.0   # relics list height; Map/Settings hug their content
 const ROW_H := 64.0
 
 ## {floor, total, ascension, shards, kind} for the Run map panel (filled by the host from the real run).
@@ -57,12 +57,15 @@ func build(p_map_info: Dictionary) -> void:
 	_row(col, "Map", tr("Run map"), &"secondary", func() -> void: show_side("map"))
 	_row(col, "Settings", tr("Settings"), &"secondary", func() -> void: show_side("settings"))
 	_row(col, "SaveQuit", tr("Save and quit"), &"secondary", _ask_save_quit)
-	var ab := _row(col, "Abandon", tr("Abandon run"), &"quiet", _ask_abandon)
-	ab.add_theme_color_override("font_color", UI3Theme.color("danger_text"))
+	# Same 64 px row as the others; destructive = red-8 text on the secondary plate, no underline.
+	var ab := _row(col, "Abandon", tr("Abandon run"), &"secondary", _ask_abandon)
+	for k in ["font_color", "font_hover_color", "font_pressed_color", "font_focus_color", "font_hover_pressed_color"]:
+		ab.add_theme_color_override(k, UI3Theme.color("danger_text"))
 
 	_side = UI3.plate(&"dialog")
 	_side.name = "SidePanel"
-	_side.custom_minimum_size = Vector2(SIDE_W, SIDE_H)
+	_side.custom_minimum_size = Vector2(SIDE_W, 0)
+	_side.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	pair.add_child(_side)
 	show_side("relics")
 	(rows["Resume"] as Button).grab_focus.call_deferred()
@@ -82,6 +85,7 @@ func _row(col: VBoxContainer, key: String, text: String, variant: StringName, on
 ## Fills the side panel: "relics" (owned list), "map" (progress summary) or "settings" (button to the screen).
 func show_side(which: String) -> void:
 	side_name = which
+	_side.custom_minimum_size.y = SIDE_H if which == "relics" else 0.0
 	for c in _side.get_children():
 		_side.remove_child(c)
 		c.queue_free()
@@ -108,21 +112,41 @@ func show_side(which: String) -> void:
 				list.add_child(_relic_row(String(id)))
 		"map":
 			v.add_child(UI3.label(tr("Run map"), "LabelTitle"))
-			for line in [
-					tr("Floor %d of %d") % [int(map_info.get("floor", 0)), int(map_info.get("total", 0))],
-					tr("Ascension %d") % int(map_info.get("ascension", 0)),
-					tr("Shards this run: %s") % UI3.fmt(int(map_info.get("shards", 0))),
-					tr("Axies in the party: %d") % RunState.roster.size()]:
-				v.add_child(UI3.label(String(line)))
+			var ids2: Array = RunState.owned_relic_ids.filter(func(x) -> bool: return not String(x).begins_with("__"))
+			v.add_child(_info_row("Floor", tr("Floor"), tr("%d of %d") % [int(map_info.get("floor", 0)), int(map_info.get("total", 0))]))
+			v.add_child(_info_row("Ascension", tr("Ascension"), str(int(map_info.get("ascension", 0)))))
+			v.add_child(_info_row("Shards", tr("Shards this run"), UI3.fmt(int(map_info.get("shards", 0)))))
+			v.add_child(_info_row("Party", tr("Axies in the party"), str(RunState.roster.size())))
+			v.add_child(_info_row("Relics", tr("Relics owned"), str(ids2.size())))
 		_:
 			v.add_child(UI3.label(tr("Settings"), "LabelTitle"))
-			var t := UI3.label(tr("Sound, text size and language. The run stays paused and you come back here."), "LabelMuted")
+			v.add_child(_info_row("Music", tr("Music"), "%d%%" % roundi(MetaState.audio_music_volume * 100.0)))
+			v.add_child(_info_row("Sfx", tr("Sound effects"), "%d%%" % roundi(MetaState.audio_sfx_volume * 100.0)))
+			v.add_child(_info_row("Mute", tr("Mute everything"), tr("On") if MetaState.audio_muted else tr("Off")))
+			v.add_child(_info_row("Flash", tr("Reduce flashing and screen shake"), tr("On") if MetaState.reduce_flash else tr("Off")))
+			var t := UI3.label(tr("Change these in Settings. The run stays paused and you come back here."), "LabelMuted")
 			t.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 			v.add_child(t)
-			var go := UI3.button(tr("Open Settings"), &"secondary", &"M")
+			# Clearly secondary: small, not stretched, so Resume stays the only primary.
+			var go := UI3.button(tr("Open Settings"), &"secondary", &"S")
 			go.name = "OpenSettings"
+			go.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
 			go.pressed.connect(func() -> void: settings_requested.emit())
 			v.add_child(go)
+
+
+## One label-left, value-right row for the Run map and Settings panels (18 px, real data).
+func _info_row(key: String, label: String, value: String) -> Control:
+	var row := UI3.plate(&"row")
+	row.name = "Info" + key
+	var h := HBoxContainer.new()
+	row.add_child(h)
+	var l := UI3.label(label)
+	l.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	h.add_child(l)
+	h.add_child(UI3.label(value, "LabelDisplay"))
+	return row
 
 
 func _relic_row(id: String) -> Control:
@@ -145,6 +169,7 @@ func _relic_row(id: String) -> Control:
 		var d := UI3.describe(String(def.description))
 		var body := UI3.label(("MP %d · " % int(d["mp"]) if int(d["mp"]) >= 0 else "") + String(d["text"]), "LabelMuted")
 		body.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		body.add_theme_font_size_override("font_size", maxi(UI3Theme.size_of("text_body"), 18))   # >= 18 px
 		col.add_child(body)
 	return row
 

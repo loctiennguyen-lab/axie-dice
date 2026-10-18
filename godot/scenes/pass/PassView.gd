@@ -1,6 +1,7 @@
 class_name PassView
 extends Control
-## M4 Season Pass (key 5), R3 frames M4a-M4f. Spec: design/handoffs/ui-02-round3 README section 2 M4.
+## M4 Season Pass (key 5). UI-03 round-2 screen 21 on UI3Meta (design/handoffs/ui-03-redesign/round-2/handoff/screens/21-season-pass).
+## Season 1 = free track only; the Season 2 premium row is a muted note, nothing to buy.
 ## Data and every claim go through MetaState -> PassV2 (pass_claim_free, pass_claim_weekly); this
 ## screen only draws state and calls the API, so a double claim is refused by PassV2 itself.
 ## Drawn: level badge + XP bar, Claim all, 3 weekly cards, 30-node track (horizontal scroll),
@@ -32,30 +33,19 @@ var account_status_hook: Callable
 var today_override := ""
 var last_result := ""
 
-var _root: VBoxContainer
+## Level shown in the detail plate and the one the popup opens for (0 = none yet).
+var selected_lv := 0
+
+var _shell: Dictionary
 var _banner_host: VBoxContainer
-var _body: VBoxContainer
-var _detail: Label
+var _modal_layer: Control
+var _left: VBoxContainer
+var _detail: PanelContainer
+var _tiles := {}   # lv -> PanelContainer (grid tile)
 
 
 func _ready() -> void:
-	var shell := DangoScreen.build(self, MockupAssets.tex("assets/bg/temple.jpg"), DangoTheme.Scrim.DEFAULT, true)
-	DangoScreen.add_back_button(shell["footer"], _on_back)
-	var scroll := ScrollContainer.new()
-	scroll.name = "PageScroll"
-	scroll.set_anchors_preset(Control.PRESET_FULL_RECT)
-	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	DangoTheme.style_scrollbars(scroll)
-	shell["content"].add_child(scroll)
-	_root = VBoxContainer.new()
-	_root.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_root.add_theme_constant_override("separation", 12)
-	scroll.add_child(_root)
-	_banner_host = VBoxContainer.new()
-	_body = VBoxContainer.new()
-	_body.add_theme_constant_override("separation", 12)
-	_root.add_child(_banner_host)
-	_root.add_child(_body)
+	_build()
 	if use_account:
 		state = derive_state()
 	refresh()
@@ -72,8 +62,7 @@ func derive_state() -> String:
 
 
 func _unhandled_key_input(ev: InputEvent) -> void:
-	if ev is InputEventKey and ev.pressed and not ev.echo and ev.keycode == KEY_ESCAPE:
-		_on_back()
+	if UI3Meta.esc_back(ev, _shell, _on_back):
 		get_viewport().set_input_as_handled()
 
 
@@ -216,183 +205,316 @@ func _thousands(n: int) -> String:
 	return s if n < 1000 else "%s,%s" % [s.substr(0, s.length() - 3), s.substr(s.length() - 3)]
 
 
+
+
 # ---------------------------------------------------------------- build
 
+const DETAIL_W := 440
+const COLS := 6
+const TILE_H := 132
+
+
+func _build() -> void:
+	_shell = UI3Meta.build(self, "Season Pass", "", _on_back)
+	(_shell["panel"] as Control).name = "PlateHost"   # t_ui_laws L0
+	_banner_host = _shell["banner_host"]
+	_modal_layer = _shell["modal_layer"]
+	(_shell["sub"] as Label).name = "SeasonText"
+	var body := HBoxContainer.new()
+	body.name = "Body"
+	body.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	body.add_theme_constant_override("separation", UI3Meta.GAP)
+	(_shell["col"] as VBoxContainer).add_child(body)
+	_left = VBoxContainer.new()
+	_left.name = "Content"
+	_left.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_left.add_theme_constant_override("separation", UI3Theme.space("16"))
+	body.add_child(_left)
+	_detail = UI3.plate(&"plate")
+	_detail.name = "DetailCard"
+	_detail.custom_minimum_size = Vector2(DETAIL_W, 0)
+	body.add_child(_detail)
+
+
 func refresh() -> void:
-	if _body == null:
+	if _left == null:
 		return
-	for host in [_banner_host, _body]:
-		for c in host.get_children():
-			host.remove_child(c)   # detach now so lookups never see the old tree
-			c.queue_free()
+	UI3Meta.clear(_banner_host)
+	UI3Meta.clear(_left)
+	(_shell["sub"] as Label).text = season_text()
 	match state:
 		"offline":
-			_banner("Can't reach the dice server" if remote_on else "You're offline",
+			UI3Meta.banner(_banner_host, "Can't reach the dice server" if remote_on else "You're offline",
 				"Gem gifts need a connection." if remote_on else "Your pass progress is kept on this device.")
 		"guest":
-			_banner("You're signed out", "Pass progress is kept on this device. Sign in to keep it.")
+			UI3Meta.banner(_banner_host, "You're signed out", "Pass progress is kept on this device. Sign in to keep it.")
 	match season_phase():
 		"before":
-			_banner("The season has not started", "XP starts counting on %s." % fmt_day(String(cfg().get("start_day", ""))))
+			UI3Meta.banner(_banner_host, "The season has not started", "XP starts counting on %s." % fmt_day(String(cfg().get("start_day", ""))))
 		"over":
-			_banner("The season is over", "XP stopped. Rewards you already reached can still be claimed.")
-	_build_header()
+			UI3Meta.banner(_banner_host, "The season is over", "XP stopped. Rewards you already reached can still be claimed.")
 	_build_level_card()
 	_build_weekly()
 	_build_track()
 	_build_extra_rows()
-	_detail = _label("Hover or focus a level to see its reward.", 14, DangoTheme.DUSK_INK)
-	_detail.name = "DetailText"
-	_detail.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	var dp := _plate(DangoTheme.DUSK, DangoTheme.OUTLINE)
-	dp.name = "DetailCard"
-	dp.custom_minimum_size = Vector2(300, 0)
-	dp.add_child(_detail)
-	_body.add_child(dp)
 	if last_result != "":
-		var res := _label(last_result, 16, DangoTheme.CREAM_RAISED, true)
+		var res := UI3.label(last_result, "LabelTitle")
 		res.name = "ResultLine"
-		_body.add_child(res)
+		_left.add_child(res)
+	if selected_lv == 0 or _def(selected_lv).is_empty():
+		selected_lv = _default_level()
+	select_level(selected_lv)
 
 
-func _build_header() -> void:
-	var row := HBoxContainer.new()
-	var t := _label("Season Pass", DangoTheme.T_H1, DangoTheme.CREAM_RAISED, true)
+func _def(lv: int) -> Dictionary:
+	for d in cfg().get("levels", []):
+		if int((d as Dictionary)["lv"]) == lv:
+			return d
+	return {}
+
+
+## First claimable level, else the next one to reach, else 1.
+func _default_level() -> int:
+	var c := PassV2.claimable_levels(MetaState) if _same_season() else []
+	if not c.is_empty():
+		return int(c[0])
+	return mini(level() + 1, 30)
+
+
+## Detail plate follows the focused / hovered / clicked tile.
+func select_level(lv: int) -> void:
+	if _def(lv).is_empty():
+		return
+	if _tiles.has(selected_lv) and is_instance_valid(_tiles[selected_lv]):
+		UI3.set_card_selected(_tiles[selected_lv], false, false)
+	selected_lv = lv
+	if _tiles.has(lv) and is_instance_valid(_tiles[lv]):
+		UI3.set_card_selected(_tiles[lv], true, false)
+	_draw_detail()
+
+
+## Why `lv` cannot be claimed now, or "" when it can.
+func level_reason(lv: int) -> String:
+	match node_state(lv):
+		"claimed": return "Already claimed"
+		"claimable": return ""
+	if season_phase() == "over":
+		return "Not reached before the season ended"
+	return "Not reached yet · %s XP to go" % UI3.fmt(maxi(int(_def(lv).get("xp_total", 0)) - xp(), 0))
+
+
+func reward_lines(def: Dictionary) -> Array[String]:
+	var out: Array[String] = []
+	for r in def.get("free", []):
+		out.append(reward_text(r))
+		match String((r as Dictionary).get("type", "")):
+			"gem": out.append("Season gift, paid once at this level.")
+			"unlock": out.append("If you already own it, you get its Shard price instead.")
+	return out
+
+
+func _draw_detail() -> void:
+	UI3Meta.clear(_detail)
+	var def := _def(selected_lv)
+	if def.is_empty():
+		return
+	var lv := selected_lv
+	var v := VBoxContainer.new()
+	v.add_theme_constant_override("separation", UI3Theme.space("16"))
+	_detail.add_child(v)
+	var head := HBoxContainer.new()
+	head.add_theme_constant_override("separation", UI3Theme.space("16"))
+	var t := UI3.label("Level %d" % lv, "LabelScreenTitle")
+	t.name = "DetailTitle"
 	t.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	row.add_child(t)
-	var s := _label(season_text(), 20, DangoTheme.CREAM_RAISED)
-	s.name = "SeasonText"
-	row.add_child(s)
-	_body.add_child(row)
+	head.add_child(t)
+	head.add_child(UI3Meta.tag(_state_word(node_state(lv))))
+	v.add_child(head)
+	for r in def.get("free", []):
+		if String((r as Dictionary).get("type", "")) == "cosmetic":
+			var art := CosmeticTile.art(String(r.get("value", "")), 128.0)
+			if art != null:
+				var art_host := CenterContainer.new()
+				art_host.add_child(art)
+				v.add_child(art_host)
+				break
+	var dt := UI3.label("\n".join(reward_lines(def)))
+	dt.name = "DetailText"
+	dt.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	v.add_child(dt)
+	var why := level_reason(lv)
+	if why != "" and node_state(lv) != "claimed":
+		var wl := UI3.label(why, "LabelMuted")
+		wl.name = "DetailReason"
+		wl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		v.add_child(wl)
+	var sp := Control.new()
+	sp.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	v.add_child(sp)
+	var b := UI3.button("Claim level %d" % lv, &"primary", &"L")
+	b.name = "DetailClaim"
+	b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	if node_state(lv) == "claimable":
+		b.pressed.connect(claim_level.bind(lv))
+	else:
+		UI3.set_disabled_reason(b, "Already claimed" if node_state(lv) == "claimed" else "Not reached yet")
+	v.add_child(b)
+
+
+static func _state_word(st: String) -> String:
+	match st:
+		"claimed": return "Claimed"
+		"claimable": return "Ready"
+		"next": return "Next"
+	return "Locked"
 
 
 func _build_level_card() -> void:
-	var card := _plate(DangoTheme.CREAM_RAISED, DangoTheme.LINE)
+	var card := UI3.plate(&"plate")
 	card.name = "LevelCard"
 	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", 16)
+	row.add_theme_constant_override("separation", UI3Theme.space("24"))
 	card.add_child(row)
 	var lv := level()
-	var badge := _plate(DangoTheme.GOLD, DangoTheme.OUTLINE)
-	badge.custom_minimum_size = Vector2(72, 72)
-	var bl := _label(str(lv), DangoTheme.T_NUM_L, DangoTheme.GOLD_INK, true)
+	var badge := UI3.plate(&"card")
+	badge.custom_minimum_size = Vector2(96, 96)
+	var bl := UI3.label(str(lv), "LabelScreenTitle")
 	bl.name = "LevelNumber"
 	bl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	bl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	badge.add_child(bl)
 	row.add_child(badge)
 	var mid := VBoxContainer.new()
 	mid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	mid.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	mid.add_theme_constant_override("separation", UI3Theme.space("8"))
 	var cur_total := int(PassV2.level_def(lv).get("xp_total", 0))
 	var bar := ProgressBar.new()
 	bar.name = "XpBar"
-	bar.custom_minimum_size = Vector2(0, 26)
+	bar.theme = UI3Theme.get_theme()
+	bar.custom_minimum_size = Vector2(0, 16)
 	bar.show_percentage = false
 	var info := ""
 	if PassV2.level_def(lv + 1).size() > 0:
 		var need := need_for(lv + 1)
 		bar.max_value = need
 		bar.value = xp() - cur_total
-		info = "%s / %s XP to level %d" % [_thousands(xp() - cur_total), _thousands(need), lv + 1]
+		info = "%s / %s XP to level %d" % [UI3.fmt(xp() - cur_total), UI3.fmt(need), lv + 1]
 	else:
 		var loop := int((cfg().get("post30_loop", {}) as Dictionary).get("xp", 2000))
 		bar.max_value = loop
 		bar.value = (xp() - PassV2.max_xp()) % loop
-		info = "Loop: %s / %s XP" % [_thousands(int(bar.value)), _thousands(loop)]
-	var fill := StyleBoxFlat.new()
-	fill.bg_color = DangoTheme.GOLD
-	var back := StyleBoxFlat.new()
-	back.bg_color = DangoTheme.BAR_TRACK
-	fill.set_corner_radius_all(8)
-	back.set_corner_radius_all(8)
-	bar.add_theme_stylebox_override("fill", fill)
-	bar.add_theme_stylebox_override("background", back)
-	mid.add_child(bar)
-	var il := _label(info, 16)
+		info = "Loop: %s / %s XP" % [UI3.fmt(int(bar.value)), UI3.fmt(loop)]
+	var il := UI3.label(info, "LabelTitle")
 	il.name = "XpInfo"
 	mid.add_child(il)
-	mid.add_child(_label("Level L needs 500 + 40 × (L − 1) XP", 14, DangoTheme.INK_2))
+	mid.add_child(bar)
+	mid.add_child(UI3.label("Level L needs 500 + 40 × (L − 1) XP", "LabelMuted"))
 	row.add_child(mid)
-	var all := _button("Claim all", 220, 60, true)
+	var all := UI3.button("Claim all", &"secondary", &"M")
 	all.name = "ClaimAll"
+	all.custom_minimum_size.x = 200
+	all.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	all.disabled = PassV2.claimable_levels(MetaState).is_empty() if _same_season() else true
 	all.pressed.connect(claim_all)
 	row.add_child(all)
-	_body.add_child(card)
+	_left.add_child(card)
 
 
 func _build_weekly() -> void:
-	_body.add_child(_label("Weekly tasks · %s" % week_reset_text(), 18, DangoTheme.CREAM_RAISED, true))
+	var box := VBoxContainer.new()
+	box.add_theme_constant_override("separation", UI3Theme.space("8"))
+	var h := UI3.label("Weekly tasks · %s" % week_reset_text(), "LabelTitle")
+	h.name = "WeeklyTitle"
+	box.add_child(h)
 	var row := HBoxContainer.new()
 	row.name = "WeeklyRow"
-	row.add_theme_constant_override("separation", 12)
+	row.add_theme_constant_override("separation", UI3Theme.space("16"))
 	var xp_each := int((cfg().get("weekly_tasks", {}) as Dictionary).get("xp_each", 500))
 	var live := season_phase() == "active"
 	for st in PassV2.weekly_status(MetaState, today()):
 		var id := String(st["id"])
-		var card := _plate(DangoTheme.CREAM_RAISED, DangoTheme.LINE)
+		var card := UI3.plate(&"card")
 		card.name = "Weekly_" + id
 		card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		var h := HBoxContainer.new()
-		h.add_theme_constant_override("separation", 10)
-		card.add_child(h)
+		var hb := HBoxContainer.new()
+		hb.add_theme_constant_override("separation", UI3Theme.space("16"))
+		card.add_child(hb)
 		var v := VBoxContainer.new()
 		v.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		v.add_child(_label(String(TASK_NAMES.get(id, id)) % int(st["target"]), 16))
-		var pl := _label("%d / %d · +%d XP" % [int(st["progress"]), int(st["target"]), xp_each], 14, DangoTheme.INK_2)
+		v.add_child(UI3.label(String(TASK_NAMES.get(id, id)) % int(st["target"]), "LabelTitle"))
+		var pl := UI3.label("%d / %d · +%d XP" % [int(st["progress"]), int(st["target"]), xp_each], "LabelMuted")
 		pl.name = "Progress"
 		v.add_child(pl)
-		h.add_child(v)
-		var b := _button("Claimed" if st["claimed"] else "Claim", 120, 44, bool(st["done"]) and not bool(st["claimed"]))
+		hb.add_child(v)
+		var b := UI3.button("Claimed" if st["claimed"] else "Claim", &"secondary", &"S")
 		b.name = "WeeklyClaim_" + id
+		b.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 		b.disabled = bool(st["claimed"]) or not bool(st["done"]) or not live
 		b.pressed.connect(claim_weekly.bind(id))
-		h.add_child(b)
+		hb.add_child(b)
 		row.add_child(card)
-	_body.add_child(row)
+	box.add_child(row)
+	_left.add_child(box)
 
 
 func _build_track() -> void:
-	_body.add_child(_label("Free track", 18, DangoTheme.CREAM_RAISED, true))
-	var sc := ScrollContainer.new()
-	sc.name = "TrackScroll"
-	sc.vertical_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	sc.custom_minimum_size = Vector2(0, NODE_H + 20)
-	DangoTheme.style_scrollbars(sc)
-	var h := HBoxContainer.new()
-	h.add_theme_constant_override("separation", 8)
-	sc.add_child(h)
+	_tiles.clear()
+	var h := UI3.label("Free track", "LabelTitle")
+	_left.add_child(h)
+	var grid := GridContainer.new()
+	grid.name = "TrackGrid"
+	grid.columns = COLS
+	grid.add_theme_constant_override("h_separation", UI3Theme.space("16"))
+	grid.add_theme_constant_override("v_separation", UI3Theme.space("16"))
 	for def in cfg().get("levels", []):
-		h.add_child(_node(def))
-	_body.add_child(sc)
+		var tile := _tile(def)
+		tile.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		grid.add_child(tile)
+	var sc := UI3Meta.scroll(grid)
+	sc.name = "TrackScroll"
+	_left.add_child(sc)
 
 
-func _node(def: Dictionary) -> Control:
+func _tile(def: Dictionary) -> Control:
 	var lv := int(def["lv"])
 	var st := node_state(lv)
-	var p := _plate(DangoTheme.CREAM_RAISED if st != "locked" else DangoTheme.CREAM_DISABLED,
-		DangoTheme.GOLD if st == "claimable" else DangoTheme.LINE)
+	var p := UI3.plate(&"card")
 	p.name = "Node_%d" % lv
-	p.custom_minimum_size = Vector2(NODE_W, NODE_H)
+	p.custom_minimum_size = Vector2(0, TILE_H)
+	_tiles[lv] = p
+	if st == "locked":
+		p.modulate.a = 0.75
 	var v := VBoxContainer.new()
-	v.add_theme_constant_override("separation", 4)
+	v.add_theme_constant_override("separation", UI3Theme.space("8"))
 	p.add_child(v)
-	v.add_child(_label("LV %d" % lv, 15, DangoTheme.INK, true))
+	var top := HBoxContainer.new()
+	var lvl := UI3.label("LV %d" % lv, "LabelTitle")
+	lvl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	top.add_child(lvl)
 	for r in def.get("free", []):
-		var rd: Dictionary = r
-		if String(rd.get("type", "")) == "cosmetic":
-			var art := CosmeticTile.art(String(rd.get("value", "")), 56.0)
+		if String((r as Dictionary).get("type", "")) == "gem":
+			top.add_child(UI3Meta.tag("Season gift"))
+	v.add_child(top)
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", UI3Theme.space("8"))
+	row.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	for r in def.get("free", []):
+		if String((r as Dictionary).get("type", "")) == "cosmetic":
+			var art := CosmeticTile.art(String(r.get("value", "")), 48.0)
 			if art != null:
-				v.add_child(art)
-		var l := _label(reward_text(rd), 14, DangoTheme.INK_DISABLED if st == "locked" else DangoTheme.INK)
-		l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		v.add_child(l)
-		match String(rd.get("type", "")):
-			"gem": v.add_child(_label("Season gift", 12, DangoTheme.GEM_SHELF))
-			"unlock": v.add_child(_label("Stat unlock", 12, DangoTheme.GOLD_INK))
-	var sp := Control.new()
-	sp.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	v.add_child(sp)
-	var b := _button("", 100, 44, st == "claimable")
+				row.add_child(art)
+				break
+	var names: Array[String] = []
+	for r in def.get("free", []):
+		names.append(reward_text(r))
+	var rl := UI3.label(", ".join(names))
+	rl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	rl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	rl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	row.add_child(rl)
+	v.add_child(row)
+	var b := UI3.button("", &"secondary", &"S")
 	b.name = "NodeBtn_%d" % lv
 	match st:
 		"claimed":
@@ -407,107 +529,85 @@ func _node(def: Dictionary) -> Control:
 		_:
 			b.text = "Reach LV %d" % lv if season_phase() != "over" else "Not claimed"
 			b.disabled = true
-	b.add_theme_font_size_override("font_size", 14)
-	b.focus_entered.connect(_show_detail.bind(def))
-	b.mouse_entered.connect(_show_detail.bind(def))
+	b.focus_entered.connect(select_level.bind(lv))
+	b.mouse_entered.connect(select_level.bind(lv))
 	v.add_child(b)
-	p.mouse_entered.connect(_show_detail.bind(def))
+	# Click on the tile body opens the reward popup.
+	p.gui_input.connect(func(ev: InputEvent) -> void:
+		var mb := ev as InputEventMouseButton
+		if mb != null and mb.pressed and mb.button_index == MOUSE_BUTTON_LEFT:
+			open_reward(lv))
+	p.mouse_entered.connect(select_level.bind(lv))
 	return p
 
 
-func _show_detail(def: Dictionary) -> void:
-	if _detail == null:
+## Reward detail popup (round 2): every reward of the level, the state, and Claim when it is ready.
+func open_reward(lv: int) -> void:
+	var def := _def(lv)
+	if def.is_empty() or _modal_layer.get_child_count() > 0:
 		return
-	var parts: Array[String] = []
-	for r in def.get("free", []):
-		parts.append(reward_text(r))
-		if String((r as Dictionary).get("type", "")) == "unlock":
-			parts.append("(if you already own it, you get its Shard price instead)")
-	_detail.text = "Level %d: %s" % [int(def["lv"]), ", ".join(parts)]
+	select_level(lv)
+	var lines := reward_lines(def)
+	var why := level_reason(lv)
+	if why != "":
+		lines.append(why)
+	var close := UI3.button("Close", &"secondary", &"M")
+	close.name = "Close"
+	var acts: Array = [close]
+	var claim: Button = null
+	if node_state(lv) == "claimable":
+		claim = UI3.button("Claim", &"primary", &"M")
+		claim.name = "Claim"
+		acts.append(claim)
+	var m := UI3.modal("Level %d · Free track" % lv, "\n".join(lines), acts, acts.size() - 1)
+	m.name = "RewardPopup"
+	var shut := func() -> void:
+		if is_instance_valid(m):
+			m.get_parent().remove_child(m)
+			m.queue_free()
+	close.pressed.connect(shut)
+	m.cancelled.connect(shut)
+	if claim != null:
+		claim.pressed.connect(func() -> void:
+			shut.call()
+			claim_level(lv))
+	_modal_layer.add_child(m)
 
 
 func _build_extra_rows() -> void:
 	var prem := PassV2.premium_state()
-	var pr := _plate(DangoTheme.CREAM_DISABLED, DangoTheme.INK_3)
+	var pr := UI3.plate(&"row")
 	pr.name = "PremiumRow"
 	var ph := HBoxContainer.new()
+	ph.add_theme_constant_override("separation", UI3Theme.space("16"))
 	pr.add_child(ph)
-	var rib := _label(String(prem["label"]).to_upper(), 15, DangoTheme.GOLD_INK, true)
-	rib.name = "PremiumRibbon"
+	var rib := UI3Meta.tag(String(prem["label"]).to_upper())
+	rib.name = "PremiumRibbonTag"
 	ph.add_child(rib)
-	var pt := _label("   Premium track: locked, opens in season %d. Nothing to buy now." % int(prem["unlock_season"]), 16, DangoTheme.INK_DISABLED)
+	var rl := rib.get_child(0) as Label
+	rl.name = "PremiumRibbon"
+	var pt := UI3.label("Premium track: locked, opens in season %d. Nothing to buy now." % int(prem["unlock_season"]), "LabelMuted")
 	pt.name = "PremiumText"
 	ph.add_child(pt)
-	_body.add_child(pr)
+	_left.add_child(pr)
 
 	var loop: Dictionary = cfg().get("post30_loop", {})
 	var shard := int(loop.get("shard", 50))
-	var lr := _plate(DangoTheme.CREAM_RAISED, DangoTheme.LINE)
+	var lr := UI3.plate(&"row")
 	lr.name = "LoopRow"
 	var lh := HBoxContainer.new()
-	lh.add_theme_constant_override("separation", 12)
+	lh.add_theme_constant_override("separation", UI3Theme.space("16"))
 	lr.add_child(lh)
 	var done := int(ps().get("post30_claimed", 0)) * shard
 	var pend := PassV2.post30_pending(MetaState) if _same_season() else 0
-	var ll := _label("After level 30: every %s XP = %d Shard · claimed so far %d Shard" % [
-		_thousands(int(loop.get("xp", 2000))), shard, done], 16)
+	var ll := UI3.label("After level 30: every %s XP = %d Shard · claimed so far %d Shard" % [
+		UI3.fmt(int(loop.get("xp", 2000))), shard, done])
 	ll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	ll.name = "LoopText"
 	lh.add_child(ll)
-	var lb := _button("Claim %d Shard" % (pend * shard) if pend > 0 else "Nothing yet", 220, 44, pend > 0)
+	var lb := UI3.button("Claim %d Shard" % (pend * shard) if pend > 0 else "Nothing yet", &"secondary", &"S")
 	lb.name = "LoopClaim"
 	lb.disabled = pend <= 0
 	lb.pressed.connect(claim_loop)
 	lh.add_child(lb)
-	_body.add_child(lr)
-
-
-# ---------------------------------------------------------------- widgets
-
-func _label(text: String, size: int, color: Color = DangoTheme.INK, display := false) -> Label:
-	var l := Label.new()
-	l.text = text
-	l.add_theme_font_size_override("font_size", maxi(size, 12))
-	l.add_theme_color_override("font_color", color)
-	if display:
-		l.add_theme_font_override("font", DangoTheme.FONT_DISPLAY)
-	return l
-
-
-func _button(text: String, w: float, h: float, primary := false) -> Button:
-	var b := Button.new()
-	b.text = text
-	b.custom_minimum_size = Vector2(w, maxf(h, 44))
-	b.add_theme_font_override("font", DangoTheme.FONT_DISPLAY)
-	b.add_theme_font_size_override("font_size", 18)
-	DangoTheme.style_button(b, primary)
-	return b
-
-
-func _plate(fill: Color, border: Color) -> PanelContainer:
-	var p := PanelContainer.new()
-	var sb := StyleBoxFlat.new()
-	sb.bg_color = fill
-	sb.set_corner_radius_all(16)
-	sb.set_border_width_all(3)
-	sb.border_color = border
-	sb.set_content_margin_all(12)
-	p.add_theme_stylebox_override("panel", sb)
-	return p
-
-
-func _banner(msg: String, detail: String) -> void:
-	var p := PanelContainer.new()
-	p.name = "Banner"
-	var sb := StyleBoxFlat.new()
-	sb.bg_color = DangoTheme.DUSK
-	sb.content_margin_left = 24
-	sb.content_margin_right = 24
-	sb.content_margin_top = 8
-	sb.content_margin_bottom = 8
-	p.add_theme_stylebox_override("panel", sb)
-	var t := VBoxContainer.new()
-	t.add_child(_label(msg, 18, DangoTheme.DUSK_INK, true))
-	t.add_child(_label(detail, 14, DangoTheme.DUSK_INK))
-	p.add_child(t)
-	_banner_host.add_child(p)
+	_left.add_child(lr)

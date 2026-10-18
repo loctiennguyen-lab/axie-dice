@@ -29,6 +29,7 @@ func _ready() -> void:
 	await test_a_ranked_run_can_export_the_record_the_verifier_reads()
 	await test_an_incomplete_record_is_refused_before_it_is_offered()
 	await test_the_screen_never_prints_a_null()
+	await test_round_two_cards_stake_title_and_offline()
 
 	_guard.restore()
 	print("=== t_result_screen: %d checks, %d failure(s) ===" % [_checks, _failures.size()])
@@ -81,7 +82,7 @@ func test_an_unranked_run_says_why_it_cannot_be_scored() -> void:
 	var text := _all_text(view)
 	_assert(text.contains("not Ranked"),
 		"an unranked run does not say so on the end screen")
-	_assert(_find_button(view, "SAVE RUN RECORD") == null,
+	_assert(_find_button(view, "Save run record") == null,
 		"an unranked run offers to export a record that no verifier would accept")
 	view.queue_free()
 	await get_tree().process_frame
@@ -89,7 +90,7 @@ func test_an_unranked_run_says_why_it_cannot_be_scored() -> void:
 
 func test_a_ranked_run_can_export_the_record_the_verifier_reads() -> void:
 	var view := await _build_result(true, {})
-	var btn := _find_button(view, "SAVE RUN RECORD")
+	var btn := _find_button(view, "Save run record")
 	_assert(btn != null, "a ranked run with a complete record offers nothing to do with it")
 	if btn == null:
 		view.queue_free()
@@ -132,7 +133,7 @@ func test_an_incomplete_record_is_refused_before_it_is_offered() -> void:
 	var text := _all_text(view)
 	_assert(text.contains("incomplete"),
 		"a run whose record has a hole in it does not say so")
-	_assert(_find_button(view, "SAVE RUN RECORD") == null,
+	_assert(_find_button(view, "Save run record") == null,
 		"a run with an incomplete record still offers to export it — the referee refuses that "
 		+ "file (RunVerifier.ERR_INCOMPLETE), so offering it sends the player to be told no")
 	view.queue_free()
@@ -151,6 +152,58 @@ func test_the_screen_never_prints_a_null() -> void:
 			"the end screen prints '%s' somewhere: %s" % [bad, text.substr(0, 300)])
 	view.queue_free()
 	await get_tree().process_frame
+
+
+## UI-03 10 round 2: Shard / Pass XP / relics cards, the stake settlement box and the offline notice
+## (with Retry) all come from real run data.
+func test_round_two_cards_stake_title_and_offline() -> void:
+	var view := await _build_result(true, {})
+	for n in ["ShardCard", "PassCard", "RelicsCard", "XpIcon", "PartyRow", "StatRibbon", "Footer"]:
+		_assert(view.find_child(n, true, false) != null, "Result has no %s" % n)
+	_assert(view.find_child("StakeBox", true, false) == null, "a non-Mission run shows a stake box")
+	_assert(view.find_child("NetNotice", true, false) == null, "the offline notice shows before any failure")
+	_assert(view.find_child("SubmitLine", true, false) != null, "a ranked run shows no leaderboard line")
+	view.show_submit_notice(false, "offline")
+	await get_tree().process_frame
+	var notice := view.find_child("NetNotice", true, false)
+	_assert(notice != null and notice.find_child("Retry", true, false) != null, "offline: no notice with Retry")
+	_assert(_all_text(view).contains("not submitted"), "offline notice does not say the score was not submitted")
+	for i in 3:
+		await get_tree().process_frame
+	# Not clipped at the worst state (offline notice on): plate and actions stay inside the window.
+	var vh: float = (view as Control).get_viewport_rect().size.y
+	var plate := view.find_child("ResultPlate", true, false) as Control
+	var foot := view.find_child("Footer", true, false) as Control
+	_assert(plate.global_position.y >= 0.0 and plate.global_position.y + plate.size.y <= vh + 0.5,
+		"offline: the result plate runs off the window (%s..%s of %s)" % [plate.global_position.y, plate.global_position.y + plate.size.y, vh])
+	_assert(foot.global_position.y + foot.size.y <= vh + 0.5, "offline: the actions are clipped")
+	var secondaries := 0
+	for b in view.find_children("*", "Button", true, false):
+		if (b as Button).theme_type_variation in [&"ButtonSecondary", &"ButtonSecondaryS"]:
+			secondaries += 1
+	_assert(secondaries <= 2, "more than 2 secondary buttons on Result: %d" % secondaries)
+	view.show_submit_notice(true, "")
+	await get_tree().process_frame
+	_assert(view.find_child("NetNotice", true, false) == null, "notice stays after a good submit")
+	view.queue_free()
+	await get_tree().process_frame
+
+	# Mission run, lost: the stake line says it is gone.
+	RunState.start_new_run(777002, TEAM, "short", 0, false)
+	RunState.mission = {"mission_id": "m_test", "condition": ""}
+	MetaState.mission_escrow = {"mission_id": "m_test", "tier": "t1", "stake": 25, "payout": 60, "stone": 0}
+	RunState.set_phase(RunState.RunPhase.LOST)
+	var v2: Node = (load("res://scenes/result/Result.tscn") as PackedScene).instantiate()
+	get_tree().root.add_child.call_deferred(v2)
+	await get_tree().process_frame
+	await get_tree().process_frame
+	_assert(v2.find_child("StakeBox", true, false) != null, "a lost Mission run shows no stake settlement")
+	_assert(_all_text(v2).contains("lose your 25 Shard stake"), "stake loss line is missing")
+	_assert(_all_text(v2).contains("Defeated"), "a loss does not say Defeated")
+	v2.queue_free()
+	await get_tree().process_frame
+	RunState.mission = {}
+	MetaState.mission_escrow = {}
 
 
 # ---------------------------------------------------------------------------

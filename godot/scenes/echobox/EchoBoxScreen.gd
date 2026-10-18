@@ -469,11 +469,8 @@ func _refresh_stage() -> void:
 		row.add_child(on)
 		row.add_child(rt)
 		var why1 := pull_block_reason(1)
+		# The reason lives inside the disabled buttons only (one place in every state).
 		if why1 != "":
-			var rl := UI3.label(why1, "LabelMuted")
-			rl.name = "Reason"
-			rl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-			v.add_child(rl)
 			if why1.begins_with("Not enough") and not _account_blocks():
 				var sc := UI3.button("Buy enough for 1 pull", &"secondary", &"S")
 				sc.name = "BuyEnough"

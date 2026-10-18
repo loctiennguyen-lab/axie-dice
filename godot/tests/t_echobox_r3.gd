@@ -38,7 +38,8 @@ func _ready() -> void:
 	_ok(s.find_child("Pool_mythic", true, false) != null, "pool tiles")
 	# No tickets
 	_ok((s.find_child("Open1", true, false) as Button).disabled, "Open 1 disabled with 0 tickets")
-	_ok(s.find_child("Reason", true, false) != null, "reason shown")
+	_ok((s.find_child("Open1", true, false) as Button).text.begins_with("Not enough tickets") and (s.find_child("OpenN", true, false) as Button).text.begins_with("Not enough tickets"), "reason shown inside both disabled buttons")
+	_ok(s.find_child("Reason", true, false) == null, "reason is not repeated on its own line")
 	var r0: Array = await s.pull(1)
 	_ok(r0.is_empty() and s.tickets() == 0, "pull without tickets does nothing")
 	# Buy a ticket (real API)
