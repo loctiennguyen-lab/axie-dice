@@ -6,10 +6,8 @@ extends Control
 ## `upgrade_enabled` is false (L1) every button reads "Not in this build" and prices stay readable.
 ## Spending goes through MetaState.upgrade_land() (ledgered). Confirm says it cannot be undone.
 
-const _Shell := preload("res://scenes/shared/R3Shell.gd")
 const _Eco := preload("res://scripts/meta/economy_db.gd")
 const TIER_NAMES: Array[String] = ["Savannah", "Forest", "Arctic", "Mystic", "Genesis", "LunaLanding"]
-const ROW_H := 84.0
 ## Tier gates that Land.gd reads from houses.json are listed here only by name.
 const ADDS: Dictionary = {
 	2: "+3 preset slots · new decor set",
@@ -22,34 +20,46 @@ const ADDS: Dictionary = {
 var no_scene_change := false
 var _shell: Dictionary
 var _rows: VBoxContainer
-var _stone_lbl: Label
+var _head: PanelContainer
+var _detail: PanelContainer
+var _sel := 0
 var _toast_host: VBoxContainer
 var _modal: Control
 
 
 func _ready() -> void:
-	_shell = _Shell.build(self, "Land upgrade", "Land Stone buys the next Land", _on_back)
-	var right: HBoxContainer = _shell["header_right"]
-	_stone_lbl = _Shell.label("", 20, DangoTheme.INK_ON_PRIMARY, true)
-	_stone_lbl.name = "StoneLabel"
-	right.add_child(_stone_lbl)
+	_shell = UI3Meta.build(self, "Land upgrade", "", _on_back)
 	var col: VBoxContainer = _shell["col"]
-	var pad := MarginContainer.new()
-	pad.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	for s in ["left", "right", "top", "bottom"]:
-		pad.add_theme_constant_override("margin_" + s, 24 if s in ["left", "right"] else 16)
-	col.add_child(pad)
-	var v := VBoxContainer.new()
-	v.add_theme_constant_override("separation", 10)
-	pad.add_child(v)
+	var body := HBoxContainer.new()
+	body.name = "Body"
+	body.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	body.add_theme_constant_override("separation", UI3Meta.GAP)
+	col.add_child(body)
+	var left := VBoxContainer.new()
+	left.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	left.add_theme_constant_override("separation", UI3Meta.GAP)
+	body.add_child(left)
+	_head = UI3.plate(&"plate")
+	_head.name = "HeaderPlate"
+	left.add_child(_head)
 	_toast_host = VBoxContainer.new()
 	_toast_host.name = "ToastHost"
-	v.add_child(_toast_host)
+	left.add_child(_toast_host)
 	_rows = VBoxContainer.new()
 	_rows.name = "Rows"
-	_rows.add_theme_constant_override("separation", 8)
-	v.add_child(_Shell.fit_in(_rows, _shell["panel"], 64.0 + 32.0 + 40.0))
+	_rows.add_theme_constant_override("separation", UI3Theme.space("8"))
+	left.add_child(UI3Meta.scroll(_rows))
+	_detail = UI3.plate(&"plate")
+	_detail.name = "DetailPlate"
+	_detail.custom_minimum_size = Vector2(440, 0)
+	body.add_child(_detail)
+	_sel = _default_sel()
 	_redraw()
+
+
+## Row shown in the detail plate by default: the next tier to buy, or the top one.
+func _default_sel() -> int:
+	return mini(MetaState.land_tier + 1, _Eco.land_max_tier())
 
 
 func _unhandled_key_input(ev: InputEvent) -> void:
@@ -96,68 +106,167 @@ func row_state(tier: int) -> String:
 
 
 func _redraw() -> void:
-	_stone_lbl.text = "Stone %s" % fmt(MetaState.stone)
-	_Shell.clear(_rows)
+	UI3Meta.clear(_rows)
 	var max_t := _Eco.land_max_tier()
 	for tier in range(1, max_t + 1):
 		_rows.add_child(_row(tier))
 	if MetaState.land_tier >= max_t:
-		var l := _Shell.label("Top tier reached. Nothing to buy.", 16, DangoTheme.INK_ON_CREAM_MUTED)
+		var l := UI3.label("Top tier reached. Nothing to buy.", "LabelMuted")
 		l.name = "MaxNote"
 		_rows.add_child(l)
+	_sel = clampi(_sel, 1, max_t)
+	_draw_head()
+	_draw_detail()
+
+
+## Header plate: title + Stone progress toward the next tier.
+func _draw_head() -> void:
+	UI3Meta.clear(_head)
+	var v := VBoxContainer.new()
+	v.add_theme_constant_override("separation", UI3Theme.space("8"))
+	_head.add_child(v)
+	var cur := MetaState.land_tier
+	v.add_child(UI3.label("%s Land · tier %d of %d" % [TIER_NAMES[clampi(cur, 1, 6) - 1], cur, _Eco.land_max_tier()], "LabelTitle"))
+	if cur >= _Eco.land_max_tier():
+		v.add_child(UI3.label("Top tier reached.", "LabelMuted"))
+		return
+	var need := _Eco.land_tier_cost(cur)
+	var bar := ProgressBar.new()
+	bar.name = "StoneBar"
+	bar.show_percentage = false
+	bar.min_value = 0
+	bar.max_value = maxf(need, 1)
+	bar.value = clampf(MetaState.stone, 0, need)
+	bar.custom_minimum_size = Vector2(0, 16)
+	v.add_child(bar)
+	var l := UI3.label("%s / %s Land Stone for %s" % [fmt(MetaState.stone), fmt(need), TIER_NAMES[cur]], "LabelMuted")
+	l.name = "StoneLine"
+	v.add_child(l)
+
+
+func _select(tier: int) -> void:
+	if tier == _sel:
+		return
+	_sel = tier
+	_draw_detail()
+
+
+## Detail plate for row `_sel`: art, name + status, what it adds, cost rows, reason, primary Upgrade.
+func _draw_detail() -> void:
+	UI3Meta.clear(_detail)
+	var tier := _sel
+	var st := row_state(tier)
+	var v := VBoxContainer.new()
+	v.add_theme_constant_override("separation", UI3Theme.space("16"))
+	_detail.add_child(v)
+	var art := Panel.new()
+	art.custom_minimum_size = Vector2(0, 200)
+	art.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	art.add_theme_stylebox_override("panel", UI3Theme.flat(_tint(tier), UI3Theme.radius("s")))
+	v.add_child(art)
+	var head := HBoxContainer.new()
+	head.add_theme_constant_override("separation", UI3Theme.space("8"))
+	v.add_child(head)
+	var t := UI3.label("%s Land" % TIER_NAMES[tier - 1], "LabelScreenTitle")
+	t.name = "DetailTitle"
+	t.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	head.add_child(t)
+	if st in ["current", "done"]:
+		head.add_child(UI3Meta.tag("You are here" if st == "current" else "Owned"))
+	var adds := UI3.label(String(ADDS.get(tier, "Starting Land")))
+	adds.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	adds.custom_minimum_size.x = 392
+	v.add_child(adds)
+	if tier > 1:
+		var cost := _Eco.land_tier_cost(tier - 1)
+		v.add_child(_info_row("Cost", "%s Stone" % fmt(cost), "Cost"))
+		if tier > MetaState.land_tier:
+			v.add_child(_info_row("Total from here", "%s Stone" % fmt(cumulative(tier)), "Cumulative"))
+			v.add_child(_info_row("Stone after", fmt(MetaState.stone - cost) if MetaState.stone >= cost else "·", "After"))
+	var up := UI3.button("Upgrade", &"primary", &"L")
+	up.name = "DetailUpgrade"
+	up.pressed.connect(_ask.bind(tier))
+	match st:
+		"afford":
+			pass
+		"short":
+			var why := UI3.label("Need %s more Stone" % fmt(_Eco.land_tier_cost(tier - 1) - MetaState.stone))
+			why.add_theme_color_override("font_color", UI3Theme.color("danger_text"))
+			why.name = "Reason"
+			v.add_child(why)
+			UI3.set_disabled_reason(up, "Need %s Stone" % fmt(_Eco.land_tier_cost(tier - 1) - MetaState.stone))
+		"locked":
+			UI3.set_disabled_reason(up, "Not in this build")
+		"later":
+			UI3.set_disabled_reason(up, "Upgrade %s first" % TIER_NAMES[tier - 2])
+		_:
+			UI3.set_disabled_reason(up, _button_text(tier, st))
+	v.add_child(up)
+
+
+func _info_row(k: String, val: String, nm: String) -> Control:
+	var r := UI3.plate(&"row")
+	r.custom_minimum_size = Vector2(0, 48)
+	var h := HBoxContainer.new()
+	r.add_child(h)
+	var a := UI3.label(k, "LabelMuted")
+	a.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	h.add_child(a)
+	var b := UI3.label(val, "LabelTitle")
+	b.name = nm
+	h.add_child(b)
+	return r
 
 
 ## Thumbnail colour per tier (the Land's ground tone); the Land itself draws the real look.
 static func _tint(tier: int) -> Color:
-	return [DangoTheme.LAND_SAVANNAH, DangoTheme.LAND_FOREST, DangoTheme.LAND_ARCTIC,
-		DangoTheme.LAND_MYSTIC, DangoTheme.LAND_GENESIS, DangoTheme.LAND_LUNA][clampi(tier, 1, 6) - 1]
+	return [Color("#c9a24e"), Color("#5f9a4a"), Color("#9cc4d6"), Color("#7a5bb0"), Color("#b0793f"), Color("#d8d0e8")][clampi(tier, 1, 6) - 1]
 
 
 func _row(tier: int) -> Control:
 	var st := row_state(tier)
-	var p := PanelContainer.new()
+	var p := UI3.plate(&"card_selected" if tier == _sel else &"row")
 	p.name = "Tier%d" % tier
-	p.custom_minimum_size = Vector2(0, ROW_H)
-	var cur := st == "current"
-	p.add_theme_stylebox_override("panel", _Shell.surface(
-		DangoTheme.Surface.CREAM_RAISED, 16, 4 if cur else 3, Vector2(12, 8),
-		DangoTheme.CREAM_DISABLED if st == "done" else null,
-		DangoTheme.PRIMARY if cur else null))
+	p.custom_minimum_size = Vector2(0, 96)
+	if st == "done":
+		p.modulate.a = 0.5   # claimed / owned
 	var h := HBoxContainer.new()
-	h.add_theme_constant_override("separation", 14)
+	h.add_theme_constant_override("separation", UI3Theme.space("16"))
 	p.add_child(h)
 	var thumb := Panel.new()
-	thumb.custom_minimum_size = Vector2(110, 62)
-	var tb := _Shell.surface(DangoTheme.Surface.CREAM_RAISED, 12, 3, Vector2(0, 0), _tint(tier))
-	thumb.add_theme_stylebox_override("panel", tb)
+	thumb.custom_minimum_size = Vector2(96, 64)
+	thumb.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	thumb.add_theme_stylebox_override("panel", UI3Theme.flat(_tint(tier), UI3Theme.radius("s")))
 	h.add_child(thumb)
 	var mid := VBoxContainer.new()
 	mid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	mid.add_theme_constant_override("separation", 2)
+	mid.alignment = BoxContainer.ALIGNMENT_CENTER
 	h.add_child(mid)
-	var name_txt := "%s Land" % TIER_NAMES[tier - 1]
-	if cur:
-		name_txt += " · you are here"
-	mid.add_child(_Shell.label(name_txt, 22, DangoTheme.INK, true))
-	var adds := _Shell.label(String(ADDS.get(tier, "Starting Land")), 14, DangoTheme.INK_ON_CREAM_MUTED)
+	var nl := UI3.label("%s Land" % TIER_NAMES[tier - 1], "LabelTitle")
+	nl.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	mid.add_child(nl)
+	var adds := UI3.label(String(ADDS.get(tier, "Starting Land")), "LabelMuted")
 	adds.name = "Adds"
 	mid.add_child(adds)
 	var cost_box := VBoxContainer.new()
-	cost_box.custom_minimum_size = Vector2(190, 0)
+	cost_box.custom_minimum_size = Vector2(200, 0)
 	cost_box.alignment = BoxContainer.ALIGNMENT_CENTER
 	h.add_child(cost_box)
 	if tier > 1:
-		var c := _Shell.label("%s Stone" % fmt(_Eco.land_tier_cost(tier - 1)), 20, DangoTheme.INK, true)
+		var c := UI3.label("%s Stone" % fmt(_Eco.land_tier_cost(tier - 1)), "LabelTitle")
 		c.name = "Cost"
 		cost_box.add_child(c)
 		if tier > MetaState.land_tier:
-			var cu := _Shell.label("%s total from here" % fmt(cumulative(tier)), 13, DangoTheme.INK_ON_CREAM_MUTED)
+			var cu := UI3.label("%s total from here" % fmt(cumulative(tier)), "LabelMuted")
 			cu.name = "Cumulative"
 			cost_box.add_child(cu)
-	var b := _Shell.button(_button_text(tier, st), 190, 48, st == "afford")
+	var b := UI3.button(_button_text(tier, st), &"secondary", &"S")
 	b.name = "Btn"
 	b.disabled = st != "afford"
+	b.custom_minimum_size.x = 200
 	b.pressed.connect(_ask.bind(tier))
+	b.focus_entered.connect(_select.bind(tier))
+	b.mouse_entered.connect(_select.bind(tier))
 	h.add_child(b)
 	return p
 
@@ -177,7 +286,7 @@ func _ask(tier: int) -> void:
 	if _modal != null or row_state(tier) != "afford":
 		return
 	var cost := _Eco.land_tier_cost(tier - 1)
-	_modal = _Shell.confirm(_shell["modal_layer"], "Spend %s Stone?" % fmt(cost),
+	_modal = UI3Meta.confirm(_shell["modal_layer"], "Spend %s Stone?" % fmt(cost),
 		"%s becomes %s. This cannot be undone.\nStone after: %s." % [
 			TIER_NAMES[tier - 2], TIER_NAMES[tier - 1], fmt(MetaState.stone - cost)],
 		"Keep Stone", "Upgrade to %s" % TIER_NAMES[tier - 1], confirm_upgrade.bind(tier), _close_modal)
@@ -204,7 +313,7 @@ func confirm_upgrade(target: int) -> bool:
 
 
 func _toast(msg: String) -> void:
-	_Shell.clear(_toast_host)
-	var l := _Shell.label(msg, 18, DangoTheme.INK, true)
+	UI3Meta.clear(_toast_host)
+	var l := UI3.label(msg, "LabelTitle")
 	l.name = "Toast"
 	_toast_host.add_child(l)
