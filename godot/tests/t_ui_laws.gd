@@ -20,7 +20,6 @@ extends Node
 ## Copy to: godot/tests/t_ui_laws.gd
 
 const SCENES := [
-	"res://scenes/main_menu/TeamSelect.tscn",
 	"res://scenes/run_map/RunMap.tscn",
 	"res://scenes/result/Result.tscn",
 	"res://scenes/pass/Pass.tscn",

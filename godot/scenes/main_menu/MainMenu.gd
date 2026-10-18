@@ -7,7 +7,7 @@ extends Control
 ##   2. otherwise                        -> the Land hub (LandNav.land_scene())
 ## It draws nothing.
 ##
-## The constants and the `pending_team` hand-off below are still read by RunSetup, TeamSelect,
+## The constants and the `pending_team` hand-off below are still read by RunSetup,
 ## Guides, Vault, Missions and TeamPresets, so they stay here (scenes/main_menu/ is outside the
 ## rule-fingerprinted dirs). `pending_team` is a static var rather than RunState/MetaState
 ## because a team the player is CONSIDERING is neither run state nor persistent state.
@@ -17,7 +17,7 @@ const DEFAULT_TEAM: Array[String] = ["plant1", "beast1", "aqua1", "reptile1", "b
 const TEAM_SIZE := 5
 const TUTORIAL_SCENE := "res://scenes/tutorial/Tutorial.tscn"
 
-## A team handed over by Guides / Sample Teams / TeamSelect, read by RunSetup.
+## A team handed over by Guides / Sample Teams, read by RunSetup.
 static var pending_team: Array[String] = []
 
 

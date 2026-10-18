@@ -3,7 +3,7 @@ extends Node
 ## Run: godot --headless --path godot res://tests/t_land_nav.tscn
 
 const REQUIRED_IDS: Array[StringName] = [&"run_setup", &"echobox", &"pass", &"missions", &"store",
-	&"vault", &"codex", &"settings", &"guides", &"unlocks", &"team_select", &"account"]
+	&"vault", &"codex", &"settings", &"guides", &"unlocks", &"account"]
 
 var _fails: Array[String] = []
 var _checks := 0
@@ -22,7 +22,7 @@ func _ready() -> void:
 	for id in REQUIRED_IDS:
 		_check(LandNav.SCREENS.has(id), "SCREENS thiếu id %s" % id)
 	# Màn đã có thật thì phải resolve được.
-	for id in [&"run_setup", &"team_select", &"pass", &"vault", &"codex", &"settings", &"guides",
+	for id in [&"run_setup", &"pass", &"vault", &"codex", &"settings", &"guides",
 			&"unlocks", &"account", &"daily"]:
 		_check(LandNav.is_available(id), "%s phải có màn (hoặc fallback)" % id)
 	_check(LandNav.resolve(&"khong_co_id") == "", "id lạ phải resolve rỗng")
