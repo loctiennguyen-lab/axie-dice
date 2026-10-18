@@ -1187,11 +1187,30 @@ func set_alive(uid: int, alive: bool) -> void:
 ## 2026-09-21's targeting investigation said "the click path is off" when the script had already
 ## turned it on, and the scene file now agrees with `_ready()` so the next reader is not sent the
 ## same way. `t_combat_hit_targets.gd` asserts the runtime value rather than either file's text.
+const LONG_PRESS_SEC := 0.5
+const LONG_PRESS_SLOP_PX := 12.0
+var _lp_uid := -1          # touch only: the unit under a held finger; its click waits for the release
+var _lp_pos := Vector2.ZERO
+var _lp_token := 0
+var _lp_fired := false
+
+
 func _gui_input(event: InputEvent) -> void:
+	if event is InputEventMouseMotion and _lp_uid != -1:
+		if (event as InputEventMouseMotion).position.distance_to(_lp_pos) > LONG_PRESS_SLOP_PX:
+			_lp_cancel()   # a drag is not a press
+		return
 	if not (event is InputEventMouseButton):
 		return
 	var mb := event as InputEventMouseButton
 	if not mb.pressed:
+		if mb.button_index == MOUSE_BUTTON_LEFT and _lp_uid != -1:
+			var held := _lp_uid
+			var fired := _lp_fired
+			_lp_cancel()
+			if not fired:
+				unit_clicked.emit(held)   # a short touch is still the same click as before
+			accept_event()
 		return
 	if mb.button_index == MOUSE_BUTTON_LEFT and _roller != null and _roller.is_rolling():
 		_roller.skip()   # click on the stage while dice fly = jump every die to the tray
@@ -1204,9 +1223,31 @@ func _gui_input(event: InputEvent) -> void:
 		return
 	if mb.button_index == MOUSE_BUTTON_RIGHT:
 		unit_inspect_requested.emit(uid)
+	elif mb.device == InputEvent.DEVICE_ID_EMULATION:
+		# Touch (emulated mouse): hold 500 ms = inspect, release sooner = the usual click.
+		_lp_uid = uid
+		_lp_pos = mb.position
+		_lp_fired = false
+		_lp_token += 1
+		var token := _lp_token
+		get_tree().create_timer(LONG_PRESS_SEC).timeout.connect(func() -> void:
+			if token == _lp_token and _lp_uid != -1 and not _lp_fired:
+				_lp_fired = true
+				unit_inspect_requested.emit(_lp_uid))
 	else:
 		unit_clicked.emit(uid)
 	accept_event()
+
+
+func _lp_cancel() -> void:
+	_lp_uid = -1
+	_lp_fired = false
+	_lp_token += 1
+
+
+## The unit under a point in global (window) coordinates, or -1. Same pick as a click.
+func pick_unit_at_global(global_pos: Vector2) -> int:
+	return _pick_unit_at(global_pos - get_global_rect().position)
 
 
 func _pick_unit_at(local_pos: Vector2) -> int:

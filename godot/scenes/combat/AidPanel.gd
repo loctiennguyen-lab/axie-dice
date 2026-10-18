@@ -175,7 +175,8 @@ func _rebuild_rows() -> void:
 ## One tray row (a Button, so Enter / click buys): name + sub-line, then the CostChip. The real price shows even
 ## when the row is disabled; the reason replaces the cap text and stays readable.
 func _row(r: Dictionary) -> Control:
-	var on := bool(r.get("enabled", false))
+	var short := _short(r)
+	var on := bool(r.get("enabled", false)) and short == 0
 	var b := UI3.button("", &"secondary")
 	b.name = "AidRow_%s" % String(r.get("id", ""))
 	b.custom_minimum_size = Vector2(0, ROW_H)
@@ -201,7 +202,7 @@ func _row(r: Dictionary) -> Control:
 	if not on:
 		name_l.add_theme_color_override("font_color", UI3Theme.color("text_muted"))
 	col.add_child(name_l)
-	var why := String(r.get("reason", ""))
+	var why := ("Need %d more Gem" % short) if short > 0 else String(r.get("reason", ""))
 	var sub := UI3.label(TranslationServer.translate(why if not on and why != "" else String(r.get("cap_text", ""))), "LabelMuted")
 	sub.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	sub.clip_text = true
@@ -211,6 +212,13 @@ func _row(r: Dictionary) -> Control:
 	chip.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	row.add_child(chip)
 	return b
+
+
+## Gem missing for this row / offer (0 when it can be paid). The confirm never opens when this is > 0.
+func _short(r: Dictionary) -> int:
+	if not r.has("gems"):
+		return 0
+	return maxi(int(r.get("price", 0)) - int(r.get("gems", 0)), 0)
 
 
 func _rebuild_offer() -> void:
@@ -233,6 +241,8 @@ func _rebuild_offer() -> void:
 	buy.name = "OfferBuy"
 	buy.custom_minimum_size = Vector2(BTN_W - 34.0, 48)
 	buy.pressed.connect(_ask.bind(String(offer.get("id", ""))))
+	if _short(offer) > 0:
+		UI3.set_disabled_reason(buy, TranslationServer.translate("Need %d more Gem") % _short(offer))
 	_offer_box.add_child(buy)
 	var no := UI3.button(TranslationServer.translate("Not now"), &"secondary")
 	no.name = "OfferNotNow"
@@ -248,6 +258,8 @@ func _rebuild_offer() -> void:
 # ── Purchase confirm ─────────────────────────────────────────────────────────────────────────
 
 func _ask(aid_id: String) -> void:
+	if _short(_find_row(aid_id)) > 0:
+		return   # not enough Gem: never open the confirm
 	_pending_id = aid_id
 	if session_confirmed:
 		purchase_confirmed.emit(aid_id)
@@ -285,7 +297,11 @@ func _show_modal(aid_id: String) -> void:
 	item.name = "ConfirmItem"
 	var iv := VBoxContainer.new()
 	iv.add_theme_constant_override("separation", UI3Theme.space("8"))
-	item.add_child(iv)
+	var ipad := MarginContainer.new()
+	for side in ["left", "right", "top", "bottom"]:
+		ipad.add_theme_constant_override("margin_" + side, 16)
+	item.add_child(ipad)
+	ipad.add_child(iv)
 	var top := HBoxContainer.new()
 	iv.add_child(top)
 	var nm := UI3.label(TranslationServer.translate(String(r.get("title", ""))), "LabelDisplay")

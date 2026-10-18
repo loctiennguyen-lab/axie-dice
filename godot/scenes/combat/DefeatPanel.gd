@@ -146,14 +146,13 @@ func _recap_grid(d: Dictionary) -> Control:
 	g.add_theme_constant_override("h_separation", UI3Theme.space("24"))
 	g.add_theme_constant_override("v_separation", UI3Theme.space("8"))
 	# 2 columns x 3 rows of cells (spec 30): each cell is a muted label over a Rowdies 18 value. Labels are our copy.
-	var price_txt := "Free" if String(d.get("variant", "paid")) == "gift" else "%d Gem" % int(d.get("price", 0))
 	var rows := [
 		["Fell on turn", str(int(d.get("turn", 0)))],
 		["Enemies left", str(int(d.get("enemies_left", 0)))],
 		["Aid used", "%d of %d" % [int(d.get("aid_used", 0)), int(d.get("aid_cap", 6))]],
 		["Party", "%d Axies" % (d.get("party", []) as Array).size()],
-		["Revive heals", "%d%% HP" % int(d.get("heal_pct", 25))],
-		["Revive cost", price_txt if not bool(d.get("mission", false)) else "None"]]
+		["Fight", String(d.get("kind_label", "Fight"))],
+		["Ascension", "A%d" % int(d.get("asc", 0))]]
 	for r in rows:
 		var cell := UI3.plate(&"row")
 		cell.size_flags_horizontal = Control.SIZE_EXPAND_FILL
