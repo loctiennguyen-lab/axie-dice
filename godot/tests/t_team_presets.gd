@@ -124,6 +124,39 @@ func _ready() -> void:
 	s.open_editor(0)
 	_ok(s.edit_party[2] == "", "editor shows the gap")
 	s.cancel_editor()
+	# round 2: editor is a 720 modal (44), slot picker is a 1120 modal (33)
+	s.open_editor(1)
+	await get_tree().process_frame
+	_ok(s.find_child("Grid", true, false) != null and s.find_child("Editor", true, false) != null, "editor opens over the grid")
+	_ok(is_equal_approx((s.find_child("Editor", true, false) as Control).custom_minimum_size.x, 720.0), "editor modal 720")
+	_ok(s.find_child("DeleteTeam", true, false) != null and s.find_children("EditSeat*", "PanelContainer", true, false).size() == 5, "Delete + 5 slot rows")
+	_ok(not s.is_dirty(), "fresh editor not dirty")
+	s.request_cancel()
+	_ok(s.view == "grid" and s.find_child("Editor", true, false) == null, "clean cancel closes at once")
+	s.open_editor(1)
+	s.set_edit_name("Changed")
+	s.request_cancel()
+	await get_tree().process_frame
+	_ok(s.view == "editor" and s.find_child("Confirm", true, false) != null, "dirty cancel asks first")
+	(s.find_child("Keep", true, false) as Button).pressed.emit()
+	await get_tree().process_frame
+	_ok(s.view == "editor" and s.find_child("Editor", true, false) != null and s.find_child("Confirm", true, false) == null, "Keep editing returns to the editor")
+	s._show_picker(0)
+	await get_tree().process_frame
+	_ok(is_equal_approx((s.find_child("Picker", true, false).find_children("*", "PanelContainer", true, false)[0] as Control).custom_minimum_size.x, 1120.0), "picker modal 1120")
+	_ok((s.find_child("PutInSlot", true, false) as Button).disabled == (s._pick_sel == ""), "Put in slot follows selection")
+	var other_key: String = String(s.edit_party[2])
+	var first_key: String = String(s.edit_party[0])
+	s._pick_sel = other_key
+	s._put_in_slot()
+	await get_tree().process_frame
+	_ok(s.edit_party[0] == other_key and s.edit_party[2] == first_key and s.find_child("Picker", true, false) == null, "picker swaps with the other slot")
+	_ok(s.find_child("Editor", true, false) != null, "editor still open after picking")
+	s.request_delete(1)
+	await get_tree().process_frame
+	(s.find_child("Do", true, false) as Button).pressed.emit()
+	await get_tree().process_frame
+	_ok(s.view == "grid" and s.find_child("Editor", true, false) == null, "Delete from the editor removes and closes")
 	# samples tab
 	s.switch_tab("samples")
 	_ok(s.find_children("UseSample", "Button", true, false).size() == 4, "four sample teams")

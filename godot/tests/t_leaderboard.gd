@@ -83,6 +83,7 @@ func _ready() -> void:
 	var d := await _make(LeaderboardSource.new())
 	_ok(d.status == "failed" and d.fail_reason == "no_endpoint", "default source -> failed state")
 	_ok(d.find_child("TryAgain", true, false) != null and d.find_child("BackToLand", true, false) != null, "banner has Try again + Back to Land")
+	_ok(d.find_child("ErrorCard", true, false) != null and d.find_child("Pinned", true, false) == null, "error card replaces the table, no pinned row")
 	d.queue_free()
 
 	# ---- normal board
@@ -103,7 +104,8 @@ func _ready() -> void:
 	await get_tree().process_frame
 	_ok(s.find_child("CloseDetail", true, false) != null and s.detail_index == 1, "detail opens for the selected row")
 	var wr := s.find_child("WatchReplay", true, false) as Button
-	_ok(wr != null and wr.disabled and wr.text != "Watch replay", "Watch replay disabled with a reason")
+	_ok(wr != null and wr.disabled and wr.text == "Watch replay" and wr.custom_minimum_size.y >= 56.0 \
+		and s.find_child("WatchReplayReason", true, false) != null and (s.find_child("WatchReplayReason", true, false) as Label).text != "", "Watch replay: normal disabled button (56) with a reason line")
 	s.close_detail()
 	await get_tree().process_frame
 	_ok(s.find_child("CloseDetail", true, false) == null and s.detail_index == -1, "detail closes")
@@ -118,6 +120,7 @@ func _ready() -> void:
 	_ok(s.status == "empty" and s.find_child("Empty", true, false) != null, "empty board state")
 	s.set_asc(9)
 	_ok(s.is_locked() and String(s._line_lbl.text).begins_with("Locked for you: win a run at A8"), "locked board is readable with a reason")
+	_ok(s.find_child("Empty", true, false) == null, "locked board does not also say No runs here yet")
 
 	# ---- loading
 	stub.pending = true
@@ -141,6 +144,7 @@ func _ready() -> void:
 	await get_tree().process_frame
 	_ok(s.status == "failed" and s.rows.size() == 12, "failed keeps cached rows")
 	_ok(s.find_child("Banner", true, false) != null, "failure banner")
+	_ok(s.find_child("Pinned", true, false) == null, "failed hides pinned row")
 	stub.fail_reason = ""
 	s.retry()
 	await get_tree().process_frame
