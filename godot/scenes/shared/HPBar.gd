@@ -1,11 +1,7 @@
 extends Control
 class_name HPBar
-## One stat bar — Dice UI R1 (design/handoffs/ui-02-round1b README §1 "HP bar").
-##
-## r 9 (8 on a plate), border 3 `OUTLINE`, track `BAR_TRACK`; fill is a vertical 2-stop gradient
-## (party green `#86D65E -> #4FA62F`, enemy `#F58A5E -> #D9472B`); numerals centred, 2px outlined
-## cream; the damage preview is a gold hatched segment (`#FFC445` / `#E8A23A`, 135 deg, 6 px)
-## sitting on the right end of the current fill; phase marks are 3px `OUTLINE` ticks.
+## One stat bar, UI-03 look: flat `hp_track` box, solid token fill (`hp` / `hp_enemy` / `shield`),
+## cream "just lost" slice, hatched damage preview, phase ticks. No outline, no numerals in the bar.
 ##
 ## The class keeps the API CombatView / UnitPortrait already use (`set_stats`, `set_at_risk`,
 ## `set_preview`, `use_fixed_fill`) so nothing upstream had to change; what is new is `text_mode`
@@ -18,7 +14,6 @@ class_name HPBar
 
 enum Kind { PARTY, ENEMY, SHIELD }
 
-const _BORDER_W := 3
 ## Callers that sized a bar with BAR_HEIGHT get the plate bar (24 tall).
 const BAR_HEIGHT := 24
 const _ANIM_SECONDS := 0.3
@@ -31,8 +26,9 @@ var bar_radius: int = 9
 var text_mode: bool = false        ## draw "hp / max" inside the bar
 var text_size: int = 16
 var marks: Array = []              ## fractions 0..1 where a 3px phase tick is drawn (boss)
-## UI-03 look: flat hp_track box, solid token fill (hp / hp_enemy), no outline, no numerals in the bar.
-var ui3_look: bool = false
+## Kept so callers that set it still compile; the UI-03 look (flat hp_track box, solid token fill,
+## no outline, no numerals in the bar) is the only look now.
+var ui3_look: bool = true
 
 var _hp: int = 0
 var _max_hp: int = 1
@@ -143,39 +139,10 @@ static func hatch_texture() -> ImageTexture:
 		var img := Image.create(_HATCH, _HATCH, false, Image.FORMAT_RGBA8)
 		for y in _HATCH:
 			for x in _HATCH:
-				img.set_pixel(x, y, DangoTheme.GOLD if ((x + y) % _HATCH) < _HATCH / 2 \
-					else DangoTheme.GOLD_HATCH)
+				img.set_pixel(x, y, UI3Theme.color("accent") if ((x + y) % _HATCH) < _HATCH / 2 \
+					else UI3Theme.color("accent").darkened(0.25))
 		_hatch_tex = ImageTexture.create_from_image(img)
 	return _hatch_tex
-
-
-func _fill_colors() -> Array:
-	match kind:
-		Kind.ENEMY:
-			return [DangoTheme.HP_ENEMY_TOP, DangoTheme.HP_ENEMY_BOTTOM]
-		Kind.SHIELD:
-			var c: Color = _fixed_fill if _fixed_fill.a > 0.0 else DangoTheme.SHIELD_BLUE
-			return [c.lightened(0.15), c]
-	return [DangoTheme.HP_PARTY_TOP, DangoTheme.HP_PARTY_BOTTOM]
-
-
-func _box(fill: Color, radius: int, border: bool) -> StyleBoxFlat:
-	var sb := StyleBoxFlat.new()
-	sb.bg_color = fill
-	sb.set_corner_radius_all(radius)
-	if border:
-		sb.border_color = DangoTheme.OUTLINE
-		sb.set_border_width_all(_BORDER_W)
-	return sb
-
-
-func _draw_gradient_rounded(r: Rect2, radius: int, top: Color, bottom: Color) -> void:
-	draw_style_box(_box(bottom, radius, false), r)
-	var top_r := Rect2(r.position, Vector2(r.size.x, r.size.y * 0.5))
-	var sb := _box(top, radius, false)
-	sb.corner_radius_bottom_left = 0
-	sb.corner_radius_bottom_right = 0
-	draw_style_box(sb, top_r)
 
 
 func _draw_ui3() -> void:
@@ -208,60 +175,7 @@ func _draw_ui3() -> void:
 func _draw() -> void:
 	if size.x <= 0.0 or size.y <= 0.0:
 		return
-	if ui3_look:
-		_draw_ui3()
-		return
-	draw_style_box(_box(DangoTheme.BAR_TRACK, bar_radius, true), Rect2(Vector2.ZERO, size))
-	var inner := Rect2(float(_BORDER_W), float(_BORDER_W),
-		maxf(size.x - _BORDER_W * 2.0, 0.0), maxf(size.y - _BORDER_W * 2.0, 0.0))
-	if inner.size.x <= 0.0 or inner.size.y <= 0.0:
-		return
-	var inner_r := maxi(bar_radius - _BORDER_W, 1)
-	var cols := _fill_colors()
-	var fill_w := inner.size.x * clampf(display_ratio, 0.0, 1.0)
-	if fill_w > 1.0:
-		_draw_gradient_rounded(Rect2(inner.position, Vector2(fill_w, inner.size.y)),
-			inner_r, cols[0], cols[1])
-
-	# Cream "just lost" slice right of the fill.
-	if lost_ratio > 0.0:
-		var lw := minf(inner.size.x * lost_ratio, inner.size.x - fill_w)
-		if lw > 1.0:
-			var c := DangoTheme.CREAM_RAISED
-			c.a = 0.85
-			draw_rect(Rect2(inner.position.x + fill_w, inner.position.y, lw, inner.size.y), c)
-
-	# At-risk (committed incoming) on the fill's right end.
-	if _at_risk > 0 and fill_w > 1.0:
-		var risk_w := minf(inner.size.x * (float(_at_risk) / float(_max_hp)), fill_w)
-		if risk_w > 1.0:
-			var rc := DangoTheme.AT_RISK
-			rc.a = 0.55
-			draw_rect(Rect2(inner.position.x + fill_w - risk_w, inner.position.y, risk_w, inner.size.y), rc)
-
-	# Damage preview — gold hatched segment.
-	if _preview_dmg > 0 and _hp > 0 and fill_w > 1.0:
-		var pw := minf(inner.size.x * (float(_preview_dmg) / float(_max_hp)), fill_w)
-		if pw > 1.0:
-			draw_texture_rect(hatch_texture(),
-				Rect2(inner.position.x + fill_w - pw, inner.position.y, pw, inner.size.y), true)
-
-	# Phase marks.
-	for m in marks:
-		var mx := inner.position.x + inner.size.x * float(m) - 1.5
-		draw_rect(Rect2(mx, inner.position.y, 3.0, inner.size.y), DangoTheme.OUTLINE)
-
-	# Numerals.
-	if text_mode:
-		var txt := _lethal_text if _lethal_text != "" else "%d / %d" % [maxi(_hp, 0), _max_hp]
-		var font: Font = DangoTheme.FONT_DISPLAY
-		var ts := font.get_string_size(txt, HORIZONTAL_ALIGNMENT_LEFT, -1, text_size)
-		var pos := Vector2((size.x - ts.x) * 0.5,
-			(size.y + font.get_ascent(text_size) - font.get_descent(text_size)) * 0.5)
-		draw_string_outline(font, pos, txt, HORIZONTAL_ALIGNMENT_LEFT, -1, text_size, 4,
-			DangoTheme.OUTLINE)
-		draw_string(font, pos, txt, HORIZONTAL_ALIGNMENT_LEFT, -1, text_size,
-			DangoTheme.CREAM_RAISED)
+	_draw_ui3()
 
 
 ## The numerals currently drawn ("34 / 52", or the lethal override), for tests and tooltips.
