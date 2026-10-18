@@ -6,7 +6,7 @@ extends Control
 ## Vault; offline only blocks Scan. All MetaState / AxieApi logic is unchanged from the Dango version.
 ## Node names tests look up by are kept: Row_<id>, Preview, DieStrip, AxieIdField, ScanButton, ImportStatus,
 ## RemoveButton, StaleBadge, SecretBadge, RemoveConfirm, KeepButton, ConfirmRemoveButton, AddButton.
-## USE IN TEAM puts the Axie in the first slot that is not already a Vault pick and opens Team Select.
+## USE IN TEAM puts the Axie in the first slot that is not already a Vault pick and opens Run Setup.
 ## Import shells out to curl (AxieApi); a web export cannot, so the field is disabled with the reason shown.
 
 const PREVIEW_SCENE := "res://scenes/shared/AxiePreview3D.tscn"
@@ -389,7 +389,7 @@ func _build_row(entry: Dictionary) -> PanelContainer:
 	if stale_card:
 		UI3.set_disabled_reason(use_btn, "Re-import first")
 	use_btn.tooltip_text = ("Re-import this Axie before using it. Its die was built under older rules."
-		if stale_card else "Puts this Axie in your team and opens Team Select.")
+		if stale_card else "Puts this Axie in your team and opens Run Setup.")
 	use_btn.pressed.connect(_on_use_in_team_pressed.bind(str(entry.get("axie_id", ""))))
 	actions.add_child(use_btn)
 	var remove := UI3.button("Remove", &"secondary", &"M")
@@ -435,7 +435,9 @@ func _on_use_in_team_pressed(axie_id: String) -> void:
 				break
 		team[slot] = key
 	MainMenu.pending_team = team
-	get_tree().change_scene_to_file("res://scenes/main_menu/TeamSelect.tscn")
+	# Team building lives in Run Setup now; it seeds its party from MainMenu.pending_team.
+	if not no_scene_change:
+		LandNav.open(&"run_setup")
 
 
 ## M3d: Remove asks first. Focus lands on "Keep it" so a stray Enter never deletes.

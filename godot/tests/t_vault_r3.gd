@@ -57,6 +57,13 @@ func _ready() -> void:
 	_ok((o.find_child("ScanButton", true, false) as Button).disabled, "scan stays disabled offline with a valid ID")
 	_ok((o.find_child("RecordScroll", true, false) as Control).modulate.a < 1.0, "grid greyed offline")
 	_ok(o.find_child("Row_11", true, false) != null, "cached rows still shown offline")
+	# Use in team seeds the party for Run Setup (no scene change in tests) and is not a primary button.
+	var ub := o.find_child("UseInTeamButton", true, false) as Button
+	_ok(ub != null and ub.theme_type_variation == "ButtonSecondary", "Use in team is secondary")
+	var saved_team: Array[String] = MainMenu.pending_team.duplicate()
+	o._on_use_in_team_pressed("11")
+	_ok(MainMenu.pending_team.has(MetaState.VAULT_KEY_PREFIX + "11"), "Use in team puts the Axie in the pending team")
+	MainMenu.pending_team = saved_team
 	o.queue_free()
 	# guest: banner only in remote mode; scan never blocked by guest
 	var g := _mk("guest", true)
