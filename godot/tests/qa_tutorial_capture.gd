@@ -18,12 +18,8 @@ func _ready() -> void:
 	_guard.capture()
 	await get_tree().process_frame
 
-	var menu: Node = (load("res://scenes/main_menu/MainMenu.tscn") as PackedScene).instantiate()
-	get_tree().root.add_child.call_deferred(menu)
-	await _settle(30)
-	_shoot("menu")
-	menu.queue_free()
-	await _settle(2)
+	# No MainMenu shot: MainMenu._ready() is a redirect (tutorial / Land) via change_scene, which
+	# frees THIS capture scene mid-await, so the run never saved or quit (it looked like a hang).
 
 	_tut = (load("res://scenes/tutorial/Tutorial.tscn") as PackedScene).instantiate()
 	get_tree().root.add_child.call_deferred(_tut)
