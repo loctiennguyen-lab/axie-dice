@@ -93,6 +93,20 @@ func _fight(state: String, node_id: String, kind: String, size: Vector2i) -> voi
 			print("DBG light ", n.get_path(), " e=", (n as Light3D).light_energy, " pos=", (n as Node3D).global_position)
 		for n in st.find_children("*", "GPUParticles3D", true, false) + st.find_children("*", "CPUParticles3D", true, false):
 			print("DBG particles ", n.get_path(), " emitting=", n.emitting)
+	if OS.get_environment("CAP_DEBUG") == "5":
+		scene._stage3d.visible = false
+		await get_tree().process_frame
+		await get_tree().process_frame
+		_shot("nostage", size)
+		scene._stage3d.visible = true
+		scene._unit_visuals_root.visible = false
+		await get_tree().process_frame
+		await get_tree().process_frame
+		_shot("novisuals", size)
+		scene._unit_visuals_root.visible = true
+	if OS.get_environment("CAP_DEBUG") == "4":
+		var sv = scene._skill_vfx
+		print("DBG skillvfx valid=", is_instance_valid(sv), " children=", (sv.get_child_count() if is_instance_valid(sv) else -1))
 	if OS.get_environment("CAP_DEBUG") == "3":
 		for uid in scene._stage3d._units:
 			var en: Dictionary = scene._stage3d._units[uid]
