@@ -307,9 +307,12 @@ func _node_pos(node: RunMapNode, current_row: int) -> Vector2:
 	return Vector2(_MAP_PAD_X + float(rel - window.x) * pitch, _LANE_Y[lane_index(node.col, row_size)])
 
 
+## Five rarities, five different tokens: common grey, uncommon green, rare blue, epic purple, legendary amber.
+const _RARITY_TOKENS := ["rarity_common", "rarity_rare", "shield", "mana", "rarity_legendary", "rarity_legendary"]
+
+
 func _rarity_color(rar: int) -> Color:
-	var keys := ["rarity_common", "rarity_rare", "rarity_rare", "rarity_epic", "rarity_legendary", "rarity_legendary"]
-	return UI3Theme.color(keys[clampi(rar, 0, keys.size() - 1)])
+	return UI3Theme.color(_RARITY_TOKENS[clampi(rar, 0, _RARITY_TOKENS.size() - 1)])
 
 
 func _rarity_name(rar: int) -> String:
@@ -390,8 +393,8 @@ func _build_token(node: RunMapNode, current_row: int, reachable: Array) -> void:
 	var is_reach := tier == "reachable"
 	var is_here := tier == "current"
 	var fogged := tier == "fog"
-	var locked := fogged or (tier == "dim" and not node.visited)
-	var passed := (is_here or node.visited) and not is_here
+	var passed := node.visited and not is_here
+	var locked := fogged or (tier == "dim" and not node.visited) or passed
 	var size: float = _NODE_SIZE.get(node.node_type, 56.0)
 	var selected := node.id == _selected_id
 	var centre := _node_pos(node, current_row)
@@ -469,15 +472,17 @@ func _build_token(node: RunMapNode, current_row: int, reachable: Array) -> void:
 	_nodes_layer.add_child(btn)
 
 	var caption: Label = null
-	if not locked:
+	if not locked or passed:
 		var text := _boss_name(node) if node.node_type == "boss" else _type_name(node.node_type)
+		if passed:
+			text = tr("Already passed")
 		caption = UI3.label(text)
 		caption.name = "Caption_%s" % node.id
-		caption.custom_minimum_size = Vector2(128, 0)
-		caption.size = Vector2(128, 26)
+		caption.custom_minimum_size = Vector2(136, 0)
+		caption.size = Vector2(136, 26)
 		caption.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 		caption.clip_text = true
-		caption.position = Vector2(centre.x - 64.0, centre.y + size * 0.5 * base.x + 8.0)
+		caption.position = Vector2(centre.x - 68.0, centre.y + size * 0.5 * base.x + 8.0)
 		caption.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		if passed:
 			caption.modulate.a = 0.4
@@ -570,7 +575,7 @@ func _rebuild_left() -> void:
 	var head := HBoxContainer.new()
 	head.add_theme_constant_override("separation", 12)
 	col.add_child(head)
-	var menu_btn := UI3.icon_button("ui_settings", tr("Menu"))
+	var menu_btn := UI3.icon_button("ui_menu", tr("Menu"))
 	menu_btn.name = "RunMenuButton"
 	menu_btn.pressed.connect(open_run_menu)
 	head.add_child(menu_btn)
@@ -647,7 +652,6 @@ func _build_relic_row(relic_id: String) -> Control:
 	name_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	name_lbl.clip_text = true
 	name_lbl.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
-	name_lbl.custom_minimum_size.x = 230
 	line.add_child(name_lbl)
 	var rar_lbl := UI3.label(_rarity_name(rarity))
 	rar_lbl.add_theme_color_override("font_color", _rarity_color(rarity))
@@ -734,6 +738,13 @@ func _rebuild_detail() -> void:
 		note.add_theme_color_override("font_color", UI3Theme.color("danger_text"))
 	note.name = "PathNote"
 	col.add_child(note)
+	if reachable and _graph != null and not _graph.boss_rows.is_empty():
+		var boss_row := int(_graph.boss_rows[_graph.boss_rows.size() - 1])
+		var path_note := UI3.label(tr("Floor %d of %d · %d floors to the boss") % [node.row, _graph.rows.size(), maxi(boss_row - node.row, 0)], "LabelMuted")
+		path_note.name = "PathRoute"
+		path_note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		path_note.custom_minimum_size.x = 368
+		col.add_child(path_note)
 
 	var is_boss := node.node_type == "boss"
 	_travel_btn = UI3.button(tr("Face the Boss") if is_boss else tr("Travel"), &"primary", &"L")
@@ -862,6 +873,7 @@ func _build_overlay_ui() -> void:
 ## Plate -> scrim -> UI, in that order, per DangoTheme's own background formula.
 func _open_screen(plate: Texture2D) -> Control:
 	_clear_overlay_content()
+	_board.visible = true
 	_overlay_root.visible = true
 	DangoTheme.build_plate(_overlay_root, plate, DangoTheme.Scrim.DEFAULT, false)
 
@@ -881,6 +893,7 @@ func _save_map_progress() -> void:
 
 
 func _close_overlay() -> void:
+	_board.visible = true
 	_overlay_root.visible = false
 	_clear_overlay_content()
 
@@ -1097,6 +1110,7 @@ var _reward_cards: Array[PanelContainer] = []
 ## Plate -> scrim (neutral-1 @ 80%) -> UI. Same host the shop/event/treasure screens use.
 func _open_ui3_screen() -> Control:
 	_clear_overlay_content()
+	_board.visible = false   # map HUD stays hidden behind the scrim
 	_overlay_root.visible = true
 	_overlay_root.theme = UI3Theme.get_theme()
 	var scrim := ColorRect.new()
@@ -1223,7 +1237,13 @@ func _add_reward_card(r: Dictionary, wide := false) -> PanelContainer:
 	card.size_flags_vertical = Control.SIZE_FILL
 	card.focus_mode = Control.FOCUS_ALL
 	card.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
-	UI3.attach_focus_ring(card)
+	# Focus ring drawn by the card itself: a child Panel would be squeezed inside the card's padding
+	# by the PanelContainer. 2 px amber, 4 px outside the cream selection outline.
+	card.draw.connect(func() -> void:
+		if card.has_focus():
+			card.draw_style_box(UI3Theme.focus_style(UI3Theme.radius("l")), Rect2(Vector2.ZERO, card.size)))
+	card.focus_entered.connect(card.queue_redraw)
+	card.focus_exited.connect(card.queue_redraw)
 	card.focus_entered.connect(_select_reward.bind(idx))
 	card.gui_input.connect(func(ev: InputEvent) -> void:
 		if ev is InputEventMouseButton and ev.pressed and ev.button_index == MOUSE_BUTTON_LEFT:

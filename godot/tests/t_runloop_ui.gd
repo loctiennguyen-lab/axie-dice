@@ -400,6 +400,19 @@ func test_reward_and_shop_cards_show_a_rarity_chip_matching_rar() -> void:
 		_assert(_has_border(cards[i], expected_color),
 			"reward card %d shows no art frame in rarity colour %d — UI-03 carries the rarity "
 			% [i, int(expected_rars[i])] + "in the art frame border and the rarity label")
+	# Five rarities must read as five different colours (Uncommon and Rare used to collide).
+	var seen: Array[Color] = []
+	for r in 5:
+		var c: Color = runmap.call("_rarity_color", r)
+		for s in seen:
+			_assert(not s.is_equal_approx(c), "rarity %d shares its colour with a lower rarity" % r)
+		seen.append(c)
+	await get_tree().process_frame
+	await get_tree().process_frame
+	var cards_h: Array = []
+	for c in cards:
+		cards_h.append(int((c as Control).size.y))
+	_assert(cards_h.size() < 2 or cards_h.min() == cards_h.max(), "reward cards differ in height: %s" % [cards_h])
 	# UI-03: pick a card, then Take. Selecting alone must not finish the node.
 	_assert(runmap.find_child("TakeButton", true, false) != null, "reward screen has no Take button")
 	_assert(runmap.find_child("RerollButton", true, false) != null, "reward screen has no Reroll button")
