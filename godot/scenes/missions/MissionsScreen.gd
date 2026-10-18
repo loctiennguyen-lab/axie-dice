@@ -285,6 +285,8 @@ func open_confirm(tier_id: String) -> void:
 	var o := offer(tier_id)
 	if o.is_empty():
 		return
+	if selected != tier_id:   # the detail plate behind the dialog always shows the dialog's tier
+		select_tier(tier_id)
 	var lines: Array[String] = ["%s · %s, Ascension %d" % [tier_id, String(o.mode).capitalize(), int(o.ascension)], ""]
 	for line in rule_lines(o):
 		lines.append(String(line))
@@ -439,8 +441,7 @@ func _refresh_house() -> void:
 		var d: Dictionary = h
 		parts.append("Lv %d: %d Shard + %d Stone" % [int(d.level), int(d.cost_shards), int(d.cost_stone)])
 	var costs := _cell("   ".join(parts), 0, "LabelMuted")
-	costs.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
-	costs.autowrap_mode = TextServer.AUTOWRAP_OFF
+	costs.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART   # wraps, never truncated
 	_house_host.add_child(costs)
 	var up := UI3.button("Upgrade", &"secondary", &"S")
 	up.name = "UpgradeHouse"
@@ -461,8 +462,16 @@ func _row(o: Dictionary) -> Control:
 	var locked := not bool(o.unlocked)
 	var b := UI3.button("", &"secondary", &"M")
 	b.name = "Card_" + id
-	b.toggle_mode = true
-	b.button_pressed = id == selected
+	b.set_meta("selected", id == selected)   # not a toggle: the pressed style would fill the row cream
+	if id == selected:
+		# selected = 4 px cream outline (selected-card style), drawn as an overlay: no lift, no fill change
+		var ring := Panel.new()
+		ring.name = "SelectedRing"
+		ring.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		ring.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		ring.add_theme_stylebox_override("panel", UI3Theme.flat(Color.TRANSPARENT, UI3Theme.radius("m"), 4,
+			UI3Theme.color("selected_outline")))
+		b.add_child(ring)
 	b.custom_minimum_size = Vector2(0, ROW_H)
 	b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	var h := HBoxContainer.new()

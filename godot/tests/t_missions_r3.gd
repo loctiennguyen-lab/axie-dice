@@ -116,6 +116,13 @@ func _ready() -> void:
 	await get_tree().process_frame
 	_ok(s.find_child("NotNow", true, false) != null and s.find_child("ConfirmStake", true, false) != null, "confirm modal")
 	_ok((s.find_child("NotNow", true, false) as Button).has_focus(), "focus starts on Not now")
+	_ok(s.selected == "N2" and (s.find_child("DetailTitle", true, false) as Label).text.begins_with("N2"), "confirm and detail show the same tier")
+	_ok((s.find_child("Card_N2", true, false) as Button).get_meta("selected") and not (s.find_child("Card_N1", true, false) as Button).get_meta("selected"), "only the selected row is lit")
+	s.close_modal()
+	s.select_tier("N1")
+	_ok((s.find_child("DetailTitle", true, false) as Label).text.begins_with("N1") and (s.find_child("Card_N1", true, false) as Button).get_meta("selected"), "select_tier moves row and detail together")
+	s.open_confirm("N2")
+	await get_tree().process_frame
 	_ok(s.rule_lines(s.offer("N2")).size() == 1 + (s.offer("N2").rules as Array).size(), "rule lines: standard + extras")
 	s.close_modal()
 	# insufficient Shard
