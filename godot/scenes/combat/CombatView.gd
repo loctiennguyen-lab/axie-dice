@@ -3663,6 +3663,50 @@ func _play_victory_march() -> void:
 		if u.hp > 0:
 			uids.append(u.uid)
 	_exit_running = true
+	var march_ui := _build_march_overlay()
 	await _stage3d.play_victory_march(uids, _VICTORY_MARCH_DISTANCE,
 		_VICTORY_RUN_DURATION if _stage3d.has_gate() else _VICTORY_MARCH_DURATION)
 	_exit_running = false
+	if is_instance_valid(march_ui):
+		march_ui.queue_free()
+
+
+## UI-03 45: title plate (top centre) + Skip chip (bottom right, focused). Visual only: Esc / Space /
+## Enter / click already skip through _input(); the button just makes that visible and focusable.
+func _build_march_overlay() -> CanvasLayer:
+	var layer := CanvasLayer.new()
+	layer.name = "VictoryMarchUI"
+	layer.layer = 20
+	add_child(layer)
+	var root := Control.new()
+	root.set_anchors_preset(Control.PRESET_FULL_RECT)
+	root.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	layer.add_child(root)
+	var top := VBoxContainer.new()
+	top.set_anchors_preset(Control.PRESET_TOP_WIDE)
+	top.offset_top = 48
+	top.alignment = BoxContainer.ALIGNMENT_BEGIN
+	top.add_theme_constant_override("separation", 12)
+	top.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	root.add_child(top)
+	var plate := UI3.plate()
+	plate.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	plate.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	var m := MarginContainer.new()
+	for side in ["left", "right"]:
+		m.add_theme_constant_override("margin_" + side, 32)
+	for side in ["top", "bottom"]:
+		m.add_theme_constant_override("margin_" + side, 12)
+	m.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	plate.add_child(m)
+	var title := UI3.label("Victory!", "LabelScreenTitle")
+	title.name = "MarchTitle"
+	m.add_child(title)
+	top.add_child(plate)
+	var skip := UI3.button("Skip  Esc", &"secondary", &"S")
+	skip.name = "MarchSkip"
+	skip.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	skip.pressed.connect(func() -> void: _stage3d.skip_victory_march())
+	top.add_child(skip)
+	skip.grab_focus()
+	return layer
