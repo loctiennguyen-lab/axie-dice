@@ -79,5 +79,19 @@ func _view_rules(tree: SceneTree) -> void:
 		if legal_side != "e":
 			view._on_target_clicked(foe.uid)
 			_check(view._selected_die_uid == before and not src.roll_used(), "%s: illegal click keeps the die picked" % t)
+	# Engine agreement: the view's reason line must match what CombatEngine.use_die actually allows.
+	var src_uid: int = src.uid
+	var ally_uid: int = (combat.party[1] as Unit).uid
+	var foe_uid: int = (combat.enemies[0] as Unit).uid
+	for t in ["dmg", "poison", "debuff", "shield", "heal", "buff", "mana", "summon", "blank"]:
+		for target in [{"uid": foe_uid, "side": "e"}, {"uid": ally_uid, "side": "p"}]:
+			var su: Unit = combat.by_uid(src_uid)   # undo restores units, so re-fetch each time
+			su.die[0] = {"type": t, "value": 3, "keywords": []}
+			su.set_roll(0, false)
+			var ok: bool = combat.use_die(src_uid, int(target["uid"]))
+			var legal := CombatView.face_target_reason(t, String(target["side"])) == ""
+			_check(ok == legal, "%s on %s: engine says %s, view says %s" % [t, target["side"], ok, legal])
+			if ok:
+				combat.undo_last()
 	view.queue_free()
 	await tree.process_frame
