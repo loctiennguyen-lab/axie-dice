@@ -11,6 +11,8 @@ Both families here are redistributed under the SIL Open Font License, Version 1.
 | `WorkSans-Medium.ttf` | Work Sans | 500 | https://fonts.google.com/specimen/Work+Sans |
 | `WorkSans-SemiBold.ttf` | Work Sans | 600 | " |
 | `WorkSans-Bold.ttf` | Work Sans | 700 | " |
+| `Rowdies-Bold.ttf` | Rowdies | 700 | https://github.com/google/fonts/tree/main/ofl/rowdies (UI-03 display face, Vietnamese subset) |
+| `WorkSans-Regular.ttf` | Work Sans | 400 | https://github.com/weiweihuanghuang/Work-Sans (UI-03 body face) |
 
 ## Why two families
 
