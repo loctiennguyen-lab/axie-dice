@@ -22,6 +22,7 @@ const FAIRNESS := "Aid makes you stronger for one run. Players who buy more can 
 const BTN_W := 216.0
 const BTN_H := 104.0
 const EDGE := 16.0
+const OFFER_EDGE := 24.0
 const TRAY_W := 252.0
 
 var enabled := true            ## false for newcomers: the whole zone disappears
@@ -133,9 +134,8 @@ func _build_offer() -> void:
 	_offer_card = PanelContainer.new()
 	_offer_card.visible = false
 	_offer_card.custom_minimum_size = Vector2(BTN_W, 0)
-	var sb := HudKit.box(DangoTheme.CREAM_100, 18, 3, DangoTheme.GEM_SHELF, Vector2(3, 5),
-		DangoTheme.SHELF, Vector2(12, 12))
-	_offer_card.add_theme_stylebox_override("panel", sb)
+	_offer_card.theme = UI3Theme.get_theme()
+	_offer_card.theme_type_variation = "PanelPlate"
 	add_child(_offer_card)
 	_offer_box = VBoxContainer.new()
 	_offer_box.add_theme_constant_override("separation", 8)
@@ -231,17 +231,17 @@ func _rebuild_offer() -> void:
 		_offer_card.visible = false
 		return
 	_offer_card.visible = true
-	_offer_box.add_child(HudKit.label("AID OFFER %s ONCE" % HudKit.dot(), 12, DangoTheme.GEM_SHELF, 800, 0.08))
-	_offer_box.add_child(HudKit.label(String(offer.get("title", "")), 20, DangoTheme.INK))
-	var what := HudKit.prose(String(offer.get("what", "")), 13, DangoTheme.INK_2)
+	_offer_box.add_child(HudKit.label("AID OFFER %s ONCE" % HudKit.dot(), 16, UI3Theme.color("text_muted"), 800, 0.08))
+	_offer_box.add_child(HudKit.label(String(offer.get("title", "")), 20, UI3Theme.color("text")))
+	var what := HudKit.prose(String(offer.get("what", "")), 16, UI3Theme.color("text_muted"))
 	what.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	what.custom_minimum_size = Vector2(BTN_W - 24.0, 0)
 	_offer_box.add_child(what)
 	for cap_line in offer.get("caps", []):
 		var cp := PanelContainer.new()
-		cp.add_theme_stylebox_override("panel", HudKit.box(DangoTheme.GEM_PANEL_TINT, 8, 0,
+		cp.add_theme_stylebox_override("panel", HudKit.box(UI3Theme.color("panel_raised"), 8, 0,
 			DangoTheme.OUTLINE, Vector2.ZERO, DangoTheme.SHELF, Vector2(8, 2)))
-		cp.add_child(HudKit.label(String(cap_line), 14, DangoTheme.GEM_SHELF))
+		cp.add_child(HudKit.label(String(cap_line), 16, UI3Theme.color("text")))
 		_offer_box.add_child(cp)
 	var buy := Button.new()
 	buy.custom_minimum_size = Vector2(192, 48)
@@ -420,6 +420,18 @@ func tray_top_hint(tray_top: float) -> void:
 	layout()
 
 
+## Top edge of the lowest-left Aid element that is showing (offer card, else the button).
+func top_y() -> float:
+	var h := size.y
+	if h <= 1.0:
+		h = get_viewport_rect().size.y
+	if not enabled:
+		return h - OFFER_EDGE
+	if _offer_card != null and _offer_card.visible:
+		return _offer_card.position.y
+	return h - EDGE - BTN_H
+
+
 func layout() -> void:
 	var h := size.y
 	if h <= 1.0:
@@ -427,7 +439,7 @@ func layout() -> void:
 	_button.position = Vector2(EDGE, h - EDGE - BTN_H)
 	_button.size = Vector2(BTN_W, BTN_H)
 	_offer_card.size = Vector2.ZERO
-	_offer_card.position = Vector2(EDGE, h - 132.0 - _offer_card.get_combined_minimum_size().y)
+	_offer_card.position = Vector2(OFFER_EDGE, h - 132.0 - _offer_card.get_combined_minimum_size().y)
 	_offer_card.size = Vector2(BTN_W, _offer_card.get_combined_minimum_size().y)
 	var tray_top := h - EDGE - 176.0   # README: bottom = tray top - 8
 	_tray.size = Vector2.ZERO

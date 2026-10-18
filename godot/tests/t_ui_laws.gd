@@ -214,7 +214,12 @@ func _check_control(c: Control, scene_root: Node) -> void:
 		var sb := c.get_theme_stylebox(key)
 		if sb is StyleBoxFlat:
 			var f := sb as StyleBoxFlat
-			if f.shadow_size != 0:
+			if f.has_meta("ui3"):
+				# UI-03 boxes: only the hard offset shadows of tokens_ui3.json `shadow` (size 1 = no blur).
+				if f.shadow_size > 1 or (f.shadow_size == 1 and not _is_ui3_shadow(f)):
+					_bad(c, "L7", "UI3 shadow size=%d offset=%s colour=%s is not a tokens_ui3 hard shadow"
+						% [f.shadow_size, f.shadow_offset, f.shadow_color.to_html()])
+			elif f.shadow_size != 0:
 				_bad(c, "L7", "shadow_size=%d — a shelf is shadow_size 0 + shadow_offset"
 					% f.shadow_size)
 			var b := f.border_color
@@ -243,7 +248,7 @@ func _check_control(c: Control, scene_root: Node) -> void:
 				or (c.name == "SpotlightRing" and b.is_equal_approx(UI3Theme.color("text"))) \
 				or b.is_equal_approx(UI3Theme.color("selected_outline")) \
 				or b.is_equal_approx(UI3Theme.color("focus_ring")) \
-				or _is_ui3_token(b) \
+				or (f.has_meta("ui3") and _is_ui3_token(b)) \
 				or _is_class_color(b) or b.a == 0.0
 			if f.get_border_width_min() > 0 and not is_black and not is_state:
 				_bad(c, "L7", "border_color %s — the mockups use pure black everywhere except "
@@ -353,8 +358,23 @@ func _is_class_color(b: Color) -> bool:
 	return false
 
 
-## UI-03 screens take every border from tokens_ui3.json, so any colour token there is a drawn
-## border, not drift. Screens still on Dango keep the checks above.
+## True when the box's shadow matches an entry of tokens_ui3.json `shadow` (x offset 0 or token x, y, colour).
+func _is_ui3_shadow(f: StyleBoxFlat) -> bool:
+	# Die tile (UI3.die_tile): a hard shelf, y 6, in the face's own dark colour (a per-face colour, not a
+	# single token), opaque and unblurred. Same shape as the token shadows, so accept it by shape.
+	if f.shadow_offset.x == 0.0 and f.shadow_offset.y == 6.0 and f.shadow_color.a > 0.98:
+		return true
+	for e in (UI3Theme.tokens().get("shadow", {}) as Dictionary).values():
+		if e is Dictionary and e.has("y") and e.has("color") \
+				and is_equal_approx(f.shadow_offset.y, float(e["y"])) \
+				and is_equal_approx(f.shadow_offset.x, float(e.get("x", 0))) \
+				and f.shadow_color.is_equal_approx(UI3Theme.hex(String(e["color"]))):
+			return true
+	return false
+
+
+## UI-03 boxes (meta "ui3", set by UI3Theme.flat) take every border from tokens_ui3.json, so any colour
+## token there is a drawn border, not drift. Dango boxes never reach this: they keep the strict check.
 func _is_ui3_token(b: Color) -> bool:
 	for entry in (UI3Theme.tokens().get("color", {}) as Dictionary).values():
 		if entry is Dictionary and b.is_equal_approx(Color.html(String(entry.get("value", "#00000000")))):

@@ -99,7 +99,7 @@ func _ready() -> void:
 ## selected the die; the other three landed on the Content column and did nothing.
 func _test_die_card_is_clickable_across_its_whole_face(tree: SceneTree) -> void:
 	var btn: Button = _view.get_node("%DieSlot0")
-	_check(btn.size.x >= 170.0 and btn.size.y >= 150.0,
+	_check(btn.size.x >= 150.0 and btn.size.y >= 160.0,
 		"DieSlot0 has not been laid out yet (size=%s)" % btn.size)
 	# Offsets from the card's own top-left, resolved against a FRESHLY measured rect each time:
 	# a selected card lifts 16px (_update_die_slot_lift()), so a rect cached before the first

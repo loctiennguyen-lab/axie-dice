@@ -177,6 +177,7 @@ func _ready() -> void:
 	s3.queue_free()
 	await _kind_tests()
 	await _begin_error_tests()
+	await _leaderboard_popup_tests()
 	_guard.restore()
 	if _fail.is_empty():
 		print("t_run_setup: PASS (%d checks)" % _checks)
@@ -291,3 +292,44 @@ func _kind_tests() -> void:
 	_ok(RunState.run_kind == "ranked" and RunState.ranked, "kind ranked sets ranked")
 	_ok(int(RunState.close_summary(true, true).get("score", -1)) >= 150, "close_summary carries the leaderboard score")
 	RunState.reset()
+
+
+## UI-03 35: leaderboard popup states with the stub source (loading, ok, error then retry).
+func _leaderboard_popup_tests() -> void:
+	MetaState.runs = 9
+	MetaState.runs_with_battle = 9
+	var s := await _make()
+	var st := LeaderboardSourceStub.new()
+	st.boards[LeaderboardSource.query_key({"asc": s.ascension, "period": "season"})] = {"rows": [
+		{"rank": 1, "name": "Liam", "score": 9000}], "me": {"rank": 9, "name": "You", "score": 100}}
+	s.lb_source = st
+	st.pending = true
+	s.open_leaderboard()
+	await get_tree().process_frame
+	_ok(s.find_child("LeaderboardPopup", true, false) != null, "lb popup opens")
+	_ok(s.find_child("LbRows", true, false).get_child_count() == 1 and s.find_child("LbError", true, false) == null, "lb loading state")
+	_ok(s.find_child("LbRetry", true, false) == null, "no retry while loading")
+	st.release()
+	await get_tree().process_frame
+	_ok(s.find_child("LbMe", true, false) != null, "lb ok shows own row")
+	_ok(s.find_child("LbRetry", true, false) == null, "ok state has no retry")
+	_ok(s.find_child("FullLeaderboard", true, false).theme_type_variation == &"ButtonPrimaryM", "ok: Full Leaderboard primary")
+	s.close_modal()
+	await get_tree().process_frame
+	st.pending = false
+	st.fail_reason = "offline"
+	s.open_leaderboard()
+	await get_tree().process_frame
+	await get_tree().process_frame
+	_ok(s.find_child("LbError", true, false) != null, "lb error state")
+	var retry: Button = s.find_child("LbRetry", true, false)
+	_ok(retry != null and retry.theme_type_variation == &"ButtonPrimaryM", "error: Try again primary")
+	_ok(s.find_child("FullLeaderboard", true, false).theme_type_variation == &"ButtonSecondary", "error: Full Leaderboard secondary")
+	st.fail_reason = ""
+	var n := st.calls.size()
+	retry.pressed.emit()
+	await get_tree().process_frame
+	await get_tree().process_frame
+	_ok(st.calls.size() == n + 1, "Try again refetches")
+	_ok(s.find_child("LbError", true, false) == null and s.find_child("LbMe", true, false) != null, "retry shows the board")
+	s.queue_free()

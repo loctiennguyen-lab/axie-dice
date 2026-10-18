@@ -41,6 +41,10 @@ func _make(screen: String) -> Node:
 		await get_tree().process_frame
 		if screen == "presets-editor":
 			s.open_editor(0)
+		elif screen == "presets-picker":
+			s.open_editor(0)
+			await get_tree().process_frame
+			s._show_picker(2)
 		elif screen == "presets-samples":
 			s.switch_tab("samples")
 		elif screen == "presets-delete":

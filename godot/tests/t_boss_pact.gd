@@ -18,7 +18,7 @@ func _ready() -> void:
 	test_swap_one_card()
 	test_swap_in_a_full_run_replays()
 	test_save_resume()
-	test_log_and_view()
+	await test_log_and_view()
 	test_verifier_refusals()
 	_guard.restore()
 	print("=== t_boss_pact: %d checks, %d failure(s) ===" % [_checks, _failures.size()])
@@ -128,7 +128,7 @@ func test_swap_one_card() -> void:
 	var v := PactView.new()
 	add_child(v)
 	v.setup(RunState.pact_cards(), true, {"show": true, "enabled": true, "price": 15, "reason": ""})
-	_assert(v.swap_buttons.size() == 3, "a Swap button under each card")
+	_assert(v.swap_buttons.size() == 3 and v.find_child("CostChip", true, false) != null, "a Swap button + gem CostChip on each card")
 	var got := [-1]
 	v.swap_requested.connect(func(i: int): got[0] = i)
 	v.swap_buttons[2].pressed.emit()
@@ -195,14 +195,16 @@ func test_log_and_view() -> void:
 	var v := PactView.new()
 	add_child(v)
 	v.setup(RunState.pact_cards(), RunState.pact_can_skip())
-	_assert(v.skip_button == null and v.take_buttons.size() == 3, "forced view: no skip button, 3 take buttons")
+	_assert(v.skip_button == null and v.card_panels.size() == 3 and v.accept_button != null, "forced view: no skip button, 3 cards + Accept")
 	var got := [0]
+	var menu := [0]
 	v.skipped.connect(func(): got[0] += 1)
+	v.menu_requested.connect(func(): menu[0] += 1)
 	var esc := InputEventAction.new()
 	esc.action = "ui_cancel"
 	esc.pressed = true
 	v._unhandled_input(esc)
-	_assert(got[0] == 0, "Esc ignored when forced")
+	_assert(got[0] == 0 and menu[0] == 1, "Esc never skips a forced pact; it asks for the in-run menu")
 	v.queue_free()
 	_boss_win(0)
 	var v2 := PactView.new()
@@ -210,7 +212,26 @@ func test_log_and_view() -> void:
 	v2.setup(RunState.pact_cards(), RunState.pact_can_skip())
 	v2.skipped.connect(func(): got[0] += 1)
 	v2._unhandled_input(esc)
-	_assert(v2.skip_button != null and got[0] == 1, "optional view: skip button, Esc skips")
+	_assert(v2.skip_button != null and got[0] == 0, "optional view: skip button, Esc does not skip (menu instead)")
+	v2.skip_button.pressed.emit()
+	_assert(got[0] == 1, "Skip pact button skips")
+	# UI-03 12: select + Accept -> confirm repeats the drawback -> Make pact picks; Back picks nothing.
+	var picks: Array = []
+	v2.picked.connect(func(i: int, sid: String): picks.append([i, sid]))
+	await get_tree().process_frame   # the deferred first-focus lands on card 0
+	v2.select(1)
+	v2.accept_button.pressed.emit()
+	await get_tree().process_frame
+	var dlg := v2.find_child("PactConfirm", true, false)
+	_assert(dlg != null, "Accept opens the confirm")
+	_assert(dlg.find_children("*", "Label", true, false).any(func(l): return (l as Label).text.begins_with("Drawback")), "confirm shows the drawback line")
+	(v2.find_child("PactBack", true, false) as Button).pressed.emit()
+	await get_tree().process_frame
+	_assert(picks.is_empty() and v2.find_child("PactConfirm", true, false) == null, "Back picks nothing")
+	v2.accept_button.pressed.emit()
+	await get_tree().process_frame
+	(v2.find_child("PactMake", true, false) as Button).pressed.emit()
+	_assert(picks.size() == 1 and int(picks[0][0]) == 1 and String(picks[0][1]) == "", "Make pact picks the selected card %s" % [picks])
 	v2.queue_free()
 
 

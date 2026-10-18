@@ -865,22 +865,6 @@ func _build_overlay_ui() -> void:
 	_overlay_layer.add_child(_overlay_root)
 
 
-## Opens a node screen on `plate` and returns the full-canvas host to lay its content out in.
-## Plate -> scrim -> UI, in that order, per DangoTheme's own background formula.
-func _open_screen(plate: Texture2D) -> Control:
-	_clear_overlay_content()
-	_board.visible = true
-	_overlay_root.visible = true
-	DangoTheme.build_plate(_overlay_root, plate, DangoTheme.Scrim.DEFAULT, false)
-
-	var host := Control.new()
-	host.name = "ScreenContent"
-	host.set_anchors_preset(Control.PRESET_FULL_RECT)
-	host.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_overlay_root.add_child(host)
-	return host
-
-
 ## The map is the run's resting point: every node resolves back to it, and a save taken here
 ## carries no in-flight combat. Called from the handful of places that finish a step rather
 ## than from a timer, so the file is written when something actually changed.
@@ -1085,8 +1069,8 @@ func _cleared_eyebrow() -> String:
 
 ## Reward `t` -> kind label and card icon (assets/ui3/icons). Unlisted types fall back to "Reward".
 const _REWARD_KIND := {
-	"relic": "Relic", "level": "Tier up", "ascend": "Ascend", "hp": "Max HP",
-	"reroll": "Reroll", "chaos": "Chaos deal", "curse": "Curse pact",
+	"relic": "Relic", "level": "Tier Up", "ascend": "Ascend", "hp": "Max HP",
+	"reroll": "Reroll", "chaos": "Chaos Deal", "curse": "Curse Pact",
 }
 const _REWARD_ICON := {
 	"relic": "ui_mooncard", "level": "face_buff", "ascend": "node_boss", "hp": "face_heal",
@@ -1213,12 +1197,53 @@ func _ask_skip_reward(col: VBoxContainer) -> void:
 func _select_reward(i: int) -> void:
 	_reward_sel = clampi(i, 0, maxi(_reward_cards.size() - 1, 0))
 	for k in _reward_cards.size():
-		UI3.set_card_selected(_reward_cards[k], k == _reward_sel)
+		UI3.set_card_selected(_reward_cards[k], k == _reward_sel, false)
 
 
 func _take_selected_reward() -> void:
 	if _reward_sel >= 0 and _reward_sel < RunState.pending_rewards.size():
-		_on_reward_chosen(RunState.pending_rewards[_reward_sel])
+		var r: Dictionary = RunState.pending_rewards[_reward_sel]
+		if String(r.get("t", "")) in ["chaos", "curse"]:
+			_ask_lasting_reward(r)
+			return
+		_on_reward_chosen(r)
+
+
+## Chaos / Curse last the whole run: inline confirm under the actions (spec 31). Back keeps the pick open.
+func _ask_lasting_reward(r: Dictionary) -> void:
+	var col := _overlay_vbox.get_parent() as Control if _overlay_vbox != null else null
+	if col == null or col.find_child("LastingConfirm", true, false) != null:
+		return
+	var row := HBoxContainer.new()
+	row.name = "LastingConfirm"
+	row.alignment = BoxContainer.ALIGNMENT_CENTER
+	row.add_theme_constant_override("separation", 16)
+	row.add_child(UI3.label(tr("This lasts the whole run. Take it?")))
+	var back := UI3.button(tr("Back"), &"secondary", &"S")
+	back.name = "LastingBack"
+	back.pressed.connect(row.queue_free)
+	row.add_child(back)
+	var go := UI3.button(tr("Take it"), &"secondary", &"S")
+	go.name = "LastingTake"
+	go.pressed.connect(func() -> void: _on_reward_chosen(r))
+	row.add_child(go)
+	col.add_child(row)
+	back.grab_focus()
+
+
+## Chaos / Curse card body split into Gain and Gamble/Curse text, from the generator's real strings.
+func _trade_parts(r: Dictionary) -> Dictionary:
+	var sub := String(r.get("sub", ""))
+	var desc := String(r.get("desc", ""))
+	if String(r.get("t", "")) == "chaos":
+		var lines := sub.split("\n")
+		var cost := String(lines[0]).trim_prefix("GAMBLE: ")
+		cost = cost.substr(0, 1).to_upper() + cost.substr(1)
+		cost = cost.substr(0, 1).to_upper() + cost.substr(1)
+		var gain := UI3.describe(String(lines[1]) if lines.size() > 1 else "")
+		return {"gain": ("MP %d · " % int(gain["mp"]) if int(gain["mp"]) >= 0 else "") + String(gain["text"]),
+			"cost": cost, "cost_kind": &"gamble"}
+	return {"gain": sub.trim_prefix("IN EXCHANGE: you gain ").trim_suffix("."), "cost": desc, "cost_kind": &"curse"}
 
 
 func _add_reward_card(r: Dictionary, wide := false) -> PanelContainer:
@@ -1291,7 +1316,7 @@ func _add_reward_card(r: Dictionary, wide := false) -> PanelContainer:
 		body_text = String(r.get("sub", ""))
 	elif String(r.get("sub", "")) != "":
 		body_text += "\n" + String(r.get("sub", ""))
-	name_text = UI3.player_text(name_text)
+	name_text = UI3.title_case(UI3.player_text(name_text))
 	var dsc := UI3.describe(body_text)
 	body_text = ("MP %d · " % int(dsc["mp"]) if int(dsc["mp"]) >= 0 else "") + String(dsc["text"])
 	var name_lbl := UI3.label(name_text, "LabelTitle")
@@ -1301,8 +1326,17 @@ func _add_reward_card(r: Dictionary, wide := false) -> PanelContainer:
 	col.add_child(name_lbl)
 	var rar_lbl := UI3.label(_rarity_name(rar))
 	rar_lbl.name = "RarityLabel"
-	rar_lbl.add_theme_color_override("font_color", accent)
+	rar_lbl.add_theme_color_override("font_color", UI3Theme.color("text_muted") if rar == 0 else accent)
 	col.add_child(rar_lbl)
+	if t in ["chaos", "curse"]:
+		var tp := _trade_parts(r)
+		if t == "chaos":
+			name_lbl.text = UI3.title_case(UI3.player_text(String(r.get("desc", ""))))
+		else:
+			name_lbl.text = UI3.title_case(UI3.player_text(String(r.get("title", ""))))
+		col.add_child(UI3.trade_box(&"gain", String(tp["gain"])))
+		col.add_child(UI3.trade_box(tp["cost_kind"], String(tp["cost"])))
+		return card
 	var desc := UI3.label(body_text)
 	desc.name = "RewardDesc"
 	desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -1329,7 +1363,7 @@ func _hit_button() -> Button:
 ## Boss Pact screen (scenes/pact/PactView.gd). Take/skip go through RunState; afterwards the normal
 ## reward cards follow (phase REWARD), saved first so a quit here resumes on the right screen.
 func _show_pact_overlay() -> void:
-	var host := _open_screen(MockupAssets.tex("assets/bg/rocky.jpg"))
+	var host := _open_ui3_screen()
 	var view := PactView.new()
 	view.name = "PactView"
 	host.add_child(view)
@@ -1348,6 +1382,7 @@ func _show_pact_overlay() -> void:
 	view.skipped.connect(func():
 		if RunState.skip_pact():
 			_after_pact())
+	view.menu_requested.connect(open_run_menu)
 
 
 func _after_pact() -> void:
@@ -1356,8 +1391,61 @@ func _after_pact() -> void:
 
 
 func _on_reward_chosen(reward: Dictionary) -> void:
+	var key := String(reward.get("key", ""))
+	if String(reward.get("t", "")) in ["relic", "chaos"] and key != "":
+		var chk := RelicSlots.check_add(RunState.owned_relic_ids, RunState.relic_stickers, key, RunState.ascension, false)
+		if bool(chk["needs_sell"]):
+			open_slot_swap(reward, chk)
+			return
 	RunState.apply_chosen_reward(reward)
 	_finish_node()
+
+
+## Spec 32: the slot kind of the new relic is full. The sale goes through RunState.acquire_relic (logged as
+## swap_on_full), then the normal pick applies. Leave it returns to the cards with nothing taken.
+func open_slot_swap(reward: Dictionary, chk: Dictionary) -> void:
+	var key := String(reward.get("key", ""))
+	var nd = RelicRegistry.get_def(key)
+	if nd == null:
+		return
+	var active: bool = RelicSlots._is_active(nd)
+	var cap := RelicSlots.capacity(RunState.ascension, RunState.owned_relic_ids)
+	var cells: Array = []
+	var sell_from: Array = chk["sell_from"]
+	for oid in RunState.owned_relic_ids:
+		var id := String(oid)
+		var od = RelicRegistry.get_def(id)
+		if od == null or id.begins_with("__"):
+			continue
+		var eternal := String(RunState.relic_stickers.get(id, "")) == RelicSlots.STICKER_ETERNAL
+		if not sell_from.has(id) and not (eternal and RelicSlots._is_active(od) == active):
+			continue
+		cells.append({"id": id, "name": UI3.title_case(UI3.player_text(String(od.name))),
+			"kind": tr("Active") if RelicSlots._is_active(od) else tr("Passive"),
+			"sell": RelicSlots.sell_price(id, RunState.ascension), "eternal": eternal})
+	var rule := (tr("Active slots are full (%d of %d). Sell one to take the new relic.") if active
+		else tr("Passive slots are full (%d of %d). Sell one to take the new relic.")) % [
+		cells.size(), int(cap["active"] if active else cap["passive"])]
+	var dsc := UI3.describe(RewardGenerator.relic_desc(nd))
+	var sheet := UI3.slot_swap_sheet(tr("Make room"), UI3.title_case(UI3.player_text(String(nd.name))),
+		("MP %d · " % int(dsc["mp"]) if int(dsc["mp"]) >= 0 else "") + String(dsc["text"]), rule, cells,
+		false, func(sell_id: String) -> void:
+			var ok := RunState.acquire_relic(key, "reward", sell_id)
+			sheet_closed(ok, reward),
+		func() -> void: sheet_closed(false, {}, true), 3 if active else 4)
+	sheet.name = "SlotSwapSheet"
+	_overlay_root.add_child(sheet)
+
+
+## Closes the swap sheet. ok: the swap was made, so finish the pick. Otherwise the cards stay as they were.
+func sheet_closed(ok: bool, reward: Dictionary, _left := false) -> void:
+	var sh := _overlay_root.find_child("SlotSwapSheet", true, false)
+	if sh != null:
+		sh.get_parent().remove_child(sh)
+		sh.queue_free()
+	if ok:
+		RunState.apply_chosen_reward(reward)
+		_finish_node()
 
 
 func _on_reward_reroll(title: String) -> void:

@@ -432,6 +432,58 @@ func test_reward_and_shop_cards_show_a_rarity_chip_matching_rar() -> void:
 	runmap.call("_select_reward", 1)
 	_assert(int(runmap.get("_reward_sel")) == 1, "selecting card 1 did not stick")
 
+	# UI-03 31: Chaos / Curse draw Gain + Gamble/Curse boxes and ask "This lasts the whole run" before applying.
+	var none: Array[Dictionary] = []
+	var chaos := RewardGenerator._make_chaos_reward(Rng.new(5), RunState.owned_relic_ids, none)
+	var curse := RewardGenerator._make_curse_reward(none)
+	_assert(not chaos.is_empty() and not curse.is_empty(), "generator gave a chaos and a curse card")
+	RunState.pending_rewards = [chaos, curse]
+	runmap.call("_show_reward_overlay", "CHOOSE A REWARD")
+	await get_tree().process_frame
+	_assert(runmap.find_child("TradeBox_gain", true, false) != null and runmap.find_child("TradeBox_gamble", true, false) != null
+		and runmap.find_child("TradeBox_curse", true, false) != null, "chaos/curse cards show TradeBoxes")
+	var reroll_before := RunState.bonus_reroll
+	runmap.call("_select_reward", 1)
+	runmap.call("_take_selected_reward")
+	await get_tree().process_frame
+	_assert(runmap.find_child("LastingConfirm", true, false) != null, "curse Take asks for confirmation")
+	_assert(RunState.bonus_reroll == reroll_before and RunState.pending_rewards.size() == 2, "curse not applied before confirm")
+	runmap.call("_close_overlay")
+	await get_tree().process_frame
+
+	# UI-03 32: passive slots full -> swap sheet; Leave it changes nothing; picking a cell then confirming sells + takes.
+	var full := ["r_claw", "r_carapace", "r_pierceall", "r_cleaveall", "r_bloodmouth", "r_gorehook", "r_barbedhide", "r_heart"]
+	RunState.owned_relic_ids.assign(full)
+	RunState.relic_stickers = {"r_heart": "eternal"}
+	RunState.pending_rewards = [{"t": "relic", "key": "r_seedling", "rar": 0, "title": "RELIC", "desc": "Seedling", "sub": ""}]
+	runmap.call("_show_reward_overlay", "CHOOSE A REWARD")
+	await get_tree().process_frame
+	runmap.call("_take_selected_reward")
+	await get_tree().process_frame
+	var sheet := runmap.find_child("SlotSwapSheet", true, false)
+	_assert(sheet != null, "full passive slots open the swap sheet")
+	if sheet != null:
+		var conf: Button = sheet.find_child("SwapConfirm", true, false)
+		_assert(conf.disabled, "swap confirm disabled until a cell is picked")
+		_assert((sheet.find_child("SlotCell_r_heart", true, false) as Button).disabled, "Eternal cell can't be picked")
+		var shards0 := RunState.shards_this_run
+		(sheet.find_child("SwapLeave", true, false) as Button).pressed.emit()
+		await get_tree().process_frame
+		await get_tree().process_frame
+		_assert(runmap.find_child("SlotSwapSheet", true, false) == null and not RunState.owned_relic_ids.has("r_seedling"), "Leave it takes nothing")
+		runmap.call("_take_selected_reward")
+		await get_tree().process_frame
+		sheet = runmap.find_child("SlotSwapSheet", true, false)
+		(sheet.find_child("SlotCell_r_claw", true, false) as Button).pressed.emit()
+		_assert(not (sheet.find_child("SwapConfirm", true, false) as Button).disabled, "pick enables confirm")
+		(sheet.find_child("SwapConfirm", true, false) as Button).pressed.emit()
+		await get_tree().process_frame
+		_assert(RunState.owned_relic_ids.has("r_seedling") and not RunState.owned_relic_ids.has("r_claw"), "swap sold r_claw, took r_seedling")
+		_assert(RunState.shards_this_run == shards0 + RelicSlots.sell_price("r_claw", RunState.ascension), "sale paid shards")
+	RunState.relic_stickers = {}
+	runmap.call("_close_overlay")
+	await get_tree().process_frame
+
 	# Shop cards go through the same call site with a different dict shape.
 	# _close_overlay()'s _clear_overlay_content() only queue_free()s the old reward cards —
 	# they are still in the tree until the next frame, so a frame must pass before the

@@ -139,8 +139,10 @@ static func clear_disabled_reason(btn: Button) -> void:
 
 ## Marks a card selected or not: swaps PanelCard / PanelCardSelected (4 px cream outline, padding kept) and
 ## lifts it 18 px (components.md). Inside a Container the lift is re-applied after every layout pass.
-static func set_card_selected(card: PanelContainer, on: bool) -> void:
+static func set_card_selected(card: PanelContainer, on: bool, lift := true) -> void:
 	card.theme_type_variation = "PanelCardSelected" if on else "PanelCard"
+	if not lift:
+		return
 	var lifted := card.has_meta("ui3_lift")
 	var par := card.get_parent()
 	if on and not lifted:
@@ -325,6 +327,60 @@ static func status_chip(icon_name: String, count: int, tint: Color) -> PanelCont
 	return p
 
 
+## Round 2 StatusChip: h 32, wood-2 pill, 3-letter code + count (Rowdies 18), 2 px border green-6 (buff) or
+## red-6 (debuff). Never colour alone: the code is a word.
+const STATUS_CODE := {
+	"poison": "POI", "burn": "BRN", "regen": "REG", "blind": "BLD", "weaken": "WKN", "vulnerable": "VUL",
+	"thorns": "THN", "stun": "STN", "undying": "UND", "enrage": "ENR", "shield": "SHD",
+}
+const STATUS_BUFFS := ["regen", "thorns", "undying", "enrage", "shield"]
+
+
+static func status_label_chip(status: String, count: int) -> PanelContainer:
+	var p := PanelContainer.new()
+	p.theme = UI3Theme.get_theme()
+	var good := STATUS_BUFFS.has(status)
+	var sb := UI3Theme.flat(UI3Theme.color("panel_raised"), UI3Theme.radius("s"), 2,
+		UI3Theme.color("status_buff_border" if good else "status_debuff_border"))
+	sb.content_margin_left = 8
+	sb.content_margin_right = 8
+	sb.content_margin_top = 2
+	sb.content_margin_bottom = 2
+	p.add_theme_stylebox_override("panel", sb)
+	p.custom_minimum_size = Vector2(0, CHIP_H)
+	var code := String(STATUS_CODE.get(status, status.left(3).to_upper()))
+	var l := label("%s %d" % [code, count], "LabelDisplay")
+	l.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	l.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	p.add_child(l)
+	return p
+
+
+## Round 2 IntentBadge colour for a game face type (attack red-6, shield blue-7, buff kam-5, debuff axie-bird).
+static func intent_color(game_type: String) -> Color:
+	match game_type:
+		"dmg", "attack": return UI3Theme.color("intent_attack")
+		"shield": return UI3Theme.color("intent_shield")
+		"debuff", "weaken", "poison": return UI3Theme.color("intent_debuff")
+	return UI3Theme.color("intent_buff")
+
+
+## Round 2 FloatText: Rowdies 24 / 32 / 40 by size 0 / 1 / 2, 3 px wood-1 stroke, class colour.
+const FLOAT_SIZE := [24, 32, 40]
+const FLOAT_COLOR := {"dmg": "face_attack_text", "heal": "face_heal", "shd": "face_shield", "poi": "face_poison",
+	"buf": "face_buff", "deb": "face_weaken", "man": "face_mana"}
+
+
+static func float_text(text: String, css_class: String, size_step: int) -> Label:
+	var l := label(text, "LabelDisplay")
+	l.add_theme_font_size_override("font_size", int(FLOAT_SIZE[clampi(size_step, 0, 2)]))
+	l.add_theme_color_override("font_color", UI3Theme.color(String(FLOAT_COLOR.get(css_class, "text"))))
+	l.add_theme_color_override("font_outline_color", UI3Theme.color("panel"))
+	l.add_theme_constant_override("outline_size", 3)
+	l.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	return l
+
+
 ## HP bar. kind: axie (10 h, green) | enemy (8 h, red-6) | boss (16 h, red-6). Shield is a blue segment
 ## on the same track after the HP; shield/poison > 0 also show a status chip row above the bar.
 static func hp_bar(hp: int, max_hp: int, shield := 0, poison := 0, kind := &"axie") -> HpBarView:
@@ -339,8 +395,91 @@ static func hp_bar(hp: int, max_hp: int, shield := 0, poison := 0, kind := &"axi
 ## (56, radius 14). state: normal (tilted by `tilt` degrees) | selected (lift -18, upright, deep shadow, 3 px
 ## cream outline at offset 5) | used (40% + "· used", not interactive) | disabled (40%, not interactive).
 ## The amber focus ring surrounds the tile. Hit area = the tile itself.
-static func die_tile(face: StringName, value: int, size := &"axie", state := &"normal", tilt := 0.0) -> DieTile:
-	return DieTile.new(face, value, size, state, tilt)
+## stamp = true: "used" is a stamp on the dimmed tile (Rowdies 18, cream on wood-1 90%) and the word stays
+## one line, so the tile keeps one height (combat tray). false: the word gets a second line "· used".
+static func die_tile(face: StringName, value: int, size := &"axie", state := &"normal", tilt := 0.0,
+		stamp := false) -> DieTile:
+	return DieTile.new(face, value, size, state, tilt, stamp)
+
+
+## CostChip (round 2): h 40, radius 8, icon 24 + Rowdies 20. kind: gem (purple-2 fill, purple-5 border, purple-9
+## text; paid surfaces only) | shard | stone (wood-2 fill, cream text) | free (the word "Free"). `amount` is shown
+## as given (already from data); `not_enough` dims it (the button beside it says "Need n more").
+static func cost_chip(kind: StringName, amount: int, not_enough := false) -> PanelContainer:
+	if kind == &"free":
+		# Muted on purpose: wood plate, cream outline, cream text. Must not read as a second primary.
+		var fsb := UI3Theme.flat(UI3Theme.color("panel_raised"), UI3Theme.radius("s"), 2,
+			UI3Theme.color("text"), Vector4(12, 0, 12, 0))
+		var fc := PanelContainer.new()
+		fc.name = "CostChip"
+		fc.theme = UI3Theme.get_theme()
+		fc.custom_minimum_size = Vector2(0, 40)
+		fc.add_theme_stylebox_override("panel", fsb)
+		var fl := label(TranslationServer.translate("Free"), "LabelDisplay")
+		fl.add_theme_font_size_override("font_size", 20)
+		fl.add_theme_color_override("font_color", UI3Theme.color("text"))
+		fl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		fc.add_child(fl)
+		return fc
+	var gem := kind == &"gem"
+	var sb := UI3Theme.flat(UI3Theme.color("gem_bg") if gem else UI3Theme.color("panel_raised"),
+		UI3Theme.radius("s"), 2 if gem else 0, UI3Theme.color("gem_border"),
+		Vector4(10, 0, 12, 0))
+	var chip := PanelContainer.new()
+	chip.name = "CostChip"
+	chip.theme = UI3Theme.get_theme()
+	chip.custom_minimum_size = Vector2(0, 40)
+	chip.add_theme_stylebox_override("panel", sb)
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", UI3Theme.space("8"))
+	row.alignment = BoxContainer.ALIGNMENT_CENTER
+	chip.add_child(row)
+	var col := UI3Theme.color("gem_text") if gem else UI3Theme.color("text")
+	if kind != &"free":
+		var ic := TextureRect.new()
+		ic.texture = icon("cur_" + String(kind))
+		ic.custom_minimum_size = Vector2(24, 24)
+		ic.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		ic.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		ic.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		row.add_child(ic)
+	var l := label(TranslationServer.translate("Free") if kind == &"free" else fmt(amount), "LabelDisplay")
+	l.add_theme_font_size_override("font_size", 20)
+	l.add_theme_color_override("font_color", col)
+	row.add_child(l)
+	if not_enough:
+		chip.modulate.a = 0.6
+	return chip
+
+
+## PhaseBar (round 2): 16 h bar, 2 px kam-9 ticks at every phase threshold (fractions 0..1 of max HP).
+static func phase_bar(hp: int, max_hp: int, marks: Array) -> Control:
+	var bar := PhaseBarView.new()
+	bar.setup(hp, max_hp, marks)
+	return bar
+
+
+class PhaseBarView extends Control:
+	var _hp := 0
+	var _max := 1
+	var _marks: Array = []
+
+	func setup(hp: int, max_hp: int, marks: Array) -> void:
+		_hp = maxi(hp, 0)
+		_max = maxi(max_hp, 1)
+		_marks = marks
+		custom_minimum_size = Vector2(0, 16)
+		queue_redraw()
+
+	func _draw() -> void:
+		var r := UI3Theme.radius("s")
+		draw_style_box(UI3Theme.flat(UI3Theme.color("hp_track"), r), Rect2(0, 0, size.x, 16))
+		var w := maxf(size.x * float(_hp) / float(_max), float(r) * 2.0) if _hp > 0 else 0.0
+		if w > 0.0:
+			draw_style_box(UI3Theme.flat(UI3Theme.color("hp_enemy"), r), Rect2(0, 0, w, 16))
+		for m in _marks:
+			var x := size.x * float(m)
+			draw_rect(Rect2(x - 1.0, 0, 2.0, 16), UI3Theme.color("phase_tick"))
 
 
 ## Localized word for a face type ("ATTACK", "SHIELD", ...). Blank is "–" per the spec.
@@ -438,6 +577,178 @@ static func net_notice(text: String, retry_text: String, on_retry: Callable, rec
 	return p
 
 
+## TradeBox (round 2): one labelled box. kind gain = green-2 box + "Gain" label; cost / gamble / curse = red-2 box
+## + "Cost" / "Gamble" / "Curse" label. The label is a word, never colour alone. Pad 12, radius 8.
+static func trade_box(kind: StringName, text: String) -> PanelContainer:
+	var gain := kind == &"gain"
+	var words := {&"gain": "Gain", &"cost": "Cost", &"gamble": "Gamble", &"curse": "Curse"}
+	var p := PanelContainer.new()
+	p.name = "TradeBox_%s" % String(kind)
+	p.theme = UI3Theme.get_theme()
+	p.add_theme_stylebox_override("panel", UI3Theme.flat(
+		UI3Theme.color("trade_gain_bg" if gain else "trade_cost_bg"), UI3Theme.radius("m"), 0,
+		Color.TRANSPARENT, Vector4(12, 12, 12, 12)))
+	var v := VBoxContainer.new()
+	v.add_theme_constant_override("separation", 4)
+	p.add_child(v)
+	var l := label(TranslationServer.translate(String(words.get(kind, "Cost"))), "LabelMuted")
+	l.name = "TradeLabel"
+	l.add_theme_color_override("font_color", UI3Theme.color("success_text" if gain else "danger_text"))
+	v.add_child(l)
+	var b := label(text)
+	b.name = "TradeText"
+	b.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	v.add_child(b)
+	return p
+
+
+## Title Case for names the data stores in capitals ("LUNACIA ULTIMA", "CURSE PACT"). Names already in mixed
+## case are returned untouched, so "Devil's Reroll" and "HP" keep their form.
+static func title_case(raw: String) -> String:
+	if raw != raw.to_upper():
+		return raw
+	var words := raw.split(" ")
+	var out: Array[String] = []
+	for w in words:
+		var word := String(w)
+		if word.length() <= 2 and word == "HP":
+			out.append(word)
+		elif word != "":
+			out.append(word.substr(0, 1).to_upper() + word.substr(1).to_lower())
+		else:
+			out.append(word)
+	return " ".join(out)
+
+
+
+
+## SlotSwapSheet (round 2, spec 32): modal 1200, new item row (amber outline) + grid of SlotCells (min 120:
+## name, kind, sell value or "Can't sell" for Eternal) + actions. `cells` = [{id, name, kind, sell, eternal}].
+## Primary "Sell X and take" stays disabled until a cell is picked and says why. "Leave it" is absent when
+## `forced`; Esc = Leave it (ignored when forced). on_confirm(sell_id: String), on_leave(). cols 4 (3 for active).
+static func slot_swap_sheet(header: String, new_title: String, new_sub: String, rule: String, cells: Array,
+		forced: bool, on_confirm: Callable, on_leave: Callable, cols := 4) -> ModalRoot:
+	var root := ModalRoot.new()
+	root.name = "SlotSwapSheet"
+	root.theme = UI3Theme.get_theme()
+	root.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	root.mouse_filter = Control.MOUSE_FILTER_STOP
+	var scrim := ColorRect.new()
+	scrim.color = UI3Theme.color("scrim")
+	scrim.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	scrim.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	root.add_child(scrim)
+	var center := CenterContainer.new()
+	center.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	center.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	root.add_child(center)
+	var dlg := plate(&"dialog")
+	dlg.name = "Dialog"
+	dlg.custom_minimum_size = Vector2(1200, 0)
+	center.add_child(dlg)
+	var col := VBoxContainer.new()
+	col.add_theme_constant_override("separation", 24)
+	dlg.add_child(col)
+	col.add_child(label(header, "LabelScreenTitle"))
+	var rl := label(rule, "LabelMuted")
+	rl.name = "RuleLine"
+	rl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	col.add_child(rl)
+	var nrow := PanelContainer.new()
+	nrow.name = "NewItem"
+	nrow.add_theme_stylebox_override("panel", UI3Theme.flat(UI3Theme.color("panel_raised"), UI3Theme.radius("m"), 2,
+		UI3Theme.color("accent"), Vector4(16, 12, 16, 12)))
+	var nv := VBoxContainer.new()
+	nrow.add_child(nv)
+	nv.add_child(label(new_title, "LabelTitle"))
+	var ns := label(new_sub)
+	ns.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	nv.add_child(ns)
+	col.add_child(nrow)
+	var grid := GridContainer.new()
+	grid.name = "SlotGrid"
+	grid.columns = cols
+	grid.add_theme_constant_override("h_separation", 16)
+	grid.add_theme_constant_override("v_separation", 16)
+	col.add_child(grid)
+	var acts := HBoxContainer.new()
+	acts.alignment = BoxContainer.ALIGNMENT_END
+	acts.add_theme_constant_override("separation", 16)
+	var confirm := button(TranslationServer.translate("Pick one to sell"), &"primary", &"M")
+	confirm.name = "SwapConfirm"
+	set_disabled_reason(confirm, TranslationServer.translate("Pick one to sell"))
+	var state := {"sel": ""}
+	var btns: Array[Button] = []
+	var sellable := 0
+	for c in cells:
+		var cell: Dictionary = c
+		var b := Button.new()
+		b.name = "SlotCell_%s" % String(cell.get("id", ""))
+		b.theme = UI3Theme.get_theme()
+		b.theme_type_variation = "ButtonSecondary"
+		b.custom_minimum_size = Vector2(120, 120)
+		b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		b.focus_mode = Control.FOCUS_ALL
+		var eternal := bool(cell.get("eternal", false))
+		var sell_text: String = TranslationServer.translate("Can't sell") if eternal else "%s · +%d" % [
+			TranslationServer.translate("Sell"), int(cell.get("sell", 0))]
+		var cv := VBoxContainer.new()
+		cv.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT, Control.PRESET_MODE_MINSIZE, 8)
+		cv.alignment = BoxContainer.ALIGNMENT_CENTER
+		cv.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		b.add_child(cv)
+		var nl := label(title_case(String(cell.get("name", ""))), "LabelDisplay")
+		nl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		nl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		nl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		cv.add_child(nl)
+		for t in [String(cell.get("kind", "")), sell_text]:
+			var tl := label(String(t), "LabelMuted")
+			tl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+			tl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			cv.add_child(tl)
+		if eternal:
+			b.disabled = true
+			b.modulate.a = 0.5
+		else:
+			sellable += 1
+			var id := String(cell.get("id", ""))
+			b.toggle_mode = true
+			b.pressed.connect(func() -> void:
+				state["sel"] = id
+				for o in btns:
+					o.set_pressed_no_signal(o == b)
+					for sn in ["normal", "pressed", "hover", "hover_pressed"]:
+						o.remove_theme_stylebox_override(sn)
+						if o == b:
+							o.add_theme_stylebox_override(sn, UI3Theme.flat(UI3Theme.color("btn_secondary"),
+								UI3Theme.radius("m"), UI3Theme.stroke("selected"), UI3Theme.color("selected_outline")))
+				clear_disabled_reason(confirm)
+				confirm.text = TranslationServer.translate("Sell %s and take") % title_case(String(cell.get("name", ""))))
+		btns.append(b)
+		grid.add_child(b)
+	if sellable == 0:
+		confirm.text = TranslationServer.translate("Nothing to sell")
+		set_disabled_reason(confirm, TranslationServer.translate("Every candidate is Eternal"))
+	confirm.pressed.connect(func() -> void:
+		if String(state["sel"]) != "":
+			on_confirm.call(String(state["sel"])))
+	var list: Array = []
+	list.append_array(btns.filter(func(x: Button) -> bool: return not x.disabled))
+	list.append(confirm)
+	if not forced:
+		var leave := button(TranslationServer.translate("Leave it"), &"secondary", &"M")
+		leave.name = "SwapLeave"
+		leave.pressed.connect(func() -> void: on_leave.call())
+		acts.add_child(leave)
+		list.append(leave)
+		root.cancelled.connect(func() -> void: on_leave.call())
+	acts.add_child(confirm)
+	col.add_child(acts)
+	root.actions = list
+	return root
+
+
 ## Skeleton row for loading lists: flat neutral-2 block, radius 8, default 72 high. Static (no pulse), so
 ## it respects reduce-motion by construction.
 static func skeleton_row(height := SKELETON_H) -> Panel:
@@ -512,8 +823,12 @@ class DieTile extends VBoxContainer:
 	var word: Label
 	var _outline: Panel = null
 	var _focus_ring: Panel
+	var stamp_mode := false
+	var _stamp: PanelContainer = null
 
-	func _init(face_: StringName, value_: int, size_: StringName, state_: StringName, tilt_: float) -> void:
+	func _init(face_: StringName, value_: int, size_: StringName, state_: StringName, tilt_: float,
+			stamp_ := false) -> void:
+		stamp_mode = stamp_
 		face = face_
 		value = value_
 		egg = size_ == &"egg"
@@ -595,11 +910,32 @@ class DieTile extends VBoxContainer:
 			_outline.add_theme_stylebox_override("panel", UI3Theme.selected_style(rad + 5, 3, 5))
 			tile.add_child(_outline)
 		var text := UI3.face_word(face)
-		if state == &"used":
+		if state == &"used" and not stamp_mode:
 			text += "\n" + TranslationServer.translate("· used")   # second line, same 18 px
 		word.text = text
+		if _stamp != null:
+			_stamp.get_parent().remove_child(_stamp)
+			_stamp.queue_free()
+			_stamp = null
+		if state == &"used" and stamp_mode:
+			_stamp = UI3.plate(&"plate")
+			_stamp.name = "UsedStamp"
+			_stamp.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			_stamp.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
+			_stamp.grow_horizontal = Control.GROW_DIRECTION_BOTH
+			_stamp.grow_vertical = Control.GROW_DIRECTION_BOTH
+			var sl := UI3.label(TranslationServer.translate("USED"), "LabelDisplay")
+			sl.add_theme_font_size_override("font_size", UI3Theme.size_of("text_body"))
+			sl.add_theme_color_override("font_color", UI3Theme.color("text"))
+			sl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			_stamp.add_child(sl)
+			_stamp.rotation_degrees = -8.0
+			tile.get_parent().add_child(_stamp)   # on the holder: stays full strength over the dimmed tile
 		var live := state == &"normal" or state == &"selected"
-		modulate.a = 1.0 if live else 0.4
+		var dim := 1.0 if live else 0.4
+		modulate.a = 1.0 if stamp_mode else dim
+		tile.modulate.a = dim if stamp_mode else 1.0
+		word.modulate.a = dim if stamp_mode else 1.0
 		focus_mode = Control.FOCUS_ALL if live else Control.FOCUS_NONE
 		if not live and has_focus():
 			release_focus()
@@ -695,7 +1031,10 @@ class HpBarView extends VBoxContainer:
 ## 24 px rotating arc ("reconnecting"). Holds still when the Settings "reduce flashing" option is on
 ## (MetaState.reduce_flash), so the motion preference is respected.
 class Spinner extends Control:
+	var tint := UI3Theme.color("text")   # set accent_text when drawn on a primary (amber) button
+
 	func _init() -> void:
+		mouse_filter = Control.MOUSE_FILTER_IGNORE
 		custom_minimum_size = Vector2(24, 24)
 		size_flags_vertical = Control.SIZE_SHRINK_CENTER
 
@@ -707,7 +1046,7 @@ class Spinner extends Control:
 		pivot_offset = Vector2(12, 12)
 
 	func _draw() -> void:
-		draw_arc(Vector2(12, 12), 9, 0.0, TAU * 0.75, 24, UI3Theme.color("text"), 3.0, true)
+		draw_arc(Vector2(12, 12), 9, 0.0, TAU * 0.75, 24, tint, 3.0, true)
 
 
 ## Player-facing text for a relic / pact / active description: strips the internal tags the data carries

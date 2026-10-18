@@ -33,6 +33,14 @@ var _delete_idx := -1
 var _name_edit: LineEdit
 var _save_btn: Button
 var _count_lbl: Label
+var _orig_name := ""
+var _orig_party: Array = []
+var _pick_slot := -1
+var _pick_sel := ""
+var _pick_class := ""
+var _focus_name := false
+var _put_btn: Button
+var _pick_grid_host: VBoxContainer
 
 
 func _ready() -> void:
@@ -62,10 +70,14 @@ func _unhandled_key_input(ev: InputEvent) -> void:
 	if k == null or not k.pressed or k.echo:
 		return
 	if k.keycode == KEY_ESCAPE:
-		if (_shell["modal_layer"] as Control).get_child_count() > 0:
-			close_modal()
+		var ml := _shell["modal_layer"] as Control
+		if ml.get_child_count() > 0 and not (view == "editor" and ml.get_child_count() == 1):
+			if ml.get_child(ml.get_child_count() - 1).name == &"Picker":
+				_close_picker()
+			else:
+				close_modal()   # a confirm (on top of the editor or alone)
 		elif view == "editor":
-			cancel_editor()
+			request_cancel()
 		else:
 			_on_back()
 		get_viewport().set_input_as_handled()
@@ -85,7 +97,7 @@ func _unhandled_key_input(ev: InputEvent) -> void:
 
 func _on_back() -> void:
 	if view == "editor":
-		cancel_editor()
+		request_cancel()
 	elif is_inside_tree() and not no_scene_change:
 		LandNav.back_to_land()
 
@@ -128,6 +140,7 @@ func use_sample(i: int) -> void:
 
 
 func open_editor(i: int) -> void:
+	tab = "mine"
 	edit_index = i
 	if i >= 0 and i < TeamPresets.count():
 		var e: Dictionary = MetaState.team_presets[i]
@@ -138,14 +151,46 @@ func open_editor(i: int) -> void:
 	else:
 		edit_name = ""
 		edit_party = ["", "", "", "", ""]
+	_orig_name = edit_name
+	_orig_party = edit_party.duplicate()
 	view = "editor"
+	_focus_name = true
 	last_error = ""
 	refresh()
 
 
 func cancel_editor() -> void:
 	view = "grid"
+	_pick_slot = -1
+	UI3Meta.clear(_shell["modal_layer"])
 	refresh()
+
+
+## True when the editor differs from what it opened with.
+func is_dirty() -> bool:
+	return edit_name != _orig_name or edit_party != _orig_party
+
+
+## Cancel / Esc / Back in the editor: closes at once, or asks first when there are unsaved changes.
+func request_cancel() -> void:
+	if not is_dirty():
+		cancel_editor()
+		return
+	UI3Meta.confirm(_shell["modal_layer"], "Discard changes?", "This team has changes you have not saved.",
+		"Keep editing", "Discard", cancel_editor, close_modal)
+
+
+## Picker rule (spec 33): an Axie that sits in another slot swaps places with whatever is in `slot`.
+func swap_edit_seat(slot: int, key: String) -> bool:
+	if slot < 0 or slot >= TeamPresets.PARTY_SIZE or not TeamPresets.seat_ok(key):
+		return false
+	var other := edit_party.find(key)
+	if other >= 0 and other != slot:
+		edit_party[other] = edit_party[slot]
+	edit_party[slot] = key
+	if view == "editor":
+		refresh()
+	return true
 
 
 func set_edit_name(n: String) -> void:
@@ -214,12 +259,18 @@ func request_delete(i: int) -> void:
 func confirm_delete() -> void:
 	TeamPresets.remove(_delete_idx)
 	_delete_idx = -1
-	close_modal()
+	UI3Meta.clear(_shell["modal_layer"])
+	view = "grid"
 	refresh()
 
 
+## Closes the topmost modal only (a confirm or the picker can sit on top of the editor).
 func close_modal() -> void:
-	UI3Meta.clear(_shell["modal_layer"])
+	var ml := _shell["modal_layer"] as Control
+	if ml.get_child_count() > 0:
+		var top := ml.get_child(ml.get_child_count() - 1)
+		ml.remove_child(top)
+		top.queue_free()
 
 
 func reorder(i: int, dir: int) -> void:
@@ -243,10 +294,7 @@ func refresh() -> void:
 			[{"name": "SignIn", "text": "Sign in", "primary": true, "cb": func() -> void:
 				if is_inside_tree() and not no_scene_change:
 					LandNav.open(&"account")}])
-	if view == "editor":
-		sub.text = "› %s" % (edit_name if edit_name != "" else "New team")
-		_body.add_child(UI3Meta.scroll(_build_editor()))
-		return
+	_remove_editor_modal()
 	for t in [["mine", "My teams", "M"], ["samples", "Sample teams", "S"]]:
 		var b := UI3Meta.tab(t[1], t[0] == tab, t[2])
 		b.name = "Tab_" + String(t[0])
@@ -259,6 +307,8 @@ func refresh() -> void:
 		sub.text = "%d of %d slots used%s" % [TeamPresets.count(), TeamPresets.slot_count(),
 			" · more at higher Land tiers" if TeamPresets.slot_count() < TeamPresets.MAX_SLOTS else ""]
 		_body.add_child(_build_empty() if TeamPresets.count() == 0 else UI3Meta.scroll(_build_grid()))
+	if view == "editor":
+		_add_editor_modal()
 
 
 ## Square Axie preview 160x160 (portrait + name); a missing Axie gets a red-8 frame and "Missing".
@@ -326,7 +376,8 @@ func _build_empty() -> Control:
 	b.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	b.pressed.connect(open_editor.bind(-1))
 	v.add_child(b)
-	_focus_later(b)
+	if view != "editor":
+		_focus_later(b)
 	return c
 
 
@@ -441,7 +492,7 @@ func _preset_card(i: int) -> Control:
 		b.pressed.connect(a[1])
 		b.focus_entered.connect(func() -> void: _focus_idx = i)
 		row.add_child(b)
-	if i == 0:
+	if i == 0 and view != "editor":
 		_focus_later(use)
 	return p
 
@@ -481,10 +532,26 @@ func _build_samples() -> Control:
 	return v
 
 
-func _build_editor() -> Control:
+func _remove_editor_modal() -> void:
+	var ed := (_shell["modal_layer"] as Control).find_child("EditorModal", false, false)
+	if ed != null:
+		ed.get_parent().remove_child(ed)
+		ed.queue_free()
+
+
+## Editor (spec 44): a 720 modal over the grid. Name, five slot rows (160 preview, opens the picker),
+## Delete (existing presets only) / Cancel / Save. Esc = Cancel, asks first when dirty.
+func _add_editor_modal() -> void:
+	var c := UI3Meta.scrim(_shell["modal_layer"], "EditorModal")
+	var p := UI3.plate(&"dialog")
+	p.name = "Editor"
+	p.custom_minimum_size.x = 720
+	c.add_child(p)
+	(_shell["modal_layer"] as Control).move_child(c.get_parent(), 0)   # under any picker / confirm
 	var v := VBoxContainer.new()
-	v.name = "Editor"
-	v.add_theme_constant_override("separation", UI3Theme.space("24"))
+	v.add_theme_constant_override("separation", UI3Theme.space("16"))
+	p.add_child(v)
+	v.add_child(UI3.label("Edit team" if edit_index >= 0 else "New team", "LabelScreenTitle"))
 	var nrow := HBoxContainer.new()
 	nrow.add_theme_constant_override("separation", UI3Theme.space("16"))
 	v.add_child(nrow)
@@ -493,37 +560,51 @@ func _build_editor() -> Control:
 	_name_edit.name = "NameEdit"
 	_name_edit.max_length = TeamPresets.NAME_MAX
 	_name_edit.text = edit_name
-	_name_edit.custom_minimum_size = Vector2(400, 56)
+	_name_edit.custom_minimum_size = Vector2(0, 56)
+	_name_edit.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_name_edit.text_changed.connect(set_edit_name)
 	nrow.add_child(_name_edit)
 	_count_lbl = UI3.label("", "LabelMuted")
 	nrow.add_child(_count_lbl)
-	var seats := HBoxContainer.new()
-	seats.add_theme_constant_override("separation", 16)
-	v.add_child(seats)
-	for s in TeamPresets.PARTY_SIZE:
-		seats.add_child(_edit_seat(s))
+	var rows := VBoxContainer.new()
+	rows.add_theme_constant_override("separation", UI3Theme.space("8"))
+	rows.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	for sl in TeamPresets.PARTY_SIZE:
+		rows.add_child(_edit_seat(sl))
+	var sc := UI3Meta.scroll(rows)
+	sc.custom_minimum_size = Vector2(0, 520)
+	v.add_child(sc)
 	var foot := HBoxContainer.new()
-	foot.alignment = BoxContainer.ALIGNMENT_END
 	foot.add_theme_constant_override("separation", UI3Theme.space("16"))
 	v.add_child(foot)
+	if edit_index >= 0:
+		var del := UI3.button("Delete", &"danger", &"M")
+		del.name = "DeleteTeam"
+		del.size_flags_vertical = Control.SIZE_SHRINK_END
+		del.pressed.connect(request_delete.bind(edit_index))
+		foot.add_child(del)
+	var sp := Control.new()
+	sp.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	foot.add_child(sp)
 	var cancel := UI3.button("Cancel", &"secondary", &"M")
 	cancel.name = "Cancel"
 	cancel.custom_minimum_size.y = 56
 	cancel.size_flags_vertical = Control.SIZE_SHRINK_END   # stay 56 next to the 72 primary
-	cancel.pressed.connect(cancel_editor)
+	cancel.pressed.connect(request_cancel)
 	foot.add_child(cancel)
 	_save_btn = UI3.button("Save team", &"primary", &"L")
 	_save_btn.name = "Save"
 	_save_btn.pressed.connect(save_editor)
 	foot.add_child(_save_btn)
 	_refresh_editor_state()
-	return v
+	if _focus_name:
+		_focus_name = false
+		_focus_later(_name_edit)
 
 
 func _refresh_editor_state() -> void:
 	if _count_lbl != null:
-		_count_lbl.text = "%d / %d characters" % [edit_name.length(), TeamPresets.NAME_MAX]
+		_count_lbl.text = "%d / %d" % [edit_name.length(), TeamPresets.NAME_MAX]
 	if _save_btn != null:
 		var why := save_block_reason()
 		if why == "":
@@ -532,48 +613,39 @@ func _refresh_editor_state() -> void:
 			UI3.set_disabled_reason(_save_btn, why)
 
 
+## One slot row: 160 square preview (empty slot = dashed-look placeholder), name + class, Pick / Swap, Clear.
 func _edit_seat(s: int) -> Control:
 	var key := String(edit_party[s])
 	var c := UI3.plate(&"card" if key != "" else &"row")
 	c.name = "EditSeat%d" % s
-	c.custom_minimum_size = Vector2(272, 208)
 	c.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	var v := VBoxContainer.new()
-	v.add_theme_constant_override("separation", UI3Theme.space("8"))
-	c.add_child(v)
-	if key == "":
-		var t := UI3.label("Pick an Axie", "LabelTitle")
-		t.size_flags_vertical = Control.SIZE_EXPAND_FILL
-		t.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-		t.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		v.add_child(t)
-	else:
-		var def: Dictionary = ContentDB.heroes.get(key, {})
-		var top := HBoxContainer.new()
-		top.add_theme_constant_override("separation", UI3Theme.space("16"))
-		v.add_child(top)
-		var pic := TextureRect.new()
-		pic.custom_minimum_size = Vector2(64, 64)
-		pic.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	var h := HBoxContainer.new()
+	h.add_theme_constant_override("separation", UI3Theme.space("16"))
+	c.add_child(h)
+	var def: Dictionary = ContentDB.heroes.get(key, {})
+	var pic := TextureRect.new()
+	pic.custom_minimum_size = Vector2(160, 160)
+	pic.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	pic.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	if key != "":
 		pic.texture = MockupAssets.tex("assets/portrait/%s.png" % String(def.get("cls", "")))
-		top.add_child(pic)
-		var names := VBoxContainer.new()
-		names.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		var nl := UI3.label(String(def.get("n", key)), "LabelTitle")
-		nl.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
-		nl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		names.add_child(nl)
-		names.add_child(UI3.label(String(def.get("cls", "")).capitalize(), "LabelMuted"))
-		top.add_child(names)
-		var sp := Control.new()
-		sp.size_flags_vertical = Control.SIZE_EXPAND_FILL
-		v.add_child(sp)
+	h.add_child(pic)
+	var v := VBoxContainer.new()
+	v.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	v.alignment = BoxContainer.ALIGNMENT_CENTER
+	v.add_theme_constant_override("separation", UI3Theme.space("8"))
+	h.add_child(v)
+	v.add_child(UI3.label("Slot %d" % (s + 1), "LabelMuted"))
+	var nl := UI3.label(String(def.get("n", key)) if key != "" else "Empty slot", "LabelTitle")
+	nl.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	v.add_child(nl)
+	if key != "":
+		v.add_child(UI3.label(String(def.get("cls", "")).capitalize(), "LabelMuted"))
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", UI3Theme.space("8"))
 	v.add_child(row)
 	var swap := UI3.button("Swap" if key != "" else "Pick", &"secondary", &"S")
 	swap.name = "Swap"
-	swap.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	swap.pressed.connect(_show_picker.bind(s))
 	row.add_child(swap)
 	var clr := UI3.button("Clear", &"quiet", &"S")
@@ -594,36 +666,162 @@ func _pick_keys() -> Array[String]:
 	return keys
 
 
+## Slot picker (spec 33): 1120 modal, class chips, 5-column grid of square previews, Cancel / Put in slot n.
+## An Axie already in another slot is drawn at 50% and swaps places when chosen.
 func _show_picker(slot: int) -> void:
-	close_modal()
+	_close_picker()
+	_pick_slot = slot
+	_pick_sel = String(edit_party[slot])
+	_pick_class = ""
 	var c := UI3Meta.scrim(_shell["modal_layer"], "Picker")
 	var p := UI3.plate(&"dialog")
+	p.custom_minimum_size.x = 1120
 	c.add_child(p)
 	var v := VBoxContainer.new()
 	v.add_theme_constant_override("separation", UI3Theme.space("16"))
 	p.add_child(v)
-	var head := HBoxContainer.new()
-	head.add_theme_constant_override("separation", UI3Theme.space("16"))
-	v.add_child(head)
-	var back := UI3.button("← Back", &"secondary", &"S")
-	back.pressed.connect(close_modal)
-	head.add_child(back)
-	head.add_child(UI3.label("Slot %d" % (slot + 1), "LabelTitle"))
+	v.add_child(UI3.label("Choose an Axie for slot %d" % (slot + 1), "LabelScreenTitle"))
+	_pick_grid_host = VBoxContainer.new()
+	_pick_grid_host.name = "PickBody"
+	_pick_grid_host.add_theme_constant_override("separation", UI3Theme.space("16"))
+	v.add_child(_pick_grid_host)
+	var foot := HBoxContainer.new()
+	foot.alignment = BoxContainer.ALIGNMENT_END
+	foot.add_theme_constant_override("separation", UI3Theme.space("16"))
+	v.add_child(foot)
+	var cancel := UI3.button("Cancel", &"secondary", &"M")
+	cancel.name = "PickCancel"
+	cancel.custom_minimum_size.y = 56
+	cancel.size_flags_vertical = Control.SIZE_SHRINK_END
+	cancel.pressed.connect(_close_picker)
+	foot.add_child(cancel)
+	_put_btn = UI3.button("Put in slot %d" % (slot + 1), &"primary", &"L")
+	_put_btn.name = "PutInSlot"
+	_put_btn.pressed.connect(_put_in_slot)
+	foot.add_child(_put_btn)
+	_draw_picker_body()
+
+
+func _close_picker() -> void:
+	var ml := _shell["modal_layer"] as Control
+	var pk := ml.find_child("Picker", false, false)
+	if pk != null:
+		ml.remove_child(pk)
+		pk.queue_free()
+	_pick_slot = -1
+	_put_btn = null
+	_pick_grid_host = null
+
+
+func _put_in_slot() -> void:
+	if _pick_slot < 0 or _pick_sel == "":
+		return
+	var slot := _pick_slot
+	var key := _pick_sel
+	_close_picker()
+	swap_edit_seat(slot, key)
+
+
+func set_pick_class(cls: String) -> void:
+	_pick_class = cls
+	_draw_picker_body()
+
+
+func _draw_picker_body() -> void:
+	if _pick_grid_host == null:
+		return
+	UI3Meta.clear(_pick_grid_host)
+	var keys := _pick_keys()
+	var classes: Array[String] = []
+	for k in keys:
+		var cl := String((ContentDB.heroes[k] as Dictionary).get("cls", ""))
+		if not classes.has(cl):
+			classes.append(cl)
+	var chips := HBoxContainer.new()
+	chips.name = "ClassChips"
+	chips.add_theme_constant_override("separation", UI3Theme.space("8"))
+	_pick_grid_host.add_child(chips)
+	for cl in [""] + classes:
+		var ch := UI3.tab("All" if cl == "" else String(cl).capitalize(), cl == _pick_class)
+		ch.name = "Class_" + (String(cl) if cl != "" else "all")
+		ch.custom_minimum_size = Vector2(0, 44)
+		ch.pressed.connect(set_pick_class.bind(cl))
+		chips.add_child(ch)
 	var g := GridContainer.new()
+	g.name = "PickGrid"
 	g.columns = 5
-	g.add_theme_constant_override("h_separation", 8)
-	g.add_theme_constant_override("v_separation", 8)
-	v.add_child(g)
-	for k in _pick_keys():
+	g.add_theme_constant_override("h_separation", 16)
+	g.add_theme_constant_override("v_separation", 16)
+	var shown := 0
+	for k in keys:
 		var def: Dictionary = ContentDB.heroes[k]
-		var taken: bool = edit_party.has(k) and edit_party.find(k) != slot
-		var b := UI3.button("%s\n%s" % [String(def.get("n", k)), String(def.get("cls", "")).capitalize()], &"secondary", &"M")
-		b.custom_minimum_size = Vector2(160, 80)
-		b.name = "Tile_" + k
-		b.disabled = taken
-		b.tooltip_text = "Already in another slot" if taken else ""
-		b.pressed.connect(func() -> void:
-			if set_edit_seat(slot, k):
-				close_modal())
-		g.add_child(b)
-	_focus_later(g.get_child(0) as Control)
+		if _pick_class != "" and String(def.get("cls", "")) != _pick_class:
+			continue
+		g.add_child(_pick_tile(k, def))
+		shown += 1
+	# Inner padding so the focused tile's cream outline and lift are not clipped by the scroll area.
+	var pad := MarginContainer.new()
+	for side in ["left", "right", "top", "bottom"]:
+		pad.add_theme_constant_override("margin_" + side, 8)
+	pad.add_child(g)
+	var sc := UI3Meta.scroll(pad)
+	sc.custom_minimum_size = Vector2(0, 440)
+	_pick_grid_host.add_child(sc)
+	if shown == 0:
+		_pick_grid_host.add_child(UI3.label("No Axies of this class yet", "LabelMuted"))
+	_refresh_put()
+	if g.get_child_count() > 0:
+		_focus_later((g.get_child(0) as Control))
+
+
+func _refresh_put() -> void:
+	if _put_btn == null:
+		return
+	if _pick_sel == "":
+		UI3.set_disabled_reason(_put_btn, "Pick an Axie first")
+	else:
+		UI3.clear_disabled_reason(_put_btn)
+
+
+func _pick_tile(k: String, def: Dictionary) -> Control:
+	var other := edit_party.find(k)
+	var in_other: bool = other >= 0 and other != _pick_slot
+	var b := UI3.button("", &"secondary", &"M")
+	b.name = "Tile_" + k
+	b.toggle_mode = true
+	b.button_pressed = k == _pick_sel
+	b.custom_minimum_size = Vector2(188, 260)
+	b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	b.tooltip_text = "In slot %d: choosing it swaps" % (other + 1) if in_other else ""
+	var v := VBoxContainer.new()
+	v.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	v.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	v.offset_left = 8
+	v.offset_right = -8
+	v.offset_top = 8
+	v.offset_bottom = -8
+	v.add_theme_constant_override("separation", 4)
+	if in_other:
+		v.modulate.a = 0.5
+	b.add_child(v)
+	var pic := TextureRect.new()
+	pic.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	pic.custom_minimum_size = Vector2(0, 150)
+	pic.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	pic.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	pic.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	pic.texture = MockupAssets.tex("assets/portrait/%s.png" % String(def.get("cls", "")))
+	v.add_child(pic)
+	var nm := UI3.label(String(def.get("n", k)), "LabelTitle")
+	nm.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	nm.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	nm.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	v.add_child(nm)
+	var sub := UI3.label("Tier %d · HP %d%s" % [int(def.get("tier", 1)), int(def.get("max_hp", 0)), " · swaps" if in_other else ""], "LabelMuted")
+	sub.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	sub.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	v.add_child(sub)
+	b.pressed.connect(func() -> void:
+		_pick_sel = k
+		_draw_picker_body())
+	return b

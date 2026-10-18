@@ -33,6 +33,9 @@ func _ready() -> void:
 		_check(hub.find_child("Hit_" + id, true, false) != null, "thiếu hộp bấm cho " + id)
 	_check(hub.find_child("Hit_mastery", true, false) == null, "Mastery Hall đã bỏ")
 	_check(hub.find_child("Plot_gallery", true, false) != null, "thiếu ô đất Gallery")
+	_check(hub.call("_block_reason", "gallery") == "Opens at Land tier 5", "Gallery khoá ghi Opens at Land tier 5")
+	var moon_btn := hub.find_child("MoonCardButton", true, false) as Button
+	_check(moon_btn != null and moon_btn.disabled and "Coming soon" in moon_btn.text, "Moon Card: nút tắt, Coming soon")
 	# UI-03: the dock is gone; every place is reached by its world label (hit box + key), focusable.
 	for id in ["house", "missions", "vault", "echobox", "pass", "store"]:
 		_check((hub.find_child("Hit_" + id, true, false) as Control).focus_mode == Control.FOCUS_ALL, "hộp bấm %s phải focus được" % id)
@@ -142,7 +145,7 @@ func _ready() -> void:
 		h.queue_free()
 		await get_tree().process_frame
 	# States build: offline, guest, loading, first launch, mission run.
-	for st in [{"offline": true}, {"guest": true, "first_launch": true}, {"loading": true}, {"newcomer": false, "run": true}]:
+	for st in [{"offline": true, "guest": false}, {"guest": true, "first_launch": true}, {"loading": true}, {"newcomer": false, "run": true}]:
 		LandHub.qa = st
 		LandHub.tier_override = 2
 		var h2 := (load("res://scenes/land/Land.tscn") as PackedScene).instantiate() as LandHub
@@ -155,13 +158,17 @@ func _ready() -> void:
 			_check(LandNav.last_path == "", "offline: Pass không mở")
 			var db := h2.find_child("Rail_Daily", true, false) as Button
 			_check(db.disabled and "needs connection" in db.text, "offline: Daily tắt và ghi lý do")
+			var rp := h2.find_child("RunPlate", true, false) as Button
+			_check(rp.disabled and "needs connection" in rp.text, "offline: Start run tắt và ghi lý do (round 2)")
 			var ob := h2.find_child("OfflineBanner", true, false) as Control
 			for pid in h2.get("_badges"):
 				_check(not _srect(ob).intersects(_srect(h2.get("_badges")[pid] as Control)), "offline: banner đè chip " + str(pid))
-		if st.has("guest"):
+		if bool(st.get("guest", false)):
 			_check((h2.find_child("RunPlate", true, false) as Button).text == "Sign in to play", "chưa đăng nhập: nút chính là Sign in to play")
 			_check(not (h2.find_child("Currencies", true, false) as Control).visible, "chưa đăng nhập: ẩn tiền")
 			_check(not (h2.find_child("Rail_Daily", true, false) as Control).visible, "lần đầu: ẩn Daily")
+			_check(h2.call("_block_reason", "pass") == "Sign in to use" and h2.call("_block_reason", "store") == "Sign in to use", "chưa đăng nhập: ô online ghi Sign in to use")
+			_check(h2.call("_block_reason", "board") != "Sign in to use", "chưa đăng nhập: Leaderboard vẫn đọc được")
 			LandNav.last_path = ""
 			(h2.find_child("RunPlate", true, false) as Button).emit_signal("pressed")
 			_check(LandNav.last_path == "", "chưa đăng nhập: không vào Run Setup")
@@ -217,7 +224,7 @@ func _ready() -> void:
 	_check((hd.find_child("Rail_Daily", true, false) as Button).text == "Daily run · 2 of 3", "Daily ghi số lượt còn")
 	hd.queue_free()
 	await get_tree().process_frame
-	LandHub.qa = {"touch": true, "newcomer": false}
+	LandHub.qa = {"touch": true, "newcomer": false, "guest": false}
 	LandHub.tier_override = 1
 	var ht := (load("res://scenes/land/Land.tscn") as PackedScene).instantiate() as LandHub
 	add_child(ht)

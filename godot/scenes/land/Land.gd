@@ -167,6 +167,7 @@ var _touch_mode := false
 var _offline := false
 var _loading := false
 var _guest := false
+var _moon_btn: Button
 var _newcomer := false
 var _first := false
 var _mission_run := false
@@ -243,9 +244,13 @@ func _block_reason(id: String) -> String:
 	if id == "portal":
 		return ""
 	if _is_locked(id):
+		if id == "gallery":
+			return "Opens at Land tier %d" % int(((_house_defs.get(id, {}) as Dictionary).get("unlock", {}) as Dictionary).get("min_tier", 5))
 		return "Builds at %s Land" % _need_name(id)
 	if _newcomer and id in NEWCOMER_LOCK:
 		return "Opens after %d runs" % int(_Econ.get_table("missions").get("newcomer_runs", 5))
+	if _guest and id in ONLINE_ONLY and id != "board":   # the Leaderboard stays readable for guests
+		return "Sign in to use"
 	if _offline and id in ONLINE_ONLY:
 		return "Needs a connection"
 	if id == "board" and not LandNav.is_available(&"leaderboard"):
@@ -258,6 +263,8 @@ func _block_reason(id: String) -> String:
 
 
 func _block_reason_screen(screen_id: StringName) -> String:
+	if _guest and screen_id == &"daily":
+		return "Sign in to use"
 	if _offline and screen_id == &"daily":
 		return "Needs a connection"
 	return ""
@@ -1047,6 +1054,12 @@ func _build_hud() -> void:
 	crow.add_child(UI3.key_hint("C"))
 	crow.add_child(UI3.label("Codex"))
 	blr.add_child(_cell("Codex", crow, _on_rail_pressed.bind(&"codex")))
+	# Moon Card: L1 shows it disabled, no price (answered in round 2). Hidden when signed out.
+	_moon_btn = UI3.button("Moon Card · Coming soon", &"secondary", &"S")
+	_moon_btn.name = "MoonCardButton"
+	_moon_btn.disabled = true
+	_moon_btn.visible = not _guest
+	blr.add_child(_moon_btn)
 	_ui.add_child(_hud_bl)
 
 	# Bottom-right: one primary, up to two secondary.
@@ -1069,7 +1082,7 @@ func _build_hud() -> void:
 		UI3.set_disabled_reason(_daily_btn, "Daily run · needs connection")
 	elif _tag("daily") == "CLAIM":
 		_daily_btn.text = "Daily run · claim"
-	_daily_btn.visible = not (_first and not _has_run)   # first visit: Daily hidden
+	_daily_btn.visible = not (_first and not _has_run) and not _guest   # first visit / signed out: Daily hidden
 	_hud_br.add_child(_daily_btn)
 	_load_daily_tries()
 	_run_plate = _build_run_button()
@@ -1158,13 +1171,15 @@ func _land_link() -> Control:
 	var need := _upgrade_cost()
 	var have := _meta_int("stone")
 	var can_up := preload("res://scripts/meta/economy_db.gd").land_upgrade_enabled() and have >= need
-	var txt := "Upgrade %s Land · L" % tn if can_up else "%s Land %d/6 · L" % [tn, _tier]
-	var b := UI3.button(txt, &"quiet")
-	b.name = "UpgradeLand"
-	b.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
-	b.tooltip_text = "%s / %s Land Stone" % [_fmt(have), _fmt(need)]
-	b.pressed.connect(_on_land_pressed)
-	return b
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", UI3Theme.space("8"))
+	row.add_child(UI3.key_hint("L"))
+	var txt := "Upgrade Land · %s %d/6" % [tn, _tier]
+	row.add_child(UI3.label(txt + (" · ready" if can_up else "")))
+	var cell := _cell("UpgradeLand", row, _on_land_pressed)
+	cell.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+	cell.get_node("UpgradeLand").tooltip_text = "%s / %s Land Stone" % [_fmt(have), _fmt(need)]
+	return cell
 
 
 func _toggle_names() -> void:
@@ -1192,6 +1207,8 @@ func _build_run_button() -> Button:
 	plate.name = "RunPlate"
 	plate.tooltip_text = tip
 	plate.pressed.connect(_on_run_pressed)
+	if _offline and not _has_run and not _guest:   # round 2: a new run needs a connection
+		UI3.set_disabled_reason(plate, "Start run · needs connection")
 	if _first and not _has_run:
 		plate.grab_focus.call_deferred()
 	# "Start here" coach card (640 wide, 32x20 arrow toward the Start run spotlight).
@@ -1237,7 +1254,7 @@ func _mission_line() -> String:
 
 
 func _build_banners() -> void:
-	_offline_banner = UI3.net_notice("Offline · Store, Pass, Echo Box, Daily and Leaderboard need a connection. Runs still work.",
+	_offline_banner = UI3.net_notice("Offline · Runs, Store, Pass, Echo Box, Daily and Leaderboard need a connection.",
 		"Retry", _on_retry)
 	_offline_banner.name = "OfflineBanner"
 	_offline_banner.custom_minimum_size = Vector2(600, 0)
