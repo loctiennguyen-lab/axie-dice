@@ -839,28 +839,15 @@ var _overlay_root: Control = null
 var _overlay_vbox: BoxContainer = null
 
 ## Event option list, mockup: `top:398px; width:1040px`, centred, `gap:14px`.
-const _EVENT_LIST_W := 1040.0
-const _EVENT_LIST_TOP := 398.0
 ## Treasure, mockup: art 240 square and a 470-wide card, `gap:44px`, at `top:276px`.
 ## The gutter a centred header/row block is inset to - see _screen_header().
 const _SCREEN_GUTTER := 80.0
-const _TREASURE_ART := 240.0
-const _TREASURE_CARD_W := 470.0
-const _TREASURE_ROW_TOP := 276.0   ## TRS-01, the mockup's own `top:276px` for the pair
 
 ## Event option `fx` -> the glyph in its accent strip, the mockup's `o.icon` slot. FLAGGED: the
 ## option data in ContentDB.gd carries no icon field, so this table is authored here from each
 ## fx's own meaning, the same way reward_generator.gd's `_EVENT_FX_RARITY` is. Every path goes
 ## through MockupAssets, so an entry that stops resolving fails the asset gate rather than
 ## silently drawing nothing.
-const _EVENT_FX_ICON := {
-	"bless_reroll": "assets/fx/reroll.svg", "gamble_legend": "assets/fx/dmg.png",
-	"pray": "assets/fx/heal.png", "rest": "assets/fx/heal.png", "forge": "assets/fx/dmg.png",
-	"meditate": "assets/fx/mana.svg", "chest": "assets/fx/chest.png",
-	"shards60": "assets/fx/shard.png", "bet_small": "assets/fx/shard.png",
-	"bet_big": "assets/fx/shard.png", "shards30": "assets/fx/shard.png",
-	"dip": "assets/fx/mana.svg", "drink": "assets/fx/mana.svg", "leave": "assets/fx/blank.svg",
-}
 
 
 func _build_overlay_ui() -> void:
@@ -1717,395 +1704,249 @@ func _on_shop_buy(index: int) -> void:
 # EVENT
 # ---------------------------------------------------------------------------------------
 
-## Event node: RunState.enter_node() already picked WHICH event and opened its stream. This
-## screen only draws the offer and reports which option was clicked - an index, never the
-## option itself, because the verifier re-derives the offer from the seed.
+## Event node (UI-03 09): art 720 + a 720 column (header, body, choice rows, action). RunState picked
+## WHICH event; this screen only reports an index, the verifier re-derives the offer from the seed.
+var _event_opts: Array = []
+var _event_sel := -1
+
+const _EVENT_FX_UI3 := {
+	"bless_reroll": "ui_reroll", "gamble_legend": "face_dmg", "pray": "face_heal", "rest": "face_heal",
+	"forge": "face_dmg", "meditate": "face_mana", "chest": "node_treasure", "shards60": "cur_shard",
+	"bet_small": "cur_shard", "bet_big": "cur_shard", "shards30": "cur_shard", "dip": "face_mana",
+	"drink": "face_mana", "leave": "face_blank",
+}
+
+
 func _on_event_node(_node_id: String) -> void:
 	if RunState.event_key.is_empty():
 		push_error("RunMapController: no playable events in ContentDB - cannot resolve event node")
 		_finish_node()
 		return
-	var ev: Dictionary = ContentDB.events[RunState.event_key]
-	var host := _event_screen(String(ev.get("n", "EVENT")), String(ev.get("desc", "")))
+	_event_opts = RunState.event_options()
+	_event_sel = -1
+	_build_event_screen(-1, "")
 
-	# Mockup: the option list at `top:398px`, 1040 wide, centred, `gap:14px`.
+
+## `picked` < 0: choices. Otherwise the outcome: the other choices at 40%, `outcome` as the body.
+func _build_event_screen(picked: int, outcome: String) -> void:
+	var ev: Dictionary = ContentDB.events.get(RunState.event_key, {})
+	var host := _open_ui3_screen()
+	var center := CenterContainer.new()
+	center.set_anchors_preset(Control.PRESET_FULL_RECT)
+	center.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	host.add_child(center)
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 48)
+	center.add_child(row)
+
+	var art := UI3.plate(&"plate")
+	art.name = "EventArt"
+	art.custom_minimum_size = Vector2(720, 720)
+	row.add_child(art)
+	var art_c := CenterContainer.new()
+	art.add_child(art_c)
+	var art_i := TextureRect.new()
+	art_i.texture = UI3.icon("node_event")
+	art_i.custom_minimum_size = Vector2(320, 320)
+	art_i.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	art_i.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	art_c.add_child(art_i)
+
+	var col := VBoxContainer.new()
+	col.custom_minimum_size.x = 720
+	col.alignment = BoxContainer.ALIGNMENT_CENTER
+	col.add_theme_constant_override("separation", 24)
+	row.add_child(col)
+
+	var head := HBoxContainer.new()
+	head.add_theme_constant_override("separation", 16)
+	col.add_child(head)
+	var hi := TextureRect.new()
+	hi.texture = UI3.icon("node_event")
+	hi.custom_minimum_size = Vector2(64, 64)
+	hi.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	hi.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	head.add_child(hi)
+	var hc := VBoxContainer.new()
+	head.add_child(hc)
+	var title := UI3.label(String(ev.get("n", tr("Event"))), "LabelScreenTitle")
+	title.name = "EventTitle"
+	hc.add_child(title)
+	hc.add_child(UI3.label(tr("Event · Row %d") % maxi(_current_row(), 0), "LabelMuted"))
+
+	var body := UI3.label(outcome if picked >= 0 else String(ev.get("desc", "")))
+	body.name = "EventBody"
+	body.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	col.add_child(body)
+
 	_overlay_vbox = VBoxContainer.new()
 	_overlay_vbox.name = "EventOptions"
-	_overlay_vbox.add_theme_constant_override("separation", 14)
-	_overlay_vbox.set_anchors_preset(Control.PRESET_TOP_WIDE)
-	_overlay_vbox.grow_vertical = Control.GROW_DIRECTION_END
-	# EVT-02: 1040 wide, CENTRED. Anchored at the canvas midline rather than offset from a
-	# hardcoded 1920 - the width is a mockup number, the canvas width is not ours to assume.
-	_overlay_vbox.anchor_left = 0.5
-	_overlay_vbox.anchor_right = 0.5
-	_overlay_vbox.offset_left = -_EVENT_LIST_W * 0.5
-	_overlay_vbox.offset_right = _EVENT_LIST_W * 0.5
-	_overlay_vbox.offset_top = _EVENT_LIST_TOP
-	_overlay_vbox.offset_bottom = _EVENT_LIST_TOP
-	host.add_child(_overlay_vbox)
+	_overlay_vbox.add_theme_constant_override("separation", 12)
+	col.add_child(_overlay_vbox)
+	_event_cards.clear()
+	for i in _event_opts.size():
+		_add_event_option(_event_opts[i], i, picked)
 
-	var opts := RunState.event_options()
-	for i in opts.size():
-		_add_event_option(opts[i], i)
-
-
-## The event screen's plate and header, shared by the offer and by the outcome that follows it:
-## the player has not moved, and a different picture between choosing and seeing the result
-## would read as a second, unrelated node.
-##
-## Mockup: `assets/bg/deep-forest.jpg`, then a centred column at `top:104px` with `gap:13px` -
-## a 92px icon tile on #31C6FF (SHIELD_BLUE) with 5px black and a `0 6px 0` shelf, the name at
-## 58, and the description at 16.
-##
-## FLAGGED: the mockup sets that tile's glyph from the event's own icon, and ContentDB writes
-## those as emoji ("⛩" for the shrine). None of this project's six fonts carries U+26E9, so
-## the tile holds `assets/node/event.png` at the mockup's 44px instead of a tofu box.
-func _event_screen(title: String, body: String) -> Control:
-	var host := _open_screen(MockupAssets.tex("assets/bg/deep-forest.jpg"))
-	var head := _screen_header(host, 104.0, 13)
-
-	var tile := PanelContainer.new()
-	tile.custom_minimum_size = Vector2(92, 92)
-	tile.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-	var tile_sb := DangoTheme.solid_chip_style(DangoTheme.SHIELD_BLUE, 24, 5, Vector2(5, 5))
-	tile_sb.shadow_color = DangoTheme.SHELF_DEEP
-	tile_sb.shadow_size = 0
-	tile_sb.shadow_offset = Vector2(0, 6)
-	tile.add_theme_stylebox_override("panel", tile_sb)
-	head.add_child(tile)
-	var tile_center := CenterContainer.new()
-	tile.add_child(tile_center)
-	tile_center.add_child(_mockup_icon("assets/node/event.png", 44.0))
-
-	var title_lbl := DangoTheme.display_label(title, 58, DangoTheme.CREAM_RAISED, 800, 0.02)
-	title_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	head.add_child(title_lbl)
-
-	var sub := Label.new()
-	sub.text = body
-	sub.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	sub.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	sub.add_theme_font_size_override("font_size", 16)
-	sub.add_theme_color_override("font_color", DangoTheme.CHIP_INK_ON_WELL)
-	head.add_child(sub)
-	return host
+	var acts := HBoxContainer.new()
+	acts.alignment = BoxContainer.ALIGNMENT_END
+	col.add_child(acts)
+	var go := UI3.button(tr("Continue") if picked >= 0 else tr("Pick a choice"), &"primary", &"L")
+	go.name = "EventAction"
+	if picked >= 0:
+		go.pressed.connect(func() -> void: _finish_node())
+		go.grab_focus.call_deferred()
+	else:
+		UI3.set_disabled_reason(go, tr("Pick a choice"))
+		go.pressed.connect(func() -> void: _on_event_choice(_event_sel))
+		if not _event_cards.is_empty():
+			_event_cards[0].grab_focus.call_deferred()
+	acts.add_child(go)
 
 
-## One event option. Mockup: radius 16 on CREAM, 5px black, shelf `0 6px 0`, contents clipped;
-## a 74px accent strip with a 34px glyph on the left, a 16/20 body with the choice at 24 beside
-## a risk tag, the outcome line at 15 under it, and a 64px arrow column on the right.
-##
-## Same PanelContainer + chromeless hit Button shape as the reroll control, and for the same
-## reason: a Button ignores Control children when it reports its minimum size, so a Button built
-## around this row would report zero height and collapse inside the option list.
-##
-## FLAGGED: ContentDB's option data has no tag/accent field. The tag is derived from
-## RewardGenerator.event_option_rarity() - the same UI-only risk heuristic that already drives
-## every choice card's rarity chip - so SAFE/HIGH RISK and the strip colour follow the option's
-## own stakes rather than being authored twice.
-##
-## FLAGGED: the mockup's hover is `transform:translateX(8px)`. Godot Controls in a Container
-## cannot be offset without fighting the container's own layout, so the hover state is the
-## pointing-hand cursor alone.
-func _add_event_option(raw: Dictionary, index: int) -> Control:
-	var o: Dictionary = raw
-	var rar := RewardGenerator.event_option_rarity(o)
-	var risky := rar >= 3
-	var accent := DangoTheme.DANGER if risky else DangoTheme.SUCCESS
-	var tag := "HIGH RISK" if risky else "SAFE"
+var _event_cards: Array[PanelContainer] = []
 
-	var card := _cream_card(16, 5, 6.0)
+
+func _select_event(index: int) -> void:
+	_event_sel = index
+	for c in _event_cards:
+		c.theme_type_variation = "PanelCardSelected" if int(c.get_meta("opt")) == index else "PanelCard"
+	var go := _overlay_root.find_child("EventAction", true, false) as Button
+	if go != null and index >= 0 and index < _event_opts.size():
+		UI3.clear_disabled_reason(go)
+		go.text = tr("Choose %s") % String(_event_opts[index].get("text", ""))
+
+
+func _add_event_option(raw: Dictionary, index: int, picked: int) -> Control:
+	var card := UI3.plate(&"card")
 	card.name = "EventOption%d" % index
+	card.custom_minimum_size.y = 88
 	_overlay_vbox.add_child(card)
-
-	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", 0)
-	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	card.add_child(row)
-
-	# The strip is full-bleed against the card's inner edge, and Godot's `clip_contents` is a
-	# plain rect rather than a rounded one, so the strip carries the card's own INNER radius
-	# (16 minus the 5px border) on its outer corners itself.
-	var strip := PanelContainer.new()
-	strip.custom_minimum_size.x = 74.0
-	var strip_sb := StyleBoxFlat.new()
-	strip_sb.bg_color = accent
-	strip_sb.border_color = Color.BLACK
-	strip_sb.border_width_right = 4
-	strip_sb.corner_radius_top_left = 11
-	strip_sb.corner_radius_bottom_left = 11
-	strip.add_theme_stylebox_override("panel", strip_sb)
-	row.add_child(strip)
-	var strip_center := CenterContainer.new()
-	strip.add_child(strip_center)
-	strip_center.add_child(_mockup_icon(
-		String(_EVENT_FX_ICON.get(String(o.get("fx", "")), "assets/fx/blank.svg")), 34.0))
-
-	var body := MarginContainer.new()
-	body.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	body.add_theme_constant_override("margin_left", 20)
-	body.add_theme_constant_override("margin_right", 20)
-	body.add_theme_constant_override("margin_top", 16)
-	body.add_theme_constant_override("margin_bottom", 16)
-	row.add_child(body)
-
-	var body_col := VBoxContainer.new()
-	body_col.add_theme_constant_override("separation", 5)
-	body.add_child(body_col)
-
-	var head_row := HBoxContainer.new()
-	head_row.add_theme_constant_override("separation", 10)
-	body_col.add_child(head_row)
-	head_row.add_child(DangoTheme.display_label(String(o.get("text", "")), 24, DangoTheme.INK,
-		800, 0.01))
-
-	var tag_chip := PanelContainer.new()
-	tag_chip.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	tag_chip.custom_minimum_size.y = 24.0
-	tag_chip.add_theme_stylebox_override("panel",
-		DangoTheme.solid_chip_style(accent, 7, 2, Vector2(11, 2)))
-	var tag_lbl := DangoTheme.display_label(tag, 12, DangoTheme.ink_on(accent), 800, 0.1)
-	tag_lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	tag_chip.add_child(tag_lbl)
-	head_row.add_child(tag_chip)
-
-	var desc := Label.new()
-	desc.text = String(o.get("desc", ""))
-	desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	desc.add_theme_font_size_override("font_size", 15)
-	desc.add_theme_color_override("font_color", DangoTheme.INK_ON_CREAM_SOFT)
-	body_col.add_child(desc)
-
-	var arrow_wrap := CenterContainer.new()
-	arrow_wrap.custom_minimum_size.x = 64.0
-	row.add_child(arrow_wrap)
-	# U+2192 IS in Baloo 2's cmap - checked directly, unlike the check mark and the shrine gate.
-	arrow_wrap.add_child(DangoTheme.display_label("\u2192", 30, DangoTheme.INK))
-
-	var hit := _hit_button()
-	hit.pressed.connect(func(): _on_event_choice(index))
-	card.add_child(hit)
+	var line := HBoxContainer.new()
+	line.add_theme_constant_override("separation", 16)
+	card.add_child(line)
+	var ic := TextureRect.new()
+	ic.texture = UI3.icon(String(_EVENT_FX_UI3.get(String(raw.get("fx", "")), "face_blank")))
+	ic.custom_minimum_size = Vector2(56, 56)
+	ic.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	ic.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	ic.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	line.add_child(ic)
+	var tc := VBoxContainer.new()
+	tc.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	tc.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	line.add_child(tc)
+	tc.add_child(UI3.label(String(raw.get("text", "")), "LabelTitle"))
+	var d := UI3.label(String(raw.get("desc", "")))
+	d.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	tc.add_child(d)
+	card.set_meta("opt", index)
+	if picked >= 0:
+		card.modulate.a = 1.0 if index == picked else 0.4
+		return card
+	_event_cards.append(card)
+	card.focus_mode = Control.FOCUS_ALL
+	card.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+	card.draw.connect(func() -> void:
+		if card.has_focus():
+			card.draw_style_box(UI3Theme.focus_style(UI3Theme.radius("l")), Rect2(Vector2.ZERO, card.size)))
+	card.focus_entered.connect(card.queue_redraw)
+	card.focus_exited.connect(card.queue_redraw)
+	card.gui_input.connect(func(ev: InputEvent) -> void:
+		if ev is InputEventMouseButton and ev.pressed and ev.button_index == MOUSE_BUTTON_LEFT:
+			card.grab_focus()
+			_select_event(index)
+		elif ev.is_action_pressed("ui_accept") and not ev.is_echo():
+			_select_event(index)
+			var go := _overlay_root.find_child("EventAction", true, false) as Control
+			if go != null:
+				go.grab_focus())
 	return card
 
 
 func _on_event_choice(index: int) -> void:
+	if index < 0:
+		return
 	var res: Dictionary = await RunState.request_choose_event_option(index)
 	if not bool(res["ok"]):
 		if String(res["code"]) not in ["illegal", "busy"]:
 			NetNotice.show(self, String(res["code"]), _on_event_choice.bind(index))
 		return
-	var msg := String(res["msg"])
-	_save_map_progress()   # the effect is already applied; quitting on the outcome screen must
-		# not hand it back
-	# FLAGGED: the mockup has no screen for an event's OUTCOME - it stops at the offer. This
-	# build has to show what the choice did, so the outcome reuses the event screen's own plate
-	# and header shape with the result message and one CONTINUE button in place of the options.
-	var ev: Dictionary = ContentDB.events.get(RunState.event_key, {})
-	var host := _event_screen(String(ev.get("n", "EVENT")), msg)
-
-	var foot := HBoxContainer.new()
-	foot.name = "EventOutcomeFooter"
-	foot.alignment = BoxContainer.ALIGNMENT_CENTER
-	foot.set_anchors_preset(Control.PRESET_TOP_WIDE)
-	foot.grow_vertical = Control.GROW_DIRECTION_END
-	foot.offset_left = _SCREEN_GUTTER              # see _screen_header() on the inset
-	foot.offset_right = -_SCREEN_GUTTER
-	foot.offset_top = _EVENT_LIST_TOP
-	foot.offset_bottom = _EVENT_LIST_TOP
-	host.add_child(foot)
-	var cont := _flat_button("CONTINUE", DangoTheme.PRIMARY, 60.0, 20)
-	cont.custom_minimum_size.x = 340.0
-	cont.pressed.connect(func(): _finish_node())
-	foot.add_child(cont)
+	_save_map_progress()   # the effect is already applied; quitting on the outcome must not hand it back
+	_build_event_screen(index, String(res["msg"]))
 
 
 # ---------------------------------------------------------------------------------------
 # TREASURE
 # ---------------------------------------------------------------------------------------
 
-## Treasure node: src/engine.js chooseNode() 'treasure' branch offers a real reward-choice pick
-## at rewardTier=1, exactly like a combat reward - which is why this screen shows the offer
-## rather than granting one thing outright.
-##
-## Mockup: `assets/bg/temple.jpg`, a gold ANCIENT CRYPT pill and "A SEALED GENE VAULT" at
-## `top:96px`, then `assets/node/treasure.png` at 240 square beside a 470-wide card,
-## `gap:44px`, at `top:276px`.
-##
-## FLAGGED: the mockup's card carries a second button, "SMASH" for 60 shard, beside TAKE IT.
-## There is no smash-a-relic-for-shards rule in this port (RunState has no such call), so that
-## button is not drawn. FLAGGED: the mockup shows exactly one relic; this build's treasure is a
-## CHOICE of rewards, so the column holds one card per pending reward — and is capped and
-## scrolled when three of them do not fit, rather than clipped by the bottom of the screen.
+## Treasure (UI-03 13, round 2): closed chest + "Open chest", then the rewards (a real choice of
+## pending rewards at rewardTier 1) with Shards pill and "Take and continue". The 3D chest is not
+## built yet: the chest is the node_treasure icon. No Skip, no reroll here.
 func _on_treasure_node(node_id: String) -> void:
 	RunState.generate_treasure_rewards(node_id)
-	var host := _open_screen(MockupAssets.tex("assets/bg/temple.jpg"))
+	_build_treasure(false)
 
-	var head := _screen_header(host, 96.0, 0)
-	# The pill's gold is the treasure node tone's own top block (#FFC445), not a new colour.
-	var crypt_gold: Color = DangoTheme.node_tone("treasure")[1]
-	head.add_child(_eyebrow_chip("ANCIENT CRYPT", crypt_gold, 38.0, 16, 0.2))
-	head.add_child(_spacer(14.0))
-	var title := DangoTheme.display_label("A SEALED GENE VAULT", 58, DangoTheme.CREAM_RAISED,
-		800, 0.02)
-	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	head.add_child(title)
 
-	# TRS-01 centres the art and the card "as a pair". The row therefore FILLS the space under
-	# the header rather than hanging off a fixed `top:276`: with one card that is the mockup's
-	# own position, and with the three this build offers the pair stays on screen instead of
-	# running the third card off the bottom edge.
-	var row := HBoxContainer.new()
-	row.name = "TreasureRow"
-	row.alignment = BoxContainer.ALIGNMENT_CENTER
-	row.add_theme_constant_override("separation", 44)
-	row.set_anchors_preset(Control.PRESET_FULL_RECT)
-	row.offset_left = _SCREEN_GUTTER               # see _screen_header() on the inset
-	row.offset_right = -_SCREEN_GUTTER
-	row.offset_top = _TREASURE_ROW_TOP
-	row.offset_bottom = -DangoScreen.SAFE
-	host.add_child(row)
+func _build_treasure(opened: bool) -> void:
+	var host := _open_ui3_screen()
+	var center := CenterContainer.new()
+	center.set_anchors_preset(Control.PRESET_FULL_RECT)
+	center.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	host.add_child(center)
+	var col := VBoxContainer.new()
+	col.name = "TreasureColumn"
+	col.alignment = BoxContainer.ALIGNMENT_CENTER
+	col.add_theme_constant_override("separation", 24)
+	center.add_child(col)
+	var chest := TextureRect.new()
+	chest.name = "Chest"
+	chest.texture = UI3.icon("node_treasure")
+	chest.custom_minimum_size = Vector2(0, 256 if opened else 384)
+	chest.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	chest.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	col.add_child(chest)
+	var hrow := HBoxContainer.new()
+	hrow.alignment = BoxContainer.ALIGNMENT_CENTER
+	hrow.add_theme_constant_override("separation", 24)
+	col.add_child(hrow)
+	hrow.add_child(UI3.label(tr("A sealed Gene vault") if not opened else tr("Choose one"), "LabelScreenTitle"))
+	hrow.add_child(UI3.currency_pill([{"icon": "cur_shard", "value": str(RunState.shards_this_run)}]))
 
-	var art := _mockup_icon("assets/node/treasure.png", _TREASURE_ART)
-	art.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	row.add_child(art)
-
-	_overlay_vbox = VBoxContainer.new()
-	_overlay_vbox.name = "TreasureCards"
-	_overlay_vbox.add_theme_constant_override("separation", 14)
-	_overlay_vbox.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	row.add_child(_overlay_vbox)
-
-	if RunState.pending_rewards.is_empty():
-		var empty := PanelContainer.new()
-		empty.custom_minimum_size.x = _TREASURE_CARD_W
-		empty.add_theme_stylebox_override("panel",
-			DangoTheme.surface_style(DangoTheme.Surface.PANEL, 20, 5, 7.0, Vector2(27, 27)))
-		_overlay_vbox.add_child(empty)
-		var empty_col := VBoxContainer.new()
-		empty_col.add_theme_constant_override("separation", 20)
-		empty.add_child(empty_col)
-		var empty_lbl := Label.new()
-		empty_lbl.text = "The vault was empty."
-		empty_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		empty_lbl.add_theme_font_size_override("font_size", 15)
-		empty_lbl.add_theme_color_override("font_color", DangoTheme.MUTED_TEXT)
-		empty_col.add_child(empty_lbl)
-		var cont := _flat_button("CONTINUE", DangoTheme.PRIMARY, 56.0, 20)
-		cont.pressed.connect(func(): _finish_node())
-		empty_col.add_child(cont)
+	if not opened:
+		var open := UI3.button(tr("Open chest"), &"primary", &"L")
+		open.name = "OpenChest"
+		open.pressed.connect(func() -> void: _build_treasure(true))
+		var oc := HBoxContainer.new()
+		oc.alignment = BoxContainer.ALIGNMENT_CENTER
+		oc.add_child(open)
+		col.add_child(oc)
+		open.grab_focus.call_deferred()
 		return
 
+	if RunState.pending_rewards.is_empty():
+		col.add_child(UI3.label(tr("The vault was empty.")))
+		var cont := UI3.button(tr("Continue"), &"primary", &"L")
+		cont.name = "TakeButton"
+		cont.pressed.connect(func() -> void: _finish_node())
+		col.add_child(cont)
+		cont.grab_focus.call_deferred()
+		return
+	_overlay_vbox = HBoxContainer.new()
+	_overlay_vbox.name = "TreasureCards"
+	_overlay_vbox.alignment = BoxContainer.ALIGNMENT_CENTER
+	_overlay_vbox.add_theme_constant_override("separation", 32)
+	col.add_child(_overlay_vbox)
+	_reward_cards.clear()
+	_reward_sel = 0
+	var wide := RunState.pending_rewards.size() >= 4
 	for reward in RunState.pending_rewards:
-		_add_treasure_card(reward)
-
-	# The mockup draws exactly one card, so it never has to answer this; this build's treasure
-	# is a real choice of three. A column that does not fit is capped and scrolls (CLAUDE.md
-	# rule 3) rather than being clipped by the screen edge with no bar to say so.
-	var avail: float = row.size.y if row.size.y > 0.0 \
-		else get_viewport_rect().size.y - _TREASURE_ROW_TOP - DangoScreen.SAFE
-	if _overlay_vbox.get_combined_minimum_size().y > avail:
-		row.remove_child(_overlay_vbox)
-		var capped := DangoScreen.fit_or_scroll(_overlay_vbox, avail)
-		capped.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-		row.add_child(capped)
-
-
-## One treasure card. Mockup: 470 wide, radius 20, 5px black, shelf `0 7px 0`; a 46px header
-## band in the rarity colour ("RELIC - BETTER THAN USUAL ROLL" / "RARE"), then a 22px body with
-## a 78px icon tile beside the name, the rule text at 15, and TAKE IT at 56 tall.
-func _add_treasure_card(raw: Dictionary) -> PanelContainer:
-	var r: Dictionary = raw
-	var rar := int(r.get("rar", 0))
-	var accent := DangoTheme.rarity_color(rar)
-	var kind := String(_REWARD_KIND.get(String(r.get("t", "")), "REWARD"))
-
-	var card := _cream_card(20, 5, 7.0)
-	card.custom_minimum_size.x = _TREASURE_CARD_W
-	_overlay_vbox.add_child(card)
-
-	var col := VBoxContainer.new()
-	col.add_theme_constant_override("separation", 0)
-	card.add_child(col)
-
-	var band := PanelContainer.new()
-	band.custom_minimum_size.y = 46.0
-	var band_sb := StyleBoxFlat.new()
-	band_sb.bg_color = accent
-	band_sb.border_color = Color.BLACK
-	band_sb.border_width_bottom = 4
-	# The band is full-bleed against the card's inner edge, and Godot's `clip_contents` clips to
-	# a plain RECT rather than to the card's rounded one - so the band carries the card's own
-	# inner radius (20 minus its 5px border) on its top corners itself.
-	band_sb.corner_radius_top_left = 15
-	band_sb.corner_radius_top_right = 15
-	band_sb.content_margin_left = 16.0
-	band_sb.content_margin_right = 16.0
-	band.add_theme_stylebox_override("panel", band_sb)
-	col.add_child(band)
-	var band_row := HBoxContainer.new()
-	band_row.add_theme_constant_override("separation", 10)
-	band.add_child(band_row)
-	# "BETTER THAN USUAL ROLL" is the mockup's own wording for what a treasure node actually is
-	# here: RunState.generate_treasure_rewards() rolls at rewardTier 1, a tier above a normal
-	# node's offer.
-	var kind_lbl := DangoTheme.display_label("%s - BETTER THAN USUAL ROLL" % kind, 14,
-		DangoTheme.ink_on(accent), 800, 0.12)
-	kind_lbl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	kind_lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	band_row.add_child(kind_lbl)
-	var rar_lbl := DangoTheme.display_label(DangoTheme.rarity_name(rar).to_upper(), 14,
-		DangoTheme.ink_on(accent), 800, 0.12)
-	rar_lbl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	band_row.add_child(rar_lbl)
-
-	var body := MarginContainer.new()
-	body.add_theme_constant_override("margin_left", 22)
-	body.add_theme_constant_override("margin_right", 22)
-	body.add_theme_constant_override("margin_top", 22)
-	body.add_theme_constant_override("margin_bottom", 22)
-	col.add_child(body)
-	var body_col := VBoxContainer.new()
-	body_col.add_theme_constant_override("separation", 0)
-	body.add_child(body_col)
-
-	var head_row := HBoxContainer.new()
-	head_row.add_theme_constant_override("separation", 15)
-	body_col.add_child(head_row)
-	var tile := PanelContainer.new()
-	tile.custom_minimum_size = Vector2(78, 78)
-	tile.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	tile.add_theme_stylebox_override("panel",
-		DangoTheme.surface_style(DangoTheme.Surface.CREAM_RAISED, 18, 4, 0.0, Vector2(-1, -1)))
-	head_row.add_child(tile)
-	var tile_center := CenterContainer.new()
-	tile.add_child(tile_center)
-	tile_center.add_child(_tex_icon(
-		CardArt.texture_for_reward(String(r.get("t", "")), rar), 46.0))
-
-	var name_col := VBoxContainer.new()
-	name_col.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	name_col.add_theme_constant_override("separation", 3)
-	head_row.add_child(name_col)
-	name_col.add_child(DangoTheme.display_label(String(r.get("title", "")), 28, DangoTheme.INK,
-		800, 0.01))
-	var sub_text := String(r.get("sub", ""))
-	if sub_text != "":
-		var sub := Label.new()
-		sub.text = sub_text
-		sub.add_theme_font_size_override("font_size", 13)
-		sub.add_theme_color_override("font_color", DangoTheme.INK_ON_CREAM_MUTED)
-		name_col.add_child(sub)
-
-	body_col.add_child(_spacer(16.0))
-	var desc := Label.new()
-	desc.text = String(r.get("desc", ""))
-	desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	desc.add_theme_font_size_override("font_size", 15)
-	desc.add_theme_color_override("font_color", DangoTheme.INK_ON_CREAM_SOFT)
-	body_col.add_child(desc)
-
-	body_col.add_child(_spacer(20.0))
-	var take := _flat_button("TAKE IT", DangoTheme.PRIMARY, 56.0, 20, 13, 0.14)
-	take.pressed.connect(func(): _on_reward_chosen(r))
-	body_col.add_child(take)
-	return card
+		_add_reward_card(reward, wide)
+	var take := UI3.button(tr("Take and continue"), &"primary", &"L")
+	take.name = "TakeButton"
+	take.pressed.connect(_take_selected_reward)
+	var tc := HBoxContainer.new()
+	tc.alignment = BoxContainer.ALIGNMENT_CENTER
+	tc.add_child(take)
+	col.add_child(tc)
+	_select_reward(0)
+	_reward_cards[0].grab_focus.call_deferred()

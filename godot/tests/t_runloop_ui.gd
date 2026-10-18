@@ -28,6 +28,7 @@ const EXPECTED_TESTS: Array[String] = [
 	"test_node_label_never_contains_a_technical_graph_id",
 	"test_shop_bought_and_unaffordable_buttons_use_different_styleboxes",
 	"test_reward_and_shop_cards_show_a_rarity_chip_matching_rar",
+	"test_event_and_treasure_ui3",
 	"test_level_up_description_never_reads_as_x_arrow_x",
 ]
 
@@ -52,6 +53,7 @@ func _ready() -> void:
 	await test_node_label_never_contains_a_technical_graph_id()
 	await test_shop_bought_and_unaffordable_buttons_use_different_styleboxes()
 	await test_reward_and_shop_cards_show_a_rarity_chip_matching_rar()
+	await test_event_and_treasure_ui3()
 	test_level_up_description_never_reads_as_x_arrow_x()
 
 	for name in EXPECTED_TESTS:
@@ -540,3 +542,34 @@ func _find_rarity_chip(card: Node) -> PanelContainer:
 		if found != null:
 			return found
 	return null
+
+
+## UI-03 09/13: the event's Pick button is off until a choice is selected, then names it; the outcome
+## dims the other choices. Treasure starts closed ("Open chest") and then offers the rewards.
+func test_event_and_treasure_ui3() -> void:
+	var runmap := _new_runmap()
+	await get_tree().process_frame
+	RunState.event_key = String(ContentDB.events.keys()[0])
+	runmap.call("_on_event_node", "x")
+	await get_tree().process_frame
+	var go: Button = runmap.find_child("EventAction", true, false)
+	_assert(go != null and go.disabled and go.text == "Pick a choice", "event: action must start disabled as 'Pick a choice'")
+	var opts: Array = runmap.get("_event_opts")
+	_assert(opts.size() >= 1 and runmap.find_child("EventOption0", true, false) != null, "event: no choice rows")
+	runmap.call("_select_event", 0)
+	_assert(not go.disabled and go.text == "Choose %s" % String(opts[0].get("text", "")), "event: action must name the picked choice")
+	runmap.call("_build_event_screen", 0, "Result text")
+	await get_tree().process_frame
+	go = runmap.find_child("EventAction", true, false)
+	_assert(go.text == "Continue" and not go.disabled, "event outcome: button must be Continue")
+	if opts.size() > 1:
+		_assert(absf((runmap.find_child("EventOption1", true, false) as Control).modulate.a - 0.4) < 0.01, "event outcome: other choices at 40%")
+	_assert((runmap.find_child("EventBody", true, false) as Label).text == "Result text", "event outcome: body must be the result")
+	runmap.call("_on_treasure_node", "tn")
+	await get_tree().process_frame
+	_assert(runmap.find_child("OpenChest", true, false) != null, "treasure: closed state needs 'Open chest'")
+	runmap.call("_build_treasure", true)
+	await get_tree().process_frame
+	_assert(runmap.find_child("TakeButton", true, false) != null, "treasure: opened state needs 'Take and continue'")
+	runmap.queue_free()
+	_done("test_event_and_treasure_ui3")
