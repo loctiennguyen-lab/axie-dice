@@ -221,6 +221,18 @@ func _short(r: Dictionary) -> int:
 	return maxi(int(r.get("price", 0)) - int(r.get("gems", 0)), 0)
 
 
+## Paid surface: the secondary button's own styles with a violet border (Gem violet = paid only).
+func _violet_border(b: Button) -> void:
+	var th := UI3Theme.get_theme()
+	for st in ["normal", "hover", "pressed", "disabled"]:
+		var sb := th.get_stylebox(st, "ButtonSecondary")
+		if sb is StyleBoxFlat:
+			var f := (sb as StyleBoxFlat).duplicate() as StyleBoxFlat
+			f.set_border_width_all(3)
+			f.border_color = UI3Theme.color("gem_border")
+			b.add_theme_stylebox_override(st, f)
+
+
 func _rebuild_offer() -> void:
 	for c in _offer_box.get_children():
 		_offer_box.remove_child(c)
@@ -229,7 +241,9 @@ func _rebuild_offer() -> void:
 		_offer_card.visible = false
 		return
 	_offer_card.visible = not _tray.visible
-	_offer_box.add_child(UI3.label(TranslationServer.translate("Aid offer · once"), "LabelMuted"))
+	var once := UI3.label(TranslationServer.translate("Aid offer · once"), "LabelMuted")
+	once.add_theme_font_size_override("font_size", 18)
+	_offer_box.add_child(once)
 	_offer_box.add_child(UI3.label(TranslationServer.translate(String(offer.get("title", ""))), "LabelDisplay"))
 	var what := UI3.label(TranslationServer.translate(String(offer.get("what", ""))), "LabelMuted")
 	what.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -237,7 +251,9 @@ func _rebuild_offer() -> void:
 	_offer_box.add_child(what)
 	for cap_line in offer.get("caps", []):
 		_offer_box.add_child(UI3.label(String(cap_line), "LabelMuted"))
-	var buy := UI3.button(TranslationServer.translate("Buy · %d Gem") % int(offer.get("price", 0)), &"primary")
+	# Secondary with a violet (paid) border: End turn stays the ONE amber primary on this screen (spec 39).
+	var buy := UI3.button(TranslationServer.translate("Buy · %d Gem") % int(offer.get("price", 0)), &"secondary")
+	_violet_border(buy)
 	buy.name = "OfferBuy"
 	buy.custom_minimum_size = Vector2(BTN_W - 34.0, 48)
 	buy.pressed.connect(_ask.bind(String(offer.get("id", ""))))

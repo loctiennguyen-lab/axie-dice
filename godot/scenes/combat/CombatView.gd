@@ -1627,7 +1627,12 @@ func _open_unit_inspect(uid: int) -> void:
 	if u == null:
 		return
 	_close_unit_inspect()
-	_inspect_panel = _build_unit_inspect(u)
+	_inspect_panel = _build_unit_inspect(u, false)
+	if not _inspect_fits:
+		# Too tall for the free space beside this unit: rebuild once with tighter spacing (and, if that is
+		# still too tall, the plate scrolls inside the free space, see _place_unit_inspect).
+		_close_unit_inspect()
+		_inspect_panel = _build_unit_inspect(u, true)
 
 
 ## I: the unit under the cursor, else the first living enemy (keyboard-only play). I again closes it.
@@ -1668,9 +1673,15 @@ func _close_unit_inspect() -> void:
 ## (CombatEngine._face_value: growth, weaken, blind and overdrive are in the number).
 ## States: enemy, party Axie, egg (a summoned token, roster_index < 0).
 const INSPECT_W := 520.0
+## Top of the party-row zone (heads, chips, dice tray). The plate never covers anything below this line
+## between the first and last party column (also the line the Axie status chips are clamped to).
+const PARTY_ZONE_TOP := 622.0
+var _inspect_compact := false
+var _inspect_fits := true
 
 
-func _build_unit_inspect(u: Unit) -> Control:
+func _build_unit_inspect(u: Unit, compact := false) -> Control:
+	_inspect_compact = compact
 	var layer := CanvasLayer.new()
 	layer.layer = 28          # under the quit confirm (30), over the HUD
 	add_child(layer)
@@ -1680,7 +1691,8 @@ func _build_unit_inspect(u: Unit) -> Control:
 	plate.focus_mode = Control.FOCUS_ALL
 	layer.add_child(plate)
 	var col := VBoxContainer.new()
-	col.add_theme_constant_override("separation", UI3Theme.space("16"))
+	col.name = "InspectCol"
+	col.add_theme_constant_override("separation", 8 if compact else UI3Theme.space("16"))
 	plate.add_child(col)
 
 	var is_egg := u.side == "p" and u.roster_index < 0
@@ -1714,8 +1726,13 @@ func _build_unit_inspect(u: Unit) -> Control:
 	_inspect_faces(col, u)
 	col.add_child(_inspect_close_hint())
 	_place_unit_inspect(plate, u)
-	plate.grab_focus.call_deferred()
+	_focus_inspect_plate.call_deferred(plate)
 	return plate
+
+
+func _focus_inspect_plate(plate: Control) -> void:
+	if is_instance_valid(plate) and plate.is_inside_tree():
+		plate.grab_focus()
 
 
 func _inspect_close_hint() -> Control:
@@ -1732,7 +1749,10 @@ func _inspect_close_hint() -> Control:
 func _cell_pad(cell: Control, inner: Control) -> void:
 	var pad := MarginContainer.new()
 	for side in ["left", "right", "top", "bottom"]:
-		pad.add_theme_constant_override("margin_" + side, 12)
+		var m := 12
+		if _inspect_compact and (side == "top" or side == "bottom"):
+			m = 6
+		pad.add_theme_constant_override("margin_" + side, m)
 	cell.add_child(pad)
 	pad.add_child(inner)
 
@@ -1781,19 +1801,87 @@ static func _ui3_face(game_type: String) -> StringName:
 	return k if UI3.FACE_TYPES.has(k) else &"buff"
 
 
-## Puts the plate beside the unit: right of it when it fits, else left; clamped inside the screen.
+## Rects the plate must not cover: the party row with the dice tray under it (from the first to the last
+## column, y from PARTY_ZONE_TOP down), the Aid zone bottom-left, the reroll / undo / End turn cluster.
+func _inspect_blockers() -> Array[Rect2]:
+	var out: Array[Rect2] = []
+	var vs := get_viewport_rect().size
+	var x0 := INF
+	var x1 := -INF
+	for pu in _combat.alive_party():
+		var at := _stage3d.get_unit_screen_pos(pu.uid, CombatStage3D.FEET_HEIGHT)
+		if at.x >= 0.0:
+			var gx := _stage3d.get_global_rect().position.x + at.x
+			x0 = minf(x0, gx - 90.0)
+			x1 = maxf(x1, gx + 90.0)
+	for b in _die_slot_buttons:
+		if (b as Control).visible:
+			var r := (b as Control).get_global_rect()
+			x0 = minf(x0, r.position.x)
+			x1 = maxf(x1, r.end.x)
+	if x1 > x0:
+		# the status chips float just above PARTY_ZONE_TOP (up to ~36 px): keep them readable too
+		out.append(Rect2(x0, PARTY_ZONE_TOP - 36.0, x1 - x0, vs.y - PARTY_ZONE_TOP + 36.0))
+	if _aid != null and _aid.enabled:
+		var t := _aid.top_y()
+		out.append(Rect2(0.0, t - 8.0, AidPanel.TRAY_W + 2.0 * AidPanel.EDGE, vs.y - t + 8.0))
+	var cluster := Rect2()
+	var first := true
+	for c in [_reroll_button, _undo_button, _end_turn_button]:
+		if c != null and (c as Control).visible:
+			var r := (c as Control).get_global_rect()
+			cluster = r if first else cluster.merge(r)
+			first = false
+	if not first:
+		out.append(cluster.grow(8.0))
+	return out
+
+
+## Puts the plate beside the unit: right of it when that side has room, else left, clamped inside the screen
+## and never over a blocker (see _inspect_blockers). When the free height is short (a party Axie sits IN the
+## row, so the plate lives above the row) the caller rebuilds compact, and a plate that still does not fit
+## scrolls inside the free space (fit-or-scroll). Sets _inspect_fits.
 func _place_unit_inspect(plate: Control, u: Unit) -> void:
 	var vp := get_viewport_rect().size
-	var ph := plate.get_combined_minimum_size().y
 	var at := _stage3d.get_unit_screen_pos(u.uid, 1.0)
 	var origin := _stage3d.get_global_rect().position + (at if at.x >= 0.0 else _stage3d.size * 0.5)
-	var x := origin.x + 110.0
-	if x + INSPECT_W > vp.x - 16.0:
-		x = origin.x - 110.0 - INSPECT_W
-	x = clampf(x, 16.0, maxf(vp.x - INSPECT_W - 16.0, 16.0))
-	var y := clampf(origin.y - ph * 0.5, 16.0, maxf(vp.y - ph - 16.0, 16.0))
-	plate.position = Vector2(x, y)
-	plate.size = Vector2(INSPECT_W, ph)
+	var blockers := _inspect_blockers()
+	var ph := plate.get_combined_minimum_size().y
+	var pw := maxf(INSPECT_W, plate.get_combined_minimum_size().x)
+	var best_x := 16.0
+	var best_cap := -1.0
+	for side in [1.0, -1.0]:
+		var x: float = origin.x + 110.0 if side > 0.0 else origin.x - 110.0 - pw
+		x = clampf(x, 16.0, maxf(vp.x - pw - 16.0, 16.0))
+		var cap_bottom := vp.y - 16.0
+		for r in blockers:
+			if x < r.end.x and x + pw > r.position.x:
+				cap_bottom = minf(cap_bottom, r.position.y - 12.0)
+		var cap := cap_bottom - 16.0
+		if cap > best_cap:
+			best_cap = cap
+			best_x = x
+		if best_cap >= ph:
+			break
+	var cap_bottom_final := 16.0 + best_cap
+	_inspect_fits = ph <= best_cap
+	if not _inspect_fits and _inspect_compact:
+		var col: Control = plate.get_node("InspectCol")
+		var chrome := ph - col.get_combined_minimum_size().y
+		plate.remove_child(col)
+		var sc := ScrollContainer.new()
+		sc.name = "InspectScroll"
+		sc.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+		sc.follow_focus = true
+		sc.custom_minimum_size = Vector2(0, maxf(best_cap - chrome, 120.0))
+		col.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		sc.add_child(col)
+		plate.add_child(sc)
+		ph = plate.get_combined_minimum_size().y
+		_inspect_fits = true
+	var y := clampf(origin.y - ph * 0.5, 16.0, maxf(cap_bottom_final - ph, 16.0))
+	plate.position = Vector2(best_x, y)
+	plate.size = Vector2(pw, ph)
 
 
 ## THE number a face will actually produce — and the ONLY one the player should ever be shown.
@@ -1823,7 +1911,7 @@ func _live_face_value(u: Unit, fi: int) -> int:
 func _inspect_faces(col: VBoxContainer, u: Unit) -> void:
 	col.add_child(UI3.label(TranslationServer.translate("All six faces · live values"), "LabelMuted"))
 	var list := VBoxContainer.new()
-	list.add_theme_constant_override("separation", UI3Theme.space("8"))
+	list.add_theme_constant_override("separation", 4 if _inspect_compact else UI3Theme.space("8"))
 	col.add_child(list)
 	var rolled_index: int = u.roll_face_index()
 	for i in u.die.size():
@@ -2121,7 +2209,7 @@ func _place_status_chips(uid: int, p: UnitPortrait, stage_offset: Vector2) -> vo
 	if not chips.visible:
 		return
 	chips.size = chips.get_combined_minimum_size()
-	var bottom := minf(stage_offset.y + head.y - 8.0, 622.0)
+	var bottom := minf(stage_offset.y + head.y - 8.0, PARTY_ZONE_TOP)
 	var global_top_left := Vector2(stage_offset.x + head.x - chips.size.x * 0.5, bottom - chips.size.y)
 	chips.position = global_top_left - p.position
 
