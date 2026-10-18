@@ -1459,6 +1459,7 @@ func _on_run_pressed() -> void:
 
 func _on_continue_pressed() -> void:
 	if RunContinue.busy:
+		_show_toast("Still reconnecting to the server…")   # never a silent press
 		return
 	if not RunState.load_run():
 		push_warning("LandHub: saved run could not be loaded")
@@ -1467,19 +1468,36 @@ func _on_continue_pressed() -> void:
 		_new_run_btn.visible = false
 		_show_toast("That run could not be loaded", 1.6, &"error")
 		return
-	var st: String = await RunContinue.reconnect(self, _on_continue_pressed,
-			find_child("RunPlate", true, false) as BaseButton)
+	var plate := find_child("RunPlate", true, false) as Button
+	_set_continue_busy(plate, true)
+	var st: String = await RunContinue.reconnect(self, _on_continue_pressed, plate)
+	if not is_inside_tree():
+		return
+	_set_continue_busy(plate, false)
 	if st == "gone":
 		_has_run = false
 		_new_run_btn.visible = false
 		_show_toast(RunState.take_discard_notice(), 5.0)
 		return
 	if st != "ok":
+		# "failed": NetNotice (with RETRY / SIGN IN) is up. If it could not show, say so with a toast.
+		if st == "failed" and get_node_or_null(NetNotice.NODE_NAME) == null:
+			_show_toast("Could not reconnect to your run. Try again.", 3.0, &"error")
 		return
 	if not RunState.resume_combat.is_empty():
 		get_tree().change_scene_to_file("res://scenes/combat/Combat.tscn")
 	else:
 		get_tree().change_scene_to_file("res://scenes/run_map/RunMap.tscn")
+
+
+## Run plate shows "Reconnecting…" (disabled, with its reason) while Continue is out; restored after.
+func _set_continue_busy(plate: Button, on: bool) -> void:
+	if plate == null or not is_instance_valid(plate):
+		return
+	if on:
+		UI3.set_disabled_reason(plate, "Reconnecting…")
+	else:
+		UI3.clear_disabled_reason(plate)
 
 
 ## N / New run. Only with an open run. Mission run: names the mission and the exact stake.

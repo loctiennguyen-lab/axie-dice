@@ -292,6 +292,28 @@ func _ready() -> void:
 		rects.append(r)
 	ht.queue_free()
 	await get_tree().process_frame
+	# Continue while a reconnect is in flight: a toast, never silence; the Run plate says "Reconnecting…".
+	LandHub.qa = {"guest": false, "offline": false}
+	LandHub.tier_override = 0
+	var hub2 := (load("res://scenes/land/Land.tscn") as PackedScene).instantiate() as LandHub
+	hub2.set("_force_run", true)
+	add_child(hub2)
+	await get_tree().process_frame
+	hub = hub2
+	if is_instance_valid(hub):
+		RunContinue.busy = true
+		var n_before := (hub.get("_toasts") as Array).size()
+		hub.call("_on_continue_pressed")
+		_check((hub.get("_toasts") as Array).size() > n_before, "Continue busy: phải có toast")
+		RunContinue.busy = false
+		var rp := hub.find_child("RunPlate", true, false) as Button
+		var old_txt := rp.text
+		hub.call("_set_continue_busy", rp, true)
+		_check(rp.disabled and rp.text == "Reconnecting…", "Run plate: Reconnecting… khi đang nối")
+		hub.call("_set_continue_busy", rp, false)
+		_check(not rp.disabled and rp.text == old_txt, "Run plate trả lại nhãn cũ")
+		hub2.queue_free()
+		await get_tree().process_frame
 	LandHub.qa = {}
 	LandHub.tier_override = 0
 	LandNav.dry_run = false
