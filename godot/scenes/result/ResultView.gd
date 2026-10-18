@@ -73,7 +73,7 @@ func _ready() -> void:
 
 func _build_ui(s: Dictionary) -> void:
 	var bg := TextureRect.new()
-	bg.name = "Backdrop"
+	bg.name = "PlateHost"   # full-rect backdrop; t_ui_laws L0
 	bg.texture = MockupAssets.tex(BG_PATH)
 	bg.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	bg.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
@@ -111,6 +111,7 @@ func _build_ui(s: Dictionary) -> void:
 	_plate_scroll = ScrollContainer.new()
 	_plate_scroll.name = "CardScroll"
 	_plate_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	_plate_scroll.get_v_scroll_bar().custom_minimum_size.x = UI3Theme.SCROLL_W   # visible overflow (t_ui_laws L2)
 	outer.add_child(_plate_scroll)
 	_body = _build_card_rows(s)
 	_body.size_flags_horizontal = Control.SIZE_EXPAND_FILL
