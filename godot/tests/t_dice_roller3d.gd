@@ -72,6 +72,28 @@ func _ready() -> void:
 	_ok(world.get_child_count() == children_before, "skip path creates no physics bodies")
 	_ok(cam.h_offset == 0.0, "no camera shake on the skip path")
 
+	# Face -> surface mapping and the result-face turn, by maths (same function the tween uses).
+	var cam_dir := Vector3(0.0, 0.25, 1.0).normalized()   # camera pitch -14 deg: up a little, mostly toward it
+	var cam_up := Vector3.UP.slide(cam_dir).normalized()
+	_ok(DiceRoller3D.FACE_NORMALS.size() == 6 and DiceRoller3D.FACE_UPS.size() == 6, "six faces mapped")
+	var rng := RandomNumberGenerator.new()
+	rng.seed = 7
+	var worst := 0.0
+	for r in 6:
+		for trial in 20:
+			var cur := Basis(Quaternion(Vector3(rng.randf() - 0.5, rng.randf() - 0.5, rng.randf() - 0.5).normalized(),
+				rng.randf() * TAU))
+			var nb := DiceRoller3D.result_basis(cur, r, cam_dir, cam_up)
+			var ang := rad_to_deg((nb * DiceRoller3D.FACE_NORMALS[r]).angle_to(cam_dir))
+			worst = maxf(worst, ang)
+			var up_ang := rad_to_deg((nb * DiceRoller3D.FACE_UPS[r]).angle_to(cam_up))
+			_ok(up_ang < 20.0, "face %d plate upright (%.1f deg)" % [r, up_ang]) if trial == 0 else null
+			_ok(nb.is_equal_approx(nb.orthonormalized()), "result basis stays a rotation") if trial == 0 else null
+	_ok(worst < 0.5, "result face points at the camera (worst %.3f deg)" % worst)
+	# nearest: a die already showing the result face keeps its orientation
+	var same := DiceRoller3D.result_basis(Basis.IDENTITY.rotated(Vector3.UP, 0.0), 4, Vector3.BACK, Vector3.UP)
+	_ok(same.is_equal_approx(Basis.IDENTITY), "already facing camera: no turn")
+
 	_log.clear()
 	roller.roll([], Callable())
 	await get_tree().process_frame

@@ -3,8 +3,9 @@ class_name DiceRoller3D
 ## 3D dice throw (UI-03 handoff, motion.md "Combat · dice roll"). PURELY VISUAL.
 ##
 ## The value on every die is the one the caller passes in (combat engine / epoch source). Physics
-## decides where a cube lands and how it bounces, never what it shows: the glyph and number swap
-## every 90 ms while it tumbles and then lock to `value`. Nothing here touches the combat engine,
+## decides where a cube lands and how it bounces, never what it shows: each die is the unit's real
+## six-face die (one texture per mesh surface) and in the last 180 ms of the settle it is turned so
+## the engine's RESULT face looks at the camera. Nothing here touches the combat engine,
 ## and the random faces shown while tumbling come from a PRIVATE RandomNumberGenerator, never the
 ## game's rng.
 ##
@@ -42,7 +43,23 @@ const TILE_BIG := 88.0
 const TILE_SMALL := 56.0
 const IVORY := Color("FFE5B4")      # token kam-9
 const INK := Color("291808")        # token kam-1
-const _TUMBLE_TYPES: Array[String] = ["dmg", "shield", "poison", "heal", "debuff", "buff", "mana", "summon"]
+const _DIE_SCENE := preload("res://assets/dice/axie_die.glb")
+const _MESH_SIZE := 0.5            # axie_die.glb is a 0.5 m rounded cube
+const BODY_COLOR := Color("F3D7A6")
+const PLATE_PX := 256
+const _FONT := preload("res://assets/fonts/Baloo2-ExtraBold.ttf")   # stand-in until Rowdies Bold ships
+## Face index i of a unit's die -> mesh surface i+1 (Face_+X, -X, +Y, -Y, +Z, -Z) -> local normal.
+const FACE_NORMALS: Array[Vector3] = [Vector3.RIGHT, Vector3.LEFT, Vector3.UP, Vector3.DOWN,
+	Vector3.BACK, Vector3.FORWARD]
+## Local "up" of each face's texture (+Y top uses -Z as up, per the model notes).
+const FACE_UPS: Array[Vector3] = [Vector3.UP, Vector3.UP, Vector3.FORWARD, Vector3.BACK,
+	Vector3.UP, Vector3.UP]
+const _TYPE_RING := {
+	"dmg": Color("B81221"), "shield": Color("1E8FBF"), "poison": Color("7A3FB5"),
+	"heal": Color("2E9E2C"), "debuff": Color("E07A1F"), "buff": Color("C98A1E"),
+	"mana": Color("8A5CE0"), "summon": Color("1FA89A"), "blank": Color("8A8F99"),
+}
+static var _tex_cache: Dictionary = {}   # "type:value" -> ImageTexture
 const _LAYER_DIE := 1 << 18
 const _LAYER_GROUND := 1 << 19
 
@@ -60,6 +77,7 @@ var _rng := RandomNumberGenerator.new()
 var _shake_tween: Tween
 var _tray_target: Callable
 var _arrived_count: int = 0
+var _roll_token: int = 0
 
 
 ## `world` holds the bodies, `camera` is the stage camera, `stage` is the Control that owns the
@@ -81,7 +99,9 @@ func will_skip() -> bool:
 		or _world == null or _camera == null or not is_inside_tree()
 
 
-## entries: Array of {slot_node: Node3D, face_type: String, value: int, crit: bool, small: bool (opt)}.
+## entries: Array of {slot_node: Node3D, face_type: String, value: int, crit: bool, small: bool (opt),
+## faces: Array of 6 {type, value} (the unit's real die, index = engine face index, optional),
+## result_index: int (which of the 6 is the result, optional, default 0)}.
 ## Index in `entries` = die index in the signals and in `tray_target`.
 func roll(entries: Array, tray_target: Callable) -> void:
 	if _active:
@@ -102,6 +122,7 @@ func roll(entries: Array, tray_target: Callable) -> void:
 		_dice.append({
 			"i": i, "face_type": String(e.get("face_type", "blank")), "value": int(e.get("value", 0)),
 			"crit": bool(e.get("crit", false)), "small": bool(e.get("small", false)),
+			"faces": _faces_of(e), "result_index": clampi(int(e.get("result_index", 0)), 0, 5),
 			"slot": e.get("slot_node"), "phase": 0, "t": 0.0, "air": 0.0, "tnext": 0.0,
 			"locked": false, "settled": false, "bounced": false,
 			"body": null, "pivot": null, "face": null, "glyph": null, "num": null, "tile": null,
@@ -109,6 +130,115 @@ func roll(entries: Array, tray_target: Callable) -> void:
 	if skipping:
 		call_deferred("_skip_all")
 		return
+	_roll_token += 1
+	_begin_physics(_roll_token)
+
+
+static func _key(f: Dictionary) -> String:
+	return "%s:%d" % [String(f.get("type", "blank")), int(f.get("value", 0))]
+
+
+static func _die_mesh() -> Mesh:
+	var inst := _DIE_SCENE.instantiate()
+	var found: Mesh = null
+	var stack: Array = [inst]
+	while not stack.is_empty() and found == null:
+		var n: Node = stack.pop_back()
+		if n is MeshInstance3D:
+			found = (n as MeshInstance3D).mesh
+		stack.append_array(n.get_children())
+	inst.free()
+	return found
+
+
+## Draws every missing "type:value" plate into one SubViewport, one frame, then caches each as a
+## texture (cache is shared by all dice and all rolls). Plate = ivory kam-9 rounded square on the body
+## colour, a thin ring in the type colour, the glyph, the value.
+func _ensure_textures(keys: Array) -> void:
+	var missing: Array[String] = []
+	for k in keys:
+		if not _tex_cache.has(k) and not missing.has(k):
+			missing.append(k)
+	if missing.is_empty():
+		return
+	var cols := 8
+	var rows := ceili(float(missing.size()) / cols)
+	var vp := SubViewport.new()
+	vp.size = Vector2i(PLATE_PX * cols, PLATE_PX * rows)
+	vp.transparent_bg = false
+	vp.disable_3d = true
+	vp.render_target_update_mode = SubViewport.UPDATE_ONCE
+	var root := Control.new()
+	root.size = Vector2(vp.size)
+	vp.add_child(root)
+	for idx in missing.size():
+		var parts: PackedStringArray = missing[idx].split(":")
+		root.add_child(_plate(parts[0], int(parts[1]),
+			Vector2((idx % cols) * PLATE_PX, (idx / cols) * PLATE_PX)))
+	add_child(vp)
+	await RenderingServer.frame_post_draw
+	await RenderingServer.frame_post_draw
+	var img := vp.get_texture().get_image()
+	vp.queue_free()
+	for idx in missing.size():
+		var r := Rect2i((idx % cols) * PLATE_PX, (idx / cols) * PLATE_PX, PLATE_PX, PLATE_PX)
+		var tile_img := img.get_region(r)
+		tile_img.generate_mipmaps()
+		_tex_cache[missing[idx]] = ImageTexture.create_from_image(tile_img)
+
+
+func _plate(type: String, value: int, at: Vector2) -> Control:
+	var bg := ColorRect.new()
+	bg.color = BODY_COLOR
+	bg.position = at
+	bg.size = Vector2(PLATE_PX, PLATE_PX)
+	var plate := Panel.new()
+	var sb := StyleBoxFlat.new()
+	sb.bg_color = IVORY
+	sb.set_corner_radius_all(40)
+	sb.set_border_width_all(8)
+	sb.border_color = _TYPE_RING.get(type, _TYPE_RING["blank"])
+	plate.add_theme_stylebox_override("panel", sb)
+	plate.position = Vector2(14, 14)
+	plate.size = Vector2(PLATE_PX - 28, PLATE_PX - 28)
+	bg.add_child(plate)
+	var icon := TextureRect.new()
+	icon.texture = DangoTheme.face_type_icon(type)
+	icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	var has_value := value > 0
+	icon.size = Vector2(120, 120) if has_value else Vector2(150, 150)
+	icon.position = Vector2(68, 30) if has_value else Vector2(53, 53)
+	bg.add_child(icon)
+	if has_value:
+		var lbl := Label.new()
+		lbl.text = str(value)
+		lbl.add_theme_font_override("font", _FONT)
+		lbl.add_theme_font_size_override("font_size", 100)
+		lbl.add_theme_color_override("font_color", INK)
+		lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		lbl.size = Vector2(PLATE_PX, 110)
+		lbl.position = Vector2(0, 140)
+		bg.add_child(lbl)
+	return bg
+
+
+func _faces_of(e: Dictionary) -> Array:
+	var f: Array = e.get("faces", [])
+	if f.size() == 6:
+		return f
+	var one := {"type": String(e.get("face_type", "blank")), "value": int(e.get("value", 0))}
+	return [one, one, one, one, one, one]
+
+
+func _begin_physics(token: int) -> void:
+	var keys: Array = []
+	for d in _dice:
+		for f in d["faces"]:
+			keys.append(_key(f))
+	await _ensure_textures(keys)
+	if token != _roll_token or not _active or _dice.is_empty():
+		return   # skipped or replaced while the plates were being drawn
 	_build_ground()
 	for d in _dice:
 		_build_die(d)
@@ -125,6 +255,7 @@ func skip() -> void:
 func _skip_all() -> void:
 	if not _active:
 		return
+	_roll_token += 1
 	set_process(false)
 	if _shake_tween != null and _shake_tween.is_valid():
 		_shake_tween.kill()
@@ -223,53 +354,22 @@ func _build_die(d: Dictionary) -> void:
 	var pivot := Node3D.new()
 	body.add_child(pivot)
 	var mi := MeshInstance3D.new()
-	var bm := BoxMesh.new()
-	bm.size = Vector3.ONE * size
-	mi.mesh = bm
-	var mat := StandardMaterial3D.new()
-	mat.albedo_color = IVORY
-	mat.roughness = 0.65
-	mi.material_override = mat
+	mi.mesh = _die_mesh()
+	mi.scale = Vector3.ONE * (size / _MESH_SIZE)
+	var bm := StandardMaterial3D.new()
+	bm.albedo_color = BODY_COLOR
+	bm.roughness = 0.4
+	mi.set_surface_override_material(0, bm)
+	for fi in 6:
+		var fm := StandardMaterial3D.new()
+		fm.albedo_texture = _tex_cache.get(_key(d["faces"][fi]))
+		fm.roughness = 0.4
+		mi.set_surface_override_material(fi + 1, fm)
 	pivot.add_child(mi)
-	# Face glyph + number: top_level so they stay upright, pushed toward the camera each frame.
-	var face := Node3D.new()
-	face.top_level = true
-	body.add_child(face)
-	var glyph := Sprite3D.new()
-	glyph.billboard = BaseMaterial3D.BILLBOARD_ENABLED
-	glyph.shaded = false
-	glyph.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
-	glyph.position = Vector3(0.0, size * 0.16, 0.0)
-	face.add_child(glyph)
-	var num := Label3D.new()
-	num.billboard = BaseMaterial3D.BILLBOARD_ENABLED
-	num.shaded = false
-	num.modulate = INK
-	num.outline_size = 0
-	num.font_size = 72
-	num.pixel_size = size * 0.0042
-	num.position = Vector3(0.0, -size * 0.2, 0.0)
-	face.add_child(num)
 	_world.add_child(body)
 	body.body_entered.connect(_on_body_entered.bind(int(d["i"])))
 	d["body"] = body
 	d["pivot"] = pivot
-	d["face"] = face
-	d["glyph"] = glyph
-	d["num"] = num
-	_show_face(d, _TUMBLE_TYPES[_rng.randi() % _TUMBLE_TYPES.size()], 1 + _rng.randi() % 9)
-
-
-func _show_face(d: Dictionary, face_type: String, value: int) -> void:
-	var glyph := d["glyph"] as Sprite3D
-	var num := d["num"] as Label3D
-	if glyph == null or not is_instance_valid(glyph):
-		return
-	var tex := DangoTheme.face_type_icon(face_type)
-	glyph.texture = tex
-	if tex != null:
-		glyph.pixel_size = _die_size(d) * 0.46 / maxf(float(tex.get_width()), 1.0)
-	num.text = str(value) if value > 0 else ""
 
 
 func _launch(d: Dictionary) -> void:
@@ -317,43 +417,60 @@ func _process(delta: float) -> void:
 			d["hold"] = float(d["hold"]) + delta
 			if float(d["hold"]) >= SETTLE_HOLD:
 				_start_fly(d)
-		_place_face(d)
-
-
-func _place_face(d: Dictionary) -> void:
-	var body = d["body"]
-	var face = d["face"]
-	if body == null or not is_instance_valid(body) or face == null or _camera == null:
-		return
-	var p: Vector3 = (body as Node3D).global_position
-	var to_cam := (_camera.global_position - p).normalized()
-	(face as Node3D).global_position = p + to_cam * (_die_size(d) * 0.75)
 
 
 func _step_air(d: Dictionary, delta: float) -> void:
 	var body := d["body"] as RigidBody3D
 	d["air"] = float(d["air"]) + delta
 	var air := float(d["air"])
-	if air < TUMBLE_TOTAL:
-		d["tnext"] = float(d["tnext"]) - delta
-		if float(d["tnext"]) <= 0.0:
-			d["tnext"] = float(d["tnext"]) + TUMBLE_STEP
-			_show_face(d, _TUMBLE_TYPES[_rng.randi() % _TUMBLE_TYPES.size()], 1 + _rng.randi() % 9)
-	elif not bool(d["locked"]):
-		d["locked"] = true
-		_show_face(d, String(d["face_type"]), int(d["value"]))   # the engine's result, always
 	if not bool(d["bounced"]) and air >= FLIGHT + 0.15:
 		_on_first_bounce(d)   # fallback when the contact signal never came
-	if not bool(d["settled"]):
-		var rest := air > FLIGHT + 0.2 and body.linear_velocity.length() < 0.2 \
-			and body.angular_velocity.length() < 0.6
-		if rest or body.sleeping or air >= SETTLE_TIMEOUT:
-			d["settled"] = true
-			body.freeze = true
-	if bool(d["settled"]) and bool(d["locked"]):
+	var rest := air > FLIGHT + 0.2 and body.linear_velocity.length() < 0.2 \
+		and body.angular_velocity.length() < 0.6
+	if rest or body.sleeping or air >= SETTLE_TIMEOUT:
+		body.freeze = true
+		d["settled"] = true
 		d["phase"] = 2
 		d["hold"] = 0.0
+		_start_face_turn(d)
 		die_settled.emit(int(d["i"]))
+
+
+## Last 180 ms of the settle: tween the frozen cube to the nearest orientation where the RESULT
+## face looks at the camera. Physics already decided where it lies; this only turns it.
+func _start_face_turn(d: Dictionary) -> void:
+	var body := d["body"] as RigidBody3D
+	if body == null or _camera == null:
+		return
+	var to_cam := (_camera.global_position - body.global_position).normalized()
+	var cam_up := _camera.global_transform.basis.y
+	var from_q := body.global_transform.basis.get_rotation_quaternion()
+	var to_b := result_basis(body.global_transform.basis, int(d["result_index"]), to_cam, cam_up)
+	var to_q := to_b.get_rotation_quaternion()
+	var tw := create_tween()
+	tw.tween_method(_turn_step.bind(body, from_q, to_q), 0.0, 1.0, SETTLE_HOLD) \
+		.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+	d["turn"] = tw
+
+
+func _turn_step(w: float, body: RigidBody3D, from_q: Quaternion, to_q: Quaternion) -> void:
+	if is_instance_valid(body):
+		body.global_transform.basis = Basis(from_q.slerp(to_q, w))
+
+
+## Pure maths: the basis nearest to `current` (shortest arc, then the roll about the view axis so the
+## plate reads upright) in which face `result_index` points along `to_cam`.
+static func result_basis(current: Basis, result_index: int, to_cam: Vector3, cam_up: Vector3) -> Basis:
+	var n_local := FACE_NORMALS[clampi(result_index, 0, 5)]
+	var u_local := FACE_UPS[clampi(result_index, 0, 5)]
+	var n_world := (current * n_local).normalized()
+	var arc := Quaternion(n_world, to_cam.normalized())
+	var b := Basis(arc) * current
+	var up_w := (b * u_local)
+	var want := (cam_up - to_cam * cam_up.dot(to_cam)).normalized()
+	var have := (up_w - to_cam * up_w.dot(to_cam)).normalized()
+	var ang := have.signed_angle_to(want, to_cam)
+	return Basis(to_cam.normalized(), ang) * b
 
 
 func _on_body_entered(_other: Node, i: int) -> void:

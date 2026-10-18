@@ -3060,7 +3060,11 @@ func _start_dice_throw(fresh: Array) -> void:
 			continue
 		slots.append(int(f["slot"]))
 		_dice_pending[u.uid] = true
-		entries.append({"slot_node": _stage3d.slot_node_of(u.uid),
+		var faces: Array = []
+		for k in u.die.size():
+			faces.append({"type": String((u.die[k] as Dictionary).get("type", "blank")),
+				"value": _live_face_value(u, k)})
+		entries.append({"slot_node": _stage3d.slot_node_of(u.uid), "faces": faces, "result_index": fi,
 			"face_type": String((u.die[fi] as Dictionary).get("type", "blank")),
 			"value": _live_face_value(u, fi), "crit": u.roll_crit_now(), "small": u.is_token,
 			"uid": u.uid})
