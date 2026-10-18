@@ -36,6 +36,11 @@ func _ready() -> void:
 	svc.desktop_error = "network"
 	svc.changed.emit()
 	await _shot("error")
+	svc.desktop_phase = "idle"
+	svc.desktop_error = ""
+	svc.status = AccountService.Status.EXPIRED
+	svc.changed.emit()
+	await _shot("expired")
 	_guard.restore()
 	get_tree().quit(0)
 
