@@ -17,7 +17,7 @@ const GROUND_SIZE := 160.0
 const BOSS_LIGHT_MUL := 0.72
 const BOSS_FOG_DENSITY := 0.0035
 const BOSS_PORTAL_MUL := 1.3
-const BOSS_PORTAL_Z := -14.5   # pushed back so the 1.3x tower still fits under the frame top
+const BOSS_PORTAL_Z := -13.5   # pushed back so the 1.3x tower still fits under the frame top
 ## SM_Portal_01 has a detached spire (separate piece, mesh-local y > 7.5) that floats above the tower; dropped.
 const PORTAL_FINIAL_Y := 7.5
 ## Same sun / ambient as the Land hub; a biome only tints these a little (it owns sky + ground).
