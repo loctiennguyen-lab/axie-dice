@@ -16,6 +16,7 @@ var _failures: Array[String] = []
 var _checks := 0
 var _completed: Array[String] = []
 var _tutorial_seen_was := false
+var _runs_was := 0
 var _save_guard := SaveGuard.new()
 
 
@@ -23,6 +24,7 @@ func _ready() -> void:
 	print("=== t_mainmenu_ui: start ===")
 	_save_guard.capture()
 	_tutorial_seen_was = MetaState.tutorial_seen
+	_runs_was = MetaState.runs
 	await get_tree().process_frame
 
 	test_routes_to_tutorial_until_seen()
@@ -35,6 +37,7 @@ func _ready() -> void:
 			_failures.append("test '%s' did not run to completion" % name)
 
 	MetaState.tutorial_seen = _tutorial_seen_was
+	MetaState.runs = _runs_was
 	_save_guard.restore()
 	print("=== t_mainmenu_ui: %d checks, %d failure(s) ===" % [_checks, _failures.size()])
 	if _failures.is_empty():
@@ -58,6 +61,7 @@ func _assert(cond: bool, msg: String) -> void:
 
 func test_routes_to_tutorial_until_seen() -> void:
 	MetaState.tutorial_seen = false
+	MetaState.runs = 0   # needs_tutorial() = not seen AND no runs yet
 	_assert(MainMenu.route_target() == MainMenu.TUTORIAL_SCENE,
 		"unseen tutorial must route to the tutorial, got " + MainMenu.route_target())
 	_done("test_routes_to_tutorial_until_seen")
