@@ -34,6 +34,31 @@ func _ready() -> void:
 	await _shot("empty-offline")
 	s.open_picker(3)
 	await _shot("picker")
+	s.clear_slot(0)
+	s._picker_sel = "bird1"
+	s._show_picker()
+	await _shot("picker-selected")
+	s.close_modal()
+	var ks: Array = MainMenu.T1_HERO_KEYS.duplicate()
+	TeamPresets.add("Plant rush", ks.slice(0, 5))
+	ks.reverse()
+	TeamPresets.add("Old squad", ks.slice(0, 5))
+	s.open_load_presets()
+	await _shot("presets-load")
+	s.open_save_preset()
+	await _shot("presets-save")
+	var st := LeaderboardSourceStub.new()
+	st.boards[LeaderboardSource.query_key({"asc": s.ascension, "period": "season"})] = {"rows": [
+		{"rank": 1, "name": "Liam", "score": 9120}, {"rank": 2, "name": "Mira", "score": 8800},
+		{"rank": 3, "name": "Tomo", "score": 8410}, {"rank": 4, "name": "Ana", "score": 7900},
+		{"rank": 5, "name": "Bao", "score": 7312}], "me": {"rank": 41, "name": "You", "score": 3200}}
+	s.lb_source = st
+	s.open_leaderboard()
+	await _shot("leaderboard")
+	st.fail_reason = "offline"
+	s.open_leaderboard()
+	await _shot("leaderboard-error")
+	s.close_modal()
 	s.queue_free()
 	await get_tree().process_frame
 	s = _make(true)
