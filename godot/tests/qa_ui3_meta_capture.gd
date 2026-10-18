@@ -86,6 +86,12 @@ func _make(screen: String) -> Node:
 		await get_tree().process_frame
 		if screen == "daily-claimed":
 			ds.claim_daily()
+		elif screen == "daily-cap":
+			MetaState.gems_cache = 900
+			ds._refresh()
+		elif screen == "daily-offline":
+			ds.remote_on = true
+			ds.set_state("offline")
 		elif screen == "daily-guest":
 			ds.remote_on = true
 			ds.set_state("guest")

@@ -174,13 +174,30 @@ func _card(name_: String, title: String, sub: String, items: Array, btn: Button,
 	return p
 
 
-func _claim_button(nm: String, text: String, claimable: bool, reason: String, cb: Callable) -> Button:
-	var b := UI3.button(text, &"primary", &"L")
+## Same 72 px row on every card. Only the first claimable card gets the primary look.
+func _claim_button(nm: String, text: String, claimable: bool, reason: String, cb: Callable, primary: bool) -> Button:
+	var b := UI3.button(text, &"primary" if primary else &"secondary", &"L" if primary else &"M")
 	b.name = nm
+	b.custom_minimum_size.y = 72
 	if not claimable:
 		UI3.set_disabled_reason(b, reason)
 	b.pressed.connect(cb)
 	return b
+
+
+## Day chip: claimed = amber chip, still to come = outlined plate with normal text (never dimmed).
+func _day_chip(text: String, done: bool) -> Control:
+	if done:
+		return UI3.chip(text)
+	var p := PanelContainer.new()
+	p.theme = UI3Theme.get_theme()
+	p.custom_minimum_size = Vector2(0, UI3.CHIP_H)
+	p.add_theme_stylebox_override("panel", UI3Theme.flat(UI3Theme.color("panel"), UI3Theme.radius("s"), 2,
+		UI3Theme.color("text_muted"), Vector4(12, 0, 12, 0)))
+	var l := UI3.label(text, "LabelDisplay")
+	l.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	p.add_child(l)
+	return p
 
 
 func _refresh() -> void:
@@ -193,13 +210,19 @@ func _refresh() -> void:
 	var claimed := daily_claimed()
 	var blocked := _blocks()
 	var reason := "Claimed today" if claimed else ("Sign in to claim" if state == "guest" else "Needs a connection")
+	var g: Dictionary = _Econ.get_table("gem").get("gift", {})
+	var gs := gift_state()
+	var daily_ok := not claimed and not blocked
+	var gift_ok := gs == "claim" and not blocked
+	var primary_daily := daily_ok
+	var primary_gift := gift_ok and not daily_ok
 	var sub := "Claimed. Next one at %s." % reset if claimed else "Any run counts. Resets at %s." % reset
 	if last_result != "":
 		sub = last_result
 	_body.add_child(_card("DailyCard", "Daily reward", sub, [
 		["Shards", "+%d" % int(d.get("shards", 0))], ["Stone", "+%d" % int(d.get("stone", 0))],
 		["Pass XP", "+%d" % int(d.get("xp", 0))]],
-		_claim_button("ClaimDaily", "Claim", not claimed and not blocked, reason, claim_daily)))
+		_claim_button("ClaimDaily", "Claim", daily_ok, reason, claim_daily, primary_daily)))
 	var w: Dictionary = cfg.get("weekly_bonus", {})
 	var need := int(w.get("min_days", 4))
 	var have := mini(MetaState.weekly_daily_days(), need)
@@ -207,18 +230,20 @@ func _refresh() -> void:
 	strip.name = "WeekStrip"
 	strip.add_theme_constant_override("separation", UI3Theme.space("8"))
 	for i in need:
-		var dot := UI3.chip("Day %d" % (i + 1))
-		dot.modulate.a = 1.0 if i < have else 0.4
-		strip.add_child(dot)
+		strip.add_child(_day_chip("Day %d" % (i + 1), i < have))
 	var paid := MetaState.weekly_bonus_paid()
+	# The weekly bonus pays by itself on the last day; the button only says where you are.
+	var wreason := "Paid this week" if paid else "%d of %d days · pays on day %d" % [have, need, need]
+	var wb := _claim_button("WeeklyStatus", "", false, wreason, func() -> void: pass, false)
 	_body.add_child(_card("WeeklyCard", "Weekly bonus",
 		"Claim the daily reward on %d days in a week. %d of %d so far.%s" % [need, have, need, " Paid this week." if paid else ""],
-		[["Shards", "+%d" % int(w.get("shards", 0))], ["Stone", "+%d" % int(w.get("stone", 0))]], null, strip))
-	var g: Dictionary = _Econ.get_table("gem").get("gift", {})
-	var gs := gift_state()
+		[["Shards", "+%d" % int(w.get("shards", 0))], ["Stone", "+%d" % int(w.get("stone", 0))]], wb, strip))
 	var greason := "Claimed today" if gs == "done" else ("At the cap" if gs == "cap" else reason)
-	var gtxt := "Playtest: free, up to %d held." % int(g.get("balance_cap", 900))
+	var cap := int(g.get("balance_cap", 900))
+	var gtxt := "Playtest: free, up to %d held." % cap
 	if gs == "cap":
 		gtxt = "You hold %d, nothing to claim." % MetaState.gem_wallet().balance()
-	_body.add_child(_card("GiftCard", "Gem gift", gtxt, [["Gem a day", "+%d" % int(g.get("per_day", 300))]],
-		_claim_button("ClaimGift", "Claim %d Gem" % int(g.get("per_day", 300)), gs == "claim" and not blocked, greason, claim_gift)))
+	_body.add_child(_card("GiftCard", "Gem gift", gtxt, [
+		["Gem a day", "+%d" % int(g.get("per_day", 300))],
+		["You hold", str(MetaState.gem_wallet().balance())], ["Hold up to", str(cap)]],
+		_claim_button("ClaimGift", "Claim %d Gem" % int(g.get("per_day", 300)), gift_ok, greason, claim_gift, primary_gift)))
