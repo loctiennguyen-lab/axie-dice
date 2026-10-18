@@ -1,0 +1,4 @@
+{
+  "note": "A4 uses no textures. Every panel, button, row and die is a flat StyleBox (see tokens.json theme). This file is kept so the schema exists; add entries here if a Terrariums texture is adopted later.",
+  "slices": []
+}
