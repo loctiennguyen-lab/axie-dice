@@ -138,6 +138,32 @@ static func _key(f: Dictionary) -> String:
 	return "%s:%d" % [String(f.get("type", "blank")), int(f.get("value", 0))]
 
 
+## The textured die (body + one plate per surface). `faces` = 6 {type, value}; textures must be in
+## the cache already (see prepare()).
+static func make_die_mesh(faces: Array, size: float) -> MeshInstance3D:
+	var mi := MeshInstance3D.new()
+	mi.mesh = _die_mesh()
+	mi.scale = Vector3.ONE * (size / _MESH_SIZE)
+	var bm := StandardMaterial3D.new()
+	bm.albedo_color = BODY_COLOR
+	bm.roughness = 0.4
+	mi.set_surface_override_material(0, bm)
+	for fi in 6:
+		var fm := StandardMaterial3D.new()
+		fm.albedo_texture = _tex_cache.get(_key(faces[fi]))
+		fm.roughness = 0.4
+		mi.set_surface_override_material(fi + 1, fm)
+	return mi
+
+
+## Draw (and cache) the plates for these "type:value" keys. Await it.
+func prepare(faces: Array) -> void:
+	var keys: Array = []
+	for f in faces:
+		keys.append(_key(f))
+	await _ensure_textures(keys)
+
+
 static func _die_mesh() -> Mesh:
 	var inst := _DIE_SCENE.instantiate()
 	var found: Mesh = null
@@ -207,18 +233,23 @@ func _plate(type: String, value: int, at: Vector2) -> Control:
 	icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	var has_value := value > 0
-	icon.size = Vector2(120, 120) if has_value else Vector2(150, 150)
-	icon.position = Vector2(68, 30) if has_value else Vector2(53, 53)
+	# Like the tray tile: glyph centred at ~55% of the plate, value bottom-right, all upright in UV.
+	var g := PLATE_PX * 0.62
+	icon.size = Vector2(g, g)
+	icon.position = Vector2((PLATE_PX - g) * 0.5, (PLATE_PX - g) * 0.5 - (6.0 if has_value else 0.0))
 	bg.add_child(icon)
 	if has_value:
 		var lbl := Label.new()
 		lbl.text = str(value)
 		lbl.add_theme_font_override("font", _FONT)
-		lbl.add_theme_font_size_override("font_size", 100)
+		lbl.add_theme_font_size_override("font_size", 72)
 		lbl.add_theme_color_override("font_color", INK)
-		lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		lbl.size = Vector2(PLATE_PX, 110)
-		lbl.position = Vector2(0, 140)
+		lbl.add_theme_color_override("font_outline_color", IVORY)
+		lbl.add_theme_constant_override("outline_size", 10)
+		lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+		lbl.vertical_alignment = VERTICAL_ALIGNMENT_BOTTOM
+		lbl.size = Vector2(110, 90)
+		lbl.position = Vector2(PLATE_PX - 110 - 30, PLATE_PX - 90 - 24)
 		bg.add_child(lbl)
 	return bg
 
@@ -326,7 +357,7 @@ func _clear_ground() -> void:
 
 
 func _die_size(d: Dictionary) -> float:
-	return 0.55 if bool(d["small"]) else 0.72
+	return 0.77 if bool(d["small"]) else 1.0   # x1.4 of the first pass (80 px was too small)
 
 
 func _build_die(d: Dictionary) -> void:
@@ -353,18 +384,7 @@ func _build_die(d: Dictionary) -> void:
 	body.add_child(cs)
 	var pivot := Node3D.new()
 	body.add_child(pivot)
-	var mi := MeshInstance3D.new()
-	mi.mesh = _die_mesh()
-	mi.scale = Vector3.ONE * (size / _MESH_SIZE)
-	var bm := StandardMaterial3D.new()
-	bm.albedo_color = BODY_COLOR
-	bm.roughness = 0.4
-	mi.set_surface_override_material(0, bm)
-	for fi in 6:
-		var fm := StandardMaterial3D.new()
-		fm.albedo_texture = _tex_cache.get(_key(d["faces"][fi]))
-		fm.roughness = 0.4
-		mi.set_surface_override_material(fi + 1, fm)
+	var mi := make_die_mesh(d["faces"], size)
 	pivot.add_child(mi)
 	_world.add_child(body)
 	body.body_entered.connect(_on_body_entered.bind(int(d["i"])))
@@ -381,8 +401,9 @@ func _launch(d: Dictionary) -> void:
 	var n := _dice.size()
 	var i := int(d["i"])
 	# Aim at the stage centre, fanned out sideways so the cubes do not land on one spot.
-	var target := Vector3((float(i) - float(n - 1) * 0.5) * 1.7, 0.36,
-		_rng.randf_range(0.6, 2.4))
+	var gap := minf(2.6, 15.0 / maxf(float(n - 1), 1.0))   # one lane per slot across the stage
+	var target := Vector3((float(i) - float(n - 1) * 0.5) * gap, 0.5,
+		0.6 + float(i % 2) * 1.8 + _rng.randf_range(-0.3, 0.3))
 	var g := 9.8 * body.gravity_scale
 	var v := (target - start - Vector3(0.0, -0.5 * g * FLIGHT * FLIGHT, 0.0)) / FLIGHT
 	body.global_position = start
@@ -390,7 +411,7 @@ func _launch(d: Dictionary) -> void:
 	body.visible = true
 	body.freeze = false
 	body.apply_central_impulse(v * body.mass)
-	body.apply_torque_impulse(Vector3(_rng.randf_range(-4.0, 4.0), _rng.randf_range(-4.0, 4.0),
+	body.apply_torque_impulse(Vector3(_rng.randf_range(-4.0, 4.0), _rng.randf_range(-9.0, 9.0),
 		_rng.randf_range(-4.0, 4.0)))
 	d["phase"] = 1
 	d["air"] = 0.0
