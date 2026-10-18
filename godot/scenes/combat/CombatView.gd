@@ -3051,6 +3051,7 @@ func _start_dice_throw(fresh: Array) -> void:
 	var roller := _stage3d.get_dice_roller()
 	if roller == null or roller.will_skip():
 		return
+	_land_dice_now()   # an older roll still in the air lands first (its arrivals reach the handler)
 	var entries: Array = []
 	var slots: Array = []
 	for f in fresh:
@@ -3076,6 +3077,8 @@ func _start_dice_throw(fresh: Array) -> void:
 	for e in entries:
 		_throw_uids.append(int(e["uid"]))
 	_throw_slots = slots
+	for sl in slots:
+		(_die_slot_buttons[int(sl)] as Button).modulate.a = 0.0
 	roller.die_arrived.connect(_on_throw_arrived)
 	roller.roll(entries, _throw_tray_target)
 

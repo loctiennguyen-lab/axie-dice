@@ -78,6 +78,7 @@ var _shake_tween: Tween
 var _tray_target: Callable
 var _arrived_count: int = 0
 var _roll_token: int = 0
+var _gen: int = 0   # bumped by every roll()/_clear(); late tween callbacks of an old roll check it
 
 
 ## `world` holds the bodies, `camera` is the stage camera, `stage` is the Control that owns the
@@ -318,6 +319,7 @@ func _emit_all_arrived() -> void:
 
 
 func _clear() -> void:
+	_gen += 1
 	for d in _dice:
 		_free_tile(d)
 		_free_body(d)
@@ -561,11 +563,12 @@ func _start_fly(d: Dictionary) -> void:
 	var tw := create_tween()
 	tw.tween_property(tile, "position", to - tile.size * 0.5, FLY_TIME) \
 		.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_IN_OUT)
-	tw.finished.connect(_on_fly_done.bind(int(d["i"])))
+	d["fly"] = tw
+	tw.finished.connect(_on_fly_done.bind(int(d["i"]), _gen))
 
 
-func _on_fly_done(i: int) -> void:
-	if i < 0 or i >= _dice.size() or int(_dice[i]["phase"]) != 3:
+func _on_fly_done(i: int, gen: int) -> void:
+	if gen != _gen or i < 0 or i >= _dice.size() or int(_dice[i]["phase"]) != 3:
 		return
 	var d := _dice[i]
 	_free_tile(d)
@@ -621,6 +624,10 @@ func _make_tile(d: Dictionary) -> Control:
 
 
 func _free_tile(d: Dictionary) -> void:
+	var fly = d.get("fly")
+	if fly is Tween and (fly as Tween).is_valid():
+		(fly as Tween).kill()
+	d["fly"] = null
 	var t = d.get("tile")
 	if t != null and is_instance_valid(t):
 		(t as Node).queue_free()
