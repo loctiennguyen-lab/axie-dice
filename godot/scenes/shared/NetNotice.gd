@@ -8,19 +8,28 @@ extends RefCounted
 const NODE_NAME := "NetNotice"
 
 
+## Copy per error code: UI-03 round 2, screen 36 (toast table). Surfaces there: Notice (this overlay, Retry),
+## Dialog (blocking: expired / run_gone / version), Toast (rejected / bad_request / server, shown here as the
+## same plate with OK until a toast host exists), Card/Inline (sign-in card, Aid) live in their own screens.
 static func text_for(code: String) -> String:
 	match code:
-		"offline", "timeout":
-			return "Connection lost. Check your network and try again."
-		"expired", "version", "unauthenticated":
+		"offline":
+			return "Can't reach the server. Your run is saved."
+		"timeout":
+			return "The server is slow to answer. Try again."
+		"expired", "unauthenticated":
 			return "Your session expired. Sign in again to continue this run."
+		"version":
+			return "A new version is out. Update to keep playing."
 		"run_gone":
 			return RunState.GONE_MESSAGE
 		"busy":
 			return "Still waiting for the server. Try again in a moment."
-		"rejected", "out_of_order", "bad_request":
-			return "The server refused that move. Try again."
-	return "Could not reach the server (%s)." % code
+		"rejected", "out_of_order":
+			return "The server didn't accept that move. It was undone."
+		"bad_request":
+			return "Something went wrong. Try that again."
+	return "Server error. Try again in a moment."
 
 
 ## True when RETRY is pointless: the session itself is gone (the player must sign in again).
@@ -73,7 +82,10 @@ static func show(host: Node, code: String, retry: Callable = Callable()) -> Node
 		var si := UI3.button("SIGN IN", &"secondary", &"S")
 		si.name = "SignInButton"
 		si.pressed.connect(func(): AccountService.sign_in())
-		row.add_child(si)
+		if code != "version":   # an old build can't be fixed by signing in again: Back to menu only
+			row.add_child(si)
+		else:
+			si.free()
 		var back := UI3.button("BACK TO MENU", &"secondary", &"S")
 		back.name = "BackButton"
 		back.pressed.connect(func():

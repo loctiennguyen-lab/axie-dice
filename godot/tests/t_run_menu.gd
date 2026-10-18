@@ -97,15 +97,15 @@ func _abandon_from_run() -> void:
 	var btn: Button = null
 	var confirm: CheckBox = null
 	for n in v.find_children("*", "", true, false):
-		if n is Button and (n as Button).text == "ABANDON RUN": btn = n
+		if n is Button and (n as Button).text == "Abandon run": btn = n
 		if n is CheckBox and n.name == "ConfirmAbandonCheck": confirm = n
 	_assert(btn != null and confirm != null, "in-run Settings has no Abandon run")
 	if btn == null or confirm == null:
 		return
 	var back: Button = null
 	for n in v.find_children("*", "Button", true, false):
-		if (n as Button).text == "BACK TO RUN": back = n
-	_assert(back != null, "in-run Settings Back does not read BACK TO RUN")
+		if n.name == "BackButton" and (n as Button).tooltip_text.begins_with("Back to run"): back = n   # UI3Meta back is an arrow; the words live in the tooltip
+	_assert(back != null, "in-run Settings Back does not read Back to run")
 	confirm.button_pressed = true
 	btn.pressed.emit()
 	_assert(not RunState.has_saved_run(), "abandon left the save on disk")

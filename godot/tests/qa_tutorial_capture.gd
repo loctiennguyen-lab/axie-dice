@@ -18,12 +18,8 @@ func _ready() -> void:
 	_guard.capture()
 	await get_tree().process_frame
 
-	var menu: Node = (load("res://scenes/main_menu/MainMenu.tscn") as PackedScene).instantiate()
-	get_tree().root.add_child.call_deferred(menu)
-	await _settle(30)
-	_shoot("menu")
-	menu.queue_free()
-	await _settle(2)
+	# No MainMenu shot: MainMenu._ready() is a redirect (tutorial / Land) via change_scene, which
+	# frees THIS capture scene mid-await, so the run never saved or quit (it looked like a hang).
 
 	_tut = (load("res://scenes/tutorial/Tutorial.tscn") as PackedScene).instantiate()
 	get_tree().root.add_child.call_deferred(_tut)
@@ -89,8 +85,9 @@ func _settle(frames: int) -> void:
 
 
 func _shoot(tag: String) -> void:
-	var path := QaPaths.evidence_dir() + "/%s_tutorial-%s.png" % [_today(), tag]
-	get_tree().root.get_texture().get_image().save_png(path)
+	var img := get_tree().root.get_texture().get_image()
+	var path := QaPaths.evidence_dir() + "/ui3-tutorial-%s-%dx%d.png" % [tag, img.get_width(), img.get_height()]
+	img.save_png(path)
 	print("QA: saved ", path)
 
 

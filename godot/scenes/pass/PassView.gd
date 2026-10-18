@@ -230,7 +230,7 @@ func refresh() -> void:
 			_banner("Can't reach the dice server" if remote_on else "You're offline",
 				"Gem gifts need a connection." if remote_on else "Your pass progress is kept on this device.")
 		"guest":
-			_banner("Playing as a guest", "Pass progress is kept on this device. Sign in to keep it.")
+			_banner("You're signed out", "Pass progress is kept on this device. Sign in to keep it.")
 	match season_phase():
 		"before":
 			_banner("The season has not started", "XP starts counting on %s." % fmt_day(String(cfg().get("start_day", ""))))

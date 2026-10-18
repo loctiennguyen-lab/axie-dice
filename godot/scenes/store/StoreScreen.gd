@@ -142,7 +142,7 @@ func set_state(s: String) -> void:
 			_banner("Can't reach the dice server" if remote_on else "You're offline",
 				"Spending Gem needs a connection; nothing is spent." if remote_on else "Gem purchases run on this device for now.")
 		"guest":
-			_banner("Sign in to spend Gem" if remote_on else "Playing as a guest",
+			_banner("Sign in to spend Gem" if remote_on else "You're signed out",
 				"Guests can read every price." if remote_on else "Purchases are kept on this device. Sign in to keep them.")
 	_refresh()
 

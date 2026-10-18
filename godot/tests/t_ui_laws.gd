@@ -240,6 +240,7 @@ func _check_control(c: Control, scene_root: Node) -> void:
 				or b.is_equal_approx(DangoTheme.GOLD) or b.is_equal_approx(DangoTheme.THREAT) \
 				or b.is_equal_approx(DangoTheme.GEM_SHELF) or b.is_equal_approx(DangoTheme.INK_3) \
 				or b.is_equal_approx(Color("B89A74")) \
+				or (c.name == "SpotlightRing" and b.is_equal_approx(UI3Theme.color("text"))) \
 				or b.is_equal_approx(UI3Theme.color("selected_outline")) \
 				or b.is_equal_approx(UI3Theme.color("focus_ring")) \
 				or _is_ui3_token(b) \

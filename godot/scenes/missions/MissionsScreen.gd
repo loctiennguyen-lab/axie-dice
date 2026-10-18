@@ -259,7 +259,7 @@ func set_state(s: String) -> void:
 			if remote_on:
 				_banner("Sign in to stake Shard", "Guests can read every card. Staking needs an account.", false)
 			else:
-				_banner("Playing as a guest", "Missions run on this device. Sign in to keep your progress across devices.", false)
+				_banner("You're signed out", "Missions run on this device. Sign in to keep your progress across devices.", false)
 		"open_run":
 			_banner("You have a run open", "Only one run can be open. Finish or abandon it to take a mission.", false)
 	_refresh()
