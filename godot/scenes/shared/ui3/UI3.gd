@@ -708,3 +708,27 @@ class Spinner extends Control:
 
 	func _draw() -> void:
 		draw_arc(Vector2(12, 12), 9, 0.0, TAU * 0.75, 24, UI3Theme.color("text"), 3.0, true)
+
+
+## Player-facing text for a relic / pact / active description: strips the internal tags the data carries
+## (leading "RULE:" and "PACT.", [Global], [Axis: ...], [INF], escaped quotes) and lifts "[MP n]" out.
+## Returns {"text": String, "mp": int} where mp is -1 when the description has no mana cost.
+static func describe(raw: String) -> Dictionary:
+	var s := raw.replace("\\\"", "\"").strip_edges()
+	var mp := -1
+	var re_mp := RegEx.create_from_string("\\[MP\\s*(\\d+)\\]\\s*")
+	var m := re_mp.search(s)
+	if m != null:
+		mp = int(m.get_string(1))
+		s = re_mp.sub(s, "", true)
+	s = RegEx.create_from_string("\\[(Global|INF|Axis[^\\]]*)\\]\\s*").sub(s, "", true)
+	s = RegEx.create_from_string("^(RULE:|PACT\\.)\\s*").sub(s.strip_edges(), "")
+	s = s.strip_edges()
+	if s != "":
+		s = s[0].to_upper() + s.substr(1)
+	return {"text": s, "mp": mp}
+
+
+## Shorthand for `describe(raw).text`.
+static func player_text(raw: String) -> String:
+	return String(describe(raw)["text"])

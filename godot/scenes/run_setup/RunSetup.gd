@@ -77,7 +77,8 @@ var _party_label: Label
 var _asc_chips: Array[Button] = []
 var _asc_title: Label
 var _asc_mult: Label
-var _asc_rules: VBoxContainer
+var _asc_rule: Label
+var _stage: Control
 var _asc_tip: Label
 var _short_btn: Button
 var _full_btn: Button
@@ -311,9 +312,9 @@ func _refresh_kind() -> void:
 		var why := kind_block_reason(k)
 		b.disabled = why != ""
 		b.tooltip_text = why
-		b.text = "%s\n%s" % [String(k).capitalize(), _kind_sub(k)]
+		b.text = "%s · %s" % [String(k).capitalize(), _kind_sub(k)]
 		b.set_pressed_no_signal(kind == k)
-		_style_seg(b, kind == k)
+		_mark_selected(b, kind == k)
 
 
 ## Why Begin is disabled, or "" when it is allowed.
@@ -340,11 +341,15 @@ func set_state(s: String) -> void:
 		return
 	_clear_banners()
 	_body.visible = s != "loading" and s != "open_run"
-	var sk := _panel.get_node_or_null("Skeleton")
+	_stage.visible = s != "loading" and s != "open_run"
+	_panel.visible = s != "open_run"
+	var sk := _panel.get_node_or_null("Col/Skeleton")
 	if sk:
+		sk.get_parent().remove_child(sk)
 		sk.queue_free()
-	var oc := _panel.get_node_or_null("OpenRun")
+	var oc := get_node_or_null("OpenRun")
 	if oc:
+		remove_child(oc)
 		oc.queue_free()
 	if s == "loading":
 		_build_skeleton()
@@ -457,71 +462,110 @@ func save_preset(name: String) -> String:
 	return r
 
 
-func _preset_dim(width: float) -> VBoxContainer:
+# ---------------------------------------------------------------- UI-03 (A4 Blend) helpers
+
+func _lbl(text: String, variation := "") -> Label:
+	return UI3.label(text, variation)
+
+
+## Selected = 4 px cream outline on the button's own styles (never the focus ring).
+func _mark_selected(b: Button, on: bool) -> void:
+	for k in ["normal", "hover", "pressed"]:
+		var base: StyleBox = b.get_meta("base_" + k) if b.has_meta("base_" + k) else null
+		if on:
+			var src: StyleBox = base if base != null else b.get_theme_stylebox(k)
+			var sb := src.duplicate() as StyleBoxFlat
+			if sb != null:
+				sb.border_color = UI3Theme.color("selected_outline")
+				sb.set_border_width_all(UI3Theme.stroke("selected"))
+				b.add_theme_stylebox_override(k, sb)
+		elif base != null:
+			b.add_theme_stylebox_override(k, base)
+		else:
+			b.remove_theme_stylebox_override(k)
+
+
+## Narrower horizontal padding so six difficulty cells fit the 384 px inside the plate.
+func _tight(b: Button) -> void:
+	for k in ["normal", "hover", "pressed", "disabled"]:
+		var sb := b.get_theme_stylebox(k).duplicate() as StyleBoxFlat
+		if sb == null:
+			continue
+		sb.content_margin_left = 4
+		sb.content_margin_right = 4
+		b.add_theme_stylebox_override(k, sb)
+		if k != "disabled":
+			b.set_meta("base_" + k, sb)
+
+
+## Full-rect scrim + centred dialog plate. Returns the VBox inside the plate (dim -> Center -> plate -> v).
+func _modal_box(width: float, plate_name: String) -> VBoxContainer:
 	close_modal()
 	var dim := ColorRect.new()
-	dim.color = Color(0x24 / 255.0, 0x14 / 255.0, 0x0B / 255.0, 0.55)
+	dim.color = UI3Theme.color("scrim")
 	dim.set_anchors_preset(Control.PRESET_FULL_RECT)
-	dim.offset_left = 200
-	dim.offset_right = -200
-	dim.offset_top = 116
-	dim.offset_bottom = -84
+	dim.mouse_filter = Control.MOUSE_FILTER_STOP
 	_modal_layer.add_child(dim)
 	var c := CenterContainer.new()
 	c.set_anchors_preset(Control.PRESET_FULL_RECT)
 	dim.add_child(c)
-	var p := _plate(width, DangoTheme.LINE, DangoTheme.CREAM)
+	var p := UI3.plate(&"dialog")
+	p.name = plate_name
+	p.custom_minimum_size.x = width
 	c.add_child(p)
 	var v := VBoxContainer.new()
-	v.add_theme_constant_override("separation", 10)
+	v.add_theme_constant_override("separation", 16)
 	p.add_child(v)
 	return v
 
 
 func open_load_presets() -> void:
-	var v := _preset_dim(640)
-	v.get_parent().get_parent().get_parent().name = "LoadPresets"
-	v.add_child(_label("Load preset", 24, DangoTheme.INK, true))
+	var v := _modal_box(560, "LoadPresets")
+	v.add_child(_lbl(tr("Team presets"), "LabelScreenTitle"))
 	if TeamPresets.count() == 0:
-		v.add_child(_label("No saved teams yet. Build one in Team presets (House).", 16, DangoTheme.INK_ON_CREAM_MUTED))
+		var none := _lbl(tr("No saved teams yet. Build one in Team presets (House)."), "LabelMuted")
+		none.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		v.add_child(none)
 	for i in TeamPresets.count():
 		var e: Dictionary = MetaState.team_presets[i]
 		var miss := TeamPresets.missing_count(e)
-		var b := _button("%s%s" % [String(e["name"]), "   (%d seats empty)" % miss if miss > 0 else ""], 0, 52)
+		var b := UI3.button("%s%s" % [String(e["name"]), " · %d seats empty" % miss if miss > 0 else ""], &"secondary", &"M")
 		b.name = "Preset%d" % i
 		b.pressed.connect(load_preset.bind(i))
 		v.add_child(b)
-	var cancel := _button("Cancel", 160, 44)
+	var cancel := UI3.button(tr("Cancel"), &"secondary", &"S")
 	cancel.name = "ClosePresets"
 	cancel.pressed.connect(close_modal)
 	v.add_child(cancel)
+	cancel.grab_focus.call_deferred()
 
 
 func open_save_preset() -> void:
-	var v := _preset_dim(560)
-	v.get_parent().get_parent().get_parent().name = "SavePresetModal"
-	v.add_child(_label("Save as preset", 24, DangoTheme.INK, true))
+	var v := _modal_box(560, "SavePresetModal")
+	v.add_child(_lbl(tr("Save as preset"), "LabelScreenTitle"))
 	var edit := LineEdit.new()
 	edit.name = "PresetName"
 	edit.max_length = TeamPresets.NAME_MAX
 	edit.text = "Team %d" % (TeamPresets.count() + 1)
 	edit.custom_minimum_size = Vector2(0, 48)
 	v.add_child(edit)
-	var save := _button("Save team", 0, 52, true)
+	var save := UI3.button(tr("Save team"), &"primary", &"M")
 	save.name = "ConfirmSavePreset"
 	var refresh_save := func(_t := "") -> void:
 		var why := TeamPresets.save_block_reason(party)
 		if why == "" and TeamPresets.clean_name(edit.text) == "":
-			why = "Give the team a name"
+			why = tr("Give the team a name")
 		if why == "" and not TeamPresets.has_room():
-			why = "All preset slots are used"
-		save.disabled = why != ""
-		save.text = "Save team" if why == "" else "Save team\n" + why
+			why = tr("All preset slots are used")
+		if why == "":
+			UI3.clear_disabled_reason(save)
+		else:
+			UI3.set_disabled_reason(save, tr("Save team") + " · " + why)
 	edit.text_changed.connect(refresh_save)
 	refresh_save.call()
 	save.pressed.connect(func() -> void: save_preset(edit.text))
 	v.add_child(save)
-	var cancel := _button("Cancel", 160, 44)
+	var cancel := UI3.button(tr("Cancel"), &"secondary", &"S")
 	cancel.pressed.connect(close_modal)
 	v.add_child(cancel)
 	edit.grab_focus.call_deferred()
@@ -529,6 +573,7 @@ func open_save_preset() -> void:
 
 func close_modal() -> void:
 	for c in _modal_layer.get_children():
+		_modal_layer.remove_child(c)
 		c.queue_free()
 
 
@@ -545,61 +590,108 @@ func _initial_party() -> Array[String]:
 
 
 func _build() -> void:
-	# Placeholder plate until lane L's blurred Land backdrop exists; DangoScreen supplies PlateHost + scrim.
-	DangoScreen.build(self, MockupAssets.tex("assets/bg/rocky.jpg"), DangoTheme.Scrim.DEFAULT, false)
+	theme = UI3Theme.get_theme()
+	var bg := ColorRect.new()
+	bg.name = "PlateHost"   # screen backdrop (neutral-1); the 3D party view will draw over it
+	bg.color = UI3Theme.color("bg")
+	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
+	bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(bg)
 
-	_panel = PanelContainer.new()
+	# Left plate 432 w: header, banners, mode, length, difficulty.
+	_panel = UI3.plate(&"plate")
 	_panel.name = "Panel"
-	_panel.anchor_right = 1.0
-	_panel.anchor_bottom = 1.0
-	_panel.offset_left = 200
-	_panel.offset_right = -200
-	_panel.offset_top = 116
-	_panel.offset_bottom = -84
-	var sb := StyleBoxFlat.new()
-	sb.bg_color = DangoTheme.CREAM
-	sb.set_corner_radius_all(28)
-	sb.set_border_width_all(4)
-	sb.border_color = DangoTheme.LINE
-	sb.set_content_margin_all(0)
-	_panel.add_theme_stylebox_override("panel", sb)
-	_panel.clip_contents = true
+	_panel.custom_minimum_size.x = 432
+	_panel.set_anchors_preset(Control.PRESET_TOP_LEFT)
+	_panel.offset_left = 24
+	_panel.offset_top = 24
 	add_child(_panel)
-
 	var col := VBoxContainer.new()
 	col.name = "Col"
-	col.add_theme_constant_override("separation", 0)
+	col.add_theme_constant_override("separation", 16)
 	_panel.add_child(col)
 	col.add_child(_build_header())
 	_banner_host = VBoxContainer.new()
+	_banner_host.add_theme_constant_override("separation", 8)
 	col.add_child(_banner_host)
-
-	var scroll := ScrollContainer.new()
-	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	col.add_child(scroll)
-	DangoTheme.style_scrollbars(scroll)
-	var pad := MarginContainer.new()
-	pad.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	pad.add_theme_constant_override("margin_left", 24)
-	pad.add_theme_constant_override("margin_right", 24)
-	pad.add_theme_constant_override("margin_top", 14)
-	pad.add_theme_constant_override("margin_bottom", 14)
-	scroll.add_child(pad)
 	_body = VBoxContainer.new()
 	_body.name = "Body"
-	_body.add_theme_constant_override("separation", 14)
-	pad.add_child(_body)
+	_body.add_theme_constant_override("separation", 16)
+	col.add_child(_body)
+	_build_mode_col()
+	_build_asc_col()
 
-	_build_party_block()
-	var cols := HBoxContainer.new()
-	cols.add_theme_constant_override("separation", 18)
-	_body.add_child(cols)
-	cols.add_child(_build_mode_col())
-	cols.add_child(_build_asc_col())
+	# Party over the 3D safe area (480,200 -> 1896,840).
+	_stage = Control.new()
+	_stage.name = "Stage"
+	_stage.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_stage.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(_stage)
+	var area := VBoxContainer.new()
+	area.name = "PartyArea"
+	area.set_anchors_preset(Control.PRESET_TOP_LEFT)
+	area.offset_left = 480
+	area.offset_top = 40
+	area.offset_right = 1896
+	area.add_theme_constant_override("separation", 16)
+	_stage.add_child(area)
+	_party_label = _lbl("", "LabelTitle")
+	area.add_child(_party_label)
+	_party_row = HBoxContainer.new()
+	_party_row.name = "PartyRow"
+	_party_row.add_theme_constant_override("separation", 88)
+	area.add_child(_party_row)
+
 	if not is_newcomer():
-		cols.add_child(_build_kit_col())
-	col.add_child(_build_footer())
+		var kit := _build_kit_col()
+		kit.set_anchors_preset(Control.PRESET_TOP_LEFT)   # under the party block, same left edge
+		kit.offset_left = 480
+		kit.offset_top = 520
+		_stage.add_child(kit)
+
+	# Bottom right: reason line above, actions below.
+	var br := VBoxContainer.new()
+	br.name = "Actions"
+	br.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
+	br.grow_horizontal = Control.GROW_DIRECTION_BEGIN
+	br.grow_vertical = Control.GROW_DIRECTION_BEGIN
+	br.offset_right = -24
+	br.offset_bottom = -24
+	br.add_theme_constant_override("separation", 12)
+	_stage.add_child(br)
+	_footer_msg = _lbl("")
+	_footer_msg.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	_footer_msg.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_footer_msg.custom_minimum_size.x = 560
+	br.add_child(_footer_msg)
+	var acts := HBoxContainer.new()
+	acts.alignment = BoxContainer.ALIGNMENT_END
+	acts.add_theme_constant_override("separation", 16)
+	br.add_child(acts)
+	var lb := UI3.button(tr("Leaderboard"), &"quiet")
+	lb.name = "LeaderboardBtn"
+	lb.disabled = is_newcomer()
+	lb.tooltip_text = tr("Opens after %d runs") % NEWCOMER_RUNS if is_newcomer() else ""
+	lb.pressed.connect(open_leaderboard)
+	acts.add_child(lb)
+	var khB := UI3.key_hint("B")
+	khB.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	acts.add_child(khB)
+	var save_b := UI3.button(tr("Save preset"), &"quiet")
+	save_b.name = "SavePreset"
+	save_b.pressed.connect(open_save_preset)
+	acts.add_child(save_b)
+	var khS := UI3.key_hint("S")
+	khS.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	acts.add_child(khS)
+	var load_b := UI3.button(tr("Team presets"), &"secondary", &"M")
+	load_b.name = "LoadPreset"
+	load_b.pressed.connect(open_load_presets)
+	acts.add_child(load_b)
+	_begin_btn = UI3.button(tr("Start run"), &"primary", &"L")
+	_begin_btn.name = "Begin"
+	_begin_btn.pressed.connect(func() -> void: begin())
+	acts.add_child(_begin_btn)
 
 	_modal_layer = Control.new()
 	_modal_layer.name = "Modals"
@@ -612,79 +704,17 @@ func _build() -> void:
 	_refresh_asc()
 
 
-func _label(text: String, size: int, color: Color = DangoTheme.INK, display := false) -> Label:
-	var l := Label.new()
-	l.text = text
-	l.add_theme_font_size_override("font_size", size)
-	l.add_theme_color_override("font_color", color)
-	if display:
-		l.add_theme_font_override("font", DangoTheme.FONT_DISPLAY)
-	return l
-
-
-func _button(text: String, w: float, h: float, primary := false) -> Button:
-	var b := Button.new()
-	b.text = text
-	b.custom_minimum_size = Vector2(w, maxf(h, 44))
-	b.add_theme_font_override("font", DangoTheme.FONT_DISPLAY)
-	b.add_theme_font_size_override("font_size", 18)
-	DangoTheme.style_button(b, primary)
-	return b
-
-
 func _build_header() -> Control:
-	var band := PanelContainer.new()
-	band.custom_minimum_size = Vector2(0, 64)
-	var sb := StyleBoxFlat.new()
-	sb.bg_color = DangoTheme.LINE
-	sb.corner_radius_top_left = 24
-	sb.corner_radius_top_right = 24
-	sb.content_margin_left = 16
-	sb.content_margin_right = 16
-	band.add_theme_stylebox_override("panel", sb)
 	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", 14)
-	band.add_child(row)
-	var back := _button("← Back  Esc", 150, 48)
+	row.add_theme_constant_override("separation", 16)
+	var back := UI3.button(tr("← Back  Esc"), &"quiet")
 	back.name = "Back"
 	back.pressed.connect(_on_back)
 	row.add_child(back)
-	var title := _label("Run Setup", 36, DangoTheme.CREAM_RAISED, true)
+	var title := _lbl(tr("Run setup"), "LabelScreenTitle")
 	title.name = "Title"
 	row.add_child(title)
-	var sub := _label("Portal · pick a party, a length and an Ascension", 16, DangoTheme.CREAM)
-	sub.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	sub.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	row.add_child(sub)
-	var lb := _button("Leaderboard  B", 190, 48)
-	lb.name = "LeaderboardBtn"
-	lb.disabled = is_newcomer()
-	lb.tooltip_text = "Opens after %d runs" % NEWCOMER_RUNS if is_newcomer() else ""
-	lb.pressed.connect(open_leaderboard)
-	row.add_child(lb)
-	return band
-
-
-func _build_party_block() -> void:
-	var head := HBoxContainer.new()
-	head.custom_minimum_size = Vector2(0, 40)
-	head.add_theme_constant_override("separation", 10)
-	_party_label = _label("", 18, WOOD_DARK, true)
-	_party_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	head.add_child(_party_label)
-	var load_b := _button("Load preset", 170, 40)
-	load_b.name = "LoadPreset"
-	load_b.pressed.connect(open_load_presets)
-	head.add_child(load_b)
-	var save_b := _button("Save as preset  S", 170, 40)
-	save_b.name = "SavePreset"
-	save_b.pressed.connect(open_save_preset)
-	head.add_child(save_b)
-	_body.add_child(head)
-	_party_row = HBoxContainer.new()
-	_party_row.name = "PartyRow"
-	_party_row.add_theme_constant_override("separation", 16)
-	_body.add_child(_party_row)
+	return row
 
 
 func _refresh_party() -> void:
@@ -693,178 +723,124 @@ func _refresh_party() -> void:
 	for c in _party_row.get_children():
 		_party_row.remove_child(c)
 		c.queue_free()
-	_party_label.text = "PARTY · %d OF %d" % [filled_count(), PARTY_SIZE]
+	_party_label.text = tr("Party · %d of %d") % [filled_count(), PARTY_SIZE]
 	for i in PARTY_SIZE:
 		_party_row.add_child(_build_slot(i))
 	_refresh_kind()
 
 
+## One party seat: 168 square preview (class colour stand-in until the 3D view lands) + a 200 w plate.
 func _build_slot(i: int) -> Control:
 	var key := party[i] if i < party.size() else ""
-	var card := PanelContainer.new()
+	var card := VBoxContainer.new()
 	card.name = "Slot%d" % i
-	card.custom_minimum_size = Vector2(272, 176)
-	card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	var sb := StyleBoxFlat.new()
-	sb.set_corner_radius_all(20)
-	sb.set_border_width_all(3)
-	sb.set_content_margin_all(10)
-	var v := VBoxContainer.new()
-	v.add_theme_constant_override("separation", 4)
-	card.add_child(v)
+	card.custom_minimum_size.x = 200
+	card.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+	card.add_theme_constant_override("separation", 8)
+	var preview := Panel.new()
+	preview.name = "Preview"
+	preview.custom_minimum_size = Vector2(168, 168)
+	preview.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	var psb := StyleBoxFlat.new()
+	psb.set_corner_radius_all(UI3Theme.radius("m"))
+	preview.add_theme_stylebox_override("panel", psb)
+	card.add_child(preview)
 	if key == "":
-		sb.bg_color = DangoTheme.CREAM_RAISED.darkened(0.04)
-		sb.border_color = DangoTheme.LINE
-		sb.draw_center = true
-		card.add_theme_stylebox_override("panel", sb)
-		var pick := _button("Pick an Axie", 0, 52)
+		psb.draw_center = false
+		psb.border_color = UI3Theme.color("disabled_border")
+		psb.set_border_width_all(2)
+		var pick := UI3.button(tr("+ Add Axie"), &"secondary", &"M")
 		pick.name = "Pick"
-		pick.size_flags_vertical = Control.SIZE_EXPAND_FILL
+		pick.set_anchors_preset(Control.PRESET_FULL_RECT)
 		pick.pressed.connect(open_picker.bind(i))
-		v.add_child(pick)
+		var flat := StyleBoxEmpty.new()
+		for k in ["normal", "hover", "pressed"]:
+			pick.add_theme_stylebox_override(k, flat)
+		preview.add_child(pick)
 		return card
 	var def: Dictionary = ContentDB.heroes.get(key, {})
 	var cls := String(def.get("cls", ""))
-	sb.bg_color = DangoTheme.CREAM_RAISED
-	sb.border_color = DangoTheme.LINE
-	card.add_theme_stylebox_override("panel", sb)
-	var top := HBoxContainer.new()
-	top.add_theme_constant_override("separation", 10)
-	v.add_child(top)
-	var dot := ColorRect.new()                     # class-colour portrait stand-in (52)
-	dot.custom_minimum_size = Vector2(52, 52)
-	dot.color = DangoTheme.class_color(cls)
-	top.add_child(dot)
-	var names := VBoxContainer.new()
-	names.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	names.add_child(_label(String(def.get("n", key)), 19, DangoTheme.INK, true))
-	names.add_child(_label("%s · HP %d" % [cls.capitalize(), int(def.get("max_hp", 0))], 14, DangoTheme.INK_ON_CREAM_MUTED))
-	top.add_child(names)
+	psb.bg_color = UI3Theme.color("viewport")
+	var port_path := "res://assets/portraits/%s.png" % cls
+	if ResourceLoader.exists(port_path):
+		var pic := TextureRect.new()
+		pic.name = "Portrait"
+		pic.texture = load(port_path)
+		pic.set_anchors_preset(Control.PRESET_FULL_RECT)
+		pic.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		pic.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		pic.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		preview.add_child(pic)
+	else:
+		var initial := _lbl(String(def.get("n", key)).substr(0, 1), "LabelScreenTitle")
+		initial.set_anchors_preset(Control.PRESET_FULL_RECT)
+		initial.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		initial.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		preview.add_child(initial)
+	var plate := UI3.plate(&"plate")
+	card.add_child(plate)
+	var v := VBoxContainer.new()
+	v.add_theme_constant_override("separation", 4)
+	plate.add_child(v)
+	var nm := _lbl(String(def.get("n", key)), "LabelTitle")
+	nm.clip_text = true
+	nm.custom_minimum_size.x = 150
+	v.add_child(nm)
 	var vault := MetaState.is_vault_key(key)
-	var tag := _label("Vault" if vault else "Starter", 14, DangoTheme.INK)
-	tag.custom_minimum_size = Vector2(0, 24)
-	v.add_child(tag)
-	var faces := HBoxContainer.new()
-	faces.add_theme_constant_override("separation", 3)
-	for f in (def.get("die", []) as Array):
-		var cell := Label.new()
-		cell.custom_minimum_size = Vector2(34, 34)
-		cell.text = str(int((f as Dictionary).get("value", 0)))
-		cell.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		cell.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-		cell.add_theme_font_override("font", DangoTheme.FONT_DISPLAY)
-		cell.add_theme_font_size_override("font_size", 16)
-		cell.add_theme_color_override("font_color", DangoTheme.INK)
-		var cs := StyleBoxFlat.new()
-		cs.bg_color = DangoTheme.die_type_color(String((f as Dictionary).get("type", ""))).lightened(0.35)
-		cs.set_corner_radius_all(8)
-		cell.add_theme_stylebox_override("normal", cs)
-		faces.add_child(cell)
-	v.add_child(faces)
+	var meta := _lbl("%s · %s" % [cls.capitalize(), tr("Vault") if vault else tr("Starter")], "LabelMuted")
+	meta.clip_text = true
+	v.add_child(meta)
+	v.add_child(_lbl(tr("Max HP %d") % int(def.get("max_hp", 0)), "LabelMuted"))
 	var acts := HBoxContainer.new()
 	acts.add_theme_constant_override("separation", 8)
-	var swap := _button("Swap", 90, 44)
+	v.add_child(acts)
+	var swap := UI3.button(tr("Swap"), &"secondary", &"S")
 	swap.name = "Swap"
 	swap.pressed.connect(open_picker.bind(i))
 	acts.add_child(swap)
-	var clr := _button("Clear", 90, 44)
+	var clr := UI3.button(tr("Clear"), &"secondary", &"S")
 	clr.name = "Clear"
 	clr.pressed.connect(clear_slot.bind(i))
 	acts.add_child(clr)
-	v.add_child(acts)
 	return card
 
 
-func _plate(min_w: float, border: Color = DangoTheme.LINE, fill: Color = DangoTheme.CREAM_DISABLED) -> PanelContainer:
-	var p := PanelContainer.new()
-	p.custom_minimum_size = Vector2(min_w, 0)
-	var sb := StyleBoxFlat.new()
-	sb.bg_color = fill
-	sb.set_corner_radius_all(16)
-	sb.set_border_width_all(3)
-	sb.border_color = border
-	sb.set_content_margin_all(14)
-	p.add_theme_stylebox_override("panel", sb)
-	return p
-
-
-func _chip_style(fill: Color, border: Color, shelf := 0) -> StyleBoxFlat:
-	var s := StyleBoxFlat.new()
-	s.bg_color = fill
-	s.set_corner_radius_all(10)
-	s.set_border_width_all(2)
-	s.border_color = border
-	s.shadow_color = DangoTheme.LINE
-	s.shadow_size = 0
-	s.shadow_offset = Vector2(0, shelf)
-	return s
-
-
-func _seg_button(text: String, sub: String, h: float) -> Button:
-	var b := Button.new()
-	b.toggle_mode = true
-	b.custom_minimum_size = Vector2(0, h)
-	b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	b.text = text if sub == "" else "%s\n%s" % [text, sub]
-	b.add_theme_font_override("font", DangoTheme.FONT_DISPLAY)
-	b.add_theme_font_size_override("font_size", 18)
-	return b
-
-
-func _build_mode_col() -> Control:
-	var p := _plate(440)
-	var v := VBoxContainer.new()
-	v.add_theme_constant_override("separation", 8)
-	p.add_child(v)
-	v.add_child(_label("MODE", 16, WOOD_DARK, true))
-	var seg := HBoxContainer.new()
-	seg.add_theme_constant_override("separation", 6)
-	v.add_child(seg)
+func _build_mode_col() -> void:
+	_body.add_child(_lbl(tr("Mode"), "LabelMuted"))
 	for k in ["normal", "daily", "ranked"]:
-		var b := _seg_button(String(k).capitalize(), _kind_sub(k), 62)
+		var b := UI3.button(String(k).capitalize(), &"secondary", &"M")
 		b.name = "Mode" + String(k).capitalize()
+		b.toggle_mode = true
 		b.pressed.connect(select_kind.bind(k))
 		_kind_btns[k] = b
-		seg.add_child(b)
+		_body.add_child(b)
 	_refresh_kind()
-	v.add_child(_label("LENGTH", 16, WOOD_DARK, true))
-	var lrow := HBoxContainer.new()
-	lrow.add_theme_constant_override("separation", 6)
-	v.add_child(lrow)
 	var grp := ButtonGroup.new()
-	_short_btn = _seg_button("Short", "", 54)
+	var lrow := HBoxContainer.new()
+	lrow.add_theme_constant_override("separation", 8)
+	_body.add_child(lrow)
+	_short_btn = UI3.button(tr("Short"), &"secondary", &"M")
 	_short_btn.name = "LenShort"
+	_short_btn.toggle_mode = true
 	_short_btn.button_group = grp
+	_short_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_short_btn.pressed.connect(select_length.bind("short"))
 	lrow.add_child(_short_btn)
-	_full_btn = _seg_button("Full", "", 54)
+	_full_btn = UI3.button(tr("Full"), &"secondary", &"M")
 	_full_btn.name = "LenFull"
+	_full_btn.toggle_mode = true
 	_full_btn.button_group = grp
+	_full_btn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_full_btn.pressed.connect(func() -> void:
 		if not select_length("full"):
 			_refresh_mode())
 	if not is_full_unlocked():
-		_full_btn.tooltip_text = "Win a Short run to unlock Full"
+		_full_btn.tooltip_text = tr("Win a Short run to unlock Full")
 	lrow.add_child(_full_btn)
-	_mode_detail = _label("", 15, DangoTheme.INK)
+	_mode_detail = _lbl("", "LabelMuted")
 	_mode_detail.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	v.add_child(_mode_detail)
-	return p
-
-
-func _style_seg(b: Button, on: bool) -> void:
-	var fill := DangoTheme.PRIMARY if on else DangoTheme.CREAM_DISABLED
-	var border := DangoTheme.LINE
-	for k in ["normal", "hover", "pressed", "disabled", "focus"]:
-		var st := _chip_style(fill, border, 4 if on else 0)
-		if k == "focus":
-			st.draw_center = false
-			st.border_color = DangoTheme.GOLD
-			st.set_border_width_all(4)
-		b.add_theme_stylebox_override(k, st)
-	for c in ["font_color", "font_pressed_color", "font_hover_color", "font_hover_pressed_color"]:
-		b.add_theme_color_override(c, DangoTheme.INK)
-	b.add_theme_color_override("font_disabled_color", DangoTheme.INK_DISABLED)
+	_mode_detail.custom_minimum_size.x = 384
+	_body.add_child(_mode_detail)
 
 
 func _refresh_mode() -> void:
@@ -873,57 +849,65 @@ func _refresh_mode() -> void:
 	var full_ok := is_full_unlocked()
 	_short_btn.set_pressed_no_signal(mode == "short")
 	_full_btn.set_pressed_no_signal(mode == "full")
-	_style_seg(_short_btn, mode == "short")
-	_style_seg(_full_btn, mode == "full" and full_ok)
-	if not full_ok:
-		_full_btn.text = "Full  🔒"
-		_full_btn.add_theme_color_override("font_color", DangoTheme.INK_DISABLED)
+	_mark_selected(_short_btn, mode == "short")
+	_mark_selected(_full_btn, mode == "full" and full_ok)
+	_full_btn.text = tr("Full") if full_ok else tr("Full · locked")
 	var cfg: Dictionary = RunMapGenerator.MODE_CONFIG.get(mode, {})
 	var txt := "%s · %d rows · %d bosses" % [mode.capitalize(), int(cfg.get("total_rows", 0)),
 		(cfg.get("boss_rows", []) as Array).size()]
 	if not full_ok:
-		txt += "\nFull is locked. Win a Short run to unlock Full."
+		txt += "\n" + tr("Full is locked. Win a Short run to unlock Full.")
 	_mode_detail.text = txt
 
 
-func _build_asc_col() -> Control:
-	var p := _plate(0)
-	p.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	var v := VBoxContainer.new()
-	v.add_theme_constant_override("separation", 6)
-	p.add_child(v)
-	v.add_child(_label("ASCENSION", 16, WOOD_DARK, true))
-	var chips := HBoxContainer.new()
-	chips.add_theme_constant_override("separation", 6)
-	v.add_child(chips)
+func _build_asc_col() -> void:
+	_body.add_child(_lbl(tr("Difficulty"), "LabelMuted"))
 	_asc_chips.clear()
-	for n in ASC_MAX + 1:
-		var b := Button.new()
-		b.name = "Asc%d" % n
-		b.custom_minimum_size = Vector2(44, 44)
-		b.text = "A%d" % n
-		b.add_theme_font_override("font", DangoTheme.FONT_DISPLAY)
-		b.add_theme_font_size_override("font_size", 16)
-		b.pressed.connect(_on_asc_pressed.bind(n))
-		chips.add_child(b)
-		_asc_chips.append(b)
-	_asc_title = _label("", 26, DangoTheme.INK, true)
-	v.add_child(_asc_title)
-	_asc_mult = _label("", 15, DangoTheme.LINE)
-	v.add_child(_asc_mult)
-	_asc_tip = _label("", 14, DangoTheme.DUSK_INK)
-	v.add_child(_asc_tip)
-	var well := _plate(0, DangoTheme.LINE, DangoTheme.CREAM_TRACK)
-	v.add_child(well)
-	_asc_rules = VBoxContainer.new()
-	_asc_rules.add_theme_constant_override("separation", 2)
-	well.add_child(_asc_rules)
-	return p
+	if is_newcomer():
+		var one := _lbl(tr("Difficulty opens after %d runs. You play A0 · Normal.") % NEWCOMER_RUNS)
+		one.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		one.custom_minimum_size.x = 384
+		_body.add_child(one)
+	else:
+		var grid := GridContainer.new()
+		grid.name = "AscGrid"
+		grid.columns = 6
+		grid.add_theme_constant_override("h_separation", 8)
+		grid.add_theme_constant_override("v_separation", 8)
+		_body.add_child(grid)
+		for n in ASC_MAX + 1:
+			var b := UI3.button("A%d" % n, &"secondary", &"S")
+			b.name = "Asc%d" % n
+			b.toggle_mode = false
+			b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+			b.add_theme_constant_override("icon_max_width", 14)
+			b.add_theme_constant_override("h_separation", 2)
+			b.custom_minimum_size.x = 0
+			b.pressed.connect(_on_asc_pressed.bind(n))
+			grid.add_child(b)
+			_tight(b)
+			_asc_chips.append(b)
+	_asc_title = _lbl("", "LabelTitle")
+	_body.add_child(_asc_title)
+	_asc_mult = _lbl("", "LabelMuted")
+	_asc_mult.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_asc_mult.custom_minimum_size.x = 384
+	_body.add_child(_asc_mult)
+	_asc_rule = _lbl("")
+	_asc_rule.name = "AscRule"
+	_asc_rule.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_asc_rule.custom_minimum_size.x = 384
+	_body.add_child(_asc_rule)
+	_asc_tip = _lbl("")
+	_asc_tip.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_asc_tip.custom_minimum_size.x = 384
+	_asc_tip.add_theme_color_override("font_color", UI3Theme.color("danger_text"))
+	_body.add_child(_asc_tip)
 
 
 func _on_asc_pressed(n: int) -> void:
 	if not select_ascension(n):
-		_asc_tip.text = "Win a run at A%d to unlock A%d" % [n - 1, n]
+		_asc_tip.text = tr("Win a run at A%d to unlock A%d") % [n - 1, n]
 
 
 func _refresh_asc() -> void:
@@ -934,134 +918,81 @@ func _refresh_asc() -> void:
 	for n in _asc_chips.size():
 		var b := _asc_chips[n]
 		var locked := n > ceil
-		var sel := n == ascension
-		var fill := DangoTheme.PRIMARY if sel else (DangoTheme.CREAM_DISABLED if locked else DangoTheme.CREAM_RAISED)
-		for k in ["normal", "hover", "pressed", "disabled"]:
-			b.add_theme_stylebox_override(k, _chip_style(fill, DangoTheme.LINE, 4 if sel else 0))
-		var f := _chip_style(fill, DangoTheme.GOLD)
-		f.draw_center = false
-		f.set_border_width_all(4)
-		b.add_theme_stylebox_override("focus", f)
-		for c in ["font_color", "font_hover_color", "font_pressed_color"]:
-			b.add_theme_color_override(c, DangoTheme.INK_DISABLED if locked else DangoTheme.INK)
-		b.tooltip_text = "Win a run at A%d to unlock A%d" % [n - 1, n] if locked else ""
-		b.text = "A%d" % n + ("🔒" if locked else "")
+		_mark_selected(b, n == ascension)
+		b.icon = UI3.icon("ui_lock") if locked else null
+		b.modulate.a = 0.6 if locked else 1.0
+		b.tooltip_text = tr("Win a run at A%d to unlock A%d") % [n - 1, n] if locked else ""
 	var m: Dictionary = ContentDB.ascension_mods(ascension)
 	if ascension == 0:
 		_asc_title.text = "A0 · Normal"
 		var clk: Dictionary = m.get("clock", {})
-		_asc_mult.text = "No extra rules · light boss clock from turn %d" % int(clk.get("start", 14))
+		_asc_mult.text = tr("No extra rules")
+		_asc_rule.text = tr("Light boss clock from turn %d") % int(clk.get("start", 14))
 	else:
 		_asc_title.text = "A%d · %s" % [ascension, RULES[ascension - 1][1]]
 		_asc_mult.text = "%d rule%s active · Enemy HP ×%.2f · Damage ×%.2f · Boss HP ×%.2f" % [
 			ascension, "" if ascension == 1 else "s", float(m.get("hp", 1.0)),
 			float(m.get("dmg", 1.0)), float(m.get("boss_hp", 1.0))]
-	for c in _asc_rules.get_children():
-		_asc_rules.remove_child(c)
-		c.queue_free()
-	for r in RULES:
-		var lvl: int = r[0]
-		if lvl > ascension:
-			break
-		var line: String = r[2]
-		var grey := false
-		if lvl == 4 and ascension >= 9:
-			line = "Enrage from turn 8 (A9): +20%/turn, max +100%"
-		if lvl == 6 and ascension >= 10:
-			line = "Replaced by A10"
-			grey = true
-		_asc_rules.add_child(_rule_row(lvl, r[1], line, lvl == ascension, grey))
-	if ascension == 0:
-		_asc_rules.add_child(_label("Pick a higher level to add rules.", 15, DangoTheme.INK_ON_CREAM_MUTED))
-
-
-func _rule_row(lvl: int, nm: String, line: String, current: bool, grey: bool) -> Control:
-	var row := PanelContainer.new()
-	row.custom_minimum_size = Vector2(0, 30)
-	var sb := StyleBoxFlat.new()
-	sb.bg_color = DangoTheme.PRIMARY if current else Color(0, 0, 0, 0)
-	sb.set_corner_radius_all(8)
-	sb.content_margin_left = 8
-	row.add_theme_stylebox_override("panel", sb)
-	var h := HBoxContainer.new()
-	h.add_theme_constant_override("separation", 10)
-	row.add_child(h)
-	var ink := DangoTheme.INK_DISABLED if grey else DangoTheme.INK
-	var code := _label("A%d" % lvl, 15, ink, true)
-	code.custom_minimum_size = Vector2(36, 0)
-	h.add_child(code)
-	var n := _label(nm, 15, ink, true)
-	n.custom_minimum_size = Vector2(120, 0)
-	h.add_child(n)
-	var d := _label(line, 14, ink)
-	d.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	h.add_child(d)
-	if current:
-		h.add_child(_label("NEW", 12, DangoTheme.INK, true))
-	return row
+		var line: String = RULES[ascension - 1][2]
+		_asc_rule.text = line
 
 
 func _build_kit_col() -> Control:
-	var p := _plate(400, DangoTheme.GEM_SHELF, DangoTheme.GEM_PANEL_TINT)
+	var p := UI3.plate(&"plate")
 	p.name = "KitBoon"
+	p.custom_minimum_size.x = 416
 	var v := VBoxContainer.new()
-	v.add_theme_constant_override("separation", 8)
+	v.add_theme_constant_override("separation", 12)
 	p.add_child(v)
-	v.add_child(_label("AID FOR THIS RUN", 16, DangoTheme.GEM_INK, true))
+	v.add_child(_lbl(tr("Aid for this run"), "LabelTitle"))
 	for t in [["Starting Boon", "38 Gem ≈ 0.42 USD"], ["Run Kit", "60 Gem ≈ 0.67 USD"]]:
-		var row := HBoxContainer.new()
-		row.custom_minimum_size = Vector2(0, 58)
+		var row := UI3.plate(&"row")
+		var h := HBoxContainer.new()
+		h.add_theme_constant_override("separation", 12)
+		row.add_child(h)
 		var names := VBoxContainer.new()
 		names.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		names.add_child(_label(t[0], 17, DangoTheme.GEM_INK, true))
-		names.add_child(_label(t[1], 14, DangoTheme.GEM_INK))
-		row.add_child(names)
-		var add := _button("Add", 90, 44)
-		add.disabled = true
-		add.tooltip_text = "Aid purchase is not in this build"
-		row.add_child(add)
+		names.add_child(_lbl(t[0]))
+		var sub := _lbl(t[1], "LabelMuted")
+		names.add_child(sub)
+		var nib_row := HBoxContainer.new()
+		nib_row.add_theme_constant_override("separation", 8)
+		var lock := TextureRect.new()
+		lock.texture = UI3.icon("ui_lock")
+		lock.custom_minimum_size = Vector2(20, 20)
+		lock.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		lock.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		nib_row.add_child(lock)
+		var nib := _lbl(tr("Not in this build"), "LabelMuted")
+		nib.name = "NotInBuild"
+		nib_row.add_child(nib)
+		names.add_child(nib_row)
+		row.modulate.a = 0.6
+		h.add_child(names)
 		v.add_child(row)
-	var f := _label(FAIRNESS, 14, DangoTheme.GEM_INK)
+	var f := _lbl(FAIRNESS, "LabelMuted")
 	f.name = "Fairness"
 	f.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	f.custom_minimum_size.x = 368
 	v.add_child(f)
 	return p
-
-
-func _build_footer() -> Control:
-	var band := PanelContainer.new()
-	band.custom_minimum_size = Vector2(0, 84)
-	var sb := StyleBoxFlat.new()
-	sb.bg_color = DangoTheme.CREAM_DISABLED
-	sb.corner_radius_bottom_left = 24
-	sb.corner_radius_bottom_right = 24
-	sb.content_margin_left = 24
-	sb.content_margin_right = 24
-	band.add_theme_stylebox_override("panel", sb)
-	var h := HBoxContainer.new()
-	band.add_child(h)
-	_footer_msg = _label("", 17, DangoTheme.INK)
-	_footer_msg.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_footer_msg.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	_footer_msg.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	h.add_child(_footer_msg)
-	_begin_btn = _button("Begin run", 380, 60, true)
-	_begin_btn.name = "Begin"
-	_begin_btn.add_theme_font_size_override("font_size", 24)
-	_begin_btn.pressed.connect(func() -> void: begin())
-	h.add_child(_begin_btn)
-	return band
 
 
 func _refresh_footer() -> void:
 	if _footer_msg == null:
 		return
 	var why := begin_block_reason()
-	_begin_btn.disabled = why != ""
 	var summary := "Party %d of %d · %s · A%d" % [filled_count(), PARTY_SIZE, mode.capitalize(), ascension]
 	if kind != "normal":
 		summary += " · " + kind.capitalize()
 	_footer_msg.text = summary if why == "" else "%s\n%s" % [summary, why]
+	if why == "":
+		UI3.clear_disabled_reason(_begin_btn)
+	elif filled_count() < PARTY_SIZE and state in ["normal", "offline", "guest"] and (kind == "normal" or kind_block_reason(kind) == ""):
+		_begin_btn.text = tr("Start run") + " · %d of %d" % [filled_count(), PARTY_SIZE]
+		_begin_btn.disabled = true
+	else:
+		UI3.set_disabled_reason(_begin_btn, why)
 
 
 # ---------------------------------------------------------------- states
@@ -1075,33 +1006,28 @@ func _clear_banners() -> void:
 
 func _add_banner(msg: String, detail: String, with_retry: bool, with_sign_in: bool = false) -> void:
 	_clear_banners()
-	var p := PanelContainer.new()
+	var p := UI3.plate(&"notice")
 	p.name = "Banner"
-	var sb := StyleBoxFlat.new()
-	sb.bg_color = DangoTheme.DUSK
-	sb.content_margin_left = 24
-	sb.content_margin_right = 24
-	sb.content_margin_top = 8
-	sb.content_margin_bottom = 8
-	p.add_theme_stylebox_override("panel", sb)
-	var h := HBoxContainer.new()
-	h.add_theme_constant_override("separation", 14)
-	p.add_child(h)
-	h.add_child(_label("⚠", 28, DangoTheme.DUSK_INK))
-	var t := VBoxContainer.new()
-	t.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	t.add_child(_label(msg, 18, DangoTheme.DUSK_INK, true))
-	t.add_child(_label(detail, 14, DangoTheme.DUSK_INK))
-	h.add_child(t)
+	var v := VBoxContainer.new()
+	v.add_theme_constant_override("separation", 8)
+	p.add_child(v)
+	var t := _lbl(msg, "LabelTitle")
+	t.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	t.custom_minimum_size.x = 368
+	v.add_child(t)
+	var d := _lbl(detail)
+	d.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	d.custom_minimum_size.x = 368
+	v.add_child(d)
 	if with_retry:
-		var r := _button("Try again", 160, 44, true)
+		var r := UI3.button(tr("Try again"), &"secondary", &"S")
 		r.pressed.connect(func() -> void: set_state("normal"))
-		h.add_child(r)
+		v.add_child(r)
 	if with_sign_in:
-		var si := _button("Sign in", 160, 44, true)
+		var si := UI3.button(tr("Sign in"), &"primary", &"M")
 		si.name = "SignInButton"
 		si.pressed.connect(_on_sign_in)
-		h.add_child(si)
+		v.add_child(si)
 	_banner_host.add_child(p)
 
 
@@ -1116,43 +1042,40 @@ func _on_sign_in() -> void:
 func _build_skeleton() -> void:
 	var sk := VBoxContainer.new()
 	sk.name = "Skeleton"
-	sk.add_theme_constant_override("separation", 14)
-	sk.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	for h in [176, 360]:
-		var w := Panel.new()
-		w.custom_minimum_size = Vector2(0, h)
-		var sb := StyleBoxFlat.new()
-		sb.bg_color = DangoTheme.CREAM_TRACK
-		sb.set_corner_radius_all(20)
-		w.add_theme_stylebox_override("panel", sb)
-		sk.add_child(w)
-	_panel.get_node("Col").add_child(sk)
-	_panel.get_node("Col").move_child(sk, 2)
+	sk.add_theme_constant_override("separation", 12)
+	for i in 4:
+		sk.add_child(UI3.skeleton_row())
+	var col := _panel.get_node("Col")
+	col.add_child(sk)
+	col.move_child(sk, 2)
 
 
 func _build_open_run() -> void:
 	var holder := CenterContainer.new()
 	holder.name = "OpenRun"
-	holder.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	var card := _plate(640)
+	holder.set_anchors_preset(Control.PRESET_FULL_RECT)
+	var card := UI3.plate(&"dialog")
+	card.custom_minimum_size.x = 560
 	var v := VBoxContainer.new()
-	v.add_theme_constant_override("separation", 10)
+	v.add_theme_constant_override("separation", 16)
 	card.add_child(v)
-	v.add_child(_label("You have an unfinished run", 26, DangoTheme.INK, true))
-	var line := "Saved run on disk"
-	v.add_child(_label(line, 16, DangoTheme.INK_ON_CREAM_MUTED))
-	var cont := _button("Continue run", 0, 60, true)
+	v.add_child(_lbl(tr("You have an unfinished run"), "LabelScreenTitle"))
+	v.add_child(_lbl(tr("Saved run on disk"), "LabelMuted"))
+	var cont := UI3.button(tr("Continue run"), &"primary", &"L")
 	cont.name = "Continue"
 	cont.pressed.connect(_on_continue)
 	v.add_child(cont)
-	var nw := _button("New run", 0, 48)
+	var nw := UI3.button(tr("New run"), &"secondary", &"M")
 	nw.name = "NewRun"
 	nw.pressed.connect(_on_new_run)
 	v.add_child(nw)
-	v.add_child(_label("A new run ends the current run. Aid you used is not refunded.", 14, DangoTheme.INK))
+	var note := _lbl(tr("A new run ends the current run. Aid you used is not refunded."), "LabelMuted")
+	note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	note.custom_minimum_size.x = 496
+	v.add_child(note)
 	holder.add_child(card)
-	_panel.get_node("Col").add_child(holder)
-	_panel.get_node("Col").move_child(holder, 2)
+	add_child(holder)
+	move_child(holder, get_child_count() - 2)   # under the modal layer
 	cont.grab_focus.call_deferred()
 
 
@@ -1205,35 +1128,18 @@ func _pick_keys() -> Array[String]:
 
 
 func _show_picker() -> void:
-	close_modal()
-	var dim := ColorRect.new()
-	dim.color = Color(0x24 / 255.0, 0x14 / 255.0, 0x0B / 255.0, 0.55)
-	dim.set_anchors_preset(Control.PRESET_FULL_RECT)
-	dim.offset_left = 200
-	dim.offset_right = -200
-	dim.offset_top = 116
-	dim.offset_bottom = -84
-	_modal_layer.add_child(dim)
-	var c := CenterContainer.new()
-	c.set_anchors_preset(Control.PRESET_FULL_RECT)
-	dim.add_child(c)
-	var p := _plate(1000, DangoTheme.LINE, DangoTheme.CREAM)
-	p.name = "Picker"
-	c.add_child(p)
-	var v := VBoxContainer.new()
-	v.add_theme_constant_override("separation", 10)
-	p.add_child(v)
+	var v := _modal_box(1000, "Picker")
 	var head := HBoxContainer.new()
-	head.add_theme_constant_override("separation", 8)
+	head.add_theme_constant_override("separation", 12)
 	v.add_child(head)
-	var back := _button("← Back", 120, 44)
+	var back := UI3.button(tr("← Back  Esc"), &"quiet")
 	back.pressed.connect(close_modal)
 	head.add_child(back)
-	var t := _label("Run Setup › Party › Slot %d" % (_picker_slot + 1), 24, DangoTheme.INK, true)
+	var t := _lbl(tr("Pick an Axie · slot %d") % (_picker_slot + 1), "LabelScreenTitle")
 	t.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	head.add_child(t)
 	for tab in ["all", "starter", "vault"]:
-		var tb := _button(tab.capitalize(), 100, 44, tab == _picker_tab)
+		var tb := UI3.button(tab.capitalize(), &"primary" if tab == _picker_tab else &"secondary", &"M")
 		tb.name = "Tab_" + tab
 		tb.pressed.connect(func() -> void:
 			_picker_tab = tab
@@ -1241,19 +1147,20 @@ func _show_picker() -> void:
 		head.add_child(tb)
 	_picker_grid = GridContainer.new()
 	_picker_grid.columns = 5
-	_picker_grid.add_theme_constant_override("h_separation", 10)
-	_picker_grid.add_theme_constant_override("v_separation", 10)
+	_picker_grid.add_theme_constant_override("h_separation", 12)
+	_picker_grid.add_theme_constant_override("v_separation", 12)
 	v.add_child(_picker_grid)
 	for k in _pick_keys():
 		var def: Dictionary = ContentDB.heroes[k]
 		var taken := party.has(k) and party.find(k) != _picker_slot
-		var b := _button("%s\n%s" % [String(def.get("n", k)), String(def.get("cls", "")).capitalize()], 124, 80)
+		var b := UI3.button("%s\n%s" % [String(def.get("n", k)), String(def.get("cls", "")).capitalize()], &"secondary", &"M")
+		b.custom_minimum_size = Vector2(168, 72)
 		b.name = "Tile_" + k
 		b.disabled = taken
-		b.tooltip_text = "Already in another slot" if taken else ""
+		b.tooltip_text = tr("Already in another slot") if taken else ""
 		b.pressed.connect(func() -> void:
 			if set_slot(_picker_slot, k):
 				close_modal())
 		_picker_grid.add_child(b)
 	if _picker_tab == "vault" and _pick_keys().is_empty():
-		v.add_child(_label("Your Vault is empty. Import an Axie in the Vault.", 16, DangoTheme.INK_ON_CREAM_MUTED))
+		v.add_child(_lbl(tr("Your Vault is empty. Import an Axie in the Vault."), "LabelMuted"))
