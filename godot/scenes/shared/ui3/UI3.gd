@@ -669,7 +669,10 @@ static func describe(raw: String) -> Dictionary:
 		s = re_mp.sub(s, "", true)
 	s = RegEx.create_from_string("\\[(Global|INF|Axis[^\\]]*)\\]\\s*").sub(s, "", true)
 	s = RegEx.create_from_string("^(RULE:|PACT\\.)\\s*").sub(s.strip_edges(), "")
-	return {"text": s.strip_edges(), "mp": mp}
+	s = s.strip_edges()
+	if s != "":
+		s = s[0].to_upper() + s.substr(1)
+	return {"text": s, "mp": mp}
 
 
 ## Shorthand for `describe(raw).text`.
