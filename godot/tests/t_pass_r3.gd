@@ -39,6 +39,16 @@ func _ready() -> void:
 	_ok((s.find_child("NodeBtn_9", true, false) as Button).text == "Reach LV 9", "locked text")
 	_ok(s.find_child("PremiumRibbon", true, false) != null and (s.find_child("PremiumRibbon", true, false) as Label).text == "SEASON 2", "premium ribbon")
 	_ok(s.find_children("*", "Button", true, false).filter(func(b): return "buy" in (b as Button).text.to_lower()).is_empty(), "no purchase button")
+	# no internal id leaks into any visible label (every level, plate, tiles)
+	var idre := RegEx.create_from_string("\\b(frame|die|fx|u|std)_[a-z0-9_]+\\b")
+	for lv in range(1, 31):
+		s.select_level(lv)
+		for l in s.find_children("*", "Label", true, false):
+			var t: String = (l as Label).text
+			_ok(idre.search(t) == null, "internal id in label: " + t)
+		for r2 in s._def(lv).get("free", []):
+			var txt := s.reward_text(r2)
+			_ok(idre.search(txt) == null and not txt.contains("Frame U") and not txt.contains("Fx C"), "reward text: " + txt)
 	# claim once
 	var shards := MetaState.shard_pool
 	var r := s.claim_level(1)

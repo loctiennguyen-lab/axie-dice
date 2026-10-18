@@ -50,7 +50,7 @@ func _make(sc: String) -> Node:
 		return s
 	if sc.begins_with("codex") or sc.begins_with("guides") or sc.begins_with("unlocks"):
 		MetaState.shard_pool = 400
-		var scn := {"codex": "res://scenes/codex/Codex.tscn", "guides": "res://scenes/guides/Guides.tscn",
+		var scn: String = {"codex": "res://scenes/codex/Codex.tscn", "guides": "res://scenes/guides/Guides.tscn",
 			"unlocks": "res://scenes/unlocks/Unlocks.tscn"}[sc.split("-")[0]]
 		var cs: Control = load(scn).instantiate()
 		add_child(cs)
