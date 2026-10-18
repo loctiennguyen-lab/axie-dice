@@ -43,3 +43,10 @@ AccountChip, SkyMavisBadge, StakeTableRow, Curtain, Undo) đưa vào `UI3.gd` b�
 | U | 16, 18 (cập nhật), 36 toast/copy theo mã lỗi, 37 tutorial curtain, 38 tutorial rewards, 26 settings |
 | L | 01, 23, 24, 27 (cập nhật), 44 preset editor |
 | E | 20 echo box, 21 pass, 25 vault, 29 codex, 40 missions (thay 22), 41 daily |
+
+## Còn lại (18/10 tối)
+- Chưa port: 19 Store (làn M đang làm), 25 Vault + nút "Use in team" → Run setup (làn U), 29 codex/guides/unlocks, AccountUI (làn U), 43 tooltips chờ ảnh + 45 victory march (làn C).
+- TeamSelect.tscn (Dango) chỉ còn mở từ Vault → bỏ đường đó, xong thì xoá TeamSelect. MainMenu.tscn chỉ là màn chuyển hướng lúc khởi động, không hiện UI.
+- Dọn Dango còn sót: CombatView (~62 chỗ), RunMapController (~16), UnitHeadHUD, HPBar, hud_kit, R3Shell, AxiePreview3D. Xong hết mới xoá DangoTheme/DangoScreen.
+- Viết lại `godot/CLAUDE.md` cho UI3 (đang mô tả luật Dango cũ).
+- Rồi: build Mac/Win + live smoke trên production trước khi đưa Liam.
