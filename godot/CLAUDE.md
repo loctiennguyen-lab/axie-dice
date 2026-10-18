@@ -54,8 +54,9 @@ Baloo) **không còn đúng** cho màn đã port.
 ## Bẫy đã gặp ở đợt này
 
 - `t_rules_version` lấy fingerprint của cả `autoload/`, `scripts/core/`, `scripts/meta/`,
-  `resources/relics/`, `assets/data/`, `rules/`. Đụng file nào trong đó (kể cả json) là phải
-  bump `RULES_VERSION` hoặc test đỏ.
+  `resources/relics/`, `assets/data/rules/` và `assets/data/part_faces.json` (.gd/.tres/.json).
+  Đụng file nào trong đó là phải bump `RULES_VERSION` + deploy Worker. Worktree làn chạy với
+  `AXIE_SKIP_RULES_FINGERPRINT=1` nên không thấy lỗi; chỉ cây chính bắt được.
 - Test có thể đọc save thật ở cây chính. Cô lập save (userdir/override.cfg) trước khi chạy.
 - Mỗi helper chỉ có MỘT định nghĩa trong `UI3.gd`. Trùng tên là lỗi parse, và parse error làm
   headless bị treo thay vì báo lỗi (chạy `--import` trước).
@@ -66,5 +67,5 @@ Baloo) **không còn đúng** cho màn đã port.
 ## Legacy
 
 `DangoTheme` / `DangoScreen` / `MockupAssets` / `dango.tres` (`tools/gen_theme.gd`) chỉ còn ở các
-màn chưa port (vd MainMenu, TeamSelect, Result, Codex, Unlocks, Leaderboard, TeamPresets). Không
+màn chưa port (MainMenu, TeamSelect, Vault, Codex, Unlocks, Guides, AccountUI, R3Shell). Không
 dùng cho code mới. Khi màn cuối cùng được port thì xoá hết, kể cả `t_mockup_assets`.
