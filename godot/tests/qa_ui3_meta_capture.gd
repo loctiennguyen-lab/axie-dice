@@ -90,4 +90,31 @@ func _make(screen: String) -> Node:
 			ds.remote_on = true
 			ds.set_state("guest")
 		return ds
+	if screen.begins_with("echo"):
+		MetaState.tickets = {"normal": 3}
+		MetaState.shard_pool = 900
+		var es: EchoBoxScreen = load("res://scenes/echobox/EchoBoxScreen.tscn").instantiate()
+		es.use_account = false
+		es.no_scene_change = true
+		es.instant = true
+		add_child(es)
+		await get_tree().process_frame
+		if screen == "echo-rates":
+			es.open_rates()
+		elif screen == "echo-seasonal":
+			es.select_tab("seasonal")
+		elif screen == "echo-none":
+			MetaState.tickets = {"normal": 0}
+			es._refresh_all()
+		elif screen == "echo-reveal":
+			MetaState.tickets = {"normal": 10}
+			es.pull_hook = func(n: int) -> Array:
+				var o: Array = []
+				for k in n:
+					o.append({"kind": "stone", "amount": 250} if k % 3 == 0 else {"kind": "cosmetic", "rarity": ["common", "rare", "epic"][k % 3], "item": "std_e_003", "duplicate": k % 2 == 0, "fragments": 2})
+				return o
+			es.pull(10)
+			await get_tree().process_frame
+			await get_tree().process_frame
+		return es
 	return null
