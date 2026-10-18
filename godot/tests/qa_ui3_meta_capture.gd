@@ -58,4 +58,73 @@ func _make(screen: String) -> Node:
 		add_child(u)
 		await get_tree().process_frame
 		return u
+	if screen.begins_with("missions"):
+		MetaState.shard_pool = 1240
+		MetaState.starter_shard_locked = 200
+		MetaState.asc_wins = {"3": 1, "4": 1}
+		MetaState.mission_escrow = {}
+		if screen == "missions-newcomer":
+			MetaState.runs_with_battle = 2
+		var ms: MissionsScreen = load("res://scenes/missions/MissionsScreen.tscn").instantiate()
+		ms.use_account = false
+		ms.no_scene_change = true
+		ms.day_override = "2026-10-12"
+		add_child(ms)
+		await get_tree().process_frame
+		if screen == "missions-confirm":
+			ms.open_confirm("N2")
+		elif screen == "missions-short":
+			MetaState.shard_pool = 350
+			ms.select_tier("N2")
+		elif screen == "missions-guest":
+			ms.set_state("guest")
+		return ms
+	if screen.begins_with("daily"):
+		MetaState.daily_date = ""
+		MetaState.gem_gift_day = ""
+		MetaState.daily_week = {}
+		var ds: DailyScreen = load("res://scenes/daily/DailyScreen.tscn").instantiate()
+		ds.use_account = false
+		ds.no_scene_change = true
+		add_child(ds)
+		await get_tree().process_frame
+		if screen == "daily-claimed":
+			ds.claim_daily()
+		elif screen == "daily-cap":
+			MetaState.gems_cache = 900
+			ds._refresh()
+		elif screen == "daily-offline":
+			ds.remote_on = true
+			ds.set_state("offline")
+		elif screen == "daily-guest":
+			ds.remote_on = true
+			ds.set_state("guest")
+		return ds
+	if screen.begins_with("echo"):
+		MetaState.tickets = {"normal": 3}
+		MetaState.shard_pool = 900
+		var es: EchoBoxScreen = load("res://scenes/echobox/EchoBoxScreen.tscn").instantiate()
+		es.use_account = false
+		es.no_scene_change = true
+		es.instant = true
+		add_child(es)
+		await get_tree().process_frame
+		if screen == "echo-rates":
+			es.open_rates()
+		elif screen == "echo-seasonal":
+			es.select_tab("seasonal")
+		elif screen == "echo-none":
+			MetaState.tickets = {"normal": 0}
+			es._refresh_all()
+		elif screen == "echo-reveal":
+			MetaState.tickets = {"normal": 10}
+			es.pull_hook = func(n: int) -> Array:
+				var o: Array = []
+				for k in n:
+					o.append({"kind": "stone", "amount": 250} if k % 3 == 0 else {"kind": "cosmetic", "rarity": ["common", "rare", "epic"][k % 3], "item": "std_e_003", "duplicate": k % 2 == 0, "fragments": 2})
+				return o
+			es.pull(10)
+			await get_tree().process_frame
+			await get_tree().process_frame
+		return es
 	return null
