@@ -248,6 +248,8 @@ func test_the_guides_screen_renders_every_guide() -> void:
 	for g in ContentDB.GUIDES:
 		var guide: Dictionary = g
 		var id := str(guide.get("id", ""))
+		screen.select_guide(id)   # the article for one guide is shown at a time (list + 440 plate)
+		_assert(screen.find_child("GuideRow_" + id, true, false) != null, "guide '%s' has no row" % id)
 		var card: Node = screen.find_child("Guide_" + id, true, false)
 		_assert(card != null, "guide '%s' has no card on screen" % id)
 		if card == null:
@@ -287,6 +289,7 @@ func test_use_this_team_actually_reaches_the_menu() -> void:
 	var first: Dictionary = ContentDB.GUIDES[0]
 	var card: Node = screen.find_child("Guide_" + str(first.get("id", "")), true, false)
 	var use := card.find_child("UseButton", true, false) as Button
+	_assert(use != null and use.theme_type_variation == "ButtonPrimaryL", "USE THIS TEAM is the screen's one primary")
 	_assert(use != null, "the first guide has no USE THIS TEAM button")
 	if use == null:
 		return
