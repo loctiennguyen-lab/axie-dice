@@ -220,6 +220,24 @@ func set_slot(i: int, key: String) -> bool:
 	return true
 
 
+## Picker rule (UI-03 33): an Axie already in another slot moves to slot `i`; slot i's previous Axie
+## takes its old slot (or that slot is left empty). Plain set_slot() still refuses duplicates.
+func swap_into_slot(i: int, key: String) -> bool:
+	if i < 0 or i >= PARTY_SIZE or not ContentDB.heroes.has(key):
+		return false
+	var from := party.find(key)
+	if from < 0 or from == i:
+		return set_slot(i, key)
+	while party.size() < PARTY_SIZE:
+		party.append("")
+	var prev: String = party[i]
+	party[i] = key
+	party[from] = prev
+	_refresh_party()
+	_refresh_footer()
+	return true
+
+
 func clear_slot(i: int) -> void:
 	if i >= 0 and i < party.size():
 		party[i] = ""
@@ -1356,7 +1374,7 @@ func _show_picker() -> void:
 			UI3.clear_disabled_reason(put))
 		tiles.append(b)
 		_picker_grid.add_child(b)
-		if k == _picker_sel and not taken:
+		if k == _picker_sel:
 			_outline.call_deferred(b, true)
 	if shown == 0:
 		var msg := tr("Your Vault is empty. Import an Axie in the Vault.") if _picker_tab == "vault" and _picker_cls == "all" else tr("No Axie matches this filter.")
@@ -1366,7 +1384,7 @@ func _show_picker() -> void:
 	if _picker_sel == "" or not _pick_keys().has(_picker_sel):
 		UI3.set_disabled_reason(put, tr("Put in slot %d") % (_picker_slot + 1) + " · " + tr("Pick an Axie"))
 	put.pressed.connect(func() -> void:
-		if _picker_sel != "" and set_slot(_picker_slot, _picker_sel):
+		if _picker_sel != "" and swap_into_slot(_picker_slot, _picker_sel):
 			close_modal())
 	var acts := HBoxContainer.new()
 	acts.add_theme_constant_override("separation", 16)
@@ -1384,8 +1402,7 @@ func _picker_tile(k: String, def: Dictionary, taken: bool) -> Button:
 	var b := UI3.button("", &"secondary", &"M")
 	b.name = "Tile_" + k
 	b.custom_minimum_size = Vector2(188, 276)
-	b.disabled = taken
-	b.tooltip_text = tr("Already in another slot") if taken else ""
+	b.tooltip_text = tr("In slot %d · picking it swaps") % (party.find(k) + 1) if taken else ""
 	b.set_meta("base_normal", b.get_theme_stylebox("normal"))
 	var col := VBoxContainer.new()
 	col.set_anchors_preset(Control.PRESET_FULL_RECT)
