@@ -168,6 +168,20 @@ func test_round_two_cards_stake_title_and_offline() -> void:
 	var notice := view.find_child("NetNotice", true, false)
 	_assert(notice != null and notice.find_child("Retry", true, false) != null, "offline: no notice with Retry")
 	_assert(_all_text(view).contains("not submitted"), "offline notice does not say the score was not submitted")
+	for i in 3:
+		await get_tree().process_frame
+	# Not clipped at the worst state (offline notice on): plate and actions stay inside the window.
+	var vh: float = (view as Control).get_viewport_rect().size.y
+	var plate := view.find_child("ResultPlate", true, false) as Control
+	var foot := view.find_child("Footer", true, false) as Control
+	_assert(plate.global_position.y >= 0.0 and plate.global_position.y + plate.size.y <= vh + 0.5,
+		"offline: the result plate runs off the window (%s..%s of %s)" % [plate.global_position.y, plate.global_position.y + plate.size.y, vh])
+	_assert(foot.global_position.y + foot.size.y <= vh + 0.5, "offline: the actions are clipped")
+	var secondaries := 0
+	for b in view.find_children("*", "Button", true, false):
+		if (b as Button).theme_type_variation in [&"ButtonSecondary", &"ButtonSecondaryS"]:
+			secondaries += 1
+	_assert(secondaries <= 2, "more than 2 secondary buttons on Result: %d" % secondaries)
 	view.show_submit_notice(true, "")
 	await get_tree().process_frame
 	_assert(view.find_child("NetNotice", true, false) == null, "notice stays after a good submit")

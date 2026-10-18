@@ -13,6 +13,7 @@ extends Control
 const BG_PATH := "assets/bg/entrance.jpg"
 const PLATE_W := 640.0
 
+var _plate: Control = null
 var _plate_scroll: ScrollContainer = null
 var _body: VBoxContainer = null
 var _notice_host: VBoxContainer = null
@@ -99,28 +100,26 @@ func _build_ui(s: Dictionary) -> void:
 	outer.add_theme_constant_override("separation", 24)
 	plate.add_child(outer)
 
-	# Fit-or-scroll: the body scrolls when the window is short, the actions stay in reach.
-	_plate_scroll = ScrollContainer.new()
-	_plate_scroll.name = "BodyScroll"
-	_plate_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
-	outer.add_child(_plate_scroll)
-	_body = VBoxContainer.new()
-	_body.name = "Body"
-	_body.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_body.add_theme_constant_override("separation", 24)
-	_plate_scroll.add_child(_body)
-
-	_body.add_child(_build_header(s))
+	outer.add_child(_build_header(s))
 	var unlock := _build_title_unlock(s)
 	if unlock != null:
-		_body.add_child(unlock)
-	_body.add_child(_build_party_row(s["roster"] as Array))
-	_body.add_child(_build_stat_grid(s["stats"] as Dictionary))
-	_body.add_child(_build_card_rows(s))
+		outer.add_child(unlock)
+	outer.add_child(_build_party_row(s["roster"] as Array))
+	outer.add_child(_build_stat_grid(s["stats"] as Dictionary))
+	# Fit-or-scroll: only the earnings column scrolls when the window is short; header, stats, the
+	# offline notice and the actions always stay in view.
+	_plate_scroll = ScrollContainer.new()
+	_plate_scroll.name = "CardScroll"
+	_plate_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	outer.add_child(_plate_scroll)
+	_body = _build_card_rows(s)
+	_body.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_plate_scroll.add_child(_body)
 	_notice_host = VBoxContainer.new()
 	_notice_host.name = "NoticeHost"
 	outer.add_child(_notice_host)   # outside the scroll: an offline notice is never hidden
 	outer.add_child(_build_actions())
+	_plate = plate
 
 	_build_version_tag()
 	_build_equipped_avatar()
@@ -128,12 +127,12 @@ func _build_ui(s: Dictionary) -> void:
 
 ## Caps the scroll area to what the window can show; below that the plate hugs its content.
 func _fit() -> void:
-	if _body == null:
+	if _body == null or _plate == null:
 		return
-	var notice_h := _notice_host.get_combined_minimum_size().y
-	var avail := get_viewport_rect().size.y - 40.0 * 2.0 - 24.0 * (2.0 if notice_h > 0.0 else 1.0) \
-		- UI3Theme.size_of("btn_l") - notice_h - 24.0
-	_plate_scroll.custom_minimum_size.y = minf(_body.get_combined_minimum_size().y, maxf(avail, 160.0))
+	_plate_scroll.custom_minimum_size.y = 0.0
+	var others := _plate.get_combined_minimum_size().y   # everything but the scroll (it is 0 now)
+	var avail := get_viewport_rect().size.y - 48.0 - others - 24.0
+	_plate_scroll.custom_minimum_size.y = minf(_body.get_combined_minimum_size().y, maxf(avail, 120.0))
 
 
 func _on_notice_layout() -> void:
@@ -274,7 +273,7 @@ func _build_stat_grid(stats: Dictionary) -> Control:
 # ---------------------------------------------------------------------------
 # Earnings: Gene Shard, Lunacia Pass, relics, mission stake.
 # ---------------------------------------------------------------------------
-func _build_card_rows(s: Dictionary) -> Control:
+func _build_card_rows(s: Dictionary) -> VBoxContainer:
 	var col := VBoxContainer.new()
 	col.name = "CardRow"
 	col.add_theme_constant_override("separation", 12)
@@ -353,7 +352,7 @@ func _build_ranked_caption(s: Dictionary) -> Control:
 		return row
 	label.text = tr("Ranked. You can save this run's verifiable record.")
 	row.add_child(label)
-	var btn := UI3.button(tr("Save run record"), &"secondary", &"S")
+	var btn := UI3.button(tr("Save run record"), &"quiet", &"S")   # a quiet link: max 2 secondaries on the screen
 	btn.name = "SaveRecord"
 	btn.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	btn.pressed.connect(func() -> void:
@@ -378,7 +377,7 @@ func _build_pass_card(s: Dictionary) -> Control:
 	head.add_child(cap)
 	var gained: int = maxi(int(s.get("pass_level", 0)) - int(s.get("pass_level_before", 0)), 0)
 	if gained > 0:
-		var pill := UI3.chip("+%d %s" % [gained, tr("level") if gained == 1 else tr("levels")])
+		var pill := UI3.chip(tr("Lv %d · +%d this run") % [int(s.get("pass_level", 0)), gained])
 		pill.name = "LevelsPill"
 		head.add_child(pill)
 	var prog: Dictionary = MetaState.bp_progress()
@@ -389,11 +388,11 @@ func _build_pass_card(s: Dictionary) -> Control:
 	# The art kit has no Pass XP icon (spec flag): a plain "XP" circle stands in.
 	var xp := PanelContainer.new()
 	xp.name = "XpIcon"
-	xp.custom_minimum_size = Vector2.ONE * UI3Theme.size_of("icon_m")
+	xp.custom_minimum_size = Vector2.ONE * 40.0
 	xp.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	xp.add_theme_stylebox_override("panel", UI3Theme.flat(UI3Theme.color("accent"),
-		UI3Theme.size_of("icon_m") / 2, 0, Color.TRANSPARENT, Vector4(0, 0, 0, 0)))
-	var xl := UI3.label("XP", "LabelKeyHint")
+		20, 0, Color.TRANSPARENT, Vector4(0, 0, 0, 0)))
+	var xl := UI3.label("XP", "LabelDisplay")
 	xl.add_theme_color_override("font_color", UI3Theme.color("die_ink"))
 	xl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	xl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
@@ -410,9 +409,9 @@ func _build_pass_card(s: Dictionary) -> Control:
 	row.add_child(line)
 	# Progress bar: a Panel (not a container) so the partial fill keeps its width.
 	var track := Panel.new()
-	track.custom_minimum_size = Vector2(0, 12)
+	track.custom_minimum_size = Vector2(0, 16)
 	track.clip_contents = true
-	track.add_theme_stylebox_override("panel", UI3Theme.flat(UI3Theme.color("hp_track"), 6))
+	track.add_theme_stylebox_override("panel", UI3Theme.flat(UI3Theme.color("hp_track"), 8, 2, UI3Theme.color("disabled_border")))
 	col.add_child(track)
 	var fill := ColorRect.new()
 	fill.color = UI3Theme.color("accent")
