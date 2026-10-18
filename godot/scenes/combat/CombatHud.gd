@@ -381,7 +381,9 @@ func _active_slot(a: Dictionary) -> Control:
 	var sb := UI3Theme.flat(fill, UI3Theme.radius("s"), 4 if armed else 2, border)
 	for st in ["normal", "hover", "pressed", "disabled"]:
 		b.add_theme_stylebox_override(st, sb)
-	b.add_theme_stylebox_override("focus", UI3Theme.focus_style(UI3Theme.radius("s")))
+	var aring := UI3Theme.focus_style(UI3Theme.radius("s"))
+	aring.set_expand_margin_all(4)   # 4 px offset ring on the active icon
+	b.add_theme_stylebox_override("focus", aring)
 	var ic := TextureRect.new()
 	ic.texture = a.get("icon")
 	ic.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
@@ -404,6 +406,7 @@ func _active_slot(a: Dictionary) -> Control:
 func update_attrition(state: Dictionary, turn: int, newcomer: bool) -> void:
 	_newcomer = newcomer
 	_attr_card.visible = not newcomer
+	_attr_card.add_to_group("ui3_tip_avoid")
 	if newcomer:
 		return
 	var pct := int(state.get("pct", 0))

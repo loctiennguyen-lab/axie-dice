@@ -146,8 +146,17 @@ class TooltipLayer extends CanvasLayer:
 			var row := c.get_parent() as Control
 			var rr := row.get_global_rect() if row != null else r
 			pos = Vector2(rr.position.x - 16.0 - sz.x, r.position.y)
-		pos.x = clampf(pos.x, 8.0, maxf(vp.x - sz.x - 8.0, 8.0))
-		pos.y = clampf(pos.y, 8.0, maxf(vp.y - sz.y - 8.0, 8.0))
+		var m := 24.0
+		pos.x = clampf(pos.x, m, maxf(vp.x - sz.x - m, m))
+		pos.y = clampf(pos.y, m, maxf(vp.y - sz.y - m, m))
+		# Keep off banners that opt in (Attrition card): drop below them, or above if no room.
+		for n in c.get_tree().get_nodes_in_group("ui3_tip_avoid"):
+			var ar := (n as Control).get_global_rect()
+			if (n as Control).is_visible_in_tree() and Rect2(pos, sz).intersects(ar):
+				if ar.end.y + 8.0 + sz.y <= vp.y - m:
+					pos.y = ar.end.y + 8.0
+				else:
+					pos.y = maxf(ar.position.y - 8.0 - sz.y, m)
 		plate.position = pos
 		plate.size = sz
 
