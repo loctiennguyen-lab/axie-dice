@@ -21,6 +21,7 @@ const END_H := 64.0
 const SMALL_H := 48.0
 const HINT_H := 24.0
 const UNDO_W := 88.0
+const INFO_W := 288.0
 
 var relic_strip: HBoxContainer      ## kept as a public name: tests hover relic chips here
 var actives_row: HBoxContainer
@@ -39,6 +40,10 @@ var _attr_card: PanelContainer
 var _attr_title: Label
 var _attr_sub: Label
 var _speed: PanelContainer
+var _info: PanelContainer           ## die info panel (288 w, wood-2), only while a die is picked
+var _info_title: Label
+var _info_body: Label
+var _info_bottom := -1.0
 var _speed_buttons: Array[Button] = []
 var _skip_button: Button
 
@@ -60,6 +65,7 @@ func _init() -> void:
 	_build_top()
 	_build_attrition()
 	_build_speed()
+	_build_info()
 	resized.connect(layout)
 
 
@@ -173,6 +179,50 @@ func _build_attrition() -> void:
 	_attr_sub.add_theme_font_size_override("font_size", 18)
 	_ignore(_attr_sub)
 	col.add_child(_attr_sub)
+
+
+func _build_info() -> void:
+	# Round 1 components: Info panel 288 w, wood-2, pad 10 12, Rowdies 18 title + Work Sans 18 body.
+	_info = UI3.plate(&"info")
+	_info.visible = false
+	_info.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_info.custom_minimum_size = Vector2(INFO_W, 0)
+	add_child(_info)
+	var col := VBoxContainer.new()
+	col.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	col.add_theme_constant_override("separation", 4)
+	_info.add_child(col)
+	_info_title = UI3.label("", "LabelDisplay")
+	_info_title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_info_title.custom_minimum_size = Vector2(INFO_W - 24.0, 0)
+	_ignore(_info_title)
+	col.add_child(_info_title)
+	_info_body = UI3.label("")
+	_info_body.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_info_body.custom_minimum_size = Vector2(INFO_W - 24.0, 0)
+	_ignore(_info_body)
+	col.add_child(_info_body)
+
+
+## Die info panel. d = {} hides it; else {title, body}.
+func update_info(d: Dictionary) -> void:
+	_info.visible = not d.is_empty()
+	if d.is_empty():
+		return
+	_info_title.text = String(d.get("title", ""))
+	_info_body.text = String(d.get("body", ""))
+	_info_body.visible = _info_body.text != ""
+	layout()
+
+
+## y the info panel's bottom edge sits on (CombatView passes the top of the Aid zone minus a gap).
+func set_info_bottom(y: float) -> void:
+	_info_bottom = y
+	layout()
+
+
+func info_panel() -> Control:
+	return _info
 
 
 func _build_speed() -> void:
@@ -434,6 +484,11 @@ func layout() -> void:
 		_tray_top = y
 		# Undo is hidden while input is locked: the speed control takes the slot.
 		undo_button.visible = not _speed.visible
+	_info.size = Vector2.ZERO
+	var ih := _info.get_combined_minimum_size().y
+	_info.size = Vector2(INFO_W, ih)
+	var ib := _info_bottom if _info_bottom > 0.0 else h - EDGE - 104.0 - 12.0
+	_info.position = Vector2(EDGE, ib - ih)
 	_speed.size = Vector2.ZERO
 	var sw := _speed.get_combined_minimum_size()
 	_speed.size = sw

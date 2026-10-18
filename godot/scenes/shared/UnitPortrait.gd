@@ -473,7 +473,20 @@ func set_selected(v: bool) -> void:
 ## View-only "legal target" affordance (gold plate border; the ground ring is Stage3D's).
 func set_targetable(v: bool) -> void:
 	_lit = v
+	_restore_chip()
 	_refresh_plate()
+
+
+## The resting label under a legal target: "Target · Name" (cream fill, wood-1 text). A reason or a damage
+## preview replaces it while they last.
+func _restore_chip() -> void:
+	if _chip_text == null or _preview > 0 or _illegal_reason != "":
+		return
+	if _lit and _name_label != null:
+		_show_chip("%s %s %s" % [TranslationServer.translate("Target"), HudKit.dot(), _name_label.text],
+			UI3Theme.color("text"), UI3Theme.color("die_ink"), null)
+	else:
+		_hide_chip()
 
 
 ## Illegal target: plate at 60% + reason chip (dusk + lock). "" clears.
@@ -483,8 +496,9 @@ func set_illegal(reason: String) -> void:
 		return
 	if reason != "":
 		_show_chip(reason, UI3Theme.color("danger_bg"), UI3Theme.color("text"), UI3.icon("ui_lock"))
-	elif _preview <= 0:
+	else:
 		_hide_chip()
+		_restore_chip()
 	_refresh_plate()
 
 
@@ -526,6 +540,7 @@ func clear_preview_damage() -> void:
 		_hp_label.text = _hp_bar.shown_text()
 	if _illegal_reason == "":
 		_hide_chip()
+		_restore_chip()
 	_refresh_plate()
 
 

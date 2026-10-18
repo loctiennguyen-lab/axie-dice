@@ -420,6 +420,18 @@ func tray_top_hint(tray_top: float) -> void:
 	layout()
 
 
+## Top edge of the lowest-left Aid element that is showing (offer card, else the button).
+func top_y() -> float:
+	var h := size.y
+	if h <= 1.0:
+		h = get_viewport_rect().size.y
+	if not enabled:
+		return h - OFFER_EDGE
+	if _offer_card != null and _offer_card.visible:
+		return _offer_card.position.y
+	return h - EDGE - BTN_H
+
+
 func layout() -> void:
 	var h := size.y
 	if h <= 1.0:

@@ -1027,6 +1027,7 @@ func _update_hud() -> void:
 		 "resolving": _combat.phase != CombatPhase.EXECUTE,
 		 "enabled": not (_combat.won or _combat.lost) and _combat.phase != CombatPhase.END_TURN})
 	_update_aid(hs, executing)
+	_update_die_info()
 	_hud_frame.set_resolving(_combat.phase == CombatPhase.END_TURN and not (_combat.won or _combat.lost))
 	_layout_tray()
 
@@ -1393,6 +1394,31 @@ func _tray_tooltip(u: Unit) -> String:
 		var kw_head := String(_KEYWORD_LABEL.get(kw_key, kw_key.to_upper()))
 		lines.append(kw_head if kw_tip.is_empty() else "%s: %s" % [kw_head, String(kw_tip["rule"])])
 	return "\n".join(lines)
+
+
+## Die info panel (UI-03): only while a die is picked. Title "Name · ATTACK 5", body = the face's keyword
+## rules plus the crit chance (party damage faces only: face crit keyword + relic critBonus).
+func _update_die_info() -> void:
+	var info := {}
+	var u: Unit = _combat.by_uid(_selected_die_uid) if (_selected_die_uid != -1 and _combat != null) else null
+	if u != null and u.has_rolled() and u.hp > 0:
+		var fi := u.roll_face_index()
+		var f: Dictionary = u.die[fi]
+		var ftype := String(f.get("type", ""))
+		var value := _live_face_value(u, fi)
+		var lines := PackedStringArray()
+		var tip := _tray_tooltip(u).split("\n")
+		for i in range(2, tip.size()):
+			if not String(tip[i]).begins_with("Value"):
+				lines.append(tip[i])
+		if ftype == "dmg" and u.side == "p":
+			var cc := int(round(float(_combat.call("_crit_chance", u, f))))
+			lines.append("%s %d%%" % [TranslationServer.translate("Crit chance"), cc])
+		info = {"title": "%s %s %s %d" % [u.n, HudKit.dot(), DangoTheme.face_type_label(ftype), value],
+			"body": "\n".join(lines)}
+	_hud_frame.update_info(info)
+	if _aid != null:
+		_hud_frame.set_info_bottom(_aid.top_y() - 12.0)
 
 
 func _update_dice_tray() -> void:
