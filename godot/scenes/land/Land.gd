@@ -1094,7 +1094,7 @@ func _profile_cell() -> Control:
 		name = AccountService.display_name() if AccountService.is_signed_in() else "Player"
 	var av := PanelContainer.new()
 	av.add_theme_stylebox_override("panel", UI3Theme.flat(
-		UI3Theme.color("neutral_5") if _guest else UI3Theme.color("accent"), 24))
+		UI3Theme.color("disabled") if _guest else UI3Theme.color("accent"), 24))
 	av.custom_minimum_size = Vector2(48, 48)
 	av.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	av.mouse_filter = Control.MOUSE_FILTER_IGNORE
