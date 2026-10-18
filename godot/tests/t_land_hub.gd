@@ -23,6 +23,7 @@ func _ready() -> void:
 	var seen_was := MetaState.tutorial_seen
 	MetaState.tutorial_seen = true      # in memory only
 	LandNav.dry_run = true
+	LandHub.qa = {"guest": false}   # signed in: Start run goes to Run Setup (signed out = "Sign in to play")
 	var hub := (load("res://scenes/land/Land.tscn") as PackedScene).instantiate() as LandHub
 	add_child(hub)
 	await get_tree().process_frame
@@ -32,9 +33,10 @@ func _ready() -> void:
 		_check(hub.find_child("Hit_" + id, true, false) != null, "thiếu hộp bấm cho " + id)
 	_check(hub.find_child("Hit_mastery", true, false) == null, "Mastery Hall đã bỏ")
 	_check(hub.find_child("Plot_gallery", true, false) != null, "thiếu ô đất Gallery")
+	# UI-03: the dock is gone; every place is reached by its world label (hit box + key), focusable.
 	for id in ["house", "missions", "vault", "echobox", "pass", "store"]:
-		_check(hub.find_child("Dock_" + id, true, false) != null, "thiếu ô dock " + id)
-	for n in ["ProfileChip", "NamesToggle", "Rail_Daily", "Rail_Codex", "Wallet", "Dock", "Settings"]:
+		_check((hub.find_child("Hit_" + id, true, false) as Control).focus_mode == Control.FOCUS_ALL, "hộp bấm %s phải focus được" % id)
+	for n in ["ProfileChip", "NamesToggle", "Rail_Daily", "Codex", "Wallet", "Currencies", "HudBottomLeft", "HudBottomRight", "Settings"]:
 		_check(hub.find_child(n, true, false) != null, "thiếu " + n)
 	# Signs hidden at rest; Names toggle (N) shows them all; Esc closes Names first.
 	var sign := hub.find_child("Sign_pass", true, false) as Control
@@ -143,6 +145,17 @@ func _ready() -> void:
 			LandNav.last_path = ""
 			h2.call("_handle_key", KEY_5)
 			_check(LandNav.last_path == "", "offline: Pass không mở")
+			var db := h2.find_child("Rail_Daily", true, false) as Button
+			_check(db.disabled and "needs connection" in db.text, "offline: Daily tắt và ghi lý do")
+		if st.has("guest"):
+			_check((h2.find_child("RunPlate", true, false) as Button).text == "Sign in to play", "chưa đăng nhập: nút chính là Sign in to play")
+			_check(not (h2.find_child("Currencies", true, false) as Control).visible, "chưa đăng nhập: ẩn tiền")
+			_check(not (h2.find_child("Rail_Daily", true, false) as Control).visible, "lần đầu: ẩn Daily")
+			LandNav.last_path = ""
+			(h2.find_child("RunPlate", true, false) as Button).emit_signal("pressed")
+			_check(LandNav.last_path == "", "chưa đăng nhập: không vào Run Setup")
+		if st.has("loading"):
+			_check(String((h2.find_child("value_cur_shard", true, false) as Label).text) == "···", "loading: tiền hiện ···")
 		h2.queue_free()
 		await get_tree().process_frame
 	# C4: "New run" on a Mission run settles the open stake as a loss (no refund, escrow cleared).
@@ -188,7 +201,7 @@ func _ready() -> void:
 	_check(ht.find_child("SignOpen", true, false) != null, "biển cảm ứng có nút Open")
 	(ht.find_child("Hit_vault", true, false) as Button).emit_signal("pressed")
 	_check(LandNav.last_path == "res://scenes/vault/Vault.tscn", "chạm lần 2 mở Vault")
-	_check((ht.find_child("GemPlus", true, false) as Control).custom_minimum_size.x >= 44.0, "GemPlus >= 44 px")
+	_check((ht.find_child("Settings", true, false) as Control).custom_minimum_size.x >= 44.0, "Settings >= 44 px")
 	# Mouse input switches touch mode off: click opens directly again.
 	var mb := InputEventMouseButton.new()
 	mb.pressed = true
@@ -234,11 +247,14 @@ func _ready() -> void:
 	# UI scale floor (~1.275 at 1280x720): HUD stays in the viewport and clear of the dock.
 	ht.call("_place_hud", 1.275)
 	var vp := Rect2(Vector2.ZERO, (ht.get("_ui") as Control).size)
-	var dock := _srect(ht.get("_dock") as Control)
-	for n in ["_hud_tl", "_rail", "_wallet"]:
+	var groups := ["_hud_tl", "_hud_bl", "_hud_br", "_wallet"]
+	var rects: Array[Rect2] = []
+	for n in groups:
 		var r := _srect(ht.get(n) as Control)
 		_check(vp.encloses(r), "%s ra ngoài khung ở scale 1.275: %s" % [n, str(r)])
-		_check(not r.intersects(dock), "%s đè dock ở scale 1.275" % n)
+		for o in rects:
+			_check(not r.intersects(o), "%s đè nhóm HUD khác ở scale 1.275" % n)
+		rects.append(r)
 	ht.queue_free()
 	await get_tree().process_frame
 	LandHub.qa = {}
