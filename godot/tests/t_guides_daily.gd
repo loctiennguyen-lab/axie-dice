@@ -314,15 +314,13 @@ func test_use_this_team_actually_reaches_the_menu() -> void:
 	# Run Setup is the consumer now (MainMenu is a router). It builds its initial party from
 	# the hand-off.
 	var setup := (load("res://scenes/run_setup/RunSetup.tscn") as PackedScene).instantiate()
-	# RunSetup drops duplicate heroes (a party is distinct classes), so compare against the
-	# de-duplicated guide team.
+	# Starter Axies may repeat in a party now, so the party equals the guide team as written.
 	var want_distinct: Array = []
 	for k in want:
-		if not want_distinct.has(str(k)):
-			want_distinct.append(str(k))
+		want_distinct.append(str(k))
 	var party: Array[String] = setup._initial_party()
 	_assert(party.size() == want_distinct.size(),
-		"Run Setup built a party of %d from %d distinct guide heroes" % [party.size(), want_distinct.size()])
+		"Run Setup built a party of %d from %d guide heroes" % [party.size(), want_distinct.size()])
 	for i in mini(party.size(), want_distinct.size()):
 		_assert(party[i] == str(want_distinct[i]),
 			"Run Setup slot %d is '%s', the guide says '%s'" % [i, party[i], str(want_distinct[i])])
