@@ -105,7 +105,7 @@ func test_reduce_flashing_actually_suppresses_the_effects_that_flash() -> void:
 func test_abandon_run_is_hidden_when_there_is_no_run_to_abandon() -> void:
 	RunState.clear_saved_run()
 	var view := await _open()
-	_assert(_find_button(view, "ABANDON RUN") == null,
+	_assert(_find_button(view, "Abandon run") == null,
 		"the screen offers to abandon a run when there is no saved run — a question the player "
 		+ "should never be asked")
 	_assert(_all_text(view).contains("No run in progress"),
@@ -122,7 +122,7 @@ func test_abandon_run_needs_a_confirmation_and_then_deletes_the_save() -> void:
 	_assert(RunState.has_saved_run(), "test setup failed to produce a saved run")
 
 	var view := await _open()
-	var btn := _find_button(view, "ABANDON RUN")
+	var btn := _find_button(view, "Abandon run")
 	_assert(btn != null, "there is a saved run and no way to abandon it")
 	if btn == null:
 		view.queue_free()

@@ -108,6 +108,7 @@ func _build_card() -> void:
 	# From the UI3 theme directly: a plate not yet in the tree resolves "panel" against the PROJECT theme
 	# (cream), which made cream text unreadable on a cream card. Spec: wood-1 card, cream text.
 	var sb := UI3Theme.get_theme().get_stylebox("panel", "PanelDialog").duplicate() as StyleBoxFlat
+	sb.shadow_size = 0   # t_ui_laws L7: no floating-shelf shadow; the spotlight scrim already separates it
 	sb.set_content_margin_all(_CARD_PAD)
 	_card.add_theme_stylebox_override("panel", sb)
 	_root.add_child(_card)

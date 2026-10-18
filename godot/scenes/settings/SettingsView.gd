@@ -14,7 +14,7 @@ extends Control
 const BG_TEXTURE := "res://assets/backgrounds/origins/scene/4-entrance.jpg"
 const INDEX_W := 260.0
 const COL_MAX := 960.0
-const ROW_MIN := 56.0
+const ROW_MIN := 72.0   # components.md: Slider / Toggle rows 72 high
 
 static var in_run: bool = false
 static var return_scene: String = ""
@@ -24,26 +24,23 @@ var _abandon_status: Label = null
 var _sections: Dictionary = {}   # name -> header Label
 var _scroll: ScrollContainer
 var _first_focus: Control = null
+var _shell: Dictionary = {}
+var _tabs: Dictionary = {}   # section name -> tab Button
 
 
 func _ready() -> void:
-	# UI-03 26-settings: neutral-1 bg, VBox margin 24 gap 24, header (Back, title, tabs), scrolling column.
-	theme = UI3Theme.get_theme()
-	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	var bg := ColorRect.new()
-	bg.name = "PlateHost"   # t_ui_laws L0
-	bg.color = UI3Theme.color("bg")
-	bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	add_child(bg)
-	var margin := MarginContainer.new()
-	margin.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
-	for side in ["left", "top", "right", "bottom"]:
-		margin.add_theme_constant_override("margin_" + side, 24)
-	add_child(margin)
-	var root := VBoxContainer.new()
-	root.add_theme_constant_override("separation", 24)
-	margin.add_child(root)
+	# UI-03 26-settings on the UI3Meta shell: header (title plate with back, tabs), then the scrolling column.
+	var shell := UI3Meta.build(self, "Settings",
+		"Opened from the combat menu. The run is paused." if in_run else "Every toggle states On / Off in words.",
+		_on_back)
+	_shell = shell
+	var back := shell["back"] as Button
+	back.name = "BackButton"
+	back.tooltip_text = "Back to run · Esc" if in_run else UI3Meta.BACK_HINT
+	(shell["panel"] as Control).name = "PlateHost"   # t_ui_laws L0
+	var currencies := find_child("Currencies", true, false)
+	if currencies != null:
+		currencies.visible = false   # Settings spec: no wallet here
 
 	_content = VBoxContainer.new()
 	_content.add_theme_constant_override("separation", 16)
@@ -63,18 +60,7 @@ func _ready() -> void:
 			"Run": _build_abandon_section()
 			"Account": _build_account_section()
 
-	var header := HBoxContainer.new()
-	header.add_theme_constant_override("separation", 24)
-	var back := UI3.button("BACK TO RUN" if in_run else "BACK", &"secondary")
-	back.name = "BackButton"
-	back.pressed.connect(_on_back)
-	header.add_child(back)
-	header.add_child(UI3.label("Settings", "LabelScreenTitle"))
-	header.add_child(_build_index(order))
-	root.add_child(header)
-	root.add_child(UI3.label(
-		"Opened from the combat menu. The run is paused." if in_run else "Every toggle states On / Off in words.",
-		"LabelMuted"))
+	_build_index(order, shell["header_right"] as Control)
 	_scroll = ScrollContainer.new()
 	_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	_scroll.get_v_scroll_bar().custom_minimum_size.x = 12.0   # visible overflow (t_ui_laws L2)
@@ -85,7 +71,9 @@ func _ready() -> void:
 	_content.custom_minimum_size.x = COL_MAX
 	center.add_child(_content)
 	_scroll.add_child(center)
-	root.add_child(_scroll)
+	(shell["col"] as Control).add_child(_scroll)
+	_scroll.get_v_scroll_bar().value_changed.connect(func(_v: float) -> void: _sync_tabs())
+	_sync_tabs.call_deferred()
 	if _first_focus != null:
 		_first_focus.call_deferred("grab_focus")
 
@@ -101,26 +89,40 @@ func _on_back() -> void:
 
 
 func _unhandled_key_input(ev: InputEvent) -> void:
-	if ev is InputEventKey and ev.pressed and not ev.echo and ev.keycode == KEY_ESCAPE:
-		_on_back()
+	if UI3Meta.esc_back(ev, _shell, _on_back):
 		get_viewport().set_input_as_handled()
 
 
-func _build_index(order: Array[String]) -> Control:
-	var v := HFlowContainer.new()
-	v.name = "SectionIndex"
-	v.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	v.add_theme_constant_override("h_separation", 8)
-	v.add_theme_constant_override("v_separation", 8)
+## Section tabs in the header: the one whose section is at the top of the column shows as selected.
+func _build_index(order: Array[String], host: Control) -> void:
 	for sec in order:
-		var b := UI3.button(sec, &"secondary", &"S")
+		var b := UI3Meta.tab(sec, false)
 		b.name = "Index_" + sec.replace(" ", "")
 		b.pressed.connect(func() -> void:
 			var hdr: Control = _sections.get(sec)
 			if hdr != null:
-				_scroll.scroll_vertical = int(hdr.global_position.y - _content.global_position.y))
-		v.add_child(b)
-	return v
+				_scroll.scroll_vertical = int(hdr.global_position.y - _content.global_position.y)
+			_sync_tabs(sec))
+		host.add_child(b)
+		_tabs[sec] = b
+
+
+func _sync_tabs(forced := "") -> void:
+	if _scroll == null:
+		return
+	var active := forced
+	if active == "":
+		var best := -1.0e9
+		for sec in _sections:
+			var hdr: Control = _sections[sec]
+			var y := hdr.global_position.y - _content.global_position.y - float(_scroll.scroll_vertical)
+			if y <= 8.0 and y > best:
+				best = y
+				active = String(sec)
+		if active == "" and not _sections.is_empty():
+			active = String(_sections.keys()[0])
+	for sec in _tabs:
+		(_tabs[sec] as Button).set_pressed_no_signal(sec == active)
 
 
 func _build_audio() -> void:
@@ -148,7 +150,7 @@ func _build_accessibility() -> void:
 
 
 func _build_tutorial() -> void:
-	var btn := UI3.button("REPLAY THE TUTORIAL", &"secondary")
+	var btn := UI3.button("Replay the tutorial", &"secondary")
 	btn.name = "ReplayTutorialButton"
 	btn.pressed.connect(func() -> void:
 		get_tree().change_scene_to_file("res://scenes/tutorial/Tutorial.tscn"))
@@ -174,7 +176,7 @@ func _build_abandon_section() -> void:
 	var confirm := CheckBox.new()
 	confirm.name = "ConfirmAbandonCheck"
 	confirm.text = "Yes, I want to abandon the saved run"
-	var btn := UI3.button("ABANDON RUN", &"danger")
+	var btn := UI3.button("Abandon run", &"danger")
 	btn.disabled = true
 
 	confirm.toggled.connect(func(on: bool) -> void:
@@ -200,8 +202,9 @@ func _build_abandon_section() -> void:
 		if _abandon_status != null:
 			_abandon_status.text = "The saved run has been deleted."
 			_abandon_status.visible = true)
-	var box := HBoxContainer.new()
-	box.add_theme_constant_override("separation", 14)
+	# Stacked, not side by side: next to a long description a wide checkbox row squeezed it and clipped it.
+	var box := VBoxContainer.new()
+	box.add_theme_constant_override("separation", 12)
 	box.add_child(confirm)
 	box.add_child(btn)
 	_row("Abandon mission run" if stake > 0 else "Abandon run", warn, box)
@@ -220,7 +223,7 @@ func _build_account_section() -> void:
 		# Desktop, signed out: the Account screen (B3) owns the browser flow, waiting and errors.
 		_body("You're playing as a guest. Progress stays on this computer. Sign in with Google to "
 			+ "keep it on every device.")
-		var open_acct := UI3.button("ACCOUNT", &"primary")
+		var open_acct := UI3.button("Account", &"primary")
 		open_acct.name = "OpenAccountButton"
 		open_acct.pressed.connect(func() -> void: LandNav.open(&"account"))
 		_content.add_child(open_acct)
@@ -228,7 +231,7 @@ func _build_account_section() -> void:
 	if not AccountService.is_signed_in():
 		_body("You're playing as a guest. Progress stays on this browser only. Sign in with "
 			+ "Google to keep it on every device. Your Sky Mavis work account works too.")
-		var sign_in := UI3.button("CONTINUE WITH GOOGLE", &"primary")
+		var sign_in := UI3.button("Continue with Google", &"primary")
 		sign_in.name = "SignInButton"
 		sign_in.pressed.connect(func() -> void:
 			if SaveStore.is_web():
@@ -261,7 +264,7 @@ func _build_account_section() -> void:
 
 	if AccountService.status == AccountServiceScript.Status.EXPIRED:
 		_body("Your session expired. Sign in again to keep saving. Your progress is safe on this device.")
-		var again := UI3.button("SIGN IN", &"primary")
+		var again := UI3.button("Sign in", &"primary")
 
 		again.pressed.connect(func() -> void:
 			if SaveStore.is_web():
@@ -273,12 +276,12 @@ func _build_account_section() -> void:
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 12)
 	_content.add_child(row)
-	var switch_btn := UI3.button("SWITCH ACCOUNT", &"secondary")
+	var switch_btn := UI3.button("Switch account", &"secondary")
 	switch_btn.name = "SwitchAccountButton"
 	switch_btn.pressed.connect(func() -> void: AccountService.sign_in(true))
 	row.add_child(switch_btn)
 
-	var out_btn := UI3.button("SIGN OUT", &"danger")
+	var out_btn := UI3.button("Sign out", &"danger")
 	out_btn.name = "SignOutButton"
 	row.add_child(out_btn)
 	var confirm_lbl := _body("")
@@ -288,7 +291,7 @@ func _build_account_section() -> void:
 		if not armed[0]:
 			armed[0] = true
 			var unsynced: bool = AccountService.has_unsynced_changes()
-			out_btn.text = "SYNC AND SIGN OUT" if unsynced else "CONFIRM SIGN OUT"
+			out_btn.text = "Sync and sign out" if unsynced else "Confirm sign out"
 			confirm_lbl.text = ("Sign out? Your progress is saved to your account. This browser "
 				+ "goes back to guest mode.") if not unsynced else ("Sign out? Your latest "
 				+ "progress uploads first, then this browser goes back to guest mode.")
@@ -320,6 +323,13 @@ func _body(text: String) -> Label:
 func _row(title: String, desc: String = "", ctrl: Control = null) -> HBoxContainer:
 	var card := UI3.plate(&"row")
 	card.custom_minimum_size = Vector2(0, ROW_MIN)
+	# Spec row margin is 12 sides / 0 top: fine for one line, cramped with a description. 16 x 12 here.
+	var rsb := UI3Theme.get_theme().get_stylebox("panel", "PanelRow").duplicate() as StyleBoxFlat
+	rsb.content_margin_left = 16
+	rsb.content_margin_right = 16
+	rsb.content_margin_top = 12
+	rsb.content_margin_bottom = 12
+	card.add_theme_stylebox_override("panel", rsb)
 	var h := HBoxContainer.new()
 	h.add_theme_constant_override("separation", 16)
 	card.add_child(h)
