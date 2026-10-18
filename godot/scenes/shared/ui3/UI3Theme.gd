@@ -485,6 +485,20 @@ static func _build_tabs(t: Theme, cream: Color) -> void:
 		t.set_color("font_disabled_color", type_name, color("text_on_viewport"))
 		t.set_constant("h_separation", type_name, 8)
 	t.set_stylebox("panel", "TabContainer", t.get_stylebox("panel", "PanelPlate"))
+	# ButtonTab: tab-as-Button (meta screens). Selection = toggle pressed state (wood-3 + cream outline).
+	t.set_type_variation("ButtonTab", "Button")
+	for st in ["normal", "disabled"]:
+		t.set_stylebox(st, "ButtonTab", un if st == "normal" else dis)
+	t.set_stylebox("hover", "ButtonTab", hov)
+	for st in ["pressed", "hover_pressed"]:
+		t.set_stylebox(st, "ButtonTab", sel)
+	t.set_stylebox("focus", "ButtonTab", focus_style(radius("l")))
+	t.set_font("font", "ButtonTab", font_display())
+	t.set_font_size("font_size", "ButtonTab", size_of("text_body"))
+	for c in ["font_color", "font_hover_color", "font_pressed_color", "font_hover_pressed_color", "font_focus_color"]:
+		t.set_color(c, "ButtonTab", cream)
+	t.set_color("font_disabled_color", "ButtonTab", color("text_on_viewport"))
+	t.set_constant("min_height", "ButtonTab", int(n.get("min_h", 56)))
 
 
 static func _build_line_edit(t: Theme, cream: Color) -> void:

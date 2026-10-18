@@ -88,7 +88,7 @@ func _ready() -> void:
 	await get_tree().process_frame
 	var keep := s.find_child("Keep", true, false) as Button
 	_ok(keep != null and keep.has_focus(), "delete confirm focuses Keep it")
-	_ok(is_equal_approx(s.find_child("Confirm", true, false).find_children("*", "PanelContainer", true, false)[0].custom_minimum_size.x, 600.0), "confirm 600 wide")
+	_ok(is_equal_approx(s.find_child("Confirm", true, false).find_children("*", "PanelContainer", true, false)[0].custom_minimum_size.x, float(UI3.MODAL_W)), "confirm is the UI3 modal width")
 	keep.pressed.emit()
 	_ok(TeamPresets.count() == 3, "Keep it keeps")
 	s.request_delete(1)
