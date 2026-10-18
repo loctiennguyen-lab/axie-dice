@@ -38,7 +38,7 @@ func _ready() -> void:
 	right.add_child(UI3.toast("Saved", &"ok"))
 	right.add_child(UI3.toast("Still offline", &"error"))
 	right.add_child(UI3.label("NETWORK NOTICE", "LabelKeyHint"))
-	right.add_child(UI3.net_notice("Connection lost. Check your network and try again.", "Retry", Callable()))
+	right.add_child(UI3.net_notice("Can't reach the server. Your run is saved.", "Retry", Callable()))
 	right.add_child(UI3.net_notice("Reconnecting...", "Retry", Callable(), true))
 	right.add_child(UI3.label("SKELETON", "LabelKeyHint"))
 	for _i in 3:
