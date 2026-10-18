@@ -538,7 +538,7 @@ func _build_buildings() -> void:
 		_nodes3d[String(b["id"])] = {"node": n, "scale": s}
 		var reach := (box.size.x + box.size.z) * 0.5 * s * 0.5
 		_blocked.append({"p": ground, "r": reach + 0.8})
-		_footprints.append({"p": ground, "r": reach})
+		_footprints.append({"p": ground, "r": reach, "h": h_units, "rs": 0.0})
 	# Run plate zone under the Portal, plus a ~150 px (design) keep-out ring around the Portal itself.
 	_blocked.append({"p": _ground_at(960, 530), "r": 8.0})
 	# Walking lanes: hub in front of the Portal -> the front of every other house.
@@ -611,14 +611,42 @@ func _place_fit(path: String, p: Vector3, target: float, by_height: bool) -> voi
 	var box := _aabb(n, Transform3D.IDENTITY)
 	var dim := box.size.y if by_height else maxf(box.size.x, box.size.z)
 	var s := target / maxf(dim, 0.01) * _rng.randf_range(0.85, 1.15)
-	# Keep the whole footprint (canopy radius included) inside the land square.
-	p = _clamp_in(p, maxf(box.size.x, box.size.z) * s * 0.5)
+	# Keep the whole prop visibly on the land: footprint (canopy radius) inside the square, and its projected
+	# top inside the land diamond on screen. A tall prop on the back rim sticks out above the back edge, so it is
+	# first shifted toward the camera, then shrunk a little if it still does not fit.
+	var r := maxf(box.size.x, box.size.z) * s * 0.5
+	var hh := box.size.y * s
+	p = _clamp_in(p, r)
+	for i in 40:
+		if _screen_fits(p, r, hh):
+			break
+		if i < 12:
+			p = _clamp_in(p - _g * 0.5, r)
+		else:
+			s *= 0.93
+			r *= 0.93
+			hh *= 0.93
 	n.position = p - Vector3(0, box.position.y * s, 0)
 	n.rotation_degrees.y = _rng.randf() * 360.0
 	n.scale = Vector3.ONE * s
 	add_child(n)
 	_blocked.append({"p": p, "r": 0.9})
-	_footprints.append({"p": p, "r": maxf(box.size.x, box.size.z) * s * 0.5})
+	_footprints.append({"p": p, "r": r, "h": hh})
+
+
+## True when a prop at ground point `p` (footprint radius `r`, height `hh`, world units) lies inside the land
+## diamond on screen: the base ring and the top ring, `margin` design px inside the edge.
+func _screen_fits(p: Vector3, r: float, hh: float, margin: float = 6.0) -> bool:
+	var half_w := PLOT_SIDE * 0.5 * sqrt(2.0) * PPU - margin
+	var half_h := PLOT_SIDE * 0.5 * sqrt(2.0) * sin(deg_to_rad(PITCH)) * PPU - margin
+	var cx := 960.0 + p.dot(_right) * PPU
+	var cy := DIAMOND_CY - p.dot(_g) * sin(deg_to_rad(PITCH)) * PPU
+	var up := hh * cos(deg_to_rad(PITCH)) * PPU
+	for dx in [-r * PPU, 0.0, r * PPU]:
+		for dy in [0.0, -up]:
+			if absf(cx + dx - 960.0) / half_w + absf(cy + dy - DIAMOND_CY) / half_h > 1.0:
+				return false
+	return true
 
 
 ## Pulls a ground point in so a disc of radius `r` around it stays on the land (the top is a PLOT_SIDE square).
