@@ -264,3 +264,4 @@ godot/override.cfg
 # UI-03 Claude Design package (Homeland art, screenshots; built locally, not committed)
 design/handoffs/ui-03-redesign/send/
 design/handoffs/ui-03-redesign/*.zip
+design/handoffs/ui-03-redesign/send-r2/
