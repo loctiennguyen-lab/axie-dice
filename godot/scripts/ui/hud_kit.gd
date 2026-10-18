@@ -22,8 +22,10 @@ static func icon(name: String) -> Texture2D:
 ## A glyph the display font actually has, else its ASCII fallback (U+2713 and the music note were
 ## already missing from every project font; do not assume arrows exist).
 static func glyph(codepoint: int, fallback: String) -> String:
-	var f: Font = UI3Theme.font_display()
-	return String.chr(codepoint) if f != null and f.has_char(codepoint) else fallback
+	for f: Font in [UI3Theme.font_display(), UI3Theme.font_body()]:
+		if f != null and f.has_char(codepoint):
+			return String.chr(codepoint)
+	return fallback
 
 
 static func arrow() -> String:
