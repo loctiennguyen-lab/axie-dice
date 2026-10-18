@@ -28,12 +28,12 @@ signal hover_changed(uid: int, hovering: bool, on_intent: bool)
 const WIDTH := 320.0
 const BOSS_WIDTH := 640.0
 const ENEMY_HEIGHT := 98.0          ## plate only; tab + chip hang below it
-const BOSS_HEIGHT := 118.0
+const BOSS_HEIGHT := 140.0
 const INTENT_W := 88.0
 const BOSS_INTENT_W := 128.0
 const TAB_H := 32.0
 ## The vertical slot an enemy column reserves (plate + tab overlap + chip row).
-const SLOT_HEIGHT := ENEMY_HEIGHT + TAB_H - 4.0 + 6.0 + 34.0
+const SLOT_HEIGHT := ENEMY_HEIGHT + TAB_H - 4.0 + 6.0 + 40.0
 
 const _STATUS_ICON := {
 	"poison": preload("res://assets/icons/web/poison.png"),
@@ -76,6 +76,7 @@ var _name_label: Label
 var _tag_chip: PanelContainer
 var _tag_label: Label
 var _hp_bar: HPBar
+var _hp_label: Label
 var _phase_label: Label
 var _status_row: HBoxContainer
 var _target_label: Label
@@ -123,7 +124,8 @@ func setup(p_uid: int, display_name: String, _cls: String, is_enemy: bool, is_bo
 		return
 	var w := BOSS_WIDTH if is_boss else WIDTH
 	var plate_h := BOSS_HEIGHT if is_boss else ENEMY_HEIGHT
-	custom_minimum_size = Vector2(w, SLOT_HEIGHT)
+	theme = UI3Theme.get_theme()
+	custom_minimum_size = Vector2(w, plate_h + SLOT_HEIGHT - ENEMY_HEIGHT)
 	size = custom_minimum_size
 
 	# --- click catcher goes FIRST (behind chips so chip tooltips still pick) ---
@@ -140,13 +142,13 @@ func setup(p_uid: int, display_name: String, _cls: String, is_enemy: bool, is_bo
 	_click_catcher.mouse_exited.connect(func(): hover_changed.emit(uid, false, false))
 	add_child(_click_catcher)
 
-	# --- plate ---
+	# --- plate (UI-03: wood-1 plate, wood-2 intent block; lit = 4 px cream outline) ---
 	_plate = PanelContainer.new()
 	_plate.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_plate.position = Vector2.ZERO
 	_plate.custom_minimum_size = Vector2(w, plate_h)
 	_plate.size = Vector2(w, plate_h)
-	_plate_style = _make_plate_style(3)
+	_plate_style = _make_plate_style(0)
 	_plate.add_theme_stylebox_override("panel", _plate_style)
 	_plate.z_index = 2
 	add_child(_plate)
@@ -159,7 +161,7 @@ func setup(p_uid: int, display_name: String, _cls: String, is_enemy: bool, is_bo
 	var left := VBoxContainer.new()
 	left.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	left.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	left.add_theme_constant_override("separation", 5)
+	left.add_theme_constant_override("separation", 4)
 	var lm := MarginContainer.new()
 	lm.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	lm.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -174,37 +176,42 @@ func setup(p_uid: int, display_name: String, _cls: String, is_enemy: bool, is_bo
 	name_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	name_row.add_theme_constant_override("separation", 6)
 	left.add_child(name_row)
-	_name_label = HudKit.label(display_name, 24 if is_boss else 18, DangoTheme.INK, 800)
+	_name_label = UI3.label(display_name, "LabelDisplay")
+	_name_label.add_theme_font_size_override("font_size", 24 if is_boss else 20)
+	_name_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_name_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_name_label.clip_text = true
 	_name_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	name_row.add_child(_name_label)
-	_tag_chip = PanelContainer.new()
+	_tag_chip = UI3.plate(&"info")
 	_tag_chip.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_tag_chip.custom_minimum_size = Vector2(0, 20)
 	_tag_chip.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	_tag_chip.add_theme_stylebox_override("panel", HudKit.box(DangoTheme.DUSK, 6, 0,
-		DangoTheme.OUTLINE, Vector2.ZERO, DangoTheme.SHELF, Vector2(6, 0)))
-	_tag_label = HudKit.label(tag, 12, DangoTheme.CREAM_RAISED)
+	_tag_label = UI3.label(tag, "LabelDisplay")
+	_tag_label.add_theme_font_size_override("font_size", 16)
+	_tag_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_tag_chip.add_child(_tag_label)
 	_tag_chip.visible = tag != ""
 	name_row.add_child(_tag_chip)
+	_hp_label = UI3.label("", "LabelDisplay")
+	_hp_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	name_row.add_child(_hp_label)
 
 	_hp_bar = HPBar.new()
-	_hp_bar.set_kind(HPBar.Kind.ENEMY, 30 if is_boss else 24, 8, 16)
-	_hp_bar.text_mode = true
+	_hp_bar.ui3_look = true
+	_hp_bar.set_kind(HPBar.Kind.ENEMY, 16 if is_boss else 8, 4, 16)
 	_hp_bar.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	if is_boss:
 		_hp_bar.set_marks([0.66, 0.33])
 	left.add_child(_hp_bar)
 
 	if is_boss:
-		_phase_label = HudKit.label("PHASE 1 OF 3", 12, DangoTheme.INK_2)
+		_phase_label = UI3.label("Phase 1 of 3", "LabelMuted")
+		_phase_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		left.add_child(_phase_label)
 
 	var chips_row := HBoxContainer.new()
 	chips_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	chips_row.custom_minimum_size = Vector2(0, 26)
+	chips_row.custom_minimum_size = Vector2(0, UI3.CHIP_H)
 	chips_row.add_theme_constant_override("separation", 4)
 	left.add_child(chips_row)
 	_status_row = HBoxContainer.new()
@@ -215,17 +222,21 @@ func setup(p_uid: int, display_name: String, _cls: String, is_enemy: bool, is_bo
 	spacer.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	chips_row.add_child(spacer)
-	_target_label = HudKit.label("", 13, DangoTheme.INK_2)
+	_target_label = UI3.label("", "LabelMuted")
+	_target_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	chips_row.add_child(_target_label)
 
-	# --- intent block ---
+	# --- intent block (IntentBadge: wood-2, left border in the kind colour) ---
 	var iw := BOSS_INTENT_W if is_boss else INTENT_W
 	_intent_panel = PanelContainer.new()
 	_intent_panel.mouse_filter = Control.MOUSE_FILTER_STOP   # hover = preview + tooltip; clicks are forwarded
 	_intent_panel.gui_input.connect(_on_forward_gui_input)
 	_intent_panel.custom_minimum_size = Vector2(iw, 0)
-	_intent_style = HudKit.box(DangoTheme.CREAM_300, 0, 0)
-	_intent_style.border_width_left = 3
+	_intent_style = UI3Theme.flat(UI3Theme.color("panel_raised"), 0, 0)
+	_intent_style.border_width_left = 4
+	_intent_style.border_color = UI3Theme.color("intent_buff")
+	_intent_style.corner_radius_top_right = UI3Theme.radius("m")
+	_intent_style.corner_radius_bottom_right = UI3Theme.radius("m")
 	_intent_panel.add_theme_stylebox_override("panel", _intent_style)
 	_intent_panel.mouse_entered.connect(func(): hover_changed.emit(uid, true, true))
 	_intent_panel.mouse_exited.connect(func(): hover_changed.emit(uid, false, true))
@@ -235,20 +246,24 @@ func setup(p_uid: int, display_name: String, _cls: String, is_enemy: bool, is_bo
 	ic.alignment = BoxContainer.ALIGNMENT_CENTER
 	ic.add_theme_constant_override("separation", 0)
 	_intent_panel.add_child(ic)
-	_intent_next = HudKit.label("NEXT", 12, DangoTheme.INK, 800, 0.06)
+	_intent_next = UI3.label("Next", "LabelMuted")
 	_intent_next.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_intent_next.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	ic.add_child(_intent_next)
 	var num_row := HBoxContainer.new()
 	num_row.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	num_row.alignment = BoxContainer.ALIGNMENT_CENTER
-	num_row.add_theme_constant_override("separation", 3)
+	num_row.add_theme_constant_override("separation", 4)
 	ic.add_child(num_row)
-	_intent_icon = HudKit.tex_rect(null, 34 if is_boss else 26)
+	_intent_icon = HudKit.tex_rect(null, 28 if is_boss else 24)
 	num_row.add_child(_intent_icon)
-	_intent_num = HudKit.label("", 44 if is_boss else 30, DangoTheme.OUTLINE)
-	num_row.add_child(DangoTheme.line_box(_intent_num, 44 if is_boss else 30, 1.0))
-	_intent_action = HudKit.label("", 12, DangoTheme.INK)
+	_intent_num = UI3.label("", "LabelDisplay")
+	_intent_num.add_theme_font_size_override("font_size", 32 if is_boss else 28)
+	_intent_num.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	num_row.add_child(_intent_num)
+	_intent_action = UI3.label("", "LabelMuted")
 	_intent_action.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_intent_action.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	ic.add_child(_intent_action)
 
 	# --- counter tab ---
@@ -258,13 +273,13 @@ func setup(p_uid: int, display_name: String, _cls: String, is_enemy: bool, is_bo
 	_tab.custom_minimum_size = Vector2(w - 28, TAB_H)
 	_tab.size = Vector2(w - 28, TAB_H)
 	_tab.z_index = 1
-	_tab_style = HudKit.box(DangoTheme.DUSK, 12, 3, DangoTheme.OUTLINE, Vector2(3, 4))
-	_tab_style.border_width_top = 0
+	_tab_style = UI3Theme.flat(UI3Theme.color("panel_raised"), UI3Theme.radius("m"))
 	_tab_style.corner_radius_top_left = 0
 	_tab_style.corner_radius_top_right = 0
 	_tab_style.content_margin_left = 10.0
 	_tab_style.content_margin_right = 10.0
 	_tab_style.content_margin_top = 4.0
+	_tab_style.content_margin_bottom = 2.0
 	_tab.add_theme_stylebox_override("panel", _tab_style)
 	var trow := HBoxContainer.new()
 	trow.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -272,7 +287,8 @@ func setup(p_uid: int, display_name: String, _cls: String, is_enemy: bool, is_bo
 	_tab.add_child(trow)
 	_tab_icon = HudKit.tex_rect(null, 20)
 	trow.add_child(_tab_icon)
-	_tab_text = HudKit.label("", 14, DangoTheme.DUSK_INK, 800, 0.03)
+	_tab_text = UI3.label("", "LabelDisplay")
+	_tab_text.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	trow.add_child(_tab_text)
 	var tsp := Control.new()
 	tsp.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -283,18 +299,21 @@ func setup(p_uid: int, display_name: String, _cls: String, is_enemy: bool, is_bo
 	_tab_pips.add_theme_constant_override("separation", 3)
 	_tab_pips.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	trow.add_child(_tab_pips)
-	_tab_right = HudKit.label("", 13, DangoTheme.DUSK_INK)
+	_tab_right = UI3.label("", "LabelMuted")
+	_tab_right.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	trow.add_child(_tab_right)
 	_tab.visible = false
 	add_child(_tab)
 
-	# --- transient chip under the tab ---
+	# --- transient label under the tab: "Target · Name" (cream), reason (red-2), damage preview ---
 	_chip = PanelContainer.new()
 	_chip.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_chip.z_index = 1
-	_chip_style = HudKit.box(DangoTheme.DUSK, 9, 3, DangoTheme.OUTLINE, Vector2(3, 4))
-	_chip_style.content_margin_left = 6.0
+	_chip_style = UI3Theme.flat(UI3Theme.color("text"), UI3Theme.radius("m"))
+	_chip_style.content_margin_left = 10.0
 	_chip_style.content_margin_right = 12.0
+	_chip_style.content_margin_top = 2.0
+	_chip_style.content_margin_bottom = 2.0
 	_chip.add_theme_stylebox_override("panel", _chip_style)
 	var crow := HBoxContainer.new()
 	crow.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -302,7 +321,8 @@ func setup(p_uid: int, display_name: String, _cls: String, is_enemy: bool, is_bo
 	_chip.add_child(crow)
 	_chip_icon = HudKit.tex_rect(null, 20)
 	crow.add_child(_chip_icon)
-	_chip_text = HudKit.label("", 14, DangoTheme.CREAM_RAISED)
+	_chip_text = UI3.label("")
+	_chip_text.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	crow.add_child(_chip_text)
 	_chip.visible = false
 	add_child(_chip)
@@ -310,17 +330,16 @@ func setup(p_uid: int, display_name: String, _cls: String, is_enemy: bool, is_bo
 
 
 func _make_plate_style(border_w: int) -> StyleBoxFlat:
-	var sb := HudKit.box(DangoTheme.PANEL, 16, border_w, DangoTheme.OUTLINE, Vector2(3, 5))
+	var sb := UI3Theme.flat(UI3Theme.color("plate"), UI3Theme.radius("m"), border_w, UI3Theme.color("selected_outline"))
 	return sb
 
 
 func _refresh_plate() -> void:
 	if _plate_style == null:
 		return
-	var bw := 4 if (_lit or _acting or _lethal) else 3
+	var bw := 4 if (_lit or _acting or _lethal) else 0
 	_plate_style.set_border_width_all(bw)
-	_plate_style.border_color = DangoTheme.THREAT if _lethal \
-		else (DangoTheme.GOLD if (_lit or _acting) else DangoTheme.OUTLINE)
+	_plate_style.border_color = UI3Theme.color("danger_text") if _lethal else UI3Theme.color("selected_outline")
 	if not _dying:
 		modulate.a = 0.6 if _illegal_reason != "" else 1.0
 	_place_chip()
@@ -351,8 +370,8 @@ func update_stats(hp: int, max_hp: int, shield: int, status: Dictionary) -> void
 	if not _is_enemy or _hp_bar == null:
 		return
 	_hp_bar.set_stats(hp, _max_hp)
-	HudKit.fill_status_row(_status_row, status, shield, _STATUS_ICON,
-		Callable(self, "_effect_tooltip"), 4)
+	_hp_label.text = "%d / %d" % [maxi(hp, 0), _max_hp]
+	_fill_status_row(status, shield)
 	for chip in _status_row.get_children():
 		(chip as Control).gui_input.connect(_on_forward_gui_input)   # chips hand clicks back
 	if hp > 0:
@@ -364,21 +383,46 @@ func update_stats(hp: int, max_hp: int, shield: int, status: Dictionary) -> void
 		visible = false
 
 
+## Round 2 StatusChips (3-letter code + count), shield first, max 4 then "+n".
+func _fill_status_row(status: Dictionary, shield: int) -> void:
+	for c in _status_row.get_children():
+		_status_row.remove_child(c)
+		c.queue_free()
+	var items: Array = []
+	if shield > 0:
+		items.append(["shield", shield])
+	for k in UI3.STATUS_CODE:
+		if k != "shield" and int(status.get(k, 0)) > 0:
+			items.append([k, int(status[k])])
+	var shown := mini(items.size(), 4 if items.size() <= 4 else 3)
+	for i in shown:
+		var chip := UI3.status_label_chip(String(items[i][0]), int(items[i][1]))
+		chip.tooltip_text = _effect_tooltip(String(items[i][0]), int(items[i][1]))
+		chip.mouse_filter = Control.MOUSE_FILTER_STOP
+		_status_row.add_child(chip)
+	if items.size() > shown:
+		var more := UI3.plate(&"info")
+		more.add_child(UI3.label("+%d" % (items.size() - shown), "LabelDisplay"))
+		_status_row.add_child(more)
+	for chip in _status_row.get_children():
+		(chip as Control).gui_input.connect(_on_forward_gui_input)   # chips hand clicks back
+
+
 ## Name + intent block + target. `intent` = {show:bool, type:String, num:int, label:String,
 ## target:String, boosted:bool}. `show=false` renders "NO MOVE".
 func set_intent(intent: Dictionary) -> void:
 	if not _is_enemy or _intent_panel == null:
 		return
 	_boosted = bool(intent.get("boosted", false))
-	_intent_style.bg_color = DangoTheme.GOLD if _boosted else DangoTheme.CREAM_300
-	_intent_style.border_color = DangoTheme.OUTLINE
+	_intent_style.border_color = UI3Theme.color("accent") if _boosted \
+		else UI3.intent_color(String(intent.get("type", "")))
 	if not bool(intent.get("show", false)):
-		_intent_icon.texture = DangoTheme.face_type_icon("blank")
+		_intent_icon.texture = UI3.icon("face_blank")
 		_intent_num.text = "-"
 		_intent_action.text = "NO MOVE"
 		_target_label.text = ""
 		return
-	_intent_icon.texture = DangoTheme.face_type_icon(String(intent.get("type", "blank")))
+	_intent_icon.texture = UI3.icon(String(UI3.FACE_ICON.get(TrayColumn.ui3_face(String(intent.get("type", "blank"))), "face_blank")))
 	_intent_panel.mouse_filter = Control.MOUSE_FILTER_STOP
 	_intent_panel.tooltip_text = "Next: %s %d%s\nEnemy intent is public: this is the number that lands, with enrage, attrition and big hits already included." % [
 		String(intent.get("label", "")), int(intent.get("num", 0)),
@@ -392,7 +436,7 @@ func set_intent(intent: Dictionary) -> void:
 ## Boss phase line + marks (e.g. phase 2 of 3).
 func set_phase(phase: int, total: int = 3) -> void:
 	if _phase_label != null:
-		_phase_label.text = "PHASE %d OF %d" % [phase, total]
+		_phase_label.text = "Phase %d of %d" % [phase, total]
 
 
 ## The counter tab. spec: {} hides it. Else {kind:"spike"|"clock", bg, ink, text, right, pips:[Color],
@@ -405,13 +449,9 @@ func set_tab(spec: Dictionary) -> void:
 		_place_chip()
 		return
 	_tab.visible = true
-	_tab_style.bg_color = spec.get("bg", DangoTheme.DUSK)
-	var ink: Color = spec.get("ink", DangoTheme.DUSK_INK)
 	_tab_icon.texture = spec.get("icon", null)
 	_tab_text.text = String(spec.get("text", ""))
-	_tab_text.add_theme_color_override("font_color", ink)
 	_tab_right.text = String(spec.get("right", ""))
-	_tab_right.add_theme_color_override("font_color", ink)
 	for c in _tab_pips.get_children():
 		_tab_pips.remove_child(c)
 		c.queue_free()
@@ -442,7 +482,7 @@ func set_illegal(reason: String) -> void:
 	if _chip_text == null:
 		return
 	if reason != "":
-		_show_chip(reason, DangoTheme.DUSK, DangoTheme.CREAM_RAISED, HudKit.icon("lock"))
+		_show_chip(reason, UI3Theme.color("danger_bg"), UI3Theme.color("text"), UI3.icon("ui_lock"))
 	elif _preview <= 0:
 		_hide_chip()
 	_refresh_plate()
@@ -468,12 +508,13 @@ func set_preview_damage(dmg: int) -> void:
 	_lethal = _hp > 0 and dmg >= _hp
 	if _lethal:
 		_hp_bar.set_lethal_text("%d / %d %s 0" % [_hp, _max_hp, HudKit.arrow()])
-		_show_chip("WILL DIE %s %s%d" % [HudKit.dot(), HudKit.minus(), dmg], DangoTheme.GOLD,
-			DangoTheme.OUTLINE, HudKit.icon("lethal"))
+		_show_chip("Will die %s %s%d" % [HudKit.dot(), HudKit.minus(), dmg], UI3Theme.color("danger_bg"),
+			UI3Theme.color("text"), UI3.icon("face_dmg"))
 	else:
 		_hp_bar.set_lethal_text("")
 		_show_chip("%s%d %s %d %s %d" % [HudKit.minus(), dmg, HudKit.dot(), _hp, HudKit.arrow(),
-			after], DangoTheme.GOLD, DangoTheme.OUTLINE, DangoTheme.face_type_icon("dmg"))
+			after], UI3Theme.color("text"), UI3Theme.color("die_ink"), UI3.icon("face_dmg"))
+	_hp_label.text = _hp_bar.shown_text()
 	_refresh_plate()
 
 
@@ -482,6 +523,7 @@ func clear_preview_damage() -> void:
 	_lethal = false
 	if _hp_bar != null:
 		_hp_bar.clear_preview()
+		_hp_label.text = _hp_bar.shown_text()
 	if _illegal_reason == "":
 		_hide_chip()
 	_refresh_plate()
@@ -544,15 +586,7 @@ func _on_click_catcher_gui_input(ev: InputEvent) -> void:
 func spawn_float_text(text: String, css_class: String, big: int) -> void:
 	if CombatView.disable_juice_for_tests or not is_inside_tree():
 		return
-	var lbl := Label.new()
-	lbl.text = text
-	lbl.add_theme_font_override("font", DangoTheme.FONT_DISPLAY)
-	var color: Color = _FLOAT_COLOR.get(css_class, DangoTheme.CREAM_RAISED)
-	if css_class == "dmg" and _is_enemy:
-		color = DangoTheme.CREAM_RAISED     # enemy damage numbers are cream, party's are #FFD0C0
-	var fsize := 52 if (css_class == "dmg" and big >= 1) else (30 if big >= 1 else 22)
-	lbl.add_theme_font_size_override("font_size", fsize)
-	DangoTheme.outline_text(lbl, color, 3 if fsize >= 48 else 2)
+	var lbl := UI3.float_text(text, css_class, clampi(big, 0, 2))
 	lbl.z_index = 5
 	lbl.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	lbl.position = Vector2(size.x * 0.5 - 20.0 + randf_range(-10.0, 10.0), -18.0)

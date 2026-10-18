@@ -271,6 +271,60 @@ static func status_chip(icon_name: String, count: int, tint: Color) -> PanelCont
 	return p
 
 
+## Round 2 StatusChip: h 32, wood-2 pill, 3-letter code + count (Rowdies 18), 2 px border green-6 (buff) or
+## red-6 (debuff). Never colour alone: the code is a word.
+const STATUS_CODE := {
+	"poison": "POI", "burn": "BRN", "regen": "REG", "blind": "BLD", "weaken": "WKN", "vulnerable": "VUL",
+	"thorns": "THN", "stun": "STN", "undying": "UND", "enrage": "ENR", "shield": "SHD",
+}
+const STATUS_BUFFS := ["regen", "thorns", "undying", "enrage", "shield"]
+
+
+static func status_label_chip(status: String, count: int) -> PanelContainer:
+	var p := PanelContainer.new()
+	p.theme = UI3Theme.get_theme()
+	var good := STATUS_BUFFS.has(status)
+	var sb := UI3Theme.flat(UI3Theme.color("panel_raised"), UI3Theme.radius("s"), 2,
+		UI3Theme.color("status_buff_border" if good else "status_debuff_border"))
+	sb.content_margin_left = 8
+	sb.content_margin_right = 8
+	sb.content_margin_top = 2
+	sb.content_margin_bottom = 2
+	p.add_theme_stylebox_override("panel", sb)
+	p.custom_minimum_size = Vector2(0, CHIP_H)
+	var code := String(STATUS_CODE.get(status, status.left(3).to_upper()))
+	var l := label("%s %d" % [code, count], "LabelDisplay")
+	l.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	l.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	p.add_child(l)
+	return p
+
+
+## Round 2 IntentBadge colour for a game face type (attack red-6, shield blue-7, buff kam-5, debuff axie-bird).
+static func intent_color(game_type: String) -> Color:
+	match game_type:
+		"dmg", "attack": return UI3Theme.color("intent_attack")
+		"shield": return UI3Theme.color("intent_shield")
+		"debuff", "weaken", "poison": return UI3Theme.color("intent_debuff")
+	return UI3Theme.color("intent_buff")
+
+
+## Round 2 FloatText: Rowdies 24 / 32 / 40 by size 0 / 1 / 2, 3 px wood-1 stroke, class colour.
+const FLOAT_SIZE := [24, 32, 40]
+const FLOAT_COLOR := {"dmg": "face_attack_text", "heal": "face_heal", "shd": "face_shield", "poi": "face_poison",
+	"buf": "face_buff", "deb": "face_weaken", "man": "face_mana"}
+
+
+static func float_text(text: String, css_class: String, size_step: int) -> Label:
+	var l := label(text, "LabelDisplay")
+	l.add_theme_font_size_override("font_size", int(FLOAT_SIZE[clampi(size_step, 0, 2)]))
+	l.add_theme_color_override("font_color", UI3Theme.color(String(FLOAT_COLOR.get(css_class, "text"))))
+	l.add_theme_color_override("font_outline_color", UI3Theme.color("panel"))
+	l.add_theme_constant_override("outline_size", 3)
+	l.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	return l
+
+
 ## HP bar. kind: axie (10 h, green) | enemy (8 h, red-6) | boss (16 h, red-6). Shield is a blue segment
 ## on the same track after the HP; shield/poison > 0 also show a status chip row above the bar.
 static func hp_bar(hp: int, max_hp: int, shield := 0, poison := 0, kind := &"axie") -> HpBarView:

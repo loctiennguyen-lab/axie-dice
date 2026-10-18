@@ -50,6 +50,7 @@ static func build(btn: Button) -> Dictionary:
 	body.add_child(name_label)
 	var hp_label := UI3.label("", "LabelDisplay")
 	hp_label.add_theme_font_size_override("font_size", 18)
+	hp_label.add_theme_color_override("font_color", UI3Theme.color("text"))
 	hp_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	hp_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	body.add_child(hp_label)
@@ -192,7 +193,7 @@ static func _fill_chips(row: HBoxContainer, status: Dictionary, shield: int, tip
 			var tint := UI3Theme.color("poison") if k == "poison" else UI3Theme.color("text")
 			items.append([k, v, UI3.status_chip(String(_STATUS_ICON[k]), v, tint)])
 		else:
-			items.append([k, v, _word_chip(String(k), v)])
+			items.append([k, v, UI3.status_label_chip(String(k), v)])
 	var shown := mini(items.size(), 3 if items.size() > 3 else items.size())
 	for i in shown:
 		var it: Array = items[i]
@@ -210,11 +211,6 @@ static func _fill_chips(row: HBoxContainer, status: Dictionary, shield: int, tip
 		row.add_child(more)
 	for i in range(shown, items.size()):
 		(items[i][2] as Node).queue_free()
-
-
-## Status without an own icon (weaken, ...): wood-2 pill with the UI3 debuff glyph + count.
-static func _word_chip(_status: String, count: int) -> PanelContainer:
-	return UI3.status_chip("face_debuff", count, UI3Theme.color("text"))
 
 
 ## B12 cosmetic dice skin: art under the face glyph + number, inside the DieTile's panel. Visual only.
