@@ -494,7 +494,13 @@ func _show_leaderboard_popup() -> void:
 	full.pressed.connect(open_full_leaderboard)
 	acts.add_child(full)
 	_focus_later(close)
+	_lb_load(rows_box, acts, full, loading)
+
+
+## Fetches the board into rows_box. On error "Try again" becomes the primary and "Full Leaderboard" drops to secondary.
+func _lb_load(rows_box: VBoxContainer, acts: HBoxContainer, full: Button, loading: Control) -> void:
 	var src: LeaderboardSource = lb_source if lb_source != null else LeaderboardSource.make_default()
+	var asc_n := ascension
 	src.fetch({"asc": asc_n, "period": "season", "mode": mode}, func(res: Dictionary) -> void:
 		if not is_instance_valid(rows_box):
 			return
@@ -505,6 +511,24 @@ func _show_leaderboard_popup() -> void:
 			e.name = "LbError"
 			e.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 			rows_box.add_child(e)
+			if is_instance_valid(full):
+				acts.remove_child(full)
+				full.queue_free()
+			var full2 := UI3.button(tr("Full Leaderboard"), &"secondary", &"M")
+			full2.name = "FullLeaderboard"
+			full2.pressed.connect(open_full_leaderboard)
+			acts.add_child(full2)
+			var retry := UI3.button(tr("Try again"), &"primary", &"M")
+			retry.name = "LbRetry"
+			retry.pressed.connect(func() -> void:
+				for c in rows_box.get_children():
+					c.queue_free()
+				rows_box.add_child(_lbl(tr("Loading..."), "LabelMuted"))
+				acts.remove_child(retry)
+				retry.queue_free()
+				_lb_load(rows_box, acts, full2, null))
+			acts.add_child(retry)
+			_focus_later(retry)
 			return
 		var rows: Array = res.get("rows", [])
 		if rows.is_empty():
