@@ -35,7 +35,6 @@ func _ready() -> void:
 	_buttons(left)
 	_misc_left(left)
 	_dice(right)
-	_hp_and_modal(right)
 
 	for _i in 12:
 		await get_tree().process_frame
@@ -71,9 +70,12 @@ func _buttons(parent: Control) -> void:
 	grid.add_theme_constant_override("h_separation", 10)
 	grid.add_theme_constant_override("v_separation", 4)
 	parent.add_child(grid)
-	for state in ["normal", "hover", "pressed", "disabled", "focus"]:
+	var flow := HFlowContainer.new()   # disabled buttons carry long reasons, so they wrap instead of widening the grid
+	flow.custom_minimum_size.x = 1000
+	flow.add_theme_constant_override("h_separation", 10)
+	flow.add_theme_constant_override("v_separation", 4)
+	for state in ["normal", "hover", "pressed", "focus", "disabled"]:
 		for s in specs:
-			var cell := Control.new()
 			var b := UI3.button(s[2], s[0], s[1])
 			var tn := b.theme_type_variation
 			match state:
@@ -81,15 +83,15 @@ func _buttons(parent: Control) -> void:
 					b.add_theme_stylebox_override("normal", th.get_stylebox(state, tn))
 					b.add_theme_color_override("font_color", th.get_color("font_%s_color" % state, tn))
 				"disabled":
-					UI3.set_disabled_reason(b, "Locked")
+					UI3.set_disabled_reason(b, "Locked · needs 50 Shards" if s[1] == &"L" else "Needs 50 Shards")
 				"focus":
 					UI3.attach_focus_ring(b).visible = true
 			var holder := MarginContainer.new()
-			holder.add_theme_constant_override("margin_bottom", 4 if state != "pressed" else 4)
+			holder.add_theme_constant_override("margin_bottom", 4)
 			holder.add_child(b)
 			b.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
-			cell.free()
-			grid.add_child(holder)
+			(flow if state == "disabled" else grid).add_child(holder)
+	parent.add_child(flow)
 
 
 func _misc_left(parent: Control) -> void:
@@ -141,6 +143,8 @@ func _misc_left(parent: Control) -> void:
 		p.custom_minimum_size = Vector2(150, 64)
 		p.add_child(UI3.label(k[1], "LabelTitle"))
 		plates.add_child(p)
+		if k[0] == &"card_selected":
+			UI3.set_card_selected.call_deferred(p, true)
 	var dis_card := UI3.plate(&"card")
 	dis_card.custom_minimum_size = Vector2(150, 64)
 	dis_card.modulate.a = 0.4
@@ -162,11 +166,10 @@ func _misc_left(parent: Control) -> void:
 	var n1 := UI3.net_notice("You are offline. Normal runs still work.", "Retry", Callable())
 	n1.custom_minimum_size.x = 600
 	nr.add_child(n1)
-	var sk := _row(parent)
-	for _i in 2:
-		var s := UI3.skeleton_row(32)
-		s.custom_minimum_size.x = 480
-		sk.add_child(s)
+	var sk := UI3.skeleton_row(48)
+	sk.custom_minimum_size.x = 380
+	sk.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	nr.add_child(sk)
 	var inp := _row(parent)
 	var le := LineEdit.new()
 	le.text = "Axie name"
@@ -206,27 +209,27 @@ func _dice(parent: Control) -> void:
 	for st in UI3.DIE_STATES:
 		for i in UI3.FACE_TYPES.size():
 			var cell := MarginContainer.new()
-			cell.add_theme_constant_override("margin_top", 18)
+			cell.add_theme_constant_override("margin_top", 26)
 			cell.add_theme_constant_override("margin_bottom", 0)
 			cell.add_child(UI3.die_tile(UI3.FACE_TYPES[i], 3 + i, &"axie", st, tilts[i]))
 			grid.add_child(cell)
-	var eggs := _row(parent, 12)
-	for i in UI3.FACE_TYPES.size():
+	_section(parent, "Egg dice (56) and HP bars: axie / enemy / boss with shield + poison")
+	var egg_pad := MarginContainer.new()
+	egg_pad.add_theme_constant_override("margin_top", 22)
+	parent.add_child(egg_pad)
+	var eggs := _row(egg_pad, 10)
+	for i in [0, 2, 3, 6, 7]:
 		var st := &"selected" if i == 3 else (&"used" if i == 6 else &"normal")
 		eggs.add_child(UI3.die_tile(UI3.FACE_TYPES[i], 2, &"egg", st, 3.0))
-
-
-func _hp_and_modal(parent: Control) -> void:
-	_section(parent, "HP bars (axie / enemy / boss) with shield + poison")
-	var r := _row(parent, 24)
-	var specs := [[&"axie", 30, 40, 0, 0], [&"axie", 22, 40, 8, 3], [&"enemy", 14, 40, 0, 2], [&"boss", 90, 120, 15, 0]]
+	var specs := [[&"axie", 22, 40, 8, 3], [&"enemy", 14, 40, 0, 2], [&"boss", 90, 120, 15, 0]]
 	for s in specs:
 		var b := UI3.hp_bar(s[1], s[2], s[3], s[4], s[0])
-		b.custom_minimum_size.x = 190
-		r.add_child(b)
+		b.custom_minimum_size.x = 110
+		b.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		eggs.add_child(b)
 	_section(parent, "Modal: confirm (destructive, focus on Cancel) over scrim")
 	var host := Control.new()
-	host.custom_minimum_size = Vector2(866, 240)
+	host.custom_minimum_size = Vector2(866, 230)
 	host.clip_contents = true
 	var fake := ColorRect.new()
 	fake.color = UI3Theme.color("viewport")

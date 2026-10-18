@@ -12,7 +12,7 @@ const ICON_DIR := "res://assets/ui3/icons/"
 const DIE_GLYPH := 36
 const DIE_GLYPH_EGG := 22
 const DIE_LIFT := 18
-const DIE_CELL_MIN_W := 80
+const DIE_CELL_MIN_W := 90
 const DIE_WORD_MIN_PX := 12
 const STATUS_ICON := 22
 const CHIP_H := 32
@@ -529,6 +529,8 @@ class DieTile extends VBoxContainer:
 	# One line always: shrink the word (down to a floor) until it fits the cell, ellipsis beyond that.
 	func _fit_word(cell_w: int) -> void:
 		var size_px := UI3Theme.size_of("text_key_hint")
+		if state == &"used":
+			size_px = DIE_WORD_MIN_PX   # same size on every used die so a row stays even
 		var font := word.get_theme_font("font")
 		while size_px > DIE_WORD_MIN_PX and font.get_string_size(word.text, HORIZONTAL_ALIGNMENT_LEFT, -1, size_px).x > cell_w:
 			size_px -= 1
