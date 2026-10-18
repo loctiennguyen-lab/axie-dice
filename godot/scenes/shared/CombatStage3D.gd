@@ -331,19 +331,19 @@ const _POS_Z_ENEMY := -6.5    # far row — enemies, reads as "further back" per
 ## Horizontal layout (spec 02-combat/spec.md): world x runs left to right, +z is toward the camera.
 ## Party: two staggered rows, slots 0,2,4 in front (near the camera), 1,3 behind. Eggs: a third,
 ## nearest row bottom-left. Enemies: a staggered row on the right. The gate sits beyond them (arena x).
-const PARTY_X0 := -8.8
-const PARTY_PITCH_X := 1.4
-const PARTY_Z_FRONT := 4.6
-const PARTY_Z_BACK := 1.8
-const EGG_X0 := -7.8
-const EGG_PITCH_X := 1.5
-const EGG_Z := 7.0
-const ENEMY_CENTER_X := 3.8
-const ENEMY_PITCH_X := 3.0
-const ENEMY_PITCH_X_MANY := 2.1   # 4-5 enemies
-const ENEMY_Z_FRONT := 3.6
-const ENEMY_Z_BACK := 0.8
-const BOSS_POS := Vector3(4.3, 0.0, 2.4)
+const PARTY_X0 := -6.7
+const PARTY_PITCH_X := 1.3
+const PARTY_Z_FRONT := 5.6
+const PARTY_Z_BACK := 2.0
+const EGG_X0 := -7.2
+const EGG_PITCH_X := 1.0
+const EGG_Z := 7.2
+const ENEMY_CENTER_X := 1.9
+const ENEMY_PITCH_X := 2.5
+const ENEMY_PITCH_X_MANY := 1.8   # 4-5 enemies
+const ENEMY_Z_FRONT := 3.3
+const ENEMY_Z_BACK := 0.5
+const BOSS_POS := Vector3(2.5, 0.0, 2.0)
 
 ## Facing fix (bug report: "Axie đang quay mặt về camera, muốn quay lưng lại tiến lên đánh
 ## boss"). AxieCharacter3D's default forward is NOT documented in this addon's own README, so
@@ -539,7 +539,7 @@ func slot_node_of(uid: int) -> Node3D:
 ## Camera framing constants (kept here so frame_band() can re-derive them).
 const _CAM_FOV := 34.0
 const _CAM_PITCH_DEG := -21.0
-const _CAM_POS := Vector3(0.7, 8.6, 18.5)   # 3/4 view across the field, slightly from above
+const _CAM_POS := Vector3(-0.2, 6.6, 15.2)   # 3/4 view across the field, slightly from above
 
 
 ## L6: the stage control now covers the whole canvas (height `canvas_h`) instead of a band
@@ -836,6 +836,9 @@ func spawn_unit(uid: int, cls: String, is_enemy: bool, slot_index: int, slot_cou
 			slot.add_child(visual)
 			shadow_width = _CAPSULE_SHADOW_WIDTH_M * (_BOSS_SCALE if is_named_boss else 1.0)
 
+	if is_egg and visual != null:
+		visual.scale *= 0.7   # tokens read smaller than the Axies they sit beside
+		shadow_width *= 0.7
 	var shadow := _make_ground_shadow(shadow_width)
 	slot.add_child(shadow)
 

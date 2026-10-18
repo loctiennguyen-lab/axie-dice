@@ -17,7 +17,7 @@ const GROUND_SIZE := 160.0
 const BOSS_LIGHT_MUL := 0.72
 const BOSS_FOG_DENSITY := 0.0035
 const BOSS_PORTAL_MUL := 1.3
-const BOSS_PORTAL_Z := -13.5   # pushed back so the 1.3x tower still fits under the frame top
+const BOSS_PORTAL_Z := -10.0   # pushed back so the 1.3x tower still fits under the frame top
 ## SM_Portal_01 has a detached spire (separate piece, mesh-local y > 7.5) that floats above the tower; dropped.
 const PORTAL_FINIAL_Y := 7.5
 ## Same sun / ambient as the Land hub; a biome only tints these a little (it owns sky + ground).
@@ -32,10 +32,10 @@ const PATH_END_GAP := 2.8
 ## Default for registry portal "yaw_deg": gate turned 90 degrees about Y (Liam 16/10).
 const PORTAL_YAW_DEG := 90.0
 ## Prop keep-out (|x| / z): enemy flanks (enemy row z -6.5, x 0/+-5.1) and the portal line.
-const KEEPOUT_ENEMY_Z := [-15.0, 11.0]   # arena z = world -x: the whole fight line incl. party
-const KEEPOUT_ENEMY_X := 9.0
-const KEEPOUT_PORTAL_Z := -9.0   # anything behind this z keeps |x| >= KEEPOUT_PORTAL_X
-const KEEPOUT_PORTAL_X := 7.0
+const KEEPOUT_ENEMY_Z := [-12.0, 10.0]   # arena z = world -x: the whole fight line incl. party
+const KEEPOUT_ENEMY_X := 8.0
+const KEEPOUT_PORTAL_Z := -6.5   # anything behind this z keeps |x| >= KEEPOUT_PORTAL_X
+const KEEPOUT_PORTAL_X := 6.0
 
 static var _registry: Dictionary = {}
 static var _loaded := false

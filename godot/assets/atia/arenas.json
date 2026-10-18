@@ -13,39 +13,39 @@
  "portal": {
   "scene": "res://assets/atia/arena/scenes/HomeLand_Asset/Building_HomeLand/Portal/SM_Portal_01.tscn",
   "texture": "res://assets/atia/arena/meshsrc/HomeLand_Asset/Building_HomeLand/Portal/Source/T_Portal_01_C.png",
-  "z": -11.5,
+  "z": -7.4,
   "yaw_deg": 90,
   "height_m": 5.5
  },
  "zones": {
   "flank": {
    "x": [
-    9.0,
-    30.0
+    8.0,
+    28.0
    ],
    "z": [
-    -17.0,
-    9.0
+    -15.0,
+    6.0
    ]
   },
   "back": {
    "x": [
     -30.0,
-    -12.0
+    -9.0
    ],
    "z": [
-    -19.0,
-    -10.0
+    -14.0,
+    -8.0
    ]
   },
   "low": {
    "x": [
-    4.0,
-    18.0
+    3.5,
+    16.0
    ],
    "z": [
-    -16.0,
-    10.0
+    -14.0,
+    6.0
    ]
   },
   "sky": {
@@ -60,12 +60,12 @@
   },
   "low_g": {
    "x": [
-    6.0,
-    18.0
+    5.0,
+    16.0
    ],
    "z": [
-    -16.0,
-    10.0
+    -14.0,
+    6.0
    ]
   }
  },
