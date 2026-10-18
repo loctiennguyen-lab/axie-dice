@@ -197,7 +197,7 @@ func _build() -> void:
 
 func _redraw() -> void:
 	UI3Meta.clear(_shell["banner_host"])
-	if status == "failed":
+	if status == "failed" and not rows.is_empty():
 		var msg := "You are offline" if fail_reason == "offline" else \
 			("The leaderboard isn't open yet" if fail_reason == "no_endpoint" else "Can't reach the leaderboard")
 		var det := "Last updated %s" % updated if updated != "" else "No board has been loaded yet."
@@ -206,7 +206,7 @@ func _redraw() -> void:
 		UI3Meta.banner(_shell["banner_host"], msg, det, [
 			{"name": "TryAgain", "text": "Try again", "primary": true, "cb": retry},
 			{"name": "BackToLand", "text": "Back to Land", "cb": _on_back}])
-	elif guest:
+	elif guest and status != "failed":
 		UI3Meta.banner(_shell["banner_host"], "Sign in to appear here.",
 			"Anyone can read the boards. Entries need an account.",
 			[{"name": "SignIn", "text": "Sign in", "primary": true, "cb": func() -> void:
@@ -220,10 +220,9 @@ func _redraw_controls() -> void:
 	UI3Meta.clear(_chip_row)
 	for a in ASC_MAX + 1:
 		var locked := is_locked(a)
-		var b := UI3.button("A%d" % a, &"secondary", &"S")
+		# Tab-style toggle: selected = 4 px cream outline on the same baseline (a pressed secondary button sinks).
+		var b := UI3.tab("A%d" % a, a == asc)
 		b.name = "Asc%d" % a
-		b.toggle_mode = true
-		b.button_pressed = a == asc
 		b.custom_minimum_size = Vector2(72, 48)
 		if locked:
 			b.modulate.a = 0.6
@@ -285,11 +284,16 @@ func _redraw_table() -> void:
 			fill.size_flags_vertical = Control.SIZE_EXPAND_FILL
 			_table_host.add_child(fill)
 		"empty":
-			var e := _empty_view()
+			# A locked board says why in the header line only; no "No runs here yet" on top of it.
+			var e: Control = Control.new() if is_locked() else _empty_view()
 			e.size_flags_vertical = Control.SIZE_EXPAND_FILL
 			_table_host.add_child(e)
 		_:
-			if not (status == "failed" and rows.is_empty()):
+			if status == "failed" and rows.is_empty():
+				var ec := _error_view()
+				ec.size_flags_vertical = Control.SIZE_EXPAND_FILL
+				_table_host.add_child(ec)
+			else:
 				var rv := VBoxContainer.new()
 				rv.name = "Rows"
 				rv.add_theme_constant_override("separation", UI3Theme.space("8"))
@@ -299,12 +303,48 @@ func _redraw_table() -> void:
 				sc.name = "Scroll"
 				sc.modulate.a = 0.6 if greyed else 1.0
 				_table_host.add_child(sc)
-			else:
-				var fill2 := Control.new()
-				fill2.size_flags_vertical = Control.SIZE_EXPAND_FILL
-				_table_host.add_child(fill2)
-	_table_host.add_child(_pinned())
+	if status != "failed":
+		_table_host.add_child(_pinned())
 	_draw_detail()
+
+
+## Failed with nothing cached: one error card with the reason and the way out; no pinned own row.
+func _error_view() -> Control:
+	var c := CenterContainer.new()
+	c.name = "ErrorState"
+	var card := UI3.plate(&"notice")
+	card.name = "ErrorCard"
+	c.add_child(card)
+	var ev := VBoxContainer.new()
+	ev.add_theme_constant_override("separation", UI3Theme.space("16"))
+	card.add_child(ev)
+	var msg := "You are offline" if fail_reason == "offline" else \
+		("The leaderboard isn't open yet" if fail_reason == "no_endpoint" else "Can't reach the leaderboard")
+	var det := "No board has been loaded yet."
+	if fail_reason == "no_endpoint":
+		det = "This build has no ranking server connected."
+	var t := UI3.label(msg, "LabelScreenTitle")
+	t.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	ev.add_child(t)
+	var d := UI3.label(det, "LabelMuted")
+	d.name = "Detail"
+	d.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	d.custom_minimum_size = Vector2(520, 0)
+	d.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	ev.add_child(d)
+	var br := HBoxContainer.new()
+	br.alignment = BoxContainer.ALIGNMENT_CENTER
+	br.add_theme_constant_override("separation", UI3Theme.space("16"))
+	ev.add_child(br)
+	var ta := UI3.button("Try again", &"primary", &"M")
+	ta.name = "TryAgain"
+	ta.pressed.connect(retry)
+	br.add_child(ta)
+	var bl := UI3.button("Back to Land", &"secondary", &"M")
+	bl.name = "BackToLand"
+	bl.pressed.connect(_on_back)
+	br.add_child(bl)
+	return c
 
 
 func _empty_view() -> Control:
@@ -475,20 +515,22 @@ func _draw_detail() -> void:
 		if r.has(k) and String(r[k]) != "":
 			v.add_child(_kv(String(k).capitalize(), String(r[k])))
 	if r.has("aid"):
-		v.add_child(_kv("Aid", _aid_text(r)))
-	if String(d.get("aid_note", "")) != "":
-		var a := UI3.label(String(d["aid_note"]), "LabelMuted")
-		a.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		a.custom_minimum_size.x = 392
-		v.add_child(a)
+		var aid_val := _aid_text(r)
+		if String(d.get("aid_note", "")) != "":
+			aid_val = String(d["aid_note"])
+		v.add_child(_kv("Aid", aid_val))
 	var sp := Control.new()
 	sp.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	v.add_child(sp)
 	# Replays are not recorded for other players yet: the button says why (round-2 spec: Watch replay).
-	var wr := UI3.button("Watch replay", &"primary", &"L")
+	var wr := UI3.button("Watch replay", &"secondary", &"M")
 	wr.name = "WatchReplay"
-	UI3.set_disabled_reason(wr, "Replays are not available yet")
+	wr.disabled = true
 	v.add_child(wr)
+	var why := UI3.label("Replays are not available yet", "LabelMuted")
+	why.name = "WatchReplayReason"
+	why.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	v.add_child(why)
 	var close := UI3.button("Close", &"secondary", &"S")
 	close.name = "CloseDetail"
 	close.pressed.connect(close_detail)
