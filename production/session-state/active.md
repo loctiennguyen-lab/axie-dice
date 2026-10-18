@@ -12,15 +12,14 @@ gửi Liam: `design/handoffs/ui-03-redesign/PROMPT-ROUND-2.md`. Quyết định 
 **Đã merge 18/10:** xúc xắc 3D (`DiceRoller3D.gd`, mô hình Blender `godot/assets/dice/axie_die.glb`, nguồn `tools/art/dice/axie_die.blend`)
 và nền UI-03 (`godot/scenes/shared/ui3/UI3Theme.gd`, `UI3.gd`, `tokens_ui3.json`, font). Suite cây chính **104/104**.
 
-**Đã merge lên axiedice/main (9263c52, suite 109/109 không SKIP):** nền UI3 + font, xúc xắc 3D Blender, 01 Land (r2), 03 run map,
-06 run setup + 33/34/35 popup (đổi chỗ Axie), 07 reward (không Skip) + 31 reward types, 32 slots full, 08 shop, 09 event, 13 treasure,
-12 pact (+ swap trả phí), 14 in-run menu (+ abandon_current_run dùng chung), 10 result, 02 combat (khay, nút, thẻ quái/boss + phase,
-nhãn mục tiêu khớp engine), 30 defeat, 39 aid, 42 unit inspector, 16 boot r2 (bắt đăng nhập), 17/37/38 tutorial, 18 system, 36 toast theo mã,
-26 settings (UI3Meta), UI3Meta + 27/44 presets, 28 land upgrade, 24 profile, 23 leaderboard, 40 missions, 41 daily, 20 echo box, 21 pass.
-**Còn:** C = sửa bug save-quit trong trận (SettingsView.in_run kẹt), 4 điểm hình, 43 tooltips, 45 victory march; U = 25 vault (đã sửa preview),
-nút chính Pass/Echo, 29 codex, AccountUI (welcome, chọn save). Sau đó: build + live smoke + viết lại `godot/CLAUDE.md` cho UI3 + bỏ Dango.
-**Bẫy mới 18/10:** `t_rules_version` lấy dấu cả `autoload/` (làn chạy cờ skip nên không thấy); `git stash` dùng chung mọi worktree;
-hai làn cùng thêm hàm vào UI3.gd = hàm trùng = treo; agent không được `pkill` theo tên chung.
+**UI-03 đã port HẾT các màn trong bản giao round 1 + 2 (axiedice/main 3f014fe, suite 110/110 không SKIP).** Thêm 19 Store,
+25 Vault (Use in team → Run setup), 29 codex/guides/unlocks, AccountUI, 43 tooltips, 45 victory march, 30/39/42 combat, MainMenu
+chỉ còn chuyển hướng, TeamSelect + R3Shell đã xoá, `godot/CLAUDE.md` viết lại cho UI3. Live smoke `--full` PASS trên production (18/10).
+**Đang làm:** build Mac + Win từ 3f014fe (bản cũ b615/b616 đã dời vào `build/old/`); làn U sửa vài điểm hình nhỏ (Vault preview 160,
+Scan bị cắt, chip tài khoản, Codex dòng dài, menu in-run lệch 9 px).
+**Còn sau:** xoá hẳn DangoTheme/DangoScreen/dango.tres (còn `gen_theme.gd`, test `t_button_states`/`t_ui_laws`/`t_mockup_assets`, vài
+dòng lẻ); trạng thái gửi điểm Ranked trên Result + câu "mất cọc" đúng theo hoàn cọc → gom vào lần bump RULES_VERSION.
+**Chờ Liam:** tên M6/M7, duyệt chữ Claude Design tự viết (nhãn tóm tắt Defeat, câu lỗi…), test bản build mới.
 Mỗi màn: review code + art-director xem ảnh 2 cỡ → merge đúng commit → --import → suite cây chính → push.
 
 ## (cũ 16/10) ⇢ BẮT ĐẦU TỪ ĐÂY (bàn giao 16/10/2026 03:10)
