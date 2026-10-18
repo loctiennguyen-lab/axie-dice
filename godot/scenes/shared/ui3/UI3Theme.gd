@@ -247,6 +247,7 @@ static func flat(bg: Color, radius_px: int, border_px := 0, border_col := Color.
 		s.shadow_offset = Vector2(0, float(shadow["y"]))
 		s.shadow_size = int(shadow.get("size", 1))
 	s.anti_aliasing = true
+	s.set_meta("ui3", true)   # lets t_ui_laws tell UI-03 boxes (token shadows/borders) from Dango ones
 	return s
 
 
