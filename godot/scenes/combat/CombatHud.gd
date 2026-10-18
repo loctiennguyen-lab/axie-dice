@@ -339,8 +339,16 @@ func _slot(px: int, icon_tex: Variant, icon_px: int, tip: String) -> PanelContai
 		tr.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		cc.add_child(tr)
 	if tip != "":
-		s.tooltip_text = tip
+		UI3Tooltip.bind(s, tip)
 		s.mouse_filter = Control.MOUSE_FILTER_STOP
+		# Keyboard reachable (spec 43: tooltip shows on owner focus) with the shared focus ring.
+		s.focus_mode = Control.FOCUS_ALL
+		var ring := UI3Theme.focus_style(UI3Theme.radius("s"))
+		s.draw.connect(func() -> void:
+			if s.has_focus():
+				s.draw_style_box(ring, Rect2(Vector2.ZERO, s.size)))
+		s.focus_entered.connect(s.queue_redraw)
+		s.focus_exited.connect(s.queue_redraw)
 	else:
 		s.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		s.modulate.a = 0.5
@@ -367,7 +375,7 @@ func _active_slot(a: Dictionary) -> Control:
 	b.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	b.focus_mode = Control.FOCUS_ALL
 	b.disabled = spent
-	b.tooltip_text = String(a.get("tip", ""))
+	UI3Tooltip.bind(b, String(a.get("tip", "")))
 	var fill := UI3Theme.color("disabled") if spent else UI3Theme.color("panel_raised")
 	var border: Color = UI3Theme.color("selected_outline") if armed else UI3Theme.color("text_muted")
 	var sb := UI3Theme.flat(fill, UI3Theme.radius("s"), 4 if armed else 2, border)

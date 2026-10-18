@@ -66,6 +66,7 @@ func _normal(size: Vector2i) -> void:
 	scene._close_unit_inspect()
 	scene._aid.set_open(true)
 	await _shot("aid-tray-open", size)
+	print("QA: aid tray right edge ", scene._aid._tray.get_global_rect().end.x, " at ", size)
 	scene._aid.set_open(false)
 	MetaState.gems_cache = 0
 	scene._rebuild_all()
