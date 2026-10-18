@@ -26,11 +26,11 @@ signal inspect_requested(uid: int)
 signal hover_changed(uid: int, hovering: bool, on_intent: bool)
 
 const WIDTH := 320.0
-const BOSS_WIDTH := 640.0
+const BOSS_WIDTH := 480.0
 const ENEMY_HEIGHT := 98.0          ## plate only; tab + chip hang below it
 const BOSS_HEIGHT := 140.0
 const INTENT_W := 88.0
-const BOSS_INTENT_W := 128.0
+const BOSS_INTENT_W := 120.0
 const TAB_H := 32.0
 ## The vertical slot an enemy column reserves (plate + tab overlap + chip row).
 const SLOT_HEIGHT := ENEMY_HEIGHT + TAB_H - 4.0 + 6.0 + 40.0
@@ -273,9 +273,12 @@ func setup(p_uid: int, display_name: String, _cls: String, is_enemy: bool, is_bo
 	_tab.custom_minimum_size = Vector2(w - 28, TAB_H)
 	_tab.size = Vector2(w - 28, TAB_H)
 	_tab.z_index = 1
+	if is_boss:
+		_tab.custom_minimum_size = Vector2(0, TAB_H)   # the boss clock (ENRAGE IN n) lives INSIDE the plate
 	_tab_style = UI3Theme.flat(UI3Theme.color("panel_raised"), UI3Theme.radius("m"))
-	_tab_style.corner_radius_top_left = 0
-	_tab_style.corner_radius_top_right = 0
+	if not is_boss:
+		_tab_style.corner_radius_top_left = 0
+		_tab_style.corner_radius_top_right = 0
 	_tab_style.content_margin_left = 10.0
 	_tab_style.content_margin_right = 10.0
 	_tab_style.content_margin_top = 4.0
@@ -303,7 +306,10 @@ func setup(p_uid: int, display_name: String, _cls: String, is_enemy: bool, is_bo
 	_tab_right.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	trow.add_child(_tab_right)
 	_tab.visible = false
-	add_child(_tab)
+	if is_boss:
+		left.add_child(_tab)
+	else:
+		add_child(_tab)
 
 	# --- transient label under the tab: "Target · Name" (cream), reason (red-2), damage preview ---
 	_chip = PanelContainer.new()
@@ -327,11 +333,40 @@ func setup(p_uid: int, display_name: String, _cls: String, is_enemy: bool, is_bo
 	_chip.visible = false
 	add_child(_chip)
 	_refresh_plate()
+	if is_boss:
+		_fit_boss.call_deferred()
 
 
 func _make_plate_style(border_w: int) -> StyleBoxFlat:
 	var sb := UI3Theme.flat(UI3Theme.color("plate"), UI3Theme.radius("m"), border_w, UI3Theme.color("selected_outline"))
 	return sb
+
+
+## Boss plate hugs its content (name, bar, phase, statuses, ENRAGE line): resize the plate, the click area
+## and this slot to match.
+func _fit_boss() -> void:
+	if not _is_boss or _plate == null:
+		return
+	_plate.reset_size()
+	var ph := maxf(_plate.get_combined_minimum_size().y, ENEMY_HEIGHT)
+	_plate.size = Vector2(_plate.size.x, ph)
+	_click_catcher.size = Vector2(_plate.size.x, ph)
+	custom_minimum_size.y = ph + 6.0 + 40.0
+	size = Vector2(size.x, custom_minimum_size.y)
+	_place_chip()
+
+
+## Height this card takes in the enemy column, including whatever hangs under the plate right now
+## (counter tab for non-bosses, Target / reason / preview label).
+func stack_height() -> float:
+	if _plate == null:
+		return 0.0
+	var h := _plate.size.y
+	if not _is_boss and _tab != null and _tab.visible:
+		h += TAB_H - 4.0
+	if _chip != null and _chip.visible:
+		h += 6.0 + _chip.get_combined_minimum_size().y
+	return h
 
 
 func _refresh_plate() -> void:
@@ -350,7 +385,7 @@ func _place_chip() -> void:
 		return
 	var txt := _chip_text.text
 	_chip.visible = txt != ""
-	var top := (_tab.position.y + TAB_H + 6.0) if _tab.visible \
+	var top := (_tab.position.y + TAB_H + 6.0) if (_tab.visible and not _is_boss) \
 		else (_plate.size.y + 6.0)
 	_chip.size = Vector2.ZERO
 	_chip.position = Vector2((size.x - _chip.get_combined_minimum_size().x) * 0.5, top)
@@ -446,9 +481,13 @@ func set_tab(spec: Dictionary) -> void:
 		return
 	if spec.is_empty():
 		_tab.visible = false
+		if _is_boss:
+			_fit_boss.call_deferred()
 		_place_chip()
 		return
 	_tab.visible = true
+	if _is_boss:
+		_fit_boss.call_deferred()
 	_tab_icon.texture = spec.get("icon", null)
 	_tab_text.text = String(spec.get("text", ""))
 	_tab_right.text = String(spec.get("right", ""))

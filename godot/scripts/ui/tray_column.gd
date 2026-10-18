@@ -165,7 +165,6 @@ static func update(content: Dictionary, d: Dictionary) -> void:
 	hp.size = Vector2(W - PAD * 2.0, 10)
 
 	_fill_chips(content["chips"], d.get("status", {}), int(d.get("shield", 0)), d.get("status_tip", Callable()))
-	(content["chips"] as Control).position = Vector2(PAD, H - body_h - 34.0)
 
 	# Card frame: selected / legal ally target = selected plate; focus ring on the button.
 	var lit := selected or bool(d.get("legal_target", false))

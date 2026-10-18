@@ -293,14 +293,11 @@ func update_top(d: Dictionary) -> void:
 		c.queue_free()
 	var relics: Array = d.get("relics", [])
 	var shown := mini(relics.size(), 8 if relics.size() <= 8 else 7)
-	for i in 8:
-		if i < shown:
-			var r: Dictionary = relics[i]
-			relic_strip.add_child(_slot(44, r.get("icon"), 32, String(r.get("tip", ""))))
-		elif relics.size() > 8 and i == 7:
-			relic_strip.add_child(_more_slot(relics.size() - 7))
-		else:
-			relic_strip.add_child(_slot(44, null, 0, ""))
+	for i in shown:
+		var r: Dictionary = relics[i]
+		relic_strip.add_child(_slot(44, r.get("icon"), 32, String(r.get("tip", ""))))
+	if relics.size() > 8:
+		relic_strip.add_child(_more_slot(relics.size() - 7))
 	for c in actives_row.get_children():
 		actives_row.remove_child(c)
 		c.queue_free()
@@ -314,7 +311,9 @@ func update_top(d: Dictionary) -> void:
 		mc.tooltip_text = "Mana: spent only on relic actives"
 		mc.mouse_filter = Control.MOUSE_FILTER_STOP
 		_mana_box.add_child(mc)
-	_divider.visible = (d.get("actives", []) as Array).size() > 0
+	_divider.visible = (d.get("actives", []) as Array).size() > 0 and relics.size() > 0
+	relic_strip.visible = relics.size() > 0
+	_relic_plate.visible = relics.size() > 0 or (d.get("actives", []) as Array).size() > 0
 	_fight_label.text = String(d.get("title", ""))
 	var asc := int(d.get("ascension", 0))
 	_turn_label.text = ("A%d · " % asc if asc > 0 else "") + TranslationServer.translate("Turn") + " %d" % int(d.get("turn", 1))
@@ -465,7 +464,8 @@ func layout() -> void:
 	_top_plate.position = Vector2(EDGE, TOP)
 	_relic_plate.size = Vector2.ZERO
 	_relic_plate.position = Vector2(EDGE, TOP + _top_plate.get_combined_minimum_size().y + 8.0)
-	var rel_bottom := _relic_plate.position.y + _relic_plate.get_combined_minimum_size().y
+	var rel_bottom := _relic_plate.position.y + _relic_plate.get_combined_minimum_size().y \
+		if _relic_plate.visible else TOP + _top_plate.get_combined_minimum_size().y
 	_attr_card.size = Vector2.ZERO
 	_attr_card.position = Vector2(EDGE, rel_bottom + 8.0)
 	if undo_button != null:

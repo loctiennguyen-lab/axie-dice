@@ -1396,6 +1396,39 @@ func _tray_tooltip(u: Unit) -> String:
 	return "\n".join(lines)
 
 
+static func _face_has_kw(f: Dictionary, kw: String) -> bool:
+	for k in (f.get("keywords", []) as Array):
+		if String(k).split(":")[0] == kw:
+			return true
+	return false
+
+
+## One plain sentence for what the picked face does (the info panel's description line).
+static func _T(k: String) -> String:
+	return TranslationServer.translate(k)
+
+
+static func _face_description(face_type: String, value: int, aoe: bool) -> String:
+	match face_type:
+		"dmg":
+			return (_T("Deal %d damage to all enemies.") if aoe else _T("Deal %d damage to one enemy.")) % value
+		"shield":
+			return (_T("Give %d Shield to all allies.") if aoe else _T("Give %d Shield to one ally.")) % value
+		"heal":
+			return (_T("Heal all allies for %d.") if aoe else _T("Heal one ally for %d.")) % value
+		"poison":
+			return (_T("Poison all enemies for %d.") if aoe else _T("Poison one enemy for %d.")) % value
+		"debuff":
+			return _T("Weaken all enemies.") if aoe else _T("Weaken one enemy.")
+		"buff":
+			return _T("Buff all allies.") if aoe else _T("Buff one ally.")
+		"mana":
+			return _T("Gain %d Mana.") % value
+		"summon":
+			return _T("Summon %d Egg.") % value
+	return _T("Blank face: nothing to use")
+
+
 ## Die info panel (UI-03): only while a die is picked. Title "Name · ATTACK 5", body = the face's keyword
 ## rules plus the crit chance (party damage faces only: face crit keyword + relic critBonus).
 func _update_die_info() -> void:
@@ -1406,7 +1439,7 @@ func _update_die_info() -> void:
 		var f: Dictionary = u.die[fi]
 		var ftype := String(f.get("type", ""))
 		var value := _live_face_value(u, fi)
-		var lines := PackedStringArray()
+		var lines := PackedStringArray([_face_description(ftype, value, _face_has_kw(f, "aoe"))])
 		var tip := _tray_tooltip(u).split("\n")
 		for i in range(2, tip.size()):
 			if not String(tip[i]).begins_with("Value"):
@@ -2145,18 +2178,14 @@ func _layout_unit_visuals() -> void:
 		var ep: UnitPortrait = _portraits.get(e.uid)
 		if ep != null and ep.visible:
 			enemy_ps.append(ep)
-	var total := 0.0
+	# UI-03 round 2: ONE enemy column, top-right, margin 24, 8 px between cards. Each card is as tall as
+	# what hangs under it (counter tab, Target / reason label). The boss card is wider but sits in the
+	# same column, right-aligned, at the very top so the boss head keeps clear air.
+	var y := _ENEMY_COLUMN_TOP_UI3
 	for ep in enemy_ps:
-		total += (ep as UnitPortrait).size.x
-	var gap := _ENEMY_PLATE_GAP_R1
-	if enemy_ps.size() > 1:
-		gap = clampf((canvas_w - 32.0 - total) / float(enemy_ps.size() - 1), 8.0, _ENEMY_PLATE_GAP_R1)
-	total += gap * maxf(float(enemy_ps.size() - 1), 0.0)
-	var x := (canvas_w - total) * 0.5
-	for ep in enemy_ps:
-		var boss_card := (ep as UnitPortrait).size.x > UnitPortrait.WIDTH + 1.0
-		(ep as UnitPortrait).position = Vector2(x, 24.0 if boss_card else _ENEMY_PLATE_TOP_R1)
-		x += (ep as UnitPortrait).size.x + gap
+		var card := ep as UnitPortrait
+		card.position = Vector2(canvas_w - 24.0 - card.size.x, y)
+		y += card.stack_height() + 8.0
 
 	for uid in _portraits.keys():
 		var p: UnitPortrait = _portraits[uid]
@@ -2167,9 +2196,37 @@ func _layout_unit_visuals() -> void:
 		if feet.x >= 0.0:
 			var chest := _stage3d.get_unit_screen_pos(uid, CombatStage3D.HEAD_HEIGHT)
 			p.position = Vector2(stage_offset.x + chest.x - p.size.x * 0.5, stage_offset.y + chest.y)
+			_place_status_chips(uid, p, stage_offset)
 	_backdrop.apply_parallax(stage_offset)
 
 
+## UI-03: the status chips of an Axie float centred above its head (world label), and never into the
+## party row zone (y 630-890 at 1920): the row's bottom edge is clamped to y 622.
+func _place_status_chips(uid: int, p: UnitPortrait, stage_offset: Vector2) -> void:
+	var idx := -1
+	var units := _party_dice_units()
+	for i in units.size():
+		if (units[i] as Unit).uid == uid:
+			idx = i
+			break
+	if idx < 0 or idx >= _die_slot_content.size():
+		return
+	var chips: HBoxContainer = (_die_slot_content[idx] as Dictionary)["chips"]
+	if chips.get_parent() != p:
+		chips.get_parent().remove_child(chips)
+		p.add_child(chips)
+		p.z_index = 3
+	var head := _stage3d.get_unit_screen_pos(uid, CombatStage3D.HEAD_HEIGHT)
+	chips.visible = head.x >= 0.0 and chips.get_child_count() > 0
+	if not chips.visible:
+		return
+	chips.size = chips.get_combined_minimum_size()
+	var bottom := minf(stage_offset.y + head.y - 8.0, 622.0)
+	var global_top_left := Vector2(stage_offset.x + head.x - chips.size.x * 0.5, bottom - chips.size.y)
+	chips.position = global_top_left - p.position
+
+
+const _ENEMY_COLUMN_TOP_UI3 := 24.0
 const _ENEMY_PLATE_TOP_R1 := 96.0
 const _ENEMY_PLATE_GAP_R1 := 40.0
 
