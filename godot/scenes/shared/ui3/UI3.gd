@@ -405,9 +405,19 @@ static func die_tile(face: StringName, value: int, size := &"axie", state := &"n
 ## as given (already from data); `not_enough` dims it (the button beside it says "Need n more").
 static func cost_chip(kind: StringName, amount: int, not_enough := false) -> PanelContainer:
 	if kind == &"free":
-		var fc := chip(TranslationServer.translate("Free"))   # the real accent chip, 40 high here
+		# Muted on purpose: wood plate, cream outline, cream text. Must not read as a second primary.
+		var fsb := UI3Theme.flat(UI3Theme.color("panel_raised"), UI3Theme.radius("s"), 2,
+			UI3Theme.color("text"), Vector4(12, 0, 12, 0))
+		var fc := PanelContainer.new()
 		fc.name = "CostChip"
+		fc.theme = UI3Theme.get_theme()
 		fc.custom_minimum_size = Vector2(0, 40)
+		fc.add_theme_stylebox_override("panel", fsb)
+		var fl := label(TranslationServer.translate("Free"), "LabelDisplay")
+		fl.add_theme_font_size_override("font_size", 20)
+		fl.add_theme_color_override("font_color", UI3Theme.color("text"))
+		fl.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		fc.add_child(fl)
 		return fc
 	var gem := kind == &"gem"
 	var sb := UI3Theme.flat(UI3Theme.color("gem_bg") if gem else UI3Theme.color("panel_raised"),
