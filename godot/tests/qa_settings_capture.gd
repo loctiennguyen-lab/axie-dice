@@ -15,8 +15,9 @@ func _ready() -> void:
 	get_tree().root.add_child.call_deferred(view)
 	for _i in 30:
 		await get_tree().process_frame
-	var path := QaPaths.evidence_dir() + "/%s_settings.png" % _today()
-	get_tree().root.get_texture().get_image().save_png(path)
+	var img := get_tree().root.get_texture().get_image()
+	var path := QaPaths.evidence_dir() + "/ui3-settings-%dx%d.png" % [img.get_width(), img.get_height()]
+	img.save_png(path)
 	print("QA: saved ", path)
 	RunState.clear_saved_run()
 	_guard.restore()

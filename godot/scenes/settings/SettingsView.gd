@@ -27,12 +27,26 @@ var _first_focus: Control = null
 
 
 func _ready() -> void:
-	var shell := DangoScreen.build(self, load(BG_TEXTURE), DangoTheme.Scrim.DEFAULT, true)
-	var content: Control = shell["content"]
-	var footer: HBoxContainer = shell["footer"]
+	# UI-03 26-settings: neutral-1 bg, VBox margin 24 gap 24, header (Back, title, tabs), scrolling column.
+	theme = UI3Theme.get_theme()
+	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	var bg := ColorRect.new()
+	bg.name = "PlateHost"   # t_ui_laws L0
+	bg.color = UI3Theme.color("bg")
+	bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	add_child(bg)
+	var margin := MarginContainer.new()
+	margin.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	for side in ["left", "top", "right", "bottom"]:
+		margin.add_theme_constant_override("margin_" + side, 24)
+	add_child(margin)
+	var root := VBoxContainer.new()
+	root.add_theme_constant_override("separation", 24)
+	margin.add_child(root)
 
 	_content = VBoxContainer.new()
-	_content.add_theme_constant_override("separation", 10)
+	_content.add_theme_constant_override("separation", 16)
 	_content.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 
 	var order: Array[String] = ["Audio", "Accessibility", "Aid and spending", "How to play", "Run", "Account"]
@@ -49,28 +63,29 @@ func _ready() -> void:
 			"Run": _build_abandon_section()
 			"Account": _build_account_section()
 
-	var h := _settings_max_height()
-	_scroll = DangoScreen.fit_or_scroll(_content, h)
-	var top := VBoxContainer.new()
-	top.add_theme_constant_override("separation", 6)
-	top.add_child(DangoTheme.display_label("Settings", 34, DangoTheme.CREAM_RAISED, 800, 0.02))
-	top.add_child(DangoTheme.prose_label(
+	var header := HBoxContainer.new()
+	header.add_theme_constant_override("separation", 24)
+	var back := UI3.button("BACK TO RUN" if in_run else "BACK", &"secondary")
+	back.name = "BackButton"
+	back.pressed.connect(_on_back)
+	header.add_child(back)
+	header.add_child(UI3.label("Settings", "LabelScreenTitle"))
+	header.add_child(_build_index(order))
+	root.add_child(header)
+	root.add_child(UI3.label(
 		"Opened from the combat menu. The run is paused." if in_run else "Every toggle states On / Off in words.",
-		14, DangoTheme.CREAM_RAISED, 600))
-	var cols := HBoxContainer.new()
-	cols.add_theme_constant_override("separation", 24)
-	cols.add_child(_build_index(order))
-	var col_wrap := MarginContainer.new()
-	col_wrap.custom_minimum_size.x = 0
-	col_wrap.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		"LabelMuted"))
+	_scroll = ScrollContainer.new()
+	_scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
+	_scroll.get_v_scroll_bar().custom_minimum_size.x = 12.0   # visible overflow (t_ui_laws L2)
+	_scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	_scroll.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	col_wrap.add_child(_scroll)
-	cols.add_child(col_wrap)
-	top.add_child(cols)
-	content.add_child(top)
-	_content.custom_minimum_size.x = 0
-
-	DangoScreen.add_back_button(footer, _on_back).text = "BACK TO RUN" if in_run else "BACK"
+	var center := CenterContainer.new()
+	center.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_content.custom_minimum_size.x = COL_MAX
+	center.add_child(_content)
+	_scroll.add_child(center)
+	root.add_child(_scroll)
 	if _first_focus != null:
 		_first_focus.call_deferred("grab_focus")
 
@@ -91,26 +106,19 @@ func _unhandled_key_input(ev: InputEvent) -> void:
 		get_viewport().set_input_as_handled()
 
 
-func _settings_max_height() -> float:
-	return get_viewport_rect().size.y - DangoScreen.SAFE * 2.0 - DangoScreen.FOOTER_H - 80.0
-
-
 func _build_index(order: Array[String]) -> Control:
-	var v := VBoxContainer.new()
+	var v := HFlowContainer.new()
 	v.name = "SectionIndex"
-	v.custom_minimum_size.x = INDEX_W
-	v.add_theme_constant_override("separation", 6)
+	v.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	v.add_theme_constant_override("h_separation", 8)
+	v.add_theme_constant_override("v_separation", 8)
 	for sec in order:
-		var b := Button.new()
+		var b := UI3.button(sec, &"secondary", &"S")
 		b.name = "Index_" + sec.replace(" ", "")
-		b.text = sec
-		b.alignment = HORIZONTAL_ALIGNMENT_LEFT
-		b.custom_minimum_size = Vector2(INDEX_W, 48)
-		DangoTheme.style_button(b, false)
 		b.pressed.connect(func() -> void:
 			var hdr: Control = _sections.get(sec)
 			if hdr != null:
-				_scroll.scroll_vertical = int(hdr.position.y))
+				_scroll.scroll_vertical = int(hdr.global_position.y - _content.global_position.y))
 		v.add_child(b)
 	return v
 
@@ -140,11 +148,8 @@ func _build_accessibility() -> void:
 
 
 func _build_tutorial() -> void:
-	var btn := Button.new()
+	var btn := UI3.button("REPLAY THE TUTORIAL", &"secondary")
 	btn.name = "ReplayTutorialButton"
-	btn.text = "REPLAY THE TUTORIAL"
-	btn.custom_minimum_size = Vector2(0, 44)
-	DangoTheme.style_button(btn, false)
 	btn.pressed.connect(func() -> void:
 		get_tree().change_scene_to_file("res://scenes/tutorial/Tutorial.tscn"))
 	_row("Replay tutorial", "One turn end to end: roll, spend, target, end. Replaying it changes nothing you own.", btn)
@@ -169,11 +174,9 @@ func _build_abandon_section() -> void:
 	var confirm := CheckBox.new()
 	confirm.name = "ConfirmAbandonCheck"
 	confirm.text = "Yes, I want to abandon the saved run"
-	var btn := Button.new()
-	btn.text = "ABANDON RUN"
-	btn.custom_minimum_size = Vector2(0, 44)
+	var btn := UI3.button("ABANDON RUN", &"danger")
 	btn.disabled = true
-	DangoTheme.style_button(btn, false, true)
+
 	confirm.toggled.connect(func(on: bool) -> void:
 		btn.disabled = not on)
 	btn.pressed.connect(func() -> void:
@@ -217,22 +220,16 @@ func _build_account_section() -> void:
 		# Desktop, signed out: the Account screen (B3) owns the browser flow, waiting and errors.
 		_body("You're playing as a guest. Progress stays on this computer. Sign in with Google to "
 			+ "keep it on every device.")
-		var open_acct := Button.new()
+		var open_acct := UI3.button("ACCOUNT", &"primary")
 		open_acct.name = "OpenAccountButton"
-		open_acct.text = "ACCOUNT"
-		open_acct.custom_minimum_size = Vector2(0, 44)
-		DangoTheme.style_button(open_acct, true)
 		open_acct.pressed.connect(func() -> void: LandNav.open(&"account"))
 		_content.add_child(open_acct)
 		return
 	if not AccountService.is_signed_in():
 		_body("You're playing as a guest. Progress stays on this browser only. Sign in with "
 			+ "Google to keep it on every device. Your Sky Mavis work account works too.")
-		var sign_in := Button.new()
+		var sign_in := UI3.button("CONTINUE WITH GOOGLE", &"primary")
 		sign_in.name = "SignInButton"
-		sign_in.text = "CONTINUE WITH GOOGLE"
-		sign_in.custom_minimum_size = Vector2(0, 44)
-		DangoTheme.style_button(sign_in, true)
 		sign_in.pressed.connect(func() -> void:
 			if SaveStore.is_web():
 				AccountService.sign_in()
@@ -243,7 +240,7 @@ func _build_account_section() -> void:
 
 	var who := HBoxContainer.new()
 	who.add_theme_constant_override("separation", 10)
-	var name_lbl := DangoTheme.display_label(AccountService.display_name(), 22, DangoTheme.CREAM_RAISED)
+	var name_lbl := UI3.label(AccountService.display_name(), "LabelTitle")
 	who.add_child(name_lbl)
 	if bool(AccountService.account.get("sky_mavis", false)):
 		who.add_child(AccountUI.sky_mavis_badge())
@@ -264,10 +261,8 @@ func _build_account_section() -> void:
 
 	if AccountService.status == AccountServiceScript.Status.EXPIRED:
 		_body("Your session expired. Sign in again to keep saving. Your progress is safe on this device.")
-		var again := Button.new()
-		again.text = "SIGN IN"
-		again.custom_minimum_size = Vector2(0, 44)
-		DangoTheme.style_button(again, true)
+		var again := UI3.button("SIGN IN", &"primary")
+
 		again.pressed.connect(func() -> void:
 			if SaveStore.is_web():
 				AccountService.sign_in()
@@ -278,19 +273,13 @@ func _build_account_section() -> void:
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", 12)
 	_content.add_child(row)
-	var switch_btn := Button.new()
+	var switch_btn := UI3.button("SWITCH ACCOUNT", &"secondary")
 	switch_btn.name = "SwitchAccountButton"
-	switch_btn.text = "SWITCH ACCOUNT"
-	switch_btn.custom_minimum_size = Vector2(0, 44)
-	DangoTheme.style_button(switch_btn, false)
 	switch_btn.pressed.connect(func() -> void: AccountService.sign_in(true))
 	row.add_child(switch_btn)
 
-	var out_btn := Button.new()
+	var out_btn := UI3.button("SIGN OUT", &"danger")
 	out_btn.name = "SignOutButton"
-	out_btn.text = "SIGN OUT"
-	out_btn.custom_minimum_size = Vector2(0, 44)
-	DangoTheme.style_button(out_btn, true, true)
 	row.add_child(out_btn)
 	var confirm_lbl := _body("")
 	confirm_lbl.visible = false
@@ -313,7 +302,7 @@ func _build_account_section() -> void:
 # --- small builders ---------------------------------------------------------
 
 func _section(text: String) -> void:
-	var lbl := DangoTheme.display_label(text, 22, DangoTheme.CREAM_RAISED, 800, 0.02)
+	var lbl := UI3.label(text, "LabelTitle")
 	lbl.name = "Section_" + text.replace(" ", "")
 	_content.add_child(lbl)
 	_sections[text] = lbl
@@ -321,7 +310,7 @@ func _section(text: String) -> void:
 
 ## Plain info text under a row group (also used for transient status lines).
 func _body(text: String) -> Label:
-	var lbl := DangoTheme.prose_label(text, 14, DangoTheme.CREAM_RAISED, 600)
+	var lbl := UI3.label(text, "LabelMuted")
 	lbl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_content.add_child(lbl)
 	return lbl
@@ -329,9 +318,8 @@ func _body(text: String) -> Label:
 
 ## One settings row: title + optional description on the left, `ctrl` (optional) on the right. Min 56.
 func _row(title: String, desc: String = "", ctrl: Control = null) -> HBoxContainer:
-	var card := PanelContainer.new()
+	var card := UI3.plate(&"row")
 	card.custom_minimum_size = Vector2(0, ROW_MIN)
-	card.add_theme_stylebox_override("panel", DangoTheme.surface_style(DangoTheme.Surface.CREAM, 12, 2, 0.0, Vector2(16, 8)))
 	var h := HBoxContainer.new()
 	h.add_theme_constant_override("separation", 16)
 	card.add_child(h)
@@ -339,10 +327,10 @@ func _row(title: String, desc: String = "", ctrl: Control = null) -> HBoxContain
 	left.add_theme_constant_override("separation", 2)
 	left.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	left.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	var t := DangoTheme.display_label(title, 17, DangoTheme.INK, 800, 0.02)
+	var t := UI3.label(title, "LabelDisplay")
 	left.add_child(t)
 	if desc != "":
-		var d := DangoTheme.prose_label(desc, 13, DangoTheme.INK_ON_CREAM_MUTED, 600)
+		var d := UI3.label(desc, "LabelMuted")
 		d.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		left.add_child(d)
 	h.add_child(left)
@@ -379,7 +367,7 @@ func _slider(label: String, value: float, on_change: Callable) -> void:
 	slider.value = value
 	slider.custom_minimum_size = Vector2(300, 28)
 	box.add_child(slider)
-	var value_lbl := DangoTheme.prose_label("%d%%" % roundi(value * 100.0), 16, DangoTheme.INK, 700)
+	var value_lbl := UI3.label("%d%%" % roundi(value * 100.0))
 	value_lbl.custom_minimum_size = Vector2(56, 0)
 	box.add_child(value_lbl)
 	slider.value_changed.connect(func(v: float) -> void:
