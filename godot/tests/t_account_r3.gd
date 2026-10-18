@@ -90,6 +90,7 @@ func _ready() -> void:
 		await get_tree().process_frame
 		_ok(s.state == "error" and _has(s, "RetryButton") and _has(s, "GuestButton"), "error state " + code)
 		_ok(not _title(s).is_empty(), "error title " + code)
+	_ok(_has(s, "ErrorCode"), "error state shows the error code line")
 	_ok(_title(s) == "Sign-in didn't work", "unknown code gets the generic title")
 	svc.desktop_error = "admin_policy_enforced"
 	svc.changed.emit()
