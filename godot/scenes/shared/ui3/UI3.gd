@@ -620,35 +620,6 @@ static func title_case(raw: String) -> String:
 	return " ".join(out)
 
 
-# ===== CostChip (shared with lane C: keep ONE definition when merging) =====
-## CostChip (round 2): h 40, radius 8, icon + Rowdies 18. kind gem (purple, paid surfaces only), shard, stone, or
-## free ("Free"). `amount` is the price (ignored for free). not_enough tints the amount red.
-static func cost_chip(kind: StringName, amount: int, not_enough := false) -> PanelContainer:
-	var p := PanelContainer.new()
-	p.name = "CostChip"
-	p.theme = UI3Theme.get_theme()
-	var gem := kind == &"gem"
-	p.add_theme_stylebox_override("panel", UI3Theme.flat(
-		UI3Theme.color("gem_bg" if gem else "panel_raised"), UI3Theme.radius("m"),
-		2 if (gem or not_enough) else 0, UI3Theme.color("danger_text" if not_enough else "gem_border"),
-		Vector4(10, 4, 10, 4)))
-	p.custom_minimum_size = Vector2(0, 40)
-	var h := HBoxContainer.new()
-	h.add_theme_constant_override("separation", 8)
-	h.alignment = BoxContainer.ALIGNMENT_CENTER
-	p.add_child(h)
-	if kind != &"free":
-		var t := TextureRect.new()
-		t.texture = icon("cur_gem" if gem else ("cur_stone" if kind == &"stone" else "cur_shard"))
-		t.custom_minimum_size = Vector2(24, 24)
-		t.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-		t.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-		h.add_child(t)
-	var l := label(TranslationServer.translate("Free") if kind == &"free" else fmt(amount), "LabelDisplay")
-	l.add_theme_color_override("font_color", UI3Theme.color("danger_text" if not_enough else ("gem_text" if gem else "text")))
-	h.add_child(l)
-	return p
-# ===== end CostChip =====
 
 
 ## SlotSwapSheet (round 2, spec 32): modal 1200, new item row (amber outline) + grid of SlotCells (min 120:
