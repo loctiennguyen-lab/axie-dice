@@ -1005,7 +1005,7 @@ func _update_hud() -> void:
 			relics.append({"icon": _relic_icon_for(def), "tip": _relic_tooltip(def)})
 	_hud_frame.update_top({
 		"relics": relics, "actives": actives.slice(0, 3), "mana": _combat.mana,
-		"turn": _combat.turn, "act_line": _act_line(), "ascension": RunState.ascension,
+		"turn": _combat.turn, "title": _fight_title(), "ascension": RunState.ascension,
 		"shards": RunState.shards_this_run, "newcomer": newcomer})
 	_hud_frame.update_attrition(hs.get("attrition", {}), _combat.turn, newcomer)
 
@@ -1024,6 +1024,7 @@ func _update_hud() -> void:
 		{"n": _combat.rerolls, "enabled": executing and _combat.rerolls > 0},
 		{"sub": "E %s %d dice unused" % [HudKit.dot(), unused],
 		 "warn": has_unused and executing,
+		 "resolving": _combat.phase != CombatPhase.EXECUTE,
 		 "enabled": not (_combat.won or _combat.lost) and _combat.phase != CombatPhase.END_TURN})
 	_update_aid(hs, executing)
 	_hud_frame.set_resolving(_combat.phase == CombatPhase.END_TURN and not (_combat.won or _combat.lost))
@@ -1097,6 +1098,16 @@ func _on_aid_purchase(aid_id: String) -> void:
 
 ## "Act 1 . Floor 3 . 3-foe fight" (turn plate sub-line). STUB: the act split is not in the run
 ## data yet, so it is derived from the map length (3 equal acts).
+## "Fight 4 of 12" (boss: "Boss fight"): the run-plate title.
+func _fight_title() -> String:
+	var graph := RunMapGraph.from_data(RunState.map_graph)
+	var total := maxi(graph.rows.size(), 1)
+	var floor_n := clampi(RunState.power_level + 1, 1, total)
+	if String(_setup.get("kind", "battle")) == "boss":
+		return TranslationServer.translate("Boss fight")
+	return TranslationServer.translate("Fight") + " %d " % floor_n + TranslationServer.translate("of") + " %d" % total
+
+
 func _act_line() -> String:
 	var graph := RunMapGraph.from_data(RunState.map_graph)
 	var total := maxi(graph.rows.size(), 1)
@@ -1153,7 +1164,7 @@ func _layout_tray() -> void:
 		gap = clampf((vs.x - 32.0 - col_w * n) / float(n - 1), 4.0, 16.0)
 	var total := n * col_w + maxf(n - 1, 0.0) * gap
 	var x0 := (vs.x - total) * 0.5
-	var top := vs.y - 10.0 - TrayColumn.H   # card top at y 890 on 1080: keeps the party row clear
+	var top := vs.y - 24.0 - TrayColumn.H   # card top at y 892 on 1080: 24 margin, party row stays clear
 	var i := 0
 	for b in _die_slot_buttons:
 		var btn: Button = b

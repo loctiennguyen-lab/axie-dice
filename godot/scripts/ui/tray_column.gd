@@ -4,16 +4,15 @@ extends RefCounted
 ## UI3.DieTile (96 slot, face word under it, "· used" second line), name + HP row, HP bar.
 ## Status chips (UI3.status_chip / UI3.chip) float above the card. The card is still a Button
 ## (toggle) so `%DieSlot0`, focus, keys and the tests keep working; the DieTile is click-through.
-## The card is bottom-anchored in a fixed 186 px button: the body is 164 px, 186 when the word takes
-## two lines ("used"), so the tray top never moves.
+## The card is bottom-anchored in a fixed 164 px button: "used" is a stamp on the tile, the word stays one line, so the tray top never moves.
 
 const W := 152.0
-const H := 186.0
+const H := 164.0
 const PAD := 6.0
 const TILE_Y := 4.0
 const HOLDER_H := 88.0     # DieTile's holder is 100 high for its shadow; 88 + the 6 px gap is enough
 const BODY_NORMAL := 164.0
-const BODY_USED := 186.0
+const BODY_USED := 164.0
 
 ## Game face type -> UI3 face name.
 const _FACE := {"dmg": &"attack", "debuff": &"weaken"}
@@ -119,7 +118,7 @@ static func update(content: Dictionary, d: Dictionary) -> void:
 		var old: Variant = content["tile"]
 		if old != null and is_instance_valid(old):
 			(old as Node).queue_free()
-		var tile := UI3.die_tile(ftype, fval, &"axie", state, 0.0)
+		var tile := UI3.die_tile(ftype, fval, &"axie", state, 0.0, true)
 		tile.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		tile.focus_mode = Control.FOCUS_NONE
 		var holder: Control = tile.get_node("Holder")
@@ -140,7 +139,7 @@ static func update(content: Dictionary, d: Dictionary) -> void:
 		content["skin_node"] = null
 		_apply_skin(content, skin)
 
-	var row_y := TILE_Y + HOLDER_H + 6.0 + (44.0 if two_lines else 22.0) + 2.0
+	var row_y := TILE_Y + HOLDER_H + 6.0 + 22.0 + 2.0
 	var nl: Label = content["name_label"]
 	nl.text = String(d.get("name", ""))
 	nl.position = Vector2(PAD, row_y)

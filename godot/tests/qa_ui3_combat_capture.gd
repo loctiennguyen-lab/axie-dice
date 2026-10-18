@@ -28,6 +28,10 @@ func _ready() -> void:
 func _shot(state: String, size: Vector2i) -> void:
 	for _i in 10:
 		await get_tree().process_frame
+	for n in get_tree().root.get_children():
+		if n.has_method("_land_dice_now"):
+			n.call("_land_dice_now")
+	await get_tree().process_frame
 	var img := get_tree().root.get_texture().get_image()
 	img.save_png("%s/ui3-combat-%s-%dx%d.png" % [_out, state, size.x, size.y])
 	print("QA: saved ui3-combat-%s-%dx%d" % [state, size.x, size.y])

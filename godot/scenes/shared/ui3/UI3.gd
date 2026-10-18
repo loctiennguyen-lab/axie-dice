@@ -285,8 +285,11 @@ static func hp_bar(hp: int, max_hp: int, shield := 0, poison := 0, kind := &"axi
 ## (56, radius 14). state: normal (tilted by `tilt` degrees) | selected (lift -18, upright, deep shadow, 3 px
 ## cream outline at offset 5) | used (40% + "· used", not interactive) | disabled (40%, not interactive).
 ## The amber focus ring surrounds the tile. Hit area = the tile itself.
-static func die_tile(face: StringName, value: int, size := &"axie", state := &"normal", tilt := 0.0) -> DieTile:
-	return DieTile.new(face, value, size, state, tilt)
+## stamp = true: "used" is a stamp on the dimmed tile (Rowdies 18, cream on wood-1 90%) and the word stays
+## one line, so the tile keeps one height (combat tray). false: the word gets a second line "· used".
+static func die_tile(face: StringName, value: int, size := &"axie", state := &"normal", tilt := 0.0,
+		stamp := false) -> DieTile:
+	return DieTile.new(face, value, size, state, tilt, stamp)
 
 
 ## Localized word for a face type ("ATTACK", "SHIELD", ...). Blank is "–" per the spec.
@@ -458,8 +461,12 @@ class DieTile extends VBoxContainer:
 	var word: Label
 	var _outline: Panel = null
 	var _focus_ring: Panel
+	var stamp_mode := false
+	var _stamp: PanelContainer = null
 
-	func _init(face_: StringName, value_: int, size_: StringName, state_: StringName, tilt_: float) -> void:
+	func _init(face_: StringName, value_: int, size_: StringName, state_: StringName, tilt_: float,
+			stamp_ := false) -> void:
+		stamp_mode = stamp_
 		face = face_
 		value = value_
 		egg = size_ == &"egg"
@@ -541,11 +548,32 @@ class DieTile extends VBoxContainer:
 			_outline.add_theme_stylebox_override("panel", UI3Theme.selected_style(rad + 5, 3, 5))
 			tile.add_child(_outline)
 		var text := UI3.face_word(face)
-		if state == &"used":
+		if state == &"used" and not stamp_mode:
 			text += "\n" + TranslationServer.translate("· used")   # second line, same 18 px
 		word.text = text
+		if _stamp != null:
+			_stamp.get_parent().remove_child(_stamp)
+			_stamp.queue_free()
+			_stamp = null
+		if state == &"used" and stamp_mode:
+			_stamp = UI3.plate(&"plate")
+			_stamp.name = "UsedStamp"
+			_stamp.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			_stamp.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
+			_stamp.grow_horizontal = Control.GROW_DIRECTION_BOTH
+			_stamp.grow_vertical = Control.GROW_DIRECTION_BOTH
+			var sl := UI3.label(TranslationServer.translate("USED"), "LabelDisplay")
+			sl.add_theme_font_size_override("font_size", UI3Theme.size_of("text_body"))
+			sl.add_theme_color_override("font_color", UI3Theme.color("text"))
+			sl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			_stamp.add_child(sl)
+			_stamp.rotation_degrees = -8.0
+			tile.get_parent().add_child(_stamp)   # on the holder: stays full strength over the dimmed tile
 		var live := state == &"normal" or state == &"selected"
-		modulate.a = 1.0 if live else 0.4
+		var dim := 1.0 if live else 0.4
+		modulate.a = 1.0 if stamp_mode else dim
+		tile.modulate.a = dim if stamp_mode else 1.0
+		word.modulate.a = dim if stamp_mode else 1.0
 		focus_mode = Control.FOCUS_ALL if live else Control.FOCUS_NONE
 		if not live and has_focus():
 			release_focus()
