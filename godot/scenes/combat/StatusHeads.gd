@@ -28,13 +28,13 @@ func _init() -> void:
 
 
 ## entries: Array of {uid:int, anchor:Vector2 (CombatView coords; x < 0 = no point), hidden:bool, shield:int,
-## status:Dictionary}. Units missing from `entries` are dropped.
+## status:Dictionary, frozen:bool (opt)}. Units missing from `entries` are dropped.
 func sync(entries: Array) -> void:
 	var seen := {}
 	for e in entries:
 		var uid := int(e["uid"])
 		seen[uid] = true
-		var items := items_for(int(e.get("shield", 0)), e.get("status", {}))
+		var items := items_for(int(e.get("shield", 0)), e.get("status", {}), bool(e.get("frozen", false)))
 		var anchor: Vector2 = e["anchor"]
 		var show := not bool(e.get("hidden", false)) and anchor.x >= 0.0 and not items.is_empty()
 		if not show:
@@ -57,13 +57,15 @@ func sync(entries: Array) -> void:
 
 
 ## Ordered [key, count] list: shield first, then every status with a count above zero.
-static func items_for(shield: int, status: Dictionary) -> Array:
+static func items_for(shield: int, status: Dictionary, frozen := false) -> Array:
 	var items: Array = []
 	if shield > 0:
 		items.append(["shield", shield])
 	for k in UI3.STATUS_CODE:
 		if k != "shield" and int(status.get(k, 0)) > 0:
 			items.append([k, int(status[k])])
+	if frozen and int(status.get("freeze", 0)) <= 0:
+		items.append(["freeze", 1])   # a frozen die is a unit flag, not a counted status
 	return items
 
 
@@ -104,7 +106,11 @@ func _rebuild(uid: int, items: Array, old: Dictionary) -> Dictionary:
 	if items.size() > shown:
 		var more := UI3.plate(&"info")
 		more.add_child(UI3.label("+%d" % (items.size() - shown), "LabelDisplay"))
-		more.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		var hidden: PackedStringArray = []
+		for j in range(shown, items.size()):
+			hidden.append(UnitPortrait._effect_tooltip(String(items[j][0]), int(items[j][1])))
+		UI3Tooltip.bind(more, "\n\n".join(hidden))
+		more.mouse_filter = Control.MOUSE_FILTER_STOP
 		row.add_child(more)
 	return {"row": row, "sig": str(items)}
 

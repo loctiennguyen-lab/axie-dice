@@ -18,6 +18,7 @@ func _ready() -> void:
 	for k in ["poison", "burn", "regen", "blind", "weaken", "vulnerable", "thorns", "stun", "undying", "shield"]:
 		_check(StatusHeads.icon_for(k) != null, "status %s has an icon" % k)
 	_check(StatusHeads.icon_for("enrage") == null, "enrage has no icon (label chip fallback)")
+	_check(StatusHeads.items_for(0, {}, true) == [["freeze", 1]] and StatusHeads.icon_for("freeze") != null, "frozen flag gives a freeze chip")
 	var items := StatusHeads.items_for(3, {"poison": 2, "thorns": 0, "burn": 1})
 	_check(items == [["shield", 3], ["poison", 2], ["burn", 1]], "items: shield first, zero counts dropped (%s)" % str(items))
 
@@ -49,6 +50,8 @@ func _ready() -> void:
 	heads.sync([many])
 	row = heads.row_of(1)
 	_check(row.get_child_count() == 4, "5+ statuses: 3 chips + a +n plate (got %d)" % row.get_child_count())
+	var tip_more := UI3Tooltip.text_of(row.get_child(3))
+	_check(tip_more.contains("Thorns") and tip_more.contains("Weaken"), "+n plate tooltip lists hidden statuses (%s)" % tip_more)
 	heads.sync([])
 	await get_tree().process_frame
 	_check(heads.row_of(1) == null, "a unit that left is dropped")

@@ -52,17 +52,13 @@ func show_for(card: Control, faces: Array, prev_index: int, new_index: int, anim
 	if card == null or not is_instance_valid(card) or not card.is_inside_tree():
 		return
 	var r := card.get_global_rect()
-	var top := r.position.y - size_offset_y()
+	var top := r.position.y
 	var cx := r.get_center().x
 	var chip := chip_for(faces, prev_index, new_index)
 	if not chip.is_empty():
-		_spawn(String(chip["text"]), UI3Theme.color(String(chip["token"])), CHIP_SIZE, Vector2(cx, top), 0.0, animate)
+		_spawn(String(chip["text"]), UI3Theme.color(String(chip["token"])), CHIP_SIZE, Vector2(cx, top + 12.0), 0.0, animate)
 	if is_max_face(faces, new_index):
-		_spawn("MAX!", UI3Theme.color("accent_text"), TAG_SIZE, Vector2(cx, top - 44.0), -8.0, animate, true)
-
-
-func size_offset_y() -> float:
-	return 40.0
+		_spawn("MAX!", UI3Theme.color("accent_text"), TAG_SIZE, Vector2(r.end.x - 36.0, top + 56.0), -8.0, animate, true)
 
 
 func _spawn(text: String, ink: Color, font_size: int, at: Vector2, tilt: float, animate: bool, filled := false) -> void:

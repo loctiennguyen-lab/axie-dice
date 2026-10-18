@@ -2258,7 +2258,7 @@ func _layout_status_heads(stage_offset: Vector2) -> void:
 		for u in group:
 			var alive: bool = u.hp > 0
 			entries.append({"uid": u.uid, "shield": u.shield, "status": u.status,
-				"hidden": not alive or _exit_running,
+				"hidden": not alive or _exit_running, "frozen": u.frozen,
 				"anchor": _status_head_anchor(u.uid, is_party, stage_offset) if alive else Vector2(-1, -1)})
 	_status_heads.sync(entries)
 
@@ -2544,6 +2544,8 @@ func _on_log_toggle_pressed() -> void:
 ## already-public engine API this pass simply exposes in the UI; no new gameplay rule added here
 ## (file-header: "NEVER contains game rules itself").
 func _on_undo_pressed() -> void:
+	_land_dice_now()   # dice still in the air land first: no tags / pending cards for an undone roll
+	_reroll_prev.clear()
 	if _is_animating:
 		return
 	if _gated("undo"):

@@ -59,7 +59,6 @@ func _ready() -> void:
 	var u: Unit = units[2]
 	for k in u.die.size():
 		u.die[k] = {"type": "dmg", "value": 6, "keywords": []}
-	combat.rerolls = 3
 	view._on_reroll_pressed()
 	await _wait(0.7)
 	await _shot("reroll-air")

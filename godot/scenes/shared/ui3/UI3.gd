@@ -339,7 +339,7 @@ static func status_tex_chip(tex: Texture2D, count: int, tint: Color) -> PanelCon
 ## red-6 (debuff). Never colour alone: the code is a word.
 const STATUS_CODE := {
 	"poison": "POI", "burn": "BRN", "regen": "REG", "blind": "BLD", "weaken": "WKN", "vulnerable": "VUL",
-	"thorns": "THN", "stun": "STN", "undying": "UND", "enrage": "ENR", "shield": "SHD",
+	"thorns": "THN", "stun": "STN", "undying": "UND", "enrage": "ENR", "shield": "SHD", "freeze": "FRZ",
 }
 const STATUS_BUFFS := ["regen", "thorns", "undying", "enrage", "shield"]
 

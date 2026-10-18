@@ -95,6 +95,12 @@ func _flow() -> void:
 	for _i in 6:
 		await tree.process_frame
 	_check(combat.rerolls >= 0 and is_instance_valid(view), "spam R and keys stay safe")
+	# undo mid-throw: pending dice land first, nothing stays hidden
+	view._dice_pending[units[0].uid] = true
+	(view._die_slot_buttons[0] as Button).modulate.a = 0.0
+	view._on_undo_pressed()
+	_check(view._dice_pending.is_empty() and (view._die_slot_buttons[0] as Button).modulate.a == 1.0,
+		"undo during a throw lands the dice first")
 	frozen.frozen = false
 	combat.rerolls = 0
 	view.last_throw = {}
