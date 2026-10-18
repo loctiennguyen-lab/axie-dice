@@ -15,8 +15,7 @@ và nền UI-03 (`godot/scenes/shared/ui3/UI3Theme.gd`, `UI3.gd`, `tokens_ui3.js
 **UI-03 đã port HẾT các màn trong bản giao round 1 + 2 (axiedice/main 3f014fe, suite 110/110 không SKIP).** Thêm 19 Store,
 25 Vault (Use in team → Run setup), 29 codex/guides/unlocks, AccountUI, 43 tooltips, 45 victory march, 30/39/42 combat, MainMenu
 chỉ còn chuyển hướng, TeamSelect + R3Shell đã xoá, `godot/CLAUDE.md` viết lại cho UI3. Live smoke `--full` PASS trên production (18/10).
-**Đang làm:** build Mac + Win từ 3f014fe (bản cũ b615/b616 đã dời vào `build/old/`); làn U sửa vài điểm hình nhỏ (Vault preview 160,
-Scan bị cắt, chip tài khoản, Codex dòng dài, menu in-run lệch 9 px).
+**Bản cho Liam test:** `build/AxieDice-0.1.0-L1-b831-3f014fe-macos.dmg` + `-windows.zip` (cũ ở `build/old/`). Sau b831 đã merge thêm (4842dfe, chưa build): Vault preview 260, Scan, chip tài khoản UI3, Codex cột 920 + nhãn token, menu in-run thẳng hàng.
 **Còn sau:** xoá hẳn DangoTheme/DangoScreen/dango.tres (còn `gen_theme.gd`, test `t_button_states`/`t_ui_laws`/`t_mockup_assets`, vài
 dòng lẻ); trạng thái gửi điểm Ranked trên Result + câu "mất cọc" đúng theo hoàn cọc → gom vào lần bump RULES_VERSION.
 **Chờ Liam:** tên M6/M7, duyệt chữ Claude Design tự viết (nhãn tóm tắt Defeat, câu lỗi…), test bản build mới.
