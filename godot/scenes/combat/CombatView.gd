@@ -1739,7 +1739,7 @@ func _build_unit_inspect(u: Unit, compact := false) -> Control:
 	layer.add_child(plate)
 	var col := VBoxContainer.new()
 	col.name = "InspectCol"
-	col.add_theme_constant_override("separation", 8 if compact else UI3Theme.space("16"))
+	col.add_theme_constant_override("separation", 6 if compact else UI3Theme.space("16"))
 	plate.add_child(col)
 
 	var is_egg := u.side == "p" and u.roster_index < 0
@@ -1798,7 +1798,7 @@ func _cell_pad(cell: Control, inner: Control) -> void:
 	for side in ["left", "right", "top", "bottom"]:
 		var m := 12
 		if _inspect_compact and (side == "top" or side == "bottom"):
-			m = 6
+			m = 4
 		pad.add_theme_constant_override("margin_" + side, m)
 	cell.add_child(pad)
 	pad.add_child(inner)
@@ -1831,7 +1831,7 @@ func _inspect_rows(col: VBoxContainer, u: Unit) -> void:
 			col.add_child(_inspect_info_row("Next move", txt))
 		var role := String(u.role)
 		col.add_child(_inspect_info_row("Passive" if role == "" else role.capitalize(),
-			"Enemies roll and commit before you act. The plate above its head is exactly what it will do this turn."))
+			"It rolls and commits before you act. The plate over its head shows this turn's move."))
 	elif u.side == "p" and not (u.roster_index < 0) and ContentDB.CLASS_PASSIVE.has(u.cls):
 		var pas: Dictionary = ContentDB.CLASS_PASSIVE[u.cls]
 		col.add_child(_inspect_info_row("Passive · %s" % String(pas.get("n", "")), String(pas.get("d", ""))))
@@ -1868,7 +1868,7 @@ func _inspect_blockers() -> Array[Rect2]:
 			x1 = maxf(x1, r.end.x)
 	if x1 > x0:
 		# the status chips float just above PARTY_ZONE_TOP (up to ~36 px): keep them readable too
-		out.append(Rect2(x0, PARTY_ZONE_TOP - 36.0, x1 - x0, vs.y - PARTY_ZONE_TOP + 36.0))
+		out.append(Rect2(x0, PARTY_ZONE_TOP - 30.0, x1 - x0, vs.y - PARTY_ZONE_TOP + 30.0))
 	if _aid != null and _aid.enabled:
 		var t := _aid.top_y()
 		out.append(Rect2(0.0, t - 8.0, AidPanel.TRAY_W + 2.0 * AidPanel.EDGE, vs.y - t + 8.0))
@@ -1975,7 +1975,8 @@ func _inspect_faces(col: VBoxContainer, u: Unit) -> void:
 		_cell_pad(cell, row)
 		var ic := TextureRect.new()
 		ic.texture = UI3.icon(String(UI3.FACE_ICON[fk]))
-		ic.custom_minimum_size = Vector2(32, 32)
+		var icon_px := 26.0 if _inspect_compact else 32.0
+		ic.custom_minimum_size = Vector2(icon_px, icon_px)
 		ic.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 		ic.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 		row.add_child(ic)

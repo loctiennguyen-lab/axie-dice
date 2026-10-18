@@ -181,6 +181,12 @@ func _row(r: Dictionary) -> Control:
 	b.name = "AidRow_%s" % String(r.get("id", ""))
 	b.custom_minimum_size = Vector2(0, ROW_H)
 	b.disabled = not on
+	if not on:
+		# A row you cannot buy reads as disabled: dark panel fill, hairline border, muted text (not the live slate).
+		var dim := UI3Theme.flat(UI3Theme.color("panel"), UI3Theme.radius("m"), 2, UI3Theme.color("disabled_border"),
+			Vector4(16, 8, 12, 8))
+		for st in ["disabled", "normal", "hover", "pressed"]:
+			b.add_theme_stylebox_override(st, dim)
 	b.pressed.connect(_ask.bind(String(r.get("id", ""))))
 	var row := HBoxContainer.new()
 	row.set_anchors_preset(Control.PRESET_FULL_RECT)

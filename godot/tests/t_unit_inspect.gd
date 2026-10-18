@@ -310,4 +310,5 @@ func test_plate_never_covers_party_row_or_tray() -> void:
 		_assert(r.position.x >= 0.0 and r.end.x <= vs.x and r.position.y >= 0.0 and r.end.y <= vs.y,
 			"inspector for %s leaves the screen: %s in %s" % [u.n, r, vs])
 		_assert(_face_rows() == 6, "six face rows for %s" % u.n)
+		_assert(plate.find_child("InspectScroll", true, false) == null, "inspector for %s needs a scrollbar (plate %s, col %s)" % [u.n, plate.size, plate.find_child("InspectCol", true, false).get_combined_minimum_size()])
 		_view._close_unit_inspect()
