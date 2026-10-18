@@ -42,7 +42,7 @@ static func build(btn: Button) -> Dictionary:
 	plate.set_anchors_preset(Control.PRESET_FULL_RECT)
 	body.add_child(plate)
 	var name_label := UI3.label("")
-	name_label.add_theme_font_size_override("font_size", 16)
+	name_label.add_theme_font_size_override("font_size", 18)
 	name_label.add_theme_color_override("font_color", UI3Theme.color("text"))
 	name_label.clip_text = true
 	name_label.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
@@ -174,7 +174,8 @@ static func update(content: Dictionary, d: Dictionary) -> void:
 		btn.add_theme_stylebox_override(st, empty)
 	btn.add_theme_stylebox_override("focus", UI3Theme.focus_style(12))
 	body.modulate.a = 0.55 if not alive else 1.0
-	btn.tooltip_text = String(d.get("tip", ""))
+	UI3Tooltip.bind(btn, String(d.get("tip", "")))
+	btn.set_meta("ui3_tip_side_of_row", true)
 
 
 static func _fill_chips(row: HBoxContainer, status: Dictionary, shield: int, tip_fn: Callable) -> void:
@@ -198,7 +199,7 @@ static func _fill_chips(row: HBoxContainer, status: Dictionary, shield: int, tip
 		var it: Array = items[i]
 		var chip: Control = it[2]
 		if tip_fn.is_valid():
-			chip.tooltip_text = String(tip_fn.call(it[0], it[1]))
+			UI3Tooltip.bind(chip, String(tip_fn.call(it[0], it[1])))
 			chip.mouse_filter = Control.MOUSE_FILTER_PASS
 		row.add_child(chip)
 	if items.size() > shown:

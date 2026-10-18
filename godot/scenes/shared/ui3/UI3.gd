@@ -365,6 +365,31 @@ static func intent_color(game_type: String) -> Color:
 	return UI3Theme.color("intent_buff")
 
 
+## Game face type ("dmg", "debuff", ...) -> UI3 face key; an unknown type reads as a buff.
+static func face_key(game_type: String) -> StringName:
+	match game_type:
+		"dmg": return &"attack"
+		"debuff": return &"weaken"
+	var k := StringName(game_type)
+	return k if FACE_TYPES.has(k) else &"buff"
+
+
+## Uppercase word for a game face type ("ATTACK", "WEAKEN", "BLANK"); an unmapped type uppercases its
+## own key, which reads as a type nobody has named yet rather than as missing text.
+static func type_label(game_type: String) -> String:
+	if game_type == "blank":
+		return TranslationServer.translate("BLANK")
+	var k := StringName(game_type)
+	if game_type in ["dmg", "debuff"] or FACE_TYPES.has(k):
+		return face_word(face_key(game_type))
+	return game_type.to_upper()
+
+
+## Ink for text sitting on a solid `fill`: the dark die ink on bright fills, body text on dark ones.
+static func ink_on(fill: Color) -> Color:
+	return UI3Theme.color("die_ink") if UI3Theme.luminance(fill) > 0.30 else UI3Theme.color("text")
+
+
 ## Round 2 FloatText: Rowdies 24 / 32 / 40 by size 0 / 1 / 2, 3 px wood-1 stroke, class colour.
 const FLOAT_SIZE := [24, 32, 40]
 const FLOAT_COLOR := {"dmg": "face_attack_text", "heal": "face_heal", "shd": "face_shield", "poi": "face_poison",

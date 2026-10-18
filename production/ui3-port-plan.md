@@ -25,7 +25,7 @@ Merge nền theme trước, mọi làn màn sau đều dựa vào nó.
 
 ## Luật cho mọi làn
 - Màn mới chỉ dùng `UI3Theme` / `UI3`, không gọi `DangoTheme`. Màn chưa port vẫn dùng Dango cho tới khi tới lượt; xong hết thì xoá Dango.
-- Logic và luật không đổi. Không sửa file luật (`scripts/core/*`, `data/rules/*`), `t_rules_version` phải xanh.
+- Logic và luật không đổi. `t_rules_version` lấy dấu TOÀN BỘ `res://autoload`, `scripts/core`, `scripts/meta`, `resources/relics`, `assets/data/rules` (+ `part_faces.json`): KHÔNG sửa file nào ở đó (cờ AXIE_SKIP_RULES_FINGERPRINT của làn che mất lỗi). Sửa = phải bump RULES_VERSION + deploy Worker.
 - Test cũ khẳng định UI cũ (t_mainmenu_ui, t_button_states, t_runloop_ui, …): sửa theo UI mới, không bỏ kiểm tra. Mỗi màn có ít nhất một test tương tác hoặc trạng thái.
 - Mỗi màn: ảnh ở 1920×1080 và 1280×720 (`godot/tools/shot.sh`) vào `production/qa/evidence/ui3-<màn>-*.png`, art-director xem ảnh so với spec.
 - Định nghĩa "xong" như `l1-plan-16-10.md`: review bởi agent khác → merge đúng commit → kiểm xung đột + `--import` → suite cây chính xanh không SKIP → push. Màn chạm online (boot, account, run setup, result, missions, store): live smoke PASS trước khi đưa build cho Liam.
@@ -43,3 +43,10 @@ AccountChip, SkyMavisBadge, StakeTableRow, Curtain, Undo) đưa vào `UI3.gd` b�
 | U | 16, 18 (cập nhật), 36 toast/copy theo mã lỗi, 37 tutorial curtain, 38 tutorial rewards, 26 settings |
 | L | 01, 23, 24, 27 (cập nhật), 44 preset editor |
 | E | 20 echo box, 21 pass, 25 vault, 29 codex, 40 missions (thay 22), 41 daily |
+
+## Còn lại (18/10 tối)
+- Chưa port: 19 Store (làn M đang làm), 25 Vault + nút "Use in team" → Run setup (làn U), 29 codex/guides/unlocks, AccountUI (làn U), 43 tooltips chờ ảnh + 45 victory march (làn C).
+- TeamSelect.tscn (Dango) chỉ còn mở từ Vault → bỏ đường đó, xong thì xoá TeamSelect. MainMenu.tscn chỉ là màn chuyển hướng lúc khởi động, không hiện UI.
+- Dọn Dango còn sót: CombatView (~62 chỗ), RunMapController (~16), UnitHeadHUD, HPBar, hud_kit, R3Shell, AxiePreview3D. Xong hết mới xoá DangoTheme/DangoScreen.
+- Viết lại `godot/CLAUDE.md` cho UI3 (đang mô tả luật Dango cũ).
+- Rồi: build Mac/Win + live smoke trên production trước khi đưa Liam.

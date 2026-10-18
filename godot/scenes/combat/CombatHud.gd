@@ -339,8 +339,16 @@ func _slot(px: int, icon_tex: Variant, icon_px: int, tip: String) -> PanelContai
 		tr.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		cc.add_child(tr)
 	if tip != "":
-		s.tooltip_text = tip
+		UI3Tooltip.bind(s, tip)
 		s.mouse_filter = Control.MOUSE_FILTER_STOP
+		# Keyboard reachable (spec 43: tooltip shows on owner focus) with the shared focus ring.
+		s.focus_mode = Control.FOCUS_ALL
+		var ring := UI3Theme.focus_style(UI3Theme.radius("s"))
+		s.draw.connect(func() -> void:
+			if s.has_focus():
+				s.draw_style_box(ring, Rect2(Vector2.ZERO, s.size)))
+		s.focus_entered.connect(s.queue_redraw)
+		s.focus_exited.connect(s.queue_redraw)
 	else:
 		s.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		s.modulate.a = 0.5
@@ -367,13 +375,15 @@ func _active_slot(a: Dictionary) -> Control:
 	b.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	b.focus_mode = Control.FOCUS_ALL
 	b.disabled = spent
-	b.tooltip_text = String(a.get("tip", ""))
+	UI3Tooltip.bind(b, String(a.get("tip", "")))
 	var fill := UI3Theme.color("disabled") if spent else UI3Theme.color("panel_raised")
 	var border: Color = UI3Theme.color("selected_outline") if armed else UI3Theme.color("text_muted")
 	var sb := UI3Theme.flat(fill, UI3Theme.radius("s"), 4 if armed else 2, border)
 	for st in ["normal", "hover", "pressed", "disabled"]:
 		b.add_theme_stylebox_override(st, sb)
-	b.add_theme_stylebox_override("focus", UI3Theme.focus_style(UI3Theme.radius("s")))
+	var aring := UI3Theme.focus_style(UI3Theme.radius("s"))
+	aring.set_expand_margin_all(4)   # 4 px offset ring on the active icon
+	b.add_theme_stylebox_override("focus", aring)
 	var ic := TextureRect.new()
 	ic.texture = a.get("icon")
 	ic.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
@@ -383,7 +393,7 @@ func _active_slot(a: Dictionary) -> Control:
 	ic.modulate.a = 0.4 if spent else 1.0
 	b.add_child(ic)
 	var badge := UI3.label(str(a.get("charges", "")), "LabelDisplay")
-	badge.add_theme_font_size_override("font_size", 16)
+	badge.add_theme_font_size_override("font_size", 18)
 	badge.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	badge.position = Vector2(34, 26)
 	b.add_child(badge)
@@ -396,6 +406,7 @@ func _active_slot(a: Dictionary) -> Control:
 func update_attrition(state: Dictionary, turn: int, newcomer: bool) -> void:
 	_newcomer = newcomer
 	_attr_card.visible = not newcomer
+	_attr_card.add_to_group("ui3_tip_avoid")
 	if newcomer:
 		return
 	var pct := int(state.get("pct", 0))
