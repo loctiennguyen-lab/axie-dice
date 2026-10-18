@@ -28,6 +28,17 @@ const FONT_DIR := "res://assets/fonts/"
 const FALLBACK_DISPLAY := "res://assets/fonts/Baloo2-Bold.ttf"
 const FALLBACK_BODY := "res://assets/fonts/WorkSans-Medium.ttf"
 
+## Scrollbar grabber shades (wood-4 / 5 / 6). The handoff names them in components.md but tokens.json
+## carries no hex for them; wood-4 matches the secondary button hover in the tokens, 5 and 6 are the
+## next steps up the same ramp. Replace here when the design system publishes them.
+const SCROLL_GRABBER := "#794225"
+const SCROLL_GRABBER_HOVER := "#8f5230"
+const SCROLL_GRABBER_PRESSED := "#a76238"
+## Scrollbar thickness (components.md: ScrollBar 8 w).
+const SCROLL_W := 8
+## HP bar thickness per kind (components.md ProgressBar row). Single source for theme and UI3.hp_bar.
+const HP_BAR_H := {&"axie": 10, &"enemy": 8, &"boss": 16}
+
 static var _tokens: Dictionary = {}
 static var _theme: Theme = null
 static var _font_display: Font = null
@@ -357,13 +368,13 @@ static func _style_button_variant(t: Theme, type_name: String, variant: String, 
 
 static func _build_buttons(t: Theme, cream: Color) -> void:
 	var on_accent := color("accent_text")
-	_style_button_variant(t, "ButtonPrimaryL", "primary", 32, size_of("btn_l"), 48, on_accent)
-	_style_button_variant(t, "ButtonPrimaryM", "primary", 18, size_of("btn_m"), 32, on_accent)
-	_style_button_variant(t, "ButtonSecondary", "secondary", 18, size_of("btn_m"), 24, cream)
-	_style_button_variant(t, "ButtonSecondaryS", "secondary", 18, size_of("btn_s"), 16, cream)
-	_style_button_variant(t, "ButtonDanger", "danger", 18, size_of("btn_m"), 24, cream)
+	_style_button_variant(t, "ButtonPrimaryL", "primary", size_of("text_screen_title"), size_of("btn_l"), space("48"), on_accent)
+	_style_button_variant(t, "ButtonPrimaryM", "primary", size_of("text_body"), size_of("btn_m"), space("32"), on_accent)
+	_style_button_variant(t, "ButtonSecondary", "secondary", size_of("text_body"), size_of("btn_m"), space("24"), cream)
+	_style_button_variant(t, "ButtonSecondaryS", "secondary", size_of("text_body"), size_of("btn_s"), space("16"), cream)
+	_style_button_variant(t, "ButtonDanger", "danger", size_of("text_body"), size_of("btn_m"), space("24"), cream)
 	# Danger pressed / disabled are not in the tokens: derived from normal / secondary disabled above.
-	_style_button_variant(t, "ButtonQuiet", "quiet", 18, size_of("hit_min"), 8, color("text_muted"), true)
+	_style_button_variant(t, "ButtonQuiet", "quiet", size_of("text_body"), size_of("hit_min"), space("8"), color("text_muted"), true)
 	t.set_color("font_hover_color", "ButtonQuiet", color("text"))
 	t.set_color("font_pressed_color", "ButtonQuiet", color("text"))
 
@@ -443,13 +454,13 @@ static func _build_labels(t: Theme, cream: Color) -> void:
 
 
 static func _theme_font_size_raw(k: String) -> int:
-	return int((tokens().get("theme", {}) as Dictionary).get("Label/font_sizes/" + k, 18))
+	return int((tokens().get("theme", {}) as Dictionary).get("Label/font_sizes/" + k, size_of("text_body")))
 
 
 static func _build_tabs(t: Theme, cream: Color) -> void:
 	var n := _theme_entry("Tab/styles/normal")
 	var s := _theme_entry("Tab/styles/selected")
-	var margins := Vector4(24, 0, 24, 0)
+	var margins := Vector4(space("24"), 0, space("24"), 0)
 	var un := flat(hex(String(n["bg"])), int(n["radius"]), 0, Color.TRANSPARENT, margins)
 	var hov := flat(color("panel_raised"), int(n["radius"]), 0, Color.TRANSPARENT, margins)
 	var sel := flat(hex(String(s.get("bg", "#58321d"))), int(n["radius"]), int(s["border"]),
@@ -490,9 +501,9 @@ static func _build_line_edit(t: Theme, cream: Color) -> void:
 
 static func _build_progress(t: Theme) -> void:
 	var specs := {
-		"ProgressBarHP": ["ProgressBar/hp", "hp", 10],
-		"ProgressBarEnemy": ["ProgressBar/enemy_hp", "hp_enemy", 8],
-		"ProgressBarBoss": ["ProgressBar/enemy_hp", "hp_enemy", 16],
+		"ProgressBarHP": ["ProgressBar/hp", "hp", HP_BAR_H[&"axie"]],
+		"ProgressBarEnemy": ["ProgressBar/enemy_hp", "hp_enemy", HP_BAR_H[&"enemy"]],
+		"ProgressBarBoss": ["ProgressBar/enemy_hp", "hp_enemy", HP_BAR_H[&"boss"]],
 	}
 	for type_name in specs:
 		var spec: Array = specs[type_name]
@@ -517,13 +528,13 @@ static func _build_progress(t: Theme) -> void:
 
 static func _build_scroll(t: Theme) -> void:
 	var rad := radius("s")
-	var w := 8
+	var w := SCROLL_W
 	for type_name in ["VScrollBar", "HScrollBar"]:
 		var vertical: bool = type_name == "VScrollBar"
 		var track := flat(color("panel"), rad)
-		var grab := flat(hex("#794225"), rad)
-		var grab_hi := flat(hex("#8f5230"), rad)
-		var grab_pr := flat(hex("#a76238"), rad)
+		var grab := flat(hex(SCROLL_GRABBER), rad)
+		var grab_hi := flat(hex(SCROLL_GRABBER_HOVER), rad)
+		var grab_pr := flat(hex(SCROLL_GRABBER_PRESSED), rad)
 		for f in [track, grab, grab_hi, grab_pr]:
 			if vertical:
 				f.content_margin_left = w

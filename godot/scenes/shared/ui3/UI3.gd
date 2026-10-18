@@ -534,41 +534,55 @@ class HpBarView extends VBoxContainer:
 		_track.custom_minimum_size = Vector2(0, bar_height())
 		_track.fill_color = UI3Theme.color("hp" if kind == &"axie" else "hp_enemy")
 		_track.owner_bar = self
+		_track.refresh_styles()
 		_track.queue_redraw()
 
 	## Bar thickness in px for this kind.
 	func bar_height() -> int:
-		return 10 if kind == &"axie" else (16 if kind == &"boss" else 8)
+		return int(UI3Theme.HP_BAR_H.get(kind, UI3Theme.HP_BAR_H[&"enemy"]))
 
 	class _Track extends Control:
 		var height := 10
 		var fill_color := Color.GREEN
 		var owner_bar: HpBarView = null
+		var _sb_track: StyleBoxFlat
+		var _sb_shield: StyleBoxFlat
+		var _sb_fill: StyleBoxFlat
+
+		## Rebuilds the cached boxes (call when the fill colour changes); _draw only reuses them.
+		func refresh_styles() -> void:
+			var r := UI3Theme.radius("s")
+			_sb_track = UI3Theme.flat(UI3Theme.color("hp_track"), r)
+			_sb_shield = UI3Theme.flat(UI3Theme.color("shield"), r)
+			_sb_fill = UI3Theme.flat(fill_color, r)
 
 		func _draw() -> void:
+			if _sb_track == null:
+				refresh_styles()
 			var r := UI3Theme.radius("s")
 			var w := size.x
-			draw_style_box(UI3Theme.flat(UI3Theme.color("hp_track"), r), Rect2(0, 0, w, height))
+			draw_style_box(_sb_track, Rect2(0, 0, w, height))
 			if owner_bar == null:
 				return
 			var total := float(maxi(owner_bar.max_hp, owner_bar.hp + owner_bar.shield))
 			if owner_bar.shield > 0:
 				var sw := w * float(owner_bar.hp + owner_bar.shield) / total
-				draw_style_box(UI3Theme.flat(UI3Theme.color("shield"), r), Rect2(0, 0, sw, height))
+				draw_style_box(_sb_shield, Rect2(0, 0, sw, height))
 			if owner_bar.hp > 0:
 				var hw := maxf(w * float(owner_bar.hp) / total, float(r) * 2.0)
-				draw_style_box(UI3Theme.flat(fill_color, r), Rect2(0, 0, hw, height))
+				draw_style_box(_sb_fill, Rect2(0, 0, hw, height))
 
 
-## 24 px rotating arc ("reconnecting"). Stops rotating when the project's reduce-flashing/motion setting
-## is on is NOT handled here yet (no such setting hook in the foundation): TODO with the first screen.
+## 24 px rotating arc ("reconnecting"). Holds still when the Settings "reduce flashing" option is on
+## (MetaState.reduce_flash), so the motion preference is respected.
 class Spinner extends Control:
 	func _init() -> void:
 		custom_minimum_size = Vector2(24, 24)
 		size_flags_vertical = Control.SIZE_SHRINK_CENTER
 
 	func _process(delta: float) -> void:
-		rotation += delta * TAU * 0.75
+		if not MetaState.reduce_flash:
+			rotation += delta * TAU * 0.75
 
 	func _ready() -> void:
 		pivot_offset = Vector2(12, 12)
