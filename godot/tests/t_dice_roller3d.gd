@@ -116,6 +116,31 @@ func _ready() -> void:
 	_ok(not roller.is_rolling(), "skip() ends a roll at once")
 	_ok(_log.back() == "all", "skip() emits all_arrived")
 
+	# A second roll during a roll lands the first one; nothing of the old roll fires afterwards.
+	_log.clear()
+	roller.roll(entries, Callable())
+	roller.roll(many.slice(0, 3), Callable())
+	await get_tree().process_frame
+	await get_tree().process_frame
+	_ok(_log.count("all") == 2, "each roll() ends with its own all_arrived (got %d)" % _log.count("all"))
+	_ok(not roller.is_rolling(), "idle after a roll replaced a roll")
+
+	# Mesh surface i+1 of axie_die.glb faces FACE_NORMALS[i] (average vertex normal per surface).
+	var die_mi := DiceRoller3D.make_die_mesh(many.slice(0, 6), 0.5)
+	var mesh := die_mi.mesh
+	_ok(mesh.get_surface_count() == 7, "die mesh has 7 surfaces")
+	for i in 6:
+		var arrays := mesh.surface_get_arrays(i + 1)
+		var normals: PackedVector3Array = arrays[Mesh.ARRAY_NORMAL]
+		var sum := Vector3.ZERO
+		for nrm in normals:
+			sum += nrm
+		var avg := sum.normalized()
+		_ok(avg.dot(DiceRoller3D.FACE_NORMALS[i]) > 0.98,
+			"surface %d (%s) faces FACE_NORMALS[%d] (dot %.3f)" % [i + 1, mesh.surface_get_material(i + 1).resource_name, i, avg.dot(DiceRoller3D.FACE_NORMALS[i])])
+
+	die_mi.free()
+
 	if _fails.is_empty():
 		print("PASS: t_dice_roller3d (%d checks)" % _checks)
 		get_tree().quit(0)
