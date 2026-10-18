@@ -27,6 +27,8 @@ func _ready() -> void:
 	_guard.capture()
 	DirAccess.make_dir_recursive_absolute(_EVIDENCE_DIR)
 	var tag := "%dx%d" % [int(DisplayServer.window_get_size().x), int(DisplayServer.window_get_size().y)]
+	MetaState.runs = 9
+	MetaState.runs_with_battle = 9
 	var scene := _open(6)
 	await _shot(tag, "cards-a6")
 	var view := scene.find_child("PactView", true, false) as PactView
@@ -35,6 +37,27 @@ func _ready() -> void:
 		view.select(1)
 		view.accept_button.pressed.emit()
 		await _shot(tag, "confirm")
+	# paid swap states (R5): price from the real offer; MetaState is non-newcomer so the offer shows
+	view.queue_free()
+	await get_tree().process_frame
+	MetaState.runs = 9
+	MetaState.runs_with_battle = 9
+	var base := AidPurchase.pact_swap_offer()
+	print("pact swap offer: ", base)
+	var cards: Array = RunState.pact_cards()
+	var states := {
+		"swap-available": [dict_with(base, true, ""), cards],
+		"swap-used": [dict_with(base, false, "cap_type"), cards],
+		"swap-no-gem": [dict_with(base, false, "no_gems"), cards],
+		"swap-no-other": [dict_with(base, true, ""), cards.map(func(c): var d: Dictionary = (c as Dictionary).duplicate(); d["swap_ok"] = false; return d)],
+	}
+	for k in states:
+		var v2 := PactView.new()
+		scene.find_child("ScreenContent", true, false).add_child(v2)
+		v2.setup(states[k][1], true, states[k][0])
+		await _shot(tag, k)
+		v2.queue_free()
+		await get_tree().process_frame
 	scene.queue_free()
 	await get_tree().process_frame
 	# full passive slots: Accept leads to the swap sheet (forced at A6 first boss)
@@ -54,3 +77,11 @@ func _ready() -> void:
 	scene.queue_free()
 	_guard.restore()
 	get_tree().quit(0)
+
+
+func dict_with(base: Dictionary, enabled: bool, reason: String) -> Dictionary:
+	var d := base.duplicate()
+	d["show"] = true
+	d["enabled"] = enabled
+	d["reason"] = reason
+	return d
