@@ -36,16 +36,9 @@ func _ready() -> void:
 	LandNav.back_to_land()
 	_check(LandNav.last_path == LandNav.land_scene(), "back_to_land path")
 	_check(LandNav.current_params().is_empty(), "back_to_land phải xoá params")
-	# run_setup fallback về MainMenu cũ bật cờ legacy.
-	if not ResourceLoader.exists("res://scenes/run_setup/RunSetup.tscn"):
-		LandNav.open(&"run_setup")
-		_check(LandNav.legacy_setup_open, "run_setup fallback phải bật legacy_setup_open")
-	LandNav.back_to_land()
-	_check(not LandNav.legacy_setup_open, "back_to_land phải tắt legacy_setup_open")
 	# Round 3 screens: keys 1 (Portal) and 4 (Echo Box) open the real scenes; Back returns to Land.
 	LandNav.open(&"run_setup")
 	_check(LandNav.last_path == "res://scenes/run_setup/RunSetup.tscn", "key 1 -> RunSetup: " + LandNav.last_path)
-	_check(not LandNav.legacy_setup_open, "RunSetup thật không được bật legacy_setup_open")
 	LandNav.open(&"echobox")
 	_check(LandNav.last_path == "res://scenes/echobox/EchoBoxScreen.tscn", "key 4 -> EchoBoxScreen: " + LandNav.last_path)
 	_check(LandNav.SCREENS[&"missions"]["scene"] == "res://scenes/missions/MissionsScreen.tscn", "missions route")

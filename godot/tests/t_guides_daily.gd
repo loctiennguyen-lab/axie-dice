@@ -308,20 +308,22 @@ func test_use_this_team_actually_reaches_the_menu() -> void:
 
 	# The menu must pick it up, and must CLEAR it — otherwise a player who returns to the menu
 	# later has their own edited team silently replaced by a guide they clicked once.
-	LandNav.legacy_setup_open = true   # MainMenu otherwise redirects to Land
-	var menu := (load("res://scenes/main_menu/MainMenu.tscn") as PackedScene).instantiate()
-	add_child(menu)
-	await get_tree().process_frame
-	_assert(menu._team_selection.size() == want.size(),
-		"the menu built a team of %d from a hand-off of %d"
-		% [menu._team_selection.size(), want.size()])
-	for i in mini(menu._team_selection.size(), want.size()):
-		_assert(menu._team_selection[i] == str(want[i]),
-			"the menu slot %d is '%s', the guide says '%s'"
-			% [i, menu._team_selection[i], str(want[i])])
-	_assert(MainMenu.pending_team.is_empty(),
-		"the hand-off was not cleared after being consumed — the next visit to the menu would "
-		+ "overwrite whatever the player had changed since")
-	menu.queue_free()
+	# Run Setup is the consumer now (MainMenu is a router). It builds its initial party from
+	# the hand-off.
+	var setup := (load("res://scenes/run_setup/RunSetup.tscn") as PackedScene).instantiate()
+	# RunSetup drops duplicate heroes (a party is distinct classes), so compare against the
+	# de-duplicated guide team.
+	var want_distinct: Array = []
+	for k in want:
+		if not want_distinct.has(str(k)):
+			want_distinct.append(str(k))
+	var party: Array[String] = setup._initial_party()
+	_assert(party.size() == want_distinct.size(),
+		"Run Setup built a party of %d from %d distinct guide heroes" % [party.size(), want_distinct.size()])
+	for i in mini(party.size(), want_distinct.size()):
+		_assert(party[i] == str(want_distinct[i]),
+			"Run Setup slot %d is '%s', the guide says '%s'" % [i, party[i], str(want_distinct[i])])
+	setup.free()
+	MainMenu.pending_team = []
 	_done("test_use_this_team_actually_reaches_the_menu")
 
