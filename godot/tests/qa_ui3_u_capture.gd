@@ -28,6 +28,18 @@ func _ready() -> void:
 
 
 func _make(sc: String) -> Node:
+	if sc.begins_with("acct"):
+		var svc := AccountService
+		var layer: CanvasLayer = svc._ui_layer()
+		var info := {"local": {"shards": 60, "xp": 340, "vault": 3, "runs": 12, "wins": 4, "run": "Short · Ascension 0"},
+			"cloud": {"shards": 25, "xp": 820, "vault": 6, "runs": 20, "wins": 7, "run": "",
+				"updated_at": int(Time.get_unix_time_from_system()) - 3 * 86400}}
+		match sc:
+			"acct-welcome": return AccountUI.show_welcome(layer)
+			"acct-choose": return AccountUI.show_choice(layer, "choose", info, func(_c: String) -> void: pass)
+			"acct-conflict": return AccountUI.show_choice(layer, "conflict", info, func(_c: String) -> void: pass)
+			"acct-move": return AccountUI.show_choice(layer, "move", info, func(_c: String) -> void: pass)
+			_: return AccountUI.show_toast(layer, "access_denied")
 	if sc.begins_with("pass"):
 		MetaState.pass_season = PassV2.new_state("s1")
 		MetaState.pass_season["xp"] = 3000 if sc != "pass-early" else 200
