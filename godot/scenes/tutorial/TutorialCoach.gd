@@ -105,7 +105,9 @@ func _build_card() -> void:
 	_card = UI3.plate(&"dialog")
 	_card.custom_minimum_size = Vector2(_CARD_W, 0)
 	_card.mouse_filter = Control.MOUSE_FILTER_STOP
-	var sb := _card.get_theme_stylebox("panel").duplicate() as StyleBoxFlat
+	# From the UI3 theme directly: a plate not yet in the tree resolves "panel" against the PROJECT theme
+	# (cream), which made cream text unreadable on a cream card. Spec: wood-1 card, cream text.
+	var sb := UI3Theme.get_theme().get_stylebox("panel", "PanelDialog").duplicate() as StyleBoxFlat
 	sb.set_content_margin_all(_CARD_PAD)
 	_card.add_theme_stylebox_override("panel", sb)
 	_root.add_child(_card)

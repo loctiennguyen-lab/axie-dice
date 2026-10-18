@@ -257,6 +257,12 @@ func _on_finish_pressed() -> void:
 func _render(_first: bool) -> void:
 	var ph := _phase()
 	_last_phase = ph
+	# An end screen must never sit on top of a reroll tray still showing "GREAT ROLL!": skip it first.
+	if ph == Step.REWARD or ph == Step.DONE or ph == Step.LOST:
+		if _view != null and bool(_view.get("_reroll_fx_active")):
+			var fx: Variant = _view.get("_reroll_fx")
+			if fx != null:
+				(fx as Object).call("skip")
 	match ph:
 		Step.WELCOME:
 			_coach.show_curtain("Welcome to Axie Dice!",
@@ -311,7 +317,7 @@ func _render(_first: bool) -> void:
 			var st := _starter_pack()
 			var entries: Array = []
 			if int(st.get("shards", 0)) > 0:
-				entries.append({"value": str(int(st["shards"])), "label": "Shards", "sub": "Not stakeable"})
+				entries.append({"value": str(int(st["shards"])), "label": "Shards", "sub": "Spend them in the Land. Can't be staked on missions."})
 			if int(st.get("tickets", 0)) > 0:
 				entries.append({"value": str(int(st["tickets"])), "label": "Tickets", "sub": "Open Echo Boxes"})
 			if int(st.get("gems", 0)) > 0:
