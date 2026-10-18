@@ -2957,7 +2957,7 @@ func _relic_tooltip(def: RelicDef) -> String:
 	var head := String(def.name)
 	if int(def.act_cost) > 0:
 		head += "  ·  MP %d" % int(def.act_cost)
-	var body := String(def.description)
+	var body := UI3.player_text(String(def.description))   # no RULE: / [Global] / [Axis] tags
 	return head if body.is_empty() else "%s\n%s" % [head, body]
 
 

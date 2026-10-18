@@ -175,6 +175,7 @@ static func update(content: Dictionary, d: Dictionary) -> void:
 	btn.add_theme_stylebox_override("focus", UI3Theme.focus_style(12))
 	body.modulate.a = 0.55 if not alive else 1.0
 	UI3Tooltip.bind(btn, String(d.get("tip", "")))
+	btn.set_meta("ui3_tip_side_of_row", true)
 
 
 static func _fill_chips(row: HBoxContainer, status: Dictionary, shield: int, tip_fn: Callable) -> void:

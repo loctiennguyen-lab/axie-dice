@@ -24,7 +24,7 @@ static func bind(c: Control, text: String) -> void:
 	c.set_meta("ui3_tip_bound", true)
 	c.mouse_entered.connect(_arm.bind(c))
 	c.mouse_exited.connect(hide_for.bind(c))
-	c.focus_entered.connect(_show.bind(c))
+	c.focus_entered.connect(_show.bind(c, true))
 	c.focus_exited.connect(hide_for.bind(c))
 	c.tree_exiting.connect(hide_for.bind(c))
 
@@ -59,10 +59,10 @@ static func shown_plate(tree: SceneTree) -> Control:
 	return l.plate if l != null and l.plate != null and l.plate.visible else null
 
 
-static func _show(c: Control) -> void:
+static func _show(c: Control, from_focus := false) -> void:
 	if not c.is_inside_tree() or not c.has_meta("ui3_tip") or not c.is_visible_in_tree():
 		return
-	_layer(c).show_for(c, String(c.get_meta("ui3_tip")))
+	_layer(c).show_for(c, String(c.get_meta("ui3_tip")), from_focus)
 
 
 static func hide_for(c: Control) -> void:
@@ -78,6 +78,9 @@ class TooltipLayer extends CanvasLayer:
 	var plate: PanelContainer
 	var label: Label
 	var owner_ctrl: Control = null
+	var title_label: Label
+	var box: VBoxContainer
+	var from_focus := false   # Esc is only eaten for a keyboard-focus tooltip; on mouse hover it reaches the pause menu
 
 	func _init() -> void:
 		layer = 60
@@ -92,20 +95,38 @@ class TooltipLayer extends CanvasLayer:
 		plate.add_theme_stylebox_override("panel", UI3Theme.flat(UI3Theme.color("panel"), UI3Theme.radius("m"), 2,
 			UI3Theme.color("disabled_border"), Vector4(16, 12, 16, 12), {"y": 8, "color": Color(0, 0, 0, 0.35)}))
 		add_child(plate)
+		box = VBoxContainer.new()
+		box.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		box.add_theme_constant_override("separation", 4)
+		plate.add_child(box)
+		title_label = UI3.label("", "LabelDisplay")   # Rowdies, like other titles
+		title_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		box.add_child(title_label)
 		label = UI3.label("")
 		label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		label.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		plate.add_child(label)
+		box.add_child(label)
 		plate.visible = false
 
-	func show_for(c: Control, text: String) -> void:   # async: places itself after one frame
+	func show_for(c: Control, text: String, focus_origin := false) -> void:   # async: places itself after one frame
 		_ensure()
 		owner_ctrl = c
-		label.text = TranslationServer.translate(text)
+		from_focus = focus_origin
+		var full := TranslationServer.translate(text)
+		var nl := full.find("\n")
+		title_label.visible = nl > 0
+		title_label.text = full.substr(0, nl) if nl > 0 else ""
+		title_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		label.text = full.substr(nl + 1) if nl > 0 else full
+		label.visible = label.text != ""
 		var f := label.get_theme_font("font")
-		var w := minf(f.get_multiline_string_size(label.text, HORIZONTAL_ALIGNMENT_LEFT, -1.0,
-			label.get_theme_font_size("font_size")).x + 2.0, UI3Tooltip.BODY_W)
+		var w := f.get_multiline_string_size(label.text, HORIZONTAL_ALIGNMENT_LEFT, -1.0, label.get_theme_font_size("font_size")).x + 2.0
+		if nl > 0:
+			var tf := title_label.get_theme_font("font")
+			w = maxf(w, tf.get_string_size(title_label.text, HORIZONTAL_ALIGNMENT_LEFT, -1.0, title_label.get_theme_font_size("font_size")).x + 2.0)
+		w = minf(w, UI3Tooltip.BODY_W)
 		label.custom_minimum_size = Vector2(w, 0)
+		title_label.custom_minimum_size = Vector2(w, 0)
 		plate.visible = true
 		plate.modulate.a = 0.0   # hidden for the one frame the wrapped label needs to know its height
 		plate.reset_size()
@@ -120,6 +141,11 @@ class TooltipLayer extends CanvasLayer:
 		var pos := Vector2(r.position.x + r.size.x * 0.5 - sz.x * 0.5, r.end.y + 8.0)
 		if pos.y + sz.y > vp.y - 8.0:
 			pos.y = r.position.y - 8.0 - sz.y
+		if c.has_meta("ui3_tip_side_of_row"):
+			# Die cards: sit beside the tray (left of its first card) so no Axie above it is covered.
+			var row := c.get_parent() as Control
+			var rr := row.get_global_rect() if row != null else r
+			pos = Vector2(rr.position.x - 16.0 - sz.x, r.position.y)
 		pos.x = clampf(pos.x, 8.0, maxf(vp.x - sz.x - 8.0, 8.0))
 		pos.y = clampf(pos.y, 8.0, maxf(vp.y - sz.y - 8.0, 8.0))
 		plate.position = pos
@@ -131,7 +157,7 @@ class TooltipLayer extends CanvasLayer:
 		owner_ctrl = null
 
 	func _input(event: InputEvent) -> void:
-		if plate != null and plate.visible and event is InputEventKey and event.pressed and not event.echo \
+		if plate != null and plate.visible and from_focus and event is InputEventKey and event.pressed and not event.echo \
 				and (event as InputEventKey).keycode == KEY_ESCAPE:
 			hide_plate()
 			get_viewport().set_input_as_handled()
