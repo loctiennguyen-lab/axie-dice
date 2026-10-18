@@ -3663,10 +3663,21 @@ func _play_victory_march() -> void:
 		if u.hp > 0:
 			uids.append(u.uid)
 	_exit_running = true
+	# UI-03 45: only the 3D stage + title + Skip. Restored below in case the scene stays in combat.
+	var hidden: Array[CanvasItem] = []
+	var to_hide: Array = [_hud_frame, _aid, _tray_root]
+	to_hide.append_array(_portraits.values())   # enemy plates + status chips
+	for n in to_hide:
+		if is_instance_valid(n) and (n as CanvasItem).visible:
+			(n as CanvasItem).visible = false
+			hidden.append(n)
 	var march_ui := _build_march_overlay()
 	await _stage3d.play_victory_march(uids, _VICTORY_MARCH_DISTANCE,
 		_VICTORY_RUN_DURATION if _stage3d.has_gate() else _VICTORY_MARCH_DURATION)
 	_exit_running = false
+	for n in hidden:
+		if is_instance_valid(n):
+			n.visible = true
 	if is_instance_valid(march_ui):
 		march_ui.queue_free()
 
