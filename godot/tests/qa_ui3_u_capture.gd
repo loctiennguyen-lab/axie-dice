@@ -28,6 +28,26 @@ func _ready() -> void:
 
 
 func _make(sc: String) -> Node:
+	if sc.begins_with("chip"):
+		var svc2 := AccountService
+		if sc == "chip-in":
+			svc2.account = {"id": "google:qa", "name": "Loc Tien", "sky_mavis": true}
+			svc2.status = AccountServiceScript.Status.SAVED
+		else:
+			svc2.account = {}
+			svc2.status = AccountServiceScript.Status.GUEST
+		var host := Control.new()
+		host.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		host.theme = UI3Theme.get_theme()
+		var bg := ColorRect.new()
+		bg.color = UI3Theme.color("bg")
+		bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		host.add_child(bg)
+		var chip := AccountUI.build_chip(svc2, func() -> void: pass)
+		chip.position = Vector2(40, 40)
+		host.add_child(chip)
+		add_child(host)
+		return host
 	if sc.begins_with("acct"):
 		var svc := AccountService
 		var layer: CanvasLayer = svc._ui_layer()
