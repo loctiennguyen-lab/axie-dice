@@ -134,7 +134,7 @@ func _ready() -> void:
 	_detail_root.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_board.add_child(_detail_root)
 
-	var hint := UI3.key_hint(tr("Arrows pick · Enter travels · Esc menu"))
+	var hint := UI3.key_hint(tr("Arrows pick · Enter or double-click travels · Esc menu"))
 	hint.name = "KeyHint"
 	hint.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
 	hint.grow_horizontal = Control.GROW_DIRECTION_BEGIN
@@ -408,6 +408,9 @@ func _build_token(node: RunMapNode, current_row: int, reachable: Array) -> void:
 	var fogged := tier == "fog"
 	var passed := node.visited and not is_here
 	var locked := fogged or (tier == "dim" and not node.visited) or passed
+	# Lock glyph = a future node you cannot reach. Anything at or behind the player's row (taken or
+	# not) keeps its own type icon, dimmed.
+	var show_lock := fogged or (tier == "dim" and not node.visited and node.row > current_row)
 	var size: float = _NODE_SIZE.get(node.node_type, 56.0)
 	var selected := node.id == _selected_id
 	var centre := _node_pos(node, current_row)
@@ -458,7 +461,7 @@ func _build_token(node: RunMapNode, current_row: int, reachable: Array) -> void:
 
 	var icon_px: float = _NODE_ICON_PX.get(node.node_type, 32.0)
 	var icon := TextureRect.new()
-	icon.texture = UI3.icon("ui_lock" if locked else "node_%s" % node.node_type)
+	icon.texture = UI3.icon("ui_lock" if show_lock else "node_%s" % node.node_type)
 	icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	icon.set_anchors_preset(Control.PRESET_CENTER)
@@ -468,6 +471,18 @@ func _build_token(node: RunMapNode, current_row: int, reachable: Array) -> void:
 	icon.offset_bottom = icon_px * 0.5
 	icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	btn.add_child(icon)
+	if passed:
+		var done := Label.new()
+		done.name = "DoneMark"
+		done.text = "✓"
+		done.theme = UI3Theme.get_theme()
+		done.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
+		done.grow_horizontal = Control.GROW_DIRECTION_BEGIN
+		done.grow_vertical = Control.GROW_DIRECTION_BEGIN
+		done.offset_right = -size * 0.12
+		done.offset_bottom = -size * 0.04
+		done.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		btn.add_child(done)
 
 	var base := Vector2.ONE
 	if node.node_type == "boss" and not locked:
@@ -511,11 +526,21 @@ func _hover_token(btn: Button, on: bool) -> void:
 
 func _on_token_input(ev: InputEvent, id: String) -> void:
 	if ev is InputEventMouseButton and ev.pressed and ev.button_index == MOUSE_BUTTON_LEFT:
+		# First press selects; a second press on the same reachable node (or a double-click) travels.
+		if _reachable_now_ids().has(id) and (_pressed_once_id == id or ev.double_click):
+			_pressed_once_id = ""
+			get_viewport().set_input_as_handled()
+			_on_node_pressed(id)
+			return
+		_pressed_once_id = id
 		_select_node(id)
 	elif ev.is_action_pressed("ui_accept") and not ev.is_echo():
 		if _reachable_now_ids().has(id):
 			get_viewport().set_input_as_handled()
 			_on_node_pressed(id)
+
+
+var _pressed_once_id := ""
 
 
 ## Picking a node only updates the detail plate; Travel (or Enter on a reachable node) enters it.
