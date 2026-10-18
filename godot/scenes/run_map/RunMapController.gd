@@ -1086,6 +1086,9 @@ const _REWARD_ICON := {
 const _REWARD_CARD_W := 384.0
 const _REWARD_CARD_W_WIDE := 336.0   # 4 cards (Scavenger's Eye)
 const _REWARD_ART := 160.0
+## Skip button on the reward screen. OFF: owner rule 21/9 says a pick is mandatory; the approved
+## mockup draws Skip. Pending Liam's call, flip this one flag. Skipping keeps the shards and ends the node.
+const _REWARD_ALLOW_SKIP := false
 
 var _reward_sel := 0
 var _reward_cards: Array[PanelContainer] = []
@@ -1158,6 +1161,11 @@ func _show_reward_overlay(title: String, _backdrop: Texture2D = null) -> void:
 	else:
 		UI3.set_disabled_reason(reroll, tr("Reroll · 0 left"))
 	actions.add_child(reroll)
+	if _REWARD_ALLOW_SKIP:
+		var skip := UI3.button(tr("Skip"), &"secondary", &"M")
+		skip.name = "SkipButton"
+		skip.pressed.connect(_ask_skip_reward.bind(col))
+		actions.add_child(skip)
 	var take := UI3.button(tr("Take"), &"primary", &"L")
 	take.name = "TakeButton"
 	take.pressed.connect(_take_selected_reward)
@@ -1168,6 +1176,28 @@ func _show_reward_overlay(title: String, _backdrop: Texture2D = null) -> void:
 		_reward_cards[0].grab_focus.call_deferred()
 	else:
 		take.grab_focus.call_deferred()
+
+
+## Inline confirm row under the actions: "Skip this reward? You keep the N Shards." Back / Skip.
+func _ask_skip_reward(col: VBoxContainer) -> void:
+	var old := col.find_child("SkipConfirm", true, false)
+	if old != null:
+		return
+	var row := HBoxContainer.new()
+	row.name = "SkipConfirm"
+	row.alignment = BoxContainer.ALIGNMENT_CENTER
+	row.add_theme_constant_override("separation", 16)
+	row.add_child(UI3.label(tr("Skip this reward? You keep the %d Shards.") % RunState.shards_this_run))
+	var back := UI3.button(tr("Back"), &"secondary", &"S")
+	back.pressed.connect(row.queue_free)
+	row.add_child(back)
+	var go := UI3.button(tr("Skip"), &"secondary", &"S")
+	go.pressed.connect(func() -> void:
+		RunState.pending_rewards.clear()
+		_finish_node())
+	row.add_child(go)
+	col.add_child(row)
+	back.grab_focus()
 
 
 func _select_reward(i: int) -> void:
@@ -1190,7 +1220,7 @@ func _add_reward_card(r: Dictionary, wide := false) -> PanelContainer:
 	var card := UI3.plate(&"card")
 	card.name = "RewardCard%d" % idx
 	card.custom_minimum_size.x = _REWARD_CARD_W_WIDE if wide else _REWARD_CARD_W
-	card.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	card.size_flags_vertical = Control.SIZE_FILL
 	card.focus_mode = Control.FOCUS_ALL
 	card.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
 	UI3.attach_focus_ring(card)
