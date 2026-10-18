@@ -120,7 +120,7 @@ func _ready() -> void:
 	# Layout follows the window: plate centre x stays on the house centre at any height.
 	var pass_plate := hub.find_child("Hit_pass", true, false) as Button
 	_check(String((hub.META["pass"] as Dictionary)["sub"]).ends_with("29 Dec 2026"), "Pass sub-line phải ghi 29 Dec 2026")
-	_check(absf(pass_plate.position.x + pass_plate.size.x * 0.5 - 1260.0) < 1.0, "hộp Pass lệch tâm x")
+	_check(absf(pass_plate.position.x + pass_plate.size.x * 0.5 - 1218.0) < 1.0, "hộp Pass lệch tâm x")
 
 	hub.queue_free()
 	await get_tree().process_frame
@@ -287,6 +287,25 @@ func _ready() -> void:
 		rects.append(r)
 	ht.queue_free()
 	await get_tree().process_frame
+	# Layout: every building, tree, rock, tuft and Axie lane stays inside the land square, canopy included.
+	for tier in [1, 6]:
+		LandHub.tier_override = tier
+		LandHub.qa = {"guest": false}
+		var hl := (load("res://scenes/land/Land.tscn") as PackedScene).instantiate() as LandHub
+		add_child(hl)
+		await get_tree().process_frame
+		var half := LandHub.PLOT_SIDE * 0.5
+		var fp: Array = hl.get("_footprints")
+		_check(fp.size() > 10, "tier %d: có footprint để kiểm" % tier)
+		for f in fp:
+			var fpos: Vector3 = f["p"]
+			var fr: float = f["r"]
+			_check(absf(fpos.x) + fr <= half and absf(fpos.z) + fr <= half, "tier %d: vật ra ngoài đất %s r=%.2f" % [tier, str(fpos), fr])
+		for lane in hl.get("_lanes"):
+			for q in lane:
+				_check(absf(q.x) + 0.7 <= half and absf(q.z) + 0.7 <= half, "tier %d: lane Axie ra ngoài đất %s" % [tier, str(q)])
+		hl.queue_free()
+		await get_tree().process_frame
 	# Continue while a reconnect is in flight: a toast, never silence; the Run plate says "Reconnecting…".
 	LandHub.qa = {"guest": false, "offline": false}
 	LandHub.tier_override = 0

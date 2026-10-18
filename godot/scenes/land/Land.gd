@@ -21,6 +21,7 @@ const PITCH := 27.0
 const YAW := 45.0
 const DIAMOND_CY := 530.0           # v5: design-canvas y of the Land centre (lattice moved up 60 px)
 const PLOT_SIDE := 31.0
+const LAND_EDGE_MARGIN := 0.4       # world units kept free between any prop / Axie and the land edge
 
 const _Econ := preload("res://scripts/meta/economy_db.gd")
 ## Word on the pill when the entry has something waiting (MetaState.badge_count > 0).
@@ -37,21 +38,22 @@ static var tier_override: int = 0
 ## (core-loop-v2 §4.1: House lv1 at Savannah ... lv4 from Genesis, tier 5 and 6 stay lv4).
 ## `min_tier` = tier that builds it (README: Mastery Hall at Arctic).
 const BUILDINGS: Array[Dictionary] = [
-	# v5 3x3 lattice around the Portal: step (300, 150) / (300, -150) design px; c = 530 is the centre.
+	# v5 3x3 lattice around the Portal, pulled in to 0.86 (x) / 0.85 (y) of its old spread about the centre (960, 530)
+	# so every footprint, plot and Axie lane stays well inside the diamond (Liam, b831 review).
 	{"id": "portal", "dir": "Portal", "pat": "SM_Portal_01", "cx": 960, "base": 580, "w": 300, "h": 300, "yaw": 0.0},
-	{"id": "house", "dir": "House", "pat": "House_lv%d", "cx": 360, "base": 590, "w": 200, "h": 196, "w3": 200, "h3": 178},
-	{"id": "missions", "dir": "Weaponsmith", "pat": "Weaponsmith_lv%d", "fixed_lv": 1, "cx": 1260, "base": 440, "w": 190, "h": 213},
-	{"id": "echobox", "dir": "Alchemy", "pat": "SM_Alchemy_lv%d_Prefab", "cx": 660, "base": 740, "w": 150, "h": 176, "w3": 140, "h3": 204},
-	{"id": "pass", "dir": "EquipmentStall", "pat": "EquipmentStall_lv%d", "cx": 1260, "base": 740, "w": 190, "h": 188, "w3": 150, "h3": 213},
-	{"id": "vault", "dir": "GemStorage", "pat": "GemStorage_lv%d", "cx": 960, "base": 890, "w": 170, "h": 168, "w3": 125, "h3": 201},
-	{"id": "store", "dir": "Jeweler", "pat": "Jeweler_lv%d", "cx": 1560, "base": 590, "w": 150, "h": 183, "w3": 160, "h3": 194},
-	{"id": "board", "path": "Item/Land_reward_ss2_ss3/SM_Billboard_Big", "cx": 960, "base": 290, "w": 130, "h": 190, "yaw": 45.0},
+	{"id": "house", "dir": "House", "pat": "House_lv%d", "cx": 444, "base": 581, "w": 200, "h": 196, "w3": 200, "h3": 178},
+	{"id": "missions", "dir": "Weaponsmith", "pat": "Weaponsmith_lv%d", "fixed_lv": 1, "cx": 1218, "base": 453, "w": 190, "h": 213},
+	{"id": "echobox", "dir": "Alchemy", "pat": "SM_Alchemy_lv%d_Prefab", "cx": 702, "base": 708, "w": 150, "h": 176, "w3": 140, "h3": 204},
+	{"id": "pass", "dir": "EquipmentStall", "pat": "EquipmentStall_lv%d", "cx": 1218, "base": 708, "w": 190, "h": 188, "w3": 150, "h3": 213},
+	{"id": "vault", "dir": "GemStorage", "pat": "GemStorage_lv%d", "cx": 960, "base": 836, "w": 170, "h": 168, "w3": 125, "h3": 201},
+	{"id": "store", "dir": "Jeweler", "pat": "Jeweler_lv%d", "cx": 1476, "base": 581, "w": 150, "h": 183, "w3": 160, "h3": 194},
+	{"id": "board", "path": "Item/Land_reward_ss2_ss3/SM_Billboard_Big", "cx": 960, "base": 326, "w": 130, "h": 190, "yaw": 45.0},
 	# Gallery: stand-in mesh (old Armorsmith) until lane I names the real one. Built from Genesis (5).
-	{"id": "gallery", "dir": "Armorsmith", "pat": "Armorsmith_lv%d", "cx": 660, "base": 440, "w": 160, "h": 135, "yaw": 0.0, "min_tier": 5},
+	{"id": "gallery", "dir": "Armorsmith", "pat": "Armorsmith_lv%d", "cx": 702, "base": 453, "w": 160, "h": 135, "yaw": 0.0, "min_tier": 5},
 ]
 ## Empty plot (never hidden) shows while its building is not built.
 const PLOTS: Array[Dictionary] = [
-	{"id": "gallery", "cx": 660, "base": 440, "min_tier": 5},
+	{"id": "gallery", "cx": 702, "base": 453, "min_tier": 5},
 ]
 const TIER_NAMES: Array[String] = ["Savannah", "Forest", "Arctic", "Mystic", "Genesis", "LunaLanding"]
 ## Per biome look. Paths are under Environment/. ground = centre, mid, edge; cliff = top, bottom.
@@ -120,6 +122,7 @@ var _right := Vector3.ZERO
 var _scene_cache := {}
 var _nodes3d := {}                   # id -> {node, scale}
 var _blocked: Array[Dictionary] = [] # {p: Vector3, r: float}
+var _footprints: Array[Dictionary] = []  # {p, r} of every building and prop, for the stay-on-the-land test
 var _lanes: Array[Array] = []        # [from, to] ground segments the Axies walk; props stay off them
 var _hub := Vector3.ZERO             # where all lanes meet, in front of the Portal
 var _axies: Array[Dictionary] = []
@@ -535,6 +538,7 @@ func _build_buildings() -> void:
 		_nodes3d[String(b["id"])] = {"node": n, "scale": s}
 		var reach := (box.size.x + box.size.z) * 0.5 * s * 0.5
 		_blocked.append({"p": ground, "r": reach + 0.8})
+		_footprints.append({"p": ground, "r": reach})
 	# Run plate zone under the Portal, plus a ~150 px (design) keep-out ring around the Portal itself.
 	_blocked.append({"p": _ground_at(960, 530), "r": 8.0})
 	# Walking lanes: hub in front of the Portal -> the front of every other house.
@@ -542,7 +546,7 @@ func _build_buildings() -> void:
 	for b in _live:
 		if String(b["id"]) == "portal":
 			continue
-		_lanes.append([_hub, _ground_at(float(b["cx"]), float(b["base"]) + 70.0)])
+		_lanes.append([_hub, _clamp_in(_ground_at(float(b["cx"]), float(b["base"]) + 60.0), 1.0)])
 	for p in _plots:
 		_blocked.append({"p": _ground_at(float(p["cx"]), float(p["base"]) - 40.0), "r": 6.0})
 
@@ -607,11 +611,20 @@ func _place_fit(path: String, p: Vector3, target: float, by_height: bool) -> voi
 	var box := _aabb(n, Transform3D.IDENTITY)
 	var dim := box.size.y if by_height else maxf(box.size.x, box.size.z)
 	var s := target / maxf(dim, 0.01) * _rng.randf_range(0.85, 1.15)
+	# Keep the whole footprint (canopy radius included) inside the land square.
+	p = _clamp_in(p, maxf(box.size.x, box.size.z) * s * 0.5)
 	n.position = p - Vector3(0, box.position.y * s, 0)
 	n.rotation_degrees.y = _rng.randf() * 360.0
 	n.scale = Vector3.ONE * s
 	add_child(n)
 	_blocked.append({"p": p, "r": 0.9})
+	_footprints.append({"p": p, "r": maxf(box.size.x, box.size.z) * s * 0.5})
+
+
+## Pulls a ground point in so a disc of radius `r` around it stays on the land (the top is a PLOT_SIDE square).
+func _clamp_in(p: Vector3, r: float) -> Vector3:
+	var lim := PLOT_SIDE * 0.5 - r - LAND_EDGE_MARGIN
+	return Vector3(clampf(p.x, -lim, lim), p.y, clampf(p.z, -lim, lim))
 
 
 ## True if `p` is closer than `margin` to a walking lane (props keep off the paths).
