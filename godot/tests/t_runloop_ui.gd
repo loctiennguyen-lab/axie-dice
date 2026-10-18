@@ -396,10 +396,16 @@ func test_reward_and_shop_cards_show_a_rarity_chip_matching_rar() -> void:
 
 	var expected_rars := [0, 3]
 	for i in range(min(cards.size(), expected_rars.size())):
-		var expected_color := DangoTheme.rarity_color(int(expected_rars[i]))
-		_assert(_has_fill(cards[i], expected_color),
-			"reward card %d draws nothing filled with rarity_color(%d) — RWD-02 puts the rarity "
-			% [i, int(expected_rars[i])] + "in the header band's fill")
+		var expected_color: Color = runmap.call("_rarity_color", int(expected_rars[i]))
+		_assert(_has_border(cards[i], expected_color),
+			"reward card %d shows no art frame in rarity colour %d — UI-03 carries the rarity "
+			% [i, int(expected_rars[i])] + "in the art frame border and the rarity label")
+	# UI-03: pick a card, then Take. Selecting alone must not finish the node.
+	_assert(runmap.find_child("TakeButton", true, false) != null, "reward screen has no Take button")
+	_assert(runmap.find_child("RerollButton", true, false) != null, "reward screen has no Reroll button")
+	_assert(runmap.find_child("RerollButton", true, false).disabled, "Reroll with 0 charges should be disabled")
+	runmap.call("_select_reward", 1)
+	_assert(int(runmap.get("_reward_sel")) == 1, "selecting card 1 did not stick")
 
 	# Shop cards go through the same call site with a different dict shape.
 	# _close_overlay()'s _clear_overlay_content() only queue_free()s the old reward cards —
@@ -496,6 +502,18 @@ func _has_fill(node: Node, fill: Color) -> bool:
 			return true
 	for child in node.get_children():
 		if _has_fill(child, fill):
+			return true
+	return false
+
+
+func _has_border(node: Node, col: Color) -> bool:
+	var ctrl := node as Control
+	if ctrl != null:
+		var sb := ctrl.get_theme_stylebox("panel") as StyleBoxFlat
+		if sb != null and sb.border_color.is_equal_approx(col) and sb.border_width_left > 0:
+			return true
+	for child in node.get_children():
+		if _has_border(child, col):
 			return true
 	return false
 
