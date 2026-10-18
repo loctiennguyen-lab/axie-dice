@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="../../_ds/terrariums-design-system-41d3ee92-ef23-4954-9fac-b76baf67c7c6/styles.css">
+<script src="../../_ds/terrariums-design-system-41d3ee92-ef23-4954-9fac-b76baf67c7c6/_ds_bundle.js"></script>
+<style>
+:root{--color-accent:#ffb444;--color-accent-text:#291808;--color-text:#ffe5b4;--color-text-muted:#b4bccb;--color-plate:#2b1e17e6;--color-panel-raised:#3e2618;--color-btn-secondary:#58321d;--color-disabled:#3c424d;--color-hp:#3fcd3c;--color-hp-track:#13161b;--color-shield:#31c6ff;--color-poison:#afdb1b;--color-danger:#f54540;--color-mana:#af7dff;--color-egg:#ffdf8d;--color-viewport:#3c424d;--color-annot:#00b8ff}
+body{margin:0;background:#13161b}
+a{color:#ffe5b4}a:hover{color:#ffb444}
+</style>
+</helmet>
+<div ref="{{ frameRef }}" onMouseEnter="{{ hotOn }}" onMouseLeave="{{ hotOff }}" data-screen-label="A4 Combat" style="width:1920px;height:1080px;position:relative;overflow:hidden;background:var(--color-viewport);font-family:'Work Sans',sans-serif;color:var(--color-text);user-select:none">
+
+  <!-- 3D stage (click to skip the roll) -->
+  <div onClick="{{ skip }}" style="position:absolute;inset:0;cursor:{{ stageCursor }}">
+    <div style="position:absolute;left:600px;top:40px;font:400 18px 'Work Sans';color:#dae0ea">3D VIEWPORT: combat stage · dice are RigidBody3D, thrown from each Axie and Egg</div>
+    <div style="position:absolute;left:96px;top:112px;width:1456px;height:636px;border:2px solid var(--color-annot);border-radius:8px;pointer-events:none"></div>
+    <div style="position:absolute;left:96px;top:754px;font:400 16px 'Work Sans';color:var(--color-annot)">SAFE AREA 96,112 → 1552,748 with Eggs (→ 850 without) · dashed = unit footprint, model + 20 px for animation, never overlapping</div>
+    <sc-for list="{{ partyPos }}" as="p" hint-placeholder-count="5">
+      <div style="position:absolute;left:{{ p.fx }}px;top:{{ p.fy }}px;width:{{ p.fw }}px;height:{{ p.fh }}px;border:2px dashed #00b8ff;opacity:.5;border-radius:12px;box-sizing:border-box;pointer-events:none"></div>
+      <div style="position:absolute;left:{{ p.x }}px;top:{{ p.y }}px;width:{{ p.w }}px;height:{{ p.h }}px;border:2px solid {{ p.bc }};border-radius:{{ p.r }};display:flex;align-items:center;justify-content:center;font:400 16px 'Work Sans';color:#dae0ea;box-sizing:border-box">{{ p.label }}</div>
+      <sc-if value="{{ p.hasStatus }}" hint-placeholder-val="{{ false }}">
+        <div style="position:absolute;left:{{ p.x }}px;top:{{ p.sy }}px;width:{{ p.w }}px;display:flex;justify-content:center;pointer-events:none"><div style="display:flex;align-items:center;gap:4px;background:var(--color-panel-raised);border-radius:8px;padding:4px 10px"><sc-if value="{{ p.statusIcon }}" hint-placeholder-val="{{ false }}"><img src="{{ p.statusIcon }}" style="width:22px;height:22px;object-fit:contain"></sc-if><span style="font:700 20px 'Rowdies';color:{{ p.statusColor }}">{{ p.statusVal }}</span></div></div>
+      </sc-if>
+      <sc-if value="{{ p.marked }}" hint-placeholder-val="{{ false }}">
+        <div onClick="{{ p.target }}" style="position:absolute;left:{{ p.x }}px;top:{{ p.my }}px;height:36px;white-space:nowrap;background:#ffe5b4;color:#2b1e17;border-radius:8px;padding:0 12px;display:flex;align-items:center;font:400 18px 'Work Sans';cursor:pointer">{{ p.tlabel }}</div>
+      </sc-if>
+    </sc-for>
+    <sc-for list="{{ enemyPos }}" as="e" hint-placeholder-count="3">
+      <div style="position:absolute;left:{{ e.fx }}px;top:{{ e.fy }}px;width:{{ e.fw }}px;height:{{ e.fh }}px;border:2px dashed #00b8ff;opacity:.5;border-radius:12px;box-sizing:border-box;pointer-events:none"></div>
+      <div style="position:absolute;left:{{ e.x }}px;top:{{ e.y }}px;width:{{ e.w }}px;height:{{ e.h }}px;border:2px solid #8e97a8;border-radius:8px;display:flex;align-items:center;justify-content:center;font:400 16px 'Work Sans';color:#dae0ea">{{ e.label }}</div>
+      <sc-if value="{{ e.marked }}" hint-placeholder-val="{{ false }}">
+        <div onClick="{{ e.target }}" style="position:absolute;left:{{ e.x }}px;top:{{ e.my }}px;height:36px;white-space:nowrap;background:#ffe5b4;color:#2b1e17;border-radius:8px;padding:0 12px;display:flex;align-items:center;font:400 18px 'Work Sans';cursor:pointer">{{ e.tlabel }}</div>
+      </sc-if>
+    </sc-for>
+  </div>
+
+  <!-- Top-left: run plate (compact) -->
+  <div style="position:absolute;left:24px;top:24px;display:flex;align-items:center;gap:12px;background:var(--color-plate);border-radius:8px;padding:8px 16px 8px 8px">
+    <div style="width:40px;height:40px;border-radius:8px;background:var(--color-btn-secondary);display:flex;align-items:center;justify-content:center;font:700 20px 'Rowdies'">≡</div>
+    <span style="font:700 20px 'Rowdies'">Fight 4 of 12</span>
+    <span style="font:400 18px 'Work Sans';color:var(--color-text-muted)">A3 · Turn {{ turn }}</span>
+  </div>
+
+  <!-- Top-right: enemies (compact rows) -->
+  <div style="position:absolute;right:24px;top:24px;width:320px;background:var(--color-plate);border-radius:8px;padding:12px;box-sizing:border-box;display:flex;flex-direction:column;gap:6px">
+    <sc-for list="{{ enemies }}" as="e" hint-placeholder-count="3">
+      <div onClick="{{ e.target }}" style="display:flex;flex-direction:column;gap:4px;padding:6px 10px;border-radius:8px;background:var(--color-panel-raised);outline:{{ e.outline }};cursor:{{ e.cursor }}">
+        <div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px"><span style="font:400 18px 'Work Sans'">{{ e.name }}</span><span style="font:700 18px 'Rowdies'">{{ e.hp }}</span></div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <div style="flex:1;height:8px;background:var(--color-hp-track);border-radius:4px;display:flex;overflow:hidden"><div style="width:{{ e.hpPct }}%;background:var(--color-danger)"></div></div>
+          <img src="../assets/face_dmg.png" style="width:20px;height:20px"><span style="font:400 18px 'Work Sans';white-space:nowrap">{{ e.intent }}</span>
+        </div>
+      </div>
+    </sc-for>
+  </div>
+
+  <!-- Bottom row: info + actives · (eggs, tray) · actions -->
+  <div style="position:absolute;left:24px;right:24px;bottom:24px;display:flex;align-items:flex-end">
+    <div style="flex:1;display:flex;flex-direction:column;align-items:flex-start;gap:8px">
+      <sc-if value="{{ showInfo }}" hint-placeholder-val="{{ false }}">
+        <div style="width:288px;background:var(--color-panel-raised);border-radius:8px;padding:10px 12px;box-sizing:border-box;display:flex;flex-direction:column;gap:2px">
+          <span style="font:700 18px 'Rowdies'">{{ infoTitle }}</span>
+          <span style="font:400 18px/24px 'Work Sans'">{{ infoText }}</span>
+        </div>
+      </sc-if>
+      <div style="width:288px;background:var(--color-plate);border-radius:8px;padding:12px;box-sizing:border-box;display:flex;flex-direction:column;gap:6px">
+        <div style="display:flex;align-items:baseline;gap:8px"><span style="font:700 24px 'Rowdies';color:var(--color-mana)">{{ mana }}</span><span style="font:400 18px 'Work Sans'">Mana · Actives</span></div>
+        <sc-for list="{{ actives }}" as="a" hint-placeholder-count="3">
+          <div style="height:40px;display:flex;align-items:center;gap:8px;padding:0 10px;border-radius:8px;background:{{ a.bg }}">
+            <span style="font:400 18px 'Work Sans';color:var(--color-mana);width:48px">MP {{ a.mp }}</span>
+            <span style="font:400 18px 'Work Sans';flex:1;white-space:nowrap;color:{{ a.color }}">{{ a.name }}</span>
+            <span style="font:400 16px 'Work Sans';color:var(--color-text-muted);white-space:nowrap">{{ a.note }}</span>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+
+    <div style="flex:none;display:flex;flex-direction:column;align-items:flex-start;gap:8px">
+      <sc-if value="{{ hasEggs }}" hint-placeholder-val="{{ false }}">
+        <div style="background:var(--color-plate);border-radius:12px;padding:8px 12px 10px;display:flex;gap:12px">
+          <sc-for list="{{ eggs }}" as="p" hint-placeholder-count="0">
+            <div ref="{{ p.colRef }}" onClick="{{ p.select }}" style="width:88px;display:flex;flex-direction:column;gap:4px;cursor:pointer">
+              <div style="height:60px;display:flex;align-items:flex-start;justify-content:center">
+                <div style="width:56px;height:56px;border-radius:14px;background:#ffe5b4;box-shadow:0 {{ p.depth }}px 0 {{ p.faceColor }};transform:translateY({{ p.lift }}px) rotate({{ p.rot }}deg);display:flex;flex-direction:column;align-items:center;justify-content:center;outline:{{ p.outline }};outline-offset:4px;opacity:{{ p.op }}">
+                  <sc-if value="{{ p.icon }}" hint-placeholder-val="{{ false }}"><img src="{{ p.icon }}" style="width:22px;height:22px;object-fit:contain"></sc-if>
+                  <span style="font:700 20px 'Rowdies';line-height:22px;color:#2b1e17">{{ p.val }}</span>
+                </div>
+              </div>
+              <div style="height:20px;display:flex;justify-content:center;white-space:nowrap;opacity:{{ p.op }}"><span style="font:400 16px 'Work Sans';color:{{ p.faceColor }}">{{ p.label }}</span></div>
+              <div style="display:flex;justify-content:space-between;align-items:baseline;gap:4px"><span style="font:400 16px 'Work Sans';white-space:nowrap;color:var(--color-egg)">{{ p.name }}</span><span style="font:700 16px 'Rowdies';flex:none">{{ p.hp }}</span></div>
+              <div style="height:6px;background:var(--color-hp-track);border-radius:3px;display:flex;overflow:hidden"><div style="width:{{ p.hpPct }}%;background:var(--color-hp)"></div></div>
+            </div>
+          </sc-for>
+        </div>
+      </sc-if>
+
+      <div style="background:var(--color-plate);border-radius:12px;padding:8px 16px 12px;box-sizing:border-box;display:flex;gap:16px">
+        <sc-for list="{{ party }}" as="p" hint-placeholder-count="5">
+          <div ref="{{ p.colRef }}" onClick="{{ p.select }}" style="width:152px;position:relative;display:flex;flex-direction:column;gap:4px;cursor:pointer">
+            <div style="height:96px;display:flex;align-items:flex-start;justify-content:center">
+              <div style="width:88px;height:88px;border-radius:20px;background:#ffe5b4;box-shadow:0 {{ p.depth }}px 0 {{ p.faceColor }};transform:translateY({{ p.lift }}px) rotate({{ p.rot }}deg);display:flex;flex-direction:column;align-items:center;justify-content:center;outline:{{ p.outline }};outline-offset:5px;opacity:{{ p.op }}">
+                <sc-if value="{{ p.icon }}" hint-placeholder-val="{{ false }}"><img src="{{ p.icon }}" style="width:36px;height:36px;object-fit:contain"></sc-if>
+                <span style="font:700 28px 'Rowdies';line-height:30px;color:#2b1e17">{{ p.val }}</span>
+              </div>
+            </div>
+            <div style="height:22px;display:flex;justify-content:center;gap:6px;white-space:nowrap;opacity:{{ p.op }}"><span style="font:400 18px 'Work Sans';color:{{ p.labelColor }}">{{ p.label }}</span><span style="font:400 18px 'Work Sans';color:var(--color-text)">{{ p.tag }}</span></div>
+            <div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px"><span style="font:400 18px 'Work Sans';white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0">{{ p.name }}</span><span style="font:700 18px 'Rowdies';flex:none">{{ p.hp }}</span></div>
+            <div style="height:10px;background:var(--color-hp-track);border-radius:4px;display:flex;overflow:hidden"><div style="width:{{ p.hpPct }}%;background:var(--color-hp)"></div><div style="width:{{ p.shPct }}%;background:var(--color-shield)"></div></div>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+
+    <div style="flex:1;display:flex;justify-content:flex-end">
+      <div style="width:240px;display:flex;flex-direction:column;gap:12px">
+        <div style="display:flex;gap:8px"><div onClick="{{ undo }}" style="width:88px;flex:none;height:48px;border-radius:8px;background:{{ undoBg }};color:{{ undoColor }};border:{{ undoBorder }};box-sizing:border-box;display:flex;align-items:center;justify-content:center;gap:6px;font:700 18px 'Rowdies';cursor:pointer"><img src="../assets/ui_undo.svg" style="width:20px;height:20px">Z</div><div onClick="{{ reroll }}" style="flex:1;white-space:nowrap;height:48px;border-radius:8px;background:{{ rerollBg }};color:{{ rerollColor }};display:flex;align-items:center;justify-content:center;font:700 18px 'Rowdies';cursor:pointer">{{ rerollLabel }}</div></div>
+        <div onClick="{{ endTurn }}" style="height:64px;border-radius:8px;background:var(--color-accent);color:var(--color-accent-text);filter:drop-shadow(0 4px 0 #2b1e17);display:flex;align-items:center;justify-content:center;font:700 28px 'Rowdies';cursor:pointer">End turn</div>
+        <div style="align-self:center;white-space:nowrap;background:var(--color-plate);border-radius:4px;padding:0 8px;font:400 18px 'Work Sans';color:var(--color-text)">{{ hint }}</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Flying dice (stand-in for the 3D physics dice) -->
+  <sc-for list="{{ flyers }}" as="f" hint-placeholder-count="0">
+    <div ref="{{ f.ref }}" style="position:absolute;left:0;top:0;width:{{ f.size }}px;height:{{ f.size }}px;border-radius:{{ f.r }}px;background:#ffe5b4;box-shadow:0 8px 0 {{ f.color }};display:flex;flex-direction:column;align-items:center;justify-content:center;opacity:0;pointer-events:none">
+      <sc-if value="{{ f.icon }}" hint-placeholder-val="{{ false }}"><img src="{{ f.icon }}" style="width:{{ f.is }}px;height:{{ f.is }}px;object-fit:contain"></sc-if>
+      <span style="font:700 {{ f.fs }}px 'Rowdies';line-height:1.1;color:#2b1e17">{{ f.val }}</span>
+    </div>
+  </sc-for>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;$preview&quot;:{&quot;width&quot;:1920,&quot;height&quot;:1080},&quot;rerolls&quot;:{&quot;editor&quot;:&quot;int&quot;,&quot;default&quot;:2,&quot;min&quot;:0,&quot;max&quot;:2,&quot;tsType&quot;:&quot;number&quot;},&quot;eggs&quot;:{&quot;editor&quot;:&quot;int&quot;,&quot;default&quot;:0,&quot;min&quot;:0,&quot;max&quot;:6,&quot;tsType&quot;:&quot;number&quot;},&quot;sound&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;},&quot;reduceMotion&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;},&quot;interactive&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;}}">
+const A = '../assets/';
+const MAX_RR = 2;
+const F = {
+  dmg:{label:'ATTACK',c:'#f54540',i:A+'face_dmg.png',foe:true,t:v=>'Deal '+v+' damage to one enemy.'},
+  shield:{label:'SHIELD',c:'#31c6ff',i:A+'face_shield.png',ally:true,t:v=>'Give '+v+' Shield to one Axie or Egg.'},
+  heal:{label:'HEAL',c:'#3fcd3c',i:A+'face_heal.png',ally:true,t:v=>'Heal one Axie or Egg for '+v+' HP.'},
+  poison:{label:'POISON',c:'#afdb1b',i:A+'face_poison.png',foe:true,t:v=>'Apply Poison '+v+' to one enemy.'},
+  mana:{label:'MANA',c:'#af7dff',i:A+'face_mana.svg',self:true,t:v=>'Gain '+v+' Mana. Click the die again to take it.'},
+  buff:{label:'BUFF',c:'#ff9345',i:A+'face_buff.svg',ally:true,t:v=>'Give one Axie +'+v+' on its next face.'},
+  debuff:{label:'WEAKEN',c:'#fa59a0',i:A+'face_debuff.svg',foe:true,t:v=>'Apply Weaken '+v+' to one enemy.'},
+  summon:{label:'SUMMON',c:'#ffdf8d',i:A+'face_summon.png',self:true,t:v=>'Summon '+v+' Axie Egg. Click the die again.'},
+  blank:{label:'BLANK',c:'#737d8f',i:A+'face_blank.svg',t:()=>'This face does nothing. Reroll it.'}
+};
+const AXIES = [
+  {name:'Plant',hp:38,max:44,sh:6,po:0,faces:[['shield',6],['shield',4],['heal',5],['dmg',3],['poison',2],['blank',0]]},
+  {name:'Beast',hp:30,max:40,sh:0,po:0,faces:[['dmg',9],['dmg',6],['buff',2],['shield',3],['dmg',4],['blank',0]]},
+  {name:'Aqua',hp:41,max:41,sh:0,po:0,faces:[['mana',3],['mana',2],['heal',4],['dmg',4],['shield',3],['debuff',1]]},
+  {name:'Bird',hp:22,max:36,sh:0,po:3,faces:[['dmg',7],['summon',1],['debuff',2],['mana',2],['dmg',5],['summon',1]]},
+  {name:'Reptile',hp:35,max:42,sh:4,po:0,faces:[['debuff',2],['poison',3],['shield',5],['dmg',4],['poison',2],['blank',0]]}
+];
+// Egg die + HP confirmed by Liam
+const EGG = {max:8, faces:[['dmg',2],['dmg',2],['shield',2],['dmg',3],['heal',2],['blank',0]]};
+const EGG_CAP = 4;
+const PRESET = [{k:'shield',v:6},{k:'dmg',v:9,crit:true},{k:'mana',v:3},{k:'summon',v:1},{k:'debuff',v:2}];
+const EGG_PRESET = [{k:'dmg',v:2},{k:'shield',v:2},{k:'dmg',v:3}];
+const TILT = [-4,2,3,-2,5,-3,4,-2,3,-4,2];
+// Each unit has a footprint = model box + 20 px animation margin on every side. Footprints never overlap.
+const PAD = 20;
+// Same layout as before; model boxes follow the engine ratios (Axie 190×250, enemy 155×140, boss 280×255) at 0.86 scale.
+// Elite size not given: 210×190 estimate, between enemy and boss.
+const PARTY_POS = [0,1,2,3,4].map(i => ({ x: 118 + i * 104, y: i % 2 ? 132 : 386, w: 163, h: 214 }));
+const EGG_POS = [0,1,2,3,4,5].map(j => ({ x: 116 + j * 128, y: 640, w: 88, h: 88 }));
+const ENEMY_POS = [{x:798,y:340,w:133,h:120},{x:1029,y:175,w:210,h:190},{x:1338,y:370,w:133,h:120}];
+const ENEMIES = [{name:'Enemy 1',max:30,intent:'8'},{name:'Elite',max:70,intent:'14'},{name:'Enemy 2',max:30,intent:'5 all'}];
+
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    const n = 5 + Math.max(0, Math.min(EGG_CAP, props.eggs | 0));
+    this.cols = []; this.flys = [];
+    this.colRefs = [...Array(11)].map((_, i) => el => { this.cols[i] = el; });
+    this.flyRefs = [...Array(11)].map((_, i) => el => { this.flys[i] = el; });
+    this.frameRef = el => { this.frame = el; };
+    this.anims = []; this.timers = []; this.hot = false;
+    const res = [...Array(n)].map((_, i) => this.presetFor(i));
+    this.state = { n, results: res, spin: res.map(r => ({...r})), flying: Array(n).fill(false), used: Array(n).fill(false),
+      eggHp: Array(n - 5).fill(EGG.max), sel: null, rerolls: props.rerolls ?? MAX_RR, undo: 0, turn: 2, rolling: false, enemyHp: [24,61,12], mana: 7 };
+    this.onKey = this.onKey.bind(this);
+  }
+  presetFor(i) { return i < 5 ? {...PRESET[i]} : {...EGG_PRESET[(i - 5) % 3]}; }
+  facesOf(i) { return i < 5 ? AXIES[i].faces : EGG.faces; }
+  componentDidMount() {
+    if (this.props.interactive !== false) window.addEventListener('keydown', this.onKey);
+    if (this.props.reduceMotion) { this.setState({ sel: 1 }); return; }
+    this.timers.push(setTimeout(() => this.roll([...Array(this.state.n).keys()], true), 700));
+  }
+  componentWillUnmount() {
+    window.removeEventListener('keydown', this.onKey);
+    clearInterval(this.spinTimer); this.timers.forEach(clearTimeout); this.anims.forEach(a => a.cancel());
+  }
+  onKey(e) {
+    if (!this.hot) return;
+    if (e.key === 'r' || e.key === 'R') this.doReroll();
+    else if (e.key === ' ' || e.key === 'e' || e.key === 'E') { e.preventDefault(); this.doEnd(); }
+    else if (e.key === 'Escape') this.setState({ sel: null });
+    else if (e.key === 'z' || e.key === 'Z') this.doUndo();
+    else if (e.key >= '1' && e.key <= '5') this.doSelect(+e.key - 1);
+  }
+  pick(i) { const [k, v] = this.facesOf(i)[Math.floor(Math.random() * 6)]; return { k, v, crit: k === 'dmg' && Math.random() < 0.2 }; }
+  audio() {
+    if (this.props.sound === false) return null;
+    try { this.ctx = this.ctx || new (window.AudioContext || window.webkitAudioContext)(); if (this.ctx.state === 'suspended') this.ctx.resume(); return this.ctx; } catch (e) { return null; }
+  }
+  tick(vol, freq) {
+    const ctx = this.audio(); if (!ctx || ctx.state !== 'running') return;
+    const len = Math.floor(ctx.sampleRate * 0.05), buf = ctx.createBuffer(1, len, ctx.sampleRate), d = buf.getChannelData(0);
+    for (let j = 0; j < len; j++) d[j] = (Math.random() * 2 - 1) * Math.pow(1 - j / len, 3);
+    const src = ctx.createBufferSource(), bp = ctx.createBiquadFilter(), g = ctx.createGain();
+    src.buffer = buf; bp.type = 'bandpass'; bp.frequency.value = freq; bp.Q.value = 1.2; g.gain.value = vol;
+    src.connect(bp); bp.connect(g); g.connect(ctx.destination); src.start();
+  }
+  shake() {
+    if (!this.frame || !this.frame.animate) return;
+    this.frame.animate([{transform:'translate(0,0)'},{transform:'translate(-6px,3px)'},{transform:'translate(5px,-3px)'},{transform:'translate(-3px,2px)'},{transform:'translate(0,0)'}], { duration: 240, easing: 'ease-out' });
+  }
+  slot(i) {
+    const col = this.cols[i]; if (!col || !this.frame) return { x: 800, y: 800 };
+    const fr = this.frame.getBoundingClientRect(), r = col.getBoundingClientRect(), k = fr.width / 1920 || 1;
+    const egg = i >= 5, colW = egg ? 88 : 152, die = egg ? 56 : 88;
+    return { x: (r.left - fr.left) / k + (colW - die) / 2, y: (r.top - fr.top) / k };
+  }
+  roll(idx, preset) {
+    if (this.state.rolling || !idx.length) return;
+    const results = this.state.results.map(r => ({...r}));
+    idx.forEach(i => { results[i] = preset ? this.presetFor(i) : this.pick(i); });
+    if (this.props.reduceMotion || !this.flys[idx[0]] || !this.flys[idx[0]].animate) {
+      this.setState({ results, spin: results, sel: preset ? 1 : null }); return;
+    }
+    const flying = this.state.flying.slice(); idx.forEach(i => { flying[i] = true; });
+    this.settled = Array(this.state.n).fill(false);
+    this.setState({ results, flying, rolling: true, sel: null });
+    clearInterval(this.spinTimer);
+    this.spinTimer = setInterval(() => {
+      this.setState(s => ({ spin: s.spin.map((f, i) => (s.flying[i] && !this.settled[i]) ? this.pick(i) : (s.flying[i] ? results[i] : f)) }));
+    }, 90);
+    this.tick(0.5, 900);
+    const T = 1500; let done = 0;
+    idx.forEach((i, n) => {
+      const el = this.flys[i], delay = n * 110, crit = results[i].crit, egg = i >= 5;
+      const from = egg ? EGG_POS[i - 5] : PARTY_POS[i];
+      const sx = from.x + from.w / 2 - 44, sy = from.y + 20;
+      const j = i - 5, lx = egg ? 600 + (j % 3) * 110 : 560 + i * 84, ly = egg ? 440 + Math.floor(j / 3) * 100 : 300 + (i % 2) * 80;
+      const to = this.slot(i), tilt = TILT[i];
+      const kf = [
+        { offset: 0, transform: `translate(${sx}px,${sy}px) rotate(0deg) scale(.5)`, opacity: 1, easing: 'cubic-bezier(.2,.7,.4,1)' },
+        { offset: .32, transform: `translate(${lx - 80}px,${ly - 240}px) rotate(380deg) scale(1)`, opacity: 1, easing: 'cubic-bezier(.6,0,.9,.6)' },
+        { offset: .52, transform: `translate(${lx - 20}px,${ly}px) rotate(640deg) ${crit ? 'scale(1.22,.78)' : 'scale(1.06,.94)'}`, opacity: 1, easing: 'cubic-bezier(.2,.7,.4,1)' },
+        { offset: .62, transform: `translate(${lx}px,${ly - (crit ? 24 : 56)}px) rotate(700deg) scale(1)`, opacity: 1, easing: 'cubic-bezier(.6,0,.9,.6)' },
+        { offset: .72, transform: `translate(${lx + 8}px,${ly}px) rotate(${720 + tilt}deg) scale(1)`, opacity: 1 },
+        { offset: .84, transform: `translate(${lx + 8}px,${ly}px) rotate(${720 + tilt}deg) scale(1)`, opacity: 1, easing: 'cubic-bezier(.5,0,.2,1)' },
+        { offset: 1, transform: `translate(${to.x}px,${to.y}px) rotate(${tilt}deg) scale(1)`, opacity: 1 }
+      ];
+      const a = el.animate(kf, { duration: T, delay, fill: 'both' });
+      this.anims.push(a);
+      this.timers.push(setTimeout(() => this.tick(crit ? 1 : 0.6, crit ? 220 : (egg ? 1000 : 700)), delay + T * .52));
+      this.timers.push(setTimeout(() => this.tick(0.35, 1100), delay + T * .62));
+      this.timers.push(setTimeout(() => { this.settled[i] = true; this.tick(0.45, 900); if (crit) this.shake(); }, delay + T * .72));
+      a.onfinish = () => {
+        this.tick(0.3, 1400);
+        this.setState(s => { const f = s.flying.slice(); f[i] = false; const sp = s.spin.slice(); sp[i] = s.results[i]; return { flying: f, spin: sp }; });
+        a.cancel();
+        if (++done === idx.length) {
+          clearInterval(this.spinTimer); this.anims = []; this.timers.forEach(clearTimeout); this.timers = [];
+          this.setState({ rolling: false, sel: preset ? 1 : null });
+        }
+      };
+    });
+  }
+  skip() { if (this.state.rolling) { this.settled = Array(this.state.n).fill(true); this.anims.slice().forEach(a => { try { a.finish(); } catch (e) {} }); } }
+  doSelect(i) {
+    const s = this.state; if (s.rolling || i >= s.n || s.used[i]) return;
+    const r = s.results[i];
+    if (s.sel === i && F[r.k].self) { this.useSelf(i); return; }
+    this.setState({ sel: s.sel === i ? null : i });
+  }
+  useSelf(i) {
+    const s = this.state, r = s.results[i], used = s.used.slice(); used[i] = true;
+    if (r.k === 'mana') { this.setState({ used, sel: null, undo: s.undo + 1, mana: Math.min(s.mana + r.v, 18) }); return; }
+    this.setState({ used, sel: null, undo: s.undo + 1 });
+    if (r.k === 'summon' && s.n - 5 < EGG_CAP) this.spawnEgg();
+  }
+  spawnEgg() {
+    this.setState(s => {
+      const egg = this.pick(s.n);
+      return { n: s.n + 1, results: [...s.results, egg], spin: [...s.spin, egg], flying: [...s.flying, true],
+        used: [...s.used, false], eggHp: [...s.eggHp, EGG.max] };
+    }, () => {
+      const i = this.state.n - 1, fl = this.state.flying.slice(); fl[i] = false;
+      this.setState({ flying: fl }, () => this.roll([i]));
+    });
+  }
+  doReroll() {
+    const s = this.state, idx = [...Array(s.n).keys()].filter(i => !s.used[i]);
+    if (s.rolling || s.rerolls === 0 || !idx.length) return;
+    this.setState({ rerolls: s.rerolls - 1, undo: 0 }); this.roll(idx);
+  }
+  doUndo() { if (this.state.undo <= 0 || this.state.rolling) return; this.setState(s => { const used = s.used.slice(); const last = used.lastIndexOf(true); if (last >= 0) used[last] = false; return { used, undo: s.undo - 1, sel: null }; }); }
+  doEnd() {
+    if (this.state.rolling) return;
+    this.setState(s => ({ turn: s.turn + 1, rerolls: MAX_RR, undo: 0, used: Array(s.n).fill(false), sel: null, mana: Math.min(s.mana + 2, 18) }));
+    this.timers.push(setTimeout(() => this.roll([...Array(this.state.n).keys()]), 50));
+  }
+  useOn(kind, j) {
+    const s = this.state; if (s.sel === null || s.rolling) return;
+    const r = s.results[s.sel], f = F[r.k];
+    if ((kind === 'foe' && !f.foe) || (kind === 'ally' && !f.ally)) return;
+    const used = s.used.slice(); used[s.sel] = true;
+    const enemyHp = s.enemyHp.slice(), eggHp = s.eggHp.slice();
+    if (kind === 'foe' && r.k === 'dmg') enemyHp[j] = Math.max(0, enemyHp[j] - r.v * (r.crit ? 2 : 1));
+    if (kind === 'ally' && j >= 5 && r.k === 'heal') eggHp[j - 5] = Math.min(EGG.max, eggHp[j - 5] + r.v);
+    this.setState({ used, enemyHp, eggHp, sel: null, undo: s.undo + 1 });
+  }
+  dieVals(i) {
+    const s = this.state, r = s.results[i], f = F[r.k], isSel = s.sel === i, egg = i >= 5;
+    return { icon: f.i, val: r.k === 'blank' ? '–' : r.v, label: f.label, faceColor: f.c, labelColor: r.k === 'dmg' ? '#ff6460' : f.c,
+      tag: s.used[i] ? '· used' : (r.crit ? '· CRIT' : (isSel ? '· picked' : '')),
+      lift: isSel ? (egg ? -10 : -18) : 0, rot: isSel ? 0 : TILT[i], depth: isSel ? (egg ? 8 : 12) : (egg ? 5 : 6),
+      outline: isSel ? (egg ? '3px solid #ffe5b4' : '3px solid #ffe5b4') : 'none',
+      op: s.flying[i] ? 0 : (s.used[i] ? 0.4 : 1), select: () => this.doSelect(i), colRef: this.colRefs[i] };
+  }
+  renderVals() {
+    const s = this.state, sel = s.sel, selR = sel !== null ? s.results[sel] : null, selF = selR ? F[selR.k] : null;
+    const nEggs = s.n - 5;
+    const party = AXIES.map((ax, i) => {
+      const tot = ax.max + ax.sh;
+      return { ...this.dieVals(i), name: ax.name, hp: ax.hp + '/' + ax.max, hpPct: ax.hp / tot * 100, shPct: ax.sh / tot * 100,
+        hasStatus: !!(ax.sh || ax.po), statusIcon: ax.sh ? A + 'face_shield.png' : A + 'face_poison.png', statusVal: ax.sh || ax.po, statusColor: ax.sh ? '#31c6ff' : '#afdb1b' };
+    });
+    const eggs = [...Array(nEggs).keys()].map(j => ({ ...this.dieVals(5 + j), name: 'Egg ' + (j + 1), hp: s.eggHp[j] + '/' + EGG.max, hpPct: s.eggHp[j] / EGG.max * 100 }));
+    const showTargets = selF && !s.rolling;
+    const allyMark = !!(showTargets && selF.ally);
+    const partyPos = [
+      ...PARTY_POS.map((p, i) => ({ ...p, r: '8px', bc: '#8e97a8', label: 'AXIE 3D · ' + (i + 1), short: AXIES[i].name, hasStatus: !!(AXIES[i].sh || AXIES[i].po), statusIcon: AXIES[i].sh ? A + 'face_shield.png' : A + 'face_poison.png', statusVal: AXIES[i].sh || AXIES[i].po, statusColor: AXIES[i].sh ? '#31c6ff' : '#afdb1b' })),
+      ...EGG_POS.slice(0, nEggs).map((p, j) => ({ ...p, r: '50%', bc: '#ffdf8d', label: 'EGG 3D', short: 'Egg ' + (j + 1), egg: true }))
+    ].map((p, i) => ({ ...p, fx: p.x - PAD, fy: p.y - PAD, fw: p.w + PAD * 2, fh: p.h + PAD * 2, my: p.y - 40, sy: p.y - (allyMark ? 80 : 42), marked: allyMark, target: () => this.useOn('ally', i), tlabel: p.egg ? p.short : 'Target · ' + p.short }));
+    const enemyPos = ENEMY_POS.map((p, j) => ({ ...p, fx: p.x - PAD, fy: p.y - PAD, fw: p.w + PAD * 2, fh: p.h + PAD * 2, my: p.y - 40, name: ENEMIES[j].name, tlabel: 'Target · ' + ENEMIES[j].name, label: j === 1 ? 'ELITE 3D' : 'ENEMY 3D', marked: !!(showTargets && selF.foe && s.enemyHp[j] > 0), target: () => this.useOn('foe', j) }));
+    const enemies = ENEMIES.map((e, j) => ({ name: e.name, hp: s.enemyHp[j] + '/' + e.max, hpPct: s.enemyHp[j] / e.max * 100, intent: e.intent,
+      outline: (showTargets && selF.foe) ? '2px solid #ffe5b4' : 'none', cursor: (showTargets && selF.foe) ? 'pointer' : 'default', target: () => this.useOn('foe', j) }));
+    const flyers = [...Array(s.n).keys()].map(i => {
+      const r = s.spin[i], f = F[r.k], egg = i >= 5;
+      return { ref: this.flyRefs[i], icon: f.i, val: r.k === 'blank' ? '–' : r.v, color: f.c, size: egg ? 56 : 88, r: egg ? 14 : 20, is: egg ? 22 : 36, fs: egg ? 20 : 28 };
+    });
+    const unused = s.used.filter(u => !u).length;
+    const canReroll = !s.rolling && s.rerolls > 0 && unused > 0;
+    const hint = s.rolling ? 'Rolling… click to skip' : (s.rerolls === 0 ? 'No rerolls left this turn' : (unused === 0 ? 'All dice used' : '1–5 · R · E/Space · Z · A · Esc'));
+    const actives = [{ mp: 3, name: 'Chomp Strike' }, { mp: 4, name: 'Clutch Call' }, { mp: 8, name: 'Aegis Font' }]
+      .map(a => { const ok = s.mana >= a.mp; return { ...a, note: ok ? '' : 'Need ' + a.mp + ' MP', bg: ok ? '#3e2618' : '#1c1f25', color: ok ? '#ffe5b4' : '#b4bccb' }; });
+    const who = sel === null ? '' : (sel < 5 ? AXIES[sel].name : 'Egg ' + (sel - 4));
+    let infoText = selF ? selF.t(selR.v) : '';
+    if (selF && (selF.foe || selF.ally)) infoText += ' Click a marked target.';
+    if (selR && selR.k === 'summon' && nEggs >= EGG_CAP) infoText = 'You already have ' + EGG_CAP + ' Eggs, the most you can keep.';
+    return {
+      frameRef: this.frameRef, hotOn: () => { this.hot = true; }, hotOff: () => { this.hot = false; },
+      skip: () => this.skip(), stageCursor: s.rolling ? 'pointer' : 'default',
+      turn: s.turn, mana: s.mana, rerolls: s.rerolls, rerollLabel: (s.rerolls > 0 ? 'Reroll · ' : 'No Rerolls · ') + s.rerolls + ' / ' + MAX_RR, undoBg: s.undo > 0 ? '#58321d' : '#3c424d', undoColor: s.undo > 0 ? '#ffe5b4' : '#dae0ea', undoBorder: s.undo > 0 ? 'none' : '2px solid #5b6372', undo: () => this.doUndo(), party, eggs, hasEggs: nEggs > 0, partyPos, enemyPos, enemies, flyers, actives,
+      showInfo: !!(selF && !s.rolling),
+      infoTitle: selR ? who + ' · ' + selF.label + (selR.k === 'blank' ? '' : ' ' + selR.v) + (selR.crit ? ' · CRIT ×2' : '') : '',
+      infoText, reroll: () => this.doReroll(), endTurn: () => this.doEnd(),
+      rerollBg: canReroll ? '#58321d' : '#3c424d', rerollColor: canReroll ? '#ffe5b4' : '#dae0ea', hint
+    };
+  }
+}
+</script>
+</body>
+</html>

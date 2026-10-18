@@ -41,22 +41,28 @@ static func show(host: Node, code: String, retry: Callable = Callable()) -> Node
 	var layer := CanvasLayer.new()
 	layer.name = NODE_NAME
 	layer.layer = 100
-	var panel := PanelContainer.new()
-	panel.set_anchors_preset(Control.PRESET_CENTER_TOP)
-	panel.position = Vector2(0, 40)
-	layer.add_child(panel)
+	# UI-03 18-system: wood-2 notice plate, top-centre 24 px down; buttons are UI3 secondary S.
+	var top := CenterContainer.new()
+	top.set_anchors_and_offsets_preset(Control.PRESET_TOP_WIDE)
+	top.offset_top = 24
+	top.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	layer.add_child(top)
+	var panel := UI3.plate(&"notice")
+	panel.name = "Panel"
+	panel.custom_minimum_size = Vector2(560, 0)
+	top.add_child(panel)
 	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", 12)
+	row.add_theme_constant_override("separation", 16)
 	panel.add_child(row)
-	var l := Label.new()
+	var l := UI3.label(text_for(code))
 	l.name = "Message"
-	l.text = text_for(code)
+	l.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	row.add_child(l)
 	if code == "run_gone":
 		# Mid-run the server lost the run: drop the save and go to Land, never a stuck screen.
-		var gone := Button.new()
+		var gone := UI3.button("BACK TO MENU", &"secondary", &"S")
 		gone.name = "BackButton"
-		gone.text = "BACK TO MENU"
 		gone.pressed.connect(func():
 			RunState.discard_gone_run()
 			host.get_tree().change_scene_to_file(LandNav.LAND_SCENE))
@@ -64,28 +70,24 @@ static func show(host: Node, code: String, retry: Callable = Callable()) -> Node
 		host.add_child(layer)
 		return layer
 	if is_fatal(code):
-		var si := Button.new()
+		var si := UI3.button("SIGN IN", &"secondary", &"S")
 		si.name = "SignInButton"
-		si.text = "SIGN IN"
 		si.pressed.connect(func(): AccountService.sign_in())
 		row.add_child(si)
-		var back := Button.new()
+		var back := UI3.button("BACK TO MENU", &"secondary", &"S")
 		back.name = "BackButton"
-		back.text = "BACK TO MENU"
 		back.pressed.connect(func():
 			host.get_tree().change_scene_to_file(LandNav.LAND_SCENE))
 		row.add_child(back)
 	elif retry.is_valid():
-		var b := Button.new()
+		var b := UI3.button("RETRY", &"secondary", &"S")
 		b.name = "RetryButton"
-		b.text = "RETRY"
 		b.pressed.connect(func():
 			layer.queue_free()
 			retry.call())
 		row.add_child(b)
-	var close := Button.new()
+	var close := UI3.button("OK", &"secondary", &"S")
 	close.name = "OkButton"
-	close.text = "OK"
 	close.pressed.connect(func(): layer.queue_free())
 	row.add_child(close)
 	host.add_child(layer)

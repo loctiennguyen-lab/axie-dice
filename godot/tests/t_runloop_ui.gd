@@ -396,10 +396,44 @@ func test_reward_and_shop_cards_show_a_rarity_chip_matching_rar() -> void:
 
 	var expected_rars := [0, 3]
 	for i in range(min(cards.size(), expected_rars.size())):
-		var expected_color := DangoTheme.rarity_color(int(expected_rars[i]))
-		_assert(_has_fill(cards[i], expected_color),
-			"reward card %d draws nothing filled with rarity_color(%d) — RWD-02 puts the rarity "
-			% [i, int(expected_rars[i])] + "in the header band's fill")
+		var expected_color: Color = runmap.call("_rarity_color", int(expected_rars[i]))
+		_assert(_has_border(cards[i], expected_color),
+			"reward card %d shows no art frame in rarity colour %d — UI-03 carries the rarity "
+			% [i, int(expected_rars[i])] + "in the art frame border and the rarity label")
+	# Five rarities must read as five different colours (Uncommon and Rare used to collide).
+	var seen: Array[Color] = []
+	for r in 5:
+		var c: Color = runmap.call("_rarity_color", r)
+		for s in seen:
+			_assert(not s.is_equal_approx(c), "rarity %d shares its colour with a lower rarity" % r)
+		seen.append(c)
+	await get_tree().process_frame
+	await get_tree().process_frame
+	# The same relic id shows the same rarity name and colour on the reward card and the relic plate.
+	for rid in ["r_bastionplate", "r_ember"]:
+		var def = RelicRegistry.get_def(rid)
+		if def == null:
+			continue
+		var want_name: String = runmap.call("_rarity_name", int(def.rarity))
+		var want_col: Color = runmap.call("_rarity_color", int(def.rarity))
+		var wrong_rar := (int(def.rarity) + 1) % 4   # a stale/incorrect `rar` in the offer must not win
+		var got: int = runmap.call("_reward_rarity", {"t": "relic", "key": rid, "rar": wrong_rar})
+		_assert(got == int(def.rarity), "%s: reward card rarity %d differs from its definition %d" % [rid, got, int(def.rarity)])
+		var row: Control = runmap.call("_build_relic_row", rid)
+		var lbl: Label = row.get_child(0).get_child(1)
+		_assert(lbl.text == want_name and lbl.get_theme_color("font_color").is_equal_approx(want_col),
+			"%s: relic plate rarity label/colour differs from the reward card's" % rid)
+		row.free()
+	var cards_h: Array = []
+	for c in cards:
+		cards_h.append(int((c as Control).size.y))
+	_assert(cards_h.size() < 2 or cards_h.min() == cards_h.max(), "reward cards differ in height: %s" % [cards_h])
+	# UI-03: pick a card, then Take. Selecting alone must not finish the node.
+	_assert(runmap.find_child("TakeButton", true, false) != null, "reward screen has no Take button")
+	_assert(runmap.find_child("RerollButton", true, false) != null, "reward screen has no Reroll button")
+	_assert(runmap.find_child("RerollButton", true, false).disabled, "Reroll with 0 charges should be disabled")
+	runmap.call("_select_reward", 1)
+	_assert(int(runmap.get("_reward_sel")) == 1, "selecting card 1 did not stick")
 
 	# Shop cards go through the same call site with a different dict shape.
 	# _close_overlay()'s _clear_overlay_content() only queue_free()s the old reward cards —
@@ -496,6 +530,18 @@ func _has_fill(node: Node, fill: Color) -> bool:
 			return true
 	for child in node.get_children():
 		if _has_fill(child, fill):
+			return true
+	return false
+
+
+func _has_border(node: Node, col: Color) -> bool:
+	var ctrl := node as Control
+	if ctrl != null:
+		var sb := ctrl.get_theme_stylebox("panel") as StyleBoxFlat
+		if sb != null and sb.border_color.is_equal_approx(col) and sb.border_width_left > 0:
+			return true
+	for child in node.get_children():
+		if _has_border(child, col):
 			return true
 	return false
 

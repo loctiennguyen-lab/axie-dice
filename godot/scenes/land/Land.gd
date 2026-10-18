@@ -139,24 +139,26 @@ var _plates := {}                    # id -> Control (name plate / run plate)
 var _badges := {}                    # id -> Control (pill on the box)
 var _plot_marks := {}                # id -> Control
 var _house_defs := {}                # house_id -> dictionary from houses.json
-var _run_plate: Control
+var _run_plate: Button
 var _toast: PanelContainer
-var _toast_tween: Tween
+var _toasts: Array = []
 var _modal: Control
 var _moon_card: Node   # Moon Card popup while it is open (has_modal)
 var _has_run := false
 var _tier := 1
 var _live: Array[Dictionary] = []   # buildings built at this tier
 var _plots: Array[Dictionary] = []  # plots still empty at this tier
-var _hud_tl: HBoxContainer
-var _rail: VBoxContainer
-var _wallet: HBoxContainer
-var _dock: PanelContainer
+var _hud_tl: VBoxContainer
+var _wallet: PanelContainer
+var _hud_bl: PanelContainer
+var _hud_br: HBoxContainer
+var _currencies: Control
+var _daily_btn: Button
+var _names_lbl: Label
 var _new_run_btn: Button
-var _start_hint: Control
+var _start_hint: VBoxContainer
 var _offline_banner: Control
 var _names_btn: Button
-var _run_title: Label
 var _names_on := false
 var _hover_id := ""
 var _focus_id := ""
@@ -750,26 +752,45 @@ func _build_ui() -> void:
 		_add_plot(String(p["id"]))
 	for b in _live:
 		var id := String(b["id"])
-		if id != "portal":
-			_plates[id] = _make_plate(id)
-			_ui.add_child(_plates[id])
+		_plates[id] = _make_plate(id)
+		_ui.add_child(_plates[id])
 		var pill := _make_badge_pill(id)
 		if pill != null:
 			_badges[id] = pill
 			_ui.add_child(pill)
 	_build_hud()
-	_build_dock()
 	_build_banners()
 	_build_toast()
+	_wire_focus()
 	_refresh_signs()
+
+
+## Focus order (spec 01): Start run, Daily, New run, places in key order (1-7, B), settings, back to Start.
+func _wire_focus() -> void:
+	var order: Array[Control] = [_run_plate]
+	if _daily_btn.visible:
+		order.append(_daily_btn)
+	if _new_run_btn.visible:
+		order.append(_new_run_btn)
+	for id in NUM_KEYS + ["board"]:
+		if _hits.has(id):
+			order.append(_hits[id])
+	order.append(find_child("Settings", true, false) as Control)
+	for i in order.size():
+		var nxt := order[(i + 1) % order.size()]
+		var prv := order[(i - 1 + order.size()) % order.size()]
+		order[i].focus_next = order[i].get_path_to(nxt)
+		order[i].focus_previous = order[i].get_path_to(prv)
 
 
 func _add_house_hit(id: String) -> void:
 	var btn := Button.new()
 	btn.name = "Hit_" + id
 	btn.flat = true
-	btn.focus_mode = Control.FOCUS_NONE
+	btn.focus_mode = Control.FOCUS_ALL   # the name plate shows while focused
 	btn.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+	btn.focus_entered.connect(_focus.bind(id, true))
+	btn.focus_exited.connect(_focus.bind(id, false))
 	btn.pressed.connect(_on_hit_pressed.bind(id))
 	btn.mouse_entered.connect(_hover.bind(id, true))
 	btn.mouse_exited.connect(_hover.bind(id, false))
@@ -843,7 +864,10 @@ func _refresh_signs() -> void:
 		var op := (_plates[id] as Control).find_child("SignOpen", true, false)
 		if op != null:
 			op.visible = _touch_mode
-		(_plates[id] as Control).visible = always or _names_on or _hover_id == id or _focus_id == id or _touch_id == id
+		var sub := (_plates[id] as Control).find_child("SignSub", true, false)
+		if sub != null:   # every place keeps its name plate; hover / focus / Names adds the sub-line
+			sub.visible = always or _names_on or _hover_id == id or _focus_id == id or _touch_id == id
+		(_plates[id] as Control).visible = true
 	_layout()
 
 
@@ -863,548 +887,345 @@ func _add_plot(id: String) -> void:
 	_plates[id] = plate
 
 
-func _style(kind: DangoTheme.Surface, radius: int, border: int, pad: Vector2, border_color: Color = Color.BLACK) -> StyleBoxFlat:
-	var sb := DangoTheme.surface_style(kind, radius, border, 0.0, pad)
-	sb.border_color = border_color
-	return sb
-
-
-func _lbl(text: String, size: int, color: Color, display: bool = true) -> Label:
-	var l := Label.new()
-	l.text = text
-	l.add_theme_font_size_override("font_size", size)
-	l.add_theme_color_override("font_color", color)
-	l.add_theme_font_override("font", DangoTheme.FONT_DISPLAY_BOLD if display else DangoTheme.FONT_UI)
-	l.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	return l
-
-
-## Dark key cap ("2", "B", "Enter"). 14 px text is the floor.
-func _key_chip(key: String, size: int = 22) -> PanelContainer:
-	var chip := PanelContainer.new()
-	var sb := _style(DangoTheme.Surface.PANEL, 6, 0, Vector2(4, 0))
-	sb.bg_color = KEY_CHIP
-	chip.add_theme_stylebox_override("panel", sb)
-	chip.custom_minimum_size = Vector2(size, size)
-	var l := _lbl(key, 14, Color("FFF8EA"))
-	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	l.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	chip.add_child(l)
-	chip.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	return chip
-
-
-## Same fill on all four states; hover lightens, focus gets the primary ring.
-func _btn_styles(btn: Button, fill: Color, border: Color, radius: int, bw: int) -> void:
-	for st in ["normal", "hover", "pressed", "focus"]:
-		var sb := _style(DangoTheme.Surface.CREAM_RAISED, radius, bw, Vector2(0, 0), border)
-		sb.bg_color = fill
-		if st == "hover":
-			sb.bg_color = DangoTheme.CREAM_HI if fill == DangoTheme.CREAM_RAISED else fill.lightened(0.12)
-		if st == "focus":
-			sb.border_color = DangoTheme.PRIMARY
-			sb.set_border_width_all(bw + 2)
-		btn.add_theme_stylebox_override(st, sb)
-
-
-## Fills a Button with a layout of non-clickable children and sizes the button to fit it.
-func _fill_button(btn: Button, inner: Control, pad: Vector2) -> void:
-	inner.set_anchors_preset(Control.PRESET_FULL_RECT)
-	inner.offset_left = pad.x
-	inner.offset_right = -pad.x
-	inner.offset_top = pad.y
-	inner.offset_bottom = -pad.y
-	inner.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	btn.add_child(inner)
-	var ms := inner.get_combined_minimum_size()
-	btn.custom_minimum_size = Vector2(maxf(btn.custom_minimum_size.x, ms.x + pad.x * 2.0),
-		maxf(btn.custom_minimum_size.y, ms.y + pad.y * 2.0))
-
-
+## World label (UI-03): UI3 plate, key hint + Rowdies name; hover/focus adds the sub-line (node "SignSub"); a locked
+## place shows lock + its rule.
 func _make_plate(id: String) -> PanelContainer:
 	var m: Dictionary = META[id]
 	var why := _block_reason(id)
-	var plate := PanelContainer.new()
+	var plate := UI3.plate(&"plate")
 	plate.name = "Sign_" + id
 	plate.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var sb := _style(DangoTheme.Surface.CREAM, 12, 3, Vector2(14, 6), INK_PLATE)
-	if why != "":
-		sb.bg_color = LOCK_FILL
-	plate.add_theme_stylebox_override("panel", sb)
 	var col := VBoxContainer.new()
 	col.add_theme_constant_override("separation", 0)
 	col.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	plate.add_child(col)
 	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", 7)
+	row.add_theme_constant_override("separation", UI3Theme.space("8"))
 	row.alignment = BoxContainer.ALIGNMENT_CENTER
 	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	col.add_child(row)
-	if String(m["key"]) != "":
-		row.add_child(_key_chip(String(m["key"])))
-	row.add_child(_lbl(String(m["name"]), 19, DangoTheme.INK))
-	var sub := String(m["sub"])
-	if _is_locked(id):
-		sub = "Builds at %s Land" % _need_name(id)
-		why = ""
-	if sub != "":
-		var s := _lbl(sub, 14, LOCK_TEXT if why != "" else DangoTheme.INK_ON_CREAM_MUTED, false)
-		s.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		col.add_child(s)
 	if why != "":
-		var w := _lbl(why, 14, Color("8A3E22"), false)
+		var lock := TextureRect.new()
+		lock.name = "SignLock"
+		lock.texture = UI3.cream_icon("ui_lock")
+		lock.custom_minimum_size = Vector2.ONE * UI3Theme.size_of("icon_m")
+		lock.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		lock.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		lock.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		row.add_child(lock)
+	if String(m["key"]) != "":
+		var kh := UI3.key_hint(String(m["key"]))
+		kh.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		row.add_child(kh)
+	var nm := UI3.label(String(m["name"]), "LabelTitle")
+	nm.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	row.add_child(nm)
+	if why != "":
+		var w := UI3.label(why, "LabelMuted")
+		w.name = "SignRule"
 		w.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		w.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		col.add_child(w)
-	if id != "portal" and not _is_locked(id):
-		var open := Button.new()
+	var sub := String(m["sub"])
+	if sub != "" and why == "":
+		var s := UI3.label(sub, "LabelMuted")
+		s.name = "SignSub"
+		s.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		s.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		col.add_child(s)
+	if id != "portal" and why == "":
+		var open := UI3.button("Open", &"secondary", &"S")
 		open.name = "SignOpen"
 		open.visible = _touch_mode
-		open.text = "Open"
-		open.custom_minimum_size = Vector2(0, 44)
-		DangoTheme.style_button(open, true)
 		open.pressed.connect(_on_house_pressed.bind(id))
 		col.add_child(open)
 	return plate
 
 
-## Word pill (never colour only): FREE / CLAIM / NEW / OFFLINE / LOCKED / "···".
-func _pill(kind: String, h: int = 24) -> PanelContainer:
-	var pill := PanelContainer.new()
-	pill.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var sb := _style(DangoTheme.Surface.CREAM, h / 2, 2, Vector2(8, 0), INK_PLATE)
-	sb.bg_color = BADGE_FILL.get(kind, Color("FF9345"))
-	pill.add_theme_stylebox_override("panel", sb)
-	pill.custom_minimum_size = Vector2(0, h)
-	var l := _lbl(kind, 14, BADGE_INK.get(kind, Color("2A1505")))
-	l.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	pill.add_child(l)
-	return pill
-
-
+## Status chip on a place (never colour only): FREE / CLAIM / NEW / OFFLINE / LOCKED / "···".
 func _make_badge_pill(id: String) -> Control:
 	var tag := _tag(id)
 	if tag == "":
 		return null
-	return _pill(tag)
+	return _status_chip(tag)
 
 
-## Pin a pill to the top-right corner of its parent, sticking out by (10, 12).
-func _corner_pill(parent: Control, tag: String) -> void:
-	var p := _pill(tag)
-	p.set_anchors_preset(Control.PRESET_TOP_RIGHT)
-	p.grow_horizontal = Control.GROW_DIRECTION_BEGIN
-	p.offset_left = 10
-	p.offset_right = 10
-	p.offset_top = -12
-	p.offset_bottom = -12
-	parent.add_child(p)
+## Status chip: wood-2 fill (not kam-6, that is primary only), Rowdies 18; the word carries the meaning.
+func _status_chip(tag: String) -> PanelContainer:
+	var c := PanelContainer.new()
+	c.theme = UI3Theme.get_theme()
+	c.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	c.custom_minimum_size = Vector2(0, UI3.CHIP_H)
+	c.add_theme_stylebox_override("panel", UI3Theme.flat(UI3Theme.color("notice_bg"), UI3Theme.radius("s"),
+		2, UI3Theme.color("text_muted"), Vector4(12, 0, 12, 0)))
+	var l := UI3.label(tag, "LabelDisplay")
+	l.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	match tag:
+		"FREE", "NEW":
+			l.add_theme_color_override("font_color", UI3Theme.color("success_text"))
+		"LOCKED", "OFFLINE":
+			l.add_theme_color_override("font_color", UI3Theme.color("danger_text"))
+	c.add_child(l)
+	return c
 
+# ---------------------------------------------------------------- HUD (UI-03: 4 corner groups)
 
-# ---------------------------------------------------------------- HUD (top-left, rail, wallet)
+## Flat clickable layer over a plate cell: hover tint, amber focus ring, content passes mouse through.
+func _cell(btn_name: String, content: Control, on_press: Callable) -> MarginContainer:
+	var mc := MarginContainer.new()
+	mc.theme = UI3Theme.get_theme()
+	content.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	mc.add_child(content)
+	var b := Button.new()
+	b.name = btn_name
+	b.flat = true
+	b.focus_mode = Control.FOCUS_ALL
+	b.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+	var empty := StyleBoxEmpty.new()
+	for st in ["normal", "pressed", "focus", "disabled"]:
+		b.add_theme_stylebox_override(st, empty)
+	b.add_theme_stylebox_override("hover", UI3Theme.flat(Color(1, 1, 1, 0.08), UI3Theme.radius("s")))
+	b.pressed.connect(on_press)
+	mc.add_child(b)
+	UI3.attach_focus_ring(b)
+	return mc
+
 
 func _build_hud() -> void:
-	_hud_tl = HBoxContainer.new()
+	# Top-left: profile plate (+ quiet Land upgrade link under it).
+	_hud_tl = VBoxContainer.new()
 	_hud_tl.name = "HudTopLeft"
-	_hud_tl.add_theme_constant_override("separation", 12)
-	_hud_tl.position = Vector2(24, 24)
+	_hud_tl.theme = UI3Theme.get_theme()
+	_hud_tl.add_theme_constant_override("separation", UI3Theme.space("8"))
 	_ui.add_child(_hud_tl)
-	_hud_tl.add_child(_profile_chip())
-	_hud_tl.add_child(_land_chip())
+	var prof := UI3.plate(&"plate")
+	prof.name = "ProfilePlate"
+	prof.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+	prof.add_child(_profile_cell())
+	_hud_tl.add_child(prof)
+	var lp := UI3.plate(&"plate")
+	lp.name = "LandPlate"
+	lp.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+	lp.add_child(_land_link())
+	_hud_tl.add_child(lp)
 
-	_rail = VBoxContainer.new()
-	_rail.name = "Rail"
-	_rail.add_theme_constant_override("separation", 14)
-	_rail.position = Vector2(24, 116)
-	_ui.add_child(_rail)
-	_rail.add_child(_rail_button("Daily", "D", &"daily", 88, _tag("daily")))
-	_rail.add_child(_rail_button("Codex", "C", &"codex", 88, ""))
-	_names_btn = _rail_button("Names", "N", &"", 56, "")
-	_names_btn.name = "NamesToggle"
-	_names_btn.pressed.connect(_toggle_names)
-	_rail.add_child(_names_btn)
-
-	_wallet = HBoxContainer.new()
+	# Top-right: one plate, currencies then settings (spec 01).
+	_wallet = UI3.plate(&"plate")
 	_wallet.name = "Wallet"
-	_wallet.add_theme_constant_override("separation", 10)
-	_wallet.position = Vector2(1500, 24)
+	var wrow := HBoxContainer.new()
+	wrow.add_theme_constant_override("separation", UI3Theme.space("24"))
+	_wallet.add_child(wrow)
+	var vals := func(v: int) -> String: return "···" if _loading else _fmt(v)
+	var cur := UI3.currency_pill([
+		{"icon": "cur_shard", "value": vals.call(_meta_int("shard_pool"))},
+		{"icon": "cur_stone", "value": vals.call(_meta_int("stone"))},
+		{"icon": "cur_gem", "value": vals.call(_meta_int("lunar_gem"))}])
+	_currencies = cur.get_child(0) as Control   # the pill's own row of icon + value cells
+	cur.remove_child(_currencies)
+	cur.free()
+	_currencies.name = "Currencies"
+	_currencies.visible = not _guest   # signed out: currencies hidden
+	wrow.add_child(_currencies)
+	var st := UI3.icon_button("ui_settings", "Settings")
+	st.name = "Settings"
+	st.pressed.connect(_open_screen.bind(&"settings"))
+	wrow.add_child(st)
 	_ui.add_child(_wallet)
-	_wallet.add_child(_currency("Gene Shard", _meta_int("shard_pool"), Color("FF9345"), false))
-	_wallet.add_child(_currency("Land Stone", _meta_int("stone"), DangoTheme.LAND_STONE, false))
-	_wallet.add_child(_currency("Lunar Gem", _meta_int("lunar_gem"), Color("A27BEA"), true))
-	_wallet.add_child(_settings_button())
+
+	# Bottom-left: Show names (N) and Codex (C).
+	_hud_bl = UI3.plate(&"plate")
+	_hud_bl.name = "HudBottomLeft"
+	var blr := HBoxContainer.new()
+	blr.add_theme_constant_override("separation", UI3Theme.space("24"))
+	_hud_bl.add_child(blr)
+	var nrow := HBoxContainer.new()
+	nrow.add_theme_constant_override("separation", UI3Theme.space("12"))
+	nrow.add_child(UI3.key_hint("N"))
+	_names_lbl = UI3.label("Show names")
+	nrow.add_child(_names_lbl)
+	var ncell := _cell("NamesToggle", nrow, _toggle_names)
+	_names_btn = ncell.get_node("NamesToggle")
+	blr.add_child(ncell)
+	var crow := HBoxContainer.new()
+	crow.add_theme_constant_override("separation", UI3Theme.space("12"))
+	crow.add_child(UI3.key_hint("C"))
+	crow.add_child(UI3.label("Codex"))
+	blr.add_child(_cell("Codex", crow, _on_rail_pressed.bind(&"codex")))
+	_ui.add_child(_hud_bl)
+
+	# Bottom-right: one primary, up to two secondary.
+	_hud_br = HBoxContainer.new()
+	_hud_br.name = "HudBottomRight"
+	_hud_br.theme = UI3Theme.get_theme()
+	_hud_br.add_theme_constant_override("separation", UI3Theme.space("16"))
+	_hud_br.alignment = BoxContainer.ALIGNMENT_END
+	_ui.add_child(_hud_br)
+	_new_run_btn = UI3.button("New run · N", &"secondary", &"M")
+	_new_run_btn.name = "NewRunButton"
+	_new_run_btn.pressed.connect(_on_new_run_pressed)
+	_new_run_btn.visible = _has_run
+	_hud_br.add_child(_new_run_btn)
+	_daily_btn = UI3.button("Daily run", &"secondary", &"M")
+	_daily_btn.name = "Rail_Daily"
+	_daily_btn.pressed.connect(_on_rail_pressed.bind(&"daily"))
+	var dwhy := _block_reason_screen(&"daily")
+	if dwhy != "":
+		UI3.set_disabled_reason(_daily_btn, "Daily run · needs connection")
+	elif _tag("daily") == "CLAIM":
+		_daily_btn.text = "Daily run · claim"
+	_daily_btn.visible = not (_first and not _has_run)   # first visit: Daily hidden
+	_hud_br.add_child(_daily_btn)
+	_load_daily_tries()
+	_run_plate = _build_run_button()
+	_hud_br.add_child(_run_plate)
 
 
-func _profile_chip() -> Control:
-	var btn := Button.new()
-	btn.name = "ProfileChip"
-	btn.custom_minimum_size = Vector2(0, 68)
-	btn.focus_mode = Control.FOCUS_ALL
-	_btn_styles(btn, DangoTheme.CREAM_RAISED, Color("8A3E22"), 18, 4)
-	btn.pressed.connect(_open_profile)
+## Daily tries left today ("Daily run · 2 of 3"), the same numbers Run Setup shows. Quiet when offline,
+## signed out or not server-rolled: the button then keeps its plain label.
+func _load_daily_tries() -> void:
+	if qa.has("daily_tries"):
+		_apply_daily_tries(qa["daily_tries"])
+		return
+	if _offline or _guest or String(ProjectSettings.get_setting("axie/epoch_source", "")) != "remote":
+		return
+	var ref: WeakRef = weakref(self)
+	RunState.run_session().daily_info(func(ok: bool, data: Dictionary) -> void:
+		var me: Variant = ref.get_ref()
+		if ok and me != null:
+			me._apply_daily_tries({"used": int(data.get("used", 0)), "max": int(data.get("max", 3))}))
+
+
+func _apply_daily_tries(t: Dictionary) -> void:
+	if _daily_btn == null or _daily_btn.disabled:
+		return
+	var mx := int(t.get("max", 3))
+	_daily_btn.text = "Daily run · %d of %d" % [maxi(mx - int(t.get("used", 0)), 0), mx]
+	if _offline_banner != null:   # HUD still building when the QA hook answers at once
+		_layout()
+
+
+func _profile_cell() -> Control:
 	var h := HBoxContainer.new()
-	h.add_theme_constant_override("separation", 12)
-	h.alignment = BoxContainer.ALIGNMENT_CENTER
+	h.add_theme_constant_override("separation", UI3Theme.space("16"))
 	var name := "Guest"
 	if not _guest:
 		name = AccountService.display_name() if AccountService.is_signed_in() else "Player"
 	var av := PanelContainer.new()
-	var asb := _style(DangoTheme.Surface.PANEL, 23, 3, Vector2(0, 0))
-	asb.bg_color = Color("CFC4B0") if _guest else Color("DDBF8C")
-	av.add_theme_stylebox_override("panel", asb)
-	av.custom_minimum_size = Vector2(46, 46)
+	av.add_theme_stylebox_override("panel", UI3Theme.flat(
+		UI3Theme.color("disabled") if _guest else UI3Theme.color("accent"), 24))
+	av.custom_minimum_size = Vector2(48, 48)
 	av.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	av.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var ini := _lbl("?" if _guest else name.left(1).to_upper(), 19, LOCK_TEXT)
+	var ini := UI3.label("?" if _guest else name.left(1).to_upper(), "LabelDisplay")
+	ini.add_theme_color_override("font_color", UI3Theme.color("accent_text"))
 	ini.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	ini.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	av.add_child(ini)
 	h.add_child(AvatarFrame.wrap(av, 56.0, MetaState.equipped_frame, 40.0))
 	var col := VBoxContainer.new()
-	col.add_theme_constant_override("separation", -2)
+	col.add_theme_constant_override("separation", 0)
 	col.alignment = BoxContainer.ALIGNMENT_CENTER
-	col.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	col.add_child(_lbl(name.left(14), 20, DangoTheme.INK))
-	var sub := "Sign in to save online" if _guest else "Profile · Unlocks"
-	if not _guest and MetaState.equipped_title != "":
-		sub = TitleNames.display(MetaState.equipped_title)
-	col.add_child(_lbl(sub.left(22), 14,
-		Color("A3261A") if _guest else DangoTheme.INK_ON_CREAM_MUTED, false))
+	var nl := UI3.label(name.left(16), "LabelTitle")
+	nl.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	col.custom_minimum_size.x = 220   # name budget 220 px, best line 260 px (ellipsis)
+	col.add_child(nl)
+	var sub := "Sign in to save online"
+	if not _guest:
+		sub = _best_line()
+		if MetaState.equipped_title != "":
+			sub = TitleNames.display(MetaState.equipped_title)
+	var bl := UI3.label(sub.left(24), "LabelMuted")
+	bl.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	bl.custom_minimum_size.x = 220
+	col.add_child(bl)
 	h.add_child(col)
-	h.add_child(_key_chip("P"))
-	h.add_child(_lbl("›", 20, Color("8A3E22")))
-	_fill_button(btn, h, Vector2(14, 8))
-	return btn
+	h.add_child(UI3.key_hint("P"))
+	return _cell("ProfileChip", h, _open_profile)
 
 
-func _land_chip() -> Control:
-	var btn := Button.new()
-	btn.custom_minimum_size = Vector2(0, 68)
-	btn.focus_mode = Control.FOCUS_ALL
-	btn.name = "UpgradeLand" if _tier < 6 else "LandChip"
-	_btn_styles(btn, DangoTheme.CREAM_RAISED, Color("8A3E22"), 18, 4)
-	btn.pressed.connect(_on_land_pressed)
-	var h := HBoxContainer.new()
-	h.add_theme_constant_override("separation", 12)
-	h.alignment = BoxContainer.ALIGNMENT_CENTER
-	var col := VBoxContainer.new()
-	col.add_theme_constant_override("separation", 2)
-	col.alignment = BoxContainer.ALIGNMENT_CENTER
-	col.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var top := HBoxContainer.new()
-	top.add_theme_constant_override("separation", 6)
-	top.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	top.add_child(_lbl("%s Land" % TIER_NAMES[_tier - 1], 19, DangoTheme.INK))
-	top.add_child(_lbl("%d / 6" % _tier, 14, DangoTheme.INK_ON_CREAM_MUTED, false))
-	col.add_child(top)
+## "Best: A3" from the real won-ascension record, "No wins yet" otherwise (never a made-up number).
+func _best_line() -> String:
+	var best := -1
+	for k in MetaState.asc_wins:
+		if int(MetaState.asc_wins[k]) > 0:
+			best = maxi(best, int(k))
+	return "Best: A%d" % best if best >= 0 else "No wins yet"
+
+
+## Land tier link under the profile plate (key L). Tier 6 has nothing left to upgrade.
+func _land_link() -> Control:
+	var tn: String = TIER_NAMES[_tier - 1]
 	if _tier >= 6:
-		col.add_child(_lbl("Max tier · no further upgrade", 14, DangoTheme.INK_ON_CREAM_MUTED, false))
-	else:
-		var need := _upgrade_cost()
-		var have := _meta_int("stone")
-		var row := HBoxContainer.new()
-		row.add_theme_constant_override("separation", 6)
-		row.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		var dot := Panel.new()
-		var dsb := StyleBoxFlat.new()
-		dsb.bg_color = DangoTheme.LAND_STONE
-		dsb.set_corner_radius_all(9)
-		dsb.set_border_width_all(2)
-		dsb.border_color = INK_PLATE
-		dot.add_theme_stylebox_override("panel", dsb)
-		dot.custom_minimum_size = Vector2(18, 18)
-		dot.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-		dot.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		row.add_child(dot)
-		var bar := ProgressBar.new()
-		bar.name = "LandStoneBar"
-		bar.show_percentage = false
-		bar.min_value = 0
-		bar.max_value = maxf(need, 1)
-		bar.value = clampf(have, 0, need)
-		bar.custom_minimum_size = Vector2(120, 14)
-		bar.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-		bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		var bg := _style(DangoTheme.Surface.PANEL, 7, 2, Vector2(0, 0), INK_PLATE)
-		bg.bg_color = Color(0.54, 0.24, 0.13, 0.22)
-		var fg := StyleBoxFlat.new()
-		fg.bg_color = Color("FF9345")
-		fg.set_corner_radius_all(7)
-		bar.add_theme_stylebox_override("background", bg)
-		bar.add_theme_stylebox_override("fill", fg)
-		row.add_child(bar)
-		row.add_child(_lbl("%s / %s" % [_fmt(have), _fmt(need)], 14, DangoTheme.INK, false))
-		col.add_child(row)
-	h.add_child(col)
-	var can_up := _tier < 6 and preload("res://scripts/meta/economy_db.gd").land_upgrade_enabled() and _meta_int("stone") >= _upgrade_cost()
-	if can_up:
-		var up := PanelContainer.new()
-		var usb := _style(DangoTheme.Surface.PANEL, 12, 3, Vector2(14, 0), INK_PLATE)
-		usb.bg_color = Color("FF9345")
-		up.add_theme_stylebox_override("panel", usb)
-		up.custom_minimum_size = Vector2(0, 42)
-		up.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-		up.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		var ul := _lbl("Upgrade", 18, Color("2A1505"))
-		ul.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-		up.add_child(ul)
-		h.add_child(up)
-	if _tier < 6:
-		h.add_child(_key_chip("L"))
-	_fill_button(btn, h, Vector2(14, 8))
-	if can_up:
-		_corner_pill_text(btn, "UPGRADE", Color("FF9345"), Color("2A1505"))
-	return btn
-
-
-func _corner_pill_text(parent: Control, text: String, fill: Color, ink: Color) -> void:
-	var p := PanelContainer.new()
-	var sb := _style(DangoTheme.Surface.CREAM, 12, 2, Vector2(8, 0), INK_PLATE)
-	sb.bg_color = fill
-	p.add_theme_stylebox_override("panel", sb)
-	p.custom_minimum_size = Vector2(0, 24)
-	p.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	p.add_child(_lbl(text, 14, ink))
-	p.set_anchors_preset(Control.PRESET_TOP_RIGHT)
-	p.grow_horizontal = Control.GROW_DIRECTION_BEGIN
-	p.offset_left = 14
-	p.offset_right = 14
-	p.offset_top = -13
-	p.offset_bottom = -13
-	parent.add_child(p)
-
-
-func _rail_button(title: String, key: String, screen_id: StringName, h: int, tag: String) -> Button:
-	var b := Button.new()
-	b.name = "Rail_" + title
-	b.custom_minimum_size = Vector2(88, h)
-	b.focus_mode = Control.FOCUS_ALL
-	var why := _block_reason_screen(screen_id)
-	_btn_styles(b, Color("EDE4D4") if why != "" else DangoTheme.CREAM_RAISED, INK_PLATE, 18, 3)
-	var v := VBoxContainer.new()
-	v.alignment = BoxContainer.ALIGNMENT_CENTER
-	v.add_theme_constant_override("separation", 3)
-	var row := HBoxContainer.new()
-	row.alignment = BoxContainer.ALIGNMENT_CENTER
-	row.add_theme_constant_override("separation", 5)
-	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	row.add_child(_lbl(title, 16, LOCK_TEXT if why != "" else DangoTheme.INK))
-	row.add_child(_key_chip(key, 20))
-	v.add_child(row)
-	_fill_button(b, v, Vector2(4, 4))
-	b.custom_minimum_size.y = h
-	if tag != "":
-		_corner_pill(b, tag)
-	if screen_id != &"":
-		b.pressed.connect(_on_rail_pressed.bind(screen_id))
+		var l := UI3.label("%s Land · max tier" % tn, "LabelMuted")
+		l.name = "LandChip"
+		return l
+	var need := _upgrade_cost()
+	var have := _meta_int("stone")
+	var can_up := preload("res://scripts/meta/economy_db.gd").land_upgrade_enabled() and have >= need
+	var txt := "Upgrade %s Land · L" % tn if can_up else "%s Land %d/6 · L" % [tn, _tier]
+	var b := UI3.button(txt, &"quiet")
+	b.name = "UpgradeLand"
+	b.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
+	b.tooltip_text = "%s / %s Land Stone" % [_fmt(have), _fmt(need)]
+	b.pressed.connect(_on_land_pressed)
 	return b
 
 
 func _toggle_names() -> void:
 	_names_on = not _names_on
-	if _names_btn != null:
-		_btn_styles(_names_btn, Color("FF9345") if _names_on else DangoTheme.CREAM_RAISED, INK_PLATE, 18, 3)
+	if _names_lbl != null:
+		_names_lbl.text = "Hide names" if _names_on else "Show names"
 	_refresh_signs()
 
 
-func _currency(label: String, value: int, color: Color, plus: bool) -> Control:
-	var chip := PanelContainer.new()
-	chip.name = "Currency_" + label.replace(" ", "")
-	chip.add_theme_stylebox_override("panel", _style(DangoTheme.Surface.CREAM_RAISED, 12, 3, Vector2(8, 2), INK_PLATE))
-	chip.custom_minimum_size = Vector2(0, 44)
-	var h := HBoxContainer.new()
-	h.add_theme_constant_override("separation", 6)
-	chip.add_child(h)
-	var dot := Panel.new()
-	var sb := StyleBoxFlat.new()
-	sb.bg_color = color
-	sb.set_corner_radius_all(9)
-	sb.set_border_width_all(2)
-	sb.border_color = INK_PLATE
-	dot.add_theme_stylebox_override("panel", sb)
-	dot.custom_minimum_size = Vector2(18, 18)
-	dot.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	dot.tooltip_text = label
-	h.add_child(dot)
-	h.add_child(_lbl("···" if _loading else _fmt(value), 16, DangoTheme.INK))
-	if plus:
-		var b := Button.new()
-		b.name = "GemPlus"
-		b.text = "+"
-		b.custom_minimum_size = Vector2(44, 44)
-		b.focus_mode = Control.FOCUS_ALL
-		b.disabled = _offline
-		b.add_theme_font_override("font", DangoTheme.FONT_DISPLAY_BOLD)
-		b.add_theme_color_override("font_color", Color("FFF8EA"))
-		b.add_theme_color_override("font_disabled_color", Color("FFF8EA"))
-		for st in ["normal", "hover", "pressed", "focus", "disabled"]:
-			var pb := _style(DangoTheme.Surface.PANEL, 13, 2, Vector2(0, 0))
-			pb.bg_color = Color("A27BEA") if st != "disabled" else Color("A27BEA").darkened(0.2)
-			b.add_theme_stylebox_override(st, pb)
-		b.pressed.connect(_on_house_pressed.bind("store"))
-		b.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-		h.add_child(b)
-	return chip
-
-
-func _settings_button() -> Button:
-	var b := Button.new()
-	b.name = "Settings"
-	b.tooltip_text = "Settings"
-	b.custom_minimum_size = Vector2(68, 68)
-	b.icon = load("res://assets/icons/web/settings.svg") as Texture2D
-	b.expand_icon = true
-	b.icon_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	for ic in ["icon_normal_color", "icon_hover_color", "icon_pressed_color", "icon_focus_color"]:
-		b.add_theme_color_override(ic, DangoTheme.INK)
-	_btn_styles(b, DangoTheme.CREAM_RAISED, Color("8A3E22"), 18, 4)
-	for st in ["normal", "hover", "pressed", "focus"]:
-		(b.get_theme_stylebox(st) as StyleBoxFlat).set_content_margin_all(16)
-	b.pressed.connect(_open_screen.bind(&"settings"))
-	var esc := _key_chip("Esc", 22)
-	esc.set_anchors_preset(Control.PRESET_CENTER_BOTTOM)
-	esc.grow_horizontal = Control.GROW_DIRECTION_BOTH
-	esc.offset_top = 56
-	esc.offset_bottom = 56
-	b.add_child(esc)
-	return b
-
-
-# ---------------------------------------------------------------- dock (bottom) + RUN
-
-func _dock_tile(id: String, title: String, sub: String) -> Button:
-	var m: Dictionary = META[id]
-	var why := _block_reason(id)
-	var b := Button.new()
-	b.name = "Dock_" + id
-	b.custom_minimum_size = Vector2(116, 92)
-	b.focus_mode = Control.FOCUS_ALL
-	b.size_flags_vertical = Control.SIZE_SHRINK_END
-	_btn_styles(b, Color("EDE4D4") if why != "" else Color("FFF8EA"), INK_PLATE, 16, 3)
-	var v := VBoxContainer.new()
-	v.alignment = BoxContainer.ALIGNMENT_CENTER
-	v.add_theme_constant_override("separation", 3)
-	var row := HBoxContainer.new()
-	row.alignment = BoxContainer.ALIGNMENT_CENTER
-	row.add_theme_constant_override("separation", 5)
-	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	row.add_child(_lbl(title, 16, Color("8A6E50") if why != "" else DangoTheme.INK))
-	row.add_child(_key_chip(String(m["key"]), 20))
-	v.add_child(row)
-	if sub != "":
-		var s := _lbl(sub, 14, LOCK_TEXT, false)
-		s.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		v.add_child(s)
-	_fill_button(b, v, Vector2(4, 4))
-	b.custom_minimum_size.y = 92
-	var tag := _tag(id)
-	if tag != "":
-		_corner_pill(b, tag)
-	b.pressed.connect(_on_house_pressed.bind(id))
-	b.focus_entered.connect(_focus.bind(id, true))
-	b.focus_exited.connect(_focus.bind(id, false))
-	b.mouse_entered.connect(_hover.bind(id, true))
-	b.mouse_exited.connect(_hover.bind(id, false))
-	return b
-
-
-func _build_dock() -> void:
-	_dock = PanelContainer.new()
-	_dock.name = "Dock"
-	_dock.add_theme_stylebox_override("panel", _style(DangoTheme.Surface.CREAM, 24, 4, Vector2(8, 8), Color("8A3E22")))
-	_ui.add_child(_dock)
-	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", 8)
-	_dock.add_child(row)
-	row.add_child(_dock_tile("house", "House", ""))
-	row.add_child(_dock_tile("missions", "Missions", ""))
-	row.add_child(_dock_tile("vault", "Vault", ""))
-	# RUN is raised: a 92 px slot in the row, the 120 px button sticks out 28 px above it.
-	var slot := Control.new()
-	slot.custom_minimum_size = Vector2(300, 92)
-	row.add_child(slot)
-	_run_plate = _build_run_button()
-	slot.add_child(_run_plate)
-	row.add_child(_dock_tile("echobox", "Echo Box", ""))
-	row.add_child(_dock_tile("pass", "Pass", "" if _offline else "ends 29 Dec"))
-	row.add_child(_dock_tile("store", "Store", ""))
-
-	_new_run_btn = Button.new()
-	_new_run_btn.name = "NewRunButton"
-	_new_run_btn.custom_minimum_size = Vector2(170, 96)
-	_new_run_btn.focus_mode = Control.FOCUS_ALL
-	_btn_styles(_new_run_btn, DangoTheme.CREAM_RAISED, Color("8A3E22"), 18, 4)
-	var nv := VBoxContainer.new()
-	nv.alignment = BoxContainer.ALIGNMENT_CENTER
-	nv.add_theme_constant_override("separation", 6)
-	nv.add_child(_lbl("New run", 22, DangoTheme.INK))
-	var nr := HBoxContainer.new()
-	nr.alignment = BoxContainer.ALIGNMENT_CENTER
-	nr.add_theme_constant_override("separation", 6)
-	nr.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	nr.add_child(_key_chip("N", 22))
-	nr.add_child(_lbl("asks first", 14, DangoTheme.INK_ON_CREAM_MUTED, false))
-	nv.add_child(nr)
-	_fill_button(_new_run_btn, nv, Vector2(8, 8))
-	_new_run_btn.pressed.connect(_on_new_run_pressed)
-	_new_run_btn.visible = _has_run
-	_ui.add_child(_new_run_btn)
-
-	# "Start here" hint over RUN until the first run starts.
-	_start_hint = PanelContainer.new()
-	_start_hint.name = "StartHint"
-	_start_hint.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var hsb := _style(DangoTheme.Surface.PANEL, 14, 3, Vector2(18, 8), INK_PLATE)
-	hsb.bg_color = Color("3B2618")
-	_start_hint.add_theme_stylebox_override("panel", hsb)
-	var hv := VBoxContainer.new()
-	hv.add_theme_constant_override("separation", 0)
-	hv.add_child(_lbl("Start here", 20, Color("FFF8EA")))
-	hv.add_child(_lbl("Your first run is a short guided one", 14, Color("DDBF8C"), false))
-	_start_hint.add_child(hv)
-	_start_hint.visible = _first and not _has_run
-	_ui.add_child(_start_hint)
-
-
+## Primary "Start run" (signed out: "Sign in to play"). Name stays RunPlate.
 func _build_run_button() -> Button:
-	var plate := Button.new()
-	plate.name = "RunPlate"
-	plate.custom_minimum_size = Vector2(300, 120)
-	plate.size = Vector2(300, 120)
-	plate.position = Vector2(0, -28)
-	plate.focus_mode = Control.FOCUS_ALL
-	DangoTheme.style_button(plate, true)
-	plate.pressed.connect(_on_run_pressed)
-	var v := VBoxContainer.new()
-	v.set_anchors_preset(Control.PRESET_FULL_RECT)
-	v.alignment = BoxContainer.ALIGNMENT_CENTER
-	v.add_theme_constant_override("separation", 2)
-	v.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	plate.add_child(v)
-	var title := "RUN"
-	var size := 50
-	var sub := "Guided first run" if _first else "Run Setup"
+	var title := "Start run"
+	var tip := "Guided first run" if _first else "Run Setup"
 	if _has_run:
 		if _mission_run:
 			title = "Continue mission"
-			size = 32
-			sub = _mission_line()
+			tip = _mission_line()
 		else:
 			title = "Continue run"
-			size = 34
-			sub = _continue_line()
-	_run_title = _lbl(title, size, DangoTheme.INK_ON_PRIMARY)
-	_run_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	v.add_child(_run_title)
-	var s := _lbl(sub, 14, DangoTheme.INK_ON_PRIMARY, false)
-	s.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	v.add_child(s)
-	var chips := HBoxContainer.new()
-	chips.alignment = BoxContainer.ALIGNMENT_CENTER
-	chips.add_theme_constant_override("separation", 5)
-	chips.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	chips.add_child(_key_chip("Enter", 22))
-	chips.add_child(_key_chip("1", 22))
-	v.add_child(chips)
+			tip = _continue_line()
+	elif _guest:
+		title = "Sign in to play"
+		tip = "Sign in to save your runs online"
+	var plate := UI3.button(title, &"primary", &"L")
+	plate.name = "RunPlate"
+	plate.tooltip_text = tip
+	plate.pressed.connect(_on_run_pressed)
+	if _first and not _has_run:
+		plate.grab_focus.call_deferred()
+	# "Start here" coach card (640 wide, 32x20 arrow toward the Start run spotlight).
+	_start_hint = VBoxContainer.new()
+	_start_hint.name = "StartHint"
+	_start_hint.theme = UI3Theme.get_theme()
+	_start_hint.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_start_hint.add_theme_constant_override("separation", 0)
+	var card := UI3.plate(&"dialog")
+	card.custom_minimum_size.x = 640
+	card.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var hv := VBoxContainer.new()
+	hv.add_child(UI3.label("Start here", "LabelTitle"))
+	var hb := UI3.label("Your first run is a short guided one", "LabelMuted")
+	hb.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	hb.custom_minimum_size.x = 592   # card 640 minus 24 padding each side
+	hv.add_child(hb)
+	card.add_child(hv)
+	_start_hint.add_child(card)
+	var arrow := Control.new()
+	arrow.name = "HintArrow"
+	arrow.custom_minimum_size = Vector2(640, 20)
+	arrow.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	arrow.draw.connect(func() -> void:
+		var cx := 640.0 - plate.size.x * 0.5
+		arrow.draw_colored_polygon(PackedVector2Array([Vector2(cx - 16, 0), Vector2(cx + 16, 0), Vector2(cx, 20)]),
+			UI3Theme.color("panel")))
+	_start_hint.add_child(arrow)
+	_start_hint.visible = _first and not _has_run and not _guest
+	_ui.add_child(_start_hint)
 	return plate
 
 
@@ -1420,59 +1241,64 @@ func _mission_line() -> String:
 
 
 func _build_banners() -> void:
-	_offline_banner = PanelContainer.new()
+	_offline_banner = UI3.net_notice("Offline · Store, Pass, Echo Box, Daily and Leaderboard need a connection. Runs still work.",
+		"Retry", _on_retry)
 	_offline_banner.name = "OfflineBanner"
-	var sb := _style(DangoTheme.Surface.PANEL, 16, 3, Vector2(20, 8), INK_PLATE)
-	sb.bg_color = Color("3B2618")
-	_offline_banner.add_theme_stylebox_override("panel", sb)
-	var h := HBoxContainer.new()
-	h.add_theme_constant_override("separation", 16)
-	_offline_banner.add_child(h)
-	var col := VBoxContainer.new()
-	col.add_theme_constant_override("separation", 0)
-	col.add_child(_lbl("Offline", 19, Color("FFF8EA")))
-	col.add_child(_lbl("Store, Pass, Echo Box, Daily and Leaderboard need a connection. Runs still work.", 14, Color("DDBF8C"), false))
-	h.add_child(col)
-	var retry := Button.new()
-	retry.name = "RetryButton"
-	retry.text = "Retry"
-	retry.custom_minimum_size = Vector2(0, 40)
-	DangoTheme.style_button(retry, false)
-	retry.pressed.connect(_on_retry)
-	h.add_child(retry)
+	_offline_banner.custom_minimum_size = Vector2(600, 0)
+	var msg := _offline_banner.find_children("*", "Label", true, false)
+	if not msg.is_empty():
+		(msg[0] as Label).custom_minimum_size.x = 440
+	var rb := _offline_banner.find_child("Retry", true, false)
+	if rb != null:
+		rb.name = "RetryButton"
 	_offline_banner.visible = _offline
 	_ui.add_child(_offline_banner)
 
 
 func _on_retry() -> void:
 	if _detect_offline():
-		_show_toast("Still offline")
+		_show_toast("Still offline", 1.6, &"error")
 		return
 	qa.erase("offline")
 	get_tree().reload_current_scene()
 
 
 func _build_toast() -> void:
-	_toast = PanelContainer.new()
-	_toast.visible = false
-	_toast.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_toast.add_theme_stylebox_override("panel", _style(DangoTheme.Surface.CREAM, 14, 3, Vector2(18, 8), INK_PLATE))
-	_toast.add_child(_lbl("", 17, DangoTheme.INK))
-	_ui.add_child(_toast)
+	# UI-03 18-system: the toast is rebuilt per message by _show_toast (UI3.toast, top-centre 24 px down).
+	_toast = null
 
 
-func _show_toast(text: String, hold: float = 1.6) -> void:
-	(_toast.get_child(0) as Label).text = text
-	_toast.visible = true
-	_toast.modulate.a = 1.0
-	_toast.reset_size()
-	_toast.position = Vector2((_ui.size.x - _toast.size.x) * 0.5, 180)
-	if _toast_tween != null:
-		_toast_tween.kill()
-	_toast_tween = create_tween()
-	_toast_tween.tween_interval(hold)
-	_toast_tween.tween_property(_toast, "modulate:a", 0.0, 0.4)
-	_toast_tween.tween_callback(func() -> void: _toast.visible = false)
+func _show_toast(text: String, hold: float = 1.6, tone: StringName = &"ok") -> void:
+	# Stack of at most 3, top-centre, 24 px from the top, 8 px gap (UI-03 18-system).
+	_toasts = _toasts.filter(func(t: Variant) -> bool: return is_instance_valid(t))
+	while _toasts.size() >= 3:
+		(_toasts.pop_front() as Node).queue_free()
+	var tw_node := UI3.toast(text, tone)
+	tw_node.name = "Toast"
+	tw_node.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_ui.add_child(tw_node)
+	_toasts.append(tw_node)
+	_toast = tw_node
+	_layout_toasts()
+	var tw := create_tween()
+	tw.tween_interval(hold)
+	tw.tween_property(tw_node, "modulate:a", 0.0, 0.4)
+	tw.tween_callback(func() -> void:
+		if is_instance_valid(tw_node):
+			tw_node.queue_free()
+		_toasts.erase(tw_node)
+		_layout_toasts())
+
+
+func _layout_toasts() -> void:
+	var y := 24.0
+	for t in _toasts:
+		if not is_instance_valid(t) or t.is_queued_for_deletion():
+			continue
+		var c := t as Control
+		c.reset_size()
+		c.position = Vector2((_ui.size.x - c.size.x) * 0.5, y)
+		y += c.size.y + 8.0
 
 
 func _fmt(v: int) -> String:
@@ -1488,7 +1314,7 @@ func _fmt(v: int) -> String:
 # ================================================================ layout (design px + dy)
 
 func _layout() -> void:
-	if _ui == null or _dock == null:
+	if _ui == null or _hud_br == null:
 		return
 	var dy := (_ui.size.y - 1080.0) * 0.5
 	var f := _ui_floor()
@@ -1544,31 +1370,27 @@ func _place_hud(f: float) -> void:
 	var w := _ui.size.x
 	var h := _ui.size.y
 	var sc := Vector2(f, f)
+	_hud_tl.reset_size()
 	_hud_tl.scale = sc
 	_hud_tl.position = Vector2(24, 24)
-	_rail.scale = sc
-	_rail.position = Vector2(24, 24 + 92.0 * f)
 	_wallet.reset_size()
 	_wallet.scale = sc
 	_wallet.position = Vector2(w - 24.0 - _wallet.get_combined_minimum_size().x * f, 24)
-	_dock.reset_size()
-	var dsz := _dock.get_combined_minimum_size()
-	_dock.scale = sc
-	_dock.pivot_offset = Vector2(dsz.x * 0.5, dsz.y)
-	_dock.position = Vector2((w - dsz.x) * 0.5, h - 20.0 - dsz.y)
-	_new_run_btn.scale = sc
-	_new_run_btn.pivot_offset = Vector2(0, 96)
-	_new_run_btn.position = Vector2(w * 0.5 + 554.0 * f, h - 20.0 - 96.0)
+	_hud_bl.reset_size()
+	_hud_bl.scale = sc
+	_hud_bl.position = Vector2(24, h - 24.0 - _hud_bl.get_combined_minimum_size().y * f)
+	_hud_br.reset_size()
+	var bsz := _hud_br.get_combined_minimum_size()
+	_hud_br.scale = sc
+	_hud_br.position = Vector2(w - 24.0 - bsz.x * f, h - 24.0 - bsz.y * f)
 	_start_hint.reset_size()
 	var hs := _start_hint.get_combined_minimum_size()
 	_start_hint.scale = sc
-	_start_hint.pivot_offset = Vector2(hs.x * 0.5, hs.y)
-	_start_hint.position = Vector2((w - hs.x) * 0.5, h - 20.0 - 146.0 * f - hs.y)
+	_start_hint.position = Vector2(w - 24.0 - hs.x * f, h - 24.0 - bsz.y * f - 4.0 * f - hs.y * f)
 	_offline_banner.reset_size()
-	var bs := _offline_banner.get_combined_minimum_size()
+	var os := _offline_banner.get_combined_minimum_size()
 	_offline_banner.scale = sc
-	_offline_banner.pivot_offset = Vector2(bs.x * 0.5, 0)
-	_offline_banner.position = Vector2((w - bs.x) * 0.5, 24.0 + 80.0 * f)
+	_offline_banner.position = Vector2((w - os.x * f) * 0.5, h - 24.0 - os.y * f)   # bottom centre: clear of every place chip
 
 
 # ================================================================ actions
@@ -1622,6 +1444,9 @@ func _on_run_pressed() -> void:
 	if _has_run:
 		_on_continue_pressed()
 		return
+	if _guest:   # sign-in stays required before a run
+		AccountService.sign_in()
+		return
 	_open_screen(&"run_setup")
 
 
@@ -1633,7 +1458,7 @@ func _on_continue_pressed() -> void:
 		RunState.clear_saved_run()
 		_has_run = false
 		_new_run_btn.visible = false
-		_show_toast("That run could not be loaded")
+		_show_toast("That run could not be loaded", 1.6, &"error")
 		return
 	var st: String = await RunContinue.reconnect(self, _on_continue_pressed,
 			find_child("RunPlate", true, false) as BaseButton)
@@ -1676,94 +1501,35 @@ func _end_run_and_setup() -> void:
 	LandNav.open(&"run_setup")
 
 
-func _open_confirm(title: String, body: String, ok_text: String, on_ok: Callable, warning: bool = false,
-		cancel_text: String = "Cancel", loss: Array = [], head: Color = Color(0, 0, 0, 0)) -> void:
+func _open_confirm(title: String, body: String, ok_text: String, on_ok: Callable, _warning: bool = false,
+		cancel_text: String = "Cancel", loss: Array = [], _head: Color = Color(0, 0, 0, 0)) -> void:
 	if _modal != null:
 		return
-	_modal = Control.new()
-	_modal.name = "Confirm"
-	_modal.set_anchors_preset(Control.PRESET_FULL_RECT)
-	var dim := ColorRect.new()
-	dim.color = Color(0.14, 0.08, 0.04, 0.58)
-	dim.set_anchors_preset(Control.PRESET_FULL_RECT)
-	_modal.add_child(dim)
-	var center := CenterContainer.new()
-	center.set_anchors_preset(Control.PRESET_FULL_RECT)
-	_modal.add_child(center)
-	var panel := PanelContainer.new()
-	panel.custom_minimum_size = Vector2(720, 0)
-	var psb := _style(DangoTheme.Surface.CREAM, 28, 4, Vector2(0, 0), Color("8A3E22"))
-	psb.set_content_margin_all(0)
-	psb.set_expand_margin_all(0)
-	panel.add_theme_stylebox_override("panel", psb)
-	panel.clip_contents = true
-	center.add_child(panel)
-	var outer := VBoxContainer.new()
-	outer.add_theme_constant_override("separation", 0)
-	panel.add_child(outer)
-	if head.a > 0.0:
-		var hb := PanelContainer.new()
-		var hsb := StyleBoxFlat.new()
-		hsb.bg_color = head
-		hsb.content_margin_left = 26
-		hsb.content_margin_right = 26
-		hb.add_theme_stylebox_override("panel", hsb)
-		hb.custom_minimum_size = Vector2(0, 64)
-		var ht := _lbl(title, 28, Color("FFF8EA"))
-		ht.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-		hb.add_child(ht)
-		outer.add_child(hb)
-	var mg := MarginContainer.new()
-	mg.add_theme_constant_override("margin_left", 26)
-	mg.add_theme_constant_override("margin_right", 26)
-	mg.add_theme_constant_override("margin_top", 22)
-	mg.add_theme_constant_override("margin_bottom", 24)
-	outer.add_child(mg)
-	var v := VBoxContainer.new()
-	v.add_theme_constant_override("separation", 16)
-	mg.add_child(v)
-	if head.a <= 0.0:
-		v.add_child(_lbl(title, 26, DangoTheme.INK))
-	var msg := _lbl(body, 18, DangoTheme.INK, false)
-	msg.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	msg.custom_minimum_size = Vector2(660, 0)
-	v.add_child(msg)
-	if loss.size() >= 2:
-		var lb := PanelContainer.new()
-		lb.add_theme_stylebox_override("panel", _style(DangoTheme.Surface.CREAM, 14, 3, Vector2(16, 12), INK_PLATE))
-		var lv := VBoxContainer.new()
-		lv.add_theme_constant_override("separation", 2)
-		lv.add_child(_lbl(String(loss[0]), 20, DangoTheme.INK))
-		lv.add_child(_lbl(String(loss[1]), 14, DangoTheme.INK_ON_CREAM_MUTED, false))
-		lb.add_child(lv)
-		v.add_child(lb)
-	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", 16)
-	v.add_child(row)
-	var cancel := Button.new()
+	# UI-03 18-system: UI3.modal (560 w dialog). Destructive (`loss` given) = red button + focus on Cancel;
+	# otherwise amber primary + focus on the primary action.
+	var destructive := loss.size() >= 2
+	var cancel := UI3.button(cancel_text, &"secondary")
 	cancel.name = "ConfirmCancel"
-	cancel.text = cancel_text
-	cancel.custom_minimum_size = Vector2(0, 62)
-	cancel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	DangoTheme.style_button(cancel, loss.size() >= 2)
-	cancel.add_theme_font_size_override("font_size", 22)
 	cancel.pressed.connect(_close_modal)
-	var ok := Button.new()
+	var ok := UI3.button(ok_text, &"danger" if destructive else &"primary")
 	ok.name = "ConfirmOk"
-	ok.text = ok_text
-	ok.custom_minimum_size = Vector2(0, 62)
-	ok.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	DangoTheme.style_button(ok, loss.size() < 2, warning and loss.size() < 2)
-	ok.add_theme_font_size_override("font_size", 22)
-	if loss.size() >= 2:
-		ok.add_theme_color_override("font_color", Color("A3261A"))
-		ok.add_theme_color_override("font_hover_color", Color("A3261A"))
-		ok.add_theme_color_override("font_focus_color", Color("A3261A"))
 	ok.pressed.connect(on_ok)
-	row.add_child(cancel)
-	row.add_child(ok)
+	var m := UI3.modal(title, body, [cancel, ok], 0 if destructive else 1)
+	m.name = "Confirm"
+	m.cancelled.connect(_close_modal)
+	if destructive:
+		var row := ok.get_parent()
+		var lb := UI3.plate(&"row")
+		lb.name = "LossRow"
+		lb.custom_minimum_size = Vector2(0, 48)
+		var lv := VBoxContainer.new()
+		lv.add_child(UI3.label(String(loss[0])))
+		lv.add_child(UI3.label(String(loss[1]), "LabelMuted"))
+		lb.add_child(lv)
+		row.get_parent().add_child(lb)
+		row.get_parent().move_child(lb, row.get_index())
+	_modal = m
 	_ui.add_child(_modal)
-	cancel.grab_focus()
 
 
 ## True while anything the hub shows over the land is open: the confirm dialog, the net notice (RunContinue
