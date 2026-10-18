@@ -331,14 +331,14 @@ const _POS_Z_ENEMY := -6.5    # far row — enemies, reads as "further back" per
 ## Horizontal layout (spec 02-combat/spec.md): world x runs left to right, +z is toward the camera.
 ## Party: two staggered rows, slots 0,2,4 in front (near the camera), 1,3 behind. Eggs: a third,
 ## nearest row bottom-left. Enemies: a staggered row on the right. The gate sits beyond them (arena x).
-const PARTY_X0 := -6.7
+const PARTY_X0 := -7.2
 const PARTY_PITCH_X := 1.3
 const PARTY_Z_FRONT := 4.4
 const PARTY_Z_BACK := -0.2
 const EGG_X0 := -7.0
 const EGG_PITCH_X := 1.0
 const EGG_Z := 6.5
-const ENEMY_CENTER_X := 1.9
+const ENEMY_CENTER_X := 3.2
 const ENEMY_PITCH_X := 2.4
 const ENEMY_PITCH_X_MANY := 1.75   # 4-5 enemies
 const ENEMY_Z_FRONT := 3.9
@@ -347,7 +347,7 @@ const BOSS_POS := Vector3(2.8, 0.0, 1.8)
 const ELITE_POS := Vector3(3.0, 0.0, 0.2)   # spec: one elite, back slot centre-right, bigger
 const ELITE_SCALE := 1.3
 ## Other enemies next to a boss or an elite: two on the front line, two on the back line, clear of the big one.
-const ADD_SLOTS: Array[Vector3] = [Vector3(1.4, 0.0, 4.7), Vector3(5.6, 0.0, 4.7), Vector3(-0.4, 0.0, 0.3), Vector3(6.3, 0.0, 0.3)]
+const ADD_SLOTS: Array[Vector3] = [Vector3(2.8, 0.0, 4.9), Vector3(6.4, 0.0, 4.2), Vector3(-0.4, 0.0, 0.3), Vector3(6.3, 0.0, 0.3)]
 ## Z of the path / gate lane. The arena is shifted onto it so the road to the gate runs behind the party, not under it.
 const LANE_Z := -1.8
 var _encounter_kind := ""
@@ -1114,6 +1114,16 @@ func _make_enemy_sprite(texture: Texture2D, target_height: float) -> Sprite3D:
 	# FEET_HEIGHT/every other visual path in this file (AxieCharacter3D.root, the capsule
 	# placeholder) which all sit with their base at y=0 too.
 	sprite.position = Vector3(0.0, target_height * 0.5, 0.0)
+	# Some art (the Gooey King) has empty rows under the creature, so its feet hover. Drop the sprite
+	# by the transparent margin at the bottom so the opaque pixels touch the floor.
+	var img := texture.get_image()
+	if img != null and not img.is_empty():
+		if img.is_compressed():
+			img.decompress()
+		var used := img.get_used_rect()
+		var pad := float(img.get_height() - (used.position.y + used.size.y))
+		if used.size.y > 0 and pad > 0.0:
+			sprite.position.y -= pad * sprite.pixel_size
 	return sprite
 
 
@@ -1225,7 +1235,8 @@ func _slot_position(is_enemy: bool, slot_index: int, slot_count: int, boss: bool
 		return BOSS_POS
 	var pitch := ENEMY_PITCH_X if slot_count <= 3 else ENEMY_PITCH_X_MANY
 	var x := ENEMY_CENTER_X + (float(slot_index) - (float(slot_count) - 1.0) * 0.5) * pitch
-	return Vector3(x, _POS_Y, ENEMY_Z_FRONT if slot_index % 2 == 0 else ENEMY_Z_BACK)
+	var even_front := slot_count <= 3   # 4-5 enemies: the left-most one stands on the back line, away from the party's front row
+	return Vector3(x, _POS_Y, ENEMY_Z_FRONT if ((slot_index % 2 == 0) == even_front) else ENEMY_Z_BACK)
 
 
 ## Visual-only death reaction — mirrors UnitPortrait's own dim/hide of the 2D card, which

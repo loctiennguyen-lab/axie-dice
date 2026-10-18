@@ -40,6 +40,8 @@ func _ready() -> void:
 			await _fight("boss", _find(graph, int(graph.boss_rows[0]), "boss"), "boss", size)
 		if _want("eggs"):
 			await _fight("eggs", _find(graph, 3, "battle"), "battle", size)
+		if _want("throw"):
+			await _fight("throw", _find(graph, 3, "battle"), "battle", size)
 		if _want("march"):
 			await _fight("march", _find(graph, 3, "battle"), "battle", size)
 		if _want("marchluna"):
@@ -71,8 +73,19 @@ func _fight(state: String, node_id: String, kind: String, size: Vector2i) -> voi
 	RunState.enter_node(node_id, kind)
 	var scene: Node = (load("res://scenes/combat/Combat.tscn") as PackedScene).instantiate()
 	get_tree().root.add_child(scene)
-	for _i in 90:
+	for _i in (14 if state == "throw" else 90):
 		await get_tree().process_frame
+	if state == "throw":
+		_shot("throw-a", size)
+		for _i in 14:
+			await get_tree().process_frame
+		_shot("throw-b", size)
+		for _i in 14:
+			await get_tree().process_frame
+		_shot("throw-c", size)
+		scene.queue_free()
+		await get_tree().process_frame
+		return
 	scene._land_dice_now()
 	if OS.get_environment("CAP_DEBUG") != "":
 		var st: Node = scene._stage3d
