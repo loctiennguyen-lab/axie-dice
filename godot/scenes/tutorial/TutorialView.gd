@@ -301,14 +301,29 @@ func _render(_first: bool) -> void:
 				"All three are good picks. This is where you start shaping your build.",
 				_REWARD_FLAVORS)
 		Step.DONE:
-			_coach.show_curtain("Nice work. You're ready.",
-				"Roll, read the enemy, reroll if you need to, act, then pick a reward. "
-				+ "Everything else you'll pick up as you play.",
-				"START PLAYING")
+			var st := _starter_pack()
+			var entries: Array = []
+			if int(st.get("shards", 0)) > 0:
+				entries.append({"value": str(int(st["shards"])), "label": "Shards", "sub": "Not stakeable"})
+			if int(st.get("tickets", 0)) > 0:
+				entries.append({"value": str(int(st["tickets"])), "label": "Tickets", "sub": "Open Echo Boxes"})
+			if int(st.get("gems", 0)) > 0:
+				entries.append({"value": str(int(st["gems"])), "label": "Gems", "sub": ""})
+			_coach.show_starter("Nice work. You're ready.", "Your starter pack is waiting in the Land.",
+				entries, "Go to the Land")
 		Step.LOST:
 			_coach.show_curtain("That fight didn't go your way.",
 				"That shouldn't happen in the tutorial, so let's just get you into the real game.",
 				"CONTINUE")
+
+
+## daily.json "starter" (the amounts MetaState grants on a fresh save); {} if the file is unreadable.
+func _starter_pack() -> Dictionary:
+	var f := FileAccess.open("res://assets/data/economy/daily.json", FileAccess.READ)
+	if f == null:
+		return {}
+	var d: Variant = JSON.parse_string(f.get_as_text())
+	return (d as Dictionary).get("starter", {}) if d is Dictionary else {}
 
 
 func _label(n: int) -> String:

@@ -49,6 +49,9 @@ var _reward_row: HBoxContainer
 var _skip: Button
 var _card_skip: Button
 var _skip_modal: Control
+var _starter: PanelContainer
+var _starter_line: Label
+var _starter_grid: GridContainer
 var _root: Control
 
 ## The control currently framed, re-read every frame so the hole tracks it through layout
@@ -142,7 +145,7 @@ func _build_card() -> void:
 
 func _build_curtain() -> void:
 	_curtain = ColorRect.new()
-	_curtain.color = Color(_DIM, 0.93)
+	_curtain.color = UI3Theme.color("bg")   # 37: full-screen neutral-1
 	_curtain.set_anchors_preset(Control.PRESET_FULL_RECT)
 	_curtain.mouse_filter = Control.MOUSE_FILTER_STOP
 	_root.add_child(_curtain)
@@ -158,6 +161,7 @@ func _build_curtain() -> void:
 	center.add_child(col)
 
 	_curtain_title = UI3.label("", "LabelScreenTitle")
+	_curtain_title.add_theme_font_size_override("font_size", 36)
 	_curtain_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	col.add_child(_curtain_title)
 
@@ -173,10 +177,26 @@ func _build_curtain() -> void:
 	_reward_row.visible = false
 	col.add_child(_reward_row)
 
+	_starter = UI3.plate(&"dialog")
+	_starter.name = "StarterPlate"
+	_starter.custom_minimum_size = Vector2(560, 0)
+	_starter.visible = false
+	var sv := VBoxContainer.new()
+	sv.add_theme_constant_override("separation", 16)
+	_starter.add_child(sv)
+	_starter_line = UI3.label("", "LabelMuted")
+	_starter_line.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	sv.add_child(_starter_line)
+	_starter_grid = GridContainer.new()
+	_starter_grid.columns = 2
+	_starter_grid.add_theme_constant_override("h_separation", 16)
+	_starter_grid.add_theme_constant_override("v_separation", 16)
+	sv.add_child(_starter_grid)
+	col.add_child(_starter)
+
 	_curtain_cta = UI3.button("", &"primary", &"L")
 	_curtain_cta.custom_minimum_size.x = 260
 	_curtain_cta.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-	_curtain_cta.focus_mode = Control.FOCUS_NONE
 	_curtain_cta.pressed.connect(func(): cta_pressed.emit())
 	col.add_child(_curtain_cta)
 
@@ -186,10 +206,10 @@ func _build_curtain() -> void:
 func _build_skip() -> void:
 	_skip = UI3.button("Skip tutorial", &"quiet")
 	_skip.focus_mode = Control.FOCUS_NONE
-	_skip.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
-	_skip.offset_left = 16.0
+	_skip.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
+	_skip.offset_left = -196.0
 	_skip.offset_top = -64.0
-	_skip.offset_right = 180.0
+	_skip.offset_right = -24.0
 	_skip.offset_bottom = -16.0
 	_skip.pressed.connect(_ask_skip)
 	_root.add_child(_skip)
@@ -213,6 +233,10 @@ func _ask_skip() -> void:
 
 
 func _input(event: InputEvent) -> void:
+	if event.is_action_pressed("ui_cancel") and _starter != null and _starter.is_visible_in_tree():
+		cta_pressed.emit()   # 38: Esc = Go to the Land
+		get_viewport().set_input_as_handled()
+		return
 	# Esc = Skip tutorial (asks to confirm). The open modal handles its own Esc (Cancel).
 	if event.is_action_pressed("ui_cancel") and (_card.visible or _curtain.visible) \
 			and (_skip_modal == null or not is_instance_valid(_skip_modal)):
@@ -278,12 +302,46 @@ func show_curtain(title: String, body: String, cta: String) -> void:
 	_ring.visible = false
 	for b in _bands:
 		b.visible = false
+	_curtain.color = UI3Theme.color("bg")
+	_curtain_body.visible = body != ""
 	_curtain_title.text = title
 	_curtain_body.text = body
 	_curtain_cta.text = cta
 	_curtain_cta.visible = cta != ""
 	_reward_row.visible = false
+	_starter.visible = false
+	_skip.visible = true
 	_curtain.visible = true
+	_curtain_cta.grab_focus.call_deferred()
+
+
+## 38: the starter pack after the tutorial. `entries` = [{"label": "Shards", "value": "500", "sub": "..."}].
+## Scrim over the screen + a 560 plate: title, line, 2-column grid, one primary. Read-only: the grant is
+## MetaState's own (daily.json "starter"); this only shows it.
+func show_starter(title: String, line: String, entries: Array, cta: String) -> void:
+	show_curtain(title, "", cta)
+	_curtain.color = _DIM
+	_curtain_body.visible = false
+	_skip.visible = false
+	_starter.visible = true
+	_starter_line.text = line
+	for c in _starter_grid.get_children():
+		_starter_grid.remove_child(c)
+		c.queue_free()
+	for e in entries:
+		var cell := UI3.plate(&"row")
+		cell.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		var v := VBoxContainer.new()
+		cell.add_child(v)
+		v.add_child(UI3.label(String(e.get("value", "")), "LabelTitle"))
+		v.add_child(UI3.label(String(e.get("label", "")), "LabelDisplay"))
+		if String(e.get("sub", "")) != "":
+			var sub := UI3.label(String(e["sub"]), "LabelMuted")
+			sub.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+			sub.custom_minimum_size.x = 200
+			v.add_child(sub)
+		_starter_grid.add_child(cell)
+	_curtain_cta.grab_focus.call_deferred()
 
 
 ## The reward beat — same curtain, with three cards in it instead of one button.
