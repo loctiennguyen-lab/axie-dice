@@ -32,6 +32,15 @@ func _screen() -> LandUpgradeScreen:
 	return s
 
 
+func _bracket_labels(n: Node) -> Array:
+	var out := []
+	if n is Label and (n as Label).is_visible_in_tree() and "[" in (n as Label).text:
+		out.append((n as Label).text)
+	for c in n.get_children():
+		out.append_array(_bracket_labels(c))
+	return out
+
+
 func _ready() -> void:
 	print("=== t_land_upgrade: start ===")
 	_guard.capture()
@@ -110,7 +119,7 @@ func _ready() -> void:
 	_ok((s.find_child("Tier3", true, false).find_child("Btn", true, false) as Button).disabled, "tier 3 not reachable yet")
 	b2.pressed.emit()
 	await get_tree().process_frame
-	_ok(s.find_child("ConfirmPlate", true, false) != null, "confirm shown")
+	_ok(s.find_child("Confirm", true, false) != null, "confirm shown")
 	_ok(s.confirm_upgrade(2) and MetaState.land_tier == 2 and MetaState.stone == 1200, "confirm upgrades")
 	MetaState.stone = 5000000
 	_ok(not s.confirm_upgrade(2) and MetaState.land_tier == 2 and MetaState.stone == 5000000, "double press (stale target) refused")

@@ -251,6 +251,60 @@ static func currency_pill(entries: Array) -> PanelContainer:
 	return p
 
 
+## 1234567 -> "1,234,567". The one number formatter for HUD and meta screens.
+static func fmt(v: int) -> String:
+	var s := str(absi(v))
+	var out := ""
+	while s.length() > 3:
+		out = "," + s.substr(s.length() - 3) + out
+		s = s.substr(0, s.length() - 3)
+	return ("-" if v < 0 else "") + s + out
+
+
+## Currency order everywhere (Land hub order): Gene Shard, Land Stone, Lunar Gem. Entries for
+## `currency_pill`; `loading` shows "···" instead of numbers.
+static func currency_entries(loading := false) -> Array:
+	var f := func(field: String) -> String:
+		if loading:
+			return "···"
+		var v: Variant = MetaState.get(field)
+		return fmt(int(v) if v != null else 0)
+	return [
+		{"icon": "cur_shard", "value": f.call("shard_pool")},
+		{"icon": "cur_stone", "value": f.call("stone")},
+		{"icon": "cur_gem", "value": f.call("lunar_gem")}]
+
+
+## Tab (meta screens): a toggle Button, h 56. Selection = pressed state. `key` adds a key-hint chip
+## ("M") inside the tab at its right edge.
+static func tab(text: String, selected := false, key := "") -> Button:
+	var b := Button.new()
+	b.theme = UI3Theme.get_theme()
+	b.theme_type_variation = "ButtonTab"
+	b.text = text
+	b.toggle_mode = true
+	b.button_pressed = selected
+	b.focus_mode = Control.FOCUS_ALL
+	b.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
+	b.custom_minimum_size = Vector2(0, b.get_theme_constant("min_height", "ButtonTab"))
+	if key != "":
+		var chip := key_hint(key)
+		chip.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		chip.custom_minimum_size.x = 32
+		chip.set_anchors_preset(Control.PRESET_CENTER_RIGHT)
+		chip.grow_horizontal = Control.GROW_DIRECTION_BEGIN
+		chip.grow_vertical = Control.GROW_DIRECTION_BOTH
+		chip.offset_right = -UI3Theme.space("16")
+		chip.offset_left = chip.offset_right - 32
+		b.add_child(chip)
+		# make room for the chip: widen the right content margin of every state
+		for st in ["normal", "hover", "pressed", "hover_pressed", "disabled"]:
+			var sb := (b.get_theme_stylebox(st, "ButtonTab")).duplicate() as StyleBoxFlat
+			sb.content_margin_right = sb.content_margin_right + 32 + UI3Theme.space("8")
+			b.add_theme_stylebox_override(st, sb)
+	return b
+
+
 ## Status chip above an Axie head: wood-2 pill, icon 22 + Rowdies 20 count in `tint`.
 static func status_chip(icon_name: String, count: int, tint: Color) -> PanelContainer:
 	var p := plate(&"info")
@@ -654,3 +708,27 @@ class Spinner extends Control:
 
 	func _draw() -> void:
 		draw_arc(Vector2(12, 12), 9, 0.0, TAU * 0.75, 24, UI3Theme.color("text"), 3.0, true)
+
+
+## Player-facing text for a relic / pact / active description: strips the internal tags the data carries
+## (leading "RULE:" and "PACT.", [Global], [Axis: ...], [INF], escaped quotes) and lifts "[MP n]" out.
+## Returns {"text": String, "mp": int} where mp is -1 when the description has no mana cost.
+static func describe(raw: String) -> Dictionary:
+	var s := raw.replace("\\\"", "\"").strip_edges()
+	var mp := -1
+	var re_mp := RegEx.create_from_string("\\[MP\\s*(\\d+)\\]\\s*")
+	var m := re_mp.search(s)
+	if m != null:
+		mp = int(m.get_string(1))
+		s = re_mp.sub(s, "", true)
+	s = RegEx.create_from_string("\\[(Global|INF|Axis[^\\]]*)\\]\\s*").sub(s, "", true)
+	s = RegEx.create_from_string("^(RULE:|PACT\\.)\\s*").sub(s.strip_edges(), "")
+	s = s.strip_edges()
+	if s != "":
+		s = s[0].to_upper() + s.substr(1)
+	return {"text": s, "mp": mp}
+
+
+## Shorthand for `describe(raw).text`.
+static func player_text(raw: String) -> String:
+	return String(describe(raw)["text"])

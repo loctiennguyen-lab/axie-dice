@@ -57,7 +57,7 @@ func _run() -> void:
 
 	# guest + empty
 	var pv := await _view(svc)
-	_ok(pv.find_child("Banner", true, false) != null and pv.find_child("Btn_Signin", true, false) != null, "guest: banner with Sign in")
+	_ok(pv.find_child("Banner", true, false) != null and pv.find_child("SignIn", true, false) != null, "guest: banner with Sign in")
 	_ok(pv.find_child("RunsEmpty", true, false) != null, "empty: no runs line")
 	_ok(String((pv.find_child("PlayerName", true, false) as Label).text) == "Guest", "guest name")
 	_ok("Guest" in (pv.find_child("SyncText", true, false) as Label).text, "guest sync chip")

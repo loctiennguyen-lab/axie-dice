@@ -1,0 +1,47 @@
+extends Node
+## Manual visual QA for UI-03 Run setup (06). Run non-headless via tools/shot.sh.
+var _EVIDENCE_DIR := QaPaths.evidence_dir()
+var _guard := SaveGuard.new()
+
+
+func _shot(tag: String) -> void:
+	for i in 12:
+		await get_tree().process_frame
+	var w := DisplayServer.window_get_size()
+	get_viewport().get_texture().get_image().save_png("%s/ui3-run-setup-%s-%dx%d.png" % [_EVIDENCE_DIR, tag, w.x, w.y])
+
+
+func _make(newcomer: bool) -> RunSetup:
+	MetaState.asc_max = 6
+	MetaState.runs = 2 if newcomer else 9
+	MetaState.runs_with_battle = 2 if newcomer else 9
+	var s: RunSetup = load("res://scenes/run_setup/RunSetup.tscn").instantiate()
+	s.no_scene_change = true
+	s.use_account = false
+	s.ascension = 0 if newcomer else 4
+	add_child(s)
+	return s
+
+
+func _ready() -> void:
+	_guard.capture()
+	DirAccess.make_dir_recursive_absolute(_EVIDENCE_DIR)
+	var s := _make(false)
+	await _shot("normal")
+	s.clear_slot(3)
+	s.clear_slot(4)
+	s.set_state("offline")
+	await _shot("empty-offline")
+	s.open_picker(3)
+	await _shot("picker")
+	s.queue_free()
+	await get_tree().process_frame
+	s = _make(true)
+	await _shot("newcomer")
+	s.queue_free()
+	await get_tree().process_frame
+	s = _make(false)
+	s.set_state("open_run")
+	await _shot("open-run")
+	_guard.restore()
+	get_tree().quit(0)
