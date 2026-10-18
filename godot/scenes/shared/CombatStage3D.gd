@@ -328,6 +328,23 @@ const _POS_Y := 0.0
 const _POS_Z_PARTY := 5.15    # near row (camera-facing) — party; was 5.45, see above
 const _POS_Z_ENEMY := -6.5    # far row — enemies, reads as "further back" per JRPG convention
 
+## Horizontal layout (spec 02-combat/spec.md): world x runs left to right, +z is toward the camera.
+## Party: two staggered rows, slots 0,2,4 in front (near the camera), 1,3 behind. Eggs: a third,
+## nearest row bottom-left. Enemies: a staggered row on the right. The gate sits beyond them (arena x).
+const PARTY_X0 := -8.8
+const PARTY_PITCH_X := 1.4
+const PARTY_Z_FRONT := 4.6
+const PARTY_Z_BACK := 1.8
+const EGG_X0 := -7.8
+const EGG_PITCH_X := 1.5
+const EGG_Z := 7.0
+const ENEMY_CENTER_X := 3.8
+const ENEMY_PITCH_X := 3.0
+const ENEMY_PITCH_X_MANY := 2.1   # 4-5 enemies
+const ENEMY_Z_FRONT := 3.6
+const ENEMY_Z_BACK := 0.8
+const BOSS_POS := Vector3(4.3, 0.0, 2.4)
+
 ## Facing fix (bug report: "Axie đang quay mặt về camera, muốn quay lưng lại tiến lên đánh
 ## boss"). AxieCharacter3D's default forward is NOT documented in this addon's own README, so
 ## this was verified against the vendored addon's own source instead of guessed: every one of
@@ -346,8 +363,10 @@ const _POS_Z_ENEMY := -6.5    # far row — enemies, reads as "further back" per
 ## — see spawn_unit()) so it keeps facing the camera, per the same JRPG convention ("quái quay
 ## mặt về camera"). Rotating `slot` (not `character.root` directly) so the capsule placeholder
 ## fallback path picks up the same fix for free, even though the capsule is visually symmetric.
-const _PARTY_FACING_Y_DEG := 180.0
-const _ENEMY_FACING_Y_DEG := 0.0
+## HORIZONTAL LAYOUT (Liam, build b831 review): Axies on the left facing +X, enemies on the right
+## facing -X. A unit's forward is local +Z, and Ry(t) maps +Z to (sin t, 0, cos t), so +90 faces +X.
+const _PARTY_FACING_Y_DEG := 90.0
+const _ENEMY_FACING_Y_DEG := -90.0
 
 # --- Click-to-3D-model picking (bug report: attacking wasn't achievable — see CombatView.gd
 ## file-level note / report for the root-cause writeup). No CollisionShape3D exists on any unit
@@ -519,7 +538,8 @@ func slot_node_of(uid: int) -> Node3D:
 
 ## Camera framing constants (kept here so frame_band() can re-derive them).
 const _CAM_FOV := 34.0
-const _CAM_PITCH_DEG := -14.0
+const _CAM_PITCH_DEG := -21.0
+const _CAM_POS := Vector3(0.7, 8.6, 18.5)   # 3/4 view across the field, slightly from above
 
 
 ## L6: the stage control now covers the whole canvas (height `canvas_h`) instead of a band
@@ -547,7 +567,7 @@ func _build_world() -> void:
 	_viewport.add_child(_world)
 
 	var cam := Camera3D.new()
-	cam.position = Vector3(0.0, 4.5, 13.2)
+	cam.position = _CAM_POS
 	cam.rotation_degrees = Vector3(_CAM_PITCH_DEG, 0.0, 0.0)
 	cam.fov = _CAM_FOV
 	cam.current = true
@@ -602,6 +622,7 @@ func set_arena(biome_id: String, boss: bool = false) -> bool:
 	if _arena == null:
 		_arena = CombatArena3D.new()
 		_arena.name = "Arena"
+		_arena.rotation_degrees.y = -90.0   # arena is authored along -Z; the fight runs along +X (arena z -> world -x)
 		_world.add_child(_arena)
 		_world.move_child(_arena, 0)
 	if _arena.biome_id == biome_id and _arena.is_boss == boss:
@@ -723,7 +744,8 @@ func spawn_unit(uid: int, cls: String, is_enemy: bool, slot_index: int, slot_cou
 	var sheet_target: Sprite3D = null
 	var slot := Node3D.new()
 	slot.name = "Slot_%d" % uid
-	slot.position = _slot_position(is_enemy, slot_index, slot_count)
+	var is_egg := not is_enemy and unit_key == "egg"
+	slot.position = _slot_position(is_enemy, slot_index, slot_count, is_enemy and is_boss, is_egg)
 	slot.rotation_degrees.y = _ENEMY_FACING_Y_DEG if is_enemy else _PARTY_FACING_Y_DEG
 	_world.add_child(slot)
 
@@ -825,7 +847,7 @@ func spawn_unit(uid: int, cls: String, is_enemy: bool, slot_index: int, slot_cou
 		# `rest_pos` is where the lunge returns to, and `is_enemy` is which way "forward" is
 		# when a face has no single target to aim at (AoE). Both are written again by
 		# reseat_side(), which is the only other thing that moves a slot between actions.
-		"is_enemy": is_enemy, "rest_pos": slot.position, "action_tween": null,
+		"is_enemy": is_enemy, "rest_pos": slot.position, "is_egg": is_egg, "is_boss": is_enemy and is_boss, "action_tween": null,
 		# Frame-sheet animation for rigless monsters. `sheet_name` is "" for anything with a
 		# real rig (every party Axie), which is what every caller below tests.
 		"atia": atia_info,
@@ -1113,15 +1135,28 @@ func _build_parts(cls: String) -> Array[AxiePartDescriptor]:
 ## newcomer is placed as if the row were one shorter and lands on top of a unit already there.
 ## Called after every spawn, so the row is correct by construction rather than only at t=0.
 func reseat_side(uids: Array, is_enemy: bool) -> void:
-	for i in uids.size():
-		var entry: Dictionary = _units.get(int(uids[i]), {})
-		if entry.is_empty():
+	# Eggs (party tokens) get their own row; Axies are indexed among themselves; a boss stands alone.
+	var axie_uids: Array = []
+	var egg_uids: Array = []
+	var boss_uids: Array = []
+	for uid in uids:
+		var entry0: Dictionary = _units.get(int(uid), {})
+		if entry0.is_empty():
 			continue
-		var slot: Node3D = entry["slot"]
-		if is_instance_valid(slot):
-			slot.position = _slot_position(is_enemy, i, uids.size())
-			entry["rest_pos"] = slot.position   # the lunge's home moved with it
-			entry["is_enemy"] = is_enemy
+		if bool(entry0.get("is_egg", false)):
+			egg_uids.append(uid)
+		elif bool(entry0.get("is_boss", false)) and is_enemy:
+			boss_uids.append(uid)
+		else:
+			axie_uids.append(uid)
+	for group in [axie_uids, egg_uids, boss_uids]:
+		for i in (group as Array).size():
+			var entry: Dictionary = _units.get(int(group[i]), {})
+			var slot: Node3D = entry["slot"]
+			if is_instance_valid(slot):
+				slot.position = _slot_position(is_enemy, i, (group as Array).size(), group == boss_uids, group == egg_uids)
+				entry["rest_pos"] = slot.position   # the lunge's home moved with it
+				entry["is_enemy"] = is_enemy
 
 
 func has_unit(uid: int) -> bool:
@@ -1136,11 +1171,17 @@ func get_shadow_mesh(uid: int) -> MeshInstance3D:
 	return entry.get("shadow")
 
 
-func _slot_position(is_enemy: bool, slot_index: int, slot_count: int) -> Vector3:
-	var spacing := _ROW_SPACING_ENEMY if is_enemy else _ROW_SPACING_PARTY
-	var x := (float(slot_index) - (float(slot_count) - 1.0) * 0.5) * spacing
-	var z := _POS_Z_ENEMY if is_enemy else _POS_Z_PARTY
-	return Vector3(x, _POS_Y, z)
+func _slot_position(is_enemy: bool, slot_index: int, slot_count: int, boss: bool = false, egg: bool = false) -> Vector3:
+	if egg:
+		return Vector3(EGG_X0 + float(slot_index) * EGG_PITCH_X, _POS_Y, EGG_Z)
+	if not is_enemy:
+		var front := slot_index % 2 == 0
+		return Vector3(PARTY_X0 + float(slot_index) * PARTY_PITCH_X, _POS_Y, PARTY_Z_FRONT if front else PARTY_Z_BACK)
+	if boss:
+		return BOSS_POS
+	var pitch := ENEMY_PITCH_X if slot_count <= 3 else ENEMY_PITCH_X_MANY
+	var x := ENEMY_CENTER_X + (float(slot_index) - (float(slot_count) - 1.0) * 0.5) * pitch
+	return Vector3(x, _POS_Y, ENEMY_Z_FRONT if slot_index % 2 == 0 else ENEMY_Z_BACK)
 
 
 ## Visual-only death reaction — mirrors UnitPortrait's own dim/hide of the 2D card, which
@@ -1443,7 +1484,7 @@ func _lunge_direction(entry: Dictionary, rest: Vector3, target_uid: int) -> Vect
 		delta.y = 0.0
 		if delta.length() > 0.001:
 			return delta.normalized()
-	return Vector3(0.0, 0.0, -1.0) if not bool(entry.get("is_enemy", false)) 		else Vector3(0.0, 0.0, 1.0)
+	return Vector3(1.0, 0.0, 0.0) if not bool(entry.get("is_enemy", false)) else Vector3(-1.0, 0.0, 0.0)
 
 
 func _lunge_distance(rest: Vector3, target_uid: int) -> float:
@@ -1814,7 +1855,7 @@ func play_victory_march(uids: Array, distance: float, duration: float) -> void:
 		if to_gate:
 			# Converge on the gate (x pulled to 15% of the row spread so five Axies fit the
 			# archway), ending just past the portal origin. Pure function of the arena, no RNG.
-			target = Vector3(slot.position.x * _EXIT_X_PULL, slot.position.y, portal.z - _EXIT_PAST_GATE)
+			target = Vector3(portal.x + _EXIT_PAST_GATE, slot.position.y, portal.z + (slot.position.z - portal.z) * _EXIT_X_PULL)
 		else:
 			# Local +Z is this addon's own documented "front" axis (see comment above) —
 			# transforming it through the slot's own basis gives the world-space direction the
