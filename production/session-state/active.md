@@ -2,7 +2,21 @@
 
 Cập nhật: 2026-10-12. Nhánh `godot-port`, push lên `axiedice` (`git push axiedice godot-port:main`).
 
-## ⇢ BẮT ĐẦU TỪ ĐÂY (bàn giao 16/10/2026 03:10)
+## ⇢ BẮT ĐẦU TỪ ĐÂY (cập nhật 18/10/2026)
+
+**Đang làm: port UI-03 (Claude Design, A4 Blend trên Terrariums) vào game.** Kế hoạch làn: `production/ui3-port-plan.md`.
+Bản giao round 1: `design/handoffs/ui-03-redesign/round-1/handoff/`. Màn chưa có mockup: `round-1/GAP-LIST.md`. Prompt round 2 đã
+gửi Liam: `design/handoffs/ui-03-redesign/PROMPT-ROUND-2.md`. Quyết định Liam 18/10 ở cuối `pending-decisions.md`
+(cả 25 màn, xúc xắc 3D vật lý làm luôn, giữ bắt đăng nhập, font Rowdies + Work Sans).
+
+**Đã merge 18/10:** xúc xắc 3D (`DiceRoller3D.gd`, mô hình Blender `godot/assets/dice/axie_die.glb`, nguồn `tools/art/dice/axie_die.blend`)
+và nền UI-03 (`godot/scenes/shared/ui3/UI3Theme.gd`, `UI3.gd`, `tokens_ui3.json`, font). Suite cây chính **104/104**.
+
+**Đang chạy (4 làn):** U = 18 system + 16 boot; C = 02 combat HUD; M = 03 run map + 07 reward; L = 01 land hub HUD.
+Sau đó: U 26 settings/account + 17 tutorial; M 06/08/09/13/12/14/10; L 27/28/24/23; làn E 19/20/21/22/25/29.
+Mỗi màn: review code + art-director xem ảnh 2 cỡ → merge đúng commit → --import → suite cây chính → push.
+
+## (cũ 16/10) ⇢ BẮT ĐẦU TỪ ĐÂY (bàn giao 16/10/2026 03:10)
 
 **Đọc `production/l1-plan-16-10.md`** (định nghĩa "xong", thứ tự việc, quy tắc chống treo + tiết kiệm token).
 godot-port = axiedice/main. Suite cây chính **102/102**. Worker **184/184**, deploy **4055be9c** (16/10, migration 0007 đã áp),
