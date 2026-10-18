@@ -11,10 +11,10 @@ const TIER_NAMES: Array[String] = ["Savannah", "Forest", "Arctic", "Mystic", "Ge
 ## Tier gates that Land.gd reads from houses.json are listed here only by name.
 const ADDS: Dictionary = {
 	2: "+3 preset slots · new decor set",
-	3: "+3 preset slots · Mastery house [INF]",
-	4: "New decor set [INF]",
-	5: "Gallery [INF]",
-	6: "Final Land · new decor set [INF]",
+	3: "+3 preset slots · Mastery house",
+	4: "New decor set",
+	5: "Gallery",
+	6: "Final Land · new decor set",
 }
 
 var no_scene_change := false
@@ -47,6 +47,7 @@ func _ready() -> void:
 	left.add_child(_toast_host)
 	_rows = VBoxContainer.new()
 	_rows.name = "Rows"
+	_rows.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	_rows.add_theme_constant_override("separation", UI3Theme.space("8"))
 	left.add_child(UI3Meta.scroll(_rows))
 	_detail = UI3.plate(&"plate")
@@ -138,6 +139,9 @@ func _select(tier: int) -> void:
 	if tier == _sel:
 		return
 	_sel = tier
+	for r in _rows.get_children():
+		if r.name.begins_with("Tier"):
+			r.theme_type_variation = "PanelCardSelected" if r.name == "Tier%d" % tier else "PanelRow"
 	_draw_detail()
 
 
@@ -162,8 +166,11 @@ func _draw_detail() -> void:
 	t.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	t.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	head.add_child(t)
-	if st in ["current", "done"]:
-		head.add_child(UI3Meta.tag("You are here" if st == "current" else "Owned"))
+	var badge := _badge(st)
+	if badge != "":
+		var tg := UI3Meta.tag(badge)
+		tg.name = "DetailBadge"
+		head.add_child(tg)
 	var adds := UI3.label(String(ADDS.get(tier, "Starting Land")))
 	adds.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	adds.custom_minimum_size.x = 392
@@ -196,6 +203,15 @@ func _draw_detail() -> void:
 	v.add_child(up)
 
 
+## Detail badge: Current / Owned / Next (the tier to buy) / Locked (later tiers, or L1 switch off).
+func _badge(st: String) -> String:
+	match st:
+		"current": return "Current"
+		"done": return "Owned"
+		"afford", "short": return "Next"
+	return "Locked"
+
+
 func _info_row(k: String, val: String, nm: String) -> Control:
 	var r := UI3.plate(&"row")
 	r.custom_minimum_size = Vector2(0, 48)
@@ -220,6 +236,10 @@ func _row(tier: int) -> Control:
 	var p := UI3.plate(&"card_selected" if tier == _sel else &"row")
 	p.name = "Tier%d" % tier
 	p.custom_minimum_size = Vector2(0, 96)
+	p.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	p.focus_mode = Control.FOCUS_ALL   # reachable by keyboard even when Upgrade is disabled
+	p.focus_entered.connect(_select.bind(tier))
+	p.gui_input.connect(_row_input.bind(tier))
 	if st == "done":
 		p.modulate.a = 0.5   # claimed / owned
 	var h := HBoxContainer.new()
@@ -263,6 +283,12 @@ func _row(tier: int) -> Control:
 	b.mouse_entered.connect(_select.bind(tier))
 	h.add_child(b)
 	return p
+
+
+func _row_input(ev: InputEvent, tier: int) -> void:
+	if ev.is_action_pressed("ui_accept"):
+		_ask(tier)
+		get_viewport().set_input_as_handled()
 
 
 func _button_text(tier: int, st: String) -> String:

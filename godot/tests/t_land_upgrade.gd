@@ -32,6 +32,15 @@ func _screen() -> LandUpgradeScreen:
 	return s
 
 
+func _bracket_labels(n: Node) -> Array:
+	var out := []
+	if n is Label and (n as Label).is_visible_in_tree() and "[" in (n as Label).text:
+		out.append((n as Label).text)
+	for c in n.get_children():
+		out.append_array(_bracket_labels(c))
+	return out
+
+
 func _ready() -> void:
 	print("=== t_land_upgrade: start ===")
 	_guard.capture()

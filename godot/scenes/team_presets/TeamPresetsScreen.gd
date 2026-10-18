@@ -510,6 +510,7 @@ func _build_editor() -> Control:
 	var cancel := UI3.button("Cancel", &"secondary", &"M")
 	cancel.name = "Cancel"
 	cancel.custom_minimum_size.y = 56
+	cancel.size_flags_vertical = Control.SIZE_SHRINK_END   # stay 56 next to the 72 primary
 	cancel.pressed.connect(cancel_editor)
 	foot.add_child(cancel)
 	_save_btn = UI3.button("Save team", &"primary", &"L")
