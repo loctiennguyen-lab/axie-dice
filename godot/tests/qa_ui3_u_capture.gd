@@ -48,6 +48,22 @@ func _make(sc: String) -> Node:
 			s.state = "guest"
 			s.refresh()
 		return s
+	if sc.begins_with("codex") or sc.begins_with("guides") or sc.begins_with("unlocks"):
+		MetaState.shard_pool = 400
+		var scn := {"codex": "res://scenes/codex/Codex.tscn", "guides": "res://scenes/guides/Guides.tscn",
+			"unlocks": "res://scenes/unlocks/Unlocks.tscn"}[sc.split("-")[0]]
+		var cs: Control = load(scn).instantiate()
+		add_child(cs)
+		await get_tree().process_frame
+		if sc == "codex-status":
+			cs._select_tab("st")
+		elif sc == "codex-search":
+			cs._search.text = "shield"
+			cs._on_search_changed("shield")
+		elif sc == "codex-empty":
+			cs._search.text = "zzzq"
+			cs._on_search_changed("zzzq")
+		return cs
 	if sc.begins_with("echo"):
 		MetaState.tickets = {"normal": 0 if sc == "echo-none" else 3}
 		MetaState.shard_pool = 900

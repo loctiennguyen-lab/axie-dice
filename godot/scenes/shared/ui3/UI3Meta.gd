@@ -188,3 +188,15 @@ static func scroll(inner: Control) -> ScrollContainer:
 	sc.get_v_scroll_bar().custom_minimum_size.x = UI3Theme.SCROLL_W   # visible overflow (t_ui_laws L2)
 	sc.add_child(inner)
 	return sc
+
+
+## Header tabs shared by Codex / Guides / Unlocks (screen 29): the one for `current` is selected, the others
+## open their own scene through LandNav. Focus order is Tabs, then the screen body.
+static func doc_tabs(shell: Dictionary, current: String) -> void:
+	var hr := shell["header_right"] as Control
+	for t in [["codex", "Codex"], ["guides", "Guides"], ["unlocks", "Unlocks"]]:
+		var b := tab(String(t[1]), t[0] == current)
+		b.name = "DocTab_" + String(t[0])
+		if t[0] != current:
+			b.pressed.connect(func() -> void: LandNav.open(StringName(t[0])))
+		hr.add_child(b)
