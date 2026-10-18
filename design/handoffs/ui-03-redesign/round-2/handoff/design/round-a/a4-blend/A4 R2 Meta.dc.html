@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<link rel="stylesheet" href="../../_ds/terrariums-design-system-41d3ee92-ef23-4954-9fac-b76baf67c7c6/styles.css">
+<script src="../../_ds/terrariums-design-system-41d3ee92-ef23-4954-9fac-b76baf67c7c6/_ds_bundle.js"></script>
+<style>
+body{margin:0;background:#0d0e12}
+a{color:#ffb444}a:hover{color:#ffe5b4}
+@keyframes a4spin{to{transform:rotate(360deg)}}
+</style>
+</helmet>
+<div style="display:flex;flex-direction:column;gap:64px;padding:64px;font-family:'Work Sans',sans-serif;color:#ffe5b4;width:1920px;background:#0d0e12">
+  <div style="display:flex;flex-direction:column;gap:8px">
+    <div style="font:700 48px 'Rowdies'">Round 2 · Account, Land, meta</div>
+    <div style="font:400 24px/32px 'Work Sans';color:#b4bccb;text-wrap:pretty">New: 36 Toast table, 40 Missions (stake board, replaces 22), 41 Daily, 44 Preset editor. Updated: 16 Boot / sign-in, 01 Land hub, 20 Echo Box, 21 Pass, 23 Leaderboard, 24 Profile, 25 Vault, 29 Codex. Numbers from missions.json, daily.json, gem.json, echobox.json, pass_v2.json, land_tiers.json.</div>
+  </div>
+
+  <!-- 16 ACCOUNT -->
+  <div style="display:flex;flex-direction:column;gap:24px">
+    <div style="font:700 32px 'Rowdies'">16 Boot / sign-in · updated (sign-in required)</div>
+    <div style="display:flex;flex-wrap:wrap;gap:32px;align-items:flex-start">
+      <sc-for list="{{ authCards }}" as="c" hint-placeholder-count="4">
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <span style="font:700 18px 'Rowdies';color:#b4bccb">{{ c.tag }}</span>
+          <div style="width:560px;background:#2b1e17e6;border-radius:12px;padding:32px;box-sizing:border-box;display:flex;flex-direction:column;align-items:center;gap:20px;min-height:320px">
+            <sc-if value="{{ c.spin }}" hint-placeholder-val="{{ false }}"><div style="width:48px;height:48px;border-radius:24px;border:5px solid #58321d;border-top-color:#ffb444;box-sizing:border-box;animation:a4spin 1s linear infinite"></div></sc-if>
+            <sc-if value="{{ c.badge }}" hint-placeholder-val="{{ false }}"><div style="height:36px;padding:0 12px;border-radius:8px;border:2px solid #58321d;box-sizing:border-box;display:flex;align-items:center;gap:8px"><div style="width:20px;height:20px;border-radius:4px;background:#58321d"></div><span style="font:400 16px 'Work Sans'">Sky Mavis Account</span></div></sc-if>
+            <span style="font:700 24px 'Rowdies';text-align:center">{{ c.t }}</span>
+            <span style="font:400 18px/24px 'Work Sans';text-align:center">{{ c.b }}</span>
+            <div style="flex:1"></div>
+            <sc-if value="{{ c.hasP }}" hint-placeholder-val="{{ true }}"><div style="width:100%;height:72px;border-radius:8px;background:#ffb444;color:#291808;filter:drop-shadow(0 4px 0 #2b1e17);display:flex;align-items:center;justify-content:center;font:700 28px 'Rowdies'">{{ c.p }}</div></sc-if>
+            <sc-if value="{{ c.hasS }}" hint-placeholder-val="{{ false }}"><div style="height:56px;padding:0 24px;border-radius:8px;background:#58321d;display:flex;align-items:center;font:700 18px 'Rowdies'">{{ c.s }}</div></sc-if>
+          </div>
+        </div>
+      </sc-for>
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <span style="font:700 18px 'Rowdies';color:#b4bccb">16-save-choice · NEW · boot-time overlay</span>
+        <div style="width:880px;background:#2b1e17;border-radius:12px;padding:32px;box-sizing:border-box;display:flex;flex-direction:column;gap:20px">
+          <div style="display:flex;flex-direction:column;gap:6px"><span style="font:700 24px 'Rowdies'">Two saves found</span><span style="font:400 18px/24px 'Work Sans'">Pick the one to keep. The other is replaced on this account.</span></div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+            <sc-for list="{{ saves }}" as="v" hint-placeholder-count="2">
+              <div style="display:flex;flex-direction:column;gap:8px;padding:20px;border-radius:12px;background:#3e2618;outline:{{ v.o }}">
+                <span style="font:700 24px 'Rowdies'">{{ v.t }}</span>
+                <span style="font:400 16px 'Work Sans';color:#b4bccb">{{ v.when }}</span>
+                <sc-for list="{{ v.rows }}" as="r" hint-placeholder-count="0">
+                  <div style="display:flex;justify-content:space-between;height:32px;align-items:center;border-bottom:1px solid #58321d"><span style="font:400 18px 'Work Sans';color:#b4bccb">{{ r.l }}</span><span style="font:700 18px 'Rowdies'">{{ r.v }}</span></div>
+                </sc-for>
+              </div>
+            </sc-for>
+          </div>
+          <div style="display:flex;justify-content:flex-end;gap:16px"><div style="height:56px;padding:0 24px;border-radius:8px;background:#58321d;display:flex;align-items:center;font:700 18px 'Rowdies'">Use cloud save</div><div style="height:56px;padding:0 24px;border-radius:8px;background:#ffb444;color:#291808;display:flex;align-items:center;font:700 18px 'Rowdies'">Use this machine</div></div>
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <span style="font:700 18px 'Rowdies';color:#b4bccb">account-chip · NEW component · Land top-left / Settings</span>
+        <div style="width:560px;background:#3c424d;padding:24px;box-sizing:border-box;display:flex;flex-direction:column;gap:16px">
+          <div style="display:flex;align-items:center;gap:12px;background:#2b1e17e6;border-radius:8px;padding:8px 16px 8px 8px;align-self:flex-start">
+            <div style="width:48px;height:48px;border-radius:24px;background:#3e2618;border:3px solid #ffb444;box-sizing:border-box"></div>
+            <div style="display:flex;flex-direction:column"><span style="font:700 20px 'Rowdies'">Liam</span><span style="font:400 16px 'Work Sans';color:#b4bccb">Sky Mavis · synced</span></div>
+          </div>
+          <div style="display:flex;align-items:center;gap:12px;background:#2b1e17e6;border-radius:8px;padding:8px 16px 8px 8px;align-self:flex-start">
+            <div style="width:48px;height:48px;border-radius:24px;background:#3e2618"></div>
+            <div style="display:flex;flex-direction:column"><span style="font:700 20px 'Rowdies'">Not signed in</span><span style="font:400 16px 'Work Sans';color:#ffb444;text-decoration:underline">Sign in</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <span style="font:400 18px 'Work Sans';color:#b4bccb;max-width:1920px;text-wrap:pretty">Correction: no Play as guest and no Play offline. Signed out = one primary "Sign in". desktop_auth.gd opens the system browser (PKCE, local callback) and can end in cancelled, timeout or token errors (see 36). Welcome shows once after sign-in. Save choice appears at boot only when the local and cloud saves differ. Flag: Sky Mavis badge art needed; badge here is a placeholder box.</span>
+  </div>
+
+  <!-- 36 TOASTS -->
+  <div style="display:flex;flex-direction:column;gap:16px">
+    <div style="font:700 24px 'Rowdies';color:#b4bccb">36-toast-table · NEW · copy by error code</div>
+    <div data-screen-label="R2 Toast table" style="width:1920px;background:#2b1e17;border-radius:12px;padding:8px 0;display:flex;flex-direction:column">
+      <div style="display:grid;grid-template-columns:200px 180px 160px minmax(0,1fr) 200px;gap:16px;padding:12px 24px;font:700 18px 'Rowdies';color:#b4bccb"><span>Code</span><span>Source</span><span>Shown as</span><span>Copy</span><span>Action</span></div>
+      <sc-for list="{{ codes }}" as="r" hint-placeholder-count="10">
+        <div style="display:grid;grid-template-columns:200px 180px 160px minmax(0,1fr) 200px;gap:16px;padding:12px 24px;border-top:1px solid #3e2618;align-items:center">
+          <span style="font:700 18px 'Rowdies'">{{ r.c }}</span>
+          <span style="font:400 16px 'Work Sans';color:#b4bccb">{{ r.src }}</span>
+          <span style="font:400 16px 'Work Sans';color:{{ r.kc }}">{{ r.k }}</span>
+          <span style="font:400 18px/24px 'Work Sans'">{{ r.t }}</span>
+          <span style="font:400 16px 'Work Sans';color:#dae0ea">{{ r.a }}</span>
+        </div>
+      </sc-for>
+    </div>
+    <span style="font:400 18px 'Work Sans';color:#b4bccb;max-width:1920px">Toast = 4 s, no actions (system). Anything that needs an action is a notice or a dialog. Codes are the strings the client already returns (run_session.gd, desktop_auth.gd, aid_catalog.gd). Flag: all copy is mine; unknown codes fall back to "server".</span>
+  </div>
+
+  <!-- 01 LAND -->
+  <div style="display:flex;flex-direction:column;gap:24px">
+    <div style="font:700 32px 'Rowdies'">01 Land hub · updated</div>
+    <div style="display:flex;flex-wrap:wrap;gap:32px;align-items:flex-start">
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <span style="font:700 18px 'Rowdies';color:#b4bccb">01-signed-out · CHANGED (correction) · online-only buttons</span>
+        <div style="width:880px;height:360px;background:#3c424d;position:relative">
+          <div style="position:absolute;left:24px;top:24px;display:flex;align-items:center;gap:12px;background:#2b1e17e6;border-radius:8px;padding:8px 16px 8px 8px"><div style="width:48px;height:48px;border-radius:24px;background:#3e2618"></div><div style="display:flex;flex-direction:column"><span style="font:700 20px 'Rowdies'">Not signed in</span><span style="font:400 16px 'Work Sans';color:#b4bccb">Browse only</span></div></div>
+          <div style="position:absolute;left:360px;top:120px;display:flex;flex-direction:column;align-items:center;gap:4px;background:#2b1e17e6;border-radius:8px;padding:8px 16px"><span style="font:700 24px 'Rowdies';color:#b4bccb">Daily</span><span style="font:400 16px 'Work Sans'">Sign in to use</span></div>
+          <div style="position:absolute;left:120px;top:200px;display:flex;flex-direction:column;align-items:center;gap:4px;background:#2b1e17e6;border-radius:8px;padding:8px 16px"><span style="font:700 24px 'Rowdies'">Echo Box</span><span style="font:400 16px 'Work Sans'">Rates readable · sign in to open</span></div>
+          <div style="position:absolute;right:24px;bottom:24px;height:72px;padding:0 48px;border-radius:8px;background:#ffb444;color:#291808;filter:drop-shadow(0 4px 0 #2b1e17);display:flex;align-items:center;font:700 32px 'Rowdies'">Sign in to play</div>
+        </div>
+        <span style="font:400 18px 'Work Sans';color:#b4bccb;max-width:880px">Start run, Daily, Missions, Store buy, Echo Box open, Pass claim all need sign-in. Their plates read "Sign in to use"; browsing still works.</span>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <span style="font:700 18px 'Rowdies';color:#b4bccb">01-world-plates · NEW states</span>
+        <div style="width:880px;height:360px;background:#3c424d;position:relative">
+          <div style="position:absolute;left:40px;top:40px;display:flex;flex-direction:column;align-items:center;gap:6px">
+            <div style="width:180px;height:120px;border:2px dashed #8e97a8;border-radius:8px;box-sizing:border-box;opacity:.6;display:flex;align-items:flex-end;justify-content:center;font:400 14px 'Work Sans';color:#dae0ea;padding:4px">Gallery mesh</div>
+            <div style="display:flex;flex-direction:column;align-items:center;background:#2b1e17e6;border-radius:8px;padding:8px 16px"><div style="display:flex;align-items:center;gap:8px"><img src="../assets/ui_lock.svg" style="width:20px;height:20px"><span style="font:700 24px 'Rowdies';color:#b4bccb">Gallery</span></div><span style="font:400 16px 'Work Sans'">Opens at Land tier 5</span></div>
+          </div>
+          <div style="position:absolute;left:300px;top:40px;width:300px;background:#2b1e17e6;border-radius:8px;padding:12px 16px;box-sizing:border-box;display:flex;flex-direction:column;gap:6px">
+            <span style="font:700 20px 'Rowdies'">Leaderboard · Ranked</span>
+            <sc-for list="{{ billboard }}" as="b" hint-placeholder-count="3"><div style="display:flex;justify-content:space-between"><span style="font:400 16px 'Work Sans'">{{ b.n }}</span><span style="font:700 16px 'Rowdies'">{{ b.v }}</span></div></sc-for>
+          </div>
+          <div style="position:absolute;left:640px;top:40px;display:flex;flex-direction:column;align-items:center;background:#2b1e17e6;border-radius:8px;padding:8px 16px"><div style="display:flex;align-items:center;gap:8px"><img src="../assets/ui_lock.svg" style="width:20px;height:20px"><span style="font:700 24px 'Rowdies';color:#b4bccb">Missions</span></div><span style="font:400 16px 'Work Sans'">Opens after 5 runs</span></div>
+          <div style="position:absolute;left:40px;bottom:24px;display:flex;gap:12px">
+            <div style="height:56px;padding:0 16px;border-radius:8px;background:#3c424d;border:2px solid #5b6372;box-sizing:border-box;display:flex;align-items:center;gap:8px;font:700 18px 'Rowdies';color:#dae0ea;white-space:nowrap"><img src="../assets/ui_mooncard.png" style="width:28px;height:28px;object-fit:contain;opacity:.6">Moon Card · Coming soon</div>
+          </div>
+          <div style="position:absolute;right:24px;top:24px;height:56px;display:flex;align-items:center;gap:12px;padding:0 20px;border-radius:8px;background:#2b1e17;box-shadow:0 8px 24px #000000a0"><div style="width:8px;height:8px;border-radius:4px;background:#3fcd3c"></div><span style="font:400 18px 'Work Sans'">Daily reward collected</span></div>
+        </div>
+        <span style="font:400 18px 'Work Sans';color:#b4bccb;max-width:880px;text-wrap:pretty">Gallery unlocks at Land tier 5 (land_tiers.json, 500,000 Stone). Leaderboard billboard is a world plate on the building: top 3, refreshes on entering the Land. Missions keeps "Opens after 5 runs" (newcomer_runs 5). Moon Card button shows "Coming soon" (disabled, no price) while moon_card.enabled = false; when it turns on it becomes the Gem-violet paid button with a "Collected today" state. First launch = tutorial curtain (37). Shared confirm dialog and toast follow 18-system.</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- 40 MISSIONS -->
+  <div style="display:flex;flex-direction:column;gap:16px">
+    <div style="font:700 24px 'Rowdies';color:#b4bccb">40-missions · NEW (Should) · Weaponsmith, key 3 · Shard stake board · replaces 22</div>
+    <div data-screen-label="R2 Missions" style="width:1920px;height:1080px;display:flex;flex-direction:column;gap:24px;padding:24px;box-sizing:border-box;background:#13161b">
+      <div style="display:flex;align-items:center;gap:24px">
+        <div style="display:flex;align-items:center;gap:16px;background:#2b1e17e6;border-radius:8px;padding:8px 24px 8px 8px"><div style="width:48px;height:48px;border-radius:8px;background:#58321d;display:flex;align-items:center;justify-content:center;font:700 24px 'Rowdies'">←</div><span style="font:700 32px 'Rowdies'">Missions</span></div>
+        <span style="font:400 18px 'Work Sans';color:#b4bccb">Stake Shards on a hard run. Win to get them back multiplied.</span>
+        <div style="flex:1"></div>
+        <div style="display:flex;align-items:center;gap:24px;background:#2b1e17e6;border-radius:8px;padding:12px 16px"><div style="display:flex;align-items:center;gap:8px"><img src="../assets/cur_shard.png" style="width:32px;height:32px"><span style="font:700 24px 'Rowdies'">3,480</span><span style="font:400 16px 'Work Sans';color:#b4bccb">(500 starter, not stakeable)</span></div><div style="display:flex;align-items:center;gap:8px"><img src="../assets/cur_stone.png" style="width:32px;height:32px"><span style="font:700 24px 'Rowdies'">86</span></div></div>
+      </div>
+      <div style="flex:1;min-height:0;display:flex;gap:24px">
+        <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:12px">
+          <div style="display:grid;grid-template-columns:120px 140px 160px 160px 120px minmax(0,1fr);gap:16px;padding:0 24px;font:700 18px 'Rowdies';color:#b4bccb"><span>Tier</span><span>Ascension</span><span>Stake</span><span>Pay</span><span>Stone</span><span>Status</span></div>
+          <sc-for list="{{ tiers }}" as="t" hint-placeholder-count="6">
+            <div onClick="{{ t.pick }}" style="flex:1;min-height:96px;display:grid;grid-template-columns:120px 140px 160px 160px 120px minmax(0,1fr);gap:16px;align-items:center;padding:0 24px;border-radius:8px;background:{{ t.bg }};outline:{{ t.o }};opacity:{{ t.op }};cursor:pointer">
+              <span style="font:700 28px 'Rowdies'">{{ t.id }}</span>
+              <span style="font:700 24px 'Rowdies'">{{ t.asc }}</span>
+              <span style="font:700 24px 'Rowdies'">{{ t.stake }}</span>
+              <span style="font:700 24px 'Rowdies';color:#7ade61">{{ t.pay }}</span>
+              <span style="font:700 24px 'Rowdies'">{{ t.stone }}</span>
+              <span style="font:400 18px 'Work Sans';color:{{ t.sc }}">{{ t.status }}</span>
+            </div>
+          </sc-for>
+        </div>
+        <div style="width:440px;flex:none;background:#2b1e17e6;border-radius:8px;padding:24px;box-sizing:border-box;display:flex;flex-direction:column;gap:16px">
+          <span style="font:700 32px 'Rowdies'">{{ md.t }}</span>
+          <span style="font:400 18px/24px 'Work Sans'">{{ md.b }}</span>
+          <div style="display:flex;flex-direction:column;gap:4px;padding:12px;border-radius:8px;background:#093322"><span style="font:700 18px 'Rowdies';color:#7ade61">Win</span><span style="font:400 18px 'Work Sans'">{{ md.win }}</span></div>
+          <div style="display:flex;flex-direction:column;gap:4px;padding:12px;border-radius:8px;background:#3d0d11"><span style="font:700 18px 'Rowdies';color:#ff8986">Lose or abandon</span><span style="font:400 18px 'Work Sans'">{{ md.lose }}</span></div>
+          <span style="font:700 18px 'Rowdies'">Extra rules</span>
+          <sc-for list="{{ md.rules }}" as="r" hint-placeholder-count="0"><div style="min-height:44px;display:flex;align-items:center;padding:6px 12px;box-sizing:border-box;border-radius:8px;background:#3e2618;font:400 18px 'Work Sans'">{{ r.t }}</div></sc-for>
+          <span style="font:400 16px 'Work Sans';color:#b4bccb">No Continue and no Aid in Mission runs.</span>
+          <div style="flex:1"></div>
+          <sc-if value="{{ md.hasReason }}" hint-placeholder-val="{{ false }}"><span style="font:400 18px/24px 'Work Sans';color:#ff8986">{{ md.reason }}</span></sc-if>
+          <div style="height:72px;border-radius:8px;background:{{ md.bBg }};color:{{ md.bC }};display:flex;align-items:center;justify-content:center;font:700 28px 'Rowdies';white-space:nowrap">{{ md.btn }}</div>
+        </div>
+      </div>
+    </div>
+    <div style="display:flex;flex-wrap:wrap;gap:24px">
+      <sc-for list="{{ missionStates }}" as="k" hint-placeholder-count="4">
+        <div style="width:456px;display:flex;flex-direction:column;gap:8px">
+          <span style="font:700 18px 'Rowdies';color:#b4bccb">{{ k.tag }}</span>
+          <div style="background:{{ k.bg }};border-radius:12px;padding:24px;box-sizing:border-box;display:flex;flex-direction:column;gap:16px;min-height:220px">
+            <span style="font:700 24px 'Rowdies';color:{{ k.tc }}">{{ k.t }}</span>
+            <span style="font:400 18px/24px 'Work Sans';flex:1">{{ k.b }}</span>
+            <div style="display:flex;gap:12px;justify-content:flex-end"><sc-if value="{{ k.hasB2 }}" hint-placeholder-val="{{ false }}"><div style="height:56px;padding:0 20px;border-radius:8px;background:#58321d;outline:4px solid #ffe5b4;display:flex;align-items:center;font:700 18px 'Rowdies'">{{ k.b2 }}</div></sc-if><sc-if value="{{ k.hasB1 }}" hint-placeholder-val="{{ false }}"><div style="height:56px;padding:0 20px;border-radius:8px;background:#ffb444;color:#291808;display:flex;align-items:center;font:700 18px 'Rowdies'">{{ k.b1 }}</div></sc-if></div>
+          </div>
+        </div>
+      </sc-for>
+    </div>
+    <div style="font:400 18px 'Work Sans';color:#b4bccb;max-width:1920px;text-wrap:pretty">Tiers from missions.json: N1 A3 · 300 · ×2.15 · 4 Stone; N2 A4 · 500 · ×2.4 · 8; N3 A6 · 800 · ×3.6 · 14 (all Short). N4–N6 are disabled in L1 and are not shown. Pay = stake × m_base, payout cap 20,000. Each tier unlocks by winning at its Ascension; the whole board is locked for the first 5 runs. Rule text from mission_rules.json (standard: enemies +10% damage, Elites +10% HP). Click a row. Groups: header · tier table · detail (3). Focus: rows ↑↓ → Stake. Esc: back. Rule set A or B is picked per day, per tier (N1/N2: A = M5 M6, B = M1 M7; N3: A = M2 M3 M4, B = M1 M2 M4). Every Mission fight also has the base rules. Flag: M6 and M7 have no names yet.</div>
+  </div>
+
+  <!-- 41 DAILY -->
+  <div style="display:flex;flex-direction:column;gap:16px">
+    <div style="font:700 24px 'Rowdies';color:#b4bccb">41-daily · NEW (Should) · key D, online only</div>
+    <div data-screen-label="R2 Daily" style="width:1920px;height:1080px;position:relative;overflow:hidden;background:#3c424d">
+      <div style="position:absolute;inset:0;background:#13161bcc"></div>
+      <div style="position:absolute;left:0;top:0;width:1920px;height:1080px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:40px">
+        <div style="display:flex;flex-direction:column;align-items:center;gap:8px"><span style="font:700 32px 'Rowdies'">Daily</span><span style="font:400 18px 'Work Sans';color:#b4bccb">Resets at 00:00 UTC · in 6 h 12 min</span></div>
+        <div style="display:flex;gap:32px">
+          <sc-for list="{{ daily }}" as="c" hint-placeholder-count="3">
+            <div style="width:416px;min-height:480px;background:#2b1e17e6;border-radius:12px;padding:24px;box-sizing:border-box;display:flex;flex-direction:column;gap:16px;outline:{{ c.o }};border:{{ c.border }}">
+              <span style="font:700 24px 'Rowdies'">{{ c.t }}</span>
+              <span style="font:400 18px/24px 'Work Sans';color:#dae0ea">{{ c.s }}</span>
+              <sc-if value="{{ c.hasDays }}" hint-placeholder-val="{{ false }}">
+                <div style="display:flex;gap:6px"><sc-for list="{{ c.days }}" as="d" hint-placeholder-count="0"><div style="flex:1;height:36px;border-radius:6px;background:{{ d.bg }};display:flex;align-items:center;justify-content:center;font:700 14px 'Rowdies';color:{{ d.c }}">{{ d.l }}</div></sc-for></div>
+              </sc-if>
+              <sc-for list="{{ c.items }}" as="i" hint-placeholder-count="0">
+                <div style="height:56px;display:flex;align-items:center;justify-content:space-between;padding:0 16px;border-radius:8px;background:#3e2618"><span style="font:400 18px 'Work Sans'">{{ i.l }}</span><span style="font:700 24px 'Rowdies';color:{{ i.c }}">{{ i.v }}</span></div>
+              </sc-for>
+              <div style="flex:1"></div>
+              <div style="height:72px;border-radius:8px;background:{{ c.bBg }};color:{{ c.bC }};border:{{ c.bB }};box-sizing:border-box;display:flex;align-items:center;justify-content:center;font:700 28px 'Rowdies'">{{ c.btn }}</div>
+            </div>
+          </sc-for>
+        </div>
+        <div style="height:56px;padding:0 24px;border-radius:8px;background:#58321d;display:flex;align-items:center;font:700 18px 'Rowdies'">Close</div>
+      </div>
+    </div>
+    <div style="display:flex;flex-wrap:wrap;gap:24px">
+      <div style="width:456px;background:#2b1e17;border-radius:12px;padding:24px;box-sizing:border-box;display:flex;flex-direction:column;gap:12px"><span style="font:700 18px 'Rowdies';color:#b4bccb">41-guest</span><span style="font:700 24px 'Rowdies'">Sign in to claim</span><span style="font:400 18px/24px 'Work Sans'">Daily rewards are kept on your account.</span><div style="align-self:flex-end;height:56px;padding:0 20px;border-radius:8px;background:#ffb444;color:#291808;display:flex;align-items:center;font:700 18px 'Rowdies'">Sign in</div></div>
+      <div style="width:456px;background:#3e2618;border-radius:12px;padding:24px;box-sizing:border-box;display:flex;flex-direction:column;gap:12px"><span style="font:700 18px 'Rowdies';color:#b4bccb">41-offline</span><span style="font:700 24px 'Rowdies'">Daily needs a connection</span><span style="font:400 18px/24px 'Work Sans'">Nothing is lost. Claims wait until you're back today.</span><div style="align-self:flex-end;height:56px;padding:0 20px;border-radius:8px;background:#58321d;display:flex;align-items:center;font:700 18px 'Rowdies'">Retry</div></div>
+    </div>
+    <div style="font:400 18px 'Work Sans';color:#b4bccb;max-width:1920px;text-wrap:pretty">Values from daily.json and gem.json: Daily reward 60 Shards + 500 Stone + 100 XP; Weekly bonus after 4 days in the week: 150 Shards + 2,000 Stone; Gem gift 300 a day, balance cap 900 (the gift card is the only Gem-violet card). One primary: the first claimable card's button is Amber, the other claimable ones are secondary until it's claimed. Claimed = grey "Claimed". Groups: title · 3 cards · Close (3). Focus: cards ←→ → Close. Esc / D: Close.</div>
+  </div>
+
+  <!-- 29 UNLOCKS + GUIDES -->
+  <div style="display:flex;flex-direction:column;gap:24px">
+    <div style="font:700 32px 'Rowdies'">29 Codex · Unlocks and Guides · own layouts</div>
+    <div style="display:flex;gap:32px;align-items:flex-start">
+      <div data-screen-label="R2 Unlocks" style="width:900px;background:#13161b;border-radius:12px;padding:24px;box-sizing:border-box;display:flex;flex-direction:column;gap:8px">
+        <div style="display:flex;justify-content:space-between;align-items:baseline;padding-bottom:8px"><span style="font:700 24px 'Rowdies'">Unlocks · 2 of 10</span><span style="font:400 16px 'Work Sans';color:#b4bccb">In ladder order</span></div>
+        <sc-for list="{{ unlocks }}" as="u" hint-placeholder-count="10">
+          <div style="min-height:72px;display:grid;grid-template-columns:40px minmax(0,1fr) 80px 160px;gap:16px;align-items:center;padding:8px 16px;box-sizing:border-box;border-radius:8px;background:{{ u.bg }};opacity:{{ u.op }}">
+            <span style="font:700 20px 'Rowdies';color:{{ u.c }}">{{ u.i }}</span>
+            <div style="display:flex;flex-direction:column;gap:2px;min-width:0"><span style="font:700 20px 'Rowdies';color:{{ u.c }}">{{ u.n }}</span><span style="font:400 16px 'Work Sans';color:{{ u.dc }}">{{ u.d }}</span></div>
+            <span style="font:700 20px 'Rowdies';color:{{ u.c }};text-align:right">{{ u.p }}</span>
+            <sc-if value="{{ u.isOwned }}" hint-placeholder-val="{{ false }}"><div style="height:44px;border-radius:8px;background:#3fcd3c;color:#13161b;display:flex;align-items:center;justify-content:center;font:700 18px 'Rowdies'">Owned</div></sc-if>
+            <sc-if value="{{ u.isBuy }}" hint-placeholder-val="{{ false }}"><div style="height:44px;border-radius:8px;background:#ffb444;color:#291808;display:flex;align-items:center;justify-content:center;font:700 18px 'Rowdies'">Unlock</div></sc-if>
+            <sc-if value="{{ u.isLocked }}" hint-placeholder-val="{{ true }}"><div style="height:44px;border-radius:8px;background:#3c424d;border:2px solid #5b6372;box-sizing:border-box;color:#dae0ea;display:flex;align-items:center;justify-content:center;font:700 16px 'Rowdies'">{{ u.lockLbl }}</div></sc-if>
+          </div>
+        </sc-for>
+      </div>
+      <div data-screen-label="R2 Guides" style="flex:1;min-width:0;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px">
+        <sc-for list="{{ guides }}" as="g" hint-placeholder-count="4">
+          <div style="background:#2b1e17;border-radius:12px;overflow:hidden;display:flex;flex-direction:column">
+            <div style="height:8px;background:{{ g.c }}"></div>
+            <div style="padding:20px;display:flex;flex-direction:column;gap:12px">
+              <div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px"><span style="font:700 24px 'Rowdies'">{{ g.n }}</span><span style="font:400 16px 'Work Sans';color:{{ g.c }};white-space:nowrap">{{ g.lv }}</span></div>
+              <div style="display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:6px">
+                <sc-for list="{{ g.slots }}" as="x" hint-placeholder-count="5"><div style="display:flex;flex-direction:column;gap:4px;align-items:center"><div style="width:100%;aspect-ratio:1;border:2px solid #8e97a8;border-radius:6px;box-sizing:border-box"></div><span style="font:400 14px 'Work Sans';color:#dae0ea">{{ x.x }}</span></div></sc-for>
+              </div>
+              <span style="font:400 18px/24px 'Work Sans'">{{ g.how }}</span>
+              <span style="font:400 16px 'Work Sans';color:#ffb444;text-decoration:underline">Read why and how</span>
+            </div>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+    <span style="font:400 18px 'Work Sans';color:#b4bccb;max-width:1920px;text-wrap:pretty">Unlocks: the 10 entries in ladder order with price and effect (owned = cream row + green "Owned", next = Amber "Unlock", later = locked with the rule). Titan Bloodline (600) sits after Overdrive Reflexes (650) as given. Guides: 4 sample teams; the full why / how text comes from ContentDB.gd GUIDES and opens in the article view. In-guide previews are thumbnails, not Axie previews (no 160 rule). Flag: unlock price currency not stated (shown as a number); locked rows say which entry to unlock first.</span>
+  </div>
+
+  <!-- 20 21 23 24 25 29 44 -->
+  <div style="display:flex;flex-direction:column;gap:24px">
+    <div style="font:700 32px 'Rowdies'">Meta screens · updated states</div>
+    <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:24px">
+      <sc-for list="{{ metaCards }}" as="m" hint-placeholder-count="12">
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <span style="font:700 18px 'Rowdies';color:#b4bccb">{{ m.tag }}</span>
+          <div style="background:#2b1e17;border-radius:12px;padding:24px;box-sizing:border-box;display:flex;flex-direction:column;gap:12px;min-height:300px;outline:{{ m.o }}">
+            <span style="font:700 24px 'Rowdies';color:{{ m.tc }}">{{ m.t }}</span>
+            <span style="font:400 18px/24px 'Work Sans';text-wrap:pretty">{{ m.b }}</span>
+            <sc-for list="{{ m.rows }}" as="r" hint-placeholder-count="0">
+              <div style="min-height:44px;display:flex;justify-content:space-between;align-items:center;gap:16px;padding:6px 12px;box-sizing:border-box;border-radius:8px;background:{{ r.bg }};opacity:{{ r.op }}"><span style="font:400 18px 'Work Sans'">{{ r.l }}</span><span style="font:700 18px 'Rowdies';color:{{ r.c }};white-space:nowrap">{{ r.v }}</span></div>
+            </sc-for>
+            <div style="flex:1"></div>
+            <div style="display:flex;gap:12px;justify-content:flex-end"><sc-if value="{{ m.hasB2 }}" hint-placeholder-val="{{ false }}"><div style="height:56px;padding:0 20px;border-radius:8px;background:#58321d;display:flex;align-items:center;font:700 18px 'Rowdies';white-space:nowrap">{{ m.b2 }}</div></sc-if><sc-if value="{{ m.hasB1 }}" hint-placeholder-val="{{ false }}"><div style="height:56px;padding:0 20px;border-radius:8px;background:{{ m.b1Bg }};color:{{ m.b1C }};border:{{ m.b1B }};box-sizing:border-box;display:flex;align-items:center;font:700 18px 'Rowdies';white-space:nowrap">{{ m.b1 }}</div></sc-if></div>
+          </div>
+          <span style="font:400 16px/22px 'Work Sans';color:#b4bccb">{{ m.note }}</span>
+        </div>
+      </sc-for>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  state = { tier: 1 };
+  renderVals() {
+    const s = this.state;
+    const authCards = [
+      { tag: '16-signed-out · CHANGED', t: 'Sign in to play', b: 'Dice are rolled on our server, so you need an account to start a run.', p: 'Sign in', hasP: true, hasS: false, s: '', spin: false, badge: true },
+      { tag: '16-waiting-browser · NEW', t: 'Finish signing in in your browser', b: 'We opened a browser window. Come back here when it says you are done.', p: '', hasP: false, hasS: true, s: 'Cancel', spin: true, badge: true },
+      { tag: '16-welcome · NEW', t: 'Welcome back, Liam', b: 'Signed in with your Sky Mavis Account. Your Land and Axies are loaded.', p: 'Continue', hasP: true, hasS: false, s: '', spin: false, badge: true },
+            { tag: '16-expired · NEW', t: 'Session expired', b: 'Your session expired. Sign in again to continue this run.', p: 'Sign in', hasP: true, hasS: true, s: 'Back to menu', spin: false, badge: false },
+      { tag: '16-run-gone · NEW', t: "Run can't continue", b: "Your unfinished run is no longer open on the server, so it can't be continued.", p: 'Back to menu', hasP: true, hasS: false, s: '', spin: false, badge: false }];
+    const R = (l, v) => ({ l, v });
+    const saves = [
+      { t: 'This machine', when: 'Saved 2 min ago', o: '4px solid #ffe5b4', rows: [R('Best win', 'A3'), R('Runs', '41'), R('Shards', '3,480'), R('Land tier', '2')] },
+      { t: 'Cloud', when: 'Saved 3 days ago', o: 'none', rows: [R('Best win', 'A2'), R('Runs', '38'), R('Shards', '2,910'), R('Land tier', '2')] }];
+    const E = '#ff8986', W = '#ffb444', I = '#b4bccb';
+    const codes = [
+      ['offline', 'run_session', 'Notice', E, "Can't reach the server. Your run is saved.", 'Retry'],
+      ['timeout', 'run_session', 'Notice', W, 'The server is slow to answer. Trying again…', 'auto-retry ×3'],
+      ['expired', 'run_session (1008)', 'Dialog', E, 'Your session expired. Sign in again to continue this run.', 'Sign in / Back to menu'],
+      ['run_gone', 'after re-sign-in', 'Dialog', E, "Your unfinished run is no longer open on the server, so it can't be continued.", 'Back to menu'],
+      ['version', 'run_session (4001)', 'Dialog', E, 'A new version is out. Update to keep playing.', 'Back to menu'],
+      ['rejected', 'epoch_err', 'Toast', E, "The server didn't accept that move. It was undone.", '—'],
+      ['bad_request', 'run_session', 'Toast', E, 'Something went wrong. Try that again.', '—'],
+      ['server', 'fallback', 'Toast', E, 'Server error. Try again in a moment.', '—'],
+      ['cancelled', 'desktop_auth', 'Toast', I, 'Sign-in cancelled.', '—'],
+      ['timeout (auth)', 'desktop_auth', 'Card', E, "Sign-in timed out. Try again.", 'Try again'],
+      ['token', 'desktop_auth', 'Card', E, "Couldn't finish signing in. Try again.", 'Try again'],
+      ['no_gems', 'aid_catalog', 'Inline', E, 'Need n more Gem.', '—'],
+      ['cap_total', 'aid_catalog', 'Inline', I, 'Aid limit for this run reached.', '—'],
+      ['cap_type', 'aid_catalog', 'Inline', I, 'Already used here.', '—'],
+      ['mission_run', 'aid_catalog', 'Inline', I, 'No Aid in Mission runs.', '—']].map(([c, src, k, kc, t, a]) => ({ c, src, k, kc, t, a }));
+    const billboard = [['1 · Thảo Nguyên', 'A10'], ['2 · kinetic_owl', 'A10'], ['3 · Bùi Minh Đức', 'A9']].map(([n, v]) => ({ n, v }));
+    const TD = [['N1', 3, 300, 2.15, 4], ['N2', 4, 500, 2.4, 8], ['N3', 6, 800, 3.6, 14]];
+    const won = 4, held = 2980;
+    const statusOf = (i) => i === 0 ? ['Open', '#7ade61'] : i === 1 ? ['In escrow · run open', '#ffb444'] : ['Locked · win a run at A6', '#ff8986'];
+    const tiers = TD.map(([id, asc, stake, m, stone], i) => { const [st, sc] = statusOf(i); return { id, asc: 'A' + asc, stake: stake.toLocaleString('en-US'), pay: Math.round(stake * m).toLocaleString('en-US'), stone, status: st, sc, op: i === 2 ? 0.6 : 1, bg: i === s.tier ? '#3e2618' : '#2b1e17e6', o: i === s.tier ? '4px solid #ffe5b4' : 'none', pick: () => this.setState({ tier: i }) }; });
+    const t = TD[s.tier], pay = Math.round(t[2] * t[3]).toLocaleString('en-US');
+    const RN = { M1: 'Harsh clock: boss clock from turn 6, +20% a turn, max 5 steps', M2: 'Spike stack: spikes come 1 turn sooner', M3: 'Hunted: +2 Elites (below A9 only)', M4: 'Heavy hits: enemy damage ×1.15', M5: 'Thick boss: boss HP ×1.25', M6: 'M6: normal enemy HP ×1.2', M7: 'M7: Elite damage ×1.25' };
+    const SETS = [{ A: ['M5', 'M6'], B: ['M1', 'M7'] }, { A: ['M5', 'M6'], B: ['M1', 'M7'] }, { A: ['M2', 'M3', 'M4'], B: ['M1', 'M2', 'M4'] }];
+    const today = s.tier === 2 ? 'B' : 'A';
+    const RS = SETS.map(st => ['Base: enemy damage ×1.1, Elite HP ×1.1', 'Today · set ' + today + ':'].concat(st[today].map(k => RN[k])));
+    const md = { t: t[0] + ' · A' + t[1] + ' · Short', b: 'Stake ' + t[2] + ' Shards to start. Starter Shards can\'t be staked.', win: 'Get ' + pay + ' Shards back and ' + t[4] + ' Stone.', lose: 'The ' + t[2] + ' Shard stake is gone.', rules: RS[s.tier].map(x => ({ t: x })),
+      hasReason: s.tier === 2, reason: 'Win a run at A6 to unlock N3.',
+      btn: s.tier === 0 ? 'Stake 300 Shards' : s.tier === 1 ? 'Continue mission run' : 'Locked', bBg: s.tier === 2 ? '#3c424d' : '#ffb444', bC: s.tier === 2 ? '#dae0ea' : '#291808' };
+    const ms = (tag, ti, b, b1, b2, o = {}) => ({ tag, t: ti, b, b1: b1 || '', b2: b2 || '', hasB1: !!b1, hasB2: !!b2, bg: o.bg || '#2b1e17', tc: o.tc || '#ffe5b4' });
+    const missionStates = [
+      ms('40-confirm', 'Stake 300 Shards on N1?', 'You have 2,980 stakeable Shards (500 starter Shards excluded). Win: 645 Shards back and 4 Stone. Lose or abandon: the 300 are gone.', 'Stake and start', 'Cancel'),
+      ms('40-escrow', 'Stake held', '500 Shards are held while your N2 run is open. Finish or abandon it to start another mission.', 'Continue run', ''),
+      ms('40-locked-newcomer', 'Missions open after 5 runs', 'Play 2 more runs to unlock the stake board.', '', 'OK'),
+      ms('40-settle-won', 'Mission won · N2', 'Stake 500 × 2.4 = 1,200 Shards and 8 Stone added.', 'Collect', '', { bg: '#093322', tc: '#7ade61' }),
+      ms('40-settle-lost', 'Mission lost · N2', 'The 500 Shard stake is gone. Try a lower tier or train at A4 first.', 'OK', '', { bg: '#3d0d11', tc: '#ff8986' }),
+      ms('40-not-enough', "Not enough to stake", 'You need 800 stakeable Shards for N3. You have 640 (starter Shards excluded).', '', 'OK')];
+    const dayCells = ['M', 'T', 'W', 'T', 'F', 'S', 'S'].map((l, i) => ({ l, bg: i < 3 ? '#3fcd3c' : '#13161b', c: i < 3 ? '#13161b' : '#b4bccb' }));
+    const AMB = { bBg: '#ffb444', bC: '#291808', bB: 'none' }, SEC = { bBg: '#58321d', bC: '#ffe5b4', bB: 'none' }, OFF = { bBg: '#3c424d', bC: '#dae0ea', bB: '2px solid #5b6372' };
+    const daily = [
+      { t: 'Daily reward', s: 'Once a day, for any run or just logging in.', items: [{ l: 'Shards', v: '60', c: '#ffe5b4' }, { l: 'Stone', v: '500', c: '#ffe5b4' }, { l: 'Pass XP', v: '100', c: '#ffe5b4' }], hasDays: false, days: [], btn: 'Claim', ...AMB, o: '4px solid #ffe5b4', border: 'none' },
+      { t: 'Weekly bonus', s: 'Claim on 4 days this week · 3 of 4', items: [{ l: 'Shards', v: '150', c: '#ffe5b4' }, { l: 'Stone', v: '2,000', c: '#ffe5b4' }], hasDays: true, days: dayCells, btn: '1 more day', ...OFF, o: 'none', border: 'none' },
+      { t: 'Gem gift', s: '300 Gem a day while the playtest runs. You can hold up to 900.', items: [{ l: 'Gem', v: '300', c: '#f8bbff' }, { l: 'Balance', v: '600 / 900', c: '#ffe5b4' }], hasDays: false, days: [], btn: 'Claim', ...SEC, o: 'none', border: '2px solid #894dff' }];
+    const UL = [['Full Run', 120, 'Opens the 30-row mode with 4 bosses', 'Owned'], ['Relic Pool II', 150, 'Adds Epic relics to the reward pool', 'Owned'], ['Gene Pool II', 180, 'Adds Legendary faces to the mutation pool', 'Buy'], ['Survival Instinct', 220, '+1 max Reroll every run', 'Locked'], ['Relic Pool III', 280, 'Adds Legendary relics to the reward pool', 'Locked'], ['Gene Pool III', 350, 'Adds Mythic faces to the mutation pool', 'Locked'], ['Lunacia Legacy', 400, 'Start each run with 1 random Common relic', 'Locked'], ['Ancient Bloodline', 500, 'Whole party +3 Max HP', 'Locked'], ['Overdrive Reflexes', 650, 'Another +1 max Reroll', 'Locked'], ['Titan Bloodline', 600, 'Whole party +2 more Max HP', 'Locked']];
+    const unlocks = UL.map(([n, p, d, st], i) => ({ i: i + 1, n, p, d, st, bg: st === 'Owned' ? '#ffe5b4' : '#2b1e17', c: st === 'Owned' ? '#291808' : '#ffe5b4', dc: st === 'Owned' ? '#3e2618' : '#dae0ea', op: st === 'Locked' ? 0.6 : 1, isBuy: st === 'Buy', isOwned: st === 'Owned', isLocked: st === 'Locked', lockLbl: 'Unlock #' + i + ' first' }));
+    const guides = [['Living Wall', 'Easy · pick this first', 'Olek, Olek, Machito, Pomodoro, Puffy', 'Stack Shield, then take Bastion Plate to turn Shield into damage.', '#3fcd3c'], ['Pestilence', 'Medium', 'Pomodoro, Pomodoro, Machito, Olek, Puffy', 'Pile Poison onto one target.', '#ffb444'], ['Apex Fang', 'Medium · fastest kills', 'Buba, Buba, Momo, Olek, Puffy', 'Crits plus finishing targets under 50% HP.', '#ffb444'], ['The Current', 'Hard · highest ceiling', 'Puffy, Puffy, Olek, Momo, Pomodoro', 'Spend Mana every turn to buy Rerolls.', '#ff8986']].map(([n, lv, team, how, c]) => ({ n, lv, team, how, c, slots: team.split(', ').map(x => ({ x })) }));
+    const row = (l, v, c, bg, op) => ({ l, v, c: c || '#ffe5b4', bg: bg || '#3e2618', op: op ?? 1 });
+    const mc = (tag, ti, b, rows, b1, b2, note, o = {}) => ({ tag, t: ti, b, rows: rows || [], b1: b1 || '', b2: b2 || '', hasB1: !!b1, hasB2: !!b2, note, b1Bg: o.off ? '#3c424d' : '#ffb444', b1C: o.off ? '#dae0ea' : '#291808', b1B: o.off ? '2px solid #5b6372' : 'none', tc: o.err ? '#ff8986' : '#ffe5b4', o: 'none' });
+    const metaCards = [
+      mc('20-echo-box · CHANGED · Tickets, not Gem', 'Echo Box', 'Opens with Tickets. Duplicates give fragments; 10 fragments = 1 Ticket.', [row('Tickets', '3'), row('Next Rare or better', 'in 15 pulls'), row('Ticket price', '200 Shards, +5% each buy')], 'Open · 1 Ticket', 'Rates', 'echobox.json: ticket base 200 Shards ×1.05 (round 5), 30 a day. Pity 15 / 60 / 200 / 1000 pulls for Rare / Epic / Legendary / Mythic.'),
+      mc('20-guest · NEW', 'Sign in to use this', 'You can read the drop rates. Opening needs an account.', [row('Stone', '60%'), row('Cosmetic', '40%')], 'Sign in', 'Rates', 'Rates are the weights in echobox.json (Stone 100–10,000 vs cosmetics by rarity).'),
+      mc('20-offline / season · NEW', "Can't open right now", 'You are offline. Nothing is spent until the box opens.', [row('Season box', 'Coming later', '#b4bccb', '#3e2618', 0.6)], 'Retry', '', 'Season tab is listed with "Coming later" and no Open button (season.enabled = false).', { err: true }),
+      mc('21-pass · CHANGED · free track only', 'Season 1 · Level 14', 'Premium starts in Season 2.', [row('Level 13 · 500 Shards', 'Claimed', '#b4bccb', '#3e2618', 0.5), row('Level 14 · 1 Ticket', 'Claim', '#7ade61'), row('Level 15 · Bubble trail + 2,000 Stone', '450 / 1,060', '#ffe5b4'), row('Season gift · Level 20', '90 Gem', '#f8bbff')], 'Claim level 14', 'Details', 'pass_v2.json: 30 levels, free track. Season gift: 90 Gem at level 10 and 90 at level 20 (gem.json). Detail popup lists every reward on the level.'),
+      mc('21-reward-detail · NEW popup', 'Level 15 rewards', 'fx_r_bubble (Rare effect) · 2,000 Stone', [row('XP needed', '610 more'), row('Status', 'Locked')], 'Close', '', 'Opens on click or Enter on a level. Claimable: Amber Claim; claimed: grey; locked: shows XP left.', { off: false }),
+      mc('23-row-detail · NEW', 'Thảo Nguyên · #1', 'Ranked · A10 · 15 floors · 41:02', [row('Party', 'Plant · Beast · Aqua · Bird · Reptile'), row('Relics', '8'), row('Top hit', '286')], 'Watch replay', 'Close', 'Replay plays the run from the server log (dice are server-rolled, so replays are exact). Flag: replay player UI not in scope; button opens it.'),
+      mc('24-titles · NEW tab', 'Titles', 'Pick one to show under your name.', [row('Người Giữ Ấn', 'Equipped', '#7ade61'), row('Người Đứng Cuối', 'Win at A10', '#b4bccb', '#3e2618', 0.6)], 'Equip', '', 'ascension_titles.json (A5, A10), shown as given. Result unlock line: "Title unlocked · Người Giữ Ấn". Avatar frame + cosmetic preview: 392 px square preview on the detail plate.'),
+      mc('25-vault-import · NEW', 'Import an Axie', 'Enter an Axie ID to add it to your Vault.', [row('Axie ID', '77104'), row('Vault', '18 / 20')], 'Scan', 'Cancel', 'Import panel + record panel (genes → die faces). Local-only note: "Stored on this device" until cloud sync. Flag: whether Vault syncs to the account.'),
+      mc('25-vault-full · NEW', 'Vault full (20 / 20)', 'Remove an Axie to import another.', [], 'Manage Vault', '', 'VAULT_MAX = 20 (MetaState).', { err: true }),
+      mc('44-preset-editor · NEW (Should)', 'Edit "Poison Bloom"', 'Click a slot to change its Axie.', [row('Slot 1', 'Pomodoro'), row('Slot 2', 'Mossback'), row('Slot 3', 'Empty · pick', '#ffb444')], 'Save preset', 'Rename', 'Slot picker reuses 33-axie-picker. Name ≤ 20 chars. Delete uses the destructive dialog.')];
+    return { unlocks, guides, authCards, saves, codes, billboard, tiers, md, missionStates, daily, metaCards };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<link rel="stylesheet" href="../../_ds/terrariums-design-system-41d3ee92-ef23-4954-9fac-b76baf67c7c6/styles.css">
+<script src="../../_ds/terrariums-design-system-41d3ee92-ef23-4954-9fac-b76baf67c7c6/_ds_bundle.js"></script>
+<style>
+body{margin:0;background:#0d0e12}
+a{color:#ffb444}a:hover{color:#ffe5b4}
+</style>
+</helmet>
+<div style="display:flex;flex-direction:column;gap:64px;padding:64px;font-family:'Work Sans',sans-serif;color:#ffe5b4;width:1920px;background:#0d0e12">
+  <div style="display:flex;flex-direction:column;gap:8px">
+    <div style="font:700 48px 'Rowdies'">Round 2 · Run</div>
+    <div style="font:400 24px/32px 'Work Sans';color:#b4bccb;text-wrap:pretty">New: 31 Reward types, 32 Slots full, 33 Axie picker, 34 Presets popup, 35 Leaderboard popup, 37 Tutorial curtain, 38 Tutorial rewards. Updated: 06 Run setup, 10 Result, 12 Pact, 13 Treasure, 14 Abandon. Reward titles and text are the real strings from reward_generator.gd.</div>
+  </div>
+
+  <!-- 31 REWARD TYPES -->
+  <div style="display:flex;flex-direction:column;gap:16px">
+    <div style="font:700 24px 'Rowdies';color:#b4bccb">31-reward-types · NEW · every reward card the generator can offer</div>
+    <div data-screen-label="R2 Reward types" style="width:1920px;height:1080px;position:relative;overflow:hidden;background:#3c424d">
+      <div style="position:absolute;inset:0;background:#13161bcc"></div>
+      <div style="position:absolute;left:0;top:0;width:1920px;height:1080px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:40px">
+        <div style="display:flex;flex-direction:column;align-items:center;gap:16px">
+          <span style="font:700 32px 'Rowdies'">Elite down · pick a reward</span>
+          <div style="display:flex;align-items:center;gap:8px;background:#2b1e17e6;border-radius:8px;padding:8px 16px"><img src="../assets/cur_shard.png" style="width:28px;height:28px;object-fit:contain"><span style="font:700 24px 'Rowdies'">+60</span><span style="font:400 18px 'Work Sans';color:#b4bccb">Shards added · 240 total</span></div>
+        </div>
+        <div style="display:flex;gap:32px;align-items:flex-start;height:560px;padding-top:24px;box-sizing:border-box">
+          <sc-for list="{{ offer }}" as="r" hint-placeholder-count="3">
+            <div onClick="{{ r.pick }}" style="width:416px;background:{{ r.bg }};border-radius:12px;padding:24px;box-sizing:border-box;display:flex;flex-direction:column;gap:16px;outline:{{ r.o }};transform:translateY({{ r.lift }}px);transition:transform .16s;cursor:pointer">
+              <div style="display:flex;justify-content:space-between;align-items:center"><span style="height:32px;padding:0 12px;border-radius:8px;background:{{ r.tagBg }};color:{{ r.tagC }};display:flex;align-items:center;font:700 18px 'Rowdies'">{{ r.t }}</span><span style="font:400 18px 'Work Sans';color:{{ r.rc }}">{{ r.rar }}</span></div>
+              <div style="height:144px;border-radius:8px;background:#3e2618;border:2px solid #58321d;box-sizing:border-box;display:flex;align-items:center;justify-content:center;font:400 16px 'Work Sans';color:#b4bccb">{{ r.art }}</div>
+              <span style="font:700 24px 'Rowdies'">{{ r.d }}</span>
+              <sc-if value="{{ r.plain }}" hint-placeholder-val="{{ true }}"><span style="font:400 18px/24px 'Work Sans';text-wrap:pretty">{{ r.sub }}</span></sc-if>
+              <sc-if value="{{ r.risk }}" hint-placeholder-val="{{ false }}">
+                <div style="display:flex;flex-direction:column;gap:4px;padding:12px;border-radius:8px;background:#093322"><span style="font:700 18px 'Rowdies';color:#7ade61">Gain</span><span style="font:400 18px/24px 'Work Sans'">{{ r.gain }}</span></div>
+                <div style="display:flex;flex-direction:column;gap:4px;padding:12px;border-radius:8px;background:#3d0d11"><span style="font:700 18px 'Rowdies';color:#ff8986">{{ r.costLabel }}</span><span style="font:400 18px/24px 'Work Sans'">{{ r.cost }}</span></div>
+              </sc-if>
+            </div>
+          </sc-for>
+        </div>
+        <div style="display:flex;align-items:center;gap:16px">
+          <div style="height:56px;padding:0 24px;border-radius:8px;background:#58321d;display:flex;align-items:center;font:700 18px 'Rowdies'">Skip</div>
+          <div style="height:72px;padding:0 48px;border-radius:8px;background:#ffb444;color:#291808;filter:drop-shadow(0 4px 0 #2b1e17);display:flex;align-items:center;font:700 32px 'Rowdies';white-space:nowrap">{{ takeBtn }}</div>
+        </div>
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px">
+      <sc-for list="{{ gallery }}" as="r" hint-placeholder-count="8">
+        <div style="background:#2b1e17;border-radius:12px;padding:16px;display:flex;flex-direction:column;gap:10px">
+          <div style="display:flex;justify-content:space-between;align-items:center"><span style="height:28px;padding:0 10px;border-radius:8px;background:{{ r.tagBg }};color:{{ r.tagC }};display:flex;align-items:center;font:700 16px 'Rowdies'">{{ r.t }}</span><span style="font:400 16px 'Work Sans';color:{{ r.rc }}">{{ r.rar }}</span></div>
+          <span style="font:700 20px 'Rowdies'">{{ r.d }}</span>
+          <sc-if value="{{ r.plain }}" hint-placeholder-val="{{ true }}"><span style="font:400 16px/22px 'Work Sans';color:#dae0ea">{{ r.sub }}</span></sc-if>
+          <sc-if value="{{ r.risk }}" hint-placeholder-val="{{ false }}"><span style="font:400 16px/22px 'Work Sans';color:#7ade61">Gain · {{ r.gain }}</span><span style="font:400 16px/22px 'Work Sans';color:#ff8986">{{ r.costLabel }} · {{ r.cost }}</span></sc-if>
+        </div>
+      </sc-for>
+    </div>
+    <div style="font:400 18px 'Work Sans';color:#b4bccb;max-width:1920px;text-wrap:pretty">Card = type tag · rarity · art · title · body (or Gain + Cost boxes). Type tag colours: relic kam-6, HP green-6, Reroll / Level / Ascend wood-3, Chaos and Curse red-4 with cream text. Chaos and Curse never use the plain body: they always show the TradeBox (green-2 Gain, red-2 "Gamble" / "Curse") so the risk reads before the name. Picking a Chaos or Curse card asks once inline ("This lasts the whole run. Take it?"). Hero names come from ContentDB (Pomodoro is a real example). Focus: cards ←→ → Take → Skip.</div>
+  </div>
+
+  <!-- 32 SLOTS FULL -->
+  <div style="display:flex;flex-direction:column;gap:16px">
+    <div style="font:700 24px 'Rowdies';color:#b4bccb">32-slots-full · NEW · taking a relic or active with no free slot (Reward, Treasure)</div>
+    <div style="display:flex;gap:8px">
+      <sc-for list="{{ slotTabs }}" as="t" hint-placeholder-count="3">
+        <div onClick="{{ t.pick }}" style="height:48px;padding:0 20px;border-radius:8px;background:{{ t.bg }};outline:{{ t.o }};display:flex;align-items:center;font:700 18px 'Rowdies';cursor:pointer">{{ t.l }}</div>
+      </sc-for>
+    </div>
+    <div data-screen-label="R2 Slots full" style="width:1920px;height:1080px;position:relative;overflow:hidden;background:#3c424d">
+      <div style="position:absolute;inset:0;background:#13161be6"></div>
+      <div style="position:absolute;left:0;top:0;width:1920px;height:1080px;display:flex;align-items:center;justify-content:center">
+        <div style="width:1200px;background:#2b1e17;border-radius:12px;padding:40px;box-sizing:border-box;display:flex;flex-direction:column;gap:24px;box-shadow:0 16px 48px #000000a0">
+          <div style="display:flex;flex-direction:column;gap:6px"><span style="font:700 32px 'Rowdies'">{{ sl.title }}</span><span style="font:400 18px/24px 'Work Sans'">{{ sl.sub }}</span></div>
+          <div style="display:flex;align-items:center;gap:16px;padding:16px;border-radius:8px;background:#3e2618;outline:2px solid #ffb444">
+            <div style="width:88px;height:88px;flex:none;border-radius:8px;background:#58321d;display:flex;align-items:center;justify-content:center;font:400 14px 'Work Sans';color:#b4bccb">NEW</div>
+            <div style="flex:1;display:flex;flex-direction:column;gap:4px"><span style="font:700 24px 'Rowdies'">{{ sl.newName }}</span><span style="font:400 18px 'Work Sans'">{{ sl.newDesc }}</span></div>
+            <span style="font:400 18px 'Work Sans';color:#2dc661">Rare</span>
+          </div>
+          <span style="font:700 24px 'Rowdies'">{{ sl.gridTitle }}</span>
+          <div style="display:grid;grid-template-columns:repeat({{ sl.cols }},minmax(0,1fr));gap:12px">
+            <sc-for list="{{ sl.slots }}" as="o" hint-placeholder-count="8">
+              <div onClick="{{ o.pick }}" style="min-height:120px;display:flex;flex-direction:column;gap:6px;padding:12px;box-sizing:border-box;border-radius:8px;background:{{ o.bg }};outline:{{ o.o }};opacity:{{ o.op }};cursor:pointer">
+                <span style="font:700 18px 'Rowdies'">{{ o.n }}</span>
+                <span style="font:400 16px 'Work Sans';color:#b4bccb">{{ o.k }}</span>
+                <div style="flex:1"></div>
+                <span style="font:700 18px 'Rowdies';color:{{ o.vc }}">{{ o.v }}</span>
+              </div>
+            </sc-for>
+          </div>
+          <div style="display:flex;gap:16px;justify-content:flex-end;align-items:center">
+            <sc-if value="{{ sl.canCancel }}" hint-placeholder-val="{{ true }}"><div style="height:56px;padding:0 24px;border-radius:8px;background:#58321d;display:flex;align-items:center;font:700 18px 'Rowdies'">Leave it</div></sc-if>
+            <div style="height:72px;padding:0 40px;border-radius:8px;background:#ffb444;color:#291808;filter:drop-shadow(0 4px 0 #0d0e12);display:flex;align-items:center;font:700 28px 'Rowdies';white-space:nowrap">{{ sl.btn }}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div style="font:400 18px 'Work Sans';color:#b4bccb;max-width:1920px;text-wrap:pretty">SlotSwapSheet (new component). Slots from relic_slots.gd: 8 passive (7 from the cramped Ascension), 3 active (+1 with Hollow Chalice), plus G and A multiplier slots. Only same-kind relics are offered to sell. Eternal relics show a lock and "Can't sell". Each slot shows its sell value. "Leave it" returns to the Reward or Treasure card; a forced pact (A6 first boss, A10 every boss) has no Leave it. If every candidate is Eternal, the new card is greyed with "All slots hold Eternal relics". Groups: header · new item · slots · actions (4). Focus: slots (grid arrows) → primary → Leave it. Esc: Leave it (not on forced). Flag: sell value numbers are illustrative.</div>
+  </div>
+
+  <!-- 06 UPDATES -->
+  <div style="display:flex;flex-direction:column;gap:24px">
+    <div style="font:700 32px 'Rowdies'">06 Run setup · updated</div>
+    <div style="display:flex;flex-wrap:wrap;gap:32px;align-items:flex-start">
+
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <span style="font:700 18px 'Rowdies';color:#b4bccb">06-kind · CHANGED · setup plate (replaces Mode list)</span>
+        <div style="width:480px;background:#3c424d;padding:24px;box-sizing:border-box">
+          <div style="width:432px;background:#2b1e17e6;border-radius:8px;padding:24px;box-sizing:border-box;display:flex;flex-direction:column;gap:16px">
+            <span style="font:700 24px 'Rowdies'">Kind</span>
+            <sc-for list="{{ kinds }}" as="k" hint-placeholder-count="3">
+              <div style="min-height:64px;display:flex;flex-direction:column;justify-content:center;gap:2px;padding:8px 16px;box-sizing:border-box;border-radius:8px;background:{{ k.bg }};outline:{{ k.o }}">
+                <div style="display:flex;justify-content:space-between;align-items:baseline"><span style="font:700 24px 'Rowdies';color:{{ k.c }}">{{ k.l }}</span><span style="font:400 16px 'Work Sans';color:#dae0ea">{{ k.side }}</span></div>
+                <sc-if value="{{ k.hasWhy }}" hint-placeholder-val="{{ false }}"><span style="font:400 16px 'Work Sans';color:#dae0ea">{{ k.why }}</span></sc-if>
+              </div>
+            </sc-for>
+            <span style="font:700 24px 'Rowdies'">Length</span>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+              <div style="height:56px;border-radius:8px;background:#58321d;outline:4px solid #ffe5b4;display:flex;flex-direction:column;align-items:center;justify-content:center"><span style="font:700 18px 'Rowdies'">Short</span><span style="font:400 16px 'Work Sans';color:#dae0ea">3 acts · 18 rows</span></div>
+              <div style="height:56px;border-radius:8px;background:#1c1f25;display:flex;flex-direction:column;align-items:center;justify-content:center"><span style="font:700 18px 'Rowdies';color:#b4bccb">Full · locked</span><span style="font:400 16px 'Work Sans';color:#dae0ea">4 acts · 30 rows</span></div>
+            </div>
+            <span style="font:400 16px 'Work Sans';color:#dae0ea">Full needs the Full Run unlock (Codex → Unlocks).</span>
+          </div>
+        </div>
+        <span style="font:400 18px 'Work Sans';color:#b4bccb;max-width:480px">Daily tries from daily.json daily_runs.max_per_day (3), reset 00:00 UTC. Disabled kinds stay listed and say why. Short = 3 acts, 18 rows, bosses at rows 6 / 12 / 18. Full = 4 acts, 30 rows, bosses at 8 / 15 / 23 / 30, locked until the Full Run unlock.</span>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <span style="font:700 18px 'Rowdies';color:#b4bccb">06-unfinished-run · NEW state · above Start run</span>
+        <div style="width:640px;background:#3c424d;padding:24px;box-sizing:border-box;display:flex;flex-direction:column;align-items:flex-end;gap:16px">
+          <div style="width:592px;background:#2b1e17e6;border-radius:12px;padding:20px;box-sizing:border-box;display:flex;flex-direction:column;gap:12px;outline:2px solid #ffb444">
+            <div style="display:flex;justify-content:space-between;align-items:baseline"><span style="font:700 24px 'Rowdies'">Unfinished run</span><span style="font:400 16px 'Work Sans';color:#b4bccb">2 h ago</span></div>
+            <span style="font:400 18px 'Work Sans'">Mission N2 · Short · A4 · Floor 6 · 140 Shards</span>
+            <div style="padding:10px 12px;border-radius:8px;background:#3d0d11"><span style="font:400 18px/24px 'Work Sans'">Starting a new run ends this one as a loss. You lose the 500 Shard stake.</span></div>
+            <div style="display:flex;gap:12px;justify-content:flex-end">
+              <div style="height:56px;padding:0 20px;border-radius:8px;background:#58321d;display:flex;align-items:center;font:700 18px 'Rowdies'">Start new anyway</div>
+              <div style="height:56px;padding:0 24px;border-radius:8px;background:#ffb444;color:#291808;display:flex;align-items:center;font:700 18px 'Rowdies'">Continue run</div>
+            </div>
+          </div>
+        </div>
+        <span style="font:400 18px 'Work Sans';color:#b4bccb;max-width:640px">While an unfinished run exists, Continue run is the primary and Start run becomes "Start new anyway" (secondary) which opens the destructive confirm. Non-mission runs omit the stake line and say "ends this one as a loss".</span>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <span style="font:700 18px 'Rowdies';color:#b4bccb">06-signed-out · CHANGED (correction) · bottom-right</span>
+        <div style="width:640px;height:200px;background:#3c424d;position:relative">
+          <div style="position:absolute;right:24px;bottom:24px;display:flex;flex-direction:column;align-items:flex-end;gap:8px">
+            <span style="font:400 18px 'Work Sans'">Dice are rolled on the server, so every run needs an account.</span>
+            <div style="height:72px;padding:0 48px;border-radius:8px;background:#ffb444;color:#291808;filter:drop-shadow(0 4px 0 #2b1e17);display:flex;align-items:center;font:700 32px 'Rowdies'">Sign in to play</div>
+          </div>
+        </div>
+        <span style="font:400 18px 'Work Sans';color:#b4bccb;max-width:640px">Replaces Start run for guests and expired sessions. No "Play as guest". Kind, length and party stay browsable.</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- 33 / 34 / 35 POPUPS -->
+  <div style="display:flex;flex-direction:column;gap:24px">
+    <div style="font:700 32px 'Rowdies'">Run setup popups</div>
+    <div style="display:flex;flex-wrap:wrap;gap:32px;align-items:flex-start">
+
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <span style="font:700 18px 'Rowdies';color:#b4bccb">33-axie-picker · NEW · slot 3</span>
+        <div data-screen-label="R2 Axie picker" style="width:1120px;background:#2b1e17;border-radius:12px;padding:32px;box-sizing:border-box;display:flex;flex-direction:column;gap:20px">
+          <div style="display:flex;justify-content:space-between;align-items:baseline"><span style="font:700 24px 'Rowdies'">Pick an Axie for slot 3</span><span style="font:400 18px 'Work Sans';color:#b4bccb">14 Axies · 2 in party</span></div>
+          <div style="display:flex;gap:8px">
+            <sc-for list="{{ classes }}" as="c" hint-placeholder-count="7">
+              <div style="height:44px;padding:0 16px;border-radius:8px;background:{{ c.bg }};outline:{{ c.o }};display:flex;align-items:center;font:700 16px 'Rowdies'">{{ c.l }}</div>
+            </sc-for>
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px">
+            <sc-for list="{{ pickAxies }}" as="a" hint-placeholder-count="10">
+              <div style="display:flex;flex-direction:column;gap:6px;padding:8px;border-radius:8px;background:{{ a.bg }};outline:{{ a.o }};opacity:{{ a.op }}">
+                <div style="width:100%;aspect-ratio:1;border:2px solid #8e97a8;border-radius:8px;box-sizing:border-box;display:flex;align-items:center;justify-content:center;font:400 14px 'Work Sans';color:#dae0ea">AXIE 3D</div>
+                <span style="font:700 16px 'Rowdies'">{{ a.n }}</span>
+                <span style="font:400 16px 'Work Sans';color:#b4bccb">{{ a.s }}</span>
+              </div>
+            </sc-for>
+          </div>
+          <div style="display:flex;gap:16px;justify-content:flex-end"><div style="height:56px;padding:0 24px;border-radius:8px;background:#58321d;display:flex;align-items:center;font:700 18px 'Rowdies'">Cancel</div><div style="height:56px;padding:0 24px;border-radius:8px;background:#ffb444;color:#291808;display:flex;align-items:center;font:700 18px 'Rowdies'">Put in slot 3</div></div>
+        </div>
+        <span style="font:400 18px 'Work Sans';color:#b4bccb;max-width:1120px">Previews are square, ≈188 px (≥160). Axies already in another slot show "In slot n" at 50% and swap places if picked. Filter chips by class. Groups: header · filters · grid · actions (4). Esc: Cancel. Flag: Axie names are placeholders.</span>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <span style="font:700 18px 'Rowdies';color:#b4bccb">34-presets-popup · NEW · Load / Save</span>
+        <div data-screen-label="R2 Presets popup" style="width:640px;background:#2b1e17;border-radius:12px;padding:32px;box-sizing:border-box;display:flex;flex-direction:column;gap:16px">
+          <div style="display:flex;gap:8px"><div style="height:48px;padding:0 20px;border-radius:8px;background:#58321d;outline:3px solid #ffe5b4;display:flex;align-items:center;font:700 18px 'Rowdies';white-space:nowrap">Load</div><div style="height:48px;padding:0 20px;border-radius:8px;background:#2b1e17;border:2px solid #58321d;box-sizing:border-box;display:flex;align-items:center;font:700 18px 'Rowdies';white-space:nowrap">Save current</div></div>
+          <sc-for list="{{ presetRows }}" as="p" hint-placeholder-count="4">
+            <div style="min-height:72px;display:flex;align-items:center;gap:16px;padding:8px 16px;box-sizing:border-box;border-radius:8px;background:#3e2618;outline:{{ p.o }};opacity:{{ p.op }}">
+              <div style="flex:1;display:flex;flex-direction:column;gap:2px"><span style="font:700 20px 'Rowdies'">{{ p.n }}</span><span style="font:400 16px 'Work Sans';color:{{ p.sc }}">{{ p.s }}</span></div>
+              <span style="font:400 16px 'Work Sans';color:#b4bccb">{{ p.k }}</span>
+            </div>
+          </sc-for>
+          <div style="display:flex;flex-direction:column;gap:8px;padding-top:8px;border-top:1px solid #3e2618">
+            <span style="font:400 16px 'Work Sans';color:#b4bccb">Save tab: name field (20 chars) + slot list; saving over a slot asks to confirm.</span>
+          </div>
+          <div style="display:flex;gap:16px;justify-content:flex-end"><div style="height:56px;padding:0 24px;border-radius:8px;background:#58321d;display:flex;align-items:center;font:700 18px 'Rowdies'">Cancel</div><div style="height:56px;padding:0 24px;border-radius:8px;background:#ffb444;color:#291808;display:flex;align-items:center;font:700 18px 'Rowdies'">Load Poison Bloom</div></div>
+        </div>
+        <span style="font:400 18px 'Work Sans';color:#b4bccb;max-width:640px">A preset with a missing Axie loads 4 of 5 and leaves the empty slot dashed. Esc: Cancel.</span>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <span style="font:700 18px 'Rowdies';color:#b4bccb">35-leaderboard-popup · NEW · from Run setup (Ranked / Daily)</span>
+        <div data-screen-label="R2 Leaderboard popup" style="width:640px;background:#2b1e17;border-radius:12px;padding:32px;box-sizing:border-box;display:flex;flex-direction:column;gap:12px">
+          <div style="display:flex;justify-content:space-between;align-items:baseline"><span style="font:700 24px 'Rowdies'">Today's Daily · top 5</span><span style="font:400 16px 'Work Sans';color:#b4bccb">resets 00:00 UTC</span></div>
+          <sc-for list="{{ lbRows }}" as="r" hint-placeholder-count="6">
+            <div style="height:56px;display:grid;grid-template-columns:64px minmax(0,1fr) auto;gap:16px;align-items:center;padding:0 16px;border-radius:8px;background:#3e2618;outline:{{ r.o }}"><span style="font:700 18px 'Rowdies';color:#b4bccb">{{ r.r }}</span><span style="font:400 18px 'Work Sans';white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ r.n }}</span><span style="font:700 18px 'Rowdies'">{{ r.v }}</span></div>
+          </sc-for>
+          <div style="display:flex;gap:16px;justify-content:flex-end;padding-top:8px"><div style="height:56px;padding:0 24px;border-radius:8px;background:#58321d;display:flex;align-items:center;font:700 18px 'Rowdies'">Full Leaderboard</div><div style="height:56px;padding:0 24px;border-radius:8px;background:#ffb444;color:#291808;display:flex;align-items:center;font:700 18px 'Rowdies'">Close</div></div>
+        </div>
+        <span style="font:400 18px 'Work Sans';color:#b4bccb;max-width:640px">Your row is pinned last with the cream outline. Flag: player names and scores are placeholders.</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- 10 / 12 / 13 / 14 UPDATES -->
+  <div style="display:flex;flex-direction:column;gap:24px">
+    <div style="font:700 32px 'Rowdies'">10 Result · 12 Pact · 13 Treasure · 14 Abandon · updated</div>
+    <div style="display:flex;flex-wrap:wrap;gap:32px;align-items:flex-start">
+
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <span style="font:700 18px 'Rowdies';color:#b4bccb">10-result-cards · NEW states · inside the Result plate</span>
+        <div style="width:720px;background:#2b1e17;border-radius:12px;padding:32px;box-sizing:border-box;display:flex;flex-direction:column;gap:16px">
+          <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px">
+            <sc-for list="{{ resCards }}" as="c" hint-placeholder-count="3">
+              <div style="display:flex;flex-direction:column;gap:6px;padding:16px;border-radius:8px;background:#3e2618">
+                <span style="font:400 16px 'Work Sans';color:#b4bccb">{{ c.l }}</span>
+                <span style="font:700 28px 'Rowdies'">{{ c.v }}</span>
+                <span style="font:400 16px 'Work Sans';color:#dae0ea">{{ c.s }}</span>
+              </div>
+            </sc-for>
+          </div>
+          <sc-for list="{{ stakes }}" as="k" hint-placeholder-count="2">
+            <div style="display:flex;align-items:center;gap:16px;padding:16px;border-radius:8px;background:{{ k.bg }}">
+              <div style="flex:1;display:flex;flex-direction:column;gap:2px"><span style="font:700 20px 'Rowdies';color:{{ k.tc }}">{{ k.t }}</span><span style="font:400 18px 'Work Sans'">{{ k.s }}</span></div>
+              <span style="font:700 24px 'Rowdies';color:{{ k.tc }};white-space:nowrap">{{ k.v }}</span>
+            </div>
+          </sc-for>
+        </div>
+        <span style="font:400 18px 'Work Sans';color:#b4bccb;max-width:720px">Shard, Pass XP and Relics cards sit under the stats. Stake settlement appears only on Mission runs: won = green-2 box, stake × multiplier (N2 ×2.4) + Stone; lost = red-2 box, stake gone. Payout cap 20,000 (missions.json). Flag: relic count card copy is mine.</span>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <span style="font:700 18px 'Rowdies';color:#b4bccb">12-pact-swap (R5, live) · CHANGED</span>
+        <div style="width:640px;background:#3c424d;padding:24px;box-sizing:border-box;display:flex;flex-direction:column;gap:16px">
+          <sc-for list="{{ pactStates }}" as="p" hint-placeholder-count="4">
+            <div style="display:flex;flex-direction:column;gap:6px">
+              <span style="font:400 16px 'Work Sans';color:#dae0ea">{{ p.tag }}</span>
+              <div style="display:flex;align-items:center;gap:12px">
+                <div style="height:56px;padding:0 20px;border-radius:8px;background:{{ p.bg }};border:{{ p.b }};box-sizing:border-box;color:{{ p.c }};display:flex;align-items:center;gap:10px;font:700 18px 'Rowdies';white-space:nowrap">{{ p.btn }}<sc-if value="{{ p.gem }}" hint-placeholder-val="{{ false }}"><span style="height:32px;padding:0 8px;border-radius:6px;background:#2c0965;border:2px solid #894dff;box-sizing:border-box;display:flex;align-items:center;gap:4px;color:#f8bbff"><img src="../assets/cur_gem.png" style="width:18px;height:18px">15</span></sc-if></div>
+                <span style="font:400 16px/22px 'Work Sans';color:{{ p.nc }}">{{ p.note }}</span>
+              </div>
+            </div>
+          </sc-for>
+        </div>
+        <span style="font:400 18px 'Work Sans';color:#b4bccb;max-width:640px">R5 is live. Each Pact card carries its own "Swap – 15 Gem" secondary button from A6; one swap per Pact screen; it counts toward the run's Aid limit (6 / 4). Below A6 the button is not shown. Sell pact lives in the slot sheet and the in-run Relics list.</span>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <span style="font:700 18px 'Rowdies';color:#b4bccb">14-abandon · CHANGED · stake line</span>
+        <div style="width:640px;background:#3c424d;padding:40px;box-sizing:border-box;display:flex;justify-content:center">
+          <div style="width:560px;background:#2b1e17;border-radius:12px;padding:32px;box-sizing:border-box;display:flex;flex-direction:column;gap:20px">
+            <span style="font:700 24px 'Rowdies'">Abandon this run?</span>
+            <span style="font:400 18px/24px 'Work Sans'">The run ends as a loss at Floor 4. This can't be undone.</span>
+            <div style="padding:10px 12px;border-radius:8px;background:#3d0d11"><span style="font:400 18px/24px 'Work Sans'">You lose your 500 Shard mission stake.</span></div>
+            <div style="display:flex;gap:16px;justify-content:flex-end">
+              <div style="height:56px;padding:0 24px;border-radius:8px;background:#58321d;outline:4px solid #ffe5b4;display:flex;align-items:center;font:700 18px 'Rowdies'">Keep playing</div>
+              <div style="height:56px;padding:0 24px;border-radius:8px;background:#b81221;display:flex;align-items:center;font:700 18px 'Rowdies'">Abandon run</div>
+            </div>
+          </div>
+        </div>
+        <span style="font:400 18px 'Work Sans';color:#b4bccb;max-width:640px">Stake box only on Mission runs. The "you keep" line from round 1 is removed (a Mission loss keeps nothing staked).</span>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <span style="font:700 18px 'Rowdies';color:#b4bccb">13-treasure-slots-full · NEW state</span>
+        <div style="width:640px;background:#3c424d;padding:24px;box-sizing:border-box;display:flex;flex-direction:column;gap:12px;align-items:center">
+          <div style="width:592px;display:flex;align-items:center;gap:16px;background:#2b1e17e6;border-radius:12px;padding:20px;box-sizing:border-box">
+            <div style="flex:1;display:flex;flex-direction:column;gap:4px"><span style="font:700 24px 'Rowdies'">Scent of Blood</span><span style="font:400 18px 'Work Sans';color:#ff8986">Passive slots full (8 / 8)</span></div>
+          </div>
+          <div style="height:72px;padding:0 40px;border-radius:8px;background:#ffb444;color:#291808;display:flex;align-items:center;font:700 28px 'Rowdies'">Choose a relic to sell</div>
+          <span style="font:400 18px 'Work Sans'">or Leave it · Shards are added either way</span>
+        </div>
+        <span style="font:400 18px 'Work Sans';color:#b4bccb;max-width:640px">Primary opens 32-slots-full. Same rule on Reward.</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- 37 / 38 TUTORIAL -->
+  <div style="display:flex;flex-wrap:wrap;gap:48px">
+    <div style="display:flex;flex-direction:column;gap:12px">
+      <div style="font:700 24px 'Rowdies';color:#b4bccb">37-tutorial-curtain · NEW</div>
+      <div data-screen-label="R2 Tutorial curtain" style="width:880px;height:495px;background:#13161b;position:relative;overflow:hidden;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:24px">
+        <span style="font:400 18px 'Work Sans';color:#b4bccb">Tutorial · 5 steps · about 3 minutes</span>
+        <span style="font:700 36px 'Rowdies'">Your first fight</span>
+        <span style="font:400 18px/24px 'Work Sans';text-align:center;max-width:560px">Five Axies, five dice. Roll them, pick where each one goes, and end your turn.</span>
+        <div style="height:72px;padding:0 48px;border-radius:8px;background:#ffb444;color:#291808;filter:drop-shadow(0 4px 0 #2b1e17);display:flex;align-items:center;font:700 32px 'Rowdies'">Start</div>
+        <span style="position:absolute;right:24px;bottom:24px;font:400 18px 'Work Sans';color:#b4bccb;text-decoration:underline">Skip tutorial</span>
+      </div>
+      <span style="font:400 18px 'Work Sans';color:#b4bccb;max-width:880px">Full-screen neutral-1, fades to the combat stage (400 ms). Skip asks to confirm. Flag: copy is mine.</span>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:12px">
+      <div style="font:700 24px 'Rowdies';color:#b4bccb">38-tutorial-rewards · NEW</div>
+      <div data-screen-label="R2 Tutorial rewards" style="width:880px;height:495px;background:#3c424d;position:relative;display:flex;align-items:center;justify-content:center">
+        <div style="position:absolute;inset:0;background:#13161bcc"></div>
+        <div style="position:relative;width:560px;background:#2b1e17e6;border-radius:12px;padding:32px;box-sizing:border-box;display:flex;flex-direction:column;gap:16px">
+          <span style="font:700 32px 'Rowdies'">Tutorial done</span>
+          <span style="font:400 18px 'Work Sans'">Your starter pack is in.</span>
+          <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px">
+            <div style="display:flex;align-items:center;gap:12px;padding:12px;border-radius:8px;background:#3e2618"><img src="../assets/cur_shard.png" style="width:32px;height:32px"><div style="display:flex;flex-direction:column"><span style="font:700 24px 'Rowdies'">500</span><span style="font:400 16px 'Work Sans';color:#b4bccb">Starter Shards · can't be staked</span></div></div>
+            <div style="display:flex;align-items:center;gap:12px;padding:12px;border-radius:8px;background:#3e2618"><span style="width:32px;height:32px;border-radius:6px;background:#58321d;display:flex;align-items:center;justify-content:center;font:700 12px 'Rowdies'">TIX</span><div style="display:flex;flex-direction:column"><span style="font:700 24px 'Rowdies'">3</span><span style="font:400 16px 'Work Sans';color:#b4bccb">Echo Box Tickets</span></div></div>
+          </div>
+          <div style="height:72px;border-radius:8px;background:#ffb444;color:#291808;display:flex;align-items:center;justify-content:center;font:700 32px 'Rowdies'">Go to the Land</div>
+        </div>
+      </div>
+      <span style="font:400 18px 'Work Sans';color:#b4bccb;max-width:880px">Amounts from daily.json starter (500 Shards, 3 Tickets, 0 Gem), marked temporary in data. Flag: Ticket icon missing.</span>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  state = { pick: 2, slot: 0, sel: 3 };
+  renderVals() {
+    const s = this.state;
+    const RC = { Common: '#8b979a', Uncommon: '#8b979a', Rare: '#2dc661', Epic: '#27c0ca' };
+    const TAG = { RELIC: ['#ffb444', '#291808'], 'GENE VITALITY': ['#3fcd3c', '#13161b'], 'REROLL +1': ['#58321d', '#ffe5b4'], 'LEVEL UP': ['#58321d', '#ffe5b4'], ASCENSION: ['#58321d', '#ffe5b4'], 'CHAOS DEAL': ['#b81221', '#ffe5b4'], 'CURSE PACT': ['#b81221', '#ffe5b4'] };
+    const mk = (t, rar, d, sub, gain, cost, costLabel) => ({ t, rar, rc: RC[rar] || '#b4bccb', d, sub: sub || '', gain: gain || '', cost: cost || '', costLabel: costLabel || '', plain: !gain, risk: !!gain, tagBg: TAG[t][0], tagC: TAG[t][1], art: t === 'RELIC' || t === 'CHAOS DEAL' ? 'RELIC ART' : t });
+    const all = [
+      mk('RELIC', 'Rare', 'Shatterpoint', 'Critical hits ignore Shield and deal 5 more damage.'),
+      mk('GENE VITALITY', '', 'Pomodoro: +8 Max HP'),
+      mk('REROLL +1', 'Uncommon', '+1 maximum Reroll', 'Lasts the whole run'),
+      mk('LEVEL UP', 'Rare', 'Pomodoro: Tier 1 to Tier 2', 'Rewrites all six faces and Max HP'),
+      mk('ASCENSION', 'Rare', 'Pomodoro: all six faces +25%', '+6 Max HP · stacks without limit'),
+      mk('CHAOS DEAL', 'Epic', 'Fumeblossom', '', 'Fumeblossom, an Epic relic.', 'The whole party loses 20% Max HP for the rest of the run.', 'Gamble'),
+      mk('CURSE PACT', 'Epic', 'Curse Pact', '', 'You gain 1 extra maximum Reroll.', 'Enemies gain 18% HP and 12% damage for the rest of the run.', 'Curse')];
+    const picks = [all[0], all[1], all[5]];
+    const offer = picks.map((r, i) => ({ ...r, bg: i === s.pick ? '#3e2618' : '#2b1e17e6', o: i === s.pick ? '4px solid #ffe5b4' : 'none', lift: i === s.pick ? -18 : 0, pick: () => this.setState({ pick: i }) }));
+    const gallery = [...all, mk('RELIC', 'Common', 'Stone Carapace', 'The first Shield face you use each turn gives +5 Shield.')];
+    const takeBtn = 'Take ' + (picks[s.pick].t === 'CHAOS DEAL' ? 'the Chaos Deal' : picks[s.pick].d);
+    const slotTabs = ['Relic, passive full', 'Active full', 'Forced pact'].map((l, i) => ({ l, bg: i === s.slot ? '#58321d' : '#2b1e17', o: i === s.slot ? '3px solid #ffe5b4' : 'none', pick: () => this.setState({ slot: i, sel: i === 1 ? 1 : 3 }) }));
+    const P = [['Razor Claw', 'Passive', '+30'], ['Ember', 'Passive', '+45'], ['Keen Eye', 'Passive', '+75'], ['Linkstone', 'Passive', '+30'], ['Stone Carapace', 'Passive', '+30'], ['Festering Mark', 'Passive', '+45'], ['Iron Vow', 'Pact · Eternal', "Can't sell"], ['Barbed Hide', 'Passive', '+30']];
+    const Ac = [['Spore Bloom', 'Active · 6 MP', '+60'], ['Gene Nova', 'Active · 7 MP', '+90'], ['Aegis Font', 'Active · 8 MP', '+60']];
+    const list = s.slot === 1 ? Ac : P;
+    const slots = list.map(([n, k, v], i) => { const et = v.startsWith('C'); return { n, k, v, vc: et ? '#ff8986' : '#ffe5b4', op: et ? 0.5 : 1, bg: i === s.sel ? '#58321d' : '#3e2618', o: i === s.sel ? '4px solid #ffe5b4' : 'none', pick: () => !et && this.setState({ sel: i }) }; });
+    const selN = list[s.sel] ? list[s.sel][0] : '';
+    const sl = [
+      { title: 'Relic slots full', sub: 'Sell one passive relic to make room. Sold relics give Shards.', newName: 'Shatterpoint', newDesc: 'Critical hits ignore Shield and deal 5 more damage.', gridTitle: 'Passive slots · 8 / 8', cols: 4, canCancel: true },
+      { title: 'Active slots full', sub: 'Sell one active to make room.', newName: 'Spore Bloom II', newDesc: 'Apply Poison 5 to every enemy.', gridTitle: 'Active slots · 3 / 3', cols: 3, canCancel: true },
+      { title: 'Make room for the Pact', sub: 'This Pact is required at A10. You must sell a passive relic.', newName: 'Iron Vow', newDesc: 'All Shield you create +50%, and your whole team gains +2 Thorns.', gridTitle: 'Passive slots · 8 / 8', cols: 4, canCancel: false }][s.slot];
+    sl.slots = slots; sl.btn = 'Sell ' + selN + ' and take';
+    const kinds = [
+      { l: 'Normal', side: '', hasWhy: false, why: '', bg: '#58321d', o: '4px solid #ffe5b4', c: '#ffe5b4' },
+      { l: 'Daily', side: '2 of 3 left today', hasWhy: false, why: '', bg: '#3e2618', o: 'none', c: '#ffe5b4' },
+      { l: 'Ranked', side: 'Locked', hasWhy: true, why: 'Win a run at A3 to unlock Ranked.', bg: '#1c1f25', o: 'none', c: '#b4bccb' }];
+    const classes = ['All', 'Plant', 'Beast', 'Aqua', 'Bird', 'Bug', 'Reptile'].map((l, i) => ({ l, bg: i === 0 ? '#58321d' : '#3e2618', o: i === 0 ? '3px solid #ffe5b4' : 'none' }));
+    const pickAxies = ['Pomodoro', 'Bramble', 'Tidewell', 'Kestrel', 'Mossback', 'Sunpetal', 'Rook', 'Inkfin', 'Brine', 'Scuttle'].map((n, i) => ({ n, s: i === 1 ? 'In slot 1' : i === 4 ? 'In slot 2' : 'Tier 1 · 42 HP', op: (i === 1 || i === 4) ? 0.5 : 1, bg: i === 2 ? '#58321d' : '#3e2618', o: i === 2 ? '4px solid #ffe5b4' : 'none' }));
+    const presetRows = [['Poison Bloom', 'Plant · Reptile · Bug · Aqua · Bird', 'Slot 1', '4px solid #ffe5b4', 1, '#b4bccb'], ['Shield Wall', 'Plant · Plant · Aqua · Beast · Reptile', 'Slot 2', 'none', 1, '#b4bccb'], ['Glass Cannon', '1 Axie missing', 'Slot 3', 'none', 1, '#ff8986'], ['Empty', '', 'Slot 4', 'none', 0.5, '#b4bccb']].map(([n, s2, k, o, op, sc]) => ({ n, s: s2, k, o, op, sc }));
+    const lbRows = [['#1', 'Thảo Nguyên', '15 floors · 41:02'], ['#2', 'kinetic_owl', '15 · 44:18'], ['#3', 'Bùi Minh Đức', '14 · 39:50'], ['#4', 'Mavis', '13'], ['#5', 'Ronin_77', '13'], ['#212', 'Liam (you)', '9']].map(([r, n, v], i) => ({ r, n, v, o: i === 5 ? '3px solid #ffe5b4' : 'none' }));
+    const resCards = [['Shards', '+320', '140 held + 180 from rewards'], ['Pass XP', '+450', 'Level 14 · 450 / 800'], ['Relics', '6', 'Shatterpoint, Ember, +4']].map(([l, v, s2]) => ({ l, v, s: s2 }));
+    const stakes = [
+      { t: 'Mission won · N2', s: 'Stake 500 × 2.4 returned, plus Stone', v: '+1,200 · +8 Stone', bg: '#093322', tc: '#7ade61' },
+      { t: 'Mission lost · N2', s: 'The 500 Shard stake is gone', v: '−500', bg: '#3d0d11', tc: '#ff8986' }];
+    const pactStates = [
+      { tag: 'Enabled (A6+, on each card)', btn: 'Swap – 15 Gem', gem: false, bg: '#58321d', b: 'none', c: '#ffe5b4', note: 'Replaces this card. Once per Pact screen. Counts toward the run Aid limit.', nc: '#dae0ea' },
+      { tag: 'No other pact', btn: 'No other pact', gem: false, bg: '#3c424d', b: '2px solid #5b6372', c: '#dae0ea', note: 'Every other Pact is already on screen or owned.', nc: '#dae0ea' },
+      { tag: 'Used', btn: 'Swap used', gem: false, bg: '#3c424d', b: '2px solid #5b6372', c: '#dae0ea', note: 'One swap per Pact screen (or the run Aid limit is reached).', nc: '#dae0ea' },
+      { tag: 'Not enough Gem', btn: 'Need 15 Gem', gem: false, bg: '#3c424d', b: '2px solid #5b6372', c: '#dae0ea', note: 'You have 9 Gem. You need 6 more.', nc: '#ff8986' }];
+    return { offer, gallery, takeBtn, slotTabs, sl, kinds, classes, pickAxies, presetRows, lbRows, resCards, stakes, pactStates };
+  }
+}
+</script>
+</body>
+</html>

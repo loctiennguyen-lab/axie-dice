@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<link rel="stylesheet" href="../../_ds/terrariums-design-system-41d3ee92-ef23-4954-9fac-b76baf67c7c6/styles.css">
+<script src="../../_ds/terrariums-design-system-41d3ee92-ef23-4954-9fac-b76baf67c7c6/_ds_bundle.js"></script>
+<style>
+body{margin:0;background:#0d0e12}
+a{color:#ffb444}a:hover{color:#ffe5b4}
+@keyframes a4spin{to{transform:rotate(360deg)}}
+</style>
+</helmet>
+<div style="display:flex;flex-direction:column;gap:64px;padding:64px;font-family:'Work Sans',sans-serif;color:#ffe5b4;width:1920px;background:#0d0e12">
+  <div style="display:flex;flex-direction:column;gap:8px">
+    <div style="font:700 48px 'Rowdies'">Round 2 · Combat</div>
+    <div style="font:400 24px/32px 'Work Sans';color:#b4bccb;text-wrap:pretty">New: 30 Defeat panel, 39 Aid zone, 42 Unit inspector, 43 Tooltips, 45 Victory march, 46 Battle backdrop. Updated 02 Combat: Undo, live Rerolls, intent badges, status chips, float texts, crit chance, boss phases, mid-run network errors. Numbers come from the game data files (aid_prices.json, combat_tune.json, ascension continue_heal_pct); sources are named under each frame.</div>
+  </div>
+
+  <!-- 30 DEFEAT -->
+  <div style="display:flex;flex-direction:column;gap:16px">
+    <div style="font:700 24px 'Rowdies';color:#b4bccb">30-defeat-panel · NEW · click a state</div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <sc-for list="{{ defTabs }}" as="t" hint-placeholder-count="6">
+        <div onClick="{{ t.pick }}" style="height:48px;padding:0 20px;border-radius:8px;background:{{ t.bg }};outline:{{ t.o }};display:flex;align-items:center;font:700 18px 'Rowdies';cursor:pointer;white-space:nowrap">{{ t.l }}</div>
+      </sc-for>
+    </div>
+    <div data-screen-label="R2 Defeat panel" style="width:1920px;height:1080px;position:relative;overflow:hidden">
+      <dc-import name="A4 Combat" reduce-motion="{{ true }}" interactive="{{ false }}" sound="{{ false }}" hint-size="1920px,1080px"></dc-import>
+      <div style="position:absolute;inset:0;background:#13161be6"></div>
+      <div style="position:absolute;left:0;top:0;width:1920px;height:1080px;display:flex;align-items:center;justify-content:center">
+        <div style="width:720px;background:#2b1e17;border-radius:12px;padding:40px;box-sizing:border-box;display:flex;flex-direction:column;gap:24px;box-shadow:0 16px 48px #000000a0">
+          <div style="display:flex;flex-direction:column;gap:4px">
+            <span style="font:700 32px 'Rowdies';color:#ff8986">Party down</span>
+            <span style="font:400 18px 'Work Sans';color:#b4bccb">Act 1 · Floor 8 · Boss · Ascension 3</span>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:8px;padding:16px;border-radius:8px;background:#3e2618">
+            <div style="display:flex;justify-content:space-between;align-items:baseline"><span style="font:700 24px 'Rowdies'">Boss</span><span style="font:400 18px 'Work Sans'">34% left · phase 2 of 3</span></div>
+            <div style="position:relative;height:16px;border-radius:4px;background:#13161b;overflow:hidden"><div style="width:34%;height:100%;background:#f54540"></div><div style="position:absolute;left:66%;top:0;width:2px;height:16px;background:#ffe5b4"></div><div style="position:absolute;left:33%;top:0;width:2px;height:16px;background:#ffe5b4"></div></div>
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px 24px">
+            <sc-for list="{{ recap }}" as="r" hint-placeholder-count="6">
+              <div style="display:flex;justify-content:space-between;gap:16px;height:32px;align-items:center;border-bottom:1px solid #3e2618"><span style="font:400 18px 'Work Sans';color:#b4bccb">{{ r.l }}</span><span style="font:700 18px 'Rowdies'">{{ r.v }}</span></div>
+            </sc-for>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:12px;padding:16px;border-radius:8px;background:#3e2618">
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:16px">
+              <div style="display:flex;flex-direction:column;gap:2px"><span style="font:700 24px 'Rowdies'">Continue</span><span style="font:400 18px 'Work Sans'">Revive the party at {{ d.heal }}% HP. Boss keeps its HP and phase. Clock and attrition reset.</span></div>
+              <sc-if value="{{ d.showChip }}" hint-placeholder-val="{{ true }}">
+                <div style="flex:none;height:40px;padding:0 12px;border-radius:8px;background:#2c0965;border:2px solid #894dff;box-sizing:border-box;display:flex;align-items:center;gap:6px"><img src="../assets/cur_gem.png" style="width:24px;height:24px;object-fit:contain"><span style="font:700 20px 'Rowdies';color:#f8bbff">{{ d.price }}</span></div>
+              </sc-if>
+            </div>
+            <sc-if value="{{ d.hasNote }}" hint-placeholder-val="{{ false }}"><span style="font:400 18px/24px 'Work Sans';color:{{ d.noteC }}">{{ d.note }}</span></sc-if>
+            <div style="height:72px;border-radius:8px;background:{{ d.bBg }};color:{{ d.bC }};border:{{ d.bBorder }};box-sizing:border-box;filter:{{ d.bF }};display:flex;align-items:center;justify-content:center;gap:12px;font:700 28px 'Rowdies';white-space:nowrap">
+              <sc-if value="{{ d.spin }}" hint-placeholder-val="{{ false }}"><div style="width:28px;height:28px;border-radius:14px;border:4px solid #29180840;border-top-color:#291808;box-sizing:border-box;animation:a4spin 1s linear infinite"></div></sc-if>{{ d.btn }}</div>
+          </div>
+          <div style="display:flex;justify-content:flex-end"><div style="height:56px;padding:0 24px;border-radius:8px;background:#58321d;display:flex;align-items:center;font:700 18px 'Rowdies';outline:{{ d.endO }}">End run</div></div>
+        </div>
+      </div>
+    </div>
+    <div style="font:400 18px 'Work Sans';color:#b4bccb;max-width:1920px;text-wrap:pretty">Groups: header · boss remaining · recap (6 lines) · Continue block · End run (5). Continue is the one primary; End run is secondary. Price from aid_prices.json R1: 90 Gem (boss 180). Heal % from ascension continue_heal_pct (40, 25 from A6). Once per fight (engine can_continue). Free once per account at A0–A2 on Elite/Boss: chip reads "Free". Mission runs have no Continue: the block is replaced by "Mission runs have no Continue." and End run becomes primary. Phase ticks come from combat_tune.json phase_thresholds. Focus: Continue → End run; cannot afford / used: End run. Esc: nothing (the panel must be answered). Flag: copy for the 6 recap labels is mine.</div>
+  </div>
+
+  <!-- 02 UPDATES -->
+  <div style="display:flex;flex-direction:column;gap:24px">
+    <div style="font:700 32px 'Rowdies'">02 Combat · updated states</div>
+    <div style="display:flex;flex-wrap:wrap;gap:32px">
+
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <span style="font:700 18px 'Rowdies';color:#b4bccb">02-actions · CHANGED · Undo + live Rerolls · bottom-right crop</span>
+        <div style="width:600px;background:#3c424d;padding:24px;box-sizing:border-box;display:flex;gap:32px;justify-content:flex-end">
+          <sc-for list="{{ actionStates }}" as="a" hint-placeholder-count="2">
+            <div style="width:240px;display:flex;flex-direction:column;gap:12px">
+              <span style="font:400 16px 'Work Sans';color:#dae0ea">{{ a.tag }}</span>
+              <div style="display:flex;gap:8px">
+                <div style="width:88px;height:48px;border-radius:8px;background:{{ a.uBg }};border:{{ a.uB }};box-sizing:border-box;color:{{ a.uC }};display:flex;align-items:center;justify-content:center;gap:6px;font:700 18px 'Rowdies'"><img src="../assets/ui_undo.svg" style="width:20px;height:20px;opacity:{{ a.uOp }}">Z</div>
+                <div style="flex:1;height:48px;border-radius:8px;background:{{ a.rBg }};border:{{ a.rB }};box-sizing:border-box;color:{{ a.rC }};display:flex;align-items:center;justify-content:center;font:700 18px 'Rowdies';white-space:nowrap">{{ a.r }}</div>
+              </div>
+              <div style="height:64px;border-radius:8px;background:#ffb444;color:#291808;filter:drop-shadow(0 4px 0 #2b1e17);display:flex;align-items:center;justify-content:center;font:700 28px 'Rowdies'">End turn</div>
+              <span style="align-self:center;font:400 16px 'Work Sans';color:#dae0ea">1–5 dice · R · E/Space · Z · A · Esc</span>
+            </div>
+          </sc-for>
+        </div>
+        <span style="font:400 18px 'Work Sans';color:#b4bccb;max-width:600px">Undo sits left of Reroll in the actions column (secondary S, 88×48). Enabled while the turn's undo stack has entries; a reroll or a new turn clears it (engine undo_last). Rerolls read live "n / max": base 2 + ascension + relics (engine max_rerolls). Egg dice are picked by click only.</span>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <span style="font:700 18px 'Rowdies';color:#b4bccb">02-die-info · CHANGED · crit chance from data</span>
+        <div style="width:336px;background:#3c424d;padding:24px;box-sizing:border-box">
+          <div style="width:288px;background:#3e2618;border-radius:8px;padding:10px 12px;box-sizing:border-box;display:flex;flex-direction:column;gap:6px">
+            <span style="font:700 18px 'Rowdies'">Beast · ATTACK 9</span>
+            <span style="font:400 18px/24px 'Work Sans'">Deal 9 damage to one enemy.</span>
+            <div style="display:flex;justify-content:space-between;padding-top:6px;border-top:1px solid #58321d"><span style="font:400 18px 'Work Sans'">Crit chance</span><span style="font:700 18px 'Rowdies'">15%</span></div>
+            <span style="font:400 16px 'Work Sans';color:#b4bccb">Face crit 10% + relics 5%</span>
+          </div>
+        </div>
+        <span style="font:400 18px 'Work Sans';color:#b4bccb;max-width:336px">Only party damage faces show the row. Value = face crit keyword + relic critBonus (engine _crit_chance). Non-damage faces: row hidden. Example numbers are illustrative.</span>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <span style="font:700 18px 'Rowdies';color:#b4bccb">02-intent-badge · NEW component · above each enemy</span>
+        <div style="width:640px;background:#3c424d;padding:24px;box-sizing:border-box;display:flex;flex-wrap:wrap;gap:16px">
+          <sc-for list="{{ intents }}" as="i" hint-placeholder-count="0">
+            <div style="display:flex;flex-direction:column;align-items:center;gap:6px;width:136px">
+              <div style="height:36px;padding:0 10px;border-radius:8px;background:#2b1e17;border:2px solid {{ i.bc }};box-sizing:border-box;display:flex;align-items:center;gap:6px"><img src="{{ i.icon }}" style="width:20px;height:20px;object-fit:contain"><span style="font:700 18px 'Rowdies';white-space:nowrap">{{ i.v }}</span></div>
+              <span style="font:400 16px 'Work Sans';color:#dae0ea;text-align:center">{{ i.l }}</span>
+            </div>
+          </sc-for>
+        </div>
+        <span style="font:400 18px 'Work Sans';color:#b4bccb;max-width:640px">36 h, sits 12 px above the enemy model (world label). Border colour = intent kind; the number is the final intent damage (base × enrage × attrition × spike, combat_tune.json). Spike turns add "!" and the red-6 border.</span>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <span style="font:700 18px 'Rowdies';color:#b4bccb">02-status-chips · CHANGED · above the head</span>
+        <div style="width:640px;background:#3c424d;padding:24px;box-sizing:border-box;display:flex;flex-direction:column;gap:16px">
+          <span style="font:700 18px 'Rowdies'">Buffs</span>
+          <div style="display:flex;flex-wrap:wrap;gap:8px">
+            <sc-for list="{{ buffs }}" as="s" hint-placeholder-count="4">
+              <div style="height:32px;padding:0 10px;border-radius:8px;background:#3e2618;border:2px solid #3fcd3c;box-sizing:border-box;display:flex;align-items:center;gap:6px;font:700 18px 'Rowdies'">{{ s.l }}<span style="color:{{ s.c }}">{{ s.v }}</span></div>
+            </sc-for>
+          </div>
+          <span style="font:700 18px 'Rowdies'">Debuffs</span>
+          <div style="display:flex;flex-wrap:wrap;gap:8px">
+            <sc-for list="{{ debuffs }}" as="s" hint-placeholder-count="6">
+              <div style="height:32px;padding:0 10px;border-radius:8px;background:#3e2618;border:2px solid #f54540;box-sizing:border-box;display:flex;align-items:center;gap:6px;font:700 18px 'Rowdies'">{{ s.l }}<span style="color:{{ s.c }}">{{ s.v }}</span></div>
+            </sc-for>
+          </div>
+        </div>
+        <span style="font:400 18px 'Work Sans';color:#b4bccb;max-width:640px">Statuses from status_engine.gd. A chip = 3-letter label + stack count, buff (green-6 border) or debuff (red-6 border), so kind never depends on the icon alone. Max 4 chips in a row above a unit; more collapse into "+2" which opens the inspector. Thorns caps at 8.</span>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <span style="font:700 18px 'Rowdies';color:#b4bccb">02-float-text · NEW component · rises 48 px, 700 ms</span>
+        <div style="width:960px;background:#3c424d;padding:24px;box-sizing:border-box;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:16px">
+          <sc-for list="{{ floats }}" as="f" hint-placeholder-count="8">
+            <div style="display:flex;flex-direction:column;gap:4px;align-items:flex-start">
+              <span style="font:700 {{ f.fs }}px 'Rowdies';color:{{ f.c }};-webkit-text-stroke:3px #2b1e17;paint-order:stroke fill">{{ f.t }}</span>
+              <span style="font:400 16px 'Work Sans';color:#dae0ea">{{ f.l }}</span>
+            </div>
+          </sc-for>
+        </div>
+        <span style="font:400 18px 'Work Sans';color:#b4bccb;max-width:960px">Classes and sizes match EventBus.float_text (class: dmg, heal, shd, poi, buf, deb, man; size 0/1/2 → 24/32/40 px). Outline 3 px wood-1 so they read on any biome. Up 48 px, TRANS_CUBIC EASE_OUT 700 ms, fade the last 200. Reduce motion: no rise, hold 600, fade.</span>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <span style="font:700 18px 'Rowdies';color:#b4bccb">02-boss-phase · CHANGED · plate + phase moment</span>
+        <div style="width:960px;height:360px;background:#3c424d;position:relative;overflow:hidden">
+          <div style="position:absolute;right:24px;top:24px;width:320px;background:#2b1e17e6;border-radius:8px;padding:16px;box-sizing:border-box;display:flex;flex-direction:column;gap:8px">
+            <div style="display:flex;justify-content:space-between;align-items:baseline"><span style="font:700 24px 'Rowdies'">Boss</span><span style="font:700 24px 'Rowdies'">79 / 120</span></div>
+            <div style="position:relative;height:16px;border-radius:4px;background:#13161b;overflow:hidden"><div style="width:66%;height:100%;background:#f54540"></div><div style="position:absolute;left:66%;top:0;width:2px;height:16px;background:#ffe5b4"></div><div style="position:absolute;left:33%;top:0;width:2px;height:16px;background:#ffe5b4"></div></div>
+            <div style="display:flex;justify-content:space-between"><span style="font:400 18px 'Work Sans'">Next: 18 to all</span><span style="font:400 18px 'Work Sans'">Phase 2 of 3</span></div>
+          </div>
+          <div style="position:absolute;left:0;top:140px;width:600px;height:120px;background:#2b1e17e6;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px">
+            <span style="font:700 36px 'Rowdies';color:#ff8986">Phase 2</span>
+            <span style="font:400 18px 'Work Sans'">The boss changes its moves</span>
+          </div>
+        </div>
+        <span style="font:400 18px 'Work Sans';color:#b4bccb;max-width:960px">Ticks are drawn at every value of phase_thresholds (today 66 and 33); phase count = thresholds + 1. Never write the percentages in copy. Crossing a tick: HP bar flashes once (120 ms), turn banner "Phase n" holds 700 ms (red-8 title), float "PHASE n" on the boss. Input locked while the banner shows. Flag: banner sub-line copy is mine.</span>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <span style="font:700 18px 'Rowdies';color:#b4bccb">02-net-retry · NEW state · top centre, does not lock input</span>
+        <div style="width:960px;height:200px;background:#3c424d;position:relative;display:flex;justify-content:center;padding-top:24px;box-sizing:border-box">
+          <div style="height:56px;display:flex;align-items:center;gap:16px;padding:0 16px;border-radius:8px;background:#3e2618">
+            <div style="width:24px;height:24px;border-radius:12px;border:3px solid #58321d;border-top-color:#ffb444;box-sizing:border-box;animation:a4spin 1s linear infinite;flex:none"></div>
+            <span style="font:400 18px 'Work Sans';white-space:nowrap">Reconnecting… you can keep planning. Moves send when we're back.</span>
+            <div style="height:40px;padding:0 16px;border-radius:8px;background:#58321d;display:flex;align-items:center;font:700 18px 'Rowdies'">Retry now</div>
+          </div>
+        </div>
+        <span style="font:400 18px 'Work Sans';color:#b4bccb;max-width:960px">run_session: state "reconnecting" (8 s timeout, up to 3 re-sends). Picking dice and targets still works; actions that need a server roll (Reroll, End turn, Continue) show their spinner until answered. After 30 s with no answer the state becomes "offline" and this notice reads "Can't reach the server. Your run is saved." with Retry.</span>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <span style="font:700 18px 'Rowdies';color:#b4bccb">02-session-expired · NEW state · fatal, centre</span>
+        <div style="width:960px;height:440px;background:#3c424d;position:relative;display:flex;align-items:center;justify-content:center">
+          <div style="position:absolute;inset:0;background:#13161be6"></div>
+          <div style="position:relative;width:560px;background:#2b1e17;border-radius:12px;padding:32px;box-sizing:border-box;display:flex;flex-direction:column;gap:24px">
+            <div style="display:flex;flex-direction:column;gap:8px"><span style="font:700 24px 'Rowdies'">Session expired</span><span style="font:400 18px/24px 'Work Sans'">Your session expired. Sign in again to continue this run.</span></div>
+            <div style="display:flex;gap:16px;justify-content:flex-end">
+              <div style="height:56px;padding:0 24px;border-radius:8px;background:#58321d;display:flex;align-items:center;font:700 18px 'Rowdies'">Back to menu</div>
+              <div style="height:56px;padding:0 24px;border-radius:8px;background:#ffb444;color:#291808;outline:4px solid #ffe5b4;display:flex;align-items:center;font:700 18px 'Rowdies'">Sign in</div>
+            </div>
+          </div>
+        </div>
+        <span style="font:400 18px 'Work Sans';color:#b4bccb;max-width:960px">run_session closes with code "expired" (WS 1008) or "version" (4001). Version variant: title "Update needed", one button "Back to menu". Both lock the stage. Esc: nothing. Signing in again with the same account returns to this run. Another account, or a run the server no longer holds: "Your unfinished run is no longer open on the server, so it can't be continued." with only Back to menu.</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- 39 AID -->
+  <div style="display:flex;flex-direction:column;gap:16px">
+    <div style="font:700 24px 'Rowdies';color:#b4bccb">39-aid-zone · NEW (Should) · bottom-left, key A, hidden for the first 5 runs</div>
+    <div data-screen-label="R2 Aid zone" style="width:1920px;height:1080px;position:relative;overflow:hidden">
+      <dc-import name="A4 Combat" rerolls="{{ 0 }}" reduce-motion="{{ true }}" interactive="{{ false }}" sound="{{ false }}" hint-size="1920px,1080px"></dc-import>
+      <div style="position:absolute;left:24px;bottom:24px;width:420px;background:#2b1e17;border-radius:12px;padding:20px;box-sizing:border-box;display:flex;flex-direction:column;gap:12px;box-shadow:0 16px 48px #000000a0">
+        <div style="display:flex;justify-content:space-between;align-items:baseline"><span style="font:700 24px 'Rowdies'">Aid</span><span style="font:400 18px 'Work Sans';color:#b4bccb">2 of 6 used this run</span></div>
+        <sc-for list="{{ aidRows }}" as="a" hint-placeholder-count="5">
+          <div style="min-height:64px;display:flex;align-items:center;gap:16px;padding:8px 12px;box-sizing:border-box;border-radius:8px;background:#3e2618;opacity:{{ a.op }};outline:{{ a.o }}">
+            <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:2px"><span style="font:700 20px 'Rowdies'">{{ a.n }}</span><span style="font:400 16px 'Work Sans';color:{{ a.sc }}">{{ a.s }}</span></div>
+            <div style="flex:none;height:40px;padding:0 12px;border-radius:8px;background:#2c0965;border:2px solid #894dff;box-sizing:border-box;display:flex;align-items:center;gap:6px"><img src="../assets/cur_gem.png" style="width:22px;height:22px;object-fit:contain"><span style="font:700 18px 'Rowdies';color:#f8bbff">{{ a.p }}</span></div>
+          </div>
+        </sc-for>
+        <span style="font:400 16px 'Work Sans';color:#b4bccb">Gem 1,250 · press A or Esc to close</span>
+      </div>
+    </div>
+    <div style="display:flex;flex-wrap:wrap;gap:24px;align-items:flex-start">
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <span style="font:700 18px 'Rowdies';color:#b4bccb">39-first-purchase-confirm · over the tray, with scrim</span>
+        <div style="width:880px;height:440px;background:#3c424d;position:relative;display:flex;align-items:center;justify-content:center">
+          <div style="position:absolute;inset:0;background:#13161bcc"></div>
+      <div style="position:relative;width:560px;background:#2b1e17;border-radius:12px;padding:32px;box-sizing:border-box;display:flex;flex-direction:column;gap:20px;box-shadow:0 16px 48px #000000a0">
+        <span style="font:700 24px 'Rowdies'">First Aid purchase</span>
+        <span style="font:400 18px/24px 'Work Sans'">Extra Reroll costs 15 Gem. Aid can't change what a die rolls; the server decides every roll.</span>
+        <span style="font:400 16px 'Work Sans';color:#b4bccb">Shown once per account. Gem 1,250 → 1,235</span>
+        <div style="display:flex;gap:16px;justify-content:flex-end">
+          <div style="height:56px;padding:0 24px;border-radius:8px;background:#58321d;outline:4px solid #ffe5b4;display:flex;align-items:center;font:700 18px 'Rowdies'">Cancel</div>
+          <div style="height:56px;padding:0 24px;border-radius:8px;background:#ffb444;color:#291808;display:flex;align-items:center;gap:8px;font:700 18px 'Rowdies'">Buy · 15 Gem</div>
+        </div>
+      </div>
+        </div>
+        <span style="font:400 18px 'Work Sans';color:#b4bccb;max-width:880px">Scrim neutral-1 @ 80% covers HUD and tray. Focus starts on Cancel.</span>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <span style="font:700 18px 'Rowdies';color:#b4bccb">39-row-disabled · examples</span>
+        <div style="width:560px;background:#2b1e17;border-radius:12px;padding:20px;box-sizing:border-box;display:flex;flex-direction:column;gap:12px">
+          <sc-for list="{{ aidOff }}" as="a" hint-placeholder-count="3">
+            <div style="min-height:64px;display:flex;align-items:center;gap:16px;padding:8px 12px;box-sizing:border-box;border-radius:8px;background:#3e2618;opacity:.6">
+              <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:2px"><span style="font:700 20px 'Rowdies'">{{ a.n }}</span><span style="font:400 16px 'Work Sans';color:#ff8986">{{ a.s }}</span></div>
+              <div style="flex:none;height:40px;padding:0 12px;border-radius:8px;background:#2c0965;border:2px solid #894dff;box-sizing:border-box;display:flex;align-items:center;gap:6px"><img src="../assets/cur_gem.png" style="width:22px;height:22px;object-fit:contain"><span style="font:700 18px 'Rowdies';color:#f8bbff">{{ a.p }}</span></div>
+            </div>
+          </sc-for>
+        </div>
+        <span style="font:400 18px 'Work Sans';color:#b4bccb;max-width:560px">Price stays visible; the reason replaces the sub-line.</span>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <span style="font:700 18px 'Rowdies';color:#b4bccb">39-aid-button · closed, bottom-left above Actives</span>
+        <div style="width:400px;background:#3c424d;padding:24px;box-sizing:border-box;display:flex;flex-direction:column;gap:12px">
+          <div style="width:288px;height:48px;border-radius:8px;background:#58321d;display:flex;align-items:center;justify-content:space-between;padding:0 16px;box-sizing:border-box;font:700 18px 'Rowdies'"><span>Aid</span><span style="font:400 16px 'Work Sans';color:#dae0ea">A · 1 offer</span></div>
+          <div style="width:288px;background:#2b1e17;border-radius:8px;padding:12px;box-sizing:border-box;display:flex;flex-direction:column;gap:8px;border:2px solid #894dff">
+            <span style="font:700 18px 'Rowdies'">Out of Rerolls</span>
+            <span style="font:400 16px 'Work Sans'">Extra Reroll · 15 Gem · 3 for 38</span>
+          </div>
+        </div>
+        <span style="font:400 18px 'Work Sans';color:#b4bccb;max-width:400px">An offer card pops above the button only when aid_catalog shows one (R2 when Rerolls reach 0; R4 at a boss with 2 or fewer clock turns left). Hidden in Mission runs and for newcomers.</span>
+      </div>
+    </div>
+    <div style="font:400 18px 'Work Sans';color:#b4bccb;max-width:1920px;text-wrap:pretty">Groups: tray header · offer rows · footer (3) + confirm modal. Prices from aid_prices.json: R2 Extra Reroll 15 (pack of 3 = 38), R4 Delay clock 60 ("Coming soon" until LIAM-2), R1 Continue lives on the Defeat panel, R6 Shop refresh and R7 Scout live on Shop / Run map. Disabled rows keep their price and say why: cap_total "Run limit reached (6)", cap_type "Used for this fight", no_gems "Need n more Gem", not_now "Only when you're out of Rerolls". Run cap 6 at A0–A8, 4 at A9–A10. Focus: rows → Buy. Esc / A: close. Flag: the fairness line and row sub-lines are my copy.</div>
+  </div>
+
+  <!-- 42 INSPECTOR + 43 TOOLTIPS -->
+  <div style="display:flex;flex-wrap:wrap;gap:48px">
+    <div style="display:flex;flex-direction:column;gap:12px">
+      <div style="font:700 24px 'Rowdies';color:#b4bccb">42-unit-inspector · NEW (Should)</div>
+      <div data-screen-label="R2 Unit inspector" style="width:880px;height:640px;background:#3c424d;position:relative">
+        <div style="position:absolute;left:96px;top:200px;width:163px;height:214px;border:4px solid #ffe5b4;border-radius:8px;box-sizing:border-box;display:flex;align-items:center;justify-content:center;font:400 16px 'Work Sans';color:#dae0ea">ELITE 3D</div>
+        <div style="position:absolute;left:300px;top:40px;width:520px;background:#2b1e17;border-radius:12px;padding:24px;box-sizing:border-box;display:flex;flex-direction:column;gap:12px;box-shadow:0 16px 48px #000000a0">
+          <div style="display:flex;justify-content:space-between;align-items:baseline"><span style="font:700 24px 'Rowdies'">Elite</span><span style="font:700 24px 'Rowdies'">61 / 70</span></div>
+          <div style="height:10px;border-radius:4px;background:#13161b;display:flex;overflow:hidden"><div style="width:87%;background:#f54540"></div></div>
+          <sc-for list="{{ insp }}" as="r" hint-placeholder-count="5">
+            <div style="min-height:44px;display:flex;justify-content:space-between;align-items:center;gap:16px;padding:6px 12px;box-sizing:border-box;border-radius:8px;background:#3e2618"><span style="font:400 18px 'Work Sans';color:#b4bccb">{{ r.l }}</span><span style="font:400 18px 'Work Sans';text-align:right">{{ r.v }}</span></div>
+          </sc-for>
+          <span style="font:400 16px 'Work Sans';color:#b4bccb">Right-click or Esc to close · read only</span>
+        </div>
+      </div>
+      <span style="font:400 18px 'Work Sans';color:#b4bccb;max-width:880px;text-wrap:pretty">Opens on right-click of any 3D unit, also while a die is selected; changes no state (the picked die stays picked). Keyboard: I on the hovered/focused unit. Touch: long-press 500 ms. Panel 520 w, placed beside the unit away from screen edges. Groups: header · HP · rows (3). Shows intent, statuses with plain text, passive, faces (party) or move list (enemy).</span>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:12px">
+      <div style="font:700 24px 'Rowdies';color:#b4bccb">43-tooltips · NEW (Should) · hover 300 ms or focus</div>
+      <div data-screen-label="R2 Tooltips" style="width:880px;background:#3c424d;padding:24px;box-sizing:border-box;display:flex;flex-direction:column;gap:24px">
+        <sc-for list="{{ tips }}" as="t" hint-placeholder-count="3">
+          <div style="display:flex;gap:16px;align-items:flex-start">
+            <div style="width:120px;flex:none;font:400 16px 'Work Sans';color:#dae0ea;padding-top:12px">{{ t.k }}</div>
+            <div style="width:360px;background:#2b1e17;border-radius:8px;padding:12px 16px;box-sizing:border-box;display:flex;flex-direction:column;gap:6px;box-shadow:0 8px 24px #000000a0">
+              <div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px"><span style="font:700 18px 'Rowdies'">{{ t.n }}</span><span style="font:400 16px 'Work Sans';color:{{ t.rc }}">{{ t.r }}</span></div>
+              <span style="font:400 18px/24px 'Work Sans'">{{ t.d }}</span>
+              <sc-if value="{{ t.hasMeta }}" hint-placeholder-val="{{ false }}"><span style="font:400 16px 'Work Sans';color:#b4bccb">{{ t.m }}</span></sc-if>
+            </div>
+          </div>
+        </sc-for>
+      </div>
+      <span style="font:400 18px 'Work Sans';color:#b4bccb;max-width:880px;text-wrap:pretty">360 w max, wood-1, radius 8, shadow 0 8 24. Opens after 300 ms hover or instantly on keyboard focus; stays while the pointer is over it; never covers the hovered item (flip side at screen edges). Body ≤ 178 chars, wraps.</span>
+    </div>
+  </div>
+
+  <!-- 45 + 46 -->
+  <div style="display:flex;flex-wrap:wrap;gap:48px">
+    <div style="display:flex;flex-direction:column;gap:12px">
+      <div style="font:700 24px 'Rowdies';color:#b4bccb">45-victory-march · NEW (Could)</div>
+      <div data-screen-label="R2 Victory march" style="width:880px;height:495px;background:#3c424d;position:relative;overflow:hidden">
+        <div style="position:absolute;left:24px;top:24px;font:400 16px 'Work Sans';color:#dae0ea">3D: party runs through the Portal gate · 1200 ms</div>
+        <div style="position:absolute;left:0;right:0;bottom:120px;display:flex;justify-content:center"><span style="font:700 36px 'Rowdies';-webkit-text-stroke:3px #2b1e17;paint-order:stroke fill">Run won</span></div>
+        <div style="position:absolute;right:24px;bottom:24px;height:48px;padding:0 16px;border-radius:8px;background:#2b1e17e6;display:flex;align-items:center;gap:8px;font:700 18px 'Rowdies'">Skip<span style="font:400 16px 'Work Sans';color:#dae0ea">Space</span></div>
+      </div>
+      <span style="font:400 18px 'Work Sans';color:#b4bccb;max-width:880px">Only HUD is the Skip chip (bottom-right) and the title. Skip, Space, Esc or click jumps to Result. Reduce motion: skipped. Plays once per win.</span>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:12px">
+      <div style="font:700 24px 'Rowdies';color:#b4bccb">46-battle-backdrop · NEW (Could) · spec only, no new art</div>
+      <div style="width:880px;background:#2b1e17;border-radius:12px;padding:8px 0;display:flex;flex-direction:column">
+        <sc-for list="{{ biomes }}" as="b" hint-placeholder-count="6">
+          <div style="display:grid;grid-template-columns:120px 64px minmax(0,1fr);gap:16px;align-items:center;padding:10px 24px;border-top:1px solid #3e2618">
+            <span style="font:700 18px 'Rowdies'">{{ b.n }}</span>
+            <div style="display:flex;gap:4px"><div style="width:28px;height:28px;border-radius:4px;background:{{ b.sky }}"></div><div style="width:28px;height:28px;border-radius:4px;background:{{ b.g }}"></div></div>
+            <span style="font:400 16px 'Work Sans';color:#dae0ea">{{ b.d }}</span>
+          </div>
+        </sc-for>
+      </div>
+      <span style="font:400 18px 'Work Sans';color:#b4bccb;max-width:880px;text-wrap:pretty">Confirmed by Liam: the 3D arena replaces 2D backdrops. Arena per run segment comes from atia/arenas.json "journey" (row / total_rows). The 2D images in backgrounds/origins are retired for Combat. HUD plates are 90% wood so they read on every biome; check Arctic (lightest) and Luna (darkest) in QA. Flag: boss_biome is empty in data, so bosses use the current segment's biome.</span>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  state = { def: 0 };
+  renderVals() {
+    const s = this.state, A = '../assets/';
+    const T = ['Can afford', 'Free (first time)', "Can't afford", 'Already used', 'Loading', 'Error'];
+    const defTabs = T.map((l, i) => ({ l, bg: i === s.def ? '#58321d' : '#2b1e17', o: i === s.def ? '3px solid #ffe5b4' : 'none', pick: () => this.setState({ def: i }) }));
+    const AMB = { bBg: '#ffb444', bC: '#291808', bBorder: 'none', bF: 'drop-shadow(0 4px 0 #0d0e12)' }, OFF = { bBg: '#3c424d', bC: '#dae0ea', bBorder: '2px solid #5b6372', bF: 'none' };
+    const D = [
+      { ...AMB, price: '180', showChip: true, hasNote: false, note: '', btn: 'Continue · 180 Gem', spin: false, endO: 'none' },
+      { ...AMB, price: 'Free', showChip: true, hasNote: true, note: 'One free Continue per account, at A0–A2 on Elites and Bosses.', noteC: '#b4bccb', btn: 'Continue · Free', spin: false, endO: 'none' },
+      { ...OFF, price: '180', showChip: true, hasNote: true, note: 'You have 120 Gem. You need 60 more.', noteC: '#ff8986', btn: 'Need 60 more Gem', spin: false, endO: '4px solid #ffe5b4' },
+      { ...OFF, price: '180', showChip: true, hasNote: true, note: 'Continue was already used in this fight.', noteC: '#ff8986', btn: 'Used this fight', spin: false, endO: '4px solid #ffe5b4' },
+      { ...AMB, price: '180', showChip: true, hasNote: false, note: '', btn: 'Reviving…', spin: true, endO: 'none' },
+      { ...AMB, price: '180', showChip: true, hasNote: true, note: "Couldn't reach the server. Nothing was charged.", noteC: '#ff8986', btn: 'Try again', spin: false, endO: 'none' }];
+    const d = { ...D[s.def], heal: 40 };
+    const recap = [['Floors cleared', '7'], ['Fights won', '6'], ['Turns this fight', '9'], ['Damage dealt', '412'], ['Top hit', '58'], ['Shards held', '140']].map(([l, v]) => ({ l, v }));
+    const actionStates = [
+      { tag: 'Undo enabled · 3 / 3 Rerolls', uBg: '#58321d', uB: 'none', uC: '#ffe5b4', uOp: 1, r: 'Reroll · 3 / 3', rBg: '#58321d', rB: 'none', rC: '#ffe5b4' },
+      { tag: 'Undo disabled · 0 / 2 Rerolls', uBg: '#3c424d', uB: '2px solid #5b6372', uC: '#dae0ea', uOp: 0.6, r: 'No Rerolls · 0 / 2', rBg: '#3c424d', rB: '2px solid #5b6372', rC: '#dae0ea' }];
+    const intents = [['face_dmg.png', '8', 'Attack one', '#f54540'], ['face_dmg.png', '5 all', 'Attack all', '#f54540'], ['face_dmg.png', '14 !', 'Spike turn', '#f54540'], ['face_shield.png', '12', 'Shield self', '#31c6ff'], ['face_buff.svg', 'Buff', 'Buff allies', '#ff9345'], ['face_debuff.svg', 'Weaken', 'Debuff you', '#fa59a0']]
+      .map(([i, v, l, bc]) => ({ icon: A + i, v, l, bc }));
+    const buffs = [['SHD', '12', '#31c6ff'], ['THO', '3', '#ffe5b4'], ['REG', '2', '#3fcd3c'], ['ENR', '', '#ffe5b4']].map(([l, v, c]) => ({ l, v, c }));
+    const debuffs = [['PSN', '4', '#afdb1b'], ['BUR', '6', '#ff6460'], ['WEA', '2', '#ffe5b4'], ['VUL', '1', '#ffe5b4'], ['BLI', '1', '#ffe5b4'], ['STUN', '', '#ffe5b4']].map(([l, v, c]) => ({ l, v, c }));
+    const floats = [['-9', 'dmg · 0', '#ff6460', 24], ['CRIT -18', 'dmg crit · 2', '#ff6460', 40], ['LINK -12', 'dmg link · 1', '#ff6460', 32], ['+6', 'heal · 0', '#3fcd3c', 24], ['+8', 'shd · 0', '#31c6ff', 24], ['PSN 3', 'poi · 0', '#afdb1b', 24], ['+1 REROLL', 'buf · 0', '#ffdf8d', 24], ['SUMMON', 'buf · 0', '#ffdf8d', 24], ['STUN', 'deb · 0', '#fa59a0', 24], ['+2 MP', 'man · 0', '#af7dff', 24], ['PHASE 2', 'deb · 2', '#ff8986', 40], ['UNDYING', 'buf · 0', '#ffdf8d', 24]]
+      .map(([t, l, c, fs]) => ({ t, l, c, fs }));
+    const aidRows = [
+      { n: 'Extra Reroll', s: 'Rerolls every unused die once', p: '15', op: 1, o: '4px solid #ffe5b4', sc: '#b4bccb' },
+      { n: 'Extra Reroll ×3', s: 'Pack of 3, used one at a time', p: '38', op: 1, o: 'none', sc: '#b4bccb' },
+      { n: 'Delay clock', s: 'Coming soon', p: '60', op: 0.6, o: 'none', sc: '#b4bccb' },
+      { n: 'Continue', s: 'Only on the Defeat panel', p: '90', op: 0.6, o: 'none', sc: '#b4bccb' }];
+    const aidOff = [{ n: 'Extra Reroll', s: 'Used for this fight (limit set by Ascension)', p: '15' }, { n: 'Extra Reroll ×3', s: 'Need 23 more Gem', p: '38' }, { n: 'Scout', s: 'Aid limit for this run reached (6)', p: '12' }];
+    const insp = [['Intent', 'Attacks one Axie for 14 next turn'], ['Statuses', 'Poison 4 · loses 4 HP at turn end, then 3'], ['', 'Weaken 2 · deals 25% less damage for 2 turns'], ['Moves', 'Cleave · Guard · Enrage at half HP'], ['Shield', '0']].map(([l, v]) => ({ l, v }));
+    const tips = [
+      { k: 'Relic', n: 'Festering Mark', r: 'Uncommon', rc: '#8b979a', d: 'Enemies with Poison or Burn take +2 damage from each hit. Enemies with both take +4.', hasMeta: true, m: 'Passive · sells for 45 Shards' },
+      { k: 'Active', n: 'Spore Bloom', r: 'Rare', rc: '#2dc661', d: 'Apply Poison 3 to every enemy.', hasMeta: true, m: 'Costs 6 Mana · once per turn' },
+      { k: 'Die face', n: 'POISON 3', r: 'Tail', rc: '#b4bccb', d: 'Apply 3 Poison to one enemy. Poison deals its stacks at turn end, then drops by 1.', hasMeta: false, m: '' }];
+    const biomes = [['Savannah', '#6fb3e8', '#cfa83c', 'Segment 1 · trees, rocks, stone path'], ['Forest', '#7ec0d8', '#5f9a4a', 'Segment 2 · trees, shrubs, flowers, quarry'], ['Arctic', '#9ec7e8', '#e8f1f7', 'Segment 3 · lightest; check plate contrast'], ['Mystic', '#3b2a6b', '#4f3f7a', 'Segment 4 · purple fog + flecks'], ['Genesis', '#5a90c8', '#8a6a3a', 'Segment 5 · shrubs, warm fog'], ['Luna', '#0f1230', '#555a73', 'Segment 6 · darkest, no path']]
+      .map(([n, sky, g, d]) => ({ n, sky, g, d }));
+    return { aidOff, defTabs, d, recap, actionStates, intents, buffs, debuffs, floats, aidRows, insp, tips, biomes };
+  }
+}
+</script>
+</body>
+</html>
