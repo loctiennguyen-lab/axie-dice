@@ -865,22 +865,6 @@ func _build_overlay_ui() -> void:
 	_overlay_layer.add_child(_overlay_root)
 
 
-## Opens a node screen on `plate` and returns the full-canvas host to lay its content out in.
-## Plate -> scrim -> UI, in that order, per DangoTheme's own background formula.
-func _open_screen(plate: Texture2D) -> Control:
-	_clear_overlay_content()
-	_board.visible = true
-	_overlay_root.visible = true
-	DangoTheme.build_plate(_overlay_root, plate, DangoTheme.Scrim.DEFAULT, false)
-
-	var host := Control.new()
-	host.name = "ScreenContent"
-	host.set_anchors_preset(Control.PRESET_FULL_RECT)
-	host.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_overlay_root.add_child(host)
-	return host
-
-
 ## The map is the run's resting point: every node resolves back to it, and a save taken here
 ## carries no in-flight combat. Called from the handful of places that finish a step rather
 ## than from a timer, so the file is written when something actually changed.
@@ -1379,7 +1363,7 @@ func _hit_button() -> Button:
 ## Boss Pact screen (scenes/pact/PactView.gd). Take/skip go through RunState; afterwards the normal
 ## reward cards follow (phase REWARD), saved first so a quit here resumes on the right screen.
 func _show_pact_overlay() -> void:
-	var host := _open_screen(MockupAssets.tex("assets/bg/rocky.jpg"))
+	var host := _open_ui3_screen()
 	var view := PactView.new()
 	view.name = "PactView"
 	host.add_child(view)
@@ -1398,6 +1382,7 @@ func _show_pact_overlay() -> void:
 	view.skipped.connect(func():
 		if RunState.skip_pact():
 			_after_pact())
+	view.menu_requested.connect(open_run_menu)
 
 
 func _after_pact() -> void:
