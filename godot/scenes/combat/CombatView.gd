@@ -1147,21 +1147,20 @@ func _layout_tray() -> void:
 	for b in _die_slot_buttons:
 		if (b as Button).visible:
 			n += 1
-	var col_w := 272.0
+	var col_w := TrayColumn.W
 	var gap := 16.0
-	if n > 5:   # summoned tokens: narrow the columns so one row still fits (R1 has no 2nd row)
-		col_w = maxf(150.0, (vs.x - 32.0 - gap * (n - 1)) / n)
-		col_w = minf(col_w, 272.0)
+	if n > 5:   # summoned tokens: narrow the gap so one row still fits (the card stays 152 wide)
+		gap = clampf((vs.x - 32.0 - col_w * n) / float(n - 1), 4.0, 16.0)
 	var total := n * col_w + maxf(n - 1, 0.0) * gap
 	var x0 := (vs.x - total) * 0.5
-	var top := vs.y - 16.0 - 176.0
+	var top := vs.y - 10.0 - TrayColumn.H   # card top at y 890 on 1080: keeps the party row clear
 	var i := 0
 	for b in _die_slot_buttons:
 		var btn: Button = b
 		if not btn.visible:
 			continue
 		btn.position = Vector2(x0 + i * (col_w + gap), top)
-		btn.size = Vector2(col_w, 176)
+		btn.size = Vector2(col_w, TrayColumn.H)
 		i += 1
 
 
@@ -3086,7 +3085,11 @@ func _start_dice_throw(fresh: Array) -> void:
 func _throw_tray_target(i: int) -> Vector2:
 	if i < 0 or i >= _throw_slots.size():
 		return Vector2.ZERO
-	var btn: Button = _die_slot_buttons[int(_throw_slots[i])]
+	var slot := int(_throw_slots[i])
+	var tile: Variant = (_die_slot_content[slot] as Dictionary).get("die")
+	if tile is Control and is_instance_valid(tile):
+		return (tile as Control).get_global_rect().get_center() - _stage3d.global_position
+	var btn: Button = _die_slot_buttons[slot]
 	return btn.get_global_rect().get_center() - _stage3d.global_position
 
 
@@ -3202,7 +3205,7 @@ func _ensure_die_slots(count: int) -> void:
 		btn.name = "DieSlot%d" % _die_slot_buttons.size()
 		btn.toggle_mode = true
 		btn.text = ""
-		btn.custom_minimum_size = Vector2(272, 176)
+		btn.custom_minimum_size = Vector2(TrayColumn.W, TrayColumn.H)
 		_tray_root.add_child(btn)
 		_die_slot_buttons.append(btn)
 		_style_die_slot(btn)

@@ -45,6 +45,7 @@ func _open(kind: String, node_id: String, pw: int) -> Node:
 
 func _normal(size: Vector2i) -> void:
 	var scene: Node = await _open("battle", "r4_c0", 3)
+	scene._land_dice_now()
 	await _shot("turn", size)
 	for u in scene._party_dice_units():
 		if u.has_rolled():
