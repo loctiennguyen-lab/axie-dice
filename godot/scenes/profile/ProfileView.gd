@@ -9,6 +9,7 @@ extends Control
 
 const TABS: Array[String] = ["Overview", "Cosmetics", "Titles"]
 const CATS: Array[String] = [Cosmetics.SLOT_DIE, Cosmetics.SLOT_FRAME]
+const RARITY_NAMES: Array[String] = ["Common", "Uncommon", "Rare", "Epic", "Legendary", "Mythic"]
 const CAT_NAMES := {"die": "Dice skins", "frame": "Avatar frames"}
 
 var no_scene_change := false
@@ -170,6 +171,7 @@ func _overview_tab() -> void:
 	var fr := _frame()
 	var left: VBoxContainer = fr[0]
 	var d: VBoxContainer = fr[1]
+	(d.get_parent() as Control).size_flags_vertical = Control.SIZE_SHRINK_BEGIN   # identity card hugs its content
 	# identity in the detail plate
 	var hc := CenterContainer.new()
 	hc.name = "HeaderCard"
@@ -225,7 +227,7 @@ static func stat_tiles() -> Array[Dictionary]:
 		{"k": "Wins", "v": str(MetaState.wins), "s": "%d%%" % int(round(100.0 * MetaState.wins / runs)) if runs > 0 else "—"},
 		{"k": "Best Ascension", "v": ("A%d" % best) if best >= 0 else "—", "s": "won"},
 		{"k": "Pure wins", "v": str(int(ps.get("pure_wins", 0))), "s": "no Aid"},
-		{"k": "Nhiệm vụ", "v": ("%d / %d" % [int(ps.get("ms_won", 0)), ms_played]) if ms_played > 0 else "—", "s": "won / played"},
+		{"k": "Missions", "v": ("%d / %d" % [int(ps.get("ms_won", 0)), ms_played]) if ms_played > 0 else "—", "s": "won / played"},
 	]
 
 
@@ -390,7 +392,7 @@ func _cos_detail(v: VBoxContainer, owned: Array[String]) -> void:
 	nm.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	head.add_child(nm)
 	if selected != "":
-		head.add_child(UI3Meta.tag(DangoTheme.RARITY_NAMES[clampi(tier, 0, 5)]))
+		head.add_child(UI3Meta.tag(RARITY_NAMES[clampi(tier, 0, 5)]))
 		var sizes: Array = [104.0, 64.0, 36.0] if cat == Cosmetics.SLOT_DIE else [96.0, 40.0]
 		var art_row := HBoxContainer.new()
 		art_row.alignment = BoxContainer.ALIGNMENT_CENTER
@@ -544,8 +546,9 @@ static func make_avatar(total_px: float, svc: Node = null) -> Control:
 		nm = svc.display_name().left(1).to_upper()
 	var av := PanelContainer.new()
 	av.name = "Avatar"
-	av.add_theme_stylebox_override("panel", DangoTheme.solid_chip_style(DangoTheme.GOLD, 20, 3))
-	var ini := DangoTheme.display_label(nm, int(total_px * 0.3), DangoTheme.INK)
+	av.add_theme_stylebox_override("panel", UI3Theme.flat(UI3Theme.color("accent"), UI3Theme.radius("m")))
+	var ini := UI3.label(nm, "LabelScreenTitle")
+	ini.add_theme_color_override("font_color", UI3Theme.color("accent_text"))
 	ini.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	ini.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	av.add_child(ini)
