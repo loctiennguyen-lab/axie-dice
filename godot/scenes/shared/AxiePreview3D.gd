@@ -99,7 +99,7 @@ var _empty_bg: PanelContainer
 ## error". A host that knows what is behind this control says so with `set_empty_backing()`.
 var _empty_fill: Color = Color.TRANSPARENT   # TRANSPARENT = the UI3 panel_raised default
 var _empty_radius: int = 0
-var _empty_ink: Color = Color(1.0, 0.84, 0.42)
+var _empty_ink: Color = Color.TRANSPARENT   # TRANSPARENT = UI3 text_muted
 
 var _stage: Node3D
 var _sun: DirectionalLight3D
@@ -198,7 +198,8 @@ func set_genes(genes: String) -> Dictionary:
 	# else under "descriptor", this yields null and the branch below reports a failed build,
 	# instead of failing somewhere later with no connection to the change that caused it.
 	var desc := _report.get("descriptor") as AxieDescriptor
-	if desc != null:
+	# 0 parts resolved = only a bare body (half disc) would draw: show the clean empty state instead.
+	if desc != null and int(_report.get("resolved_count", 1)) > 0:
 		_character = AxieCharacter3D.from_descriptor(desc)
 	if _character != null and _character.root != null:
 		_stage.add_child(_character.root)
@@ -218,6 +219,9 @@ func set_genes(genes: String) -> Dictionary:
 	var warning := AxieGenePreview.warning_text(_report)
 	_warning.visible = not warning.is_empty()
 	_warning_label.text = warning
+	if _character == null and str(_report.get("reason", "")) == AxieGenePreview.REASON_OK and not warning.is_empty():
+		# Catalogue has no art for any part: say it plainly, no part list, no counts.
+		_warning_label.text = "No 3D preview for this Axie"
 	_apply_bare_style(_character == null)
 
 	preview_updated.emit(_report)
@@ -250,10 +254,10 @@ func _apply_bare_style(bare: bool) -> void:
 		return
 	_empty_bg.visible = bare
 	if bare:
-		_warning.set_anchors_preset(Control.PRESET_FULL_RECT)
+		_warning.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 		_warning.add_theme_stylebox_override("panel", StyleBoxEmpty.new())
 		_warning_label.add_theme_font_size_override("font_size", UI3Theme.size_of("text_body"))
-		_warning_label.add_theme_color_override("font_color", _empty_ink)
+		_warning_label.add_theme_color_override("font_color", _empty_ink if _empty_ink.a > 0.0 else UI3Theme.color("text_muted"))
 		_warning_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	else:
 		_warning.set_anchors_preset(Control.PRESET_BOTTOM_WIDE)

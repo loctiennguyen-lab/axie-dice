@@ -93,7 +93,13 @@ func _make(sc: String) -> Node:
 		await get_tree().process_frame
 		if sc == "vault-lookup":
 			v._id_field.text = "11778888"
-			v._set_status("Looking up Axie #11778888…")
+			var lp: Array = []
+			for slot in ["mouth", "horn", "back", "tail", "eyes", "ears"]:
+				lp.append({"id": "plant-%s" % slot, "name": "Leaf %s" % slot, "class": "plant", "type": slot})
+			v._on_fetch_completed({"ok": true, "axie": {"id": "11778888", "class": "plant", "parts": lp, "genes": GENES}})
+		elif sc == "vault-lookup-bad":
+			v._id_field.text = "11778888"
+			v._on_fetch_completed({"ok": true, "axie": {"id": "11778888", "class": "plant", "parts": [], "genes": "0x01"}})
 		elif sc == "vault-notfound":
 			v._id_field.text = "99999999"
 			v._on_fetch_completed({"ok": false, "message": "No Axie with ID 99999999 was found."})
