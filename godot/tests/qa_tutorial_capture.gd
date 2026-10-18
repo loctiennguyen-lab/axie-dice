@@ -89,8 +89,9 @@ func _settle(frames: int) -> void:
 
 
 func _shoot(tag: String) -> void:
-	var path := QaPaths.evidence_dir() + "/%s_tutorial-%s.png" % [_today(), tag]
-	get_tree().root.get_texture().get_image().save_png(path)
+	var img := get_tree().root.get_texture().get_image()
+	var path := QaPaths.evidence_dir() + "/ui3-tutorial-%s-%dx%d.png" % [tag, img.get_width(), img.get_height()]
+	img.save_png(path)
 	print("QA: saved ", path)
 
 

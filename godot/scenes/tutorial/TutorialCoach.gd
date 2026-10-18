@@ -22,9 +22,9 @@ signal cta_pressed
 signal reward_chosen(index: int)
 signal skip_pressed
 
-const _DIM := Color(0.02, 0.025, 0.04, 0.72)
-const _CARD_W := 420.0
-const _CARD_PAD := 20.0     # must match the card's stylebox content margin
+var _DIM := Color(0.02, 0.025, 0.04, 0.72)   # replaced by the UI3 scrim token in _ready
+const _CARD_W := 640.0
+const _CARD_PAD := 24.0     # must match the card's stylebox content margin
 const _GAP := 18.0          # between the spotlight edge and the card
 const _MARGIN := 24.0       # minimum distance from any screen edge
 const _HOLE_PAD := 10.0     # how far the lit rect is grown past the control it frames
@@ -47,6 +47,8 @@ var _curtain_cta: Button
 var _reward_row: HBoxContainer
 
 var _skip: Button
+var _card_skip: Button
+var _skip_modal: Control
 var _root: Control
 
 ## The control currently framed, re-read every frame so the hole tracks it through layout
@@ -67,6 +69,8 @@ func _ready() -> void:
 	_root = Control.new()
 	_root.set_anchors_preset(Control.PRESET_FULL_RECT)
 	_root.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_root.theme = UI3Theme.get_theme()
+	_DIM = UI3Theme.color("scrim")
 	add_child(_root)
 
 	for _i in 4:
@@ -80,9 +84,9 @@ func _ready() -> void:
 	_ring.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_ring_style = StyleBoxFlat.new()
 	_ring_style.bg_color = Color(0, 0, 0, 0)
-	_ring_style.border_color = DangoTheme.PRIMARY
-	_ring_style.set_border_width_all(3)
-	_ring_style.set_corner_radius_all(14)
+	_ring_style.border_color = UI3Theme.color("text")
+	_ring_style.set_border_width_all(4)
+	_ring_style.set_corner_radius_all(12)
 	_ring.add_theme_stylebox_override("panel", _ring_style)
 	_root.add_child(_ring)
 
@@ -93,53 +97,51 @@ func _ready() -> void:
 
 
 func _build_card() -> void:
-	_card = PanelContainer.new()
+	# UI-03 17-tutorial: 640 w wood plate, pad 24, title + "Step n of 5", body, Skip (quiet) + Got it.
+	_card = UI3.plate(&"dialog")
 	_card.custom_minimum_size = Vector2(_CARD_W, 0)
 	_card.mouse_filter = Control.MOUSE_FILTER_STOP
-	_card.add_theme_stylebox_override("panel", DangoTheme.surface_style(
-		DangoTheme.Surface.PANEL, 16, 3, 5.0, Vector2(_CARD_PAD, 16)))
+	var sb := _card.get_theme_stylebox("panel").duplicate() as StyleBoxFlat
+	sb.set_content_margin_all(_CARD_PAD)
+	_card.add_theme_stylebox_override("panel", sb)
 	_root.add_child(_card)
 
 	var col := VBoxContainer.new()
-	col.add_theme_constant_override("separation", 8)
+	col.add_theme_constant_override("separation", 16)
 	_card.add_child(col)
 
-	_card_step = Label.new()
-	_card_step.add_theme_font_override("font", DangoTheme.FONT_UI_BOLD)
-	_card_step.add_theme_font_size_override("font_size", 12)
-	_card_step.add_theme_color_override("font_color", DangoTheme.PRIMARY)
+	_card_step = UI3.label("", "LabelMuted")
 	col.add_child(_card_step)
 
-	_card_title = Label.new()
-	_card_title.add_theme_font_override("font", DangoTheme.FONT_DISPLAY)
-	_card_title.add_theme_font_size_override("font_size", 24)
-	_card_title.add_theme_color_override("font_color", DangoTheme.TEXT)
+	_card_title = UI3.label("", "LabelTitle")
 	_card_title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	# A Label with AUTOWRAP reports its minimum height for its CURRENT width, and that width is
-	# zero until the first layout pass — one character per line, and a card as tall as the
-	# screen. Pinning the text width makes the wrap (and so the height _place() reads back)
-	# measure against the width the card will actually have.
+	# Pinned width: an autowrap Label measures against its CURRENT width, zero before the first layout.
 	_card_title.custom_minimum_size = Vector2(_CARD_W - _CARD_PAD * 2.0, 0)
 	col.add_child(_card_title)
 
-	_card_body = Label.new()
-	_card_body.add_theme_font_size_override("font_size", 16)
-	_card_body.add_theme_color_override("font_color", Color(0.93, 0.94, 0.96, 0.78))
+	_card_body = UI3.label("")
 	_card_body.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_card_body.custom_minimum_size = Vector2(_CARD_W - _CARD_PAD * 2.0, 0)
 	col.add_child(_card_body)
 
-	_card_cta = Button.new()
-	_card_cta.custom_minimum_size = Vector2(0, 44)
+	var row := HBoxContainer.new()
+	row.alignment = BoxContainer.ALIGNMENT_END
+	row.add_theme_constant_override("separation", 16)
+	col.add_child(row)
+	_card_skip = UI3.button("Skip tutorial", &"quiet")
+	_card_skip.name = "SkipInCard"
+	_card_skip.focus_mode = Control.FOCUS_NONE
+	_card_skip.pressed.connect(_ask_skip)
+	row.add_child(_card_skip)
+	_card_cta = UI3.button("", &"secondary")
 	_card_cta.focus_mode = Control.FOCUS_NONE
-	DangoTheme.style_button(_card_cta, true)
 	_card_cta.pressed.connect(func(): cta_pressed.emit())
-	col.add_child(_card_cta)
+	row.add_child(_card_cta)
 
 
 func _build_curtain() -> void:
 	_curtain = ColorRect.new()
-	_curtain.color = Color(0.02, 0.025, 0.04, 0.93)
+	_curtain.color = Color(_DIM, 0.93)
 	_curtain.set_anchors_preset(Control.PRESET_FULL_RECT)
 	_curtain.mouse_filter = Control.MOUSE_FILTER_STOP
 	_root.add_child(_curtain)
@@ -154,17 +156,12 @@ func _build_curtain() -> void:
 	col.alignment = BoxContainer.ALIGNMENT_CENTER
 	center.add_child(col)
 
-	_curtain_title = Label.new()
-	_curtain_title.add_theme_font_override("font", DangoTheme.FONT_DISPLAY)
-	_curtain_title.add_theme_font_size_override("font_size", 40)
-	_curtain_title.add_theme_color_override("font_color", DangoTheme.PRIMARY)
+	_curtain_title = UI3.label("", "LabelScreenTitle")
 	_curtain_title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	col.add_child(_curtain_title)
 
-	_curtain_body = Label.new()
+	_curtain_body = UI3.label("")
 	_curtain_body.custom_minimum_size = Vector2(560, 0)
-	_curtain_body.add_theme_font_size_override("font_size", 18)
-	_curtain_body.add_theme_color_override("font_color", Color(0.93, 0.94, 0.96, 0.78))
 	_curtain_body.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_curtain_body.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	col.add_child(_curtain_body)
@@ -175,11 +172,10 @@ func _build_curtain() -> void:
 	_reward_row.visible = false
 	col.add_child(_reward_row)
 
-	_curtain_cta = Button.new()
-	_curtain_cta.custom_minimum_size = Vector2(260, 54)
+	_curtain_cta = UI3.button("", &"primary", &"L")
+	_curtain_cta.custom_minimum_size.x = 260
 	_curtain_cta.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	_curtain_cta.focus_mode = Control.FOCUS_NONE
-	DangoTheme.style_button(_curtain_cta, true)
 	_curtain_cta.pressed.connect(func(): cta_pressed.emit())
 	col.add_child(_curtain_cta)
 
@@ -187,20 +183,40 @@ func _build_curtain() -> void:
 ## A quiet way out, in the corner, on every step. A mandatory tutorial with no exit is the
 ## thing players complain about; one that is easy to find but easy to ignore is not.
 func _build_skip() -> void:
-	_skip = Button.new()
-	_skip.text = "Skip tutorial"
+	_skip = UI3.button("Skip tutorial", &"quiet")
 	_skip.focus_mode = Control.FOCUS_NONE
-	_skip.flat = true
-	_skip.add_theme_font_size_override("font_size", 13)
-	_skip.add_theme_color_override("font_color", Color(0.93, 0.94, 0.96, 0.45))
-	_skip.add_theme_color_override("font_hover_color", DangoTheme.TEXT)
 	_skip.set_anchors_preset(Control.PRESET_BOTTOM_LEFT)
 	_skip.offset_left = 16.0
-	_skip.offset_top = -40.0
-	_skip.offset_right = 160.0
-	_skip.offset_bottom = -12.0
-	_skip.pressed.connect(func(): skip_pressed.emit())
+	_skip.offset_top = -64.0
+	_skip.offset_right = 180.0
+	_skip.offset_bottom = -16.0
+	_skip.pressed.connect(_ask_skip)
 	_root.add_child(_skip)
+
+
+## Skip (button or Esc) asks first: UI3 modal, Cancel focused; only the confirm emits `skip_pressed`.
+func _ask_skip() -> void:
+	if _skip_modal != null and is_instance_valid(_skip_modal):
+		return
+	var keep := UI3.button("Keep going", &"secondary")
+	var go := UI3.button("Skip tutorial", &"primary")
+	var m := UI3.modal("Skip the tutorial?", "You can replay it any time from Settings.", [keep, go], 0)
+	m.name = "SkipConfirm"
+	_skip_modal = m
+	keep.pressed.connect(func(): m.queue_free())
+	m.cancelled.connect(func(): m.queue_free())
+	go.pressed.connect(func():
+		m.queue_free()
+		skip_pressed.emit())
+	_root.add_child(m)
+
+
+func _input(event: InputEvent) -> void:
+	# Esc = Skip tutorial (asks to confirm). The open modal handles its own Esc (Cancel).
+	if event.is_action_pressed("ui_cancel") and (_card.visible or _curtain.visible) \
+			and (_skip_modal == null or not is_instance_valid(_skip_modal)):
+		_ask_skip()
+		get_viewport().set_input_as_handled()
 
 
 # ===========================================================================
@@ -212,6 +228,7 @@ func clear() -> void:
 	_dim = false
 	_target = null
 	_card.visible = false
+	_skip.visible = true
 	_ring.visible = false
 	_curtain.visible = false
 	_reward_row.visible = false
@@ -241,6 +258,7 @@ func show_step(step_label: String, title: String, body: String, cta: String,
 	_card_cta.text = cta
 	_card_cta.visible = cta != ""
 	_card.visible = true
+	_skip.visible = false
 	_ring.visible = _dim
 	for b in _bands:
 		b.visible = _dim
@@ -255,6 +273,7 @@ func show_curtain(title: String, body: String, cta: String) -> void:
 	_dim = false
 	_target = null
 	_card.visible = false
+	_skip.visible = true
 	_ring.visible = false
 	for b in _bands:
 		b.visible = false
@@ -278,14 +297,9 @@ func show_rewards(title: String, body: String, flavors: Array) -> void:
 
 
 func _reward_card(f: Dictionary, index: int) -> Button:
-	var b := Button.new()
+	var b := UI3.button("", &"secondary")
 	b.custom_minimum_size = Vector2(230, 150)
 	b.focus_mode = Control.FOCUS_NONE
-	b.text = ""
-	for st in ["normal", "hover", "pressed", "disabled"]:
-		b.add_theme_stylebox_override(st, DangoTheme.surface_style(
-			DangoTheme.Surface.PANEL_RAISED if st == "hover" else DangoTheme.Surface.PANEL,
-			16, 3, 5.0, Vector2(16, 14)))
 	b.pressed.connect(func(): reward_chosen.emit(index))
 
 	var col := VBoxContainer.new()
@@ -299,21 +313,16 @@ func _reward_card(f: Dictionary, index: int) -> Button:
 	col.add_theme_constant_override("separation", 8)
 	b.add_child(col)
 
-	var t := Label.new()
-	t.text = String(f.get("title", ""))
-	t.add_theme_font_override("font", DangoTheme.FONT_DISPLAY)
-	t.add_theme_font_size_override("font_size", 20)
-	t.add_theme_color_override("font_color", DangoTheme.PRIMARY)
+	var t := UI3.label(String(f.get("title", "")), "LabelTitle")
 	t.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	t.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	t.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	col.add_child(t)
 
-	var d := Label.new()
-	d.text = String(f.get("desc", ""))
-	d.add_theme_font_size_override("font_size", 14)
-	d.add_theme_color_override("font_color", Color(0.93, 0.94, 0.96, 0.72))
+	var d := UI3.label(String(f.get("desc", "")))
 	d.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	d.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	d.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	col.add_child(d)
 	return b
 
