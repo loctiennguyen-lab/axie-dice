@@ -472,10 +472,10 @@ func _build_token(node: RunMapNode, current_row: int, reachable: Array) -> void:
 	_nodes_layer.add_child(btn)
 
 	var caption: Label = null
-	if not locked or passed:
+	# Passed nodes carry no caption (it collided with its neighbours at 1280); clicking one shows
+	# "Already passed" in the detail plate.
+	if not locked:
 		var text := _boss_name(node) if node.node_type == "boss" else _type_name(node.node_type)
-		if passed:
-			text = tr("Already passed")
 		caption = UI3.label(text)
 		caption.name = "Caption_%s" % node.id
 		caption.custom_minimum_size = Vector2(136, 0)
