@@ -303,6 +303,12 @@ func _ready() -> void:
 			_check(absf(fpos.x) + fr <= half and absf(fpos.z) + fr <= half, "tier %d: vật ra ngoài đất %s r=%.2f" % [tier, str(fpos), fr])
 			# Projected top (and canopy) must be inside the land diamond on screen too.
 			_check(hl.call("_screen_fits", fpos, float(f.get("rs", fr)), float(f.get("h", 0.0)), 0.0), "tier %d: đỉnh vật vượt mép đất trên màn hình %s r=%.2f h=%.2f" % [tier, str(fpos), fr, float(f.get("h", 0.0))])
+		var n_props := 0
+		for f in fp:
+			if f.has("prop"):
+				n_props += 1
+				_check(not hl.call("_hits_building", f["p"], f["r"], f["h"]), "tier %d: vật che nhà tại %s" % [tier, str(f["p"])])
+		_check(n_props >= 15, "tier %d: còn đủ vật trang trí (%d)" % [tier, n_props])
 		for lane in hl.get("_lanes"):
 			for q in lane:
 				_check(absf(q.x) + 0.7 <= half and absf(q.z) + 0.7 <= half, "tier %d: lane Axie ra ngoài đất %s" % [tier, str(q)])

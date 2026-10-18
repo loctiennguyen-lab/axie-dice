@@ -21,6 +21,7 @@ const PITCH := 27.0
 const YAW := 45.0
 const DIAMOND_CY := 530.0           # v5: design-canvas y of the Land centre (lattice moved up 60 px)
 const PLOT_SIDE := 31.0
+const SHRINK_STEPS: Array[float] = [0.8, 0.7, 0.6, 0.5]
 const LAND_EDGE_MARGIN := 0.4       # world units kept free between any prop / Axie and the land edge
 
 const _Econ := preload("res://scripts/meta/economy_db.gd")
@@ -122,6 +123,7 @@ var _right := Vector3.ZERO
 var _scene_cache := {}
 var _nodes3d := {}                   # id -> {node, scale}
 var _blocked: Array[Dictionary] = [] # {p: Vector3, r: float}
+var _bld_rects: Array[Rect2] = []   # design-px screen rect of every building and empty plot: props keep off them
 var _footprints: Array[Dictionary] = []  # {p, r} of every building and prop, for the stay-on-the-land test
 var _lanes: Array[Array] = []        # [from, to] ground segments the Axies walk; props stay off them
 var _hub := Vector3.ZERO             # where all lanes meet, in front of the Portal
@@ -539,6 +541,7 @@ func _build_buildings() -> void:
 		var reach := (box.size.x + box.size.z) * 0.5 * s * 0.5
 		_blocked.append({"p": ground, "r": reach + 0.8})
 		_footprints.append({"p": ground, "r": reach, "h": h_units, "rs": 0.0})
+		_bld_rects.append(Rect2(float(b["cx"]) - float(b["w"]) * 0.5, float(b["base"]) - float(b["h"]), float(b["w"]), float(b["h"])))
 	# Run plate zone under the Portal, plus a ~150 px (design) keep-out ring around the Portal itself.
 	_blocked.append({"p": _ground_at(960, 530), "r": 8.0})
 	# Walking lanes: hub in front of the Portal -> the front of every other house.
@@ -549,6 +552,7 @@ func _build_buildings() -> void:
 		_lanes.append([_hub, _clamp_in(_ground_at(float(b["cx"]), float(b["base"]) + 60.0), 1.0)])
 	for p in _plots:
 		_blocked.append({"p": _ground_at(float(p["cx"]), float(p["base"]) - 40.0), "r": 6.0})
+		_bld_rects.append(Rect2(float(p["cx"]) - 100.0, float(p["base"]) - 108.0, 200.0, 108.0))
 
 
 func _aabb(n: Node, xf: Transform3D) -> AABB:
@@ -589,8 +593,8 @@ func _build_props() -> void:
 		if _blocked_at(p, 1.5):
 			continue
 		var pick: Array = scatter[placed % scatter.size()]
-		_place_fit(LIB + "Environment/" + String(pick[0]) + ".tscn", p, float(pick[1]), true)
-		placed += 1
+		if _place_fit(LIB + "Environment/" + String(pick[0]) + ".tscn", p, float(pick[1]), true):
+			placed += 1
 	var tufts: Array = biome["tufts"]
 	placed = 0
 	tries = 0
@@ -599,15 +603,15 @@ func _build_props() -> void:
 		var p := Vector3(_rng.randf_range(-half, half), 0, _rng.randf_range(-half, half))
 		if _blocked_at(p, 0.5):
 			continue
-		_place_fit(LIB + "Environment/" + String(tufts[placed % tufts.size()]) + ".tscn", p, 1.6, false)
-		placed += 1
+		if _place_fit(LIB + "Environment/" + String(tufts[placed % tufts.size()]) + ".tscn", p, 1.6, false):
+			placed += 1
 
 
 ## Place a prop scaled so its height (by_height) or footprint width is `target` world units.
-func _place_fit(path: String, p: Vector3, target: float, by_height: bool) -> void:
+func _place_fit(path: String, p: Vector3, target: float, by_height: bool) -> bool:
 	var n := _inst(path)
 	if n == null:
-		return
+		return false
 	var box := _aabb(n, Transform3D.IDENTITY)
 	var dim := box.size.y if by_height else maxf(box.size.x, box.size.z)
 	var s := target / maxf(dim, 0.01) * _rng.randf_range(0.85, 1.15)
@@ -616,22 +620,66 @@ func _place_fit(path: String, p: Vector3, target: float, by_height: bool) -> voi
 	# first shifted toward the camera, then shrunk a little if it still does not fit.
 	var r := maxf(box.size.x, box.size.z) * s * 0.5
 	var hh := box.size.y * s
-	p = _clamp_in(p, r)
-	for i in 40:
-		if _screen_fits(p, r, hh):
+	var p0 := _clamp_in(p, r)
+	# Candidates: toward the camera, then sideways, then the same again 7% smaller each time. The first
+	# spot that is visibly on the land AND whose screen rect touches no building wins; else the prop is dropped.
+	var found := false
+	var wide := target >= 3.0   # trees: if the near spots are taken, search the whole land (they may shrink to 50%)
+	for shrink in (9 if wide else 5):
+		var k: float = pow(0.93, shrink) if shrink < 5 else float(SHRINK_STEPS[shrink - 5])
+		var rr := r * k
+		var hk := hh * k
+		var cands: Array[Vector3] = []
+		for st in 13:
+			cands.append(_clamp_in(p0 - _g * 0.5 * st, rr))
+		for st in range(1, 11):
+			for sd in [-1.0, 1.0]:
+				cands.append(_clamp_in(p0 + _right * sd * 0.7 * st, rr))
+		if wide and shrink >= 3:
+			var grid: Array[Vector3] = []
+			for gx in range(-14, 15):
+				for gz in range(-14, 15):
+					grid.append(_clamp_in(Vector3(gx, 0, gz), rr))
+			grid.sort_custom(func(a: Vector3, b: Vector3) -> bool: return a.distance_squared_to(p0) < b.distance_squared_to(p0))
+			for gp in grid:
+				if not _blocked_at(gp, 0.6):
+					cands.append(gp)
+		for c in cands:
+			if _screen_fits(c, rr, hk) and not _hits_building(c, rr, hk):
+				p = c
+				s *= k
+				r = rr
+				hh = hk
+				found = true
+				break
+		if found:
 			break
-		if i < 12:
-			p = _clamp_in(p - _g * 0.5, r)
-		else:
-			s *= 0.93
-			r *= 0.93
-			hh *= 0.93
+	if not found:
+		n.free()
+		return false
 	n.position = p - Vector3(0, box.position.y * s, 0)
 	n.rotation_degrees.y = _rng.randf() * 360.0
 	n.scale = Vector3.ONE * s
 	add_child(n)
 	_blocked.append({"p": p, "r": 0.9})
-	_footprints.append({"p": p, "r": r, "h": hh})
+	_footprints.append({"p": p, "r": r, "h": hh, "prop": true})
+	return true
+
+
+## Screen rect (design px) a prop covers: canopy width, from its foot up to its top.
+func _prop_rect(p: Vector3, r: float, hh: float) -> Rect2:
+	var cx := 960.0 + p.dot(_right) * PPU
+	var cy := DIAMOND_CY - p.dot(_g) * sin(deg_to_rad(PITCH)) * PPU
+	var up := hh * cos(deg_to_rad(PITCH)) * PPU
+	return Rect2(cx - r * PPU, cy - up, r * 2.0 * PPU, up)
+
+
+func _hits_building(p: Vector3, r: float, hh: float) -> bool:
+	var pr := _prop_rect(p, r, hh)
+	for br in _bld_rects:
+		if pr.intersects(br):
+			return true
+	return false
 
 
 ## True when a prop at ground point `p` (footprint radius `r`, height `hh`, world units) lies inside the land
