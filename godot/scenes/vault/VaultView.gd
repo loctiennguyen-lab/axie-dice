@@ -15,7 +15,7 @@ const MAIN_MENU_SCENE := "res://scenes/main_menu/MainMenu.tscn"
 const IMPORT_UNAVAILABLE_PREFIX := "Import is unavailable on this build. "
 const DETAIL_W := 440
 const COLS := 3
-const PREVIEW_H := 240
+const PREVIEW_H := 200
 
 var _list: GridContainer
 var _record_scroll: ScrollContainer
@@ -249,8 +249,12 @@ func _build_import_preview(axie: Dictionary) -> void:
 	_preview_box.add_child(v)
 	var preview := (load(PREVIEW_SCENE) as PackedScene).instantiate() as AxiePreview3D
 	preview.name = "Preview"
-	preview.custom_minimum_size = Vector2(0, 200)
-	v.add_child(preview)
+	preview.custom_minimum_size = Vector2(200, 200)
+	var square := AspectRatioContainer.new()
+	square.ratio = 1.0
+	square.custom_minimum_size = Vector2(0, 200)
+	square.add_child(preview)
+	v.add_child(square)
 	preview.set_genes(str(axie.get("genes", "")))
 	var die := AxieToDie.build({
 		"id": axie.get("id", ""), "class": axie.get("class", ""), "parts": axie.get("parts", []),
@@ -358,9 +362,15 @@ func _build_row(entry: Dictionary) -> PanelContainer:
 		info.add_child(badge)
 	var preview := (load(PREVIEW_SCENE) as PackedScene).instantiate() as AxiePreview3D
 	preview.name = "Preview"
-	preview.custom_minimum_size = Vector2(0, PREVIEW_H)
+	preview.custom_minimum_size = Vector2(PREVIEW_H, PREVIEW_H)   # square, never under 160 (spec 25)
 	preview.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	info.add_child(preview)
+	var square := AspectRatioContainer.new()
+	square.name = "PreviewSquare"
+	square.ratio = 1.0
+	square.custom_minimum_size = Vector2(0, PREVIEW_H)
+	square.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	square.add_child(preview)
+	info.add_child(square)
 	preview.set_genes(str(entry.get("genes", "")))
 	info.add_child(_build_die_strip(entry.get("die", []), cls))
 	if stale_card:

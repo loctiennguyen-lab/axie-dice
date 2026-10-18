@@ -3,6 +3,8 @@ extends Node
 ## godot/tools/with_lock.sh bash godot/tools/shot.sh res://tests/qa_ui3_u_capture.tscn 1920x1080
 ## Writes $ADT_EVIDENCE_DIR/ui3-<screen>-<W>x<H>.png (window size of the run).
 var _guard := SaveGuard.new()
+## A real Axie gene string (same as qa_vault_combat_capture); fake genes render as "0/6 parts".
+const GENES := "0x180000000000030002018040810800000001000c080043040001000c0800800200010014084083020001000c1860430600010008100085060001000408604506"
 
 
 func _ready() -> void:
@@ -53,7 +55,7 @@ func _make(sc: String) -> Node:
 				var parts: Array = []
 				for slot in ["mouth", "horn", "back", "tail", "eyes", "ears"]:
 					parts.append({"id": "plant-%s" % slot, "name": "Leaf %s" % slot, "class": "plant", "type": slot, "specialGenes": null})
-				MetaState.vault_import({"id": id, "class": "plant", "parts": parts, "genes": "0x1234"})
+				MetaState.vault_import({"id": id, "class": "plant", "parts": parts, "genes": GENES})
 		var v: VaultView = load("res://scenes/vault/Vault.tscn").instantiate()
 		v.use_account = false
 		v.no_scene_change = true
