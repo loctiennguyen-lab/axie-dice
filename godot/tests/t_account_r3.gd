@@ -64,16 +64,15 @@ func _ready() -> void:
 	var s := _screen(svc)
 	await get_tree().process_frame
 	_ok(s.state == "signed_out", "starts signed_out")
-	_ok(_has(s, "SignInButton") and _has(s, "GuestButton"), "signed_out has Google + guest")
+	_ok(_has(s, "SignInButton") and _title(s) == "Sign in to play", "signed_out: Sign in to play")
+	_ok(not _has(s, "GuestButton") and not _has(s, "OfflineButton"), "signed_out: no guest, no offline play (round 2)")
 	_press(s, "SignInButton")
 	_ok(svc.calls.has("sign_in:false"), "Continue with Google calls sign_in")
-	_press(s, "GuestButton")
-	_ok(svc.calls.has("guest"), "guest button calls play_as_guest")
 
 	# waiting
 	svc.desktop_phase = "waiting"
 	svc.changed.emit()
-	_ok(s.state == "waiting" and _title(s) == "Finish signing in", "waiting state")
+	_ok(s.state == "waiting" and _title(s) == "Finish signing in in your browser", "waiting state")
 	_ok(_has(s, "OpenAgainButton") and _has(s, "CancelButton"), "waiting has reopen + cancel")
 	_press(s, "OpenAgainButton")
 	_ok(svc.calls.has("reopen"), "reopen calls the service")
@@ -88,7 +87,7 @@ func _ready() -> void:
 		svc.desktop_error = code
 		svc.changed.emit()
 		await get_tree().process_frame
-		_ok(s.state == "error" and _has(s, "RetryButton") and _has(s, "GuestButton"), "error state " + code)
+		_ok(s.state == "error" and _has(s, "RetryButton") and not _has(s, "GuestButton"), "error state (no guest) " + code)
 		_ok(not _title(s).is_empty(), "error title " + code)
 	_ok(_has(s, "ErrorCode"), "error state shows the error code line")
 	_ok(_title(s) == "Sign-in didn't work", "unknown code gets the generic title")
@@ -106,6 +105,7 @@ func _ready() -> void:
 	svc.changed.emit()
 	await get_tree().process_frame
 	_ok(s.state == "expired" and _title(s) == "Session expired" and _has(s, "SignInButton"), "expired state")
+	_ok(_has(s, "BackToMenuButton") and not _has(s, "GuestButton"), "expired: Sign in / Back to menu, no guest")
 
 	# signed in + sign out (two presses)
 	svc.status = AccountService.Status.SAVED

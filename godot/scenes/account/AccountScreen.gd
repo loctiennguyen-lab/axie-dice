@@ -47,11 +47,13 @@ func derive_state() -> String:
 static func error_copy(code: String) -> Array:
 	match code:
 		"cancelled", "access_denied":
-			return ["Sign-in was cancelled", "You closed the Google window before finishing.", "Try again"]
+			return ["Sign-in cancelled", "You closed the Google window before finishing.", "Try again"]
 		"timeout", "expired", "state":
-			return ["Sign-in timed out", "We waited 5 minutes and did not hear back from the browser.", "Start again"]
-		"network", "token":
-			return ["No network", "Can't reach sign-in. Check your connection. You can keep playing as a guest.", "Try again"]
+			return ["Sign-in timed out", "Sign-in timed out. Try again.", "Try again"]
+		"token":
+			return ["Sign-in didn't finish", "Couldn't finish signing in. Try again.", "Try again"]
+		"network":
+			return ["No network", "Can't reach sign-in. Check your connection and try again.", "Try again"]
 		"admin_policy_enforced", "org_internal":
 			return ["Workspace blocked", "This Google account belongs to a workspace that does not allow game sign-in.", "Use another account"]
 	return ["Sign-in didn't work", AccountService.error_message(code), "Try again"]
@@ -151,16 +153,15 @@ func _refresh() -> void:
 
 
 func _draw_signed_out() -> void:
-	_title("Save your progress")
-	_text("Sign in with Google to keep your game on every device. Your Sky Mavis work account works too.")
-	_row_btn("SignInButton", "Continue with Google", true, func() -> void: service.sign_in())
-	_row_btn("GuestButton", "Play as guest", false, _play_guest)
-	_text("Guest means progress stays on this computer.", true)
+	# Round 2: sign-in is required to play (dice are rolled on the server). No guest, no offline play.
+	_title("Sign in to play")
+	_text("Dice are rolled on our server, so you need an account to start a run.")
+	_row_btn("SignInButton", "Sign in", true, func() -> void: service.sign_in())
 
 
 func _draw_waiting() -> void:
-	_title("Finish signing in")
-	_text("Finish signing in in your browser.\nThen come back here; the game picks it up by itself.")
+	_title("Finish signing in in your browser")
+	_text("We opened a browser window. Come back here when it says you are done.")
 	var sp := UI3.Spinner.new()
 	sp.name = "Spinner"
 	_host.add_child(sp)
@@ -191,7 +192,7 @@ func _draw_signed_in() -> void:
 	who.add_child(col)
 	_host.add_child(who)
 	if _sign_out_armed:
-		var warn := _text("Your progress stays on this computer. You will play as a guest until you sign in again.")
+		var warn := _text("You will need to sign in again to start a run. Your progress stays saved.")
 		warn.name = "SignOutWarn"
 	_row_btn("SignOutButton", "Press again to sign out" if _sign_out_armed else "Sign out", false, _press_sign_out)
 
@@ -204,14 +205,13 @@ func _draw_error() -> void:
 	var ec := _text("Error code: %s" % code, true)
 	ec.name = "ErrorCode"
 	_row_btn("RetryButton", String(copy[2]), true, func() -> void: service.sign_in(code in ["admin_policy_enforced", "org_internal"]))
-	_row_btn("GuestButton", "Play as guest", false, _play_guest)
 
 
 func _draw_expired() -> void:
 	_title("Session expired")
-	_text("Please sign in again. Your progress on this computer is safe.")
+	_text("Your session expired. Sign in again to continue this run.")
 	_row_btn("SignInButton", "Sign in", true, func() -> void: service.sign_in())
-	_row_btn("GuestButton", "Later", false, _play_guest)
+	_row_btn("BackToMenuButton", "Back to menu", false, _on_back)
 
 
 func _press_sign_out() -> void:
@@ -221,13 +221,6 @@ func _press_sign_out() -> void:
 		return
 	_sign_out_armed = false
 	service.sign_out()
-
-
-func _play_guest() -> void:
-	if service.has_method("clear_desktop_error"):
-		service.clear_desktop_error()
-	service.play_as_guest()
-	_on_back()
 
 
 func _title(t: String) -> Label:
