@@ -145,18 +145,30 @@ func _recap_grid(d: Dictionary) -> Control:
 	g.columns = 2
 	g.add_theme_constant_override("h_separation", UI3Theme.space("24"))
 	g.add_theme_constant_override("v_separation", UI3Theme.space("8"))
-	# 2 columns x 3 rows: label muted / value Rowdies 18. Labels are our copy (spec 30 flags this).
+	# 2 columns x 3 rows of cells (spec 30): each cell is a muted label over a Rowdies 18 value. Labels are our copy.
+	var price_txt := "Free" if String(d.get("variant", "paid")) == "gift" else "%d Gem" % int(d.get("price", 0))
 	var rows := [
 		["Fell on turn", str(int(d.get("turn", 0)))],
+		["Enemies left", str(int(d.get("enemies_left", 0)))],
 		["Aid used", "%d of %d" % [int(d.get("aid_used", 0)), int(d.get("aid_cap", 6))]],
-		["Enemies left", str(int(d.get("enemies_left", 0)))]]
+		["Party", "%d Axies" % (d.get("party", []) as Array).size()],
+		["Revive heals", "%d%% HP" % int(d.get("heal_pct", 25))],
+		["Revive cost", price_txt if not bool(d.get("mission", false)) else "None"]]
 	for r in rows:
-		var lab := UI3.label(TranslationServer.translate(String(r[0])), "LabelMuted")
-		lab.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		g.add_child(lab)
-		var val := UI3.label(String(r[1]), "LabelDisplay")
-		val.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-		g.add_child(val)
+		var cell := UI3.plate(&"row")
+		cell.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		var pad := MarginContainer.new()
+		for side in ["left", "right", "top", "bottom"]:
+			pad.add_theme_constant_override("margin_" + side, 12)
+		cell.add_child(pad)
+		var v := VBoxContainer.new()
+		v.add_theme_constant_override("separation", 0)
+		pad.add_child(v)
+		v.add_child(UI3.label(TranslationServer.translate(String(r[0])), "LabelMuted"))
+		var val := UI3.label(TranslationServer.translate(String(r[1])), "LabelDisplay")
+		val.add_theme_font_size_override("font_size", 18)
+		v.add_child(val)
+		g.add_child(cell)
 	return g
 
 

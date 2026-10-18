@@ -958,6 +958,7 @@ func _build_hud_r1() -> void:
 	_aid.z_index = 9
 	_shell_root.add_child(_aid)
 	_aid.purchase_confirmed.connect(_on_aid_purchase)
+	_aid.tray_toggled.connect(func(_o): _hud_frame.set_info_bottom(_aid.top_y() - 12.0))
 	_aid.offer_dismissed.connect(func(): _aid_offer_dismissed = true)
 	_hud_frame.menu_pressed.connect(_on_menu_pressed)
 	_hud_frame.active_pressed.connect(_on_active_pressed)
@@ -1071,7 +1072,8 @@ func _update_aid(hs: Dictionary, executing: bool) -> void:
 			"caps": ["Aid this run %d of %d" % [used, cap]]}
 	for r in rows:
 		r["gems"] = gems
-	_aid.set_state({"enabled": not newcomer and not _tutorial, "used": used, "cap": cap,
+	var mission := String(o2["reason"]) == "mission_run"   # Mission runs have no Aid zone at all
+	_aid.set_state({"enabled": not newcomer and not _tutorial and not mission, "used": used, "cap": cap,
 		"rows": rows, "offer": offer})
 
 

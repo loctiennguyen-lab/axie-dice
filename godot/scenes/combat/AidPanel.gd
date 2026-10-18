@@ -1,29 +1,28 @@
 extends Control
 class_name AidPanel
-## The paid "Aid" zone, bottom-left (Dice UI R1 README 3 "Left zone"): the Aid button, the single
-## offer card, the Aid tray and the first-purchase confirm modal. Pure view: rows and prices come
-## from the caller (`set_rows`, later `AidCatalog.offer()` from lane E); nothing is bought here, it
-## only reports `purchase_confirmed(aid_id)`.
+## The paid "Aid" zone, bottom-left (UI-03 round 2 screen 39): the Aid button (key A), the single offer card,
+## the Aid tray and the first-purchase confirm. Pure view: rows and prices come from the caller (`set_state`,
+## fed by CombatView from AidPurchase / aid_prices.json); nothing is bought here, it only reports
+## `purchase_confirmed(aid_id)`.
 ##
-## Trust rules kept (monetization-v1): real price on every row (disabled rows too), the decline
-## button is the same size as the buy button, no timers, the fairness line is verbatim, the Aid
-## zone is 1,472 px from END TURN. Hidden entirely for newcomers (first 5 runs): no button, no
-## offer, no tray (Liam 12/10).
+## Trust rules kept (monetization-v1): real price on every row (disabled rows too), the decline button is the
+## same size as the buy button, no timers, the fairness line is verbatim. Hidden entirely for newcomers (first
+## 5 runs) and in Mission runs: no button, no offer, no tray.
 ##
-## Geometry (relationships, README): button left 16 / bottom 16, 216 x 104; offer card left 16,
-## bottom 132, 216 wide; tray 252 wide, left 16, bottom = tray top - 8, which keeps it left of
-## Axie 1 and >= 16 px under the lowest monster box.
+## Geometry (1920 base): button 288x48 at left 16 / bottom 16; offer card 288 wide above it; tray 420 wide
+## above it (ends left of the dice tray, x ~436); rows 64 high; confirm 560 over the scrim.
+## Focus: rows, then the buy action. Esc closes the confirm first, then the tray.
 
 signal purchase_confirmed(aid_id: String)
 signal tray_toggled(open: bool)
 signal offer_dismissed
 
 const FAIRNESS := "Aid makes you stronger for one run. Players who buy more can win more. The Pure leaderboard only counts runs without Aid."
-const BTN_W := 216.0
-const BTN_H := 104.0
+const BTN_W := 288.0
+const BTN_H := 48.0
 const EDGE := 16.0
-const OFFER_EDGE := 24.0
-const TRAY_W := 252.0
+const TRAY_W := 420.0
+const ROW_H := 64.0
 
 var enabled := true            ## false for newcomers: the whole zone disappears
 var used := 0
@@ -54,91 +53,71 @@ func _init() -> void:
 
 
 func _build_button() -> void:
-	_button = Button.new()
+	_button = UI3.button("", &"secondary")
 	_button.name = "AidButton"
 	_button.custom_minimum_size = Vector2(BTN_W, BTN_H)
-	_button.focus_mode = Control.FOCUS_ALL
-	for st in ["normal", "hover", "pressed", "disabled"]:
-		_button.add_theme_stylebox_override(st, HudKit.box(DangoTheme.GEM_PANEL_TINT, 18, 3,
-			DangoTheme.GEM_SHELF, Vector2(3, 5)))
-	_button.add_theme_stylebox_override("focus", DangoTheme.focus_ring_style(18))
 	_button.pressed.connect(toggle_tray)
 	add_child(_button)
 	var row := HBoxContainer.new()
 	row.set_anchors_preset(Control.PRESET_FULL_RECT)
-	row.offset_left = 12.0
-	row.alignment = BoxContainer.ALIGNMENT_BEGIN
+	row.offset_left = 16.0
+	row.offset_right = -12.0
 	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	row.add_theme_constant_override("separation", 10)
+	row.add_theme_constant_override("separation", UI3Theme.space("8"))
 	_button.add_child(row)
-	row.add_child(HudKit.tex_rect(HudKit.icon("aid"), 44))
-	var col := VBoxContainer.new()
-	col.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	col.alignment = BoxContainer.ALIGNMENT_CENTER
-	col.add_theme_constant_override("separation", 0)
-	row.add_child(col)
-	col.add_child(HudKit.label("Aid %s" % HudKit.glyph(0x25B4, "^"), 22, DangoTheme.INK))
-	_used_label = HudKit.label("", 13, DangoTheme.GEM_SHELF, 700)
-	col.add_child(_used_label)
-	col.add_child(HudKit.prose("Hide offers: Settings", 12, DangoTheme.INK_2))
+	var t := UI3.label(TranslationServer.translate("Aid"), "LabelDisplay")
+	t.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	t.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	row.add_child(t)
+	_used_label = UI3.label("", "LabelMuted")
+	_used_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_used_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	_used_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	row.add_child(_used_label)
+	var key := UI3.key_hint("A")
+	key.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	key.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	row.add_child(key)
 
 
 func _build_tray() -> void:
-	_tray = PanelContainer.new()
+	_tray = UI3.plate(&"plate")
+	_tray.name = "AidTray"
 	_tray.visible = false
 	_tray.custom_minimum_size = Vector2(TRAY_W, 0)
-	var sb := HudKit.box(DangoTheme.CREAM_100, 22, 4, DangoTheme.GEM_SHELF, Vector2(4, 6))
-	sb.content_margin_left = 0.0
-	sb.content_margin_right = 0.0
-	sb.content_margin_top = 0.0
-	sb.content_margin_bottom = 0.0
-	_tray.add_theme_stylebox_override("panel", sb)
 	_tray.z_index = 6
 	add_child(_tray)
 	var col := VBoxContainer.new()
-	col.add_theme_constant_override("separation", 0)
+	col.add_theme_constant_override("separation", UI3Theme.space("16"))
 	_tray.add_child(col)
-	var head := PanelContainer.new()
-	head.custom_minimum_size = Vector2(0, 44)
-	var hsb := HudKit.box(DangoTheme.GEM_BOTTOM, 18, 0, DangoTheme.GEM_SHELF, Vector2.ZERO,
-		DangoTheme.SHELF, Vector2(12, 0))
-	hsb.border_width_bottom = 3
-	head.add_theme_stylebox_override("panel", hsb)
-	col.add_child(head)
 	var hrow := HBoxContainer.new()
-	hrow.add_theme_constant_override("separation", 8)
-	head.add_child(hrow)
-	hrow.add_child(HudKit.tex_rect(HudKit.icon("aid"), 26))
-	var t := HudKit.label("Aid", 20, DangoTheme.GEM_INK)
+	col.add_child(hrow)
+	var t := UI3.label(TranslationServer.translate("Aid"), "LabelDisplay")
 	t.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	hrow.add_child(t)
-	_tray_used = HudKit.label("", 13, DangoTheme.CREAM_RAISED, 800)
+	_tray_used = UI3.label("", "LabelMuted")
 	hrow.add_child(_tray_used)
-	var body := MarginContainer.new()
-	for k in ["left", "right", "top", "bottom"]:
-		body.add_theme_constant_override("margin_" + k, 10)
-	col.add_child(body)
-	var bcol := VBoxContainer.new()
-	bcol.add_theme_constant_override("separation", 6)
-	body.add_child(bcol)
 	_tray_rows = VBoxContainer.new()
-	_tray_rows.add_theme_constant_override("separation", 6)
-	bcol.add_child(_tray_rows)
-	var foot := HudKit.prose(FAIRNESS, 12, DangoTheme.INK_2)
+	_tray_rows.add_theme_constant_override("separation", UI3Theme.space("8"))
+	col.add_child(_tray_rows)
+	var foot := UI3.label(TranslationServer.translate(FAIRNESS), "LabelMuted")
 	foot.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	foot.custom_minimum_size = Vector2(TRAY_W - 20.0, 0)
-	bcol.add_child(foot)
+	foot.custom_minimum_size = Vector2(TRAY_W - 40.0, 0)
+	col.add_child(foot)
 
 
 func _build_offer() -> void:
 	_offer_card = PanelContainer.new()
+	_offer_card.name = "AidOffer"
 	_offer_card.visible = false
 	_offer_card.custom_minimum_size = Vector2(BTN_W, 0)
 	_offer_card.theme = UI3Theme.get_theme()
-	_offer_card.theme_type_variation = "PanelPlate"
+	# violet border: the one place Aid says "this costs Gem"
+	_offer_card.add_theme_stylebox_override("panel", UI3Theme.flat(UI3Theme.color("panel"),
+		UI3Theme.radius("m"), 2, UI3Theme.color("gem_border"), Vector4(16, 16, 16, 16)))
 	add_child(_offer_card)
 	_offer_box = VBoxContainer.new()
-	_offer_box.add_theme_constant_override("separation", 8)
+	_offer_box.add_theme_constant_override("separation", UI3Theme.space("8"))
 	_offer_card.add_child(_offer_box)
 
 
@@ -152,12 +131,14 @@ func set_state(d: Dictionary) -> void:
 	rows = d.get("rows", [])
 	offer = d.get("offer", {})
 	visible = enabled
-	_used_label.text = "used %d of %d" % [used, cap]
-	_tray_used.text = "used %d of %d" % [used, cap]
+	var u := TranslationServer.translate("used %d of %d") % [used, cap]
+	_used_label.text = u
+	_tray_used.text = u
 	_rebuild_rows()
 	_rebuild_offer()
 	if not enabled:
 		_tray.visible = false
+		_close_modal()
 	layout()
 
 
@@ -173,8 +154,14 @@ func set_open(v: bool) -> void:
 	if not enabled:
 		return
 	_tray.visible = v
+	_offer_card.visible = not v and not offer.is_empty()
 	layout()
 	tray_toggled.emit(v)
+	if v:
+		for r in _tray_rows.get_children():
+			if r is Button and not (r as Button).disabled:
+				(r as Button).grab_focus()
+				break
 
 
 func _rebuild_rows() -> void:
@@ -185,42 +172,45 @@ func _rebuild_rows() -> void:
 		_tray_rows.add_child(_row(r))
 
 
-## One tray row: icon 26 · title (Baloo 15) + cap/reason 12 · price button 58 x 38. The real price
-## shows even when the row is disabled; the reason is plain text in INK_DISABLED (readable).
+## One tray row (a Button, so Enter / click buys): name + sub-line, then the CostChip. The real price shows even
+## when the row is disabled; the reason replaces the cap text and stays readable.
 func _row(r: Dictionary) -> Control:
 	var on := bool(r.get("enabled", false))
-	var p := PanelContainer.new()
-	p.custom_minimum_size = Vector2(0, 52)
-	p.add_theme_stylebox_override("panel", HudKit.box(
-		DangoTheme.CREAM_RAISED if on else DangoTheme.CREAM_DISABLED, 12, 3,
-		DangoTheme.OUTLINE if on else DangoTheme.INK_3, Vector2.ZERO, DangoTheme.SHELF, Vector2(6, 4)))
+	var b := UI3.button("", &"secondary")
+	b.name = "AidRow_%s" % String(r.get("id", ""))
+	b.custom_minimum_size = Vector2(0, ROW_H)
+	b.disabled = not on
+	b.pressed.connect(_ask.bind(String(r.get("id", ""))))
 	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", 6)
-	p.add_child(row)
-	row.add_child(HudKit.tex_rect(r.get("icon", HudKit.icon("aid")), 26, Color(1, 1, 1, 1.0 if on else 0.5)))
+	row.set_anchors_preset(Control.PRESET_FULL_RECT)
+	row.offset_left = 16.0
+	row.offset_right = -12.0
+	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	row.add_theme_constant_override("separation", UI3Theme.space("8"))
+	b.add_child(row)
 	var col := VBoxContainer.new()
+	col.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	col.alignment = BoxContainer.ALIGNMENT_CENTER
 	col.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	col.add_theme_constant_override("separation", 0)
 	row.add_child(col)
-	col.add_child(HudKit.label(String(r.get("title", "")), 15, DangoTheme.INK if on else DangoTheme.INK_DISABLED))
-	var sub := HudKit.prose(String(r.get("reason", "")) if not on and String(r.get("reason", "")) != ""
-		else String(r.get("cap_text", "")), 12, DangoTheme.INK_2 if on else DangoTheme.INK_DISABLED)
-	sub.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	sub.custom_minimum_size = Vector2(96, 0)
+	var name_l := UI3.label(TranslationServer.translate(String(r.get("title", ""))), "LabelDisplay")
+	name_l.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	name_l.add_theme_font_size_override("font_size", 18)
+	name_l.clip_text = true
+	if not on:
+		name_l.add_theme_color_override("font_color", UI3Theme.color("text_muted"))
+	col.add_child(name_l)
+	var why := String(r.get("reason", ""))
+	var sub := UI3.label(TranslationServer.translate(why if not on and why != "" else String(r.get("cap_text", ""))), "LabelMuted")
+	sub.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	sub.clip_text = true
 	col.add_child(sub)
-	var b := Button.new()
-	b.custom_minimum_size = Vector2(58, 38)
-	b.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-	b.disabled = not on
-	DangoTheme.style_button(b, false, false, DangoTheme.GEM_INK, false, true)
-	b.icon = HudKit.icon("gem")
-	b.expand_icon = true
-	b.add_theme_constant_override("icon_max_width", 18)
-	b.text = str(int(r.get("price", 0)))
-	DangoTheme.apply_tracking(b, 0.0, 16, 800)
-	b.pressed.connect(_ask.bind(String(r.get("id", ""))))
-	row.add_child(b)
-	return p
+	var chip := UI3.cost_chip(&"gem", int(r.get("price", 0)), false)
+	chip.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	chip.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	row.add_child(chip)
+	return b
 
 
 func _rebuild_offer() -> void:
@@ -230,34 +220,23 @@ func _rebuild_offer() -> void:
 	if offer.is_empty():
 		_offer_card.visible = false
 		return
-	_offer_card.visible = true
-	_offer_box.add_child(HudKit.label("AID OFFER %s ONCE" % HudKit.dot(), 16, UI3Theme.color("text_muted"), 800, 0.08))
-	_offer_box.add_child(HudKit.label(String(offer.get("title", "")), 20, UI3Theme.color("text")))
-	var what := HudKit.prose(String(offer.get("what", "")), 16, UI3Theme.color("text_muted"))
+	_offer_card.visible = not _tray.visible
+	_offer_box.add_child(UI3.label(TranslationServer.translate("Aid offer · once"), "LabelMuted"))
+	_offer_box.add_child(UI3.label(TranslationServer.translate(String(offer.get("title", ""))), "LabelDisplay"))
+	var what := UI3.label(TranslationServer.translate(String(offer.get("what", ""))), "LabelMuted")
 	what.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	what.custom_minimum_size = Vector2(BTN_W - 24.0, 0)
+	what.custom_minimum_size = Vector2(BTN_W - 34.0, 0)
 	_offer_box.add_child(what)
 	for cap_line in offer.get("caps", []):
-		var cp := PanelContainer.new()
-		cp.add_theme_stylebox_override("panel", HudKit.box(UI3Theme.color("panel_raised"), 8, 0,
-			DangoTheme.OUTLINE, Vector2.ZERO, DangoTheme.SHELF, Vector2(8, 2)))
-		cp.add_child(HudKit.label(String(cap_line), 16, UI3Theme.color("text")))
-		_offer_box.add_child(cp)
-	var buy := Button.new()
-	buy.custom_minimum_size = Vector2(192, 48)
-	DangoTheme.style_button(buy, false, false, DangoTheme.GEM_INK, false, true)
-	buy.icon = HudKit.icon("gem")
-	buy.expand_icon = true
-	buy.add_theme_constant_override("icon_max_width", 22)
-	buy.text = str(int(offer.get("price", 0)))
-	DangoTheme.apply_tracking(buy, 0.0, 19, 800)
+		_offer_box.add_child(UI3.label(String(cap_line), "LabelMuted"))
+	var buy := UI3.button(TranslationServer.translate("Buy · %d Gem") % int(offer.get("price", 0)), &"primary")
+	buy.name = "OfferBuy"
+	buy.custom_minimum_size = Vector2(BTN_W - 34.0, 48)
 	buy.pressed.connect(_ask.bind(String(offer.get("id", ""))))
 	_offer_box.add_child(buy)
-	var no := Button.new()
-	no.custom_minimum_size = Vector2(192, 48)   # same size as the buy button, always
-	no.text = "Not now"
-	DangoTheme.style_button(no, false)
-	DangoTheme.apply_tracking(no, 0.0, 18, 800)
+	var no := UI3.button(TranslationServer.translate("Not now"), &"secondary")
+	no.name = "OfferNotNow"
+	no.custom_minimum_size = Vector2(BTN_W - 34.0, 48)   # same size as the buy button, always
 	no.pressed.connect(func():
 		offer = {}
 		offer_dismissed.emit()
@@ -266,7 +245,7 @@ func _rebuild_offer() -> void:
 	_offer_box.add_child(no)
 
 
-# ── Purchase confirm (02i) ───────────────────────────────────────────────────────────────────
+# ── Purchase confirm ─────────────────────────────────────────────────────────────────────────
 
 func _ask(aid_id: String) -> void:
 	_pending_id = aid_id
@@ -286,112 +265,50 @@ func _find_row(aid_id: String) -> Dictionary:
 
 
 func _show_modal(aid_id: String) -> void:
-	if _modal != null and is_instance_valid(_modal):
-		_modal.queue_free()
+	_close_modal()
 	var r := _find_row(aid_id)
 	var price := int(r.get("price", 0))
-	var gems := int(r.get("gems", 0))
-	_modal = Control.new()
-	_modal.set_anchors_preset(Control.PRESET_FULL_RECT)
-	_modal.z_index = 30
-	_modal.mouse_filter = Control.MOUSE_FILTER_STOP
-	add_child(_modal)
-	var dim := ColorRect.new()
-	dim.color = DangoTheme.SCRIM
-	dim.set_anchors_preset(Control.PRESET_FULL_RECT)
-	_modal.add_child(dim)
-	var center := CenterContainer.new()
-	center.set_anchors_preset(Control.PRESET_FULL_RECT)
-	_modal.add_child(center)
-	var panel := PanelContainer.new()
-	panel.custom_minimum_size = Vector2(600, 0)
-	var psb := HudKit.box(DangoTheme.CREAM_100, 26, 4, DangoTheme.GEM_SHELF, Vector2(5, 8))
-	psb.content_margin_left = 0.0
-	psb.content_margin_right = 0.0
-	psb.content_margin_top = 0.0
-	psb.content_margin_bottom = 0.0
-	panel.add_theme_stylebox_override("panel", psb)
-	center.add_child(panel)
-	var col := VBoxContainer.new()
-	col.add_theme_constant_override("separation", 0)
-	panel.add_child(col)
-	var head := PanelContainer.new()
-	head.custom_minimum_size = Vector2(0, 56)
-	var hsb := HudKit.box(DangoTheme.GEM_BOTTOM, 22, 0, DangoTheme.GEM_SHELF, Vector2.ZERO,
-		DangoTheme.SHELF, Vector2(22, 0))
-	hsb.border_width_bottom = 3
-	head.add_theme_stylebox_override("panel", hsb)
-	head.add_child(HudKit.label("Confirm purchase", 24, DangoTheme.GEM_INK))
-	col.add_child(head)
-	var body := MarginContainer.new()
-	body.add_theme_constant_override("margin_left", 24)
-	body.add_theme_constant_override("margin_right", 24)
-	body.add_theme_constant_override("margin_top", 20)
-	body.add_theme_constant_override("margin_bottom", 24)
-	col.add_child(body)
-	var bcol := VBoxContainer.new()
-	bcol.add_theme_constant_override("separation", 14)
-	body.add_child(bcol)
-	var item := PanelContainer.new()
-	item.add_theme_stylebox_override("panel", HudKit.box(DangoTheme.CREAM_RAISED, 14, 3,
-		DangoTheme.OUTLINE, Vector2.ZERO, DangoTheme.SHELF, Vector2(12, 12)))
-	bcol.add_child(item)
-	var irow := HBoxContainer.new()
-	irow.add_theme_constant_override("separation", 14)
-	item.add_child(irow)
-	irow.add_child(HudKit.tex_rect(r.get("icon", HudKit.icon("aid")), 48))
-	var icol := VBoxContainer.new()
-	icol.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	icol.add_theme_constant_override("separation", 0)
-	irow.add_child(icol)
-	icol.add_child(HudKit.label(String(r.get("title", "")), 22, DangoTheme.INK))
-	icol.add_child(HudKit.prose(String(r.get("cap_text", "")), 13, DangoTheme.INK_2))
-	var pcol := VBoxContainer.new()
-	pcol.add_theme_constant_override("separation", 0)
-	irow.add_child(pcol)
-	var prow := HBoxContainer.new()
-	prow.alignment = BoxContainer.ALIGNMENT_END
-	prow.add_theme_constant_override("separation", 5)
-	prow.add_child(HudKit.tex_rect(HudKit.icon("gem"), 28))
-	prow.add_child(HudKit.label(str(price), 30, DangoTheme.INK))
-	pcol.add_child(prow)
-	var usd := HudKit.prose("%s %.2f USD" % [HudKit.glyph(0x2248, "~"), float(price) / 90.0], 13, DangoTheme.INK_2)
-	usd.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	pcol.add_child(usd)
-	var srow := HBoxContainer.new()
-	bcol.add_child(srow)
-	var g := HudKit.prose("Your Gem: %d %s %d" % [gems, HudKit.arrow(), gems - price], 14, DangoTheme.INK)
-	g.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	srow.add_child(g)
-	srow.add_child(HudKit.prose("Aid this run: %d %s %d of %d" % [used, HudKit.arrow(), used + 1, cap], 14, DangoTheme.INK))
-	var note := HudKit.prose("We ask once per session. Your spending limit and the option to hide Aid offers are in Settings.", 13, DangoTheme.INK_2)
-	note.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	note.custom_minimum_size = Vector2(540, 0)
-	bcol.add_child(note)
-	var brow := HBoxContainer.new()
-	brow.add_theme_constant_override("separation", 14)
-	bcol.add_child(brow)
-	var cancel := Button.new()
-	cancel.text = "Cancel"
-	cancel.custom_minimum_size = Vector2(268, 60)
-	DangoTheme.style_button(cancel, false)
-	DangoTheme.apply_tracking(cancel, 0.0, 20, 800)
+	var gems := int(r.get("gems", MetaState.gem_wallet().balance()))
+	var cancel := UI3.button(TranslationServer.translate("Cancel"), &"secondary")
+	cancel.name = "Cancel"
+	cancel.custom_minimum_size = Vector2(200, 56)   # same size as Pay, always
+	var pay := UI3.button(TranslationServer.translate("Pay %d Gem") % price, &"primary")
+	pay.name = "Pay"
+	pay.custom_minimum_size = Vector2(200, 56)
+	var m := UI3.modal(TranslationServer.translate("Confirm purchase"),
+		TranslationServer.translate("We ask once per session. Your spending limit and the option to hide Aid offers are in Settings."),
+		[cancel, pay], 0)
+	m.z_index = 30
+	m.name = "AidConfirm"
+	var col := m.find_child("Dialog", true, false).get_child(0) as VBoxContainer
+	var item := UI3.plate(&"row")
+	item.name = "ConfirmItem"
+	var iv := VBoxContainer.new()
+	iv.add_theme_constant_override("separation", UI3Theme.space("8"))
+	item.add_child(iv)
+	var top := HBoxContainer.new()
+	iv.add_child(top)
+	var nm := UI3.label(TranslationServer.translate(String(r.get("title", ""))), "LabelDisplay")
+	nm.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	top.add_child(nm)
+	top.add_child(UI3.cost_chip(&"gem", price, false))
+	var cap_t := String(r.get("cap_text", ""))
+	if cap_t == "":
+		cap_t = String(r.get("what", ""))
+	if cap_t != "":
+		iv.add_child(UI3.label(TranslationServer.translate(cap_t), "LabelMuted"))
+	iv.add_child(UI3.label(TranslationServer.translate("Your Gem: %d → %d") % [gems, gems - price]))
+	iv.add_child(UI3.label(TranslationServer.translate("Aid this run: %d → %d of %d") % [used, used + 1, cap]))
+	col.add_child(item)
+	col.move_child(item, 1)
 	cancel.pressed.connect(_close_modal)
-	brow.add_child(cancel)
-	var pay := Button.new()
-	pay.text = "Pay %d" % price
-	pay.icon = HudKit.icon("gem")
-	pay.expand_icon = true
-	pay.add_theme_constant_override("icon_max_width", 24)
-	pay.custom_minimum_size = Vector2(268, 60)
-	DangoTheme.style_button(pay, false, false, DangoTheme.GEM_INK, false, true)
-	DangoTheme.apply_tracking(pay, 0.0, 20, 800)
+	m.cancelled.connect(_close_modal)
 	pay.pressed.connect(func():
 		session_confirmed = true
 		_close_modal()
 		purchase_confirmed.emit(_pending_id))
-	brow.add_child(pay)
-	cancel.grab_focus()   # focus starts on Cancel (README 02i)
+	_modal = m
+	add_child(m)
 
 
 func _close_modal() -> void:
@@ -404,7 +321,7 @@ func modal_open() -> bool:
 	return _modal != null and is_instance_valid(_modal)
 
 
-## Esc: closes the modal first, then the tray. Returns true if it consumed the key.
+## Esc: closes the confirm first, then the tray. Returns true if it consumed the key.
 func handle_escape() -> bool:
 	if modal_open():
 		_close_modal()
@@ -426,7 +343,9 @@ func top_y() -> float:
 	if h <= 1.0:
 		h = get_viewport_rect().size.y
 	if not enabled:
-		return h - OFFER_EDGE
+		return h - EDGE
+	if _tray != null and _tray.visible:
+		return _tray.position.y
 	if _offer_card != null and _offer_card.visible:
 		return _offer_card.position.y
 	return h - EDGE - BTN_H
@@ -436,13 +355,14 @@ func layout() -> void:
 	var h := size.y
 	if h <= 1.0:
 		h = get_viewport_rect().size.y
-	_button.position = Vector2(EDGE, h - EDGE - BTN_H)
+	var btn_top := h - EDGE - BTN_H
+	_button.position = Vector2(EDGE, btn_top)
 	_button.size = Vector2(BTN_W, BTN_H)
 	_offer_card.size = Vector2.ZERO
-	_offer_card.position = Vector2(OFFER_EDGE, h - 132.0 - _offer_card.get_combined_minimum_size().y)
-	_offer_card.size = Vector2(BTN_W, _offer_card.get_combined_minimum_size().y)
-	var tray_top := h - EDGE - 176.0   # README: bottom = tray top - 8
+	var oh := _offer_card.get_combined_minimum_size().y
+	_offer_card.size = Vector2(BTN_W, oh)
+	_offer_card.position = Vector2(EDGE, btn_top - 8.0 - oh)
 	_tray.size = Vector2.ZERO
 	var th := _tray.get_combined_minimum_size().y
 	_tray.size = Vector2(TRAY_W, th)
-	_tray.position = Vector2(EDGE, tray_top - 8.0 - th)
+	_tray.position = Vector2(EDGE, btn_top - 8.0 - th)
