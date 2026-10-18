@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<link rel="stylesheet" href="../../_ds/terrariums-design-system-41d3ee92-ef23-4954-9fac-b76baf67c7c6/styles.css">
+<script src="../../_ds/terrariums-design-system-41d3ee92-ef23-4954-9fac-b76baf67c7c6/_ds_bundle.js"></script>
+<style>
+body{margin:0;background:#0d0e12}
+a{color:#ffe5b4}a:hover{color:#ffb444}
+@keyframes a4spin{to{transform:rotate(360deg)}}
+@keyframes a4shim{0%{opacity:.5}50%{opacity:1}100%{opacity:.5}}
+</style>
+</helmet>
+<div style="display:flex;flex-direction:column;gap:64px;padding:64px;font-family:'Work Sans',sans-serif;color:#ffe5b4;width:max-content;background:#0d0e12">
+  <div style="display:flex;flex-direction:column;gap:8px;max-width:1920px">
+    <div style="font:700 48px 'Rowdies'">A4 · Blend — boot, tutorial, system</div>
+    <div style="font:400 24px/32px 'Work Sans';color:#b4bccb">Boot / sign-in (5 states), the combat coach overlay and the shared system parts. Same A4 parts as <a href="A4 Run Screens.dc.html">run screens</a>.</div>
+  </div>
+
+  <!-- 16 BOOT -->
+  <div style="display:flex;flex-direction:column;gap:16px">
+    <div style="font:700 24px 'Rowdies';color:#b4bccb">16-boot · click a state · 1920×1080</div>
+    <div style="display:flex;gap:8px">
+      <sc-for list="{{ bootTabs }}" as="t" hint-placeholder-count="5">
+        <div onClick="{{ t.pick }}" style="height:48px;padding:0 20px;border-radius:8px;background:{{ t.bg }};outline:{{ t.o }};display:flex;align-items:center;font:700 18px 'Rowdies';cursor:pointer">{{ t.l }}</div>
+      </sc-for>
+    </div>
+    <div data-screen-label="A4 Boot" style="width:1920px;height:1080px;position:relative;overflow:hidden;background:#3c424d">
+      <div style="position:absolute;left:24px;top:24px;font:400 18px 'Work Sans';color:#dae0ea">3D VIEWPORT: the Land at dusk, slow camera drift</div>
+      <div style="position:absolute;left:0;top:0;width:1920px;height:1080px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:48px">
+        <div style="width:640px;height:240px;border-radius:12px;border:2px solid #8e97a8;box-sizing:border-box;display:flex;align-items:center;justify-content:center;font:400 18px 'Work Sans';color:#dae0ea">LOGO · Axie Dice · 640×240</div>
+        <div style="width:560px;min-height:200px;background:#2b1e17e6;border-radius:12px;padding:32px;box-sizing:border-box;display:flex;flex-direction:column;align-items:center;gap:20px">
+          <sc-if value="{{ boot.loading }}" hint-placeholder-val="{{ true }}">
+            <span style="font:700 24px 'Rowdies'">{{ boot.title }}</span>
+            <div style="width:100%;height:12px;border-radius:6px;background:#13161b;overflow:hidden;display:flex"><div style="width:{{ boot.pct }}%;background:#ffb444"></div></div>
+            <span style="font:400 18px 'Work Sans';color:#b4bccb">{{ boot.sub }}</span>
+          </sc-if>
+          <sc-if value="{{ boot.signedOut }}" hint-placeholder-val="{{ false }}">
+            <span style="font:700 24px 'Rowdies'">Welcome to Axie Dice</span>
+            <span style="font:400 18px/24px 'Work Sans';text-align:center">Sign in to save your runs, rank on the Leaderboard and keep your Land.</span>
+            <div style="width:100%;height:72px;border-radius:8px;background:#ffb444;color:#291808;filter:drop-shadow(0 4px 0 #2b1e17);display:flex;align-items:center;justify-content:center;font:700 32px 'Rowdies'">Sign in</div>
+            <div style="height:56px;padding:0 24px;border-radius:8px;background:#58321d;display:flex;align-items:center;font:700 18px 'Rowdies'">Play as guest</div>
+          </sc-if>
+          <sc-if value="{{ boot.signing }}" hint-placeholder-val="{{ false }}">
+            <div style="width:48px;height:48px;border-radius:24px;border:5px solid #58321d;border-top-color:#ffb444;box-sizing:border-box;animation:a4spin 1s linear infinite"></div>
+            <span style="font:700 24px 'Rowdies'">Signing in…</span>
+            <span style="font:400 18px/24px 'Work Sans';text-align:center;color:#b4bccb">Finish signing in in the browser window. This page updates on its own.</span>
+            <div style="height:56px;padding:0 24px;border-radius:8px;background:#58321d;display:flex;align-items:center;font:700 18px 'Rowdies'">Cancel</div>
+          </sc-if>
+          <sc-if value="{{ boot.error }}" hint-placeholder-val="{{ false }}">
+            <span style="font:700 24px 'Rowdies';color:#ff8986">Couldn't sign in</span>
+            <span style="font:400 18px/24px 'Work Sans';text-align:center">The sign-in window closed before it finished. Try again, or play as a guest for now.</span>
+            <span style="font:400 16px 'Work Sans';color:#b4bccb">Error code AUTH-02</span>
+            <div style="width:100%;height:72px;border-radius:8px;background:#ffb444;color:#291808;filter:drop-shadow(0 4px 0 #2b1e17);display:flex;align-items:center;justify-content:center;font:700 32px 'Rowdies'">Try again</div>
+            <div style="height:56px;padding:0 24px;border-radius:8px;background:#58321d;display:flex;align-items:center;font:700 18px 'Rowdies'">Play as guest</div>
+          </sc-if>
+          <sc-if value="{{ boot.offline }}" hint-placeholder-val="{{ false }}">
+            <span style="font:700 24px 'Rowdies'">You're offline</span>
+            <span style="font:400 18px/24px 'Work Sans';text-align:center">You can still play runs. Ranked, Daily, the Store and the Leaderboard come back when you reconnect.</span>
+            <div style="width:100%;height:72px;border-radius:8px;background:#ffb444;color:#291808;filter:drop-shadow(0 4px 0 #2b1e17);display:flex;align-items:center;justify-content:center;font:700 32px 'Rowdies'">Play offline</div>
+            <div style="height:56px;padding:0 24px;border-radius:8px;background:#58321d;display:flex;align-items:center;font:700 18px 'Rowdies'">Retry connection</div>
+          </sc-if>
+        </div>
+      </div>
+      <div style="position:absolute;right:24px;bottom:24px;font:400 16px 'Work Sans';color:#b4bccb">v0.9.3</div>
+    </div>
+    <div style="font:400 18px 'Work Sans';color:#b4bccb;max-width:1920px">Groups: logo · state plate (2). Loading shows the step in text, never only a bar. Signing in opens the system browser; Cancel returns to Signed out. Error code is for support. Focus: primary → secondary. Esc: nothing on Loading; Cancel on Signing in.</div>
+  </div>
+
+  <!-- 17 TUTORIAL -->
+  <div style="display:flex;flex-direction:column;gap:16px">
+    <div style="font:700 24px 'Rowdies';color:#b4bccb">17-tutorial-coach · step 2 of 5, over Combat · 1920×1080</div>
+    <div data-screen-label="A4 Tutorial coach" style="width:1920px;height:1080px;position:relative;overflow:hidden">
+      <dc-import name="A4 Combat" reduce-motion="{{ true }}" interactive="{{ false }}" sound="{{ false }}" hint-size="1920px,1080px"></dc-import>
+      <div style="position:absolute;left:694px;top:854px;width:168px;height:204px;border-radius:12px;box-shadow:0 0 0 4000px #13161bcc;outline:4px solid #ffe5b4;pointer-events:none"></div>
+      <div style="position:absolute;left:458px;top:600px;width:640px;background:#2b1e17;border-radius:12px;padding:24px;box-sizing:border-box;display:flex;flex-direction:column;gap:12px;box-shadow:0 16px 48px #000000a0">
+        <div style="display:flex;justify-content:space-between;align-items:baseline"><span style="font:700 24px 'Rowdies'">Pick a die</span><span style="font:400 18px 'Work Sans';color:#b4bccb">Step 2 of 5</span></div>
+        <span style="font:400 18px/24px 'Work Sans'">Each Axie rolled one die. Click Beast's ATTACK 9, then click an enemy to hit it.</span>
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <span style="font:400 18px 'Work Sans';color:#b4bccb;text-decoration:underline">Skip tutorial</span>
+          <div style="height:56px;padding:0 24px;border-radius:8px;background:#58321d;display:flex;align-items:center;font:700 18px 'Rowdies'">Got it</div>
+        </div>
+      </div>
+      <div style="position:absolute;left:762px;top:820px;width:0;height:0;border-left:16px solid transparent;border-right:16px solid transparent;border-top:20px solid #2b1e17"></div>
+    </div>
+    <div style="font:400 18px 'Work Sans';color:#b4bccb;max-width:1920px">Groups: spotlight · coach card (2). The scrim cuts a hole round the one thing to use; only that area takes clicks. The step advances when the player does the action; "Got it" only on read-only steps. Card sits between the spotlight and the stage, arrow points at the hole. Esc: Skip tutorial (asks to confirm).</div>
+  </div>
+
+  <!-- 18 SYSTEM -->
+  <div style="display:flex;flex-direction:column;gap:16px">
+    <div style="font:700 24px 'Rowdies';color:#b4bccb">18-system · dialogs, toast, network notice, skeleton, scrim · 1920×1080 sheet</div>
+    <div data-screen-label="A4 System" style="width:1920px;height:1080px;position:relative;overflow:hidden;background:#13161b;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));grid-template-rows:auto auto;gap:48px;padding:48px;box-sizing:border-box">
+      <sc-for list="{{ dialogs }}" as="d" hint-placeholder-count="3">
+        <div style="display:flex;flex-direction:column;gap:12px">
+          <span style="font:400 18px 'Work Sans';color:#b4bccb">{{ d.tag }}</span>
+          <div style="background:#2b1e17;border-radius:12px;padding:32px;box-sizing:border-box;display:flex;flex-direction:column;gap:24px;box-shadow:0 16px 48px #000000a0">
+            <div style="display:flex;flex-direction:column;gap:8px"><span style="font:700 24px 'Rowdies'">{{ d.t }}</span><span style="font:400 18px/24px 'Work Sans'">{{ d.b }}</span></div>
+            <div style="display:flex;gap:16px;justify-content:flex-end">
+              <sc-if value="{{ d.hasCancel }}" hint-placeholder-val="{{ true }}"><div style="height:56px;padding:0 24px;border-radius:8px;background:#58321d;display:flex;align-items:center;font:700 18px 'Rowdies';outline:{{ d.co }}">{{ d.cancel }}</div></sc-if>
+              <div style="height:56px;padding:0 24px;border-radius:8px;background:{{ d.okBg }};color:{{ d.okC }};filter:drop-shadow(0 4px 0 #0d0e12);display:flex;align-items:center;font:700 18px 'Rowdies';outline:{{ d.oo }}">{{ d.ok }}</div>
+            </div>
+          </div>
+        </div>
+      </sc-for>
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <span style="font:400 18px 'Work Sans';color:#b4bccb">Toast · success / error (top centre, 4 s)</span>
+        <div style="height:56px;display:flex;align-items:center;gap:12px;padding:0 20px;border-radius:8px;background:#2b1e17;box-shadow:0 8px 24px #000000a0"><div style="width:8px;height:8px;border-radius:4px;background:#3fcd3c"></div><span style="font:400 18px 'Work Sans'">Team preset saved</span></div>
+        <div style="height:56px;display:flex;align-items:center;gap:12px;padding:0 20px;border-radius:8px;background:#2b1e17;box-shadow:0 8px 24px #000000a0"><div style="width:8px;height:8px;border-radius:4px;background:#f54540"></div><span style="font:400 18px 'Work Sans'">Couldn't save. Check your connection.</span></div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <span style="font:400 18px 'Work Sans';color:#b4bccb">Network notice · inline, with Retry</span>
+        <div style="display:flex;align-items:center;gap:16px;padding:12px 16px;border-radius:8px;background:#3e2618">
+          <span style="font:400 18px/24px 'Work Sans';flex:1">You're offline. Ranked and the Store need a connection.</span>
+          <div style="height:48px;padding:0 16px;border-radius:8px;background:#58321d;display:flex;align-items:center;font:700 18px 'Rowdies';flex:none">Retry</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:16px;padding:12px 16px;border-radius:8px;background:#3e2618">
+          <div style="width:24px;height:24px;border-radius:12px;border:3px solid #58321d;border-top-color:#ffb444;box-sizing:border-box;animation:a4spin 1s linear infinite;flex:none"></div>
+          <span style="font:400 18px/24px 'Work Sans';flex:1">Reconnecting…</span>
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <span style="font:400 18px 'Work Sans';color:#b4bccb">Loading skeleton · list rows + modal scrim</span>
+        <div style="position:relative;border-radius:12px;overflow:hidden;background:#3c424d;padding:16px;display:flex;flex-direction:column;gap:8px">
+          <div style="position:absolute;inset:0;background:#13161bcc"></div>
+          <sc-for list="{{ skel }}" as="k" hint-placeholder-count="4">
+            <div style="position:relative;height:48px;border-radius:8px;background:#2b1e17;display:flex;align-items:center;gap:12px;padding:0 12px;animation:a4shim 1.4s ease-in-out infinite">
+              <div style="width:28px;height:28px;border-radius:14px;background:#3e2618"></div>
+              <div style="width:{{ k.w }}px;height:14px;border-radius:7px;background:#3e2618"></div>
+            </div>
+          </sc-for>
+        </div>
+        <span style="font:400 16px 'Work Sans';color:#b4bccb">Scrim = neutral-1 at 80%. Skeleton pulses 1.4 s; reduce motion = static.</span>
+      </div>
+    </div>
+    <div style="font:400 18px 'Work Sans';color:#b4bccb;max-width:1920px">Dialog variants: info (one button), confirm (Amber primary), destructive (red primary, focus starts on Cancel). Every dialog: 560 px, Rowdies 24 title, Work Sans 18 body ≤ 200 chars, Esc = Cancel. Toasts stack up to 3 and never hold actions; anything needing an action is a network notice or dialog.</div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  state = { boot: 1 };
+  renderVals() {
+    const s = this.state;
+    const T = ['Loading', 'Signed out', 'Signing in', 'Error', 'Offline'];
+    const bootTabs = T.map((l, i) => ({ l, bg: i === s.boot ? '#58321d' : '#2b1e17', o: i === s.boot ? '3px solid #ffe5b4' : 'none', pick: () => this.setState({ boot: i }) }));
+    const boot = { loading: s.boot === 0, signedOut: s.boot === 1, signing: s.boot === 2, error: s.boot === 3, offline: s.boot === 4, title: 'Loading the Land', sub: 'Loading Axie models · 3 of 5', pct: 62 };
+    const dialogs = [
+      { tag: 'Info · one button', t: 'Daily run used', b: "You've used all 3 Daily tries today. New tries in 6 h 12 min.", hasCancel: false, ok: 'OK', okBg: '#ffb444', okC: '#291808', oo: '4px solid #ffe5b4', co: 'none' },
+      { tag: 'Confirm', t: 'Leave the shop?', b: 'You still have 180 Shards. Shops do not come back on this floor.', hasCancel: true, cancel: 'Stay', ok: 'Leave shop', okBg: '#ffb444', okC: '#291808', oo: '4px solid #ffe5b4', co: 'none' },
+      { tag: 'Destructive · focus on Cancel', t: 'Delete this preset?', b: '"Poison Bloom" will be removed. Your Axies stay in your collection.', hasCancel: true, cancel: 'Cancel', ok: 'Delete', okBg: '#b81221', okC: '#ffe5b4', oo: 'none', co: '4px solid #ffe5b4' }];
+    const skel = [220, 160, 260, 120].map(w => ({ w }));
+    return { bootTabs, boot, dialogs, skel };
+  }
+}
+</script>
+</body>
+</html>

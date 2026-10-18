@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="../../_ds/terrariums-design-system-41d3ee92-ef23-4954-9fac-b76baf67c7c6/styles.css">
+<script src="../../_ds/terrariums-design-system-41d3ee92-ef23-4954-9fac-b76baf67c7c6/_ds_bundle.js"></script>
+<style>
+body{margin:0;background:#13161b}
+a{color:#ffb444;text-decoration:none}a:hover{color:#ffe5b4;text-decoration:underline}
+</style>
+</helmet>
+<div style="max-width:1200px;margin:0 auto;padding:56px 32px 96px;display:flex;flex-direction:column;gap:48px;font-family:'Work Sans',sans-serif;color:#ffe5b4">
+
+  <div style="display:flex;flex-direction:column;gap:12px">
+    <span style="font:400 16px 'Work Sans';color:#b4bccb">Axie Dice · UI-03 · tổng hợp</span>
+    <span style="font:700 40px/48px 'Rowdies'">A4 Blend: những gì đã chốt và đã làm</span>
+    <span style="font:400 18px/28px 'Work Sans';color:#b4bccb;text-wrap:pretty;max-width:820px">Một trang để xem lại toàn bộ: các quyết định đã chốt, danh sách màn hình kèm link, gói bàn giao cho Claude Code và các mục còn mở.</span>
+  </div>
+
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px">
+    <sc-for list="{{ stats }}" as="s" hint-placeholder-count="4">
+      <div style="background:#2b1e17;border-radius:12px;padding:20px 24px;display:flex;flex-direction:column;gap:4px">
+        <span style="font:700 36px 'Rowdies'">{{ s.v }}</span>
+        <span style="font:400 18px 'Work Sans';color:#b4bccb">{{ s.l }}</span>
+      </div>
+    </sc-for>
+  </div>
+
+  <div style="display:flex;flex-direction:column;gap:16px">
+    <span style="font:700 28px 'Rowdies'">Combat đã chốt</span>
+    <div style="width:100%;aspect-ratio:16 / 9;border-radius:12px;overflow:hidden;position:relative;background:#3c424d">
+      <div style="position:absolute;left:0;top:0;width:1920px;height:1080px;transform-origin:0 0;transform:scale({{ scale }})" ref="{{ boxRef }}">
+        <dc-import name="A4 Combat" reduce-motion="{{ true }}" interactive="{{ false }}" sound="{{ false }}" hint-size="1920px,1080px"></dc-import>
+      </div>
+    </div>
+    <span style="font:400 16px 'Work Sans';color:#b4bccb">Bản tĩnh. Bản tương tác ở <a href="A4 Blend.dc.html">A4 Blend → 02-combat</a>.</span>
+  </div>
+
+  <div style="display:flex;flex-direction:column;gap:16px">
+    <span style="font:700 28px 'Rowdies'">Quyết định đã chốt</span>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:16px">
+      <sc-for list="{{ decisions }}" as="d" hint-placeholder-count="6">
+        <div style="background:#2b1e17;border-radius:12px;padding:20px 24px;display:flex;flex-direction:column;gap:8px">
+          <span style="font:700 20px 'Rowdies'">{{ d.t }}</span>
+          <span style="font:400 18px/26px 'Work Sans';text-wrap:pretty">{{ d.b }}</span>
+        </div>
+      </sc-for>
+    </div>
+  </div>
+
+  <div style="display:flex;flex-direction:column;gap:16px">
+    <span style="font:700 28px 'Rowdies'">Màn hình và trạng thái</span>
+    <sc-for list="{{ groups }}" as="g" hint-placeholder-count="3">
+      <div style="background:#2b1e17;border-radius:12px;padding:8px 0;display:flex;flex-direction:column">
+        <div style="display:flex;align-items:baseline;justify-content:space-between;gap:16px;padding:12px 24px">
+          <span style="font:700 20px 'Rowdies'">{{ g.t }}</span>
+          <span style="font:400 16px 'Work Sans';color:#b4bccb">{{ g.n }}</span>
+        </div>
+        <sc-for list="{{ g.rows }}" as="r" hint-placeholder-count="0">
+          <div style="display:grid;grid-template-columns:72px minmax(0,220px) minmax(0,1fr) minmax(0,220px);gap:16px;padding:12px 24px;border-top:1px solid #3e2618;align-items:baseline">
+            <span style="font:700 16px 'Rowdies';color:#b4bccb">{{ r.id }}</span>
+            <span style="font:700 18px 'Rowdies'">{{ r.n }}</span>
+            <span style="font:400 16px/24px 'Work Sans';color:#dae0ea;text-wrap:pretty">{{ r.s }}</span>
+            <a href="{{ r.href }}" style="font:400 16px 'Work Sans'">{{ r.f }}</a>
+          </div>
+        </sc-for>
+      </div>
+    </sc-for>
+  </div>
+
+  <div style="display:flex;flex-direction:column;gap:16px">
+    <span style="font:700 28px 'Rowdies'">Gói bàn giao cho Claude Code</span>
+    <div style="background:#2b1e17;border-radius:12px;padding:24px;display:flex;flex-direction:column;gap:12px">
+      <span style="font:400 18px/26px 'Work Sans'">Thư mục <span style="font:700 18px 'Rowdies'">design_handoff_axie_dice_ui03/</span> (đã gửi link tải ở chat):</span>
+      <sc-for list="{{ handoff }}" as="h" hint-placeholder-count="6">
+        <div style="display:grid;grid-template-columns:minmax(0,260px) minmax(0,1fr);gap:16px;padding:8px 0;border-top:1px solid #3e2618">
+          <span style="font:700 16px 'Rowdies'">{{ h.f }}</span>
+          <span style="font:400 16px/24px 'Work Sans';color:#dae0ea">{{ h.d }}</span>
+        </div>
+      </sc-for>
+    </div>
+  </div>
+
+  <div style="display:flex;flex-direction:column;gap:16px">
+    <span style="font:700 28px 'Rowdies'">Các thay đổi trong buổi này</span>
+    <div style="display:flex;flex-direction:column;gap:8px">
+      <sc-for list="{{ log }}" as="l" hint-placeholder-count="6">
+        <div style="display:flex;gap:16px;align-items:baseline"><span style="font:700 16px 'Rowdies';color:#ffb444;flex:none;width:24px">{{ l.n }}</span><span style="font:400 18px/26px 'Work Sans';text-wrap:pretty">{{ l.t }}</span></div>
+      </sc-for>
+    </div>
+  </div>
+
+  <div style="display:flex;flex-direction:column;gap:16px">
+    <span style="font:700 28px 'Rowdies'">Còn mở, cần anh/chị gửi</span>
+    <div style="background:#3e2618;border-radius:12px;padding:24px;display:flex;flex-direction:column;gap:10px">
+      <sc-for list="{{ open }}" as="o" hint-placeholder-count="5">
+        <span style="font:400 18px/26px 'Work Sans';text-wrap:pretty">· {{ o.t }}</span>
+      </sc-for>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  state = { scale: 0.58 };
+  boxRef = el => {
+    if (!el || this.ro) return;
+    const fit = () => { const w = el.parentElement.clientWidth; if (w) this.setState({ scale: w / 1920 }); };
+    this.ro = new ResizeObserver(fit); this.ro.observe(el.parentElement); fit();
+  };
+  componentWillUnmount() { this.ro && this.ro.disconnect(); }
+  renderVals() {
+    const L = (f, n) => ({ f: n || f, href: f + '.dc.html' });
+    const R = (id, n, s, f, label) => ({ id, n, s, ...L(f, label) });
+    const groups = [
+      { t: 'Must · vòng chơi', n: '14 màn · đủ trạng thái', rows: [
+        R('01', 'Land hub', 'Bình thường, lần đầu, toà nhà khoá, chưa đăng nhập, offline, nhãn hover, hỏi tiếp tục run. Axie 65×75.', 'A4 Blend', 'A4 Blend · A4 States'),
+        R('02', 'Combat HUD', 'Lượt người chơi, chọn xúc xắc + mục tiêu, mục tiêu sai kèm lý do, lượt địch, boss, banner, Aid, Defeat, xác nhận thoát, Eggs 1–6, 1280×720.', 'A4 Combat', 'A4 Combat'),
+        R('03', 'Run map', 'Giữa run, bắt đầu, sắp gặp boss, hover node, node khoá.', 'A4 Blend', 'A4 Blend · A4 States'),
+        R('06', 'Run setup', 'Bình thường (A4 khoá), người mới, đội trống, đang bắt đầu, offline, server từ chối.', 'A4 Run Screens', 'A4 Run Screens'),
+        R('07', 'Reward', 'Chọn 1/3, đã reroll, bỏ qua (xác nhận inline).', 'A4 Run Screens', 'A4 Run Screens'),
+        R('08', 'Shop', 'Bình thường, đã mua, hết hàng, không đủ tiền, không mua được gì.', 'A4 Run Screens', 'A4 Run Screens'),
+        R('09', 'Event', 'Lựa chọn (Rest, Forge, Pray) và kết quả.', 'A4 Run Screens', 'A4 Run Screens'),
+        R('10–11', 'Result', 'Thắng + kỷ lục + mở danh hiệu "Người Giữ Ấn"; thua offline, chưa gửi điểm.', 'A4 Run Screens', 'A4 Run Screens'),
+        R('12', 'Pact', '3 thẻ (Gain xanh / Drawback đỏ), đổi thẻ, xác nhận.', 'A4 Run Screens 2', 'A4 Run Screens 2'),
+        R('13', 'Treasure', 'Rương đóng, rương mở.', 'A4 Run Screens 2', 'A4 Run Screens 2'),
+        R('14–15', 'In-run menu', 'Resume, Relics, Map, Settings, Save and quit, Abandon (xác nhận).', 'A4 Run Screens 2', 'A4 Run Screens 2'),
+        R('16', 'Boot / sign-in', 'Loading, chưa đăng nhập, đang đăng nhập, lỗi, offline.', 'A4 Boot and System', 'A4 Boot and System'),
+        R('17', 'Tutorial', 'Coach card + spotlight đúng ô xúc xắc của Beast.', 'A4 Boot and System', 'A4 Boot and System'),
+        R('18', 'System', '3 kiểu dialog, toast, network notice + Retry, skeleton, scrim.', 'A4 Boot and System', 'A4 Boot and System')] },
+      { t: 'Should · meta', n: '10 màn', rows: [
+        R('19', 'Store', 'Gem packs (USD tắt, có lý do), Cosmetics, Moon Card, guest, offline, popup Moon Card.', 'A4 Meta Screens', 'A4 Meta Screens'),
+        R('20', 'Echo Box', 'Đóng, xác nhận mua, đang mở, mở 1 / 10, pity, tỉ lệ, lỗi.', 'A4 Meta Screens', 'A4 Meta Screens'),
+        R('21', 'Season Pass', 'Bình thường, premium khoá, chưa bắt đầu, offline.', 'A4 Meta Screens', 'A4 Meta Screens'),
+        R('22', 'Missions + Daily', 'Daily / Weekly, đang làm, đã nhận, khoá cho người mới, offline.', 'A4 Meta Screens', 'A4 Meta Screens'),
+        R('23', 'Leaderboard', 'Hàng của mình ghim, loading, trống, lỗi.', 'A4 Meta Screens', 'A4 Meta Screens'),
+        R('24', 'Profile', 'Equipped / Owned / Locked / Season, guest.', 'A4 Meta Screens', 'A4 Meta Screens'),
+        R('25', 'Vault', 'Preview Axie vuông, tra cứu, không tìm thấy, lỗi, trống, guest.', 'A4 Meta Screens', 'A4 Meta Screens'),
+        R('26', 'Settings + Account', 'General / Controls / Account, welcome, chọn bản lưu, lỗi, reset.', 'A4 Meta Screens', 'A4 Meta Screens'),
+        R('27', 'Team Presets', '5 preview Axie 160×160 mỗi preset, trống, đầy, thiếu Axie, xoá.', 'A4 Meta Screens', 'A4 Meta Screens'),
+        R('28', 'Land Upgrade', 'Đủ tiền, không đủ tiền, toà nhà khoá.', 'A4 Meta Screens', 'A4 Meta Screens')] },
+      { t: 'Could', n: '1 màn', rows: [R('29', 'Codex', 'Tìm kiếm, mục chưa gặp, Guides, Unlocks, không có kết quả.', 'A4 Meta Screens', 'A4 Meta Screens')] }];
+    const decisions = [
+      { t: 'Bố cục Combat', b: 'Giữ layout A4 đã chốt: party bên trái (hàng sau 2, 4 · hàng trước 1, 3, 5), Eggs phía trước, địch + Elite bên phải, khay xúc xắc giữa đáy, Actives trái, Reroll / End turn phải.' },
+      { t: 'Kích thước model 3D', b: 'Theo tỉ lệ engine × 0.86: Axie 163×214, quái 133×120, Elite 210×190 (ước lượng), Egg 88. Boss 280×255. Land hub 65×75. Khung preview Axie vuông, tối thiểu 160.' },
+      { t: 'Hiệu ứng trên đầu Axie', b: 'Chip Shield / Poison nằm giữa trên đầu mỗi Axie, không nằm ở góc ô xúc xắc. Nhãn Target nằm trên chip khi cần.' },
+      { t: 'Phong cách', b: 'Plate gỗ wood-1 90% trên 3D toàn màn hình, nút chính Amber kam-6, xúc xắc ngà, chọn = viền kem 4 px + nhấc lên, focus = vòng amber 2 px.' },
+      { t: 'Chữ', b: 'Rowdies 700 + Work Sans 400. Cỡ 16 (chỉ phím tắt) / 18 / 24 / 32. Chữ kem, không dùng trắng. Tương phản ≥ 4.5:1.' },
+      { t: 'Build trong Godot', b: 'canvas_items / expand, nền 1920×1080, lưới 8 px. Chỉ StyleBoxFlat, không texture, không blur, không gradient. Nút bị khoá luôn ghi lý do.' }];
+    const handoff = [
+      { f: 'README.md', d: 'Tổng quan, quy tắc chung, bảng 25 màn, tương tác, state, token, asset, mục còn mở.' },
+      { f: 'screens/<id>/spec.md', d: '25 file: cây container Godot + anchor, giới hạn chữ, mọi trạng thái, thứ tự focus, Esc.' },
+      { f: 'tokens.json', d: 'Đúng schema trong brief + Theme item Godot + bảng tương phản.' },
+      { f: 'components.md', d: 'Toàn bộ component, biến thể và trạng thái.' },
+      { f: 'motion.md', d: 'Thời lượng, TRANS/EASE, delay, reduce-motion cho combat, run, chuyển 3D ↔ HUD.' },
+      { f: 'design/', d: 'Các file .dc.html của A4, icon, style Terrariums (mở được trong trình duyệt).' }];
+    const log = [
+      'Chuyển chip Shield / Poison lên trên đầu Axie.',
+      'Làm Run setup, Reward, Shop, Event, Result thắng và thua.',
+      'Làm Pact, Treasure, in-run menu, dialog bỏ run.',
+      'Áp kích thước model theo bảng engine vào layout A4 đã chốt (sau khi đã hoàn tác bản dời vị trí).',
+      'Làm Boot (5 trạng thái), tutorial, các thành phần hệ thống; spotlight căn đúng ô Beast.',
+      'Bổ sung mọi trạng thái Must còn thiếu (A4 States).',
+      'Làm 10 màn Should + Codex; sửa cho nội dung lấp đầy khung, preview Axie vuông ≥ 160.',
+      'Đổi các màu tự đặt sang màu Terrariums; chữ ATTACK dùng red-7 cho đủ tương phản.',
+      'Đóng gói bàn giao cho Claude Code.'].map((t, i) => ({ n: i + 1, t }));
+    const open = [
+      { t: 'Dữ liệu thật: giá Gem / Moon Card, tỉ lệ Echo Box, phần thưởng Pass, nhiệm vụ, danh sách Aid, lựa chọn Event, tên người chơi, ID Axie, hiệu ứng nâng cấp.' },
+      { t: 'Cách đăng nhập thật (Ronin? guest?) và câu chữ cho Boot.' },
+      { t: 'Kích thước Elite trong engine (đang dùng ước lượng 210×190).' },
+      { t: 'Art: relic, event, rương, logo, avatar; icon còn thiếu: Stone, Pass XP, Ticket, fragments.' },
+      { t: 'Có cần xuất PNG từng frame + contact sheet vào gói bàn giao không?' }];
+    const stats = [{ v: '25', l: 'màn hình' }, { v: '90+', l: 'trạng thái' }, { v: '8', l: 'file thiết kế' }, { v: '25', l: 'spec cho Godot' }];
+    return { stats, groups, decisions, handoff, log, open, scale: this.state.scale, boxRef: this.boxRef };
+  }
+}
+</script>
+</body>
+</html>

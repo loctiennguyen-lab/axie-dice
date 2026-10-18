@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<link rel="stylesheet" href="../../_ds/terrariums-design-system-41d3ee92-ef23-4954-9fac-b76baf67c7c6/styles.css">
+<script src="../../_ds/terrariums-design-system-41d3ee92-ef23-4954-9fac-b76baf67c7c6/_ds_bundle.js"></script>
+<style>
+body{margin:0;background:#0d0e12}
+a{color:#ffe5b4}a:hover{color:#ffb444}
+</style>
+</helmet>
+<div style="display:flex;flex-direction:column;gap:64px;padding:64px;font-family:'Work Sans',sans-serif;color:#ffe5b4;width:max-content;background:#0d0e12">
+  <div style="display:flex;flex-direction:column;gap:8px;max-width:1920px">
+    <div style="font:700 48px 'Rowdies'">A4 · Blend — run screens 2</div>
+    <div style="font:400 24px/32px 'Work Sans';color:#b4bccb">Pact, Treasure, in-run menu and the abandon dialog. Same A4 parts as <a href="A4 Run Screens.dc.html">run screens 1</a>. Next: <a href="A4 Boot and System.dc.html">boot, tutorial, system</a> · <a href="A4 States.dc.html">state frames</a> · <a href="A4 Meta Screens.dc.html">meta screens</a>. Cards and menu rows are clickable.</div>
+  </div>
+
+  <!-- 12 PACT -->
+  <div style="display:flex;flex-direction:column;gap:16px">
+    <div style="font:700 24px 'Rowdies';color:#b4bccb">12-pact · after the Act 1 Boss, pick 1 of 3 · 1920×1080</div>
+    <div data-screen-label="A4 Pact" style="width:1920px;height:1080px;position:relative;overflow:hidden;background:#3c424d">
+      <div style="position:absolute;left:24px;top:24px;font:400 18px 'Work Sans';color:#dae0ea">3D VIEWPORT: Boss arena after the win (scrim on top)</div>
+      <div style="position:absolute;inset:0;background:#13161bcc"></div>
+      <div style="position:absolute;left:0;top:0;width:1920px;height:1080px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:40px">
+        <div style="display:flex;flex-direction:column;align-items:center;gap:8px">
+          <span style="font:700 32px 'Rowdies'">Boss down · make a Pact</span>
+          <span style="font:400 18px 'Work Sans';color:#b4bccb">Each Pact is a strong buff with a drawback. It lasts the whole run.</span>
+        </div>
+        <div style="display:flex;gap:32px;align-items:flex-start;height:600px;padding-top:24px;box-sizing:border-box">
+          <sc-for list="{{ pacts }}" as="p" hint-placeholder-count="3">
+            <div onClick="{{ p.pick }}" style="width:416px;background:{{ p.bg }};border-radius:12px;padding:24px;box-sizing:border-box;display:flex;flex-direction:column;gap:16px;outline:{{ p.o }};transform:translateY({{ p.lift }}px);transition:transform .16s;cursor:pointer">
+              <div style="height:144px;border-radius:8px;background:#3e2618;border:2px solid #58321d;box-sizing:border-box;display:flex;align-items:center;justify-content:center;font:400 16px 'Work Sans';color:#b4bccb">PACT ART · {{ p.n }}</div>
+              <div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px"><span style="font:700 24px 'Rowdies'">{{ p.n }}</span><span style="font:400 18px 'Work Sans';color:{{ p.rc }}">{{ p.r }}</span></div>
+              <div style="display:flex;flex-direction:column;gap:4px;padding:12px;border-radius:8px;background:#093322"><span style="font:700 18px 'Rowdies';color:#7ade61">Gain</span><span style="font:400 18px/24px 'Work Sans';text-wrap:pretty">{{ p.up }}</span></div>
+              <div style="display:flex;flex-direction:column;gap:4px;padding:12px;border-radius:8px;background:#3d0d11"><span style="font:700 18px 'Rowdies';color:#ff8986">Drawback</span><span style="font:400 18px/24px 'Work Sans';text-wrap:pretty">{{ p.down }}</span></div>
+            </div>
+          </sc-for>
+        </div>
+        <div style="height:72px;padding:0 48px;border-radius:8px;background:#ffb444;color:#291808;filter:drop-shadow(0 4px 0 #2b1e17);display:flex;align-items:center;font:700 32px 'Rowdies'">{{ pactBtn }}</div>
+      </div>
+    </div>
+    <div style="font:400 18px 'Work Sans';color:#b4bccb;max-width:1920px">Groups: title · 3 Pact cards · Accept (3). No Skip: a Pact is required. Gain and Drawback sit in separate green-1 / red-1 boxes, label text in green-6 / red-4, so the cost is never missed. Card holds the longest text (Patient Fang, 178 chars). Focus: cards ←→ → Accept. Esc: in-run menu.</div>
+  </div>
+
+  <!-- 13 TREASURE -->
+  <div style="display:flex;flex-direction:column;gap:16px">
+    <div style="font:700 24px 'Rowdies';color:#b4bccb">13-treasure · chest opened, relic + Shards · 1920×1080</div>
+    <div data-screen-label="A4 Treasure" style="width:1920px;height:1080px;position:relative;overflow:hidden;background:#3c424d">
+      <div style="position:absolute;left:24px;top:24px;font:400 18px 'Work Sans';color:#dae0ea">3D VIEWPORT: chest opens in the clearing</div>
+      <div style="position:absolute;left:704px;top:160px;width:512px;height:384px;border:2px solid #8e97a8;border-radius:8px;box-sizing:border-box;display:flex;align-items:center;justify-content:center;font:400 18px 'Work Sans';color:#dae0ea">CHEST 3D · open</div>
+      <div style="position:absolute;left:0;top:600px;width:1920px;display:flex;flex-direction:column;align-items:center;gap:24px">
+        <div style="display:flex;align-items:center;gap:16px;background:#2b1e17e6;border-radius:12px;padding:24px;width:768px;box-sizing:border-box">
+          <div style="width:128px;height:128px;flex:none;border-radius:8px;background:#3e2618;border:2px solid #58321d;box-sizing:border-box;display:flex;align-items:center;justify-content:center;font:400 14px 'Work Sans';color:#b4bccb">RELIC ART</div>
+          <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:8px">
+            <div style="display:flex;justify-content:space-between;align-items:baseline"><span style="font:700 24px 'Rowdies'">Scent of Blood</span><span style="font:400 18px 'Work Sans';color:#2dc661">Rare</span></div>
+            <span style="font:400 18px/24px 'Work Sans'">Enemies below half HP take 4 more damage from every attack.</span>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px;background:#2b1e17e6;border-radius:8px;padding:8px 16px"><img src="../assets/cur_shard.png" style="width:28px;height:28px;object-fit:contain"><span style="font:700 24px 'Rowdies'">+60</span><span style="font:400 18px 'Work Sans';color:#b4bccb">Shards · 240 total</span></div>
+        <div style="height:72px;padding:0 48px;border-radius:8px;background:#ffb444;color:#291808;filter:drop-shadow(0 4px 0 #2b1e17);display:flex;align-items:center;font:700 32px 'Rowdies'">Take and continue</div>
+      </div>
+    </div>
+    <div style="font:400 18px 'Work Sans';color:#b4bccb;max-width:1920px">Groups: chest · relic · Shards · action (4). No choice here, so one card and one button. Scavenger's Eye adds a second relic card beside the first (2 × 640 px). Focus: Take and continue. Esc: in-run menu.</div>
+  </div>
+
+  <!-- 14 IN-RUN MENU -->
+  <div style="display:flex;flex-direction:column;gap:16px">
+    <div style="font:700 24px 'Rowdies';color:#b4bccb">14-in-run-menu · over Combat · 1920×1080</div>
+    <div data-screen-label="A4 In-run menu" style="width:1920px;height:1080px;position:relative;overflow:hidden;background:#3c424d">
+      <div style="position:absolute;left:24px;top:24px;font:400 18px 'Work Sans';color:#dae0ea">COMBAT (paused, scrim on top)</div>
+      <div style="position:absolute;inset:0;background:#13161bcc"></div>
+      <div style="position:absolute;left:0;top:0;width:1920px;height:1080px;display:flex;align-items:center;justify-content:center;gap:24px">
+        <div style="width:480px;background:#2b1e17e6;border-radius:12px;padding:32px;box-sizing:border-box;display:flex;flex-direction:column;gap:16px">
+          <div style="display:flex;flex-direction:column;gap:4px"><span style="font:700 32px 'Rowdies'">Paused</span><span style="font:400 18px 'Work Sans';color:#b4bccb">Normal · A3 · Act 1 · Floor 4 · Turn 2</span></div>
+          <div style="display:flex;flex-direction:column;gap:8px">
+            <sc-for list="{{ menu }}" as="m" hint-placeholder-count="5">
+              <div onClick="{{ m.pick }}" style="height:64px;display:flex;align-items:center;padding:0 20px;border-radius:8px;background:{{ m.bg }};outline:{{ m.o }};font:700 24px 'Rowdies';color:{{ m.c }};cursor:pointer">{{ m.l }}</div>
+            </sc-for>
+          </div>
+        </div>
+        <div style="width:560px;height:576px;background:#2b1e17e6;border-radius:12px;padding:32px;box-sizing:border-box;display:flex;flex-direction:column;gap:16px">
+          <span style="font:700 24px 'Rowdies'">{{ panelTitle }}</span>
+          <sc-for list="{{ panelRows }}" as="r" hint-placeholder-count="4">
+            <div style="min-height:48px;display:flex;align-items:center;justify-content:space-between;gap:16px;padding:8px 12px;box-sizing:border-box;border-radius:8px;background:#3e2618"><span style="font:400 18px/24px 'Work Sans'">{{ r.l }}</span><span style="font:700 18px 'Rowdies';flex:none">{{ r.v }}</span></div>
+          </sc-for>
+        </div>
+      </div>
+    </div>
+    <div style="font:400 18px 'Work Sans';color:#b4bccb;max-width:1920px">Groups: menu · side panel (2). The side panel shows the hovered or picked row: Relics owned, Run map, Settings. Resume is the primary (cream outline when focused); Abandon run is red-4 text and opens the dialog below. Focus: Resume → rows ↑↓. Esc: Resume.</div>
+  </div>
+
+  <!-- 15 ABANDON DIALOG -->
+  <div style="display:flex;flex-direction:column;gap:16px">
+    <div style="font:700 24px 'Rowdies';color:#b4bccb">15-dialog · abandon run (destructive confirm) · 1920×1080</div>
+    <div data-screen-label="A4 Abandon dialog" style="width:1920px;height:1080px;position:relative;overflow:hidden;background:#3c424d">
+      <div style="position:absolute;inset:0;background:#13161be6"></div>
+      <div style="position:absolute;left:0;top:0;width:1920px;height:1080px;display:flex;align-items:center;justify-content:center">
+        <div style="width:560px;background:#2b1e17;border-radius:12px;padding:32px;box-sizing:border-box;display:flex;flex-direction:column;gap:24px;box-shadow:0 16px 48px #000000a0">
+          <div style="display:flex;flex-direction:column;gap:8px"><span style="font:700 24px 'Rowdies'">Abandon this run?</span><span style="font:400 18px/24px 'Work Sans'">The run ends as a loss at Floor 4. You keep 60 Shards and 80 Pass XP. This can't be undone.</span></div>
+          <div style="display:flex;gap:16px;justify-content:flex-end">
+            <div style="height:56px;padding:0 24px;border-radius:8px;background:#58321d;display:flex;align-items:center;font:700 18px 'Rowdies';outline:4px solid #ffe5b4">Keep playing</div>
+            <div style="height:56px;padding:0 24px;border-radius:8px;background:#b81221;filter:drop-shadow(0 4px 0 #2b1e17);display:flex;align-items:center;font:700 18px 'Rowdies'">Abandon run</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div style="font:400 18px 'Work Sans';color:#b4bccb;max-width:1920px">Groups: text · actions (2). Default focus is Keep playing, so Enter never abandons by accident. Red button only for destructive actions; the same dialog shell is used for Quit game and Reset settings. Esc: Keep playing.</div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  state = { pact: 0, menu: 1 };
+  renderVals() {
+    const s = this.state;
+    const RC = { Rare: '#2dc661', Epic: '#27c0ca' };
+    const P = [
+      ['Iron Vow', 'Rare', 'All Shield you create +50%, and your whole team gains +2 Thorns.', 'All damage faces −2 (min 1).'],
+      ['Patient Fang', 'Epic', 'Each turn after the first, all damage faces get +2 more (turn 2 = +2, turn 3 = +4, max +14).', 'On turn 1 all damage faces deal 0 damage (face keywords still apply).'],
+      ["Devil's Reroll", 'Rare', '+3 max Rerolls.', 'Every Reroll costs 1 Mana. With no Mana you cannot Reroll.']];
+    const pacts = P.map(([n, r, up, down], i) => { const on = i === s.pact; return { n, r, up, down, rc: RC[r], bg: on ? '#3e2618' : '#2b1e17e6', o: on ? '4px solid #ffe5b4' : 'none', lift: on ? -18 : 0, pick: () => this.setState({ pact: i }) }; });
+    const M = ['Resume', 'Relics owned', 'Run map', 'Settings', 'Abandon run'];
+    const menu = M.map((l, i) => ({ l, bg: i === 0 ? '#ffb444' : (i === s.menu ? '#58321d' : '#3e2618'), c: i === 0 ? '#291808' : (i === 4 ? '#ff8986' : '#ffe5b4'), o: i === s.menu && i !== 0 ? '4px solid #ffe5b4' : 'none', pick: () => i > 0 && i < 4 && this.setState({ menu: i }) }));
+    const panels = {
+      1: ['Relics owned · 4', [['Razor Claw', 'Common'], ['Ember', 'Uncommon'], ['Keen Eye', 'Rare'], ['Linkstone', 'Common']]],
+      2: ['Run map · Act 1', [['Floor 4 · Battle', 'Now'], ['Floor 5 · Shop', 'Next'], ['Floor 6 · Event', ''], ['Floor 8 · Boss', '']]],
+      3: ['Settings', [['Music', '70%'], ['Sound effects', '80%'], ['Reduce motion', 'Off'], ['Language', 'English']]] };
+    const [panelTitle, rows] = panels[s.menu];
+    return { pacts, pactBtn: 'Accept ' + P[s.pact][0], menu, panelTitle, panelRows: rows.map(([l, v]) => ({ l, v })) };
+  }
+}
+</script>
+</body>
+</html>

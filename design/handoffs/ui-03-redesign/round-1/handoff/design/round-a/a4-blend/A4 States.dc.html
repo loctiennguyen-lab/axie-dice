@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<link rel="stylesheet" href="../../_ds/terrariums-design-system-41d3ee92-ef23-4954-9fac-b76baf67c7c6/styles.css">
+<script src="../../_ds/terrariums-design-system-41d3ee92-ef23-4954-9fac-b76baf67c7c6/_ds_bundle.js"></script>
+<style>
+body{margin:0;background:#0d0e12}
+a{color:#ffe5b4}a:hover{color:#ffb444}
+@keyframes a4spin{to{transform:rotate(360deg)}}
+</style>
+</helmet>
+<div style="display:flex;flex-direction:column;gap:64px;padding:64px;font-family:'Work Sans',sans-serif;color:#ffe5b4;width:1920px;background:#0d0e12">
+  <div style="display:flex;flex-direction:column;gap:8px">
+    <div style="font:700 48px 'Rowdies'">A4 · Blend — state frames</div>
+    <div style="font:400 24px/32px 'Work Sans';color:#b4bccb;text-wrap:pretty">The states the brief lists that the main frames don't show. Each one is a 1:1 crop of the 1920×1080 screen at the given position; everything outside the crop stays as in the main frame. Main frames: <a href="A4 Blend.dc.html">Land hub, Combat, Run map</a> · <a href="A4 Run Screens.dc.html">Run setup → Result</a> · <a href="A4 Run Screens 2.dc.html">Pact → dialog</a>.</div>
+  </div>
+
+  <!-- LAND HUB -->
+  <div style="display:flex;flex-direction:column;gap:24px">
+    <div style="font:700 32px 'Rowdies'">01 Land hub</div>
+    <div style="display:flex;flex-wrap:wrap;gap:32px">
+
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <span style="font:700 18px 'Rowdies';color:#b4bccb">01-first-visit · bottom-right crop · x 1120–1920, y 680–1080</span>
+        <div style="width:800px;height:400px;position:relative;overflow:hidden;background:#3c424d">
+          <div style="position:absolute;right:24px;bottom:112px;width:400px;background:#2b1e17;border-radius:12px;padding:16px 20px;box-sizing:border-box;display:flex;flex-direction:column;gap:4px;box-shadow:0 16px 48px #000000a0">
+            <span style="font:700 24px 'Rowdies'">Your first run</span>
+            <span style="font:400 18px/24px 'Work Sans'">Pick a party and head through the Portal. The other places open as you play.</span>
+          </div>
+          <div style="position:absolute;right:120px;bottom:100px;width:0;height:0;border-left:12px solid transparent;border-right:12px solid transparent;border-top:14px solid #2b1e17"></div>
+          <div style="position:absolute;right:24px;bottom:24px;height:72px;padding:0 48px;border-radius:8px;background:#ffb444;color:#291808;filter:drop-shadow(0 4px 0 #2b1e17);outline:4px solid #ffe5b4;outline-offset:4px;display:flex;align-items:center;font:700 32px 'Rowdies'">Start run</div>
+        </div>
+        <span style="font:400 18px 'Work Sans';color:#b4bccb;max-width:800px">Daily run is hidden until the first run ends. Other buildings show the locked plate (right). Profile reads "Best: none yet".</span>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <span style="font:700 18px 'Rowdies';color:#b4bccb">01-building-locked · plate under a model</span>
+        <div style="width:480px;height:400px;position:relative;overflow:hidden;background:#3c424d;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px">
+          <div style="width:200px;height:180px;border:2px dashed #8e97a8;border-radius:8px;box-sizing:border-box;display:flex;align-items:flex-end;justify-content:center;padding:4px;font:400 16px 'Work Sans';color:#dae0ea;opacity:.6">Store mesh (greyed)</div>
+          <div style="display:flex;flex-direction:column;align-items:center;gap:2px;background:#2b1e17e6;border-radius:8px;padding:8px 16px">
+            <div style="display:flex;align-items:center;gap:8px"><img src="../assets/ui_lock.svg" style="width:20px;height:20px"><span style="font:700 24px 'Rowdies';color:#b4bccb">Store</span></div>
+            <span style="font:400 18px 'Work Sans'">Opens after your first run</span>
+          </div>
+        </div>
+        <span style="font:400 18px 'Work Sans';color:#b4bccb;max-width:480px">Model at 60% with no glow; plate keeps cream text for the rule (4.5:1). Click shows the same rule as a toast.</span>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <span style="font:700 18px 'Rowdies';color:#b4bccb">01-signed-out · bottom-right + top-left</span>
+        <div style="width:800px;height:400px;position:relative;overflow:hidden;background:#3c424d">
+          <div style="position:absolute;left:24px;top:24px;display:flex;align-items:center;gap:16px;background:#2b1e17e6;border-radius:8px;padding:8px 16px 8px 8px">
+            <div style="width:48px;height:48px;border-radius:24px;background:#3e2618;display:flex;align-items:center;justify-content:center;font:400 16px 'Work Sans';color:#b4bccb">?</div>
+            <div style="display:flex;flex-direction:column"><span style="font:700 24px 'Rowdies';line-height:28px">Guest</span><span style="font:400 18px 'Work Sans';color:#b4bccb">Progress saved on this device</span></div>
+          </div>
+          <div style="position:absolute;right:24px;bottom:24px;display:flex;align-items:center;gap:16px">
+            <div style="height:56px;padding:0 24px;border-radius:8px;background:#58321d;display:flex;align-items:center;font:700 18px 'Rowdies'">Play as guest</div>
+            <div style="height:72px;padding:0 48px;border-radius:8px;background:#ffb444;color:#291808;filter:drop-shadow(0 4px 0 #2b1e17);display:flex;align-items:center;font:700 32px 'Rowdies'">Sign in to play</div>
+          </div>
+        </div>
+        <span style="font:400 18px 'Work Sans';color:#b4bccb;max-width:800px">Currencies plate hidden. Store, Pass, Leaderboard and Vault plates read "Sign in to use".</span>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <span style="font:700 18px 'Rowdies';color:#b4bccb">01-offline · top centre + bottom-right</span>
+        <div style="width:800px;height:400px;position:relative;overflow:hidden;background:#3c424d">
+          <div style="position:absolute;left:100px;top:24px;width:600px;display:flex;align-items:center;gap:16px;padding:12px 16px;border-radius:8px;background:#3e2618;box-sizing:border-box">
+            <span style="font:400 18px/24px 'Work Sans';flex:1">You're offline. Runs still work; Daily, Ranked and the Store don't.</span>
+            <div style="height:48px;padding:0 16px;border-radius:8px;background:#58321d;display:flex;align-items:center;font:700 18px 'Rowdies';flex:none">Retry</div>
+          </div>
+          <div style="position:absolute;right:24px;bottom:24px;display:flex;align-items:center;gap:16px">
+            <div style="height:56px;padding:0 24px;border-radius:8px;background:#3c424d;border:2px solid #5b6372;box-sizing:border-box;white-space:nowrap;flex:none;display:flex;align-items:center;font:700 18px 'Rowdies';color:#dae0ea">Daily run · needs connection</div>
+            <div style="height:72px;padding:0 48px;border-radius:8px;background:#ffb444;color:#291808;filter:drop-shadow(0 4px 0 #2b1e17);display:flex;align-items:center;font:700 32px 'Rowdies'">Start run</div>
+          </div>
+        </div>
+        <span style="font:400 18px 'Work Sans';color:#b4bccb;max-width:800px">Notice sits at top centre between the profile and currency plates (x 660–1260). Disabled buttons say why in their own label.</span>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <span style="font:700 18px 'Rowdies';color:#b4bccb">01-resume-run · dialog, centre</span>
+        <div style="width:800px;height:400px;position:relative;overflow:hidden;background:#3c424d;display:flex;align-items:center;justify-content:center">
+          <div style="position:absolute;inset:0;background:#13161bcc"></div>
+          <div style="position:relative;width:560px;background:#2b1e17;border-radius:12px;padding:32px;box-sizing:border-box;display:flex;flex-direction:column;gap:24px;box-shadow:0 16px 48px #000000a0">
+            <div style="display:flex;flex-direction:column;gap:8px"><span style="font:700 24px 'Rowdies'">Continue your run?</span><span style="font:400 18px/24px 'Work Sans'">Normal · A3 · Act 1 · Floor 4. Your party, relics and 140 Shards are waiting.</span></div>
+            <div style="display:flex;gap:16px;justify-content:flex-end">
+              <div style="height:56px;padding:0 24px;border-radius:8px;background:#58321d;display:flex;align-items:center;font:700 18px 'Rowdies'">Abandon run</div>
+              <div style="height:56px;padding:0 24px;border-radius:8px;background:#ffb444;color:#291808;filter:drop-shadow(0 4px 0 #0d0e12);display:flex;align-items:center;font:700 18px 'Rowdies';outline:4px solid #ffe5b4">Continue</div>
+            </div>
+          </div>
+        </div>
+        <span style="font:400 18px 'Work Sans';color:#b4bccb;max-width:800px">Shown once on entering the Land. Abandon opens the destructive confirm. Esc: Continue later (closes, run kept).</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- RUN SETUP -->
+  <div style="display:flex;flex-direction:column;gap:24px">
+    <div style="font:700 32px 'Rowdies'">06 Run setup</div>
+    <div style="display:flex;flex-wrap:wrap;gap:32px">
+
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <span style="font:700 18px 'Rowdies';color:#b4bccb">06-newcomer · setup plate · x 0–480, y 0–600</span>
+        <div style="width:480px;height:600px;position:relative;overflow:hidden;background:#3c424d">
+          <div style="position:absolute;left:24px;top:24px;width:432px;background:#2b1e17e6;border-radius:8px;padding:24px;box-sizing:border-box;display:flex;flex-direction:column;gap:16px">
+            <span style="font:700 32px 'Rowdies'">Run setup</span>
+            <span style="font:700 24px 'Rowdies'">Mode</span>
+            <sc-for list="{{ newModes }}" as="m" hint-placeholder-count="4">
+              <div style="height:56px;display:flex;align-items:center;justify-content:space-between;padding:0 16px;border-radius:8px;background:{{ m.bg }};outline:{{ m.o }}"><span style="font:700 24px 'Rowdies';color:{{ m.c }}">{{ m.l }}</span><span style="font:400 18px 'Work Sans';color:#dae0ea">{{ m.sub }}</span></div>
+            </sc-for>
+            <span style="font:700 24px 'Rowdies'">Difficulty</span>
+            <span style="font:400 18px/24px 'Work Sans'">A0 for your first run. Win to unlock A1.</span>
+          </div>
+        </div>
+        <span style="font:400 18px 'Work Sans';color:#b4bccb;max-width:480px">Difficulty grid is replaced by one line until A1 unlocks. Locked modes keep their unlock rule as the sub-line.</span>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <span style="font:700 18px 'Rowdies';color:#b4bccb">06-empty-party · centre + bottom-right</span>
+        <div style="width:960px;height:600px;position:relative;overflow:hidden;background:#3c424d">
+          <div style="position:absolute;left:40px;top:120px;display:flex;gap:16px">
+            <sc-for list="{{ emptySlots }}" as="e" hint-placeholder-count="5">
+              <div style="width:168px;display:flex;flex-direction:column;align-items:center;gap:12px">
+                <div style="width:168px;height:168px;border:2px dashed {{ e.bc }};border-radius:8px;box-sizing:border-box;display:flex;align-items:center;justify-content:center;font:400 18px 'Work Sans';color:#dae0ea">{{ e.t }}</div>
+                <span style="font:400 18px 'Work Sans';color:#dae0ea">Slot {{ e.n }}</span>
+              </div>
+            </sc-for>
+          </div>
+          <div style="position:absolute;right:24px;bottom:24px;display:flex;flex-direction:column;align-items:flex-end;gap:8px">
+            <span style="font:400 18px 'Work Sans'">Pick 2 more Axies to start.</span>
+            <div style="height:72px;padding:0 48px;border-radius:8px;background:#3c424d;border:2px solid #5b6372;box-sizing:border-box;white-space:nowrap;flex:none;color:#dae0ea;display:flex;align-items:center;font:700 32px 'Rowdies'">Start run · 3 of 5</div>
+          </div>
+        </div>
+        <span style="font:400 18px 'Work Sans';color:#b4bccb;max-width:960px">Empty slots are dashed with "+ Add Axie" and open the Axie picker. Missing count lives in the button label and the line above it.</span>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <span style="font:700 18px 'Rowdies';color:#b4bccb">06-starting · bottom-right</span>
+        <div style="width:560px;height:200px;position:relative;overflow:hidden;background:#3c424d">
+          <div style="position:absolute;right:24px;bottom:24px;height:72px;width:320px;border-radius:8px;background:#ffb444;color:#291808;filter:drop-shadow(0 2px 0 #2b1e17);transform:translateY(2px);display:flex;align-items:center;justify-content:center;gap:16px;font:700 32px 'Rowdies'"><div style="width:28px;height:28px;border-radius:14px;border:4px solid #29180840;border-top-color:#291808;box-sizing:border-box;animation:a4spin 1s linear infinite"></div>Starting…</div>
+        </div>
+        <span style="font:400 18px 'Work Sans';color:#b4bccb;max-width:560px">Button keeps its width; other controls lock. After 10 s: "Still starting…" + Cancel.</span>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <span style="font:700 18px 'Rowdies';color:#b4bccb">06-offline / 06-server-rejected · above the actions</span>
+        <div style="width:800px;height:320px;position:relative;overflow:hidden;background:#3c424d;display:flex;flex-direction:column;justify-content:flex-end;align-items:flex-end;gap:16px;padding:24px;box-sizing:border-box">
+          <div style="width:560px;display:flex;align-items:center;gap:16px;padding:12px 16px;border-radius:8px;background:#3e2618;box-sizing:border-box">
+            <span style="font:400 18px/24px 'Work Sans';flex:1">You're offline. Normal runs work; Daily and Ranked need a connection.</span>
+            <div style="height:48px;padding:0 16px;border-radius:8px;background:#58321d;display:flex;align-items:center;font:700 18px 'Rowdies';flex:none">Retry</div>
+          </div>
+          <div style="width:560px;display:flex;align-items:center;gap:16px;padding:12px 16px;border-radius:8px;background:#3d0d11;box-sizing:border-box">
+            <span style="font:400 18px/24px 'Work Sans';flex:1">The server couldn't start this Ranked run. Your party is fine. Try again in a moment.</span>
+            <div style="height:48px;padding:0 16px;border-radius:8px;background:#58321d;display:flex;align-items:center;font:700 18px 'Rowdies';flex:none">Try again</div>
+          </div>
+        </div>
+        <span style="font:400 18px 'Work Sans';color:#b4bccb;max-width:800px">Offline also greys Daily and Ranked in the mode list with "Needs connection". Rejected uses red-1 behind cream text, never red text on red.</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- RUN MAP -->
+  <div style="display:flex;flex-direction:column;gap:24px">
+    <div style="font:700 32px 'Rowdies'">03 Run map · node detail plate (right, x 1480–1896)</div>
+    <div style="display:flex;flex-wrap:wrap;gap:32px">
+      <sc-for list="{{ mapStates }}" as="m" hint-placeholder-count="0">
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <span style="font:700 18px 'Rowdies';color:#b4bccb">{{ m.tag }}</span>
+          <div style="width:416px;background:#2b1e17e6;border-radius:8px;padding:24px;box-sizing:border-box;display:flex;flex-direction:column;gap:16px">
+            <div style="display:flex;align-items:center;gap:16px"><sc-if value="{{ m.isBattle }}" hint-placeholder-val="{{ false }}"><img src="../assets/node_battle.png" style="width:64px;height:64px;object-fit:contain;opacity:{{ m.op }}"></sc-if><sc-if value="{{ m.isBoss }}" hint-placeholder-val="{{ false }}"><img src="../assets/node_boss.png" style="width:64px;height:64px;object-fit:contain;opacity:{{ m.op }}"></sc-if><sc-if value="{{ m.isShop }}" hint-placeholder-val="{{ false }}"><img src="../assets/node_shop.png" style="width:64px;height:64px;object-fit:contain;opacity:{{ m.op }}"></sc-if><sc-if value="{{ m.isTreasure }}" hint-placeholder-val="{{ false }}"><img src="../assets/node_treasure.png" style="width:64px;height:64px;object-fit:contain;opacity:{{ m.op }}"></sc-if><span style="font:700 32px 'Rowdies'">{{ m.t }}</span></div>
+            <span style="font:400 18px/24px 'Work Sans'">{{ m.b }}</span>
+            <sc-if value="{{ m.hasNote }}" hint-placeholder-val="{{ false }}"><span style="font:400 18px/24px 'Work Sans';color:{{ m.nc }}">{{ m.note }}</span></sc-if>
+            <div style="height:72px;border-radius:8px;background:{{ m.btnBg }};color:{{ m.btnC }};display:flex;align-items:center;justify-content:center;font:700 32px 'Rowdies'">{{ m.btn }}</div>
+          </div>
+        </div>
+      </sc-for>
+    </div>
+    <span style="font:400 18px 'Work Sans';color:#b4bccb">Map side: start = only Floor 1 nodes lit, path empty · boss next = Boss node 1.25× with red-4 ring · hover = node scales 1.1 and shows its name under it · locked = node at 40% with a lock, edges grey.</span>
+  </div>
+
+  <!-- COMBAT -->
+  <div style="display:flex;flex-direction:column;gap:24px">
+    <div style="font:700 32px 'Rowdies'">02 Combat</div>
+    <div style="display:flex;flex-wrap:wrap;gap:32px">
+
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <span style="font:700 18px 'Rowdies';color:#b4bccb">02-illegal-target · hovering an Axie with ATTACK picked</span>
+        <div style="width:560px;height:360px;position:relative;overflow:hidden;background:#3c424d">
+          <div style="position:absolute;left:180px;top:110px;width:163px;height:214px;border:2px solid #8e97a8;border-radius:8px;box-sizing:border-box;display:flex;align-items:center;justify-content:center;font:400 16px 'Work Sans';color:#dae0ea;cursor:not-allowed">AXIE 3D · 3</div>
+          <div style="position:absolute;left:120px;top:56px;height:40px;padding:0 12px;border-radius:8px;background:#3d0d11;display:flex;align-items:center;gap:8px"><span style="font:400 18px 'Work Sans'">ATTACK can only target enemies</span></div>
+        </div>
+        <span style="font:400 18px 'Work Sans';color:#b4bccb;max-width:560px">Cursor shows not-allowed; reason sits where the Target label would. Click does nothing and the die stays picked.</span>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <span style="font:700 18px 'Rowdies';color:#b4bccb">02-turn-banner · centre, 900 ms</span>
+        <div style="width:960px;height:360px;position:relative;overflow:hidden;background:#3c424d;display:flex;align-items:center;justify-content:center">
+          <div style="width:960px;height:120px;background:#2b1e17e6;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px">
+            <span style="font:700 36px 'Rowdies'">Enemy turn</span>
+            <span style="font:400 18px 'Work Sans';color:#b4bccb">Turn 2 · 3 enemies act</span>
+          </div>
+        </div>
+        <span style="font:400 18px 'Work Sans';color:#b4bccb;max-width:960px">Full-width band, slides in 200 ms, holds 500, out 200. "Your turn" uses the same band. Reduce motion: fade only. Input is locked while it shows.</span>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <span style="font:700 18px 'Rowdies';color:#b4bccb">02-enemy-turn · enemy plate (top-right)</span>
+        <div style="width:368px;background:#3c424d;padding:24px;box-sizing:border-box">
+          <div style="width:320px;background:#2b1e17e6;border-radius:8px;padding:12px;box-sizing:border-box;display:flex;flex-direction:column;gap:6px">
+            <sc-for list="{{ intents }}" as="e" hint-placeholder-count="3">
+              <div style="display:flex;flex-direction:column;gap:4px;padding:6px 10px;border-radius:8px;background:#3e2618;outline:{{ e.o }}">
+                <div style="display:flex;justify-content:space-between;align-items:baseline"><span style="font:400 18px 'Work Sans'">{{ e.n }}</span><span style="font:700 18px 'Rowdies'">{{ e.hp }}</span></div>
+                <span style="font:400 18px 'Work Sans';color:{{ e.c }}">{{ e.s }}</span>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+        <span style="font:400 18px 'Work Sans';color:#b4bccb;max-width:368px">The acting enemy gets the cream outline and its line becomes the result. Dice tray dims to 40%; End turn reads "Enemy turn…".</span>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <span style="font:700 18px 'Rowdies';color:#b4bccb">02-boss · enemy plate</span>
+        <div style="width:368px;background:#3c424d;padding:24px;box-sizing:border-box">
+          <div style="width:320px;background:#2b1e17e6;border-radius:8px;padding:16px;box-sizing:border-box;display:flex;flex-direction:column;gap:8px">
+            <div style="display:flex;justify-content:space-between;align-items:baseline"><span style="font:700 24px 'Rowdies'">Boss</span><span style="font:700 24px 'Rowdies'">96/120</span></div>
+            <div style="height:16px;background:#13161b;border-radius:4px;display:flex;overflow:hidden"><div style="width:80%;background:#f54540"></div></div>
+            <div style="display:flex;justify-content:space-between"><span style="font:400 18px 'Work Sans'">Next: 18 to all</span><span style="font:400 18px 'Work Sans';color:#b4bccb">Phase 1 of 2</span></div>
+          </div>
+        </div>
+        <span style="font:400 18px 'Work Sans';color:#b4bccb;max-width:368px">One wide row, bar 16 px. Phase change plays the turn banner with the boss name.</span>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <span style="font:700 18px 'Rowdies';color:#b4bccb">02-aid-tray · newcomer (no paid Aid) · left of actions</span>
+        <div style="width:368px;background:#3c424d;padding:24px;box-sizing:border-box">
+          <div style="width:320px;background:#2b1e17e6;border-radius:8px;padding:12px;box-sizing:border-box;display:flex;flex-direction:column;gap:8px">
+            <span style="font:700 18px 'Rowdies'">Aid · free this run</span>
+            <div style="height:48px;display:flex;align-items:center;justify-content:space-between;padding:0 12px;border-radius:8px;background:#3e2618"><span style="font:400 18px 'Work Sans'">Extra reroll</span><span style="font:700 18px 'Rowdies'">1 left</span></div>
+            <div style="height:48px;display:flex;align-items:center;justify-content:space-between;padding:0 12px;border-radius:8px;background:#3e2618"><span style="font:400 18px 'Work Sans'">Heal party 10</span><span style="font:700 18px 'Rowdies'">1 left</span></div>
+          </div>
+        </div>
+        <span style="font:400 18px 'Work Sans';color:#b4bccb;max-width:368px">Newcomers see only free Aid; no Gem prices appear until the Store unlocks. Aid names are placeholders.</span>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <span style="font:700 18px 'Rowdies';color:#b4bccb">02-defeat-panel · centre, before Result</span>
+        <div style="width:800px;height:440px;position:relative;overflow:hidden;background:#3c424d;display:flex;align-items:center;justify-content:center">
+          <div style="position:absolute;inset:0;background:#13161bcc"></div>
+          <div style="position:relative;width:480px;background:#2b1e17;border-radius:12px;padding:32px;box-sizing:border-box;display:flex;flex-direction:column;gap:16px;align-items:center">
+            <span style="font:700 32px 'Rowdies';color:#ff8986">Party down</span>
+            <span style="font:400 18px/24px 'Work Sans';text-align:center">All 5 Axies fell on Floor 9.</span>
+            <div style="width:100%;height:72px;border-radius:8px;background:#ffb444;color:#291808;filter:drop-shadow(0 4px 0 #0d0e12);display:flex;align-items:center;justify-content:center;font:700 32px 'Rowdies'">See results</div>
+          </div>
+        </div>
+        <span style="font:400 18px 'Work Sans';color:#b4bccb;max-width:800px">Holds 1 s before the button takes input, so a held Space doesn't skip it.</span>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <span style="font:700 18px 'Rowdies';color:#b4bccb">02-quit-confirm · centre</span>
+        <div style="width:800px;height:440px;position:relative;overflow:hidden;background:#3c424d;display:flex;align-items:center;justify-content:center">
+          <div style="position:absolute;inset:0;background:#13161bcc"></div>
+          <div style="position:relative;width:560px;background:#2b1e17;border-radius:12px;padding:32px;box-sizing:border-box;display:flex;flex-direction:column;gap:24px">
+            <div style="display:flex;flex-direction:column;gap:8px"><span style="font:700 24px 'Rowdies'">Quit this fight?</span><span style="font:400 18px/24px 'Work Sans'">The run is saved at the start of this fight. You'll replay it from turn 1.</span></div>
+            <div style="display:flex;gap:16px;justify-content:flex-end">
+              <div style="height:56px;padding:0 24px;border-radius:8px;background:#58321d;display:flex;align-items:center;font:700 18px 'Rowdies';outline:4px solid #ffe5b4">Keep playing</div>
+              <div style="height:56px;padding:0 24px;border-radius:8px;background:#ffb444;color:#291808;display:flex;align-items:center;font:700 18px 'Rowdies'">Save and quit</div>
+            </div>
+          </div>
+        </div>
+        <span style="font:400 18px 'Work Sans';color:#b4bccb;max-width:800px">Same as in-run menu → Save and quit. Not destructive, so Amber, but focus still starts on Keep playing.</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- RUN NODES -->
+  <div style="display:flex;flex-direction:column;gap:24px">
+    <div style="font:700 32px 'Rowdies'">07–14 Reward, Shop, Treasure, Pact, menu</div>
+    <div style="display:flex;flex-wrap:wrap;gap:32px">
+
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <span style="font:700 18px 'Rowdies';color:#b4bccb">07-reward-rerolled / 07-skip · actions row</span>
+        <div style="width:800px;background:#3c424d;padding:24px;box-sizing:border-box;display:flex;flex-direction:column;gap:24px">
+          <div style="display:flex;align-items:center;gap:16px">
+            <div style="height:56px;padding:0 24px;border-radius:8px;background:#3c424d;border:2px solid #5b6372;box-sizing:border-box;white-space:nowrap;flex:none;color:#dae0ea;display:flex;align-items:center;font:700 18px 'Rowdies'">Reroll · 0 left</div>
+            <div style="height:56px;padding:0 24px;border-radius:8px;background:#58321d;display:flex;align-items:center;font:700 18px 'Rowdies'">Skip</div>
+            <div style="height:72px;padding:0 48px;border-radius:8px;background:#ffb444;color:#291808;filter:drop-shadow(0 4px 0 #2b1e17);display:flex;align-items:center;font:700 32px 'Rowdies'">Take Shatterpoint</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:16px;padding:12px 16px;border-radius:8px;background:#2b1e17e6">
+            <span style="font:400 18px/24px 'Work Sans';flex:1">Skip this reward? You keep the 40 Shards.</span>
+            <div style="height:48px;padding:0 16px;border-radius:8px;background:#58321d;display:flex;align-items:center;font:700 18px 'Rowdies'">Back</div>
+            <div style="height:48px;padding:0 16px;border-radius:8px;background:#ffb444;color:#291808;display:flex;align-items:center;font:700 18px 'Rowdies'">Skip</div>
+          </div>
+        </div>
+        <span style="font:400 18px 'Work Sans';color:#b4bccb;max-width:800px">Skip asks once inline, under the cards, instead of a full dialog.</span>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <span style="font:700 18px 'Rowdies';color:#b4bccb">08-sold-out / 08-nothing-affordable · shop rows</span>
+        <div style="width:800px;background:#13161b;padding:24px;box-sizing:border-box;display:flex;flex-direction:column;gap:16px">
+          <div style="height:112px;display:flex;align-items:center;gap:16px;padding:0 16px;border-radius:8px;background:#2b1e17e6;opacity:.4">
+            <div style="width:80px;height:80px;border-radius:8px;background:#3e2618;border:2px solid #58321d;box-sizing:border-box"></div>
+            <div style="flex:1;display:flex;flex-direction:column;gap:4px"><span style="font:700 24px 'Rowdies'">Venom Fang</span><span style="font:400 18px 'Work Sans';color:#2dc661">Rare</span></div>
+            <span style="font:700 24px 'Rowdies'">Sold out</span>
+          </div>
+          <div style="height:112px;display:flex;align-items:center;gap:16px;padding:0 16px;border-radius:8px;background:#2b1e17e6">
+            <div style="width:80px;height:80px;border-radius:8px;background:#3e2618;border:2px solid #58321d;box-sizing:border-box"></div>
+            <div style="flex:1;display:flex;flex-direction:column;gap:4px"><span style="font:700 24px 'Rowdies'">Gene Nova</span><span style="font:400 18px 'Work Sans';color:#27c0ca">Epic</span></div>
+            <div style="display:flex;align-items:center;gap:6px;font:700 24px 'Rowdies';color:#ff8986"><img src="../assets/cur_shard.png" style="width:28px;height:28px">220</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:16px;padding:12px 16px;border-radius:8px;background:#3e2618">
+            <span style="font:400 18px/24px 'Work Sans';flex:1">You can't afford anything here. Sell a relic or leave.</span>
+            <div style="height:48px;padding:0 16px;border-radius:8px;background:#58321d;outline:4px solid #ffe5b4;display:flex;align-items:center;font:700 18px 'Rowdies'">Leave shop</div>
+          </div>
+        </div>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <span style="font:700 18px 'Rowdies';color:#b4bccb">13-treasure-closed · centre</span>
+        <div style="width:800px;height:520px;position:relative;overflow:hidden;background:#3c424d;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:32px">
+          <div style="width:384px;height:288px;border:2px solid #8e97a8;border-radius:8px;box-sizing:border-box;display:flex;align-items:center;justify-content:center;font:400 18px 'Work Sans';color:#dae0ea">CHEST 3D · closed, idle bob</div>
+          <div style="height:72px;padding:0 48px;border-radius:8px;background:#ffb444;color:#291808;filter:drop-shadow(0 4px 0 #2b1e17);display:flex;align-items:center;font:700 32px 'Rowdies'">Open chest</div>
+        </div>
+        <span style="font:400 18px 'Work Sans';color:#b4bccb;max-width:800px">Click the chest or the button. Opening: lid 600 ms, then the relic card rises (opened frame).</span>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <span style="font:700 18px 'Rowdies';color:#b4bccb">12-pact-swap / 12-pact-confirm</span>
+        <div style="width:800px;background:#3c424d;padding:24px;box-sizing:border-box;display:flex;flex-direction:column;gap:24px">
+          <div style="display:flex;align-items:center;gap:16px">
+            <div style="height:56px;padding:0 24px;border-radius:8px;background:#58321d;display:flex;align-items:center;gap:8px;font:700 18px 'Rowdies'"><img src="../assets/ui_reroll.svg" style="width:24px;height:24px">Swap a card · 1 left</div>
+            <span style="font:400 18px/24px 'Work Sans'">Swap replaces the picked card with a new Pact.</span>
+          </div>
+          <div style="background:#2b1e17;border-radius:12px;padding:32px;display:flex;flex-direction:column;gap:24px">
+            <div style="display:flex;flex-direction:column;gap:8px"><span style="font:700 24px 'Rowdies'">Make the Patient Fang pact?</span><span style="font:400 18px/24px 'Work Sans'">On turn 1 all damage faces deal 0 damage. This lasts the whole run.</span></div>
+            <div style="display:flex;gap:16px;justify-content:flex-end">
+              <div style="height:56px;padding:0 24px;border-radius:8px;background:#58321d;outline:4px solid #ffe5b4;display:flex;align-items:center;font:700 18px 'Rowdies'">Back</div>
+              <div style="height:56px;padding:0 24px;border-radius:8px;background:#ffb444;color:#291808;display:flex;align-items:center;font:700 18px 'Rowdies'">Make pact</div>
+            </div>
+          </div>
+        </div>
+        <span style="font:400 18px 'Work Sans';color:#b4bccb;max-width:800px">The confirm repeats only the drawback, since that's the part people miss.</span>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:8px">
+        <span style="font:700 18px 'Rowdies';color:#b4bccb">14-menu · with Save and quit</span>
+        <div style="width:528px;background:#3c424d;padding:24px;box-sizing:border-box">
+          <div style="width:480px;background:#2b1e17e6;border-radius:12px;padding:32px;box-sizing:border-box;display:flex;flex-direction:column;gap:8px">
+            <sc-for list="{{ menu }}" as="m" hint-placeholder-count="6">
+              <div style="height:64px;display:flex;align-items:center;padding:0 20px;border-radius:8px;background:{{ m.bg }};font:700 24px 'Rowdies';color:{{ m.c }}">{{ m.l }}</div>
+            </sc-for>
+          </div>
+        </div>
+        <span style="font:400 18px 'Work Sans';color:#b4bccb;max-width:528px">Save and quit opens the quit confirm and returns to the Land.</span>
+      </div>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  renderVals() {
+    const A = '../assets/';
+    const newModes = [['Normal run', '', true], ['Daily', 'After 1 run', false], ['Ranked', 'After A3 win', false], ['Missions', 'After 1 run', false]]
+      .map(([l, sub, on]) => ({ l, sub, bg: on ? '#58321d' : '#1c1f25', o: on ? '4px solid #ffe5b4' : 'none', c: on ? '#ffe5b4' : '#b4bccb' }));
+    const emptySlots = [1, 2, 3, 4, 5].map(n => ({ n, t: n <= 3 ? 'AXIE 3D' : '+ Add Axie', bc: n <= 3 ? '#8e97a8' : '#ffe5b4' }));
+    const prim = { btnBg: '#ffb444', btnC: '#291808' }, off = { btnBg: '#3c424d', btnC: '#dae0ea' };
+    const mapStates = [
+      { tag: '03-start · Floor 1', i: A + 'node_battle.png', op: 1, t: 'Battle', b: 'A normal fight. Win to pick a relic and earn Shards.', hasNote: true, note: 'Pick any Floor 1 node to begin.', nc: '#b4bccb', btn: 'Travel', ...prim },
+      { tag: '03-boss-next', i: A + 'node_boss.png', op: 1, t: 'Boss', b: 'The Act 1 Boss. Win to make a Pact and move to Act 2.', hasNote: true, note: 'Your party heals 30% before the fight.', nc: '#b4bccb', btn: 'Face the Boss', ...prim },
+      { tag: '03-node-hover · not reachable', i: A + 'node_shop.png', op: 1, t: 'Shop', b: 'Buy relics and actives with Shards.', hasNote: true, note: 'Not reachable from here. Reachable nodes are lit.', nc: '#ff8986', btn: 'Not on your path', ...off },
+      { tag: '03-locked-node · past floor', i: A + 'node_treasure.png', op: .4, t: 'Treasure', b: 'You passed this floor.', hasNote: false, note: '', nc: '', btn: 'Already passed', ...off }];
+    const intents = [['Enemy 1', '24/30', 'Hits Plant for 8 · Shield took 6', '#ffe5b4', '3px solid #ffe5b4'], ['Elite', '61/70', 'Next: 14 to one Axie', '#b4bccb', 'none'], ['Enemy 2', '12/30', 'Next: 5 to all', '#b4bccb', 'none']]
+      .map(([n, hp, s, c, o]) => ({ n, hp, s, c, o }));
+    const menu = ['Resume', 'Relics owned', 'Run map', 'Settings', 'Save and quit', 'Abandon run'].map((l, i) => ({ l, bg: i === 0 ? '#ffb444' : '#3e2618', c: i === 0 ? '#291808' : (i === 5 ? '#ff8986' : '#ffe5b4') }));
+    mapStates.forEach(m => { m.isBattle = m.i.includes('battle'); m.isBoss = m.i.includes('boss'); m.isShop = m.i.includes('shop'); m.isTreasure = m.i.includes('treasure'); delete m.i; });
+    return { newModes, emptySlots, mapStates, intents, menu };
+  }
+}
+</script>
+</body>
+</html>

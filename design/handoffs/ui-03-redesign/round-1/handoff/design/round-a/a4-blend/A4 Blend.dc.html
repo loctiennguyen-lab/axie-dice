@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<link rel="stylesheet" href="../../_ds/terrariums-design-system-41d3ee92-ef23-4954-9fac-b76baf67c7c6/styles.css">
+<script src="../../_ds/terrariums-design-system-41d3ee92-ef23-4954-9fac-b76baf67c7c6/_ds_bundle.js"></script>
+<style>
+:root{--color-accent:#ffb444;--color-accent-text:#291808;--color-text:#ffe5b4;--color-text-muted:#b4bccb;--color-bg:#13161b;--color-plate:#2b1e17e6;--color-panel:#2b1e17;--color-panel-raised:#3e2618;--color-btn-secondary:#58321d;--color-hp:#3fcd3c;--color-danger:#f54540;--color-viewport:#3c424d;--color-annot:#00b8ff;--color-scrim:#13161bcc}
+body{margin:0;background:#0d0e12}
+a{color:#ffe5b4}a:hover{color:#ffb444}
+</style>
+</helmet>
+<div style="display:flex;flex-direction:column;gap:64px;padding:64px;font-family:'Work Sans',sans-serif;color:#ffe5b4;width:max-content;background:#0d0e12">
+
+  <div style="display:flex;flex-direction:column;gap:8px;max-width:1920px">
+    <div style="font:700 48px 'Rowdies'">A4 · Blend — Liam's mix of A1, A2, A3</div>
+    <a href="A4 Run Screens.dc.html" style="font:400 24px 'Work Sans'">Run screens → Run setup, Reward, Shop, Event, Result</a>
+    <div style="font:400 24px/32px 'Work Sans';color:#b4bccb">A2's full-screen 3D and flat 90% plates · A1's Amber accent and 120 px die · A3's enemy list, Run Map and Store. Dice in a floating tray with HP under each die; Actives always shown left of the tray. No face strip. Selected = cream outline + lift. Medium density. Godot cost: medium (flat StyleBoxes; the 3D dice throw is the expensive part).</div>
+  </div>
+
+  <!-- STYLE TILE -->
+  <div style="display:flex;flex-direction:column;gap:16px">
+    <div style="font:700 24px 'Rowdies';color:#b4bccb">style-tile</div>
+    <div data-screen-label="A4 Style tile" style="width:1920px;background:var(--color-bg);display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:32px;padding:48px;box-sizing:border-box">
+      <div style="display:flex;flex-direction:column;gap:16px">
+        <div style="font:700 24px 'Rowdies'">Palette</div>
+        <div style="display:flex;gap:16px;align-items:center;background:var(--color-panel);border-radius:8px;padding:16px">
+          <div style="width:96px;height:96px;border-radius:8px;background:var(--color-accent);flex:none"></div>
+          <div style="display:flex;flex-direction:column;gap:4px"><span style="font:700 24px 'Rowdies'">Amber · kam-6</span><span style="font:400 18px 'Work Sans'">#FFB444 — the one accent. Means "act now": End turn, Start run, Travel, Buy.</span></div>
+        </div>
+        <sc-for list="{{ swatches }}" as="s" hint-placeholder-count="7">
+          <div style="display:flex;gap:16px;align-items:center"><div style="width:48px;height:48px;border-radius:8px;background:{{ s.c }};border:2px solid #58321d;flex:none"></div><span style="font:400 18px 'Work Sans'">{{ s.n }}</span></div>
+        </sc-for>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:16px">
+        <div style="font:700 24px 'Rowdies'">Type</div>
+        <div style="background:var(--color-panel);border-radius:8px;padding:16px;display:flex;flex-direction:column;gap:8px">
+          <span style="font:700 32px 'Rowdies'">Rowdies Bold 32 — die values, Mana</span>
+          <span style="font:700 24px 'Rowdies'">Rowdies Bold 24 — titles, HP</span>
+          <span style="font:400 18px/24px 'Work Sans'">Work Sans Regular 18 — everything the player reads. Người Giữ Ấn.</span>
+        </div>
+        <div style="font:700 24px 'Rowdies'">Plate</div>
+        <div style="background:var(--color-plate);border-radius:8px;padding:12px 16px;display:flex;flex-direction:column;gap:4px;align-self:flex-start;width:336px;box-sizing:border-box">
+          <div style="display:flex;justify-content:space-between;align-items:baseline"><span style="font:400 18px 'Work Sans'">Elite</span><span style="font:700 24px 'Rowdies'">61/70</span></div>
+          <div style="height:12px;background:#13161b;border-radius:4px;display:flex;overflow:hidden"><div style="width:87%;background:#f54540"></div></div>
+          <span style="font:400 18px 'Work Sans'">Intends Attack 14</span>
+        </div>
+        <span style="font:400 18px/24px 'Work Sans';color:#b4bccb">wood-1 at 90%, no border, no shadow; the one translucent fill per panel. Used on every screen, 3D or not.</span>
+        <div style="display:flex;gap:24px;align-items:center">
+          <div style="height:72px;padding:0 32px;border-radius:8px;background:var(--color-accent);color:var(--color-accent-text);filter:drop-shadow(0 4px 0 #2b1e17);display:flex;align-items:center;font:700 24px 'Rowdies'">Primary</div>
+          <div style="height:56px;padding:0 24px;border-radius:8px;background:var(--color-btn-secondary);display:flex;align-items:center;font:700 18px 'Rowdies'">Secondary</div>
+          <div style="height:56px;padding:0 24px;border-radius:8px;background:var(--color-btn-secondary);display:flex;align-items:center;font:700 18px 'Rowdies';outline:2px solid #dae0ea;outline-offset:4px">Focus</div>
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:16px">
+        <div style="font:700 24px 'Rowdies'">Icons</div>
+        <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px">
+          <div style="background:var(--color-panel);border-radius:8px;padding:16px;display:flex;flex-direction:column;align-items:center;gap:8px"><img src="../assets/node_battle.png" style="width:64px;height:64px;object-fit:contain"><span style="font:400 18px 'Work Sans'">Battle</span></div>
+          <div style="background:var(--color-panel);border-radius:8px;padding:16px;display:flex;flex-direction:column;align-items:center;gap:8px"><img src="../assets/node_elite.png" style="width:64px;height:64px;object-fit:contain"><span style="font:400 18px 'Work Sans'">Elite</span></div>
+          <div style="background:var(--color-panel);border-radius:8px;padding:16px;display:flex;flex-direction:column;align-items:center;gap:8px"><img src="../assets/node_event.png" style="width:64px;height:64px;object-fit:contain"><span style="font:400 18px 'Work Sans'">Event</span></div>
+          <div style="background:var(--color-panel);border-radius:8px;padding:16px;display:flex;flex-direction:column;align-items:center;gap:8px"><img src="../assets/node_shop.png" style="width:64px;height:64px;object-fit:contain"><span style="font:400 18px 'Work Sans'">Shop</span></div>
+          <div style="background:var(--color-panel);border-radius:8px;padding:16px;display:flex;flex-direction:column;align-items:center;gap:8px"><img src="../assets/node_treasure.png" style="width:64px;height:64px;object-fit:contain"><span style="font:400 18px 'Work Sans'">Treasure</span></div>
+          <div style="background:var(--color-panel);border-radius:8px;padding:16px;display:flex;flex-direction:column;align-items:center;gap:8px"><img src="../assets/node_boss.png" style="width:64px;height:64px;object-fit:contain"><span style="font:400 18px 'Work Sans'">Boss</span></div>
+        </div>
+        <div style="font:700 24px 'Rowdies'">Die face</div>
+        <div style="display:flex;gap:24px;align-items:center">
+          <div style="display:flex;flex-direction:column;align-items:center;gap:8px">
+            <div style="width:120px;height:120px;border-radius:24px;background:#ffe5b4;box-shadow:0 8px 0 #f54540;transform:rotate(-4deg);display:flex;flex-direction:column;align-items:center;justify-content:center"><img src="../assets/face_dmg.png" style="width:48px;height:48px;object-fit:contain"><span style="font:700 32px 'Rowdies';line-height:36px;color:#2b1e17">9</span></div>
+            <span style="font:400 18px 'Work Sans';color:#f54540;margin-top:8px">ATTACK</span>
+          </div>
+          <span style="font:400 18px/24px 'Work Sans';color:#b4bccb;flex:1">Ivory die: 88 px in the combat tray, 56 px for Eggs. Selected: cream 3 px outline + lift 18. Focus: grey 2 px ring, no lift. Used: 40% opacity + "used".</span>
+        </div>
+      </div>
+      <div style="grid-column:1 / -1;background:var(--color-panel);border-radius:8px;padding:16px 24px;font:400 18px/24px 'Work Sans'">Rationale: the world stays full-screen and the dice are the star — they are thrown into the arena, land, then fly home to a tray where each Axie's die sits on top of its HP. Lists (enemies, map detail, store) borrow A3's scan-ability on the same flat plates.</div>
+    </div>
+  </div>
+
+  <!-- LAND -->
+  <div style="display:flex;flex-direction:column;gap:16px">
+    <div style="font:700 24px 'Rowdies';color:#b4bccb">01-land-hub · 1920×1080</div>
+    <div data-screen-label="A4 Land hub" style="width:1920px;height:1080px;position:relative;overflow:hidden;background:var(--color-viewport)">
+      <svg width="1920" height="1080" style="position:absolute;left:0;top:0">
+        <polygon points="{{ cliffPts }}" fill="#2f343c"></polygon>
+        <polygon points="{{ landPts }}" fill="#4a515d" stroke="#8e97a8" stroke-width="2"></polygon>
+        <sc-for list="{{ lanes }}" as="l" hint-placeholder-count="0"><line x1="{{ l.x1 }}" y1="{{ l.y1 }}" x2="{{ l.x2 }}" y2="{{ l.y2 }}" stroke="#5b6372" stroke-width="56" stroke-linecap="round"></line></sc-for>
+        <polygon points="{{ edgePts }}" fill="none" stroke="#00b8ff" stroke-width="2" stroke-dasharray="8 8"></polygon>
+      </svg>
+      <sc-for list="{{ decor }}" as="d" hint-placeholder-count="0">
+        <div style="position:absolute;left:{{ d.x }}px;top:{{ d.y }}px;width:{{ d.w }}px;height:{{ d.h }}px;border-radius:{{ d.r }};background:#555d6a;border:2px solid #8e97a8;box-sizing:border-box;display:flex;align-items:center;justify-content:center;font:400 14px 'Work Sans';color:#dae0ea">{{ d.k }}</div>
+      </sc-for>
+      <div style="position:absolute;left:24px;top:104px;font:400 18px 'Work Sans';color:#dae0ea">3D VIEWPORT: Land hub · real Land.gd layout · T tree · S shrub · R rock · blue dashed = 0.92 placement limit</div>
+      <div style="position:absolute;left:96px;top:128px;width:1728px;height:784px;border:2px solid var(--color-annot);border-radius:8px"></div>
+      <div style="position:absolute;left:112px;top:136px;font:400 16px 'Work Sans';color:var(--color-annot)">SAFE AREA 96,128 → 1824,912</div>
+      <sc-for list="{{ buildings }}" as="b" hint-placeholder-count="0">
+        <div style="position:absolute;left:{{ b.x }}px;top:{{ b.y }}px;width:{{ b.w }}px;height:{{ b.h }}px;border:2px {{ b.bs }} #8e97a8;border-radius:8px;box-sizing:border-box;display:flex;align-items:flex-end;justify-content:center;padding:4px;font:400 16px 'Work Sans';color:#dae0ea;text-align:center">{{ b.mesh }}</div>
+        <div style="position:absolute;left:{{ b.cx }}px;top:{{ b.ly }}px;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:2px;background:{{ b.bg }};border-radius:8px;padding:{{ b.pad }};white-space:nowrap">
+          <div style="display:flex;align-items:center;gap:8px"><span style="font:700 24px 'Rowdies'">{{ b.name }}</span><sc-if value="{{ b.hasKey }}" hint-placeholder-val="{{ false }}"><span style="font:400 16px 'Work Sans';color:#b4bccb;border:2px solid #5b6372;border-radius:4px;padding:0 6px">{{ b.key }}</span></sc-if></div>
+          <sc-if value="{{ b.hasSub }}" hint-placeholder-val="{{ false }}"><span style="font:400 18px 'Work Sans';color:{{ b.subC }}">{{ b.sub }}</span></sc-if>
+        </div>
+      </sc-for>
+      <div style="position:absolute;left:1078px;top:625px;width:65px;height:75px;border:2px solid #8e97a8;border-radius:8px;box-sizing:border-box"></div>
+      <div style="position:absolute;left:1030px;top:704px;width:160px;text-align:center;font:400 16px 'Work Sans';color:#dae0ea">AXIE 3D · 65×75 · walks freely</div>
+      <div style="position:absolute;left:24px;top:24px;display:flex;align-items:center;gap:16px;background:var(--color-plate);border-radius:8px;padding:8px 16px 8px 8px">
+        <div style="width:48px;height:48px;border-radius:24px;background:#3e2618;display:flex;align-items:center;justify-content:center;font:400 16px 'Work Sans';color:#b4bccb">AV</div>
+        <div style="display:flex;flex-direction:column"><span style="font:700 24px 'Rowdies';line-height:28px">Liam</span><span style="font:400 18px 'Work Sans';color:#b4bccb">Best: A3 · Fight 9</span></div>
+      </div>
+      <div style="position:absolute;right:24px;top:24px;display:flex;align-items:center;gap:24px;background:var(--color-plate);border-radius:8px;padding:8px 8px 8px 16px">
+        <sc-for list="{{ currencies }}" as="c" hint-placeholder-count="3">
+          <div style="display:flex;align-items:center;gap:8px"><img src="{{ c.i }}" style="width:32px;height:32px;object-fit:contain"><span style="font:700 24px 'Rowdies'">{{ c.v }}</span></div>
+        </sc-for>
+        <div style="width:48px;height:48px;border-radius:8px;background:#58321d;display:flex;align-items:center;justify-content:center"><img src="../assets/ui_settings.svg" style="width:32px;height:32px"></div>
+      </div>
+      <div style="position:absolute;left:24px;bottom:24px;display:flex;align-items:center;gap:12px;background:var(--color-plate);border-radius:8px;padding:12px 16px">
+        <span style="font:400 16px 'Work Sans';color:#b4bccb;border:2px solid #5b6372;border-radius:4px;padding:0 6px">N</span>
+        <span style="font:400 18px 'Work Sans'">Show names</span>
+      </div>
+      <div style="position:absolute;right:24px;bottom:24px;display:flex;align-items:center;gap:16px">
+        <div style="height:56px;padding:0 24px;border-radius:8px;background:#58321d;display:flex;align-items:center;font:700 18px 'Rowdies'">Daily run · 2 of 3</div>
+        <div style="height:72px;padding:0 48px;border-radius:8px;background:var(--color-accent);color:var(--color-accent-text);filter:drop-shadow(0 4px 0 #2b1e17);display:flex;align-items:center;font:700 32px 'Rowdies'">Start run</div>
+      </div>
+    </div>
+    <div style="font:400 18px 'Work Sans';color:#b4bccb;max-width:1920px">Groups: profile · currencies · building labels · names toggle · run actions (5). All 9 places are 3D models at the positions in Land.gd (BUILDINGS), each with a name plate and its shortcut key. Run's plate sits under the Portal, as in the game. Hovering a model adds its sub-line (Echo Box shown). Gallery is an empty plot until Genesis. Focus: Start run → Daily run → places in key order (1–7, B) → settings. Esc: closes the hover label; otherwise opens Settings.</div>
+  </div>
+
+  <div style="width:1920px;box-sizing:border-box;background:var(--color-panel);border-radius:8px;padding:24px;display:flex;flex-direction:column;gap:8px;margin-top:-48px">
+    <span style="font:700 24px 'Rowdies'">Land hub 3D assets (from Land.gd + houses.json)</span>
+    <div style="display:grid;grid-template-columns:200px 320px 160px minmax(0,1fr);gap:8px 16px;font:400 18px 'Work Sans'">
+      <span style="color:#b4bccb">Place</span><span style="color:#b4bccb">Mesh</span><span style="color:#b4bccb">Key</span><span style="color:#b4bccb">Opens</span>
+      <sc-for list="{{ landAssets }}" as="a" hint-placeholder-count="0"><span>{{ a.name }}</span><span>{{ a.mesh }}</span><span>{{ a.key }}</span><span>{{ a.opens }}</span></sc-for>
+    </div>
+    <span style="font:700 24px 'Rowdies';margin-top:16px">Placement rules — nothing outside the land</span>
+    <div style="display:flex;flex-direction:column;gap:4px;font:400 18px/24px 'Work Sans'">
+      <span>1 · The land is one diamond plateau centred on the Portal (960, 590): a point is on land when |dx|/900 + |dy|/450 ≤ 1. Cliff band below the front edges.</span>
+      <span>2 · Every object's base point must be ≤ 0.92 (blue dashed line) so models never hang over the cliff lip.</span>
+      <span>3 · Buildings sit on the 0.67 lattice ring around the Portal (the Land.gd 3×3 lattice). Collision is tested on the ground footprint (model width × 48 px at the base) + 32 px. Tall models may rise above the back edge into the sky, which is normal in perspective; the Leaderboard stands behind the Portal this way (Land.gd), its footprint is clear of the Portal's. Decor keeps out of the whole model box + 32 px so nothing hides behind a building.</span>
+      <span>4 · Walking lanes run from the hub in front of the Portal to each building's front, 56 px wide, kept free of decor.</span>
+      <span>5 · Tall trees (T) only on the back rim, 0.76–0.92, ≥ 90 px apart, skipping the arc behind the Leaderboard. They stand behind buildings as a backdrop: a tree only needs its base clear of building footprints + 32 px and its whole model clear of name plates. The front rim gets only shrubs (S) and rocks (R) so nothing hides a building or a name plate.</span>
+      <span>6 · Inner shrubs and rocks: 0.35–0.85, ≥ 64 px apart, split evenly between the back and front halves, never in a keep-out, a lane, a name plate or the player's Axie spot. Placement is seeded per Land so it never reshuffles between visits.</span>
+    </div>
+    <span style="font:400 18px/24px 'Work Sans';color:#b4bccb">Decor here is generated with these rules (seed 7), so the mockup is a real test of them. Biome ground, cliff and sky colours and the actual tree/shrub/rock meshes come from Land.gd BIOMES. Gallery uses a stand-in mesh (Armorsmith) in code until the real model is named.</span>
+  </div>
+
+  <!-- COMBAT (interactive) -->
+  <div style="display:flex;flex-direction:column;gap:16px">
+    <div style="font:700 24px 'Rowdies';color:#b4bccb">02-combat · INTERACTIVE · turn start roll → Beast's ATTACK 9 CRIT selected · 1920×1080</div>
+    <div style="font:400 18px 'Work Sans';color:#ffe5b4;max-width:1920px">Try it: click a die (or 1–5) to pick it · R / Reroll rerolls every unused die · click a marked target to use it · Space / End turn rolls all five again · click the stage while dice fly to skip. Sound and reduce-motion are in Tweaks.</div>
+    <dc-import name="A4 Combat" hint-size="1920px,1080px"></dc-import>
+    <div style="font:400 18px 'Work Sans';color:#b4bccb;max-width:1920px">Groups: run plate · enemies · target markers · die info · actives · dice tray · actions (7 — at the cap). HUD is kept compact so the 3D cast is large: Axie 163×214, Enemy 133×120, Elite 210×190, Egg 88 (engine ratios at 0.86). Focus: dice 1→5 → Reroll → End turn → enemies → actives. Esc: puts the die back; otherwise in-run menu.</div>
+    <div style="width:1920px;box-sizing:border-box;background:var(--color-panel);border-radius:8px;padding:24px;display:flex;flex-direction:column;gap:8px">
+      <span style="font:700 24px 'Rowdies'">Motion · dice roll (total ≈1.5 s per die)</span>
+      <div style="display:grid;grid-template-columns:240px 360px 120px 320px 120px minmax(0,1fr);gap:8px 16px;font:400 18px 'Work Sans'">
+        <span style="color:#b4bccb">Step</span><span style="color:#b4bccb">Property</span><span style="color:#b4bccb">ms</span><span style="color:#b4bccb">Godot</span><span style="color:#b4bccb">Delay</span><span style="color:#b4bccb">Reduce motion</span>
+        <sc-for list="{{ motion }}" as="m" hint-placeholder-count="7">
+          <span>{{ m.a }}</span><span>{{ m.b }}</span><span>{{ m.c }}</span><span>{{ m.d }}</span><span>{{ m.e }}</span><span>{{ m.f }}</span>
+        </sc-for>
+      </div>
+    </div>
+  </div>
+
+  <!-- COMBAT WITH EGGS -->
+  <div style="display:flex;flex-direction:column;gap:16px">
+    <div style="font:700 24px 'Rowdies';color:#b4bccb">02b-combat-eggs · INTERACTIVE · 2 Axie Eggs on the field · 1920×1080</div>
+    <div style="font:400 18px 'Work Sans';color:#ffe5b4;max-width:1920px">Each Egg stands in front of the party (round "EGG 3D" frame) and adds its own 56 px die in a plate above the tray. The plate spreads sideways as Eggs hatch, up to 6 (612 px wide), no scrolling. Try it: pick Bird's SUMMON die and click it again to hatch an Egg, which throws its die in.</div>
+    <dc-import name="A4 Combat" eggs="{{ 2 }}" hint-size="1920px,1080px"></dc-import>
+    <div style="font:700 24px 'Rowdies';color:#b4bccb">02c-combat-eggs-max · 6 Eggs (cap) · static</div>
+    <dc-import name="A4 Combat" eggs="{{ 6 }}" reduce-motion="{{ true }}" interactive="{{ false }}" sound="{{ false }}" hint-size="1920px,1080px"></dc-import>
+    <div style="font:400 18px 'Work Sans';color:#b4bccb;max-width:1920px">Groups stay at 7: Egg dice join the dice group. Egg faces (ATTACK 2/3, SHIELD 2, HEAL 2, BLANK) and Egg HP 8 confirmed. Keys 6–9 and 0 pick Egg dice 1–5; Egg 6 by click. Focus: Axie dice 1→5 → Egg dice → Reroll → End turn. Esc: puts the die back; otherwise in-run menu.</div>
+  </div>
+
+  <!-- RUN MAP -->
+  <div style="display:flex;flex-direction:column;gap:16px">
+    <div style="font:700 24px 'Rowdies';color:#b4bccb">03-run-map · mid-run, Elite selected · 1920×1080</div>
+    <div data-screen-label="A4 Run map" style="width:1920px;height:1080px;position:relative;overflow:hidden;background:var(--color-bg)">
+      <div style="position:absolute;left:448px;top:220px;width:1024px;height:640px">
+        <svg width="1024" height="640" style="position:absolute;left:0;top:0">
+          <sc-for list="{{ edges }}" as="e" hint-placeholder-count="0">
+            <line x1="{{ e.x1 }}" y1="{{ e.y1 }}" x2="{{ e.x2 }}" y2="{{ e.y2 }}" stroke="{{ e.c }}" stroke-width="{{ e.w }}" stroke-linecap="round"></line>
+          </sc-for>
+        </svg>
+        <sc-for list="{{ nodes }}" as="n" hint-placeholder-count="0">
+          <div style="position:absolute;left:{{ n.l }}px;top:{{ n.t }}px;width:128px;display:flex;flex-direction:column;align-items:center;gap:4px">
+            <div style="width:{{ n.s }}px;height:{{ n.s }}px;border-radius:50%;background:{{ n.bg }};border:4px solid {{ n.bc }};box-sizing:border-box;display:flex;align-items:center;justify-content:center"><img src="{{ n.i }}" style="width:{{ n.is }}px;height:{{ n.is }}px;object-fit:contain;opacity:{{ n.op }}"></div>
+            <span style="font:400 18px 'Work Sans';color:{{ n.tc }};white-space:nowrap">{{ n.label }}</span>
+          </div>
+        </sc-for>
+      </div>
+      <div style="position:absolute;left:24px;top:24px;width:384px;background:var(--color-plate);border-radius:8px;padding:16px;box-sizing:border-box;display:flex;flex-direction:column;gap:12px">
+        <div style="display:flex;align-items:center;gap:12px">
+          <div style="width:48px;height:48px;border-radius:8px;background:#58321d;display:flex;align-items:center;justify-content:center;font:700 24px 'Rowdies'">≡</div>
+          <div style="display:flex;flex-direction:column"><span style="font:700 24px 'Rowdies';line-height:28px">Act 1 · Floor 4</span><span style="font:400 18px 'Work Sans';color:#b4bccb">Ascension 3 · 140 Shards</span></div>
+        </div>
+        <sc-for list="{{ partyMini }}" as="p" hint-placeholder-count="5">
+          <div style="display:flex;flex-direction:column;gap:4px">
+            <div style="display:flex;justify-content:space-between;align-items:baseline"><span style="font:400 18px 'Work Sans'">{{ p.n }}</span><span style="font:700 24px 'Rowdies'">{{ p.hp }}</span></div>
+            <div style="height:12px;background:#13161b;border-radius:4px;display:flex;overflow:hidden"><div style="width:{{ p.pct }}%;background:var(--color-hp)"></div></div>
+          </div>
+        </sc-for>
+      </div>
+      <div style="position:absolute;left:24px;bottom:24px;width:384px;background:var(--color-plate);border-radius:8px;padding:16px;box-sizing:border-box;display:flex;flex-direction:column;gap:8px">
+        <span style="font:700 24px 'Rowdies'">Relics · 6</span>
+        <sc-for list="{{ relics }}" as="r" hint-placeholder-count="6">
+          <div style="height:44px;display:flex;align-items:center;justify-content:space-between;padding:0 12px;border-radius:8px;background:var(--color-panel-raised)"><span style="font:400 18px 'Work Sans'">{{ r.n }}</span><span style="font:400 18px 'Work Sans';color:{{ r.c }}">{{ r.r }}</span></div>
+        </sc-for>
+      </div>
+      <div style="position:absolute;right:24px;top:24px;width:416px;background:var(--color-plate);border-radius:8px;padding:24px;box-sizing:border-box;display:flex;flex-direction:column;gap:16px">
+        <div style="display:flex;align-items:center;gap:16px"><img src="../assets/node_elite.png" style="width:64px;height:64px;object-fit:contain"><span style="font:700 32px 'Rowdies'">Elite fight</span></div>
+        <span style="font:400 18px/24px 'Work Sans'">A harder fight than a Battle. Elites hit harder and often carry Shield.</span>
+        <span style="font:700 24px 'Rowdies'">If you win</span>
+        <div style="height:48px;display:flex;align-items:center;padding:0 12px;border-radius:8px;background:var(--color-panel-raised)"><span style="font:400 18px 'Work Sans'">Relic card (pick 1 of 3)</span></div>
+        <div style="height:48px;display:flex;align-items:center;gap:12px;padding:0 12px;border-radius:8px;background:var(--color-panel-raised)"><img src="../assets/cur_shard.png" style="width:28px;height:28px"><span style="font:400 18px 'Work Sans';flex:1">Shards</span><span style="font:700 24px 'Rowdies'">60</span></div>
+        <span style="font:400 18px/24px 'Work Sans';color:#b4bccb">Leads to Battle. Boss in 4 floors.</span>
+        <div style="height:72px;border-radius:8px;background:var(--color-accent);color:var(--color-accent-text);filter:drop-shadow(0 4px 0 #2b1e17);display:flex;align-items:center;justify-content:center;font:700 32px 'Rowdies'">Travel</div>
+      </div>
+      <div style="position:absolute;right:24px;bottom:24px;background:var(--color-plate);border-radius:4px;padding:4px 8px;font:400 16px 'Work Sans';color:#b4bccb">Arrows pick · Enter travels · Esc menu</div>
+    </div>
+    <div style="font:400 18px 'Work Sans';color:#b4bccb;max-width:1920px">Groups: run + party · relics · map · node detail + Travel (4). Plates hug their content and float over the map; the map stays centred and scrolls horizontally for longer acts. Focus: reachable nodes → Travel → relics. Esc: in-run menu.</div>
+  </div>
+
+  <!-- STORE -->
+  <div style="display:flex;flex-direction:column;gap:16px">
+    <div style="font:700 24px 'Rowdies';color:#b4bccb">04-store · Gem packs · full screen table · 1920×1080</div>
+    <div data-screen-label="A4 Store" style="width:1920px;height:1080px;display:flex;gap:24px;padding:24px;box-sizing:border-box;align-items:flex-start;overflow:hidden;background:var(--color-bg)">
+      <div style="width:336px;flex:none;background:var(--color-plate);border-radius:8px;padding:16px;box-sizing:border-box;display:flex;flex-direction:column;gap:8px">
+        <div style="display:flex;align-items:center;gap:16px;height:56px">
+          <div style="width:48px;height:48px;border-radius:8px;background:#58321d;display:flex;align-items:center;justify-content:center;font:700 24px 'Rowdies'">←</div>
+          <span style="font:700 32px 'Rowdies'">Store</span>
+        </div>
+        <sc-for list="{{ tabs }}" as="t" hint-placeholder-count="3">
+          <div style="height:64px;display:flex;align-items:center;padding:0 16px;border-radius:8px;background:{{ t.bg }};outline:{{ t.o }};font:700 24px 'Rowdies'">{{ t.l }}</div>
+        </sc-for>
+        <div style="height:56px;display:flex;align-items:center;gap:8px;border-radius:8px;padding:0 16px;margin-top:8px;background:var(--color-panel-raised)"><img src="../assets/cur_gem.png" style="width:32px;height:32px;object-fit:contain"><span style="font:700 24px 'Rowdies'">1,250</span><span style="font:400 18px 'Work Sans';color:#b4bccb">Gems</span></div>
+      </div>
+      <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:8px">
+        <span style="font:400 18px/24px 'Work Sans';color:#b4bccb;padding:8px 0">Real-money buying is off in the playtest build.</span>
+        <div style="height:48px;display:grid;grid-template-columns:72px minmax(0,1fr) 200px 120px 120px;gap:16px;align-items:center;padding:0 16px;font:400 18px 'Work Sans';color:#b4bccb"><span></span><span>Pack</span><span>Bonus</span><span>Per $1</span><span style="text-align:right">Price</span></div>
+        <sc-for list="{{ packs }}" as="p" hint-placeholder-count="6">
+          <div style="height:72px;flex:none;display:grid;grid-template-columns:72px minmax(0,1fr) 200px 120px 120px;gap:16px;align-items:center;padding:0 16px;border-radius:8px;background:{{ p.bg }};outline:{{ p.o }}">
+            <div style="display:flex;justify-content:center"><img src="../assets/cur_gem.png" style="width:{{ p.s }}px;height:{{ p.s }}px;object-fit:contain"></div>
+            <span style="font:700 24px 'Rowdies'">{{ p.g }}</span><span style="font:400 18px 'Work Sans'">{{ p.bonus }}</span><span style="font:400 18px 'Work Sans'">{{ p.per }}</span><span style="font:700 24px 'Rowdies';text-align:right">{{ p.price }}</span>
+          </div>
+        </sc-for>
+      </div>
+      <div style="width:416px;flex:none;background:var(--color-plate);border-radius:8px;padding:24px;box-sizing:border-box;display:flex;flex-direction:column;gap:16px">
+        <div style="height:200px;border-radius:8px;background:var(--color-panel-raised);display:flex;align-items:center;justify-content:center"><img src="../assets/cur_gem.png" style="width:120px;height:120px;object-fit:contain"></div>
+        <span style="font:700 32px 'Rowdies'">1,200 Gems</span>
+        <span style="font:400 18px/24px 'Work Sans'">+120 bonus Gems on your first buy of this pack. Gems buy Echo Boxes, cosmetics and the premium Season Pass.</span>
+        <span style="font:400 18px/24px 'Work Sans';color:#b4bccb">Off in the playtest build. Earn Gems from Missions and the Season Pass.</span>
+        <div style="height:72px;border-radius:8px;background:#3c424d;color:#dae0ea;display:flex;align-items:center;justify-content:center;font:700 24px 'Rowdies'">Buy · $9.99</div>
+      </div>
+    </div>
+    <div style="font:400 18px 'Work Sans';color:#b4bccb;max-width:1920px">Groups: categories + balance · notice · pack table · pack detail + Buy (4). Side plates hug content; the table is the ScrollContainer and takes all extra width. Prices are placeholders. Focus: categories → rows ↑↓ → Buy → back. Esc: back to the Land.</div>
+  </div>
+
+  <!-- COMBAT 1280 -->
+  <div style="display:flex;flex-direction:column;gap:16px">
+    <div style="font:700 24px 'Rowdies';color:#b4bccb">05-combat-1280 · canvas_items scale 0.667 · 18 px → 12 px (static)</div>
+    <div data-screen-label="A4 Combat 1280" style="width:1280px;height:720px;overflow:hidden">
+      <div style="width:1920px;height:1080px;transform:scale(0.6667);transform-origin:0 0"><dc-import name="A4 Combat" reduce-motion="{{ true }}" interactive="{{ false }}" sound="{{ false }}" hint-size="1920px,1080px"></dc-import></div>
+    </div>
+  </div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  renderVals() {
+    const A='../assets/';
+    const swatches=[
+      {c:'#13161b',n:'neutral-1 · background off-3D'},{c:'#2b1e17',n:'wood-1 at 90% · every plate'},{c:'#58321d',n:'wood-3 · secondary button'},
+      {c:'#ffe5b4',n:'kam-9 · text, die body, selected, target'},{c:'#3fcd3c',n:'green-6 · HP'},{c:'#31c6ff',n:'blue-7 · Shield'},{c:'#f54540',n:'red-6 · enemy HP, ATTACK'}
+    ];
+    const nodeIcons=[['battle','Battle'],['elite','Elite'],['event','Event'],['shop','Shop'],['treasure','Treasure'],['boss','Boss']].map(([k,l])=>({i:A+'node_'+k+'.png',l}));
+    const currencies=[{i:A+'cur_gem.png',v:'1,250'},{i:A+'cur_shard.png',v:'140'},{i:A+'cur_stone.png',v:'36'}];
+    const BL=[['portal','SM_Portal_01',960,580,300,300,'Run','1','Run setup'],['house','House_lv1',360,590,200,196,'House','2','Team presets'],['missions','Weaponsmith_lv1',1260,440,190,213,'Missions','3','Missions'],['echobox','SM_Alchemy_lv1_Prefab',660,740,150,176,'Echo Box','4','Echo Box'],['pass','EquipmentStall_lv1',1260,740,190,188,'Season Pass','5','Season Pass'],['vault','GemStorage_lv1',960,890,170,168,'Vault','6','Vault'],['store','Jeweler_lv1',1560,590,150,183,'Store','7','Store'],['board','SM_Billboard_Big',960,290,130,190,'Leaderboard','B','Leaderboard'],['gallery','Empty plot (Armorsmith stand-in)',660,440,160,135,'Gallery','','Gallery · from Genesis']];
+    const buildings=BL.map(([id,mesh,cx,base,w,h,name,key])=>{const hover=id==='echobox', locked=id==='gallery';
+      return {cx,x:cx-w/2,y:base-h,w,h,name,key,hasKey:!!key,mesh:locked?'EMPTY PLOT':'3D · '+mesh,bs:locked?'dashed':'solid',
+        ly: id==='portal' ? base+8 : base-h-(hover?84:52), bg: hover?'#3e2618':'#2b1e17e6', pad: hover?'8px 16px':'4px 12px',
+        hasSub: hover||locked, sub: hover?'Rolled on the server · click or E':'Builds at Genesis', subC: hover?'#ffe5b4':'#b4bccb'};});
+    // --- land shape + rule-based decor ---
+    const CX=960, CY=590, RX=900, RY=450;
+    const P=(r,th)=>{const c=Math.cos(th),s=Math.sin(th),d=Math.abs(c)+Math.abs(s);return [CX+r*RX*c/d, CY+r*RY*s/d];};
+    const L1=(x,y)=>Math.abs(x-CX)/RX+Math.abs(y-CY)/RY;
+    const pts=r=>[[CX-r*RX,CY],[CX,CY-r*RY],[CX+r*RX,CY],[CX,CY+r*RY]].map(p=>p.join(',')).join(' ');
+    const landPts=pts(1), edgePts=pts(0.92);
+    const cliffPts=[[CX-RX,CY],[CX,CY+RY],[CX+RX,CY],[CX+RX,CY+70],[CX,CY+RY+70],[CX-RX,CY+70]].map(p=>p.join(',')).join(' ');
+    const hub=[960,650];
+    const lanes=BL.filter(b=>b[0]!=='portal').map(([id,,cx,base])=>({x1:hub[0],y1:hub[1],x2:cx,y2:base+12}));
+    const keep=[], foot=[], plates=[]; buildings.forEach(b=>{keep.push([b.x-32,b.y-32,b.x+b.w+32,b.y+b.h+32]); foot.push([b.x-32,b.y+b.h-80,b.x+b.w+32,b.y+b.h+32]); const pl=[b.cx-100,b.ly-8,b.cx+100,b.ly+52]; keep.push(pl); plates.push(pl);});
+    keep.push([1060-24,600-24,1160+24,700+24]);
+    const segD=(px,py,l)=>{const vx=l.x2-l.x1,vy=l.y2-l.y1,t=Math.max(0,Math.min(1,((px-l.x1)*vx+(py-l.y1)*vy)/(vx*vx+vy*vy)));return Math.hypot(px-(l.x1+t*vx),py-(l.y1+t*vy));};
+    let seed=7; const rnd=()=>{seed=(seed*1664525+1013904223)>>>0;return seed/4294967296;};
+    const placed=[];
+    const ok=(x,y,w,hh,gap,rim)=>{
+      const box=[x-w/2,y-hh,x+w/2,y];
+      if(L1(x,y)>0.92) return false;
+      const hit=(list,bx)=>list.some(k=>bx[0]<k[2]&&k[0]<bx[2]&&bx[1]<k[3]&&k[1]<bx[3]);
+      if(rim){ if(hit(plates,box)||hit(foot,[x-w/2,y-12,x+w/2,y])) return false; }
+      else if(hit(keep,box)) return false;
+      if(!rim && lanes.some(l=>segD(x,y,l)<28+w/2)) return false;
+      return placed.every(p=>Math.hypot(p.bx-x,p.by-y)>=Math.max(gap,p.gap));
+    };
+    const add=(k,x,y,w,hh,gap)=>{placed.push({k,bx:x,by:y,gap,x:Math.round(x-w/2),y:Math.round(y-hh),w,h:hh,r:k==='T'?'24px 24px 8px 8px':(k==='S'?'14px':'6px')});};
+    // back rim trees
+    for(let a=-178;a<=-2;a+=3){ if(Math.abs(a+90)<12) continue; const r=0.76+rnd()*0.16; const [x,y]=P(r,a*Math.PI/180); if(ok(x,y,56,96,90,true)) add('T',x,y,56,96,90); }
+    // front rim shrubs/rocks
+    for(let a=2;a<=178;a+=4){ if(Math.abs(a-90)<10) continue; const r=0.82+rnd()*0.08; const [x,y]=P(r,a*Math.PI/180); const k=rnd()<0.6?'S':'R'; const w=k==='S'?40:32, hh=k==='S'?32:24; if(ok(x,y,w,hh,64)) add(k,x,y,w,hh,64); }
+    // inner scatter
+    const inner=[0,0]; for(let n=0;n<1200&&inner[0]+inner[1]<40;n++){ const back=n%2===0; if(inner[back?0:1]>=20) continue; const r=0.35+rnd()*0.5, a=back ? -Math.PI*rnd() : Math.PI*rnd(); const [x,y]=P(r,a); const k=rnd()<0.6?'S':'R'; const w=k==='S'?40:32, hh=k==='S'?32:24; if(ok(x,y,w,hh,64)) { add(k,x,y,w,hh,64); inner[back?0:1]++; } }
+    const trees=placed.filter(p=>p.k==='T').length;
+    const decor=placed.sort((a,b)=>a.by-b.by);
+    const landAssets=BL.map(([id,mesh,,,,,name,key,opens])=>({name,mesh,key:key||'—',opens}));
+    const motion=[
+      {a:'Throw (stagger)',b:'3D dice impulse from party',c:'480',d:'RigidBody3D apply_impulse',e:'110 × slot',f:'Skip all'},
+      {a:'Tumble faces',b:'shown face swaps every 90 ms',c:'≈1080',d:'Timer → face mesh',e:'0',f:'Final face only'},
+      {a:'First bounce',b:'land + squash (crit 1.22/0.78)',c:'300',d:'physics; TRANS_BACK EASE_OUT on mesh scale',e:'—',f:'—'},
+      {a:'Settle',b:'rest on stage, show result',c:'180',d:'sleeping body',e:'—',f:'—'},
+      {a:'Crit landing',b:'camera shake ±6 px, 3 steps',c:'240',d:'Camera3D h_offset tween, TRANS_SINE',e:'on land',f:'No shake'},
+      {a:'Fly to tray',b:'unproject → tray slot position',c:'240',d:'Tween position TRANS_CUBIC EASE_IN_OUT',e:'—',f:'Appear in tray'},
+      {a:'Skip (click stage)',b:'jump every die to its tray slot',c:'0',d:'Tween.custom_step(9999)',e:'—',f:'—'}
+    ];
+    const partyMini=[['Plant · 1',38,44],['Beast · 2',30,40],['Aqua · 3',41,41],['Bird · 4',22,36],['Reptile · 5',35,42]].map(([n,h,m])=>({n,hp:h+'/'+m,pct:h/m*100}));
+    const relics=[['Lone Wolf Contract','Pact','#ff8986'],['Razor Claw','Common','#8b979a'],['Ember','Uncommon','#8b979a'],['Keen Eye','Rare','#2dc661'],['Linkstone','Common','#8b979a'],['Mana Spring','Rare','#2dc661']].map(([n,r,c])=>({n,r,c}));
+    const T={battle:'Battle',elite:'Elite',event:'Event',shop:'Shop',treasure:'Treasure',boss:'Boss'};
+    const N={A:[0,1,'battle','visited'],B:[1,0,'event','visited'],C:[1,2,'battle','dead'],D:[2,0,'battle','current'],E:[3,0,'elite','sel'],F:[3,1,'shop','next'],G:[3,3,'treasure','dead'],H:[4,0,'battle','future'],I:[4,1,'event','future'],J:[4,2,'battle','future'],K:[5,1,'treasure','future'],L:[5,2,'shop','future'],M:[6,0,'battle','future'],O:[6,2,'elite','future'],Z:[7,1.5,'boss','boss']};
+    const E=[['A','B'],['A','C'],['B','D'],['C','G'],['D','E'],['D','F'],['E','H'],['F','I'],['F','J'],['G','J'],['H','K'],['I','K'],['J','L'],['K','M'],['L','O'],['M','Z'],['O','Z']];
+    const cx=c=>c*128+64, cy=r=>r*160+48;
+    const st={visited:{bg:'#282c34',bc:'#5b6372',op:0.5,tc:'#b4bccb',s:64},dead:{bg:'#1c1f25',bc:'#282c34',op:0.35,tc:'#8e97a8',s:64},current:{bg:'#3e2618',bc:'#ffe5b4',op:1,tc:'#ffe5b4',s:80},sel:{bg:'#58321d',bc:'#ffe5b4',op:1,tc:'#ffe5b4',s:96},next:{bg:'#3e2618',bc:'#ffe5b4',op:1,tc:'#ffe5b4',s:80},future:{bg:'#2b1e17',bc:'#58321d',op:1,tc:'#ffe5b4',s:64},boss:{bg:'#3d0d11',bc:'#f54540',op:1,tc:'#ffe5b4',s:104}};
+    const nodes=Object.entries(N).map(([k,[c,r,t,s]])=>{const S=st[s];let label=T[t];if(s==='current')label='Here';if(s==='visited')label=T[t]+' ✓';return {...S,l:cx(c)-64,t:cy(r)-S.s/2,i:A+'node_'+t+'.png',is:Math.round(S.s*0.6),label};});
+    const on=s=>s==='visited'||s==='current';
+    const edges=E.map(([a,b])=>{const [c1,r1,,s1]=N[a],[c2,r2,,s2]=N[b];const lit=on(s1)&&(on(s2)||s2==='next'||s2==='sel');return {x1:cx(c1),y1:cy(r1),x2:cx(c2),y2:cy(r2),c:lit?'#ffe5b4':'#3e2618',w:lit?6:4};});
+    const tabs=[['Gem packs',true],['Cosmetics',false],['Moon Card',false]].map(([l,o])=>({l,bg:o?'#58321d':'#3e2618',o:o?'4px solid #ffe5b4':'none'}));
+    const packs=[['80 Gems','—','81','$0.99',32],['500 Gems','+50 first buy','110','$4.99',36],['1,200 Gems','+120 first buy','132','$9.99',40,true],['2,500 Gems','+250 first buy','138','$19.99',44],['6,500 Gems','+650 first buy','143','$49.99',48],['14,000 Gems','+1,400 first buy','154','$99.99',52]]
+      .map(([g,bonus,per,price,s,sel])=>({g,bonus,per,price,s,bg:sel?'#3e2618':'#2b1e17e6',o:sel?'4px solid #ffe5b4':'none'}));
+    return {swatches,nodeIcons,currencies,buildings,landAssets,trees,landPts,edgePts,cliffPts,lanes,decor,motion,partyMini,relics,nodes,edges,tabs,packs};
+  }
+}
+</script>
+</body>
+</html>

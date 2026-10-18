@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="design_doc_mode" content="canvas">
+<link rel="stylesheet" href="../../_ds/terrariums-design-system-41d3ee92-ef23-4954-9fac-b76baf67c7c6/styles.css">
+<script src="../../_ds/terrariums-design-system-41d3ee92-ef23-4954-9fac-b76baf67c7c6/_ds_bundle.js"></script>
+<style>
+body{margin:0;background:#0d0e12}
+a{color:#ffe5b4}a:hover{color:#ffb444}
+</style>
+</helmet>
+<div style="display:flex;flex-direction:column;gap:64px;padding:64px;font-family:'Work Sans',sans-serif;color:#ffe5b4;width:1920px;background:#0d0e12">
+  <div style="display:flex;flex-direction:column;gap:8px">
+    <div style="font:700 48px 'Rowdies'">A4 · Blend — meta screens (Should + Could)</div>
+    <div style="font:400 24px/32px 'Work Sans';color:#b4bccb;text-wrap:pretty">One shell for every meta screen: back + title plate, tabs, content, detail plate, currencies top-right. Each screen shows its normal frame, then its states as cards. Tabs, tiles and rows are clickable. Art is placeholder; names not in game-data.md are flagged in the notes. Run screens: <a href="A4 States.dc.html">state frames</a>.</div>
+  </div>
+
+  <sc-for list="{{ screens }}" as="s" hint-placeholder-count="0">
+    <div style="display:flex;flex-direction:column;gap:16px">
+      <div style="font:700 24px 'Rowdies';color:#b4bccb">{{ s.code }}</div>
+      <div data-screen-label="{{ s.label }}" style="width:1920px;height:1080px;display:flex;flex-direction:column;gap:24px;padding:24px;box-sizing:border-box;overflow:hidden;background:#13161b">
+        <div style="display:flex;align-items:center;gap:24px">
+          <div style="display:flex;align-items:center;gap:16px;background:#2b1e17e6;border-radius:8px;padding:8px 24px 8px 8px">
+            <div style="width:48px;height:48px;border-radius:8px;background:#58321d;display:flex;align-items:center;justify-content:center;font:700 24px 'Rowdies'">←</div>
+            <span style="font:700 32px 'Rowdies';white-space:nowrap">{{ s.title }}</span>
+          </div>
+          <div style="display:flex;gap:8px">
+            <sc-for list="{{ s.tabs }}" as="t" hint-placeholder-count="0">
+              <div onClick="{{ t.pick }}" style="height:56px;padding:0 24px;border-radius:8px;background:{{ t.bg }};outline:{{ t.o }};display:flex;align-items:center;font:700 18px 'Rowdies';cursor:pointer;white-space:nowrap">{{ t.l }}</div>
+            </sc-for>
+          </div>
+          <div style="flex:1"></div>
+          <div style="display:flex;align-items:center;gap:24px;background:#2b1e17e6;border-radius:8px;padding:12px 16px">
+            <div style="display:flex;align-items:center;gap:8px"><img src="../assets/cur_gem.png" style="width:32px;height:32px;object-fit:contain"><span style="font:700 24px 'Rowdies'">1,250</span></div>
+            <div style="display:flex;align-items:center;gap:8px"><img src="../assets/cur_shard.png" style="width:32px;height:32px;object-fit:contain"><span style="font:700 24px 'Rowdies'">3,480</span></div>
+            <div style="display:flex;align-items:center;gap:8px"><img src="../assets/cur_stone.png" style="width:32px;height:32px;object-fit:contain"><span style="font:700 24px 'Rowdies'">86</span></div>
+          </div>
+        </div>
+        <sc-if value="{{ s.hasNotice }}" hint-placeholder-val="{{ false }}">
+          <div style="display:flex;align-items:center;gap:16px;padding:12px 16px;border-radius:8px;background:#3e2618"><span style="font:400 18px/24px 'Work Sans';flex:1">{{ s.notice }}</span></div>
+        </sc-if>
+        <div style="flex:1;min-height:0;display:flex;gap:24px">
+          <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:16px">
+            <sc-if value="{{ s.hasHead }}" hint-placeholder-val="{{ false }}">
+              <div style="display:flex;align-items:center;gap:24px;padding:16px 24px;border-radius:8px;background:#2b1e17e6">
+                <span style="font:700 24px 'Rowdies';white-space:nowrap">{{ s.head }}</span>
+                <sc-if value="{{ s.hasBar }}" hint-placeholder-val="{{ false }}"><div style="flex:1;height:16px;border-radius:8px;background:#13161b;display:flex;overflow:hidden"><div style="width:{{ s.bar }}%;background:#ffb444"></div></div></sc-if>
+                <sc-if value="{{ s.hasSearch }}" hint-placeholder-val="{{ false }}"><div style="flex:1;height:48px;border-radius:8px;background:#13161b;border:2px solid #58321d;box-sizing:border-box;display:flex;align-items:center;padding:0 16px;font:400 18px 'Work Sans';color:#ffe5b4">{{ s.search }}</div></sc-if>
+                <span style="font:400 18px 'Work Sans';color:#b4bccb;margin-left:auto;white-space:nowrap">{{ s.headSub }}</span>
+              </div>
+            </sc-if>
+            <sc-if value="{{ s.isGrid }}" hint-placeholder-val="{{ false }}">
+              <div style="flex:1;min-height:0;display:grid;grid-template-columns:repeat({{ s.cols }},minmax(0,1fr));grid-auto-rows:minmax(0,1fr);gap:16px">
+                <sc-for list="{{ s.tiles }}" as="t" hint-placeholder-count="0">
+                  <div onClick="{{ t.pick }}" style="display:flex;flex-direction:column;gap:12px;padding:16px;border-radius:12px;background:{{ t.bg }};outline:{{ t.o }};cursor:pointer">
+                    <sc-if value="{{ t.sq }}" hint-placeholder-val="{{ false }}"><div style="width:100%;aspect-ratio:1;border-radius:8px;background:#3e2618;border:2px solid #58321d;box-sizing:border-box;display:flex;align-items:center;justify-content:center;font:400 16px 'Work Sans';color:#b4bccb;text-align:center;padding:4px">{{ t.art }}</div></sc-if>
+                    <sc-if value="{{ t.noPreviews }}" hint-placeholder-val="{{ true }}"><div style="flex:1;min-height:{{ s.artH }}px;border-radius:8px;background:#3e2618;border:2px solid #58321d;box-sizing:border-box;display:flex;align-items:center;justify-content:center;font:400 16px 'Work Sans';color:#b4bccb;text-align:center;padding:4px;opacity:{{ t.op }}">{{ t.art }}</div></sc-if>
+                    <sc-if value="{{ t.hasPreviews }}" hint-placeholder-val="{{ false }}"><div style="display:flex;gap:8px"><sc-for list="{{ t.previews }}" as="p" hint-placeholder-count="0"><div style="width:160px;height:160px;flex:none;border-radius:8px;border:2px {{ p.bs }} {{ p.bc }};box-sizing:border-box;display:flex;align-items:center;justify-content:center;font:400 16px 'Work Sans';color:{{ p.c }};text-align:center">{{ p.l }}</div></sc-for></div></sc-if>
+                    <div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px"><span style="font:700 24px 'Rowdies';white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0">{{ t.n }}</span><span style="font:400 18px 'Work Sans';color:{{ t.bc }};white-space:nowrap">{{ t.badge }}</span></div>
+                    <sc-if value="{{ t.hasSub }}" hint-placeholder-val="{{ false }}"><span style="font:400 18px 'Work Sans';color:#b4bccb">{{ t.sub }}</span></sc-if>
+                  </div>
+                </sc-for>
+              </div>
+            </sc-if>
+            <sc-if value="{{ s.isList }}" hint-placeholder-val="{{ false }}">
+              <div style="flex:1;min-height:0;display:grid;grid-auto-rows:minmax(96px,1fr);gap:12px">
+                <sc-for list="{{ s.tiles }}" as="t" hint-placeholder-count="0">
+                  <div onClick="{{ t.pick }}" style="min-height:96px;display:flex;align-items:center;gap:24px;padding:12px 24px;box-sizing:border-box;border-radius:8px;background:{{ t.bg }};outline:{{ t.o }};opacity:{{ t.op }};cursor:pointer">
+                    <span style="font:700 24px 'Rowdies';width:72px;flex:none;color:#b4bccb">{{ t.art }}</span>
+                    <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:2px"><span style="font:700 24px 'Rowdies'">{{ t.n }}</span><sc-if value="{{ t.hasSub }}" hint-placeholder-val="{{ false }}"><span style="font:400 18px 'Work Sans';color:#b4bccb">{{ t.sub }}</span></sc-if></div>
+                    <sc-if value="{{ t.hasProg }}" hint-placeholder-val="{{ false }}"><div style="width:240px;flex:none;height:12px;border-radius:6px;background:#13161b;display:flex;overflow:hidden"><div style="width:{{ t.prog }}%;background:#3fcd3c"></div></div></sc-if>
+                    <span style="font:700 24px 'Rowdies';color:{{ t.bc }};white-space:nowrap">{{ t.badge }}</span>
+                  </div>
+                </sc-for>
+              </div>
+            </sc-if>
+          </div>
+          <sc-if value="{{ s.hasDetail }}" hint-placeholder-val="{{ true }}"><div style="width:440px;flex:none;align-self:stretch;background:#2b1e17e6;border-radius:8px;padding:24px;box-sizing:border-box;display:flex;flex-direction:column;gap:16px">
+            <sc-if value="{{ s.flexD }}" hint-placeholder-val="{{ true }}"><div style="flex:1;min-height:200px;border-radius:8px;background:#3e2618;border:2px solid #58321d;box-sizing:border-box;display:flex;align-items:center;justify-content:center;font:400 16px 'Work Sans';color:#b4bccb;text-align:center;padding:8px">{{ s.d.art }}</div></sc-if>
+            <sc-if value="{{ s.sqD }}" hint-placeholder-val="{{ false }}"><div style="width:100%;aspect-ratio:1;border-radius:8px;background:#3e2618;border:2px solid #58321d;box-sizing:border-box;display:flex;align-items:center;justify-content:center;font:400 16px 'Work Sans';color:#b4bccb;text-align:center;padding:8px">{{ s.d.art }}</div></sc-if>
+            <div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px"><span style="font:700 32px 'Rowdies'">{{ s.d.t }}</span><span style="font:400 18px 'Work Sans';color:{{ s.d.bc }};white-space:nowrap">{{ s.d.badge }}</span></div>
+            <span style="font:400 18px/24px 'Work Sans';text-wrap:pretty">{{ s.d.b }}</span>
+            <sc-for list="{{ s.d.rows }}" as="r" hint-placeholder-count="0">
+              <div style="min-height:48px;display:flex;align-items:center;justify-content:space-between;gap:16px;padding:8px 12px;box-sizing:border-box;border-radius:8px;background:#3e2618"><span style="font:400 18px 'Work Sans'">{{ r.l }}</span><span style="font:700 18px 'Rowdies';white-space:nowrap">{{ r.v }}</span></div>
+            </sc-for>
+            <sc-if value="{{ s.d.hasReason }}" hint-placeholder-val="{{ false }}"><span style="font:400 18px/24px 'Work Sans';color:#ff8986">{{ s.d.reason }}</span></sc-if>
+            <div style="height:72px;border-radius:8px;background:{{ s.d.btnBg }};color:{{ s.d.btnC }};display:flex;align-items:center;justify-content:center;font:700 28px 'Rowdies';white-space:nowrap">{{ s.d.btn }}</div>
+          </div></sc-if>
+        </div>
+      </div>
+      <div style="font:400 18px 'Work Sans';color:#b4bccb;max-width:1920px;text-wrap:pretty">{{ s.note }}</div>
+      <div style="display:flex;flex-wrap:wrap;gap:24px">
+        <sc-for list="{{ s.states }}" as="k" hint-placeholder-count="0">
+          <div style="width:456px;display:flex;flex-direction:column;gap:8px">
+            <span style="font:700 18px 'Rowdies';color:#b4bccb">{{ k.tag }}</span>
+            <div style="background:{{ k.bg }};border-radius:12px;padding:24px;box-sizing:border-box;display:flex;flex-direction:column;gap:16px;min-height:240px">
+              <span style="font:700 24px 'Rowdies';color:{{ k.tc }}">{{ k.t }}</span>
+              <span style="font:400 18px/24px 'Work Sans';text-wrap:pretty;flex:1">{{ k.b }}</span>
+              <div style="display:flex;gap:12px;justify-content:flex-end">
+                <sc-if value="{{ k.hasB2 }}" hint-placeholder-val="{{ false }}"><div style="height:56px;padding:0 20px;border-radius:8px;background:#58321d;display:flex;align-items:center;font:700 18px 'Rowdies';white-space:nowrap;outline:{{ k.o2 }}">{{ k.b2 }}</div></sc-if>
+                <sc-if value="{{ k.hasB1 }}" hint-placeholder-val="{{ false }}"><div style="height:56px;padding:0 20px;border-radius:8px;background:{{ k.b1Bg }};color:{{ k.b1C }};display:flex;align-items:center;font:700 18px 'Rowdies';white-space:nowrap">{{ k.b1 }}</div></sc-if>
+              </div>
+            </div>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+  </sc-for>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  state = { tab: {}, sel: {} };
+  renderVals() {
+    const S = this.state;
+    const RC = { Common: '#8b979a', Rare: '#2dc661', Epic: '#27c0ca', Legendary: '#ffb444', Mystic: '#fa59a0' };
+    const AMB = { btnBg: '#ffb444', btnC: '#291808' }, OFF = { btnBg: '#3c424d', btnC: '#dae0ea' };
+    const st = (tag, t, b, b1, b2, o = {}) => ({ tag, t, b, b1: b1 || '', b2: b2 || '', hasB1: !!b1, hasB2: !!b2,
+      b1Bg: o.red ? '#b81221' : o.off ? '#3c424d' : '#ffb444', b1C: (o.red || o.off) ? '#ffe5b4' : '#291808', o2: o.red ? '4px solid #ffe5b4' : 'none',
+      bg: o.notice ? '#3e2618' : '#2b1e17', tc: o.err ? '#ff8986' : '#ffe5b4' });
+    const T = (n, badge, rar, art, sub, x = {}) => ({ n, badge, bc: RC[rar] || '#ffe5b4', art: art || 'ART', sub: sub || '', hasSub: !!sub, rar, ...x });
+    const D = (t, o) => ({ art: o.art || 'ART · ' + t.n, t: t.n, badge: o.badge ?? t.badge, bc: o.bc || t.bc, b: o.b || '', rows: (o.rows || []).map(([l, v]) => ({ l, v })),
+      hasReason: !!o.reason, reason: o.reason || '', btn: o.btn || 'OK', ...(o.off ? OFF : AMB) });
+
+    const defs = [
+      { id: 'store', code: '19-store · Gem packs (USD disabled) · Cosmetics · Moon Card', label: 'A4 Store', title: 'Store', tabs: ['Gem packs', 'Cosmetics', 'Moon Card'], grid: 4, artH: 200,
+        notice: 'Buying Gems with USD is turned off in this playtest. Prices are shown so you can see the packs.',
+        tiles: [
+          [T('Pouch', '$0.99', '', 'GEM PACK · S', '80 Gems'), T('Sack', '$4.99', '', 'GEM PACK · M', '450 Gems'), T('Chest', '$9.99', '', 'GEM PACK · L', '1,000 Gems'), T('Vault', '$49.99', '', 'GEM PACK · XL', '5,500 Gems')],
+          [T('Ember Trail', '320', 'Rare', 'DICE TRAIL', 'Dice trail'), T('Moonlit Dice', '600', 'Epic', 'DICE SKIN', 'Dice skin'), T('Lantern Path', '240', 'Common', 'LAND DECOR', 'Land decor'), T('Aurora Portal', '1,200', 'Legendary', 'PORTAL SKIN', 'Portal skin · owned')],
+          [T('Moon Card', '30 days', '', 'MOON CARD', '+100 Gems a day')]],
+        detail: (t, tab) => tab === 0 ? D(t, { b: t.sub + '. Gems buy cosmetics and Echo Boxes.', rows: [['Price', t.badge]], reason: 'USD buying is off in this playtest build.', btn: 'Buying disabled', off: true })
+          : tab === 1 ? D(t, { b: t.sub.replace(' · owned', '') + '. Cosmetic only, no effect on runs.', rows: [['Price', t.badge + ' Gems']], btn: t.sub.includes('owned') ? 'Equip' : 'Buy · ' + t.badge + ' Gems', badge: t.rar })
+          : D(t, { b: '300 Gems now, then 100 Gems each day you log in, for 30 days.', rows: [['Total', '3,300 Gems'], ['Price', '$4.99']], reason: 'USD buying is off in this playtest build.', btn: 'Buying disabled', off: true }),
+        note: 'Groups: title · tabs · currencies · notice · tiles · detail (6). Disabled buy keeps the price visible and says why in red-4 text plus the button label. Moon Card names, prices and Gem amounts are placeholders. Focus: tabs → tiles (grid arrows) → detail button. Esc: back to the Land.',
+        states: [st('19-guest', 'Sign in to use the Store', 'Guests can look but not buy. Sign in to keep what you buy across devices.', 'Sign in', 'Back'),
+          st('19-offline', "Store can't load", "You're offline. The Store needs a connection.", 'Retry', 'Back', { notice: true }),
+          st('19-moon-card-popup', 'Moon Card · day 12 of 30', 'Today\'s 100 Gems are in. 18 days left. Renew after day 30.', 'Collect', '', {})] },
+
+      { id: 'echo', code: '20-echo-box · closed, confirm buy, opening, reveal, pity, rates, failed', label: 'A4 Echo Box', title: 'Echo Box', tabs: ['Season box', 'Fragments'], grid: 3, artH: 280,
+        tiles: [[T('Season Echo Box', '160', '', 'ECHO BOX 3D · closed', 'Cosmetics from Season 1'), T('Echo Box ×10', '1,440', '', 'ECHO BOX ×10', '1 Epic or better guaranteed'), T('Ticket', '2 owned', '', 'TICKET', 'Opens one box free')],
+          [T('Fragments', '34 / 50', '', 'FRAGMENTS', 'Duplicates turn into fragments')]],
+        detail: (t, tab) => tab === 1 ? D(t, { b: 'Every duplicate gives fragments. 50 fragments make one Ticket.', rows: [['You have', '34'], ['Next Ticket', '16 more']], btn: 'Need 16 more', off: true })
+          : D(t, { b: 'Open for one random cosmetic. Duplicates turn into fragments.', rows: [['Epic or better in', '23 boxes'], ['Price', t.badge + (t.n === 'Ticket' ? '' : ' Gems')]], btn: t.n === 'Ticket' ? 'Open with Ticket' : 'Open · ' + t.badge + ' Gems' }),
+        note: 'Groups: title · tabs · boxes · detail (4). Pity counter ("Epic or better in 23 boxes") always shows on the detail. Rates button sits on the detail plate. Box names and prices are placeholders. Focus: boxes → open. Esc: back.',
+        states: [st('20-confirm-buy', 'Open 10 Echo Boxes?', 'Costs 1,440 Gems. You have 1,250, so you need 190 more.', 'Need 190 Gems', 'Cancel', { off: true }),
+          st('20-opening', 'Opening…', 'Box shakes 600 ms, lid bursts, light in the rarity colour. Click to skip. Reduce motion: fade to the reveal.', '', ''),
+          st('20-reveal-1', 'Moonlit Dice · Epic', 'New! Equip it now or later in Profile.', 'Equip', 'Done'),
+          st('20-reveal-10', '10 rewards', '5×5 grid, 160 px cards, revealed one by one (120 ms). Duplicates show "+5 fragments". Skip reveals all.', 'Done', 'Open 10 more'),
+          st('20-pity', 'Guaranteed next box', 'Your next box is Epic or better. The counter resets when you get one.', 'Open · 160 Gems', ''),
+          st('20-rates', 'Drop rates', 'Common 60% · Rare 28% · Epic 10% · Legendary 2%. Epic or better guaranteed within 30 boxes. (Placeholder rates.)', 'Close', ''),
+          st('20-failed-pull', "Couldn't open the box", 'Nothing was charged. Check your connection and try again.', 'Try again', 'Close', { err: true })] },
+
+      { id: 'pass', code: '21-season-pass · normal, premium locked, not started, offline', label: 'A4 Season Pass', title: 'Season Pass', tabs: ['Rewards', 'Pass XP'], list: true,
+        head: 'Season 1 · Tier 14', bar: 56, headSub: '450 / 800 XP · 23 days left',
+        tiles: [[T('Tier 13', 'Claimed', '', '13', 'Free: 50 Shards · Premium: Ember Trail', { prog: 100 }), T('Tier 14', 'Claim', '', '14', 'Free: 1 Ticket · Premium: 200 Gems', { prog: 100 }), T('Tier 15', '450 / 800', '', '15', 'Free: 80 Shards · Premium: Moonlit Dice', { prog: 56 }), T('Tier 16', 'Locked', '', '16', 'Free: 12 Stone · Premium: Lantern Path', { prog: 0, op: 0.6 }), T('Tier 17', 'Locked', '', '17', 'Free: 100 Shards · Premium: 1 Ticket', { prog: 0, op: 0.6 })]],
+        detail: t => D(t, { b: t.sub, rows: [['Free track', 'Yours'], ['Premium track', 'Locked']], reason: t.n === 'Tier 14' ? '' : '', btn: t.badge === 'Claim' ? 'Claim free reward' : t.badge === 'Claimed' ? 'Claimed' : 'Reach tier to claim', off: t.badge !== 'Claim' }),
+        note: 'Groups: title · tabs · tier bar · tiers · detail (5). Each tier row shows both tracks in text so nothing depends on colour. Rewards are placeholders. Focus: tiers ↑↓ → claim. Esc: back.',
+        states: [st('21-premium-locked', 'Premium track', 'Unlock Premium for 950 Gems to claim every Premium reward you\'ve reached, including past tiers.', 'Unlock · 950 Gems', 'Later'),
+          st('21-not-started', 'Season 1 starts in 3 days', 'Pass XP starts counting on 20/10. Runs before that earn Shards as usual.', '', 'Back'),
+          st('21-offline', 'Pass progress paused', "You're offline. XP you earn is saved and added when you reconnect.", 'Retry', '', { notice: true })] },
+
+      { id: 'missions', code: '22-missions-daily · normal, locked (newcomer), in progress, claimed, offline', label: 'A4 Missions', title: 'Missions', tabs: ['Daily', 'Weekly'], list: true,
+        head: 'Daily run', headSub: '2 of 3 tries left · resets in 6 h',
+        tiles: [[T('Win a run at A1 or higher', 'Claim', '', '✓', 'Reward: 40 Shards', { prog: 100 }), T('Use 15 Poison faces', '9 / 15', '', '·', 'Reward: 120 Pass XP', { prog: 60 }), T('Beat an Elite without losing an Axie', '0 / 1', '', '·', 'Reward: 1 Ticket', { prog: 0 }), T('Open a Treasure', 'Claimed', '', '✓', 'Reward: 30 Shards', { prog: 100, op: 0.5 }), T('Deal 300 damage in one run', '184 / 300', '', '·', 'Reward: 60 Shards', { prog: 61 }), T('Hatch 3 Axie Eggs', '1 / 3', '', '·', 'Reward: 80 Pass XP', { prog: 33 })], [T('Win 5 runs', '2 / 5', '', '·', 'Reward: 300 Pass XP', { prog: 40 }), T('Make 3 Pacts', '1 / 3', '', '·', 'Reward: 1 Ticket', { prog: 33 }), T('Reach A4', '0 / 1', '', '·', 'Reward: 150 Shards', { prog: 0 }), T('Play 3 Daily runs', '3 / 3', '', '✓', 'Reward: 100 Shards', { prog: 100 })]],
+        detail: t => D(t, { b: t.sub, rows: [['Progress', t.badge]], btn: t.badge === 'Claim' ? 'Claim' : t.badge === 'Claimed' ? 'Claimed' : 'In progress', off: t.badge !== 'Claim' }),
+        note: 'Groups: title · tabs · Daily run · missions · detail (5). Mission text is placeholder. Claimed rows dim to 50% and stay in place so the list doesn\'t jump. Focus: Daily run → missions → claim. Esc: back.',
+        states: [st('22-locked-newcomer', 'Missions open after your first run', 'Finish one run to unlock Daily runs and Missions.', 'Start run', 'Back'),
+          st('22-offline', "Missions can't sync", "You're offline. Progress is saved; claims wait until you reconnect.", 'Retry', '', { notice: true })] },
+
+      { id: 'lb', code: '23-leaderboard · own row pinned · loading, empty, error', label: 'A4 Leaderboard', title: 'Leaderboard', tabs: ['Ranked', 'Daily', 'Friends'], list: true,
+        head: 'Season 1 · Ranked', headSub: 'Top 100 · updates every 5 min',
+        tiles: [[T('Thảo Nguyên', 'A10 · 15', '', '#1'), T('kinetic_owl', 'A10 · 14', '', '#2'), T('Bùi Minh Đức', 'A9 · 15', '', '#3'), T('Mavis', 'A9 · 12', '', '#4'), T('Ronin_77', 'A8 · 15', '', '#5'), T('Liam (you)', 'A3 · 9', '', '#842', '', { you: true })]],
+        detail: t => D(t, { art: 'AVATAR + TITLE', b: 'Best run this season.', rows: [['Ascension', t.badge.split(' · ')[0]], ['Floors', t.badge.split(' · ')[1]], ['Party', 'Plant · Beast · Aqua · Bird · Reptile']], btn: 'View run', off: false }),
+        note: 'Groups: title · tabs · header · rows · detail (5). Your row is pinned at the bottom with a cream outline even when you\'re off the list. Long names: Vietnamese diacritics fit, 20-char cap. Player names are placeholders. Focus: tabs → rows → View run. Esc: back.',
+        states: [st('23-loading', 'Loading…', '10 skeleton rows (system skeleton); pinned row loads first.', '', ''),
+          st('23-empty', 'No runs yet', 'Nobody has a Ranked run this season. Play one to be first.', 'Start Ranked run', ''),
+          st('23-error', "Couldn't load the Leaderboard", 'Your own best is still saved. Try again in a moment.', 'Retry', '', { err: true })] },
+
+      { id: 'profile', code: '24-profile-cosmetics · tile states: owned, equipped, locked, seasonal', label: 'A4 Profile', title: 'Profile', tabs: ['Cosmetics', 'Titles', 'Stats'], grid: 4, artH: 160,
+        head: 'Liam', headSub: 'Best: A3 · 41 runs · 12 wins',
+        tiles: [[T('Ember Trail', 'Equipped', 'Rare', 'DICE TRAIL', 'Owned'), T('Moonlit Dice', 'Owned', 'Epic', 'DICE SKIN'), T('Lantern Path', 'Locked', 'Common', 'LAND DECOR', 'Store · 240 Gems', { op: 0.4 }), T('Aurora Portal', 'Season 1', 'Legendary', 'PORTAL SKIN', 'Pass tier 30', { op: 0.4 }), T('Default Dice', 'Owned', 'Common', 'DICE SKIN')],
+          [T('Người Giữ Ấn', 'Locked', '', 'TITLE', 'Win at A5+', { op: 0.4 }), T('Người Đứng Cuối', 'Locked', '', 'TITLE', 'Win at A10', { op: 0.4 })], [T('Runs', '41', '', 'STATS'), T('Wins', '12', '', 'STATS'), T('Top hit', '286', '', 'STATS')]],
+        detail: (t, tab) => D(t, { b: tab === 1 ? 'Unlock: ' + t.sub + '.' : t.sub ? t.sub + '.' : 'Cosmetic only.', badge: t.rar || t.badge,
+          btn: t.badge === 'Equipped' ? 'Equipped' : t.badge === 'Owned' ? 'Equip' : t.badge === 'Locked' || t.badge === 'Season 1' ? 'Locked' : 'OK', off: t.badge !== 'Owned' }),
+        note: 'Groups: title · tabs · profile header · tiles · detail (5). Tile state is in the badge text: Equipped / Owned / Locked / Season 1; locked art at 40%. Ascension titles are shown as given (Vietnamese). Focus: tabs → tiles → Equip. Esc: back.',
+        states: [st('24-guest', 'Guest profile', 'Cosmetics and titles are saved on this device only. Sign in to keep them.', 'Sign in', 'Later')] },
+
+      { id: 'vault', code: '25-vault · lookup, not found, error, empty, guest', label: 'A4 Vault', title: 'Vault', tabs: ['My Axies', 'Look up'], grid: 4, artH: 180,
+        tiles: [[T('Plant #4120', 'In party', '', 'AXIE PREVIEW 3D · 180', 'Slot 1'), T('Beast #10233', 'In party', '', 'AXIE PREVIEW 3D · 180', 'Slot 2'), T('Aqua #882', 'In party', '', 'AXIE PREVIEW 3D · 180', 'Slot 3'), T('Bug #55190', 'Free', '', 'AXIE PREVIEW 3D · 180'), T('Bird #3301', 'In party', '', 'AXIE PREVIEW 3D · 180', 'Slot 4'), T('Reptile #9012', 'In party', '', 'AXIE PREVIEW 3D · 180', 'Slot 5'), T('Plant #61877', 'Free', '', 'AXIE PREVIEW 3D · 180'), T('Aqua #20456', 'Free', '', 'AXIE PREVIEW 3D · 180')],
+          [T('Axie #77104', 'Found', '', 'AXIE PREVIEW 3D · 180', 'Owner: 0x9f…21c4')]],
+        detail: t => D(t, { art: 'AXIE PREVIEW 3D · 392 square', b: 'Die faces from its body parts.', rows: [['Mouth', 'ATTACK 6'], ['Horn', 'SHIELD 4'], ['Back', 'HEAL 3'], ['Tail · Eyes · Ears', '3 more faces']], btn: t.badge === 'Free' ? 'Add to party' : 'View die' }),
+        note: 'Groups: title · tabs · Axies · detail (4). Axie preview frames are square (aspect-ratio 1): about 300 px in tiles and 392 px on the detail, never under 160; camera zoom is matched in code. Axie IDs are placeholders. Focus: tabs → tiles → button. Esc: back.',
+        states: [st('25-lookup', 'Look up an Axie', 'Search field: "Axie ID or Ronin address" · 18 px · Enter searches.', 'Search', ''),
+          st('25-not-found', 'No Axie with that ID', 'Check the number and try again. IDs are digits only.', 'Search again', '', { err: true }),
+          st('25-error', "Vault can't load", 'The Axie service is not answering. Your party still works in runs.', 'Retry', '', { err: true }),
+          st('25-empty', 'No Axies yet', 'You\'re using the starter party. Axies you own show up here when you sign in with your wallet.', 'Sign in', ''),
+          st('25-guest', 'Sign in to see your Axies', 'Guests play with the starter party.', 'Sign in', 'Back')] },
+
+      { id: 'account', code: '26-account-settings · settings, welcome, sync conflict, errors', label: 'A4 Settings', title: 'Settings', tabs: ['General', 'Controls', 'Account'], list: true,
+        tiles: [[T('Music', '70%', '', '♪', '', { prog: 70 }), T('Sound effects', '80%', '', '♪', '', { prog: 80 }), T('Dice sounds', 'On', '', '♪'), T('Mute when unfocused', 'Off', '', '♪'),
+           T('Window mode', 'Fullscreen', '', '□'), T('UI scale', '100%', '', '□'), T('Reduce motion', 'Off', '', '□'), T('Language', 'English', '', '□')],
+          [T('Reroll', 'R', '', '⌨'), T('End turn', 'Space', '', '⌨'), T('Pick die 1–5', '1–5', '', '⌨'), T('Menu', 'Esc', '', '⌨'), T('Pick Egg die 1–5', '6–0', '', '⌨'), T('Put die back', 'Esc', '', '⌨'), T('Show names (Land)', 'N', '', '⌨'), T('Skip roll animation', 'Click', '', '⌨')],
+          [T('Signed in as Liam', 'Ronin', '', '@', 'liam.ron'), T('Cloud save', 'Synced 2 min ago', '', '@'), T('Language of titles', 'Vietnamese', '', '@'), T('Delete local data', '', '', '@', 'Removes guest progress on this device'), T('Sign out', '', '', '@')]],
+        detail: t => D(t, { art: 'PREVIEW', b: 'Changes apply right away.', rows: [['Current', t.badge || '–']], btn: 'Reset to default', off: true }),
+        note: 'Groups: title · tabs · rows · detail (4). Every row is a 72 px hit area; sliders and toggles live on the row. Sign-in method is a placeholder (Ronin). Focus: tabs → rows ↑↓ → ←→ changes value. Esc: back.',
+        states: [st('26-welcome', 'Welcome back, Liam', 'Your Land, Axies and cosmetics are loaded. Season 1 Pass: tier 14.', 'Continue', ''),
+          st('26-sync-conflict', 'Choose a save', 'This device: A3 best, 41 runs, 2 min ago. Cloud: A2 best, 38 runs, 3 days ago. The other one is replaced.', 'Use this device', 'Use cloud'),
+          st('26-error', "Couldn't sign out", 'Try again. If it keeps failing, close the game; you will be signed out next start.', 'Try again', 'Cancel', { err: true }),
+          st('26-reset-settings', 'Reset all settings?', 'Audio, display and controls go back to default. Your save is not touched.', 'Reset', 'Cancel', { red: true })] },
+
+      { id: 'presets', code: '27-team-presets · full, empty, missing Axie, delete confirm', label: 'A4 Team Presets', title: 'Team Presets', tabs: ['Presets 4 / 6'], grid: 2, artH: 160, noDetail: true,
+        tiles: [[T('Poison Bloom', '5 / 5', '', '5 AXIE PREVIEWS · 160', 'Plant · Reptile · Bug · Aqua · Bird'), T('Shield Wall', '5 / 5', '', '5 AXIE PREVIEWS · 160', 'Plant · Plant · Aqua · Beast · Reptile'), T('Glass Cannon', '4 / 5', '', '1 MISSING', 'Beast #10233 is no longer yours', { op: 1 }), T('Mana Engine', '5 / 5', '', '5 AXIE PREVIEWS · 160', 'Aqua · Aqua · Bird · Bug · Plant'), T('+ New preset', '', '', 'EMPTY SLOT'), T('+ New preset', '', '', 'EMPTY SLOT')]],
+        detail: t => t.n.startsWith('+') ? D(t, { b: 'Save your current party as a preset.', btn: 'Save current party' })
+          : D(t, { b: t.sub, rows: [['Axies', t.badge]], reason: t.badge === '4 / 5' ? 'One Axie is missing. Pick a replacement before using this preset.' : '', btn: t.badge === '4 / 5' ? 'Replace missing Axie' : 'Use preset' }),
+        note: 'Groups: title · presets (2). No detail plate: each preset shows its 5 Axies as square 160 px previews (the minimum), 2 columns × 3 rows. 6 slots; full = no "+ New" left. Missing Axie: dashed red-4 frame with "Missing" plus the reason in the sub-line; click opens the Axie picker for that slot. Click a preset to use it; Rename / Delete in its context menu. Focus: tiles (grid arrows) → Enter uses. Esc: back.',
+        states: [st('27-empty', 'No presets yet', 'Save the party you have now so you can pick it in one click next run.', 'Save current party', ''),
+          st('27-full', 'Presets full (6 / 6)', 'Delete a preset to save a new one.', '', 'OK'),
+          st('27-delete-confirm', 'Delete "Poison Bloom"?', 'The preset is removed. Your Axies stay in your collection.', 'Delete', 'Cancel', { red: true })] },
+
+      { id: 'upgrade', code: '28-land-upgrade · affordable, not affordable', label: 'A4 Land Upgrade', title: 'Land Upgrade', tabs: ['Buildings', 'Land'], list: true,
+        head: 'Land level 3', bar: 40, headSub: '2 of 5 upgrades done',
+        tiles: [[T('Store · level 2', '40 Stone', '', 'II', 'Adds a 4th cosmetic slot'), T('Portal · level 3', '120 Stone', '', 'III', 'Start runs with +1 Reroll'), T('Echo Box · level 2', '60 Stone', '', 'II', 'Fragments +10%'), T('Leaderboard · level 2', '30 Stone', '', 'II', 'Shows Friends tab'), T('Vault · level 2', '50 Stone', '', 'II', '+2 preset slots'), T('Gallery', 'Locked', '', '–', 'Opens at Genesis', { op: 0.5 })]],
+        detail: t => { if (t.badge === 'Locked') return D(t, { b: t.sub + '.', btn: 'Locked', off: true }); const c = +t.badge.split(' ')[0], ok = c <= 86; return D(t, { b: t.sub + '.', rows: [['Cost', t.badge], ['You have', '86 Stone']], reason: ok ? '' : 'Not enough Stone: you need ' + (c - 86) + ' more.', btn: ok ? 'Upgrade · ' + t.badge : 'Need ' + t.badge, off: !ok }); },
+        note: 'Groups: title · tabs · level · upgrades · detail (5). Click Portal to see not-affordable: price stays visible, reason in red-4, button grey with the reason. Upgrade effects are placeholders. Focus: rows → Upgrade. Esc: back.',
+        states: [] },
+
+      { id: 'codex', code: '29-codex (Could) · search · Guides · Unlocks', label: 'A4 Codex', title: 'Codex', tabs: ['Relics', 'Actives', 'Pacts', 'Guides', 'Unlocks'], grid: 4, artH: 120,
+        head: 'Search', hasSearch: true, search: 'poison', headSub: '4 of 108 relics',
+        tiles: [[T('Rotmouth', 'Seen', 'Rare', 'RELIC', 'Mouth damage also Poison 2'), T('Fumeblossom', 'Seen', 'Epic', 'RELIC', 'Burn ↔ Poison'), T('Festering Mark', 'Seen', 'Rare', 'RELIC', '+2 vs Poison or Burn'), T('Venom Fang', '???', 'Rare', '???', 'Not found yet', { op: 0.4 })],
+          [T('Spore Bloom', 'MP 6', 'Rare', 'ACTIVE'), T('Gene Nova', 'MP 7', 'Epic', 'ACTIVE'), T('Aegis Font', 'MP 8', 'Rare', 'ACTIVE')],
+          [T('Iron Vow', 'Rare', 'Rare', 'PACT'), T('Patient Fang', 'Epic', 'Epic', 'PACT'), T('Twin Fates', 'Epic', 'Epic', 'PACT')],
+          [T('Dice basics', '2 min', '', 'GUIDE'), T('Eggs and Summon', '1 min', '', 'GUIDE'), T('Pacts', '1 min', '', 'GUIDE')],
+          [T('A4', 'Win at A3', '', 'UNLOCK', '', { op: 0.4 }), T('Ranked', 'Win at A3', '', 'UNLOCK', '', { op: 0.4 }), T('Daily', 'Unlocked', '', 'UNLOCK')]],
+        detail: (t, tab) => D(t, { b: t.sub || (tab === 3 ? 'Short animated guide with 3 steps.' : tab === 4 ? 'Unlock rule: ' + t.badge + '.' : 'Seen in runs.'), badge: t.rar || t.badge, btn: tab === 3 ? 'Watch guide' : 'Close', off: tab !== 3 }),
+        note: 'Groups: title · tabs · search · entries · detail (5). Search filters as you type, matches name and text; the count says how many match. Not-found entries show "???" at 40%. Guides and Unlocks reuse the same grid. Focus: tabs → search → tiles. Esc: clears search, then back.',
+        states: [st('29-search-empty', 'No matches for "poisn"', 'Check the spelling or clear the search.', 'Clear search', '')] }
+    ];
+
+    const screens = defs.map(d => {
+      const tab = S.tab[d.id] || 0, set = d.tiles[Math.min(tab, d.tiles.length - 1)], sel = Math.min(S.sel[d.id + tab] || (d.id === 'pass' ? 1 : 0), set.length - 1);
+      const tiles = set.map((t, i) => ({ ...t, op: t.op ?? 1, hasPreviews: d.id === 'presets', noPreviews: d.id !== 'presets' && d.id !== 'vault', sq: d.id === 'vault',
+        previews: d.id !== 'presets' ? [] : [0,1,2,3,4].map(k => t.n.startsWith('+') ? { l: k ? '' : '+ Add', bs: 'dashed', bc: '#58321d', c: '#ffe5b4' } : (t.badge === '4 / 5' && k === 1) ? { l: 'Missing', bs: 'dashed', bc: '#ff8986', c: '#ff8986' } : { l: 'AXIE 3D · ' + (k + 1), bs: 'solid', bc: '#8e97a8', c: '#dae0ea' }), hasProg: t.prog !== undefined, prog: t.prog || 0,
+        bg: i === sel ? '#3e2618' : '#2b1e17e6', o: (i === sel || t.you) ? '4px solid #ffe5b4' : 'none',
+        pick: () => this.setState(s => ({ sel: { ...s.sel, [d.id + tab]: i } })) }));
+      return { code: d.code, label: d.label, title: d.title, note: d.note, states: d.states,
+        tabs: d.tabs.map((l, i) => ({ l, bg: i === tab ? '#58321d' : '#2b1e17', o: i === tab ? '3px solid #ffe5b4' : 'none', pick: () => this.setState(s => ({ tab: { ...s.tab, [d.id]: i } })) })),
+        hasNotice: !!d.notice, notice: d.notice || '', hasHead: !!d.head, head: d.head || '', headSub: d.headSub || '', hasBar: d.bar !== undefined, bar: d.bar || 0,
+        hasSearch: !!d.hasSearch, search: d.search || '',
+        hasDetail: !d.noDetail, sqD: d.id === 'vault', flexD: d.id !== 'vault', isGrid: !d.list, isList: !!d.list, cols: d.grid || 1, artH: d.artH || 0, tiles, d: d.detail(set[sel], tab) };
+    });
+    return { screens };
+  }
+}
+</script>
+</body>
+</html>
