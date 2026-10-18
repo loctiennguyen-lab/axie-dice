@@ -77,9 +77,13 @@ func _run() -> void:
 	await get_tree().process_frame
 	pv.set_tab(2)
 	var card := pv.find_child("Title_" + a5.replace(":", "_"), true, false)
-	_ok(card != null and card.find_child("Equip", true, false) != null, "Profile lists owned A5 title with Equip")
-	_ok(pv.find_child("Title_" + a10.replace(":", "_"), true, false).find_child("Status", true, false) != null, "A10 shown as Not yet")
-	(card.find_child("Equip", true, false) as Button).pressed.emit()
+	_ok(card != null and (card.find_child("Badge", true, false) as Label).text == "Owned", "Profile lists owned A5 title (Owned)")
+	var c10 := pv.find_child("Title_" + a10.replace(":", "_"), true, false)
+	_ok((c10.find_child("Badge", true, false) as Label).text == "Locked", "A10 shown as Locked")
+	(c10 as Button).pressed.emit()
+	_ok((pv.find_child("Equip", true, false) as Button).disabled and "Not yet" in (pv.find_child("Equip", true, false) as Button).text, "locked title: Equip disabled with reason")
+	(pv.find_child("Title_" + a5.replace(":", "_"), true, false) as Button).pressed.emit()
+	(pv.find_child("Equip", true, false) as Button).pressed.emit()
 	_ok(MetaState.equipped_title == a5, "Equip button equips")
 	await get_tree().process_frame
 	pv.set_tab(0)

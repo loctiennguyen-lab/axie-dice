@@ -8,7 +8,8 @@ extends Control
 ## Not built: mouse drag of the handle (Alt + Left/Right on a focused card reorders), the
 ## "Best Ascension won with it" line (no per-team result history exists), house thumbnail.
 
-const _Shell := preload("res://scenes/shared/R3Shell.gd")
+const SEAT := 160   # largest square Axie preview (spec 27)
+const TILE_H := 284.0
 
 ## "mine" | "samples"
 var tab := "mine"
@@ -47,18 +48,13 @@ func _derive_guest() -> bool:
 
 
 func _build() -> void:
-	_shell = _Shell.build(self, "Team presets", "", _on_back)
-	_tabs_box = HBoxContainer.new()
+	_shell = UI3Meta.build(self, "Team presets", "", _on_back)
+	_tabs_box = _shell["header_right"]
 	_tabs_box.name = "Tabs"
-	_tabs_box.add_theme_constant_override("separation", 4)
-	(_shell["header_right"] as Control).add_child(_tabs_box)
-	var col: VBoxContainer = _shell["col"]
 	_body = MarginContainer.new()
 	_body.name = "Body"
 	_body.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	for s in ["left", "right", "top", "bottom"]:
-		_body.add_theme_constant_override("margin_" + s, 20 if s in ["top"] else 24)
-	col.add_child(_body)
+	(_shell["col"] as Control).add_child(_body)
 
 
 func _unhandled_key_input(ev: InputEvent) -> void:
@@ -210,7 +206,7 @@ func request_delete(i: int) -> void:
 		return
 	_delete_idx = i
 	var nm := String((MetaState.team_presets[i] as Dictionary)["name"])
-	_Shell.confirm(_shell["modal_layer"], "Delete \"%s\"?" % nm,
+	UI3Meta.confirm(_shell["modal_layer"], "Delete \"%s\"?" % nm,
 		"The preset is removed. Your Axies stay in the Vault and the starter roster. This cannot be undone.",
 		"Keep it", "Delete preset", confirm_delete, close_modal)
 
@@ -223,7 +219,7 @@ func confirm_delete() -> void:
 
 
 func close_modal() -> void:
-	_Shell.clear(_shell["modal_layer"])
+	UI3Meta.clear(_shell["modal_layer"])
 
 
 func reorder(i: int, dir: int) -> void:
@@ -232,96 +228,112 @@ func reorder(i: int, dir: int) -> void:
 	refresh()
 
 
-# ------------------------------------------------------------ drawing
+# ------------------------------------------------------------ drawing (UI-03 screen 27)
 
 func refresh() -> void:
 	if _body == null:
 		return
-	_Shell.clear(_body)
-	_Shell.clear(_shell["banner_host"])
-	_Shell.clear(_tabs_box)
+	UI3Meta.clear(_body)
+	UI3Meta.clear(_shell["banner_host"])
+	UI3Meta.clear(_tabs_box)
 	var sub: Label = _shell["sub"]
 	if guest:
-		_Shell.banner(_shell["banner_host"], "Presets are saved on this computer only.",
+		UI3Meta.banner(_shell["banner_host"], "Presets are saved on this computer only.",
 			"Sign in to keep them across devices.",
-			[{"text": "Sign in", "primary": true, "cb": func() -> void:
+			[{"name": "SignIn", "text": "Sign in", "primary": true, "cb": func() -> void:
 				if is_inside_tree() and not no_scene_change:
 					LandNav.open(&"account")}])
 	if view == "editor":
-		sub.text = "Team presets › %s" % (edit_name if edit_name != "" else "New team")
-		_body.add_child(_Shell.fit_in(_build_editor(), _shell["panel"], 160))
+		sub.text = "› %s" % (edit_name if edit_name != "" else "New team")
+		_body.add_child(UI3Meta.scroll(_build_editor()))
 		return
-	for t in [["mine", "My teams  M"], ["samples", "Sample teams  S"]]:
-		var b := _Shell.button(t[1], 0, 40, t[0] == tab)
+	for t in [["mine", "My teams", "M"], ["samples", "Sample teams", "S"]]:
+		var b := UI3Meta.tab(t[1], t[0] == tab, t[2])
 		b.name = "Tab_" + String(t[0])
 		b.pressed.connect(switch_tab.bind(t[0]))
 		_tabs_box.add_child(b)
 	if tab == "samples":
 		sub.text = "From Guides"
-		_body.add_child(_Shell.fit_in(_build_samples(), _shell["panel"], 160))
+		_body.add_child(UI3Meta.scroll(_build_samples()))
 	else:
 		sub.text = "%d of %d slots used%s" % [TeamPresets.count(), TeamPresets.slot_count(),
 			" · more at higher Land tiers" if TeamPresets.slot_count() < TeamPresets.MAX_SLOTS else ""]
-		_body.add_child(_build_empty() if TeamPresets.count() == 0 else _Shell.fit_in(_build_grid(), _shell["panel"], 160))
+		_body.add_child(_build_empty() if TeamPresets.count() == 0 else UI3Meta.scroll(_build_grid()))
 
 
+## Square Axie preview 160x160 (portrait + name); a missing Axie gets a red-8 frame and "Missing".
 func _seat_cell(key: String, missing: bool) -> Control:
 	var p := PanelContainer.new()
-	p.custom_minimum_size = Vector2(0, 58)
-	p.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	var sb := _Shell.surface(DangoTheme.Surface.CREAM_RAISED, 12, 2, Vector2(4, 4), DangoTheme.CREAM_DISABLED if missing else DangoTheme.CREAM, DangoTheme.LINE if missing else DangoTheme.FUTURE)
-	p.add_theme_stylebox_override("panel", sb)
+	p.custom_minimum_size = Vector2(0, 0)
+	p.theme = UI3Theme.get_theme()
+	p.add_theme_stylebox_override("panel", UI3Theme.flat(UI3Theme.color("danger_bg") if missing else UI3Theme.color("panel_raised"),
+		8, 2 if missing else 0, UI3Theme.color("danger_text"), Vector4(8, 8, 8, 8)))
 	var v := VBoxContainer.new()
 	v.alignment = BoxContainer.ALIGNMENT_CENTER
-	v.add_theme_constant_override("separation", 2)
+	v.add_theme_constant_override("separation", 4)
 	p.add_child(v)
 	var def: Dictionary = ContentDB.heroes.get(key, {})
-	var cls := String(def.get("cls", ""))
 	var dot := TextureRect.new()
-	dot.custom_minimum_size = Vector2(32, 32)
+	dot.custom_minimum_size = Vector2(88, 88)
 	dot.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	dot.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	dot.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	if not missing:
-		dot.texture = MockupAssets.tex("assets/portrait/%s.png" % cls)
+		dot.texture = MockupAssets.tex("assets/portrait/%s.png" % String(def.get("cls", "")))
 	v.add_child(dot)
-	var nm := _Shell.label("Missing" if missing else String(def.get("n", key)), 12,
-		DangoTheme.INK_DISABLED if missing else DangoTheme.INK)
+	var nm := UI3.label("Missing" if missing else String(def.get("n", key)))
+	if missing:
+		nm.add_theme_color_override("font_color", UI3Theme.color("danger_text"))
 	nm.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	nm.clip_text = true
+	nm.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	v.add_child(nm)
 	p.name = "Seat_missing" if missing else "Seat_" + key
 	return p
 
 
+## Five square previews in a row: each takes an equal share of the width (up to SEAT px) and stays square.
+func _seat_row(keys: Array, missing_of: Callable) -> HBoxContainer:
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 8)
+	for k in keys:
+		var a := AspectRatioContainer.new()
+		a.ratio = 1.0
+		a.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		a.custom_minimum_size = Vector2(64, 0)
+		a.add_child(_seat_cell(String(k), missing_of.call(String(k))))
+		row.add_child(a)
+	return row
+
+
 func _build_empty() -> Control:
 	var c := CenterContainer.new()
 	c.name = "Empty"
+	c.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	var v := VBoxContainer.new()
-	v.add_theme_constant_override("separation", 14)
+	v.add_theme_constant_override("separation", UI3Theme.space("32"))   # body-to-button gap
 	v.alignment = BoxContainer.ALIGNMENT_CENTER
 	c.add_child(v)
-	var t := _Shell.label("No saved teams yet", 30, DangoTheme.INK, true)
+	var t := UI3.label("No saved teams yet", "LabelScreenTitle")
 	t.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	v.add_child(t)
-	var d := _Shell.label("Save a party of 5 here and load it in Run Setup with one press. You have %d preset slots at %s Land." % [TeamPresets.slot_count(), TeamPresets.tier_name()], 16, DangoTheme.INK_ON_CREAM_MUTED)
+	var d := UI3.label("Save a party of 5 here and load it in Run Setup with one press. You have %d preset slots at %s Land." % [TeamPresets.slot_count(), TeamPresets.tier_name()], "LabelMuted")
 	d.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	d.custom_minimum_size = Vector2(520, 0)
+	d.custom_minimum_size = Vector2(560, 0)
 	d.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	v.add_child(d)
-	var b := _Shell.button("Build your first team", 340, 60, true)
+	var b := UI3.button("Build your first team", &"primary", &"L")
 	b.name = "BuildFirst"
 	b.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	b.pressed.connect(open_editor.bind(-1))
 	v.add_child(b)
-	b.grab_focus.call_deferred()
+	_focus_later(b)
 	return c
 
 
 func _build_grid() -> Control:
 	var g := GridContainer.new()
 	g.name = "Grid"
-	g.columns = 3
+	g.columns = 3   # 3 / 6 / 9 slots by Land tier = 3 x 3 at most
 	g.add_theme_constant_override("h_separation", 16)
 	g.add_theme_constant_override("v_separation", 16)
 	g.size_flags_vertical = Control.SIZE_EXPAND_FILL
@@ -336,36 +348,44 @@ func _build_grid() -> Control:
 	return g
 
 
-func _cell(fill: Color, border: Color, dashed := false) -> PanelContainer:
-	var p := PanelContainer.new()
-	p.custom_minimum_size = Vector2(0, 200)
+func _focus_later(c: Control) -> void:
+	(func() -> void:
+		if is_instance_valid(c) and c.is_inside_tree():
+			c.grab_focus()).call_deferred()
+
+
+func _tile(kind := &"card") -> PanelContainer:
+	var p := UI3.plate(kind)
 	p.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	p.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	p.add_theme_stylebox_override("panel", _Shell.surface(DangoTheme.Surface.CREAM_RAISED, 20, 3, Vector2(14, 14), fill, border))
+	p.size_flags_stretch_ratio = 1.0
+	p.custom_minimum_size = Vector2(0, TILE_H)   # all tiles the same height
 	return p
 
 
 func _locked_card(n: int) -> Control:
-	var p := _cell(DangoTheme.CREAM_DISABLED, DangoTheme.INK_3)
+	var p := _tile(&"row")
+	p.modulate.a = 0.6   # locked = 0.6 (components.md ListRow)
 	p.name = "Locked%d" % n
 	var v := VBoxContainer.new()
 	v.alignment = BoxContainer.ALIGNMENT_CENTER
 	p.add_child(v)
-	var a := _Shell.label("Preset slot %d" % n, 18, DangoTheme.INK_DISABLED, true)
+	var a := UI3.label("Preset slot %d" % n, "LabelTitle")
 	a.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	v.add_child(a)
-	var b := _Shell.label("Opens at %s Land" % String(TeamPresets.TIER_NAME.get(TeamPresets.tier_for_slot(n), "")), 13, DangoTheme.INK_DISABLED)
+	var b := UI3.label("Opens at %s Land" % String(TeamPresets.TIER_NAME.get(TeamPresets.tier_for_slot(n), "")), "LabelMuted")
 	b.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	v.add_child(b)
 	return p
 
 
 func _open_card(n: int) -> Control:
-	var p := _cell(Color(DangoTheme.CREAM_RAISED, 0.5), DangoTheme.LINE)
+	var p := _tile(&"row")
 	p.name = "Open%d" % (n + 1)
-	var b := _Shell.button("+  New team", 0, 60)
+	var b := UI3.button("+  New team", &"secondary", &"M")
 	b.name = "New%d" % (n + 1)
 	b.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	b.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	b.pressed.connect(open_editor.bind(-1))
 	p.add_child(b)
 	return p
@@ -374,66 +394,63 @@ func _open_card(n: int) -> Control:
 func _preset_card(i: int) -> Control:
 	var e: Dictionary = MetaState.team_presets[i]
 	var miss := TeamPresets.missing_count(e)
-	var p := _cell(DangoTheme.CREAM_RAISED, DangoTheme.LINE)
+	var p := _tile(&"card")
 	p.name = "Preset%d" % i
 	var v := VBoxContainer.new()
-	v.add_theme_constant_override("separation", 10)
+	v.add_theme_constant_override("separation", UI3Theme.space("4"))
 	p.add_child(v)
-	var head := HBoxContainer.new()
-	head.add_theme_constant_override("separation", 8)
-	v.add_child(head)
-	var handle := _Shell.label("⋮⋮", 16, DangoTheme.INK_3)
-	handle.tooltip_text = "Alt + Left / Right moves this team"
-	head.add_child(handle)
-	var nm := _Shell.label(String(e["name"]), 21, DangoTheme.INK, true)
-	nm.name = "Name"
-	nm.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	head.add_child(nm)
-	if TeamPresets.has_nft(e):
-		var tag := PanelContainer.new()
-		tag.add_theme_stylebox_override("panel", _Shell.surface(DangoTheme.Surface.CREAM_RAISED, 12, 2, Vector2(4, 4), DangoTheme.GOLD, DangoTheme.OUTLINE))
-		tag.add_child(_Shell.label("NFT", 13, DangoTheme.GOLD_INK, true))
-		head.add_child(tag)
-	var seats := HBoxContainer.new()
-	seats.add_theme_constant_override("separation", 6)
-	v.add_child(seats)
+	v.add_child(_seat_row(e["party"], func(k: String) -> bool: return not TeamPresets.seat_ok(k)))
+	var names: Array[String] = []
 	for k in (e["party"] as Array):
-		seats.add_child(_seat_cell(String(k), not TeamPresets.seat_ok(String(k))))
+		if TeamPresets.seat_ok(String(k)):
+			names.append(String((ContentDB.heroes.get(String(k), {}) as Dictionary).get("n", k)))
+	var head := HBoxContainer.new()
+	head.add_theme_constant_override("separation", UI3Theme.space("8"))
+	v.add_child(head)
+	var nm := UI3.label(String(e["name"]), "LabelTitle")
+	nm.name = "Name"
+	nm.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	nm.size_flags_horizontal = Control.SIZE_EXPAND_FILL   # takes the free width: ellipsis only when truly too long
+	head.add_child(nm)
+	head.add_child(UI3.label("%d / 5" % (5 - miss), "LabelMuted"))
+	if TeamPresets.has_nft(e):
+		head.add_child(UI3Meta.tag("NFT"))
+	var line := UI3.label(" · ".join(names) if miss == 0 else "%d of 5 seats empty: the Axie left your Vault" % miss, "LabelMuted")
+	line.name = "PartyLine"
+	line.clip_text = true
+	line.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	line.custom_minimum_size.x = 0
+	line.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	if miss > 0:
-		v.add_child(_Shell.label("%d of 5 seats empty: the Axie left your Vault" % miss, 13, DangoTheme.LINE))
-	var sp := Control.new()
-	sp.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	v.add_child(sp)
+		line.add_theme_color_override("font_color", UI3Theme.color("danger_text"))
+	v.add_child(line)
 	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", 6)
+	row.add_theme_constant_override("separation", UI3Theme.space("8"))
 	v.add_child(row)
-	var use := _Shell.button("Pick a replacement" if miss > 0 else "Use for next run", 0, 36, miss == 0)
+	var use := UI3.button("Pick a replacement" if miss > 0 else "Use for next run", &"secondary", &"S")
 	use.name = "Use"
-	use.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	use.size_flags_stretch_ratio = 1.6
 	if miss > 0:
 		use.pressed.connect(open_editor.bind(i))
 	else:
 		use.pressed.connect(use_preset.bind(i))
 	use.focus_entered.connect(func() -> void: _focus_idx = i)
 	row.add_child(use)
-	for a in [["Edit  E", open_editor.bind(i)], ["Copy", copy_preset.bind(i)], ["Delete", request_delete.bind(i)]]:
-		var b := _Shell.button(a[0], 0, 36)
+	for a in [["Edit  E", open_editor.bind(i), &"secondary"], ["Copy", copy_preset.bind(i), &"quiet"], ["Delete", request_delete.bind(i), &"quiet"]]:
+		var b := UI3.button(a[0], a[2], &"S")
 		b.name = String(a[0]).split(" ")[0]
-		b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		b.pressed.connect(a[1])
 		b.focus_entered.connect(func() -> void: _focus_idx = i)
 		row.add_child(b)
 	if i == 0:
-		use.grab_focus.call_deferred()
+		_focus_later(use)
 	return p
 
 
 func _build_samples() -> Control:
 	var v := VBoxContainer.new()
 	v.name = "Samples"
-	v.add_theme_constant_override("separation", 14)
-	var intro := _Shell.label("Read-only. Four compositions from Guides that work for new players. \"Use this team\" loads it into Run Setup with starter Axies.", 15, DangoTheme.INK_ON_CREAM_MUTED)
+	v.add_theme_constant_override("separation", UI3Theme.space("16"))
+	var intro := UI3.label("Read-only. Four compositions from Guides that work for new players. \"Use this team\" loads it into Run Setup with starter Axies.", "LabelMuted")
 	intro.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	v.add_child(intro)
 	var g := GridContainer.new()
@@ -444,28 +461,20 @@ func _build_samples() -> Control:
 	v.add_child(g)
 	for i in ContentDB.GUIDES.size():
 		var gd: Dictionary = ContentDB.GUIDES[i]
-		var c := PanelContainer.new()
+		var c := _tile(&"card")
 		c.name = "Sample%d" % i
-		c.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-		c.size_flags_vertical = Control.SIZE_EXPAND_FILL
-		c.add_theme_stylebox_override("panel", _Shell.surface(DangoTheme.Surface.CREAM_RAISED, 20, 3, Vector2(16, 16), DangoTheme.CREAM_RAISED, DangoTheme.LINE))
 		var cv := VBoxContainer.new()
-		cv.add_theme_constant_override("separation", 10)
+		cv.add_theme_constant_override("separation", UI3Theme.space("8"))
 		c.add_child(cv)
-		cv.add_child(_Shell.label(String(gd.get("n", "")).capitalize(), 22, DangoTheme.INK, true))
-		var seats := HBoxContainer.new()
-		seats.add_theme_constant_override("separation", 6)
-		cv.add_child(seats)
-		for k in gd.get("team", []):
-			seats.add_child(_seat_cell(String(k), not ContentDB.heroes.has(str(k))))
-		var why := _Shell.label(String(gd.get("why", "")), 14)
+		cv.add_child(UI3.label(String(gd.get("n", "")).capitalize(), "LabelTitle"))
+		cv.add_child(_seat_row(gd.get("team", []), func(k: String) -> bool: return not ContentDB.heroes.has(k)))
+		var why := UI3.label(String(gd.get("why", "")))
 		why.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		why.size_flags_vertical = Control.SIZE_EXPAND_FILL
+		why.custom_minimum_size.x = 400
 		cv.add_child(why)
-		var use := _Shell.button("Use this team", 0, 36, true)
+		var use := UI3.button("Use this team", &"secondary", &"S")
 		use.name = "UseSample"
 		use.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
-		use.custom_minimum_size.x = 160
 		use.pressed.connect(use_sample.bind(i))
 		cv.add_child(use)
 		g.add_child(c)
@@ -475,38 +484,36 @@ func _build_samples() -> Control:
 func _build_editor() -> Control:
 	var v := VBoxContainer.new()
 	v.name = "Editor"
-	v.add_theme_constant_override("separation", 16)
+	v.add_theme_constant_override("separation", UI3Theme.space("24"))
 	var nrow := HBoxContainer.new()
-	nrow.add_theme_constant_override("separation", 12)
+	nrow.add_theme_constant_override("separation", UI3Theme.space("16"))
 	v.add_child(nrow)
-	nrow.add_child(_Shell.label("NAME", 15, DangoTheme.LINE, true))
+	nrow.add_child(UI3.label("Name", "LabelTitle"))
 	_name_edit = LineEdit.new()
 	_name_edit.name = "NameEdit"
 	_name_edit.max_length = TeamPresets.NAME_MAX
 	_name_edit.text = edit_name
-	_name_edit.custom_minimum_size = Vector2(360, 48)
-	_name_edit.add_theme_font_size_override("font_size", 20)
+	_name_edit.custom_minimum_size = Vector2(400, 56)
 	_name_edit.text_changed.connect(set_edit_name)
 	nrow.add_child(_name_edit)
-	_count_lbl = _Shell.label("", 13, DangoTheme.INK_ON_CREAM_MUTED)
+	_count_lbl = UI3.label("", "LabelMuted")
 	nrow.add_child(_count_lbl)
 	var seats := HBoxContainer.new()
 	seats.add_theme_constant_override("separation", 16)
 	v.add_child(seats)
 	for s in TeamPresets.PARTY_SIZE:
 		seats.add_child(_edit_seat(s))
-	var sp := Control.new()
-	sp.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	v.add_child(sp)
 	var foot := HBoxContainer.new()
 	foot.alignment = BoxContainer.ALIGNMENT_END
-	foot.add_theme_constant_override("separation", 16)
+	foot.add_theme_constant_override("separation", UI3Theme.space("16"))
 	v.add_child(foot)
-	var cancel := _Shell.button("Cancel", 240, 60)
+	var cancel := UI3.button("Cancel", &"secondary", &"M")
 	cancel.name = "Cancel"
+	cancel.custom_minimum_size.y = 56
+	cancel.size_flags_vertical = Control.SIZE_SHRINK_END   # stay 56 next to the 72 primary
 	cancel.pressed.connect(cancel_editor)
 	foot.add_child(cancel)
-	_save_btn = _Shell.button("Save team", 240, 60, true)
+	_save_btn = UI3.button("Save team", &"primary", &"L")
 	_save_btn.name = "Save"
 	_save_btn.pressed.connect(save_editor)
 	foot.add_child(_save_btn)
@@ -519,21 +526,23 @@ func _refresh_editor_state() -> void:
 		_count_lbl.text = "%d / %d characters" % [edit_name.length(), TeamPresets.NAME_MAX]
 	if _save_btn != null:
 		var why := save_block_reason()
-		_save_btn.disabled = why != ""
-		_save_btn.text = "Save team" if why == "" else "Save team\n" + why
+		if why == "":
+			UI3.clear_disabled_reason(_save_btn)
+		else:
+			UI3.set_disabled_reason(_save_btn, why)
 
 
 func _edit_seat(s: int) -> Control:
 	var key := String(edit_party[s])
-	var c := PanelContainer.new()
+	var c := UI3.plate(&"card" if key != "" else &"row")
 	c.name = "EditSeat%d" % s
-	c.custom_minimum_size = Vector2(272, 176)
-	c.add_theme_stylebox_override("panel", _Shell.surface(DangoTheme.Surface.CREAM_RAISED, 20, 3, Vector2(12, 12), DangoTheme.CREAM_RAISED if key != "" else DangoTheme.CREAM_DISABLED, DangoTheme.LINE))
+	c.custom_minimum_size = Vector2(272, 208)
+	c.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	var v := VBoxContainer.new()
-	v.add_theme_constant_override("separation", 8)
+	v.add_theme_constant_override("separation", UI3Theme.space("8"))
 	c.add_child(v)
 	if key == "":
-		var t := _Shell.label("Pick an Axie", 18, DangoTheme.INK_ON_CREAM_MUTED, true)
+		var t := UI3.label("Pick an Axie", "LabelTitle")
 		t.size_flags_vertical = Control.SIZE_EXPAND_FILL
 		t.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 		t.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -541,32 +550,35 @@ func _edit_seat(s: int) -> Control:
 	else:
 		var def: Dictionary = ContentDB.heroes.get(key, {})
 		var top := HBoxContainer.new()
-		top.add_theme_constant_override("separation", 10)
+		top.add_theme_constant_override("separation", UI3Theme.space("16"))
 		v.add_child(top)
 		var pic := TextureRect.new()
-		pic.custom_minimum_size = Vector2(52, 52)
+		pic.custom_minimum_size = Vector2(64, 64)
 		pic.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 		pic.texture = MockupAssets.tex("assets/portrait/%s.png" % String(def.get("cls", "")))
 		top.add_child(pic)
 		var names := VBoxContainer.new()
-		names.add_child(_Shell.label(String(def.get("n", key)), 19, DangoTheme.INK, true))
-		names.add_child(_Shell.label(String(def.get("cls", "")).capitalize(), 12, DangoTheme.INK_ON_CREAM_MUTED))
+		names.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		var nl := UI3.label(String(def.get("n", key)), "LabelTitle")
+		nl.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+		nl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		names.add_child(nl)
+		names.add_child(UI3.label(String(def.get("cls", "")).capitalize(), "LabelMuted"))
 		top.add_child(names)
 		var sp := Control.new()
 		sp.size_flags_vertical = Control.SIZE_EXPAND_FILL
 		v.add_child(sp)
 	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", 6)
+	row.add_theme_constant_override("separation", UI3Theme.space("8"))
 	v.add_child(row)
-	var swap := _Shell.button("Swap" if key != "" else "Pick", 0, 36)
+	var swap := UI3.button("Swap" if key != "" else "Pick", &"secondary", &"S")
 	swap.name = "Swap"
 	swap.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	swap.pressed.connect(_show_picker.bind(s))
 	row.add_child(swap)
-	var clr := _Shell.button("Clear", 0, 36)
+	var clr := UI3.button("Clear", &"quiet", &"S")
 	clr.name = "Clear"
 	clr.disabled = key == ""
-	clr.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	clr.pressed.connect(set_edit_seat.bind(s, ""))
 	row.add_child(clr)
 	return c
@@ -584,28 +596,29 @@ func _pick_keys() -> Array[String]:
 
 func _show_picker(slot: int) -> void:
 	close_modal()
-	var c := _Shell.scrim(_shell["modal_layer"], "Picker")
-	var p := PanelContainer.new()
-	p.add_theme_stylebox_override("panel", _Shell.surface(DangoTheme.Surface.CREAM, 20, 4, Vector2(16, 16)))
+	var c := UI3Meta.scrim(_shell["modal_layer"], "Picker")
+	var p := UI3.plate(&"dialog")
 	c.add_child(p)
 	var v := VBoxContainer.new()
-	v.add_theme_constant_override("separation", 10)
+	v.add_theme_constant_override("separation", UI3Theme.space("16"))
 	p.add_child(v)
 	var head := HBoxContainer.new()
+	head.add_theme_constant_override("separation", UI3Theme.space("16"))
 	v.add_child(head)
-	var back := _Shell.button("← Back", 120, 44)
+	var back := UI3.button("← Back", &"secondary", &"S")
 	back.pressed.connect(close_modal)
 	head.add_child(back)
-	head.add_child(_Shell.label("  Team presets › Slot %d" % (slot + 1), 24, DangoTheme.INK, true))
+	head.add_child(UI3.label("Slot %d" % (slot + 1), "LabelTitle"))
 	var g := GridContainer.new()
 	g.columns = 5
-	g.add_theme_constant_override("h_separation", 10)
-	g.add_theme_constant_override("v_separation", 10)
+	g.add_theme_constant_override("h_separation", 8)
+	g.add_theme_constant_override("v_separation", 8)
 	v.add_child(g)
 	for k in _pick_keys():
 		var def: Dictionary = ContentDB.heroes[k]
 		var taken: bool = edit_party.has(k) and edit_party.find(k) != slot
-		var b := _Shell.button("%s\n%s" % [String(def.get("n", k)), String(def.get("cls", "")).capitalize()], 124, 80)
+		var b := UI3.button("%s\n%s" % [String(def.get("n", k)), String(def.get("cls", "")).capitalize()], &"secondary", &"M")
+		b.custom_minimum_size = Vector2(160, 80)
 		b.name = "Tile_" + k
 		b.disabled = taken
 		b.tooltip_text = "Already in another slot" if taken else ""
@@ -613,3 +626,4 @@ func _show_picker(slot: int) -> void:
 			if set_edit_seat(slot, k):
 				close_modal())
 		g.add_child(b)
+	_focus_later(g.get_child(0) as Control)

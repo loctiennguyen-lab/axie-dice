@@ -1015,11 +1015,7 @@ func _build_hud() -> void:
 	var wrow := HBoxContainer.new()
 	wrow.add_theme_constant_override("separation", UI3Theme.space("24"))
 	_wallet.add_child(wrow)
-	var vals := func(v: int) -> String: return "···" if _loading else _fmt(v)
-	var cur := UI3.currency_pill([
-		{"icon": "cur_shard", "value": vals.call(_meta_int("shard_pool"))},
-		{"icon": "cur_stone", "value": vals.call(_meta_int("stone"))},
-		{"icon": "cur_gem", "value": vals.call(_meta_int("lunar_gem"))}])
+	var cur := UI3.currency_pill(UI3.currency_entries(_loading))   # one order everywhere
 	_currencies = cur.get_child(0) as Control   # the pill's own row of icon + value cells
 	cur.remove_child(_currencies)
 	cur.free()
@@ -1302,13 +1298,7 @@ func _layout_toasts() -> void:
 
 
 func _fmt(v: int) -> String:
-	var s := str(v)
-	var out := ""
-	for i in s.length():
-		if i > 0 and (s.length() - i) % 3 == 0:
-			out += ","
-		out += s[i]
-	return out
+	return UI3.fmt(v)
 
 
 # ================================================================ layout (design px + dy)

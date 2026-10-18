@@ -1,14 +1,15 @@
 class_name ProfileView
 extends Control
-## R3 M12 Profile + M14 Cosmetics. Three tabs (Overview / Cosmetics / Titles) in the R3 wide shell.
-## Overview: avatar + frame, name, title, sync chip, 6 stat tiles, last 10 runs (MetaState.run_log).
-## Guest: banner with a Sign in action (opens the Account screen). Cosmetics: categories with counts,
-## owned / missing tiles, preview + Equip / Unequip. Titles: C7 cards. Cosmetic only; state lives in
-## MetaState (equip API checks ownership and saves through SaveStore). `no_scene_change` lets tests
-## build it without leaving. Visual polish vs the frames is a later pass.
+## Profile + cosmetics + titles on the UI-03 meta shell (screen 24, round 2). Tabs in the header
+## (Overview / Cosmetics / Titles), content column + 440 detail plate. Overview: identity in the detail
+## plate, 5 stat tiles, last 10 runs (MetaState.run_log). Guest: banner with Sign in. Cosmetics: categories
+## with counts, tiles (Equipped / Owned / Locked), preview 392 + Equip / Unequip. Titles: A5 / A10 tiles,
+## detail Equip. Cosmetic only; state lives in MetaState (equip API checks ownership, saves via SaveStore).
+## `no_scene_change` lets tests build it without leaving.
 
 const TABS: Array[String] = ["Overview", "Cosmetics", "Titles"]
 const CATS: Array[String] = [Cosmetics.SLOT_DIE, Cosmetics.SLOT_FRAME]
+const RARITY_NAMES: Array[String] = ["Common", "Uncommon", "Rare", "Epic", "Legendary", "Mythic"]
 const CAT_NAMES := {"die": "Dice skins", "frame": "Avatar frames"}
 
 var no_scene_change := false
@@ -17,29 +18,27 @@ var service: Node
 var tab := 0
 var cat := Cosmetics.SLOT_DIE
 var selected := ""
+## Titles tab selection ("" = No title). `_title_sel_set` false = follow the equipped title.
+var title_sel := ""
+var _title_sel_set := false
 var _shell: Dictionary
-var _body: VBoxContainer
+var _body: HBoxContainer
 var _tab_btns: Array[Button] = []
 
 
 func _ready() -> void:
 	if service == null:
 		service = AccountService
-	_shell = R3Shell.build(self, "Profile", "", _on_back)
-	var panel: Control = _shell["panel"]
-	_body = VBoxContainer.new()
-	_body.add_theme_constant_override("separation", 14)
-	var pad := MarginContainer.new()
-	for side in ["left", "right", "top", "bottom"]:
-		pad.add_theme_constant_override("margin_" + side, 24)
-	pad.add_child(_body)
-	pad.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	(_shell["col"] as VBoxContainer).add_child(R3Shell.fit_in(pad, panel, R3Shell.BAND_H + 8.0))
+	_shell = UI3Meta.build(self, "Profile", "", _on_back)
+	_body = HBoxContainer.new()
+	_body.name = "Body"
+	_body.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	_body.add_theme_constant_override("separation", UI3Meta.GAP)
+	(_shell["col"] as VBoxContainer).add_child(_body)
 	var hr: HBoxContainer = _shell["header_right"]
 	for i in TABS.size():
-		var b := R3Shell.button(TABS[i], 130, 44)
+		var b := UI3Meta.tab(TABS[i], i == tab)
 		b.name = "Tab_" + TABS[i]
-		b.toggle_mode = true
 		b.pressed.connect(set_tab.bind(i))
 		hr.add_child(b)
 		_tab_btns.append(b)
@@ -52,8 +51,7 @@ func _ready() -> void:
 
 
 func _unhandled_key_input(ev: InputEvent) -> void:
-	if ev is InputEventKey and ev.pressed and not ev.echo and ev.keycode == KEY_ESCAPE:
-		_on_back()
+	if UI3Meta.esc_back(ev, _shell, _on_back):
 		get_viewport().set_input_as_handled()
 
 
@@ -78,15 +76,15 @@ func _name() -> String:
 func refresh() -> void:
 	if _body == null:
 		return
-	R3Shell.clear(_body)
-	R3Shell.clear(_shell["banner_host"])
+	UI3Meta.clear(_body)
+	UI3Meta.clear(_shell["banner_host"])
 	for i in _tab_btns.size():
 		_tab_btns[i].button_pressed = (i == tab)
 	var land := "%s Land" % LandUpgradeScreen.TIER_NAMES[clampi(MetaState.land_tier, 1, LandUpgradeScreen.TIER_NAMES.size()) - 1]
 	(_shell["sub"] as Label).text = ("Guest · local stats on this computer" if not _signed_in() else "%s · %s" % [_name(), land])
 	if not _signed_in():
-		R3Shell.banner(_shell["banner_host"], "Sign in to keep them.", "These stats live on this computer only.",
-			[{"text": "Sign in", "primary": true, "cb": _open_account}])
+		UI3Meta.banner(_shell["banner_host"], "Sign in to keep them.", "These stats live on this computer only.",
+			[{"name": "SignIn", "text": "Sign in", "primary": true, "cb": _open_account}])
 	match tab:
 		1:
 			_cosmetics_tab()
@@ -101,54 +99,115 @@ func _open_account() -> void:
 		LandNav.open(&"account")
 
 
+## Content column (expands) + detail plate (440) added to the body; returns [left VBox, detail plate].
+func _frame() -> Array:
+	var left := VBoxContainer.new()
+	left.name = "Content"
+	left.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	left.add_theme_constant_override("separation", UI3Meta.GAP)
+	_body.add_child(left)
+	var d := UI3.plate(&"plate")
+	d.name = "DetailPlate"
+	d.custom_minimum_size = Vector2(440, 0)
+	_body.add_child(d)
+	var v := VBoxContainer.new()
+	v.add_theme_constant_override("separation", UI3Theme.space("16"))
+	d.add_child(v)
+	return [left, v]
+
+
+func _info_row(k: String, val: String, nm: String) -> Control:
+	var r := UI3.plate(&"row")
+	r.custom_minimum_size = Vector2(0, 48)
+	var h := HBoxContainer.new()
+	r.add_child(h)
+	var a := UI3.label(k, "LabelMuted")
+	a.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	h.add_child(a)
+	var b := UI3.label(val, "LabelTitle")
+	b.name = nm
+	h.add_child(b)
+	return r
+
+
+## Selectable tile (a toggle Button so Enter / click / focus all work): content stacked inside.
+func _tile(nm: String, on: bool, art: Control, label: String, badge: String, dim: bool) -> Button:
+	var b := UI3.button("", &"secondary", &"M")
+	b.name = nm
+	b.toggle_mode = true
+	b.button_pressed = on
+	b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	b.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	b.custom_minimum_size = Vector2(0, 120)
+	b.clip_contents = true
+	var v := VBoxContainer.new()
+	v.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT, Control.PRESET_MODE_MINSIZE, 8)
+	v.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	v.alignment = BoxContainer.ALIGNMENT_CENTER
+	if art != null:
+		art.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+		art.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		if dim:
+			art.modulate = Color(1, 1, 1, 0.4)   # locked art at 40%
+		v.add_child(art)
+	var l := UI3.label(label, "LabelTitle")
+	l.name = "Name"
+	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	l.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	l.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	v.add_child(l)
+	var bl := UI3.label(badge)
+	bl.name = "Badge"
+	bl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	bl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	v.add_child(bl)
+	b.add_child(v)
+	return b
+
+
 # ============================================================================ Overview
 
 func _overview_tab() -> void:
-	var head := HBoxContainer.new()
-	head.name = "HeaderCard"
-	head.add_theme_constant_override("separation", 18)
-	head.add_child(make_avatar(96.0, service))
-	var who := VBoxContainer.new()
-	who.add_theme_constant_override("separation", 2)
-	who.alignment = BoxContainer.ALIGNMENT_CENTER
+	var fr := _frame()
+	var left: VBoxContainer = fr[0]
+	var d: VBoxContainer = fr[1]
+	(d.get_parent() as Control).size_flags_vertical = Control.SIZE_SHRINK_BEGIN   # identity card hugs its content
+	# identity in the detail plate
+	var hc := CenterContainer.new()
+	hc.name = "HeaderCard"
+	hc.add_child(make_avatar(128.0, service))
+	d.add_child(hc)
 	var nrow := HBoxContainer.new()
-	nrow.add_theme_constant_override("separation", 10)
-	var nm := DangoTheme.display_label(_name(), 34, DangoTheme.INK)
+	nrow.alignment = BoxContainer.ALIGNMENT_CENTER
+	nrow.add_theme_constant_override("separation", UI3Theme.space("8"))
+	var nm := UI3.label(_name(), "LabelScreenTitle")
 	nm.name = "PlayerName"
 	nrow.add_child(nm)
 	if _signed_in() and bool(service.account.get("sky_mavis", false)):
-		nrow.add_child(AccountUI.sky_mavis_badge())
-	who.add_child(nrow)
-	var tl := DangoTheme.display_label(
+		nrow.add_child(UI3Meta.tag("Sky Mavis"))
+	d.add_child(nrow)
+	var tl := UI3.label(
 		("Title: %s" % TitleNames.display(MetaState.equipped_title)) if MetaState.equipped_title != "" else "No title",
-		16, DangoTheme.INK_DISABLED)
+		"LabelMuted")
 	tl.name = "EquippedTitle"
-	who.add_child(tl)
-	head.add_child(who)
-	var sp := Control.new()
-	sp.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	head.add_child(sp)
-	head.add_child(_sync_chip())
-	_body.add_child(head)
+	tl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	d.add_child(tl)
+	d.add_child(_sync_chip())
 
 	var tiles := HBoxContainer.new()
 	tiles.name = "Stats"
-	tiles.add_theme_constant_override("separation", 12)
+	tiles.add_theme_constant_override("separation", UI3Theme.space("16"))
 	for t in stat_tiles():
 		tiles.add_child(_stat_tile(t))
-	_body.add_child(tiles)
-
-	_body.add_child(DangoTheme.display_label("Last %d runs" % MetaState.RUN_LOG_MAX, 22, DangoTheme.INK))
+	left.add_child(tiles)
+	left.add_child(UI3.label("Last %d runs" % MetaState.RUN_LOG_MAX, "LabelTitle"))
 	var list := VBoxContainer.new()
 	list.name = "RunList"
-	list.add_theme_constant_override("separation", 0)
-	_body.add_child(list)
+	list.add_theme_constant_override("separation", UI3Theme.space("8"))
+	left.add_child(UI3Meta.scroll(list))
 	if MetaState.run_log.is_empty():
-		var e := Label.new()
+		var e := UI3.label("No runs yet. Finish a run and it shows up here.", "LabelMuted")
 		e.name = "RunsEmpty"
-		e.text = "No runs yet. Finish a run and it shows up here."
-		e.add_theme_font_size_override("font_size", 16)
-		e.add_theme_color_override("font_color", DangoTheme.INK_DISABLED)
 		list.add_child(e)
 	for i in MetaState.run_log.size():
 		list.add_child(_run_row(MetaState.run_log[i] as Dictionary, i))
@@ -168,23 +227,23 @@ static func stat_tiles() -> Array[Dictionary]:
 		{"k": "Wins", "v": str(MetaState.wins), "s": "%d%%" % int(round(100.0 * MetaState.wins / runs)) if runs > 0 else "—"},
 		{"k": "Best Ascension", "v": ("A%d" % best) if best >= 0 else "—", "s": "won"},
 		{"k": "Pure wins", "v": str(int(ps.get("pure_wins", 0))), "s": "no Aid"},
-		{"k": "Nhiệm vụ", "v": ("%d / %d" % [int(ps.get("ms_won", 0)), ms_played]) if ms_played > 0 else "—", "s": "won / played"},
+		{"k": "Missions", "v": ("%d / %d" % [int(ps.get("ms_won", 0)), ms_played]) if ms_played > 0 else "—", "s": "won / played"},
 	]
 
 
 func _stat_tile(t: Dictionary) -> Control:
-	var p := PanelContainer.new()
+	var p := UI3.plate(&"card")
 	p.name = "Stat_" + String(t["k"]).replace(" ", "")
 	p.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	p.custom_minimum_size = Vector2(0, 84)
-	p.add_theme_stylebox_override("panel", R3Shell.surface(DangoTheme.Surface.CREAM_RAISED, 16, 3, Vector2(12, 8)))
 	var v := VBoxContainer.new()
 	v.add_theme_constant_override("separation", 0)
-	v.add_child(R3Shell.label(String(t["k"]), 14, DangoTheme.INK_ON_CREAM_MUTED))
-	var val := R3Shell.label(String(t["v"]), 28, DangoTheme.INK, true)
+	var k := UI3.label(String(t["k"]), "LabelMuted")
+	k.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	v.add_child(k)
+	var val := UI3.label(String(t["v"]), "LabelScreenTitle")
 	val.name = "Value"
 	v.add_child(val)
-	v.add_child(R3Shell.label(String(t["s"]), 12, DangoTheme.INK_ON_CREAM_MUTED))
+	v.add_child(UI3.label(String(t["s"]), "LabelMuted"))
 	p.add_child(v)
 	return p
 
@@ -203,57 +262,47 @@ static func run_mode_text(e: Dictionary) -> String:
 
 
 func _run_row(e: Dictionary, i: int) -> Control:
-	var p := PanelContainer.new()
+	var p := UI3.plate(&"row")
 	p.name = "Run_%d" % i
-	p.custom_minimum_size = Vector2(0, 42)
-	var sb := StyleBoxFlat.new()
-	sb.bg_color = DangoTheme.CREAM_100 if i % 2 == 0 else DangoTheme.CREAM_200
-	sb.content_margin_left = 14
-	sb.content_margin_right = 14
-	p.add_theme_stylebox_override("panel", sb)
+	p.custom_minimum_size = Vector2(0, 56)
 	var h := HBoxContainer.new()
-	h.add_theme_constant_override("separation", 16)
+	h.add_theme_constant_override("separation", UI3Theme.space("16"))
 	p.add_child(h)
-	var cells: Array = [[String(e.get("date", "")), 130], [run_mode_text(e), 180], ["A%d" % int(e.get("asc", 0)), 60]]
+	var cells: Array = [[String(e.get("date", "")), 130], [run_mode_text(e), 200], ["A%d" % int(e.get("asc", 0)), 60]]
 	for c in cells:
-		var l := R3Shell.label(String(c[0]), 16)
+		var l := UI3.label(String(c[0]))
 		l.custom_minimum_size = Vector2(float(c[1]), 0)
 		h.add_child(l)
 	var won := bool(e.get("won", false))
-	var res := R3Shell.label("Won" if won else "Lost", 16, DangoTheme.SUCCESS_ON_CREAM if won else DangoTheme.INK, true)
+	var res := UI3.label("Won" if won else "Lost", "LabelTitle")
 	res.name = "Result"
-	res.custom_minimum_size = Vector2(120, 0)
+	res.custom_minimum_size = Vector2(100, 0)
 	h.add_child(res)
 	var aid := int(e.get("aid", 0))
 	var at := "no Aid (mission)" if bool(e.get("mission", false)) else ("Aid %d" % aid if aid > 0 else "no Aid")
-	var al := R3Shell.label(at, 14, DangoTheme.INK_ON_CREAM_MUTED)
+	var al := UI3.label(at, "LabelMuted")
 	al.name = "AidMark"
 	al.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	h.add_child(al)
 	if aid == 0 and not bool(e.get("mission", false)):
-		var pill := PanelContainer.new()
+		var pill := UI3Meta.tag("Pure")
 		pill.name = "PurePill"
-		pill.add_theme_stylebox_override("panel", DangoTheme.solid_chip_style(DangoTheme.SUCCESS, 8, 2))
-		pill.add_child(R3Shell.label("PURE", 12, DangoTheme.ink_on(DangoTheme.SUCCESS), true))
 		h.add_child(pill)
 	return p
 
 
 func _sync_chip() -> Control:
-	var p := PanelContainer.new()
-	p.name = "SyncChip"
-	p.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	var txt := "Guest · not saved to cloud"
-	var fill := DangoTheme.CREAM_300
 	if _signed_in():
 		var line: Array = AccountUI.status_line(service)
 		txt = String(line[0])
-		fill = DangoTheme.SUCCESS if txt == "Saved" else DangoTheme.CREAM_200
-	p.add_theme_stylebox_override("panel", DangoTheme.solid_chip_style(fill, 12, 2, Vector2(12, 4)))
-	var l := R3Shell.label(("✓ " + txt) if txt == "Saved" else txt, 14, DangoTheme.ink_on(fill), true)
+	var row := CenterContainer.new()
+	var chip := UI3.chip(("✓ " + txt) if txt == "Saved" else txt)
+	chip.name = "SyncChip"
+	row.add_child(chip)
+	var l := chip.get_child(0) as Label
 	l.name = "SyncText"
-	p.add_child(l)
-	return p
+	return row
 
 
 # ============================================================================ Cosmetics (M14)
@@ -281,123 +330,96 @@ func _cosmetics_tab() -> void:
 	var all := catalog(cat)
 	if selected == "" or not all.has(selected):
 		selected = equipped_for(cat) if equipped_for(cat) != "" else (owned[0] if not owned.is_empty() else (all[0] if not all.is_empty() else ""))
-	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", 18)
-	_body.add_child(row)
-	# categories with counts
-	var cats := VBoxContainer.new()
+	var fr := _frame()
+	var left: VBoxContainer = fr[0]
+	# category row with counts
+	var cats := HBoxContainer.new()
 	cats.name = "Categories"
-	cats.custom_minimum_size = Vector2(230, 0)
-	cats.add_theme_constant_override("separation", 8)
+	cats.add_theme_constant_override("separation", UI3Theme.space("8"))
 	for c in CATS:
 		var n := Cosmetics.owned_art(MetaState.cosmetics_owned, c).size()
-		var b := R3Shell.button("%s   %d / %d" % [CAT_NAMES[c], n, catalog(c).size()], 230, 52)
+		var b := UI3Meta.tab("%s   %d / %d" % [CAT_NAMES[c], n, catalog(c).size()], c == cat)
 		b.name = "Cat_" + c
-		b.toggle_mode = true
-		b.button_pressed = (c == cat)
 		b.pressed.connect(func() -> void:
 			cat = c
 			selected = ""
 			refresh())
 		cats.add_child(b)
-	row.add_child(cats)
-	# grid
-	var gv := VBoxContainer.new()
-	gv.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	gv.add_theme_constant_override("separation", 8)
-	gv.add_child(DangoTheme.display_label(CAT_NAMES[cat], 24, DangoTheme.INK))
-	gv.add_child(R3Shell.label("%d owned" % owned.size() if cat != Cosmetics.SLOT_DIE else "%d / %d owned · one dice skin at a time" % [owned.size(), all.size()], 14, DangoTheme.INK_ON_CREAM_MUTED))
+	left.add_child(cats)
+	var head := UI3.plate(&"plate")
+	var hv := VBoxContainer.new()
+	head.add_child(hv)
+	hv.add_child(UI3.label(CAT_NAMES[cat], "LabelTitle"))
+	hv.add_child(UI3.label("%d owned" % owned.size() if cat != Cosmetics.SLOT_DIE else "%d / %d owned · one dice skin at a time" % [owned.size(), all.size()], "LabelMuted"))
+	left.add_child(head)
 	var grid := GridContainer.new()
 	grid.name = "Grid_" + cat
 	grid.columns = 5
-	grid.add_theme_constant_override("h_separation", 10)
-	grid.add_theme_constant_override("v_separation", 10)
-	gv.add_child(grid)
+	grid.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	grid.add_theme_constant_override("h_separation", UI3Theme.space("16"))
+	grid.add_theme_constant_override("v_separation", UI3Theme.space("16"))
+	left.add_child(grid)
 	for id in all:
-		grid.add_child(_cos_tile(id, owned.has(id)))
-	row.add_child(gv)
-	row.add_child(_preview(owned))
+		var have := owned.has(id)
+		var badge := "Locked"
+		if have:
+			badge = "Equipped" if equipped_for(cat) == id else "Owned"
+		var t := _tile("Tile_" + id, id == selected, CosmeticArt.make_node(id, 80.0),
+			String(_entry(id).get("name", id)), badge, not have)
+		t.pressed.connect(func() -> void:
+			selected = id
+			refresh())
+		grid.add_child(t)
+	_cos_detail(fr[1], owned)
 
 
-func _cos_tile(id: String, have: bool) -> Control:
-	var b := Button.new()
-	b.name = "Tile_" + id
-	b.toggle_mode = true
-	b.button_pressed = (id == selected)
-	b.custom_minimum_size = Vector2(138, 138)
-	b.text = ""
-	b.tooltip_text = String(_entry(id).get("name", id))
-	DangoTheme.style_button(b, false, false, null, have)
-	b.pressed.connect(func() -> void:
-		selected = id
-		refresh())
-	var v := VBoxContainer.new()
-	v.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT, Control.PRESET_MODE_MINSIZE, 6)
-	v.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	v.alignment = BoxContainer.ALIGNMENT_CENTER
-	var art := CosmeticArt.make_node(id, 80.0)
-	if art != null:
-		art.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
-		art.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		if not have:
-			art.modulate = Color(0, 0, 0, 0.45)   # named silhouette
-		v.add_child(art)
-	var l := R3Shell.label(String(_entry(id).get("name", id)), 12, DangoTheme.INK if have else DangoTheme.INK_DISABLED)
-	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	l.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	v.add_child(l)
-	b.add_child(v)
-	return b
-
-
-func _preview(owned: Array[String]) -> Control:
-	var p := PanelContainer.new()
-	p.name = "Preview"
-	p.custom_minimum_size = Vector2(380, 0)
+func _cos_detail(v: VBoxContainer, owned: Array[String]) -> void:
 	var e := _entry(selected)
 	var tier := int(e.get("tier", 0))
-	var mythic := tier == DangoTheme.RARITY_MYTHIC
-	var fill: Color = DangoTheme.MYTHIC_NIGHT if mythic else DangoTheme.CREAM_100
-	var ink: Color = DangoTheme.MYTHIC_INK if mythic else DangoTheme.INK
-	var ink2: Color = DangoTheme.MYTHIC_INK_2 if mythic else DangoTheme.INK_ON_CREAM_MUTED
-	p.add_theme_stylebox_override("panel", R3Shell.surface(DangoTheme.Surface.CREAM_RAISED, 20, 3, Vector2(16, 16), fill,
-		DangoTheme.MYTHIC_EDGE if mythic else null))
-	var v := VBoxContainer.new()
-	v.add_theme_constant_override("separation", 10)
-	p.add_child(v)
 	var have := owned.has(selected)
-	var nm := DangoTheme.display_label(String(e.get("name", "Default")) if selected != "" else "Default", 24, ink)
+	var art := Panel.new()
+	art.name = "PreviewArt"
+	art.custom_minimum_size = Vector2(0, 200)
+	art.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	art.add_theme_stylebox_override("panel", UI3Theme.flat(UI3Theme.color("bg"), UI3Theme.radius("s")))
+	v.add_child(art)
+	var head := HBoxContainer.new()
+	head.add_theme_constant_override("separation", UI3Theme.space("8"))
+	v.add_child(head)
+	var nm := UI3.label(String(e.get("name", "Default")) if selected != "" else "Default", "LabelScreenTitle")
 	nm.name = "PreviewName"
-	v.add_child(nm)
+	nm.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	nm.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	head.add_child(nm)
 	if selected != "":
-		var chip := PanelContainer.new()
-		chip.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
-		var rc := DangoTheme.rarity_color(tier)
-		chip.add_theme_stylebox_override("panel", DangoTheme.solid_chip_style(rc, 8, 2))
-		chip.add_child(R3Shell.label(DangoTheme.RARITY_NAMES[clampi(tier, 0, 5)].to_upper(), 12, DangoTheme.ink_on(rc), true))
-		v.add_child(chip)
+		head.add_child(UI3Meta.tag(RARITY_NAMES[clampi(tier, 0, 5)]))
 		var sizes: Array = [104.0, 64.0, 36.0] if cat == Cosmetics.SLOT_DIE else [96.0, 40.0]
 		var art_row := HBoxContainer.new()
-		art_row.add_theme_constant_override("separation", 14)
+		art_row.alignment = BoxContainer.ALIGNMENT_CENTER
+		art_row.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		art_row.add_theme_constant_override("separation", UI3Theme.space("16"))
 		for px in sizes:
 			var a := CosmeticArt.make_node(selected, px)
 			if a != null:
-				a.size_flags_vertical = Control.SIZE_SHRINK_END
+				a.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 				if not have:
-					a.modulate = Color(0, 0, 0, 0.45)
+					a.modulate = Color(1, 1, 1, 0.4)
 				art_row.add_child(a)
-		v.add_child(art_row)
-		var src := R3Shell.label("Source: Echo Box, Store or Pass" if have else "Not owned yet", 14, ink2)
-		v.add_child(src)
+		art.add_child(art_row)
+		var body := UI3.label("Source: Echo Box, Store or Pass" if have else "Not owned yet", "LabelMuted")
+		body.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		body.custom_minimum_size.x = 392
+		v.add_child(body)
 	else:
-		v.add_child(R3Shell.label("Nothing equipped: the default plate is used.", 14, ink2))
+		var body := UI3.label("Nothing equipped: the default plate is used.", "LabelMuted")
+		body.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		body.custom_minimum_size.x = 392
+		v.add_child(body)
 	var on := selected != "" and equipped_for(cat) == selected
-	var eq := R3Shell.button("Unequip" if on else "Equip", 0, 56, not on)
+	var eq := UI3.button("Unequip" if on else "Equip", &"primary", &"L")
 	eq.name = "Equip"
-	eq.disabled = not have
 	if not have:
-		eq.text = "Nothing to equip" if owned.is_empty() else "Not owned yet"
+		UI3.set_disabled_reason(eq, "Nothing to equip" if owned.is_empty() else "Not owned yet")
 	eq.pressed.connect(func() -> void:
 		if on:
 			MetaState.unequip_cosmetic(cat)
@@ -406,81 +428,112 @@ func _preview(owned: Array[String]) -> Control:
 		refresh())
 	v.add_child(eq)
 	if equipped_for(cat) != "" and not on:
-		var d := R3Shell.button("Use default", 0, 44)
+		var d := UI3.button("Use default", &"secondary", &"S")
 		d.name = "UseDefault"
 		d.pressed.connect(func() -> void:
 			MetaState.unequip_cosmetic(cat)
 			refresh())
 		v.add_child(d)
-	return p
 
 
 # ============================================================================ Titles
 
-## C7 (R3 M12d): title cards, 3 per row. Owned titles can be equipped (one at a time); the Ascension
-## titles you have not earned yet show as "Not yet". Names and goals come from ascension_titles.json.
+## Title tiles, 3 per row: No title, owned titles, then the Ascension titles not earned yet (Locked,
+## with the goal). Select a tile; the detail plate has Equip (one title at a time). Names and goals come
+## from ascension_titles.json.
 func _titles_tab() -> void:
-	_body.add_child(DangoTheme.display_label("Titles", 24, DangoTheme.INK))
-	_body.add_child(R3Shell.label("Titles from Ascension goals. One title at a time.", 14, DangoTheme.INK_ON_CREAM_MUTED))
+	var fr := _frame()
+	var left: VBoxContainer = fr[0]
+	var head := UI3.plate(&"plate")
+	var hv := VBoxContainer.new()
+	head.add_child(hv)
+	hv.add_child(UI3.label("Titles", "LabelTitle"))
+	hv.add_child(UI3.label("Titles from Ascension goals. One title at a time.", "LabelMuted"))
+	left.add_child(head)
 	var grid := GridContainer.new()
 	grid.name = "Grid_titles"
-	grid.columns = 3
-	grid.add_theme_constant_override("h_separation", 12)
-	grid.add_theme_constant_override("v_separation", 12)
-	grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	_body.add_child(grid)
+	grid.columns = 3   # few tiles: keep them tile-sized instead of stretching to the full height
+	grid.add_theme_constant_override("h_separation", UI3Theme.space("16"))
+	grid.add_theme_constant_override("v_separation", UI3Theme.space("16"))
+	left.add_child(grid)
 	var owned := TitleNames.owned(MetaState.cosmetics_owned)
 	var goals := {}
 	for t in TitleNames.ascension_titles():
 		goals[String(t["id"])] = "Win a run at A%d" % int(t["asc"])
-	grid.add_child(_title_card("", "No title", "", MetaState.equipped_title == "", true))
+	var cur := title_sel if _title_sel_set else MetaState.equipped_title
+	var entries: Array = [["", "No title", "", true]]
 	for id in owned:
-		grid.add_child(_title_card(id, TitleNames.display(id), String(goals.get(id, "")), MetaState.equipped_title == id, true))
+		entries.append([id, TitleNames.display(id), String(goals.get(id, "")), true])
 	for t in TitleNames.ascension_titles():
 		if not owned.has(String(t["id"])):
-			grid.add_child(_title_card(String(t["id"]), String(t["name"]), String(goals[t["id"]]), false, false))
-
-
-func _title_card(id: String, label: String, goal: String, on: bool, have: bool) -> Control:
-	var card := PanelContainer.new()
-	card.name = "Title_" + (id.replace(":", "_") if id != "" else "none")
-	card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	var sb := StyleBoxFlat.new()
-	sb.bg_color = DangoTheme.GOLD_SOFT if on else (DangoTheme.CREAM_RAISED if have else DangoTheme.CREAM_LOCKED)
-	sb.border_color = DangoTheme.OUTLINE if on else (DangoTheme.LINE if have else DangoTheme.FUTURE)
-	sb.set_border_width_all(3)
-	sb.set_corner_radius_all(16)
-	sb.content_margin_left = 16
-	sb.content_margin_right = 16
-	sb.content_margin_top = 12
-	sb.content_margin_bottom = 12
-	card.add_theme_stylebox_override("panel", sb)
-	var col := VBoxContainer.new()
-	col.add_theme_constant_override("separation", 4)
-	card.add_child(col)
-	var nm := DangoTheme.display_label(label, 20, DangoTheme.INK if have else DangoTheme.INK_DISABLED)
-	nm.name = "Name"
-	nm.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	col.add_child(nm)
-	if goal != "":
-		var g := Label.new()
-		g.text = goal
-		g.add_theme_font_size_override("font_size", 13)
-		g.add_theme_color_override("font_color", DangoTheme.INK_DISABLED)
-		col.add_child(g)
-	if have:
-		var b := _button("Equipped" if on else ("Equip" if id != "" else "Use default"), 0)
-		b.name = "Equip"
-		b.disabled = on
-		b.pressed.connect(func() -> void:
-			MetaState.equip_title(id)
+			entries.append([String(t["id"]), String(t["name"]), String(goals[t["id"]]), false])
+	var found := false
+	for e in entries:
+		found = found or String(e[0]) == cur
+	if not found:
+		cur = ""
+	for e in entries:
+		var id := String(e[0])
+		var have := bool(e[3])
+		var badge := "Locked"
+		if have:
+			badge = "Equipped" if MetaState.equipped_title == id else "Owned"
+		var tile := _tile("Title_" + (id.replace(":", "_") if id != "" else "none"), id == cur, null,
+			String(e[1]), badge, not have)
+		tile.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+		tile.custom_minimum_size.y = 160
+		tile.pressed.connect(func() -> void:
+			title_sel = id
+			_title_sel_set = true
 			refresh())
-		col.add_child(b)
-	else:
-		var st := DangoTheme.display_label("Not yet", 14, DangoTheme.INK_DISABLED)
-		st.name = "Status"
-		col.add_child(st)
-	return card
+		grid.add_child(tile)
+	# detail
+	var v: VBoxContainer = fr[1]
+	var sel_label := "No title"
+	var sel_goal := "Show no title under your name."
+	var sel_have := true
+	for e in entries:
+		if String(e[0]) == cur:
+			sel_label = String(e[1])
+			sel_have = bool(e[3])
+			if String(e[2]) != "":
+				sel_goal = String(e[2])
+	var art := Panel.new()
+	art.custom_minimum_size = Vector2(0, 200)
+	art.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	art.add_theme_stylebox_override("panel", UI3Theme.flat(UI3Theme.color("bg"), UI3Theme.radius("s")))
+	var av := CenterContainer.new()
+	av.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	av.add_child(make_avatar(128.0, service))
+	art.add_child(av)
+	v.add_child(art)
+	var hd := HBoxContainer.new()
+	hd.add_theme_constant_override("separation", UI3Theme.space("8"))
+	v.add_child(hd)
+	var tn := UI3.label(sel_label, "LabelScreenTitle")
+	tn.name = "DetailTitle"
+	tn.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	tn.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	hd.add_child(tn)
+	var bt := "Locked"
+	if sel_have:
+		bt = "Equipped" if MetaState.equipped_title == cur else "Owned"
+	hd.add_child(UI3Meta.tag(bt))
+	var gl := UI3.label(sel_goal, "LabelMuted")
+	gl.name = "Goal"
+	gl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	gl.custom_minimum_size.x = 392
+	v.add_child(gl)
+	var eq := UI3.button("Equip" if cur != "" else "Use default", &"primary", &"L")
+	eq.name = "Equip"
+	if not sel_have:
+		UI3.set_disabled_reason(eq, "Not yet earned")
+	elif MetaState.equipped_title == cur:
+		UI3.set_disabled_reason(eq, "Equipped")
+	eq.pressed.connect(func() -> void:
+		MetaState.equip_title(cur)
+		refresh())
+	v.add_child(eq)
 
 
 ## Initial-letter avatar wearing the equipped frame (same look as the Land chip).
@@ -493,13 +546,10 @@ static func make_avatar(total_px: float, svc: Node = null) -> Control:
 		nm = svc.display_name().left(1).to_upper()
 	var av := PanelContainer.new()
 	av.name = "Avatar"
-	av.add_theme_stylebox_override("panel", DangoTheme.solid_chip_style(DangoTheme.GOLD, 20, 3))
-	var ini := DangoTheme.display_label(nm, int(total_px * 0.3), DangoTheme.INK)
+	av.add_theme_stylebox_override("panel", UI3Theme.flat(UI3Theme.color("accent"), UI3Theme.radius("m")))
+	var ini := UI3.label(nm, "LabelScreenTitle")
+	ini.add_theme_color_override("font_color", UI3Theme.color("accent_text"))
 	ini.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	ini.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	av.add_child(ini)
 	return AvatarFrame.wrap(av, total_px, MetaState.equipped_frame, total_px * 0.66)
-
-
-func _button(text: String, w: float) -> Button:
-	return R3Shell.button(text, w, 44)

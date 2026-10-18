@@ -28,6 +28,8 @@ const EXPECTED_TESTS: Array[String] = [
 	"test_node_label_never_contains_a_technical_graph_id",
 	"test_shop_bought_and_unaffordable_buttons_use_different_styleboxes",
 	"test_reward_and_shop_cards_show_a_rarity_chip_matching_rar",
+	"test_event_and_treasure_ui3",
+	"test_player_text_strips_internal_tags",
 	"test_level_up_description_never_reads_as_x_arrow_x",
 ]
 
@@ -52,6 +54,8 @@ func _ready() -> void:
 	await test_node_label_never_contains_a_technical_graph_id()
 	await test_shop_bought_and_unaffordable_buttons_use_different_styleboxes()
 	await test_reward_and_shop_cards_show_a_rarity_chip_matching_rar()
+	await test_event_and_treasure_ui3()
+	await test_player_text_strips_internal_tags()
 	test_level_up_description_never_reads_as_x_arrow_x()
 
 	for name in EXPECTED_TESTS:
@@ -339,35 +343,28 @@ func test_shop_bought_and_unaffordable_buttons_use_different_styleboxes() -> voi
 	])
 	runmap.call("_render_shop")
 
-	var vbox: BoxContainer = runmap.get("_overlay_vbox")
-	var cards := _only_card_panels(vbox)
+	# UI-03 shop: rows are selectable cards; the Buy button lives in the detail plate and says why it is off.
+	var cards: Array = runmap.get("_shop_cards")
 	_assert(cards.size() == 2, "expected 2 shop item cards, found %d" % cards.size())
-	var bought_btn := _card_button(cards[0]) if cards.size() > 0 else null
-	var unafford_btn := _card_button(cards[1]) if cards.size() > 1 else null
-	_assert(bought_btn != null and unafford_btn != null,
-		"could not find the action button inside one or both shop cards")
-	if bought_btn == null or unafford_btn == null:
-		runmap.queue_free()
-		_done("test_shop_bought_and_unaffordable_buttons_use_different_styleboxes")
-		return
-
-	_assert(bought_btn.disabled and unafford_btn.disabled,
-		"fixture expectation broken: both buttons should be disabled (nothing to press)")
-
-	var sb_bought: StyleBox = bought_btn.get_theme_stylebox("disabled")
-	var sb_unafford: StyleBox = unafford_btn.get_theme_stylebox("disabled")
-	_assert(sb_bought != sb_unafford,
-		"'bought' and 'can't afford' shop buttons still share the identical disabled stylebox")
-
-	var sbf_bought := sb_bought as StyleBoxFlat
-	# UPDATED 2026-09-20 for the v2 surface system. v1's owned style was an 18%-alpha SUCCESS
-	# wash with a SUCCESS border, so the border was where the colour lived and this asserted on
-	# it. v2 forbids tints outright ("colour is a solid fill, never a tint") and every outline in
-	# the system is pure black, so the colour moved to the FILL — which is a stronger version of
-	# what this check has always been for: a bought item must read as a SUCCESS, not as a
-	# disabled control.
-	_assert(sbf_bought != null and sbf_bought.bg_color.is_equal_approx(DangoTheme.SUCCESS),
-		"'bought' button does not use the solid-SUCCESS owned style")
+	_assert(absf((cards[0] as Control).modulate.a - 0.4) < 0.01 and absf((cards[1] as Control).modulate.a - 1.0) < 0.01,
+		"a bought row must be drawn at 40%, an unbought one at full")
+	runmap.call("_select_shop", 0)
+	var buy0: Button = runmap.find_child("BuyButton", true, false)
+	_assert(buy0 != null and buy0.disabled and buy0.text == "Sold out", "bought item: Buy must be disabled and say 'Sold out'")
+	runmap.call("_select_shop", 1)
+	var buy1: Button = runmap.find_child("BuyButton", true, false)
+	_assert(buy1 != null and buy1.disabled and buy1.text == "Need 999 Shards",
+		"unaffordable item: Buy must be disabled and say 'Need 999 Shards', got '%s'" % (buy1.text if buy1 else ""))
+	_assert(runmap.find_child("BlockReason", true, false) == null, "the reason is on the button only, not repeated above it")
+	_assert(runmap.find_child("NothingAffordable", true, false) != null, "nothing affordable: notice missing")
+	runmap.call("_select_shop", 0)
+	RunState.shards_this_run = 100
+	RunState.shop_items[0]["bought"] = false
+	RunState.shop_items[0]["cost"] = 5
+	runmap.call("_render_shop")
+	var buy2: Button = runmap.find_child("BuyButton", true, false)
+	_assert(buy2 != null and not buy2.disabled, "affordable, unbought item must have an enabled Buy")
+	_assert(runmap.find_child("NothingAffordable", true, false) == null, "notice shown though an item is affordable")
 
 	runmap.queue_free()
 	_done("test_shop_bought_and_unaffordable_buttons_use_different_styleboxes")
@@ -447,20 +444,13 @@ func test_reward_and_shop_cards_show_a_rarity_chip_matching_rar() -> void:
 		{"kind": "relic", "key": "k1", "title": "Shop Relic", "desc": "", "rar": 2, "cost": 5, "bought": false},
 	])
 	runmap.call("_render_shop")
-	var shop_cards: Array = _only_card_panels(runmap.get("_overlay_vbox"))
+	var shop_cards: Array = runmap.get("_shop_cards")
 	_assert(shop_cards.size() >= 1, "shop rendered no cards")
 	if shop_cards.size() >= 1:
-		var shop_chip := _find_rarity_chip(shop_cards[0])
-		_assert(shop_chip != null, "shop card has no RarityChip")
-		if shop_chip != null:
-			var accent := DangoTheme.rarity_color(2)
-			var chip_sb := shop_chip.get_theme_stylebox("panel") as StyleBoxFlat
-			_assert(chip_sb != null and chip_sb.bg_color.is_equal_approx(accent),
-				"shop card's RarityChip is not FILLED with rarity_color(2)")
-			var shop_lbl: Label = shop_chip.get_child(0)
-			_assert(shop_lbl.get_theme_color("font_color").is_equal_approx(
-					DangoTheme.ink_on(accent)),
-				"shop card's rarity label is not inked by ink_on() for its own fill")
+		var rl: Label = (shop_cards[0] as Node).find_child("RarityLabel", true, false)
+		_assert(rl != null and rl.get_theme_color("font_color").is_equal_approx(runmap.call("_rarity_color", 2)),
+			"shop card's rarity label is not coloured with its own rarity")
+		_assert(rl.text == runmap.call("_rarity_name", 2), "shop card rarity name mismatch")
 
 	runmap.queue_free()
 	_done("test_reward_and_shop_cards_show_a_rarity_chip_matching_rar")
@@ -554,3 +544,48 @@ func _find_rarity_chip(card: Node) -> PanelContainer:
 		if found != null:
 			return found
 	return null
+
+
+## UI-03 09/13: the event's Pick button is off until a choice is selected, then names it; the outcome
+## dims the other choices. Treasure starts closed ("Open chest") and then offers the rewards.
+func test_event_and_treasure_ui3() -> void:
+	var runmap := _new_runmap()
+	await get_tree().process_frame
+	RunState.event_key = String(ContentDB.events.keys()[0])
+	runmap.call("_on_event_node", "x")
+	await get_tree().process_frame
+	var go: Button = runmap.find_child("EventAction", true, false)
+	_assert(go != null and go.disabled and go.text == "Pick a choice", "event: action must start disabled as 'Pick a choice'")
+	var opts: Array = runmap.get("_event_opts")
+	_assert(opts.size() >= 1 and runmap.find_child("EventOption0", true, false) != null, "event: no choice rows")
+	runmap.call("_select_event", 0)
+	_assert(not go.disabled and go.text == "Choose", "event: action must read 'Choose' once a choice is picked")
+	runmap.call("_build_event_screen", 0, "Result text")
+	await get_tree().process_frame
+	go = runmap.find_child("EventAction", true, false)
+	_assert(go.text == "Continue" and not go.disabled, "event outcome: button must be Continue")
+	if opts.size() > 1:
+		_assert(absf((runmap.find_child("EventOption1", true, false) as Control).modulate.a - 0.4) < 0.01, "event outcome: other choices at 40%")
+	_assert((runmap.find_child("EventBody", true, false) as Label).text == "Result text", "event outcome: body must be the result")
+	runmap.call("_on_treasure_node", "tn")
+	await get_tree().process_frame
+	_assert(runmap.find_child("OpenChest", true, false) != null, "treasure: closed state needs 'Open chest'")
+	runmap.call("_build_treasure", true)
+	await get_tree().process_frame
+	_assert(runmap.find_child("TakeButton", true, false) != null, "treasure: opened state needs 'Take and continue'")
+	runmap.queue_free()
+	_done("test_event_and_treasure_ui3")
+
+
+## UI3.describe(): no internal tag may reach a label.
+func test_player_text_strips_internal_tags() -> void:
+	for raw in ["RULE: Burn loses only 1 stack.", "PACT. +3 max Rerolls.", "[Global] [Axis: Burn] Deal 4.", "[INF] Say \\\"hi\\\"", "[MP 7] Apply Burn 6."]:
+		var t := UI3.player_text(raw)
+		_assert(not t.contains("RULE:") and not t.contains("[") and not t.contains("PACT.") and not t.contains("\\"), "tag leaked: '%s' -> '%s'" % [raw, t])
+	_assert(int(UI3.describe("[MP 7] Apply Burn 6.")["mp"]) == 7 and UI3.player_text("[MP 7] Apply Burn 6.") == "Apply Burn 6.", "MP not lifted out")
+	# every real relic description renders clean
+	for def in RelicRegistry.all_defs_sorted():
+		var rid := String(def.id)
+		var t2 := UI3.player_text(String(def.description))
+		_assert(not t2.contains("RULE:") and not t2.contains("["), "relic %s leaks a tag: %s" % [rid, t2])
+	_done("test_player_text_strips_internal_tags")

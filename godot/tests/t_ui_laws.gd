@@ -240,6 +240,9 @@ func _check_control(c: Control, scene_root: Node) -> void:
 				or b.is_equal_approx(DangoTheme.GOLD) or b.is_equal_approx(DangoTheme.THREAT) \
 				or b.is_equal_approx(DangoTheme.GEM_SHELF) or b.is_equal_approx(DangoTheme.INK_3) \
 				or b.is_equal_approx(Color("B89A74")) \
+				or b.is_equal_approx(UI3Theme.color("selected_outline")) \
+				or b.is_equal_approx(UI3Theme.color("focus_ring")) \
+				or _is_ui3_token(b) \
 				or _is_class_color(b) or b.a == 0.0
 			if f.get_border_width_min() > 0 and not is_black and not is_state:
 				_bad(c, "L7", "border_color %s — the mockups use pure black everywhere except "
@@ -345,6 +348,15 @@ func _nearest_fill(c: Control) -> Variant:
 func _is_class_color(b: Color) -> bool:
 	for cls in ["plant", "beast", "aqua", "reptile", "bug", "bird"]:
 		if b.is_equal_approx(DangoTheme.class_color(cls)):
+			return true
+	return false
+
+
+## UI-03 screens take every border from tokens_ui3.json, so any colour token there is a drawn
+## border, not drift. Screens still on Dango keep the checks above.
+func _is_ui3_token(b: Color) -> bool:
+	for entry in (UI3Theme.tokens().get("color", {}) as Dictionary).values():
+		if entry is Dictionary and b.is_equal_approx(Color.html(String(entry.get("value", "#00000000")))):
 			return true
 	return false
 

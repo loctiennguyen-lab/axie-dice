@@ -82,7 +82,7 @@ func _ready() -> void:
 	# ---- default source: failed banner with Try again + Back to Land
 	var d := await _make(LeaderboardSource.new())
 	_ok(d.status == "failed" and d.fail_reason == "no_endpoint", "default source -> failed state")
-	_ok(d.find_child("Btn_Tryagain", true, false) != null and d.find_child("Btn_BacktoLand", true, false) != null, "banner has Try again + Back to Land")
+	_ok(d.find_child("TryAgain", true, false) != null and d.find_child("BackToLand", true, false) != null, "banner has Try again + Back to Land")
 	d.queue_free()
 
 	# ---- normal board
@@ -91,19 +91,23 @@ func _ready() -> void:
 	_ok(s.status == "ok" and s.rows.size() == 12, "rows loaded")
 	_ok(s.find_child("Row11", true, false) != null, "12 rows drawn")
 	_ok(s.find_child("Pinned", true, false) != null, "own row pinned")
-	_ok(is_equal_approx(s.find_child("Pinned", true, false).custom_minimum_size.y, 54.0), "pinned row 54")
-	_ok(is_equal_approx(s.find_child("Row0", true, false).custom_minimum_size.y, 46.0), "rows 46")
+	_ok(is_equal_approx(s.find_child("Pinned", true, false).custom_minimum_size.y, 72.0), "pinned row 72")
+	_ok(is_equal_approx(s.find_child("Row0", true, false).custom_minimum_size.y, 56.0), "rows 56")
 	_ok(s.find_child("Skeleton", true, false) == null, "no skeleton when loaded")
+	_ok(s.find_children("*", "Label", true, false).all(func(l): return not ("[" in (l as Label).text)), "no label shows a [tag]")
 	_ok(s.find_child("Banner", true, false) == null, "no banner when loaded")
 	_ok(s.find_child("Asc7", true, false) != null and (s.find_child("Asc7", true, false) as Button).tooltip_text == "Locked for you", "A7 chip locked above asc_max 6")
 	_ok(not s.is_locked(6) and s.is_locked(7), "lock rule")
 	# detail
 	s.open_detail(1)
 	await get_tree().process_frame
-	_ok(s.find_child("Detail", true, false) != null, "detail card opens")
+	_ok(s.find_child("CloseDetail", true, false) != null and s.detail_index == 1, "detail opens for the selected row")
+	var wr := s.find_child("WatchReplay", true, false) as Button
+	_ok(wr != null and wr.disabled and wr.text != "Watch replay", "Watch replay disabled with a reason")
 	s.close_detail()
 	await get_tree().process_frame
-	_ok(s.find_child("Detail", true, false) == null, "detail closes")
+	_ok(s.find_child("CloseDetail", true, false) == null and s.detail_index == -1, "detail closes")
+	_ok(s.find_child("Detail", true, false) != null, "detail plate stays (hint)")
 	# filters / periods / chips drive the query
 	s.set_period("today")
 	s.set_asc(4)
