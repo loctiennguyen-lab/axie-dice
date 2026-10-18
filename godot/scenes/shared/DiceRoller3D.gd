@@ -31,8 +31,8 @@ signal all_arrived
 const MAX_DICE := 11
 const STAGGER := 0.110
 const FLIGHT := 0.480
-const LAND_CENTER_X := 0.9   ## world x the dice fan out around (between the teams)
-const LAND_Z := 6.4          ## world z of the first landing line (the open floor in front of both teams)
+const LAND_CENTER_X := 3.0   ## world x the dice fan out around (between the teams)
+const LAND_Z := 7.0          ## world z of the first landing line (the open floor in front of both teams)
 const TUMBLE_STEP := 0.090
 const TUMBLE_TOTAL := 1.080
 const SQUASH_TIME := 0.300
@@ -405,7 +405,7 @@ func _launch(d: Dictionary) -> void:
 	var i := int(d["i"])
 	# Land on the open floor in FRONT of both teams (between the party's front row and the camera), fanned
 	# out sideways, so a die never comes to rest on a unit (horizontal layout: teams left / right).
-	var gap := minf(1.7, 6.5 / maxf(float(n - 1), 1.0))
+	var gap := minf(1.6, 6.4 / maxf(float(n - 1), 1.0))
 	var target := Vector3(LAND_CENTER_X + (float(i) - float(n - 1) * 0.5) * gap, 0.5,
 		LAND_Z + float(i % 2) * 1.1 + _rng.randf_range(-0.2, 0.2))
 	var g := 9.8 * body.gravity_scale

@@ -63,6 +63,8 @@ func _find(graph: RunMapGraph, row: int, kind: String) -> String:
 
 
 func _shot(state: String, size: Vector2i) -> void:
+	await get_tree().process_frame
+	await RenderingServer.frame_post_draw
 	var img := get_tree().root.get_texture().get_image()
 	img.save_png("%s/c-%s-%dx%d.png" % [_out, state, size.x, size.y])
 	print("QA: saved c-%s-%dx%d" % [state, size.x, size.y])
@@ -76,13 +78,13 @@ func _fight(state: String, node_id: String, kind: String, size: Vector2i) -> voi
 	for _i in (14 if state == "throw" else 90):
 		await get_tree().process_frame
 	if state == "throw":
-		_shot("throw-a", size)
+		await _shot("throw-a", size)
 		for _i in 14:
 			await get_tree().process_frame
-		_shot("throw-b", size)
+		await _shot("throw-b", size)
 		for _i in 14:
 			await get_tree().process_frame
-		_shot("throw-c", size)
+		await _shot("throw-c", size)
 		scene.queue_free()
 		await get_tree().process_frame
 		return
@@ -97,12 +99,12 @@ func _fight(state: String, node_id: String, kind: String, size: Vector2i) -> voi
 		scene._stage3d.visible = false
 		await get_tree().process_frame
 		await get_tree().process_frame
-		_shot("nostage", size)
+		await _shot("nostage", size)
 		scene._stage3d.visible = true
 		scene._unit_visuals_root.visible = false
 		await get_tree().process_frame
 		await get_tree().process_frame
-		_shot("novisuals", size)
+		await _shot("novisuals", size)
 		scene._unit_visuals_root.visible = true
 	if OS.get_environment("CAP_DEBUG") == "4":
 		var sv = scene._skill_vfx
@@ -120,7 +122,7 @@ func _fight(state: String, node_id: String, kind: String, size: Vector2i) -> voi
 		for c in roller.get_children():
 			print("DBG roller child ", c.name, " ", c.get_class())
 		print("DBG roller class ", roller.get_class(), " parent ", roller.get_parent().name)
-		_shot("dbgA", size)
+		await _shot("dbgA", size)
 		var probe := Vector2i(960, 430)
 		var base_c: Color = get_tree().root.get_texture().get_image().get_pixelv(probe)
 		print("DBG base ", base_c)
@@ -139,7 +141,7 @@ func _fight(state: String, node_id: String, kind: String, size: Vector2i) -> voi
 		var ent: Dictionary = st2._units[100000]
 		(ent["visual"] as Node3D).visible = false
 		await get_tree().process_frame
-		_shot("dbgB", size)
+		await _shot("dbgB", size)
 	if state == "eggs":
 		for _k in 3:
 			scene._combat.party.append(scene._combat._mk_ally())
@@ -150,14 +152,14 @@ func _fight(state: String, node_id: String, kind: String, size: Vector2i) -> voi
 	if state == "march" or state == "marchluna":
 		scene._play_victory_march()
 		await get_tree().create_timer(0.6).timeout
-		_shot(state + "-a", size)
+		await _shot(state + "-a", size)
 		await get_tree().create_timer(0.5).timeout
-		_shot(state + "-b", size)
+		await _shot(state + "-b", size)
 		await get_tree().create_timer(0.5).timeout
-		_shot(state + "-c", size)
+		await _shot(state + "-c", size)
 		scene._stage3d.skip_victory_march()
 	else:
-		_shot(state, size)
+		await _shot(state, size)
 	for _i in 20:
 		await get_tree().process_frame
 	scene.queue_free()
