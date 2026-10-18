@@ -107,7 +107,13 @@ static func build(host: Control, plate: Texture2D, kind: int = DangoTheme.Scrim.
 		content.offset_top = top_inset
 		content.offset_bottom = -(bottom_inset + (FOOTER_H if with_footer else 0.0))
 	apply.call()
-	host.get_viewport().size_changed.connect(apply)
+	var vp_node := host.get_viewport()
+	vp_node.size_changed.connect(apply)
+	# The lambda captures `host`: once the screen is freed it must stop listening, or every later
+	# window resize calls it with a freed capture (null get_viewport_rect).
+	host.tree_exiting.connect(func() -> void:
+		if is_instance_valid(vp_node) and vp_node.size_changed.is_connected(apply):
+			vp_node.size_changed.disconnect(apply))
 
 	return {"content": content, "footer": footer_row}
 
