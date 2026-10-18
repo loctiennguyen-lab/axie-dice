@@ -77,8 +77,8 @@ const _INTENT_ICON := {
 ## are exactly `die_type_color()`'s DANGER and SHIELD_BLUE). This used to be a separate,
 ## smaller palette that reused PRIMARY for both buff and debuff and a hand-picked purple for
 ## poison, and it painted the NUMBER rather than the plate. Resolved against
-## `DangoTheme.die_type_color()` instead, so a die face and the intent that threatens you with it
-## are the same colour everywhere on this screen — the reconciliation DangoTheme's own
+## `UI3.intent_color()` instead, so a die face and the intent that threatens you with it
+## are the same colour everywhere on this screen — the reconciliation the old
 ## "FLAGGED DEVIATION" note asked a future pass to make.
 
 ## The mockup's `rgba(0,0,0,.26)` glyph tile inside the badge — a darkening of the badge's own
@@ -137,14 +137,11 @@ func _init() -> void:
 	_intent_panel.mouse_filter = Control.MOUSE_FILTER_STOP
 	_intent_panel.mouse_entered.connect(func(): intent_hover_changed.emit(uid, true))
 	_intent_panel.mouse_exited.connect(func(): intent_hover_changed.emit(uid, false))
-	_intent_style = DangoTheme.solid_chip_style(DangoTheme.DANGER, 10, 3, Vector2(-1, -1))
+	_intent_style = UI3Theme.flat(UI3.intent_color("dmg"), 10)
 	_intent_style.content_margin_left = _PAD_TILE
 	_intent_style.content_margin_right = _PAD_LIVE_RIGHT
 	_intent_style.content_margin_top = 0.0
 	_intent_style.content_margin_bottom = 0.0
-	_intent_style.shadow_color = DangoTheme.SHELF
-	_intent_style.shadow_size = 0
-	_intent_style.shadow_offset = Vector2(0, 4)
 	_intent_panel.add_theme_stylebox_override("panel", _intent_style)
 	centre.add_child(_intent_panel)
 
@@ -159,7 +156,7 @@ func _init() -> void:
 	_icon_tile.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	_icon_tile.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_icon_tile.add_theme_stylebox_override("panel",
-		DangoTheme.solid_chip_style(_TILE_TINT, 7, 0, Vector2.ZERO))
+		UI3Theme.flat(_TILE_TINT, 7))
 	var icon_centre := CenterContainer.new()
 	icon_centre.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_icon_tile.add_child(icon_centre)
@@ -174,7 +171,7 @@ func _init() -> void:
 	icon_centre.add_child(_intent_icon)
 	intent_row.add_child(_icon_tile)
 
-	_intent_number = DangoTheme.display_label("", 20, DangoTheme.INK, 800)
+	_intent_number = _display_label(20, UI3Theme.color("die_ink"))
 	_intent_number.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	_intent_number.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	intent_row.add_child(_intent_number)
@@ -186,7 +183,7 @@ func _init() -> void:
 	_intent_divider.color = _DIVIDER_TINT
 	intent_row.add_child(_intent_divider)
 
-	_intent_target_label = DangoTheme.display_label("", 11, DangoTheme.INK, 800, 0.04)
+	_intent_target_label = _display_label(11, UI3Theme.color("die_ink"))
 	_intent_target_label.visible = false
 	_intent_target_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	_intent_target_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -195,7 +192,7 @@ func _init() -> void:
 	# Empty States Spec §1. The word that IS the badge when there is no move: "NO MOVE", or
 	# "HIDDEN" beside a "?" tile. Baloo 2 800 / 13 / .14em / line 1, ink MUTED_TEXT (#8C95A4,
 	# 4.9:1 on the inert fill).
-	_intent_word = DangoTheme.display_label("", 13, DangoTheme.MUTED_TEXT, 800, 0.14)
+	_intent_word = _display_label(13, UI3Theme.color("text_muted"))
 	_intent_word.name = "IntentWord"
 	_intent_word.visible = false
 	_intent_word.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
@@ -205,7 +202,7 @@ func _init() -> void:
 
 	# The "?" for the hidden state lives IN the icon tile, not in the value slot: the spec keeps
 	# the tile there ("giữ ô icon vì có ẩn một giá trị") and reserves "?" for this state alone.
-	_intent_tile_glyph = DangoTheme.display_label("", 15, DangoTheme.MUTED_TEXT, 800)
+	_intent_tile_glyph = _display_label(15, UI3Theme.color("text_muted"))
 	_intent_tile_glyph.visible = false
 	_intent_tile_glyph.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	icon_centre.add_child(_intent_tile_glyph)
@@ -251,7 +248,7 @@ func set_intent(has_intent: bool, face_type: String, value: int, target_name: St
 		_apply_hidden_badge()
 		return
 
-	_intent_style.bg_color = DangoTheme.die_type_color(face_type)
+	_intent_style.bg_color = UI3.intent_color(face_type)
 	_intent_style.content_margin_left = _PAD_TILE
 	_intent_style.content_margin_right = _PAD_LIVE_RIGHT
 	_icon_tile.visible = true
@@ -269,10 +266,9 @@ func set_intent(has_intent: bool, face_type: String, value: int, target_name: St
 	# The mockup hardcodes both, but hardcoding the target would reintroduce the
 	# near-black-on-dark failure L5 exists to stop if a future intent fill is ever dark — so the
 	# darker ink is only taken when `ink_on()` itself resolved to INK, i.e. the fill is bright.
-	var ink := DangoTheme.ink_on(_intent_style.bg_color)
+	var ink := UI3.ink_on(_intent_style.bg_color)
 	_intent_number.add_theme_color_override("font_color", ink)
-	_intent_target_label.add_theme_color_override("font_color",
-		DangoTheme.INK_ON_DANGER if ink == DangoTheme.INK else ink)
+	_intent_target_label.add_theme_color_override("font_color", ink)
 	_intent_icon.modulate = Color(1, 1, 1, 1)
 	_intent_divider.color = _DIVIDER_TINT
 	_intent_icon.texture = icon
@@ -284,7 +280,7 @@ func set_intent(has_intent: bool, face_type: String, value: int, target_name: St
 	# The badge is already the documented hover target ("the badge is the hover target for the
 	# intent tooltip" — see set_intent()'s own header) and until now the hover showed nothing.
 	# Spells the telegraph out in words, because the badge itself is three glyphs and a number.
-	var what := DangoTheme.face_type_label(face_type)
+	var what := UI3.type_label(face_type)
 	var head := "%s → %s" % [what, target_name.to_upper()]
 	if value > 0:
 		head = "%s %d → %s" % [what, value, target_name.to_upper()]
@@ -307,7 +303,7 @@ func hide_intent() -> void:
 ##   5. muted ink on a dark fill inverts the live badge's weight (near-black ink on a bright fill);
 ##   6. the badge hugs to ~104px against a live badge's ~148px, so the whole enemy row recedes.
 func _apply_inert_badge() -> void:
-	_intent_style.bg_color = DangoTheme.INERT_FILL
+	_intent_style.bg_color = UI3Theme.color("panel_raised")
 	_intent_style.content_margin_left = _PAD_TEXT
 	_intent_style.content_margin_right = _PAD_TEXT
 	_icon_tile.visible = false
@@ -324,7 +320,7 @@ func _apply_inert_badge() -> void:
 ## its own — but the tile stays, because a value really is being withheld, and it carries the
 ## one "?" this whole screen is allowed to draw.
 func _apply_hidden_badge() -> void:
-	_intent_style.bg_color = DangoTheme.INERT_FILL
+	_intent_style.bg_color = UI3Theme.color("panel_raised")
 	_intent_style.content_margin_left = _PAD_TILE
 	_intent_style.content_margin_right = _PAD_TEXT
 	_icon_tile.visible = true
@@ -339,6 +335,14 @@ func _apply_hidden_badge() -> void:
 	_intent_word.text = "HIDDEN"
 	_intent_panel.tooltip_text = ("HIDDEN\nThis enemy has not rolled its action yet. It will "
 		+ "show here as soon as it does.")
+
+
+## A UI3 display-font label (Rowdies) at `size` in `color`; text is set later.
+static func _display_label(size: int, color: Color) -> Label:
+	var l := UI3.label("", "LabelDisplay")
+	l.add_theme_font_size_override("font_size", size)
+	l.add_theme_color_override("font_color", color)
+	return l
 
 
 func _intent_icon_for(face_type: String) -> Texture2D:
