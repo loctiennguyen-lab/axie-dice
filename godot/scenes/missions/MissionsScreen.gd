@@ -321,6 +321,7 @@ const DETAIL_W := 440
 func _build() -> void:
 	_shell = UI3Meta.build(self, "Missions", "Stake Shards on a hard Short run", _on_back)
 	_banner_host = _shell["banner_host"]
+	(_shell["panel"] as Control).name = "PlateHost"   # t_ui_laws L0
 	_modal_layer = _shell["modal_layer"]
 	var col: VBoxContainer = _shell["col"]
 	var note := UI3.plate(&"plate")

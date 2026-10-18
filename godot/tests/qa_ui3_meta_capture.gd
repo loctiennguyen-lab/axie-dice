@@ -75,4 +75,19 @@ func _make(screen: String) -> Node:
 		elif screen == "missions-guest":
 			ms.set_state("guest")
 		return ms
+	if screen.begins_with("daily"):
+		MetaState.daily_date = ""
+		MetaState.gem_gift_day = ""
+		MetaState.daily_week = {}
+		var ds: DailyScreen = load("res://scenes/daily/DailyScreen.tscn").instantiate()
+		ds.use_account = false
+		ds.no_scene_change = true
+		add_child(ds)
+		await get_tree().process_frame
+		if screen == "daily-claimed":
+			ds.claim_daily()
+		elif screen == "daily-guest":
+			ds.remote_on = true
+			ds.set_state("guest")
+		return ds
 	return null

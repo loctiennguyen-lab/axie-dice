@@ -185,5 +185,6 @@ static func scroll(inner: Control) -> ScrollContainer:
 	sc.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	sc.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	sc.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	sc.get_v_scroll_bar().custom_minimum_size.x = UI3Theme.SCROLL_W   # visible overflow (t_ui_laws L2)
 	sc.add_child(inner)
 	return sc
