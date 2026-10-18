@@ -3532,7 +3532,9 @@ func _show_defeat_panel() -> void:
 		if e.is_boss:
 			var spike_in := int(((hs.get("enemy_next", {}) as Dictionary).get(e.uid, {}) as Dictionary).get("turns_to_spike", 0))
 			boss_d = {"name": e.n, "hp": maxi(e.hp, 0), "max_hp": e.max_hp,
-				"phase": int(e.custom_state.get("phase", 1)), "phases": 3, "spike_in": spike_in}
+				"phase": int(e.custom_state.get("phase", 1)), "phases": 3, "spike_in": spike_in,
+				"marks": (ContentDB.combat_tune.get("phase_thresholds", []) as Array).map(
+					func(x): return float(x) / 100.0)}
 	# Final-turn rows, tinted.
 	var last_turn := _combat.turn
 	var rows: Array = []
@@ -3575,7 +3577,7 @@ func _show_defeat_panel() -> void:
 		"title_line": "%s %s A%d %s your party fell on turn %d" % [
 			"Boss fight" if boss_fight else ("Elite fight" if kind == "elite" else "Fight"),
 			HudKit.dot(), asc, HudKit.dot(), _combat.turn],
-		"boss": boss_d, "recap": rows, "aid_used": int(co["used"]), "aid_cap": int(co["cap"]),
+		"boss": boss_d, "recap": rows, "turn": _combat.turn, "enemies_left": _combat.alive_enemies().size(), "aid_used": int(co["used"]), "aid_cap": int(co["cap"]),
 		"continue_left": 1, "heal_pct": 25 if asc >= 6 else 40, "party": party,
 		"keep_line": keep,
 		"enrage_reset_line": "Enrage resets to 'Enrage in 10'." if clock_on else "",
@@ -3583,13 +3585,19 @@ func _show_defeat_panel() -> void:
 		"price": price, "price_was": was, "usd": usd, "variant": variant,
 		"continue_show": bool(co.get("show", false)) and not _tutorial, "continue_enabled": bool(co["enabled"]),
 		"continue_reason": AidPurchase.reason_text(String(co["reason"])),
+		"mission": String(co["reason"]) == "mission_run",
+		"need_more": maxi(price - MetaState.gem_wallet().balance(), 0) if String(co["reason"]) == "no_gems" else 0,
 		"foot": "Continue is offered once per run." if not gift else "This gift is offered once per account and is used as the run's Continue."})
 
 
 func _on_defeat_continue() -> void:
 	if _combat.epoch_pending:
 		return
+	if _defeat != null:
+		_defeat.set_busy(true)
 	var res: Dictionary = await AidPurchase.buy("continue", _combat, [], _tutorial)
+	if is_inside_tree() and _defeat != null:
+		_defeat.set_busy(false)
 	if is_inside_tree() and not bool(res["ok"]) and String(res["code"]) == "net":
 		NetNotice.show(self, String(res.get("net_code", "offline")), _on_defeat_continue)
 	_append_log("[aid] continue : %s" % ("ok (-%d Gem)" % int(res["charged"]) if bool(res["ok"]) else String(res["code"])))
