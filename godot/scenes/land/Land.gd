@@ -887,39 +887,8 @@ func _add_plot(id: String) -> void:
 	_plates[id] = plate
 
 
-func _style(kind: DangoTheme.Surface, radius: int, border: int, pad: Vector2, border_color: Color = Color.BLACK) -> StyleBoxFlat:
-	var sb := DangoTheme.surface_style(kind, radius, border, 0.0, pad)
-	sb.border_color = border_color
-	return sb
-
-
-func _lbl(text: String, size: int, color: Color, display: bool = true) -> Label:
-	var l := Label.new()
-	l.text = text
-	l.add_theme_font_size_override("font_size", size)
-	l.add_theme_color_override("font_color", color)
-	l.add_theme_font_override("font", DangoTheme.FONT_DISPLAY_BOLD if display else DangoTheme.FONT_UI)
-	l.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	return l
-
-
-## Dark key cap ("2", "B", "Enter"). 14 px text is the floor.
-func _key_chip(key: String, size: int = 22) -> PanelContainer:
-	var chip := PanelContainer.new()
-	var sb := _style(DangoTheme.Surface.PANEL, 6, 0, Vector2(4, 0))
-	sb.bg_color = KEY_CHIP
-	chip.add_theme_stylebox_override("panel", sb)
-	chip.custom_minimum_size = Vector2(size, size)
-	var l := _lbl(key, 14, Color("FFF8EA"))
-	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-	l.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	chip.add_child(l)
-	chip.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	return chip
-
-
-## World label (UI-03): UI3 plate, key hint + Rowdies name; hover/focus adds the sub-line; a locked
-## place shows lock + its rule. The sub-line is node "SignSub" (shown by _refresh_signs).
+## World label (UI-03): UI3 plate, key hint + Rowdies name; hover/focus adds the sub-line (node "SignSub"); a locked
+## place shows lock + its rule.
 func _make_plate(id: String) -> PanelContainer:
 	var m: Dictionary = META[id]
 	var why := _block_reason(id)
