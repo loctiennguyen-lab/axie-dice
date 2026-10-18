@@ -2,7 +2,7 @@
 
 Game UI đã dựng lại theo **UI-03** (Claude Design "A4 Blend" trên Terrariums design system).
 Mọi quy tắc cũ về Dango/Homeland v3 (`DangoTheme`, `surface_style()`, `mockups-v2`, chữ 9-11 px,
-Baloo/Work Sans) **không còn đúng** cho màn đã port.
+Baloo) **không còn đúng** cho màn đã port.
 
 ## Thiết kế nằm ở đâu
 
@@ -26,13 +26,18 @@ Baloo/Work Sans) **không còn đúng** cho màn đã port.
 ## Luật toàn cục
 
 - Canvas 1920x1080, stretch `canvas_items` + `expand`. 1280x720 = scale 0.667, vẫn phải đọc được.
-- Chữ >= 18 px. Riêng gợi ý phím (key hint) được 16 px. Không có ngoại lệ khác.
+- Cỡ chữ: 16 (chỉ key hint) / 18 / 24 / 32, thêm 36 cho banner lượt, số trên xúc xắc 28/20. Không cỡ nào khác.
+- Font: Rowdies 700 + Work Sans 400 (body vẫn Work Sans), không trộn hai font trong một label.
+- Vùng bấm >= 44 px. Lưới 8 px, lề màn 24.
 - Chữ màu cream, không bao giờ trắng tinh.
 - Mỗi màn 1 nút primary, tối đa 2 secondary.
 - Đang chọn: viền cream 4 px. Focus: vòng amber 2 px, cách 4 px.
 - Nút disabled phải nói lý do (text hoặc tooltip), không chỉ xám đi.
 - Đỏ chỉ dùng cho nguy hiểm (danger).
-- StyleBox phẳng + bóng cứng. Không blur, không gradient, không mask.
+- StyleBox phẳng + bóng cứng. Không blur, không gradient, không mask, không shader trên UI; mỗi panel một nền trong suốt duy nhất.
+- Scrim modal: neutral-1 @ 80%.
+- Esc: trong combat và trên run map mở menu in-run; màn khác thì theo Esc ghi trong spec của màn đó.
+- Gem violet chỉ dùng cho bề mặt trả tiền.
 - Màn vừa khít hoặc scroll. Một hàng bị cắt mà không có scrollbar là lỗi nặng nhất.
 - Màu/swatch mã hoá cơ chế thì kèm glyph của cơ chế đó, không để màu đứng một mình.
 
