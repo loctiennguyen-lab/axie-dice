@@ -65,6 +65,11 @@ static func _show(c: Control, from_focus := false) -> void:
 	_layer(c).show_for(c, String(c.get_meta("ui3_tip")), from_focus)
 
 
+## Shows the tooltip at once (touch: the first tap on a place).
+static func show_now(c: Control) -> void:
+	_show(c)
+
+
 static func hide_for(c: Control) -> void:
 	_gen += 1
 	if c == null or not c.is_inside_tree():

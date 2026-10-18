@@ -39,21 +39,19 @@ func _ready() -> void:
 	# UI-03: the dock is gone; every place is reached by its world label (hit box + key), focusable.
 	for id in ["house", "missions", "vault", "echobox", "pass", "store"]:
 		_check((hub.find_child("Hit_" + id, true, false) as Control).focus_mode == Control.FOCUS_ALL, "hộp bấm %s phải focus được" % id)
-	for n in ["ProfileChip", "NamesToggle", "Rail_Daily", "Codex", "Wallet", "Currencies", "HudBottomLeft", "HudBottomRight", "Settings"]:
+	for n in ["ProfileChip", "Rail_Daily", "Codex", "Wallet", "Currencies", "HudBottomLeft", "HudBottomRight", "Settings"]:
 		_check(hub.find_child(n, true, false) != null, "thiếu " + n)
-	# Signs hidden at rest; Names toggle (N) shows them all; Esc closes Names first.
-	# UI-03: every place keeps its name plate; the sub-line shows on hover/focus or with Names (N).
+	# No name plates, status pills or Names toggle: the name lives in a tooltip (hover / focus / first tap).
 	for id in ["portal", "house", "missions", "echobox", "pass", "vault", "store", "board"]:
-		var pl := hub.find_child("Sign_" + id, true, false) as Control
-		_check(pl != null and pl.visible, "biển tên " + id + " phải luôn hiện")
-	var sign_p := hub.find_child("Sign_pass", true, false) as Control
-	var subp := sign_p.find_child("SignSub", true, false) as Control
-	_check(subp != null and not subp.visible, "dòng phụ ẩn khi nghỉ")
-	hub.call("_handle_key", KEY_N)
-	_check(subp.visible, "N phải bật dòng phụ")
-	hub.call("_handle_key", KEY_ESCAPE)
-	_check(not subp.visible, "Esc phải tắt Names trước")
-	_check(sign_p.visible, "biển tên vẫn hiện sau khi tắt Names")
+		_check(hub.find_child("Sign_" + id, true, false) == null, "không còn biển tên " + id)
+		var hit := hub.find_child("Hit_" + id, true, false) as Control
+		var tip := UI3Tooltip.text_of(hit)
+		_check(tip.begins_with(String(LandHub.META[id]["name"])), "tooltip %s bắt đầu bằng tên: %s" % [id, tip])
+		_check(String(LandHub.META[id]["key"]) in tip.split("\n")[0], "tooltip %s có phím" % id)
+	_check(hub.find_child("NamesToggle", true, false) == null, "không còn nút Show names")
+	_check(UI3Tooltip.text_of(hub.find_child("Plot_gallery", true, false) as Control).contains("Opens at Land tier 5"),
+		"ô Gallery: tooltip ghi lý do khoá")
+	_check(hub.get("_badges") == null, "không còn chip trạng thái")
 	_check((hub.find_child("Settings", true, false) as Control).get_parent().get_parent() == hub.find_child("Wallet", true, false),
 		"Settings nằm chung plate với tiền")
 
@@ -160,9 +158,7 @@ func _ready() -> void:
 			_check(db.disabled and "needs connection" in db.text, "offline: Daily tắt và ghi lý do")
 			var rp := h2.find_child("RunPlate", true, false) as Button
 			_check(rp.disabled and "needs connection" in rp.text, "offline: Start run tắt và ghi lý do (round 2)")
-			var ob := h2.find_child("OfflineBanner", true, false) as Control
-			for pid in h2.get("_badges"):
-				_check(not _srect(ob).intersects(_srect(h2.get("_badges")[pid] as Control)), "offline: banner đè chip " + str(pid))
+			_check("Needs a connection" in UI3Tooltip.text_of(h2.find_child("Hit_pass", true, false) as Control), "offline: tooltip Pass ghi lý do")
 		if bool(st.get("guest", false)):
 			_check((h2.find_child("RunPlate", true, false) as Button).text == "Sign in to play", "chưa đăng nhập: nút chính là Sign in to play")
 			_check(not (h2.find_child("Currencies", true, false) as Control).visible, "chưa đăng nhập: ẩn tiền")
@@ -232,8 +228,7 @@ func _ready() -> void:
 	LandNav.dry_run = true
 	LandNav.last_path = ""
 	(ht.find_child("Hit_vault", true, false) as Button).emit_signal("pressed")
-	_check(LandNav.last_path == "" and (ht.find_child("Sign_vault", true, false) as Control).visible, "chạm 1 lần: chỉ hiện biển")
-	_check(ht.find_child("SignOpen", true, false) != null, "biển cảm ứng có nút Open")
+	_check(LandNav.last_path == "" and ht.get("_touch_id") == "vault", "chạm 1 lần: chỉ hiện tooltip")
 	(ht.find_child("Hit_vault", true, false) as Button).emit_signal("pressed")
 	_check(LandNav.last_path == "res://scenes/vault/Vault.tscn", "chạm lần 2 mở Vault")
 	_check((ht.find_child("Settings", true, false) as Control).custom_minimum_size.x >= 44.0, "Settings >= 44 px")

@@ -22,22 +22,13 @@ const YAW := 45.0
 const DIAMOND_CY := 530.0           # v5: design-canvas y of the Land centre (lattice moved up 60 px)
 const PLOT_SIDE := 31.0
 
-const INK_PLATE := Color("24140B")
 const _Econ := preload("res://scripts/meta/economy_db.gd")
-const KEY_CHIP := Color("4A3570")
-const BADGE_FILL := {"FREE": Color("8CC85A"), "CLAIM": Color("FF9345"), "NEW": Color("FFC445"),
-	"OFFLINE": Color("CFC4B0"), "LOCKED": Color("CFC4B0"), "···": Color("E6D9C0")}
-const BADGE_INK := {"FREE": Color("183A0C"), "CLAIM": Color("2A1505"), "NEW": Color("3A2A12"),
-	"OFFLINE": Color("3A2214"), "LOCKED": Color("3A2214"), "···": Color("8A6E50")}
 ## Word on the pill when the entry has something waiting (MetaState.badge_count > 0).
 const BADGE_KIND := {"echobox": "FREE", "vault": "NEW", "store": "NEW", "pass": "CLAIM", "missions": "CLAIM", "daily": "CLAIM"}
 const ONLINE_ONLY := ["echobox", "pass", "store", "board", "daily"]
 const NEWCOMER_LOCK := ["missions", "board"]
 ## Keys 1-7 -> entry id (v5 key table; 8 is unused: Mastery Hall is cut).
 const NUM_KEYS := ["portal", "house", "missions", "echobox", "pass", "vault", "store"]
-const LOCK_FILL := Color("E8D6B4")
-const LOCK_BORDER := Color("9A7650")
-const LOCK_TEXT := Color("6E4A30")
 
 ## QA / tests: force a tier (1-6) instead of reading MetaState.
 static var tier_override: int = 0
@@ -135,8 +126,6 @@ var _axies: Array[Dictionary] = []
 
 var _ui: Control
 var _hits := {}                      # id -> Button (clickable box)
-var _plates := {}                    # id -> Control (name plate / run plate)
-var _badges := {}                    # id -> Control (pill on the box)
 var _plot_marks := {}                # id -> Control
 var _house_defs := {}                # house_id -> dictionary from houses.json
 var _run_plate: Button
@@ -154,12 +143,9 @@ var _hud_bl: PanelContainer
 var _hud_br: HBoxContainer
 var _currencies: Control
 var _daily_btn: Button
-var _names_lbl: Label
 var _new_run_btn: Button
 var _start_hint: VBoxContainer
 var _offline_banner: Control
-var _names_btn: Button
-var _names_on := false
 var _hover_id := ""
 var _focus_id := ""
 var _touch_id := ""
@@ -549,7 +535,6 @@ func _build_buildings() -> void:
 		_nodes3d[String(b["id"])] = {"node": n, "scale": s}
 		var reach := (box.size.x + box.size.z) * 0.5 * s * 0.5
 		_blocked.append({"p": ground, "r": reach + 0.8})
-		_blocked.append({"p": ground - _g * (reach + 1.5), "r": 2.6})   # name plate zone
 	# Run plate zone under the Portal, plus a ~150 px (design) keep-out ring around the Portal itself.
 	_blocked.append({"p": _ground_at(960, 530), "r": 8.0})
 	# Walking lanes: hub in front of the Portal -> the front of every other house.
@@ -757,14 +742,6 @@ func _build_ui() -> void:
 		_add_house_hit(String(b["id"]))
 	for p in _plots:
 		_add_plot(String(p["id"]))
-	for b in _live:
-		var id := String(b["id"])
-		_plates[id] = _make_plate(id)
-		_ui.add_child(_plates[id])
-		var pill := _make_badge_pill(id)
-		if pill != null:
-			_badges[id] = pill
-			_ui.add_child(pill)
 	_build_hud()
 	_build_banners()
 	_build_toast()
@@ -829,6 +806,8 @@ func _unhandled_input(event: InputEvent) -> void:
 	# Only the emulated mouse press: Controls consume it when hit, ScreenTouch is never consumed.
 	var tap: bool = event is InputEventMouseButton and event.pressed and event.device == InputEvent.DEVICE_ID_EMULATION
 	if tap:
+		if _hits.has(_touch_id):
+			UI3Tooltip.hide_for(_hits[_touch_id] as Control)
 		_touch_id = ""
 		_refresh_signs()
 
@@ -837,6 +816,7 @@ func _on_hit_pressed(id: String) -> void:
 	if _is_touch() and id != "portal" and _touch_id != id:
 		_touch_id = id
 		_refresh_signs()
+		UI3Tooltip.show_now(_hits[id] as Control)   # first tap shows the name, second tap opens
 		return
 	_on_house_pressed(id)
 
@@ -863,19 +843,49 @@ func _focus(id: String, on: bool) -> void:
 	_refresh_signs()
 
 
-## Signs are hidden at rest. Hover, keyboard focus on the dock tile, or the Names toggle shows them.
-## An empty plot keeps its label on always (no hover needed on touch).
+## Names live in a UI3 tooltip only: hover, keyboard focus, or the first touch tap. The text is rebuilt on every
+## hover / focus / state change so status and lock reasons are current.
 func _refresh_signs() -> void:
-	for id in _plates:
-		var always: bool = _plot_marks.has(id)
-		var op := (_plates[id] as Control).find_child("SignOpen", true, false)
-		if op != null:
-			op.visible = _touch_mode
-		var sub := (_plates[id] as Control).find_child("SignSub", true, false)
-		if sub != null:   # every place keeps its name plate; hover / focus / Names adds the sub-line
-			sub.visible = always or _names_on or _hover_id == id or _focus_id == id or _touch_id == id
-		(_plates[id] as Control).visible = true
+	for id in _hits:
+		UI3Tooltip.bind(_hits[id] as Control, _tip_text(id))
+	for id in _plot_marks:
+		UI3Tooltip.bind(_plot_marks[id] as Control, _tip_text(id))
 	_layout()
+
+
+## "Name  [key]" title, then the lock reason if locked, else the useful status and the sub-line.
+func _tip_text(id: String) -> String:
+	var m: Dictionary = META.get(id, {"name": id, "key": "", "sub": ""})
+	var head := String(m["name"])
+	if String(m["key"]) != "":
+		head += " · " + String(m["key"])
+	var why := _block_reason(id)
+	var lines: Array[String] = []
+	if why != "":
+		lines.append(why)
+	else:
+		var st := _tag_words(id)
+		if st != "":
+			lines.append(st)
+		var sub := String(m["sub"])
+		if id == "portal":
+			sub = _continue_line() if _has_run else ""
+		if sub != "":
+			lines.append(sub)
+	if lines.is_empty():
+		return head
+	return head + "\n" + " · ".join(lines)
+
+
+func _tag_words(id: String) -> String:
+	match _tag(id):
+		"FREE":
+			return "Free roll ready"
+		"CLAIM":
+			return "Reward ready to claim"
+		"NEW":
+			return "Something new"
+	return ""
 
 
 func _add_plot(id: String) -> void:
@@ -889,91 +899,7 @@ func _add_plot(id: String) -> void:
 			_on_house_pressed(id))
 	_ui.add_child(mark)
 	_plot_marks[id] = mark
-	var plate := _make_plate(id)
-	_ui.add_child(plate)
-	_plates[id] = plate
 
-
-## World label (UI-03): UI3 plate, key hint + Rowdies name; hover/focus adds the sub-line (node "SignSub"); a locked
-## place shows lock + its rule.
-func _make_plate(id: String) -> PanelContainer:
-	var m: Dictionary = META[id]
-	var why := _block_reason(id)
-	var plate := UI3.plate(&"plate")
-	plate.name = "Sign_" + id
-	plate.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var col := VBoxContainer.new()
-	col.add_theme_constant_override("separation", 0)
-	col.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	plate.add_child(col)
-	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", UI3Theme.space("8"))
-	row.alignment = BoxContainer.ALIGNMENT_CENTER
-	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	col.add_child(row)
-	if why != "":
-		var lock := TextureRect.new()
-		lock.name = "SignLock"
-		lock.texture = UI3.cream_icon("ui_lock")
-		lock.custom_minimum_size = Vector2.ONE * UI3Theme.size_of("icon_m")
-		lock.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-		lock.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-		lock.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		row.add_child(lock)
-	if String(m["key"]) != "":
-		var kh := UI3.key_hint(String(m["key"]))
-		kh.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		row.add_child(kh)
-	var nm := UI3.label(String(m["name"]), "LabelTitle")
-	nm.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	row.add_child(nm)
-	if why != "":
-		var w := UI3.label(why, "LabelMuted")
-		w.name = "SignRule"
-		w.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		w.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		col.add_child(w)
-	var sub := String(m["sub"])
-	if sub != "" and why == "":
-		var s := UI3.label(sub, "LabelMuted")
-		s.name = "SignSub"
-		s.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		s.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		col.add_child(s)
-	if id != "portal" and why == "":
-		var open := UI3.button("Open", &"secondary", &"S")
-		open.name = "SignOpen"
-		open.visible = _touch_mode
-		open.pressed.connect(_on_house_pressed.bind(id))
-		col.add_child(open)
-	return plate
-
-
-## Status chip on a place (never colour only): FREE / CLAIM / NEW / OFFLINE / LOCKED / "···".
-func _make_badge_pill(id: String) -> Control:
-	var tag := _tag(id)
-	if tag == "":
-		return null
-	return _status_chip(tag)
-
-
-## Status chip: wood-2 fill (not kam-6, that is primary only), Rowdies 18; the word carries the meaning.
-func _status_chip(tag: String) -> PanelContainer:
-	var c := PanelContainer.new()
-	c.theme = UI3Theme.get_theme()
-	c.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	c.custom_minimum_size = Vector2(0, UI3.CHIP_H)
-	c.add_theme_stylebox_override("panel", UI3Theme.flat(UI3Theme.color("notice_bg"), UI3Theme.radius("s"),
-		2, UI3Theme.color("text_muted"), Vector4(12, 0, 12, 0)))
-	var l := UI3.label(tag, "LabelDisplay")
-	l.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-	match tag:
-		"FREE", "NEW":
-			l.add_theme_color_override("font_color", UI3Theme.color("success_text"))
-		"LOCKED", "OFFLINE":
-			l.add_theme_color_override("font_color", UI3Theme.color("danger_text"))
-	c.add_child(l)
-	return c
 
 # ---------------------------------------------------------------- HUD (UI-03: 4 corner groups)
 
@@ -1041,14 +967,6 @@ func _build_hud() -> void:
 	var blr := HBoxContainer.new()
 	blr.add_theme_constant_override("separation", UI3Theme.space("24"))
 	_hud_bl.add_child(blr)
-	var nrow := HBoxContainer.new()
-	nrow.add_theme_constant_override("separation", UI3Theme.space("12"))
-	nrow.add_child(UI3.key_hint("N"))
-	_names_lbl = UI3.label("Show names")
-	nrow.add_child(_names_lbl)
-	var ncell := _cell("NamesToggle", nrow, _toggle_names)
-	_names_btn = ncell.get_node("NamesToggle")
-	blr.add_child(ncell)
 	var crow := HBoxContainer.new()
 	crow.add_theme_constant_override("separation", UI3Theme.space("12"))
 	crow.add_child(UI3.key_hint("C"))
@@ -1180,13 +1098,6 @@ func _land_link() -> Control:
 	cell.size_flags_horizontal = Control.SIZE_SHRINK_BEGIN
 	cell.get_node("UpgradeLand").tooltip_text = "%s / %s Land Stone" % [_fmt(have), _fmt(need)]
 	return cell
-
-
-func _toggle_names() -> void:
-	_names_on = not _names_on
-	if _names_lbl != null:
-		_names_lbl.text = "Hide names" if _names_on else "Show names"
-	_refresh_signs()
 
 
 ## Primary "Start run" (signed out: "Sign in to play"). Name stays RunPlate.
@@ -1335,23 +1246,6 @@ func _layout() -> void:
 		var hit: Button = _hits[id]
 		hit.position = Vector2(cx - w * 0.5, base - h)
 		hit.size = Vector2(w, h)
-		var top := base - h
-		var pill: Control = _badges.get(id)
-		if pill != null:
-			pill.reset_size()
-		var pms := pill.get_combined_minimum_size() if pill != null else Vector2.ZERO
-		if _plates.has(id):
-			var plate: Control = _plates[id]
-			plate.reset_size()
-			var pm := plate.get_combined_minimum_size()
-			plate.position = Vector2(cx - pm.x * 0.5, top + 4.0 - pm.y)
-			if pill != null:
-				if plate.visible:
-					pill.position = Vector2(plate.position.x + pm.x - pms.x + 16.0, plate.position.y - 15.0)
-				else:
-					pill.position = Vector2(cx - pms.x * 0.5, top + 6.0 - pms.y)
-		elif pill != null:
-			pill.position = Vector2(cx - pms.x * 0.5, top + 6.0 - pms.y)
 	for p in _plots:
 		var id := String(p["id"])
 		var cx := float(p["cx"])
@@ -1359,10 +1253,6 @@ func _layout() -> void:
 		var mark: Control = _plot_marks[id]
 		mark.size = Vector2(200, 108)
 		mark.position = Vector2(cx - 100.0, base - 108.0)
-		var plate: Control = _plates[id]
-		plate.reset_size()
-		var pm := plate.get_combined_minimum_size()
-		plate.position = Vector2(cx - pm.x * 0.5, base - 54.0 - pm.y * 0.5)
 
 
 ## HUD scale boost so text never renders below 0.85 of design size (v5 "Min text"): the canvas
@@ -1583,8 +1473,6 @@ func _handle_key(keycode: int) -> bool:
 	if keycode == KEY_ESCAPE:
 		if _modal != null:
 			_close_modal()
-		elif _names_on:
-			_toggle_names()
 		else:
 			_open_screen(&"settings")
 		return true
@@ -1603,8 +1491,6 @@ func _handle_key(keycode: int) -> bool:
 		KEY_N:
 			if _has_run:
 				_on_new_run_pressed()
-			else:
-				_toggle_names()
 		KEY_L:
 			_on_land_pressed()
 		KEY_P:
