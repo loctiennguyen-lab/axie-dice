@@ -1005,7 +1005,7 @@ func _update_hud() -> void:
 			relics.append({"icon": _relic_icon_for(def), "tip": _relic_tooltip(def)})
 	_hud_frame.update_top({
 		"relics": relics, "actives": actives.slice(0, 3), "mana": _combat.mana,
-		"turn": _combat.turn, "act_line": _act_line(), "ascension": RunState.ascension,
+		"turn": _combat.turn, "title": _fight_title(), "ascension": RunState.ascension,
 		"shards": RunState.shards_this_run, "newcomer": newcomer})
 	_hud_frame.update_attrition(hs.get("attrition", {}), _combat.turn, newcomer)
 
@@ -1021,11 +1021,13 @@ func _update_hud() -> void:
 		undo_sub = "%d die%s used this turn" % [undo_n, "" if undo_n == 1 else "s"]
 	_hud_frame.update_right(
 		{"enabled": executing and undo_n > 0, "sub": undo_sub},
-		{"n": _combat.rerolls, "enabled": executing and _combat.rerolls > 0},
+		{"n": _combat.rerolls, "max": _combat.max_rerolls, "enabled": executing and _combat.rerolls > 0},
 		{"sub": "E %s %d dice unused" % [HudKit.dot(), unused],
 		 "warn": has_unused and executing,
+		 "resolving": _combat.phase != CombatPhase.EXECUTE,
 		 "enabled": not (_combat.won or _combat.lost) and _combat.phase != CombatPhase.END_TURN})
 	_update_aid(hs, executing)
+	_update_die_info()
 	_hud_frame.set_resolving(_combat.phase == CombatPhase.END_TURN and not (_combat.won or _combat.lost))
 	_layout_tray()
 
@@ -1097,6 +1099,16 @@ func _on_aid_purchase(aid_id: String) -> void:
 
 ## "Act 1 . Floor 3 . 3-foe fight" (turn plate sub-line). STUB: the act split is not in the run
 ## data yet, so it is derived from the map length (3 equal acts).
+## "Fight 4 of 12" (boss: "Boss fight"): the run-plate title.
+func _fight_title() -> String:
+	var graph := RunMapGraph.from_data(RunState.map_graph)
+	var total := maxi(graph.rows.size(), 1)
+	var floor_n := clampi(RunState.power_level + 1, 1, total)
+	if String(_setup.get("kind", "battle")) == "boss":
+		return TranslationServer.translate("Boss fight")
+	return TranslationServer.translate("Fight") + " %d " % floor_n + TranslationServer.translate("of") + " %d" % total
+
+
 func _act_line() -> String:
 	var graph := RunMapGraph.from_data(RunState.map_graph)
 	var total := maxi(graph.rows.size(), 1)
@@ -1147,21 +1159,20 @@ func _layout_tray() -> void:
 	for b in _die_slot_buttons:
 		if (b as Button).visible:
 			n += 1
-	var col_w := 272.0
+	var col_w := TrayColumn.W
 	var gap := 16.0
-	if n > 5:   # summoned tokens: narrow the columns so one row still fits (R1 has no 2nd row)
-		col_w = maxf(150.0, (vs.x - 32.0 - gap * (n - 1)) / n)
-		col_w = minf(col_w, 272.0)
+	if n > 5:   # summoned tokens: narrow the gap so one row still fits (the card stays 152 wide)
+		gap = clampf((vs.x - 32.0 - col_w * n) / float(n - 1), 4.0, 16.0)
 	var total := n * col_w + maxf(n - 1, 0.0) * gap
 	var x0 := (vs.x - total) * 0.5
-	var top := vs.y - 16.0 - 176.0
+	var top := vs.y - 24.0 - TrayColumn.H   # card top at y 892 on 1080: 24 margin, party row stays clear
 	var i := 0
 	for b in _die_slot_buttons:
 		var btn: Button = b
 		if not btn.visible:
 			continue
 		btn.position = Vector2(x0 + i * (col_w + gap), top)
-		btn.size = Vector2(col_w, 176)
+		btn.size = Vector2(col_w, TrayColumn.H)
 		i += 1
 
 
@@ -1385,6 +1396,64 @@ func _tray_tooltip(u: Unit) -> String:
 	return "\n".join(lines)
 
 
+static func _face_has_kw(f: Dictionary, kw: String) -> bool:
+	for k in (f.get("keywords", []) as Array):
+		if String(k).split(":")[0] == kw:
+			return true
+	return false
+
+
+## One plain sentence for what the picked face does (the info panel's description line).
+static func _T(k: String) -> String:
+	return TranslationServer.translate(k)
+
+
+static func _face_description(face_type: String, value: int, aoe: bool) -> String:
+	match face_type:
+		"dmg":
+			return (_T("Deal %d damage to all enemies.") if aoe else _T("Deal %d damage to one enemy.")) % value
+		"shield":
+			return (_T("Give %d Shield to all allies.") if aoe else _T("Give %d Shield to one ally.")) % value
+		"heal":
+			return (_T("Heal all allies for %d.") if aoe else _T("Heal one ally for %d.")) % value
+		"poison":
+			return (_T("Poison all enemies for %d.") if aoe else _T("Poison one enemy for %d.")) % value
+		"debuff":
+			return _T("Weaken all enemies.") if aoe else _T("Weaken one enemy.")
+		"buff":
+			return _T("Buff all allies.") if aoe else _T("Buff one ally.")
+		"mana":
+			return _T("Gain %d Mana.") % value
+		"summon":
+			return _T("Summon %d Egg.") % value
+	return _T("Blank face: nothing to use")
+
+
+## Die info panel (UI-03): only while a die is picked. Title "Name · ATTACK 5", body = the face's keyword
+## rules plus the crit chance (party damage faces only: face crit keyword + relic critBonus).
+func _update_die_info() -> void:
+	var info := {}
+	var u: Unit = _combat.by_uid(_selected_die_uid) if (_selected_die_uid != -1 and _combat != null) else null
+	if u != null and u.has_rolled() and u.hp > 0:
+		var fi := u.roll_face_index()
+		var f: Dictionary = u.die[fi]
+		var ftype := String(f.get("type", ""))
+		var value := _live_face_value(u, fi)
+		var lines := PackedStringArray([_face_description(ftype, value, _face_has_kw(f, "aoe"))])
+		var tip := _tray_tooltip(u).split("\n")
+		for i in range(2, tip.size()):
+			if not String(tip[i]).begins_with("Value"):
+				lines.append(tip[i])
+		if ftype == "dmg" and u.side == "p":
+			var cc := int(round(float(_combat.call("_crit_chance", u, f))))
+			lines.append("%s %d%%" % [TranslationServer.translate("Crit chance"), cc])
+		info = {"title": "%s %s %s %d" % [u.n, HudKit.dot(), DangoTheme.face_type_label(ftype), value],
+			"body": "\n".join(lines)}
+	_hud_frame.update_info(info)
+	if _aid != null:
+		_hud_frame.set_info_bottom(_aid.top_y() - 12.0)
+
+
 func _update_dice_tray() -> void:
 	var fresh: Array = []
 	var units := _party_dice_units()
@@ -1431,14 +1500,48 @@ func _update_dice_tray() -> void:
 ## True when the selected die's face may be used on `target` (an ally column). Heal / shield
 ## faces are the ally-targeting ones; the engine remains the authority (use_die() refuses).
 func _selected_ally_target_ok(target: Unit) -> bool:
+	return target.side == "p" and _illegal_reason_for(target) == "" and _selected_face_type() != ""
+
+
+## The picked die's face type ("" when nothing usable is picked).
+func _selected_face_type() -> String:
 	var src := _combat.by_uid(_selected_die_uid) if _combat != null else null
 	if src == null or not src.has_rolled():
-		return false
+		return ""
 	var fi := src.roll_face_index()
 	if fi < 0 or fi >= src.die.size():
-		return false
-	var t := String((src.die[fi] as Dictionary).get("type", ""))
-	return t == "heal" or t == "shield" or t == "buff" or t == "mana"
+		return ""
+	return String((src.die[fi] as Dictionary).get("type", ""))
+
+
+## Which side a face may be aimed at, mirroring CombatEngine._do_face (view-only copy: the engine has no
+## read-only legality helper): "foe" (dmg / poison / debuff), "friend" (shield / heal / buff), "any"
+## (mana / summon: the click target does not matter), "none" (blank). An aoe face still lights the one
+## side it hits as a whole.
+static func face_target_rule(face_type: String) -> String:
+	match face_type:
+		"dmg", "poison", "debuff":
+			return "foe"
+		"shield", "heal", "buff":
+			return "friend"
+		"mana", "summon":
+			return "any"
+	return "none"
+
+
+## "" when a `face_type` die may be used on a unit of `target_side` (src_side "p"), else the reason line.
+static func face_target_reason(face_type: String, target_side: String, src_side := "p") -> String:
+	var word := DangoTheme.face_type_label(face_type)
+	match face_target_rule(face_type):
+		"none":
+			return "Blank face: nothing to use"
+		"foe":
+			if target_side == src_side:
+				return "%s can only target enemies" % word
+		"friend":
+			if target_side != src_side:
+				return "%s can only target allies" % word
+	return ""
 
 
 ## One hover line's {name, rule} for anything the player can see the NAME of but not the RULE:
@@ -2075,17 +2178,14 @@ func _layout_unit_visuals() -> void:
 		var ep: UnitPortrait = _portraits.get(e.uid)
 		if ep != null and ep.visible:
 			enemy_ps.append(ep)
-	var total := 0.0
+	# UI-03 round 2: ONE enemy column, top-right, margin 24, 8 px between cards. Each card is as tall as
+	# what hangs under it (counter tab, Target / reason label). The boss card is wider but sits in the
+	# same column, right-aligned, at the very top so the boss head keeps clear air.
+	var y := _ENEMY_COLUMN_TOP_UI3
 	for ep in enemy_ps:
-		total += (ep as UnitPortrait).size.x
-	var gap := _ENEMY_PLATE_GAP_R1
-	if enemy_ps.size() > 1:
-		gap = clampf((canvas_w - 32.0 - total) / float(enemy_ps.size() - 1), 8.0, _ENEMY_PLATE_GAP_R1)
-	total += gap * maxf(float(enemy_ps.size() - 1), 0.0)
-	var x := (canvas_w - total) * 0.5
-	for ep in enemy_ps:
-		(ep as UnitPortrait).position = Vector2(x, _ENEMY_PLATE_TOP_R1)
-		x += (ep as UnitPortrait).size.x + gap
+		var card := ep as UnitPortrait
+		card.position = Vector2(canvas_w - 24.0 - card.size.x, y)
+		y += card.stack_height() + 8.0
 
 	for uid in _portraits.keys():
 		var p: UnitPortrait = _portraits[uid]
@@ -2096,9 +2196,37 @@ func _layout_unit_visuals() -> void:
 		if feet.x >= 0.0:
 			var chest := _stage3d.get_unit_screen_pos(uid, CombatStage3D.HEAD_HEIGHT)
 			p.position = Vector2(stage_offset.x + chest.x - p.size.x * 0.5, stage_offset.y + chest.y)
+			_place_status_chips(uid, p, stage_offset)
 	_backdrop.apply_parallax(stage_offset)
 
 
+## UI-03: the status chips of an Axie float centred above its head (world label), and never into the
+## party row zone (y 630-890 at 1920): the row's bottom edge is clamped to y 622.
+func _place_status_chips(uid: int, p: UnitPortrait, stage_offset: Vector2) -> void:
+	var idx := -1
+	var units := _party_dice_units()
+	for i in units.size():
+		if (units[i] as Unit).uid == uid:
+			idx = i
+			break
+	if idx < 0 or idx >= _die_slot_content.size():
+		return
+	var chips: HBoxContainer = (_die_slot_content[idx] as Dictionary)["chips"]
+	if chips.get_parent() != p:
+		chips.get_parent().remove_child(chips)
+		p.add_child(chips)
+		p.z_index = 3
+	var head := _stage3d.get_unit_screen_pos(uid, CombatStage3D.HEAD_HEIGHT)
+	chips.visible = head.x >= 0.0 and chips.get_child_count() > 0
+	if not chips.visible:
+		return
+	chips.size = chips.get_combined_minimum_size()
+	var bottom := minf(stage_offset.y + head.y - 8.0, 622.0)
+	var global_top_left := Vector2(stage_offset.x + head.x - chips.size.x * 0.5, bottom - chips.size.y)
+	chips.position = global_top_left - p.position
+
+
+const _ENEMY_COLUMN_TOP_UI3 := 24.0
 const _ENEMY_PLATE_TOP_R1 := 96.0
 const _ENEMY_PLATE_GAP_R1 := 40.0
 
@@ -2227,6 +2355,11 @@ func _on_target_clicked(uid: int) -> void:
 		return
 	if _selected_die_uid == -1 or u == null or u.hp <= 0:
 		_open_unit_inspect(uid)
+		return
+	# An illegal target keeps the die picked and keeps showing its reason (the plate's red label).
+	if _illegal_reason_for(u) != "":
+		_append_log("[input] use %s -> %s : illegal (%s)" % [_unit_name(_selected_die_uid), _unit_name(uid),
+			_illegal_reason_for(u)])
 		return
 	var ok := _combat.use_die(_selected_die_uid, uid)
 	_append_log("[input] use %s -> %s : %s" % [_unit_name(_selected_die_uid), _unit_name(uid), "ok" if ok else "invalid"])
@@ -2888,18 +3021,10 @@ func _hud_state() -> Dictionary:
 func _illegal_reason_for(target: Unit) -> String:
 	if _selected_die_uid == -1 or _combat == null:
 		return ""
-	var src := _combat.by_uid(_selected_die_uid)
-	if src == null or not src.has_rolled():
+	var t := _selected_face_type()
+	if t == "":
 		return ""
-	var fi := src.roll_face_index()
-	if fi < 0 or fi >= src.die.size():
-		return ""
-	var t := String((src.die[fi] as Dictionary).get("type", ""))
-	if t == "blank":
-		return "Blank face: nothing to use"
-	if t == "heal" and target.side == "e":
-		return "Heal face: allies only"
-	return ""
+	return face_target_reason(t, target.side)
 
 
 func _update_portrait(u: Unit) -> void:
@@ -3086,7 +3211,11 @@ func _start_dice_throw(fresh: Array) -> void:
 func _throw_tray_target(i: int) -> Vector2:
 	if i < 0 or i >= _throw_slots.size():
 		return Vector2.ZERO
-	var btn: Button = _die_slot_buttons[int(_throw_slots[i])]
+	var slot := int(_throw_slots[i])
+	var tile: Variant = (_die_slot_content[slot] as Dictionary).get("die")
+	if tile is Control and is_instance_valid(tile):
+		return (tile as Control).get_global_rect().get_center() - _stage3d.global_position
+	var btn: Button = _die_slot_buttons[slot]
 	return btn.get_global_rect().get_center() - _stage3d.global_position
 
 
@@ -3202,7 +3331,7 @@ func _ensure_die_slots(count: int) -> void:
 		btn.name = "DieSlot%d" % _die_slot_buttons.size()
 		btn.toggle_mode = true
 		btn.text = ""
-		btn.custom_minimum_size = Vector2(272, 176)
+		btn.custom_minimum_size = Vector2(TrayColumn.W, TrayColumn.H)
 		_tray_root.add_child(btn)
 		_die_slot_buttons.append(btn)
 		_style_die_slot(btn)

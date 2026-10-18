@@ -325,6 +325,60 @@ static func status_chip(icon_name: String, count: int, tint: Color) -> PanelCont
 	return p
 
 
+## Round 2 StatusChip: h 32, wood-2 pill, 3-letter code + count (Rowdies 18), 2 px border green-6 (buff) or
+## red-6 (debuff). Never colour alone: the code is a word.
+const STATUS_CODE := {
+	"poison": "POI", "burn": "BRN", "regen": "REG", "blind": "BLD", "weaken": "WKN", "vulnerable": "VUL",
+	"thorns": "THN", "stun": "STN", "undying": "UND", "enrage": "ENR", "shield": "SHD",
+}
+const STATUS_BUFFS := ["regen", "thorns", "undying", "enrage", "shield"]
+
+
+static func status_label_chip(status: String, count: int) -> PanelContainer:
+	var p := PanelContainer.new()
+	p.theme = UI3Theme.get_theme()
+	var good := STATUS_BUFFS.has(status)
+	var sb := UI3Theme.flat(UI3Theme.color("panel_raised"), UI3Theme.radius("s"), 2,
+		UI3Theme.color("status_buff_border" if good else "status_debuff_border"))
+	sb.content_margin_left = 8
+	sb.content_margin_right = 8
+	sb.content_margin_top = 2
+	sb.content_margin_bottom = 2
+	p.add_theme_stylebox_override("panel", sb)
+	p.custom_minimum_size = Vector2(0, CHIP_H)
+	var code := String(STATUS_CODE.get(status, status.left(3).to_upper()))
+	var l := label("%s %d" % [code, count], "LabelDisplay")
+	l.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	l.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	p.add_child(l)
+	return p
+
+
+## Round 2 IntentBadge colour for a game face type (attack red-6, shield blue-7, buff kam-5, debuff axie-bird).
+static func intent_color(game_type: String) -> Color:
+	match game_type:
+		"dmg", "attack": return UI3Theme.color("intent_attack")
+		"shield": return UI3Theme.color("intent_shield")
+		"debuff", "weaken", "poison": return UI3Theme.color("intent_debuff")
+	return UI3Theme.color("intent_buff")
+
+
+## Round 2 FloatText: Rowdies 24 / 32 / 40 by size 0 / 1 / 2, 3 px wood-1 stroke, class colour.
+const FLOAT_SIZE := [24, 32, 40]
+const FLOAT_COLOR := {"dmg": "face_attack_text", "heal": "face_heal", "shd": "face_shield", "poi": "face_poison",
+	"buf": "face_buff", "deb": "face_weaken", "man": "face_mana"}
+
+
+static func float_text(text: String, css_class: String, size_step: int) -> Label:
+	var l := label(text, "LabelDisplay")
+	l.add_theme_font_size_override("font_size", int(FLOAT_SIZE[clampi(size_step, 0, 2)]))
+	l.add_theme_color_override("font_color", UI3Theme.color(String(FLOAT_COLOR.get(css_class, "text"))))
+	l.add_theme_color_override("font_outline_color", UI3Theme.color("panel"))
+	l.add_theme_constant_override("outline_size", 3)
+	l.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	return l
+
+
 ## HP bar. kind: axie (10 h, green) | enemy (8 h, red-6) | boss (16 h, red-6). Shield is a blue segment
 ## on the same track after the HP; shield/poison > 0 also show a status chip row above the bar.
 static func hp_bar(hp: int, max_hp: int, shield := 0, poison := 0, kind := &"axie") -> HpBarView:
@@ -339,8 +393,11 @@ static func hp_bar(hp: int, max_hp: int, shield := 0, poison := 0, kind := &"axi
 ## (56, radius 14). state: normal (tilted by `tilt` degrees) | selected (lift -18, upright, deep shadow, 3 px
 ## cream outline at offset 5) | used (40% + "· used", not interactive) | disabled (40%, not interactive).
 ## The amber focus ring surrounds the tile. Hit area = the tile itself.
-static func die_tile(face: StringName, value: int, size := &"axie", state := &"normal", tilt := 0.0) -> DieTile:
-	return DieTile.new(face, value, size, state, tilt)
+## stamp = true: "used" is a stamp on the dimmed tile (Rowdies 18, cream on wood-1 90%) and the word stays
+## one line, so the tile keeps one height (combat tray). false: the word gets a second line "· used".
+static func die_tile(face: StringName, value: int, size := &"axie", state := &"normal", tilt := 0.0,
+		stamp := false) -> DieTile:
+	return DieTile.new(face, value, size, state, tilt, stamp)
 
 
 ## Localized word for a face type ("ATTACK", "SHIELD", ...). Blank is "–" per the spec.
@@ -512,8 +569,12 @@ class DieTile extends VBoxContainer:
 	var word: Label
 	var _outline: Panel = null
 	var _focus_ring: Panel
+	var stamp_mode := false
+	var _stamp: PanelContainer = null
 
-	func _init(face_: StringName, value_: int, size_: StringName, state_: StringName, tilt_: float) -> void:
+	func _init(face_: StringName, value_: int, size_: StringName, state_: StringName, tilt_: float,
+			stamp_ := false) -> void:
+		stamp_mode = stamp_
 		face = face_
 		value = value_
 		egg = size_ == &"egg"
@@ -595,11 +656,32 @@ class DieTile extends VBoxContainer:
 			_outline.add_theme_stylebox_override("panel", UI3Theme.selected_style(rad + 5, 3, 5))
 			tile.add_child(_outline)
 		var text := UI3.face_word(face)
-		if state == &"used":
+		if state == &"used" and not stamp_mode:
 			text += "\n" + TranslationServer.translate("· used")   # second line, same 18 px
 		word.text = text
+		if _stamp != null:
+			_stamp.get_parent().remove_child(_stamp)
+			_stamp.queue_free()
+			_stamp = null
+		if state == &"used" and stamp_mode:
+			_stamp = UI3.plate(&"plate")
+			_stamp.name = "UsedStamp"
+			_stamp.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			_stamp.set_anchors_and_offsets_preset(Control.PRESET_CENTER)
+			_stamp.grow_horizontal = Control.GROW_DIRECTION_BOTH
+			_stamp.grow_vertical = Control.GROW_DIRECTION_BOTH
+			var sl := UI3.label(TranslationServer.translate("USED"), "LabelDisplay")
+			sl.add_theme_font_size_override("font_size", UI3Theme.size_of("text_body"))
+			sl.add_theme_color_override("font_color", UI3Theme.color("text"))
+			sl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			_stamp.add_child(sl)
+			_stamp.rotation_degrees = -8.0
+			tile.get_parent().add_child(_stamp)   # on the holder: stays full strength over the dimmed tile
 		var live := state == &"normal" or state == &"selected"
-		modulate.a = 1.0 if live else 0.4
+		var dim := 1.0 if live else 0.4
+		modulate.a = 1.0 if stamp_mode else dim
+		tile.modulate.a = dim if stamp_mode else 1.0
+		word.modulate.a = dim if stamp_mode else 1.0
 		focus_mode = Control.FOCUS_ALL if live else Control.FOCUS_NONE
 		if not live and has_focus():
 			release_focus()

@@ -31,6 +31,8 @@ var bar_radius: int = 9
 var text_mode: bool = false        ## draw "hp / max" inside the bar
 var text_size: int = 16
 var marks: Array = []              ## fractions 0..1 where a 3px phase tick is drawn (boss)
+## UI-03 look: flat hp_track box, solid token fill (hp / hp_enemy), no outline, no numerals in the bar.
+var ui3_look: bool = false
 
 var _hp: int = 0
 var _max_hp: int = 1
@@ -176,8 +178,38 @@ func _draw_gradient_rounded(r: Rect2, radius: int, top: Color, bottom: Color) ->
 	draw_style_box(sb, top_r)
 
 
+func _draw_ui3() -> void:
+	var r := mini(UI3Theme.radius("s"), int(size.y * 0.5))
+	draw_style_box(UI3Theme.flat(UI3Theme.color("hp_track"), r), Rect2(Vector2.ZERO, size))
+	var tok := "hp_enemy" if kind == Kind.ENEMY else ("shield" if kind == Kind.SHIELD else "hp")
+	var fill := UI3Theme.color(tok)
+	if _fixed_fill.a > 0.0:
+		fill = _fixed_fill
+	var fw := size.x * clampf(display_ratio, 0.0, 1.0)
+	if fw > 1.0:
+		var w := maxf(fw, float(r) * 2.0)
+		draw_style_box(UI3Theme.flat(fill, r), Rect2(0, 0, w, size.y))
+	if lost_ratio > 0.0:
+		var lw := minf(size.x * lost_ratio, size.x - fw)
+		if lw > 1.0:
+			draw_rect(Rect2(fw, 0, lw, size.y), UI3Theme.color("text"))
+	if _at_risk > 0 and fw > 1.0:
+		var rw := minf(size.x * (float(_at_risk) / float(_max_hp)), fw)
+		var rc := UI3Theme.color("hp_enemy")
+		rc.a = 0.6
+		draw_rect(Rect2(fw - rw, 0, rw, size.y), rc)
+	if _preview_dmg > 0 and _hp > 0 and fw > 1.0:
+		var pw := minf(size.x * (float(_preview_dmg) / float(_max_hp)), fw)
+		draw_texture_rect(hatch_texture(), Rect2(fw - pw, 0, pw, size.y), true)
+	for m in marks:
+		draw_rect(Rect2(size.x * float(m) - 1.5, 0, 3.0, size.y), UI3Theme.color("text"))
+
+
 func _draw() -> void:
 	if size.x <= 0.0 or size.y <= 0.0:
+		return
+	if ui3_look:
+		_draw_ui3()
 		return
 	draw_style_box(_box(DangoTheme.BAR_TRACK, bar_radius, true), Rect2(Vector2.ZERO, size))
 	var inner := Rect2(float(_BORDER_W), float(_BORDER_W),

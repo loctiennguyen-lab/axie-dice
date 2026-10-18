@@ -47,7 +47,6 @@ const _DIE_SCENE := preload("res://assets/dice/axie_die.glb")
 const _MESH_SIZE := 0.5            # axie_die.glb is a 0.5 m rounded cube
 const BODY_COLOR := Color("F3D7A6")
 const PLATE_PX := 256
-const _FONT := preload("res://assets/fonts/Baloo2-ExtraBold.ttf")   # stand-in until Rowdies Bold ships
 ## Face index i of a unit's die -> mesh surface i+1 (Face_+X, -X, +Y, -Y, +Z, -Z) -> local normal.
 const FACE_NORMALS: Array[Vector3] = [Vector3.RIGHT, Vector3.LEFT, Vector3.UP, Vector3.DOWN,
 	Vector3.BACK, Vector3.FORWARD]
@@ -230,7 +229,7 @@ func _plate(type: String, value: int, at: Vector2) -> Control:
 	plate.size = Vector2(PLATE_PX - 28, PLATE_PX - 28)
 	bg.add_child(plate)
 	var icon := TextureRect.new()
-	icon.texture = DangoTheme.face_type_icon(type)
+	icon.texture = UI3.icon(String(UI3.FACE_ICON[TrayColumn.ui3_face(type)]))
 	icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	var has_value := value > 0
@@ -242,7 +241,7 @@ func _plate(type: String, value: int, at: Vector2) -> Control:
 	if has_value:
 		var lbl := Label.new()
 		lbl.text = str(value)
-		lbl.add_theme_font_override("font", _FONT)
+		lbl.add_theme_font_override("font", UI3Theme.font_display())
 		lbl.add_theme_font_size_override("font_size", 72)
 		lbl.add_theme_color_override("font_color", INK)
 		lbl.add_theme_color_override("font_outline_color", IVORY)
@@ -602,7 +601,7 @@ func _make_tile(d: Dictionary) -> Control:
 	sb.shadow_offset = Vector2(0, 4)
 	sb.shadow_size = 0
 	tile.add_theme_stylebox_override("panel", sb)
-	var tex := DangoTheme.face_type_icon(String(d["face_type"]))
+	var tex := UI3.icon(String(UI3.FACE_ICON[TrayColumn.ui3_face(String(d["face_type"]))]))
 	var icon := TextureRect.new()
 	icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	icon.texture = tex
