@@ -341,6 +341,14 @@ func _slot(px: int, icon_tex: Variant, icon_px: int, tip: String) -> PanelContai
 	if tip != "":
 		UI3Tooltip.bind(s, tip)
 		s.mouse_filter = Control.MOUSE_FILTER_STOP
+		# Keyboard reachable (spec 43: tooltip shows on owner focus) with the shared focus ring.
+		s.focus_mode = Control.FOCUS_ALL
+		var ring := UI3Theme.focus_style(UI3Theme.radius("s"))
+		s.draw.connect(func() -> void:
+			if s.has_focus():
+				s.draw_style_box(ring, Rect2(Vector2.ZERO, s.size)))
+		s.focus_entered.connect(s.queue_redraw)
+		s.focus_exited.connect(s.queue_redraw)
 	else:
 		s.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		s.modulate.a = 0.5
