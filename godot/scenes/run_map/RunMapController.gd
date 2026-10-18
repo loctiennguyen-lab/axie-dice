@@ -308,11 +308,24 @@ func _node_pos(node: RunMapNode, current_row: int) -> Vector2:
 
 
 ## Five rarities, five different tokens: common grey, uncommon green, rare blue, epic purple, legendary amber.
-const _RARITY_TOKENS := ["rarity_common", "rarity_rare", "shield", "mana", "rarity_legendary", "rarity_legendary"]
+## Colours come from the handoff tokens (rarity_common grey, rarity_rare green, rarity_epic cyan,
+## rarity_legendary amber). The tokens have no Uncommon, so it borrows `mana` (purple): the one
+## palette colour not used by another rarity. Index = RelicDef.rarity (0 Common .. 4 Legendary).
+const _RARITY_TOKENS := ["rarity_common", "mana", "rarity_rare", "rarity_epic", "rarity_legendary", "rarity_legendary"]
 
 
 func _rarity_color(rar: int) -> Color:
 	return UI3Theme.color(_RARITY_TOKENS[clampi(rar, 0, _RARITY_TOKENS.size() - 1)])
+
+
+## A relic offer takes its rarity from the relic definition, so the reward card and the relic
+## plate can never disagree.
+func _reward_rarity(r: Dictionary) -> int:
+	if String(r.get("t", "")) == "relic":
+		var def = RelicRegistry.get_def(String(r.get("key", "")))
+		if def != null:
+			return int(def.rarity)
+	return int(r.get("rar", 0))
 
 
 func _rarity_name(rar: int) -> String:
@@ -1226,10 +1239,10 @@ func _take_selected_reward() -> void:
 
 
 func _add_reward_card(r: Dictionary, wide := false) -> PanelContainer:
-	var rar := int(r.get("rar", 0))
+	var t := String(r.get("t", ""))
+	var rar := _reward_rarity(r)
 	var accent := _rarity_color(rar)
 	var idx := _reward_cards.size()
-	var t := String(r.get("t", ""))
 
 	var card := UI3.plate(&"card")
 	card.name = "RewardCard%d" % idx
@@ -1287,7 +1300,15 @@ func _add_reward_card(r: Dictionary, wide := false) -> PanelContainer:
 	art.add_child(icon)
 	col.add_child(art)
 
-	var name_lbl := UI3.label(String(r.get("title", "")), "LabelTitle")
+	# A relic offer arrives as title "RELIC", desc = relic name, sub = effect text.
+	var name_text := String(r.get("title", ""))
+	var body_text := String(r.get("desc", ""))
+	if t == "relic" and String(r.get("sub", "")) != "":
+		name_text = String(r.get("desc", ""))
+		body_text = String(r.get("sub", ""))
+	elif String(r.get("sub", "")) != "":
+		body_text += "\n" + String(r.get("sub", ""))
+	var name_lbl := UI3.label(name_text, "LabelTitle")
 	name_lbl.name = "RewardName"
 	name_lbl.clip_text = true
 	name_lbl.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
@@ -1296,7 +1317,7 @@ func _add_reward_card(r: Dictionary, wide := false) -> PanelContainer:
 	rar_lbl.name = "RarityLabel"
 	rar_lbl.add_theme_color_override("font_color", accent)
 	col.add_child(rar_lbl)
-	var desc := UI3.label(String(r.get("desc", "")))
+	var desc := UI3.label(body_text)
 	desc.name = "RewardDesc"
 	desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	desc.custom_minimum_size.x = (_REWARD_CARD_W_WIDE if wide else _REWARD_CARD_W) - 48.0

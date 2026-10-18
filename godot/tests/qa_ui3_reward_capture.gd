@@ -13,10 +13,9 @@ func _ready() -> void:
 	var size := get_viewport().get_visible_rect().size
 	var tag := "%dx%d" % [int(DisplayServer.window_get_size().x), int(DisplayServer.window_get_size().y)]
 	var sets := {
-		"relic": [
-			{"t": "relic", "rar": 0, "title": "Bastion Plate", "desc": "Gain 4 Shield at the start of every fight.", "sub": ""},
-			{"t": "relic", "rar": 2, "title": "Lone Wolf Contract", "desc": "Your first attack each turn deals 3 extra damage when only one Axie is alive.", "sub": ""},
-			{"t": "relic", "rar": 4, "title": "Ember", "desc": "Deal 2 damage to all enemies when a die rolls its highest face.", "sub": ""}],
+		"relic": ["r_bastionplate", "r_ember", "r_bastionplate"].map(func(id: String) -> Dictionary:
+			var d = RelicRegistry.get_def(id)
+			return {"t": "relic", "key": id, "rar": d.rarity, "title": "RELIC", "desc": d.name, "sub": RewardGenerator.relic_desc(d)}),
 		"hp": [
 			{"t": "hp", "rar": 0, "title": "Gene Vitality", "desc": "All Axies gain +3 max HP for the rest of the run.", "sub": ""},
 			{"t": "reroll", "rar": 1, "title": "Spare Dice", "desc": "Gain one extra reroll charge.", "sub": ""},

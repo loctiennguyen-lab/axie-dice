@@ -409,6 +409,21 @@ func test_reward_and_shop_cards_show_a_rarity_chip_matching_rar() -> void:
 		seen.append(c)
 	await get_tree().process_frame
 	await get_tree().process_frame
+	# The same relic id shows the same rarity name and colour on the reward card and the relic plate.
+	for rid in ["r_bastionplate", "r_ember"]:
+		var def = RelicRegistry.get_def(rid)
+		if def == null:
+			continue
+		var want_name: String = runmap.call("_rarity_name", int(def.rarity))
+		var want_col: Color = runmap.call("_rarity_color", int(def.rarity))
+		var wrong_rar := (int(def.rarity) + 1) % 4   # a stale/incorrect `rar` in the offer must not win
+		var got: int = runmap.call("_reward_rarity", {"t": "relic", "key": rid, "rar": wrong_rar})
+		_assert(got == int(def.rarity), "%s: reward card rarity %d differs from its definition %d" % [rid, got, int(def.rarity)])
+		var row: Control = runmap.call("_build_relic_row", rid)
+		var lbl: Label = row.get_child(0).get_child(1)
+		_assert(lbl.text == want_name and lbl.get_theme_color("font_color").is_equal_approx(want_col),
+			"%s: relic plate rarity label/colour differs from the reward card's" % rid)
+		row.free()
 	var cards_h: Array = []
 	for c in cards:
 		cards_h.append(int((c as Control).size.y))
