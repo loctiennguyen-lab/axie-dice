@@ -398,7 +398,6 @@ func _build_token(node: RunMapNode, current_row: int, reachable: Array) -> void:
 
 	var btn := Button.new()
 	btn.name = "Node_%s" % node.id
-	btn.flat = true
 	btn.custom_minimum_size = Vector2(size, size)
 	btn.size = Vector2(size, size)
 	btn.position = centre - Vector2(size, size) * 0.5
@@ -444,11 +443,13 @@ func _build_token(node: RunMapNode, current_row: int, reachable: Array) -> void:
 	var icon_px: float = _NODE_ICON_PX.get(node.node_type, 32.0)
 	var icon := TextureRect.new()
 	icon.texture = UI3.icon("ui_lock" if locked else "node_%s" % _tone_key_for_type(node.node_type))
-	icon.custom_minimum_size = Vector2(icon_px, icon_px)
-	icon.size = Vector2(icon_px, icon_px)
-	icon.position = (Vector2(size, size) - Vector2(icon_px, icon_px)) * 0.5
 	icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	icon.set_anchors_preset(Control.PRESET_CENTER)
+	icon.offset_left = -icon_px * 0.5
+	icon.offset_right = icon_px * 0.5
+	icon.offset_top = -icon_px * 0.5
+	icon.offset_bottom = icon_px * 0.5
 	icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	btn.add_child(icon)
 
