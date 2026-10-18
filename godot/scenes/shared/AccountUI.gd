@@ -341,8 +341,7 @@ static func show_choice(layer: CanvasLayer, kind: String, info: Dictionary, done
 			done.call(choice))
 		col.add_child(b)
 		cards.add_child(col)
-		if side[4]:
-			b.call_deferred("grab_focus")
+		# No auto-focus: either button overwrites the other save, so Enter must never pick one by itself.
 	box.add_child(cards)
 	return overlay
 
