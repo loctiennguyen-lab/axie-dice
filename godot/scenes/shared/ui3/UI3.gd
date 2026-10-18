@@ -214,14 +214,14 @@ static func die_tile(face: StringName, value: int, size := &"axie", state := &"n
 	root.set_meta("state", state)
 
 	var holder := Control.new()
-	holder.custom_minimum_size = Vector2(px, px + 12)   # room for the hard side shadow
+	holder.custom_minimum_size = Vector2(maxi(px + 8, 80), px + 12)   # room for the hard side shadow
 	holder.name = "Holder"
 	root.add_child(holder)
 
 	var tile := Panel.new()
 	tile.name = "Tile"
 	tile.size = Vector2.ONE * px
-	tile.position = Vector2(0, -18 if selected else 0)
+	tile.position = Vector2((maxi(px + 8, 80) - px) / 2.0, -18 if selected else 0)
 	tile.pivot_offset = tile.size * 0.5
 	tile.rotation_degrees = 0.0 if selected else tilt
 	tile.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -263,13 +263,15 @@ static func die_tile(face: StringName, value: int, size := &"axie", state := &"n
 	word.name = "Word"
 	word.add_theme_color_override("font_color", UI3Theme.color(String(FACE_WORD_COLOR.get(face, "text"))))
 	word.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	word.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART   # "WEAKEN · used" wraps instead of widening the tile
+	word.custom_minimum_size.x = maxi(px + 8, 80)
 	root.add_child(word)
 
 	if state == &"used" or state == &"disabled":
 		root.modulate.a = 0.4
 		root.focus_mode = Control.FOCUS_NONE
 	else:
-		attach_focus_ring(root, holder)
+		attach_focus_ring(root, tile)
 	return root
 
 
