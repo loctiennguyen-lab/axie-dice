@@ -19,7 +19,8 @@ func _ready() -> void:
 	var econ := load("res://scripts/meta/economy_db.gd") as Script
 	var gem: Dictionary = econ.get_table("gem")
 	var bundles: Array = gem.store.ticket_bundles
-	MetaState.gems_cache = 1000
+	MetaState.gems_cache = 0
+	MetaState.gem_gift_day = ""
 	MetaState.tickets["normal"] = 0
 	var s: StoreScreen = load("res://scenes/store/StoreScreen.tscn").instantiate()
 	s.use_account = false
@@ -29,10 +30,19 @@ func _ready() -> void:
 	await get_tree().process_frame
 	# M7a main state: gift strip, USD buttons disabled
 	_ok((s.find_child("ClaimGift", true, false) as Button).text == "Claim %d Gem" % int(gem.gift.per_day), "gift button from data")
+	_ok(not (s.find_child("ClaimGift", true, false) as Button).disabled, "gift claimable when empty")
+	MetaState.gems_cache = 1000
+	s._refresh()
+	_ok((s.find_child("ClaimGift", true, false) as Button).disabled, "gift disabled when full, says why")
 	_ok((s.find_child("BuyGem", true, false) as Button).disabled, "Buy Gem (USD) disabled in L1")
-	for n in s.GEM_PACKS:
-		var b := s.find_child("Usd_%d" % int(n), true, false) as Button
-		_ok(b != null and b.disabled, "USD pack %d disabled" % int(n))
+	_ok((s.find_child("BuyGem", true, false) as Button).text == StoreScreen.USD_REASON, "Buy Gem says why it is disabled")
+	var packs: Array = gem.store.gem_packs
+	_ok(packs.size() == 6, "6 packs from gem.json")
+	for pk in packs:
+		var b := s.find_child("Usd_%d" % int(pk.gems), true, false) as Button
+		_ok(b != null and b.disabled and b.text == StoreScreen.USD_REASON, "USD pack %d disabled with reason" % int(pk.gems))
+	_ok(s.find_child("Tab_moon", true, false) != null and s.find_child("Tab_cosmetics", true, false) != null, "tabs")
+	_ok(s.find_child("Currencies", true, false) != null, "currency plate")
 	# tickets tab: prices from data, purchase through the wallet
 	s.set_tab("tickets")
 	await get_tree().process_frame
@@ -48,7 +58,8 @@ func _ready() -> void:
 	_ok(s.buy_bundle(int(big.tickets)) == "need 10 more Gem", "short: shows missing amount")
 	_ok(int(MetaState.tickets.normal) == before and MetaState.gem_wallet().balance() == int(big.gems) - 10, "short: nothing changed")
 	s._refresh()
-	_ok((s.find_child("Ticket_%d" % int(big.tickets), true, false) as Button).disabled, "short bundle greyed")
+	var bb := s.find_child("Ticket_%d" % int(big.tickets), true, false) as Button
+	_ok(bb.disabled and bb.text == "need 10 more Gem", "short bundle greyed with reason")
 	# confirm modal focuses Not now
 	MetaState.gems_cache = 5000
 	s.open_confirm("x", "y", 10, func() -> void: pass)
@@ -67,7 +78,8 @@ func _ready() -> void:
 	# moon card disabled
 	s.set_tab("moon")
 	await get_tree().process_frame
-	_ok((s.find_child("MoonBuy", true, false) as Button).disabled, "Moon Card buy disabled")
+	var mb := s.find_child("MoonBuy", true, false) as Button
+	_ok(mb.disabled and mb.text == "Coming soon", "Moon Card buy disabled, says Coming soon")
 	# gift claim once
 	MetaState.gem_gift_day = ""
 	MetaState.gems_cache = 0
