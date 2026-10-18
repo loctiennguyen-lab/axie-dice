@@ -16,8 +16,8 @@ const GROUND_SIZE := 160.0
 
 const BOSS_LIGHT_MUL := 0.72
 const BOSS_FOG_DENSITY := 0.0035
-const BOSS_PORTAL_MUL := 1.2
-const BOSS_PORTAL_Z := -10.0   # pushed back so the 1.3x tower still fits under the frame top
+const BOSS_PORTAL_MUL := 1.15
+const BOSS_PORTAL_Z := -9.6   # pushed back so the 1.3x tower still fits under the frame top
 ## SM_Portal_01 has a detached spire (separate piece, mesh-local y > 7.5) that floats above the tower; dropped.
 const PORTAL_FINIAL_Y := 7.5
 ## Same sun / ambient as the Land hub; a biome only tints these a little (it owns sky + ground).
@@ -200,7 +200,7 @@ func _add_path(b: Dictionary) -> void:
 		tm.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
 		tm.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 		tint = tm
-	var z := 12.0
+	var z := float(registry().get("path_start_z", 0.8))
 	var end_z := float(registry().get("portal", {}).get("z", -15.0)) + float(registry().get("path_end_gap", PATH_END_GAP))   # stop short of the pedestal
 	var zs: Array[float] = []
 	while z > end_z and zs.size() < 40:

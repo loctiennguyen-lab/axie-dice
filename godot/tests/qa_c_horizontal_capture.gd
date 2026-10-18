@@ -74,12 +74,51 @@ func _fight(state: String, node_id: String, kind: String, size: Vector2i) -> voi
 	for _i in 90:
 		await get_tree().process_frame
 	scene._land_dice_now()
+	if OS.get_environment("CAP_DEBUG") != "":
+		var st: Node = scene._stage3d
+		for n in st.find_children("*", "Light3D", true, false):
+			print("DBG light ", n.get_path(), " e=", (n as Light3D).light_energy, " pos=", (n as Node3D).global_position)
+		for n in st.find_children("*", "GPUParticles3D", true, false) + st.find_children("*", "CPUParticles3D", true, false):
+			print("DBG particles ", n.get_path(), " emitting=", n.emitting)
+	if OS.get_environment("CAP_DEBUG") == "3":
+		for uid in scene._stage3d._units:
+			var en: Dictionary = scene._stage3d._units[uid]
+			var vis: Node3D = en["visual"]
+			var bb: AABB = CombatStage3D._model_aabb(vis)
+			var raw: Vector2 = CombatStage3D._visual_bounds(vis)
+			print("DBG unit ", uid, " enemy=", en["is_enemy"], " boss=", en["is_boss"], " vis_y=", vis.global_position.y, " aabb_y=", bb.position.y, "..", bb.end.y, " raw=", raw, " scale=", vis.scale, " atia=", not (en["atia"] as Dictionary).is_empty())
+	if OS.get_environment("CAP_DEBUG") == "2":
+		var st2: Node = scene._stage3d
+		var roller: Node = st2.get_dice_roller()
+		for c in roller.get_children():
+			print("DBG roller child ", c.name, " ", c.get_class())
+		print("DBG roller class ", roller.get_class(), " parent ", roller.get_parent().name)
+		_shot("dbgA", size)
+		var probe := Vector2i(960, 430)
+		var base_c: Color = get_tree().root.get_texture().get_image().get_pixelv(probe)
+		print("DBG base ", base_c)
+		var cands: Array = st2._world.get_children()
+		cands.append_array(st2._world.get_node("Slot_100000").get_children())
+		for c in cands:
+			if not (c is Node3D):
+				continue
+			var was: bool = (c as Node3D).visible
+			(c as Node3D).visible = false
+			await get_tree().process_frame
+			await get_tree().process_frame
+			var col: Color = get_tree().root.get_texture().get_image().get_pixelv(probe)
+			print("DBG hide ", c.name, " -> ", col, " delta=", snappedf(absf(col.r - base_c.r) + absf(col.g - base_c.g) + absf(col.b - base_c.b), 0.001))
+			(c as Node3D).visible = was
+		var ent: Dictionary = st2._units[100000]
+		(ent["visual"] as Node3D).visible = false
+		await get_tree().process_frame
+		_shot("dbgB", size)
 	if state == "eggs":
 		for _k in 3:
 			scene._combat.party.append(scene._combat._mk_ally())
 		scene._sync_unit_visuals()
 		scene._rebuild_all()
-	for _i in 12:
+	for _i in (int(OS.get_environment("CAP_WAIT")) if OS.get_environment("CAP_WAIT") != "" else 12):
 		await get_tree().process_frame
 	if state == "march" or state == "marchluna":
 		scene._play_victory_march()

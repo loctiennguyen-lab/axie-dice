@@ -451,5 +451,6 @@
    }
   }
  },
- "path_end_gap": 2.8
+ "path_end_gap": 0.9,
+ "path_start_z": 0.8
 }

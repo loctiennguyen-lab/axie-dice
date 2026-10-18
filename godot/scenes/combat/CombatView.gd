@@ -459,6 +459,7 @@ func _ready() -> void:
 	# One path builds the board, at t=0 and at every later spawn alike. Two separate paths is
 	# what let units that JOIN a fight (gooey_king's SPLIT, summoner adds, Axie Eggs) ship with
 	# no nameplate, no HP bar and no sound: `_ready()` was the only place that ever built one.
+	_stage3d.set_encounter_kind(String(_setup.get("kind", "")))
 	_sync_unit_visuals()
 
 	# Pick the backdrop from where this fight sits in the run, so an 18-row run reads as a
@@ -2235,13 +2236,10 @@ func _layout_unit_visuals() -> void:
 ## stage's position in this view; returns Vector2(-1, -1) when the unit has no point on screen (dead,
 ## hidden, behind the camera).
 func _status_head_anchor(uid: int, is_party: bool, stage_offset: Vector2) -> Vector2:
-	var head := _stage3d.get_unit_screen_pos(uid, CombatStage3D.HEAD_HEIGHT)
+	var head := _stage3d.get_unit_screen_pos(uid, CombatStage3D.AXIE_HEAD_HEIGHT if is_party else CombatStage3D.HEAD_HEIGHT)
 	if head.x < 0.0:
 		return Vector2(-1, -1)
-	var at := stage_offset + head - Vector2(0, 8.0)
-	if is_party:
-		at.y = minf(at.y, PARTY_ZONE_TOP)   # never into the party row / dice tray
-	return at
+	return stage_offset + head - Vector2(0, 8.0)   # just above the unit's own head, wherever it stands
 
 
 func _layout_status_heads(stage_offset: Vector2) -> void:

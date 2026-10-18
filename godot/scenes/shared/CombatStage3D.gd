@@ -333,17 +333,29 @@ const _POS_Z_ENEMY := -6.5    # far row — enemies, reads as "further back" per
 ## nearest row bottom-left. Enemies: a staggered row on the right. The gate sits beyond them (arena x).
 const PARTY_X0 := -6.7
 const PARTY_PITCH_X := 1.3
-const PARTY_Z_FRONT := 5.6
-const PARTY_Z_BACK := 2.0
-const EGG_X0 := -7.2
+const PARTY_Z_FRONT := 4.4
+const PARTY_Z_BACK := -0.2
+const EGG_X0 := -7.0
 const EGG_PITCH_X := 1.0
-const EGG_Z := 7.2
+const EGG_Z := 6.5
 const ENEMY_CENTER_X := 1.9
-const ENEMY_PITCH_X := 2.5
-const ENEMY_PITCH_X_MANY := 2.1   # 4-5 enemies
-const ENEMY_Z_FRONT := 3.3
+const ENEMY_PITCH_X := 2.4
+const ENEMY_PITCH_X_MANY := 1.75   # 4-5 enemies
+const ENEMY_Z_FRONT := 3.9
 const ENEMY_Z_BACK := 0.5
-const BOSS_POS := Vector3(2.5, 0.0, 2.0)
+const BOSS_POS := Vector3(2.8, 0.0, 1.8)
+const ELITE_POS := Vector3(3.0, 0.0, 0.2)   # spec: one elite, back slot centre-right, bigger
+const ELITE_SCALE := 1.3
+## Other enemies next to a boss or an elite: two on the front line, two on the back line, clear of the big one.
+const ADD_SLOTS: Array[Vector3] = [Vector3(1.4, 0.0, 4.7), Vector3(5.6, 0.0, 4.7), Vector3(-0.4, 0.0, 0.3), Vector3(6.3, 0.0, 0.3)]
+## Z of the path / gate lane. The arena is shifted onto it so the road to the gate runs behind the party, not under it.
+const LANE_Z := -1.8
+var _encounter_kind := ""
+
+
+## "battle" | "elite" | "boss": decides how the enemy side is laid out. Call before units spawn.
+func set_encounter_kind(kind: String) -> void:
+	_encounter_kind = kind
 
 ## Facing fix (bug report: "Axie đang quay mặt về camera, muốn quay lưng lại tiến lên đánh
 ## boss"). AxieCharacter3D's default forward is NOT documented in this addon's own README, so
@@ -391,6 +403,7 @@ const _CLICK_TARGET_HEIGHT := 0.9   # world-space Y offset added to a unit's slo
 const FEET_HEIGHT := 0.0
 const CHEST_HEIGHT := _CLICK_TARGET_HEIGHT
 const HEAD_HEIGHT := 1.55
+const AXIE_HEAD_HEIGHT := 1.3   ## status chips of party Axies sit just above the real head
 
 ## Per-face-type action clip/pace table (ui-programmer follow-up pass — user report: "chỉ dùng
 ## WalkAttack cho MỌI hành động — nhàm chán"). Face `type` strings are exactly the rule spec's die-
@@ -622,6 +635,7 @@ func set_arena(biome_id: String, boss: bool = false) -> bool:
 	if _arena == null:
 		_arena = CombatArena3D.new()
 		_arena.name = "Arena"
+		_arena.position = Vector3(0.0, 0.0, LANE_Z)
 		_arena.rotation_degrees.y = -90.0   # arena is authored along -Z; the fight runs along +X (arena z -> world -x)
 		_world.add_child(_arena)
 		_world.move_child(_arena, 0)
@@ -837,8 +851,8 @@ func spawn_unit(uid: int, cls: String, is_enemy: bool, slot_index: int, slot_cou
 			shadow_width = _CAPSULE_SHADOW_WIDTH_M * (_BOSS_SCALE if is_named_boss else 1.0)
 
 	if is_egg and visual != null:
-		visual.scale *= 0.7   # tokens read smaller than the Axies they sit beside
-		shadow_width *= 0.7
+		visual.scale *= 0.62   # tokens read smaller than the Axies they sit beside
+		shadow_width *= 0.62
 	var shadow := _make_ground_shadow(shadow_width)
 	slot.add_child(shadow)
 
@@ -1089,7 +1103,7 @@ func _make_enemy_sprite(texture: Texture2D, target_height: float) -> Sprite3D:
 	var sprite := Sprite3D.new()
 	sprite.texture = texture
 	sprite.centered = true
-	sprite.billboard = BaseMaterial3D.BILLBOARD_ENABLED
+	sprite.billboard = BaseMaterial3D.BILLBOARD_FIXED_Y   # stays upright: a full billboard tilts back with the 3/4 camera and lifts its feet off the floor
 	sprite.shaded = false
 	sprite.double_sided = true
 	var tex_h := float(texture.get_height())
@@ -1138,28 +1152,55 @@ func _build_parts(cls: String) -> Array[AxiePartDescriptor]:
 ## newcomer is placed as if the row were one shorter and lands on top of a unit already there.
 ## Called after every spawn, so the row is correct by construction rather than only at t=0.
 func reseat_side(uids: Array, is_enemy: bool) -> void:
-	# Eggs (party tokens) get their own row; Axies are indexed among themselves; a boss stands alone.
+	# Eggs (party tokens) get their own row; Axies are indexed among themselves. Enemies: a boss stands
+	# alone, an elite fight puts the first enemy in the back-centre slot (bigger), everyone else takes
+	# the add slots; plain fights use one staggered row (pitch widens with the count, so none overlap).
 	var axie_uids: Array = []
 	var egg_uids: Array = []
-	var boss_uids: Array = []
+	var lead_uid := -1
 	for uid in uids:
 		var entry0: Dictionary = _units.get(int(uid), {})
 		if entry0.is_empty():
 			continue
 		if bool(entry0.get("is_egg", false)):
 			egg_uids.append(uid)
-		elif bool(entry0.get("is_boss", false)) and is_enemy:
-			boss_uids.append(uid)
+		elif is_enemy and (bool(entry0.get("is_boss", false)) or (_encounter_kind == "elite" and lead_uid < 0)):
+			if lead_uid < 0 or bool(entry0.get("is_boss", false)):
+				lead_uid = int(uid)
+			else:
+				axie_uids.append(uid)
 		else:
 			axie_uids.append(uid)
-	for group in [axie_uids, egg_uids, boss_uids]:
-		for i in (group as Array).size():
-			var entry: Dictionary = _units.get(int(group[i]), {})
-			var slot: Node3D = entry["slot"]
-			if is_instance_valid(slot):
-				slot.position = _slot_position(is_enemy, i, (group as Array).size(), group == boss_uids, group == egg_uids)
-				entry["rest_pos"] = slot.position   # the lunge's home moved with it
-				entry["is_enemy"] = is_enemy
+	var has_lead := lead_uid >= 0
+	for uid in axie_uids.duplicate():
+		if int(uid) == lead_uid:
+			axie_uids.erase(uid)
+	var placed: Array = []   # [uid, position]
+	if lead_uid >= 0:
+		var lead_entry: Dictionary = _units[lead_uid]
+		var is_boss: bool = bool(lead_entry.get("is_boss", false))
+		placed.append([lead_uid, BOSS_POS if is_boss else ELITE_POS])
+		if not is_boss and not bool(lead_entry.get("elite_scaled", false)):
+			lead_entry["elite_scaled"] = true
+			var v: Node3D = lead_entry.get("visual")
+			if is_instance_valid(v):
+				v.scale *= ELITE_SCALE
+	for i in axie_uids.size():
+		var pos: Vector3
+		if is_enemy and has_lead:
+			pos = ADD_SLOTS[i % ADD_SLOTS.size()] + Vector3(1.2, 0.0, 0.0) * float(i / ADD_SLOTS.size())
+		else:
+			pos = _slot_position(is_enemy, i, axie_uids.size())
+		placed.append([axie_uids[i], pos])
+	for i in egg_uids.size():
+		placed.append([egg_uids[i], _slot_position(false, i, egg_uids.size(), false, true)])
+	for pl in placed:
+		var entry: Dictionary = _units.get(int(pl[0]), {})
+		var slot: Node3D = entry["slot"]
+		if is_instance_valid(slot):
+			slot.position = pl[1]
+			entry["rest_pos"] = slot.position   # the lunge's home moved with it
+			entry["is_enemy"] = is_enemy
 
 
 func has_unit(uid: int) -> bool:
