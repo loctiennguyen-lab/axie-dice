@@ -48,6 +48,18 @@ func _make(sc: String) -> Node:
 			s.state = "guest"
 			s.refresh()
 		return s
+	if sc.begins_with("echo"):
+		MetaState.tickets = {"normal": 0 if sc == "echo-none" else 3}
+		MetaState.shard_pool = 900
+		var es: EchoBoxScreen = load("res://scenes/echobox/EchoBoxScreen.tscn").instantiate()
+		es.use_account = false
+		es.no_scene_change = true
+		es.instant = true
+		add_child(es)
+		await get_tree().process_frame
+		if sc == "echo-seasonal":
+			es.select_tab("seasonal")
+		return es
 	if sc.begins_with("vault"):
 		MetaState.vault.clear()
 		if sc != "vault-empty":
