@@ -141,7 +141,7 @@ var _plot_marks := {}                # id -> Control
 var _house_defs := {}                # house_id -> dictionary from houses.json
 var _run_plate: Button
 var _toast: PanelContainer
-var _toast_tween: Tween
+var _toasts: Array = []
 var _modal: Control
 var _moon_card: Node   # Moon Card popup while it is open (has_modal)
 var _has_run := false
@@ -1288,33 +1288,48 @@ func _build_banners() -> void:
 
 func _on_retry() -> void:
 	if _detect_offline():
-		_show_toast("Still offline")
+		_show_toast("Still offline", 1.6, &"error")
 		return
 	qa.erase("offline")
 	get_tree().reload_current_scene()
 
 
 func _build_toast() -> void:
-	_toast = PanelContainer.new()
-	_toast.visible = false
-	_toast.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	_toast.add_theme_stylebox_override("panel", _style(DangoTheme.Surface.CREAM, 14, 3, Vector2(18, 8), INK_PLATE))
-	_toast.add_child(_lbl("", 17, DangoTheme.INK))
-	_ui.add_child(_toast)
+	# UI-03 18-system: the toast is rebuilt per message by _show_toast (UI3.toast, top-centre 24 px down).
+	_toast = null
 
 
-func _show_toast(text: String, hold: float = 1.6) -> void:
-	(_toast.get_child(0) as Label).text = text
-	_toast.visible = true
-	_toast.modulate.a = 1.0
-	_toast.reset_size()
-	_toast.position = Vector2((_ui.size.x - _toast.size.x) * 0.5, 180)
-	if _toast_tween != null:
-		_toast_tween.kill()
-	_toast_tween = create_tween()
-	_toast_tween.tween_interval(hold)
-	_toast_tween.tween_property(_toast, "modulate:a", 0.0, 0.4)
-	_toast_tween.tween_callback(func() -> void: _toast.visible = false)
+func _show_toast(text: String, hold: float = 1.6, tone: StringName = &"ok") -> void:
+	# Stack of at most 3, top-centre, 24 px from the top, 8 px gap (UI-03 18-system).
+	_toasts = _toasts.filter(func(t: Variant) -> bool: return is_instance_valid(t))
+	while _toasts.size() >= 3:
+		(_toasts.pop_front() as Node).queue_free()
+	var tw_node := UI3.toast(text, tone)
+	tw_node.name = "Toast"
+	tw_node.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_ui.add_child(tw_node)
+	_toasts.append(tw_node)
+	_toast = tw_node
+	_layout_toasts()
+	var tw := create_tween()
+	tw.tween_interval(hold)
+	tw.tween_property(tw_node, "modulate:a", 0.0, 0.4)
+	tw.tween_callback(func() -> void:
+		if is_instance_valid(tw_node):
+			tw_node.queue_free()
+		_toasts.erase(tw_node)
+		_layout_toasts())
+
+
+func _layout_toasts() -> void:
+	var y := 24.0
+	for t in _toasts:
+		if not is_instance_valid(t) or t.is_queued_for_deletion():
+			continue
+		var c := t as Control
+		c.reset_size()
+		c.position = Vector2((_ui.size.x - c.size.x) * 0.5, y)
+		y += c.size.y + 8.0
 
 
 func _fmt(v: int) -> String:
@@ -1474,7 +1489,7 @@ func _on_continue_pressed() -> void:
 		RunState.clear_saved_run()
 		_has_run = false
 		_new_run_btn.visible = false
-		_show_toast("That run could not be loaded")
+		_show_toast("That run could not be loaded", 1.6, &"error")
 		return
 	var st: String = await RunContinue.reconnect(self, _on_continue_pressed,
 			find_child("RunPlate", true, false) as BaseButton)
@@ -1517,94 +1532,35 @@ func _end_run_and_setup() -> void:
 	LandNav.open(&"run_setup")
 
 
-func _open_confirm(title: String, body: String, ok_text: String, on_ok: Callable, warning: bool = false,
-		cancel_text: String = "Cancel", loss: Array = [], head: Color = Color(0, 0, 0, 0)) -> void:
+func _open_confirm(title: String, body: String, ok_text: String, on_ok: Callable, _warning: bool = false,
+		cancel_text: String = "Cancel", loss: Array = [], _head: Color = Color(0, 0, 0, 0)) -> void:
 	if _modal != null:
 		return
-	_modal = Control.new()
-	_modal.name = "Confirm"
-	_modal.set_anchors_preset(Control.PRESET_FULL_RECT)
-	var dim := ColorRect.new()
-	dim.color = Color(0.14, 0.08, 0.04, 0.58)
-	dim.set_anchors_preset(Control.PRESET_FULL_RECT)
-	_modal.add_child(dim)
-	var center := CenterContainer.new()
-	center.set_anchors_preset(Control.PRESET_FULL_RECT)
-	_modal.add_child(center)
-	var panel := PanelContainer.new()
-	panel.custom_minimum_size = Vector2(720, 0)
-	var psb := _style(DangoTheme.Surface.CREAM, 28, 4, Vector2(0, 0), Color("8A3E22"))
-	psb.set_content_margin_all(0)
-	psb.set_expand_margin_all(0)
-	panel.add_theme_stylebox_override("panel", psb)
-	panel.clip_contents = true
-	center.add_child(panel)
-	var outer := VBoxContainer.new()
-	outer.add_theme_constant_override("separation", 0)
-	panel.add_child(outer)
-	if head.a > 0.0:
-		var hb := PanelContainer.new()
-		var hsb := StyleBoxFlat.new()
-		hsb.bg_color = head
-		hsb.content_margin_left = 26
-		hsb.content_margin_right = 26
-		hb.add_theme_stylebox_override("panel", hsb)
-		hb.custom_minimum_size = Vector2(0, 64)
-		var ht := _lbl(title, 28, Color("FFF8EA"))
-		ht.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
-		hb.add_child(ht)
-		outer.add_child(hb)
-	var mg := MarginContainer.new()
-	mg.add_theme_constant_override("margin_left", 26)
-	mg.add_theme_constant_override("margin_right", 26)
-	mg.add_theme_constant_override("margin_top", 22)
-	mg.add_theme_constant_override("margin_bottom", 24)
-	outer.add_child(mg)
-	var v := VBoxContainer.new()
-	v.add_theme_constant_override("separation", 16)
-	mg.add_child(v)
-	if head.a <= 0.0:
-		v.add_child(_lbl(title, 26, DangoTheme.INK))
-	var msg := _lbl(body, 18, DangoTheme.INK, false)
-	msg.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	msg.custom_minimum_size = Vector2(660, 0)
-	v.add_child(msg)
-	if loss.size() >= 2:
-		var lb := PanelContainer.new()
-		lb.add_theme_stylebox_override("panel", _style(DangoTheme.Surface.CREAM, 14, 3, Vector2(16, 12), INK_PLATE))
-		var lv := VBoxContainer.new()
-		lv.add_theme_constant_override("separation", 2)
-		lv.add_child(_lbl(String(loss[0]), 20, DangoTheme.INK))
-		lv.add_child(_lbl(String(loss[1]), 14, DangoTheme.INK_ON_CREAM_MUTED, false))
-		lb.add_child(lv)
-		v.add_child(lb)
-	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", 16)
-	v.add_child(row)
-	var cancel := Button.new()
+	# UI-03 18-system: UI3.modal (560 w dialog). Destructive (`loss` given) = red button + focus on Cancel;
+	# otherwise amber primary + focus on the primary action.
+	var destructive := loss.size() >= 2
+	var cancel := UI3.button(cancel_text, &"secondary")
 	cancel.name = "ConfirmCancel"
-	cancel.text = cancel_text
-	cancel.custom_minimum_size = Vector2(0, 62)
-	cancel.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	DangoTheme.style_button(cancel, loss.size() >= 2)
-	cancel.add_theme_font_size_override("font_size", 22)
 	cancel.pressed.connect(_close_modal)
-	var ok := Button.new()
+	var ok := UI3.button(ok_text, &"danger" if destructive else &"primary")
 	ok.name = "ConfirmOk"
-	ok.text = ok_text
-	ok.custom_minimum_size = Vector2(0, 62)
-	ok.size_flags_horizontal = Control.SIZE_EXPAND_FILL
-	DangoTheme.style_button(ok, loss.size() < 2, warning and loss.size() < 2)
-	ok.add_theme_font_size_override("font_size", 22)
-	if loss.size() >= 2:
-		ok.add_theme_color_override("font_color", Color("A3261A"))
-		ok.add_theme_color_override("font_hover_color", Color("A3261A"))
-		ok.add_theme_color_override("font_focus_color", Color("A3261A"))
 	ok.pressed.connect(on_ok)
-	row.add_child(cancel)
-	row.add_child(ok)
+	var m := UI3.modal(title, body, [cancel, ok], 0 if destructive else 1)
+	m.name = "Confirm"
+	m.cancelled.connect(_close_modal)
+	if destructive:
+		var row := ok.get_parent()
+		var lb := UI3.plate(&"row")
+		lb.name = "LossRow"
+		lb.custom_minimum_size = Vector2(0, 48)
+		var lv := VBoxContainer.new()
+		lv.add_child(UI3.label(String(loss[0])))
+		lv.add_child(UI3.label(String(loss[1]), "LabelMuted"))
+		lb.add_child(lv)
+		row.get_parent().add_child(lb)
+		row.get_parent().move_child(lb, row.get_index())
+	_modal = m
 	_ui.add_child(_modal)
-	cancel.grab_focus()
 
 
 ## True while anything the hub shows over the land is open: the confirm dialog, the net notice (RunContinue

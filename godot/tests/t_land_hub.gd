@@ -184,6 +184,8 @@ func _ready() -> void:
 	await get_tree().process_frame
 	var okb := h3.find_child("ConfirmOk", true, false) as Button
 	_check(okb != null, "C4: mission new-run opens the abandon confirm")
+	_check(h3.find_child("Confirm", true, false) is UI3.ModalRoot, "UI3: the confirm is a UI3 modal (560 dialog, scrim)")
+	_check(h3.find_child("Dialog", true, false).custom_minimum_size.x == 560.0, "UI3: confirm dialog 560 wide")
 	if okb != null:
 		_check(not MetaState.mission_escrow.is_empty(), "C4: escrow still open before confirming")
 		okb.emit_signal("pressed")
@@ -194,6 +196,13 @@ func _ready() -> void:
 			if String(l.get("r", "")) == "mission_loss_N1":
 				lost = true
 		_check(lost, "C4: mission counted as a loss in the ledger")
+	h3.call("_show_toast", "one", 5.0)
+	h3.call("_show_toast", "two", 5.0, &"error")
+	await get_tree().process_frame
+	var tl: Array = h3.get("_toasts")
+	_check(tl.size() == 2 and is_equal_approx((tl[0] as Control).position.y, 24.0), "UI3: first toast 24 px from the top")
+	_check(is_equal_approx((tl[1] as Control).position.y, 24.0 + (tl[0] as Control).size.y + 8.0), "UI3: toasts stack with an 8 px gap")
+	_check(h3.find_child("LossRow", true, false) == null or (h3.find_child("LossRow", true, false) as Control).custom_minimum_size.y >= 48.0, "UI3: loss row at least 48 high")
 	h3.queue_free()
 	await get_tree().process_frame
 	MetaState.shard_pool = sp0
