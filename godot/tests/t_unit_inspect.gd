@@ -47,6 +47,7 @@ func _ready() -> void:
 	test_the_panel_lists_all_six_faces_with_live_values()
 	test_selecting_a_die_then_clicking_an_enemy_still_attacks()
 	test_the_inspector_closes_and_leaves_nothing_behind()
+	test_inspect_with_a_die_selected_changes_nothing()
 
 	print("=== t_unit_inspect: %d checks, %d failure(s) ===" % [_checks, _failures.size()])
 	if _failures.is_empty():
@@ -147,10 +148,10 @@ func test_clicking_an_enemy_with_no_die_selected_opens_the_inspector() -> void:
 		"clicking an enemy with no die selected did not open the inspector — that click used "
 		+ "to do nothing at all, which is the gap this closes")
 	var text := _panel_text()
-	_assert(text.find(enemy.n.to_upper()) != -1,
+	_assert(text.to_lower().find(enemy.n.to_lower()) != -1,
 		"the panel does not name the unit it was opened for ('%s'); it shows:\\n%s"
 			% [enemy.n, text])
-	_assert(text.find("ALL SIX FACES") != -1,
+	_assert(text.to_lower().find("all six faces") != -1,
 		"the panel has no face section — the whole point is reading the enemy's die")
 	_view._close_unit_inspect()
 
@@ -190,36 +191,19 @@ func test_the_panel_lists_all_six_faces_with_live_values() -> void:
 	enemy.growth.erase(target_face)
 
 
-## Face rows are the HBoxContainers under the panel that carry a type icon.
+## Face rows are the focusable cells named FaceRow (UI-03 screen 42), one per face.
+func _face_rows() -> int:
+	var n := 0
+	for c in get_tree().get_nodes_in_group("inspect_face_row"):
+		if _view._inspect_panel != null and _view._inspect_panel.is_ancestor_of(c):
+			n += 1
+	return n
+
+
 func _count_face_rows() -> int:
 	if _view._inspect_panel == null:
 		return 0
-	# CB-30 sizes the inspector's face row as "a 32px part tile" holding a 22px icon. This used
-	# to look for a 20x20 TextureRect, which was the pre-v2 size — the rows were all there and
-	# the gate reported zero of them.
-	var rows := 0
-	var stack: Array = [_view._inspect_panel]
-	while not stack.is_empty():
-		var n: Node = stack.pop_back()
-		if n is HBoxContainer:
-			for c in n.get_children():
-				if _is_face_part_tile(c):
-					rows += 1
-					break
-		for c in n.get_children():
-			stack.append(c)
-	return rows
-
-
-## The 32px part tile of a CB-30 face row: a PanelContainer that size, carrying a 22px icon.
-func _is_face_part_tile(n: Node) -> bool:
-	var panel := n as PanelContainer
-	if panel == null or panel.custom_minimum_size != Vector2(32, 32):
-		return false
-	for c in panel.find_children("*", "TextureRect", true, false):
-		if (c as TextureRect).custom_minimum_size == Vector2(22, 22):
-			return true
-	return false
+	return _face_rows()
 
 
 ## THE ONE THAT MATTERS. The inspector rides the same handler as targeting, reached from both
@@ -272,6 +256,29 @@ func test_the_inspector_closes_and_leaves_nothing_behind() -> void:
 			% [_count_inspect_layers(), layers_open]
 		+ "each one keeps a full-screen click blocker alive")
 	_view._close_unit_inspect()
+
+
+## Screen 42: it reads state and changes none, and a selected die stays selected.
+func test_inspect_with_a_die_selected_changes_nothing() -> void:
+	var picker: Unit = null
+	for u in _view._combat.alive_party():
+		if u.has_rolled() and not u.roll_used():
+			picker = u
+			break
+	if picker == null:
+		return
+	var enemy: Unit = _view._combat.alive_enemies()[0]
+	_view._selected_die_uid = picker.uid
+	var hp := enemy.hp
+	var used := picker.roll_used()
+	_view._open_unit_inspect(enemy.uid)
+	_assert(_view._inspect_panel != null, "inspector did not open with a die selected")
+	_assert(_view._selected_die_uid == picker.uid, "opening the inspector dropped the selected die")
+	_assert(enemy.hp == hp and picker.roll_used() == used, "opening the inspector changed game state")
+	_assert(_face_rows() == 6, "six face rows")
+	_view._close_unit_inspect()
+	_assert(_view._selected_die_uid == picker.uid, "closing the inspector dropped the selected die")
+	_view._selected_die_uid = -1
 
 
 func _count_inspect_layers() -> int:
