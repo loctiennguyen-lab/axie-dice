@@ -911,14 +911,36 @@ func _spacer(h: float) -> Control:
 
 func _on_node_entered(node_type: String, node_id: String) -> void:
 	match node_type:
-		"battle", "elite", "boss":
+		"battle", "elite":
 			get_tree().change_scene_to_file("res://scenes/combat/Combat.tscn")
+		"boss":
+			_enter_boss_fight()
 		"event":
 			_on_event_node(node_id)
 		"shop":
 			_on_shop_node(node_id)
 		"treasure":
 			_on_treasure_node(node_id)
+
+
+## Boss node: the full boss intro (always, no seen flag), then Combat. Purely presentational: the node is
+## already entered in RunState, so nothing here calls a rule or draws a seed. Resume/Continue never comes
+## through here (it loads Combat.tscn directly), so a resumed boss fight has no intro.
+func _enter_boss_fight() -> void:
+	var key := String(RunState.pending_combat.get("boss_key", ""))
+	var intro := BossIntro.new()
+	if key == "" or not intro.setup(key):
+		intro.free()
+		push_warning("BossIntro: no art for boss '%s', going straight to combat" % key)
+		get_tree().change_scene_to_file("res://scenes/combat/Combat.tscn")
+		return
+	var layer := CanvasLayer.new()
+	layer.name = "BossIntroLayer"
+	layer.layer = 100
+	add_child(layer)
+	layer.add_child(intro)
+	intro.finished.connect(func() -> void:
+		get_tree().change_scene_to_file("res://scenes/combat/Combat.tscn"))
 
 
 ## Finishes a node: closes the overlay, calls RunState.after_node(), then refreshes the map
