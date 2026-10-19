@@ -58,7 +58,7 @@ func _ready() -> void:
 					row = int(graph.boss_rows[0])
 					knd = "boss"
 				await _fight(st, _find(graph, row, knd), knd, size)
-		for st in ["e1", "e3", "e5", "bosssum", "eggs4", "throw11"]:
+		for st in ["e1", "e3", "e5", "bosssum", "eggs4", "throw11", "throw9"]:
 			if _want(st):
 				await _fight(st, _find(graph, int(graph.boss_rows[0]), "boss") if st == "bosssum" else _find(graph, 3, "battle"), "boss" if st == "bosssum" else "battle", size)
 		if _want("throw"):
