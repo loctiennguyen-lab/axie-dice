@@ -3,7 +3,8 @@
 Headless and reproducible:
   Blender -b --factory-startup -P tools/art/chimera/build_tempest.py -- \
       --src "<.../Tempest (Bird)/3D/tempest_ai.glb>" --out godot/assets/bosses/chimera_tempest
-Options: --blend <file.blend> saves the rigged source; --cache <dir> reuses/creates the baked
+Note: the --src and --out defaults below are machine-local (Liam's asset-library and /tmp); always pass
+both explicitly. Options: --blend <file.blend> saves the rigged source; --cache <dir> reuses/creates the baked
 low-poly (the decimate+bake step is the slow part); --ratio 0.05 (decimate); --tex 2048.
 
 Blender space: metres, Z up, the bird faces -Y, wings spread along X. The mesh is centred on
