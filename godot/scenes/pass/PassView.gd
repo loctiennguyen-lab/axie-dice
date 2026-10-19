@@ -582,14 +582,16 @@ func _cosmetic_reward_block(v: VBoxContainer, cos_id: String, st: String) -> voi
 	strip.color = DiceSkin.tier_color(tier)
 	strip.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	v.add_child(strip)
+	# Compact on purpose: strip, a 64 px art box, a one-line name and the tier word, so the tile is only about 25 px
+	# taller than a normal one and its button stays visible whenever the row's top is.
 	var box := Panel.new()
 	box.name = "ArtBox"
-	box.custom_minimum_size = Vector2(0, 120)
+	box.custom_minimum_size = Vector2(0, 64)
 	box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	box.clip_contents = true
 	box.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	box.add_theme_stylebox_override("panel", UI3Theme.flat(UI3Theme.color("panel_raised"), UI3Theme.radius("s")))
-	var art := CosmeticTile.art(cos_id, 104.0)
+	var art := CosmeticTile.art(cos_id, 56.0)
 	if art != null:
 		art.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		art.modulate.a = 0.4 if st == "locked" or st == "next" else (0.5 if st == "claimed" else 1.0)
@@ -603,11 +605,15 @@ func _cosmetic_reward_block(v: VBoxContainer, cos_id: String, st: String) -> voi
 	nm.name = "RewardName"
 	nm.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	nm.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	nm.clip_text = true
+	nm.add_theme_font_size_override("font_size", 18)
 	nm.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	v.add_child(nm)
 	var tw := UI3.label(DiceSkin.TIER_NAMES.values()[clampi(tier, 0, 5)])
 	tw.name = "RewardTier"
 	tw.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	tw.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	tw.clip_text = true
 	tw.add_theme_color_override("font_color", DiceSkin.tier_text_color(tier))
 	tw.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	v.add_child(tw)

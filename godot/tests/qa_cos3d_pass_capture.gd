@@ -15,7 +15,7 @@ func _shot(name: String) -> void:
 func _ready() -> void:
 	_guard.capture()
 	MetaState.pass_season = PassV2.new_state("s1")
-	MetaState.pass_season["xp"] = 9000
+	MetaState.pass_season["xp"] = 19500   # level 22: lv 9 claimed below, lv 21 claimable, lv 25 locked
 	MetaState.pass_season["level"] = 22
 	var s: PassView = load("res://scenes/pass/Pass.tscn").instantiate()
 	s.use_account = false
@@ -30,7 +30,7 @@ func _ready() -> void:
 		sc.scroll_vertical = 205
 	await _shot("lv9")
 	if sc != null:
-		sc.scroll_vertical = 640
+		sc.scroll_vertical = 612
 	await _shot("lv21")
 	_guard.restore()
 	get_tree().quit(0)
