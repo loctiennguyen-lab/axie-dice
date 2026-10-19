@@ -92,6 +92,12 @@ func _ready() -> void:
 	await get_tree().process_frame
 	var bb: Node = dp.find_child("BossBlock", true, false)
 	_check(bb != null and _texts(bb, []).has("50% left · phase 2 of 3"), "boss block text")
+	boss["boss"] = {"name": "Frost Lord", "hp": 50, "max_hp": 100, "phase": 1, "phases": 1, "spike_in": 0,
+		"marks": [0.66, 0.33]}
+	dp.show_defeat(boss)
+	await get_tree().process_frame
+	bb = dp.find_child("BossBlock", true, false)
+	_check(bb != null and _texts(bb, []).has("50% left"), "one-phase boss: no phase text")
 
 	for f in _fails:
 		print("t_defeat_panel: FAIL — %s" % f)

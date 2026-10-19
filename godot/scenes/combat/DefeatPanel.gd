@@ -130,8 +130,10 @@ func _boss_block(boss: Dictionary) -> Control:
 	top.add_child(nm)
 	var hp := int(boss.get("hp", 0))
 	var mx := maxi(int(boss.get("max_hp", 1)), 1)
-	var line := UI3.label("%d%% left · phase %d of %d" % [int(round(100.0 * hp / mx)),
-		int(boss.get("phase", 1)), int(boss.get("phases", 3))])
+	var left := "%d%% left" % int(round(100.0 * hp / mx))
+	if int(boss.get("phases", 1)) > 1:   # one-phase bosses: no "phase 1 of 1" (Liam 20/10)
+		left += " · phase %d of %d" % [int(boss.get("phase", 1)), int(boss.get("phases", 1))]
+	var line := UI3.label(left)
 	top.add_child(line)
 	v.add_child(UI3.phase_bar(hp, mx, boss.get("marks", [])))
 	if int(boss.get("spike_in", 0)) > 0:
