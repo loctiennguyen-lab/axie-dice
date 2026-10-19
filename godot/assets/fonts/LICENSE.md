@@ -23,4 +23,4 @@ recorded, approved deviation from Dango's Work Sans — the reason is that a neu
 grotesk on black-outlined flat-tone cards reads as a dashboard, not as Lunacia.
 
 Do not add a third family, and do not set a font on an individual `Label`: everything
-goes through `res://resources/theme/dango.tres`, whose fonts are these files.
+goes through the UI3 theme (`UI3Theme`), whose fonts are these files.

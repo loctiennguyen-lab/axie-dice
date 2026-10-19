@@ -22,6 +22,10 @@ check() { local name="$1"; shift; if "$@"; then ok "$name"; else bad "$name"; fi
 no_procs() { ! pgrep -f "$1" >/dev/null 2>&1; }      # không còn tiến trình nào khớp
 lock_gone() { [[ ! -e "$AXIE_GODOT_LOCK" ]]; }
 lock_has() { [[ -d "$AXIE_GODOT_LOCK" ]]; }
+# Chờ có điều kiện, tối đa 10s (50 x 0.2s). Không chờ vô hạn. Hết giờ thì trả 1 để test báo FAIL.
+wait_until() { local i; for i in $(seq 1 50); do "$@" && return 0; sleep 0.2; done; return 1; }
+proc_up() { pgrep -f "$1" >/dev/null 2>&1; }          # có tiến trình khớp chuỗi $1
+save_changed() { [[ "$(cat "$AXIE_SAVE_DIR/meta_save.json" 2>/dev/null)" == CHANGED ]]; }
 
 reset_save() {   # save giả: meta_save.json, acct/x
   rm -rf "$AXIE_GODOT_LOCK" "$AXIE_SAVE_DIR" "$S/par" "$S/fake"
@@ -106,7 +110,7 @@ rm -rf "$AXIE_GODOT_LOCK"
 echo "== TERM vào with_lock: diệt cả cây (sleep cháu), nhả khoá, trả save"
 reset_save
 "$WL" bash "$S/suite.sh" 317 >/dev/null 2>&1 & wp=$!
-sleep 1.5
+wait_until proc_up "sleep 317" || bad "sleep 317 chưa lên sau 10s"
 kill -TERM "$wp" 2>/dev/null; wait "$wp"; rc=$?
 check "thoát 143 khi bị TERM" test "$rc" -eq 143
 check "không còn 'sleep 317' mồ côi" no_procs "sleep 317"
@@ -117,7 +121,7 @@ reset_save
 python3 -c 'import signal,os,sys
 signal.signal(signal.SIGINT, signal.SIG_DFL)
 os.execvp("bash", ["bash", sys.argv[1], "bash", sys.argv[2], "318"])' "$WL" "$S/suite.sh" >/dev/null 2>&1 & ip=$!
-sleep 1.5
+wait_until proc_up "sleep 318" || bad "sleep 318 chưa lên sau 10s"
 kill -INT "$ip" 2>/dev/null; wait "$ip"; rc=$?
 check "thoát 130 khi bị INT" test "$rc" -eq 130
 check "không còn 'sleep 318' mồ côi" no_procs "sleep 318"
@@ -133,7 +137,7 @@ check "khoá được nhả" lock_gone
 echo "== save được trả lại khi bị TERM giữa chừng"
 reset_save
 "$WL" bash "$S/writer.sh" 320 >/dev/null 2>&1 & wp=$!
-sleep 1.5
+wait_until save_changed || bad "game giả chưa ghi save sau 10s"
 check "trong lúc chạy, save đã bị game ghi đè" test "$(cat "$AXIE_SAVE_DIR/meta_save.json")" = CHANGED
 kill -TERM "$wp" 2>/dev/null; wait "$wp" 2>/dev/null
 check "sau TERM: meta_save.json trả về ORIG" meta_is_orig
@@ -144,7 +148,7 @@ check "không còn 'sleep 320' mồ côi" no_procs "sleep 320"
 echo "== chủ khoá bị SIGKILL: người tiếp quản trả save trước khi chạy"
 reset_save
 "$WL" bash "$S/writer.sh" 321 >/dev/null 2>&1 & wp=$!
-sleep 1.5
+wait_until save_changed || bad "game giả chưa ghi save sau 10s"
 kill -9 "$wp" 2>/dev/null; wait "$wp" 2>/dev/null
 check "sau SIGKILL, save còn bị ghi (chưa ai trả)" test "$(cat "$AXIE_SAVE_DIR/meta_save.json")" = CHANGED
 out="$("$WL" bash -c 'echo next' 2>&1)"

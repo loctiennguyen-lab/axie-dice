@@ -41,11 +41,14 @@ config/custom_user_dir_name="AxieDice-wt-<làn>"
 ```
 
 Godot 4.7.2 đọc file này ở thư mục project (đã kiểm: headless báo user dir `~/Library/Application Support/AxieDice-wt-<làn>`; bỏ file thì về `app_userdata/Axie Dice (Godot port)`). Hệ quả:
-- Save/test của worktree nằm ở user dir riêng, KHÔNG còn chạm save thật của Liam ở `app_userdata/Axie Dice (Godot port)`. Cây chính (không có override.cfg) giữ hành vi cũ.
+- Save/test của worktree nằm ở user dir riêng, KHÔNG còn chạm save thật của Liam ở `app_userdata/Axie Dice`. Cây chính cũng vậy (19/10): xem mục "Cây chính: override.cfg tạm" bên dưới.
 - Khoá cũng riêng theo worktree: `~/Library/Caches/axie-dice-godot-AxieDice-wt-<làn>.lock`. Các làn không xếp hàng chung nữa. Chỉ cây chính (làn I, save thật) dùng khoá chung `axie-dice-godot.lock`. Logic suy ra user dir + khoá nằm ở `godot/tools/userdir.sh`, dùng chung cho `with_lock.sh` và `run_tests.sh`.
 - User dir mới trống = như máy cài mới. Muốn có save mẫu thì chép tay vào thư mục đó.
 - Worktree mới tạo sau này: tự tạo `godot/override.cfg` như trên (tên khác nhau cho mỗi worktree, đừng dùng chung tên).
 - Làn R: file override.cfg không được vào bản build. Trước khi export, kiểm gói export không chứa nó (hoặc build từ cây không có file này).
+- **Cây chính: override.cfg tạm (19/10).** Cây chính không có (và không được giữ cố định) `godot/override.cfg`, vì nó không được vào bản export. Thay vào đó mọi lần chạy Godot qua `with_lock.sh` / `run_tests.sh` ở một cây chưa có user dir riêng đều tự dùng `AxieDice-test-<tên thư mục repo>` (cây chính: `~/Library/Application Support/AxieDice-test-my-game`, khoá `axie-dice-godot-AxieDice-test-my-game.lock`). Cách làm: `with_lock.sh` ghi `godot/override.cfg` tạm (dòng đầu `; axie-temp-override`) sau khi giữ khoá và xoá khi xong, kể cả khi bị kill; file sót lại do SIGKILL được lần chạy sau nhận lại và xoá. Godot 4.7 không có cờ dòng lệnh đặt project setting nên override.cfg cạnh project.godot là đường duy nhất. `run_tests.sh` từ chối chạy (exit 2) nếu user dir cuối cùng vẫn là `app_userdata/*` (save thật), nên guard "test để lại save thật bị đổi" giờ chỉ còn thấy user dir test. Cố ý dùng save thật (vd chơi thử từ editor): `AXIE_REAL_USERDIR=1`. Mọi lần export (`tools/build_desktop.sh`, `godot/tools/export_web_slim.sh`) đã kiểm: override.cfg không có trong .pck.
+- **Editor báo save trống hoặc mất tiến trình?** Kiểm `godot/override.cfg` có dòng `axie-temp-override` không. Nếu có, một lần test/shot trước đã bị SIGKILL để lại file tạm: chạy `godot/tools/clean_stale_override.sh` (chỉ xoá khi không khoá nào đang giữ), rồi mở lại editor. `shot.sh` và `tools/build_desktop.sh` tự chạy nó lúc bắt đầu.
+- `shot.sh` (chụp QA) giờ đi qua `with_lock.sh` như mọi lần chạy Godot khác, `AXIE_HANG_KILL` mặc định 180.
 - `with_lock.sh` / `run_tests.sh` luôn suy user dir từ project của CHÍNH worktree chứa script; đừng chạy script của worktree này với `--path` của worktree khác.
 
 ## Chạy Godot: BẮT BUỘC qua khoá

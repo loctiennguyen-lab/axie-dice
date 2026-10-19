@@ -54,10 +54,6 @@ window/stretch/aspect="expand"
 
 enabled=PackedStringArray("res://addons/axie_mixer_3d/plugin.cfg", "res://addons/axie_mixer_3d_weapon_anims/plugin.cfg")
 
-[gui]
-
-theme/custom="res://resources/theme/dango.tres"
-
 [rendering]
 
 renderer/rendering_method.mobile="gl_compatibility"

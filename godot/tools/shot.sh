@@ -31,11 +31,17 @@ mkdir -p "$ADT_EVIDENCE_DIR"
 
 args=(--path "$PROJ" --resolution "$RES" --position 0,0 "$SCENE")
 
+# Chụp ảnh cũng là một lần chạy Godot: đi qua with_lock.sh (khoá + user dir riêng; cây chính thì
+# with_lock ghi override tạm). clean_stale_override dọn file tạm còn sót lại từ lần bị SIGKILL trước.
+WRAP="$PROJ/tools/with_lock.sh"
+"$PROJ/tools/clean_stale_override.sh" || true
+export AXIE_HANG_KILL="${AXIE_HANG_KILL:-180}"
+
 if [[ -n "${DISPLAY:-}" ]] || [[ "$(uname)" == "Darwin" ]]; then
-  "$GODOT" "${args[@]}"
+  "$WRAP" "$GODOT" "${args[@]}"
 else
   command -v xvfb-run >/dev/null || { echo "Cần xvfb-run trên máy không màn hình."; exit 1; }
   # llvmpipe: không có GPU thì Vulkan không lên, OpenGL phần mềm thì lên.
-  LIBGL_ALWAYS_SOFTWARE=1 xvfb-run -a -s "-screen 0 2560x1600x24" \
+  LIBGL_ALWAYS_SOFTWARE=1 "$WRAP" xvfb-run -a -s "-screen 0 2560x1600x24" \
     "$GODOT" --rendering-driver opengl3 "${args[@]}"
 fi

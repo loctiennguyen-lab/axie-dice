@@ -38,6 +38,17 @@ HANG="${AXIE_HANG_KILL:-1200}"
 
 die() { echo "build_desktop: $*" >&2; exit 1; }
 
+# Guard: a temp override.cfg (written by with_lock.sh during a test run in the main tree) must never be
+# packed into a shipped build. Its user dir is the test one, so the build would silently ignore Liam's save.
+guard_no_temp_override() {
+  local cfg="$ROOT/godot/override.cfg"
+  if [[ -f "$cfg" ]] && grep -qF "axie-temp-override" "$cfg"; then
+    die "godot/override.cfg is a TEMP test override (axie-temp-override) written by a running test. Wait for it to finish (it removes the file itself), then run again. Do not ship it."
+  fi
+}
+"$ROOT/godot/tools/clean_stale_override.sh" || true
+guard_no_temp_override
+
 [[ -x "$GODOT" ]] || die "Godot binary not found at $GODOT (set GODOT_OVERRIDE)"
 [[ -f "$LOCK_WRAP" ]] || die "missing $LOCK_WRAP"
 
@@ -70,13 +81,18 @@ TPL="$HOME/Library/Application Support/Godot/export_templates/$("$GODOT" --versi
 # --- 2. import (a fresh worktree has no .godot/ cache; exports fail without it) ---------------
 if [[ ! -f "$ROOT/godot/.godot/global_script_class_cache.cfg" ]]; then
   echo "-- import (no .godot cache yet)"
-  AXIE_HANG_KILL="$HANG" "$LOCK_WRAP" "$GODOT" --headless --path "$ROOT/godot" --import \
+  AXIE_REAL_USERDIR=1 AXIE_GUARD_SAVE=0 AXIE_HANG_KILL="$HANG" "$LOCK_WRAP" "$GODOT" --headless --path "$ROOT/godot" --import \
     > "$STAGE/import.log" 2>&1 || true
 fi
 
 export_one() {   # $1 = preset name, $2 = output path (.app or .exe)
   local preset="$1" dest="$2" log="$STAGE/export-$1.log"
-  AXIE_HANG_KILL="$HANG" "$LOCK_WRAP" "$GODOT" --headless --path "$ROOT/godot" \
+  guard_no_temp_override
+  # Export does not run the game and needs no test isolation. AXIE_REAL_USERDIR=1 keeps with_lock.sh
+  # from writing a temp override.cfg into godot/ during the export (the pck would carry it), and
+  # AXIE_GUARD_SAVE=0 stops with_lock.sh from snapshotting and restoring Liam's real save around a
+  # build, which could overwrite progress made while the build runs.
+  AXIE_REAL_USERDIR=1 AXIE_GUARD_SAVE=0 AXIE_HANG_KILL="$HANG" "$LOCK_WRAP" "$GODOT" --headless --path "$ROOT/godot" \
     --export-release "$preset" "$dest" > "$log" 2>&1
   local rc=$?
   if grep -qiE "SCRIPT ERROR|Parse Error|ERROR:" "$log"; then
@@ -86,6 +102,9 @@ export_one() {   # $1 = preset name, $2 = output path (.app or .exe)
   fi
   [[ $rc -eq 0 ]] || { echo "   godot exit $rc, see $log" >&2; return 1; }
   [[ -e "$dest" ]] || { echo "   no output at $dest, see $log" >&2; return 1; }
+  # Backstop: preset loại override.cfg, nhưng test có thể ghi override tạm giữa guard và export
+  # (build giữ khoá thật, test giữ khoá -test-). Quét chính gói vừa xuất.
+  python3 -I "$ROOT/godot/tools/check_export_no_override.py" "$dest" || { echo "   backstop: override.cfg trong $dest, không đóng gói" >&2; return 1; }
   return 0
 }
 

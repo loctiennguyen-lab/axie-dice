@@ -68,6 +68,23 @@ const CANVAS := Vector2(1920, 1080)
 ## any mockup goes below 9, so a smaller number is a bug in our code, not a design intent.
 const MIN_FONT := 9
 
+## Legacy border colours some screens still draw. Were `DangoTheme` constants; DangoTheme was deleted
+## (19/10), so the values live here, only for this gate's allow-list.
+const L_OUTLINE := Color("24140B")
+const L_LINE := Color("8A3E22")
+const L_PRIMARY := Color("FF9345")
+const L_INFO := Color("5FCFCB")
+const L_SUCCESS := Color("5DBB3A")
+const L_DANGER := Color("D9472B")
+const L_GOLD := Color("FFC445")
+const L_THREAT := Color("D9472B")
+const L_GEM_SHELF := Color("4E2E8A")
+const L_INK_3 := Color("9A7650")
+const L_CLASS_COLORS := {
+	"plant": Color("7DC943"), "beast": Color("FFB23F"), "aqua": Color("39C5F3"),
+	"reptile": Color("B679F7"), "bug": Color("F2624F"), "bird": Color("8BDCFF"),
+}
+
 var _fail: Array[String] = []
 var _scene := ""
 
@@ -223,7 +240,7 @@ func _check_control(c: Control, scene_root: Node) -> void:
 			# v3 Homeland: outlines are OUTLINE #24140B (chips, buttons, dice) or LINE #8A3E22
 			# (panels). Pure black is legacy and still tolerated in screens not yet redrawn.
 			var is_black := (b.r < 0.02 and b.g < 0.02 and b.b < 0.02 and b.a > 0.98) \
-				or b.is_equal_approx(DangoTheme.OUTLINE) or b.is_equal_approx(DangoTheme.LINE)
+				or b.is_equal_approx(L_OUTLINE) or b.is_equal_approx(L_LINE)
 			# The mockups draw exactly five non-black borders, and no others:
 			#   · the selection ring on a die card and a targetable enemy   → PRIMARY
 			#   · the targetable ring on a party member                     → SUCCESS
@@ -232,15 +249,15 @@ func _check_control(c: Control, scene_root: Node) -> void:
 			#   · a WARNING BUTTON's outline                                → DANGER
 			# The last one was missing here and it is not drift: FIX-PASS-03 L1 names it as one
 			# of its two explicit exceptions ("a warning button's DANGER outline"), and
-			# `DangoTheme.primary_button_style(warning = true)` is the only thing that draws it —
+			# the old warning button style is the only thing that draws it —
 			# END TURN, while the player still has an unspent die. Flagging it made the gate
 			# demand that a sanctioned state be removed.
-			var is_state := b.is_equal_approx(DangoTheme.PRIMARY) \
-				or b.is_equal_approx(DangoTheme.INFO) \
-				or b.is_equal_approx(DangoTheme.SUCCESS) \
-				or (c is Button and b.is_equal_approx(DangoTheme.DANGER)) \
-				or b.is_equal_approx(DangoTheme.GOLD) or b.is_equal_approx(DangoTheme.THREAT) \
-				or b.is_equal_approx(DangoTheme.GEM_SHELF) or b.is_equal_approx(DangoTheme.INK_3) \
+			var is_state := b.is_equal_approx(L_PRIMARY) \
+				or b.is_equal_approx(L_INFO) \
+				or b.is_equal_approx(L_SUCCESS) \
+				or (c is Button and b.is_equal_approx(L_DANGER)) \
+				or b.is_equal_approx(L_GOLD) or b.is_equal_approx(L_THREAT) \
+				or b.is_equal_approx(L_GEM_SHELF) or b.is_equal_approx(L_INK_3) \
 				or b.is_equal_approx(Color("B89A74")) \
 				or (c.name == "SpotlightRing" and b.is_equal_approx(UI3Theme.color("text"))) \
 				or b.is_equal_approx(UI3Theme.color("selected_outline")) \
@@ -275,7 +292,7 @@ func _check_control(c: Control, scene_root: Node) -> void:
 			if parent_fill != null and _is_saturated(parent_fill) \
 					and not _is_red(parent_fill as Color):
 				_bad(c, "L6", "near-white ink on fill %s — every mockup inks this dark; "
-					% (parent_fill as Color).to_html(false) + "use DangoTheme.ink_on()")
+					% (parent_fill as Color).to_html(false) + "use a dark ink")
 
 	# ── L1 · nothing is clipped by the canvas edge ───────────────────────────────────────────
 	# The old L1 demanded a uniform 48px safe area on every side of every screen. The mockups
@@ -350,7 +367,7 @@ func _nearest_fill(c: Control) -> Variant:
 ## drawn in its Axie's class colour — the one coloured border the design actually asks for.
 func _is_class_color(b: Color) -> bool:
 	for cls in ["plant", "beast", "aqua", "reptile", "bug", "bird"]:
-		if b.is_equal_approx(DangoTheme.class_color(cls)):
+		if b.is_equal_approx(L_CLASS_COLORS[cls]):
 			return true
 	return false
 

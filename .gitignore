@@ -260,6 +260,7 @@ godot/prototypes/*/homeland/
 
 # Per-worktree user:// override cho các làn L1 (xem production/l1-lanes.md)
 godot/override.cfg
+godot/override.cfg.tmp.*
 
 # UI-03 Claude Design package (Homeland art, screenshots; built locally, not committed)
 design/handoffs/ui-03-redesign/send/
