@@ -167,7 +167,7 @@ const _BOSS_COLOR_VARIANT := {
 ##
 ## These figures come from the projection arithmetic above, not from a capture. Measure a real
 ## boss encounter before trusting the 12px margin.
-const _BOSS_SCALE := 1.85
+const _BOSS_SCALE := 2.4
 
 ## Target on-screen height (meters) for a rank-and-file enemy's Chimera Sprite3D (see
 ## spawn_unit()'s `elif is_enemy and MonsterArt.texture_for(...)` branch and
@@ -331,25 +331,27 @@ const _POS_Z_ENEMY := -6.5    # far row — enemies, reads as "further back" per
 ## Horizontal layout (spec 02-combat/spec.md): world x runs left to right, +z is toward the camera.
 ## Party: two staggered rows, slots 0,2,4 in front (near the camera), 1,3 behind. Eggs: a third,
 ## nearest row bottom-left. Enemies: a staggered row on the right. The gate sits beyond them (arena x).
-const PARTY_X0 := -10.9
+const PARTY_X0 := -10.0
 const PARTY_PITCH_X := 1.3
-const PARTY_Z_FRONT := 4.4
+const PARTY_Z_FRONT := 3.6
 const PARTY_Z_BACK := -1.4
-const EGG_X0 := -8.8
-const EGG_PITCH_X := 1.65
-const EGG_Z := 7.0
-const ENEMY_CENTER_X := 1.4
-const ENEMY_PITCH_X := 1.92
-const ENEMY_PITCH_X_MANY := 1.92   # 4-5 enemies
-const ENEMY_Z_FRONT := 3.4
-const ENEMY_Z_BACK := -5.0
-const BOSS_POS := Vector3(2.4, 0.0, -5.0)
-const ELITE_POS := Vector3(2.4, 0.0, -5.0)   # spec: one elite, back slot centre-right, bigger
+const EGG_X0 := -10.0
+const EGG_PITCH_X := 1.5
+const EGG_Z := 6.9
+const ENEMY_CENTER_X := 3.6
+const ENEMY_PITCH_X := 1.1   # a diagonal: neighbours stand on different depth rows, so they can be close in x
+## Enemies stand on three depth rows (back, middle, front), index i takes row i % 3, so units that are close
+## in x are far apart in y and 5 enemies fit between the gap and the gate. One enemy stands on the middle row.
+const ENEMY_Z_BACK := -5.4
+const ENEMY_Z_MID := 0.2
+const ENEMY_Z_FRONT := 5.8
+const BOSS_POS := Vector3(3.8, 0.0, 0.2)
+const ELITE_POS := Vector3(3.8, 0.0, 0.2)   # spec: one elite, bigger
 const ELITE_SCALE := 1.3
 ## Other enemies next to a boss or an elite: two on the front line, two on the back line, clear of the big one.
-const ADD_SLOTS: Array[Vector3] = [Vector3(-0.2, 0.0, 3.4), Vector3(4.4, 0.0, 3.4), Vector3(-1.5, 0.0, -5.0), Vector3(5.8, 0.0, -5.0)]
+const ADD_SLOTS: Array[Vector3] = [Vector3(2.2, 0.0, 5.8), Vector3(5.4, 0.0, 5.8), Vector3(0.4, 0.0, -5.4), Vector3(7.9, 0.0, -5.4)]
 ## Z of the path / gate lane. The arena is shifted onto it so the road to the gate runs behind the party, not under it.
-const LANE_Z := -11.0
+const LANE_Z := 1.0
 var _encounter_kind := ""
 
 
@@ -550,12 +552,14 @@ func slot_node_of(uid: int) -> Node3D:
 
 
 ## Camera framing constants (kept here so frame_band() can re-derive them).
-const _CAM_FOV := 42.0   # wider than before (was 34): the whole field zooms out so the teams have room
+const _CAM_FOV := 19.0   # wider than before (was 34): the whole field zooms out so the teams have room
 ## Every unit is drawn at this fraction of its old size (Axies, monsters, boss, elite, eggs alike), so the
 ## two teams stand clearly apart. Relative sizes are unchanged: boss > elite > normal.
-const UNIT_SCALE := 0.75
-const _CAM_PITCH_DEG := -21.0
-const _CAM_POS := Vector3(-0.2, 6.6, 15.2)   # 3/4 view across the field, slightly from above
+const UNIT_SCALE := 0.9
+## Monsters are drawn smaller than Axies (their art is 2.55 m tall; at 0.9 they towered over the party).
+const ENEMY_SCALE := 0.65
+const _CAM_PITCH_DEG := -30.0
+const _CAM_POS := Vector3(-0.2, 17.0, 28.0)   # 3/4 view across the field, slightly from above
 
 
 ## L6: the stage control now covers the whole canvas (height `canvas_h`) instead of a band
@@ -779,7 +783,7 @@ func spawn_unit(uid: int, cls: String, is_enemy: bool, slot_index: int, slot_cou
 		slot.add_child(model)
 		_fit_atia_model(model, atia)
 		visual = model
-		shadow_width = clampf(float(atia["width"]) * 0.9, 1.0 * UNIT_SCALE, 7.0)
+		shadow_width = clampf(float(atia["width"]) * 0.9, 1.0 * ENEMY_SCALE, 7.0)
 		atia_info = atia
 		if not CombatView.disable_juice_for_tests:
 			if (atia["anims"] as Dictionary).has("idle"):
@@ -796,7 +800,7 @@ func spawn_unit(uid: int, cls: String, is_enemy: bool, slot_index: int, slot_cou
 		# taken for party units (`is_enemy` guards it) — the AxieCharacter3D rig stays the party
 		# visual, per the standing "party never gets the enemy treatment" decision.
 		var tex := MonsterArt.texture_for(unit_key, is_boss)
-		var target_height := _ENEMY_SPRITE_HEIGHT_M * UNIT_SCALE * (_BOSS_SCALE if is_named_boss else 1.0)
+		var target_height := _ENEMY_SPRITE_HEIGHT_M * ENEMY_SCALE * (_BOSS_SCALE if is_named_boss else 1.0)
 		var sprite := _make_enemy_sprite(tex, target_height)
 		slot.add_child(sprite)
 		visual = sprite
@@ -953,8 +957,8 @@ func _fit_atia_model(model: Node3D, atia: Dictionary) -> void:
 	var reg: Dictionary = atia["reg"]
 	model.rotation_degrees.y = float(reg.get("facing_deg", 0.0))
 	var box := _model_aabb(model)
-	var h := float(reg.get("height_m", 2.2)) * UNIT_SCALE
-	var wmax := float(reg.get("max_width_m", 4.2)) * UNIT_SCALE
+	var h := float(reg.get("height_m", 2.2)) * ENEMY_SCALE
+	var wmax := float(reg.get("max_width_m", 4.2)) * ENEMY_SCALE
 	var raw := _visual_bounds(model)   # raw mesh AABBs; what the mascot .glb files were fitted with
 	if box.size.y < 0.05 or (raw.y - raw.x) > box.size.y * 20.0:
 		# Skinned .glb whose node transforms do not reflect in get_aabb(): the transformed box is
@@ -1253,10 +1257,11 @@ func _slot_position(is_enemy: bool, slot_index: int, slot_count: int, boss: bool
 		return Vector3(PARTY_X0 + float(slot_index) * PARTY_PITCH_X, _POS_Y, PARTY_Z_FRONT if front else PARTY_Z_BACK)
 	if boss:
 		return BOSS_POS
-	var pitch := ENEMY_PITCH_X if slot_count <= 3 else ENEMY_PITCH_X_MANY
-	var x := ENEMY_CENTER_X + (float(slot_index) - (float(slot_count) - 1.0) * 0.5) * pitch
-	var even_front := slot_count <= 3   # 4-5 enemies: the left-most one stands on the back line, away from the party's front row
-	return Vector3(x, _POS_Y, ENEMY_Z_FRONT if ((slot_index % 2 == 0) == even_front) else ENEMY_Z_BACK)
+	var x := ENEMY_CENTER_X + (float(slot_index) - (float(slot_count) - 1.0) * 0.5) * ENEMY_PITCH_X
+	if slot_count == 1:
+		return Vector3(x, _POS_Y, ENEMY_Z_MID)
+	var rows: Array[float] = [ENEMY_Z_BACK, ENEMY_Z_MID, ENEMY_Z_FRONT]
+	return Vector3(x, _POS_Y, rows[slot_index % 3])
 
 
 ## Visual-only death reaction — mirrors UnitPortrait's own dim/hide of the 2D card, which
