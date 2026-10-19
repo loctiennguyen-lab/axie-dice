@@ -30,11 +30,16 @@ signal all_arrived
 
 const MAX_DICE := 11
 const STAGGER := 0.110
-const FLIGHT := 0.480
-const LAND_COLS := 6         ## dice per landing row; 11 dice make two rows of 6 and 5
-const LAND_GAP_X := 1.9      ## world metres between dice in a row (a die is 1 m, tumbling up to ~1.7 m across)
-const LAND_GAP_Z := 2.8      ## between rows, so two rows never touch on screen
-const LAND_Y := 0.5
+const FLIGHT := 0.560
+## Landing zone (Liam 19/10): the dice land in the empty gap between the party and the enemy group, on the
+## march line, in a tight block of 1 / 2 / 3 columns, and never roll out of it (invisible fence + damping).
+const LAND_GAP_X := 1.05     ## world metres between dice in a row (die 0.8 m + a gap; seen from the camera a die is ~62 px wide)
+const LAND_GAP_Z := 2.5      ## between rows: a die is also ~78 px tall on screen (its top face shows), so rows are ~90 px apart
+const LAND_Y := 0.4
+const ZONE_PAD := 0.1       ## fence distance from a die's edge at its landing spot
+const DIE_M := 0.8           ## edge of a normal die (small dice 0.62)
+const FENCE_H := 3.0
+const _LAYER_FENCE := 1 << 20
 const TUMBLE_STEP := 0.090
 const TUMBLE_TOTAL := 1.080
 const SQUASH_TIME := 0.300
@@ -76,12 +81,17 @@ const _LAYER_GROUND := 1 << 19
 
 ## Set true for reduce-motion: dice appear in the tray at once. Headless always skips.
 var reduced_motion: bool = false
+## Callable() -> Vector3: world centre of the gap between the teams (set by CombatStage3D). Empty = screen centre.
+var landing_provider: Callable = Callable()
+## QA only: keep settled dice on the floor (no fly to the tray) until cleared, so a capture can show them at rest.
+var hold_settled: bool = false
 
 var _world: Node3D
 var _camera: Camera3D
 var _stage: Control
 var _tile_layer: Control
 var _ground: StaticBody3D
+var _fence: StaticBody3D
 var _dice: Array[Dictionary] = []
 var _active: bool = false
 var _rng := RandomNumberGenerator.new()
@@ -380,6 +390,7 @@ func _begin_physics(token: int) -> void:
 	if token != _roll_token or not _active or _dice.is_empty():
 		return   # skipped or replaced while the plates were being drawn
 	_build_ground()
+	_build_fence()
 	for d in _dice:
 		_build_die(d)
 	set_process(true)
@@ -419,6 +430,7 @@ func _finish() -> void:
 	_active = false
 	set_process(false)
 	_clear_ground()
+	_clear_fence()
 	_emit_all_arrived()
 
 
@@ -433,6 +445,7 @@ func _clear() -> void:
 		_free_body(d)
 	_dice.clear()
 	_clear_ground()
+	_clear_fence()
 
 
 func _exit_tree() -> void:
@@ -454,10 +467,48 @@ func _build_ground() -> void:
 	_ground.add_child(cs)
 	_ground.position = Vector3(0.0, -0.5, 0.0)
 	var pm := PhysicsMaterial.new()
-	pm.bounce = 0.35
-	pm.friction = 0.8
+	pm.bounce = 0.2
+	pm.friction = 1.0
 	_ground.physics_material_override = pm
 	_world.add_child(_ground)
+
+
+## Invisible box walls around the landing zone. Dice only collide with them after their first bounce
+## (they arrive from outside the zone), so the walls keep a settling die from rolling under a unit or off screen.
+func _build_fence() -> void:
+	_clear_fence()
+	var zone := landing_zone(_dice.size(), _landing_center())
+	_fence = StaticBody3D.new()
+	_fence.name = "DiceFence"
+	_fence.collision_layer = _LAYER_FENCE
+	_fence.collision_mask = 0
+	var t := 0.5
+	var cx := zone.get_center().x
+	var cz := zone.get_center().y
+	var walls := [
+		[Vector3(zone.size.x + 2.0 * t, FENCE_H, t), Vector3(cx, FENCE_H * 0.5, zone.position.y - t * 0.5)],
+		[Vector3(zone.size.x + 2.0 * t, FENCE_H, t), Vector3(cx, FENCE_H * 0.5, zone.end.y + t * 0.5)],
+		[Vector3(t, FENCE_H, zone.size.y), Vector3(zone.position.x - t * 0.5, FENCE_H * 0.5, cz)],
+		[Vector3(t, FENCE_H, zone.size.y), Vector3(zone.end.x + t * 0.5, FENCE_H * 0.5, cz)],
+	]
+	for w in walls:
+		var cs := CollisionShape3D.new()
+		var box := BoxShape3D.new()
+		box.size = w[0]
+		cs.shape = box
+		cs.position = w[1]
+		_fence.add_child(cs)
+	var pm := PhysicsMaterial.new()
+	pm.bounce = 0.1
+	pm.friction = 0.6
+	_fence.physics_material_override = pm
+	_world.add_child(_fence)
+
+
+func _clear_fence() -> void:
+	if _fence != null and is_instance_valid(_fence):
+		_fence.queue_free()
+	_fence = null
 
 
 func _clear_ground() -> void:
@@ -467,14 +518,14 @@ func _clear_ground() -> void:
 
 
 func _die_size(d: Dictionary) -> float:
-	return 0.77 if bool(d["small"]) else 1.0   # x1.4 of the first pass (80 px was too small)
+	return 0.62 if bool(d["small"]) else DIE_M
 
 
 func _build_die(d: Dictionary) -> void:
 	var size := _die_size(d)
 	var body := RigidBody3D.new()
 	body.collision_layer = _LAYER_DIE
-	body.collision_mask = _LAYER_GROUND   # dice never collide with each other: no pile-up chaos
+	body.collision_mask = _LAYER_GROUND   # in flight only the floor; die-die and fence collisions switch on at the first bounce
 	body.mass = 1.0
 	body.gravity_scale = 1.6
 	body.linear_damp = 0.15
@@ -484,8 +535,8 @@ func _build_die(d: Dictionary) -> void:
 	body.freeze = true            # parked until its stagger delay is over
 	body.visible = false
 	var pm := PhysicsMaterial.new()
-	pm.bounce = 0.35
-	pm.friction = 0.8
+	pm.bounce = 0.2
+	pm.friction = 1.0
 	body.physics_material_override = pm
 	var cs := CollisionShape3D.new()
 	var box := BoxShape3D.new()
@@ -505,6 +556,9 @@ func _build_die(d: Dictionary) -> void:
 ## World point under the CENTRE of the screen (Liam 19/10: the throw lands in the middle of the screen and may
 ## roll over units). Falls back to the origin when there is no camera.
 func _landing_center() -> Vector3:
+	if landing_provider.is_valid():
+		var c: Vector3 = landing_provider.call()
+		return Vector3(c.x, LAND_Y, c.z)
 	if _camera == null or not is_instance_valid(_camera) or _camera.get_viewport() == null:
 		return Vector3(0.0, LAND_Y, 0.0)
 	var centre := _camera.get_viewport().get_visible_rect().size * 0.5
@@ -516,16 +570,34 @@ func _landing_center() -> Vector3:
 	return o + dir * t
 
 
-## Landing spot of die `i` of `n` around `centre`: rows of LAND_COLS, each row centred, no two spots closer than
+## Columns of the landing block: 1..3 dice in one column, 4..6 in two, 7..11 in three (11 dice = 3 columns x 4 rows).
+## The gap between the teams is only about 2.9 m wide, so the block grows in depth along the march line.
+static func land_cols(n: int) -> int:
+	if n <= 3:
+		return 1
+	return 2 if n <= 6 else 3
+
+
+## Landing spot of die `i` of `n` around `centre`: rows of land_cols(n), each row centred, no two spots closer than
 ## LAND_GAP_X / LAND_GAP_Z. Pure function.
 static func landing_spot(i: int, n: int, centre: Vector3) -> Vector3:
-	var cols := mini(maxi(n, 1), LAND_COLS)
+	var cols := land_cols(n)
 	var rows := ceili(float(maxi(n, 1)) / float(cols))
 	var r := i / cols
 	var in_row := mini(cols, n - r * cols)
 	var idx := i % cols
 	return Vector3(centre.x + (float(idx) - float(in_row - 1) * 0.5) * LAND_GAP_X, LAND_Y,
 		centre.z + (float(r) - float(rows - 1) * 0.5) * LAND_GAP_Z)
+
+
+## The zone (x, z rectangle in world metres) that holds the landing block of `n` dice around `centre`,
+## including the fence padding. Dice are kept inside it by the fence walls.
+static func landing_zone(n: int, centre: Vector3) -> Rect2:
+	var cols := land_cols(n)
+	var rows := ceili(float(maxi(n, 1)) / float(cols))
+	var hw := float(cols - 1) * 0.5 * LAND_GAP_X + ZONE_PAD + DIE_M * 0.5
+	var hd := float(rows - 1) * 0.5 * LAND_GAP_Z + ZONE_PAD + DIE_M * 0.5
+	return Rect2(centre.x - hw, centre.z - hd, hw * 2.0, hd * 2.0)
 
 
 func _launch(d: Dictionary) -> void:
@@ -539,6 +611,7 @@ func _launch(d: Dictionary) -> void:
 	# Land on the open floor in FRONT of both teams (between the party's front row and the camera), fanned
 	# out sideways, so a die never comes to rest on a unit (horizontal layout: teams left / right).
 	var target := landing_spot(i, n, _landing_center())
+	d["target"] = target
 	var g := 9.8 * body.gravity_scale
 	var v := (target - start - Vector3(0.0, -0.5 * g * FLIGHT * FLIGHT, 0.0)) / FLIGHT
 	body.global_position = start
@@ -571,7 +644,7 @@ func _process(delta: float) -> void:
 			_step_air(d, delta)
 		elif phase == 2:
 			d["hold"] = float(d["hold"]) + delta
-			if float(d["hold"]) >= SETTLE_HOLD:
+			if float(d["hold"]) >= SETTLE_HOLD and not hold_settled:
 				_start_fly(d)
 
 
@@ -581,6 +654,8 @@ func _step_air(d: Dictionary, delta: float) -> void:
 	var air := float(d["air"])
 	if not bool(d["bounced"]) and air >= FLIGHT + 0.15:
 		_on_first_bounce(d)   # fallback when the contact signal never came
+	if bool(d["bounced"]):
+		_clamp_to_zone(body)
 	var rest := air > FLIGHT + 0.2 and body.linear_velocity.length() < 0.2 \
 		and body.angular_velocity.length() < 0.6
 	if rest or body.sleeping or air >= SETTLE_TIMEOUT:
@@ -590,6 +665,17 @@ func _step_air(d: Dictionary, delta: float) -> void:
 		d["hold"] = 0.0
 		_start_face_turn(d)
 		die_settled.emit(int(d["i"]))
+
+
+## Safety net behind the fence: a die that somehow left the zone is put back on its edge and loses its speed.
+func _clamp_to_zone(body: RigidBody3D) -> void:
+	var zone := landing_zone(_dice.size(), _landing_center())
+	var inner := zone.grow(-0.4)
+	var p := body.global_position
+	var q := Vector3(clampf(p.x, inner.position.x, inner.end.x), p.y, clampf(p.z, inner.position.y, inner.end.y))
+	if q != p:
+		body.global_position = q
+		body.linear_velocity *= 0.2
 
 
 ## Last 180 ms of the settle: tween the frozen cube to the nearest orientation where the RESULT
@@ -604,14 +690,17 @@ func _start_face_turn(d: Dictionary) -> void:
 	var to_b := result_basis(body.global_transform.basis, int(d["result_index"]), to_cam, cam_up)
 	var to_q := to_b.get_rotation_quaternion()
 	var tw := create_tween()
-	tw.tween_method(_turn_step.bind(body, from_q, to_q), 0.0, 1.0, SETTLE_HOLD) \
+	var from_p := body.global_position
+	var to_p: Vector3 = d.get("target", from_p)
+	to_p.y = from_p.y   # the die rests on the floor where it is; only x / z slide onto its own cell
+	tw.tween_method(_turn_step.bind(body, from_q, to_q, from_p, to_p), 0.0, 1.0, SETTLE_HOLD) \
 		.set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
 	d["turn"] = tw
 
 
-func _turn_step(w: float, body: RigidBody3D, from_q: Quaternion, to_q: Quaternion) -> void:
+func _turn_step(w: float, body: RigidBody3D, from_q: Quaternion, to_q: Quaternion, from_p: Vector3, to_p: Vector3) -> void:
 	if is_instance_valid(body):
-		body.global_transform.basis = Basis(from_q.slerp(to_q, w))
+		body.global_transform = Transform3D(Basis(from_q.slerp(to_q, w)), from_p.lerp(to_p, w))
 
 
 ## Pure maths: the basis nearest to `current` (shortest arc, then the roll about the view axis so the
@@ -638,6 +727,11 @@ func _on_first_bounce(d: Dictionary) -> void:
 	if bool(d["bounced"]):
 		return
 	d["bounced"] = true
+	var rb := d["body"] as RigidBody3D
+	if rb != null and is_instance_valid(rb):
+		rb.collision_mask = _LAYER_GROUND | _LAYER_FENCE | _LAYER_DIE   # the fence keeps it in the zone, dice no longer pass through each other
+		rb.linear_damp = 3.2        # after the first bounce a die slides and tumbles to a stop in a hand's width
+		rb.angular_damp = 2.6
 	var crit := bool(d["crit"])
 	var pivot := d["pivot"] as Node3D
 	if pivot != null and is_instance_valid(pivot):

@@ -148,6 +148,27 @@ func _case_k(label: String, kind: String, n_enemy: int, boss: bool, eggs: int, p
 		cy += (rects[u] as Rect2).get_center().y
 	cy /= float(enemies.size())
 	_assert(enemies.size() > 5 or absf(cy - gate.get_center().y) <= 40.0, "%s: enemy group centroid y %.0f is off the gate axis %.0f" % [label, cy, gate.get_center().y])
+	# 3d. the dice landing zone (1..8 dice) fits in the empty gap between the teams; 9..11 dice may spill 0.7 m
+	# into it. The fence bounds the zone, so settled dice stay inside it.
+	for nd in [1, 5, 8, 11]:
+		var zone := DiceRoller3D.landing_zone(nd, stage.landing_center())
+		var zr: Rect2 = stage._project_box(AABB(Vector3(zone.position.x, 0.0, zone.position.y), Vector3(zone.size.x, 0.1, zone.size.y)))
+		var zr1 := Rect2(zr.position / k, zr.size / k)
+		var slack := 30.0 if nd <= 6 else 60.0
+		_assert(zr1.position.x >= party_right - slack and zr1.end.x <= enemy_left + slack,
+			"%s: %d-dice landing zone %s is not inside the gap between party (right %.0f) and enemies (left %.0f)" % [label, nd, zr1, party_right, enemy_left])
+	# 3e. settled dice never overlap or touch: the screen rects of all landing cells are disjoint (4 px gap), 1..11 dice
+	for nd in range(1, 12):
+		var centre: Vector3 = stage.landing_center()
+		var drects: Array[Rect2] = []
+		for di in nd:
+			var sp := DiceRoller3D.landing_spot(di, nd, centre)
+			var db: Rect2 = stage._project_box(AABB(sp - Vector3.ONE * 0.4, Vector3.ONE * 0.8))
+			drects.append(Rect2(db.position / k, db.size / k))
+		for a in nd:
+			for b in range(a + 1, nd):
+				_assert(not (drects[a] as Rect2).grow(2.0).intersects((drects[b] as Rect2).grow(2.0)),
+					"%s: %d dice: dice %d and %d overlap or touch on screen (%s vs %s)" % [label, nd, a, b, drects[a], drects[b]])
 	# 4. gate behind every enemy, fully visible, clear of the panel
 	_assert(gate != Rect2(), "%s: no gate" % label)
 	var enemy_top := 1.0e9
