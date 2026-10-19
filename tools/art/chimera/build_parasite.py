@@ -308,7 +308,7 @@ def make_cast(arm):
     for f, tw in ((12, 0), (16, 1), (20, -1), (24, 1), (26, 0)):
         d = dict(base)
         d["head"] = [(X, -14), (Z, 3 * tw)]
-        d.update(arms(sg_up=105 + 4 * tw, fwd=-10, el=18))
+        d.update(arms(sg_up=62 + 4 * tw, fwd=-10, el=18))
         c.pose(f, cape(d, 6 + tw, 10, 3), (0, 0, 0.01 * tw))
     d = {"chest": [(X, 4)], "head": [(X, 5)]}
     d.update(arms(sg_up=40, el=10))
@@ -341,12 +341,12 @@ def make_dead(arm):
          "thigh.L": [(X, -34)], "thigh.R": [(X, -34)], "foot.L": [(X, 24)], "foot.R": [(X, 24)]}
     d.update(arms(sg_up=18, fwd=20, el=20))
     c.pose(18, cape(d, -10, -18, 6), (0, -0.08, -0.22))
-    fin = {"chest": [(X, 34)], "hips": [(X, 22)], "neck": [(X, 18)], "head": [(X, 28), (Z, -10)],
-           "thigh.L": [(X, -62)], "thigh.R": [(X, -58)], "foot.L": [(X, 44)], "foot.R": [(X, 40)]}
+    fin = {"chest": [(X, 26)], "hips": [(X, 14)], "neck": [(X, 18)], "head": [(X, 28), (Z, -10)],
+           "thigh.L": [(X, -44)], "thigh.R": [(X, -40)], "foot.L": [(X, 32)], "foot.R": [(X, 30)]}
     fin.update(arms(sg_up=22, fwd=34, el=28))
-    c.pose(30, cape(dict(fin), -14, -24, 8), (0, -0.12, -0.36))
+    c.pose(30, cape(dict(fin), -14, -24, 8), (0, -0.10, -0.30))
     for f in (40, 54):
-        c.pose(f, cape(dict(fin), -12, -20, 7), (0, -0.12, -0.36))
+        c.pose(f, cape(dict(fin), -12, -20, 7), (0, -0.10, -0.30))
     return c.bake()
 
 
