@@ -345,9 +345,9 @@ def frost_pixels(px):
     h2 = np.where(mag, 0.64, h2)
     s2 = np.where(mag, s * 0.7, s2)
     v2 = np.where(mag, 0.55 + 0.45 * mx, v2)
-    h2 = np.where(cool, 0.58, h2)
-    s2 = np.where(cool, s * 0.38, s2)
-    v2 = np.where(cool, np.minimum(1.0, mx * 1.2 + 0.2), v2)
+    h2 = np.where(cool, 0.60, h2)
+    s2 = np.where(cool, np.minimum(1.0, s * 0.75 + 0.05), s2)
+    v2 = np.where(cool, np.minimum(1.0, mx * 1.08 + 0.10), v2)
     i = np.floor(h2 * 6.0).astype(int) % 6
     f = h2 * 6.0 - np.floor(h2 * 6.0)
     p = v2 * (1 - s2)
