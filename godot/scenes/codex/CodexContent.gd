@@ -411,11 +411,12 @@ static func _diff() -> String:
 		["FULL", str(mc["full"]["total_rows"]), str(mc["full"]["boss_rows"]), str(mc["full"]["elite_rows"])],
 	])
 	s += "\n" + (_H % "CONTROLS")
-	s += ("Die-select, Reroll, Undo, Info and Log are on-screen buttons; none of them has a "
-		+ "keyboard shortcut yet.\n\n")
-	s += _table(["KEY", "ACTION"], [
-		["Space", "End turn. The only keyboard shortcut so far"],
-	])
+	s += "Every key below can be changed in Settings > Controls.\n\n"
+	var rows: Array = []
+	for id in [&"combat_end_turn", &"combat_reroll", &"combat_undo", &"combat_aid", &"combat_inspect", &"die_1"]:
+		var lbl := String(KeyBindings.def_of(id).get("label", id))
+		rows.append([KeyBindings.text_all(id) if id != &"die_1" else "%s to %s" % [KeyBindings.text(&"die_1"), KeyBindings.text(&"die_5")], lbl if id != &"die_1" else "Pick a die"])
+	s += _table(["KEY", "ACTION"], rows)
 	return s
 
 

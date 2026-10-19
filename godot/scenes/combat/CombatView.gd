@@ -540,7 +540,9 @@ func _input(event: InputEvent) -> void:
 		skip = (event as InputEventMouseButton).pressed
 	elif event is InputEventKey:
 		var k := event as InputEventKey
-		skip = k.pressed and not k.echo and [KEY_SPACE, KEY_ENTER, KEY_KP_ENTER, KEY_ESCAPE].has(k.keycode)
+		KeyBindings.ensure()
+		skip = k.pressed and not k.echo and (event.is_action_pressed(KeyBindings.COMBAT_END_TURN) \
+			or event.is_action_pressed(KeyBindings.MENU_BACK) or [KEY_SPACE, KEY_ENTER, KEY_KP_ENTER].has(k.keycode))
 	if skip:
 		_stage3d.skip_victory_march()
 		if is_inside_tree():   # a handler above may have changed scene
@@ -551,32 +553,36 @@ func _unhandled_key_input(event: InputEvent) -> void:
 	if pause_menu_open():
 		return   # the pause plate owns the keyboard (its own Esc = Resume)
 	if event is InputEventKey and event.pressed and not (event as InputEventKey).echo:
-		var code := (event as InputEventKey).keycode
-		# README 3 keymap: E ends the turn, Z undoes, R rerolls, 1-5 pick a die. Space still ends
-		# the turn when idle (tutorial copy and tests rely on it; README wants Space = skip only,
-		# pending Liam's call on the [INF] bindings).
-		if (code == KEY_SPACE or code == KEY_E) and not _end_turn_button.disabled \
+		KeyBindings.ensure()
+		# Keys are InputMap actions (scripts/ui/key_bindings.gd, rebindable in Settings > Controls).
+		# Defaults: Space/E end the turn, Z undoes, R rerolls, 1-5 pick a die, A Aid, I inspect, Esc menu.
+		var die := -1
+		for i in KeyBindings.DIE_ACTIONS.size():
+			if event.is_action_pressed(KeyBindings.DIE_ACTIONS[i]):
+				die = i
+				break
+		if event.is_action_pressed(KeyBindings.COMBAT_END_TURN) and not _end_turn_button.disabled \
 				and not _is_animating:
 			_on_end_turn_pressed()
-		elif code == KEY_Z and not _undo_button.disabled and not _is_animating:
+		elif event.is_action_pressed(KeyBindings.COMBAT_UNDO) and not _undo_button.disabled and not _is_animating:
 			_on_undo_pressed()
-		elif code >= KEY_1 and code <= KEY_5 and not _is_animating:
-			_on_die_slot_pressed(code - KEY_1)
-		elif code == KEY_R:
-			# R rerolls; while the dice are in the air it only lands them.
+		elif die >= 0 and not _is_animating:
+			_on_die_slot_pressed(die)
+		elif event.is_action_pressed(KeyBindings.COMBAT_REROLL):
+			# Reroll key rerolls; while the dice are in the air it only lands them.
 			if _dice_in_air():
 				_land_dice_now()
 			elif not _reroll_button.disabled:
 				_on_reroll_pressed()
-		elif code == KEY_A and _aid != null and _aid.enabled and not _aid.modal_open():
+		elif event.is_action_pressed(KeyBindings.COMBAT_AID) and _aid != null and _aid.enabled and not _aid.modal_open():
 			_aid.toggle_tray()
-		elif code == KEY_ESCAPE and _aid != null and _aid.handle_escape():
+		elif event.is_action_pressed(KeyBindings.MENU_BACK) and _aid != null and _aid.handle_escape():
 			pass
-		elif code == KEY_ESCAPE and _inspect_panel != null and is_instance_valid(_inspect_panel):
+		elif event.is_action_pressed(KeyBindings.MENU_BACK) and _inspect_panel != null and is_instance_valid(_inspect_panel):
 			_close_unit_inspect()
-		elif code == KEY_I:
+		elif event.is_action_pressed(KeyBindings.COMBAT_INSPECT):
 			_inspect_hotkey()
-		elif code == KEY_ESCAPE:
+		elif event.is_action_pressed(KeyBindings.MENU_BACK):
 			# The only way out of a fight now that combat-v2.html's four-chip utility row has no
 			# Quit button. Esc opens the in-run pause menu (UI-03 14, same as the run map); "Leave the fight" in the
 			# info menu still has the save-and-quit confirm.
@@ -1811,7 +1817,7 @@ func _inspect_close_hint() -> Control:
 	row.alignment = BoxContainer.ALIGNMENT_END
 	row.add_theme_constant_override("separation", UI3Theme.space("8"))
 	row.add_child(UI3.label(TranslationServer.translate("Close"), "LabelMuted"))
-	row.add_child(UI3.key_hint("Esc"))
+	row.add_child(UI3.key_hint(KeyBindings.text(KeyBindings.MENU_BACK)))
 	return row
 
 
@@ -3637,7 +3643,7 @@ func _build_march_overlay() -> CanvasLayer:
 	title.name = "MarchTitle"
 	m.add_child(title)
 	top.add_child(plate)
-	var skip := UI3.button("Skip  Esc", &"secondary", &"S")
+	var skip := UI3.button("Skip  " + KeyBindings.text(KeyBindings.MENU_BACK), &"secondary", &"S")
 	skip.name = "MarchSkip"
 	skip.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	skip.pressed.connect(func() -> void: _stage3d.skip_victory_march())

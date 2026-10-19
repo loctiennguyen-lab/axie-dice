@@ -1023,8 +1023,9 @@ func _refresh_signs() -> void:
 func _tip_text(id: String) -> String:
 	var m: Dictionary = META.get(id, {"name": id, "key": "", "sub": ""})
 	var head := String(m["name"])
-	if String(m["key"]) != "":
-		head += " · " + String(m["key"])
+	var kt := _key_text(id)
+	if kt != "":
+		head += " · " + kt
 	var why := _block_reason(id)
 	var lines: Array[String] = []
 	if why != "":
@@ -1041,6 +1042,16 @@ func _tip_text(id: String) -> String:
 	if lines.is_empty():
 		return head
 	return head + "\n" + " · ".join(lines)
+
+
+## Current key of a hub entry, read from the binding ("" when it has none).
+func _key_text(id: String) -> String:
+	var i := NUM_KEYS.find(id)
+	if i >= 0:
+		return KeyBindings.text(KeyBindings.LAND_ACTIONS[i])
+	if id == "board":
+		return KeyBindings.text(&"land_board")
+	return ""
 
 
 func _tag_words(id: String) -> String:
@@ -1135,7 +1146,6 @@ func _build_hud() -> void:
 	_hud_bl.add_child(blr)
 	var crow := HBoxContainer.new()
 	crow.add_theme_constant_override("separation", UI3Theme.space("12"))
-	crow.add_child(UI3.key_hint("C"))
 	crow.add_child(UI3.label("Codex"))
 	blr.add_child(_cell("Codex", crow, _on_rail_pressed.bind(&"codex")))
 	# Moon Card: L1 shows it disabled, no price (answered in round 2). Hidden when signed out.
@@ -1153,7 +1163,7 @@ func _build_hud() -> void:
 	_hud_br.add_theme_constant_override("separation", UI3Theme.space("16"))
 	_hud_br.alignment = BoxContainer.ALIGNMENT_END
 	_ui.add_child(_hud_br)
-	_new_run_btn = UI3.button("New run · N", &"secondary", &"M")
+	_new_run_btn = UI3.button("New run · " + KeyBindings.text(&"land_new_run"), &"secondary", &"M")
 	_new_run_btn.name = "NewRunButton"
 	_new_run_btn.pressed.connect(_on_new_run_pressed)
 	_new_run_btn.visible = _has_run
@@ -1232,7 +1242,6 @@ func _profile_cell() -> Control:
 	bl.custom_minimum_size.x = 220
 	col.add_child(bl)
 	h.add_child(col)
-	h.add_child(UI3.key_hint("P"))
 	return _cell("ProfileChip", h, _open_profile)
 
 
@@ -1257,7 +1266,6 @@ func _land_link() -> Control:
 	var can_up := preload("res://scripts/meta/economy_db.gd").land_upgrade_enabled() and have >= need
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", UI3Theme.space("8"))
-	row.add_child(UI3.key_hint("L"))
 	var txt := "Upgrade Land · %s %d/6" % [tn, _tier]
 	row.add_child(UI3.label(txt + (" · ready" if can_up else "")))
 	var cell := _cell("UpgradeLand", row, _on_land_pressed)
@@ -1634,9 +1642,18 @@ func _close_modal() -> void:
 		_modal = null
 
 
-## Keys (v5 table): 1-7, B, N, L, P, D, C, Enter, Esc. Returns true when the key was used.
+## Hub shortcuts are InputMap actions (scripts/ui/key_bindings.gd, rebindable in Settings > Controls).
+## Defaults: 1-7 entries, B, N, L, P, D, C, Enter, Esc. Returns true when the key was used.
 func _handle_key(keycode: int) -> bool:
-	if keycode == KEY_ESCAPE:
+	var ev := InputEventKey.new()
+	ev.keycode = keycode as Key
+	ev.pressed = true
+	return _handle_key_event(ev)
+
+
+func _handle_key_event(ev: InputEventKey) -> bool:
+	KeyBindings.ensure()
+	if ev.is_action_pressed(KeyBindings.MENU_BACK):
 		if _modal != null:
 			_close_modal()
 		else:
@@ -1644,33 +1661,29 @@ func _handle_key(keycode: int) -> bool:
 		return true
 	if _modal != null:
 		return false
-	var num := keycode - KEY_0
-	if keycode >= KEY_KP_0 and keycode <= KEY_KP_9:
-		num = keycode - KEY_KP_0
-	if num >= 1 and num <= 7:
-		var id: String = NUM_KEYS[num - 1]
-		_on_house_pressed(id)
-		return true
-	match keycode:
-		KEY_B:
-			_on_house_pressed("board")
-		KEY_N:
-			if _has_run:
-				_on_new_run_pressed()
-		KEY_L:
-			_on_land_pressed()
-		KEY_P:
-			_open_profile()
-		KEY_D:
-			_on_rail_pressed(&"daily")
-		KEY_C:
-			_on_rail_pressed(&"codex")
-		KEY_ENTER, KEY_KP_ENTER:
-			if get_viewport().gui_get_focus_owner() != null:
-				return false
-			_on_run_pressed()
-		_:
+	for i in NUM_KEYS.size():
+		if ev.is_action_pressed(KeyBindings.LAND_ACTIONS[i]):
+			_on_house_pressed(NUM_KEYS[i])
+			return true
+	if ev.is_action_pressed(&"land_board"):
+		_on_house_pressed("board")
+	elif ev.is_action_pressed(&"land_new_run"):
+		if _has_run:
+			_on_new_run_pressed()
+	elif ev.is_action_pressed(&"land_upgrade"):
+		_on_land_pressed()
+	elif ev.is_action_pressed(&"land_profile"):
+		_open_profile()
+	elif ev.is_action_pressed(&"land_daily"):
+		_on_rail_pressed(&"daily")
+	elif ev.is_action_pressed(&"land_codex"):
+		_on_rail_pressed(&"codex")
+	elif ev.is_action_pressed(KeyBindings.LAND_RUN):
+		if get_viewport().gui_get_focus_owner() != null:
 			return false
+		_on_run_pressed()
+	else:
+		return false
 	return true
 
 
@@ -1683,7 +1696,7 @@ func _unhandled_key_input(event: InputEvent) -> void:
 	# A key can navigate away (LandNav -> change_scene): the hub leaves the tree inside _handle_key and
 	# get_viewport() is then null. Take the viewport first.
 	var vp := get_viewport()
-	if _handle_key(ke.keycode) and vp != null:
+	if _handle_key_event(ke) and vp != null:
 		vp.set_input_as_handled()
 
 

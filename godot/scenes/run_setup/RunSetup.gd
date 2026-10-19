@@ -155,7 +155,7 @@ func _on_account_changed() -> void:
 
 
 func _unhandled_key_input(ev: InputEvent) -> void:
-	if ev is InputEventKey and ev.pressed and not ev.echo and ev.keycode == KEY_ESCAPE:
+	if ev is InputEventKey and ev.pressed and not ev.echo and ev.is_action_pressed(&"menu_back"):
 		if _modal_layer.get_child_count() > 0:
 			close_modal()
 		else:

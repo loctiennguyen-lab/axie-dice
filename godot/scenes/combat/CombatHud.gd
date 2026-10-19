@@ -241,7 +241,7 @@ func _build_speed() -> void:
 		var b := UI3.button(t, &"secondary", &"S")
 		row.add_child(b)
 		_speed_buttons.append(b)
-	_skip_button = UI3.button("Skip · Space", &"secondary", &"S")
+	_skip_button = UI3.button("Skip · " + KeyBindings.text(KeyBindings.COMBAT_END_TURN), &"secondary", &"S")
 	row.add_child(_skip_button)
 
 
@@ -292,7 +292,7 @@ func adopt_right_zone(undo: Button, reroll: Button, end_turn: Button) -> void:
 	undo.add_theme_constant_override("icon_max_width", 20)
 	reroll.theme_type_variation = "ButtonSecondaryS"
 	reroll.text = "Reroll"
-	reroll.tooltip_text = "Reroll unused dice (R)"
+	reroll.tooltip_text = "Reroll unused dice (%s)" % KeyBindings.text(KeyBindings.COMBAT_REROLL)
 	end_turn.theme_type_variation = "ButtonPrimaryL"
 	end_turn.text = "End turn"
 	undo.custom_minimum_size = Vector2(UNDO_W, SMALL_H)
@@ -453,7 +453,7 @@ func update_right(undo: Dictionary, reroll: Dictionary, end: Dictionary) -> void
 		return
 	undo_button.disabled = not bool(undo.get("enabled", false))
 	undo_button.text = "Z"
-	undo_button.tooltip_text = "Undo the last die (Z)" if not undo_button.disabled else "Nothing to undo this turn"
+	undo_button.tooltip_text = ("Undo the last die (%s)" % KeyBindings.text(KeyBindings.COMBAT_UNDO)) if not undo_button.disabled else "Nothing to undo this turn"
 	var n := int(reroll.get("n", 0))
 	var mx := int(reroll.get("max", 0))
 	var nm := "%d / %d" % [n, mx] if mx > 0 else str(n)

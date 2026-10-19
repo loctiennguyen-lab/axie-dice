@@ -625,7 +625,7 @@ func prepare_run_menu() -> void:
 
 
 func _unhandled_key_input(ev: InputEvent) -> void:
-	if ev is InputEventKey and ev.pressed and not ev.echo and ev.keycode == KEY_ESCAPE:
+	if ev is InputEventKey and ev.pressed and not ev.echo and ev.is_action_pressed(&"map_menu"):
 		open_run_menu()
 		if is_inside_tree():   # a handler above may have changed scene
 			get_viewport().set_input_as_handled()

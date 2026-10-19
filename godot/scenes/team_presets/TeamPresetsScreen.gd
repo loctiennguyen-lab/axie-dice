@@ -69,7 +69,7 @@ func _unhandled_key_input(ev: InputEvent) -> void:
 	var k := ev as InputEventKey
 	if k == null or not k.pressed or k.echo:
 		return
-	if k.keycode == KEY_ESCAPE:
+	if k.is_action_pressed(&"menu_back"):
 		var ml := _shell["modal_layer"] as Control
 		if ml.get_child_count() > 0 and not (view == "editor" and ml.get_child_count() == 1):
 			if ml.get_child(ml.get_child_count() - 1).name == &"Picker":
