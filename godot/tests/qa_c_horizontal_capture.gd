@@ -209,6 +209,13 @@ func _fight(state: String, node_id: String, kind: String, size: Vector2i) -> voi
 			else:
 				scene._stage3d._units[uid_k]["slot"].visible = false
 		scene._stage3d.reseat_side(live, true)
+		await get_tree().process_frame
+		for k in ens.size():
+			var u: Unit = ens[k]
+			var ent: Dictionary = scene._stage3d._units.get(u.uid, {})
+			var sl: Node3D = ent.get("slot")
+			print("QA: enemy ", state, " idx=", k, " uid=", u.uid, " name=", u.n, " live_slot=", live.has(u.uid), " visible=", sl.visible, " pos=", sl.position, " rect=", scene._stage3d.unit_screen_rect(u.uid))
+		print("QA: NOTE the n-states HIDE extra engine enemies in the 3D view only; the right-hand panel still lists all ", ens.size(), " engine enemies")
 	if state == "e5":
 		while scene._combat.enemies.size() < 5:
 			scene._combat.enemies.append(scene._combat._mk_monster(["chomper", "slime", "bugling", "spikelet", "ravenling"][scene._combat.enemies.size()], 1.0, {}))
