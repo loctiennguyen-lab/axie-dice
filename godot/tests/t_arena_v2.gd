@@ -153,13 +153,17 @@ func _check_flat(b: String, mi: MeshInstance3D, slots: Array[Vector2]) -> void:
 	for s in mi.mesh.get_surface_count():
 		var verts: PackedVector3Array = mi.mesh.surface_get_arrays(s)[Mesh.ARRAY_VERTEX]
 		var worst := 0.0
+		var near := {}
 		for v in verts:
 			var w := xf * v
-			for sl in slots:
+			for i in slots.size():
+				var sl: Vector2 = slots[i]
 				if absf(w.x - sl.x) <= 1.5 and absf(w.z - sl.y) <= 1.5:
 					worst = maxf(worst, absf(w.y))
-					break
+					near[i] = true
 		_assert(worst < 0.05, "biome %s ground is not flat under a unit slot (|y| up to %.2f m)" % [b, worst])
+		# the check means something only if the ground is fine enough to have vertices round every slot
+		_assert(near.size() == slots.size(), "biome %s ground has no vertex within 1.5 m of %d unit slot(s)" % [b, slots.size() - near.size()])
 
 
 func _check_stage(journey: Array) -> void:
@@ -172,9 +176,14 @@ func _check_stage(journey: Array) -> void:
 			var d := stage.arena_diorama()
 			_assert(d != null and d.biome_id == String(b), "%s boss=%s: no diorama in the stage" % [b, boss])
 			_assert(stage.has_gate(), "%s boss=%s: gate missing with the diorama" % [b, boss])
+			_assert(stage.get("_arena").terrain_from_diorama, "%s boss=%s: old terrain not skipped under the diorama" % [b, boss])
 	stage.arena_v2_enabled = false
 	_assert(stage.set_arena("savannah", false), "set_arena with v2 off failed")
 	_assert(stage.arena_diorama() == null, "v2 off: the diorama should be gone (old terrain)")
 	_assert(stage.has_gate(), "v2 off: gate missing")
+	_assert(not stage.get("_arena").terrain_from_diorama, "v2 off: old terrain should be built")
+	stage.arena_v2_enabled = true
+	_assert(stage.set_arena("forest", false) and stage.arena_diorama() != null and stage.arena_diorama().biome_id == "forest", "back on: forest diorama")
+	_assert(stage.set_arena("", false) and stage.arena_diorama() == null, "biome \"\" should clear the diorama")
 	stage.queue_free()
 	await get_tree().process_frame

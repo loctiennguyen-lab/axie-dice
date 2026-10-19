@@ -524,6 +524,8 @@ var _arena: CombatArena3D = null
 var _diorama: ArenaV2Diorama = null
 ## Off = always the old procedural CombatArena3D terrain (A/B captures, or a quick fallback switch).
 var arena_v2_enabled := true
+## Biomes whose diorama GLB failed to load this session: old terrain, no retry on every set_arena().
+var _v2_failed := {}
 var _roller: DiceRoller3D = null
 var _flash: ColorRect = null
 var _exit_tween: Tween = null   # the running victory march/run, so skip_victory_march() can fast-forward it
@@ -679,7 +681,7 @@ func set_arena(biome_id: String, boss: bool = false) -> bool:
 		_world.add_child(_arena)
 		_world.move_child(_arena, 0)
 	# Arena v2: a biome with a diorama GLB gets it; a missing GLB falls back to the old terrain.
-	var use_v2 := arena_v2_enabled and ArenaV2Diorama.has_biome(biome_id)
+	var use_v2 := arena_v2_enabled and ArenaV2Diorama.has_biome(biome_id) and not _v2_failed.has(biome_id)
 	if _arena.biome_id == biome_id and _arena.is_boss == boss and _arena.terrain_from_diorama == use_v2:
 		return true
 	_arena.terrain_from_diorama = use_v2
@@ -688,8 +690,11 @@ func set_arena(biome_id: String, boss: bool = false) -> bool:
 		return false
 	_set_diorama(biome_id if use_v2 else "", boss)
 	if use_v2 and _diorama == null:   # GLB failed to load: old terrain after all
+		push_warning("arena v2: diorama for %s failed to load, using the old terrain" % biome_id)
+		_v2_failed[biome_id] = true
 		_arena.terrain_from_diorama = false
-		_arena.build(biome_id, _env, _sun, boss)
+		if not _arena.build(biome_id, _env, _sun, boss):
+			return false
 	_viewport.transparent_bg = false
 	# Soft sun shadows under the Land props and units; only with an arena (flat 2D backdrop
 	# fights keep the cheap blob shadows). Short range keeps the shadow map sharp and cheap.
