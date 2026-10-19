@@ -180,7 +180,7 @@ func _load_model() -> void:
 	_pivot.add_child(model)
 	model.rotation_degrees.y = float(reg.get("facing_deg", 0.0))
 	_fit(model)
-	if VenomPool.wants(String(reg.get("path", ""))):
+	if VenomPool.wants(reg):
 		VenomPool.attach(model, MetaState.reduce_flash)
 	_setup_anims(model, reg)
 

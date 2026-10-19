@@ -13,9 +13,9 @@ const MIST_R_FRAC := 0.24     ## mist tube radius / model height
 const MIST_H_FRAC := 0.15     ## mist tube height / model height
 
 
-## True for the models that need a pool (the Venom Chimera only).
-static func wants(model_path: String) -> bool:
-	return model_path.contains("chimera_venom")
+## True when the boss's atia_models.json entry asks for this cover ("cover": "venom_pool").
+static func wants(reg: Dictionary) -> bool:
+	return String(reg.get("cover", "")) == "venom_pool"
 
 
 ## Adds a VenomPool to `model` (already in the tree, untransformed or fitted: sizes come from its

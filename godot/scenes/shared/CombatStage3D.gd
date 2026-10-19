@@ -872,7 +872,7 @@ func spawn_unit(uid: int, cls: String, is_enemy: bool, slot_index: int, slot_cou
 		var model: Node3D = atia["node"]
 		slot.add_child(model)
 		_fit_atia_model(model, atia, ENEMY_SIZE_M * (_BOSS_SCALE if is_named_boss else 1.0))
-		if VenomPool.wants(String((atia["reg"] as Dictionary).get("path", ""))):
+		if VenomPool.wants(atia["reg"] as Dictionary):
 			VenomPool.attach(model, MetaState.reduce_flash)   # hides the bust's flat waist cut
 		visual = model
 		shadow_width = clampf(float(atia["width"]) * 0.9, 1.0 * ENEMY_SCALE, 7.0)
