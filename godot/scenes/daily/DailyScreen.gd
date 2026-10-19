@@ -73,16 +73,34 @@ func claim_daily() -> bool:
 	return ok
 
 
+var _gift_pending := false
+
+
 func claim_gift() -> Dictionary:
 	if _blocks():
 		return {"ok": false, "reason": "blocked"}
+	if GiftClaim.is_remote():
+		# Server wallet: the answer comes later. Show "Claiming..." and refresh when it lands.
+		if _gift_pending:
+			return {"ok": false, "granted": 0, "reason": "pending"}
+		_gift_pending = true
+		last_result = GiftClaim.message({"reason": "pending"})
+		_refresh()
+		GiftClaim.claim_async(_on_gift_result)
+		return {"ok": false, "granted": 0, "reason": "pending"}
 	var r := MetaState.claim_gem_gift_now()
-	match String(r.get("reason", "")):
-		"": last_result = "+%d Gem" % int(r.get("granted", 0))
-		"already_claimed": last_result = "Gem gift already claimed today"
-		"at_cap": last_result = "You hold the maximum, nothing to claim"
-	_refresh()
+	_on_gift_result(r, GiftClaim.message(r), bool(r.get("ok", false)))
 	return r
+
+
+func _on_gift_result(r: Dictionary, text: String, ok: bool) -> void:
+	_gift_pending = false
+	last_result = text
+	if not is_inside_tree():
+		return
+	_refresh()
+	if not ok and String(r.get("reason", "")) != "already_claimed" and String(r.get("reason", "")) != "at_cap":
+		GiftClaim.toast(self, text, &"error")
 
 
 func gift_state() -> String:

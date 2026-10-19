@@ -65,7 +65,7 @@ func derive_state() -> String:
 
 
 func _unhandled_key_input(ev: InputEvent) -> void:
-	if ev is InputEventKey and ev.pressed and not ev.echo and ev.keycode == KEY_ESCAPE:
+	if ev is InputEventKey and ev.pressed and not ev.echo and ev.is_action_pressed(&"menu_back"):
 		if _modal_layer.get_child_count() > 0:
 			close_modal()
 		else:
@@ -189,13 +189,33 @@ func close_modal() -> void:
 	UI3Meta.clear(_modal_layer)
 
 
+var _gift_pending := false
+
+
 func claim_gift() -> Dictionary:
 	if _account_blocks():
 		return {"ok": false, "reason": "blocked"}
+	if GiftClaim.is_remote():
+		if _gift_pending:
+			return {"ok": false, "granted": 0, "reason": "pending"}
+		_gift_pending = true
+		last_result = GiftClaim.message({"reason": "pending"})
+		_refresh()
+		GiftClaim.claim_async(_on_gift_result)
+		return {"ok": false, "granted": 0, "reason": "pending"}
 	var r := MetaState.claim_gem_gift_now()
-	last_result = "Claimed %d Gem" % int(r.get("granted", 0)) if bool(r.get("ok", false)) else _gift_reason(r)
-	_refresh()
+	_on_gift_result(r, GiftClaim.message(r), bool(r.get("ok", false)))
 	return r
+
+
+func _on_gift_result(r: Dictionary, text: String, ok: bool) -> void:
+	_gift_pending = false
+	last_result = text
+	if not is_inside_tree():
+		return
+	_refresh()
+	if not ok and String(r.get("reason", "")) != "already_claimed" and String(r.get("reason", "")) != "at_cap":
+		GiftClaim.toast(self, text, &"error")
 
 
 func _gift_reason(r: Dictionary) -> String:
