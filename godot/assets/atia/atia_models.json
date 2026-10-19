@@ -300,9 +300,10 @@
    "kind": "glb",
    "source": "chimera_3d",
    "path": "res://assets/bosses/chimera_tempest/chimera_tempest.glb",
-   "height_m": 3.6,
-   "max_width_m": 6.0,
-   "facing_deg": 35,
+   "height_m": 4.72,
+   "max_width_m": 7.5,
+   "facing_deg": 70,
+   "hover_m": 0.22,
    "anims": {
     "idle": "Idle",
     "attack": "Attack",

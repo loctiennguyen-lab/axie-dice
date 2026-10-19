@@ -1063,9 +1063,27 @@ func _fit_atia_model(model: Node3D, atia: Dictionary, size_m: float) -> void:
 	var wide := maxf(maxf(box.size.x, box.size.z), 0.0001)
 	var factor := minf(size_m / box.size.y, minf(size_m * (ENEMY_WIDTH_CAP_M / ENEMY_SIZE_M) / wide, wmax / wide))
 	model.scale = Vector3.ONE * factor
+	# Top of the model at rest (+ the optional "hover_m" of a flyer whose clips lift it), kept in
+	# model space so head_height_of() can place over-head UI above the real head.
+	atia["top_local"] = box.end.y + float((atia["reg"] as Dictionary).get("hover_m", 0.0))
 	var c := box.get_center()
 	model.position = Vector3(-c.x * factor, -box.position.y * factor, -c.z * factor)
 	atia["width"] = maxf(box.size.x, box.size.z) * factor
+
+
+## Height above the unit's slot (world metres) of the top of its 3D model, for over-head UI
+## (status chips). `fallback` when the unit has no fitted 3D Atia model (sprites, party Axies).
+func head_height_of(uid: int, fallback: float) -> float:
+	var entry: Dictionary = _units.get(uid, {})
+	var atia: Dictionary = entry.get("atia", {})
+	var slot: Node3D = entry.get("slot")
+	if atia.is_empty() or not atia.has("top_local") or not is_instance_valid(slot):
+		return fallback
+	var model := atia.get("node") as Node3D
+	if model == null or not is_instance_valid(model):
+		return fallback
+	var top := model.to_global(Vector3(0.0, float(atia["top_local"]), 0.0)).y
+	return maxf(fallback, top - slot.global_transform.origin.y)
 
 
 ## AABB of all meshes in `root`, expressed in root's local space.
