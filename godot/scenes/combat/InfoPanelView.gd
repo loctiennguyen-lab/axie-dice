@@ -114,7 +114,7 @@ func _die_rows(u: Unit) -> String:
 		# (CombatView._live_face_value()): growth/vital/blind/weaken/overdrive all land on
 		# top of `value`, and a reference panel that disagrees with the card next to it is
 		# worse than no panel.
-		var live := _combat._face_value(u, i) if _combat != null else int(f.get("value", 0))
+		var live := FaceAmount.display_value(f, _combat._face_value(u, i) if _combat != null else int(f.get("value", 0)))
 		s += "  %d. %s %s %d%s%s\n" % [i + 1, String(f.get("part", "")).to_upper(),
 			String(f.get("type", "")), live, kw_text, mark]
 	return s
