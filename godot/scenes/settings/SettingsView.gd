@@ -57,6 +57,7 @@ func _ready() -> void:
 		match sec:
 			"Audio": _build_audio()
 			"Accessibility": _build_accessibility()
+			"Controls": _build_controls()
 			"Aid and spending":
 				_row("Spending limit (monthly)", "Applies when purchases open.")
 			"How to play": _build_tutorial()

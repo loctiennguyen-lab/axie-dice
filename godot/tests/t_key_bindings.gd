@@ -60,6 +60,7 @@ func _ready() -> void:
 	# the real Land hub obeys the binding
 	KeyBindings.reset_all()
 	KeyBindings.set_keys(&"land_codex", [KEY_X])
+	MetaState.tutorial_seen = true   # in memory only: Land redirects to the tutorial otherwise
 	LandNav.dry_run = true
 	LandHub.qa = {"guest": false, "offline": false}
 	var hub := (load("res://scenes/land/Land.tscn") as PackedScene).instantiate()
