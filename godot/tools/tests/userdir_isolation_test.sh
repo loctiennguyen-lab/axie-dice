@@ -81,6 +81,33 @@ bash "$CLEAN" >/dev/null 2>&1; rc=$?
 check "clean: override.cfg của làn không đụng, rc 0" bash -c '[[ "$1" -eq 0 && -e "$2" ]] && grep -q Mine "$2"' _ "$rc" "$R/godot/override.cfg"
 rm -f "$R/godot/override.cfg"
 
+# check_export_no_override.py: quét đúng phần pck. Binary engine có sẵn "res://override.cfg", không được báo sai.
+PCKCHK="$TOOLS/check_export_no_override.py"
+mk_exe() {  # $1 = đường dẫn exe, $2 = nội dung pck
+  python3 -I -c '
+import sys
+pck = b"GDPC" + sys.argv[2].encode()
+exe = b"\x7fELF-fake" + b"res://override.cfg" + b"\0" * 64 + pck + len(pck).to_bytes(8, "little") + b"GDPC"
+open(sys.argv[1], "wb").write(exe)' "$1" "$2"
+}
+mk_exe "$S/ok.exe" "res://a.gd"; mk_exe "$S/bad.exe" "res://override.cfg"; mk_exe "$S/empty.exe" "nothing"
+printf 'junk' > "$S/no.exe"
+python3 -I "$PCKCHK" "$S/ok.exe" >/dev/null 2>&1; rc=$?
+check "pck exe sạch (template có chuỗi override bị bỏ qua): rc 0" test "$rc" -eq 0
+python3 -I "$PCKCHK" "$S/bad.exe" >/dev/null 2>&1; rc=$?
+check "pck exe có override.cfg: rc 1" test "$rc" -eq 1
+python3 -I "$PCKCHK" "$S/empty.exe" >/dev/null 2>&1; rc=$?
+check "pck không có res://: rc 2 (fail closed)" test "$rc" -eq 2
+python3 -I "$PCKCHK" "$S/no.exe" >/dev/null 2>&1; rc=$?
+check "exe không có trailer: rc 2 (fail closed)" test "$rc" -eq 2
+mkdir -p "$S/Axie.app/Contents/Resources"
+printf 'GDPCres://a.gd' > "$S/Axie.app/Contents/Resources/AxieDice.pck"
+python3 -I "$PCKCHK" "$S/Axie.app" >/dev/null 2>&1; rc=$?
+check "app macOS sạch: rc 0" test "$rc" -eq 0
+printf 'GDPCres://override.cfg' > "$S/Axie.app/Contents/Resources/AxieDice.pck"
+python3 -I "$PCKCHK" "$S/Axie.app" >/dev/null 2>&1; rc=$?
+check "app macOS có override.cfg: rc 1" test "$rc" -eq 1
+
 echo
 echo "================ userdir_isolation_test: $PASS passed, $FAIL failed ================"
 [[ $FAIL -eq 0 ]]

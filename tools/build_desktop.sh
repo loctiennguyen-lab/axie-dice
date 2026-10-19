@@ -102,6 +102,9 @@ export_one() {   # $1 = preset name, $2 = output path (.app or .exe)
   fi
   [[ $rc -eq 0 ]] || { echo "   godot exit $rc, see $log" >&2; return 1; }
   [[ -e "$dest" ]] || { echo "   no output at $dest, see $log" >&2; return 1; }
+  # Backstop: preset loại override.cfg, nhưng test có thể ghi override tạm giữa guard và export
+  # (build giữ khoá thật, test giữ khoá -test-). Quét chính gói vừa xuất.
+  python3 -I "$ROOT/godot/tools/check_export_no_override.py" "$dest" || { echo "   backstop: override.cfg trong $dest, không đóng gói" >&2; return 1; }
   return 0
 }
 
