@@ -2266,7 +2266,9 @@ func _layout_unit_visuals() -> void:
 ## stage's position in this view; returns Vector2(-1, -1) when the unit has no point on screen (dead,
 ## hidden, behind the camera).
 func _status_head_anchor(uid: int, is_party: bool, stage_offset: Vector2) -> Vector2:
-	var head := _stage3d.get_unit_screen_pos(uid, CombatStage3D.AXIE_HEAD_HEIGHT if is_party else CombatStage3D.HEAD_HEIGHT)
+	var head_h: float = CombatStage3D.AXIE_HEAD_HEIGHT if is_party \
+		else _stage3d.head_height_of(uid, CombatStage3D.HEAD_HEIGHT)   # tall / hovering bosses: the real top
+	var head := _stage3d.get_unit_screen_pos(uid, head_h)
 	if head.x < 0.0:
 		return Vector2(-1, -1)
 	return stage_offset + head - Vector2(0, 8.0)   # just above the unit's own head, wherever it stands
