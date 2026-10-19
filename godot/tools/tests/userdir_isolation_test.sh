@@ -59,6 +59,28 @@ check "override.cfg lạ: with_lock từ chối (exit 2)" test "$rc" -eq 2
 check "override.cfg lạ: file giữ nguyên" grep -q viewport_width "$R/godot/override.cfg"
 rm -f "$R/godot/override.cfg"
 
+# clean_stale_override.sh: chỉ xoá override tạm khi không khoá nào giữ; không bao giờ đụng override của làn.
+cp "$TOOLS/clean_stale_override.sh" "$R/godot/tools/"
+CLEAN="$R/godot/tools/clean_stale_override.sh"
+temp_ov() { printf '%s\n[application]\nconfig/use_custom_user_dir=true\nconfig/custom_user_dir_name="AxieDice-test-my-fake-repo"\n' "$AXIE_TEMP_OVERRIDE_MARK" > "$R/godot/override.cfg"; }
+temp_ov; rm -rf "$AXIE_GODOT_LOCK"
+bash "$CLEAN" >/dev/null 2>&1; rc=$?
+check "clean: override tạm sót, không khoá -> xoá, rc 0" bash -c '[[ "$1" -eq 0 && ! -e "$2" ]]' _ "$rc" "$R/godot/override.cfg"
+sleep 0 & dp=$!; wait "$dp" 2>/dev/null
+temp_ov; mkdir -p "$AXIE_GODOT_LOCK"; printf '%s|%s\n' "$dp" "Mon Jan  1 00:00:00 2001" > "$AXIE_GODOT_LOCK/pid"
+bash "$CLEAN" >/dev/null 2>&1; rc=$?
+check "clean: khoá của pid chết -> tiếp quản, xoá override, rc 0" bash -c '[[ "$1" -eq 0 && ! -e "$2" && ! -d "$3" ]]' _ "$rc" "$R/godot/override.cfg" "$AXIE_GODOT_LOCK"
+sleep 60 & lp=$!
+lst="$(ps -o lstart= -p "$lp" | tr -s ' ' | sed 's/^ //; s/ $//')"
+temp_ov; mkdir -p "$AXIE_GODOT_LOCK"; printf '%s|%s\n' "$lp" "$lst" > "$AXIE_GODOT_LOCK/pid"
+bash "$CLEAN" >/dev/null 2>&1; rc=$?
+check "clean: khoá của lần chạy đang sống -> giữ override, rc 1" bash -c '[[ "$1" -eq 1 && -e "$2" ]]' _ "$rc" "$R/godot/override.cfg"
+kill "$lp" 2>/dev/null; wait "$lp" 2>/dev/null; rm -rf "$AXIE_GODOT_LOCK"
+printf '[application]\nconfig/use_custom_user_dir=true\nconfig/custom_user_dir_name="Mine"\n' > "$R/godot/override.cfg"
+bash "$CLEAN" >/dev/null 2>&1; rc=$?
+check "clean: override.cfg của làn không đụng, rc 0" bash -c '[[ "$1" -eq 0 && -e "$2" ]] && grep -q Mine "$2"' _ "$rc" "$R/godot/override.cfg"
+rm -f "$R/godot/override.cfg"
+
 echo
 echo "================ userdir_isolation_test: $PASS passed, $FAIL failed ================"
 [[ $FAIL -eq 0 ]]
