@@ -61,6 +61,10 @@ var audio_muted: bool = false
 ## game unplayable for someone sensitive to them.
 var reduce_flash: bool = false
 
+## Rebound keyboard shortcuts: {action: [keycode, ...]}, only actions the player changed
+## (scripts/ui/key_bindings.gd owns the defaults). Settings only, no rule reads it.
+var key_bindings: Dictionary = {}
+
 ## Daily Mission (economy-progression.md §10.3, src/client.html:5425). The UTC date string
 ## 'YYYY-MM-DD' of the last grant; "" means never claimed.
 var daily_date: String = ""
@@ -140,6 +144,7 @@ func needs_tutorial() -> bool:
 
 func _ready() -> void:
 	load_from_disk()
+	KeyBindings.apply_overrides(key_bindings)
 	# DEFERRED on purpose. Autoloads are constructed in the order project.godot lists them, and
 	# MetaState comes before ContentDB — so at this point `ContentDB` does not exist yet, and
 	# writing hero keys into it here would either fail or be overwritten by its own `_init()`.
@@ -555,11 +560,29 @@ func reload_from_store() -> void:
 	audio_sfx_volume = 1.0
 	audio_muted = false
 	reduce_flash = false
+	key_bindings = {}
 	daily_date = ""
 	tutorial_seen = false
 	_reset_economy_fields()
 	load_from_disk()
+	KeyBindings.apply_overrides(key_bindings)
 	ensure_vault_heroes()
+
+
+## {action: [int keycodes]} from JSON (numbers come back as floats). Unknown shapes are dropped.
+func _key_bindings_from_json(v: Variant) -> Dictionary:
+	var out := {}
+	if not (v is Dictionary):
+		return out
+	for a in (v as Dictionary):
+		if (v[a] is Array):
+			var ks: Array = []
+			for k in (v[a] as Array):
+				if (typeof(k) == TYPE_INT or typeof(k) == TYPE_FLOAT) and int(k) > 0:
+					ks.append(int(k))
+			if not ks.is_empty():
+				out[str(a)] = ks
+	return out
 
 
 func _reset_economy_fields() -> void:
@@ -631,6 +654,7 @@ func load_from_disk() -> void:
 	audio_sfx_volume = clampf(float(parsed.get("audio_sfx_volume", 1.0)), 0.0, 1.0)
 	audio_muted = bool(parsed.get("audio_muted", false))
 	reduce_flash = bool(parsed.get("reduce_flash", false))
+	key_bindings = _key_bindings_from_json(parsed.get("key_bindings", {}))
 	daily_date = str(parsed.get("daily_date", ""))
 	tutorial_seen = bool(parsed.get("tutorial_seen", false))
 	# Migration backfill (design/gdd/onboarding-tutorial.md §5 "Migration save cũ", ported):
@@ -861,6 +885,7 @@ func save_to_disk() -> void:
 		"audio_sfx_volume": audio_sfx_volume,
 		"audio_muted": audio_muted,
 		"reduce_flash": reduce_flash,
+		"key_bindings": key_bindings,
 		"daily_date": daily_date,
 		"tutorial_seen": tutorial_seen,
 		"save_version": SAVE_VERSION,
