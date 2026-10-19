@@ -553,4 +553,4 @@ static func make_avatar(total_px: float, svc: Node = null) -> Control:
 	ini.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	ini.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	av.add_child(ini)
-	return AvatarFrame.wrap(av, total_px, MetaState.equipped_frame, total_px * 0.66)
+	return AvatarFrame.wrap(av, total_px, MetaState.equipped_frame, total_px / AvatarFrame.SCALE, total_px / AvatarFrame.SCALE)

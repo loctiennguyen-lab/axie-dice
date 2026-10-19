@@ -1137,7 +1137,7 @@ func _profile_cell() -> Control:
 	ini.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	ini.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	av.add_child(ini)
-	h.add_child(AvatarFrame.wrap(av, 72.0, MetaState.equipped_frame, 48.0, 48.0))
+	h.add_child(AvatarFrame.wrap_holder(av, 48.0, MetaState.equipped_frame))
 	var col := VBoxContainer.new()
 	col.add_theme_constant_override("separation", 0)
 	col.alignment = BoxContainer.ALIGNMENT_CENTER

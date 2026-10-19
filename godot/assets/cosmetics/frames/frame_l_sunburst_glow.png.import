@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://ky8dtsjquod1"
-path="res://.godot/imported/frame_e_firefly_lantern_glow.png-05410b7ddae2e90e9f69004bb5924fd9.ctex"
+uid="uid://iwpfwf2g6f0i"
+path="res://.godot/imported/frame_l_sunburst_glow.png-de83902b8e130f9e6381d31d4a03f43a.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/cosmetics/frames/frame_e_firefly_lantern_glow.png"
-dest_files=["res://.godot/imported/frame_e_firefly_lantern_glow.png-05410b7ddae2e90e9f69004bb5924fd9.ctex"]
+source_file="res://assets/cosmetics/frames/frame_l_sunburst_glow.png"
+dest_files=["res://.godot/imported/frame_l_sunburst_glow.png-de83902b8e130f9e6381d31d4a03f43a.ctex"]
 
 [params]
 
@@ -23,7 +23,7 @@ compress/rdo_quality_loss=0.0
 compress/hdr_compression=1
 compress/normal_map=0
 compress/channel_pack=0
-mipmaps/generate=true
+mipmaps/generate=false
 mipmaps/limit=-1
 roughness/mode=0
 roughness/src_normal=""
@@ -36,5 +36,5 @@ process/premult_alpha=false
 process/normal_map_invert_y=false
 process/hdr_as_srgb=false
 process/hdr_clamp_exposure=false
-process/size_limit=256
+process/size_limit=0
 detect_3d/compress_to=1

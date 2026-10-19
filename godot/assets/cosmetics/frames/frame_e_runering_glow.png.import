@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://lytjy7g8flas"
-path="res://.godot/imported/frame_m_eclipse_sparkles.png-9e59e17b0c155275a64d5215cfed86f6.ctex"
+uid="uid://cwe21ajcc7yx0"
+path="res://.godot/imported/frame_e_runering_glow.png-e4582c743f8b0119b5a35a5102fb1662.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/cosmetics/frames/frame_m_eclipse_sparkles.png"
-dest_files=["res://.godot/imported/frame_m_eclipse_sparkles.png-9e59e17b0c155275a64d5215cfed86f6.ctex"]
+source_file="res://assets/cosmetics/frames/frame_e_runering_glow.png"
+dest_files=["res://.godot/imported/frame_e_runering_glow.png-e4582c743f8b0119b5a35a5102fb1662.ctex"]
 
 [params]
 
@@ -23,7 +23,7 @@ compress/rdo_quality_loss=0.0
 compress/hdr_compression=1
 compress/normal_map=0
 compress/channel_pack=0
-mipmaps/generate=true
+mipmaps/generate=false
 mipmaps/limit=-1
 roughness/mode=0
 roughness/src_normal=""
@@ -36,5 +36,5 @@ process/premult_alpha=false
 process/normal_map_invert_y=false
 process/hdr_as_srgb=false
 process/hdr_clamp_exposure=false
-process/size_limit=256
+process/size_limit=0
 detect_3d/compress_to=1
