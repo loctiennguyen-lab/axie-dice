@@ -32,8 +32,12 @@ var instant := false
 var reduce_flashing := false
 ## Tests / server seam: Callable(n:int) -> Array of result Dictionaries (EchoBox.open_normal shape).
 var pull_hook: Callable = Callable()
-## First season pull per screen visit asks for a confirm (README M5o). Instance var so tests do not leak it.
-var season_confirmed := false
+## First season pull of the play session asks for a confirm (README M5o; Liam 20/10: once per session, not per visit).
+## Session-only, never saved. Tests set season_confirmed explicitly so they do not depend on order.
+static var _season_confirmed_session := false
+var season_confirmed: bool:
+	get: return _season_confirmed_session
+	set(v): _season_confirmed_session = v
 var rng := RandomNumberGenerator.new()
 var results: Array = []
 var error_text := ""

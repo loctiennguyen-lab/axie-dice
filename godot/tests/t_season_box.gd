@@ -144,7 +144,11 @@ func _run() -> void:
 	await get_tree().process_frame
 	_ok(s.find_child("ConfirmSeason", true, false) != null and s.tickets() == 60, "first season pull confirms; nothing spent yet")
 	s.close_modal()
+	# confirming once covers the rest of the play session, also on a fresh visit to the screen
 	s.season_confirmed = true
+	var s2: EchoBoxScreen = load("res://scenes/echobox/EchoBoxScreen.tscn").instantiate()
+	_ok(s2.season_confirmed, "confirm is per play session: a new screen visit does not ask again")
+	s2.free()
 	s.rng.seed = 3
 	var out: Array = await s.pull(1)
 	_ok(out.size() == 1 and s.tickets() >= 55 and s.tickets() <= 55 + 8, "one pull costs 5 tickets (dup refund aside)")
