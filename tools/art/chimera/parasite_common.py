@@ -50,8 +50,8 @@ def _rot_between(a, b):
 
 
 def straighten_beak(obj, p0=(0.09, -0.28, 0.222), tip0=(0.455, -0.73, 0.337),
-                    new_dir_deg=(5.0, 12.0), length=0.44, tube=0.075,
-                    s_free=0.02, s_full=0.14, nbins=80):
+                    new_dir_deg=(12.0, 12.0), length=0.44, tube=0.075,
+                    s_free=0.0, s_full=0.22, nbins=80):
     """Rebuild the long nose spike as ONE straight tapered spike.
 
     The beak centreline is measured from the mesh (mean of its vertices per slice), then every
@@ -173,3 +173,132 @@ def straighten_beak(obj, p0=(0.09, -0.28, 0.222), tip0=(0.455, -0.73, 0.337),
     set_co(me, co)
     print("PARASITE beak: new tip", co[idx][np.argmax(((co[idx] - start) @ D))], "arc old", tot, "new", arc_new_seg.sum())
     return len(idx)
+
+
+def boost_head_islands(obj, head_box, boost):
+    """Smart UV gives every triangle the same texel density, which starves the small painted
+    face. Scale the UV islands that sit in head_box ((xmin,xmax)-style: ((x0,x1),(z0,z1)) in
+    metres, mesh space) up by `boost`, then repack everything."""
+    import bmesh
+    (x0, x1), (z0, z1) = head_box
+    bm = bmesh.new()
+    bm.from_mesh(obj.data)
+    uv = bm.loops.layers.uv.active
+    bm.faces.ensure_lookup_table()
+    parent = list(range(len(bm.faces)))
+
+    def find(a):
+        while parent[a] != a:
+            parent[a] = parent[parent[a]]
+            a = parent[a]
+        return a
+    for e in bm.edges:
+        fs = e.link_faces
+        if len(fs) != 2:
+            continue
+        a, b = fs
+        ok = True
+        for v in e.verts:
+            la = next(l for l in a.loops if l.vert == v)
+            lb = next(l for l in b.loops if l.vert == v)
+            if (la[uv].uv - lb[uv].uv).length > 1e-5:
+                ok = False
+                break
+        if ok:
+            parent[find(a.index)] = find(b.index)
+    groups = {}
+    for f in bm.faces:
+        groups.setdefault(find(f.index), []).append(f)
+    n = 0
+    for fs in groups.values():
+        cen = sum((f.calc_center_median() for f in fs), Vector()) / len(fs)
+        if x0 <= cen.x <= x1 and z0 <= cen.z <= z1 and cen.y < 0.12:
+            uvs = [l[uv].uv for f in fs for l in f.loops]
+            c = sum(uvs, Vector((0, 0))) / len(uvs)
+            for f in fs:
+                for l in f.loops:
+                    l[uv].uv = c + (l[uv].uv - c) * boost
+            n += 1
+    bm.to_mesh(obj.data)
+    bm.free()
+    print("PARASITE: boosted", n, "head islands of", len(groups))
+    bpy.context.view_layer.objects.active = obj
+    bpy.ops.object.mode_set(mode='EDIT')
+    bpy.ops.mesh.select_all(action='SELECT')
+    bpy.ops.uv.pack_islands(rotate=False, margin=0.004, scale=True)
+    bpy.ops.object.mode_set(mode='OBJECT')
+
+
+def prepare_mesh(src, ratio, tex_size, tex_out, head_box=((-0.2, 0.55), (0.88, 1.2)), head_boost=2.4):
+    """Returns the low-poly mesh object (material = baked texture saved at tex_out)."""
+    hi = import_src(src)
+    hi.name = "Hi"
+    straighten_beak(hi)
+    co = get_co(hi.data)
+    co[:, 2] -= co[:, 2].min()   # feet/cape hem on the floor (z = 0)
+    set_co(hi.data, co)
+    low = hi.copy()
+    low.data = hi.data.copy()
+    low.name = "Parasite"
+    bpy.context.scene.collection.objects.link(low)
+    bpy.ops.object.select_all(action='DESELECT')
+    low.select_set(True)
+    bpy.context.view_layer.objects.active = low
+    # glTF import splits vertices at every UV seam / hard normal; collapsing those separately
+    # tears cracks in the surface. Weld first (UVs stay per-corner, they are rebuilt anyway).
+    bpy.ops.object.mode_set(mode='EDIT')
+    bpy.ops.mesh.select_all(action='SELECT')
+    bpy.ops.mesh.remove_doubles(threshold=1e-5)
+    bpy.ops.object.mode_set(mode='OBJECT')
+    print("PARASITE: welded verts", len(low.data.vertices), "of", len(hi.data.vertices))
+    m = low.modifiers.new("D", 'DECIMATE')
+    m.ratio = ratio
+    m.use_collapse_triangulate = True
+    bpy.ops.object.modifier_apply(modifier="D")
+    for p in low.data.polygons:
+        p.use_smooth = True
+    # fresh UVs for the low poly
+    while len(low.data.uv_layers):
+        low.data.uv_layers.remove(low.data.uv_layers[0])
+    low.data.uv_layers.new(name="UVMap")
+    bpy.ops.object.mode_set(mode='EDIT')
+    bpy.ops.mesh.select_all(action='SELECT')
+    bpy.ops.uv.smart_project(angle_limit=math.radians(88), island_margin=0.004, correct_aspect=True)
+    bpy.ops.object.mode_set(mode='OBJECT')
+    boost_head_islands(low, head_box, head_boost)
+    # bake target
+    img = bpy.data.images.new("T_Parasite", tex_size, tex_size, alpha=False)
+    mat = bpy.data.materials.new("M_Parasite")
+    mat.use_nodes = True
+    nt = mat.node_tree
+    bsdf = next(n for n in nt.nodes if n.type == "BSDF_PRINCIPLED")
+    node = nt.nodes.new("ShaderNodeTexImage")
+    node.image = img
+    nt.links.new(node.outputs["Color"], bsdf.inputs["Base Color"])
+    bsdf.inputs["Roughness"].default_value = 0.85
+    bsdf.inputs["Metallic"].default_value = 0.0
+    nt.nodes.active = node
+    low.data.materials.clear()
+    low.data.materials.append(mat)
+    sc = bpy.context.scene
+    sc.render.engine = 'CYCLES'
+    sc.cycles.device = 'CPU'
+    sc.cycles.samples = 1
+    sc.render.bake.use_pass_direct = False
+    sc.render.bake.use_pass_indirect = False
+    sc.render.bake.use_pass_color = True
+    sc.render.bake.margin = 10
+    sc.render.bake.use_selected_to_active = True
+    sc.render.bake.cage_extrusion = 0.03
+    sc.render.bake.max_ray_distance = 0.12
+    bpy.ops.object.select_all(action='DESELECT')
+    hi.select_set(True)
+    low.select_set(True)
+    bpy.context.view_layer.objects.active = low
+    bpy.ops.object.bake(type='DIFFUSE')
+    os.makedirs(os.path.dirname(os.path.abspath(tex_out)), exist_ok=True)
+    img.filepath_raw = tex_out
+    img.file_format = 'PNG'
+    img.save()
+    bpy.data.objects.remove(hi)
+    return low
