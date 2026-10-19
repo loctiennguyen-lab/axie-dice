@@ -125,7 +125,7 @@ func _case(label: String, kind: String, n_enemy: int, boss: bool, eggs: int, par
 	for u in enemies:
 		_assert(not gate.grow(MIN_GAP_PX * 0.5).intersects((rects[u] as Rect2).grow(MIN_GAP_PX * 0.5)), "%s: enemy %d touches the gate" % [label, u])
 	var panel := Rect2(1416.0, 24.0, 480.0, 170.0) if boss else Rect2(PANEL_X, 24.0, CANVAS.x - PANEL_X, 103.0 * float(n_enemy))
-	_assert(gate.position.y >= 0.0 and gate.end.x <= CANVAS.x - 24.0 and (n_enemy >= 4 and not boss or not gate.intersects(panel)), "%s: gate off screen or under the enemy panel %s vs %s" % [label, gate, panel])
+	_assert(gate.position.y >= 0.0 and gate.end.x <= CANVAS.x - 24.0 and not gate.intersects(panel) and gate.end.y <= TRAY_Y + 8.0, "%s: gate off screen or under the enemy panel %s vs %s" % [label, gate, panel])
 	stage.dispose_all()
 	stage.queue_free()
 	await get_tree().process_frame

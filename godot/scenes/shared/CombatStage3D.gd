@@ -167,7 +167,7 @@ const _BOSS_COLOR_VARIANT := {
 ##
 ## These figures come from the projection arithmetic above, not from a capture. Measure a real
 ## boss encounter before trusting the 12px margin.
-const _BOSS_SCALE := 2.4
+const _BOSS_SCALE := 2.2
 
 ## Target on-screen height (meters) for a rank-and-file enemy's Chimera Sprite3D (see
 ## spawn_unit()'s `elif is_enemy and MonsterArt.texture_for(...)` branch and
@@ -342,16 +342,16 @@ const ENEMY_CENTER_X := 3.6
 const ENEMY_PITCH_X := 1.25   # a diagonal: neighbours stand on different depth rows, so they can be close in x
 ## Enemies stand on three depth rows (back, middle, front), index i takes row i % 3, so units that are close
 ## in x are far apart in y and 5 enemies fit between the gap and the gate. One enemy stands on the middle row.
-const ENEMY_Z_BACK := -7.0
+const ENEMY_Z_BACK := -5.8
 const ENEMY_Z_MID := 0.2
-const ENEMY_Z_FRONT := 6.4
+const ENEMY_Z_FRONT := 6.0
 const BOSS_POS := Vector3(3.5, 0.0, 0.2)
 const ELITE_POS := Vector3(3.5, 0.0, 0.2)   # spec: one elite, bigger
 const ELITE_SCALE := 1.4
 ## Other enemies next to a boss or an elite: two on the front line, two on the back line, clear of the big one.
-const ADD_SLOTS: Array[Vector3] = [Vector3(1.4, 0.0, 6.4), Vector3(4.9, 0.0, 6.4), Vector3(-1.0, 0.0, -7.0), Vector3(8.4, 0.0, -7.0)]
+const ADD_SLOTS: Array[Vector3] = [Vector3(1.4, 0.0, 6.0), Vector3(4.9, 0.0, 6.0), Vector3(-1.0, 0.0, -5.8), Vector3(8.4, 0.0, -5.8)]
 ## Z of the path / gate lane. The arena is shifted onto it so the road to the gate runs behind the party, not under it.
-const LANE_Z := 1.0
+const LANE_Z := 6.2
 var _encounter_kind := ""
 
 
@@ -558,6 +558,10 @@ const _CAM_FOV := 19.0   # wider than before (was 34): the whole field zooms out
 const UNIT_SCALE := 0.9
 ## Monsters are drawn smaller than Axies (their art is 2.55 m tall; at 0.9 they towered over the party).
 const ENEMY_SCALE := 0.75
+## Every monster is normalised by its REAL shape, not by its art's own size: sqrt(width x height) of the model
+## (opaque pixels for sprites, mesh box for .glb) is scaled to ENEMY_SIZE_M, so a thin tall Thornback and a wide
+## round Slime read as the same weight as an Axie. Elite = ELITE_SCALE x that, named boss = _BOSS_SCALE x.
+const ENEMY_SIZE_M := 1.7
 const _CAM_PITCH_DEG := -30.0
 const _CAM_POS := Vector3(-0.2, 17.0, 28.0)   # 3/4 view across the field, slightly from above
 
@@ -781,7 +785,7 @@ func spawn_unit(uid: int, cls: String, is_enemy: bool, slot_index: int, slot_cou
 	if not atia.is_empty():
 		var model: Node3D = atia["node"]
 		slot.add_child(model)
-		_fit_atia_model(model, atia)
+		_fit_atia_model(model, atia, ENEMY_SIZE_M * (_BOSS_SCALE if is_named_boss else 1.0))
 		visual = model
 		shadow_width = clampf(float(atia["width"]) * 0.9, 1.0 * ENEMY_SCALE, 7.0)
 		atia_info = atia
@@ -800,8 +804,7 @@ func spawn_unit(uid: int, cls: String, is_enemy: bool, slot_index: int, slot_cou
 		# taken for party units (`is_enemy` guards it) — the AxieCharacter3D rig stays the party
 		# visual, per the standing "party never gets the enemy treatment" decision.
 		var tex := MonsterArt.texture_for(unit_key, is_boss)
-		var target_height := _ENEMY_SPRITE_HEIGHT_M * ENEMY_SCALE * (_BOSS_SCALE if is_named_boss else 1.0)
-		var sprite := _make_enemy_sprite(tex, target_height)
+		var sprite := _make_enemy_sprite(tex, ENEMY_SIZE_M * (_BOSS_SCALE if is_named_boss else 1.0))
 		slot.add_child(sprite)
 		visual = sprite
 		# The kit's own name for this creature's art. It is the key into MonsterAnim, and it
@@ -811,7 +814,7 @@ func spawn_unit(uid: int, cls: String, is_enemy: bool, slot_index: int, slot_cou
 		sheet_target = sprite
 		# Exact width already on hand for free: pixel_size * source texture width, same math
 		# _make_enemy_sprite() used to derive pixel_size from target_height in the first place.
-		shadow_width = float(tex.get_width()) * sprite.pixel_size
+		shadow_width = float((_sprite_info(tex)["used"] as Rect2).size.x) * sprite.pixel_size
 	else:
 		var desc: AxieDescriptor = null
 		# Real genes win, and only for a PARTY unit: an enemy has no Axie behind it, and an
@@ -953,12 +956,12 @@ func _make_atia_model(unit_key: String, is_boss: bool) -> Dictionary:
 ## and stands it on the floor. Bounds are measured in the model's own space with every node
 ## transform applied: FBX imports carry arbitrary root scales (one of these is 0.01), so
 ## measuring raw mesh AABBs would be wrong. Must run once the model is inside the tree.
-func _fit_atia_model(model: Node3D, atia: Dictionary) -> void:
+func _fit_atia_model(model: Node3D, atia: Dictionary, size_m: float) -> void:
 	var reg: Dictionary = atia["reg"]
 	model.rotation_degrees.y = float(reg.get("facing_deg", 0.0))
 	var box := _model_aabb(model)
-	var h := float(reg.get("height_m", 2.2)) * ENEMY_SCALE
-	var wmax := float(reg.get("max_width_m", 4.2)) * ENEMY_SCALE
+	var h := size_m * 1.2
+	var wmax := size_m * 2.6
 	var raw := _visual_bounds(model)   # raw mesh AABBs; what the mascot .glb files were fitted with
 	if box.size.y < 0.05 or (raw.y - raw.x) > box.size.y * 20.0:
 		# Skinned .glb whose node transforms do not reflect in get_aabb(): the transformed box is
@@ -969,7 +972,8 @@ func _fit_atia_model(model: Node3D, atia: Dictionary) -> void:
 			model.position = Vector3(0.0, -raw.x * f, 0.0)
 			atia["width"] = wmax * 0.6
 		return
-	var factor := minf(h / box.size.y, wmax / maxf(maxf(box.size.x, box.size.z), 0.0001))
+	var wide := maxf(maxf(box.size.x, box.size.z), 0.0001)
+	var factor := minf(size_m / sqrt(box.size.y * wide), minf(size_m * 1.9 / box.size.y, wmax / wide))
 	model.scale = Vector3.ONE * factor
 	var c := box.get_center()
 	model.position = Vector3(-c.x * factor, -box.position.y * factor, -c.z * factor)
@@ -1128,26 +1132,22 @@ static func _sprite_info(texture: Texture2D) -> Dictionary:
 	return info
 
 
-func _make_enemy_sprite(texture: Texture2D, target_height: float) -> Sprite3D:
+func _make_enemy_sprite(texture: Texture2D, size_m: float) -> Sprite3D:
 	var sprite := Sprite3D.new()
 	sprite.texture = texture
 	sprite.centered = true
 	sprite.billboard = BaseMaterial3D.BILLBOARD_FIXED_Y   # stays upright: a full billboard tilts back with the 3/4 camera and lifts its feet off the floor
 	sprite.shaded = false
 	sprite.double_sided = true
+	var info := _sprite_info(texture)
+	var used: Rect2 = info["used"]
 	var tex_h := float(texture.get_height())
-	sprite.pixel_size = target_height / maxf(tex_h, 1.0)
-	# Sprite3D is centered on its own node by default (`centered = true` above) — offsetting the
-	# NODE up by half the target height puts the sprite's bottom edge (its feet, since the source
-	# PNGs are alpha-trimmed tight to the creature) at the slot's own y=0 ground plane, matching
-	# FEET_HEIGHT/every other visual path in this file (AxieCharacter3D.root, the capsule
-	# placeholder) which all sit with their base at y=0 too.
-	sprite.position = Vector3(0.0, target_height * 0.5, 0.0)
-	# Some art (the Gooey King) has empty rows under the creature, so its feet hover. Drop the sprite
-	# by the transparent margin at the bottom so the opaque pixels touch the floor.
-	var pad_px: float = float(_sprite_info(texture).get("pad", 0.0))
-	if pad_px > 0.0:
-		sprite.position.y -= pad_px * sprite.pixel_size
+	# sqrt(w x h) of the opaque pixels becomes size_m; a very tall thin creature is capped at 1.9x size_m tall.
+	var px_size := size_m / sqrt(maxf(used.size.x * used.size.y, 1.0))
+	px_size = minf(px_size, size_m * 1.9 / maxf(used.size.y, 1.0))
+	sprite.pixel_size = px_size
+	# Node centred on the texture; drop it by the transparent rows under the creature so its feet touch y = 0.
+	sprite.position = Vector3(0.0, tex_h * 0.5 * px_size - float(info.get("pad", 0.0)) * px_size, 0.0)
 	return sprite
 
 
