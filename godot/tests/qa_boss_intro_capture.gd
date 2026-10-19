@@ -24,6 +24,5 @@ func _ready() -> void:
 		var img := get_viewport().get_texture().get_image()
 		var path := "%s/boss_intro_%s_%s_%s.png" % [_dir, key, pair[0], res]
 		img.save_png(path)
-		print("dbg plate pos=", intro.plate.position, " size=", intro.plate.size, " mod=", intro.plate.modulate, " vis=", intro.plate.visible, " cam=", intro._cam.position, " fps=", Engine.get_frames_per_second())
 		print("qa_boss_intro_capture: %s at %d ms" % [path, intro.elapsed_ms])
 	get_tree().quit(0)
