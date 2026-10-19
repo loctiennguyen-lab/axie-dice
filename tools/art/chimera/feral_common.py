@@ -90,7 +90,7 @@ def solid_material(name, rgb):
     return m
 
 
-def prepare_mesh(src, ratio, tex_size, tex_out, patches_fn, detail_fn, regions, decimate_factor=0.1):
+def prepare_mesh(src, ratio, tex_size, tex_out, patches_fn, detail_fn, regions, decimate_factor=0.0):
     """Returns the low-poly mesh object (material = baked texture saved at tex_out).
     patches_fn() -> list of extra objects (defect-fix geometry, own solid material); they are
     baked into the colour as well and joined into the low poly. detail_fn(co) -> 0..1 weight that
@@ -121,7 +121,8 @@ def prepare_mesh(src, ratio, tex_size, tex_out, patches_fn, detail_fn, regions, 
     m = low.modifiers.new("D", 'DECIMATE')
     m.ratio = ratio
     m.use_collapse_triangulate = True
-    m.vertex_group = "keep"
+    if decimate_factor > 0:
+        m.vertex_group = "keep"
     m.vertex_group_factor = decimate_factor
     bpy.ops.object.modifier_apply(modifier="D")
     low.vertex_groups.clear()

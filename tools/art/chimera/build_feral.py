@@ -51,13 +51,13 @@ def neck_patch():
         rows.append([bm.verts.new((u * hw, yb - 0.035 * u * u, z)) for u in xs])
     for r in range(len(zs) - 1):
         for c in range(len(xs) - 1):
-            bm.faces.new((rows[r][c], rows[r][c + 1], rows[r + 1][c + 1], rows[r + 1][c]))
+            bm.faces.new((rows[r][c], rows[r + 1][c], rows[r + 1][c + 1], rows[r][c + 1]))  # normal +Y (outward, back)
     me = bpy.data.meshes.new("NeckPatch")
     bm.to_mesh(me)
     bm.free()
     o = bpy.data.objects.new("NeckPatch", me)
     bpy.context.scene.collection.objects.link(o)
-    me.materials.append(solid_material("M_NeckPatch", (0.10, 0.27, 0.80)))
+    me.materials.append(solid_material("M_NeckPatch", (0.14, 0.36, 0.88)))
     return o
 
 
@@ -366,7 +366,7 @@ def make_cast(arm):
     c = Clip(arm, "Cast", 45)
     c.pose(0, arms=REST_ARMS)
     c.pose(14, {"waist": [(X, -4)], "chest": [(X, -4)], "neck": [(X, -6)], "head": [(X, -8)]},
-           root=(0, 0, 0.03), squash=-0.01, arms=dict(up=52, fwd=-10, elbow=-6, hand=-12), ears=4, bow=-6, crown=-6)
+           root=(0, 0, 0.03), squash=-0.01, arms=dict(up=40, fwd=-10, elbow=-6, hand=-12), ears=4, bow=-6, crown=-6)
     for f, t in ((20, 1), (26, -1), (32, 1)):
         c.pose(f, {"waist": [(X, 2), (Z, 3 * t)], "chest": [(X, 2)], "neck": [(X, -2)],
                    "head": [(X, -4), (Y, 12 * t), (Z, 6 * t)]},
@@ -384,12 +384,12 @@ def make_roar(arm):
     c.pose(0, arms=REST_ARMS)
     c.pose(10, {"waist": [(X, -10)], "chest": [(X, -8)], "neck": [(X, -6)], "head": [(X, -14)],
                 "body": [(X, -4)]}, root=(0, 0.06, 0.03), squash=-0.04,
-           arms=dict(up=36, fwd=-18, elbow=-8, hand=-14), ears=-6, bow=-8, crown=-10)
+           arms=dict(up=28, fwd=-14, elbow=-8, hand=-14), ears=-6, bow=-8, crown=-10)
     for f, sh in ((16, 1), (19, -1), (22, 1), (25, -1), (28, 1), (31, -1), (34, 1), (38, 0)):
         c.pose(f, {"waist": [(X, 10), (Y, 2 * sh)], "chest": [(X, 6), (Y, 3 * sh)], "neck": [(X, 8)],
                    "head": [(X, 14), (Z, 6 * sh)], "body": [(X, 3)]},
                root=(0.02 * sh, -0.12, 0.0), squash=0.05 + 0.01 * sh,
-               arms=dict(up=62 + 3 * sh, fwd=20, elbow=-6, hand=-18), ears=10 + 4 * sh, bow=6 * sh, crown=8 + 4 * sh)
+               arms=dict(up=40 + 3 * sh, fwd=14, elbow=-6, hand=-18), ears=10 + 4 * sh, bow=6 * sh, crown=8 + 4 * sh)
     c.pose(48, arms=REST_ARMS)
     return c.bake()
 
@@ -400,9 +400,9 @@ def make_dead(arm):
     c.pose(0, arms=REST_ARMS)
     c.pose(6, {"waist": [(X, -10)], "chest": [(X, -8)], "neck": [(X, -8)], "head": [(X, -16), (Z, 10)]},
            root=(0, 0.10, 0.0), squash=0.03, arms=dict(up=36, fwd=-8, hand=-10), ears=-8, bow=-12, crown=-10)
-    fin = {"waist": [(X, 34)], "chest": [(X, 24)], "neck": [(X, 14)], "head": [(X, 22), (Z, -14), (Y, 8)],
+    fin = {"waist": [(X, 20)], "chest": [(X, 12)], "neck": [(X, 6)], "head": [(X, 10), (Z, -14), (Y, 8)],
            "body": [(X, 4)]}
-    c.pose(18, {"waist": [(X, 20)], "chest": [(X, 14)], "neck": [(X, 8)], "head": [(X, 14), (Z, -8)]},
+    c.pose(18, {"waist": [(X, 12)], "chest": [(X, 8)], "neck": [(X, 4)], "head": [(X, 8), (Z, -8)]},
            root=(0, 0.02, -0.04), squash=0.05, arms=dict(up=-30, fwd=14, elbow=6, hand=10), ears=8, bow=8, crown=6)
     c.pose(28, fin, root=(0, -0.06, -0.10), squash=0.09,
            arms=dict(up=-62, fwd=10, elbow=8, hand=16), ears=16, bow=14, crown=14)
