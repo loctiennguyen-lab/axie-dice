@@ -79,7 +79,7 @@ def boost_head_islands(obj, head_box, boost):
     bpy.ops.object.mode_set(mode='OBJECT')
 
 
-def prepare_mesh(src, ratio, tex_size, tex_out, head_box=((-0.22, 0.05), (0.08, 0.5)), head_boost=2.2):
+def prepare_mesh(src, ratio, tex_size, tex_out, head_box=((-0.28, 0.28), (0.10, 0.5)), head_boost=2.6, head_share=0.42):
     """Returns the low-poly mesh object (material = baked texture saved at tex_out)."""
     hi = import_src(src)
     hi.name = "Hi"
@@ -97,10 +97,39 @@ def prepare_mesh(src, ratio, tex_size, tex_out, head_box=((-0.22, 0.05), (0.08, 
     bpy.ops.mesh.remove_doubles(threshold=1e-5)
     bpy.ops.object.mode_set(mode='OBJECT')
     print("TEMPEST: welded verts", len(low.data.vertices), "of", len(hi.data.vertices))
-    m = low.modifiers.new("D", 'DECIMATE')
-    m.ratio = ratio
-    m.use_collapse_triangulate = True
-    bpy.ops.object.modifier_apply(modifier="D")
+    # Two-zone decimate with the edit-mode operator (it only touches the selection, so the zones
+    # stay welded): the head zone (face, mask, gem, crest, arrows) keeps ~HEAD_TRIS, the rest
+    # collapses to the remaining budget. A whole-mesh ratio smears the painted face.
+    import bmesh
+    total_budget = int(484604 * ratio)
+
+    def in_head(p):
+        return p.z > 0.10 and abs(p.x) < 0.28
+    bm = bmesh.new()
+    bm.from_mesh(low.data)
+    bm.faces.ensure_lookup_table()
+    head_faces = sum(1 for f in bm.faces if in_head(f.calc_center_median()))
+    all_faces = len(bm.faces)
+    bm.free()
+    head_target = int(total_budget * head_share)
+    r_head = min(1.0, head_target / max(head_faces, 1))
+    r_body = max(0.001, (total_budget - head_target) / max(all_faces - head_faces, 1))
+    print("TEMPEST: faces head %d body %d -> ratios head %.3f body %.3f" % (head_faces, all_faces - head_faces, r_head, r_body))
+    for zone_head, r in ((False, r_body), (True, r_head)):
+        bpy.ops.object.mode_set(mode='EDIT')
+        bpy.ops.mesh.select_mode(type='FACE')
+        bpy.ops.mesh.select_all(action='DESELECT')
+        bpy.ops.object.mode_set(mode='OBJECT')
+        for f in low.data.polygons:
+            f.select = in_head(Vector(f.center)) == zone_head
+        bpy.ops.object.mode_set(mode='EDIT')
+        bpy.ops.mesh.decimate(ratio=r)
+        bpy.ops.object.mode_set(mode='OBJECT')
+    bpy.ops.object.mode_set(mode='EDIT')
+    bpy.ops.mesh.select_all(action='SELECT')
+    bpy.ops.mesh.quads_convert_to_tris()
+    bpy.ops.mesh.remove_doubles(threshold=1e-5)
+    bpy.ops.object.mode_set(mode='OBJECT')
     for p in low.data.polygons:
         p.use_smooth = True
     # fresh UVs for the low poly
@@ -135,8 +164,8 @@ def prepare_mesh(src, ratio, tex_size, tex_out, head_box=((-0.22, 0.05), (0.08, 
     sc.render.bake.use_pass_color = True
     sc.render.bake.margin = 10
     sc.render.bake.use_selected_to_active = True
-    sc.render.bake.cage_extrusion = 0.04
-    sc.render.bake.max_ray_distance = 0.2
+    sc.render.bake.cage_extrusion = 0.012
+    sc.render.bake.max_ray_distance = 0.035
     bpy.ops.object.select_all(action='DESELECT')
     hi.select_set(True)
     low.select_set(True)
