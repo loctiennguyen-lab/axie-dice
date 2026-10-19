@@ -181,6 +181,18 @@
       "value": "#ffb444",
       "meaning": "kam-6"
     },
+    "rarity_uncommon": {
+      "value": "#0094ff",
+      "meaning": "blue-5 · Uncommon (approved cosmetics R2), 5.14:1 on plate"
+    },
+    "rarity_mythic": {
+      "value": "#b04dff",
+      "meaning": "Terrariums rarity-mystic · Mythic fills, borders, die band. Not for text (4.1:1)"
+    },
+    "rarity_mythic_text": {
+      "value": "#cf9eff",
+      "meaning": "purple-8 · Mythic tier word, 7.68:1 on plate"
+    },
     "annot": {
       "value": "#00b8ff",
       "meaning": "blue-6 · design annotations only (safe areas), not shipped"

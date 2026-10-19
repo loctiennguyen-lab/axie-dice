@@ -69,7 +69,28 @@ static func _bake(host: Node, id: String, path: String) -> Texture2D:
 	img.convert(Image.FORMAT_RGBA8)
 	DirAccess.make_dir_recursive_absolute("user://thumbs")
 	for old in DirAccess.get_files_at("user://thumbs"):
-		if old.begins_with(id + "_") and old != path.get_file():
+		if id != "" and old.begins_with(id + "_") and old != path.get_file():
 			DirAccess.remove_absolute("user://thumbs/" + old)
-	img.save_png(path)
+	if id != "":
+		img.save_png(path)
+	DiceRoller3D.free_plates_except([MetaState.equipped_die_skin])
 	return ImageTexture.create_from_image(img)
+
+
+static var _plain: Texture2D = null
+
+
+## Baked thumbnail of the plain (no skin) die, for the "Default" tile. Not cached on disk.
+static func get_plain(host: Node) -> Texture2D:
+	if _plain != null:
+		return _plain
+	if DisplayServer.get_name() == "headless":
+		return null
+	while _busy:
+		await host.get_tree().process_frame
+		if _plain != null:
+			return _plain
+	_busy = true
+	_plain = await _bake(host, "", "user://thumbs/_plain.png")
+	_busy = false
+	return _plain

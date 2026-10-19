@@ -39,7 +39,8 @@
     "plate_normal.png",
     "tile_trim_56.png",
     "tile_trim_88.png"
-   ]
+   ],
+   "source": "Echo Box"
   },
   "die_c_reed": {
    "name": "Reed Basket",
@@ -77,7 +78,8 @@
     "plate_normal.png",
     "tile_trim_56.png",
     "tile_trim_88.png"
-   ]
+   ],
+   "source": "Echo Box"
   },
   "die_c_sunwood": {
    "name": "Sunwood Block",
@@ -115,7 +117,8 @@
     "plate_normal.png",
     "tile_trim_56.png",
     "tile_trim_88.png"
-   ]
+   ],
+   "source": "Echo Box"
   },
   "die_e_rune": {
    "name": "Rune Slate",
@@ -171,7 +174,8 @@
     "plate_normal.png",
     "tile_trim_56.png",
     "tile_trim_88.png"
-   ]
+   ],
+   "source": "Echo Box, Season box (S1)"
   },
   "die_e_s1_founder": {
    "name": "Founder's Seal",
@@ -230,7 +234,8 @@
     "plate_normal.png",
     "tile_trim_56.png",
     "tile_trim_88.png"
-   ]
+   ],
+   "source": "Pass (Season 1)"
   },
   "die_e_spore": {
    "name": "Glowcap Grove",
@@ -289,7 +294,8 @@
     "sparkle_sheet.png",
     "tile_trim_56.png",
     "tile_trim_88.png"
-   ]
+   ],
+   "source": "Echo Box, Season box (S1)"
   },
   "die_l_gold": {
    "name": "Genesis Sun",
@@ -348,7 +354,8 @@
     "sheen.png",
     "tile_trim_56.png",
     "tile_trim_88.png"
-   ]
+   ],
+   "source": "Echo Box"
   },
   "die_l_kingdom": {
    "name": "Lunacia Crown",
@@ -411,7 +418,8 @@
     "sparkle_sheet.png",
     "tile_trim_56.png",
     "tile_trim_88.png"
-   ]
+   ],
+   "source": "Echo Box"
   },
   "die_l_relic_stone": {
    "name": "Gold Seam Relic",
@@ -466,7 +474,8 @@
     "plate_normal.png",
     "tile_trim_56.png",
     "tile_trim_88.png"
-   ]
+   ],
+   "source": "Echo Box, Season box (S1)"
   },
   "die_m_moon": {
    "name": "Midnight Moon",
@@ -527,7 +536,8 @@
     "settle_halo.png",
     "tile_trim_56.png",
     "tile_trim_88.png"
-   ]
+   ],
+   "source": "Echo Box, Season box milestone (40 opens)"
   },
   "die_m_redcrystal": {
    "name": "Heart of Luna",
@@ -590,7 +600,8 @@
     "sparkle_sheet.png",
     "tile_trim_56.png",
     "tile_trim_88.png"
-   ]
+   ],
+   "source": "Echo Box"
   },
   "die_r_aqua": {
    "name": "Pearl Tide",
@@ -632,7 +643,8 @@
     "plate_normal.png",
     "tile_trim_56.png",
     "tile_trim_88.png"
-   ]
+   ],
+   "source": "Mastery (Aqua), Echo Box"
   },
   "die_r_beast": {
    "name": "Clawed Leather",
@@ -672,7 +684,8 @@
     "plate_normal.png",
     "tile_trim_56.png",
     "tile_trim_88.png"
-   ]
+   ],
+   "source": "Mastery (Beast), Echo Box"
   },
   "die_r_bird": {
    "name": "Rosy Plume",
@@ -712,7 +725,8 @@
     "plate_normal.png",
     "tile_trim_56.png",
     "tile_trim_88.png"
-   ]
+   ],
+   "source": "Mastery (Bird), Echo Box"
   },
   "die_r_bug": {
    "name": "Ladybug Shell",
@@ -752,7 +766,8 @@
     "plate_normal.png",
     "tile_trim_56.png",
     "tile_trim_88.png"
-   ]
+   ],
+   "source": "Mastery (Bug), Echo Box"
   },
   "die_r_plant": {
    "name": "Jade Sprout",
@@ -794,7 +809,8 @@
     "plate_normal.png",
     "tile_trim_56.png",
     "tile_trim_88.png"
-   ]
+   ],
+   "source": "Mastery (Plant), Echo Box"
   },
   "die_r_reptile": {
    "name": "Scale Lord",
@@ -836,7 +852,8 @@
     "plate_normal.png",
     "tile_trim_56.png",
     "tile_trim_88.png"
-   ]
+   ],
+   "source": "Mastery (Reptile), Echo Box"
   },
   "die_u_bark": {
    "name": "Tree Rings",
@@ -874,7 +891,8 @@
     "plate_normal.png",
     "tile_trim_56.png",
     "tile_trim_88.png"
-   ]
+   ],
+   "source": "Echo Box"
   },
   "die_u_berry": {
    "name": "Berry Jam",
@@ -914,7 +932,8 @@
     "plate_normal.png",
     "tile_trim_56.png",
     "tile_trim_88.png"
-   ]
+   ],
+   "source": "Echo Box"
   },
   "die_u_moss": {
    "name": "Mossy Stone",
@@ -952,7 +971,8 @@
     "plate_normal.png",
     "tile_trim_56.png",
     "tile_trim_88.png"
-   ]
+   ],
+   "source": "Pass (Season 1)"
   }
  }
 }

@@ -25,6 +25,9 @@ var _sparkle_corner: Array[int] = []
 var _rb: RigidBody3D = null
 var _moving := false
 var _rb_searched := false
+var _was_tumbling := false
+var _boost := 1.0   ## emission multiplier of the Mythic settle moment (1 = off)
+var _settled_once := false
 
 
 ## Attach to `mi` (a die made by make_die_mesh with this skin). `animated` false = static mid look.
@@ -106,7 +109,7 @@ func _process(_dt: float) -> void:
 	if _motion.has("glow"):
 		var g: Array = _motion["glow"]
 		var w := 0.5 - 0.5 * cos(TAU * t / float(g[2]))
-		_body.emission_energy_multiplier = lerpf(float(g[0]), float(g[1]), w)
+		_body.emission_energy_multiplier = lerpf(float(g[0]), float(g[1]), w) * _boost
 		var b: Array = _motion.get("band", [0.35, 0.85])
 		for f in _faces:
 			if f != null and f.emission_enabled:
@@ -116,6 +119,11 @@ func _process(_dt: float) -> void:
 	if _motion.has("sheen") and _body.next_pass is StandardMaterial3D:
 		(_body.next_pass as StandardMaterial3D).uv1_offset = Vector3(fposmod(t / float(_motion["sheen"]), 1.0), 0, 0)
 	_step_sparkles(t)
+	var tum := is_tumbling()
+	if _was_tumbling and not tum and not _settled_once and _rb != null and _motion.has("settle"):
+		_settled_once = true
+		play_settle(_rb.get_parent() as Node3D, _rb.global_position, 0.0)
+	_was_tumbling = tum
 
 
 func _step_sparkles(t: float) -> void:
@@ -132,3 +140,68 @@ func _step_sparkles(t: float) -> void:
 		s.position = CORNERS[(k + i) % 4]
 		(s.material_override as StandardMaterial3D).uv1_offset = Vector3(float(int(local * SPARKLE_FPS)) / SPARKLE_FRAMES, 0, 0)
 		s.visible = true
+
+
+## Mythic settle moment (<= 0.6 s, one shot; never with Reduce flashing). Moon: floor halo + emission x2.
+## Red crystal: emission x1 -> x2.8 -> x1 and six shards. Effect nodes are added to `host` at `at` and free
+## themselves; they do not delay anything (the 2D tile flies meanwhile).
+func play_settle(host: Node3D, at: Vector3, floor_y: float) -> void:
+	if not _moving or host == null or not _motion.has("settle"):
+		return
+	var kind := String(_motion["settle"])
+	var peak := 2.0 if kind == "halo" else 2.8
+	var tw := create_tween()
+	tw.tween_property(self, "_boost", peak, 0.25).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+	tw.tween_property(self, "_boost", 1.0, 0.25).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN)
+	if kind == "halo":
+		var tx := DiceSkin.texture(skin, "settle_halo.png")
+		if tx == null:
+			return
+		var q := QuadMesh.new()
+		q.size = Vector2(1.2, 1.2)
+		q.orientation = PlaneMesh.FACE_Y
+		var m := StandardMaterial3D.new()
+		m.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		m.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
+		m.albedo_texture = tx
+		m.albedo_color = Color(1, 1, 1, 0.9)
+		var halo := MeshInstance3D.new()
+		halo.mesh = q
+		halo.material_override = m
+		halo.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
+		host.add_child(halo)
+		halo.global_position = Vector3(at.x, floor_y + 0.02, at.z)
+		halo.scale = Vector3.ONE * 0.6
+		var ht := halo.create_tween().set_parallel(true)
+		ht.tween_property(halo, "scale", Vector3.ONE * 1.8, 0.55).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+		ht.tween_property(m, "albedo_color:a", 0.0, 0.55).set_trans(Tween.TRANS_CUBIC).set_ease(Tween.EASE_OUT)
+		ht.chain().tween_callback(halo.queue_free)
+	else:
+		var tx2 := DiceSkin.texture(skin, "settle_shard.png")
+		if tx2 == null:
+			return
+		var p := CPUParticles3D.new()
+		p.one_shot = true
+		p.amount = 6
+		p.lifetime = 0.5
+		p.explosiveness = 1.0
+		p.direction = Vector3.UP
+		p.spread = 70.0
+		p.initial_velocity_min = 1.2
+		p.initial_velocity_max = 1.8
+		p.gravity = Vector3(0, -6, 0)
+		var q2 := QuadMesh.new()
+		q2.size = Vector2(0.12, 0.12)
+		var m2 := StandardMaterial3D.new()
+		m2.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
+		m2.billboard_mode = BaseMaterial3D.BILLBOARD_ENABLED
+		m2.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA
+		m2.blend_mode = BaseMaterial3D.BLEND_MODE_ADD
+		m2.albedo_texture = tx2
+		q2.material = m2
+		p.mesh = q2
+		host.add_child(p)
+		p.global_position = at
+		p.emitting = true
+		p.get_tree().create_timer(0.7).timeout.connect(p.queue_free)

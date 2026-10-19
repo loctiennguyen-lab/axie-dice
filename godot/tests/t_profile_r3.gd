@@ -95,28 +95,31 @@ func _run() -> void:
 	pv = await _view(svc)
 	pv.set_tab(1)
 	var tiles := pv.find_children("Tile_die_*", "Button", true, false)
-	_ok(tiles.size() == ProfileView.catalog("die").size() and tiles.size() > 0, "grid lists every die skin (owned or not)")
+	_ok(tiles.size() == ProfileView.catalog("die").size() + 1 - 1 and tiles.size() > 0 and pv.find_child("Tile_default_die", true, false) != null,
+		"grid lists every die skin (owned or not) + the Default tile first")
 	var eq := pv.find_child("Equip", true, false) as Button
-	_ok(eq.disabled and eq.text == "Nothing to equip", "nothing owned: Equip disabled with reason")
+	_ok(eq.disabled and eq.text == "Equipped", "default selected and equipped: Equip says Equipped")
 	pv.queue_free()
 	MetaState.cosmetics_owned.append("die_c_clay")
 	pv = await _view(svc)
 	pv.set_tab(1)
-	_ok("1 /" in (pv.find_child("Cat_die", true, false) as Button).text, "category count")
+	_ok("2 of 21" in (pv.find_child("Cat_die", true, false) as Button).text, "category count")
 	var other := ProfileView.catalog("die")[1]
 	(pv.find_child("Tile_" + other, true, false) as Button).pressed.emit()
 	await get_tree().process_frame
 	eq = pv.find_child("Equip", true, false) as Button
-	_ok(eq.disabled and eq.text == "Not owned yet", "unowned selected: disabled")
+	_ok(eq.disabled and eq.text == "Locked", "unowned selected: disabled, says Locked")
 	(pv.find_child("Tile_die_c_clay", true, false) as Button).pressed.emit()
 	await get_tree().process_frame
 	(pv.find_child("Equip", true, false) as Button).pressed.emit()
 	await get_tree().process_frame
 	_ok(MetaState.equipped_die_skin == "die_c_clay", "Equip equips")
-	_ok((pv.find_child("Equip", true, false) as Button).text == "Unequip", "button flips to Unequip")
+	_ok((pv.find_child("Equip", true, false) as Button).text == "Equipped" and (pv.find_child("Equip", true, false) as Button).disabled, "button says Equipped, disabled")
+	(pv.find_child("Tile_default_die", true, false) as Button).pressed.emit()
+	await get_tree().process_frame
 	(pv.find_child("Equip", true, false) as Button).pressed.emit()
 	await get_tree().process_frame
-	_ok(MetaState.equipped_die_skin == "", "Unequip clears")
+	_ok(MetaState.equipped_die_skin == "", "Equip on the Default tile clears the skin")
 	(pv.find_child("Cat_frame", true, false) as Button).pressed.emit()
 	await get_tree().process_frame
 	_ok(pv.find_child("Grid_frame", true, false) != null, "frames category")

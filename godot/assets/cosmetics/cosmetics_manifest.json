@@ -709,7 +709,8 @@
    ],
    "window_radius_px": 81,
    "anim": {},
-   "frame_scale": 1.5
+   "frame_scale": 1.5,
+   "source": "Mastery (Plant), Echo Box"
   },
   "frame_c_beast": {
    "name": "Fuzzy Ears",
@@ -730,7 +731,8 @@
    ],
    "window_radius_px": 81,
    "anim": {},
-   "frame_scale": 1.5
+   "frame_scale": 1.5,
+   "source": "Mastery (Beast), Echo Box"
   },
   "frame_c_aqua": {
    "name": "Wave Fin",
@@ -751,7 +753,8 @@
    ],
    "window_radius_px": 81,
    "anim": {},
-   "frame_scale": 1.5
+   "frame_scale": 1.5,
+   "source": "Mastery (Aqua), Echo Box"
   },
   "frame_c_reptile": {
    "name": "Reptile Spikes",
@@ -772,7 +775,8 @@
    ],
    "window_radius_px": 81,
    "anim": {},
-   "frame_scale": 1.5
+   "frame_scale": 1.5,
+   "source": "Mastery (Reptile), Echo Box"
   },
   "frame_c_bug": {
    "name": "Antenna Ring",
@@ -793,7 +797,8 @@
    ],
    "window_radius_px": 81,
    "anim": {},
-   "frame_scale": 1.5
+   "frame_scale": 1.5,
+   "source": "Mastery (Bug), Echo Box"
   },
   "frame_c_bird": {
    "name": "Feather Wings",
@@ -814,7 +819,8 @@
    ],
    "window_radius_px": 81,
    "anim": {},
-   "frame_scale": 1.5
+   "frame_scale": 1.5,
+   "source": "Mastery (Bird), Echo Box"
   },
   "frame_u_pond": {
    "name": "Lily Pond",
@@ -835,7 +841,8 @@
    ],
    "window_radius_px": 81,
    "anim": {},
-   "frame_scale": 1.5
+   "frame_scale": 1.5,
+   "source": "Echo Box"
   },
   "frame_u_vine": {
    "name": "Vine Wreath",
@@ -856,7 +863,8 @@
    ],
    "window_radius_px": 81,
    "anim": {},
-   "frame_scale": 1.5
+   "frame_scale": 1.5,
+   "source": "Pass (Season 1)"
   },
   "frame_u_mushroom": {
    "name": "Mushroom Ring",
@@ -877,7 +885,8 @@
    ],
    "window_radius_px": 81,
    "anim": {},
-   "frame_scale": 1.5
+   "frame_scale": 1.5,
+   "source": "Echo Box"
   },
   "frame_u_campfire": {
    "name": "Campfire Logs",
@@ -898,7 +907,8 @@
    ],
    "window_radius_px": 81,
    "anim": {},
-   "frame_scale": 1.5
+   "frame_scale": 1.5,
+   "source": "Echo Box"
   },
   "frame_r_frost": {
    "name": "Frost Crown",
@@ -919,7 +929,8 @@
    ],
    "window_radius_px": 81,
    "anim": {},
-   "frame_scale": 1.5
+   "frame_scale": 1.5,
+   "source": "Echo Box"
   },
   "frame_r_snowglobe": {
    "name": "Snow Globe",
@@ -940,7 +951,8 @@
    ],
    "window_radius_px": 81,
    "anim": {},
-   "frame_scale": 1.5
+   "frame_scale": 1.5,
+   "source": "Echo Box"
   },
   "frame_r_aurora": {
    "name": "Aurora Veil",
@@ -961,7 +973,8 @@
    ],
    "window_radius_px": 81,
    "anim": {},
-   "frame_scale": 1.5
+   "frame_scale": 1.5,
+   "source": "Echo Box"
   },
   "frame_r_icicle": {
    "name": "Icicle Fringe",
@@ -982,7 +995,8 @@
    ],
    "window_radius_px": 81,
    "anim": {},
-   "frame_scale": 1.5
+   "frame_scale": 1.5,
+   "source": "Echo Box"
   },
   "frame_e_runering": {
    "name": "Rune Ring",
@@ -1024,7 +1038,8 @@
      }
     ]
    },
-   "frame_scale": 1.5
+   "frame_scale": 1.5,
+   "source": "Echo Box, Season box (S1)"
   },
   "frame_e_firefly": {
    "name": "Firefly Twig",
@@ -1066,7 +1081,8 @@
      }
     ]
    },
-   "frame_scale": 1.5
+   "frame_scale": 1.5,
+   "source": "Echo Box, Season box (S1)"
   },
   "frame_e_s1_founder": {
    "name": "Founder's Laurel",
@@ -1100,7 +1116,8 @@
      }
     ]
    },
-   "frame_scale": 1.5
+   "frame_scale": 1.5,
+   "source": "Pass (Season 1)"
   },
   "frame_l_sunburst": {
    "name": "Genesis Sunburst",
@@ -1142,7 +1159,8 @@
      }
     ]
    },
-   "frame_scale": 1.5
+   "frame_scale": 1.5,
+   "source": "Echo Box, Season box (S1)"
   },
   "frame_l_sovereign": {
    "name": "Lunacia Sovereign",
@@ -1176,7 +1194,8 @@
      }
     ]
    },
-   "frame_scale": 1.5
+   "frame_scale": 1.5,
+   "source": "Pass (Season 1, level 30)"
   },
   "frame_m_eclipse": {
    "name": "Moon Eclipse",
@@ -1222,7 +1241,8 @@
      }
     ]
    },
-   "frame_scale": 1.5
+   "frame_scale": 1.5,
+   "source": "Echo Box, Season box (S1)"
   },
   "frame_m_crystal": {
    "name": "Luna Heart Crown",
@@ -1269,7 +1289,8 @@
      }
     ]
    },
-   "frame_scale": 1.5
+   "frame_scale": 1.5,
+   "source": "Echo Box"
   }
  },
  "fx": {

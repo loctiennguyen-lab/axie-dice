@@ -194,3 +194,22 @@ static func make_trim(id: String, px: int) -> TextureRect:
 	r.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	r.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	return r
+
+
+# --- tiers -----------------------------------------------------------------------------------------
+
+const TIER_TOKENS := ["rarity_common", "rarity_uncommon", "rarity_rare", "rarity_epic", "rarity_legendary", "rarity_mythic"]
+
+
+## Fill / border colour of tier index 0..5 (Common..Mythic) from the UI3 tokens.
+static func tier_color(tier_idx: int) -> Color:
+	return UI3Theme.color(TIER_TOKENS[clampi(tier_idx, 0, 5)])
+
+
+## Colour for the tier WORD: Mythic uses the lighter text token (the fill colour is 4.1:1, not for text).
+static func tier_text_color(tier_idx: int) -> Color:
+	return UI3Theme.color("rarity_mythic_text") if tier_idx >= 5 else tier_color(tier_idx)
+
+
+static func tier_index(letter: String) -> int:
+	return maxi(TIER_NAMES.keys().find(letter), 0)
