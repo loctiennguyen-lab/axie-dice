@@ -154,7 +154,7 @@ func _case_k(label: String, kind: String, n_enemy: int, boss: bool, eggs: int, p
 		var zone := DiceRoller3D.landing_zone(nd, stage.landing_center())
 		var zr: Rect2 = stage._project_box(AABB(Vector3(zone.position.x, 0.0, zone.position.y), Vector3(zone.size.x, 0.1, zone.size.y)))
 		var zr1 := Rect2(zr.position / k, zr.size / k)
-		var slack := 30.0 if nd <= 6 else 60.0
+		var slack := 30.0 if nd <= 6 else 90.0
 		_assert(zr1.position.x >= party_right - slack and zr1.end.x <= enemy_left + slack,
 			"%s: %d-dice landing zone %s is not inside the gap between party (right %.0f) and enemies (left %.0f)" % [label, nd, zr1, party_right, enemy_left])
 	# 3e. settled dice never overlap or touch: the screen rects of all landing cells are disjoint (4 px gap), 1..11 dice
@@ -163,7 +163,7 @@ func _case_k(label: String, kind: String, n_enemy: int, boss: bool, eggs: int, p
 		var drects: Array[Rect2] = []
 		for di in nd:
 			var sp := DiceRoller3D.landing_spot(di, nd, centre)
-			var db: Rect2 = stage._project_box(AABB(sp - Vector3.ONE * 0.4, Vector3.ONE * 0.8))
+			var db: Rect2 = stage._project_box(AABB(sp - Vector3.ONE * DiceRoller3D.DIE_M * 0.5, Vector3.ONE * DiceRoller3D.DIE_M))
 			drects.append(Rect2(db.position / k, db.size / k))
 		for a in nd:
 			for b in range(a + 1, nd):

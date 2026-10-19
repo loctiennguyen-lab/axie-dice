@@ -33,11 +33,11 @@ const STAGGER := 0.110
 const FLIGHT := 0.560
 ## Landing zone (Liam 19/10): the dice land in the empty gap between the party and the enemy group, on the
 ## march line, in a tight block of 1 / 2 / 3 columns, and never roll out of it (invisible fence + damping).
-const LAND_GAP_X := 1.05     ## world metres between dice in a row (die 0.8 m + a gap; seen from the camera a die is ~62 px wide)
-const LAND_GAP_Z := 2.5      ## between rows: a die is also ~78 px tall on screen (its top face shows), so rows are ~90 px apart
+const LAND_GAP_X := 1.2      ## world metres between dice in a row (die 0.8 m + a gap; seen from the camera a die is ~62 px wide)
+const LAND_GAP_Z := 2.85      ## between rows: a die is also ~78 px tall on screen (its top face shows), so rows are ~90 px apart
 const LAND_Y := 0.4
 const ZONE_PAD := 0.1       ## fence distance from a die's edge at its landing spot
-const DIE_M := 0.8           ## edge of a normal die (small dice 0.62)
+const DIE_M := 0.92           ## edge of a normal die (small dice 0.62)
 const FENCE_H := 3.0
 const _LAYER_FENCE := 1 << 20
 const TUMBLE_STEP := 0.090
@@ -83,6 +83,8 @@ const _LAYER_GROUND := 1 << 19
 var reduced_motion: bool = false
 ## Callable() -> Vector3: world centre of the gap between the teams (set by CombatStage3D). Empty = screen centre.
 var landing_provider: Callable = Callable()
+var _zone_centre: Vector3 = Vector3.ZERO   # landing centre and zone of the current roll, fixed in _begin_physics
+var _zone: Rect2 = Rect2()
 ## QA only: keep settled dice on the floor (no fly to the tray) until cleared, so a capture can show them at rest.
 var hold_settled: bool = false
 
@@ -389,6 +391,8 @@ func _begin_physics(token: int) -> void:
 	await _ensure_textures(keys)
 	if token != _roll_token or not _active or _dice.is_empty():
 		return   # skipped or replaced while the plates were being drawn
+	_zone_centre = _landing_center()
+	_zone = landing_zone(_dice.size(), _zone_centre)
 	_build_ground()
 	_build_fence()
 	for d in _dice:
@@ -477,7 +481,7 @@ func _build_ground() -> void:
 ## (they arrive from outside the zone), so the walls keep a settling die from rolling under a unit or off screen.
 func _build_fence() -> void:
 	_clear_fence()
-	var zone := landing_zone(_dice.size(), _landing_center())
+	var zone := _zone
 	_fence = StaticBody3D.new()
 	_fence.name = "DiceFence"
 	_fence.collision_layer = _LAYER_FENCE
@@ -518,7 +522,7 @@ func _clear_ground() -> void:
 
 
 func _die_size(d: Dictionary) -> float:
-	return 0.62 if bool(d["small"]) else DIE_M
+	return 0.71 if bool(d["small"]) else DIE_M
 
 
 func _build_die(d: Dictionary) -> void:
@@ -610,7 +614,7 @@ func _launch(d: Dictionary) -> void:
 	var i := int(d["i"])
 	# Land on the open floor in FRONT of both teams (between the party's front row and the camera), fanned
 	# out sideways, so a die never comes to rest on a unit (horizontal layout: teams left / right).
-	var target := landing_spot(i, n, _landing_center())
+	var target := landing_spot(i, n, _zone_centre)
 	d["target"] = target
 	var g := 9.8 * body.gravity_scale
 	var v := (target - start - Vector3(0.0, -0.5 * g * FLIGHT * FLIGHT, 0.0)) / FLIGHT
@@ -669,8 +673,7 @@ func _step_air(d: Dictionary, delta: float) -> void:
 
 ## Safety net behind the fence: a die that somehow left the zone is put back on its edge and loses its speed.
 func _clamp_to_zone(body: RigidBody3D) -> void:
-	var zone := landing_zone(_dice.size(), _landing_center())
-	var inner := zone.grow(-0.4)
+	var inner := _zone.grow(-0.4)
 	var p := body.global_position
 	var q := Vector3(clampf(p.x, inner.position.x, inner.end.x), p.y, clampf(p.z, inner.position.y, inner.end.y))
 	if q != p:
