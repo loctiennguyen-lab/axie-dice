@@ -1062,6 +1062,8 @@ func _fit_atia_model(model: Node3D, atia: Dictionary, size_m: float) -> void:
 		return
 	var wide := maxf(maxf(box.size.x, box.size.z), 0.0001)
 	var factor := minf(size_m / box.size.y, minf(size_m * (ENEMY_WIDTH_CAP_M / ENEMY_SIZE_M) / wide, wmax / wide))
+	if reg.has("fit_width_m"):   # registry: max world width (m) for this model, replaces the default width caps (wide flyers)
+		factor = minf(size_m / box.size.y, float(reg["fit_width_m"]) / wide)
 	model.scale = Vector3.ONE * factor
 	# Top of the model at rest (+ the optional "hover_m" of a flyer whose clips lift it), kept in
 	# model space so head_height_of() can place over-head UI above the real head.

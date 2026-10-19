@@ -304,6 +304,7 @@
    "max_width_m": 7.5,
    "facing_deg": 70,
    "hover_m": 0.22,
+   "fit_width_m": 7.5,
    "anims": {
     "idle": "Idle",
     "attack": "Attack",
