@@ -70,8 +70,8 @@ func _ready() -> void:
 	s.close_modal()
 	# Seasonal locked
 	s.select_tab("seasonal")
-	_ok(s.find_child("ComingLater", true, false) != null, "seasonal coming later")
-	_ok(s.find_child("Open1", true, false) == null and s.find_child("OpenN", true, false) == null, "no Open button on seasonal")
+	_ok(s.find_child("ComingLater", true, false) == null, "seasonal is live, no coming-later label")
+	_ok(s.find_child("SeasonOpen", true, false) != null, "seasonal has its Open button")
 	s.select_tab("regular")
 	# States
 	for st in ["loading", "offline", "guest", "error", "last_pull", "normal"]:
