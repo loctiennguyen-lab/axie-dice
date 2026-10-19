@@ -519,6 +519,13 @@ var _camera: Camera3D
 var _sun: DirectionalLight3D
 var _env: Environment
 var _arena: CombatArena3D = null
+## Arena v2 (lane V): the Blender diorama for the current biome (ground, trail, gate plaza, props),
+## at the world origin. null when the biome has none (the old CombatArena3D terrain is used instead).
+var _diorama: ArenaV2Diorama = null
+## Off = always the old procedural CombatArena3D terrain (A/B captures, or a quick fallback switch).
+var arena_v2_enabled := true
+## Biomes whose diorama GLB failed to load this session: old terrain, no retry on every set_arena().
+var _v2_failed := {}
 var _roller: DiceRoller3D = null
 var _flash: ColorRect = null
 var _exit_tween: Tween = null   # the running victory march/run, so skip_victory_march() can fast-forward it
@@ -656,6 +663,7 @@ func set_arena(biome_id: String, boss: bool = false) -> bool:
 	if biome_id == "":
 		if _arena != null:
 			_arena.clear()
+		_set_diorama("", false)
 		_viewport.transparent_bg = true
 		_env.background_mode = Environment.BG_CLEAR_COLOR
 		_env.fog_enabled = false
@@ -672,10 +680,21 @@ func set_arena(biome_id: String, boss: bool = false) -> bool:
 		_arena.rotation_degrees.y = -90.0   # arena is authored along -Z; the fight runs along +X (arena z -> world -x)
 		_world.add_child(_arena)
 		_world.move_child(_arena, 0)
-	if _arena.biome_id == biome_id and _arena.is_boss == boss:
+	# Arena v2: a biome with a diorama GLB gets it; a missing GLB falls back to the old terrain.
+	var use_v2 := arena_v2_enabled and ArenaV2Diorama.has_biome(biome_id) and not _v2_failed.has(biome_id)
+	if _arena.biome_id == biome_id and _arena.is_boss == boss and _arena.terrain_from_diorama == use_v2:
 		return true
+	_arena.terrain_from_diorama = use_v2
 	if not _arena.build(biome_id, _env, _sun, boss):
+		_set_diorama("", false)
 		return false
+	_set_diorama(biome_id if use_v2 else "", boss)
+	if use_v2 and _diorama == null:   # GLB failed to load: old terrain after all
+		push_warning("arena v2: diorama for %s failed to load, using the old terrain" % biome_id)
+		_v2_failed[biome_id] = true
+		_arena.terrain_from_diorama = false
+		if not _arena.build(biome_id, _env, _sun, boss):
+			return false
 	_viewport.transparent_bg = false
 	# Soft sun shadows under the Land props and units; only with an arena (flat 2D backdrop
 	# fights keep the cheap blob shadows). Short range keeps the shadow map sharp and cheap.
@@ -684,6 +703,30 @@ func set_arena(biome_id: String, boss: bool = false) -> bool:
 	_sun.directional_shadow_max_distance = 45.0
 	_sun.shadow_opacity = 0.55
 	return true
+
+
+## Shows the arena v2 diorama for `biome_id` ("" removes it). Same biome only re-tints for boss.
+func _set_diorama(biome_id: String, boss: bool) -> void:
+	if biome_id == "":
+		if _diorama != null:
+			_diorama.queue_free()
+			_diorama = null
+		return
+	if _diorama == null:
+		_diorama = ArenaV2Diorama.new()
+		_diorama.name = "ArenaV2"
+		_world.add_child(_diorama)
+		_world.move_child(_diorama, 0)
+	if _diorama.biome_id == biome_id:
+		_diorama.set_boss(boss)
+	elif not _diorama.build(biome_id, boss):
+		_diorama.queue_free()
+		_diorama = null
+
+
+## The arena v2 diorama in use, or null (old terrain / no arena). For tests and QA captures.
+func arena_diorama() -> ArenaV2Diorama:
+	return _diorama
 
 
 ## Fraction of the viewport height left ABOVE the portal tower top (0 = touching the frame top,

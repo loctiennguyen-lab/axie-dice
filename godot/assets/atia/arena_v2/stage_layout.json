@@ -1,0 +1,215 @@
+{
+  "comment": "Arena v2 (lane V): the ONE place the dioramas take stage geometry from. 'formation', 'lane_z' and 'gate_x' (= -arenas.json portal z) must equal CombatStage3D / arenas.json; tests/t_arena_v2 fails when they drift. tools/art/arena_v2/layout.py turns 'formation' into unit slots and refuses props within 'unit_clearance' of one; 'flat_area' must cover every slot (incl. the second add row at z -18.3). Change here, then run tools/art/arena_v2/export.py (BIOME='all') in Blender and re-import. World coords of the combat stage: x right, z toward the camera, y up.",
+  "gate_x": 6.55,
+  "lane_z": 1.9,
+  "plaza_radius": 1.9,
+  "pave_from_x": 1.95,
+  "trail_from_x": -34.0,
+  "flat_area": {
+    "x": [
+      -16.0,
+      13.0
+    ],
+    "z": [
+      -20.5,
+      11.5
+    ]
+  },
+  "field": {
+    "x": [
+      -12.5,
+      9.5
+    ],
+    "z": [
+      -9.0,
+      9.0
+    ]
+  },
+  "keepouts": [
+    {
+      "name": "gate+march exit",
+      "x": [
+        4.6,
+        9.0
+      ],
+      "z": [
+        -1.0,
+        4.8
+      ]
+    }
+  ],
+  "unit_clearance": 1.6,
+  "formation": {
+    "PARTY_X0": -10.0,
+    "PARTY_PITCH_X": 1.3,
+    "PARTY_Z_FRONT": 3.6,
+    "PARTY_Z_BACK": -1.4,
+    "EGG_X0": -10.0,
+    "EGG_PITCH_X": 1.5,
+    "EGG_Z": 6.9,
+    "ENEMY_CENTER_X": 1.5,
+    "ENEMY_PITCH_X": 1.55,
+    "ENEMY_PATTERNS": {
+      "1": [
+        [
+          0.8,
+          0
+        ]
+      ],
+      "2": [
+        [
+          0.8,
+          -1
+        ],
+        [
+          0.8,
+          1
+        ]
+      ],
+      "3": [
+        [
+          0.8,
+          -1
+        ],
+        [
+          0.8,
+          1
+        ],
+        [
+          -1.0,
+          0
+        ]
+      ],
+      "4": [
+        [
+          -1.0,
+          -1
+        ],
+        [
+          -1.0,
+          1
+        ],
+        [
+          1.0,
+          -1
+        ],
+        [
+          1.0,
+          1
+        ]
+      ],
+      "5": [
+        [
+          -1.0,
+          -1
+        ],
+        [
+          -1.0,
+          1
+        ],
+        [
+          1.0,
+          -1
+        ],
+        [
+          1.0,
+          1
+        ],
+        [
+          0.0,
+          0
+        ]
+      ]
+    },
+    "ENEMY_ROWS": [
+      -4.9,
+      1.1,
+      6.4
+    ],
+    "ENEMY_ROWS_TIGHT": [
+      -1.7,
+      1.1,
+      3.8
+    ],
+    "BOSS_POS": [
+      1.5,
+      1.9
+    ],
+    "ELITE_POS": [
+      1.5,
+      0.7
+    ],
+    "ADD_PITCH_X": 1.5,
+    "ADD_Z_BACK": -10.2,
+    "ADD_Z_FRONT": 6.3,
+    "ADD_Z_BACK2": -18.3,
+    "ADD_PATTERNS": {
+      "1": [
+        [
+          0.0,
+          1
+        ]
+      ],
+      "2": [
+        [
+          0.0,
+          -1
+        ],
+        [
+          0.0,
+          1
+        ]
+      ],
+      "3": [
+        [
+          0.0,
+          -1
+        ],
+        [
+          -1.0,
+          1
+        ],
+        [
+          1.0,
+          1
+        ]
+      ],
+      "4": [
+        [
+          -1.0,
+          -1
+        ],
+        [
+          -1.0,
+          1
+        ],
+        [
+          1.0,
+          -1
+        ],
+        [
+          1.0,
+          1
+        ]
+      ]
+    },
+    "ADD_EXTRA": [
+      [
+        -1.0,
+        -2
+      ],
+      [
+        1.0,
+        -2
+      ],
+      [
+        0.0,
+        -2
+      ],
+      [
+        -2.0,
+        -2
+      ]
+    ]
+  }
+}
