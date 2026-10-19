@@ -17,7 +17,7 @@ const GROUND_SIZE := 160.0
 const BOSS_LIGHT_MUL := 0.72
 const BOSS_FOG_DENSITY := 0.0035
 const BOSS_PORTAL_MUL := 1.15
-const BOSS_PORTAL_Z := -6.6   # pushed back so the 1.3x tower still fits under the frame top
+const BOSS_PORTAL_Z := -6.45   # pushed back so the 1.3x tower still fits under the frame top
 ## SM_Portal_01 has a detached spire (separate piece, mesh-local y > 7.5) that floats above the tower; dropped.
 const PORTAL_FINIAL_Y := 7.5
 ## Same sun / ambient as the Land hub; a biome only tints these a little (it owns sky + ground).
@@ -34,7 +34,7 @@ const PORTAL_YAW_DEG := 90.0
 ## Prop keep-out (|x| / z): enemy flanks (enemy row z -6.5, x 0/+-5.1) and the portal line.
 const KEEPOUT_ENEMY_Z := [-15.0, 16.0]   # arena z = world -x: the whole fight line incl. party
 ## arena x = world z - lane z. The 3 depth rows stand at world z -6 .. +7 around a lane at z 1.1.
-const KEEPOUT_ENEMY_X := [-20.0, 9.0]
+const KEEPOUT_ENEMY_X := [-27.0, 9.0]
 const KEEPOUT_PORTAL_Z := -6.5   # anything behind this z keeps |x| >= KEEPOUT_PORTAL_X
 const KEEPOUT_PORTAL_X := 6.0
 
@@ -157,7 +157,7 @@ func _tint_environment(b: Dictionary) -> void:
 	_env.background_mode = Environment.BG_SKY
 	_env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
 	_env.ambient_light_color = LAND_AMBIENT.lerp(Color(String(b.get("sky_horizon", "#ffffff"))), 0.2)
-	_env.ambient_light_energy = LAND_AMBIENT_ENERGY
+	_env.ambient_light_energy = LAND_AMBIENT_ENERGY * float(b.get("ambient_mul", 1.0))
 	_env.fog_enabled = true
 	_env.fog_light_color = Color(String(b.get("fog", "#efdcae")))
 	_env.fog_density = float(b.get("fog_density", BASE_FOG_DENSITY))

@@ -423,7 +423,7 @@ func _build_die_strip(die: Array, _cls := "") -> GridContainer:
 		var ft := StringName(str(face.get("t", "blank")))
 		if not UI3.FACE_TYPES.has(ft):
 			ft = &"blank"
-		var tile := UI3.die_tile(ft, int(face.get("v", 0)), &"axie")
+		var tile := UI3.die_tile(ft, FaceAmount.display_value({"type": str(face.get("t", "")), "keywords": face.get("k", [])}, int(face.get("v", 0))), &"axie")
 		tile.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		grid.add_child(tile)
 	return grid

@@ -1035,6 +1035,10 @@ func _build_hud_r1() -> void:
 	_relic_strip = _hud_frame.relic_strip
 	_actives_row = _hud_frame.actives_row
 	_hud_frame.adopt_right_zone(_undo_button, _reroll_button, _end_turn_button)
+	var old_log_box := _debug_log_container
+	_debug_log_container = _hud_frame.adopt_log(_log_panel)
+	_log_panel.owner = self    # keep %LogPanel resolvable after the move
+	old_log_box.queue_free()
 	_aid = AidPanel.new()
 	_aid.name = "AidPanel"
 	_aid.z_index = 9
@@ -1447,8 +1451,19 @@ func _tray_tooltip(u: Unit) -> String:
 		var kw_key := String(k).split(":")[0]
 		var kw_tip: Dictionary = _effect_tip(kw_key)
 		var kw_head := String(_KEYWORD_LABEL.get(kw_key, kw_key.to_upper()))
-		lines.append(kw_head if kw_tip.is_empty() else "%s: %s" % [kw_head, String(kw_tip["rule"])])
+		var kw_parts := String(k).split(":")
+		var kw_n := int(kw_parts[1]) if kw_parts.size() > 1 else 0
+		lines.append(kw_head if kw_tip.is_empty() else "%s: %s" % [kw_head, FaceAmount.fill_n(String(kw_tip["rule"]), kw_n)])
 	return "\n".join(lines)
+
+
+## Base name of the status keyword that carries a buff / debuff face's amount ("" if none).
+static func _primary_kw(f: Dictionary) -> String:
+	for k in (f.get("keywords", []) as Array):
+		var parts := String(k).split(":")
+		if parts.size() > 1 and int(parts[1]) > 0 and FaceAmount.AMOUNT_KW.has(parts[0]):
+			return parts[0]
+	return ""
 
 
 static func _face_has_kw(f: Dictionary, kw: String) -> bool:
@@ -1463,7 +1478,7 @@ static func _T(k: String) -> String:
 	return TranslationServer.translate(k)
 
 
-static func _face_description(face_type: String, value: int, aoe: bool) -> String:
+static func _face_description(face_type: String, value: int, aoe: bool, f := {}) -> String:
 	match face_type:
 		"dmg":
 			return (_T("Deal %d damage to all enemies.") if aoe else _T("Deal %d damage to one enemy.")) % value
@@ -1474,8 +1489,16 @@ static func _face_description(face_type: String, value: int, aoe: bool) -> Strin
 		"poison":
 			return (_T("Poison all enemies for %d.") if aoe else _T("Poison one enemy for %d.")) % value
 		"debuff":
-			return _T("Weaken all enemies.") if aoe else _T("Weaken one enemy.")
+			var dkw := _primary_kw(f)
+			if dkw == "weaken" or dkw == "":
+				if value > 0:
+					return (_T("Weaken all enemies by %d.") if aoe else _T("Weaken one enemy by %d.")) % value
+				return _T("Weaken all enemies.") if aoe else _T("Weaken one enemy.")
+			return (_T("Apply %s %d to all enemies.") if aoe else _T("Apply %s %d to one enemy.")) % [dkw.capitalize(), value]
 		"buff":
+			var bkw := _primary_kw(f)
+			if bkw != "" and value > 0:
+				return (_T("Give %s %d to all allies.") if aoe else _T("Give %s %d to one ally.")) % [bkw.capitalize(), value]
 			return _T("Buff all allies.") if aoe else _T("Buff one ally.")
 		"mana":
 			return _T("Gain %d Mana.") % value
@@ -1494,7 +1517,7 @@ func _update_die_info() -> void:
 		var f: Dictionary = u.die[fi]
 		var ftype := String(f.get("type", ""))
 		var value := _live_face_value(u, fi)
-		var lines := PackedStringArray([_face_description(ftype, value, _face_has_kw(f, "aoe"))])
+		var lines := PackedStringArray([_face_description(ftype, value, _face_has_kw(f, "aoe"), f)])
 		var tip := _tray_tooltip(u).split("\n")
 		for i in range(2, tip.size()):
 			if not String(tip[i]).begins_with("Value"):
@@ -1827,7 +1850,7 @@ func _inspect_rows(col: VBoxContainer, u: Unit) -> void:
 			var f: Dictionary = u.die[ri]
 			var ft := String(f.get("type", ""))
 			var txt: String = TranslationServer.translate("Does nothing") if ft == "blank" else _face_description(
-				ft, _live_face_value(u, ri), _face_has_kw(f, "aoe"))
+				ft, _live_face_value(u, ri), _face_has_kw(f, "aoe"), f)
 			col.add_child(_inspect_info_row("Next move", txt))
 		var role := String(u.role)
 		col.add_child(_inspect_info_row("Passive" if role == "" else role.capitalize(),
@@ -1946,7 +1969,7 @@ func _place_unit_inspect(plate: Control, u: Unit) -> void:
 func _live_face_value(u: Unit, fi: int) -> int:
 	if _combat == null or u == null or fi < 0 or fi >= u.die.size():
 		return 0
-	return _combat._face_value(u, fi)
+	return FaceAmount.display_value(u.die[fi] as Dictionary, _combat._face_value(u, fi))
 
 
 ## All six faces, live values. Each row (focusable, named FaceRow): face word in its colour, value (Rowdies 24),

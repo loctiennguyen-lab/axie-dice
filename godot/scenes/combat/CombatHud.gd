@@ -44,6 +44,8 @@ var _info: PanelContainer           ## die info panel (288 w, wood-2), only whil
 var _info_title: Label
 var _info_body: Label
 var _info_bottom := -1.0
+var _log_plate: PanelContainer      ## battle log, top-left column under the attrition card
+const LOG_H := 176.0
 var _speed_buttons: Array[Button] = []
 var _skip_button: Button
 
@@ -244,6 +246,27 @@ func _build_speed() -> void:
 
 
 # ── Right zone: adopt the scene's buttons, UI3 variants ─────────────────────────────────────
+
+## The battle log lives in the left column, between the attrition card and the info panel, clear of
+## the party, the enemy panel (top-right) and the eggs row. Takes the scene's RichTextLabel.
+func adopt_log(text: RichTextLabel) -> PanelContainer:
+	_log_plate = UI3.plate(&"info")
+	_log_plate.name = "BattleLogPlate"
+	_log_plate.visible = false
+	_log_plate.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_log_plate.custom_minimum_size = Vector2(INFO_W, LOG_H)
+	add_child(_log_plate)
+	if text.get_parent() != null:
+		text.get_parent().remove_child(text)
+	text.custom_minimum_size = Vector2(INFO_W - 24.0, LOG_H - 20.0)
+	text.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	text.theme = UI3Theme.get_theme()
+	text.add_theme_font_size_override("normal_font_size", 18)
+	text.add_theme_color_override("default_color", UI3Theme.color("text"))
+	_log_plate.add_child(text)
+	layout()
+	return _log_plate
+
 
 func adopt_right_zone(undo: Button, reroll: Button, end_turn: Button) -> void:
 	undo_button = undo
@@ -495,6 +518,10 @@ func layout() -> void:
 		_tray_top = y
 		# Undo is hidden while input is locked: the speed control takes the slot.
 		undo_button.visible = not _speed.visible
+	if _log_plate != null:
+		var ltop := (_attr_card.position.y + _attr_card.get_combined_minimum_size().y) if _attr_card.visible else rel_bottom
+		_log_plate.size = Vector2(INFO_W, LOG_H)
+		_log_plate.position = Vector2(EDGE, ltop + 8.0)
 	_info.size = Vector2.ZERO
 	var ih := _info.get_combined_minimum_size().y
 	_info.size = Vector2(INFO_W, ih)

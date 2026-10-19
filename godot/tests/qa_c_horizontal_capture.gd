@@ -40,6 +40,21 @@ func _ready() -> void:
 			await _fight("boss", _find(graph, int(graph.boss_rows[0]), "boss"), "boss", size)
 		if _want("eggs"):
 			await _fight("eggs", _find(graph, 3, "battle"), "battle", size)
+		for st in ["n1", "n2", "n3", "n5", "bosssum6", "aelite", "aboss", "an2", "an3", "an5"]:
+			if _want(st):
+				var arctic: bool = st.begins_with("a")
+				var row := 8 if arctic else 3
+				var knd := "battle"
+				if st == "aelite":
+					row = int(graph.elite_rows[2]) if false else 9
+					knd = "elite"
+				if st == "bosssum6":
+					row = int(graph.boss_rows[0])
+					knd = "boss"
+				if st == "aboss":
+					row = int(graph.boss_rows[0])
+					knd = "boss"
+				await _fight(st, _find(graph, row, knd), knd, size)
 		for st in ["e1", "e3", "e5", "bosssum", "eggs4", "throw11"]:
 			if _want(st):
 				await _fight(st, _find(graph, int(graph.boss_rows[0]), "boss") if st == "bosssum" else _find(graph, 3, "battle"), "boss" if st == "bosssum" else "battle", size)
@@ -170,6 +185,37 @@ func _fight(state: String, node_id: String, kind: String, size: Vector2i) -> voi
 		(ent["visual"] as Node3D).visible = false
 		await get_tree().process_frame
 		await _shot("dbgB", size)
+	if state == "aboss":
+		scene._stage3d.set_arena("arctic", true)
+		for _i in 10:
+			await get_tree().process_frame
+	if state == "bosssum6":
+		for _k in 6:
+			scene._combat.spawn_boss_add(scene._combat.enemies[0], 1.0)
+		scene._sync_unit_visuals()
+		scene._rebuild_all()
+	if state in ["n1", "n2", "n3", "n5", "an2", "an3", "an5"]:
+		var want_n := int(state.right(1))
+		var ens: Array = scene._combat.enemies
+		var keys := ["chomper", "slime", "bugling", "spikelet", "ravenling"]
+		while ens.size() < want_n:
+			ens.append(scene._combat._mk_monster(keys[ens.size() % keys.size()], 1.0, {}))
+		scene._sync_unit_visuals()
+		var live: Array = []
+		for k in ens.size():
+			var uid_k: int = ens[k].uid
+			if k < want_n:
+				live.append(uid_k)
+			else:
+				scene._stage3d._units[uid_k]["slot"].visible = false
+		scene._stage3d.reseat_side(live, true)
+		await get_tree().process_frame
+		for k in ens.size():
+			var u: Unit = ens[k]
+			var ent: Dictionary = scene._stage3d._units.get(u.uid, {})
+			var sl: Node3D = ent.get("slot")
+			print("QA: enemy ", state, " idx=", k, " uid=", u.uid, " name=", u.n, " live_slot=", live.has(u.uid), " visible=", sl.visible, " pos=", sl.position, " rect=", scene._stage3d.unit_screen_rect(u.uid))
+		print("QA: NOTE the n-states HIDE extra engine enemies in the 3D view only; the right-hand panel still lists all ", ens.size(), " engine enemies")
 	if state == "e5":
 		while scene._combat.enemies.size() < 5:
 			scene._combat.enemies.append(scene._combat._mk_monster(["chomper", "slime", "bugling", "spikelet", "ravenling"][scene._combat.enemies.size()], 1.0, {}))
