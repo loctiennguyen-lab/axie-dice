@@ -60,7 +60,15 @@ const _TYPE_RING := {
 	"heal": Color("2E9E2C"), "debuff": Color("E07A1F"), "buff": Color("C98A1E"),
 	"mana": Color("8A5CE0"), "summon": Color("1FA89A"), "blank": Color("8A8F99"),
 }
-static var _tex_cache: Dictionary = {}   # "type:value" -> ImageTexture
+static var _tex_cache: Dictionary = {}   # "type:value" (no skin) or "skin|type:value" -> ImageTexture
+## Skin face layout (cosmetics R2, dice/_shared.md section 3). All in 256 px plate space.
+const GLYPH_BOX := Rect2(68, 28, 120, 120)
+const VALUE_BOX := Rect2(82, 164, 92, 60)
+const SKIN_INK := Color("2B1E17")   # neutral-1, the value ink on skin faces
+const VALUE_FONT := 80
+const VALUE_FONT_MIN := 44
+const VALUE_BASELINE := 222.0
+const BLANK_BAR := Rect2(108, 189, 40, 10)
 const _LAYER_DIE := 1 << 18
 const _LAYER_GROUND := 1 << 19
 
@@ -124,11 +132,17 @@ func roll(entries: Array, tray_target: Callable) -> void:
 		_dice.append({
 			"i": i, "face_type": String(e.get("face_type", "blank")), "value": int(e.get("value", 0)),
 			"crit": bool(e.get("crit", false)), "small": bool(e.get("small", false)),
-			"faces": _faces_of(e), "result_index": clampi(int(e.get("result_index", 0)), 0, 5),
+			"skin": _skin_of(e), "faces": _faces_of(e), "result_index": clampi(int(e.get("result_index", 0)), 0, 5),
 			"slot": e.get("slot_node"), "phase": 0, "t": 0.0, "air": 0.0, "tnext": 0.0,
 			"locked": false, "settled": false, "bounced": false,
 			"body": null, "pivot": null, "face": null, "glyph": null, "num": null, "tile": null,
 		})
+	var in_use: Array = []
+	for d in _dice:
+		in_use.append(String(d["skin"]))
+	free_plates_except(in_use)   # only the skins of this roll keep their faces in memory
+	DiceSkin.release_except(in_use)
+	DiceSkin.release_materials_except(in_use)
 	if skipping:
 		call_deferred("_skip_all")
 		return
@@ -136,33 +150,65 @@ func roll(entries: Array, tray_target: Callable) -> void:
 	_begin_physics(_roll_token)
 
 
-static func _key(f: Dictionary) -> String:
-	return "%s:%d" % [String(f.get("type", "blank")), int(f.get("value", 0))]
+## Cache key of one face texture. The skin id is part of it, so two skins never share a plate.
+static func _key(f: Dictionary, skin: String = "") -> String:
+	var k := "%s:%d" % [String(f.get("type", "blank")), int(f.get("value", 0))]
+	return k if skin == "" else "%s|%s" % [skin, k]
+
+
+## Skin of one throw entry: its own "skin", else the equipped one. "" = today's plain die.
+static func _skin_of(e: Dictionary) -> String:
+	var s := String(e.get("skin", MetaState.equipped_die_skin))
+	return s if DiceSkin.has(s) else ""
+
+
+## Largest Rowdies size (<= 80, >= 44) at which `text` fits `box_w` px, from real font metrics.
+static func fit_value_font(text: String, font: Font, box_w: float = VALUE_BOX.size.x) -> int:
+	var w := font.get_string_size(text, HORIZONTAL_ALIGNMENT_LEFT, -1, VALUE_FONT).x
+	if w <= box_w:
+		return VALUE_FONT
+	return clampi(floori(float(VALUE_FONT) * box_w / w), VALUE_FONT_MIN, VALUE_FONT)
+
+
+## Free every cached plate of skins other than `keep` (the plain die "" is never freed).
+static func free_plates_except(keep: Array) -> void:
+	for k in _tex_cache.keys():
+		var s := String(k).get_slice("|", 0) if String(k).contains("|") else ""
+		if s != "" and not keep.has(s):
+			_tex_cache.erase(k)
 
 
 ## The textured die (body + one plate per surface). `faces` = 6 {type, value}; textures must be in
 ## the cache already (see prepare()).
-static func make_die_mesh(faces: Array, size: float) -> MeshInstance3D:
+## `animated` false = held emission, no sheen / sparkles (thumbnails, tests).
+static func make_die_mesh(faces: Array, size: float, skin: String = "", animated: bool = true) -> MeshInstance3D:
 	var mi := MeshInstance3D.new()
 	mi.mesh = _die_mesh()
 	mi.scale = Vector3.ONE * (size / _MESH_SIZE)
+	if skin != "" and DiceSkin.has(skin):
+		mi.set_surface_override_material(0, DiceSkin.body_material(skin))
+		for fi in 6:
+			mi.set_surface_override_material(fi + 1,
+				DiceSkin.face_material(skin, _tex_cache.get(_key(faces[fi], skin))))
+		DiceSkinFx.attach(mi, skin, animated)
+		return mi
 	var bm := StandardMaterial3D.new()
 	bm.albedo_color = BODY_COLOR
 	bm.roughness = 0.4
 	mi.set_surface_override_material(0, bm)
 	for fi in 6:
 		var fm := StandardMaterial3D.new()
-		fm.albedo_texture = _tex_cache.get(_key(faces[fi]))
+		fm.albedo_texture = _tex_cache.get(_key(faces[fi], skin))
 		fm.roughness = 0.4
 		mi.set_surface_override_material(fi + 1, fm)
 	return mi
 
 
 ## Draw (and cache) the plates for these "type:value" keys. Await it.
-func prepare(faces: Array) -> void:
+func prepare(faces: Array, skin: String = "") -> void:
 	var keys: Array = []
 	for f in faces:
-		keys.append(_key(f))
+		keys.append(_key(f, skin))
 	await _ensure_textures(keys)
 
 
@@ -200,9 +246,14 @@ func _ensure_textures(keys: Array) -> void:
 	root.size = Vector2(vp.size)
 	vp.add_child(root)
 	for idx in missing.size():
-		var parts: PackedStringArray = missing[idx].split(":")
+		var skin_id := ""
+		var tv: String = missing[idx]
+		if tv.contains("|"):
+			skin_id = tv.get_slice("|", 0)
+			tv = tv.get_slice("|", 1)
+		var parts: PackedStringArray = tv.split(":")
 		root.add_child(_plate(parts[0], int(parts[1]),
-			Vector2((idx % cols) * PLATE_PX, (idx / cols) * PLATE_PX)))
+			Vector2((idx % cols) * PLATE_PX, (idx / cols) * PLATE_PX), skin_id))
 	add_child(vp)
 	await RenderingServer.frame_post_draw
 	await RenderingServer.frame_post_draw
@@ -215,7 +266,9 @@ func _ensure_textures(keys: Array) -> void:
 		_tex_cache[missing[idx]] = ImageTexture.create_from_image(tile_img)
 
 
-func _plate(type: String, value: int, at: Vector2) -> Control:
+func _plate(type: String, value: int, at: Vector2, skin: String = "") -> Control:
+	if skin != "":
+		return _skin_plate(type, value, at, skin)
 	var bg := ColorRect.new()
 	bg.color = BODY_COLOR
 	bg.position = at
@@ -256,6 +309,58 @@ func _plate(type: String, value: int, at: Vector2) -> Control:
 	return bg
 
 
+## Skin face: the skin's plate.png, then (game) ring stroke, glyph, value. Order and numbers from
+## dice/_shared.md section 3: ring inset 14 / 8 px / r 40 stroke only, glyph box (68,28)-(188,148), value box
+## (82,164)-(174,224) Rowdies 700 INK, no outline, auto-fit to the box width, blank = INK bar.
+func _skin_plate(type: String, value: int, at: Vector2, skin: String) -> Control:
+	var bg := TextureRect.new()
+	bg.texture = DiceSkin.texture(skin, "plate.png")
+	bg.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	bg.stretch_mode = TextureRect.STRETCH_SCALE
+	bg.position = at
+	bg.size = Vector2(PLATE_PX, PLATE_PX)
+	var ring := Panel.new()
+	var sb := StyleBoxFlat.new()
+	sb.draw_center = false
+	sb.set_corner_radius_all(40)
+	sb.set_border_width_all(8)
+	sb.border_color = _TYPE_RING.get(type, _TYPE_RING["blank"])
+	ring.add_theme_stylebox_override("panel", sb)
+	ring.position = Vector2(14, 14)
+	ring.size = Vector2(PLATE_PX - 28, PLATE_PX - 28)
+	bg.add_child(ring)
+	var icon := TextureRect.new()
+	icon.texture = UI3.icon(String(UI3.FACE_ICON[TrayColumn.ui3_face(type)]))
+	icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	icon.position = GLYPH_BOX.position
+	icon.size = GLYPH_BOX.size
+	bg.add_child(icon)
+	if value > 0:
+		var font := UI3Theme.font_display()
+		var txt := str(value)
+		var fs := fit_value_font(txt, font)
+		var lbl := Label.new()
+		lbl.text = txt
+		lbl.add_theme_font_override("font", font)
+		lbl.add_theme_font_size_override("font_size", fs)
+		lbl.add_theme_color_override("font_color", SKIN_INK)
+		lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		lbl.size = Vector2(VALUE_BOX.size.x, font.get_height(fs))
+		lbl.position = Vector2(VALUE_BOX.position.x, VALUE_BASELINE - font.get_ascent(fs))
+		bg.add_child(lbl)
+	else:
+		var bar := Panel.new()
+		var bsb := StyleBoxFlat.new()
+		bsb.bg_color = SKIN_INK
+		bsb.set_corner_radius_all(5)
+		bar.add_theme_stylebox_override("panel", bsb)
+		bar.position = BLANK_BAR.position
+		bar.size = BLANK_BAR.size
+		bg.add_child(bar)
+	return bg
+
+
 func _faces_of(e: Dictionary) -> Array:
 	var f: Array = e.get("faces", [])
 	if f.size() == 6:
@@ -268,7 +373,7 @@ func _begin_physics(token: int) -> void:
 	var keys: Array = []
 	for d in _dice:
 		for f in d["faces"]:
-			keys.append(_key(f))
+			keys.append(_key(f, String(d["skin"])))
 	await _ensure_textures(keys)
 	if token != _roll_token or not _active or _dice.is_empty():
 		return   # skipped or replaced while the plates were being drawn
@@ -387,7 +492,7 @@ func _build_die(d: Dictionary) -> void:
 	body.add_child(cs)
 	var pivot := Node3D.new()
 	body.add_child(pivot)
-	var mi := make_die_mesh(d["faces"], size)
+	var mi := make_die_mesh(d["faces"], size, String(d["skin"]))
 	pivot.add_child(mi)
 	_world.add_child(body)
 	body.body_entered.connect(_on_body_entered.bind(int(d["i"])))
