@@ -1,0 +1,10 @@
+[gd_resource type="StandardMaterial3D" format=3]
+
+[ext_resource type="Texture2D" path="res://assets/land/homeland/src/HomeLand_Asset/Item/NFT_Item/S19abc/T_s19b_C.png" id="1_sge1v"]
+
+[resource]
+resource_name = "M_s19b"
+transparency = 2
+alpha_scissor_threshold = 0.5
+alpha_antialiasing_mode = 0
+albedo_texture = ExtResource("1_sge1v")

@@ -1,0 +1,7 @@
+[gd_scene format=3]
+
+[ext_resource type="PackedScene" path="res://assets/land/homeland/src/HomeLand_Asset/Item/NFT_Item/S5a/SM_s5a.fbx" id="1_45sbr"]
+
+[node name="Terrarium_s5a" type="Node3D" unique_id=1186052611]
+
+[node name="Terrarium_s5a" type="Node3D" parent="." unique_id=2134013127 instance=ExtResource("1_45sbr")]

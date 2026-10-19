@@ -583,6 +583,38 @@ const ACCENT_SPOTS: Array = [
 	[Vector2(580, 640), "rock"], [Vector2(1355, 520), "shrub"], [Vector2(780, 800), "shrub"],
 	[Vector2(1190, 835), "rock"], [Vector2(790, 330), "shrub"], [Vector2(1180, 345), "rock"],
 ]
+## Back-half vignettes (lane L, build b931 feedback: the upper half was empty). [design-canvas point, kind, height in world units].
+## Kinds are looked up in NFT_DECOR for the current biome, so each tier gets its own look. Placement is the same
+## _place_fit as the accents: nudged, then dropped (never shrunk below PROP_MIN_SCALE) when it would cover a building or lane.
+const DECOR_SPOTS: Array = [
+	# behind the Portal, either side of the Leaderboard
+	[Vector2(790, 262), "lamp", 2.1], [Vector2(838, 238), "planter", 1.5],
+	[Vector2(1085, 250), "lamp", 2.1], [Vector2(1040, 222), "planter", 1.5],
+	# back-left, above the Gallery plot
+	[Vector2(660, 318), "crate", 1.4], [Vector2(705, 290), "extra", 1.7], [Vector2(612, 330), "planter", 1.5],
+	[Vector2(560, 385), "sign", 2.1], [Vector2(530, 425), "extra", 1.7], [Vector2(590, 480), "crate", 1.4],
+	# back-right, between the Missions house and the rim
+	[Vector2(1340, 375), "crate", 1.4], [Vector2(1385, 405), "planter", 1.5], [Vector2(1180, 232), "extra", 1.7],
+	[Vector2(1345, 330), "extra", 1.7], [Vector2(1100, 330), "sign", 2.1],
+	[Vector2(880, 345), "planter", 1.5], [Vector2(1040, 350), "crate", 1.4], [Vector2(480, 460), "planter", 1.5],
+]
+const DECOR_MAX := 12   # stop once this many are standing: a few small vignettes, not a crowd
+const NFT := "Item/NFT_Item/"
+## Per tier (index = tier - 1): kind -> scene paths under HomeLand_Asset/Item/NFT_Item/. Spots cycle through each list.
+const NFT_DECOR: Array[Dictionary] = [
+	{"lamp": ["F1ab/Terrarium_f1b"], "planter": ["S5a/Terrarium_s5a", "F2ab/Terrarium_f2a"], "crate": ["S20a/Terrarium_s20a", "S19abc/Terrarium_s19a"],
+		"sign": ["S21abc/Terrarium_s21a"], "extra": ["S11a/Terrarium_s11a", "S4bc/Terrarium_s4b", "S17abc/Terrarium_s17c"]},
+	{"lamp": ["F1ab/Terrarium_f1b"], "planter": ["F19a/Terrarium_f19a", "F7abc/Terrarium_F7a", "F3ab/Terrarium_f3a"], "crate": ["S20a/Terrarium_s20a", "S19abc/Terrarium_s19b"],
+		"sign": ["S21abc/Terrarium_s21b"], "extra": ["F11a/Terrarium_f11a", "F17a/Terrarium_f17a", "F2ab/Terrarium_f2a"]},
+	{"lamp": ["F1ab/Terrarium_f1a"], "planter": ["A4c/Terrarium_a4c", "F19a/Terrarium_f19a"], "crate": ["A19abc/Terrarium_A19a", "S19abc/Terrarium_s19c"],
+		"sign": ["S21abc/Terrarium_s21c"], "extra": ["A10b/Terrarium_a10b", "A14a/Terrarium_a14a"]},
+	{"lamp": ["F1ab/Terrarium_f1a"], "planter": ["F19bc/Terrarium_f19c", "F3c/Terrarium_f3c"], "crate": ["S19abc/Terrarium_s19c", "S20a/Terrarium_s20a"],
+		"sign": ["S21abc/Terrarium_s21b"], "extra": ["S17abc/Terrarium_s17a", "F17c/Terrarium_f17c", "S11a/Terrarium_s11a"]},
+	{"lamp": ["F1ab/Terrarium_f1b"], "planter": ["F7abc/Terrarium_F7c", "F2ab/Terrarium_f2a"], "crate": ["S19abc/Terrarium_s19b", "S20c/Terrarium_s20c"],
+		"sign": ["S21abc/Terrarium_s21a"], "extra": ["P3c/Terrarium_P3c", "S17abc/Terrarium_s17c", "F9a/Terrarium_f9a"]},
+	{"lamp": ["F1c/Terrarium_f1c"], "planter": ["F19bc/Terrarium_f19b", "F3ab/Terrarium_f3a"], "crate": ["S19abc/Terrarium_s19a", "S20a/Terrarium_s20a"],
+		"sign": ["S21abc/Terrarium_s21a"], "extra": ["S17abc/Terrarium_s17b", "S4bc/Terrarium_s4b"]},
+]
 const PROP_MIN_SCALE := 0.85   # a prop is dropped rather than shrunk below this share of its intended size
 
 
@@ -651,6 +683,23 @@ func _build_props() -> void:
 			si += 1
 		var sp: Vector2 = a[0]
 		_place_fit(LIB + "Environment/" + String(pool[idx % pool.size()]) + ".tscn", _ground_at(sp.x, sp.y), 1.4, true)
+
+	var dec: Dictionary = NFT_DECOR[_tier - 1]
+	var used := {}
+	var placed := 0
+	for d in DECOR_SPOTS:
+		if placed >= DECOR_MAX:
+			break
+		var pool: Array = dec.get(String(d[1]), [])
+		if pool.is_empty():
+			continue
+		var k := String(d[1])
+		var i: int = used.get(k, 0)
+		used[k] = i + 1
+		var sp2: Vector2 = d[0]
+		var ok := _place_fit(LIB + NFT + String(pool[i % pool.size()]) + ".tscn", _ground_at(sp2.x, sp2.y), float(d[2]), true)
+		if ok:
+			placed += 1
 
 
 ## Place a prop scaled so its height (by_height) or footprint width is `target` world units. The prop is only nudged
