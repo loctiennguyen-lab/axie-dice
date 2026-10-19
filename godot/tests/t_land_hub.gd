@@ -307,6 +307,7 @@ func _ready() -> void:
 		for f in fp:
 			if f.has("prop"):
 				n_props += 1
+				_check(absf(float(f.get("base_y", 1.0))) < 0.01, "tier %d: vật không đứng trên mặt đất (base y=%.3f)" % [tier, float(f.get("base_y", 1.0))])
 				_check(not hl.call("_hits_building", f["p"], f.get("cover_r", f["r"]), f.get("cover_h", f["h"])), "tier %d: vật che nhà tại %s" % [tier, str(f["p"])])
 		_check(n_props >= 4, "tier %d: còn đủ vật trang trí (%d)" % [tier, n_props])
 		for lane in hl.get("_lanes"):
