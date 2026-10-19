@@ -167,7 +167,7 @@ const _BOSS_COLOR_VARIANT := {
 ##
 ## These figures come from the projection arithmetic above, not from a capture. Measure a real
 ## boss encounter before trusting the 12px margin.
-const _BOSS_SCALE := 2.2
+const _BOSS_SCALE := 2.6
 
 ## Target on-screen height (meters) for a rank-and-file enemy's Chimera Sprite3D (see
 ## spawn_unit()'s `elif is_enemy and MonsterArt.texture_for(...)` branch and
@@ -338,20 +338,20 @@ const PARTY_Z_BACK := -1.4
 const EGG_X0 := -10.0
 const EGG_PITCH_X := 1.5
 const EGG_Z := 6.9
-const ENEMY_CENTER_X := 3.6
-const ENEMY_PITCH_X := 1.25   # a diagonal: neighbours stand on different depth rows, so they can be close in x
+const ENEMY_CENTER_X := 2.1
+const ENEMY_PITCH_X := 0.95   # a diagonal: neighbours stand on different depth rows, so they can be close in x
 ## Enemies stand on three depth rows (back, middle, front), index i takes row i % 3, so units that are close
 ## in x are far apart in y and 5 enemies fit between the gap and the gate. One enemy stands on the middle row.
 const ENEMY_Z_BACK := -4.9
 const ENEMY_Z_MID := 1.1
 const ENEMY_Z_FRONT := 6.4
-const BOSS_POS := Vector3(3.5, 0.0, 0.6)
-const ELITE_POS := Vector3(3.5, 0.0, 0.6)   # spec: one elite, bigger
+const BOSS_POS := Vector3(1.9, 0.0, 2.0)
+const ELITE_POS := Vector3(2.1, 0.0, 0.5)   # spec: one elite, bigger
 const ELITE_SCALE := 1.4
 ## Other enemies next to a boss or an elite: two on the front line, two on the back line, clear of the big one.
-const ADD_SLOTS: Array[Vector3] = [Vector3(1.4, 0.0, 6.4), Vector3(4.9, 0.0, 6.4), Vector3(-1.0, 0.0, -4.9), Vector3(8.0, 0.0, -4.9)]
+const ADD_SLOTS: Array[Vector3] = [Vector3(0.0, 0.0, 6.4), Vector3(3.2, 0.0, 6.4), Vector3(0.0, 0.0, -10.2), Vector3(3.4, 0.0, -10.2)]
 ## Z of the path / gate lane. The arena is shifted onto it so the road to the gate runs behind the party, not under it.
-const LANE_Z := 4.6
+const LANE_Z := 1.1
 var _encounter_kind := ""
 
 
@@ -560,7 +560,7 @@ const UNIT_SCALE := 0.9
 const ENEMY_SCALE := 0.75
 ## Every monster is normalised by its REAL shape, not by its art's own size: the visible height of the model
 ## (opaque pixels for sprites, mesh box for .glb) is scaled to ENEMY_SIZE_M (an Axie's height), width-capped. Elite = ELITE_SCALE x that, named boss = _BOSS_SCALE x.
-const ENEMY_SIZE_M := 1.7
+const ENEMY_SIZE_M := 1.8
 ## Width cap: round wide monsters would get huge if only their height were matched to an Axie's.
 const ENEMY_WIDTH_CAP_M := 2.3
 const _CAM_PITCH_DEG := -30.0

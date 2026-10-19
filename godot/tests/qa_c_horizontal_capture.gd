@@ -82,7 +82,7 @@ func _fight(state: String, node_id: String, kind: String, size: Vector2i) -> voi
 		await get_tree().process_frame
 	if state == "throw11":
 		scene._land_dice_now()
-		for _k in 6:
+		for _k in 4:
 			scene._combat.party.append(scene._combat._mk_ally())
 		for u in scene._combat.party:
 			if u.hp > 0 and not u.has_rolled():

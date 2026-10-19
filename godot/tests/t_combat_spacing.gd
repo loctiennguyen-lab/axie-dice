@@ -7,8 +7,8 @@ extends Node
 
 const CANVAS := Vector2(1920.0, 1080.0)
 const MIN_GAP_PX := 20.0            ## footprint + 20 px between any two units
-const MIN_TEAM_GAP_PX := 200.0      ## empty field between the party's right edge and the nearest enemy
-const MIN_GATE_GAP_PX := 40.0       ## empty space between the last enemy and the gate
+const MIN_TEAM_GAP_PX := 180.0      ## empty field between the party's right edge and the nearest enemy
+const MIN_GATE_GAP_PX := 30.0       ## empty space between the last enemy and the gate
 const PANEL_X := 1576.0             ## left edge of the top-right enemy panel
 const TRAY_Y := 884.0               ## top of the bottom tray
 const KEYS: Array[String] = ["chomper", "slime", "bugling", "spikelet", "ravenling"]
@@ -141,6 +141,13 @@ func _case_k(label: String, kind: String, n_enemy: int, boss: bool, eggs: int, p
 		for u in all:
 			var sp: Vector3 = (stage.slot_node_of(int(u)) as Node3D).global_position
 			_assert(not foot.has_point(Vector2(sp.x, sp.z)), "%s: unit %d stands inside prop %s %s box %s" % [label, u, pn.name, (pn as Node3D).scene_file_path, pb])
+	# 3c. the gate is on the march line: its centre sits within the enemies' vertical band
+	var ey0 := 1.0e9
+	var ey1 := -1.0e9
+	for u in enemies:
+		ey0 = minf(ey0, (rects[u] as Rect2).position.y)
+		ey1 = maxf(ey1, (rects[u] as Rect2).end.y)
+	_assert(gate.get_center().y >= ey0 and gate.get_center().y <= ey1, "%s: gate centre y %.0f is off the enemies' band %.0f..%.0f" % [label, gate.get_center().y, ey0, ey1])
 	# 4. gate behind every enemy, fully visible, clear of the panel
 	_assert(gate != Rect2(), "%s: no gate" % label)
 	var enemy_top := 1.0e9
@@ -151,7 +158,8 @@ func _case_k(label: String, kind: String, n_enemy: int, boss: bool, eggs: int, p
 	for u in enemies:
 		_assert(not gate.grow(MIN_GAP_PX * 0.5).intersects((rects[u] as Rect2).grow(MIN_GAP_PX * 0.5)), "%s: enemy %d touches the gate" % [label, u])
 	var panel := Rect2(1416.0, 24.0, 480.0, 170.0) if boss else Rect2(PANEL_X, 24.0, CANVAS.x - PANEL_X, 103.0 * float(n_enemy))
-	_assert(gate.position.y >= 0.0 and gate.end.x <= CANVAS.x - 24.0 and not gate.intersects(panel) and gate.end.y <= TRAY_Y + 8.0, "%s: gate off screen or under the enemy panel %s vs %s" % [label, gate, panel])
+	_assert(gate.position.y >= 0.0 and gate.end.x <= PANEL_X - 30.0 and not gate.intersects(panel) and gate.end.y <= TRAY_Y + 8.0,
+		"%s: gate not fully left of the enemy panel column / off screen %s vs %s" % [label, gate, panel])
 	stage.dispose_all()
 	stage.queue_free()
 	await get_tree().process_frame

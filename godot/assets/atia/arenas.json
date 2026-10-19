@@ -13,9 +13,9 @@
  "portal": {
   "scene": "res://assets/atia/arena/scenes/HomeLand_Asset/Building_HomeLand/Portal/SM_Portal_01.tscn",
   "texture": "res://assets/atia/arena/meshsrc/HomeLand_Asset/Building_HomeLand/Portal/Source/T_Portal_01_C.png",
-  "z": -10.0,
+  "z": -6.7,
   "yaw_deg": 90,
-  "height_m": 2.4
+  "height_m": 3.0
  },
  "zones": {
   "flank": {
@@ -452,5 +452,5 @@
   }
  },
  "path_end_gap": 0.9,
- "path_start_z": 0.8
+ "path_start_z": -5.6
 }
