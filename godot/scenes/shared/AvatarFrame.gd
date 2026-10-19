@@ -70,3 +70,17 @@ static func wrap_holder(avatar: Control, avatar_px: float, frame_id: String) -> 
 	fr.size = Vector2.ONE * frame_size(avatar_px)
 	holder.add_child(fr)
 	return holder
+
+
+## Letter-disc avatar wearing frame `frame_id` (any frame, not only the equipped one) for previews: Profile
+## detail, Echo Box reveal card. Node = avatar x 1.5 and `avatar_px` of avatar; "" = the bare disc.
+static func letter_preview(frame_id: String, avatar_px: float, letter: String) -> Control:
+	var av := PanelContainer.new()
+	av.add_theme_stylebox_override("panel", UI3Theme.flat(UI3Theme.color("accent"), int(avatar_px * 0.5)))
+	av.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var ini := UI3.label(letter.left(1).to_upper(), "LabelDisplay")
+	ini.add_theme_color_override("font_color", UI3Theme.color("accent_text"))
+	ini.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	ini.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	av.add_child(ini)
+	return AvatarFrame.wrap(av, frame_size(avatar_px), frame_id, avatar_px, avatar_px)

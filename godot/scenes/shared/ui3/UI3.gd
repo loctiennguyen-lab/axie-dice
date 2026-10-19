@@ -57,6 +57,19 @@ static func icon(icon_name: String) -> Texture2D:
 	return null
 
 
+## Currency icon for a box of `px` px: the painted size variant (16 / 24 / 32 / 64, 128 master) when the
+## currency has them (Stone, Ticket, Fragment: cosmetics R2 currency art), else the plain icon. Small sizes
+## are separate drawings (gradient + rim + outline only), so a downscaled master is never used below 128.
+static func currency_icon(icon_name: String, px: float) -> Texture2D:
+	for s in [16, 24, 32, 64]:
+		if px <= float(s) + 0.5:
+			var p: String = ICON_DIR + "%s_%d.png" % [icon_name, s]
+			if ResourceLoader.exists(p):
+				return load(p) as Texture2D
+			break
+	return icon(icon_name)
+
+
 ## A Label with a UI3Theme type variation ("" = body, "LabelTitle", "LabelScreenTitle", "LabelKeyHint",
 ## "LabelMuted", "LabelDisplay"). Text is passed through as-is (already localized by the caller).
 static func label(text: String, variation := "") -> Label:
@@ -241,7 +254,7 @@ static func currency_pill(entries: Array) -> PanelContainer:
 		cell.add_theme_constant_override("separation", UI3Theme.space("8"))
 		cell.alignment = BoxContainer.ALIGNMENT_CENTER
 		var tr_icon := TextureRect.new()
-		tr_icon.texture = icon(String(e["icon"]))
+		tr_icon.texture = currency_icon(String(e["icon"]), UI3Theme.size_of("icon_l"))
 		tr_icon.custom_minimum_size = Vector2.ONE * UI3Theme.size_of("icon_l")
 		tr_icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 		tr_icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
@@ -470,7 +483,7 @@ static func cost_chip(kind: StringName, amount: int, not_enough := false) -> Pan
 	var col := UI3Theme.color("gem_text") if gem else UI3Theme.color("text")
 	if kind != &"free":
 		var ic := TextureRect.new()
-		ic.texture = icon("cur_" + String(kind))
+		ic.texture = currency_icon("cur_" + String(kind), 24.0)
 		ic.custom_minimum_size = Vector2(24, 24)
 		ic.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 		ic.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED

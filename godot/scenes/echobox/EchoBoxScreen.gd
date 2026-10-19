@@ -43,8 +43,14 @@ var account_status_hook: Callable
 
 const DETAIL_W := 440
 ## Rarity -> UI-03 colour token (the tokens have four tiers; uncommon reads as rare, mythic as legendary).
-const RARITY_TOKEN := {"common": "rarity_common", "uncommon": "rarity_rare", "rare": "rarity_rare",
-	"epic": "rarity_epic", "legendary": "rarity_legendary", "mythic": "rarity_legendary"}
+const RARITY_TOKEN := {"common": "rarity_common", "uncommon": "rarity_uncommon", "rare": "rarity_rare",
+	"epic": "rarity_epic", "legendary": "rarity_legendary", "mythic": "rarity_mythic"}
+const CARD_W := 300.0
+const CARD_H_10 := 380.0
+const CARD_W_1 := 480.0
+const CARD_H_1 := 660.0
+const FLIP_S := 0.16
+const FLIP_GAP := 0.12
 
 var _shell: Dictionary
 var _col: VBoxContainer
@@ -364,6 +370,14 @@ func _refresh_all() -> void:
 
 func _refresh_bar() -> void:
 	_clear(_bar_host)
+	var tk := TextureRect.new()
+	tk.name = "TicketIcon"
+	tk.texture = UI3.currency_icon("cur_ticket", 32.0)
+	tk.custom_minimum_size = Vector2(32, 32)
+	tk.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	tk.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	tk.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	_bar_host.add_child(tk)
 	var t := UI3.label("Tickets  %d / 999" % tickets(), "LabelScreenTitle")
 	t.name = "Tickets"
 	if state == "offline" and remote_on:
@@ -371,6 +385,14 @@ func _refresh_bar() -> void:
 	_bar_host.add_child(t)
 	var per := int(_Econ.get_table("echobox").get("fragments_per_ticket", 10))
 	var frags := int(MetaState.echobox_pity.get("fragments", 0))
+	var fi := TextureRect.new()
+	fi.name = "FragmentIcon"
+	fi.texture = UI3.currency_icon("cur_fragment", 32.0)
+	fi.custom_minimum_size = Vector2(32, 32)
+	fi.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	fi.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	fi.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	_bar_host.add_child(fi)
 	var fl := UI3.label("Fragments  %d/%d" % [frags, per], "LabelMuted")
 	fl.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	_bar_host.add_child(fl)
@@ -601,7 +623,7 @@ func _build_summary() -> Control:
 	grid.add_theme_constant_override("v_separation", UI3Theme.space("8"))
 	v.add_child(grid)
 	for r in results:
-		grid.add_child(_result_cell(r))
+		grid.add_child(_result_cell(r, "summary"))
 	return p
 
 
@@ -621,7 +643,9 @@ func _rarity_idx(r: Dictionary) -> int:
 	return EchoBox.RARITIES.find(String(r.get("rarity", ""))) if String(r.get("kind")) != "stone" else 0
 
 
-func _result_cell(r: Dictionary) -> Control:
+func _result_cell(r: Dictionary, mode := "summary") -> Control:
+	if mode != "summary":
+		return _reveal_card(r, mode == "single")
 	var rar := "common" if String(r.get("kind")) == "stone" else String(r.get("rarity", "common"))
 	var c := UI3.plate(&"card")
 	c.add_theme_stylebox_override("panel", UI3Theme.flat(UI3Theme.color("panel"), UI3Theme.radius("m"), 3,
@@ -631,11 +655,11 @@ func _result_cell(r: Dictionary) -> Control:
 	c.add_child(v)
 	var art: Control = null
 	if String(r.get("kind")) == "cosmetic":
-		art = CosmeticTile.art(String(r.get("item", "")), 72.0)
+		art = _cosmetic_art(String(r.get("item", "")), 72.0, false)
 	elif String(r.get("kind")) == "stone":
 		var ic := TextureRect.new()
 		ic.name = "StoneIcon"
-		ic.texture = UI3.icon("cur_stone")
+		ic.texture = UI3.currency_icon("cur_stone", 72.0)
 		ic.custom_minimum_size = Vector2(72, 72)
 		ic.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 		ic.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
@@ -659,6 +683,165 @@ func _result_cell(r: Dictionary) -> Control:
 	return c
 
 
+## Reveal card (20-echo-box): one shape for every result. 300 x 380 in the 10-grid, 480 x 660 for a single pull.
+## Dice skin: the baked thumbnail (grid) or a live 3D die that drops in (single); frame on the player's avatar;
+## duplicate: the item's art plus a Fragment badge; Stone: the painted stone pile.
+func _reveal_card(r: Dictionary, single: bool) -> Control:
+	var kind := String(r.get("kind"))
+	var stone := kind == "stone"
+	var rar := "common" if stone else String(r.get("rarity", "common"))
+	var tier := 0 if stone else maxi(EchoBox.RARITIES.find(rar), 0)
+	var dup := bool(r.get("duplicate", false))
+	var art_px := 416.0 if single else 260.0
+	var card := PanelContainer.new()
+	card.name = "RevealCard"
+	card.custom_minimum_size = Vector2(CARD_W_1 if single else CARD_W, CARD_H_1 if single else CARD_H_10)
+	var epic_plus := not stone and tier >= 3
+	var glow := DiceSkin.tier_color(tier)
+	glow.a = 0.33
+	card.add_theme_stylebox_override("panel", UI3Theme.flat(UI3Theme.color("panel"), UI3Theme.radius("m"),
+		3 if epic_plus else 0, DiceSkin.tier_color(tier), Vector4(20, 20, 20, 20),
+		{"y": 0, "color": glow, "size": 40} if epic_plus else {}))
+	var v := VBoxContainer.new()
+	v.add_theme_constant_override("separation", 8)
+	card.add_child(v)
+	var strip := ColorRect.new()
+	strip.name = "TierStrip"
+	strip.custom_minimum_size = Vector2(0, 8 if single else 4)
+	strip.color = UI3Theme.color("panel_raised") if stone else DiceSkin.tier_color(tier)
+	v.add_child(strip)
+	var art := Panel.new()
+	art.name = "CardArt"
+	art.custom_minimum_size = Vector2(art_px, art_px)
+	art.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	art.clip_contents = true
+	art.add_theme_stylebox_override("panel", UI3Theme.flat(UI3Theme.color("panel_raised"), UI3Theme.radius("s")))
+	v.add_child(art)
+	var title := ""
+	var line := ""
+	var line_col := DiceSkin.tier_text_color(tier)
+	if stone:
+		var ic := TextureRect.new()
+		ic.name = "StoneIcon"
+		ic.texture = UI3.icon("cur_stone_reveal")
+		var sp := 256.0 if single else 160.0
+		ic.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		ic.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		ic.custom_minimum_size = Vector2(sp, sp)
+		ic.size = Vector2(sp, sp)
+		ic.position = (Vector2(art_px, art_px) - Vector2(sp, sp)) * 0.5
+		ic.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		art.add_child(ic)
+		title = "%d Stone" % int(r.get("amount", 0))
+		line = "Currency"
+		line_col = UI3Theme.color("text_muted")
+	else:
+		var item := String(r.get("item", ""))
+		var a := _cosmetic_art(item, art_px, single)
+		if a != null:
+			art.add_child(a)
+		title = CosmeticTile.display_name(item)
+		var slot_word := "dice skin" if Cosmetics.slot_of(item) == Cosmetics.SLOT_DIE else "frame"
+		line = "%s %s" % [rar.capitalize(), slot_word]
+		if dup:
+			line = "Duplicate · %d Fragments" % int(r.get("fragments", 0))
+			line_col = UI3Theme.color("text")
+			var badge := HBoxContainer.new()
+			badge.name = "DupBadge"
+			badge.add_theme_constant_override("separation", 4)
+			badge.set_anchors_preset(Control.PRESET_BOTTOM_RIGHT)
+			badge.grow_horizontal = Control.GROW_DIRECTION_BEGIN
+			badge.grow_vertical = Control.GROW_DIRECTION_BEGIN
+			badge.position = Vector2(art_px - 8.0, art_px - 8.0)
+			var fi := TextureRect.new()
+			fi.texture = UI3.currency_icon("cur_fragment", 36.0)
+			fi.custom_minimum_size = Vector2(36, 36)
+			fi.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+			fi.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+			badge.add_child(fi)
+			var bl := UI3.label("+%d" % int(r.get("fragments", 0)), "LabelDisplay")
+			bl.add_theme_font_size_override("font_size", 20)
+			badge.add_child(bl)
+			art.add_child(badge)
+		else:
+			var chip := UI3.chip("New")
+			chip.name = "NewChip"
+			chip.position = Vector2(8, 8)
+			art.add_child(chip)
+	var nm := UI3.label(title, "LabelScreenTitle" if single else "LabelTitle")
+	nm.name = "CardName"
+	nm.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	nm.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	nm.custom_minimum_size.x = art_px
+	if not single and title.length() > 18:
+		nm.add_theme_font_size_override("font_size", 20)   # shrink to 20, then ellipsis
+	v.add_child(nm)
+	var ln := UI3.label(line.left(26))
+	ln.name = "CardLine"
+	ln.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	ln.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	ln.custom_minimum_size.x = art_px
+	ln.add_theme_color_override("font_color", line_col)
+	v.add_child(ln)
+	return card
+
+
+## Art of a cosmetic inside a `px` square box. Dice: baked thumbnail, or (live) the 3D die dropping in; frames:
+## the player's initial on a disc wearing the frame. null when the id has no art.
+func _cosmetic_art(item: String, px: float, live: bool) -> Control:
+	var a := Cosmetics.art_id(item)
+	var slot := Cosmetics.slot_of(a)
+	if slot == Cosmetics.SLOT_DIE:
+		var tr := TextureRect.new()
+		tr.name = "Thumb"
+		tr.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		tr.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		tr.custom_minimum_size = Vector2(px, px)
+		tr.size = Vector2(px, px)
+		tr.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_load_thumb(tr, a, live, px)
+		return tr
+	if slot == Cosmetics.SLOT_FRAME:
+		var letter := "P"
+		if AccountService.is_signed_in():
+			letter = AccountService.display_name()
+		var cell := CenterContainer.new()
+		cell.name = "FramePreview"
+		cell.custom_minimum_size = Vector2(px, px)
+		cell.size = Vector2(px, px)
+		cell.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		cell.add_child(AvatarFrame.letter_preview(a, px * (224.0 / 260.0) / AvatarFrame.SCALE, letter))
+		return cell
+	return null
+
+
+func _load_thumb(tr: TextureRect, id: String, live: bool, px: float) -> void:
+	var tex: Texture2D = DiceThumb.cached_texture(id)
+	if tex == null:
+		tex = await DiceThumb.get_thumb(self, id)
+	if is_instance_valid(tr) and tex != null:
+		tr.texture = tex
+	if not live or DisplayServer.get_name() == "headless" or not is_instance_valid(tr):
+		return
+	var faces := DiceStage.preview_faces()
+	var roller := DiceRoller3D.new()
+	add_child(roller)
+	await roller.prepare(faces, id)
+	roller.queue_free()
+	if not is_instance_valid(tr) or not tr.is_inside_tree():
+		return
+	var st := DiceStage.new()
+	st.name = "DiceStage"
+	st.setup(Vector2i(int(px), int(px)), id, faces, true)
+	st.mouse_filter = Control.MOUSE_FILTER_STOP
+	tr.add_child(st)
+	tr.texture = null
+	st.play_drop()
+	st.gui_input.connect(func(ev: InputEvent) -> void:   # click the card to replay the drop
+		if ev is InputEventMouseButton and (ev as InputEventMouseButton).pressed and is_instance_valid(st):
+			st.play_drop())
+
+
 func _build_skeleton() -> void:
 	var sk := VBoxContainer.new()
 	sk.name = "Skeleton"
@@ -677,7 +860,7 @@ func _play_ceremony(out: Array) -> void:
 	for r in out:
 		if _rarity_idx(r) > _rarity_idx(top):
 			top = r
-	var m := _modal("Opening...", 520)
+	var m := _modal("Opening...", 600)
 	m.name = "Ceremony"
 	var v: VBoxContainer = m.find_child("V", true, false)
 	var skip := UI3.button("Skip", &"secondary", &"M")
@@ -703,19 +886,72 @@ func _play_ceremony(out: Array) -> void:
 	v.remove_child(skip)
 	skip.queue_free()
 	(v.get_child(0) as Label).text = "Reveal" if out.size() == 1 else "Open %d" % out.size()
+	var single := out.size() == 1
+	if not single:
+		(m.find_child("Card", true, false) as Control).custom_minimum_size.x = 1760.0
 	var grid := GridContainer.new()
 	grid.name = "RevealGrid"
-	grid.columns = 1 if out.size() == 1 else 5
-	grid.add_theme_constant_override("h_separation", UI3Theme.space("8"))
-	grid.add_theme_constant_override("v_separation", UI3Theme.space("8"))
-	for r in out:
-		grid.add_child(_result_cell(r))
-	v.add_child(grid)
-	var done := UI3.button("Done", &"primary", &"M")
+	grid.columns = 1 if single else 5
+	grid.add_theme_constant_override("h_separation", 24)
+	grid.add_theme_constant_override("v_separation", 24)
+	var order: Array = range(out.size())
+	order.sort_custom(func(x: int, y: int) -> bool: return _rarity_idx(out[x]) < _rarity_idx(out[y]))   # best last
+	var cards: Array = []
+	cards.resize(out.size())
+	for i in out.size():
+		var cd := _result_cell(out[i], "single" if single else "grid")
+		cards[i] = cd
+		grid.add_child(cd)
+	var gc := CenterContainer.new()
+	gc.add_child(grid)
+	v.add_child(gc)
+	var btns := HBoxContainer.new()
+	btns.alignment = BoxContainer.ALIGNMENT_CENTER
+	btns.add_theme_constant_override("separation", UI3Theme.space("16"))
+	v.add_child(btns)
+	var first := out[0] as Dictionary
+	if single and String(first.get("kind")) == "cosmetic":
+		var art_id := Cosmetics.art_id(String(first.get("item", "")))
+		var eqb := UI3.button("Equip now", &"secondary", &"M")
+		eqb.name = "EquipNow"
+		eqb.pressed.connect(func() -> void:
+			var why := MetaState.equip_cosmetic(art_id)
+			eqb.text = "Equipped" if why == "" else "Couldn't equip"
+			eqb.disabled = true)
+		btns.add_child(eqb)
+	var again_n := out.size()
+	var again := UI3.button("Open again" if single else "Open %d again" % again_n, &"primary", &"L")
+	again.name = "OpenAgain"
+	var ar := pull_block_reason(again_n)
+	if ar != "":
+		UI3.set_disabled_reason(again, ar)
+	again.pressed.connect(func() -> void:
+		close_modal()
+		pull(again_n))
+	btns.add_child(again)
+	if ar == "":
+		var cc := UI3.cost_chip(&"ticket", again_n)
+		cc.name = "AgainCost"
+		btns.add_child(cc)
+	var done := UI3.button("Done", &"secondary", &"M")
 	done.name = "Done"
 	done.pressed.connect(func() -> void:
 		close_modal()
 		_refresh_all())
-	v.add_child(done)
+	btns.add_child(done)
+	if not (instant or reduce_flashing or MetaState.reduce_flash or DisplayServer.get_name() == "headless"):
+		_flip_in(cards, order)
 	_focus_later(done)
 	_refresh_all()
+
+
+## Cards flip in (scale x 0 -> 1, 160 ms) 120 ms apart, the highest tier last. Reduce flashing: all at once.
+func _flip_in(cards: Array, order: Array) -> void:
+	for c in cards:
+		(c as Control).scale.x = 0.0
+	for k in order.size():
+		var c := cards[int(order[k])] as Control
+		var tw := create_tween()
+		tw.tween_interval(FLIP_GAP * k)
+		tw.tween_callback(func() -> void: c.pivot_offset = c.size / 2.0)
+		tw.tween_property(c, "scale:x", 1.0, FLIP_S).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
