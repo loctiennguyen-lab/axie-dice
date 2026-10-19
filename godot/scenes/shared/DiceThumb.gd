@@ -5,7 +5,9 @@ extends RefCounted
 ## The hash covers the skin's data entry and its source files' modification times, so a changed skin re-bakes.
 ## Rendering needs a real display: headless returns null (callers show a flat placeholder).
 
-const VERSION := 1
+## Bump when any skin art, the stage (light, camera, pose) or the bake changes: web packs report modified time 0,
+## so this number (plus the skin's data entry) is what invalidates a stale cached thumbnail.
+const VERSION := 2
 const PX := 256
 
 static var _mem: Dictionary = {}   # id -> ImageTexture

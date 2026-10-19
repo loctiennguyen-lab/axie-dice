@@ -63,6 +63,8 @@ func _ready() -> void:
 	# die mesh: skin materials on all 7 surfaces, fx only when asked
 	var mi := DiceRoller3D.make_die_mesh([f, f, f, f, f, f], 0.5, "die_l_gold", false)
 	_ok(mi.get_surface_override_material(0) == gold and mi.get_child_count() == 1, "skin die uses the shared body material + fx node")
+	for si in 7:   # the dummy renderer logs an error when a mesh instance with overrides is freed
+		mi.set_surface_override_material(si, null)
 	mi.free()
 
 	# trims

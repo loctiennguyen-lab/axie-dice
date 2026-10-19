@@ -3,19 +3,21 @@
 importer="texture"
 type="CompressedTexture2D"
 uid="uid://cjf5s3e6titc"
-path="res://.godot/imported/sheen.png-4409bf6cdb536d9a9dd196d2ffef0c1c.ctex"
+path.s3tc="res://.godot/imported/sheen.png-4409bf6cdb536d9a9dd196d2ffef0c1c.s3tc.ctex"
+path.etc2="res://.godot/imported/sheen.png-4409bf6cdb536d9a9dd196d2ffef0c1c.etc2.ctex"
 metadata={
-"vram_texture": false
+"imported_formats": ["s3tc_bptc", "etc2_astc"],
+"vram_texture": true
 }
 
 [deps]
 
 source_file="res://assets/cosmetics/dice/die_l_kingdom/sheen.png"
-dest_files=["res://.godot/imported/sheen.png-4409bf6cdb536d9a9dd196d2ffef0c1c.ctex"]
+dest_files=["res://.godot/imported/sheen.png-4409bf6cdb536d9a9dd196d2ffef0c1c.s3tc.ctex", "res://.godot/imported/sheen.png-4409bf6cdb536d9a9dd196d2ffef0c1c.etc2.ctex"]
 
 [params]
 
-compress/mode=0
+compress/mode=2
 compress/high_quality=false
 compress/lossy_quality=0.7
 compress/uastc_level=0
@@ -23,7 +25,7 @@ compress/rdo_quality_loss=0.0
 compress/hdr_compression=1
 compress/normal_map=0
 compress/channel_pack=0
-mipmaps/generate=false
+mipmaps/generate=true
 mipmaps/limit=-1
 roughness/mode=0
 roughness/src_normal=""
