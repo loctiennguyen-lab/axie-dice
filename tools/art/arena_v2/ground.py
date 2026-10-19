@@ -26,6 +26,28 @@ def stage():
         return json.load(f)
 
 
+def unit_slots(st=None):
+    """Every (x, z) a unit can stand on, from stage_layout.json 'formation' (lane C's CombatStage3D
+    constants): party, eggs, 1-5 enemy patterns on both row sets, boss/elite and every add slot."""
+    f = (st or stage())['formation']
+    out = []
+    for i in range(5):
+        out.append((f['PARTY_X0'] + i * f['PARTY_PITCH_X'], f['PARTY_Z_FRONT'] if i % 2 == 0 else f['PARTY_Z_BACK']))
+    for i in range(4):
+        out.append((f['EGG_X0'] + i * f['EGG_PITCH_X'], f['EGG_Z']))
+    for n, pat in f['ENEMY_PATTERNS'].items():
+        for rows in (f['ENEMY_ROWS'], f['ENEMY_ROWS_TIGHT']):
+            for col, row in pat:
+                out.append((f['ENEMY_CENTER_X'] + col * f['ENEMY_PITCH_X'], rows[int(row) + 1]))
+    for lead in (f['BOSS_POS'], f['ELITE_POS']):
+        out.append(tuple(lead))
+        for ent in [e for pat in f['ADD_PATTERNS'].values() for e in pat] + f['ADD_EXTRA']:
+            col, row = ent
+            z = f['ADD_Z_FRONT'] if row > 0 else (f['ADD_Z_BACK2'] if row < -1 else f['ADD_Z_BACK'])
+            out.append((lead[0] + col * f['ADD_PITCH_X'], z))
+    return sorted(set(out))
+
+
 def uv_of(x, z):
     """World (x, z) -> (u, v) in Blender UV space (v up)."""
     u = np.interp(x, UX[0], UX[1])

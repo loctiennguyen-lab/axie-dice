@@ -18,7 +18,7 @@ import bpy
 import bmesh
 from mathutils import Matrix, Vector, noise
 
-HERE = os.path.dirname(os.path.abspath(__file__)) if '__file__' in globals() else '/Users/loc.tien.nguyen/my-game-wt/V/tools/art/arena_v2'
+HERE = os.path.dirname(os.path.abspath(__file__))
 if HERE not in sys.path:
     sys.path.insert(0, HERE)
 import biomes  # noqa: E402

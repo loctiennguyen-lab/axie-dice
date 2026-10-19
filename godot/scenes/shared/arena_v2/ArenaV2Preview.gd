@@ -69,19 +69,22 @@ func _build_rig() -> void:
 	add_child(we)
 
 
-## Capsules where the units stand: blue party (5, two staggered rows), red enemies (3, lane C pattern).
+## Capsules where the units stand: blue party (5, two staggered rows), red enemies (lane C's 3-enemy
+## pattern on its tight rows), from stage_layout.json "formation".
 func _add_stand_ins() -> void:
-	var st := ArenaV2Diorama.stage_layout()
+	var f: Dictionary = ArenaV2Diorama.stage_layout().get("formation", {})
+	if f.is_empty():
+		return
 	var party_mat := StandardMaterial3D.new()
 	party_mat.albedo_color = Color(0.35, 0.6, 0.95)
 	var enemy_mat := StandardMaterial3D.new()
 	enemy_mat.albedo_color = Color(0.9, 0.35, 0.3)
-	var p: Dictionary = st.get("party", {})
 	for i in 5:
-		_capsule(Vector3(float(p.get("x0", -10.0)) + i * float(p.get("pitch", 1.3)), 0.0, float(p["z"][i % 2])), party_mat)
-	var e: Dictionary = st.get("enemies", {})
-	for ent in e.get("pattern_3", []):
-		_capsule(Vector3(float(e["center_x"]) + float(ent[0]) * float(e["pitch"]), 0.0, float(e["rows_z"][int(ent[1]) + 1])), enemy_mat)
+		var z := float(f["PARTY_Z_FRONT"]) if i % 2 == 0 else float(f["PARTY_Z_BACK"])
+		_capsule(Vector3(float(f["PARTY_X0"]) + i * float(f["PARTY_PITCH_X"]), 0.0, z), party_mat)
+	var rows: Array = f["ENEMY_ROWS_TIGHT"]
+	for ent in f["ENEMY_PATTERNS"]["3"]:
+		_capsule(Vector3(float(f["ENEMY_CENTER_X"]) + float(ent[0]) * float(f["ENEMY_PITCH_X"]), 0.0, float(rows[int(ent[1]) + 1])), enemy_mat)
 
 
 func _capsule(at: Vector3, mat: Material) -> void:

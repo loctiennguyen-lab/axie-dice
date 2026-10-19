@@ -2,7 +2,7 @@
 
 In Blender's Python console / MCP:
     BIOME = 'forest'; exec(open('/Users/loc.tien.nguyen/my-game-wt/V/tools/art/arena_v2/export.py').read())
-or for every biome:  BIOME = 'all'.  FRESH = True re-imports the biome's kit.
+or for every biome:  BIOME = 'all'.  FRESH = False reuses an already imported kit (faster; stale if biomes.py changed).
 Steps per biome: kit.setup (FBX kit, cliffs, ground mesh) -> layout.check/build (props) ->
 ground.paint (texture, with contact shadows under the props) -> GLB that REFERENCES the texture files
 next to it (export_keep_originals + glb_strip_images), at godot/assets/atia/arena_v2/<biome>/<biome>_arena.glb.
@@ -15,7 +15,8 @@ import sys
 import bpy
 import numpy as np
 
-HERE = '/Users/loc.tien.nguyen/my-game-wt/V/tools/art/arena_v2'
+# exec() gives no __file__: set ARENA_V2_DIR (global or env) when the repo lives elsewhere.
+HERE = globals().get('ARENA_V2_DIR') or os.environ.get('ARENA_V2_DIR') or '/Users/loc.tien.nguyen/my-game-wt/V/tools/art/arena_v2'
 if HERE not in sys.path:
     sys.path.insert(0, HERE)
 import biomes  # noqa: E402
@@ -58,7 +59,7 @@ def export(biome):
 
 
 def run(biome):
-    log = kit.setup(biome, bool(globals().get('FRESH', False)))
+    log = kit.setup(biome, bool(globals().get('FRESH', True)))   # default: rebuild the kit, never reuse a stale one
     n = layout.build(biome)
     write_ground(biome)
     res = export(biome)

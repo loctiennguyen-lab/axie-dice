@@ -12,7 +12,7 @@ import sys
 import bpy
 from mathutils import Vector
 
-HERE = os.path.dirname(os.path.abspath(__file__)) if '__file__' in globals() else '/Users/loc.tien.nguyen/my-game-wt/V/tools/art/arena_v2'
+HERE = os.path.dirname(os.path.abspath(__file__))
 if HERE not in sys.path:
     sys.path.insert(0, HERE)
 import biomes  # noqa: E402
@@ -26,8 +26,8 @@ LAYOUT = [
     ('ridge', 8.0, -27.5, 180, 6.0),
     ('mesa_a', 22.0, -24.0, 15, 8.0),
     # trees on the slope in front of the ridge (tops crop at the frame edge, like the Land rim)
-    ('tree_c', -2.0, -21.0, 30, 8.0),
-    ('tree_a', 4.5, -19.5, 200, 6.5),
+    ('tree_c', -3.5, -22.5, 30, 8.0),
+    ('tree_a', 6.0, -21.5, 200, 6.5),
     ('tree_a', -16.0, -19.0, 80, 7.0),
     ('tree_b', 13.0, -18.0, 120, 6.0),
     ('tree_d', -24.0, -15.0, 0, 6.5),
@@ -35,8 +35,8 @@ LAYOUT = [
     ('tree_a', -7.0, -14.5, 60, 4.2),
     ('tree_d', 8.5, -13.0, 200, 3.8),
     ('tree_a', 17.5, -10.0, 300, 4.5),
-    # low rock lip along the back of the field: reads as a terrace edge
-    ('ledge_b', -3.0, -16.2, 10, 1.4),
+    # low rock lip along the back of the field: reads as a terrace edge (clear of lane C's 2nd add row, z -18.3)
+    ('ledge_b', -5.5, -15.5, 10, 1.4),
     ('ridge', -27.0, -15.5, 90, 2.6),
     ('ledge', 14.5, -14.0, 140, 1.8),
     # upper-left outcrop (the big empty quarter above the party)
@@ -52,9 +52,9 @@ LAYOUT = [
     ('grass_b', -11.8, -11.6, 50, 1.4),
     ('grass_c', -10.6, -12.6, 200, 1.1),
     ('grass_c', -20.0, -14.0, 120, 1.6),
-    ('grass_a', -3.8, -18.2, 90, 1.5),
-    ('grass_b', -0.6, -19.0, 10, 1.2),
-    ('grass_c', 3.0, -17.6, 300, 1.4),
+    ('grass_a', -5.2, -19.5, 90, 1.5),
+    ('grass_b', 0.2, -22.0, 10, 1.2),
+    ('grass_c', 4.6, -21.0, 300, 1.4),
     ('grass_a', 6.4, -17.2, 30, 1.2),
     ('grass_b', 10.2, -15.8, 150, 1.4),
     # right of the gate (march exit side)
@@ -82,6 +82,12 @@ BLOB = {'rock_a': 0.9, 'rock_b': 1.0, 'grass_a': 0.7, 'grass_b': 0.7, 'grass_c':
         'tree_d': 0.25, 'tree_c': 0.4, 'tree_b': 0.4, 'butte': 0.9, 'ledge': 1.2, 'log': 1.2, 'flower': 0.6}
 
 
+# Trees spread wide only up in the canopy, so their ground footprint counts at a fraction of the box.
+FOOTPRINT = {'tree_a': 0.35, 'tree_b': 0.35, 'tree_c': 0.35, 'tree_d': 0.35,
+             # the big mesas are long and shallow; a circle round their box is far too wide
+             'mesa_wide': 0.45, 'mesa_a': 0.45, 'mesa_b': 0.45, 'ridge': 0.45}
+
+
 def placements(biome):
     """LAYOUT with the biome's height multipliers, plus its extras."""
     mul = biomes.ROLE_H.get(biome, {})
@@ -89,15 +95,25 @@ def placements(biome):
     return out + list(biomes.EXTRAS.get(biome, []))
 
 
-def check(biome):
-    """Raises if a prop centre lands inside a unit / gate keep-out."""
+def check(biome, radius=None):
+    """Raises if a prop's ground footprint (circle of `radius(kid, h)` metres, 0 = centre only)
+    comes within unit_clearance of any unit slot (ground.unit_slots, lane C's formation incl. the
+    second back row of adds) or its centre lands in a stage_layout keep-out (gate, march exit)."""
+    st = ground.stage()
+    slots = ground.unit_slots(st)
+    clear = float(st.get('unit_clearance', 1.6))
     bad = []
-    for (k, x, z, _yaw, _h) in placements(biome):
-        for ko in ground.stage()['keepouts']:
+    for (k, x, z, _yaw, h) in placements(biome):
+        r = radius(k, h) if radius else 0.0
+        for (sx, sz) in slots:
+            if math.hypot(x - sx, z - sz) < r + clear:
+                bad.append((k, x, z, 'unit slot (%.2f, %.2f)' % (sx, sz)))
+                break
+        for ko in st['keepouts']:
             if ko['x'][0] <= x <= ko['x'][1] and ko['z'][0] <= z <= ko['z'][1]:
                 bad.append((k, x, z, ko['name']))
     if bad:
-        raise ValueError('props in keep-outs: %s' % bad)
+        raise ValueError('props too close to units / in keep-outs: %s' % bad)
 
 
 def blobs(biome):
@@ -112,7 +128,14 @@ def ground_y(gobj, x, z):
 
 def build(biome):
     """Lays the props of `biome` into collection Arena_<biome> as linked duplicates of Kit_<biome>."""
-    check(biome)
+    def footprint(kid, h):
+        src = bpy.data.objects.get('K_%s_%s' % (biome, kid))
+        if src is None:
+            return 0.0
+        s = h / max(src.dimensions.z, 1e-4)
+        return 0.5 * max(src.dimensions.x, src.dimensions.y) * s * FOOTPRINT.get(kid, 1.0)
+
+    check(biome, footprint)
     col = bpy.data.collections['Arena_' + biome]
     gobj = bpy.data.objects['G_%s_Ground' % biome]
     for o in list(col.objects):
