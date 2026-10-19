@@ -9,7 +9,7 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd -P)"
 PROJ="$ROOT/godot"
 # shellcheck source=userdir.sh
 source "$ROOT/godot/tools/userdir.sh"
-axie_resolve_userdir "$PROJ" || { echo "run_tests: không đọc được config/name trong project.godot" >&2; exit 2; }
+axie_effective_userdir "$PROJ" || { echo "run_tests: không đọc được config/name trong project.godot" >&2; exit 2; }
 LOCK="${AXIE_GODOT_LOCK:-$AXIE_LOCK_DEFAULT}"
 
 # Cờ cho worktree của làn (không phải làn I): AXIE_SKIP_RULES_FINGERPRINT=1 -> t_rules_version
@@ -71,7 +71,11 @@ fi
 # Bảo vệ save THẬT của người chơi (2026-10-10). Với lệnh chạy qua with_lock.sh, save đã được
 # chụp và trả lại ở tầng with_lock (kể cả khi bị kill). Lớp này vẫn đo từng test: test nào để
 # lại thay đổi thì FAIL, và save được chép lại từ bản chụp đầu suite.
-USERDIR="$AXIE_USERDIR"   # theo override.cfg của worktree nếu có (xem userdir.sh)
+USERDIR="$AXIE_USERDIR"   # user dir cô lập (override.cfg của worktree hoặc override tạm, xem userdir.sh)
+# Chốt chặn: không bao giờ chạy test trên user dir THẬT (app_userdata/<config/name>), trừ AXIE_REAL_USERDIR=1.
+if [[ "$USERDIR" == */app_userdata/* && "${AXIE_REAL_USERDIR:-}" != 1 ]]; then
+  echo "run_tests: user dir [$USERDIR] là save thật, từ chối chạy test." >&2; exit 2
+fi
 SAVE_SNAP="$(mktemp -d)"
 # The desktop app and the main-tree suite share user:// (config/name "Axie Dice"): the sign-in files must be
 # guarded too, or account tests delete Liam's real desktop session (happened 15/10).

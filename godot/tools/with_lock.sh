@@ -13,7 +13,9 @@
 #
 # Hành vi:
 #   - Khoá là thư mục $AXIE_GODOT_LOCK, nằm ngoài repo. Mặc định ~/Library/Caches/axie-dice-godot.lock
-#     (cây chính, save thật). Worktree có godot/override.cfg (use_custom_user_dir) dùng user dir riêng và
+#     (chỉ còn dùng khi AXIE_REAL_USERDIR=1). Cây chính không có override.cfg: script ghi override.cfg TẠM
+#     (user dir AxieDice-test-<repo>, khoá riêng axie-dice-godot-AxieDice-test-<repo>.lock), xoá khi xong.
+#     Worktree có godot/override.cfg (use_custom_user_dir) dùng user dir riêng và
 #     khoá riêng ~/Library/Caches/axie-dice-godot-<tên>.lock: các làn không còn xếp hàng chung. Xem userdir.sh.
 #     File `pid` ghi "pid|lstart" của chủ khoá. Chủ đã chết, hoặc pid bị tái dùng (lstart khác) -> khoá chết.
 #   - Tiếp quản qua gate mkdir theo pid chết: đúng một bên được mv khoá cũ đi.
@@ -36,10 +38,11 @@ fi
 
 TIMEOUT="${AXIE_LOCK_TIMEOUT:-1800}"
 PROJ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd -P)"
-# user:// thật + đường dẫn khoá suy từ project này (có override.cfg -> user dir riêng + khoá riêng).
+# user:// sẽ dùng + đường dẫn khoá suy từ project này. Có override.cfg -> user dir riêng + khoá riêng;
+# không có (cây chính) -> user dir test AxieDice-test-<repo> (override.cfg tạm), KHÔNG BAO GIỜ save thật.
 # shellcheck source=userdir.sh
 source "$PROJ/tools/userdir.sh"
-if ! axie_resolve_userdir "$PROJ" && [[ -z "${AXIE_SAVE_DIR:-}" || -z "${AXIE_GODOT_LOCK:-}" ]]; then
+if ! axie_effective_userdir "$PROJ" && [[ -z "${AXIE_SAVE_DIR:-}" || -z "${AXIE_GODOT_LOCK:-}" ]]; then
   echo "with_lock: không đọc được config/name trong project.godot, không chạy." >&2
   exit 2
 fi
@@ -206,9 +209,12 @@ until _try_take "$*"; do
 done
 
 child=""; watcher=""
+# Cây chưa có user dir riêng (cây chính): ghi override.cfg tạm để Godot dùng AxieDice-test-<repo>, không chạm save thật.
+axie_write_temp_override "$PROJ" || { echo "with_lock: không ghi được override.cfg tạm" >&2; rm -rf "$LOCK"; exit 1; }
 if [[ "$GUARD" == 1 ]]; then
   if ! _snapshot_save "$LOCK/snap"; then
     echo "with_lock: không chụp được save, không chạy." >&2
+    axie_remove_temp_override "$PROJ"
     rm -rf "$LOCK"
     exit 1
   fi
@@ -218,6 +224,7 @@ _cleanup() {   # EXIT: dừng watcher, diệt cây còn sống, trả save, nh�
   if [[ -n "$watcher" ]]; then kill "$watcher" 2>/dev/null; fi
   if [[ -n "$child" ]] && _alive "$child"; then _stop_tree "$child"; fi
   if [[ "$GUARD" == 1 ]]; then _restore_from "$LOCK/snap"; fi
+  axie_remove_temp_override "$PROJ"
   rm -rf "$LOCK"
 }
 _on_signal() { trap '' INT TERM HUP; if [[ -n "$child" ]]; then _stop_tree "$child"; fi; exit "$1"; }
