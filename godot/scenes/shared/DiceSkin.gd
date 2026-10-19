@@ -167,3 +167,30 @@ static func sheen_material(id: String) -> StandardMaterial3D:
 		m.texture_filter = BaseMaterial3D.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
 		_sheen_mats[id] = m
 	return _sheen_mats[id]
+
+
+# --- 2D tile trims ----------------------------------------------------------------------------------
+
+## File of the tile trim for a tile of `px` px: 88 big tile, 56 small tile, 36 egg token.
+static func trim_file(px: int) -> String:
+	if px >= 72:
+		return "tile_trim_88.png"
+	if px >= 46:
+		return "tile_trim_56.png"
+	return "egg_trim_36.png"
+
+
+## Overlay for a 2D die tile (corner radius 14 / 10 / 6 is baked into the art). null when the skin has no trim.
+static func make_trim(id: String, px: int) -> TextureRect:
+	var tx := texture(id, trim_file(px))
+	if tx == null:
+		return null
+	var r := TextureRect.new()
+	r.name = "SkinTrim"
+	r.texture = tx
+	r.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	r.stretch_mode = TextureRect.STRETCH_SCALE
+	r.texture_filter = CanvasItem.TEXTURE_FILTER_LINEAR_WITH_MIPMAPS
+	r.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	r.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	return r

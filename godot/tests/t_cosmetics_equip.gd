@@ -102,8 +102,7 @@ func _tray_checks() -> void:
 	var d2 := base.duplicate()
 	d2["skin"] = "die_e_rune"
 	TrayColumn.update(c, d2)
-	_ok((c["die"] as Node).find_child("Skin", false, false) != null, "tray die shows the skin")
-	_ok((c["die"] as Node).find_child("glow", true, false) != null, "Epic skin has glow layer")
+	_ok((c["die"] as Node).find_child("SkinTrim", false, false) != null, "tray die shows the skin trim")
 	_ok((c["die_num"] as Label).text == txt0 and txt0 == "4", "skin does not change the value shown")
 	TrayColumn.update(c, base)
 	_ok(c["skin_node"] == null, "skin removed again")

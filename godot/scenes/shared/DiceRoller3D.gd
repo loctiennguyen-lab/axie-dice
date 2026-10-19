@@ -727,6 +727,9 @@ func _make_tile(d: Dictionary) -> Control:
 	lbl.size = Vector2(s, s * 0.36)
 	lbl.position = Vector2(0, s * 0.58)
 	tile.add_child(lbl)
+	var trim := DiceSkin.make_trim(String(d["skin"]), int(s)) if String(d["skin"]) != "" else null
+	if trim != null:
+		tile.add_child(trim)   # the flying tile already carries the skin trim (47-tray-skin)
 	return tile
 
 
