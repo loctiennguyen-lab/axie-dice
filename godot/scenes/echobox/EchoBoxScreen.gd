@@ -18,8 +18,6 @@ extends Control
 const SCREEN_ID := "echobox"
 const _Econ := preload("res://scripts/meta/economy_db.gd")
 const PULL_N := 10
-## First season pull per session asks for a confirm (README M5o). Tests set it true.
-static var season_confirmed := false
 const CHEST_BY_RARITY := {"common": "Bronze", "uncommon": "Silver", "rare": "Gold", "epic": "Platinum",
 	"legendary": "Diamond", "mythic": "Lunacian"}
 const STONE_CHEST := {100: "Bronze", 250: "Bronze", 500: "Silver", 1000: "Gold", 2500: "Platinum", 10000: "Lunacian"}
@@ -34,6 +32,8 @@ var instant := false
 var reduce_flashing := false
 ## Tests / server seam: Callable(n:int) -> Array of result Dictionaries (EchoBox.open_normal shape).
 var pull_hook: Callable = Callable()
+## First season pull per screen visit asks for a confirm (README M5o). Instance var so tests do not leak it.
+var season_confirmed := false
 var rng := RandomNumberGenerator.new()
 var results: Array = []
 var error_text := ""
@@ -166,6 +166,11 @@ func season_cost() -> int:
 	return int(EchoBox.season_cfg().get("ticket_cost", 5))
 
 
+## Cap N_t for a tier. Vault (doubled N) is not wired into the screen yet; flip this when it is.
+func _season_cap(tier: String) -> int:
+	return EchoBox.season_cap(tier, false)
+
+
 func season_cap_day() -> int:
 	return int(EchoBox.season_cfg().get("pull_cap_day", 8))
 
@@ -296,10 +301,9 @@ func open_rates() -> void:
 func _season_rates(v: VBoxContainer) -> void:
 	var cfg := EchoBox.season_cfg()
 	v.add_child(UI3.label("Season box · each pull is exactly one reward", "LabelMuted"))
-	var tiers: Dictionary = cfg.get("tiers", {})
 	var txt := "Each pull tests Mythic, then Legendary, then Epic. The chance rises with every miss and resets on a hit: p(c) = (2c-1) / (N^2-(c-1)^2), certain at the cap."
 	for t in ["mythic", "legendary", "epic"]:
-		txt += "\n%s: cap %d" % [t.capitalize(), int((tiers[t] as Dictionary).get("N", 0))]
+		txt += "\n%s: cap %d" % [t.capitalize(), _season_cap(t)]
 	var l := UI3.label(txt)
 	l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	v.add_child(l)
@@ -735,7 +739,6 @@ func _refresh_side_season() -> void:
 	var cfg := EchoBox.season_cfg()
 	var st := EchoBox.season_state(MetaState)
 	var owned: Array = st["owned"]
-	var tiers: Dictionary = cfg.get("tiers", {})
 	var items: Dictionary = cfg.get("items", {})
 	var col := VBoxContainer.new()
 	col.add_theme_constant_override("separation", UI3Theme.space("16"))
@@ -753,7 +756,7 @@ func _refresh_side_season() -> void:
 	total_have = owned.size()
 	pv.add_child(UI3.label("Lunar Echo · %d / %d · pulls opened %d" % [total_have, total, int(st["opens"])], "LabelTitle"))
 	for t in ["mythic", "legendary", "epic"]:
-		var cap := int((tiers[t] as Dictionary).get("N", 1))
+		var cap := _season_cap(t)
 		var have := 0
 		for it in items.get(t, []):
 			if owned.has(it):
@@ -904,6 +907,14 @@ func _build_summary() -> Control:
 		var pl := UI3.label(error_text, "LabelMuted")
 		pl.name = "PartialPull"
 		v.add_child(pl)
+	var ms: Array[String] = _milestone_lines(results)
+	if not ms.is_empty():
+		var mr := HBoxContainer.new()
+		mr.name = "MilestoneLine"
+		mr.add_theme_constant_override("separation", UI3Theme.space("8"))
+		for t in ms:
+			mr.add_child(UI3.chip(t))
+		v.add_child(mr)
 	var grid := GridContainer.new()
 	grid.name = "ResultGrid"
 	grid.columns = 5
@@ -913,6 +924,18 @@ func _build_summary() -> Control:
 	for r in results:
 		grid.add_child(_result_cell(r, "summary"))
 	return p
+
+
+## Milestones / full-set reached by the pulls in `results` (season only).
+func _milestone_lines(list: Array) -> Array[String]:
+	var out: Array[String] = []
+	var cfg := EchoBox.season_cfg()
+	for r in list:
+		for id in r.get("milestones", []):
+			out.append("Milestone: %s" % _reward_name(String(id)))
+		if bool(r.get("complete", false)):
+			out.append("Set complete: %s" % _reward_name(String(cfg.get("complete_reward", ""))))
+	return out
 
 
 func _reward_title(r: Dictionary) -> String:
@@ -1195,6 +1218,15 @@ func _play_ceremony(out: Array) -> void:
 	var gc := CenterContainer.new()
 	gc.add_child(grid)
 	v.add_child(gc)
+	var mls: Array[String] = _milestone_lines(out)
+	if not mls.is_empty():
+		var mrow := HBoxContainer.new()
+		mrow.name = "RevealMilestones"
+		mrow.alignment = BoxContainer.ALIGNMENT_CENTER
+		mrow.add_theme_constant_override("separation", UI3Theme.space("8"))
+		for t in mls:
+			mrow.add_child(UI3.chip(t))
+		v.add_child(mrow)
 	var btns := HBoxContainer.new()
 	btns.alignment = BoxContainer.ALIGNMENT_CENTER
 	btns.add_theme_constant_override("separation", UI3Theme.space("16"))

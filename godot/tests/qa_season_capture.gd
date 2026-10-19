@@ -17,7 +17,6 @@ func _ready() -> void:
 	MetaState.tickets = {"normal": 120, "season": 0}
 	MetaState.season_box = {}
 	MetaState.cosmetics_owned = []
-	EchoBoxScreen.season_confirmed = true
 	var rng := RandomNumberGenerator.new()
 	rng.seed = 21
 	for i in 14:
@@ -28,6 +27,7 @@ func _ready() -> void:
 	s.remote_on = false
 	s.no_scene_change = true
 	s.instant = true
+	s.season_confirmed = true
 	add_child(s)
 	await get_tree().process_frame
 	s.select_tab("seasonal")
@@ -36,6 +36,11 @@ func _ready() -> void:
 	s.pull_hook = func(_n: int) -> Array: return [s._season_result(r)]
 	await s.pull(1)
 	await _shot("reveal")
+	s.close_modal()
+	var rm := {"ok": true, "kind": "cosmetic", "tier": "mythic", "item": "frame_m_eclipse", "duplicate": false, "tickets_back": 0, "milestones": ["die_m_moon"], "complete": true}
+	s.pull_hook = func(_n: int) -> Array: return [s._season_result(rm)]
+	await s.pull(1)
+	await _shot("milestone")
 	s.close_modal()
 	var mix: Array = []
 	for it in [["epic", "fx_e_rune"], ["epic", "frame_e_firefly"], ["mythic", "frame_m_eclipse"], ["legendary", "fx_l_starfall"], ["epic", "die_e_rune"]]:
