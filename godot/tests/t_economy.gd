@@ -119,7 +119,7 @@ func test_data_validates() -> void:
 	_assert(int(a["R2"]["price"]) == 15 and int(a["R2"]["pack3"]) == 38, "R2 15 / gói 38")
 	_assert(int(a["R4"]["price"]) == 60 and int(a["R5"]["price"]) == 15 and int(a["R6"]["price"]) == 18
 		and int(a["R7"]["price"]) == 12 and int(a["R8"]["price"]) == 38 and int(a["R9"]["price"]) == 60, "giá PA-1")
-	_assert(not bool(_Econ.get_table("echobox")["boxes"]["season"]["enabled"]), "hộp mùa tắt ở L1")
+	_assert(bool(_Econ.get_table("echobox")["boxes"]["season"]["enabled"]), "hộp mùa bật (19/10)")
 	_assert(not bool(g["vip_trial"]["enabled"]), "VIP thử tắt ở L1")
 	var tiers: Dictionary = _Econ.get_table("missions")["tiers"]
 	_assert(tiers["N3"]["enabled"] and not tiers["N4"]["enabled"], "Nhiệm vụ chỉ N1-N3 ở L1")
