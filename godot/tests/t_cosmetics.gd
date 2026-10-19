@@ -19,39 +19,34 @@ func _ready() -> void:
 	var dice: Dictionary = m.get("dice", {})
 	var frames: Dictionary = m.get("frames", {})
 	_ok(dice.size() == 20 and frames.size() == 21, "20 dice + 21 frames (%d/%d)" % [dice.size(), frames.size()])
-	_ok(not m.has("frames_with_art") and not m.has("frames_waiting_for_art"), "old frame keys gone")
-	_ok(not CosmeticArt.animation_pending(), "animated layers delivered (v8)")
+	_ok(not CosmeticArt.animation_pending(), "animated layers delivered")
+	_ok(is_equal_approx(float(m.get("frame_scale", 0)), 1.5), "manifest frame_scale 1.5")
 
-	# every layer file exists, right size, has alpha, no loose file left unreferenced
+	# frames: every layer file exists, 256 RGBA, window Ø162 is transparent, no loose file left behind
 	var referenced := {}
-	for id in dice:
-		var ls := CosmeticArt.layers(id)
-		var want: Array = ["plate"] if int(dice[id].tier) <= 2 else ["base", "glow"] + (["max"] if int(dice[id].tier) == 5 else [])
-		_ok(ls.map(func(l): return l.layer) == want, "%s layers %s" % [id, want])
-		for l in ls:
-			referenced[l.path] = true
-			# plates/base are full-bleed opaque squares (the die token masks them); glow/max overlays carry alpha
-			_check_tex(l.path, 512, l.layer != "plate" and l.layer != "base")
-			_ok((l.add as bool) == (l.layer == "glow"), "%s glow is additive only" % id)
 	for id in frames:
+		var e: Dictionary = frames[id]
 		var ls := CosmeticArt.layers(id)
-		_ok(ls.size() >= 1 and ls[0].layer == "base", "%s has base" % id)
-		var al: Array = frames[id].get("anim_layers", [])
-		_ok(ls.size() == 1 + al.size(), "%s lists base + %d anim layers (%d)" % [id, al.size(), ls.size()])
-		_ok(ls.map(func(l): return l.layer).slice(1) == al.map(func(a): return a.name), "%s layer names match anim_layers" % id)
-		for a in al:
-			_ok(not CosmeticArt.anim_spec(id, a.name).is_empty(), "%s.%s has an anim spec" % [id, a.name])
-			for sp in CosmeticArt.anim_spec(id, a.name):
-				_ok(["spin", "pulse", "sweep"].has(sp.type), "%s.%s anim type %s" % [id, a.name, sp.type])
-		for pf in frames[id].get("preview_files", []):
-			referenced["res://assets/cosmetics/" + String(pf)] = true
+		_ok(ls.size() == (e.get("files", []) as Array).size() and ls.size() >= 1, "%s: all %d layer files resolve" % [id, (e.get("files", []) as Array).size()])
+		_ok(int(e.get("window_diameter_px", 0)) == 162 and int(e.get("size", 0)) == 256, "%s: window 162 of 256" % id)
+		_ok(ls.filter(func(l): return String(l.layer) == "base").size() == 1, "%s has one base layer" % id)
 		for l in ls:
 			referenced[l.path] = true
 			_check_tex(l.path, 256)
-	for sub in ["dice", "frames"]:
-		for f in DirAccess.get_files_at("res://assets/cosmetics/" + sub):
-			if f.ends_with(".png"):
-				_ok(referenced.has("res://assets/cosmetics/%s/%s" % [sub, f]), "unreferenced file " + f)
+			_ok(not (l.add as bool), "%s.%s is a normal-blend layer" % [id, l.layer])
+			if l.layer != "base":
+				var spec := CosmeticArt.anim_spec(id, String(l.layer))
+				_ok(not spec.is_empty() or String(l.layer) == "base", "%s.%s has an anim spec" % [id, l.layer])
+				for sp in spec:
+					_ok(["spin", "pulse", "sweep"].has(sp.type) and bool(sp.get("reduce_static", false)), "%s.%s anim type %s, held when Reduce flashing" % [id, l.layer, sp.type])
+					if sp.type == "pulse":
+						_ok(float(sp.period) >= 1.4, "%s.%s pulse period %.1f >= 1.4 s" % [id, l.layer, float(sp.period)])
+			var img := (load(l.path) as Texture2D).get_image()
+			_ok(img.get_pixel(128, 128).a < 0.02 and img.get_pixel(128 + 70, 128).a < 0.02 and img.get_pixel(128, 128 - 70).a < 0.02,
+				"%s.%s: window stays clear (r <= 70)" % [id, l.layer])
+	for f in DirAccess.get_files_at("res://assets/cosmetics/frames"):
+		if f.ends_with(".png"):
+			_ok(referenced.has("res://assets/cosmetics/frames/" + f), "frames/%s is referenced" % f)
 
 	# every cosmetic id named in economy data resolves (fx_*, title_*, std_* have no art by design)
 	var named := {}
@@ -63,34 +58,46 @@ func _ready() -> void:
 				named[r.get_string(1)] = true
 	_ok(named.size() >= 13, "found named cosmetic ids (%d)" % named.size())
 	for id in named:
-		_ok(CosmeticArt.has_art(id) and not CosmeticArt.layers(id).is_empty(), "id resolves: " + id)
+		_ok(CosmeticArt.has_art(id), "id resolves: " + id)
 
 	# placeholder pool ids and non-art ids stay empty, never crash
 	for id in ["std_e_001", "fx_e_rune", "title_s1_echo", "frame_x_nope"]:
 		_ok(CosmeticArt.layers(id).is_empty() and CosmeticArt.make_node(id, 64) == null, "no art, no node: " + id)
-	for pair in [["frame_e_runering", "rune_glow"], ["frame_e_firefly", "lantern_glow"], ["frame_e_s1_founder", "shield_sheen"], ["frame_l_sunburst", "sun_glow"], ["frame_l_sovereign", "crown_sheen"], ["frame_m_crystal", "core_glow"]]:
-		var hit := CosmeticArt.layers(pair[0]).filter(func(l): return l.layer == pair[1])
-		_ok(hit.size() == 1 and hit[0].add, "%s.%s additive" % pair)
-	_ok(not CosmeticArt.layers("frame_e_runering")[0].add, "base not additive")
-	# reduce flashing: twinkle layers static, eclipse has no brightness change
+
+	# anchor rule: frame = avatar x 1.5, centred (Cosmetics R2)
+	for pair in [[40.0, 60.0, -10.0], [48.0, 72.0, -12.0], [64.0, 96.0, -16.0], [96.0, 144.0, -24.0], [160.0, 240.0, -40.0]]:
+		_ok(is_equal_approx(AvatarFrame.frame_size(pair[0]), pair[1]) and AvatarFrame.frame_offset(pair[0]).is_equal_approx(Vector2(pair[2], pair[2])),
+			"avatar %d -> frame %d at %d" % [pair[0], pair[1], pair[2]])
+	var av := Panel.new()
+	var h := AvatarFrame.wrap_holder(av, 48.0, "frame_e_firefly")
+	var fnode: Control = h.get_child(1)
+	_ok(h.custom_minimum_size == Vector2(48, 48) and fnode.size == Vector2(72, 72) and fnode.position == Vector2(-12, -12),
+		"Land chip holder stays 48, frame node 72 at -12")
+	_ok(fnode.mouse_filter == Control.MOUSE_FILTER_IGNORE and not h.clip_contents, "frame ignores the mouse, holder does not clip")
+	_ok(fnode.get_child_count() == 3, "firefly node stacks 3 layers")
+	h.free()
+	var plain := Panel.new()
+	_ok(AvatarFrame.wrap_holder(plain, 48.0, "") == plain, "no frame: the avatar itself")
+	plain.free()
+
+	# Reduce flashing: no Tweens, held values from the spec
 	MetaState.reduce_flash = true
 	var sn := CosmeticArt.make_node("frame_m_eclipse", 150)
 	add_child(sn)
 	await get_tree().create_timer(0.3).timeout
-	_ok(is_equal_approx(sn.get_node("sparkles").modulate.a, 0.8), "reduce: sparkles static")
-	await get_tree().create_timer(2.3).timeout
-	_ok(is_equal_approx(sn.get_node("eclipse").modulate.a, 1.0), "reduce: eclipse sweep keeps full alpha")
+	_ok(is_equal_approx(sn.get_node("shadow").modulate.a, 0.0) and is_equal_approx(sn.get_node("corona").modulate.a, 0.0), "reduce: eclipse layers held at 0")
 	sn.queue_free()
+	var rn := CosmeticArt.make_node("frame_e_runering", 150)
+	add_child(rn)
+	await get_tree().create_timer(0.3).timeout
+	_ok(is_equal_approx(rn.get_node("runes").rotation, 0.0) and is_equal_approx(rn.get_node("glow").modulate.a, 0.68), "reduce: runes rotation 0, glow 0.68")
+	rn.queue_free()
 	MetaState.reduce_flash = false
 	var fn := CosmeticArt.make_node("frame_e_runering", 150)
-	_ok(fn != null and fn.get_child_count() == 3 and fn.get_node("rune_orbit") is TextureRect, "runering node stacks base + 2 layers")
-	if fn:
-		fn.free()
-	var n := CosmeticArt.make_node("die_m_moon", 104)
-	_ok(n != null and n.get_child_count() == 3, "moon die node has 3 layers")
-	_ok(n != null and (n.get_node("glow") as TextureRect).material is CanvasItemMaterial, "glow layer additive")
-	if n:
-		n.free()
+	add_child(fn)
+	await get_tree().create_timer(1.0).timeout
+	_ok(fn.get_node("runes").rotation != 0.0, "motion on: runes turn")
+	fn.queue_free()
 	print("t_cosmetics: %d checks, %d failed" % [_n, _fail])
 	print("PASS" if _fail == 0 else "FAIL")
 	get_tree().quit(0 if _fail == 0 else 1)

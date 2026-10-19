@@ -7,7 +7,7 @@ func _ready() -> void:
 	var dice := ["die_c_reed", "die_u_moss", "die_r_aqua", "die_e_rune", "die_l_gold", "die_m_moon", "die_m_redcrystal"]
 	var x := 20.0
 	for id in dice:
-		var n := CosmeticArt.make_node(id, 150); n.position = Vector2(x, 20); add_child(n); x += 170
+		var n := CosmeticTile.art(id, 150); n.position = Vector2(x, 20); add_child(n); x += 170
 	x = 20.0
 	var frames := ["frame_c_bird", "frame_r_icicle", "frame_e_runering", "frame_l_sovereign", "frame_m_eclipse", "frame_m_crystal"]
 	for id in frames:

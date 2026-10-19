@@ -62,7 +62,7 @@ static func layers(id: String) -> Array:
 			continue
 		var stem := p.get_file().get_basename()
 		var layer := stem.trim_prefix(id + "_")
-		out.append({"layer": layer, "path": p, "add": layer == "glow" or String(((entry as Dictionary).get("blend", {}) as Dictionary).get(layer, "")) == "add"})
+		out.append({"layer": layer, "path": p, "add": (layer == "glow" and not id.begins_with("frame_")) or String(((entry as Dictionary).get("blend", {}) as Dictionary).get(layer, "")) == "add"})
 	if missing:
 		# fallback: old combined overlay, shown static
 		for rel in (entry as Dictionary).get("preview_files", []):
@@ -129,19 +129,25 @@ static func _start_anims(root: Control, animated: Array, k: float) -> void:
 			tweens.append(tw)
 			match String(sp.type):
 				"spin":
+					if reduce and sp.get("reduce_static", false):
+						tw.kill()   # Reduce flashing: no Tweens, the layer holds rotation 0
+						continue
 					var per := float(sp.reduce_period if reduce else sp.period)
 					tw.tween_property(tr, "rotation", TAU, per).from(0.0)
 				"pulse":
 					if reduce and sp.get("reduce_static", false):
 						tw.kill()
-						tr.modulate.a = 0.8
+						tr.modulate.a = float(sp.get("reduce_lo", 0.8))   # held value from the spec
 						continue
 					var lo := float(sp.reduce_lo if reduce else sp.lo)
 					var hi := float(sp.reduce_hi if reduce else sp.hi)
 					var half := float(sp.period) / 2.0
-					tr.modulate.a = lo
-					tw.tween_property(tr, "modulate:a", hi, half).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
-					tw.tween_property(tr, "modulate:a", lo, half).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+					var late := float(sp.get("phase", 0.0)) >= 0.5   # half a period late: start at the top
+					tr.modulate.a = hi if late else lo
+					var first := lo if late else hi
+					var second := hi if late else lo
+					tw.tween_property(tr, "modulate:a", first, half).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
+					tw.tween_property(tr, "modulate:a", second, half).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_IN_OUT)
 				"sweep":
 					var peak := float(sp.reduce_peak if reduce else sp.peak)
 					var t_in := float(sp["in"])

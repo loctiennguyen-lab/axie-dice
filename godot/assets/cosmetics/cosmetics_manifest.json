@@ -1,5 +1,5 @@
 {
- "version": "cosmetics-01 v8",
+ "version": "cosmetics-3d r2",
  "source": "Claude Design \"Cosmetics 01 v7\" page, art v8 (13/10/2026) per NOTE-TO-CLAUDE-DESIGN-02 + REVIEW-cosmetics-v7",
  "tiers": [
   {
@@ -46,652 +46,89 @@
  "outline_rule": "frames ≤ 64 px: outline #1A1206 at 2.3× weight; dice ≤ 40 px: ornament outlines #1A1206; die border black (Mythic #0E0608)",
  "dice": {
   "die_c_reed": {
-   "name": "Sunbaked Weave",
-   "tier": 0,
-   "border": "#000",
-   "contrast": 7.3,
-   "dark": false,
-   "tag": "",
-   "layers": [
-    "plate"
-   ],
-   "files": [
-    "dice/die_c_reed_plate.png"
-   ],
-   "size": 512,
-   "calm_zone_px": {
-    "x": [
-     51,
-     461
-    ],
-    "y": [
-     225,
-     410
-    ]
-   },
-   "spec": [
-    "Border #000, 4 px at s=104 (3 px on the 36 px egg token).",
-    "Straw strands with an airbrushed gold gradient (#FFF0D0 → #F8C880), inner lines #E09050.",
-    "v7: inside the calm zone the weave lines run at 60 % contrast (40 % cream veil #FCEBCD → #FAE2B8 over the weave, under the rim), so the value row reads as one clean field at 36 px.",
-    "Braided rim along the bottom 15 px in orange #F8A858 / brown #A85038, maroon outline. Static."
-   ]
+   "name": "Reed Basket",
+   "tier": 0
   },
   "die_c_sunwood": {
-   "name": "Driftwood Deck",
-   "tier": 0,
-   "border": "#000",
-   "contrast": 7.19,
-   "dark": false,
-   "tag": "",
-   "layers": [
-    "plate"
-   ],
-   "files": [
-    "dice/die_c_sunwood_plate.png"
-   ],
-   "size": 512,
-   "calm_zone_px": {
-    "x": [
-     51,
-     461
-    ],
-    "y": [
-     225,
-     410
-    ]
-   },
-   "spec": [
-    "Border #000, 4 px.",
-    "Six sun-bleached planks (#FAEEDC → #EED6B0), seam #C89868 (7.0:1 to ink), wavy grain #DDB98C. Iron nails #8A6040 sit at x 5 and 99, outside the calm zone.",
-    "One cream sparkle top-right. Static."
-   ]
+   "name": "Sunwood Block",
+   "tier": 0
   },
   "die_c_clay": {
-   "name": "Kiln Clay",
-   "tier": 0,
-   "border": "#000",
-   "contrast": 8.69,
-   "dark": false,
-   "tag": "",
-   "layers": [
-    "plate"
-   ],
-   "files": [
-    "dice/die_c_clay_plate.png"
-   ],
-   "size": 512,
-   "calm_zone_px": {
-    "x": [
-     51,
-     461
-    ],
-    "y": [
-     225,
-     410
-    ]
-   },
-   "spec": [
-    "Border #000, 4 px.",
-    "Baked clay (#F9E0C6 → #EDB892) pressed with five thumbprints, ridges #E2A47E (6.9:1 to ink).",
-    "Terracotta glaze rim along the bottom (#DE7A50 → #B04A2E, highlight #F4A07C), maroon outline. Static."
-   ]
+   "name": "Honey Clay",
+   "tier": 0
   },
   "die_u_moss": {
-   "name": "Mossy Pebble",
-   "tier": 1,
-   "border": "#000",
-   "contrast": 8.31,
-   "dark": false,
-   "tag": "",
-   "layers": [
-    "plate"
-   ],
-   "files": [
-    "dice/die_u_moss_plate.png"
-   ],
-   "size": 512,
-   "calm_zone_px": {
-    "x": [
-     51,
-     461
-    ],
-    "y": [
-     225,
-     410
-    ]
-   },
-   "spec": [
-    "Border #000, 4 px.",
-    "Cream river stones with an airbrushed top-left light (#FFFFFF → #E8DCC8) and soft brown inner line #C8A888 (6.6:1 to ink).",
-    "Frog-green moss along the bottom and sides (#60C878 → #40A888, vein #186048) with two broad leaves and a cream water-lily bud, borrowed from the lily-pad frame. Maroon outline. Static."
-   ]
+   "name": "Mossy Stone",
+   "tier": 1
   },
   "die_u_bark": {
-   "name": "Heartwood Rings",
-   "tier": 1,
-   "border": "#000",
-   "contrast": 9.96,
-   "dark": false,
-   "tag": "",
-   "layers": [
-    "plate"
-   ],
-   "files": [
-    "dice/die_u_bark_plate.png"
-   ],
-   "size": 512,
-   "calm_zone_px": {
-    "x": [
-     51,
-     461
-    ],
-    "y": [
-     225,
-     410
-    ]
-   },
-   "spec": [
-    "Border #000, 4 px.",
-    "A cut log face (#F6E4C6 → #ECD2A8): growth rings #DDB888 radiate from the lower-left corner (6.0:1 to ink).",
-    "Bark rim along the bottom (#B8743E → #8A4A26, grooves #6A3418) with a two-leaf sprout. Static."
-   ]
+   "name": "Tree Rings",
+   "tier": 1
   },
   "die_u_berry": {
    "name": "Berry Jam",
-   "tier": 1,
-   "border": "#000",
-   "contrast": 12.18,
-   "dark": false,
-   "tag": "",
-   "layers": [
-    "plate"
-   ],
-   "files": [
-    "dice/die_u_berry_plate.png"
-   ],
-   "size": 512,
-   "calm_zone_px": {
-    "x": [
-     51,
-     461
-    ],
-    "y": [
-     225,
-     410
-    ]
-   },
-   "spec": [
-    "Border #000, 4 px.",
-    "Cream icing (#FFF3F5 → #F8DCE4) with sugar dots #F2C6D4. Jam (#F0507A → #B8204E, shine #FFC0D0) pools along the bottom and drips down both side edges, outside the calm zone.",
-    "Two blueberries bottom-left, a raspberry with a mint leaf bottom-right. Static."
-   ]
+   "tier": 1
   },
   "die_r_plant": {
-   "name": "Sprout Vine",
-   "tier": 2,
-   "border": "#000",
-   "contrast": 12.73,
-   "dark": false,
-   "tag": "Mastery · Plant",
-   "layers": [
-    "plate"
-   ],
-   "files": [
-    "dice/die_r_plant_plate.png"
-   ],
-   "size": 512,
-   "calm_zone_px": {
-    "x": [
-     51,
-     461
-    ],
-    "y": [
-     225,
-     410
-    ]
-   },
-   "spec": [
-    "Border #000, 4 px.",
-    "Two materials: a spring-green field (#F2FBDC → #D8F0B4) printed with leaf silhouettes #BCE290 (12:1 to ink), plus a vine along the bottom (#5FA82A on maroon) carrying five chunky leaves.",
-    "A curled tendril top-right. Static.",
-    "v8: frost facet enlarged to Ø15.6 at s=104 (centre 14.5 / 91, flake r 5.8); stays below the calm zone (y > 83).",
-    "v7 Rare frost cue: cold-blue inner rim (#9FE4FF on #2A6FB0, white inner line) + a frost facet bottom-left, shared by all six class skins so the tier reads Arctic."
-   ]
+   "name": "Jade Sprout",
+   "tier": 2
   },
   "die_r_beast": {
-   "name": "Wildfur",
-   "tier": 2,
-   "border": "#000",
-   "contrast": 11.13,
-   "dark": false,
-   "tag": "Mastery · Beast",
-   "layers": [
-    "plate"
-   ],
-   "files": [
-    "dice/die_r_beast_plate.png"
-   ],
-   "size": 512,
-   "calm_zone_px": {
-    "x": [
-     51,
-     461
-    ],
-    "y": [
-     225,
-     410
-    ]
-   },
-   "spec": [
-    "Border #000, 4 px.",
-    "Two materials: warm fur (#FFF3DE → #FFDEAE) with tuft strokes #F2C07C (9.7:1 to ink), plus a fluffy orange ruff along the bottom (#FFC35A → #E0861E, strands #B85A10).",
-    "Three claw slashes (#C8682A) top-right and a paw print top-left, both above the calm zone. Static.",
-    "v8: frost facet enlarged to Ø15.6 at s=104 (centre 14.5 / 91, flake r 5.8); stays below the calm zone (y > 83).",
-    "v7 Rare frost cue: cold-blue inner rim (#9FE4FF on #2A6FB0, white inner line) + a frost facet bottom-left, shared by all six class skins so the tier reads Arctic."
-   ]
+   "name": "Clawed Leather",
+   "tier": 2
   },
   "die_r_aqua": {
-   "name": "Tidepool",
-   "tier": 2,
-   "border": "#000",
-   "contrast": 8.46,
-   "dark": false,
-   "tag": "Mastery · Aquatic",
-   "layers": [
-    "plate"
-   ],
-   "files": [
-    "dice/die_r_aqua_plate.png"
-   ],
-   "size": 512,
-   "calm_zone_px": {
-    "x": [
-     51,
-     461
-    ],
-    "y": [
-     225,
-     410
-    ]
-   },
-   "spec": [
-    "Border #000, 4 px.",
-    "Scale field (#E0FAF4 → #90D8D0), scallop line #58C0B0, curling wave (#58C0B0 → #2E8C90) with cream foam.",
-    "v7: scallops inside the calm zone at 60 % contrast (40 % veil in the field gradient).",
-    "Rare frost cue: cold-blue rim (#9FE4FF on #2A6FB0) + frost facet bottom-left. Static.",
-    "v8: frost facet enlarged to Ø15.6 at s=104 (centre 14.5 / 91, flake r 5.8); stays below the calm zone (y > 83)."
-   ]
+   "name": "Pearl Tide",
+   "tier": 2
   },
   "die_r_reptile": {
-   "name": "Scute Mosaic",
-   "tier": 2,
-   "border": "#000",
-   "contrast": 9.3,
-   "dark": false,
-   "tag": "Mastery · Reptile",
-   "layers": [
-    "plate"
-   ],
-   "files": [
-    "dice/die_r_reptile_plate.png"
-   ],
-   "size": 512,
-   "calm_zone_px": {
-    "x": [
-     51,
-     461
-    ],
-    "y": [
-     225,
-     410
-    ]
-   },
-   "spec": [
-    "Border #000, 4 px.",
-    "Lilac hex-scale field (#F3EAFF → #DFCEF8), hex lines #C6ACEE; glossy scute row along the bottom (#B694FF → #7D4CE7). Lilac kept: Reptile is the purple class, the tier chip separates it from Epic.",
-    "v7: hex lines inside the calm zone at 60 % contrast (40 % veil).",
-    "Rare frost cue: cold-blue rim + frost facet bottom-left. Static.",
-    "v8: frost facet enlarged to Ø15.6 at s=104 (centre 14.5 / 91, flake r 5.8); stays below the calm zone (y > 83)."
-   ]
+   "name": "Scale Lord",
+   "tier": 2
   },
   "die_r_bug": {
-   "name": "Ladyshell",
-   "tier": 2,
-   "border": "#000",
-   "contrast": 9.85,
-   "dark": false,
-   "tag": "Mastery · Bug",
-   "layers": [
-    "plate"
-   ],
-   "files": [
-    "dice/die_r_bug_plate.png"
-   ],
-   "size": 512,
-   "calm_zone_px": {
-    "x": [
-     51,
-     461
-    ],
-    "y": [
-     225,
-     410
-    ]
-   },
-   "spec": [
-    "Border #000, 4 px.",
-    "Blush carapace (#FFEEEA → #FCD6CE) with segment arcs in #F2AC9C; ladybird shell along the bottom (#FF6E5E → #D83A30).",
-    "v7: the centre seam is cut short and stops at y 44 (≈ 217 at 512), before the calm zone starts at 225.",
-    "Rare frost cue: cold-blue rim + frost facet bottom-left. Static.",
-    "v8: frost facet enlarged to Ø15.6 at s=104 (centre 14.5 / 91, flake r 5.8); stays below the calm zone (y > 83)."
-   ]
+   "name": "Ladybug Shell",
+   "tier": 2
   },
   "die_r_bird": {
-   "name": "Plume Fan",
-   "tier": 2,
-   "border": "#000",
-   "contrast": 11.86,
-   "dark": false,
-   "tag": "Mastery · Bird",
-   "layers": [
-    "plate"
-   ],
-   "files": [
-    "dice/die_r_bird_plate.png"
-   ],
-   "size": 512,
-   "calm_zone_px": {
-    "x": [
-     51,
-     461
-    ],
-    "y": [
-     225,
-     410
-    ]
-   },
-   "spec": [
-    "Border #000, 4 px.",
-    "Two materials: sky down (#EFF9FF → #CFEEFF) with feather scallops #A2D6F2 (11:1 to ink), plus seven tail feathers fanned up from the bottom edge, alternating pink (#FFB0D4 → #E85A9A) and blue (#A8E6FF → #3AA8E8) with quills. Static.",
-    "v8: frost facet enlarged to Ø15.6 at s=104 (centre 14.5 / 91, flake r 5.8); stays below the calm zone (y > 83).",
-    "v7 Rare frost cue: cold-blue inner rim (#9FE4FF on #2A6FB0, white inner line) + a frost facet bottom-left, shared by all six class skins so the tier reads Arctic."
-   ]
+   "name": "Rosy Plume",
+   "tier": 2
   },
   "die_e_rune": {
-   "name": "Moonrune Tablet",
-   "tier": 3,
-   "border": "#4A1E8A",
-   "contrast": 11.58,
-   "dark": false,
-   "tag": "",
-   "layers": [
-    "base",
-    "glow"
-   ],
-   "files": [
-    "dice/die_e_rune_base.png",
-    "dice/die_e_rune_glow.png"
-   ],
-   "size": 512,
-   "calm_zone_px": {
-    "x": [
-     51,
-     461
-    ],
-    "y": [
-     225,
-     410
-    ]
-   },
-   "spec": [
-    "Border #4A1E8A (Mystic violet), 4 px.",
-    "Lavender tablet (#F4ECFF → #D8C4F4) with diagonal lilac stripes. Five runes carved in #8050C8 with a white lip, y 85 (below the calm zone).",
-    "v7: the rune row moved right/in (x 24–76) so no rune is cut by the gold scroll curls in the lower corners.",
-    "base.png: tablet, carved runes, scrolls, gems — no glow. glow.png: rune underlay #C898F0 5 px, blend Add; pulse 0.35→0.9, 2.0 s. Reduce flashing: 0.55→0.7."
-   ]
+   "name": "Rune Slate",
+   "tier": 3
   },
   "die_e_spore": {
-   "name": "Glowshroom Grove",
-   "tier": 3,
-   "border": "#3B1A5C",
-   "contrast": 14.76,
-   "dark": false,
-   "tag": "",
-   "layers": [
-    "base",
-    "glow"
-   ],
-   "files": [
-    "dice/die_e_spore_base.png",
-    "dice/die_e_spore_glow.png"
-   ],
-   "size": 512,
-   "calm_zone_px": {
-    "x": [
-     51,
-     461
-    ],
-    "y": [
-     225,
-     410
-    ]
-   },
-   "spec": [
-    "Border #3B1A5C (deep Mystic), 4 px.",
-    "Moonlit mist field (#F3EFFF → #DDE6F6), violet toadstools in both lower corners on a plum moss rim (#7A60C8 → #4A3090).",
-    "v7: caps lowered — every cap top sits at y ≥ 82 (≈ 420 at 512), under the calm zone floor.",
-    "base.png: field, moss rim, toadstools — no halos, no spores. glow.png: mint halos #9AF0D8 behind each cluster + 7 floating spores (core #E8FFF8, rim #3AB89A), blend Add. Spores sit above the calm zone or at the side edges.",
-    "Idle: halos pulse 0.25→0.9 over 2.0 s; spores twinkle 2.0 s, staggered 0.3 s. Reduce flashing: halos 0.5→0.65, spores opacity only."
-   ]
+   "name": "Glowcap Grove",
+   "tier": 3
   },
   "die_e_s1_founder": {
-   "name": "Founder’s Laurel",
-   "tier": 3,
-   "border": "#5A2A0A",
-   "contrast": 12.9,
-   "dark": false,
-   "tag": "Pass S1 · founding season",
-   "layers": [
-    "base",
-    "glow"
-   ],
-   "files": [
-    "dice/die_e_s1_founder_base.png",
-    "dice/die_e_s1_founder_glow.png"
-   ],
-   "size": 512,
-   "calm_zone_px": {
-    "x": [
-     51,
-     461
-    ],
-    "y": [
-     225,
-     410
-    ]
-   },
-   "spec": [
-    "Border #5A2A0A (dark bronze), 4 px.",
-    "Parchment (#FFF8E8 → #F4E2C0), faint star print #EBD5A8, laurel branches up both side edges (x ≤ 9, x ≥ 95).",
-    "v7: no lettering. The Season-1 shield above the value row carries a bold numeral “1” (Baloo-style block numeral drawn as a shape, cream #FFF4E0 with maroon outline) — readable at 36 px. The gold ribbon below is plain and shortened to x 16–88 so its tails clear the 92 px corner mask.",
-    "base.png: everything above, no stars. glow.png: the two gold corner stars; twinkle 2.0 s, offset 1.0 s. Reduce flashing: opacity only."
-   ]
+   "name": "Founder's Seal",
+   "tier": 3
   },
   "die_l_gold": {
-   "name": "Genesis Sunplate",
-   "tier": 4,
-   "border": "#7A3410",
-   "contrast": 10.38,
-   "dark": false,
-   "tag": "",
-   "layers": [
-    "base",
-    "glow"
-   ],
-   "files": [
-    "dice/die_l_gold_base.png",
-    "dice/die_l_gold_glow.png"
-   ],
-   "size": 512,
-   "calm_zone_px": {
-    "x": [
-     51,
-     461
-    ],
-    "y": [
-     225,
-     410
-    ]
-   },
-   "spec": [
-    "Border #7A3410 (burnt orange), 4 px.",
-    "Warm gold field (#FFF6DC → #FFE0A0) with engraved swirls #F0B868 above the calm zone.",
-    "v7: the sun sits lower (centre y 118 of 104) and its tallest blade ray stops at y 84 (≈ 430 at 512), below the calm zone floor at 410. Nothing rises into the value row.",
-    "base.png: field + sun + rays. glow.png: diagonal sheen, white 50 %, blend Add; sweeps in 1.1 s, rests, 3.2 s loop. Reduce flashing: sheen at 20 %."
-   ]
+   "name": "Genesis Sun",
+   "tier": 4
   },
   "die_l_relic_stone": {
-   "name": "Relic Seam",
-   "tier": 4,
-   "border": "#3A3020",
-   "contrast": 8.06,
-   "dark": false,
-   "tag": "",
-   "layers": [
-    "base",
-    "glow"
-   ],
-   "files": [
-    "dice/die_l_relic_stone_base.png",
-    "dice/die_l_relic_stone_glow.png"
-   ],
-   "size": 512,
-   "calm_zone_px": {
-    "x": [
-     51,
-     461
-    ],
-    "y": [
-     225,
-     410
-    ]
-   },
-   "spec": [
-    "Border #3A3020 (old stone), 4 px.",
-    "Running-bond stone blocks (#F3EFE6 → #DDD6C6, mortar #B4AA96) with chip marks; carved keystone at the bottom centre.",
-    "base.png: blocks + the seams as dark carved cracks (#8A7E68, 1.6 px) + an unlit keystone glyph. No glow in the base.",
-    "glow.png (blend Add): golden seams down both side edges and along the bottom — halo #FFC870 6 px at 55 %, edge #C8701A 2.6 px, core #FFF4C8 1.2 px — plus the lit sun glyph. Seams never enter the calm zone.",
-    "Idle: halo pulses 0.25→0.9, 2.4 s. Reduce flashing: 0.5→0.65."
-   ]
+   "name": "Gold Seam Relic",
+   "tier": 4
   },
   "die_l_kingdom": {
-   "name": "Lunacia Sovereign",
-   "tier": 4,
-   "border": "#24388A",
-   "contrast": 12.81,
-   "dark": false,
-   "tag": "Echo Box · pairs with Pass lv30 “LUNACIA SOVEREIGN”",
-   "layers": [
-    "base",
-    "glow"
-   ],
-   "files": [
-    "dice/die_l_kingdom_base.png",
-    "dice/die_l_kingdom_glow.png"
-   ],
-   "size": 512,
-   "calm_zone_px": {
-    "x": [
-     51,
-     461
-    ],
-    "y": [
-     225,
-     410
-    ]
-   },
-   "spec": [
-    "Border #24388A (royal navy), 4 px. Reads as black at 36 px.",
-    "Ivory damask (#FFFAF0 → #F6E8D0, diamond motif #EAD4AC at 12:1 to ink). Ornament: a royal-blue velvet hem (#4A68D8 → #24388A) under a gold trim line (#FFC93C on maroon), a gold crown (#FFE48A → #E8A020, ruby #E8304A, sapphires #3AC8F0) and four gold stars on the hem, gold filigree in the top corners.",
-    "base.png: damask, velvet hem, gold trim, crown, stars, filigree — no sheen. glow.png: diagonal white sheen 50 %, blend Add; sweeps in 1.2 s, rests, 3.6 s loop. Reduce flashing: sheen at 20 %."
-   ]
+   "name": "Lunacia Crown",
+   "tier": 4
   },
   "die_m_redcrystal": {
-   "name": "Luna Heartcrystal",
-   "tier": 5,
-   "border": "#0E0608",
-   "contrast": 14.02,
-   "dark": true,
-   "tag": "",
-   "layers": [
-    "base",
-    "glow",
-    "max"
-   ],
-   "files": [
-    "dice/die_m_redcrystal_base.png",
-    "dice/die_m_redcrystal_glow.png",
-    "dice/die_m_redcrystal_max.png"
-   ],
-   "size": 512,
-   "calm_zone_px": {
-    "x": [
-     51,
-     461
-    ],
-    "y": [
-     225,
-     410
-    ]
-   },
-   "spec": [
-    "Dark skin with a LIGHT VALUE PLATE (cream #FFF4E4 → #F4DCC4, 1.4 px maroon outline) sized to the calm zone. Ink #1A1206.",
-    "v7: border near-black #0E0608, 4 px, so the die keeps its outline on the night field at 36 px. Field: the shared Mythic night #2A0F2E (gradient #3A1442 → #2A0F2E) with cream star dust.",
-    "Signature: cream crescent moon with a teal gem; red crystals (#FF7E9C → #B8123E). v7: the two tall crystals carry a Luna Crimson #FF3D6E core.",
-    "base.png: field, moon, crystals, value plate. glow.png: 3 teal-rimmed sparkles, twinkle 1.6 s staggered (Reduce flashing: opacity only).",
-    "max.png (MAX settle, 0.6 s): full moon over the crescent + grown crystals (×1.15 from their base, ease-out-back). Reduced: crystals only."
-   ]
+   "name": "Heart of Luna",
+   "tier": 5
   },
   "die_m_moon": {
-   "name": "Moonface Dreamer",
-   "tier": 5,
-   "border": "#0E0608",
-   "contrast": 12.37,
-   "dark": false,
-   "tag": "Echo Box · the moon disc is the value plate",
-   "layers": [
-    "base",
-    "glow",
-    "max"
-   ],
-   "files": [
-    "dice/die_m_moon_base.png",
-    "dice/die_m_moon_glow.png",
-    "dice/die_m_moon_max.png"
-   ],
-   "size": 512,
-   "calm_zone_px": {
-    "x": [
-     51,
-     461
-    ],
-    "y": [
-     225,
-     410
-    ]
-   },
-   "spec": [
-    "v7: border near-black #0E0608, 4 px (was night violet, lost at 36 px).",
-    "Field: the shared Mythic night #2A0F2E (gradient #3A1442 → #2A0F2E) with star dust. A full moon (r 52, centre 52/68; #FFF9EC → #F0DCC0, rim #E8A060) covers the calm zone, so the number sits on the moon.",
-    "Signature: sleeping moon face — closed eyes above the value row (y 39), blush at the sides, small smile below (y 92). Faint craters.",
-    "base.png: field, moon, face. glow.png: warm halo ring outside the moon (#FFE8B0) breathing 0.25→0.9 over 3.0 s + four blue-rimmed sparkles twinkling 1.6 s. Reduce flashing: halo 0.5→0.65, sparkles opacity only.",
-    "max.png (MAX settle, 0.8 s): eyes open (#6B2B2B pupils, cream catch-lights) and the halo flares to r 70. Reduced: eyes only."
-   ]
+   "name": "Midnight Moon",
+   "tier": 5
   }
  },
  "frames": {
   "frame_c_plant": {
-   "name": "Sprout Wreath",
+   "name": "Plant Leaf Ring",
    "tier": 0,
    "tag": "Mastery · Plant",
    "size": 256,
@@ -699,23 +136,18 @@
     128,
     128
    ],
-   "window_diameter_px": 168,
-   "max_overlap_px": 8,
+   "window_diameter_px": 162,
    "files": [
     "frames/frame_c_plant_base.png"
    ],
-   "cue_40px": "Wide flat leaf pair + big pink bud",
-   "spec": [
-    "Static. Savannah band (shared Common).",
-    "v8 class motif at 12 o’clock, about 2× v7: two long flat leaves (58 px, #C2EC8E → #6CB04E) spread almost level to ±56 px, a stem and a big pink bud (r 12, #FFC0D0 → #E070A8) on top. 40 px read: a wide flat bar with a ball in the middle."
-   ],
-   "loop": [],
    "image_size": [
     256,
     256
    ],
-   "window_radius_px": 84,
-   "uses_homeland_bitmap": false
+   "window_radius_px": 81,
+   "anim": {},
+   "frame_scale": 1.5,
+   "source": "Mastery (Plant), Echo Box"
   },
   "frame_c_beast": {
    "name": "Fuzzy Ears",
@@ -726,26 +158,21 @@
     128,
     128
    ],
-   "window_diameter_px": 168,
-   "max_overlap_px": 8,
+   "window_diameter_px": 162,
    "files": [
     "frames/frame_c_beast_base.png"
    ],
-   "cue_40px": "Two big ears at 10 and 2",
-   "spec": [
-    "Static. Savannah band (shared Common).",
-    "Class motif: two big rounded ears (#FFD27A → #E0861E, inner #FFD0C8 → #F0A0A0) at 10 and 2 o’clock — the widest top silhouette of the Common set. A paw print on the band at 7 o’clock."
-   ],
-   "loop": [],
    "image_size": [
     256,
     256
    ],
-   "window_radius_px": 84,
-   "uses_homeland_bitmap": false
+   "window_radius_px": 81,
+   "anim": {},
+   "frame_scale": 1.5,
+   "source": "Mastery (Beast), Echo Box"
   },
   "frame_c_aqua": {
-   "name": "Tide Fin",
+   "name": "Wave Fin",
    "tier": 0,
    "tag": "Mastery · Aquatic",
    "size": 256,
@@ -753,26 +180,21 @@
     128,
     128
    ],
-   "window_diameter_px": 168,
-   "max_overlap_px": 8,
+   "window_diameter_px": 162,
    "files": [
     "frames/frame_c_aqua_base.png"
    ],
-   "cue_40px": "One fin leaning right + wave curl at 8",
-   "spec": [
-    "Static. Savannah band (shared Common).",
-    "Class motif: a single dorsal fin at 1 o’clock leaning right (#8AF0F8 → #2EB0C8, rays #1A7A98) — the only asymmetric top in the set — and a wave curl with cream foam at 8 o’clock."
-   ],
-   "loop": [],
    "image_size": [
     256,
     256
    ],
-   "window_radius_px": 84,
-   "uses_homeland_bitmap": false
+   "window_radius_px": 81,
+   "anim": {},
+   "frame_scale": 1.5,
+   "source": "Mastery (Aqua), Echo Box"
   },
   "frame_c_reptile": {
-   "name": "Scute Ridge",
+   "name": "Reptile Spikes",
    "tier": 0,
    "tag": "Mastery · Reptile",
    "size": 256,
@@ -780,23 +202,18 @@
     128,
     128
    ],
-   "window_diameter_px": 168,
-   "max_overlap_px": 8,
+   "window_diameter_px": 162,
    "files": [
     "frames/frame_c_reptile_base.png"
    ],
-   "cue_40px": "Comb of five rounded scutes",
-   "spec": [
-    "Static. Savannah band (shared Common).",
-    "Class motif: a comb of five rounded leaf-shaped scutes across the top arc (#D8B8FF → #8A5AE6, shine #F0E4FF), tallest in the middle. Rounded tips keep it apart from the Rare frost crown."
-   ],
-   "loop": [],
    "image_size": [
     256,
     256
    ],
-   "window_radius_px": 84,
-   "uses_homeland_bitmap": false
+   "window_radius_px": 81,
+   "anim": {},
+   "frame_scale": 1.5,
+   "source": "Mastery (Reptile), Echo Box"
   },
   "frame_c_bug": {
    "name": "Antenna Ring",
@@ -807,26 +224,21 @@
     128,
     128
    ],
-   "window_diameter_px": 168,
-   "max_overlap_px": 8,
+   "window_diameter_px": 162,
    "files": [
     "frames/frame_c_bug_base.png"
    ],
-   "cue_40px": "Two tall antennae, big red bulbs high up",
-   "spec": [
-    "Static. Savannah band (shared Common).",
-    "v8 class motif, about 2× v7: two thick antennae (maroon 11 px, core #C8402E) rise and splay out to ±40 px, ending in big red bulbs (r 13, #FF8A70 → #D83A30) near the canvas top. Ladybird on the band at 4 o’clock. 40 px read: two balls on stalks, open in the middle."
-   ],
-   "loop": [],
    "image_size": [
     256,
     256
    ],
-   "window_radius_px": 84,
-   "uses_homeland_bitmap": false
+   "window_radius_px": 81,
+   "anim": {},
+   "frame_scale": 1.5,
+   "source": "Mastery (Bug), Echo Box"
   },
   "frame_c_bird": {
-   "name": "Feather Crest",
+   "name": "Feather Wings",
    "tier": 0,
    "tag": "Mastery · Bird",
    "size": 256,
@@ -834,23 +246,18 @@
     128,
     128
    ],
-   "window_diameter_px": 168,
-   "max_overlap_px": 8,
+   "window_diameter_px": 162,
    "files": [
     "frames/frame_c_bird_base.png"
    ],
-   "cue_40px": "Tall five-feather fan",
-   "spec": [
-    "Static. Drawn fresh in the shared line style (no Homeland bitmap used; only the composition idea of a top crest + a chick at 7 o’clock).",
-    "Savannah band (shared Common). v8 class motif, about 2× v7: a tall half-disc fan of five wide feathers (30–40 px; pink #FFB0D4 → #E85A9A outer and centre, blue #A8E6FF → #3AA8E8 inner pair) at 12 o’clock, and the sleeping pink chick at 7 o’clock. 40 px read: a solid half-disc on top."
-   ],
-   "loop": [],
    "image_size": [
     256,
     256
    ],
-   "window_radius_px": 84,
-   "uses_homeland_bitmap": false
+   "window_radius_px": 81,
+   "anim": {},
+   "frame_scale": 1.5,
+   "source": "Mastery (Bird), Echo Box"
   },
   "frame_u_pond": {
    "name": "Lily Pond",
@@ -861,23 +268,18 @@
     128,
     128
    ],
-   "window_diameter_px": 168,
-   "max_overlap_px": 8,
+   "window_diameter_px": 162,
    "files": [
     "frames/frame_u_pond_base.png"
    ],
-   "cue_40px": "Frog on a lily pad at 11, lotus at 4",
-   "spec": [
-    "Static. Drawn fresh in the shared line style (no Homeland bitmap used; only the frog-on-a-lily-pad idea).",
-    "Band: pond water (#B8ECF8 → #4AB0D8), ripple arcs #2A88B8, white gloss stroke. Forest cues: a lily pad (#9AE070 → #4A9A3A, veins #2E6A20) at 11 o’clock with a sitting frog (#9AE870 → #48A848, blush) on it, and a pink lotus at 4 o’clock."
-   ],
-   "loop": [],
    "image_size": [
     256,
     256
    ],
-   "window_radius_px": 84,
-   "uses_homeland_bitmap": false
+   "window_radius_px": 81,
+   "anim": {},
+   "frame_scale": 1.5,
+   "source": "Echo Box"
   },
   "frame_u_vine": {
    "name": "Vine Wreath",
@@ -888,26 +290,21 @@
     128,
     128
    ],
-   "window_diameter_px": 168,
-   "max_overlap_px": 8,
+   "window_diameter_px": 162,
    "files": [
     "frames/frame_u_vine_base.png"
    ],
-   "cue_40px": "Leaves all the way round",
-   "spec": [
-    "Static. Band: a twisted green vine (#9AD848 → #4E9A2C) with diagonal twist stripes #3E7A22.",
-    "Ten forest leaves (#B4F070 → #5AAA30, veins #2E6A18) all the way round, alternating out-left / out-right, plus three cream blossoms. The only fully leafy ring silhouette in the set."
-   ],
-   "loop": [],
    "image_size": [
     256,
     256
    ],
-   "window_radius_px": 84,
-   "uses_homeland_bitmap": false
+   "window_radius_px": 81,
+   "anim": {},
+   "frame_scale": 1.5,
+   "source": "Pass (Season 1)"
   },
   "frame_u_mushroom": {
-   "name": "Toadstool Log",
+   "name": "Mushroom Ring",
    "tier": 1,
    "tag": "",
    "size": 256,
@@ -915,26 +312,21 @@
     128,
     128
    ],
-   "window_diameter_px": 168,
-   "max_overlap_px": 8,
+   "window_diameter_px": 162,
    "files": [
     "frames/frame_u_mushroom_base.png"
    ],
-   "cue_40px": "Big toadstool at 2, small pair at 8",
-   "spec": [
-    "Static. Band: a bark log (#D07848 → #A85038) with grain lines #7A3424 and a soft light on the upper left. Maroon outline.",
-    "A big toadstool cluster at 2 o’clock (caps #FF9C9C → #E0505A, cream spots, gills #F0C8A0) and a small pair at 8 o’clock; a clover sprig on top. The asymmetric clusters carry the 40 px read."
-   ],
-   "loop": [],
    "image_size": [
     256,
     256
    ],
-   "window_radius_px": 84,
-   "uses_homeland_bitmap": false
+   "window_radius_px": 81,
+   "anim": {},
+   "frame_scale": 1.5,
+   "source": "Echo Box"
   },
   "frame_u_campfire": {
-   "name": "Campfire Ring",
+   "name": "Campfire Logs",
    "tier": 1,
    "tag": "",
    "size": 256,
@@ -942,23 +334,18 @@
     128,
     128
    ],
-   "window_diameter_px": 168,
-   "max_overlap_px": 8,
+   "window_diameter_px": 162,
    "files": [
     "frames/frame_u_campfire_base.png"
    ],
-   "cue_40px": "Grey stone ring + flame at 12",
-   "spec": [
-    "Static. Band: a ring of river stones (#E0D8C8 → #A89880, maroon outline) on a dark ash bed #6A5A4A — the only grey band in Uncommon.",
-    "At 12 o’clock two crossed logs (#C87840 → #8A4A26, cream ring ends) under a three-tongue campfire (outer #FF6A2B → #FFB03A, core #FFE27A). Two orange-rimmed sparks."
-   ],
-   "loop": [],
    "image_size": [
     256,
     256
    ],
-   "window_radius_px": 84,
-   "uses_homeland_bitmap": false
+   "window_radius_px": 81,
+   "anim": {},
+   "frame_scale": 1.5,
+   "source": "Echo Box"
   },
   "frame_r_frost": {
    "name": "Frost Crown",
@@ -969,25 +356,18 @@
     128,
     128
    ],
-   "window_diameter_px": 168,
-   "max_overlap_px": 8,
+   "window_diameter_px": 162,
    "files": [
     "frames/frame_r_frost_base.png"
    ],
-   "cue_40px": "Crown of five straight ice spikes",
-   "spec": [
-    "Static. Two materials, after the steel tube of frame_2: a glossy periwinkle band (#F0F4FF → #B8C4EC) whose lower right turns to deep ice #8898D0, with blue lines #7088C8 and white gloss strokes; and ice crystals.",
-    "An ice crown of five faceted spikes on top (#F6FBFF → #9FD8F0, facets #60A8D0). This is the 40 px silhouette cue.",
-    "A round snowflake medallion at 6 o’clock (#C8F0FF → #70C0E8, white flake) and three blue-rimmed sparkles.",
-    "Arctic read: periwinkle and ice blues only; no green anywhere in the Rare set."
-   ],
-   "loop": [],
    "image_size": [
     256,
     256
    ],
-   "window_radius_px": 84,
-   "uses_homeland_bitmap": false
+   "window_radius_px": 81,
+   "anim": {},
+   "frame_scale": 1.5,
+   "source": "Echo Box"
   },
   "frame_r_snowglobe": {
    "name": "Snow Globe",
@@ -998,23 +378,18 @@
     128,
     128
    ],
-   "window_diameter_px": 168,
-   "max_overlap_px": 8,
+   "window_diameter_px": 162,
    "files": [
     "frames/frame_r_snowglobe_base.png"
    ],
-   "cue_40px": "Navy pedestal at 6, snow cap at 12",
-   "spec": [
-    "Static. Band: clear glass (#F6FCFF → #C6E6F8) with white snow flecks and two gloss strokes, maroon outline.",
-    "A wide navy pedestal under the globe (#5A7AC8 → #2A4A8A, gold trim #FFC93C, snowflake emblem) — the only bottom-heavy Rare silhouette. A lumpy snow cap on top."
-   ],
-   "loop": [],
    "image_size": [
     256,
     256
    ],
-   "window_radius_px": 84,
-   "uses_homeland_bitmap": false
+   "window_radius_px": 81,
+   "anim": {},
+   "frame_scale": 1.5,
+   "source": "Echo Box"
   },
   "frame_r_aurora": {
    "name": "Aurora Veil",
@@ -1025,24 +400,18 @@
     128,
     128
    ],
-   "window_diameter_px": 168,
-   "max_overlap_px": 8,
+   "window_diameter_px": 162,
    "files": [
     "frames/frame_r_aurora_base.png"
    ],
-   "cue_40px": "Dark band + flowing ribbons over the top",
-   "spec": [
-    "Static. Band: Arctic night (#3A5AA8 → #1E2E68) with star dust — the only dark Rare band.",
-    "Two aurora ribbons sweep over the top outside the band (cyan #8AF4FF → violet #C49CFF and pink #FFB0E0 → periwinkle #9AB4FF). No green, so the frame never reads as Uncommon. Blue-rimmed sparkles.",
-    "v8 check: ribbon tips reach r ≈ 126 (y ≈ 2 at the top); nothing touches the 256 canvas edge."
-   ],
-   "loop": [],
    "image_size": [
     256,
     256
    ],
-   "window_radius_px": 84,
-   "uses_homeland_bitmap": false
+   "window_radius_px": 81,
+   "anim": {},
+   "frame_scale": 1.5,
+   "source": "Echo Box"
   },
   "frame_r_icicle": {
    "name": "Icicle Fringe",
@@ -1053,23 +422,18 @@
     128,
     128
    ],
-   "window_diameter_px": 168,
-   "max_overlap_px": 8,
+   "window_diameter_px": 162,
    "files": [
     "frames/frame_r_icicle_base.png"
    ],
-   "cue_40px": "Pale-blue band + long hanging icicles",
-   "spec": [
-    "Static. v8 band: pale ice blue (#B8E2FF → #5EA8E6), line #3A7EC0, white gloss — a clear colour block apart from the white Snow Globe.",
-    "Ten long, wide icicles hang outward round the whole lower half (22–32 px, half-width 8°, #F6FCFF → #7CC0EE, white glint), three snow lumps on top. 40 px read: blue ring with a spiky bottom fringe, versus Snow Globe’s white ring on a solid navy base."
-   ],
-   "loop": [],
    "image_size": [
     256,
     256
    ],
-   "window_radius_px": 84,
-   "uses_homeland_bitmap": false
+   "window_radius_px": 81,
+   "anim": {},
+   "frame_scale": 1.5,
+   "source": "Echo Box"
   },
   "frame_e_runering": {
    "name": "Rune Ring",
@@ -1080,66 +444,42 @@
     128,
     128
    ],
-   "window_diameter_px": 168,
-   "max_overlap_px": 8,
+   "window_diameter_px": 162,
    "files": [
     "frames/frame_e_runering_base.png",
-    "frames/frame_e_runering_rune_orbit.png",
-    "frames/frame_e_runering_rune_glow.png"
-   ],
-   "cue_40px": "Double ring with four gem studs",
-   "spec": [
-    "A rune ring, not a bowl. Base (static): violet stone band (#C8A0F8 → #7A50C8) with eight carved runes (cream #FFF4E4 over #5A3098), four teal gem studs at 12/3/6/9 (#B8F8D8 → #48D8A8), and a thin outer orbit ring (r 108–113) tied on with four lilac clasps. Gold scroll curls flank the top gem. Mystic palette from the biome sheet (lavender ground, teal rock)."
-   ],
-   "loop": [
-    "frames/frame_e_runering_rune_orbit.png: six glowing runes (#F4E4FF, violet halo) ride the outer orbit ring, 360° in 16 s, linear, seamless.",
-    "frames/frame_e_runering_rune_glow.png: the eight band runes glow 0.25→0.9 and back, 2.0 s ease-in-out.",
-    "Reduce flashing: glow 0.5→0.65; orbit slowed to 24 s (no brightness change)."
+    "frames/frame_e_runering_runes.png",
+    "frames/frame_e_runering_glow.png"
    ],
    "image_size": [
     256,
     256
    ],
-   "window_radius_px": 84,
-   "anim_layers": [
-    {
-     "name": "rune_orbit",
-     "file": "frames/frame_e_runering_rune_orbit.png"
-    },
-    {
-     "name": "rune_glow",
-     "file": "frames/frame_e_runering_rune_glow.png"
-    }
-   ],
-   "preview_files": [
-    "frames/frame_e_runering_anim.png"
-   ],
-   "uses_homeland_bitmap": false,
+   "window_radius_px": 81,
    "anim": {
-    "rune_orbit": [
+    "runes": [
      {
       "type": "spin",
-      "period": 16,
-      "reduce_period": 24
+      "period": 24.0,
+      "reduce_static": true
      }
     ],
-    "rune_glow": [
+    "glow": [
      {
       "type": "pulse",
-      "lo": 0.25,
-      "hi": 0.9,
+      "lo": 0.35,
+      "hi": 1.0,
       "period": 2.0,
-      "reduce_lo": 0.5,
-      "reduce_hi": 0.65
+      "reduce_lo": 0.68,
+      "reduce_hi": 0.68,
+      "reduce_static": true
      }
     ]
    },
-   "blend": {
-    "rune_glow": "add"
-   }
+   "frame_scale": 1.5,
+   "source": "Echo Box, Season box (S1)"
   },
   "frame_e_firefly": {
-   "name": "Firefly Grove",
+   "name": "Firefly Twig",
    "tier": 3,
    "tag": "",
    "size": 256,
@@ -1147,75 +487,42 @@
     128,
     128
    ],
-   "window_diameter_px": 168,
-   "max_overlap_px": 8,
+   "window_diameter_px": 162,
    "files": [
     "frames/frame_e_firefly_base.png",
     "frames/frame_e_firefly_fireflies.png",
-    "frames/frame_e_firefly_lantern_glow.png"
-   ],
-   "cue_40px": "Dark branch ring, pink blossoms at 2 and 8",
-   "spec": [
-    "Base (static): a twisted plum branch band (#8A5AAA → #4A2A6A, bark lines #2E1648), coral-pink blossom puffs from the Mystic trees (#FFB0B8 → #E86880) at 2 and 8 o’clock, and a small gold lantern (#E8B040, glass #FFF0A0) hanging at 4 o’clock."
-   ],
-   "loop": [
-    "frames/frame_e_firefly_fireflies.png: seven fireflies (core #FFFBD0, halo #F8F07A) drift round the frame on three rings (r 112 / 118 / 124) at 10, 14 and 18 s per lap, never inside the window. Each twinkles 1.6 s, staggered.",
-    "frames/frame_e_firefly_lantern_glow.png: lantern glow 0.3→0.8, 2.4 s.",
-    "Reduce flashing: fireflies by opacity only (0.6→1, no scale pop), lantern 0.5→0.65."
+    "frames/frame_e_firefly_flicker.png"
    ],
    "image_size": [
     256,
     256
    ],
-   "window_radius_px": 84,
-   "anim_layers": [
-    {
-     "name": "fireflies",
-     "file": "frames/frame_e_firefly_fireflies.png"
-    },
-    {
-     "name": "lantern_glow",
-     "file": "frames/frame_e_firefly_lantern_glow.png"
-    }
-   ],
-   "preview_files": [
-    "frames/frame_e_firefly_anim.png"
-   ],
-   "uses_homeland_bitmap": false,
+   "window_radius_px": 81,
    "anim": {
     "fireflies": [
      {
       "type": "spin",
-      "period": 14,
-      "reduce_period": 14
-     },
-     {
-      "type": "pulse",
-      "lo": 0.3,
-      "hi": 1.0,
-      "period": 1.6,
-      "reduce_lo": 0.6,
-      "reduce_hi": 1.0,
+      "period": 16.0,
       "reduce_static": true
      }
     ],
-    "lantern_glow": [
+    "flicker": [
      {
       "type": "pulse",
-      "lo": 0.3,
-      "hi": 0.8,
-      "period": 2.4,
+      "lo": 0.0,
+      "hi": 1.0,
+      "period": 1.4,
       "reduce_lo": 0.5,
-      "reduce_hi": 0.65
+      "reduce_hi": 0.5,
+      "reduce_static": true
      }
     ]
    },
-   "blend": {
-    "lantern_glow": "add"
-   }
+   "frame_scale": 1.5,
+   "source": "Echo Box, Season box (S1)"
   },
   "frame_e_s1_founder": {
-   "name": "Founder’s Laurel",
+   "name": "Founder's Laurel",
    "tier": 3,
    "tag": "Pass S1",
    "size": 256,
@@ -1223,70 +530,31 @@
     128,
     128
    ],
-   "window_diameter_px": 168,
-   "max_overlap_px": 8,
+   "window_diameter_px": 162,
    "files": [
     "frames/frame_e_s1_founder_base.png",
-    "frames/frame_e_s1_founder_stars.png",
-    "frames/frame_e_s1_founder_shield_sheen.png"
-   ],
-   "cue_40px": "Laurel + shield with a big “1”",
-   "spec": [
-    "Base (static): bronze-gold band (#FFE08A → #D9962A, engraved line #B87010), laurel branches (#B4E070 → #6AA02A) climbing both sides to the top, an orange shield at 12 o’clock (#FFB060 → #D9601A) with a bold block numeral “1” drawn as a shape (no font), and Mystic-violet ribbon tails at 6 o’clock (#C8A0FF → #7A4AC8). Pairs with die_e_s1_founder."
-   ],
-   "loop": [
-    "frames/frame_e_s1_founder_stars.png: two gold stars beside the shield twinkle, 2.0 s, offset 1.0 s.",
-    "frames/frame_e_s1_founder_shield_sheen.png: a white sheen crosses the shield, 0.6 s, then rests; 3.0 s loop.",
-    "Reduce flashing: stars by opacity only, sheen at 20 %."
+    "frames/frame_e_s1_founder_stars.png"
    ],
    "image_size": [
     256,
     256
    ],
-   "window_radius_px": 84,
-   "anim_layers": [
-    {
-     "name": "stars",
-     "file": "frames/frame_e_s1_founder_stars.png"
-    },
-    {
-     "name": "shield_sheen",
-     "file": "frames/frame_e_s1_founder_shield_sheen.png"
-    }
-   ],
-   "preview_files": [
-    "frames/frame_e_s1_founder_anim.png"
-   ],
-   "uses_homeland_bitmap": false,
+   "window_radius_px": 81,
    "anim": {
     "stars": [
      {
       "type": "pulse",
-      "lo": 0.3,
+      "lo": 0.2,
       "hi": 1.0,
-      "period": 2.0,
+      "period": 1.6,
       "reduce_lo": 0.6,
-      "reduce_hi": 1.0,
+      "reduce_hi": 0.6,
       "reduce_static": true
-     }
-    ],
-    "shield_sheen": [
-     {
-      "type": "sweep",
-      "in": 0.3,
-      "hold": 0,
-      "out": 0.3,
-      "rest": 2.4,
-      "peak": 1,
-      "reduce_peak": 0.2,
-      "dx": 14,
-      "dy": 0
      }
     ]
    },
-   "blend": {
-    "shield_sheen": "add"
-   }
+   "frame_scale": 1.5,
+   "source": "Pass (Season 1)"
   },
   "frame_l_sunburst": {
    "name": "Genesis Sunburst",
@@ -1297,67 +565,39 @@
     128,
     128
    ],
-   "window_diameter_px": 168,
-   "max_overlap_px": 8,
+   "window_diameter_px": 162,
    "files": [
+    "frames/frame_l_sunburst_rays.png",
     "frames/frame_l_sunburst_base.png",
-    "frames/frame_l_sunburst_sun_glow.png",
-    "frames/frame_l_sunburst_sparkles.png"
-   ],
-   "cue_40px": "Gold winged sun at 12",
-   "spec": [
-    "A gold sun, not silver gears. Base (static): slim gold tube band (#FFE6A8 → #F0B860, inner line #E08838, white gloss), a sun disc (#FFE8A0 → #F8A048, swirl #E07828) between two pairs of gold blade wings (#FFC870 → #F07828) at 12 o’clock, a gold scroll cuff at 8 and a hanging orange star at 3. fx_l_sunfire reuses this crest."
-   ],
-   "loop": [
-    "frames/frame_l_sunburst_sun_glow.png: sun-disc glow #FFF0C0, opacity 0.2→0.85, 2.4 s ease-in-out.",
-    "frames/frame_l_sunburst_sparkles.png: three teal-rimmed sparkles twinkle 1.6 s, staggered 0.5 s.",
-    "Reduce flashing: glow 0.5→0.65, sparkles by opacity only."
+    "frames/frame_l_sunburst_glow.png"
    ],
    "image_size": [
     256,
     256
    ],
-   "window_radius_px": 84,
-   "anim_layers": [
-    {
-     "name": "sun_glow",
-     "file": "frames/frame_l_sunburst_sun_glow.png"
-    },
-    {
-     "name": "sparkles",
-     "file": "frames/frame_l_sunburst_sparkles.png"
-    }
-   ],
-   "preview_files": [
-    "frames/frame_l_sunburst_anim.png"
-   ],
-   "uses_homeland_bitmap": false,
+   "window_radius_px": 81,
    "anim": {
-    "sun_glow": [
+    "rays": [
      {
-      "type": "pulse",
-      "lo": 0.2,
-      "hi": 0.85,
-      "period": 2.4,
-      "reduce_lo": 0.5,
-      "reduce_hi": 0.65
+      "type": "spin",
+      "period": 40.0,
+      "reduce_static": true
      }
     ],
-    "sparkles": [
+    "glow": [
      {
       "type": "pulse",
       "lo": 0.3,
-      "hi": 1.0,
-      "period": 1.6,
+      "hi": 0.9,
+      "period": 2.8,
       "reduce_lo": 0.6,
-      "reduce_hi": 1.0,
+      "reduce_hi": 0.6,
       "reduce_static": true
      }
     ]
    },
-   "blend": {
-    "sun_glow": "add"
-   }
+   "frame_scale": 1.5,
+   "source": "Echo Box, Season box (S1)"
   },
   "frame_l_sovereign": {
    "name": "Lunacia Sovereign",
@@ -1368,73 +608,34 @@
     128,
     128
    ],
-   "window_diameter_px": 168,
-   "max_overlap_px": 8,
+   "window_diameter_px": 162,
    "files": [
     "frames/frame_l_sovereign_base.png",
-    "frames/frame_l_sovereign_crown_sheen.png",
-    "frames/frame_l_sovereign_gem_glints.png"
-   ],
-   "cue_40px": "Navy band + gold crown at 12",
-   "spec": [
-    "Base (static): royal navy band (#5A78E8 → #24388A) with gold trim lines on both edges (#FFC93C on maroon) and six gold studs; a big gold crown at 12 o’clock (#FFE48A → #E8A020, ruby #E8304A, sapphires #3AC8F0, pearl tips); gold star medallions at 4 and 8. Navy colour block + crown keep it apart from the gold sunburst at 40 px. Pairs with die_l_kingdom."
-   ],
-   "loop": [
-    "frames/frame_l_sovereign_crown_sheen.png: white sheen crosses the crown in 0.8 s, then rests; 3.6 s loop.",
-    "frames/frame_l_sovereign_gem_glints.png: ruby and sapphires glint (4-point sparkles), 1.6 s, staggered.",
-    "Reduce flashing: sheen at 20 %, glints by opacity only."
+    "frames/frame_l_sovereign_glints.png"
    ],
    "image_size": [
     256,
     256
    ],
-   "window_radius_px": 84,
-   "anim_layers": [
-    {
-     "name": "crown_sheen",
-     "file": "frames/frame_l_sovereign_crown_sheen.png"
-    },
-    {
-     "name": "gem_glints",
-     "file": "frames/frame_l_sovereign_gem_glints.png"
-    }
-   ],
-   "preview_files": [
-    "frames/frame_l_sovereign_anim.png"
-   ],
-   "uses_homeland_bitmap": false,
+   "window_radius_px": 81,
    "anim": {
-    "crown_sheen": [
-     {
-      "type": "sweep",
-      "in": 0.4,
-      "hold": 0,
-      "out": 0.4,
-      "rest": 2.8,
-      "peak": 1,
-      "reduce_peak": 0.2,
-      "dx": 14,
-      "dy": 0
-     }
-    ],
-    "gem_glints": [
+    "glints": [
      {
       "type": "pulse",
-      "lo": 0.3,
+      "lo": 0.0,
       "hi": 1.0,
-      "period": 1.6,
-      "reduce_lo": 0.6,
-      "reduce_hi": 1.0,
+      "period": 2.2,
+      "reduce_lo": 0.5,
+      "reduce_hi": 0.5,
       "reduce_static": true
      }
     ]
    },
-   "blend": {
-    "crown_sheen": "add"
-   }
+   "frame_scale": 1.5,
+   "source": "Pass (Season 1, level 30)"
   },
   "frame_m_eclipse": {
-   "name": "Luna Eclipse",
+   "name": "Moon Eclipse",
    "tier": 5,
    "tag": "",
    "size": 256,
@@ -1442,143 +643,91 @@
     128,
     128
    ],
-   "window_diameter_px": 168,
-   "max_overlap_px": 8,
+   "window_diameter_px": 162,
    "files": [
     "frames/frame_m_eclipse_base.png",
-    "frames/frame_m_eclipse_eclipse.png",
-    "frames/frame_m_eclipse_sparkles.png"
-   ],
-   "cue_40px": "Cream crescent between crimson crystal wings + crimson sash",
-   "spec": [
-    "Mythic palette: night #2A0F2E + Luna Crimson #FF3D6E. Base (static): night band (#4A1A50 → #2A0F2E) with cream star dust; crescent moon crest kept on top (#FFF8EC → #F0D4B8, teal gem) between two pairs of crimson crystal wings (#FF7E9C → #B8123E, #FF3D6E cores); a crimson silk sash over the lower half (#FF6A8A → #B8184A, gold grain #FFD76A); a three-crystal knot at 6 o’clock.",
-    "Never white or cream text on #FF3D6E; this frame carries no text."
-   ],
-   "loop": [
-    "frames/frame_m_eclipse_eclipse.png: a night shadow disc (#2A0F2E, 85 %) slides across the crescent left → right over 6 s (in 2 s, hold 1 s, out 2 s, rest 1 s); a gold corona ring (#FFD76A) shows while it covers.",
-    "frames/frame_m_eclipse_sparkles.png: four teal-rimmed sparkles twinkle 1.6 s, staggered.",
-    "Reduce flashing: no corona pulse (corona fixed at 40 %), sparkles by opacity only; the slide is kept (no brightness change)."
+    "frames/frame_m_eclipse_shadow.png",
+    "frames/frame_m_eclipse_corona.png"
    ],
    "image_size": [
     256,
     256
    ],
-   "window_radius_px": 84,
-   "anim_layers": [
-    {
-     "name": "eclipse",
-     "file": "frames/frame_m_eclipse_eclipse.png"
-    },
-    {
-     "name": "sparkles",
-     "file": "frames/frame_m_eclipse_sparkles.png"
-    }
-   ],
-   "preview_files": [
-    "frames/frame_m_eclipse_anim.png"
-   ],
-   "uses_homeland_bitmap": false,
+   "window_radius_px": 81,
    "anim": {
-    "eclipse": [
+    "shadow": [
      {
-      "type": "sweep",
-      "in": 2,
-      "hold": 1,
-      "out": 2,
-      "rest": 1,
-      "peak": 1,
-      "reduce_peak": 1,
-      "dx": 40,
-      "dy": 0,
-      "reduce_fixed": true
+      "type": "pulse",
+      "lo": 0.0,
+      "hi": 0.9,
+      "period": 6.0,
+      "reduce_lo": 0.0,
+      "reduce_hi": 0.0,
+      "reduce_static": true
      }
     ],
-    "sparkles": [
+    "corona": [
+     {
+      "type": "pulse",
+      "lo": 0.0,
+      "hi": 1.0,
+      "period": 6.0,
+      "reduce_lo": 0.0,
+      "reduce_hi": 0.0,
+      "reduce_static": true
+     }
+    ]
+   },
+   "frame_scale": 1.5,
+   "source": "Echo Box, Season box (S1)"
+  },
+  "frame_m_crystal": {
+   "name": "Luna Heart Crown",
+   "tier": 5,
+   "tag": "",
+   "size": 256,
+   "window_center_px": [
+    128,
+    128
+   ],
+   "window_diameter_px": 162,
+   "files": [
+    "frames/frame_m_crystal_base.png",
+    "frames/frame_m_crystal_core.png",
+    "frames/frame_m_crystal_glint.png"
+   ],
+   "image_size": [
+    256,
+    256
+   ],
+   "window_radius_px": 81,
+   "anim": {
+    "core": [
      {
       "type": "pulse",
       "lo": 0.3,
       "hi": 1.0,
-      "period": 1.6,
-      "reduce_lo": 0.6,
-      "reduce_hi": 1.0,
+      "period": 2.0,
+      "reduce_lo": 0.65,
+      "reduce_hi": 0.65,
       "reduce_static": true
-     }
-    ]
-   }
-  },
-  "frame_m_crystal": {
-   "name": "Heartcrystal Crown",
-   "tier": 5,
-   "tag": "",
-   "size": 256,
-   "window_center_px": [
-    128,
-    128
-   ],
-   "window_diameter_px": 168,
-   "max_overlap_px": 8,
-   "files": [
-    "frames/frame_m_crystal_base.png",
-    "frames/frame_m_crystal_core_glow.png",
-    "frames/frame_m_crystal_glint.png"
-   ],
-   "cue_40px": "Tall crimson crystal spikes on moonstone",
-   "spec": [
-    "Mythic palette. Base (static): pale moonstone band (#F4F0F8 → #B8B0C8, cracks #8A80A0) like the grey rocks round the LunaLanding crystals; a night-plum backing (#2A0F2E, cream star dust) behind a fan of five crimson crystals at 12 o’clock (#FF7E9C → #B8123E, #FF3D6E cores), smaller clusters pointing out at 4 and 8, grey stone chunks at their feet.",
-    "Tall spiky top vs Luna Eclipse’s crescent + sash: the two Mythic frames differ at 40 px in silhouette and in colour block (pale stone vs night band)."
-   ],
-   "loop": [
-    "frames/frame_m_crystal_core_glow.png: a crimson glow (#FF3D6E) behind the top fan breathes 0.25→0.8, 2.4 s.",
-    "frames/frame_m_crystal_glint.png: a white glint runs up the tallest crystal, 0.5 s, every 3 s.",
-    "Reduce flashing: glow 0.5→0.65, glint at 40 %."
-   ],
-   "image_size": [
-    256,
-    256
-   ],
-   "window_radius_px": 84,
-   "anim_layers": [
-    {
-     "name": "core_glow",
-     "file": "frames/frame_m_crystal_core_glow.png"
-    },
-    {
-     "name": "glint",
-     "file": "frames/frame_m_crystal_glint.png"
-    }
-   ],
-   "preview_files": [
-    "frames/frame_m_crystal_anim.png"
-   ],
-   "uses_homeland_bitmap": false,
-   "anim": {
-    "core_glow": [
-     {
-      "type": "pulse",
-      "lo": 0.25,
-      "hi": 0.8,
-      "period": 2.4,
-      "reduce_lo": 0.5,
-      "reduce_hi": 0.65
      }
     ],
     "glint": [
      {
-      "type": "sweep",
-      "in": 0.25,
-      "hold": 0,
-      "out": 0.25,
-      "rest": 2.5,
-      "peak": 1,
-      "reduce_peak": 0.4,
-      "dx": 0,
-      "dy": 14
+      "type": "pulse",
+      "lo": 0.0,
+      "hi": 1.0,
+      "period": 3.0,
+      "reduce_lo": 0.5,
+      "reduce_hi": 0.5,
+      "reduce_static": true,
+      "phase": 0.5
      }
     ]
    },
-   "blend": {
-    "core_glow": "add"
-   }
+   "frame_scale": 1.5,
+   "source": "Echo Box"
   }
  },
  "fx": {
@@ -1748,6 +897,7 @@
  ],
  "animated_layers": {
   "status": "delivered",
-  "note": "v8: separate layers, driven by CosmeticArt from frames.<id>.anim (type spin|pulse|sweep). Reduce flashing = MetaState.reduce_flash. Frames in px/256 units for dx/dy. Single-image layers cannot stagger individual sparkles/fireflies; the whole layer twinkles together."
- }
+  "note": "cosmetics round 2: separate layers, Tweens, Reduce flashing = no tweens"
+ },
+ "frame_scale": 1.5
 }

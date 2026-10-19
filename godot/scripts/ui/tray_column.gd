@@ -154,19 +154,16 @@ static func update(content: Dictionary, d: Dictionary) -> void:
 	btn.set_meta("ui3_tip_side_of_row", true)
 
 
-## B12 cosmetic dice skin: art under the face glyph + number, inside the DieTile's panel. Visual only.
+## Cosmetic dice skin on the 2D tile (47-tray-skin): an overlay trim (border + Epic+ corner caps) drawn over
+## the tile, same rect, so it tilts, lifts and fades with the tile. Glyph, number and states are untouched.
 static func _apply_skin(content: Dictionary, skin: String) -> void:
 	if skin == "" or content["die"] == null:
 		return
-	var node := CosmeticArt.make_node(skin, 88.0)
+	var die: Control = content["die"]
+	var node := DiceSkin.make_trim(skin, int(round(die.size.x)))
 	if node == null:
 		return
-	node.name = "Skin"
-	node.clip_contents = true
-	node.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	var die: Control = content["die"]
 	die.add_child(node)
-	die.move_child(node, 0)
 	content["skin_id"] = skin
 	content["skin_node"] = node
 
