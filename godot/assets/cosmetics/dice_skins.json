@@ -2,7 +2,7 @@
  "version": "cosmetics-3d r2",
  "skins": {
   "die_c_clay": {
-   "name": "Kiln Clay",
+   "name": "Honey Clay",
    "tier": "c",
    "trim": "#4e2412",
    "body": {
@@ -118,7 +118,7 @@
    ]
   },
   "die_e_rune": {
-   "name": "Rune Obelisk",
+   "name": "Rune Slate",
    "tier": "e",
    "trim": "#27c0ca",
    "body": {
@@ -414,7 +414,7 @@
    ]
   },
   "die_l_relic_stone": {
-   "name": "Kintsugi Relic",
+   "name": "Gold Seam Relic",
    "tier": "l",
    "trim": "#ffb444",
    "body": {
@@ -469,7 +469,7 @@
    ]
   },
   "die_m_moon": {
-   "name": "Moonlit Orrery",
+   "name": "Midnight Moon",
    "tier": "m",
    "trim": "#b04dff",
    "body": {
@@ -635,7 +635,7 @@
    ]
   },
   "die_r_beast": {
-   "name": "Tooled Leather",
+   "name": "Clawed Leather",
    "tier": "r",
    "trim": "#2dc661",
    "body": {
@@ -675,7 +675,7 @@
    ]
   },
   "die_r_bird": {
-   "name": "Plume Mastery",
+   "name": "Rosy Plume",
    "tier": "r",
    "trim": "#2dc661",
    "body": {
@@ -715,7 +715,7 @@
    ]
   },
   "die_r_bug": {
-   "name": "Ladybird Lacquer",
+   "name": "Ladybug Shell",
    "tier": "r",
    "trim": "#2dc661",
    "body": {
@@ -755,7 +755,7 @@
    ]
   },
   "die_r_plant": {
-   "name": "Jade Grove",
+   "name": "Jade Sprout",
    "tier": "r",
    "trim": "#2dc661",
    "body": {
@@ -839,7 +839,7 @@
    ]
   },
   "die_u_bark": {
-   "name": "Ringwood",
+   "name": "Tree Rings",
    "tier": "u",
    "trim": "#24160c",
    "body": {
@@ -917,7 +917,7 @@
    ]
   },
   "die_u_moss": {
-   "name": "Mossy Cairn",
+   "name": "Mossy Stone",
    "tier": "u",
    "trim": "#2c3a22",
    "body": {

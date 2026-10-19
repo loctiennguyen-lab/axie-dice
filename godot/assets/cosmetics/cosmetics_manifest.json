@@ -46,7 +46,7 @@
  "outline_rule": "frames ≤ 64 px: outline #1A1206 at 2.3× weight; dice ≤ 40 px: ornament outlines #1A1206; die border black (Mythic #0E0608)",
  "dice": {
   "die_c_reed": {
-   "name": "Sunbaked Weave",
+   "name": "Reed Basket",
    "tier": 0,
    "border": "#000",
    "contrast": 7.3,
@@ -77,7 +77,7 @@
    ]
   },
   "die_c_sunwood": {
-   "name": "Driftwood Deck",
+   "name": "Sunwood Block",
    "tier": 0,
    "border": "#000",
    "contrast": 7.19,
@@ -107,7 +107,7 @@
    ]
   },
   "die_c_clay": {
-   "name": "Kiln Clay",
+   "name": "Honey Clay",
    "tier": 0,
    "border": "#000",
    "contrast": 8.69,
@@ -137,7 +137,7 @@
    ]
   },
   "die_u_moss": {
-   "name": "Mossy Pebble",
+   "name": "Mossy Stone",
    "tier": 1,
    "border": "#000",
    "contrast": 8.31,
@@ -167,7 +167,7 @@
    ]
   },
   "die_u_bark": {
-   "name": "Heartwood Rings",
+   "name": "Tree Rings",
    "tier": 1,
    "border": "#000",
    "contrast": 9.96,
@@ -227,7 +227,7 @@
    ]
   },
   "die_r_plant": {
-   "name": "Sprout Vine",
+   "name": "Jade Sprout",
    "tier": 2,
    "border": "#000",
    "contrast": 12.73,
@@ -259,7 +259,7 @@
    ]
   },
   "die_r_beast": {
-   "name": "Wildfur",
+   "name": "Clawed Leather",
    "tier": 2,
    "border": "#000",
    "contrast": 11.13,
@@ -291,7 +291,7 @@
    ]
   },
   "die_r_aqua": {
-   "name": "Tidepool",
+   "name": "Pearl Tide",
    "tier": 2,
    "border": "#000",
    "contrast": 8.46,
@@ -323,7 +323,7 @@
    ]
   },
   "die_r_reptile": {
-   "name": "Scute Mosaic",
+   "name": "Scale Lord",
    "tier": 2,
    "border": "#000",
    "contrast": 9.3,
@@ -355,7 +355,7 @@
    ]
   },
   "die_r_bug": {
-   "name": "Ladyshell",
+   "name": "Ladybug Shell",
    "tier": 2,
    "border": "#000",
    "contrast": 9.85,
@@ -387,7 +387,7 @@
    ]
   },
   "die_r_bird": {
-   "name": "Plume Fan",
+   "name": "Rosy Plume",
    "tier": 2,
    "border": "#000",
    "contrast": 11.86,
@@ -418,7 +418,7 @@
    ]
   },
   "die_e_rune": {
-   "name": "Moonrune Tablet",
+   "name": "Rune Slate",
    "tier": 3,
    "border": "#4A1E8A",
    "contrast": 11.58,
@@ -451,7 +451,7 @@
    ]
   },
   "die_e_spore": {
-   "name": "Glowshroom Grove",
+   "name": "Glowcap Grove",
    "tier": 3,
    "border": "#3B1A5C",
    "contrast": 14.76,
@@ -485,7 +485,7 @@
    ]
   },
   "die_e_s1_founder": {
-   "name": "Founder’s Laurel",
+   "name": "Founder's Seal",
    "tier": 3,
    "border": "#5A2A0A",
    "contrast": 12.9,
@@ -518,7 +518,7 @@
    ]
   },
   "die_l_gold": {
-   "name": "Genesis Sunplate",
+   "name": "Genesis Sun",
    "tier": 4,
    "border": "#7A3410",
    "contrast": 10.38,
@@ -551,7 +551,7 @@
    ]
   },
   "die_l_relic_stone": {
-   "name": "Relic Seam",
+   "name": "Gold Seam Relic",
    "tier": 4,
    "border": "#3A3020",
    "contrast": 8.06,
@@ -585,7 +585,7 @@
    ]
   },
   "die_l_kingdom": {
-   "name": "Lunacia Sovereign",
+   "name": "Lunacia Crown",
    "tier": 4,
    "border": "#24388A",
    "contrast": 12.81,
@@ -617,7 +617,7 @@
    ]
   },
   "die_m_redcrystal": {
-   "name": "Luna Heartcrystal",
+   "name": "Heart of Luna",
    "tier": 5,
    "border": "#0E0608",
    "contrast": 14.02,
@@ -653,7 +653,7 @@
    ]
   },
   "die_m_moon": {
-   "name": "Moonface Dreamer",
+   "name": "Midnight Moon",
    "tier": 5,
    "border": "#0E0608",
    "contrast": 12.37,
@@ -691,7 +691,7 @@
  },
  "frames": {
   "frame_c_plant": {
-   "name": "Sprout Wreath",
+   "name": "Plant Leaf Ring",
    "tier": 0,
    "tag": "Mastery · Plant",
    "size": 256,
@@ -745,7 +745,7 @@
    "uses_homeland_bitmap": false
   },
   "frame_c_aqua": {
-   "name": "Tide Fin",
+   "name": "Wave Fin",
    "tier": 0,
    "tag": "Mastery · Aquatic",
    "size": 256,
@@ -772,7 +772,7 @@
    "uses_homeland_bitmap": false
   },
   "frame_c_reptile": {
-   "name": "Scute Ridge",
+   "name": "Reptile Spikes",
    "tier": 0,
    "tag": "Mastery · Reptile",
    "size": 256,
@@ -826,7 +826,7 @@
    "uses_homeland_bitmap": false
   },
   "frame_c_bird": {
-   "name": "Feather Crest",
+   "name": "Feather Wings",
    "tier": 0,
    "tag": "Mastery · Bird",
    "size": 256,
@@ -907,7 +907,7 @@
    "uses_homeland_bitmap": false
   },
   "frame_u_mushroom": {
-   "name": "Toadstool Log",
+   "name": "Mushroom Ring",
    "tier": 1,
    "tag": "",
    "size": 256,
@@ -934,7 +934,7 @@
    "uses_homeland_bitmap": false
   },
   "frame_u_campfire": {
-   "name": "Campfire Ring",
+   "name": "Campfire Logs",
    "tier": 1,
    "tag": "",
    "size": 256,
@@ -1139,7 +1139,7 @@
    }
   },
   "frame_e_firefly": {
-   "name": "Firefly Grove",
+   "name": "Firefly Twig",
    "tier": 3,
    "tag": "",
    "size": 256,
@@ -1215,7 +1215,7 @@
    }
   },
   "frame_e_s1_founder": {
-   "name": "Founder’s Laurel",
+   "name": "Founder's Laurel",
    "tier": 3,
    "tag": "Pass S1",
    "size": 256,
@@ -1434,7 +1434,7 @@
    }
   },
   "frame_m_eclipse": {
-   "name": "Luna Eclipse",
+   "name": "Moon Eclipse",
    "tier": 5,
    "tag": "",
    "size": 256,
@@ -1507,7 +1507,7 @@
    }
   },
   "frame_m_crystal": {
-   "name": "Heartcrystal Crown",
+   "name": "Luna Heart Crown",
    "tier": 5,
    "tag": "",
    "size": 256,
