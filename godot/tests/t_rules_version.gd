@@ -212,7 +212,9 @@ const WATCHED_FILES: Array[String] = ["res://assets/data/part_faces.json"]
 ## uniqueness. Run result: NO, stays -n.
 ## Moved 2026-10-19 by lane M 2190ab6: MetaState.key_bindings (rebindable shortcuts, saved via SaveStore; settings only,
 ## no rule reads it). Run result: NO, stays -n.
-const FINGERPRINT := "3ade3d2505b9828905561882dade4caf3adfeb9a893a2cd175ac09f9384993b6"
+## Moved 2026-10-20 by lane E 2302828/28a050c: EchoBox season box (season pool split, milestones, titles, per-tier pity;
+## meta/cosmetics only, no rule reads it). Run result: NO, stays -n.
+const FINGERPRINT := "28fff9bc2c33eb221952b4c6d8fafec5c79b8d50a0322080862a03520349b243"
 
 
 func _ready() -> void:
