@@ -1,0 +1,10 @@
+[gd_resource type="StandardMaterial3D" format=3]
+
+[ext_resource type="Texture2D" path="res://assets/land/homeland/src/HomeLand_Asset/Item/NFT_Item/F2ab/T_f2a_C.png" id="1_j3h1t"]
+
+[resource]
+resource_name = "M_f2a"
+transparency = 2
+alpha_scissor_threshold = 0.5
+alpha_antialiasing_mode = 0
+albedo_texture = ExtResource("1_j3h1t")

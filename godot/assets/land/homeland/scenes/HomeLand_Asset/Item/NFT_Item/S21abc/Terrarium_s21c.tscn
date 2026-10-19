@@ -1,0 +1,9 @@
+[gd_scene format=3]
+
+[ext_resource type="PackedScene" path="res://assets/land/homeland/src/HomeLand_Asset/Item/NFT_Item/S21abc/SM_s21c.fbx" id="1_n74tr"]
+
+[node name="Terrarium_s21c" type="Node3D" unique_id=84138346]
+
+[node name="Terrarium_s21c" type="Node3D" parent="." unique_id=1144707021]
+
+[node name="SM_S21c" type="Node3D" parent="Terrarium_s21c" unique_id=26563503 instance=ExtResource("1_n74tr")]
