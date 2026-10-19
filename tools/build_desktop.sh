@@ -46,6 +46,7 @@ guard_no_temp_override() {
     die "godot/override.cfg is a TEMP test override (axie-temp-override) written by a running test. Wait for it to finish (it removes the file itself), then run again. Do not ship it."
   fi
 }
+"$ROOT/godot/tools/clean_stale_override.sh" || true
 guard_no_temp_override
 
 [[ -x "$GODOT" ]] || die "Godot binary not found at $GODOT (set GODOT_OVERRIDE)"
