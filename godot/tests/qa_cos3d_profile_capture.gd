@@ -21,7 +21,7 @@ func _ready() -> void:
 	_guard.capture()
 	MetaState.tutorial_seen = true
 	MetaState.cosmetics_owned.assign(["die_c_clay", "die_c_reed", "die_u_moss", "die_r_aqua", "die_e_rune", "die_l_gold",
-		"die_m_moon", "frame_c_plant", "frame_u_vine", "frame_e_firefly", "frame_m_eclipse"])
+		"die_m_moon", "frame_c_aqua", "frame_c_bird", "frame_c_plant", "frame_u_vine", "frame_e_firefly", "frame_m_eclipse"])
 	MetaState.equipped_die_skin = "die_l_gold"
 	MetaState.equipped_frame = "frame_e_firefly"
 	AccountService.account = {"id": "google:qa", "name": "Liam", "email": "q@skymavis.com", "sky_mavis": true}
@@ -44,6 +44,11 @@ func _ready() -> void:
 	pv.refresh()
 	await _wait(120)
 	_shot("profile-frames")
+	for fid in ["frame_c_aqua", "frame_c_bird"]:
+		pv.selected = fid
+		pv.refresh()
+		await _wait(60)
+		_shot("profile-" + fid)
 	AccountService.account = {}
 	AccountService.status = AccountServiceScript.Status.GUEST
 	_guard.restore()
