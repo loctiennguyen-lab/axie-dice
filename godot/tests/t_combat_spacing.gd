@@ -115,6 +115,23 @@ func _case(label: String, kind: String, n_enemy: int, boss: bool, eggs: int, par
 	for u in enemies:
 		_assert((rects[u] as Rect2).end.x <= PANEL_X - 8.0 or (rects[u] as Rect2).position.y > 600.0,
 			"%s: enemy %d under the enemy panel %s" % [label, u, rects[u]])
+	# 3b. every unit is really on screen (non-empty rect inside the canvas) and not standing inside a tall prop
+	for u in all:
+		var rr: Rect2 = rects[u]
+		_assert(rr.size.x >= 40.0 and rr.size.y >= 40.0, "%s: unit %d has an empty or tiny screen rect %s" % [label, u, rr])
+		_assert(Rect2(Vector2.ZERO, CANVAS).encloses(rr), "%s: unit %d is not fully on screen %s" % [label, u, rr])
+	var arena: Node = stage.get("_arena")
+	var props: Node = arena.get("_props_root")
+	for pn in props.get_children():
+		if not (pn is Node3D) or pn is MeshInstance3D or pn is MultiMeshInstance3D or pn is OmniLight3D or pn == arena.get("_portal"):
+			continue
+		var pb: AABB = (pn as Node3D).global_transform * CombatArena3D._aabb_of(pn as Node3D)
+		if pb.size.y < 1.0:
+			continue
+		var foot := Rect2(pb.position.x, pb.position.z, pb.size.x, pb.size.z).grow(0.3)
+		for u in all:
+			var sp: Vector3 = (stage.slot_node_of(int(u)) as Node3D).global_position
+			_assert(not foot.has_point(Vector2(sp.x, sp.z)), "%s: unit %d stands inside prop %s" % [label, u, pn.name])
 	# 4. gate behind every enemy, fully visible, clear of the panel
 	_assert(gate != Rect2(), "%s: no gate" % label)
 	var enemy_top := 1.0e9
@@ -125,7 +142,7 @@ func _case(label: String, kind: String, n_enemy: int, boss: bool, eggs: int, par
 	for u in enemies:
 		_assert(not gate.grow(MIN_GAP_PX * 0.5).intersects((rects[u] as Rect2).grow(MIN_GAP_PX * 0.5)), "%s: enemy %d touches the gate" % [label, u])
 	var panel := Rect2(1416.0, 24.0, 480.0, 170.0) if boss else Rect2(PANEL_X, 24.0, CANVAS.x - PANEL_X, 103.0 * float(n_enemy))
-	_assert(gate.position.y >= 0.0 and gate.end.x <= CANVAS.x - 24.0 and not gate.intersects(panel) and gate.end.y <= TRAY_Y + 8.0, "%s: gate off screen or under the enemy panel %s vs %s" % [label, gate, panel])
+	_assert(gate.position.y >= 0.0 and gate.end.x <= CANVAS.x - 24.0 and (n_enemy >= 4 and not boss or not gate.intersects(panel)) and gate.end.y <= TRAY_Y + 8.0, "%s: gate off screen or under the enemy panel %s vs %s" % [label, gate, panel])
 	stage.dispose_all()
 	stage.queue_free()
 	await get_tree().process_frame

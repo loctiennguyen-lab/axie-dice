@@ -351,7 +351,7 @@ const ELITE_SCALE := 1.4
 ## Other enemies next to a boss or an elite: two on the front line, two on the back line, clear of the big one.
 const ADD_SLOTS: Array[Vector3] = [Vector3(1.4, 0.0, 6.0), Vector3(4.9, 0.0, 6.0), Vector3(-1.0, 0.0, -5.8), Vector3(8.4, 0.0, -5.8)]
 ## Z of the path / gate lane. The arena is shifted onto it so the road to the gate runs behind the party, not under it.
-const LANE_Z := 6.2
+const LANE_Z := 0.6
 var _encounter_kind := ""
 
 
