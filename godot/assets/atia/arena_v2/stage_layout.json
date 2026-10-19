@@ -1,5 +1,5 @@
 {
-  "comment": "Arena v2 (lane V): the ONE place the dioramas take stage geometry from. 'formation' mirrors lane C's CombatStage3D constants as of l1/C cb1c78d (19/10); tools/art/arena_v2/layout.py turns it into unit slots and refuses props whose footprint comes within 'unit_clearance' of a slot. Change here, re-run tools/art/arena_v2/export.py for each biome. World coords of the combat stage: x right, z toward the camera, y up.",
+  "comment": "Arena v2 (lane V): the ONE place the dioramas take stage geometry from. 'formation', 'lane_z' and 'gate_x' (= -arenas.json portal z) must equal CombatStage3D / arenas.json; tests/t_arena_v2 fails when they drift. tools/art/arena_v2/layout.py turns 'formation' into unit slots and refuses props within 'unit_clearance' of one; 'flat_area' must cover every slot (incl. the second add row at z -18.3). Change here, then run tools/art/arena_v2/export.py (BIOME='all') in Blender and re-import. World coords of the combat stage: x right, z toward the camera, y up.",
   "gate_x": 6.55,
   "lane_z": 1.9,
   "plaza_radius": 1.9,
@@ -11,7 +11,7 @@
       13.0
     ],
     "z": [
-      -13.0,
+      -20.5,
       11.5
     ]
   },
@@ -38,19 +38,6 @@
       ]
     }
   ],
-  "old_arena_portal_world_x": 6.7,
-  "preview_env_overrides": {
-    "comment": "Lane C's toned-down Arctic (l1/C a9c6296), applied by the preview/capture until lane C merges.",
-    "arctic": {
-      "ground": "#a3b3c4",
-      "sky_top": "#9ec7e8",
-      "sky_horizon": "#c4d4e4",
-      "fog": "#b3c4d6",
-      "light": "#cfe0f5",
-      "light_energy": 0.6,
-      "ambient_mul": 0.75
-    }
-  },
   "unit_clearance": 1.6,
   "formation": {
     "PARTY_X0": -10.0,

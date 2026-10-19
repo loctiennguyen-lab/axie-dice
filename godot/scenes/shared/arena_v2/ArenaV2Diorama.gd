@@ -12,7 +12,9 @@ extends Node3D
 ## Boss fights reuse the biome's diorama: the boss look is lighting/fog/sky (CombatArena3D) plus the
 ## ground tint below, not different geometry.
 ##
-## Not wired into the game yet: CombatArena3D still builds the old arena. See the lane V report.
+## Wired in by CombatStage3D.set_arena(): a biome with a GLB here gets its diorama under the stage
+## world and CombatArena3D (terrain_from_diorama) keeps only sky, fog, sun and the gate portal. A
+## missing GLB falls back to the old procedural terrain.
 
 const DIR := "res://assets/atia/arena_v2/"
 const STAGE_LAYOUT := "res://assets/atia/arena_v2/stage_layout.json"
@@ -104,40 +106,3 @@ func triangle_count() -> int:
 			var idx: PackedInt32Array = a[Mesh.ARRAY_INDEX]
 			tris += (idx.size() if not idx.is_empty() else (a[Mesh.ARRAY_VERTEX] as PackedVector3Array).size()) / 3
 	return tris
-
-
-## Preview / QA helper until integration: hides everything an old CombatArena3D built (ground plane,
-## path tiles, flecks, scattered props) except its gate and gate light, so the diorama shows through
-## while the gate, sky, fog and sun stay exactly as the game sets them.
-static func hide_old_arena_except_gate(arena: CombatArena3D) -> void:
-	if arena == null:
-		return
-	for root in arena.get_children():
-		for c in root.get_children():
-			if c != arena._portal and c != arena._portal_light and c is Node3D:
-				(c as Node3D).visible = false
-
-
-## Preview / QA helper until lane C merges: lane C's environment overrides (toned-down Arctic) that
-## this branch's arenas.json does not have yet, merged into CombatArena3D's in-memory registry. Call
-## once before any arena is built. ambient_mul is not read by this branch's CombatArena3D, so
-## align_old_arena() applies it.
-static func patch_registry() -> void:
-	var ov: Dictionary = stage_layout().get("preview_env_overrides", {})
-	var biomes: Dictionary = CombatArena3D.registry().get("biomes", {})
-	for id in ov:
-		if biomes.has(id) and ov[id] is Dictionary:
-			(biomes[id] as Dictionary).merge(ov[id], true)
-
-
-## Preview / QA helper until lane C merges: moves an old arena so its gate stands where
-## stage_layout.json says (lane C's LANE_Z / portal z). Call after the arena is built.
-static func align_old_arena(arena: CombatArena3D, env: Environment) -> void:
-	if arena == null:
-		return
-	var st := stage_layout()
-	var dx := float(st.get("gate_x", 6.7)) - float(st.get("old_arena_portal_world_x", 6.7))
-	arena.position = Vector3(dx, 0.0, float(st.get("lane_z", arena.position.z)))
-	var ov: Dictionary = st.get("preview_env_overrides", {}).get(arena.biome_id, {})
-	if env != null and not arena.is_boss and ov.has("ambient_mul"):
-		env.ambient_light_energy = CombatArena3D.LAND_AMBIENT_ENERGY * float(ov["ambient_mul"])

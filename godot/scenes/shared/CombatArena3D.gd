@@ -43,6 +43,10 @@ static var _loaded := false
 
 var biome_id := ""
 var is_boss := false
+## Arena v2: when true, build() skips its own ground plane, path tiles, flecks and prop scatter
+## because an ArenaV2Diorama (Blender GLB with ground, trail, gate plaza and props) is drawn instead.
+## Sky, fog, sun tint, boss look and the gate portal are still built here. Set before build().
+var terrain_from_diorama := false
 var _props_root: Node3D
 var _portal: Node3D
 var _portal_light: OmniLight3D
@@ -95,10 +99,11 @@ func build(id: String, env: Environment, sun: DirectionalLight3D, boss: bool = f
 	_props_root = Node3D.new()
 	_props_root.name = "Props"
 	add_child(_props_root)
-	_add_ground(b)
-	_add_path(b)
-	_add_flecks(b)
-	_scatter(b, reg.get("zones", {}))
+	if not terrain_from_diorama:
+		_add_ground(b)
+		_add_path(b)
+		_add_flecks(b)
+		_scatter(b, reg.get("zones", {}))
 	_add_portal(reg.get("portal", {}))
 	if boss:
 		_apply_boss_look()
@@ -111,6 +116,7 @@ func clear() -> void:
 		c.queue_free()
 	_portal = null
 	_portal_light = null
+	_ground_mat = null
 	biome_id = ""
 	is_boss = false
 

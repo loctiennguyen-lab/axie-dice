@@ -1,8 +1,7 @@
 extends Node
-## Lane V (arena v2): the real combat screen per biome, old arena vs the Blender diorama
-## (ArenaV2Diorama) swapped in at runtime. Nothing in CombatStage3D / CombatArena3D is changed: the
-## capture hides the old arena's ground, path and props (keeps its gate, moved to lane C's gate spot
-## from stage_layout.json) and adds the diorama under the stage world. Unit slots are this branch's.
+## Lane V (arena v2): the real combat screen per biome, old procedural arena vs the Blender
+## diorama, both through the real CombatStage3D.set_arena() (arena_v2_enabled off / on).
+## CAP_ADDS=n spawns n extra adds in the boss fight (5+ use the second back row) to check props.
 ## Not headless: godot/tools/with_lock.sh godot/tools/shot.sh res://tests/qa_v_arena_v2_capture.tscn
 ## Writes <ADT_EVIDENCE_DIR>/v-<biome>-<state>-<old|v2>-<w>x<h>.png.
 ## CAP_BIOMES=savannah,forest,... (default all six); CAP_ONLY=battle,boss,eggs; CAP_SIZE=1920x1080.
@@ -27,7 +26,6 @@ func _ready() -> void:
 		var p := OS.get_environment("CAP_SIZE").split("x")
 		sizes = [Vector2i(int(p[0]), int(p[1]))]
 	var graph := RunMapGraph.from_data(RunState.map_graph)
-	ArenaV2Diorama.patch_registry()
 	var biomes: PackedStringArray = ["savannah", "forest", "arctic", "mystic", "genesis", "luna"]
 	if OS.get_environment("CAP_BIOMES") != "":
 		biomes = OS.get_environment("CAP_BIOMES").split(",")
@@ -64,17 +62,6 @@ func _shot(name: String, size: Vector2i) -> void:
 	print("QA: saved v-%s-%dx%d" % [name, size.x, size.y])
 
 
-## Hides everything the old arena built except its gate, then adds the v2 diorama.
-static func swap_in_v2(stage: CombatStage3D, biome: String, boss: bool) -> ArenaV2Diorama:
-	ArenaV2Diorama.hide_old_arena_except_gate(stage._arena)
-	var d := ArenaV2Diorama.new()
-	d.name = "ArenaV2"
-	stage._world.add_child(d)
-	stage._world.move_child(d, 0)
-	d.build(biome, boss)
-	return d
-
-
 func _fight(biome: String, state: String, node_id: String, kind: String, size: Vector2i) -> void:
 	RunState.power_level = 9 if kind == "boss" else 4
 	RunState.enter_node(node_id, kind)
@@ -88,20 +75,22 @@ func _fight(biome: String, state: String, node_id: String, kind: String, size: V
 			scene._combat.party.append(scene._combat._mk_ally())
 		scene._sync_unit_visuals()
 		scene._rebuild_all()
+	if kind == "boss" and OS.get_environment("CAP_ADDS") != "":
+		for _k in int(OS.get_environment("CAP_ADDS")):
+			scene._combat.spawn_boss_add(scene._combat.enemies[0], 1.0)
+		scene._sync_unit_visuals()
+		scene._rebuild_all()
 	var stage: CombatStage3D = scene._stage3d
-	stage.set_arena(biome, kind == "boss")
-	ArenaV2Diorama.align_old_arena(stage._arena, stage._env)
+	var boss := kind == "boss"
+	stage.arena_v2_enabled = false
+	stage.set_arena(biome, boss)
 	for _i in 12:
 		await get_tree().process_frame
 	await _shot("%s-%s-old" % [biome, state], size)
-	var d := swap_in_v2(stage, biome, kind == "boss")
-	print("QA: v2 tris ", d.triangle_count())
-	if OS.get_environment("CAP_DEBUG") != "":
-		for n in d.find_children("*", "MeshInstance3D", true, false):
-			var mi := n as MeshInstance3D
-			for s in mi.mesh.get_surface_count():
-				var m := mi.mesh.surface_get_material(s)
-				print("DBG ", mi.name, " ", m.resource_name if m != null else "none", " ", (m as BaseMaterial3D).shading_mode if m is BaseMaterial3D else -1, " tr=", (m as BaseMaterial3D).transparency if m is BaseMaterial3D else -1, " vc=", (m as BaseMaterial3D).vertex_color_use_as_albedo if m is BaseMaterial3D else false)
+	stage.arena_v2_enabled = true
+	stage.set_arena(biome, boss)
+	var d := stage.arena_diorama()
+	print("QA: %s v2=%s tris %d" % [biome, d != null, d.triangle_count() if d != null else 0])
 	for _i in 12:
 		await get_tree().process_frame
 	await _shot("%s-%s-v2" % [biome, state], size)

@@ -1,8 +1,8 @@
 extends Node3D
 ## Standalone preview of an arena v2 diorama (lane V) under the real combat camera framing, with
 ## simple stand-ins for the party and the enemies. CombatStage3D is not used or changed: its camera
-## numbers are copied below, slot positions come from res://assets/atia/arena_v2/stage_layout.json
-## (lane C's current formation), and the old arena only provides the gate, sky, fog and sun.
+## numbers are copied below, slot positions come from res://assets/atia/arena_v2/stage_layout.json,
+## and CombatArena3D (terrain_from_diorama) provides the gate, sky, fog and sun as in a fight.
 ##
 ## Env vars:
 ##   PREVIEW_BIOME=forest   which biome (default savannah)
@@ -30,15 +30,14 @@ func _ready() -> void:
 	var old := OS.get_environment("PREVIEW_OLD") != ""
 	var boss := OS.get_environment("PREVIEW_BOSS") != ""
 	_build_rig()
-	ArenaV2Diorama.patch_registry()
 	_arena = CombatArena3D.new()
 	_arena.name = "Arena"
+	_arena.position = Vector3(0.0, 0.0, CombatStage3D.LANE_Z)
 	_arena.rotation_degrees.y = -90.0
 	add_child(_arena)
+	_arena.terrain_from_diorama = not old and ArenaV2Diorama.has_biome(biome)
 	_arena.build(biome, _env, _sun, boss)
-	ArenaV2Diorama.align_old_arena(_arena, _env)
-	if not old:
-		ArenaV2Diorama.hide_old_arena_except_gate(_arena)
+	if _arena.terrain_from_diorama:
 		_diorama = ArenaV2Diorama.new()
 		_diorama.name = "ArenaV2"
 		add_child(_diorama)

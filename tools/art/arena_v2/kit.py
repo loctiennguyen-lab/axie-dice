@@ -24,7 +24,29 @@ if HERE not in sys.path:
 import biomes  # noqa: E402
 import ground  # noqa: E402
 
-SRC = '/Users/loc.tien.nguyen/my-game/asset-library/godot-ready/src/'
+def _asset_src():
+    """asset-library/godot-ready/src (not in git: it lives only in the main checkout). Order: env
+    ARENA_V2_ASSET_SRC, this checkout's asset-library, then the main checkout found via git's common dir
+    (works from any worktree)."""
+    env = os.environ.get('ARENA_V2_ASSET_SRC')
+    if env:
+        return env.rstrip('/') + '/'
+    root = os.path.normpath(os.path.join(HERE, '../../..'))
+    cands = [os.path.join(root, 'asset-library/godot-ready/src')]
+    try:
+        import subprocess
+        common = subprocess.run(['git', '-C', root, 'rev-parse', '--git-common-dir'], capture_output=True, text=True).stdout.strip()
+        if common:
+            cands.append(os.path.join(os.path.dirname(os.path.abspath(os.path.join(root, common))), 'asset-library/godot-ready/src'))
+    except OSError:
+        pass
+    for c in cands:
+        if os.path.isdir(c):
+            return c + '/'
+    raise FileNotFoundError('asset-library/godot-ready/src not found; set ARENA_V2_ASSET_SRC')
+
+
+SRC = _asset_src()
 OUT = os.path.normpath(os.path.join(HERE, '../../../godot/assets/atia/arena_v2'))
 CLIFFS = {'mesa_wide': 18, 'mesa_a': 12, 'mesa_b': 15, 'butte': 9, 'ledge': 3, 'ledge_b': 6, 'ridge': 0}
 TEX_PX = 512          # foliage / rock textures are small on screen
