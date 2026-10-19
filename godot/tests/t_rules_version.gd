@@ -210,7 +210,9 @@ const WATCHED_FILES: Array[String] = ["res://assets/data/part_faces.json"]
 ## Moved 2026-10-18 by lane M 0ea6b45: TeamPresets.may_repeat/seat_taken/has_vault_duplicate (starter Axies may repeat in a
 ## party, Vault once). Party building only; the engine already took team_keys as given and the Worker never checked
 ## uniqueness. Run result: NO, stays -n.
-const FINGERPRINT := "d1aa28413af5b45bbe9c1b4618554ff8534654a65aa488feeaa624675eb54c1c"
+## Moved 2026-10-19 by lane M 2190ab6: MetaState.key_bindings (rebindable shortcuts, saved via SaveStore; settings only,
+## no rule reads it). Run result: NO, stays -n.
+const FINGERPRINT := "3ade3d2505b9828905561882dade4caf3adfeb9a893a2cd175ac09f9384993b6"
 
 
 func _ready() -> void:
