@@ -13,6 +13,7 @@ const GROUPS := ["Land", "Combat", "Map", "General"]
 
 const LAND_RUN := &"land_run"
 const MENU_BACK := &"menu_back"
+const BOSS_INTRO_SKIP := &"boss_intro_skip"
 const COMBAT_END_TURN := &"combat_end_turn"
 const COMBAT_UNDO := &"combat_undo"
 const COMBAT_REROLL := &"combat_reroll"
@@ -53,6 +54,7 @@ const DEFS: Array[Dictionary] = [
 	{"id": &"die_5", "group": "Combat", "label": "Pick die 5", "keys": [KEY_5, KEY_KP_5]},
 	{"id": &"map_menu", "group": "Map", "label": "Run menu", "keys": [KEY_ESCAPE]},
 	{"id": &"menu_back", "group": "General", "label": "Back / close", "keys": [KEY_ESCAPE]},
+	{"id": &"boss_intro_skip", "group": "General", "label": "Skip boss intro", "keys": [KEY_SPACE, KEY_ENTER, KEY_KP_ENTER]},
 ]
 
 static var _ready_done := false
