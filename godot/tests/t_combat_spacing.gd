@@ -141,13 +141,12 @@ func _case_k(label: String, kind: String, n_enemy: int, boss: bool, eggs: int, p
 		for u in all:
 			var sp: Vector3 = (stage.slot_node_of(int(u)) as Node3D).global_position
 			_assert(not foot.has_point(Vector2(sp.x, sp.z)), "%s: unit %d stands inside prop %s %s box %s" % [label, u, pn.name, (pn as Node3D).scene_file_path, pb])
-	# 3c. the gate is on the march line: its centre sits within the enemies' vertical band
-	var ey0 := 1.0e9
-	var ey1 := -1.0e9
+	# 3c. the gate is the axis of the enemy group: centroid of the enemy rects within 40 px (vertically) of the gate centre
+	var cy := 0.0
 	for u in enemies:
-		ey0 = minf(ey0, (rects[u] as Rect2).position.y)
-		ey1 = maxf(ey1, (rects[u] as Rect2).end.y)
-	_assert(gate.get_center().y >= ey0 and gate.get_center().y <= ey1, "%s: gate centre y %.0f is off the enemies' band %.0f..%.0f" % [label, gate.get_center().y, ey0, ey1])
+		cy += (rects[u] as Rect2).get_center().y
+	cy /= float(enemies.size())
+	_assert(absf(cy - gate.get_center().y) <= 40.0, "%s: enemy group centroid y %.0f is off the gate axis %.0f" % [label, cy, gate.get_center().y])
 	# 4. gate behind every enemy, fully visible, clear of the panel
 	_assert(gate != Rect2(), "%s: no gate" % label)
 	var enemy_top := 1.0e9

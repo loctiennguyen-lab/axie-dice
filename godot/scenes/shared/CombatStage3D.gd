@@ -338,20 +338,36 @@ const PARTY_Z_BACK := -1.4
 const EGG_X0 := -10.0
 const EGG_PITCH_X := 1.5
 const EGG_Z := 6.9
-const ENEMY_CENTER_X := 2.1
-const ENEMY_PITCH_X := 0.95   # a diagonal: neighbours stand on different depth rows, so they can be close in x
-## Enemies stand on three depth rows (back, middle, front), index i takes row i % 3, so units that are close
-## in x are far apart in y and 5 enemies fit between the gap and the gate. One enemy stands on the middle row.
+const ENEMY_CENTER_X := 1.5
+const ENEMY_PITCH_X := 1.55
+## Enemies stand on three depth rows (back, middle, front), arranged SYMMETRICALLY about the march line: the line
+## runs party -> centre of the enemy group -> gate opening, so the gate is the group's axis (Liam 19/10).
+## Entries are [column, row]: column in units of ENEMY_PITCH_X from ENEMY_CENTER_X, row -1 back / 0 middle / 1 front.
+const ENEMY_PATTERNS := {
+	1: [[0.0, 0]],
+	2: [[0.0, -1], [0.0, 1]],
+	3: [[0.0, -1], [0.0, 1], [-1.0, 0]],
+	4: [[-1.0, -1], [-1.0, 1], [1.0, -1], [1.0, 1]],
+	5: [[-1.0, -1], [-1.0, 1], [1.0, -1], [1.0, 1], [0.0, 0]],
+}
 const ENEMY_Z_BACK := -4.9
 const ENEMY_Z_MID := 1.1
 const ENEMY_Z_FRONT := 6.4
-const BOSS_POS := Vector3(1.9, 0.0, 2.0)
-const ELITE_POS := Vector3(2.1, 0.0, 0.5)   # spec: one elite, bigger
+const BOSS_POS := Vector3(1.5, 0.0, 1.9)
+const ELITE_POS := Vector3(1.5, 0.0, 0.7)   # spec: one elite, bigger
 const ELITE_SCALE := 1.4
 ## Other enemies next to a boss or an elite: two on the front line, two on the back line, clear of the big one.
-const ADD_SLOTS: Array[Vector3] = [Vector3(0.0, 0.0, 6.4), Vector3(3.2, 0.0, 6.4), Vector3(0.0, 0.0, -10.2), Vector3(3.4, 0.0, -10.2)]
+const ADD_PITCH_X := 1.5
+const ADD_Z_BACK := -10.2
+const ADD_Z_FRONT := 6.3
+const ADD_PATTERNS := {
+	1: [[0.0, 1]],
+	2: [[0.0, -1], [0.0, 1]],
+	3: [[0.0, -1], [-1.0, 1], [1.0, 1]],
+	4: [[-1.0, -1], [-1.0, 1], [1.0, -1], [1.0, 1]],
+}
 ## Z of the path / gate lane. The arena is shifted onto it so the road to the gate runs behind the party, not under it.
-const LANE_Z := 1.1
+const LANE_Z := 1.9
 var _encounter_kind := ""
 
 
@@ -1222,7 +1238,10 @@ func reseat_side(uids: Array, is_enemy: bool) -> void:
 	for i in axie_uids.size():
 		var pos: Vector3
 		if is_enemy and has_lead:
-			pos = ADD_SLOTS[i % ADD_SLOTS.size()] + Vector3(1.2, 0.0, 0.0) * float(i / ADD_SLOTS.size())
+			var cnt := mini(axie_uids.size(), 4)
+			var ent: Array = (ADD_PATTERNS[cnt] as Array)[i % cnt]
+			var lead_x: float = (BOSS_POS if bool((_units[lead_uid] as Dictionary).get("is_boss", false)) else ELITE_POS).x
+			pos = Vector3(lead_x + float(ent[0]) * ADD_PITCH_X, _POS_Y, ADD_Z_FRONT if int(ent[1]) > 0 else ADD_Z_BACK)
 		else:
 			pos = _slot_position(is_enemy, i, axie_uids.size())
 		placed.append([axie_uids[i], pos])
@@ -1257,11 +1276,10 @@ func _slot_position(is_enemy: bool, slot_index: int, slot_count: int, boss: bool
 		return Vector3(PARTY_X0 + float(slot_index) * PARTY_PITCH_X, _POS_Y, PARTY_Z_FRONT if front else PARTY_Z_BACK)
 	if boss:
 		return BOSS_POS
-	var x := ENEMY_CENTER_X + (float(slot_index) - (float(slot_count) - 1.0) * 0.5) * ENEMY_PITCH_X
-	if slot_count == 1:
-		return Vector3(x, _POS_Y, ENEMY_Z_MID)
+	var pat: Array = ENEMY_PATTERNS[clampi(slot_count, 1, 5)]
+	var ent: Array = pat[slot_index % pat.size()]
 	var rows: Array[float] = [ENEMY_Z_BACK, ENEMY_Z_MID, ENEMY_Z_FRONT]
-	return Vector3(x, _POS_Y, rows[slot_index % 3])
+	return Vector3(ENEMY_CENTER_X + float(ent[0]) * ENEMY_PITCH_X, _POS_Y, rows[int(ent[1]) + 1])
 
 
 ## Visual-only death reaction — mirrors UnitPortrait's own dim/hide of the 2D card, which
