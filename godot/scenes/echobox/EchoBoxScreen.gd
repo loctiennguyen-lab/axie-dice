@@ -11,7 +11,9 @@ extends Control
 ## Drawn: normal, no tickets, loading, offline, guest, server error (pull failed), Seasonal locked
 ## ("coming later", no Open button), reveal Stone / cosmetic NEW / duplicate, Open 10 + summary,
 ## Skip, rates modal, buy confirm, reduce-flashing static reveal, "your last pull" recovery.
-## Not drawn (no seasonal logic exists; EchoBox.open_season is missing): M5n/o/p/q/r/s/t/w.
+## Seasonal tab (live since 19/10): EchoBox.open_season, 5 tickets a pull, 8 pulls a day, progress per tier,
+## milestones, the 11-item series grid. Reveal reuses the normal reveal cards. Not drawn: M5t explainer, vault card,
+## series end date (series end 26 Jan 2027 is [INF]).
 
 const SCREEN_ID := "echobox"
 const _Econ := preload("res://scripts/meta/economy_db.gd")
@@ -30,6 +32,8 @@ var instant := false
 var reduce_flashing := false
 ## Tests / server seam: Callable(n:int) -> Array of result Dictionaries (EchoBox.open_normal shape).
 var pull_hook: Callable = Callable()
+## First season pull per screen visit asks for a confirm (README M5o). Instance var so tests do not leak it.
+var season_confirmed := false
 var rng := RandomNumberGenerator.new()
 var results: Array = []
 var error_text := ""
@@ -139,15 +143,52 @@ func next_price() -> int:
 
 ## Why pulling n is not allowed right now, or "" when it is.
 func pull_block_reason(n: int) -> String:
-	if tab != "regular":
-		return "Season box - coming later"
+	var seasonal := tab == "seasonal"
+	if seasonal and not EchoBox.season_enabled():
+		return "Season box is not live"
 	if state == "loading":
 		return "Loading..."
 	if _account_blocks():
 		return "Needs a connection - nothing is spent" if state == "offline" else "Sign in to get tickets"
+	if seasonal:
+		if season_pulls_left() < n:
+			return "%d of %d today - resets 00:00 UTC" % [season_cap_day(), season_cap_day()] if season_pulls_left() == 0 \
+				else "Only %d pulls left today" % season_pulls_left()
+		if tickets() < n * season_cost():
+			return "Not enough tickets (%d of %d)" % [tickets(), n * season_cost()]
+		return ""
 	if tickets() < n:
 		return "Not enough tickets (%d of %d)" % [tickets(), n]
 	return ""
+
+
+func season_cost() -> int:
+	return int(EchoBox.season_cfg().get("ticket_cost", 5))
+
+
+## Cap N_t for a tier. Vault (doubled N) is not wired into the screen yet; flip this when it is.
+func _season_cap(tier: String) -> int:
+	return EchoBox.season_cap(tier, false)
+
+
+func season_cap_day() -> int:
+	return int(EchoBox.season_cfg().get("pull_cap_day", 8))
+
+
+## Pulls still allowed today (UTC), from the saved series state.
+func season_pulls_left() -> int:
+	var st := EchoBox.season_state(MetaState)
+	var used := int(st["day_pulls"]) if String(st["day"]) == today() else 0
+	return maxi(season_cap_day() - used, 0)
+
+
+## Season results look like normal ones for the reveal cards: rarity = tier.
+func _season_result(r: Dictionary) -> Dictionary:
+	var o := r.duplicate()
+	o["season"] = true
+	o["rarity"] = String(r.get("tier", ""))
+	o["fragments"] = 0
+	return o
 
 
 ## Real pull: n tickets through EchoBox.open_normal (or pull_hook). Returns the result list.
@@ -158,6 +199,12 @@ func pull(n: int) -> Array:
 	var out: Array = []
 	if pull_hook.is_valid():
 		out = pull_hook.call(n)
+	elif tab == "seasonal":
+		for i in n:
+			var r := EchoBox.open_season(MetaState, rng, today())
+			if not r.get("ok", false):
+				break
+			out.append(_season_result(r))
 	else:
 		for i in n:
 			var r := EchoBox.open_normal(MetaState, rng)
@@ -225,6 +272,10 @@ func open_rates() -> void:
 	close_modal()
 	var m := _modal("Rates", 760)
 	var v: VBoxContainer = m.find_child("V", true, false)
+	if tab == "seasonal":
+		_season_rates(v)
+		_modal_close_row(v)
+		return
 	v.add_child(UI3.label("Regular box · each pull is exactly one reward", "LabelMuted"))
 	var rows: Array = box_cfg().get("table", [])
 	var total := 0.0
@@ -245,6 +296,30 @@ func open_rates() -> void:
 	pt.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	v.add_child(pt)
 	_modal_close_row(v)
+
+
+func _season_rates(v: VBoxContainer) -> void:
+	var cfg := EchoBox.season_cfg()
+	v.add_child(UI3.label("Season box · each pull is exactly one reward", "LabelMuted"))
+	var txt := "Each pull tests Mythic, then Legendary, then Epic. The chance rises with every miss and resets on a hit: p(c) = (2c-1) / (N^2-(c-1)^2), certain at the cap."
+	for t in ["mythic", "legendary", "epic"]:
+		txt += "\n%s: cap %d" % [t.capitalize(), _season_cap(t)]
+	var l := UI3.label(txt)
+	l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	v.add_child(l)
+	var rows: Array = cfg.get("stone_table", [])
+	var total := 0.0
+	for r in rows:
+		total += float((r as Dictionary).get("weight", 0))
+	v.add_child(UI3.label("A pull that hits no tier gives Stone:", "LabelMuted"))
+	var grid := GridContainer.new()
+	grid.name = "RatesTable"
+	grid.columns = 2
+	grid.add_theme_constant_override("h_separation", 40)
+	v.add_child(grid)
+	for r in rows:
+		grid.add_child(UI3.label("%s Stone" % UI3.fmt(int((r as Dictionary).get("amount", 0)))))
+		grid.add_child(UI3.label("%.2f%%" % (float((r as Dictionary).get("weight", 0)) / total * 100.0)))
 
 
 func open_confirm_buy() -> void:
@@ -275,7 +350,7 @@ func _build() -> void:
 	_col = _shell["col"]
 	_banner_host = _shell["banner_host"]
 	_modal_layer = _shell["modal_layer"]
-	for t in [["regular", "Regular"], ["seasonal", "Seasonal · coming later"]]:
+	for t in [["regular", "Regular"], ["seasonal", "Seasonal"]]:
 		var b := UI3Meta.tab(String(t[1]), t[0] == tab)
 		b.name = "Tab_" + String(t[0])
 		b.pressed.connect(select_tab.bind(String(t[0])))
@@ -465,11 +540,49 @@ func _refresh_stage() -> void:
 	chest.tooltip_text = "Mystic Chest" if seasonal else "Gold Chest"
 	v.add_child(chest)
 	if seasonal:
-		var l := UI3.label("Season box · coming later", "LabelTitle")
-		l.name = "ComingLater"
+		var l := UI3.label("5 tickets per pull. A small set of rare items. A full set is guaranteed within 80 pulls (400 tickets). Max 8 pulls a day.", "LabelMuted")
+		l.name = "SeasonLine"
 		l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		l.custom_minimum_size.x = 640
 		v.add_child(l)
-		# L1: no Open button on the Seasonal tab; EchoBox.open_season does not exist.
+		var left := UI3.label("Pulls left today  %d / %d" % [season_pulls_left(), season_cap_day()], "LabelTitle")
+		left.name = "PullsLeft"
+		v.add_child(left)
+		var srow := HBoxContainer.new()
+		srow.alignment = BoxContainer.ALIGNMENT_CENTER
+		srow.add_theme_constant_override("separation", UI3Theme.space("16"))
+		v.add_child(srow)
+		var n_big := clampi(season_pulls_left(), 1, PULL_N)
+		var ok1 := pull_block_reason(1) == ""
+		var okn := n_big > 1 and pull_block_reason(n_big) == ""
+		var so := UI3.button("Open 1", &"primary" if (ok1 and not okn) else &"secondary", &"L" if (ok1 and not okn) else &"M")
+		so.name = "SeasonOpen"
+		so.pressed.connect(_on_season_open.bind(1))
+		srow.add_child(so)
+		if not ok1:
+			UI3.set_disabled_reason(so, pull_block_reason(1))
+			so.tooltip_text = pull_block_reason(1)
+		else:
+			var cc1 := UI3.cost_chip(&"ticket", season_cost())
+			cc1.name = "SeasonCost"
+			srow.add_child(cc1)
+		if n_big > 1:
+			var sn := UI3.button("Open %d" % n_big, &"primary" if okn else &"secondary", &"L" if okn else &"M")
+			sn.name = "SeasonOpenN"
+			sn.pressed.connect(_on_season_open.bind(n_big))
+			srow.add_child(sn)
+			if not okn:
+				UI3.set_disabled_reason(sn, pull_block_reason(n_big))
+				sn.tooltip_text = pull_block_reason(n_big)
+			else:
+				var ccn := UI3.cost_chip(&"ticket", season_cost() * n_big)
+				ccn.name = "SeasonCostN"
+				srow.add_child(ccn)
+		var srt := UI3.button("Rates", &"secondary", &"S")
+		srt.name = "Rates"
+		srt.pressed.connect(open_rates)
+		srow.add_child(srt)
 	else:
 		var row := HBoxContainer.new()
 		row.alignment = BoxContainer.ALIGNMENT_CENTER
@@ -518,6 +631,27 @@ func _refresh_stage() -> void:
 		_stage_host.add_child(sc)
 
 
+## First season pull of the session confirms (tickets spent / left, pulls left); later ones go straight through.
+func _on_season_open(n: int) -> void:
+	if season_confirmed:
+		pull(n)
+		return
+	var no := UI3.button("Cancel", &"secondary", &"M")
+	no.name = "Cancel"
+	no.pressed.connect(close_modal)
+	var yes := UI3.button("Open", &"primary", &"M")
+	yes.name = "ConfirmSeason"
+	yes.pressed.connect(func() -> void:
+		season_confirmed = true
+		close_modal()
+		pull(n))
+	var cost := n * season_cost()
+	var m := UI3.modal("Open the season box?", "This spends %d tickets and leaves you %d. Pulls left today after this: %d of %d." % [
+		cost, tickets() - cost, season_pulls_left() - n, season_cap_day()], [no, yes], 1)
+	m.cancelled.connect(close_modal)
+	_modal_layer.add_child(m)
+
+
 func _pity_text() -> String:
 	var parts: Array[String] = []
 	for s in (box_cfg().get("pity", {}) as Dictionary).get("steps", []):
@@ -527,6 +661,9 @@ func _pity_text() -> String:
 
 func _refresh_side() -> void:
 	_clear(_side_host)
+	if tab == "seasonal":
+		_refresh_side_season()
+		return
 	var pity := UI3.plate(&"plate")
 	pity.name = "PityPanel"
 	var v := VBoxContainer.new()
@@ -594,6 +731,160 @@ func _refresh_side() -> void:
 	_side_host.add_child(dup)
 
 
+func _season_names() -> Dictionary:
+	return EchoBox.season_cfg().get("titles", {})
+
+
+func _refresh_side_season() -> void:
+	var cfg := EchoBox.season_cfg()
+	var st := EchoBox.season_state(MetaState)
+	var owned: Array = st["owned"]
+	var items: Dictionary = cfg.get("items", {})
+	var col := VBoxContainer.new()
+	col.add_theme_constant_override("separation", UI3Theme.space("16"))
+	col.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	# progress per tier
+	var pp := UI3.plate(&"plate")
+	pp.name = "SeasonProgress"
+	var pv := VBoxContainer.new()
+	pv.add_theme_constant_override("separation", UI3Theme.space("8"))
+	pp.add_child(pv)
+	var total_have := 0
+	var total := 0
+	for t in ["mythic", "legendary", "epic"]:
+		total += (items.get(t, []) as Array).size()
+	total_have = owned.size()
+	pv.add_child(UI3.label("Lunar Echo · %d / %d · pulls opened %d" % [total_have, total, int(st["opens"])], "LabelTitle"))
+	for t in ["mythic", "legendary", "epic"]:
+		var cap := _season_cap(t)
+		var have := 0
+		for it in items.get(t, []):
+			if owned.has(it):
+				have += 1
+		var n_t := (items.get(t, []) as Array).size()
+		var c := int(st["c_" + t])
+		var r := HBoxContainer.new()
+		r.add_theme_constant_override("separation", UI3Theme.space("8"))
+		var nm := UI3.label(t.capitalize())
+		nm.custom_minimum_size = Vector2(110, 0)
+		r.add_child(nm)
+		var pb := ProgressBar.new()
+		pb.name = "Season_" + t
+		pb.theme = UI3Theme.get_theme()
+		pb.custom_minimum_size = Vector2(120, 16)
+		pb.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		pb.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		pb.max_value = cap
+		pb.value = mini(c, cap) if have < n_t else cap
+		pb.show_percentage = false
+		pb.add_theme_stylebox_override("fill", UI3Theme.flat(_rarity_color(t), UI3Theme.radius("s")))
+		r.add_child(pb)
+		r.add_child(UI3.label("%d/%d" % [have, n_t], "LabelMuted"))
+		pv.add_child(r)
+		var chance := UI3.label("%s: pull %d of %d, %s" % [
+			"Set done" if have >= n_t else "Next pull", c + 1, cap,
+			"dup tickets back" if have >= n_t else ("%.1f%% (certain at %d)" % [EchoBox.season_hit_prob(c + 1, cap, float(cfg.get("escalation_k", 2))) * 100.0, cap])], "LabelMuted")
+		chance.name = "Chance_" + t
+		chance.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+		pv.add_child(chance)
+	col.add_child(pp)
+	# milestones
+	var mp := UI3.plate(&"plate")
+	mp.name = "SeasonMilestones"
+	var mv := VBoxContainer.new()
+	mv.add_theme_constant_override("separation", UI3Theme.space("8"))
+	mp.add_child(mv)
+	mv.add_child(UI3.label("Milestones", "LabelTitle"))
+	var done: Array = st["milestones"]
+	for m in cfg.get("milestones", []):
+		var md: Dictionary = m
+		var rw := String(md.get("reward", ""))
+		var parts: Array[String] = []
+		parts.append(_reward_name(rw))
+		if String(md.get("also", "")) != "":
+			parts.append(_reward_name(String(md["also"])))
+		var got := done.has("m%d" % int(md.get("opens", 0)))
+		var row := UI3.label("%s %d pulls: %s" % ["Done" if got else "At", int(md.get("opens", 0)), " + ".join(parts)])
+		row.name = "Milestone_%d" % int(md.get("opens", 0))
+		row.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		if got:
+			row.add_theme_color_override("font_color", UI3Theme.color("text_muted"))
+		mv.add_child(row)
+	var crow := UI3.label("%s Full set: %s" % ["Done" if done.has("complete") else "At", _reward_name(String(cfg.get("complete_reward", "")))])
+	crow.name = "Milestone_complete"
+	crow.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	mv.add_child(crow)
+	col.add_child(mp)
+	# the 11-item pool grid
+	var pool := UI3.plate(&"plate")
+	pool.name = "SeasonPool"
+	var gv := VBoxContainer.new()
+	gv.add_theme_constant_override("separation", UI3Theme.space("8"))
+	pool.add_child(gv)
+	gv.add_child(UI3.label("Series items", "LabelTitle"))
+	var grid := GridContainer.new()
+	grid.name = "SeasonGrid"
+	grid.columns = 4
+	grid.add_theme_constant_override("h_separation", UI3Theme.space("8"))
+	grid.add_theme_constant_override("v_separation", UI3Theme.space("8"))
+	gv.add_child(grid)
+	for t in ["mythic", "legendary", "epic"]:
+		for it in items.get(t, []):
+			grid.add_child(_season_tile(String(it), t, owned.has(it)))
+	col.add_child(pool)
+	var dup := UI3.label("Once a tier is complete, a duplicate gives tickets back. Never Shards.", "LabelMuted")
+	dup.name = "DupLine"
+	dup.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	col.add_child(dup)
+	var sc := UI3Meta.scroll(col)
+	sc.name = "SideScroll"
+	sc.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	_side_host.add_child(sc)
+
+
+func _reward_name(id: String) -> String:
+	var t: Dictionary = _season_names()
+	if t.has(id):
+		return TitleNames.display(TitleNames.PREFIX + String(t[id]))
+	var n := CosmeticTile.any_name(id)
+	return n if n != "" else id
+
+
+func _season_tile(item: String, tier: String, have: bool) -> Control:
+	var tile := UI3.plate(&"row")
+	tile.name = "Item_" + item
+	tile.add_theme_stylebox_override("panel", UI3Theme.flat(UI3Theme.color("panel"), UI3Theme.radius("m"), 3,
+		_rarity_color(tier), Vector4(4, 4, 4, 4)))
+	tile.tooltip_text = "%s (%s)%s" % [_reward_name(item), tier.capitalize(), "" if have else " - not yet found"]
+	var v := VBoxContainer.new()
+	v.add_theme_constant_override("separation", 0)
+	tile.add_child(v)
+	var art := _cosmetic_art(item, 64.0, false)
+	if art == null:
+		art = _fx_badge(64.0)
+	v.add_child(art)
+	var nm := UI3.label(_reward_name(item) if have else "?")
+	nm.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	nm.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	nm.custom_minimum_size.x = 80
+	nm.clip_text = true
+	v.add_child(nm)
+	if not have:
+		art.modulate = Color(0.1, 0.1, 0.12, 0.9)   # named silhouette, nothing hidden
+		tile.modulate.a = 0.8
+	return tile
+
+
+## Dice FX have no baked art: a plain labelled badge so the slot is never empty.
+func _fx_badge(px: float) -> Control:
+	var c := CenterContainer.new()
+	c.name = "Art"
+	c.custom_minimum_size = Vector2(px, px)
+	c.size = Vector2(px, px)
+	c.add_child(UI3.label("FX", "LabelTitle"))
+	return c
+
+
 func _build_summary() -> Control:
 	var p := UI3.plate(&"plate")
 	p.name = "Summary"
@@ -616,6 +907,14 @@ func _build_summary() -> Control:
 		var pl := UI3.label(error_text, "LabelMuted")
 		pl.name = "PartialPull"
 		v.add_child(pl)
+	var ms: Array[String] = _milestone_lines(results)
+	if not ms.is_empty():
+		var mr := HBoxContainer.new()
+		mr.name = "MilestoneLine"
+		mr.add_theme_constant_override("separation", UI3Theme.space("8"))
+		for t in ms:
+			mr.add_child(UI3.chip(t))
+		v.add_child(mr)
 	var grid := GridContainer.new()
 	grid.name = "ResultGrid"
 	grid.columns = 5
@@ -625,6 +924,18 @@ func _build_summary() -> Control:
 	for r in results:
 		grid.add_child(_result_cell(r, "summary"))
 	return p
+
+
+## Milestones / full-set reached by the pulls in `results` (season only).
+func _milestone_lines(list: Array) -> Array[String]:
+	var out: Array[String] = []
+	var cfg := EchoBox.season_cfg()
+	for r in list:
+		for id in r.get("milestones", []):
+			out.append("Milestone: %s" % _reward_name(String(id)))
+		if bool(r.get("complete", false)):
+			out.append("Set complete: %s" % _reward_name(String(cfg.get("complete_reward", ""))))
+	return out
 
 
 func _reward_title(r: Dictionary) -> String:
@@ -738,13 +1049,15 @@ func _reveal_card(r: Dictionary, single: bool) -> Control:
 	else:
 		var item := String(r.get("item", ""))
 		var a := _cosmetic_art(item, art_px, single)
-		if a != null:
-			art.add_child(a)
-		title = CosmeticTile.display_name(item)
-		var slot_word := "dice skin" if Cosmetics.slot_of(item) == Cosmetics.SLOT_DIE else "frame"
+		if a == null:
+			a = _fx_badge(art_px)
+		art.add_child(a)
+		title = CosmeticTile.any_name(item)
+		var slot_word := "dice skin" if Cosmetics.slot_of(item) == Cosmetics.SLOT_DIE else ("frame" if Cosmetics.slot_of(item) == Cosmetics.SLOT_FRAME else "dice FX")
 		line = "%s %s" % [rar.capitalize(), slot_word]
 		if dup:
-			line = "Duplicate · %d Fragments" % int(r.get("fragments", 0))
+			line = ("Duplicate · +%d tickets" % int(r.get("tickets_back", 0))) if r.has("season") \
+				else "Duplicate · %d Fragments" % int(r.get("fragments", 0))
 			line_col = UI3Theme.color("text")
 			var badge := HBoxContainer.new()
 			badge.name = "DupBadge"
@@ -759,7 +1072,7 @@ func _reveal_card(r: Dictionary, single: bool) -> Control:
 			fi.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 			fi.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 			badge.add_child(fi)
-			var bl := UI3.label("+%d" % int(r.get("fragments", 0)), "LabelDisplay")
+			var bl := UI3.label("+%d" % (int(r.get("tickets_back", 0)) if r.has("season") else int(r.get("fragments", 0))), "LabelDisplay")
 			bl.add_theme_font_size_override("font_size", 20)
 			badge.add_child(bl)
 			art.add_child(badge)
@@ -905,12 +1218,21 @@ func _play_ceremony(out: Array) -> void:
 	var gc := CenterContainer.new()
 	gc.add_child(grid)
 	v.add_child(gc)
+	var mls: Array[String] = _milestone_lines(out)
+	if not mls.is_empty():
+		var mrow := HBoxContainer.new()
+		mrow.name = "RevealMilestones"
+		mrow.alignment = BoxContainer.ALIGNMENT_CENTER
+		mrow.add_theme_constant_override("separation", UI3Theme.space("8"))
+		for t in mls:
+			mrow.add_child(UI3.chip(t))
+		v.add_child(mrow)
 	var btns := HBoxContainer.new()
 	btns.alignment = BoxContainer.ALIGNMENT_CENTER
 	btns.add_theme_constant_override("separation", UI3Theme.space("16"))
 	v.add_child(btns)
 	var first := out[0] as Dictionary
-	if single and String(first.get("kind")) == "cosmetic":
+	if single and String(first.get("kind")) == "cosmetic" and Cosmetics.art_id(String(first.get("item", ""))) != "":
 		var art_id := Cosmetics.art_id(String(first.get("item", "")))
 		var eqb := UI3.button("Equip now", &"secondary", &"M")
 		eqb.name = "EquipNow"
@@ -930,7 +1252,7 @@ func _play_ceremony(out: Array) -> void:
 		pull(again_n))
 	btns.add_child(again)
 	if ar == "":
-		var cc := UI3.cost_chip(&"ticket", again_n)
+		var cc := UI3.cost_chip(&"ticket", again_n * (season_cost() if tab == "seasonal" else 1))
 		cc.name = "AgainCost"
 		btns.add_child(cc)
 	var done := UI3.button("Done", &"secondary", &"M")

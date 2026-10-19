@@ -116,6 +116,13 @@ static func season_cfg() -> Dictionary:
 	return (_cfg().get("boxes", {}) as Dictionary).get("season", {})
 
 
+## Id stored in cosmetics_owned for a season reward. Titles map to "title:<NAME>" (what TitleNames reads);
+## anything else (die_m_moon...) is stored as is.
+static func season_owned_id(reward_id: String) -> String:
+	var t: Dictionary = season_cfg().get("titles", {})
+	return TitleNames.PREFIX + String(t[reward_id]) if t.has(reward_id) else reward_id
+
+
 static func season_enabled() -> bool:
 	return bool(season_cfg().get("enabled", false))
 
@@ -236,7 +243,7 @@ static func open_season(store: Object, rng: RandomNumberGenerator, day: String, 
 			if not (st["milestones"] as Array).has(mid):
 				(st["milestones"] as Array).append(mid)
 				for key in ["reward", "also"]:
-					var rid := String(md.get(key, ""))
+					var rid := season_owned_id(String(md.get(key, "")))
 					if rid != "" and not store.cosmetics_owned.has(rid):
 						store.cosmetics_owned.append(rid)
 				(res["milestones"] as Array).append(String(md.get("reward", "")))
@@ -247,7 +254,7 @@ static func open_season(store: Object, rng: RandomNumberGenerator, day: String, 
 	all_have = owned.size()
 	if total > 0 and all_have >= total and not (st["milestones"] as Array).has("complete"):
 		(st["milestones"] as Array).append("complete")
-		var cr := String(cfg.get("complete_reward", ""))
+		var cr := season_owned_id(String(cfg.get("complete_reward", "")))
 		if cr != "" and not store.cosmetics_owned.has(cr):
 			store.cosmetics_owned.append(cr)
 		res["complete"] = true

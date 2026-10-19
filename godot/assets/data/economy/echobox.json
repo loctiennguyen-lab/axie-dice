@@ -178,29 +178,23 @@
 					"die_r_bird"
 				],
 				"epic": [
-					"die_e_rune",
-					"frame_e_runering",
-					"die_e_spore",
-					"frame_e_firefly"
+					"die_e_s1_founder",
+					"frame_e_s1_founder"
 				],
 				"legendary": [
 					"die_l_gold",
-					"frame_l_sunburst",
-					"die_l_relic_stone",
 					"die_l_kingdom"
 				],
 				"mythic": [
 					"die_m_redcrystal",
-					"frame_m_eclipse",
-					"die_m_moon",
 					"frame_m_crystal"
 				]
 			},
-			"_note_art_map": "B12: std_<r>_NNN (NNN-1) mod len(art_map[r]) -> art id (dice/frames interleaved). Pool counts and odds unchanged; art is reused across duplicate ids. Pass-exclusive ids (Moss die, Vine frame, S1 Founder, Sovereign) are left out."
+			"_note_art_map": "B12: std_<r>_NNN (NNN-1) mod len(art_map[r]) -> art id (dice/frames interleaved). Pool counts and odds unchanged; art is reused across duplicate ids. Pass-exclusive ids (Moss die, Vine frame, S1 Founder, Sovereign) are left out. 19/10: season items (die_e_rune, die_e_spore, frame_e_runering, frame_e_firefly, die_l_relic_stone, frame_l_sunburst, frame_m_eclipse) and the 40-pull exclusive die_m_moon are NOT in the normal pool. Epic uses the Founder items as placeholders until new Epic art exists."
 		},
 		"season": {
-			"enabled": false,
-			"_note": "Series 1 (echobox-pass-v2 §2.8-2.10). enabled=false: UI chưa bật; EchoBox.open_season chạy được (test dùng allow_disabled).",
+			"enabled": true,
+			"_note": "Series 1 (echobox-pass-v2 2.8-2.10). enabled 19/10. Titles are owned as title:<NAME> (TitleNames); names in `titles`.",
 			"ticket_cost": 5,
 			"pull_cap_day": 8,
 			"series_id": "s1",
@@ -280,7 +274,12 @@
 					"weight": 0.03
 				}
 			],
-			"complete_reward": "title_s1_complete"
+			"complete_reward": "title_s1_complete",
+			"titles": {
+				"title_s1_echo": "ECHO WALKER",
+				"title_s1_lunar40": "MOONBOUND",
+				"title_s1_complete": "LUNAR ECHO MASTER"
+			}
 		}
 	}
 }

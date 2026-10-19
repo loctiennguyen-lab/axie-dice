@@ -119,7 +119,7 @@ func test_data_validates() -> void:
 	_assert(int(a["R2"]["price"]) == 15 and int(a["R2"]["pack3"]) == 38, "R2 15 / gói 38")
 	_assert(int(a["R4"]["price"]) == 60 and int(a["R5"]["price"]) == 15 and int(a["R6"]["price"]) == 18
 		and int(a["R7"]["price"]) == 12 and int(a["R8"]["price"]) == 38 and int(a["R9"]["price"]) == 60, "giá PA-1")
-	_assert(not bool(_Econ.get_table("echobox")["boxes"]["season"]["enabled"]), "hộp mùa tắt ở L1")
+	_assert(bool(_Econ.get_table("echobox")["boxes"]["season"]["enabled"]), "hộp mùa bật (19/10)")
 	_assert(not bool(g["vip_trial"]["enabled"]), "VIP thử tắt ở L1")
 	var tiers: Dictionary = _Econ.get_table("missions")["tiers"]
 	_assert(tiers["N3"]["enabled"] and not tiers["N4"]["enabled"], "Nhiệm vụ chỉ N1-N3 ở L1")
@@ -1034,7 +1034,9 @@ func _season_run(seed_v: int, vault: bool, max_pulls: int) -> Dictionary:
 func test_season_box() -> void:
 	var s0 := Stub.new()
 	s0.tickets["normal"] = 50
-	_assert(not EchoBox.season_enabled() and EchoBox.open_season(s0, _rng(1), "2026-11-01")["reason"] == "disabled", "hộp mùa tắt: từ chối")
+	var s_on := Stub.new()
+	s_on.tickets["normal"] = 5
+	_assert(EchoBox.season_enabled() and EchoBox.open_season(s_on, _rng(1), "2026-11-01")["ok"], "hộp mùa bật (19/10): mở được không cần allow_disabled")
 	_assert(EchoBox.open_season(Stub.new(), _rng(1), "2026-11-01", false, "", true)["reason"] == "no_tickets", "thiếu vé")
 	var r1 := EchoBox.open_season(s0, _rng(2), "2026-11-01", false, "", true)
 	_assert(r1["ok"] and s0.tickets["normal"] == 45 and s0.saves == 1, "một lượt = 5 vé + một save")
@@ -1054,7 +1056,7 @@ func test_season_box() -> void:
 		worst = maxi(worst, r["done"])
 		worst_m = maxi(worst_m, r["first_mythic"])
 		var inv: Array = (r["s"] as Stub).cosmetics_owned
-		ms_ok = ms_ok and inv.has("die_m_moon") == (r["n"] >= 40) and inv.has("title_s1_echo") and inv.has("title_s1_complete")
+		ms_ok = ms_ok and inv.has("die_m_moon") == (r["n"] >= 40) and inv.has("title:ECHO WALKER") and inv.has("title:LUNAR ECHO MASTER") and (r["n"] < 40 or inv.has("title:MOONBOUND"))
 	_assert(worst <= 80 and worst_m <= 40, "bound: đủ bộ <= 80 (max %d), Mythic đầu <= 40 (max %d)" % [worst, worst_m])
 	_assert(ms_ok, "mốc 12/40 + danh hiệu đủ bộ đúng")
 	var rv := _season_run(7, true, 160)

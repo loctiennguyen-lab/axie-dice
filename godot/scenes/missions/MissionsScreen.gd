@@ -15,7 +15,7 @@ extends Control
 
 const _Econ := preload("res://scripts/meta/economy_db.gd")
 const RUN_MAP := "res://scenes/run_map/RunMap.tscn"
-const RULE_NAMES := {"M1": "Harsh clock", "M2": "Spike stack", "M3": "Hunted", "M4": "Heavy hits", "M5": "Thick boss"}
+const RULE_NAMES := {"M1": "Harsh clock", "M2": "Spike stack", "M3": "Hunted", "M4": "Heavy hits", "M5": "Thick boss", "M6": "Sturdy foes", "M7": "Fierce elites"}
 
 ## "normal" | "loading" | "offline" | "guest" | "open_run"
 var state := "normal"
@@ -176,9 +176,9 @@ func _mods_text(m: Dictionary) -> String:
 	if m.has("boss_hp"):
 		bits.append("boss HP x%s" % _num(float(m.boss_hp)))
 	if m.has("normal_hp"):
-		bits.append("normal enemy HP x%s" % _num(float(m.normal_hp)))
+		bits.append("Normal enemy HP x%s" % _num(float(m.normal_hp)))
 	if m.has("elite_dmg"):
-		bits.append("elite damage x%s" % _num(float(m.elite_dmg)))
+		bits.append("Elite fight dice values x%s (damage, shields, heals)" % _num(float(m.elite_dmg)))
 	if m.has("extra_elite"):
 		bits.append("+%d elites" % int(m.extra_elite))
 	if m.has("spike_period_delta"):
