@@ -127,6 +127,8 @@ def build(biome):
         col.objects.link(o)
         s = h / max(src.dimensions.z, 1e-4)
         o.scale = (s, s, s)
+        if 'face_yaw' in src:      # camera-projected mesh: keep its painted side to the camera
+            yaw = float(src['face_yaw']) + (yaw % 16.0) - 8.0
         o.rotation_euler = (0.0, 0.0, math.radians(yaw))
         o.location = (x, -z, ground_y(gobj, x, z) - 0.05 * h)   # sink a little so nothing floats
         n += 1

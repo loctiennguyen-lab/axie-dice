@@ -28,9 +28,9 @@ PALETTES = {
         peb='586838', pebhi='B6C688', outer='5C8A3E',
         dots=[('F2E27A', 0.9, 0.07, 0.11), ('F2A6C6', 1.1, 0.05, 0.11), ('F6F2E6', 1.3, 0.05, 0.09)]),
     'arctic': dict(
-        seed=9, light='CFD7E0', mid='B7C2CE', stain='95A3B5', bleach='DCE2E8', stain_w=0.5, bleach_w=0.45,
+        seed=9, light='D6DDE4', mid='BFC9D4', stain='9DAABB', bleach='E0E5EA', stain_w=0.45, bleach_w=0.45,
         grass_dark='868B90', grass_light='9CA2A8', grass_rim='A6B2BE', grass_w=0.8,
-        dust='9AA3AD', rut='7B8490', stone_a='8F97A2', stone_b='747D89', grout='505864', halo='8C98A6',
+        dust='A9B2BC', rut='8A939E', stone_a='A2AAB4', stone_b='86909B', grout='5E6672', halo='9AA6B4',
         peb='7A8592', pebhi='E6ECF0', outer='A6B3C2',
         dots=[('E2EEF6', 1.2, 0.05, 0.07)]),
     'mystic': dict(
@@ -112,10 +112,10 @@ KIT = {
         'rock_b': (ENV + 'Mystic/Rock/Source/SM_Rock_01.fbx', 'T_Rock_C.png', None, False),
     },
     'genesis': {
-        'tree_a': (ENV + 'Genesis/Tree/Source/SM_Tree_G_01.fbx', None, 0.5, True),
-        'tree_b': (ENV + 'Genesis/Tree/Source/SM_Tree_G_04.fbx', None, 0.5, True),
-        'tree_c': (ENV + 'Genesis/Tree/Source/SM_Tree_G_03.fbx', None, 0.5, True),
-        'tree_d': (ENV + 'Genesis/Tree/Source/SM_Tree_G_02.fbx', None, 0.5, True),
+        'tree_a': (ENV + 'Genesis/Tree/Source/SM_Tree_G_01.fbx', 'T_Tree_01_G_C.png', 0.5, True),
+        'tree_b': (ENV + 'Genesis/Tree/Source/SM_Tree_G_04.fbx', 'T_Tree_01_G_C.png', 0.5, True),
+        'tree_c': (ENV + 'Genesis/Tree/Source/SM_Tree_G_03.fbx', 'T_Tree_01_G_C.png', 0.5, True),
+        'tree_d': (ENV + 'Genesis/Tree/Source/SM_Tree_G_02.fbx', 'T_Tree_01_G_C.png', 0.5, True),
         'grass_a': (ENV + 'Forest/Shrub/Source/SM_Shrub01_Allside.fbx', 'T_Shrub01_G_C.png', 0.5, False),
         'grass_b': (ENV + 'Forest/Shrub/Source/SM_Shrub02_Allside.fbx', 'T_Shrub02_G_C.png', 0.5, False),
         'grass_c': (ENV + 'Forest/Shrub/Source/SM_Shrub01_Allside.fbx', 'T_Shrub02_G_C.png', 0.5, False),
@@ -135,12 +135,16 @@ KIT = {
     },
 }
 
+# Kit meshes painted for the Land's fixed iso camera that the automatic planar-UV check
+# (kit.planar_uv_error) misses: they get turned to face the combat camera too.
+FACE_CAM = {'luna': ['tree_a', 'tree_b', 'tree_c', 'tree_d']}
+
 # Height multipliers per role (the shared layout's heights are tuned for Savannah).
 ROLE_H = {
     'forest': {'tree_c': 1.0, 'tree_b': 1.15, 'grass_a': 0.8, 'grass_b': 0.8, 'grass_c': 0.8},
     'arctic': {'grass_a': 0.8, 'grass_b': 0.8, 'grass_c': 0.8},
-    'mystic': {'grass_a': 0.8, 'grass_b': 0.8, 'grass_c': 0.8},
-    'genesis': {'grass_a': 0.8, 'grass_b': 0.8, 'grass_c': 0.8},
+    'mystic': {'grass_a': 0.8, 'grass_b': 0.8, 'grass_c': 0.8, 'rock_b': 0.75},
+    'genesis': {'grass_a': 0.8, 'grass_b': 0.8, 'grass_c': 0.8, 'rock_b': 0.75},
     'luna': {'grass_a': 0.8, 'grass_b': 0.8, 'grass_c': 0.8},
 }
 

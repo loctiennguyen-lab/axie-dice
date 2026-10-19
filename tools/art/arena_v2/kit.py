@@ -209,6 +209,27 @@ def import_fbx(path, col, name):
     return keep
 
 
+def planar_uv_error(me):
+    """Mean error of the best LINEAR fit uv = A * position. Small (< 0.05) means the UVs were
+    projected from one direction: a "painted from the Land camera" mesh that only looks right
+    from that side (Genesis trees, some Luna / Arctic trees)."""
+    import numpy as np
+    uv = me.uv_layers[0].data
+    P, U = [], []
+    for p in me.polygons:
+        for li in p.loop_indices:
+            P.append(tuple(me.vertices[me.loops[li].vertex_index].co) + (1.0,))
+            U.append(tuple(uv[li].uv))
+    P, U = np.array(P), np.array(U)
+    A = np.linalg.lstsq(P, U, rcond=None)[0]
+    return float(np.abs(P @ A - U).mean())
+
+
+# Yaw (deg) that turns a camera-projected kit mesh toward the combat camera; the Land's iso camera
+# looks from 45 degrees, so -45 brings that side to the front (checked on Genesis SM_Tree_G_01).
+FACE_YAW = -45.0
+
+
 def common_kit(sc):
     col = _collection(sc, 'Kit_common')
     for role, n in CLIFFS.items():
@@ -243,6 +264,9 @@ def biome_kit(sc, biome):
         o.data.materials.clear()
         for m in new_mats:
             o.data.materials.append(m)
+        if role in biomes.FACE_CAM.get(biome, []) or (o.data.uv_layers and planar_uv_error(o.data) < 0.05):
+            o['face_yaw'] = FACE_YAW
+            log.append('%s: camera-projected UVs, faces the camera' % name)
     cm = cliff_material(biome)
     for role in CLIFFS:
         name = 'K_%s_%s' % (biome, role)

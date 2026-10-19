@@ -7,3 +7,8 @@ for f in */textures/*.import; do
     -e 's/"vram_texture": false/"vram_texture": true/' "$f"
 done
 grep -h "compress/mode" */textures/*.import | sort | uniq -c
+# Auto-LODs shred the foliage blobs (Genesis trees turned into slivers at combat distance): off.
+for f in */*_arena.glb.import; do
+  sed -i '' -e 's/^meshes\/generate_lods=true/meshes\/generate_lods=false/' "$f"
+done
+grep -h "generate_lods" */*_arena.glb.import | sort | uniq -c

@@ -16,9 +16,12 @@ extends Node3D
 
 const DIR := "res://assets/atia/arena_v2/"
 const STAGE_LAYOUT := "res://assets/atia/arena_v2/stage_layout.json"
-## Boss ground tint, the textured equivalent of CombatArena3D._apply_boss_look()'s
-## "saturation x1.3, value x0.85" on the flat ground colour.
-const BOSS_GROUND_TINT := Color(0.9, 0.8, 0.74)
+## Boss ground tint, the textured stand-in for CombatArena3D._apply_boss_look()'s "saturation x1.3,
+## value x0.85" on the flat ground colour: darker, a little warmer. Cool biomes only darken (a warm
+## multiply turned the Arctic snow into dirt under the red boss light).
+const BOSS_GROUND_TINT := Color(0.88, 0.82, 0.78)
+const BOSS_GROUND_TINT_COOL := Color(0.86, 0.86, 0.9)
+const COOL_BIOMES := ["arctic", "mystic", "luna"]
 
 var biome_id := ""
 var _ground_mats: Array[StandardMaterial3D] = []
@@ -84,7 +87,8 @@ func build(id: String, boss: bool = false) -> bool:
 ## Boss variant of the same diorama: darker, warmer ground (lighting is CombatArena3D's job).
 func set_boss(boss: bool) -> void:
 	for m in _ground_mats:
-		m.albedo_color = BOSS_GROUND_TINT if boss else Color.WHITE
+		var tint := BOSS_GROUND_TINT_COOL if COOL_BIOMES.has(biome_id) else BOSS_GROUND_TINT
+		m.albedo_color = tint if boss else Color.WHITE
 
 
 ## Number of triangles in the diorama as drawn (instances counted), for the budget check.
