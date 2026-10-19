@@ -344,15 +344,17 @@ const ENEMY_PITCH_X := 1.55
 ## runs party -> centre of the enemy group -> gate opening, so the gate is the group's axis (Liam 19/10).
 ## Entries are [column, row]: column in units of ENEMY_PITCH_X from ENEMY_CENTER_X, row -1 back / 0 middle / 1 front.
 const ENEMY_PATTERNS := {
-	1: [[0.0, 0]],
-	2: [[0.0, -1], [0.0, 1]],
-	3: [[0.0, -1], [0.0, 1], [-1.0, 0]],
+	1: [[0.8, 0]],
+	2: [[0.8, -1], [0.8, 1]],
+	3: [[0.8, -1], [0.8, 1], [-1.0, 0]],
 	4: [[-1.0, -1], [-1.0, 1], [1.0, -1], [1.0, 1]],
 	5: [[-1.0, -1], [-1.0, 1], [1.0, -1], [1.0, 1], [0.0, 0]],
 }
 const ENEMY_Z_BACK := -4.9
 const ENEMY_Z_MID := 1.1
 const ENEMY_Z_FRONT := 6.4
+## Two or three enemies stand closer together (tighter back / front rows) so they read as a group in front of the gate.
+const ENEMY_ROWS_TIGHT: Array[float] = [-1.7, 1.1, 3.8]
 const BOSS_POS := Vector3(1.5, 0.0, 1.9)
 const ELITE_POS := Vector3(1.5, 0.0, 0.7)   # spec: one elite, bigger
 const ELITE_SCALE := 1.4
@@ -360,6 +362,9 @@ const ELITE_SCALE := 1.4
 const ADD_PITCH_X := 1.5
 const ADD_Z_BACK := -10.2
 const ADD_Z_FRONT := 6.3
+const ADD_Z_BACK2 := -18.3
+## Adds 5 and up (gooey SPLIT, summoners) stand on a second back row above the first one.
+const ADD_EXTRA := [[-1.0, -2], [1.0, -2], [0.0, -2], [-2.0, -2]]
 const ADD_PATTERNS := {
 	1: [[0.0, 1]],
 	2: [[0.0, -1], [0.0, 1]],
@@ -1243,8 +1248,10 @@ func reseat_side(uids: Array, is_enemy: bool) -> void:
 		if is_enemy and has_lead:
 			var cnt := mini(axie_uids.size(), 4)
 			var ent: Array = (ADD_PATTERNS[cnt] as Array)[i % cnt]
+			if i >= 4:
+				ent = (ADD_EXTRA as Array)[(i - 4) % (ADD_EXTRA as Array).size()]   # 5th add onward: a second back row
 			var lead_x: float = (BOSS_POS if bool((_units[lead_uid] as Dictionary).get("is_boss", false)) else ELITE_POS).x
-			pos = Vector3(lead_x + float(ent[0]) * ADD_PITCH_X, _POS_Y, ADD_Z_FRONT if int(ent[1]) > 0 else ADD_Z_BACK)
+			pos = Vector3(lead_x + float(ent[0]) * ADD_PITCH_X, _POS_Y, ADD_Z_FRONT if int(ent[1]) > 0 else (ADD_Z_BACK2 if int(ent[1]) < -1 else ADD_Z_BACK))
 		else:
 			pos = _slot_position(is_enemy, i, axie_uids.size())
 		placed.append([axie_uids[i], pos])
@@ -1282,6 +1289,8 @@ func _slot_position(is_enemy: bool, slot_index: int, slot_count: int, boss: bool
 	var pat: Array = ENEMY_PATTERNS[clampi(slot_count, 1, 5)]
 	var ent: Array = pat[slot_index % pat.size()]
 	var rows: Array[float] = [ENEMY_Z_BACK, ENEMY_Z_MID, ENEMY_Z_FRONT]
+	if slot_count == 2 or slot_count == 3:
+		rows = ENEMY_ROWS_TIGHT
 	return Vector3(ENEMY_CENTER_X + float(ent[0]) * ENEMY_PITCH_X, _POS_Y, rows[int(ent[1]) + 1])
 
 

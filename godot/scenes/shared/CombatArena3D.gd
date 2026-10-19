@@ -34,7 +34,7 @@ const PORTAL_YAW_DEG := 90.0
 ## Prop keep-out (|x| / z): enemy flanks (enemy row z -6.5, x 0/+-5.1) and the portal line.
 const KEEPOUT_ENEMY_Z := [-15.0, 16.0]   # arena z = world -x: the whole fight line incl. party
 ## arena x = world z - lane z. The 3 depth rows stand at world z -6 .. +7 around a lane at z 1.1.
-const KEEPOUT_ENEMY_X := [-20.0, 9.0]
+const KEEPOUT_ENEMY_X := [-27.0, 9.0]
 const KEEPOUT_PORTAL_Z := -6.5   # anything behind this z keeps |x| >= KEEPOUT_PORTAL_X
 const KEEPOUT_PORTAL_X := 6.0
 

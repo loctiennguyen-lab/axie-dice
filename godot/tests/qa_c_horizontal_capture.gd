@@ -40,7 +40,7 @@ func _ready() -> void:
 			await _fight("boss", _find(graph, int(graph.boss_rows[0]), "boss"), "boss", size)
 		if _want("eggs"):
 			await _fight("eggs", _find(graph, 3, "battle"), "battle", size)
-		for st in ["n2", "n3", "n5", "aelite", "aboss", "an2", "an3", "an5"]:
+		for st in ["n1", "n2", "n3", "n5", "bosssum6", "aelite", "aboss", "an2", "an3", "an5"]:
 			if _want(st):
 				var arctic: bool = st.begins_with("a")
 				var row := 8 if arctic else 3
@@ -48,6 +48,9 @@ func _ready() -> void:
 				if st == "aelite":
 					row = int(graph.elite_rows[2]) if false else 9
 					knd = "elite"
+				if st == "bosssum6":
+					row = int(graph.boss_rows[0])
+					knd = "boss"
 				if st == "aboss":
 					row = int(graph.boss_rows[0])
 					knd = "boss"
@@ -186,7 +189,12 @@ func _fight(state: String, node_id: String, kind: String, size: Vector2i) -> voi
 		scene._stage3d.set_arena("arctic", true)
 		for _i in 10:
 			await get_tree().process_frame
-	if state in ["n2", "n3", "n5", "an2", "an3", "an5"]:
+	if state == "bosssum6":
+		for _k in 6:
+			scene._combat.spawn_boss_add(scene._combat.enemies[0], 1.0)
+		scene._sync_unit_visuals()
+		scene._rebuild_all()
+	if state in ["n1", "n2", "n3", "n5", "an2", "an3", "an5"]:
 		var want_n := int(state.right(1))
 		var ens: Array = scene._combat.enemies
 		var keys := ["chomper", "slime", "bugling", "spikelet", "ravenling"]
