@@ -47,646 +47,83 @@
  "dice": {
   "die_c_reed": {
    "name": "Reed Basket",
-   "tier": 0,
-   "border": "#000",
-   "contrast": 7.3,
-   "dark": false,
-   "tag": "",
-   "layers": [
-    "plate"
-   ],
-   "files": [
-    "dice/die_c_reed_plate.png"
-   ],
-   "size": 512,
-   "calm_zone_px": {
-    "x": [
-     51,
-     461
-    ],
-    "y": [
-     225,
-     410
-    ]
-   },
-   "spec": [
-    "Border #000, 4 px at s=104 (3 px on the 36 px egg token).",
-    "Straw strands with an airbrushed gold gradient (#FFF0D0 → #F8C880), inner lines #E09050.",
-    "v7: inside the calm zone the weave lines run at 60 % contrast (40 % cream veil #FCEBCD → #FAE2B8 over the weave, under the rim), so the value row reads as one clean field at 36 px.",
-    "Braided rim along the bottom 15 px in orange #F8A858 / brown #A85038, maroon outline. Static."
-   ]
+   "tier": 0
   },
   "die_c_sunwood": {
    "name": "Sunwood Block",
-   "tier": 0,
-   "border": "#000",
-   "contrast": 7.19,
-   "dark": false,
-   "tag": "",
-   "layers": [
-    "plate"
-   ],
-   "files": [
-    "dice/die_c_sunwood_plate.png"
-   ],
-   "size": 512,
-   "calm_zone_px": {
-    "x": [
-     51,
-     461
-    ],
-    "y": [
-     225,
-     410
-    ]
-   },
-   "spec": [
-    "Border #000, 4 px.",
-    "Six sun-bleached planks (#FAEEDC → #EED6B0), seam #C89868 (7.0:1 to ink), wavy grain #DDB98C. Iron nails #8A6040 sit at x 5 and 99, outside the calm zone.",
-    "One cream sparkle top-right. Static."
-   ]
+   "tier": 0
   },
   "die_c_clay": {
    "name": "Honey Clay",
-   "tier": 0,
-   "border": "#000",
-   "contrast": 8.69,
-   "dark": false,
-   "tag": "",
-   "layers": [
-    "plate"
-   ],
-   "files": [
-    "dice/die_c_clay_plate.png"
-   ],
-   "size": 512,
-   "calm_zone_px": {
-    "x": [
-     51,
-     461
-    ],
-    "y": [
-     225,
-     410
-    ]
-   },
-   "spec": [
-    "Border #000, 4 px.",
-    "Baked clay (#F9E0C6 → #EDB892) pressed with five thumbprints, ridges #E2A47E (6.9:1 to ink).",
-    "Terracotta glaze rim along the bottom (#DE7A50 → #B04A2E, highlight #F4A07C), maroon outline. Static."
-   ]
+   "tier": 0
   },
   "die_u_moss": {
    "name": "Mossy Stone",
-   "tier": 1,
-   "border": "#000",
-   "contrast": 8.31,
-   "dark": false,
-   "tag": "",
-   "layers": [
-    "plate"
-   ],
-   "files": [
-    "dice/die_u_moss_plate.png"
-   ],
-   "size": 512,
-   "calm_zone_px": {
-    "x": [
-     51,
-     461
-    ],
-    "y": [
-     225,
-     410
-    ]
-   },
-   "spec": [
-    "Border #000, 4 px.",
-    "Cream river stones with an airbrushed top-left light (#FFFFFF → #E8DCC8) and soft brown inner line #C8A888 (6.6:1 to ink).",
-    "Frog-green moss along the bottom and sides (#60C878 → #40A888, vein #186048) with two broad leaves and a cream water-lily bud, borrowed from the lily-pad frame. Maroon outline. Static."
-   ]
+   "tier": 1
   },
   "die_u_bark": {
    "name": "Tree Rings",
-   "tier": 1,
-   "border": "#000",
-   "contrast": 9.96,
-   "dark": false,
-   "tag": "",
-   "layers": [
-    "plate"
-   ],
-   "files": [
-    "dice/die_u_bark_plate.png"
-   ],
-   "size": 512,
-   "calm_zone_px": {
-    "x": [
-     51,
-     461
-    ],
-    "y": [
-     225,
-     410
-    ]
-   },
-   "spec": [
-    "Border #000, 4 px.",
-    "A cut log face (#F6E4C6 → #ECD2A8): growth rings #DDB888 radiate from the lower-left corner (6.0:1 to ink).",
-    "Bark rim along the bottom (#B8743E → #8A4A26, grooves #6A3418) with a two-leaf sprout. Static."
-   ]
+   "tier": 1
   },
   "die_u_berry": {
    "name": "Berry Jam",
-   "tier": 1,
-   "border": "#000",
-   "contrast": 12.18,
-   "dark": false,
-   "tag": "",
-   "layers": [
-    "plate"
-   ],
-   "files": [
-    "dice/die_u_berry_plate.png"
-   ],
-   "size": 512,
-   "calm_zone_px": {
-    "x": [
-     51,
-     461
-    ],
-    "y": [
-     225,
-     410
-    ]
-   },
-   "spec": [
-    "Border #000, 4 px.",
-    "Cream icing (#FFF3F5 → #F8DCE4) with sugar dots #F2C6D4. Jam (#F0507A → #B8204E, shine #FFC0D0) pools along the bottom and drips down both side edges, outside the calm zone.",
-    "Two blueberries bottom-left, a raspberry with a mint leaf bottom-right. Static."
-   ]
+   "tier": 1
   },
   "die_r_plant": {
    "name": "Jade Sprout",
-   "tier": 2,
-   "border": "#000",
-   "contrast": 12.73,
-   "dark": false,
-   "tag": "Mastery · Plant",
-   "layers": [
-    "plate"
-   ],
-   "files": [
-    "dice/die_r_plant_plate.png"
-   ],
-   "size": 512,
-   "calm_zone_px": {
-    "x": [
-     51,
-     461
-    ],
-    "y": [
-     225,
-     410
-    ]
-   },
-   "spec": [
-    "Border #000, 4 px.",
-    "Two materials: a spring-green field (#F2FBDC → #D8F0B4) printed with leaf silhouettes #BCE290 (12:1 to ink), plus a vine along the bottom (#5FA82A on maroon) carrying five chunky leaves.",
-    "A curled tendril top-right. Static.",
-    "v8: frost facet enlarged to Ø15.6 at s=104 (centre 14.5 / 91, flake r 5.8); stays below the calm zone (y > 83).",
-    "v7 Rare frost cue: cold-blue inner rim (#9FE4FF on #2A6FB0, white inner line) + a frost facet bottom-left, shared by all six class skins so the tier reads Arctic."
-   ]
+   "tier": 2
   },
   "die_r_beast": {
    "name": "Clawed Leather",
-   "tier": 2,
-   "border": "#000",
-   "contrast": 11.13,
-   "dark": false,
-   "tag": "Mastery · Beast",
-   "layers": [
-    "plate"
-   ],
-   "files": [
-    "dice/die_r_beast_plate.png"
-   ],
-   "size": 512,
-   "calm_zone_px": {
-    "x": [
-     51,
-     461
-    ],
-    "y": [
-     225,
-     410
-    ]
-   },
-   "spec": [
-    "Border #000, 4 px.",
-    "Two materials: warm fur (#FFF3DE → #FFDEAE) with tuft strokes #F2C07C (9.7:1 to ink), plus a fluffy orange ruff along the bottom (#FFC35A → #E0861E, strands #B85A10).",
-    "Three claw slashes (#C8682A) top-right and a paw print top-left, both above the calm zone. Static.",
-    "v8: frost facet enlarged to Ø15.6 at s=104 (centre 14.5 / 91, flake r 5.8); stays below the calm zone (y > 83).",
-    "v7 Rare frost cue: cold-blue inner rim (#9FE4FF on #2A6FB0, white inner line) + a frost facet bottom-left, shared by all six class skins so the tier reads Arctic."
-   ]
+   "tier": 2
   },
   "die_r_aqua": {
    "name": "Pearl Tide",
-   "tier": 2,
-   "border": "#000",
-   "contrast": 8.46,
-   "dark": false,
-   "tag": "Mastery · Aquatic",
-   "layers": [
-    "plate"
-   ],
-   "files": [
-    "dice/die_r_aqua_plate.png"
-   ],
-   "size": 512,
-   "calm_zone_px": {
-    "x": [
-     51,
-     461
-    ],
-    "y": [
-     225,
-     410
-    ]
-   },
-   "spec": [
-    "Border #000, 4 px.",
-    "Scale field (#E0FAF4 → #90D8D0), scallop line #58C0B0, curling wave (#58C0B0 → #2E8C90) with cream foam.",
-    "v7: scallops inside the calm zone at 60 % contrast (40 % veil in the field gradient).",
-    "Rare frost cue: cold-blue rim (#9FE4FF on #2A6FB0) + frost facet bottom-left. Static.",
-    "v8: frost facet enlarged to Ø15.6 at s=104 (centre 14.5 / 91, flake r 5.8); stays below the calm zone (y > 83)."
-   ]
+   "tier": 2
   },
   "die_r_reptile": {
    "name": "Scale Lord",
-   "tier": 2,
-   "border": "#000",
-   "contrast": 9.3,
-   "dark": false,
-   "tag": "Mastery · Reptile",
-   "layers": [
-    "plate"
-   ],
-   "files": [
-    "dice/die_r_reptile_plate.png"
-   ],
-   "size": 512,
-   "calm_zone_px": {
-    "x": [
-     51,
-     461
-    ],
-    "y": [
-     225,
-     410
-    ]
-   },
-   "spec": [
-    "Border #000, 4 px.",
-    "Lilac hex-scale field (#F3EAFF → #DFCEF8), hex lines #C6ACEE; glossy scute row along the bottom (#B694FF → #7D4CE7). Lilac kept: Reptile is the purple class, the tier chip separates it from Epic.",
-    "v7: hex lines inside the calm zone at 60 % contrast (40 % veil).",
-    "Rare frost cue: cold-blue rim + frost facet bottom-left. Static.",
-    "v8: frost facet enlarged to Ø15.6 at s=104 (centre 14.5 / 91, flake r 5.8); stays below the calm zone (y > 83)."
-   ]
+   "tier": 2
   },
   "die_r_bug": {
    "name": "Ladybug Shell",
-   "tier": 2,
-   "border": "#000",
-   "contrast": 9.85,
-   "dark": false,
-   "tag": "Mastery · Bug",
-   "layers": [
-    "plate"
-   ],
-   "files": [
-    "dice/die_r_bug_plate.png"
-   ],
-   "size": 512,
-   "calm_zone_px": {
-    "x": [
-     51,
-     461
-    ],
-    "y": [
-     225,
-     410
-    ]
-   },
-   "spec": [
-    "Border #000, 4 px.",
-    "Blush carapace (#FFEEEA → #FCD6CE) with segment arcs in #F2AC9C; ladybird shell along the bottom (#FF6E5E → #D83A30).",
-    "v7: the centre seam is cut short and stops at y 44 (≈ 217 at 512), before the calm zone starts at 225.",
-    "Rare frost cue: cold-blue rim + frost facet bottom-left. Static.",
-    "v8: frost facet enlarged to Ø15.6 at s=104 (centre 14.5 / 91, flake r 5.8); stays below the calm zone (y > 83)."
-   ]
+   "tier": 2
   },
   "die_r_bird": {
    "name": "Rosy Plume",
-   "tier": 2,
-   "border": "#000",
-   "contrast": 11.86,
-   "dark": false,
-   "tag": "Mastery · Bird",
-   "layers": [
-    "plate"
-   ],
-   "files": [
-    "dice/die_r_bird_plate.png"
-   ],
-   "size": 512,
-   "calm_zone_px": {
-    "x": [
-     51,
-     461
-    ],
-    "y": [
-     225,
-     410
-    ]
-   },
-   "spec": [
-    "Border #000, 4 px.",
-    "Two materials: sky down (#EFF9FF → #CFEEFF) with feather scallops #A2D6F2 (11:1 to ink), plus seven tail feathers fanned up from the bottom edge, alternating pink (#FFB0D4 → #E85A9A) and blue (#A8E6FF → #3AA8E8) with quills. Static.",
-    "v8: frost facet enlarged to Ø15.6 at s=104 (centre 14.5 / 91, flake r 5.8); stays below the calm zone (y > 83).",
-    "v7 Rare frost cue: cold-blue inner rim (#9FE4FF on #2A6FB0, white inner line) + a frost facet bottom-left, shared by all six class skins so the tier reads Arctic."
-   ]
+   "tier": 2
   },
   "die_e_rune": {
    "name": "Rune Slate",
-   "tier": 3,
-   "border": "#4A1E8A",
-   "contrast": 11.58,
-   "dark": false,
-   "tag": "",
-   "layers": [
-    "base",
-    "glow"
-   ],
-   "files": [
-    "dice/die_e_rune_base.png",
-    "dice/die_e_rune_glow.png"
-   ],
-   "size": 512,
-   "calm_zone_px": {
-    "x": [
-     51,
-     461
-    ],
-    "y": [
-     225,
-     410
-    ]
-   },
-   "spec": [
-    "Border #4A1E8A (Mystic violet), 4 px.",
-    "Lavender tablet (#F4ECFF → #D8C4F4) with diagonal lilac stripes. Five runes carved in #8050C8 with a white lip, y 85 (below the calm zone).",
-    "v7: the rune row moved right/in (x 24–76) so no rune is cut by the gold scroll curls in the lower corners.",
-    "base.png: tablet, carved runes, scrolls, gems — no glow. glow.png: rune underlay #C898F0 5 px, blend Add; pulse 0.35→0.9, 2.0 s. Reduce flashing: 0.55→0.7."
-   ]
+   "tier": 3
   },
   "die_e_spore": {
    "name": "Glowcap Grove",
-   "tier": 3,
-   "border": "#3B1A5C",
-   "contrast": 14.76,
-   "dark": false,
-   "tag": "",
-   "layers": [
-    "base",
-    "glow"
-   ],
-   "files": [
-    "dice/die_e_spore_base.png",
-    "dice/die_e_spore_glow.png"
-   ],
-   "size": 512,
-   "calm_zone_px": {
-    "x": [
-     51,
-     461
-    ],
-    "y": [
-     225,
-     410
-    ]
-   },
-   "spec": [
-    "Border #3B1A5C (deep Mystic), 4 px.",
-    "Moonlit mist field (#F3EFFF → #DDE6F6), violet toadstools in both lower corners on a plum moss rim (#7A60C8 → #4A3090).",
-    "v7: caps lowered — every cap top sits at y ≥ 82 (≈ 420 at 512), under the calm zone floor.",
-    "base.png: field, moss rim, toadstools — no halos, no spores. glow.png: mint halos #9AF0D8 behind each cluster + 7 floating spores (core #E8FFF8, rim #3AB89A), blend Add. Spores sit above the calm zone or at the side edges.",
-    "Idle: halos pulse 0.25→0.9 over 2.0 s; spores twinkle 2.0 s, staggered 0.3 s. Reduce flashing: halos 0.5→0.65, spores opacity only."
-   ]
+   "tier": 3
   },
   "die_e_s1_founder": {
    "name": "Founder's Seal",
-   "tier": 3,
-   "border": "#5A2A0A",
-   "contrast": 12.9,
-   "dark": false,
-   "tag": "Pass S1 · founding season",
-   "layers": [
-    "base",
-    "glow"
-   ],
-   "files": [
-    "dice/die_e_s1_founder_base.png",
-    "dice/die_e_s1_founder_glow.png"
-   ],
-   "size": 512,
-   "calm_zone_px": {
-    "x": [
-     51,
-     461
-    ],
-    "y": [
-     225,
-     410
-    ]
-   },
-   "spec": [
-    "Border #5A2A0A (dark bronze), 4 px.",
-    "Parchment (#FFF8E8 → #F4E2C0), faint star print #EBD5A8, laurel branches up both side edges (x ≤ 9, x ≥ 95).",
-    "v7: no lettering. The Season-1 shield above the value row carries a bold numeral “1” (Baloo-style block numeral drawn as a shape, cream #FFF4E0 with maroon outline) — readable at 36 px. The gold ribbon below is plain and shortened to x 16–88 so its tails clear the 92 px corner mask.",
-    "base.png: everything above, no stars. glow.png: the two gold corner stars; twinkle 2.0 s, offset 1.0 s. Reduce flashing: opacity only."
-   ]
+   "tier": 3
   },
   "die_l_gold": {
    "name": "Genesis Sun",
-   "tier": 4,
-   "border": "#7A3410",
-   "contrast": 10.38,
-   "dark": false,
-   "tag": "",
-   "layers": [
-    "base",
-    "glow"
-   ],
-   "files": [
-    "dice/die_l_gold_base.png",
-    "dice/die_l_gold_glow.png"
-   ],
-   "size": 512,
-   "calm_zone_px": {
-    "x": [
-     51,
-     461
-    ],
-    "y": [
-     225,
-     410
-    ]
-   },
-   "spec": [
-    "Border #7A3410 (burnt orange), 4 px.",
-    "Warm gold field (#FFF6DC → #FFE0A0) with engraved swirls #F0B868 above the calm zone.",
-    "v7: the sun sits lower (centre y 118 of 104) and its tallest blade ray stops at y 84 (≈ 430 at 512), below the calm zone floor at 410. Nothing rises into the value row.",
-    "base.png: field + sun + rays. glow.png: diagonal sheen, white 50 %, blend Add; sweeps in 1.1 s, rests, 3.2 s loop. Reduce flashing: sheen at 20 %."
-   ]
+   "tier": 4
   },
   "die_l_relic_stone": {
    "name": "Gold Seam Relic",
-   "tier": 4,
-   "border": "#3A3020",
-   "contrast": 8.06,
-   "dark": false,
-   "tag": "",
-   "layers": [
-    "base",
-    "glow"
-   ],
-   "files": [
-    "dice/die_l_relic_stone_base.png",
-    "dice/die_l_relic_stone_glow.png"
-   ],
-   "size": 512,
-   "calm_zone_px": {
-    "x": [
-     51,
-     461
-    ],
-    "y": [
-     225,
-     410
-    ]
-   },
-   "spec": [
-    "Border #3A3020 (old stone), 4 px.",
-    "Running-bond stone blocks (#F3EFE6 → #DDD6C6, mortar #B4AA96) with chip marks; carved keystone at the bottom centre.",
-    "base.png: blocks + the seams as dark carved cracks (#8A7E68, 1.6 px) + an unlit keystone glyph. No glow in the base.",
-    "glow.png (blend Add): golden seams down both side edges and along the bottom — halo #FFC870 6 px at 55 %, edge #C8701A 2.6 px, core #FFF4C8 1.2 px — plus the lit sun glyph. Seams never enter the calm zone.",
-    "Idle: halo pulses 0.25→0.9, 2.4 s. Reduce flashing: 0.5→0.65."
-   ]
+   "tier": 4
   },
   "die_l_kingdom": {
    "name": "Lunacia Crown",
-   "tier": 4,
-   "border": "#24388A",
-   "contrast": 12.81,
-   "dark": false,
-   "tag": "Echo Box · pairs with Pass lv30 “LUNACIA SOVEREIGN”",
-   "layers": [
-    "base",
-    "glow"
-   ],
-   "files": [
-    "dice/die_l_kingdom_base.png",
-    "dice/die_l_kingdom_glow.png"
-   ],
-   "size": 512,
-   "calm_zone_px": {
-    "x": [
-     51,
-     461
-    ],
-    "y": [
-     225,
-     410
-    ]
-   },
-   "spec": [
-    "Border #24388A (royal navy), 4 px. Reads as black at 36 px.",
-    "Ivory damask (#FFFAF0 → #F6E8D0, diamond motif #EAD4AC at 12:1 to ink). Ornament: a royal-blue velvet hem (#4A68D8 → #24388A) under a gold trim line (#FFC93C on maroon), a gold crown (#FFE48A → #E8A020, ruby #E8304A, sapphires #3AC8F0) and four gold stars on the hem, gold filigree in the top corners.",
-    "base.png: damask, velvet hem, gold trim, crown, stars, filigree — no sheen. glow.png: diagonal white sheen 50 %, blend Add; sweeps in 1.2 s, rests, 3.6 s loop. Reduce flashing: sheen at 20 %."
-   ]
+   "tier": 4
   },
   "die_m_redcrystal": {
    "name": "Heart of Luna",
-   "tier": 5,
-   "border": "#0E0608",
-   "contrast": 14.02,
-   "dark": true,
-   "tag": "",
-   "layers": [
-    "base",
-    "glow",
-    "max"
-   ],
-   "files": [
-    "dice/die_m_redcrystal_base.png",
-    "dice/die_m_redcrystal_glow.png",
-    "dice/die_m_redcrystal_max.png"
-   ],
-   "size": 512,
-   "calm_zone_px": {
-    "x": [
-     51,
-     461
-    ],
-    "y": [
-     225,
-     410
-    ]
-   },
-   "spec": [
-    "Dark skin with a LIGHT VALUE PLATE (cream #FFF4E4 → #F4DCC4, 1.4 px maroon outline) sized to the calm zone. Ink #1A1206.",
-    "v7: border near-black #0E0608, 4 px, so the die keeps its outline on the night field at 36 px. Field: the shared Mythic night #2A0F2E (gradient #3A1442 → #2A0F2E) with cream star dust.",
-    "Signature: cream crescent moon with a teal gem; red crystals (#FF7E9C → #B8123E). v7: the two tall crystals carry a Luna Crimson #FF3D6E core.",
-    "base.png: field, moon, crystals, value plate. glow.png: 3 teal-rimmed sparkles, twinkle 1.6 s staggered (Reduce flashing: opacity only).",
-    "max.png (MAX settle, 0.6 s): full moon over the crescent + grown crystals (×1.15 from their base, ease-out-back). Reduced: crystals only."
-   ]
+   "tier": 5
   },
   "die_m_moon": {
    "name": "Midnight Moon",
-   "tier": 5,
-   "border": "#0E0608",
-   "contrast": 12.37,
-   "dark": false,
-   "tag": "Echo Box · the moon disc is the value plate",
-   "layers": [
-    "base",
-    "glow",
-    "max"
-   ],
-   "files": [
-    "dice/die_m_moon_base.png",
-    "dice/die_m_moon_glow.png",
-    "dice/die_m_moon_max.png"
-   ],
-   "size": 512,
-   "calm_zone_px": {
-    "x": [
-     51,
-     461
-    ],
-    "y": [
-     225,
-     410
-    ]
-   },
-   "spec": [
-    "v7: border near-black #0E0608, 4 px (was night violet, lost at 36 px).",
-    "Field: the shared Mythic night #2A0F2E (gradient #3A1442 → #2A0F2E) with star dust. A full moon (r 52, centre 52/68; #FFF9EC → #F0DCC0, rim #E8A060) covers the calm zone, so the number sits on the moon.",
-    "Signature: sleeping moon face — closed eyes above the value row (y 39), blush at the sides, small smile below (y 92). Faint craters.",
-    "base.png: field, moon, face. glow.png: warm halo ring outside the moon (#FFE8B0) breathing 0.25→0.9 over 3.0 s + four blue-rimmed sparkles twinkling 1.6 s. Reduce flashing: halo 0.5→0.65, sparkles opacity only.",
-    "max.png (MAX settle, 0.8 s): eyes open (#6B2B2B pupils, cream catch-lights) and the halo flares to r 70. Reduced: eyes only."
-   ]
+   "tier": 5
   }
  },
  "frames": {

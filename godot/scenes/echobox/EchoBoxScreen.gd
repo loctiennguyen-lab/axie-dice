@@ -793,7 +793,7 @@ func _cosmetic_art(item: String, px: float, live: bool) -> Control:
 	var slot := Cosmetics.slot_of(a)
 	if slot == Cosmetics.SLOT_DIE:
 		var tr := TextureRect.new()
-		tr.name = "Thumb"
+		tr.name = "Art"
 		tr.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 		tr.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 		tr.custom_minimum_size = Vector2(px, px)
@@ -806,7 +806,7 @@ func _cosmetic_art(item: String, px: float, live: bool) -> Control:
 		if AccountService.is_signed_in():
 			letter = AccountService.display_name()
 		var cell := CenterContainer.new()
-		cell.name = "FramePreview"
+		cell.name = "Art"
 		cell.custom_minimum_size = Vector2(px, px)
 		cell.size = Vector2(px, px)
 		cell.mouse_filter = Control.MOUSE_FILTER_IGNORE
