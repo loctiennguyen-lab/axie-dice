@@ -70,6 +70,22 @@ func _run(journey: Array, forced: bool) -> void:
 	_assert(ArenaV2Diorama.is_requested(b) and ArenaV2Diorama.is_requested(c), tag + "b and c should be held")
 	await _wait_ready(c)
 	_assert(ArenaV2Diorama.packed_scene(c) != null, tag + "packed_scene(c) null")
+	# Stale requests must not block new ones: ask A+B, then (never collecting them) C+D.
+	if journey.size() >= 4:
+		var d4 := String(journey[3])
+		ArenaV2Diorama.clear_preload()
+		ArenaV2Diorama.preload_biomes([a, b])
+		var started: Array[String] = []
+		for _i in 600:
+			started.append_array(ArenaV2Diorama.preload_biomes([c, d4]))
+			if started.size() >= 2:
+				break
+			await get_tree().process_frame
+		_assert(started.has(c) and started.has(d4), tag + "C and D must start after A and B, got %s" % [started])
+		_assert(not ArenaV2Diorama.is_requested(a) and not ArenaV2Diorama.is_requested(b), tag + "A and B should be dropped")
+	_assert(EventBus.run_ended.is_connected(ArenaV2Diorama._on_run_ended), tag + "run_ended not hooked")
+	EventBus.run_ended.emit(false)
+	_assert(not ArenaV2Diorama.is_requested(c), tag + "run end must clear the preload")
 	# Not preloaded at all: packed_scene falls back to a sync load.
 	ArenaV2Diorama.clear_preload()
 	_assert(ArenaV2Diorama.packed_scene(a) != null, tag + "sync fallback returned null")

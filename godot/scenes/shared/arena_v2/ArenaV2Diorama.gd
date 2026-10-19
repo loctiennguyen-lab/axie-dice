@@ -68,6 +68,11 @@ static func preload_biomes(ids: Array) -> Array[String]:
 		var id := String(raw)
 		if wanted.size() < MAX_PRELOAD and not wanted.has(id) and has_biome(id):
 			wanted.append(id)
+	if not EventBus.run_ended.is_connected(_on_run_ended):
+		EventBus.run_ended.connect(_on_run_ended)   # drop the held scenes when the run ends
+	# Drain finished requests first (also stale ones, else _pending would never shrink).
+	for pid in _pending.duplicate():
+		_collect(pid)
 	for k in _ready_scenes.keys():
 		if not wanted.has(k):
 			_ready_scenes.erase(k)
@@ -126,6 +131,10 @@ static func _collect(id: String) -> void:
 			_ready_scenes[id] = ps
 	elif st == ResourceLoader.THREAD_LOAD_FAILED or st == ResourceLoader.THREAD_LOAD_INVALID_RESOURCE:
 		_pending.erase(id)
+
+
+static func _on_run_ended(_won: bool) -> void:
+	clear_preload()
 
 
 ## Forgets every preload (tests, QA timing). Does not touch scenes a stage has instanced.
