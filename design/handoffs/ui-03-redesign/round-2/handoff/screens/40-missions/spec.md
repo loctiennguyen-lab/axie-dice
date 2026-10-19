@@ -47,4 +47,4 @@ Picked per day, per tier. Base on every Mission fight: enemy damage ×1.1, Elite
 | N5 (off) | M1, M5, M6, M7 | M2, M4, M5, M6 |
 | N6 (off) | M1, M4, M5, M6, M7 | same as A |
 
-M1 Harsh clock: boss clock from turn 6, +20% a turn, max 5 steps · M2 Spike stack: spikes 1 turn sooner · M3 Hunted: +2 Elites (below A9 only) · M4 Heavy hits: enemy damage ×1.15 · M5 Thick boss: boss HP ×1.25 · M6 (unnamed): normal enemy HP ×1.2 · M7 (unnamed): Elite damage ×1.25.
+M1 Harsh clock: boss clock from turn 6, +20% a turn, max 5 steps · M2 Spike stack: spikes 1 turn sooner · M3 Hunted: +2 Elites (below A9 only) · M4 Heavy hits: enemy damage ×1.15 · M5 Thick boss: boss HP ×1.25 · M6 Sturdy foes: Normal enemy HP ×1.2 · M7 Fierce elites: Elite fight dice values ×1.25 (damage, shields, heals).

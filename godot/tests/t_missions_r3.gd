@@ -124,6 +124,10 @@ func _ready() -> void:
 	s.open_confirm("N2")
 	await get_tree().process_frame
 	_ok(s.rule_lines(s.offer("N2")).size() == 1 + (s.offer("N2").rules as Array).size(), "rule lines: standard + extras")
+	var fake := {"rules": ["M6", "M7"]}
+	var rl: Array = s.rule_lines(fake)
+	_ok(String(rl[1]) == "Sturdy foes: Normal enemy HP x1.2", "M6 named: " + String(rl[1]))
+	_ok(String(rl[2]) == "Fierce elites: Elite fight dice values x1.25 (damage, shields, heals)", "M7 named: " + String(rl[2]))
 	s.close_modal()
 	# insufficient Shard
 	MetaState.shard_pool = int(cfg.tiers.N1.stake) - 50
