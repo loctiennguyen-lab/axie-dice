@@ -142,7 +142,7 @@ static func preview_faces() -> Array:
 			var out: Array = []
 			for i in 6:
 				out.append({"type": String((die[i] as Dictionary).get("type", "blank")),
-					"value": int((die[i] as Dictionary).get("value", 0))})
+					"value": FaceAmount.display_value(die[i] as Dictionary, int((die[i] as Dictionary).get("value", 0)))})
 			return out
 	return THUMB_FACES
 
