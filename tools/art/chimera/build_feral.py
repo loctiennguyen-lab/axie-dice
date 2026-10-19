@@ -58,6 +58,11 @@ def neck_patch():
     o = bpy.data.objects.new("NeckPatch", me)
     bpy.context.scene.collection.objects.link(o)
     me.materials.append(solid_material("M_NeckPatch", (0.14, 0.36, 0.88)))
+    sol = o.modifiers.new("S", 'SOLIDIFY')   # thickness stops bake rays from slipping through (white specks)
+    sol.thickness = 0.012
+    sol.offset = 0.0
+    bpy.context.view_layer.objects.active = o
+    bpy.ops.object.modifier_apply(modifier="S")
     return o
 
 

@@ -365,7 +365,7 @@
    "path": "res://assets/bosses/chimera_feral/chimera_feral.glb",
    "height_m": 4.72,
    "max_width_m": 6.5,
-   "facing_deg": 18,
+   "facing_deg": 70,
    "anims": {
     "idle": "Idle",
     "attack": "Attack",
