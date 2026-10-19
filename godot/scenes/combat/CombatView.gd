@@ -1035,6 +1035,9 @@ func _build_hud_r1() -> void:
 	_relic_strip = _hud_frame.relic_strip
 	_actives_row = _hud_frame.actives_row
 	_hud_frame.adopt_right_zone(_undo_button, _reroll_button, _end_turn_button)
+	var old_log_box := _debug_log_container
+	_debug_log_container = _hud_frame.adopt_log(_log_panel)
+	old_log_box.queue_free()
 	_aid = AidPanel.new()
 	_aid.name = "AidPanel"
 	_aid.z_index = 9
