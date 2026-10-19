@@ -31,8 +31,10 @@ signal all_arrived
 const MAX_DICE := 11
 const STAGGER := 0.110
 const FLIGHT := 0.480
-const LAND_CENTER_X := 3.0   ## world x the dice fan out around (between the teams)
-const LAND_Z := 7.0          ## world z of the first landing line (the open floor in front of both teams)
+const LAND_COLS := 6         ## dice per landing row; 11 dice make two rows of 6 and 5
+const LAND_GAP_X := 1.9      ## world metres between dice in a row (a die is 1 m, tumbling up to ~1.7 m across)
+const LAND_GAP_Z := 2.8      ## between rows, so two rows never touch on screen
+const LAND_Y := 0.5
 const TUMBLE_STEP := 0.090
 const TUMBLE_TOTAL := 1.080
 const SQUASH_TIME := 0.300
@@ -500,6 +502,32 @@ func _build_die(d: Dictionary) -> void:
 	d["pivot"] = pivot
 
 
+## World point under the CENTRE of the screen (Liam 19/10: the throw lands in the middle of the screen and may
+## roll over units). Falls back to the origin when there is no camera.
+func _landing_center() -> Vector3:
+	if _camera == null or not is_instance_valid(_camera) or _camera.get_viewport() == null:
+		return Vector3(0.0, LAND_Y, 0.0)
+	var centre := _camera.get_viewport().get_visible_rect().size * 0.5
+	var o := _camera.project_ray_origin(centre)
+	var dir := _camera.project_ray_normal(centre)
+	if absf(dir.y) < 0.001:
+		return Vector3(0.0, LAND_Y, 0.0)
+	var t := (LAND_Y - o.y) / dir.y
+	return o + dir * t
+
+
+## Landing spot of die `i` of `n` around `centre`: rows of LAND_COLS, each row centred, no two spots closer than
+## LAND_GAP_X / LAND_GAP_Z. Pure function.
+static func landing_spot(i: int, n: int, centre: Vector3) -> Vector3:
+	var cols := mini(maxi(n, 1), LAND_COLS)
+	var rows := ceili(float(maxi(n, 1)) / float(cols))
+	var r := i / cols
+	var in_row := mini(cols, n - r * cols)
+	var idx := i % cols
+	return Vector3(centre.x + (float(idx) - float(in_row - 1) * 0.5) * LAND_GAP_X, LAND_Y,
+		centre.z + (float(r) - float(rows - 1) * 0.5) * LAND_GAP_Z)
+
+
 func _launch(d: Dictionary) -> void:
 	var body := d["body"] as RigidBody3D
 	var slot = d["slot"]
@@ -510,9 +538,7 @@ func _launch(d: Dictionary) -> void:
 	var i := int(d["i"])
 	# Land on the open floor in FRONT of both teams (between the party's front row and the camera), fanned
 	# out sideways, so a die never comes to rest on a unit (horizontal layout: teams left / right).
-	var gap := minf(1.6, 6.4 / maxf(float(n - 1), 1.0))
-	var target := Vector3(LAND_CENTER_X + (float(i) - float(n - 1) * 0.5) * gap, 0.5,
-		LAND_Z + float(i % 2) * 1.1 + _rng.randf_range(-0.2, 0.2))
+	var target := landing_spot(i, n, _landing_center())
 	var g := 9.8 * body.gravity_scale
 	var v := (target - start - Vector3(0.0, -0.5 * g * FLIGHT * FLIGHT, 0.0)) / FLIGHT
 	body.global_position = start

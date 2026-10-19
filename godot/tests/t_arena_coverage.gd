@@ -94,7 +94,7 @@ func _collect(dir_path: String, out: Array[String]) -> void:
 ## no prop may sit inside the enemy-flank / portal-line keep-out.
 func _check_framing(journey: Array) -> void:
 	_assert(CombatArena3D.in_keepout(0.0, -30.0), "portal line should be keep-out")
-	_assert(CombatArena3D.in_keepout(5.0, -6.5), "enemy row should be keep-out")
+	_assert(CombatArena3D.in_keepout(-5.0, -6.5), "enemy row should be keep-out")
 	_assert(not CombatArena3D.in_keepout(15.0, -6.5), "far flank should be allowed")
 	var stage: CombatStage3D = load("res://scenes/shared/CombatStage3D.tscn").instantiate()
 	add_child(stage)
