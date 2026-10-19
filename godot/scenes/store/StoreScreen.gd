@@ -19,7 +19,7 @@ const TABS := ["gem", "cosmetics", "tickets", "moon"]
 const TAB_NAMES := {"gem": "Gem packs", "cosmetics": "Cosmetics", "tickets": "Tickets", "moon": "Moon Card"}
 const DETAIL_W := 440
 const USD_REASON := "Buying disabled in the playtest"
-const RARITY_TOKEN := {"rare": "rarity_rare", "epic": "rarity_epic", "legendary": "rarity_legendary", "mythic": "rarity_legendary"}
+const RARITY_TOKEN := {"uncommon": "rarity_uncommon", "rare": "rarity_rare", "epic": "rarity_epic", "legendary": "rarity_legendary", "mythic": "rarity_mythic"}
 const REASONS := {
 	"no_gems": "Not enough Gem", "hold_cap": "You can't hold that many tickets",
 	"owned": "You already own this", "not_for_sale": "Not for sale",
@@ -544,15 +544,60 @@ func _tab_cosmetics() -> void:
 			cur = d
 		var t := _tile(key, "Cos_" + id)
 		var v: VBoxContainer = t[1]
-		var art := CosmeticTile.art(id, 72.0)
+		# 48-store-pass-tiles: 240 x 336 tile, 4 px tier strip, art 208 x 168 on wood-2, name, tier word, action row 48
+		(t[0] as Control).custom_minimum_size = Vector2(240, 336)
+		v.alignment = BoxContainer.ALIGNMENT_BEGIN
+		var tier_idx := maxi(EchoBox.RARITIES.find(String(d.rarity)), 0)
+		var strip := ColorRect.new()
+		strip.custom_minimum_size = Vector2(0, 4)
+		strip.color = DiceSkin.tier_color(tier_idx)
+		strip.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		v.add_child(strip)
+		var have := MetaState.cosmetics_owned.has(id)
+		var box := Panel.new()
+		box.name = "ArtBox"
+		box.custom_minimum_size = Vector2(208, 168)
+		box.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+		box.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		box.clip_contents = true
+		box.add_theme_stylebox_override("panel", UI3Theme.flat(UI3Theme.color("panel_raised"), UI3Theme.radius("s")))
+		var art := CosmeticTile.art(id, 160.0)
 		if art != null:
 			art.mouse_filter = Control.MOUSE_FILTER_IGNORE
-			v.add_child(art)
+			art.position = Vector2(24, 4)
+			if have:
+				art.modulate.a = 0.5   # owned: art at 50%
+			box.add_child(art)
+		v.add_child(box)
 		var nm := CosmeticTile.display_name(id)
-		_tile_text(v, nm if nm != "" else id, "")
-		var rl := v.get_child(v.get_child_count() - 1) as Label
-		rl.text = String(d.rarity).capitalize()
-		rl.add_theme_color_override("font_color", UI3Theme.color(String(RARITY_TOKEN.get(d.rarity, "rarity_rare"))))
+		var nl := UI3.label((nm if nm != "" else id).left(18), "LabelTitle")
+		nl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		nl.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+		nl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		v.add_child(nl)
+		var rl := UI3.label(String(d.rarity).capitalize())
+		rl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		rl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		rl.add_theme_color_override("font_color", DiceSkin.tier_text_color(tier_idx))
+		v.add_child(rl)
+		var sp := Control.new()
+		sp.size_flags_vertical = Control.SIZE_EXPAND_FILL
+		sp.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		v.add_child(sp)
+		if have:
+			var ow := UI3.label("Owned", "LabelMuted")
+			ow.name = "OwnedWord"
+			ow.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+			ow.custom_minimum_size = Vector2(0, 48)
+			ow.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+			ow.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			v.add_child(ow)
+		else:
+			var chip := UI3.cost_chip(&"gem", int(d.price))
+			chip.name = "PriceChip"
+			chip.custom_minimum_size = Vector2(0, 48)
+			chip.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			v.add_child(chip)
 		_put(grid, t[0])
 	_body_host.add_child(grid)
 	var id2 := String(cur.id)
