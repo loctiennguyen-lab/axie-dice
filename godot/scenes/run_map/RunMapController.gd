@@ -89,6 +89,10 @@ class _EdgeCanvas extends Control:
 				draw_line(s["a"], s["b"], s["color"], float(s["width"]), true)
 
 
+const _BG_PATH := "res://assets/backgrounds/origins/class/reptile.jpg"
+const _BG_SCRIM_ALPHA := 0.6
+
+
 func _ready() -> void:
 	EventBus.node_entered.connect(_on_node_entered)
 	_graph = RunMapGraph.from_data(RunState.map_graph)
@@ -100,6 +104,25 @@ func _ready() -> void:
 	bg.set_anchors_preset(Control.PRESET_FULL_RECT)
 	bg.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_root.add_child(bg)
+
+	# Painted backdrop (purple-toned, Liam b931): cover-fit, never stretched, then a flat
+	# neutral-1 scrim so nodes, dashed lines and plates stay readable. No blur, no gradient.
+	var art := TextureRect.new()
+	art.name = "Background"
+	art.texture = load(_BG_PATH) as Texture2D
+	art.set_anchors_preset(Control.PRESET_FULL_RECT)
+	art.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	art.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
+	art.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_root.add_child(art)
+	var dim := ColorRect.new()
+	dim.name = "Scrim"
+	var dim_c := UI3Theme.color("bg")
+	dim_c.a = _BG_SCRIM_ALPHA
+	dim.color = dim_c
+	dim.set_anchors_preset(Control.PRESET_FULL_RECT)
+	dim.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_root.add_child(dim)
 
 	_board = Control.new()
 	_board.name = "Content"
