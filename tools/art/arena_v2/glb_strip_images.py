@@ -17,6 +17,8 @@ def strip(path):
     blen, btype = struct.unpack('<II', data[off:off + 8])
     bin_ = data[off + 8:off + 8 + blen]
 
+    assert len(gltf.get('buffers', [])) == 1, 'single-buffer GLB only'
+    assert not any('sparse' in a for a in gltf.get('accessors', [])), 'sparse accessors not handled'
     drop = set()
     for img in gltf.get('images', []):
         if 'uri' in img and 'bufferView' in img:

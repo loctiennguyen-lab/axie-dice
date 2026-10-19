@@ -139,10 +139,10 @@ def paint(size=SIZE, blobs=()):
     # 2. darker orange stains, painterly (soft but defined edges), fewer in the field
     s = n2.fbm(X / 4.5, Z / 4.5, 4)
     st_mask = smooth(0.55, 0.62, s)
-    col = lerp(col, np.broadcast_to(stain, X.shape + (3,)), st_mask * 0.7)
+    col = lerp(col, np.broadcast_to(stain, X.shape + (3,)), st_mask * 0.55)
     # smaller splotches between the big ones (Land-style mottling at unit scale)
     s2 = n4.fbm(X / 2.0 + 13.0, Z / 2.0 - 5.0, 3)
-    col = lerp(col, np.broadcast_to(stain, X.shape + (3,)), smooth(0.64, 0.70, s2) * 0.35)
+    col = lerp(col, np.broadcast_to(stain, X.shape + (3,)), smooth(0.64, 0.70, s2) * 0.25)
     # lighter sun-bleached sweeps
     s3 = n1.fbm(X / 3.5 - 20.0, Z / 3.5 + 8.0, 3)
     col = lerp(col, np.broadcast_to(srgb('D6BE62'), X.shape + (3,)), smooth(0.62, 0.70, s3) * 0.6)

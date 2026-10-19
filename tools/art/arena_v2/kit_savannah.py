@@ -1,4 +1,5 @@
-"""Savannah arena v2 - kit + ground mesh setup (run inside Blender once, before export_savannah.py).
+"""Needs Blender (imports bpy); no standalone run.
+Savannah arena v2 - kit + ground mesh setup (run inside Blender once, before export_savannah.py).
 
 Creates scene 'SavannahArena' with:
   Kit    - the source meshes, imported from asset-library/godot-ready/src (HomeLand + Atia FBX),

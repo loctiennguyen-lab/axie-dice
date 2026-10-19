@@ -43,10 +43,12 @@ func build(id: String) -> bool:
 		# The ground only receives shadows; props cast them (sun shadows are on with an arena).
 		var is_ground := mi.name.begins_with("SA_Ground")
 		mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF if is_ground else GeometryInstance3D.SHADOW_CASTING_SETTING_ON
-		for s in mi.get_surface_override_material_count():
-			var m := mi.mesh.surface_get_material(s) as StandardMaterial3D
-			if m == null:
+		for s in mi.mesh.get_surface_count():
+			var src := mi.mesh.surface_get_material(s) as StandardMaterial3D
+			if src == null:
 				continue
+			# Per-instance copy: the imported GLB's materials are cached and shared, never edit them.
+			var m := src.duplicate() as StandardMaterial3D
 			m.roughness = 1.0
 			m.metallic_specular = 0.0
 			# The glTF importer drops these two; the mesh names them (tools/art/arena_v2/):
@@ -55,14 +57,15 @@ func build(id: String) -> bool:
 				m.vertex_color_use_as_albedo = true
 			if m.resource_name.begins_with("M_SA_Tree") or m.resource_name.begins_with("M_SA_Shrub") \
 					or m.transparency != BaseMaterial3D.TRANSPARENCY_DISABLED:
-				# foliage cards: cut-out, both faces, no sorting problems
 				m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA_SCISSOR
 				m.alpha_scissor_threshold = 0.5
 				m.cull_mode = BaseMaterial3D.CULL_DISABLED
+			mi.set_surface_override_material(s, m)
 	return true
 
 
 ## Number of triangles in the diorama as drawn (instances counted), for the budget check.
+## QA only: copies every surface's arrays.
 func triangle_count() -> int:
 	var tris := 0
 	for n in find_children("*", "MeshInstance3D", true, false):

@@ -1,4 +1,5 @@
-"""Savannah arena v2 - rebuild + export (run inside Blender, scene 'SavannahArena').
+"""Needs Blender (imports bpy); no standalone run.
+Savannah arena v2 - rebuild + export (run inside Blender, scene 'SavannahArena').
 
   exec(open('/Users/.../tools/art/arena_v2/export_savannah.py').read())
 
@@ -25,6 +26,7 @@ import build_savannah  # noqa: E402
 import glb_strip_images  # noqa: E402
 importlib.reload(savannah_ground)
 importlib.reload(build_savannah)
+importlib.reload(glb_strip_images)
 
 
 def write_ground(size=2048):

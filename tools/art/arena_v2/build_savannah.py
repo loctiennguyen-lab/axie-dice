@@ -1,4 +1,5 @@
-"""Savannah arena v2 - prop layout (lane V, 10/2026). Run inside Blender after the kit is imported.
+"""Needs Blender (imports bpy); no standalone run.
+Savannah arena v2 - prop layout (lane V, 10/2026). Run inside Blender after the kit is imported.
 
 Positions are GODOT world coordinates of the combat stage (x right, z toward the camera, y up);
 Blender gets (x, -z, y). Heights are target heights in metres, measured from each kit mesh.
@@ -87,7 +88,7 @@ LAYOUT = [
     # lower-left corner
     ('grass_b', -11.6, 10.6, 20, 1.0),
     # a couple of pebbles in the field, away from every unit slot
-    ('rock_a', -1.8, -7.6, 77, 0.35),
+    ('rock_a', -5.5, -9.0, 77, 0.35),
     ('rock_a', -13.2, -3.5, 160, 0.45),
 ]
 
