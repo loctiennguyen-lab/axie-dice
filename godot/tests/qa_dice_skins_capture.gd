@@ -3,7 +3,7 @@ extends Node
 ##  cos3d-thumbs.png  (all 20 baked thumbnails, 5 x 4)
 ##  cos3d-faces-<skin>.png  (every face of three skins, face-on, from the plate renderer)
 
-const FACE_SKINS := ["die_c_reed", "die_r_aqua", "die_l_gold"]
+const FACE_SKINS := ["die_r_bird", "die_r_plant", "die_c_reed", "die_u_moss", "die_e_rune", "die_l_gold", "die_m_moon"]
 
 
 func _out() -> String:
@@ -21,7 +21,7 @@ func _ready() -> void:
 	add_child(bg)
 	for f in DirAccess.get_files_at("user://thumbs"):
 		DirAccess.remove_absolute("user://thumbs/" + f)   # QA always re-bakes
-	var ids := DiceSkin.ids()
+	var ids := DiceSkin.ids() if OS.get_environment("QA_NO_THUMBS") == "" else []
 	for i in ids.size():
 		var tex := await DiceThumb.get_thumb(self, String(ids[i]))
 		var tr := TextureRect.new()
@@ -37,7 +37,8 @@ func _ready() -> void:
 	for _i in 4:
 		await RenderingServer.frame_post_draw
 	get_viewport().get_texture().get_image().save_png(_out() + "/cos3d-thumbs.png")
-	for s in FACE_SKINS:
+	var only := OS.get_environment("QA_SKINS")
+	for s in (only.split(",") if only != "" else FACE_SKINS):
 		await _faces(s)
 	print("QA: saved cos3d sheets")
 	get_tree().quit(0)
