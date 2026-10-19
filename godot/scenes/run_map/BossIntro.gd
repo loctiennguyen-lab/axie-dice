@@ -260,17 +260,18 @@ func _build_plate() -> void:
 	var nm := UI3.label(String(data["name"]), "LabelScreenTitle")
 	nm.name = "BossName"
 	v.add_child(nm)
-	var title := UI3.label(String(data["title"]), "LabelMuted")   # PLACEHOLDER copy
+	var title := UI3.label(String(data["title"]), "LabelMuted")
 	title.name = "BossTitle"
 	v.add_child(title)
 	var chips := HBoxContainer.new()
 	chips.add_theme_constant_override("separation", 8)
 	chips.add_child(_class_chip(String(data["cls"])))
-	var ph := UI3.chip(tr("%d phases") % int(data["phases"]))
-	ph.name = "PhaseChip"
-	chips.add_child(ph)
+	if int(data["phases"]) > 1:   # one-phase bosses show no chip (Liam 20/10)
+		var ph := UI3.chip(tr("%d phases") % int(data["phases"]))
+		ph.name = "PhaseChip"
+		chips.add_child(ph)
 	v.add_child(chips)
-	var threat := UI3.label(String(data["threat"]), "")   # PLACEHOLDER copy
+	var threat := UI3.label(String(data["threat"]), "")
 	threat.name = "Threat"
 	threat.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	threat.custom_minimum_size = Vector2(PLATE_W - 48, 0)

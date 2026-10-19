@@ -59,6 +59,10 @@ func _ready() -> void:
 		_t(not d.is_empty() and ResourceLoader.exists(String(d.get("bg_path", ""))), "intro data for boss %s" % k)
 		_t(String(d.get("threat", "")).length() <= 70, "threat line <= 70 chars (%s)" % k)
 	_t(BossIntroData.info("nope").is_empty(), "unknown boss has no intro")
+	_t(BossIntroData.phase_count("agony") == 2, "agony has 2 phases (second die)")
+	for k in ["gooey_king", "frost_lord", "mecha", "mirror", "plague_mother"]:
+		_t(BossIntroData.phase_count(k) == 1, "%s has 1 phase" % k)
+		_t(String(BossIntroData.info(k)["threat"]).length() <= 55, "%s threat fits one line" % k)
 	_t(BossIntroData.info("agony")["bg_path"].ends_with("Chimera_BG_Venom.jpg"), "agony uses the Venom painting")
 
 	# Key binding.
@@ -79,6 +83,7 @@ func _ready() -> void:
 	await _warm(a)
 	_t(a.plate != null and a.fight_button != null and a.find_child("Painting", true, false) != null, "plate, Fight and painting exist")
 	_t(a.find_child("BossPivot", true, false).get_child_count() > 0, "a model stands in front of the painting")
+	_t(a.find_child("PhaseChip", true, false) != null, "agony shows its phase chip")
 	a._on_gui_input(_click())
 	_t(a.is_skipped, "click skips after the guard")
 	await get_tree().create_timer(0.5).timeout
@@ -88,6 +93,7 @@ func _ready() -> void:
 	# Each other way of skipping.
 	var b := _make("gooey_king")   # sprite-only boss still works
 	await _warm(b)
+	_t(b.find_child("PhaseChip", true, false) == null, "one-phase boss shows no phase chip")
 	b.fight_button.pressed.emit()
 	_t(b.is_skipped, "Fight skips")
 	b.queue_free()

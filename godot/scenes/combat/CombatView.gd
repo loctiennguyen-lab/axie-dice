@@ -3497,7 +3497,7 @@ func _show_defeat_panel() -> void:
 		if e.is_boss:
 			var spike_in := int(((hs.get("enemy_next", {}) as Dictionary).get(e.uid, {}) as Dictionary).get("turns_to_spike", 0))
 			boss_d = {"name": e.n, "hp": maxi(e.hp, 0), "max_hp": e.max_hp,
-				"phase": int(e.custom_state.get("phase", 1)), "phases": 3, "spike_in": spike_in,
+				"phase": int(e.custom_state.get("phase", 1)), "phases": 2 if (e.custom_state.has("max_hp2") or e.custom_state.has("hp2")) else 1, "spike_in": spike_in,
 				"marks": (ContentDB.combat_tune.get("phase_thresholds", []) as Array).map(
 					func(x): return float(x) / 100.0)}
 	# Final-turn rows, tinted.
