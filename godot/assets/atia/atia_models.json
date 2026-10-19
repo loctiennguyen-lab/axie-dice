@@ -298,15 +298,20 @@
   },
   "mecha": {
    "kind": "glb",
-   "source": "mascot",
-   "path": "res://assets/bosses/xia.glb",
+   "source": "chimera_3d",
+   "path": "res://assets/bosses/chimera_tempest/chimera_tempest.glb",
    "height_m": 4.72,
-   "max_width_m": 6.5,
-   "facing_deg": 0,
+   "max_width_m": 7.5,
+   "facing_deg": 70,
+   "hover_m": 0.22,
+   "fit_width_m": 7.5,
    "anims": {
-    "idle": "Axe_Idle",
-    "attack": "Axe_Attack",
-    "die": "Dead"
+    "idle": "Idle",
+    "attack": "Attack",
+    "hit": "Hit",
+    "die": "Dead",
+    "cast": "Cast",
+    "roar": "Roar"
    },
    "anim_speed": {},
    "fallback_sprite": "shilin"
