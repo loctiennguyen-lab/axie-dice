@@ -116,6 +116,7 @@ func _fight(state: String, node_id: String, kind: String, size: Vector2i) -> voi
 		await get_tree().process_frame
 		return
 	scene._land_dice_now()
+	print("QA: gate rect ", scene._stage3d.gate_screen_rect(), " arena pos ", scene._stage3d._arena.position if scene._stage3d._arena != null else "none", " stage size ", scene._stage3d.size)
 	if OS.get_environment("CAP_DEBUG") != "":
 		var st: Node = scene._stage3d
 		for n in st.find_children("*", "Light3D", true, false):
