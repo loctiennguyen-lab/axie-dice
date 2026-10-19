@@ -239,7 +239,9 @@ if [[ "${AXIE_SKIP_PREFLIGHT:-}" != 1 ]] && _preflight_cache_stale; then
   if [[ -n "$gb" ]]; then
     echo "with_lock: cache class_name cu, tu chay --import (toi da 240s)..." >&2
     "$gb" --headless --path "$PROJ" --import >/dev/null 2>&1 & ip=$!
-    ( sleep 240; kill "$ip" 2>/dev/null ) & iw=$!
+    # Watcher gets TERM when import finishes and kills its own sleep; stdout/stderr go to /dev/null so an
+    # orphaned sleep can never hold a caller's $(...) pipe open for 240 s.
+    ( trap 'kill "$s" 2>/dev/null; exit 0' TERM; sleep 240 & s=$!; wait "$s"; kill "$ip" 2>/dev/null ) >/dev/null 2>&1 & iw=$!
     wait "$ip" 2>/dev/null; ic=$?; kill "$iw" 2>/dev/null
     # Import xong mà không viết lại cache (vd checkout chỉ đổi mtime) thì chạm cache, để lần sau không import lại vô ích.
     [[ "$ic" == 0 && -f "$PROJ/.godot/global_script_class_cache.cfg" ]] && touch "$PROJ/.godot/global_script_class_cache.cfg"
