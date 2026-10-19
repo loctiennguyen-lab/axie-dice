@@ -48,13 +48,20 @@ func _assert(cond: bool, msg: String) -> void:
 		_fails.append(msg)
 
 
+## Each case runs at the 1920x1080 canvas and at a 1280x720 stage (same layout, scale 0.667); all rects are
+## brought back to 1920 space before checking.
 func _case(label: String, kind: String, n_enemy: int, boss: bool, eggs: int, party_minus: int) -> void:
+	await _case_k(label, kind, n_enemy, boss, eggs, party_minus, 1.0)
+	await _case_k(label + " @1280", kind, n_enemy, boss, eggs, party_minus, 1280.0 / 1920.0)
+
+
+func _case_k(label: String, kind: String, n_enemy: int, boss: bool, eggs: int, party_minus: int, k: float) -> void:
 	var stage: CombatStage3D = load("res://scenes/shared/CombatStage3D.tscn").instantiate()
 	add_child(stage)
 	stage.set_anchors_preset(Control.PRESET_TOP_LEFT)
-	stage.size = CANVAS
+	stage.size = CANVAS * k
 	await get_tree().process_frame
-	stage.frame_band(CANVAS.y, 140.4, 876.0)
+	stage.frame_band(CANVAS.y * k, 140.4 * k, 876.0 * k)
 	stage.set_encounter_kind(kind)
 	stage.set_arena("savannah", boss)
 	var party: Array = []
@@ -80,8 +87,10 @@ func _case(label: String, kind: String, n_enemy: int, boss: bool, eggs: int, par
 		await get_tree().process_frame
 	var rects: Dictionary = {}
 	for u in party + enemies:
-		rects[u] = stage.unit_screen_rect(int(u))
-	var gate: Rect2 = stage.gate_screen_rect()
+		var rk: Rect2 = stage.unit_screen_rect(int(u))
+		rects[u] = Rect2(rk.position / k, rk.size / k)
+	var gk: Rect2 = stage.gate_screen_rect()
+	var gate := Rect2(gk.position / k, gk.size / k)
 	if _dump:
 		for u in party + enemies:
 			print("  ", label, " uid ", u, " ", "enemy" if enemies.has(u) else "party", " ", rects[u])
@@ -131,7 +140,7 @@ func _case(label: String, kind: String, n_enemy: int, boss: bool, eggs: int, par
 		var foot := Rect2(pb.position.x, pb.position.z, pb.size.x, pb.size.z).grow(0.3)
 		for u in all:
 			var sp: Vector3 = (stage.slot_node_of(int(u)) as Node3D).global_position
-			_assert(not foot.has_point(Vector2(sp.x, sp.z)), "%s: unit %d stands inside prop %s" % [label, u, pn.name])
+			_assert(not foot.has_point(Vector2(sp.x, sp.z)), "%s: unit %d stands inside prop %s %s box %s" % [label, u, pn.name, (pn as Node3D).scene_file_path, pb])
 	# 4. gate behind every enemy, fully visible, clear of the panel
 	_assert(gate != Rect2(), "%s: no gate" % label)
 	var enemy_top := 1.0e9
@@ -142,7 +151,7 @@ func _case(label: String, kind: String, n_enemy: int, boss: bool, eggs: int, par
 	for u in enemies:
 		_assert(not gate.grow(MIN_GAP_PX * 0.5).intersects((rects[u] as Rect2).grow(MIN_GAP_PX * 0.5)), "%s: enemy %d touches the gate" % [label, u])
 	var panel := Rect2(1416.0, 24.0, 480.0, 170.0) if boss else Rect2(PANEL_X, 24.0, CANVAS.x - PANEL_X, 103.0 * float(n_enemy))
-	_assert(gate.position.y >= 0.0 and gate.end.x <= CANVAS.x - 24.0 and (n_enemy >= 4 and not boss or not gate.intersects(panel)) and gate.end.y <= TRAY_Y + 8.0, "%s: gate off screen or under the enemy panel %s vs %s" % [label, gate, panel])
+	_assert(gate.position.y >= 0.0 and gate.end.x <= CANVAS.x - 24.0 and not gate.intersects(panel) and gate.end.y <= TRAY_Y + 8.0, "%s: gate off screen or under the enemy panel %s vs %s" % [label, gate, panel])
 	stage.dispose_all()
 	stage.queue_free()
 	await get_tree().process_frame

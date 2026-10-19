@@ -342,16 +342,16 @@ const ENEMY_CENTER_X := 3.6
 const ENEMY_PITCH_X := 1.25   # a diagonal: neighbours stand on different depth rows, so they can be close in x
 ## Enemies stand on three depth rows (back, middle, front), index i takes row i % 3, so units that are close
 ## in x are far apart in y and 5 enemies fit between the gap and the gate. One enemy stands on the middle row.
-const ENEMY_Z_BACK := -5.8
-const ENEMY_Z_MID := 0.2
-const ENEMY_Z_FRONT := 6.0
-const BOSS_POS := Vector3(3.5, 0.0, 0.2)
-const ELITE_POS := Vector3(3.5, 0.0, 0.2)   # spec: one elite, bigger
+const ENEMY_Z_BACK := -4.9
+const ENEMY_Z_MID := 1.1
+const ENEMY_Z_FRONT := 6.4
+const BOSS_POS := Vector3(3.5, 0.0, 0.6)
+const ELITE_POS := Vector3(3.5, 0.0, 0.6)   # spec: one elite, bigger
 const ELITE_SCALE := 1.4
 ## Other enemies next to a boss or an elite: two on the front line, two on the back line, clear of the big one.
-const ADD_SLOTS: Array[Vector3] = [Vector3(1.4, 0.0, 6.0), Vector3(4.9, 0.0, 6.0), Vector3(-1.0, 0.0, -5.8), Vector3(8.4, 0.0, -5.8)]
+const ADD_SLOTS: Array[Vector3] = [Vector3(1.4, 0.0, 6.4), Vector3(4.9, 0.0, 6.4), Vector3(-1.0, 0.0, -4.9), Vector3(8.0, 0.0, -4.9)]
 ## Z of the path / gate lane. The arena is shifted onto it so the road to the gate runs behind the party, not under it.
-const LANE_Z := 0.6
+const LANE_Z := 4.6
 var _encounter_kind := ""
 
 
@@ -558,10 +558,11 @@ const _CAM_FOV := 19.0   # wider than before (was 34): the whole field zooms out
 const UNIT_SCALE := 0.9
 ## Monsters are drawn smaller than Axies (their art is 2.55 m tall; at 0.9 they towered over the party).
 const ENEMY_SCALE := 0.75
-## Every monster is normalised by its REAL shape, not by its art's own size: sqrt(width x height) of the model
-## (opaque pixels for sprites, mesh box for .glb) is scaled to ENEMY_SIZE_M, so a thin tall Thornback and a wide
-## round Slime read as the same weight as an Axie. Elite = ELITE_SCALE x that, named boss = _BOSS_SCALE x.
+## Every monster is normalised by its REAL shape, not by its art's own size: the visible height of the model
+## (opaque pixels for sprites, mesh box for .glb) is scaled to ENEMY_SIZE_M (an Axie's height), width-capped. Elite = ELITE_SCALE x that, named boss = _BOSS_SCALE x.
 const ENEMY_SIZE_M := 1.7
+## Width cap: round wide monsters would get huge if only their height were matched to an Axie's.
+const ENEMY_WIDTH_CAP_M := 2.3
 const _CAM_PITCH_DEG := -30.0
 const _CAM_POS := Vector3(-0.2, 17.0, 28.0)   # 3/4 view across the field, slightly from above
 
@@ -973,7 +974,7 @@ func _fit_atia_model(model: Node3D, atia: Dictionary, size_m: float) -> void:
 			atia["width"] = wmax * 0.6
 		return
 	var wide := maxf(maxf(box.size.x, box.size.z), 0.0001)
-	var factor := minf(size_m / sqrt(box.size.y * wide), minf(size_m * 1.9 / box.size.y, wmax / wide))
+	var factor := minf(size_m / box.size.y, minf(size_m * (ENEMY_WIDTH_CAP_M / ENEMY_SIZE_M) / wide, wmax / wide))
 	model.scale = Vector3.ONE * factor
 	var c := box.get_center()
 	model.position = Vector3(-c.x * factor, -box.position.y * factor, -c.z * factor)
@@ -1142,9 +1143,8 @@ func _make_enemy_sprite(texture: Texture2D, size_m: float) -> Sprite3D:
 	var info := _sprite_info(texture)
 	var used: Rect2 = info["used"]
 	var tex_h := float(texture.get_height())
-	# sqrt(w x h) of the opaque pixels becomes size_m; a very tall thin creature is capped at 1.9x size_m tall.
-	var px_size := size_m / sqrt(maxf(used.size.x * used.size.y, 1.0))
-	px_size = minf(px_size, size_m * 1.9 / maxf(used.size.y, 1.0))
+	# The opaque height becomes size_m (an Axie's height), capped by width so wide monsters stay in bounds.
+	var px_size := minf(size_m / maxf(used.size.y, 1.0), size_m * (ENEMY_WIDTH_CAP_M / ENEMY_SIZE_M) / maxf(used.size.x, 1.0))
 	sprite.pixel_size = px_size
 	# Node centred on the texture; drop it by the transparent rows under the creature so its feet touch y = 0.
 	sprite.position = Vector3(0.0, tex_h * 0.5 * px_size - float(info.get("pad", 0.0)) * px_size, 0.0)

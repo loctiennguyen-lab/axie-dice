@@ -32,9 +32,9 @@ const PATH_END_GAP := 2.8
 ## Default for registry portal "yaw_deg": gate turned 90 degrees about Y (Liam 16/10).
 const PORTAL_YAW_DEG := 90.0
 ## Prop keep-out (|x| / z): enemy flanks (enemy row z -6.5, x 0/+-5.1) and the portal line.
-const KEEPOUT_ENEMY_Z := [-13.0, 14.0]   # arena z = world -x: the whole fight line incl. party
-## arena x = world z - lane z. The 3 depth rows stand at world z -6 .. +7 around a lane at z 0.6: arena x -13 .. +3.
-const KEEPOUT_ENEMY_X := [-13.0, 3.0]
+const KEEPOUT_ENEMY_Z := [-15.0, 16.0]   # arena z = world -x: the whole fight line incl. party
+## arena x = world z - lane z. The 3 depth rows stand at world z -6 .. +7 around a lane at z 4.6: arena x -10 .. +4.
+const KEEPOUT_ENEMY_X := [-16.0, 5.0]
 const KEEPOUT_PORTAL_Z := -6.5   # anything behind this z keeps |x| >= KEEPOUT_PORTAL_X
 const KEEPOUT_PORTAL_X := 6.0
 
@@ -288,7 +288,7 @@ func _scatter(b: Dictionary, zones: Dictionary) -> void:
 static func in_keepout(x: float, z: float) -> bool:
 	if z >= float(KEEPOUT_ENEMY_Z[0]) and z <= float(KEEPOUT_ENEMY_Z[1]) and x >= float(KEEPOUT_ENEMY_X[0]) and x <= float(KEEPOUT_ENEMY_X[1]):
 		return true
-	return z < KEEPOUT_PORTAL_Z and absf(x) < KEEPOUT_PORTAL_X
+	return z < KEEPOUT_PORTAL_Z and (absf(x) < KEEPOUT_PORTAL_X or (x >= float(KEEPOUT_ENEMY_X[0]) and x <= float(KEEPOUT_ENEMY_X[1])))
 
 
 ## Optional per-biome ground flecks (`flecks`: {color, count}) so a dark ground is not a flat slab.
