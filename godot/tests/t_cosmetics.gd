@@ -42,6 +42,12 @@ func _ready() -> void:
 					if sp.type == "pulse":
 						_ok(float(sp.period) >= 1.4, "%s.%s pulse period %.1f >= 1.4 s" % [id, l.layer, float(sp.period)])
 			var img := (load(l.path) as Texture2D).get_image()
+			var edge_max := 0.0   # outer 4 px of the 256 px layer must be fully transparent (R4 margin rule)
+			for k in 256:
+				for d in 4:
+					edge_max = maxf(edge_max, maxf(maxf(img.get_pixel(k, d).a, img.get_pixel(k, 255 - d).a),
+						maxf(img.get_pixel(d, k).a, img.get_pixel(255 - d, k).a)))
+			_ok(edge_max == 0.0, "%s.%s: outer 4 px are transparent (max alpha %.3f)" % [id, l.layer, edge_max])
 			_ok(img.get_pixel(128, 128).a < 0.02 and img.get_pixel(128 + 70, 128).a < 0.02 and img.get_pixel(128, 128 - 70).a < 0.02,
 				"%s.%s: window stays clear (r <= 70)" % [id, l.layer])
 	for f in DirAccess.get_files_at("res://assets/cosmetics/frames"):
