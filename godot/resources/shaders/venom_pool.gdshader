@@ -40,12 +40,12 @@ void fragment() {
 	} else {
 		float v = UV.y;                       // 1 at the pool, 0 at the top of the mist
 		float h = 1.0 - v;
-		float fade = smoothstep(0.0, 0.25, v) * (0.35 + 0.65 * v);
-		vec2 p = vec2(UV.x * 7.0, h * 2.6 - t * 0.22);
+		float fade = smoothstep(0.0, 0.7, v) * smoothstep(0.0, 0.7, v) * (0.3 + 0.7 * v);
+		vec2 p = vec2(UV.x * 9.0, h * 2.6 - t * 0.22);
 		float n = fbm(p + seed * 3.0);
-		float wisps = smoothstep(0.18, 0.62, n + h * 0.0) * 0.8 + 0.2 * v * v;
+		float wisps = smoothstep(0.38, 0.72, n + (fbm(p * 0.6 + 11.0) - 0.5) * 0.4);
 		ALBEDO = mix(deep_color * 1.4, glow_color, h * 0.5 + wisps * 0.4);
-		float facing = pow(clamp(abs(dot(normalize(NORMAL), normalize(VIEW))), 0.0, 1.0), 0.7);   // soft silhouette, no glass wall
-		ALPHA = clamp(wisps * fade * strength * 1.3 * mix(0.15, 1.0, facing), 0.0, 0.92);
+		float facing = pow(clamp(abs(dot(normalize(NORMAL), normalize(VIEW))), 0.0, 1.0), 1.6);   // soft silhouette, no glass wall
+		ALPHA = clamp(wisps * fade * strength * 1.0 * mix(0.0, 1.0, facing), 0.0, 0.75);
 	}
 }

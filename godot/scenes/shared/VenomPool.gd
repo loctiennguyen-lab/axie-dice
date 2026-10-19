@@ -10,7 +10,7 @@ const SHADER := preload("res://resources/shaders/venom_pool.gdshader")
 const CUT_FRAC := 0.095       ## waist cut height as a fraction of the model height (above its lowest point)
 const POOL_R_FRAC := 0.30     ## pool radius / model height
 const MIST_R_FRAC := 0.24     ## mist tube radius / model height
-const MIST_H_FRAC := 0.24     ## mist tube height / model height
+const MIST_H_FRAC := 0.15     ## mist tube height / model height
 
 
 ## True for the models that need a pool (the Venom Chimera only).
