@@ -203,6 +203,13 @@ func _drive() -> void:
 		if same > STUCK_LIMIT:
 			_check(false, "stuck for %d iterations at %s" % [STUCK_LIMIT, sig])
 			return
+		var intro_layer := scene.get_node_or_null("BossIntroLayer")
+		if intro_layer != null:   # boss intro: a player would press Fight; wait out its guard window
+			for c in intro_layer.get_children():
+				if c is BossIntro:
+					(c as BossIntro).skip()
+			same = 0
+			continue
 		if await _handle_notice(scene):
 			continue
 		if scene.has_method("_on_end_turn_pressed"):
