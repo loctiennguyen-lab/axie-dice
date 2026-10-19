@@ -85,7 +85,7 @@ const BIOMES: Array[Dictionary] = [
 		"shrubs": ["Genesis/Shrub/G_Shrub01_Allside", "Genesis/Shrub/G_Shrub02_Allside"],
 		"rocks": [], "tufts": [], "lip": "F5D87E", "strata": "7A5A32"},
 	{"ground": ["FBD3DD", "E69BB5", "BC6A8E"], "cliff": "7A3A5C", "sky": ["3E3480", "C77FAE"], "moon": true,
-		"stain": 0.4, "tree_h": 2.6,
+		"stain": 0.4, "tree_h": 2.4,
 		"trees": ["LunaLanding/Tree/Luna_Landing_Tree_1 Variant", "LunaLanding/Tree/Luna_Landing_Tree_2 Variant", "LunaLanding/Tree/Luna_Landing_Tree_3 Variant"],
 		"shrubs": ["LunaLanding/Shrub/L_Shrub01_Allside", "LunaLanding/Shrub/LunaLanding_Shrub_01"],
 		"rocks": ["LunaLanding/Luna_Landing_Rock/SM_Luna_Landing_Rock_1 Variant", "LunaLanding/Luna_Landing_Rock/SM_Luna_Landing_Rock_2 Variant", "LunaLanding/Rock/SM_Rocks_Luna_A1 Variant", "LunaLanding/Rock/SM_Rocks_Luna_B Variant"],
@@ -575,6 +575,8 @@ func _aabb(n: Node, xf: Transform3D) -> AABB:
 ## fixed grid, so the result is the same every run.
 const TREE_CLUSTERS := 3
 const TREE_CLUSTER_GAP := 9.0   # world units between cluster seeds
+## A crown is round, so for the "does not cover a building" test only this share of its bounding box counts.
+const TREE_COVER := 0.65
 const TREE_RIM_BAND := 12.0       # a tree seed stands at most this far in from the land edge
 ## Small accents beside the buildings: [design-canvas point, "rock" | "shrub"]. Few on purpose.
 const ACCENT_SPOTS: Array = [
@@ -587,33 +589,40 @@ const PROP_MIN_SCALE := 0.85   # a prop is dropped rather than shrunk below this
 func _build_props() -> void:
 	var biome: Dictionary = BIOMES[_tier - 1]
 	var trees: Array = biome["trees"]
-	var tree_h := float(biome.get("tree_h", 3.2))
+	var tree_h := float(biome.get("tree_h", 3.0))
 	var half := PLOT_SIDE * 0.5
 	var seeds: Array[Vector3] = []
 	for ci in TREE_CLUSTERS:
-		var path := LIB + "Environment/" + String(trees[ci % trees.size()]) + ".tscn"
-		var box := _prop_box(path)
-		if box.size.y <= 0.0:
-			continue
-		var sc := tree_h / box.size.y
-		var rt := maxf(box.size.x, box.size.z) * sc * 0.5
+		# Try each species of the biome (first the one this cluster would get); the slimmest crowns fit the tightest gaps.
+		var path := ""
+		var rt := 0.0
 		var seed_p := Vector3.INF
-		var best := INF
-		for gx in range(-14, 15):
-			for gz in range(-14, 15):
-				var c := Vector3(gx, 0, gz)
-				var edge := half - maxf(absf(c.x), absf(c.z))
-				if edge > TREE_RIM_BAND or not _tree_spot_ok(c, rt, tree_h):
-					continue
-				var far := true
-				for sp in seeds:
-					if sp.distance_to(c) < TREE_CLUSTER_GAP:
-						far = false
-				# prefer the front (camera side) and the nearest rim
-				var score := edge - c.dot(-_g) * 0.12 + (0.0 if c.dot(_right) != 0.0 else 0.0)
-				if far and score < best:
-					best = score
-					seed_p = c
+		for si_ in trees.size():
+			var tp := LIB + "Environment/" + String(trees[(ci + si_) % trees.size()]) + ".tscn"
+			var box := _prop_box(tp)
+			if box.size.y <= 0.0:
+				continue
+			var r_try := maxf(box.size.x, box.size.z) * tree_h / box.size.y * 0.5
+			var best := INF
+			for gx in range(-14, 15):
+				for gz in range(-14, 15):
+					var c := Vector3(gx, 0, gz)
+					var edge := half - maxf(absf(c.x), absf(c.z))
+					if edge > TREE_RIM_BAND or not _tree_spot_ok(c, r_try, tree_h):
+						continue
+					var far := true
+					for sp in seeds:
+						if sp.distance_to(c) < TREE_CLUSTER_GAP:
+							far = false
+					# prefer the front (camera side) and the nearest rim
+					var score := edge - c.dot(-_g) * 0.12
+					if far and score < best:
+						best = score
+						seed_p = c
+			if seed_p != Vector3.INF:
+				path = tp
+				rt = r_try
+				break
 		if seed_p == Vector3.INF:
 			continue
 		seeds.append(seed_p)
@@ -622,7 +631,7 @@ func _build_props() -> void:
 		for ang in [35.0, 150.0, 250.0, 100.0, 300.0, 0.0, 200.0, 60.0]:
 			if made >= 2:
 				break
-			var q := seed_p + Vector3(cos(deg_to_rad(ang)), 0, sin(deg_to_rad(ang))) * (rt * 1.25)
+			var q := seed_p + Vector3(cos(deg_to_rad(ang)), 0, sin(deg_to_rad(ang))) * (rt * 1.3)
 			if _tree_spot_ok(q, rt * 0.9, tree_h * 0.9) and _place_exact(path, q, tree_h * 0.9):
 				made += 1
 	var shrubs: Array = biome["shrubs"]
@@ -701,7 +710,7 @@ func _prop_box(path: String) -> AABB:
 ## Free spot for a tree of this footprint radius and height: on the land on screen, off buildings, lanes and props.
 func _tree_spot_ok(c: Vector3, r: float, hh: float) -> bool:
 	var cc := _clamp_in(c, r)
-	return cc.is_equal_approx(c) and _screen_fits(c, r, hh) and not _hits_building(c, r, hh) \
+	return cc.is_equal_approx(c) and _screen_fits(c, r, hh) and not _hits_building(c, r * TREE_COVER, hh * TREE_COVER) \
 		and not _blocked_at(c, 0.3) and not _hits_prop(c, r)
 
 
@@ -722,14 +731,14 @@ func _place_exact(path: String, p: Vector3, target: float) -> bool:
 	n.scale = Vector3.ONE * s
 	add_child(n)
 	_blocked.append({"p": p, "r": 0.9})
-	_footprints.append({"p": p, "r": r, "h": hh, "prop": true, "base_y": _aabb(n, n.transform).position.y})
+	_footprints.append({"p": p, "r": r, "h": hh, "prop": true, "base_y": _aabb(n, n.transform).position.y, "cover_r": r * TREE_COVER, "cover_h": hh * TREE_COVER})
 	return true
 
 
 ## True when a new prop at `p` (radius `r`) would sit inside another prop's trunk zone (canopies may overlap a little).
 func _hits_prop(p: Vector3, r: float) -> bool:
 	for f in _footprints:
-		if f.has("prop") and (f["p"] as Vector3).distance_to(p) < minf(float(f["r"]), r) * 0.9 + 0.6:
+		if f.has("prop") and (f["p"] as Vector3).distance_to(p) < (float(f["r"]) + r) * 0.45:
 			return true
 	return false
 
