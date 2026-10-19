@@ -3038,7 +3038,8 @@ func _update_enemy_plate(p: UnitPortrait, u: Unit) -> void:
 	p.set_tab(tab)
 	if u.is_boss:
 		p.set_phase(int((hs.get("boss_phase", {}) as Dictionary).get(u.uid, {}).get("phase",
-			int(u.custom_state.get("phase", 1)))))
+			int(u.custom_state.get("phase", 1)))),
+			2 if (u.custom_state.has("max_hp2") or u.custom_state.has("hp2")) else 1)
 
 
 

@@ -206,7 +206,8 @@ func setup(p_uid: int, display_name: String, _cls: String, is_enemy: bool, is_bo
 	left.add_child(_hp_bar)
 
 	if is_boss:
-		_phase_label = UI3.label("Phase 1 of 3", "LabelMuted")
+		_phase_label = UI3.label("Phase 1 of 2", "LabelMuted")
+		_phase_label.visible = false   # set_phase() shows it for multi-phase bosses
 		_phase_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		left.add_child(_phase_label)
 
@@ -437,9 +438,11 @@ func set_intent(intent: Dictionary) -> void:
 	_target_label.text = "%s %s" % [HudKit.arrow(), tgt] if tgt != "" else ""
 
 
-## Boss phase line + marks (e.g. phase 2 of 3).
-func set_phase(phase: int, total: int = 3) -> void:
+## Boss phase line (e.g. "Phase 1 of 2"). One-phase bosses hide it (Liam 20/10); the 66/33 HP bar
+## marks are ticks, not phases.
+func set_phase(phase: int, total: int = 1) -> void:
 	if _phase_label != null:
+		_phase_label.visible = total > 1
 		_phase_label.text = "Phase %d of %d" % [phase, total]
 
 
