@@ -93,6 +93,8 @@ static func _apply_common(m: StandardMaterial3D, p: Dictionary, id: String, norm
 	if bool(p.get("emission_enabled", false)):
 		m.emission_enabled = true
 		m.emission = Color.WHITE
+		# Godot's default ADD operator computes (colour + texture), i.e. white everywhere; the spec means colour x map.
+		m.emission_operator = BaseMaterial3D.EMISSION_OP_MULTIPLY
 		m.emission_energy_multiplier = float(p.get("emission_energy_multiplier", 1.0))
 		var et := texture(id, String(p.get("emission_texture", "")))
 		if et != null:
