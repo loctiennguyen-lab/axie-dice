@@ -245,7 +245,7 @@ def make_idle(arm):
     for i in range(0, n + 1, 4):
         s = lambda a, ph=0.0: sn(i, n, a, ph)
         lagp = -0.5
-        up = 6 + s(20)
+        up = 6 + s(17)
         d = {"spine_low": [(X, s(2, 0.6))], "chest": [(X, s(2.5, 0.8))],
              "neck": [(X, s(-3, 1.0))], "head": [(X, s(3, 1.4)), (Z, s(3, 0.2))],
              "tail1": [(Z, s(8, 0.4)), (X, s(6, 0.5))], "tail2": [(Z, s(12, 1.0)), (X, s(8, 1.0))]}
@@ -265,7 +265,7 @@ def make_attack(arm):
     c.pose(0, wings=dict(up=6), legs=6)
     c.pose(9, {"spine_low": [(X, -10)], "chest": [(X, -10)], "neck": [(X, -8)], "head": [(X, -10)],
                "tail1": [(Z, 10)], "tail2": [(X, 10)]}, hover=0.07, off=(0, 0.12),
-           wings=dict(up=48, fold=10, sweep=-6, hand=-10), legs=10)
+           wings=dict(up=34, fold=6, sweep=-6, hand=-10), legs=10)
     c.pose(14, {"spine_low": [(X, 16)], "chest": [(X, 16)], "neck": [(X, 14)], "head": [(X, 12)],
                 "tail1": [(Z, -8), (X, -12)], "tail2": [(X, -18)]}, hover=-0.03, off=(0, -0.45),
            wings=dict(up=-30, fold=-8, sweep=18, hand=24), legs=-55)
@@ -281,7 +281,7 @@ def make_hit(arm):
     c.pose(0, wings=dict(up=6), legs=6)
     c.pose(3, {"spine_low": [(X, -12), (Y, 6)], "chest": [(X, -10), (Y, 8)], "neck": [(X, -14)],
                "head": [(X, -22), (Z, 16)], "tail1": [(Z, -14), (X, 14)], "tail2": [(Z, -18), (X, 20)]},
-           hover=0.04, off=(0, 0.28), wings=dict(up=46, fold=6, sweep=-4, hand=10), legs=-24)
+           hover=0.04, off=(0, 0.28), wings=dict(up=30, fold=4, sweep=-4, hand=10), legs=-24)
     c.pose(7, {"spine_low": [(X, -3)], "chest": [(X, -3)], "neck": [(X, -5)], "head": [(X, -6), (Z, 5)]},
            hover=-0.02, off=(0, 0.08), wings=dict(up=-8, fold=-6), legs=-6)
     c.pose(11, {"head": [(X, 2)]}, hover=0.01, off=(0, 0.02), wings=dict(up=12, fold=3), legs=4)
@@ -298,7 +298,7 @@ def make_cast(arm):
     for f, tw in ((12, 0), (16, 1), (20, -1), (24, 1), (26, 0)):
         d = dict(base)
         d["head"] = [(X, -16), (Z, 3 * tw)]
-        c.pose(f, d, hover=0.16 + 0.01 * tw, wings=dict(up=62 + 3 * tw, fold=8, hand=-8), legs=8)
+        c.pose(f, d, hover=0.16 + 0.01 * tw, wings=dict(up=40 + 3 * tw, fold=2, hand=-8), legs=8)
     c.pose(30, {"chest": [(X, 4)], "head": [(X, 6)]}, hover=0.06, wings=dict(up=0, fold=-4), legs=0)
     c.pose(36, wings=dict(up=6), legs=6)
     return c.bake()
@@ -325,7 +325,7 @@ def make_dead(arm):
     c = Clip(arm, "Dead", 54)
     c.pose(0, wings=dict(up=6), legs=6)
     c.pose(6, {"spine_low": [(X, -8)], "chest": [(X, -8)], "neck": [(X, -12)], "head": [(X, -18), (Z, 12)],
-               "tail2": [(X, 16)]}, hover=0.06, off=(0, 0.10), wings=dict(up=38, fold=6), legs=-12)
+               "tail2": [(X, 16)]}, hover=0.06, off=(0, 0.10), wings=dict(up=28, fold=4), legs=-12)
     c.pose(16, {"spine_low": [(X, 10)], "chest": [(X, 12)], "neck": [(X, 14)], "head": [(X, 16), (Z, -8)],
                 "tail1": [(X, -10)], "tail2": [(X, -16)]}, hover=-0.12, off=(0, 0.02),
            wings=dict(up=-22, fold=-10, lag=-3), legs=-14)
