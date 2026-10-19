@@ -30,6 +30,19 @@ func _on_all() -> void:
 
 func _ready() -> void:
 	print("=== t_dice_roller3d: start ===")
+	# Landing layout: for every dice count 1..11 no two dice land closer than a die can tumble across.
+	for n in range(1, DiceRoller3D.MAX_DICE + 1):
+		for i in n:
+			for j in range(i + 1, n):
+				var a := DiceRoller3D.landing_spot(i, n, Vector3(2.0, 0.5, -1.0))
+				var b := DiceRoller3D.landing_spot(j, n, Vector3(2.0, 0.5, -1.0))
+				_ok(absf(a.x - b.x) >= DiceRoller3D.LAND_GAP_X - 0.001 or absf(a.z - b.z) >= DiceRoller3D.LAND_GAP_Z - 0.001,
+					"dice %d and %d of %d land too close" % [i, j, n])
+	var mid := Vector3(5.0, 0.5, 3.0)
+	var sx := 0.0
+	for i in 11:
+		sx += DiceRoller3D.landing_spot(i, 11, mid).x
+	_ok(absf(sx / 11.0 - mid.x) < 0.3, "11 dice are centred on the landing centre")
 	var world := Node3D.new()
 	add_child(world)
 	var cam := Camera3D.new()
