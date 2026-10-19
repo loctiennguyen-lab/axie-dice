@@ -298,7 +298,7 @@
    "height_m": 4.0,
    "max_width_m": 6.5,
    "fit_width_m": 4.2,
-   "facing_deg": 30,
+   "facing_deg": 60,
    "anims": {
     "idle": "Idle",
     "attack": "Attack",
@@ -356,7 +356,7 @@
    "height_m": 4.0,
    "max_width_m": 6.5,
    "fit_width_m": 4.2,
-   "facing_deg": 30,
+   "facing_deg": 60,
    "anims": {
     "idle": "Idle",
     "attack": "Attack",

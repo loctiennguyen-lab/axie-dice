@@ -67,6 +67,19 @@ func _ready() -> void:
 		stage.play_death(boss_uid)
 		await _wait(1.2)
 		_save(tag + "_dead")
+	# Boss + two slime summons (gooey_king's SPLIT look): spawn them on the stage and reseat.
+	var ids: Array = []
+	for e in scene._combat.enemies:
+		ids.append(int(e.uid))
+	var nid := 900
+	var cnt := ids.size() + 2
+	for i in 2:
+		stage.spawn_unit(nid, "", true, ids.size() + i, cnt, false, "slime")
+		ids.append(nid)
+		nid += 1
+	stage.reseat_side(ids, true)
+	await _wait(0.8)
+	_save(tag + "_summons")
 	print("QA: brine capture done (viewport %d)" % w)
 	_guard.restore()
 	get_tree().quit(0)
