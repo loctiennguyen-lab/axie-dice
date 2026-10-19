@@ -188,6 +188,7 @@ func _refresh(animate: bool = true) -> void:
 	_rebuild_map(current_row, reachable)
 	_rebuild_left()
 	_rebuild_detail()
+	_preload_next_arenas(reachable)
 
 	if animate and is_inside_tree() and not MetaState.reduce_flash:
 		_map_layer.modulate.a = 0.0
@@ -197,6 +198,40 @@ func _refresh(animate: bool = true) -> void:
 		_map_layer.modulate.a = 1.0
 	if _overlay_root == null or not _overlay_root.visible:
 		_focus_selected.call_deferred()
+
+
+## Starts loading the arena v2 diorama for the biome of the fights the player can reach next
+## (also their children when the reachable node is an event/shop), and the boss biome once the
+## boss is 3 rows or closer. At most ArenaV2Diorama.MAX_PRELOAD biomes, nearest first.
+func _preload_next_arenas(reachable: Array) -> void:
+	if _graph == null or _graph.rows.is_empty():
+		return
+	var total := _graph.rows.size()
+	var biomes: Array[String] = []
+	var queue: Array = []
+	for id in reachable:
+		queue.append(String(id))
+	var depth := 0
+	while not queue.is_empty() and depth < 2 and biomes.size() < ArenaV2Diorama.MAX_PRELOAD:
+		var nxt: Array = []
+		for id in queue:
+			var n := _graph.find_node(String(id))
+			if n == null:
+				continue
+			if n.node_type == "battle" or n.node_type == "elite" or n.node_type == "boss":
+				var b := CombatArena3D.biome_for(n.row, n.node_type == "boss", total)
+				if b != "" and not biomes.has(b):
+					biomes.append(b)
+			elif depth == 0:
+				nxt.append_array(n.next_ids)
+		queue = nxt
+		depth += 1
+	if not _graph.boss_rows.is_empty() and _current_row() >= int(_graph.boss_rows[0]) - 3:
+		var bb := CombatArena3D.biome_for(int(_graph.boss_rows[0]), true, total)
+		if bb != "":
+			biomes.erase(bb)
+			biomes.push_front(bb)   # near the boss its biome beats a far fight's
+	ArenaV2Diorama.preload_biomes(biomes)
 
 
 func _focus_selected() -> void:
