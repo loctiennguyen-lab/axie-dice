@@ -21,7 +21,6 @@ const PITCH := 27.0
 const YAW := 45.0
 const DIAMOND_CY := 530.0           # v5: design-canvas y of the Land centre (lattice moved up 60 px)
 const PLOT_SIDE := 31.0
-const SHRINK_STEPS: Array[float] = [0.8, 0.7, 0.6, 0.5]
 const LAND_EDGE_MARGIN := 0.4       # world units kept free between any prop / Axie and the land edge
 
 const _Econ := preload("res://scripts/meta/economy_db.gd")
@@ -86,7 +85,7 @@ const BIOMES: Array[Dictionary] = [
 		"shrubs": ["Genesis/Shrub/G_Shrub01_Allside", "Genesis/Shrub/G_Shrub02_Allside"],
 		"rocks": [], "tufts": [], "lip": "F5D87E", "strata": "7A5A32"},
 	{"ground": ["FBD3DD", "E69BB5", "BC6A8E"], "cliff": "7A3A5C", "sky": ["3E3480", "C77FAE"], "moon": true,
-		"stain": 0.4, "tree_h": 4.0,
+		"stain": 0.4, "tree_h": 2.6,
 		"trees": ["LunaLanding/Tree/Luna_Landing_Tree_1 Variant", "LunaLanding/Tree/Luna_Landing_Tree_2 Variant", "LunaLanding/Tree/Luna_Landing_Tree_3 Variant"],
 		"shrubs": ["LunaLanding/Shrub/L_Shrub01_Allside", "LunaLanding/Shrub/LunaLanding_Shrub_01"],
 		"rocks": ["LunaLanding/Luna_Landing_Rock/SM_Luna_Landing_Rock_1 Variant", "LunaLanding/Luna_Landing_Rock/SM_Luna_Landing_Rock_2 Variant", "LunaLanding/Rock/SM_Rocks_Luna_A1 Variant", "LunaLanding/Rock/SM_Rocks_Luna_B Variant"],
@@ -570,86 +569,109 @@ func _aabb(n: Node, xf: Transform3D) -> AABB:
 	return out
 
 
+## Trees stand in a few small clusters (one species and one size per cluster) in the free rim band of the land.
+## A tree's top must stay inside the land diamond on screen and clear of buildings, so the clusters land wherever the
+## band has room for this tier: front edges mostly, back rim only when a tree fits there. Spots are scanned on a
+## fixed grid, so the result is the same every run.
+const TREE_CLUSTERS := 3
+const TREE_CLUSTER_GAP := 9.0   # world units between cluster seeds
+const TREE_RIM_BAND := 12.0       # a tree seed stands at most this far in from the land edge
+## Small accents beside the buildings: [design-canvas point, "rock" | "shrub"]. Few on purpose.
+const ACCENT_SPOTS: Array = [
+	[Vector2(580, 640), "rock"], [Vector2(1355, 520), "shrub"], [Vector2(780, 800), "shrub"],
+	[Vector2(1190, 835), "rock"], [Vector2(790, 330), "shrub"], [Vector2(1180, 345), "rock"],
+]
+const PROP_MIN_SCALE := 0.85   # a prop is dropped rather than shrunk below this share of its intended size
+
+
 func _build_props() -> void:
 	var biome: Dictionary = BIOMES[_tier - 1]
-	var half := PLOT_SIDE * 0.5 - 1.5
-	# Trees stand on the far rim (design-canvas points) so none ever hides a building or a plot.
 	var trees: Array = biome["trees"]
-	var spots := [Vector2(300, 430), Vector2(1580, 410), Vector2(960, 232), Vector2(430, 340),
-		Vector2(1490, 330), Vector2(700, 215), Vector2(1250, 215)]
-	for i in spots.size():
-		_place_fit(LIB + "Environment/" + String(trees[i % trees.size()]) + ".tscn",
-			_ground_at(spots[i].x, spots[i].y), float(biome.get("tree_h", 6.0)), true)
-	var scatter: Array = []
-	for k in (biome["shrubs"] as Array):
-		scatter.append([k, 1.5])
-	for k in (biome["rocks"] as Array):
-		scatter.append([k, 1.3])
-	var placed := 0
-	var tries := 0
-	while not scatter.is_empty() and placed < 30 and tries < 900:
-		tries += 1
-		var p := Vector3(_rng.randf_range(-half, half), 0, _rng.randf_range(-half, half))
-		if _blocked_at(p, 1.5):
+	var tree_h := float(biome.get("tree_h", 3.2))
+	var half := PLOT_SIDE * 0.5
+	var seeds: Array[Vector3] = []
+	for ci in TREE_CLUSTERS:
+		var path := LIB + "Environment/" + String(trees[ci % trees.size()]) + ".tscn"
+		var box := _prop_box(path)
+		if box.size.y <= 0.0:
 			continue
-		var pick: Array = scatter[placed % scatter.size()]
-		if _place_fit(LIB + "Environment/" + String(pick[0]) + ".tscn", p, float(pick[1]), true):
-			placed += 1
-	var tufts: Array = biome["tufts"]
-	placed = 0
-	tries = 0
-	while not tufts.is_empty() and placed < 60 and tries < 700:
-		tries += 1
-		var p := Vector3(_rng.randf_range(-half, half), 0, _rng.randf_range(-half, half))
-		if _blocked_at(p, 0.5):
+		var sc := tree_h / box.size.y
+		var rt := maxf(box.size.x, box.size.z) * sc * 0.5
+		var seed_p := Vector3.INF
+		var best := INF
+		for gx in range(-14, 15):
+			for gz in range(-14, 15):
+				var c := Vector3(gx, 0, gz)
+				var edge := half - maxf(absf(c.x), absf(c.z))
+				if edge > TREE_RIM_BAND or not _tree_spot_ok(c, rt, tree_h):
+					continue
+				var far := true
+				for sp in seeds:
+					if sp.distance_to(c) < TREE_CLUSTER_GAP:
+						far = false
+				# prefer the front (camera side) and the nearest rim
+				var score := edge - c.dot(-_g) * 0.12 + (0.0 if c.dot(_right) != 0.0 else 0.0)
+				if far and score < best:
+					best = score
+					seed_p = c
+		if seed_p == Vector3.INF:
 			continue
-		if _place_fit(LIB + "Environment/" + String(tufts[placed % tufts.size()]) + ".tscn", p, 1.6, false):
-			placed += 1
+		seeds.append(seed_p)
+		_place_exact(path, seed_p, tree_h)
+		var made := 0
+		for ang in [35.0, 150.0, 250.0, 100.0, 300.0, 0.0, 200.0, 60.0]:
+			if made >= 2:
+				break
+			var q := seed_p + Vector3(cos(deg_to_rad(ang)), 0, sin(deg_to_rad(ang))) * (rt * 1.25)
+			if _tree_spot_ok(q, rt * 0.9, tree_h * 0.9) and _place_exact(path, q, tree_h * 0.9):
+				made += 1
+	var shrubs: Array = biome["shrubs"]
+	var rocks: Array = biome["rocks"]
+	var si := 0
+	var ri := 0
+	for a in ACCENT_SPOTS:
+		var pool: Array = rocks if String(a[1]) == "rock" else shrubs
+		if pool.is_empty():
+			pool = shrubs if not shrubs.is_empty() else rocks
+		if pool.is_empty():
+			continue
+		var idx := ri if String(a[1]) == "rock" else si
+		if String(a[1]) == "rock":
+			ri += 1
+		else:
+			si += 1
+		var sp: Vector2 = a[0]
+		_place_fit(LIB + "Environment/" + String(pool[idx % pool.size()]) + ".tscn", _ground_at(sp.x, sp.y), 1.4, true)
 
 
-## Place a prop scaled so its height (by_height) or footprint width is `target` world units.
+## Place a prop scaled so its height (by_height) or footprint width is `target` world units. The prop is only nudged
+## toward the camera / sideways and shrunk to PROP_MIN_SCALE at most; if it still does not fit it is dropped.
+## The foot of the mesh (AABB min.y after scaling) always lands on y = 0.
 func _place_fit(path: String, p: Vector3, target: float, by_height: bool) -> bool:
 	var n := _inst(path)
 	if n == null:
 		return false
 	var box := _aabb(n, Transform3D.IDENTITY)
 	var dim := box.size.y if by_height else maxf(box.size.x, box.size.z)
-	var s := target / maxf(dim, 0.01) * _rng.randf_range(0.85, 1.15)
-	# Keep the whole prop visibly on the land: footprint (canopy radius) inside the square, and its projected
-	# top inside the land diamond on screen. A tall prop on the back rim sticks out above the back edge, so it is
-	# first shifted toward the camera, then shrunk a little if it still does not fit.
-	var r := maxf(box.size.x, box.size.z) * s * 0.5
-	var hh := box.size.y * s
-	var p0 := _clamp_in(p, r)
-	# Candidates: toward the camera, then sideways, then the same again 7% smaller each time. The first
-	# spot that is visibly on the land AND whose screen rect touches no building wins; else the prop is dropped.
+	var s0 := target / maxf(dim, 0.01) * _rng.randf_range(0.95, 1.05)
 	var found := false
-	var wide := target >= 3.0   # trees: if the near spots are taken, search the whole land (they may shrink to 50%)
-	for shrink in (9 if wide else 5):
-		var k: float = pow(0.93, shrink) if shrink < 5 else float(SHRINK_STEPS[shrink - 5])
-		var rr := r * k
-		var hk := hh * k
+	var s := s0
+	var r := 0.0
+	var hh := 0.0
+	for k in [1.0, 0.92, PROP_MIN_SCALE]:
+		s = s0 * k
+		r = maxf(box.size.x, box.size.z) * s * 0.5
+		hh = box.size.y * s
+		var p0 := _clamp_in(p, r)
 		var cands: Array[Vector3] = []
 		for st in 13:
-			cands.append(_clamp_in(p0 - _g * 0.5 * st, rr))
-		for st in range(1, 11):
+			cands.append(_clamp_in(p0 - _g * 0.5 * st, r))
+		for st in range(1, 7):
 			for sd in [-1.0, 1.0]:
-				cands.append(_clamp_in(p0 + _right * sd * 0.7 * st, rr))
-		if wide and shrink >= 3:
-			var grid: Array[Vector3] = []
-			for gx in range(-14, 15):
-				for gz in range(-14, 15):
-					grid.append(_clamp_in(Vector3(gx, 0, gz), rr))
-			grid.sort_custom(func(a: Vector3, b: Vector3) -> bool: return a.distance_squared_to(p0) < b.distance_squared_to(p0))
-			for gp in grid:
-				if not _blocked_at(gp, 0.6):
-					cands.append(gp)
+				cands.append(_clamp_in(p0 + _right * sd * 0.7 * st, r))
 		for c in cands:
-			if _screen_fits(c, rr, hk) and not _hits_building(c, rr, hk):
+			if _screen_fits(c, r, hh) and not _hits_building(c, r, hh) and not _blocked_at(c, 0.2) and not _hits_prop(c, r):
 				p = c
-				s *= k
-				r = rr
-				hh = hk
 				found = true
 				break
 		if found:
@@ -662,8 +684,54 @@ func _place_fit(path: String, p: Vector3, target: float, by_height: bool) -> boo
 	n.scale = Vector3.ONE * s
 	add_child(n)
 	_blocked.append({"p": p, "r": 0.9})
-	_footprints.append({"p": p, "r": r, "h": hh, "prop": true})
+	_footprints.append({"p": p, "r": r, "h": hh, "prop": true, "base_y": _aabb(n, n.transform).position.y})
 	return true
+
+
+## Local-space bounds of a prop scene (used to size it before it is placed).
+func _prop_box(path: String) -> AABB:
+	var n := _inst(path)
+	if n == null:
+		return AABB()
+	var box := _aabb(n, Transform3D.IDENTITY)
+	n.free()
+	return box
+
+
+## Free spot for a tree of this footprint radius and height: on the land on screen, off buildings, lanes and props.
+func _tree_spot_ok(c: Vector3, r: float, hh: float) -> bool:
+	var cc := _clamp_in(c, r)
+	return cc.is_equal_approx(c) and _screen_fits(c, r, hh) and not _hits_building(c, r, hh) \
+		and not _blocked_at(c, 0.3) and not _hits_prop(c, r)
+
+
+## Place a prop of height `target` exactly at `p` (no nudging, no shrinking). False when the spot is not free.
+func _place_exact(path: String, p: Vector3, target: float) -> bool:
+	var n := _inst(path)
+	if n == null:
+		return false
+	var box := _aabb(n, Transform3D.IDENTITY)
+	var s := target / maxf(box.size.y, 0.01) * _rng.randf_range(0.97, 1.03)
+	var r := maxf(box.size.x, box.size.z) * s * 0.5
+	var hh := box.size.y * s
+	if not _tree_spot_ok(p, r, hh):
+		n.free()
+		return false
+	n.position = p - Vector3(0, box.position.y * s, 0)
+	n.rotation_degrees.y = _rng.randf() * 360.0
+	n.scale = Vector3.ONE * s
+	add_child(n)
+	_blocked.append({"p": p, "r": 0.9})
+	_footprints.append({"p": p, "r": r, "h": hh, "prop": true, "base_y": _aabb(n, n.transform).position.y})
+	return true
+
+
+## True when a new prop at `p` (radius `r`) would sit inside another prop's trunk zone (canopies may overlap a little).
+func _hits_prop(p: Vector3, r: float) -> bool:
+	for f in _footprints:
+		if f.has("prop") and (f["p"] as Vector3).distance_to(p) < minf(float(f["r"]), r) * 0.9 + 0.6:
+			return true
+	return false
 
 
 ## Screen rect (design px) a prop covers: canopy width, from its foot up to its top.
