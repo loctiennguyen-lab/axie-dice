@@ -170,7 +170,7 @@ static func confirm(modal_layer: Control, title: String, body: String, keep_text
 ## Esc = back, unless a modal is open (the modal owns Esc then). True when the key was used.
 static func esc_back(ev: InputEvent, shell: Dictionary, on_back: Callable) -> bool:
 	var k := ev as InputEventKey
-	if k == null or not k.pressed or k.echo or k.keycode != KEY_ESCAPE:
+	if k == null or not k.pressed or k.echo or not k.is_action_pressed(&"menu_back"):
 		return false
 	if (shell["modal_layer"] as Control).get_child_count() > 0:
 		return false

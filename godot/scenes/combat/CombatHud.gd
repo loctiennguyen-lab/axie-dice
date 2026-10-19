@@ -246,7 +246,7 @@ func _build_speed() -> void:
 	_skip_button.custom_minimum_size = Vector2(0.0, SMALL_H)
 	_skip_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_skip_button.clip_text = true
-	_skip_button.tooltip_text = "Skip the animation (Space)"
+	_skip_button.tooltip_text = "Skip the animation (%s)" % KeyBindings.text(KeyBindings.COMBAT_END_TURN)
 	_speed.add_child(_skip_button)
 
 
@@ -297,7 +297,7 @@ func adopt_right_zone(undo: Button, reroll: Button, end_turn: Button) -> void:
 	undo.add_theme_constant_override("icon_max_width", 20)
 	reroll.theme_type_variation = "ButtonSecondaryS"
 	reroll.text = "Reroll"
-	reroll.tooltip_text = "Reroll unused dice (R)"
+	reroll.tooltip_text = "Reroll unused dice (%s)" % KeyBindings.text(KeyBindings.COMBAT_REROLL)
 	end_turn.theme_type_variation = "ButtonPrimaryL"
 	end_turn.text = "End turn"
 	end_turn.add_theme_font_size_override("font_size", 24)   # "Enemy turn" must fit the 240 px column
@@ -462,7 +462,7 @@ func update_right(undo: Dictionary, reroll: Dictionary, end: Dictionary) -> void
 		return
 	undo_button.disabled = not bool(undo.get("enabled", false))
 	undo_button.text = "Z"
-	undo_button.tooltip_text = "Undo the last die (Z)" if not undo_button.disabled else "Nothing to undo this turn"
+	undo_button.tooltip_text = ("Undo the last die (%s)" % KeyBindings.text(KeyBindings.COMBAT_UNDO)) if not undo_button.disabled else "Nothing to undo this turn"
 	var n := int(reroll.get("n", 0))
 	var mx := int(reroll.get("max", 0))
 	var nm := "%d/%d" % [n, mx] if mx > 0 else str(n)
@@ -472,7 +472,7 @@ func update_right(undo: Dictionary, reroll: Dictionary, end: Dictionary) -> void
 	end_turn_button.disabled = not bool(end.get("enabled", true))
 	var resolving := end_turn_button.disabled and bool(end.get("resolving", false))
 	end_turn_button.text = "Enemy turn" if resolving else "End turn"
-	_hint.text = "Space · skip" if resolving else String(end.get("sub", ""))
+	_hint.text = ("%s · skip" % KeyBindings.text(KeyBindings.COMBAT_END_TURN)) if resolving else String(end.get("sub", ""))
 	layout()
 
 

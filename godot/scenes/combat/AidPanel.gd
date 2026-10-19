@@ -74,7 +74,7 @@ func _build_button() -> void:
 	_used_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	_used_label.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	row.add_child(_used_label)
-	var key := UI3.key_hint("A")
+	var key := UI3.key_hint(KeyBindings.text(KeyBindings.COMBAT_AID))
 	key.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	key.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	row.add_child(key)

@@ -99,7 +99,7 @@ func _recheck_account() -> void:
 
 func _unhandled_key_input(ev: InputEvent) -> void:
 	if ev is InputEventKey and ev.pressed and not ev.echo:
-		if ev.keycode == KEY_ESCAPE:
+		if ev.is_action_pressed(&"menu_back"):
 			if _modal_layer.get_child_count() > 0:
 				close_modal()
 			else:

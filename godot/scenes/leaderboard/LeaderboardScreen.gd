@@ -63,7 +63,7 @@ func _ready() -> void:
 
 
 func _unhandled_key_input(ev: InputEvent) -> void:
-	if detail_index >= 0 and ev is InputEventKey and ev.pressed and not ev.echo and ev.keycode == KEY_ESCAPE \
+	if detail_index >= 0 and ev is InputEventKey and ev.pressed and not ev.echo and ev.is_action_pressed(&"menu_back") \
 			and _shell["modal_layer"].get_child_count() == 0:
 		close_detail()
 		if is_inside_tree():   # a handler above may have changed scene

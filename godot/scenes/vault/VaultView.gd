@@ -15,7 +15,7 @@ const MAIN_MENU_SCENE := "res://scenes/main_menu/MainMenu.tscn"
 const IMPORT_UNAVAILABLE_PREFIX := "Import is unavailable on this build. "
 const DETAIL_W := 440
 const COLS := 3
-const PREVIEW_H := 260
+const PREVIEW_H := 200   # spec 25: never under 160; 260 left one row of cards on screen
 
 var _list: GridContainer
 var _record_scroll: ScrollContainer
@@ -218,6 +218,25 @@ func refresh() -> void:
 	_first_refresh = false
 	for entry in entries:
 		_list.add_child(_build_row(entry))
+	if not entries.is_empty() and not full:
+		_list.add_child(_build_import_tile())
+
+
+## The one empty-slot affordance: after the owned Axies, a single tile that says where to add the next one.
+## Replaces showing VAULT_MAX placeholder cells. Focuses the Axie ID field.
+func _build_import_tile() -> Control:
+	var b := UI3.button("+ Import an Axie", &"secondary", &"M")
+	b.name = "ImportTile"
+	b.custom_minimum_size = Vector2(0, 96)
+	b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	b.size_flags_vertical = Control.SIZE_SHRINK_BEGIN
+	b.tooltip_text = "Type an Axie ID on the right and press Scan. %d of %d slots used." % [MetaState.vault.size(), MetaState.VAULT_MAX]
+	if not AxieApi.is_available():
+		UI3.set_disabled_reason(b, "Import unavailable")
+	b.pressed.connect(func() -> void:
+		if _id_field != null and _id_field.editable:
+			_id_field.grab_focus())
+	return b
 
 
 ## SCAN is enabled only for something that could actually be an Axie ID.

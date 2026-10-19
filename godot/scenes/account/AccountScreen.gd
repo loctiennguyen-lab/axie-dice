@@ -60,7 +60,7 @@ static func error_copy(code: String) -> Array:
 
 
 func _unhandled_key_input(ev: InputEvent) -> void:
-	if ev is InputEventKey and ev.pressed and not ev.echo and ev.keycode == KEY_ESCAPE:
+	if ev is InputEventKey and ev.pressed and not ev.echo and ev.is_action_pressed(&"menu_back"):
 		if state == "finishing":
 			pass  # loading: Esc does nothing
 		elif state == "waiting":

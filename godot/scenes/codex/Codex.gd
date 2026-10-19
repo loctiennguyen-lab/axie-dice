@@ -41,7 +41,7 @@ func _on_back() -> void:
 
 func _unhandled_key_input(ev: InputEvent) -> void:
 	var k := ev as InputEventKey
-	if k != null and k.pressed and not k.echo and k.keycode == KEY_ESCAPE and _search != null \
+	if k != null and k.pressed and not k.echo and k.is_action_pressed(&"menu_back") and _search != null \
 			and not _search.text.is_empty():
 		_search.text = ""
 		_on_search_changed("")
