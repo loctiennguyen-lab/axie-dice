@@ -2710,7 +2710,7 @@ func _on_face_used(uid: int, _side: String, target_uid: int, aoe: bool, face_par
 		_stage3d.play_action(uid, face_type, target_uid, vfx_key)   # "ra chiêu" — clip/pace
 			# varies by face_type (_ACTION_ANIM_BY_TYPE), and `target_uid` is what lets the
 			# lunge aim at the unit being hit instead of just stepping forward
-		_play_skill_vfx(uid, target_uid, vfx_key)
+		_play_skill_vfx(uid, target_uid, vfx_key, face_type)
 
 func _on_resonance_triggered(uid: int) -> void:
 	_append_log("[resonance] %s" % _unit_name(uid))
@@ -3324,7 +3324,10 @@ func _vfx_key_for(uid: int, face_part: String, face_type: String) -> String:
 ## overlay space the portraits already agree on. A face with no target (AoE, or a self-buff)
 ## aims at the attacker's own row-forward direction by borrowing the first live opponent, and
 ## failing that plays on the spot.
-func _play_skill_vfx(uid: int, target_uid: int, clip_key: String) -> void:
+const _SELF_VFX_TYPES := ["mana", "buff", "heal", "shield"]
+
+
+func _play_skill_vfx(uid: int, target_uid: int, clip_key: String, face_type := "") -> void:
 	if clip_key == "" or not is_instance_valid(_stage3d):
 		return
 	var layer := _ensure_skill_vfx()
@@ -3333,6 +3336,11 @@ func _play_skill_vfx(uid: int, target_uid: int, clip_key: String) -> void:
 	var offset: Vector2 = _stage3d.position
 	var a := _stage3d.get_unit_screen_pos(uid, CombatStage3D.HEAD_HEIGHT)
 	if a.x < 0.0:
+		return
+	# A face with no opposing target that is about the caster (mana, buff, heal, shield) plays ON the
+	# caster. Borrowing the first enemy sent the clip across the whole arena as a screen-sized glow.
+	if (target_uid < 0 or target_uid == uid) and _SELF_VFX_TYPES.has(face_type):
+		layer.play_on_unit(clip_key, a + offset)
 		return
 	var tgt := target_uid
 	if tgt < 0 or tgt == uid:

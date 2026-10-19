@@ -152,7 +152,7 @@ func test_every_status_effect_has_an_icon() -> void:
 	var status_to_icon := {
 		"poison": "poison", "burn": "burn", "regen": "regen", "thorns": "thorns",
 		"blind": "blind", "weaken": "weaken", "vulnerable": "vuln", "stun": "stun",
-		"undying": "undying", "freeze": "freeze",
+		"undying": "undying", "freeze": "freeze", "enrage": "enrage",
 	}
 
 	# Act / Assert
@@ -160,11 +160,6 @@ func test_every_status_effect_has_an_icon() -> void:
 		var icon := String(status_to_icon[status])
 		_assert(ResourceLoader.exists(ICON_DIR + icon + ".png"),
 			"status '%s' has no icon (expected %s.png)" % [status, icon])
-
-	# `enrage` is the one status with no icon in the JS build either — recorded here so the
-	# gap is a known, shared one rather than an oversight discovered again later.
-	_assert(not status_to_icon.has("enrage"),
-		"enrage now has an icon mapping; update this note and the JS-parity claim with it")
 
 
 ## The six playable classes, each of which has a themed battle backdrop converted from the
