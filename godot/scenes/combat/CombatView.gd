@@ -1037,6 +1037,7 @@ func _build_hud_r1() -> void:
 	_hud_frame.adopt_right_zone(_undo_button, _reroll_button, _end_turn_button)
 	var old_log_box := _debug_log_container
 	_debug_log_container = _hud_frame.adopt_log(_log_panel)
+	_log_panel.owner = self    # keep %LogPanel resolvable after the move
 	old_log_box.queue_free()
 	_aid = AidPanel.new()
 	_aid.name = "AidPanel"
