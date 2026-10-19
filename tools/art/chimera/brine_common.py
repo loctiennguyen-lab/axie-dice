@@ -204,8 +204,8 @@ def prepare_mesh(src, ratio, tex_size, tex_out, head_box=((-0.7, 0.7), (0.75, 1.
     sc.render.bake.use_pass_color = True
     sc.render.bake.margin = 10
     sc.render.bake.use_selected_to_active = True
-    sc.render.bake.cage_extrusion = 0.03
-    sc.render.bake.max_ray_distance = 0.15
+    sc.render.bake.cage_extrusion = 0.015
+    sc.render.bake.max_ray_distance = 0.06
     bpy.ops.object.select_all(action='DESELECT')
     hi.select_set(True)
     low.select_set(True)
