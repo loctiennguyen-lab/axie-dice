@@ -441,7 +441,7 @@ def make_dead(arm):
                      "hood_top": [(X, -4)], "mask": [(X, -4), (Y, -6)], "jaw": [(X, -20)],
                      "tail1": [(Z, -6)], "tail2": [(Z, -10)]})
     wings(c, 18, 8, 4); sleeves(c, 18, 6, -4)
-    final = {"root": {"r": [], "loc": (0, -0.05, -0.42)}, "spine_low": [(X, 16)],
+    final = {"root": {"r": [], "loc": (0, -0.05, -0.22)}, "spine_low": [(X, 16)],
              "spine_mid": [(X, 14)], "chest": [(X, 10)], "neck": [(X, 18)], "head": [(X, 24), (Z, -10)],
              "hood_root": [(X, 6)], "hood_top": [(X, 6)], "mask": [(X, 8)],
              "jaw": [(X, -6)], "cape1": [(X, -10)], "cape2": [(X, -14)],
