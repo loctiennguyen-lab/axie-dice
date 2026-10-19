@@ -1,37 +1,52 @@
 class_name ArenaV2Diorama
 extends Node3D
-## Arena v2 (lane V, proposal 19/10): one hand-built battle diorama per biome, made in Blender from
-## the HomeLand / Atia kits and exported as a single GLB (tools/art/arena_v2/). Savannah only so far.
+## Arena v2 (lane V, 19/10): one hand-built battle diorama per biome, made in Blender from the
+## HomeLand / Atia kits and exported as a single GLB per biome (pipeline: tools/art/arena_v2/).
 ##
-## The GLB is authored in COMBAT STAGE WORLD coordinates (x right, z toward the camera, units on
+## Each GLB is authored in COMBAT STAGE WORLD coordinates (x right, z toward the camera, units on
 ## y = 0), so it goes straight under CombatStage3D's `_world` at the origin, with no offset and no
 ## rotation (unlike CombatArena3D, which sits at z = LANE_Z and is turned -90 degrees).
-## The battle area (party x -11..-4, enemies x -1.5..5.5, z -12.5..8, gate x 6.7 on z 1.1) is flat
-## at y = 0; everything else rises gently or is set dressing.
+## Stage geometry the dioramas were built against (gate, march line, flat area, keep-outs) is in
+## res://assets/atia/arena_v2/stage_layout.json; change it there and re-export.
 ##
-## Not wired into the game yet: CombatArena3D still builds the old arena. See the lane V report
-## for what integration needs.
+## Boss fights reuse the biome's diorama: the boss look is lighting/fog/sky (CombatArena3D) plus the
+## ground tint below, not different geometry.
+##
+## Not wired into the game yet: CombatArena3D still builds the old arena. See the lane V report.
 
-const SCENES := {
-	"savannah": "res://assets/atia/arena_v2/savannah/savannah_arena.glb",
-}
+const DIR := "res://assets/atia/arena_v2/"
+const STAGE_LAYOUT := "res://assets/atia/arena_v2/stage_layout.json"
+## Boss ground tint, the textured equivalent of CombatArena3D._apply_boss_look()'s
+## "saturation x1.3, value x0.85" on the flat ground colour.
+const BOSS_GROUND_TINT := Color(0.9, 0.8, 0.74)
 
 var biome_id := ""
+var _ground_mats: Array[StandardMaterial3D] = []
+
+
+static func scene_path(id: String) -> String:
+	return DIR + id + "/" + id + "_arena.glb"
 
 
 static func has_biome(id: String) -> bool:
-	return SCENES.has(id) and ResourceLoader.exists(String(SCENES[id]))
+	return id != "" and ResourceLoader.exists(scene_path(id))
+
+
+static func stage_layout() -> Dictionary:
+	var parsed: Variant = JSON.parse_string(FileAccess.get_file_as_string(STAGE_LAYOUT)) if FileAccess.file_exists(STAGE_LAYOUT) else null
+	return parsed if parsed is Dictionary else {}
 
 
 ## Instantiates the diorama for `id` under this node. Returns false when there is none.
-func build(id: String) -> bool:
+func build(id: String, boss: bool = false) -> bool:
 	for c in get_children():
 		remove_child(c)
 		c.queue_free()
 	biome_id = ""
+	_ground_mats.clear()
 	if not has_biome(id):
 		return false
-	var packed := load(String(SCENES[id])) as PackedScene
+	var packed := load(scene_path(id)) as PackedScene
 	if packed == null:
 		return false
 	var root := packed.instantiate() as Node3D
@@ -41,7 +56,7 @@ func build(id: String) -> bool:
 	for n in root.find_children("*", "MeshInstance3D", true, false):
 		var mi := n as MeshInstance3D
 		# The ground only receives shadows; props cast them (sun shadows are on with an arena).
-		var is_ground := mi.name.begins_with("SA_Ground")
+		var is_ground := mi.name.begins_with("G_")
 		mi.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF if is_ground else GeometryInstance3D.SHADOW_CASTING_SETTING_ON
 		for s in mi.mesh.get_surface_count():
 			var src := mi.mesh.surface_get_material(s) as StandardMaterial3D
@@ -51,17 +66,25 @@ func build(id: String) -> bool:
 			var m := src.duplicate() as StandardMaterial3D
 			m.roughness = 1.0
 			m.metallic_specular = 0.0
-			# The glTF importer drops these two; the mesh names them (tools/art/arena_v2/):
-			# cliffs are painted with vertex colours (COLOR_0, linear), foliage cards need cut-out.
+			# The glTF importer drops these two; the pipeline names them (tools/art/arena_v2/kit.py):
+			# cliffs are painted with vertex colours (COLOR_0, linear), "_cut" materials are cut-out cards.
 			if (mi.mesh.surface_get_format(s) & Mesh.ARRAY_FORMAT_COLOR) != 0:
 				m.vertex_color_use_as_albedo = true
-			if m.resource_name.begins_with("M_SA_Tree") or m.resource_name.begins_with("M_SA_Shrub") \
-					or m.transparency != BaseMaterial3D.TRANSPARENCY_DISABLED:
+			if m.resource_name.ends_with("_cut") or m.transparency != BaseMaterial3D.TRANSPARENCY_DISABLED:
 				m.transparency = BaseMaterial3D.TRANSPARENCY_ALPHA_SCISSOR
 				m.alpha_scissor_threshold = 0.5
 				m.cull_mode = BaseMaterial3D.CULL_DISABLED
+			if is_ground:
+				_ground_mats.append(m)
 			mi.set_surface_override_material(s, m)
+	set_boss(boss)
 	return true
+
+
+## Boss variant of the same diorama: darker, warmer ground (lighting is CombatArena3D's job).
+func set_boss(boss: bool) -> void:
+	for m in _ground_mats:
+		m.albedo_color = BOSS_GROUND_TINT if boss else Color.WHITE
 
 
 ## Number of triangles in the diorama as drawn (instances counted), for the budget check.
@@ -89,3 +112,28 @@ static func hide_old_arena_except_gate(arena: CombatArena3D) -> void:
 		for c in root.get_children():
 			if c != arena._portal and c != arena._portal_light and c is Node3D:
 				(c as Node3D).visible = false
+
+
+## Preview / QA helper until lane C merges: lane C's environment overrides (toned-down Arctic) that
+## this branch's arenas.json does not have yet, merged into CombatArena3D's in-memory registry. Call
+## once before any arena is built. ambient_mul is not read by this branch's CombatArena3D, so
+## align_old_arena() applies it.
+static func patch_registry() -> void:
+	var ov: Dictionary = stage_layout().get("preview_env_overrides", {})
+	var biomes: Dictionary = CombatArena3D.registry().get("biomes", {})
+	for id in ov:
+		if biomes.has(id) and ov[id] is Dictionary:
+			(biomes[id] as Dictionary).merge(ov[id], true)
+
+
+## Preview / QA helper until lane C merges: moves an old arena so its gate stands where
+## stage_layout.json says (lane C's LANE_Z / portal z). Call after the arena is built.
+static func align_old_arena(arena: CombatArena3D, env: Environment) -> void:
+	if arena == null:
+		return
+	var st := stage_layout()
+	var dx := float(st.get("gate_x", 6.7)) - float(st.get("old_arena_portal_world_x", 6.7))
+	arena.position = Vector3(dx, 0.0, float(st.get("lane_z", arena.position.z)))
+	var ov: Dictionary = st.get("preview_env_overrides", {}).get(arena.biome_id, {})
+	if env != null and not arena.is_boss and ov.has("ambient_mul"):
+		env.ambient_light_energy = CombatArena3D.LAND_AMBIENT_ENERGY * float(ov["ambient_mul"])
