@@ -39,7 +39,7 @@ var _mana_holder: Control
 var _attr_card: PanelContainer
 var _attr_title: Label
 var _attr_sub: Label
-var _speed: PanelContainer
+var _speed: HBoxContainer          ## 1x / 2x / Skip, takes the Undo+Reroll row while a resolve plays
 var _info: PanelContainer           ## die info panel (288 w, wood-2), only while a die is picked
 var _info_title: Label
 var _info_body: Label
@@ -229,20 +229,25 @@ func info_panel() -> Control:
 
 func _build_speed() -> void:
 	# Speed control 1x / 2x / Skip (Space), shown only while a resolve is playing.
-	_speed = UI3.plate(&"plate")
+	# No plate of its own: the buttons are already opaque, and the row sits in the 240 px right column
+	# (same slot as Undo / Reroll, which are hidden meanwhile), so it can never leave the screen.
+	_speed = HBoxContainer.new()
 	_speed.visible = false
 	_speed.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_speed.add_theme_constant_override("separation", 8)
 	add_child(_speed)
-	var row := HBoxContainer.new()
-	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	row.add_theme_constant_override("separation", 8)
-	_speed.add_child(row)
 	for t in ["1x", "2x"]:
 		var b := UI3.button(t, &"secondary", &"S")
-		row.add_child(b)
+		b.custom_minimum_size = Vector2(56.0, SMALL_H)
+		b.clip_text = true
+		_speed.add_child(b)
 		_speed_buttons.append(b)
-	_skip_button = UI3.button("Skip · Space", &"secondary", &"S")
-	row.add_child(_skip_button)
+	_skip_button = UI3.button("Skip", &"secondary", &"S")
+	_skip_button.custom_minimum_size = Vector2(0.0, SMALL_H)
+	_skip_button.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_skip_button.clip_text = true
+	_skip_button.tooltip_text = "Skip the animation (Space)"
+	_speed.add_child(_skip_button)
 
 
 # ── Right zone: adopt the scene's buttons, UI3 variants ─────────────────────────────────────
@@ -295,9 +300,13 @@ func adopt_right_zone(undo: Button, reroll: Button, end_turn: Button) -> void:
 	reroll.tooltip_text = "Reroll unused dice (R)"
 	end_turn.theme_type_variation = "ButtonPrimaryL"
 	end_turn.text = "End turn"
+	end_turn.add_theme_font_size_override("font_size", 24)   # "Enemy turn" must fit the 240 px column
 	undo.custom_minimum_size = Vector2(UNDO_W, SMALL_H)
 	reroll.custom_minimum_size = Vector2(RIGHT_W - UNDO_W - GAP, SMALL_H)
 	end_turn.custom_minimum_size = Vector2(RIGHT_W, END_H)
+	# Backstop: a label can never grow its button past the 240 px column (test: t_combat_right_block).
+	for b in [undo, reroll, end_turn]:
+		b.clip_text = true
 	_hint = UI3.label("", "LabelMuted")
 	_hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_hint.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -456,13 +465,14 @@ func update_right(undo: Dictionary, reroll: Dictionary, end: Dictionary) -> void
 	undo_button.tooltip_text = "Undo the last die (Z)" if not undo_button.disabled else "Nothing to undo this turn"
 	var n := int(reroll.get("n", 0))
 	var mx := int(reroll.get("max", 0))
-	var nm := "%d / %d" % [n, mx] if mx > 0 else str(n)
+	var nm := "%d/%d" % [n, mx] if mx > 0 else str(n)
 	reroll_button.disabled = not bool(reroll.get("enabled", false))
-	reroll_button.text = "Reroll · %s" % nm if not reroll_button.disabled else \
-		("No rerolls left" if n <= 0 else "Reroll · %s" % nm)
+	reroll_button.text = "Reroll %s" % nm if not reroll_button.disabled else \
+		("No rerolls" if n <= 0 else "Reroll %s" % nm)
 	end_turn_button.disabled = not bool(end.get("enabled", true))
-	end_turn_button.text = "Enemy turn…" if (end_turn_button.disabled and bool(end.get("resolving", false))) else "End turn"
-	_hint.text = String(end.get("sub", ""))
+	var resolving := end_turn_button.disabled and bool(end.get("resolving", false))
+	end_turn_button.text = "Enemy turn" if resolving else "End turn"
+	_hint.text = "Space · skip" if resolving else String(end.get("sub", ""))
 	layout()
 
 
@@ -518,6 +528,9 @@ func layout() -> void:
 		_tray_top = y
 		# Undo is hidden while input is locked: the speed control takes the slot.
 		undo_button.visible = not _speed.visible
+		reroll_button.visible = not _speed.visible
+		_speed.position = undo_button.position
+		_speed.size = Vector2(RIGHT_W, SMALL_H)
 	if _log_plate != null:
 		var ltop := (_attr_card.position.y + _attr_card.get_combined_minimum_size().y) if _attr_card.visible else rel_bottom
 		_log_plate.size = Vector2(INFO_W, LOG_H)
@@ -527,7 +540,3 @@ func layout() -> void:
 	_info.size = Vector2(INFO_W, ih)
 	var ib := _info_bottom if _info_bottom > 0.0 else h - EDGE - 104.0 - 12.0
 	_info.position = Vector2(EDGE, ib - ih)
-	_speed.size = Vector2.ZERO
-	var sw := _speed.get_combined_minimum_size()
-	_speed.size = sw
-	_speed.position = Vector2(w - EDGE - sw.x, _tray_top - 8.0 - sw.y)
