@@ -131,6 +131,16 @@ func _ready() -> void:
 		if FileAccess.file_exists(f):
 			_t(not _src(f).contains("BossIntro"), "%s does not use BossIntro (resume / tutorial unaffected)" % f)
 
+	# Combat HUD boss plate: phase line only for multi-phase bosses (Liam 20/10).
+	var pp: UnitPortrait = load("res://scenes/shared/UnitPortrait.tscn").instantiate()
+	pp.setup(9001, "BOSS", "reptile", true, true)
+	add_child(pp)
+	await get_tree().process_frame
+	pp.set_phase(1, 1)
+	_t(not pp._phase_label.visible, "one-phase boss: no phase line on the HUD plate")
+	pp.set_phase(2, 2)
+	_t(pp._phase_label.visible and pp._phase_label.text == "Phase 2 of 2", "agony: Phase 2 of 2")
+	pp.queue_free()
 	_guard.restore()
 	if _fails.is_empty():
 		print("t_boss_intro: PASS - %d checks OK" % _checks)
