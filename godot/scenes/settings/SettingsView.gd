@@ -5,7 +5,7 @@ extends Control
 ## Every control here is wired to something real: music/sfx/mute (MetaState + CombatAudioDirector),
 ## reduce flashing (CombatView.flashes_suppressed), replay tutorial, abandon run, account.
 ## Not drawn, because nothing backs them yet: text size, UI scale, spending presets, hide-Aid, language,
-## keyboard map, About. Gamepad row dropped on purpose (no gamepad). Spending limit shows only the L1 note.
+## About. Controls = rebindable keyboard shortcuts (KeyBindings). Gamepad row dropped on purpose (no gamepad). Spending limit shows only the L1 note.
 ## ABANDON RUN asks twice and is absent (not greyed) when there is no saved run; with a mission stake
 ## in escrow it warns the stake is lost and settles it (MetaState.settle_mission_stake(false)).
 ## In-run mode (opened from the combat menu): set `SettingsView.in_run = true` and `return_scene`
@@ -26,6 +26,9 @@ var _scroll: ScrollContainer
 var _first_focus: Control = null
 var _shell: Dictionary = {}
 var _tabs: Dictionary = {}   # section name -> tab Button
+var _capturing: StringName = &""   # action waiting for a key press ("" = none)
+var _key_buttons: Dictionary = {}  # action -> Button showing its keys
+var _controls_status: Label = null
 
 
 func _ready() -> void:
@@ -46,9 +49,9 @@ func _ready() -> void:
 	_content.add_theme_constant_override("separation", 16)
 	_content.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 
-	var order: Array[String] = ["Audio", "Accessibility", "Aid and spending", "How to play", "Run", "Account"]
+	var order: Array[String] = ["Audio", "Accessibility", "Controls", "Aid and spending", "How to play", "Run", "Account"]
 	if in_run:
-		order = ["Run", "Audio", "Accessibility", "Aid and spending", "How to play", "Account"]
+		order = ["Run", "Audio", "Accessibility", "Controls", "Aid and spending", "How to play", "Account"]
 	for sec in order:
 		_section(sec)
 		match sec:
@@ -86,6 +89,92 @@ func _on_back() -> void:
 		get_tree().change_scene_to_file(to)
 		return
 	LandNav.back_to_land()
+
+
+## While an action waits for a key, the next key press is the new binding. Runs before the GUI and the
+## Esc-back handler, so Esc cancels the capture instead of leaving the screen.
+func _input(ev: InputEvent) -> void:
+	if _capturing == &"":
+		return
+	var k := ev as InputEventKey
+	if k == null or not k.pressed or k.echo:
+		return
+	get_viewport().set_input_as_handled()
+	var action := _capturing
+	if k.keycode == KEY_ESCAPE:
+		_end_capture("Cancelled. %s keeps %s." % [_label_of(action), KeyBindings.text_all(action)])
+		return
+	if not KeyBindings.bindable(int(k.keycode)):
+		return   # a bare Shift / Ctrl: keep waiting
+	_apply_binding(action, int(k.keycode))
+
+
+func _label_of(action: StringName) -> String:
+	return String(KeyBindings.def_of(action).get("label", action))
+
+
+## Binds `keycode` to `action`. A key another action in the same group already uses is swapped: that action
+## takes this action's old key, so nothing is left unbound. The status line says what happened.
+func _apply_binding(action: StringName, keycode: int) -> void:
+	var old := KeyBindings.keys_of(action)
+	var msg := "%s is now %s." % [_label_of(action), KeyBindings.key_name(keycode)]
+	for other in KeyBindings.conflicts(action, keycode):
+		var rest: Array = KeyBindings.keys_of(other).filter(func(c: Variant) -> bool: return int(c) != keycode)
+		if rest.is_empty():
+			rest = [old[0]] if not old.is_empty() else []
+		KeyBindings.set_keys(other, rest)
+		msg = "%s was on %s. %s is now %s, and %s took %s." % [KeyBindings.key_name(keycode), _label_of(other),
+			_label_of(action), KeyBindings.key_name(keycode), _label_of(other), KeyBindings.text_all(other)]
+	KeyBindings.set_keys(action, [keycode])
+	_save_bindings()
+	_end_capture(msg)
+
+
+func _end_capture(msg: String) -> void:
+	_capturing = &""
+	for a in _key_buttons:
+		(_key_buttons[a] as Button).text = KeyBindings.text_all(a)
+	if _controls_status != null:
+		_controls_status.text = msg
+
+
+func _save_bindings() -> void:
+	MetaState.key_bindings = KeyBindings.overrides()
+	MetaState.save_to_disk()
+
+
+func _build_controls() -> void:
+	KeyBindings.ensure()
+	_controls_status = _body("Click a shortcut, then press the new key. Esc cancels.")
+	_controls_status.name = "ControlsStatus"
+	for group in KeyBindings.GROUPS:
+		var title := UI3.label(group, "LabelDisplay")
+		title.name = "ControlsGroup_" + group
+		_content.add_child(title)
+		for d in KeyBindings.DEFS:
+			if d["group"] != group:
+				continue
+			var action: StringName = d["id"]
+			var b := UI3.button(KeyBindings.text_all(action), &"secondary", &"M")
+			b.name = "Key_" + String(action)
+			b.custom_minimum_size = Vector2(220, 56)
+			b.tooltip_text = "Click, then press a key. Esc cancels."
+			b.pressed.connect(func() -> void:
+				if _capturing != &"":
+					_end_capture("")
+				_capturing = action
+				b.text = "Press a key..."
+				if _controls_status != null:
+					_controls_status.text = "Press a key for \"%s\". Esc cancels." % _label_of(action))
+			_key_buttons[action] = b
+			_row(String(d["label"]), "", b)
+	var reset := UI3.button("Reset to defaults", &"secondary", &"M")
+	reset.name = "ResetKeysButton"
+	reset.pressed.connect(func() -> void:
+		KeyBindings.reset_all()
+		_save_bindings()
+		_end_capture("All shortcuts are back to their defaults."))
+	_row("Reset shortcuts", "Puts every key back to its default.", reset)
 
 
 func _unhandled_key_input(ev: InputEvent) -> void:
