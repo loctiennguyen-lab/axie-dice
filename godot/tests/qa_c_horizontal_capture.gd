@@ -40,7 +40,7 @@ func _ready() -> void:
 			await _fight("boss", _find(graph, int(graph.boss_rows[0]), "boss"), "boss", size)
 		if _want("eggs"):
 			await _fight("eggs", _find(graph, 3, "battle"), "battle", size)
-		for st in ["n1", "n2", "n3", "n5", "bosssum6", "aelite", "aboss", "an2", "an3", "an5"]:
+		for st in ["bthrow", "bthrow11", "n1", "n2", "n3", "n5", "bosssum6", "aelite", "aboss", "an2", "an3", "an5"]:
 			if _want(st):
 				var arctic: bool = st.begins_with("a")
 				var row := 8 if arctic else 3
@@ -48,6 +48,9 @@ func _ready() -> void:
 				if st == "aelite":
 					row = int(graph.elite_rows[2]) if false else 9
 					knd = "elite"
+				if st == "bthrow" or st == "bthrow11":
+					row = int(graph.boss_rows[0])
+					knd = "boss"
 				if st == "bosssum6":
 					row = int(graph.boss_rows[0])
 					knd = "boss"
@@ -93,11 +96,15 @@ func _fight(state: String, node_id: String, kind: String, size: Vector2i) -> voi
 	RunState.enter_node(node_id, kind)
 	var scene: Node = (load("res://scenes/combat/Combat.tscn") as PackedScene).instantiate()
 	get_tree().root.add_child(scene)
-	for _i in (14 if state == "throw" else 90):
+	if state.contains("throw"):
+		var rl: DiceRoller3D = scene._stage3d.get_dice_roller()
+		rl.hold_settled = true
+		rl.die_settled.connect(func(i: int) -> void: _on_die_settled(scene, state, i))
+	for _i in (14 if (state == "throw" or state == "bthrow") else 90):
 		await get_tree().process_frame
-	if state == "throw11":
+	if state == "throw11" or state == "bthrow11":
 		scene._land_dice_now()
-		for _k in 4:
+		for _k in 6:   # 5 Axies + 6 Eggs = 11 dice, a stress case beyond the real cap of 4 Eggs
 			scene._combat.party.append(scene._combat._mk_ally())
 		for u in scene._combat.party:
 			if u.hp > 0 and not u.has_rolled():
@@ -109,24 +116,26 @@ func _fight(state: String, node_id: String, kind: String, size: Vector2i) -> voi
 		scene._rebuild_all()
 		for _i in 12:
 			await get_tree().process_frame
-		await _shot("throw11-a", size)
+		await _shot(state + "-a", size)
 		for _i in 16:
 			await get_tree().process_frame
-		await _shot("throw11-b", size)
+		await _shot(state + "-b", size)
 		for _i in 100:
 			await get_tree().process_frame
-		await _shot("throw11-c", size)
+		await _settled_shot(scene, state, size)
 		scene.queue_free()
 		await get_tree().process_frame
 		return
-	if state == "throw":
-		await _shot("throw-a", size)
+	if state == "throw" or state == "bthrow":
+		await _shot(state + "-a", size)
 		for _i in 14:
 			await get_tree().process_frame
-		await _shot("throw-b", size)
+		await _shot(state + "-b", size)
 		for _i in 14:
 			await get_tree().process_frame
-		await _shot("throw-c", size)
+		for _i in 90:
+			await get_tree().process_frame
+		await _settled_shot(scene, state, size)
 		scene.queue_free()
 		await get_tree().process_frame
 		return
@@ -254,3 +263,58 @@ func _fight(state: String, node_id: String, kind: String, size: Vector2i) -> voi
 		await get_tree().process_frame
 	scene.queue_free()
 	await get_tree().process_frame
+
+
+## Prints every die's world position next to the landing zone (x, z) and whether it settled inside it.
+func _dump_dice(scene: Node, label: String) -> void:
+	var st: CombatStage3D = scene._stage3d
+	var roller: DiceRoller3D = st.get_dice_roller()
+	var n: int = roller._dice.size()
+	var zone := DiceRoller3D.landing_zone(n, st.landing_center())
+	var out := 0
+	for d in roller._dice:
+		var b = d.get("body")
+		if b != null and is_instance_valid(b):
+			var p: Vector3 = (b as Node3D).global_position
+			var inside := zone.grow(0.3).has_point(Vector2(p.x, p.z))
+			out += 0 if inside else 1
+			print("QA: die ", d["i"], " pos=", p, " inside_zone=", inside)
+	print("QA: ", label, " dice=", n, " zone=", zone, " outside=", out)
+
+
+var _settled_out := 0
+var _settled_total := 0
+
+
+## Called the moment a die comes to rest: is it inside the fenced landing zone?
+func _on_die_settled(scene: Node, label: String, i: int) -> void:
+	var st: CombatStage3D = scene._stage3d
+	var roller: DiceRoller3D = st.get_dice_roller()
+	if i >= roller._dice.size():
+		return
+	var b = roller._dice[i].get("body")
+	if b == null or not is_instance_valid(b):
+		return
+	var zone := DiceRoller3D.landing_zone(roller._dice.size(), st.landing_center())
+	var p: Vector3 = (b as Node3D).global_position
+	var inside := zone.grow(0.2).has_point(Vector2(p.x, p.z))
+	_settled_total += 1
+	_settled_out += 0 if inside else 1
+	print("QA: settled ", label, " die ", i, "/", roller._dice.size(), " pos=", p, " inside_zone=", inside, " (running: ", _settled_out, " outside of ", _settled_total, ")")
+
+
+## Waits (up to ~4 s) until every die lies still on the floor, prints their positions, shoots, then lets them fly.
+func _settled_shot(scene: Node, state: String, size: Vector2i) -> void:
+	var roller: DiceRoller3D = scene._stage3d.get_dice_roller()
+	for _i in 240:
+		var all_rest := roller.is_rolling()
+		for d in roller._dice:
+			all_rest = all_rest and int(d["phase"]) >= 2
+		if all_rest:
+			break
+		await get_tree().process_frame
+	for _i in 12:
+		await get_tree().process_frame
+	_dump_dice(scene, state)
+	await _shot(state + "-c", size)
+	roller.hold_settled = false

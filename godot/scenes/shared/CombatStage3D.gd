@@ -566,9 +566,30 @@ func _ready() -> void:
 	_roller.name = "DiceRoller3D"
 	add_child(_roller)
 	_roller.setup(_world, _camera, self)
+	_roller.landing_provider = Callable(self, "landing_center")
 
 
 ## The dice throw this stage owns (see DiceRoller3D). CombatView feeds it the turn's rolls.
+## World centre of the empty gap between the party's right edge and the enemy group's left edge, on the march line
+## (the gate axis). The dice land here. Falls back to the middle of the field before units exist.
+func landing_center() -> Vector3:
+	var right := -INF
+	var left := INF
+	for uid in _units:
+		var e: Dictionary = _units[uid]
+		var sl: Node3D = e.get("slot")
+		if not is_instance_valid(sl) or not sl.visible or bool(e.get("dying", false)):
+			continue
+		if bool(e.get("is_enemy", false)):
+			var half := 2.6 if bool(e.get("is_boss", false)) else (1.4 if bool(e.get("elite_scaled", false)) else 0.9)
+			left = minf(left, sl.position.x - half)
+		else:
+			right = maxf(right, sl.position.x + 0.9)
+	if right == -INF or left == INF:
+		return Vector3(ENEMY_CENTER_X - 4.0, 0.5, LANE_Z)
+	return Vector3((right + left) * 0.5, 0.5, LANE_Z)
+
+
 func get_dice_roller() -> DiceRoller3D:
 	return _roller
 
