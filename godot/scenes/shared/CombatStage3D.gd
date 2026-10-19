@@ -339,17 +339,17 @@ const EGG_X0 := -10.0
 const EGG_PITCH_X := 1.5
 const EGG_Z := 6.9
 const ENEMY_CENTER_X := 3.6
-const ENEMY_PITCH_X := 1.1   # a diagonal: neighbours stand on different depth rows, so they can be close in x
+const ENEMY_PITCH_X := 1.25   # a diagonal: neighbours stand on different depth rows, so they can be close in x
 ## Enemies stand on three depth rows (back, middle, front), index i takes row i % 3, so units that are close
 ## in x are far apart in y and 5 enemies fit between the gap and the gate. One enemy stands on the middle row.
-const ENEMY_Z_BACK := -5.4
+const ENEMY_Z_BACK := -7.0
 const ENEMY_Z_MID := 0.2
-const ENEMY_Z_FRONT := 5.8
-const BOSS_POS := Vector3(3.8, 0.0, 0.2)
-const ELITE_POS := Vector3(3.8, 0.0, 0.2)   # spec: one elite, bigger
-const ELITE_SCALE := 1.3
+const ENEMY_Z_FRONT := 6.4
+const BOSS_POS := Vector3(3.5, 0.0, 0.2)
+const ELITE_POS := Vector3(3.5, 0.0, 0.2)   # spec: one elite, bigger
+const ELITE_SCALE := 1.4
 ## Other enemies next to a boss or an elite: two on the front line, two on the back line, clear of the big one.
-const ADD_SLOTS: Array[Vector3] = [Vector3(2.2, 0.0, 5.8), Vector3(5.4, 0.0, 5.8), Vector3(0.4, 0.0, -5.4), Vector3(7.9, 0.0, -5.4)]
+const ADD_SLOTS: Array[Vector3] = [Vector3(1.4, 0.0, 6.4), Vector3(4.9, 0.0, 6.4), Vector3(-1.0, 0.0, -7.0), Vector3(8.4, 0.0, -7.0)]
 ## Z of the path / gate lane. The arena is shifted onto it so the road to the gate runs behind the party, not under it.
 const LANE_Z := 1.0
 var _encounter_kind := ""
@@ -557,7 +557,7 @@ const _CAM_FOV := 19.0   # wider than before (was 34): the whole field zooms out
 ## two teams stand clearly apart. Relative sizes are unchanged: boss > elite > normal.
 const UNIT_SCALE := 0.9
 ## Monsters are drawn smaller than Axies (their art is 2.55 m tall; at 0.9 they towered over the party).
-const ENEMY_SCALE := 0.65
+const ENEMY_SCALE := 0.75
 const _CAM_PITCH_DEG := -30.0
 const _CAM_POS := Vector3(-0.2, 17.0, 28.0)   # 3/4 view across the field, slightly from above
 

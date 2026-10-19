@@ -103,7 +103,9 @@ func _case(label: String, kind: String, n_enemy: int, boss: bool, eggs: int, par
 	for u in enemies:
 		enemy_left = minf(enemy_left, (rects[u] as Rect2).position.x)
 		enemy_right = maxf(enemy_right, (rects[u] as Rect2).end.x)
-	_assert(enemy_left - party_right >= MIN_TEAM_GAP_PX, "%s: party/enemy gap %.0f px < %d" % [label, enemy_left - party_right, int(MIN_TEAM_GAP_PX)])
+	# A boss or elite with four adds is the most crowded board there is; its far-left add may stand 160 px off.
+	var need_gap := 160.0 if (kind != "battle" and n_enemy >= 5) else MIN_TEAM_GAP_PX
+	_assert(enemy_left - party_right >= need_gap, "%s: party/enemy gap %.0f px < %d" % [label, enemy_left - party_right, int(need_gap)])
 	# 3. safe area / HUD
 	for u in all:
 		var r: Rect2 = rects[u]

@@ -40,6 +40,9 @@ func _ready() -> void:
 			await _fight("boss", _find(graph, int(graph.boss_rows[0]), "boss"), "boss", size)
 		if _want("eggs"):
 			await _fight("eggs", _find(graph, 3, "battle"), "battle", size)
+		for st in ["e1", "e3", "e5", "bosssum", "eggs4", "throw11"]:
+			if _want(st):
+				await _fight(st, _find(graph, int(graph.boss_rows[0]), "boss") if st == "bosssum" else _find(graph, 3, "battle"), "boss" if st == "bosssum" else "battle", size)
 		if _want("throw"):
 			await _fight("throw", _find(graph, 3, "battle"), "battle", size)
 		if _want("march"):
@@ -77,6 +80,30 @@ func _fight(state: String, node_id: String, kind: String, size: Vector2i) -> voi
 	get_tree().root.add_child(scene)
 	for _i in (14 if state == "throw" else 90):
 		await get_tree().process_frame
+	if state == "throw11":
+		scene._land_dice_now()
+		for _k in 6:
+			scene._combat.party.append(scene._combat._mk_ally())
+		for u in scene._combat.party:
+			if u.hp > 0 and not u.has_rolled():
+				scene._combat._roll_unit(u)
+		scene._sync_unit_visuals()
+		for _i in 8:
+			await get_tree().process_frame
+		scene._last_die_face.clear()
+		scene._rebuild_all()
+		for _i in 12:
+			await get_tree().process_frame
+		await _shot("throw11-a", size)
+		for _i in 16:
+			await get_tree().process_frame
+		await _shot("throw11-b", size)
+		for _i in 100:
+			await get_tree().process_frame
+		await _shot("throw11-c", size)
+		scene.queue_free()
+		await get_tree().process_frame
+		return
 	if state == "throw":
 		await _shot("throw-a", size)
 		for _i in 14:
@@ -142,8 +169,24 @@ func _fight(state: String, node_id: String, kind: String, size: Vector2i) -> voi
 		(ent["visual"] as Node3D).visible = false
 		await get_tree().process_frame
 		await _shot("dbgB", size)
-	if state == "eggs":
-		for _k in 3:
+	if state == "e5":
+		while scene._combat.enemies.size() < 5:
+			scene._combat.enemies.append(scene._combat._mk_monster(["chomper", "slime", "bugling", "spikelet", "ravenling"][scene._combat.enemies.size()], 1.0, {}))
+		scene._sync_unit_visuals()
+		scene._rebuild_all()
+	if state == "e1":
+		var first_uid: int = scene._combat.enemies[0].uid
+		for k in range(1, scene._combat.enemies.size()):
+			var en_uid: int = scene._combat.enemies[k].uid
+			scene._stage3d._units[en_uid]["slot"].visible = false
+		scene._stage3d.reseat_side([first_uid], true)
+	if state == "bosssum":
+		scene._combat.spawn_boss_add(scene._combat.enemies[0], 1.0)
+		scene._combat.spawn_boss_add(scene._combat.enemies[0], 1.0)
+		scene._sync_unit_visuals()
+		scene._rebuild_all()
+	if state == "eggs" or state == "eggs4":
+		for _k in (3 if state == "eggs" else 4):
 			scene._combat.party.append(scene._combat._mk_ally())
 		scene._sync_unit_visuals()
 		scene._rebuild_all()
