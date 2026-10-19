@@ -38,6 +38,8 @@ func _ready() -> void:
 	var units: Array = view._party_dice_units()
 	units[0].shield = 6
 	units[0].status["thorns"] = 2
+	units[0].status["enrage"] = 1
+	units[0].status["burn"] = 1
 	units[1].status["poison"] = 3
 	units[1].status["regen"] = 2
 	units[2].status["weaken"] = 1

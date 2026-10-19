@@ -46,6 +46,7 @@ const _STATUS_ICON := {
 	"stun": preload("res://assets/icons/web/stun.png"),
 	"undying": preload("res://assets/icons/web/undying.png"),
 	"freeze": preload("res://assets/icons/web/freeze.png"),
+	"enrage": preload("res://assets/icons/web/enrage.png"),
 }
 
 ## Float text. R1: numerals over the scene = Baloo, cream/tint fill, dark 8-way outline; party

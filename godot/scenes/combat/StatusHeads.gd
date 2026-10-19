@@ -8,8 +8,8 @@ extends Control
 ## The head point is decided in ONE place, CombatView._status_head_anchor(); move units around and only
 ## that function changes.
 ##
-## Icons: assets/icons/web (UnitPortrait._STATUS_ICON). `enrage` has no icon in the project, so it shows
-## the round-2 3-letter label chip instead (list of missing art in the lane report).
+## Icons: assets/icons/web (UnitPortrait._STATUS_ICON). `enrage` uses enrage.png (the angry red spiky ball
+## from the Atia icon set, outlined to match). A status with no icon falls back to the 3-letter label chip.
 
 signal unit_clicked(uid: int)
 signal unit_inspect(uid: int)

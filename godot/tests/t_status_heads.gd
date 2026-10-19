@@ -1,5 +1,5 @@
 extends Node
-## StatusHeads: icon chips above heads. Icon per status (enrage has none: label chip), "+n" past 4,
+## StatusHeads: icon chips above heads. Icon per status (every status has one), "+n" past 4,
 ## hidden at once for a unit with no screen point / dead / during the victory march, dropped units
 ## are freed, chips connect gui_input once. Run: godot --headless --path godot res://tests/t_status_heads.tscn
 
@@ -15,9 +15,10 @@ func _check(ok: bool, msg: String) -> void:
 
 func _ready() -> void:
 	print("=== t_status_heads: start ===")
-	for k in ["poison", "burn", "regen", "blind", "weaken", "vulnerable", "thorns", "stun", "undying", "shield"]:
+	for k in ["poison", "burn", "regen", "blind", "weaken", "vulnerable", "thorns", "stun", "undying", "enrage", "shield"]:
 		_check(StatusHeads.icon_for(k) != null, "status %s has an icon" % k)
-	_check(StatusHeads.icon_for("enrage") == null, "enrage has no icon (label chip fallback)")
+	for k in UI3.STATUS_CODE:
+		_check(StatusHeads.icon_for(k) != null, "every STATUS_CODE status has an icon, no text chip left: %s" % k)
 	_check(StatusHeads.items_for(0, {}, true) == [["freeze", 1]] and StatusHeads.icon_for("freeze") != null, "frozen flag gives a freeze chip")
 	var items := StatusHeads.items_for(3, {"poison": 2, "thorns": 0, "burn": 1})
 	_check(items == [["shield", 3], ["poison", 2], ["burn", 1]], "items: shield first, zero counts dropped (%s)" % str(items))
