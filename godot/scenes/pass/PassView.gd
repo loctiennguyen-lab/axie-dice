@@ -510,25 +510,36 @@ func _tile(def: Dictionary) -> Control:
 		if String((r as Dictionary).get("type", "")) == "gem":
 			top.add_child(UI3Meta.tag("Season gift"))
 	v.add_child(top)
+	var cos_id := ""
+	for r in def.get("free", []):
+		if String((r as Dictionary).get("type", "")) == "cosmetic" and CosmeticTile.art(String(r.get("value", "")), 8.0) != null:
+			cos_id = String(r.get("value", ""))
+			break
 	var row := HBoxContainer.new()
 	row.add_theme_constant_override("separation", UI3Theme.space("8"))
 	row.size_flags_vertical = Control.SIZE_EXPAND_FILL
-	for r in def.get("free", []):
-		if String((r as Dictionary).get("type", "")) == "cosmetic":
-			var art := CosmeticTile.art(String(r.get("value", "")), 48.0)
-			if art != null:
-				row.add_child(art)
-				break
+	if cos_id != "":
+		_cosmetic_reward_block(v, cos_id, st)
+	else:
+		for r in def.get("free", []):
+			if String((r as Dictionary).get("type", "")) == "cosmetic":
+				var art := CosmeticTile.art(String(r.get("value", "")), 48.0)
+				if art != null:
+					row.add_child(art)
+					break
 	var names: Array[String] = []
 	for r in def.get("free", []):
 		names.append(reward_text(r))
 	var rl := UI3.label(", ".join(names))
 	rl.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	rl.size_flags_vertical = Control.SIZE_SHRINK_BEGIN   # text hugs the top when a cosmetic tile makes the row taller
 	rl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	rl.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	row.add_child(rl)
-	v.add_child(row)
-	var b := UI3.button("", &"secondary", &"S")
+	if cos_id == "":
+		row.add_child(rl)
+		v.add_child(row)
+	var hot := cos_id != "" and st == "claimable"   # a cosmetic tile ready to claim: Claim is its one primary
+	var b := UI3.button("", &"primary" if hot else &"secondary", &"M" if hot else &"S")
 	b.name = "NodeBtn_%d" % lv
 	match st:
 		"claimed":
@@ -553,6 +564,53 @@ func _tile(def: Dictionary) -> Control:
 			open_reward(lv))
 	p.mouse_entered.connect(select_level.bind(lv))
 	return p
+
+
+## 48-store-pass-tiles for a dice skin / frame reward: 4 px tier strip, art box (wood-2) with the art at 100% when
+## claimable, 50% when claimed, 40% when locked, then name (18 chars) and the tier word in its colour. The action
+## button below is the tile's own (Claim stays the one primary). Pure look: claim logic is untouched.
+func _cosmetic_reward_block(v: VBoxContainer, cos_id: String, st: String) -> void:
+	var art_id := Cosmetics.art_id(cos_id)
+	var tier := 0
+	var m: Dictionary = CosmeticArt.manifest()
+	var e: Variant = (m.get("dice", {}) as Dictionary).get(art_id, (m.get("frames", {}) as Dictionary).get(art_id, {}))
+	if e is Dictionary:
+		tier = int((e as Dictionary).get("tier", 0))
+	var strip := ColorRect.new()
+	strip.name = "TierStrip"
+	strip.custom_minimum_size = Vector2(0, 4)
+	strip.color = DiceSkin.tier_color(tier)
+	strip.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	v.add_child(strip)
+	var box := Panel.new()
+	box.name = "ArtBox"
+	box.custom_minimum_size = Vector2(0, 120)
+	box.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	box.clip_contents = true
+	box.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	box.add_theme_stylebox_override("panel", UI3Theme.flat(UI3Theme.color("panel_raised"), UI3Theme.radius("s")))
+	var art := CosmeticTile.art(cos_id, 104.0)
+	if art != null:
+		art.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		art.modulate.a = 0.4 if st == "locked" or st == "next" else (0.5 if st == "claimed" else 1.0)
+		var cc := CenterContainer.new()
+		cc.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		cc.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		cc.add_child(art)
+		box.add_child(cc)
+	v.add_child(box)
+	var nm := UI3.label(CosmeticTile.display_name(cos_id).left(18), "LabelTitle")
+	nm.name = "RewardName"
+	nm.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	nm.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+	nm.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	v.add_child(nm)
+	var tw := UI3.label(DiceSkin.TIER_NAMES.values()[clampi(tier, 0, 5)])
+	tw.name = "RewardTier"
+	tw.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	tw.add_theme_color_override("font_color", DiceSkin.tier_text_color(tier))
+	tw.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	v.add_child(tw)
 
 
 ## Reward detail popup (round 2): every reward of the level, the state, and Claim when it is ready.
