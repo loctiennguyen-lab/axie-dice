@@ -11,6 +11,8 @@ func _ready() -> void:
 	var key := OS.get_environment("AXIE_BOSS")
 	if key == "":
 		key = "agony"
+	var reduce := OS.get_environment("AXIE_REDUCE") == "1"
+	MetaState.reduce_flash = reduce   # in memory only, never saved
 	var intro := BossIntro.new()
 	if not intro.setup(key):
 		print("qa_boss_intro_capture: no data for %s" % key)
@@ -22,7 +24,7 @@ func _ready() -> void:
 		while intro.elapsed_ms < int(pair[1]):
 			await get_tree().process_frame
 		var img := get_viewport().get_texture().get_image()
-		var path := "%s/boss_intro_%s_%s_%s.png" % [_dir, key, pair[0], res]
+		var path := "%s/boss_intro_%s%s_%s_%s.png" % [_dir, key, "_reduce" if reduce else "", pair[0], res]
 		img.save_png(path)
 		print("qa_boss_intro_capture: %s at %d ms" % [path, intro.elapsed_ms])
 	get_tree().quit(0)
