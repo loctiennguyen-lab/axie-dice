@@ -25,6 +25,9 @@ extends Control
 ## image gives a similarity transform: uniform scale from the ratio of the two distances,
 ## rotation from the angle between them, translation from the attacker point.
 ##
+## SELF CLIPS: faces with no opposing target (mana, buff, heal, shield on the caster) call
+## play_on_unit(); there is no attacker/defender pair, so nothing travels across the field.
+##
 ## Scale is CLAMPED (_MIN_SCALE.._MAX_SCALE). Two adjacent party members are ~1.5m apart while
 ## the capture separation is ~400px, so an unclamped self-target or neighbour-target would
 ## shrink a whole skill to a few pixels, and a cross-field shot on a wide screen would blow it
@@ -39,7 +42,11 @@ extends Control
 ## is comfortable in practice; it exists so a long run cannot accumulate all 42.
 
 const _MIN_SCALE := 0.45
-const _MAX_SCALE := 2.2
+const _MAX_SCALE := 1.3
+## A clip played ON one unit (mana, self-buff, heal, shield): the clip's hit burst is centred on the
+## unit and the clip is drawn at this fixed scale, unrotated. The horizontal stage draws a unit about
+## 110 px wide; a clip authored for a ~400 px duel at scale 1 would cover half the arena.
+const _SELF_SCALE := 0.5
 const _CACHE_MAX := 10
 
 ## One clip in flight. Kept as plain Dictionaries rather than nodes: this layer draws them all
@@ -87,6 +94,28 @@ func play(clip_key: String, attacker_pos: Vector2, target_pos: Vector2) -> bool:
 		"key": clip_key, "tex": tex, "meta": meta,
 		"origin": attacker_pos, "attacker_pt": a_pt,
 		"scale": scale, "rot": rot,
+		"t": 0.0,
+		"fps": maxf(1.0, float(meta.get("fps", 30.0))),
+		"frames": maxi(1, int(meta.get("frames", 1))),
+	})
+	set_process(true)
+	queue_redraw()
+	return true
+
+
+## Plays `clip_key` on one unit: the clip's burst (its `anchor` point) sits on `unit_pos`, drawn at
+## _SELF_SCALE, no rotation, so a start-of-fight mana/buff flash stays on the unit that caused it.
+func play_on_unit(clip_key: String, unit_pos: Vector2) -> bool:
+	var meta := SkillVfxCatalog.clip(clip_key)
+	if meta.is_empty():
+		return false
+	var tex := _texture_for(clip_key)
+	if tex == null:
+		return false
+	_active.append({
+		"key": clip_key, "tex": tex, "meta": meta,
+		"origin": unit_pos, "attacker_pt": _pair(meta.get("anchor")),
+		"scale": _SELF_SCALE, "rot": 0.0,
 		"t": 0.0,
 		"fps": maxf(1.0, float(meta.get("fps", 30.0))),
 		"frames": maxi(1, int(meta.get("frames", 1))),
