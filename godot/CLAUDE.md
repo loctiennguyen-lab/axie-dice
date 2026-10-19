@@ -57,7 +57,7 @@ Baloo) **không còn đúng** cho màn đã port.
   `resources/relics/`, `assets/data/rules/` và `assets/data/part_faces.json` (.gd/.tres/.json).
   Đụng file nào trong đó là phải bump `RULES_VERSION` + deploy Worker. Worktree làn chạy với
   `AXIE_SKIP_RULES_FINGERPRINT=1` nên không thấy lỗi; chỉ cây chính bắt được.
-- Test có thể đọc save thật ở cây chính. Cô lập save (userdir/override.cfg) trước khi chạy.
+- Test không còn chạm save thật: `with_lock.sh` / `run_tests.sh` luôn dùng user dir cô lập (override.cfg của worktree, hoặc override.cfg tạm `AxieDice-test-<repo>` ở cây chính). Chạy Godot thẳng, không qua `with_lock.sh`, thì vẫn dùng save thật. Chi tiết: `production/l1-lanes.md`.
 - Mỗi helper chỉ có MỘT định nghĩa trong `UI3.gd`. Trùng tên là lỗi parse, và parse error làm
   headless bị treo thay vì báo lỗi (chạy `--import` trước).
 - Text relic/pact luôn qua `UI3.describe()` / `player_text()`. Không tự ghép chuỗi từ data thô.
@@ -66,6 +66,7 @@ Baloo) **không còn đúng** cho màn đã port.
 
 ## Legacy
 
-`DangoTheme` / `DangoScreen` / `MockupAssets` / `dango.tres` (`tools/gen_theme.gd`) chỉ còn ở các
-màn chưa port (MainMenu, TeamSelect, Vault, Codex, Unlocks, Guides, AccountUI, R3Shell). Không
-dùng cho code mới. Khi màn cuối cùng được port thì xoá hết, kể cả `t_mockup_assets`.
+`DangoTheme` / `DangoScreen` / `dango.tres` / `gen_theme.gd` đã xoá (19/10). Không còn project theme
+(`gui/theme/custom`): mỗi màn tự gắn `UI3Theme.get_theme()`. `MockupAssets` (tên mockup -> asset trong
+repo) vẫn còn vì Unlocks, Result, Combat, TeamPresets, Codex, Leaderboard, RunMap, Guides còn dùng,
+cùng `t_mockup_assets`. Không dùng cho code mới.
