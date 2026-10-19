@@ -85,7 +85,7 @@ const _EYE_GLOW_COLOR := {
 }
 const _ENEMY_EYE_GLOW_COLOR := Color(0.75, 0.35, 0.32)   # grey-red, non-hero enemy fallback
 
-const _EYE_HEIGHT := 1.3            # world-space Y offset above a unit's slot origin — roughly
+const _EYE_HEIGHT := 1.3 * UNIT_SCALE            # world-space Y offset above a unit's slot origin — roughly
 	# eye level for both the capsule placeholder (base at y=0.8, height 1.4) and AxieCharacter3D.
 const _EYE_LIGHT_ENERGY := 1.4       # "small" point light — enough to read as a personality
 	# accent (spec §5.3), never bright enough to act as gameplay lighting on its own.
@@ -331,25 +331,25 @@ const _POS_Z_ENEMY := -6.5    # far row — enemies, reads as "further back" per
 ## Horizontal layout (spec 02-combat/spec.md): world x runs left to right, +z is toward the camera.
 ## Party: two staggered rows, slots 0,2,4 in front (near the camera), 1,3 behind. Eggs: a third,
 ## nearest row bottom-left. Enemies: a staggered row on the right. The gate sits beyond them (arena x).
-const PARTY_X0 := -7.2
+const PARTY_X0 := -10.9
 const PARTY_PITCH_X := 1.3
 const PARTY_Z_FRONT := 4.4
-const PARTY_Z_BACK := -0.2
-const EGG_X0 := -7.0
-const EGG_PITCH_X := 1.0
-const EGG_Z := 6.5
-const ENEMY_CENTER_X := 3.2
-const ENEMY_PITCH_X := 2.4
-const ENEMY_PITCH_X_MANY := 1.75   # 4-5 enemies
-const ENEMY_Z_FRONT := 3.9
-const ENEMY_Z_BACK := 0.5
-const BOSS_POS := Vector3(2.8, 0.0, 1.8)
-const ELITE_POS := Vector3(3.0, 0.0, 0.2)   # spec: one elite, back slot centre-right, bigger
+const PARTY_Z_BACK := -1.4
+const EGG_X0 := -8.8
+const EGG_PITCH_X := 1.65
+const EGG_Z := 7.0
+const ENEMY_CENTER_X := 1.4
+const ENEMY_PITCH_X := 1.92
+const ENEMY_PITCH_X_MANY := 1.92   # 4-5 enemies
+const ENEMY_Z_FRONT := 3.4
+const ENEMY_Z_BACK := -5.0
+const BOSS_POS := Vector3(2.4, 0.0, -5.0)
+const ELITE_POS := Vector3(2.4, 0.0, -5.0)   # spec: one elite, back slot centre-right, bigger
 const ELITE_SCALE := 1.3
 ## Other enemies next to a boss or an elite: two on the front line, two on the back line, clear of the big one.
-const ADD_SLOTS: Array[Vector3] = [Vector3(2.8, 0.0, 4.9), Vector3(6.4, 0.0, 4.2), Vector3(-0.4, 0.0, 0.3), Vector3(6.3, 0.0, 0.3)]
+const ADD_SLOTS: Array[Vector3] = [Vector3(-0.2, 0.0, 3.4), Vector3(4.4, 0.0, 3.4), Vector3(-1.5, 0.0, -5.0), Vector3(5.8, 0.0, -5.0)]
 ## Z of the path / gate lane. The arena is shifted onto it so the road to the gate runs behind the party, not under it.
-const LANE_Z := -1.8
+const LANE_Z := -11.0
 var _encounter_kind := ""
 
 
@@ -389,7 +389,7 @@ const _ENEMY_FACING_Y_DEG := -90.0
 ## click (within _CLICK_PICK_RADIUS_PX) wins. Cheap, framework-free, and more than accurate
 ## enough for a battlefield of at most ~11 well-separated units. ---
 const _CLICK_PICK_RADIUS_PX := 70.0
-const _CLICK_TARGET_HEIGHT := 0.9   # world-space Y offset added to a unit's slot origin before
+const _CLICK_TARGET_HEIGHT := 0.9 * UNIT_SCALE   # world-space Y offset added to a unit's slot origin before
 	# projecting — roughly chest/head height (matches the capsule placeholder's own
 	# `position.y = 0.8` in _make_placeholder()), so the pick point reads as "the body", not
 	# the ground under its feet.
@@ -402,8 +402,8 @@ const _CLICK_TARGET_HEIGHT := 0.9   # world-space Y offset added to a unit's slo
 ## AxieCharacter3D's real mesh.
 const FEET_HEIGHT := 0.0
 const CHEST_HEIGHT := _CLICK_TARGET_HEIGHT
-const HEAD_HEIGHT := 1.55
-const AXIE_HEAD_HEIGHT := 1.3   ## status chips of party Axies sit just above the real head
+const HEAD_HEIGHT := 1.55 * UNIT_SCALE
+const AXIE_HEAD_HEIGHT := 1.3 * UNIT_SCALE   ## status chips of party Axies sit just above the real head
 
 ## Per-face-type action clip/pace table (ui-programmer follow-up pass — user report: "chỉ dùng
 ## WalkAttack cho MỌI hành động — nhàm chán"). Face `type` strings are exactly the rule spec's die-
@@ -550,7 +550,10 @@ func slot_node_of(uid: int) -> Node3D:
 
 
 ## Camera framing constants (kept here so frame_band() can re-derive them).
-const _CAM_FOV := 34.0
+const _CAM_FOV := 42.0   # wider than before (was 34): the whole field zooms out so the teams have room
+## Every unit is drawn at this fraction of its old size (Axies, monsters, boss, elite, eggs alike), so the
+## two teams stand clearly apart. Relative sizes are unchanged: boss > elite > normal.
+const UNIT_SCALE := 0.75
 const _CAM_PITCH_DEG := -21.0
 const _CAM_POS := Vector3(-0.2, 6.6, 15.2)   # 3/4 view across the field, slightly from above
 
@@ -776,7 +779,7 @@ func spawn_unit(uid: int, cls: String, is_enemy: bool, slot_index: int, slot_cou
 		slot.add_child(model)
 		_fit_atia_model(model, atia)
 		visual = model
-		shadow_width = clampf(float(atia["width"]) * 0.9, 1.0, 7.0)
+		shadow_width = clampf(float(atia["width"]) * 0.9, 1.0 * UNIT_SCALE, 7.0)
 		atia_info = atia
 		if not CombatView.disable_juice_for_tests:
 			if (atia["anims"] as Dictionary).has("idle"):
@@ -793,7 +796,7 @@ func spawn_unit(uid: int, cls: String, is_enemy: bool, slot_index: int, slot_cou
 		# taken for party units (`is_enemy` guards it) — the AxieCharacter3D rig stays the party
 		# visual, per the standing "party never gets the enemy treatment" decision.
 		var tex := MonsterArt.texture_for(unit_key, is_boss)
-		var target_height := _ENEMY_SPRITE_HEIGHT_M * (_BOSS_SCALE if is_named_boss else 1.0)
+		var target_height := _ENEMY_SPRITE_HEIGHT_M * UNIT_SCALE * (_BOSS_SCALE if is_named_boss else 1.0)
 		var sprite := _make_enemy_sprite(tex, target_height)
 		slot.add_child(sprite)
 		visual = sprite
@@ -828,7 +831,7 @@ func spawn_unit(uid: int, cls: String, is_enemy: bool, slot_index: int, slot_cou
 			slot.add_child(character.root)
 			character.root.position = Vector3.ZERO
 			if is_named_boss:
-				character.root.scale = Vector3.ONE * _BOSS_SCALE   # see _BOSS_SCALE comment — never
+				character.root.scale = Vector3.ONE * _BOSS_SCALE * UNIT_SCALE   # see _BOSS_SCALE comment — never
 					# touches `slot`'s own scale so it composes cleanly with set_targetable()'s 1.08x
 					# pulse and _start_death_fade()'s scale-to-zero, both of which animate `slot`.
 			if character.playable != null:
@@ -842,13 +845,13 @@ func spawn_unit(uid: int, cls: String, is_enemy: bool, slot_index: int, slot_cou
 				character.playable.set_default(AnimNames.Idle)
 				character.playable.play(AnimNames.Idle, "", true)
 			visual = character.root
-			shadow_width = _CHARACTER_SHADOW_WIDTH_M * (_BOSS_SCALE if is_named_boss else 1.0)
+			character.root.scale = Vector3.ONE * UNIT_SCALE * (_BOSS_SCALE if is_named_boss else 1.0)
+			shadow_width = _CHARACTER_SHADOW_WIDTH_M * UNIT_SCALE * (_BOSS_SCALE if is_named_boss else 1.0)
 		else:
 			visual = _make_placeholder(cls, is_enemy)
-			if is_named_boss:
-				visual.scale = Vector3.ONE * _BOSS_SCALE
+			visual.scale = Vector3.ONE * UNIT_SCALE * (_BOSS_SCALE if is_named_boss else 1.0)
 			slot.add_child(visual)
-			shadow_width = _CAPSULE_SHADOW_WIDTH_M * (_BOSS_SCALE if is_named_boss else 1.0)
+			shadow_width = _CAPSULE_SHADOW_WIDTH_M * UNIT_SCALE * (_BOSS_SCALE if is_named_boss else 1.0)
 
 	if is_egg and visual != null:
 		visual.scale *= 0.62   # tokens read smaller than the Axies they sit beside
@@ -950,8 +953,8 @@ func _fit_atia_model(model: Node3D, atia: Dictionary) -> void:
 	var reg: Dictionary = atia["reg"]
 	model.rotation_degrees.y = float(reg.get("facing_deg", 0.0))
 	var box := _model_aabb(model)
-	var h := float(reg.get("height_m", 2.2))
-	var wmax := float(reg.get("max_width_m", 4.2))
+	var h := float(reg.get("height_m", 2.2)) * UNIT_SCALE
+	var wmax := float(reg.get("max_width_m", 4.2)) * UNIT_SCALE
 	var raw := _visual_bounds(model)   # raw mesh AABBs; what the mascot .glb files were fitted with
 	if box.size.y < 0.05 or (raw.y - raw.x) > box.size.y * 20.0:
 		# Skinned .glb whose node transforms do not reflect in get_aabb(): the transformed box is
@@ -1099,6 +1102,28 @@ func _make_eye_light(cls: String) -> OmniLight3D:
 ## BILLBOARD_FIXED_Y: this stage has exactly one static Camera3D at a fixed pitch (_build_world()
 ## above), so the two modes are visually indistinguishable here, but ENABLED is the more literal
 ## match for "always face the camera" if a future pass ever adds camera movement.
+## Opaque-pixel facts per texture, decoded once: {"pad": transparent rows under the creature,
+## "used": Rect2 of the opaque pixels}. Spawns and summons reuse it instead of decompressing the image again.
+static var _sprite_info_cache: Dictionary = {}
+
+
+static func _sprite_info(texture: Texture2D) -> Dictionary:
+	var key := texture.get_instance_id()
+	if _sprite_info_cache.has(key):
+		return _sprite_info_cache[key]
+	var info := {"pad": 0.0, "used": Rect2(0.0, 0.0, float(texture.get_width()), float(texture.get_height()))}
+	var img := texture.get_image()
+	if img != null and not img.is_empty():
+		if img.is_compressed():
+			img.decompress()
+		var used := img.get_used_rect()
+		if used.size.y > 0:
+			info["used"] = Rect2(used)
+			info["pad"] = maxf(float(img.get_height() - (used.position.y + used.size.y)), 0.0)
+	_sprite_info_cache[key] = info
+	return info
+
+
 func _make_enemy_sprite(texture: Texture2D, target_height: float) -> Sprite3D:
 	var sprite := Sprite3D.new()
 	sprite.texture = texture
@@ -1116,14 +1141,9 @@ func _make_enemy_sprite(texture: Texture2D, target_height: float) -> Sprite3D:
 	sprite.position = Vector3(0.0, target_height * 0.5, 0.0)
 	# Some art (the Gooey King) has empty rows under the creature, so its feet hover. Drop the sprite
 	# by the transparent margin at the bottom so the opaque pixels touch the floor.
-	var img := texture.get_image()
-	if img != null and not img.is_empty():
-		if img.is_compressed():
-			img.decompress()
-		var used := img.get_used_rect()
-		var pad := float(img.get_height() - (used.position.y + used.size.y))
-		if used.size.y > 0 and pad > 0.0:
-			sprite.position.y -= pad * sprite.pixel_size
+	var pad_px: float = float(_sprite_info(texture).get("pad", 0.0))
+	if pad_px > 0.0:
+		sprite.position.y -= pad_px * sprite.pixel_size
 	return sprite
 
 
@@ -1388,6 +1408,77 @@ func get_unit_screen_pos(uid: int, height_offset: float) -> Vector2:
 		return Vector2(-1, -1)
 	var screen_pos := _camera.unproject_position(world_pos)
 	return screen_pos * (size / Vector2(_viewport.size))
+
+
+## Screen rectangle (stage-control pixels) covering a unit's model, from the 8 corners of its meshes'
+## bounding box. Rect2() when the unit is unknown or hidden. Used by the spacing test and the QA capture.
+func unit_screen_rect(uid: int) -> Rect2:
+	var entry: Dictionary = _units.get(uid, {})
+	if entry.is_empty() or _camera == null:
+		return Rect2()
+	var slot: Node3D = entry.get("slot")
+	if not is_instance_valid(slot) or not slot.visible:
+		return Rect2()
+	var skip: Array = [entry.get("shadow"), entry.get("eye_light")]
+	var box := AABB()
+	var first := true
+	for node in _descendants(slot):
+		var gi := node as GeometryInstance3D
+		if gi == null or skip.has(gi) or not gi.visible:
+			continue
+		var b: AABB
+		if gi is Sprite3D and (gi as Sprite3D).texture != null and (gi as Sprite3D).hframes == 1 and (gi as Sprite3D).vframes == 1:
+			b = _sprite_world_box(gi as Sprite3D)
+		else:
+			b = gi.global_transform * gi.get_aabb()
+		box = b if first else box.merge(b)
+		first = false
+	if first or box.size.y < 0.05:
+		var o := slot.global_transform.origin
+		box = AABB(o + Vector3(-0.5, 0.0, -0.5), Vector3(1.0, HEAD_HEIGHT, 1.0))
+	return _project_box(box)
+
+
+## World box of a billboarded sprite's OPAQUE pixels (the quad's transparent margins are not the creature).
+func _sprite_world_box(sp: Sprite3D) -> AABB:
+	var tex := sp.texture
+	var used: Rect2 = _sprite_info(tex)["used"]
+	var w := float(tex.get_width())
+	var h := float(tex.get_height())
+	var ps := sp.pixel_size
+	var right := _camera.global_transform.basis.x
+	right.y = 0.0
+	right = right.normalized()
+	var o := sp.global_transform.origin
+	var x0 := (used.position.x - w * 0.5) * ps
+	var x1 := (used.end.x - w * 0.5) * ps
+	var y0 := (h * 0.5 - used.end.y) * ps
+	var y1 := (h * 0.5 - used.position.y) * ps
+	var box := AABB(o + right * x0 + Vector3.UP * y0, Vector3.ZERO)
+	box = box.expand(o + right * x1 + Vector3.UP * y0)
+	box = box.expand(o + right * x0 + Vector3.UP * y1)
+	return box.expand(o + right * x1 + Vector3.UP * y1)
+
+
+func _project_box(box: AABB) -> Rect2:
+	var k := size / Vector2(_viewport.size)
+	var r := Rect2()
+	var have := false
+	for i in 8:
+		var c := box.position + box.size * Vector3(float(i & 1), float((i >> 1) & 1), float((i >> 2) & 1))
+		if _camera.is_position_behind(c):
+			continue
+		var p := _camera.unproject_position(c) * k
+		r = r.expand(p) if have else Rect2(p, Vector2.ZERO)
+		have = true
+	return r
+
+
+## Screen rectangle of the gate (portal) model, Rect2() when the arena has none.
+func gate_screen_rect() -> Rect2:
+	if _arena == null or _arena.portal_position() == Vector3.ZERO:
+		return Rect2()
+	return _project_box(_arena.portal_world_aabb())
 
 
 ## View-only "this unit is a plausible click target right now" affordance (bug report: no

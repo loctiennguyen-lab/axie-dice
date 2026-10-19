@@ -17,7 +17,7 @@ const GROUND_SIZE := 160.0
 const BOSS_LIGHT_MUL := 0.72
 const BOSS_FOG_DENSITY := 0.0035
 const BOSS_PORTAL_MUL := 1.15
-const BOSS_PORTAL_Z := -9.6   # pushed back so the 1.3x tower still fits under the frame top
+const BOSS_PORTAL_Z := -17.5   # pushed back so the 1.3x tower still fits under the frame top
 ## SM_Portal_01 has a detached spire (separate piece, mesh-local y > 7.5) that floats above the tower; dropped.
 const PORTAL_FINIAL_Y := 7.5
 ## Same sun / ambient as the Land hub; a biome only tints these a little (it owns sky + ground).
@@ -409,6 +409,13 @@ func portal_top_position() -> Vector3:
 		return Vector3.ZERO
 	var box := _aabb_of(_portal)
 	return _portal.global_transform * Vector3(box.get_center().x, box.end.y, box.get_center().z)
+
+
+## World-space bounding box of the portal model.
+func portal_world_aabb() -> AABB:
+	if _portal == null:
+		return AABB()
+	return _portal.global_transform * _aabb_of(_portal)
 
 
 ## World position of the portal, or ZERO when this arena has none.
