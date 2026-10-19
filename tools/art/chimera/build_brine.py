@@ -112,7 +112,10 @@ def skin(obj, arm, mace_idx):
             if n == "arm.R" and not (p.x > 0.30 and 0.28 < p.z < 0.98):
                 continue
             a, b = segs[n]
-            ws.append((1.0 / (seg_dist(p, a, b) + 0.04) ** 4, n))
+            d = seg_dist(p, a, b)
+            if n.startswith("arm") and d > 0.20:      # only the arm/hand itself, not the shell around it
+                continue
+            ws.append((1.0 / (d + 0.04) ** 4, n))
         ws.sort(reverse=True)
         ws = ws[:3]
         tot = sum(w for w, _ in ws)
@@ -161,6 +164,7 @@ def iter_fcurves(act):
                 yield from bag.fcurves
 
 
+ARM_SCALE = 0.6      # arms are short stubs on a big shell: keep their swing modest
 ALL = ["root", "hips", "chest", "head", "arm.L", "arm.R", "mace"]
 
 
@@ -176,6 +180,8 @@ class Clip:
             rots, loc = ([], None)
             if v is not None:
                 rots, loc = v if (isinstance(v, tuple) and len(v) == 2 and (v[1] is None or isinstance(v[1], tuple))) else (v, None)
+            if b.startswith("arm"):
+                rots = [(ax, dg * ARM_SCALE) for ax, dg in rots]
             self.keys.setdefault(b, {})[f] = (list(rots), loc)
 
     def bake(self):
