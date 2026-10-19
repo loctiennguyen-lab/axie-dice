@@ -157,7 +157,7 @@ func _tint_environment(b: Dictionary) -> void:
 	_env.background_mode = Environment.BG_SKY
 	_env.ambient_light_source = Environment.AMBIENT_SOURCE_COLOR
 	_env.ambient_light_color = LAND_AMBIENT.lerp(Color(String(b.get("sky_horizon", "#ffffff"))), 0.2)
-	_env.ambient_light_energy = LAND_AMBIENT_ENERGY
+	_env.ambient_light_energy = LAND_AMBIENT_ENERGY * float(b.get("ambient_mul", 1.0))
 	_env.fog_enabled = true
 	_env.fog_light_color = Color(String(b.get("fog", "#efdcae")))
 	_env.fog_density = float(b.get("fog_density", BASE_FOG_DENSITY))

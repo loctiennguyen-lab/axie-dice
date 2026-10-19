@@ -1229,7 +1229,10 @@ func reseat_side(uids: Array, is_enemy: bool) -> void:
 	if lead_uid >= 0:
 		var lead_entry: Dictionary = _units[lead_uid]
 		var is_boss: bool = bool(lead_entry.get("is_boss", false))
-		placed.append([lead_uid, BOSS_POS if is_boss else ELITE_POS])
+		var lead_pos: Vector3 = BOSS_POS if is_boss else ELITE_POS
+		if axie_uids.is_empty():
+			lead_pos.z += 0.5   # alone: no adds above and below, so it sits a little lower, on the gate's axis
+		placed.append([lead_uid, lead_pos])
 		if not is_boss and not bool(lead_entry.get("elite_scaled", false)):
 			lead_entry["elite_scaled"] = true
 			var v: Node3D = lead_entry.get("visual")

@@ -202,12 +202,13 @@
    "path": "res://assets/atia/arena/scenes/HomeLand_Asset/Environment/Forest/Decoration/StonePath/F_StonePath_Straight.tscn"
   },
   "arctic": {
-   "ground": "#e8f1f7",
+   "ground": "#a3b3c4",
    "sky_top": "#9ec7e8",
-   "sky_horizon": "#eaf4fb",
-   "fog": "#dfecf5",
-   "light": "#e6f0ff",
-   "light_energy": 1.15,
+   "sky_horizon": "#c4d4e4",
+   "fog": "#b3c4d6",
+   "light": "#cfe0f5",
+   "light_energy": 0.6,
+   "ambient_mul": 0.75,
    "props": [
     {
      "scene": "res://assets/atia/arena/scenes/HomeLand_Asset/Environment/Arctic/Tree/A_Tree01.tscn",
