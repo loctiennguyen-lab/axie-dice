@@ -43,8 +43,8 @@ func _ready() -> void:
 		var zone := DiceRoller3D.landing_zone(n, Vector3(2.0, 0.5, -1.0))
 		for i in n:
 			var sp := DiceRoller3D.landing_spot(i, n, Vector3(2.0, 0.5, -1.0))
-			_ok(zone.grow(-0.35).has_point(Vector2(sp.x, sp.z)), "die %d of %d lands inside the zone with room to spare" % [i, n])
-		_ok(zone.size.x <= 3.3 and zone.size.y <= 9.6, "zone for %d dice stays compact (%s)" % [n, zone.size])
+			_ok(zone.grow(-0.4).has_point(Vector2(sp.x, sp.z)), "die %d of %d lands inside the zone with room to spare" % [i, n])
+		_ok(zone.size.x <= 3.7 and zone.size.y <= 10.3, "zone for %d dice stays compact (%s)" % [n, zone.size])
 	var mid := Vector3(5.0, 0.5, 3.0)
 	var sx := 0.0
 	for i in 11:

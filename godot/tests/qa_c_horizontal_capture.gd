@@ -102,9 +102,9 @@ func _fight(state: String, node_id: String, kind: String, size: Vector2i) -> voi
 		rl.die_settled.connect(func(i: int) -> void: _on_die_settled(scene, state, i))
 	for _i in (14 if (state == "throw" or state == "bthrow") else 90):
 		await get_tree().process_frame
-	if state == "throw11" or state == "bthrow11":
+	if state == "throw11" or state == "bthrow11" or state == "throw9":
 		scene._land_dice_now()
-		for _k in 6:   # 5 Axies + 6 Eggs = 11 dice, a stress case beyond the real cap of 4 Eggs
+		for _k in (4 if state == "throw9" else 6):   # 5 Axies + 6 Eggs = 11 dice, a stress case beyond the real cap of 4 Eggs
 			scene._combat.party.append(scene._combat._mk_ally())
 		for u in scene._combat.party:
 			if u.hp > 0 and not u.has_rolled():
