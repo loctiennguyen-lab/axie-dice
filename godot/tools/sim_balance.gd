@@ -345,6 +345,8 @@ func _play_combat(eng: CombatEngine) -> int:
 
 func _play_turn(eng: CombatEngine) -> void:
 	var guard := 0
+	if _policy == "random_legal":
+		_random_extras(eng)
 	while guard < 24 and not (eng.won or eng.lost):
 		guard += 1
 		var mv := _choose_move(eng)
@@ -415,6 +417,44 @@ func _target_for(eng: CombatEngine, u: Unit, foes: Array, rnd: bool) -> int:
 		var fr: Array = eng.alive_party()
 		return (fr[_rng.next_int(fr.size())] as Unit).uid if rnd else u.uid
 	return u.uid
+
+
+## "Bua" bot, v4 actions: random reroll (random subset, random Lieu/An toan), sometimes Mat Tam / Overcast, only when the
+## engine says it is legal (can_reroll / wild_block_reason / can_overcast).
+func _random_extras(eng: CombatEngine) -> void:
+	for _i in 2:
+		if _rng.next_int(100) >= 45:
+			break
+		var ready := _ready_units(eng)
+		if ready.is_empty():
+			break
+		var uids: Array = []
+		for u in ready:
+			if _rng.next_int(2) == 0:
+				uids.append(u.uid)
+		if uids.is_empty():
+			uids.append((ready[_rng.next_int(ready.size())] as Unit).uid)
+		var rm := _rng.next_int(2)
+		if not eng.can_reroll(uids, false, rm):
+			rm = 1 - rm
+		if eng.can_reroll(uids, false, rm):
+			eng.reroll_dice(uids, -1, false, rm)
+	if _rng.next_int(100) < 30:
+		var opts: Array = []
+		for u in _ready_units(eng):
+			for sl in 6:
+				if eng.wild_block_reason(u.uid, sl) == "":
+					opts.append([u.uid, sl])
+		if not opts.is_empty():
+			var o: Array = opts[_rng.next_int(opts.size())]
+			eng.wild_face(int(o[0]), int(o[1]))
+	if _rng.next_int(100) < 30:
+		var oc: Array = []
+		for u in _ready_units(eng):
+			if eng.can_overcast(u.uid):
+				oc.append(u.uid)
+		if not oc.is_empty():
+			eng.overcast(int(oc[_rng.next_int(oc.size())]))
 
 
 func _move_random(eng: CombatEngine, ready: Array, foes: Array) -> Array:
