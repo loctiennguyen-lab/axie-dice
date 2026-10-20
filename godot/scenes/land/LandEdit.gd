@@ -186,8 +186,9 @@ func layout() -> void:
 
 func _set_tab(t: String) -> void:
 	_tab = t
-	if _tab_btns.has(t):
-		(_tab_btns[t] as Button).set_pressed_no_signal(true)
+	# set_pressed_no_signal skips the ButtonGroup, so unpress the other tabs by hand: only the open tab is outlined.
+	for k in _tab_btns:
+		(_tab_btns[k] as Button).set_pressed_no_signal(String(k) == t)
 	refresh()
 
 
