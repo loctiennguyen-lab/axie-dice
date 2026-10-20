@@ -245,6 +245,13 @@ export class RunCore {
     const need = KINDS[prev.kind].consume;
     if (!need) return null;
     if (delta.length === 0 || ![].concat(need).includes(delta[0].fn)) return 'unconsumed';
+    // Depth v4 T10: the Aid source the log claims (reroll_dice args[1] = from_aid) must be the source this epoch was granted for.
+    if (prev.kind === 'reroll' && delta[0].fn === 'reroll_dice') {
+      let pa = {};
+      try { pa = JSON.parse(prev.args); } catch { pa = {}; }
+      const claimedAid = !!(Array.isArray(delta[0].args) && Number(delta[0].args[1] ?? 0));
+      if (claimedAid !== (pa.source === 'aid')) return 'aid_mismatch';
+    }
     return null;
   }
 

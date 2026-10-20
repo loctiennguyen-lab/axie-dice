@@ -222,6 +222,9 @@ test('reroll pins its seed per (battle, attempt, turn, k); uids must be present 
   const uids = sql.exec(`SELECT uids FROM epochs WHERE kind = 'reroll' ORDER BY seq`).toArray().map((r) => r.uids);
   assert.deepEqual(uids, ['1,2', '1,2', '3']);
   assert.equal((await c.epoch('reroll', { turn: 1, k: 3, source: 'base' }, [A('reroll_dice', [[3], 0])])).code, 'bad_request');
+  // T10 (rejected, anomaly delta_rejected/aid_mismatch): the log claims an Aid reroll (from_aid = 1) but the epoch granted was a base one
+  assert.equal((await c.epoch('reroll', { turn: 1, k: 3, source: 'base', uids: [3] }, [A('reroll_dice', [[3], 1, 1])])).code, 'rejected');
+  assert.equal((await c.epoch('reroll', { turn: 1, k: 3, source: 'base', uids: [3] }, [A('reroll_dice', [[3], 0, 1])])).t, 'epoch_res');
 });
 
 test('seed differs between runs even for identical requests (S_run is per run)', async () => {
