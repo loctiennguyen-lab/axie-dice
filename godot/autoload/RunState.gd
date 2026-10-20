@@ -45,6 +45,9 @@ var shards_this_run: int = 0
 ## showed nothing. They were tracked; they just never left the fight they happened in.
 var run_stats: Dictionary = {"dmg": 0, "taken": 0, "turns": 0, "kills": 0, "max_hit": 0,
 	"dmg_dealt_clamped": 0}
+## Depth v3 lane VZ: what each Core did this run, for the Result screen. Pure UI stat (never read by any rule):
+## core_id -> {"n": fires, "by": {kind: summed amount}}. Fed by EventBus.core_fired; saved through to_data/from_data.
+var core_impact: Dictionary = {}
 var power_level: int = 0           # "pw" — increments on every node completed regardless of
                                     # type (verified against engine.js takeReward/eventDone/shopDone)
 var owned_relic_ids: Array[String] = []
@@ -221,6 +224,20 @@ var _event_rng: Rng = null
 
 func _ready() -> void:
 	reset()
+	EventBus.core_fired.connect(note_core_fired)
+
+
+## Adds one Core activation to the run's impact table (see `core_impact`). Display-only.
+func note_core_fired(core_id: String, _unit_uid: int, amount: int, kind: String) -> void:
+	if core_id == "":
+		return
+	var e: Dictionary = core_impact.get(core_id, {"n": 0, "by": {}})
+	e["n"] = int(e.get("n", 0)) + 1
+	if amount > 0:
+		var by: Dictionary = e.get("by", {})
+		by[kind] = int(by.get(kind, 0)) + amount
+		e["by"] = by
+	core_impact[core_id] = e
 
 ## Wholesale reset — re-instantiates every mutable container instead of clearing fields,
 ## so a field added later that's forgotten here fails loudly (empty/default) rather than
@@ -244,6 +261,7 @@ func reset() -> void:
 	# step with run_stats without a second call site to remember.
 	RunStatsAccumulator.reset()
 	power_level = 0
+	core_impact = {}
 	owned_relic_ids = []
 	bonus_reroll = 0
 	boss_plan = []
@@ -1761,6 +1779,7 @@ func to_data() -> Dictionary:
 		"visited_node_ids": visited_node_ids.duplicate(),
 		"shards_this_run": shards_this_run,
 		"run_stats": run_stats.duplicate(true),
+		"core_impact": core_impact.duplicate(true),
 		"power_level": power_level,
 		"owned_relic_ids": owned_relic_ids.duplicate(),
 		"bonus_reroll": bonus_reroll,
@@ -1846,6 +1865,16 @@ func from_data(d: Dictionary) -> void:
 	run_stats = {}
 	for key in ["dmg", "taken", "turns", "kills", "max_hit", "dmg_dealt_clamped"]:
 		run_stats[key] = int(saved_stats.get(key, 0))
+	core_impact = {}
+	var saved_impact = d.get("core_impact", {})
+	if saved_impact is Dictionary:
+		for cid in (saved_impact as Dictionary).keys():
+			var se = saved_impact[cid]
+			if se is Dictionary:
+				var by := {}
+				for k in ((se as Dictionary).get("by", {}) as Dictionary).keys():
+					by[String(k)] = int(((se as Dictionary)["by"] as Dictionary)[k])
+				core_impact[String(cid)] = {"n": int((se as Dictionary).get("n", 0)), "by": by}
 	power_level = int(d.get("power_level", 0))
 	owned_relic_ids.assign(d.get("owned_relic_ids", []))
 	bonus_reroll = int(d.get("bonus_reroll", 0))
