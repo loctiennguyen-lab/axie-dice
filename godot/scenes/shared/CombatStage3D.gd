@@ -368,14 +368,14 @@ const ADD_Z_BACK2 := -18.3
 ## column on its party side (x = boss left edge - WIDE_ADD_GAP), spread in depth by WIDE_ADD_Z[count]. The 5th add
 ## onward stands on the far back row above the boss (ADD_EXTRA).
 const WIDE_BOSS_MIN_W := 3.5
-const WIDE_BOSS_SHIFT_X := 0.9
-const WIDE_ADD_GAP := 0.6
-const WIDE_ADD_GAP_4 := 0.95   # four adds: the mid ones are wider on screen, keep them off the boss
+const WIDE_BOSS_SHIFT_X := 1.05
+const WIDE_ADD_GAP := 1.0
+const WIDE_ADD_GAP_4 := 1.17   # four adds: the mid ones are wider on screen, keep them off the boss
 const WIDE_ADD_Z := {
 	1: [1.5],
 	2: [-3.5, 5.5],
 	3: [-8.0, -2.0, 5.0],
-	4: [-11.4, -5.3, 0.7, 5.9],
+	4: [-10.56, -3.95, 1.62, 6.39],
 }
 ## Adds 5 and up (gooey SPLIT, summoners) stand on a second back row above the first one.
 const ADD_EXTRA := [[-1.0, -2], [1.0, -2], [0.0, -2], [-2.0, -2]]

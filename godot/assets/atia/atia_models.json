@@ -297,7 +297,7 @@
    "path": "res://assets/bosses/chimera_brine/chimera_brine.glb",
    "height_m": 4.0,
    "max_width_m": 6.5,
-   "fit_width_m": 4.6,
+   "fit_width_m": 4.0,
    "facing_deg": 12,
    "intro_facing_deg": 0,
    "anims": {
@@ -356,7 +356,7 @@
    "path": "res://assets/bosses/chimera_brine/chimera_brine_frost.glb",
    "height_m": 4.0,
    "max_width_m": 6.5,
-   "fit_width_m": 4.6,
+   "fit_width_m": 4.0,
    "facing_deg": 12,
    "intro_facing_deg": 0,
    "anims": {
