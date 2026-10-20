@@ -609,3 +609,12 @@ test('initSchema: ALTER swallows only "duplicate column", any other error is thr
   RunCore.initSchema(mk('duplicate column name: depth_stage'));
   assert.throws(() => RunCore.initSchema(mk('disk I/O error')), /disk I\/O/);
 });
+
+test('depth v4: a ranked run below stage 3 cannot be closed (ranked_stage); stage 3 closes', async () => {
+  const { c } = await fresh({ mode: 'ranked', depth_stage: 2 });
+  await c.hello();
+  assert.equal((await c.epoch('run_start', { mode: 'short', ascension: 0 }, [], { client_nonce: NONCE, depth_stage: 2 })).t, 'epoch_res');
+  const close = await c.build('node', {}, [], {});
+  const bad = await c.send({ t: 'run_close', seq: c.seq + 1, log_delta: [], h: close.h, log_len: c.len, outcome: 'lost', depth_stage: 2 });
+  assert.equal(bad.code, 'ranked_stage');
+});

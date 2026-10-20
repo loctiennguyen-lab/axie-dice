@@ -330,3 +330,14 @@ test('depth v4 stage: GET /api/run/open hands back the stage written at create; 
   DB.db.prepare('UPDATE runs SET depth_stage = NULL WHERE run_id = ?').run(j.run_id);
   assert.equal((await (await call('/api/run/open')).json()).header.depth_stage, 3);
 });
+
+test('leaderboard submit: a ranked run recorded below stage 3 is refused (ranked_stage); NULL (pre-v4) counts as 3', async () => {
+  const { call, DB } = await setup();
+  closeRanked(DB, idN(1), 'google:1', { score: 300 });
+  closeRanked(DB, idN(2), 'google:1', { score: 300 });
+  DB.db.prepare('UPDATE runs SET depth_stage = 2 WHERE run_id = ?').run(idN(1));
+  const r = await submit(call, idN(1));
+  assert.equal(r.status, 403);
+  assert.equal((await r.json()).error, 'ranked_stage');
+  assert.equal((await submit(call, idN(2))).status, 200);
+});

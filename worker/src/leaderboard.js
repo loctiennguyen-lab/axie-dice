@@ -48,9 +48,11 @@ async function submit(request, env, url, player) {
   try { body = await request.json(); } catch { return json({ error: 'bad_request' }, 400); }
   const runId = body && typeof body === 'object' ? body.run_id : null;
   if (typeof runId !== 'string' || !/^[a-f0-9]{32}$/.test(runId)) return json({ error: 'bad_request' }, 400);
-  const run = await env.DB.prepare('SELECT player_id, mode, ascension, state, outcome, battles_done, closed_at, summary_json FROM runs WHERE run_id = ?').bind(runId).first();
+  const run = await env.DB.prepare('SELECT player_id, mode, ascension, state, outcome, battles_done, closed_at, summary_json, depth_stage FROM runs WHERE run_id = ?').bind(runId).first();
   if (!run || run.player_id !== player.id) return json({ error: 'not_found' }, 404);
   if (run.mode !== 'ranked') return json({ error: 'not_ranked' }, 403);
+  // Depth v4: ranked is stage 3 only (no NULL excuse: an old row without a stage predates v4 and counts as 3).
+  if ((run.depth_stage ?? 3) < 3) return json({ error: 'ranked_stage' }, 403);
   // Only a run the Durable Object closed counts: 'abandoned' and 'infra_error' never reach a board.
   if (run.state !== 'closed' || run.outcome == null) return json({ error: 'not_closed' }, 409);
   if (!(run.battles_done >= 1)) return json({ error: 'no_battles' }, 422);

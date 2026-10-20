@@ -75,6 +75,8 @@ async function createRun(request, env, url, player) {
   const dailyMax = Number(env.DAILY_TRIES) || DAILY_TRIES_DEFAULT;
 
   const stage = await depthStage(env, player.id);
+  // Depth v4: ranked only opens at stage 3.
+  if (mode === 'ranked' && stage < 3 && env.ALLOW_GATED_MODES !== '1') return json({ error: 'ranked_stage' }, 403);
   const runId = hex(crypto.getRandomValues(new Uint8Array(16)));
   const nowS = Math.floor(Date.now() / 1000);
   const dayStart = nowS - (nowS % 86400);

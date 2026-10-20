@@ -469,6 +469,8 @@ export class RunCore {
   async _runClose(meta, m) {
     const seq = Number.isInteger(m.seq) ? m.seq : 0;
     if (this._stageProblem(meta, m)) { this._anomaly('stage_mismatch', { seq }); return fail(seq, 'stage_mismatch'); }
+    // Depth v4: a ranked run below stage 3 is never closed as ranked.
+    if (meta.mode === 'ranked' && meta.depth_stage != null && meta.depth_stage < 3) { this._anomaly('ranked_stage', { seq }); return fail(seq, 'ranked_stage'); }
     const last = this.last();
     if (!last) return fail(seq, 'out_of_order');
     if (seq !== last.seq + 1) return fail(seq, 'out_of_order');
