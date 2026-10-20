@@ -20,6 +20,7 @@ var _seq := 0
 var _rules_version := ""
 var _tape: Array = []
 var _pins: Dictionary = {}
+var _pin_sigs: Dictionary = {}   # pin key -> "rmode|uids" (Depth v4 3.10.2)
 var _last_node_seq := 0
 
 
@@ -61,6 +62,7 @@ func resume(p_tape: Array) -> void:
 	_started = not _tape.is_empty()
 	_seq = _tape.size()
 	_pins = {}
+	_pin_sigs = {}
 	_last_node_seq = 0
 	if _tape.is_empty():
 		return
@@ -77,7 +79,9 @@ func resume(p_tape: Array) -> void:
 		if String(ed.get("kind", "")) == "node":
 			_last_node_seq = int(ed["seq"])
 		elif String(ed.get("kind", "")) == "reroll":
-			_pins["%d|%d|%d|%d" % [_last_node_seq, int(a.get("attempt", 0)), int(a.get("turn", 0)), int(a.get("k", 0))]] = int(ed["seed"])
+			var rpin := "%d|%d|%d|%d" % [_last_node_seq, int(a.get("attempt", 0)), int(a.get("turn", 0)), int(a.get("k", 0))]
+			_pins[rpin] = int(ed["seed"])
+			_pin_sigs[rpin] = _pin_sig(a)
 
 
 func request(kind: String, args: Dictionary) -> EpochReply:
@@ -104,10 +108,15 @@ func _answer(kind: String, args: Dictionary) -> EpochReply:
 		# ADR-RNG §4.4: the first request for a (battle, attempt, turn, k) key fixes the seed;
 		# asking again after an undo returns the same one.
 		var pin := "%d|%d|%d|%d" % [_last_node_seq, attempt, int(args.get("turn", 0)), int(args.get("k", 0))]
+		var sig := _pin_sig(args)
 		if _pins.has(pin):
+			# Depth v4 3.10.2: a pinned (turn, k) may only be asked again with the same rmode and uids.
+			if String(_pin_sigs.get(pin, sig)) != sig:
+				return EpochReply.fail("pin_mismatch")
 			seed_value = int(_pins[pin])
 		else:
 			_pins[pin] = seed_value
+			_pin_sigs[pin] = sig
 	elif kind == "node":
 		_last_node_seq = _seq
 	var extra := {"h": String(peek["h"]), "log_len": int(peek["log_len"])}
@@ -115,6 +124,13 @@ func _answer(kind: String, args: Dictionary) -> EpochReply:
 	_chain_commit(peek)
 	_seq += 1
 	return EpochReply.ok_reply(seed_value, extra)
+
+
+func _pin_sig(args: Dictionary) -> String:
+	var ids: Array = []
+	for x in (args.get("uids", []) as Array):
+		ids.append(int(x))
+	return "%d|%s" % [int(args.get("rmode", 1)), str(ids)]
 
 
 func tape() -> Array:

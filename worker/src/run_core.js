@@ -315,8 +315,17 @@ export class RunCore {
       if (!Array.isArray(args.uids)) return fail(seq, 'bad_request');
       uids = args.uids.join(',');
       pin = `${this._battleSeq()}:${attempt}:${args.turn}:${args.k}`;
-      const pinned = this.sql.exec('SELECT seed FROM epochs WHERE pin_key = ? ORDER BY seq LIMIT 1', pin).toArray()[0];
-      if (pinned) seed = pinned.seed;
+      const pinned = this.sql.exec('SELECT seed, uids, args FROM epochs WHERE pin_key = ? ORDER BY seq LIMIT 1', pin).toArray()[0];
+      if (pinned) {
+        // Depth v4 3.10.2: a seen (turn, k) can only be asked again with the same rmode and the same uids.
+        let prevArgs = {};
+        try { prevArgs = JSON.parse(pinned.args); } catch { prevArgs = {}; }
+        if ((prevArgs.rmode ?? 1) !== (args.rmode ?? 1) || pinned.uids !== uids) {
+          this._anomaly('pin_mismatch', { seq });
+          return fail(seq, 'pin_mismatch');
+        }
+        seed = pinned.seed;
+      }
     }
     if (seed === undefined) {
       seed = await epochSeed(meta.s_run instanceof Uint8Array ? meta.s_run : new Uint8Array(meta.s_run), {

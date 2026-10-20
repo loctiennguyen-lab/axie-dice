@@ -2,6 +2,7 @@
   "_doc": "Single contract for the args of every epoch request (L1 B1). Read by worker/src/run_core.js argsProblem and by godot/tests/t_remote_epoch_ui_run.gd (the fake remote source rejects exactly like the server). Change a shape here and both sides see it. Args feed the seed derivation, so the vocabulary is closed: a key not listed for the kind is refused.",
   "args": {
     "mode":      { "type": "enum", "values": ["short", "full"], "code": "mode" },
+    "rmode":     { "type": "enum", "values": [0, 1], "code": "rmode" },
     "source":    { "type": "enum", "values": ["base", "aid"], "code": "source" },
     "ascension": { "type": "int", "min": 0, "max": 100000 },
     "attempt":   { "type": "int", "min": 0, "max": 100000 },
@@ -18,7 +19,7 @@
     "run_start":     { "keys": ["mode", "ascension"], "required": [] },
     "node":          { "keys": ["node_id"], "required": [] },
     "end_turn":      { "keys": ["turn", "attempt"], "required": ["turn"], "required_code": "turn" },
-    "reroll":        { "keys": ["turn", "k", "source", "uids", "attempt"], "required": ["turn", "k", "source"], "required_code": "reroll_args" },
+    "reroll":        { "keys": ["turn", "k", "source", "uids", "rmode", "attempt"], "required": ["turn", "k", "source"], "required_code": "reroll_args" },
     "reward":        { "keys": ["node_id"], "required": [] },
     "reward_reroll": { "keys": ["k", "node_id"], "required": [] },
     "event_choice":  { "keys": ["choice", "index", "node_id"], "required": [] },

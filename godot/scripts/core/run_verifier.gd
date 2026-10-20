@@ -257,8 +257,9 @@ static func _apply_combat(engine: CombatEngine, fn: String, args: Array) -> bool
 			return engine.play_active(String(args[0]), int(args[1]))
 		"reroll_dice":
 			# args[1] = from_aid (0/1); logs written before it existed have only the uids.
+			# args[2] = rmode (0 Lieu / 1 Safe); older logs have none = Safe.
 			return engine.reroll_dice(args[0] as Array, -1, \
-				args.size() > 1 and int(args[1]) != 0)
+				args.size() > 1 and int(args[1]) != 0, int(args[2]) if args.size() > 2 else 1)
 		"undo_last":
 			return engine.undo_last()
 		"continue":
