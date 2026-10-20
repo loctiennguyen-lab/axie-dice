@@ -324,6 +324,63 @@ static func _apply_extra_elite_row(by_row: Dictionary, graph: RunMapGraph) -> vo
 
 
 # ---------------------------------------------------------------------------------------
+# Depth v3 extras: reward_kind + Elite affix (design 7.1 / 6.4). Run AFTER generate().
+# ---------------------------------------------------------------------------------------
+
+const REWARD_KIND_SALT := 0x2E3A7D51
+const AFFIX_SALT := 0x41F1C0DE
+const REWARD_KINDS: Array[String] = ["level", "hp", "face", "shard"]
+
+
+## Stamps `reward_kind` on every battle/elite node and an affix (group A; plus group B after boss 1) on every
+## elite node of `graph_data` (a RunMapGraph.to_data() dict). Pure function of (map, seed): own Rng streams
+## (seed ^ SALT ^ node), never the shared map/run rng, so replays match and the map shape is untouched.
+## `can_break` = false limits group A to affixes with no_break_ok (6.7b.2b). STUB: RunState passes true until the
+## team_can_break flag is computed at run start. TODO(lane A): swap for A's choose_affixes when it exists.
+static func assign_extras(graph_data: Dictionary, seed: int, can_break: bool = true) -> Dictionary:
+	var first_boss := 1 << 30
+	var boss_rows: Array = graph_data.get("boss_rows", [])
+	if not boss_rows.is_empty():
+		first_boss = int(boss_rows[0])
+	var a_ids: Array[String] = []
+	var b_ids: Array[String] = []
+	var ids: Array = ContentDB.elite_affixes.keys()
+	ids.sort()
+	for id in ids:
+		var def: Dictionary = ContentDB.elite_affixes[id]
+		if bool(def.get("retired", false)):
+			continue
+		var g := String(def.get("group", ""))
+		if g == "A" and (can_break or bool(def.get("no_break_ok", false))):
+			a_ids.append(String(id))
+		elif g == "B":
+			b_ids.append(String(id))
+	var forbidden: Array = ContentDB.elite_affix_meta.get("forbidden_pairs", [])
+	for row_data in (graph_data.get("rows", []) as Array):
+		for nd in (row_data as Array):
+			var d: Dictionary = nd
+			var t := String(d.get("node_type", ""))
+			if t != "battle" and t != "elite":
+				continue
+			var salt := int(d.get("row", 0)) * 131 + int(d.get("col", 0))
+			d["reward_kind"] = REWARD_KINDS[Rng.new((seed ^ REWARD_KIND_SALT) ^ salt).next_int(REWARD_KINDS.size())]
+			if t != "elite" or a_ids.is_empty():
+				continue
+			var r := Rng.new((seed ^ AFFIX_SALT) ^ salt)
+			var a: String = a_ids[r.next_int(a_ids.size())]
+			d["affix"] = a
+			if int(d.get("row", 0)) > first_boss and not b_ids.is_empty():
+				var tries: Array[String] = b_ids.duplicate()
+				var pick := r.next_int(tries.size())
+				for k in tries.size():
+					var cand: String = tries[(pick + k) % tries.size()]
+					if not (forbidden.has([a, cand]) or forbidden.has([cand, a])):
+						d["affix2"] = cand
+						break
+	return graph_data
+
+
+# ---------------------------------------------------------------------------------------
 # Validation — the 10 invariants, architecture plan §7
 # ---------------------------------------------------------------------------------------
 

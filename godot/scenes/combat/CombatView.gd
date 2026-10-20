@@ -1208,6 +1208,16 @@ static func affix_tip(id: String) -> String:
 		parts.append("Single hits go for your weakest back-row Axie.")
 	if d.has("freeze_first_turn"):
 		parts.append("Freezes %d die on turn 1." % int(d["freeze_first_turn"]))
+	if d.has("iron"):
+		parts.append("Plating: single hits lose a few points of damage (never below 1). A debuff or poison switches it off for 2 turns.")
+	if d.has("ward_self"):
+		parts.append("Puts a shield on itself every turn.")
+	if d.has("spite"):
+		parts.append("Hits back after being hit by single attacks.")
+	if d.has("mend"):
+		parts.append("Heals itself every turn.")
+	if d.has("charge"):
+		parts.append("Locks on an Axie, then strikes it hard on the 4th turn. Stun or freeze breaks the charge.")
 	return " ".join(parts) if not parts.is_empty() else "Elite affix."
 
 

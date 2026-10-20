@@ -556,6 +556,21 @@ func _build_token(node: RunMapNode, current_row: int, reachable: Array) -> void:
 	icon.offset_bottom = icon_px * 0.5
 	icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	btn.add_child(icon)
+	if node.reward_kind != "" and not show_lock:
+		var rk := TextureRect.new()
+		rk.name = "RewardKind"
+		rk.texture = UI3.icon(String(_NODE_REWARD_ICON.get(node.reward_kind, "cur_shard")))
+		rk.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		rk.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		rk.set_anchors_preset(Control.PRESET_TOP_RIGHT)
+		rk.offset_left = -22.0 - size * 0.02
+		rk.offset_top = size * 0.02
+		rk.offset_right = -size * 0.02
+		rk.offset_bottom = 22.0 + size * 0.02
+		rk.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		btn.add_child(rk)
+	if node.affix != "" and not fogged:
+		btn.tooltip_text = "%s: %s" % [_affix_name(node.affix), CombatView.affix_tip(node.affix)]
 	if passed:
 		var done := TextureRect.new()
 		done.name = "DoneMark"
@@ -591,6 +606,8 @@ func _build_token(node: RunMapNode, current_row: int, reachable: Array) -> void:
 	# "Already passed" in the detail plate.
 	if not locked:
 		var text := _boss_name(node) if node.node_type == "boss" else _type_name(node.node_type)
+		if node.affix != "":
+			text = "%s · %s" % [text, _affix_name(node.affix)]
 		caption = UI3.label(text)
 		caption.name = "Caption_%s" % node.id
 		caption.custom_minimum_size = Vector2(136, 0)
@@ -603,6 +620,14 @@ func _build_token(node: RunMapNode, current_row: int, reachable: Array) -> void:
 			caption.modulate.a = 0.4
 		_nodes_layer.add_child(caption)
 	_node_visuals[node.id] = {"node": node, "root": btn, "caption": caption}
+
+
+const _NODE_REWARD_ICON := {"level": "face_buff", "hp": "face_heal", "face": "face_dmg", "shard": "cur_shard"}
+const _NODE_REWARD_NAME := {"level": "Level up", "hp": "Max HP", "face": "Face rune", "shard": "Big shard"}
+
+
+func _affix_name(id: String) -> String:
+	return String((ContentDB.elite_affixes.get(id, {}) as Dictionary).get("n", id))
 
 
 func _hover_token(btn: Button, on: bool) -> void:
@@ -885,6 +910,31 @@ func _rebuild_detail() -> void:
 		var row := UI3.plate(&"row")
 		row.add_child(UI3.label(String(line)))
 		col.add_child(row)
+
+	if node.reward_kind != "":
+		var rrow := UI3.plate(&"row")
+		rrow.name = "RewardKindRow"
+		var rh := HBoxContainer.new()
+		rh.add_theme_constant_override("separation", 8)
+		var ri := TextureRect.new()
+		ri.texture = UI3.icon(String(_NODE_REWARD_ICON.get(node.reward_kind, "cur_shard")))
+		ri.custom_minimum_size = Vector2(24, 24)
+		ri.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		ri.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		rh.add_child(ri)
+		rh.add_child(UI3.label(tr("Reward card: %s") % tr(String(_NODE_REWARD_NAME.get(node.reward_kind, "")))))
+		rrow.add_child(rh)
+		col.add_child(rrow)
+	for aid in [node.affix, node.affix2]:
+		if String(aid) == "":
+			continue
+		var arow := UI3.plate(&"row")
+		arow.name = "AffixRow"
+		var al := UI3.label("%s: %s" % [_affix_name(String(aid)), CombatView.affix_tip(String(aid))])
+		al.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		al.custom_minimum_size.x = 340
+		arow.add_child(al)
+		col.add_child(arow)
 
 	var note: Label
 	if node.visited or node.id == RunState.current_node_id:
