@@ -242,3 +242,12 @@ Việc deploy, theo thứ tự (chưa làm, cần Liam bảo): D1 migration 0008
 - t_replay_loadout: bỏ `core_impact` (chỉ để hiển thị) khỏi digest end-state. Lưu ý: bot chơi thật đếm `rule_balance` 98 so với 83 khi verifier replay, vô hại cho luật/điểm, nhưng nên hỏi làn VZ vì sao lệch.
 - RULES_VERSION giữ `godot-2026-10-20-o` (chưa deploy -o); chỉ đổi FINGERPRINT (381104b0...). Worker giữ -o.
 - Test: Godot 166/166 không cờ skip; Worker 196/196. Mốc sàn mới: 166.
+
+## Làn OC - Overcast
+- Action `overcast` `[uid]`: trả mana để làm MỘT viên mạnh hơn trong lượt. Có trong ALLOWED_FNS ở `action_log.gd`, `worker/src/run_core.js`, `tests/t_replay.gd`; `run_verifier.gd` tái hiện. Không bốc rng. Undo được.
+- Knob `combat_tune.json` mục `overcast`: `mana_cost` = 3, `mult` = 1.5 (làm tròn lên), `per_turn` = 1.
+- Thứ tự: nhân Overcast áp SAU `face_final` (sau trần +10/mặt của Lõi), nên không bị trần đó chặn. Không áp cho mặt mana; chỉ áp khi giá trị > 0. Áp cho mọi mặt có số khác (dmg/shield/heal/poison...). Chỉ phía người chơi.
+- Từ chối khi: viên đã dùng / Hold / Frozen / đã overcast / cantrip / mặt mana / giá trị 0 / thiếu mana / đủ `per_turn`. Viên đã overcast không Hold được. Cờ `Unit.overcast` nằm trong snapshot; xoá ở `roll_all` (đầu lượt kế).
+- Engine: `can_overcast(uid)`, `overcast_block_reason(uid)` (chuỗi lý do cho nút disabled), `overcast(uid)`, `overcast_preview(unit)` -> `[giá trị hiện tại, giá trị nếu overcast]`, `overcast_cost()/mult()/per_turn()/count()`. `preview_damage` và `_face_value` đã phản ánh cờ. EventBus: `die_overcast(uid, before, after)`; còn bắn `float_text "OVERCAST"`.
+- UI: `CombatHud.overcast_button` (trên nút Hold, "Overcast 6 > 9 · 3 MP"), chip OVERCAST trên thẻ tray (`tray_column.gd`). Chưa có phím tắt (cần thêm action vào project.godot, lane này không đụng).
+- Test: `t_overcast`, `t_overcast_ui` (+ `t_replay` mẫu args). Ảnh: `production/qa/evidence/overcast_*.png`. Sim bot: `godot/tools/sim_balance.gd` không có trong worktree nên chưa thêm overcast cho bot. Số sàn `run_tests.sh`: +2 test (t_overcast, t_overcast_ui).
