@@ -480,7 +480,8 @@ func _start_core(start_reply: EpochReply, params: Dictionary, display_seed: int)
 	var map_asc := ascension
 	if int(ContentDB.mission_mods(mission_rules(), ascension).get("extra_elite", 0)) > 0 and ascension < ELITE_FORCED_ASC:
 		map_asc = ELITE_FORCED_ASC
-	map_graph = RunMapGenerator.generate(_rng, mode, map_asc).to_data()
+	map_graph = RunMapGenerator.assign_extras(RunMapGenerator.generate(_rng, mode, map_asc).to_data(), p_seed,
+		CombatTraits.team_can_break(roster), newcomer)
 	# Opened AFTER the map exists, so a log never describes a run that failed to start. The
 	# content version comes from part_faces.json's own stamp: the same actions against different
 	# face values produce a different run, so a verifier has to refuse the mismatch rather than
@@ -858,6 +859,13 @@ func enter_node(node_id: String, node_kind: String, seed: int = -1) -> void:
 				# does it (contract 1.4). Not serialised: pending_combat is consumed, never saved.
 				"epoch": epoch,
 			}
+			if node_kind == "elite":
+				# Depth v3: affix picked at map build (RunMapGenerator.assign_extras), carried here for the combat.
+				var nd := RunMapGraph.from_data(map_graph).find_node(node_id)
+				if nd != null:
+					pending_combat["affix"] = nd.affix
+					pending_combat["affix2"] = nd.affix2
+					pending_combat["first_run_elite"] = newcomer
 			if node_kind == "boss":
 				pending_combat["boss_key"] = _boss_key_for_node(node_id)
 			EventBus.node_entered.emit(node_kind, node_id)

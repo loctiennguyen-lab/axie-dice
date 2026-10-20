@@ -394,6 +394,25 @@ func _reward_rarity(r: Dictionary) -> int:
 	return int(r.get("rar", 0))
 
 
+## Depth v3 Core tiers (RelicDef.rarity 0/1/2 -> Moss / Amber / Crystal) and axes. Colour token per tier;
+## the tier WORD always sits beside it. Spec: design/ux/depth-v3/core-offer.md
+const _CORE_TIER_NAME := ["Moss", "Amber", "Crystal"]
+const _CORE_TIER_TOKEN := ["rarity_rare", "rarity_legendary", "rarity_epic"]
+const _CORE_AXIS_NAME := {"stat": "Stat", "dice": "Dice faces", "pos": "Position", "mana": "Mana",
+	"quest": "Quest", "rule": "Rule change", "run_rule": "Run rule"}
+
+
+func _is_core_card(r: Dictionary) -> bool:
+	return bool(r.get("core", false))
+
+
+func _core_offer_active() -> bool:
+	for r in RunState.pending_rewards:
+		if _is_core_card(r):
+			return true
+	return false
+
+
 func _rarity_name(rar: int) -> String:
 	var names := [tr("Common"), tr("Uncommon"), tr("Rare"), tr("Epic"), tr("Legendary"), tr("Mythic")]
 	return names[clampi(rar, 0, names.size() - 1)]
@@ -537,6 +556,21 @@ func _build_token(node: RunMapNode, current_row: int, reachable: Array) -> void:
 	icon.offset_bottom = icon_px * 0.5
 	icon.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	btn.add_child(icon)
+	if node.reward_kind != "" and not show_lock:
+		var rk := TextureRect.new()
+		rk.name = "RewardKind"
+		rk.texture = UI3.icon(String(_NODE_REWARD_ICON.get(node.reward_kind, "cur_shard")))
+		rk.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		rk.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		rk.set_anchors_preset(Control.PRESET_TOP_RIGHT)
+		rk.offset_left = -22.0 - size * 0.02
+		rk.offset_top = size * 0.02
+		rk.offset_right = -size * 0.02
+		rk.offset_bottom = 22.0 + size * 0.02
+		rk.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		btn.add_child(rk)
+	if node.affix != "" and not fogged:
+		btn.tooltip_text = "%s: %s" % [_affix_name(node.affix), CombatView.affix_tip(node.affix)]
 	if passed:
 		var done := TextureRect.new()
 		done.name = "DoneMark"
@@ -572,6 +606,8 @@ func _build_token(node: RunMapNode, current_row: int, reachable: Array) -> void:
 	# "Already passed" in the detail plate.
 	if not locked:
 		var text := _boss_name(node) if node.node_type == "boss" else _type_name(node.node_type)
+		if node.affix != "":
+			text = "%s · %s" % [text, _affix_name(node.affix)]
 		caption = UI3.label(text)
 		caption.name = "Caption_%s" % node.id
 		caption.custom_minimum_size = Vector2(136, 0)
@@ -584,6 +620,14 @@ func _build_token(node: RunMapNode, current_row: int, reachable: Array) -> void:
 			caption.modulate.a = 0.4
 		_nodes_layer.add_child(caption)
 	_node_visuals[node.id] = {"node": node, "root": btn, "caption": caption}
+
+
+const _NODE_REWARD_ICON := {"level": "face_buff", "hp": "face_heal", "face": "face_dmg", "shard": "cur_shard"}
+const _NODE_REWARD_NAME := {"level": "Level up", "hp": "Max HP", "face": "Face rune", "shard": "Big shard"}
+
+
+func _affix_name(id: String) -> String:
+	return CombatView.affix_name(id)
 
 
 func _hover_token(btn: Button, on: bool) -> void:
@@ -742,6 +786,10 @@ func _rebuild_left() -> void:
 	rcol.add_theme_constant_override("separation", 8)
 	bottom.add_child(rcol)
 	rcol.add_child(UI3.label(tr("Relics · %d") % RunState.owned_relic_ids.size(), "LabelTitle"))
+	var core_panel := CorePanel.new()
+	core_panel.slot_px = 40
+	rcol.add_child(core_panel)
+	core_panel.visible = core_panel.refresh()
 	var scroll := ScrollContainer.new()
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	scroll.get_v_scroll_bar().custom_minimum_size.x = UI3Theme.SCROLL_W
@@ -792,8 +840,10 @@ func _build_relic_row(relic_id: String) -> Control:
 	name_lbl.clip_text = true
 	name_lbl.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	line.add_child(name_lbl)
-	var rar_lbl := UI3.label(_rarity_name(rarity))
-	rar_lbl.add_theme_color_override("font_color", _rarity_color(rarity))
+	var is_core: bool = RelicSlots.is_core(def)
+	var rar_lbl := UI3.label(tr(CorePanel.TIER_NAME[clampi(rarity, 0, 2)]) if is_core and String(def.core_axis) != "run_rule" \
+		else (tr("Run rule") if is_core else _rarity_name(rarity)))
+	rar_lbl.add_theme_color_override("font_color", UI3Theme.color(CorePanel.TIER_TOKEN[clampi(rarity, 0, 2)]) if is_core else _rarity_color(rarity))
 	line.add_child(rar_lbl)
 	return row
 
@@ -866,6 +916,31 @@ func _rebuild_detail() -> void:
 		var row := UI3.plate(&"row")
 		row.add_child(UI3.label(String(line)))
 		col.add_child(row)
+
+	if node.reward_kind != "":
+		var rrow := UI3.plate(&"row")
+		rrow.name = "RewardKindRow"
+		var rh := HBoxContainer.new()
+		rh.add_theme_constant_override("separation", 8)
+		var ri := TextureRect.new()
+		ri.texture = UI3.icon(String(_NODE_REWARD_ICON.get(node.reward_kind, "cur_shard")))
+		ri.custom_minimum_size = Vector2(24, 24)
+		ri.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		ri.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		rh.add_child(ri)
+		rh.add_child(UI3.label(tr("Reward card: %s") % tr(String(_NODE_REWARD_NAME.get(node.reward_kind, "")))))
+		rrow.add_child(rh)
+		col.add_child(rrow)
+	for aid in [node.affix, node.affix2]:
+		if String(aid) == "":
+			continue
+		var arow := UI3.plate(&"row")
+		arow.name = "AffixRow"
+		var al := UI3.label("%s: %s" % [_affix_name(String(aid)), CombatView.affix_tip(String(aid))])
+		al.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		al.custom_minimum_size.x = 340
+		arow.add_child(al)
+		col.add_child(arow)
 
 	var note: Label
 	if node.visited or node.id == RunState.current_node_id:
@@ -1165,9 +1240,21 @@ func _show_reward_overlay(title: String, _backdrop: Texture2D = null) -> void:
 	head.alignment = BoxContainer.ALIGNMENT_CENTER
 	head.add_theme_constant_override("separation", 24)
 	col.add_child(head)
+	var core_rule := false
+	for rr0 in RunState.pending_rewards:
+		core_rule = core_rule or bool((rr0 as Dictionary).get("rule", false))
+	if _core_offer_active():
+		title = "CHOOSE A RUN RULE" if core_rule else "CHOOSE A CORE"
 	var title_lbl := UI3.label(tr(title), "LabelScreenTitle")
 	title_lbl.name = "RewardTitle"
 	head.add_child(title_lbl)
+	# Next pick's tier (lane B publishes RunState.core_next_tier, 0..2; -1 / absent = unknown): word + tier colour.
+	var nxt = RunState.get("core_next_tier")
+	if _core_offer_active() and not core_rule and nxt != null and int(nxt) >= 0:
+		var nt := clampi(int(nxt), 0, 2)
+		var chip := UI3.chip("Next: %s" % _CORE_TIER_NAME[nt])
+		chip.name = "NextTierChip"
+		head.add_child(chip)
 	head.add_child(UI3.currency_pill([{"icon": "cur_shard", "value": str(RunState.shards_this_run)}]))
 
 	_overlay_vbox = HBoxContainer.new()
@@ -1188,13 +1275,27 @@ func _show_reward_overlay(title: String, _backdrop: Texture2D = null) -> void:
 	actions.add_theme_constant_override("separation", 16)
 	col.add_child(actions)
 	var left := RunState.reward_reroll_charges
-	var reroll := UI3.button(tr("Reroll · %d left") % left, &"secondary", &"M")
-	reroll.name = "RerollButton"
-	if left > 0:
-		reroll.pressed.connect(_on_reward_reroll.bind(title))
+	if _core_offer_active() and RunState.get("core_reroll_left") != null:
+		left = int(RunState.get("core_reroll_left"))   # lane B: Core rerolls are per run (2), not per node
+	var is_rule := false
+	for rr in RunState.pending_rewards:
+		is_rule = is_rule or bool((rr as Dictionary).get("rule", false))
+	if _core_offer_active():
+		# Core offer: each card has its own Reroll button; here only the shared counter.
+		if not is_rule:
+			var lc := UI3.label(tr("%d rerolls left") % left, "LabelDisplay")
+			lc.name = "RerollLeft"
+			lc.add_theme_font_size_override("font_size", 18)
+			actions.add_child(lc)
 	else:
-		UI3.set_disabled_reason(reroll, tr("Reroll · 0 left"))
-	actions.add_child(reroll)
+		var reroll := UI3.button(tr("Reroll · %d left") % left, &"secondary", &"M")
+		reroll.visible = not is_rule   # no reroll for the Run rule pick (2b.1)
+		reroll.name = "RerollButton"
+		if left > 0:
+			reroll.pressed.connect(_on_reward_reroll.bind(title))
+		else:
+			UI3.set_disabled_reason(reroll, tr("Reroll · 0 left"))
+		actions.add_child(reroll)
 	if _REWARD_ALLOW_SKIP:
 		var skip := UI3.button(tr("Skip"), &"secondary", &"M")
 		skip.name = "SkipButton"
@@ -1289,7 +1390,10 @@ func _trade_parts(r: Dictionary) -> Dictionary:
 func _add_reward_card(r: Dictionary, wide := false) -> PanelContainer:
 	var t := String(r.get("t", ""))
 	var rar := _reward_rarity(r)
+	var is_core := _is_core_card(r)
 	var accent := _rarity_color(rar)
+	if is_core and not bool(r.get("rule", false)):
+		accent = UI3Theme.color(_CORE_TIER_TOKEN[clampi(int(r.get("tier", 0)), 0, 2)])
 	var idx := _reward_cards.size()
 
 	var card := UI3.plate(&"card")
@@ -1322,7 +1426,10 @@ func _add_reward_card(r: Dictionary, wide := false) -> PanelContainer:
 	col.add_theme_constant_override("separation", 12)
 	card.add_child(col)
 
-	col.add_child(UI3.label(tr(String(_REWARD_KIND.get(t, "Reward"))), "LabelMuted"))
+	var kind_text := String(_REWARD_KIND.get(t, "Reward"))
+	if is_core:
+		kind_text = "Run rule" if bool(r.get("rule", false)) else "Core"
+	col.add_child(UI3.label(tr(kind_text), "LabelMuted"))
 
 	var art := Panel.new()
 	art.name = "Art"
@@ -1336,6 +1443,8 @@ func _add_reward_card(r: Dictionary, wide := false) -> PanelContainer:
 	art.add_theme_stylebox_override("panel", art_sb)
 	var icon := TextureRect.new()
 	icon.texture = UI3.icon(String(_REWARD_ICON.get(t, "ui_mooncard")))
+	if is_core:
+		icon.texture = UI3.icon(String(CorePanel.AXIS_ICON.get(String(r.get("axis", "")), "face_buff")))
 	icon.set_anchors_preset(Control.PRESET_CENTER)
 	icon.custom_minimum_size = Vector2(96, 96)
 	icon.offset_left = -48
@@ -1357,6 +1466,8 @@ func _add_reward_card(r: Dictionary, wide := false) -> PanelContainer:
 	elif String(r.get("sub", "")) != "":
 		body_text += "\n" + String(r.get("sub", ""))
 	name_text = UI3.title_case(UI3.player_text(name_text))
+	if String(r.get("key", "")) == "rule_none":
+		body_text = tr("Play this run with the base rules.")
 	var dsc := UI3.describe(body_text)
 	body_text = ("MP %d · " % int(dsc["mp"]) if int(dsc["mp"]) >= 0 else "") + String(dsc["text"])
 	var name_lbl := UI3.label(name_text, "LabelTitle")
@@ -1364,10 +1475,24 @@ func _add_reward_card(r: Dictionary, wide := false) -> PanelContainer:
 	name_lbl.clip_text = true
 	name_lbl.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	col.add_child(name_lbl)
-	var rar_lbl := UI3.label(_rarity_name(rar))
-	rar_lbl.name = "RarityLabel"
-	rar_lbl.add_theme_color_override("font_color", UI3Theme.color("text_muted") if rar == 0 else accent)
-	col.add_child(rar_lbl)
+	if is_core:
+		# Tier chip (word + tier colour) + axis chip (glyph + word). Run rules have no tier.
+		var tier := clampi(int(r.get("tier", 0)), 0, 2)
+		var axis := String(r.get("axis", ""))
+		var chips := HFlowContainer.new()
+		chips.name = "CoreChips"
+		chips.add_theme_constant_override("h_separation", 8)
+		chips.add_theme_constant_override("v_separation", 8)
+		if not bool(r.get("rule", false)):
+			chips.add_child(CorePanel.word_chip(tr(_CORE_TIER_NAME[tier]), "", accent, "TierChip"))
+		chips.add_child(CorePanel.word_chip(tr(String(CorePanel.AXIS_NAME.get(axis, "Core"))),
+			String(CorePanel.AXIS_ICON.get(axis, "face_buff")), UI3Theme.color("text_muted"), "AxisChip"))
+		col.add_child(chips)
+	else:
+		var rar_lbl := UI3.label(_rarity_name(rar))
+		rar_lbl.name = "RarityLabel"
+		rar_lbl.add_theme_color_override("font_color", UI3Theme.color("text_muted") if rar == 0 else accent)
+		col.add_child(rar_lbl)
 	if t in ["chaos", "curse"]:
 		var tp := _trade_parts(r)
 		if t == "chaos":
@@ -1381,7 +1506,17 @@ func _add_reward_card(r: Dictionary, wide := false) -> PanelContainer:
 	desc.name = "RewardDesc"
 	desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	desc.custom_minimum_size.x = (_REWARD_CARD_W_WIDE if wide else _REWARD_CARD_W) - 48.0
+	desc.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	col.add_child(desc)
+	if is_core and not bool(r.get("rule", false)):
+		var rr := UI3.button(tr("Reroll"), &"secondary", &"M")
+		rr.name = "CardReroll%d" % idx
+		rr.size_flags_vertical = Control.SIZE_SHRINK_END
+		if RunState.core_can_reroll(idx):
+			rr.pressed.connect(_on_core_card_reroll.bind(idx))
+		else:
+			UI3.set_disabled_reason(rr, tr("Rerolled") if RunState.core_rerolled_slots.has(idx) else tr("No rerolls left"))
+		col.add_child(rr)
 	return card
 
 
@@ -1486,6 +1621,16 @@ func sheet_closed(ok: bool, reward: Dictionary, _left := false) -> void:
 	if ok:
 		RunState.apply_chosen_reward(reward)
 		_finish_node()
+
+
+## Core offer: reroll ONE card (RunState action reroll_rewards [slot]).
+func _on_core_card_reroll(idx: int) -> void:
+	var res: Dictionary = await RunState.request_reroll_pending_rewards(idx)
+	if not bool(res["ok"]):
+		if String(res["code"]) not in ["illegal", "busy"]:
+			NetNotice.show(self, String(res["code"]), _on_core_card_reroll.bind(idx))
+		return
+	_show_reward_overlay("x")
 
 
 func _on_reward_reroll(title: String) -> void:

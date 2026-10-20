@@ -17,6 +17,7 @@ const BOSS_INTRO_SKIP := &"boss_intro_skip"
 const COMBAT_END_TURN := &"combat_end_turn"
 const COMBAT_UNDO := &"combat_undo"
 const COMBAT_REROLL := &"combat_reroll"
+const COMBAT_HOLD := &"combat_hold"
 const COMBAT_AID := &"combat_aid"
 const COMBAT_INSPECT := &"combat_inspect"
 const DIE_ACTIONS: Array[StringName] = [&"die_1", &"die_2", &"die_3", &"die_4", &"die_5"]
@@ -45,6 +46,7 @@ const DEFS: Array[Dictionary] = [
 	{"id": &"combat_end_turn", "group": "Combat", "label": "End turn", "keys": [KEY_SPACE, KEY_E]},
 	{"id": &"combat_reroll", "group": "Combat", "label": "Reroll unused dice", "keys": [KEY_R]},
 	{"id": &"combat_undo", "group": "Combat", "label": "Undo last die", "keys": [KEY_Z]},
+	{"id": &"combat_hold", "group": "Combat", "label": "Hold the picked die", "keys": [KEY_H]},
 	{"id": &"combat_aid", "group": "Combat", "label": "Aid tray", "keys": [KEY_A]},
 	{"id": &"combat_inspect", "group": "Combat", "label": "Inspect unit", "keys": [KEY_I]},
 	{"id": &"die_1", "group": "Combat", "label": "Pick die 1", "keys": [KEY_1, KEY_KP_1]},

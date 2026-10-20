@@ -377,6 +377,63 @@ static func status_label_chip(status: String, count: int) -> PanelContainer:
 	return p
 
 
+## Chip with an optional icon 24 + word (Rowdies 18): wood-2 fill, 2 px border in `border`. The icon never carries
+## meaning alone: the word is always there. Children are named "Icon" / "Text".
+static func icon_chip(text: String, tex: Texture2D, border: Color, chip_name := "") -> PanelContainer:
+	var p := PanelContainer.new()
+	p.name = chip_name
+	p.theme = UI3Theme.get_theme()
+	var sb := UI3Theme.flat(UI3Theme.color("panel_raised"), UI3Theme.radius("s"), 2, border)
+	sb.content_margin_left = 8
+	sb.content_margin_right = 12
+	sb.content_margin_top = 2
+	sb.content_margin_bottom = 2
+	p.add_theme_stylebox_override("panel", sb)
+	p.custom_minimum_size = Vector2(0, 36)
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 8)
+	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	if tex != null:
+		var ic := TextureRect.new()
+		ic.name = "Icon"
+		ic.texture = tex
+		ic.custom_minimum_size = Vector2(24, 24)
+		ic.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		ic.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		ic.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		ic.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		row.add_child(ic)
+	var l := label(text, "LabelDisplay")
+	l.name = "Text"
+	l.add_theme_font_size_override("font_size", 18)
+	l.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	row.add_child(l)
+	p.add_child(row)
+	p.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	return p
+
+
+## Floating note chip near a unit ("Plating broken"): wood-1 plate, 2 px debuff border, Rowdies 18 cream text.
+## The caller positions it (keep it inside the 24 px safe margin) and fades it out.
+static func float_chip(text: String, debuff := true) -> PanelContainer:
+	var p := PanelContainer.new()
+	p.theme = UI3Theme.get_theme()
+	var sb := UI3Theme.flat(UI3Theme.color("panel"), UI3Theme.radius("s"), 2,
+		UI3Theme.color("status_debuff_border" if debuff else "status_buff_border"))
+	sb.content_margin_left = 12
+	sb.content_margin_right = 12
+	sb.content_margin_top = 4
+	sb.content_margin_bottom = 4
+	p.add_theme_stylebox_override("panel", sb)
+	var l := label(text, "LabelDisplay")
+	l.add_theme_font_size_override("font_size", 18)
+	l.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	p.add_child(l)
+	p.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	p.z_index = 6
+	return p
+
+
 ## Round 2 IntentBadge colour for a game face type (attack red-6, shield blue-7, buff kam-5, debuff axie-bird).
 static func intent_color(game_type: String) -> Color:
 	match game_type:
