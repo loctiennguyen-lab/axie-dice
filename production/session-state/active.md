@@ -11,6 +11,14 @@ dùng user dir cô lập (cây chính an toàn khi Liam chơi) + chặn override
 boss nhìn về party hé ~12° (t_boss_facing); quái gọi ra 0.7 (t_boss_resume_summons); chữ đe doạ boss mới; số phase thật.
 Blender đang mở scene `Chimera_Review` (6 Chimera + script `chimera_clip.py` đổi clip).
 
+**TẠM DỪNG theo Liam (20/10 trưa).** Đã làm thêm sau mốc trên: Blight BỎ khỏi dự án (Liam; code không còn tham chiếu; còn 2 ảnh
+nền + thư mục rỗng trong asset-library chờ Liam tự xoá vì lệnh rm bị chặn quyền); prompt Claude Design art Epic hộp thường =
+`design/handoffs/cosmetics-3d/PROMPT-EPIC-ECHOBOX.md` (Liam duyệt Deep Reef, 12 món) → khi có art: thêm id vào `art_map` epic
+trong `godot/assets/data/economy/echobox.json`, bỏ 2 hình Founder khỏi đó. Dọn: còn worktree B (suite) + R (`l1/R` tại a24133d,
+CHƯA có commit nào — việc "Brine to hơn bằng cách dời cổng/party khi boss rộng" đã dừng giữa chừng, làm lại từ đầu: Liam duyệt
+cho dời cổng/party). Nhánh còn: l1/B-hooks, sim/quick-1012, claude/happy-herschel; nhánh script/* đã xoá (brine cbbac48,
+feral 20e6a15, parasite 069dcc0). Thư mục save test cũ AxieDice-wt-* ngoài B/R chờ Liam tự xoá.
+
 **Việc nhỏ còn treo (không chặn game design):**
 1. Liam chơi b1049, duyệt Chimera trong game → rồi **deploy web** theo `production/release/web-deploy-2026-10-19.md`
    (HỎI Liam trước khi upload R2; Worker không cần deploy).
