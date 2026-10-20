@@ -16,6 +16,7 @@ signal unit_inspect(uid: int)
 
 const MAX_SHOWN := 4
 const GAP := 8.0
+const _ARMOR_ICON := preload("res://assets/icons/web/armor.png")
 const _SHIELD_ICON := preload("res://assets/icons/web/shield.png")
 const _BUFFS := ["shield", "regen", "thorns", "undying", "enrage"]
 
@@ -50,7 +51,10 @@ func sync(entries: Array) -> void:
 		var row: HBoxContainer = ent["row"]
 		row.visible = true
 		row.size = row.get_combined_minimum_size()
-		row.position = anchor - Vector2(row.size.x * 0.5, row.size.y)
+		var rx := anchor.x - row.size.x * 0.5
+		if size.x > 0.0:
+			rx = clampf(rx, 24.0, maxf(24.0, size.x - 24.0 - row.size.x))   # never clip at the window edge
+		row.position = Vector2(rx, anchor.y - row.size.y)
 	for uid in _rows.keys():
 		if not seen.has(uid):
 			(_rows[uid]["row"] as Node).queue_free()
@@ -110,9 +114,7 @@ func _rebuild(uid: int, items: Array, old: Dictionary) -> Dictionary:
 		var n := int(items[i][1])
 		var chip := _chip(key, n)
 		if key == "preview":
-			chip = UI3.chip(String(items[i][2]))
-			chip.name = "DmgPreview"
-			chip.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			chip = _preview_chip(String(items[i][2]))
 			row.add_child(chip)
 			continue
 		UI3Tooltip.bind(chip, _tip(key, n))
@@ -131,20 +133,42 @@ func _rebuild(uid: int, items: Array, old: Dictionary) -> Dictionary:
 	return {"row": row, "sig": str(items)}
 
 
+## "4 → 1" (Rowdies 24) with the one-line way to break it (18), for the picked die aimed at an armored foe.
+static func _preview_chip(text: String) -> PanelContainer:
+	var p := UI3.plate(&"info")
+	p.name = "DmgPreview"
+	var v := VBoxContainer.new()
+	v.add_theme_constant_override("separation", 0)
+	v.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var big := UI3.label(text, "LabelDisplay")
+	big.name = "Value"
+	big.add_theme_font_size_override("font_size", 24)
+	big.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	v.add_child(big)
+	var hint := UI3.label(TranslationServer.translate("Break with debuff / poison / pierce / AoE"), "LabelMuted")
+	hint.name = "Hint"
+	hint.add_theme_font_size_override("font_size", 18)
+	hint.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	v.add_child(hint)
+	p.add_child(v)
+	p.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	return p
+
+
 static func _tip(key: String, n: int) -> String:
 	match key:
 		"plating":
-			return "Plating %d\nEach single hit loses %d damage (never below 1). Poison or a debuff switches it off for 2 turns." % [n, n]
+			return "Armor %d\nEach single hit loses %d damage (never below 1). Poison or a debuff switches it off for 2 turns." % [n, n]
 		"plating_off":
-			return "Plating off\nBroken by poison or a debuff. Back in %d turns." % n
+			return "Armor off\nBroken by poison or a debuff. Back in %d turns." % n
 	return UnitPortrait._effect_tooltip(key, n)
 
 
 func _chip(key: String, n: int) -> Control:
 	if key == "plating":
-		return UI3.chip("ARM %d" % n)
+		return UI3.icon_chip(TranslationServer.translate("Armor") + " %d" % n, _ARMOR_ICON, UI3Theme.color("text_muted"), "ArmorChip")
 	if key == "plating_off":
-		return UI3.chip("ARM off %d" % n)
+		return UI3.icon_chip(TranslationServer.translate("Armor off") + " %d" % n, _ARMOR_ICON, UI3Theme.color("danger_text"), "ArmorChip")
 	var tex := icon_for(key)
 	if tex == null:
 		return UI3.status_label_chip(key, n)

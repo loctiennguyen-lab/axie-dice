@@ -67,39 +67,9 @@ func refresh() -> bool:
 	return any
 
 
-## Chip with an icon + word (Rowdies 18): wood-2 fill, 2 px border in `border`. icon "" = word only.
+## Chip with an icon + word; see UI3.icon_chip. icon "" = word only.
 static func word_chip(text: String, icon_name: String, border: Color, chip_name := "") -> PanelContainer:
-	var p := PanelContainer.new()
-	p.name = chip_name
-	p.theme = UI3Theme.get_theme()
-	var sb := UI3Theme.flat(UI3Theme.color("panel_raised"), UI3Theme.radius("s"), 2, border)
-	sb.content_margin_left = 8
-	sb.content_margin_right = 12
-	sb.content_margin_top = 2
-	sb.content_margin_bottom = 2
-	p.add_theme_stylebox_override("panel", sb)
-	p.custom_minimum_size = Vector2(0, 36)
-	var row := HBoxContainer.new()
-	row.add_theme_constant_override("separation", 8)
-	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	if icon_name != "":
-		var ic := TextureRect.new()
-		ic.name = "Icon"
-		ic.texture = UI3.icon(icon_name)
-		ic.custom_minimum_size = Vector2(24, 24)
-		ic.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-		ic.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-		ic.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-		ic.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		row.add_child(ic)
-	var l := UI3.label(text, "LabelDisplay")
-	l.name = "Text"
-	l.add_theme_font_size_override("font_size", 18)
-	l.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	row.add_child(l)
-	p.add_child(row)
-	p.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	return p
+	return UI3.icon_chip(text, UI3.icon(icon_name) if icon_name != "" else null, border, chip_name)
 
 
 func _slot(def, is_rule: bool, empty_name: String) -> PanelContainer:
