@@ -49,12 +49,13 @@ def _rot_between(a, b):
     return np.eye(3) + k + k @ k / (1.0 + c)
 
 
-def straighten_beak(obj, tube=0.075, base_r=0.042, length=0.42, yaw_deg=3.0, pitch_deg=12.0,
-                    axis_pt=(0.075, -0.215, 0.225), rings=48, sides=20):
+def straighten_beak(obj, tube=0.075, base_r=0.05, length=0.5, yaw_deg=0.0, pitch_deg=-10.0,
+                    axis_pt=(0.0, -0.22, 0.215), rings=48, sides=20):
     """Replace the AI nose spike (twisted ~50 deg forward, wavy, needle-thin) by ONE straight
     solid horn, as in the art: thick at the base (~1/3 of the mask width), tapering to a sharp
     tip, yellow at the base -> orange -> red at the tip, leaving the face centre and pointing to
-    the creature's left (+X), 12 deg up, ~6 deg forward.
+    straight FORWARD (-Y in Blender = +Z in glTF = toward the party), centred on the face
+    (yaw 0), 10 deg below horizontal, as in Bug_1.png columns 2 (front, foreshortened) and 3 (side).
 
     The old spike (found as the vertices inside a tube around its measured axis, in front of the
     mask) is folded back into the head (y = -0.20) so no needle remains; the new horn is a
@@ -81,7 +82,7 @@ def straighten_beak(obj, tube=0.075, base_r=0.042, length=0.42, yaw_deg=3.0, pit
     set_co(me, co)
     # --- new horn
     yaw, pitch = math.radians(yaw_deg), math.radians(pitch_deg)
-    D = Vector((math.cos(pitch) * math.cos(yaw), -math.cos(pitch) * math.sin(yaw), math.sin(pitch)))
+    D = Vector((math.cos(pitch) * math.sin(yaw), -math.cos(pitch) * math.cos(yaw), math.sin(pitch)))
     A = Vector(axis_pt)
     N = D.cross(Vector((0, 0, 1))).normalized()
     Bv = D.cross(N).normalized()
