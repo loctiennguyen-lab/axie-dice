@@ -439,9 +439,9 @@ func _build_die_strip(die: Array, _cls := "") -> GridContainer:
 	grid.add_theme_constant_override("v_separation", UI3Theme.space("8"))
 	for f in die:
 		var face: Dictionary = f
-		var ft := StringName(str(face.get("t", "blank")))
-		if not UI3.FACE_TYPES.has(ft):
-			ft = &"blank"
+		# Store faces use game names ("dmg", "debuff"); the tile only knows UI3 keys ("attack",
+		# "weaken"). Passing the raw name made every attack/debuff face draw as a blank "–".
+		var ft := UI3.face_key(str(face.get("t", "blank")))
 		var tile := UI3.die_tile(ft, FaceAmount.display_value({"type": str(face.get("t", "")), "keywords": face.get("k", [])}, int(face.get("v", 0))), &"axie")
 		tile.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		grid.add_child(tile)

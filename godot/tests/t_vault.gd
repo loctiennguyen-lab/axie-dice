@@ -462,6 +462,17 @@ func test_the_vault_screen_shows_what_the_store_holds() -> void:
 	_assert(strip != null and strip.get_child_count() == 6,
 		"the die strip shows %d faces, expected 6"
 		% (strip.get_child_count() if strip != null else -1))
+	# Each tile must draw its own face type. The strip once passed the store name ("dmg") to a
+	# tile that only knows "attack", so every attack/debuff face showed as a blank "–".
+	_assert(UI3.face_key("dmg") == &"attack" and UI3.face_key("debuff") == &"weaken"
+		and UI3.face_key("blank") == &"blank", "UI3.face_key no longer maps dmg/debuff/blank")
+	if strip != null:
+		var rec_die: Array = MetaState.vault_entry("123").get("die", [])
+		_assert(rec_die.size() == strip.get_child_count(), "the record die and the strip disagree on face count")
+		for i in mini(rec_die.size(), strip.get_child_count()):
+			var want := UI3.face_key(str(rec_die[i].get("t", "blank")))
+			var got: StringName = strip.get_child(i).face
+			_assert(got == want, "face %d draws as '%s', expected '%s'" % [i, got, want])
 
 	# The import control follows what the build can ACTUALLY do, and says so either way. This
 	# used to assert the field was permanently disabled; that stopped being true when the network
