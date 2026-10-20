@@ -204,7 +204,7 @@ func setup_new(combat_setup: Dictionary) -> void:
 	enemies = _generate_encounter(kind, pw)
 	_apply_affix_start()
 
-	# A3 "Short Dice": the BASE loses a reroll (never below the floor); every bonus still adds on top.
+	# A3+ "Short Dice": the BASE loses its free reroll (floor 0 in ascension.json), so every reroll costs mana; bonuses still add on top.
 	var amods_r := ContentDB.ascension_mods(ascension)
 	# Depth v3 3.5: free rerolls per turn come from combat_tune.json reroll.free (was a literal 2).
 	var base_rerolls := reroll_free_per_turn()

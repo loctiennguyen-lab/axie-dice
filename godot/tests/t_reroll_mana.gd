@@ -12,6 +12,7 @@ func _ready() -> void:
 	_guard.capture()
 	await get_tree().process_frame
 	_costs()
+	_a3()
 	_tamper()
 	print("=== t_reroll_mana: %d checks, %d failure(s) ===" % [_checks, _failures.size()])
 	for f in _failures:
@@ -67,6 +68,22 @@ func _costs() -> void:
 	if e.won or e.lost:
 		return
 	_check(e.rerolls == 1 and e.reroll_k == 0, "turn change should restore the free reroll")
+
+
+func _a3() -> void:
+	var roster: Array = []
+	for i in TEAM.size():
+		roster.append({"persistent_id": i + 1, "hero_key": TEAM[i], "tier": 1,
+			"max_hp": ContentDB.heroes[TEAM[i]]["max_hp"], "muts": [], "growth": {}, "bonus_hp": 0})
+	var e := CombatEngine.new()
+	e.setup_new({"node_id": "rr3", "kind": "battle", "pw": 2, "ascension": 3,
+		"roster_snapshot": roster, "relic_ids": [], "combat_seed": SEED})
+	var all := _uids(e)
+	e.mana = 0
+	_check(e.rerolls == 0 and e.reroll_mana_cost() == 2, "A3: no free reroll, first reroll costs mana")
+	_check(not e.reroll_dice(all), "A3: reroll without mana allowed")
+	e.mana = 2
+	_check(e.reroll_dice(all) and e.mana <= 20, "A3: paid reroll refused with mana")
 
 
 func _tamper() -> void:
