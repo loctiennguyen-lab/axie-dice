@@ -59,7 +59,10 @@ func _costs() -> void:
 	_check(e.reroll_dice(all) and e.reroll_dice(all), "3rd and 4th reroll refused with mana")
 	e.mana = 50
 	_check(not e.can_reroll(all), "5th reroll allowed past reroll.max_total")
-	_check(e.reroll_dice(all, -1, true) == false or true, "aid path exercised")
+	# An Aid reroll (bought) is outside the cap: it must not use up a mana reroll slot.
+	var k_before := e.reroll_nonaid
+	_check(e.reroll_dice(all, -1, true), "aid reroll refused")
+	_check(e.reroll_nonaid == k_before, "an Aid reroll was counted against reroll.max_total")
 	e.end_turn()
 	if e.won or e.lost:
 		return

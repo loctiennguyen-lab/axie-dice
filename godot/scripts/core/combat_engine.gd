@@ -97,6 +97,7 @@ var _rng: Rng = null
 var _epoch: EpochSource = null
 ## k-th reroll request this turn (reroll epoch key, ADR-RNG §4.4). In the snapshot so undo rewinds it.
 var reroll_k: int = 0
+var reroll_nonaid: int = 0   ## rerolls this turn that were NOT Aid: the only ones counted against reroll.max_total
 ## Relic scratch space for ONE combat (H6, contract 2.3): plain JSON, owned by lane B's handlers
 ## (tweak_left, mana_paid_<id>, chaos_rerolls...). In the snapshot, so undo and resume restore it
 ## together with Mana. `relic_run_in` is RunState.relic_state as the fight began; handlers write
@@ -170,6 +171,7 @@ func setup_new(combat_setup: Dictionary) -> void:
 	relic_run_out = relic_run_in.duplicate(true)
 	_end_fired = false
 	reroll_k = 0
+	reroll_nonaid = 0
 	_next_token_uid = TOKEN_UID_BASE
 	undo_stack = []
 	won = false
@@ -297,6 +299,7 @@ func _state_dict() -> Dictionary:
 		"result_shards_earned": result_shards_earned,
 		"rng_state": _rng.get_state() if _rng != null else 0,
 		"reroll_k": reroll_k,
+		"reroll_nonaid": reroll_nonaid,
 		"relic_combat": relic_combat.duplicate(true),
 		"relic_run_in": relic_run_in.duplicate(true),
 		"relic_run_out": relic_run_out.duplicate(true),
@@ -343,6 +346,7 @@ func _apply_state_dict(d: Dictionary) -> void:
 	result_shards_earned = int(d.get("result_shards_earned", 0))
 	_rng = Rng.new(int(d.get("rng_state", 0)))
 	reroll_k = int(d.get("reroll_k", 0))
+	reroll_nonaid = int(d.get("reroll_nonaid", 0))
 	relic_combat = (d.get("relic_combat", {}) as Dictionary).duplicate(true)
 	relic_run_in = (d.get("relic_run_in", {}) as Dictionary).duplicate(true)
 	relic_run_out = (d.get("relic_run_out", {}) as Dictionary).duplicate(true)
@@ -725,6 +729,8 @@ func reroll_dice(uids: Array, seed: int = -1, from_aid: bool = false) -> bool:
 		_rng = Rng.new(use_seed)
 	var was_paid := paid_cost > 0 or (not from_aid and rerolls <= 0)
 	reroll_k += 1
+	if not from_aid:
+		reroll_nonaid += 1
 	mana -= int(hook["mana_cost"]) + paid_cost
 	_set_turn_phase(CombatPhase.REROLL)
 	if not from_aid and rerolls > 0:
@@ -780,7 +786,7 @@ func reroll_free_per_turn() -> int:
 
 ## True when no free charge is left but a paid one is still allowed this turn (cap reroll.max_total).
 func reroll_is_payable() -> bool:
-	return rerolls <= 0 and reroll_k < int(tune_knob("reroll", "max_total", 4.0))
+	return rerolls <= 0 and reroll_nonaid < int(tune_knob("reroll", "max_total", 4.0))
 
 
 ## Mana the NEXT reroll costs on top of any relic surcharge: 0 while a free charge is left, and for an
@@ -1570,6 +1576,7 @@ func finish_end_turn() -> void:
 	stat["turns"] = int(stat.get("turns", 0)) + 1
 	rerolls = max_rerolls
 	reroll_k = 0
+	reroll_nonaid = 0
 	_first_dmg_used = false
 	used_actives = []
 	chaos_reroll_given = 0
@@ -1910,6 +1917,7 @@ func continue_after_wipe(seed: int = -1, heal_pct: int = -1) -> bool:
 	undo_stack = []
 	rerolls = max_rerolls
 	reroll_k = 0
+	reroll_nonaid = 0
 	used_actives = []
 	chaos_reroll_given = 0
 	relic_reroll_given = 0
