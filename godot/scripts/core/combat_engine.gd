@@ -1293,6 +1293,8 @@ func _exec_face(u: Unit, target_uid: int) -> bool:
 	var f: Dictionary = u.die[fi]
 	if String(f.get("type", "")) == "blank":
 		return false
+	if u.side == "p" and String(f.get("type", "")) == "dmg" and bool(RelicHooks.run_value_hook(self, "face_blocked", {"combat": self, "unit": u}, false)):
+		return false   # Rebound Core: the top-Thorns Axie cannot use damage faces
 
 	var res_idx := _find_resonance_idx(u, f)
 	var is_resonant := res_idx >= 0

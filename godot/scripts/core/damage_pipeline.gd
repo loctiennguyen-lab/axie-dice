@@ -156,6 +156,7 @@ static func resolve(ctx: Dictionary) -> int:
 			var tm := 1.0 + RelicHooks.axis_sum(combat, "A:thorns")
 			var tp := RelicHooks.sum(combat, "thornsPlus")
 			th = th * tm + tp
+			th = float(RelicHooks.run_value_hook(combat, "thorns_extra", {"combat": combat, "tgt": tgt}, th))   # Rebound Core
 			if tm != 1.0 or tp != 0.0:
 				EventBus.relic_pulsed.emit("thorns", tgt.uid)
 		var ith := int(th)

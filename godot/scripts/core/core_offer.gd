@@ -142,9 +142,12 @@ static func token_ok(token: String, ctx: Dictionary) -> bool:
 				seen[c] = true
 			return false
 		"face":
+			var alts := arg.split("|")   # "shield|thorns" = any of these
 			for e in roster:
-				if _face_labels(_hero(e)).has(arg):
-					return true
+				var labs := _face_labels(_hero(e))
+				for a in alts:
+					if labs.has(a):
+						return true
 			return false
 		"back_face":
 			var wanted := arg.split("|")

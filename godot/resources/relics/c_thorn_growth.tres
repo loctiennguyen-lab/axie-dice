@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="RelicDef" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data_models/relic_def.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "c_thorn_growth"
+name = "Thorn Growth"
+description = "Each time a front-row Axie is hit by a single-target attack, it gains +1 Thorns for the rest of the fight."
+rarity = 1
+archetype = ""
+mload = 0
+sort_index = 201020
+hook_key = "c_thorn_growth"
+tags = PackedStringArray("nonattack", "front")
+layer = "positional"
+core_axis = "pos"
+requires = PackedStringArray("front_hero", "face:thorns|shield")
+excludes = PackedStringArray("rule:rule_upside_down")

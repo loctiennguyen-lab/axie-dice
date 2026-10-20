@@ -693,6 +693,62 @@ static func gatekeeper_turn_end(ctx: Dictionary) -> void:
 	combat_state(ctx["combat"], "gk")["b"] = 0   # hits taken AFTER this call feed the next turn
 
 
+## True for an on_dmg_taken ctx that is a single-target enemy attack landing on a front-row Axie.
+static func _single_hit_on_front(ctx: Dictionary) -> bool:
+	var combat = ctx["combat"]
+	var src = ctx.get("src", null)
+	var tgt = ctx["tgt"]
+	if src == null or src.side != "e" or not bool(ctx.get("attack", false)) or tgt.side != "p" or tgt.is_token or combat.row_of(tgt) != 0:
+		return false
+	if src.intent.is_empty() or src.hp <= 0:
+		return false
+	return not _has_kw(src.die[int(src.intent.get("face_index", 0))], "aoe")
+
+
+## Thorn Growth (Gai Moc): each single-target hit on a front-row Axie gives that Axie +1 Thorns for the fight.
+## Thorns never decay, and the +1 is in place before the same hit reflects.
+static func thorn_growth_hit(ctx: Dictionary) -> void:
+	if _single_hit_on_front(ctx):
+		StatusEngine.add_status(ctx["combat"], ctx["tgt"], ["thorns:1"], null)
+
+
+## Thorn Shield (Khien Gai): end of the player turn, every 2 leftover Shield of an Axie becomes 1 Thorns (that Shield is lost).
+static func thorn_shield_turn_end(ctx: Dictionary) -> void:
+	var combat = ctx["combat"]
+	for u in living_axies(combat):
+		var t: int = int(u.shield) / 2
+		if t <= 0:
+			continue
+		u.shield -= t * 2
+		EventBus.hp_changed.emit(u.uid, u.hp, u.max_hp, u.shield)
+		StatusEngine.add_status(combat, u, ["thorns:%d" % t], null)
+
+
+## Rebound (Phan Chan): the living Axie with the most Thorns (ties: lowest slot). null when nobody has any.
+static func rebound_unit(combat):
+	var best = null
+	for u in living_axies(combat):
+		var th := int(u.status.get("thorns", 0))
+		if th > 0 and (best == null or th > int(best.status.get("thorns", 0))
+				or (th == int(best.status.get("thorns", 0)) and u.roster_index < best.roster_index)):
+			best = u
+	return best
+
+
+## thorns_extra value hook: that Axie reflects its current Thorns a second time.
+static func rebound_extra(ctx: Dictionary) -> float:
+	var combat = ctx["combat"]
+	var tgt = ctx["tgt"]
+	if tgt == rebound_unit(combat):
+		return float(ctx["value"]) + float(int(tgt.status.get("thorns", 0)))
+	return float(ctx["value"])
+
+
+## face_blocked value hook: the Rebound Axie cannot use damage faces.
+static func rebound_blocked(ctx: Dictionary) -> bool:
+	return bool(ctx["value"]) or ctx["unit"] == rebound_unit(ctx["combat"])
+
+
 static func backline_value(ctx: Dictionary) -> int:
 	var u = ctx["unit"]
 	var ft := String(ctx.get("face_type", ""))

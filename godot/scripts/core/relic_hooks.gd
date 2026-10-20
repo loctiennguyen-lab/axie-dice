@@ -1663,6 +1663,12 @@ static var TABLE: Dictionary = {
 		"on_turn_end": func(ctx: Dictionary): CoreHooks.gatekeeper_turn_end(ctx),
 		"face_final": func(ctx: Dictionary): return CoreHooks.flat(ctx, "c_gatekeeper"),
 	},
+	"c_thorn_growth": {"on_dmg_taken": func(ctx: Dictionary): CoreHooks.thorn_growth_hit(ctx)},
+	"c_thorn_shield": {"on_turn_end": func(ctx: Dictionary): CoreHooks.thorn_shield_turn_end(ctx)},
+	"c_thorn_rebound": {
+		"thorns_extra": func(ctx: Dictionary): return CoreHooks.rebound_extra(ctx),
+		"face_blocked": func(ctx: Dictionary): return CoreHooks.rebound_blocked(ctx),
+	},
 	"c_backline_glow": {"face_final": func(ctx: Dictionary): return CoreHooks.backline_value(ctx)},
 	"c_living_wall": {
 		"front_row_size": func(ctx: Dictionary): return 1,

@@ -21,6 +21,7 @@ func _ready() -> void:
 	t_engine_cores()
 	t_lane_e_cores()
 	t_lane_e_rules()
+	t_thorn_cores()
 	print("=== t_core_behaviour: %d checks, %d failure(s) ===" % [_checks, _fails.size()])
 	if _fails.is_empty():
 		print("t_core_behaviour: PASS — %d checks OK" % _checks)
@@ -711,3 +712,52 @@ func t_lane_e_rules() -> void:
 	_ok(_val(c, c.party[0], "shield", 3) == _val(b, b.party[0], "shield", 3) + 2, "hard shell: shield face +2")
 	_ok(_val(c, c.party[0], "poison", 3) == _val(b, b.party[0], "poison", 3) + 2, "hard shell: poison face +2")
 	_ok(_val(c, c.party[0], "dmg", 3) == _val(b, b.party[0], "dmg", 3), "hard shell: dmg faces unchanged")
+
+
+func t_thorn_cores() -> void:
+	# Thorn Growth: +1 thorns per single-target hit on a front-row Axie only
+	var c := _combat(["c_thorn_growth"])
+	var f: Unit = c.party[0]
+	var e: Unit = c.enemies[0]
+	e.intent = {"face_index": 0, "target_uid": f.uid}
+	e.die[0] = {"type": "dmg", "value": 3, "keywords": []}
+	var t0 := int(f.status.get("thorns", 0))
+	RelicHooks.fire(c, "on_dmg_taken", {"src": e, "tgt": f, "dealt": 3, "attack": true, "combat": c})
+	_ok(int(f.status.get("thorns", 0)) == t0 + 1, "thorn_growth: +1 thorns on a single hit to front")
+	var bk: Unit = c.party[4]
+	var b0 := int(bk.status.get("thorns", 0))
+	RelicHooks.fire(c, "on_dmg_taken", {"src": e, "tgt": bk, "dealt": 3, "attack": true, "combat": c})
+	_ok(int(bk.status.get("thorns", 0)) == b0, "thorn_growth: back row unchanged")
+	e.die[0] = {"type": "dmg", "value": 3, "keywords": ["aoe"]}
+	RelicHooks.fire(c, "on_dmg_taken", {"src": e, "tgt": f, "dealt": 3, "attack": true, "combat": c})
+	_ok(int(f.status.get("thorns", 0)) == t0 + 1, "thorn_growth: AoE does not grow thorns")
+	# Thorn Shield: 2 shield = 1 thorns, odd shield keeps 1
+	c = _combat(["c_thorn_shield"])
+	var u: Unit = c.party[1]
+	u.shield = 7
+	var th0 := int(u.status.get("thorns", 0))
+	RelicHooks.fire(c, "on_turn_end", {"combat": c})
+	_ok(u.shield == 1 and int(u.status.get("thorns", 0)) == th0 + 3, "thorn_shield: 7 shield -> 3 thorns, 1 shield left")
+	# Rebound: top-thorns Axie reflects double and cannot use dmg faces
+	c = _combat(["c_thorn_rebound"])
+	var a: Unit = c.party[2]
+	a.status["thorns"] = 20
+	_ok(CoreHooks.rebound_unit(c) == a, "thorn_rebound: top thorns Axie found")
+	e = c.enemies[0]
+	e.max_hp = 500
+	e.hp = 500
+	e.plating = 0
+	DamagePipeline.resolve({"combat": c, "src": e, "tgt": a, "value": 1, "attack": true, "single": true, "face_type": "dmg"})
+	_ok(e.hp == 500 - 40, "thorn_rebound: reflects 20 + 20, lost %d" % (500 - e.hp))
+	var dmg_fi := -1
+	for i in a.die.size():
+		if String(a.die[i].get("type", "")) == "dmg":
+			dmg_fi = i
+			break
+	if dmg_fi >= 0:
+		a.set_roll(dmg_fi, false)
+		_ok(not c.use_die(a.uid, e.uid), "thorn_rebound: dmg face refused")
+	var c2 := _combat(["c_thorn_rebound"])
+	for x in c2.party:
+		x.status["thorns"] = 0
+	_ok(CoreHooks.rebound_unit(c2) == null, "thorn_rebound: nobody has thorns -> no unit")

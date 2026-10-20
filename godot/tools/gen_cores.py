@@ -33,6 +33,9 @@ core("toxic_still", "Lò Độc", "Toxic Still", 2, "dice", ["face:poison"], ["o
 # ---- pos
 core("bastion", "Thành Trì", "Bastion", 0, "pos", [], FRONT_EXC, ["nonattack", "front"], "Front-row Axies take 2 less from single-target hits.")
 core("gatekeeper", "Kẻ Gác Cổng", "Gatekeeper", 1, "pos", [], FRONT_EXC, ["nonattack", "front"], "Enemies that hit a front-row Axie with a single-target attack take 3 pierce thorns. Each such hit gives your team's next damage face +2 (max +6, ends with the turn).")
+core("thorn_growth", "Gai Mọc", "Thorn Growth", 1, "pos", ["front_hero", "face:thorns|shield"], FRONT_EXC, ["nonattack", "front"], "Each time a front-row Axie is hit by a single-target attack, it gains +1 Thorns for the rest of the fight.")
+core("thorn_shield", "Khiên Gai", "Thorn Shield", 1, "stat", ["face:shield|thorns"], [], ["nonattack"], "End of your turn, every 2 leftover Shield on an Axie turns into 1 Thorns (that Shield is lost).")
+core("thorn_rebound", "Phản Chấn", "Rebound", 2, "rule", ["face:thorns|shield"], [], ["nonattack", "tradeoff"], "The Axie with the most Thorns reflects its Thorns a second time on every hit, but it cannot use damage faces.")
 core("backline_glow", "Hàng Sau Phát Sáng", "Backline Glow", 1, "pos", ["back_face:heal|mana"], [], ["nonattack"], "Back-row Axies: heal and mana faces get +50% (rounded up).")
 core("living_wall", "Bức Tường Sống", "Living Wall", 2, "pos", [], ["owned:c_open_ranks"] + FRONT_EXC, ["nonattack", "front"], "Only slot 1 is the front row. That Axie gets +12 Max HP and 2 Thorns. The other four are the back row.")
 core("open_ranks", "Đội Hình Mở", "Open Ranks", 2, "pos", ["owned_tag:front"], ["owned:c_living_wall", "rule:rule_rising_tide"] + FRONT_EXC, ["nonattack", "front"], "No back row: all 5 Axies are front row, and every front-row Core applies to the whole team.")
