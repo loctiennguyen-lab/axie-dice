@@ -26,7 +26,7 @@ export const POINTS_LOSS = 1;
 export const BADGES = [10, 30, 75, 150, 300];   // 5 Raid milestones (total points)
 export const CHALLENGE_TTL_S = 30 * 60;
 export const MIN_FIGHT_S = 8;            // a fight cannot honestly end sooner
-export const OPEN_MAX = 20;              // unfinished challenges per player inside the TTL
+export const OPEN_MAX = 6;              // unfinished challenges per player inside the TTL
 export const TURNS_MAX = 60;
 
 const nowS = () => Math.floor(Date.now() / 1000);
@@ -157,22 +157,32 @@ async function finish(request, env, url, player) {
   const claim = await env.DB.prepare(`UPDATE raid_challenges SET state = 'done' WHERE challenge_id = ? AND state = 'open'`).bind(body.challenge_id).run();
   if (!claim.meta || claim.meta.changes !== 1) return json({ error: 'already_done' }, 409);
   const day = utcDay(t);
-  const perGhost = await env.DB.prepare('SELECT count FROM raid_daily WHERE attacker_id = ? AND day = ? AND defender_id = ?').bind(player.id, day, c.defender_id).first();
-  const total = await env.DB.prepare('SELECT COALESCE(SUM(count), 0) AS n FROM raid_daily WHERE attacker_id = ? AND day = ?').bind(player.id, day).first();
-  let counted = true; let reason;
-  if (total.n >= DAILY_RAIDS) { counted = false; reason = 'daily_cap'; } else if ((perGhost ? perGhost.count : 0) >= PER_GHOST_DAILY) { counted = false; reason = 'ghost_cap'; }
+  // ONE statement decides both caps, so parallel finishes cannot slip past them: the row is inserted (or its count
+  // bumped) only while the day total is under DAILY_RAIDS and this ghost's count is under PER_GHOST_DAILY.
+  const bump = await env.DB.prepare(
+    `INSERT INTO raid_daily (attacker_id, day, defender_id, count)
+     SELECT ?1, ?2, ?3, 1 WHERE (SELECT COALESCE(SUM(count), 0) FROM raid_daily WHERE attacker_id = ?1 AND day = ?2) < ?4
+     ON CONFLICT(attacker_id, day, defender_id) DO UPDATE SET count = count + 1 WHERE count < ?5`,
+  ).bind(player.id, day, c.defender_id, DAILY_RAIDS, PER_GHOST_DAILY).run();
+  const counted = !!(bump.meta && bump.meta.changes === 1);
+  let reason;
+  if (!counted) {
+    const total = await env.DB.prepare('SELECT COALESCE(SUM(count), 0) AS n FROM raid_daily WHERE attacker_id = ? AND day = ?').bind(player.id, day).first();
+    reason = total.n >= DAILY_RAIDS ? 'daily_cap' : 'ghost_cap';
+  }
   const points = counted ? (body.won ? POINTS_WIN : POINTS_LOSS) : 0;
   let badge = null;
-  const before = await env.DB.prepare('SELECT points FROM raid_points WHERE player_id = ?').bind(player.id).first();
-  const was = before ? before.points : 0;
+  let was;
   if (counted) {
-    await env.DB.prepare(
-      `INSERT INTO raid_daily (attacker_id, day, defender_id, count) VALUES (?, ?, ?, 1) ON CONFLICT(attacker_id, day, defender_id) DO UPDATE SET count = count + 1`,
-    ).bind(player.id, day, c.defender_id).run();
     await env.DB.prepare(
       `INSERT INTO raid_points (player_id, points) VALUES (?, ?) ON CONFLICT(player_id) DO UPDATE SET points = points + excluded.points`,
     ).bind(player.id, points).run();
+    const now = await env.DB.prepare('SELECT points FROM raid_points WHERE player_id = ?').bind(player.id).first();
+    was = now.points - points;   // derived after the atomic add, so parallel finishes cannot double-report a badge
     badge = badgeCrossed(was, was + points);
+  } else {
+    const cur = await env.DB.prepare('SELECT points FROM raid_points WHERE player_id = ?').bind(player.id).first();
+    was = cur ? cur.points : 0;
   }
   const result = { won: body.won, turns: body.turns, h: body.h, points, counted };
   await env.DB.prepare('UPDATE raid_challenges SET result = ? WHERE challenge_id = ?').bind(JSON.stringify(result), body.challenge_id).run();

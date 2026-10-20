@@ -197,3 +197,24 @@ test('rate limiter: RUN_LIMITER refusal gives 429', async () => {
   env.RUN_LIMITER = { limit: async () => ({ success: false }) };
   assert.equal((await call('/api/raid/opponents')).status, 429);
 });
+
+test('parallel finishes cannot beat the caps (5 a day, 3 per ghost)', async () => {
+  const { defend, ghostOf, finish, fight, DB } = await setup();
+  await defend('tok2'); await defend('tok3');
+  // one ghost: 6 open challenges finished at once -> exactly 3 count
+  const g2 = ghostOf('google:2');
+  const ids = [];
+  for (let i = 0; i < OPEN_MAX; i++) ids.push(await fight(g2));
+  const rs = await Promise.all(ids.map((id) => finish(id, { won: false }).then((r) => r.json())));
+  assert.equal(rs.filter((r) => r.counted).length, PER_GHOST_DAILY);
+  assert.equal(DB.db.prepare('SELECT SUM(count) AS n FROM raid_daily').get().n, PER_GHOST_DAILY);
+  assert.equal(DB.db.prepare('SELECT points FROM raid_points WHERE player_id = ?').get('google:1').points, PER_GHOST_DAILY * POINTS_LOSS);
+  // two ghosts: 3 more on g3 would make 6 -> only 2 more count (day total 5)
+  const g3 = ghostOf('google:3');
+  const ids2 = [];
+  for (let i = 0; i < 4; i++) ids2.push(await fight(g3));
+  const rs2 = await Promise.all(ids2.map((id) => finish(id, { won: false }).then((r) => r.json())));
+  assert.equal(rs2.filter((r) => r.counted).length, DAILY_RAIDS - PER_GHOST_DAILY);
+  assert.equal(DB.db.prepare('SELECT SUM(count) AS n FROM raid_daily').get().n, DAILY_RAIDS);
+  assert.ok(rs2.filter((r) => !r.counted).every((r) => r.reason === 'daily_cap'));
+});
