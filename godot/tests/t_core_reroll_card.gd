@@ -69,4 +69,41 @@ func _ready() -> void:
 	RunState.current_node_id = g.get_row(5)[0].id
 	RunState.after_node()
 	_assert(RunState.core_rerolled_slots.is_empty() and RunState.core_reroll_left == 1, "new offer: slots free, run budget 1 left")
+	# review fix 1: a reroll uses the pick index of its own offer. Pick 1 (index 0) never shows a quest Core, rerolled or not.
+	for sd in 40:
+		_start(100 + sd)
+		_assert(RunState._core_offer_pick == 0 and RunState.core_pick_index == 1, "offer 1 remembers pick index 0")
+		RunState.reroll_pending_rewards(sd, sd % 3)
+		for c in RunState.pending_rewards:
+			_assert(String(c["axis"]) != "quest", "first pick: reroll never gives a quest Core (seed %d)" % sd)
+	# review fix 1: the per-offer caps hold for the replacement, same axis and other axis
+	var cx := CoreTestUtil.ctx([], [], ["plant1", "beast1", "aqua1", "reptile1", "bug1"], 1)
+	var pool := CoreOffer.valid_pool(cx)
+	var q = null
+	var st: Array = []
+	for d in pool:
+		if String(d.core_axis) == "quest" and q == null:
+			q = d
+		if String(d.core_axis) == "stat" and int(d.rarity) == 0:
+			st.append(d)
+	if q != null:
+		var other = null
+		for d in pool:
+			if String(d.core_axis) != "quest" and String(d.core_axis) != "stat":
+				other = d
+				break
+		if other != null:
+			var o2: Array = [CoreOffer.card_of(other, 0), CoreOffer.card_of(q, 1), CoreOffer.card_of(st[0], 2)]
+			o2[0]["tier"] = int(q.rarity)
+			for sd in 40:
+				var rc := CoreOffer.reroll_card(Rng.new(sd), o2, 0, cx)
+				_assert(rc.is_empty() or String(rc["axis"]) != "quest", "quest cap: no 2nd quest card from a reroll")
+	if st.size() >= 3:
+		var o3: Array = [CoreOffer.card_of(st[0], 0), CoreOffer.card_of(st[1], 1), CoreOffer.card_of(st[2], 2)]
+		for sd in 20:
+			var cap := CoreOffer.tuning().core_stat_max_per_offer
+			var o4: Array = o3.duplicate(true)
+			var rr := CoreOffer.reroll_card(Rng.new(sd), o4, 0, cx)
+			var n_stat := 2 + (1 if (not rr.is_empty() and String(rr["axis"]) == "stat") else 0)
+			_assert(rr.is_empty() or n_stat <= cap, "stat cap holds for the replacement")
 	_done("t_core_reroll_card")

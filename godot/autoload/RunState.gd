@@ -166,6 +166,7 @@ var run_rule: String = ""                 ## id of the chosen Run Rule ("" = non
 var rules_on: bool = false                ## false in the account's first run: no Run Rule, no quest/bet Cores
 var core_off: bool = false                ## tests/tools only: skip every Core / Rule offer (legacy flow)
 var _core_base_seed: int = 0
+var _core_offer_pick: int = 0             ## pick index the open Core offer was built with (reroll uses the same ctx)
 var _core_offer_active: bool = false      ## pending_rewards is a Core offer
 var _rule_offer_active: bool = false      ## pending_rewards is the Run Rule offer
 var core_bonus_queue: Array[int] = []      ## tiers of quest-step reward offers waiting to open (not counted as picks)
@@ -284,6 +285,7 @@ func reset() -> void:
 	core_off = false
 	_core_base_seed = 0
 	_core_offer_active = false
+	_core_offer_pick = 0
 	_rule_offer_active = false
 	_core_close_pending = false
 	core_bonus_queue = []
@@ -1794,7 +1796,7 @@ func to_data() -> Dictionary:
 			"pick_index": core_pick_index, "seen": core_seen.duplicate(), "reroll_left": core_reroll_left,
 			"rerolls_used": core_rerolls_used, "rerolled_slots": core_rerolled_slots.duplicate(),
 			"tier_bump": core_tier_bump, "quest": core_quest_progress.duplicate(true), "run_rule": run_rule,
-			"rules_on": rules_on, "base_seed": _core_base_seed, "offer_active": _core_offer_active,
+			"rules_on": rules_on, "base_seed": _core_base_seed, "offer_active": _core_offer_active, "offer_pick": _core_offer_pick,
 			"rule_offer_active": _rule_offer_active, "close_pending": _core_close_pending,
 			"bonus_queue": core_bonus_queue.duplicate(), "bonus_count": core_bonus_count},
 	}
@@ -2060,9 +2062,10 @@ func clear_saved_run() -> void:
 # take_reward args: [idx] or [idx, sell_id] (Core slots full); reroll_rewards args: [] (old offers) or [slot] (Core).
 # ===========================================================================
 
-func _core_ctx() -> Dictionary:
+## `pick` = the pick index the context is for (-1: the next one). A reroll must use the index its offer was built with.
+func _core_ctx(pick: int = -1) -> Dictionary:
 	return {"owned_ids": owned_relic_ids, "roster": roster, "seen": core_seen, "mode": mode,
-		"first_run": not rules_on, "pick_index": core_pick_index, "front_size": 2}
+		"first_run": not rules_on, "pick_index": core_pick_index if pick < 0 else pick, "front_size": 2}
 
 
 ## Knob from the held Run Rule's rule_knobs, else `default`.
@@ -2087,6 +2090,7 @@ func _core_from_data(c: Dictionary) -> void:
 	rules_on = bool(c.get("rules_on", false))
 	_core_base_seed = int(c.get("base_seed", 0))
 	_core_offer_active = bool(c.get("offer_active", false))
+	_core_offer_pick = int(c.get("offer_pick", maxi(core_pick_index - 1, 0)))
 	_rule_offer_active = bool(c.get("rule_offer_active", false))
 	_core_close_pending = bool(c.get("close_pending", false))
 	core_bonus_queue.assign((c.get("bonus_queue", []) as Array).map(func(v): return int(v)))
@@ -2125,6 +2129,7 @@ func _open_core_offer() -> bool:
 	var base := _core_base_seed if core_pick_index == 0 else _node_seed
 	var rng := Rng.new((base ^ CoreOffer.CORE_SALT) ^ (core_pick_index * 0x9E3779B1))
 	var offer := CoreOffer.build_offer(rng, tier, _core_ctx(), n)
+	_core_offer_pick = core_pick_index
 	core_pick_index += 1
 	if offer.is_empty():
 		return false
@@ -2165,7 +2170,7 @@ func add_core_tier_bump(n: int) -> void:
 
 func core_can_reroll(idx: int) -> bool:
 	return _core_offer_active and core_reroll_left > 0 and idx >= 0 and idx < pending_rewards.size() \
-		and not core_rerolled_slots.has(idx) and CoreOffer.can_reroll_card(pending_rewards, idx, _core_ctx())
+		and not core_rerolled_slots.has(idx) and CoreOffer.can_reroll_card(pending_rewards, idx, _core_ctx(_core_offer_pick))
 
 
 func _reroll_core_card(seed: int, idx: int) -> bool:
@@ -2175,7 +2180,7 @@ func _reroll_core_card(seed: int, idx: int) -> bool:
 	if sd < 0:
 		return false
 	var rng := Rng.new(sd ^ CoreOffer.CORE_SALT)
-	var nc := CoreOffer.reroll_card(rng, pending_rewards, idx, _core_ctx())
+	var nc := CoreOffer.reroll_card(rng, pending_rewards, idx, _core_ctx(_core_offer_pick))
 	if nc.is_empty():
 		return false
 	action_log.record("reroll_rewards", [idx])
@@ -2265,6 +2270,7 @@ func _open_bonus_offer() -> bool:
 	var rng := Rng.new((_node_seed ^ CoreOffer.CORE_SALT) ^ ((core_bonus_count + 1) * 0x51ED27))
 	core_bonus_count += 1
 	var offer := CoreOffer.build_offer(rng, tier, _core_ctx(), t.core_cards)
+	_core_offer_pick = core_pick_index
 	if offer.is_empty():
 		return _open_bonus_offer()
 	for c in offer:
