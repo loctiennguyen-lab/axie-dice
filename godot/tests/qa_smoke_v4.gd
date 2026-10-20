@@ -30,7 +30,7 @@ func shot(name: String) -> void:
 	await frames(6)
 	await RenderingServer.frame_post_draw
 	var img := get_viewport().get_texture().get_image()
-	var p := "%s/smoke_v4_%s_%dx%d.png" % [_out, name, img.get_width(), img.get_height()]
+	var p := "%s/smoke_v4_v4_%s_%dx%d.png" % [_out, name, img.get_width(), img.get_height()]
 	img.save_png(p)
 	note("shot " + p.get_file())
 
@@ -72,6 +72,10 @@ func _flow() -> void:
 	await shot("03_run_rule_offer")
 	# Pick Tundra (index 1: no free reroll, Hold) so Hold / reroll-Mana get exercised.
 	var m := cur()
+	if s1:
+		note("S1: pend=%s phase=%s" % [str(RunState.pending_rewards.map(func(c): return c.get("key", "?"))), str(RunState.phase)])
+		await advance_loop()
+		return
 	m._select_reward(1)
 	await frames(5)
 	m._take_selected_reward()
@@ -173,6 +177,8 @@ func combat_step(v: Node) -> void:
 		note("combat start node=%s" % RunState.current_node_id)
 		await shot("10_%s_start" % kind)
 	if first("v4tests"):
+		if is_instance_valid(v):
+			pass
 		if OS.get_environment("QA_STAGE1") == "1":
 			await stage1_checks(v)
 		else:
@@ -289,6 +295,8 @@ func stage1_checks(v: Node) -> void:
 	note("S1 coach id=%s text=%s" % [v.coach_shown_id, (v._coach_label.text if v._coach_label != null else "-")])
 	note("S1 bo=%s" % str(v._combat.bo))
 	await shot("s1_combat")
+	note("S1 DONE")
+	get_tree().quit(0)
 
 func pick_group_die(v: Node) -> int:
 	for g in v._combat.bo:
@@ -310,70 +318,108 @@ func v4_tests(v: Node) -> void:
 	note("T0 stage=%d mana=%d rerolls=%d turn=%d %s" % [c.depth_stage, c.mana, c.rerolls, c.turn, hud_vis(v)])
 	note("T0 faces=%s bo=%s banner=%s labels=%s" % [str(snap(v)), bo_str(v), str(v._bo_layer.last_banner), str(v._bo_layer.group_labels())])
 	await shot("t1_first_roll")
-	# --- 2/5: free reroll, then Gamble twice with an Undo in between
-	await press_reroll(v)
-	note("T2a after free press: rerolls=%d rr_mode=%s faces=%s bo=%s" % [c.rerolls, str(v._rr_mode), str(snap(v)), bo_str(v)])
-	await shot("t2a_after_reroll1")
-	for _k in 3:
-		if v._rr_mode:
-			break
+	var alt := OS.get_environment("QA_ALT") == "1"
+	if alt:
 		await press_reroll(v)
-		note("T2 extra press: rerolls=%d rr_mode=%s mana=%d" % [c.rerolls, str(v._rr_mode), c.mana])
-	if not v._rr_mode:
-		note("FAIL T2: Gamble/Safe pick mode never opened")
-	else:
-		await frames(10)
-		note("T2 rr bar visible=%s line='%s' gamble='%s' safe='%s'" % [str(v._rr_bar.visible), "?", v._rr_bar.gamble_button.text, v._rr_bar.safe_button.text])
-		var lbls := []
-		find_text(v, "%", lbls)
-		note("T2 texts with %%: %s" % str(lbls))
-		await shot("t2b_gamble_safe_bar")
-		var before := snap(v)
-		var mana0: int = c.mana
-		v._rr_bar.gamble_button.pressed.emit()
-		await frames(10)
-		await wait_anim(v, 600)
-		var r1 := snap(v)
-		var cr := 0
-		for u in v._party_dice_units():
-			if u.cracked: cr += 1
-		note("T2 gamble: before=%s after=%s cracked=%d mana %d->%d bo=%s" % [str(before), str(r1), cr, mana0, c.mana, bo_str(v)])
-		var chips := []
-		find_text(v, "1/2", chips)
-		note("T2 crack chip texts: %s" % str(chips))
-		await shot("t2c_after_gamble")
-		# --- 5: undo then repeat gamble -> same result
-		v._hud_frame.undo_button.pressed.emit()
-		await frames(10)
-		var after_undo := snap(v)
-		note("T5 undo: faces=%s (before gamble was %s) match=%s" % [str(after_undo), str(before), str(after_undo == before)])
-		await press_reroll(v)
-		if v._rr_mode:
-			v._rr_bar.gamble_button.pressed.emit()
-			await frames(10)
-			await wait_anim(v, 600)
-		var r2 := snap(v)
-		note("T5 repeat gamble: %s vs first %s -> same=%s" % [str(r2), str(r1), str(r2 == r1)])
-		await shot("t5_after_undo_regamble")
-		# Safe: mana
+		c.mana += 4
+		note("SETUP: mana +4 -> %d" % c.mana)
+		v._rebuild_all()
+		await frames(5)
 		await press_reroll(v)
 		if v._rr_mode:
 			var cost: int = c.reroll_mana_cost(false, 1)
 			var m1: int = c.mana
-			note("T2 safe state: cost=%d mana=%d safe_disabled=%s" % [cost, m1, str(v._rr_bar.safe_button.disabled)])
-			if v._rr_bar.safe_button.disabled:
-				c.mana += 10
-				note("SETUP: mana +10 (safe disabled)")
-				m1 = c.mana
-				v._rebuild_all()
-				await frames(5)
+			await shot("t2e_safe_bar")
 			v._rr_bar.safe_button.pressed.emit()
 			await frames(10)
 			await wait_anim(v, 600)
-			note("T2 safe: mana %d->%d (cost %d) ok=%s faces=%s" % [m1, c.mana, cost, str(m1 - c.mana == cost), str(snap(v))])
-			await shot("t2d_after_safe")
+			note("T2 safe: mana %d->%d cost=%d ok=%s cracked=%d faces=%s" % [m1, c.mana, cost, str(m1 - c.mana == cost), v._party_dice_units().filter(func(u): return u.cracked).size(), str(snap(v))])
+			await shot("t2f_after_safe")
 		else:
-			note("T2 safe: rr mode did not open for 3rd press (rerolls=%d)" % c.rerolls)
+			note("T2 safe: rr not open")
+	else:
+		# --- 2/5: free reroll, then Gamble twice with an Undo in between
+		await press_reroll(v)
+		note("T2a after free press: rerolls=%d rr_mode=%s faces=%s bo=%s" % [c.rerolls, str(v._rr_mode), str(snap(v)), bo_str(v)])
+		await shot("t2a_after_reroll1")
+		for _k in 3:
+			if v._rr_mode:
+				break
+			await press_reroll(v)
+			note("T2 extra press: rerolls=%d rr_mode=%s mana=%d" % [c.rerolls, str(v._rr_mode), c.mana])
+		if not v._rr_mode:
+			note("FAIL T2: Gamble/Safe pick mode never opened")
+		else:
+			await frames(10)
+			note("T2 rr bar visible=%s line='%s' gamble='%s' safe='%s'" % [str(v._rr_bar.visible), "?", v._rr_bar.gamble_button.text, v._rr_bar.safe_button.text])
+			var lbls := []
+			find_text(v, "%", lbls)
+			note("T2 texts with %%: %s" % str(lbls))
+			await shot("t2b_gamble_safe_bar")
+			var before := snap(v)
+			var mana0: int = c.mana
+			v._rr_bar.gamble_button.pressed.emit()
+			await frames(10)
+			await wait_anim(v, 600)
+			var r1 := snap(v)
+			var cr := 0
+			for u in v._party_dice_units():
+				if u.cracked: cr += 1
+			note("T2 gamble: before=%s after=%s cracked=%d mana %d->%d bo=%s" % [str(before), str(r1), cr, mana0, c.mana, bo_str(v)])
+			var chips := []
+			find_text(v, "1/2", chips)
+			note("T2 crack chip texts: %s" % str(chips))
+			await shot("t2c_after_gamble")
+			# --- 5: undo then repeat gamble -> same result
+			note("T5 undo_stack size after gamble=%d (engine clears it on reroll unless safeReroll relic)" % c.undo_stack.size())
+			v._hud_frame.undo_button.pressed.emit()
+			await frames(10)
+			var after_undo := snap(v)
+			note("T5 undo: faces=%s (before gamble was %s) match=%s" % [str(after_undo), str(before), str(after_undo == before)])
+			await press_reroll(v)
+			if v._rr_mode:
+				v._rr_bar.gamble_button.pressed.emit()
+				await frames(10)
+				await wait_anim(v, 600)
+			var r2 := snap(v)
+			note("T5 repeat gamble: %s vs first %s -> same=%s" % [str(r2), str(r1), str(r2 == r1)])
+			await shot("t5_after_undo_regamble")
+			# Safe: mana
+			await press_reroll(v)
+			if v._rr_mode:
+				var cost: int = c.reroll_mana_cost(false, 1)
+				var m1: int = c.mana
+				note("T2 safe state: cost=%d mana=%d safe_disabled=%s" % [cost, m1, str(v._rr_bar.safe_button.disabled)])
+				if v._rr_bar.safe_button.disabled:
+					c.mana += 10
+					note("SETUP: mana +10 (safe disabled)")
+					m1 = c.mana
+					v._rebuild_all()
+					await frames(5)
+				v._rr_bar.safe_button.pressed.emit()
+				await frames(10)
+				await wait_anim(v, 600)
+				note("T2 safe: mana %d->%d (cost %d) ok=%s faces=%s" % [m1, c.mana, cost, str(m1 - c.mana == cost), str(snap(v))])
+				await shot("t2d_after_safe")
+			else:
+				note("T2 safe: rr mode did not open for 3rd press (rerolls=%d)" % c.rerolls)
+	# --- hunt for a Set / pair over the next turns (end turn, natural roll + the free reroll). QA_STRONG keeps the party alive.
+	for attempt in 10:
+		var any_ok := false
+		for u in v._party_dice_units():
+			if v._wild_valid(u.uid):
+				any_ok = true
+		if any_ok or (not alt and not c.bo.is_empty()):
+			note("HUNT done at turn %d (attempt %d): wild_ok=%s bo=%s faces=%s" % [c.turn, attempt, str(any_ok), bo_str(v), str(snap(v))])
+			break
+		if c.rerolls > 0:
+			await press_reroll(v)
+			continue
+		v._on_end_turn_pressed()
+		await wait_anim(v, 900)
+		await frames(60)
+		await wait_anim(v, 900)
+	await shot("t3_pre_wild_pair")
 	# --- 3: Wild face
 	if c.mana < 6:
 		c.mana += 10
@@ -437,26 +483,43 @@ func v4_tests(v: Node) -> void:
 			await frames(10)
 			note("T4 after overcast: m100 %d->%d mana %d->%d overcast=%s" % [m_before, c.m100_for(uu), mm, c.mana, str(uu.overcast)])
 			await shot("t4_after_overcast")
-	# --- 1: damage of a Set die equals its preview
-	var du := pick_group_die(v)
+	# --- 1: a Set die's effect equals its preview
+	var du := -1
+	for g in c.bo:
+		for uid in g["uids"]:
+			var f: Dictionary = c.by_uid(int(uid)).current_face()
+			if String(f.get("type", "")) in ["dmg", "shield"] and du == -1:
+				du = int(uid)
 	if du == -1:
-		du = ou
-	if du != -1:
+		du = pick_group_die(v)
+	if du == -1:
+		note("T1 no Set die available")
+	else:
 		var dd = c.by_uid(du)
 		v._selected_die_uid = du
 		v._rebuild_all()
 		await frames(10)
-		var tgt = null
-		for e in c.enemies:
-			if e.hp > 0:
-				tgt = e
-				break
 		var fi: int = dd.roll_face_index()
-		var pv2: Dictionary = c.preview_damage(dd, tgt, fi)
+		var ftype := String(dd.die[fi].get("type"))
+		var tgt = null
+		if ftype == "dmg":
+			for e in c.enemies:
+				if e.hp > 0:
+					tgt = e
+					break
+		else:
+			for a in c.party:
+				if a.hp > 0 and a.uid != du:
+					tgt = a
+					break
+		var pv2: Dictionary = c.preview_damage(dd, tgt, fi) if ftype == "dmg" else {"after": c._face_value(dd, fi)}
 		var hp0: int = tgt.hp
-		note("T1 die uid=%d face=%d type=%s m100=%d preview=%s" % [du, fi, str(dd.die[fi].get("type")), c.m100_for(dd), str(pv2)])
+		var sh0: int = tgt.shield
+		note("T1 die uid=%d face=%d type=%s m100=%d preview=%s target=%d" % [du, fi, ftype, c.m100_for(dd), str(pv2), tgt.uid])
 		await shot("t1_set_die_selected")
 		v._on_target_clicked(tgt.uid)
 		await wait_anim(v, 600)
-		note("T1 enemy hp %d -> %d (lost %d)" % [hp0, tgt.hp, hp0 - tgt.hp])
+		note("T1 result: enemy/ally hp %d -> %d, shield %d -> %d" % [hp0, tgt.hp, sh0, tgt.shield])
 		await shot("t1_after_hit")
+	note("V4 TESTS DONE")
+	get_tree().quit(0)
