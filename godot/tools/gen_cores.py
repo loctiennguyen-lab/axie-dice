@@ -98,7 +98,7 @@ def dv(v):
     if isinstance(v, dict): return "{" + ", ".join(q(k) + ": " + dv(x) for k, x in v.items()) + "}"
     raise ValueError(v)
 
-NOHOOK = {"c_fossil", "c_dim_stone", "rule_crow"}   # data-only rules (knobs read by lane B)
+NOHOOK = set()   # data-only rules (knobs read by lane B)
 HEAD = '[gd_resource type="Resource" script_class="RelicDef" load_steps=2 format=3]\n\n[ext_resource type="Script" path="res://scripts/data_models/relic_def.gd" id="1"]\n\n[resource]\nscript = ExtResource("1")\n'
 
 def emit(dirp, id_, name, desc, tier, axis, req, exc, tags, layer, idx, extra, is_rule=False, weight=1, knobs=None):

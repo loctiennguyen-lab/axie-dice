@@ -42,8 +42,8 @@ func _ready() -> void:
 			enabled += 1
 			tiers[def.rarity] += 1
 			var hk := String(def.hook_key)
-			if def.quest.is_empty() and id != "c_fossil" and id != "c_dim_stone":
-				_ok(hk != "" and RelicHooks.TABLE.has(hk) and not (RelicHooks.TABLE[hk] as Dictionary).is_empty(), "%s: hook exists in TABLE" % id)
+			if def.quest.is_empty():
+				_ok(hk != "" and RelicHooks.TABLE.has(hk) and (id == "c_fossil" or id == "c_dim_stone" or not (RelicHooks.TABLE[hk] as Dictionary).is_empty()), "%s: hook exists in TABLE" % id)
 			if def.core_axis == "quest":
 				_ok(not def.quest.is_empty() and (def.quest["steps"] as Array).size() >= 1, "%s: quest data" % id)
 		if def.tags.has("nonattack"):

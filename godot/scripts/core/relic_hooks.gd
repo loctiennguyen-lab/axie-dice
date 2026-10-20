@@ -1710,6 +1710,9 @@ static var TABLE: Dictionary = {
 	},
 	# data-only Run Rules: knobs live in RelicDef.rule_knobs, read by the lanes that own them
 	"rule_none": {},
+	"rule_crow": {},
+	"c_fossil": {},
+	"c_dim_stone": {},
 	# CORE_TABLE_END
 }
 
