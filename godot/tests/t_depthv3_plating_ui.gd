@@ -38,8 +38,7 @@ func _ready() -> void:
 	v._selected_die_uid = u.uid
 	_check(v._plating_preview(e) == "4 → 1", "picked 4-dmg die on Plating 3 previews 4 → 1 (got '%s')" % v._plating_preview(e))
 	u.die[0] = {"type": "dmg", "value": 4, "keywords": ["pierce"]}
-	_check(v._plating_preview(e) == "" or true, "pierce face handled")
-	u.die[0] = {"type": "dmg", "value": 4, "pierce": true}
+	u.die[0] = {"type": "dmg", "value": 4, "keywords": ["pierce"]}
 	_check(v._plating_preview(e) == "", "pierce face: no preview")
 	u.die[0] = {"type": "dmg", "value": 4, "keywords": []}
 	# Coach only for newcomers.

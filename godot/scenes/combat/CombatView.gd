@@ -2474,22 +2474,20 @@ func _layout_status_heads(stage_offset: Vector2) -> void:
 
 
 ## "4 -> 1": what the picked damage die would do to foe `e` once its Plating cuts the hit. "" when nothing is picked,
-## the face is not a single-target damage face, or the foe has no Plating right now. Uses CombatTraits.reduce, the
-## same pure function the damage pipeline uses (lane A has no separate preview_damage; this is the face value
-## before relic multipliers, so it can read a little low against a buffed hit).
+## the face is not a single-target damage face, or the foe has no Plating right now. Uses
+## CombatEngine.preview_damage (lane A, pure: vulnerable, boss hollow, Plating; no crit / Core hooks).
 func _plating_preview(e: Unit) -> String:
 	if _combat == null or _selected_die_uid == -1 or e.hp <= 0 or CombatTraits.plating_of(_combat, e) <= 0:
 		return ""
 	var src := _combat.by_uid(_selected_die_uid)
 	if src == null or not src.has_rolled() or _selected_face_type() != "dmg":
 		return ""
-	var fi := src.roll_face_index()
-	var face: Dictionary = src.die[fi]
-	if bool(face.get("aoe", false)) or bool(face.get("pierce", false)):
+	var pd: Dictionary = _combat.preview_damage(src, e, src.roll_face_index())
+	if not bool(pd.get("single", false)) or int(pd.get("plating", 0)) <= 0:
 		return ""
-	var v := _live_face_value(src, fi)
-	var after := int(CombatTraits.reduce(_combat, e, float(v)))
-	return "%d → %d" % [v, after] if after != v else ""
+	var raw := int(pd.get("raw", 0))
+	var after := int(pd.get("after", 0))
+	return "%d → %d" % [raw, after] if after != raw else ""
 
 
 ## Floats over the foe when its Plating breaks / wears (EventBus plating_off, plating_decay).
