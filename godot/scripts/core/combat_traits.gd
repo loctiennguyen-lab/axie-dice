@@ -431,3 +431,35 @@ static func guarantee_tank(keys: Array, avail: Array) -> Array:
 	out[0] = out[at]
 	out[at] = first
 	return out
+
+
+# ---------------------------------------------------------------------------
+# R12 Vo Cung side bonus: shield, poison and debuff faces of the Axie are +run_rules.side_face_bonus
+# (R13 The Can Bang is NOT here: lane C does it through the Core hook, doing it twice would double the cut).
+# ---------------------------------------------------------------------------
+
+static func side_bonus() -> int:
+	return int(knob("run_rules", "side_face_bonus", 2.0))
+
+
+## Extra value for a shield / poison face (value > 0) of a party unit while R12 is active; 0 otherwise.
+static func side_face_bonus(combat, u: Unit, face_type: String, v: float) -> int:
+	if u == null or u.side != "p" or v <= 0.0 or not has_rule(combat, "R12"):
+		return 0
+	return side_bonus() if (face_type == "shield" or face_type == "poison") else 0
+
+
+## Debuff faces carry their strength in the keyword ("weaken:2"): R12 raises every numeric one by the bonus
+## (stun / freeze have no number and stay as they are).
+static func side_bonus_keywords(combat, u: Unit, face_type: String, kws: Array) -> Array:
+	if u == null or u.side != "p" or face_type != "debuff" or not has_rule(combat, "R12"):
+		return kws
+	var out: Array = []
+	for raw in kws:
+		var ks := String(raw)
+		var parts := ks.split(":")
+		if parts.size() == 2 and ["weaken", "vulnerable", "blind", "burn", "poison"].has(parts[0]) and parts[1].is_valid_int():
+			out.append("%s:%d" % [parts[0], int(parts[1]) + side_bonus()])
+		else:
+			out.append(ks)
+	return out

@@ -1276,6 +1276,7 @@ func _face_value(u: Unit, fi: int) -> int:
 		if u.side == "e":
 			# base x (1 + enrage% + attrition%) x spike, rounded half up (monetization-v1 §1.2).
 			v = float(RulesMath.round_half_up(v * enemy_dmg_factor(u) * boss_hollow_dealt_mult(u) * affix_dealt_mult(u) * CombatTraits.charge_mult(u)))
+	v += CombatTraits.side_face_bonus(self, u, face_type, v)                # R12 Vo Cung: +2 on shield / poison faces of the Axie
 	if face_type == "mana" and u.side == "p" and u.cls == "aqua":
 		v += 1.0                                                        # CONDUIT passive
 	if u.side == "p" and u.resonant_now:
@@ -1338,8 +1339,8 @@ func _do_face(u: Unit, target_uid: int, f: Dictionary, fi: int, is_echo: bool) -
 		_first_dmg_used = true
 	var tgt: Unit = (by_uid(target_uid) if target_uid >= 0 else null)
 	var crit := u.roll_crit_now()
-	var kw_pure := _pure_keywords(f)
 	var face_type := String(f.get("type", ""))
+	var kw_pure := CombatTraits.side_bonus_keywords(self, u, face_type, _pure_keywords(f))   # R12: debuff magnitudes +2
 
 	var ctx_n := [0, false]   # [hits so far, secondary-target mode] for the on_face_hit hook (FACE_CTX)
 	var hit := func(t: Unit, amount: int) -> int:
