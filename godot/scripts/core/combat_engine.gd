@@ -1967,8 +1967,12 @@ func _generate_encounter(p_kind: String, p_pw: int) -> Array:
 		amods["dmg"] = float(amods.get("dmg", 1.0)) * float(mm.get("enemy_dmg", 1.0))
 		amods["boss_hp"] = float(amods.get("boss_hp", 1.0)) * float(mm.get("boss_hp", 1.0))
 
+	# Depth v3 6.2 / 9c difficulty knobs (combat_tune.json difficulty.*): monster damage and boss HP, kept apart
+	# from the budget knobs (TUNE.growth / elite_mult) so a tuning pass can move HP and damage separately.
 	if p_kind == "boss":
-		return [_mk_boss(_boss_key_for_this_node(), p_pw, amods)]
+		return [_mk_boss(_boss_key_for_this_node(), p_pw, amods)]   # boss knobs are applied in ContentDB.boss_stats()
+	amods = amods.duplicate()
+	amods["dmg"] = float(amods.get("dmg", 1.0)) * tune_knob("difficulty", "enemy_dmg_mult", 1.0)
 
 	var is_elite := p_kind == "elite"
 	# JS: budget = CURVE.budget(pw) * eliteMult * s.runMods.enemyHp — the CURSE modifier,

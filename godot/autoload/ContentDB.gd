@@ -644,10 +644,12 @@ func boss_stats(bk: String, pw: int, mods: Dictionary) -> Dictionary:
 	if b.is_empty():
 		return {}
 	var bud: float = budget(pw)
-	var hp_mult: float = float(mods.get("boss_hp", 1.0)) * float(mods.get("hp", 1.0))
+	# Depth v3 6.2 / 9c: combat_tune.json difficulty.boss_hp_mult / enemy_dmg_mult, applied here so every caller agrees.
+	var dif: Dictionary = combat_tune.get("difficulty", {})
+	var hp_mult: float = float(mods.get("boss_hp", 1.0)) * float(mods.get("hp", 1.0)) * float(dif.get("boss_hp_mult", 1.0))
 	var hp: int = int(round(float(b.get("hpk", 1.0)) * bud * hp_mult))
 	var die: Array = b.get("die", [])
-	var ds: float = (float(b.get("dmgk", 0.5)) * bud * float(mods.get("dmg", 1.0))) / max(0.0001, avg_face_value(die))
+	var ds: float = (float(b.get("dmgk", 0.5)) * bud * float(mods.get("dmg", 1.0)) * float(dif.get("enemy_dmg_mult", 1.0))) / max(0.0001, avg_face_value(die))
 	var out := {
 		"n": String(b.get("n", bk)),
 		"trait": String(b.get("trait", "")),

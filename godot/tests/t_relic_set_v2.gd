@@ -293,7 +293,7 @@ func test_ancientgene_rework() -> void:
 func test_bloodpact_rework() -> void:
 	var plain := _combat([])
 	var c := _combat(["r_bloodpact"])
-	_assert(c.max_rerolls == plain.max_rerolls - 2, "bloodpact: max rerolls -2")
+	_assert(c.max_rerolls == maxi(0, plain.max_rerolls - 2), "bloodpact: max rerolls -2 (floor 0; base is now 1)")
 	_assert(is_equal_approx(RelicHooks.g_axie(c, c.party[0]), 1.6), "bloodpact: G_axie 1.6 (+60%)")
 
 

@@ -232,7 +232,8 @@ func test_mecha_enters_overdrive_every_third_turn() -> void:
 			break
 		c.end_turn()
 		var tc := int(b.custom_state.get("turn_count", 0))
-		if b.hp > 0:
+		# depth v3: boss damage x1.2 can wipe this idle party mid-phase, and the traits only run on a new turn.
+		if b.hp > 0 and not (c.won or c.lost):
 			_assert(b.overdrive == (tc % 3 == 0),
 				"mecha overdrive was %s at turn_count %d (expected %s)"
 					% [b.overdrive, tc, tc % 3 == 0])

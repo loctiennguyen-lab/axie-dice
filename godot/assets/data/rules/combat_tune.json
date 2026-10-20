@@ -2,10 +2,10 @@
  "version": 1,
  "TUNE": {
   "base": 10.5,
-  "growth": 1.125,
+  "growth": 1.14,
   "growth2": 1.05,
   "knee": 12,
-  "elite_mult": 1.25
+  "elite_mult": 1.5
  },
  "attrition": {
   "start": 6,
@@ -36,5 +36,9 @@
  },
  "rows": {
   "front_size": 2
+ },
+ "difficulty": {
+  "enemy_dmg_mult": 1.2,
+  "boss_hp_mult": 1.1
  }
 }
