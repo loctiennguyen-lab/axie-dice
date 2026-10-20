@@ -1,5 +1,12 @@
 # Axie Dice — trạng thái hiện tại
 
+## ⇢ BẮT ĐẦU TỪ ĐÂY (rạng sáng 22/10/2026) — LIAM: GAME PHẢI KHÓ HƠN
+Liam chốt (cuối `design/proposals/turn-decisions-brainstorm.md`): bản mới phải THẤP HƠN bản cũ 5-10 điểm tỉ lệ thắng (cũ: random 20.6,
+expert 28.6; hiện: 23.9 / 30.9 — đang dễ hơn, sai); bỏ "3 Đòn + Tự Nạp"; có Lõi chủ; có Overcast (độc lập); hướng (a) thưởng người giỏi +
+khó chung, không phạt bằng quái. Đang chạy: làn TD (`../my-game-wt/TD`, sim loop chỉnh knob → mục tiêu random ≤12, spam ≤13, expert 18-22,
+log `production/qa/sim/td-tuning-log.md`); làn OC (`../my-game-wt/OC`, action Overcast + UI + replay/Worker); game-designer brainstorm
+`design/proposals/dice-depth-v4-brainstorm.md` (cơ chế xúc xắc/xác suất kết hợp + 6-8 Lõi chủ); smoke b1196 (QA).
+
 ## ⇢ BẮT ĐẦU TỪ ĐÂY (gần nửa đêm 21/10/2026) — BUILD b1196
 godot-port = axiedice/main = **6a83513** (thêm fix/core-overlay: overlay chọn Lõi tự hiện sau Luật run — lỗi chặn do smoke luồng thật
 bắt; nhãn Cores; thẻ đã free; tween DiceRoller3D; tab Edit Land). Suite **167/167** ở cây chính. Build `build/AxieDice-0.1.0-L1-b1196-6a83513-*`

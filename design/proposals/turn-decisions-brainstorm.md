@@ -354,3 +354,11 @@ giác thắng" và chịu được tutorial.
 - **Đồng ý:** P1 là gốc, Gói B một mình không đủ, P8/P9 không làm lúc này, đo sau từng bước, cần người thật chơi.
 - Giữ "tung xúc xắc vui": vẫn tung đủ 5 viên, mặt to vẫn là khoảnh khắc vui; quyết định chỉ đến sau khi tung. Không
   thêm click: Nạp tự động. Nếu thử chơi thấy mỗi lượt nghĩ quá 20 giây thì P10 điều kiện quá rối, cắt bớt.
+
+## Liam trả lời (22/10 rạng sáng), đã chốt
+- Bản mới đang DỄ HƠN bản cũ — sai hướng. Tỉ lệ thắng bản mới phải THẤP HƠN bản cũ 5-10 điểm (bản cũ sim: random 20.6%, spam 22.8%, expert 28.6%) và giảm nhiều.
+- 1. KHÔNG làm "3 Đòn + Tự Nạp" (không hay). Tìm mechanics mới thật sự tạo độ sâu, hoặc kết hợp nhiều mechanics xác suất/xúc xắc với nhau.
+- 2. Có Lõi chủ (kiểu ngọc chính LoL).
+- 3. Chọn (a): thưởng người chơi giỏi thật mạnh + tăng độ khó chung; không dùng quái để "phạt" người chơi bừa.
+- 4. Có Overcast (trả mana để mạnh một viên), làm độc lập, không cần đi với Tự Nạp. Lý do: mana hiện không có ý nghĩa.
+- 5. Sửa bot sim tiếp tục (để đo đúng); chỉ số bản mới phải giảm rõ so với bản cũ.
