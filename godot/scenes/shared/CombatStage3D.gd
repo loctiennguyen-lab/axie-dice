@@ -370,9 +370,11 @@ const ADD_Z_BACK2 := -18.3
 ## cannot stand in front of / behind it. The boss steps WIDE_BOSS_SHIFT_X toward the gate and the adds stand in a
 ## column on its party side (x = boss left edge - WIDE_ADD_GAP), spread in depth by WIDE_ADD_Z[count]. The 5th add
 ## onward stands on the far back row above the boss (ADD_EXTRA).
-## TUNED AGAINST t_combat_spacing: WIDE_BOSS_SHIFT_X, WIDE_ADD_GAP*, WIDE_ADD_Z, WIDE_ADD_DX and Brine's fit_width_m
-## (atia_models.json) leave only ~1 px boss<->gate margin with 4 adds and ~2 px on the party/enemy gap. Any change to
-## the camera, frame_band, SUMMON_SCALE or a wide boss's fit must re-run t_combat_spacing.
+## TUNED AGAINST t_combat_spacing: WIDE_BOSS_SHIFT_X, WIDE_ADD_GAP*, WIDE_ADD_Z, WIDE_ADD_DX, the WIDE_BOSS_REF_W block
+## below and Brine's fit_width_m (atia_models.json, 6.1). With Brine at 6.1 the binding checks are the boss<->gate gap
+## (30 px) and the add<->boss box gap (20 px) with 4 adds, plus the 5/11-dice landing zone slack; the party/enemy gap
+## (160 px with 4 adds) is kept by moving the party, not by shrinking the boss. Any change to the camera, frame_band,
+## SUMMON_SCALE or a wide boss's fit must re-run t_combat_spacing.
 const WIDE_BOSS_MIN_W := 3.5
 const WIDE_BOSS_SHIFT_X := 0.55
 ## Room for a boss wider than WIDE_BOSS_REF_W (m): the gate cannot move (it already touches the enemy panel column), so
@@ -380,8 +382,8 @@ const WIDE_BOSS_SHIFT_X := 0.55
 ## the whole party stands WIDE_PARTY_SHIFT_K x the extra width further left, so the party/enemy gap and every add
 ## column keep today's margins. At or below the reference width nothing moves. Brine (fit 6.2) is the case it exists for.
 const WIDE_BOSS_REF_W := 5.3
-const WIDE_PARTY_SHIFT_K := 1.25
-const WIDE_ADD_GAP_EXTRA_K := 0.12   # extra add gap (m) per m of extra width: the boss's screen box is wider than its fit
+const WIDE_PARTY_SHIFT_K := 1.6
+const WIDE_ADD_GAP_EXTRA_K := 0.21   # extra add gap (m) per m of extra width: the boss's screen box is wider than its fit
 const WIDE_ADD_GAP := 0.5
 const WIDE_ADD_GAP_4 := 0.6   # four adds: the mid ones are wider on screen, keep them off the boss
 const WIDE_ADD_Z := {
@@ -1382,7 +1384,7 @@ func reseat_side(uids: Array, is_enemy: bool) -> void:
 		if lw >= WIDE_BOSS_MIN_W:
 			wide_lead_w = lw
 	var wide_extra := maxf(wide_lead_w - WIDE_BOSS_REF_W, 0.0) if wide_lead_w > 0.0 else 0.0
-	var wide_shift := WIDE_BOSS_SHIFT_X - wide_extra * 0.5   # centre offset of a wide boss, right edge held
+	var wide_shift := WIDE_BOSS_SHIFT_X - wide_extra * 0.5 - (0.04 if wide_extra > 0.0 and axie_uids.size() >= 4 else 0.0)   # centre offset of a wide boss, right edge held
 	if is_enemy and wide_lead_w > 0.0:
 		_set_party_dx(-wide_extra * WIDE_PARTY_SHIFT_K)
 	var placed: Array = []   # [uid, position]
