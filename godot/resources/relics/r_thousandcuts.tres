@@ -16,3 +16,5 @@ mf_phase = "kw"
 mf_phase2 = "add"
 tags = PackedStringArray("pierce")
 layer = "payoff"
+
+hidden_from_pool = true

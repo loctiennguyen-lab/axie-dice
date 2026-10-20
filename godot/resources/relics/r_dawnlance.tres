@@ -16,3 +16,5 @@ tags = PackedStringArray("uni")
 layer = "payoff"
 mult_axis = "A:opener"
 mult_bonus = 0.90
+
+hidden_from_pool = true

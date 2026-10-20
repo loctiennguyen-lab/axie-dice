@@ -16,3 +16,5 @@ tags = PackedStringArray("thorns")
 layer = "payoff"
 mult_axis = "A:thorns"
 mult_bonus = 1.00
+
+hidden_from_pool = true

@@ -16,3 +16,5 @@ burnSlow = true
 mf_phase = "kw"
 tags = PackedStringArray("burn")
 layer = "enabler"
+
+hidden_from_pool = true

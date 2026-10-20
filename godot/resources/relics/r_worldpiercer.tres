@@ -16,3 +16,5 @@ piercePlus = 1.0
 mf_phase = "kw"
 tags = PackedStringArray("pierce")
 layer = "engine"
+
+hidden_from_pool = true

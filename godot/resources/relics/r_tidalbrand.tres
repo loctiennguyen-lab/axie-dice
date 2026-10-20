@@ -15,3 +15,5 @@ hook_key = "r_tidalbrand"
 mf_phase = "kw"
 tags = PackedStringArray("mana")
 layer = "enabler"
+
+hidden_from_pool = true

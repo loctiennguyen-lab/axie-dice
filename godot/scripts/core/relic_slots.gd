@@ -54,6 +54,8 @@ static func check_add(owned_ids: Array, stickers: Dictionary, new_id: String,
 		out["ok"] = false
 		out["reason"] = "already_owned"
 		return out
+	if String(nd.core_axis) != "":
+		return _check_add_core(owned_ids, stickers, nd, out)
 	var cap := capacity(ascension, owned_ids)
 	var is_active := _is_active(nd)
 	var axis := String(nd.mult_axis)
@@ -126,3 +128,41 @@ static func _axis_class(axis: String) -> String:
 	if axis.begins_with("A:"):
 		return "A"
 	return ""
+
+
+## True for a Core (Loi) def: has a core_axis. Run rules are Cores too, in their own slot.
+static func is_core(def) -> bool:
+	return def != null and String(def.core_axis) != ""
+
+
+## Owned ids that sit in the 6 Core slots (not the Run Rule slot, not old relics / pacts).
+static func owned_cores(owned_ids: Array) -> Array[String]:
+	var r: Array[String] = []
+	for oid in owned_ids:
+		var d = RelicRegistry.get_def(String(oid))
+		if is_core(d) and String(d.core_axis) != "run_rule":
+			r.append(String(oid))
+	return r
+
+
+## Core slots: 6 Core + 1 Run Rule. Full -> the player must sell one Core (swap_on_full), design 2.1.
+static func _check_add_core(owned_ids: Array, stickers: Dictionary, nd, out: Dictionary) -> Dictionary:
+	var t := tuning()
+	if String(nd.core_axis) == "run_rule":
+		for oid in owned_ids:
+			var d = RelicRegistry.get_def(String(oid))
+			if d != null and String(d.core_axis) == "run_rule":
+				out["ok"] = false
+				out["reason"] = "rule_slot_full"
+		return out
+	var mine := owned_cores(owned_ids)
+	if mine.size() < t.core_slots:
+		return out
+	out["needs_sell"] = true
+	for cid in mine:
+		if String(stickers.get(cid, "")) != STICKER_ETERNAL:
+			(out["sell_from"] as Array[String]).append(cid)
+	if (out["sell_from"] as Array).is_empty():
+		out["ok"] = false
+		out["reason"] = "no_sellable"
+	return out

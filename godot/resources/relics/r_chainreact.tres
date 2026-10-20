@@ -14,3 +14,5 @@ sort_index = 102042
 hook_key = "r_chainreact"
 tags = PackedStringArray("aoe")
 layer = "payoff"
+
+hidden_from_pool = true

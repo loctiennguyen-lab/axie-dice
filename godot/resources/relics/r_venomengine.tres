@@ -16,3 +16,5 @@ tags = PackedStringArray("poison")
 layer = "engine"
 mult_axis = "A:poison"
 mult_bonus = 1.00
+
+hidden_from_pool = true

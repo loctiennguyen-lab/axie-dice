@@ -16,3 +16,5 @@ critFlat = 5.0
 critPierce = true
 tags = PackedStringArray("crit")
 layer = "payoff"
+
+hidden_from_pool = true

@@ -18,3 +18,5 @@ act = {
 }
 tags = PackedStringArray("mana")
 layer = "active"
+
+hidden_from_pool = true

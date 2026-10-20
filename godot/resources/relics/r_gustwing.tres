@@ -15,3 +15,5 @@ hook_key = ""
 cleaveRatio = 0.75
 tags = PackedStringArray("aoe")
 layer = "payoff"
+
+hidden_from_pool = true

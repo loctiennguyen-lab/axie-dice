@@ -14,3 +14,5 @@ sort_index = 101531
 hook_key = "r_twinswap"
 tags = PackedStringArray("uni")
 layer = "dice"
+
+hidden_from_pool = true

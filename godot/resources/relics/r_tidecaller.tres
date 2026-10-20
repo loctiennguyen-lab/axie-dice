@@ -15,3 +15,5 @@ hook_key = "r_tidecaller"
 tags = PackedStringArray("aqua", "mana")
 layer = "class-up"
 requires_class = "aqua"
+
+hidden_from_pool = true

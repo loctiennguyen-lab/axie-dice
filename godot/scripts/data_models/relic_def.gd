@@ -62,6 +62,16 @@ extends Resource
 @export var exsub_of: String = ""       ## "r_worldpiercer": this relic is a child of it; never offered while the parent is owned.
 @export var requires_any: PackedStringArray = PackedStringArray()  ## offered only while at least one of these ids is owned
 @export var hidden_from_pool: bool = false  ## cut list / not ready: never offered (still resolvable via get_def)
+## --- Depth v3 Core (Loi) schema (design/proposals/depth-v3-design.md 2.1-2.9, lane B). Pure data. ---
+## rarity doubles as the Core tier: 0 Reu (moss), 1 Ho Phach (amber), 2 Tinh The (crystal).
+@export var core_axis: String = ""      ## "" = not a Core. stat|dice|pos|mana|quest|rule|run_rule
+@export var requires: PackedStringArray = PackedStringArray()  ## tokens, ALL must hold on the party/owned/rule (CoreOffer.token_ok)
+@export var excludes: PackedStringArray = PackedStringArray()  ## tokens, if ANY holds the Core is not offered
+@export var disabled: bool = false      ## data kill-switch: never offered (still resolvable)
+@export var first_run_hidden: bool = false  ## not offered in the account's first run (bet Cores; quest axis is always hidden there)
+@export var run_rule: bool = false      ## a Run Rule (hidden Core, own slot, offered by RunState before Core pick 1)
+@export var quest: Dictionary = {}      ## {kind, steps:[{target:int, reward_tier:int}]}: multi-step, each step pays on its own
+@export var rule_knobs: Dictionary = {} ## run_rule data: knob -> value, read by the lanes that own each knob
 @export var needs_hook: String = ""     ## "H2", "H3,H4"...: waits for these new hooks (lane A, 20/10).
                                         ## Informational; such relics also carry hidden_from_pool = true.
 @export var act_cost: int = 0          ## 0 = passive. >0 = Lunacia active card, playable in

@@ -8,6 +8,7 @@ var _checks := 0
 
 
 func _ready() -> void:
+	RelicRegistry.legacy_unhide_for_tests()
 	print("=== t_relic_set_v2: start ===")
 	test_pool_shape()
 	test_bookend()

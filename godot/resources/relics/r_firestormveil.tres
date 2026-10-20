@@ -14,3 +14,5 @@ sort_index = 102504
 hook_key = "r_firestormveil"
 tags = PackedStringArray("burn", "aoe")
 layer = "duo"
+
+hidden_from_pool = true

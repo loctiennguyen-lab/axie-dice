@@ -15,3 +15,5 @@ hook_key = "r_heartrootgrove"
 tags = PackedStringArray("plant", "shield")
 layer = "class-up"
 requires_class = "plant"
+
+hidden_from_pool = true

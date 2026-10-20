@@ -14,3 +14,5 @@ sort_index = 102536
 hook_key = "r_keystone"
 tags = PackedStringArray("uni")
 layer = "positional"
+
+hidden_from_pool = true
