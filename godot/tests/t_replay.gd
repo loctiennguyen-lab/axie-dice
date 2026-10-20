@@ -429,7 +429,8 @@ func test_a_plating_charge_affix_elite_fight_replays_deterministically() -> void
 	var played := engine.to_data()
 	_assert(engine.won or engine.lost, "the elite fight never finished")
 	_assert(_charge_events > 0, "the fight never showed a charge: the case does not cover Charged Strike")
-	_assert(CombatTraits.plating_of(engine, engine.enemies[0]) >= 0 and (engine.run_rules as Array).has("R12"), "R12 is on")
+	var fresh := _elite_engine()
+	_assert((fresh.run_rules as Array).has("R12") and CombatTraits.plating_of(fresh, fresh.enemies[0]) >= 2, "R12 is on: the elite starts with Plating >= 2")
 	var rep_engine := _elite_engine()
 	var ok := true
 	for e in log.entries:
@@ -439,6 +440,17 @@ func test_a_plating_charge_affix_elite_fight_replays_deterministically() -> void
 	_assert(ok, "the referee rejected a recorded action of the elite fight")
 	_assert(_digest(rep_engine.to_data()) == _digest(played), "plating + charge + affix fight DIVERGED on replay")
 	_assert(int(rep_engine.to_data().get("rng_state", -1)) == int(played.get("rng_state", -2)), "different rng cursor on replay")
+	# tamper the state directly: Plating-off counter and the pending charge are part of the digest
+	var base_digest := _digest(rep_engine.to_data())
+	var tu: Unit = rep_engine.enemies[0]
+	tu.plating_off += 1
+	_assert(_digest(rep_engine.to_data()) != base_digest, "plating_off is not in the combat digest")
+	tu.plating_off -= 1
+	var was := bool(tu.custom_state.get("charge_pending", false))
+	tu.custom_state["charge_pending"] = not was
+	_assert(_digest(rep_engine.to_data()) != base_digest, "charge_pending is not in the combat digest")
+	tu.custom_state["charge_pending"] = was
+	_assert(_digest(rep_engine.to_data()) == base_digest, "undoing the tamper did not restore the digest")
 	# tamper: drop one recorded action, the end state must change
 	var bad := _without(log, maxi(0, log.entries.size() / 2))
 	var rb := _replay_elite(bad)
