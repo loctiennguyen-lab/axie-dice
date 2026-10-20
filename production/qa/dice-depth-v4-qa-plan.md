@@ -33,7 +33,7 @@ Cột "GDD": nếu đã chặn thì ghi mục; "chưa" nghĩa là GDD không nó
 |---|---|---|---|---|
 | 1 | **CHẶN** | Làn OC (đã code ở depth/OC) nhân x1.5 SAU `face_final`, ngoài trần +10 (contract OC dòng "áp SAU face_final ... không bị trần đó chặn"). GDD 3.4/3.7 muốn Overcast là `oc_add +0.50` trong túi M. Merge nguyên OC: Bộ năm (x3) + Overcast x1.5 độc lập = mặt dmg 6 đi 21 (M cắt 3.5), 25 (LINK), 33 (Lõi), 43 (cộng phẳng), rồi OC x1.5 thành ~65 chưa tính crit, vượt đỉnh 43 mà GDD tự tính (edge 15). | Sửa OC đọc túi M (đổi `overcast_mult()` thành `oc_add`), xoá nhân x1.5 riêng ở combat_engine.gd ~1501, cập nhật `t_overcast`. Chốt Q1 với Liam trước. | 3.7 và Q1 đã nêu, chưa chốt. Thêm: OC từ chối viên `frozen` và giá trị 0, GDD 3.7 không nói frozen. Chốt một bên. |
 | 2 | **CHẶN** | Key `mode` trong `epoch_args.json` là enum `["short","full"]` (dùng cho `run_start`). GDD 3.5 bảo ghi `mode = "free"/"safe"` vào `_reroll_args`. Server từ chối (`code: mode`), mọi reroll online hỏng; hoặc dev nới enum và run_start nhận "free". | Dùng key mới (vd `rmode`, enum `free/safe`, chỉ kind `reroll`), sửa `epoch_args.json` + `t_remote_epoch_ui_run` (fake remote đọc cùng file). Trong ActionLog ghi `mode` dạng int 0/1 như `from_aid` ("canon has no bool", `_restore_ints` giả định arg là id/index/list id). | Chưa. |
-| 3 | **NẶNG** | **Liều "nhìn trước rồi đổi ý"**: với relic `safeReroll` (undo qua reroll được, `reroll_k` quay về) người chơi bấm LIỀU, thấy Nứt, undo, bấm AN TOÀN trả 2 mana: cùng seed (server pin theo turn+k) nên cùng mặt, không Nứt. Liều thành quyền chọn có thông tin: chỉ trả mana khi sẽ Nứt (kỳ vọng 0.25 x 2 mana/viên, rẻ hơn nhiều so với giá cắt rủi ro). Tương tự save/load: nếu autosave cho phép nạp lại bản trước reroll thì mọi người đều làm được. | (a) Engine ghi `reroll_mode[k]` trong `_state_dict`, từ chối đổi mode cho cùng `(turn,k)`. (b) Server: khi pin đã có, so `rmode` và `uids` với dòng pin, lệch thì `pin_mismatch`. Hiện server chỉ LƯU `uids` (run_core.js ~314, 344) chứ không so. (c) GDD 3.5 câu "không thể undo để lăn lại" chỉ đúng với `reroll_k` quay về, chưa chặn đổi mode. | Một phần (3.5), chưa đủ. |
+| 3 | **NẶNG** | **Liều "nhìn trước rồi đổi ý"**: với relic `safeReroll` (undo qua reroll được, `reroll_k` quay về) người chơi bấm LIỀU, thấy Nứt, undo, bấm AN TOÀN trả 2 mana: cùng seed (server pin theo turn+k) nên cùng mặt, không Nứt. Liều thành quyền chọn có thông tin: chỉ trả mana khi sẽ Nứt (kỳ vọng 0.30 x 2 mana/viên (crack.pct nay 30), rẻ hơn nhiều so với giá cắt rủi ro). Tương tự save/load: nếu autosave cho phép nạp lại bản trước reroll thì mọi người đều làm được. | (a) Engine ghi `reroll_mode[k]` trong `_state_dict`, từ chối đổi mode cho cùng `(turn,k)`. (b) Server: khi pin đã có, so `rmode` và `uids` với dòng pin, lệch thì `pin_mismatch`. Hiện server chỉ LƯU `uids` (run_core.js ~314, 344) chứ không so. (c) GDD 3.5 câu "không thể undo để lăn lại" chỉ đúng với `reroll_k` quay về, chưa chặn đổi mode. | Một phần (3.5), chưa đủ. |
 | 4 | **NẶNG** | **Fishing seed bằng đổi danh sách viên**: cùng `(turn,k)` seed bị pin, nhưng `uids` không so lại, nên nạp lại save cũ và tung tập viên khác sẽ ra kết quả khác; Nứt làm "kết quả xấu" nhiều dạng hơn nên đáng fish hơn. | Như 3(b): server khoá `uids` theo pin; client engine khoá `uids` đã tung cho `(turn,k)`. Thêm tamper. | Chưa. |
 | 5 | **NẶNG** | **Con Bạc**: thưởng `+0.25` mỗi "Liều không Nứt", chỉ cần tung lại 1 viên (65% sạch). Hai lần tung 1 viên xấu ngoài Bộ = 42% có +0.50 cho MỌI Bộ cả lượt, rủi ro chỉ trên 1 viên đã không dùng được. Tối ưu thành "Liều 1 viên rác" hai lần, không phải đặt cược thật. | Chỉ tính "Liều sạch" khi số viên tung lại >= 2 (hoặc >= số viên trong Bộ -1), hoặc thưởng tỉ lệ số viên tung lại. Đưa vào sim Lõi này riêng. | Mục 10.2 nói "tối đa +0.50", không nói số viên. Chưa. |
 | 6 | **NẶNG** | **Tam Tấu nổ nhiều lần**: "một lần mỗi Bộ mỗi lượt", nhưng Bộ chụp lại sau reroll (ba Sừng thành bốn Sừng). Nếu coi là Bộ mới thì nổ hai lần (ba 35% rồi bốn 70%). Nổ `src = null` đi qua `DamagePipeline`: thiếu null-guard ở thorn/spite/`on_kill`/relic hook sẽ crash (lỗi S1). Cap 20 mỗi quái chặn trước hay sau pipeline (vulnerable, crit-boss, mod_dmg nhân thêm) cũng chưa nói. | Định nghĩa: mỗi lượt tối đa một vụ nổ mỗi part (hoặc một vụ mỗi lượt), lưu cờ trong `_state_dict`. Cap áp SAU pipeline. Test với `src = null` đi qua mọi hook `on_kill/on_hit`. | Chưa (10.1 chỉ nói "một lần mỗi Bộ"). |
@@ -133,7 +133,7 @@ Cách làm theo mẫu real-flow smoke của `fix/core-overlay` (dựng cảnh tr
 |---|---|---|---|
 | `t_flow_bo_visible` | FLOW | Vào trận đầu, tung, seed cho ra 3 Sừng | chip part hiện trên MỌI viên; viền nhóm + thanh nối; banner "BA SỪNG x1.5!" xuất hiện trong <= 0.5s và đủ 0.6s; số trên viên đổi "5 -> 8" khớp `preview_damage`; dòng log đúng; bấm viên rồi mục tiêu thì sát thương thật = số hiển thị. Nhóm đôi: nét đứt + "ĐÔI, cần thêm 1"; token/viên ảo không có viền |
 | `t_flow_bo_upgrade` | FLOW | Tung lại bấm nút "TUNG LẠI (miễn phí)" từ Bộ ba lên bốn | banner mới "BỐN SỪNG x2!"; số nhảy lên; hết lần miễn phí thì nút đổi |
-| `t_flow_liều_crack_pct` | FLOW | Stage 2, hết lần miễn phí, chọn 2 viên | HAI nút "LIỀU" và "AN TOÀN 2"; dòng phụ "ít nhất 1 viên Nứt: 44%" đổi theo số viên chọn (1: 25%, 2: 44%, 3: 58%); AN TOÀN xám + lý do "cần 2 mana" khi mana <2; bấm Liều: viên Nứt có hình vết nứt + chip "1/2", số đã giảm, rời viền nhóm, tooltip đúng chữ; `reroll_k` đúng; chữ % khớp `crack.pct` đổi bằng knob |
+| `t_flow_liều_crack_pct` | FLOW | Stage 2, hết lần miễn phí, chọn 2 viên | HAI nút "LIỀU" và "AN TOÀN 2"; dòng phụ "ít nhất 1 viên Nứt: 51%" đổi theo số viên chọn (1: 30%, 2: 51%, 3: 66%; đọc từ `crack.pct`); AN TOÀN xám + lý do "cần 2 mana" khi mana <2; bấm Liều: viên Nứt có hình vết nứt + chip "1/2", số đã giảm, rời viền nhóm, tooltip đúng chữ; `reroll_k` đúng; chữ % khớp `crack.pct` đổi bằng knob |
 | `t_flow_wild_face` | FLOW | Có đôi + >=2 mana; bấm MẶT TẠM, bấm viên, xem 6 chip | các viên hợp lệ sáng, viên không hợp lệ không; mỗi chip có "-> BỘ BA x1.5" / "không đổi" đúng; bấm chip xác nhận (không hộp thứ hai); huy hiệu "?" + glyph part, khoá icon tung lại; mana -2; nút xám "đã dùng lượt này" (1/1); Undo hoàn mana và gỡ huy hiệu |
 | `t_flow_overcast_bo` | FLOW | Có Bộ ba, bấm OVERCAST 3, chọn viên trong Bộ | preview "5 -> 10" (túi cộng M 2.0, không 11.25); sau khi dùng sát thương thật bằng số đó; mặt mana: nút xám "không áp lên mặt mana"; Overcast + Mặt Tạm cùng viên; Overcast + Nứt |
 | `t_flow_keystone_pick` | FLOW | Stage 3, bắt đầu run | màn ba thẻ hiện TRƯỚC node đầu; mỗi thẻ có tên, glyph, câu một dòng, ví dụ, nhãn "hợp với"; không bấm chọn thì không đi tiếp (bắt buộc chọn); chọn xong Lõi hiện trong HUD/rail và hiệu ứng có thật khi chơi (ví dụ Tam Tấu nổ thấy được số trên quái, không chỉ trong log); sau lưu/nạp run vẫn còn Lõi; chạy đủ 5 Lõi. (Đây là đúng loại lỗi của overlay Lõi.) |
@@ -194,3 +194,62 @@ Bắt buộc đạt TẤT CẢ trước khi báo Liam, và có agent senior KHÁ
 - Gửi mục 1-4 cho designer; chờ chốt G1-G14.
 - Viết sườn test (chưa code engine) cho `t_bo_groups`, `t_bo_order`, `t_crack`, `t_reroll_epoch_pin`, `t_flow_*` để dev code theo test.
 - Nhờ làn RV trả lời G5; hỏi làn Worker về G2/G14.
+
+---
+
+## 6. Kiểm lại vòng 2 (21/10/2026, sau khi game-designer sửa GDD)
+
+Đã đọc đúng các mục được trỏ: 3.5, 3.10.1-3.10.10, edge 35-48, 7.1-7.3, 8.1 (T1-T10, FLOW), bảng G# cuối file. Số mới: Nứt 30% (đã sửa
+`t_flow_liều_crack_pct` thành 30/51/66, công thức 1 - 0.7^n), `bo.scale` 0.8, `bo.m_cap` 3.0, giá An toàn 2 rồi 3, D 1.30, `reroll.hard_cap` 4.
+
+### 6.1 Lỗ hổng vòng 1 đã đóng hay chưa (theo GDD; code chưa có nên "đóng" = luật đủ để code và test)
+
+| Lỗ hổng | Kết quả | Ghi chú |
+|---|---|---|
+| 1 Overcast nhân chồng (G1) | ĐÓNG ở GDD (3.10.1). Code depth/OC CHƯA sửa | Việc chặn merge OC vẫn còn đến khi `overcast_mult()` bị thay bằng `oc_add` và `t_overcast` sửa |
+| 2 key `mode` (G2) | ĐÓNG (3.5, 3.10.2, `rmode` int 0/1) | còn lỗ N3 bên dưới (khoá cho lần free/Aid) |
+| 3, 4 nhìn trước đổi ý, fishing uids (G3) | ĐÓNG (3.10.2, edge 35-36, T1, T9) | tạo thêm N2 (soft-lock) |
+| 5 Con Bạc (G10) | ĐÓNG (`cb.min_dice` = 2) | |
+| 6 Tam Tấu (G9) | ĐÓNG (`tt_fired`, cap sau pipeline, `src` thật) | thêm N9 (thorn phản lên viên kích) |
+| 7 thorn từ khiên (G11) | ĐÓNG TRÊN GIẤY, KHÔNG làm được như viết | N5 |
+| 8 poison (G11) | ĐÓNG, thiếu vị trí trong chuỗi bước | N6 |
+| 9 Aid (G4) | MỞ có chủ ý: luật tạm + `hard_cap`, chờ Liam (câu 5). Rủi ro P2W còn nguyên, chỉ có trần | |
+| 10 viên ảo (G6) | ĐÓNG (3.10.5, lọc `custom_state.phantom`) | |
+| 11 Mặt Tạm vs Concord (G7) | ĐÓNG (3.6, 3.10.5, edge 37) | |
+| 12 raid (G5) | ĐÓNG (raid có Bộ cho người tấn công) | Hệ quả: raid khó hơn trước, làn RV phải sim ghost; ghi vào DoD |
+| 13 Mỏ Mana (G12) | ĐÓNG (3.10.6, edge 41) | |
+| 24 stage khai gian (G14) | ĐÓNG MỘT PHẦN | N7, N8 |
+| VỪA 14-23, 25-26 | ĐÓNG hoặc chấp nhận có ghi (G15-G18, 3.10.10, edge 43-48) | G17 sai về mặt đếm, xem N1 |
+| G19, G20, G21 | ĐÓNG (8.1 khối Xác suất, 0.5s, backlink ghi ở mục 6 GDD; backlink CHƯA làm trong doc kia) | |
+
+### 6.2 Lỗ hổng MỚI do các luật sửa tạo ra
+
+| # | Mức | Vấn đề | Đề xuất |
+|---|---|---|---|
+| N1 | **NẶNG** | **Relic tặng lần tung lại thành vô dụng, `hard_cap` 4 chỉ chạm được bằng Aid.** GDD 3.5 nói "relic tặng lần miễn phí không qua `max_total`" và "`max_total` chỉ đếm hai lần lựa chọn". Nhưng code hiện tại (`reroll_dice`: `if not from_aid: reroll_nonaid += 1` cho MỌI lần không-Aid) và `reroll_is_payable` (`reroll_nonaid < max_total`) cho thấy lần free cũng bị đếm. Với `max_total` 3: 1 gốc + 1 relic = 2 lần free rồi chỉ còn 1 lần trả, tổng vẫn 3. Relic gần như không cộng gì: đúng loại lỗi "relic vô hình dù test xanh". | GDD ghi tên biến mới (vd `reroll_choice_used`) chỉ đếm Liều/An toàn; `max_total` so với biến đó. Test: có relic +1 thì tổng = 4 = `hard_cap`; có relic +2 thì vẫn 4. Thêm vào `t_reroll_modes`, và FLOW đếm số nút tung lại thấy được. |
+| N2 | VỪA | **Soft-lock do khoá `(rmode, uids)` + undo.** Sau undo (`safeReroll`) `reroll_k` quay về nhưng khoá giữ; nếu người chơi dùng một viên trong danh sách cũ (không còn tung lại được) rồi muốn tung lại thì `uids` không còn hợp lệ, k bị khoá, không tung lại được nữa cả lượt. Không phải lách, là kẹt. | UI: nút tung lại xám kèm lý do "đã tung lần này với danh sách khác" thay vì im lặng; hoặc khi khoá không thể khớp thì cho nhảy `k+1` (tốn lần tung). Chọn một và test. |
+| N3 | VỪA | **`rmode` chuẩn hoá cho free/Aid chưa nói rõ chiều khoá.** GDD đổi free/Aid thành `rmode = 1` khi ghi log. Khoá đòi cùng `rmode`: Liều (0) rồi undo rồi dùng lần free/Aid ở cùng k bị từ chối đúng; nhưng free relic (1) vs An toàn trả mana (1) cùng giá trị nên đổi được nguồn trả (mana hay lần free) sau khi thấy kết quả: vô hại cho kết quả, có hại cho sổ Aid (Aid đã trừ, rồi undo, rồi dùng free). Pin của Worker không chứa `source`. | Khoá thêm `source` (base/aid) hoặc ghi rõ chấp nhận; test sổ Aid sau undo. |
+| N4 | VỪA | **Từ vựng đóng của `epoch_args.json`** phải thêm: key `rmode` (có), kind `keystone` (có), và `depth_stage` trong header epoch (GDD chưa nói nó là arg hay header; arg mà không có trong từ vựng thì bị từ chối `bad_request` ở MỌI request). Mã lỗi mới `pin_mismatch`, `stage_mismatch` phải có trong bảng mã và trong fake remote (UI không treo, `t_flow_online_reroll`). | Ghi rõ trong 3.10.9; `t_depth_epoch_args_contract` kiểm cả ba. |
+| N5 | **NẶNG** | **`c_thorn_shield` không đọc "khiên gốc" được.** Code (`core_hooks.gd` ~836-845) chuyển CẢ KHO khiên của Axie (`u.shield / 2`) tại một thời điểm, không biết khiên nào từ mặt nào, nên "đọc `v0` trước M" và "trần 6 mỗi mặt" không thực thi được. Dev sẽ chọn bừa một cách và test thiếu chuẩn. | GDD chốt cách đo được: trần `thorn.shield_cap` mỗi lần chuyển đổi mỗi Axie (không mỗi mặt), và bỏ yêu cầu "đọc khiên gốc" (hoặc yêu cầu thêm trường `shield_raw`). Test: Bộ năm khiên rồi chuyển, thorn <= 6. |
+| N6 | VỪA | **Trần poison chưa có vị trí trong chuỗi 8 bước**: `poison.face_cap` 8 áp sau M nhưng trước hay sau Resonance/`face_final`/cộng phẳng? Chọn khác nhau cho đỉnh khác nhau (có thể vượt 8). `stack_cap` 15 cắt "phần vượt": cũng nằm trong nhánh status của quái và có thể đổi luật bản cũ khi có relic độc. | Ghi: cap cuối cùng sau bước 7. `stack_cap` = đỉnh bản cũ do sim đo; test so với trước. |
+| N7 | **NẶNG** | **`first_boss_won` do server tính "được RunVerifier xác nhận khi nộp"**: Worker không chạy luật, RunVerifier là client. Không có thứ gì phía server kiểm thật. Nếu chỉ dựa "đã xin seed trận act 2", cần chứng minh server từ chối xin seed node act 2 khi chưa đi đủ chuỗi (`node_id` regex chỉ kiểm hình dạng). | Hỏi làn Worker: nút nộp run ở đâu, ai kiểm. Nếu chưa kiểm được: ghi thẳng "stage 2 = đã xin seed trận act 2 hợp lệ theo chuỗi hash", test Worker từ chối nhảy node; hoặc đổi điều kiện stage 2 thành thứ server đo được (số trận đã xin seed). |
+| N8 | VỪA | **Hai nguồn stage mâu thuẫn**: client giữ `first_boss_won` bằng OR/lớn hơn (G18) nhưng run online lấy stage từ server (G14). Client có thể hiện stage 3 offline rồi vào run online nhận stage 1: UI hiện/ẩn nút theo cái nào? | Run online: UI lấy duy nhất từ server trả về lúc `run_start`; test `t_flow_newcomer_gating` có case meta cao, server thấp. |
+| N9 | VỪA | **Tam Tấu với `src` thật**: nổ đánh mọi quái, thorn của quái (elite affix, thorn boss) phản lên viên kích mỗi quái, nhiều lần. Có thể gây chết bất ngờ cho Axie 1 HP. | `attack = false` thì thorn phản không chạy (ghi vào 3.10.6) hoặc chạy một lần; test với elite thorn. |
+| N10 | VỪA | **Rút bộ ba Lõi chủ có thể "câu" bằng huỷ run trước trận**: seed `keystone` pin theo run, nhưng bắt đầu run mới là seed mới và (chưa rõ) không tốn gì. Người chơi mở run, thấy ba thẻ, bỏ, mở lại đến khi có Lõi muốn. | Pin theo (tài khoản, `runs_with_battle`) thay vì run: cùng bộ ba đến khi run có ít nhất một trận. Test: bỏ run trước trận, run mới ra cùng bộ ba. |
+| N11 | VỪA | **Số cũ còn sót trong GDD và cách test**: `t_bo_order` (trần 3.5), `t_bo_overcast` (M 2.50), `t_flow_overcast_bo` ("5 -> 10, túi 2.0"), edge 15 (đỉnh 43) viết theo `bo.scale` 1.0 / `m_cap` 3.5; mặc định mới là 0.8 / 3.0 (Bộ ba +0.40, Bộ bốn +0.80; Bộ bốn + OC = 2.30). Test viết cứng sẽ đỏ, hoặc tệ hơn, được "sửa cho xanh". | Mỗi test ví dụ cố định knob rõ (`bo.scale`=1.0, `m_cap`=3.5) VÀ có một bản chạy knob mặc định đọc số từ knob. Hai bộ số đều ghi trong test. Tính M bằng số nguyên: làm tròn từng đóng góp (`round(add * scale * 100)`) một lần, tránh 0.8*100 lệch dấu phẩy động. |
+| N12 | VỪA | **Ghost raid có Bộ**: raid dễ hơn nhiều khi người tấn công có Bộ mà ghost giữ nguyên (D chỉ tăng cho quái nền). | DoD thêm sim ghost của làn RV trước merge. |
+
+Tổng mới: 12 (NẶNG 3: N1, N5, N7; VỪA 9). Lỗ hổng cũ còn mở: #9 Aid (chờ Liam), #1 (code OC chưa sửa).
+
+### 6.3 Cập nhật ma trận test
+
+- `t_reroll_modes`: thêm N1 (relic +1/+2, `hard_cap`), N2 (UI khi khoá không khớp), N3 (sổ Aid sau undo).
+- `t_bo_order`/`t_bo_overcast`/`t_flow_overcast_bo`: hai bộ knob (N11).
+- `t_core_keystones`: N5 (trần thorn mỗi lần chuyển), N9 (thorn phản từ nổ), N10 (bỏ run, cùng bộ ba).
+- `t_depth_epoch_args_contract`: `rmode`, `keystone`, `depth_stage`, mã `pin_mismatch`/`stage_mismatch` (N4).
+- `t_worker_stage_mirror`: N7 (nhảy node act 2 bị từ chối), N8.
+- `t_flow_liều_crack_pct`: 30/51/66, chữ "30% Nứt mỗi viên" và "ít nhất 1 viên Nứt: X%" khớp `crack.pct`.
+
+### 6.4 Verdict
+
+**CHƯA sẵn sàng code toàn bộ.** Sẵn sàng code phần BỘ + Nứt + Mặt Tạm + `rmode`/pin (viết test trước) sau khi sửa N1. Chưa code Lõi chủ/stage cho tới khi chốt N5 (thorn), N7 (stage server), N10 và Liam trả lời câu 5 (Aid). Làn OC phải sửa theo 3.10.1 trước khi merge.
