@@ -52,6 +52,16 @@ static func fire(core_id: String, unit_uid: int, amount: int, kind: String) -> v
 		EventBus.core_fired.emit(core_id, unit_uid, amount, kind)
 
 
+## True while CombatEngine._do_face computes the value it is about to APPLY (not a UI preview / forecast).
+static func live(combat) -> bool:
+	return combat != null and "core_emit" in combat and bool(combat.core_emit)
+
+
+static func _fire_live(combat, id: String, uid: int, amount: int, kind: String) -> void:
+	if live(combat):
+		fire(id, uid, amount, kind)
+
+
 static func gain_mana(combat, n: int, label: String = "", core: String = "") -> void:
 	if n <= 0:
 		return
@@ -186,20 +196,25 @@ static func rule_knob(id: String, key: String, default):
 
 
 ## Bastion: front-row Axies take 2 less from single-target hits (min 1). Rising Tide (front fights): 25% less.
-static func incoming(ctx: Dictionary) -> float:
+## `id` = the owner whose TABLE entry is running (each owner applies only its own part, so owning two of them does
+## not apply the others twice).
+static func incoming(ctx: Dictionary, id: String = "") -> float:
 	var combat = ctx["combat"]
 	var tgt = ctx["tgt"]
-	var v := float(ctx["value"])
+	var v0 := float(ctx["value"])
+	var v := v0
 	if tgt.side == "e":
-		if int(tgt.custom_state.get("fissure", -1)) >= int(combat.turn) and RelicHooks_has(combat, "c_fissure"):
+		if id == "c_fissure" and int(tgt.custom_state.get("fissure", -1)) >= int(combat.turn):
 			v = ceil(v * 1.25)
+			fire(id, tgt.uid, int(v - v0), "dmg")
 		return v
 	if tgt.is_token or combat.row_of(tgt) != 0:
 		return v
-	if RelicHooks_has(combat, "c_bastion") and bool(ctx.get("single", false)) and not bool(ctx.get("pierce", false)) and bool(ctx.get("attack", false)):
+	if id == "c_bastion" and bool(ctx.get("single", false)) and not bool(ctx.get("pierce", false)) and bool(ctx.get("attack", false)):
 		v = maxf(1.0, v - 2.0)
-	if RelicHooks_has(combat, "rule_rising_tide") and String(combat_state(combat, "tide").get("water", "")) == "front":
+	if id == "rule_rising_tide" and String(combat_state(combat, "tide").get("water", "")) == "front":
 		v = maxf(1.0, ceil(v * float(rule_knob("rule_rising_tide", "front_dmg_taken", 0.75))))
+	fire(id, tgt.uid, int(v0 - v), "block")
 	return v
 
 
@@ -547,7 +562,9 @@ static func flat(ctx: Dictionary, id: String) -> int:
 			break
 		if FLAT_IDS.has(String(rid)):
 			before += maxi(0, bonus(combat, u, ft, String(rid), part))
-	return v + mini(own, maxi(0, FLAT_CAP - before))
+	var gain := mini(own, maxi(0, FLAT_CAP - before))
+	_fire_live(combat, id, u.uid, gain, ft if VALUE_TYPES.has(ft) else "rule")
+	return v + gain
 
 
 ## Total flat Core bonus a face would get right now (used by tests / UI).
@@ -826,6 +843,7 @@ static func rebound_extra(ctx: Dictionary) -> float:
 	var combat = ctx["combat"]
 	var tgt = ctx["tgt"]
 	if tgt == rebound_unit(combat):
+		fire("c_thorn_rebound", tgt.uid, int(tgt.status.get("thorns", 0)), "thorns")
 		return float(ctx["value"]) + float(int(tgt.status.get("thorns", 0)))
 	return float(ctx["value"])
 
@@ -839,7 +857,9 @@ static func backline_value(ctx: Dictionary) -> int:
 	var u = ctx["unit"]
 	var ft := String(ctx.get("face_type", ""))
 	if u.side == "p" and not u.is_token and (ft == "heal" or ft == "mana") and ctx["combat"].row_of(u) == 1:
-		return mult_gain(int(ctx["value"]))
+		var g := mult_gain(int(ctx["value"]))
+		_fire_live(ctx["combat"], "c_backline_glow", u.uid, g - int(ctx["value"]), ft)
+		return g
 	return int(ctx["value"])
 
 
@@ -856,6 +876,7 @@ static func backline_face(ctx: Dictionary) -> void:
 			var parts := String(raw).split(":")
 			if parts.size() == 2 and parts[1].is_valid_int():
 				out.append("%s:%d" % [parts[0], mult_gain(int(parts[1]))])
+				fire("c_backline_glow", u.uid, mult_gain(int(parts[1])) - int(parts[1]), "rule")
 			else:
 				out.append(String(raw))
 		f["keywords"] = out
@@ -1129,13 +1150,17 @@ static func scale_enemies(ctx: Dictionary, mult: float, bosses: bool) -> void:
 
 
 static func old_forest_face(ctx: Dictionary) -> void:
+	var hp0: int = ctx["unit"].max_hp
 	ctx["unit"].max_hp = int(ceil(ctx["unit"].max_hp * 1.3))
+	fire("rule_old_forest", ctx["unit"].uid, ctx["unit"].max_hp - hp0, "rule")
 
 
 static func old_forest_value(ctx: Dictionary) -> int:
 	var ft := String(ctx.get("face_type", ""))
 	if ctx["unit"].side == "p" and (ft == "heal" or ft == "poison"):
-		return mult_gain(int(ctx["value"]))
+		var g := mult_gain(int(ctx["value"]))
+		_fire_live(ctx["combat"], "rule_old_forest", ctx["unit"].uid, g - int(ctx["value"]), ft)
+		return g
 	return int(ctx["value"])
 
 
@@ -1150,6 +1175,7 @@ static func balance_value(ctx: Dictionary) -> int:
 	if ctx["unit"].side != "p" or String(ctx.get("face_type", "")) != "dmg" or v <= 0:
 		return v
 	if int(turn_state(ctx["combat"], "cs_dmgn").get("n", 0)) >= 2:
+		_fire_live(ctx["combat"], "rule_balance", ctx["unit"].uid, v - maxi(1, v - 2), "rule")
 		return maxi(1, v - 2)
 	return v
 

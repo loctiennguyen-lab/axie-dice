@@ -78,6 +78,8 @@ static func resolve(ctx: Dictionary) -> int:
 	if attack and bool(ctx.get("single", false)) and not pierce and tgt.side == "e":
 		var plated := CombatTraits.reduce(combat, tgt, v)                        # 6c. Plating (depth v3 6.7 M1/M6), after every multiplier
 		if plated < v:
+			if CoreHooks.RelicHooks_has(combat, "rule_hard_shell") and tgt.plating < int(CombatTraits.knob("run_rules", "plating_global", 2.0)):
+				CoreHooks.fire("rule_hard_shell", tgt.uid, int(v - plated), "block")
 			EventBus.plating.emit(tgt.uid, int(v), int(plated), CombatTraits.plating_of(combat, tgt))
 			v = plated
 	if attack or tgt.side == "e":

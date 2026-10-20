@@ -1557,10 +1557,10 @@ static var TABLE: Dictionary = {
 	},
 	# ---- Depth v3 Cores / Run Rules (lane C): logic in core_hooks.gd, one TABLE entry per id ----
 	# CORE_TABLE_BEGIN
-	"c_bastion": {"incoming_dmg": func(ctx: Dictionary): return CoreHooks.incoming(ctx)},
+	"c_bastion": {"incoming_dmg": func(ctx: Dictionary): return CoreHooks.incoming(ctx, "c_bastion")},
 	"c_fissure": {
 		"on_face_used": func(ctx: Dictionary): CoreHooks.fissure_used(ctx),
-		"incoming_dmg": func(ctx: Dictionary): return CoreHooks.incoming(ctx),
+		"incoming_dmg": func(ctx: Dictionary): return CoreHooks.incoming(ctx, "c_fissure"),
 	},
 	"c_nest": {"on_combat_start": func(ctx: Dictionary): CoreHooks.nest_start(ctx)},
 	"c_deep_current": {
@@ -1574,7 +1574,7 @@ static var TABLE: Dictionary = {
 	},
 	"rule_rising_tide": {
 		"on_combat_start": func(ctx: Dictionary): CoreHooks.tide_start(ctx),
-		"incoming_dmg": func(ctx: Dictionary): return CoreHooks.incoming(ctx),
+		"incoming_dmg": func(ctx: Dictionary): return CoreHooks.incoming(ctx, "rule_rising_tide"),
 		"face_final": func(ctx: Dictionary): return CoreHooks.flat(ctx, "rule_rising_tide"),
 	},
 	"rule_upside_down": {"enemy_row_pref": func(ctx: Dictionary): return "back"},

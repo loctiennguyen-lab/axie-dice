@@ -1361,6 +1361,11 @@ func _log_resonance_attempt(u: Unit, f: Dictionary, was_consumer: bool) -> void:
 	resonance_log.append({"pos": pos, "t": String(f.get("type", "")), "used": false})
 
 
+## depth v3 lane FX: true only while _do_face computes the value it applies, so Core face_final handlers fire
+## EventBus.core_fired for real uses and stay silent for UI previews / forecasts.
+var core_emit: bool = false
+
+
 func _face_value(u: Unit, fi: int) -> int:
 	var f: Dictionary = u.die[fi]
 	var v: float = float(f.get("value", 0)) + float(u.get_growth(fi))
@@ -1379,7 +1384,10 @@ func _face_value(u: Unit, fi: int) -> int:
 		if u.side == "e":
 			# base x (1 + enrage% + attrition%) x spike, rounded half up (monetization-v1 §1.2).
 			v = float(RulesMath.round_half_up(v * enemy_dmg_factor(u) * boss_hollow_dealt_mult(u) * affix_dealt_mult(u) * CombatTraits.charge_mult(u)))
-	v += CombatTraits.side_face_bonus(self, u, face_type, v)                # R12 Vo Cung: +2 on shield / poison faces of the Axie
+	var sfb := CombatTraits.side_face_bonus(self, u, face_type, v)
+	if core_emit and sfb > 0 and CoreHooks.RelicHooks_has(self, "rule_hard_shell"):
+		CoreHooks.fire("rule_hard_shell", u.uid, sfb, face_type)
+	v += sfb                                                                # R12 Vo Cung: +2 on shield / poison faces of the Axie
 	if face_type == "mana" and u.side == "p" and u.cls == "aqua":
 		v += 1.0                                                        # CONDUIT passive
 	if u.side == "p" and u.resonant_now:
@@ -1444,7 +1452,9 @@ func _pure_keywords(f: Dictionary) -> Array:
 func _do_face(u: Unit, target_uid: int, f: Dictionary, fi: int, is_echo: bool) -> bool:
 	var foes := (alive_enemies() if u.side == "p" else alive_party())
 	var friends := (alive_party() if u.side == "p" else alive_enemies())
+	core_emit = true
 	var v := _face_value(u, fi)
+	core_emit = false
 	if u.side == "p" and not is_echo and first_dmg_face_bonus > 0 and not _first_dmg_used \
 			and String(f.get("type", "")) == "dmg" and v > 0:
 		v += first_dmg_face_bonus   # flat, after everything else; once per turn
