@@ -35,8 +35,21 @@ var _trig := {}           # per run: ids that "fired" (see _note_triggers)
 var _shield_used := 0
 var _pact_mode := "take"   # take | skip   (--pact)
 var _shop_mode := "all"    # all | none     (--shop)
+var _nohold := false       # ablation (--nohold=1)
+var _noreroll := false     # ablation (--noreroll=1)
 var _beam := 3             # expert in-turn beam width (--beam)
 var _core_fired_seen := {} # ids reported by EventBus.core_fired, when the branch has that signal
+## Real combos (design/proposals/core-pick-excitement-brainstorm.md 2.B1; members that exist as ids on this branch).
+const COMBOS := [
+	["c_cascade", "c_sixth_die", "c_mirror_face"], ["c_living_wall", "c_gatekeeper", "c_backline_glow"],
+	["c_sonic_shield", "c_backline_glow", "c_blood_sign"], ["c_nest", "c_golden_egg", "c_spore_burst"],
+	["c_overflow", "c_dewdrop", "c_backline_glow"], ["c_hollow_core", "c_kindle", "c_dewdrop"],
+	["c_kindle", "c_prime_chain", "c_three_dice"], ["c_finisher", "c_chimera_hunt"],
+	["c_living_wall", "c_growing_shell", "c_finisher"], ["c_descend", "c_thorn_pact", "c_bastion"],
+	["c_thorn_pact", "c_elder_trunk", "c_backline_glow"], ["c_prism", "c_sixth_die", "c_collector"],
+	["c_blood_sign", "c_plague_spread", "c_fissure"], ["c_loop", "c_mana_pool", "c_overflow"]]
+const BAD_RULES := ["rule_none", "rule_crow", "rule_hard_shell"]   # measured: never fire / only hurt
+
 ## Events a handler can see in every fight where the Core is owned.
 const ALWAYS_EVENTS := ["on_combat_start", "on_turn_start", "on_turn_end", "on_roll_settled", "on_roll_end",
 	"on_combat_end", "mod_face", "face_final", "roll_face", "roll_edit", "extra_dice", "class_field", "face_crit",
@@ -60,6 +73,8 @@ func _ready() -> void:
 	_pact_mode = String(args.get("pact", "take"))
 	_shop_mode = String(args.get("shop", "all"))
 	_beam = int(args.get("beam", 3))
+	_nohold = int(args.get("nohold", 0)) == 1
+	_noreroll = int(args.get("noreroll", 0)) == 1
 	var recs: Array
 	if args.has("from"):   # --from=a.csv,b.csv : rebuild/merge a report from raw CSVs, no simulation
 		recs = SimReport.read_csvs(String(args["from"]).split(","))
@@ -197,15 +212,15 @@ func _drain_core_offers() -> void:
 		var card: Dictionary = cards[0]
 		if bool(card.get("rule", false)):
 			card = cards[_rng.next_int(cards.size())]
+			if _core_policy == "combo":
+				for c in cards:
+					if not BAD_RULES.has(String((c as Dictionary).get("key", ""))):
+						card = c
+						break
 		elif _core_policy == "combo":
-			var owned2 := _owned_axes()
 			var best_sc := -1.0
 			for c in cards:
-				var ax := String((c as Dictionary).get("axis", ""))
-				var d = RelicRegistry.get_def(String((c as Dictionary).get("key", "")))
-				var sc := float(d.rarity) if d != null else 0.0
-				if ax in ["dice", "mana", "pos", "rule"]:
-					sc += 1.5 + 10.0 * minf(float(owned2.get(ax, 0)), 2.0)
+				var sc := _combo_score(String((c as Dictionary).get("key", "")))
 				if sc > best_sc:
 					best_sc = sc
 					card = c
@@ -281,6 +296,21 @@ func catalog() -> Array:
 				and not id.begins_with("c_test_") and not id.begins_with("rule_test_"):
 			out.append({"id": id, "axis": String(d.core_axis), "rarity": int(d.rarity)})
 	return out
+
+
+func _combo_score(id: String) -> float:
+	var d = RelicRegistry.get_def(id)
+	var sc := float(d.rarity) * 0.5 if d != null else 0.0
+	var best := 0.0
+	for combo in COMBOS:
+		if not (combo as Array).has(id):
+			continue
+		var have := 0
+		for m in combo:
+			if RunState.owned_relic_ids.has(m):
+				have += 1
+		best = maxf(best, 2.0 + (12.0 + 10.0 * have if have > 0 else 0.0))
+	return sc + best
 
 
 func _owned_axes() -> Dictionary:
@@ -596,6 +626,8 @@ func _plan_turn(eng: CombatEngine, ready: Array, foes: Array) -> Array:
 func _expert_turn_start(eng: CombatEngine, ready: Array, foes: Array) -> void:
 	for e in foes:
 		var b: Unit = e
+		if _nohold:
+			break
 		if b.is_boss and eng.boss_rhythm_phase(b, 0) == "strike":
 			var pick: Unit = null
 			var pv := 0
@@ -608,15 +640,22 @@ func _expert_turn_start(eng: CombatEngine, ready: Array, foes: Array) -> void:
 			if pick != null and pv >= 4:
 				eng.stash(pick.uid)
 			break
-	var base := _eval(eng)
-	var weak: Array = []
-	for u in _ready_units(eng):
-		var bd := 0.0
-		for tid in _candidates(eng, u, foes):
-			if eng.use_die(u.uid, tid):
-				bd = maxf(bd, _eval(eng) - base)
-				eng.undo_last()
-		if bd < 2.5 and not u.frozen and not u.held:
-			weak.append(u.uid)
-	if not weak.is_empty() and eng.rerolls > 0 and eng.can_reroll(weak):
+	if _noreroll:
+		return
+	# Up to 3 reroll rounds: the free charge first, then paid (mana) ones while mana is left.
+	for round in 3:
+		var base := _eval(eng)
+		var weak: Array = []
+		for u in _ready_units(eng):
+			var bd := 0.0
+			for tid in _candidates(eng, u, eng.alive_enemies()):
+				if eng.use_die(u.uid, tid):
+					bd = maxf(bd, _eval(eng) - base)
+					eng.undo_last()
+			if bd < 2.5 and not u.frozen and not u.held:
+				weak.append(u.uid)
+		if weak.is_empty() or not eng.can_reroll(weak):
+			break
+		if eng.rerolls <= 0 and eng.mana < eng.reroll_mana_cost() + 0:
+			break
 		eng.reroll_dice(weak)

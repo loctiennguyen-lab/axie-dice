@@ -34,6 +34,7 @@ static func build_md(recs: Array, tag: String, secs: float, catalog: Array = [])
 	L.append("Runs: %d, wall %.1fs (%.2fs/run).\n" % [recs.size(), secs, secs / maxf(1.0, recs.size())])
 	# win-rate by policy x asc, policy x team, core policy
 	L.append(_goals(recs))
+	L.append(_funnel(recs))
 	L.append(_table(recs, ["policy", "asc"], "Win-rate theo chinh sach x Ascension"))
 	L.append(_table(recs, ["policy", "team"], "Win-rate theo chinh sach x doi"))
 	L.append(_table(recs, ["policy", "core_policy"], "Win-rate theo chinh sach x cach chon Loi"))
@@ -248,3 +249,31 @@ static func read_csvs(paths: Array) -> Array:
 				"fights": fights, "offered": Array(String(c[11]).split(";", false)), "picked": Array(String(c[12]).split(";", false)),
 				"trig": Array(String(c[13]).split(";", false))})
 	return out
+
+
+## Survival funnel per policy: of all runs, how many were still alive when they reached each map row (cumulative deaths).
+static func _funnel(recs: Array) -> String:
+	var by := {}
+	var cnt := {}
+	for r in recs:
+		var pol: String = r["policy"]
+		cnt[pol] = int(cnt.get(pol, 0)) + 1
+		if not by.has(pol):
+			by[pol] = {}
+		if not r["won"] and int(r["death_row"]) > 0:
+			var k := "%d %s" % [r["death_row"], r["death_kind"]]
+			by[pol][k] = int(by[pol].get(k, 0)) + 1
+	var out := "## Phieu chet theo node (song sot tich luy)\n\n"
+	for pol in by.keys():
+		var rows: Array = []
+		for k in (by[pol] as Dictionary).keys():
+			rows.append([int(String(k).split(" ")[0]), String(k), int(by[pol][k])])
+		rows.sort_custom(func(a, b): return a[0] < b[0])
+		var alive := int(cnt[pol])
+		var line := "- **%s** (n=%d): " % [pol, alive]
+		var parts: Array = []
+		for rw in rows:
+			alive -= int(rw[2])
+			parts.append("r%s -%d (con %.0f%%)" % [String(rw[1]).replace(" ", " "), rw[2], 100.0 * alive / int(cnt[pol])])
+		out += line + "; ".join(parts) + "\n"
+	return out + "\n"
