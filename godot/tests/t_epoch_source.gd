@@ -83,6 +83,14 @@ func _ready() -> void:
 	var p3 := s.request("reroll", {"turn": 1, "k": 2, "source": "base", "uids": [1]})
 	_check(p1.seed == p2.seed, "pinned reroll key returns the same seed")
 	_check(p3.seed != p1.seed, "next reroll key gets a new seed")
+	# Depth v4 3.10.2: a pinned key asked again with another rmode or other uids -> pin_mismatch, no new seed
+	var q1 := s.request("reroll", {"turn": 2, "k": 1, "source": "base", "uids": [1, 2], "rmode": 0})
+	var q2 := s.request("reroll", {"turn": 2, "k": 1, "source": "base", "uids": [1, 2], "rmode": 1})
+	var q3 := s.request("reroll", {"turn": 2, "k": 1, "source": "base", "uids": [2, 1], "rmode": 0})
+	var q4 := s.request("reroll", {"turn": 2, "k": 1, "source": "base", "uids": [1, 2], "rmode": 0})
+	_check(q1.ok and not q2.ok and q2.code == "pin_mismatch", "rmode change on a pinned key -> pin_mismatch")
+	_check(not q3.ok and q3.code == "pin_mismatch", "uids change on a pinned key -> pin_mismatch")
+	_check(q4.ok and q4.seed == q1.seed, "the identical request still returns the pinned seed")
 
 	if _fails.is_empty():
 		print("t_epoch_source: PASS — %d checks OK" % _checks)

@@ -82,3 +82,12 @@ Event cho UI: `EventBus.bo_changed(groups)` khi snapshot ĐỔI (so JSON). KHÔN
 Nứt: `_face_base` đã halve khi `u.cracked` (mặt dmg/shield/heal/poison/mana, v>=1); chưa có ai set `cracked` (bước 2). Knob thêm: `bo.*`, `crack.*`, `part.*`, `overcast.add` (xoá `overcast.mult`). CHƯA thêm `reroll.*` mới/`wild`/`hold` (bước 2-3, để khỏi đổi hành vi reroll cũ).
 `_rerollable` loại thêm viên `overcast` và `wild_slot>=0`. Overcast từ chối: viên ảo, mặt không thuộc dmg/shield/heal/poison, v0<1, stage<3.
 Test: t_bo_groups, t_bo_order, t_bo_timing, t_bo_overcast, t_bo_concord, t_bo_saveload (undo+save), t_bo_replay (engine; run-level phủ bởi t_replay). Mỗi test chạy knob nominal (1.0/3.5) + default (0.8/3.0). Floor +7 file.
+
+## Bước 2 - xong (LIỀU + rmode + khoá + pin)
+combat_engine.gd: `reroll_dice(uids, seed, from_aid, rmode=1)`, `can_reroll(uids, from_aid, rmode)`, `reroll_refusal(...)` (mã: over, hard_cap, stage, mission, none, pin_mismatch, mana, veto, bad_rmode),
+`effective_rmode(from_aid, rmode)` (free/Aid -> 1), `reroll_paid_k` (thay `reroll_nonaid`, max_total 3 = paid_k + reroll.free), `reroll_total_turn` (hard_cap 4, mọi nguồn), `reroll_lock[k]={rmode,rsrc,uids,list}` (trong save, KHÔNG bị undo xoá, reset ở roll_all).
+Log `reroll_dice` args `[uids, from_aid, rmode]`; verifier đọc args[2] (thiếu = 1). Nứt: 1 lần `_rng.next_int(100)` mỗi uid caller truyền (đúng thứ tự), sau cantrip + on_roll_settled; `cracked` xoá khi tung lại, ở roll_all (kể cả viên Hold).
+Giá An toàn: `reroll.mana_cost_2`=2 (paid_k 0), `mana_cost_3`=3 (paid_k>=1), qua hook `reroll_mana_cost` như cũ. Knob `reroll.mana_cost` bỏ. Cores hollow_core/cheap_mana giờ sửa `reroll_paid_k` (đổi tên); hard_cap 4 cắt trên cùng.
+Epoch: key `rmode` (enum 0/1, chỉ kind reroll, không bắt buộc) trong epoch_args.json; `_reroll_args` gửi rmode đã chuẩn hoá. Worker `run_core.js`: `pin_mismatch` khi rmode/uids lệch dòng pin (đọc rmode từ cột args, không thêm cột). LocalEpochSource: cùng luật (`_pin_sigs`). ALLOWED_FNS không đổi (không thêm action).
+Test mới: t_reroll_modes, t_reroll_pin; sửa t_reroll_mana, t_core_behaviour (đổi tên), t_epoch_source (+3), t_remote_epoch_ui_run (enum số), worker run_core.test (pin_mismatch). Floor +2.
+Chưa làm / ghi chú: sổ Aid hoàn theo undo (nằm ngoài engine, chưa có); T10 Aid giả (from_aid=1 trong log mà epoch source='base') server chưa đối chiếu, chỉ bị hard_cap 4 chặn; UI chọn Liều/An toàn (bước 5) — CombatView vẫn gọi rmode mặc định 1.
