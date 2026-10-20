@@ -36,6 +36,7 @@ const ERR_CONTENT_VERSION := "content_version_mismatch"
 const ERR_NOT_RANKED := "not_ranked"
 const ERR_BAD_HEADER := "bad_header"
 const ERR_REJECTED := "action_rejected"
+const ERR_STAGE_MISMATCH := "stage_mismatch"
 const ERR_UNKNOWN_ACTION := "unknown_action"
 
 
@@ -71,6 +72,12 @@ static func verify(log: ActionLog, tape: Array = [], loadout: Dictionary = {}) -
 		return _fail(ERR_NOT_RANKED,
 			"Only a ranked run can be verified. An unranked one starts from unlocks that exist "
 			+ "only on the player's own machine.")
+
+	# Depth v4 3.10.9 (T7): the stage is the one the SERVER wrote into the tape's run_start header. A log header that claims another one is a lie
+	# (the replay itself plays under the tape's stage, so a stage-gated action in a low-stage run is refused at its own index, T6).
+	var tape_stage := int((((tape[0] as Dictionary).get("extra", {}) as Dictionary).get("header", {}) as Dictionary).get("depth_stage", 3))
+	if int(header.get("depth_stage", 3)) != tape_stage:
+		return _fail(ERR_STAGE_MISMATCH, "The record claims depth stage %d; the server issued stage %d." % [int(header.get("depth_stage", 3)), tape_stage])
 
 	var team: Array[String] = []
 	for k in (header.get("team_keys", []) as Array):

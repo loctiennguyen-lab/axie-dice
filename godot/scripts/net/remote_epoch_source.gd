@@ -17,6 +17,8 @@ var _tape: Array = []
 var _rules_version := ""
 var _started := false
 var _closed := false
+## Depth v4 3.10.9: the stage the SERVER issued at run_start; sent on every request so the server can answer stage_mismatch. 0 = unknown (old server).
+var _depth_stage := 0
 ## Tests: replaces the local-save lookup. Returns the run_id of the saved run that can be resumed, or "".
 var local_run_id: Callable = Callable()
 ## Set by resume(): this source was rebuilt from a save, so the session is NOT attached to the run yet.
@@ -88,10 +90,12 @@ func _create(params: Dictionary, body: Dictionary, nonce: String, reply: EpochRe
 			reply.settle(false, 0, _map_http_code(code))
 			return
 		_chain_begin(String(data["run_id"]))
+		_depth_stage = int((data.get("header", {}) as Dictionary).get("depth_stage", 0))
 		var args := {"mode": String(params.get("mode", "short")), "ascension": int(params.get("ascension", 0))}
 		var peek := _chain_peek()
 		var msg := {"t": "epoch_req", "seq": _seq, "kind": "run_start", "args": args, "log_delta": [],
 			"h": String(peek["h"]), "log_len": 0}
+		_stamp_stage(msg)
 		var inner := EpochReply.new()
 		session.submit(msg, inner)
 		_when_done(inner, func() -> void:
@@ -101,6 +105,7 @@ func _create(params: Dictionary, body: Dictionary, nonce: String, reply: EpochRe
 				return
 			_chain_commit(peek)
 			var header: Dictionary = (data.get("header", {}) as Dictionary).duplicate(true)
+			_depth_stage = int(header.get("depth_stage", 0))
 			header["loadout"] = (params.get("loadout", {}) as Dictionary).duplicate(true)
 			var extra := {"run_id": String(data["run_id"]), "client_nonce": nonce,
 				"commit": String(data.get("commit", "")), "header": header,
@@ -161,6 +166,7 @@ func _request_now(kind: String, args: Dictionary) -> EpochReply:
 	var reply := EpochReply.new()
 	var msg := {"t": "epoch_req", "seq": _seq, "kind": kind, "args": args,
 		"log_delta": _delta_entries(int(peek["log_len"])), "h": String(peek["h"]), "log_len": int(peek["log_len"])}
+	_stamp_stage(msg)
 	var inner := EpochReply.new()
 	session.submit(msg, inner)
 	_when_done(inner, func() -> void:
@@ -194,6 +200,7 @@ func _aid_now(aid_id: String, args: Dictionary) -> EpochReply:
 	var reply := EpochReply.new()
 	var msg := {"t": "aid_req", "seq": _seq, "aid": aid_id, "args": args,
 		"log_delta": _delta_entries(int(peek["log_len"])), "h": String(peek["h"]), "log_len": int(peek["log_len"])}
+	_stamp_stage(msg)
 	var inner := EpochReply.new()
 	session.submit(msg, inner)
 	_when_done(inner, func() -> void:
@@ -225,6 +232,7 @@ func _close_now(outcome: String, summary: Dictionary) -> EpochReply:
 	var reply := EpochReply.new()
 	var msg := {"t": "run_close", "seq": _seq, "log_delta": _delta_entries(int(peek["log_len"])),
 		"h": String(peek["h"]), "log_len": int(peek["log_len"]), "outcome": outcome, "summary": summary}
+	_stamp_stage(msg)
 	var inner := EpochReply.new()
 	session.submit(msg, inner)
 	_when_done(inner, func() -> void:
@@ -234,6 +242,11 @@ func _close_now(outcome: String, summary: Dictionary) -> EpochReply:
 			_seq += 1
 		reply.settle(inner.ok, 0, inner.code))
 	return reply
+
+
+func _stamp_stage(msg: Dictionary) -> void:
+	if _depth_stage >= 1:
+		msg["depth_stage"] = _depth_stage
 
 
 func tape() -> Array:
@@ -250,6 +263,7 @@ func resume(p_tape: Array, p_session: RunSession) -> void:
 	if _tape.is_empty():
 		return
 	var first_extra: Dictionary = (_tape[0] as Dictionary).get("extra", {})
+	_depth_stage = int((first_extra.get("header", {}) as Dictionary).get("depth_stage", 0))
 	_chain_begin(String(first_extra.get("run_id", "")))
 	var lx: Dictionary = (_tape[_tape.size() - 1] as Dictionary).get("extra", {})
 	_prev_h = String(lx.get("h", "")).hex_decode()

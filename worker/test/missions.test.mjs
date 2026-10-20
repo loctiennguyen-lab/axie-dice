@@ -24,7 +24,7 @@ class Stmt {
 class FakeD1 {
   constructor() {
     this.db = new DatabaseSync(':memory:'); this.db.exec('PRAGMA foreign_keys = ON;');
-    for (const f of ['0001_accounts.sql', '0002_runs.sql', '0003_wallet.sql', '0005_token_revocation.sql', '0006_leaderboard.sql', '0007_mission_escrow.sql']) this.db.exec(mig(f));
+    for (const f of ['0001_accounts.sql', '0002_runs.sql', '0009_depth_stage.sql', '0003_wallet.sql', '0005_token_revocation.sql', '0006_leaderboard.sql', '0007_mission_escrow.sql']) this.db.exec(mig(f));
   }
   prepare(s) { return new Stmt(this.db, s); }
   async batch(stmts) { const out = []; for (const s of stmts) out.push(await s.run()); return out; }

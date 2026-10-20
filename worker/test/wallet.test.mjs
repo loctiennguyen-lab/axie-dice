@@ -18,7 +18,7 @@ class Stmt {
   async run() { const r = this.db.prepare(this.sql).run(...this.args); return { success: true, meta: { changes: Number(r.changes) } }; }
 }
 class TxD1 {
-  constructor() { this.db = new DatabaseSync(':memory:'); this.db.exec('PRAGMA foreign_keys = ON;'); for (const f of ['0001_accounts.sql', '0002_runs.sql', '0003_wallet.sql']) this.db.exec(mig(f)); }
+  constructor() { this.db = new DatabaseSync(':memory:'); this.db.exec('PRAGMA foreign_keys = ON;'); for (const f of ['0001_accounts.sql', '0002_runs.sql', '0009_depth_stage.sql', '0003_wallet.sql']) this.db.exec(mig(f)); }
   prepare(s) { return new Stmt(this.db, s); }
   // D1 runs one batch at a time per database; the chain stands in for that.
   batch(stmts) { const run = (this.q || Promise.resolve()).then(() => this._batch(stmts)); this.q = run.catch(() => {}); return run; }

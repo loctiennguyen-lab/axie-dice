@@ -18,7 +18,7 @@ class Stmt {
   async run() { const r = this.db.prepare(this.sql).run(...this.args); return { success: true, meta: { changes: Number(r.changes) } }; }
 }
 class FakeD1 {
-  constructor() { this.db = new DatabaseSync(':memory:'); this.db.exec('PRAGMA foreign_keys = ON;'); this.db.exec(mig('0001_accounts.sql')); this.db.exec(mig('0002_runs.sql')); this.db.exec(mig('0003_wallet.sql')); this.db.exec(mig('0007_mission_escrow.sql')); this.db.exec(mig('0005_token_revocation.sql')); this.db.exec(mig('0006_leaderboard.sql')); }
+  constructor() { this.db = new DatabaseSync(':memory:'); this.db.exec('PRAGMA foreign_keys = ON;'); this.db.exec(mig('0001_accounts.sql')); this.db.exec(mig('0002_runs.sql')); this.db.exec(mig('0009_depth_stage.sql')); this.db.exec(mig('0003_wallet.sql')); this.db.exec(mig('0007_mission_escrow.sql')); this.db.exec(mig('0005_token_revocation.sql')); this.db.exec(mig('0006_leaderboard.sql')); }
   prepare(s) { return new Stmt(this.db, s); }
   async batch(stmts) { const out = []; for (const s of stmts) out.push(await s.run()); return out; }
 }
@@ -286,4 +286,47 @@ test('daily tries: the UTC midnight boundary resets the count (yesterday 23:59 d
   // exactly at 00:00:00 counts as today
   ins(idN(4), dayStart); ins(idN(5), dayStart);
   assert.equal((await (await call('/api/run/daily')).json()).used, 3);
+});
+
+const seedClosed = (DB, player, n, { state = 'closed', outcome = 'won', battles = 0 } = {}) => {
+  for (let i = 0; i < n; i++) {
+    DB.db.prepare(`INSERT INTO runs (run_id, player_id, mode, ascension, rules_version, state, created_at, closed_at, outcome, battles_done) VALUES (?, ?, 'normal', 0, ?, ?, 1, 2, ?, ?)`)
+      .run(`${player.replace(/\W/g, '')}${state}${outcome}${i}`.padEnd(32, '0').slice(0, 32), player, RULES, state, state === 'closed' ? outcome : null, battles);
+  }
+};
+
+test('depth v4 stage: the server writes depth_stage at create from completed runs (N7) and open returns the same value', async () => {
+  const { DB, call } = await setup();
+  const stage = async () => {
+    const r = await create(call);
+    assert.equal(r.status, 200);
+    const j = await r.json();
+    await call(`/api/run/${j.run_id}/abandon`, { method: 'POST' });
+    return { stage: j.header.depth_stage, row: DB.db.prepare('SELECT depth_stage FROM runs WHERE run_id = ?').get(j.run_id).depth_stage };
+  };
+  assert.deepEqual(await stage(), { stage: 1, row: 1 }, 'fresh newcomer');
+  seedClosed(DB, 'google:1', 1);
+  assert.equal((await stage()).stage, 2, '1 completed run');
+  seedClosed(DB, 'google:1', 2, { outcome: 'lost' });
+  assert.equal((await stage()).stage, 3, '3 completed runs');
+});
+
+test('depth v4 stage: only closed runs count (open, abandoned, run_start-only do not); an account past the newcomer gate starts at 3', async () => {
+  const { DB, call } = await setup();
+  seedClosed(DB, 'google:1', 4, { state: 'abandoned' });
+  const j = await (await create(call)).json();
+  assert.equal(j.header.depth_stage, 1, 'abandoned runs without a fight never count');
+  await call(`/api/run/${j.run_id}/abandon`, { method: 'POST' });
+  seedClosed(DB, 'google:2', 5, { state: 'abandoned', battles: 2 });
+  const k = await (await create(call, {}, { token: 'tok2' })).json();
+  assert.equal(k.header.depth_stage, 3, 'old account (>= 5 runs with a fight) skips the newcomer stages');
+});
+
+test('depth v4 stage: GET /api/run/open hands back the stage written at create; a pre-v4 row answers 3', async () => {
+  const { DB, call } = await setup();
+  const j = await (await create(call)).json();
+  const o = await (await call('/api/run/open')).json();
+  assert.equal(o.header.depth_stage, 1);
+  DB.db.prepare('UPDATE runs SET depth_stage = NULL WHERE run_id = ?').run(j.run_id);
+  assert.equal((await (await call('/api/run/open')).json()).header.depth_stage, 3);
 });

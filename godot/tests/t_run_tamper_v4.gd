@@ -21,6 +21,7 @@ func run() -> void:
 	_t2(log, tape, wi, honest)
 	_t3(log, tape, wi)
 	_t5(log, tape)
+	_stage(log, tape, wi)
 
 
 func _find_run() -> Dictionary:
@@ -99,3 +100,30 @@ func _t5(log: ActionLog, tape: Array) -> void:
 		if not bool(v["ok"]) and int(v["action_index"]) == n + 1 and String(v["error"]) == RunVerifier.ERR_REJECTED:
 			refused += 1
 	eq(refused, tried, "T5: a Mat Tam with 0 mana is refused at its own index, whatever the die")
+
+
+## T6 / T7: the stage comes from the server's tape (run_start extra.header.depth_stage), never from the log header.
+func _stage(log: ActionLog, tape: Array, wi: int) -> void:
+	eq(int(log.header.get("depth_stage", -1)), 3, "header carries depth_stage (local default 3)")
+	var low_tape := tape.duplicate(true)
+	var hdr: Dictionary = ((low_tape[0] as Dictionary)["extra"] as Dictionary)["header"]
+	hdr["depth_stage"] = 1
+	# T6: the server said stage 1; the log (header agreed) still holds a wild_face. Refused at its own index.
+	var low_log := _clone(log)
+	low_log.header["depth_stage"] = 1
+	var v6 := RunVerifier.verify(low_log, low_tape)
+	ok(not bool(v6["ok"]) and String(v6["error"]) == RunVerifier.ERR_REJECTED and int(v6["action_index"]) == wi, "T6: wild_face in a stage-1 run refused at its index (%s @%s)" % [str(v6["error"]), str(v6["action_index"])])
+	# T7: the server said stage 1, the log header was edited up to 3.
+	var v7 := RunVerifier.verify(log, low_tape)
+	eq(String(v7["error"]), RunVerifier.ERR_STAGE_MISMATCH, "T7: header stage 3 vs server stage 1 -> stage_mismatch")
+	# and the other way round
+	var up_log := _clone(log)
+	up_log.header["depth_stage"] = 1
+	eq(String(RunVerifier.verify(up_log, tape)["error"]), RunVerifier.ERR_STAGE_MISMATCH, "header stage 1 vs server stage 3 -> stage_mismatch")
+	# stage 2: wild_face is allowed (it opens at 2)
+	var mid_tape := tape.duplicate(true)
+	(((mid_tape[0] as Dictionary)["extra"] as Dictionary)["header"] as Dictionary)["depth_stage"] = 2
+	var mid_log := _clone(log)
+	mid_log.header["depth_stage"] = 2
+	var v2 := RunVerifier.verify(mid_log, mid_tape)
+	ok(String(v2["error"]) != RunVerifier.ERR_STAGE_MISMATCH, "stage 2 header agreeing with its tape is not a stage mismatch")

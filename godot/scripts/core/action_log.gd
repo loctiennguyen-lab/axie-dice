@@ -136,7 +136,9 @@ func begin(seed_value: int, team_keys: Array, mode: String, ascension: int,
 ## Epoch-era header fields (contract 1.5). `loadout` carries the injected bonuses a verifier must
 ## use instead of reading its own MetaState.
 func set_epoch_header(run_id: String, client_nonce: String, loadout: Dictionary, newcomer: bool,
-		mission: Dictionary) -> void:
+		mission: Dictionary, depth_stage: int = 3) -> void:
+	# Depth v4 3.8/3.10.9: 1..3, written by the SERVER at run_start for an online run (the client never picks it); the verifier checks it against the tape.
+	header["depth_stage"] = clampi(depth_stage, 1, 3)
 	header["run_id"] = run_id
 	header["client_nonce"] = client_nonce
 	header["loadout"] = loadout.duplicate(true)
