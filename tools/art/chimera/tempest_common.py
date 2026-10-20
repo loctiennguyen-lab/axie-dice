@@ -177,3 +177,69 @@ def prepare_mesh(src, ratio, tex_size, tex_out, head_box=((-0.28, 0.28), (0.10, 
     img.save()
     bpy.data.objects.remove(hi)
     return low
+
+
+# Model silhouette (front render, ortho 2.3 m wide in 1100 px => 478.26 px/m) fitted onto the front
+# art crop: model px x 96..1002 <-> art px 88..4304, y 173..526 <-> 34..1697 (both include the
+# arrows). The back-view crop shares those coordinates (see cut_tempest_ref.py), mirrored in X.
+def _art_xy(x, z):
+    mx = 550.0 - 478.26 * x            # seen from behind: +X is on the left
+    my = 350.0 - 478.26 * z
+    ax = 88 + (mx - 96) * (4216 / 906.0)
+    ay = 34 + (my - 173) * (1663 / 353.0)
+    return ax / 2.0, ay / 2.0          # reference png is half resolution
+
+
+def paint_back_from_art(low, img, ref_png, ny_min=0.35, quiver=lambda p: p.y > 0.07 and p.z > 0.08 and abs(p.x) < 0.25):
+    """Repaints every back-facing triangle (normal +Y; the bird faces -Y) of the baked texture from
+    the official BACK VIEW art, by planar projection along Y. The AI source guessed the back of the
+    bird; the sheet is authoritative (dark-green wings, yellow hood, tan only on the small wings,
+    dark-green tail stripe). The quiver keeps its baked colour. Art pixels that are neutral grey
+    (sheet background / captions) are skipped, so nothing outside the painted silhouette changes."""
+    import numpy as np
+    ref = bpy.data.images.load(ref_png)
+    rw, rh = ref.size
+    R = np.array(ref.pixels[:], dtype=np.float32).reshape(rh, rw, 4)[::-1, :, :3]   # row 0 = top
+    W, H = img.size
+    T = np.array(img.pixels[:], dtype=np.float32).reshape(H, W, 4)                    # row 0 = bottom
+    uv = low.data.uv_layers.active.data
+    vs = low.data.vertices
+    painted = 0
+    for poly in low.data.polygons:
+        if poly.normal.y < ny_min:
+            continue
+        if quiver(Vector(poly.center)):
+            continue
+        li = list(poly.loop_indices)
+        for k in range(1, len(li) - 1):
+            ids = (li[0], li[k], li[k + 1])
+            tuv = np.array([[uv[i].uv.x * W, uv[i].uv.y * H] for i in ids])
+            tp = np.array([vs[poly.vertices[j]].co[:] for j in (0, k, k + 1)])
+            x0, y0 = np.floor(tuv.min(0)).astype(int) - 1
+            x1, y1 = np.ceil(tuv.max(0)).astype(int) + 1
+            x0, y0, x1, y1 = max(x0, 0), max(y0, 0), min(x1, W - 1), min(y1, H - 1)
+            if x1 < x0 or y1 < y0:
+                continue
+            gx, gy = np.meshgrid(np.arange(x0, x1 + 1) + 0.5, np.arange(y0, y1 + 1) + 0.5)
+            a, b, c = tuv
+            d = (b[1] - c[1]) * (a[0] - c[0]) + (c[0] - b[0]) * (a[1] - c[1])
+            if abs(d) < 1e-9:
+                continue
+            l1 = ((b[1] - c[1]) * (gx - c[0]) + (c[0] - b[0]) * (gy - c[1])) / d
+            l2 = ((c[1] - a[1]) * (gx - c[0]) + (a[0] - c[0]) * (gy - c[1])) / d
+            l3 = 1 - l1 - l2
+            m = (l1 >= -0.06) & (l2 >= -0.06) & (l3 >= -0.06)
+            if not m.any():
+                continue
+            P = l1[m, None] * tp[0] + l2[m, None] * tp[1] + l3[m, None] * tp[2]
+            axy = np.array([_art_xy(p[0], p[2]) for p in P])
+            ix = np.clip(axy[:, 0].astype(int), 0, rw - 1)
+            iy = np.clip(axy[:, 1].astype(int), 0, rh - 1)
+            col = R[iy, ix]
+            ok = (col.max(1) - col.min(1)) > 0.07
+            ys, xs = np.nonzero(m)
+            T[ys[ok] + y0, xs[ok] + x0, :3] = col[ok]
+            painted += int(ok.sum())
+    img.pixels[:] = T.ravel()
+    bpy.data.images.remove(ref)
+    print("TEMPEST: back repainted px", painted)

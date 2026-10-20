@@ -352,6 +352,8 @@ def main():
             os.makedirs(CACHE, exist_ok=True)
             bpy.data.images["T_Tempest"].pack()
             bpy.ops.wm.save_as_mainfile(filepath=cache_blend, copy=True)
+    # official BACK VIEW art overrides the AI's guess for every back-facing triangle
+    paint_back_from_art(low, bpy.data.images["T_Tempest"], os.path.join(os.path.dirname(os.path.abspath(__file__)), "tempest_back_ref.png"))
     sc = bpy.context.scene
     sc.render.fps = FPS
     arm = build_armature()
