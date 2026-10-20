@@ -219,3 +219,18 @@ Việc deploy, theo thứ tự (chưa làm, cần Liam bảo): D1 migration 0008
 - Kết Nặng: nửa quái +10% đổi sang hook `incoming_dmg` (dùng knob `enemy_dmg_mult`); Vỏ Cứng phát `core_fired(...,"debuff")` cho +2 độ mạnh debuff.
 - `CoreHooks.mute` (preview_damage im lặng cho mọi `fire`), undo_last trả lại `core_impact` (`_impact_at`, không qua save/load). t_core_fires: NO_BEHAVIOUR chỉ còn `rule_none`.
 - Chưa chạy cả suite / fingerprint (RULES_VERSION do làn I: core_offer, RunState, combat_engine, core_hooks đổi chữ; Quạ/Hoá Thạch đổi hành vi run).
+
+## Làn VZ - Lõi phải nhìn thấy được (nhánh depth/VZ)
+
+**Hợp đồng tín hiệu (engine/làn FX phát, UI chỉ nghe):**
+`EventBus.core_fired(core_id: String, unit_uid: int, amount: int, kind: String)`
+- Không đổi `relic_pulsed(relic_id, uid)` (GDScript signal không có tham số mặc định, đổi chữ ký là phá mọi chỗ emit cũ). Lõi dùng `core_fired`, relic cũ vẫn `relic_pulsed`.
+- `core_id` = id RelicDef của Lõi (vd `c_bastion`). `unit_uid` = đơn vị nhận tác động (bị đánh / được khiên / người bắn nếu không có); 0 hoặc uid lạ thì UI gắn vào Axie đầu tiên.
+- `amount` > 0 = số thực sự đã xảy ra (sau khi tính xong, sau cap); 0 = không có số (chỉ hiện tên).
+- `kind`: `dmg` | `thorns` | `poison` (hiện "−N") ; `shield` | `block` | `heal` | `mana` | `reroll` | `quest_step` (hiện "+N"). "" hoặc lạ = chỉ tên.
+- Phát SAU khi hiệu ứng đã xảy ra, chỉ để hiển thị, không được gây hiệu ứng. Nhiều Lõi bắn cùng một nhịp, cùng đơn vị: UI gộp vào một chữ nổi (cùng Lõi+kind thì cộng số).
+- Emit ở engine chưa có (core_hooks.gd còn 84/100 hàm im lặng): việc của làn FX. Chưa emit = chưa thấy gì, UI sẵn sàng.
+
+**UI đã nối:** `CorePanel` (nháy ô + chip "xN" số lần trong trận, chỉ combat HUD), `CombatView._on_core_fired` (log + chữ nổi `UI3.core_float`, `core_float_log` cho test), `RunState.core_impact` ({core_id: {n, by:{kind: tổng}}}, thuần thống kê, có trong to_data/from_data, reset trong reset()), Result card "Cores" (mỗi Lõi + "blocked 21", Lõi nhiều nhất viền accent + "Most impact"). Helper chữ/màu: `scenes/shared/CoreFeedback.gd`.
+
+**Cho làn I:** đã sửa `autoload/EventBus.gd` (thêm signal) và `autoload/RunState.gd` (core_impact + kết nối) = file có trong fingerprint; cây chính cần bump `RULES_VERSION` (không đổi luật, chỉ để t_rules_version khớp). Chưa làm: tóm tắt Lõi sau mỗi trận trên overlay phần thưởng (tuỳ chọn).

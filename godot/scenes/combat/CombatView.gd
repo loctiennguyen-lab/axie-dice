@@ -1592,6 +1592,7 @@ func _connect_event_bus() -> void:
 	EventBus.face_used.connect(_on_face_used)
 	EventBus.resonance_triggered.connect(_on_resonance_triggered)
 	EventBus.relic_pulsed.connect(_on_relic_pulsed)
+	EventBus.core_fired.connect(_on_core_fired)
 	EventBus.float_text.connect(_on_float_text)
 	EventBus.plating_off.connect(_on_plating_off)
 	EventBus.plating_decay.connect(_on_plating_decay)
@@ -3000,6 +3001,79 @@ func _on_resonance_triggered(uid: int) -> void:
 
 func _on_relic_pulsed(relic_id: String, uid: int) -> void:
 	_append_log("[relic] %s on %s" % [relic_id, _unit_name(uid)])
+
+## Depth v3 lane VZ: a Core did something. The log line stays, but the player sees it without the log: the
+## Core's slot pulses (CorePanel listens itself) and a float note appears beside the unit. Cores that fire in the same
+## beat on the same unit merge into ONE note (one line per Core+kind, amounts summed).
+var core_float_log: Array = []            ## test hook: one {uid, lines:[String]} per note shown
+var _core_batch: Dictionary = {}          ## uid -> {"core|kind": {name, amount, kind}}
+var _core_float_live: Dictionary = {}     ## uid -> notes currently on screen (stacked upward)
+
+func _on_core_fired(core_id: String, uid: int, amount: int, kind: String) -> void:
+	var def = RelicRegistry.get_def(core_id)
+	var nm := UI3.title_case(UI3.player_text(String(def.name))) if def != null else core_id
+	_append_log("[core] %s on %s" % [CoreFeedback.float_line(nm, amount, kind), _unit_name(uid)])
+	var armed := not _core_batch.is_empty()
+	var group: Dictionary = _core_batch.get(uid, {})
+	var key := "%s|%s" % [core_id, kind]
+	var e: Dictionary = group.get(key, {"name": nm, "amount": 0, "kind": kind})
+	e["amount"] = int(e["amount"]) + maxi(amount, 0)
+	group[key] = e
+	_core_batch[uid] = group
+	if not armed:
+		if impact_delay() <= 0.0:
+			_flush_core_floats.call_deferred()   # still one beat later, so same-frame Cores merge
+		else:
+			_after_impact(_flush_core_floats)
+
+
+func _flush_core_floats() -> void:
+	var batch := _core_batch
+	_core_batch = {}
+	for uid in batch.keys():
+		var lines: Array = []
+		var texts: Array = []
+		for e in (batch[uid] as Dictionary).values():
+			var t := CoreFeedback.float_line(String(e["name"]), int(e["amount"]), String(e["kind"]))
+			texts.append(t)
+			lines.append({"text": t, "token": CoreFeedback.color_token(String(e["kind"]))})
+		core_float_log.append({"uid": int(uid), "lines": texts})
+		_spawn_core_note(int(uid), lines)
+
+
+func _spawn_core_note(uid: int, lines: Array) -> void:
+	if disable_juice_for_tests or not is_inside_tree() or _stage3d == null or _unit_visuals_root == null or _combat == null:
+		return
+	var target := uid
+	if _combat.by_uid(uid) == null:
+		var alive := _party_dice_units()
+		if alive.is_empty():
+			return
+		target = alive[0].uid
+	var a := _status_head_anchor(target, not _combat_is_enemy_uid(target), _stage3d.position)
+	if a.x < 0.0:
+		return
+	var chip := UI3.core_float(lines)
+	_unit_visuals_root.add_child(chip)
+	var sz := chip.get_combined_minimum_size()
+	chip.size = sz
+	var vs := get_viewport_rect().size
+	var stack := int(_core_float_live.get(target, 0))
+	# Beside the head (not above it): the unit's own damage number rises straight up from the nameplate.
+	var pos := a + Vector2(48.0, -sz.y * 0.5 - float(stack) * (sz.y + 4.0))
+	pos.x = clampf(pos.x, 24.0, vs.x - 24.0 - sz.x)
+	pos.y = clampf(pos.y, 24.0, vs.y - 24.0 - sz.y)
+	chip.position = pos
+	_core_float_live[target] = stack + 1
+	var rise := 8.0 if flashes_suppressed() else 24.0
+	var tw := chip.create_tween()
+	tw.tween_interval(1.1)
+	tw.chain().tween_property(chip, "position:y", maxf(24.0, pos.y - rise), 0.5)
+	tw.parallel().tween_property(chip, "modulate:a", 0.0, 0.5)
+	tw.chain().tween_callback(func():
+		_core_float_live[target] = maxi(0, int(_core_float_live.get(target, 1)) - 1)
+		chip.queue_free())
+
 
 func _on_float_text(uid: int, text: String, css_class: String, big: int) -> void:
 	if text == "HOLD":
