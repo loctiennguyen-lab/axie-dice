@@ -134,3 +134,7 @@ Commit (mới nhất trước): bf4486e feat(core): enable Fissure, Bastion, Gro
 - Có proof trong t_core_behaviour (147 check) cho: Loop, Sacrifice, Sixth Die, Concord, Descend. CHƯA có proof: Fissure, Bastion, Growing Shell, Deep Current, Nest, 4 luật.
 - Chưa làm: việc 2 anti-stall (t_anti_stall vẫn ghim trần 40); review A: (a) assert t_replay Giáp/Đòn Nạp + tamper digest, (b) t_preview_damage đối chiếu _do_face + không event, (c) charge_roll thoát sớm khi intent rỗng, (d) dmg_used_turn có dùng không (R13 làm bằng hook nên có lẽ gỡ được); cả suite + Worker test chưa chạy.
 - Đoán: Mai Lớn Dần giảm stack = ceil(n/3); Thuỷ Triều: fight chẵn trước nước, đếm bằng relic_state; Nest trần Egg theo tokenCap.
+
+### Làn B - sửa theo review (agent 3)
+- Reroll Lõi dùng đúng pick index của offer đang mở (`RunState._core_offer_pick`, lưu trong save `core.offer_pick`); `CoreOffer.reroll_card` giữ trần stat/quest mỗi bộ ba ở cả nhánh "trục khác".
+- Ranked: `rules_on` luôn true (bỏ miễn trừ run đầu), `core_off` bị bỏ ở bản shipped. `RunVerifier` từ chối (bad_header) log ranked có `loadout.rules_on=false`, hoặc `loadout.core_off=true` khi không phải editor/test (`RunState.core_flow_switches_allowed()`). Chưa bump RULES_VERSION: lúc ghép, nhớ rằng log ranked run đầu của tài khoản nay có offer Luật nên đổi hành vi so với bản trước.

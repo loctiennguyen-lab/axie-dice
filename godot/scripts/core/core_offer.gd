@@ -359,22 +359,25 @@ static func reroll_card(rng: Rng, offer: Array, idx: int, ctx: Dictionary) -> Di
 	var tier := int(old.get("tier", 0))
 	var pool := valid_pool(ctx)
 	var used_ids: Array = []
-	for c in offer:
-		used_ids.append(String((c as Dictionary).get("key", "")))
-	var same := _same_tier(pool, String(old.get("axis", "")), tier, used_ids)
+	var others: Array = []   # the cards that stay: same per-offer caps as build_offer apply to the replacement
+	for j in offer.size():
+		used_ids.append(String((offer[j] as Dictionary).get("key", "")))
+		if j != idx:
+			others.append(offer[j])
+	var old_axis := String(old.get("axis", ""))
+	var same := _same_tier(pool, old_axis, tier, used_ids) if _axis_allowed(others, old_axis) else []
 	if not same.is_empty():
 		return card_of(same[rng.next_int(same.size())], idx)
 	var other_axes: Array = []
 	for d in pool:
 		var ax := String(d.core_axis)
-		if ax != String(old.get("axis", "")) and not other_axes.has(ax) and int(d.rarity) == tier \
-				and not used_ids.has(String(d.id)):
+		if ax != old_axis and not other_axes.has(ax) and int(d.rarity) == tier \
+				and not used_ids.has(String(d.id)) and _axis_allowed(others, ax):
 			other_axes.append(ax)
 	other_axes.sort()
 	var in_offer: Array = []
-	for j in offer.size():
-		if j != idx:
-			in_offer.append(String((offer[j] as Dictionary).get("axis", "")))
+	for c in others:
+		in_offer.append(String((c as Dictionary).get("axis", "")))
 	var fresh := other_axes.filter(func(a): return not in_offer.has(a))
 	var use: Array = fresh if not fresh.is_empty() else other_axes
 	if use.is_empty():
@@ -382,6 +385,16 @@ static func reroll_card(rng: Rng, offer: Array, idx: int, ctx: Dictionary) -> Di
 	var ax2 := String(use[rng.next_int(use.size())])
 	var c2 := _same_tier(pool, ax2, tier, used_ids)
 	return card_of(c2[rng.next_int(c2.size())], idx)
+
+
+## True when one more card of `axis` fits next to `others` (trần stat / quest mỗi bộ ba, same as build_offer).
+static func _axis_allowed(others: Array, axis: String) -> bool:
+	var t := tuning()
+	if axis == "stat" and _count_axis(others, "stat") >= t.core_stat_max_per_offer:
+		return false
+	if axis == "quest" and _count_axis(others, "quest") >= t.core_quest_max_per_offer:
+		return false
+	return true
 
 
 ## True when reroll_card() would find a replacement (seed independent): lets the UI grey the button out.

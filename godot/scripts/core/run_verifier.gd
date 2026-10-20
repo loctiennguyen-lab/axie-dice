@@ -80,6 +80,11 @@ static func verify(log: ActionLog, tape: Array = [], loadout: Dictionary = {}) -
 
 	# --- replay -------------------------------------------------------------------------
 	var lo: Dictionary = loadout if not loadout.is_empty() else (header.get("loadout", {}) as Dictionary)
+	# Ranked cannot dodge the Run Rule (rules_on must be true) and core_off is for tests/tools only.
+	if not bool(lo.get("rules_on", false)):
+		return _fail(ERR_BAD_HEADER, "A ranked run always plays with the Run Rule on; this record says otherwise.")
+	if bool(lo.get("core_off", false)) and not RunState.core_flow_switches_allowed():
+		return _fail(ERR_BAD_HEADER, "A ranked run cannot switch the Core flow off.")
 	var params := {"team_keys": team, "mode": String(header.get("mode", "short")),
 		"ascension": int(header.get("ascension", 0)), "ranked": true, "loadout": lo}
 	if lo.has("bonuses"):

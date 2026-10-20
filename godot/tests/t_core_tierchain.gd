@@ -63,8 +63,13 @@ func _ready() -> void:
 	RunState.reset()
 	RunState.from_data(JSON.parse_string(JSON.stringify(d)))
 	_assert(RunState.core_tier_chain == chain and chain.size() == 4, "chain survives save/load")
+	_assert(RunState.core_off, "a core_off run stays core_off after save/load (explicit flag)")
 	RunState.reset()
 	RunState.start_new_run_seeded(5, {"team_keys": ["plant1", "beast1", "aqua1"], "mode": "short", "ascension": 0,
 		"ranked": false, "bonuses": {}, "loadout": {"rules_on": false, "core_off": false}})
 	_assert(RunState.map_graph == map_a, "Core offers do not change the map (shared rng untouched)")
+	var d2 := RunState.to_data()
+	RunState.reset()
+	RunState.from_data(JSON.parse_string(JSON.stringify(d2)))
+	_assert(not RunState.core_off, "a Core run stays Core after save/load")
 	_done("t_core_tierchain")
