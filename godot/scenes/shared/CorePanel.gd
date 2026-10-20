@@ -7,6 +7,12 @@ extends VBoxContainer
 const TIER_NAME := ["Moss", "Amber", "Crystal"]
 const TIER_TOKEN := ["rarity_rare", "rarity_legendary", "rarity_epic"]
 
+## Axis -> icon (assets/ui3/icons) and word. One glyph per axis so the axis never relies on colour alone.
+const AXIS_ICON := {"stat": "face_buff", "dice": "face_dmg", "pos": "face_summon", "mana": "face_mana",
+	"quest": "node_treasure", "rule": "face_debuff", "run_rule": "ui_settings"}
+const AXIS_NAME := {"stat": "Stat", "dice": "Dice faces", "pos": "Position", "mana": "Mana",
+	"quest": "Quest", "rule": "Rule change", "run_rule": "Run rule"}
+
 var slot_px := 44
 var _slots: HBoxContainer
 var _quests: VBoxContainer
@@ -61,6 +67,41 @@ func refresh() -> bool:
 	return any
 
 
+## Chip with an icon + word (Rowdies 18): wood-2 fill, 2 px border in `border`. icon "" = word only.
+static func word_chip(text: String, icon_name: String, border: Color, chip_name := "") -> PanelContainer:
+	var p := PanelContainer.new()
+	p.name = chip_name
+	p.theme = UI3Theme.get_theme()
+	var sb := UI3Theme.flat(UI3Theme.color("panel_raised"), UI3Theme.radius("s"), 2, border)
+	sb.content_margin_left = 8
+	sb.content_margin_right = 12
+	sb.content_margin_top = 2
+	sb.content_margin_bottom = 2
+	p.add_theme_stylebox_override("panel", sb)
+	p.custom_minimum_size = Vector2(0, 36)
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 8)
+	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	if icon_name != "":
+		var ic := TextureRect.new()
+		ic.name = "Icon"
+		ic.texture = UI3.icon(icon_name)
+		ic.custom_minimum_size = Vector2(24, 24)
+		ic.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		ic.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		ic.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		ic.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		row.add_child(ic)
+	var l := UI3.label(text, "LabelDisplay")
+	l.name = "Text"
+	l.add_theme_font_size_override("font_size", 18)
+	l.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	row.add_child(l)
+	p.add_child(row)
+	p.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	return p
+
+
 func _slot(def, is_rule: bool, empty_name: String) -> PanelContainer:
 	var s := PanelContainer.new()
 	s.name = "RuleSlot" if is_rule else "CoreSlot_%s" % empty_name.replace(" ", "")
@@ -78,6 +119,19 @@ func _slot(def, is_rule: bool, empty_name: String) -> PanelContainer:
 	l.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	if not filled:
 		l.modulate.a = 0.35
+	if filled:
+		var ax := "run_rule" if is_rule else String(def.core_axis)
+		var ic := TextureRect.new()
+		ic.name = "AxisIcon"
+		ic.texture = UI3.icon(String(AXIS_ICON.get(ax, "face_buff")))
+		ic.custom_minimum_size = Vector2(slot_px * 0.5, slot_px * 0.5)
+		ic.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		ic.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		ic.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+		ic.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		ic.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		s.add_child(ic)
+		l.visible = false
 	s.add_child(l)
 	var tip := "%s: empty" % empty_name
 	if filled:

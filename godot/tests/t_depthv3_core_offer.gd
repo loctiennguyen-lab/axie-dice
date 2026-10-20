@@ -43,21 +43,23 @@ func _ready() -> void:
 			panels.append(c)
 	_check(panels.size() == 3, "3 core cards")
 	_check(rm._overlay_root.find_child("RewardTitle", true, false).text == "CHOOSE A CORE", "core title")
-	var lbl: Label = (panels[1] as Node).find_child("RarityLabel", true, false)
-	_check(lbl != null and lbl.text == "Moss · Dice faces", "tier + axis word: %s" % (lbl.text if lbl else "none"))
-	var rr: Button = rm._overlay_root.find_child("RerollButton", true, false)
-	_check(rr != null and rr.visible and rr.text.contains("2 left"), "reroll shows count")
+	var tl: Label = (panels[1] as Node).find_child("TierChip", true, false).find_child("Text", true, false)
+	var al: Label = (panels[1] as Node).find_child("AxisChip", true, false).find_child("Text", true, false)
+	_check(tl.text == "Moss" and al.text == "Dice faces", "tier chip + axis chip: %s / %s" % [tl.text, al.text])
+	_check((panels[1] as Node).find_child("AxisChip", true, false).find_child("Icon", true, false) != null, "axis chip has an icon")
+	_check(rm._overlay_root.find_child("CardReroll0", true, false) != null and rm._overlay_root.find_child("CardReroll2", true, false) != null, "reroll button on every core card")
+	var rr: Label = rm._overlay_root.find_child("RerollLeft", true, false)
+	_check(rr != null and rr.text.contains("2"), "shared reroll counter")
 	# Amber / Crystal use their own colours.
-	var amber: Color = UI3Theme.color("rarity_legendary")
 	var cs := cards()
 	cs[0]["tier"] = 1
 	cs[1]["tier"] = 2
 	RunState.pending_rewards.assign(cs)
 	rm.call("_show_reward_overlay", "x")
 	await get_tree().process_frame
-	var l2: Label = rm._overlay_root.find_child("RewardCard0", true, false).find_child("RarityLabel", true, false)
-	_check(l2.text.begins_with("Amber") and l2.get_theme_color("font_color").is_equal_approx(amber), "amber tier word + colour")
-	_check(rm._overlay_root.find_child("RewardCard1", true, false).find_child("RarityLabel", true, false).text.begins_with("Crystal"), "crystal word")
+	var l2: Label = rm._overlay_root.find_child("RewardCard0", true, false).find_child("TierChip", true, false).find_child("Text", true, false)
+	_check(l2.text == "Amber", "amber tier word")
+	_check(rm._overlay_root.find_child("RewardCard1", true, false).find_child("TierChip", true, false).find_child("Text", true, false).text == "Crystal", "crystal word")
 	# Take button picks the selected card (chosen reward reaches the game layer).
 	_check(rm._overlay_root.find_child("TakeButton", true, false) != null, "take button")
 	# Run rule: 2 cards, no reroll, "No Rule" card present.

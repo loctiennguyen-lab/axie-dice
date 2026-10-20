@@ -14,12 +14,19 @@ func _ready() -> void:
 		await get_tree().process_frame
 	for size in [Vector2i(1920, 1080), Vector2i(1280, 720)]:
 		get_window().size = size
-		var cs: Array = T.cards()
-		cs[1]["tier"] = 1
-		cs[2]["tier"] = 2
+		CoreTestUtil.enable()
+		var cs: Array = []
+		var seen_ax: Array = []
+		for d in RelicRegistry.all_defs_sorted():
+			if String(d.id).begins_with("c_test_") and not seen_ax.has(String(d.core_axis)) and cs.size() < 3:
+				seen_ax.append(String(d.core_axis))
+				cs.append(CoreOffer.card_of(d, cs.size()))
+		RunState.core_rerolled_slots = [1] as Array[int]
 		for pair in [["core", cs], ["rule", T.rules()]]:
 			RunState.pending_rewards.assign(pair[1])
 			RunState.reward_reroll_charges = 2
+			RunState.core_reroll_left = 2
+			RunState._core_offer_active = pair[0] == "core"
 			rm.call("_show_reward_overlay", "x")
 			for _i in 12:
 				await get_tree().process_frame
