@@ -110,9 +110,9 @@ func _ready() -> void:
 	_check((h["enemy_next"] as Dictionary).size() >= 1, "enemy_next lists the boss")
 
 	# --- A3 reroll base, bonuses still add ---
-	# depth v3: the base is now reroll.free (1); the A3 delta is clamped by its floor (1), so A3 no longer lowers it.
-	_check(_engine("battle", 2).max_rerolls == 1 and _engine("battle", 3).max_rerolls == 1, "A0/A3 base reroll = reroll.free = 1")
-	_check(_engine("battle", 3, {"bonus_reroll": 2}).max_rerolls == 3, "bonuses stack on the reduced base")
+	# Liam: A3+ "Short Dice" loses the free reroll (every reroll costs mana); A0-A2 keep reroll.free = 1.
+	_check(_engine("battle", 2).max_rerolls == 1 and _engine("battle", 3).max_rerolls == 0, "A0-A2 1 free reroll, A3 none")
+	_check(_engine("battle", 3, {"bonus_reroll": 2}).max_rerolls == 2, "bonuses stack on the reduced base")
 
 	# --- boons are plain numbers ---
 	RunState.start_new_run_seeded(5, {"team_keys": TEAM, "mode": "short", "ascension": 0, "ranked": false,

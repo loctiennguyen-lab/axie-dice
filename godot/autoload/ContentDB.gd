@@ -178,6 +178,8 @@ const RULES_DIR := "res://assets/data/rules/"
 var ascension_table: Array = []   ## index = ascension level 0..10, each a Dictionary (see ascension.json)
 ## Depth v3 6.4: affix id -> effect keys (assets/data/rules/elite_affixes.json).
 var elite_affixes: Dictionary = {}
+## forbidden_pairs + first_run ids from the same file (6.4 / 6.7b.9).
+var elite_affix_meta: Dictionary = {}
 var combat_tune: Dictionary = {}  ## attrition, spike, phase_thresholds, newcomer_runs
 var boons: Dictionary = {}        ## boon_id -> {id, name_key, effect}
 var mission_table: Dictionary = {}  ## mission_rules.json: standard, rules, conditions
@@ -204,7 +206,9 @@ func _load_rules() -> void:
 		for k in (combat_tune["TUNE"] as Dictionary):
 			TUNE[k] = (combat_tune["TUNE"] as Dictionary)[k]
 	mission_table = _load_rules_json("mission_rules.json")
-	elite_affixes = (_load_rules_json("elite_affixes.json").get("affixes", {}) as Dictionary).duplicate(true)
+	var _ea := _load_rules_json("elite_affixes.json")
+	elite_affixes = (_ea.get("affixes", {}) as Dictionary).duplicate(true)
+	elite_affix_meta = {"forbidden_pairs": (_ea.get("forbidden_pairs", []) as Array).duplicate(true), "first_run": (_ea.get("first_run", {}) as Dictionary).duplicate(true)}
 	boons = {}
 	for b in (_load_rules_json("boons.json").get("boons", []) as Array):
 		boons[String((b as Dictionary).get("id", ""))] = (b as Dictionary).duplicate(true)
@@ -336,13 +340,13 @@ func _load_enemies() -> void:
 			],
 		},
 		"spikelet": {
-			"n": "Spikelet", "role": "tank", "cost": 4, "hp": 12, "die": [
+			"n": "Spikelet", "trait": "plating", "role": "tank", "cost": 4, "hp": 12, "die": [
 				_f("m", "dmg", 3), _f("m", "buff", 0, ["thorns:3"]), _f("m", "dmg", 4),
 				_f("m", "shield", 4), _f("m", "dmg", 2), _blank(),
 			],
 		},
 		"jellyfin": {
-			"n": "Jellyfin", "role": "healer", "cost": 5, "hp": 13, "die": [
+			"n": "Jellyfin", "trait": "ward", "role": "healer", "cost": 5, "hp": 13, "die": [
 				_f("m", "dmg", 4, ["cleave"]), _f("m", "heal", 5), _f("m", "shield", 5),
 				_f("m", "heal", 4, ["aoe"]), _f("m", "dmg", 5), _blank(),
 			],
@@ -377,13 +381,13 @@ func _load_enemies() -> void:
 			],
 		},
 		"thornback": {
-			"n": "Thornback", "role": "tank", "cost": 6, "hp": 19, "die": [
+			"n": "Thornback", "trait": "plating", "role": "tank", "cost": 6, "hp": 19, "die": [
 				_f("m", "shield", 6), _f("m", "dmg", 5), _f("m", "buff", 0, ["thorns:4"]),
 				_f("m", "dmg", 6, ["cleave"]), _f("m", "dmg", 4), _blank(),
 			],
 		},
 		"warden": {
-			"n": "Warden", "role": "healer", "cost": 9, "hp": 26, "die": [
+			"n": "Warden", "trait": "mend", "role": "healer", "cost": 9, "hp": 26, "die": [
 				_f("m", "shield", 9, ["aoe"]), _f("m", "dmg", 8), _f("m", "heal", 8, ["aoe"]),
 				_f("m", "dmg", 10), _f("m", "buff", 0, ["thorns:5"]), _blank(),
 			],
@@ -413,7 +417,7 @@ func _load_enemies() -> void:
 			],
 		},
 		"totem": {
-			"n": "Chimera Totem", "role": "buffer", "cost": 6, "hp": 16, "die": [
+			"n": "Chimera Totem", "trait": "ward", "role": "buffer", "cost": 6, "hp": 16, "die": [
 				_f("m", "buff", 0, ["enrage"]), _f("m", "shield", 7, ["aoe"]), _f("m", "dmg", 5),
 				_f("m", "buff", 0, ["enrage"]), _f("m", "heal", 6, ["aoe"]), _blank(),
 			],
@@ -437,7 +441,7 @@ func _load_enemies() -> void:
 			],
 		},
 		"e_bulwark": {
-			"n": "Elite Bulwark", "role": "tank", "cost": 11, "elite": 1, "hp": 38, "die": [
+			"n": "Elite Bulwark", "trait": "plating", "role": "tank", "cost": 11, "elite": 1, "hp": 38, "die": [
 				_f("m", "shield", 12, ["aoe"]), _f("m", "dmg", 10), _f("m", "buff", 0, ["thorns:6"]),
 				_f("m", "dmg", 12), _f("m", "heal", 10, ["aoe"]), _f("m", "dmg", 7, ["cleave"]),
 			],

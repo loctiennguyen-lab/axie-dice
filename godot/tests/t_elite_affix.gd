@@ -50,7 +50,7 @@ func _dmg_intent(c: CombatEngine, target: Unit, value: int = 3) -> Unit:
 
 func _table() -> void:
 	var t := ContentDB.elite_affixes
-	_check(t.size() == 9, "nine affixes expected (Trom Mana dropped), got %d" % t.size())
+	_check(t.size() == 14, "14 affixes expected (9 + iron, ward, spite, mend, charge), got %d" % t.size())
 	for id in ["echo", "shell", "frenzy", "swarm", "thorns", "rush", "fang", "ambush", "chill"]:
 		_check(t.has(id), "missing affix %s" % id)
 	_check(not _combat("shell", "battle").enemies[0].custom_state.has("affix"), "affix must only apply to elite fights")

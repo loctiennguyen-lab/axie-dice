@@ -75,6 +75,11 @@ static func resolve(ctx: Dictionary) -> int:
 		v = ceil(v * 1.5)                                                        # 6. vulnerable
 	if tgt.is_boss and attack and String(ctx.get("face_type", "dmg")) == "dmg" and combat.has_method("boss_hollow_taken_mult"):
 		v = ceil(v * float(combat.boss_hollow_taken_mult(tgt)))                  # 6b. boss rhythm: hollow turn (depth v3 6.3)
+	if attack and bool(ctx.get("single", false)) and not pierce and tgt.side == "e":
+		var plated := CombatTraits.reduce(combat, tgt, v)                        # 6c. Plating (depth v3 6.7 M1/M6), after every multiplier
+		if plated < v:
+			EventBus.plating.emit(tgt.uid, int(v), int(plated), CombatTraits.plating_of(combat, tgt))
+			v = plated
 	if tgt.side == "p":
 		var dr := RelicHooks.sum(combat, "dr")
 		if dr > 0.0:
@@ -138,6 +143,8 @@ static func resolve(ctx: Dictionary) -> int:
 	var skip_thorns := pierce and (RelicHooks.has(combat, "piercePlus") or RelicHooks.has(combat, "pierceThornProof")
 		or (src != null and src.side == "p" and src.cls == "bird" and RelicHooks.field(combat, "talon_ignore_thorns", 0.0) > 0.0))
 	var thorns_now := int(tgt.status.get("thorns", 0))
+	if bool(tgt.custom_state.get("spite", false)):
+		thorns_now = 0                           # M3 Spite replaces the old thorns of this unit
 	if tgt.side == "p" and tgt.is_token:       # thornling: Eggs reflect at least this much from the moment they exist
 		thorns_now = maxi(thorns_now, int(RelicHooks.max_val(combat, "eggThorns", 0.0)))
 	if src != null and attack and not skip_thorns and thorns_now > 0 and src.hp > 0 and src != tgt:
