@@ -377,6 +377,27 @@ static func status_label_chip(status: String, count: int) -> PanelContainer:
 	return p
 
 
+## Floating note chip near a unit ("Plating broken"): wood-1 plate, 2 px debuff border, Rowdies 18 cream text.
+## The caller positions it (keep it inside the 24 px safe margin) and fades it out.
+static func float_chip(text: String, debuff := true) -> PanelContainer:
+	var p := PanelContainer.new()
+	p.theme = UI3Theme.get_theme()
+	var sb := UI3Theme.flat(UI3Theme.color("panel"), UI3Theme.radius("s"), 2,
+		UI3Theme.color("status_debuff_border" if debuff else "status_buff_border"))
+	sb.content_margin_left = 12
+	sb.content_margin_right = 12
+	sb.content_margin_top = 4
+	sb.content_margin_bottom = 4
+	p.add_theme_stylebox_override("panel", sb)
+	var l := label(text, "LabelDisplay")
+	l.add_theme_font_size_override("font_size", 18)
+	l.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	p.add_child(l)
+	p.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	p.z_index = 6
+	return p
+
+
 ## Round 2 IntentBadge colour for a game face type (attack red-6, shield blue-7, buff kam-5, debuff axie-bird).
 static func intent_color(game_type: String) -> Color:
 	match game_type:

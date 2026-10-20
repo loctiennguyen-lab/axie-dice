@@ -2490,21 +2490,42 @@ func _plating_preview(e: Unit) -> String:
 	return "%d → %d" % [raw, after] if after != raw else ""
 
 
-## Floats over the foe when its Plating breaks / wears (EventBus plating_off, plating_decay).
+## Floats near the foe when its Plating breaks / wears (EventBus plating_off, plating_decay): a UI3 chip above the
+## foe's head, clamped inside the 24 px safe frame so it never clips at any window size.
 func _on_plating_off(uid: int, _turns: int) -> void:
 	_plating_learned = true
 	_after_impact(func():
-		var p: UnitPortrait = _portraits.get(uid)
-		if p != null and is_instance_valid(p):
-			p.spawn_float_text(TranslationServer.translate("Plating broken"), "deb", 1)
+		_spawn_foe_note(uid, TranslationServer.translate("Plating broken"))
 		_rebuild_all())
 
 
 func _on_plating_decay(uid: int, p_now: int) -> void:
 	_after_impact(func():
-		var p: UnitPortrait = _portraits.get(uid)
-		if p != null and is_instance_valid(p):
-			p.spawn_float_text(TranslationServer.translate("Plating wears down") + " %d" % p_now, "deb", 0))
+		_spawn_foe_note(uid, TranslationServer.translate("Plating wears down") + " " + str(p_now)))
+
+
+func _spawn_foe_note(uid: int, text: String) -> void:
+	if disable_juice_for_tests or not is_inside_tree() or _stage3d == null or _unit_visuals_root == null:
+		return
+	var a := _status_head_anchor(uid, false, _stage3d.position)
+	if a.x < 0.0:
+		return
+	var chip := UI3.float_chip(text)
+	_unit_visuals_root.add_child(chip)
+	var sz := chip.get_combined_minimum_size()
+	chip.size = sz
+	var vs := get_viewport_rect().size
+	var pos := a - Vector2(sz.x * 0.5, sz.y + 40.0)   # above the ARM / status chips of that foe
+	pos.x = clampf(pos.x, 24.0, vs.x - 24.0 - sz.x)
+	pos.y = clampf(pos.y, 24.0, vs.y - 24.0 - sz.y)
+	chip.position = pos
+	var rise := 16.0 if flashes_suppressed() else 40.0
+	var tw := chip.create_tween()
+	tw.tween_interval(1.0)
+	tw.set_parallel(true)
+	tw.tween_property(chip, "position:y", maxf(24.0, pos.y - rise), 0.6)
+	tw.tween_property(chip, "modulate:a", 0.0, 0.6)
+	tw.chain().tween_callback(chip.queue_free)
 
 
 var _plating_learned := false
