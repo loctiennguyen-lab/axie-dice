@@ -649,9 +649,17 @@ func _lowest_by(units: Array, score: Callable) -> Unit:
 func _resolve_cantrips() -> void:
 	for u in alive_party().duplicate():
 		var guard := 0
+		# Depth v3 Core Loop (c_loop): the first cantrip an Axie resolves each roll is used one extra time.
+		var extra := int(RelicHooks.run_value_hook(self, "cantrip_extra", {"combat": self, "unit": u}, 0))
 		while u.has_rolled() and not u.roll_used() and _has_kw(u.current_face(), "cantrip") and guard < 6:
 			guard += 1
 			_exec_face(u, u.uid)
+			if extra > 0:
+				extra -= 1
+				if u.has_rolled():
+					u.rolled[0]["used"] = false
+					EventBus.float_text.emit(u.uid, "LOOP", "buf", 0)
+					_exec_face(u, u.uid)
 			_roll_unit(u)
 
 

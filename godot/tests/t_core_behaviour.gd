@@ -18,6 +18,7 @@ func _ready() -> void:
 	t_rule_cores()
 	t_quests()
 	t_run_rules()
+	t_engine_cores()
 	print("=== t_core_behaviour: %d checks, %d failure(s) ===" % [_checks, _fails.size()])
 	if _fails.is_empty():
 		print("t_core_behaviour: PASS — %d checks OK" % _checks)
@@ -443,3 +444,28 @@ func t_run_rules() -> void:
 	_ok(_val(c, c.party[2], "dmg", 1) == 1, "balance: min 1")
 	_used(c, c.party[3], "shield")
 	_ok(c.mana == m1 + 1, "balance: non-dmg face +1 mana")
+
+
+## Lane E: Cores whose hook lives in the engine.
+func _isolate(c: CombatEngine, keep: Unit) -> void:
+	for u in c.party:
+		if u != keep:
+			u.clear_roll()
+
+
+func t_engine_cores() -> void:
+	# Loop: the first cantrip an Axie resolves is used twice.
+	var mana_gain: Array = []
+	for relics in [[], ["c_loop"]]:
+		var c := _combat(relics)
+		var u: Unit = c.party[0]
+		_isolate(c, u)
+		var cant := {"part": "t", "type": "mana", "value": 3, "keywords": ["cantrip"], "rarity": 0}
+		var plain := {"part": "t", "type": "shield", "value": 1, "keywords": [], "rarity": 0}
+		u.die = [cant, plain, plain, plain, plain, plain]
+		c.mana = 0
+		c._rng = Rng.new(9)
+		u.set_roll(0, false)
+		c._resolve_cantrips()
+		mana_gain.append(c.mana)
+	_ok(int(mana_gain[1]) == int(mana_gain[0]) + 3, "loop: cantrip used once more (+3 mana), got %s" % str(mana_gain))
