@@ -21,7 +21,7 @@ OUT = arg("out", "/tmp/parasite")   # machine-local default; pass --out godot/as
 BLEND = arg("blend")
 FPS = 30
 SWORD_SCALE = 0.95    # the art shows a huge blade, as wide as the cape; the FBX is 4.7 m at 1.0
-HAIR_SCALE = 1.3      # the crest in Bug_1.png is clearly bigger than the delivered mesh (about 0.75 of the cape width)
+HAIR_SCALE = 1.0      # Liam 20/10: use the art-team mesh exactly as delivered (no crest scale-up)
 HAIR_PIVOT = Vector((0, 0.15, 2.30))
 
 # (name, head, tail, parent). Left bones are written for +X and mirrored.
