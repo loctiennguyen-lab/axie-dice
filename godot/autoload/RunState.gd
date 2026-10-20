@@ -946,6 +946,7 @@ func apply_combat_result(res: Dictionary, reward_seed: int = -1) -> void:
 		_apply_growth_keep(res.get("growth_keep", {}))
 		var kind := String(res.get("kind", "battle"))
 		note_quest_event("wins")
+		_crow_judge(res, kind)
 		if kind == "elite" or kind == "boss":
 			note_quest_event(kind)
 		if kind == "boss" and _is_final_boss_row(current_node_id):
@@ -2238,6 +2239,24 @@ func _core_trigger_hit(node_id: String) -> bool:
 	if String(trig[0]) == "row":
 		return node.row == int(trig[1])
 	return graph.boss_rows.find(node.row) == int(trig[1]) - 1
+
+
+## Run Rule Crow Herald (design 2b R11): the fight that opens a Core pick (from pick 2) decides that pick's tier: won within
+## `fast_turns` (boss: `fast_turns_boss`) turns with nobody down = +1, an Axie down = -1. Stacks on the chain via
+## core_tier_bump (floor moss, Crystal cap in effective_tier). Reads only the fight result, so replay gets the same bump.
+func _crow_judge(res: Dictionary, kind: String) -> void:
+	if run_rule != "rule_crow" or core_off or not _core_trigger_hit(current_node_id):
+		return
+	var turns := int((res.get("stat", {}) as Dictionary).get("turns", 0))
+	var lim := int(rule_knob("fast_turns_boss" if kind == "boss" else "fast_turns", 5 if kind != "boss" else 7))
+	var delta := 0
+	if int(res.get("downed", 0)) > 0:
+		delta = -1
+	elif turns <= lim:
+		delta = 1
+	if delta != 0:
+		add_core_tier_bump(delta)
+		CoreHooks.fire("rule_crow", -1, 1, "tier")
 
 
 ## +1 tier (or -1) for the NEXT Core offer: Elite affix(+) win, Crow Run Rule... (design 2.1). Replay-safe as long

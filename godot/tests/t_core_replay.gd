@@ -207,6 +207,22 @@ func _ready() -> void:
 			_assert(RunState.pending_rewards.size() == 4 or RunState.pending_rewards.size() >= 2, "Fossil on a Crystal pick: up to 4 cards")
 		else:
 			_assert(tmax >= 1, "Fossil lifts a moss pick: some card is Amber or better")
+	# Crow Herald proof (design 2b R11): fast and clean = +1, an Axie down = -1, slow = 0, boss limit 7, off-trigger node = nothing.
+	var cases := [[{"stat": {"turns": 5}, "downed": 0}, "battle", 1], [{"stat": {"turns": 6}, "downed": 0}, "battle", 0],
+		[{"stat": {"turns": 2}, "downed": 1}, "battle", -1], [{"stat": {"turns": 7}, "downed": 0}, "boss", 1],
+		[{"stat": {"turns": 8}, "downed": 0}, "boss", 0]]
+	for cc in cases:
+		CoreTestUtil.crow_setup(TEAM)
+		RunState._crow_judge(cc[0], String(cc[1]))
+		_assert(RunState.core_tier_bump == int(cc[2]), "Crow %s -> bump %d (got %d)" % [str(cc[0]), int(cc[2]), RunState.core_tier_bump])
+	CoreTestUtil.crow_setup(TEAM)
+	RunState.current_node_id = RunMapGraph.from_data(RunState.map_graph).start_node_id
+	RunState._crow_judge({"stat": {"turns": 1}, "downed": 0}, "battle")
+	_assert(RunState.core_tier_bump == 0, "Crow does nothing on a node that does not open a pick")
+	CoreTestUtil.crow_setup(TEAM)
+	RunState.run_rule = "rule_none"
+	RunState._crow_judge({"stat": {"turns": 1}, "downed": 0}, "battle")
+	_assert(RunState.core_tier_bump == 0, "no Crow rule, no bump")
 	RunBot.core_pick_id = ""
 	_guard.restore()
 	if _failures.is_empty():

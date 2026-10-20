@@ -442,6 +442,8 @@ func get_result() -> Dictionary:
 		# start and read by nothing outside this object, which is why the end-of-run screen had
 		# to say "not tracked" about numbers the engine had been counting all along.
 		"stat": stat.duplicate(true),
+		# Real (non-token) Axie down at the end of the fight. Read by Run Rule Crow Herald (design 2b R11).
+		"downed": real_party().filter(func(u): return u.hp <= 0).size(),
 	}
 
 

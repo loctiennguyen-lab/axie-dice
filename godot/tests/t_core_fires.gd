@@ -5,7 +5,7 @@ extends Node
 ## (knobs only): they are reported loudly (WARN), and the test fails if one of them starts firing so the entry gets removed.
 const ROSTER := ["plant1", "beast1", "aqua1", "reptile1", "bird1"]
 ## Enabled but nothing in the engine reads them yet (run-flow knobs: fossil/dim stone/crow tier shifts, rule_none is the empty rule).
-const NO_BEHAVIOUR := ["rule_crow", "rule_none"]
+const NO_BEHAVIOUR := ["rule_none"]
 var _fails: Array[String] = []
 var _checks := 0
 var _log: Array = []   # [id, uid, amount, kind]
@@ -148,8 +148,14 @@ func _build_table() -> void:
 	_scen["rule_heavy_finish"] = func(i): var c := _combat([i]); _only(c, c.party[0]); _play(c, c.party[0], _face("dmg", 3))
 	_scen["rule_quick_beat"] = func(i): var c := _combat([i]); c.enemies[0].is_boss = true; RelicHooks.fire(c, "on_turn_start", {"combat": c})
 	_scen["rule_upside_down"] = func(i): _upside(i)
+	_scen["rule_crow"] = func(_i): _crow()
 	_scen["c_fossil"] = func(i): _bet_run(i)
 	_scen["c_dim_stone"] = func(i): _bet_run(i)
+
+
+func _crow() -> void:
+	CoreTestUtil.crow_setup(ROSTER)
+	RunState._crow_judge({"stat": {"turns": 2}, "downed": 0}, "battle")
 
 
 ## Run-flow bets (Fossil / Dim Stone): fire from RunState, outside combat.
