@@ -1,5 +1,14 @@
 # Axie Dice — trạng thái hiện tại
 
+## ⇢ BẮT ĐẦU TỪ ĐÂY (chiều 22/10/2026) — V4 ENGINE GẦN XONG, UI ĐANG LÀM
+`../my-game-wt/V4` `depth/V4` (đọc `production/v4-impl-brief.md` các mục "Bước N - xong/bàn giao"): bước 1 BỘ/túi M/Overcast +0.5;
+bước 2 Liều/An toàn/rmode/pin/Nứt; bước 3 Mặt Tạm + T10; bước 4 trần thorn/poison, stage server (migration 0009), pin rmode+source
+(339903c). Review bước 1-3 lead-programmer: chỉ còn thorn/poison (đã làm ở bước 4). Đang: bước 5 (poison relic qua stack_cap,
+fake remote mã lỗi, MetaState.runs_completed, cả suite), security review Worker. `../my-game-wt/V4U` `depth/V4U` (UI theo
+`design/ux/depth-v4/combat-v4.md`): mục 1 BỘ trên tray commit WIP be8a8e3, còn 2-6. TD: chốt knob r2 (enemy_dmg 1.45,
+hollow 50, plating off 1) đang chạy xác nhận. Audio spec `design/audio/v4-dice-moments.md` (12 âm mới cần nguồn — hỏi Liam).
+Deploy (CHƯA, hỏi Liam): D1 0008 + 0009 → wrangler deploy → export-web + deploy-r2 cùng lúc.
+
 ## ⇢ BẮT ĐẦU TỪ ĐÂY (trưa 22/10/2026) — V4 ĐANG CODE
 QA vòng 2 (mục 6 QA plan): 12 lỗ hổng mới N1-N12 → systems-designer đang sửa GDD (chốt: N1 `reroll_paid_k` riêng; N5 trần thorn mỗi lần chuyển
 mỗi Axie; N7 stage theo số run hoàn thành server đếm được; N10 Lõi chủ TÁCH sang bump sau, keystone pin theo tài khoản+số run).
