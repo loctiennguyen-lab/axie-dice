@@ -1,0 +1,307 @@
+{
+ "_note": "Land v1 decor (land-v1-spec). scene is relative to res://assets/land/homeland/scenes/HomeLand_Asset/. scale = uniform scale applied to the scene; footprint_r = collision radius in world units. Shard costs are starting numbers, unsimmed.",
+ "tier_caps": [
+  10,
+  16,
+  24,
+  32,
+  42,
+  54
+ ],
+ "rarity_points": {
+  "C": 1,
+  "R": 3,
+  "E": 8
+ },
+ "per_id_scored": 3,
+ "biome_bonus": 2,
+ "grid": 0.5,
+ "lane_clear": 1.0,
+ "overlap": 0.5,
+ "edge_margin": 0.4,
+ "land_half": 15.5,
+ "milestones": [
+  {
+   "id": "m1",
+   "points": 5,
+   "kind": "title",
+   "item": "title:Gardener",
+   "label": "Title: Gardener"
+  },
+  {
+   "id": "m2",
+   "points": 12,
+   "kind": "cosmetic",
+   "item": "frame_u_vine",
+   "label": "Frame: Vine Wreath"
+  },
+  {
+   "id": "m3",
+   "points": 20,
+   "kind": "cosmetic",
+   "item": "die_u_moss",
+   "label": "Dice skin: Mossy Stone"
+  },
+  {
+   "id": "m4",
+   "points": 30,
+   "kind": "title",
+   "item": "title:Landscaper",
+   "label": "Title: Landscaper"
+  },
+  {
+   "id": "m5",
+   "points": 42,
+   "kind": "cosmetic",
+   "item": "frame_r_snowglobe",
+   "label": "Frame: Snow Globe"
+  },
+  {
+   "id": "m6",
+   "points": 55,
+   "kind": "cosmetic",
+   "item": "die_e_spore",
+   "label": "Dice skin: Glowcap Grove"
+  },
+  {
+   "id": "m7",
+   "points": 70,
+   "kind": "title",
+   "item": "title:Land Architect",
+   "label": "Title: Land Architect"
+  },
+  {
+   "id": "m8",
+   "points": 90,
+   "kind": "multi",
+   "items": [
+    "frame_l_sunburst"
+   ],
+   "decor": "decor_trophy",
+   "label": "Frame: Genesis Sunburst + Trophy decor"
+  }
+ ],
+ "decor": [
+  {
+   "id": "decor_sav_tree",
+   "name": "Savannah Tree",
+   "rarity": "C",
+   "biome": "savannah",
+   "scene": "Environment/Savannah/Tree/S_Tree01_Allside",
+   "min_tier": 1,
+   "shard_cost": 40,
+   "max_own": 6,
+   "footprint_r": 0.85,
+   "scale": 0.4678,
+   "craftable": true
+  },
+  {
+   "id": "decor_sav_shrub",
+   "name": "Savannah Shrub",
+   "rarity": "C",
+   "biome": "savannah",
+   "scene": "Environment/Savannah/Shrub/S_Shrub01_Allside",
+   "min_tier": 1,
+   "shard_cost": 20,
+   "max_own": 8,
+   "footprint_r": 0.7,
+   "scale": 0.339,
+   "craftable": true
+  },
+  {
+   "id": "decor_sav_rock",
+   "name": "Savannah Rock",
+   "rarity": "C",
+   "biome": "savannah",
+   "scene": "Environment/Savannah/Rock/SavannahRock_01",
+   "min_tier": 1,
+   "shard_cost": 25,
+   "max_own": 6,
+   "footprint_r": 0.75,
+   "scale": 0.5357,
+   "craftable": true
+  },
+  {
+   "id": "decor_sav_flower",
+   "name": "Cattail",
+   "rarity": "C",
+   "biome": "savannah",
+   "scene": "Environment/Savannah/Ground/Flower/Cattail2",
+   "min_tier": 1,
+   "shard_cost": 20,
+   "max_own": 8,
+   "footprint_r": 0.35,
+   "scale": 0.2771,
+   "craftable": true
+  },
+  {
+   "id": "decor_sav_path",
+   "name": "Stone Path",
+   "rarity": "C",
+   "biome": "savannah",
+   "scene": "Environment/Savannah/Decoration/StonePath/S_StonePath_Straight",
+   "min_tier": 1,
+   "shard_cost": 30,
+   "max_own": 10,
+   "footprint_r": 0.6,
+   "scale": 1.0,
+   "craftable": true
+  },
+  {
+   "id": "decor_for_tree",
+   "name": "Forest Tree",
+   "rarity": "C",
+   "biome": "forest",
+   "scene": "Environment/Forest/Tree/F_Tree1_AllSide",
+   "min_tier": 1,
+   "shard_cost": 40,
+   "max_own": 6,
+   "footprint_r": 0.65,
+   "scale": 0.5728,
+   "craftable": true
+  },
+  {
+   "id": "decor_for_flower",
+   "name": "Wildflowers",
+   "rarity": "C",
+   "biome": "forest",
+   "scene": "Environment/Forest/Ground/Flower/Flower_RandomColor",
+   "min_tier": 1,
+   "shard_cost": 25,
+   "max_own": 8,
+   "footprint_r": 0.85,
+   "scale": 0.9524,
+   "craftable": true
+  },
+  {
+   "id": "decor_arc_stone",
+   "name": "Frost Stone",
+   "rarity": "R",
+   "biome": "arctic",
+   "scene": "Environment/Arctic/Props/Stone_01",
+   "min_tier": 3,
+   "shard_cost": 90,
+   "max_own": 4,
+   "footprint_r": 0.55,
+   "scale": 4.3478,
+   "craftable": true
+  },
+  {
+   "id": "decor_arc_tree",
+   "name": "Frost Tree",
+   "rarity": "R",
+   "biome": "arctic",
+   "scene": "Environment/Arctic/Tree/A_Tree01_AllSide",
+   "min_tier": 3,
+   "shard_cost": 100,
+   "max_own": 4,
+   "footprint_r": 0.65,
+   "scale": 0.5728,
+   "craftable": true
+  },
+  {
+   "id": "decor_mys_tree",
+   "name": "Mystic Tree",
+   "rarity": "R",
+   "biome": "mystic",
+   "scene": "Environment/Mystic/Tree/M_Tree_01_Allside",
+   "min_tier": 4,
+   "shard_cost": 120,
+   "max_own": 4,
+   "footprint_r": 0.75,
+   "scale": 0.4233,
+   "craftable": true
+  },
+  {
+   "id": "decor_mys_rock",
+   "name": "Mystic Rock",
+   "rarity": "R",
+   "biome": "mystic",
+   "scene": "Environment/Mystic/Rock/Rock_01",
+   "min_tier": 4,
+   "shard_cost": 100,
+   "max_own": 4,
+   "footprint_r": 1.4,
+   "scale": 1.0811,
+   "craftable": true
+  },
+  {
+   "id": "decor_gen_tree",
+   "name": "Genesis Tree",
+   "rarity": "R",
+   "biome": "genesis",
+   "scene": "Environment/Genesis/Tree/SM_Tree_G_01",
+   "min_tier": 5,
+   "shard_cost": 140,
+   "max_own": 3,
+   "footprint_r": 0.75,
+   "scale": 0.5333,
+   "craftable": true
+  },
+  {
+   "id": "decor_luna_rock",
+   "name": "Luna Rocks",
+   "rarity": "R",
+   "biome": "luna",
+   "scene": "Environment/LunaLanding/Rock/SM_Rocks_Luna_A1 Variant",
+   "min_tier": 6,
+   "shard_cost": 140,
+   "max_own": 3,
+   "footprint_r": 0.85,
+   "scale": 0.6763,
+   "craftable": true
+  },
+  {
+   "id": "decor_luna_tree",
+   "name": "Luna Tree",
+   "rarity": "E",
+   "biome": "luna",
+   "scene": "Environment/LunaLanding/Tree/Luna_Landing_Tree_1 Variant",
+   "min_tier": 6,
+   "shard_cost": 300,
+   "max_own": 2,
+   "footprint_r": 0.7,
+   "scale": 0.6434,
+   "craftable": true
+  },
+  {
+   "id": "decor_terrarium_a4c",
+   "name": "Terrarium A4c",
+   "rarity": "E",
+   "biome": "",
+   "scene": "Item/NFT_Item/A4c/Terrarium_a4c",
+   "min_tier": 6,
+   "shard_cost": 450,
+   "max_own": 2,
+   "footprint_r": 0.55,
+   "scale": 0.7175,
+   "craftable": true
+  },
+  {
+   "id": "decor_terrarium_f19a",
+   "name": "Terrarium F19a",
+   "rarity": "E",
+   "biome": "",
+   "scene": "Item/NFT_Item/F19a/Terrarium_f19a",
+   "min_tier": 6,
+   "shard_cost": 450,
+   "max_own": 2,
+   "footprint_r": 0.9,
+   "scale": 1.1765,
+   "craftable": true
+  },
+  {
+   "id": "decor_trophy",
+   "name": "Land Architect Trophy",
+   "rarity": "E",
+   "biome": "",
+   "scene": "Item/NFT_Item/S21abc/Terrarium_s21a",
+   "min_tier": 1,
+   "shard_cost": 0,
+   "max_own": 1,
+   "footprint_r": 0.3,
+   "scale": 0.5202,
+   "craftable": false
+  }
+ ]
+}
