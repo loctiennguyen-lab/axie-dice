@@ -2144,7 +2144,10 @@ func _inspect_blockers() -> Array[Rect2]:
 		out.append(Rect2(0.0, t - 8.0, AidPanel.TRAY_W + 2.0 * AidPanel.EDGE, vs.y - t + 8.0))
 	var cluster := Rect2()
 	var first := true
-	for c in [_reroll_button, _undo_button, _end_turn_button]:
+	var cluster_btns: Array = [_reroll_button, _undo_button, _end_turn_button]
+	if _hud_frame != null:
+		cluster_btns.append_array([_hud_frame.hold_button, _hud_frame.wild_button, _hud_frame.overcast_button])
+	for c in cluster_btns:
 		if c != null and (c as Control).visible:
 			var r := (c as Control).get_global_rect()
 			cluster = r if first else cluster.merge(r)

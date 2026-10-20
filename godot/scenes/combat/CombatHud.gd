@@ -22,7 +22,10 @@ const RIGHT_W := 240.0
 const GAP := 12.0
 const END_H := 64.0
 const SMALL_H := 48.0
-const HINT_H := 24.0
+const HINT_H := 26.0
+const TILE := 48.0
+const TILE_LABEL_W := 80.0
+const TILE_LABEL_H := 22.0
 const UNDO_W := 88.0
 const ROW_GAP := 12.0   # Undo | Reroll: a clear gap, the two must not read as one button
 const INFO_W := 288.0
@@ -393,6 +396,75 @@ func adopt_log(text: RichTextLabel) -> PanelContainer:
 	return _log_plate
 
 
+## 48 x 48 square action tile (combat-v4.md 5.1b): flat glyph inside, 16 px word under it. `button.text` keeps the
+## full state words ("Hold: pick a die", "Wild: need 2 mana") for tooltips, tests and screen readers but is not
+## drawn on the tile (transparent font), the word under the tile is the short name.
+func _make_tile(b: Button, glyph: StringName, word: String) -> void:
+	b.custom_minimum_size = Vector2(TILE, TILE)
+	b.clip_text = true
+	b.icon = null
+	for c in ["font_color", "font_hover_color", "font_pressed_color", "font_disabled_color", "font_focus_color", "font_hover_pressed_color"]:
+		b.add_theme_color_override(c, Color(0, 0, 0, 0))
+	var g := ActionGlyph.new(glyph)
+	g.offset_left = 12
+	g.offset_top = 12
+	g.offset_right = -12
+	g.offset_bottom = -12
+	b.add_child(g)
+	var l := UI3.label(word, "LabelMuted")
+	l.name = "TileLabel_%s" % b.name
+	l.add_theme_font_size_override("font_size", 16)
+	l.add_theme_color_override("font_color", UI3Theme.color("text"))
+	var lbg := UI3Theme.flat(UI3Theme.color("panel"), UI3Theme.radius("s"))
+	lbg.bg_color.a = 0.94
+	lbg.content_margin_left = 4
+	lbg.content_margin_right = 4
+	l.add_theme_stylebox_override("normal", lbg)
+	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	l.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	l.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	l.clip_text = false
+	add_child(l)
+	b.visibility_changed.connect(func(): l.visible = b.visible)   # a mode that hides the tile hides its word too
+	b.set_meta("tile_label", l)
+	b.set_meta("tile_glyph", g)
+
+
+func _sync_tile(b: Button) -> void:
+	if b.has_meta("tile_glyph"):
+		(b.get_meta("tile_glyph") as ActionGlyph).dim = b.disabled and not b.has_meta("tile_on")
+
+
+## Tiles in a row: evenly spread over the 240 column, only the visible ones take a slot.
+func _place_tiles(x: float, y: float, tiles: Array) -> int:
+	var vis: Array = []
+	for b in tiles:
+		if b != null and b.visible:
+			vis.append(b)
+	var n := vis.size()
+	var pitch := 0.0 if n <= 1 else (RIGHT_W - TILE) / float(n - 1)
+	var prev_end := -1000.0
+	for i in n:
+		var b: Button = vis[i]
+		b.position = Vector2(x + pitch * i, y)
+		b.size = Vector2(TILE, TILE)
+		var l: Label = b.get_meta("tile_label")
+		l.visible = true
+		var lf := l.get_theme_font("font")
+		var lw := lf.get_string_size(l.text, HORIZONTAL_ALIGNMENT_LEFT, -1, 16).x + 8.0   # text + the plate's padding
+		l.size = Vector2(lw, TILE_LABEL_H)
+		# words never overlap each other: pushed right when the previous one is wide, 12 px of slack past the
+		# column edge (the screen margin is 24)
+		var lx := minf(maxf(b.position.x + (TILE - lw) * 0.5, prev_end + 2.0), x + RIGHT_W + 12.0 - lw)
+		lx = maxf(lx, x - 12.0)
+		prev_end = lx + lw
+		l.position = Vector2(lx, y + TILE + 2.0)
+	for b in tiles:
+		if b != null and b.has_meta("tile_label") and not b.visible:
+			(b.get_meta("tile_label") as Label).visible = false
+	return n
+
+
 func adopt_right_zone(undo: Button, reroll: Button, end_turn: Button) -> void:
 	undo_button = undo
 	reroll_button = reroll
@@ -408,50 +480,44 @@ func adopt_right_zone(undo: Button, reroll: Button, end_turn: Button) -> void:
 		b.focus_mode = Control.FOCUS_ALL
 		b.mouse_default_cursor_shape = Control.CURSOR_POINTING_HAND
 		add_child(b)
-	for b in [undo, reroll]:
-		b.add_theme_font_size_override("font_size", 18)
+	reroll.add_theme_font_size_override("font_size", 18)
 	undo.theme_type_variation = "ButtonSecondaryS"
-	undo.text = "Z"
-	undo.icon = UI3.cream_icon("ui_undo")
-	undo.expand_icon = true
-	undo.add_theme_constant_override("icon_max_width", 20)
 	reroll.theme_type_variation = "ButtonSecondaryS"
 	reroll.text = "Reroll"
 	reroll.tooltip_text = "Reroll unused dice (%s)" % KeyBindings.text(KeyBindings.COMBAT_REROLL)
 	end_turn.theme_type_variation = "ButtonPrimaryL"
 	end_turn.text = "End turn"
 	end_turn.add_theme_font_size_override("font_size", 24)   # "Enemy turn" must fit the 240 px column
-	undo.custom_minimum_size = Vector2(UNDO_W, SMALL_H)
-	reroll.custom_minimum_size = Vector2(RIGHT_W - UNDO_W - ROW_GAP, SMALL_H)
+	reroll.custom_minimum_size = Vector2(RIGHT_W, SMALL_H)
 	end_turn.custom_minimum_size = Vector2(RIGHT_W, END_H)
 	# Backstop: a label can never grow its button past the 240 px column (test: t_combat_right_block).
 	for b in [undo, reroll, end_turn]:
 		b.clip_text = true
+	_make_tile(undo, &"undo", "Undo")
 	overcast_button = UI3.button("Overcast", &"secondary", &"S")
 	overcast_button.name = "OvercastButton"
-	overcast_button.add_theme_font_size_override("font_size", 18)
-	overcast_button.custom_minimum_size = Vector2(RIGHT_W, SMALL_H)
-	overcast_button.clip_text = true
 	overcast_button.pressed.connect(func(): overcast_pressed.emit())
 	add_child(overcast_button)
+	_make_tile(overcast_button, &"overcast", "Overcast")
 	wild_button = UI3.button("Wild", &"secondary", &"S")
 	wild_button.name = "WildButton"
-	wild_button.add_theme_font_size_override("font_size", 18)
-	wild_button.custom_minimum_size = Vector2(RIGHT_W, SMALL_H)
-	wild_button.clip_text = true
 	wild_button.pressed.connect(func(): wild_pressed.emit())
 	add_child(wild_button)
+	_make_tile(wild_button, &"wild", "Wild")
 	hold_button = UI3.button("Hold", &"secondary", &"S")
 	hold_button.name = "HoldButton"
-	hold_button.add_theme_font_size_override("font_size", 18)
-	hold_button.custom_minimum_size = Vector2(RIGHT_W, SMALL_H)
-	hold_button.clip_text = true
 	hold_button.pressed.connect(func(): hold_pressed.emit())
 	add_child(hold_button)
+	_make_tile(hold_button, &"hold", "Hold")
 	_hint = UI3.label("", "LabelMuted")
 	_hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_hint.add_theme_color_override("font_color", UI3Theme.color("text"))   # sits on the 3D view: full cream, not muted
 	_hint.add_theme_font_size_override("font_size", 18)
+	var hbg := UI3Theme.flat(UI3Theme.color("panel"), UI3Theme.radius("s"))
+	hbg.bg_color.a = 0.94
+	hbg.content_margin_left = 8
+	hbg.content_margin_right = 8
+	_hint.add_theme_stylebox_override("normal", hbg)
 	_hint.add_theme_constant_override("outline_size", 4)
 	_hint.add_theme_color_override("font_outline_color", UI3Theme.color("panel"))
 	_hint.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -608,7 +674,7 @@ func update_right(undo: Dictionary, reroll: Dictionary, end: Dictionary, hold: D
 	if undo_button == null:
 		return
 	undo_button.disabled = not bool(undo.get("enabled", false))
-	undo_button.text = "Z"
+	undo_button.text = "Z"   # key hint; the tile shows the Undo glyph and word
 	undo_button.tooltip_text = ("Undo the last die (%s)" % KeyBindings.text(KeyBindings.COMBAT_UNDO)) if not undo_button.disabled else "Nothing to undo this turn"
 	var n := int(reroll.get("n", 0))
 	var mx := int(reroll.get("max", 0))
@@ -640,6 +706,8 @@ func update_right(undo: Dictionary, reroll: Dictionary, end: Dictionary, hold: D
 	end_turn_button.disabled = not bool(end.get("enabled", true))
 	var resolving := end_turn_button.disabled and bool(end.get("resolving", false))
 	end_turn_button.text = "Enemy turn" if resolving else "End turn"
+	for tb in [undo_button, hold_button, wild_button, overcast_button]:
+		_sync_tile(tb)
 	_hint.text = ("%s · skip" % KeyBindings.text(KeyBindings.COMBAT_END_TURN)) if resolving else String(end.get("sub", ""))
 	if need_mp and not resolving:
 		_hint.text = "Reroll: need %d MP\n%s" % [cost, _hint.text]
@@ -655,15 +723,10 @@ func _style_hold_on(on: bool) -> void:
 				UI3Theme.color("selected_outline"), Vector4(12, 0, 12, 0)))
 		else:
 			hold_button.remove_theme_stylebox_override(st)
-	hold_button.icon = UI3.cream_icon("ui_check") if on else null
-	hold_button.expand_icon = true
-	hold_button.add_theme_constant_override("icon_max_width", 20)
 	if on:
-		hold_button.add_theme_color_override("font_color", UI3Theme.color("text"))
-		hold_button.add_theme_color_override("font_disabled_color", UI3Theme.color("text"))
+		hold_button.set_meta("tile_on", true)
 	else:
-		hold_button.remove_theme_color_override("font_color")
-		hold_button.remove_theme_color_override("font_disabled_color")
+		hold_button.remove_meta("tile_on")
 
 
 ## Show the 1x / 2x / Skip control while a resolve plays.
@@ -709,33 +772,23 @@ func layout() -> void:
 		_hint.position = Vector2(x, y)
 		_hint.size = Vector2(RIGHT_W, hint_h)
 		_hint.vertical_alignment = VERTICAL_ALIGNMENT_BOTTOM
-		y -= 6.0 + END_H
+		y -= 8.0 + END_H
 		end_turn_button.position = Vector2(x, y)
 		end_turn_button.size = Vector2(RIGHT_W, END_H)
 		y -= GAP + SMALL_H
-		undo_button.position = Vector2(x, y)
-		undo_button.size = Vector2(UNDO_W, SMALL_H)
-		reroll_button.position = Vector2(x + UNDO_W + ROW_GAP, y)
-		reroll_button.size = Vector2(RIGHT_W - UNDO_W - ROW_GAP, SMALL_H)
-		y -= GAP + SMALL_H
-		hold_button.position = Vector2(x, y)
-		hold_button.size = Vector2(RIGHT_W, SMALL_H)
-		y -= GAP + SMALL_H
-		overcast_button.position = Vector2(x, y)
-		overcast_button.size = Vector2(RIGHT_W, SMALL_H)
+		reroll_button.position = Vector2(x, y)
+		reroll_button.size = Vector2(RIGHT_W, SMALL_H)
+		_tray_top = y
 		overcast_button.visible = _overcast_wanted and not _speed.visible
-		_tray_top = y if overcast_button.visible else y + GAP + SMALL_H
-		wild_button.size = Vector2(RIGHT_W, SMALL_H)
 		wild_button.visible = _wild_wanted and not _speed.visible
-		if wild_button.visible:
-			# Hidden buttons leave no gap: Wild takes the Overcast slot while Overcast is locked (stage 2).
-			wild_button.position = Vector2(x, y - (GAP + SMALL_H if overcast_button.visible else 0.0))
-			_tray_top = wild_button.position.y
 		hold_button.visible = _hold_wanted and not _speed.visible
-		# Undo is hidden while input is locked: the speed control takes the slot.
 		undo_button.visible = not _speed.visible
 		reroll_button.visible = not _speed.visible
-		_speed.position = undo_button.position
+		# Tile row above the Reroll row: only the unlocked tiles take a slot (no gaps), spread evenly.
+		var ty := y - GAP - TILE - TILE_LABEL_H - 2.0
+		if _place_tiles(x, ty, [undo_button, hold_button, wild_button, overcast_button]) > 0:
+			_tray_top = ty
+		_speed.position = reroll_button.position
 		_speed.size = Vector2(RIGHT_W, SMALL_H)
 	if _log_plate != null:
 		var ltop := (_attr_card.position.y + _attr_card.get_combined_minimum_size().y) if _attr_card.visible else rel_bottom
