@@ -114,14 +114,16 @@ func _decay() -> void:
 	var c := _engine()
 	var e: Unit = c.enemies[0]
 	e.plating = 3
-	c.turn = 6
-	_check(CombatTraits.plating_of(c, e) == 3, "turn 6 full")
-	c.turn = 7
-	_check(CombatTraits.plating_of(c, e) == 2, "turn 7: -1")
-	c.turn = 9
-	_check(CombatTraits.plating_of(c, e) == 0, "turn 9: gone")
+	# decay_turn is a knob (3 since lane E); the turns below are relative to it
+	var dt := int(CombatTraits.knob("plating", "decay_turn", 7.0))
+	c.turn = dt - 1
+	_check(CombatTraits.plating_of(c, e) == 3, "turn before decay: full")
+	c.turn = dt
+	_check(CombatTraits.plating_of(c, e) == 2, "decay turn: -1")
+	c.turn = dt + 2
+	_check(CombatTraits.plating_of(c, e) == 0, "decay turn + 2: gone")
 	_events.clear()
-	c.turn = 8
+	c.turn = dt + 1
 	CombatTraits.turn_start(c)
 	_check(_events.any(func(x): return x[0] == "decay" and x[2] == 1), "plating_decay event")
 

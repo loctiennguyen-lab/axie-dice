@@ -107,8 +107,9 @@ func _mend() -> void:
 	var c := _arena(3, 8)
 	var w: Unit = c.enemies[0]
 	w.custom_state["m_trait"] = "mend"
-	w.max_hp = 30
-	w.hp = 30
+	# fight cap is 25% of the source's max HP since lane E (was 50% of 30): 60 keeps the cap at 15
+	w.max_hp = 60
+	w.hp = 60
 	c.enemies[1].hp = 5
 	c.enemies[2].hp = 10
 	_ev.clear()

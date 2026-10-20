@@ -52,7 +52,8 @@
   "min": 2,
   "max": 4,
   "off_turns": 2,
-  "decay_turn": 7,
+  "decay_turn": 3,
+  "shield_decay_pct": 100,
   "iron_bonus": 1
  },
  "ward": {
@@ -65,7 +66,7 @@
  "mend": {
   "pct": 0.2,
   "cap": 6,
-  "fight_cap_pct": 0.5
+  "fight_cap_pct": 0.25
  },
  "spite": {
   "after": 3,

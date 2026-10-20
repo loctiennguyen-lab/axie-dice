@@ -6,10 +6,11 @@ var _guard := SaveGuard.new()
 var _failures: Array[String] = []
 var _checks := 0
 const TEAM: Array[String] = ["plant1", "aqua1", "plant1", "aqua1", "plant1"]
-## Design 6.7 asks <= 14 turns for a dmg-only bot. Measured 27-33 (pw 8 Elite ~57 HP vs ~3 weak dmg dice, even with no
-## Mend at all), so 14 is NOT met by the data; the test pins the real bound (finite, decay + Mend cap work) and the
-## handoff flags it for Liam / game-designer.
-const MAX_TURNS := 40
+## Design 6.7 asks <= 14 turns for a dmg-only bot. Before lane E this pinned 40 (measured 27-33, then 41+ with the
+## elite's companions alive); now the elite must die within 14 (measured 8-12 with plating decay_turn 3,
+## shield_decay_pct 100, mend fight cap 25%). The party is topped up each turn (real HP wipes a tier-1 team in 1-5
+## turns at pw 8), the companions stay and fight, the bot only presses dmg faces at the elite.
+const MAX_TURNS := 14
 
 
 func _ready() -> void:
@@ -17,8 +18,8 @@ func _ready() -> void:
 	await get_tree().process_frame
 	_check(not CombatTraits.team_can_break(_roster()), "the test team really cannot break")
 	for sd in [1, 2, 3, 4, 5]:
-		_run(sd, "iron", "mend")
-	_run(6, "iron", "")
+		_expect(sd, "iron", "mend")
+	_expect(6, "iron", "")
 	_mend_cap()
 	print("=== t_anti_stall: %d checks, %d failure(s) ===" % [_checks, _failures.size()])
 	for f in _failures:
@@ -37,19 +38,18 @@ func _roster() -> Array:
 	return r
 
 
-## Bot: only dmg faces, always at the elite. The party is topped up every turn so the test isolates the stall
-## (does the elite die?), not whether the team survives.
-func _run(sd: int, a: String, b: String) -> void:
+## Bot: only dmg faces, always at the elite, real party HP, the elite's companions stay and fight like a real
+## battle. Returns the turn the elite died (0 = it did not within the guard).
+func _run(sd: int, a: String, b: String) -> int:
 	var c := CombatEngine.new()
 	c.setup_new({"node_id": "as", "kind": "elite", "pw": 8, "ascension": 0, "roster_snapshot": _roster(),
 		"relic_ids": [], "combat_seed": sd, "affix": a, "affix2": b})
-	while c.enemies.size() > 1:
-		c.enemies.pop_back()
 	var e: Unit = c.enemies[0]
+	var elite_dead_turn := 0
 	var guard := 0
 	while not c.won and not c.lost and guard < 40:
 		guard += 1
-		for p in c.party:
+		for p in c.party:   # real HP wipes a tier-1 team in 1-5 turns at pw 8 (measured), so top up: this isolates the stall
 			(p as Unit).max_hp = 999
 			(p as Unit).hp = 999
 		for p in c.party:
@@ -58,11 +58,18 @@ func _run(sd: int, a: String, b: String) -> void:
 				var f: Dictionary = u.die[u.roll_face_index()]
 				if String(f.get("type", "")) == "dmg":
 					c.use_die(u.uid, e.uid)
+		if e.hp <= 0 and elite_dead_turn == 0:
+			elite_dead_turn = c.turn
 		if c.won:
 			break
 		c.end_turn(100 + guard)
-	_check(c.won, "seed %d %s+%s: the elite dies (turn %d, elite hp %d)" % [sd, a, b, c.turn, e.hp])
-	_check(c.turn <= MAX_TURNS, "seed %d %s+%s: done within %d turns (took %d)" % [sd, a, b, MAX_TURNS, c.turn])
+	if OS.has_environment("AXIE_DBG"): print("DBG seed %d %s+%s: elite dead turn %d, won %s lost %s, turn %d, party alive %d" % [sd, a, b, elite_dead_turn, c.won, c.lost, c.turn, c.alive_party().size()])
+	return elite_dead_turn
+
+
+func _expect(sd: int, a: String, b: String) -> void:
+	var t := _run(sd, a, b)
+	_check(t > 0 and t <= MAX_TURNS, "seed %d %s+%s: the elite dies within %d turns (turn %d, 0 = never)" % [sd, a, b, MAX_TURNS, t])
 
 
 func _mend_cap() -> void:

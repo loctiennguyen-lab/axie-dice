@@ -62,6 +62,9 @@ static func turn_start(combat) -> void:
 			continue
 		if e.plating_off > 0:
 			e.plating_off -= 1
+		var sdp := knob("plating", "shield_decay_pct", 0.0)
+		if sdp > 0.0 and not e.is_boss and int(combat.turn) >= decay_turn and e.shield > 0:
+			e.shield = int(floor(float(e.shield) * (100.0 - sdp) / 100.0))   # anti-stall: stacked enemy shield wears too
 		if not e.is_boss and int(combat.turn) >= decay_turn and (e.plating > 0 or has_rule(combat, "R12")):
 			EventBus.plating_decay.emit(e.uid, plating_of(combat, e))
 
