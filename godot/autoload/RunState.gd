@@ -988,6 +988,8 @@ func _fold_combat_stats(raw) -> void:
 	for key in ["dmg", "taken", "turns", "kills", "dmg_dealt_clamped"]:
 		run_stats[key] = int(run_stats.get(key, 0)) + int(stat.get(key, 0))
 	run_stats["max_hit"] = maxi(int(run_stats.get("max_hit", 0)), int(stat.get("max_hit", 0)))
+	if stat.get("best_bo", null) is Dictionary:
+		run_stats["best_bo"] = RunStatsAccumulator.better_bo(run_stats.get("best_bo", {}) as Dictionary, stat["best_bo"] as Dictionary)
 
 
 ## src/engine.js finishCombat()'s ENG-3 block (engine.js:986-994) write-back half. The
@@ -1872,6 +1874,8 @@ func from_data(d: Dictionary) -> void:
 	run_stats = {}
 	for key in ["dmg", "taken", "turns", "kills", "max_hit", "dmg_dealt_clamped"]:
 		run_stats[key] = int(saved_stats.get(key, 0))
+	if saved_stats.get("best_bo", null) is Dictionary:
+		run_stats["best_bo"] = RunStatsAccumulator.better_bo({}, saved_stats["best_bo"] as Dictionary)
 	core_impact = {}
 	var saved_impact = d.get("core_impact", {})
 	if saved_impact is Dictionary:

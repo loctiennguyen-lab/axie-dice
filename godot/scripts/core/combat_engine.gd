@@ -1832,12 +1832,19 @@ func recompute_bo() -> Array:
 	return out
 
 
+## Keeps the fight's best Set ({part,size,m100}) in `stat["best_bo"]` (Result screen "Best set"; display only).
+func _note_best_bo() -> void:
+	for g in bo:
+		stat["best_bo"] = RunStatsAccumulator.better_bo(stat.get("best_bo", {}) as Dictionary, g as Dictionary)
+
+
 ## Takes the snapshot (the only writer of `bo` besides roll_all's reset and load) and tells the UI when it changed.
 func _snap_bo() -> void:
 	var nb := recompute_bo()
 	if JSON.stringify(nb) == JSON.stringify(bo):
 		return
 	bo = nb
+	_note_best_bo()
 	EventBus.bo_changed.emit(_dup_dict_array(bo))
 
 

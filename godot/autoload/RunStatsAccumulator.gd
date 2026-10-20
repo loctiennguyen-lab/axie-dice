@@ -65,6 +65,26 @@ func _on_unit_died(uid: int) -> void:
 		axies_lost += 1
 
 
+## Picks the better of two Sets `{part,size,m100}`: bigger size wins, then bigger m100; an empty / size < 3 side
+## loses. Returns a clean 3-key copy (or {} when neither is a Set). Pure.
+func better_bo(a: Dictionary, b: Dictionary) -> Dictionary:
+	var ca := _clean_bo(a)
+	var cb := _clean_bo(b)
+	if ca.is_empty():
+		return cb
+	if cb.is_empty():
+		return ca
+	if int(cb["size"]) > int(ca["size"]) or (int(cb["size"]) == int(ca["size"]) and int(cb["m100"]) > int(ca["m100"])):
+		return cb
+	return ca
+
+
+func _clean_bo(g: Dictionary) -> Dictionary:
+	if int(g.get("size", 0)) < 3:
+		return {}
+	return {"part": int(g.get("part", 0)), "size": int(g["size"]), "m100": int(g.get("m100", 100))}
+
+
 ## Everything the Result screen's six tiles need, assembled in one call so ResultView never
 ## has to know which fields are tracked here vs. read straight through from RunState.
 func snapshot(mode: String) -> Dictionary:
@@ -78,4 +98,5 @@ func snapshot(mode: String) -> Dictionary:
 		"kills": int(stats.get("kills", 0)),
 		"biggest_hit": int(stats.get("max_hit", 0)),
 		"axies_lost": axies_lost,
+		"best_bo": (stats.get("best_bo", {}) as Dictionary).duplicate(),
 	}
