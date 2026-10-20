@@ -328,8 +328,10 @@ func test_frost_lord_freezes_one_axie_per_turn() -> void:
 		if (u as Unit).frozen:
 			frozen_at_start += 1
 
-	# Act
+	# Act — depth v3 6.3: turn 2 is the boss's hollow turn (no freeze), so go on to turn 3 (prep).
 	c.end_turn()
+	if not (c.won or c.lost):
+		c.end_turn()
 
 	# Assert — DEEP FREEZE constrains a die (no reroll) rather than destroying it, so the
 	# Axie must still be alive and able to act; only `frozen` flips.
@@ -355,8 +357,10 @@ func test_mirror_copies_the_players_biggest_face() -> void:
 	c.last_big = {"v": before + 100, "f": {"part": "horn", "type": "dmg",
 		"value": before + 100, "keywords": [], "rarity": 0}}
 
-	# Act
+	# Act — depth v3 6.3: no mirroring on the hollow turn 2; the copy lands on turn 3.
 	c.end_turn()
+	if not (c.won or c.lost):
+		c.end_turn()
 
 	# Assert — JS: die[0].v = max(die[0].v, ceil(lastBig.v * 1.1)).
 	var after: int = int((b.die[0] as Dictionary).get("value", 0))

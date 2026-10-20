@@ -500,6 +500,7 @@ func roll_all() -> void:
 	for e in enemies:
 		if e.hp > 0:
 			_roll_unit(e)
+			_apply_strike_face(e)
 			_pick_enemy_intent(e)
 		else:
 			e.clear_roll()
@@ -1224,7 +1225,7 @@ func _face_value(u: Unit, fi: int) -> int:
 			v += RelicHooks.sum(self, "hiveMind") * _count_alive_tokens(party)
 		if u.side == "e":
 			# base x (1 + enrage% + attrition%) x spike, rounded half up (monetization-v1 §1.2).
-			v = float(RulesMath.round_half_up(v * enemy_dmg_factor(u)))
+			v = float(RulesMath.round_half_up(v * enemy_dmg_factor(u) * boss_hollow_dealt_mult(u)))
 	if face_type == "mana" and u.side == "p" and u.cls == "aqua":
 		v += 1.0                                                        # CONDUIT passive
 	if u.side == "p" and u.resonant_now:
@@ -1601,6 +1602,69 @@ func _any_die_has_keyword(units: Array, kw: String) -> bool:
 	return false
 
 
+## ---- Depth v3 6.3 boss rhythm: a public 3-turn cycle, readable one turn ahead ---------------------------------
+## Phase of boss `b` at `turn_count + ahead`. Turn 1 (count 0) is "prep". strike = count % period == 0 (this is
+## where Mecha's OVERDRIVE and Plague Mother's brood already sat), hollow = the turn after, prep = the one before.
+## "" for a non-boss, a boss with no rhythm (Agony runs its own two phases), or when combat_tune boss_rhythm.enabled = 0.
+func boss_rhythm_phase(b: Unit, ahead: int = 0) -> String:
+	if b == null or not b.is_boss or tune_knob("boss_rhythm", "enabled", 1.0) < 1.0:
+		return ""
+	if String(b.custom_state.get("trait", "")) == "phase":
+		return ""
+	var period := maxi(3, int(tune_knob("boss_rhythm", "period", 3.0)))
+	var tc := int(b.custom_state.get("turn_count", 0)) + ahead
+	if tc <= 0:
+		return "prep"
+	var m := tc % period
+	return "strike" if m == 0 else ("hollow" if m == 1 else "prep")
+
+
+## What the UI shows: this turn's phase, the NEXT one (the early tell), and turns until the strike.
+func boss_rhythm_state(b: Unit) -> Dictionary:
+	var ph := boss_rhythm_phase(b)
+	if ph == "":
+		return {}
+	var to_strike := 0
+	while to_strike < 12 and boss_rhythm_phase(b, to_strike) != "strike":
+		to_strike += 1
+	return {"phase": ph, "next": boss_rhythm_phase(b, 1), "turns_to_strike": to_strike,
+		"trait": String(b.custom_state.get("trait", ""))}
+
+
+func boss_is_hollow(b: Unit) -> bool:
+	return b != null and boss_rhythm_phase(b) == "hollow"
+
+
+## Damage the boss deals on a hollow turn (default x0.7).
+func boss_hollow_dealt_mult(u: Unit) -> float:
+	if not boss_is_hollow(u):
+		return 1.0
+	return 1.0 + tune_knob("boss_rhythm", "hollow_dealt_pct", -30.0) / 100.0
+
+
+## Damage the boss takes from dmg faces on a hollow turn (default x1.3), read by DamagePipeline.
+func boss_hollow_taken_mult(b: Unit) -> float:
+	if not boss_is_hollow(b):
+		return 1.0
+	return 1.0 + tune_knob("boss_rhythm", "hollow_taken_pct", 30.0) / 100.0
+
+
+## Strike turn: the boss rolls as usual (same rng draws) and then uses its strongest damage face.
+func _apply_strike_face(e: Unit) -> void:
+	if boss_rhythm_phase(e) != "strike":
+		return
+	var best := -1
+	var best_v := -1
+	for i in e.die.size():
+		var f: Dictionary = e.die[i]
+		if String(f.get("type", "")) == "dmg" and int(f.get("value", 0)) > best_v:
+			best_v = int(f.get("value", 0))
+			best = i
+	if best >= 0:
+		e.set_roll(best, false)
+		e.heavy = _has_kw(e.die[best], "heavy")
+
+
 ## Port of src/engine.js bossTurnTraits() (engine.js:889-902), run once at the start of every
 ## turn after the first. Previously this incremented a counter and cleared `overdrive` and did
 ## nothing else, which meant five of the six bosses were stat-sticks with a description that
@@ -1613,13 +1677,19 @@ func _boss_turn_traits() -> void:
 		b.overdrive = false
 		var turn_count := int(b.custom_state["turn_count"])
 		var add_cap := int(b.custom_state.get("add_cap", 0))
+		var rphase := boss_rhythm_phase(b)       # depth v3 6.3: "prep" / "strike" / "hollow" / "" (no rhythm)
+		if rphase != "":
+			EventBus.float_text.emit(b.uid, rphase.to_upper(), "deb", 0)
+			RelicHooks.fire(self, "on_boss_rhythm", {"combat": self, "boss": b, "phase": rphase,
+				"next": boss_rhythm_phase(b, 1)})
 
 		match String(b.custom_state.get("trait", "")):
 			# MECHA CHIMERA — RETALIATE: thorns never wear off, and every 3rd turn it enters
 			# OVERDRIVE (+50% damage, read by _face_value()).
 			"thorns":
 				var perm := int(b.custom_state.get("permanent_thorns", 0))
-				b.status["thorns"] = max(int(b.status.get("thorns", 0)), perm)
+				# Hollow turn: the thorns shell is open (depth v3 6.3 tell).
+				b.status["thorns"] = 0 if rphase == "hollow" else max(int(b.status.get("thorns", 0)), perm)
 				if turn_count % 3 == 0:
 					b.overdrive = true
 					EventBus.float_text.emit(b.uid, "OVERDRIVE", "deb", 1)
@@ -1634,11 +1704,15 @@ func _boss_turn_traits() -> void:
 			# reroll pool. Note it sets `frozen` directly, NOT `frozen_next`: the constraint
 			# applies to the turn that is starting right now.
 			"freeze":
-				var candidates: Array = []
-				for u in alive_party():
-					if not u.frozen and not u.is_token:
-						candidates.append(u)
-				if not candidates.is_empty():
+				# Strike turn freezes 2 dice, hollow turn none, otherwise 1 (depth v3 6.3).
+				var n_freeze := 2 if rphase == "strike" else (0 if rphase == "hollow" else 1)
+				for _fz in n_freeze:
+					var candidates: Array = []
+					for u in alive_party():
+						if not u.frozen and not u.is_token:
+							candidates.append(u)
+					if candidates.is_empty():
+						break
 					var t: Unit = candidates[_rng.next_int(candidates.size())]
 					t.frozen = true
 					EventBus.float_text.emit(t.uid, "FROZEN", "deb", 0)
@@ -1646,7 +1720,7 @@ func _boss_turn_traits() -> void:
 			# MIRROR CHIMERA — copies the strongest face the player used last turn into its
 			# own slot 0 at x1.1, never weakening what was already there.
 			"mirror":
-				if not last_big.is_empty() and not b.die.is_empty():
+				if rphase != "hollow" and not last_big.is_empty() and not b.die.is_empty():
 					var mirrored: Dictionary = (last_big.get("f", {}) as Dictionary).duplicate(true)
 					if not mirrored.is_empty():
 						mirrored["value"] = max(int(b.die[0].get("value", 0)),

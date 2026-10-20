@@ -40,5 +40,11 @@
  "difficulty": {
   "enemy_dmg_mult": 1.2,
   "boss_hp_mult": 1.1
+ },
+ "boss_rhythm": {
+  "enabled": 1,
+  "period": 3,
+  "hollow_taken_pct": 30,
+  "hollow_dealt_pct": -30
  }
 }

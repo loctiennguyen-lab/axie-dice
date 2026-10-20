@@ -73,6 +73,8 @@ static func resolve(ctx: Dictionary) -> int:
 	# ---- target side (steps 6-13) — always ----
 	if tgt.status.get("vulnerable", 0) > 0:
 		v = ceil(v * 1.5)                                                        # 6. vulnerable
+	if tgt.is_boss and attack and String(ctx.get("face_type", "dmg")) == "dmg" and combat.has_method("boss_hollow_taken_mult"):
+		v = ceil(v * float(combat.boss_hollow_taken_mult(tgt)))                  # 6b. boss rhythm: hollow turn (depth v3 6.3)
 	if tgt.side == "p":
 		var dr := RelicHooks.sum(combat, "dr")
 		if dr > 0.0:
