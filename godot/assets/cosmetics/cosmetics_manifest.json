@@ -124,6 +124,30 @@
   "die_m_moon": {
    "name": "Midnight Moon",
    "tier": 5
+  },
+  "die_e_reef_01": {
+   "name": "Coral Bloom",
+   "tier": 3
+  },
+  "die_e_reef_02": {
+   "name": "Sea Glass",
+   "tier": 3
+  },
+  "die_e_reef_03": {
+   "name": "Kelp Braid",
+   "tier": 3
+  },
+  "die_e_reef_04": {
+   "name": "Jelly Lamp",
+   "tier": 3
+  },
+  "die_e_reef_05": {
+   "name": "Vent Rock",
+   "tier": 3
+  },
+  "die_e_reef_06": {
+   "name": "Spiral Shell",
+   "tier": 3
   }
  },
  "frames": {
@@ -723,6 +747,252 @@
       "reduce_hi": 0.5,
       "reduce_static": true,
       "phase": 0.5
+     }
+    ]
+   },
+   "frame_scale": 1.5,
+   "source": "Echo Box"
+  },
+  "frame_e_reef_01": {
+   "name": "Coral Fan",
+   "tier": 3,
+   "tag": "",
+   "size": 256,
+   "window_center_px": [
+    128,
+    128
+   ],
+   "window_diameter_px": 162,
+   "files": [
+    "frames/frame_e_reef_01_base.png",
+    "frames/frame_e_reef_01_glow.png"
+   ],
+   "image_size": [
+    256,
+    256
+   ],
+   "window_radius_px": 81,
+   "anim": {
+    "glow": [
+     {
+      "type": "pulse",
+      "lo": 0.3,
+      "hi": 0.9,
+      "period": 3.2,
+      "reduce_lo": 0.6,
+      "reduce_hi": 0.6,
+      "reduce_static": true
+     }
+    ]
+   },
+   "frame_scale": 1.5,
+   "source": "Echo Box"
+  },
+  "frame_e_reef_02": {
+   "name": "Glass Floats",
+   "tier": 3,
+   "tag": "",
+   "size": 256,
+   "window_center_px": [
+    128,
+    128
+   ],
+   "window_diameter_px": 162,
+   "files": [
+    "frames/frame_e_reef_02_base.png",
+    "frames/frame_e_reef_02_glow.png",
+    "frames/frame_e_reef_02_drift.png"
+   ],
+   "image_size": [
+    256,
+    256
+   ],
+   "window_radius_px": 81,
+   "anim": {
+    "glow": [
+     {
+      "type": "pulse",
+      "lo": 0.3,
+      "hi": 0.9,
+      "period": 2.8,
+      "reduce_lo": 0.6,
+      "reduce_hi": 0.6,
+      "reduce_static": true
+     }
+    ],
+    "drift": [
+     {
+      "type": "spin",
+      "period": 20.0,
+      "reduce_static": true
+     }
+    ]
+   },
+   "frame_scale": 1.5,
+   "source": "Echo Box"
+  },
+  "frame_e_reef_03": {
+   "name": "Kelp Sway",
+   "tier": 3,
+   "tag": "",
+   "size": 256,
+   "window_center_px": [
+    128,
+    128
+   ],
+   "window_diameter_px": 162,
+   "files": [
+    "frames/frame_e_reef_03_base.png",
+    "frames/frame_e_reef_03_glow.png",
+    "frames/frame_e_reef_03_drift.png"
+   ],
+   "image_size": [
+    256,
+    256
+   ],
+   "window_radius_px": 81,
+   "anim": {
+    "glow": [
+     {
+      "type": "pulse",
+      "lo": 0.3,
+      "hi": 0.9,
+      "period": 3.0,
+      "reduce_lo": 0.6,
+      "reduce_hi": 0.6,
+      "reduce_static": true
+     }
+    ],
+    "drift": [
+     {
+      "type": "spin",
+      "period": 18.0,
+      "reduce_static": true
+     }
+    ]
+   },
+   "frame_scale": 1.5,
+   "source": "Echo Box"
+  },
+  "frame_e_reef_04": {
+   "name": "Jelly Bell",
+   "tier": 3,
+   "tag": "",
+   "size": 256,
+   "window_center_px": [
+    128,
+    128
+   ],
+   "window_diameter_px": 162,
+   "files": [
+    "frames/frame_e_reef_04_base.png",
+    "frames/frame_e_reef_04_glow.png",
+    "frames/frame_e_reef_04_drift.png"
+   ],
+   "image_size": [
+    256,
+    256
+   ],
+   "window_radius_px": 81,
+   "anim": {
+    "glow": [
+     {
+      "type": "pulse",
+      "lo": 0.35,
+      "hi": 0.9,
+      "period": 2.4,
+      "reduce_lo": 0.6,
+      "reduce_hi": 0.6,
+      "reduce_static": true
+     }
+    ],
+    "drift": [
+     {
+      "type": "spin",
+      "period": 24.0,
+      "reduce_static": true
+     }
+    ]
+   },
+   "frame_scale": 1.5,
+   "source": "Echo Box"
+  },
+  "frame_e_reef_05": {
+   "name": "Vent Ring",
+   "tier": 3,
+   "tag": "",
+   "size": 256,
+   "window_center_px": [
+    128,
+    128
+   ],
+   "window_diameter_px": 162,
+   "files": [
+    "frames/frame_e_reef_05_base.png",
+    "frames/frame_e_reef_05_glow.png",
+    "frames/frame_e_reef_05_embers.png"
+   ],
+   "image_size": [
+    256,
+    256
+   ],
+   "window_radius_px": 81,
+   "anim": {
+    "glow": [
+     {
+      "type": "pulse",
+      "lo": 0.4,
+      "hi": 0.95,
+      "period": 2.0,
+      "reduce_lo": 0.7,
+      "reduce_hi": 0.7,
+      "reduce_static": true
+     }
+    ],
+    "embers": [
+     {
+      "type": "pulse",
+      "lo": 0.0,
+      "hi": 0.85,
+      "period": 1.6,
+      "reduce_lo": 0.45,
+      "reduce_hi": 0.45,
+      "reduce_static": true
+     }
+    ]
+   },
+   "frame_scale": 1.5,
+   "source": "Echo Box"
+  },
+  "frame_e_reef_06": {
+   "name": "Anemone Bed",
+   "tier": 3,
+   "tag": "",
+   "size": 256,
+   "window_center_px": [
+    128,
+    128
+   ],
+   "window_diameter_px": 162,
+   "files": [
+    "frames/frame_e_reef_06_base.png",
+    "frames/frame_e_reef_06_glow.png"
+   ],
+   "image_size": [
+    256,
+    256
+   ],
+   "window_radius_px": 81,
+   "anim": {
+    "glow": [
+     {
+      "type": "pulse",
+      "lo": 0.3,
+      "hi": 0.85,
+      "period": 3.4,
+      "reduce_lo": 0.6,
+      "reduce_hi": 0.6,
+      "reduce_static": true
      }
     ]
    },

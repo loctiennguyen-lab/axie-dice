@@ -103,7 +103,7 @@ func _run() -> void:
 	MetaState.cosmetics_owned.append("die_c_clay")
 	pv = await _view(svc)
 	pv.set_tab(1)
-	_ok("2 of 21" in (pv.find_child("Cat_die", true, false) as Button).text, "category count")
+	_ok("2 of 27" in (pv.find_child("Cat_die", true, false) as Button).text, "category count")
 	var other := ProfileView.catalog("die")[1]
 	(pv.find_child("Tile_" + other, true, false) as Button).pressed.emit()
 	await get_tree().process_frame

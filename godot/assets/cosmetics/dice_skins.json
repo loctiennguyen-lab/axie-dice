@@ -973,6 +973,360 @@
     "tile_trim_88.png"
    ],
    "source": "Pass (Season 1)"
+  },
+  "die_e_reef_01": {
+   "name": "Coral Bloom",
+   "tier": "e",
+   "trim": "#27c0ca",
+   "body": {
+    "albedo_texture": "albedo.png",
+    "normal_enabled": true,
+    "normal_texture": "normal.png",
+    "uv1_triplanar": true,
+    "uv1_scale": 2.0,
+    "roughness": 0.82,
+    "metallic": 0.0,
+    "clearcoat_enabled": false,
+    "rim_enabled": false,
+    "emission_enabled": true,
+    "emission_texture": "emission.png",
+    "emission_energy_multiplier": 0.8
+   },
+   "face": {
+    "albedo_texture": "<runtime face texture>",
+    "normal_enabled": true,
+    "normal_texture": "plate_normal.png",
+    "roughness": 0.3,
+    "metallic": 0.0,
+    "clearcoat_enabled": true,
+    "clearcoat": 0.9,
+    "clearcoat_roughness": 0.08,
+    "emission_enabled": true,
+    "emission_texture": "plate_emit.png",
+    "emission_energy_multiplier": 0.6
+   },
+   "motion": {
+    "glow": [
+     0.6,
+     1.0,
+     3.2,
+     0.8
+    ],
+    "band": [
+     0.35,
+     0.85
+    ]
+   },
+   "files": [
+    "albedo.png",
+    "egg_trim_36.png",
+    "emission.png",
+    "normal.png",
+    "plate.png",
+    "plate_emit.png",
+    "plate_normal.png",
+    "tile_trim_56.png",
+    "tile_trim_88.png"
+   ],
+   "source": "Echo Box"
+  },
+  "die_e_reef_02": {
+   "name": "Sea Glass",
+   "tier": "e",
+   "trim": "#27c0ca",
+   "body": {
+    "albedo_texture": "albedo.png",
+    "normal_enabled": true,
+    "normal_texture": "normal.png",
+    "uv1_triplanar": true,
+    "uv1_scale": 2.0,
+    "roughness": 0.45,
+    "metallic": 0.0,
+    "clearcoat_enabled": true,
+    "clearcoat": 0.6,
+    "clearcoat_roughness": 0.45,
+    "rim_enabled": true,
+    "rim": 0.35,
+    "rim_tint": 0.3,
+    "emission_enabled": true,
+    "emission_texture": "emission.png",
+    "emission_energy_multiplier": 0.75
+   },
+   "face": {
+    "albedo_texture": "<runtime face texture>",
+    "normal_enabled": true,
+    "normal_texture": "plate_normal.png",
+    "roughness": 0.3,
+    "metallic": 0.0,
+    "clearcoat_enabled": true,
+    "clearcoat": 0.9,
+    "clearcoat_roughness": 0.08,
+    "emission_enabled": true,
+    "emission_texture": "plate_emit.png",
+    "emission_energy_multiplier": 0.6
+   },
+   "motion": {
+    "glow": [
+     0.6,
+     0.9,
+     2.8,
+     0.75
+    ],
+    "band": [
+     0.35,
+     0.85
+    ],
+    "sparkles": 2
+   },
+   "files": [
+    "albedo.png",
+    "egg_trim_36.png",
+    "emission.png",
+    "normal.png",
+    "plate.png",
+    "plate_emit.png",
+    "plate_normal.png",
+    "sparkle_sheet.png",
+    "tile_trim_56.png",
+    "tile_trim_88.png"
+   ],
+   "source": "Echo Box"
+  },
+  "die_e_reef_03": {
+   "name": "Kelp Braid",
+   "tier": "e",
+   "trim": "#27c0ca",
+   "body": {
+    "albedo_texture": "albedo.png",
+    "normal_enabled": true,
+    "normal_texture": "normal.png",
+    "uv1_triplanar": true,
+    "uv1_scale": 2.0,
+    "roughness": 0.62,
+    "metallic": 0.0,
+    "clearcoat_enabled": true,
+    "clearcoat": 0.3,
+    "clearcoat_roughness": 0.3,
+    "rim_enabled": false,
+    "emission_enabled": true,
+    "emission_texture": "emission.png",
+    "emission_energy_multiplier": 0.75
+   },
+   "face": {
+    "albedo_texture": "<runtime face texture>",
+    "normal_enabled": true,
+    "normal_texture": "plate_normal.png",
+    "roughness": 0.3,
+    "metallic": 0.0,
+    "clearcoat_enabled": true,
+    "clearcoat": 0.9,
+    "clearcoat_roughness": 0.08,
+    "emission_enabled": true,
+    "emission_texture": "plate_emit.png",
+    "emission_energy_multiplier": 0.6
+   },
+   "motion": {
+    "glow": [
+     0.6,
+     0.9,
+     3.0,
+     0.75
+    ],
+    "band": [
+     0.35,
+     0.85
+    ]
+   },
+   "files": [
+    "albedo.png",
+    "egg_trim_36.png",
+    "emission.png",
+    "normal.png",
+    "plate.png",
+    "plate_emit.png",
+    "plate_normal.png",
+    "tile_trim_56.png",
+    "tile_trim_88.png"
+   ],
+   "source": "Echo Box"
+  },
+  "die_e_reef_04": {
+   "name": "Jelly Lamp",
+   "tier": "e",
+   "trim": "#27c0ca",
+   "body": {
+    "albedo_texture": "albedo.png",
+    "normal_enabled": true,
+    "normal_texture": "normal.png",
+    "uv1_triplanar": true,
+    "uv1_scale": 2.0,
+    "roughness": 0.22,
+    "metallic": 0.0,
+    "clearcoat_enabled": true,
+    "clearcoat": 0.9,
+    "clearcoat_roughness": 0.08,
+    "rim_enabled": true,
+    "rim": 0.5,
+    "rim_tint": 0.2,
+    "emission_enabled": true,
+    "emission_texture": "emission.png",
+    "emission_energy_multiplier": 0.8
+   },
+   "face": {
+    "albedo_texture": "<runtime face texture>",
+    "normal_enabled": true,
+    "normal_texture": "plate_normal.png",
+    "roughness": 0.3,
+    "metallic": 0.0,
+    "clearcoat_enabled": true,
+    "clearcoat": 0.9,
+    "clearcoat_roughness": 0.08,
+    "emission_enabled": true,
+    "emission_texture": "plate_emit.png",
+    "emission_energy_multiplier": 0.6
+   },
+   "motion": {
+    "glow": [
+     0.6,
+     1.0,
+     2.4,
+     0.8
+    ],
+    "band": [
+     0.35,
+     0.85
+    ],
+    "sparkles": 2
+   },
+   "files": [
+    "albedo.png",
+    "egg_trim_36.png",
+    "emission.png",
+    "normal.png",
+    "plate.png",
+    "plate_emit.png",
+    "plate_normal.png",
+    "sparkle_sheet.png",
+    "tile_trim_56.png",
+    "tile_trim_88.png"
+   ],
+   "source": "Echo Box"
+  },
+  "die_e_reef_05": {
+   "name": "Vent Rock",
+   "tier": "e",
+   "trim": "#27c0ca",
+   "body": {
+    "albedo_texture": "albedo.png",
+    "normal_enabled": true,
+    "normal_texture": "normal.png",
+    "uv1_triplanar": true,
+    "uv1_scale": 2.0,
+    "roughness": 0.88,
+    "metallic": 0.0,
+    "clearcoat_enabled": false,
+    "rim_enabled": false,
+    "emission_enabled": true,
+    "emission_texture": "emission.png",
+    "emission_energy_multiplier": 0.8
+   },
+   "face": {
+    "albedo_texture": "<runtime face texture>",
+    "normal_enabled": true,
+    "normal_texture": "plate_normal.png",
+    "roughness": 0.3,
+    "metallic": 0.0,
+    "clearcoat_enabled": true,
+    "clearcoat": 0.9,
+    "clearcoat_roughness": 0.08,
+    "emission_enabled": true,
+    "emission_texture": "plate_emit.png",
+    "emission_energy_multiplier": 0.6
+   },
+   "motion": {
+    "glow": [
+     0.6,
+     1.0,
+     2.0,
+     0.8
+    ],
+    "band": [
+     0.35,
+     0.85
+    ],
+    "sparkles": 2
+   },
+   "files": [
+    "albedo.png",
+    "egg_trim_36.png",
+    "emission.png",
+    "normal.png",
+    "plate.png",
+    "plate_emit.png",
+    "plate_normal.png",
+    "sparkle_sheet.png",
+    "tile_trim_56.png",
+    "tile_trim_88.png"
+   ],
+   "source": "Echo Box"
+  },
+  "die_e_reef_06": {
+   "name": "Spiral Shell",
+   "tier": "e",
+   "trim": "#27c0ca",
+   "body": {
+    "albedo_texture": "albedo.png",
+    "normal_enabled": true,
+    "normal_texture": "normal.png",
+    "uv1_triplanar": true,
+    "uv1_scale": 2.0,
+    "roughness": 0.48,
+    "metallic": 0.0,
+    "clearcoat_enabled": true,
+    "clearcoat": 0.5,
+    "clearcoat_roughness": 0.2,
+    "rim_enabled": false,
+    "emission_enabled": true,
+    "emission_texture": "emission.png",
+    "emission_energy_multiplier": 0.75
+   },
+   "face": {
+    "albedo_texture": "<runtime face texture>",
+    "normal_enabled": true,
+    "normal_texture": "plate_normal.png",
+    "roughness": 0.3,
+    "metallic": 0.0,
+    "clearcoat_enabled": true,
+    "clearcoat": 0.9,
+    "clearcoat_roughness": 0.08,
+    "emission_enabled": true,
+    "emission_texture": "plate_emit.png",
+    "emission_energy_multiplier": 0.6
+   },
+   "motion": {
+    "glow": [
+     0.6,
+     0.9,
+     3.4,
+     0.75
+    ],
+    "band": [
+     0.35,
+     0.85
+    ]
+   },
+   "files": [
+    "albedo.png",
+    "egg_trim_36.png",
+    "emission.png",
+    "normal.png",
+    "plate.png",
+    "plate_emit.png",
+    "plate_normal.png",
+    "tile_trim_56.png",
+    "tile_trim_88.png"
+   ],
+   "source": "Echo Box"
   }
  }
 }

@@ -16,7 +16,7 @@ func _ok(cond: bool, msg: String) -> void:
 func _ready() -> void:
 	print("=== t_dice_skin: start ===")
 	var ids := DiceSkin.ids()
-	_ok(ids.size() == 20, "20 skins (%d)" % ids.size())
+	_ok(ids.size() == 26, "26 skins (%d)" % ids.size())
 	var man: Dictionary = CosmeticArt.manifest().get("dice", {})
 	for id in ids:
 		_ok(man.has(id), "%s is in cosmetics_manifest dice (ids unchanged)" % id)
