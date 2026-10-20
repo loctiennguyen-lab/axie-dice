@@ -1802,7 +1802,7 @@ func to_data() -> Dictionary:
 			"pick_index": core_pick_index, "seen": core_seen.duplicate(), "reroll_left": core_reroll_left,
 			"rerolls_used": core_rerolls_used, "rerolled_slots": core_rerolled_slots.duplicate(),
 			"tier_bump": core_tier_bump, "quest": core_quest_progress.duplicate(true), "run_rule": run_rule,
-			"rules_on": rules_on, "base_seed": _core_base_seed, "offer_active": _core_offer_active, "offer_pick": _core_offer_pick,
+			"rules_on": rules_on, "base_seed": _core_base_seed, "offer_active": _core_offer_active, "offer_pick": _core_offer_pick, "core_off": core_off,
 			"rule_offer_active": _rule_offer_active, "close_pending": _core_close_pending,
 			"bonus_queue": core_bonus_queue.duplicate(), "bonus_count": core_bonus_count},
 	}
@@ -2111,7 +2111,8 @@ func _core_from_data(c: Dictionary) -> void:
 	_core_close_pending = bool(c.get("close_pending", false))
 	core_bonus_queue.assign((c.get("bonus_queue", []) as Array).map(func(v): return int(v)))
 	core_bonus_count = int(c.get("bonus_count", 0))
-	core_off = not c.has("pick_index")   # a save from before Core: no Core flow
+	# explicit flag; a save from before Core (no pick_index and no flag) plays the legacy flow
+	core_off = bool(c.get("core_off", not c.has("pick_index")))
 
 
 ## Run start: Run Rule offer (run 2+), then Core pick 1. Leaves phase REWARD, or MAP when nothing could be offered.
