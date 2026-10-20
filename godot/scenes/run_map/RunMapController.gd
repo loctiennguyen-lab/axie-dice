@@ -394,6 +394,25 @@ func _reward_rarity(r: Dictionary) -> int:
 	return int(r.get("rar", 0))
 
 
+## Depth v3 Core tiers (RelicDef.rarity 0/1/2 -> Moss / Amber / Crystal) and axes. Colour token per tier;
+## the tier WORD always sits beside it. Spec: design/ux/depth-v3/core-offer.md
+const _CORE_TIER_NAME := ["Moss", "Amber", "Crystal"]
+const _CORE_TIER_TOKEN := ["rarity_rare", "rarity_legendary", "rarity_epic"]
+const _CORE_AXIS_NAME := {"stat": "Stat", "dice": "Dice faces", "pos": "Position", "mana": "Mana",
+	"quest": "Quest", "rule": "Rule change", "run_rule": "Run rule"}
+
+
+func _is_core_card(r: Dictionary) -> bool:
+	return bool(r.get("core", false))
+
+
+func _core_offer_active() -> bool:
+	for r in RunState.pending_rewards:
+		if _is_core_card(r):
+			return true
+	return false
+
+
 func _rarity_name(rar: int) -> String:
 	var names := [tr("Common"), tr("Uncommon"), tr("Rare"), tr("Epic"), tr("Legendary"), tr("Mythic")]
 	return names[clampi(rar, 0, names.size() - 1)]
@@ -1165,9 +1184,21 @@ func _show_reward_overlay(title: String, _backdrop: Texture2D = null) -> void:
 	head.alignment = BoxContainer.ALIGNMENT_CENTER
 	head.add_theme_constant_override("separation", 24)
 	col.add_child(head)
+	var core_rule := false
+	for rr0 in RunState.pending_rewards:
+		core_rule = core_rule or bool((rr0 as Dictionary).get("rule", false))
+	if _core_offer_active():
+		title = "CHOOSE A RUN RULE" if core_rule else "CHOOSE A CORE"
 	var title_lbl := UI3.label(tr(title), "LabelScreenTitle")
 	title_lbl.name = "RewardTitle"
 	head.add_child(title_lbl)
+	# Next pick's tier (lane B publishes RunState.core_next_tier, 0..2; -1 / absent = unknown): word + tier colour.
+	var nxt = RunState.get("core_next_tier")
+	if _core_offer_active() and not core_rule and nxt != null and int(nxt) >= 0:
+		var nt := clampi(int(nxt), 0, 2)
+		var chip := UI3.chip("Next: %s" % _CORE_TIER_NAME[nt])
+		chip.name = "NextTierChip"
+		head.add_child(chip)
 	head.add_child(UI3.currency_pill([{"icon": "cur_shard", "value": str(RunState.shards_this_run)}]))
 
 	_overlay_vbox = HBoxContainer.new()
@@ -1188,7 +1219,13 @@ func _show_reward_overlay(title: String, _backdrop: Texture2D = null) -> void:
 	actions.add_theme_constant_override("separation", 16)
 	col.add_child(actions)
 	var left := RunState.reward_reroll_charges
+	if _core_offer_active() and RunState.get("core_reroll_left") != null:
+		left = int(RunState.get("core_reroll_left"))   # lane B: Core rerolls are per run (2), not per node
+	var is_rule := false
+	for rr in RunState.pending_rewards:
+		is_rule = is_rule or bool((rr as Dictionary).get("rule", false))
 	var reroll := UI3.button(tr("Reroll · %d left") % left, &"secondary", &"M")
+	reroll.visible = not is_rule   # no reroll for the Run rule pick (2b.1)
 	reroll.name = "RerollButton"
 	if left > 0:
 		reroll.pressed.connect(_on_reward_reroll.bind(title))
@@ -1289,7 +1326,10 @@ func _trade_parts(r: Dictionary) -> Dictionary:
 func _add_reward_card(r: Dictionary, wide := false) -> PanelContainer:
 	var t := String(r.get("t", ""))
 	var rar := _reward_rarity(r)
+	var is_core := _is_core_card(r)
 	var accent := _rarity_color(rar)
+	if is_core and not bool(r.get("rule", false)):
+		accent = UI3Theme.color(_CORE_TIER_TOKEN[clampi(int(r.get("tier", 0)), 0, 2)])
 	var idx := _reward_cards.size()
 
 	var card := UI3.plate(&"card")
@@ -1322,7 +1362,10 @@ func _add_reward_card(r: Dictionary, wide := false) -> PanelContainer:
 	col.add_theme_constant_override("separation", 12)
 	card.add_child(col)
 
-	col.add_child(UI3.label(tr(String(_REWARD_KIND.get(t, "Reward"))), "LabelMuted"))
+	var kind_text := String(_REWARD_KIND.get(t, "Reward"))
+	if is_core:
+		kind_text = "Run rule" if bool(r.get("rule", false)) else "Core"
+	col.add_child(UI3.label(tr(kind_text), "LabelMuted"))
 
 	var art := Panel.new()
 	art.name = "Art"
@@ -1367,6 +1410,15 @@ func _add_reward_card(r: Dictionary, wide := false) -> PanelContainer:
 	var rar_lbl := UI3.label(_rarity_name(rar))
 	rar_lbl.name = "RarityLabel"
 	rar_lbl.add_theme_color_override("font_color", UI3Theme.color("text_muted") if rar == 0 else accent)
+	if is_core:
+		# Tier word (Moss / Amber / Crystal) + axis word. Run rules have no tier.
+		var tier := clampi(int(r.get("tier", 0)), 0, 2)
+		var axis_name := String(_CORE_AXIS_NAME.get(String(r.get("axis", "")), ""))
+		if bool(r.get("rule", false)):
+			rar_lbl.text = axis_name
+		else:
+			rar_lbl.text = "%s · %s" % [_CORE_TIER_NAME[tier], axis_name]
+			rar_lbl.add_theme_color_override("font_color", accent)
 	col.add_child(rar_lbl)
 	if t in ["chaos", "curse"]:
 		var tp := _trade_parts(r)
