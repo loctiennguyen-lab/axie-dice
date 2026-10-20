@@ -7,6 +7,7 @@ extends Node3D
 ## Env vars:
 ##   PREVIEW_BIOME=forest   which biome (default savannah)
 ##   PREVIEW_OLD=1          show the current arena instead, for an A/B compare
+##   PREVIEW_NO_UNITS=1     skip the stand-in capsules (empty arena; used to pre-render the Result backdrops)
 ##   PREVIEW_BOSS=1         boss look (darker, red gate glow)
 ##   PREVIEW_SHOT=1         save <ADT_EVIDENCE_DIR>/v-preview-<biome>-<v2|old>[-boss]-<w>x<h>.png at
 ##                          1920x1080 and 1280x720, then quit (godot/tools/shot.sh, not headless)
@@ -42,7 +43,8 @@ func _ready() -> void:
 		_diorama.name = "ArenaV2"
 		add_child(_diorama)
 		_diorama.build(biome, boss)
-	_add_stand_ins()
+	if OS.get_environment("PREVIEW_NO_UNITS") == "":
+		_add_stand_ins()
 	if OS.get_environment("PREVIEW_SHOT") != "":
 		await _shots("%s-%s%s" % [biome, "old" if old else "v2", "-boss" if boss else ""])
 		get_tree().quit(0)
