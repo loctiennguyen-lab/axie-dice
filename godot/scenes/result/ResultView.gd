@@ -292,7 +292,34 @@ func _build_stat_grid(stats: Dictionary) -> Control:
 		v.add_child(UI3.label(String(t[1]), "LabelTitle"))
 		v.add_child(UI3.label(String(t[0]), "LabelMuted"))
 		grid.add_child(v)
-	return grid
+	var best := _best_set_line(stats)
+	if best == null:
+		return grid
+	var block := VBoxContainer.new()
+	block.name = "StatBlock"
+	block.add_theme_constant_override("separation", 12)
+	block.add_child(grid)
+	block.add_child(best)
+	return block
+
+
+## "Best set: FIVE HORNS ×2.6" (combat-v4.md 6.2). Reads `best_bo` {part,size,m100} from the run stats; while
+## RunStatsAccumulator has no such field (it needs the v4 RULES_VERSION bump) the line is not drawn at all.
+## Present but empty = a run without a Set: one encouraging line.
+func _best_set_line(stats: Dictionary) -> Control:
+	if not stats.has("best_bo"):
+		return null
+	var b: Dictionary = stats["best_bo"] if stats["best_bo"] is Dictionary else {}
+	var l := UI3.label("", "LabelDisplay")
+	l.name = "BestSetLine"
+	l.add_theme_font_size_override("font_size", 24)
+	if b.is_empty() or int(b.get("size", 0)) < 3:
+		l.text = tr("No Set this run. Next time try keeping 3 dice of the same part.")
+		l.add_theme_color_override("font_color", UI3Theme.color("text_muted"))
+	else:
+		l.text = tr("Best set") + ": %s x%d  %s" % [V4Ui.part_name(int(b.get("part", 0))), int(b["size"]), V4Ui.mult_text(int(b["m100"]))]
+		l.add_theme_color_override("font_color", UI3Theme.color("accent_text"))
+	return l
 
 
 # ---------------------------------------------------------------------------
@@ -477,7 +504,8 @@ func _build_relics_card(relic_ids: Array, run_rule_id: String = "", impact: Dict
 		return card
 	# Depth v3 lane VZ: one row per Core with what it did this run; the biggest contributor is highlighted.
 	var ids: Array = relic_ids.map(func(x): return String(x))
-	var top := CoreFeedback.top_core(impact, ids)
+	var real_ids: Array = ids.filter(func(x): return not RelicSlots.is_pact(String(x)))   # Pacts never take "Most impact"
+	var top := CoreFeedback.top_core(impact, real_ids)
 	var list := VBoxContainer.new()
 	list.name = "CoreImpactList"
 	list.add_theme_constant_override("separation", 8)
@@ -504,10 +532,15 @@ func _build_relics_card(relic_ids: Array, run_rule_id: String = "", impact: Dict
 		sp.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 		row.add_child(sp)
 		var e: Dictionary = impact.get(String(id), {})
-		var txt := CoreFeedback.impact_text(e) if not e.is_empty() else tr("never fired")
+		var is_pact := RelicSlots.is_pact(String(id))
+		var txt := CoreFeedback.impact_text(e) if not e.is_empty() else tr("Not triggered this run")
+		if is_pact:
+			txt = tr("Pact · passive")
+			if def != null and String(def.description) != "":
+				txt += "\n" + UI3.player_text(String(def.description))
 		if String(id) == top:
 			txt = tr("Most impact") + " · " + txt
-		var im := UI3.label(txt, "LabelMuted" if e.is_empty() else "")
+		var im := UI3.label(txt, "LabelMuted" if (e.is_empty() or is_pact) else "")
 		im.name = "CoreImpact"
 		row.add_child(im)
 		list.add_child(p)
