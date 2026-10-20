@@ -56,14 +56,19 @@ func _costs() -> void:
 	e.mana = 5
 	_check(e.reroll_dice(all), "paid reroll refused with mana")
 	_check(e.mana >= 3 and e.mana <= 3 + 20 and e.rerolls == 0, "paid reroll should spend 2 mana (mana=%d)" % e.mana)
+	# v4 3.5: the second chosen reroll costs mana_cost_3 = 3, and max_total 3 stops a third choice.
+	_check(e.reroll_mana_cost() == 3, "second chosen reroll should cost 3")
+	e.mana = 2
+	_check(not e.can_reroll(all), "3 mana reroll allowed with 2 mana")
 	e.mana = 50
-	_check(e.reroll_dice(all) and e.reroll_dice(all), "3rd and 4th reroll refused with mana")
+	_check(e.reroll_dice(all), "second chosen reroll refused with mana")
 	e.mana = 50
-	_check(not e.can_reroll(all), "5th reroll allowed past reroll.max_total")
-	# An Aid reroll (bought) is outside the cap: it must not use up a mana reroll slot.
-	var k_before := e.reroll_nonaid
+	_check(not e.can_reroll(all) and e.reroll_paid_k == 2, "3rd chosen reroll allowed past reroll.max_total")
+	# An Aid reroll (bought) is outside max_total (still under hard_cap 4): paid_k does not move.
+	var k_before: int = e.reroll_paid_k
 	_check(e.reroll_dice(all, -1, true), "aid reroll refused")
-	_check(e.reroll_nonaid == k_before, "an Aid reroll was counted against reroll.max_total")
+	_check(e.reroll_paid_k == k_before, "an Aid reroll was counted against reroll.max_total")
+	_check(e.reroll_total_turn == 4 and not e.reroll_dice(all, -1, true), "hard_cap 4 not enforced for Aid")
 	e.end_turn()
 	if e.won or e.lost:
 		return

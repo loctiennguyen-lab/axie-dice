@@ -944,7 +944,7 @@ static func hollow_paid(ctx: Dictionary) -> void:
 	st["n"] = int(st.get("n", 0)) + 1
 	fire("c_hollow_core", 0, 1, "reroll")
 	if int(st["n"]) % 2 == 0:
-		combat.reroll_nonaid = maxi(0, combat.reroll_nonaid - 1)
+		combat.reroll_paid_k = maxi(0, combat.reroll_paid_k - 1)
 
 
 static func rerolled_count(ctx: Dictionary) -> void:
@@ -1231,5 +1231,5 @@ static func cheap_paid(ctx: Dictionary) -> void:
 	var st := turn_state(ctx["combat"], "cs_cheap")
 	if not bool(st.get("done", false)):
 		st["done"] = true
-		ctx["combat"].reroll_nonaid = maxi(0, ctx["combat"].reroll_nonaid - 1)
+		ctx["combat"].reroll_paid_k = maxi(0, ctx["combat"].reroll_paid_k - 1)
 		fire("rule_cheap_mana", 0, 1, "reroll")

@@ -290,11 +290,11 @@ func t_pos_mana_cores() -> void:
 	RelicHooks.fire(c, "on_roll_settled", {"combat": c, "rerolled_uids": [c.party[0].uid]})
 	_ok(_val(c, c.party[0], "dmg", 5) == _val(b, b.party[0], "dmg", 5) + 1, "hollow_core: rerolled die +1")
 	_ok(_val(c, c.party[0], "mana", 2) == _val(b, b.party[0], "mana", 2) + 2, "hollow_core: mana +1 and reroll +1")
-	c.reroll_nonaid = 0
+	c.reroll_paid_k = 0
 	for i in 8:
-		c.reroll_nonaid += 1
+		c.reroll_paid_k += 1
 		RelicHooks.fire(c, "on_reroll_paid", {"combat": c, "cost": 1, "k": i + 1})
-	_ok(c.reroll_nonaid == 4, "hollow_core: 8 paid rerolls fill the cap of 4 counted")
+	_ok(c.reroll_paid_k == 4, "hollow_core: 8 paid rerolls fill the cap of 4 counted")
 	c = _combat(["c_thorn_pact"])
 	_ok(c.reroll_mana_cost() == 0, "thorn_pact: reroll costs no mana")
 	var u: Unit = c.party[0]

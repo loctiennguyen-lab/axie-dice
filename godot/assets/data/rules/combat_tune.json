@@ -58,8 +58,10 @@
  },
  "reroll": {
   "free": 1,
-  "mana_cost": 2,
-  "max_total": 4,
+  "mana_cost_2": 2,
+  "mana_cost_3": 3,
+  "max_total": 3,
+  "hard_cap": 4,
   "conduit_step": 3
  },
  "rows": {

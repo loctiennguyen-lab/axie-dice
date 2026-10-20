@@ -107,7 +107,12 @@ var reroll_k: int = 0
 var bo: Array = []
 ## Depth v4 3.8: 1..3, default 3. Stage < 2 refuses Lieu / wild_face; stage < 3 refuses Overcast and switches off part_add.
 var depth_stage: int = 3
-var reroll_nonaid: int = 0   ## rerolls this turn that were NOT Aid: the only ones counted against reroll.max_total
+## Depth v4 3.5 (N1): Lieu/An toan rerolls chosen this turn. ONLY these count against reroll.max_total; free, relic, Aid never do.
+var reroll_paid_k: int = 0
+## Every reroll this turn, any source: capped by reroll.hard_cap (3.10.3).
+var reroll_total_turn: int = 0
+## Depth v4 3.10.2: lock per (turn, k) = {rmode, rsrc, uids, list}; asking for the same k again must repeat it exactly. NOT cleared by undo. Reset in roll_all.
+var reroll_lock: Dictionary = {}
 ## Relic scratch space for ONE combat (H6, contract 2.3): plain JSON, owned by lane B's handlers
 ## (tweak_left, mana_paid_<id>, chaos_rerolls...). In the snapshot, so undo and resume restore it
 ## together with Mana. `relic_run_in` is RunState.relic_state as the fight began; handlers write
@@ -193,7 +198,9 @@ func setup_new(combat_setup: Dictionary) -> void:
 	relic_run_out = relic_run_in.duplicate(true)
 	_end_fired = false
 	reroll_k = 0
-	reroll_nonaid = 0
+	reroll_paid_k = 0
+	reroll_total_turn = 0
+	reroll_lock = {}
 	_next_token_uid = TOKEN_UID_BASE
 	undo_stack = []
 	won = false
@@ -336,7 +343,9 @@ func _state_dict() -> Dictionary:
 		"result_shards_earned": result_shards_earned,
 		"rng_state": _rng.get_state() if _rng != null else 0,
 		"reroll_k": reroll_k,
-		"reroll_nonaid": reroll_nonaid,
+		"reroll_paid_k": reroll_paid_k,
+		"reroll_total_turn": reroll_total_turn,
+		"reroll_lock": _lock_to_data(),
 		"relic_combat": relic_combat.duplicate(true),
 		"relic_run_in": relic_run_in.duplicate(true),
 		"relic_run_out": relic_run_out.duplicate(true),
@@ -392,7 +401,9 @@ func _apply_state_dict(d: Dictionary) -> void:
 	reroll_k = int(d.get("reroll_k", 0))
 	bo = _bo_from_data(d.get("bo", []))
 	depth_stage = clampi(int(d.get("depth_stage", 3)), 1, 3)
-	reroll_nonaid = int(d.get("reroll_nonaid", 0))
+	reroll_paid_k = int(d.get("reroll_paid_k", 0))
+	reroll_total_turn = int(d.get("reroll_total_turn", 0))
+	reroll_lock = _lock_from_data(d.get("reroll_lock", {}))
 	relic_combat = (d.get("relic_combat", {}) as Dictionary).duplicate(true)
 	relic_run_in = (d.get("relic_run_in", {}) as Dictionary).duplicate(true)
 	relic_run_out = (d.get("relic_run_out", {}) as Dictionary).duplicate(true)
@@ -545,8 +556,12 @@ func _set_turn_phase(new_phase: int) -> void:
 func roll_all() -> void:
 	_drop_phantoms()
 	bo = []   # cantrips resolved below read M = 1; the new snapshot is taken at the end
+	reroll_paid_k = 0
+	reroll_total_turn = 0
+	reroll_lock = {}
 	for u in party:
 		u.overcast = false
+		u.cracked = false   # Lieu cracks last until the next roll (a parked die comes out clean too)
 		if u.custom_state.has("asleep"):
 			u.held = false
 			u.clear_roll()
@@ -780,9 +795,10 @@ func _resolve_cantrips() -> void:
 var epoch_pending: bool = false
 
 
-func _reroll_args(uids: Array, from_aid: bool) -> Dictionary:
+func _reroll_args(uids: Array, from_aid: bool, rmode: int = 1) -> Dictionary:
+	# rmode (NOT `mode`, that key is run_start's short/full): 0 = Lieu, 1 = Safe. Free and Aid rerolls always send 1 (3.5).
 	var rargs := {"turn": turn, "k": reroll_k + 1,
-		"source": "aid" if from_aid else "base", "uids": _int_list(uids)}
+		"source": "aid" if from_aid else "base", "uids": _int_list(uids), "rmode": effective_rmode(from_aid, rmode)}
 	if attempt > 0:
 		rargs["attempt"] = attempt
 	return rargs
@@ -813,15 +829,15 @@ func _await_seed(kind: String, args: Dictionary) -> Dictionary:
 
 
 ## Async reroll_dice(). Returns {ok, code}; code "illegal" = rules refused, "busy" = a request is in flight.
-func request_reroll_dice(uids: Array, from_aid: bool = false) -> Dictionary:
+func request_reroll_dice(uids: Array, from_aid: bool = false, rmode: int = 1) -> Dictionary:
 	if epoch_pending:
 		return {"ok": false, "code": "busy"}
-	if not can_reroll(uids, from_aid):
+	if not can_reroll(uids, from_aid, rmode):
 		return {"ok": false, "code": "illegal"}
-	var a := await _await_seed("reroll", _reroll_args(uids, from_aid))
+	var a := await _await_seed("reroll", _reroll_args(uids, from_aid, rmode))
 	if not bool(a["ok"]):
 		return {"ok": false, "code": String(a["code"])}
-	var ok := reroll_dice(uids, int(a["seed"]), from_aid)
+	var ok := reroll_dice(uids, int(a["seed"]), from_aid, rmode)
 	return {"ok": ok, "code": "" if ok else "illegal"}
 
 
@@ -853,15 +869,16 @@ func request_continue_after_wipe(heal_pct: int = -1) -> Dictionary:
 
 ## REROLL — see the class-level DESIGN DECISION comment: this is a transient marker, not
 ## a blocking gate. engine.js doReroll(s, uids).
-func reroll_dice(uids: Array, seed: int = -1, from_aid: bool = false) -> bool:
-	if not can_reroll(uids, from_aid):
+func reroll_dice(uids: Array, seed: int = -1, from_aid: bool = false, rmode: int = 1) -> bool:
+	if not can_reroll(uids, from_aid, rmode):
 		return false
+	var eff := effective_rmode(from_aid, rmode)
 	# Epoch boundary: the seed for the new faces. Asked AFTER the legality check (ADR-RNG §4.3 rule 5:
 	# never ask for a seed for an action the engine would refuse) and BEFORE the action is logged
 	# (the server expects the consuming action at log_len).
 	var use_seed := seed
 	if use_seed < 0 and _epoch != null:
-		var r := _epoch.request("reroll", _reroll_args(uids, from_aid))
+		var r := _epoch.request("reroll", _reroll_args(uids, from_aid, eff))
 		if not r.ok:
 			push_error("CombatEngine.reroll_dice: epoch refused (%s)" % r.code)
 			return false
@@ -870,15 +887,22 @@ func reroll_dice(uids: Array, seed: int = -1, from_aid: bool = false) -> bool:
 	# may still refuse; nothing (RNG, reroll_k, Mana) is touched until it has agreed.
 	var list: Array = _rerollable(uids)
 	var hook := _before_reroll(uids, from_aid, false)
-	var paid_cost := reroll_mana_cost(from_aid)   # 0 while a free charge is left (and for Aid)
+	var paid_cost := reroll_mana_cost(from_aid, eff)   # 0 while a free charge is left, for Aid and for Lieu
 	if bool(hook["veto"]) or mana < int(hook["mana_cost"]) + paid_cost:
 		return false
 	if use_seed >= 0:
 		_rng = Rng.new(use_seed)
 	var was_paid := paid_cost > 0 or (not from_aid and rerolls <= 0)
+	var rsrc := 1 if from_aid else 0
+	var chosen := not from_aid and rerolls <= 0   # Lieu / Safe pick: the only kind counted against max_total (N1)
 	reroll_k += 1
-	if not from_aid:
-		reroll_nonaid += 1
+	reroll_total_turn += 1
+	if chosen:
+		reroll_paid_k += 1
+	var uid_list: Array = []
+	for lu in list:
+		uid_list.append((lu as Unit).uid)
+	reroll_lock[reroll_k] = {"rmode": eff, "rsrc": rsrc, "uids": _int_list(uids), "list": uid_list}
 	mana -= int(hook["mana_cost"]) + paid_cost
 	_set_turn_phase(CombatPhase.REROLL)
 	if not from_aid and rerolls > 0:
@@ -889,6 +913,7 @@ func reroll_dice(uids: Array, seed: int = -1, from_aid: bool = false) -> bool:
 	for raw_u in list:
 		var u: Unit = raw_u
 		var had_crit: bool = u.roll_crit_now()
+		u.cracked = false   # a re-rolled die sheds an old crack; Lieu may crack it again below
 		_roll_unit(u)
 		# JS: `if(rhas(s,'critKeep')) u.critNow = u.critNow || had` (engine.js:496-500) — a
 		# crit already showing on the die survives the reroll instead of being gambled away.
@@ -899,6 +924,15 @@ func reroll_dice(uids: Array, seed: int = -1, from_aid: bool = false) -> bool:
 	for ru in list:
 		settled.append((ru as Unit).uid)
 	RelicHooks.fire(self, "on_roll_settled", {"combat": self, "rerolled_uids": settled})   # H1b
+	if eff == 0:
+		# Lieu (3.5): ONE draw per uid the caller named, in the caller's order, from this reroll's own seed stream,
+		# even for a die that died or did not roll, so RNG use does not depend on state. Only a die rolled just now can crack.
+		var crack_pct := int(tune_knob("crack", "pct", 30.0))
+		for raw_c in uids:
+			var hit := _rng.next_int(100) < crack_pct
+			var cu := by_uid(int(raw_c))
+			if hit and cu != null and settled.has(cu.uid):
+				cu.cracked = true
 	_snap_bo()
 	# JS clears the undo stack on reroll ONLY when the party lacks `safeReroll`
 	# (engine.js:502). Clearing unconditionally quietly disabled that relic's whole point.
@@ -910,22 +944,88 @@ func reroll_dice(uids: Array, seed: int = -1, from_aid: bool = false) -> bool:
 	# a future change to it.
 	# `from_aid` is logged (as 0/1, canon has no bool) so a replay can re-apply an Aid reroll made
 	# with no rerolls left; the plain reroll_dice(uids) form still replays (missing arg = 0).
-	_log("reroll_dice", [uids.duplicate(), 1 if from_aid else 0])
+	# args[2] = rmode (0 Lieu / 1 Safe), already normalised: free and Aid log 1.
+	_log("reroll_dice", [uids.duplicate(), 1 if from_aid else 0, eff])
 	return true
 
 
 ## Pure legality check for reroll_dice(); the view calls it BEFORE asking for an epoch.
-func can_reroll(uids: Array, from_aid: bool = false) -> bool:
+func can_reroll(uids: Array, from_aid: bool = false, rmode: int = 1) -> bool:
+	return reroll_refusal(uids, from_aid, rmode) == ""
+
+
+## "" when the reroll is legal, else why not (the UI greys the button with it). Codes: over, hard_cap, stage, mission, none, pin_mismatch,
+## mana, veto, bad_rmode.
+func reroll_refusal(uids: Array, from_aid: bool = false, rmode: int = 1) -> String:
 	if won or lost:
-		return false
+		return "over"
+	if rmode != 0 and rmode != 1:
+		return "bad_rmode"
+	if reroll_total_turn >= reroll_hard_cap():
+		return "hard_cap"
 	if rerolls <= 0 and not from_aid and not reroll_is_payable():
-		return false
+		return "hard_cap"
+	var eff := effective_rmode(from_aid, rmode)
+	if eff == 0 and depth_stage < 2:
+		return "stage"   # Lieu opens at stage 2
 	if from_aid and mission:
-		return false   # no Aid in a mission run
-	if _rerollable(uids).is_empty():
-		return false
+		return "mission"   # no Aid in a mission run
+	var list := _rerollable(uids)
+	if list.is_empty():
+		return "none"
+	if not _lock_allows(uids, list, eff, from_aid):
+		return "pin_mismatch"
 	var h := _before_reroll(uids, from_aid, true)
-	return not bool(h["veto"]) and mana >= int(h["mana_cost"]) + reroll_mana_cost(from_aid)
+	if bool(h["veto"]):
+		return "veto"
+	if mana < int(h["mana_cost"]) + reroll_mana_cost(from_aid, eff):
+		return "mana"
+	return ""
+
+
+## 3.5: a free-charge reroll and an Aid reroll are always Safe (1); only the chosen reroll (no charge left) can be Lieu.
+func effective_rmode(from_aid: bool, rmode: int) -> int:
+	if from_aid or rerolls > 0:
+		return 1
+	return 0 if rmode == 0 else 1
+
+
+func reroll_hard_cap() -> int:
+	return int(tune_knob("reroll", "hard_cap", 4.0))
+
+
+## 3.10.2 (N2/N3): the next reroll is key reroll_k + 1. If that key was already thrown (an undo rewound reroll_k, or a load), only the exact
+## same request may repeat it: same rmode, same source (rsrc), same uid list, and the same dice still rerollable. Otherwise false, no k jump.
+func _lock_allows(uids: Array, list: Array, eff: int, from_aid: bool) -> bool:
+	var k := reroll_k + 1
+	if not reroll_lock.has(k):
+		return true
+	var lk: Dictionary = reroll_lock[k]
+	if int(lk["rmode"]) != eff or int(lk["rsrc"]) != (1 if from_aid else 0):
+		return false
+	if _int_list(uids) != (lk["uids"] as Array):
+		return false
+	var now_list: Array = []
+	for u in list:
+		now_list.append((u as Unit).uid)
+	return now_list == (lk["list"] as Array)
+
+
+func _lock_to_data() -> Dictionary:
+	var out := {}
+	for k in reroll_lock:
+		out[str(k)] = (reroll_lock[k] as Dictionary).duplicate(true)
+	return out
+
+
+static func _lock_from_data(d) -> Dictionary:
+	var out := {}
+	if d is Dictionary:
+		for k in d:
+			var e: Dictionary = d[k]
+			out[int(k)] = {"rmode": int(e.get("rmode", 1)), "rsrc": int(e.get("rsrc", 0)),
+				"uids": _int_list(e.get("uids", [])), "list": _int_list(e.get("list", []))}
+	return out
 
 
 ## ---- Depth v3 3.5: reroll costs mana once the free charges are gone ----------------------------------
@@ -933,18 +1033,18 @@ func reroll_free_per_turn() -> int:
 	return int(tune_knob("reroll", "free", 1.0))
 
 
-## True when no free charge is left but a paid one is still allowed this turn (cap reroll.max_total).
+## True when no free charge is left but a Lieu/Safe pick is still allowed this turn: reroll_paid_k + reroll.free < reroll.max_total (N1).
 func reroll_is_payable() -> bool:
-	return rerolls <= 0 and reroll_nonaid < int(tune_knob("reroll", "max_total", 4.0))
+	return rerolls <= 0 and reroll_paid_k + reroll_free_per_turn() < int(tune_knob("reroll", "max_total", 3.0))
 
 
 ## Mana the NEXT reroll costs on top of any relic surcharge: 0 while a free charge is left, and for an
 ## Aid reroll. Hook `reroll_mana_cost` (value = knob reroll.mana_cost) lets a Core discount it.
-func reroll_mana_cost(from_aid: bool = false) -> int:
-	if from_aid or rerolls > 0:
-		return 0
-	return maxi(0, int(RelicHooks.run_value_hook(self, "reroll_mana_cost", {"combat": self},
-		int(tune_knob("reroll", "mana_cost", 2.0)))))
+func reroll_mana_cost(from_aid: bool = false, rmode: int = 1) -> int:
+	if from_aid or rerolls > 0 or rmode == 0:
+		return 0   # Lieu is free (its price is the crack)
+	var base := int(tune_knob("reroll", "mana_cost_2", 2.0)) if reroll_paid_k <= 0 else int(tune_knob("reroll", "mana_cost_3", 3.0))
+	return maxi(0, int(RelicHooks.run_value_hook(self, "reroll_mana_cost", {"combat": self}, base)))
 
 
 ## H1a. A handler may veto the reroll or charge Mana for it; dry_run tells it nothing may be spent.
@@ -1404,9 +1504,11 @@ func undo_last() -> bool:
 	if undo_stack.is_empty():
 		return false
 	var snap: Dictionary = undo_stack.pop_back()
+	var keep_lock := reroll_lock.duplicate(true)   # 3.10.2: undo rewinds reroll_k but never the lock
 	if _impact_at.has(undo_stack.size()):
 		RunState.core_impact = (_impact_at[undo_stack.size()] as Dictionary).duplicate(true)
 	_apply_state_dict(snap)
+	reroll_lock = keep_lock
 	_log("undo_last", [])
 	return true
 
@@ -2027,7 +2129,9 @@ func finish_end_turn() -> void:
 	stat["turns"] = int(stat.get("turns", 0)) + 1
 	rerolls = max_rerolls
 	reroll_k = 0
-	reroll_nonaid = 0
+	reroll_paid_k = 0
+	reroll_total_turn = 0
+	reroll_lock = {}
 	_first_dmg_used = false
 	used_actives = []
 	chaos_reroll_given = 0
@@ -2403,7 +2507,9 @@ func continue_after_wipe(seed: int = -1, heal_pct: int = -1) -> bool:
 	undo_stack = []
 	rerolls = max_rerolls
 	reroll_k = 0
-	reroll_nonaid = 0
+	reroll_paid_k = 0
+	reroll_total_turn = 0
+	reroll_lock = {}
 	used_actives = []
 	chaos_reroll_given = 0
 	relic_reroll_given = 0
