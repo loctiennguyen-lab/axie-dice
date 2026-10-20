@@ -197,3 +197,125 @@ static func on_single_hit(combat, attacker: Unit, tgt: Unit) -> void:
 	var dmg := spite_damage(int(combat.pw))
 	DamagePipeline.resolve({"combat": combat, "src": tgt, "tgt": attacker, "value": dmg, "pierce": true, "attack": false})
 	EventBus.spite.emit(tgt.uid, attacker.uid, dmg, n)
+
+
+# ---------------------------------------------------------------------------
+# M5 Charged Strike (affix "charge", boss rhythm tell). Cycle = charge.period enemy turns: charge turn
+# n % period == charge_at (public tell, no attack), strike turn n % period == (charge_at + 1) % period (strongest
+# dmg face x charge.mult at the chosen Axie). Only stun / freeze (freeze on an enemy IS stun) on the charge turn
+# breaks it; damage never does. A boss only borrows the tell + target lock on the prep turn before its strike: no
+# x2.5, and a break turns the strike back into a plain roll. No rng: the target is the lowest HP+shield (tie =
+# smallest slot) among the Axie the monster may hit.
+# ---------------------------------------------------------------------------
+
+static func charge_period() -> int:
+	return maxi(2, int(knob("charge", "period", 4.0)))
+
+
+static func charge_at() -> int:
+	return int(knob("charge", "charge_at", 3.0)) % charge_period()
+
+
+static func is_charge_turn(turn: int) -> bool:
+	return turn % charge_period() == charge_at()
+
+
+static func is_strike_turn(turn: int) -> bool:
+	return turn % charge_period() == (charge_at() + 1) % charge_period()
+
+
+static func _lowest_target(combat) -> Unit:
+	var ps: Array = combat.alive_party()
+	if ps.is_empty():
+		return null
+	var pool: Array = combat.front_row_targets(ps)
+	return combat._lowest_by(pool, func(u: Unit) -> float: return float(u.hp + u.shield))
+
+
+## Charge target of `e`: the locked one while alive, else re-picked by the same rule.
+static func _locked_or_new(combat, e: Unit) -> Unit:
+	var uid := int(e.custom_state.get("charge_target", -1))
+	var t: Unit = combat.by_uid(uid) if uid >= 0 else null
+	if t == null or t.hp <= 0 or t.side != "p":
+		t = _lowest_target(combat)
+	return t
+
+
+static func _best_dmg_face(e: Unit) -> int:
+	var best := -1
+	var best_v := -1
+	for i in e.die.size():
+		var f: Dictionary = e.die[i]
+		if String(f.get("type", "")) == "dmg" and int(f.get("value", 0)) > best_v:
+			best_v = int(f.get("value", 0))
+			best = i
+	return best
+
+
+## Called from roll_all after the intent of `e` is picked.
+static func charge_roll(combat, e: Unit) -> void:
+	if e.hp <= 0 or e.intent.is_empty():
+		return
+	if e.is_boss:
+		var ph: String = combat.boss_rhythm_phase(e)
+		if ph == "prep" and combat.boss_rhythm_phase(e, 1) == "strike":
+			var t := _lowest_target(combat)
+			if t != null:
+				e.custom_state["charge_target"] = t.uid
+				e.intent["charge"] = "tell"
+				EventBus.charge_start.emit(e.uid, t.uid)
+		elif ph == "strike":
+			if not bool(e.custom_state.get("charge_broken", false)) and e.custom_state.has("charge_target"):
+				var t2 := _locked_or_new(combat, e)
+				var f: Dictionary = e.die[int(e.intent.get("face_index", 0))]
+				if t2 != null and String(f.get("type", "")) == "dmg" and not CombatEngine._has_kw(f, "aoe") \
+						and not CombatEngine._has_kw(f, "pierce"):
+					e.intent["target_uid"] = t2.uid
+			e.custom_state.erase("charge_target")
+			e.custom_state.erase("charge_broken")
+		return
+	if not bool(combat._aff(e).get("charge", false)):
+		return
+	var turn: int = int(combat.turn)
+	if is_charge_turn(turn):
+		var t3 := _lowest_target(combat)
+		if t3 == null:
+			return
+		e.custom_state["charge_target"] = t3.uid
+		e.custom_state["charge_pending"] = true
+		e.intent["charge"] = "start"
+		e.intent["target_uid"] = t3.uid
+		EventBus.charge_start.emit(e.uid, t3.uid)
+	elif is_strike_turn(turn) and bool(e.custom_state.get("charge_pending", false)):
+		e.custom_state["charge_pending"] = false
+		var bi := _best_dmg_face(e)
+		var t4 := _locked_or_new(combat, e)
+		if bi >= 0 and t4 != null:
+			e.set_roll(bi, false)
+			e.heavy = CombatEngine._has_kw(e.die[bi], "heavy")
+			e.intent = {"face_index": bi, "target_uid": t4.uid, "charge": "hit"}
+		e.custom_state.erase("charge_target")
+	else:
+		e.custom_state["charge_pending"] = false
+
+
+## Called when `e` is stunned at its action (freeze = stun on an enemy). Returns true when a charge was broken.
+static func charge_on_stun(combat, e: Unit) -> bool:
+	if String(e.intent.get("charge", "")) == "start":
+		e.custom_state["charge_pending"] = false
+		e.custom_state.erase("charge_target")
+		EventBus.charge_break.emit(e.uid)
+		return true
+	if String(e.intent.get("charge", "")) == "tell":
+		e.custom_state["charge_broken"] = true
+		e.custom_state.erase("charge_target")
+		EventBus.charge_break.emit(e.uid)
+		return true
+	return false
+
+
+## True while the monster's strike is a charged one (elite only): _face_value multiplies by charge.mult.
+static func charge_mult(e: Unit) -> float:
+	if e != null and not e.is_boss and String(e.intent.get("charge", "")) == "hit":
+		return knob("charge", "mult", 2.5)
+	return 1.0

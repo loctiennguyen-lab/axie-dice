@@ -538,6 +538,7 @@ func roll_all() -> void:
 			_apply_strike_face(e)
 			_affix_echo(e)
 			_pick_enemy_intent(e)
+			CombatTraits.charge_roll(self, e)
 		else:
 			e.clear_roll()
 			e.intent = {}
@@ -1272,7 +1273,7 @@ func _face_value(u: Unit, fi: int) -> int:
 			v += RelicHooks.sum(self, "hiveMind") * _count_alive_tokens(party)
 		if u.side == "e":
 			# base x (1 + enrage% + attrition%) x spike, rounded half up (monetization-v1 §1.2).
-			v = float(RulesMath.round_half_up(v * enemy_dmg_factor(u) * boss_hollow_dealt_mult(u) * affix_dealt_mult(u)))
+			v = float(RulesMath.round_half_up(v * enemy_dmg_factor(u) * boss_hollow_dealt_mult(u) * affix_dealt_mult(u) * CombatTraits.charge_mult(u)))
 	if face_type == "mana" and u.side == "p" and u.cls == "aqua":
 		v += 1.0                                                        # CONDUIT passive
 	if u.side == "p" and u.resonant_now:
@@ -1574,12 +1575,21 @@ func step_end_turn_action(index: int) -> bool:
 	if int(e.status.get("stun", 0)) > 0:
 		e.status["stun"] = 0
 		EventBus.float_text.emit(e.uid, "STUNNED", "deb", 0)
+		CombatTraits.charge_on_stun(self, e)
 		return true
+	if String(e.intent.get("charge", "")) == "start":
+		return true                             # charge turn: the elite gathers power, no attack (M5)
+	var charge_value := -1
+	var charge_tgt := int(e.intent.get("target_uid", -1))
+	if String(e.intent.get("charge", "")) == "hit":
+		charge_value = _face_value(e, e.roll_face_index())
 	var hp_before := {}
 	if int(_aff(e).get("poison_on_pierce", 0)) > 0:
 		for pu in party:
 			hp_before[(pu as Unit).uid] = (pu as Unit).hp
 	_exec_face(e, int(e.intent.get("target_uid", -1)))
+	if charge_value >= 0:
+		EventBus.charge_hit.emit(e.uid, charge_tgt, charge_value)
 	_affix_fang(e, hp_before)
 	# Rush: every Nth turn the elite acts twice (the same intent), announced a turn early via affix_state().
 	if _affix_double_now(e) and e.hp > 0 and _any_real_party_alive():
@@ -1795,8 +1805,17 @@ func affix_state() -> Dictionary:
 		return {}
 	var e: Unit = enemies[0]
 	var p := int(_aff(e).get("double_turn_period", 0))
-	return {"id": String(e.custom_state.get("affix", "")), "double_now": _affix_double_now(e),
+	var st := {"id": String(e.custom_state.get("affix", "")), "double_now": _affix_double_now(e),
 		"double_next": p > 0 and (turn + 1) % p == 0}
+	if String(e.custom_state.get("affix2", "")) != "":
+		st["id2"] = String(e.custom_state.get("affix2", ""))
+	if bool(_aff(e).get("charge", false)):
+		# M5 tell for the UI: this turn is the charge / the strike, the next one is, and who is locked.
+		st["charge_now"] = CombatTraits.is_charge_turn(turn)
+		st["charge_next"] = CombatTraits.is_charge_turn(turn + 1)
+		st["strike_now"] = String(e.intent.get("charge", "")) == "hit"
+		st["charge_target"] = int(e.custom_state.get("charge_target", -1))
+	return st
 
 
 ## ---- Depth v3 6.3 boss rhythm: a public 3-turn cycle, readable one turn ahead ---------------------------------
@@ -1848,8 +1867,8 @@ func boss_hollow_taken_mult(b: Unit) -> float:
 
 ## Strike turn: the boss rolls as usual (same rng draws) and then uses its strongest damage face.
 func _apply_strike_face(e: Unit) -> void:
-	if boss_rhythm_phase(e) != "strike":
-		return
+	if boss_rhythm_phase(e) != "strike" or bool(e.custom_state.get("charge_broken", false)):
+		return                                  # a broken charge (stun on the prep turn) leaves a plain roll (M5)
 	var best := -1
 	var best_v := -1
 	for i in e.die.size():
