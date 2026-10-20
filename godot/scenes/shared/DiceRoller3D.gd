@@ -869,6 +869,11 @@ func _free_tile(d: Dictionary) -> void:
 
 
 func _free_body(d: Dictionary) -> void:
+	# The turn tween is bound to this body; kill it first or it keeps stepping a freed node.
+	var tt = d.get("turn")
+	if tt is Tween and (tt as Tween).is_valid():
+		(tt as Tween).kill()
+	d["turn"] = null
 	var b = d.get("body")
 	if b != null and is_instance_valid(b):
 		(b as Node).queue_free()
