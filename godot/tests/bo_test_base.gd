@@ -49,9 +49,9 @@ func set_knobs(which: String) -> void:
 		b["m_cap"] = 3.5
 
 
-static func engine(relics: Array = [], mana: int = 0, seed_v: int = 7, stage: int = 3) -> CombatEngine:
+static func engine(relics: Array = [], mana: int = 0, seed_v: int = 7, stage: int = 3, keys: Array = ["plant1", "beast1", "aqua1", "reptile1", "bug1"]) -> CombatEngine:
 	var e := CombatEngine.new()
-	e.setup_new({"node_id": "bo", "kind": "battle", "pw": 2, "ascension": 0, "roster_snapshot": CoreTestUtil.roster(),
+	e.setup_new({"node_id": "bo", "kind": "battle", "pw": 2, "ascension": 0, "roster_snapshot": CoreTestUtil.roster(keys),
 		"relic_ids": relics, "combat_seed": seed_v, "start_mana": mana, "depth_stage": stage})
 	return e
 
@@ -81,4 +81,4 @@ static func force(e: CombatEngine, fis: Array, f = null, snap: bool = true) -> v
 static func digest(e: CombatEngine) -> String:
 	var d: Dictionary = e.to_data().duplicate(true)
 	d.erase("undo_stack")
-	return JSON.stringify(d)
+	return JSON.stringify(JSON.parse_string(JSON.stringify(d)))   # normalised through JSON like a save

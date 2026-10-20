@@ -960,7 +960,7 @@ func _rerollable(uids: Array) -> Array:
 	for raw_id in uids:
 		var u := by_uid(int(raw_id))
 		if u != null and u.side == "p" and u.hp > 0 and u.has_rolled() and not u.roll_used() \
-				and not u.heavy and not u.frozen and not u.held \
+				and not u.heavy and not u.frozen and not u.held and not u.overcast and u.wild_slot < 0 \
 				and bool(RelicHooks.run_value_hook(self, "reroll_allowed", {"combat": self, "unit": u}, true)):
 			list.append(u)
 	return list

@@ -1,6 +1,6 @@
 extends Node
 ## Overcast (lane OC): pay mana to power ONE die up for the turn. Effect, price, limits, preview, undo, replay, tamper.
-## Knobs: combat_tune.json overcast.mana_cost / mult / per_turn. Order: the multiplier is applied after face_final (Core cap).
+## Knobs: combat_tune.json overcast.mana_cost / add / per_turn. Depth v4 3.7: Overcast adds +overcast.add to the M bag (with the Set), one integer multiply at step 4, before face_final; no own x1.5.
 
 var _guard := SaveGuard.new()
 const SEED := 424242
@@ -66,7 +66,11 @@ func _t_effect_price_preview() -> void:
 	var u: Unit = e.by_uid(int(c[0]))
 	var pv := e.overcast_preview(u)
 	var plain := int(pv[0])
-	_ok(int(pv[1]) == int(ceil(float(plain) * 1.5)), "preview %s is not ceil(x1.5)" % str(pv))
+	var base_v := int(e._face_base(u, u.roll_face_index()))
+	u.overcast = true
+	var m_oc := e.m100_for(u)
+	u.overcast = false
+	_ok(int(pv[1]) == (base_v * m_oc + 99) / 100, "preview %s is not the M-bag value %d" % [str(pv), (base_v * m_oc + 99) / 100])
 	_ok(int(pv[1]) > plain, "overcast must raise the value")
 	var rng_before: int = e._rng.get_state()
 	var m0 := e.mana
