@@ -69,6 +69,7 @@ extends Resource
 @export var excludes: PackedStringArray = PackedStringArray()  ## tokens, if ANY holds the Core is not offered
 @export var disabled: bool = false      ## data kill-switch: never offered (still resolvable)
 @export var first_run_hidden: bool = false  ## not offered in the account's first run (bet Cores; quest axis is always hidden there)
+@export var weight: int = 1             ## Run Rule draw weight (2b.2: R10, R12, R13 = 2, the rest 1; rule_none = 0)
 @export var run_rule: bool = false      ## a Run Rule (hidden Core, own slot, offered by RunState before Core pick 1)
 @export var quest: Dictionary = {}      ## {kind, steps:[{target:int, reward_tier:int}]}: multi-step, each step pays on its own
 @export var rule_knobs: Dictionary = {} ## run_rule data: knob -> value, read by the lanes that own each knob

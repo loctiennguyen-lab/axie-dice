@@ -64,8 +64,8 @@ func test_pool_shape() -> void:
 	var active := 0
 	var visible := 0
 	for d in RelicRegistry.all_defs_sorted():
-		if String(d.id).begins_with("__"):
-			continue
+		if String(d.id).begins_with("__") or String(d.core_axis) != "":
+			continue   # depth v3 Cores / Run Rules are counted by t_core_catalog
 		if d.act_cost > 0:
 			active += 1
 		else:
@@ -76,7 +76,7 @@ func test_pool_shape() -> void:
 			"%s: needs layer and 1-2 tags" % d.id)
 		_assert(not d.hidden_from_pool or String(d.needs_hook) != "", "%s hidden without needs_hook" % d.id)
 	_assert(passive == 117 and active == 16, "133 relics = 117 passive + 16 active, got %d + %d" % [passive, active])
-	var offerable: Array = RelicRegistry.offerable_defs_sorted()
+	var offerable: Array = RelicRegistry.offerable_defs_sorted().filter(func(x): return String(x.core_axis) == "")
 	_assert(offerable.size() == visible, "offerable pool == non-hidden defs")
 	for id in ["r_bookend", "r_festermark", "r_thornling", "r_twinfates", "r_fumeblossom"]:
 		_assert(RelicRegistry.get_def(id) != null, "%s has a def" % id)

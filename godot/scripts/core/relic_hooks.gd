@@ -1555,7 +1555,43 @@ static var TABLE: Dictionary = {
 			RelicHooks.egg_growth_step(ctx["combat"], 0)
 			return,
 	},
-
+	# ---- Depth v3 Cores / Run Rules (lane C): logic in core_hooks.gd, one TABLE entry per id ----
+	# CORE_TABLE_BEGIN
+	"c_early_scales": {"on_combat_start": func(ctx: Dictionary): CoreHooks.early_scales_start(ctx)},
+	"c_dewdrop": {"on_turn_start": func(ctx: Dictionary): CoreHooks.dewdrop_turn(ctx)},
+	"c_elder_trunk": {"mod_face": func(ctx: Dictionary): CoreHooks.elder_trunk_face(ctx)},
+	"c_steady_hold": {
+		"stash_cap": func(ctx: Dictionary): return CoreHooks.steady_hold_cap(ctx),
+		"stash_repeat": func(ctx: Dictionary): return true,
+	},
+	"c_kindle": {
+		"on_stash": func(ctx: Dictionary): CoreHooks.kindle_stash(ctx),
+		"face_final": func(ctx: Dictionary): return CoreHooks.kindle_value(ctx),
+		"on_face_used": func(ctx: Dictionary): CoreHooks.focus_spent(ctx["combat"], "focus_c_kindle", ctx["unit"]),
+	},
+	"c_prime_chain": {
+		"on_face_used": func(ctx: Dictionary): CoreHooks.prime_used(ctx),
+		"face_final": func(ctx: Dictionary): return CoreHooks.prime_value(ctx),
+	},
+	"c_finisher": {
+		"on_face_used": func(ctx: Dictionary): CoreHooks.count_used(ctx),
+		"face_final": func(ctx: Dictionary): return CoreHooks.finisher_value(ctx),
+	},
+	"c_prism": {
+		"on_face_used": func(ctx: Dictionary): CoreHooks.note_category(ctx),
+		"on_turn_end": func(ctx: Dictionary): CoreHooks.prism_turn_end(ctx),
+	},
+	"c_mana_pool": {
+		"face_final": func(ctx: Dictionary): return CoreHooks.mana_pool_value(ctx),
+		"on_turn_end": func(ctx: Dictionary): CoreHooks.mana_pool_turn_end(ctx),
+	},
+	"c_tidecaller": {
+		"on_active_played": func(ctx: Dictionary): CoreHooks.tide_spent(ctx),
+		"on_reroll_paid": func(ctx: Dictionary): CoreHooks.tide_spent(ctx),
+	},
+	# data-only Run Rules: knobs live in RelicDef.rule_knobs, read by the lanes that own them
+	"rule_none": {},
+	# CORE_TABLE_END
 }
 
 
