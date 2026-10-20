@@ -133,6 +133,7 @@ func _build_top() -> void:
 	rrow.alignment = BoxContainer.ALIGNMENT_CENTER
 	_relic_plate.add_child(rrow)
 	core_panel = CorePanel.new()
+	core_panel.show_counts = true   # lane VZ: "xN" activations this fight on each Core slot
 	rrow.add_child(core_panel)
 	relic_strip = HBoxContainer.new()
 	relic_strip.mouse_filter = Control.MOUSE_FILTER_IGNORE

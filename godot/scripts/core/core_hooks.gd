@@ -45,10 +45,34 @@ static func _first_living(combat):
 	return a[0] if not a.is_empty() else null
 
 
-static func gain_mana(combat, n: int, label: String = "") -> void:
+## depth v3 lane FX: a Core DID something that changed the outcome. Never fires for amount <= 0.
+## kind: dmg thorns poison shield block heal mana reroll quest_step (CoreFeedback.KINDS) or "rule" (changed a rule / build).
+## While > 0 `fire` is silent: UI previews / forecasts / look-ahead simulations raise it (see CombatEngine.preview_damage),
+## so a Core only counts when it really acted. Combat hooks that have the engine at hand use `_fire_live` (core_emit);
+## this mute is the catch-all for every direct `fire` call reachable from a preview.
+static var mute: int = 0
+
+
+static func fire(core_id: String, unit_uid: int, amount: int, kind: String) -> void:
+	if mute <= 0 and core_id != "" and amount > 0:
+		EventBus.core_fired.emit(core_id, unit_uid, amount, kind)
+
+
+## True while CombatEngine._do_face computes the value it is about to APPLY (not a UI preview / forecast).
+static func live(combat) -> bool:
+	return combat != null and "core_emit" in combat and bool(combat.core_emit)
+
+
+static func _fire_live(combat, id: String, uid: int, amount: int, kind: String) -> void:
+	if live(combat):
+		fire(id, uid, amount, kind)
+
+
+static func gain_mana(combat, n: int, label: String = "", core: String = "") -> void:
 	if n <= 0:
 		return
 	combat.mana += n
+	fire(core, 0, n, "mana")
 	var u = _first_living(combat)
 	if u != null:
 		EventBus.float_text.emit(u.uid, label if label != "" else "+%d MP" % n, "man", 0)
@@ -67,9 +91,14 @@ static func face_category(face: Dictionary) -> String:
 static func is_finisher(combat, u) -> bool:
 	if u.side != "p" or u.hp <= 0 or not u.has_rolled() or u.roll_used() or u.held:
 		return false
+	# Three Dice: the die that makes the 3rd use is the last one (the rest get Held right after it).
+	if RelicHooks_has(combat, "c_three_dice") and int(turn_state(combat, "cs_three").get("n", 0)) >= 2:
+		return true
 	for o in combat.party:
 		if o == u or o.hp <= 0:
 			continue
+		if mirror_second(combat, o):
+			continue   # Mirror Face: a die waiting for its second use does not block the Final Blow of another die
 		if o.has_rolled() and not o.roll_used() and not o.held:
 			return false
 	return true
@@ -90,6 +119,7 @@ static func early_scales_start(ctx: Dictionary) -> void:
 	for u in living_axies(combat):
 		if combat.row_of(u) == 0:
 			DamagePipeline.apply_shield(combat, u, 5)
+			fire("c_early_scales", u.uid, 5, "shield")
 
 
 ## Sacrifice: the Axie in slot 5 sleeps for the whole fight (no die, never targeted, not counted for a wipe).
@@ -101,6 +131,7 @@ static func sacrifice_start(ctx: Dictionary) -> void:
 			u.held = false
 			u.clear_roll()
 			EventBus.float_text.emit(u.uid, "ZZZ", "buf", 0)
+			fire("c_sacrifice", u.uid, 1, "rule")
 
 
 ## Take The Field: the back-row Axie with the most heal faces (ties: lowest slot) is the one that descends.
@@ -136,17 +167,33 @@ static func descend_face(ctx: Dictionary) -> void:
 	if not is_descended(ctx["combat"], u):
 		return
 	u.max_hp += 8
+	fire("c_descend", u.uid, 8, "rule")
 	for f in u.die:
-		if String((f as Dictionary).get("type", "")) == "heal":
+		var ty := String((f as Dictionary).get("type", ""))
+		if ty == "heal":
 			f["type"] = "dmg"
 			f["value"] = int(f.get("value", 0)) + 2
+			_mark_converted(u, f)
+		elif ty == "buff":
+			f["type"] = "dmg"
+			f["value"] = 2
+			f["keywords"] = []
+			_mark_converted(u, f)
+
+
+static func _mark_converted(u, f: Dictionary) -> void:
+	var l: Array = u.custom_state.get("desc_fi", [])
+	l.append(u.die.find(f))
+	u.custom_state["desc_fi"] = l
 
 
 static func descend_hit(ctx: Dictionary) -> void:
 	var u = ctx["unit"]
 	var d := int(ctx.get("dealt", 0))
 	if d > 0 and is_descended(ctx["combat"], u) and u.hp > 0:
+		var hp0: int = u.hp
 		DamagePipeline.apply_heal(ctx["combat"], u, int(ceil(d * 0.3)))
+		fire("c_descend", u.uid, u.hp - hp0, "heal")
 
 
 ## Value of a knob on a held Run Rule / Core definition (rule_knobs), else `default`.
@@ -158,20 +205,25 @@ static func rule_knob(id: String, key: String, default):
 
 
 ## Bastion: front-row Axies take 2 less from single-target hits (min 1). Rising Tide (front fights): 25% less.
-static func incoming(ctx: Dictionary) -> float:
+## `id` = the owner whose TABLE entry is running (each owner applies only its own part, so owning two of them does
+## not apply the others twice).
+static func incoming(ctx: Dictionary, id: String = "") -> float:
 	var combat = ctx["combat"]
 	var tgt = ctx["tgt"]
-	var v := float(ctx["value"])
+	var v0 := float(ctx["value"])
+	var v := v0
 	if tgt.side == "e":
-		if int(tgt.custom_state.get("fissure", -1)) >= int(combat.turn) and RelicHooks_has(combat, "c_fissure"):
+		if id == "c_fissure" and int(tgt.custom_state.get("fissure", -1)) >= int(combat.turn):
 			v = ceil(v * 1.25)
+			fire(id, tgt.uid, int(v - v0), "dmg")
 		return v
 	if tgt.is_token or combat.row_of(tgt) != 0:
 		return v
-	if RelicHooks_has(combat, "c_bastion") and bool(ctx.get("single", false)) and not bool(ctx.get("pierce", false)) and bool(ctx.get("attack", false)):
+	if id == "c_bastion" and bool(ctx.get("single", false)) and not bool(ctx.get("pierce", false)) and bool(ctx.get("attack", false)):
 		v = maxf(1.0, v - 2.0)
-	if RelicHooks_has(combat, "rule_rising_tide") and String(combat_state(combat, "tide").get("water", "")) == "front":
+	if id == "rule_rising_tide" and String(combat_state(combat, "tide").get("water", "")) == "front":
 		v = maxf(1.0, ceil(v * float(rule_knob("rule_rising_tide", "front_dmg_taken", 0.75))))
+	fire(id, tgt.uid, int(v0 - v), "block")
 	return v
 
 
@@ -191,7 +243,7 @@ static func tide_start(ctx: Dictionary) -> void:
 static func fissure_used(ctx: Dictionary) -> void:
 	var combat = ctx["combat"]
 	var f: Dictionary = ctx["face"]
-	if String(ctx.get("side", "")) != "p" or String(f.get("type", "")) != "poison":
+	if String(ctx.get("side", "")) != "p" or not ["poison", "debuff"].has(face_category(f)):
 		return
 	var targets: Array = combat.alive_enemies() if _has_kw(f, "aoe") else [combat.by_uid(int(ctx.get("target_uid", -1)))]
 	for t in targets:
@@ -199,6 +251,7 @@ static func fissure_used(ctx: Dictionary) -> void:
 			t.custom_state["fissure"] = int(combat.turn) + 1
 			t.plating_off = maxi(int(t.plating_off), 2)
 			EventBus.float_text.emit(t.uid, "FISSURE", "deb", 0)
+			fire("c_fissure", t.uid, 1, "rule")
 
 
 ## Nest: start of combat one Egg, and Eggs stand in the front row (single-target attacks can pick them).
@@ -209,6 +262,7 @@ static func nest_start(ctx: Dictionary) -> void:
 		var egg = combat._mk_ally()
 		combat.party.append(egg)
 		EventBus.unit_spawned.emit(egg.uid)
+		fire("c_nest", egg.uid, 1, "rule")
 
 
 ## Deep Current: up to 12 leftover Mana of a won fight are paid out at the start of the next one.
@@ -217,7 +271,7 @@ static func deep_current_start(ctx: Dictionary) -> void:
 	var m := int((combat.relic_run_in.get("c_deep_current", {}) as Dictionary).get("mana", 0))
 	combat.relic_run_out["c_deep_current"] = {"mana": 0}
 	if m > 0:
-		gain_mana(combat, m, "+%d MP (carried)" % m)
+		gain_mana(combat, m, "+%d MP (carried)" % m, "c_deep_current")
 
 
 static func deep_current_end(ctx: Dictionary) -> void:
@@ -233,6 +287,7 @@ static func shell_face(ctx: Dictionary) -> void:
 	var u = ctx["unit"]
 	var n := int(((combat.relic_run_in.get("c_growing_shell", {}) as Dictionary)).get(str(u.uid), 0))
 	u.max_hp += n
+	fire("c_growing_shell", u.uid, n, "rule")
 
 
 static func _shell_stacks(combat) -> Dictionary:
@@ -253,6 +308,7 @@ static func shell_kill(ctx: Dictionary) -> void:
 	k.max_hp += 1
 	k.hp += 1
 	EventBus.float_text.emit(k.uid, "+1 MAX HP", "buf", 0)
+	fire("c_growing_shell", k.uid, 1, "rule")
 
 
 static func shell_fall(ctx: Dictionary) -> void:
@@ -262,16 +318,17 @@ static func shell_fall(ctx: Dictionary) -> void:
 	var key := str(ctx["tgt"].uid)
 	var n := int(st.get(key, 0))
 	if n > 0:
-		st[key] = int(ceil(n / 3.0))
+		st[key] = n - int(ceil(2.0 * n / 3.0))   # loses ceil(2n/3) of the stacks (design 2.7)
 
 
 static func dewdrop_turn(ctx: Dictionary) -> void:
-	gain_mana(ctx["combat"], 1)
+	gain_mana(ctx["combat"], 1, "", "c_dewdrop")
 
 
 static func elder_trunk_face(ctx: Dictionary) -> void:
 	var u = ctx["unit"]
 	u.max_hp += 8
+	fire("c_elder_trunk", u.uid, 8, "rule")
 	for f in u.die:
 		if String((f as Dictionary).get("type", "")) == "dmg" and int(f.get("value", 0)) > 0:
 			f["value"] = maxi(1, int(f["value"]) - 1)
@@ -382,7 +439,8 @@ static func prism_turn_end(ctx: Dictionary) -> void:
 		return
 	for u in living_axies(combat):
 		DamagePipeline.apply_shield(combat, u, 3)
-	gain_mana(combat, 2)
+		fire("c_prism", u.uid, 3, "shield")
+	gain_mana(combat, 2, "", "c_prism")
 
 
 # --------------------------------------------------------------------------------------------
@@ -399,7 +457,7 @@ static func mana_pool_value(ctx: Dictionary) -> int:
 ## ... and interest at end of turn: 1 per 3 unspent Mana, max +3.
 static func mana_pool_turn_end(ctx: Dictionary) -> void:
 	var combat = ctx["combat"]
-	gain_mana(combat, mini(3, int(combat.mana) / 3))
+	gain_mana(combat, mini(3, int(combat.mana) / 3), "", "c_mana_pool")
 
 
 ## Ngon Trieu: every 3 Mana spent (reroll or active) deals 2 damage to all enemies.
@@ -413,7 +471,7 @@ static func tide_spent(ctx: Dictionary) -> void:
 	while acc >= 3:
 		acc -= 3
 		for e in combat.alive_enemies().duplicate():
-			DamagePipeline.resolve({"combat": combat, "src": null, "tgt": e, "value": 2, "attack": false})
+			fire("c_tidecaller", e.uid, int(DamagePipeline.resolve({"combat": combat, "src": null, "tgt": e, "value": 2, "attack": false})), "dmg")
 	st["n"] = acc
 
 
@@ -481,6 +539,26 @@ static func bonus(combat, u, ft: String, id: String, part: String = "") -> int:
 	return 0
 
 
+## Flat bonuses baked into the face at build time (Hard Shell +2, Whittled Die +1, Take The Field +2): they are not
+## face_final handlers, but they use the same +10 room, so every flat Core sees them as "already spent".
+static func baked(combat, u, ft: String, fi: int) -> int:
+	var b := 0
+	if RelicHooks_has(combat, "rule_hard_shell") and u.side == "p":
+		b += CombatTraits.side_face_bonus(combat, u, ft, 1.0)
+	if fi >= 0 and fi < u.die.size():
+		if RelicHooks_has(combat, "c_whittle") and fi != weakest_fi(u) and int((u.die[fi] as Dictionary).get("value", 0)) > 0:
+			b += 1
+		if (u.custom_state.get("desc_fi", []) as Array).has(fi):
+			b += 2
+	return b
+
+
+## Gain of a x1.5 Core (Old Forest, Backline Glow), capped by combat_tune core.mult_cap so it cannot run away.
+static func mult_gain(v: int) -> int:
+	var up := int(ceil(v * 1.5))
+	return v + mini(up - v, int(CombatEngine.tune_knob("core", "mult_cap", 8.0)))
+
+
 ## face_final handler body for every flat-bonus Core / rule.
 static func flat(ctx: Dictionary, id: String) -> int:
 	var combat = ctx["combat"]
@@ -491,18 +569,20 @@ static func flat(ctx: Dictionary, id: String) -> int:
 	var own := bonus(combat, u, ft, id, part)
 	if own <= 0:
 		return v + own
-	var before := 0
+	var before := baked(combat, u, ft, int(ctx.get("fi", -1)))
 	for rid in combat.relic_ids:
 		if String(rid) == id:
 			break
 		if FLAT_IDS.has(String(rid)):
 			before += maxi(0, bonus(combat, u, ft, String(rid), part))
-	return v + mini(own, maxi(0, FLAT_CAP - before))
+	var gain := mini(own, maxi(0, FLAT_CAP - before))
+	_fire_live(combat, id, u.uid, gain, ft if VALUE_TYPES.has(ft) else "rule")
+	return v + gain
 
 
 ## Total flat Core bonus a face would get right now (used by tests / UI).
-static func flat_total(combat, u, ft: String, part: String = "") -> int:
-	var t := 0
+static func flat_total(combat, u, ft: String, part: String = "", fi: int = -1) -> int:
+	var t := baked(combat, u, ft, fi)
 	for rid in combat.relic_ids:
 		if FLAT_IDS.has(String(rid)):
 			t += maxi(0, bonus(combat, u, ft, String(rid), part))
@@ -513,9 +593,10 @@ static func flat_total(combat, u, ft: String, part: String = "") -> int:
 # helpers
 # --------------------------------------------------------------------------------------------
 
-static func _hit_enemy(combat, e, v: int) -> void:
+static func _hit_enemy(combat, e, v: int, core: String = "", kind: String = "dmg") -> void:
 	if v > 0 and e.hp > 0:
-		DamagePipeline.resolve({"combat": combat, "src": null, "tgt": e, "value": v, "pierce": true, "attack": false})
+		var d := int(DamagePipeline.resolve({"combat": combat, "src": null, "tgt": e, "value": v, "pierce": true, "attack": false}))
+		fire(core, e.uid, d, kind)
 
 
 static func _has_kw(face: Dictionary, kw: String) -> bool:
@@ -561,13 +642,34 @@ static func sonic_used(ctx: Dictionary) -> void:
 	if tid < 0:
 		tid = u.uid
 	var aoe := _has_kw(face, "aoe")
+	var hit_any := false
 	for e in combat.alive_enemies().duplicate():
 		if aoe or int(e.intent.get("target_uid", -2)) == tid:
-			_hit_enemy(combat, e, dmg)
+			hit_any = true
+			_hit_enemy(combat, e, dmg, "c_sonic_shield")
+	if not hit_any:   # nobody targets that Axie: a random living enemy takes it
+		var alive: Array = combat.alive_enemies()
+		if not alive.is_empty():
+			_hit_enemy(combat, alive[combat._rng.next_int(alive.size())], dmg, "c_sonic_shield")
 
 
 static func field_medic_face(ctx: Dictionary) -> void:
+	fire("c_field_medic", ctx["unit"].uid, 3, "rule")
 	_dmg_minus(ctx["unit"], 2)
+	for f in ctx["unit"].die:   # debuff faces carry their strength in the keyword ("weaken:2"): +3 on every numeric one
+		if String((f as Dictionary).get("type", "")) == "debuff":
+			f["keywords"] = _bump_keywords(f.get("keywords", []) as Array, 3)
+
+
+static func _bump_keywords(kws: Array, n: int) -> Array:
+	var out: Array = []
+	for raw in kws:
+		var parts := String(raw).split(":")
+		if parts.size() == 2 and ["weaken", "vulnerable", "blind", "burn", "poison", "thorns", "regen"].has(parts[0]) and parts[1].is_valid_int():
+			out.append("%s:%d" % [parts[0], int(parts[1]) + n])
+		else:
+			out.append(String(raw))
+	return out
 
 
 static func _dmg_minus(u, n: int) -> void:
@@ -584,9 +686,11 @@ static func plague_kill(ctx: Dictionary) -> void:
 	for e in combat.alive_enemies().duplicate():
 		if e != ctx["tgt"]:
 			StatusEngine.add_status(combat, e, ["poison:%d" % p], null)
+			fire("c_plague_spread", e.uid, p, "poison")
 
 
 static func toxic_still_face(ctx: Dictionary) -> void:
+	fire("c_toxic_still", ctx["unit"].uid, 2, "rule")
 	_dmg_minus(ctx["unit"], 2)
 
 
@@ -595,7 +699,9 @@ static func toxic_still_turn_end(ctx: Dictionary) -> void:
 	for e in combat.alive_enemies().duplicate():
 		var p := int(e.status.get("poison", 0))
 		if p > 0:
-			StatusEngine.add_status(combat, e, ["poison:%d" % mini(4, int(ceil(p / 2.0)))], null)
+			var add := mini(4, int(ceil(p / 2.0)))
+			StatusEngine.add_status(combat, e, ["poison:%d" % add], null)
+			fire("c_toxic_still", e.uid, add, "poison")
 
 
 ## Mirror Face: the first die used each turn is not spent; its second use has no Prime / Finisher / Focus.
@@ -613,6 +719,7 @@ static func mirror_used(ctx: Dictionary) -> void:
 	st["uid"] = u.uid
 	st["second"] = true
 	u.clear_used_for_second_action()
+	fire("c_mirror_face", u.uid, 1, "rule")
 
 
 static func weakest_fi(u) -> int:
@@ -635,12 +742,14 @@ static func whittle_face(ctx: Dictionary) -> void:
 	for i in u.die.size():
 		if i != w and int((u.die[i] as Dictionary).get("value", 0)) > 0:
 			u.die[i]["value"] = int(u.die[i]["value"]) + 1
+			fire("c_whittle", u.uid, 1, "rule")
 
 
 static func whittle_roll(ctx: Dictionary) -> int:
 	var fi := int(ctx["value"])
 	var u = ctx["unit"]
 	if u.side == "p" and not u.is_token and fi == weakest_fi(u):
+		fire("c_whittle", u.uid, 1, "reroll")
 		return ctx["combat"]._rng.next_int(6)
 	return fi
 
@@ -652,14 +761,23 @@ static func three_auto_hold(combat) -> void:
 		if u.held or not u.has_rolled() or u.roll_used() or u.frozen or _has_kw(u.current_face(), "cantrip"):
 			continue
 		u.held = true
-		st[str(u.uid)] = {"v": 3, "fi": u.roll_face_index()}
+		var fi: int = u.roll_face_index()
+		st[str(u.uid)] = {"v": 3, "fi": fi}
+		# 2b.3: an auto-Held die also earns the Focus of Kindle (+4, +8 on a second held turn) and Tundra (+2)
+		if RelicHooks_has(combat, "c_kindle"):
+			combat_state(combat, "focus_c_kindle")[str(u.uid)] = {"v": 4 * (2 if u.stash_carry else 1), "fi": fi}
+		if RelicHooks_has(combat, "rule_tundra"):
+			combat_state(combat, "focus_rule_tundra")[str(u.uid)] = {"v": 2, "fi": fi}
 		EventBus.float_text.emit(u.uid, "HOLD", "buf", 0)
+		fire("c_three_dice", u.uid, 1, "rule")
 
 
 static func three_used(ctx: Dictionary) -> void:
 	if String(ctx.get("side", "")) != "p" or int(ctx.get("depth", 0)) != 0:
 		return
-	if int(turn_state(ctx["combat"], "cs_used").get("n", 0)) >= 3:
+	var st := turn_state(ctx["combat"], "cs_three")   # counts every use, Mirror Face's second use included
+	st["n"] = int(st.get("n", 0)) + 1
+	if int(st["n"]) >= 3:
 		three_auto_hold(ctx["combat"])
 
 
@@ -681,7 +799,7 @@ static func gatekeeper_hit(ctx: Dictionary) -> void:
 		return
 	var st := combat_state(combat, "gk")
 	st["b"] = mini(6, int(st.get("b", 0)) + 2)
-	_hit_enemy(combat, src, 3)
+	_hit_enemy(combat, src, 3, "c_gatekeeper", "thorns")
 
 
 static func gatekeeper_used(ctx: Dictionary) -> void:
@@ -693,23 +811,105 @@ static func gatekeeper_turn_end(ctx: Dictionary) -> void:
 	combat_state(ctx["combat"], "gk")["b"] = 0   # hits taken AFTER this call feed the next turn
 
 
+## True for an on_dmg_taken ctx that is a single-target enemy attack landing on a front-row Axie.
+static func _single_hit_on_front(ctx: Dictionary) -> bool:
+	var combat = ctx["combat"]
+	var src = ctx.get("src", null)
+	var tgt = ctx["tgt"]
+	if src == null or src.side != "e" or not bool(ctx.get("attack", false)) or tgt.side != "p" or tgt.is_token or combat.row_of(tgt) != 0:
+		return false
+	if src.intent.is_empty() or src.hp <= 0:
+		return false
+	return not _has_kw(src.die[int(src.intent.get("face_index", 0))], "aoe")
+
+
+## Thorn Growth (Gai Moc): each single-target hit on a front-row Axie gives that Axie +1 Thorns for the fight.
+## Thorns never decay, and the +1 is in place before the same hit reflects.
+static func thorn_growth_hit(ctx: Dictionary) -> void:
+	if _single_hit_on_front(ctx):
+		StatusEngine.add_status(ctx["combat"], ctx["tgt"], ["thorns:1"], null)
+		fire("c_thorn_growth", ctx["tgt"].uid, 1, "thorns")
+
+
+## Thorn Shield (Khien Gai): end of the player turn, every 2 leftover Shield of an Axie becomes 1 Thorns (that Shield is lost).
+static func thorn_shield_turn_end(ctx: Dictionary) -> void:
+	var combat = ctx["combat"]
+	for u in living_axies(combat):
+		var t: int = int(u.shield) / 2
+		if t <= 0:
+			continue
+		u.shield -= t * 2
+		EventBus.hp_changed.emit(u.uid, u.hp, u.max_hp, u.shield)
+		StatusEngine.add_status(combat, u, ["thorns:%d" % t], null)
+		fire("c_thorn_shield", u.uid, t, "thorns")
+
+
+## Rebound (Phan Chan): the living Axie with the most Thorns (ties: lowest slot). null when nobody has any.
+static func rebound_unit(combat):
+	var best = null
+	for u in living_axies(combat):
+		var th := int(u.status.get("thorns", 0))
+		if th > 0 and (best == null or th > int(best.status.get("thorns", 0))
+				or (th == int(best.status.get("thorns", 0)) and u.roster_index < best.roster_index)):
+			best = u
+	return best
+
+
+## thorns_extra value hook: that Axie reflects its current Thorns a second time.
+static func rebound_extra(ctx: Dictionary) -> float:
+	var combat = ctx["combat"]
+	var tgt = ctx["tgt"]
+	if tgt == rebound_unit(combat):
+		fire("c_thorn_rebound", tgt.uid, int(tgt.status.get("thorns", 0)), "thorns")
+		return float(ctx["value"]) + float(int(tgt.status.get("thorns", 0)))
+	return float(ctx["value"])
+
+
+## face_blocked value hook: the Rebound Axie cannot use damage faces.
+static func rebound_blocked(ctx: Dictionary) -> bool:
+	return bool(ctx["value"]) or ctx["unit"] == rebound_unit(ctx["combat"])
+
+
 static func backline_value(ctx: Dictionary) -> int:
 	var u = ctx["unit"]
 	var ft := String(ctx.get("face_type", ""))
 	if u.side == "p" and not u.is_token and (ft == "heal" or ft == "mana") and ctx["combat"].row_of(u) == 1:
-		return int(ceil(int(ctx["value"]) * 1.5))
+		var g := mult_gain(int(ctx["value"]))
+		_fire_live(ctx["combat"], "c_backline_glow", u.uid, g - int(ctx["value"]), ft)
+		return g
 	return int(ctx["value"])
+
+
+## Backline Glow also lifts the numeric keywords of back-row buff faces by 50% (rounded up, same cap).
+static func backline_face(ctx: Dictionary) -> void:
+	var u = ctx["unit"]
+	if u.side != "p" or u.is_token or ctx["combat"].row_of(u) != 1:
+		return
+	for f in u.die:
+		if String((f as Dictionary).get("type", "")) != "buff":
+			continue
+		var out: Array = []
+		for raw in (f.get("keywords", []) as Array):
+			var parts := String(raw).split(":")
+			if parts.size() == 2 and parts[1].is_valid_int():
+				out.append("%s:%d" % [parts[0], mult_gain(int(parts[1]))])
+				fire("c_backline_glow", u.uid, mult_gain(int(parts[1])) - int(parts[1]), "rule")
+			else:
+				out.append(String(raw))
+		f["keywords"] = out
 
 
 static func living_wall_face(ctx: Dictionary) -> void:
 	if ctx["unit"].roster_index == 0:
 		ctx["unit"].max_hp += 12
+		fire("c_living_wall", ctx["unit"].uid, 12, "rule")
 
 
 static func living_wall_start(ctx: Dictionary) -> void:
 	for u in living_axies(ctx["combat"]):
 		if u.roster_index == 0:
 			StatusEngine.add_status(ctx["combat"], u, ["thorns:2"], null)
+			fire("c_living_wall", u.uid, 2, "thorns")
 
 
 # --------------------------------------------------------------------------------------------
@@ -724,6 +924,7 @@ static func mana_ward_turn_end(ctx: Dictionary) -> void:
 	combat.mana -= chunks * 2
 	for u in front_axies(combat):
 		DamagePipeline.apply_shield(combat, u, 3 * chunks)
+		fire("c_mana_ward", u.uid, 3 * chunks, "shield")
 
 
 static func overflow_check(ctx: Dictionary) -> void:
@@ -733,7 +934,7 @@ static func overflow_check(ctx: Dictionary) -> void:
 		return
 	combat.mana = 8
 	for e in combat.alive_enemies().duplicate():
-		_hit_enemy(combat, e, ex)
+		_hit_enemy(combat, e, ex, "c_overflow")
 
 
 ## Hollow Core: reroll costs 1 Mana, up to 8 a turn (the engine cap counts each second paid reroll as free).
@@ -741,6 +942,7 @@ static func hollow_paid(ctx: Dictionary) -> void:
 	var combat = ctx["combat"]
 	var st := turn_state(combat, "cs_paid")
 	st["n"] = int(st.get("n", 0)) + 1
+	fire("c_hollow_core", 0, 1, "reroll")
 	if int(st["n"]) % 2 == 0:
 		combat.reroll_nonaid = maxi(0, combat.reroll_nonaid - 1)
 
@@ -763,6 +965,7 @@ static func thorn_settled(ctx: Dictionary) -> void:
 		if u != null and u.hp > 2:
 			u.hp -= 2
 			EventBus.float_text.emit(u.uid, "-2", "dmg", 0)
+			fire("c_thorn_pact", u.uid, 1, "reroll")
 			EventBus.hp_changed.emit(u.uid, u.hp, u.max_hp, u.shield)
 
 
@@ -775,13 +978,14 @@ static func golden_egg_fall(ctx: Dictionary) -> void:
 	if not (t.is_token and t.key == "egg") or not fell_now(ctx):
 		return
 	var combat = ctx["combat"]
-	gain_mana(combat, 3)
+	gain_mana(combat, 3, "", "c_golden_egg")
 	var w = null
 	for u in living_axies(combat):
 		if w == null or u.hp + u.shield < w.hp + w.shield:
 			w = u
 	if w != null:
 		DamagePipeline.apply_shield(combat, w, 4)
+		fire("c_golden_egg", w.uid, 4, "shield")
 	combat_state(combat, "ge")["on"] = true
 
 
@@ -797,6 +1001,7 @@ static func blood_hit(ctx: Dictionary) -> void:
 	var n := int(ctx.get("dealt", 0)) / 3
 	if n > 0 and ctx["tgt"].hp > 0:
 		StatusEngine.add_status(ctx["combat"], ctx["tgt"], ["poison:%d" % n], ctx["unit"])
+		fire("c_blood_sign", ctx["tgt"].uid, n, "poison")
 
 
 static func blood_used(ctx: Dictionary) -> void:
@@ -809,11 +1014,11 @@ static func blood_used(ctx: Dictionary) -> void:
 	var dmg := int(ceil(combat._face_value(ctx["unit"], int(ctx["fi"])) / 2.0))
 	if _has_kw(face, "aoe"):
 		for e in combat.alive_enemies().duplicate():
-			_hit_enemy(combat, e, dmg)
+			_hit_enemy(combat, e, dmg, "c_blood_sign")
 	else:
 		var t = combat.by_uid(int(ctx.get("target_uid", -1)))
 		if t != null and t.side == "e":
-			_hit_enemy(combat, t, dmg)
+			_hit_enemy(combat, t, dmg, "c_blood_sign")
 
 
 static func cascade_used(ctx: Dictionary) -> void:
@@ -835,7 +1040,9 @@ static func spore_fall(ctx: Dictionary) -> void:
 		var pct := 0.08 if e.is_boss else 0.2
 		if half:
 			pct *= 0.5
+		var hp0: int = e.hp
 		e.hp = maxi(0, e.hp - int(ceil(e.max_hp * pct)))
+		fire("c_spore_burst", e.uid, hp0 - e.hp, "dmg")
 		EventBus.float_text.emit(e.uid, "SPORE", "dmg", 0)
 		EventBus.hp_changed.emit(e.uid, e.hp, e.max_hp, e.shield)
 		if e.hp <= 0:
@@ -864,14 +1071,16 @@ static func _quest_add(combat, id: String, n: int, target: int) -> void:
 	if bool(q["done"]):
 		return
 	q["n"] = int(q["n"]) + n
+	fire(id, 0, n, "rule")   # progress tick: the Core panel lights up
 	if int(q["n"]) >= target:
 		q["done"] = true
 		q["steps_done"] = 1
+		fire(id, 0, 1, "quest_step")
 
 
 static func collector_turn_start(ctx: Dictionary) -> void:
 	if not quest_done(ctx["combat"], "c_collector"):
-		gain_mana(ctx["combat"], 1)
+		gain_mana(ctx["combat"], 1, "", "c_collector")
 
 
 static func collector_turn_end(ctx: Dictionary) -> void:
@@ -882,14 +1091,14 @@ static func collector_turn_end(ctx: Dictionary) -> void:
 		if k != "_t" and ["dmg", "shield", "heal", "poison", "mana", "debuff"].has(String(k)):
 			n += 1
 	var cs := combat_state(combat, "collector_fight")
-	if n >= 5 and not bool(cs.get("got", false)):
+	if n >= 4 and not bool(cs.get("got", false)):
 		cs["got"] = true
 		_quest_add(combat, "c_collector", 1, 3)
 
 
 static func dry_well_start(ctx: Dictionary) -> void:
 	if not quest_done(ctx["combat"], "c_dry_well"):
-		gain_mana(ctx["combat"], 2)
+		gain_mana(ctx["combat"], 2, "", "c_dry_well")
 
 
 static func dry_well_spent(ctx: Dictionary) -> void:
@@ -899,14 +1108,19 @@ static func dry_well_spent(ctx: Dictionary) -> void:
 static func night_watch_face(ctx: Dictionary) -> void:
 	var u = ctx["unit"]
 	var c = ctx["combat"]
-	if u.roster_index >= 0 and u.roster_index < 2 and not quest_done(c, "c_night_watch"):
+	if u.roster_index >= 0 and c.row_of(u) == 0 and not quest_done(c, "c_night_watch"):
 		u.max_hp += 3
+		fire("c_night_watch", u.uid, 3, "rule")
 
 
 static func night_watch_end(ctx: Dictionary) -> void:
 	var combat = ctx["combat"]
 	if String(ctx.get("node_kind", "")) != "boss" or String(ctx.get("result", "")) != "won":
 		return
+	var q := quest(combat, "c_night_watch")
+	if int(q["boss"]) >= 1 or bool(q["done"]):
+		return   # only the NEXT boss counts; after that fight the quest is over, done or not
+	q["boss"] = 1
 	for u in combat.party:
 		if not u.is_token and u.hp <= 0:
 			return
@@ -928,6 +1142,7 @@ static func chimera_kill(ctx: Dictionary) -> void:
 	if bool(q["done"]):
 		return
 	q["n"] = int(q["n"]) + 1
+	fire("c_chimera_hunt", ctx["tgt"].uid, 1, "rule")
 	if ctx["tgt"].is_boss:
 		q["boss"] = 1
 	var s := 0
@@ -938,6 +1153,8 @@ static func chimera_kill(ctx: Dictionary) -> void:
 	if int(q["boss"]) >= 1:
 		s = 3
 		q["done"] = true
+	if s > int(q["steps_done"]):
+		fire("c_chimera_hunt", ctx["tgt"].uid, s - int(q["steps_done"]), "quest_step")
 	q["steps_done"] = maxi(int(q["steps_done"]), s)
 
 
@@ -949,29 +1166,43 @@ static func tundra_stash(ctx: Dictionary) -> void:
 	combat_state(ctx["combat"], "focus_rule_tundra")[str(ctx["unit"].uid)] = {"v": 2, "fi": int(ctx.get("fi", ctx["unit"].roll_face_index()))}
 
 
-static func scale_enemies(ctx: Dictionary, mult: float, bosses: bool) -> void:
+static func scale_enemies(ctx: Dictionary, mult: float, bosses: bool, id: String = "") -> void:
 	for e in ctx["combat"].enemies:
 		if e.is_boss and not bosses:
 			continue
+		var hp0: int = e.max_hp
 		e.max_hp = int(ceil(e.max_hp * mult))
 		e.hp = e.max_hp
+		fire(id, e.uid, e.max_hp - hp0, "rule")
 
 
 static func old_forest_face(ctx: Dictionary) -> void:
+	var hp0: int = ctx["unit"].max_hp
 	ctx["unit"].max_hp = int(ceil(ctx["unit"].max_hp * 1.3))
+	fire("rule_old_forest", ctx["unit"].uid, ctx["unit"].max_hp - hp0, "rule")
 
 
 static func old_forest_value(ctx: Dictionary) -> int:
 	var ft := String(ctx.get("face_type", ""))
 	if ctx["unit"].side == "p" and (ft == "heal" or ft == "poison"):
-		return int(ceil(int(ctx["value"]) * 1.5))
+		var g := mult_gain(int(ctx["value"]))
+		_fire_live(ctx["combat"], "rule_old_forest", ctx["unit"].uid, g - int(ctx["value"]), ft)
+		return g
 	return int(ctx["value"])
 
 
+## Heavy Finish (design 2b R5): enemy attacks deal +10% (knob enemy_dmg_mult). Runs from the `incoming_dmg` hook, which
+## DamagePipeline calls for every attack on a party unit; the old `mod_dmg` slot only ever runs for player-side sources,
+## so this half never fired there.
 static func heavy_enemy_dmg(ctx: Dictionary) -> float:
 	var v := float(ctx["value"])
 	var src = ctx.get("src", null)
-	return float(RulesMath.round_half_up(v * 1.1)) if (src != null and src.side == "e") else v
+	var tgt = ctx["tgt"]
+	if src == null or src.side != "e" or tgt.side != "p" or not bool(ctx.get("attack", false)):
+		return v
+	var nv := float(RulesMath.round_half_up(v * float(rule_knob("rule_heavy_finish", "enemy_dmg_mult", 1.1))))
+	fire("rule_heavy_finish", tgt.uid, int(nv - v), "rule")
+	return nv
 
 
 static func balance_value(ctx: Dictionary) -> int:
@@ -979,6 +1210,7 @@ static func balance_value(ctx: Dictionary) -> int:
 	if ctx["unit"].side != "p" or String(ctx.get("face_type", "")) != "dmg" or v <= 0:
 		return v
 	if int(turn_state(ctx["combat"], "cs_dmgn").get("n", 0)) >= 2:
+		_fire_live(ctx["combat"], "rule_balance", ctx["unit"].uid, v - maxi(1, v - 2), "rule")
 		return maxi(1, v - 2)
 	return v
 
@@ -991,7 +1223,7 @@ static func balance_used(ctx: Dictionary) -> void:
 		var st := turn_state(ctx["combat"], "cs_dmgn")
 		st["n"] = int(st.get("n", 0)) + 1
 	elif t != "blank":
-		gain_mana(ctx["combat"], 1)
+		gain_mana(ctx["combat"], 1, "", "rule_balance")
 
 
 ## Cheap Mana: the per-turn reroll cap goes 4 -> 5 (the first paid reroll of a turn does not count).
@@ -1000,3 +1232,4 @@ static func cheap_paid(ctx: Dictionary) -> void:
 	if not bool(st.get("done", false)):
 		st["done"] = true
 		ctx["combat"].reroll_nonaid = maxi(0, ctx["combat"].reroll_nonaid - 1)
+		fire("rule_cheap_mana", 0, 1, "reroll")

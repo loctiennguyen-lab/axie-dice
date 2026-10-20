@@ -442,6 +442,8 @@ func get_result() -> Dictionary:
 		# start and read by nothing outside this object, which is why the end-of-run screen had
 		# to say "not tracked" about numbers the engine had been counting all along.
 		"stat": stat.duplicate(true),
+		# Real (non-token) Axie down at the end of the fight. Read by Run Rule Crow Herald (design 2b R11).
+		"downed": real_party().filter(func(u): return u.hp <= 0).size(),
 	}
 
 
@@ -621,6 +623,7 @@ func _spawn_phantom_dice() -> void:
 		_roll_unit(ph)
 		EventBus.unit_spawned.emit(ph.uid)
 		EventBus.float_text.emit(ph.uid, "6TH DIE", "buf", 0)
+		CoreHooks.fire("c_sixth_die", ph.uid, 1, "rule")
 
 
 func _drop_phantoms() -> void:
@@ -659,6 +662,7 @@ func _pick_enemy_intent(e: Unit) -> void:
 				rp = front_row_targets(ps)
 				if String(RelicHooks.run_value_hook(self, "enemy_row_pref", {"combat": self}, "")) == "back":
 					rp = back_row_targets(ps)   # Upside Down
+					CoreHooks.fire("rule_upside_down", e.uid, 1, "rule")
 			var ambush: bool = bool(_aff(e).get("target_back_weakest", false)) \
 				and not _has_kw(f, "aoe") and not _has_kw(f, "pierce")
 			if ambush:
@@ -752,6 +756,7 @@ func _resolve_cantrips() -> void:
 				if u.has_rolled():
 					u.rolled[0]["used"] = false
 					EventBus.float_text.emit(u.uid, "LOOP", "buf", 0)
+					CoreHooks.fire("c_loop", u.uid, 1, "reroll")
 					_exec_face(u, u.uid)
 			_roll_unit(u)
 
@@ -1179,10 +1184,19 @@ func _log(fn: String, args: Array = []) -> void:
 		action_log.record(fn, args)
 
 
+## core_impact (the display tally of Core activations) as it was when undo entry `k` was pushed. Not part of the
+## snapshot dict itself (that would change saves / digests); undo_last() puts the tally back so an undone move is
+## not counted twice when the player redoes it. Lost across a save/load (undo then leaves the tally as it is).
+var _impact_at: Dictionary = {}
+
+
 func _push_undo() -> void:
+	_impact_at[undo_stack.size()] = RunState.core_impact.duplicate(true)
 	undo_stack.append(_state_dict())
 	if undo_stack.size() > 90:
 		undo_stack.pop_front()
+		for i in 90:
+			_impact_at[i] = _impact_at.get(i + 1, {})
 
 
 ## H7 — dice-editing relics (Tweak / Amber hold / Loaded die). Each call: legal only mid-EXECUTE, takes an
@@ -1266,9 +1280,16 @@ func stash(unit_uid: int) -> bool:
 		return false
 	var u := by_uid(unit_uid)
 	_push_undo()
+	var base_cap := int(tune_knob("stash", "cap", 1.0))
+	var was_carry: bool = u.stash_carry
+	var was_n := stash_count()
 	u.held = true
 	EventBus.float_text.emit(u.uid, "HOLD", "buf", 0)
 	EventBus.die_stashed.emit(u.uid)
+	for sid in ["c_steady_hold", "rule_tundra"]:
+		if CoreHooks.RelicHooks_has(self, sid) and (was_n >= base_cap or (was_carry and sid == "c_steady_hold")):
+			CoreHooks.fire(sid, u.uid, 1, "rule")
+			break
 	RelicHooks.fire(self, "on_stash", {"combat": self, "unit": u, "face": u.current_face(),
 		"fi": u.roll_face_index()})
 	_log("stash", [unit_uid])
@@ -1281,6 +1302,8 @@ func undo_last() -> bool:
 	if undo_stack.is_empty():
 		return false
 	var snap: Dictionary = undo_stack.pop_back()
+	if _impact_at.has(undo_stack.size()):
+		RunState.core_impact = (_impact_at[undo_stack.size()] as Dictionary).duplicate(true)
 	_apply_state_dict(snap)
 	_log("undo_last", [])
 	return true
@@ -1293,6 +1316,8 @@ func _exec_face(u: Unit, target_uid: int) -> bool:
 	var f: Dictionary = u.die[fi]
 	if String(f.get("type", "")) == "blank":
 		return false
+	if u.side == "p" and String(f.get("type", "")) == "dmg" and bool(RelicHooks.run_value_hook(self, "face_blocked", {"combat": self, "unit": u}, false)):
+		return false   # Rebound Core: the top-Thorns Axie cannot use damage faces
 
 	var res_idx := _find_resonance_idx(u, f)
 	var is_resonant := res_idx >= 0
@@ -1359,6 +1384,11 @@ func _log_resonance_attempt(u: Unit, f: Dictionary, was_consumer: bool) -> void:
 	resonance_log.append({"pos": pos, "t": String(f.get("type", "")), "used": false})
 
 
+## depth v3 lane FX: true only while _do_face computes the value it applies, so Core face_final handlers fire
+## EventBus.core_fired for real uses and stay silent for UI previews / forecasts.
+var core_emit: bool = false
+
+
 func _face_value(u: Unit, fi: int) -> int:
 	var f: Dictionary = u.die[fi]
 	var v: float = float(f.get("value", 0)) + float(u.get_growth(fi))
@@ -1377,7 +1407,10 @@ func _face_value(u: Unit, fi: int) -> int:
 		if u.side == "e":
 			# base x (1 + enrage% + attrition%) x spike, rounded half up (monetization-v1 §1.2).
 			v = float(RulesMath.round_half_up(v * enemy_dmg_factor(u) * boss_hollow_dealt_mult(u) * affix_dealt_mult(u) * CombatTraits.charge_mult(u)))
-	v += CombatTraits.side_face_bonus(self, u, face_type, v)                # R12 Vo Cung: +2 on shield / poison faces of the Axie
+	var sfb := CombatTraits.side_face_bonus(self, u, face_type, v)
+	if core_emit and sfb > 0 and CoreHooks.RelicHooks_has(self, "rule_hard_shell"):
+		CoreHooks.fire("rule_hard_shell", u.uid, sfb, face_type)
+	v += sfb                                                                # R12 Vo Cung: +2 on shield / poison faces of the Axie
 	if face_type == "mana" and u.side == "p" and u.cls == "aqua":
 		v += 1.0                                                        # CONDUIT passive
 	if u.side == "p" and u.resonant_now:
@@ -1394,7 +1427,9 @@ func preview_damage(src: Unit, target: Unit, fi: int) -> Dictionary:
 	# Core hooks create their combat_state buckets lazily on first read; a UI preview must not leave them behind
 	# (the replay never calls it, so a leftover empty bucket would make the digests differ).
 	var rc_before := relic_combat.duplicate(true)
+	CoreHooks.mute += 1   # a preview never counts as a Core firing
 	var out := _preview_damage(src, target, fi)
+	CoreHooks.mute -= 1
 	relic_combat = rc_before
 	return out
 
@@ -1442,7 +1477,9 @@ func _pure_keywords(f: Dictionary) -> Array:
 func _do_face(u: Unit, target_uid: int, f: Dictionary, fi: int, is_echo: bool) -> bool:
 	var foes := (alive_enemies() if u.side == "p" else alive_party())
 	var friends := (alive_party() if u.side == "p" else alive_enemies())
+	core_emit = true
 	var v := _face_value(u, fi)
+	core_emit = false
 	if u.side == "p" and not is_echo and first_dmg_face_bonus > 0 and not _first_dmg_used \
 			and String(f.get("type", "")) == "dmg" and v > 0:
 		v += first_dmg_face_bonus   # flat, after everything else; once per turn
@@ -1451,6 +1488,13 @@ func _do_face(u: Unit, target_uid: int, f: Dictionary, fi: int, is_echo: bool) -
 	var crit: bool = u.roll_crit_now()
 	var face_type := String(f.get("type", ""))
 	var kw_pure := CombatTraits.side_bonus_keywords(self, u, face_type, _pure_keywords(f))   # R12: debuff magnitudes +2
+	if face_type == "debuff" and CoreHooks.RelicHooks_has(self, "rule_hard_shell"):
+		var raised := 0   # Hard Shell: the +2 on each numeric debuff keyword is a real effect, report it
+		var base_kw := _pure_keywords(f)
+		for ki in mini(base_kw.size(), kw_pure.size()):
+			if str(base_kw[ki]) != str(kw_pure[ki]):
+				raised += int(str(kw_pure[ki]).split(":")[1]) - int(str(base_kw[ki]).split(":")[1])
+		CoreHooks.fire("rule_hard_shell", u.uid, raised, "debuff")
 
 	var ctx_n := [0, false]   # [hits so far, secondary-target mode] for the on_face_hit hook (FACE_CTX)
 	var hit := func(t: Unit, amount: int) -> int:

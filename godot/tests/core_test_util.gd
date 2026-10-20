@@ -21,3 +21,20 @@ static func ctx(owned: Array = [], seen: Array = [], keys: Array = ["plant1", "b
 		pick: int = 1, first_run: bool = false) -> Dictionary:
 	return {"owned_ids": owned, "roster": roster(keys), "seen": seen, "mode": "short",
 		"first_run": first_run, "pick_index": pick, "front_size": 2}
+
+
+## Starts a run holding Crow Herald, standing on the node that opens Core pick 2. Returns RunState.
+static func crow_setup(team: Array) -> void:
+	RunState.reset()
+	RunState.start_new_run_seeded(5, {"team_keys": team, "mode": "short", "ascension": 0, "ranked": false, "bonuses": {},
+		"loadout": {"rules_on": false}})
+	RunState.pending_rewards = []
+	RunState._core_offer_active = false
+	RunState.run_rule = "rule_crow"
+	RunState.core_pick_index = 1
+	RunState.core_tier_bump = 0
+	var trig: Array = (RelicSlots.tuning().core_triggers_short as Array)[0]
+	var g := RunMapGraph.from_data(RunState.map_graph)
+	var rn: Array = g.get_row(int(trig[1]))
+	if String(trig[0]) == "row" and not rn.is_empty():
+		RunState.current_node_id = String(rn[0].id)

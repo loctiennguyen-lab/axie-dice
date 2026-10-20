@@ -26,6 +26,8 @@ static var swap_pact_slot: int = -1
 ## slots are full (depth v3 lane B). Off: it just takes card 0.
 static var core_script: bool = false
 static var _core_rerolled: bool = false
+## Core test hook: when set, drain_core_offers() takes the Core card with this id whenever it is on offer (else card 0).
+static var core_pick_id: String = ""
 
 
 ## Takes every Core / Run Rule offer that is open (a pick can open the next one), calling after_node() as the screens do.
@@ -37,6 +39,10 @@ static func drain_core_offers() -> void:
 			_core_rerolled = true
 			RunState.reroll_pending_rewards(-1, 0)
 		var card: Dictionary = RunState.pending_rewards[0]
+		if core_pick_id != "":
+			for c in RunState.pending_rewards:
+				if String((c as Dictionary).get("key", "")) == core_pick_id:
+					card = c
 		var sell := ""
 		if not bool(card.get("rule", false)):
 			var chk := RelicSlots.check_add(RunState.owned_relic_ids, RunState.relic_stickers, String(card["key"]), RunState.ascension, false)

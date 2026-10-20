@@ -25,6 +25,12 @@
  ],
  "newcomer_runs": 5,
  "_doc": "monetization-v1.md 1.2/1.5. Intent dmg = base x (1 + enrage% + attrition%) x spike_mult, rounded half up. The A0-A3 light clock and the A4+/A9 full clock live per level in ascension.json (clock).",
+ "thorns": {
+  "cap": 0
+ },
+ "core": {
+  "mult_cap": 8
+ },
  "stash": {
   "cap": 1
  },

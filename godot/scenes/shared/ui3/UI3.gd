@@ -434,6 +434,33 @@ static func float_chip(text: String, debuff := true) -> PanelContainer:
 	return p
 
 
+## Core activation note near a unit (depth v3 lane VZ): wood-1 plate, accent border, one Rowdies 18 line per Core,
+## each line in its kind colour. lines = [{"text": String, "token": colour token}]. The caller positions and fades it.
+static func core_float(lines: Array) -> PanelContainer:
+	var p := PanelContainer.new()
+	p.theme = UI3Theme.get_theme()
+	var sb := UI3Theme.flat(UI3Theme.color("panel"), UI3Theme.radius("s"), 2, UI3Theme.color("accent"))
+	sb.content_margin_left = 12
+	sb.content_margin_right = 12
+	sb.content_margin_top = 4
+	sb.content_margin_bottom = 4
+	p.add_theme_stylebox_override("panel", sb)
+	var col := VBoxContainer.new()
+	col.add_theme_constant_override("separation", 0)
+	col.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	p.add_child(col)
+	for ln in lines:
+		var l := label(String((ln as Dictionary).get("text", "")), "LabelDisplay")
+		l.add_theme_font_size_override("font_size", 18)
+		l.add_theme_color_override("font_color", UI3Theme.color(String((ln as Dictionary).get("token", "text"))))
+		l.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		col.add_child(l)
+	p.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	p.name = "CoreFloat"
+	p.z_index = 6
+	return p
+
+
 ## Round 2 IntentBadge colour for a game face type (attack red-6, shield blue-7, buff kam-5, debuff axie-bird).
 static func intent_color(game_type: String) -> Color:
 	match game_type:

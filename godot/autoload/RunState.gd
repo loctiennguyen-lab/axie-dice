@@ -45,6 +45,9 @@ var shards_this_run: int = 0
 ## showed nothing. They were tracked; they just never left the fight they happened in.
 var run_stats: Dictionary = {"dmg": 0, "taken": 0, "turns": 0, "kills": 0, "max_hit": 0,
 	"dmg_dealt_clamped": 0}
+## Depth v3 lane VZ: what each Core did this run, for the Result screen. Pure UI stat (never read by any rule):
+## core_id -> {"n": fires, "by": {kind: summed amount}}. Fed by EventBus.core_fired; saved through to_data/from_data.
+var core_impact: Dictionary = {}
 var power_level: int = 0           # "pw" — increments on every node completed regardless of
                                     # type (verified against engine.js takeReward/eventDone/shopDone)
 var owned_relic_ids: Array[String] = []
@@ -221,6 +224,20 @@ var _event_rng: Rng = null
 
 func _ready() -> void:
 	reset()
+	EventBus.core_fired.connect(note_core_fired)
+
+
+## Adds one Core activation to the run's impact table (see `core_impact`). Display-only.
+func note_core_fired(core_id: String, _unit_uid: int, amount: int, kind: String) -> void:
+	if core_id == "":
+		return
+	var e: Dictionary = core_impact.get(core_id, {"n": 0, "by": {}})
+	e["n"] = int(e.get("n", 0)) + 1
+	if amount > 0:
+		var by: Dictionary = e.get("by", {})
+		by[kind] = int(by.get(kind, 0)) + amount
+		e["by"] = by
+	core_impact[core_id] = e
 
 ## Wholesale reset — re-instantiates every mutable container instead of clearing fields,
 ## so a field added later that's forgotten here fails loudly (empty/default) rather than
@@ -244,6 +261,7 @@ func reset() -> void:
 	# step with run_stats without a second call site to remember.
 	RunStatsAccumulator.reset()
 	power_level = 0
+	core_impact = {}
 	owned_relic_ids = []
 	bonus_reroll = 0
 	boss_plan = []
@@ -928,6 +946,7 @@ func apply_combat_result(res: Dictionary, reward_seed: int = -1) -> void:
 		_apply_growth_keep(res.get("growth_keep", {}))
 		var kind := String(res.get("kind", "battle"))
 		note_quest_event("wins")
+		_crow_judge(res, kind)
 		if kind == "elite" or kind == "boss":
 			note_quest_event(kind)
 		if kind == "boss" and _is_final_boss_row(current_node_id):
@@ -1761,6 +1780,7 @@ func to_data() -> Dictionary:
 		"visited_node_ids": visited_node_ids.duplicate(),
 		"shards_this_run": shards_this_run,
 		"run_stats": run_stats.duplicate(true),
+		"core_impact": core_impact.duplicate(true),
 		"power_level": power_level,
 		"owned_relic_ids": owned_relic_ids.duplicate(),
 		"bonus_reroll": bonus_reroll,
@@ -1846,6 +1866,16 @@ func from_data(d: Dictionary) -> void:
 	run_stats = {}
 	for key in ["dmg", "taken", "turns", "kills", "max_hit", "dmg_dealt_clamped"]:
 		run_stats[key] = int(saved_stats.get(key, 0))
+	core_impact = {}
+	var saved_impact = d.get("core_impact", {})
+	if saved_impact is Dictionary:
+		for cid in (saved_impact as Dictionary).keys():
+			var se = saved_impact[cid]
+			if se is Dictionary:
+				var by := {}
+				for k in ((se as Dictionary).get("by", {}) as Dictionary).keys():
+					by[String(k)] = int(((se as Dictionary)["by"] as Dictionary)[k])
+				core_impact[String(cid)] = {"n": int((se as Dictionary).get("n", 0)), "by": by}
 	power_level = int(d.get("power_level", 0))
 	owned_relic_ids.assign(d.get("owned_relic_ids", []))
 	bonus_reroll = int(d.get("bonus_reroll", 0))
@@ -2089,7 +2119,10 @@ static func core_flow_switches_allowed() -> bool:
 ## `pick` = the pick index the context is for (-1: the next one). A reroll must use the index its offer was built with.
 func _core_ctx(pick: int = -1) -> Dictionary:
 	return {"owned_ids": owned_relic_ids, "roster": roster, "seen": core_seen, "mode": mode,
-		"first_run": not rules_on, "pick_index": core_pick_index if pick < 0 else pick, "front_size": 2}
+		"first_run": not rules_on, "pick_index": core_pick_index if pick < 0 else pick, "front_size": 2,
+		"ascension": ascension, "tier_chain": core_tier_chain,
+		# a bonus (quest/event/shop) offer is opened with _core_offer_pick == core_pick_index; milestone offers use index-1
+		"bonus": pick >= 0 and pick == core_pick_index}
 
 
 ## Knob from the held Run Rule's rule_knobs, else `default`.
@@ -2146,11 +2179,32 @@ func _open_core_offer() -> bool:
 		# Run Rule knob (R6): this pick is dropped. Its tier chain slot and trigger are used up, the next pick keeps its own.
 		core_pick_index += 1
 		return false
-	var tier := CoreOffer.effective_tier(core_tier_chain, core_pick_index, core_tier_bump, owned_relic_ids, mode,
-		int(rule_knob("core_first_tier", -1)))
+	var bump := core_tier_bump
 	core_tier_bump = 0
 	var n := t.core_cards_first_extra if (core_pick_index == 0 and core_first_extra) \
 		else int(rule_knob("core_cards", t.core_cards))
+	var first_tier := int(rule_knob("core_first_tier", -1))
+	if owned_relic_ids.has("c_fossil"):
+		# Fossil (design 2.7 N10): this pick is one tier higher; already Crystal -> 4 cards; already 4 cards -> +1 reroll. Then it goes.
+		var fk: Dictionary = (RelicRegistry.get_def("c_fossil").rule_knobs as Dictionary)
+		var raw := clampi((int(core_tier_chain[core_pick_index]) if core_pick_index < core_tier_chain.size() else 0) + bump, 0, 2)
+		if core_pick_index == 0 and first_tier >= 0:
+			raw = clampi(first_tier + bump, 0, 2)
+		if raw >= 2:
+			var extra := int(fk.get("crystal_extra_card", 4))
+			if n >= extra:
+				core_reroll_left += 1
+				CoreHooks.fire("c_fossil", -1, 1, "tier")
+			else:
+				CoreHooks.fire("c_fossil", -1, extra - n, "tier")
+				n = extra
+		else:
+			bump += int(fk.get("next_pick_tier_up", 1))
+			CoreHooks.fire("c_fossil", -1, int(fk.get("next_pick_tier_up", 1)), "tier")
+		owned_relic_ids.erase("c_fossil")
+		relic_state.erase("c_fossil")
+		relic_stickers.erase("c_fossil")
+	var tier := CoreOffer.effective_tier(core_tier_chain, core_pick_index, bump, owned_relic_ids, mode, first_tier)
 	var base := _core_base_seed if core_pick_index == 0 else _node_seed
 	var rng := Rng.new((base ^ CoreOffer.CORE_SALT) ^ (core_pick_index * 0x9E3779B1))
 	var offer := CoreOffer.build_offer(rng, tier, _core_ctx(), n)
@@ -2185,6 +2239,24 @@ func _core_trigger_hit(node_id: String) -> bool:
 	if String(trig[0]) == "row":
 		return node.row == int(trig[1])
 	return graph.boss_rows.find(node.row) == int(trig[1]) - 1
+
+
+## Run Rule Crow Herald (design 2b R11): the fight that opens a Core pick (from pick 2) decides that pick's tier: won within
+## `fast_turns` (boss: `fast_turns_boss`) turns with nobody down = +1, an Axie down = -1. Stacks on the chain via
+## core_tier_bump (floor moss, Crystal cap in effective_tier). Reads only the fight result, so replay gets the same bump.
+func _crow_judge(res: Dictionary, kind: String) -> void:
+	if run_rule != "rule_crow" or core_off or not _core_trigger_hit(current_node_id):
+		return
+	var turns := int((res.get("stat", {}) as Dictionary).get("turns", 0))
+	var lim := int(rule_knob("fast_turns_boss" if kind == "boss" else "fast_turns", 5 if kind != "boss" else 7))
+	var delta := 0
+	if int(res.get("downed", 0)) > 0:
+		delta = -1
+	elif turns <= lim:
+		delta = 1
+	if delta != 0:
+		add_core_tier_bump(delta)
+		CoreHooks.fire("rule_crow", -1, 1, "tier")
 
 
 ## +1 tier (or -1) for the NEXT Core offer: Elite affix(+) win, Crow Run Rule... (design 2.1). Replay-safe as long
@@ -2226,6 +2298,16 @@ func _apply_core_pick(reward: Dictionary, sell_id: String) -> bool:
 		action_log.rejected.append("take_reward: chosen reward was not in pending_rewards")
 		return false
 	var rid := String(reward.get("key", ""))
+	var dim = null   # Dim Stone (design 2.7 N11): the card is never kept; a Crystal Core of another axis is granted instead
+	if rid == "c_dim_stone" and not bool(reward.get("rule", false)):
+		var other_axes: Array = []
+		for oc in pending_rewards:
+			if oc != reward:
+				other_axes.append(String((oc as Dictionary).get("axis", "")))
+		var drng := Rng.new((_core_base_seed ^ CoreOffer.CORE_SALT ^ 0xD1A57015) ^ (_core_offer_pick * 0x9E3779B1))
+		dim = CoreOffer.dim_stone_grant(drng, other_axes, _core_ctx(_core_offer_pick))
+		if dim != null:
+			rid = String(dim.id)
 	var chk := RelicSlots.check_add(owned_relic_ids, relic_stickers, rid, ascension, false)
 	if not bool(chk["ok"]):
 		return false
@@ -2243,6 +2325,9 @@ func _apply_core_pick(reward: Dictionary, sell_id: String) -> bool:
 		return false
 	action_log.record("take_reward", args)
 	_grant_relic(rid, "core")
+	if dim != null:
+		core_seen.append(rid)
+		CoreHooks.fire("c_dim_stone", -1, 1, "tier")
 	pending_rewards = []
 	if bool(reward.get("rule", false)):
 		run_rule = rid
@@ -2294,7 +2379,9 @@ func _open_bonus_offer() -> bool:
 	var tier := CoreOffer.effective_tier([want], 0, 0, owned_relic_ids, mode)
 	var rng := Rng.new((_node_seed ^ CoreOffer.CORE_SALT) ^ ((core_bonus_count + 1) * 0x51ED27))
 	core_bonus_count += 1
-	var offer := CoreOffer.build_offer(rng, tier, _core_ctx(), t.core_cards)
+	var bctx := _core_ctx()
+	bctx["bonus"] = true
+	var offer := CoreOffer.build_offer(rng, tier, bctx, t.core_cards)
 	_core_offer_pick = core_pick_index
 	if offer.is_empty():
 		return _open_bonus_offer()

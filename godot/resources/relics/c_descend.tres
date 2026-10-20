@@ -6,11 +6,11 @@
 script = ExtResource("1")
 id = "c_descend"
 name = "Take The Field"
-description = "Pick a back-row Axie with heal faces: it moves to the front for good, its heal faces become damage faces +2, +8 Max HP, 30% lifesteal."
+description = "Pick a back-row Axie with heal faces: it moves to the front for good, its heal and buff faces become damage faces +2, +8 Max HP, 30% lifesteal."
 rarity = 2
 archetype = ""
 mload = 0
-sort_index = 202024
+sort_index = 202027
 hook_key = "c_descend"
 tags = PackedStringArray("nonattack", "convert_to_dmg")
 layer = "positional"

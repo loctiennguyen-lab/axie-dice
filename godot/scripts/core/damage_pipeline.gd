@@ -78,6 +78,8 @@ static func resolve(ctx: Dictionary) -> int:
 	if attack and bool(ctx.get("single", false)) and not pierce and tgt.side == "e":
 		var plated := CombatTraits.reduce(combat, tgt, v)                        # 6c. Plating (depth v3 6.7 M1/M6), after every multiplier
 		if plated < v:
+			if CoreHooks.RelicHooks_has(combat, "rule_hard_shell") and tgt.plating < int(CombatTraits.knob("run_rules", "plating_global", 2.0)):
+				CoreHooks.fire("rule_hard_shell", tgt.uid, int(v - plated), "block")
 			EventBus.plating.emit(tgt.uid, int(v), int(plated), CombatTraits.plating_of(combat, tgt))
 			v = plated
 	if attack or tgt.side == "e":
@@ -156,6 +158,7 @@ static func resolve(ctx: Dictionary) -> int:
 			var tm := 1.0 + RelicHooks.axis_sum(combat, "A:thorns")
 			var tp := RelicHooks.sum(combat, "thornsPlus")
 			th = th * tm + tp
+			th = float(RelicHooks.run_value_hook(combat, "thorns_extra", {"combat": combat, "tgt": tgt}, th))   # Rebound Core
 			if tm != 1.0 or tp != 0.0:
 				EventBus.relic_pulsed.emit("thorns", tgt.uid)
 		var ith := int(th)
@@ -245,7 +248,7 @@ static func apply_shield(combat, tgt: Unit, value: int) -> void:
 	EventBus.float_text.emit(tgt.uid, "+%d" % v, "shd", 0)
 	EventBus.hp_changed.emit(tgt.uid, tgt.hp, tgt.max_hp, tgt.shield)
 	if tgt.side == "p" and tgt.cls == "plant" and tgt.shield >= int(RelicHooks.field(combat, "bulwark_at", 10.0)):
-		tgt.status["thorns"] = min(StatusEngine.THORNS_CAP, max(int(tgt.status.get("thorns", 0)), int(RelicHooks.field(combat, "bulwark_thorns", 2.0))))
+		tgt.status["thorns"] = StatusEngine.clamp_thorns(max(int(tgt.status.get("thorns", 0)), int(RelicHooks.field(combat, "bulwark_thorns", 2.0))))
 	if tgt.side == "p":
 		RelicHooks.fire(combat, "on_shield", {"v": v, "tgt": tgt, "combat": combat})
 

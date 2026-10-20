@@ -142,9 +142,12 @@ static func token_ok(token: String, ctx: Dictionary) -> bool:
 				seen[c] = true
 			return false
 		"face":
+			var alts := arg.split("|")   # "shield|thorns" = any of these
 			for e in roster:
-				if _face_labels(_hero(e)).has(arg):
-					return true
+				var labs := _face_labels(_hero(e))
+				for a in alts:
+					if labs.has(a):
+						return true
 			return false
 		"back_face":
 			var wanted := arg.split("|")
@@ -162,8 +165,18 @@ static func token_ok(token: String, ctx: Dictionary) -> bool:
 				for lbl in _face_labels(_hero(e)):
 					all[lbl] = true
 			return all.size() >= int(arg)
+		"faces_nondmg":
+			var nd := 0
+			for e in roster:
+				for f in (_hero(e).get("die", []) as Array):
+					var ft := String((f as Dictionary).get("type", ""))
+					if ft != "dmg" and ft != "blank" and ft != "":
+						nd += 1
+			return nd >= int(arg)
 		"front_hero":
 			return roster.size() > 0
+		"team_can_break":
+			return CombatTraits.team_can_break(roster)
 		"egg_source":
 			for e in roster:
 				var labs := _face_labels(_hero(e))
@@ -207,6 +220,11 @@ static func is_valid(def, ctx: Dictionary) -> bool:
 	for tk in def.excludes:
 		if token_ok(String(tk), ctx):
 			return false
+	var asc_lt = (def.rule_knobs as Dictionary).get("asc_lt", null)   # Cheap Mana: only below this ascension
+	if asc_lt != null and int(ctx.get("ascension", 0)) >= int(asc_lt):
+		return false
+	if not _bet_ok(def, ctx):
+		return false
 	var first_run := bool(ctx.get("first_run", false))
 	if first_run and (bool(def.first_run_hidden) or String(def.core_axis) == "quest"):
 		return false
@@ -218,6 +236,57 @@ static func is_valid(def, ctx: Dictionary) -> bool:
 			if od != null and String(od.core_axis) == "quest":
 				return false
 	return true
+
+
+## Bet Cores (Fossil, Dim Stone; design 2.7 N10/N11) only show in the milestone picks they are defined for, never in
+## quest / event / shop bonus offers (ctx.bonus). Knobs (RelicDef.rule_knobs): pick_max (0-based pick < pick_max),
+## not_pick (1-based numbers, "last" = last pick of the mode), max_chain_t (hidden when the tier chain already has that many Crystals).
+static func _bet_ok(def, ctx: Dictionary) -> bool:
+	var kn: Dictionary = def.rule_knobs
+	if not bool(kn.get("bet", false)):
+		return true
+	if bool(ctx.get("bonus", false)):
+		return false
+	var pick := int(ctx.get("pick_index", 0))
+	var pmax := int(kn.get("pick_max", 0))
+	if pmax > 0 and pick >= pmax:
+		return false
+	var total := picks_total(String(ctx.get("mode", "short")))
+	for np in (kn.get("not_pick", []) as Array):
+		if (str(np) == "last" and pick == total - 1) or (not str(np) == "last" and pick == int(np) - 1):
+			return false
+	if kn.has("max_chain_t"):
+		var tn := 0
+		for v in (ctx.get("tier_chain", []) as Array):
+			if int(v) >= 2:
+				tn += 1
+		if tn >= int(kn["max_chain_t"]):
+			return false
+	if bool(kn.get("grant_crystal_other_axis", false)) and owned_crystal_count(ctx.get("owned_ids", [])) >= t_cap(String(ctx.get("mode", "short"))):
+		return false
+	return true
+
+
+## Dim Stone payout: a random Crystal Core whose axis differs from the other cards of the offer (valid pool + core_seen
+## still apply). Falls back to any Crystal axis, then to the nearest tier, so a pick never pays nothing while the pool has a Core.
+## rng is the caller's own stream. Returns null when the pool is empty.
+static func dim_stone_grant(rng: Rng, other_axes: Array, ctx: Dictionary):
+	var pool := valid_pool(ctx)
+	var cands: Array = []
+	for d in pool:
+		if int(d.rarity) == 2 and not other_axes.has(String(d.core_axis)):
+			cands.append(d)
+	if cands.is_empty():
+		for d in pool:
+			if int(d.rarity) == 2:
+				cands.append(d)
+	if cands.is_empty():
+		for d in pool:
+			if int(d.rarity) == 1:
+				cands.append(d)
+	if cands.is_empty():
+		return null
+	return cands[rng.next_int(cands.size())]
 
 
 ## All Cores (not Run Rules) that pass the filters, sorted by id (stable order for the draws).
@@ -433,7 +502,16 @@ static func build_rule_offer(base_seed: int, ctx: Dictionary, allow_none: bool) 
 	var none_def = RelicRegistry.get_def(NO_RULE_ID)
 	var real := 2 - (1 if (want_none and none_def != null) else 0)
 	while out.size() < real and not pool.is_empty():
-		var k := rng.next_int(pool.size())
+		var total := 0
+		for d in pool:
+			total += maxi(1, int(d.weight))
+		var roll := rng.next_int(total)   # 2b.2: weight 2 for R10 / R12 / R13, 1 for the rest
+		var k := 0
+		for i in pool.size():
+			roll -= maxi(1, int(pool[i].weight))
+			if roll < 0:
+				k = i
+				break
 		out.append(rule_card_of(pool[k], out.size()))
 		pool.remove_at(k)
 	if want_none and none_def != null:

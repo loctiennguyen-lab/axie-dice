@@ -13,6 +13,10 @@ signal face_used(uid: int, side: String, target_uid: int, aoe: bool,
 signal resonance_triggered(uid: int)                                       # ~ "resonance"
 signal relic_pulsed(relic_id: String, uid: int)                            # ~ "relic" —
 		# the ONLY channel some relic effects have to become visible; never skip this.
+signal core_fired(core_id: String, unit_uid: int, amount: int, kind: String)  # depth v3 lane VZ: a Core DID something
+		# (see production/depth-v3-contract.md "Làn VZ"). Cores never use relic_pulsed: its two-arg signature has no amount/kind.
+		# kind: dmg | shield | block | mana | poison | heal | reroll | thorns | quest_step ("" = unknown, UI shows the name only).
+		# Pure presentation + run stat; emit it from the engine AFTER the effect resolved, never to cause one.
 signal float_text(uid: int, text: String, css_class: String, big: int)     # ~ "ft"
 signal die_stashed(uid: int)                                              # depth v3 Hold: a die was parked
 signal plating(uid: int, before: int, after: int, p: int)                  # depth v3 6.7 M1/M6: a single-target hit was reduced by Plating
