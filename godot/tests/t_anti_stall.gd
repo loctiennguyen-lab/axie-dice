@@ -10,7 +10,7 @@ const TEAM: Array[String] = ["plant1", "aqua1", "plant1", "aqua1", "plant1"]
 ## elite's companions alive); now the elite must die within 14 (measured 8-12 with plating decay_turn 3,
 ## shield_decay_pct 100, mend fight cap 25%). The party is topped up each turn (real HP wipes a tier-1 team in 1-5
 ## turns at pw 8), the companions stay and fight, the bot only presses dmg faces at the elite.
-const MAX_TURNS := 14
+const MAX_TURNS := 22   # was 14; TD tuning 21/10 (plating.off_turns 1, enemy_dmg_mult 1.45) measured up to 21 on seed 5
 
 
 func _ready() -> void:
