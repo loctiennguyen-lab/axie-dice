@@ -371,14 +371,22 @@ const ADD_Z_BACK2 := -18.3
 ## column on its party side (x = boss left edge - WIDE_ADD_GAP), spread in depth by WIDE_ADD_Z[count]. The 5th add
 ## onward stands on the far back row above the boss (ADD_EXTRA).
 const WIDE_BOSS_MIN_W := 3.5
-const WIDE_BOSS_SHIFT_X := 1.05
-const WIDE_ADD_GAP := 1.0
-const WIDE_ADD_GAP_4 := 1.17   # four adds: the mid ones are wider on screen, keep them off the boss
+const WIDE_BOSS_SHIFT_X := 0.55
+const WIDE_ADD_GAP := 0.5
+const WIDE_ADD_GAP_4 := 0.6   # four adds: the mid ones are wider on screen, keep them off the boss
 const WIDE_ADD_Z := {
 	1: [1.5],
 	2: [-3.5, 5.5],
 	3: [-8.0, -2.0, 5.0],
 	4: [-10.56, -3.95, 1.62, 6.39],
+}
+## Per-add nudge (m, toward the boss) on top of WIDE_ADD_GAP: the front adds are nearer the camera and project further
+## left, so they get pulled in a little to keep the party/enemy gap.
+const WIDE_ADD_DX := {
+	1: [0.0],
+	2: [0.0, 0.3],
+	3: [0.0, 0.0, 0.0],
+	4: [0.0, 0.1, 0.17, 0.05],
 }
 ## Adds 5 and up (gooey SPLIT, summoners) stand on a second back row above the first one.
 const ADD_EXTRA := [[-1.0, -2], [1.0, -2], [0.0, -2], [-2.0, -2]]
@@ -1372,7 +1380,7 @@ func reseat_side(uids: Array, is_enemy: bool) -> void:
 				lead_x += WIDE_BOSS_SHIFT_X
 				if i < 4:
 					var col_z: Array = WIDE_ADD_Z[mini(axie_uids.size(), 4)]
-					placed.append([axie_uids[i], Vector3(lead_x - wide_lead_w * 0.5 - (WIDE_ADD_GAP_4 if axie_uids.size() >= 4 else WIDE_ADD_GAP), _POS_Y, float(col_z[i]))])
+					placed.append([axie_uids[i], Vector3(lead_x - wide_lead_w * 0.5 - (WIDE_ADD_GAP_4 if axie_uids.size() >= 4 else WIDE_ADD_GAP) + float((WIDE_ADD_DX[mini(axie_uids.size(), 4)] as Array)[i]), _POS_Y, float(col_z[i]))])
 					continue
 			pos = Vector3(lead_x + float(ent[0]) * ADD_PITCH_X, _POS_Y, ADD_Z_FRONT if int(ent[1]) > 0 else (ADD_Z_BACK2 if int(ent[1]) < -1 else ADD_Z_BACK))
 		else:

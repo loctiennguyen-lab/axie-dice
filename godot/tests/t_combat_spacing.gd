@@ -79,7 +79,10 @@ func _case_k(label: String, kind: String, n_enemy: int, boss: bool, eggs: int, p
 		uid += 1
 	for i in n_enemy:
 		var is_boss := boss and i == 0
-		stage.spawn_unit(uid, "", true, i, n_enemy, is_boss, "gooey_king" if is_boss else KEYS[i % KEYS.size()])
+		# Next to a live boss every other enemy is a summon, and combat spawns those with is_summon=true so they
+		# are drawn at SUMMON_SCALE (0.7). Spawn them the same way here, otherwise the test measures full-size
+		# adds that never occur in the game.
+		stage.spawn_unit(uid, "", true, i, n_enemy, is_boss, "gooey_king" if is_boss else KEYS[i % KEYS.size()], "", boss and not is_boss)
 		enemies.append(uid)
 		uid += 1
 	stage.reseat_side(party, false)

@@ -41,6 +41,27 @@ func _ready() -> void:
 	var target: int = (scene._combat.party[0] as Unit).uid
 	var w := get_viewport().get_visible_rect().size.x
 	var tag := "brine_%s_%d" % [key, int(DisplayServer.window_get_size().x)]
+	_save(tag + "_alone")
+	# Boss + summons (gooey_king's SPLIT look): spawn them on the stage and reseat.
+	var ids: Array = []
+	for e in scene._combat.enemies:
+		ids.append(int(e.uid))
+	var add_key := OS.get_environment("AXIE_ADD_KEY") if OS.get_environment("AXIE_ADD_KEY") != "" else "slime"
+	var nid := 900
+	var n_adds := maxi(1, int(OS.get_environment("AXIE_ADDS")) if OS.get_environment("AXIE_ADDS") != "" else 2)
+	var cnt := ids.size() + n_adds
+	for i in n_adds:
+		stage.spawn_unit(nid, "", true, ids.size() + i, cnt, false, add_key, "", true)
+		ids.append(nid)
+		nid += 1
+	stage.reseat_side(ids, true)
+	await _wait(0.8)
+	_save(tag + "_summons%d" % n_adds)
+	if OS.get_environment("AXIE_SUMMONS_ONLY") != "":
+		_guard.restore()
+		get_tree().quit(0)
+		return
+
 	_save(tag + "_idle")
 	await _wait(0.9)
 	_save(tag + "_idle2")
@@ -67,20 +88,6 @@ func _ready() -> void:
 		stage.play_death(boss_uid)
 		await _wait(1.2)
 		_save(tag + "_dead")
-	# Boss + two slime summons (gooey_king's SPLIT look): spawn them on the stage and reseat.
-	var ids: Array = []
-	for e in scene._combat.enemies:
-		ids.append(int(e.uid))
-	var nid := 900
-	var n_adds := maxi(1, int(OS.get_environment("AXIE_ADDS")) if OS.get_environment("AXIE_ADDS") != "" else 2)
-	var cnt := ids.size() + n_adds
-	for i in n_adds:
-		stage.spawn_unit(nid, "", true, ids.size() + i, cnt, false, "slime")
-		ids.append(nid)
-		nid += 1
-	stage.reseat_side(ids, true)
-	await _wait(0.8)
-	_save(tag + "_summons%d" % n_adds)
 	print("QA: brine capture done (viewport %d)" % w)
 	_guard.restore()
 	get_tree().quit(0)
