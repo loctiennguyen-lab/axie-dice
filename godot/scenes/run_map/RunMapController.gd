@@ -1107,6 +1107,7 @@ func _close_overlay() -> void:
 
 func _clear_overlay_content() -> void:
 	_overlay_vbox = null
+	_reward_cards.clear()   # its cards are freed below; never keep refs to them
 	for c in _overlay_root.get_children():
 		_overlay_root.remove_child(c)
 		c.queue_free()
@@ -1342,7 +1343,8 @@ func _ask_skip_reward(col: VBoxContainer) -> void:
 func _select_reward(i: int) -> void:
 	_reward_sel = clampi(i, 0, maxi(_reward_cards.size() - 1, 0))
 	for k in _reward_cards.size():
-		UI3.set_card_selected(_reward_cards[k], k == _reward_sel, false)
+		if is_instance_valid(_reward_cards[k]):   # the overlay is rebuilt (old cards freed) on reroll / chained offers
+			UI3.set_card_selected(_reward_cards[k], k == _reward_sel, false)
 
 
 func _take_selected_reward() -> void:
