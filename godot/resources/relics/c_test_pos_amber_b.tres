@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="RelicDef" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data_models/relic_def.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "c_test_pos_amber_b"
+name = "Test pos amber b"
+description = "Test Core (pos, tier 1). Does nothing."
+rarity = 1
+sort_index = 900010
+core_axis = "pos"
+disabled = true
