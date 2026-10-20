@@ -140,6 +140,7 @@ def split_hands(obj):
     uv = bm.loops.layers.uv.active
     bm.faces.ensure_lookup_table()
     cyan = set()
+    partial = set()
     cols = {}
     for f in bm.faces:
         us = [l[uv].uv for l in f.loops]
@@ -148,6 +149,9 @@ def split_hands(obj):
         if is_cyan(col):
             cyan.add(f.index)
             cols[f.index] = col
+        elif any((q_[1] + q_[2]) * 0.5 - q_[0] > 0.12 and q_[2] > 0.3 for q_ in
+                 (px[min(h - 1, int(q.y * h)), min(w - 1, int(q.x * w)), :3] for q in us + [c])):
+            partial.add(f.index)     # cape faces that only touch cyan texels (edge bleed)
     # connected cyan pieces; a piece is "hand" when its whole bounding box sits in the hand zone
     # (|x| > 0.2, -0.66 < z < -0.15, y < 0): that keeps the sword, hair, feet and shoulder trim out.
     seen, hand = set(), set()
@@ -176,6 +180,7 @@ def split_hands(obj):
     hand_idx = set(hand)
     for f in bm.faces:
         f.tag = f.index in hand_idx
+    cyan_faces = {bm.faces[i] for i in cyan | partial}
     cut_pos = {tuple(round(c, 5) for c in v.co) for e in edges for v in e.verts}
     bmesh.ops.split_edges(bm, edges=edges)
     bm.verts.ensure_lookup_table()
@@ -185,6 +190,55 @@ def split_hands(obj):
         if f.tag:
             for v in f.verts:
                 hv.add(v.index)
+    # --- cleanup of what the cut left on the cape side
+    def in_cape_zone(p):
+        return abs(p.x) > 0.12 and -0.66 < p.z < -0.1 and p.y < 0.1
+    hand_faces = {f for f in bm.faces if f.tag}
+    # (a) loose islands: tiny connected pieces in the cape zone are deleted
+    seen_f, kill = set(), []
+    for f0 in bm.faces:
+        if f0 in seen_f or f0 in hand_faces:
+            continue
+        comp, stack = [], [f0]
+        seen_f.add(f0)
+        while stack:
+            a = stack.pop()
+            comp.append(a)
+            for e in a.edges:
+                for g in e.link_faces:
+                    if g not in seen_f and g not in hand_faces:
+                        seen_f.add(g)
+                        stack.append(g)
+        if len(comp) < 40 and all(in_cape_zone(f.calc_center_median() - Vector((0, 0, F))) for f in comp):
+            kill.extend(comp)
+    if kill:
+        bmesh.ops.delete(bm, geom=kill, context='FACES_ONLY')
+        bm.faces.ensure_lookup_table()
+    print("PARASITE cleanup: loose faces deleted", len(kill))
+    # (b) hand-cyan texels left on the cape: copy the neighbouring cape colour (flat UV) so no cyan shard remains
+    todo = {f for f in cyan_faces if f.is_valid and f not in hand_faces
+            and in_cape_zone(f.calc_center_median() - Vector((0, 0, F)))}
+    n_re = len(todo)
+    for _ in range(8):
+        if not todo:
+            break
+        done = []
+        for f in todo:
+            ref = None
+            for v in f.verts:
+                for g in v.link_faces:
+                    if g is not f and g not in todo and g not in hand_faces and g not in cyan_faces:
+                        us = [l[uv].uv for l in g.loops]
+                        ref = sum(us, Vector((0, 0))) / len(us)
+                        break
+                if ref is not None:
+                    break
+            if ref is not None:
+                for l in f.loops:
+                    l[uv].uv = ref
+                done.append(f)
+        todo.difference_update(done)
+    print("PARASITE cleanup: cyan cape faces recoloured", n_re - len(todo), "left", len(todo))
     # tuck: cap the matching holes left in the cape (static, cape-weighted) so no see-through gap opens
     crim = [e for e in bm.edges if e.is_boundary and not any(v.index in hv for v in e.verts)
             and all(tuple(round(c, 5) for c in v.co) in cut_pos for v in e.verts)]
@@ -204,6 +258,19 @@ def split_hands(obj):
                 for l in f.loops:
                     l[uv].uv = ref if ref is not None else l[uv].uv
     print("PARASITE cape holes capped: rim edges", len(crim))
+    # (c) straighten the cape-side cut: smooth the rim vertices along the cut (two passes)
+    rim_v = {v for e in crim for v in e.verts}
+    for _ in range(2):
+        newp = {}
+        for v in rim_v:
+            nb = [o for e in v.link_edges if e.is_boundary for o in (e.other_vert(v),) if o in rim_v]
+            if len(nb) >= 2:
+                newp[v] = v.co * 0.5 + sum((o.co for o in nb), Vector()) / len(nb) * 0.5
+        for v, c in newp.items():
+            v.co = c
+    bm.verts.ensure_lookup_table()
+    bm.edges.index_update()
+    bm.faces.index_update()
     # the real forearm is hidden under the cape in the AI mesh, so a raised hand would float: add a
     # slim tapered cyan arm from each shoulder to the wrist (top of the hand piece)
     tube = set()
