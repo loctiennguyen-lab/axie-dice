@@ -197,7 +197,12 @@ func setup_new(combat_setup: Dictionary) -> void:
 	if start_summons > 0:
 		EventBus.relic_pulsed.emit("startSummon", 0)
 
-	enemies = _generate_encounter(kind, pw)
+	# Raid R1 (lane RV): a ghost team replaces the generated encounter; the engine's own enemy AI plays it.
+	var ghost_team: Array = combat_setup.get("ghost_team", [])
+	if ghost_team.is_empty():
+		enemies = _generate_encounter(kind, pw)
+	else:
+		enemies = RaidGhost.make_enemies(ghost_team, _alloc_token_uid)
 
 	# A3 "Short Dice": the BASE loses a reroll (never below the floor); every bonus still adds on top.
 	var amods_r := ContentDB.ascension_mods(ascension)

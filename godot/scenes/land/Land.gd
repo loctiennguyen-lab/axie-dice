@@ -251,6 +251,11 @@ func _block_reason(id: String) -> String:
 
 
 func _block_reason_screen(screen_id: StringName) -> String:
+	if screen_id == &"raid":
+		if _guest:
+			return "Sign in to use"
+		if _offline:
+			return "Needs a connection"
 	if _guest and screen_id == &"daily":
 		return "Sign in to use"
 	if _offline and screen_id == &"daily":
@@ -1242,6 +1247,13 @@ func _build_hud() -> void:
 	erow.add_child(UI3.label("Edit Land"))
 	erow.add_child(UI3.key_hint("E"))
 	blr.add_child(_cell("EditLand", erow, _on_edit_pressed))
+	# Raid R1 (lane RV): fight another player's defence team (online only; the screen explains why when it can't).
+	var rrow := HBoxContainer.new()
+	rrow.add_theme_constant_override("separation", UI3Theme.space("12"))
+	rrow.add_child(UI3.label("Raid"))
+	var raid_cell := _cell("Raid", rrow, _on_rail_pressed.bind(&"raid"))
+	raid_cell.name = "Rail_Raid"
+	blr.add_child(raid_cell)
 	# Moon Card: L1 shows it disabled, no price (answered in round 2). Hidden when signed out.
 	_moon_btn = UI3.button("Moon Card · Coming soon", &"secondary", &"S")
 	_moon_btn.name = "MoonCardButton"
