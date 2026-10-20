@@ -431,10 +431,10 @@ func _set_party_dx(dx: float) -> void:
 		var e: Dictionary = _units[uid]
 		if bool(e.get("is_enemy", false)):
 			continue
-		var sl: Node3D = e.get("slot")
+		var sl = e.get("slot")   # untyped: a typed Node3D var errors on a freed instance
 		if is_instance_valid(sl):
-			sl.position.x += delta
-			e["rest_pos"] = sl.position
+			(sl as Node3D).position.x += delta
+			e["rest_pos"] = (sl as Node3D).position
 
 ## Facing fix (bug report: "Axie đang quay mặt về camera, muốn quay lưng lại tiến lên đánh
 ## boss"). AxieCharacter3D's default forward is NOT documented in this addon's own README, so
