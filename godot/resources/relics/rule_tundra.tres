@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="RelicDef" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data_models/relic_def.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "rule_tundra"
+name = "Tundra"
+description = "No free reroll (rerolls cost 2 Mana). You can Hold 2 dice, and a Held die gets +2 when used next turn."
+rarity = 0
+archetype = ""
+mload = 0
+sort_index = 200502
+hook_key = "rule_tundra"
+tags = PackedStringArray("rule")
+layer = "engine"
+core_axis = "run_rule"
+run_rule = true
+weight = 1
+rerollUp = -1.0
+rule_knobs = {"free_reroll": 0, "stash_cap": 2, "focus": 2}

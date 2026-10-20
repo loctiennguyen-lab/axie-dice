@@ -12,6 +12,7 @@ class_name CombatHud
 signal menu_pressed
 signal ascension_pressed
 signal active_pressed(relic_id: String)
+signal hold_pressed   ## depth v3 3.2: the Hold button (CombatView turns it into the `stash` action)
 
 const TOP := 24.0
 const EDGE := 24.0
@@ -21,8 +22,10 @@ const END_H := 64.0
 const SMALL_H := 48.0
 const HINT_H := 24.0
 const UNDO_W := 88.0
+const ROW_GAP := 12.0   # Undo | Reroll: a clear gap, the two must not read as one button
 const INFO_W := 288.0
 
+var core_panel: CorePanel            ## depth v3: 6 Core slots + Run rule slot + quest chips
 var relic_strip: HBoxContainer      ## kept as a public name: tests hover relic chips here
 var actives_row: HBoxContainer
 
@@ -54,7 +57,11 @@ var _skip_button: Button
 var undo_button: Button
 var reroll_button: Button
 var end_turn_button: Button
+var hold_button: Button             ## depth v3 Hold, owned here (no scene node)
 var _hint: Label
+var _hold_wanted := true
+var _foe_card: PanelContainer       ## boss rhythm (3 chips) and / or the Elite affix chip, left column
+var _foe_rows: VBoxContainer
 
 var _newcomer := false
 var _tray_top := 0.0
@@ -66,6 +73,7 @@ func _init() -> void:
 	theme = UI3Theme.get_theme()
 	_build_top()
 	_build_attrition()
+	_build_foe_card()
 	_build_speed()
 	_build_info()
 	resized.connect(layout)
@@ -124,6 +132,9 @@ func _build_top() -> void:
 	rrow.add_theme_constant_override("separation", 4)
 	rrow.alignment = BoxContainer.ALIGNMENT_CENTER
 	_relic_plate.add_child(rrow)
+	core_panel = CorePanel.new()
+	core_panel.show_counts = true   # lane VZ: "xN" activations this fight on each Core slot
+	rrow.add_child(core_panel)
 	relic_strip = HBoxContainer.new()
 	relic_strip.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	relic_strip.add_theme_constant_override("separation", 4)
@@ -181,6 +192,109 @@ func _build_attrition() -> void:
 	_attr_sub.add_theme_font_size_override("font_size", 18)
 	_ignore(_attr_sub)
 	col.add_child(_attr_sub)
+
+
+# ── Foe card: boss rhythm (3 chips) and the Elite affix chip (depth v3 6.3 / 6.4, spec design/ux/depth-v3/combat-hud.md)
+
+const _PHASES := ["prep", "strike", "hollow"]
+const _PHASE_WORD := {"prep": "Prep", "strike": "Strike", "hollow": "Hollow"}
+
+
+func _build_foe_card() -> void:
+	_foe_card = UI3.plate(&"notice")
+	_foe_card.name = "FoeCard"
+	_foe_card.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_foe_card.visible = false
+	_foe_card.add_to_group("ui3_tip_avoid")
+	add_child(_foe_card)
+	_foe_rows = VBoxContainer.new()
+	_foe_rows.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_foe_rows.add_theme_constant_override("separation", 6)
+	_foe_card.add_child(_foe_rows)
+
+
+## d: {rhythm: {phase, next, turns_to_strike, tell}, affix: {name, tip, note}}. Either key may be missing;
+## with neither the card hides. Phase chips carry the WORD (colour never alone); the current one is the
+## selected plate, the next one is marked "next".
+func update_foe(d: Dictionary) -> void:
+	for c in _foe_rows.get_children():
+		_foe_rows.remove_child(c)
+		c.queue_free()
+	var r: Dictionary = d.get("rhythm", {})
+	var a: Dictionary = d.get("affix", {})
+	var coach := String(d.get("coach", ""))
+	_foe_card.visible = not r.is_empty() or not a.is_empty() or coach != ""
+	if coach != "":
+		var cl := UI3.label(coach, "LabelMuted")
+		cl.name = "CoachPlating"
+		cl.add_theme_font_size_override("font_size", 18)
+		cl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		cl.custom_minimum_size.x = 320
+		cl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_foe_rows.add_child(cl)
+	if not a.is_empty():
+		var row := HBoxContainer.new()
+		row.name = "AffixRow"
+		row.mouse_filter = Control.MOUSE_FILTER_PASS
+		row.add_theme_constant_override("separation", 8)
+		var ic := TextureRect.new()
+		ic.texture = UI3.icon("node_elite")
+		ic.custom_minimum_size = Vector2(28, 28)
+		ic.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		ic.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		ic.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		row.add_child(ic)
+		var l := UI3.label(String(a.get("name", "")), "LabelDisplay")
+		l.add_theme_font_size_override("font_size", 18)
+		l.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		row.add_child(l)
+		if String(a.get("note", "")) != "":
+			var n := UI3.label(String(a["note"]), "LabelMuted")
+			n.add_theme_font_size_override("font_size", 18)
+			n.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			row.add_child(n)
+		UI3Tooltip.bind(row, String(a.get("tip", "")))
+		_foe_rows.add_child(row)
+	if not r.is_empty():
+		var title := UI3.label("BOSS RHYTHM", "LabelDisplay")
+		title.add_theme_font_size_override("font_size", 18)
+		title.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_foe_rows.add_child(title)
+		var chips := HBoxContainer.new()
+		chips.name = "RhythmChips"
+		chips.mouse_filter = Control.MOUSE_FILTER_PASS
+		chips.add_theme_constant_override("separation", 6)
+		for ph in _PHASES:
+			var is_now: bool = String(r.get("phase", "")) == ph
+			var is_next: bool = String(r.get("next", "")) == ph
+			var p := UI3.plate(&"card_selected" if is_now else &"row")
+			p.name = "Phase_" + ph
+			p.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			var l2 := UI3.label(String(_PHASE_WORD[ph]), "LabelDisplay")
+			l2.add_theme_font_size_override("font_size", 18)
+			l2.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			if is_next and not is_now:
+				var pv := VBoxContainer.new()
+				pv.add_theme_constant_override("separation", 0)
+				pv.mouse_filter = Control.MOUSE_FILTER_IGNORE
+				pv.add_child(l2)
+				var nl := UI3.label("Next", "LabelMuted")
+				nl.name = "NextTag"
+				nl.add_theme_font_size_override("font_size", 18)
+				nl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+				nl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+				pv.add_child(nl)
+				p.add_child(pv)
+			else:
+				p.add_child(l2)
+			chips.add_child(p)
+		UI3Tooltip.bind(chips, "Boss rhythm: 3-turn cycle. Prep, then Strike (its strongest face), then Hollow (it takes +30% from damage faces and deals -30%). The chip tagged Next is the phase that comes next.")
+		_foe_rows.add_child(chips)
+		var tell := UI3.label(String(r.get("tell", "")), "LabelMuted")
+		tell.add_theme_font_size_override("font_size", 18)
+		tell.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_foe_rows.add_child(tell)
+	layout()
 
 
 func _build_info() -> void:
@@ -302,13 +416,23 @@ func adopt_right_zone(undo: Button, reroll: Button, end_turn: Button) -> void:
 	end_turn.text = "End turn"
 	end_turn.add_theme_font_size_override("font_size", 24)   # "Enemy turn" must fit the 240 px column
 	undo.custom_minimum_size = Vector2(UNDO_W, SMALL_H)
-	reroll.custom_minimum_size = Vector2(RIGHT_W - UNDO_W - GAP, SMALL_H)
+	reroll.custom_minimum_size = Vector2(RIGHT_W - UNDO_W - ROW_GAP, SMALL_H)
 	end_turn.custom_minimum_size = Vector2(RIGHT_W, END_H)
 	# Backstop: a label can never grow its button past the 240 px column (test: t_combat_right_block).
 	for b in [undo, reroll, end_turn]:
 		b.clip_text = true
+	hold_button = UI3.button("Hold", &"secondary", &"S")
+	hold_button.name = "HoldButton"
+	hold_button.add_theme_font_size_override("font_size", 18)
+	hold_button.custom_minimum_size = Vector2(RIGHT_W, SMALL_H)
+	hold_button.clip_text = true
+	hold_button.pressed.connect(func(): hold_pressed.emit())
+	add_child(hold_button)
 	_hint = UI3.label("", "LabelMuted")
 	_hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_hint.add_theme_color_override("font_color", UI3Theme.color("text"))   # sits on the 3D view: full cream, not muted
+	_hint.add_theme_constant_override("outline_size", 4)
+	_hint.add_theme_color_override("font_outline_color", UI3Theme.color("panel"))
 	_hint.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(_hint)
 	layout()
@@ -343,9 +467,11 @@ func update_top(d: Dictionary) -> void:
 		mc.tooltip_text = "Mana: spent only on relic actives"
 		mc.mouse_filter = Control.MOUSE_FILTER_STOP
 		_mana_box.add_child(mc)
-	_divider.visible = (d.get("actives", []) as Array).size() > 0 and relics.size() > 0
+	var has_cores := core_panel.refresh()
+	core_panel.visible = has_cores
+	_divider.visible = (d.get("actives", []) as Array).size() > 0 and (relics.size() > 0 or has_cores)
 	relic_strip.visible = relics.size() > 0
-	_relic_plate.visible = relics.size() > 0 or (d.get("actives", []) as Array).size() > 0
+	_relic_plate.visible = has_cores or relics.size() > 0 or (d.get("actives", []) as Array).size() > 0
 	_fight_label.text = String(d.get("title", ""))
 	var asc := int(d.get("ascension", 0))
 	_turn_label.text = ("A%d · " % asc if asc > 0 else "") + TranslationServer.translate("Turn") + " %d" % int(d.get("turn", 1))
@@ -457,7 +583,7 @@ func update_attrition(state: Dictionary, turn: int, newcomer: bool) -> void:
 
 ## Right zone texts + enabled states. Disabled buttons say why (UI3 rule).
 ## undo: {enabled, sub}  reroll: {n, enabled}  end: {sub, warn, enabled, resolving}
-func update_right(undo: Dictionary, reroll: Dictionary, end: Dictionary) -> void:
+func update_right(undo: Dictionary, reroll: Dictionary, end: Dictionary, hold: Dictionary = {}) -> void:
 	if undo_button == null:
 		return
 	undo_button.disabled = not bool(undo.get("enabled", false))
@@ -465,15 +591,50 @@ func update_right(undo: Dictionary, reroll: Dictionary, end: Dictionary) -> void
 	undo_button.tooltip_text = ("Undo the last die (%s)" % KeyBindings.text(KeyBindings.COMBAT_UNDO)) if not undo_button.disabled else "Nothing to undo this turn"
 	var n := int(reroll.get("n", 0))
 	var mx := int(reroll.get("max", 0))
+	var cost := int(reroll.get("cost", 0))   # mana for the NEXT reroll once the free charges are gone (3.5)
 	var nm := "%d/%d" % [n, mx] if mx > 0 else str(n)
 	reroll_button.disabled = not bool(reroll.get("enabled", false))
-	reroll_button.text = "Reroll %s" % nm if not reroll_button.disabled else \
-		("No rerolls" if n <= 0 else "Reroll %s" % nm)
+	if n > 0:
+		reroll_button.text = "Reroll %s" % nm
+	elif cost > 0 and not bool(reroll.get("capped", false)):
+		reroll_button.text = "Reroll %d MP" % cost if not reroll_button.disabled else "Need %d MP" % cost
+	else:
+		reroll_button.text = "No rerolls"
+	reroll_button.tooltip_text = String(reroll.get("tip", "Reroll unused dice (%s)" % KeyBindings.text(KeyBindings.COMBAT_REROLL)))
+	var need_mp := n <= 0 and cost > 0 and not bool(reroll.get("capped", false)) and reroll_button.disabled
+	_hold_wanted = bool(hold.get("show", false))
+	var hold_on := bool(hold.get("on", false))
+	hold_button.disabled = not bool(hold.get("enabled", false)) and not hold_on   # "on" = a pressed-in toggle, not disabled
+	hold_button.text = String(hold.get("text", "Hold"))
+	_style_hold_on(hold_on)
+	hold_button.tooltip_text = String(hold.get("tip", ""))
 	end_turn_button.disabled = not bool(end.get("enabled", true))
 	var resolving := end_turn_button.disabled and bool(end.get("resolving", false))
 	end_turn_button.text = "Enemy turn" if resolving else "End turn"
 	_hint.text = ("%s · skip" % KeyBindings.text(KeyBindings.COMBAT_END_TURN)) if resolving else String(end.get("sub", ""))
+	if need_mp and not resolving:
+		_hint.text = "Reroll: need %d MP\n%s" % [cost, _hint.text]
 	layout()
+
+
+## Hold already used (Holding n/n): the button reads as a switched-on toggle (wood-3 fill, 4 px cream outline,
+## check glyph), not as a greyed-out one. Pressing it again does nothing (CombatView gates it).
+func _style_hold_on(on: bool) -> void:
+	for st in ["normal", "hover", "pressed", "disabled", "hover_pressed"]:
+		if on:
+			hold_button.add_theme_stylebox_override(st, UI3Theme.flat(UI3Theme.color("btn_secondary"), UI3Theme.radius("s"), 4,
+				UI3Theme.color("selected_outline"), Vector4(12, 0, 12, 0)))
+		else:
+			hold_button.remove_theme_stylebox_override(st)
+	hold_button.icon = UI3.cream_icon("ui_check") if on else null
+	hold_button.expand_icon = true
+	hold_button.add_theme_constant_override("icon_max_width", 20)
+	if on:
+		hold_button.add_theme_color_override("font_color", UI3Theme.color("text"))
+		hold_button.add_theme_color_override("font_disabled_color", UI3Theme.color("text"))
+	else:
+		hold_button.remove_theme_color_override("font_color")
+		hold_button.remove_theme_color_override("font_disabled_color")
 
 
 ## Show the 1x / 2x / Skip control while a resolve plays.
@@ -514,18 +675,24 @@ func layout() -> void:
 	_attr_card.position = Vector2(EDGE, rel_bottom + 8.0)
 	if undo_button != null:
 		var x := w - EDGE - RIGHT_W
-		var y := h - EDGE - HINT_H
+		var hint_h := HINT_H * (2.0 if _hint.text.contains("\n") else 1.0)   # 2nd line = "Need N MP to reroll"
+		var y := h - EDGE - hint_h
 		_hint.position = Vector2(x, y)
-		_hint.size = Vector2(RIGHT_W, HINT_H)
+		_hint.size = Vector2(RIGHT_W, hint_h)
+		_hint.vertical_alignment = VERTICAL_ALIGNMENT_BOTTOM
 		y -= 6.0 + END_H
 		end_turn_button.position = Vector2(x, y)
 		end_turn_button.size = Vector2(RIGHT_W, END_H)
 		y -= GAP + SMALL_H
 		undo_button.position = Vector2(x, y)
 		undo_button.size = Vector2(UNDO_W, SMALL_H)
-		reroll_button.position = Vector2(x + UNDO_W + GAP, y)
-		reroll_button.size = Vector2(RIGHT_W - UNDO_W - GAP, SMALL_H)
+		reroll_button.position = Vector2(x + UNDO_W + ROW_GAP, y)
+		reroll_button.size = Vector2(RIGHT_W - UNDO_W - ROW_GAP, SMALL_H)
+		y -= GAP + SMALL_H
+		hold_button.position = Vector2(x, y)
+		hold_button.size = Vector2(RIGHT_W, SMALL_H)
 		_tray_top = y
+		hold_button.visible = _hold_wanted and not _speed.visible
 		# Undo is hidden while input is locked: the speed control takes the slot.
 		undo_button.visible = not _speed.visible
 		reroll_button.visible = not _speed.visible
@@ -533,6 +700,10 @@ func layout() -> void:
 		_speed.size = Vector2(RIGHT_W, SMALL_H)
 	if _log_plate != null:
 		var ltop := (_attr_card.position.y + _attr_card.get_combined_minimum_size().y) if _attr_card.visible else rel_bottom
+		_foe_card.size = Vector2.ZERO
+		_foe_card.position = Vector2(EDGE, ltop + 8.0)
+		if _foe_card.visible:
+			ltop = _foe_card.position.y + _foe_card.get_combined_minimum_size().y
 		_log_plate.size = Vector2(INFO_W, LOG_H)
 		_log_plate.position = Vector2(EDGE, ltop + 8.0)
 	_info.size = Vector2.ZERO

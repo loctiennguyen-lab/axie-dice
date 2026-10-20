@@ -22,9 +22,42 @@ const DEFAULT_TEAM: Array[String] = ["plant1", "beast1", "aqua1", "reptile1", "b
 static var swap_pact_slot: int = -1
 
 
+## Core test hook: when true the bot rerolls card 0 of its first Core offer, and sells the first sellable Core when the
+## slots are full (depth v3 lane B). Off: it just takes card 0.
+static var core_script: bool = false
+static var _core_rerolled: bool = false
+## Core test hook: when set, drain_core_offers() takes the Core card with this id whenever it is on offer (else card 0).
+static var core_pick_id: String = ""
+
+
+## Takes every Core / Run Rule offer that is open (a pick can open the next one), calling after_node() as the screens do.
+static func drain_core_offers() -> void:
+	var guard := 0
+	while (RunState._core_offer_active or RunState._rule_offer_active) and not RunState.pending_rewards.is_empty() and guard < 16:
+		guard += 1
+		if core_script and not _core_rerolled and RunState._core_offer_active and RunState.core_can_reroll(0):
+			_core_rerolled = true
+			RunState.reroll_pending_rewards(-1, 0)
+		var card: Dictionary = RunState.pending_rewards[0]
+		if core_pick_id != "":
+			for c in RunState.pending_rewards:
+				if String((c as Dictionary).get("key", "")) == core_pick_id:
+					card = c
+		var sell := ""
+		if not bool(card.get("rule", false)):
+			var chk := RelicSlots.check_add(RunState.owned_relic_ids, RunState.relic_stickers, String(card["key"]), RunState.ascension, false)
+			if bool(chk["ok"]) and bool(chk["needs_sell"]) and core_script:
+				sell = String((chk["sell_from"] as Array)[0])
+		if not RunState.apply_chosen_reward(card, sell):
+			break
+		RunState.after_node()
+
+
 static func play_run(seed_value: int, team: Array[String] = DEFAULT_TEAM,
 		mode: String = "short", ascension: int = 0) -> Dictionary:
 	RunState.start_new_run(seed_value, team, mode, ascension, true)
+	_core_rerolled = false
+	drain_core_offers()
 	var graph := RunMapGraph.from_data(RunState.map_graph)
 	var node := graph.find_node(graph.start_node_id)
 	var walked := 0
@@ -57,6 +90,7 @@ static func play_run(seed_value: int, team: Array[String] = DEFAULT_TEAM,
 		if RunState.phase == RunState.RunPhase.WON or RunState.phase == RunState.RunPhase.LOST:
 			break
 		RunState.after_node()
+		drain_core_offers()
 		if node.next_ids.is_empty():
 			break
 		node = graph.find_node(String(node.next_ids[0]))

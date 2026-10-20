@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="RelicDef" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data_models/relic_def.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "c_dry_well"
+name = "Dry Well"
+description = "Quest: spend 40 Mana in total. Until done: +2 Mana at the start of each fight."
+rarity = 1
+archetype = ""
+mload = 0
+sort_index = 201033
+hook_key = "c_dry_well"
+tags = PackedStringArray("nonattack")
+layer = "enabler"
+core_axis = "quest"
+quest = {"kind": "mana_spent", "steps": [{"target": 40, "reward_tier": 1}]}

@@ -73,6 +73,18 @@ static func resolve(ctx: Dictionary) -> int:
 	# ---- target side (steps 6-13) — always ----
 	if tgt.status.get("vulnerable", 0) > 0:
 		v = ceil(v * 1.5)                                                        # 6. vulnerable
+	if tgt.is_boss and attack and String(ctx.get("face_type", "dmg")) == "dmg" and combat.has_method("boss_hollow_taken_mult"):
+		v = ceil(v * float(combat.boss_hollow_taken_mult(tgt)))                  # 6b. boss rhythm: hollow turn (depth v3 6.3)
+	if attack and bool(ctx.get("single", false)) and not pierce and tgt.side == "e":
+		var plated := CombatTraits.reduce(combat, tgt, v)                        # 6c. Plating (depth v3 6.7 M1/M6), after every multiplier
+		if plated < v:
+			if CoreHooks.RelicHooks_has(combat, "rule_hard_shell") and tgt.plating < int(CombatTraits.knob("run_rules", "plating_global", 2.0)):
+				CoreHooks.fire("rule_hard_shell", tgt.uid, int(v - plated), "block")
+			EventBus.plating.emit(tgt.uid, int(v), int(plated), CombatTraits.plating_of(combat, tgt))
+			v = plated
+	if attack or tgt.side == "e":
+		v = float(RelicHooks.run_value_hook(combat, "incoming_dmg", {"src": src, "tgt": tgt, "combat": combat,
+			"single": bool(ctx.get("single", false)), "pierce": pierce, "attack": attack}, v))   # 6d. Cores / rules (Bastion, Fissure, Rising Tide)
 	if tgt.side == "p":
 		var dr := RelicHooks.sum(combat, "dr")
 		if dr > 0.0:
@@ -136,6 +148,8 @@ static func resolve(ctx: Dictionary) -> int:
 	var skip_thorns := pierce and (RelicHooks.has(combat, "piercePlus") or RelicHooks.has(combat, "pierceThornProof")
 		or (src != null and src.side == "p" and src.cls == "bird" and RelicHooks.field(combat, "talon_ignore_thorns", 0.0) > 0.0))
 	var thorns_now := int(tgt.status.get("thorns", 0))
+	if bool(tgt.custom_state.get("spite", false)):
+		thorns_now = 0                           # M3 Spite replaces the old thorns of this unit
 	if tgt.side == "p" and tgt.is_token:       # thornling: Eggs reflect at least this much from the moment they exist
 		thorns_now = maxi(thorns_now, int(RelicHooks.max_val(combat, "eggThorns", 0.0)))
 	if src != null and attack and not skip_thorns and thorns_now > 0 and src.hp > 0 and src != tgt:
@@ -144,6 +158,7 @@ static func resolve(ctx: Dictionary) -> int:
 			var tm := 1.0 + RelicHooks.axis_sum(combat, "A:thorns")
 			var tp := RelicHooks.sum(combat, "thornsPlus")
 			th = th * tm + tp
+			th = float(RelicHooks.run_value_hook(combat, "thorns_extra", {"combat": combat, "tgt": tgt}, th))   # Rebound Core
 			if tm != 1.0 or tp != 0.0:
 				EventBus.relic_pulsed.emit("thorns", tgt.uid)
 		var ith := int(th)
@@ -233,7 +248,7 @@ static func apply_shield(combat, tgt: Unit, value: int) -> void:
 	EventBus.float_text.emit(tgt.uid, "+%d" % v, "shd", 0)
 	EventBus.hp_changed.emit(tgt.uid, tgt.hp, tgt.max_hp, tgt.shield)
 	if tgt.side == "p" and tgt.cls == "plant" and tgt.shield >= int(RelicHooks.field(combat, "bulwark_at", 10.0)):
-		tgt.status["thorns"] = min(StatusEngine.THORNS_CAP, max(int(tgt.status.get("thorns", 0)), int(RelicHooks.field(combat, "bulwark_thorns", 2.0))))
+		tgt.status["thorns"] = StatusEngine.clamp_thorns(max(int(tgt.status.get("thorns", 0)), int(RelicHooks.field(combat, "bulwark_thorns", 2.0))))
 	if tgt.side == "p":
 		RelicHooks.fire(combat, "on_shield", {"v": v, "tgt": tgt, "combat": combat})
 

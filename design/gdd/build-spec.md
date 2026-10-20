@@ -31,7 +31,11 @@ INV-3  Lên tier KHÔNG BAO GIỜ thay partId. Chỉ nâng bậc mặt hiện c�
 INV-4  Gene Mutation là cơ chế duy nhất đổi partId trong run, và nó LUÔN
        hạ mặt về COMMON.
 INV-5  Mọi part ở CÙNG MỘT BẬC phải nằm trong ±10% ngân sách sức mạnh của bậc đó.
-INV-6  Không có đường nào từ TIỀN THẬT → SỨC MẠNH. Tiền chỉ mua tốc độ và cosmetic.
+INV-6  Không mở thêm đường nào từ TIỀN THẬT → SỨC MẠNH. Hiện trạng (20/10, playtest):
+       tiền thật chỉ mua cosmetic, tốc độ, và các gói Aid đã có sẵn (xem
+       player-accounts.md / AidCatalog); dice roll luôn ở server (epoch seed), client
+       không tự quyết. KHÔNG bán Lõi, KHÔNG bán reroll Lõi, không SKU mới cho sức
+       mạnh. Shop trong run chỉ dùng Gene Shard kiếm trong run, không phải tiền thật.
 INV-7  Run thường không bao giờ bị gate bởi năng lượng, vé, hay cooldown.
 ```
 
@@ -321,7 +325,7 @@ test('INV-2  mọi mặt vào run ở common',       () => run.heroes.every(h =>
 test('INV-3  lên tier giữ nguyên partId',     () => { const b=ids(hero); levelUpHero(hero); expect(ids(hero)).toEqual(b) })
 test('INV-4  mutation hạ về common',          () => { geneMutate(f,'back-ronin'); expect(f.tier).toBe('common') })
 test('INV-5  ngân sách sức mạnh ±10%/bậc',    () => forEachTier(t => expectWithin(budgets(t), 0.10)))
-test('INV-6  không SKU nào cấp sức mạnh',     () => STORE.every(s => s.grants.every(g => g.layer!=='power')))
+test('INV-6  không SKU mới cấp sức mạnh (ngoài Aid hiện có), không SKU bán Lõi',     () => STORE.every(s => s.grants.every(g => g.layer!=='power')))
 test('INV-7  run thường không bị gate',       () => expect(startRun({tickets:0, energy:0})).toBe('OK'))
 test('FORGE  chặn 6 mặt trùng slot',          () => expect(validateForge(p, sixAnemone)).toBe('SAI_SLOT'))
 test('OFFER  không quá 2/3 cùng archetype',   () => manyRolls().every(o => maxSameArchetype(o) <= 2))

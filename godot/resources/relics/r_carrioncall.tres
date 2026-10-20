@@ -15,3 +15,5 @@ hook_key = ""
 tags = PackedStringArray("exec", "poison")
 layer = "duo"
 woundedPoison = 5.0
+
+hidden_from_pool = true

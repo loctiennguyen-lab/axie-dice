@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="RelicDef" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data_models/relic_def.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "c_descend"
+name = "Take The Field"
+description = "Pick a back-row Axie with heal faces: it moves to the front for good, its heal and buff faces become damage faces +2, +8 Max HP, 30% lifesteal."
+rarity = 2
+archetype = ""
+mload = 0
+sort_index = 202027
+hook_key = "c_descend"
+tags = PackedStringArray("nonattack", "convert_to_dmg")
+layer = "positional"
+core_axis = "pos"
+requires = PackedStringArray("back_face:heal")
+excludes = PackedStringArray("rule:rule_upside_down")

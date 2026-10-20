@@ -15,3 +15,5 @@ hook_key = "r_keeneye"
 critFlatPity = 4.0
 tags = PackedStringArray("crit")
 layer = "payoff"
+
+hidden_from_pool = true

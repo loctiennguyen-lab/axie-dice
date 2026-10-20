@@ -45,6 +45,9 @@ var shards_this_run: int = 0
 ## showed nothing. They were tracked; they just never left the fight they happened in.
 var run_stats: Dictionary = {"dmg": 0, "taken": 0, "turns": 0, "kills": 0, "max_hit": 0,
 	"dmg_dealt_clamped": 0}
+## Depth v3 lane VZ: what each Core did this run, for the Result screen. Pure UI stat (never read by any rule):
+## core_id -> {"n": fires, "by": {kind: summed amount}}. Fed by EventBus.core_fired; saved through to_data/from_data.
+var core_impact: Dictionary = {}
 var power_level: int = 0           # "pw" — increments on every node completed regardless of
                                     # type (verified against engine.js takeReward/eventDone/shopDone)
 var owned_relic_ids: Array[String] = []
@@ -152,6 +155,26 @@ const PACT_REROLL_SALT := 0x70AC7E11
 var boon_id: String = ""
 ## Account is in its first runs: attrition and the light clock are off. Fixed at run start (header).
 var newcomer: bool = false
+## Depth v3 Core run state (lane B). Saved in to_data/from_data.
+var core_first_extra: bool = false
+var core_tier_chain: Array[int] = []      ## tier of each Core pick, drawn once at new_run (TIER_SALT)
+var core_pick_index: int = 0              ## Core offers opened so far (the next one is index core_pick_index)
+var core_seen: Array[String] = []         ## every Core id shown this run, rerolled-out ones included
+var core_reroll_left: int = 0             ## whole-run Core rerolls (one card each)
+var core_rerolls_used: int = 0
+var core_rerolled_slots: Array[int] = []  ## slots already rerolled in the CURRENT offer
+var core_tier_bump: int = 0               ## pending +tier for the next offer (Elite affix+, Crow...), consumed on open
+var core_quest_progress: Dictionary = {}  ## core id -> {step:int, progress:int}
+var run_rule: String = ""                 ## id of the chosen Run Rule ("" = none yet)
+var rules_on: bool = false                ## false in the account's first run: no Run Rule, no quest/bet Cores
+var core_off: bool = false                ## tests/tools only: skip every Core / Rule offer (legacy flow)
+var _core_base_seed: int = 0
+var _core_offer_pick: int = 0             ## pick index the open Core offer was built with (reroll uses the same ctx)
+var _core_offer_active: bool = false      ## pending_rewards is a Core offer
+var _rule_offer_active: bool = false      ## pending_rewards is the Run Rule offer
+var core_bonus_queue: Array[int] = []      ## tiers of quest-step reward offers waiting to open (not counted as picks)
+var core_bonus_count: int = 0
+var _core_close_pending: bool = false     ## a Core pick was just taken; the next after_node() only returns to MAP
 ## Counters that scope a Boon to "your first 3 fights", "first Boss", "first Battle reward".
 var _rewarding_kind: String = ""
 ## Aid uses this run [{aid, node_id}], ONLY written by record_aid_use() and read by aid_uses_view() / the
@@ -201,6 +224,20 @@ var _event_rng: Rng = null
 
 func _ready() -> void:
 	reset()
+	EventBus.core_fired.connect(note_core_fired)
+
+
+## Adds one Core activation to the run's impact table (see `core_impact`). Display-only.
+func note_core_fired(core_id: String, _unit_uid: int, amount: int, kind: String) -> void:
+	if core_id == "":
+		return
+	var e: Dictionary = core_impact.get(core_id, {"n": 0, "by": {}})
+	e["n"] = int(e.get("n", 0)) + 1
+	if amount > 0:
+		var by: Dictionary = e.get("by", {})
+		by[kind] = int(by.get(kind, 0)) + amount
+		e["by"] = by
+	core_impact[core_id] = e
 
 ## Wholesale reset — re-instantiates every mutable container instead of clearing fields,
 ## so a field added later that's forgotten here fails loudly (empty/default) rather than
@@ -224,6 +261,7 @@ func reset() -> void:
 	# step with run_stats without a second call site to remember.
 	RunStatsAccumulator.reset()
 	power_level = 0
+	core_impact = {}
 	owned_relic_ids = []
 	bonus_reroll = 0
 	boss_plan = []
@@ -251,6 +289,25 @@ func reset() -> void:
 	_shop_refreshes = 0
 	mission = {}
 	newcomer = false
+	core_first_extra = false
+	core_tier_chain = []
+	core_pick_index = 0
+	core_seen = []
+	core_reroll_left = 0
+	core_rerolls_used = 0
+	core_rerolled_slots = []
+	core_tier_bump = 0
+	core_quest_progress = {}
+	run_rule = ""
+	rules_on = false
+	core_off = false
+	_core_base_seed = 0
+	_core_offer_active = false
+	_core_offer_pick = 0
+	_rule_offer_active = false
+	_core_close_pending = false
+	core_bonus_queue = []
+	core_bonus_count = 0
 	fights_started = 0
 	bosses_started = 0
 	first_battle_rewarded = false
@@ -426,14 +483,8 @@ func _start_core(start_reply: EpochReply, params: Dictionary, display_seed: int)
 	# Starting relic, if the meta grants one. Drawn from THIS run's own `_rng` before the boss
 	# plan, so the pick is part of the seed like everything else — JS uses an unseeded pick0()
 	# here, which is one of the few places the live game is not reproducible from its seed.
-	var relic_cap := int(meta_bonus.get("start_relic_max_rarity", -1))
-	if relic_cap >= 0:
-		var pool: Array = []
-		for def in RelicRegistry.offerable_defs_sorted():
-			if int(def.rarity) <= relic_cap and int(def.act_cost) == 0:
-				pool.append(String(def.id))
-		if not pool.is_empty():
-			owned_relic_ids.append(pool[_rng.next_int(pool.size())])
+	# Depth v3 (design 2.8): the start-relic perk / u_start no longer grants a relic. It adds a 4th card to Core pick 1.
+	core_first_extra = int(meta_bonus.get("start_relic_max_rarity", -1)) >= 0
 	# src/engine.js newGame() picks the boss plan BEFORE building the map (engine.js:359-363)
 	# — mirrored here: boss_plan draws from the same _rng stream ahead of the map generator,
 	# so the whole run (boss plan + map shape) is one deterministic function of p_seed.
@@ -447,7 +498,8 @@ func _start_core(start_reply: EpochReply, params: Dictionary, display_seed: int)
 	var map_asc := ascension
 	if int(ContentDB.mission_mods(mission_rules(), ascension).get("extra_elite", 0)) > 0 and ascension < ELITE_FORCED_ASC:
 		map_asc = ELITE_FORCED_ASC
-	map_graph = RunMapGenerator.generate(_rng, mode, map_asc).to_data()
+	map_graph = RunMapGenerator.assign_extras(RunMapGenerator.generate(_rng, mode, map_asc).to_data(), p_seed,
+		CombatTraits.team_can_break(roster), newcomer)
 	# Opened AFTER the map exists, so a log never describes a run that failed to start. The
 	# content version comes from part_faces.json's own stamp: the same actions against different
 	# face values produce a different run, so a verifier has to refuse the mismatch rather than
@@ -460,13 +512,29 @@ func _start_core(start_reply: EpochReply, params: Dictionary, display_seed: int)
 	var loadout: Dictionary = (params.get("loadout", {}) as Dictionary).duplicate(true)
 	loadout["bonuses"] = meta_bonus.duplicate(true)
 	loadout["boon_id"] = boon_id
+	loadout["rules_on"] = bool(loadout.get("rules_on", params.get("rules_on", MetaState.runs > 0)))
+	if ranked:
+		# Ranked never skips the Run Rule (no first-run exemption), and core_off is a test/tool switch only: the
+		# verifier refuses a ranked log that claims otherwise (depth-v3-contract, lane B review).
+		loadout["rules_on"] = true
+		if not core_flow_switches_allowed():
+			loadout["core_off"] = false
 	var hdr_extra: Dictionary = start_reply.extra.get("header", {}) as Dictionary
 	action_log.set_epoch_header(String(start_reply.extra.get("run_id", "")),
 		String(start_reply.extra.get("client_nonce", "")), loadout,
 		newcomer, mission)
 	if epoch != null:
 		epoch.bind_log(action_log)
-	set_phase(RunPhase.MAP)
+	# Depth v3 Core / Run Rule state (lane B). Own Rng streams (seed ^ SALT), never the shared `_rng`.
+	_core_base_seed = p_seed
+	core_off = bool(loadout.get("core_off", false))
+	rules_on = bool(loadout.get("rules_on", params.get("rules_on", MetaState.runs > 0)))
+	core_tier_chain = CoreOffer.draw_tier_chain(p_seed, p_mode)
+	core_reroll_left = RelicSlots.tuning().core_reroll_max
+	if core_off:
+		set_phase(RunPhase.MAP)
+	else:
+		_open_opening_offers()
 
 
 ## src/engine.js newGame() (engine.js:359-363). `order` starts as ContentDB.boss_order_12
@@ -723,13 +791,16 @@ func request_choose_event_option(index: int) -> Dictionary:
 
 
 ## Async twin of reroll_pending_rewards().
-func request_reroll_pending_rewards() -> Dictionary:
+func request_reroll_pending_rewards(idx: int = -1) -> Dictionary:
 	if reward_reroll_charges <= 0 or pending_rewards.is_empty() or epoch_busy:
 		return {"ok": false, "code": "busy" if epoch_busy else "illegal"}
-	var r := await _await_epoch("reward_reroll", {"k": _reward_reroll_salt + 1})
+	if _core_offer_active and not core_can_reroll(idx):
+		return {"ok": false, "code": "illegal"}
+	var k := (core_rerolls_used + 1) if _core_offer_active else (_reward_reroll_salt + 1)
+	var r := await _await_epoch("reward_reroll", {"k": k})
 	if not r.ok:
 		return {"ok": false, "code": r.code}
-	return {"ok": reroll_pending_rewards(r.seed), "code": ""}
+	return {"ok": reroll_pending_rewards(r.seed, idx), "code": ""}
 
 
 ## Async twin of refresh_shop().
@@ -806,6 +877,13 @@ func enter_node(node_id: String, node_kind: String, seed: int = -1) -> void:
 				# does it (contract 1.4). Not serialised: pending_combat is consumed, never saved.
 				"epoch": epoch,
 			}
+			if node_kind == "elite":
+				# Depth v3: affix picked at map build (RunMapGenerator.assign_extras), carried here for the combat.
+				var nd := RunMapGraph.from_data(map_graph).find_node(node_id)
+				if nd != null:
+					pending_combat["affix"] = nd.affix
+					pending_combat["affix2"] = nd.affix2
+					pending_combat["first_run_elite"] = newcomer
 			if node_kind == "boss":
 				pending_combat["boss_key"] = _boss_key_for_node(node_id)
 			EventBus.node_entered.emit(node_kind, node_id)
@@ -833,10 +911,23 @@ func enter_node(node_id: String, node_kind: String, seed: int = -1) -> void:
 func after_node() -> void:
 	if phase == RunPhase.WON or phase == RunPhase.LOST:
 		return
+	if _core_close_pending:   # the Core pick that followed this node was just taken: nothing else to count
+		_core_close_pending = false
+		if _open_bonus_offer():
+			return
+		set_phase(RunPhase.MAP)
+		return
+	if (_core_offer_active or _rule_offer_active) and not pending_rewards.is_empty():
+		return   # a chained offer is still open; the caller comes back after the pick
 	power_level += 1
 	if not visited_node_ids.has(current_node_id):
 		visited_node_ids.append(current_node_id)
+	if _core_trigger_hit(current_node_id) and _open_core_offer():
+		return
+	if _open_bonus_offer():
+		return
 	set_phase(RunPhase.MAP)
+
 
 ## Single point of truth for writing combat results back into run state (architecture
 ## plan §4: "chỉ qua một hàm" — never let Combat.tscn or Result.tscn mutate roster/shards
@@ -854,6 +945,10 @@ func apply_combat_result(res: Dictionary, reward_seed: int = -1) -> void:
 		shards_this_run += int(res.get("shards_earned", 0))
 		_apply_growth_keep(res.get("growth_keep", {}))
 		var kind := String(res.get("kind", "battle"))
+		note_quest_event("wins")
+		_crow_judge(res, kind)
+		if kind == "elite" or kind == "boss":
+			note_quest_event(kind)
 		if kind == "boss" and _is_final_boss_row(current_node_id):
 			# src/engine.js finishCombat() (engine.js:997): `if(k==='boss'&&s.step>=s.len){
 			# s.phase='won'; return; }` — defeating the FINAL boss ends the run immediately,
@@ -1123,7 +1218,9 @@ func _set_pending_rewards(tier: int, pw: int, seed: int) -> void:
 ## src/engine.js rerollRewards() (engine.js:1163-1166): spends 1 s.rerollReward charge and
 ## redraws the SAME tier/pw offer. Uses a bumped salt (never the original 601/503 draw) so a
 ## reroll can never reproduce the exact offer it just replaced.
-func reroll_pending_rewards(seed: int = -1) -> bool:
+func reroll_pending_rewards(seed: int = -1, idx: int = -1) -> bool:
+	if _core_offer_active:
+		return _reroll_core_card(seed, idx)
 	if reward_reroll_charges <= 0 or pending_rewards.is_empty():
 		return false
 	var sd := _epoch_seed("reward_reroll", {"k": _reward_reroll_salt + 1}, seed)
@@ -1143,7 +1240,9 @@ func reroll_pending_rewards(seed: int = -1) -> bool:
 ## above) — every caller (RunMapController._on_reward_chosen(), shared by the post-combat
 ## and treasure flows) calls after_node() itself right after this, exactly like it already
 ## does for event/shop nodes.
-func apply_chosen_reward(reward: Dictionary) -> void:
+func apply_chosen_reward(reward: Dictionary, sell_id: String = "") -> bool:
+	if bool(reward.get("core", false)):
+		return _apply_core_pick(reward, sell_id)
 	# The INDEX into the offer, not the reward itself. A log carrying the reward would be the
 	# client telling the verifier what it was given; the verifier re-derives the offer from the
 	# seed and only needs to know which one was taken. A reward that is not in `pending_rewards`
@@ -1211,6 +1310,7 @@ func apply_chosen_reward(reward: Dictionary) -> void:
 				owned_relic_ids.append("__curse_dmg")
 			bonus_reroll += 1
 	pending_rewards = []
+	return true
 
 
 # ---------------------------------------------------------------------------------------
@@ -1360,7 +1460,7 @@ func _open_shop(_node_id: String, seed: int, is_refresh: bool = false) -> void:
 	_shop_rng = Rng.new(seed)
 	shop_items = []
 	var price_mult := float(ContentDB.ascension_mods(ascension).get("shop_price_mult", 1.0))
-	for raw in RewardGenerator.generate_shop_items(_shop_rng, owned_relic_ids):
+	for raw in RewardGenerator.generate_shop_items(_shop_rng, owned_relic_ids, {}, 2, not core_off):
 		var it: Dictionary = (raw as Dictionary).duplicate(true)
 		if price_mult != 1.0:
 			it["cost"] = RulesMath.round_half_up(float(it.get("cost", 0)) * price_mult)   # A1: x1.15
@@ -1414,13 +1514,11 @@ func apply_event_fx(fx: String, rng: Rng) -> String:
 			bonus_reroll += 1
 			return "You permanently gain 1 maximum Reroll."
 		"gamble_legend":
-			var def := RewardGenerator.pick_relic(rng, owned_relic_ids, 3, 3)
-			if def == null:
-				def = RewardGenerator.pick_relic(rng, owned_relic_ids, 0, 2)
-			if def != null:
-				_grant_relic(def.id, "event")
+			# depth v3 2.8: the Legendary relic is now a Crystal Core pick (opens when the event closes).
+			var queued := _queue_core_pick(2)
 			_reduce_party_max_hp_pct(0.2)
-			return "Received %s. The whole party loses 20%% Max HP." % (def.name if def != null else "nothing")
+			return "You may choose a Crystal Core. The whole party loses 20%% Max HP." if queued \
+				else "The whole party loses 20%% Max HP."
 		"pray":
 			if roster.is_empty():
 				return "Nothing happened."
@@ -1428,10 +1526,8 @@ func apply_event_fx(fx: String, rng: Rng) -> String:
 			e["bonus_hp"] = int(e.get("bonus_hp", 0)) + 8
 			return "%s gains 8 Max HP." % _hero_display_name(e)
 		"chest":
-			var def2 := RewardGenerator.pick_relic(rng, owned_relic_ids, 1, 3)
-			if def2 != null:
-				_grant_relic(def2.id, "event")
-			return "You found a relic: %s" % (def2.name if def2 != null else "nothing")
+			# depth v3 2.8: was a relic; now one Amber Core pick, opens when the event closes.
+			return "You may choose an Amber Core." if _queue_core_pick(1) else "The vault is empty."
 		"shards60":
 			shards_this_run += 60
 			return "You gained 60 Gene Shard."
@@ -1458,10 +1554,8 @@ func apply_event_fx(fx: String, rng: Rng) -> String:
 			# whole party pays 10% Max HP. The RNG draw happens FIRST and unconditionally,
 			# so the stream advances identically on both outcomes.
 			if rng.next_float() < 0.5:
-				var won_relic := RewardGenerator.pick_relic(rng, owned_relic_ids, 2, 3)
-				if won_relic != null:
-					_grant_relic(won_relic.id, "event")
-				return "YOU WIN! Received %s" % (won_relic.name if won_relic != null else "nothing")
+				# depth v3 2.8: an Epic-or-better relic became a Crystal Core pick (tier capped by the Crystal limit).
+				return "YOU WIN! You may choose a Crystal Core." if _queue_core_pick(2) else "YOU WIN!"
 			_reduce_party_max_hp_pct(0.1)
 			return "YOU LOSE. The whole party loses 10% Max HP."
 		"shards30":
@@ -1514,6 +1608,8 @@ func try_buy_shop_item(index: int, seed: int = -1) -> bool:
 				e["bonus_hp"] = int(e.get("bonus_hp", 0)) + int(item.get("v", 10))
 		"reroll":
 			bonus_reroll += 1
+		"core":
+			_queue_core_pick(int(item.get("tier", 0)))   # opens when the shop closes (after_node)
 	# Marked here, not by the caller. The screen used to set it after the fact, which meant a
 	# replay — which has no screen — left every item buyable forever.
 	item["bought"] = true
@@ -1548,8 +1644,12 @@ func _grant_relic(relic_id: String, source: String) -> void:
 	# H8: the starting relic (u_start) is appended directly in start_new_run_seeded, never through here, so it never counts.
 	var eternal_max := int(ContentDB.ascension_mods(ascension).get("eternal_max", 0))
 	if eternal_max > 0 and not RelicSlots.is_pact(relic_id) and not relic_id.begins_with("__") \
+			and not RelicSlots.is_core(RelicRegistry.get_def(relic_id)) \
 			and relic_stickers.size() < eternal_max:
 		relic_stickers[relic_id] = RelicSlots.STICKER_ETERNAL
+	var gdef = RelicRegistry.get_def(relic_id)
+	if gdef != null and not (gdef.quest as Dictionary).is_empty():
+		core_quest_progress[relic_id] = {"step": 0, "progress": 0}
 	RelicHooks.run_fire(owned_relic_ids, "on_relic_acquired", {"relic_id": relic_id, "source": source})   # H8
 
 
@@ -1680,6 +1780,7 @@ func to_data() -> Dictionary:
 		"visited_node_ids": visited_node_ids.duplicate(),
 		"shards_this_run": shards_this_run,
 		"run_stats": run_stats.duplicate(true),
+		"core_impact": core_impact.duplicate(true),
 		"power_level": power_level,
 		"owned_relic_ids": owned_relic_ids.duplicate(),
 		"bonus_reroll": bonus_reroll,
@@ -1725,6 +1826,13 @@ func to_data() -> Dictionary:
 		"pending_pact_boss_index": pending_pact_boss_index, "pending_pact_swaps": pending_pact_swaps,
 		"row_types_known": row_types_known.duplicate(true),
 		"action_log": action_log.to_data(),
+		"core": {"first_extra": core_first_extra, "tier_chain": core_tier_chain.duplicate(),
+			"pick_index": core_pick_index, "seen": core_seen.duplicate(), "reroll_left": core_reroll_left,
+			"rerolls_used": core_rerolls_used, "rerolled_slots": core_rerolled_slots.duplicate(),
+			"tier_bump": core_tier_bump, "quest": core_quest_progress.duplicate(true), "run_rule": run_rule,
+			"rules_on": rules_on, "base_seed": _core_base_seed, "offer_active": _core_offer_active, "offer_pick": _core_offer_pick, "core_off": core_off,
+			"rule_offer_active": _rule_offer_active, "close_pending": _core_close_pending,
+			"bonus_queue": core_bonus_queue.duplicate(), "bonus_count": core_bonus_count},
 	}
 
 
@@ -1758,6 +1866,16 @@ func from_data(d: Dictionary) -> void:
 	run_stats = {}
 	for key in ["dmg", "taken", "turns", "kills", "max_hit", "dmg_dealt_clamped"]:
 		run_stats[key] = int(saved_stats.get(key, 0))
+	core_impact = {}
+	var saved_impact = d.get("core_impact", {})
+	if saved_impact is Dictionary:
+		for cid in (saved_impact as Dictionary).keys():
+			var se = saved_impact[cid]
+			if se is Dictionary:
+				var by := {}
+				for k in ((se as Dictionary).get("by", {}) as Dictionary).keys():
+					by[String(k)] = int(((se as Dictionary)["by"] as Dictionary)[k])
+				core_impact[String(cid)] = {"n": int((se as Dictionary).get("n", 0)), "by": by}
 	power_level = int(d.get("power_level", 0))
 	owned_relic_ids.assign(d.get("owned_relic_ids", []))
 	bonus_reroll = int(d.get("bonus_reroll", 0))
@@ -1790,6 +1908,7 @@ func from_data(d: Dictionary) -> void:
 	pending_pact_forced = bool(d.get("pending_pact_forced", false))
 	pending_pact_boss_index = int(d.get("pending_pact_boss_index", 0))
 	pending_pact_swaps = int(d.get("pending_pact_swaps", 0))
+	_core_from_data(d.get("core", {}) as Dictionary)
 	row_types_known = {}
 	for rk in (d.get("row_types_known", {}) as Dictionary).keys():
 		row_types_known[int(rk)] = ((d["row_types_known"] as Dictionary)[rk] as Array).duplicate()
@@ -1978,3 +2097,315 @@ func clear_saved_run() -> void:
 	# there would leave the localStorage copy behind, and the next launch would offer to
 	# continue a run the player had just abandoned.
 	SaveStore.erase(SAVE_PATH)
+
+
+# ===========================================================================
+# Depth v3 Core (Loi) + Run Rule flow (design/proposals/depth-v3-design.md 2, 2b; lane B)
+# A Core offer IS `pending_rewards` (cards with core=true) in phase REWARD, so it goes through the existing
+# take_reward / reroll_rewards actions. Streams: Rng(seed ^ CoreOffer.*_SALT), never `_rng`.
+# take_reward args: [idx] or [idx, sell_id] (Core slots full); reroll_rewards args: [] (old offers) or [slot] (Core).
+# ===========================================================================
+
+## Test hook: pretend to be a shipped build (so a test can prove the verifier refuses core_off).
+static var simulate_shipped_build: bool = false
+
+
+## True only in the editor / headless test binary. `core_off` (and `rules_on = false` in ranked) must never be honoured
+## by a shipped build, so a client cannot dodge the Run Rule or the Core flow by editing its loadout.
+static func core_flow_switches_allowed() -> bool:
+	return OS.has_feature("editor") and not simulate_shipped_build
+
+
+## `pick` = the pick index the context is for (-1: the next one). A reroll must use the index its offer was built with.
+func _core_ctx(pick: int = -1) -> Dictionary:
+	return {"owned_ids": owned_relic_ids, "roster": roster, "seen": core_seen, "mode": mode,
+		"first_run": not rules_on, "pick_index": core_pick_index if pick < 0 else pick, "front_size": 2,
+		"ascension": ascension, "tier_chain": core_tier_chain,
+		# a bonus (quest/event/shop) offer is opened with _core_offer_pick == core_pick_index; milestone offers use index-1
+		"bonus": pick >= 0 and pick == core_pick_index}
+
+
+## Knob from the held Run Rule's rule_knobs, else `default`.
+func rule_knob(key: String, default):
+	var d = RelicRegistry.get_def(run_rule) if run_rule != "" else null
+	if d == null:
+		return default
+	return (d.rule_knobs as Dictionary).get(key, default)
+
+
+func _core_from_data(c: Dictionary) -> void:
+	core_first_extra = bool(c.get("first_extra", false))
+	core_tier_chain.assign((c.get("tier_chain", []) as Array).map(func(v): return int(v)))
+	core_pick_index = int(c.get("pick_index", 0))
+	core_seen.assign(c.get("seen", []))
+	core_reroll_left = int(c.get("reroll_left", 0))
+	core_rerolls_used = int(c.get("rerolls_used", 0))
+	core_rerolled_slots.assign((c.get("rerolled_slots", []) as Array).map(func(v): return int(v)))
+	core_tier_bump = int(c.get("tier_bump", 0))
+	core_quest_progress = (c.get("quest", {}) as Dictionary).duplicate(true)
+	run_rule = String(c.get("run_rule", ""))
+	rules_on = bool(c.get("rules_on", false))
+	_core_base_seed = int(c.get("base_seed", 0))
+	_core_offer_active = bool(c.get("offer_active", false))
+	# Old save without offer_pick: the open offer was built for the previous index. At index 0 that is -1 (= "no bonus pick"):
+	# clamping to 0 would equal core_pick_index and make _core_ctx() treat the offer as a bonus one.
+	_core_offer_pick = int(c.get("offer_pick", core_pick_index - 1))
+	_rule_offer_active = bool(c.get("rule_offer_active", false))
+	_core_close_pending = bool(c.get("close_pending", false))
+	core_bonus_queue.assign((c.get("bonus_queue", []) as Array).map(func(v): return int(v)))
+	core_bonus_count = int(c.get("bonus_count", 0))
+	# explicit flag; a save from before Core (no pick_index and no flag) plays the legacy flow
+	core_off = bool(c.get("core_off", not c.has("pick_index")))
+
+
+## Run start: Run Rule offer (run 2+), then Core pick 1. Leaves phase REWARD, or MAP when nothing could be offered.
+func _open_opening_offers() -> void:
+	if rules_on:
+		var cards := CoreOffer.build_rule_offer(_core_base_seed, _core_ctx(), true)
+		if not cards.is_empty():
+			_rule_offer_active = true
+			pending_rewards = cards
+			reward_reroll_charges = 0
+			set_phase(RunPhase.REWARD)
+			return
+	if not _open_core_offer():
+		set_phase(RunPhase.MAP)
+
+
+## Opens the next Core offer into pending_rewards + phase REWARD. False when none is due / nothing to offer.
+func _open_core_offer() -> bool:
+	if core_off or core_pick_index >= CoreOffer.picks_total(mode):
+		return false
+	var t := RelicSlots.tuning()
+	if (rule_knob("core_skip_picks", []) as Array).has(core_pick_index):
+		# Run Rule knob (R6): this pick is dropped. Its tier chain slot and trigger are used up, the next pick keeps its own.
+		core_pick_index += 1
+		return false
+	var bump := core_tier_bump
+	core_tier_bump = 0
+	var n := t.core_cards_first_extra if (core_pick_index == 0 and core_first_extra) \
+		else int(rule_knob("core_cards", t.core_cards))
+	var first_tier := int(rule_knob("core_first_tier", -1))
+	# Fossil (design 2.7 N10): this pick is one tier higher; already Crystal -> 4 cards; already 4 cards -> +1 reroll. Then it goes.
+	# Effects are deferred until the offer is known to be non-empty, so an empty offer never eats the Fossil.
+	var fossil_reroll := false
+	var fossil_note := 0
+	if owned_relic_ids.has("c_fossil"):
+		var fk: Dictionary = (RelicRegistry.get_def("c_fossil").rule_knobs as Dictionary)
+		var raw := clampi((int(core_tier_chain[core_pick_index]) if core_pick_index < core_tier_chain.size() else 0) + bump, 0, 2)
+		if core_pick_index == 0 and first_tier >= 0:
+			raw = clampi(first_tier + bump, 0, 2)
+		if raw >= 2:
+			var extra := int(fk.get("crystal_extra_card", 4))
+			if n >= extra:
+				fossil_reroll = true
+				fossil_note = 1
+			else:
+				fossil_note = extra - n
+				n = extra
+		else:
+			bump += int(fk.get("next_pick_tier_up", 1))
+			fossil_note = int(fk.get("next_pick_tier_up", 1))
+	var tier := CoreOffer.effective_tier(core_tier_chain, core_pick_index, bump, owned_relic_ids, mode, first_tier)
+	var base := _core_base_seed if core_pick_index == 0 else _node_seed
+	var rng := Rng.new((base ^ CoreOffer.CORE_SALT) ^ (core_pick_index * 0x9E3779B1))
+	var offer := CoreOffer.build_offer(rng, tier, _core_ctx(), n)
+	_core_offer_pick = core_pick_index
+	core_pick_index += 1
+	if offer.is_empty():
+		return false
+	if fossil_note > 0:
+		if fossil_reroll:
+			core_reroll_left += 1
+		CoreHooks.fire("c_fossil", -1, fossil_note, "tier")
+		owned_relic_ids.erase("c_fossil")
+		relic_state.erase("c_fossil")
+		relic_stickers.erase("c_fossil")
+	for c in offer:
+		core_seen.append(String(c["key"]))
+	pending_rewards = offer
+	_core_offer_active = true
+	core_rerolled_slots = []
+	_reward_reroll_salt = 0
+	reward_reroll_charges = core_reroll_left
+	set_phase(RunPhase.REWARD)
+	return true
+
+
+## True when the node just closed is where Core pick `core_pick_index` opens (RelicTuning.core_triggers_*).
+func _core_trigger_hit(node_id: String) -> bool:
+	if core_off or core_pick_index < 1 or core_pick_index >= CoreOffer.picks_total(mode):
+		return false
+	var t := RelicSlots.tuning()
+	var trigs: Array = t.core_triggers_full if mode == "full" else t.core_triggers_short
+	if core_pick_index - 1 >= trigs.size():
+		return false
+	var trig: Array = trigs[core_pick_index - 1]
+	var graph := RunMapGraph.from_data(map_graph)
+	var node := graph.find_node(node_id)
+	if node == null:
+		return false
+	if String(trig[0]) == "row":
+		return node.row == int(trig[1])
+	return graph.boss_rows.find(node.row) == int(trig[1]) - 1
+
+
+## Run Rule Crow Herald (design 2b R11): the fight that opens a Core pick (from pick 2) decides that pick's tier: won within
+## `fast_turns` (boss: `fast_turns_boss`) turns with nobody down = +1, an Axie down = -1. Stacks on the chain via
+## core_tier_bump (floor moss, Crystal cap in effective_tier). Reads only the fight result, so replay gets the same bump.
+func _crow_judge(res: Dictionary, kind: String) -> void:
+	if run_rule != "rule_crow" or core_off or not _core_trigger_hit(current_node_id):
+		return
+	var turns := int((res.get("stat", {}) as Dictionary).get("turns", 0))
+	var lim := int(rule_knob("fast_turns_boss" if kind == "boss" else "fast_turns", 5 if kind != "boss" else 7))
+	var delta := 0
+	if int(res.get("downed", 0)) > 0:
+		delta = -1
+	elif turns <= lim:
+		delta = 1
+	if delta != 0:
+		add_core_tier_bump(delta)
+		CoreHooks.fire("rule_crow", -1, 1, "tier")
+
+
+## +1 tier (or -1) for the NEXT Core offer: Elite affix(+) win, Crow Run Rule... (design 2.1). Replay-safe as long
+## as the caller derives it from rules state. Clamped when the offer opens.
+func add_core_tier_bump(n: int) -> void:
+	core_tier_bump += n
+
+
+func core_can_reroll(idx: int) -> bool:
+	return _core_offer_active and core_reroll_left > 0 and idx >= 0 and idx < pending_rewards.size() \
+		and not core_rerolled_slots.has(idx) and CoreOffer.can_reroll_card(pending_rewards, idx, _core_ctx(_core_offer_pick))
+
+
+func _reroll_core_card(seed: int, idx: int) -> bool:
+	if not core_can_reroll(idx):
+		return false
+	var sd := _epoch_seed("reward_reroll", {"k": core_rerolls_used + 1}, seed)
+	if sd < 0:
+		return false
+	var rng := Rng.new(sd ^ CoreOffer.CORE_SALT)
+	var nc := CoreOffer.reroll_card(rng, pending_rewards, idx, _core_ctx(_core_offer_pick))
+	if nc.is_empty():
+		return false
+	action_log.record("reroll_rewards", [idx])
+	core_seen.append(String(nc["key"]))
+	pending_rewards[idx] = nc
+	core_reroll_left -= 1
+	core_rerolls_used += 1
+	core_rerolled_slots.append(idx)
+	reward_reroll_charges = core_reroll_left
+	return true
+
+
+## One Core / Run Rule card taken. Logs `take_reward [idx]` or `[idx, sell_id]`. False (and nothing logged or changed)
+## when the slots are full and `sell_id` is not a sellable Core.
+func _apply_core_pick(reward: Dictionary, sell_id: String) -> bool:
+	var offer_index := pending_rewards.find(reward)
+	if offer_index < 0:
+		action_log.rejected.append("take_reward: chosen reward was not in pending_rewards")
+		return false
+	var rid := String(reward.get("key", ""))
+	var dim = null   # Dim Stone (design 2.7 N11): the card is never kept; a Crystal Core of another axis is granted instead
+	if rid == "c_dim_stone" and not bool(reward.get("rule", false)):
+		var other_axes: Array = []
+		for oc in pending_rewards:
+			if oc != reward:
+				other_axes.append(String((oc as Dictionary).get("axis", "")))
+		var drng := Rng.new((_core_base_seed ^ CoreOffer.CORE_SALT ^ 0xD1A57015) ^ (_core_offer_pick * 0x9E3779B1))
+		dim = CoreOffer.dim_stone_grant(drng, other_axes, _core_ctx(_core_offer_pick))
+		if dim != null:
+			rid = String(dim.id)
+	if dim == null and rid == "c_dim_stone" and not bool(reward.get("rule", false)):
+		# Dim Stone with no Crystal Core left to grant (pool T empty): the stone is never kept; the pick turns into one whole-run
+		# Core reroll and the table is told (core_fired "c_dim_stone", note "reroll").
+		action_log.record("take_reward", [offer_index])
+		core_reroll_left += 1
+		CoreHooks.fire("c_dim_stone", -1, 1, "reroll")
+	else:
+		var chk := RelicSlots.check_add(owned_relic_ids, relic_stickers, rid, ascension, false)
+		if not bool(chk["ok"]):
+			return false
+		var args: Array = [offer_index]
+		if bool(chk["needs_sell"]):
+			if sell_id == "" or not (chk["sell_from"] as Array).has(sell_id):
+				return false
+			shards_this_run += RelicSlots.sell_price(sell_id, ascension)
+			owned_relic_ids.erase(sell_id)
+			relic_state.erase(sell_id)
+			relic_stickers.erase(sell_id)
+			core_quest_progress.erase(sell_id)
+			args.append(sell_id)
+		elif sell_id != "":
+			return false
+		action_log.record("take_reward", args)
+		_grant_relic(rid, "core")
+		if dim != null:
+			core_seen.append(rid)
+			CoreHooks.fire("c_dim_stone", -1, 1, "tier")
+	pending_rewards = []
+	if bool(reward.get("rule", false)):
+		run_rule = rid
+		_rule_offer_active = false
+		if not _open_core_offer():
+			_core_close_pending = true
+			set_phase(RunPhase.MAP)
+	else:
+		_core_offer_active = false
+		_core_close_pending = true
+	return true
+
+
+## Quest Cores (design 2.1/2.7): `quest = {kind, steps:[{target, reward_tier}]}`. `kind` is "wins" (any won fight),
+## "elite" or "boss". Each finished step queues a Core offer of `reward_tier` (opens at the next after_node, picks
+## do not count toward the milestones); the last step also removes the quest Core from its slot.
+func note_quest_event(kind: String, n: int = 1) -> void:
+	for qid in core_quest_progress.keys():
+		var d = RelicRegistry.get_def(String(qid))
+		if d == null or String((d.quest as Dictionary).get("kind", "")) != kind or not owned_relic_ids.has(String(qid)):
+			continue
+		var steps: Array = (d.quest as Dictionary).get("steps", [])
+		var pr: Dictionary = core_quest_progress[qid]
+		pr["progress"] = int(pr.get("progress", 0)) + n
+		while int(pr["step"]) < steps.size() and int(pr["progress"]) >= int((steps[int(pr["step"])] as Dictionary).get("target", 1)):
+			core_bonus_queue.append(int((steps[int(pr["step"])] as Dictionary).get("reward_tier", 1)))
+			pr["step"] = int(pr["step"]) + 1
+		if int(pr["step"]) >= steps.size():
+			owned_relic_ids.erase(String(qid))
+			core_quest_progress.erase(qid)
+		else:
+			core_quest_progress[qid] = pr
+
+
+## Queues one Core pick of `tier` (0 moss, 1 amber, 2 crystal) for event / shop rewards. It opens in after_node() like a
+## quest reward and does not count toward the milestones. False when the Core flow is off. Draws nothing.
+func _queue_core_pick(tier: int) -> bool:
+	if core_off:
+		return false
+	core_bonus_queue.append(clampi(tier, 0, 2))
+	return true
+
+
+func _open_bonus_offer() -> bool:
+	if core_off or core_bonus_queue.is_empty():
+		return false
+	var want: int = core_bonus_queue.pop_front()
+	var t := RelicSlots.tuning()
+	var tier := CoreOffer.effective_tier([want], 0, 0, owned_relic_ids, mode)
+	var rng := Rng.new((_node_seed ^ CoreOffer.CORE_SALT) ^ ((core_bonus_count + 1) * 0x51ED27))
+	core_bonus_count += 1
+	var bctx := _core_ctx()
+	bctx["bonus"] = true
+	var offer := CoreOffer.build_offer(rng, tier, bctx, t.core_cards)
+	_core_offer_pick = core_pick_index
+	if offer.is_empty():
+		return _open_bonus_offer()
+	for c in offer:
+		core_seen.append(String(c["key"]))
+	pending_rewards = offer
+	_core_offer_active = true
+	core_rerolled_slots = []
+	reward_reroll_charges = core_reroll_left
+	set_phase(RunPhase.REWARD)
+	return true

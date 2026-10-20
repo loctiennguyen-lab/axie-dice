@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="RelicDef" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data_models/relic_def.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "rule_balance"
+name = "Balance"
+description = "From the 3rd damage face each turn, damage faces deal 2 less (min 1). Every non-damage face you use gives +1 Mana. You cannot stack five attacks."
+rarity = 0
+archetype = ""
+mload = 0
+sort_index = 200513
+hook_key = "rule_balance"
+tags = PackedStringArray("rule")
+layer = "engine"
+core_axis = "run_rule"
+run_rule = true
+weight = 2
+rule_knobs = {"dmg_use_soft_cap": 2, "dmg_overuse_penalty": 2, "nondmg_mana": 1}

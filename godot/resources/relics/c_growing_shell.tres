@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="RelicDef" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data_models/relic_def.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "c_growing_shell"
+name = "Growing Shell"
+description = "Each enemy a front-row Axie kills gives it +1 Max HP for the run. If it falls, it loses two thirds of the stacks."
+rarity = 1
+archetype = ""
+mload = 0
+sort_index = 201023
+hook_key = "c_growing_shell"
+tags = PackedStringArray("nonattack", "front")
+layer = "positional"
+core_axis = "pos"
+requires = PackedStringArray("front_hero")
+excludes = PackedStringArray("rule:rule_upside_down")

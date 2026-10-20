@@ -15,3 +15,5 @@ hook_key = "r_hollowbone"
 tags = PackedStringArray("pierce")
 layer = "payoff"
 pierceThornProof = true
+
+hidden_from_pool = true

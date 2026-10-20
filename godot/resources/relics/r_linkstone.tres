@@ -14,3 +14,5 @@ sort_index = 100534
 hook_key = "r_linkstone"
 tags = PackedStringArray("uni")
 layer = "positional"
+
+hidden_from_pool = true

@@ -86,7 +86,10 @@ var _seen_boss_keys := {}
 
 func _run_one(seed_value: int, force_win: bool) -> void:
 	var tag := "seed %d%s" % [seed_value, " (forced)" if force_win else " (played)"]
-	RunState.start_new_run(seed_value, TEAM, "short", 0, false)
+	# Depth v3: a new run opens on the Core offers; these tests are about the map flow, so skip them (test switch).
+	RunState.start_run_with_epoch(LocalEpochSource.new(PackedByteArray(), seed_value), {
+		"team_keys": Array(TEAM), "mode": "short", "ascension": 0, "ranked": false,
+		"loadout": {"core_off": true}}, seed_value)
 
 	_check(RunState.roster.size() == 5, "%s: roster should be 5, got %d" % [tag, RunState.roster.size()])
 	_check(RunState.phase == RunState.RunPhase.MAP, "%s: phase after start_new_run should be MAP" % tag)

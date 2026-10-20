@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="RelicDef" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data_models/relic_def.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "c_backline_glow"
+name = "Backline Glow"
+description = "Back-row Axies: buff, heal and mana faces get +50% (rounded up, at most +8)."
+rarity = 1
+archetype = ""
+mload = 0
+sort_index = 201023
+hook_key = "c_backline_glow"
+tags = PackedStringArray("nonattack")
+layer = "positional"
+core_axis = "pos"
+requires = PackedStringArray("back_face:heal|mana|buff")

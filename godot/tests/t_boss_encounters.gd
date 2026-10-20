@@ -224,6 +224,11 @@ func test_mecha_enters_overdrive_every_third_turn() -> void:
 		_assert(false, "mecha did not spawn")
 		return
 	var b: Unit = bosses[0]
+	# This test's own fixture: a party that survives the whole loop. Boss damage is x1.2 in depth v3 and an idle
+	# default party would be wiped before the overdrive turns, skipping the check.
+	for pu in c.party:
+		(pu as Unit).max_hp = 100000
+		(pu as Unit).hp = 100000
 
 	# Act / Assert — turn_count increments at the START of each turn after the first, and
 	# OVERDRIVE is on exactly when turn_count % 3 == 0.
@@ -327,8 +332,10 @@ func test_frost_lord_freezes_one_axie_per_turn() -> void:
 		if (u as Unit).frozen:
 			frozen_at_start += 1
 
-	# Act
+	# Act — depth v3 6.3: turn 2 is the boss's hollow turn (no freeze), so go on to turn 3 (prep).
 	c.end_turn()
+	if not (c.won or c.lost):
+		c.end_turn()
 
 	# Assert — DEEP FREEZE constrains a die (no reroll) rather than destroying it, so the
 	# Axie must still be alive and able to act; only `frozen` flips.
@@ -354,8 +361,10 @@ func test_mirror_copies_the_players_biggest_face() -> void:
 	c.last_big = {"v": before + 100, "f": {"part": "horn", "type": "dmg",
 		"value": before + 100, "keywords": [], "rarity": 0}}
 
-	# Act
+	# Act — depth v3 6.3: no mirroring on the hollow turn 2; the copy lands on turn 3.
 	c.end_turn()
+	if not (c.won or c.lost):
+		c.end_turn()
 
 	# Assert — JS: die[0].v = max(die[0].v, ceil(lastBig.v * 1.1)).
 	var after: int = int((b.die[0] as Dictionary).get("value", 0))

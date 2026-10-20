@@ -214,7 +214,16 @@ const WATCHED_FILES: Array[String] = ["res://assets/data/part_faces.json"]
 ## no rule reads it). Run result: NO, stays -n.
 ## Moved 2026-10-20 by lane E 2302828/28a050c: EchoBox season box (season pool split, milestones, titles, per-tier pity;
 ## meta/cosmetics only, no rule reads it). Run result: NO, stays -n.
-const FINGERPRINT := "28fff9bc2c33eb221952b4c6d8fafec5c79b8d50a0322080862a03520349b243"
+## BUMPED, 2026-10-20: `ActionLog.RULES_VERSION` -> `godot-2026-10-20-o`. Depth v3 integration (lanes A/B/C/D/E): Cores replace
+## relic offers (CoreOffer, Core quests/rerolls/tier chain), Run Rules + affixes, Armor, combat_tune.json knobs, Core/rule
+## picks recorded in the action log and replayed by RunVerifier, plus Raid R1 ghost combat. Same actions give a different run.
+## Worker SUPPORTED_RULE_VERSIONS gained -o. Unfinished runs saved under -n are discarded by saved_run_status() ("rules").
+## Moved 2026-10-20 by integration round 2 (depth/FX cfca4ba + depth/VZ 8d480d1): thorn cap removed, 3 thorn Cores, tier-bet Cores,
+## Heavy Strike, core_fired for every Core, RunState.core_impact. These are part of the depth v3 rules whose version `-o` has NOT
+## been deployed yet, so RULES_VERSION stays `godot-2026-10-20-o` (same unreleased version); only the FINGERPRINT moves.
+## Moved 2026-10-20 by FX review fixes (RunState): empty-pool Dim Stone refunds a Core reroll, an empty offer keeps the Fossil, old-save
+## offer_pick default. Same unreleased `-o`; RULES_VERSION unchanged.
+const FINGERPRINT := "381104b0fa6d23e5f28093878c11ca0664e1b633dd6c052e77686806948fdf5d"
 
 
 func _ready() -> void:

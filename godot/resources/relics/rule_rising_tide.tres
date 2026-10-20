@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="RelicDef" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data_models/relic_def.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "rule_rising_tide"
+name = "Rising Tide"
+description = "Each fight one row is in the water: the front row takes 25% less damage, or the back row's damage faces get +2. They alternate fight by fight."
+rarity = 0
+archetype = ""
+mload = 0
+sort_index = 200508
+hook_key = "rule_rising_tide"
+tags = PackedStringArray("rule")
+layer = "engine"
+core_axis = "run_rule"
+run_rule = true
+weight = 1
+rule_knobs = {"front_dmg_taken": 0.75, "back_dmg": 2}

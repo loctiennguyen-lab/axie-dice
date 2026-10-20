@@ -15,3 +15,5 @@ hook_key = "r_stormcall"
 mf_phase = "kw"
 tags = PackedStringArray("aoe")
 layer = "engine"
+
+hidden_from_pool = true

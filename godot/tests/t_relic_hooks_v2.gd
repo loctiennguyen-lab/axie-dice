@@ -523,9 +523,9 @@ func test_class_ups() -> void:
 	tc._grant_conduit_rerolls()
 	_assert(tc.rerolls == r0 + 1, "tidecaller: 3 Mana spent = 1 Reroll")
 	var r1: int = tb.rerolls
-	tb.mana_spent = 3
+	tb.mana_spent = 2   # depth v3: the baseline conduit step is now 3 (reroll.conduit_step), tidecaller keeps 3
 	tb._grant_conduit_rerolls()
-	_assert(tb.rerolls == r1, "tidecaller baseline: 3 Mana is not enough")
+	_assert(tb.rerolls == r1, "baseline: 2 Mana is not enough")
 	# venomlineage: VIRULENT +3 on already-poisoned target; first Poison each turn spreads 1 to neighbours.
 	var vk := ["bug1", "beast1", "aqua1", "reptile1", "bird1"]
 	var vc := _combat(["r_venomlineage"], 106, vk)

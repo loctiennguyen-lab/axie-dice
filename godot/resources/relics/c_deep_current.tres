@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="RelicDef" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data_models/relic_def.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "c_deep_current"
+name = "Deep Current"
+description = "Leftover Mana carries into the next combat (up to 12) instead of resetting."
+rarity = 2
+archetype = ""
+mload = 0
+sort_index = 202030
+hook_key = "c_deep_current"
+tags = PackedStringArray("nonattack")
+layer = "economy"
+core_axis = "mana"
+excludes = PackedStringArray("rule:rule_dry_steppe")

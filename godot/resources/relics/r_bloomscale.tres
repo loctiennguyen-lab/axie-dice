@@ -16,3 +16,5 @@ growthPlus = 3.0
 mf_phase = "kw"
 tags = PackedStringArray("growth")
 layer = "enabler"
+
+hidden_from_pool = true

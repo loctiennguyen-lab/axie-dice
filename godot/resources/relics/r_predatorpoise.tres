@@ -15,3 +15,5 @@ hook_key = ""
 critKeep = true
 tags = PackedStringArray("crit")
 layer = "enabler"
+
+hidden_from_pool = true

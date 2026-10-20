@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="RelicDef" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data_models/relic_def.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "c_elder_trunk"
+name = "Elder Trunk"
+description = "Every Axie gets +8 Max HP, but every damage face deals 1 less (min 1)."
+rarity = 0
+archetype = ""
+mload = 0
+sort_index = 200002
+hook_key = "c_elder_trunk"
+tags = PackedStringArray("nonattack", "tradeoff")
+layer = "economy"
+core_axis = "stat"

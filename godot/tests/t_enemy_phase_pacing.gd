@@ -114,6 +114,8 @@ func _legacy_begin_and_enemy_phase(c: CombatEngine) -> void:
 	c._set_turn_phase(CombatEngine.CombatPhase.END_TURN)
 	c.undo_stack = []
 	c.first_used = false
+	RelicHooks.fire(c, "on_turn_end", {"combat": c})
+	c._drop_phantoms()
 
 	if c.mana > 0 and (RelicHooks.has(c, "manaOverflow")
 			or c._any_die_has_keyword(c.party, "overflow")):
@@ -125,6 +127,10 @@ func _legacy_begin_and_enemy_phase(c: CombatEngine) -> void:
 		EventBus.float_text.emit((src.uid if src != null else 0), "OVERFLOW %d" % v, "man", 1)
 		c.mana = 0
 
+	CombatTraits.enemy_phase_start(c)
+
+	# Depth v3 (lane A): charge / affix steps joined the per-enemy body after the split; the
+	# reference loop carries them so it stays "the whole old loop", not a stale snapshot.
 	for e in c.enemies:
 		if e.hp <= 0 or e.intent.is_empty():
 			continue
@@ -132,8 +138,26 @@ func _legacy_begin_and_enemy_phase(c: CombatEngine) -> void:
 		if int(e.status.get("stun", 0)) > 0:
 			e.status["stun"] = 0
 			EventBus.float_text.emit(e.uid, "STUNNED", "deb", 0)
+			CombatTraits.charge_on_stun(c, e)
 			continue
+		if String(e.intent.get("charge", "")) == "start":
+			continue
+		var charge_value := -1
+		var charge_tgt := int(e.intent.get("target_uid", -1))
+		if String(e.intent.get("charge", "")) == "hit":
+			charge_value = c._face_value(e, e.roll_face_index())
+		var hp_before := {}
+		if int(c._aff(e).get("poison_on_pierce", 0)) > 0:
+			for pu in c.party:
+				hp_before[(pu as Unit).uid] = (pu as Unit).hp
 		c._exec_face(e, int(e.intent.get("target_uid", -1)))
+		if charge_value >= 0:
+			EventBus.charge_hit.emit(e.uid, charge_tgt, charge_value)
+		c._affix_fang(e, hp_before)
+		if c._affix_double_now(e) and e.hp > 0 and c._any_real_party_alive():
+			e.clear_used_for_second_action()
+			c._exec_face(e, int(e.intent.get("target_uid", -1)))
+			c._affix_fang(e, hp_before)
 		if not c._any_real_party_alive():
 			break
 

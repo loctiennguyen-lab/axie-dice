@@ -4,6 +4,7 @@ import { handleWallet, isWalletPath } from './wallet.js';
 import { handleRuns, isRunsPath, sweepPending } from './runs.js';
 import { handleMissions, isMissionsPath } from './missions.js';
 import { handleLeaderboard, isLeaderboardPath } from './leaderboard.js';
+import { handleRaid, isRaidPath } from './raid.js';
 /**
  * Axie Dice, served entirely from Cloudflare.
  *
@@ -261,6 +262,7 @@ export default {
     if (isRunsPath(url.pathname)) return handleRuns(request, env, url);
     if (isMissionsPath(url.pathname)) return handleMissions(request, env, url);
     if (isLeaderboardPath(url.pathname)) return handleLeaderboard(request, env, url);
+    if (isRaidPath(url.pathname)) return handleRaid(request, env, url);
     return serveGame(request, env, url);
   },
 };

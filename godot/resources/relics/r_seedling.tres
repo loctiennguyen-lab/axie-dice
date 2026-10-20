@@ -16,3 +16,5 @@ growthPlus = 1.0
 growthAll = 1.0
 tags = PackedStringArray("growth")
 layer = "enabler"
+
+hidden_from_pool = true

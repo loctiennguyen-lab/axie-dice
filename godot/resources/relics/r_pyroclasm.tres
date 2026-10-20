@@ -16,3 +16,5 @@ burnSpread = true
 mf_phase = "add"
 tags = PackedStringArray("burn")
 layer = "payoff"
+
+hidden_from_pool = true

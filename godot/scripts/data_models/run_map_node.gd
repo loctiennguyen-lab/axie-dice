@@ -18,6 +18,10 @@ var col: int = 0                    ## Horizontal position hint within the row, 
 var node_type: String = ""          ## "battle" | "elite" | "event" | "shop" | "treasure" | "boss"
 var next_ids: Array[String] = []    ## Outgoing edges — ids of nodes in the next row this
                                      ## node connects to. Empty only for the final boss node.
+var reward_kind: String = ""        ## battle/elite only: "level"|"hp"|"face"|"shard" (depth v3 7.1). A hint of which card is
+                                     ## sure to be offered, not a fixed card. Set after the graph by RunMapGenerator.assign_extras.
+var affix: String = ""              ## elite only: Elite affix id (group A), "" when none
+var affix2: String = ""             ## elite only: second affix (group B), only after boss 1
 var visited: bool = false
 var locked: bool = false
 
@@ -26,6 +30,7 @@ func to_data() -> Dictionary:
 	return {
 		"id": id, "row": row, "col": col, "node_type": node_type,
 		"next_ids": next_ids.duplicate(), "visited": visited, "locked": locked,
+		"reward_kind": reward_kind, "affix": affix, "affix2": affix2,
 	}
 
 
@@ -38,4 +43,7 @@ static func from_data(d: Dictionary) -> RunMapNode:
 	n.next_ids.assign(d.get("next_ids", []))
 	n.visited = bool(d.get("visited", false))
 	n.locked = bool(d.get("locked", false))
+	n.reward_kind = String(d.get("reward_kind", ""))
+	n.affix = String(d.get("affix", ""))
+	n.affix2 = String(d.get("affix2", ""))
 	return n

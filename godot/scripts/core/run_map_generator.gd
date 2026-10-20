@@ -324,6 +324,43 @@ static func _apply_extra_elite_row(by_row: Dictionary, graph: RunMapGraph) -> vo
 
 
 # ---------------------------------------------------------------------------------------
+# Depth v3 extras: reward_kind + Elite affix (design 7.1 / 6.4). Run AFTER generate().
+# ---------------------------------------------------------------------------------------
+
+const REWARD_KIND_SALT := 0x2E3A7D51
+const REWARD_KINDS: Array[String] = ["level", "hp", "face", "shard"]
+
+
+## Stamps `reward_kind` on every battle/elite node and an affix (group A; plus group B after boss 1) on every
+## elite node of `graph_data` (a RunMapGraph.to_data() dict). Pure function of (map, seed): own Rng streams
+## (seed ^ SALT ^ node), never the shared map/run rng, so replays match and the map shape is untouched.
+## Affixes come from lane A's CombatTraits.choose_affixes. `can_break` = CombatTraits.team_can_break(team) of the
+## team playing; `first_run` = newcomer (fixed iron/ward, no group B).
+static func assign_extras(graph_data: Dictionary, seed: int, can_break: bool = true, first_run: bool = false) -> Dictionary:
+	var first_boss := 1 << 30
+	var boss_rows: Array = graph_data.get("boss_rows", [])
+	if not boss_rows.is_empty():
+		first_boss = int(boss_rows[0])
+	for row_data in (graph_data.get("rows", []) as Array):
+		for nd in (row_data as Array):
+			var d: Dictionary = nd
+			var t := String(d.get("node_type", ""))
+			if t != "battle" and t != "elite":
+				continue
+			var salt := int(d.get("row", 0)) * 131 + int(d.get("col", 0))
+			d["reward_kind"] = REWARD_KINDS[Rng.new((seed ^ REWARD_KIND_SALT) ^ salt).next_int(REWARD_KINDS.size())]
+			if t != "elite":
+				continue
+			var pick: Dictionary = CombatTraits.choose_affixes(seed ^ salt, can_break, int(d.get("row", 0)) > first_boss, first_run)
+			if String(pick.get("affix", "")) == "":
+				continue
+			d["affix"] = String(pick["affix"])
+			if String(pick.get("affix2", "")) != "":
+				d["affix2"] = String(pick["affix2"])
+	return graph_data
+
+
+# ---------------------------------------------------------------------------------------
 # Validation — the 10 invariants, architecture plan §7
 # ---------------------------------------------------------------------------------------
 

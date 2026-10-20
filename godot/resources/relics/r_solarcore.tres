@@ -16,3 +16,5 @@ tags = PackedStringArray("burn")
 layer = "engine"
 mult_axis = "A:burn"
 mult_bonus = 1.00
+
+hidden_from_pool = true

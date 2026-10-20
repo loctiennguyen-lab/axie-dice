@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="RelicDef" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data_models/relic_def.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "c_living_wall"
+name = "Living Wall"
+description = "Only slot 1 is the front row. That Axie gets +12 Max HP and 2 Thorns. The other four are the back row."
+rarity = 2
+archetype = ""
+mload = 0
+sort_index = 202021
+hook_key = "c_living_wall"
+tags = PackedStringArray("nonattack", "front")
+layer = "positional"
+core_axis = "pos"
+excludes = PackedStringArray("owned:c_open_ranks", "rule:rule_upside_down")

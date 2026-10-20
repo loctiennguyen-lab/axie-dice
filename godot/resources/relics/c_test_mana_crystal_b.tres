@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="RelicDef" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data_models/relic_def.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "c_test_mana_crystal_b"
+name = "Test mana crystal b"
+description = "Test Core (mana, tier 2). Does nothing."
+rarity = 2
+sort_index = 900018
+core_axis = "mana"
+disabled = true

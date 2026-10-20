@@ -1,5 +1,5 @@
 extends Control
-## Result.tscn root - UI-03 10 (round 2 wins): one 640 plate on the 3D backdrop with a scrim. Header (badge,
+## Result.tscn root - UI-03 10 (round 2 wins): one 640 plate on a pre-rendered arena of the run's biome (boss biome on a win, the biome you fell in on a loss) with a scrim. Header (badge,
 ## "Run won" / "Defeated", sub line), title-unlock row, party row, 3-column stat grid, earnings rows (Gene
 ## Shard, Lunacia Pass XP, relics, mission stake), the offline notice and the two actions. Pure view over the
 ## RunState snapshot taken BEFORE end_run() (architecture plan 3.2.4); every reward and submit path is the
@@ -10,7 +10,8 @@ extends Control
 ## from a seed). FLAGGED: party HP is always full here (RunState.roster has no current HP between fights).
 ## FLAGGED: the Pass XP icon is missing from the art kit, so it is the spec's "XP" circle.
 
-const BG_PATH := "assets/bg/entrance.jpg"
+const BG_DIR := "res://assets/ui3/result_bg/"   # pre-rendered empty biome arenas (Blender dioramas), 1440x810 jpg
+const BG_FALLBACK := "savannah"
 const PLATE_W := 640.0
 
 var _plate: Control = null
@@ -34,7 +35,10 @@ func _ready() -> void:
 		"ascension": RunState.ascension,
 		"seed": RunState.run_seed,
 		"shards_this_run": RunState.shards_this_run,
-		"relic_ids": RunState.owned_relic_ids.filter(func(x) -> bool: return not String(x).begins_with("__")),
+		"relic_ids": RunState.owned_relic_ids.filter(func(x) -> bool:
+			return not String(x).begins_with("__") and String(x) != RunState.run_rule),
+		"run_rule": RunState.run_rule,
+		"core_impact": RunState.core_impact.duplicate(true),
 		"roster": RunState.roster.duplicate(true),
 		"stats": RunStatsAccumulator.snapshot(RunState.mode),
 		"ranked": RunState.ranked,
@@ -68,13 +72,14 @@ func _ready() -> void:
 		n.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		_notice_host.add_child(n)
 	_fit.call_deferred()
+	_on_notice_layout.call_deferred()   # second pass once row heights settled (Cores rows were clipped)
 	_back.grab_focus.call_deferred()
 
 
 func _build_ui(s: Dictionary) -> void:
 	var bg := TextureRect.new()
 	bg.name = "PlateHost"   # full-rect backdrop; t_ui_laws L0
-	bg.texture = MockupAssets.tex(BG_PATH)
+	bg.texture = load(_bg_path(bool(s["won"]))) as Texture2D
 	bg.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 	bg.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_COVERED
 	bg.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
@@ -124,6 +129,25 @@ func _build_ui(s: Dictionary) -> void:
 
 	_build_version_tag()
 	_build_equipped_avatar()
+
+
+## Backdrop jpg for the run's biome: the boss biome on a win, the biome of the node the run ended on
+## on a loss (same CombatArena3D.biome_for the fights used). Falls back to savannah.
+func _bg_path(won: bool) -> String:
+	var g := RunMapGraph.from_data(RunState.map_graph) if not RunState.map_graph.is_empty() else null
+	var biome := ""
+	if g != null and not g.boss_rows.is_empty():
+		var total := g.rows.size()
+		var row := int(g.boss_rows[0])
+		var is_boss := true
+		if not won:
+			var n := g.find_node(RunState.current_node_id)
+			if n != null:
+				row = n.row
+				is_boss = n.node_type == "boss"
+		biome = CombatArena3D.biome_for(row, is_boss, total)
+	var path := BG_DIR + biome + ".jpg"
+	return path if biome != "" and ResourceLoader.exists(path) else BG_DIR + BG_FALLBACK + ".jpg"
 
 
 ## Caps the scroll area to what the window can show; below that the plate hugs its content.
@@ -280,7 +304,7 @@ func _build_card_rows(s: Dictionary) -> VBoxContainer:
 	col.add_theme_constant_override("separation", 12)
 	col.add_child(_build_shard_card(s))
 	col.add_child(_build_pass_card(s))
-	col.add_child(_build_relics_card(s["relic_ids"] as Array))
+	col.add_child(_build_relics_card(s["relic_ids"] as Array, String(s.get("run_rule", "")), s.get("core_impact", {}) as Dictionary))
 	var stake := _build_stake_box(s)
 	if stake != null:
 		col.add_child(stake)
@@ -436,25 +460,60 @@ func _pass_xp_line(level: int, into: int, needed: int, xp_gained: int) -> String
 	return "%s · %s" % [head, tr("+%d XP this run") % xp_gained]
 
 
-func _build_relics_card(relic_ids: Array) -> Control:
+## Depth v3: the run's Cores plus the Run Rule it played under (the old "Relics carried" card).
+func _build_relics_card(relic_ids: Array, run_rule_id: String = "", impact: Dictionary = {}) -> Control:
 	var card := UI3.plate(&"row")
 	card.name = "RelicsCard"
 	var col := VBoxContainer.new()
 	col.add_theme_constant_override("separation", 8)
 	card.add_child(col)
-	col.add_child(_card_caption(tr("Relics carried") + " · %d" % relic_ids.size()))
+	col.add_child(_card_caption(tr("Cores") + " · %d" % relic_ids.size()))
+	if run_rule_id != "":
+		var rdef = RelicRegistry.get_def(run_rule_id)
+		var rname := String(rdef.name) if rdef != null else run_rule_id
+		col.add_child(UI3.label(tr("Run Rule") + ": " + UI3.title_case(UI3.player_text(rname))))
 	if relic_ids.is_empty():
 		col.add_child(UI3.label(tr("None this run.")))
 		return card
-	var flow := HFlowContainer.new()
-	flow.add_theme_constant_override("h_separation", 8)
-	flow.add_theme_constant_override("v_separation", 8)
-	col.add_child(flow)
-	for id in relic_ids:
+	# Depth v3 lane VZ: one row per Core with what it did this run; the biggest contributor is highlighted.
+	var ids: Array = relic_ids.map(func(x): return String(x))
+	var top := CoreFeedback.top_core(impact, ids)
+	var list := VBoxContainer.new()
+	list.name = "CoreImpactList"
+	list.add_theme_constant_override("separation", 8)
+	col.add_child(list)
+	for id in ids:
 		var def = RelicRegistry.get_def(String(id))
 		var p := UI3.plate(&"row")
-		p.add_child(UI3.label(UI3.title_case(UI3.player_text(String(def.name) if def != null else String(id))), "LabelDisplay"))
-		flow.add_child(p)
+		p.name = "CoreRow_%s" % id
+		var is_top := String(id) == top
+		var hi := UI3Theme.flat(UI3Theme.color("panel_raised"), UI3Theme.radius("s"), 4 if is_top else 0,
+			UI3Theme.color("accent") if is_top else UI3Theme.color("panel_raised"))
+		hi.content_margin_left = 12
+		hi.content_margin_right = 12
+		hi.content_margin_top = 8
+		hi.content_margin_bottom = 8
+		p.add_theme_stylebox_override("panel", hi)
+		var row := HBoxContainer.new()
+		row.add_theme_constant_override("separation", 12)
+		p.add_child(row)
+		var nm := UI3.label(UI3.title_case(UI3.player_text(String(def.name) if def != null else String(id))), "LabelDisplay")
+		nm.name = "CoreName"
+		row.add_child(nm)
+		var sp := Control.new()
+		sp.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		row.add_child(sp)
+		var e: Dictionary = impact.get(String(id), {})
+		var txt := CoreFeedback.impact_text(e) if not e.is_empty() else tr("never fired")
+		if String(id) == top:
+			txt = tr("Most impact") + " · " + txt
+		var im := UI3.label(txt, "LabelMuted" if e.is_empty() else "")
+		im.name = "CoreImpact"
+		row.add_child(im)
+		list.add_child(p)
+	var pad := Control.new()
+	pad.custom_minimum_size.y = 4
+	col.add_child(pad)
 	return card
 
 

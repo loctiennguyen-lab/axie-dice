@@ -1,0 +1,133 @@
+{
+ "version": 1,
+ "_doc": "Depth v3 6.4. One affix per Elite node, given in combat_setup.affix (the map lane picks it). Trom Mana (4) was dropped by Liam. plus=true: the affix also guarantees an Amber-tier Core offer (reward lane reads it). Effects are generic keys read by CombatEngine; add an affix by data alone when it only combines existing keys.",
+ "affixes": {
+  "echo": {
+   "n": "Hoi Am",
+   "name_en": "Echo",
+   "desc_en": "Repeats its last action at 70% damage.",
+   "repeat_intent": true,
+   "dmg_pct": -30,
+   "group": ""
+  },
+  "shell": {
+   "n": "Vo So",
+   "name_en": "Shell",
+   "desc_en": "Starts with a shield of 40% max HP.",
+   "start_shield_pct": 40,
+   "group": "A",
+   "no_break_ok": true
+  },
+  "frenzy": {
+   "n": "Cuong",
+   "name_en": "Frenzy",
+   "desc_en": "Below half HP it hits 25% harder.",
+   "enrage_below_pct": 50,
+   "enrage_dmg_pct": 25,
+   "group": "B"
+  },
+  "swarm": {
+   "n": "Bay",
+   "name_en": "Swarm",
+   "desc_en": "Below half HP it calls 2 small allies.",
+   "summon_below_pct": 50,
+   "summon_count": 2,
+   "summon_scale": 0.5,
+   "plus": true,
+   "group": "B"
+  },
+  "thorns": {
+   "n": "Gai",
+   "name_en": "Thorns",
+   "desc_en": "Hurts attackers with thorns 3.",
+   "thorns": 3,
+   "group": "",
+   "retired": true
+  },
+  "rush": {
+   "n": "Gap",
+   "name_en": "Rush",
+   "desc_en": "Acts twice every 3 turns, shown a turn early.",
+   "double_turn_period": 3,
+   "plus": true,
+   "group": "B"
+  },
+  "fang": {
+   "n": "Nanh Doc",
+   "name_en": "Fang",
+   "desc_en": "Hits that pass shields add 2 poison.",
+   "poison_on_pierce": 2,
+   "group": "A"
+  },
+  "ambush": {
+   "n": "Danh Len",
+   "name_en": "Ambush",
+   "desc_en": "Single hits target your weakest back Axie.",
+   "target_back_weakest": true,
+   "plus": true,
+   "group": "A",
+   "no_break_ok": true
+  },
+  "chill": {
+   "n": "Dong Bang",
+   "name_en": "Chill",
+   "desc_en": "Freezes one of your dice on turn 1.",
+   "freeze_first_turn": 1,
+   "group": ""
+  },
+  "iron": {
+   "n": "Giap Sat",
+   "name_en": "Iron",
+   "desc_en": "Armor cuts single hits. Poison or a debuff breaks it.",
+   "group": "A",
+   "iron": true
+  },
+  "ward": {
+   "n": "Khien Hoi",
+   "name_en": "Ward",
+   "desc_en": "Shields itself every turn.",
+   "group": "A",
+   "no_break_ok": true,
+   "ward_self": true
+  },
+  "spite": {
+   "n": "Phan Don",
+   "name_en": "Spite",
+   "desc_en": "Hits back when hit by a single attack.",
+   "group": "A",
+   "no_break_ok": true,
+   "spite": true,
+   "replaces": "thorns"
+  },
+  "mend": {
+   "n": "Hoi Ngat",
+   "name_en": "Mend",
+   "desc_en": "Heals itself every turn.",
+   "group": "A",
+   "mend": true
+  },
+  "charge": {
+   "n": "Don Nap",
+   "name_en": "Charge",
+   "desc_en": "Locks on an Axie, strikes hard on turn 4. Stun or freeze breaks it.",
+   "group": "A",
+   "no_break_ok": true,
+   "charge": true
+  }
+ },
+ "_doc2": "group A = forces a change of faces (every Elite gets one), B = extra pressure (after boss 1 an Elite gets A + B). no_break_ok = may be drawn for a team that cannot break Plating (team_can_break false). retired = not drawn any more (thorns became spite). forbidden_pairs: charge+rush, charge+frenzy (6.7b.9).",
+ "forbidden_pairs": [
+  [
+   "charge",
+   "rush"
+  ],
+  [
+   "charge",
+   "frenzy"
+  ]
+ ],
+ "first_run": {
+  "default": "iron",
+  "no_break": "ward"
+ }
+}

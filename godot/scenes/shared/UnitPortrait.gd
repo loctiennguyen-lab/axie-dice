@@ -192,7 +192,6 @@ func setup(p_uid: int, display_name: String, _cls: String, is_enemy: bool, is_bo
 	_tag_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_tag_chip.add_child(_tag_label)
 	_tag_chip.visible = tag != ""
-	name_row.add_child(_tag_chip)
 	_hp_label = UI3.label("", "LabelDisplay")
 	_hp_label.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	name_row.add_child(_hp_label)
@@ -216,6 +215,7 @@ func setup(p_uid: int, display_name: String, _cls: String, is_enemy: bool, is_bo
 	chips_row.custom_minimum_size = Vector2(0, UI3.CHIP_H)
 	chips_row.add_theme_constant_override("separation", 4)
 	left.add_child(chips_row)
+	chips_row.add_child(_tag_chip)   # ELITE / BOSS tag sits under the name so a long name keeps its full width
 	var spacer := Control.new()
 	spacer.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	spacer.size_flags_horizontal = Control.SIZE_EXPAND_FILL
@@ -501,11 +501,15 @@ func _restore_chip() -> void:
 
 
 ## Illegal target: plate at 60% + reason chip (dusk + lock). "" clears.
-func set_illegal(reason: String) -> void:
+## `show_chip` false: still dimmed + untargetable, but the reason line is left to ONE sibling (CombatView shows it on
+## the first living unit of the side), so four foes do not repeat the same strip.
+func set_illegal(reason: String, show_chip := true) -> void:
 	_illegal_reason = reason
 	if _chip_text == null:
 		return
-	if reason != "":
+	if reason != "" and not show_chip:
+		_hide_chip()
+	elif reason != "":
 		_show_chip(reason, UI3Theme.color("danger_bg"), UI3Theme.color("text"), UI3.icon("ui_lock"))
 	else:
 		_hide_chip()

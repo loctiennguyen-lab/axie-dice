@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="RelicDef" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data_models/relic_def.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "c_thorn_rebound"
+name = "Rebound"
+description = "The Axie with the most Thorns reflects its Thorns a second time on every hit, but it cannot use damage faces."
+rarity = 2
+archetype = ""
+mload = 0
+sort_index = 202022
+hook_key = "c_thorn_rebound"
+tags = PackedStringArray("nonattack", "tradeoff")
+layer = "engine"
+core_axis = "rule"
+requires = PackedStringArray("face:thorns|shield")

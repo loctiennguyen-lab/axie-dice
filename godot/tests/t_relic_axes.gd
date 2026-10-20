@@ -6,6 +6,7 @@ var _checks := 0
 
 
 func _ready() -> void:
+	RelicRegistry.legacy_unhide_for_tests()
 	print("=== t_relic_axes: start ===")
 	test_g_axis()
 	test_a_axes()
@@ -145,8 +146,9 @@ func test_reroll_caps() -> void:
 func test_eternal_skips_starter() -> void:
 	RunState.start_new_run_seeded(11, {"team_keys": ["plant1", "beast1", "aqua1"], "mode": "short", "ascension": 5,
 		"ranked": false, "bonuses": {"start_relic_max_rarity": 0}})
-	_assert(RunState.owned_relic_ids.size() >= 1, "starter relic granted (%s)" % str(RunState.owned_relic_ids))
-	var starter: String = String(RunState.owned_relic_ids[0]) if RunState.owned_relic_ids.size() > 0 else ""
+	# Depth v3: the start-relic perk no longer grants a relic; it adds a 4th card to Core pick 1.
+	_assert(RunState.owned_relic_ids.is_empty() and RunState.core_first_extra, "perk = 4th card on Core pick 1, no starter relic")
+	var starter := "__none"
 	_assert(RunState.relic_stickers.is_empty(), "starter relic carries no Eternal sticker")
 	var added: Array = []
 	for id in ["r_claw", "r_seedling", "r_heart", "r_fang"]:
@@ -156,7 +158,6 @@ func test_eternal_skips_starter() -> void:
 	_assert(RunState.relic_stickers.size() == 2 and not RunState.relic_stickers.has(starter)
 		and RunState.relic_stickers.has(added[0]) and RunState.relic_stickers.has(added[1]),
 		"first two relics GRANTED after start are Eternal, starter is not")
-	_assert(RunState.sell_relic(starter) or RunState.phase == RunState.RunPhase.COMBAT, "starter stays sellable")
 
 
 func test_eternal() -> void:

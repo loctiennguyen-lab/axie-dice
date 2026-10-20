@@ -16,3 +16,5 @@ noShieldCap = true
 mf_phase = "add"
 tags = PackedStringArray("shield")
 layer = "engine"
+
+hidden_from_pool = true

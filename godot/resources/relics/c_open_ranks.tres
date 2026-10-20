@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="RelicDef" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data_models/relic_def.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "c_open_ranks"
+name = "Open Ranks"
+description = "No back row: all 5 Axies are front row, and every front-row Core applies to the whole team."
+rarity = 2
+archetype = ""
+mload = 0
+sort_index = 202025
+hook_key = "c_open_ranks"
+tags = PackedStringArray("nonattack", "front")
+layer = "positional"
+core_axis = "pos"
+requires = PackedStringArray("owned_tag:front")
+excludes = PackedStringArray("owned:c_living_wall", "owned:c_backline_glow", "owned:c_descend", "rule:rule_rising_tide", "rule:rule_upside_down")

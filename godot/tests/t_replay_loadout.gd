@@ -17,6 +17,9 @@ func _check(ok: bool, msg: String) -> void:
 func _digest(state: Dictionary) -> String:
 	var d := state.duplicate(true)
 	d.erase("action_log")
+	# Display-only Core activation tally (RunState.core_impact, depth/VZ): never read by a rule, and the bot's live play counts
+	# some rule_balance pulses the verifier's replay does not (98 vs 83 mana/rule). Score and every rule field still must match.
+	d.erase("core_impact")
 	return JSON.stringify(d)
 
 

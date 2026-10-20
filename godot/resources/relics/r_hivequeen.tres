@@ -16,3 +16,5 @@ tokenCap = 6.0
 eggInherit = true
 tags = PackedStringArray("summon")
 layer = "engine"
+
+hidden_from_pool = true
