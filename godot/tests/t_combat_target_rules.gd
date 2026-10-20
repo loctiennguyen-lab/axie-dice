@@ -48,7 +48,10 @@ func _static_rules() -> void:
 
 
 func _view_rules(tree: SceneTree) -> void:
-	RunState.start_new_run(424242, ["plant1", "beast1", "aqua1", "reptile1", "bug1"], "short", 6, false)
+	# Depth v3: a new run opens on the Core offers; these tests are about the map flow, so skip them (test switch).
+	RunState.start_run_with_epoch(LocalEpochSource.new(PackedByteArray(), 424242), {
+		"team_keys": Array(["plant1", "beast1", "aqua1", "reptile1", "bug1"]), "mode": "short", "ascension": 6, "ranked": false,
+		"loadout": {"core_off": true}}, 424242)
 	await tree.process_frame
 	RunState.power_level = 3
 	RunState.enter_node("r4_c0", "battle")
@@ -67,13 +70,22 @@ func _view_rules(tree: SceneTree) -> void:
 		view._selected_die_uid = src.uid
 		view._rebuild_all()
 		var legal_side: String = cases[t][0]
+		var first_alive_uid := -1
+		for fe in combat.enemies:
+			if fe.hp > 0:
+				first_alive_uid = fe.uid
+				break
 		for e in combat.enemies:
 			var p: UnitPortrait = view._portraits[e.uid]
 			var chip: String = p._chip_text.text
 			if legal_side == "e":
 				_check(chip.begins_with("Target") and p._lit, "%s: enemy %s should show Target label" % [t, e.n])
 			else:
-				_check(chip.contains("can only target allies") and not p._lit, "%s: enemy %s should show the reason" % [t, e.n])
+				# Depth v3 UX: ONE sibling (the first living unit of the side) carries the reason strip; the rest are only dimmed.
+				if e.uid == first_alive_uid:
+					_check(chip.contains("can only target allies") and not p._lit, "%s: enemy %s should show the reason" % [t, e.n])
+				else:
+					_check(not p._lit and not chip.begins_with("Target"), "%s: enemy %s is dimmed without a repeated reason" % [t, e.n])
 		var foe: Unit = combat.enemies[0]
 		var before: int = view._selected_die_uid
 		if legal_side != "e":
