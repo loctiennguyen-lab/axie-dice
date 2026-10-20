@@ -375,6 +375,13 @@ const ADD_Z_BACK2 := -18.3
 ## the camera, frame_band, SUMMON_SCALE or a wide boss's fit must re-run t_combat_spacing.
 const WIDE_BOSS_MIN_W := 3.5
 const WIDE_BOSS_SHIFT_X := 0.55
+## Room for a boss wider than WIDE_BOSS_REF_W (m): the gate cannot move (it already touches the enemy panel column), so
+## the boss keeps its RIGHT edge where a WIDE_BOSS_REF_W boss had it (centre steps back by half the extra width) and
+## the whole party stands WIDE_PARTY_SHIFT_K x the extra width further left, so the party/enemy gap and every add
+## column keep today's margins. At or below the reference width nothing moves. Brine (fit 6.2) is the case it exists for.
+const WIDE_BOSS_REF_W := 5.3
+const WIDE_PARTY_SHIFT_K := 1.25
+const WIDE_ADD_GAP_EXTRA_K := 0.12   # extra add gap (m) per m of extra width: the boss's screen box is wider than its fit
 const WIDE_ADD_GAP := 0.5
 const WIDE_ADD_GAP_4 := 0.6   # four adds: the mid ones are wider on screen, keep them off the boss
 const WIDE_ADD_Z := {
@@ -402,11 +409,30 @@ const ADD_PATTERNS := {
 ## Z of the path / gate lane. The arena is shifted onto it so the road to the gate runs behind the party, not under it.
 const LANE_Z := 1.9
 var _encounter_kind := ""
+## World x the whole party (and eggs) is moved by while a very wide boss is on the field, see WIDE_BOSS_REF_W.
+var _party_dx := 0.0
 
 
 ## "battle" | "elite" | "boss": decides how the enemy side is laid out. Call before units spawn.
 func set_encounter_kind(kind: String) -> void:
 	_encounter_kind = kind
+	_set_party_dx(0.0)
+
+
+## Moves every party/egg slot (and the home its lunges return to) so the party sits `dx` from the standard rows.
+func _set_party_dx(dx: float) -> void:
+	var delta := dx - _party_dx
+	_party_dx = dx
+	if is_zero_approx(delta):
+		return
+	for uid in _units:
+		var e: Dictionary = _units[uid]
+		if bool(e.get("is_enemy", false)):
+			continue
+		var sl: Node3D = e.get("slot")
+		if is_instance_valid(sl):
+			sl.position.x += delta
+			e["rest_pos"] = sl.position
 
 ## Facing fix (bug report: "Axie đang quay mặt về camera, muốn quay lưng lại tiến lên đánh
 ## boss"). AxieCharacter3D's default forward is NOT documented in this addon's own README, so
@@ -1355,6 +1381,10 @@ func reseat_side(uids: Array, is_enemy: bool) -> void:
 		var lw := float(lead_atia.get("width", 0.0))
 		if lw >= WIDE_BOSS_MIN_W:
 			wide_lead_w = lw
+	var wide_extra := maxf(wide_lead_w - WIDE_BOSS_REF_W, 0.0) if wide_lead_w > 0.0 else 0.0
+	var wide_shift := WIDE_BOSS_SHIFT_X - wide_extra * 0.5   # centre offset of a wide boss, right edge held
+	if is_enemy and wide_lead_w > 0.0:
+		_set_party_dx(-wide_extra * WIDE_PARTY_SHIFT_K)
 	var placed: Array = []   # [uid, position]
 	if lead_uid >= 0:
 		var lead_entry: Dictionary = _units[lead_uid]
@@ -1364,7 +1394,7 @@ func reseat_side(uids: Array, is_enemy: bool) -> void:
 			lead_pos.z += 0.5   # alone: no adds above and below, so it sits a little lower, on the gate's axis
 		elif wide_lead_w > 0.0:
 			lead_pos.z += 0.5 + (0.3 if axie_uids.size() >= 4 else 0.0)
-			lead_pos.x += WIDE_BOSS_SHIFT_X
+			lead_pos.x += wide_shift
 		placed.append([lead_uid, lead_pos])
 		if not is_boss and not bool(lead_entry.get("elite_scaled", false)):
 			lead_entry["elite_scaled"] = true
@@ -1380,10 +1410,10 @@ func reseat_side(uids: Array, is_enemy: bool) -> void:
 				ent = (ADD_EXTRA as Array)[(i - 4) % (ADD_EXTRA as Array).size()]   # 5th add onward: a second back row
 			var lead_x: float = (BOSS_POS if bool((_units[lead_uid] as Dictionary).get("is_boss", false)) else ELITE_POS).x
 			if wide_lead_w > 0.0:
-				lead_x += WIDE_BOSS_SHIFT_X
+				lead_x += wide_shift
 				if i < 4:
 					var col_z: Array = WIDE_ADD_Z[mini(axie_uids.size(), 4)]
-					placed.append([axie_uids[i], Vector3(lead_x - wide_lead_w * 0.5 - (WIDE_ADD_GAP_4 if axie_uids.size() >= 4 else WIDE_ADD_GAP) + float((WIDE_ADD_DX[mini(axie_uids.size(), 4)] as Array)[i]), _POS_Y, float(col_z[i]))])
+					placed.append([axie_uids[i], Vector3(lead_x - wide_lead_w * 0.5 - wide_extra * WIDE_ADD_GAP_EXTRA_K - (WIDE_ADD_GAP_4 if axie_uids.size() >= 4 else WIDE_ADD_GAP) + float((WIDE_ADD_DX[mini(axie_uids.size(), 4)] as Array)[i]), _POS_Y, float(col_z[i]))])
 					continue
 			pos = Vector3(lead_x + float(ent[0]) * ADD_PITCH_X, _POS_Y, ADD_Z_FRONT if int(ent[1]) > 0 else (ADD_Z_BACK2 if int(ent[1]) < -1 else ADD_Z_BACK))
 		else:
@@ -1414,10 +1444,10 @@ func get_shadow_mesh(uid: int) -> MeshInstance3D:
 
 func _slot_position(is_enemy: bool, slot_index: int, slot_count: int, boss: bool = false, egg: bool = false) -> Vector3:
 	if egg:
-		return Vector3(EGG_X0 + float(slot_index) * EGG_PITCH_X, _POS_Y, EGG_Z)
+		return Vector3(EGG_X0 + _party_dx + float(slot_index) * EGG_PITCH_X, _POS_Y, EGG_Z)
 	if not is_enemy:
 		var front := slot_index % 2 == 0
-		return Vector3(PARTY_X0 + float(slot_index) * PARTY_PITCH_X, _POS_Y, PARTY_Z_FRONT if front else PARTY_Z_BACK)
+		return Vector3(PARTY_X0 + _party_dx + float(slot_index) * PARTY_PITCH_X, _POS_Y, PARTY_Z_FRONT if front else PARTY_Z_BACK)
 	if boss:
 		return BOSS_POS
 	var pat: Array = ENEMY_PATTERNS[clampi(slot_count, 1, 5)]
