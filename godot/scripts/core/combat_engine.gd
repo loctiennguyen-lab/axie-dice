@@ -102,6 +102,11 @@ var _rng: Rng = null
 var _epoch: EpochSource = null
 ## k-th reroll request this turn (reroll epoch key, ADR-RNG §4.4). In the snapshot so undo rewinds it.
 var reroll_k: int = 0
+## Depth v4 BO (set): snapshot of the dice groups of >=3 sharing a part, [{part,size,uids,hi,m100}]. Rebuilt ONLY by _snap_bo()
+## (end of roll_all/reroll_dice, after wild_face, after _roll_edit), saved in _state_dict, never rebuilt on load (design 3.3).
+var bo: Array = []
+## Depth v4 3.8: 1..3, default 3. Stage < 2 refuses Lieu / wild_face; stage < 3 refuses Overcast and switches off part_add.
+var depth_stage: int = 3
 var reroll_nonaid: int = 0   ## rerolls this turn that were NOT Aid: the only ones counted against reroll.max_total
 ## Relic scratch space for ONE combat (H6, contract 2.3): plain JSON, owned by lane B's handlers
 ## (tweak_left, mana_paid_<id>, chaos_rerolls...). In the snapshot, so undo and resume restore it
@@ -172,6 +177,8 @@ func setup_new(combat_setup: Dictionary) -> void:
 	_rng = Rng.new(combat_seed)
 	_epoch = combat_setup.get("epoch", null) as EpochSource
 	newcomer = bool(combat_setup.get("newcomer", false))
+	depth_stage = clampi(int(combat_setup.get("depth_stage", 3)), 1, 3)
+	bo = []
 	clock_turn_base = 0
 	attempt = 0
 	mission = bool(combat_setup.get("mission", false))
@@ -339,6 +346,8 @@ func _state_dict() -> Dictionary:
 		"mission": mission,
 		"mission_rules": mission_rules.duplicate(),
 		"newcomer": newcomer,
+		"bo": _dup_dict_array(bo),
+		"depth_stage": depth_stage,
 		"start_shield_all": start_shield_all,
 		"start_mana": start_mana,
 		"first_dmg_face_bonus": first_dmg_face_bonus,
@@ -381,6 +390,8 @@ func _apply_state_dict(d: Dictionary) -> void:
 	result_shards_earned = int(d.get("result_shards_earned", 0))
 	_rng = Rng.new(int(d.get("rng_state", 0)))
 	reroll_k = int(d.get("reroll_k", 0))
+	bo = _bo_from_data(d.get("bo", []))
+	depth_stage = clampi(int(d.get("depth_stage", 3)), 1, 3)
 	reroll_nonaid = int(d.get("reroll_nonaid", 0))
 	relic_combat = (d.get("relic_combat", {}) as Dictionary).duplicate(true)
 	relic_run_in = (d.get("relic_run_in", {}) as Dictionary).duplicate(true)
@@ -533,6 +544,7 @@ func _set_turn_phase(new_phase: int) -> void:
 ## ROLL — both sides roll simultaneously, cantrips auto-resolve. engine.js rollAll(s).
 func roll_all() -> void:
 	_drop_phantoms()
+	bo = []   # cantrips resolved below read M = 1; the new snapshot is taken at the end
 	for u in party:
 		u.overcast = false
 		if u.custom_state.has("asleep"):
@@ -570,6 +582,7 @@ func roll_all() -> void:
 	_resolve_cantrips()
 	RelicHooks.fire(self, "on_roll_end", {"combat": self})
 	RelicHooks.fire(self, "on_roll_settled", {"combat": self, "rerolled_uids": []})   # H1b
+	_snap_bo()
 
 
 ## Depth v3 Core Concord (hook `roll_share_class`): Axies of one class that rolled fresh this turn all show the face
@@ -886,6 +899,7 @@ func reroll_dice(uids: Array, seed: int = -1, from_aid: bool = false) -> bool:
 	for ru in list:
 		settled.append((ru as Unit).uid)
 	RelicHooks.fire(self, "on_roll_settled", {"combat": self, "rerolled_uids": settled})   # H1b
+	_snap_bo()
 	# JS clears the undo stack on reroll ONLY when the party lacks `safeReroll`
 	# (engine.js:502). Clearing unconditionally quietly disabled that relic's whole point.
 	if not RelicHooks.has(self, "safeReroll"):
@@ -1230,6 +1244,7 @@ func _roll_edit(fn: String, p_kind: String, uid_a: int, uid_b: int, face_index: 
 	if not bool(ctx["ok"]):
 		undo_stack.pop_back()
 		return false
+	_snap_bo()
 	_log(fn, log_args)
 	return true
 
@@ -1302,8 +1317,14 @@ func overcast_cost() -> int:
 	return maxi(0, int(tune_knob("overcast", "mana_cost", 3.0)))
 
 
+## Depth v4 3.7: Overcast adds this to the M bag (knob overcast.add, default 0.5). No own multiplier any more.
+func overcast_add() -> float:
+	return maxf(0.0, tune_knob("overcast", "add", 0.5))
+
+
+## DEPRECATED shim for the old UI tooltip ("x1.5"): 1 + overcast_add(). The UI step should show the preview instead.
 func overcast_mult() -> float:
-	return maxf(1.0, tune_knob("overcast", "mult", 1.5))
+	return 1.0 + overcast_add()
 
 
 func overcast_per_turn() -> int:
@@ -1323,8 +1344,10 @@ func overcast_block_reason(unit_uid: int) -> String:
 	if won or lost or phase != CombatPhase.EXECUTE:
 		return "Not your turn"
 	var u := by_uid(unit_uid)
-	if u == null or u.side != "p" or u.is_token or u.hp <= 0 or not u.has_rolled():
+	if u == null or u.side != "p" or u.is_token or u.custom_state.has("phantom") or u.hp <= 0 or not u.has_rolled():
 		return "No die"
+	if depth_stage < 3:
+		return "Not unlocked yet"
 	if u.roll_used():
 		return "Die already used"
 	if u.held:
@@ -1335,9 +1358,9 @@ func overcast_block_reason(unit_uid: int) -> String:
 		return "Already overcast"
 	if overcast_count() >= overcast_per_turn():
 		return "1 Overcast per turn"
-	if _has_kw(u.current_face(), "cantrip") or String(u.current_face().get("type", "")) == "mana":
+	if _has_kw(u.current_face(), "cantrip") or not BO_TYPES.has(String(u.current_face().get("type", ""))):
 		return "Not on this face"
-	if _face_value(u, u.roll_face_index()) <= 0:
+	if _face_base(u, u.roll_face_index()) < 1.0:
 		return "Face has no value"
 	if mana < overcast_cost():
 		return "Needs %d mana" % overcast_cost()
@@ -1468,7 +1491,13 @@ func _log_resonance_attempt(u: Unit, f: Dictionary, was_consumer: bool) -> void:
 var core_emit: bool = false
 
 
-func _face_value(u: Unit, fi: int) -> int:
+const BO_TYPES := ["dmg", "shield", "heal", "poison"]   # the face types the M bag multiplies (design 3.4)
+const CRACK_TYPES := ["dmg", "shield", "heal", "poison", "mana"]   # faces that carry a number: Crack halves them (design 3.4 step 2)
+
+
+## Steps 1-3 of design 3.4 (base value, Crack, R12 / CONDUIT flat adds). Returns -1.0 for a blinded attack (value 0, no hooks).
+## This is `v0` for the Overcast check (v0 >= 1).
+func _face_base(u: Unit, fi: int) -> float:
 	var f: Dictionary = u.die[fi]
 	var v: float = float(f.get("value", 0)) + float(u.get_growth(fi))
 	if _has_kw(f, "vital") and u.hp == u.max_hp:
@@ -1476,7 +1505,7 @@ func _face_value(u: Unit, fi: int) -> int:
 	var face_type := String(f.get("type", ""))
 	if face_type == "dmg":
 		if int(u.status.get("blind", 0)) > 0:
-			return 0
+			return -1.0
 		if int(u.status.get("weaken", 0)) > 0:
 			v = max(0.0, v - int(u.status["weaken"]))
 		if u.overdrive:
@@ -1486,20 +1515,126 @@ func _face_value(u: Unit, fi: int) -> int:
 		if u.side == "e":
 			# base x (1 + enrage% + attrition%) x spike, rounded half up (monetization-v1 §1.2).
 			v = float(RulesMath.round_half_up(v * enemy_dmg_factor(u) * boss_hollow_dealt_mult(u) * affix_dealt_mult(u) * CombatTraits.charge_mult(u)))
+	if u.cracked and u.side == "p" and v >= 1.0 and CRACK_TYPES.has(face_type):
+		v = ceil(v / maxf(1.0, tune_knob("crack", "value_div", 2.0)))   # step 2: Crack (v >= 1 stays >= 1)
 	var sfb := CombatTraits.side_face_bonus(self, u, face_type, v)
 	if core_emit and sfb > 0 and CoreHooks.RelicHooks_has(self, "rule_hard_shell"):
 		CoreHooks.fire("rule_hard_shell", u.uid, sfb, face_type)
 	v += sfb                                                                # R12 Vo Cung: +2 on shield / poison faces of the Axie
 	if face_type == "mana" and u.side == "p" and u.cls == "aqua":
 		v += 1.0                                                        # CONDUIT passive
+	return v
+
+
+func _face_value(u: Unit, fi: int) -> int:
+	var f: Dictionary = u.die[fi]
+	var face_type := String(f.get("type", ""))
+	var v: float = _face_base(u, fi)
+	if v < 0.0:
+		return 0
+	# Step 4: the M bag, one integer multiply (design 3.4). Never on mana / debuff / summon / blank.
+	if u.side == "p" and BO_TYPES.has(face_type):
+		var m100 := m100_for(u)
+		if m100 > 100:
+			v = float(_mul_up(int(v), m100))
 	if u.side == "p" and u.resonant_now:
 		v = ceil(v * RESONANCE_MULT)
-	var final_v := int(RelicHooks.run_value_hook(self, "face_final", {"combat": self, "unit": u, "face_type": face_type, "part": String(f.get("part", "")), "fi": fi}, int(v)))
-	# Overcast (own multiplier): applied LAST, after the Core +10/face room, so it multiplies the finished value
-	# and is not itself capped. Never on a mana face (no mana loop).
-	if u.overcast and u.side == "p" and face_type != "mana" and final_v > 0:
-		final_v = int(ceil(float(final_v) * overcast_mult()))
-	return final_v
+	return int(RelicHooks.run_value_hook(self, "face_final", {"combat": self, "unit": u, "face_type": face_type, "part": String(f.get("part", "")), "fi": fi}, int(v)))
+
+
+@warning_ignore("integer_division")
+static func _mul_up(v: int, m100: int) -> int:
+	return (v * m100 + 99) / 100
+
+
+## M bag of a die in percent (100 = x1.00): 100 + its Set add (from the snapshot) + Overcast add, clamped to [100, bo.m_cap].
+## Core adds (design 10) are not done yet.
+func m100_for(u: Unit) -> int:
+	if u.side != "p":
+		return 100
+	var add := 0
+	for g in bo:
+		if (g["uids"] as Array).has(u.uid):
+			add += int(g["m100"]) - 100
+			break
+	if u.overcast:
+		add += roundi(overcast_add() * 100.0)
+	return clampi(100 + add, 100, bo_cap100())
+
+
+func bo_cap100() -> int:
+	return maxi(100, roundi(tune_knob("bo", "m_cap", 3.0) * 100.0))
+
+
+## Set add in percent for a group of `size` dice: round(add_N * scale * 100) (design 3.4, N11: each term rounded once).
+func bo_add100(size: int) -> int:
+	var n := clampi(size, 3, 5)
+	var def := {3: 0.5, 4: 1.0, 5: 2.0}[n] as float
+	return roundi(tune_knob("bo", "add_%d" % n, def) * tune_knob("bo", "scale", 0.8) * 100.0)
+
+
+## Pure: the Set groups for the CURRENT faces (design 3.2). Does not touch state. Concord (hook roll_share_class): per class only the
+## first eligible die of `party` counts, filtered BEFORE wild_slot is applied.
+func recompute_bo() -> Array:
+	if int(tune_knob("bo", "enabled", 1.0)) == 0:
+		return []
+	var concord := bool(RelicHooks.run_value_hook(self, "roll_share_class", {"combat": self}, false))
+	var phantom_ok := int(tune_knob("bo", "phantom_counts", 0.0)) != 0
+	var seen_cls := {}
+	var by_part := {}   # part index -> [Unit]
+	for u in party:
+		if u.side != "p" or u.is_token or u.hp <= 0 or not u.has_rolled() or u.custom_state.has("asleep"):
+			continue
+		if u.custom_state.has("phantom") and not phantom_ok:
+			continue
+		if u.cracked or String((u.die[u.roll_face_index()] as Dictionary).get("type", "")) == "blank":
+			continue
+		if concord and u.cls != "":
+			if seen_cls.has(u.cls):
+				continue
+			seen_cls[u.cls] = true
+		var part: int = u.wild_slot if u.wild_slot >= 0 else u.roll_face_index()
+		if not by_part.has(part):
+			by_part[part] = []
+		(by_part[part] as Array).append(u)
+	var out: Array = []
+	var hi_r := int(tune_knob("part", "hi_r", 2.0))
+	var hi_add := roundi(tune_knob("part", "hi_add", 0.25) * 100.0)
+	for part in by_part:
+		var us: Array = by_part[part]
+		if us.size() < 3:
+			continue
+		var hi := false
+		if depth_stage >= 3 and hi_add > 0:
+			for u in us:
+				if int((u.die[u.roll_face_index()] as Dictionary).get("rarity", 0)) >= hi_r:
+					hi = true
+					break
+		var uids: Array = []
+		for u in us:
+			uids.append(u.uid)
+		var m := 100 + bo_add100(us.size()) + (hi_add if hi else 0)
+		out.append({"part": int(part), "size": us.size(), "uids": uids, "hi": hi, "m100": clampi(m, 100, bo_cap100())})
+	return out
+
+
+## Takes the snapshot (the only writer of `bo` besides roll_all's reset and load) and tells the UI when it changed.
+func _snap_bo() -> void:
+	var nb := recompute_bo()
+	if JSON.stringify(nb) == JSON.stringify(bo):
+		return
+	bo = nb
+	EventBus.bo_changed.emit(_dup_dict_array(bo))
+
+
+static func _bo_from_data(raw: Array) -> Array:
+	var out: Array = []
+	for g in raw:
+		var uids: Array = []
+		for x in (g["uids"] as Array):
+			uids.append(int(x))
+		out.append({"part": int(g["part"]), "size": int(g["size"]), "uids": uids, "hi": bool(g["hi"]), "m100": int(g["m100"])})
+	return out
 
 
 ## UI preview (design 8.6 item 7, "4 -> 1"): what die face `fi` of `src` would do to `target` as a single-target hit,

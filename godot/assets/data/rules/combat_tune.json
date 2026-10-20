@@ -33,8 +33,25 @@
  },
  "overcast": {
   "mana_cost": 3,
-  "mult": 1.5,
+  "add": 0.5,
   "per_turn": 1
+ },
+ "bo": {
+  "enabled": 1,
+  "add_3": 0.5,
+  "add_4": 1.0,
+  "add_5": 2.0,
+  "scale": 0.8,
+  "m_cap": 3.0,
+  "phantom_counts": 0
+ },
+ "crack": {
+  "pct": 30,
+  "value_div": 2
+ },
+ "part": {
+  "hi_add": 0.25,
+  "hi_r": 2
  },
  "stash": {
   "cap": 1
