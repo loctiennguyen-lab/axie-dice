@@ -38,6 +38,11 @@ var perks: Dictionary = {}             # perk key -> stack count (reroll/relic0/
 ## worker/src/runs.js newcomer()). Counted once per run by RunState.apply_combat_result, so runs
 ## abandoned after a battle count and runs abandoned before any battle do not.
 var runs_with_battle: int = 0
+## Depth v4 (GDD stages): runs that ended won/lost on this account. Bumped by RunState.end_run, offline stage comes from it
+## (same thresholds as worker/src/runs.js depthStage()). Old saves without it: derived from runs / runs_with_battle.
+var runs_completed: int = 0
+const DEPTH_STAGE2_RUNS := 1
+const DEPTH_STAGE3_RUNS := 3
 ## Sample Continue (monetization-v1 2.6, E13): true once the account has had its free Continue. Remote runs: the
 ## server keeps the real flag (wallet ledger key free_continue); this copy is what the UI shows.
 var free_continue_used: bool = false
@@ -557,6 +562,7 @@ func reload_from_store() -> void:
 	asc_max = 0
 	runs = 0
 	runs_with_battle = 0
+	runs_completed = 0
 	free_continue_used = false
 	battle_counted_seed = -1
 	wins = 0
@@ -652,6 +658,8 @@ func load_from_disk() -> void:
 	runs = int(parsed.get("runs", 0))
 	# Old saves have no counter: runs is the best available stand-in.
 	runs_with_battle = int(parsed.get("runs_with_battle", runs))
+	# Old saves have no counter: the larger of the two older counters, so an account past the newcomer gate is never sent back to stage 1.
+	runs_completed = int(parsed.get("runs_completed", maxi(runs, runs_with_battle)))
 	free_continue_used = bool(parsed.get("free_continue_used", false))
 	battle_counted_seed = int(parsed.get("battle_counted_seed", -1))
 	wins = int(parsed.get("wins", 0))
@@ -820,6 +828,21 @@ func is_newcomer() -> bool:
 	return runs_with_battle < int(EconomyDBScript.get_table("missions").get("newcomer_runs", 5))
 
 
+## Depth stage for an OFFLINE run (an online run takes it from the server header). Mirrors worker/src/runs.js depthStage():
+## >= stage3_runs completed -> 3, >= 1 -> 2, none: still a newcomer -> 1, else (old account) 3. Constants = worker STAGE2_RUNS / STAGE3_RUNS (kept out of rules JSON: no rules-version bump).
+func depth_stage() -> int:
+	if runs_completed >= DEPTH_STAGE3_RUNS:
+		return 3
+	if runs_completed >= DEPTH_STAGE2_RUNS:
+		return 2
+	return 1 if is_newcomer() else 3
+
+
+## Called by RunState.end_run for every run that ended won/lost.
+func note_run_completed() -> void:
+	runs_completed += 1
+
+
 func free_continue_left() -> bool:
 	return not free_continue_used
 
@@ -892,6 +915,7 @@ func save_to_disk() -> void:
 		"asc_max": asc_max,
 		"runs": runs,
 		"runs_with_battle": runs_with_battle,
+		"runs_completed": runs_completed,
 		"battle_counted_seed": battle_counted_seed,
 		"free_continue_used": free_continue_used,
 		"wins": wins,

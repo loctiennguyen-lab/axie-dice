@@ -45,6 +45,7 @@ func _ready() -> void:
 	MetaState.asc_max = 3
 	MetaState.runs = 9
 	MetaState.runs_with_battle = 9
+	MetaState.runs_completed = 9
 	MetaState.unlocks.erase("u_full")
 	MainMenu.pending_team = []
 
@@ -278,6 +279,14 @@ func _kind_tests() -> void:
 	var s3 := await _make()
 	_ok(s3.kind_block_reason("ranked") == "Opens after 5 runs · 2 of 5" and not s3.select_kind("ranked"), "newcomer: Ranked locked")
 	s3.queue_free()
+	# depth stage < 3 (2 runs completed, not a newcomer): Ranked locked by the stage gate (Worker: ranked_stage)
+	MetaState.runs_with_battle = 9
+	MetaState.runs_completed = 2
+	var s3b := await _make()
+	_ok(s3b.kind_block_reason("ranked") == "Ranked opens at depth stage 3" and not s3b.select_kind("ranked"), "stage 2: Ranked locked")
+	_ok(int(s3b.start_params().get("depth_stage", 0)) == 2, "start_params carries the offline depth_stage")
+	s3b.queue_free()
+	MetaState.runs_completed = 9
 	# local (non-remote) build: both locked, begin untouched
 	var s4: RunSetup = load("res://scenes/run_setup/RunSetup.tscn").instantiate()
 	s4.use_account = false

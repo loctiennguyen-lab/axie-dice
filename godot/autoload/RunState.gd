@@ -1038,6 +1038,7 @@ func end_run(won: bool) -> void:
 
 	# Lifetime stats and the Ascension ladder (src/client.html onRunEnd(), :5436-5446).
 	MetaState.runs += 1
+	MetaState.note_run_completed()
 	if power_level > MetaState.best:
 		MetaState.best = power_level
 	if won:
