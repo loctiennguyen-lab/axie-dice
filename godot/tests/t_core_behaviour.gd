@@ -22,6 +22,7 @@ func _ready() -> void:
 	t_lane_e_cores()
 	t_lane_e_rules()
 	t_thorn_cores()
+	t_fx_proofs()
 	print("=== t_core_behaviour: %d checks, %d failure(s) ===" % [_checks, _fails.size()])
 	if _fails.is_empty():
 		print("t_core_behaviour: PASS — %d checks OK" % _checks)
@@ -767,3 +768,97 @@ func t_thorn_cores() -> void:
 	for x in c2.party:
 		x.status["thorns"] = 0
 	_ok(CoreHooks.rebound_unit(c2) == null, "thorn_rebound: nobody has thorns -> no unit")
+
+
+## Depth v3 lane FX review proofs 3c / 3d / 3e / 3g.
+func t_fx_proofs() -> void:
+	# 3c: baked Hard Shell (+2 on a shield face) counts against the +10 room, so Kindle (+8) gets all 8 and nothing more
+	var base_c := _combat([])
+	var base := _val(base_c, base_c.party[0], "shield", 5)
+	var c := _combat(["rule_hard_shell", "c_kindle", "c_field_medic"])
+	var u: Unit = c.party[0]
+	RelicHooks.fire(c, "on_stash", {"combat": c, "unit": u, "face": u.die[0], "fi": 0})
+	u.stash_carry = true
+	RelicHooks.fire(c, "on_stash", {"combat": c, "unit": u, "face": u.die[0], "fi": 0})
+	_ok(_val(c, u, "shield", 5) - base == 10, "3c: Hard Shell +2 + Kindle +8 = +10 and Field Medic gets 0 (delta %d)" % (_val(c, u, "shield", 5) - base))
+	_ok(CoreHooks.flat_total(c, u, "shield") == 10, "3c: flat_total stays <= +10 with a baked bonus (%d, baked %d, kindle %d, medic %d)" % [CoreHooks.flat_total(c, u, "shield"), CoreHooks.baked(c, u, "shield", 0), CoreHooks.bonus(c, u, "shield", "c_kindle"), CoreHooks.bonus(c, u, "shield", "c_field_medic")])
+	# 3c: x1.5 Cores use knob core.mult_cap (default 8): +50% of 40 would be +20
+	_ok(CoreHooks.mult_gain(40) == 48 and CoreHooks.mult_gain(4) == 6, "3c: mult_gain capped at +8 (40 -> %d) and plain +50%% below it" % CoreHooks.mult_gain(40))
+	# 3d: Three Dice + Finisher: the third die used is the last one even though two dice are still unused
+	c = _combat(["c_three_dice", "c_finisher", "c_kindle", "c_chimera_hunt"])
+	_fresh_turn(c)
+	_used(c, c.party[0], "dmg")
+	_used(c, c.party[1], "dmg")
+	_ok(CoreHooks.is_finisher(c, c.party[2]), "3d: 3rd die with Three Dice is the finisher (n=%s, rolled %s used %s held %s)" % [CoreHooks.turn_state(c, "cs_three").get("n"), c.party[2].has_rolled(), c.party[2].roll_used(), c.party[2].held])
+	_ok(CoreHooks.finisher_bonus(c, c.party[2]) == 2, "3d: Finisher +2 for the 3rd die")
+	RelicHooks.fire(c, "on_kill", {"combat": c, "tgt": c.enemies[0], "killer": c.party[2]})
+	_ok(int(CoreHooks.quest(c, "c_chimera_hunt")["n"]) == 1, "3d: Chimera Hunt counts a kill by the 3rd die")
+	_used(c, c.party[2], "dmg")
+	_ok(c.party[3].held and int((CoreHooks.combat_state(c, "focus_c_kindle").get(str(c.party[3].uid), {}) as Dictionary).get("v", 0)) == 4, "3d: auto-held die also gets Kindle Focus +4")
+	c = _combat(["c_three_dice", "rule_tundra"])
+	_fresh_turn(c)
+	for i in 3:
+		_used(c, c.party[i], "dmg")
+	_ok(int((CoreHooks.combat_state(c, "focus_rule_tundra").get(str(c.party[3].uid), {}) as Dictionary).get("v", 0)) == 2, "3d: auto-held die gets Tundra Focus +2")
+	# 3e: Field Medic +3 on numeric debuff keywords, needs 2 non-dmg faces
+	c = _combat(["c_field_medic"])
+	u = c.party[0]
+	u.die[1] = {"type": "debuff", "value": 0, "keywords": ["weaken:2"], "name": "t", "part": ""}
+	CoreHooks.field_medic_face({"combat": c, "unit": u})
+	_ok((u.die[1]["keywords"] as Array).has("weaken:5"), "3e: Field Medic debuff keyword +3")
+	_ok(String(",".join(RelicRegistry.get_def("c_field_medic").requires)).contains("faces_nondmg:2"), "3e: Field Medic requires faces_nondmg:2")
+	# 3e: Backline Glow lifts buff keywords of a back-row Axie
+	c = _combat(["c_backline_glow"])
+	u = c.party[4]
+	u.die[1] = {"type": "buff", "value": 0, "keywords": ["regen:4"], "name": "t", "part": ""}
+	CoreHooks.backline_face({"combat": c, "unit": u})
+	_ok((u.die[1]["keywords"] as Array).has("regen:6"), "3e: Backline Glow buff keyword x1.5")
+	# 3e: Take The Field turns buff faces into 2-dmg faces
+	c = _combat(["c_descend"])
+	u = c.party[0]
+	c.relic_combat["descend"] = {"idx": u.roster_index}
+	u.die[1] = {"type": "buff", "value": 0, "keywords": ["regen:4"], "name": "t", "part": ""}
+	CoreHooks.descend_face({"combat": c, "unit": u})
+	_ok(String(u.die[1]["type"]) == "dmg" and int(u.die[1]["value"]) == 2 and (u.die[1]["keywords"] as Array).is_empty(), "3e: Descend buff -> dmg 2")
+	# 3e: Fissure also marks on a debuff face
+	c = _combat(["c_fissure"])
+	var en = c.enemies[0]
+	RelicHooks.fire(c, "on_face_used", {"combat": c, "unit": c.party[0], "face": {"type": "debuff", "value": 0, "keywords": ["weaken:2"]},
+		"fi": 0, "target_uid": en.uid, "side": "p", "depth": 0})
+	_ok(int(en.custom_state.get("fissure", -1)) >= int(c.turn), "3e: Fissure marks on a debuff face")
+	# 3e: Shield Wave with nobody targeting the Axie hits one random enemy
+	c = _combat(["c_sonic_shield"])
+	var hp_sum := 0
+	for e in c.enemies:
+		e.intent = {}
+		hp_sum += int(e.hp)
+	_used(c, c.party[0], "shield", 6, c.party[0].uid)
+	var hp_now := 0
+	for e in c.enemies:
+		hp_now += int(e.hp)
+	_ok(hp_sum - hp_now == 3, "3e: Shield Wave random enemy takes half (lost %d)" % (hp_sum - hp_now))
+	# 3e: Mirror Face / Three Dice no longer exclude each other
+	_ok(not Array(RelicRegistry.get_def("c_mirror_face").excludes).has("owned:c_three_dice") and not Array(RelicRegistry.get_def("c_three_dice").excludes).has("owned:c_mirror_face"), "3e: Mirror Face / Three Dice not mutually excluded")
+	# 3e: Night Watch: +3 HP front row only, only the NEXT boss counts
+	var nb := _combat([])
+	c = _combat(["c_night_watch"])
+	_ok(c.party[0].max_hp == nb.party[0].max_hp + 3 and c.party[4].max_hp == nb.party[4].max_hp, "3e: Night Watch +3 Max HP on the front row only")
+	c.party[1].hp = 0
+	RelicHooks.fire(c, "on_combat_end", {"combat": c, "node_kind": "boss", "result": "won"})
+	_ok(not CoreHooks.quest_done(c, "c_night_watch") and int(CoreHooks.quest(c, "c_night_watch")["boss"]) == 1, "3e: Night Watch first boss with a fallen Axie ends the quest chance")
+	c.party[1].hp = 5
+	RelicHooks.fire(c, "on_combat_end", {"combat": c, "node_kind": "boss", "result": "won"})
+	_ok(not CoreHooks.quest_done(c, "c_night_watch"), "3e: Night Watch later boss does not count")
+	# 3g: Mirror Face: a die waiting for its second use does not stop another die being the Final Blow
+	c = _combat(["c_mirror_face", "c_finisher"])
+	for i in [2, 3, 4]:
+		c.party[i].clear_roll()
+	_used(c, c.party[0], "dmg")
+	c.party[1].set_roll(0, false)
+	_ok(CoreHooks.mirror_second(c, c.party[0]) and CoreHooks.is_finisher(c, c.party[1]), "3g: Mirror Face waiting die does not block Final Blow")
+
+
+## A cantrip face resolved at roll time already counted as a use this turn: wipe the per-turn counters.
+func _fresh_turn(c: CombatEngine) -> void:
+	for k in ["cs_three", "cs_used", "cs_types", "cs_mirror"]:
+		c.relic_combat.erase(k)
