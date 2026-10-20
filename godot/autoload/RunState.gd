@@ -494,6 +494,12 @@ func _start_core(start_reply: EpochReply, params: Dictionary, display_seed: int)
 	loadout["bonuses"] = meta_bonus.duplicate(true)
 	loadout["boon_id"] = boon_id
 	loadout["rules_on"] = bool(loadout.get("rules_on", params.get("rules_on", MetaState.runs > 0)))
+	if ranked:
+		# Ranked never skips the Run Rule (no first-run exemption), and core_off is a test/tool switch only: the
+		# verifier refuses a ranked log that claims otherwise (depth-v3-contract, lane B review).
+		loadout["rules_on"] = true
+		if not core_flow_switches_allowed():
+			loadout["core_off"] = false
 	var hdr_extra: Dictionary = start_reply.extra.get("header", {}) as Dictionary
 	action_log.set_epoch_header(String(start_reply.extra.get("run_id", "")),
 		String(start_reply.extra.get("client_nonce", "")), loadout,
@@ -2063,6 +2069,16 @@ func clear_saved_run() -> void:
 # ===========================================================================
 
 ## `pick` = the pick index the context is for (-1: the next one). A reroll must use the index its offer was built with.
+## Test hook: pretend to be a shipped build (so a test can prove the verifier refuses core_off).
+static var simulate_shipped_build: bool = false
+
+
+## True only in the editor / headless test binary. `core_off` (and `rules_on = false` in ranked) must never be honoured
+## by a shipped build, so a client cannot dodge the Run Rule or the Core flow by editing its loadout.
+static func core_flow_switches_allowed() -> bool:
+	return OS.has_feature("editor") and not simulate_shipped_build
+
+
 func _core_ctx(pick: int = -1) -> Dictionary:
 	return {"owned_ids": owned_relic_ids, "roster": roster, "seen": core_seen, "mode": mode,
 		"first_run": not rules_on, "pick_index": core_pick_index if pick < 0 else pick, "front_size": 2}

@@ -81,6 +81,26 @@ func _ready() -> void:
 		tm2.entries[si]["args"] = [int(tm2.entries[si]["args"][0]), "c_test_not_owned"]
 		var bad2 := RunVerifier.verify(tm2, played["tape"])
 		_assert(not bool(bad2["ok"]), "selling a Core that is not owned is refused")
+	# Tamper 3 (review): ranked cannot dodge the Run Rule, nor switch the Core flow off.
+	_assert(bool((log.header["loadout"] as Dictionary).get("rules_on", false)), "ranked header says rules_on = true (even in a first run)")
+	var tm3 := _clone(log)
+	(tm3.header["loadout"] as Dictionary)["rules_on"] = false
+	var bad3 := RunVerifier.verify(tm3, played["tape"])
+	_assert(not bool(bad3["ok"]) and String(bad3["error"]) == RunVerifier.ERR_BAD_HEADER, "ranked log with rules_on=false is refused")
+	var tm4 := _clone(log)
+	(tm4.header["loadout"] as Dictionary)["core_off"] = true
+	RunState.simulate_shipped_build = true
+	var bad4 := RunVerifier.verify(tm4, played["tape"])
+	RunState.simulate_shipped_build = false
+	_assert(not bool(bad4["ok"]) and String(bad4["error"]) == RunVerifier.ERR_BAD_HEADER, "ranked log with core_off=true is refused outside test mode")
+	# a ranked run started with the switches asked for does not get them in a shipped build
+	RunState.simulate_shipped_build = true
+	RunState.reset()
+	RunState.start_new_run_seeded(21, {"team_keys": TEAM, "mode": "short", "ascension": 0, "ranked": true, "bonuses": {},
+		"loadout": {"rules_on": false, "core_off": true}})
+	RunState.simulate_shipped_build = false
+	_assert(RunState.rules_on and not RunState.core_off, "ranked start forces rules_on and drops core_off in a shipped build")
+	t.core_slots = 2
 	t.core_slots = old_slots
 	# Shop sells a Core pick (not a relic), and the money is in-run shards only.
 	RunState.reset()

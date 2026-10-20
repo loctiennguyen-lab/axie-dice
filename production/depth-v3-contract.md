@@ -60,3 +60,7 @@ Commit: bb77554 (schema + ẩn relic cũ + CoreOffer + slots), ddeb88a (flow Run
 
 ### Làn B - cập nhật cuối (agent 2)
 Xong bước 7 (event chest/bet_small/gamble_legend xếp 1 lần chọn Lõi vào `core_bonus_queue`: chest = Hổ Phách, bet_small thắng và gamble_legend = Tinh Thể; shop có món "Core Pick" bậc Rêu giá `core_shop_cost`=60 shard trong run, đặt cuối danh sách, shop không còn bán relic cũ ở chế độ Lõi; không bán reroll Lõi), knob R6 `core_skip_picks` (mảng chỉ số lần chọn bị bỏ, 0-based; R6 = [1]; chưa có file R6, "+4 Max HP" chưa làm), test `t_core_replay` (RunBot có `core_script`, `drain_core_offers`), INV-6 trong build-spec. Pick Lõi từ event/shop mở ở `after_node` kế (không mở giữa shop). `pick_relic` và `pick_offer_relic` bỏ qua Lõi. Shop refresh (Aid R6) giờ ra hàng giống hệt (không còn relic ngẫu nhiên): cần hỏi Liam/economy có cần đổi. Giá 60 và bậc event là đoán.
+
+### Làn B - sửa theo review (agent 3)
+- Reroll Lõi dùng đúng pick index của offer đang mở (`RunState._core_offer_pick`, lưu trong save `core.offer_pick`); `CoreOffer.reroll_card` giữ trần stat/quest mỗi bộ ba ở cả nhánh "trục khác".
+- Ranked: `rules_on` luôn true (bỏ miễn trừ run đầu), `core_off` bị bỏ ở bản shipped. `RunVerifier` từ chối (bad_header) log ranked có `loadout.rules_on=false`, hoặc `loadout.core_off=true` khi không phải editor/test (`RunState.core_flow_switches_allowed()`). Chưa bump RULES_VERSION: lúc ghép, nhớ rằng log ranked run đầu của tài khoản nay có offer Luật nên đổi hành vi so với bản trước.
