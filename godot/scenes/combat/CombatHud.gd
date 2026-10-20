@@ -24,6 +24,7 @@ const HINT_H := 24.0
 const UNDO_W := 88.0
 const INFO_W := 288.0
 
+var core_panel: CorePanel            ## depth v3: 6 Core slots + Run rule slot + quest chips
 var relic_strip: HBoxContainer      ## kept as a public name: tests hover relic chips here
 var actives_row: HBoxContainer
 
@@ -130,6 +131,8 @@ func _build_top() -> void:
 	rrow.add_theme_constant_override("separation", 4)
 	rrow.alignment = BoxContainer.ALIGNMENT_CENTER
 	_relic_plate.add_child(rrow)
+	core_panel = CorePanel.new()
+	rrow.add_child(core_panel)
 	relic_strip = HBoxContainer.new()
 	relic_strip.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	relic_strip.add_theme_constant_override("separation", 4)
@@ -437,9 +440,11 @@ func update_top(d: Dictionary) -> void:
 		mc.tooltip_text = "Mana: spent only on relic actives"
 		mc.mouse_filter = Control.MOUSE_FILTER_STOP
 		_mana_box.add_child(mc)
-	_divider.visible = (d.get("actives", []) as Array).size() > 0 and relics.size() > 0
+	var has_cores := core_panel.refresh()
+	core_panel.visible = has_cores
+	_divider.visible = (d.get("actives", []) as Array).size() > 0 and (relics.size() > 0 or has_cores)
 	relic_strip.visible = relics.size() > 0
-	_relic_plate.visible = relics.size() > 0 or (d.get("actives", []) as Array).size() > 0
+	_relic_plate.visible = has_cores or relics.size() > 0 or (d.get("actives", []) as Array).size() > 0
 	_fight_label.text = String(d.get("title", ""))
 	var asc := int(d.get("ascension", 0))
 	_turn_label.text = ("A%d · " % asc if asc > 0 else "") + TranslationServer.translate("Turn") + " %d" % int(d.get("turn", 1))

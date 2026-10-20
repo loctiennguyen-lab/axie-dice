@@ -1098,7 +1098,7 @@ func _update_hud() -> void:
 			actives.append({"id": String(def.id), "icon": _relic_icon_for(def),
 				"charges": act_cost, "spent": not affordable,
 				"armed": _selected_active_id == String(def.id), "tip": _relic_tooltip(def)})
-		else:
+		elif not RelicSlots.is_core(def):   # Cores live in the CorePanel (6 slots + rule slot)
 			relics.append({"icon": _relic_icon_for(def), "tip": _relic_tooltip(def)})
 	_hud_frame.update_top({
 		"relics": relics, "actives": actives.slice(0, 3), "mana": _combat.mana,

@@ -786,6 +786,10 @@ func _rebuild_left() -> void:
 	rcol.add_theme_constant_override("separation", 8)
 	bottom.add_child(rcol)
 	rcol.add_child(UI3.label(tr("Relics · %d") % RunState.owned_relic_ids.size(), "LabelTitle"))
+	var core_panel := CorePanel.new()
+	core_panel.slot_px = 40
+	rcol.add_child(core_panel)
+	core_panel.visible = core_panel.refresh()
 	var scroll := ScrollContainer.new()
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	scroll.get_v_scroll_bar().custom_minimum_size.x = UI3Theme.SCROLL_W
@@ -836,8 +840,10 @@ func _build_relic_row(relic_id: String) -> Control:
 	name_lbl.clip_text = true
 	name_lbl.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
 	line.add_child(name_lbl)
-	var rar_lbl := UI3.label(_rarity_name(rarity))
-	rar_lbl.add_theme_color_override("font_color", _rarity_color(rarity))
+	var is_core: bool = RelicSlots.is_core(def)
+	var rar_lbl := UI3.label(tr(CorePanel.TIER_NAME[clampi(rarity, 0, 2)]) if is_core and String(def.core_axis) != "run_rule" \
+		else (tr("Run rule") if is_core else _rarity_name(rarity)))
+	rar_lbl.add_theme_color_override("font_color", UI3Theme.color(CorePanel.TIER_TOKEN[clampi(rarity, 0, 2)]) if is_core else _rarity_color(rarity))
 	line.add_child(rar_lbl)
 	return row
 
