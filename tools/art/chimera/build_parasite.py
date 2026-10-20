@@ -116,6 +116,7 @@ def gate(n, p):
     return True
 
 
+ARM_COLOR = [0.55, 0.12, 0.08]   # filled by split_hands: mean linear red of the body/arm texture
 HAND_COLOR = [0.3, 0.7, 0.7]   # filled by split_hands: mean linear colour of the hand texture
 
 
@@ -173,6 +174,19 @@ def split_hands(obj):
         if len(comp) >= 5 and min(abs(lo[0]), abs(hi[0])) > 0.2 and lo[0] * hi[0] > 0 \
                 and lo[2] > -0.66 and hi[2] < -0.15 and hi[1] < 0.0:
             hand.update(comp)
+    reds = []
+    red_uvs = []
+    for f in bm.faces:
+        p_ = f.calc_center_median() - Vector((0, 0, F))
+        if 0.08 < abs(p_.x) < 0.3 and -0.3 < p_.z < 0.0 and p_.y < 0.0:
+            us = [l[uv].uv for l in f.loops]
+            c_ = np.mean([px[min(h - 1, int(q.y * h)), min(w - 1, int(q.x * w)), :3] for q in us], axis=0)
+            if c_[0] > 0.45 and c_[1] < 0.3 and c_[2] < 0.25:
+                reds.append(c_)
+                red_uvs.append(sum(us, Vector((0, 0))) / len(us))
+    if reds:
+        ARM_COLOR[:] = np.mean(reds, axis=0).tolist()
+    print("PARASITE arm red from", len(reds), "faces", [round(x, 2) for x in ARM_COLOR])
     HAND_COLOR[:] = np.mean([cols[i] for i in hand], axis=0).tolist()
     edges = [e for e in bm.edges if len(e.link_faces) == 2
              and ((e.link_faces[0].index in hand) != (e.link_faces[1].index in hand))]
@@ -271,6 +285,21 @@ def split_hands(obj):
     bm.verts.ensure_lookup_table()
     bm.edges.index_update()
     bm.faces.index_update()
+    # the top of each hand piece is really forearm: paint it body-red so only the claws read cyan
+    if red_uvs:
+        ref_uv = sorted(red_uvs, key=lambda q: (q.x, q.y))[len(red_uvs) // 2]
+        n_fore = 0
+        for sg in (1, -1):
+            fs = [f for f in bm.faces if f.tag and sg * f.calc_center_median().x > 0.15]
+            if not fs:
+                continue
+            ztop = max(v.co.z for f in fs for v in f.verts)
+            for f in fs:
+                if f.calc_center_median().z > ztop - 0.18:
+                    for l in f.loops:
+                        l[uv].uv = ref_uv
+                    n_fore += 1
+        print("PARASITE forearm faces painted red:", n_fore)
     # the real forearm is hidden under the cape in the AI mesh, so a raised hand would float: add a
     # slim tapered cyan arm from each shoulder to the wrist (top of the hand piece)
     tube = set()
@@ -283,7 +312,7 @@ def split_hands(obj):
             continue
         zs = sorted(v.co.z for v in hp)
         top = [v.co for v in hp if v.co.z >= zs[int(len(zs) * 0.9)]]
-        wrist = sum(top, Vector()) / len(top) + Vector((0, 0, 0.02))
+        wrist = sum(top, Vector()) / len(top) - Vector((0, 0, 0.01))   # tube ends just inside the hand: cyan starts at the wrist
         sh = Vector(next(h_ for n_, h_, t_, p_ in BONES if n_ == "arm1." + side))
         d = wrist - sh
         d_n = d.normalized()
@@ -310,10 +339,10 @@ def split_hands(obj):
             tube.update(v.index for v in ring)
     bm.to_mesh(obj.data)
     bm.free()
-    m = bpy.data.materials.new("M_Forearm")
+    m = bpy.data.materials.new("M_Forearm")   # red like the body; only the hands are cyan
     m.use_nodes = True
     b = next(n for n in m.node_tree.nodes if n.type == "BSDF_PRINCIPLED")
-    b.inputs["Base Color"].default_value = tuple(HAND_COLOR) + (1.0,)
+    b.inputs["Base Color"].default_value = tuple(ARM_COLOR) + (1.0,)
     b.inputs["Roughness"].default_value = 0.85
     obj.data.materials.append(m)
     obj.data.update()
