@@ -38,6 +38,7 @@ func _ready() -> void:
 		"relic_ids": RunState.owned_relic_ids.filter(func(x) -> bool:
 			return not String(x).begins_with("__") and String(x) != RunState.run_rule),
 		"run_rule": RunState.run_rule,
+		"core_impact": RunState.core_impact.duplicate(true),
 		"roster": RunState.roster.duplicate(true),
 		"stats": RunStatsAccumulator.snapshot(RunState.mode),
 		"ranked": RunState.ranked,
@@ -302,7 +303,7 @@ func _build_card_rows(s: Dictionary) -> VBoxContainer:
 	col.add_theme_constant_override("separation", 12)
 	col.add_child(_build_shard_card(s))
 	col.add_child(_build_pass_card(s))
-	col.add_child(_build_relics_card(s["relic_ids"] as Array, String(s.get("run_rule", ""))))
+	col.add_child(_build_relics_card(s["relic_ids"] as Array, String(s.get("run_rule", "")), s.get("core_impact", {}) as Dictionary))
 	var stake := _build_stake_box(s)
 	if stake != null:
 		col.add_child(stake)
@@ -459,7 +460,7 @@ func _pass_xp_line(level: int, into: int, needed: int, xp_gained: int) -> String
 
 
 ## Depth v3: the run's Cores plus the Run Rule it played under (the old "Relics carried" card).
-func _build_relics_card(relic_ids: Array, run_rule_id: String = "") -> Control:
+func _build_relics_card(relic_ids: Array, run_rule_id: String = "", impact: Dictionary = {}) -> Control:
 	var card := UI3.plate(&"row")
 	card.name = "RelicsCard"
 	var col := VBoxContainer.new()
@@ -473,15 +474,36 @@ func _build_relics_card(relic_ids: Array, run_rule_id: String = "") -> Control:
 	if relic_ids.is_empty():
 		col.add_child(UI3.label(tr("None this run.")))
 		return card
-	var flow := HFlowContainer.new()
-	flow.add_theme_constant_override("h_separation", 8)
-	flow.add_theme_constant_override("v_separation", 8)
-	col.add_child(flow)
-	for id in relic_ids:
+	# Depth v3 lane VZ: one row per Core with what it did this run; the biggest contributor is highlighted.
+	var ids: Array = relic_ids.map(func(x): return String(x))
+	var top := CoreFeedback.top_core(impact, ids)
+	var list := VBoxContainer.new()
+	list.name = "CoreImpactList"
+	list.add_theme_constant_override("separation", 8)
+	col.add_child(list)
+	for id in ids:
 		var def = RelicRegistry.get_def(String(id))
 		var p := UI3.plate(&"row")
-		p.add_child(UI3.label(UI3.title_case(UI3.player_text(String(def.name) if def != null else String(id))), "LabelDisplay"))
-		flow.add_child(p)
+		p.name = "CoreRow_%s" % id
+		if String(id) == top:
+			p.add_theme_stylebox_override("panel", UI3Theme.flat(UI3Theme.color("panel_raised"), UI3Theme.radius("s"), 4, UI3Theme.color("accent")))
+		var row := HBoxContainer.new()
+		row.add_theme_constant_override("separation", 12)
+		p.add_child(row)
+		var nm := UI3.label(UI3.title_case(UI3.player_text(String(def.name) if def != null else String(id))), "LabelDisplay")
+		nm.name = "CoreName"
+		row.add_child(nm)
+		var sp := Control.new()
+		sp.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		row.add_child(sp)
+		var e: Dictionary = impact.get(String(id), {})
+		var txt := CoreFeedback.impact_text(e) if not e.is_empty() else tr("never fired")
+		if String(id) == top:
+			txt = tr("Most impact") + " · " + txt
+		var im := UI3.label(txt, "LabelMuted" if e.is_empty() else "")
+		im.name = "CoreImpact"
+		row.add_child(im)
+		list.add_child(p)
 	return card
 
 
