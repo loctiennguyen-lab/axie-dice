@@ -35,7 +35,9 @@ func _ready() -> void:
 		"ascension": RunState.ascension,
 		"seed": RunState.run_seed,
 		"shards_this_run": RunState.shards_this_run,
-		"relic_ids": RunState.owned_relic_ids.filter(func(x) -> bool: return not String(x).begins_with("__")),
+		"relic_ids": RunState.owned_relic_ids.filter(func(x) -> bool:
+			return not String(x).begins_with("__") and String(x) != RunState.run_rule),
+		"run_rule": RunState.run_rule,
 		"roster": RunState.roster.duplicate(true),
 		"stats": RunStatsAccumulator.snapshot(RunState.mode),
 		"ranked": RunState.ranked,
@@ -300,7 +302,7 @@ func _build_card_rows(s: Dictionary) -> VBoxContainer:
 	col.add_theme_constant_override("separation", 12)
 	col.add_child(_build_shard_card(s))
 	col.add_child(_build_pass_card(s))
-	col.add_child(_build_relics_card(s["relic_ids"] as Array))
+	col.add_child(_build_relics_card(s["relic_ids"] as Array, String(s.get("run_rule", ""))))
 	var stake := _build_stake_box(s)
 	if stake != null:
 		col.add_child(stake)
@@ -456,13 +458,18 @@ func _pass_xp_line(level: int, into: int, needed: int, xp_gained: int) -> String
 	return "%s · %s" % [head, tr("+%d XP this run") % xp_gained]
 
 
-func _build_relics_card(relic_ids: Array) -> Control:
+## Depth v3: the run's Cores plus the Run Rule it played under (the old "Relics carried" card).
+func _build_relics_card(relic_ids: Array, run_rule_id: String = "") -> Control:
 	var card := UI3.plate(&"row")
 	card.name = "RelicsCard"
 	var col := VBoxContainer.new()
 	col.add_theme_constant_override("separation", 8)
 	card.add_child(col)
-	col.add_child(_card_caption(tr("Relics carried") + " · %d" % relic_ids.size()))
+	col.add_child(_card_caption(tr("Cores") + " · %d" % relic_ids.size()))
+	if run_rule_id != "":
+		var rdef = RelicRegistry.get_def(run_rule_id)
+		var rname := String(rdef.name) if rdef != null else run_rule_id
+		col.add_child(UI3.label(tr("Run Rule") + ": " + UI3.title_case(UI3.player_text(rname))))
 	if relic_ids.is_empty():
 		col.add_child(UI3.label(tr("None this run.")))
 		return card
