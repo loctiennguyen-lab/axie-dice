@@ -28,6 +28,8 @@ export const ALLOWED_FNS = new Set([
   'pact_pick',
   // depth v3 lane A: Hold ([uid])
   'stash',
+  // lane OC: Overcast ([uid])
+  'overcast',
 ]);
 
 /** kind -> action(s) that consume it at position log_len (ADR 4.2). null = consumed on reply. A list means any of them. */

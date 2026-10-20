@@ -484,7 +484,7 @@ func _sample_args(fn: String) -> Array:
 			return ["nudge_up", 1, -1]
 		"hold_pick":
 			return [1]
-		"stash":
+		"stash", "overcast":
 			return [1]
 		"loaded_pick":
 			return [1, 0]
@@ -559,6 +559,8 @@ func _apply(engine: CombatEngine, fn: String, args: Array) -> bool:
 			return engine.undo_last()
 		"stash":
 			return args.size() >= 1 and engine.stash(int(args[0]))
+		"overcast":
+			return args.size() >= 1 and engine.overcast(int(args[0]))
 		"end_turn":
 			engine.end_turn()
 			return true
