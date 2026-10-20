@@ -120,7 +120,8 @@ func _show_banner(text: String, size: int, tray_top: float) -> void:
 		return
 	_banner_tween = create_tween()
 	_banner_tween.tween_interval(V4Ui.banner_secs(size))
-	_banner_tween.tween_property(_banner, "modulate:a", 0.0, 0.15)
+	if not (CombatView.disable_juice_for_tests or MetaState.reduce_flash):
+		_banner_tween.tween_property(_banner, "modulate:a", 0.0, 0.15)   # reduce-flash: plain cut, no fade
 	_banner_tween.tween_callback(func(): _banner.visible = false)
 
 

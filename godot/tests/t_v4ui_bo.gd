@@ -52,6 +52,17 @@ func _ready() -> void:
 	c._snap_bo()
 	await get_tree().process_frame
 	_check(bl.last_banner.begins_with("FOUR"), "banner for four: %s" % bl.last_banner)
+	var logged := false
+	for ln in v._log_lines:
+		if String(ln).begins_with("[set]"):
+			logged = true
+	_check(logged, "a [set] line reached the battle log")
+	var words_hidden := true
+	if v._row_strip != null:
+		for ch in v._row_strip.get_children():
+			if ch is Label and ch.visible:
+				words_hidden = false
+	_check(words_hidden, "FRONT/BACK words hidden while a Set is on the tray")
 	print("=== t_v4ui_bo: %d checks, %d failure(s) ===" % [_checks, _fails.size()])
 	_guard.restore()
 	if _fails.is_empty():

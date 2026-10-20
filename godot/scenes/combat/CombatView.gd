@@ -1499,6 +1499,7 @@ func _layout_row_strip(x0: float, col_w: float, gap: float, top: float) -> void:
 		UI3Tooltip.bind(l, "Front row (first %d Axies) takes single-target hits first. Back row is only hit once the front is down, or by area / piercing attacks." % _combat.front_row_size()
 			if r == 0 else "Back row: safe from single-target hits while a front-row Axie stands.")
 		_row_strip.add_child(l)
+		l.visible = _combat.bo.is_empty()
 		var line := ColorRect.new()
 		line.color = UI3Theme.color("text" if r == 0 else "text_muted")
 		line.position = Vector2(x + 4.0, top - 26.0)
@@ -4248,6 +4249,34 @@ func _on_bo_changed(groups: Array) -> void:
 	_refresh_bo_layer()
 	var tray_top := get_viewport_rect().size.y - 24.0 - TrayColumn.H
 	_bo_layer.announce(groups, tray_top)
+	_log_bo_changes(groups)
+	_sync_row_labels()
+
+
+var _bo_logged: Dictionary = {}   # part -> size already written to the log this turn
+
+
+## One log line per NEW or HIGHER Set ("[set] HORN x4  ×1.8"), never repeated for the same size.
+func _log_bo_changes(groups: Array) -> void:
+	var live := {}
+	for g in groups:
+		var part := int(g["part"])
+		var sz := int(g["size"])
+		live[part] = sz
+		if sz > int(_bo_logged.get(part, 0)):
+			_append_log("[set] %s x%d  %s" % [V4Ui.part_name(part), sz, V4Ui.mult_text(int(g["m100"]))])
+	_bo_logged = live
+
+
+## FRONT / BACK words sit where a Set label is drawn: while any Set is on the tray the words hide
+## (the two thin lines stay, and the Set label owns the space).
+func _sync_row_labels() -> void:
+	if _row_strip == null or _combat == null:
+		return
+	var hide := not _combat.bo.is_empty()
+	for c in _row_strip.get_children():
+		if c is Label:
+			c.visible = not hide
 
 
 # ---- Depth v4 Wild face (combat-v4.md 3) ---------------------------------------------------------------------
