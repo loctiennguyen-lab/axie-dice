@@ -88,6 +88,14 @@ export function argsProblem(kind, args) {
 // check that the (turn, k) of each reroll epoch matches the real turn and reroll count at that log
 // position, otherwise a client could request seeds under invented keys.
 
+/** A uids list is 1..16 integers 0..100000 (same shape as epoch_args.json int_list); nothing that could carry a comma or text. */
+const validUids = (a) => Array.isArray(a) && a.length >= 1 && a.length <= 16 && a.every((x) => Number.isInteger(x) && x >= 0 && x <= 100000);
+/** Canonical text of a stored uids column: JSON array. Rows written before this change used 'a,b,c'. */
+const normUids = (stored) => {
+  if (typeof stored !== 'string') return null;
+  if (stored.startsWith('[')) return stored;
+  return JSON.stringify(stored.split(',').map(Number));
+};
 const fail = (seq, code) => ({ t: 'epoch_err', seq, code });
 const isPaid = (kind, args) => KINDS[kind].paid || (kind === 'reroll' && args.source === 'aid');
 
@@ -112,7 +120,9 @@ export class RunCore {
       s_run BLOB NOT NULL, client_nonce TEXT, session_epoch INTEGER NOT NULL DEFAULT 0,
       state TEXT NOT NULL, outcome TEXT, summary TEXT, created_at INTEGER NOT NULL, depth_stage INTEGER)`);
     // A Durable Object created before depth v4 has a meta table without the column: add it (NULL = no stage on record, nothing to check).
-    try { sql.exec('ALTER TABLE meta ADD COLUMN depth_stage INTEGER'); } catch { /* already there */ }
+    try { sql.exec('ALTER TABLE meta ADD COLUMN depth_stage INTEGER'); } catch (e) {
+      if (!/duplicate column/i.test(String(e && e.message))) throw e; // only "already there" is fine
+    }
     sql.exec(`CREATE TABLE IF NOT EXISTS pending_aid (
       seq INTEGER PRIMARY KEY, aid TEXT NOT NULL, idem_key TEXT NOT NULL, state TEXT NOT NULL)`);
     // One row per epoch, no secondary index (ADR 4.6 F4). req_digest makes a resend idempotent;
@@ -257,6 +267,13 @@ export class RunCore {
       // Depth v4 3.10.2 / T1: the rmode the log claims (reroll_dice args[2], absent = 1) must be the rmode this epoch was granted for.
       const claimedRmode = Array.isArray(delta[0].args) && delta[0].args.length > 2 ? Number(delta[0].args[2]) : 1;
       if (claimedRmode !== (pa.rmode ?? 1)) return 'rmode_mismatch';
+      // The dice the log re-rolled must be exactly the uids pinned on this epoch (ledger commitment).
+      const logUids = Array.isArray(delta[0].args) ? delta[0].args[0] : null;
+      if (!validUids(logUids)) return 'uids_invalid';
+      if (JSON.stringify(logUids) !== normUids(prev.uids)) {
+        this._anomaly('uids_mismatch', { seq: prev.seq });
+        return 'uids_mismatch';
+      }
     }
     return null;
   }
@@ -334,15 +351,15 @@ export class RunCore {
     let seed;
     let uids = null;
     if (m.kind === 'reroll') {
-      if (!Array.isArray(args.uids)) return fail(seq, 'bad_request');
-      uids = args.uids.join(',');
+      if (!validUids(args.uids)) return fail(seq, 'bad_request');
+      uids = JSON.stringify(args.uids);
       pin = `${this._battleSeq()}:${attempt}:${args.turn}:${args.k}`;
       const pinned = this.sql.exec('SELECT seed, uids, args FROM epochs WHERE pin_key = ? ORDER BY seq LIMIT 1', pin).toArray()[0];
       if (pinned) {
         // Depth v4 3.10.2: a seen (turn, k) can only be asked again with the same rmode, the same source (rsrc) and the same uids.
         let prevArgs = {};
         try { prevArgs = JSON.parse(pinned.args); } catch { prevArgs = {}; }
-        if ((prevArgs.rmode ?? 1) !== (args.rmode ?? 1) || (prevArgs.source ?? 'base') !== (args.source ?? 'base') || pinned.uids !== uids) {
+        if ((prevArgs.rmode ?? 1) !== (args.rmode ?? 1) || (prevArgs.source ?? 'base') !== (args.source ?? 'base') || normUids(pinned.uids) !== uids) {
           this._anomaly('pin_mismatch', { seq });
           return fail(seq, 'pin_mismatch');
         }

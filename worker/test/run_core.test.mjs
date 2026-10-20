@@ -217,10 +217,13 @@ test('reroll pins its seed per (battle, attempt, turn, k); uids must be present 
   assert.equal((await c.epoch('reroll', { turn: 1, k: 1, source: 'base', uids: [3], rmode: 1 }, [A('reroll_dice', [[1, 2], 0, 1]), A('undo_last')])).code, 'pin_mismatch');
   assert.equal((await c.epoch('reroll', { turn: 1, k: 1, source: 'base', uids: [1, 2], rmode: 0 }, [A('reroll_dice', [[1, 2], 0, 1]), A('undo_last')])).code, 'pin_mismatch');
   assert.equal((await c.epoch('reroll', { turn: 1, k: 1, source: 'base', uids: [1, 2], rmode: 2 }, [])).code, 'bad_request');
-  const r3 = await c.epoch('reroll', { turn: 1, k: 2, source: 'base', uids: [3] }, [A('reroll_dice', [[3], 0])]);
+  const r3 = await c.epoch('reroll', { turn: 1, k: 2, source: 'base', uids: [3] }, [A('reroll_dice', [[1, 2], 0])]);
   assert.notEqual(r3.seed, r1.seed);
   const uids = sql.exec(`SELECT uids FROM epochs WHERE kind = 'reroll' ORDER BY seq`).toArray().map((r) => r.uids);
-  assert.deepEqual(uids, ['1,2', '1,2', '3']);
+  assert.deepEqual(uids, ['[1,2]', '[1,2]', '[3]']);
+  // uids in the log must be the pinned epoch's uids (anomaly uids_mismatch), and a clean list
+  assert.equal((await c.epoch('reroll', { turn: 1, k: 3, source: 'base', uids: [3] }, [A('reroll_dice', [[4], 0, 1])])).code, 'rejected');
+  assert.equal((await c.epoch('reroll', { turn: 1, k: 3, source: 'base', uids: [3] }, [A('reroll_dice', [[-1], 0, 1])])).code, 'rejected'); // uids_invalid
   assert.equal((await c.epoch('reroll', { turn: 1, k: 3, source: 'base' }, [A('reroll_dice', [[3], 0])])).code, 'bad_request');
   // T10 (rejected, anomaly delta_rejected/aid_mismatch): the log claims an Aid reroll (from_aid = 1) but the epoch granted was a base one
   assert.equal((await c.epoch('reroll', { turn: 1, k: 3, source: 'base', uids: [3] }, [A('reroll_dice', [[3], 1, 1])])).code, 'rejected');
@@ -599,4 +602,10 @@ test('depth v4 T1: the rmode a reroll_dice logs must be the rmode of the epoch i
   assert.equal(ok.t, 'epoch_res');
   // same key asked again with the other source -> pin_mismatch
   assert.equal((await c.epoch('reroll', { turn: 1, k: 2, source: 'aid', uids: [3], rmode: 1 }, [A('reroll_dice', [[3], 0, 1]), A('undo_last')])).code, 'pin_mismatch');
+});
+
+test('initSchema: ALTER swallows only "duplicate column", any other error is thrown', () => {
+  const mk = (msg) => ({ exec: (q) => { if (/ALTER TABLE/.test(q)) throw new Error(msg); return { toArray: () => [] }; } });
+  RunCore.initSchema(mk('duplicate column name: depth_stage'));
+  assert.throws(() => RunCore.initSchema(mk('disk I/O error')), /disk I\/O/);
 });
