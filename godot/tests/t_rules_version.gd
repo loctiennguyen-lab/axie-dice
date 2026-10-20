@@ -218,7 +218,10 @@ const WATCHED_FILES: Array[String] = ["res://assets/data/part_faces.json"]
 ## relic offers (CoreOffer, Core quests/rerolls/tier chain), Run Rules + affixes, Armor, combat_tune.json knobs, Core/rule
 ## picks recorded in the action log and replayed by RunVerifier, plus Raid R1 ghost combat. Same actions give a different run.
 ## Worker SUPPORTED_RULE_VERSIONS gained -o. Unfinished runs saved under -n are discarded by saved_run_status() ("rules").
-const FINGERPRINT := "000e4e637f05554939cf9db0b2449d0c254fbf2013808454b6ae2cb3112382d2"
+## Moved 2026-10-20 by integration round 2 (depth/FX cfca4ba + depth/VZ 8d480d1): thorn cap removed, 3 thorn Cores, tier-bet Cores,
+## Heavy Strike, core_fired for every Core, RunState.core_impact. These are part of the depth v3 rules whose version `-o` has NOT
+## been deployed yet, so RULES_VERSION stays `godot-2026-10-20-o` (same unreleased version); only the FINGERPRINT moves.
+const FINGERPRINT := "9a4b0c8ad4d787c48ff2cf35bc163be226cf7e752fa840bac0c44f11c30fd999"
 
 
 func _ready() -> void:

@@ -435,6 +435,7 @@ func _ready() -> void:
 		# starts calling register_unit() below
 
 	_combat = CombatEngine.new()
+	_core_float_live = {}   # new fight: no Core note from the last one is still stacked
 	# The run owns the log; the combat only writes into it. Set before any action can be taken,
 	# and on the resume path too — a fight resumed from a save is the same run, and a log with a
 	# hole in the middle is not evidence of anything. A TUTORIAL fight is not part of any run,
@@ -3007,6 +3008,7 @@ func _on_relic_pulsed(relic_id: String, uid: int) -> void:
 ## beat on the same unit merge into ONE note (one line per Core+kind, amounts summed).
 var core_float_log: Array = []            ## test hook: one {uid, lines:[String]} per note shown
 var _core_batch: Dictionary = {}          ## uid -> {"core|kind": {name, amount, kind}}
+const CORE_FLOAT_MAX_STACK := 3
 var _core_float_live: Dictionary = {}     ## uid -> notes currently on screen (stacked upward)
 
 func _on_core_fired(core_id: String, uid: int, amount: int, kind: String) -> void:
@@ -3053,6 +3055,8 @@ func _spawn_core_note(uid: int, lines: Array) -> void:
 	var a := _status_head_anchor(target, not _combat_is_enemy_uid(target), _stage3d.position)
 	if a.x < 0.0:
 		return
+	if int(_core_float_live.get(target, 0)) >= CORE_FLOAT_MAX_STACK:
+		return   # three notes already stacked on this unit: more would cover the field
 	var chip := UI3.core_float(lines)
 	_unit_visuals_root.add_child(chip)
 	var sz := chip.get_combined_minimum_size()

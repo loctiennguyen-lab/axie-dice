@@ -98,7 +98,7 @@ func _update_count(s: PanelContainer, core_id: String) -> void:
 	var n := int(_fires.get(core_id, 0))
 	if l == null:
 		return
-	l.text = "x%d" % n
+	l.text = "x%d" % n if n < 10 else "x9+"   # two digits would spill out of the slot
 	l.visible = show_counts and n > 0
 
 
