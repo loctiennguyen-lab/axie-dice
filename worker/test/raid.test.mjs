@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { DatabaseSync } from 'node:sqlite';
 import worker from '../src/index.js';
-import { validateTeam, validateSkin, badgeCrossed, BADGES, PER_GHOST_DAILY, DAILY_RAIDS, POINTS_WIN, POINTS_LOSS, MIN_FIGHT_S, CHALLENGE_TTL_S, OPEN_MAX } from '../src/raid.js';
+import { validateTeam, validateSkin, badgeCrossed, BADGES, PER_GHOST_DAILY, DAILY_RAIDS, POINTS_WIN, POINTS_LOSS, MIN_FIGHT_S, CHALLENGE_TTL_S, OPEN_MAX, resultHash } from '../src/raid.js';
 
 const mig = (f) => readFileSync(new URL(`../migrations/${f}`, import.meta.url), 'utf8');
 class Stmt {
@@ -42,7 +42,12 @@ async function setup() {
   const start = (gid, token = 'tok1') => call('/api/raid/start', { method: 'POST', token, body: { ghost_id: gid } });
   const age = (cid, secs) => DB.db.prepare('UPDATE raid_challenges SET created_at = created_at - ? WHERE challenge_id = ?').run(secs, cid);
   const H = 'a'.repeat(32);
-  const finish = (cid, over = {}, token = 'tok1') => call('/api/raid/finish', { method: 'POST', token, body: { challenge_id: cid, won: true, turns: 6, h: H, ...over } });
+  const finish = async (cid, over = {}, token = 'tok1') => {
+    const row = DB.db.prepare('SELECT seed FROM raid_challenges WHERE challenge_id = ?').get(cid);
+    const b = { challenge_id: cid, won: true, turns: 6, ...over };
+    if (b.h === undefined) b.h = row ? await resultHash(cid, row.seed, b.won, b.turns) : H;
+    return call('/api/raid/finish', { method: 'POST', token, body: b });
+  };
   // start a challenge and make it old enough to finish
   const fight = async (gid, token = 'tok1') => { const r = await (await start(gid, token)).json(); age(r.challenge_id, MIN_FIGHT_S + 1); return r.challenge_id; };
   return { DB, env, call, defend, ghostOf, start, finish, fight, age };
@@ -217,4 +222,18 @@ test('parallel finishes cannot beat the caps (5 a day, 3 per ghost)', async () =
   assert.equal(rs2.filter((r) => r.counted).length, DAILY_RAIDS - PER_GHOST_DAILY);
   assert.equal(DB.db.prepare('SELECT SUM(count) AS n FROM raid_daily').get().n, DAILY_RAIDS);
   assert.ok(rs2.filter((r) => !r.counted).every((r) => r.reason === 'daily_cap'));
+});
+
+test('finish: h must be the sha256 of id|seed|won|turns (wrong seed, wrong result, random hex all refused)', async () => {
+  const { defend, ghostOf, finish, fight, DB } = await setup();
+  await defend('tok2');
+  const cid = await fight(ghostOf('google:2'));
+  const seed = DB.db.prepare('SELECT seed FROM raid_challenges WHERE challenge_id = ?').get(cid).seed;
+  for (const h of ['a'.repeat(64), await resultHash(cid, seed + 1, true, 6), await resultHash(cid, seed, false, 6)]) {
+    const r = await finish(cid, { h });
+    assert.equal(r.status, 422);
+    assert.equal((await r.json()).error, 'bad_result');
+  }
+  assert.equal(DB.db.prepare('SELECT state FROM raid_challenges WHERE challenge_id = ?').get(cid).state, 'open');   // a bad h burns nothing
+  assert.equal((await finish(cid)).status, 200);
 });

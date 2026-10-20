@@ -9,7 +9,7 @@
 //        unit = { key, cls, hp, die:[6 x {type, value, kw?:[..]}] }   1..5 units
 //   GET  /api/raid/opponents                                         -> { opponents:[{ghost_id,name,team,skin,power_hint}], points }
 //   POST /api/raid/start     { ghost_id }                            -> { challenge_id, seed, team, skin, name }
-//   POST /api/raid/finish    { challenge_id, won, turns, h }         -> { ok, points, counted, reason?, total, badge? }
+//   POST /api/raid/finish    { challenge_id, won, turns, h }  h = sha256hex("id|seed|won(0/1)|turns")   -> { ok, points, counted, reason?, total, badge? }
 //        errors: 401 / 403 forbidden|not_yours|own_ghost / 404 not_found / 409 already_done|expired / 422 bad_result|too_fast
 import { shared } from './accounts.js';
 
@@ -80,6 +80,12 @@ export function badgeCrossed(before, after) {
   return hit;
 }
 
+/** Pure: the 64-hex digest the client sends, same formula as RaidClient.result_hash. */
+export async function resultHash(challengeId, seed, won, turns) {
+  const d = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(`${challengeId}|${seed}|${won ? 1 : 0}|${turns}`));
+  return Array.from(new Uint8Array(d), (x) => x.toString(16).padStart(2, '0')).join('');
+}
+
 const displayName = (n) => (String(n || '').trim().split(/\s+/)[0].replace(/@.*$/, '').slice(0, 16)) || 'Player';
 
 async function readBody(request, url) {
@@ -146,13 +152,16 @@ async function finish(request, env, url, player) {
   if (err) return err;
   if (typeof body.challenge_id !== 'string' || !/^[a-f0-9]{32}$/.test(body.challenge_id)) return json({ error: 'bad_request' }, 400);
   if (typeof body.won !== 'boolean' || !intIn(body.turns, 1, TURNS_MAX) || typeof body.h !== 'string' || !/^[a-f0-9]{16,64}$/.test(body.h)) return json({ error: 'bad_result' }, 422);
-  const c = await env.DB.prepare('SELECT attacker_id, defender_id, created_at, state FROM raid_challenges WHERE challenge_id = ?').bind(body.challenge_id).first();
+  const c = await env.DB.prepare('SELECT attacker_id, defender_id, seed, created_at, state FROM raid_challenges WHERE challenge_id = ?').bind(body.challenge_id).first();
   if (!c) return json({ error: 'not_found' }, 404);
   if (c.attacker_id !== player.id) return json({ error: 'not_yours' }, 403);
   if (c.state !== 'open') return json({ error: 'already_done' }, 409);
   const t = nowS();
   if (t - c.created_at > CHALLENGE_TTL_S) return json({ error: 'expired' }, 409);
   if (t - c.created_at < MIN_FIGHT_S) return json({ error: 'too_fast' }, 422);
+  // h binds the claim to this challenge and its server seed (raid_client.gd result_hash). Not a proof of play, but a
+  // forged call must know the seed the server issued to this player.
+  if (body.h !== await resultHash(body.challenge_id, c.seed, body.won, body.turns)) return json({ error: 'bad_result' }, 422);
   // claim the challenge first: a double submit (or a race) can only win once
   const claim = await env.DB.prepare(`UPDATE raid_challenges SET state = 'done' WHERE challenge_id = ? AND state = 'open'`).bind(body.challenge_id).run();
   if (!claim.meta || claim.meta.changes !== 1) return json({ error: 'already_done' }, 409);
