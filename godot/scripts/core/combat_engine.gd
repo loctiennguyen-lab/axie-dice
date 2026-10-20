@@ -71,6 +71,7 @@ var combat_seed: int = 0
 ## Which boss this node fields, chosen once per run by RunState (never re-rolled in combat),
 ## and the run-wide CURSE PACT enemy modifiers. Both arrive through the combat setup so that
 ## a combat is still reconstructible from data alone (architecture plan §4).
+var affix: String = ""   ## Elite affix id from combat_setup (depth v3 6.4), "" = none
 var _boss_key: String = ""
 var _run_mods: Dictionary = {"enemy_hp": 1.0, "enemy_dmg": 1.0}
 
@@ -150,6 +151,7 @@ func setup_new(combat_setup: Dictionary) -> void:
 	relic_ids = (combat_setup.get("relic_ids", []) as Array).duplicate()
 	combat_seed = int(combat_setup.get("combat_seed", 0))
 	_boss_key = String(combat_setup.get("boss_key", ""))
+	affix = String(combat_setup.get("affix", ""))
 	_run_mods = (combat_setup.get("run_mods", {}) as Dictionary).duplicate()
 	_rng = Rng.new(combat_seed)
 	_epoch = combat_setup.get("epoch", null) as EpochSource
@@ -198,6 +200,7 @@ func setup_new(combat_setup: Dictionary) -> void:
 		EventBus.relic_pulsed.emit("startSummon", 0)
 
 	enemies = _generate_encounter(kind, pw)
+	_apply_affix_start()
 
 	# A3 "Short Dice": the BASE loses a reroll (never below the floor); every bonus still adds on top.
 	var amods_r := ContentDB.ascension_mods(ascension)
@@ -245,6 +248,7 @@ func setup_new(combat_setup: Dictionary) -> void:
 	RelicHooks.fire(self, "on_turn_start", {"combat": self})
 	_set_turn_phase(CombatPhase.ROLL)
 	roll_all()
+	_affix_chill()
 	_set_turn_phase(CombatPhase.EXECUTE)
 
 
@@ -287,6 +291,7 @@ func _state_dict() -> Dictionary:
 		"pw": pw,
 		"ascension": ascension,
 		"combat_seed": combat_seed,
+		"affix": affix,
 		"won": won,
 		"lost": lost,
 		"result_shards_earned": result_shards_earned,
@@ -332,6 +337,7 @@ func _apply_state_dict(d: Dictionary) -> void:
 	pw = int(d.get("pw", 0))
 	ascension = int(d.get("ascension", 0))
 	combat_seed = int(d.get("combat_seed", 0))
+	affix = String(d.get("affix", ""))
 	won = bool(d.get("won", false))
 	lost = bool(d.get("lost", false))
 	result_shards_earned = int(d.get("result_shards_earned", 0))
@@ -501,6 +507,7 @@ func roll_all() -> void:
 		if e.hp > 0:
 			_roll_unit(e)
 			_apply_strike_face(e)
+			_affix_echo(e)
 			_pick_enemy_intent(e)
 		else:
 			e.clear_roll()
@@ -540,7 +547,16 @@ func _pick_enemy_intent(e: Unit) -> void:
 			var rp := ps
 			if not _has_kw(f, "aoe") and not _has_kw(f, "pierce") and e.role != "assassin":
 				rp = front_row_targets(ps)
-			if e.role == "assassin":
+			var ambush: bool = bool(_aff(e).get("target_back_weakest", false)) \
+				and not _has_kw(f, "aoe") and not _has_kw(f, "pierce")
+			if ambush:
+				var back: Array = []
+				for raw in ps:
+					if row_of(raw as Unit) == 1:
+						back.append(raw)
+				var pool_a: Array = back if not back.is_empty() else ps
+				tgt_uid = _lowest_by(pool_a, func(u: Unit) -> float: return float(u.hp + u.shield)).uid
+			elif e.role == "assassin":
 				tgt_uid = _lowest_by(ps, func(u: Unit) -> float: return float(u.hp + u.shield)).uid
 			elif e.role == "bruiser" and _rng.next_float() < 0.5:
 				tgt_uid = _lowest_by(rp, func(u: Unit) -> float: return -float(u.hp + u.shield)).uid
@@ -1225,7 +1241,7 @@ func _face_value(u: Unit, fi: int) -> int:
 			v += RelicHooks.sum(self, "hiveMind") * _count_alive_tokens(party)
 		if u.side == "e":
 			# base x (1 + enrage% + attrition%) x spike, rounded half up (monetization-v1 §1.2).
-			v = float(RulesMath.round_half_up(v * enemy_dmg_factor(u) * boss_hollow_dealt_mult(u)))
+			v = float(RulesMath.round_half_up(v * enemy_dmg_factor(u) * boss_hollow_dealt_mult(u) * affix_dealt_mult(u)))
 	if face_type == "mana" and u.side == "p" and u.cls == "aqua":
 		v += 1.0                                                        # CONDUIT passive
 	if u.side == "p" and u.resonant_now:
@@ -1523,7 +1539,17 @@ func step_end_turn_action(index: int) -> bool:
 		e.status["stun"] = 0
 		EventBus.float_text.emit(e.uid, "STUNNED", "deb", 0)
 		return true
+	var hp_before := {}
+	if int(_aff(e).get("poison_on_pierce", 0)) > 0:
+		for pu in party:
+			hp_before[(pu as Unit).uid] = (pu as Unit).hp
 	_exec_face(e, int(e.intent.get("target_uid", -1)))
+	_affix_fang(e, hp_before)
+	# Rush: every Nth turn the elite acts twice (the same intent), announced a turn early via affix_state().
+	if _affix_double_now(e) and e.hp > 0 and _any_real_party_alive():
+		e.clear_used_for_second_action()
+		_exec_face(e, int(e.intent.get("target_uid", -1)))
+		_affix_fang(e, hp_before)
 	return _any_real_party_alive()
 
 
@@ -1552,6 +1578,7 @@ func finish_end_turn() -> void:
 	for u in party:
 		if u.frozen:
 			u.frozen = false
+	_affix_turn_start()
 	EventBus.combat_clock_changed.emit(clock_state())
 	EventBus.combat_attrition_changed.emit(attrition_state())
 	RelicHooks.fire(self, "on_turn_start", {"combat": self})
@@ -1600,6 +1627,118 @@ func _any_die_has_keyword(units: Array, kw: String) -> bool:
 			if (f.get("keywords", []) as Array).has(kw):
 				return true
 	return false
+
+
+## ---- Depth v3 6.4 Elite affixes (data: assets/data/rules/elite_affixes.json) -----------------------------------
+func _aff(e: Unit) -> Dictionary:
+	if e == null or e.side != "e":
+		return {}
+	var id := String(e.custom_state.get("affix", ""))
+	return (ContentDB.elite_affixes.get(id, {}) as Dictionary) if id != "" else {}
+
+
+## The elite (enemy 0) of an elite fight carries the affix; shield / thorns are set before turn 1.
+func _apply_affix_start() -> void:
+	if kind != "elite" or affix == "" or not ContentDB.elite_affixes.has(affix) or enemies.is_empty():
+		return
+	var e: Unit = enemies[0]
+	e.custom_state["affix"] = affix
+	var a := _aff(e)
+	if int(a.get("start_shield_pct", 0)) > 0:
+		e.shield = int(round(float(e.max_hp) * float(a["start_shield_pct"]) / 100.0))
+	if int(a.get("thorns", 0)) > 0:
+		e.custom_state["permanent_thorns"] = int(a["thorns"])
+
+
+func _affix_turn_start() -> void:
+	for e in enemies:
+		var perm := int((e as Unit).custom_state.get("permanent_thorns", 0))
+		if perm > 0 and not (e as Unit).is_boss and (e as Unit).hp > 0 and String((e as Unit).custom_state.get("affix", "")) != "":
+			(e as Unit).status["thorns"] = maxi(int((e as Unit).status.get("thorns", 0)), perm)
+
+
+## Echo: the elite repeats last turn's face (rng draws unchanged; only the chosen face is replaced).
+func _affix_echo(e: Unit) -> void:
+	var a := _aff(e)
+	if a.is_empty():
+		return
+	if bool(a.get("repeat_intent", false)) and e.custom_state.has("last_face"):
+		e.set_roll(int(e.custom_state["last_face"]), false)
+		e.heavy = _has_kw(e.die[e.roll_face_index()], "heavy")
+	e.custom_state["last_face"] = e.roll_face_index()
+
+
+## Damage multiplier an affix puts on an enemy's faces (echo -30%, frenzy +25% under the threshold).
+func affix_dealt_mult(u: Unit) -> float:
+	var a := _aff(u)
+	if a.is_empty():
+		return 1.0
+	var m := 1.0 + float(a.get("dmg_pct", 0)) / 100.0
+	var th := int(a.get("enrage_below_pct", 0))
+	if th > 0 and u.hp * 100 < th * u.max_hp:
+		m *= 1.0 + float(a.get("enrage_dmg_pct", 0)) / 100.0
+	return m
+
+
+func _affix_swarm() -> void:
+	if kind != "elite" or won or lost or enemies.is_empty():
+		return
+	var e: Unit = enemies[0]
+	var a := _aff(e)
+	var th := int(a.get("summon_below_pct", 0))
+	if th <= 0 or e.hp <= 0 or bool(e.custom_state.get("swarm_done", false)) or e.hp * 100 >= th * e.max_hp:
+		return
+	e.custom_state["swarm_done"] = true
+	for _i in int(a.get("summon_count", 2)):
+		var m := _mk_monster("slime", float(e.custom_state.get("sc", 1.0)) * float(a.get("summon_scale", 0.5)), {"hp": 1.0, "dmg": 1.0})
+		_roll_unit(m)
+		_pick_enemy_intent(m)
+		enemies.append(m)
+		EventBus.unit_spawned.emit(m.uid)
+	EventBus.float_text.emit(e.uid, "SWARM", "deb", 1)
+
+
+func _affix_chill() -> void:
+	if enemies.is_empty():
+		return
+	var n := int(_aff(enemies[0]).get("freeze_first_turn", 0))
+	for _i in n:
+		var cands: Array = []
+		for u in alive_party():
+			if not u.frozen and not u.is_token:
+				cands.append(u)
+		if cands.is_empty():
+			return
+		var t: Unit = cands[_rng.next_int(cands.size())]
+		t.frozen = true
+		EventBus.float_text.emit(t.uid, "FROZEN", "deb", 0)
+
+
+## Fang: poison only when the hit got through the shield (the target lost HP).
+func _affix_fang(e: Unit, hp_before: Dictionary) -> void:
+	var n := int(_aff(e).get("poison_on_pierce", 0))
+	if n <= 0:
+		return
+	for pu in party:
+		var u: Unit = pu
+		if hp_before.has(u.uid) and u.hp > 0 and u.hp < int(hp_before[u.uid]):
+			StatusEngine.add_status(self, u, ["poison:%d" % n], e)
+			hp_before[u.uid] = u.hp
+
+
+func _affix_double_now(e: Unit) -> bool:
+	var p := int(_aff(e).get("double_turn_period", 0))
+	return p > 0 and turn % p == 0
+
+
+## For the UI: the affix of the elite and whether its special turn is now / next (announced one turn early).
+func affix_state() -> Dictionary:
+	if enemies.is_empty() or _aff(enemies[0]).is_empty():
+		return {}
+	var e: Unit = enemies[0]
+	var p := int(_aff(e).get("double_turn_period", 0))
+	return {"id": String(e.custom_state.get("affix", "")), "double_now": _affix_double_now(e),
+		"double_next": p > 0 and (turn + 1) % p == 0}
 
 
 ## ---- Depth v3 6.3 boss rhythm: a public 3-turn cycle, readable one turn ahead ---------------------------------
@@ -1885,6 +2024,7 @@ func hud_state() -> Dictionary:
 
 
 func _check_end() -> bool:
+	_affix_swarm()
 	if alive_enemies().is_empty():
 		won = true
 		_finish_combat()

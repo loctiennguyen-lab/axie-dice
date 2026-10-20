@@ -176,6 +176,8 @@ var TUNE: Dictionary = {"base": 10.5, "growth": 1.125, "growth2": 1.05, "knee": 
 ## Rule tables (L1, contract 3.1): res://assets/data/rules/*.json. Designers tune these, not code.
 const RULES_DIR := "res://assets/data/rules/"
 var ascension_table: Array = []   ## index = ascension level 0..10, each a Dictionary (see ascension.json)
+## Depth v3 6.4: affix id -> effect keys (assets/data/rules/elite_affixes.json).
+var elite_affixes: Dictionary = {}
 var combat_tune: Dictionary = {}  ## attrition, spike, phase_thresholds, newcomer_runs
 var boons: Dictionary = {}        ## boon_id -> {id, name_key, effect}
 var mission_table: Dictionary = {}  ## mission_rules.json: standard, rules, conditions
@@ -202,6 +204,7 @@ func _load_rules() -> void:
 		for k in (combat_tune["TUNE"] as Dictionary):
 			TUNE[k] = (combat_tune["TUNE"] as Dictionary)[k]
 	mission_table = _load_rules_json("mission_rules.json")
+	elite_affixes = (_load_rules_json("elite_affixes.json").get("affixes", {}) as Dictionary).duplicate(true)
 	boons = {}
 	for b in (_load_rules_json("boons.json").get("boons", []) as Array):
 		boons[String((b as Dictionary).get("id", ""))] = (b as Dictionary).duplicate(true)

@@ -111,6 +111,11 @@ func set_crit_now(v: bool) -> void:
 	if has_rolled():
 		rolled[0]["crit_now"] = v
 
+## A second action in one enemy phase (affix Rush): the face may be spent again.
+func clear_used_for_second_action() -> void:
+	if has_rolled():
+		rolled[0]["used"] = false
+
 func mark_used() -> void:
 	if has_rolled():
 		rolled[0]["used"] = true
