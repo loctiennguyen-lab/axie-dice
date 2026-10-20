@@ -72,3 +72,13 @@ T10 Aid reroll giả (from_aid=1 mà không có ledger Aid). T6/T7 cần `depth_
 
 ## 7. Sự kiện cho UI (bước 5)
 `EventBus` thêm `bo_changed(groups)`, phát `core_fired`-kiểu kind "bo" khi BỘ đổi, `die_cracked(uid)`, `die_wild(uid, slot)`; `preview_damage`/`overcast_preview` đã đi qua `_face_value`.
+
+## Bước 1 - xong (BỘ + túi M + Overcast sửa)
+API (combat_engine.gd): `bo` (Array `[{part,size,uids,hi,m100}]`, trong `_state_dict`, KHÔNG tính lại khi load), `recompute_bo()` thuần, `_snap_bo()` (chỉ ghi `bo`),
+`m100_for(u)` (túi M % của một viên, gồm Overcast), `bo_cap100()`, `bo_add100(size)`, `overcast_add()`, `_face_base(u,fi)` (= v0, bước 1-3, -1.0 nếu blind),
+`depth_stage` (setup_new key `depth_stage`, mặc định 3, trong `_state_dict`). `overcast_mult()` còn là shim (1+add) cho tooltip CombatView:1249; UI bước 5 đổi sang preview rồi xoá.
+Chụp `bo`: cuối `roll_all` (sau on_roll_settled; `bo=[]` đầu roll_all nên cantrip đọc M=1), cuối `reroll_dice`, `_roll_edit` (tweak/loaded/hold_pick). wild_face (bước 3) phải gọi `_snap_bo()`.
+Event cho UI: `EventBus.bo_changed(groups)` khi snapshot ĐỔI (so JSON). KHÔNG phát `core_fired` "bo": `RunState.note_core_fired` sẽ ghi "bo" vào `core_impact` (save + thống kê Lõi) và CorePanel đếm nhầm. Nếu UI cần thì lọc ở đó.
+Nứt: `_face_base` đã halve khi `u.cracked` (mặt dmg/shield/heal/poison/mana, v>=1); chưa có ai set `cracked` (bước 2). Knob thêm: `bo.*`, `crack.*`, `part.*`, `overcast.add` (xoá `overcast.mult`). CHƯA thêm `reroll.*` mới/`wild`/`hold` (bước 2-3, để khỏi đổi hành vi reroll cũ).
+`_rerollable` loại thêm viên `overcast` và `wild_slot>=0`. Overcast từ chối: viên ảo, mặt không thuộc dmg/shield/heal/poison, v0<1, stage<3.
+Test: t_bo_groups, t_bo_order, t_bo_timing, t_bo_overcast, t_bo_concord, t_bo_saveload (undo+save), t_bo_replay (engine; run-level phủ bởi t_replay). Mỗi test chạy knob nominal (1.0/3.5) + default (0.8/3.0). Floor +7 file.
