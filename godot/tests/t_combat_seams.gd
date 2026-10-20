@@ -60,7 +60,10 @@ func _ready() -> void:
 	_check(bool(e.to_data()["end_fired"]), "on_combat_end flag set after the first get_result")
 
 	# RunState: reorder / sell / swap, and the verifier replays them
-	RunState.start_new_run(41, TEAM, "short", 0, true)
+	# Depth v3: a new run opens on the Core offers; this test is about the map-phase seams, so skip them (test switch).
+	RunState.start_run_with_epoch(LocalEpochSource.new(PackedByteArray(), 41), {
+		"team_keys": TEAM.duplicate(), "mode": "short", "ascension": 0, "ranked": true,
+		"loadout": {"core_off": true}}, 41)
 	var order: Array = []
 	for i in range(TEAM.size() - 1, -1, -1):
 		order.append(i + 1)
