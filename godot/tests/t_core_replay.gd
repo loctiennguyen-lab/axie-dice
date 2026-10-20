@@ -102,6 +102,55 @@ func _ready() -> void:
 	_assert(RunState.rules_on and not RunState.core_off, "ranked start forces rules_on and drops core_off in a shipped build")
 	t.core_slots = 2
 	t.core_slots = old_slots
+	# Review: reroll_rewards [slot] tampers (slot outside the offer, slot already rerolled) are refused.
+	var ri := -1
+	for i in log.entries.size():
+		if String(log.entries[i]["fn"]) == "reroll_rewards" and (log.entries[i]["args"] as Array).size() == 1:
+			ri = i
+			break
+	if ri >= 0:
+		var tm5 := _clone(log)
+		tm5.entries[ri]["args"] = [9]
+		_assert(not bool(RunVerifier.verify(tm5, played["tape"])["ok"]), "reroll_rewards with a slot outside the offer is refused")
+		var tm6 := _clone(log)
+		tm6.entries.insert(ri + 1, (tm6.entries[ri] as Dictionary).duplicate(true))
+		_assert(not bool(RunVerifier.verify(tm6, played["tape"])["ok"]), "reroll_rewards of an already rerolled slot is refused")
+	# Review: an Eternal Core cannot be sold; the pick is refused and nothing is logged.
+	RunState.reset()
+	RunState.start_new_run_seeded(31, {"team_keys": TEAM, "mode": "short", "ascension": 0, "ranked": false, "bonuses": {},
+		"loadout": {"rules_on": false}})
+	t.core_slots = 2
+	var cores: Array = []
+	for d in RelicRegistry.all_defs_sorted():
+		if String(d.core_axis) != "" and String(d.core_axis) != "run_rule" and not RunState.owned_relic_ids.has(String(d.id)):
+			cores.append(String(d.id))
+	if cores.size() >= 3 and not RunState.pending_rewards.is_empty():
+		RunState.owned_relic_ids.clear()
+		RunState.owned_relic_ids.append(cores[0])
+		RunState.owned_relic_ids.append(cores[1])
+		RunState.relic_stickers = {cores[0]: "eternal", cores[1]: "eternal"}
+		RunState.pending_rewards = [CoreOffer.card_of(RelicRegistry.get_def(cores[2]), 0)]
+		RunState._core_offer_active = true
+		var nlog := RunState.action_log.entries.size()
+		var owned_before := RunState.owned_relic_ids.duplicate()
+		_assert(not RunState.apply_chosen_reward(RunState.pending_rewards[0], cores[0]), "selling an Eternal Core is refused")
+		_assert(RunState.owned_relic_ids == owned_before and RunState.action_log.entries.size() == nlog, "refused sale changes and logs nothing")
+	t.core_slots = old_slots
+	# Review: runs with an event / shop Core pick replay through the referee.
+	RunBot.core_script = false
+	var bonus_seed := -1
+	for sd2 in [11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24]:
+		var pb: Dictionary = RunBot.play_run(sd2, TEAM)
+		var bc := int(((pb["state"] as Dictionary).get("core", {}) as Dictionary).get("bonus_count", 0))
+		if bc >= 1:
+			bonus_seed = sd2
+			var vb := RunVerifier.verify(pb["log"], pb["tape"])
+			_assert(bool(vb["ok"]), "event/shop Core pick run replays (seed %d): %s" % [sd2, str(vb["message"])])
+			if bool(vb["ok"]):
+				_assert(int(vb["score"]) == int(pb["score"]), "same score with a bonus Core pick")
+				_assert(JSON.stringify(((pb["state"] as Dictionary)["core"])) == JSON.stringify(((vb["state"] as Dictionary)["core"])), "same Core state after bonus picks")
+			break
+	_assert(bonus_seed >= 0, "some seed gives an event/shop Core pick")
 	# Shop sells a Core pick (not a relic), and the money is in-run shards only.
 	RunState.reset()
 	RunState.start_new_run_seeded(11, {"team_keys": TEAM, "mode": "short", "ascension": 0, "ranked": false, "bonuses": {}})

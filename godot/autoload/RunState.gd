@@ -2068,7 +2068,6 @@ func clear_saved_run() -> void:
 # take_reward args: [idx] or [idx, sell_id] (Core slots full); reroll_rewards args: [] (old offers) or [slot] (Core).
 # ===========================================================================
 
-## `pick` = the pick index the context is for (-1: the next one). A reroll must use the index its offer was built with.
 ## Test hook: pretend to be a shipped build (so a test can prove the verifier refuses core_off).
 static var simulate_shipped_build: bool = false
 
@@ -2079,6 +2078,7 @@ static func core_flow_switches_allowed() -> bool:
 	return OS.has_feature("editor") and not simulate_shipped_build
 
 
+## `pick` = the pick index the context is for (-1: the next one). A reroll must use the index its offer was built with.
 func _core_ctx(pick: int = -1) -> Dictionary:
 	return {"owned_ids": owned_relic_ids, "roster": roster, "seen": core_seen, "mode": mode,
 		"first_run": not rules_on, "pick_index": core_pick_index if pick < 0 else pick, "front_size": 2}
