@@ -22,6 +22,7 @@ const END_H := 64.0
 const SMALL_H := 48.0
 const HINT_H := 24.0
 const UNDO_W := 88.0
+const ROW_GAP := 12.0   # Undo | Reroll: a clear gap, the two must not read as one button
 const INFO_W := 288.0
 
 var core_panel: CorePanel            ## depth v3: 6 Core slots + Run rule slot + quest chips
@@ -401,7 +402,7 @@ func adopt_right_zone(undo: Button, reroll: Button, end_turn: Button) -> void:
 	end_turn.text = "End turn"
 	end_turn.add_theme_font_size_override("font_size", 24)   # "Enemy turn" must fit the 240 px column
 	undo.custom_minimum_size = Vector2(UNDO_W, SMALL_H)
-	reroll.custom_minimum_size = Vector2(RIGHT_W - UNDO_W - GAP, SMALL_H)
+	reroll.custom_minimum_size = Vector2(RIGHT_W - UNDO_W - ROW_GAP, SMALL_H)
 	end_turn.custom_minimum_size = Vector2(RIGHT_W, END_H)
 	# Backstop: a label can never grow its button past the 240 px column (test: t_combat_right_block).
 	for b in [undo, reroll, end_turn]:
@@ -583,15 +584,40 @@ func update_right(undo: Dictionary, reroll: Dictionary, end: Dictionary, hold: D
 	else:
 		reroll_button.text = "No rerolls"
 	reroll_button.tooltip_text = String(reroll.get("tip", "Reroll unused dice (%s)" % KeyBindings.text(KeyBindings.COMBAT_REROLL)))
+	var need_mp := n <= 0 and cost > 0 and not bool(reroll.get("capped", false)) and reroll_button.disabled
 	_hold_wanted = bool(hold.get("show", false))
-	hold_button.disabled = not bool(hold.get("enabled", false))
+	var hold_on := bool(hold.get("on", false))
+	hold_button.disabled = not bool(hold.get("enabled", false)) and not hold_on   # "on" = a pressed-in toggle, not disabled
 	hold_button.text = String(hold.get("text", "Hold"))
+	_style_hold_on(hold_on)
 	hold_button.tooltip_text = String(hold.get("tip", ""))
 	end_turn_button.disabled = not bool(end.get("enabled", true))
 	var resolving := end_turn_button.disabled and bool(end.get("resolving", false))
 	end_turn_button.text = "Enemy turn" if resolving else "End turn"
 	_hint.text = ("%s · skip" % KeyBindings.text(KeyBindings.COMBAT_END_TURN)) if resolving else String(end.get("sub", ""))
+	if need_mp and not resolving:
+		_hint.text = "Reroll: need %d MP\n%s" % [cost, _hint.text]
 	layout()
+
+
+## Hold already used (Holding n/n): the button reads as a switched-on toggle (wood-3 fill, 4 px cream outline,
+## check glyph), not as a greyed-out one. Pressing it again does nothing (CombatView gates it).
+func _style_hold_on(on: bool) -> void:
+	for st in ["normal", "hover", "pressed", "disabled", "hover_pressed"]:
+		if on:
+			hold_button.add_theme_stylebox_override(st, UI3Theme.flat(UI3Theme.color("btn_secondary"), UI3Theme.radius("s"), 4,
+				UI3Theme.color("selected_outline"), Vector4(12, 0, 12, 0)))
+		else:
+			hold_button.remove_theme_stylebox_override(st)
+	hold_button.icon = UI3.cream_icon("ui_check") if on else null
+	hold_button.expand_icon = true
+	hold_button.add_theme_constant_override("icon_max_width", 20)
+	if on:
+		hold_button.add_theme_color_override("font_color", UI3Theme.color("text"))
+		hold_button.add_theme_color_override("font_disabled_color", UI3Theme.color("text"))
+	else:
+		hold_button.remove_theme_color_override("font_color")
+		hold_button.remove_theme_color_override("font_disabled_color")
 
 
 ## Show the 1x / 2x / Skip control while a resolve plays.
@@ -632,17 +658,19 @@ func layout() -> void:
 	_attr_card.position = Vector2(EDGE, rel_bottom + 8.0)
 	if undo_button != null:
 		var x := w - EDGE - RIGHT_W
-		var y := h - EDGE - HINT_H
+		var hint_h := HINT_H * (2.0 if _hint.text.contains("\n") else 1.0)   # 2nd line = "Need N MP to reroll"
+		var y := h - EDGE - hint_h
 		_hint.position = Vector2(x, y)
-		_hint.size = Vector2(RIGHT_W, HINT_H)
+		_hint.size = Vector2(RIGHT_W, hint_h)
+		_hint.vertical_alignment = VERTICAL_ALIGNMENT_BOTTOM
 		y -= 6.0 + END_H
 		end_turn_button.position = Vector2(x, y)
 		end_turn_button.size = Vector2(RIGHT_W, END_H)
 		y -= GAP + SMALL_H
 		undo_button.position = Vector2(x, y)
 		undo_button.size = Vector2(UNDO_W, SMALL_H)
-		reroll_button.position = Vector2(x + UNDO_W + GAP, y)
-		reroll_button.size = Vector2(RIGHT_W - UNDO_W - GAP, SMALL_H)
+		reroll_button.position = Vector2(x + UNDO_W + ROW_GAP, y)
+		reroll_button.size = Vector2(RIGHT_W - UNDO_W - ROW_GAP, SMALL_H)
 		y -= GAP + SMALL_H
 		hold_button.position = Vector2(x, y)
 		hold_button.size = Vector2(RIGHT_W, SMALL_H)

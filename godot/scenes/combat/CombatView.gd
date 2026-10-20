@@ -1120,7 +1120,9 @@ func _update_hud() -> void:
 	var rr_paid_ok := _combat.rerolls <= 0 and _combat.reroll_is_payable() and _combat.mana >= rr_cost
 	var rr_tip := "Reroll unused dice (%s)" % KeyBindings.text(KeyBindings.COMBAT_REROLL)
 	if _combat.rerolls <= 0:
-		rr_tip = ("Free rerolls are used. The next one costs %d mana." % rr_cost) if _combat.reroll_is_payable() \
+		rr_tip = ("Need %d MP to reroll (you have %d). Free rerolls are used." % [rr_cost, _combat.mana]) \
+			if _combat.reroll_is_payable() and _combat.mana < rr_cost else \
+			("Free rerolls are used. The next one costs %d mana." % rr_cost) if _combat.reroll_is_payable() \
 			else "No rerolls left this turn."
 	var can_hold := executing and _selected_die_uid != -1 and _combat.can_stash(_selected_die_uid)
 	var hold_text := "Hold"
@@ -1144,7 +1146,8 @@ func _update_hud() -> void:
 		 "warn": has_unused and executing,
 		 "resolving": _combat.phase != CombatPhase.EXECUTE,
 		 "enabled": not (_combat.won or _combat.lost) and _combat.phase != CombatPhase.END_TURN},
-		{"show": _combat.stash_cap() > 0, "enabled": can_hold, "text": hold_text, "tip": hold_tip})
+		{"show": _combat.stash_cap() > 0, "enabled": can_hold, "text": hold_text, "tip": hold_tip,
+		 "on": _combat.stash_count() >= _combat.stash_cap() and _combat.stash_cap() > 0})
 	_hud_frame.update_foe(_foe_state())
 	_update_aid(hs, executing)
 	_update_die_info()
@@ -2990,6 +2993,8 @@ func _on_relic_pulsed(relic_id: String, uid: int) -> void:
 	_append_log("[relic] %s on %s" % [relic_id, _unit_name(uid)])
 
 func _on_float_text(uid: int, text: String, css_class: String, big: int) -> void:
+	if text == "HOLD":
+		return   # the parked die already carries a HOLD chip on its tray card and the Hold button says Holding n/n
 	_after_impact(func():
 		var p: UnitPortrait = _portraits.get(uid)
 		if p != null and is_instance_valid(p):
