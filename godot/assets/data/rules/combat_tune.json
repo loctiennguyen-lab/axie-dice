@@ -28,6 +28,9 @@
  "thorns": {
   "cap": 0
  },
+ "core": {
+  "mult_cap": 8
+ },
  "stash": {
   "cap": 1
  },

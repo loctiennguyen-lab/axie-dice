@@ -15,4 +15,3 @@ hook_key = "c_mirror_face"
 tags = PackedStringArray("nonattack")
 layer = "dice"
 core_axis = "dice"
-excludes = PackedStringArray("owned:c_three_dice")

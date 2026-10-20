@@ -67,9 +67,14 @@ static func face_category(face: Dictionary) -> String:
 static func is_finisher(combat, u) -> bool:
 	if u.side != "p" or u.hp <= 0 or not u.has_rolled() or u.roll_used() or u.held:
 		return false
+	# Three Dice: the die that makes the 3rd use is the last one (the rest get Held right after it).
+	if RelicHooks_has(combat, "c_three_dice") and int(turn_state(combat, "cs_three").get("n", 0)) >= 2:
+		return true
 	for o in combat.party:
 		if o == u or o.hp <= 0:
 			continue
+		if mirror_second(combat, o):
+			continue   # Mirror Face: a die waiting for its second use does not block the Final Blow of another die
 		if o.has_rolled() and not o.roll_used() and not o.held:
 			return false
 	return true
@@ -137,9 +142,22 @@ static func descend_face(ctx: Dictionary) -> void:
 		return
 	u.max_hp += 8
 	for f in u.die:
-		if String((f as Dictionary).get("type", "")) == "heal":
+		var ty := String((f as Dictionary).get("type", ""))
+		if ty == "heal":
 			f["type"] = "dmg"
 			f["value"] = int(f.get("value", 0)) + 2
+			_mark_converted(u, f)
+		elif ty == "buff":
+			f["type"] = "dmg"
+			f["value"] = 2
+			f["keywords"] = []
+			_mark_converted(u, f)
+
+
+static func _mark_converted(u, f: Dictionary) -> void:
+	var l: Array = u.custom_state.get("desc_fi", [])
+	l.append(u.die.find(f))
+	u.custom_state["desc_fi"] = l
 
 
 static func descend_hit(ctx: Dictionary) -> void:
@@ -191,7 +209,7 @@ static func tide_start(ctx: Dictionary) -> void:
 static func fissure_used(ctx: Dictionary) -> void:
 	var combat = ctx["combat"]
 	var f: Dictionary = ctx["face"]
-	if String(ctx.get("side", "")) != "p" or String(f.get("type", "")) != "poison":
+	if String(ctx.get("side", "")) != "p" or not ["poison", "debuff"].has(face_category(f)):
 		return
 	var targets: Array = combat.alive_enemies() if _has_kw(f, "aoe") else [combat.by_uid(int(ctx.get("target_uid", -1)))]
 	for t in targets:
@@ -262,7 +280,7 @@ static func shell_fall(ctx: Dictionary) -> void:
 	var key := str(ctx["tgt"].uid)
 	var n := int(st.get(key, 0))
 	if n > 0:
-		st[key] = int(ceil(n / 3.0))
+		st[key] = n - int(ceil(2.0 * n / 3.0))   # loses ceil(2n/3) of the stacks (design 2.7)
 
 
 static func dewdrop_turn(ctx: Dictionary) -> void:
@@ -481,6 +499,26 @@ static func bonus(combat, u, ft: String, id: String, part: String = "") -> int:
 	return 0
 
 
+## Flat bonuses baked into the face at build time (Hard Shell +2, Whittled Die +1, Take The Field +2): they are not
+## face_final handlers, but they use the same +10 room, so every flat Core sees them as "already spent".
+static func baked(combat, u, ft: String, fi: int) -> int:
+	var b := 0
+	if RelicHooks_has(combat, "rule_hard_shell") and u.side == "p":
+		b += CombatTraits.side_face_bonus(combat, u, ft, 1.0)
+	if fi >= 0 and fi < u.die.size():
+		if RelicHooks_has(combat, "c_whittle") and fi != weakest_fi(u) and int((u.die[fi] as Dictionary).get("value", 0)) > 0:
+			b += 1
+		if (u.custom_state.get("desc_fi", []) as Array).has(fi):
+			b += 2
+	return b
+
+
+## Gain of a x1.5 Core (Old Forest, Backline Glow), capped by combat_tune core.mult_cap so it cannot run away.
+static func mult_gain(v: int) -> int:
+	var up := int(ceil(v * 1.5))
+	return v + mini(up - v, int(CombatEngine.tune_knob("core", "mult_cap", 8.0)))
+
+
 ## face_final handler body for every flat-bonus Core / rule.
 static func flat(ctx: Dictionary, id: String) -> int:
 	var combat = ctx["combat"]
@@ -491,7 +529,7 @@ static func flat(ctx: Dictionary, id: String) -> int:
 	var own := bonus(combat, u, ft, id, part)
 	if own <= 0:
 		return v + own
-	var before := 0
+	var before := baked(combat, u, ft, int(ctx.get("fi", -1)))
 	for rid in combat.relic_ids:
 		if String(rid) == id:
 			break
@@ -501,8 +539,8 @@ static func flat(ctx: Dictionary, id: String) -> int:
 
 
 ## Total flat Core bonus a face would get right now (used by tests / UI).
-static func flat_total(combat, u, ft: String, part: String = "") -> int:
-	var t := 0
+static func flat_total(combat, u, ft: String, part: String = "", fi: int = -1) -> int:
+	var t := baked(combat, u, ft, fi)
 	for rid in combat.relic_ids:
 		if FLAT_IDS.has(String(rid)):
 			t += maxi(0, bonus(combat, u, ft, String(rid), part))
@@ -561,13 +599,33 @@ static func sonic_used(ctx: Dictionary) -> void:
 	if tid < 0:
 		tid = u.uid
 	var aoe := _has_kw(face, "aoe")
+	var hit_any := false
 	for e in combat.alive_enemies().duplicate():
 		if aoe or int(e.intent.get("target_uid", -2)) == tid:
+			hit_any = true
 			_hit_enemy(combat, e, dmg)
+	if not hit_any:   # nobody targets that Axie: a random living enemy takes it
+		var alive: Array = combat.alive_enemies()
+		if not alive.is_empty():
+			_hit_enemy(combat, alive[combat._rng.next_int(alive.size())], dmg)
 
 
 static func field_medic_face(ctx: Dictionary) -> void:
 	_dmg_minus(ctx["unit"], 2)
+	for f in ctx["unit"].die:   # debuff faces carry their strength in the keyword ("weaken:2"): +3 on every numeric one
+		if String((f as Dictionary).get("type", "")) == "debuff":
+			f["keywords"] = _bump_keywords(f.get("keywords", []) as Array, 3)
+
+
+static func _bump_keywords(kws: Array, n: int) -> Array:
+	var out: Array = []
+	for raw in kws:
+		var parts := String(raw).split(":")
+		if parts.size() == 2 and ["weaken", "vulnerable", "blind", "burn", "poison", "thorns", "regen"].has(parts[0]) and parts[1].is_valid_int():
+			out.append("%s:%d" % [parts[0], int(parts[1]) + n])
+		else:
+			out.append(String(raw))
+	return out
 
 
 static func _dmg_minus(u, n: int) -> void:
@@ -652,14 +710,22 @@ static func three_auto_hold(combat) -> void:
 		if u.held or not u.has_rolled() or u.roll_used() or u.frozen or _has_kw(u.current_face(), "cantrip"):
 			continue
 		u.held = true
-		st[str(u.uid)] = {"v": 3, "fi": u.roll_face_index()}
+		var fi: int = u.roll_face_index()
+		st[str(u.uid)] = {"v": 3, "fi": fi}
+		# 2b.3: an auto-Held die also earns the Focus of Kindle (+4, +8 on a second held turn) and Tundra (+2)
+		if RelicHooks_has(combat, "c_kindle"):
+			combat_state(combat, "focus_c_kindle")[str(u.uid)] = {"v": 4 * (2 if u.stash_carry else 1), "fi": fi}
+		if RelicHooks_has(combat, "rule_tundra"):
+			combat_state(combat, "focus_rule_tundra")[str(u.uid)] = {"v": 2, "fi": fi}
 		EventBus.float_text.emit(u.uid, "HOLD", "buf", 0)
 
 
 static func three_used(ctx: Dictionary) -> void:
 	if String(ctx.get("side", "")) != "p" or int(ctx.get("depth", 0)) != 0:
 		return
-	if int(turn_state(ctx["combat"], "cs_used").get("n", 0)) >= 3:
+	var st := turn_state(ctx["combat"], "cs_three")   # counts every use, Mirror Face's second use included
+	st["n"] = int(st.get("n", 0)) + 1
+	if int(st["n"]) >= 3:
 		three_auto_hold(ctx["combat"])
 
 
@@ -753,8 +819,26 @@ static func backline_value(ctx: Dictionary) -> int:
 	var u = ctx["unit"]
 	var ft := String(ctx.get("face_type", ""))
 	if u.side == "p" and not u.is_token and (ft == "heal" or ft == "mana") and ctx["combat"].row_of(u) == 1:
-		return int(ceil(int(ctx["value"]) * 1.5))
+		return mult_gain(int(ctx["value"]))
 	return int(ctx["value"])
+
+
+## Backline Glow also lifts the numeric keywords of back-row buff faces by 50% (rounded up, same cap).
+static func backline_face(ctx: Dictionary) -> void:
+	var u = ctx["unit"]
+	if u.side != "p" or u.is_token or ctx["combat"].row_of(u) != 1:
+		return
+	for f in u.die:
+		if String((f as Dictionary).get("type", "")) != "buff":
+			continue
+		var out: Array = []
+		for raw in (f.get("keywords", []) as Array):
+			var parts := String(raw).split(":")
+			if parts.size() == 2 and parts[1].is_valid_int():
+				out.append("%s:%d" % [parts[0], mult_gain(int(parts[1]))])
+			else:
+				out.append(String(raw))
+		f["keywords"] = out
 
 
 static func living_wall_face(ctx: Dictionary) -> void:
@@ -938,7 +1022,7 @@ static func collector_turn_end(ctx: Dictionary) -> void:
 		if k != "_t" and ["dmg", "shield", "heal", "poison", "mana", "debuff"].has(String(k)):
 			n += 1
 	var cs := combat_state(combat, "collector_fight")
-	if n >= 5 and not bool(cs.get("got", false)):
+	if n >= 4 and not bool(cs.get("got", false)):
 		cs["got"] = true
 		_quest_add(combat, "c_collector", 1, 3)
 
@@ -955,7 +1039,7 @@ static func dry_well_spent(ctx: Dictionary) -> void:
 static func night_watch_face(ctx: Dictionary) -> void:
 	var u = ctx["unit"]
 	var c = ctx["combat"]
-	if u.roster_index >= 0 and u.roster_index < 2 and not quest_done(c, "c_night_watch"):
+	if u.roster_index >= 0 and c.row_of(u) == 0 and not quest_done(c, "c_night_watch"):
 		u.max_hp += 3
 
 
@@ -963,6 +1047,10 @@ static func night_watch_end(ctx: Dictionary) -> void:
 	var combat = ctx["combat"]
 	if String(ctx.get("node_kind", "")) != "boss" or String(ctx.get("result", "")) != "won":
 		return
+	var q := quest(combat, "c_night_watch")
+	if int(q["boss"]) >= 1 or bool(q["done"]):
+		return   # only the NEXT boss counts; after that fight the quest is over, done or not
+	q["boss"] = 1
 	for u in combat.party:
 		if not u.is_token and u.hp <= 0:
 			return
@@ -1020,7 +1108,7 @@ static func old_forest_face(ctx: Dictionary) -> void:
 static func old_forest_value(ctx: Dictionary) -> int:
 	var ft := String(ctx.get("face_type", ""))
 	if ctx["unit"].side == "p" and (ft == "heal" or ft == "poison"):
-		return int(ceil(int(ctx["value"]) * 1.5))
+		return mult_gain(int(ctx["value"]))
 	return int(ctx["value"])
 
 

@@ -15,5 +15,5 @@ hook_key = "c_field_medic"
 tags = PackedStringArray("nonattack", "tradeoff")
 layer = "dice"
 core_axis = "dice"
-requires = PackedStringArray("faces_distinct:3")
+requires = PackedStringArray("faces_distinct:3", "faces_nondmg:2")
 excludes = PackedStringArray("owned:c_toxic_still")

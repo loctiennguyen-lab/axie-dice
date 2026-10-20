@@ -357,10 +357,12 @@ func t_quests() -> void:
 	RelicHooks.fire(c, "on_turn_start", {"combat": c})
 	_ok(c.mana == m0 + 1, "collector: +1 mana until done")
 	var st := CoreHooks.turn_state(c, "cs_types")
-	for t in ["dmg", "shield", "heal", "poison", "mana"]:
+	for t in ["dmg", "shield", "heal"]:
 		st[t] = true
 	RelicHooks.fire(c, "on_turn_end", {"combat": c})
-	_ok(int(CoreHooks.quest(c, "c_collector")["n"]) == 1, "collector: 5 types -> 1 fight counted")
+	st["poison"] = true
+	RelicHooks.fire(c, "on_turn_end", {"combat": c})
+	_ok(int(CoreHooks.quest(c, "c_collector")["n"]) == 1, "collector: 4 types -> 1 fight counted")
 	RelicHooks.fire(c, "on_turn_end", {"combat": c})
 	_ok(int(CoreHooks.quest(c, "c_collector")["n"]) == 1, "collector: once per fight")
 	CoreHooks.quest(c, "c_collector")["n"] = 2
@@ -623,9 +625,9 @@ func t_lane_e_cores() -> void:
 	_ok(not (c.relic_run_out["c_growing_shell"] as Dictionary).has(str(bk.uid)), "growing shell: back-row kill gives nothing")
 	fr.hp = 0
 	RelicHooks.fire(c, "on_dmg_taken", {"combat": c, "tgt": fr, "src": c.enemies[0], "dealt": 5})
-	_ok(int((c.relic_run_out["c_growing_shell"] as Dictionary)[str(fr.uid)]) == 2, "growing shell: falling 4 -> ceil(4/3) = 2")
+	_ok(int((c.relic_run_out["c_growing_shell"] as Dictionary)[str(fr.uid)]) == 1, "growing shell: falling 4 -> 4 - ceil(8/3) = 1")
 	var nx := _combat2(["c_growing_shell"], {"relic_state": c.relic_run_out})
-	_ok(nx.party[0].max_hp == _combat2([]).party[0].max_hp + 2, "growing shell: next fight starts with the stacks")
+	_ok(nx.party[0].max_hp == _combat2([]).party[0].max_hp + 1, "growing shell: next fight starts with the stacks")
 
 	# Deep Current: up to 12 leftover Mana after a WON fight is paid at the start of the next one.
 	c = _combat2(["c_deep_current"])

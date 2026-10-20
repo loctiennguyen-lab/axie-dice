@@ -165,6 +165,14 @@ static func token_ok(token: String, ctx: Dictionary) -> bool:
 				for lbl in _face_labels(_hero(e)):
 					all[lbl] = true
 			return all.size() >= int(arg)
+		"faces_nondmg":
+			var nd := 0
+			for e in roster:
+				for f in (_hero(e).get("die", []) as Array):
+					var ft := String((f as Dictionary).get("type", ""))
+					if ft != "dmg" and ft != "blank" and ft != "":
+						nd += 1
+			return nd >= int(arg)
 		"front_hero":
 			return roster.size() > 0
 		"team_can_break":

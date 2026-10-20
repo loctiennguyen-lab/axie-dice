@@ -1669,7 +1669,10 @@ static var TABLE: Dictionary = {
 		"thorns_extra": func(ctx: Dictionary): return CoreHooks.rebound_extra(ctx),
 		"face_blocked": func(ctx: Dictionary): return CoreHooks.rebound_blocked(ctx),
 	},
-	"c_backline_glow": {"face_final": func(ctx: Dictionary): return CoreHooks.backline_value(ctx)},
+	"c_backline_glow": {
+		"mod_face": func(ctx: Dictionary): CoreHooks.backline_face(ctx),
+		"face_final": func(ctx: Dictionary): return CoreHooks.backline_value(ctx),
+	},
 	"c_living_wall": {
 		"front_row_size": func(ctx: Dictionary): return 1,
 		"mod_face": func(ctx: Dictionary): CoreHooks.living_wall_face(ctx),
