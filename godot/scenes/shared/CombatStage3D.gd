@@ -363,6 +363,10 @@ const ADD_PITCH_X := 1.5
 const ADD_Z_BACK := -10.2
 const ADD_Z_FRONT := 6.3
 const ADD_Z_BACK2 := -18.3
+## A boss model at least this wide (m, fitted) stands WIDE_BOSS_LIFT further back when adds are on the board:
+## its footprint is so large that the front row of adds would otherwise stand on its feet.
+const WIDE_BOSS_MIN_W := 3.5
+const WIDE_BOSS_LIFT := 1.8
 ## Adds 5 and up (gooey SPLIT, summoners) stand on a second back row above the first one.
 const ADD_EXTRA := [[-1.0, -2], [1.0, -2], [0.0, -2], [-2.0, -2]]
 const ADD_PATTERNS := {
@@ -1316,13 +1320,21 @@ func reseat_side(uids: Array, is_enemy: bool) -> void:
 	for uid in axie_uids.duplicate():
 		if int(uid) == lead_uid:
 			axie_uids.erase(uid)
+	var wide_lead_w := 0.0   # fitted width (m) of a boss model wider than WIDE_BOSS_MIN_W, else 0
+	if lead_uid >= 0 and bool((_units[lead_uid] as Dictionary).get("is_boss", false)):
+		var lead_atia: Dictionary = (_units[lead_uid] as Dictionary).get("atia", {}) as Dictionary
+		var lw := float(lead_atia.get("width", 0.0))
+		if lw >= WIDE_BOSS_MIN_W:
+			wide_lead_w = lw
 	var placed: Array = []   # [uid, position]
 	if lead_uid >= 0:
 		var lead_entry: Dictionary = _units[lead_uid]
 		var is_boss: bool = bool(lead_entry.get("is_boss", false))
 		var lead_pos: Vector3 = BOSS_POS if is_boss else ELITE_POS
 		if axie_uids.is_empty():
-			lead_pos.z += 0.5   # alone: no adds above and below, so it sits a little lower, on the gate's axis
+			lead_pos.z += 0.0 if wide_lead_w > 0.0 else 0.5   # alone: no adds above and below, so it sits a little lower, on the gate's axis
+		elif wide_lead_w > 0.0:
+			lead_pos.z -= WIDE_BOSS_LIFT   # its feet would otherwise reach up into the adds standing in front of it
 		placed.append([lead_uid, lead_pos])
 		if not is_boss and not bool(lead_entry.get("elite_scaled", false)):
 			lead_entry["elite_scaled"] = true

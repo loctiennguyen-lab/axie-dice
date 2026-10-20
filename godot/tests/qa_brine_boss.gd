@@ -72,14 +72,15 @@ func _ready() -> void:
 	for e in scene._combat.enemies:
 		ids.append(int(e.uid))
 	var nid := 900
-	var cnt := ids.size() + 2
-	for i in 2:
+	var n_adds := maxi(1, int(OS.get_environment("AXIE_ADDS")) if OS.get_environment("AXIE_ADDS") != "" else 2)
+	var cnt := ids.size() + n_adds
+	for i in n_adds:
 		stage.spawn_unit(nid, "", true, ids.size() + i, cnt, false, "slime")
 		ids.append(nid)
 		nid += 1
 	stage.reseat_side(ids, true)
 	await _wait(0.8)
-	_save(tag + "_summons")
+	_save(tag + "_summons%d" % n_adds)
 	print("QA: brine capture done (viewport %d)" % w)
 	_guard.restore()
 	get_tree().quit(0)
