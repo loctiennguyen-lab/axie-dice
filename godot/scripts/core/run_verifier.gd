@@ -153,7 +153,7 @@ static func verify(log: ActionLog, tape: Array = [], loadout: Dictionary = {}) -
 			"shop_refresh":
 				if not RunState.refresh_shop(-1):
 					return _fail(ERR_REJECTED, "A shop refresh was recorded that the replay cannot make.", i)
-			"use_die", "play_active", "reroll_dice", "undo_last", "end_turn", "tweak", "hold_pick", "loaded_pick", "continue":
+			"use_die", "play_active", "reroll_dice", "undo_last", "end_turn", "tweak", "hold_pick", "loaded_pick", "continue", "stash":
 				if engine == null:
 					return _fail(ERR_REJECTED,
 						"A combat move was recorded outside a combat.", i)
@@ -246,6 +246,8 @@ static func _apply_combat(engine: CombatEngine, fn: String, args: Array) -> bool
 			return args.size() >= 3 and engine.tweak(String(args[0]), int(args[1]), int(args[2]))
 		"hold_pick":
 			return args.size() >= 1 and engine.hold_pick(int(args[0]))
+		"stash":
+			return args.size() >= 1 and engine.stash(int(args[0]))
 		"loaded_pick":
 			return args.size() >= 2 and engine.loaded_pick(int(args[0]), int(args[1]))
 		"end_turn":

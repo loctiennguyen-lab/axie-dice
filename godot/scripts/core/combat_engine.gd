@@ -483,8 +483,18 @@ func roll_all() -> void:
 			if u.frozen_next:
 				u.frozen = true
 				u.frozen_next = false
-			_roll_unit(u)
+			# Depth v3 Hold: a die parked with stash() keeps its face and its crit, does not draw from
+			# the rng, and is usable at once. It cannot be parked again next turn (stash_carry).
+			if u.held and u.has_rolled() and not u.roll_used():
+				u.held = false
+				u.stash_carry = true
+			else:
+				u.held = false
+				u.stash_carry = false
+				_roll_unit(u)
 		else:
+			u.held = false
+			u.stash_carry = false
 			u.clear_roll()
 	for e in enemies:
 		if e.hp > 0:
@@ -728,7 +738,7 @@ func _rerollable(uids: Array) -> Array:
 	for raw_id in uids:
 		var u := by_uid(int(raw_id))
 		if u != null and u.side == "p" and u.hp > 0 and u.has_rolled() and not u.roll_used() \
-				and not u.heavy and not u.frozen \
+				and not u.heavy and not u.frozen and not u.held \
 				and bool(RelicHooks.run_value_hook(self, "reroll_allowed", {"combat": self, "unit": u}, true)):
 			list.append(u)
 	return list
@@ -948,6 +958,8 @@ func use_die(unit_uid: int, target_uid: int) -> bool:
 	var u := by_uid(unit_uid)
 	if u == null or u.side != "p" or u.hp <= 0 or not u.has_rolled() or u.roll_used():
 		return false
+	if u.held:
+		return false   # parked this turn (stash)
 	_push_undo()
 	if not _exec_face(u, target_uid):
 		undo_stack.pop_back()
@@ -1002,6 +1014,62 @@ func _roll_edit(fn: String, p_kind: String, uid_a: int, uid_b: int, face_index: 
 		undo_stack.pop_back()
 		return false
 	_log(fn, log_args)
+	return true
+
+
+## ---- Depth v3 Hold (design/proposals/depth-v3-design.md 3.2/3.3) ----------------------------------------
+## Knob lookup in combat_tune.json: section/key with a code default, so a missing key never breaks a fight.
+static func tune_knob(section: String, key: String, default_value: float) -> float:
+	var sec = ContentDB.combat_tune.get(section, {})
+	if sec is Dictionary and (sec as Dictionary).has(key):
+		return float((sec as Dictionary)[key])
+	return default_value
+
+
+## How many dice may be parked at once. Hook `stash_cap` (value = knob stash.cap) lets a Core raise it.
+func stash_cap() -> int:
+	return int(RelicHooks.run_value_hook(self, "stash_cap", {"combat": self},
+		int(tune_knob("stash", "cap", 1.0))))
+
+
+func stash_count() -> int:
+	var n := 0
+	for u in party:
+		if u.held and u.hp > 0:
+			n += 1
+	return n
+
+
+## Pure legality check (the view greys the button with it). A die can be parked when it is a live, rolled,
+## unused, non-token, non-frozen die whose face is not a cantrip, it was not itself parked over the last turn
+## change (unless hook `stash_repeat`), and the cap is not reached.
+func can_stash(unit_uid: int) -> bool:
+	if won or lost or phase != CombatPhase.EXECUTE:
+		return false
+	var u := by_uid(unit_uid)
+	if u == null or u.side != "p" or u.is_token or u.hp <= 0 or not u.has_rolled() or u.roll_used():
+		return false
+	if u.held or u.frozen or _has_kw(u.current_face(), "cantrip"):
+		return false
+	if u.stash_carry and not bool(RelicHooks.run_value_hook(self, "stash_repeat",
+			{"combat": self, "unit": u}, false)):
+		return false
+	return stash_count() < stash_cap()
+
+
+## Parks one unused die: it cannot be used or rerolled now, and keeps its face (and crit) to the next turn.
+## No mana. Undoable like any action. Logged as `stash [uid]`. Not `hold_pick` (the Amber relic).
+func stash(unit_uid: int) -> bool:
+	if not can_stash(unit_uid):
+		return false
+	var u := by_uid(unit_uid)
+	_push_undo()
+	u.held = true
+	EventBus.float_text.emit(u.uid, "HOLD", "buf", 0)
+	EventBus.die_stashed.emit(u.uid)
+	RelicHooks.fire(self, "on_stash", {"combat": self, "unit": u, "face": u.current_face(),
+		"fi": u.roll_face_index()})
+	_log("stash", [unit_uid])
 	return true
 
 

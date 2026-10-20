@@ -14,6 +14,7 @@ signal resonance_triggered(uid: int)                                       # ~ "
 signal relic_pulsed(relic_id: String, uid: int)                            # ~ "relic" —
 		# the ONLY channel some relic effects have to become visible; never skip this.
 signal float_text(uid: int, text: String, css_class: String, big: int)     # ~ "ft"
+signal die_stashed(uid: int)                                              # depth v3 Hold: a die was parked
 signal unit_spawned(uid: int)                                              # (no JS analogue)
 		# A unit JOINED a fight already in progress — gooey_king's SPLIT, a summoner's adds, an
 		# Axie Egg from a face/card/relic. JS has no such event because its view re-renders the

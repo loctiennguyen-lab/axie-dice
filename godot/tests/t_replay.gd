@@ -39,6 +39,7 @@ const EXPECTED_TESTS: Array[String] = [
 	"test_an_undone_move_replays_like_it_never_happened",
 	"test_a_whole_run_is_rebuilt_from_its_log_by_the_referee",
 	"test_the_referee_knows_every_action_the_log_can_hold",
+	"test_a_stashed_die_replays_and_a_tampered_stash_does_not",
 ]
 
 var _failures: Array[String] = []
@@ -59,6 +60,7 @@ func _ready() -> void:
 	test_an_undone_move_replays_like_it_never_happened()
 	test_a_whole_run_is_rebuilt_from_its_log_by_the_referee()
 	test_the_referee_knows_every_action_the_log_can_hold()
+	test_a_stashed_die_replays_and_a_tampered_stash_does_not()
 
 	for test_name in EXPECTED_TESTS:
 		if not _completed.has(test_name):
@@ -348,6 +350,47 @@ func test_the_referee_knows_every_action_the_log_can_hold() -> void:
 	_done("test_the_referee_knows_every_action_the_log_can_hold")
 
 
+## Depth v3 Hold: a stash before end_turn must replay identically (the held die skips the next roll, so a
+## replay that forgot it would draw a different rng stream), and a stash of another die must NOT.
+func test_a_stashed_die_replays_and_a_tampered_stash_does_not() -> void:
+	var log := ActionLog.new()
+	log.begin(COMBAT_SEED, TEAM, "short", 0, "test")
+	var engine := _fresh_engine()
+	engine.action_log = log
+	var target := -1
+	var other := -1
+	for u in engine.party:
+		if engine.can_stash((u as Unit).uid):
+			if target < 0:
+				target = (u as Unit).uid
+			elif other < 0:
+				other = (u as Unit).uid
+	_assert(target >= 0 and other >= 0, "need two stashable dice on this seed")
+	if target < 0 or other < 0:
+		_done("test_a_stashed_die_replays_and_a_tampered_stash_does_not")
+		return
+	_assert(engine.stash(target), "stash refused a legal die")
+	engine.end_turn()
+	var played := engine.to_data()
+	var replay := _replay(log)
+	_assert(bool(replay["ok"]), str(replay.get("why", "")))
+	_assert(_digest(replay["snapshot"]) == _digest(played), "a stash did not replay to the same state")
+	var bad := _clone(log)
+	var e: Dictionary = bad.entries[0]
+	e["args"] = [other]
+	bad.entries[0] = e
+	var rb := _replay(bad)
+	_assert(not bool(rb["ok"]) or _digest(rb["snapshot"]) != _digest(played),
+		"a stash of a different die produced the same end state")
+	# stash of a unit that cannot be stashed (unknown uid) is refused by the referee
+	var junk := _clone(log)
+	var e2: Dictionary = junk.entries[0]
+	e2["args"] = [999999]
+	junk.entries[0] = e2
+	_assert(not bool(_replay(junk)["ok"]), "an illegal stash was accepted by the replay")
+	_done("test_a_stashed_die_replays_and_a_tampered_stash_does_not")
+
+
 ## Shapes that match what each action really records, so the probe above fails on "unknown",
 ## never on "args were the wrong shape".
 func _sample_args(fn: String) -> Array:
@@ -365,6 +408,8 @@ func _sample_args(fn: String) -> Array:
 		"tweak":
 			return ["nudge_up", 1, -1]
 		"hold_pick":
+			return [1]
+		"stash":
 			return [1]
 		"loaded_pick":
 			return [1, 0]
@@ -437,6 +482,8 @@ func _apply(engine: CombatEngine, fn: String, args: Array) -> bool:
 			return engine.reroll_dice(args[0] as Array, -1, args.size() > 1 and int(args[1]) != 0)
 		"undo_last":
 			return engine.undo_last()
+		"stash":
+			return args.size() >= 1 and engine.stash(int(args[0]))
 		"end_turn":
 			engine.end_turn()
 			return true
