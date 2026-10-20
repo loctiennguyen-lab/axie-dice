@@ -37,13 +37,21 @@ EventBus: `die_stashed(uid)` cho UI. Đổi hàng giữa trận: không có (hà
 - Nhịp boss: strike = `turn_count % 3 == 0` (OVERDRIVE Mecha, brood Plague Mother đã ở đó), hollow = lượt kế (boss nhận +30% dmg từ mặt dmg, đánh -30%), prep = còn lại. Agony không có nhịp (hai pha riêng). Tell riêng đã làm: Mecha (hollow mở gai), Frost (strike đóng băng 2, hollow 0), Mirror (hollow không chép). Gooey/Plague chỉ có nhịp chung.
 
 ## Làn D - bàn giao (UI + map)
-Nhánh depth/D, worktree my-game-wt/DD. Spec ngắn ở `design/ux/depth-v3/` (gitignore, add -f).
-Xong:
-- Combat HUD (a5b9139): nút Hold (H, `combat_hold`) -> `stash`, chip HOLD trên thẻ tray, giá reroll mana ("Reroll N MP" / "Need N MP"), dải FRONT/BACK, FoeCard (nhịp boss 3 chip + tell, chip affix Elite + tooltip). Test `t_depthv3_combat_ui` (10). Ảnh `production/qa/evidence/depthv3_combat_*` (1920/1280).
-- Màn chọn Lõi + Luật run (82c9f79): dùng overlay thưởng RunMap, thẻ `core:true` hiện bậc Moss/Amber/Crystal + trục, chip "Next: bậc", reroll "N left", Luật run 2 thẻ không reroll. Test `t_depthv3_core_offer` (10). Ảnh `depthv3_core_offer_*`, `depthv3_rule_offer_*`.
-Còn: mục 3 (map: icon reward_kind + affix trên node, gán trong run_map_generator bằng Rng(seed ^ SALT)); mục 4 (Giáp: icon + "4 -> 1" preview + chữ "Vỡ Giáp" + coach run đầu); thẻ thứ 4 lần 1 khi có perk; ô Lõi 6 ô trên combat; chip Lõi nhiệm vụ.
-Chờ làn khác (stub): `RunState.core_next_tier`, `RunState.core_reroll_left` (B, đọc bằng `RunState.get`, thiếu thì ẩn/fallback); B phải đẩy thẻ `CoreOffer.card_of` vào `pending_rewards`; A: hàm preview sát thương có Giáp, event Giáp. `combat_setup["affix"]` chưa ai điền từ map (mục 3 làm).
-Chưa chạy full suite. Chưa thêm 3 test mới vào run_tests.sh (không được đụng): t_depthv3_combat_ui, t_depthv3_core_offer.
+Nhánh depth/D, worktree my-game-wt/DD. Đã merge depth/B và depth/A vào D. Spec ngắn ở `design/ux/depth-v3/` (gitignore, add -f).
+Xong (mỗi việc 1 commit, test xanh):
+- Combat HUD (a5b9139): nút Hold, chip HOLD, giá reroll mana, dải FRONT/BACK, FoeCard (nhịp boss + chip affix). `t_depthv3_combat_ui`.
+- Màn chọn Lõi + Luật run (82c9f79) trên overlay thưởng RunMap. `t_depthv3_core_offer`. Thẻ thứ 4 lần 1 do B (`core_first_extra`) đã chạy qua cùng overlay.
+- Map (01d3afa): `RunMapNode.reward_kind/affix/affix2`; `RunMapGenerator.assign_extras(graph_data, seed, can_break)` chạy SAU generate, rng riêng `seed ^ REWARD_KIND_SALT/AFFIX_SALT ^ node`, gọi từ `RunState` (start run). `enter_node` đưa `affix/affix2/first_run_elite(=newcomer)` vào `pending_combat`. Badge reward trên node, caption "Elite · tên affix", detail plate + tooltip. `t_depthv3_map`.
+- CorePanel (a109ce0, `scenes/shared/CorePanel.gd`): 6 ô Lõi + 1 ô Luật run + chip nhiệm vụ "x/y · Step a/b", dùng ở rail map và HUD combat (Lõi không còn nằm trong dải relic). `t_depthv3_core_panel`.
+- Giáp (commit kế): chip "ARM n" / "ARM off n" trên đầu quái (StatusHeads), preview "4 → 1" cho viên dmg đang chọn (dùng `CombatTraits.reduce`), chữ nổi "Plating broken" (EventBus.plating_off) và "Plating wears down n" (plating_decay), dòng coach trong FoeCard cho run đầu (newcomer, tắt khi đã phá Giáp). `t_depthv3_plating_ui`.
+Stub / còn lại:
+- `RunState.core_next_tier`: chưa có ở B, UI ẩn chip "Next" nếu thiếu.
+- `choose_affixes` không có ở A: `assign_extras` chọn đơn giản (nhóm A cho mọi Elite, thêm nhóm B sau boss 1, tôn trọng forbidden_pairs). `can_break` luôn true (chưa ai tính `team_can_break` lúc new_run). Đổi khi A/B có hàm.
+- Preview dùng giá trị mặt trước hệ số relic, nên có thể thấp hơn đòn thật khi có buff; A chưa có `preview_damage`.
+- Chữ nổi dùng tiếng Anh ("Plating broken"), chưa phải "Vỡ Giáp" (UI hiện toàn tiếng Anh). "Giáp mòn" khi chống kẹt = "Plating wears down".
+- Coach là dòng trong FoeCard theo newcomer (không dùng TutorialCoach, không thêm cờ meta để khỏi đụng MetaState).
+- Ảnh: map (`depthv3_map_*`, `depthv3_core_panel_*`) đã chụp, xem OK. Ảnh Giáp CHƯA chụp được: `tests/qa_depthv3_plating_capture.gd` lỗi `v._combat` null (combat không nạp tới 90 frame ở bước thứ hai / sau `set_phase`); cần sửa script rồi chụp 1920x1080 + 1280x720.
+- Chưa chạy full suite. Test mới chưa trong run_tests.sh (runner tự quét `tests/t_*.tscn`: t_depthv3_combat_ui, core_offer, map, core_panel, plating_ui). Cần lane I đếm lại sàn test (+5) và xem RULES_VERSION (đã đổi scripts/core, autoload RunState: map_graph có field mới, affix vào combat setup).
 
 ## Làn B - bàn giao (nhánh depth/B)
 

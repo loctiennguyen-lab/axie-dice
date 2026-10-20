@@ -34,7 +34,8 @@ func sync(entries: Array) -> void:
 	for e in entries:
 		var uid := int(e["uid"])
 		seen[uid] = true
-		var items := items_for(int(e.get("shield", 0)), e.get("status", {}), bool(e.get("frozen", false)))
+		var items := items_for(int(e.get("shield", 0)), e.get("status", {}), bool(e.get("frozen", false)),
+			int(e.get("plating", 0)), int(e.get("plating_off", 0)), String(e.get("preview", "")))
 		var anchor: Vector2 = e["anchor"]
 		var show := not bool(e.get("hidden", false)) and anchor.x >= 0.0 and not items.is_empty()
 		if not show:
@@ -57,8 +58,17 @@ func sync(entries: Array) -> void:
 
 
 ## Ordered [key, count] list: shield first, then every status with a count above zero.
-static func items_for(shield: int, status: Dictionary, frozen := false) -> Array:
+## Depth v3: `plating` = armor counting right now, `plating_off` = turns it stays switched off, `preview` = the
+## "4 -> 1" line for the picked die on this foe (shown first so it is never the chip that gets folded into "+N").
+static func items_for(shield: int, status: Dictionary, frozen := false, plating := 0, plating_off := 0,
+		preview := "") -> Array:
 	var items: Array = []
+	if preview != "":
+		items.append(["preview", 0, preview])
+	if plating > 0:
+		items.append(["plating", plating])
+	elif plating_off > 0:
+		items.append(["plating_off", plating_off])
 	if shield > 0:
 		items.append(["shield", shield])
 	for k in UI3.STATUS_CODE:
@@ -99,7 +109,13 @@ func _rebuild(uid: int, items: Array, old: Dictionary) -> Dictionary:
 		var key := String(items[i][0])
 		var n := int(items[i][1])
 		var chip := _chip(key, n)
-		UI3Tooltip.bind(chip, UnitPortrait._effect_tooltip(key, n))
+		if key == "preview":
+			chip = UI3.chip(String(items[i][2]))
+			chip.name = "DmgPreview"
+			chip.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			row.add_child(chip)
+			continue
+		UI3Tooltip.bind(chip, _tip(key, n))
 		chip.mouse_filter = Control.MOUSE_FILTER_STOP
 		chip.gui_input.connect(_on_chip_input.bind(uid))
 		row.add_child(chip)
@@ -108,14 +124,27 @@ func _rebuild(uid: int, items: Array, old: Dictionary) -> Dictionary:
 		more.add_child(UI3.label("+%d" % (items.size() - shown), "LabelDisplay"))
 		var hidden: PackedStringArray = []
 		for j in range(shown, items.size()):
-			hidden.append(UnitPortrait._effect_tooltip(String(items[j][0]), int(items[j][1])))
+			hidden.append(_tip(String(items[j][0]), int(items[j][1])))
 		UI3Tooltip.bind(more, "\n\n".join(hidden))
 		more.mouse_filter = Control.MOUSE_FILTER_STOP
 		row.add_child(more)
 	return {"row": row, "sig": str(items)}
 
 
+static func _tip(key: String, n: int) -> String:
+	match key:
+		"plating":
+			return "Plating %d\nEach single hit loses %d damage (never below 1). Poison or a debuff switches it off for 2 turns." % [n, n]
+		"plating_off":
+			return "Plating off\nBroken by poison or a debuff. Back in %d turns." % n
+	return UnitPortrait._effect_tooltip(key, n)
+
+
 func _chip(key: String, n: int) -> Control:
+	if key == "plating":
+		return UI3.chip("ARM %d" % n)
+	if key == "plating_off":
+		return UI3.chip("ARM off %d" % n)
 	var tex := icon_for(key)
 	if tex == null:
 		return UI3.status_label_chip(key, n)

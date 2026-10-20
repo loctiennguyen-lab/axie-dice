@@ -1165,6 +1165,12 @@ func _foe_state() -> Dictionary:
 				st["tell"] = _rhythm_tell(st)
 				out["rhythm"] = st
 				break
+	# First run of the account: one plain line while a plated foe is alive, until the player has broken a Plating.
+	if _combat.newcomer and not _plating_learned:
+		for e in _combat.enemies:
+			if e.hp > 0 and CombatTraits.plating_of(_combat, e) > 0:
+				out["coach"] = "Plating cuts every single hit (never below 1). Poison or a debuff switches it off for 2 turns."
+				break
 	var af: Dictionary = _combat.affix_state()
 	if not af.is_empty() and String(af.get("id", "")) != "":
 		var def: Dictionary = ContentDB.elite_affixes.get(String(af["id"]), {})
@@ -1575,6 +1581,8 @@ func _connect_event_bus() -> void:
 	EventBus.resonance_triggered.connect(_on_resonance_triggered)
 	EventBus.relic_pulsed.connect(_on_relic_pulsed)
 	EventBus.float_text.connect(_on_float_text)
+	EventBus.plating_off.connect(_on_plating_off)
+	EventBus.plating_decay.connect(_on_plating_decay)
 	EventBus.boss_phase_changed.connect(_on_boss_phase_changed)
 	EventBus.enemy_intent_executed.connect(_on_enemy_intent_executed)
 	EventBus.status_tick.connect(_on_status_tick)
@@ -2457,10 +2465,51 @@ func _layout_status_heads(stage_offset: Vector2) -> void:
 		for u in group:
 			var alive: bool = u.hp > 0
 			entries.append({"uid": u.uid, "shield": u.shield, "status": u.status,
+				"plating": CombatTraits.plating_of(_combat, u) if not is_party else 0,
+				"plating_off": int(u.plating_off) if (not is_party and u.plating > 0) else 0,
+				"preview": _plating_preview(u) if not is_party else "",
 				"hidden": not alive or _exit_running, "frozen": u.frozen,
 				"anchor": _status_head_anchor(u.uid, is_party, stage_offset) if alive else Vector2(-1, -1)})
 	_status_heads.sync(entries)
 
+
+## "4 -> 1": what the picked damage die would do to foe `e` once its Plating cuts the hit. "" when nothing is picked,
+## the face is not a single-target damage face, or the foe has no Plating right now. Uses CombatTraits.reduce, the
+## same pure function the damage pipeline uses (lane A has no separate preview_damage; this is the face value
+## before relic multipliers, so it can read a little low against a buffed hit).
+func _plating_preview(e: Unit) -> String:
+	if _combat == null or _selected_die_uid == -1 or e.hp <= 0 or CombatTraits.plating_of(_combat, e) <= 0:
+		return ""
+	var src := _combat.by_uid(_selected_die_uid)
+	if src == null or not src.has_rolled() or _selected_face_type() != "dmg":
+		return ""
+	var fi := src.roll_face_index()
+	var face: Dictionary = src.die[fi]
+	if bool(face.get("aoe", false)) or bool(face.get("pierce", false)):
+		return ""
+	var v := _live_face_value(src, fi)
+	var after := int(CombatTraits.reduce(_combat, e, float(v)))
+	return "%d → %d" % [v, after] if after != v else ""
+
+
+## Floats over the foe when its Plating breaks / wears (EventBus plating_off, plating_decay).
+func _on_plating_off(uid: int, _turns: int) -> void:
+	_plating_learned = true
+	_after_impact(func():
+		var p: UnitPortrait = _portraits.get(uid)
+		if p != null and is_instance_valid(p):
+			p.spawn_float_text(TranslationServer.translate("Plating broken"), "deb", 1)
+		_rebuild_all())
+
+
+func _on_plating_decay(uid: int, p_now: int) -> void:
+	_after_impact(func():
+		var p: UnitPortrait = _portraits.get(uid)
+		if p != null and is_instance_valid(p):
+			p.spawn_float_text(TranslationServer.translate("Plating wears down") + " %d" % p_now, "deb", 0))
+
+
+var _plating_learned := false
 
 const _ENEMY_COLUMN_TOP_UI3 := 24.0
 const _ENEMY_PLATE_TOP_R1 := 96.0

@@ -220,7 +220,16 @@ func update_foe(d: Dictionary) -> void:
 		c.queue_free()
 	var r: Dictionary = d.get("rhythm", {})
 	var a: Dictionary = d.get("affix", {})
-	_foe_card.visible = not r.is_empty() or not a.is_empty()
+	var coach := String(d.get("coach", ""))
+	_foe_card.visible = not r.is_empty() or not a.is_empty() or coach != ""
+	if coach != "":
+		var cl := UI3.label(coach, "LabelMuted")
+		cl.name = "CoachPlating"
+		cl.add_theme_font_size_override("font_size", 18)
+		cl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		cl.custom_minimum_size.x = 320
+		cl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_foe_rows.add_child(cl)
 	if not a.is_empty():
 		var row := HBoxContainer.new()
 		row.name = "AffixRow"
