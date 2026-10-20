@@ -19,6 +19,8 @@ func _ready() -> void:
 	t_quests()
 	t_run_rules()
 	t_engine_cores()
+	t_lane_e_cores()
+	t_lane_e_rules()
 	print("=== t_core_behaviour: %d checks, %d failure(s) ===" % [_checks, _fails.size()])
 	if _fails.is_empty():
 		print("t_core_behaviour: PASS — %d checks OK" % _checks)
@@ -553,3 +555,159 @@ func t_engine_cores() -> void:
 		for fi in 6:
 			if String(bu.die[fi].get("type", "")) == "heal":
 				_ok(String(mu.die[fi]["type"]) == "dmg" and int(mu.die[fi]["value"]) == int(bu.die[fi]["value"]) + 2, "descend: heal face %d -> dmg +2" % fi)
+
+
+# ---------------------------------------------------------------- lane E batch 2: the 5 hook Cores + 4 rules
+func _combat2(relics: Array, extra: Dictionary = {}) -> CombatEngine:
+	var roster: Array = []
+	for i in ROSTER.size():
+		roster.append({"persistent_id": i + 1, "hero_key": ROSTER[i], "tier": 1,
+			"max_hp": ContentDB.heroes[ROSTER[i]]["max_hp"], "muts": [], "growth": {}, "bonus_hp": 0})
+	var setup := {"node_id": "t_core", "kind": "battle", "pw": 2, "ascension": 0, "roster_snapshot": roster,
+		"relic_ids": relics, "combat_seed": 4242, "bonus_reroll": 0}
+	setup.merge(extra, true)
+	var c := CombatEngine.new()
+	c.setup_new(setup)
+	return c
+
+
+## HP removed by one hit through the real pipeline (pierce skips Plating so only the hook under test moves it).
+func _hit(c: CombatEngine, src: Unit, tgt: Unit, v: int, single: bool = true, pierce: bool = true) -> int:
+	tgt.shield = 0
+	tgt.hp = tgt.max_hp
+	return DamagePipeline.resolve({"combat": c, "src": src, "tgt": tgt, "value": v, "attack": true,
+		"single": single, "pierce": pierce, "face_type": "dmg"})
+
+
+func t_lane_e_cores() -> void:
+	# Fissure: a poison face that hits marks the enemy: +25% from all damage through the end of next turn, Plating off.
+	var b := _combat2([])
+	var c := _combat2(["c_fissure"])
+	var e: Unit = c.enemies[0]
+	var d0 := _hit(b, b.party[0], b.enemies[0], 8)
+	_ok(_hit(c, c.party[0], e, 8) == d0, "fissure: no bonus before a poison face lands")
+	_used(c, c.party[1], "poison", 3, e.uid)
+	_ok(int(e.custom_state.get("fissure", -1)) == c.turn + 1 and e.plating_off >= 2, "fissure: marked until end of next turn, Plating off")
+	_ok(_hit(c, c.party[0], e, 8) == int(ceil(8 * 1.25)) and d0 == 8, "fissure: 8 -> 10 on a marked enemy (base 8)")
+	c.turn += 1
+	_ok(_hit(c, c.party[0], e, 8) == 10, "fissure: still marked next turn")
+	c.turn += 1
+	_ok(_hit(c, c.party[0], e, 8) == 8, "fissure: expired after that")
+	var c2 := _combat2(["c_fissure"])
+	_used(c2, c2.party[1], "dmg", 3, c2.enemies[0].uid)
+	_ok(int(c2.enemies[0].custom_state.get("fissure", -1)) == -1, "fissure: a non-poison face does not mark")
+
+	# Bastion: front-row Axies take 2 less from single, non-pierce attacks (min 1); back row / AoE / pierce unchanged.
+	b = _combat2([])
+	c = _combat2(["c_bastion"])
+	var fr: Unit = c.party[0]
+	var bk: Unit = c.party[4]
+	_ok(c.row_of(fr) == 0 and c.row_of(bk) == 1, "bastion: slot 1 front, slot 5 back")
+	var atk: Unit = c.enemies[0]
+	_ok(_hit(c, atk, fr, 6, true, false) == _hit(b, b.enemies[0], b.party[0], 6, true, false) - 2, "bastion: front takes 2 less")
+	_ok(_hit(c, atk, fr, 2, true, false) == 1, "bastion: min 1")
+	_ok(_hit(c, atk, fr, 6, false, false) == 6, "bastion: AoE not reduced")
+	_ok(_hit(c, atk, fr, 6, true, true) == 6, "bastion: pierce not reduced")
+	_ok(_hit(c, atk, bk, 6, true, false) == 6, "bastion: back row not reduced")
+
+	# Growing Shell: front-row kill = +1 Max HP stack (kept in relic_state); falling keeps ceil(n/3); stacks apply next fight.
+	c = _combat2(["c_growing_shell"])
+	fr = c.party[0]
+	bk = c.party[4]
+	var hp0 := fr.max_hp
+	for i in 4:
+		RelicHooks.fire(c, "on_kill", {"combat": c, "killer": fr, "tgt": c.enemies[0]})
+	_ok(fr.max_hp == hp0 + 4 and int((c.relic_run_out["c_growing_shell"] as Dictionary)[str(fr.uid)]) == 4, "growing shell: 4 kills = +4 max hp, 4 stacks")
+	RelicHooks.fire(c, "on_kill", {"combat": c, "killer": bk, "tgt": c.enemies[0]})
+	_ok(not (c.relic_run_out["c_growing_shell"] as Dictionary).has(str(bk.uid)), "growing shell: back-row kill gives nothing")
+	fr.hp = 0
+	RelicHooks.fire(c, "on_dmg_taken", {"combat": c, "tgt": fr, "src": c.enemies[0], "dealt": 5})
+	_ok(int((c.relic_run_out["c_growing_shell"] as Dictionary)[str(fr.uid)]) == 2, "growing shell: falling 4 -> ceil(4/3) = 2")
+	var nx := _combat2(["c_growing_shell"], {"relic_state": c.relic_run_out})
+	_ok(nx.party[0].max_hp == _combat2([]).party[0].max_hp + 2, "growing shell: next fight starts with the stacks")
+
+	# Deep Current: up to 12 leftover Mana after a WON fight is paid at the start of the next one.
+	c = _combat2(["c_deep_current"])
+	c.mana = 15
+	RelicHooks.fire(c, "on_combat_end", {"combat": c, "result": "won"})
+	_ok(int((c.relic_run_out["c_deep_current"] as Dictionary)["mana"]) == 12, "deep current: kept capped at 12")
+	c.mana = 5
+	RelicHooks.fire(c, "on_combat_end", {"combat": c, "result": "lost"})
+	_ok(int((c.relic_run_out["c_deep_current"] as Dictionary)["mana"]) == 0, "deep current: nothing kept after a loss")
+	nx = _combat2(["c_deep_current"], {"relic_state": {"c_deep_current": {"mana": 7}}})
+	_ok(nx.mana == _combat2([]).mana + 7 and int((nx.relic_run_out["c_deep_current"] as Dictionary)["mana"]) == 0, "deep current: +7 mana at the start, counter reset")
+
+	# Nest: one Egg at the start, Eggs count as front row.
+	b = _combat2([])
+	c = _combat2(["c_nest"])
+	var eggs: Array = c.party.filter(func(u): return u.is_token)
+	_ok(eggs.size() == 1 and b.party.filter(func(u): return u.is_token).is_empty(), "nest: one Egg at combat start")
+	_ok(c.row_of(eggs[0]) == 0 and c.alive_party().has(eggs[0]), "nest: Egg stands in the front row")
+
+
+func t_lane_e_rules() -> void:
+	# Quick Beat: boss rhythm period 2, Strike turns deal x1.2.
+	var b := _combat2([], {"kind": "boss", "pw": 9, "boss_key": "mecha"})
+	var c := _combat2(["rule_quick_beat"], {"kind": "boss", "pw": 9, "boss_key": "mecha"})
+	var bb: Unit = b.enemies.filter(func(u): return u.is_boss)[0]
+	var cb: Unit = c.enemies.filter(func(u): return u.is_boss)[0]
+	_ok(b.boss_period() == 3 and c.boss_period() == 2, "quick beat: period 3 -> 2")
+	cb.custom_state["turn_count"] = 2
+	_ok(c.boss_rhythm_phase(cb) == "strike", "quick beat: strike on turn count 2")
+	cb.custom_state["turn_count"] = 3
+	_ok(c.boss_rhythm_phase(cb) == "hollow", "quick beat: hollow right after")
+	cb.custom_state["turn_count"] = 4
+	_ok(c.boss_rhythm_phase(cb) == "strike", "quick beat: strike again 2 turns later")
+	bb.custom_state["turn_count"] = 2
+	_ok(b.boss_rhythm_phase(bb) != "strike", "quick beat: base rhythm has no strike on count 2")
+	cb.custom_state["turn_count"] = 2
+	bb.custom_state["turn_count"] = 3
+	_ok(is_equal_approx(c.boss_hollow_dealt_mult(cb), 1.2) and is_equal_approx(b.boss_hollow_dealt_mult(bb), 1.0), "quick beat: strike x1.2, base strike x1.0")
+
+	# Rising Tide: fight 1 (n=0) the front is in the water, fight 2 the back row; counter in the run state.
+	b = _combat2([])
+	c = _combat2(["rule_rising_tide"], {"relic_state": {"rule_rising_tide": {"n": 0}}})
+	_ok(String(CoreHooks.combat_state(c, "tide")["water"]) == "front" and int((c.relic_run_out["rule_rising_tide"] as Dictionary)["n"]) == 1, "rising tide: even fight = front in water, counter +1")
+	var src: Unit = c.enemies[0]
+	_ok(_hit(c, src, c.party[0], 8, false, false) == int(ceil(8 * 0.75)), "rising tide (front water): front takes 25% less")
+	_ok(_hit(c, src, c.party[4], 8, false, false) == 8, "rising tide (front water): back row unchanged")
+	_ok(_val(c, c.party[4], "dmg", 5) == _val(b, b.party[4], "dmg", 5), "rising tide (front water): no back dmg bonus")
+	var c2 := _combat2(["rule_rising_tide"], {"relic_state": c.relic_run_out})
+	_ok(String(CoreHooks.combat_state(c2, "tide")["water"]) == "back", "rising tide: next fight the back row is in the water")
+	_ok(_hit(c2, c2.enemies[0], c2.party[0], 8, false, false) == 8, "rising tide (back water): front takes full damage")
+	_ok(_val(c2, c2.party[4], "dmg", 5) == _val(b, b.party[4], "dmg", 5) + 2 and _val(c2, c2.party[0], "dmg", 5) == _val(b, b.party[0], "dmg", 5), "rising tide (back water): back dmg faces +2, front none")
+
+	# Upside Down: single-target enemy attacks pick the back row while one lives.
+	var seen := 0
+	for sd in 12:
+		c = _combat2(["rule_upside_down"], {"combat_seed": 100 + sd})
+		for e in c.enemies:
+			var f: Dictionary = (e as Unit).die[(e as Unit).roll_face_index()]
+			var kws: Array = f.get("keywords", [])
+			if String(f.get("type", "")) in ["dmg", "poison", "debuff"] and not kws.has("aoe") and not kws.has("pierce") and (e as Unit).role != "assassin":
+				seen += 1
+				var t = c.by_uid(int((e as Unit).intent.get("target_uid", -1)))
+				_ok(t != null and c.row_of(t) == 1, "upside down: seed %d single-target attack goes to the back row" % sd)
+	_ok(seen >= 3, "upside down: enough single-target attacks were checked (%d)" % seen)
+	var fronts := 0
+	for sd in 12:
+		b = _combat2([], {"combat_seed": 100 + sd})
+		for e in b.enemies:
+			var t2 = b.by_uid(int((e as Unit).intent.get("target_uid", -1)))
+			if t2 != null and b.row_of(t2) == 0:
+				fronts += 1
+	_ok(fronts > 0, "upside down: without the rule the front row IS targeted (sanity)")
+
+	# Hard Shell: R12 (Plating 2 on every enemy, side faces +2) through the real rule id.
+	b = _combat2([])
+	c = _combat2(["rule_hard_shell"])
+	_ok(c.run_rules.has("R12"), "hard shell: switches R12 on")
+	for e in c.enemies:
+		_ok(CombatTraits.plating_of(c, e) >= 2, "hard shell: every enemy has Plating >= 2")
+	var pe: Unit = c.enemies[0]
+	pe.plating_off = 0
+	_ok(_hit(c, c.party[0], pe, 6, true, false) == 4, "hard shell: single dmg 6 -> 4")
+	_ok(_hit(c, c.party[0], pe, 6, true, true) == 6, "hard shell: pierce ignores it")
+	_ok(_val(c, c.party[0], "shield", 3) == _val(b, b.party[0], "shield", 3) + 2, "hard shell: shield face +2")
+	_ok(_val(c, c.party[0], "poison", 3) == _val(b, b.party[0], "poison", 3) + 2, "hard shell: poison face +2")
+	_ok(_val(c, c.party[0], "dmg", 3) == _val(b, b.party[0], "dmg", 3), "hard shell: dmg faces unchanged")
