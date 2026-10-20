@@ -1165,6 +1165,7 @@ func _update_hud() -> void:
 	_layout_tray()
 	_update_rr_bar()
 	_update_wild_picker()
+	_update_coach()
 
 
 ## Boss rhythm + Elite affix for the HUD foe card (engine reads: boss_rhythm_state / affix_state).
@@ -2824,6 +2825,7 @@ func _rr_pinned() -> Dictionary:
 
 
 func _enter_rr_mode() -> void:
+	_coach_hide()
 	_wild_mode = false
 	_rr_mode = true
 	_selected_die_uid = -1
@@ -4279,6 +4281,7 @@ func _wild_state(executing: bool) -> Dictionary:
 
 
 func _enter_wild_mode() -> void:
+	_coach_hide()
 	_land_dice_now()
 	if _is_animating or _gated("wild") or not _wild_any_valid():
 		return
@@ -4354,3 +4357,72 @@ func _update_wild_picker() -> void:
 	var vs := get_viewport_rect().size
 	var tray_top := vs.y - 24.0 - TrayColumn.H
 	_wild_picker.position = Vector2((vs.x - _wild_picker.size.x) * 0.5, tray_top - _wild_picker.size.y - 12.0)
+
+
+# ---- Depth v4 coach (combat-v4.md 5.3) -----------------------------------------------------------------------
+var _coach_box: PanelContainer = null
+var _coach_label: Label = null
+var _coach_turn := -1
+var coach_shown_id := ""                 # test hook
+
+
+func _coach_hide() -> void:
+	if _coach_box != null:
+		_coach_box.visible = false
+
+
+func _update_coach() -> void:
+	if _combat == null or _shell_root == null:
+		return
+	if CombatView.disable_juice_for_tests and not V4Coach.enabled_in_tests:
+		return
+	if _tutorial or not V4Coach.enabled:
+		return
+	var banner_up: bool = _bo_layer != null and _bo_layer._banner != null and _bo_layer._banner.visible
+	var executing := _combat.phase == CombatPhase.EXECUTE and not (_combat.won or _combat.lost)
+	if not executing or _rr_mode or _wild_mode or banner_up or _dice_in_air():
+		_coach_hide()
+		return
+	if _coach_turn == _combat.turn:
+		return   # one bubble per turn (it stays until the turn changes, an action opens a mode, or it is skipped)
+	var parts := {}
+	var rolled := false
+	for u in _party_dice_units():
+		if u.hp > 0 and u.has_rolled() and not u.is_token:
+			rolled = true
+			var fi: int = u.roll_face_index()
+			parts[fi] = int(parts.get(fi, 0)) + 1
+	var pair := false
+	for k in parts:
+		if int(parts[k]) == 2:
+			pair = true
+	var id := V4Coach.next_id({"stage": _combat.depth_stage, "rolled": rolled, "pair": pair, "bo": not _combat.bo.is_empty(),
+		"free_left": _combat.rerolls, "payable": _combat.reroll_is_payable(), "mana": _combat.mana,
+		"reroll_cost": _combat.reroll_mana_cost(false, 1), "wild_cost": _combat.wild_cost(), "oc_cost": _combat.overcast_cost()})
+	if id == "":
+		return
+	V4Coach.mark(id)
+	_coach_turn = _combat.turn
+	coach_shown_id = id
+	if _coach_box == null:
+		_coach_box = UI3.plate(&"plate")
+		_coach_box.name = "V4Coach"
+		_coach_box.z_index = 9
+		var row := HBoxContainer.new()
+		row.add_theme_constant_override("separation", 16)
+		_coach_label = UI3.label("")
+		_coach_label.add_theme_font_size_override("font_size", 18)
+		_coach_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		_coach_label.custom_minimum_size = Vector2(520, 0)
+		row.add_child(_coach_label)
+		var skip := UI3.button(TranslationServer.translate("Skip"), &"quiet")
+		skip.pressed.connect(_coach_hide)
+		row.add_child(skip)
+		_coach_box.add_child(row)
+		_shell_root.add_child(_coach_box)
+	_coach_label.text = V4Coach.text_for(id)
+	_coach_box.visible = true
+	_coach_box.size = Vector2.ZERO
+	var vs := get_viewport_rect().size
+	var w := _coach_box.get_combined_minimum_size().x
+	_coach_box.position = Vector2((vs.x - w) * 0.5, vs.y - 24.0 - TrayColumn.H - 190.0)
