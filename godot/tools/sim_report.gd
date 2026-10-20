@@ -6,20 +6,21 @@ static func _pct(a: int, b: int) -> String:
 	return "-" if b == 0 else "%.1f%% (%d/%d)" % [100.0 * a / b, a, b]
 
 
-static func write(recs: Array, out_dir: String, tag: String, secs: float) -> void:
+static func write(recs: Array, out_dir: String, tag: String, secs: float, catalog: Array = []) -> void:
 	DirAccess.make_dir_recursive_absolute(out_dir)
 	var date := Time.get_date_string_from_system()
 	var base := out_dir.path_join("sim-%s-%s" % [date, tag])
 	var csv := FileAccess.open(base + ".csv", FileAccess.WRITE)
-	csv.store_line("seed,policy,core_policy,team,asc,won,death_kind,death_row,rule,cores,fights")
+	csv.store_line("seed,policy,core_policy,team,asc,won,death_kind,death_row,rule,cores,fights,offered,picked,trig")
 	for r in recs:
 		var fs: Array = []
 		for f in r["fights"]:
 			fs.append("%s:%d:%d:%s" % [f["kind"], f["turns"], 1 if f["won"] else 0, f.get("affix", "")])
-		csv.store_line("%d,%s,%s,%s,%d,%d,%s,%d,%s,%s,%s" % [r["seed"], r["policy"], r["core_policy"], r["team"],
-			r["asc"], 1 if r["won"] else 0, r["death_kind"], r["death_row"], r["rule"], ";".join(r["cores"]), ";".join(fs)])
+		csv.store_line("%d,%s,%s,%s,%d,%d,%s,%d,%s,%s,%s,%s,%s,%s" % [r["seed"], r["policy"], r["core_policy"], r["team"],
+			r["asc"], 1 if r["won"] else 0, r["death_kind"], r["death_row"], r["rule"], ";".join(r["cores"]), ";".join(fs),
+			";".join(r["offered"]), ";".join(r["picked"]), ";".join(r["trig"])])
 	csv.close()
-	var md := build_md(recs, tag, secs)
+	var md := build_md(recs, tag, secs, catalog)
 	var f := FileAccess.open(base + ".md", FileAccess.WRITE)
 	f.store_string(md)
 	f.close()
@@ -27,7 +28,7 @@ static func write(recs: Array, out_dir: String, tag: String, secs: float) -> voi
 	print("wrote ", base, ".md/.csv")
 
 
-static func build_md(recs: Array, tag: String, secs: float) -> String:
+static func build_md(recs: Array, tag: String, secs: float, catalog: Array = []) -> String:
 	var L: Array = []
 	L.append("# Sim balance %s\n" % tag)
 	L.append("Runs: %d, wall %.1fs (%.2fs/run).\n" % [recs.size(), secs, secs / maxf(1.0, recs.size())])
@@ -68,6 +69,7 @@ static func build_md(recs: Array, tag: String, secs: float) -> String:
 	for k in dks:
 		L.append("- %s: %d" % [k, deaths[k]])
 	L.append("\nTran ket > 20 luot hoac khong ket thuc: %d / %d\n" % [stuck, fights])
+	L.append(_freq_section(recs, catalog))
 	L.append(_core_section(recs))
 	return "\n".join(L)
 
@@ -151,3 +153,39 @@ static func _core_section(recs: Array) -> String:
 		var pr: Array = prow[prow.size() - 1 - i]
 		out += "- %s: %.1f%% (%d/%d)\n" % [pr[0], 100.0 * pr[1], pr[2], pr[3]]
 	return out
+
+
+## Per Core / Run Rule: % of runs where it was offered, picked, fired (heuristic, see sim_balance.gd _note_triggers).
+static func _freq_section(recs: Array, catalog: Array) -> String:
+	var n := maxi(1, recs.size())
+	var off := {}
+	var pick := {}
+	var trig := {}
+	var trig_picked := {}
+	for r in recs:
+		var pk := {}
+		for id in r["picked"]:
+			pk[id] = true
+		for id in r["offered"]:
+			off[id] = int(off.get(id, 0)) + 1
+		for id in pk:
+			pick[id] = int(pick.get(id, 0)) + 1
+		for id in r["trig"]:
+			trig[id] = int(trig.get(id, 0)) + 1
+			if pk.has(id):
+				trig_picked[id] = int(trig_picked.get(id, 0)) + 1
+	var out := "## Tan suat Loi / Luat run (% run)\n\nCot fire = Loi dang so huu co kich hoat it nhat 1 lan (heuristic: state bucket hoac event chac chan xay ra; engine chua co trace rieng). `LOW` = xuat hien < 10% run; `DEAD` = duoc chon nhung khong bao gio fire.\n\n"
+	out += "| id | truc | bac | offered | picked | fired | fired/picked | co |\n|---|---|---|---|---|---|---|---|\n"
+	for c in catalog:
+		var id: String = c["id"]
+		var o := int(off.get(id, 0))
+		var p := int(pick.get(id, 0))
+		var t := int(trig.get(id, 0))
+		var flags: Array = []
+		if 100.0 * o / n < 10.0:
+			flags.append("LOW")
+		if p > 0 and int(trig_picked.get(id, 0)) == 0:
+			flags.append("DEAD")
+		out += "| %s | %s | %d | %.1f%% | %.1f%% | %.1f%% | %s | %s |\n" % [id, c["axis"], c["rarity"], 100.0 * o / n,
+			100.0 * p / n, 100.0 * t / n, "-" if p == 0 else "%.0f%%" % (100.0 * int(trig_picked.get(id, 0)) / p), " ".join(flags)]
+	return out + "\n"

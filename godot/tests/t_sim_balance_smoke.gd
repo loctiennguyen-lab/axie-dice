@@ -8,6 +8,7 @@ func _ready() -> void:
 	var a: Array = sim.run_batch(args.duplicate())
 	var b: Array = sim.run_batch(args.duplicate())
 	guard.restore()
+	sim.free()
 	var ok := a.size() == 2 and b.size() == 2 and var_to_str(a) == var_to_str(b)
 	print("t_sim_balance_smoke: ", "PASS" if ok else "FAIL (records differ or wrong count)")
 	get_tree().quit(0 if ok else 1)

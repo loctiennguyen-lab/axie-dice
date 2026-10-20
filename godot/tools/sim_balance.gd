@@ -1,5 +1,6 @@
 extends Node
 ## Headless balance sim: plays whole Short runs with scripted bots and prints win-rates.
+## Policies: attack_spam (dmg first, rest after), attack_only (dmg only), greedy, random_legal.
 ## Args (after `--`): --runs=10 --seed=1000 --asc=0 --policies=attack_spam,greedy,random_legal
 ##   --teams=all|<name,name> --cores=random|greedy_axis|mix --out=<dir> --tag=<name>
 ## Deterministic by seed (the bot's own choices use a private Rng, never the game's).
@@ -19,12 +20,22 @@ const TEAMS := {
 	"mixed_std": ["plant1", "beast1", "aqua1", "reptile1", "bug1"],
 	"mixed_dmg": ["beast1", "bird1", "aqua1", "bug1", "reptile1"],
 	"tank_heavy": ["plant1", "plant1", "reptile1", "aqua1", "bird1"],
+	"thorn_shield": ["reptile1", "plant1", "reptile1", "plant1", "reptile1"],
 }
 
 var _rng: Rng
 var _policy := "greedy"
 var _core_policy := "random"
 var _fights: Array = []   # per run: {kind, turns, won, stuck}
+var _offered := {}        # per run: Core/Rule ids that appeared in an offer
+var _picked: Array = []   # per run: ids taken
+var _trig := {}           # per run: ids that "fired" (see _note_triggers)
+var _shield_used := 0
+## Events a handler can see in every fight where the Core is owned.
+const ALWAYS_EVENTS := ["on_combat_start", "on_turn_start", "on_turn_end", "on_roll_settled", "on_roll_end",
+	"on_combat_end", "mod_face", "face_final", "roll_face", "roll_edit", "extra_dice", "class_field", "face_crit",
+	"incoming_dmg", "boss_period", "boss_strike_mult", "enemy_row_pref", "front_row_size", "stash_cap", "stash_repeat",
+	"reroll_mana_cost", "reroll_allowed", "before_reroll", "cantrip_extra", "roll_share_class", "descend_pick", "active_cost"]
 
 
 func _ready() -> void:
@@ -35,7 +46,7 @@ func _ready() -> void:
 	guard.restore()
 	var out_dir := String(args.get("out", ProjectSettings.globalize_path("res://").path_join("../production/qa/sim")))
 	var tag := String(args.get("tag", "%dx%s_A%s" % [int(args["runs"]), str(args["policies"]).replace(",", "+"), args["asc"]]))
-	SimReport.write(recs, out_dir, tag, float(args.get("_secs", 0.0)))
+	SimReport.write(recs, out_dir, tag, float(args.get("_secs", 0.0)), catalog())
 	get_tree().quit(0)
 
 
@@ -74,6 +85,9 @@ func _play_run(seed_value: int, team_name: String, asc: int, policy: String, cor
 	_core_policy = core_policy
 	_rng = Rng.new(seed_value ^ SALT)
 	_fights = []
+	_offered = {}
+	_picked = []
+	_trig = {}
 	var team: Array[String] = []
 	for k in (TEAMS[team_name] as Array):
 		team.append(String(k))
@@ -97,7 +111,10 @@ func _play_run(seed_value: int, team_name: String, asc: int, policy: String, cor
 				var aff := ""
 				if node.node_type == "elite" and not eng.enemies.is_empty():
 					aff = String((eng.enemies[0] as Unit).custom_state.get("affix", ""))
+				var owned_snap: Array = RunState.owned_relic_ids.duplicate()
+				_shield_used = 0
 				var turns := _play_combat(eng)
+				_note_triggers(eng, owned_snap)
 				_fights.append({"kind": node.node_type, "turns": turns, "won": eng.won, "stuck": turns > STUCK_TURNS or not (eng.won or eng.lost), "affix": aff})
 				RunState.apply_combat_result(eng.get_result())
 				if not eng.won:
@@ -133,7 +150,8 @@ func _play_run(seed_value: int, team_name: String, asc: int, policy: String, cor
 			cores.append(String(id) + "@" + String(d.core_axis))
 	return {"seed": seed_value, "policy": policy, "core_policy": core_policy, "team": team_name, "asc": asc,
 		"won": won, "death_kind": death_kind, "death_row": death_row, "rule": RunState.run_rule,
-		"cores": cores, "fights": _fights.duplicate(true)}
+		"cores": cores, "fights": _fights.duplicate(true), "offered": _offered.keys(), "picked": _picked.duplicate(),
+		"trig": _trig.keys()}
 
 
 # ---------------------------------------------------------------- rewards / cores
@@ -143,6 +161,8 @@ func _drain_core_offers() -> void:
 	while (RunState._core_offer_active or RunState._rule_offer_active) and not RunState.pending_rewards.is_empty() and guard < 16:
 		guard += 1
 		var cards: Array = RunState.pending_rewards
+		for c in cards:
+			_offered[String((c as Dictionary).get("key", ""))] = true
 		var card: Dictionary = cards[0]
 		if bool(card.get("rule", false)):
 			card = cards[_rng.next_int(cards.size())]
@@ -161,7 +181,61 @@ func _drain_core_offers() -> void:
 				sell = String((chk["sell_from"] as Array)[0])
 		if not RunState.apply_chosen_reward(card, sell):
 			break
+		_picked.append(String(card.get("key", "")))
 		RunState.after_node()
+
+
+## "Fired" is a heuristic (the engine has no per-relic trace; relic_pulsed is not emitted by Core hooks):
+## an owned Core/Rule counts as fired in a fight when (a) its state left a bucket (relic_combat / relic_run_out /
+## relic_state / quest progress key naming the id or slug) or (b) one of its declared events certainly occurred:
+## ALWAYS_EVENTS, or on_face_used/on_face_hit/on_hit/mod_dmg with dmg dealt, on_kill with kills, on_dmg_taken with
+## damage taken, on_shield with a shield face used. Other events (thorns, status tick, stash, active...) count only via (a).
+func _note_triggers(eng: CombatEngine, owned: Array) -> void:
+	var st: Dictionary = eng.stat
+	var seen := {}
+	if int(st.get("dmg", 0)) > 0:
+		for e in ["on_face_used", "on_face_hit", "on_hit", "mod_dmg"]:
+			seen[e] = true
+	if int(st.get("kills", 0)) > 0:
+		seen["on_kill"] = true
+	if int(st.get("taken", 0)) > 0:
+		seen["on_dmg_taken"] = true
+	if _shield_used > 0:
+		seen["on_shield"] = true
+		seen["on_face_used"] = true
+	var keys: Array = []
+	for bucket in [eng.relic_combat, eng.relic_run_out, RunState.relic_state]:
+		keys.append_array((bucket as Dictionary).keys())
+	for id in owned:
+		var sid := String(id)
+		if not (sid.begins_with("c_") or sid.begins_with("rule_")):
+			continue
+		var slug := sid.substr(sid.find("_") + 1)
+		var hit := false
+		for k in keys:
+			if String(k) == sid or String(k).contains(slug):
+				hit = true
+				break
+		if not hit:
+			var d = RelicRegistry.get_def(sid)
+			var hk: String = String(d.hook_key) if d != null and "hook_key" in d else sid
+			var tbl: Dictionary = RelicHooks.TABLE.get(hk, {})
+			for ev in tbl.keys():
+				if ALWAYS_EVENTS.has(ev) or seen.has(ev):
+					hit = true
+					break
+		if hit:
+			_trig[sid] = true
+
+
+func catalog() -> Array:
+	var out: Array = []
+	for d in RelicRegistry.all_defs_sorted():
+		var id := String(d.id)
+		if (id.begins_with("c_") or id.begins_with("rule_")) and not d.disabled and not d.hidden_from_pool \
+				and not id.begins_with("c_test_") and not id.begins_with("rule_test_"):
+			out.append({"id": id, "axis": String(d.core_axis), "rarity": int(d.rarity)})
+	return out
 
 
 func _owned_axes() -> Dictionary:
@@ -197,8 +271,14 @@ func _play_turn(eng: CombatEngine) -> void:
 	while guard < 24 and not (eng.won or eng.lost):
 		guard += 1
 		var mv := _choose_move(eng)
-		if mv.is_empty() or not eng.use_die(int(mv[0]), int(mv[1])):
+		if mv.is_empty():
 			break
+		var mu: Unit = eng.by_uid(int(mv[0]))
+		var mt := String(mu.current_face().get("type", "")) if mu != null else ""
+		if not eng.use_die(int(mv[0]), int(mv[1])):
+			break
+		if mt == "shield":
+			_shield_used += 1
 	if not (eng.won or eng.lost):
 		eng.end_turn()
 
@@ -222,6 +302,11 @@ func _choose_move(eng: CombatEngine) -> Array:
 	match _policy:
 		"attack_spam":
 			return _move_attack_spam(eng, ready, foes)
+		"attack_only":   # pure spam: never spends a non-dmg face (stricter reading of attack_spam)
+			for u in ready:
+				if String(u.current_face().get("type", "")) == "dmg":
+					return [u.uid, _lowest_hp(foes).uid]
+			return []
 		"random_legal":
 			return _move_random(eng, ready, foes)
 		_:
