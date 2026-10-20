@@ -115,6 +115,8 @@ static func play_combat(engine: CombatEngine) -> int:
 
 
 static func play_turn(engine: CombatEngine) -> void:
+	if wild_script:
+		try_wild(engine)
 	var guard := 0
 	while guard < 64:
 		guard += 1
@@ -122,9 +124,28 @@ static func play_turn(engine: CombatEngine) -> void:
 		for move in legal_moves(engine):
 			if engine.use_die(int(move[0]), int(move[1])):
 				acted = true
+				if wild_script:
+					try_wild(engine)
 		if not acted:
 			break
+	if wild_script:
+		try_wild(engine)
 	engine.end_turn()
+
+
+## Depth v4 test hook: when true the bot takes one Mat Tam (wild_face) per turn the moment any (die, slot) is legal.
+static var wild_script: bool = false
+
+
+## Takes the first legal Mat Tam, if any. Returns true when one was taken (and so logged).
+static func try_wild(engine: CombatEngine) -> bool:
+	if engine.wild_used >= engine.wild_per_turn() or engine.mana < engine.wild_cost():
+		return false
+	for u in engine.party:
+		for slot in 6:
+			if engine.wild_face((u as Unit).uid, slot):
+				return true
+	return false
 
 
 ## Every (unit, target) pair that is legal right now. A blank face cannot be spent at all and a
