@@ -71,6 +71,7 @@ var combat_seed: int = 0
 ## Which boss this node fields, chosen once per run by RunState (never re-rolled in combat),
 ## and the run-wide CURSE PACT enemy modifiers. Both arrive through the combat setup so that
 ## a combat is still reconstructible from data alone (architecture plan §4).
+var _guarantee_tank: bool = false   ## setup flag `guarantee_tank` (A.13): the fight holds at least one plating tank
 var _early_traits: bool = false   ## setup flag `before_first_elite`: normal fights carry at most traits.cap_early trait bearers
 var run_rules: Array = []   ## Run rules active this fight ("R12" Plating everywhere + side bonus, "R13")
 var affix2: String = ""   ## second Elite affix (group B, after boss 1)
@@ -216,6 +217,7 @@ func setup_new(combat_setup: Dictionary) -> void:
 		EventBus.relic_pulsed.emit("startSummon", 0)
 
 	_early_traits = bool(combat_setup.get("before_first_elite", false))
+	_guarantee_tank = bool(combat_setup.get("guarantee_tank", false))
 	enemies = _generate_encounter(kind, pw)
 	_apply_affix_start()
 
@@ -1274,11 +1276,46 @@ func _face_value(u: Unit, fi: int) -> int:
 		if u.side == "e":
 			# base x (1 + enrage% + attrition%) x spike, rounded half up (monetization-v1 §1.2).
 			v = float(RulesMath.round_half_up(v * enemy_dmg_factor(u) * boss_hollow_dealt_mult(u) * affix_dealt_mult(u) * CombatTraits.charge_mult(u)))
+	v += CombatTraits.side_face_bonus(self, u, face_type, v)                # R12 Vo Cung: +2 on shield / poison faces of the Axie
 	if face_type == "mana" and u.side == "p" and u.cls == "aqua":
 		v += 1.0                                                        # CONDUIT passive
 	if u.side == "p" and u.resonant_now:
 		v = ceil(v * RESONANCE_MULT)
 	return int(RelicHooks.run_value_hook(self, "face_final", {"combat": self, "unit": u, "face_type": face_type}, int(v)))
+
+
+## UI preview (design 8.6 item 7, "4 -> 1"): what die face `fi` of `src` would do to `target` as a single-target hit,
+## WITHOUT touching state, events or rng. raw = face value (+ the once-per-turn first-dmg bonus), after = raw after
+## vulnerable, the boss hollow turn and Plating (the same steps and order as DamagePipeline.resolve 6, 6b, 6c).
+## Includes the pierce bonus (bird talon, piercePlus). Not covered: crit, exec/feral, Core mod_dmg hooks, shield absorb (shown by the UI from target.shield).
+## Returns {raw, after, plating (P that counted, 0 = none), single (Plating applies at all), shield (target shield)}.
+func preview_damage(src: Unit, target: Unit, fi: int) -> Dictionary:
+	if src == null or target == null or fi < 0 or fi >= src.die.size():
+		return {"raw": 0, "after": 0, "plating": 0, "single": false, "shield": 0}
+	var f: Dictionary = src.die[fi]
+	var raw := _face_value(src, fi)
+	if src.side == "p" and first_dmg_face_bonus > 0 and not _first_dmg_used \
+			and String(f.get("type", "")) == "dmg" and raw > 0:
+		raw += first_dmg_face_bonus
+	var attack := String(f.get("type", "")) == "dmg"
+	var pierce := _has_kw(f, "pierce") or (src.side == "p" and src.cls == "bird" and _has_kw(f, "aoe"))
+	var single := attack and not pierce and not _has_kw(f, "aoe")
+	var v := float(raw)
+	if pierce and src.side == "p":
+		v += (RelicHooks.field(self, "talon_pierce", 3.0) if src.cls == "bird" else 0.0) + RelicHooks.sum(self, "piercePlus")   # pipeline step 2
+	if v <= 0.0:
+		return {"raw": raw, "after": 0, "plating": 0, "single": single, "shield": target.shield}
+	if int(target.status.get("vulnerable", 0)) > 0:
+		v = ceil(v * 1.5)
+	if target.is_boss and attack:
+		v = ceil(v * boss_hollow_taken_mult(target))
+	var p := 0
+	if single and target.side == "e":
+		var plated := CombatTraits.reduce(self, target, v)
+		if plated < v:
+			p = CombatTraits.plating_of(self, target)
+		v = plated
+	return {"raw": raw, "after": int(v), "plating": p, "single": single, "shield": target.shield}
 
 
 func _pure_keywords(f: Dictionary) -> Array:
@@ -1302,8 +1339,8 @@ func _do_face(u: Unit, target_uid: int, f: Dictionary, fi: int, is_echo: bool) -
 		_first_dmg_used = true
 	var tgt: Unit = (by_uid(target_uid) if target_uid >= 0 else null)
 	var crit := u.roll_crit_now()
-	var kw_pure := _pure_keywords(f)
 	var face_type := String(f.get("type", ""))
+	var kw_pure := CombatTraits.side_bonus_keywords(self, u, face_type, _pure_keywords(f))   # R12: debuff magnitudes +2
 
 	var ctx_n := [0, false]   # [hits so far, secondary-target mode] for the on_face_hit hook (FACE_CTX)
 	var hit := func(t: Unit, amount: int) -> int:
@@ -2292,6 +2329,8 @@ func _generate_encounter(p_kind: String, p_pw: int) -> Array:
 	var pick_range: int = max(1, int(ceil(avail.size() * 0.7)))
 	while keys.size() < n:
 		keys.append(String(avail[_rng.next_int(pick_range)]))
+	if _guarantee_tank and not is_elite:
+		keys = CombatTraits.guarantee_tank(keys, avail)   # A.13: draws above are unchanged, only the last slot swaps
 
 	var tot := 0.0
 	for k in keys:

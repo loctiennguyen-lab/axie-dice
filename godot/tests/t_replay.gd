@@ -40,6 +40,7 @@ const EXPECTED_TESTS: Array[String] = [
 	"test_a_whole_run_is_rebuilt_from_its_log_by_the_referee",
 	"test_the_referee_knows_every_action_the_log_can_hold",
 	"test_a_stashed_die_replays_and_a_tampered_stash_does_not",
+	"test_a_plating_charge_affix_elite_fight_replays_deterministically",
 ]
 
 var _failures: Array[String] = []
@@ -61,6 +62,7 @@ func _ready() -> void:
 	test_a_whole_run_is_rebuilt_from_its_log_by_the_referee()
 	test_the_referee_knows_every_action_the_log_can_hold()
 	test_a_stashed_die_replays_and_a_tampered_stash_does_not()
+	test_a_plating_charge_affix_elite_fight_replays_deterministically()
 
 	for test_name in EXPECTED_TESTS:
 		if not _completed.has(test_name):
@@ -389,6 +391,67 @@ func test_a_stashed_die_replays_and_a_tampered_stash_does_not() -> void:
 	junk.entries[0] = e2
 	_assert(not bool(_replay(junk)["ok"]), "an illegal stash was accepted by the replay")
 	_done("test_a_stashed_die_replays_and_a_tampered_stash_does_not")
+
+
+## Depth v3: an Elite with Plating (R12 everywhere), Charged Strike and a second affix. Everything that is new
+## (plating cut, charge cycle, affix B summons, enemy-phase hooks) must replay to the identical end state.
+var _charge_events := 0
+
+
+func _elite_engine() -> CombatEngine:
+	var engine := CombatEngine.new()
+	engine.setup_new({
+		"node_id": "replay_elite", "kind": "elite", "pw": 6, "ascension": 0,
+		"roster_snapshot": _synthetic_roster(), "relic_ids": [], "combat_seed": COMBAT_SEED,
+		"affix": "charge", "affix2": "swarm", "run_rules": ["R12"],
+	})
+	return engine
+
+
+func _count_charge(_a = null, _b = null, _c = null) -> void:
+	_charge_events += 1
+
+
+func test_a_plating_charge_affix_elite_fight_replays_deterministically() -> void:
+	var log := ActionLog.new()
+	log.begin(COMBAT_SEED, ["plant1", "beast1", "aqua1", "reptile1", "bug1"], "short", 0, "test")
+	_charge_events = 0
+	EventBus.charge_start.connect(_count_charge)
+	EventBus.charge_hit.connect(_count_charge)
+	var engine := _elite_engine()
+	engine.action_log = log
+	var turns := 0
+	while not (engine.won or engine.lost) and turns < MAX_TURNS:
+		RunBot.play_turn(engine)
+		turns += 1
+	EventBus.charge_start.disconnect(_count_charge)
+	EventBus.charge_hit.disconnect(_count_charge)
+	var played := engine.to_data()
+	_assert(engine.won or engine.lost, "the elite fight never finished")
+	_assert(_charge_events > 0, "the fight never showed a charge: the case does not cover Charged Strike")
+	_assert(CombatTraits.plating_of(engine, engine.enemies[0]) >= 0 and (engine.run_rules as Array).has("R12"), "R12 is on")
+	var rep_engine := _elite_engine()
+	var ok := true
+	for e in log.entries:
+		if not _apply(rep_engine, String(e["fn"]), e["args"]):
+			ok = false
+			break
+	_assert(ok, "the referee rejected a recorded action of the elite fight")
+	_assert(_digest(rep_engine.to_data()) == _digest(played), "plating + charge + affix fight DIVERGED on replay")
+	_assert(int(rep_engine.to_data().get("rng_state", -1)) == int(played.get("rng_state", -2)), "different rng cursor on replay")
+	# tamper: drop one recorded action, the end state must change
+	var bad := _without(log, maxi(0, log.entries.size() / 2))
+	var rb := _replay_elite(bad)
+	_assert(not bool(rb["ok"]) or _digest(rb["snapshot"]) != _digest(played), "a log with a missing action reached the same end state")
+	_done("test_a_plating_charge_affix_elite_fight_replays_deterministically")
+
+
+func _replay_elite(log: ActionLog) -> Dictionary:
+	var en := _elite_engine()
+	for e in log.entries:
+		if not _apply(en, String(e["fn"]), e["args"]):
+			return {"ok": false, "snapshot": en.to_data()}
+	return {"ok": true, "snapshot": en.to_data()}
 
 
 ## Shapes that match what each action really records, so the probe above fails on "unknown",
