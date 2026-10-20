@@ -116,7 +116,241 @@ def gate(n, p):
     return True
 
 
+ARM_COLOR = [0.55, 0.12, 0.08]   # filled by split_hands: mean linear red of the body/arm texture
+HAND_COLOR = [0.3, 0.7, 0.7]   # filled by split_hands: mean linear colour of the hand texture
+
+
+def is_cyan(c):
+    """c: linear RGB mean of a face's baked texture. Hands/feet/hair/sword are cyan, cape is red/orange."""
+    return (c[1] + c[2]) * 0.5 - c[0] > 0.22 and c[2] > 0.35
+
+
+def split_hands(obj):
+    """Cut the cyan hands off the red cape. Faces whose baked colour is cyan and that sit in the
+    hand zone become 'hand'; the edge loop between hand and the rest is split (duplicated verts),
+    so the cape no longer shares vertices with the hand. The cape-side holes are capped with flat patches. Returns the set of hand vertex indices (after split).
+    Deterministic: colour + position only, no hand-picked indices."""
+    import bmesh
+    img = bpy.data.images["T_Parasite"]
+    w, h = img.size
+    px = np.empty(w * h * 4, dtype=np.float32)
+    img.pixels.foreach_get(px)
+    px = px.reshape(h, w, 4)
+    bm = bmesh.new()
+    bm.from_mesh(obj.data)
+    uv = bm.loops.layers.uv.active
+    bm.faces.ensure_lookup_table()
+    cyan = set()
+    partial = set()
+    cols = {}
+    for f in bm.faces:
+        us = [l[uv].uv for l in f.loops]
+        c = sum(us, Vector((0, 0))) / len(us)
+        col = np.mean([px[min(h - 1, int(q.y * h)), min(w - 1, int(q.x * w)), :3] for q in us + [c]], axis=0)
+        if is_cyan(col):
+            cyan.add(f.index)
+            cols[f.index] = col
+        elif any((q_[1] + q_[2]) * 0.5 - q_[0] > 0.12 and q_[2] > 0.3 for q_ in
+                 (px[min(h - 1, int(q.y * h)), min(w - 1, int(q.x * w)), :3] for q in us + [c])):
+            partial.add(f.index)     # cape faces that only touch cyan texels (edge bleed)
+    # connected cyan pieces; a piece is "hand" when its whole bounding box sits in the hand zone
+    # (|x| > 0.2, -0.66 < z < -0.15, y < 0): that keeps the sword, hair, feet and shoulder trim out.
+    seen, hand = set(), set()
+    for fi in sorted(cyan):
+        if fi in seen:
+            continue
+        comp, stack = [], [fi]
+        seen.add(fi)
+        while stack:
+            a = stack.pop()
+            comp.append(a)
+            for e in bm.faces[a].edges:
+                for g in e.link_faces:
+                    if g.index in cyan and g.index not in seen:
+                        seen.add(g.index)
+                        stack.append(g.index)
+        pts = np.array([[*(v.co - Vector((0, 0, F)))] for a in comp for v in bm.faces[a].verts])
+        lo, hi = pts.min(0), pts.max(0)
+        if len(comp) >= 5 and min(abs(lo[0]), abs(hi[0])) > 0.2 and lo[0] * hi[0] > 0 \
+                and lo[2] > -0.66 and hi[2] < -0.15 and hi[1] < 0.0:
+            hand.update(comp)
+    reds = []
+    red_uvs = []
+    for f in bm.faces:
+        p_ = f.calc_center_median() - Vector((0, 0, F))
+        if 0.08 < abs(p_.x) < 0.3 and -0.3 < p_.z < 0.0 and p_.y < 0.0:
+            us = [l[uv].uv for l in f.loops]
+            c_ = np.mean([px[min(h - 1, int(q.y * h)), min(w - 1, int(q.x * w)), :3] for q in us], axis=0)
+            if c_[0] > 0.45 and c_[1] < 0.3 and c_[2] < 0.25:
+                reds.append(c_)
+                red_uvs.append(sum(us, Vector((0, 0))) / len(us))
+    if reds:
+        ARM_COLOR[:] = np.mean(reds, axis=0).tolist()
+    print("PARASITE arm red from", len(reds), "faces", [round(x, 2) for x in ARM_COLOR])
+    HAND_COLOR[:] = np.mean([cols[i] for i in hand], axis=0).tolist()
+    edges = [e for e in bm.edges if len(e.link_faces) == 2
+             and ((e.link_faces[0].index in hand) != (e.link_faces[1].index in hand))]
+    print("PARASITE hands: faces %d, boundary edges %d" % (len(hand), len(edges)))
+    hand_idx = set(hand)
+    for f in bm.faces:
+        f.tag = f.index in hand_idx
+    cyan_faces = {bm.faces[i] for i in cyan | partial}
+    cut_pos = {tuple(round(c, 5) for c in v.co) for e in edges for v in e.verts}
+    bmesh.ops.split_edges(bm, edges=edges)
+    bm.verts.ensure_lookup_table()
+    bm.faces.ensure_lookup_table()
+    hv = set()
+    for f in bm.faces:
+        if f.tag:
+            for v in f.verts:
+                hv.add(v.index)
+    # --- cleanup of what the cut left on the cape side
+    def in_cape_zone(p):
+        return abs(p.x) > 0.12 and -0.66 < p.z < -0.1 and p.y < 0.1
+    hand_faces = {f for f in bm.faces if f.tag}
+    # (a) loose islands: tiny connected pieces in the cape zone are deleted
+    seen_f, kill = set(), []
+    for f0 in bm.faces:
+        if f0 in seen_f or f0 in hand_faces:
+            continue
+        comp, stack = [], [f0]
+        seen_f.add(f0)
+        while stack:
+            a = stack.pop()
+            comp.append(a)
+            for e in a.edges:
+                for g in e.link_faces:
+                    if g not in seen_f and g not in hand_faces:
+                        seen_f.add(g)
+                        stack.append(g)
+        if len(comp) < 40 and all(in_cape_zone(f.calc_center_median() - Vector((0, 0, F))) for f in comp):
+            kill.extend(comp)
+    if kill:
+        bmesh.ops.delete(bm, geom=kill, context='FACES_ONLY')
+        bm.faces.ensure_lookup_table()
+    print("PARASITE cleanup: loose faces deleted", len(kill))
+    # (b) hand-cyan texels left on the cape: copy the neighbouring cape colour (flat UV) so no cyan shard remains
+    todo = {f for f in cyan_faces if f.is_valid and f not in hand_faces
+            and in_cape_zone(f.calc_center_median() - Vector((0, 0, F)))}
+    n_re = len(todo)
+    for _ in range(8):
+        if not todo:
+            break
+        done = []
+        for f in todo:
+            ref = None
+            for v in f.verts:
+                for g in v.link_faces:
+                    if g is not f and g not in todo and g not in hand_faces and g not in cyan_faces:
+                        us = [l[uv].uv for l in g.loops]
+                        ref = sum(us, Vector((0, 0))) / len(us)
+                        break
+                if ref is not None:
+                    break
+            if ref is not None:
+                for l in f.loops:
+                    l[uv].uv = ref
+                done.append(f)
+        todo.difference_update(done)
+    print("PARASITE cleanup: cyan cape faces recoloured", n_re - len(todo), "left", len(todo))
+    # tuck: cap the matching holes left in the cape (static, cape-weighted) so no see-through gap opens
+    crim = [e for e in bm.edges if e.is_boundary and not any(v.index in hv for v in e.verts)
+            and all(tuple(round(c, 5) for c in v.co) in cut_pos for v in e.verts)]
+    if crim:
+        res = bmesh.ops.triangle_fill(bm, edges=crim, use_beauty=True)
+        for f in res["geom"]:
+            if isinstance(f, bmesh.types.BMFace):
+                f.smooth = True
+                ref = None
+                for l in f.loops:       # one flat colour per patch: the first rim vertex's cape texel
+                    for ol in l.vert.link_loops:
+                        if ol.face is not f:
+                            ref = ol[uv].uv.copy()
+                            break
+                    if ref is not None:
+                        break
+                for l in f.loops:
+                    l[uv].uv = ref if ref is not None else l[uv].uv
+    print("PARASITE cape holes capped: rim edges", len(crim))
+    # (c) straighten the cape-side cut: smooth the rim vertices along the cut (two passes)
+    rim_v = {v for e in crim for v in e.verts}
+    for _ in range(2):
+        newp = {}
+        for v in rim_v:
+            nb = [o for e in v.link_edges if e.is_boundary for o in (e.other_vert(v),) if o in rim_v]
+            if len(nb) >= 2:
+                newp[v] = v.co * 0.5 + sum((o.co for o in nb), Vector()) / len(nb) * 0.5
+        for v, c in newp.items():
+            v.co = c
+    bm.verts.ensure_lookup_table()
+    bm.edges.index_update()
+    bm.faces.index_update()
+    # the top of each hand piece is really forearm: paint it body-red so only the claws read cyan
+    if red_uvs:
+        ref_uv = sorted(red_uvs, key=lambda q: (q.x, q.y))[len(red_uvs) // 2]
+        n_fore = 0
+        for sg in (1, -1):
+            fs = [f for f in bm.faces if f.tag and sg * f.calc_center_median().x > 0.15]
+            if not fs:
+                continue
+            ztop = max(v.co.z for f in fs for v in f.verts)
+            for f in fs:
+                if f.calc_center_median().z > ztop - 0.18:
+                    for l in f.loops:
+                        l[uv].uv = ref_uv
+                    n_fore += 1
+        print("PARASITE forearm faces painted red:", n_fore)
+    # the real forearm is hidden under the cape in the AI mesh, so a raised hand would float: add a
+    # slim tapered cyan arm from each shoulder to the wrist (top of the hand piece)
+    tube = set()
+    bm.verts.ensure_lookup_table()
+    mat_idx = len(obj.data.materials)
+    for side, sg in (("L", 1), ("R", -1)):
+        bm.verts.ensure_lookup_table()
+        hp = [bm.verts[i] for i in hv if sg * (bm.verts[i].co.x) > 0.15]
+        if not hp:
+            continue
+        zs = sorted(v.co.z for v in hp)
+        top = [v.co for v in hp if v.co.z >= zs[int(len(zs) * 0.9)]]
+        wrist = sum(top, Vector()) / len(top) - Vector((0, 0, 0.01))   # tube ends just inside the hand: cyan starts at the wrist
+        sh = Vector(next(h_ for n_, h_, t_, p_ in BONES if n_ == "arm1." + side))
+        d = wrist - sh
+        d_n = d.normalized()
+        n1 = d_n.cross(Vector((0, 1, 0))).normalized()
+        n2 = d_n.cross(n1).normalized()
+        rings, sides = 7, 8
+        rv = []
+        for r_i in range(rings):
+            u = r_i / (rings - 1)
+            c = sh + d * u
+            rad = 0.042 - 0.014 * u
+            ring = [bm.verts.new(c + (n1 * math.cos(2 * math.pi * k / sides) + n2 * math.sin(2 * math.pi * k / sides)) * rad)
+                    for k in range(sides)]
+            rv.append(ring)
+        for r_i in range(rings - 1):
+            for k in range(sides):
+                k2 = (k + 1) % sides
+                f = bm.faces.new((rv[r_i][k], rv[r_i][k2], rv[r_i + 1][k2], rv[r_i + 1][k]))
+                f.material_index = mat_idx
+                f.smooth = True
+        cap = bm.faces.new(rv[0][::-1])
+        cap.material_index = mat_idx
+        for ring in rv:
+            tube.update(v.index for v in ring)
+    bm.to_mesh(obj.data)
+    bm.free()
+    m = bpy.data.materials.new("M_Forearm")   # red like the body; only the hands are cyan
+    m.use_nodes = True
+    b = next(n for n in m.node_tree.nodes if n.type == "BSDF_PRINCIPLED")
+    b.inputs["Base Color"].default_value = tuple(ARM_COLOR) + (1.0,)
+    b.inputs["Roughness"].default_value = 0.85
+    obj.data.materials.append(m)
+    obj.data.update()
+    return hv, tube
+
+
 def skin(obj, arm):
+    hands, tube = split_hands(obj)
     segs = {n: (Vector(h), Vector(t)) for n, h, t, p in BONES}
     names = [n for n, _, _, _ in BONES if n != "root"]
     for n in names:
@@ -128,10 +362,24 @@ def skin(obj, arm):
         if seg_dist(p, A, B) < 0.17 and p.y > 0.0:      # the huge sword rides the chest rigidly
             obj.vertex_groups["chest"].add([v.index], 1.0, 'REPLACE')
             continue
+        if v.index in tube:                              # forearm tube: upper arm bone only
+            obj.vertex_groups[("arm1.L" if v.co.x > 0 else "arm1.R")].add([v.index], 1.0, 'REPLACE')
+            continue
+        if v.index in hands:                             # hands are rigid on the forearm bone: nothing to stretch
+            obj.vertex_groups[("arm2.L" if v.co.x > 0 else "arm2.R")].add([v.index], 1.0, 'REPLACE')
+            continue
         ws = []
+        is_hand = v.index in hands
         for n in names:
             if not gate(n, p):
                 continue
+            base = n.split(".")[0]
+            if is_hand and base not in ("arm1", "arm2"):
+                continue                      # hands follow only arm bones
+            if not is_hand and base == "arm2":
+                continue                      # cape / body never follows the forearm
+            if not is_hand and base == "arm1" and seg_dist(v.co, Vector(segs[n][0]), Vector(segs[n][0])) > 0.12:
+                continue                      # ...and only follows the upper arm right at the shoulder
             a, b = segs[n]
             ws.append((1.0 / (seg_dist(v.co, a, b) + 0.03) ** 4, n))
         if not ws:
