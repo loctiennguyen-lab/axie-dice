@@ -785,7 +785,7 @@ func _rebuild_left() -> void:
 	var rcol := VBoxContainer.new()
 	rcol.add_theme_constant_override("separation", 8)
 	bottom.add_child(rcol)
-	rcol.add_child(UI3.label(tr("Relics · %d") % RunState.owned_relic_ids.size(), "LabelTitle"))
+	rcol.add_child(UI3.label(tr("Cores · %d") % RunState.owned_relic_ids.size(), "LabelTitle"))
 	var core_panel := CorePanel.new()
 	core_panel.slot_px = 40
 	rcol.add_child(core_panel)
@@ -1033,6 +1033,10 @@ func _finish_node() -> void:
 	# AFTER after_node(), not before: that call is what advances power_level and the phase, and
 	# a save taken ahead of it would resume the player onto a node they had already finished.
 	_save_map_progress()
+	# A pick can chain another offer (Run Rule -> first Core, bonus Core after an event/quest/shop/Dim Stone):
+	# after_node() then leaves pending_rewards filled. The map must never sit there with an offer nobody sees.
+	if RunState.phase == RunState.RunPhase.PACT or not RunState.pending_rewards.is_empty():
+		_maybe_show_pending_reward()
 
 
 # ===========================================================================
