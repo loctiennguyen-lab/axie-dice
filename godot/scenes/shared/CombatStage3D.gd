@@ -866,7 +866,7 @@ func _make_ground_shadow(width: float) -> MeshInstance3D:
 ## stand-in wearing its class colour. The Vault card already drew it this way; combat did not,
 ## and that mismatch was the report ("không hiển thị art của Vault Axie trong trận").
 func spawn_unit(uid: int, cls: String, is_enemy: bool, slot_index: int, slot_count: int,
-		is_boss: bool = false, unit_key: String = "", genes: String = "") -> void:
+		is_boss: bool = false, unit_key: String = "", genes: String = "", is_summon: bool = false) -> void:
 	var sheet_sprite_name := ""       # see the MonsterAnim block further down
 	var atia_info: Dictionary = {}
 	var sheet_target: Sprite3D = null
@@ -968,9 +968,7 @@ func spawn_unit(uid: int, cls: String, is_enemy: bool, slot_index: int, slot_cou
 	if is_egg and visual != null:
 		visual.scale *= 0.62   # tokens read smaller than the Axies they sit beside
 		shadow_width *= 0.62
-	# A boss fight starts with the boss alone, so any other enemy that spawns beside a live boss was summoned by it.
-	var is_summon := is_enemy and not is_boss and not is_egg and _has_live_boss()
-	if is_summon and visual != null:
+	if is_summon and is_enemy and not is_boss and not is_egg and visual != null:
 		visual.scale *= SUMMON_SCALE   # chips (head_height_of), hit boxes and shadow all follow the visual
 		shadow_width *= SUMMON_SCALE
 		if not atia_info.is_empty():
@@ -1389,13 +1387,6 @@ func reseat_side(uids: Array, is_enemy: bool) -> void:
 			slot.position = pl[1]
 			entry["rest_pos"] = slot.position   # the lunge's home moved with it
 			entry["is_enemy"] = is_enemy
-
-
-func _has_live_boss() -> bool:
-	for e in _units.values():
-		if bool((e as Dictionary).get("is_boss", false)) and not bool((e as Dictionary).get("dying", false)):
-			return true
-	return false
 
 
 func has_unit(uid: int) -> bool:

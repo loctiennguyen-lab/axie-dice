@@ -277,6 +277,7 @@ var _combat: CombatEngine
 ## be showing a turn that has since moved on.
 var _info_overlay: CanvasLayer = null
 var _setup: Dictionary = {}
+var _board_built := false          # true once the t=0 board exists; an enemy spawned after it, beside a boss, is a summon
 var _portraits: Dictionary = {}     # uid -> UnitPortrait (feet nameplate)
 var _head_huds: Dictionary = {}     # retired: the intent badge now lives on UnitPortrait (R1)
 var _hud: Dictionary = {}           # cached hud_state() for this rebuild
@@ -461,6 +462,7 @@ func _ready() -> void:
 	# no nameplate, no HP bar and no sound: `_ready()` was the only place that ever built one.
 	_stage3d.set_encounter_kind(String(_setup.get("kind", "")))
 	_sync_unit_visuals()
+	_board_built = true
 
 	# Pick the backdrop from where this fight sits in the run, so an 18-row run reads as a
 	# journey instead of eighteen fights on the same patch of desert. The row comes from the
@@ -2098,7 +2100,12 @@ func _spawn_portrait(u: Unit, is_enemy: bool, slot_index: int, slot_count: int) 
 	# place that knows this key came from the Vault — Unit deliberately carries no gene field,
 	# so nothing here reaches into the engine or changes what a run replays as.
 	var genes := String((ContentDB.heroes.get(u.key, {}) as Dictionary).get("genes", ""))
-	_stage3d.spawn_unit(u.uid, u.cls, is_enemy, slot_index, slot_count, u.is_boss, u.key, genes)
+	var boss_on_field := false
+	for en in _combat.enemies:
+		if (en as Unit).is_boss and (en as Unit).hp > 0:
+			boss_on_field = true
+	var is_summon := _board_built and is_enemy and not u.is_boss and boss_on_field   # a boss fight starts with the boss alone
+	_stage3d.spawn_unit(u.uid, u.cls, is_enemy, slot_index, slot_count, u.is_boss, u.key, genes, is_summon)
 	# The audio director only ever sees uids in `hit_landed`, so it needs each unit's voice
 	# up front. Heroes carry their own class; monsters have none and get one derived from the
 	# Chimera sprite they wear — without this every enemy in the game would be silent.
