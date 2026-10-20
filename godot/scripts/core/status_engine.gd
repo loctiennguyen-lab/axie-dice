@@ -42,6 +42,8 @@ static func add_status(combat, tgt: Unit, kws: Array, src: Unit = null) -> void:
 		var n: String = parts[0]
 		var v: int = int(parts[1]) if parts.size() > 1 else 1
 
+		if n in CombatTraits.DEBUFFS:
+			CombatTraits.on_debuff(combat, tgt)   # depth v3 M1: any debuff / poison switches Plating off
 		if n == "poison":
 			if src != null and src.side == "p" and src.cls == "bug" and int(tgt.status.get("poison", 0)) > 0:
 				v += int(RelicHooks.field(combat, "virulent_bonus", 2.0))   # VIRULENT passive
@@ -55,6 +57,7 @@ static func add_status(combat, tgt: Unit, kws: Array, src: Unit = null) -> void:
 				for x in [arr[i - 1] if i > 0 else null, arr[i + 1] if i >= 0 and i < arr.size() - 1 else null]:
 					if x != null:
 						x.status["poison"] = int(x.status.get("poison", 0)) + half
+						CombatTraits.on_debuff(combat, x)
 						EventBus.float_text.emit(x.uid, "PSN %d" % half, "poi", 0)
 			continue
 

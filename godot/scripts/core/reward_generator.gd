@@ -488,7 +488,7 @@ static func pick_offer_relic(rng: Rng, source: String, ctx: Dictionary, lead: bo
 	var lean := lean_tags(ctx.get("owned_ids", []), ctx.get("roster", []))
 	var by_rar: Array = [[], [], [], []]
 	for def in RelicRegistry.offerable_defs_sorted():   # sorted by sort_index; re-sorted by id below
-		if is_offerable(def, ctx):
+		if String(def.core_axis) == "" and is_offerable(def, ctx):
 			(by_rar[clampi(int(def.rarity), 0, 3)] as Array).append(def)
 	var total := 0
 	for r in 4:
@@ -638,7 +638,7 @@ static func pick_relic(rng: Rng, exclude_ids: Array, min_rar: int, max_rar: int,
 		return pick_offer_relic(rng, String(c["source"]), c, bool(c.get("lead", false)))
 	var pool: Array = []
 	for def in RelicRegistry.offerable_defs_sorted():
-		if exclude_ids.has(def.id):
+		if exclude_ids.has(def.id) or String(def.core_axis) != "":   # Cores come only through CoreOffer
 			continue
 		if def.rarity < min_rar or def.rarity > max_rar:
 			continue
@@ -653,7 +653,7 @@ static func pick_relic(rng: Rng, exclude_ids: Array, min_rar: int, max_rar: int,
 ## numbers. Simplified vs. the source (which also offers 2 Gene Mutation face items) since
 ## the face/mutation pool isn't ported yet (see file header).
 static func generate_shop_items(rng: Rng, owned_relic_ids: Array, offer_ctx: Dictionary = {},
-		relic_count: int = 2) -> Array[Dictionary]:
+		relic_count: int = 2, core_item: bool = false) -> Array[Dictionary]:
 	var items: Array[Dictionary] = []
 	var offered: Array = []
 	var shop_ctx: Dictionary = {}
@@ -661,7 +661,7 @@ static func generate_shop_items(rng: Rng, owned_relic_ids: Array, offer_ctx: Dic
 		shop_ctx = offer_ctx.duplicate()
 		shop_ctx["owned_ids"] = owned_relic_ids
 		shop_ctx["source"] = "shop"
-	for i in relic_count:
+	for i in (0 if core_item else relic_count):   # Core flow: the shop no longer sells old relics (depth v3 2.8)
 		var def: RelicDef
 		if shop_ctx.is_empty():
 			def = pick_relic(rng, owned_relic_ids + offered, 0, 3)
@@ -684,6 +684,12 @@ static func generate_shop_items(rng: Rng, owned_relic_ids: Array, offer_ctx: Dic
 		items.append({
 			"kind": "reroll", "title": "Instinct", "desc": "1 extra maximum Reroll",
 			"cost": REROLL_ITEM_COST, "bought": false, "rar": 0,
+		})
+	if core_item:   # depth v3 2.8: in-run shards buy one Moss Core pick (opens when the shop closes). No real money.
+		items.append({
+			"kind": "core", "tier": 0, "title": "Core Pick",
+			"desc": "Choose 1 of 3 Moss Cores (after you leave the shop)",
+			"cost": RelicSlots.tuning().core_shop_cost, "bought": false, "rar": 0,
 		})
 	return items
 

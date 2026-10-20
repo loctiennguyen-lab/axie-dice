@@ -14,6 +14,16 @@ signal resonance_triggered(uid: int)                                       # ~ "
 signal relic_pulsed(relic_id: String, uid: int)                            # ~ "relic" —
 		# the ONLY channel some relic effects have to become visible; never skip this.
 signal float_text(uid: int, text: String, css_class: String, big: int)     # ~ "ft"
+signal die_stashed(uid: int)                                              # depth v3 Hold: a die was parked
+signal plating(uid: int, before: int, after: int, p: int)                  # depth v3 6.7 M1/M6: a single-target hit was reduced by Plating
+signal plating_off(uid: int, turns: int)                                  # a debuff / poison switched the Plating off for `turns` player turns
+signal plating_decay(uid: int, p_now: int)                                # anti-stall: Plating wears down from `plating.decay_turn`
+signal ward(src_uid: int, tgt_uid: int, amount: int)                      # M2: a ward source shielded an ally
+signal mend(src_uid: int, tgt_uid: int, amount: int)                      # M4: a mend source healed an ally
+signal spite(src_uid: int, tgt_uid: int, dmg: int, hits: int)             # M3: the enemy hurt the Axie that landed its 3rd+ hit
+signal charge_start(uid: int, target_uid: int)                            # M5: public tell, charge turn (boss: the prep turn before the strike)
+signal charge_hit(uid: int, target_uid: int, value: int)                  # M5: the x2.5 strike lands
+signal charge_break(uid: int)                                             # M5: stun / freeze interrupted the charge
 signal unit_spawned(uid: int)                                              # (no JS analogue)
 		# A unit JOINED a fight already in progress — gooey_king's SPLIT, a summoner's adds, an
 		# Axie Egg from a face/card/relic. JS has no such event because its view re-renders the

@@ -14,3 +14,5 @@ sort_index = 103502
 hook_key = "r_fumeblossom"
 tags = PackedStringArray("poison", "burn")
 layer = "duo"
+
+hidden_from_pool = true

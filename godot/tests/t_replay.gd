@@ -39,6 +39,8 @@ const EXPECTED_TESTS: Array[String] = [
 	"test_an_undone_move_replays_like_it_never_happened",
 	"test_a_whole_run_is_rebuilt_from_its_log_by_the_referee",
 	"test_the_referee_knows_every_action_the_log_can_hold",
+	"test_a_stashed_die_replays_and_a_tampered_stash_does_not",
+	"test_a_plating_charge_affix_elite_fight_replays_deterministically",
 ]
 
 var _failures: Array[String] = []
@@ -59,6 +61,8 @@ func _ready() -> void:
 	test_an_undone_move_replays_like_it_never_happened()
 	test_a_whole_run_is_rebuilt_from_its_log_by_the_referee()
 	test_the_referee_knows_every_action_the_log_can_hold()
+	test_a_stashed_die_replays_and_a_tampered_stash_does_not()
+	test_a_plating_charge_affix_elite_fight_replays_deterministically()
 
 	for test_name in EXPECTED_TESTS:
 		if not _completed.has(test_name):
@@ -348,6 +352,120 @@ func test_the_referee_knows_every_action_the_log_can_hold() -> void:
 	_done("test_the_referee_knows_every_action_the_log_can_hold")
 
 
+## Depth v3 Hold: a stash before end_turn must replay identically (the held die skips the next roll, so a
+## replay that forgot it would draw a different rng stream), and a stash of another die must NOT.
+func test_a_stashed_die_replays_and_a_tampered_stash_does_not() -> void:
+	var log := ActionLog.new()
+	log.begin(COMBAT_SEED, TEAM, "short", 0, "test")
+	var engine := _fresh_engine()
+	engine.action_log = log
+	var target := -1
+	var other := -1
+	for u in engine.party:
+		if engine.can_stash((u as Unit).uid):
+			if target < 0:
+				target = (u as Unit).uid
+			elif other < 0:
+				other = (u as Unit).uid
+	_assert(target >= 0 and other >= 0, "need two stashable dice on this seed")
+	if target < 0 or other < 0:
+		_done("test_a_stashed_die_replays_and_a_tampered_stash_does_not")
+		return
+	_assert(engine.stash(target), "stash refused a legal die")
+	engine.end_turn()
+	var played := engine.to_data()
+	var replay := _replay(log)
+	_assert(bool(replay["ok"]), str(replay.get("why", "")))
+	_assert(_digest(replay["snapshot"]) == _digest(played), "a stash did not replay to the same state")
+	var bad := _clone(log)
+	var e: Dictionary = bad.entries[0]
+	e["args"] = [other]
+	bad.entries[0] = e
+	var rb := _replay(bad)
+	_assert(not bool(rb["ok"]) or _digest(rb["snapshot"]) != _digest(played),
+		"a stash of a different die produced the same end state")
+	# stash of a unit that cannot be stashed (unknown uid) is refused by the referee
+	var junk := _clone(log)
+	var e2: Dictionary = junk.entries[0]
+	e2["args"] = [999999]
+	junk.entries[0] = e2
+	_assert(not bool(_replay(junk)["ok"]), "an illegal stash was accepted by the replay")
+	_done("test_a_stashed_die_replays_and_a_tampered_stash_does_not")
+
+
+## Depth v3: an Elite with Plating (R12 everywhere), Charged Strike and a second affix. Everything that is new
+## (plating cut, charge cycle, affix B summons, enemy-phase hooks) must replay to the identical end state.
+var _charge_events := 0
+
+
+func _elite_engine() -> CombatEngine:
+	var engine := CombatEngine.new()
+	engine.setup_new({
+		"node_id": "replay_elite", "kind": "elite", "pw": 6, "ascension": 0,
+		"roster_snapshot": _synthetic_roster(), "relic_ids": [], "combat_seed": COMBAT_SEED,
+		"affix": "charge", "affix2": "swarm", "run_rules": ["R12"],
+	})
+	return engine
+
+
+func _count_charge(_a = null, _b = null, _c = null) -> void:
+	_charge_events += 1
+
+
+func test_a_plating_charge_affix_elite_fight_replays_deterministically() -> void:
+	var log := ActionLog.new()
+	log.begin(COMBAT_SEED, ["plant1", "beast1", "aqua1", "reptile1", "bug1"], "short", 0, "test")
+	_charge_events = 0
+	EventBus.charge_start.connect(_count_charge)
+	EventBus.charge_hit.connect(_count_charge)
+	var engine := _elite_engine()
+	engine.action_log = log
+	var turns := 0
+	while not (engine.won or engine.lost) and turns < MAX_TURNS:
+		RunBot.play_turn(engine)
+		turns += 1
+	EventBus.charge_start.disconnect(_count_charge)
+	EventBus.charge_hit.disconnect(_count_charge)
+	var played := engine.to_data()
+	_assert(engine.won or engine.lost, "the elite fight never finished")
+	_assert(_charge_events > 0, "the fight never showed a charge: the case does not cover Charged Strike")
+	var fresh := _elite_engine()
+	_assert((fresh.run_rules as Array).has("R12") and CombatTraits.plating_of(fresh, fresh.enemies[0]) >= 2, "R12 is on: the elite starts with Plating >= 2")
+	var rep_engine := _elite_engine()
+	var ok := true
+	for e in log.entries:
+		if not _apply(rep_engine, String(e["fn"]), e["args"]):
+			ok = false
+			break
+	_assert(ok, "the referee rejected a recorded action of the elite fight")
+	_assert(_digest(rep_engine.to_data()) == _digest(played), "plating + charge + affix fight DIVERGED on replay")
+	_assert(int(rep_engine.to_data().get("rng_state", -1)) == int(played.get("rng_state", -2)), "different rng cursor on replay")
+	# tamper the state directly: Plating-off counter and the pending charge are part of the digest
+	var base_digest := _digest(rep_engine.to_data())
+	var tu: Unit = rep_engine.enemies[0]
+	tu.plating_off += 1
+	_assert(_digest(rep_engine.to_data()) != base_digest, "plating_off is not in the combat digest")
+	tu.plating_off -= 1
+	var was := bool(tu.custom_state.get("charge_pending", false))
+	tu.custom_state["charge_pending"] = not was
+	_assert(_digest(rep_engine.to_data()) != base_digest, "charge_pending is not in the combat digest")
+	tu.custom_state["charge_pending"] = was
+	_assert(_digest(rep_engine.to_data()) == base_digest, "undoing the tamper did not restore the digest")
+	# tamper: drop one recorded action, the end state must change
+	var bad := _without(log, maxi(0, log.entries.size() / 2))
+	var rb := _replay_elite(bad)
+	_assert(not bool(rb["ok"]) or _digest(rb["snapshot"]) != _digest(played), "a log with a missing action reached the same end state")
+	_done("test_a_plating_charge_affix_elite_fight_replays_deterministically")
+
+
+func _replay_elite(log: ActionLog) -> Dictionary:
+	var en := _elite_engine()
+	for e in log.entries:
+		if not _apply(en, String(e["fn"]), e["args"]):
+			return {"ok": false, "snapshot": en.to_data()}
+	return {"ok": true, "snapshot": en.to_data()}
+
+
 ## Shapes that match what each action really records, so the probe above fails on "unknown",
 ## never on "args were the wrong shape".
 func _sample_args(fn: String) -> Array:
@@ -365,6 +483,8 @@ func _sample_args(fn: String) -> Array:
 		"tweak":
 			return ["nudge_up", 1, -1]
 		"hold_pick":
+			return [1]
+		"stash":
 			return [1]
 		"loaded_pick":
 			return [1, 0]
@@ -437,6 +557,8 @@ func _apply(engine: CombatEngine, fn: String, args: Array) -> bool:
 			return engine.reroll_dice(args[0] as Array, -1, args.size() > 1 and int(args[1]) != 0)
 		"undo_last":
 			return engine.undo_last()
+		"stash":
+			return args.size() >= 1 and engine.stash(int(args[0]))
 		"end_turn":
 			engine.end_turn()
 			return true

@@ -80,6 +80,11 @@ static func verify(log: ActionLog, tape: Array = [], loadout: Dictionary = {}) -
 
 	# --- replay -------------------------------------------------------------------------
 	var lo: Dictionary = loadout if not loadout.is_empty() else (header.get("loadout", {}) as Dictionary)
+	# Ranked cannot dodge the Run Rule (rules_on must be true) and core_off is for tests/tools only.
+	if not bool(lo.get("rules_on", false)):
+		return _fail(ERR_BAD_HEADER, "A ranked run always plays with the Run Rule on; this record says otherwise.")
+	if bool(lo.get("core_off", false)) and not RunState.core_flow_switches_allowed():
+		return _fail(ERR_BAD_HEADER, "A ranked run cannot switch the Core flow off.")
 	var params := {"team_keys": team, "mode": String(header.get("mode", "short")),
 		"ascension": int(header.get("ascension", 0)), "ranked": true, "loadout": lo}
 	if lo.has("bonuses"):
@@ -153,7 +158,7 @@ static func verify(log: ActionLog, tape: Array = [], loadout: Dictionary = {}) -
 			"shop_refresh":
 				if not RunState.refresh_shop(-1):
 					return _fail(ERR_REJECTED, "A shop refresh was recorded that the replay cannot make.", i)
-			"use_die", "play_active", "reroll_dice", "undo_last", "end_turn", "tweak", "hold_pick", "loaded_pick", "continue":
+			"use_die", "play_active", "reroll_dice", "undo_last", "end_turn", "tweak", "hold_pick", "loaded_pick", "continue", "stash":
 				if engine == null:
 					return _fail(ERR_REJECTED,
 						"A combat move was recorded outside a combat.", i)
@@ -183,16 +188,32 @@ static func verify(log: ActionLog, tape: Array = [], loadout: Dictionary = {}) -
 			"take_reward":
 				if RunState.phase == RunState.RunPhase.PACT:
 					return _fail(ERR_REJECTED, "A reward was taken before the boss Pact was settled.", i)
+				# A Core offer after an event/shop node opens when that node closes (after_node), which the UI does
+				# on leaving it; here that happens when the log reaches the pick.
+				if RunState.pending_rewards.is_empty() and node_open:
+					RunState.after_node()
+					node_open = false
 				var idx := int(args[0]) if args.size() > 0 else -1
 				if idx < 0 or idx >= RunState.pending_rewards.size():
 					return _fail(ERR_REJECTED,
 						"Reward %d was taken from an offer of %d."
 						% [idx, RunState.pending_rewards.size()], i)
-				RunState.apply_chosen_reward(RunState.pending_rewards[idx])
+				var sell_id := String(args[1]) if args.size() > 1 else ""
+				if not RunState.apply_chosen_reward(RunState.pending_rewards[idx], sell_id):
+					return _fail(ERR_REJECTED, "A reward pick was recorded that the replay cannot make.", i)
+				# The UI calls after_node() after every pick: a normal reward closes its node (and may open a Core
+				# offer), a Core pick only returns to the map.
+				if node_open or RunState._core_close_pending:
+					RunState.after_node()
+					node_open = false
 			"reroll_rewards":
 				if RunState.phase == RunState.RunPhase.PACT:
 					return _fail(ERR_REJECTED, "Rewards were re-rolled before the boss Pact was settled.", i)
-				if not RunState.reroll_pending_rewards():
+				if RunState.pending_rewards.is_empty() and node_open:
+					RunState.after_node()
+					node_open = false
+				var ridx := int(args[0]) if args.size() > 0 else -1
+				if not RunState.reroll_pending_rewards(-1, ridx):
 					return _fail(ERR_REJECTED, "A reward re-roll was recorded with none left.", i)
 			"event_choose":
 				var opt := int(args[0]) if args.size() > 0 else -1
@@ -246,6 +267,8 @@ static func _apply_combat(engine: CombatEngine, fn: String, args: Array) -> bool
 			return args.size() >= 3 and engine.tweak(String(args[0]), int(args[1]), int(args[2]))
 		"hold_pick":
 			return args.size() >= 1 and engine.hold_pick(int(args[0]))
+		"stash":
+			return args.size() >= 1 and engine.stash(int(args[0]))
 		"loaded_pick":
 			return args.size() >= 2 and engine.loaded_pick(int(args[0]), int(args[1]))
 		"end_turn":

@@ -14,3 +14,5 @@ sort_index = 102510
 hook_key = "r_broodbloom"
 tags = PackedStringArray("growth", "summon")
 layer = "duo"
+
+hidden_from_pool = true

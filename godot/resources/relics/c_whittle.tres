@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="RelicDef" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data_models/relic_def.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "c_whittle"
+name = "Whittled Die"
+description = "The team's weakest face slot is locked: a die that rolls it rerolls once. Every other face gets +1."
+rarity = 2
+archetype = ""
+mload = 0
+sort_index = 202014
+hook_key = "c_whittle"
+tags = PackedStringArray("nonattack", "tradeoff")
+layer = "dice"
+core_axis = "dice"

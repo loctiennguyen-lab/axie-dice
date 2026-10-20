@@ -2,10 +2,10 @@
  "version": 1,
  "TUNE": {
   "base": 10.5,
-  "growth": 1.125,
+  "growth": 1.14,
   "growth2": 1.05,
   "knee": 12,
-  "elite_mult": 1.25
+  "elite_mult": 1.5
  },
  "attrition": {
   "start": 6,
@@ -24,5 +24,71 @@
   33
  ],
  "newcomer_runs": 5,
- "_doc": "monetization-v1.md 1.2/1.5. Intent dmg = base x (1 + enrage% + attrition%) x spike_mult, rounded half up. The A0-A3 light clock and the A4+/A9 full clock live per level in ascension.json (clock)."
+ "_doc": "monetization-v1.md 1.2/1.5. Intent dmg = base x (1 + enrage% + attrition%) x spike_mult, rounded half up. The A0-A3 light clock and the A4+/A9 full clock live per level in ascension.json (clock).",
+ "stash": {
+  "cap": 1
+ },
+ "reroll": {
+  "free": 1,
+  "mana_cost": 2,
+  "max_total": 4,
+  "conduit_step": 3
+ },
+ "rows": {
+  "front_size": 2
+ },
+ "difficulty": {
+  "enemy_dmg_mult": 1.2,
+  "boss_hp_mult": 1.1
+ },
+ "boss_rhythm": {
+  "enabled": 1,
+  "period": 3,
+  "hollow_taken_pct": 30,
+  "hollow_dealt_pct": -30
+ },
+ "plating": {
+  "div": 12,
+  "min": 2,
+  "max": 4,
+  "off_turns": 2,
+  "decay_turn": 3,
+  "shield_decay_pct": 100,
+  "iron_bonus": 1
+ },
+ "ward": {
+  "base": 3,
+  "pw_div": 4,
+  "max": 7,
+  "stack_cap_mult": 2,
+  "elite_mult": 1.5
+ },
+ "mend": {
+  "pct": 0.2,
+  "cap": 6,
+  "fight_cap_pct": 0.25
+ },
+ "spite": {
+  "after": 3,
+  "dmg": 2,
+  "pw_step": 8,
+  "dmg_hi": 3
+ },
+ "charge": {
+  "mult": 2.5,
+  "period": 4,
+  "charge_at": 3
+ },
+ "traits": {
+  "cap_default": 2,
+  "cap_early": 1
+ },
+ "run_rules": {
+  "plating_global": 2,
+  "side_face_bonus": 2,
+  "dmg_use_soft_cap": 2,
+  "dmg_overuse_penalty": 2,
+  "nondmg_mana": 1
+ },
+ "_doc_depth_v3_traits": "Depth v3 6.7/6.7b anti-spam mechanics. plating.* = M1/M6 (P = clamp(round(budget/div), min, max); off_turns after any debuff/poison; decay_turn = anti-stall, non-boss Plating -1 per turn from it, ward stops). ward.* = M2, mend.* = M4 (fight_cap_pct of the source's own max HP), spite.* = M3, charge.* = M5 (period 4: charge turn n%period==charge_at, strike n%period==0), traits.* = max trait bearers in a normal fight (early = before the first Elite), run_rules.* = R12/R13."
 }

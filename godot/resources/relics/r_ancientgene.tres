@@ -17,3 +17,5 @@ tags = PackedStringArray("uni", "growth")
 layer = "engine"
 mult_axis = "G"
 mult_bonus = 0.30
+
+hidden_from_pool = true

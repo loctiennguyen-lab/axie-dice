@@ -15,3 +15,5 @@ hook_key = "r_fang"
 mf_phase = "add"
 tags = PackedStringArray("poison")
 layer = "enabler"
+
+hidden_from_pool = true

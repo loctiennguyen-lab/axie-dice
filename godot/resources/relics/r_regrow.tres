@@ -15,3 +15,5 @@ hook_key = "r_regrow"
 mf_phase = "add"
 tags = PackedStringArray("growth", "shield")
 layer = "enabler"
+
+hidden_from_pool = true

@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="RelicDef" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data_models/relic_def.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "c_field_medic"
+name = "Field Medic"
+description = "Damage faces deal 2 less (min 1). Heal, shield, poison, mana and debuff faces get +3."
+rarity = 1
+archetype = ""
+mload = 0
+sort_index = 201010
+hook_key = "c_field_medic"
+tags = PackedStringArray("nonattack", "tradeoff")
+layer = "dice"
+core_axis = "dice"
+requires = PackedStringArray("faces_distinct:3")
+excludes = PackedStringArray("owned:c_toxic_still")

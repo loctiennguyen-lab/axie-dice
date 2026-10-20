@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="RelicDef" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data_models/relic_def.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "c_sacrifice"
+name = "Sacrifice"
+description = "Start of combat: the Axie in slot 5 sleeps (no die, cannot be targeted). The other four get +2 on every face and 1 extra free reroll each turn."
+rarity = 2
+archetype = ""
+mload = 0
+sort_index = 202042
+hook_key = "c_sacrifice"
+tags = PackedStringArray("nonattack", "tradeoff")
+layer = "engine"
+core_axis = "rule"
+rerollUp = 1.0

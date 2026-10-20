@@ -20,3 +20,5 @@ act = {
 }
 tags = PackedStringArray("crit")
 layer = "active"
+
+hidden_from_pool = true

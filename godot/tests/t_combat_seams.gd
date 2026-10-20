@@ -28,6 +28,7 @@ func _engine(extra: Dictionary = {}) -> CombatEngine:
 
 
 func _ready() -> void:
+	RelicRegistry.legacy_unhide_for_tests()
 	await get_tree().process_frame
 	_guard.capture()
 

@@ -59,6 +59,16 @@ var growth: Dictionary = {}
 ## u.critNow/u.used scalars exactly.
 var rolled: Array = []
 
+## Depth v3 Hold (`stash`). `held`: parked this turn, cannot be used or rerolled, keeps its face over the
+## turn change. `stash_carry`: was held over the last turn change, so it cannot be held again this turn.
+var held: bool = false
+var stash_carry: bool = false
+
+## Depth v3 6.7 M1: Plating value P (each single-target dmg face is cut by P, min 1) and the player turns
+## it is still switched off by a debuff / poison. Effective value: CombatEngine.plating_of(unit).
+var plating: int = 0
+var plating_off: int = 0
+
 var roster_index: int = -1      # index into RunState.roster — Formation Resonance key
                                  # (rule spec §4: position in s.roster, NEVER combat-board
                                  # position). -1 for tokens/enemies (never resonate).
@@ -106,6 +116,11 @@ func set_crit_now(v: bool) -> void:
 	if has_rolled():
 		rolled[0]["crit_now"] = v
 
+## A second action in one enemy phase (affix Rush): the face may be spent again.
+func clear_used_for_second_action() -> void:
+	if has_rolled():
+		rolled[0]["used"] = false
+
 func mark_used() -> void:
 	if has_rolled():
 		rolled[0]["used"] = true
@@ -148,7 +163,8 @@ func to_data() -> Dictionary:
 		"hp": hp, "max_hp": max_hp, "shield": shield,
 		"status": status.duplicate(true),
 		"frozen": frozen, "frozen_next": frozen_next, "overdrive": overdrive,
-		"resonant_now": resonant_now, "heavy": heavy,
+		"resonant_now": resonant_now, "heavy": heavy, "held": held, "stash_carry": stash_carry,
+		"plating": plating, "plating_off": plating_off,
 		"die": die.duplicate(true),
 		"growth": growth.duplicate(true),
 		"rolled": rolled.duplicate(true),
@@ -178,6 +194,10 @@ static func from_data(d: Dictionary) -> Unit:
 	u.overdrive = bool(d.get("overdrive", false))
 	u.resonant_now = bool(d.get("resonant_now", false))
 	u.heavy = bool(d.get("heavy", false))
+	u.held = bool(d.get("held", false))
+	u.stash_carry = bool(d.get("stash_carry", false))
+	u.plating = int(d.get("plating", 0))
+	u.plating_off = int(d.get("plating_off", 0))
 	u.die = (d.get("die", []) as Array).duplicate(true)
 	# Keys are face INDEXES (ints). An in-memory round-trip preserves that; a trip through JSON
 	# does not — every key comes back as a string, `growth.get(3)` misses the value stored under

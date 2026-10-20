@@ -1,0 +1,16 @@
+[gd_resource type="Resource" script_class="RelicDef" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data_models/relic_def.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "rule_test_b"
+name = "Test Rule b"
+description = "Test Run Rule."
+rarity = 0
+sort_index = 900028
+core_axis = "run_rule"
+disabled = true
+run_rule = true
+hidden_from_pool = false
+rule_knobs = {"core_first_tier": 2}

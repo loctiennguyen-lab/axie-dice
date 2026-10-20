@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="RelicDef" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data_models/relic_def.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "c_fossil"
+name = "Fossil"
+description = "Does nothing now and takes a slot. Your next Core pick is one tier higher (Crystal: 4 cards; already 4 cards: +1 Core reroll), then it disappears. Only shows at picks 1-2."
+rarity = 0
+archetype = ""
+mload = 0
+sort_index = 200044
+hook_key = "c_fossil"
+tags = PackedStringArray("nonattack")
+layer = "engine"
+core_axis = "rule"
+first_run_hidden = true
+rule_knobs = {"bet": true, "pick_max": 2, "next_pick_tier_up": 1, "crystal_extra_card": 4}

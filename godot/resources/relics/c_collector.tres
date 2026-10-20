@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="RelicDef" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data_models/relic_def.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "c_collector"
+name = "Collector"
+description = "Quest: use 5 different face types in one turn, in 3 different fights. Until done: +1 Mana every turn."
+rarity = 0
+archetype = ""
+mload = 0
+sort_index = 200032
+hook_key = "c_collector"
+tags = PackedStringArray("nonattack")
+layer = "enabler"
+core_axis = "quest"
+requires = PackedStringArray("faces_distinct:5")
+quest = {"kind": "distinct_faces_turn", "faces": 5, "steps": [{"target": 3, "reward_tier": 1}]}

@@ -1,0 +1,105 @@
+{
+ "version": 1,
+ "_doc": "Depth v3 6.4. One affix per Elite node, given in combat_setup.affix (the map lane picks it). Trom Mana (4) was dropped by Liam. plus=true: the affix also guarantees an Amber-tier Core offer (reward lane reads it). Effects are generic keys read by CombatEngine; add an affix by data alone when it only combines existing keys.",
+ "affixes": {
+  "echo": {
+   "n": "Hoi Am",
+   "repeat_intent": true,
+   "dmg_pct": -30,
+   "group": ""
+  },
+  "shell": {
+   "n": "Vo So",
+   "start_shield_pct": 40,
+   "group": "A",
+   "no_break_ok": true
+  },
+  "frenzy": {
+   "n": "Cuong",
+   "enrage_below_pct": 50,
+   "enrage_dmg_pct": 25,
+   "group": "B"
+  },
+  "swarm": {
+   "n": "Bay",
+   "summon_below_pct": 50,
+   "summon_count": 2,
+   "summon_scale": 0.5,
+   "plus": true,
+   "group": "B"
+  },
+  "thorns": {
+   "n": "Gai",
+   "thorns": 3,
+   "group": "",
+   "retired": true
+  },
+  "rush": {
+   "n": "Gap",
+   "double_turn_period": 3,
+   "plus": true,
+   "group": "B"
+  },
+  "fang": {
+   "n": "Nanh Doc",
+   "poison_on_pierce": 2,
+   "group": "A"
+  },
+  "ambush": {
+   "n": "Danh Len",
+   "target_back_weakest": true,
+   "plus": true,
+   "group": "A",
+   "no_break_ok": true
+  },
+  "chill": {
+   "n": "Dong Bang",
+   "freeze_first_turn": 1,
+   "group": ""
+  },
+  "iron": {
+   "n": "Giap Sat",
+   "group": "A",
+   "iron": true
+  },
+  "ward": {
+   "n": "Khien Hoi",
+   "group": "A",
+   "no_break_ok": true,
+   "ward_self": true
+  },
+  "spite": {
+   "n": "Phan Don",
+   "group": "A",
+   "no_break_ok": true,
+   "spite": true,
+   "replaces": "thorns"
+  },
+  "mend": {
+   "n": "Hoi Ngat",
+   "group": "A",
+   "mend": true
+  },
+  "charge": {
+   "n": "Don Nap",
+   "group": "A",
+   "no_break_ok": true,
+   "charge": true
+  }
+ },
+ "_doc2": "group A = forces a change of faces (every Elite gets one), B = extra pressure (after boss 1 an Elite gets A + B). no_break_ok = may be drawn for a team that cannot break Plating (team_can_break false). retired = not drawn any more (thorns became spite). forbidden_pairs: charge+rush, charge+frenzy (6.7b.9).",
+ "forbidden_pairs": [
+  [
+   "charge",
+   "rush"
+  ],
+  [
+   "charge",
+   "frenzy"
+  ]
+ ],
+ "first_run": {
+  "default": "iron",
+  "no_break": "ward"
+ }
+}

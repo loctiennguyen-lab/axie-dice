@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="RelicDef" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data_models/relic_def.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "c_verdict"
+name = "Verdict"
+description = "Enemies under 20% HP die at once (not bosses). Finishing faces always Execute."
+rarity = 2
+archetype = ""
+mload = 0
+sort_index = 202049
+hook_key = ""
+tags = PackedStringArray("attack")
+layer = "engine"
+core_axis = "rule"
+disabled = true
+hidden_from_pool = true
+needs_hook = "cut 2.10"

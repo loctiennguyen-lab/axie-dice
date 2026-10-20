@@ -26,6 +26,8 @@ export const ALLOWED_FNS = new Set([
   'tweak', 'hold_pick', 'loaded_pick', 'sell_relic', 'swap_on_full', 'reorder_party', 'aid_use',
   // lane A C1: boss Pact pick ([idx] / [idx, sold_id] / [-1] skip)
   'pact_pick',
+  // depth v3 lane A: Hold ([uid])
+  'stash',
 ]);
 
 /** kind -> action(s) that consume it at position log_len (ADR 4.2). null = consumed on reply. A list means any of them. */

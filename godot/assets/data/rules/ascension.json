@@ -85,7 +85,7 @@
    "shop_price_mult": 1.15,
    "sell_pct": 40,
    "reroll_base_delta": -1,
-   "reroll_base_floor": 1,
+   "reroll_base_floor": 0,
    "clock": {
     "start": 14,
     "step_pct": 10,
@@ -110,7 +110,7 @@
    "shop_price_mult": 1.15,
    "sell_pct": 40,
    "reroll_base_delta": -1,
-   "reroll_base_floor": 1,
+   "reroll_base_floor": 0,
    "clock": {
     "start": 10,
     "step_pct": 20,
@@ -135,7 +135,7 @@
    "shop_price_mult": 1.15,
    "sell_pct": 40,
    "reroll_base_delta": -1,
-   "reroll_base_floor": 1,
+   "reroll_base_floor": 0,
    "clock": {
     "start": 10,
     "step_pct": 20,
@@ -160,7 +160,7 @@
    "shop_price_mult": 1.15,
    "sell_pct": 40,
    "reroll_base_delta": -1,
-   "reroll_base_floor": 1,
+   "reroll_base_floor": 0,
    "clock": {
     "start": 10,
     "step_pct": 20,
@@ -185,7 +185,7 @@
    "shop_price_mult": 1.15,
    "sell_pct": 40,
    "reroll_base_delta": -1,
-   "reroll_base_floor": 1,
+   "reroll_base_floor": 0,
    "clock": {
     "start": 10,
     "step_pct": 20,
@@ -210,7 +210,7 @@
    "shop_price_mult": 1.15,
    "sell_pct": 40,
    "reroll_base_delta": -1,
-   "reroll_base_floor": 1,
+   "reroll_base_floor": 0,
    "clock": {
     "start": 10,
     "step_pct": 20,
@@ -235,7 +235,7 @@
    "shop_price_mult": 1.15,
    "sell_pct": 40,
    "reroll_base_delta": -1,
-   "reroll_base_floor": 1,
+   "reroll_base_floor": 0,
    "clock": {
     "start": 8,
     "step_pct": 20,
@@ -260,7 +260,7 @@
    "shop_price_mult": 1.15,
    "sell_pct": 40,
    "reroll_base_delta": -1,
-   "reroll_base_floor": 1,
+   "reroll_base_floor": 0,
    "clock": {
     "start": 8,
     "step_pct": 20,

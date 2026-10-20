@@ -15,3 +15,5 @@ hook_key = "r_conduitcrown"
 actReuse = 2.0
 tags = PackedStringArray("mana")
 layer = "engine"
+
+hidden_from_pool = true

@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="RelicDef" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data_models/relic_def.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "rule_dry_steppe"
+name = "Dry Steppe"
+description = "Mana does not carry over: leftover Mana is lost at end of turn. +2 Mana at the start of every turn."
+rarity = 0
+archetype = ""
+mload = 0
+sort_index = 200507
+hook_key = "rule_dry_steppe"
+tags = PackedStringArray("rule")
+layer = "engine"
+core_axis = "run_rule"
+run_rule = true
+weight = 1
+rule_knobs = {"mana_carry": 0, "turn_mana": 2}

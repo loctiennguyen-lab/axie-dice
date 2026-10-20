@@ -8,6 +8,7 @@ var _checks := 0
 
 
 func _ready() -> void:
+	RelicRegistry.legacy_unhide_for_tests()
 	print("=== t_relic_slots: start ===")
 	test_tuning_loads()
 	test_new_def_fields_default_to_inert()

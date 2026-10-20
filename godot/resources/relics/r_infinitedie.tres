@@ -16,3 +16,5 @@ rerollUp = 2.0
 safeReroll = true
 tags = PackedStringArray("mana")
 layer = "enabler"
+
+hidden_from_pool = true

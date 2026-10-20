@@ -15,3 +15,5 @@ hook_key = ""
 firstEcho = true
 tags = PackedStringArray("uni")
 layer = "engine"
+
+hidden_from_pool = true

@@ -14,3 +14,5 @@ sort_index = 102509
 hook_key = "r_coupmark"
 tags = PackedStringArray("crit", "exec")
 layer = "duo"
+
+hidden_from_pool = true
