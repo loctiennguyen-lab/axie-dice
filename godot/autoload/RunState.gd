@@ -2147,7 +2147,9 @@ func _core_from_data(c: Dictionary) -> void:
 	rules_on = bool(c.get("rules_on", false))
 	_core_base_seed = int(c.get("base_seed", 0))
 	_core_offer_active = bool(c.get("offer_active", false))
-	_core_offer_pick = int(c.get("offer_pick", maxi(core_pick_index - 1, 0)))
+	# Old save without offer_pick: the open offer was built for the previous index. At index 0 that is -1 (= "no bonus pick"):
+	# clamping to 0 would equal core_pick_index and make _core_ctx() treat the offer as a bonus one.
+	_core_offer_pick = int(c.get("offer_pick", core_pick_index - 1))
 	_rule_offer_active = bool(c.get("rule_offer_active", false))
 	_core_close_pending = bool(c.get("close_pending", false))
 	core_bonus_queue.assign((c.get("bonus_queue", []) as Array).map(func(v): return int(v)))
@@ -2184,8 +2186,11 @@ func _open_core_offer() -> bool:
 	var n := t.core_cards_first_extra if (core_pick_index == 0 and core_first_extra) \
 		else int(rule_knob("core_cards", t.core_cards))
 	var first_tier := int(rule_knob("core_first_tier", -1))
+	# Fossil (design 2.7 N10): this pick is one tier higher; already Crystal -> 4 cards; already 4 cards -> +1 reroll. Then it goes.
+	# Effects are deferred until the offer is known to be non-empty, so an empty offer never eats the Fossil.
+	var fossil_reroll := false
+	var fossil_note := 0
 	if owned_relic_ids.has("c_fossil"):
-		# Fossil (design 2.7 N10): this pick is one tier higher; already Crystal -> 4 cards; already 4 cards -> +1 reroll. Then it goes.
 		var fk: Dictionary = (RelicRegistry.get_def("c_fossil").rule_knobs as Dictionary)
 		var raw := clampi((int(core_tier_chain[core_pick_index]) if core_pick_index < core_tier_chain.size() else 0) + bump, 0, 2)
 		if core_pick_index == 0 and first_tier >= 0:
@@ -2193,17 +2198,14 @@ func _open_core_offer() -> bool:
 		if raw >= 2:
 			var extra := int(fk.get("crystal_extra_card", 4))
 			if n >= extra:
-				core_reroll_left += 1
-				CoreHooks.fire("c_fossil", -1, 1, "tier")
+				fossil_reroll = true
+				fossil_note = 1
 			else:
-				CoreHooks.fire("c_fossil", -1, extra - n, "tier")
+				fossil_note = extra - n
 				n = extra
 		else:
 			bump += int(fk.get("next_pick_tier_up", 1))
-			CoreHooks.fire("c_fossil", -1, int(fk.get("next_pick_tier_up", 1)), "tier")
-		owned_relic_ids.erase("c_fossil")
-		relic_state.erase("c_fossil")
-		relic_stickers.erase("c_fossil")
+			fossil_note = int(fk.get("next_pick_tier_up", 1))
 	var tier := CoreOffer.effective_tier(core_tier_chain, core_pick_index, bump, owned_relic_ids, mode, first_tier)
 	var base := _core_base_seed if core_pick_index == 0 else _node_seed
 	var rng := Rng.new((base ^ CoreOffer.CORE_SALT) ^ (core_pick_index * 0x9E3779B1))
@@ -2212,6 +2214,13 @@ func _open_core_offer() -> bool:
 	core_pick_index += 1
 	if offer.is_empty():
 		return false
+	if fossil_note > 0:
+		if fossil_reroll:
+			core_reroll_left += 1
+		CoreHooks.fire("c_fossil", -1, fossil_note, "tier")
+		owned_relic_ids.erase("c_fossil")
+		relic_state.erase("c_fossil")
+		relic_stickers.erase("c_fossil")
 	for c in offer:
 		core_seen.append(String(c["key"]))
 	pending_rewards = offer
@@ -2308,26 +2317,33 @@ func _apply_core_pick(reward: Dictionary, sell_id: String) -> bool:
 		dim = CoreOffer.dim_stone_grant(drng, other_axes, _core_ctx(_core_offer_pick))
 		if dim != null:
 			rid = String(dim.id)
-	var chk := RelicSlots.check_add(owned_relic_ids, relic_stickers, rid, ascension, false)
-	if not bool(chk["ok"]):
-		return false
-	var args: Array = [offer_index]
-	if bool(chk["needs_sell"]):
-		if sell_id == "" or not (chk["sell_from"] as Array).has(sell_id):
+	if dim == null and rid == "c_dim_stone" and not bool(reward.get("rule", false)):
+		# Dim Stone with no Crystal Core left to grant (pool T empty): the stone is never kept; the pick turns into one whole-run
+		# Core reroll and the table is told (core_fired "c_dim_stone", note "reroll").
+		action_log.record("take_reward", [offer_index])
+		core_reroll_left += 1
+		CoreHooks.fire("c_dim_stone", -1, 1, "reroll")
+	else:
+		var chk := RelicSlots.check_add(owned_relic_ids, relic_stickers, rid, ascension, false)
+		if not bool(chk["ok"]):
 			return false
-		shards_this_run += RelicSlots.sell_price(sell_id, ascension)
-		owned_relic_ids.erase(sell_id)
-		relic_state.erase(sell_id)
-		relic_stickers.erase(sell_id)
-		core_quest_progress.erase(sell_id)
-		args.append(sell_id)
-	elif sell_id != "":
-		return false
-	action_log.record("take_reward", args)
-	_grant_relic(rid, "core")
-	if dim != null:
-		core_seen.append(rid)
-		CoreHooks.fire("c_dim_stone", -1, 1, "tier")
+		var args: Array = [offer_index]
+		if bool(chk["needs_sell"]):
+			if sell_id == "" or not (chk["sell_from"] as Array).has(sell_id):
+				return false
+			shards_this_run += RelicSlots.sell_price(sell_id, ascension)
+			owned_relic_ids.erase(sell_id)
+			relic_state.erase(sell_id)
+			relic_stickers.erase(sell_id)
+			core_quest_progress.erase(sell_id)
+			args.append(sell_id)
+		elif sell_id != "":
+			return false
+		action_log.record("take_reward", args)
+		_grant_relic(rid, "core")
+		if dim != null:
+			core_seen.append(rid)
+			CoreHooks.fire("c_dim_stone", -1, 1, "tier")
 	pending_rewards = []
 	if bool(reward.get("rule", false)):
 		run_rule = rid

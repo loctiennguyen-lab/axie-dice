@@ -223,6 +223,78 @@ func _ready() -> void:
 	RunState.run_rule = "rule_none"
 	RunState._crow_judge({"stat": {"turns": 1}, "downed": 0}, "battle")
 	_assert(RunState.core_tier_bump == 0, "no Crow rule, no bump")
+	# Run Rule Crow Herald (rule_crow) through the referee: a whole run that took it replays to the same score and Core state,
+	# and a tampered rule pick (index outside the offer / another card) is refused or lands on a different state.
+	RunBot.core_pick_id = "rule_crow"
+	var crow_hit := false
+	for sd5 in range(1, 41):
+		var pc: Dictionary = RunBot.play_run(sd5, TEAM)
+		if String(((pc["state"] as Dictionary).get("core", {}) as Dictionary).get("run_rule", "")) != "rule_crow":
+			continue
+		crow_hit = true
+		var clog: ActionLog = pc["log"]
+		var vc := RunVerifier.verify(clog, pc["tape"])
+		_assert(bool(vc["ok"]), "rule_crow run replays (seed %d): %s" % [sd5, str(vc["message"])])
+		if bool(vc["ok"]):
+			_assert(int(vc["score"]) == int(pc["score"]), "rule_crow: same score")
+			_assert(JSON.stringify((pc["state"] as Dictionary).get("core", {})) == JSON.stringify((vc["state"] as Dictionary).get("core", {})),
+				"rule_crow: same Core state (tier chain, bumps, seen)")
+		var first_take := -1
+		for i6 in clog.entries.size():
+			if String(clog.entries[i6]["fn"]) == "take_reward":
+				first_take = i6
+				break
+		_assert(first_take >= 0, "rule_crow run logged the rule pick")
+		if first_take >= 0:
+			var tc1 := _clone(clog)
+			tc1.entries[first_take]["args"] = [9]
+			_assert(not bool(RunVerifier.verify(tc1, pc["tape"])["ok"]), "rule_crow: rule pick outside the offer is refused")
+			var tc2 := _clone(clog)
+			var old_idx := int((tc2.entries[first_take]["args"] as Array)[0])
+			tc2.entries[first_take]["args"] = [(old_idx + 1) % 2]
+			var v2 := RunVerifier.verify(tc2, pc["tape"])
+			_assert(not bool(v2["ok"]) or JSON.stringify(((v2["state"] as Dictionary).get("core", {}) as Dictionary).get("run_rule", "")) != "\"rule_crow\"",
+				"rule_crow: swapping the rule card does not replay as the same run")
+		break
+	_assert(crow_hit, "some seed offers and takes rule_crow")
+	RunBot.core_pick_id = ""
+	# Review (a): Dim Stone with nothing to grant (pool T empty) is not kept; it becomes +1 Core reroll and says so.
+	RunState.reset()
+	RunState.start_new_run_seeded(5, {"team_keys": TEAM, "mode": "short", "ascension": 0, "ranked": false, "bonuses": {}, "loadout": {"rules_on": false}})
+	RunState.owned_relic_ids.clear()
+	for d7 in RelicRegistry.all_defs_sorted():
+		if String(d7.core_axis) != "" and String(d7.core_axis) != "run_rule" and String(d7.id) != "c_dim_stone":
+			RunState.owned_relic_ids.append(String(d7.id))
+	var dcard := CoreOffer.card_of(RelicRegistry.get_def("c_dim_stone"), 0)
+	RunState.pending_rewards = [dcard]
+	RunState._core_offer_active = true
+	var rr_before := RunState.core_reroll_left
+	var fired: Array = []
+	var on_fire := func(id, _u, _a, kind): fired.append([String(id), String(kind)])
+	EventBus.core_fired.connect(on_fire)
+	var took := RunState.apply_chosen_reward(dcard, "")
+	EventBus.core_fired.disconnect(on_fire)
+	_assert(took and not RunState.owned_relic_ids.has("c_dim_stone"), "empty-pool Dim Stone: pick succeeds, stone not kept")
+	_assert(RunState.core_reroll_left == rr_before + 1, "empty-pool Dim Stone refunds one Core reroll")
+	_assert(fired.has(["c_dim_stone", "reroll"]), "empty-pool Dim Stone emits core_fired (reroll)")
+	_assert(String(RunState.action_log.entries.back()["fn"]) == "take_reward", "empty-pool Dim Stone pick is logged")
+	# Review (b): an empty next offer must not eat the Fossil.
+	RunState.reset()
+	RunState.start_new_run_seeded(5, {"team_keys": TEAM, "mode": "short", "ascension": 0, "ranked": false, "bonuses": {}, "loadout": {"rules_on": false}})
+	RunState.pending_rewards = []
+	RunState.core_pick_index = 1
+	RunState.owned_relic_ids.clear()
+	for d8 in RelicRegistry.all_defs_sorted():
+		if String(d8.core_axis) != "" and String(d8.core_axis) != "run_rule":
+			RunState.owned_relic_ids.append(String(d8.id))
+	if not RunState.owned_relic_ids.has("c_fossil"):
+		RunState.owned_relic_ids.append("c_fossil")
+	var opened := RunState._open_core_offer()
+	_assert(not opened, "with every Core owned the next offer is empty")
+	_assert(RunState.owned_relic_ids.has("c_fossil"), "an empty offer does not consume the Fossil")
+	# Review (c): an old save with an open offer and no offer_pick, at pick index 0, is not a bonus offer.
+	RunState._core_from_data({"pick_index": 0, "offer_active": true, "base_seed": 1, "core_off": false})
+	_assert(not bool(RunState._core_ctx(RunState._core_offer_pick)["bonus"]), "old save at pick index 0: default offer_pick is not a bonus")
 	RunBot.core_pick_id = ""
 	_guard.restore()
 	if _failures.is_empty():

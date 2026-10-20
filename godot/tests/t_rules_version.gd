@@ -221,7 +221,9 @@ const WATCHED_FILES: Array[String] = ["res://assets/data/part_faces.json"]
 ## Moved 2026-10-20 by integration round 2 (depth/FX cfca4ba + depth/VZ 8d480d1): thorn cap removed, 3 thorn Cores, tier-bet Cores,
 ## Heavy Strike, core_fired for every Core, RunState.core_impact. These are part of the depth v3 rules whose version `-o` has NOT
 ## been deployed yet, so RULES_VERSION stays `godot-2026-10-20-o` (same unreleased version); only the FINGERPRINT moves.
-const FINGERPRINT := "9a4b0c8ad4d787c48ff2cf35bc163be226cf7e752fa840bac0c44f11c30fd999"
+## Moved 2026-10-20 by FX review fixes (RunState): empty-pool Dim Stone refunds a Core reroll, an empty offer keeps the Fossil, old-save
+## offer_pick default. Same unreleased `-o`; RULES_VERSION unchanged.
+const FINGERPRINT := "381104b0fa6d23e5f28093878c11ca0664e1b633dd6c052e77686806948fdf5d"
 
 
 func _ready() -> void:
