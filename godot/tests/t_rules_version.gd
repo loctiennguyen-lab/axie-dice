@@ -214,7 +214,11 @@ const WATCHED_FILES: Array[String] = ["res://assets/data/part_faces.json"]
 ## no rule reads it). Run result: NO, stays -n.
 ## Moved 2026-10-20 by lane E 2302828/28a050c: EchoBox season box (season pool split, milestones, titles, per-tier pity;
 ## meta/cosmetics only, no rule reads it). Run result: NO, stays -n.
-const FINGERPRINT := "28fff9bc2c33eb221952b4c6d8fafec5c79b8d50a0322080862a03520349b243"
+## BUMPED, 2026-10-20: `ActionLog.RULES_VERSION` -> `godot-2026-10-20-o`. Depth v3 integration (lanes A/B/C/D/E): Cores replace
+## relic offers (CoreOffer, Core quests/rerolls/tier chain), Run Rules + affixes, Armor, combat_tune.json knobs, Core/rule
+## picks recorded in the action log and replayed by RunVerifier, plus Raid R1 ghost combat. Same actions give a different run.
+## Worker SUPPORTED_RULE_VERSIONS gained -o. Unfinished runs saved under -n are discarded by saved_run_status() ("rules").
+const FINGERPRINT := "000e4e637f05554939cf9db0b2449d0c254fbf2013808454b6ae2cb3112382d2"
 
 
 func _ready() -> void:
