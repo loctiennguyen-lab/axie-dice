@@ -653,7 +653,7 @@ static func pick_relic(rng: Rng, exclude_ids: Array, min_rar: int, max_rar: int,
 ## numbers. Simplified vs. the source (which also offers 2 Gene Mutation face items) since
 ## the face/mutation pool isn't ported yet (see file header).
 static func generate_shop_items(rng: Rng, owned_relic_ids: Array, offer_ctx: Dictionary = {},
-		relic_count: int = 2) -> Array[Dictionary]:
+		relic_count: int = 2, core_item: bool = false) -> Array[Dictionary]:
 	var items: Array[Dictionary] = []
 	var offered: Array = []
 	var shop_ctx: Dictionary = {}
@@ -675,6 +675,12 @@ static func generate_shop_items(rng: Rng, owned_relic_ids: Array, offer_ctx: Dic
 			"kind": "relic", "key": def.id, "title": def.name,
 			"desc": relic_desc(def),
 			"rar": def.rarity, "cost": RELIC_SHOP_COST[mini(maxi(def.rarity, 0), 4)], "bought": false,
+		})
+	if core_item:   # depth v3 2.8: in-run shards buy one Moss Core pick (opens when the shop closes). No real money.
+		items.append({
+			"kind": "core", "tier": 0, "title": "Core Pick",
+			"desc": "Choose 1 of 3 Moss Cores (after you leave the shop)",
+			"cost": RelicSlots.tuning().core_shop_cost, "bought": false, "rar": 0,
 		})
 	items.append({
 		"kind": "heal", "title": "Serum", "desc": "One Axie gains %d Max HP" % HEAL_ITEM_V,

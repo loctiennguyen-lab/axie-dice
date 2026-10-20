@@ -1425,7 +1425,7 @@ func _open_shop(_node_id: String, seed: int, is_refresh: bool = false) -> void:
 	_shop_rng = Rng.new(seed)
 	shop_items = []
 	var price_mult := float(ContentDB.ascension_mods(ascension).get("shop_price_mult", 1.0))
-	for raw in RewardGenerator.generate_shop_items(_shop_rng, owned_relic_ids):
+	for raw in RewardGenerator.generate_shop_items(_shop_rng, owned_relic_ids, {}, 2, not core_off):
 		var it: Dictionary = (raw as Dictionary).duplicate(true)
 		if price_mult != 1.0:
 			it["cost"] = RulesMath.round_half_up(float(it.get("cost", 0)) * price_mult)   # A1: x1.15
@@ -1479,13 +1479,11 @@ func apply_event_fx(fx: String, rng: Rng) -> String:
 			bonus_reroll += 1
 			return "You permanently gain 1 maximum Reroll."
 		"gamble_legend":
-			var def := RewardGenerator.pick_relic(rng, owned_relic_ids, 3, 3)
-			if def == null:
-				def = RewardGenerator.pick_relic(rng, owned_relic_ids, 0, 2)
-			if def != null:
-				_grant_relic(def.id, "event")
+			# depth v3 2.8: the Legendary relic is now a Crystal Core pick (opens when the event closes).
+			var queued := _queue_core_pick(2)
 			_reduce_party_max_hp_pct(0.2)
-			return "Received %s. The whole party loses 20%% Max HP." % (def.name if def != null else "nothing")
+			return "You may choose a Crystal Core. The whole party loses 20%% Max HP." if queued \
+				else "The whole party loses 20%% Max HP."
 		"pray":
 			if roster.is_empty():
 				return "Nothing happened."
@@ -1493,10 +1491,8 @@ func apply_event_fx(fx: String, rng: Rng) -> String:
 			e["bonus_hp"] = int(e.get("bonus_hp", 0)) + 8
 			return "%s gains 8 Max HP." % _hero_display_name(e)
 		"chest":
-			var def2 := RewardGenerator.pick_relic(rng, owned_relic_ids, 1, 3)
-			if def2 != null:
-				_grant_relic(def2.id, "event")
-			return "You found a relic: %s" % (def2.name if def2 != null else "nothing")
+			# depth v3 2.8: was a relic; now one Amber Core pick, opens when the event closes.
+			return "You may choose an Amber Core." if _queue_core_pick(1) else "The vault is empty."
 		"shards60":
 			shards_this_run += 60
 			return "You gained 60 Gene Shard."
@@ -1523,10 +1519,8 @@ func apply_event_fx(fx: String, rng: Rng) -> String:
 			# whole party pays 10% Max HP. The RNG draw happens FIRST and unconditionally,
 			# so the stream advances identically on both outcomes.
 			if rng.next_float() < 0.5:
-				var won_relic := RewardGenerator.pick_relic(rng, owned_relic_ids, 2, 3)
-				if won_relic != null:
-					_grant_relic(won_relic.id, "event")
-				return "YOU WIN! Received %s" % (won_relic.name if won_relic != null else "nothing")
+				# depth v3 2.8: an Epic-or-better relic became a Crystal Core pick (tier capped by the Crystal limit).
+				return "YOU WIN! You may choose a Crystal Core." if _queue_core_pick(2) else "YOU WIN!"
 			_reduce_party_max_hp_pct(0.1)
 			return "YOU LOSE. The whole party loses 10% Max HP."
 		"shards30":
@@ -1579,6 +1573,8 @@ func try_buy_shop_item(index: int, seed: int = -1) -> bool:
 				e["bonus_hp"] = int(e.get("bonus_hp", 0)) + int(item.get("v", 10))
 		"reroll":
 			bonus_reroll += 1
+		"core":
+			_queue_core_pick(int(item.get("tier", 0)))   # opens when the shop closes (after_node)
 	# Marked here, not by the caller. The screen used to set it after the fact, which meant a
 	# replay — which has no screen — left every item buyable forever.
 	item["bought"] = true
@@ -2117,6 +2113,10 @@ func _open_core_offer() -> bool:
 	if core_off or core_pick_index >= CoreOffer.picks_total(mode):
 		return false
 	var t := RelicSlots.tuning()
+	if (rule_knob("core_skip_picks", []) as Array).has(core_pick_index):
+		# Run Rule knob (R6): this pick is dropped. Its tier chain slot and trigger are used up, the next pick keeps its own.
+		core_pick_index += 1
+		return false
 	var tier := CoreOffer.effective_tier(core_tier_chain, core_pick_index, core_tier_bump, owned_relic_ids, mode,
 		int(rule_knob("core_first_tier", -1)))
 	core_tier_bump = 0
@@ -2245,6 +2245,15 @@ func note_quest_event(kind: String, n: int = 1) -> void:
 			core_quest_progress.erase(qid)
 		else:
 			core_quest_progress[qid] = pr
+
+
+## Queues one Core pick of `tier` (0 moss, 1 amber, 2 crystal) for event / shop rewards. It opens in after_node() like a
+## quest reward and does not count toward the milestones. False when the Core flow is off. Draws nothing.
+func _queue_core_pick(tier: int) -> bool:
+	if core_off:
+		return false
+	core_bonus_queue.append(clampi(tier, 0, 2))
+	return true
 
 
 func _open_bonus_offer() -> bool:

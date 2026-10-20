@@ -55,6 +55,7 @@ extends Resource
 @export var core_t_cap_full: int = 4
 @export var core_reroll_max: int = 2           ## Core rerolls per run (one card each)
 @export var core_cards: int = 3
+@export var core_shop_cost: int = 60           ## shards for a Moss Core pick in the shop (economy-designer to price)
 @export var core_cards_first_extra: int = 4    ## pick 1 with perk relic0/relic1
 @export var rule_cards: int = 2
 @export var rule_none_pct: int = 10            ## from run 2: chance one of the two rule cards is "no rule"

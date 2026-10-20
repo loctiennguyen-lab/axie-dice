@@ -41,6 +41,7 @@ const SHOP_ART := {
 	"relic": "shop_relic",      # unused for relics — see texture_for_shop()'s rarity branch
 	"heal": "shop_heal",        # a shell pouring clear water — a potion
 	"reroll": "card_reroll",    # deliberately the same image as the reward: it is the same gain
+	"core": "shop_relic",       # Core pick (depth v3): reuses the relic shop art until lane C / art draws one
 }
 
 ## Map node kind -> the illustration its overlay leads with.
