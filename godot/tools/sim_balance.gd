@@ -44,7 +44,14 @@ func _ready() -> void:
 	var args := _parse_args()
 	var guard := SaveGuard.new()
 	guard.capture()
-	var recs := run_batch(args)
+	var recs: Array
+	if args.has("from"):   # --from=a.csv,b.csv : rebuild/merge a report from raw CSVs, no simulation
+		recs = SimReport.read_csvs(String(args["from"]).split(","))
+		args["policies"] = "merged"
+		args["asc"] = "-"
+		args["runs"] = recs.size()
+	else:
+		recs = run_batch(args)
 	guard.restore()
 	var out_dir := String(args.get("out", ProjectSettings.globalize_path("res://").path_join("../production/qa/sim")))
 	var tag := String(args.get("tag", "%dx%s_A%s" % [int(args["runs"]), str(args["policies"]).replace(",", "+"), args["asc"]]))

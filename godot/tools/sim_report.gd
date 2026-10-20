@@ -33,6 +33,7 @@ static func build_md(recs: Array, tag: String, secs: float, catalog: Array = [])
 	L.append("# Sim balance %s\n" % tag)
 	L.append("Runs: %d, wall %.1fs (%.2fs/run).\n" % [recs.size(), secs, secs / maxf(1.0, recs.size())])
 	# win-rate by policy x asc, policy x team, core policy
+	L.append(_goals(recs))
 	L.append(_table(recs, ["policy", "asc"], "Win-rate theo chinh sach x Ascension"))
 	L.append(_table(recs, ["policy", "team"], "Win-rate theo chinh sach x doi"))
 	L.append(_table(recs, ["policy", "core_policy"], "Win-rate theo chinh sach x cach chon Loi"))
@@ -189,3 +190,61 @@ static func _freq_section(recs: Array, catalog: Array) -> String:
 		out += "| %s | %s | %d | %.1f%% | %.1f%% | %.1f%% | %s | %s |\n" % [id, c["axis"], c["rarity"], 100.0 * o / n,
 			100.0 * p / n, 100.0 * t / n, "-" if p == 0 else "%.0f%%" % (100.0 * int(trig_picked.get(id, 0)) / p), " ".join(flags)]
 	return out + "\n"
+
+
+static func _rate(recs: Array, policies: Array) -> float:
+	var n := 0
+	var w := 0
+	for r in recs:
+		if policies.has(r["policy"]):
+			n += 1
+			if r["won"]:
+				w += 1
+	return -1.0 if n == 0 else 100.0 * w / n
+
+
+## Liam's targets (Short, A0): dumb bots <= 5%, expert 15-25%, expert - random >= 15 points.
+static func _goals(recs: Array) -> String:
+	var a0: Array = []
+	for r in recs:
+		if int(r["asc"]) == 0:
+			a0.append(r)
+	var out := "## Muc tieu (Short A0)\n\n"
+	for pol in ["random_legal", "attack_spam", "attack_only"]:
+		var x := _rate(a0, [pol])
+		if x >= 0.0:
+			out += "- %s <= 5%%: %.1f%% -> %s\n" % [pol, x, "DAT" if x <= 5.0 else "CHUA DAT"]
+	var ex := _rate(a0, ["expert"])
+	if ex >= 0.0:
+		out += "- expert 15-25%%: %.1f%% -> %s\n" % [ex, "DAT" if ex >= 15.0 and ex <= 25.0 else "CHUA DAT"]
+		var rnd := _rate(a0, ["random_legal"])
+		if rnd >= 0.0:
+			out += "- expert - random >= 15 diem: %.1f diem -> %s\n" % [ex - rnd, "DAT" if ex - rnd >= 15.0 else "CHUA DAT"]
+	var gr := _rate(a0, ["greedy"])
+	if gr >= 0.0:
+		out += "- (tham khao) greedy: %.1f%%\n" % gr
+	return out + "\n"
+
+
+static func read_csvs(paths: Array) -> Array:
+	var out: Array = []
+	for p in paths:
+		var f := FileAccess.open(String(p), FileAccess.READ)
+		if f == null:
+			push_error("cannot read " + String(p))
+			continue
+		f.get_line()
+		while not f.eof_reached():
+			var ln := f.get_line()
+			if ln == "":
+				continue
+			var c := ln.split(",")
+			var fights: Array = []
+			for fs in String(c[10]).split(";", false):
+				var q := fs.split(":")
+				fights.append({"kind": q[0], "turns": int(q[1]), "won": q[2] == "1", "stuck": int(q[1]) > 20, "affix": q[3] if q.size() > 3 else ""})
+			out.append({"seed": int(c[0]), "policy": c[1], "core_policy": c[2], "team": c[3], "asc": int(c[4]), "won": c[5] == "1",
+				"death_kind": c[6], "death_row": int(c[7]), "rule": c[8], "cores": Array(String(c[9]).split(";", false)),
+				"fights": fights, "offered": Array(String(c[11]).split(";", false)), "picked": Array(String(c[12]).split(";", false)),
+				"trig": Array(String(c[13]).split(";", false))})
+	return out
