@@ -676,12 +676,6 @@ static func generate_shop_items(rng: Rng, owned_relic_ids: Array, offer_ctx: Dic
 			"desc": relic_desc(def),
 			"rar": def.rarity, "cost": RELIC_SHOP_COST[mini(maxi(def.rarity, 0), 4)], "bought": false,
 		})
-	if core_item:   # depth v3 2.8: in-run shards buy one Moss Core pick (opens when the shop closes). No real money.
-		items.append({
-			"kind": "core", "tier": 0, "title": "Core Pick",
-			"desc": "Choose 1 of 3 Moss Cores (after you leave the shop)",
-			"cost": RelicSlots.tuning().core_shop_cost, "bought": false, "rar": 0,
-		})
 	items.append({
 		"kind": "heal", "title": "Serum", "desc": "One Axie gains %d Max HP" % HEAL_ITEM_V,
 		"cost": HEAL_ITEM_COST, "v": HEAL_ITEM_V, "bought": false, "rar": 0,
@@ -690,6 +684,12 @@ static func generate_shop_items(rng: Rng, owned_relic_ids: Array, offer_ctx: Dic
 		items.append({
 			"kind": "reroll", "title": "Instinct", "desc": "1 extra maximum Reroll",
 			"cost": REROLL_ITEM_COST, "bought": false, "rar": 0,
+		})
+	if core_item:   # depth v3 2.8: in-run shards buy one Moss Core pick (opens when the shop closes). No real money.
+		items.append({
+			"kind": "core", "tier": 0, "title": "Core Pick",
+			"desc": "Choose 1 of 3 Moss Cores (after you leave the shop)",
+			"cost": RelicSlots.tuning().core_shop_cost, "bought": false, "rar": 0,
 		})
 	return items
 
