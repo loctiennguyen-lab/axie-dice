@@ -719,3 +719,14 @@ Chưa kiểm code từng chỗ, chỗ nào nghi ghi "cần kiểm". Mọi file �
 - **7. Đồng ý** lùi reroll Lõi về "đổi cả bộ ba cùng bậc" ở bump 1 nếu phải đổi schema action.
 - **8. Đồng ý** run đầu không có Luật run, từ run 2 có 10% thẻ "Không luật".
 - **A3 (Ascension "Short Dice"):** ở A3 mất reroll miễn phí, mọi reroll tốn mana.
+
+### Liam chốt 21/10 tối: bỏ trần thorn
+Thorn KHÔNG còn trần (trước là `StatusEngine.THORNS_CAP = 8`), cộng dồn vô hạn, áp dụng cho CẢ HAI PHE (Axie và quái). Mục đích: mở lối chơi tích thorn + shield. Thorn vẫn không giảm theo lượt. Phản chế: pierce/AoE/debuff, Lõi bỏ qua thorn. Cần rà Lõi nhân thorn (trục `A:thorns`) để không thành vô hạn kiểu một đòn giết boss quá sớm, và thêm 2-3 Lõi để thorn + shield thành một build thật. Gom vào cùng lần bump RULES_VERSION của đợt depth v3.
+Liam chốt thêm 3 Lõi thorn (21/10): **Gai Mọc** (mỗi lần Axie hàng trước bị đòn đơn: +1 thorns vĩnh viễn trong trận cho Axie đó), **Khiên Gai** (cuối lượt khiên dư đổi thành thorns, 2 khiên = 1 thorns, mất khiên đó), **Phản Chấn** (Tinh Thể, đánh đổi: thorns của Axie mang Lõi phản sát thương theo tổng thorns hiện có, Axie đó không dùng được mặt dmg). Nhà Sưu Tầm: lên Hổ Phách + hạ yêu cầu còn 4 loại mặt.
+
+### Liam chốt 21/10 tối: mục tiêu tỉ lệ thắng
+Người chơi BIẾT chơi và biết ghép Lõi thắng khoảng **15-25%** (Short, A0). Không thắng dễ. Đo bằng sim (`godot/tools/sim_balance.gd`):
+- bot chơi bừa (`random_legal`) và spam attack (`attack_spam`, `attack_only`): **≤ 5%**;
+- bot khôn/chuyên gia (`greedy`/`expert`, có chọn Lõi theo combo): **15-25%**;
+- khoảng cách khôn − bừa ≥ ~15 điểm %. Sim 21/10 (trước khi sửa thorn/Lõi): random 19.9%, spam 23.6%, greedy 23.8% → quá dễ với người không biết chơi và gần như không thưởng tay nghề.
+Hướng chỉnh: tăng độ khó chung (máu/sát thương quái, boss) + tăng sức nặng quyết định (Hold cho lượt Hở, Giáp/Đòn Nạp phạt chơi không tính, combo Lõi trả thưởng lớn), rồi sim lại cho tới khi đạt.

@@ -1,5 +1,26 @@
 # Axie Dice — trạng thái hiện tại
 
+## ⇢ BẮT ĐẦU TỪ ĐÂY (đêm 21/10/2026) — TÍCH HỢP VÒNG 2 + SIM + CHỈNH ĐỘ SÂU
+int/v3 vòng 1 XANH: 163/163 không skip, Worker 196 (5d35dfe; RULES_VERSION -o, Worker nhận -o + -n). Vòng 2 đang chạy (INT):
+merge depth/FX cfca4ba (thorn không trần 2 phe, 3 Lõi thorn, sửa review Lõi, core_fired mọi Lõi + t_core_fires 62/63, Lõi cược bậc
+Hoá Thạch/Hòn Đá Mờ/Quạ chạy thật, Kết Nặng) + depth/VZ 8d480d1 (Lõi hiện rõ: CorePanel nháy, chữ nổi, Result card Cores) → chỉ cập
+nhật fingerprint, không bump mới. Review: FX tới ad1e931 OK, VZ OK; FX phần sau (b6c296a..cfca4ba) đang review.
+Sim (`../my-game-wt/SB`, `tools/sim-balance`, `godot/tools/sim_balance.sh`): random 20.5 / spam 20.8 / attack_only 5.3 / expert 26.8 →
+chưa đạt mục tiêu Liam (bừa ≤5, giỏi 15-25, gap ≥15). Bot expert đang được nâng (S0). Kế hoạch chỉnh: `design/proposals/depth-tuning-v1.md`
+(đã review) — chờ Liam 4 câu (Q0 enemy_dmg ≤1.30, Q1 luật viên dư → mana có 3 ràng buộc, Q2 Aqua/Plant chờ sim, Q3 sửa bot trước).
+Memory mới: game-design-depth-priority, new-content-must-be-visible.
+
+## ⇢ BẮT ĐẦU TỪ ĐÂY (tối 21/10/2026, sau mất mạng) — VIỆC ĐANG CHẠY + CÒN THIẾU
+godot-port = axiedice/main = c3d919c (đã push: K5 Deep Reef, docs). Không còn việc dở chưa commit ở worktree nào.
+Đang chạy: (1) TÍCH HỢP `../my-game-wt/INT` `int/v3`: đã merge L, RV, depth/E (581bac4); còn depth/D 2b8477d → ui/result-bg e8306cc
+→ đổi "Relics carried" → bump RULES_VERSION + Worker SUPPORTED_RULE_VERSIONS → full suite KHÔNG skip + Worker; (2) review nội dung
+Lõi C+E (systems-designer, worktree DE); (3) công cụ sim `../my-game-wt/SB` `tools/sim-balance` (attack_spam vs greedy).
+Liam 21/10: BỎ TRẦN THORN cả hai phe (lối thorn + shield) → làm trên int/v3 ngay sau bump, cùng đợt bump.
+Còn thiếu sau tích hợp: chụp ảnh màn raid + Land (kéo thả chuột thật), UX xem lại ảnh UI làn D sau sửa, build desktop cho Liam,
+cập nhật mốc test sàn, sửa theo review C+E + kết quả sim. Chờ Liam: deploy (D1 0008 → Worker → web), 6 câu brainstorm gacha,
+Nhà Sưu Tầm (đề xuất lên Hổ Phách), Aid Refresh shop (đề xuất ẩn), khung mốc Land, 12 tên Deep Reef, quest trả thưởng node sau,
+Xuống Trận auto-pick.
+
 ## ⇢ BẮT ĐẦU TỪ ĐÂY (khuya 20/10/2026) — ĐỢT DEPTH V3 + LAND V1, HẠN 2 NGÀY (Liam: tự quyết cách làm)
 Worktree/nhánh (chưa merge gì vào godot-port; RULES_VERSION bump + deploy Worker gom lúc tích hợp, HỎI Liam trước deploy):
 - DA `depth/A`: engine đợt 1 xong + review (f155bf0); đợt 2 đang làm (Giáp/Khiên Hồi/Phản Đòn/Hồi Ngắt/Đòn Nạp/affix, 6.7/6.7b).
