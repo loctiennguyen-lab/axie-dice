@@ -25,6 +25,7 @@ const SCREENS: Dictionary = {
 	&"daily": {"scene": "res://scenes/daily/DailyScreen.tscn"},
 	# Leaderboard (R3 M9) reads through LeaderboardSource; Gallery has no screen yet ("Coming soon").
 	&"leaderboard": {"scene": "res://scenes/leaderboard/Leaderboard.tscn"},
+	&"raid": {"scene": "res://scenes/raid/Raid.tscn"},   # Raid R1 ghost (lane RV)
 	&"profile": {"scene": "res://scenes/profile/Profile.tscn",
 		"fallback": "res://scenes/account/Account.tscn"},
 	&"gallery": {"scene": "res://scenes/gallery/Gallery.tscn"},
