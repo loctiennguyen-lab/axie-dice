@@ -12,6 +12,7 @@ var _groups: Array = []                 # [{rect: Rect2, label: String, size: in
 var _labels: Array[Label] = []
 var _banner: Label = null
 var _banner_tween: Tween = null
+var label_lift := 0.0                   # raised while the REROLL chips sit above the cards
 var last_banner: String = ""            # test hook
 var _seen: Dictionary = {}              # part -> best size already announced this fight/turn
 
@@ -63,7 +64,7 @@ func refresh(bo: Array, cards: Dictionary) -> void:
 			var r: Rect2 = gd["rect"]
 			var w := maxf(l.get_minimum_size().x, 160.0)
 			l.size = Vector2(w, LABEL_H)
-			l.position = Vector2(r.position.x + (r.size.x - w) * 0.5, r.position.y - LABEL_H - 2.0)
+			l.position = Vector2(r.position.x + (r.size.x - w) * 0.5, r.position.y - LABEL_H - 2.0 - label_lift)
 	queue_redraw()
 
 

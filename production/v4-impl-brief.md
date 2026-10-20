@@ -91,3 +91,12 @@ Giá An toàn: `reroll.mana_cost_2`=2 (paid_k 0), `mana_cost_3`=3 (paid_k>=1), q
 Epoch: key `rmode` (enum 0/1, chỉ kind reroll, không bắt buộc) trong epoch_args.json; `_reroll_args` gửi rmode đã chuẩn hoá. Worker `run_core.js`: `pin_mismatch` khi rmode/uids lệch dòng pin (đọc rmode từ cột args, không thêm cột). LocalEpochSource: cùng luật (`_pin_sigs`). ALLOWED_FNS không đổi (không thêm action).
 Test mới: t_reroll_modes, t_reroll_pin; sửa t_reroll_mana, t_core_behaviour (đổi tên), t_epoch_source (+3), t_remote_epoch_ui_run (enum số), worker run_core.test (pin_mismatch). Floor +2.
 Chưa làm / ghi chú: sổ Aid hoàn theo undo (nằm ngoài engine, chưa có); T10 Aid giả (from_aid=1 trong log mà epoch source='base') server chưa đối chiếu, chỉ bị hard_cap 4 chặn; UI chọn Liều/An toàn (bước 5) — CombatView vẫn gọi rmode mặc định 1.
+
+## UI - bàn giao (làn V4U)
+- Xong: BỘ trên tray (chip part, khung + nhãn, banner 4/5, v0->v, log `[set]`, tắt flash = không fade, FRONT/BACK ẩn chữ khi có Bộ); Liều/An toàn + % Nứt; Mặt Tạm picker + Overcast; ẩn theo stage + coach C1-C7; Result (Pact "Pact · passive", không vào "Most impact"; Core chưa bắn = "Not triggered this run"); âm `dm_*`.
+- Coach: cờ nằm ở `MetaState.v4_coach_seen` (meta save, có trong `reload_from_store`), không còn file riêng.
+- "Best set": `ResultView._best_set_line` đọc `stats.best_bo {part,size,m100}`. RunState/RunStatsAccumulator CHƯA có field này nên dòng đang ẨN. Cần lane rules thêm `best_bo` (đụng RULES_VERSION) rồi dòng tự hiện.
+- Âm: `scenes/combat/DiceMomentAudio.gd`, bảng `EVENTS` (event -> file). Có file tạm: dm_set3 (power_gain), dm_overcast_charge (power_awaken), dm_gamble_clean + dm_crack_fade (cleanse). Còn lại path rỗng = im lặng; thả .ogg vào `assets/audio/sfx/dice/` rồi điền path. Chưa nối: dm_land, dm_pair, dm_wild_match, dm_core_* (cần tín hiệu engine/Lõi chủ). Chưa có công tắc riêng trong Settings (câu hỏi 2 của spec audio, chờ Liam). Ducking Music chưa làm.
+- Chip REROLL chuyển lên trên thẻ, nhãn SET nâng 28px khi đang chọn tung lại (hết đè số/preview).
+- Ảnh: `production/qa/evidence/v4ui_*` (bo3, bo4, reroll_pick, gamble_pct, wild_picker, result; 1280x720 + 1920x1080) từ `tests/qa_v4ui_capture`.
+- Test mới: t_v4ui_bo, t_v4ui_stage_coach, t_v4ui_result, t_v4ui_audio (floor trong technical-preferences.md chưa đổi: lead cập nhật khi merge).

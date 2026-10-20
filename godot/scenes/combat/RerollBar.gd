@@ -25,7 +25,15 @@ func _init() -> void:
 	line.name = "Line"
 	line.add_theme_color_override("font_color", UI3Theme.color("text"))
 	line.add_theme_color_override("font_outline_color", UI3Theme.color("panel"))
-	line.add_theme_constant_override("outline_size", 4)
+	line.add_theme_constant_override("outline_size", 0)
+	line.add_theme_font_size_override("font_size", 16)
+	var bg := UI3Theme.flat(UI3Theme.color("panel"), UI3Theme.radius("s"))
+	bg.bg_color.a = 0.9
+	bg.content_margin_left = 10
+	bg.content_margin_right = 10
+	bg.content_margin_top = 4
+	bg.content_margin_bottom = 4
+	line.add_theme_stylebox_override("normal", bg)
 	line.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 	line.vertical_alignment = VERTICAL_ALIGNMENT_BOTTOM
 	line.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART

@@ -291,7 +291,7 @@ static func _update_crack(content: Dictionary, d: Dictionary) -> void:
 		var rc := UI3.chip("REROLL")
 		rc.name = "RerollChip"
 		rc.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		rc.position = Vector2(W * 0.5 - 40.0, -8.0)
+		rc.position = Vector2(W * 0.5 - 40.0, -20.0)   # above the card: its top holds the die value and the Set preview
 		body.add_child(rc)
 		content["rr_chip"] = rc
 	if content.has("rr_chip"):

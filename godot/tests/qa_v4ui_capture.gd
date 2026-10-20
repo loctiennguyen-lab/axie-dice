@@ -23,8 +23,24 @@ func _ready() -> void:
 		await _states(s, size)
 		s.queue_free()
 		await get_tree().process_frame
+	await _result_shots()
 	_guard.restore()
 	get_tree().quit(0)
+
+func _result_shots() -> void:
+	RunState.start_new_run(777002, ["plant1", "beast1", "aqua1", "reptile1", "bird1"] as Array[String], "short", 0, false)
+	RunState.owned_relic_ids = ["r_devilsreroll", "a_aegisfont"] as Array[String]
+	RunState.core_impact = {"r_devilsreroll": {"n": 9, "by": {"dmg": 999}}, "a_aegisfont": {"n": 3, "by": {"dmg": 40}}}
+	RunState.set_phase(RunState.RunPhase.WON)
+	for size in [Vector2i(1920, 1080), Vector2i(1280, 720)]:
+		get_window().size = size
+		var v: Node = (load("res://scenes/result/Result.tscn") as PackedScene).instantiate()
+		get_tree().root.add_child(v)
+		for _i in 10:
+			await get_tree().process_frame
+		await _shot("v4ui_result", size)
+		v.queue_free()
+		await get_tree().process_frame
 
 func _states(s: Node, size: Vector2i) -> void:
 	var c: CombatEngine = s._combat
@@ -47,6 +63,10 @@ func _states(s: Node, size: Vector2i) -> void:
 	s._rebuild_all()
 	s._enter_rr_mode()
 	await _shot("v4ui_reroll_pick", size)
+	c.mana = 5
+	s._rr_toggle(units[0].uid)
+	s._rr_toggle(units[2].uid)
+	await _shot("v4ui_gamble_pct", size)
 	s._exit_rr_mode()
 	units[4].cracked = false
 	units[0].set_roll(1, false)

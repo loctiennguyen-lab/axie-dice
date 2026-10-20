@@ -4254,6 +4254,7 @@ func _card_rects() -> Dictionary:
 func _refresh_bo_layer() -> void:
 	if _bo_layer == null or _combat == null:
 		return
+	_bo_layer.label_lift = 28.0 if _rr_mode else 0.0
 	_bo_layer.refresh(_combat.bo, _card_rects())
 
 
