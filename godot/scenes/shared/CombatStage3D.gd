@@ -370,6 +370,9 @@ const ADD_Z_BACK2 := -18.3
 ## cannot stand in front of / behind it. The boss steps WIDE_BOSS_SHIFT_X toward the gate and the adds stand in a
 ## column on its party side (x = boss left edge - WIDE_ADD_GAP), spread in depth by WIDE_ADD_Z[count]. The 5th add
 ## onward stands on the far back row above the boss (ADD_EXTRA).
+## TUNED AGAINST t_combat_spacing: WIDE_BOSS_SHIFT_X, WIDE_ADD_GAP*, WIDE_ADD_Z, WIDE_ADD_DX and Brine's fit_width_m
+## (atia_models.json) leave only ~1 px boss<->gate margin with 4 adds and ~2 px on the party/enemy gap. Any change to
+## the camera, frame_band, SUMMON_SCALE or a wide boss's fit must re-run t_combat_spacing.
 const WIDE_BOSS_MIN_W := 3.5
 const WIDE_BOSS_SHIFT_X := 0.55
 const WIDE_ADD_GAP := 0.5
