@@ -150,6 +150,17 @@ static func update(content: Dictionary, d: Dictionary) -> void:
 		btn.add_theme_stylebox_override(st, empty)
 	btn.add_theme_stylebox_override("focus", UI3Theme.focus_style(12))
 	body.modulate.a = 0.55 if not alive else 1.0
+	# Depth v3 Hold: a HOLD chip on the card of a parked die (word, not colour alone).
+	var held := bool(d.get("held", false))
+	if held and not content.has("hold_chip"):
+		var chip := UI3.chip("HOLD")
+		chip.name = "HoldChip"
+		chip.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		chip.position = Vector2(W * 0.5 - 36.0, -8.0)
+		body.add_child(chip)
+		content["hold_chip"] = chip
+	if content.has("hold_chip"):
+		(content["hold_chip"] as Control).visible = held
 	UI3Tooltip.bind(btn, String(d.get("tip", "")))
 	btn.set_meta("ui3_tip_side_of_row", true)
 

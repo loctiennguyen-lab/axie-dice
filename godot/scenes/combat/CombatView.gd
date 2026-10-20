@@ -566,6 +566,9 @@ func _unhandled_key_input(event: InputEvent) -> void:
 			_on_end_turn_pressed()
 		elif event.is_action_pressed(KeyBindings.COMBAT_UNDO) and not _undo_button.disabled and not _is_animating:
 			_on_undo_pressed()
+		elif event.is_action_pressed(KeyBindings.COMBAT_HOLD) and not _is_animating and _hud_frame != null \
+				and _hud_frame.hold_button != null and not _hud_frame.hold_button.disabled:
+			_on_hold_pressed()
 		elif die >= 0 and not _is_animating:
 			_on_die_slot_pressed(die)
 		elif event.is_action_pressed(KeyBindings.COMBAT_REROLL):
@@ -1053,6 +1056,7 @@ func _build_hud_r1() -> void:
 	_aid.tray_toggled.connect(func(_o): _hud_frame.set_info_bottom(_aid.top_y() - 12.0))
 	_aid.offer_dismissed.connect(func(): _aid_offer_dismissed = true)
 	_hud_frame.menu_pressed.connect(_on_menu_pressed)
+	_hud_frame.hold_pressed.connect(_on_hold_pressed)
 	_hud_frame.active_pressed.connect(_on_active_pressed)
 	# Die slots leave the hidden deck bar for a root of their own, laid out by _layout_tray().
 	_tray_root = Control.new()
@@ -1112,17 +1116,111 @@ func _update_hud() -> void:
 	var undo_sub := "nothing to undo"
 	if undo_n > 0:
 		undo_sub = "%d die%s used this turn" % [undo_n, "" if undo_n == 1 else "s"]
+	var rr_cost := _combat.reroll_mana_cost()
+	var rr_paid_ok := _combat.rerolls <= 0 and _combat.reroll_is_payable() and _combat.mana >= rr_cost
+	var rr_tip := "Reroll unused dice (%s)" % KeyBindings.text(KeyBindings.COMBAT_REROLL)
+	if _combat.rerolls <= 0:
+		rr_tip = ("Free rerolls are used. The next one costs %d mana." % rr_cost) if _combat.reroll_is_payable() \
+			else "No rerolls left this turn."
+	var can_hold := executing and _selected_die_uid != -1 and _combat.can_stash(_selected_die_uid)
+	var hold_text := "Hold"
+	var hold_tip := "Park the picked die: it keeps its face and is ready next turn (%s)." % KeyBindings.text(KeyBindings.COMBAT_HOLD)
+	if not can_hold:
+		if _combat.stash_count() >= _combat.stash_cap():
+			hold_text = "Holding %d/%d" % [_combat.stash_count(), _combat.stash_cap()]
+			hold_tip = "Hold is full. A held die comes back next turn."
+		elif _selected_die_uid == -1:
+			hold_text = "Hold: pick a die"
+			hold_tip = "Pick an unused die first, then Hold it for next turn."
+		else:
+			hold_text = "Hold: not allowed"
+			hold_tip = "This die cannot be held (spent, frozen, a cantrip, or held last turn)."
 	_hud_frame.update_right(
 		{"enabled": executing and undo_n > 0, "sub": undo_sub},
-		{"n": _combat.rerolls, "max": _combat.max_rerolls, "enabled": executing and _combat.rerolls > 0},
+		{"n": _combat.rerolls, "max": _combat.max_rerolls, "cost": rr_cost, "tip": rr_tip,
+		 "capped": _combat.rerolls <= 0 and not _combat.reroll_is_payable(),
+		 "enabled": executing and (_combat.rerolls > 0 or rr_paid_ok)},
 		{"sub": "E %s %d dice unused" % [HudKit.dot(), unused],
 		 "warn": has_unused and executing,
 		 "resolving": _combat.phase != CombatPhase.EXECUTE,
-		 "enabled": not (_combat.won or _combat.lost) and _combat.phase != CombatPhase.END_TURN})
+		 "enabled": not (_combat.won or _combat.lost) and _combat.phase != CombatPhase.END_TURN},
+		{"show": _combat.stash_cap() > 0, "enabled": can_hold, "text": hold_text, "tip": hold_tip})
+	_hud_frame.update_foe(_foe_state())
 	_update_aid(hs, executing)
 	_update_die_info()
 	_hud_frame.set_resolving(_combat.phase == CombatPhase.END_TURN and not (_combat.won or _combat.lost))
 	_layout_tray()
+
+
+## Boss rhythm + Elite affix for the HUD foe card (engine reads: boss_rhythm_state / affix_state).
+func _foe_state() -> Dictionary:
+	var out := {}
+	for e in _combat.enemies:
+		if e.hp <= 0:
+			continue
+		if e.is_boss:
+			var st: Dictionary = _combat.boss_rhythm_state(e)
+			if not st.is_empty():
+				st = st.duplicate()
+				st["tell"] = _rhythm_tell(st)
+				out["rhythm"] = st
+				break
+	var af: Dictionary = _combat.affix_state()
+	if not af.is_empty() and String(af.get("id", "")) != "":
+		var def: Dictionary = ContentDB.elite_affixes.get(String(af["id"]), {})
+		var note := ""
+		if bool(af.get("double_now", false)):
+			note = "acts twice NOW"
+		elif bool(af.get("double_next", false)):
+			note = "acts twice NEXT turn"
+		out["affix"] = {"name": String(def.get("n", af["id"])), "note": note, "tip": affix_tip(String(af["id"]))}
+	return out
+
+
+func _rhythm_tell(st: Dictionary) -> String:
+	match String(st.get("next", "")):
+		"strike":
+			return "Next turn: Strike"
+		"hollow":
+			return "Next turn: Hollow, hit it hard"
+	return "Strike in %d turns" % int(st.get("turns_to_strike", 0))
+
+
+## Plain-English line for an Elite affix, built from its data keys (the Vietnamese `n` is only a name).
+static func affix_tip(id: String) -> String:
+	var d: Dictionary = ContentDB.elite_affixes.get(id, {})
+	var parts: Array[String] = []
+	if d.has("repeat_intent"):
+		parts.append("Repeats its last action, %d%% damage." % int(d.get("dmg_pct", 0)))
+	if d.has("start_shield_pct"):
+		parts.append("Starts with a shield of %d%% max HP." % int(d["start_shield_pct"]))
+	if d.has("enrage_below_pct"):
+		parts.append("Below %d%% HP it deals +%d%% damage." % [int(d["enrage_below_pct"]), int(d.get("enrage_dmg_pct", 0))])
+	if d.has("summon_below_pct"):
+		parts.append("Below %d%% HP it calls %d small allies." % [int(d["summon_below_pct"]), int(d.get("summon_count", 0))])
+	if d.has("thorns"):
+		parts.append("Thorns %d." % int(d["thorns"]))
+	if d.has("double_turn_period"):
+		parts.append("Acts twice every %d turns (shown a turn early)." % int(d["double_turn_period"]))
+	if d.has("poison_on_pierce"):
+		parts.append("Its hits that get past shields add %d poison." % int(d["poison_on_pierce"]))
+	if d.has("target_back_weakest"):
+		parts.append("Single hits go for your weakest back-row Axie.")
+	if d.has("freeze_first_turn"):
+		parts.append("Freezes %d die on turn 1." % int(d["freeze_first_turn"]))
+	return " ".join(parts) if not parts.is_empty() else "Elite affix."
+
+
+## Hold: parks the picked die (engine `stash`, logged as `stash [uid]`).
+func _on_hold_pressed() -> void:
+	_land_dice_now()
+	if _is_animating or _gated("hold") or _selected_die_uid == -1:
+		return
+	if _combat.stash(_selected_die_uid):
+		_append_log("[input] hold die")
+		_selected_die_uid = -1
+		_rebuild_all()
+		_save_run_progress()
 
 
 ## Aid tray. Prices, caps and "offered now" come from AidCatalog (aid_prices.json, one source, equal to the
@@ -1269,6 +1367,60 @@ func _layout_tray() -> void:
 		btn.position = Vector2(x0 + i * (col_w + gap), top)
 		btn.size = Vector2(col_w, TrayColumn.H)
 		i += 1
+	_layout_row_strip(x0, col_w, gap, top)
+
+
+var _row_strip: Control = null
+
+
+## Depth v3 4: a FRONT / BACK bracket over the tray columns (front = the first rows.front_size Axies).
+## Enemies' single hits land on FRONT first; the words carry it, the bracket colours only back them.
+func _layout_row_strip(x0: float, col_w: float, gap: float, top: float) -> void:
+	if _combat == null:
+		return
+	if _row_strip == null:
+		_row_strip = Control.new()
+		_row_strip.name = "RowStrip"
+		_row_strip.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_tray_root.add_child(_row_strip)
+	for c in _row_strip.get_children():
+		_row_strip.remove_child(c)
+		c.queue_free()
+	var units := _party_dice_units()
+	var spans := {0: [-1, -1], 1: [-1, -1]}
+	var idx := 0
+	for k in _die_slot_buttons.size():
+		if not (_die_slot_buttons[k] as Button).visible or k >= units.size():
+			continue
+		var r := _combat.row_of(units[k])
+		var sp: Array = spans[r]
+		if sp[0] < 0:
+			sp[0] = idx
+		sp[1] = idx
+		idx += 1
+	for r in [0, 1]:
+		var sp: Array = spans[r]
+		if sp[0] < 0:
+			continue
+		var x: float = x0 + sp[0] * (col_w + gap)
+		var w: float = (sp[1] - sp[0] + 1) * col_w + (sp[1] - sp[0]) * gap
+		var word := "FRONT" if r == 0 else "BACK"
+		var l := UI3.label(word, "LabelDisplay")
+		l.add_theme_font_size_override("font_size", 18)
+		l.add_theme_color_override("font_color", UI3Theme.color("text" if r == 0 else "text_muted"))
+		l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		l.position = Vector2(x, top - 30.0)
+		l.size = Vector2(w, 24)
+		l.mouse_filter = Control.MOUSE_FILTER_PASS
+		UI3Tooltip.bind(l, "Front row (first %d Axies) takes single-target hits first. Back row is only hit once the front is down, or by area / piercing attacks." % _combat.front_row_size()
+			if r == 0 else "Back row: safe from single-target hits while a front-row Axie stands.")
+		_row_strip.add_child(l)
+		var line := ColorRect.new()
+		line.color = UI3Theme.color("text" if r == 0 else "text_muted")
+		line.position = Vector2(x + 4.0, top - 6.0)
+		line.size = Vector2(w - 8.0, 2)
+		line.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_row_strip.add_child(line)
 
 
 ## A small fixed-size icon, centred (via CenterContainer, not PanelContainer's own default
@@ -1550,7 +1702,7 @@ func _update_dice_tray() -> void:
 			continue
 		var u: Unit = units[i]
 		btn.visible = true
-		var usable := u.hp > 0 and u.has_rolled() and not u.roll_used()
+		var usable := u.hp > 0 and u.has_rolled() and not u.roll_used() and not u.held
 		var used_this_turn := u.hp > 0 and u.has_rolled() and u.roll_used()
 		var is_sel := (u.uid == _selected_die_uid)
 		# A column stays clickable while a die is selected, so allies can be TARGETED (heal /
@@ -1569,7 +1721,7 @@ func _update_dice_tray() -> void:
 			"icons": UnitPortrait._STATUS_ICON, "status_tip": Callable(UnitPortrait, "_effect_tooltip"),
 			"skin": MetaState.equipped_die_skin,
 			"faces": faces, "rolled": u.roll_face_index() if u.has_rolled() else -1,
-			"alive": u.hp > 0, "spent": used_this_turn, "selected": is_sel,
+			"alive": u.hp > 0, "spent": used_this_turn, "selected": is_sel, "held": u.held, "row": _combat.row_of(u),
 			"legal_target": as_target and _selected_ally_target_ok(u),
 			"tip": _tray_tooltip(u)})
 		TrayColumn.set_lifted(self, content, is_sel, disable_juice_for_tests)
@@ -2345,7 +2497,7 @@ func _on_die_slot_pressed(slot_index: int) -> void:
 			and _selected_ally_target_ok(u):
 		_on_target_clicked(u.uid)
 		return
-	if u.hp <= 0 or not u.has_rolled() or u.roll_used():
+	if u.hp <= 0 or not u.has_rolled() or u.roll_used() or u.held:
 		return
 	_selected_active_id = ""   # a die and a relic active cannot both be waiting on one click
 	_selected_die_uid = -1 if _selected_die_uid == u.uid else u.uid
@@ -2463,7 +2615,7 @@ func _on_reroll_pressed() -> void:
 			uids.append(u.uid)
 	# The face each die showed BEFORE the reroll: the +2 / -1 / NEW chips are measured against it.
 	_reroll_prev.clear()
-	if _combat.rerolls > 0:
+	if _combat.rerolls > 0 or _combat.reroll_is_payable():
 		for uid in uids:
 			_reroll_prev[uid] = _combat.by_uid(uid).roll_face_index()
 	var rr: Dictionary = await _combat.request_reroll_dice(uids)
