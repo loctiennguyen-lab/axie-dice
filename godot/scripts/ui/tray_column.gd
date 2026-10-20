@@ -173,6 +173,7 @@ static func update(content: Dictionary, d: Dictionary) -> void:
 	if content.has("overcast_chip"):
 		(content["overcast_chip"] as Control).visible = oc
 	_update_v4(content, d)
+	_update_crack(content, d)
 	UI3Tooltip.bind(btn, String(d.get("tip", "")))
 	btn.set_meta("ui3_tip_side_of_row", true)
 
@@ -248,3 +249,37 @@ static func _update_v4(content: Dictionary, d: Dictionary) -> void:
 		var w := pl.get_minimum_size().x + 2.0
 		pl.position = Vector2(W - PAD - w, 4)
 		pl.size = Vector2(w, 24)
+
+
+## Depth v4 2.2 / 2.4: Crack (a zig-zag drawn on the tile + a "1/2" chip, no colour wash, card stays readable) and the
+## reroll pick tick. `d`: cracked:bool, rr_tick:bool.
+static func _update_crack(content: Dictionary, d: Dictionary) -> void:
+	var body: Control = content["body"]
+	var cracked := bool(d.get("cracked", false))
+	if cracked and not content.has("crack_chip"):
+		var chip := UI3.chip("1/2")
+		chip.name = "CrackChip"
+		chip.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		chip.position = Vector2(W - 52.0, 34.0)
+		body.add_child(chip)
+		content["crack_chip"] = chip
+		var line := Line2D.new()
+		line.name = "CrackMark"
+		line.width = 3.0
+		line.default_color = UI3Theme.color("accent_text")
+		line.points = PackedVector2Array([Vector2(52, 4), Vector2(62, 26), Vector2(50, 44), Vector2(64, 64), Vector2(54, 90)])
+		body.add_child(line)
+		content["crack_mark"] = line
+	if content.has("crack_chip"):
+		(content["crack_chip"] as Control).visible = cracked
+		(content["crack_mark"] as CanvasItem).visible = cracked
+	var tick := bool(d.get("rr_tick", false))
+	if tick and not content.has("rr_chip"):
+		var rc := UI3.chip("REROLL")
+		rc.name = "RerollChip"
+		rc.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		rc.position = Vector2(W * 0.5 - 40.0, -8.0)
+		body.add_child(rc)
+		content["rr_chip"] = rc
+	if content.has("rr_chip"):
+		(content["rr_chip"] as Control).visible = tick

@@ -39,6 +39,14 @@ func _states(s: Node, size: Vector2i) -> void:
 	units[3].set_roll(2, false)
 	c._snap_bo()
 	await _shot("v4ui_bo4", size)
+	units[3].set_roll(1, false)
+	units[4].cracked = true
+	c._snap_bo()
+	c.rerolls = 0
+	c.mana = 1
+	s._rebuild_all()
+	s._enter_rr_mode()
+	await _shot("v4ui_reroll_pick", size)
 
 func _shot(name: String, size: Vector2i) -> void:
 	for _i in 30:

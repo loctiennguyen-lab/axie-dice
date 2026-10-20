@@ -56,3 +56,45 @@ static func group_of(bo: Array, uid: int) -> Dictionary:
 ## Banner seconds by tier (spec 1.4): four 0.8, five 1.2.
 static func banner_secs(size: int) -> float:
 	return 1.2 if size >= 5 else 0.8
+
+
+## 3.5 / 2.2: "at least one die Cracks" % for n re-rolled dice at crack chance `p_pct` (knob crack.pct). 30 -> 30/51/66/76/83.
+static func crack_pct(n: int, p_pct: float) -> int:
+	if n <= 0:
+		return 0
+	return roundi(100.0 * (1.0 - pow(1.0 - p_pct / 100.0, n)))
+
+
+## Line under the Gamble button.
+static func gamble_line(n: int, p_pct: float) -> String:
+	if n <= 0:
+		return _T("Pick dice to see the chance")
+	return _T("At least 1 die Cracks: %d%%") % crack_pct(n, p_pct)
+
+
+## 2.5: the words for every reroll_refusal code. "" for no refusal. Never returns "undefined"/"NaN".
+static func refusal_text(code: String, cost := 0, mana := 0) -> String:
+	match code:
+		"":
+			return ""
+		"over":
+			return _T("No rerolls left")
+		"hard_cap":
+			return _T("4 rolls used this turn")
+		"mission":
+			return _T("This mission blocks rerolls")
+		"none":
+			return _T("Pick dice to reroll")
+		"pin_mismatch":
+			return _T("Locked for this roll: same mode and dice")
+		"mana":
+			return _T("Need %d mana (you have %d)") % [cost, mana]
+		"veto":
+			return _T("Blocked by an effect")
+		"stage":
+			return _T("Not unlocked yet")
+	return _T("Cannot reroll")
+
+
+## Every refusal code the engine can return (the test walks this list).
+const REFUSAL_CODES := ["over", "hard_cap", "stage", "mission", "none", "pin_mismatch", "mana", "veto", "bad_rmode"]

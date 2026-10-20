@@ -580,6 +580,8 @@ func _unhandled_key_input(event: InputEvent) -> void:
 				_on_reroll_pressed()
 		elif event.is_action_pressed(KeyBindings.COMBAT_AID) and _aid != null and _aid.enabled and not _aid.modal_open():
 			_aid.toggle_tray()
+		elif event.is_action_pressed(KeyBindings.MENU_BACK) and _rr_mode:
+			_exit_rr_mode()
 		elif event.is_action_pressed(KeyBindings.MENU_BACK) and _aid != null and _aid.handle_escape():
 			pass
 		elif event.is_action_pressed(KeyBindings.MENU_BACK) and _inspect_panel != null and is_instance_valid(_inspect_panel):
@@ -1158,6 +1160,7 @@ func _update_hud() -> void:
 	_update_die_info()
 	_hud_frame.set_resolving(_combat.phase == CombatPhase.END_TURN and not (_combat.won or _combat.lost))
 	_layout_tray()
+	_update_rr_bar()
 
 
 ## Boss rhythm + Elite affix for the HUD foe card (engine reads: boss_rhythm_state / affix_state).
@@ -1799,7 +1802,7 @@ func _update_dice_tray() -> void:
 			"faces": faces, "rolled": u.roll_face_index() if u.has_rolled() else -1,
 			"alive": u.hp > 0, "spent": used_this_turn, "selected": is_sel, "held": u.held, "overcast": u.overcast, "row": _combat.row_of(u),
 			"legal_target": as_target and _selected_ally_target_ok(u),
-			"tip": _tray_tooltip(u)}.merged(_v4_card_data(u)))
+			"tip": _tray_tooltip(u)}.merged(_v4_card_data(u), true))
 		TrayColumn.set_lifted(self, content, is_sel, disable_juice_for_tests)
 		if _maybe_play_roll_juice(u, btn):
 			fresh.append({"slot": i, "u": u})
@@ -2628,6 +2631,9 @@ func _on_die_slot_pressed(slot_index: int) -> void:
 	if slot_index >= units.size():
 		return
 	var u: Unit = units[slot_index]
+	if _rr_mode:
+		_rr_toggle(u.uid)
+		return
 	# With a die already selected, a click on ANOTHER column targets that Axie (heal / shield).
 	if _selected_die_uid != -1 and u.uid != _selected_die_uid and u.hp > 0 \
 			and _selected_ally_target_ok(u):
@@ -2741,24 +2747,41 @@ func _on_reroll_pressed() -> void:
 		_land_dice_now()
 		return
 	_land_dice_now()
-	if _gated("reroll") or _combat.epoch_pending:
+	if _gated("reroll") or _combat.epoch_pending or _rr_mode:
 		return
-	var uids: Array = []
-	var units := _party_dice_units()
-	for i in units.size():
-		var u: Unit = units[i]
-		if u.hp > 0 and u.has_rolled() and not u.roll_used() and not u.heavy and not u.frozen:
-			uids.append(u.uid)
+	# Depth v4 2.1: past the free reroll, from stage 2 on, "Reroll more" opens the pick mode (Gamble / Safe).
+	if _combat.rerolls <= 0 and _combat.depth_stage >= 2 and _combat.reroll_is_payable():
+		_enter_rr_mode()
+		return
+	await _do_reroll(_auto_reroll_uids(), 1)
+
+
+## Dice the one-button reroll throws: every rerollable die OUTSIDE a Set; if that leaves none, all of them.
+func _auto_reroll_uids() -> Array:
+	var all: Array = []
+	for u in _party_dice_units():
+		all.append((u as Unit).uid)
+	var ok: Array = []
+	var outside: Array = []
+	for u in _combat._rerollable(all):
+		ok.append((u as Unit).uid)
+		if V4Ui.group_of(_combat.bo, (u as Unit).uid).is_empty():
+			outside.append((u as Unit).uid)
+	return outside if not outside.is_empty() else ok
+
+
+func _do_reroll(uids: Array, rmode: int) -> void:
+	_exit_rr_mode(false)
 	# The face each die showed BEFORE the reroll: the +2 / -1 / NEW chips are measured against it.
 	_reroll_prev.clear()
 	if _combat.rerolls > 0 or _combat.reroll_is_payable():
 		for uid in uids:
 			_reroll_prev[uid] = _combat.by_uid(uid).roll_face_index()
-	var rr: Dictionary = await _combat.request_reroll_dice(uids)
+	var rr: Dictionary = await _combat.request_reroll_dice(uids, false, rmode)
 	if not _still_running():
 		return
 	var ok := bool(rr["ok"])
-	_append_log("[input] reroll %d dice : %s" % [uids.size(), "ok" if ok else "failed"])
+	_append_log("[input] reroll %d dice (%s): %s" % [uids.size(), "gamble" if rmode == 0 else "safe", "ok" if ok else "failed"])
 	if not ok:
 		_reroll_prev.clear()
 		if String(rr["code"]) not in ["illegal", "busy"]:
@@ -2767,6 +2790,122 @@ func _on_reroll_pressed() -> void:
 	# The rebuild sees the rerolled dice in _reroll_prev and throws them in 3D, like the first roll.
 	_rebuild_all()
 	_save_run_progress()
+
+
+# ---- Depth v4 reroll pick mode (combat-v4.md 2.2, 2.3, 2.5) -------------------------------------------------
+var _rr_mode := false
+var _rr_sel: Array = []
+var _rr_bar: RerollBar = null
+
+
+func _rr_all_uids() -> Array:
+	var all: Array = []
+	for u in _party_dice_units():
+		all.append((u as Unit).uid)
+	return all
+
+
+func _rr_pinned() -> Dictionary:
+	var k: int = _combat.reroll_k + 1
+	return _combat.reroll_lock[k] if _combat.reroll_lock.has(k) else {}
+
+
+func _enter_rr_mode() -> void:
+	_rr_mode = true
+	_selected_die_uid = -1
+	_selected_active_id = ""
+	var pin := _rr_pinned()
+	_rr_sel = (pin["uids"] as Array).duplicate() if not pin.is_empty() else _auto_reroll_uids()
+	_rebuild_all()
+	if _rr_bar != null:
+		(_rr_bar.safe_button if not _rr_bar.safe_button.disabled else _rr_bar.gamble_button).grab_focus()
+
+
+func _exit_rr_mode(rebuild := true) -> void:
+	if not _rr_mode:
+		return
+	_rr_mode = false
+	_rr_sel.clear()
+	if rebuild:
+		_rebuild_all()
+
+
+func _rr_toggle(uid: int) -> void:
+	if not _rr_pinned().is_empty():
+		return   # a locked roll must repeat the same dice
+	if _combat._rerollable([uid]).is_empty():
+		return
+	if _rr_sel.has(uid):
+		_rr_sel.erase(uid)
+	else:
+		_rr_sel.append(uid)
+	_rebuild_all()
+
+
+func _on_rr_chosen(rmode: int) -> void:
+	if not _rr_mode:
+		return
+	await _do_reroll(_rr_sel.duplicate(), rmode)
+
+
+## Why a die cannot be picked for the reroll ("" = it can).
+func _rr_die_why(u: Unit) -> String:
+	if u.hp <= 0 or not u.has_rolled():
+		return ""
+	if u.roll_used():
+		return TranslationServer.translate("Used")
+	if u.overcast:
+		return TranslationServer.translate("Has Overcast, cannot reroll")
+	if u.wild_slot >= 0:
+		return TranslationServer.translate("Has a Wild face, cannot reroll")
+	if u.held:
+		return TranslationServer.translate("Held")
+	if u.frozen or u.heavy:
+		return TranslationServer.translate("Frozen")
+	return ""
+
+
+func _update_rr_bar() -> void:
+	var hud := _hud_frame
+	if hud == null or _combat == null:
+		return
+	if _rr_mode and not (_combat.phase == CombatPhase.EXECUTE and not (_combat.won or _combat.lost)):
+		_rr_mode = false
+		_rr_sel.clear()
+	if _rr_bar == null:
+		_rr_bar = RerollBar.new()
+		_rr_bar.z_index = 9
+		_shell_root.add_child(_rr_bar)
+		_rr_bar.chosen.connect(_on_rr_chosen)
+	_rr_bar.visible = _rr_mode
+	if not _rr_mode:
+		return
+	for b in [hud.undo_button, hud.reroll_button, hud.hold_button, hud.overcast_button]:
+		(b as Control).visible = false   # 5.1b: only the tray and the pick bar while picking
+	var n := _rr_sel.size()
+	var pct := CombatEngine.tune_knob("crack", "pct", 30.0)
+	var gref := _combat.reroll_refusal(_rr_sel, false, 0)
+	var sref := _combat.reroll_refusal(_rr_sel, false, 1)
+	var cost := _combat.reroll_mana_cost(false, 1)
+	var line := ""
+	var pin := _rr_pinned()
+	if not pin.is_empty():
+		line = TranslationServer.translate("Locked for this roll: %s · %d dice") % [
+			TranslationServer.translate("GAMBLE") if int(pin["rmode"]) == 0 else TranslationServer.translate("SAFE"),
+			(pin["uids"] as Array).size()]
+	elif gref == "":
+		line = V4Ui.gamble_line(n, pct)
+	else:
+		line = V4Ui.refusal_text(gref, cost, _combat.mana)
+	if sref != "" and sref != gref and pin.is_empty():
+		line += "\n" + V4Ui.refusal_text(sref, cost, _combat.mana)
+	_rr_bar.update({
+		"gamble_ok": gref == "", "gamble_text": TranslationServer.translate("Gamble · free"),
+		"gamble_tip": TranslationServer.translate("Each rerolled die has a %d%% chance to Crack (half value, out of the Set, until next turn).") % int(pct) if gref == "" else V4Ui.refusal_text(gref, cost, _combat.mana),
+		"safe_ok": sref == "", "safe_text": TranslationServer.translate("Safe · %d MP") % cost,
+		"safe_tip": TranslationServer.translate("No risk. Costs mana.") if sref == "" else V4Ui.refusal_text(sref, cost, _combat.mana),
+		"line": line, "show_gamble": true})
+	_rr_bar.place(get_viewport_rect().size.x - 24.0, hud.reroll_button.position.y)
 
 
 ## True while DiceRoller3D has dice in the air.
@@ -2870,6 +3009,7 @@ func _on_log_toggle_pressed() -> void:
 ## (file-header: "NEVER contains game rules itself").
 func _on_undo_pressed() -> void:
 	_land_dice_now()   # dice still in the air land first: no tags / pending cards for an undone roll
+	_exit_rr_mode(false)
 	_reroll_prev.clear()
 	if _is_animating:
 		return
@@ -4040,7 +4180,15 @@ var _bo_layer: BoLayer = null
 
 ## Chip + preview for one tray card. Values come from the engine (_face_base = v0 before M, _live_face_value after).
 func _v4_card_data(u: Unit) -> Dictionary:
-	var out := {"part_text": "", "part_tex": null, "pv": ""}
+	var out := {"part_text": "", "part_tex": null, "pv": "", "cracked": u.cracked and _combat.depth_stage >= 2,
+		"rr_tick": _rr_mode and _rr_sel.has(u.uid)}
+	if _rr_mode:
+		var why := _rr_die_why(u)
+		if why != "":
+			out["tip"] = "%s\n%s" % [why, _tray_tooltip(u)]
+		out["legal_target"] = bool(out["rr_tick"])
+	if bool(out["cracked"]):
+		out["tip"] = "%s\n%s" % [_tray_tooltip(u), TranslationServer.translate("Cracked: half value, out of the Set. Ends next turn.")]
 	if u.hp <= 0 or not u.has_rolled() or _combat == null:
 		return out
 	var fi := u.roll_face_index()
