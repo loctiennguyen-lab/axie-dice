@@ -489,3 +489,18 @@ func t_engine_cores() -> void:
 		(sc.party[i] as Unit).hp = 0
 	sc._check_end()
 	_ok(sc.lost, "sacrifice: sleeper does not stop a wipe")
+
+	# Sixth Die: one extra usable die per turn, gone at end of turn, never targeted, not counted for a wipe.
+	var sd := _combat(["c_sixth_die"])
+	var ph: Array = sd.party.filter(func(u): return u.custom_state.has("phantom"))
+	_ok(ph.size() == 1 and (ph[0] as Unit).has_rolled(), "sixth_die: one rolled phantom on turn 1")
+	_ok(sd.alive_party().size() == 5 and sd.real_party().size() == 5, "sixth_die: phantom is not a target / not real party")
+	var p0: Unit = ph[0]
+	var before_n: int = sd.enemies[0].hp
+	_ok(sd.use_die(p0.uid, sd.enemies[0].uid) or not String(p0.current_face().get("type", "")) == "dmg", "sixth_die: usable")
+	sd.end_turn()
+	var ph2: Array = sd.party.filter(func(u): return u.custom_state.has("phantom"))
+	_ok(ph2.size() == 1 and (ph2[0] as Unit).uid != p0.uid, "sixth_die: old phantom gone, fresh one next turn")
+	var snap := CombatEngine.new()
+	snap.from_data(sd.to_data())
+	_ok(snap.party.size() == sd.party.size(), "sixth_die: snapshot keeps phantom")

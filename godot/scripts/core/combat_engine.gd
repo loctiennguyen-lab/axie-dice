@@ -485,7 +485,7 @@ func alive_enemies() -> Array:
 ## realP(s) — party members that are NOT tokens/allies. Only these count for the
 ## lose condition (rule spec §4/§8).
 func real_party() -> Array:
-	return party.filter(func(u): return not u.is_token and not u.custom_state.has("asleep"))
+	return party.filter(func(u): return not u.is_token and not is_sidelined(u))
 
 func by_uid(uid: int) -> Unit:
 	for u in party:
@@ -498,7 +498,7 @@ func by_uid(uid: int) -> Unit:
 
 func _any_real_party_alive() -> bool:
 	for u in party:
-		if not u.is_token and u.hp > 0 and not u.custom_state.has("asleep"):
+		if not u.is_token and u.hp > 0 and not is_sidelined(u):
 			return true
 	return false
 
@@ -522,6 +522,7 @@ func _set_turn_phase(new_phase: int) -> void:
 
 ## ROLL — both sides roll simultaneously, cantrips auto-resolve. engine.js rollAll(s).
 func roll_all() -> void:
+	_drop_phantoms()
 	for u in party:
 		if u.custom_state.has("asleep"):
 			u.held = false
@@ -543,6 +544,7 @@ func roll_all() -> void:
 			u.held = false
 			u.stash_carry = false
 			u.clear_roll()
+	_spawn_phantom_dice()
 	for e in enemies:
 		if e.hp > 0:
 			_roll_unit(e)
@@ -556,6 +558,46 @@ func roll_all() -> void:
 	_resolve_cantrips()
 	RelicHooks.fire(self, "on_roll_end", {"combat": self})
 	RelicHooks.fire(self, "on_roll_settled", {"combat": self, "rerolled_uids": []})   # H1b
+
+
+## Depth v3 Core Sixth Die: hook `extra_dice` (value = how many). Each extra die is a copy of a random living
+## Axie's die, rolled now, usable this turn, dropped at end of turn. Draws from the shared rng only when the Core is owned.
+func _spawn_phantom_dice() -> void:
+	var n := int(RelicHooks.run_value_hook(self, "extra_dice", {"combat": self}, 0))
+	for i in n:
+		var pool: Array = []
+		for u in party:
+			if u.hp > 0 and not is_sidelined(u) and not u.is_token:
+				pool.append(u)
+		if pool.is_empty():
+			return
+		var src: Unit = pool[_rng.next_int(pool.size())]
+		var d := src.to_data()
+		var ph := Unit.from_data(d)
+		ph.uid = _alloc_token_uid()
+		ph.hp = 1
+		ph.max_hp = 1
+		ph.shield = 0
+		ph.status = {}
+		ph.held = false
+		ph.stash_carry = false
+		ph.frozen = false
+		ph.frozen_next = false
+		ph.plating = 0
+		ph.plating_off = 0
+		ph.roster_index = -1
+		ph.slot = -1
+		ph.growth = {}
+		ph.clear_roll()
+		ph.custom_state = {"phantom": true, "src_uid": src.uid}
+		party.append(ph)
+		_roll_unit(ph)
+		EventBus.unit_spawned.emit(ph.uid)
+		EventBus.float_text.emit(ph.uid, "6TH DIE", "buf", 0)
+
+
+func _drop_phantoms() -> void:
+	party = party.filter(func(u): return not u.custom_state.has("phantom"))
 
 
 func _roll_unit(u: Unit) -> void:
@@ -1589,6 +1631,7 @@ func begin_end_turn(seed: int = -1) -> bool:
 	undo_stack = []
 	first_used = false
 	RelicHooks.fire(self, "on_turn_end", {"combat": self})   # H3
+	_drop_phantoms()   # Sixth Die vanishes at end of turn
 
 	# mana overflow (relic OR mythic `overflow` face) — no-op today: no relic and no
 	# ported tier-1 face carries `overflow`. Kept so wiring either in later is content-only.
@@ -2028,7 +2071,7 @@ func continue_after_wipe(seed: int = -1, heal_pct: int = -1) -> bool:
 	lost = false
 	var revived: Array = []
 	for u in party:
-		if u.is_token:
+		if u.is_token or u.custom_state.has("phantom"):
 			continue
 		u.hp = maxi(1, int(ceil(float(u.max_hp) * float(pct) / 100.0)))
 		u.shield = 0

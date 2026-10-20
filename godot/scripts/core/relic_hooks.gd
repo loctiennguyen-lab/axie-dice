@@ -1557,6 +1557,7 @@ static var TABLE: Dictionary = {
 	},
 	# ---- Depth v3 Cores / Run Rules (lane C): logic in core_hooks.gd, one TABLE entry per id ----
 	# CORE_TABLE_BEGIN
+	"c_sixth_die": {"extra_dice": func(ctx: Dictionary): return int(ctx["value"]) + 1},
 	"c_sacrifice": {
 		"on_combat_start": func(ctx: Dictionary): CoreHooks.sacrifice_start(ctx),
 		"face_final": func(ctx: Dictionary): return CoreHooks.flat(ctx, "c_sacrifice"),
