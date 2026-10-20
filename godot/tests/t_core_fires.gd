@@ -5,7 +5,7 @@ extends Node
 ## (knobs only): they are reported loudly (WARN), and the test fails if one of them starts firing so the entry gets removed.
 const ROSTER := ["plant1", "beast1", "aqua1", "reptile1", "bird1"]
 ## Enabled but nothing in the engine reads them yet (run-flow knobs: fossil/dim stone/crow tier shifts, rule_none is the empty rule).
-const NO_BEHAVIOUR := ["c_fossil", "c_dim_stone", "rule_crow", "rule_none"]
+const NO_BEHAVIOUR := ["rule_crow", "rule_none"]
 var _fails: Array[String] = []
 var _checks := 0
 var _log: Array = []   # [id, uid, amount, kind]
@@ -148,6 +148,29 @@ func _build_table() -> void:
 	_scen["rule_heavy_finish"] = func(i): var c := _combat([i]); _only(c, c.party[0]); _play(c, c.party[0], _face("dmg", 3))
 	_scen["rule_quick_beat"] = func(i): var c := _combat([i]); c.enemies[0].is_boss = true; RelicHooks.fire(c, "on_turn_start", {"combat": c})
 	_scen["rule_upside_down"] = func(i): _upside(i)
+	_scen["c_fossil"] = func(i): _bet_run(i)
+	_scen["c_dim_stone"] = func(i): _bet_run(i)
+
+
+## Run-flow bets (Fossil / Dim Stone): fire from RunState, outside combat.
+func _bet_run(i: String) -> void:
+	RunState.reset()
+	RunState.start_new_run_seeded(5, {"team_keys": ROSTER, "mode": "short", "ascension": 0, "ranked": false, "bonuses": {},
+		"loadout": {"rules_on": true}})
+	RunState.pending_rewards = []
+	RunState._core_offer_active = false
+	RunState._rule_offer_active = false
+	if i == "c_fossil":
+		RunState.core_pick_index = 1
+		RunState.owned_relic_ids.append("c_fossil")
+		RunState._open_core_offer()
+	else:
+		var other := CoreOffer.card_of(RelicRegistry.get_def("c_dim_stone"), 0)
+		RunState.core_seen.clear()
+		RunState.pending_rewards = [other]
+		RunState._core_offer_active = true
+		RunState._core_offer_pick = 0
+		RunState.apply_chosen_reward(other, "")
 
 
 func _collector(i: String) -> void:

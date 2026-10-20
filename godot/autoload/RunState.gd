@@ -2119,7 +2119,9 @@ static func core_flow_switches_allowed() -> bool:
 func _core_ctx(pick: int = -1) -> Dictionary:
 	return {"owned_ids": owned_relic_ids, "roster": roster, "seen": core_seen, "mode": mode,
 		"first_run": not rules_on, "pick_index": core_pick_index if pick < 0 else pick, "front_size": 2,
-		"ascension": ascension}
+		"ascension": ascension, "tier_chain": core_tier_chain,
+		# a bonus (quest/event/shop) offer is opened with _core_offer_pick == core_pick_index; milestone offers use index-1
+		"bonus": pick >= 0 and pick == core_pick_index}
 
 
 ## Knob from the held Run Rule's rule_knobs, else `default`.
@@ -2176,11 +2178,32 @@ func _open_core_offer() -> bool:
 		# Run Rule knob (R6): this pick is dropped. Its tier chain slot and trigger are used up, the next pick keeps its own.
 		core_pick_index += 1
 		return false
-	var tier := CoreOffer.effective_tier(core_tier_chain, core_pick_index, core_tier_bump, owned_relic_ids, mode,
-		int(rule_knob("core_first_tier", -1)))
+	var bump := core_tier_bump
 	core_tier_bump = 0
 	var n := t.core_cards_first_extra if (core_pick_index == 0 and core_first_extra) \
 		else int(rule_knob("core_cards", t.core_cards))
+	var first_tier := int(rule_knob("core_first_tier", -1))
+	if owned_relic_ids.has("c_fossil"):
+		# Fossil (design 2.7 N10): this pick is one tier higher; already Crystal -> 4 cards; already 4 cards -> +1 reroll. Then it goes.
+		var fk: Dictionary = (RelicRegistry.get_def("c_fossil").rule_knobs as Dictionary)
+		var raw := clampi((int(core_tier_chain[core_pick_index]) if core_pick_index < core_tier_chain.size() else 0) + bump, 0, 2)
+		if core_pick_index == 0 and first_tier >= 0:
+			raw = clampi(first_tier + bump, 0, 2)
+		if raw >= 2:
+			var extra := int(fk.get("crystal_extra_card", 4))
+			if n >= extra:
+				core_reroll_left += 1
+				CoreHooks.fire("c_fossil", -1, 1, "tier")
+			else:
+				CoreHooks.fire("c_fossil", -1, extra - n, "tier")
+				n = extra
+		else:
+			bump += int(fk.get("next_pick_tier_up", 1))
+			CoreHooks.fire("c_fossil", -1, int(fk.get("next_pick_tier_up", 1)), "tier")
+		owned_relic_ids.erase("c_fossil")
+		relic_state.erase("c_fossil")
+		relic_stickers.erase("c_fossil")
+	var tier := CoreOffer.effective_tier(core_tier_chain, core_pick_index, bump, owned_relic_ids, mode, first_tier)
 	var base := _core_base_seed if core_pick_index == 0 else _node_seed
 	var rng := Rng.new((base ^ CoreOffer.CORE_SALT) ^ (core_pick_index * 0x9E3779B1))
 	var offer := CoreOffer.build_offer(rng, tier, _core_ctx(), n)
@@ -2256,6 +2279,16 @@ func _apply_core_pick(reward: Dictionary, sell_id: String) -> bool:
 		action_log.rejected.append("take_reward: chosen reward was not in pending_rewards")
 		return false
 	var rid := String(reward.get("key", ""))
+	var dim = null   # Dim Stone (design 2.7 N11): the card is never kept; a Crystal Core of another axis is granted instead
+	if rid == "c_dim_stone" and not bool(reward.get("rule", false)):
+		var other_axes: Array = []
+		for oc in pending_rewards:
+			if oc != reward:
+				other_axes.append(String((oc as Dictionary).get("axis", "")))
+		var drng := Rng.new((_core_base_seed ^ CoreOffer.CORE_SALT ^ 0xD1A57015) ^ (_core_offer_pick * 0x9E3779B1))
+		dim = CoreOffer.dim_stone_grant(drng, other_axes, _core_ctx(_core_offer_pick))
+		if dim != null:
+			rid = String(dim.id)
 	var chk := RelicSlots.check_add(owned_relic_ids, relic_stickers, rid, ascension, false)
 	if not bool(chk["ok"]):
 		return false
@@ -2273,6 +2306,9 @@ func _apply_core_pick(reward: Dictionary, sell_id: String) -> bool:
 		return false
 	action_log.record("take_reward", args)
 	_grant_relic(rid, "core")
+	if dim != null:
+		core_seen.append(rid)
+		CoreHooks.fire("c_dim_stone", -1, 1, "tier")
 	pending_rewards = []
 	if bool(reward.get("rule", false)):
 		run_rule = rid
@@ -2324,7 +2360,9 @@ func _open_bonus_offer() -> bool:
 	var tier := CoreOffer.effective_tier([want], 0, 0, owned_relic_ids, mode)
 	var rng := Rng.new((_node_seed ^ CoreOffer.CORE_SALT) ^ ((core_bonus_count + 1) * 0x51ED27))
 	core_bonus_count += 1
-	var offer := CoreOffer.build_offer(rng, tier, _core_ctx(), t.core_cards)
+	var bctx := _core_ctx()
+	bctx["bonus"] = true
+	var offer := CoreOffer.build_offer(rng, tier, bctx, t.core_cards)
 	_core_offer_pick = core_pick_index
 	if offer.is_empty():
 		return _open_bonus_offer()

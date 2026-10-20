@@ -16,4 +16,4 @@ tags = PackedStringArray("nonattack")
 layer = "engine"
 core_axis = "rule"
 first_run_hidden = true
-rule_knobs = {"bet": true, "pick_max": 0, "grant_crystal_other_axis": true, "not_pick": [2, "last"]}
+rule_knobs = {"bet": true, "pick_max": 0, "grant_crystal_other_axis": true, "not_pick": [2, "last"], "max_chain_t": 2}

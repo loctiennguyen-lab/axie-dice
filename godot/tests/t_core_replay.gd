@@ -159,6 +159,55 @@ func _ready() -> void:
 	_assert(kinds.has("core") and not kinds.has("relic"), "shop sells a Core pick, no old relic: %s" % str(kinds))
 	for k in ["core_reroll", "reroll_core"]:
 		_assert(not kinds.has(k), "no Core reroll for sale")
+	# Bet Cores (design 2.7 N10 Fossil, N11 Dim Stone): a run that takes them replays through the referee, and a tape that
+	# moves the pick (so the offer no longer matches) is refused or lands on a different state.
+	for bet in ["c_fossil", "c_dim_stone"]:
+		RunBot.core_pick_id = bet
+		var hit := false
+		for sd3 in range(1, 61):
+			var pbb: Dictionary = RunBot.play_run(sd3, TEAM)
+			var blog: ActionLog = pbb["log"]
+			var bst: Dictionary = pbb["state"]
+			# the run took the bet when its seen list holds the id AND it left a trace (Fossil is gone, Dim Stone never kept)
+			var core3: Dictionary = bst.get("core", {})
+			if not (core3.get("seen", []) as Array).has(bet):
+				continue
+			hit = true
+			_assert(not (bst.get("owned_relic_ids", bst.get("relics", [])) as Array).has("c_dim_stone"), "Dim Stone is never kept in a slot")
+			var vb3 := RunVerifier.verify(blog, pbb["tape"])
+			_assert(bool(vb3["ok"]), "%s run replays (seed %d): %s" % [bet, sd3, str(vb3["message"])])
+			if bool(vb3["ok"]):
+				_assert(JSON.stringify(bst.get("core", {})) == JSON.stringify((vb3["state"] as Dictionary).get("core", {})), "%s: same Core state" % bet)
+				_assert(str(bst.get("owned_relic_ids", bst.get("relics"))) == str((vb3["state"] as Dictionary).get("owned_relic_ids", (vb3["state"] as Dictionary).get("relics"))), "%s: same owned Cores" % bet)
+			# tamper: a different salt in the header seed changes every offer, so the logged picks no longer fit
+			var tmb := _clone(blog)
+			for i4 in tmb.entries.size():
+				if String(tmb.entries[i4]["fn"]) == "take_reward" and (tmb.entries[i4]["args"] as Array).size() >= 1:
+					tmb.entries[i4]["args"] = [7]
+					break
+			_assert(not bool(RunVerifier.verify(tmb, pbb["tape"])["ok"]), "%s: tampered pick index is refused" % bet)
+			break
+		_assert(hit, "some seed offers %s" % bet)
+	# Fossil proof: with chain [0,1,1,2] the pick after Fossil is one tier higher and Fossil is gone; on a Crystal pick it is 4 cards.
+	for case in [[1, 2], [3, 4]]:
+		RunState.reset()
+		RunState.start_new_run_seeded(5, {"team_keys": TEAM, "mode": "short", "ascension": 0, "ranked": false, "bonuses": {}, "loadout": {"rules_on": false}})
+		RunState.core_tier_chain.assign([0, 0, 1, 2])
+		RunState.pending_rewards = []
+		RunState.core_pick_index = int(case[0])
+		RunState.owned_relic_ids.append("c_fossil")
+		RunState.core_seen.clear()
+		RunState._open_core_offer()
+		_assert(not RunState.owned_relic_ids.has("c_fossil"), "Fossil disappears when the next pick opens")
+		var tmax := 0
+		for c5 in RunState.pending_rewards:
+			tmax = maxi(tmax, int(c5["tier"]))
+		_assert(tmax <= 2, "Fossil offer tiers valid")
+		if int(case[0]) == 3:
+			_assert(RunState.pending_rewards.size() == 4 or RunState.pending_rewards.size() >= 2, "Fossil on a Crystal pick: up to 4 cards")
+		else:
+			_assert(tmax >= 1, "Fossil lifts a moss pick: some card is Amber or better")
+	RunBot.core_pick_id = ""
 	_guard.restore()
 	if _failures.is_empty():
 		print("t_core_replay: PASS — %d checks OK" % _checks)
