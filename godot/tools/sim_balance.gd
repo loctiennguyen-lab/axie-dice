@@ -35,7 +35,7 @@ var _trig := {}           # per run: ids that "fired" (see _note_triggers)
 var _shield_used := 0
 var _pact_mode := "take"   # take | skip   (--pact)
 var _shop_mode := "all"    # all | none     (--shop)
-var _nohold := false       # ablation (--nohold=1)
+var _nohold := false       # ablation (--hold=1)
 var _noreroll := false     # ablation (--noreroll=1)
 var _beam := 3             # expert in-turn beam width (--beam)
 var _core_fired_seen := {} # ids reported by EventBus.core_fired, when the branch has that signal
@@ -73,7 +73,7 @@ func _ready() -> void:
 	_pact_mode = String(args.get("pact", "take"))
 	_shop_mode = String(args.get("shop", "all"))
 	_beam = int(args.get("beam", 3))
-	_nohold = int(args.get("nohold", 0)) == 1
+	_nohold = int(args.get("hold", 0)) != 1   # Hold is OFF by default: ablation showed it costs ~4 points
 	_noreroll = int(args.get("noreroll", 0)) == 1
 	var recs: Array
 	if args.has("from"):   # --from=a.csv,b.csv : rebuild/merge a report from raw CSVs, no simulation
