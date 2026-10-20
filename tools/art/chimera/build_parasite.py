@@ -425,17 +425,17 @@ def make_dead(arm):
                 "neck": [(X, -12)], "head": [(X, -18), (Z, 10)], "plume1": [(X, -12)], "plume2": [(X, -16)],
                 "upper": [(X, 14), (Y, 24)], "fore": [(X, -12)], "capeB1": [(X, 10)], "capeB2": [(X, 14)],
                 "capeS1": [(Y, 8)], "capeF1": [(Y, 6)]})
-    pose(c, 22, {"root@loc": (0, -0.15, -0.55), "spine_low": [(X, 14)], "spine_mid": [(X, 10)],
-                 "chest": [(X, 8)], "neck": [(X, 10)], "head": [(X, 16)],
-                 "thigh": [(X, -55)], "calf": [(X, 75)],
+    pose(c, 22, {"root@loc": (0, -0.12, -0.45), "spine_low": [(X, 8)], "spine_mid": [(X, 6)],
+                 "chest": [(X, 5)], "neck": [(X, 8)], "head": [(X, 10)],
+                 "thigh": [(X, -55)], "calf": [(X, 78)],
                  "plume1": [(X, 10)], "plume2": [(X, 16)], "upper": [(X, 20), (Y, 8)], "fore": [(X, -20)],
                  "capeB1": [(X, -8)], "capeB2": [(X, -14)], "capeS1": [(Y, -4)]})
-    final = {"root@loc": (0, -0.35, -0.95), "spine_low": [(X, 28)], "spine_mid": [(X, 20)],
-             "chest": [(X, 14)], "neck": [(X, 16)], "head": [(X, 22), (Z, -8)],
-             "thigh": [(X, -80)], "calf": [(X, 110)],
-             "plume1": [(X, 16)], "plume2": [(X, 24)], "upper": [(X, 30), (Y, 6)], "fore": [(X, -30)],
-             "hand": [(X, -10)], "capeB1": [(X, -14)], "capeB2": [(X, -22)],
-             "capeS1": [(Y, -8)], "capeS2": [(Y, -10)], "capeF1": [(Y, -6)]}
+    final = {"root@loc": (0, -0.30, -0.80), "spine_low": [(X, 14)], "spine_mid": [(X, 10)],
+             "chest": [(X, 8)], "neck": [(X, 10)], "head": [(X, 16), (Z, -8)],
+             "thigh": [(X, -85)], "calf": [(X, 120)],
+             "plume1": [(X, 10)], "plume2": [(X, 16)], "upper": [(X, 20), (Y, 6)], "fore": [(X, -25)],
+             "hand": [(X, -10)], "capeB1": [(X, -8)], "capeB2": [(X, -12)],
+             "capeS1": [(Y, -6)], "capeS2": [(Y, -6)], "capeF1": [(Y, -4)]}
     pose(c, 40, final)
     pose(c, 48, final)
     return c.bake()

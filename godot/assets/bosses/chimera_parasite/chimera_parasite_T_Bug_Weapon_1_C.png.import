@@ -2,19 +2,19 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://bwo4y6gtgnpkl"
-path="res://.godot/imported/chimera_parasite_T_Parasite_bake.jpg-42b0eebc98f390d7b1ed53548d187863.ctex"
+uid="uid://xxp680cfmv38"
+path="res://.godot/imported/chimera_parasite_T_Bug_Weapon_1_C.png-b40edae4428d99825de7b03a3f473a35.ctex"
 metadata={
 "vram_texture": false
 }
 generator_parameters={
-"md5": "908152e207c10d8a12bafc59865076ab"
+"md5": "632ce3005edff10ab83d4caa748d6e45"
 }
 
 [deps]
 
-source_file="res://assets/bosses/chimera_parasite/chimera_parasite_T_Parasite_bake.jpg"
-dest_files=["res://.godot/imported/chimera_parasite_T_Parasite_bake.jpg-42b0eebc98f390d7b1ed53548d187863.ctex"]
+source_file="res://assets/bosses/chimera_parasite/chimera_parasite_T_Bug_Weapon_1_C.png"
+dest_files=["res://.godot/imported/chimera_parasite_T_Bug_Weapon_1_C.png-b40edae4428d99825de7b03a3f473a35.ctex"]
 
 [params]
 
