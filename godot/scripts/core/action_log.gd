@@ -71,12 +71,14 @@ const RULES_VERSION := "godot-2026-10-20-o"   # L1: đổi kết quả run: CÓ 
 ##   shop_done          shopDone           shop left
 ##   pact_reroll        (none — port only) Aid R5: [slot, swap index] one boss Pact card swapped
 ##   stash              (none — port only) depth v3 Hold: [uid] one unused die held over to next turn
+##   overcast           (none — port only) Overcast: [uid] pay mana to power one unused die up this turn
 ##   pact_pick          (none — port only) boss Pact: [offer index] or [index, sold relic id]; [-1] = skipped
 const ALLOWED_FNS: Array[String] = [
 	"enter_node", "use_die", "play_active", "reroll_dice", "end_turn", "undo_last",
 	"take_reward", "reroll_rewards", "event_choose", "event_done", "shop_buy", "shop_done",
 	"tweak", "hold_pick", "loaded_pick", "sell_relic", "swap_on_full", "reorder_party",
 	"continue", "shop_refresh", "aid_use", "pact_pick", "pact_reroll", "stash",
+	"overcast",
 ]
 
 ## Same ceiling as the JS server (submit-run.js:30). A real run lands far below it; the limit is

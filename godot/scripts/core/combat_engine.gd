@@ -534,6 +534,7 @@ func _set_turn_phase(new_phase: int) -> void:
 func roll_all() -> void:
 	_drop_phantoms()
 	for u in party:
+		u.overcast = false
 		if u.custom_state.has("asleep"):
 			u.held = false
 			u.clear_roll()
@@ -1265,7 +1266,7 @@ func can_stash(unit_uid: int) -> bool:
 	var u := by_uid(unit_uid)
 	if u == null or u.side != "p" or u.is_token or u.hp <= 0 or not u.has_rolled() or u.roll_used():
 		return false
-	if u.held or u.frozen or _has_kw(u.current_face(), "cantrip"):
+	if u.held or u.frozen or u.overcast or _has_kw(u.current_face(), "cantrip"):
 		return false
 	if u.stash_carry and not bool(RelicHooks.run_value_hook(self, "stash_repeat",
 			{"combat": self, "unit": u}, false)):
@@ -1294,6 +1295,84 @@ func stash(unit_uid: int) -> bool:
 		"fi": u.roll_face_index()})
 	_log("stash", [unit_uid])
 	return true
+
+
+# ---- Overcast (lane OC): pay mana to power ONE die up this turn ---------------------------------------------
+func overcast_cost() -> int:
+	return maxi(0, int(tune_knob("overcast", "mana_cost", 3.0)))
+
+
+func overcast_mult() -> float:
+	return maxf(1.0, tune_knob("overcast", "mult", 1.5))
+
+
+func overcast_per_turn() -> int:
+	return maxi(0, int(tune_knob("overcast", "per_turn", 1.0)))
+
+
+func overcast_count() -> int:
+	var n := 0
+	for u in party:
+		if u.overcast:
+			n += 1
+	return n
+
+
+## "" when the die can be overcast now, else a short reason (the UI shows it on the disabled button).
+func overcast_block_reason(unit_uid: int) -> String:
+	if won or lost or phase != CombatPhase.EXECUTE:
+		return "Not your turn"
+	var u := by_uid(unit_uid)
+	if u == null or u.side != "p" or u.is_token or u.hp <= 0 or not u.has_rolled():
+		return "No die"
+	if u.roll_used():
+		return "Die already used"
+	if u.held:
+		return "Die is held"
+	if u.frozen:
+		return "Die is frozen"
+	if u.overcast:
+		return "Already overcast"
+	if overcast_count() >= overcast_per_turn():
+		return "1 Overcast per turn"
+	if _has_kw(u.current_face(), "cantrip") or String(u.current_face().get("type", "")) == "mana":
+		return "Not on this face"
+	if _face_value(u, u.roll_face_index()) <= 0:
+		return "Face has no value"
+	if mana < overcast_cost():
+		return "Needs %d mana" % overcast_cost()
+	return ""
+
+
+func can_overcast(unit_uid: int) -> bool:
+	return overcast_block_reason(unit_uid) == ""
+
+
+## Pays overcast_cost() mana and powers the die up for this turn. Undoable. Logged as `overcast [uid]`. No rng.
+func overcast(unit_uid: int) -> bool:
+	if not can_overcast(unit_uid):
+		return false
+	var u := by_uid(unit_uid)
+	_push_undo()
+	var before := _face_value(u, u.roll_face_index())
+	mana -= overcast_cost()
+	u.overcast = true
+	var after := _face_value(u, u.roll_face_index())
+	EventBus.float_text.emit(u.uid, "OVERCAST", "buf", 0)
+	EventBus.die_overcast.emit(u.uid, before, after)
+	_log("overcast", [unit_uid])
+	return true
+
+
+## For the UI preview ("6 -> 9"): [value now, value if overcast] of the die's current face.
+func overcast_preview(u: Unit) -> Array:
+	var fi := u.roll_face_index()
+	var was := u.overcast
+	var now := _face_value(u, fi)
+	u.overcast = true
+	var boosted := _face_value(u, fi)
+	u.overcast = was
+	return [now, boosted]
 
 
 ## Free undo within a turn, until reroll or a new turn clears the stack (rule spec §2).
@@ -1415,7 +1494,12 @@ func _face_value(u: Unit, fi: int) -> int:
 		v += 1.0                                                        # CONDUIT passive
 	if u.side == "p" and u.resonant_now:
 		v = ceil(v * RESONANCE_MULT)
-	return int(RelicHooks.run_value_hook(self, "face_final", {"combat": self, "unit": u, "face_type": face_type, "part": String(f.get("part", "")), "fi": fi}, int(v)))
+	var final_v := int(RelicHooks.run_value_hook(self, "face_final", {"combat": self, "unit": u, "face_type": face_type, "part": String(f.get("part", "")), "fi": fi}, int(v)))
+	# Overcast (own multiplier): applied LAST, after the Core +10/face room, so it multiplies the finished value
+	# and is not itself capped. Never on a mana face (no mana loop).
+	if u.overcast and u.side == "p" and face_type != "mana" and final_v > 0:
+		final_v = int(ceil(float(final_v) * overcast_mult()))
+	return final_v
 
 
 ## UI preview (design 8.6 item 7, "4 -> 1"): what die face `fi` of `src` would do to `target` as a single-target hit,

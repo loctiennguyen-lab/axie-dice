@@ -161,6 +161,17 @@ static func update(content: Dictionary, d: Dictionary) -> void:
 		content["hold_chip"] = chip
 	if content.has("hold_chip"):
 		(content["hold_chip"] as Control).visible = held
+	# Overcast (lane OC): an OVERCAST chip on the powered-up die (word, not colour alone).
+	var oc := bool(d.get("overcast", false))
+	if oc and not content.has("overcast_chip"):
+		var ochip := UI3.chip("OVERCAST")
+		ochip.name = "OvercastChip"
+		ochip.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		ochip.position = Vector2(W * 0.5 - 52.0, -8.0)
+		body.add_child(ochip)
+		content["overcast_chip"] = ochip
+	if content.has("overcast_chip"):
+		(content["overcast_chip"] as Control).visible = oc
 	UI3Tooltip.bind(btn, String(d.get("tip", "")))
 	btn.set_meta("ui3_tip_side_of_row", true)
 

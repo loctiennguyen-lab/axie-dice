@@ -1058,6 +1058,7 @@ func _build_hud_r1() -> void:
 	_aid.offer_dismissed.connect(func(): _aid_offer_dismissed = true)
 	_hud_frame.menu_pressed.connect(_on_menu_pressed)
 	_hud_frame.hold_pressed.connect(_on_hold_pressed)
+	_hud_frame.overcast_pressed.connect(_on_overcast_pressed)
 	_hud_frame.active_pressed.connect(_on_active_pressed)
 	# Die slots leave the hidden deck bar for a root of their own, laid out by _layout_tray().
 	_tray_root = Control.new()
@@ -1148,7 +1149,8 @@ func _update_hud() -> void:
 		 "resolving": _combat.phase != CombatPhase.EXECUTE,
 		 "enabled": not (_combat.won or _combat.lost) and _combat.phase != CombatPhase.END_TURN},
 		{"show": _combat.stash_cap() > 0, "enabled": can_hold, "text": hold_text, "tip": hold_tip,
-		 "on": _combat.stash_count() >= _combat.stash_cap() and _combat.stash_cap() > 0})
+		 "on": _combat.stash_count() >= _combat.stash_cap() and _combat.stash_cap() > 0},
+		_overcast_state(executing))
 	_hud_frame.update_foe(_foe_state())
 	_update_aid(hs, executing)
 	_update_die_info()
@@ -1238,6 +1240,44 @@ static func affix_tip(id: String) -> String:
 	if d.has("charge"):
 		parts.append("Locks on an Axie, then strikes it hard on the 4th turn. Stun or freeze breaks the charge.")
 	return " ".join(parts) if not parts.is_empty() else "Elite affix."
+
+
+## Overcast button state (engine reads: overcast_block_reason / overcast_preview). Disabled always says why.
+func _overcast_state(executing: bool) -> Dictionary:
+	var cost := _combat.overcast_cost()
+	var text := "Overcast %s %d MP" % [HudKit.dot(), cost]
+	var tip := "Pay %d mana to power the picked die up x%s this turn." % [cost, str(_combat.overcast_mult())]
+	var ok := false
+	if _combat.overcast_count() > 0 and _combat.overcast_count() >= _combat.overcast_per_turn():
+		text = "Overcast: used"
+		tip = "Only %d Overcast per turn. It resets next turn." % _combat.overcast_per_turn()
+	elif not executing:
+		tip = "Overcast is only available on your turn."
+	elif _selected_die_uid == -1:
+		text = "Overcast: pick a die"
+		tip = "Pick an unused die first, then pay %d mana to power it up." % cost
+	else:
+		var why := _combat.overcast_block_reason(_selected_die_uid)
+		if why == "":
+			ok = true
+			var u: Unit = _combat.by_uid(_selected_die_uid)
+			var pv := _combat.overcast_preview(u)
+			text = "Overcast %d > %d %s %d MP" % [int(pv[0]), int(pv[1]), HudKit.dot(), cost]
+		else:
+			text = "Overcast: %s" % why
+			tip = why
+	return {"show": _combat.overcast_per_turn() > 0, "enabled": ok, "text": text, "tip": tip}
+
+
+## Overcast: pays mana and powers the picked die up (engine `overcast`, logged as `overcast [uid]`).
+func _on_overcast_pressed() -> void:
+	_land_dice_now()
+	if _is_animating or _gated("overcast") or _selected_die_uid == -1:
+		return
+	if _combat.overcast(_selected_die_uid):
+		_append_log("[input] overcast die")
+		_rebuild_all()
+		_save_run_progress()
 
 
 ## Hold: parks the picked die (engine `stash`, logged as `stash [uid]`).
@@ -1753,7 +1793,7 @@ func _update_dice_tray() -> void:
 			"icons": UnitPortrait._STATUS_ICON, "status_tip": Callable(UnitPortrait, "_effect_tooltip"),
 			"skin": MetaState.equipped_die_skin,
 			"faces": faces, "rolled": u.roll_face_index() if u.has_rolled() else -1,
-			"alive": u.hp > 0, "spent": used_this_turn, "selected": is_sel, "held": u.held, "row": _combat.row_of(u),
+			"alive": u.hp > 0, "spent": used_this_turn, "selected": is_sel, "held": u.held, "overcast": u.overcast, "row": _combat.row_of(u),
 			"legal_target": as_target and _selected_ally_target_ok(u),
 			"tip": _tray_tooltip(u)})
 		TrayColumn.set_lifted(self, content, is_sel, disable_juice_for_tests)
