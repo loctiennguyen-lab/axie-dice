@@ -266,7 +266,7 @@ func _bot_run_with_pact(asc: int) -> Dictionary:
 	MetaState.unlocks.clear()
 	MetaState.perks = {}
 	MetaState.runs_with_battle = 0
-	for sd in [991237, 991238, 991239, 4242, 4243, 4244, 7001, 7002, 7003, 12345]:
+	for sd in [991237, 991238, 991239, 4242, 4243, 4244, 7001, 7002, 7003, 12345, 5150, 8080, 3141, 2718, 1618, 9001, 9002, 9003, 31337, 777, 100, 101, 102, 103, 104, 105]:
 		var r := RunBot.play_run(sd, REPLAY_TEAM, "short", asc)
 		if _pact_index(r["log"]) >= 0:
 			return r

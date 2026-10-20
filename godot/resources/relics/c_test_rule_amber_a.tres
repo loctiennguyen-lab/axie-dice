@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="RelicDef" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data_models/relic_def.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "c_test_rule_amber_a"
+name = "Test rule amber"
+description = "Test Core (rule axis)."
+rarity = 1
+sort_index = 900021
+core_axis = "rule"
+disabled = true

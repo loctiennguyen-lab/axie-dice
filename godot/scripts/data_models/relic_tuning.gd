@@ -55,6 +55,7 @@ extends Resource
 @export var core_t_cap_full: int = 4
 @export var core_reroll_max: int = 2           ## Core rerolls per run (one card each)
 @export var core_cards: int = 3
+@export var core_shop_cost: int = 60           ## shards for a Moss Core pick in the shop (economy-designer to price)
 @export var core_cards_first_extra: int = 4    ## pick 1 with perk relic0/relic1
 @export var rule_cards: int = 2
 @export var rule_none_pct: int = 10            ## from run 2: chance one of the two rule cards is "no rule"
@@ -68,3 +69,6 @@ extends Resource
 @export var tier_tail_full: Array = [[[1, 2], 40], [[2, 2], 25], [[1, 1], 35]]
 @export var core_stat_max_per_offer: int = 1
 @export var core_quest_max_per_offer: int = 1
+## Where Core pick 2.. opens: ["row", n] = after the node on map row n, ["boss", k] = after the k-th boss.
+@export var core_triggers_short: Array = [["row", 5], ["boss", 1], ["boss", 2]]
+@export var core_triggers_full: Array = [["row", 5], ["boss", 1], ["boss", 2], ["row", 18], ["boss", 3]]
