@@ -178,7 +178,7 @@ func _load_model() -> void:
 		_pivot.add_child(spr)
 		return
 	_pivot.add_child(model)
-	model.rotation_degrees.y = float(reg.get("facing_deg", 0.0))
+	model.rotation_degrees.y = float(reg.get("intro_facing_deg", reg.get("facing_deg", 0.0)))   # intro camera differs from combat: optional own angle
 	_fit(model)
 	if VenomPool.wants(reg):
 		VenomPool.attach(model, MetaState.reduce_flash)
