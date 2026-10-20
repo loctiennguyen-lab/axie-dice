@@ -1,10 +1,23 @@
 # Axie Dice — trạng thái hiện tại
 
+## ⇢ BẮT ĐẦU TỪ ĐÂY (gần nửa đêm 21/10/2026) — BUILD b1196
+godot-port = axiedice/main = **6a83513** (thêm fix/core-overlay: overlay chọn Lõi tự hiện sau Luật run — lỗi chặn do smoke luồng thật
+bắt; nhãn Cores; thẻ đã free; tween DiceRoller3D; tab Edit Land). Suite **167/167** ở cây chính. Build `build/AxieDice-0.1.0-L1-b1196-6a83513-*`
+(b1188 → old). Đang chạy: smoke lại b1196 tới Result (`production/qa/smoke-b1196-2026-10-21.md`), sim trên bản mới (`../my-game-wt/SB2`).
+Chờ Liam: 5 câu `design/proposals/turn-decisions-brainstorm.md` (quan trọng nhất: 3 Đòn + Nạp, Lõi chủ), 4 câu depth-tuning-v1,
+6 câu gacha, deploy.
+
 ## ⇢ BẮT ĐẦU TỪ ĐÂY (khuya 21/10/2026) — ĐÃ MERGE + BUILD b1188
 godot-port = axiedice/main = **759cabc** (merge int/v3: depth v3 + Land v1 + raid; RULES_VERSION godot-2026-10-20-o), suite **166/166**
 không skip, Worker 196/196. Build Liam: `build/AxieDice-0.1.0-L1-b1188-759cabc-macos.dmg` + `-windows.zip` (b1049 → build/old). CHƯA deploy
 (Worker/D1 0008/web — hỏi Liam). Đang chạy: qa-tester smoke luồng thật + ảnh (`../my-game-wt/QA`, báo cáo `production/qa/smoke-b1188-2026-10-21.md`);
 sim nâng bot expert (`../my-game-wt/SB`; phát hiện: bật Hold làm expert −4 điểm → Hold chưa đáng giá hoặc bot dùng dở).
+**PHÁT HIỆN LỚN (sim 2000 run/bot, bản depth/E):** random 20.6, spam 22.8, attack_only 5.0, expert 28.6 (+8 điểm); beam sâu không thắng
+thêm (trần ~29%), Hold làm expert tệ đi, reroll mana không giúp, chọn Lõi theo combo không khác biệt → "dùng hết mọi viên" gần tối ưu =
+THIẾU QUYẾT ĐỊNH THẬT. Chỉnh số (depth-tuning-v1) không đủ; game-designer đang brainstorm `design/proposals/turn-decisions-brainstorm.md`
+(chi phí cơ hội trong lượt). Sim đang chạy lại trên godot-port 759cabc.
+**SMOKE luồng thật:** nghi lần chọn Lõi 1 KHÔNG mở sau khi chọn Luật run (map rail chỉ có luật, còn ghi "Relics") — qa-tester đang xác minh.
+Liam được dặn tạm khoan chơi b1188.
 Nợ: core_impact lệch live 98 vs replay 83 cho rule_balance (chỉ hiển thị, có thể preview làm hook chạy thừa) — cần kiểm.
 
 ## ⇢ BẮT ĐẦU TỪ ĐÂY (đêm 21/10/2026) — TÍCH HỢP VÒNG 2 + SIM + CHỈNH ĐỘ SÂU
