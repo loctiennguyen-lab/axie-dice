@@ -172,6 +172,7 @@ static func update(content: Dictionary, d: Dictionary) -> void:
 		content["overcast_chip"] = ochip
 	if content.has("overcast_chip"):
 		(content["overcast_chip"] as Control).visible = oc
+	_update_v4(content, d)
 	UI3Tooltip.bind(btn, String(d.get("tip", "")))
 	btn.set_meta("ui3_tip_side_of_row", true)
 
@@ -193,3 +194,57 @@ static func _apply_skin(content: Dictionary, skin: String) -> void:
 ## The DieTile lifts itself when selected (state "selected"); nothing to tween here.
 static func set_lifted(_view: Node, content: Dictionary, lifted: bool, _instant: bool) -> void:
 	content["lifted"] = lifted
+
+
+## Depth v4 (combat-v4.md 1.1 / 1.3): the part chip (32x32, glyph + short word for grayscale) top-left, and the
+## "5 -> 8" Set preview top-right. `d`: part_tex:Texture2D|null, part_text:String, pv:String ("" = none).
+static func _update_v4(content: Dictionary, d: Dictionary) -> void:
+	var body: Control = content["body"]
+	var part_text := String(d.get("part_text", ""))
+	if part_text != "" and not content.has("part_chip"):
+		var chip := PanelContainer.new()
+		chip.name = "PartChip"
+		chip.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		chip.theme = UI3Theme.get_theme()
+		var sb := UI3Theme.flat(UI3Theme.color("panel_raised"), UI3Theme.radius("s"), 2, UI3Theme.color("text_muted"))
+		sb.content_margin_left = 2
+		sb.content_margin_right = 2
+		sb.content_margin_top = 2
+		sb.content_margin_bottom = 2
+		chip.add_theme_stylebox_override("panel", sb)
+		chip.custom_minimum_size = Vector2(32, 32)
+		var tr := TextureRect.new()
+		tr.name = "Glyph"
+		tr.custom_minimum_size = Vector2(28, 28)
+		tr.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		tr.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		tr.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		chip.add_child(tr)
+		chip.position = Vector2(2, 2)
+		body.add_child(chip)
+		content["part_chip"] = chip
+	if content.has("part_chip"):
+		var chip2: Control = content["part_chip"]
+		chip2.visible = part_text != ""
+		var glyph: TextureRect = chip2.get_node("Glyph")
+		glyph.texture = d.get("part_tex", null)
+		chip2.set_meta("part_text", part_text)
+		UI3Tooltip.bind(chip2, "%s. %s" % [part_text, TranslationServer.translate("3 dice of the same part make a SET")])
+	var pv := String(d.get("pv", ""))
+	if pv != "" and not content.has("pv_label"):
+		var l := UI3.label("", "LabelDisplay")
+		l.name = "SetPreview"
+		l.add_theme_font_size_override("font_size", 18)
+		l.add_theme_color_override("font_color", UI3Theme.color("accent"))
+		l.add_theme_color_override("font_outline_color", UI3Theme.color("panel"))
+		l.add_theme_constant_override("outline_size", 4)
+		l.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		body.add_child(l)
+		content["pv_label"] = l
+	if content.has("pv_label"):
+		var pl: Label = content["pv_label"]
+		pl.visible = pv != ""
+		pl.text = pv
+		var w := pl.get_minimum_size().x + 2.0
+		pl.position = Vector2(W - PAD - w, 4)
+		pl.size = Vector2(w, 24)

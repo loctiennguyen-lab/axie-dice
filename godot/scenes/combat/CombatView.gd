@@ -1067,6 +1067,8 @@ func _build_hud_r1() -> void:
 	_tray_root.set_anchors_preset(Control.PRESET_FULL_RECT)
 	_tray_root.z_index = 6
 	_shell_root.add_child(_tray_root)
+	_bo_layer = BoLayer.new()
+	_shell_root.add_child(_bo_layer)
 	for b in _die_slot_buttons:
 		var nm: String = (b as Button).name
 		(b as Button).get_parent().remove_child(b)
@@ -1437,6 +1439,7 @@ func _layout_tray() -> void:
 		btn.size = Vector2(col_w, TrayColumn.H)
 		i += 1
 	_layout_row_strip(x0, col_w, gap, top)
+	_refresh_bo_layer()
 
 
 var _row_strip: Control = null
@@ -1643,6 +1646,7 @@ func _connect_event_bus() -> void:
 	EventBus.turn_phase_changed.connect(_on_turn_phase_changed)
 	EventBus.combat_finished.connect(_on_combat_finished)
 	EventBus.unit_spawned.connect(_on_unit_spawned)
+	EventBus.bo_changed.connect(_on_bo_changed)
 
 
 
@@ -1795,7 +1799,7 @@ func _update_dice_tray() -> void:
 			"faces": faces, "rolled": u.roll_face_index() if u.has_rolled() else -1,
 			"alive": u.hp > 0, "spent": used_this_turn, "selected": is_sel, "held": u.held, "overcast": u.overcast, "row": _combat.row_of(u),
 			"legal_target": as_target and _selected_ally_target_ok(u),
-			"tip": _tray_tooltip(u)})
+			"tip": _tray_tooltip(u)}.merged(_v4_card_data(u)))
 		TrayColumn.set_lifted(self, content, is_sel, disable_juice_for_tests)
 		if _maybe_play_roll_juice(u, btn):
 			fresh.append({"slot": i, "u": u})
@@ -4028,3 +4032,48 @@ func _build_march_overlay() -> CanvasLayer:
 	top.add_child(skip)
 	skip.grab_focus()
 	return layer
+
+
+# ---- Depth v4 BO (combat-v4.md 1) ------------------------------------------------------------------------
+var _bo_layer: BoLayer = null
+
+
+## Chip + preview for one tray card. Values come from the engine (_face_base = v0 before M, _live_face_value after).
+func _v4_card_data(u: Unit) -> Dictionary:
+	var out := {"part_text": "", "part_tex": null, "pv": ""}
+	if u.hp <= 0 or not u.has_rolled() or _combat == null:
+		return out
+	var fi := u.roll_face_index()
+	var part := String(V4Ui.SLOT_ORDER[clampi(fi, 0, 5)])
+	out["part_text"] = V4Ui.part_name(fi)
+	out["part_tex"] = _part_icon_for(String((u.die[fi] as Dictionary).get("part", part)), u.cls)
+	if not V4Ui.group_of(_combat.bo, u.uid).is_empty() and not u.roll_used():
+		var v0 := int(ceil(float(_combat._face_base(u, fi))))
+		var now := _live_face_value(u, fi)
+		if v0 > 0 and now > v0:
+			out["pv"] = "%d → %d" % [v0, now]
+	return out
+
+
+func _card_rects() -> Dictionary:
+	var rects := {}
+	var units := _party_dice_units()
+	for i in mini(units.size(), _die_slot_buttons.size()):
+		var b: Button = _die_slot_buttons[i]
+		if b.visible:
+			rects[(units[i] as Unit).uid] = Rect2(b.position, b.size)
+	return rects
+
+
+func _refresh_bo_layer() -> void:
+	if _bo_layer == null or _combat == null:
+		return
+	_bo_layer.refresh(_combat.bo, _card_rects())
+
+
+func _on_bo_changed(groups: Array) -> void:
+	if _bo_layer == null or _combat == null:
+		return
+	_refresh_bo_layer()
+	var tray_top := get_viewport_rect().size.y - 24.0 - TrayColumn.H
+	_bo_layer.announce(groups, tray_top)
