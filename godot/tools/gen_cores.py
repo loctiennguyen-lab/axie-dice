@@ -43,7 +43,7 @@ core("tidecaller", "Ngọn Triều", "Rising Wave", 0, "mana", [], [], ["nonatta
 core("mana_pool", "Hồ Mana", "Mana Pool", 0, "mana", [], ["rule:rule_dry_steppe"], ["nonattack"], "Mana faces give +1. End of turn: every 3 unspent Mana earns 1 more (max +3 per turn).")
 core("mana_ward", "Đổi Mana Lấy Khiên", "Mana Ward", 1, "mana", [], [], ["nonattack"], "End of turn, spend up to 6 unused Mana: every 2 Mana gives each front-row Axie 3 Shield.")
 core("overflow", "Bể Tràn", "Overflow", 1, "mana", [], ["rule:rule_dry_steppe"], ["nonattack", "convert_to_dmg"], "Mana above 8 turns into pierce damage to all enemies and drops back to 8.")
-core("hollow_core", "Lõi Rỗng", "Hollow Core", 2, "mana", [], ["owned:c_thorn_pact", "rule:rule_cheap_mana", "rule:rule_tundra"], ["nonattack"], "No free reroll. Every reroll costs 1 Mana, up to 8 per turn. Mana faces give +1. Each die you reroll gets +1 until end of turn (max +10).")
+core("hollow_core", "Lõi Rỗng", "Hollow Core", 2, "mana", [], ["owned:c_thorn_pact", "rule:rule_cheap_mana", "rule:rule_tundra"], ["nonattack"], "No free reroll. Every reroll costs 1 Mana, up to 8 per turn. Mana faces give +1. Each die you reroll gets +1 until end of turn (max +10).", rerollUp=-1)
 core("deep_current", "Mạch Ngầm", "Deep Current", 2, "mana", [], ["rule:rule_dry_steppe"], ["nonattack"], "Leftover Mana carries into the next combat (up to 12) instead of resetting.", disabled=True, needs="H-mana-carry: combat start mana from run state + save field (RunState, lane B)")
 core("thorn_pact", "Khế Ước Gai", "Thorn Pact", 1, "mana", [], ["owned:c_hollow_core", "rule:rule_cheap_mana", "rule:rule_tundra"], ["nonattack", "tradeoff"], "Rerolls cost no Mana but 2 HP of the Axie being rerolled (not allowed at 2 HP or less). Axies at half HP or lower get +2 on every face.")
 # ---- quest
@@ -60,8 +60,8 @@ core("loop", "Vòng Lặp", "Loop", 2, "rule", ["face:cantrip"], [], ["nonattack
 core("cascade", "Thác Đổ", "Cascade", 2, "rule", [], ["rule:rule_balance", "owned:c_toxic_still"], ["attack"], "Damage faces used back to back form a chain: the 2nd gets +2, the 3rd +4, the 4th +6, the 5th+ +8. Using a non-damage face breaks the chain.")
 core("sacrifice", "Hiến Tế", "Sacrifice", 2, "rule", [], [], ["nonattack", "tradeoff"], "Start of combat: the Axie in slot 5 sleeps (no die, cannot be targeted). The other four get +2 on every face and 1 extra free reroll each turn.", disabled=True, needs="H-sleep-unit: a sleeping Axie flag (no die, no target) in combat_engine (lane A)")
 core("spore_burst", "Nổ Bào Tử", "Spore Burst", 0, "rule", [], [], ["nonattack", "convert_to_dmg"], "When an Axie falls it bursts: every enemy loses 20% of its Max HP (boss 8%), ignoring Shield. Eggs burst for half.")
-core("fossil", "Hoá Thạch", "Fossil", 0, "rule", [], [], ["nonattack"], "Does nothing now and takes a slot. Your next Core pick is one tier higher (Crystal: 4 cards; already 4 cards: +1 Core reroll), then it disappears. Only shows at picks 1-2.", first_run_hidden=True, bet=True, pick_max=2)
-core("dim_stone", "Hòn Đá Mờ", "Dim Stone", 1, "rule", [], [], ["nonattack"], "Pick this: nothing now, but you get a random Crystal Core of another axis. Not at pick 2, not at the last pick.", first_run_hidden=True, bet=True)
+core("fossil", "Hoá Thạch", "Fossil", 0, "rule", [], [], ["nonattack"], "Does nothing now and takes a slot. Your next Core pick is one tier higher (Crystal: 4 cards; already 4 cards: +1 Core reroll), then it disappears. Only shows at picks 1-2.", first_run_hidden=True, bet=True, pick_max=2, kn={"next_pick_tier_up": 1, "crystal_extra_card": 4})
+core("dim_stone", "Hòn Đá Mờ", "Dim Stone", 1, "rule", [], [], ["nonattack"], "Pick this: nothing now, but you get a random Crystal Core of another axis. Not at pick 2, not at the last pick.", first_run_hidden=True, bet=True, kn={"grant_crystal_other_axis": True, "not_pick": [2, "last"]})
 # ---- disabled by design (2.10)
 core("spearhead", "Mũi Giáo", "Spearhead", 0, "pos", [], FRONT_EXC, ["attack", "front"], "Front-row Axies: damage faces +2.", disabled=True, needs="cut 2.10")
 core("squad_up", "Hợp Đội", "Squad Up", 1, "pos", ["class_pair"], [], ["attack"], "Axies next to an Axie of the same class: damage faces +2.", disabled=True, needs="cut 2.10")
@@ -98,7 +98,7 @@ def dv(v):
     if isinstance(v, dict): return "{" + ", ".join(q(k) + ": " + dv(x) for k, x in v.items()) + "}"
     raise ValueError(v)
 
-NOHOOK = set()   # data-only rules (knobs read by lane B)
+NOHOOK = {"c_fossil", "c_dim_stone", "rule_crow"}   # data-only rules (knobs read by lane B)
 HEAD = '[gd_resource type="Resource" script_class="RelicDef" load_steps=2 format=3]\n\n[ext_resource type="Script" path="res://scripts/data_models/relic_def.gd" id="1"]\n\n[resource]\nscript = ExtResource("1")\n'
 
 def emit(dirp, id_, name, desc, tier, axis, req, exc, tags, layer, idx, extra, is_rule=False, weight=1, knobs=None):
@@ -136,6 +136,7 @@ def main():
         layer = {"stat": "economy", "dice": "dice", "pos": "positional", "mana": "economy", "quest": "enabler", "rule": "engine"}[c["axis"]]
         ex = dict(c["extra"]); knobs = {}
         if ex.get("bet"): knobs = {"bet": True, "pick_max": ex.get("pick_max", 0)}
+        knobs.update(ex.pop("kn", {}))
         open(os.path.join(out, id_ + ".tres"), "w").write(emit(out, id_, c["name"], c["desc"], c["tier"], c["axis"], c["req"], c["exc"], c["tags"], layer, i, ex, knobs=knobs))
         n += 1
     for i, r in enumerate(R):

@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="RelicDef" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data_models/relic_def.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "rule_heavy_finish"
+name = "Heavy Finish"
+description = "The last die you use each turn gets +3, but enemies deal 10% more damage."
+rarity = 0
+archetype = ""
+mload = 0
+sort_index = 200505
+hook_key = "rule_heavy_finish"
+tags = PackedStringArray("rule")
+layer = "engine"
+core_axis = "run_rule"
+run_rule = true
+weight = 1
+rule_knobs = {"finisher_bonus": 3, "enemy_dmg_mult": 1.1}

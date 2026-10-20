@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="RelicDef" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data_models/relic_def.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "c_cascade"
+name = "Cascade"
+description = "Damage faces used back to back form a chain: the 2nd gets +2, the 3rd +4, the 4th +6, the 5th+ +8. Using a non-damage face breaks the chain."
+rarity = 2
+archetype = ""
+mload = 0
+sort_index = 202041
+hook_key = "c_cascade"
+tags = PackedStringArray("attack")
+layer = "engine"
+core_axis = "rule"
+excludes = PackedStringArray("rule:rule_balance", "owned:c_toxic_still")

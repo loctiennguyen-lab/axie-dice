@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="RelicDef" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data_models/relic_def.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "c_thorn_pact"
+name = "Thorn Pact"
+description = "Rerolls cost no Mana but 2 HP of the Axie being rerolled (not allowed at 2 HP or less). Axies at half HP or lower get +2 on every face."
+rarity = 1
+archetype = ""
+mload = 0
+sort_index = 201031
+hook_key = "c_thorn_pact"
+tags = PackedStringArray("nonattack", "tradeoff")
+layer = "economy"
+core_axis = "mana"
+excludes = PackedStringArray("owned:c_hollow_core", "rule:rule_cheap_mana", "rule:rule_tundra")

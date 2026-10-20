@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="RelicDef" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data_models/relic_def.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "c_plague_spread"
+name = "Contagion"
+description = "When a poisoned enemy dies, its remaining poison spreads to every living enemy. Poison faces give +2 stacks."
+rarity = 1
+archetype = ""
+mload = 0
+sort_index = 201011
+hook_key = "c_plague_spread"
+tags = PackedStringArray("nonattack", "convert_to_dmg")
+layer = "dice"
+core_axis = "dice"
+requires = PackedStringArray("face:poison")

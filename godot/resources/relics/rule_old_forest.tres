@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="RelicDef" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data_models/relic_def.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "rule_old_forest"
+name = "Old Forest"
+description = "Every Axie and enemy has +30% HP. Heal and poison faces are 50% stronger. Fights run long, so spamming damage runs out of steam."
+rarity = 0
+archetype = ""
+mload = 0
+sort_index = 200510
+hook_key = "rule_old_forest"
+tags = PackedStringArray("rule")
+layer = "engine"
+core_axis = "run_rule"
+run_rule = true
+weight = 2
+rule_knobs = {"hp_mult": 1.3, "heal_poison_mult": 1.5}

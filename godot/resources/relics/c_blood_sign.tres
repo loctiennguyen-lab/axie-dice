@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="RelicDef" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data_models/relic_def.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "c_blood_sign"
+name = "Blood Sign"
+description = "Damage faces add 1 poison per 3 damage dealt (rounded down). Poison faces also deal damage equal to half their value."
+rarity = 2
+archetype = ""
+mload = 0
+sort_index = 202039
+hook_key = "c_blood_sign"
+tags = PackedStringArray("nonattack", "convert_to_dmg")
+layer = "engine"
+core_axis = "rule"
+requires = PackedStringArray("face:poison")

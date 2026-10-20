@@ -1566,28 +1566,147 @@ static var TABLE: Dictionary = {
 	},
 	"c_kindle": {
 		"on_stash": func(ctx: Dictionary): CoreHooks.kindle_stash(ctx),
-		"face_final": func(ctx: Dictionary): return CoreHooks.kindle_value(ctx),
+		"face_final": func(ctx: Dictionary): return CoreHooks.flat(ctx, "c_kindle"),
 		"on_face_used": func(ctx: Dictionary): CoreHooks.focus_spent(ctx["combat"], "focus_c_kindle", ctx["unit"]),
 	},
 	"c_prime_chain": {
 		"on_face_used": func(ctx: Dictionary): CoreHooks.prime_used(ctx),
-		"face_final": func(ctx: Dictionary): return CoreHooks.prime_value(ctx),
+		"face_final": func(ctx: Dictionary): return CoreHooks.flat(ctx, "c_prime_chain"),
 	},
 	"c_finisher": {
 		"on_face_used": func(ctx: Dictionary): CoreHooks.count_used(ctx),
-		"face_final": func(ctx: Dictionary): return CoreHooks.finisher_value(ctx),
+		"face_final": func(ctx: Dictionary): return CoreHooks.flat(ctx, "c_finisher"),
 	},
 	"c_prism": {
 		"on_face_used": func(ctx: Dictionary): CoreHooks.note_category(ctx),
 		"on_turn_end": func(ctx: Dictionary): CoreHooks.prism_turn_end(ctx),
 	},
 	"c_mana_pool": {
-		"face_final": func(ctx: Dictionary): return CoreHooks.mana_pool_value(ctx),
+		"face_final": func(ctx: Dictionary): return CoreHooks.flat(ctx, "c_mana_pool"),
 		"on_turn_end": func(ctx: Dictionary): CoreHooks.mana_pool_turn_end(ctx),
 	},
 	"c_tidecaller": {
 		"on_active_played": func(ctx: Dictionary): CoreHooks.tide_spent(ctx),
 		"on_reroll_paid": func(ctx: Dictionary): CoreHooks.tide_spent(ctx),
+	},
+	"c_sonic_shield": {"on_face_used": func(ctx: Dictionary): CoreHooks.sonic_used(ctx)},
+	"c_field_medic": {
+		"mod_face": func(ctx: Dictionary): CoreHooks.field_medic_face(ctx),
+		"face_final": func(ctx: Dictionary): return CoreHooks.flat(ctx, "c_field_medic"),
+	},
+	"c_plague_spread": {
+		"on_kill": func(ctx: Dictionary): CoreHooks.plague_kill(ctx),
+		"face_final": func(ctx: Dictionary): return CoreHooks.flat(ctx, "c_plague_spread"),
+	},
+	"c_mirror_face": {"on_face_used": func(ctx: Dictionary): CoreHooks.mirror_used(ctx)},
+	"c_whittle": {
+		"mod_face": func(ctx: Dictionary): CoreHooks.whittle_face(ctx),
+		"roll_face": func(ctx: Dictionary): return CoreHooks.whittle_roll(ctx),
+	},
+	"c_three_dice": {
+		"on_face_used": func(ctx: Dictionary):
+			CoreHooks.focus_spent(ctx["combat"], "focus_c_three_dice", ctx["unit"])
+			CoreHooks.count_used(ctx)
+			CoreHooks.three_used(ctx),
+		"on_turn_end": func(ctx: Dictionary): CoreHooks.three_auto_hold(ctx["combat"]),
+		"face_final": func(ctx: Dictionary): return CoreHooks.flat(ctx, "c_three_dice"),
+	},
+	"c_toxic_still": {
+		"mod_face": func(ctx: Dictionary): CoreHooks.toxic_still_face(ctx),
+		"on_turn_end": func(ctx: Dictionary): CoreHooks.toxic_still_turn_end(ctx),
+	},
+	"c_gatekeeper": {
+		"on_dmg_taken": func(ctx: Dictionary): CoreHooks.gatekeeper_hit(ctx),
+		"on_face_used": func(ctx: Dictionary): CoreHooks.gatekeeper_used(ctx),
+		"on_turn_end": func(ctx: Dictionary): CoreHooks.gatekeeper_turn_end(ctx),
+		"face_final": func(ctx: Dictionary): return CoreHooks.flat(ctx, "c_gatekeeper"),
+	},
+	"c_backline_glow": {"face_final": func(ctx: Dictionary): return CoreHooks.backline_value(ctx)},
+	"c_living_wall": {
+		"front_row_size": func(ctx: Dictionary): return 1,
+		"mod_face": func(ctx: Dictionary): CoreHooks.living_wall_face(ctx),
+		"on_combat_start": func(ctx: Dictionary): CoreHooks.living_wall_start(ctx),
+	},
+	"c_open_ranks": {"front_row_size": func(ctx: Dictionary): return 99},
+	"c_mana_ward": {"on_turn_end": func(ctx: Dictionary): CoreHooks.mana_ward_turn_end(ctx)},
+	"c_overflow": {
+		"on_face_used": func(ctx: Dictionary): CoreHooks.overflow_check(ctx),
+		"on_turn_start": func(ctx: Dictionary): CoreHooks.overflow_check(ctx),
+		"on_turn_end": func(ctx: Dictionary): CoreHooks.overflow_check(ctx),
+	},
+	"c_hollow_core": {
+		"reroll_mana_cost": func(ctx: Dictionary): return 1,
+		"on_reroll_paid": func(ctx: Dictionary): CoreHooks.hollow_paid(ctx),
+		"on_roll_settled": func(ctx: Dictionary): CoreHooks.rerolled_count(ctx),
+		"face_final": func(ctx: Dictionary): return CoreHooks.flat(ctx, "c_hollow_core"),
+	},
+	"c_thorn_pact": {
+		"reroll_mana_cost": func(ctx: Dictionary): return 0,
+		"reroll_allowed": func(ctx: Dictionary): return CoreHooks.thorn_allowed(ctx),
+		"on_roll_settled": func(ctx: Dictionary): CoreHooks.thorn_settled(ctx),
+		"face_final": func(ctx: Dictionary): return CoreHooks.flat(ctx, "c_thorn_pact"),
+	},
+	"c_collector": {
+		"on_face_used": func(ctx: Dictionary): CoreHooks.note_category(ctx),
+		"on_turn_start": func(ctx: Dictionary): CoreHooks.collector_turn_start(ctx),
+		"on_turn_end": func(ctx: Dictionary): CoreHooks.collector_turn_end(ctx),
+	},
+	"c_dry_well": {
+		"on_combat_start": func(ctx: Dictionary): CoreHooks.dry_well_start(ctx),
+		"on_active_played": func(ctx: Dictionary): CoreHooks.dry_well_spent(ctx),
+		"on_reroll_paid": func(ctx: Dictionary): CoreHooks.dry_well_spent(ctx),
+	},
+	"c_night_watch": {
+		"mod_face": func(ctx: Dictionary): CoreHooks.night_watch_face(ctx),
+		"on_combat_end": func(ctx: Dictionary): CoreHooks.night_watch_end(ctx),
+	},
+	"c_key_strike": {
+		"stash_repeat": func(ctx: Dictionary): return bool(ctx["value"]) or not CoreHooks.quest_done(ctx["combat"], "c_key_strike"),
+		"on_face_hit": func(ctx: Dictionary): CoreHooks.key_strike_hit(ctx),
+	},
+	"c_chimera_hunt": {"on_kill": func(ctx: Dictionary): CoreHooks.chimera_kill(ctx)},
+	"c_golden_egg": {
+		"on_dmg_taken": func(ctx: Dictionary): CoreHooks.golden_egg_fall(ctx),
+		"on_face_used": func(ctx: Dictionary): CoreHooks.golden_egg_used(ctx),
+		"face_final": func(ctx: Dictionary): return CoreHooks.flat(ctx, "c_golden_egg"),
+	},
+	"c_blood_sign": {
+		"on_face_hit": func(ctx: Dictionary): CoreHooks.blood_hit(ctx),
+		"on_face_used": func(ctx: Dictionary): CoreHooks.blood_used(ctx),
+	},
+	"c_cascade": {
+		"on_face_used": func(ctx: Dictionary): CoreHooks.cascade_used(ctx),
+		"face_final": func(ctx: Dictionary): return CoreHooks.flat(ctx, "c_cascade"),
+	},
+	"c_spore_burst": {"on_dmg_taken": func(ctx: Dictionary): CoreHooks.spore_fall(ctx)},
+	"rule_cheap_mana": {
+		"reroll_mana_cost": func(ctx: Dictionary): return 1,
+		"on_reroll_paid": func(ctx: Dictionary): CoreHooks.cheap_paid(ctx),
+	},
+	"rule_tundra": {
+		"stash_cap": func(ctx: Dictionary): return int(ctx["value"]) + 1,
+		"on_stash": func(ctx: Dictionary): CoreHooks.tundra_stash(ctx),
+		"on_face_used": func(ctx: Dictionary): CoreHooks.focus_spent(ctx["combat"], "focus_rule_tundra", ctx["unit"]),
+		"face_final": func(ctx: Dictionary): return CoreHooks.flat(ctx, "rule_tundra"),
+	},
+	"rule_starfall": {"on_combat_start": func(ctx: Dictionary): CoreHooks.scale_enemies(ctx, 1.15, false)},
+	"rule_heavy_finish": {
+		"face_final": func(ctx: Dictionary): return CoreHooks.flat(ctx, "rule_heavy_finish"),
+		"mod_dmg": func(ctx: Dictionary): return CoreHooks.heavy_enemy_dmg(ctx),
+	},
+	"rule_wasteland": {"mod_face": func(ctx: Dictionary): ctx["unit"].max_hp += 4},
+	"rule_dry_steppe": {
+		"on_turn_start": func(ctx: Dictionary): CoreHooks.gain_mana(ctx["combat"], 2),
+		"on_turn_end": func(ctx: Dictionary): ctx["combat"].mana = 0,
+	},
+	"rule_old_forest": {
+		"mod_face": func(ctx: Dictionary): CoreHooks.old_forest_face(ctx),
+		"on_combat_start": func(ctx: Dictionary): CoreHooks.scale_enemies(ctx, 1.3, true),
+		"face_final": func(ctx: Dictionary): return CoreHooks.old_forest_value(ctx),
+	},
+	"rule_balance": {
+		"face_final": func(ctx: Dictionary): return CoreHooks.balance_value(ctx),
+		"on_face_used": func(ctx: Dictionary): CoreHooks.balance_used(ctx),
 	},
 	# data-only Run Rules: knobs live in RelicDef.rule_knobs, read by the lanes that own them
 	"rule_none": {},

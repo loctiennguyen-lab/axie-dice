@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="RelicDef" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data_models/relic_def.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "c_golden_egg"
+name = "Golden Egg"
+description = "When an Egg dies: +3 Mana, 4 Shield to your weakest Axie, and your team's next damage face gets +3."
+rarity = 1
+archetype = ""
+mload = 0
+sort_index = 201038
+hook_key = "c_golden_egg"
+tags = PackedStringArray("nonattack")
+layer = "engine"
+core_axis = "rule"
+requires = PackedStringArray("egg_source")

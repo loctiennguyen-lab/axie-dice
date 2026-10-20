@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="RelicDef" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data_models/relic_def.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "rule_crow"
+name = "Crow Herald"
+description = "The fight before each Core pick (from pick 2): win within 5 turns (boss 7) with nobody down and the pick is one tier higher; if an Axie falls, one tier lower."
+rarity = 0
+archetype = ""
+mload = 0
+sort_index = 200511
+hook_key = ""
+tags = PackedStringArray("rule")
+layer = "engine"
+core_axis = "run_rule"
+run_rule = true
+weight = 1
+rule_knobs = {"fast_turns": 5, "fast_turns_boss": 7}

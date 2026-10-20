@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="RelicDef" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data_models/relic_def.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "c_mana_ward"
+name = "Mana Ward"
+description = "End of turn, spend up to 6 unused Mana: every 2 Mana gives each front-row Axie 3 Shield."
+rarity = 1
+archetype = ""
+mload = 0
+sort_index = 201027
+hook_key = "c_mana_ward"
+tags = PackedStringArray("nonattack")
+layer = "economy"
+core_axis = "mana"

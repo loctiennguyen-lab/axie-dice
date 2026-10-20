@@ -1,0 +1,23 @@
+[gd_resource type="Resource" script_class="RelicDef" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data_models/relic_def.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "rule_quick_beat"
+name = "Quick Beat"
+description = "Boss rhythm is only 2 turns (Strike, Hollow, Strike...), and Strike turns hit 20% harder."
+rarity = 0
+archetype = ""
+mload = 0
+sort_index = 200503
+hook_key = ""
+tags = PackedStringArray("rule")
+layer = "engine"
+core_axis = "run_rule"
+disabled = true
+hidden_from_pool = true
+run_rule = true
+weight = 1
+needs_hook = "H-boss-period: boss_rhythm.period hook (lane A)"
+rule_knobs = {"boss_rhythm_period": 2, "strike_mult": 1.2}

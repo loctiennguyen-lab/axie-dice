@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="RelicDef" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data_models/relic_def.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "c_dim_stone"
+name = "Dim Stone"
+description = "Pick this: nothing now, but you get a random Crystal Core of another axis. Not at pick 2, not at the last pick."
+rarity = 1
+archetype = ""
+mload = 0
+sort_index = 201045
+hook_key = ""
+tags = PackedStringArray("nonattack")
+layer = "engine"
+core_axis = "rule"
+first_run_hidden = true
+rule_knobs = {"bet": true, "pick_max": 0, "grant_crystal_other_axis": true, "not_pick": [2, "last"]}

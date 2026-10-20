@@ -1,0 +1,19 @@
+[gd_resource type="Resource" script_class="RelicDef" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data_models/relic_def.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "c_toxic_still"
+name = "Toxic Still"
+description = "Damage faces deal 2 less (min 1). End of turn: every poisoned enemy gains poison equal to half its stacks (rounded up, max +4)."
+rarity = 2
+archetype = ""
+mload = 0
+sort_index = 202017
+hook_key = "c_toxic_still"
+tags = PackedStringArray("nonattack", "tradeoff")
+layer = "dice"
+core_axis = "dice"
+requires = PackedStringArray("face:poison")
+excludes = PackedStringArray("owned:c_field_medic", "owned:c_cascade")
