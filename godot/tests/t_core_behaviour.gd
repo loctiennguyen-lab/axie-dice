@@ -727,6 +727,21 @@ func t_lane_e_rules() -> void:
 	_ok(_val(c, c.party[0], "shield", 3) == _val(b, b.party[0], "shield", 3) + 2, "hard shell: shield face +2")
 	_ok(_val(c, c.party[0], "poison", 3) == _val(b, b.party[0], "poison", 3) + 2, "hard shell: poison face +2")
 	_ok(_val(c, c.party[0], "dmg", 3) == _val(b, b.party[0], "dmg", 3), "hard shell: dmg faces unchanged")
+	# debuff +2 is reported (core_fired kind "debuff", amount 2) and really lands
+	var hs_seen: Array = []
+	var hs_cb := func(id: String, _u: int, amt: int, kind: String): hs_seen.append([id, amt, kind])
+	EventBus.core_fired.connect(hs_cb)
+	var hc := _combat2(["rule_hard_shell"])
+	var hu: Unit = hc.party[0]
+	for o in hc.party:
+		if o != hu:
+			o.clear_roll()
+	hu.die[0] = {"type": "debuff", "value": 0, "keywords": ["weaken:2"], "name": "t", "part": ""}
+	hu.set_roll(0, false)
+	hc.use_die(hu.uid, hc.enemies[0].uid)
+	EventBus.core_fired.disconnect(hs_cb)
+	_ok(int(hc.enemies[0].status.get("weaken", 0)) == 4, "hard shell: weaken 2 lands as 4 (got %d)" % int(hc.enemies[0].status.get("weaken", 0)))
+	_ok(hs_seen.has(["rule_hard_shell", 2, "debuff"]), "hard shell: debuff +2 emits core_fired: %s" % str(hs_seen))
 
 
 func t_thorn_cores() -> void:

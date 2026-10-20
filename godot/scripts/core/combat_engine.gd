@@ -1475,6 +1475,13 @@ func _do_face(u: Unit, target_uid: int, f: Dictionary, fi: int, is_echo: bool) -
 	var crit: bool = u.roll_crit_now()
 	var face_type := String(f.get("type", ""))
 	var kw_pure := CombatTraits.side_bonus_keywords(self, u, face_type, _pure_keywords(f))   # R12: debuff magnitudes +2
+	if face_type == "debuff" and CoreHooks.RelicHooks_has(self, "rule_hard_shell"):
+		var raised := 0   # Hard Shell: the +2 on each numeric debuff keyword is a real effect, report it
+		var base_kw := _pure_keywords(f)
+		for ki in mini(base_kw.size(), kw_pure.size()):
+			if str(base_kw[ki]) != str(kw_pure[ki]):
+				raised += int(str(kw_pure[ki]).split(":")[1]) - int(str(base_kw[ki]).split(":")[1])
+		CoreHooks.fire("rule_hard_shell", u.uid, raised, "debuff")
 
 	var ctx_n := [0, false]   # [hits so far, secondary-target mode] for the on_face_hit hook (FACE_CTX)
 	var hit := func(t: Unit, amount: int) -> int:
