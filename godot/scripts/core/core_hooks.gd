@@ -92,6 +92,17 @@ static func early_scales_start(ctx: Dictionary) -> void:
 			DamagePipeline.apply_shield(combat, u, 5)
 
 
+## Sacrifice: the Axie in slot 5 sleeps for the whole fight (no die, never targeted, not counted for a wipe).
+static func sacrifice_start(ctx: Dictionary) -> void:
+	var combat = ctx["combat"]
+	for u in combat.party:
+		if u.roster_index == 4 and not u.is_token:
+			u.custom_state["asleep"] = true
+			u.held = false
+			u.clear_roll()
+			EventBus.float_text.emit(u.uid, "ZZZ", "buf", 0)
+
+
 static func dewdrop_turn(ctx: Dictionary) -> void:
 	gain_mana(ctx["combat"], 1)
 
@@ -247,7 +258,7 @@ static func tide_spent(ctx: Dictionary) -> void:
 const FLAT_CAP := 10
 const FLAT_IDS := ["c_kindle", "c_prime_chain", "c_finisher", "c_mana_pool", "c_three_dice", "c_field_medic",
 	"c_plague_spread", "c_hollow_core", "c_thorn_pact", "c_cascade", "c_gatekeeper", "c_golden_egg",
-	"rule_tundra", "rule_heavy_finish"]
+	"rule_tundra", "rule_heavy_finish", "c_sacrifice"]
 
 
 static func mirror_second(combat, u) -> bool:
@@ -290,6 +301,8 @@ static func bonus(combat, u, ft: String, id: String) -> int:
 			return 2 * mini(4, int(turn_state(combat, "cs_chain").get("n", 0))) if ft == "dmg" else 0
 		"c_gatekeeper":
 			return mini(6, int(combat_state(combat, "gk").get("b", 0))) if ft == "dmg" else 0
+		"c_sacrifice":
+			return 2 if val else 0
 		"c_golden_egg":
 			return 3 if (ft == "dmg" and bool(combat_state(combat, "ge").get("on", false))) else 0
 	return 0

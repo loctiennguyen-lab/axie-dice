@@ -471,7 +471,13 @@ func _compute_growth_keep() -> Dictionary:
 # ===========================================================================
 
 func alive_party() -> Array:
-	return party.filter(func(u): return u.hp > 0)
+	return party.filter(func(u): return u.hp > 0 and not is_sidelined(u))
+
+
+## Depth v3: a unit that is in `party` but out of play: asleep (Core Sacrifice) or a temporary extra die
+## (Core Sixth Die, "phantom"). Never targeted, never counts for the lose check.
+static func is_sidelined(u: Unit) -> bool:
+	return u.custom_state.has("asleep") or u.custom_state.has("phantom")
 
 func alive_enemies() -> Array:
 	return enemies.filter(func(u): return u.hp > 0)
@@ -479,7 +485,7 @@ func alive_enemies() -> Array:
 ## realP(s) — party members that are NOT tokens/allies. Only these count for the
 ## lose condition (rule spec §4/§8).
 func real_party() -> Array:
-	return party.filter(func(u): return not u.is_token)
+	return party.filter(func(u): return not u.is_token and not u.custom_state.has("asleep"))
 
 func by_uid(uid: int) -> Unit:
 	for u in party:
@@ -492,7 +498,7 @@ func by_uid(uid: int) -> Unit:
 
 func _any_real_party_alive() -> bool:
 	for u in party:
-		if not u.is_token and u.hp > 0:
+		if not u.is_token and u.hp > 0 and not u.custom_state.has("asleep"):
 			return true
 	return false
 
@@ -517,7 +523,10 @@ func _set_turn_phase(new_phase: int) -> void:
 ## ROLL — both sides roll simultaneously, cantrips auto-resolve. engine.js rollAll(s).
 func roll_all() -> void:
 	for u in party:
-		if u.hp > 0:
+		if u.custom_state.has("asleep"):
+			u.held = false
+			u.clear_roll()
+		elif u.hp > 0:
 			if u.frozen_next:
 				u.frozen = true
 				u.frozen_next = false

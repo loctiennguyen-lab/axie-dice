@@ -469,3 +469,23 @@ func t_engine_cores() -> void:
 		c._resolve_cantrips()
 		mana_gain.append(c.mana)
 	_ok(int(mana_gain[1]) == int(mana_gain[0]) + 3, "loop: cantrip used once more (+3 mana), got %s" % str(mana_gain))
+
+	# Sacrifice: slot 5 sleeps, the rest +2 per face and +1 reroll.
+	var base := _combat([])
+	var sc := _combat(["c_sacrifice"])
+	var sl: Unit = sc.party[4]
+	_ok(sl.custom_state.has("asleep") and not sl.has_rolled(), "sacrifice: slot 5 asleep with no die")
+	_ok(not sc.alive_party().has(sl) and sc.alive_party().size() == 4, "sacrifice: sleeper cannot be targeted")
+	_ok(sc.max_rerolls == base.max_rerolls + 1, "sacrifice: +1 free reroll")
+	for e in sc.enemies:
+		_ok((e as Unit).intent.get("target_uid", -1) != sl.uid, "sacrifice: enemy intent skips sleeper")
+	var a0: Unit = sc.party[0]
+	var b0: Unit = base.party[0]
+	for fi in 6:
+		var t := String(a0.die[fi].get("type", ""))
+		if ["dmg", "shield", "heal", "poison", "mana"].has(t) and int(a0.die[fi].get("value", 0)) > 0:
+			_ok(sc._face_value(a0, fi) == base._face_value(b0, fi) + 2, "sacrifice: face %d +2" % fi)
+	for i in 4:
+		(sc.party[i] as Unit).hp = 0
+	sc._check_end()
+	_ok(sc.lost, "sacrifice: sleeper does not stop a wipe")
