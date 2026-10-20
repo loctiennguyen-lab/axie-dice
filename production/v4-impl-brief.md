@@ -115,3 +115,11 @@ Còn lại / chưa làm:
 - Offline stage vẫn mặc định 3 (chưa có `runs_completed` trong MetaState; thuộc bước khác). UI online chưa đọc stage từ server (N8, bước 5).
 - Cần Liam/lane I: bump `RULES_VERSION` (đổi luật poison/thorn/Lieu) + `t_rules_version`.
 Lệnh deploy (CHỜ Liam bảo, theo thứ tự): 1) `cd worker && npx wrangler d1 migrations apply axie-dice-db --remote` (chỉ ADD COLUMN, 0009) TRƯỚC; 2) `npx wrangler deploy` Worker; 3) build + upload client (`bash export-web.sh` rồi `bash deploy-r2.sh`). Không đảo: Worker mới cần cột trước; client cũ (không gửi depth_stage) sẽ bị `stage_mismatch` ở run mới nên client phải lên cùng lúc.
+
+## Bước 5 - xong (làn V4)
+- Relic cộng poison trực tiếp (sporegale x2, fumeblossom, venomlineage `on_poison_applied`) đi qua `StatusEngine.capped_poison` (poison.stack_cap). Proof `t_v4_caps` (+4 check).
+- Fake remote của `t_remote_epoch_ui_run` trả `stage_mismatch` (pin_mismatch kế thừa từ LocalEpochSource). Test mới `t_depth_epoch_args_contract` (mã `stage_mismatch`/`pin_mismatch`/`ranked_stage` ở Worker và client + args pin nằm trong epoch_args.json).
+- `MetaState.runs_completed` (SaveStore, `reload_from_store()`, save cũ = max(runs, runs_with_battle)), tăng ở `RunState.end_run` qua `note_run_completed()`. `MetaState.depth_stage()` offline: >=3 -> 3, >=1 -> 2, chưa: newcomer ? 1 : 3 (hằng DEPTH_STAGE2/3_RUNS, không sửa JSON rules nên không cần bump). `RunSetup.start_params` gửi `depth_stage`. Test mới `t_runs_completed`; `t_run_setup` +2 check.
+- Security: Worker `_consumeProblem` so `uids` log `reroll_dice` với uids đã pin (why `uids_mismatch`, anomaly `uids_mismatch`; phần tử sai kiểu/ngoài khoảng -> `uids_invalid`); cột `epochs.uids` giờ là JSON (`[1,2]`), hàng cũ `1,2` vẫn so được (normUids); `ALTER TABLE` chỉ nuốt "duplicate column"; ranked chỉ stage 3: client chặn ở RunSetup ("Ranked opens at depth stage 3"), Worker `ranked_stage` ở create (trừ ALLOW_GATED_MODES=1), run_close, leaderboard submit (depth_stage NULL = 3).
+- Floor Godot: suite đo 182/182 (t_rules_version skip), gồm +2 file mới của bước 5 (t_runs_completed, t_depth_epoch_args_contract). Worker 210/210.
+- DEPLOY: client và Worker phải lên CÙNG LÚC (client cũ không gửi depth_stage -> stage_mismatch). Thứ tự: migration 0009 -> wrangler deploy -> export-web + deploy-r2. Vẫn cần lane I bump RULES_VERSION.
