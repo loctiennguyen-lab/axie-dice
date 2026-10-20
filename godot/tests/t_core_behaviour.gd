@@ -357,9 +357,13 @@ func t_quests() -> void:
 	RelicHooks.fire(c, "on_turn_start", {"combat": c})
 	_ok(c.mana == m0 + 1, "collector: +1 mana until done")
 	var st := CoreHooks.turn_state(c, "cs_types")
+	# a cantrip face resolved at roll time already noted its type this turn: start from a clean slate so exactly 3 types count
+	st.clear()
+	st["_t"] = int(c.turn)
 	for t in ["dmg", "shield", "heal"]:
 		st[t] = true
 	RelicHooks.fire(c, "on_turn_end", {"combat": c})
+	_ok(int(CoreHooks.quest(c, "c_collector")["n"]) == 0, "collector: 3 types do not count")
 	st["poison"] = true
 	RelicHooks.fire(c, "on_turn_end", {"combat": c})
 	_ok(int(CoreHooks.quest(c, "c_collector")["n"]) == 1, "collector: 4 types -> 1 fight counted")
