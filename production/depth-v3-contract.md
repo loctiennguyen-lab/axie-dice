@@ -201,3 +201,10 @@ Commit (mới nhất trước): bf4486e feat(core): enable Fissure, Bastion, Gro
 - Proof mới trong t_core_behaviour (229 check): 3c, 3d, 3e (trừ Mai Lớn Dần), 3g. Check Nhà Sưu Tầm "3 loại không tính" đã khôi phục: nguyên nhân fail là `cs_types` đã có sẵn loại từ mặt cantrip tự dùng lúc roll, test giờ xoá sạch trước.
 - `t_replay`: `_run_digest` bỏ `core_impact` (số liệu hiển thị, undo không rút lại được signal) - nếu không thì t_replay đỏ từ khi có core_fired.
 - Đã chạy xanh (AXIE_SKIP_RULES_FINGERPRINT=1): t_core_behaviour, t_core_fires, t_core_replay, t_core_catalog/filter/offer/quest/reroll_card/seen/tierchain, t_run_rule_catalog/offer/r12, t_thorns_uncapped, t_replay, t_preview_damage. KHÔNG đụng RULES_VERSION/t_rules_version (fingerprint sẽ đỏ vì core_hooks/relic_hooks/combat_engine/damage_pipeline đổi chữ: làn I bump).
+
+### Làn FX - cập nhật (Lõi cược bậc + Quạ + Kết Nặng)
+- Hoá Thạch / Hòn Đá Mờ chạy thật (RunState `_open_core_offer` / `_apply_core_pick`, `CoreOffer._bet_ok`, `dim_stone_grant`). Fossil: lần chọn kế +1 bậc, đã T thì 4 thẻ, đã 4 thẻ thì +1 reroll Lõi, rồi tự mất (không thêm field save). Dim Stone: không giữ thẻ, nhận 1 Lõi T khác trục (rng `_core_base_seed ^ CORE_SALT ^ 0xD1A57015 ^ pick`), tôn trọng `core_t_cap`. Bet chỉ hiện ở offer mốc (không ở offer quest/event/shop: ctx.bonus), pick_max/not_pick/`max_chain_t` (knob MỚI = 2 trên Dim Stone) đọc từ rule_knobs. Phát `core_fired(id,-1,n,"tier")`.
+- Quạ Đưa Tin: `RunState._crow_judge` trong apply_combat_result (trận thắng mở lần chọn từ lần 2): turns <= fast_turns (boss 7) và `downed` = 0 -> +1 qua add_core_tier_bump, có Axie gục -> -1. `CombatEngine.get_result()` có field mới `downed`.
+- Kết Nặng: nửa quái +10% đổi sang hook `incoming_dmg` (dùng knob `enemy_dmg_mult`); Vỏ Cứng phát `core_fired(...,"debuff")` cho +2 độ mạnh debuff.
+- `CoreHooks.mute` (preview_damage im lặng cho mọi `fire`), undo_last trả lại `core_impact` (`_impact_at`, không qua save/load). t_core_fires: NO_BEHAVIOUR chỉ còn `rule_none`.
+- Chưa chạy cả suite / fingerprint (RULES_VERSION do làn I: core_offer, RunState, combat_engine, core_hooks đổi chữ; Quạ/Hoá Thạch đổi hành vi run).

@@ -1184,10 +1184,19 @@ func _log(fn: String, args: Array = []) -> void:
 		action_log.record(fn, args)
 
 
+## core_impact (the display tally of Core activations) as it was when undo entry `k` was pushed. Not part of the
+## snapshot dict itself (that would change saves / digests); undo_last() puts the tally back so an undone move is
+## not counted twice when the player redoes it. Lost across a save/load (undo then leaves the tally as it is).
+var _impact_at: Dictionary = {}
+
+
 func _push_undo() -> void:
+	_impact_at[undo_stack.size()] = RunState.core_impact.duplicate(true)
 	undo_stack.append(_state_dict())
 	if undo_stack.size() > 90:
 		undo_stack.pop_front()
+		for i in 90:
+			_impact_at[i] = _impact_at.get(i + 1, {})
 
 
 ## H7 — dice-editing relics (Tweak / Amber hold / Loaded die). Each call: legal only mid-EXECUTE, takes an
@@ -1293,6 +1302,8 @@ func undo_last() -> bool:
 	if undo_stack.is_empty():
 		return false
 	var snap: Dictionary = undo_stack.pop_back()
+	if _impact_at.has(undo_stack.size()):
+		RunState.core_impact = (_impact_at[undo_stack.size()] as Dictionary).duplicate(true)
 	_apply_state_dict(snap)
 	_log("undo_last", [])
 	return true
@@ -1416,7 +1427,9 @@ func preview_damage(src: Unit, target: Unit, fi: int) -> Dictionary:
 	# Core hooks create their combat_state buckets lazily on first read; a UI preview must not leave them behind
 	# (the replay never calls it, so a leftover empty bucket would make the digests differ).
 	var rc_before := relic_combat.duplicate(true)
+	CoreHooks.mute += 1   # a preview never counts as a Core firing
 	var out := _preview_damage(src, target, fi)
+	CoreHooks.mute -= 1
 	relic_combat = rc_before
 	return out
 

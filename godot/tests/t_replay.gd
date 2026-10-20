@@ -662,7 +662,9 @@ func _run_digest(state) -> String:
 	var d: Dictionary = (state as Dictionary).duplicate(true)
 	d.erase("action_log")
 	# core_impact is a display-only tally fed by EventBus.core_fired (lane VZ/FX). An undone move or a live-only
-	# path emits signals that no snapshot can take back, so it is not part of "the same run".
+	# path emits signals that no snapshot can take back, so it is not part of "the same run". (CombatEngine.undo_last
+	# does put the tally back for in-combat undo, and previews are muted; the digest still ignores it because a
+	# save/load between the move and its undo loses that bookkeeping.)
 	d.erase("core_impact")
 	return JSON.stringify(d)
 

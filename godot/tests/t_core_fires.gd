@@ -39,6 +39,7 @@ func _ready() -> void:
 		for e in _log:
 			_ok(int(e[2]) > 0, "%s fired with amount <= 0" % id)
 	t_preview_silent()
+	t_undo_tally()
 	print("t_core_fires: %d / %d enabled ids fire (NO_BEHAVIOUR, not implemented: %s)" % [fired, ids.size(), ", ".join(warn)])
 	if _fails.is_empty():
 		print("t_core_fires: PASS - %d checks OK" % _checks)
@@ -224,6 +225,25 @@ func _upside(i: String) -> void:
 		if _any(i):
 			return
 		c.end_turn()
+
+
+## An undone move gives its Core activation back (RunState.core_impact), so redoing it is not counted twice.
+func t_undo_tally() -> void:
+	RunState.core_impact = {}
+	var c := _combat(["c_finisher"])
+	var u: Unit = c.party[4]
+	_only(c, u)
+	for o in c.party:
+		if o != u:
+			o.mark_used()
+	var before := JSON.stringify(RunState.core_impact)
+	_play(c, u, _face("dmg", 3))
+	var after := JSON.stringify(RunState.core_impact)
+	_ok(after != before, "undo proof: the play counted a Core activation (%s)" % after)
+	_ok(c.undo_last(), "undo proof: undo works")
+	_ok(JSON.stringify(RunState.core_impact) == before, "undo proof: undo takes the activation back (%s)" % JSON.stringify(RunState.core_impact))
+	_play(c, u, _face("dmg", 3))
+	_ok(JSON.stringify(RunState.core_impact) == after, "undo proof: redo counts once (%s)" % JSON.stringify(RunState.core_impact))
 
 
 ## A UI preview / forecast must never count as a Core firing.

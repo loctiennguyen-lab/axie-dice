@@ -47,8 +47,14 @@ static func _first_living(combat):
 
 ## depth v3 lane FX: a Core DID something that changed the outcome. Never fires for amount <= 0.
 ## kind: dmg thorns poison shield block heal mana reroll quest_step (CoreFeedback.KINDS) or "rule" (changed a rule / build).
+## While > 0 `fire` is silent: UI previews / forecasts / look-ahead simulations raise it (see CombatEngine.preview_damage),
+## so a Core only counts when it really acted. Combat hooks that have the engine at hand use `_fire_live` (core_emit);
+## this mute is the catch-all for every direct `fire` call reachable from a preview.
+static var mute: int = 0
+
+
 static func fire(core_id: String, unit_uid: int, amount: int, kind: String) -> void:
-	if core_id != "" and amount > 0:
+	if mute <= 0 and core_id != "" and amount > 0:
 		EventBus.core_fired.emit(core_id, unit_uid, amount, kind)
 
 
