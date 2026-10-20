@@ -1695,7 +1695,8 @@ static var TABLE: Dictionary = {
 		"on_turn_end": func(ctx: Dictionary): CoreHooks.overflow_check(ctx),
 	},
 	"c_hollow_core": {
-		"reroll_mana_cost": func(ctx: Dictionary): return 1,
+		"reroll_mana_cost": func(ctx: Dictionary): return CoreHooks.reroll_cheaper(ctx),
+		"reroll_hard_cap": func(ctx: Dictionary): return CoreHooks.reroll_cap_up(ctx),
 		"on_reroll_paid": func(ctx: Dictionary): CoreHooks.hollow_paid(ctx),
 		"on_roll_settled": func(ctx: Dictionary): CoreHooks.rerolled_count(ctx),
 		"face_final": func(ctx: Dictionary): return CoreHooks.flat(ctx, "c_hollow_core"),
@@ -1740,7 +1741,8 @@ static var TABLE: Dictionary = {
 	},
 	"c_spore_burst": {"on_dmg_taken": func(ctx: Dictionary): CoreHooks.spore_fall(ctx)},
 	"rule_cheap_mana": {
-		"reroll_mana_cost": func(ctx: Dictionary): return 1,
+		"reroll_mana_cost": func(ctx: Dictionary): return CoreHooks.reroll_cheaper(ctx),
+		"reroll_hard_cap": func(ctx: Dictionary): return CoreHooks.reroll_cap_up(ctx),
 		"on_reroll_paid": func(ctx: Dictionary): CoreHooks.cheap_paid(ctx),
 	},
 	"rule_tundra": {

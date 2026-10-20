@@ -109,6 +109,8 @@ var bo: Array = []
 var depth_stage: int = 3
 ## Depth v4 3.5 (N1): Lieu/An toan rerolls chosen this turn. ONLY these count against reroll.max_total; free, relic, Aid never do.
 var reroll_paid_k: int = 0
+## Depth v4 3.6: Mat Tam uses this turn (cap wild.per_turn). In the undo snapshot and the save; reset in roll_all.
+var wild_used: int = 0
 ## Every reroll this turn, any source: capped by reroll.hard_cap (3.10.3).
 var reroll_total_turn: int = 0
 ## Depth v4 3.10.2: lock per (turn, k) = {rmode, rsrc, uids, list}; asking for the same k again must repeat it exactly. NOT cleared by undo. Reset in roll_all.
@@ -201,6 +203,7 @@ func setup_new(combat_setup: Dictionary) -> void:
 	reroll_paid_k = 0
 	reroll_total_turn = 0
 	reroll_lock = {}
+	wild_used = 0
 	_next_token_uid = TOKEN_UID_BASE
 	undo_stack = []
 	won = false
@@ -344,6 +347,7 @@ func _state_dict() -> Dictionary:
 		"rng_state": _rng.get_state() if _rng != null else 0,
 		"reroll_k": reroll_k,
 		"reroll_paid_k": reroll_paid_k,
+		"wild_used": wild_used,
 		"reroll_total_turn": reroll_total_turn,
 		"reroll_lock": _lock_to_data(),
 		"relic_combat": relic_combat.duplicate(true),
@@ -402,6 +406,7 @@ func _apply_state_dict(d: Dictionary) -> void:
 	bo = _bo_from_data(d.get("bo", []))
 	depth_stage = clampi(int(d.get("depth_stage", 3)), 1, 3)
 	reroll_paid_k = int(d.get("reroll_paid_k", 0))
+	wild_used = int(d.get("wild_used", 0))
 	reroll_total_turn = int(d.get("reroll_total_turn", 0))
 	reroll_lock = _lock_from_data(d.get("reroll_lock", {}))
 	relic_combat = (d.get("relic_combat", {}) as Dictionary).duplicate(true)
@@ -559,8 +564,10 @@ func roll_all() -> void:
 	reroll_paid_k = 0
 	reroll_total_turn = 0
 	reroll_lock = {}
+	wild_used = 0
 	for u in party:
 		u.overcast = false
+		u.wild_slot = -1   # Mat Tam lasts one turn, mana not refunded (3.6)
 		u.cracked = false   # Lieu cracks last until the next roll (a parked die comes out clean too)
 		if u.custom_state.has("asleep"):
 			u.held = false
@@ -990,8 +997,9 @@ func effective_rmode(from_aid: bool, rmode: int) -> int:
 	return 0 if rmode == 0 else 1
 
 
+## Base knob raised by hook `reroll_hard_cap` (hollow_core / cheap_mana: +1 each, so their looser cap is not eaten by the cap of 4).
 func reroll_hard_cap() -> int:
-	return int(tune_knob("reroll", "hard_cap", 4.0))
+	return int(RelicHooks.run_value_hook(self, "reroll_hard_cap", {"combat": self}, int(tune_knob("reroll", "hard_cap", 4.0))))
 
 
 ## 3.10.2 (N2/N3): the next reroll is key reroll_k + 1. If that key was already thrown (an undo rewound reroll_k, or a load), only the exact
@@ -1381,7 +1389,7 @@ func can_stash(unit_uid: int) -> bool:
 	var u := by_uid(unit_uid)
 	if u == null or u.side != "p" or u.is_token or u.hp <= 0 or not u.has_rolled() or u.roll_used():
 		return false
-	if u.held or u.frozen or u.overcast or _has_kw(u.current_face(), "cantrip"):
+	if u.held or u.frozen or u.overcast or u.wild_slot >= 0 or _has_kw(u.current_face(), "cantrip"):
 		return false
 	if u.stash_carry and not bool(RelicHooks.run_value_hook(self, "stash_repeat",
 			{"combat": self, "unit": u}, false)):
@@ -1409,6 +1417,78 @@ func stash(unit_uid: int) -> bool:
 	RelicHooks.fire(self, "on_stash", {"combat": self, "unit": u, "face": u.current_face(),
 		"fi": u.roll_face_index()})
 	_log("stash", [unit_uid])
+	return true
+
+
+# ---- Depth v4 3.6 MAT TAM ----------------------------------------------------------------------------------
+func wild_cost() -> int:
+	return maxi(0, int(tune_knob("wild", "cost", 2.0)))
+
+
+func wild_per_turn() -> int:
+	return maxi(0, int(tune_knob("wild", "per_turn", 1.0)))
+
+
+## "" when `uid` may take Mat Tam part `slot` now, else a short code: phase, slot, stage, no_die, limit, used, held, cracked, cantrip,
+## wild, same, not_counted, size, mana. Pure (the UI greys the picker with it).
+func wild_block_reason(unit_uid: int, slot: int) -> String:
+	if won or lost or phase != CombatPhase.EXECUTE:
+		return "phase"
+	if slot < 0 or slot >= 6:
+		return "slot"
+	if depth_stage < 2:
+		return "stage"
+	var u := by_uid(unit_uid)
+	if u == null or u.side != "p" or u.is_token or u.custom_state.has("phantom") or u.hp <= 0 or not u.has_rolled():
+		return "no_die"
+	if wild_used >= wild_per_turn():
+		return "limit"
+	if u.roll_used():
+		return "used"
+	if u.held:
+		return "held"
+	if u.cracked:
+		return "cracked"
+	if _has_kw(u.current_face(), "cantrip"):
+		return "cantrip"
+	if u.wild_slot >= 0:
+		return "wild"
+	if slot == u.roll_face_index():
+		return "same"
+	if not _bo_dice().has(u):
+		return "not_counted"
+	if mana < wild_cost():
+		return "mana"
+	# n >= 3 after attaching (otherwise it is useless and refused, mana untouched)
+	u.wild_slot = slot
+	var n := 0
+	for d in _bo_dice():
+		if (d.wild_slot if d.wild_slot >= 0 else d.roll_face_index()) == slot:
+			n += 1
+	u.wild_slot = -1
+	if n < 3:
+		return "size"
+	return ""
+
+
+func can_wild_face(unit_uid: int, slot: int) -> bool:
+	return wild_block_reason(unit_uid, slot) == ""
+
+
+## Pays wild.cost mana; the die counts as part `slot` for Sets this turn (its real face is unchanged). Undoable, no rng.
+## Logged as `wild_face [uid, slot]`. Retakes the Set snapshot.
+func wild_face(unit_uid: int, slot: int) -> bool:
+	if not can_wild_face(unit_uid, slot):
+		return false
+	var u := by_uid(unit_uid)
+	_push_undo()
+	mana -= wild_cost()
+	wild_used += 1
+	u.wild_slot = slot
+	_snap_bo()
+	EventBus.float_text.emit(u.uid, "WILD", "buf", 0)
+	EventBus.die_wild.emit(u.uid, slot)
+	_log("wild_face", [unit_uid, slot])
 	return true
 
 
@@ -1675,15 +1755,14 @@ func bo_add100(size: int) -> int:
 	return roundi(tune_knob("bo", "add_%d" % n, def) * tune_knob("bo", "scale", 0.8) * 100.0)
 
 
-## Pure: the Set groups for the CURRENT faces (design 3.2). Does not touch state. Concord (hook roll_share_class): per class only the
-## first eligible die of `party` counts, filtered BEFORE wild_slot is applied.
-func recompute_bo() -> Array:
+## Pure: the dice that count toward Sets right now (3.2 + Concord filter, before wild_slot is applied), in party order.
+func _bo_dice() -> Array:
+	var out: Array = []
 	if int(tune_knob("bo", "enabled", 1.0)) == 0:
-		return []
+		return out
 	var concord := bool(RelicHooks.run_value_hook(self, "roll_share_class", {"combat": self}, false))
 	var phantom_ok := int(tune_knob("bo", "phantom_counts", 0.0)) != 0
 	var seen_cls := {}
-	var by_part := {}   # part index -> [Unit]
 	for u in party:
 		if u.side != "p" or u.is_token or u.hp <= 0 or not u.has_rolled() or u.custom_state.has("asleep"):
 			continue
@@ -1695,6 +1774,15 @@ func recompute_bo() -> Array:
 			if seen_cls.has(u.cls):
 				continue
 			seen_cls[u.cls] = true
+		out.append(u)
+	return out
+
+
+## Pure: the Set groups for the CURRENT faces (design 3.2). Does not touch state. Concord (hook roll_share_class): per class only the
+## first eligible die of `party` counts, filtered BEFORE wild_slot is applied.
+func recompute_bo() -> Array:
+	var by_part := {}   # part index -> [Unit]
+	for u in _bo_dice():
 		var part: int = u.wild_slot if u.wild_slot >= 0 else u.roll_face_index()
 		if not by_part.has(part):
 			by_part[part] = []

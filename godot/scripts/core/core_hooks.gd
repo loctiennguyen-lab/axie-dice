@@ -937,6 +937,16 @@ static func overflow_check(ctx: Dictionary) -> void:
 		_hit_enemy(combat, e, ex, "c_overflow")
 
 
+## v4: hollow_core / cheap_mana make a paid reroll 1 Mana cheaper than the knob price (reroll.mana_cost_2/_3), never below 0.
+static func reroll_cheaper(ctx: Dictionary) -> int:
+	return maxi(0, int(ctx["value"]) - 1)
+
+
+## v4: hollow_core / cheap_mana lift the hard per-turn reroll cap (reroll.hard_cap) by reroll.core_hard_cap_add, or the cap of 4 would eat their gain.
+static func reroll_cap_up(ctx: Dictionary) -> int:
+	return int(ctx["value"]) + int(ctx["combat"].tune_knob("reroll", "core_hard_cap_add", 1.0))
+
+
 ## Hollow Core: reroll costs 1 Mana, up to 8 a turn (the engine cap counts each second paid reroll as free).
 static func hollow_paid(ctx: Dictionary) -> void:
 	var combat = ctx["combat"]

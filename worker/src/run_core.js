@@ -30,6 +30,8 @@ export const ALLOWED_FNS = new Set([
   'stash',
   // lane OC: Overcast ([uid])
   'overcast',
+  // depth v4: Mat Tam ([uid, slot])
+  'wild_face',
 ]);
 
 /** kind -> action(s) that consume it at position log_len (ADR 4.2). null = consumed on reply. A list means any of them. */

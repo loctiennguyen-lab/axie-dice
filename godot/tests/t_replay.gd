@@ -486,6 +486,8 @@ func _sample_args(fn: String) -> Array:
 			return [1]
 		"stash", "overcast":
 			return [1]
+		"wild_face":
+			return [1, 0]
 		"loaded_pick":
 			return [1, 0]
 		"sell_relic":
@@ -561,6 +563,8 @@ func _apply(engine: CombatEngine, fn: String, args: Array) -> bool:
 			return args.size() >= 1 and engine.stash(int(args[0]))
 		"overcast":
 			return args.size() >= 1 and engine.overcast(int(args[0]))
+		"wild_face":
+			return args.size() >= 2 and engine.wild_face(int(args[0]), int(args[1]))
 		"end_turn":
 			engine.end_turn()
 			return true
