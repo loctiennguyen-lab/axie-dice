@@ -1,6 +1,64 @@
 # Axie Dice — trạng thái hiện tại
 
+## ⇢ BẮT ĐẦU TỪ ĐÂY (khuya 20/10/2026) — ĐỢT DEPTH V3 + LAND V1, HẠN 2 NGÀY (Liam: tự quyết cách làm)
+Worktree/nhánh (chưa merge gì vào godot-port; RULES_VERSION bump + deploy Worker gom lúc tích hợp, HỎI Liam trước deploy):
+- DA `depth/A`: engine đợt 1 xong + review (f155bf0); đợt 2 đang làm (Giáp/Khiên Hồi/Phản Đòn/Hồi Ngắt/Đòn Nạp/affix, 6.7/6.7b).
+- DB `depth/B`: hệ Lõi (bb77554 schema), đang làm offer/reroll/quest/Luật run.
+- DC `depth/C` (từ B): nội dung 46 Lõi + 13 Luật run. DD `depth/D` (từ B): UI combat/màn Lõi/Luật run/map.
+- K5 Deep Reef Epic: ĐÃ MERGE vào godot-port = 5e352d0 (chưa push), review art-director OK. Chờ Liam: 12 tên, uv1_scale 2.0 (họa tiết to hơn Epic cũ ~1.5x) hay 3.0, dấu màu trên viền Epic.
+- Land v1: spec `design/proposals/land-v1-spec.md` (decor craft Shard 16 món, Sửa Land thả tự do, điểm thẩm mỹ + 8 mốc, raid ghost). Làn L (`../my-game-wt/L`, `land/L`, làm MetaState trước) + RV (`../my-game-wt/RV`, `land/RV`, Worker raid.js + 0008_raid.sql; rebase lên L khi L commit MetaState). Deploy Worker/D1 migration: HỎI Liam.
+Thiết kế: `design/proposals/depth-v3-design.md` (mục 6.7/6.7b chống spam attack, 2/2b Lõi + Luật run, mục cuối = câu trả lời Liam).
+Bàn giao từng làn (agent mới đọc đây): `production/depth-v3-contract.md` (mục "Làn X - bàn giao"). Cập nhật rạng sáng 21/10:
+A: xong stash/reroll/hàng/knob/nhịp/affix9/A3/Giáp/Ward/Mend/Spite/affix A-B/Đòn Nạp (6d0588d); đang: team_can_break,
+choose_affixes, chống kẹt, R12/R13, preview_damage. Sau đó: hook engine cho ~10 Lõi đang disabled (needs_hook, xem bàn giao C).
+B: xong (4c44e39 + đang INV-6 + suite). C: 10 Lõi bật (9cc4567), agent mới đang sinh 27 Lõi + 13 luật bằng `godot/tools/gen_cores.py`.
+D: combat HUD + màn Lõi/Luật (82c9f79); agent mới: merge depth/B, map icon + affix node, panel 6 ô, Giáp UI.
+L + RV: XONG + review (lead-programmer, security-engineer), đã merge vào nhánh tích hợp `int/v3` (worktree `../my-game-wt/INT`,
+dd531ce): suite 133/133 (+skip t_rules_version), Worker 196/196. Chờ Liam: deploy (D1 migration 0008 → Worker → web), khung mốc
+Land đang mượn cosmetic Echo Box/Pass, cây Savannah to.
+A: xong hết đợt 3 (5bc3cc8), đang review. C: xong (36 Lõi bật, 10 + 4 luật chờ hook). Làn E (`../my-game-wt/DE`, `depth/E` =
+A + C + B đã merge 52dbeca): hook cho 10 Lõi + 4 luật disabled, chỉnh anti-stall (40 lượt → ~14). D: còn Giáp UI.
+Kế hoạch ghép: int/v3 ← depth/E (đã gồm A+B+C) ← depth/D, rồi bump RULES_VERSION + SUPPORTED_RULE_VERSIONS + full suite.
+B: xong + review 2 vòng (685440d). D: xong + sửa theo UX review (2b8477d). E: đang anti-stall + review a-d + suite.
+Việc mới từ Liam (chiều 21/10): (1) nền màn Result xấu → làn RB (`../my-game-wt/RB`, `ui/result-bg`) dựng 3 phương án A arena/B run map/
+C Land, chọn 1; (2) hướng "gacha vui, phấn khích khi ra combo Lõi kiểu LoL" → game-designer brainstorm
+`design/proposals/core-pick-excitement-brainstorm.md` (đã review creative-director, chờ Liam 6 câu mục 4). Đề xuất tiếp: công cụ
+sim cân bằng `sim_balance.gd`. Nền Result: XONG làn RB (dca163f, 3a097c5; phương án A = ảnh arena theo biome,
+`godot/assets/ui3/result_bg/`), test lẻ xanh, chưa merge. Lưu ý: Result vẫn ghi "Relics carried" — đổi thành Lõi lúc ghép.
+E: anti-stall xong (de0488f: Giáp mòn từ lượt 3, Mend 25%) — Liam để ý spam attack sau lượt 3.
+
 ## ⇢ BẮT ĐẦU TỪ ĐÂY (chốt trưa 20/10/2026) — SESSION MỚI = GAME DESIGN
+
+**Cập nhật chiều 20/10:** bước brainstorm XONG, đã qua review creative-director: `design/proposals/depth-brainstorm-2026-10-20.md`
+(chưa commit). Chờ Liam trả lời 10 câu ở mục 5 (gói 1/2/3, sim baseline, một hay hai lần bump...) rồi mới lên plan.
+BLANK ở Vault = lỗi hiển thị, ĐÃ SỬA commit 46a508e (chưa push), t_vault 462 PASS.
+**Liam trả lời (20/10 chiều):** game hiện RẤT DỄ, không cần sim baseline · Gói 3 nhưng gói gọn, triển khai trong 3 ngày ·
+giữ full-heal · chấp nhận affix Elite/nhịp boss · mở lại UI-03 cho combat/map · chấp nhận bump lần 2 có kế hoạch · Focus quyết
+cùng Hold · sửa INV-6 · mục tiêu: nghiện, run sau khác run trước, kết hợp sâu dice + vị trí Axie + relic + mana; relic làm lại
+theo hệ "Lõi" (augments) của LoL ARAM Hỗn Loạn / Võ Đài. game-designer đang viết `design/proposals/depth-v3-design.md`
+(thiết kế + plan 3 ngày) → ĐÃ review (lead-programmer mục 9b, creative-director mục 9c) → chờ Liam duyệt + 5 câu mục 10
+→ mới triển khai 4 làn (A engine, B Lõi+Worker+INV-6, C nội dung Lõi, D UI+map). Chưa commit file thiết kế.
+**Tối 20/10: Liam đã trả lời 5 câu (ghi cuối file thiết kế) và bảo làm.** Đang chạy: làn A (gameplay-programmer, worktree
+`../my-game-wt/DA`, nhánh `depth/A`: stash, reroll mana, hàng trước/sau, knob độ khó, nhịp boss, affix Elite, hợp đồng
+`production/depth-v3-contract.md`) + 2 agent nghiên cứu Lõi LoL (`design/research/lol-aram-mayhem-augments.md`,
+`lol-arena-tft-augments.md`). Sau nghiên cứu: game-designer viết lại mục 2 (Lõi) + Luật run → mới mở làn B/C/D.
+Session khác đã merge làn R (Brine fit 6.1) = 2b8582b.
+**Làn A XONG + đã review (lead-programmer):** `depth/A` 65d4883..a254785 (8 commit), test mới t_stash/t_reroll_mana/t_front_row/
+t_boss_rhythm/t_elite_affix, Worker 184/184. CHƯA merge, CHƯA bump RULES_VERSION (gom lúc tích hợp). Nợ: affix phải suy ra từ
+seed/node để replay khớp (làn map); Gooey/Plague chưa tell riêng, Agony chưa có nhịp. Chờ Liam: Ascension A3 vô tác dụng
+(khuyến nghị A3 mất reroll miễn phí) + lối "một chiều" là lối nào.
+Mục 2 (46 Lõi, bỏ bộ) + 2b (12 Luật run) đã viết lại theo nghiên cứu + review vòng 2 (mục 9d). Chờ Liam duyệt mục 2/2b + câu
+6-9 mục 10 + A3 → rồi mở làn B (Lõi+Luật run+Worker), C (46 Lõi + 12 luật), D (UI+map, gắn affix theo seed/node).
+**Khuya 20/10: Liam trả lời hết (cuối file thiết kế):** lối một chiều = spam mặt attack; Luật run hiện SAU chọn đội; đồng ý lùi
+reroll cả bộ ba; run đầu không luật; A3 mất reroll miễn phí. Đang chạy 4 agent: làn A (A3), game-designer (phá spam attack, thay
+R12, việc mới cho A/C), làn B (`../my-game-wt/DB`, nhánh `depth/B` từ depth/A), làn K5 cosmetics R5 Deep Reef Epic
+(`../my-game-wt/K5`, nhánh `cosm/r5`; gói ở `design/handoffs/cosmetics-3d/round-5/`; 12 tên đề xuất chờ Liam duyệt).
+Sau: làn C (46 Lõi + 12 luật) khi B có schema; làn D (UI+map).
+**Liam gửi sơ đồ ý tưởng vòng meta Land** (`design/proposals/assets/land-meta-idea-liam-2026-10-20.png`: gameplay → gold/
+nguyên liệu/đồ công-thủ/thẻ sưu tầm → xây/nâng Land → trang trí → điểm thẩm mỹ → mốc → Pass; raid phá công trình + cướp gold).
+Bỏ/thay Stamina và Inns. Brainstorm XONG + review (game-designer): `design/proposals/land-meta-loop-brainstorm.md`, chờ Liam
+trả lời 7 câu mục 6 (câu 1 = Land có cho sức mạnh nhỏ không / C6). Phần chống spam attack (mục 6.7, 2.10, R12/R13) đang review
+vòng 3; xong thì làn A làm 11 việc engine mới (cuối mục 9).
 
 **Git:** godot-port = axiedice/main = **a6b7ba3**, suite **125/125**. Bản test Liam: `build/AxieDice-0.1.0-L1-b1049-a6b7ba3-macos.dmg`
 + `-windows.zip` (b945 → `build/old/`). Không có agent/Godot nào đang chạy.
@@ -14,15 +72,15 @@ Blender đang mở scene `Chimera_Review` (6 Chimera + script `chimera_clip.py` 
 **TẠM DỪNG theo Liam (20/10 trưa).** Đã làm thêm sau mốc trên: Blight BỎ khỏi dự án (Liam; code không còn tham chiếu; còn 2 ảnh
 nền + thư mục rỗng trong asset-library chờ Liam tự xoá vì lệnh rm bị chặn quyền); prompt Claude Design art Epic hộp thường =
 `design/handoffs/cosmetics-3d/PROMPT-EPIC-ECHOBOX.md` (Liam duyệt Deep Reef, 12 món) → khi có art: thêm id vào `art_map` epic
-trong `godot/assets/data/economy/echobox.json`, bỏ 2 hình Founder khỏi đó. Dọn: còn worktree B (suite) + R (`l1/R` tại a24133d,
-CHƯA có commit nào — việc "Brine to hơn bằng cách dời cổng/party khi boss rộng" đã dừng giữa chừng, làm lại từ đầu: Liam duyệt
-cho dời cổng/party). Nhánh còn: l1/B-hooks, sim/quick-1012, claude/happy-herschel; nhánh script/* đã xoá (brine cbbac48,
+trong `godot/assets/data/economy/echobox.json`, bỏ 2 hình Founder khỏi đó. **Brine to hơn: XONG** (merge 2b8582b, suite 125/125,
+đã push): fit 6.1; trận có boss rộng (> 5.3 m, gồm Brine + Plague Mother) thì boss giữ mép phải, party lùi trái ~100 px; trận
+thường/elite không đổi; t_combat_spacing không đổi. Chưa kiểm màn 4:3. Dọn: còn worktree B (suite) + R. Nhánh còn: l1/B-hooks, sim/quick-1012, claude/happy-herschel; nhánh script/* đã xoá (brine cbbac48,
 feral 20e6a15, parasite 069dcc0). Thư mục save test cũ AxieDice-wt-* ngoài B/R chờ Liam tự xoá.
 
 **Việc nhỏ còn treo (không chặn game design):**
 1. Liam chơi b1049, duyệt Chimera trong game → rồi **deploy web** theo `production/release/web-deploy-2026-10-19.md`
    (HỎI Liam trước khi upload R2; Worker không cần deploy).
-2. Brine fit 5.3 (to hơn phải dời cổng/party); Tempest nhìn party nên thấy cánh từ cạnh; vỏ kiếm Parasite: UV FBX không khớp
+2. Brine đã to (fit 6.1, 2b8582b); Tempest nhìn party nên thấy cánh từ cạnh; vỏ kiếm Parasite: UV FBX không khớp
    texture team Art gửi → đang chiếu lại vùng texture (nhờ team Art sửa UV nếu muốn đúng gốc). Blight Chimera chờ team Art.
 3. Art Epic thật cho hộp thường (đang mượn hình Founder); phím B/S ở Run setup chưa vào tab Controls.
 4. Dọn worktree cũ (A,C,E,K,L,M,S,U,V,SIM; nhánh script/* giữ tham khảo bản Chimera dựng tay).
