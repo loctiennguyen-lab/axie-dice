@@ -1078,6 +1078,7 @@ func _build_hud_r1() -> void:
 	_shell_root.add_child(_tray_root)
 	_bo_layer = BoLayer.new()
 	_shell_root.add_child(_bo_layer)
+	_bo_layer.cards_provider = _card_rects
 	for b in _die_slot_buttons:
 		var nm: String = (b as Button).name
 		(b as Button).get_parent().remove_child(b)
@@ -4250,7 +4251,9 @@ func _card_rects() -> Dictionary:
 	for i in mini(units.size(), _die_slot_buttons.size()):
 		var b: Button = _die_slot_buttons[i]
 		if b.visible:
-			rects[(units[i] as Unit).uid] = Rect2(b.position, b.size)
+			var gr := b.get_global_rect()
+			var inv := _bo_layer.get_global_transform().affine_inverse() if _bo_layer != null else Transform2D.IDENTITY
+			rects[(units[i] as Unit).uid] = Rect2(inv * gr.position, gr.size)
 	return rects
 
 

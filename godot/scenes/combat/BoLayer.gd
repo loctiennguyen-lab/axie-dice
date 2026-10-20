@@ -13,6 +13,9 @@ var _labels: Array[Label] = []
 var _banner: Label = null
 var _banner_tween: Tween = null
 var label_lift := 0.0                   # raised while the REROLL chips sit above the cards
+var cards_provider: Callable = Callable()   # () -> uid -> Rect2 in this layer's space; polled so frames follow a tray that moves
+var _last_bo: Array = []
+var _last_cards: Dictionary = {}
 var last_banner: String = ""            # test hook
 var _seen: Dictionary = {}              # part -> best size already announced this fight/turn
 var _banner_key := Vector3i(-1, 0, 0)   # (part, size, m100) the visible banner announces
@@ -27,6 +30,8 @@ func _init() -> void:
 
 ## `cards`: uid -> Rect2 (global-in-layer rect of the tray card). `bo`: engine snapshot.
 func refresh(bo: Array, cards: Dictionary) -> void:
+	_last_bo = bo
+	_last_cards = cards.duplicate()
 	_drop_stale_banner(bo)
 	_groups.clear()
 	for g in bo:
@@ -68,6 +73,16 @@ func refresh(bo: Array, cards: Dictionary) -> void:
 			l.size = Vector2(w, LABEL_H)
 			l.position = Vector2(r.position.x + (r.size.x - w) * 0.5, r.position.y - LABEL_H - 2.0 - label_lift)
 	queue_redraw()
+
+
+## The tray can move after the snapshot (layout pass, resize, mode switch): follow the live card rects so the
+## label centre always equals the frame centre.
+func _process(_dt: float) -> void:
+	if not cards_provider.is_valid() or not visible:
+		return
+	var now: Dictionary = cards_provider.call()
+	if now != _last_cards:
+		refresh(_last_bo, now)
 
 
 ## The banner and the tray label must never disagree: a banner whose (part, size, multiplier) is no longer a

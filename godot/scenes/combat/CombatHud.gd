@@ -25,7 +25,7 @@ const SMALL_H := 48.0
 const HINT_H := 26.0
 const TILE := 48.0
 const TILE_LABEL_W := 80.0
-const TILE_LABEL_H := 22.0
+const TILE_LABEL_H := 26.0
 const UNDO_W := 88.0
 const ROW_GAP := 12.0   # Undo | Reroll: a clear gap, the two must not read as one button
 const INFO_W := 288.0
@@ -413,7 +413,7 @@ func _make_tile(b: Button, glyph: StringName, word: String) -> void:
 	b.add_child(g)
 	var l := UI3.label(word, "LabelMuted")
 	l.name = "TileLabel_%s" % b.name
-	l.add_theme_font_size_override("font_size", 16)
+	l.add_theme_font_size_override("font_size", 18)
 	l.add_theme_color_override("font_color", UI3Theme.color("text"))
 	var lbg := UI3Theme.flat(UI3Theme.color("panel"), UI3Theme.radius("s"))
 	lbg.bg_color.a = 0.94
@@ -428,6 +428,17 @@ func _make_tile(b: Button, glyph: StringName, word: String) -> void:
 	b.visibility_changed.connect(func(): l.visible = b.visible)   # a mode that hides the tile hides its word too
 	b.set_meta("tile_label", l)
 	b.set_meta("tile_glyph", g)
+	_tile_style(b)
+
+
+## Solid panel-token fill + border so the tile reads against the stone ground (usable and unusable look the same
+## apart from the dimmed glyph; the tooltip says why a tile is off).
+func _tile_style(b: Button) -> void:
+	for st in ["normal", "hover", "pressed", "disabled", "hover_pressed"]:
+		var bg := UI3Theme.color("panel")
+		if st == "hover" or st == "hover_pressed":
+			bg = UI3Theme.color("panel_raised")
+		b.add_theme_stylebox_override(st, UI3Theme.flat(bg, UI3Theme.radius("s"), 2, UI3Theme.color("text_muted" if st == "disabled" else "text")))
 
 
 func _sync_tile(b: Button) -> void:
@@ -451,7 +462,7 @@ func _place_tiles(x: float, y: float, tiles: Array) -> int:
 		var l: Label = b.get_meta("tile_label")
 		l.visible = true
 		var lf := l.get_theme_font("font")
-		var lw := lf.get_string_size(l.text, HORIZONTAL_ALIGNMENT_LEFT, -1, 16).x + 8.0   # text + the plate's padding
+		var lw := lf.get_string_size(l.text, HORIZONTAL_ALIGNMENT_LEFT, -1, 18).x + 8.0   # text + the plate's padding
 		l.size = Vector2(lw, TILE_LABEL_H)
 		# words never overlap each other: pushed right when the previous one is wide, 12 px of slack past the
 		# column edge (the screen margin is 24)
@@ -721,8 +732,8 @@ func _style_hold_on(on: bool) -> void:
 		if on:
 			hold_button.add_theme_stylebox_override(st, UI3Theme.flat(UI3Theme.color("btn_secondary"), UI3Theme.radius("s"), 4,
 				UI3Theme.color("selected_outline"), Vector4(12, 0, 12, 0)))
-		else:
-			hold_button.remove_theme_stylebox_override(st)
+	if not on:
+		_tile_style(hold_button)
 	if on:
 		hold_button.set_meta("tile_on", true)
 	else:
