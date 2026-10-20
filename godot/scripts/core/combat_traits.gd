@@ -257,7 +257,13 @@ static func _best_dmg_face(e: Unit) -> int:
 
 ## Called from roll_all after the intent of `e` is picked.
 static func charge_roll(combat, e: Unit) -> void:
-	if e.hp <= 0 or e.intent.is_empty():
+	if e.hp <= 0:
+		return
+	if e.intent.is_empty():
+		# No intent this turn (nothing to hit): the cycle still advances, a stale pending charge must not survive.
+		if not e.is_boss and bool(combat._aff(e).get("charge", false)):
+			e.custom_state["charge_pending"] = false
+			e.custom_state.erase("charge_target")
 		return
 	if e.is_boss:
 		var ph: String = combat.boss_rhythm_phase(e)

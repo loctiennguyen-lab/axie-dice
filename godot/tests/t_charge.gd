@@ -19,6 +19,7 @@ func _ready() -> void:
 	_damage_does_not_break()
 	_retarget()
 	_boss()
+	_empty_intent()
 	print("=== t_charge: %d checks, %d failure(s) ===" % [_checks, _failures.size()])
 	for f in _failures:
 		print("t_charge: FAIL - %s" % f)
@@ -26,6 +27,18 @@ func _ready() -> void:
 		print("t_charge: PASS - %d checks OK" % _checks)
 	_guard.restore()
 	get_tree().quit(0 if _failures.is_empty() else 1)
+
+
+## Review (c): an elite with no intent on a turn still advances its cycle; a stale pending charge is dropped.
+func _empty_intent() -> void:
+	var c := _engine("elite", {"affix": "charge"})
+	var e: Unit = c.enemies[0]
+	e.custom_state["charge_pending"] = true
+	e.custom_state["charge_target"] = 1
+	e.intent = {}
+	CombatTraits.charge_roll(c, e)
+	_check(not bool(e.custom_state.get("charge_pending", true)) and not e.custom_state.has("charge_target"), "empty intent: pending charge cleared")
+	_check(e.intent.is_empty(), "empty intent stays empty")
 
 
 func _roster() -> Array:

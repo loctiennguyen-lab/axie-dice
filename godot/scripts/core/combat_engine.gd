@@ -76,7 +76,6 @@ var _early_traits: bool = false   ## setup flag `before_first_elite`: normal fig
 var run_rules: Array = []   ## Run rules active this fight ("R12" Plating everywhere + side bonus, "R13")
 var affix2: String = ""   ## second Elite affix (group B, after boss 1)
 var spite_hits: Dictionary = {}   ## enemy uid -> single-target dmg faces landed on it this player turn (M3)
-var dmg_used_turn: int = 0        ## dmg faces the party has used this turn (R13)
 var affix: String = ""   ## Elite affix id from combat_setup (depth v3 6.4), "" = none
 var _boss_key: String = ""
 var _run_mods: Dictionary = {"enemy_hp": 1.0, "enemy_dmg": 1.0}
@@ -169,7 +168,6 @@ func setup_new(combat_setup: Dictionary) -> void:
 		affix = String(fr.get("default", "iron")) if bool(combat_setup.get("team_can_break", true)) else String(fr.get("no_break", "ward"))
 		affix2 = ""
 	spite_hits = {}
-	dmg_used_turn = 0
 	_run_mods = (combat_setup.get("run_mods", {}) as Dictionary).duplicate()
 	_rng = Rng.new(combat_seed)
 	_epoch = combat_setup.get("epoch", null) as EpochSource
@@ -320,7 +318,6 @@ func _state_dict() -> Dictionary:
 		"affix2": affix2,
 		"run_rules": run_rules.duplicate(),
 		"spite_hits": spite_hits.duplicate(),
-		"dmg_used_turn": dmg_used_turn,
 		"won": won,
 		"lost": lost,
 		"result_shards_earned": result_shards_earned,
@@ -373,7 +370,6 @@ func _apply_state_dict(d: Dictionary) -> void:
 	spite_hits = {}
 	for k in (d.get("spite_hits", {}) as Dictionary):
 		spite_hits[int(k)] = int((d["spite_hits"] as Dictionary)[k])
-	dmg_used_turn = int(d.get("dmg_used_turn", 0))
 	won = bool(d.get("won", false))
 	lost = bool(d.get("lost", false))
 	result_shards_earned = int(d.get("result_shards_earned", 0))
@@ -1389,6 +1385,15 @@ func _face_value(u: Unit, fi: int) -> int:
 ## Includes the pierce bonus (bird talon, piercePlus). Not covered: crit, exec/feral, Core mod_dmg hooks, shield absorb (shown by the UI from target.shield).
 ## Returns {raw, after, plating (P that counted, 0 = none), single (Plating applies at all), shield (target shield)}.
 func preview_damage(src: Unit, target: Unit, fi: int) -> Dictionary:
+	# Core hooks create their combat_state buckets lazily on first read; a UI preview must not leave them behind
+	# (the replay never calls it, so a leftover empty bucket would make the digests differ).
+	var rc_before := relic_combat.duplicate(true)
+	var out := _preview_damage(src, target, fi)
+	relic_combat = rc_before
+	return out
+
+
+func _preview_damage(src: Unit, target: Unit, fi: int) -> Dictionary:
 	if src == null or target == null or fi < 0 or fi >= src.die.size():
 		return {"raw": 0, "after": 0, "plating": 0, "single": false, "shield": 0}
 	var f: Dictionary = src.die[fi]
@@ -1764,7 +1769,6 @@ func finish_end_turn() -> void:
 			u.frozen = false
 	_affix_turn_start()
 	spite_hits = {}
-	dmg_used_turn = 0
 	CombatTraits.turn_start(self)
 	EventBus.combat_clock_changed.emit(clock_state())
 	EventBus.combat_attrition_changed.emit(attrition_state())
