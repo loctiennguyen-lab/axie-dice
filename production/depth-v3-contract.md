@@ -35,3 +35,12 @@ EventBus: `die_stashed(uid)` cho UI. Đổi hàng giữa trận: không có (hà
 ## Ghi chú khác
 - Hold: viên giữ không roll lại ở đầu lượt kế (không bốc rng), dùng được ngay, không giữ lại được liên tiếp; viên cantrip / Frozen / token / đã dùng không giữ được.
 - Nhịp boss: strike = `turn_count % 3 == 0` (OVERDRIVE Mecha, brood Plague Mother đã ở đó), hollow = lượt kế (boss nhận +30% dmg từ mặt dmg, đánh -30%), prep = còn lại. Agony không có nhịp (hai pha riêng). Tell riêng đã làm: Mecha (hollow mở gai), Frost (strike đóng băng 2, hollow 0), Mirror (hollow không chép). Gooey/Plague chỉ có nhịp chung.
+
+## Làn D - bàn giao (UI + map)
+Nhánh depth/D, worktree my-game-wt/DD. Spec ngắn ở `design/ux/depth-v3/` (gitignore, add -f).
+Xong:
+- Combat HUD (a5b9139): nút Hold (H, `combat_hold`) -> `stash`, chip HOLD trên thẻ tray, giá reroll mana ("Reroll N MP" / "Need N MP"), dải FRONT/BACK, FoeCard (nhịp boss 3 chip + tell, chip affix Elite + tooltip). Test `t_depthv3_combat_ui` (10). Ảnh `production/qa/evidence/depthv3_combat_*` (1920/1280).
+- Màn chọn Lõi + Luật run (82c9f79): dùng overlay thưởng RunMap, thẻ `core:true` hiện bậc Moss/Amber/Crystal + trục, chip "Next: bậc", reroll "N left", Luật run 2 thẻ không reroll. Test `t_depthv3_core_offer` (10). Ảnh `depthv3_core_offer_*`, `depthv3_rule_offer_*`.
+Còn: mục 3 (map: icon reward_kind + affix trên node, gán trong run_map_generator bằng Rng(seed ^ SALT)); mục 4 (Giáp: icon + "4 -> 1" preview + chữ "Vỡ Giáp" + coach run đầu); thẻ thứ 4 lần 1 khi có perk; ô Lõi 6 ô trên combat; chip Lõi nhiệm vụ.
+Chờ làn khác (stub): `RunState.core_next_tier`, `RunState.core_reroll_left` (B, đọc bằng `RunState.get`, thiếu thì ẩn/fallback); B phải đẩy thẻ `CoreOffer.card_of` vào `pending_rewards`; A: hàm preview sát thương có Giáp, event Giáp. `combat_setup["affix"]` chưa ai điền từ map (mục 3 làm).
+Chưa chạy full suite. Chưa thêm 3 test mới vào run_tests.sh (không được đụng): t_depthv3_combat_ui, t_depthv3_core_offer.
