@@ -701,9 +701,10 @@ func _start_face_turn(d: Dictionary) -> void:
 	d["turn"] = tw
 
 
-func _turn_step(w: float, body: RigidBody3D, from_q: Quaternion, to_q: Quaternion, from_p: Vector3, to_p: Vector3) -> void:
+func _turn_step(w: float, body: Variant, from_q: Quaternion, to_q: Quaternion, from_p: Vector3, to_p: Vector3) -> void:
+	# `body` is untyped on purpose: a freed RigidBody3D bound into the tween cannot convert to a typed arg (ERROR each fight).
 	if is_instance_valid(body):
-		body.global_transform = Transform3D(Basis(from_q.slerp(to_q, w)), from_p.lerp(to_p, w))
+		(body as RigidBody3D).global_transform = Transform3D(Basis(from_q.slerp(to_q, w)), from_p.lerp(to_p, w))
 
 
 ## Pure maths: the basis nearest to `current` (shortest arc, then the roll about the view axis so the
