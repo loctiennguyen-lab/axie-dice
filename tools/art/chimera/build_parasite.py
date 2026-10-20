@@ -127,8 +127,7 @@ def is_cyan(c):
 def split_hands(obj):
     """Cut the cyan hands off the red cape. Faces whose baked colour is cyan and that sit in the
     hand zone become 'hand'; the edge loop between hand and the rest is split (duplicated verts),
-    so the cape no longer shares vertices with the hand. The open hand holes are capped (UVs copied
-    from the rim) so the hand stays a solid. Returns the set of hand vertex indices (after split).
+    so the cape no longer shares vertices with the hand. The cape-side holes are capped with flat patches. Returns the set of hand vertex indices (after split).
     Deterministic: colour + position only, no hand-picked indices."""
     import bmesh
     img = bpy.data.images["T_Parasite"]
@@ -177,6 +176,7 @@ def split_hands(obj):
     hand_idx = set(hand)
     for f in bm.faces:
         f.tag = f.index in hand_idx
+    cut_pos = {tuple(round(c, 5) for c in v.co) for e in edges for v in e.verts}
     bmesh.ops.split_edges(bm, edges=edges)
     bm.verts.ensure_lookup_table()
     bm.faces.ensure_lookup_table()
@@ -185,21 +185,25 @@ def split_hands(obj):
         if f.tag:
             for v in f.verts:
                 hv.add(v.index)
-    # cap open rims of the hand pieces
-    rim = [e for e in bm.edges if e.is_boundary and all(v.index in hv for v in e.verts)]
-    if rim:
-        res = bmesh.ops.triangle_fill(bm, edges=rim, use_beauty=True)
+    # tuck: cap the matching holes left in the cape (static, cape-weighted) so no see-through gap opens
+    crim = [e for e in bm.edges if e.is_boundary and not any(v.index in hv for v in e.verts)
+            and all(tuple(round(c, 5) for c in v.co) in cut_pos for v in e.verts)]
+    if crim:
+        res = bmesh.ops.triangle_fill(bm, edges=crim, use_beauty=True)
         for f in res["geom"]:
             if isinstance(f, bmesh.types.BMFace):
-                f.tag = True
                 f.smooth = True
-                for l in f.loops:
-                    # copy UV from a neighbouring hand loop on the same vertex
+                ref = None
+                for l in f.loops:       # one flat colour per patch: the first rim vertex's cape texel
                     for ol in l.vert.link_loops:
                         if ol.face is not f:
-                            l[uv].uv = ol[uv].uv
+                            ref = ol[uv].uv.copy()
                             break
-                hv.update(v.index for v in f.verts)
+                    if ref is not None:
+                        break
+                for l in f.loops:
+                    l[uv].uv = ref if ref is not None else l[uv].uv
+    print("PARASITE cape holes capped: rim edges", len(crim))
     # the real forearm is hidden under the cape in the AI mesh, so a raised hand would float: add a
     # slim tapered cyan arm from each shoulder to the wrist (top of the hand piece)
     tube = set()
@@ -264,6 +268,9 @@ def skin(obj, arm):
             continue
         if v.index in tube:                              # forearm tube: upper arm bone only
             obj.vertex_groups[("arm1.L" if v.co.x > 0 else "arm1.R")].add([v.index], 1.0, 'REPLACE')
+            continue
+        if v.index in hands:                             # hands are rigid on the forearm bone: nothing to stretch
+            obj.vertex_groups[("arm2.L" if v.co.x > 0 else "arm2.R")].add([v.index], 1.0, 'REPLACE')
             continue
         ws = []
         is_hand = v.index in hands
