@@ -126,6 +126,11 @@ var ledger: Array = []
 var team_presets: Array = []
 ## Land tier 1..6 (R3 M15). Raised only by upgrade_land(); paid in Land Stone.
 var land_tier: int = 1
+## Land v1 decor (design/proposals/land-v1-spec.md §3-4). Raw storage only; rules and validation live in
+## scripts/land/land_decor.gd. placed: [{id, x, z, rot}], owned: {id: count}, milestones: ["m1", ...].
+var land_decor_placed: Array = []
+var land_decor_owned: Dictionary = {}
+var land_milestones_claimed: Array[String] = []
 ## Profile (R3 M12): last RUN_LOG_MAX finished runs, newest first. Each {"date","kind","mode","asc","won",
 ## "aid","mission"}. Written only by record_run_outcome. `profile_stats` = lifetime {pure_wins, ms_played, ms_won}.
 var run_log: Array = []
@@ -614,6 +619,9 @@ func _reset_economy_fields() -> void:
 	ledger = []
 	team_presets = []
 	land_tier = 1
+	land_decor_placed = []
+	land_decor_owned = {}
+	land_milestones_claimed.clear()
 	run_log = []
 	profile_stats = {"pure_wins": 0, "ms_played": 0, "ms_won": 0}
 
@@ -713,6 +721,13 @@ func _economy_from_json(parsed: Dictionary, raw_text: String = "") -> void:
 	ledger = (parsed.get("ledger", []) as Array).duplicate(true) if parsed.get("ledger", []) is Array else []
 	team_presets = TeamPresets.sanitize_list(parsed.get("team_presets", []))
 	land_tier = clampi(int(parsed.get("land_tier", 1)), 1, EconomyDBScript.land_max_tier())
+	land_decor_placed = _decor_placed_from_json(parsed.get("land_decor_placed", []))
+	land_decor_owned = _decor_owned_from_json(parsed.get("land_decor_owned", {}))
+	land_milestones_claimed.clear()
+	if parsed.get("land_milestones_claimed", []) is Array:
+		for m in (parsed.get("land_milestones_claimed", []) as Array):
+			if not land_milestones_claimed.has(str(m)):
+				land_milestones_claimed.append(str(m))
 	run_log = _sanitize_run_log(parsed.get("run_log", []))
 	var ps2 = parsed.get("profile_stats", {})
 	profile_stats = {"pure_wins": 0, "ms_played": 0, "ms_won": 0}
@@ -916,6 +931,9 @@ func save_to_disk() -> void:
 		"ledger": ledger,
 		"team_presets": team_presets,
 		"land_tier": land_tier,
+		"land_decor_placed": land_decor_placed,
+		"land_decor_owned": land_decor_owned,
+		"land_milestones_claimed": land_milestones_claimed,
 		"run_log": run_log,
 		"profile_stats": profile_stats,
 	}
@@ -930,6 +948,28 @@ func save_to_disk() -> void:
 # JSON.parse_string returns every number as a float and every key as a string. Levels are
 # compared with `in`, and perk counts are added to — a 3.0 where a 3 is expected compares
 # unequal in an Array[int] and silently drops the claim.
+
+## Type-level sanitising only (JSON gives floats); id/zone/cap validation is LandDecor.sanitize().
+static func _decor_placed_from_json(v: Variant) -> Array:
+	var out: Array = []
+	if v is Array:
+		for e in (v as Array):
+			if e is Dictionary and (e as Dictionary).has("id"):
+				var d := e as Dictionary
+				out.append({"id": str(d["id"]), "x": snappedf(float(d.get("x", 0.0)), 0.01),
+					"z": snappedf(float(d.get("z", 0.0)), 0.01), "rot": posmod(int(d.get("rot", 0)), 8)})
+	return out
+
+
+static func _decor_owned_from_json(v: Variant) -> Dictionary:
+	var out := {}
+	if v is Dictionary:
+		for k in (v as Dictionary):
+			var n := int((v as Dictionary)[k])
+			if n > 0:
+				out[str(k)] = n
+	return out
+
 
 static func _ints(raw) -> Array:
 	var out: Array = []
