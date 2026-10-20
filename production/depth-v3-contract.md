@@ -234,3 +234,11 @@ Việc deploy, theo thứ tự (chưa làm, cần Liam bảo): D1 migration 0008
 **UI đã nối:** `CorePanel` (nháy ô + chip "xN" số lần trong trận, chỉ combat HUD), `CombatView._on_core_fired` (log + chữ nổi `UI3.core_float`, `core_float_log` cho test), `RunState.core_impact` ({core_id: {n, by:{kind: tổng}}}, thuần thống kê, có trong to_data/from_data, reset trong reset()), Result card "Cores" (mỗi Lõi + "blocked 21", Lõi nhiều nhất viền accent + "Most impact"). Helper chữ/màu: `scenes/shared/CoreFeedback.gd`.
 
 **Cho làn I:** đã sửa `autoload/EventBus.gd` (thêm signal) và `autoload/RunState.gd` (core_impact + kết nối) = file có trong fingerprint; cây chính cần bump `RULES_VERSION` (không đổi luật, chỉ để t_rules_version khớp). Chưa làm: tóm tắt Lõi sau mỗi trận trên overlay phần thưởng (tuỳ chọn).
+
+### Tích hợp vòng 2 (int/v3, 20/10)
+- depth/FX cfca4ba -> merge 4ba0cc0; depth/VZ 8d480d1 -> merge 51e1f8d (conflict chỉ ở file hợp đồng, giữ cả hai phía).
+- Sửa VZ: CombatView reset `_core_float_live` mỗi trận + trần 3 chip xếp chồng (`CORE_FLOAT_MAX_STACK`); CorePanel đếm >= 10 hiện "x9+".
+- Sửa FX (RunState): (a) Đá Mờ khi pool T rỗng -> không giữ, đổi thành +1 reroll Lõi, log `take_reward`, phát `core_fired(c_dim_stone, reroll)`; (b) Hoá Thạch chỉ bị xoá khi offer kế không rỗng; (c) save cũ không có `offer_pick` ở pick 0 -> -1 (không còn thành bonus); (d) t_core_replay có run đầy đủ `rule_crow` qua RunVerifier + 2 tamper + proof (a)(b)(c).
+- t_replay_loadout: bỏ `core_impact` (chỉ để hiển thị) khỏi digest end-state. Lưu ý: bot chơi thật đếm `rule_balance` 98 so với 83 khi verifier replay, vô hại cho luật/điểm, nhưng nên hỏi làn VZ vì sao lệch.
+- RULES_VERSION giữ `godot-2026-10-20-o` (chưa deploy -o); chỉ đổi FINGERPRINT (381104b0...). Worker giữ -o.
+- Test: Godot 166/166 không cờ skip; Worker 196/196. Mốc sàn mới: 166.
