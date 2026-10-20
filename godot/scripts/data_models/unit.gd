@@ -65,6 +65,10 @@ var held: bool = false
 var stash_carry: bool = false
 ## Overcast: the player paid mana to power this die up this turn (face value x overcast.mult). Cleared when the die rolls next turn.
 var overcast: bool = false
+## Depth v4 LIEU: this die was re-rolled by a "Lieu" (risk) reroll and cracked: half value, outside the BO group, until next turn's roll.
+var cracked: bool = false
+## Depth v4 MAT TAM: the player paid mana so this die counts as part `wild_slot` (0..5, SLOT_ORDER) when BO groups are built. -1 = none.
+var wild_slot: int = -1
 
 ## Depth v3 6.7 M1: Plating value P (each single-target dmg face is cut by P, min 1) and the player turns
 ## it is still switched off by a debuff / poison. Effective value: CombatEngine.plating_of(unit).
@@ -166,6 +170,7 @@ func to_data() -> Dictionary:
 		"status": status.duplicate(true),
 		"frozen": frozen, "frozen_next": frozen_next, "overdrive": overdrive,
 		"resonant_now": resonant_now, "heavy": heavy, "held": held, "stash_carry": stash_carry, "overcast": overcast,
+		"cracked": cracked, "wild_slot": wild_slot,
 		"plating": plating, "plating_off": plating_off,
 		"die": die.duplicate(true),
 		"growth": growth.duplicate(true),
@@ -199,6 +204,8 @@ static func from_data(d: Dictionary) -> Unit:
 	u.held = bool(d.get("held", false))
 	u.stash_carry = bool(d.get("stash_carry", false))
 	u.overcast = bool(d.get("overcast", false))
+	u.cracked = bool(d.get("cracked", false))
+	u.wild_slot = int(d.get("wild_slot", -1))
 	u.plating = int(d.get("plating", 0))
 	u.plating_off = int(d.get("plating_off", 0))
 	u.die = (d.get("die", []) as Array).duplicate(true)
