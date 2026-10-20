@@ -31,6 +31,11 @@
  "core": {
   "mult_cap": 8
  },
+ "overcast": {
+  "mana_cost": 3,
+  "mult": 1.5,
+  "per_turn": 1
+ },
  "stash": {
   "cap": 1
  },

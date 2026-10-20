@@ -63,6 +63,8 @@ var rolled: Array = []
 ## turn change. `stash_carry`: was held over the last turn change, so it cannot be held again this turn.
 var held: bool = false
 var stash_carry: bool = false
+## Overcast: the player paid mana to power this die up this turn (face value x overcast.mult). Cleared when the die rolls next turn.
+var overcast: bool = false
 
 ## Depth v3 6.7 M1: Plating value P (each single-target dmg face is cut by P, min 1) and the player turns
 ## it is still switched off by a debuff / poison. Effective value: CombatEngine.plating_of(unit).
@@ -163,7 +165,7 @@ func to_data() -> Dictionary:
 		"hp": hp, "max_hp": max_hp, "shield": shield,
 		"status": status.duplicate(true),
 		"frozen": frozen, "frozen_next": frozen_next, "overdrive": overdrive,
-		"resonant_now": resonant_now, "heavy": heavy, "held": held, "stash_carry": stash_carry,
+		"resonant_now": resonant_now, "heavy": heavy, "held": held, "stash_carry": stash_carry, "overcast": overcast,
 		"plating": plating, "plating_off": plating_off,
 		"die": die.duplicate(true),
 		"growth": growth.duplicate(true),
@@ -196,6 +198,7 @@ static func from_data(d: Dictionary) -> Unit:
 	u.heavy = bool(d.get("heavy", false))
 	u.held = bool(d.get("held", false))
 	u.stash_carry = bool(d.get("stash_carry", false))
+	u.overcast = bool(d.get("overcast", false))
 	u.plating = int(d.get("plating", 0))
 	u.plating_off = int(d.get("plating_off", 0))
 	u.die = (d.get("die", []) as Array).duplicate(true)
