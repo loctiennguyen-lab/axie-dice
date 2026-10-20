@@ -621,6 +621,7 @@ func _spawn_phantom_dice() -> void:
 		_roll_unit(ph)
 		EventBus.unit_spawned.emit(ph.uid)
 		EventBus.float_text.emit(ph.uid, "6TH DIE", "buf", 0)
+		CoreHooks.fire("c_sixth_die", ph.uid, 1, "rule")
 
 
 func _drop_phantoms() -> void:
@@ -659,6 +660,7 @@ func _pick_enemy_intent(e: Unit) -> void:
 				rp = front_row_targets(ps)
 				if String(RelicHooks.run_value_hook(self, "enemy_row_pref", {"combat": self}, "")) == "back":
 					rp = back_row_targets(ps)   # Upside Down
+					CoreHooks.fire("rule_upside_down", e.uid, 1, "rule")
 			var ambush: bool = bool(_aff(e).get("target_back_weakest", false)) \
 				and not _has_kw(f, "aoe") and not _has_kw(f, "pierce")
 			if ambush:
@@ -752,6 +754,7 @@ func _resolve_cantrips() -> void:
 				if u.has_rolled():
 					u.rolled[0]["used"] = false
 					EventBus.float_text.emit(u.uid, "LOOP", "buf", 0)
+					CoreHooks.fire("c_loop", u.uid, 1, "reroll")
 					_exec_face(u, u.uid)
 			_roll_unit(u)
 
@@ -1266,9 +1269,16 @@ func stash(unit_uid: int) -> bool:
 		return false
 	var u := by_uid(unit_uid)
 	_push_undo()
+	var base_cap := int(tune_knob("stash", "cap", 1.0))
+	var was_carry: bool = u.stash_carry
+	var was_n := stash_count()
 	u.held = true
 	EventBus.float_text.emit(u.uid, "HOLD", "buf", 0)
 	EventBus.die_stashed.emit(u.uid)
+	for sid in ["c_steady_hold", "rule_tundra"]:
+		if CoreHooks.RelicHooks_has(self, sid) and (was_n >= base_cap or (was_carry and sid == "c_steady_hold")):
+			CoreHooks.fire(sid, u.uid, 1, "rule")
+			break
 	RelicHooks.fire(self, "on_stash", {"combat": self, "unit": u, "face": u.current_face(),
 		"fi": u.roll_face_index()})
 	_log("stash", [unit_uid])

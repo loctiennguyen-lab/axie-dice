@@ -1581,6 +1581,10 @@ static var TABLE: Dictionary = {
 	"rule_quick_beat": {
 		"boss_period": func(ctx: Dictionary): return 2,
 		"boss_strike_mult": func(ctx: Dictionary): return 1.2,
+		"on_turn_start": func(ctx: Dictionary):
+			for e in ctx["combat"].alive_enemies():
+				if e.is_boss:
+					CoreHooks.fire("rule_quick_beat", e.uid, 1, "rule"),
 	},
 	"rule_hard_shell": {},
 	"c_descend": {
@@ -1678,7 +1682,12 @@ static var TABLE: Dictionary = {
 		"mod_face": func(ctx: Dictionary): CoreHooks.living_wall_face(ctx),
 		"on_combat_start": func(ctx: Dictionary): CoreHooks.living_wall_start(ctx),
 	},
-	"c_open_ranks": {"front_row_size": func(ctx: Dictionary): return 99},
+	"c_open_ranks": {
+		"front_row_size": func(ctx: Dictionary): return 99,
+		"on_combat_start": func(ctx: Dictionary):
+			var cb = ctx["combat"]
+			CoreHooks.fire("c_open_ranks", 0, CoreHooks.living_axies(cb).size() - int(CombatEngine.tune_knob("rows", "front_size", 2.0)), "rule"),
+	},
 	"c_mana_ward": {"on_turn_end": func(ctx: Dictionary): CoreHooks.mana_ward_turn_end(ctx)},
 	"c_overflow": {
 		"on_face_used": func(ctx: Dictionary): CoreHooks.overflow_check(ctx),
@@ -1740,12 +1749,14 @@ static var TABLE: Dictionary = {
 		"on_face_used": func(ctx: Dictionary): CoreHooks.focus_spent(ctx["combat"], "focus_rule_tundra", ctx["unit"]),
 		"face_final": func(ctx: Dictionary): return CoreHooks.flat(ctx, "rule_tundra"),
 	},
-	"rule_starfall": {"on_combat_start": func(ctx: Dictionary): CoreHooks.scale_enemies(ctx, 1.15, false)},
+	"rule_starfall": {"on_combat_start": func(ctx: Dictionary): CoreHooks.scale_enemies(ctx, 1.15, false, "rule_starfall")},
 	"rule_heavy_finish": {
 		"face_final": func(ctx: Dictionary): return CoreHooks.flat(ctx, "rule_heavy_finish"),
 		"mod_dmg": func(ctx: Dictionary): return CoreHooks.heavy_enemy_dmg(ctx),
 	},
-	"rule_wasteland": {"mod_face": func(ctx: Dictionary): ctx["unit"].max_hp += 4},
+	"rule_wasteland": {"mod_face": func(ctx: Dictionary):
+		ctx["unit"].max_hp += 4
+		CoreHooks.fire("rule_wasteland", ctx["unit"].uid, 4, "rule")},
 	"rule_dry_steppe": {
 		"on_turn_start": func(ctx: Dictionary): CoreHooks.gain_mana(ctx["combat"], 2, "", "rule_dry_steppe"),
 		"on_turn_end": func(ctx: Dictionary):
@@ -1754,7 +1765,7 @@ static var TABLE: Dictionary = {
 	},
 	"rule_old_forest": {
 		"mod_face": func(ctx: Dictionary): CoreHooks.old_forest_face(ctx),
-		"on_combat_start": func(ctx: Dictionary): CoreHooks.scale_enemies(ctx, 1.3, true),
+		"on_combat_start": func(ctx: Dictionary): CoreHooks.scale_enemies(ctx, 1.3, true, "rule_old_forest"),
 		"face_final": func(ctx: Dictionary): return CoreHooks.old_forest_value(ctx),
 	},
 	"rule_balance": {

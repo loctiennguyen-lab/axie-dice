@@ -161,6 +161,7 @@ static func descend_face(ctx: Dictionary) -> void:
 	if not is_descended(ctx["combat"], u):
 		return
 	u.max_hp += 8
+	fire("c_descend", u.uid, 8, "rule")
 	for f in u.die:
 		var ty := String((f as Dictionary).get("type", ""))
 		if ty == "heal":
@@ -184,7 +185,9 @@ static func descend_hit(ctx: Dictionary) -> void:
 	var u = ctx["unit"]
 	var d := int(ctx.get("dealt", 0))
 	if d > 0 and is_descended(ctx["combat"], u) and u.hp > 0:
+		var hp0: int = u.hp
 		DamagePipeline.apply_heal(ctx["combat"], u, int(ceil(d * 0.3)))
+		fire("c_descend", u.uid, u.hp - hp0, "heal")
 
 
 ## Value of a knob on a held Run Rule / Core definition (rule_knobs), else `default`.
@@ -242,6 +245,7 @@ static func fissure_used(ctx: Dictionary) -> void:
 			t.custom_state["fissure"] = int(combat.turn) + 1
 			t.plating_off = maxi(int(t.plating_off), 2)
 			EventBus.float_text.emit(t.uid, "FISSURE", "deb", 0)
+			fire("c_fissure", t.uid, 1, "rule")
 
 
 ## Nest: start of combat one Egg, and Eggs stand in the front row (single-target attacks can pick them).
@@ -252,6 +256,7 @@ static func nest_start(ctx: Dictionary) -> void:
 		var egg = combat._mk_ally()
 		combat.party.append(egg)
 		EventBus.unit_spawned.emit(egg.uid)
+		fire("c_nest", egg.uid, 1, "rule")
 
 
 ## Deep Current: up to 12 leftover Mana of a won fight are paid out at the start of the next one.
@@ -276,6 +281,7 @@ static func shell_face(ctx: Dictionary) -> void:
 	var u = ctx["unit"]
 	var n := int(((combat.relic_run_in.get("c_growing_shell", {}) as Dictionary)).get(str(u.uid), 0))
 	u.max_hp += n
+	fire("c_growing_shell", u.uid, n, "rule")
 
 
 static func _shell_stacks(combat) -> Dictionary:
@@ -296,6 +302,7 @@ static func shell_kill(ctx: Dictionary) -> void:
 	k.max_hp += 1
 	k.hp += 1
 	EventBus.float_text.emit(k.uid, "+1 MAX HP", "buf", 0)
+	fire("c_growing_shell", k.uid, 1, "rule")
 
 
 static func shell_fall(ctx: Dictionary) -> void:
@@ -706,6 +713,7 @@ static func mirror_used(ctx: Dictionary) -> void:
 	st["uid"] = u.uid
 	st["second"] = true
 	u.clear_used_for_second_action()
+	fire("c_mirror_face", u.uid, 1, "rule")
 
 
 static func weakest_fi(u) -> int:
@@ -728,12 +736,14 @@ static func whittle_face(ctx: Dictionary) -> void:
 	for i in u.die.size():
 		if i != w and int((u.die[i] as Dictionary).get("value", 0)) > 0:
 			u.die[i]["value"] = int(u.die[i]["value"]) + 1
+			fire("c_whittle", u.uid, 1, "rule")
 
 
 static func whittle_roll(ctx: Dictionary) -> int:
 	var fi := int(ctx["value"])
 	var u = ctx["unit"]
 	if u.side == "p" and not u.is_token and fi == weakest_fi(u):
+		fire("c_whittle", u.uid, 1, "reroll")
 		return ctx["combat"]._rng.next_int(6)
 	return fi
 
@@ -753,6 +763,7 @@ static func three_auto_hold(combat) -> void:
 		if RelicHooks_has(combat, "rule_tundra"):
 			combat_state(combat, "focus_rule_tundra")[str(u.uid)] = {"v": 2, "fi": fi}
 		EventBus.float_text.emit(u.uid, "HOLD", "buf", 0)
+		fire("c_three_dice", u.uid, 1, "rule")
 
 
 static func three_used(ctx: Dictionary) -> void:
@@ -925,6 +936,7 @@ static func hollow_paid(ctx: Dictionary) -> void:
 	var combat = ctx["combat"]
 	var st := turn_state(combat, "cs_paid")
 	st["n"] = int(st.get("n", 0)) + 1
+	fire("c_hollow_core", 0, 1, "reroll")
 	if int(st["n"]) % 2 == 0:
 		combat.reroll_nonaid = maxi(0, combat.reroll_nonaid - 1)
 
@@ -947,6 +959,7 @@ static func thorn_settled(ctx: Dictionary) -> void:
 		if u != null and u.hp > 2:
 			u.hp -= 2
 			EventBus.float_text.emit(u.uid, "-2", "dmg", 0)
+			fire("c_thorn_pact", u.uid, 1, "reroll")
 			EventBus.hp_changed.emit(u.uid, u.hp, u.max_hp, u.shield)
 
 
@@ -1052,9 +1065,11 @@ static func _quest_add(combat, id: String, n: int, target: int) -> void:
 	if bool(q["done"]):
 		return
 	q["n"] = int(q["n"]) + n
+	fire(id, 0, n, "rule")   # progress tick: the Core panel lights up
 	if int(q["n"]) >= target:
 		q["done"] = true
 		q["steps_done"] = 1
+		fire(id, 0, 1, "quest_step")
 
 
 static func collector_turn_start(ctx: Dictionary) -> void:
@@ -1089,6 +1104,7 @@ static func night_watch_face(ctx: Dictionary) -> void:
 	var c = ctx["combat"]
 	if u.roster_index >= 0 and c.row_of(u) == 0 and not quest_done(c, "c_night_watch"):
 		u.max_hp += 3
+		fire("c_night_watch", u.uid, 3, "rule")
 
 
 static func night_watch_end(ctx: Dictionary) -> void:
@@ -1120,6 +1136,7 @@ static func chimera_kill(ctx: Dictionary) -> void:
 	if bool(q["done"]):
 		return
 	q["n"] = int(q["n"]) + 1
+	fire("c_chimera_hunt", ctx["tgt"].uid, 1, "rule")
 	if ctx["tgt"].is_boss:
 		q["boss"] = 1
 	var s := 0
@@ -1130,6 +1147,8 @@ static func chimera_kill(ctx: Dictionary) -> void:
 	if int(q["boss"]) >= 1:
 		s = 3
 		q["done"] = true
+	if s > int(q["steps_done"]):
+		fire("c_chimera_hunt", ctx["tgt"].uid, s - int(q["steps_done"]), "quest_step")
 	q["steps_done"] = maxi(int(q["steps_done"]), s)
 
 
@@ -1141,12 +1160,14 @@ static func tundra_stash(ctx: Dictionary) -> void:
 	combat_state(ctx["combat"], "focus_rule_tundra")[str(ctx["unit"].uid)] = {"v": 2, "fi": int(ctx.get("fi", ctx["unit"].roll_face_index()))}
 
 
-static func scale_enemies(ctx: Dictionary, mult: float, bosses: bool) -> void:
+static func scale_enemies(ctx: Dictionary, mult: float, bosses: bool, id: String = "") -> void:
 	for e in ctx["combat"].enemies:
 		if e.is_boss and not bosses:
 			continue
+		var hp0: int = e.max_hp
 		e.max_hp = int(ceil(e.max_hp * mult))
 		e.hp = e.max_hp
+		fire(id, e.uid, e.max_hp - hp0, "rule")
 
 
 static func old_forest_face(ctx: Dictionary) -> void:
@@ -1167,7 +1188,11 @@ static func old_forest_value(ctx: Dictionary) -> int:
 static func heavy_enemy_dmg(ctx: Dictionary) -> float:
 	var v := float(ctx["value"])
 	var src = ctx.get("src", null)
-	return float(RulesMath.round_half_up(v * 1.1)) if (src != null and src.side == "e") else v
+	if src != null and src.side == "e":
+		var nv := float(RulesMath.round_half_up(v * 1.1))
+		fire("rule_heavy_finish", ctx["tgt"].uid, int(nv - v), "rule")
+		return nv
+	return v
 
 
 static func balance_value(ctx: Dictionary) -> int:
@@ -1197,3 +1222,4 @@ static func cheap_paid(ctx: Dictionary) -> void:
 	if not bool(st.get("done", false)):
 		st["done"] = true
 		ctx["combat"].reroll_nonaid = maxi(0, ctx["combat"].reroll_nonaid - 1)
+		fire("rule_cheap_mana", 0, 1, "reroll")
