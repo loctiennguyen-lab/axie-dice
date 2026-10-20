@@ -1,5 +1,12 @@
 # Axie Dice — trạng thái hiện tại
 
+## ⇢ BẮT ĐẦU TỪ ĐÂY (khuya 21/10/2026) — ĐÃ MERGE + BUILD b1188
+godot-port = axiedice/main = **759cabc** (merge int/v3: depth v3 + Land v1 + raid; RULES_VERSION godot-2026-10-20-o), suite **166/166**
+không skip, Worker 196/196. Build Liam: `build/AxieDice-0.1.0-L1-b1188-759cabc-macos.dmg` + `-windows.zip` (b1049 → build/old). CHƯA deploy
+(Worker/D1 0008/web — hỏi Liam). Đang chạy: qa-tester smoke luồng thật + ảnh (`../my-game-wt/QA`, báo cáo `production/qa/smoke-b1188-2026-10-21.md`);
+sim nâng bot expert (`../my-game-wt/SB`; phát hiện: bật Hold làm expert −4 điểm → Hold chưa đáng giá hoặc bot dùng dở).
+Nợ: core_impact lệch live 98 vs replay 83 cho rule_balance (chỉ hiển thị, có thể preview làm hook chạy thừa) — cần kiểm.
+
 ## ⇢ BẮT ĐẦU TỪ ĐÂY (đêm 21/10/2026) — TÍCH HỢP VÒNG 2 + SIM + CHỈNH ĐỘ SÂU
 int/v3 vòng 1 XANH: 163/163 không skip, Worker 196 (5d35dfe; RULES_VERSION -o, Worker nhận -o + -n). Vòng 2 đang chạy (INT):
 merge depth/FX cfca4ba (thorn không trần 2 phe, 3 Lõi thorn, sửa review Lõi, core_fired mọi Lõi + t_core_fires 62/63, Lõi cược bậc
