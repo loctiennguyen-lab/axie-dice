@@ -51,6 +51,14 @@ func _ready() -> void:
 		_check(v.coach_shown_id != "", "stage %d coach shown: %s" % [stage, v.coach_shown_id])
 		v.queue_free()
 		await get_tree().process_frame
+	# coach flags persist through the meta save (account-bound) and survive reload_from_store
+	V4Coach.persist = true
+	MetaState.v4_coach_seen = {}
+	V4Coach.mark("C3")
+	MetaState.v4_coach_seen = {}
+	MetaState.reload_from_store()
+	_check(V4Coach.seen("C3") and not V4Coach.seen("C4"), "coach flag survives save + reload_from_store")
+	V4Coach.persist = false
 	print("=== t_v4ui_stage_coach: %d checks, %d failure(s) ===" % [_checks, _fails.size()])
 	_guard.restore()
 	if _fails.is_empty():

@@ -1,9 +1,8 @@
 class_name V4Coach
 extends RefCounted
 ## Depth v4 coach lines C1-C7 (combat-v4.md 5.3): one sentence, once per account, one bubble per turn.
-## "Seen" flags live in user://v4_coach_seen.json through SaveStore (never a raw file write).
+## "Seen" flags live in MetaState.v4_coach_seen (meta save -> SaveStore, follows the account).
 
-const PATH := "user://v4_coach_seen.json"
 const ORDER := ["C1", "C2", "C3", "C4", "C5", "C6", "C7"]
 const TEXT := {
 	"C1": "Every die has a part. 3 dice of the same part make a SET, and a SET is stronger.",
@@ -19,42 +18,29 @@ const MIN_STAGE := {"C5": 2, "C6": 2, "C7": 3}
 static var enabled := true         # tests switch it on explicitly (juice-off mode keeps it quiet)
 static var persist := true
 static var enabled_in_tests := false
-static var _seen: Dictionary = {}
-static var _loaded := false
+static var _test_seen: Dictionary = {}
 
 
 static func text_for(id: String) -> String:
 	return TranslationServer.translate(String(TEXT.get(id, "")))
 
 
-static func _load() -> void:
-	if _loaded:
-		return
-	_loaded = true
-	if not persist:
-		return
-	var raw := SaveStore.read_text(PATH)
-	if raw != "":
-		var d: Variant = JSON.parse_string(raw)
-		if d is Dictionary:
-			_seen = d
-
-
 static func seen(id: String) -> bool:
-	_load()
-	return bool(_seen.get(id, false))
+	if not persist:
+		return bool(_test_seen.get(id, false))
+	return bool(MetaState.v4_coach_seen.get(id, false))
 
 
 static func mark(id: String) -> void:
-	_load()
-	_seen[id] = true
-	if persist:
-		SaveStore.write_text(PATH, JSON.stringify(_seen))
+	if not persist:
+		_test_seen[id] = true
+		return
+	MetaState.v4_coach_seen[id] = true
+	MetaState.save_to_disk()
 
 
 static func reset_for_tests() -> void:
-	_seen = {}
-	_loaded = true
+	_test_seen = {}
 	persist = false
 
 

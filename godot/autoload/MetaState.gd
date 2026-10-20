@@ -117,6 +117,8 @@ var mission_stone_day: Dictionary = {"day": "", "n": 0}
 var asc_wins: Dictionary = {}            # "asc" -> số run thắng
 var full_a9_won: bool = false
 var aid_hints_off: bool = false
+## Depth v4 coach lines already shown (V4Coach C1-C7): {"C1": true}. In the meta save so it follows the account.
+var v4_coach_seen: Dictionary = {}
 var last_daily_reward_utc: String = ""
 ## Số ngày UTC đã nhận daily trong tuần (thứ Hai UTC): {"week": "YYYY-MM-DD", "n": 0}. Cho chấm tuần M8.
 var daily_week: Dictionary = {"week": "", "n": 0, "paid": false}
@@ -614,6 +616,7 @@ func _reset_economy_fields() -> void:
 	asc_wins = {}
 	full_a9_won = false
 	aid_hints_off = false
+	v4_coach_seen = {}
 	last_daily_reward_utc = ""
 	daily_week = {"week": "", "n": 0, "paid": false}
 	ledger = []
@@ -715,6 +718,12 @@ func _economy_from_json(parsed: Dictionary, raw_text: String = "") -> void:
 	asc_wins = _int_values(parsed.get("asc_wins", {}))
 	full_a9_won = bool(parsed.get("full_a9_won", false))
 	aid_hints_off = bool(parsed.get("aid_hints_off", false))
+	var vcs = parsed.get("v4_coach_seen", {})
+	v4_coach_seen = {}
+	if vcs is Dictionary:
+		for k in vcs:
+			if bool(vcs[k]):
+				v4_coach_seen[str(k)] = true
 	last_daily_reward_utc = str(parsed.get("last_daily_reward_utc", ""))
 	var dw = parsed.get("daily_week", {})
 	daily_week = {"week": String(dw.get("week", "")), "n": maxi(0, int(dw.get("n", 0))), "paid": bool(dw.get("paid", false))} if dw is Dictionary else {"week": "", "n": 0, "paid": false}
@@ -926,6 +935,7 @@ func save_to_disk() -> void:
 		"asc_wins": asc_wins,
 		"full_a9_won": full_a9_won,
 		"aid_hints_off": aid_hints_off,
+		"v4_coach_seen": v4_coach_seen,
 		"last_daily_reward_utc": last_daily_reward_utc,
 		"daily_week": daily_week,
 		"ledger": ledger,
