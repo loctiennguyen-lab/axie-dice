@@ -319,3 +319,115 @@ static func charge_mult(e: Unit) -> float:
 	if e != null and not e.is_boss and String(e.intent.get("charge", "")) == "hit":
 		return knob("charge", "mult", 2.5)
 	return 1.0
+
+
+# ---------------------------------------------------------------------------
+# 6.7b team_can_break, affix choice (6.4 rule), guarantee_tank (A.13)
+# ---------------------------------------------------------------------------
+
+const BREAK_KEYWORDS := ["pierce", "aoe", "stun", "freeze", "weaken", "vulnerable", "poison"]
+const AFFIX_SALT := 0x41F1C5
+
+
+static func _faces_of(entry) -> Array:
+	if entry is Unit:
+		return (entry as Unit).die
+	if entry is Array:
+		return entry
+	if entry is Dictionary:
+		var d: Dictionary = entry
+		if d.has("die"):
+			return d["die"] as Array
+		var die: Array = ((ContentDB.heroes.get(String(d.get("hero_key", "")), {}) as Dictionary).get("die", []) as Array).duplicate(true)
+		for m in (d.get("muts", []) as Array):
+			if String(m.get("type", "")) == "part":
+				var idx := int(m.get("idx", -1))
+				if idx >= 0 and idx < die.size():
+					die[idx] = (m.get("face", {}) as Dictionary)
+		return die
+	return []
+
+
+## 6.7b: can this team strip Plating? True when any face of any die is poison / debuff or carries pierce, aoe,
+## stun, freeze, weaken, vulnerable or poison:N. `team` entries: Unit, a die (Array of faces), a Dictionary with
+## "die", or a roster entry (hero_key + muts). Pure, deterministic, no rng.
+static func team_can_break(team: Array) -> bool:
+	for entry in team:
+		for raw in _faces_of(entry):
+			var f: Dictionary = raw
+			var t := String(f.get("type", ""))
+			if t == "poison" or t == "debuff":
+				return true
+			for k in (f.get("keywords", []) as Array):
+				if BREAK_KEYWORDS.has(String(k).split(":")[0]):
+					return true
+	return false
+
+
+static func affix_forbidden(a: String, b: String) -> bool:
+	for pr in (ContentDB.elite_affix_meta.get("forbidden_pairs", []) as Array):
+		if (pr[0] == a and pr[1] == b) or (pr[0] == b and pr[1] == a):
+			return true
+	return false
+
+
+static func _affix_ids(group: String, can_break: bool) -> Array:
+	var ids: Array = []
+	for id in ContentDB.elite_affixes:
+		var a: Dictionary = ContentDB.elite_affixes[id]
+		if bool(a.get("retired", false)) or String(a.get("group", "")) != group:
+			continue
+		if group == "A" and not can_break and not bool(a.get("no_break_ok", false)):
+			continue
+		ids.append(String(id))
+	ids.sort()                                  # fixed order, independent of dictionary order
+	return ids
+
+
+## 6.4 rule. Returns {"affix": id, "affix2": id or ""}. Elite before boss 1 (after_boss1 false): one group A
+## affix. After boss 1: A + one group B, skipping forbidden pairs (charge+rush, charge+frenzy). Team that cannot
+## break Plating draws A only from no_break_ok. First run of the account: fixed iron (ward when it cannot break),
+## no B. Draws come from a private Rng(seed ^ AFFIX_SALT): the run's shared rng is never touched.
+static func choose_affixes(seed_value: int, can_break: bool, after_boss1: bool, first_run: bool = false) -> Dictionary:
+	if first_run:
+		var fr: Dictionary = ContentDB.elite_affix_meta.get("first_run", {})
+		return {"affix": String(fr.get("default", "iron")) if can_break else String(fr.get("no_break", "ward")), "affix2": ""}
+	var r := Rng.new(seed_value ^ AFFIX_SALT)
+	var pool_a := _affix_ids("A", can_break)
+	if pool_a.is_empty():
+		return {"affix": "", "affix2": ""}
+	var a: String = pool_a[r.next_int(pool_a.size())]
+	var b := ""
+	if after_boss1:
+		var pool_b: Array = []
+		for id in _affix_ids("B", can_break):
+			if not affix_forbidden(a, String(id)):
+				pool_b.append(id)
+		if not pool_b.is_empty():
+			b = String(pool_b[r.next_int(pool_b.size())])
+	return {"affix": a, "affix2": b}
+
+
+## A.13: a normal fight before the first Elite must hold one plating tank (so the player meets Plating where it
+## costs nothing). Replaces the last monster by the cheapest available tank when none is present, then puts the tank in slot 0 so the early trait cap keeps it. Deterministic.
+static func guarantee_tank(keys: Array, avail: Array) -> Array:
+	var tank_keys: Array = []
+	for k in avail:
+		var d: Dictionary = ContentDB.enemies.get(k, {})
+		if String(d.get("trait", "")) == "plating":
+			tank_keys.append(k)
+	if tank_keys.is_empty() or keys.is_empty():
+		return keys
+	var out := keys.duplicate()
+	var at := -1
+	for i in out.size():
+		if tank_keys.has(out[i]):
+			at = i
+			break
+	if at < 0:
+		at = out.size() - 1
+		out[at] = tank_keys[tank_keys.size() - 1]             # avail is sorted cost DESC: last = cheapest
+	var first = out[0]                                         # slot 0: assign_traits trims the highest slots first
+	out[0] = out[at]
+	out[at] = first
+	return out

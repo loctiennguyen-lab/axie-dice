@@ -71,6 +71,7 @@ var combat_seed: int = 0
 ## Which boss this node fields, chosen once per run by RunState (never re-rolled in combat),
 ## and the run-wide CURSE PACT enemy modifiers. Both arrive through the combat setup so that
 ## a combat is still reconstructible from data alone (architecture plan §4).
+var _guarantee_tank: bool = false   ## setup flag `guarantee_tank` (A.13): the fight holds at least one plating tank
 var _early_traits: bool = false   ## setup flag `before_first_elite`: normal fights carry at most traits.cap_early trait bearers
 var run_rules: Array = []   ## Run rules active this fight ("R12" Plating everywhere + side bonus, "R13")
 var affix2: String = ""   ## second Elite affix (group B, after boss 1)
@@ -216,6 +217,7 @@ func setup_new(combat_setup: Dictionary) -> void:
 		EventBus.relic_pulsed.emit("startSummon", 0)
 
 	_early_traits = bool(combat_setup.get("before_first_elite", false))
+	_guarantee_tank = bool(combat_setup.get("guarantee_tank", false))
 	enemies = _generate_encounter(kind, pw)
 	_apply_affix_start()
 
@@ -2292,6 +2294,8 @@ func _generate_encounter(p_kind: String, p_pw: int) -> Array:
 	var pick_range: int = max(1, int(ceil(avail.size() * 0.7)))
 	while keys.size() < n:
 		keys.append(String(avail[_rng.next_int(pick_range)]))
+	if _guarantee_tank and not is_elite:
+		keys = CombatTraits.guarantee_tank(keys, avail)   # A.13: draws above are unchanged, only the last slot swaps
 
 	var tot := 0.0
 	for k in keys:
