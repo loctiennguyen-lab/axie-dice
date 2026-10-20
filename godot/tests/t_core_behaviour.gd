@@ -527,3 +527,29 @@ func t_engine_cores() -> void:
 	_ok(cc._face_value(cu, cfi) == v0 + 2, "concord: +2 after same part")
 	CoreHooks.turn_state(cc, "cs_concord")["part"] = "other_part"
 	_ok(cc._face_value(cu, cfi) == v0, "concord: no bonus after other part")
+
+	# Take The Field: the back-row Axie with heal faces moves to the front, heal -> dmg +2, +8 Max HP, 30% lifesteal.
+	var dk := ["beast1", "plant1", "aqua1", "bird1", "bug1"]
+	var dr: Array = []
+	for i in dk.size():
+		dr.append({"persistent_id": i + 1, "hero_key": dk[i], "tier": 1,
+			"max_hp": ContentDB.heroes[dk[i]]["max_hp"], "muts": [], "growth": {}, "bonus_hp": 0})
+	var dsetup := {"node_id": "t_core", "kind": "battle", "pw": 2, "ascension": 0, "roster_snapshot": dr,
+		"relic_ids": [], "combat_seed": 5, "bonus_reroll": 0}
+	var d0 := CombatEngine.new()
+	d0.setup_new(dsetup)
+	dsetup["relic_ids"] = ["c_descend"]
+	var d1 := CombatEngine.new()
+	d1.setup_new(dsetup)
+	var moved := -1
+	for i in 5:
+		if d1.row_of(d1.party[i]) == 0 and d0.row_of(d0.party[i]) == 1:
+			moved = i
+	_ok(moved >= 2, "descend: one back-row Axie now stands in the front row (slot %d)" % moved)
+	if moved >= 0:
+		var mu: Unit = d1.party[moved]
+		var bu: Unit = d0.party[moved]
+		_ok(mu.max_hp == bu.max_hp + 8, "descend: +8 max hp")
+		for fi in 6:
+			if String(bu.die[fi].get("type", "")) == "heal":
+				_ok(String(mu.die[fi]["type"]) == "dmg" and int(mu.die[fi]["value"]) == int(bu.die[fi]["value"]) + 2, "descend: heal face %d -> dmg +2" % fi)

@@ -204,6 +204,10 @@ func setup_new(combat_setup: Dictionary) -> void:
 	relic_reroll_given = 0
 
 	var roster: Array = combat_setup.get("roster_snapshot", [])
+	# Depth v3 Core Take The Field (c_descend): which back-row Axie walks to the front (-1 = none).
+	var descend_idx := int(RelicHooks.run_value_hook(self, "descend_pick", {"combat": self, "roster": roster}, -1))
+	if descend_idx >= 0:
+		relic_combat["descend"] = {"idx": descend_idx}
 	party = []
 	for i in roster.size():
 		party.append(_build_unit_from_roster(roster[i], i))
@@ -684,6 +688,8 @@ func front_row_size() -> int:
 
 ## 0 = front, 1 = back.
 func row_of(u: Unit) -> int:
+	if not relic_combat.is_empty() and relic_combat.has("descend") and u.roster_index == int((relic_combat["descend"] as Dictionary)["idx"]):
+		return 0
 	return 0 if (u.roster_index >= 0 and u.roster_index < front_row_size()) else 1
 
 

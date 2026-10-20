@@ -1557,6 +1557,11 @@ static var TABLE: Dictionary = {
 	},
 	# ---- Depth v3 Cores / Run Rules (lane C): logic in core_hooks.gd, one TABLE entry per id ----
 	# CORE_TABLE_BEGIN
+	"c_descend": {
+		"descend_pick": func(ctx: Dictionary): return CoreHooks.descend_pick(ctx),
+		"mod_face": func(ctx: Dictionary): CoreHooks.descend_face(ctx),
+		"on_face_hit": func(ctx: Dictionary): CoreHooks.descend_hit(ctx),
+	},
 	"c_concord": {
 		"roll_share_class": func(ctx: Dictionary): return true,
 		"on_face_used": func(ctx: Dictionary): CoreHooks.concord_used(ctx),

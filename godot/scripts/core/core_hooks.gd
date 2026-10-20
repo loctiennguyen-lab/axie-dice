@@ -103,6 +103,52 @@ static func sacrifice_start(ctx: Dictionary) -> void:
 			EventBus.float_text.emit(u.uid, "ZZZ", "buf", 0)
 
 
+## Take The Field: the back-row Axie with the most heal faces (ties: lowest slot) is the one that descends.
+static func descend_pick(ctx: Dictionary) -> int:
+	var combat = ctx["combat"]
+	var best := -1
+	var best_n := 0
+	var fs: int = combat.front_row_size()
+	var roster: Array = ctx["roster"]
+	for i in range(fs, roster.size()):
+		var e: Dictionary = roster[i]
+		var die: Array = ((ContentDB.heroes.get(String(e.get("hero_key", "")), {}) as Dictionary).get("die", []) as Array).duplicate(true)
+		for m in (e.get("muts", []) as Array):
+			if String(m.get("type", "")) == "part" and int(m.get("idx", -1)) >= 0 and int(m.get("idx", -1)) < die.size():
+				die[int(m["idx"])] = m.get("face", {})
+		var n := 0
+		for f in die:
+			if String((f as Dictionary).get("type", "")) == "heal":
+				n += 1
+		if n > best_n:
+			best_n = n
+			best = i
+	return best
+
+
+static func is_descended(combat, u) -> bool:
+	var d = combat.relic_combat.get("descend", null)
+	return d is Dictionary and int((d as Dictionary)["idx"]) == u.roster_index and u.roster_index >= 0
+
+
+static func descend_face(ctx: Dictionary) -> void:
+	var u = ctx["unit"]
+	if not is_descended(ctx["combat"], u):
+		return
+	u.max_hp += 8
+	for f in u.die:
+		if String((f as Dictionary).get("type", "")) == "heal":
+			f["type"] = "dmg"
+			f["value"] = int(f.get("value", 0)) + 2
+
+
+static func descend_hit(ctx: Dictionary) -> void:
+	var u = ctx["unit"]
+	var d := int(ctx.get("dealt", 0))
+	if d > 0 and is_descended(ctx["combat"], u) and u.hp > 0:
+		DamagePipeline.apply_heal(ctx["combat"], u, int(ceil(d * 0.3)))
+
+
 static func dewdrop_turn(ctx: Dictionary) -> void:
 	gain_mana(ctx["combat"], 1)
 
