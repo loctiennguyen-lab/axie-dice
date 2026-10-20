@@ -202,6 +202,13 @@ static func note_category(ctx: Dictionary) -> void:
 		st[cat] = true
 
 
+## Concord: remember the part of the last face used this turn (a cantrip resolved at roll time does not count).
+static func concord_used(ctx: Dictionary) -> void:
+	if String(ctx.get("side", "")) != "p" or int(ctx.get("depth", 0)) != 0 or _has_kw(ctx["face"], "cantrip"):
+		return
+	turn_state(ctx["combat"], "cs_concord")["part"] = String((ctx["face"] as Dictionary).get("part", ""))
+
+
 static func prism_turn_end(ctx: Dictionary) -> void:
 	var combat = ctx["combat"]
 	var st := turn_state(combat, "cs_types")
@@ -258,7 +265,7 @@ static func tide_spent(ctx: Dictionary) -> void:
 const FLAT_CAP := 10
 const FLAT_IDS := ["c_kindle", "c_prime_chain", "c_finisher", "c_mana_pool", "c_three_dice", "c_field_medic",
 	"c_plague_spread", "c_hollow_core", "c_thorn_pact", "c_cascade", "c_gatekeeper", "c_golden_egg",
-	"rule_tundra", "rule_heavy_finish", "c_sacrifice"]
+	"rule_tundra", "rule_heavy_finish", "c_sacrifice", "c_concord"]
 
 
 static func mirror_second(combat, u) -> bool:
@@ -266,7 +273,7 @@ static func mirror_second(combat, u) -> bool:
 	return bool(st.get("second", false)) and int(st.get("uid", -1)) == u.uid
 
 
-static func bonus(combat, u, ft: String, id: String) -> int:
+static func bonus(combat, u, ft: String, id: String, part: String = "") -> int:
 	if u.side != "p" or u.is_token:
 		return 0
 	var val := VALUE_TYPES.has(ft)
@@ -303,6 +310,8 @@ static func bonus(combat, u, ft: String, id: String) -> int:
 			return mini(6, int(combat_state(combat, "gk").get("b", 0))) if ft == "dmg" else 0
 		"c_sacrifice":
 			return 2 if val else 0
+		"c_concord":
+			return 2 if (not sec and val and part != "" and String(turn_state(combat, "cs_concord").get("part", "")) == part) else 0
 		"c_golden_egg":
 			return 3 if (ft == "dmg" and bool(combat_state(combat, "ge").get("on", false))) else 0
 	return 0
@@ -314,7 +323,8 @@ static func flat(ctx: Dictionary, id: String) -> int:
 	var u = ctx["unit"]
 	var v := int(ctx["value"])
 	var ft := String(ctx.get("face_type", ""))
-	var own := bonus(combat, u, ft, id)
+	var part := String(ctx.get("part", ""))
+	var own := bonus(combat, u, ft, id, part)
 	if own <= 0:
 		return v + own
 	var before := 0
@@ -322,16 +332,16 @@ static func flat(ctx: Dictionary, id: String) -> int:
 		if String(rid) == id:
 			break
 		if FLAT_IDS.has(String(rid)):
-			before += maxi(0, bonus(combat, u, ft, String(rid)))
+			before += maxi(0, bonus(combat, u, ft, String(rid), part))
 	return v + mini(own, maxi(0, FLAT_CAP - before))
 
 
 ## Total flat Core bonus a face would get right now (used by tests / UI).
-static func flat_total(combat, u, ft: String) -> int:
+static func flat_total(combat, u, ft: String, part: String = "") -> int:
 	var t := 0
 	for rid in combat.relic_ids:
 		if FLAT_IDS.has(String(rid)):
-			t += maxi(0, bonus(combat, u, ft, String(rid)))
+			t += maxi(0, bonus(combat, u, ft, String(rid), part))
 	return mini(FLAT_CAP, t)
 
 

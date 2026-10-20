@@ -544,6 +544,7 @@ func roll_all() -> void:
 			u.held = false
 			u.stash_carry = false
 			u.clear_roll()
+	_share_class_rolls()
 	_spawn_phantom_dice()
 	for e in enemies:
 		if e.hp > 0:
@@ -558,6 +559,24 @@ func roll_all() -> void:
 	_resolve_cantrips()
 	RelicHooks.fire(self, "on_roll_end", {"combat": self})
 	RelicHooks.fire(self, "on_roll_settled", {"combat": self, "rerolled_uids": []})   # H1b
+
+
+## Depth v3 Core Concord (hook `roll_share_class`): Axies of one class that rolled fresh this turn all show the face
+## index of the first of them (their own crit roll stays). No extra rng draws.
+func _share_class_rolls() -> void:
+	if not bool(RelicHooks.run_value_hook(self, "roll_share_class", {"combat": self}, false)):
+		return
+	var first_of := {}
+	for u in party:
+		if u.hp <= 0 or is_sidelined(u) or u.is_token or u.held or u.stash_carry or not u.has_rolled() or u.cls == "":
+			continue
+		if not first_of.has(u.cls):
+			first_of[u.cls] = u.roll_face_index()
+		elif u.roll_face_index() != int(first_of[u.cls]):
+			var crit: bool = u.roll_crit_now()
+			var f: Dictionary = u.die[int(first_of[u.cls])]
+			u.set_roll(int(first_of[u.cls]), crit and String(f.get("type", "")) == "dmg")
+			u.heavy = _has_kw(f, "heavy")
 
 
 ## Depth v3 Core Sixth Die: hook `extra_dice` (value = how many). Each extra die is a copy of a random living
@@ -1340,7 +1359,7 @@ func _face_value(u: Unit, fi: int) -> int:
 		v += 1.0                                                        # CONDUIT passive
 	if u.side == "p" and u.resonant_now:
 		v = ceil(v * RESONANCE_MULT)
-	return int(RelicHooks.run_value_hook(self, "face_final", {"combat": self, "unit": u, "face_type": face_type}, int(v)))
+	return int(RelicHooks.run_value_hook(self, "face_final", {"combat": self, "unit": u, "face_type": face_type, "part": String(f.get("part", "")), "fi": fi}, int(v)))
 
 
 ## UI preview (design 8.6 item 7, "4 -> 1"): what die face `fi` of `src` would do to `target` as a single-target hit,
@@ -1397,7 +1416,7 @@ func _do_face(u: Unit, target_uid: int, f: Dictionary, fi: int, is_echo: bool) -
 		v += first_dmg_face_bonus   # flat, after everything else; once per turn
 		_first_dmg_used = true
 	var tgt: Unit = (by_uid(target_uid) if target_uid >= 0 else null)
-	var crit := u.roll_crit_now()
+	var crit: bool = u.roll_crit_now()
 	var face_type := String(f.get("type", ""))
 	var kw_pure := CombatTraits.side_bonus_keywords(self, u, face_type, _pure_keywords(f))   # R12: debuff magnitudes +2
 

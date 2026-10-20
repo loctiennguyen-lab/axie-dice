@@ -28,7 +28,7 @@ core("mirror_face", "Mặt Gương", "Mirror Face", 2, "dice", [], ["owned:c_thr
 core("sixth_die", "Con Xúc Xắc Thứ Sáu", "Sixth Die", 2, "dice", [], [], ["nonattack"], "Each turn, roll one extra die from a random living Axie. Use it this turn; it vanishes at end of turn.")
 core("whittle", "Gọt Xúc Xắc", "Whittled Die", 2, "dice", [], [], ["nonattack", "tradeoff"], "The team's weakest face slot is locked: a die that rolls it rerolls once. Every other face gets +1.")
 core("three_dice", "Ba Viên", "Three Dice", 2, "dice", [], ["owned:c_mirror_face"], ["nonattack", "tradeoff"], "You can use at most 3 dice per turn. Dice you did not use are Held automatically and have Focus +3 next turn.")
-core("concord", "Đồng Tâm", "Concord", 2, "dice", ["class_pair"], [], ["nonattack"], "Start of turn: Axies of the same class roll the same face. Each face used right after a face from the same part gets +2.", disabled=True, needs="H-concord: shared roll per class + part tracking in roll_all (engine, lane A)")
+core("concord", "Đồng Tâm", "Concord", 2, "dice", ["class_pair"], [], ["nonattack"], "Start of turn: Axies of the same class roll the same face. Each face used right after a face from the same part gets +2.")
 core("toxic_still", "Lò Độc", "Toxic Still", 2, "dice", ["face:poison"], ["owned:c_field_medic", "owned:c_cascade"], ["nonattack", "tradeoff"], "Damage faces deal 2 less (min 1). End of turn: every poisoned enemy gains poison equal to half its stacks (rounded up, max +4).")
 # ---- pos
 core("bastion", "Thành Trì", "Bastion", 0, "pos", [], FRONT_EXC, ["nonattack", "front"], "Front-row Axies take 2 less from single-target hits.", disabled=True, needs="H-incoming-dmg: target-side damage hook with single-target flag (damage_pipeline, lane A)")

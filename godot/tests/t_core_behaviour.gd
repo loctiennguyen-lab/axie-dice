@@ -504,3 +504,26 @@ func t_engine_cores() -> void:
 	var snap := CombatEngine.new()
 	snap.from_data(sd.to_data())
 	_ok(snap.party.size() == sd.party.size(), "sixth_die: snapshot keeps phantom")
+
+	# Concord: same-class Axies share the rolled face; a face right after a same-part face gets +2.
+	var keys := ["plant1", "plant1", "beast1", "aqua1", "bird1"]
+	var roster: Array = []
+	for i in keys.size():
+		roster.append({"persistent_id": i + 1, "hero_key": keys[i], "tier": 1,
+			"max_hp": ContentDB.heroes[keys[i]]["max_hp"], "muts": [], "growth": {}, "bonus_hp": 0})
+	var cc := CombatEngine.new()
+	cc.setup_new({"node_id": "t_core", "kind": "battle", "pw": 2, "ascension": 0, "roster_snapshot": roster,
+		"relic_ids": ["c_concord"], "combat_seed": 77, "bonus_reroll": 0})
+	(cc.party[0] as Unit).set_roll(1, false)
+	(cc.party[1] as Unit).set_roll(2, false)
+	cc._share_class_rolls()
+	_ok((cc.party[1] as Unit).roll_face_index() == 1 and (cc.party[0] as Unit).roll_face_index() == 1, "concord: plants share the first plant's face")
+	var cu: Unit = cc.party[2]
+	var cfi := 0
+	while cfi < 5 and not ["dmg", "shield", "heal", "poison", "mana"].has(String(cu.die[cfi].get("type", ""))):
+		cfi += 1
+	var v0 := cc._face_value(cu, cfi)
+	CoreHooks.turn_state(cc, "cs_concord")["part"] = String(cu.die[cfi].get("part", ""))
+	_ok(cc._face_value(cu, cfi) == v0 + 2, "concord: +2 after same part")
+	CoreHooks.turn_state(cc, "cs_concord")["part"] = "other_part"
+	_ok(cc._face_value(cu, cfi) == v0, "concord: no bonus after other part")
