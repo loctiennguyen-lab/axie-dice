@@ -100,3 +100,27 @@ Công cụ: `godot/tools/gen_cores.py <relics_dir> [ids...]` (catalog đủ 50 L
 - **Quest**: tiến độ do combat ghi vào `relic_run_out["c_<slug>"] = {n, boss, steps_done, done}` (`CoreHooks.quest()`); làn B chỉ cần phát thưởng theo `steps_done`. Hiệu ứng "khi chưa xong" đã có.
 - Ghi chú lệch nhỏ: Gọt Xúc Xắc tính mặt yếu nhất theo từng Axie (không theo cả đội); Y Sĩ: mặt debuff chưa +3 (debuff không có số). Mặt Gương bỏ qua cantrip khi tính "viên đầu tiên".
 - Test: `t_core_catalog` (in số ngưỡng 2.10: không-attack 44 / biến mặt phụ thành dmg 9 / đánh đổi 7), `t_run_rule_catalog`, `t_core_behaviour` (123 check). +2 file test so với trước.
+## Làn B - bàn giao (nhánh depth/B)
+
+Commit: bb77554 (schema + ẩn relic cũ + CoreOffer + slots), ddeb88a (flow RunState + verifier + 7 test). Test lẻ xanh: t_core_offer, t_core_tierchain, t_core_reroll_card, t_core_seen, t_core_filter, t_core_quest, t_run_rule_offer, t_relic_* (đã sửa), t_replay, t_full_run_loop, t_boss_pact. Cả suite CHƯA chạy.
+
+**Xong:** bước 1 (schema), 2 (offer), 3 (reroll TỪNG THẺ, không đổi schema Worker: action `reroll_rewards [slot]`, args tự do; ALLOWED_FNS không đổi), 4 (6 ô Core + 1 ô Luật, đầy thì bán: `take_reward [idx, sell_id]`), 5 (quest nhiều nấc), 6 (offer Luật run), 8 một phần (verifier gọi after_node sau mỗi take_reward, mở offer của event/shop khi tới pick).
+**Còn:** bước 7 (shop/event cho relic -> lần chọn Lõi; `RunState.apply_event_fx`, `generate_shop_items` còn gọi pick_relic, pool rỗng nên không crash nhưng chưa đổi thành Core pick), bước 9 (chữ INV-6 trong build-spec.md), test replay riêng cho Core (chưa có test dùng Core thật qua RunVerifier, cần tape; t_replay hiện chỉ chạy pool rỗng), Worker test (không đổi gì phía Worker), tests để RulesVersion (không đụng), Luật run R6 (bỏ lần chọn) chưa có knob.
+
+**File/hàm chính:** `scripts/core/core_offer.gd` (CoreOffer: draw_tier_chain, effective_tier, token_ok, valid_pool, build_offer, reroll_card, can_reroll_card, build_rule_offer); `autoload/RunState.gd` cuối file (`_open_opening_offers`, `_open_core_offer`, `_core_trigger_hit`, `_reroll_core_card`, `_apply_core_pick`, `note_quest_event`, `_open_bonus_offer`, `rule_knob`, `add_core_tier_bump`, `core_can_reroll`); `relic_slots.gd` (_check_add_core, owned_cores); `relic_def.gd` (core_axis, requires, excludes, disabled, first_run_hidden, run_rule, quest, rule_knobs); `relic_tuning.gd` (core_* knob, tier_chains, core_triggers_short/full).
+
+**Quyết định/đoán:**
+- Core offer = `pending_rewards` (card có core=true, phase REWARD). Pick 1 (và offer Luật run) mở ngay trong `_start_core`; pick 2.. mở trong `after_node()` theo `core_triggers_*` (row 5, boss1, boss2; Full thêm row 18, boss3). UI/D: sau take_reward vẫn gọi after_node() như cũ (bước chain tự bỏ qua).
+- Loadout cờ mới: `rules_on` (mặc định `MetaState.runs > 0`, lưu vào header loadout) và `core_off` (test/tool). Không thêm field meta nên không đụng reload_from_store.
+- Perk relic0/relic1/u_start: không còn tặng relic, chỉ `core_first_extra` (4 thẻ ở pick 1).
+- Seed: pick 1 = seed bắt đầu run ^ CORE_SALT; pick sau = `_node_seed` của node vừa đóng ^ CORE_SALT ^ (index * 0x9E3779B1); reroll = seed epoch `reward_reroll` (k = số reroll Core đã dùng + 1) ^ CORE_SALT.
+- Run đầu (rules_on=false): không Luật, không Lõi quest/first_run_hidden.
+- Token `requires/excludes`: class_pair, face:x, back_face:x|y, faces_distinct:n, front_hero, egg_source, owned:id, owned_axis:a, owned_tag:t, rule:id. Token lạ = false.
+- Quest: `quest={kind(wins|elite|boss), steps:[{target,reward_tier}]}`; mỗi nấc xong xếp 1 offer vào `core_bonus_queue`, mở ở after_node kế; nấc cuối gỡ Lõi khỏi ô.
+- Tier bump Elite affix(+) / Quạ: gọi `RunState.add_core_tier_bump(n)` trước khi offer kế mở (làn D/C nối).
+- Nội dung mẫu `c_test_*` / `rule_test_*` để `disabled = true` (người chơi không thấy); test gọi `CoreTestUtil.enable()`. `rule_none` bật thật. Hiện game thật không có Lõi nào hiển thị tới khi làn C thêm.
+- Relic cũ: tất cả non-pact đã `hidden_from_pool = true`; test cũ gọi `RelicRegistry.legacy_unhide_for_tests()`.
+
+
+### Làn B - cập nhật cuối (agent 2)
+Xong bước 7 (event chest/bet_small/gamble_legend xếp 1 lần chọn Lõi vào `core_bonus_queue`: chest = Hổ Phách, bet_small thắng và gamble_legend = Tinh Thể; shop có món "Core Pick" bậc Rêu giá `core_shop_cost`=60 shard trong run, đặt cuối danh sách, shop không còn bán relic cũ ở chế độ Lõi; không bán reroll Lõi), knob R6 `core_skip_picks` (mảng chỉ số lần chọn bị bỏ, 0-based; R6 = [1]; chưa có file R6, "+4 Max HP" chưa làm), test `t_core_replay` (RunBot có `core_script`, `drain_core_offers`), INV-6 trong build-spec. Pick Lõi từ event/shop mở ở `after_node` kế (không mở giữa shop). `pick_relic` và `pick_offer_relic` bỏ qua Lõi. Shop refresh (Aid R6) giờ ra hàng giống hệt (không còn relic ngẫu nhiên): cần hỏi Liam/economy có cần đổi. Giá 60 và bậc event là đoán.

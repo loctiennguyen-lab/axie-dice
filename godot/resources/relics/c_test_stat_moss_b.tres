@@ -1,0 +1,13 @@
+[gd_resource type="Resource" script_class="RelicDef" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data_models/relic_def.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "c_test_stat_moss_b"
+name = "Test stat b"
+description = "Test Core (stat). Does nothing."
+rarity = 0
+sort_index = 900020
+core_axis = "stat"
+disabled = true

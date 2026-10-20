@@ -183,16 +183,32 @@ static func verify(log: ActionLog, tape: Array = [], loadout: Dictionary = {}) -
 			"take_reward":
 				if RunState.phase == RunState.RunPhase.PACT:
 					return _fail(ERR_REJECTED, "A reward was taken before the boss Pact was settled.", i)
+				# A Core offer after an event/shop node opens when that node closes (after_node), which the UI does
+				# on leaving it; here that happens when the log reaches the pick.
+				if RunState.pending_rewards.is_empty() and node_open:
+					RunState.after_node()
+					node_open = false
 				var idx := int(args[0]) if args.size() > 0 else -1
 				if idx < 0 or idx >= RunState.pending_rewards.size():
 					return _fail(ERR_REJECTED,
 						"Reward %d was taken from an offer of %d."
 						% [idx, RunState.pending_rewards.size()], i)
-				RunState.apply_chosen_reward(RunState.pending_rewards[idx])
+				var sell_id := String(args[1]) if args.size() > 1 else ""
+				if not RunState.apply_chosen_reward(RunState.pending_rewards[idx], sell_id):
+					return _fail(ERR_REJECTED, "A reward pick was recorded that the replay cannot make.", i)
+				# The UI calls after_node() after every pick: a normal reward closes its node (and may open a Core
+				# offer), a Core pick only returns to the map.
+				if node_open or RunState._core_close_pending:
+					RunState.after_node()
+					node_open = false
 			"reroll_rewards":
 				if RunState.phase == RunState.RunPhase.PACT:
 					return _fail(ERR_REJECTED, "Rewards were re-rolled before the boss Pact was settled.", i)
-				if not RunState.reroll_pending_rewards():
+				if RunState.pending_rewards.is_empty() and node_open:
+					RunState.after_node()
+					node_open = false
+				var ridx := int(args[0]) if args.size() > 0 else -1
+				if not RunState.reroll_pending_rewards(-1, ridx):
 					return _fail(ERR_REJECTED, "A reward re-roll was recorded with none left.", i)
 			"event_choose":
 				var opt := int(args[0]) if args.size() > 0 else -1

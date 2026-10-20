@@ -140,8 +140,10 @@ func _ready() -> void:
 	_check(not _fake.spec.is_empty(), "worker/src/epoch_args.json not readable")
 	_fake.fail_plan = [{"kind": "node", "code": "expired"}, {"kind": "end_turn", "code": "offline"},
 		{"kind": "reward", "code": "offline"}]
+	# bonuses: HP so the dumb UI bot survives to the boss without the old shop/event relics (depth v3)
 	_check(RunState.start_run_with_epoch(_fake, {"team_keys": TEAM.duplicate(), "mode": "short",
-		"ascension": 0, "ranked": false}, 424242), "run did not start on the fake remote source")
+		"ascension": 0, "ranked": false,
+		"bonuses": {"hp_bonus": 40, "reward_reroll_max": 1}}, 424242), "run did not start on the fake remote source")
 	RunState.shards_this_run = 999   # so the shop's heal item (a `shop_roll` epoch) can be bought
 	_tree.change_scene_to_file("res://scenes/run_map/RunMap.tscn")
 	await _drive()

@@ -125,13 +125,13 @@ func test_bet_small_both_outcomes_are_reachable_and_real() -> void:
 	for i in 40:
 		_fresh_run(1000 + i)
 		var hp_before: int = int(RunState.roster[0].get("bonus_hp", 0))
-		var relics_before: int = RunState.owned_relic_ids.size()
+		var queued_before: int = RunState.core_bonus_queue.size()
 		var msg := RunState.apply_event_fx("bet_small", Rng.new(i * 31 + 5))
 		_assert(msg != "", "bet_small returned no result message at iteration %d" % i)
 		if msg.begins_with("YOU WIN"):
 			wins += 1
-			_assert(RunState.owned_relic_ids.size() > relics_before,
-				"bet_small reported a WIN but granted no relic (iteration %d)" % i)
+			_assert(RunState.core_bonus_queue.size() == queued_before + 1 and RunState.core_bonus_queue.back() == 2,
+				"bet_small WIN must queue one Crystal Core pick (iteration %d)" % i)   # depth v3 2.8
 		else:
 			losses += 1
 			_assert(int(RunState.roster[0].get("bonus_hp", 0)) < hp_before,
@@ -142,6 +142,16 @@ func test_bet_small_both_outcomes_are_reachable_and_real() -> void:
 		"bet_small produced %d wins and %d losses over 40 draws — both outcomes must be "
 			% [wins, losses]
 		+ "reachable")
+
+
+func test_chest_and_gamble_queue_core_picks() -> void:
+	_fresh_run(77)
+	var n0: int = RunState.core_bonus_queue.size()
+	RunState.apply_event_fx("chest", Rng.new(1))
+	_assert(RunState.core_bonus_queue.size() == n0 + 1 and RunState.core_bonus_queue.back() == 1, "chest queues one Amber Core pick")
+	RunState.apply_event_fx("gamble_legend", Rng.new(1))
+	_assert(RunState.core_bonus_queue.size() == n0 + 2 and RunState.core_bonus_queue.back() == 2, "gamble_legend queues one Crystal Core pick")
+	_assert(RunState.owned_relic_ids.is_empty(), "events grant no old relic")
 
 
 func test_shards30_grants_shards() -> void:

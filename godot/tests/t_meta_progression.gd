@@ -320,7 +320,7 @@ func test_a_ranked_run_gets_unlock_bonuses_but_no_perks() -> void:
 	RunState.start_new_run(4321, team, "short", 0, true)
 	_assert(RunState.bonus_reroll == 2,
 		"start_new_run(ranked) bonus reroll should be 2, got %d" % RunState.bonus_reroll)
-	_assert(not RunState.owned_relic_ids.is_empty(), "start_new_run(ranked) should grant the u_start relic")
+	_assert(RunState.core_first_extra, "start_new_run(ranked): u_start no longer grants a relic, it gives Core pick 1 a 4th card (depth v3)")
 	for entry in RunState.roster:
 		_assert(int((entry as Dictionary).get("bonus_hp", 0)) == 5,
 			"start_new_run(ranked) gave an Axie %d bonus Max HP, expected 5"

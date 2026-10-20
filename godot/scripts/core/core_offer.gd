@@ -38,7 +38,7 @@ static func draw_tier_chain(seed: int, mode: String) -> Array[int]:
 	var t := tuning()
 	var rng := Rng.new(seed ^ TIER_SALT)
 	var chain: Array[int] = []
-	var pick := _weighted(rng, t.tier_chains_short)
+	var pick = _weighted(rng, t.tier_chains_short)
 	for v in (pick as Array):
 		chain.append(int(v))
 	if mode == "full":
@@ -121,10 +121,6 @@ static func held_rule_id(owned_ids: Array) -> String:
 		if d != null and String(d.core_axis) == "run_rule":
 			return String(id)
 	return ""
-
-
-static func held_rule_def():
-	return null
 
 
 ## One token against ctx. See the header for the grammar.
@@ -386,6 +382,11 @@ static func reroll_card(rng: Rng, offer: Array, idx: int, ctx: Dictionary) -> Di
 	var ax2 := String(use[rng.next_int(use.size())])
 	var c2 := _same_tier(pool, ax2, tier, used_ids)
 	return card_of(c2[rng.next_int(c2.size())], idx)
+
+
+## True when reroll_card() would find a replacement (seed independent): lets the UI grey the button out.
+static func can_reroll_card(offer: Array, idx: int, ctx: Dictionary) -> bool:
+	return not reroll_card(Rng.new(0), offer, idx, ctx).is_empty()
 
 
 static func _same_tier(pool: Array, axis: String, tier: int, used_ids: Array) -> Array:
