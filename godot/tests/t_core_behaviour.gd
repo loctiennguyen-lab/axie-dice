@@ -295,6 +295,9 @@ func t_pos_mana_cores() -> void:
 		c.reroll_paid_k += 1
 		RelicHooks.fire(c, "on_reroll_paid", {"combat": c, "cost": 1, "k": i + 1})
 	_ok(c.reroll_paid_k == 4, "hollow_core: 8 paid rerolls fill the cap of 4 counted")
+	_ok(c.reroll_hard_cap() == 5 and b.reroll_hard_cap() == 4, "hollow_core: hard_cap 4 -> 5 (v4, the cap would eat the Core)")
+	c.reroll_paid_k = 1
+	_ok(c.reroll_mana_cost() == int(CombatEngine.tune_knob("reroll", "mana_cost_3", 3.0)) - 1, "hollow_core: price = mana_cost_3 - 1")
 	c = _combat(["c_thorn_pact"])
 	_ok(c.reroll_mana_cost() == 0, "thorn_pact: reroll costs no mana")
 	var u: Unit = c.party[0]
@@ -414,6 +417,9 @@ func t_run_rules() -> void:
 	var b := _combat([])
 	var c := _combat(["rule_cheap_mana"])
 	_ok(c.max_rerolls == 0 and c.reroll_mana_cost() == 1, "cheap_mana: no free reroll, 1 mana")
+	_ok(c.reroll_hard_cap() == 5, "cheap_mana: hard_cap 4 -> 5")
+	c.reroll_paid_k = 1
+	_ok(c.reroll_mana_cost() == int(CombatEngine.tune_knob("reroll", "mana_cost_3", 3.0)) - 1, "cheap_mana: price = mana_cost_3 - 1")
 	c = _combat(["rule_tundra"])
 	_ok(c.stash_cap() == 2 and c.max_rerolls == 0 and c.reroll_mana_cost() == 2, "tundra: hold 2, rerolls cost 2")
 	var u: Unit = c.party[0]
