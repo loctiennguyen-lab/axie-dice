@@ -66,7 +66,7 @@ func _hollow_damage() -> void:
 		b.shield = 0
 		DamagePipeline.resolve({"combat": c, "src": c.party[0], "tgt": b, "value": 10, "attack": true, "face_type": "dmg"})
 		dealt.append(b.max_hp - b.hp)
-	_check(dealt[0] == 10 and dealt[1] == 13, "hollow should take +30%%: prep %d, hollow %d" % [dealt[0], dealt[1]])
+	_check(dealt[0] == 10 and dealt[1] == 15, "hollow should take +50%%: prep %d, hollow %d" % [dealt[0], dealt[1]])
 	var fi := b.roll_face_index()
 	b.custom_state["turn_count"] = 2
 	var normal := c._face_value(b, fi)
