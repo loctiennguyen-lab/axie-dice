@@ -132,3 +132,10 @@ Lệnh deploy (CHỜ Liam bảo, theo thứ tự): 1) `cd worker && npx wrangler
 - Chip REROLL chuyển lên trên thẻ, nhãn SET nâng 28px khi đang chọn tung lại (hết đè số/preview).
 - Ảnh: `production/qa/evidence/v4ui_*` (bo3, bo4, reroll_pick, gamble_pct, wild_picker, result; 1280x720 + 1920x1080) từ `tests/qa_v4ui_capture`.
 - Test mới: t_v4ui_bo, t_v4ui_stage_coach, t_v4ui_result, t_v4ui_audio (floor trong technical-preferences.md chưa đổi: lead cập nhật khi merge).
+
+## UF - bàn giao (làn UF, sửa UI v4 theo review UX)
+- Xong + commit: 1 (59f4dab: BoLayer cắt banner ngay khi Bộ mất, test t_v4ui_bo_sync; lỗi lệch có thật nhưng chỉ thoáng, banner còn ~0.8s sau khi bộ 4 vỡ), 2 (e37fc6d: dòng % và hint cỡ 18), 3+4 (3b0373d: cụm phải End turn / hàng Reroll / 4 ô vuông 48 Undo-Hold-Wild-Overcast có glyph `scripts/ui/action_glyph.gd` + nhãn 16).
+- Commit WIP (mục 5-9, chưa duyệt kỹ): 5 glyph Gamble (xúc xắc nứt) / Safe (giọt mana) trong RerollBar; 6 chip part 44 treo góc, chip REROLL nằm hẳn trên thẻ (y -32, nhãn SET nâng 40); 7 WildPicker (chip 236x72, gap 16, glyph part, chữ 18, hint có nền); 8 Result CoreImpact 18 + màu text; 9 chip "1/2" cỡ 18, cách mép 10.
+- Test đã chạy xanh: t_ui_laws, t_v4ui_*, t_depthv3_combat_ui, t_combat_right_block, t_ui3_theme. Suite đủ chạy lần cuối (trước fix L7) chỉ đỏ t_ui_laws, đã sửa; chưa chạy lại suite đủ sau 2 sửa cuối (RerollBar BTN_W 200 + line plate).
+- Ảnh `production/qa/evidence/v4uf_*` (bị gitignore): tiles_bo3/bo4, gamble_pct, wild_picker, result, reroll_pick, 2 cỡ. Chụp lại sau sửa cuối: gamble_pct/reroll_pick/wild_picker đã chụp; v4uf_result chưa xem lại kỹ.
+- Còn: kiểm Result 1920 (chữ >= 18, tương phản); xem tooltip ô Hold/Wild/Overcast (button.text giữ chữ trạng thái nhưng ẩn, lý do nằm ở tooltip); stage 1-2 chụp riêng (chỉ Undo+Hold); chạy cả suite 1 lần với AXIE_HANG_KILL=900.

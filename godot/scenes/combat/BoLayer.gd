@@ -13,8 +13,12 @@ var _labels: Array[Label] = []
 var _banner: Label = null
 var _banner_tween: Tween = null
 var label_lift := 0.0                   # raised while the REROLL chips sit above the cards
+var cards_provider: Callable = Callable()   # () -> uid -> Rect2 in this layer's space; polled so frames follow a tray that moves
+var _last_bo: Array = []
+var _last_cards: Dictionary = {}
 var last_banner: String = ""            # test hook
 var _seen: Dictionary = {}              # part -> best size already announced this fight/turn
+var _banner_key := Vector3i(-1, 0, 0)   # (part, size, m100) the visible banner announces
 
 
 func _init() -> void:
@@ -26,6 +30,9 @@ func _init() -> void:
 
 ## `cards`: uid -> Rect2 (global-in-layer rect of the tray card). `bo`: engine snapshot.
 func refresh(bo: Array, cards: Dictionary) -> void:
+	_last_bo = bo
+	_last_cards = cards.duplicate()
+	_drop_stale_banner(bo)
 	_groups.clear()
 	for g in bo:
 		var r := Rect2()
@@ -68,6 +75,30 @@ func refresh(bo: Array, cards: Dictionary) -> void:
 	queue_redraw()
 
 
+## The tray can move after the snapshot (layout pass, resize, mode switch): follow the live card rects so the
+## label centre always equals the frame centre.
+func _process(_dt: float) -> void:
+	if not cards_provider.is_valid() or not visible:
+		return
+	var now: Dictionary = cards_provider.call()
+	if now != _last_cards:
+		refresh(_last_bo, now)
+
+
+## The banner and the tray label must never disagree: a banner whose (part, size, multiplier) is no longer a
+## current Set (reroll broke it, Wild changed it, a die was used) is cut at once instead of fading out.
+func _drop_stale_banner(bo: Array) -> void:
+	if _banner == null or not _banner.visible:
+		return
+	for g in bo:
+		if Vector3i(int(g["part"]), int(g["size"]), int(g["m100"])) == _banner_key:
+			return
+	_banner.visible = false
+	last_banner = ""
+	if _banner_tween != null:
+		_banner_tween.kill()
+
+
 func _draw() -> void:
 	var col := UI3Theme.color("accent")
 	for gd in _groups:
@@ -90,12 +121,14 @@ func announce(bo: Array, tray_top: float) -> void:
 		live[int(g["part"])] = int(g["size"])
 		var sz := int(g["size"])
 		if V4Ui.has_banner(sz) and sz > int(_seen.get(int(g["part"]), 0)):
-			_show_banner(V4Ui.banner_text(int(g["part"]), sz, int(g["m100"])), sz, tray_top)
+			_show_banner(V4Ui.banner_text(int(g["part"]), sz, int(g["m100"])), sz, tray_top,
+				Vector3i(int(g["part"]), sz, int(g["m100"])))
 	_seen = live
 
 
-func _show_banner(text: String, size: int, tray_top: float) -> void:
+func _show_banner(text: String, size: int, tray_top: float, key := Vector3i(-1, 0, 0)) -> void:
 	last_banner = text
+	_banner_key = key
 	if _banner == null:
 		_banner = UI3.label("", "LabelDisplay")
 		_banner.name = "SetBanner"

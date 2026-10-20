@@ -542,6 +542,11 @@ func _build_relics_card(relic_ids: Array, run_rule_id: String = "", impact: Dict
 			txt = tr("Most impact") + " · " + txt
 		var im := UI3.label(txt, "LabelMuted" if (e.is_empty() or is_pact) else "")
 		im.name = "CoreImpact"
+		im.add_theme_font_size_override("font_size", 18)   # review: the description is never below 18
+		im.add_theme_color_override("font_color", UI3Theme.color("text"))   # full cream, muted greys read too faint here
+		im.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		im.custom_minimum_size.x = 360.0
+		im.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
 		row.add_child(im)
 		list.add_child(p)
 	var pad := Control.new()

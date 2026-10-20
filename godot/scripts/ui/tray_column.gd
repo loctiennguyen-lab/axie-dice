@@ -11,6 +11,7 @@ const H := 164.0
 const PAD := 6.0
 const TILE_Y := 4.0
 const HOLDER_H := 88.0     # DieTile's holder is 100 high for its shadow; 88 + the 6 px gap is enough
+const PART_CHIP := 44.0     # glyph 40 design px = 27 px at 1280x720
 const BODY_NORMAL := 164.0
 const BODY_USED := 164.0
 
@@ -213,15 +214,15 @@ static func _update_v4(content: Dictionary, d: Dictionary) -> void:
 		sb.content_margin_top = 2
 		sb.content_margin_bottom = 2
 		chip.add_theme_stylebox_override("panel", sb)
-		chip.custom_minimum_size = Vector2(32, 32)
+		chip.custom_minimum_size = Vector2(PART_CHIP, PART_CHIP)
 		var tr := TextureRect.new()
 		tr.name = "Glyph"
-		tr.custom_minimum_size = Vector2(28, 28)
+		tr.custom_minimum_size = Vector2(PART_CHIP - 4.0, PART_CHIP - 4.0)
 		tr.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 		tr.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 		tr.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		chip.add_child(tr)
-		chip.position = Vector2(2, 2)
+		chip.position = Vector2(-4, -4)   # hangs off the corner: the glyph is 24 px at 1280, the die tile stays clear
 		body.add_child(chip)
 		content["part_chip"] = chip
 	if content.has("part_chip"):
@@ -260,7 +261,8 @@ static func _update_crack(content: Dictionary, d: Dictionary) -> void:
 		var chip := UI3.chip("1/2")
 		chip.name = "CrackChip"
 		chip.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		chip.position = Vector2(W - 52.0, 34.0)
+		((chip.get_child(0)) as Label).add_theme_font_size_override("font_size", 18)
+		chip.position = Vector2(W - 62.0, 34.0)   # 10 px clear of the card edge (chip is ~48 wide at 18)
 		body.add_child(chip)
 		content["crack_chip"] = chip
 		var line := Line2D.new()
@@ -291,7 +293,7 @@ static func _update_crack(content: Dictionary, d: Dictionary) -> void:
 		var rc := UI3.chip("REROLL")
 		rc.name = "RerollChip"
 		rc.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		rc.position = Vector2(W * 0.5 - 40.0, -20.0)   # above the card: its top holds the die value and the Set preview
+		rc.position = Vector2(W * 0.5 - 24.0, -32.0)   # fully above the card: its top holds the die value and the Set preview, the part chip sits left
 		body.add_child(rc)
 		content["rr_chip"] = rc
 	if content.has("rr_chip"):

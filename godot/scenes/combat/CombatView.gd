@@ -1078,6 +1078,7 @@ func _build_hud_r1() -> void:
 	_shell_root.add_child(_tray_root)
 	_bo_layer = BoLayer.new()
 	_shell_root.add_child(_bo_layer)
+	_bo_layer.cards_provider = _card_rects
 	for b in _die_slot_buttons:
 		var nm: String = (b as Button).name
 		(b as Button).get_parent().remove_child(b)
@@ -2144,7 +2145,10 @@ func _inspect_blockers() -> Array[Rect2]:
 		out.append(Rect2(0.0, t - 8.0, AidPanel.TRAY_W + 2.0 * AidPanel.EDGE, vs.y - t + 8.0))
 	var cluster := Rect2()
 	var first := true
-	for c in [_reroll_button, _undo_button, _end_turn_button]:
+	var cluster_btns: Array = [_reroll_button, _undo_button, _end_turn_button]
+	if _hud_frame != null:
+		cluster_btns.append_array([_hud_frame.hold_button, _hud_frame.wild_button, _hud_frame.overcast_button])
+	for c in cluster_btns:
 		if c != null and (c as Control).visible:
 			var r := (c as Control).get_global_rect()
 			cluster = r if first else cluster.merge(r)
@@ -4247,14 +4251,16 @@ func _card_rects() -> Dictionary:
 	for i in mini(units.size(), _die_slot_buttons.size()):
 		var b: Button = _die_slot_buttons[i]
 		if b.visible:
-			rects[(units[i] as Unit).uid] = Rect2(b.position, b.size)
+			var gr := b.get_global_rect()
+			var inv := _bo_layer.get_global_transform().affine_inverse() if _bo_layer != null else Transform2D.IDENTITY
+			rects[(units[i] as Unit).uid] = Rect2(inv * gr.position, gr.size)
 	return rects
 
 
 func _refresh_bo_layer() -> void:
 	if _bo_layer == null or _combat == null:
 		return
-	_bo_layer.label_lift = 28.0 if _rr_mode else 0.0
+	_bo_layer.label_lift = 40.0 if _rr_mode else 0.0
 	_bo_layer.refresh(_combat.bo, _card_rects())
 
 
@@ -4395,7 +4401,9 @@ func _update_wild_picker() -> void:
 		if key > best_key:
 			best_key = key
 			best = slot
-		rows.append({"ok": bool(pv["ok"]), "label": line, "best": false})
+		var wu: Unit = _combat.by_uid(_wild_uid)
+		rows.append({"ok": bool(pv["ok"]), "label": line, "best": false,
+			"tex": _part_icon_for(String(V4Ui.SLOT_ORDER[slot]), wu.cls if wu != null else "")})
 	if best >= 0:
 		rows[best]["best"] = true
 	_wild_picker.update(rows)

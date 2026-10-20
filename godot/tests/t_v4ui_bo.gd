@@ -9,6 +9,29 @@ func _check(ok: bool, msg: String) -> void:
 	if not ok:
 		_fails.append(msg)
 
+func _check_centred(v: Node, bl: BoLayer, tag: String) -> void:
+	var n := 0
+	for gd in bl._groups:
+		var lab: Label = bl._labels[n]
+		var uids: Array = []
+		for g in v._combat.bo:
+			if int(g["part"]) == int(gd["part"]) and int(g["size"]) == int(gd["size"]):
+				uids = g["uids"]
+		var lo := INF
+		var hi := -INF
+		var units: Array = v._party_dice_units()
+		for i in units.size():
+			if int(units[i].uid) in uids:
+				var b: Button = v._die_slot_buttons[i]
+				var gr := b.get_global_rect()
+				lo = minf(lo, gr.position.x)
+				hi = maxf(hi, gr.end.x)
+		var lc := lab.get_global_rect().get_center().x
+		_check(absf(lc - (lo + hi) * 0.5) <= 4.0, "%s: label centre %.1f vs group centre %.1f" % [tag, lc, (lo + hi) * 0.5])
+		n += 1
+	_check(n >= 1, "%s: at least one group" % tag)
+
+
 func _ready() -> void:
 	CombatView.disable_juice_for_tests = true
 	_guard.capture()
@@ -52,6 +75,18 @@ func _ready() -> void:
 	c._snap_bo()
 	await get_tree().process_frame
 	_check(bl.last_banner.begins_with("FOUR"), "banner for four: %s" % bl.last_banner)
+	# Label centred on its group: live button rects, 4 px tolerance (four-group, then a split group).
+	for _i in 4:
+		await get_tree().process_frame
+	_check_centred(v, bl, "four")
+	units[1].set_roll(1, false)   # a die of another part in the middle splits the group: 0, 2, 3 stay one Set of 3
+	c._snap_bo()
+	await get_tree().process_frame
+	await get_tree().process_frame
+	_check_centred(v, bl, "split")
+	units[1].set_roll(2, false)
+	c._snap_bo()
+	await get_tree().process_frame
 	var logged := false
 	for ln in v._log_lines:
 		if String(ln).begins_with("[set]"):
