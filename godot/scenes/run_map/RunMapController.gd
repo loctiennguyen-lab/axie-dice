@@ -785,7 +785,7 @@ func _rebuild_left() -> void:
 	var rcol := VBoxContainer.new()
 	rcol.add_theme_constant_override("separation", 8)
 	bottom.add_child(rcol)
-	rcol.add_child(UI3.label(tr("Relics · %d") % RunState.owned_relic_ids.size(), "LabelTitle"))
+	rcol.add_child(UI3.label(tr("Cores · %d") % RunState.owned_relic_ids.size(), "LabelTitle"))
 	var core_panel := CorePanel.new()
 	core_panel.slot_px = 40
 	rcol.add_child(core_panel)
@@ -1033,6 +1033,10 @@ func _finish_node() -> void:
 	# AFTER after_node(), not before: that call is what advances power_level and the phase, and
 	# a save taken ahead of it would resume the player onto a node they had already finished.
 	_save_map_progress()
+	# A pick can chain another offer (Run Rule -> first Core, bonus Core after an event/quest/shop/Dim Stone):
+	# after_node() then leaves pending_rewards filled. The map must never sit there with an offer nobody sees.
+	if RunState.phase == RunState.RunPhase.PACT or not RunState.pending_rewards.is_empty():
+		_maybe_show_pending_reward()
 
 
 # ===========================================================================
@@ -1103,6 +1107,7 @@ func _close_overlay() -> void:
 
 func _clear_overlay_content() -> void:
 	_overlay_vbox = null
+	_reward_cards.clear()   # its cards are freed below; never keep refs to them
 	for c in _overlay_root.get_children():
 		_overlay_root.remove_child(c)
 		c.queue_free()
@@ -1338,7 +1343,8 @@ func _ask_skip_reward(col: VBoxContainer) -> void:
 func _select_reward(i: int) -> void:
 	_reward_sel = clampi(i, 0, maxi(_reward_cards.size() - 1, 0))
 	for k in _reward_cards.size():
-		UI3.set_card_selected(_reward_cards[k], k == _reward_sel, false)
+		if is_instance_valid(_reward_cards[k]):   # the overlay is rebuilt (old cards freed) on reroll / chained offers
+			UI3.set_card_selected(_reward_cards[k], k == _reward_sel, false)
 
 
 func _take_selected_reward() -> void:
