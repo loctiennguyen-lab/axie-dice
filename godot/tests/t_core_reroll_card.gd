@@ -104,6 +104,7 @@ func _ready() -> void:
 			var cap := CoreOffer.tuning().core_stat_max_per_offer
 			var o4: Array = o3.duplicate(true)
 			var rr := CoreOffer.reroll_card(Rng.new(sd), o4, 0, cx)
-			var n_stat := 2 + (1 if (not rr.is_empty() and String(rr["axis"]) == "stat") else 0)
-			_assert(rr.is_empty() or n_stat <= cap, "stat cap holds for the replacement")
+			# The two cards that stay are already stat: the replacement may be stat only if two more still fit.
+			var adds_stat: bool = not rr.is_empty() and String(rr["axis"]) == "stat"
+			_assert(not adds_stat or 2 < cap, "stat cap holds for the replacement")
 	_done("t_core_reroll_card")

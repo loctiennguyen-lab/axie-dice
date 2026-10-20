@@ -61,9 +61,9 @@ func _ready() -> void:
 	d.disabled = true
 	_assert(not _keys(CoreOffer.valid_pool(CoreTestUtil.ctx())).has("c_test_dice_moss_b"), "disabled flag hides a Core")
 	d.disabled = false
-	# old relics and Run Rules are never in the Core pool
+	# old relics and Run Rules are never in the Core pool (real Cores are enabled since lane E: c_ ids, fixtures c_test_)
 	for k in _keys(CoreOffer.valid_pool(CoreTestUtil.ctx())):
-		_assert(k.begins_with("c_test_"), "only Cores in the pool (%s)" % k)
+		_assert(k.begins_with("c_"), "only Cores in the pool (%s)" % k)
 	# a filtered Core never reaches an offer
 	for sd in 40:
 		for c in CoreOffer.build_offer(Rng.new(sd), 1, diff, 3):
