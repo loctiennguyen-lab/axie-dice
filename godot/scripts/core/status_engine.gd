@@ -6,7 +6,7 @@ extends RefCounted
 ##
 ##  - add_status()  == engine.js addStatus(s,t,kws,src) — called while a face resolves
 ##    (doFace), applies a NEW stack of poison/burn/regen/blind/weaken/vulnerable/thorns/
-##    stun/freeze/undying/enrage. THORNS_CAP is enforced HERE (on apply), matching JS:
+##    stun/freeze/undying/enrage. The thorns cap knob (default none) is enforced HERE (on apply), matching JS:
 ##    thorns never decays over turns, so the cap has to live at the only place thorns
 ##    stacks grow, not in the decay pass below.
 ##  - tick_status()  == engine.js tickStatus(s) — called once at END_TURN, decays
@@ -18,7 +18,12 @@ extends RefCounted
 ##    This split exactly matches where engine.js itself performs each of these —
 ##    see design/gdd/godot-port-rule-spec.md §3.
 
-const THORNS_CAP := 8
+## Depth v3 (Liam 21/10): thorns are uncapped for both sides. combat_tune.json thorns.cap > 0 brings a cap back
+## (0 = none). Thorns still never decay over turns.
+static func clamp_thorns(v: int) -> int:
+	var cap := int(CombatEngine.tune_knob("thorns", "cap", 0.0))
+	return v if cap <= 0 else mini(cap, v)
+
 
 
 static func _die_has_keyword(die: Array, kw: String) -> bool:
@@ -63,7 +68,7 @@ static func add_status(combat, tgt: Unit, kws: Array, src: Unit = null) -> void:
 
 		if n in ["thorns", "regen", "burn", "blind", "weaken", "vulnerable"]:
 			if n == "thorns":
-				tgt.status["thorns"] = min(THORNS_CAP, int(tgt.status.get("thorns", 0)) + v)
+				tgt.status["thorns"] = clamp_thorns(int(tgt.status.get("thorns", 0)) + v)
 			else:
 				tgt.status[n] = int(tgt.status.get(n, 0)) + v
 			var cls_css := "buf" if (n == "thorns" or n == "regen") else "deb"

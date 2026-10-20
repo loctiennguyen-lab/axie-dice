@@ -245,7 +245,7 @@ static func apply_shield(combat, tgt: Unit, value: int) -> void:
 	EventBus.float_text.emit(tgt.uid, "+%d" % v, "shd", 0)
 	EventBus.hp_changed.emit(tgt.uid, tgt.hp, tgt.max_hp, tgt.shield)
 	if tgt.side == "p" and tgt.cls == "plant" and tgt.shield >= int(RelicHooks.field(combat, "bulwark_at", 10.0)):
-		tgt.status["thorns"] = min(StatusEngine.THORNS_CAP, max(int(tgt.status.get("thorns", 0)), int(RelicHooks.field(combat, "bulwark_thorns", 2.0))))
+		tgt.status["thorns"] = StatusEngine.clamp_thorns(max(int(tgt.status.get("thorns", 0)), int(RelicHooks.field(combat, "bulwark_thorns", 2.0))))
 	if tgt.side == "p":
 		RelicHooks.fire(combat, "on_shield", {"v": v, "tgt": tgt, "combat": combat})
 

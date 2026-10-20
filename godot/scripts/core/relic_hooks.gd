@@ -749,7 +749,7 @@ static var TABLE: Dictionary = {
 			var want: int = mini(4, u.shield / 5)
 			var have: int = int(u.custom_state.get("spiked_bonus", 0))
 			if want > have:
-				u.status["thorns"] = mini(StatusEngine.THORNS_CAP, int(u.status.get("thorns", 0)) + (want - have))
+				u.status["thorns"] = StatusEngine.clamp_thorns(int(u.status.get("thorns", 0)) + (want - have))
 				u.custom_state["spiked_bonus"] = want
 			return,
 		"on_turn_start": func(ctx: Dictionary):
@@ -840,7 +840,7 @@ static var TABLE: Dictionary = {
 			var u: Unit = ctx["unit"]
 			var n := int(u.custom_state.get("barbed", 0))
 			if n < 3:
-				u.status["thorns"] = mini(StatusEngine.THORNS_CAP, int(u.status.get("thorns", 0)) + 1)
+				u.status["thorns"] = StatusEngine.clamp_thorns(int(u.status.get("thorns", 0)) + 1)
 				u.custom_state["barbed"] = n + 1
 			return,
 		"on_turn_start": func(ctx: Dictionary):
@@ -1152,7 +1152,7 @@ static var TABLE: Dictionary = {
 		"on_combat_start": func(ctx: Dictionary):
 			for u in ctx["combat"].party:
 				if u.hp > 0:
-					u.status["thorns"] = mini(StatusEngine.THORNS_CAP, int(u.status.get("thorns", 0)) + 2)
+					u.status["thorns"] = StatusEngine.clamp_thorns(int(u.status.get("thorns", 0)) + 2)
 			return,
 	},
 	"r_lonewolf": {

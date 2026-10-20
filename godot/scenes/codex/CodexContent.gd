@@ -265,7 +265,7 @@ static func statuses() -> Array:
 		{"name": "Regen N", "tone": "regen", "icon": "regen", "good": true,
 			"rule": "Heals N at the end of the turn, then N drops by 1."},
 		{"name": "Thorns N", "tone": "thorns", "icon": "thorns", "good": true,
-			"rule": "Anything that attacks this unit takes N damage back. Hard cap %d. Reptile always has Thorns 2." % StatusEngine.THORNS_CAP},
+			"rule": "Anything that attacks this unit takes N damage back. No cap. Reptile always has Thorns 2."},
 		{"name": "Undying", "tone": "undying", "icon": "undying", "good": true,
 			"rule": "Survives one lethal hit at 1 HP."},
 		{"name": "Poison N", "tone": "poison", "icon": "poison", "good": false,
