@@ -73,6 +73,7 @@ func _ready() -> void:
 	e.action_log = ActionLog.new()
 	e.action_log.begin(0, TEAM, "short", 0)
 	e.rerolls = 0
+	e.mana = 0   # cantrip mana faces may have paid out at roll time
 	var uids := [e.party[0].uid]
 	_check(not e.can_reroll(uids), "no reroll left: refused")
 	_check(e.can_reroll(uids, true), "an Aid reroll ignores the counter")
@@ -86,6 +87,7 @@ func _ready() -> void:
 	_check(JSON.stringify(e.to_data()) == JSON.stringify(e2.to_data()), "aid reroll replays to the same state")
 	var e3 := _engine(5)
 	e3.rerolls = 0
+	e3.mana = 0
 	_check(not e3.reroll_dice(uids, 4242, false), "same reroll without from_aid is refused at 0")
 
 	# --- same reroll seed, same faces; other seed, (very likely) other state ---

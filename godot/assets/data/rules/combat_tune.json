@@ -27,5 +27,11 @@
  "_doc": "monetization-v1.md 1.2/1.5. Intent dmg = base x (1 + enrage% + attrition%) x spike_mult, rounded half up. The A0-A3 light clock and the A4+/A9 full clock live per level in ascension.json (clock).",
  "stash": {
   "cap": 1
+ },
+ "reroll": {
+  "free": 1,
+  "mana_cost": 2,
+  "max_total": 4,
+  "conduit_step": 3
  }
 }

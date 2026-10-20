@@ -201,10 +201,11 @@ func setup_new(combat_setup: Dictionary) -> void:
 
 	# A3 "Short Dice": the BASE loses a reroll (never below the floor); every bonus still adds on top.
 	var amods_r := ContentDB.ascension_mods(ascension)
-	var base_rerolls := 2
+	# Depth v3 3.5: free rerolls per turn come from combat_tune.json reroll.free (was a literal 2).
+	var base_rerolls := reroll_free_per_turn()
 	if int(amods_r.get("reroll_base_delta", 0)) != 0:
-		base_rerolls = maxi(int(amods_r.get("reroll_base_floor", 1)), 2 + int(amods_r["reroll_base_delta"]))
-	max_rerolls = base_rerolls + int(combat_setup.get("bonus_reroll", 0)) + int(RelicHooks.sum(self, "rerollUp"))
+		base_rerolls = maxi(int(amods_r.get("reroll_base_floor", 1)), base_rerolls + int(amods_r["reroll_base_delta"]))
+	max_rerolls = maxi(0, base_rerolls + int(combat_setup.get("bonus_reroll", 0)) + int(RelicHooks.sum(self, "rerollUp")))
 	rerolls = max_rerolls
 
 	for u in party:                                                    # SCALES passive
@@ -674,15 +675,19 @@ func reroll_dice(uids: Array, seed: int = -1, from_aid: bool = false) -> bool:
 	# may still refuse; nothing (RNG, reroll_k, Mana) is touched until it has agreed.
 	var list: Array = _rerollable(uids)
 	var hook := _before_reroll(uids, from_aid, false)
-	if bool(hook["veto"]) or mana < int(hook["mana_cost"]):
+	var paid_cost := reroll_mana_cost(from_aid)   # 0 while a free charge is left (and for Aid)
+	if bool(hook["veto"]) or mana < int(hook["mana_cost"]) + paid_cost:
 		return false
 	if use_seed >= 0:
 		_rng = Rng.new(use_seed)
+	var was_paid := paid_cost > 0 or (not from_aid and rerolls <= 0)
 	reroll_k += 1
-	mana -= int(hook["mana_cost"])
+	mana -= int(hook["mana_cost"]) + paid_cost
 	_set_turn_phase(CombatPhase.REROLL)
-	if not from_aid:
+	if not from_aid and rerolls > 0:
 		rerolls -= 1
+	if was_paid:
+		RelicHooks.fire(self, "on_reroll_paid", {"combat": self, "cost": paid_cost, "k": reroll_k})
 	var keep_crit := RelicHooks.has(self, "critKeep")
 	for raw_u in list:
 		var u: Unit = raw_u
@@ -715,14 +720,33 @@ func reroll_dice(uids: Array, seed: int = -1, from_aid: bool = false) -> bool:
 func can_reroll(uids: Array, from_aid: bool = false) -> bool:
 	if won or lost:
 		return false
-	if rerolls <= 0 and not from_aid:
+	if rerolls <= 0 and not from_aid and not reroll_is_payable():
 		return false
 	if from_aid and mission:
 		return false   # no Aid in a mission run
 	if _rerollable(uids).is_empty():
 		return false
 	var h := _before_reroll(uids, from_aid, true)
-	return not bool(h["veto"]) and mana >= int(h["mana_cost"])
+	return not bool(h["veto"]) and mana >= int(h["mana_cost"]) + reroll_mana_cost(from_aid)
+
+
+## ---- Depth v3 3.5: reroll costs mana once the free charges are gone ----------------------------------
+func reroll_free_per_turn() -> int:
+	return int(tune_knob("reroll", "free", 1.0))
+
+
+## True when no free charge is left but a paid one is still allowed this turn (cap reroll.max_total).
+func reroll_is_payable() -> bool:
+	return rerolls <= 0 and reroll_k < int(tune_knob("reroll", "max_total", 4.0))
+
+
+## Mana the NEXT reroll costs on top of any relic surcharge: 0 while a free charge is left, and for an
+## Aid reroll. Hook `reroll_mana_cost` (value = knob reroll.mana_cost) lets a Core discount it.
+func reroll_mana_cost(from_aid: bool = false) -> int:
+	if from_aid or rerolls > 0:
+		return 0
+	return maxi(0, int(RelicHooks.run_value_hook(self, "reroll_mana_cost", {"combat": self},
+		int(tune_knob("reroll", "mana_cost", 2.0)))))
 
 
 ## H1a. A handler may veto the reroll or charge Mana for it; dry_run tells it nothing may be spent.
@@ -938,7 +962,7 @@ func _grant_conduit_rerolls() -> void:
 			break
 	if not has_aqua:
 		return
-	var gained: int = int(floor(mana_spent / RelicHooks.field(self, "conduit_step", 4.0))) - _cond_given
+	var gained: int = int(floor(mana_spent / RelicHooks.field(self, "conduit_step", tune_knob("reroll", "conduit_step", 3.0)))) - _cond_given
 	if gained > 0:
 		rerolls += gained
 		_cond_given += gained
