@@ -20,6 +20,9 @@ from parasite_common import *
 OUT = arg("out", "/tmp/parasite")
 BLEND = arg("blend")
 FPS = 30
+SWORD_SCALE = 0.95    # the art shows a huge blade, as wide as the cape; the FBX is 4.7 m at 1.0
+HAIR_SCALE = 1.3      # the crest in Bug_1.png is clearly bigger than the delivered mesh (about 0.75 of the cape width)
+HAIR_PIVOT = Vector((0, 0.15, 2.30))
 
 # (name, head, tail, parent). Left bones are written for +X and mirrored.
 BONES = [
@@ -204,16 +207,59 @@ def skin(part, obj, arm):
     mod.object = arm
 
 
+def fix_sheath_uv(o):
+    """The delivered weapon.png no longer matches the FBX UVs (scabbard/grip land on empty texels, so
+    they render black or show the red blade variant). Re-project the three big pieces onto their
+    regions of T_Bug_Weapon_1_C.png: scabbard -> the orange sheath with the cyan flame tip, grip ->
+    the cyan wrap, guard + dome -> flat sheath orange. Pommel and ring already map correctly."""
+    me = o.data
+    uv = me.uv_layers[0].data
+    comps = island_lists(me)
+    comp_of = {}
+    for ci, g in enumerate(comps):
+        for i in g:
+            comp_of[i] = ci
+    kinds = {}
+    for ci, g in enumerate(comps):
+        zs = [me.vertices[i].co.z for i in g]
+        if max(zs) < 2.9:
+            kinds[ci] = "scabbard"
+        elif min(zs) > 2.7 and max(zs) < 4.15:
+            kinds[ci] = "hilt"
+    for poly in me.polygons:
+        k = kinds.get(comp_of[poly.vertices[0]])
+        if not k:
+            continue
+        for li in poly.loop_indices:
+            co = me.vertices[me.loops[li].vertex_index].co
+            if k == "scabbard":
+                # sheath piece of the atlas: u .655-.825, v .02-.745 (tip at the bottom)
+                u = 0.665 + (co.y + 0.42) / 0.84 * 0.15
+                v = 0.03 + (co.z + 0.11) / 2.94 * 0.70
+            else:
+                thin = abs(co.x) < 0.1 and abs(co.y) < 0.15
+                if thin:                       # grip: the cyan wrap (u .37-.47, v .41-.69)
+                    u = 0.385 + (co.y + 0.12) / 0.24 * 0.07
+                    v = 0.42 + (co.z - 2.83) / 1.26 * 0.26
+                else:                          # guard + dome: flat sheath orange
+                    u, v = 0.74, 0.62
+            uv[li].uv = (u, v)
+
+
 def place_sword(o):
     """Upright at the origin, 4.8 m -> 2.8 m, broad face to the back, laid across the back with
-    the hilt up on the creature's right (-X), tip down on the left."""
-    S = 0.58
-    M = Matrix.Rotation(math.radians(-55), 4, 'Y') @ Matrix.Rotation(math.radians(90), 4, 'Z') @ Matrix.Scale(S, 4)
+    the hilt up on the creature's right (-X), tip down on the left, outside the cape."""
+    S = SWORD_SCALE
+    M = Matrix.Rotation(math.radians(-75), 4, 'Y') @ Matrix.Rotation(math.radians(90), 4, 'Z') @ Matrix.Scale(S, 4)
     o.data.transform(M)
-    mn, mx = bounds([o])
-    c = (mn + mx) / 2
-    o.data.transform(Matrix.Translation(Vector((0, 0.80, 1.95)) - c))
+    def vbounds():
+        vs = [v.co for v in o.data.vertices]
+        return (Vector([min(v[i] for v in vs) for i in range(3)]), Vector([max(v[i] for v in vs) for i in range(3)]))
+    mn, mx = vbounds()      # (object.bound_box is stale right after data.transform)
+    o.data.transform(Matrix.Translation(Vector((0, 1.15, 1.95)) - (mn + mx) / 2))
     o.data.update()
+    mn, mx = vbounds()
+    print("PARASITE: sword bounds", tuple(round(x, 2) for x in mn), tuple(round(x, 2) for x in mx))
 
 
 # -----------------------------------------------------------------------------------------------
@@ -383,8 +429,8 @@ def make_cast(arm):
     c = Clip(arm, "Cast", 36)
     rest(c, 0)
     up = {"root@loc": (0, 0, 0.15), "spine_low": [(X, -3)], "chest": [(X, -5)], "neck": [(X, -8)],
-          "head": [(X, -12)], "plume1": [(X, -8)], "plume2": [(X, -14)], "capeB1": [(X, 8)],
-          "capeB2": [(X, 12)], "upper": [(X, -20), (Y, -78)], "fore": [(X, -18), (Y, -20)],
+          "head": [(X, -12)], "plume1": [(X, -4)], "plume2": [(X, -6)], "capeB1": [(X, 8)],
+          "capeB2": [(X, 12)], "upper": [(X, -55), (Y, -30)], "fore": [(X, -45), (Y, -10)],
           "hand": [(X, -12)], "plumeS1": [(Y, 22)], "plumeS2": [(Y, 18)], "capeS1": [(Y, -14)],
           "capeS2": [(Y, -18)], "capeF1": [(Y, -12)], "board": [(Y, -10)]}
     for f, tw in ((12, 0), (16, 1), (20, -1), (24, 1), (26, 0)):
@@ -394,7 +440,7 @@ def make_cast(arm):
         d["root@loc"] = (0, 0, 0.15 + 0.02 * tw)
         pose(c, f, d)
     pose(c, 30, {"root@loc": (0, -0.1, 0.0), "spine_low": [(X, 4)], "chest": [(X, 5)], "neck": [(X, 5)],
-                 "head": [(X, 6)], "upper": [(X, -35), (Y, -20)], "fore": [(X, -15)]})
+                 "head": [(X, 6)], "upper": [(X, -35), (Y, -12)], "fore": [(X, -25)]})
     rest(c, 36)
     return c.bake()
 
@@ -407,10 +453,10 @@ def make_roar(arm):
                 "upper": [(X, 6), (Y, -12)], "plume1": [(X, 8)]})
     for f, sh in ((14, 1), (17, -1), (20, 1), (23, -1), (26, 1), (29, -1), (32, 1), (36, 0)):
         pose(c, f, {"root@loc": (0, 0.05, 0.12), "spine_low": [(X, -5)], "spine_mid": [(X, -4)],
-                    "chest": [(X, -8), (Y, 3 * sh)], "neck": [(X, -14)], "head": [(X, -22), (Z, 3 * sh)],
-                    "plume1": [(X, -12)], "plume2": [(X, -20), (Y, 6 * sh)],
+                    "chest": [(X, -8), (Y, 3 * sh)], "neck": [(X, -10)], "head": [(X, -14), (Z, 3 * sh)],
+                    "plume1": [(X, -6)], "plume2": [(X, -10), (Y, 6 * sh)],
                     "capeB1": [(X, 12)], "capeB2": [(X, 16)],
-                    "upper": [(X, -10), (Y, -(55 + 3 * sh))], "fore": [(X, -12), (Y, -14)],
+                    "upper": [(X, -25), (Y, -(28 + 3 * sh))], "fore": [(X, -35), (Y, -8)],
                     "hand": [(X, -10)], "plumeS1": [(Y, 20)], "plumeS2": [(Y, 14)],
                     "capeS1": [(Y, -(10 + 2 * sh))], "capeS2": [(Y, -12)], "capeF1": [(Y, -8)]})
     rest(c, 48)
@@ -448,6 +494,11 @@ def main():
     objs = import_parts(["Body", "Hair", "Mask", "Sheath"])
     for o in objs.values():
         o.data.materials[0].use_backface_culling = False
+    hv = objs["Hair"].data
+    for v in hv.vertices:
+        v.co = HAIR_PIVOT + (v.co - HAIR_PIVOT) * HAIR_SCALE
+    hv.update()
+    fix_sheath_uv(objs["Sheath"])
     place_sword(objs["Sheath"])
     arm = build_armature()
     for part, o in objs.items():
