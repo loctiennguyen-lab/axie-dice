@@ -3021,7 +3021,10 @@ func _on_core_fired(core_id: String, uid: int, amount: int, kind: String) -> voi
 	group[key] = e
 	_core_batch[uid] = group
 	if not armed:
-		_after_impact(_flush_core_floats)
+		if impact_delay() <= 0.0:
+			_flush_core_floats.call_deferred()   # still one beat later, so same-frame Cores merge
+		else:
+			_after_impact(_flush_core_floats)
 
 
 func _flush_core_floats() -> void:
