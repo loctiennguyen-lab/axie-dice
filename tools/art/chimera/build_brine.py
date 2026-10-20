@@ -17,6 +17,7 @@ from mathutils import Vector, Quaternion
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from brine_common import *
 
+# --src / --out defaults below are machine-local (Liam's checkout, /tmp); pass both when running elsewhere.
 SRC = arg("src", "/Users/loc.tien.nguyen/my-game/asset-library/chimera-src/Brine (Aqua)/3D/brine_ai.glb")
 OUT = arg("out", "/tmp/brine")
 BLEND = arg("blend")
