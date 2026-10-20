@@ -33,5 +33,8 @@
   "mana_cost": 2,
   "max_total": 4,
   "conduit_step": 3
+ },
+ "rows": {
+  "front_size": 2
  }
 }

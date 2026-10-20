@@ -534,12 +534,17 @@ func _pick_enemy_intent(e: Unit) -> void:
 	if face_type in ["dmg", "poison", "debuff"]:
 		var ps := alive_party()
 		if ps.size() > 0:
+			# Depth v3 rows: a single-target attack can only pick a front-row Axie while one lives. AoE / pierce
+			# faces ignore rows; the Assassin keeps hunting the weakest of the WHOLE party (design 4 / 9c).
+			var rp := ps
+			if not _has_kw(f, "aoe") and not _has_kw(f, "pierce") and e.role != "assassin":
+				rp = front_row_targets(ps)
 			if e.role == "assassin":
 				tgt_uid = _lowest_by(ps, func(u: Unit) -> float: return float(u.hp + u.shield)).uid
 			elif e.role == "bruiser" and _rng.next_float() < 0.5:
-				tgt_uid = _lowest_by(ps, func(u: Unit) -> float: return -float(u.hp + u.shield)).uid
+				tgt_uid = _lowest_by(rp, func(u: Unit) -> float: return -float(u.hp + u.shield)).uid
 			else:
-				tgt_uid = ps[_rng.next_int(ps.size())].uid
+				tgt_uid = rp[_rng.next_int(rp.size())].uid
 	elif face_type in ["shield", "heal", "buff"]:
 		var es := alive_enemies()
 		if e.role == "healer" and es.size() > 0:
@@ -549,6 +554,27 @@ func _pick_enemy_intent(e: Unit) -> void:
 		else:
 			tgt_uid = e.uid
 	e.intent = {"face_index": fi, "target_uid": tgt_uid}
+
+
+## ---- Depth v3 rows (design 4). Front row = roster 0..front_size-1, the rest are the back row. -------------
+## Egg / token units (roster_index < 0) stand in the BACK row. Hook `front_row_size` lets a Core widen it.
+func front_row_size() -> int:
+	return int(RelicHooks.run_value_hook(self, "front_row_size", {"combat": self},
+		int(tune_knob("rows", "front_size", 2.0))))
+
+
+## 0 = front, 1 = back.
+func row_of(u: Unit) -> int:
+	return 0 if (u.roster_index >= 0 and u.roster_index < front_row_size()) else 1
+
+
+## The living front-row units of `ps`; when none is alive, `ps` itself (the back row becomes reachable).
+func front_row_targets(ps: Array) -> Array:
+	var out: Array = []
+	for raw in ps:
+		if row_of(raw as Unit) == 0:
+			out.append(raw)
+	return out if not out.is_empty() else ps
 
 
 ## Returns the unit with the smallest `score`, breaking ties by ARRAY ORDER.
