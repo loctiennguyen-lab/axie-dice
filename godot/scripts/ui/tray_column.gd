@@ -273,6 +273,19 @@ static func _update_crack(content: Dictionary, d: Dictionary) -> void:
 	if content.has("crack_chip"):
 		(content["crack_chip"] as Control).visible = cracked
 		(content["crack_mark"] as CanvasItem).visible = cracked
+	var wt := String(d.get("wild_text", ""))
+	if wt != "" and not content.has("wild_chip"):
+		var wc := UI3.chip("?")
+		wc.name = "WildChip"
+		wc.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		wc.position = Vector2(W * 0.5 - 40.0, -8.0)
+		body.add_child(wc)
+		content["wild_chip"] = wc
+	if content.has("wild_chip"):
+		var wch: Control = content["wild_chip"]
+		wch.visible = wt != ""
+		if wt != "":
+			((wch.get_child(0)) as Label).text = "? " + wt
 	var tick := bool(d.get("rr_tick", false))
 	if tick and not content.has("rr_chip"):
 		var rc := UI3.chip("REROLL")

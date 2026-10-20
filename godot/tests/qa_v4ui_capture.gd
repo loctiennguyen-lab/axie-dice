@@ -47,9 +47,23 @@ func _states(s: Node, size: Vector2i) -> void:
 	s._rebuild_all()
 	s._enter_rr_mode()
 	await _shot("v4ui_reroll_pick", size)
+	s._exit_rr_mode()
+	units[4].cracked = false
+	units[0].set_roll(1, false)
+	units[1].set_roll(1, false)
+	units[2].set_roll(2, false)
+	units[3].set_roll(4, false)
+	units[4].set_roll(5, false)
+	c._snap_bo()
+	c.mana = 5
+	s._rebuild_all()
+	s._enter_wild_mode()
+	s._wild_pick_die(units[2].uid)
+	await _shot("v4ui_wild_picker", size)
 
 func _shot(name: String, size: Vector2i) -> void:
 	for _i in 30:
 		await get_tree().process_frame
 	get_tree().root.get_texture().get_image().save_png("%s/%s_%dx%d.png" % [_out, name, size.x, size.y])
 	print("QA: saved ", name)
+

@@ -98,3 +98,36 @@ static func refusal_text(code: String, cost := 0, mana := 0) -> String:
 
 ## Every refusal code the engine can return (the test walks this list).
 const REFUSAL_CODES := ["over", "hard_cap", "stage", "mission", "none", "pin_mismatch", "mana", "veto", "bad_rmode"]
+
+
+## Wild picker line for one slot, from CombatEngine.preview_wild(): "→ SET OF 3 ×1.4", "no change", or the reason it is refused.
+static func wild_line(pv: Dictionary, uid: int, cur_group: Dictionary) -> String:
+	if not bool(pv.get("ok", false)):
+		match String(pv.get("reason", "")):
+			"same":
+				return _T("Current part")
+			"size":
+				return _T("Needs 3 of a part")
+			"mana":
+				return _T("Need mana")
+		return _T("Not allowed")
+	var size := 0
+	var m100 := 100
+	var g := group_of(pv.get("groups", []) as Array, uid)
+	if not g.is_empty():
+		size = int(g["size"])
+		m100 = int(g["m100"])
+	if size == 0 or (not cur_group.is_empty() and int(cur_group["size"]) == size and int(cur_group["m100"]) == m100):
+		return _T("no change")
+	return "→ " + set_label(size, m100)
+
+
+## Wild button words by state: returns {text, tip, enabled}.
+static func wild_button(stage_ok: bool, used: bool, mana: int, cost: int, has_die: bool) -> Dictionary:
+	if used:
+		return {"text": _T("Wild: used"), "tip": _T("1 Wild face per turn."), "enabled": false}
+	if mana < cost:
+		return {"text": _T("Wild: need %d mana") % cost, "tip": _T("Need %d mana (you have %d)") % [cost, mana], "enabled": false}
+	if not has_die:
+		return {"text": _T("Wild: no valid die"), "tip": _T("No die can complete a Set with a Wild face."), "enabled": false}
+	return {"text": _T("Wild %s %d MP") % ["·", cost], "tip": _T("Pay %d mana: one die counts as the part you pick, for Sets, this turn.") % cost, "enabled": true}

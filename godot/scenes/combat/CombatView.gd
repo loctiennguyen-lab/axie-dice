@@ -580,6 +580,8 @@ func _unhandled_key_input(event: InputEvent) -> void:
 				_on_reroll_pressed()
 		elif event.is_action_pressed(KeyBindings.COMBAT_AID) and _aid != null and _aid.enabled and not _aid.modal_open():
 			_aid.toggle_tray()
+		elif event.is_action_pressed(KeyBindings.MENU_BACK) and _wild_mode:
+			_exit_wild_mode()
 		elif event.is_action_pressed(KeyBindings.MENU_BACK) and _rr_mode:
 			_exit_rr_mode()
 		elif event.is_action_pressed(KeyBindings.MENU_BACK) and _aid != null and _aid.handle_escape():
@@ -1060,6 +1062,7 @@ func _build_hud_r1() -> void:
 	_aid.offer_dismissed.connect(func(): _aid_offer_dismissed = true)
 	_hud_frame.menu_pressed.connect(_on_menu_pressed)
 	_hud_frame.hold_pressed.connect(_on_hold_pressed)
+	_hud_frame.wild_pressed.connect(_enter_wild_mode)
 	_hud_frame.overcast_pressed.connect(_on_overcast_pressed)
 	_hud_frame.active_pressed.connect(_on_active_pressed)
 	# Die slots leave the hidden deck bar for a root of their own, laid out by _layout_tray().
@@ -1154,13 +1157,14 @@ func _update_hud() -> void:
 		 "enabled": not (_combat.won or _combat.lost) and _combat.phase != CombatPhase.END_TURN},
 		{"show": _combat.stash_cap() > 0, "enabled": can_hold, "text": hold_text, "tip": hold_tip,
 		 "on": _combat.stash_count() >= _combat.stash_cap() and _combat.stash_cap() > 0},
-		_overcast_state(executing))
+		_overcast_state(executing), _wild_state(executing))
 	_hud_frame.update_foe(_foe_state())
 	_update_aid(hs, executing)
 	_update_die_info()
 	_hud_frame.set_resolving(_combat.phase == CombatPhase.END_TURN and not (_combat.won or _combat.lost))
 	_layout_tray()
 	_update_rr_bar()
+	_update_wild_picker()
 
 
 ## Boss rhythm + Elite affix for the HUD foe card (engine reads: boss_rhythm_state / affix_state).
@@ -1251,7 +1255,7 @@ static func affix_tip(id: String) -> String:
 func _overcast_state(executing: bool) -> Dictionary:
 	var cost := _combat.overcast_cost()
 	var text := "Overcast %s %d MP" % [HudKit.dot(), cost]
-	var tip := "Pay %d mana to power the picked die up x%s this turn." % [cost, str(_combat.overcast_mult())]
+	var tip := TranslationServer.translate("+0.5 on the die's multiplier, added to the Set, not stacked.")
 	var ok := false
 	if _combat.overcast_count() > 0 and _combat.overcast_count() >= _combat.overcast_per_turn():
 		text = "Overcast: used"
@@ -1268,10 +1272,14 @@ func _overcast_state(executing: bool) -> Dictionary:
 			var u: Unit = _combat.by_uid(_selected_die_uid)
 			var pv := _combat.overcast_preview(u)
 			text = "Overcast %d > %d %s %d MP" % [int(pv[0]), int(pv[1]), HudKit.dot(), cost]
+			var m_now := _combat.m100_for(u)
+			var m_after := mini(m_now + roundi(_combat.overcast_add() * 100.0), _combat.bo_cap100())
+			if not u.overcast:
+				tip = "%s\n%s" % [tip, TranslationServer.translate("This die's multiplier %s → %s") % [V4Ui.mult_text(m_now), V4Ui.mult_text(m_after)]]
 		else:
 			text = "Overcast: %s" % why
 			tip = why
-	return {"show": _combat.overcast_per_turn() > 0, "enabled": ok, "text": text, "tip": tip}
+	return {"show": _combat.overcast_per_turn() > 0 and _combat.depth_stage >= 3, "enabled": ok, "text": text, "tip": tip}
 
 
 ## Overcast: pays mana and powers the picked die up (engine `overcast`, logged as `overcast [uid]`).
@@ -2634,6 +2642,9 @@ func _on_die_slot_pressed(slot_index: int) -> void:
 	if _rr_mode:
 		_rr_toggle(u.uid)
 		return
+	if _wild_mode:
+		_wild_pick_die(u.uid)
+		return
 	# With a die already selected, a click on ANOTHER column targets that Axie (heal / shield).
 	if _selected_die_uid != -1 and u.uid != _selected_die_uid and u.hp > 0 \
 			and _selected_ally_target_ok(u):
@@ -2772,6 +2783,8 @@ func _auto_reroll_uids() -> Array:
 
 func _do_reroll(uids: Array, rmode: int) -> void:
 	_exit_rr_mode(false)
+	_wild_mode = false
+	_wild_uid = -1
 	# The face each die showed BEFORE the reroll: the +2 / -1 / NEW chips are measured against it.
 	_reroll_prev.clear()
 	if _combat.rerolls > 0 or _combat.reroll_is_payable():
@@ -2811,6 +2824,7 @@ func _rr_pinned() -> Dictionary:
 
 
 func _enter_rr_mode() -> void:
+	_wild_mode = false
 	_rr_mode = true
 	_selected_die_uid = -1
 	_selected_active_id = ""
@@ -2880,7 +2894,7 @@ func _update_rr_bar() -> void:
 	_rr_bar.visible = _rr_mode
 	if not _rr_mode:
 		return
-	for b in [hud.undo_button, hud.reroll_button, hud.hold_button, hud.overcast_button]:
+	for b in [hud.undo_button, hud.reroll_button, hud.hold_button, hud.overcast_button, hud.wild_button]:
 		(b as Control).visible = false   # 5.1b: only the tray and the pick bar while picking
 	var n := _rr_sel.size()
 	var pct := CombatEngine.tune_knob("crack", "pct", 30.0)
@@ -4187,6 +4201,13 @@ func _v4_card_data(u: Unit) -> Dictionary:
 		if why != "":
 			out["tip"] = "%s\n%s" % [why, _tray_tooltip(u)]
 		out["legal_target"] = bool(out["rr_tick"])
+	if _wild_mode:
+		out["legal_target"] = _wild_valid(u.uid) or u.uid == _wild_uid
+		if _wild_uid == u.uid:
+			out["rr_tick"] = false
+		elif not _wild_valid(u.uid) and u.roll_used():
+			out["tip"] = "%s\n%s" % [TranslationServer.translate("Used"), _tray_tooltip(u)]
+	out["wild_text"] = V4Ui.part_name(u.wild_slot) if u.wild_slot >= 0 else ""
 	if bool(out["cracked"]):
 		out["tip"] = "%s\n%s" % [_tray_tooltip(u), TranslationServer.translate("Cracked: half value, out of the Set. Ends next turn.")]
 	if u.hp <= 0 or not u.has_rolled() or _combat == null:
@@ -4225,3 +4246,111 @@ func _on_bo_changed(groups: Array) -> void:
 	_refresh_bo_layer()
 	var tray_top := get_viewport_rect().size.y - 24.0 - TrayColumn.H
 	_bo_layer.announce(groups, tray_top)
+
+
+# ---- Depth v4 Wild face (combat-v4.md 3) ---------------------------------------------------------------------
+var _wild_mode := false
+var _wild_uid := -1
+var _wild_picker: WildPicker = null
+
+
+func _wild_valid(uid: int) -> bool:
+	for slot in 6:
+		if _combat.can_wild_face(uid, slot):
+			return true
+	return false
+
+
+func _wild_any_valid() -> bool:
+	for u in _party_dice_units():
+		if _wild_valid((u as Unit).uid):
+			return true
+	return false
+
+
+func _wild_state(executing: bool) -> Dictionary:
+	var used: bool = _combat.wild_used >= _combat.wild_per_turn()
+	var d := V4Ui.wild_button(_combat.depth_stage >= 2, used, _combat.mana, _combat.wild_cost(), _wild_any_valid())
+	if not executing:
+		d["enabled"] = false
+		d["tip"] = TranslationServer.translate("Only on your turn.")
+	d["show"] = _combat.depth_stage >= 2
+	return d
+
+
+func _enter_wild_mode() -> void:
+	_land_dice_now()
+	if _is_animating or _gated("wild") or not _wild_any_valid():
+		return
+	_rr_mode = false
+	_rr_sel.clear()
+	_selected_die_uid = -1
+	_wild_mode = true
+	_wild_uid = -1
+	_rebuild_all()
+
+
+func _exit_wild_mode() -> void:
+	if not _wild_mode:
+		return
+	_wild_mode = false
+	_wild_uid = -1
+	_rebuild_all()
+
+
+func _wild_pick_die(uid: int) -> void:
+	if not _wild_valid(uid):
+		return
+	_wild_uid = uid
+	_rebuild_all()
+
+
+func _on_wild_chosen(slot: int) -> void:
+	if not _wild_mode or _wild_uid == -1:
+		return
+	if _combat.wild_face(_wild_uid, slot):
+		_append_log("[input] wild face")
+		_wild_mode = false
+		_wild_uid = -1
+		_rebuild_all()
+		_save_run_progress()
+
+
+func _update_wild_picker() -> void:
+	if _combat == null or _hud_frame == null:
+		return
+	if _wild_mode and not (_combat.phase == CombatPhase.EXECUTE and not (_combat.won or _combat.lost)):
+		_wild_mode = false
+		_wild_uid = -1
+	if _wild_picker == null:
+		_wild_picker = WildPicker.new()
+		_wild_picker.z_index = 9
+		_shell_root.add_child(_wild_picker)
+		_wild_picker.picked.connect(_on_wild_chosen)
+	_wild_picker.visible = _wild_mode and _wild_uid != -1
+	if _wild_mode:
+		for b in [_hud_frame.undo_button, _hud_frame.reroll_button, _hud_frame.hold_button, _hud_frame.overcast_button, _hud_frame.wild_button]:
+			(b as Control).visible = false
+	if not _wild_picker.visible:
+		return
+	var cur := V4Ui.group_of(_combat.bo, _wild_uid)
+	var rows: Array = []
+	var best := -1
+	var best_key := 0
+	for slot in 6:
+		var pv: Dictionary = _combat.preview_wild(_wild_uid, slot)
+		var line := V4Ui.wild_line(pv, _wild_uid, cur)
+		var key := 0
+		if bool(pv["ok"]) and line.begins_with("→"):
+			var g := V4Ui.group_of(pv["groups"], _wild_uid)
+			key = int(g["size"]) * 1000 + int(g["m100"])
+		if key > best_key:
+			best_key = key
+			best = slot
+		rows.append({"ok": bool(pv["ok"]), "label": line, "best": false})
+	if best >= 0:
+		rows[best]["best"] = true
+	_wild_picker.update(rows)
+	var vs := get_viewport_rect().size
+	var tray_top := vs.y - 24.0 - TrayColumn.H
+	_wild_picker.position = Vector2((vs.x - _wild_picker.size.x) * 0.5, tray_top - _wild_picker.size.y - 12.0)
