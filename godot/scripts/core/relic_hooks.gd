@@ -1747,8 +1747,10 @@ static var TABLE: Dictionary = {
 	},
 	"rule_wasteland": {"mod_face": func(ctx: Dictionary): ctx["unit"].max_hp += 4},
 	"rule_dry_steppe": {
-		"on_turn_start": func(ctx: Dictionary): CoreHooks.gain_mana(ctx["combat"], 2),
-		"on_turn_end": func(ctx: Dictionary): ctx["combat"].mana = 0,
+		"on_turn_start": func(ctx: Dictionary): CoreHooks.gain_mana(ctx["combat"], 2, "", "rule_dry_steppe"),
+		"on_turn_end": func(ctx: Dictionary):
+			CoreHooks.fire("rule_dry_steppe", 0, int(ctx["combat"].mana), "rule")
+			ctx["combat"].mana = 0,
 	},
 	"rule_old_forest": {
 		"mod_face": func(ctx: Dictionary): CoreHooks.old_forest_face(ctx),
