@@ -1,5 +1,13 @@
 # Axie Dice — trạng thái hiện tại
 
+## ⇢ BẮT ĐẦU TỪ ĐÂY (trưa 22/10/2026) — V4 ĐANG CODE
+QA vòng 2 (mục 6 QA plan): 12 lỗ hổng mới N1-N12 → systems-designer đang sửa GDD (chốt: N1 `reroll_paid_k` riêng; N5 trần thorn mỗi lần chuyển
+mỗi Axie; N7 stage theo số run hoàn thành server đếm được; N10 Lõi chủ TÁCH sang bump sau, keystone pin theo tài khoản+số run).
+Làn V4 (`../my-game-wt/V4`, `depth/V4` = godot-port + depth/OC): gameplay-programmer code BỘ + LIỀU (rmode, pin, Nứt từ epoch) + MẶT TẠM + sửa
+Overcast thành +0.5 trong túi M, test trước theo ma trận QA, tamper T1-T10, Worker `pin_mismatch`. Sau đó: làn UI v4, TD chỉnh độ khó trên v4,
+QA flow. Smoke b1196 ĐẠT (`production/qa/smoke-b1196-2026-10-21.md` ở worktree QA): Liam chơi được b1196; lỗi hiển thị: Pact hiện "never fired"
+trong Result (pact thụ động) → sửa ở làn UI.
+
 ## ⇢ BẮT ĐẦU TỪ ĐÂY (sáng 22/10/2026) — V4 BỘ + LIỀU + MẶT TẠM: GDD → QA → SỬA GDD
 GDD `design/gdd/dice-depth-v4.md` (đã design review systems-designer: bộ số khởi điểm bo.scale 0.8, crack 30%, max_total 3, quái hp/dmg ×1.30,
 cộng MỘT túi M). QA lead: `production/qa/dice-depth-v4-qa-plan.md` (26 lỗ hổng: 2 chặn [Overcast nhân chồng; key `mode` đụng epoch enum],
