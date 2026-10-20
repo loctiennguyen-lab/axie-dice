@@ -4,7 +4,7 @@ func _ready() -> void:
 	var guard := SaveGuard.new()
 	guard.capture()
 	var sim = load("res://tools/sim_balance.gd").new()
-	var args := {"runs": 2, "seed": 77, "asc": "0", "policies": "greedy", "teams": "mixed_std", "cores": "random"}
+	var args := {"runs": 1, "seed": 77, "asc": "0", "policies": "greedy,expert", "teams": "mixed_std", "cores": "random"}
 	var a: Array = sim.run_batch(args.duplicate())
 	var b: Array = sim.run_batch(args.duplicate())
 	guard.restore()

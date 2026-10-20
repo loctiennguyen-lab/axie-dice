@@ -1,6 +1,8 @@
 extends Node
 ## Headless balance sim: plays whole Short runs with scripted bots and prints win-rates.
-## Policies: attack_spam (dmg first, rest after), attack_only (dmg only), greedy, random_legal.
+## Policies: attack_spam (dmg first, rest after), attack_only (dmg only), greedy (1 step, heuristic values),
+## expert (exact state eval via use_die + undo_last, free reroll, Hold on boss strike turn), random_legal.
+## Cores: random | greedy_axis | combo (owned axis, then highest rarity); mix cycles the three.
 ## Args (after `--`): --runs=10 --seed=1000 --asc=0 --policies=attack_spam,greedy,random_legal
 ##   --teams=all|<name,name> --cores=random|greedy_axis|mix --out=<dir> --tag=<name>
 ## Deterministic by seed (the bot's own choices use a private Rng, never the game's).
@@ -74,7 +76,7 @@ func run_batch(args: Dictionary) -> Array:
 				var team_name: String = team_names[i % team_names.size()]
 				var cp: String = String(args.get("cores", "mix"))
 				if cp == "mix":
-					cp = "greedy_axis" if (i / team_names.size()) % 2 == 1 else "random"
+					cp = ["random", "greedy_axis", "combo"][(i / team_names.size()) % 3]
 				recs.append(_play_run(int(args["seed"]) + i, team_name, int(asc_s), pol, cp))
 	args["_secs"] = (Time.get_ticks_msec() - t0) / 1000.0
 	return recs
@@ -107,7 +109,7 @@ func _play_run(seed_value: int, team_name: String, asc: int, policy: String, cor
 			"battle", "elite", "boss":
 				var eng := CombatEngine.new()
 				eng.setup_new(RunState.pending_combat)
-				eng.action_log = RunState.action_log
+				eng.action_log = null   # trial moves use undo_last(), which would spam the shared log; sim never verifies
 				var aff := ""
 				if node.node_type == "elite" and not eng.enemies.is_empty():
 					aff = String((eng.enemies[0] as Unit).custom_state.get("affix", ""))
@@ -166,6 +168,18 @@ func _drain_core_offers() -> void:
 		var card: Dictionary = cards[0]
 		if bool(card.get("rule", false)):
 			card = cards[_rng.next_int(cards.size())]
+		elif _core_policy == "combo":
+			var owned2 := _owned_axes()
+			var best_sc := -1.0
+			for c in cards:
+				var ax := String((c as Dictionary).get("axis", ""))
+				var d = RelicRegistry.get_def(String((c as Dictionary).get("key", "")))
+				var sc := float(d.rarity) if d != null else 0.0
+				if ax in ["dice", "mana", "pos", "rule"]:
+					sc += 1.5 + 10.0 * minf(float(owned2.get(ax, 0)), 2.0)
+				if sc > best_sc:
+					best_sc = sc
+					card = c
 		elif _core_policy == "greedy_axis":
 			var owned := _owned_axes()
 			for c in cards:
@@ -302,6 +316,8 @@ func _choose_move(eng: CombatEngine) -> Array:
 	match _policy:
 		"attack_spam":
 			return _move_attack_spam(eng, ready, foes)
+		"expert":
+			return _move_expert(eng, ready, foes)
 		"attack_only":   # pure spam: never spends a non-dmg face (stricter reading of attack_spam)
 			for u in ready:
 				if String(u.current_face().get("type", "")) == "dmg":
@@ -433,3 +449,105 @@ func _move_greedy(eng: CombatEngine, ready: Array, foes: Array) -> Array:
 				best_s = s4
 				best = [u.uid, u.uid]
 	return best
+
+
+# ---------------------------------------------------------------- expert
+
+var _turn_seen := -1
+
+## Whole-state value (higher = better for the party): foe HP/shield/threat left, expected unblocked damage from the
+## public intents on each Axie, party HP, mana, poison on foes.
+func _eval(eng: CombatEngine) -> float:
+	var v := 0.0
+	var foes: Array = eng.alive_enemies()
+	for e in foes:
+		var eu: Unit = e
+		var thr := 0.0
+		if int(eu.status.get("stun", 0)) == 0 and not eu.intent.is_empty():
+			var fi := int(eu.intent.get("face_index", -1))
+			if fi >= 0 and fi < eu.die.size() and String((eu.die[fi] as Dictionary).get("type", "")) == "dmg":
+				thr = float(eng._face_value(eu, fi))
+		v -= float(eu.hp) + 0.8 * float(eu.shield) + 4.0 + thr * 0.8
+		v -= 0.7 * minf(float(eu.status.get("poison", 0)) * -1.0, 0.0)   # (poison counted below as bonus)
+		v += 0.9 * minf(float(eu.status.get("poison", 0)), float(eu.hp))
+	v += 0.5 * float(eng.mana)
+	for f in eng.alive_party():
+		var fu: Unit = f
+		var inc := _incoming(eng, fu)
+		var loss := maxf(0.0, inc - float(fu.shield))
+		if loss >= float(fu.hp):
+			v -= 12.0 + float(fu.hp)
+		else:
+			v -= 1.6 * loss
+		v += 0.8 * float(fu.hp)
+	return v
+
+
+func _candidates(eng: CombatEngine, u: Unit, foes: Array) -> Array:
+	var t := String(u.current_face().get("type", ""))
+	var out: Array = []
+	if t in ["dmg", "poison", "debuff"]:
+		for e in foes:
+			out.append((e as Unit).uid)
+	elif t in ["shield", "heal", "buff"]:
+		for f in eng.alive_party():
+			out.append((f as Unit).uid)
+	else:
+		out.append(u.uid)
+	return out
+
+
+func _move_expert(eng: CombatEngine, ready: Array, foes: Array) -> Array:
+	if int(eng.turn) != _turn_seen:
+		_turn_seen = int(eng.turn)
+		_expert_turn_start(eng, ready, foes)
+		ready = _ready_units(eng)
+		foes = eng.alive_enemies()
+		if ready.is_empty() or foes.is_empty():
+			return []
+	var base := _eval(eng)
+	var best_d := -1e9
+	var best: Array = []
+	for u in ready:
+		for tid in _candidates(eng, u, foes):
+			if not eng.use_die(u.uid, tid):
+				continue
+			var d := _eval(eng) - base
+			eng.undo_last()
+			if d > best_d:
+				best_d = d
+				best = [u.uid, tid]
+	if best_d < -0.01:
+		return []   # every remaining move makes things worse: leave the rest unused
+	return best
+
+
+## Turn start: Hold the strongest dmg die on a boss STRIKE turn (it hits the next, hollow, turn for +30%);
+## then spend the free reroll on dice whose best move is worth little.
+func _expert_turn_start(eng: CombatEngine, ready: Array, foes: Array) -> void:
+	for e in foes:
+		var b: Unit = e
+		if b.is_boss and eng.boss_rhythm_phase(b, 0) == "strike":
+			var pick: Unit = null
+			var pv := 0
+			for u in ready:
+				if eng.can_stash(u.uid) and String(u.current_face().get("type", "")) == "dmg":
+					var fv: int = eng._face_value(u, u.roll_face_index())
+					if fv > pv:
+						pv = fv
+						pick = u
+			if pick != null and pv >= 4:
+				eng.stash(pick.uid)
+			break
+	var base := _eval(eng)
+	var weak: Array = []
+	for u in _ready_units(eng):
+		var bd := 0.0
+		for tid in _candidates(eng, u, foes):
+			if eng.use_die(u.uid, tid):
+				bd = maxf(bd, _eval(eng) - base)
+				eng.undo_last()
+		if bd < 2.5 and not u.frozen and not u.held:
+			weak.append(u.uid)
+	if not weak.is_empty() and eng.rerolls > 0 and eng.can_reroll(weak):
+		eng.reroll_dice(weak)
