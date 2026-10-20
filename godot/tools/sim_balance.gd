@@ -123,6 +123,13 @@ func run_batch(args: Dictionary) -> Array:
 func _play_run(seed_value: int, team_name: String, asc: int, policy: String, core_policy: String) -> Dictionary:
 	_policy = policy
 	_core_policy = core_policy
+	_abl = {}
+	if policy.begins_with("expert_"):
+		for k in policy.trim_prefix("expert_").split("+"):
+			_abl[k] = true
+		if _abl.has("legacy"):   # v3 expert: none of the four v4 mechanisms
+			for k in ["no_bo_hunt", "no_lieu", "no_wild", "no_overcast"]:
+				_abl[k] = true
 	_rng = Rng.new(seed_value ^ SALT)
 	_fights = []
 	_offered = {}
@@ -378,11 +385,11 @@ func _choose_move(eng: CombatEngine) -> Array:
 	var foes: Array = eng.alive_enemies()
 	if foes.is_empty():
 		return []
+	if _policy.begins_with("expert"):   # expert, expert_no_bo_hunt, expert_no_lieu, expert_no_wild, expert_no_overcast, expert_legacy
+		return _move_expert(eng, ready, foes)
 	match _policy:
 		"attack_spam":
 			return _move_attack_spam(eng, ready, foes)
-		"expert":
-			return _move_expert(eng, ready, foes)
 		"attack_only":   # pure spam: never spends a non-dmg face (stricter reading of attack_spam)
 			for u in ready:
 				if String(u.current_face().get("type", "")) == "dmg":
@@ -601,6 +608,8 @@ func _candidates(eng: CombatEngine, u: Unit, foes: Array) -> Array:
 
 
 var _plan: Array = []
+var _abl := {}          # expert ablations: no_bo_hunt, no_lieu, no_wild, no_overcast (policy name expert_<k>)
+var _last_score := 0.0  # score of the best sequence returned by the last _plan_turn
 
 func _move_expert(eng: CombatEngine, ready: Array, foes: Array) -> Array:
 	if int(eng.turn) != _turn_seen:
@@ -658,6 +667,7 @@ func _plan_turn(eng: CombatEngine, ready: Array, foes: Array) -> Array:
 		beam = nxt.slice(0, _beam)
 		if float(beam[0]["score"]) > float(best["score"]):
 			best = beam[0]
+	_last_score = float(best["score"])
 	return best["seq"]
 
 
@@ -680,22 +690,187 @@ func _expert_turn_start(eng: CombatEngine, ready: Array, foes: Array) -> void:
 			if pick != null and pv >= 4:
 				eng.stash(pick.uid)
 			break
-	if _noreroll:
-		return
-	# Up to 3 reroll rounds: the free charge first, then paid (mana) ones while mana is left.
+	if not _noreroll:
+		_expert_rerolls(eng)
+	_expert_wild(eng)
+	_expert_overcast(eng)
+
+
+## Best-of-plan value of the turn as it stands (beam 1 for speed): lets the bot price Mat Tam / Overcast with the engine's own numbers.
+func _turn_value(eng: CombatEngine) -> float:
+	var ready := _ready_units(eng)
+	var foes: Array = eng.alive_enemies()
+	if ready.is_empty() or foes.is_empty():
+		return _eval(eng)
+	var ob := _beam
+	_beam = 1
+	_plan_turn(eng, ready, foes)
+	_beam = ob
+	return _last_score
+
+
+func _m100_of_size(eng: CombatEngine, n: int) -> float:
+	if n < 3:
+		return 1.0
+	return float(clampi(100 + eng.bo_add100(n), 100, eng.bo_cap100())) / 100.0
+
+
+## Expected value gain of growing a BỘ of `n` dice (avg face value `a`) with `k` rerolled outside dice, each landing on the part with prob `p`.
+func _hunt_ev(eng: CombatEngine, n: int, a: float, k: int, p: float) -> float:
+	var ev := 0.0
+	var v0 := float(n) * a * _m100_of_size(eng, n)
+	for h in range(1, k + 1):
+		var c := 1.0
+		for j in h:
+			c = c * float(k - j) / float(j + 1)
+		var ph: float = c * pow(p, h) * pow(1.0 - p, k - h)
+		if n + h > 5:
+			continue
+		ev += ph * (float(n + h) * a * _m100_of_size(eng, n + h) - v0)
+	return ev
+
+
+## Up to 3 reroll rounds. v4: (a) hunt a bigger BỘ by rerolling the dice OUTSIDE the best part group, choosing Lieu vs An toan by
+## expected value (Nứt % and mana); (b) otherwise reroll "weak" dice (never BỘ members), cheaply with Lieu.
+func _expert_rerolls(eng: CombatEngine) -> void:
+	var crack_p := float(CombatEngine.tune_knob("crack", "pct", 30.0)) / 100.0
 	for round in 3:
-		var base := _eval(eng)
-		var weak: Array = []
-		for u in _ready_units(eng):
-			var bd := 0.0
-			for tid in _candidates(eng, u, eng.alive_enemies()):
-				if eng.use_die(u.uid, tid):
-					bd = maxf(bd, _eval(eng) - base)
-					eng.undo_last()
-			if bd < 2.5 and not u.frozen and not u.held:
-				weak.append(u.uid)
-		if weak.is_empty() or not eng.can_reroll(weak):
+		var did := false
+		if not _abl.has("no_bo_hunt"):
+			did = _try_hunt(eng, crack_p)
+		if not did:
+			did = _try_weak_reroll(eng)
+		if not did:
 			break
-		if eng.rerolls <= 0 and eng.mana < eng.reroll_mana_cost() + 0:
-			break
-		eng.reroll_dice(weak)
+
+
+func _try_hunt(eng: CombatEngine, crack_p: float) -> bool:
+	var groups := {}   # part -> Array[Unit]
+	for d in eng._bo_dice():
+		var u: Unit = d
+		if u.wild_slot >= 0 or u.cracked:
+			continue
+		var pt: int = u.roll_face_index()
+		if not groups.has(pt):
+			groups[pt] = []
+		(groups[pt] as Array).append(u)
+	var best_pt := -1
+	var best_n := 0
+	var best_sum := 0.0
+	for pt in groups:
+		var g: Array = groups[pt]
+		var sm := 0.0
+		for u in g:
+			sm += maxf(0.0, eng._face_base(u, pt))
+		if g.size() > best_n or (g.size() == best_n and sm > best_sum):
+			best_pt = pt
+			best_n = g.size()
+			best_sum = sm
+	if best_n < 2 or best_n >= 5:
+		return false
+	var in_group := {}
+	for u in groups[best_pt]:
+		in_group[(u as Unit).uid] = true
+	var cands: Array = []
+	for u in eng.alive_party():
+		var uu: Unit = u
+		if uu.has_rolled() and not uu.roll_used() and not uu.held and not in_group.has(uu.uid):
+			cands.append(uu.uid)
+	var ok_units: Array = eng._rerollable(cands)   # Units, not uids
+	cands = []
+	for u in ok_units:
+		cands.append((u as Unit).uid)
+	if cands.is_empty():
+		return false
+	var a := best_sum / float(best_n)
+	var k := cands.size()
+	var free := eng.rerolls > 0
+	var ev_safe := _hunt_ev(eng, best_n, a, k, 1.0 / 6.0) - (0.0 if free else float(eng.reroll_mana_cost(false, 1)) * 1.0)
+	var ev_lieu := _hunt_ev(eng, best_n, a, k, (1.0 / 6.0) * (1.0 - crack_p)) - crack_p * float(k) * a * 0.5
+	var rm := 1
+	var ev := ev_safe
+	if not free and not _abl.has("no_lieu") and eng.depth_stage >= 2 and ev_lieu > ev_safe:
+		rm = 0
+		ev = ev_lieu
+	if ev < 1.0 or not eng.can_reroll(cands, false, rm):
+		return false
+	return eng.reroll_dice(cands, -1, false, rm)
+
+
+func _try_weak_reroll(eng: CombatEngine) -> bool:
+	var protect := {}
+	if not _abl.has("no_bo_hunt"):
+		for g in eng.bo:
+			for id in g["uids"]:
+				protect[int(id)] = true
+	var base := _eval(eng)
+	var weak: Array = []
+	for u in _ready_units(eng):
+		if protect.has(u.uid):
+			continue
+		var bd := 0.0
+		for tid in _candidates(eng, u, eng.alive_enemies()):
+			if eng.use_die(u.uid, tid):
+				bd = maxf(bd, _eval(eng) - base)
+				eng.undo_last()
+		if bd < 2.5 and not u.frozen and not u.held:
+			weak.append(u.uid)
+	if weak.is_empty():
+		return false
+	# a weak die is cheap to crack: pay with Lieu (0 mana) when a chosen reroll is needed, otherwise An toan
+	var rm := 1
+	if eng.rerolls <= 0 and not _abl.has("no_lieu") and eng.depth_stage >= 2:
+		rm = 0
+	if not eng.can_reroll(weak, false, rm):
+		if rm == 0 and eng.can_reroll(weak, false, 1):
+			rm = 1
+		else:
+			return false
+	return eng.reroll_dice(weak, -1, false, rm)
+
+
+## Mat Tam: attach when it completes a BỘ (ba+) and the turn value rises by more than the mana it costs.
+func _expert_wild(eng: CombatEngine) -> void:
+	if _abl.has("no_wild"):
+		return
+	var base := _turn_value(eng)
+	var best_g := 1.0
+	var best: Array = []
+	for u in _ready_units(eng):
+		for sl in 6:
+			if eng.wild_block_reason(u.uid, sl) != "":
+				continue
+			var pv: Dictionary = eng.preview_wild(u.uid, sl)
+			if not bool(pv["ok"]) or float(pv["mult"]) <= 1.0:
+				continue
+			if eng.wild_face(u.uid, sl):
+				var g := _turn_value(eng) - base
+				eng.undo_last()
+				if g > best_g:
+					best_g = g
+					best = [u.uid, sl]
+	if not best.is_empty():
+		eng.wild_face(int(best[0]), int(best[1]))
+
+
+## Overcast: the die whose boost raises the turn value the most (BỘ dice come out on top because M multiplies), if it beats its mana.
+func _expert_overcast(eng: CombatEngine) -> void:
+	if _abl.has("no_overcast"):
+		return
+	var base := _turn_value(eng)
+	var best_g := 1.0
+	var best := -1
+	for u in _ready_units(eng):
+		if not eng.can_overcast(u.uid):
+			continue
+		var pr: Array = eng.overcast_preview(u)
+		if float(pr[1]) <= float(pr[0]):
+			continue
+		if eng.overcast(u.uid):
+			var g := _turn_value(eng) - base
+			eng.undo_last()
+			if g > best_g:
+				best_g = g
+				best = u.uid
+	if best >= 0:
+		eng.overcast(best)
