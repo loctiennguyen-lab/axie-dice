@@ -1752,7 +1752,7 @@ static var TABLE: Dictionary = {
 	"rule_starfall": {"on_combat_start": func(ctx: Dictionary): CoreHooks.scale_enemies(ctx, 1.15, false, "rule_starfall")},
 	"rule_heavy_finish": {
 		"face_final": func(ctx: Dictionary): return CoreHooks.flat(ctx, "rule_heavy_finish"),
-		"mod_dmg": func(ctx: Dictionary): return CoreHooks.heavy_enemy_dmg(ctx),
+		"incoming_dmg": func(ctx: Dictionary): return CoreHooks.heavy_enemy_dmg(ctx),
 	},
 	"rule_wasteland": {"mod_face": func(ctx: Dictionary):
 		ctx["unit"].max_hp += 4

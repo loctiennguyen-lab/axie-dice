@@ -1185,14 +1185,18 @@ static func old_forest_value(ctx: Dictionary) -> int:
 	return int(ctx["value"])
 
 
+## Heavy Finish (design 2b R5): enemy attacks deal +10% (knob enemy_dmg_mult). Runs from the `incoming_dmg` hook, which
+## DamagePipeline calls for every attack on a party unit; the old `mod_dmg` slot only ever runs for player-side sources,
+## so this half never fired there.
 static func heavy_enemy_dmg(ctx: Dictionary) -> float:
 	var v := float(ctx["value"])
 	var src = ctx.get("src", null)
-	if src != null and src.side == "e":
-		var nv := float(RulesMath.round_half_up(v * 1.1))
-		fire("rule_heavy_finish", ctx["tgt"].uid, int(nv - v), "rule")
-		return nv
-	return v
+	var tgt = ctx["tgt"]
+	if src == null or src.side != "e" or tgt.side != "p" or not bool(ctx.get("attack", false)):
+		return v
+	var nv := float(RulesMath.round_half_up(v * float(rule_knob("rule_heavy_finish", "enemy_dmg_mult", 1.1))))
+	fire("rule_heavy_finish", tgt.uid, int(nv - v), "rule")
+	return nv
 
 
 static func balance_value(ctx: Dictionary) -> int:

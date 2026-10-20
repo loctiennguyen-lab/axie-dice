@@ -433,7 +433,15 @@ func t_run_rules() -> void:
 		c.party[i].mark_used()
 	var last: Unit = c.party[4]
 	_ok(_val(c, last, "dmg", 5, 0) == _val(b, b.party[4], "dmg", 5) + 3, "heavy_finish: finisher +3")
-	_ok(is_equal_approx(float(RelicHooks.run_value_hook(c, "mod_dmg", {"combat": c, "src": c.enemies[0], "tgt": last}, 10.0)), 11.0), "heavy_finish: enemy dmg +10%")
+	var hp0: int = last.hp
+	var dealt: int = DamagePipeline.resolve({"combat": c, "src": c.enemies[0], "tgt": last, "value": 10, "attack": true, "single": true, "face_type": "dmg"})
+	var dealt_b: int = DamagePipeline.resolve({"combat": b, "src": b.enemies[0], "tgt": b.party[4], "value": 10, "attack": true, "single": true, "face_type": "dmg"})
+	_ok(dealt_b == 10 and dealt == 11, "heavy_finish: enemy attack through the real pipeline +10%% (%d vs %d)" % [dealt, dealt_b])
+	last.max_hp = 100
+	last.hp = 100
+	var pz: int = DamagePipeline.resolve({"combat": c, "src": null, "tgt": last, "value": 10, "attack": false, "single": false, "face_type": "poison"})
+	_ok(pz == 10, "heavy_finish: poison / non-attack damage unchanged (%d)" % pz)
+	_ok(hp0 > 0, "heavy_finish: probe unit alive")
 	c = _combat(["rule_wasteland"])
 	_ok(c.party[0].max_hp == b.party[0].max_hp + 4, "wasteland: +4 hp")
 	c = _combat(["rule_dry_steppe"])
