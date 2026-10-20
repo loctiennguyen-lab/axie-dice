@@ -224,6 +224,11 @@ func test_mecha_enters_overdrive_every_third_turn() -> void:
 		_assert(false, "mecha did not spawn")
 		return
 	var b: Unit = bosses[0]
+	# This test's own fixture: a party that survives the whole loop. Boss damage is x1.2 in depth v3 and an idle
+	# default party would be wiped before the overdrive turns, skipping the check.
+	for pu in c.party:
+		(pu as Unit).max_hp = 100000
+		(pu as Unit).hp = 100000
 
 	# Act / Assert — turn_count increments at the START of each turn after the first, and
 	# OVERDRIVE is on exactly when turn_count % 3 == 0.
@@ -232,8 +237,7 @@ func test_mecha_enters_overdrive_every_third_turn() -> void:
 			break
 		c.end_turn()
 		var tc := int(b.custom_state.get("turn_count", 0))
-		# depth v3: boss damage x1.2 can wipe this idle party mid-phase, and the traits only run on a new turn.
-		if b.hp > 0 and not (c.won or c.lost):
+		if b.hp > 0:
 			_assert(b.overdrive == (tc % 3 == 0),
 				"mecha overdrive was %s at turn_count %d (expected %s)"
 					% [b.overdrive, tc, tc % 3 == 0])
