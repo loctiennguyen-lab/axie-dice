@@ -451,6 +451,7 @@ func adopt_right_zone(undo: Button, reroll: Button, end_turn: Button) -> void:
 	_hint = UI3.label("", "LabelMuted")
 	_hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_hint.add_theme_color_override("font_color", UI3Theme.color("text"))   # sits on the 3D view: full cream, not muted
+	_hint.add_theme_font_size_override("font_size", 18)
 	_hint.add_theme_constant_override("outline_size", 4)
 	_hint.add_theme_color_override("font_outline_color", UI3Theme.color("panel"))
 	_hint.mouse_filter = Control.MOUSE_FILTER_IGNORE

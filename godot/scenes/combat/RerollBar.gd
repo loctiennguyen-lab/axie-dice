@@ -9,7 +9,7 @@ signal chosen(rmode: int)
 const BTN_W := 176.0
 const GAP := 12.0
 const ROW_H := 48.0
-const LINE_H := 48.0
+const LINE_H := 64.0   # two 18 px lines (% + the refusal) with their padding
 const TOTAL_W := BTN_W * 2.0 + GAP
 
 var line: Label
@@ -26,9 +26,9 @@ func _init() -> void:
 	line.add_theme_color_override("font_color", UI3Theme.color("text"))
 	line.add_theme_color_override("font_outline_color", UI3Theme.color("panel"))
 	line.add_theme_constant_override("outline_size", 0)
-	line.add_theme_font_size_override("font_size", 16)
+	line.add_theme_font_size_override("font_size", 18)
 	var bg := UI3Theme.flat(UI3Theme.color("panel"), UI3Theme.radius("s"))
-	bg.bg_color.a = 0.9
+	bg.bg_color.a = 0.94
 	bg.content_margin_left = 10
 	bg.content_margin_right = 10
 	bg.content_margin_top = 4
@@ -50,11 +50,11 @@ func _init() -> void:
 		add_child(b)
 	gamble_button.pressed.connect(func(): chosen.emit(0))
 	safe_button.pressed.connect(func(): chosen.emit(1))
-	size = Vector2(TOTAL_W, LINE_H + 8.0 + ROW_H)
+	size = Vector2(TOTAL_W, LINE_H + GAP + ROW_H)
 	line.position = Vector2(0, 0)
 	line.size = Vector2(TOTAL_W, LINE_H)
-	gamble_button.position = Vector2(0, LINE_H + 8.0)
-	safe_button.position = Vector2(BTN_W + GAP, LINE_H + 8.0)
+	gamble_button.position = Vector2(0, LINE_H + GAP)
+	safe_button.position = Vector2(BTN_W + GAP, LINE_H + GAP)
 
 
 ## d: gamble_ok, gamble_text, gamble_why, safe_ok, safe_text, safe_why, line (the % / pin / reason text).
@@ -73,4 +73,4 @@ func update(d: Dictionary) -> void:
 
 ## Right-aligns the bar to x_right with its button row on `row_y`.
 func place(x_right: float, row_y: float) -> void:
-	position = Vector2(x_right - TOTAL_W, row_y - LINE_H - 8.0)
+	position = Vector2(x_right - TOTAL_W, row_y - LINE_H - GAP)
