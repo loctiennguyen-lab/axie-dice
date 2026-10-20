@@ -1283,6 +1283,40 @@ func _face_value(u: Unit, fi: int) -> int:
 	return int(RelicHooks.run_value_hook(self, "face_final", {"combat": self, "unit": u, "face_type": face_type}, int(v)))
 
 
+## UI preview (design 8.6 item 7, "4 -> 1"): what die face `fi` of `src` would do to `target` as a single-target hit,
+## WITHOUT touching state, events or rng. raw = face value (+ the once-per-turn first-dmg bonus), after = raw after
+## vulnerable, the boss hollow turn and Plating (the same steps and order as DamagePipeline.resolve 6, 6b, 6c).
+## Includes the pierce bonus (bird talon, piercePlus). Not covered: crit, exec/feral, Core mod_dmg hooks, shield absorb (shown by the UI from target.shield).
+## Returns {raw, after, plating (P that counted, 0 = none), single (Plating applies at all), shield (target shield)}.
+func preview_damage(src: Unit, target: Unit, fi: int) -> Dictionary:
+	if src == null or target == null or fi < 0 or fi >= src.die.size():
+		return {"raw": 0, "after": 0, "plating": 0, "single": false, "shield": 0}
+	var f: Dictionary = src.die[fi]
+	var raw := _face_value(src, fi)
+	if src.side == "p" and first_dmg_face_bonus > 0 and not _first_dmg_used \
+			and String(f.get("type", "")) == "dmg" and raw > 0:
+		raw += first_dmg_face_bonus
+	var attack := String(f.get("type", "")) == "dmg"
+	var pierce := _has_kw(f, "pierce") or (src.side == "p" and src.cls == "bird" and _has_kw(f, "aoe"))
+	var single := attack and not pierce and not _has_kw(f, "aoe")
+	var v := float(raw)
+	if pierce and src.side == "p":
+		v += (RelicHooks.field(self, "talon_pierce", 3.0) if src.cls == "bird" else 0.0) + RelicHooks.sum(self, "piercePlus")   # pipeline step 2
+	if v <= 0.0:
+		return {"raw": raw, "after": 0, "plating": 0, "single": single, "shield": target.shield}
+	if int(target.status.get("vulnerable", 0)) > 0:
+		v = ceil(v * 1.5)
+	if target.is_boss and attack:
+		v = ceil(v * boss_hollow_taken_mult(target))
+	var p := 0
+	if single and target.side == "e":
+		var plated := CombatTraits.reduce(self, target, v)
+		if plated < v:
+			p = CombatTraits.plating_of(self, target)
+		v = plated
+	return {"raw": raw, "after": int(v), "plating": p, "single": single, "shield": target.shield}
+
+
 func _pure_keywords(f: Dictionary) -> Array:
 	var out: Array = []
 	for k in (f.get("keywords", []) as Array):
