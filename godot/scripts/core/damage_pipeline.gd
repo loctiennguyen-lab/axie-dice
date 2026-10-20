@@ -80,6 +80,9 @@ static func resolve(ctx: Dictionary) -> int:
 		if plated < v:
 			EventBus.plating.emit(tgt.uid, int(v), int(plated), CombatTraits.plating_of(combat, tgt))
 			v = plated
+	if attack or tgt.side == "e":
+		v = float(RelicHooks.run_value_hook(combat, "incoming_dmg", {"src": src, "tgt": tgt, "combat": combat,
+			"single": bool(ctx.get("single", false)), "pierce": pierce, "attack": attack}, v))   # 6d. Cores / rules (Bastion, Fissure, Rising Tide)
 	if tgt.side == "p":
 		var dr := RelicHooks.sum(combat, "dr")
 		if dr > 0.0:

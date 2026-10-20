@@ -149,6 +149,122 @@ static func descend_hit(ctx: Dictionary) -> void:
 		DamagePipeline.apply_heal(ctx["combat"], u, int(ceil(d * 0.3)))
 
 
+## Value of a knob on a held Run Rule / Core definition (rule_knobs), else `default`.
+static func rule_knob(id: String, key: String, default):
+	var d = RelicRegistry.get_def(id)
+	if d == null:
+		return default
+	return (d.rule_knobs as Dictionary).get(key, default)
+
+
+## Bastion: front-row Axies take 2 less from single-target hits (min 1). Rising Tide (front fights): 25% less.
+static func incoming(ctx: Dictionary) -> float:
+	var combat = ctx["combat"]
+	var tgt = ctx["tgt"]
+	var v := float(ctx["value"])
+	if tgt.side == "e":
+		if int(tgt.custom_state.get("fissure", -1)) >= int(combat.turn) and RelicHooks_has(combat, "c_fissure"):
+			v = ceil(v * 1.25)
+		return v
+	if tgt.is_token or combat.row_of(tgt) != 0:
+		return v
+	if RelicHooks_has(combat, "c_bastion") and bool(ctx.get("single", false)) and not bool(ctx.get("pierce", false)) and bool(ctx.get("attack", false)):
+		v = maxf(1.0, v - 2.0)
+	if RelicHooks_has(combat, "rule_rising_tide") and String(combat_state(combat, "tide").get("water", "")) == "front":
+		v = maxf(1.0, ceil(v * float(rule_knob("rule_rising_tide", "front_dmg_taken", 0.75))))
+	return v
+
+
+static func RelicHooks_has(combat, id: String) -> bool:
+	return (combat.relic_ids as Array).has(id)
+
+
+## Rising Tide: the water alternates by fight (counter in the run state): even fights the front is in the water.
+static func tide_start(ctx: Dictionary) -> void:
+	var combat = ctx["combat"]
+	var n := int((combat.relic_run_in.get("rule_rising_tide", {}) as Dictionary).get("n", 0))
+	combat_state(combat, "tide")["water"] = "front" if n % 2 == 0 else "back"
+	combat.relic_run_out["rule_rising_tide"] = {"n": n + 1}
+
+
+## Fissure: a poison face that hits marks the enemy (+25% from all damage until the end of next turn) and strips Plating.
+static func fissure_used(ctx: Dictionary) -> void:
+	var combat = ctx["combat"]
+	var f: Dictionary = ctx["face"]
+	if String(ctx.get("side", "")) != "p" or String(f.get("type", "")) != "poison":
+		return
+	var targets: Array = combat.alive_enemies() if _has_kw(f, "aoe") else [combat.by_uid(int(ctx.get("target_uid", -1)))]
+	for t in targets:
+		if t != null and t.side == "e" and t.hp > 0:
+			t.custom_state["fissure"] = int(combat.turn) + 1
+			t.plating_off = maxi(int(t.plating_off), 2)
+			EventBus.float_text.emit(t.uid, "FISSURE", "deb", 0)
+
+
+## Nest: start of combat one Egg, and Eggs stand in the front row (single-target attacks can pick them).
+static func nest_start(ctx: Dictionary) -> void:
+	var combat = ctx["combat"]
+	combat.relic_combat["eggs_front"] = true
+	if combat._count_alive_tokens(combat.party) < int(RelicHooks.max_val(combat, "tokenCap", 4.0)):
+		var egg = combat._mk_ally()
+		combat.party.append(egg)
+		EventBus.unit_spawned.emit(egg.uid)
+
+
+## Deep Current: up to 12 leftover Mana of a won fight are paid out at the start of the next one.
+static func deep_current_start(ctx: Dictionary) -> void:
+	var combat = ctx["combat"]
+	var m := int((combat.relic_run_in.get("c_deep_current", {}) as Dictionary).get("mana", 0))
+	combat.relic_run_out["c_deep_current"] = {"mana": 0}
+	if m > 0:
+		gain_mana(combat, m, "+%d MP (carried)" % m)
+
+
+static func deep_current_end(ctx: Dictionary) -> void:
+	var combat = ctx["combat"]
+	var keep := mini(12, int(combat.mana)) if String(ctx.get("result", "")) == "won" else 0
+	combat.relic_run_out["c_deep_current"] = {"mana": keep}
+
+
+## Growing Shell: stacks (+1 Max HP each) per roster Axie live in relic_state; a kill by a front-row Axie adds one,
+## falling drops the stacks to a third (rounded up). Applied at build time (mod_face).
+static func shell_face(ctx: Dictionary) -> void:
+	var combat = ctx["combat"]
+	var u = ctx["unit"]
+	var n := int(((combat.relic_run_in.get("c_growing_shell", {}) as Dictionary)).get(str(u.uid), 0))
+	u.max_hp += n
+
+
+static func _shell_stacks(combat) -> Dictionary:
+	var d = combat.relic_run_out.get("c_growing_shell", null)
+	if not (d is Dictionary):
+		d = {}
+		combat.relic_run_out["c_growing_shell"] = d
+	return d
+
+
+static func shell_kill(ctx: Dictionary) -> void:
+	var combat = ctx["combat"]
+	var k = ctx.get("killer", null)
+	if k == null or k.side != "p" or k.is_token or k.hp <= 0 or combat.row_of(k) != 0:
+		return
+	var st := _shell_stacks(combat)
+	st[str(k.uid)] = int(st.get(str(k.uid), 0)) + 1
+	k.max_hp += 1
+	k.hp += 1
+	EventBus.float_text.emit(k.uid, "+1 MAX HP", "buf", 0)
+
+
+static func shell_fall(ctx: Dictionary) -> void:
+	if not fell_now(ctx):
+		return
+	var st := _shell_stacks(ctx["combat"])
+	var key := str(ctx["tgt"].uid)
+	var n := int(st.get(key, 0))
+	if n > 0:
+		st[key] = int(ceil(n / 3.0))
+
+
 static func dewdrop_turn(ctx: Dictionary) -> void:
 	gain_mana(ctx["combat"], 1)
 
@@ -311,7 +427,7 @@ static func tide_spent(ctx: Dictionary) -> void:
 const FLAT_CAP := 10
 const FLAT_IDS := ["c_kindle", "c_prime_chain", "c_finisher", "c_mana_pool", "c_three_dice", "c_field_medic",
 	"c_plague_spread", "c_hollow_core", "c_thorn_pact", "c_cascade", "c_gatekeeper", "c_golden_egg",
-	"rule_tundra", "rule_heavy_finish", "c_sacrifice", "c_concord"]
+	"rule_tundra", "rule_heavy_finish", "c_sacrifice", "c_concord", "rule_rising_tide"]
 
 
 static func mirror_second(combat, u) -> bool:
@@ -356,6 +472,8 @@ static func bonus(combat, u, ft: String, id: String, part: String = "") -> int:
 			return mini(6, int(combat_state(combat, "gk").get("b", 0))) if ft == "dmg" else 0
 		"c_sacrifice":
 			return 2 if val else 0
+		"rule_rising_tide":
+			return int(rule_knob("rule_rising_tide", "back_dmg", 2)) if (ft == "dmg" and combat.row_of(u) == 1 and String(combat_state(combat, "tide").get("water", "")) == "back") else 0
 		"c_concord":
 			return 2 if (not sec and val and part != "" and String(turn_state(combat, "cs_concord").get("part", "")) == part) else 0
 		"c_golden_egg":

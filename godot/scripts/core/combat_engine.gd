@@ -161,6 +161,8 @@ func setup_new(combat_setup: Dictionary) -> void:
 	affix = String(combat_setup.get("affix", ""))
 	affix2 = String(combat_setup.get("affix2", ""))
 	run_rules = (combat_setup.get("run_rules", []) as Array).duplicate()
+	if relic_ids.has("rule_hard_shell") and not run_rules.has("R12"):
+		run_rules.append("R12")   # Vo Cung (rule_hard_shell) = depth v3 R12: Plating everywhere + side face bonus
 	if kind == "elite" and bool(combat_setup.get("first_run_elite", false)):
 		# 6.4: the account's first run keeps the anti-spam affix: Giap Sat, or Khien Hoi when the team cannot break Plating.
 		var fr: Dictionary = ContentDB.elite_affix_meta.get("first_run", {})
@@ -653,6 +655,8 @@ func _pick_enemy_intent(e: Unit) -> void:
 			var rp := ps
 			if not _has_kw(f, "aoe") and not _has_kw(f, "pierce") and e.role != "assassin":
 				rp = front_row_targets(ps)
+				if String(RelicHooks.run_value_hook(self, "enemy_row_pref", {"combat": self}, "")) == "back":
+					rp = back_row_targets(ps)   # Upside Down
 			var ambush: bool = bool(_aff(e).get("target_back_weakest", false)) \
 				and not _has_kw(f, "aoe") and not _has_kw(f, "pierce")
 			if ambush:
@@ -688,9 +692,20 @@ func front_row_size() -> int:
 
 ## 0 = front, 1 = back.
 func row_of(u: Unit) -> int:
+	if u.is_token and not relic_combat.is_empty() and bool(relic_combat.get("eggs_front", false)):
+		return 0   # Nest
 	if not relic_combat.is_empty() and relic_combat.has("descend") and u.roster_index == int((relic_combat["descend"] as Dictionary)["idx"]):
 		return 0
 	return 0 if (u.roster_index >= 0 and u.roster_index < front_row_size()) else 1
+
+
+## The living back-row units of `ps`; when none is alive, `ps` itself.
+func back_row_targets(ps: Array) -> Array:
+	var out: Array = []
+	for raw in ps:
+		if row_of(raw as Unit) == 1:
+			out.append(raw)
+	return out if not out.is_empty() else ps
 
 
 ## The living front-row units of `ps`; when none is alive, `ps` itself (the back row becomes reachable).
@@ -1944,12 +1959,16 @@ func affix_state() -> Dictionary:
 ## Phase of boss `b` at `turn_count + ahead`. Turn 1 (count 0) is "prep". strike = count % period == 0 (this is
 ## where Mecha's OVERDRIVE and Plague Mother's brood already sat), hollow = the turn after, prep = the one before.
 ## "" for a non-boss, a boss with no rhythm (Agony runs its own two phases), or when combat_tune boss_rhythm.enabled = 0.
+func boss_period() -> int:
+	return maxi(2, int(RelicHooks.run_value_hook(self, "boss_period", {"combat": self}, maxi(3, int(tune_knob("boss_rhythm", "period", 3.0))))))
+
+
 func boss_rhythm_phase(b: Unit, ahead: int = 0) -> String:
 	if b == null or not b.is_boss or tune_knob("boss_rhythm", "enabled", 1.0) < 1.0:
 		return ""
 	if String(b.custom_state.get("trait", "")) == "phase":
 		return ""
-	var period := maxi(3, int(tune_knob("boss_rhythm", "period", 3.0)))
+	var period := boss_period()
 	var tc := int(b.custom_state.get("turn_count", 0)) + ahead
 	if tc <= 0:
 		return "prep"
@@ -1975,6 +1994,8 @@ func boss_is_hollow(b: Unit) -> bool:
 
 ## Damage the boss deals on a hollow turn (default x0.7).
 func boss_hollow_dealt_mult(u: Unit) -> float:
+	if u != null and u.is_boss and boss_rhythm_phase(u) == "strike":
+		return float(RelicHooks.run_value_hook(self, "boss_strike_mult", {"combat": self}, 1.0))   # Quick Beat
 	if not boss_is_hollow(u):
 		return 1.0
 	return 1.0 + tune_knob("boss_rhythm", "hollow_dealt_pct", -30.0) / 100.0
@@ -2028,13 +2049,13 @@ func _boss_turn_traits() -> void:
 				var perm := int(b.custom_state.get("permanent_thorns", 0))
 				# Hollow turn: the thorns shell is open (depth v3 6.3 tell).
 				b.status["thorns"] = 0 if rphase == "hollow" else max(int(b.status.get("thorns", 0)), perm)
-				if turn_count % 3 == 0:
+				if turn_count % boss_period() == 0:
 					b.overdrive = true
 					EventBus.float_text.emit(b.uid, "OVERDRIVE", "deb", 1)
 
 			# PLAGUE MOTHER — BROOD: one add every 3 turns, up to addCap.
 			"summon":
-				if turn_count % 3 == 0 and int(b.custom_state.get("split_done", 0)) < add_cap:
+				if turn_count % boss_period() == 0 and int(b.custom_state.get("split_done", 0)) < add_cap:
 					b.custom_state["split_done"] = int(b.custom_state.get("split_done", 0)) + 1
 					spawn_boss_add(b, float(b.custom_state.get("sc", 1.0)))
 

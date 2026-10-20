@@ -1557,6 +1557,32 @@ static var TABLE: Dictionary = {
 	},
 	# ---- Depth v3 Cores / Run Rules (lane C): logic in core_hooks.gd, one TABLE entry per id ----
 	# CORE_TABLE_BEGIN
+	"c_bastion": {"incoming_dmg": func(ctx: Dictionary): return CoreHooks.incoming(ctx)},
+	"c_fissure": {
+		"on_face_used": func(ctx: Dictionary): CoreHooks.fissure_used(ctx),
+		"incoming_dmg": func(ctx: Dictionary): return CoreHooks.incoming(ctx),
+	},
+	"c_nest": {"on_combat_start": func(ctx: Dictionary): CoreHooks.nest_start(ctx)},
+	"c_deep_current": {
+		"on_combat_start": func(ctx: Dictionary): CoreHooks.deep_current_start(ctx),
+		"on_combat_end": func(ctx: Dictionary): CoreHooks.deep_current_end(ctx),
+	},
+	"c_growing_shell": {
+		"mod_face": func(ctx: Dictionary): CoreHooks.shell_face(ctx),
+		"on_kill": func(ctx: Dictionary): CoreHooks.shell_kill(ctx),
+		"on_dmg_taken": func(ctx: Dictionary): CoreHooks.shell_fall(ctx),
+	},
+	"rule_rising_tide": {
+		"on_combat_start": func(ctx: Dictionary): CoreHooks.tide_start(ctx),
+		"incoming_dmg": func(ctx: Dictionary): return CoreHooks.incoming(ctx),
+		"face_final": func(ctx: Dictionary): return CoreHooks.flat(ctx, "rule_rising_tide"),
+	},
+	"rule_upside_down": {"enemy_row_pref": func(ctx: Dictionary): return "back"},
+	"rule_quick_beat": {
+		"boss_period": func(ctx: Dictionary): return 2,
+		"boss_strike_mult": func(ctx: Dictionary): return 1.2,
+	},
+	"rule_hard_shell": {},
 	"c_descend": {
 		"descend_pick": func(ctx: Dictionary): return CoreHooks.descend_pick(ctx),
 		"mod_face": func(ctx: Dictionary): CoreHooks.descend_face(ctx),
