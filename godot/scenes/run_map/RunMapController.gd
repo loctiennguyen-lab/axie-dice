@@ -627,7 +627,7 @@ const _NODE_REWARD_NAME := {"level": "Level up", "hp": "Max HP", "face": "Face r
 
 
 func _affix_name(id: String) -> String:
-	return String((ContentDB.elite_affixes.get(id, {}) as Dictionary).get("n", id))
+	return CombatView.affix_name(id)
 
 
 func _hover_token(btn: Button, on: bool) -> void:

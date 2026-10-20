@@ -269,12 +269,25 @@ func update_foe(d: Dictionary) -> void:
 			var p := UI3.plate(&"card_selected" if is_now else &"row")
 			p.name = "Phase_" + ph
 			p.mouse_filter = Control.MOUSE_FILTER_IGNORE
-			var l2 := UI3.label(String(_PHASE_WORD[ph]) + (" *" if is_next and not is_now else ""), "LabelDisplay")
+			var l2 := UI3.label(String(_PHASE_WORD[ph]), "LabelDisplay")
 			l2.add_theme_font_size_override("font_size", 18)
 			l2.mouse_filter = Control.MOUSE_FILTER_IGNORE
-			p.add_child(l2)
+			if is_next and not is_now:
+				var pv := VBoxContainer.new()
+				pv.add_theme_constant_override("separation", 0)
+				pv.mouse_filter = Control.MOUSE_FILTER_IGNORE
+				pv.add_child(l2)
+				var nl := UI3.label("Next", "LabelMuted")
+				nl.name = "NextTag"
+				nl.add_theme_font_size_override("font_size", 18)
+				nl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+				nl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+				pv.add_child(nl)
+				p.add_child(pv)
+			else:
+				p.add_child(l2)
 			chips.add_child(p)
-		UI3Tooltip.bind(chips, "Boss rhythm: 3-turn cycle. Prep, then Strike (its strongest face), then Hollow (it takes +30% from damage faces and deals -30%). * marks the next phase.")
+		UI3Tooltip.bind(chips, "Boss rhythm: 3-turn cycle. Prep, then Strike (its strongest face), then Hollow (it takes +30% from damage faces and deals -30%). The chip tagged Next is the phase that comes next.")
 		_foe_rows.add_child(chips)
 		var tell := UI3.label(String(r.get("tell", "")), "LabelMuted")
 		tell.add_theme_font_size_override("font_size", 18)
@@ -416,6 +429,9 @@ func adopt_right_zone(undo: Button, reroll: Button, end_turn: Button) -> void:
 	add_child(hold_button)
 	_hint = UI3.label("", "LabelMuted")
 	_hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_hint.add_theme_color_override("font_color", UI3Theme.color("text"))   # sits on the 3D view: full cream, not muted
+	_hint.add_theme_constant_override("outline_size", 4)
+	_hint.add_theme_color_override("font_outline_color", UI3Theme.color("panel"))
 	_hint.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	add_child(_hint)
 	layout()

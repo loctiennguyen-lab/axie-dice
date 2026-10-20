@@ -1182,7 +1182,7 @@ func _foe_state() -> Dictionary:
 			note = "acts twice NOW"
 		elif bool(af.get("double_next", false)):
 			note = "acts twice NEXT turn"
-		out["affix"] = {"name": String(def.get("n", af["id"])), "note": note, "tip": affix_tip(String(af["id"]))}
+		out["affix"] = {"name": affix_name(String(af["id"])), "note": note, "tip": affix_tip(String(af["id"]))}
 	return out
 
 
@@ -1195,9 +1195,18 @@ func _rhythm_tell(st: Dictionary) -> String:
 	return "Strike in %d turns" % int(st.get("turns_to_strike", 0))
 
 
-## Plain-English line for an Elite affix, built from its data keys (the Vietnamese `n` is only a name).
+## Short English display name of an Elite affix (`name_en`; the old `n` is the unaccented Vietnamese id-name).
+## The one name used by combat AND the map.
+static func affix_name(id: String) -> String:
+	var d: Dictionary = ContentDB.elite_affixes.get(id, {})
+	return String(d.get("name_en", d.get("n", id)))
+
+
+## One plain-English line for an Elite affix (`desc_en`), falling back to a line built from its data keys.
 static func affix_tip(id: String) -> String:
 	var d: Dictionary = ContentDB.elite_affixes.get(id, {})
+	if String(d.get("desc_en", "")) != "":
+		return String(d["desc_en"])
 	var parts: Array[String] = []
 	if d.has("repeat_intent"):
 		parts.append("Repeats its last action, %d%% damage." % int(d.get("dmg_pct", 0)))
@@ -1428,7 +1437,7 @@ func _layout_row_strip(x0: float, col_w: float, gap: float, top: float) -> void:
 		l.add_theme_font_size_override("font_size", 18)
 		l.add_theme_color_override("font_color", UI3Theme.color("text" if r == 0 else "text_muted"))
 		l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		l.position = Vector2(x, top - 30.0)
+		l.position = Vector2(x, top - 52.0)   # clear of a picked card, which lifts 18 px
 		l.size = Vector2(w, 24)
 		l.mouse_filter = Control.MOUSE_FILTER_PASS
 		UI3Tooltip.bind(l, "Front row (first %d Axies) takes single-target hits first. Back row is only hit once the front is down, or by area / piercing attacks." % _combat.front_row_size()
@@ -1436,7 +1445,7 @@ func _layout_row_strip(x0: float, col_w: float, gap: float, top: float) -> void:
 		_row_strip.add_child(l)
 		var line := ColorRect.new()
 		line.color = UI3Theme.color("text" if r == 0 else "text_muted")
-		line.position = Vector2(x + 4.0, top - 6.0)
+		line.position = Vector2(x + 4.0, top - 26.0)
 		line.size = Vector2(w - 8.0, 2)
 		line.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		_row_strip.add_child(line)
@@ -3238,7 +3247,13 @@ func _update_portrait(u: Unit) -> void:
 			if reason != "":
 				targetable = false
 		p.set_targetable(targetable)
-		p.set_illegal(reason if u.hp > 0 else "")
+		var side_group: Array = _combat.enemies if u.side == "e" else _combat.party
+		var first_alive: Unit = null
+		for sib in side_group:
+			if sib.hp > 0:
+				first_alive = sib
+				break
+		p.set_illegal(reason if u.hp > 0 else "", first_alive == u)
 		_stage3d.set_targetable(u.uid, targetable)
 	else:
 		p.set_selected(false)

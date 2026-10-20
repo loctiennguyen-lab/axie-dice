@@ -16,6 +16,7 @@ func _ready() -> void:
 		for _i in 5:
 			await get_tree().process_frame
 		var s: Node = await _open("elite", "r5_c0", 4, "shell")
+		s._land_dice_now()
 		var c: CombatEngine = s._combat
 		for u in s._party_dice_units():
 			if u.has_rolled():
@@ -49,7 +50,7 @@ func _open(kind: String, node_id: String, pw: int, affix: String) -> Node:
 	return scene
 
 func _shot(name: String, size: Vector2i) -> void:
-	for _i in 8:
+	for _i in 90:
 		await get_tree().process_frame
 	get_tree().root.get_texture().get_image().save_png("%s/%s_%dx%d.png" % [_out, name, size.x, size.y])
 	print("QA: saved ", name)
