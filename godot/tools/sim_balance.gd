@@ -33,6 +33,10 @@ var _offered := {}        # per run: Core/Rule ids that appeared in an offer
 var _picked: Array = []   # per run: ids taken
 var _trig := {}           # per run: ids that "fired" (see _note_triggers)
 var _shield_used := 0
+var _pact_mode := "take"   # take | skip   (--pact)
+var _shop_mode := "all"    # all | none     (--shop)
+var _beam := 3             # expert in-turn beam width (--beam)
+var _core_fired_seen := {} # ids reported by EventBus.core_fired, when the branch has that signal
 ## Events a handler can see in every fight where the Core is owned.
 const ALWAYS_EVENTS := ["on_combat_start", "on_turn_start", "on_turn_end", "on_roll_settled", "on_roll_end",
 	"on_combat_end", "mod_face", "face_final", "roll_face", "roll_edit", "extra_dice", "class_field", "face_crit",
@@ -40,10 +44,22 @@ const ALWAYS_EVENTS := ["on_combat_start", "on_turn_start", "on_turn_end", "on_r
 	"reroll_mana_cost", "reroll_allowed", "before_reroll", "cantrip_extra", "roll_share_class", "descend_pick", "active_cost"]
 
 
+func _on_core_fired(a = null, b = null, c = null) -> void:
+	for x in [a, b, c]:
+		if x is String and (String(x).begins_with("c_") or String(x).begins_with("rule_")):
+			_core_fired_seen[String(x)] = true
+			return
+
+
 func _ready() -> void:
+	if EventBus.has_signal("core_fired"):   # exact trigger counter (FX lane); else the heuristic in _note_triggers
+		EventBus.connect("core_fired", _on_core_fired)
 	var args := _parse_args()
 	var guard := SaveGuard.new()
 	guard.capture()
+	_pact_mode = String(args.get("pact", "take"))
+	_shop_mode = String(args.get("shop", "all"))
+	_beam = int(args.get("beam", 3))
 	var recs: Array
 	if args.has("from"):   # --from=a.csv,b.csv : rebuild/merge a report from raw CSVs, no simulation
 		recs = SimReport.read_csvs(String(args["from"]).split(","))
@@ -95,10 +111,12 @@ func _play_run(seed_value: int, team_name: String, asc: int, policy: String, cor
 	_rng = Rng.new(seed_value ^ SALT)
 	_fights = []
 	_offered = {}
+	_core_fired_seen = {}
 	_picked = []
 	_trig = {}
 	var team: Array[String] = []
-	for k in (TEAMS[team_name] as Array):
+	var keys: Array = TEAMS[team_name] if TEAMS.has(team_name) else Array(team_name.split("+"))   # "a+b+c+d+e" = explicit heroes
+	for k in keys:
 		team.append(String(k))
 	RunState.start_run_with_epoch(LocalEpochSource.new(PackedByteArray(), seed_value), {
 		"team_keys": team, "mode": "short", "ascension": asc, "ranked": false, "rules_on": true,
@@ -129,8 +147,11 @@ func _play_run(seed_value: int, team_name: String, asc: int, policy: String, cor
 				if not eng.won:
 					death_kind = node.node_type
 					death_row = node.row
-				if RunState.phase == RunState.RunPhase.PACT and not RunState.take_pact(0):
-					RunState.skip_pact()
+				if RunState.phase == RunState.RunPhase.PACT:
+					if _pact_mode == "skip" and RunState.pact_can_skip():
+						RunState.skip_pact()
+					elif not RunState.take_pact(0):
+						RunState.skip_pact()
 				if not RunState.pending_rewards.is_empty():
 					RunState.apply_chosen_reward(_pick_plain_reward())
 			"event":
@@ -138,8 +159,9 @@ func _play_run(seed_value: int, team_name: String, asc: int, policy: String, cor
 				if n_opt > 0:
 					RunState.choose_event_option(_rng.next_int(n_opt))
 			"shop":
-				for j in RunState.shop_items.size():
-					RunState.try_buy_shop_item(j)
+				if _shop_mode != "none":
+					for j in RunState.shop_items.size():
+						RunState.try_buy_shop_item(j)
 			"treasure":
 				RunState.generate_treasure_rewards(node.id)
 				if not RunState.pending_rewards.is_empty():
@@ -245,6 +267,8 @@ func _note_triggers(eng: CombatEngine, owned: Array) -> void:
 				if ALWAYS_EVENTS.has(ev) or seen.has(ev):
 					hit = true
 					break
+		if EventBus.has_signal("core_fired"):
+			hit = _core_fired_seen.has(sid)
 		if hit:
 			_trig[sid] = true
 
@@ -281,6 +305,8 @@ func _pick_plain_reward() -> Dictionary:
 
 func _play_combat(eng: CombatEngine) -> int:
 	var turns := 0
+	_turn_seen = -1
+	_plan = []
 	while not (eng.won or eng.lost) and turns < MAX_TURNS:
 		_play_turn(eng)
 		turns += 1
@@ -504,29 +530,65 @@ func _candidates(eng: CombatEngine, u: Unit, foes: Array) -> Array:
 	return out
 
 
+var _plan: Array = []
+
 func _move_expert(eng: CombatEngine, ready: Array, foes: Array) -> Array:
 	if int(eng.turn) != _turn_seen:
 		_turn_seen = int(eng.turn)
 		_expert_turn_start(eng, ready, foes)
 		ready = _ready_units(eng)
 		foes = eng.alive_enemies()
-		if ready.is_empty() or foes.is_empty():
-			return []
+		_plan = _plan_turn(eng, ready, foes) if not (ready.is_empty() or foes.is_empty()) else []
+	if _plan.is_empty():
+		return []
+	return _plan.pop_front()
+
+
+## Beam search over ordered (die, target) sequences inside the turn, scored by _eval after each step (exact state, via
+## use_die + undo_last). A prefix may stop at any depth (a die can stay unused). Returns the best sequence found.
+func _plan_turn(eng: CombatEngine, ready: Array, foes: Array) -> Array:
 	var base := _eval(eng)
-	var best_d := -1e9
-	var best: Array = []
-	for u in ready:
-		for tid in _candidates(eng, u, foes):
-			if not eng.use_die(u.uid, tid):
-				continue
-			var d := _eval(eng) - base
-			eng.undo_last()
-			if d > best_d:
-				best_d = d
-				best = [u.uid, tid]
-	if best_d < -0.01:
-		return []   # every remaining move makes things worse: leave the rest unused
-	return best
+	var beam: Array = [{"seq": [], "score": base}]
+	var best: Dictionary = beam[0]
+	for depth in ready.size():
+		var nxt: Array = []
+		var seen := {}
+		for b in beam:
+			var seq: Array = b["seq"]
+			var applied := 0
+			for m in seq:
+				if eng.use_die(int(m[0]), int(m[1])):
+					applied += 1
+			if applied == seq.size():
+				var used := {}
+				for m in seq:
+					used[int(m[0])] = true
+				for u in _ready_units(eng):
+					if used.has(u.uid):
+						continue
+					for tid in _candidates(eng, u, eng.alive_enemies()):
+						if eng.use_die(u.uid, tid):
+							var sc := _eval(eng)
+							eng.undo_last()
+							var ns: Array = seq.duplicate()
+							ns.append([u.uid, tid])
+							var keys: Array = []
+							for m2 in ns:
+								keys.append("%d:%d" % [m2[0], m2[1]])
+							keys.sort()
+							var key := ",".join(keys)
+							if not seen.has(key):
+								seen[key] = true
+								nxt.append({"seq": ns, "score": sc})
+			for k in applied:
+				eng.undo_last()
+		if nxt.is_empty():
+			break
+		nxt.sort_custom(func(x, y): return x["score"] > y["score"])
+		beam = nxt.slice(0, _beam)
+		if float(beam[0]["score"]) > float(best["score"]):
+			best = beam[0]
+	return best["seq"]
 
 
 ## Turn start: Hold the strongest dmg die on a boss STRIKE turn (it hits the next, hollow, turn for +30%);
