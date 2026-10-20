@@ -2,7 +2,7 @@ extends Node
 ## Hard rule (Liam, 20/10): every 3D boss always faces the party Axies in combat. For each boss key whose
 ## atia registry entry is a 3D model, build the real stage with a full party, spawn the boss in its slot and
 ## check that the model's forward (local +Z, the engine convention for these rigs) points at the party centre
-## within 15 degrees. Sprite bosses are skipped. Data-driven: new Chimera/Brine bosses are covered by BOSS_KEYS.
+## within 15 degrees and turned toward the camera side (or within 3 deg of straight). Sprite bosses are skipped. Data-driven: new Chimera/Brine bosses are covered by BOSS_KEYS.
 ## Run: godot --headless --path godot res://tests/t_boss_facing.tscn
 const MAX_DEG := 15.0
 const CLASSES := ["plant", "beast", "aquatic", "reptile", "bug"]
@@ -66,7 +66,10 @@ func _case(key: String) -> void:
 		var fwd := model.global_transform.basis.z
 		fwd.y = 0.0
 		var ang := rad_to_deg(fwd.normalized().angle_to(to_party.normalized()))
-		print("t_boss_facing: %s faces party within %.1f deg" % [key, ang])
+		# Camera is on +Z. Positive = turned from the party line toward the camera (Liam, 20/10: ~12 deg).
+		var toward_cam := rad_to_deg(asin(clampf(to_party.normalized().cross(fwd.normalized()).y, -1.0, 1.0)))
+		print("t_boss_facing: %s faces party within %.1f deg (toward camera %.1f)" % [key, ang, toward_cam])
+		_check(toward_cam >= -3.0, "%s: turned away from the camera (%.1f deg), must be on the camera side or straight" % [key, toward_cam])
 		_check(ang <= MAX_DEG, "%s: model forward is %.1f deg off the party centre (max %.0f)" % [key, ang, MAX_DEG])
 	stage.dispose_all()
 	stage.queue_free()

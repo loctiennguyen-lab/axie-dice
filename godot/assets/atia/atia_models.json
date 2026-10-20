@@ -302,7 +302,7 @@
    "path": "res://assets/bosses/chimera_tempest/chimera_tempest.glb",
    "height_m": 4.72,
    "max_width_m": 7.5,
-   "facing_deg": 0,
+   "facing_deg": 7,
    "intro_facing_deg": 70,
    "hover_m": 0.22,
    "fit_width_m": 7.5,
@@ -324,7 +324,7 @@
    "cover": "venom_pool",
    "height_m": 4.72,
    "max_width_m": 6.5,
-   "facing_deg": 0,
+   "facing_deg": 7,
    "intro_facing_deg": 55,
    "anims": {
     "idle": "Idle",
@@ -358,7 +358,7 @@
    "path": "res://assets/bosses/chimera_parasite/chimera_parasite.glb",
    "height_m": 4.72,
    "max_width_m": 6.5,
-   "facing_deg": 0,
+   "facing_deg": 7,
    "intro_facing_deg": 20,
    "fit_width_m": 6.2,
    "anims": {
@@ -378,7 +378,7 @@
    "path": "res://assets/bosses/chimera_feral/chimera_feral.glb",
    "height_m": 4.72,
    "max_width_m": 6.5,
-   "facing_deg": 0,
+   "facing_deg": 7,
    "intro_facing_deg": 20,
    "anims": {
     "idle": "Idle",
