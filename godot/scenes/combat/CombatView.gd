@@ -4257,7 +4257,7 @@ func _card_rects() -> Dictionary:
 func _refresh_bo_layer() -> void:
 	if _bo_layer == null or _combat == null:
 		return
-	_bo_layer.label_lift = 28.0 if _rr_mode else 0.0
+	_bo_layer.label_lift = 40.0 if _rr_mode else 0.0
 	_bo_layer.refresh(_combat.bo, _card_rects())
 
 
@@ -4398,7 +4398,9 @@ func _update_wild_picker() -> void:
 		if key > best_key:
 			best_key = key
 			best = slot
-		rows.append({"ok": bool(pv["ok"]), "label": line, "best": false})
+		var wu: Unit = _combat.by_uid(_wild_uid)
+		rows.append({"ok": bool(pv["ok"]), "label": line, "best": false,
+			"tex": _part_icon_for(String(V4Ui.SLOT_ORDER[slot]), wu.cls if wu != null else "")})
 	if best >= 0:
 		rows[best]["best"] = true
 	_wild_picker.update(rows)

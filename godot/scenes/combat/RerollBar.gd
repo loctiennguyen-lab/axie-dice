@@ -6,7 +6,7 @@ extends Control
 
 signal chosen(rmode: int)
 
-const BTN_W := 176.0
+const BTN_W := 200.0
 const GAP := 12.0
 const ROW_H := 48.0
 const LINE_H := 64.0   # two 18 px lines (% + the refusal) with their padding
@@ -48,6 +48,8 @@ func _init() -> void:
 		b.clip_text = true
 		b.size = Vector2(BTN_W, ROW_H)
 		add_child(b)
+	_add_glyph(gamble_button, &"crack")   # cracked die = the risk
+	_add_glyph(safe_button, &"drop")      # mana drop = the price
 	gamble_button.pressed.connect(func(): chosen.emit(0))
 	safe_button.pressed.connect(func(): chosen.emit(1))
 	size = Vector2(TOTAL_W, LINE_H + GAP + ROW_H)
@@ -55,6 +57,27 @@ func _init() -> void:
 	line.size = Vector2(TOTAL_W, LINE_H)
 	gamble_button.position = Vector2(0, LINE_H + GAP)
 	safe_button.position = Vector2(BTN_W + GAP, LINE_H + GAP)
+
+
+## A glyph at the left of the button so Gamble and Safe differ by shape, not only by colour or word.
+func _add_glyph(b: Button, kind: StringName) -> void:
+	for st in ["normal", "hover", "pressed", "disabled", "focus", "hover_pressed"]:
+		var base := UI3Theme.get_theme().get_stylebox(st, "ButtonSecondaryS")
+		if base == null:
+			continue
+		var sb := base.duplicate() as StyleBox
+		sb.content_margin_left = 44.0
+		b.add_theme_stylebox_override(st, sb)
+	b.alignment = HORIZONTAL_ALIGNMENT_LEFT
+	var g := ActionGlyph.new(kind)
+	g.anchor_right = 0.0
+	g.offset_left = 8.0
+	g.offset_top = 10.0
+	g.offset_right = 36.0
+	g.offset_bottom = 38.0
+	g.anchor_bottom = 0.0
+	b.add_child(g)
+	b.set_meta("glyph", g)
 
 
 ## d: gamble_ok, gamble_text, gamble_why, safe_ok, safe_text, safe_why, line (the % / pin / reason text).
@@ -66,6 +89,11 @@ func update(d: Dictionary) -> void:
 	safe_button.text = String(d.get("safe_text", "Safe"))
 	safe_button.tooltip_text = String(d.get("safe_tip", ""))
 	line.text = String(d.get("line", ""))
+	var h := 64.0 if line.text.contains("\n") else 36.0   # the plate hugs one or two lines, bottom-aligned on the buttons
+	line.size = Vector2(TOTAL_W, h)
+	line.position = Vector2(0, LINE_H - h)
+	(gamble_button.get_meta("glyph") as ActionGlyph).dim = gamble_button.disabled
+	(safe_button.get_meta("glyph") as ActionGlyph).dim = safe_button.disabled
 	gamble_button.visible = bool(d.get("show_gamble", true))
 	if not gamble_button.visible:
 		safe_button.position.x = BTN_W + GAP
