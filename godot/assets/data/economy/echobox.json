@@ -178,8 +178,18 @@
 					"die_r_bird"
 				],
 				"epic": [
-					"die_e_s1_founder",
-					"frame_e_s1_founder"
+					"die_e_reef_01",
+					"frame_e_reef_01",
+					"die_e_reef_02",
+					"frame_e_reef_02",
+					"die_e_reef_03",
+					"frame_e_reef_03",
+					"die_e_reef_04",
+					"frame_e_reef_04",
+					"die_e_reef_05",
+					"frame_e_reef_05",
+					"die_e_reef_06",
+					"frame_e_reef_06"
 				],
 				"legendary": [
 					"die_l_gold",
@@ -190,7 +200,7 @@
 					"frame_m_crystal"
 				]
 			},
-			"_note_art_map": "B12: std_<r>_NNN (NNN-1) mod len(art_map[r]) -> art id (dice/frames interleaved). Pool counts and odds unchanged; art is reused across duplicate ids. Pass-exclusive ids (Moss die, Vine frame, S1 Founder, Sovereign) are left out. 19/10: season items (die_e_rune, die_e_spore, frame_e_runering, frame_e_firefly, die_l_relic_stone, frame_l_sunburst, frame_m_eclipse) and the 40-pull exclusive die_m_moon are NOT in the normal pool. Epic uses the Founder items as placeholders until new Epic art exists."
+			"_note_art_map": "B12: std_<r>_NNN (NNN-1) mod len(art_map[r]) -> art id (dice/frames interleaved). Pool counts and odds unchanged; art is reused across duplicate ids. Pass-exclusive ids (Moss die, Vine frame, S1 Founder, Sovereign) are left out. 19/10: season items (die_e_rune, die_e_spore, frame_e_runering, frame_e_firefly, die_l_relic_stone, frame_l_sunburst, frame_m_eclipse) and the 40-pull exclusive die_m_moon are NOT in the normal pool. Epic = R5 Deep Reef (die_e_reef_01..06 + frame_e_reef_01..06, 20/10); the Founder items are Pass-only and no longer in the Epic art_map."
 		},
 		"season": {
 			"enabled": true,

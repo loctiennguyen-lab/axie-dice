@@ -18,7 +18,7 @@ func _ready() -> void:
 	var m := CosmeticArt.manifest()
 	var dice: Dictionary = m.get("dice", {})
 	var frames: Dictionary = m.get("frames", {})
-	_ok(dice.size() == 20 and frames.size() == 21, "20 dice + 21 frames (%d/%d)" % [dice.size(), frames.size()])
+	_ok(dice.size() == 26 and frames.size() == 27, "26 dice + 27 frames (%d/%d)" % [dice.size(), frames.size()])
 	_ok(not CosmeticArt.animation_pending(), "animated layers delivered")
 	_ok(is_equal_approx(float(m.get("frame_scale", 0)), 1.5), "manifest frame_scale 1.5")
 
