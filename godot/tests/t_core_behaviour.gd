@@ -248,9 +248,9 @@ func t_dice_cores() -> void:
 	c.enemies[0].status["poison"] = 6
 	RelicHooks.fire(c, "on_turn_end", {"combat": c})
 	_ok(int(c.enemies[0].status["poison"]) == 9, "toxic_still: +3 (half of 6)")
-	c.enemies[0].status["poison"] = 20
+	c.enemies[0].status["poison"] = 12
 	RelicHooks.fire(c, "on_turn_end", {"combat": c})
-	_ok(int(c.enemies[0].status["poison"]) == 24, "toxic_still: capped +4")
+	_ok(int(c.enemies[0].status["poison"]) == 15, "toxic_still: +4 cut by poison.stack_cap 15 (v4)")
 
 
 func t_pos_mana_cores() -> void:

@@ -39,6 +39,16 @@ static func _any_unit_die_has_keyword(units: Array, kw: String) -> bool:
 	return false
 
 
+## v4 3.10.7: no unit ever carries more poison than poison.stack_cap.
+static func poison_stack_cap(combat) -> int:
+	return int(combat.tune_knob("poison", "stack_cap", 15.0))
+
+
+## cur + add, but never pushed above the cap (a stack already above it is left as it is, never cut).
+static func capped_poison(combat, cur: int, add: int) -> int:
+	return maxi(cur, mini(cur + add, poison_stack_cap(combat)))
+
+
 ## kws: Array[String] like ["poison:2"], ["thorns", "regen:1"] — matches JS addStatus
 ## keyword-string parsing (`name` or `name:N`, defaulting N=1).
 static func add_status(combat, tgt: Unit, kws: Array, src: Unit = null) -> void:
@@ -52,7 +62,7 @@ static func add_status(combat, tgt: Unit, kws: Array, src: Unit = null) -> void:
 		if n == "poison":
 			if src != null and src.side == "p" and src.cls == "bug" and int(tgt.status.get("poison", 0)) > 0:
 				v += int(RelicHooks.field(combat, "virulent_bonus", 2.0))   # VIRULENT passive
-			tgt.status["poison"] = int(tgt.status.get("poison", 0)) + v
+			tgt.status["poison"] = capped_poison(combat, int(tgt.status.get("poison", 0)), v)
 			EventBus.float_text.emit(tgt.uid, "PSN %d" % v, "poi", 0)
 			RelicHooks.fire(combat, "on_poison_applied", {"combat": combat, "src": src, "tgt": tgt, "v": v})
 			if src != null and src.side == "p" and RelicHooks.has(combat, "poisonSpread"):
@@ -61,7 +71,7 @@ static func add_status(combat, tgt: Unit, kws: Array, src: Unit = null) -> void:
 				var half := int(ceil(v / 2.0))
 				for x in [arr[i - 1] if i > 0 else null, arr[i + 1] if i >= 0 and i < arr.size() - 1 else null]:
 					if x != null:
-						x.status["poison"] = int(x.status.get("poison", 0)) + half
+						x.status["poison"] = capped_poison(combat, int(x.status.get("poison", 0)), half)
 						CombatTraits.on_debuff(combat, x)
 						EventBus.float_text.emit(x.uid, "PSN %d" % half, "poi", 0)
 			continue

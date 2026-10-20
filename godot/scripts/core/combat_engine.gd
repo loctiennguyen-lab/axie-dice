@@ -915,7 +915,7 @@ func reroll_dice(uids: Array, seed: int = -1, from_aid: bool = false, rmode: int
 	if not from_aid and rerolls > 0:
 		rerolls -= 1
 	if was_paid:
-		RelicHooks.fire(self, "on_reroll_paid", {"combat": self, "cost": paid_cost, "k": reroll_k})
+		RelicHooks.fire(self, "on_reroll_paid", {"combat": self, "cost": paid_cost, "k": reroll_k, "rmode": eff})
 	var keep_crit := RelicHooks.has(self, "critKeep")
 	for raw_u in list:
 		var u: Unit = raw_u
@@ -962,7 +962,7 @@ func can_reroll(uids: Array, from_aid: bool = false, rmode: int = 1) -> bool:
 
 
 ## "" when the reroll is legal, else why not (the UI greys the button with it). Codes: over, hard_cap, stage, mission, none, pin_mismatch,
-## mana, veto, bad_rmode.
+## mana, veto, bad_rmode, max_total (chosen rerolls used up).
 func reroll_refusal(uids: Array, from_aid: bool = false, rmode: int = 1) -> String:
 	if won or lost:
 		return "over"
@@ -971,7 +971,7 @@ func reroll_refusal(uids: Array, from_aid: bool = false, rmode: int = 1) -> Stri
 	if reroll_total_turn >= reroll_hard_cap():
 		return "hard_cap"
 	if rerolls <= 0 and not from_aid and not reroll_is_payable():
-		return "hard_cap"
+		return "max_total"   # chosen (paid) rerolls reached reroll.max_total, distinct from the all-sources hard_cap
 	var eff := effective_rmode(from_aid, rmode)
 	if eff == 0 and depth_stage < 2:
 		return "stage"   # Lieu opens at stage 2
@@ -1742,7 +1742,10 @@ func _face_value(u: Unit, fi: int) -> int:
 			v = float(_mul_up(int(v), m100))
 	if u.side == "p" and u.resonant_now:
 		v = ceil(v * RESONANCE_MULT)
-	return int(RelicHooks.run_value_hook(self, "face_final", {"combat": self, "unit": u, "face_type": face_type, "part": String(f.get("part", "")), "fi": fi}, int(v)))
+	var fv := int(RelicHooks.run_value_hook(self, "face_final", {"combat": self, "unit": u, "face_type": face_type, "part": String(f.get("part", "")), "fi": fi}, int(v)))
+	if u.side == "p" and face_type == "poison":
+		fv = mini(fv, int(tune_knob("poison", "face_cap", 8.0)))   # v4 3.10.7: a player poison face never exceeds poison.face_cap (after M and Cores, before the pipeline)
+	return fv
 
 
 @warning_ignore("integer_division")

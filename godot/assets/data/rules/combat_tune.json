@@ -57,6 +57,13 @@
   "hi_add": 0.25,
   "hi_r": 2
  },
+ "thorn": {
+  "shield_transfer_cap": 6
+ },
+ "poison": {
+  "face_cap": 8,
+  "stack_cap": 15
+ },
  "stash": {
   "cap": 1
  },

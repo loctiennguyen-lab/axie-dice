@@ -835,7 +835,7 @@ static func thorn_growth_hit(ctx: Dictionary) -> void:
 static func thorn_shield_turn_end(ctx: Dictionary) -> void:
 	var combat = ctx["combat"]
 	for u in living_axies(combat):
-		var t: int = int(u.shield) / 2
+		var t: int = mini(int(u.shield) / 2, int(combat.tune_knob("thorn", "shield_transfer_cap", 6.0)))   # v4 N5: capped per Axie per transfer
 		if t <= 0:
 			continue
 		u.shield -= t * 2
@@ -949,6 +949,8 @@ static func reroll_cap_up(ctx: Dictionary) -> int:
 
 ## Hollow Core: reroll costs 1 Mana, up to 8 a turn (the engine cap counts each second paid reroll as free).
 static func hollow_paid(ctx: Dictionary) -> void:
+	if int(ctx.get("rmode", 1)) != 1:
+		return   # Lieu (rmode 0) is free and is never discounted: only a mana-paid Safe reroll counts
 	var combat = ctx["combat"]
 	var st := turn_state(combat, "cs_paid")
 	st["n"] = int(st.get("n", 0)) + 1
@@ -1238,6 +1240,8 @@ static func balance_used(ctx: Dictionary) -> void:
 
 ## Cheap Mana: the per-turn reroll cap goes 4 -> 5 (the first paid reroll of a turn does not count).
 static func cheap_paid(ctx: Dictionary) -> void:
+	if int(ctx.get("rmode", 1)) != 1:
+		return   # Lieu is free: it must not eat the "first paid reroll does not count" discount
 	var st := turn_state(ctx["combat"], "cs_cheap")
 	if not bool(st.get("done", false)):
 		st["done"] = true

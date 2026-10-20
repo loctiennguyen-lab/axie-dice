@@ -62,7 +62,7 @@ func _caps() -> void:
 	var e := engine([], 50, 5)
 	all = _uids(e)
 	ok(e.reroll_dice(all) and e.reroll_dice(all, -1, false, 0) and e.reroll_dice(all, -1, false, 0), "free + 2 Lieu")
-	eq(e.reroll_refusal(all, false, 0), "hard_cap", "third chosen refused (max_total 3)")
+	eq(e.reroll_refusal(all, false, 0), "max_total", "third chosen refused (max_total 3)")
 	eq(e.reroll_paid_k, 2, "paid_k 2")
 	# N1: relic +1 free -> 1 + 1 + 2 chosen = 4 = hard_cap, fifth refused
 	var r := engine([], 50, 5)
