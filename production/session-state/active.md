@@ -1,11 +1,19 @@
 # Axie Dice — trạng thái hiện tại
 
+## ⇢ BẮT ĐẦU TỪ ĐÂY (sáng 22/10/2026) — V4 BỘ + LIỀU + MẶT TẠM: GDD → QA → SỬA GDD
+GDD `design/gdd/dice-depth-v4.md` (đã design review systems-designer: bộ số khởi điểm bo.scale 0.8, crack 30%, max_total 3, quái hp/dmg ×1.30,
+cộng MỘT túi M). QA lead: `production/qa/dice-depth-v4-qa-plan.md` (26 lỗ hổng: 2 chặn [Overcast nhân chồng; key `mode` đụng epoch enum],
+12 nặng; G1-G21; tamper T1-T10; 10 test FLOW). game-designer đang sửa GDD đóng G1-G21 → QA lead kiểm lại → code. Làn OC (Overcast) review
+PASS nhưng PHẢI sửa: +0.5 vào túi M thay vì ×1.5 sau trần; chưa merge, sẽ ghép cùng v4 + TD. Chờ Liam 4 câu (max_total 3 + giá 2/3 mana +
+Nứt 30%; tài khoản cũ vào stage 3; tách Lõi chủ sang bump sau; bộ số khó hơn) + G4 (Aid reroll có Nứt/cap?).
+
 ## ⇢ BẮT ĐẦU TỪ ĐÂY (rạng sáng 22/10/2026) — LIAM: GAME PHẢI KHÓ HƠN
 Liam chốt (cuối `design/proposals/turn-decisions-brainstorm.md`): bản mới phải THẤP HƠN bản cũ 5-10 điểm tỉ lệ thắng (cũ: random 20.6,
 expert 28.6; hiện: 23.9 / 30.9 — đang dễ hơn, sai); bỏ "3 Đòn + Tự Nạp"; có Lõi chủ; có Overcast (độc lập); hướng (a) thưởng người giỏi +
 khó chung, không phạt bằng quái. Đang chạy: làn TD (`../my-game-wt/TD`, sim loop chỉnh knob → mục tiêu random ≤12, spam ≤13, expert 18-22,
 log `production/qa/sim/td-tuning-log.md`); làn OC (`../my-game-wt/OC`, action Overcast + UI + replay/Worker); game-designer brainstorm
-`design/proposals/dice-depth-v4-brainstorm.md` (cơ chế xúc xắc/xác suất kết hợp + 6-8 Lõi chủ); smoke b1196 (QA).
+`design/proposals/dice-depth-v4-brainstorm.md` → ĐÃ review, LIAM DUYỆT hướng BỘ + LIỀU + MẶT TẠM (dễ hiểu, QA kỹ); đang viết GDD
+`design/gdd/dice-depth-v4.md` → QA lead soi lỗ hổng → code. Smoke b1196 (QA).
 
 ## ⇢ BẮT ĐẦU TỪ ĐÂY (gần nửa đêm 21/10/2026) — BUILD b1196
 godot-port = axiedice/main = **6a83513** (thêm fix/core-overlay: overlay chọn Lõi tự hiện sau Luật run — lỗi chặn do smoke luồng thật
