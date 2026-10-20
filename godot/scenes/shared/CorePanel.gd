@@ -14,8 +14,14 @@ const AXIS_NAME := {"stat": "Stat", "dice": "Dice faces", "pos": "Position", "ma
 	"quest": "Quest", "rule": "Rule change", "run_rule": "Run rule"}
 
 var slot_px := 44
+## Combat HUD sets this: each Core slot then carries a small "xN" chip counting its activations this fight.
+var show_counts := false
 var _slots: HBoxContainer
 var _quests: VBoxContainer
+var _slot_by_id: Dictionary = {}     ## core id -> its slot node (rebuilt by refresh)
+var _fires: Dictionary = {}          ## core id -> activations seen by THIS panel (one fight in the combat HUD)
+var _sig := ""
+var _any := false
 
 
 func _init() -> void:
@@ -34,8 +40,78 @@ func _init() -> void:
 	add_child(_quests)
 
 
+func _ready() -> void:
+	if not EventBus.core_fired.is_connected(_on_core_fired):
+		EventBus.core_fired.connect(_on_core_fired)
+
+
+## Depth v3 lane VZ: the Core's slot flashes (and its counter ticks up) whenever the engine reports it fired.
+func _on_core_fired(core_id: String, _uid: int, _amount: int, _kind: String) -> void:
+	_fires[core_id] = int(_fires.get(core_id, 0)) + 1
+	var s: PanelContainer = _slot_by_id.get(core_id)
+	if s == null or not is_instance_valid(s):
+		return
+	_update_count(s, core_id)
+	pulse(core_id)
+
+
+## Short flash on a Core slot: scale 1 -> 1.18 -> 1 plus a cream tint (~0.3 s). Reduced motion: tint only.
+func pulse(core_id: String) -> void:
+	var s: PanelContainer = _slot_by_id.get(core_id)
+	if s == null or not is_instance_valid(s) or not s.is_inside_tree():
+		return
+	if s.has_meta("pulse_tw"):
+		var old = s.get_meta("pulse_tw")
+		if old is Tween and (old as Tween).is_valid():
+			(old as Tween).kill()
+	s.pivot_offset = s.size * 0.5
+	s.modulate = Color(1.0, 1.0, 1.0, 1.0)
+	var tw := s.create_tween()
+	s.set_meta("pulse_tw", tw)
+	s.set_meta("pulsed", int(s.get_meta("pulsed", 0)) + 1)
+	var hot := UI3Theme.color("text")
+	var tint := Color(1.0 + hot.r * 0.5, 1.0 + hot.g * 0.5, 1.0 + hot.b * 0.5, 1.0)
+	if CombatView.flashes_suppressed():
+		s.modulate = tint
+		tw.tween_interval(0.3)
+		tw.tween_property(s, "modulate", Color.WHITE, 0.01)
+		return
+	tw.set_parallel(true)
+	tw.tween_property(s, "scale", Vector2(1.18, 1.18), 0.12).set_ease(Tween.EASE_OUT)
+	tw.tween_property(s, "modulate", tint, 0.12)
+	tw.chain().tween_property(s, "scale", Vector2.ONE, 0.18)
+	tw.parallel().tween_property(s, "modulate", Color.WHITE, 0.18)
+
+
+func fire_count(core_id: String) -> int:
+	return int(_fires.get(core_id, 0))
+
+
+func reset_counts() -> void:
+	_fires.clear()
+	_sig = ""
+	refresh()
+
+
+func _update_count(s: PanelContainer, core_id: String) -> void:
+	var l := s.get_node_or_null("FireCount") as Label
+	var n := int(_fires.get(core_id, 0))
+	if l == null:
+		return
+	l.text = "x%d" % n
+	l.visible = show_counts and n > 0
+
+
 ## True when there is anything to show (a Core, a rule or a quest); callers hide the panel otherwise.
 func refresh() -> bool:
+	# Rebuilding on every HUD repaint would cut a running pulse short: skip when nothing it shows changed.
+	var sig := _signature()
+	if sig == _sig and _slots.get_child_count() > 0:
+		for id in _slot_by_id.keys():
+			_update_count(_slot_by_id[id], String(id))
+		return _any
+	_sig = sig
+	_slot_by_id.clear()
 	for c in _slots.get_children():
 		_slots.remove_child(c)
 		c.queue_free()
@@ -45,10 +121,16 @@ func refresh() -> bool:
 	var cores: Array[String] = RelicSlots.owned_cores(RunState.owned_relic_ids)
 	var n_slots := RelicSlots.tuning().core_slots
 	for i in n_slots:
-		_slots.add_child(_slot(RelicRegistry.get_def(cores[i]) if i < cores.size() else null, false, "Core %d" % (i + 1)))
+		var sn := _slot(RelicRegistry.get_def(cores[i]) if i < cores.size() else null, false, "Core %d" % (i + 1))
+		_slots.add_child(sn)
+		if i < cores.size():
+			_slot_by_id[cores[i]] = sn
+			_add_count_label(sn, cores[i])
 	var rule = RelicRegistry.get_def(RunState.run_rule) if RunState.run_rule != "" else null
 	_slots.add_child(_slot(rule, true, "Run rule"))
 	var any := not cores.is_empty() or rule != null
+	if rule != null:
+		_slot_by_id[String(rule.id)] = _slots.get_child(_slots.get_child_count() - 1)
 	for qid in RunState.core_quest_progress.keys():
 		var d = RelicRegistry.get_def(String(qid))
 		if d == null:
@@ -64,7 +146,29 @@ func refresh() -> bool:
 		UI3Tooltip.bind(chip, UI3.player_text(String(d.description)))
 		_quests.add_child(chip)
 		any = true
+	_any = any
 	return any
+
+
+func _signature() -> String:
+	var parts: Array[String] = [",".join(RelicSlots.owned_cores(RunState.owned_relic_ids)), RunState.run_rule, str(slot_px)]
+	for qid in RunState.core_quest_progress.keys():
+		parts.append("%s:%s" % [qid, JSON.stringify(RunState.core_quest_progress[qid])])
+	return "|".join(parts)
+
+
+func _add_count_label(s: PanelContainer, core_id: String) -> void:
+	var l := UI3.label("", "LabelDisplay")
+	l.name = "FireCount"
+	l.add_theme_font_size_override("font_size", 18)
+	l.add_theme_color_override("font_outline_color", UI3Theme.color("panel"))
+	l.add_theme_constant_override("outline_size", 4)
+	l.size_flags_horizontal = Control.SIZE_SHRINK_END
+	l.size_flags_vertical = Control.SIZE_SHRINK_END
+	l.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	l.visible = false
+	s.add_child(l)
+	_update_count(s, core_id)
 
 
 ## Chip with an icon + word; see UI3.icon_chip. icon "" = word only.
