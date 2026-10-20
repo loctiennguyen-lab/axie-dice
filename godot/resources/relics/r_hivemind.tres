@@ -15,3 +15,5 @@ hook_key = ""
 hiveMind = 1.0
 tags = PackedStringArray("summon")
 layer = "scaling"
+
+hidden_from_pool = true

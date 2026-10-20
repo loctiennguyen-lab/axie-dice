@@ -16,3 +16,5 @@ tags = PackedStringArray("burn")
 layer = "payoff"
 mult_axis = "A:burn"
 mult_bonus = 0.70
+
+hidden_from_pool = true

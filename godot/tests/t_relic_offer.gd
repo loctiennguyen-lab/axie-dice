@@ -6,6 +6,7 @@ var _checks := 0
 
 
 func _ready() -> void:
+	RelicRegistry.legacy_unhide_for_tests()
 	print("=== t_relic_offer: start ===")
 	test_source_mapping_and_weights_table()
 	test_scores_and_lean_tags()

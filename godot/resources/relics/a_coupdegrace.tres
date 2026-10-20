@@ -20,3 +20,5 @@ act = {
 }
 tags = PackedStringArray("exec")
 layer = "active"
+
+hidden_from_pool = true

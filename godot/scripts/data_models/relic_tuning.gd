@@ -46,3 +46,25 @@ extends Resource
 @export var flip_offset: int = 3             ## flipside: face i becomes (i + offset) mod 6
 @export var pact_offer_size: int = 3
 @export var pact_weight: int = 4
+
+
+## --- Depth v3 Core (lane B). All offer numbers live here, not in code. ---
+@export var core_slots: int = 6
+@export var rule_slots: int = 1
+@export var core_t_cap_short: int = 3          ## max owned Crystal (tier 2) Cores, Short
+@export var core_t_cap_full: int = 4
+@export var core_reroll_max: int = 2           ## Core rerolls per run (one card each)
+@export var core_cards: int = 3
+@export var core_cards_first_extra: int = 4    ## pick 1 with perk relic0/relic1
+@export var rule_cards: int = 2
+@export var rule_none_pct: int = 10            ## from run 2: chance one of the two rule cards is "no rule"
+@export var core_picks_short: int = 4
+@export var core_picks_full: int = 6
+## Tier chains for picks 1..4 (Short), weight each. 0 moss, 1 amber, 2 crystal.
+@export var tier_chains_short: Array = [
+	[[0, 1, 2, 1], 30], [[0, 1, 1, 2], 20], [[0, 0, 2, 1], 15], [[0, 1, 2, 2], 10],
+	[[0, 0, 2, 2], 10], [[0, 0, 1, 2], 10], [[0, 1, 1, 1], 5]]
+## Full adds two final picks drawn from these [[t5,t6], weight].
+@export var tier_tail_full: Array = [[[1, 2], 40], [[2, 2], 25], [[1, 1], 35]]
+@export var core_stat_max_per_offer: int = 1
+@export var core_quest_max_per_offer: int = 1

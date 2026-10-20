@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="RelicDef" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data_models/relic_def.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "c_finisher"
+name = "Final Blow"
+description = "The last die you use each turn gets +1 for every die used before it (max +4)."
+rarity = 0
+archetype = ""
+mload = 0
+sort_index = 200004
+hook_key = "c_finisher"
+tags = PackedStringArray("nonattack")
+layer = "dice"
+core_axis = "dice"

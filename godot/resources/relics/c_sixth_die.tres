@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="RelicDef" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data_models/relic_def.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "c_sixth_die"
+name = "Sixth Die"
+description = "Each turn, roll one extra die from a random living Axie. Use it this turn; it vanishes at end of turn."
+rarity = 2
+archetype = ""
+mload = 0
+sort_index = 202013
+hook_key = ""
+tags = PackedStringArray("nonattack")
+layer = "dice"
+core_axis = "dice"
+disabled = true
+hidden_from_pool = true
+needs_hook = "H-extra-die: temporary 6th die unit (engine, lane A)"

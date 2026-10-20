@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="RelicDef" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data_models/relic_def.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "c_spore_burst"
+name = "Spore Burst"
+description = "When an Axie falls it bursts: every enemy loses 20% of its Max HP (boss 8%), ignoring Shield. Eggs burst for half."
+rarity = 0
+archetype = ""
+mload = 0
+sort_index = 200043
+hook_key = "c_spore_burst"
+tags = PackedStringArray("nonattack", "convert_to_dmg")
+layer = "engine"
+core_axis = "rule"

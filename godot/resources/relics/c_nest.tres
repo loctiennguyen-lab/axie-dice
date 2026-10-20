@@ -1,0 +1,20 @@
+[gd_resource type="Resource" script_class="RelicDef" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data_models/relic_def.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "c_nest"
+name = "Nest"
+description = "Start of combat: 1 Egg. Eggs count as front row, so single-target enemy attacks can pick them."
+rarity = 0
+archetype = ""
+mload = 0
+sort_index = 200037
+hook_key = ""
+tags = PackedStringArray("nonattack", "egg")
+layer = "engine"
+core_axis = "rule"
+disabled = true
+hidden_from_pool = true
+needs_hook = "H-egg-front: Egg in front row (rows rule: roster_index -1 is back row, lane A)"

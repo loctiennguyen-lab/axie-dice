@@ -19,3 +19,5 @@ act = {
 }
 tags = PackedStringArray("summon")
 layer = "active"
+
+hidden_from_pool = true

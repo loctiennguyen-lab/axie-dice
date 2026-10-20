@@ -15,3 +15,5 @@ hook_key = "r_alphafang"
 tags = PackedStringArray("beast", "exec")
 layer = "class-up"
 requires_class = "beast"
+
+hidden_from_pool = true

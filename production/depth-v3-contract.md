@@ -92,3 +92,11 @@ Commit (nhanh `depth/A`): `6d0588d` Don Nap, `9a8253f` team_can_break + choose_a
 - R12 debuff +2 chi ap keyword co so (weaken, vulnerable, blind, burn, poison).
 - guarantee_tank chuyen tank len o 0 de tran tinh `traits.cap_early` khong cat mat.
 - Con thieu: `t_boss_plating_rhythm`, `t_plating_stack`, `t_damage_cap` (Giap x Loi), mo ta affix_state cho UI ngoai cac key tren.
+## Làn C - bàn giao (Lõi + Luật run), xong lô 1-4
+Công cụ: `godot/tools/gen_cores.py <relics_dir> [ids...]` (catalog đủ 50 Lõi + 14 luật, chạy không id = sinh lại tất cả). Logic ở `godot/scripts/core/core_hooks.gd`, entry mỏng trong `RelicHooks.TABLE` (giữa `CORE_TABLE_BEGIN/END`).
+- **36 Lõi bật** (Rêu 10 / Hổ Phách 17 / Tinh Thể 9), **10 disabled chờ hook** (`needs_hook`): Vết Nứt, Con Xúc Xắc Thứ Sáu, Đồng Tâm, Thành Trì, Mai Lớn Dần, Xuống Trận, Mạch Ngầm, Tổ Ấm, Vòng Lặp, Hiến Tế; **4 cắt theo 2.10**: Mũi Giáo, Hợp Đội, Tích Ác, Phán Quyết. Hook cần của làn A/B: như danh sách cũ (Giáp, incoming_dmg, viên thứ 6, roll chung class, Axie ngủ, Egg hàng trước, cantrip thêm, đổi hàng, mana mang qua trận).
+- **13 Luật run** (`rule_*`, weight 1/2, tổng 16). 9 bật có hook; 4 disabled: quick_beat (cần `boss_rhythm.period`), rising_tide, upside_down, hard_shell (Giáp, `plating_global`/`side_face_bonus`). Knob khai báo trong `rule_knobs`. rule_crow, wasteland (core_picks/core_cards), starfall(first_tier), Hoá Thạch / Hòn Đá Mờ (`next_pick_tier_up`, `grant_crystal_other_axis`, `not_pick`) là dữ liệu cho làn B đọc. Thế Cân Bằng (R13) làm hẳn bằng hook `face_final`+`on_face_used` (không cần engine A); đừng cài trùng ở làn A.
+- **Trần +10/mặt**: `CoreHooks.flat()`/`FLAT_IDS`: mọi Lõi cộng phẳng đi qua đó, chỉ dùng phần còn lại sau các Lõi đứng trước. Lõi thêm cộng phẳng mới phải vào `bonus()` + `FLAT_IDS`.
+- **Quest**: tiến độ do combat ghi vào `relic_run_out["c_<slug>"] = {n, boss, steps_done, done}` (`CoreHooks.quest()`); làn B chỉ cần phát thưởng theo `steps_done`. Hiệu ứng "khi chưa xong" đã có.
+- Ghi chú lệch nhỏ: Gọt Xúc Xắc tính mặt yếu nhất theo từng Axie (không theo cả đội); Y Sĩ: mặt debuff chưa +3 (debuff không có số). Mặt Gương bỏ qua cantrip khi tính "viên đầu tiên".
+- Test: `t_core_catalog` (in số ngưỡng 2.10: không-attack 44 / biến mặt phụ thành dmg 9 / đánh đổi 7), `t_run_rule_catalog`, `t_core_behaviour` (123 check). +2 file test so với trước.

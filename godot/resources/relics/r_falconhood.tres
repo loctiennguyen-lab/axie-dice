@@ -15,3 +15,5 @@ hook_key = "r_falconhood"
 tags = PackedStringArray("bird", "pierce")
 layer = "class-up"
 requires_class = "bird"
+
+hidden_from_pool = true

@@ -67,3 +67,12 @@ func offerable_defs_sorted() -> Array:
 		if not String(def.id).begins_with("__") and not def.hidden_from_pool:
 			out.append(def)
 	return out
+
+
+## TEST ONLY. Depth v3 hides every old (non-pact, non-Core) relic from the offer pool with
+## hidden_from_pool. Tests that exercise the legacy offer algorithm or the old relic bodies call
+## this once at start to see the old pool again (Resources are per-process, so it cannot leak).
+func legacy_unhide_for_tests() -> void:
+	for def in _defs_sorted:
+		if String(def.core_axis) == "" and String(def.pact_group) == "" and not String(def.id).begins_with("__") and String(def.needs_hook) == "":
+			def.hidden_from_pool = false

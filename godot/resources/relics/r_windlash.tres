@@ -17,3 +17,5 @@ mf_phase2 = "add"
 tags = PackedStringArray("aoe")
 layer = "enabler"
 exsub_of = "r_stormcall"
+
+hidden_from_pool = true

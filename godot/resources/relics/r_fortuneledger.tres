@@ -14,3 +14,5 @@ sort_index = 101543
 hook_key = "r_fortuneledger"
 tags = PackedStringArray("uni")
 layer = "economy"
+
+hidden_from_pool = true

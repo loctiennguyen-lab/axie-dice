@@ -152,6 +152,8 @@ const PACT_REROLL_SALT := 0x70AC7E11
 var boon_id: String = ""
 ## Account is in its first runs: attrition and the light clock are off. Fixed at run start (header).
 var newcomer: bool = false
+## Depth v3 Core run state (lane B). Saved in to_data/from_data.
+var core_first_extra: bool = false
 ## Counters that scope a Boon to "your first 3 fights", "first Boss", "first Battle reward".
 var _rewarding_kind: String = ""
 ## Aid uses this run [{aid, node_id}], ONLY written by record_aid_use() and read by aid_uses_view() / the
@@ -251,6 +253,7 @@ func reset() -> void:
 	_shop_refreshes = 0
 	mission = {}
 	newcomer = false
+	core_first_extra = false
 	fights_started = 0
 	bosses_started = 0
 	first_battle_rewarded = false
@@ -426,14 +429,8 @@ func _start_core(start_reply: EpochReply, params: Dictionary, display_seed: int)
 	# Starting relic, if the meta grants one. Drawn from THIS run's own `_rng` before the boss
 	# plan, so the pick is part of the seed like everything else — JS uses an unseeded pick0()
 	# here, which is one of the few places the live game is not reproducible from its seed.
-	var relic_cap := int(meta_bonus.get("start_relic_max_rarity", -1))
-	if relic_cap >= 0:
-		var pool: Array = []
-		for def in RelicRegistry.offerable_defs_sorted():
-			if int(def.rarity) <= relic_cap and int(def.act_cost) == 0:
-				pool.append(String(def.id))
-		if not pool.is_empty():
-			owned_relic_ids.append(pool[_rng.next_int(pool.size())])
+	# Depth v3 (design 2.8): the start-relic perk / u_start no longer grants a relic. It adds a 4th card to Core pick 1.
+	core_first_extra = int(meta_bonus.get("start_relic_max_rarity", -1)) >= 0
 	# src/engine.js newGame() picks the boss plan BEFORE building the map (engine.js:359-363)
 	# — mirrored here: boss_plan draws from the same _rng stream ahead of the map generator,
 	# so the whole run (boss plan + map shape) is one deterministic function of p_seed.

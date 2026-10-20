@@ -16,3 +16,5 @@ plague = true
 mf_phase = "add"
 tags = PackedStringArray("poison")
 layer = "engine"
+
+hidden_from_pool = true

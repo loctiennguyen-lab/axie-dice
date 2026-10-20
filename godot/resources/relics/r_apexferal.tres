@@ -15,3 +15,5 @@ hook_key = "r_apexferal"
 mf_phase = "kw"
 tags = PackedStringArray("exec")
 layer = "engine"
+
+hidden_from_pool = true

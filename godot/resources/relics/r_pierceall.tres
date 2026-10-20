@@ -16,3 +16,5 @@ mf_phase = "kw"
 tags = PackedStringArray("pierce")
 layer = "enabler"
 exsub_of = "r_worldpiercer"
+
+hidden_from_pool = true

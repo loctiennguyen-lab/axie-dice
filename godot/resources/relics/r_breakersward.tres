@@ -15,3 +15,5 @@ hook_key = "r_breakersward"
 tags = PackedStringArray("shield", "pierce")
 layer = "duo"
 requires_any = PackedStringArray("r_talonedge", "a_pinning")
+
+hidden_from_pool = true

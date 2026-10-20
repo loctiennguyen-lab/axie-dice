@@ -14,3 +14,5 @@ sort_index = 102049
 hook_key = "r_glassspine"
 tags = PackedStringArray("thorns", "shield")
 layer = "payoff"
+
+hidden_from_pool = true

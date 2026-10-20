@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="RelicDef" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data_models/relic_def.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "c_kindle"
+name = "Kindle"
+description = "A Held die has Focus: used next turn it deals +4 (+8 if held two turns in a row)."
+rarity = 1
+archetype = ""
+mload = 0
+sort_index = 201007
+hook_key = "c_kindle"
+tags = PackedStringArray("nonattack")
+layer = "dice"
+core_axis = "dice"

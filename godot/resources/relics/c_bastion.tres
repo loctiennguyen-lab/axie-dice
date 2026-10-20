@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="RelicDef" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data_models/relic_def.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "c_bastion"
+name = "Bastion"
+description = "Front-row Axies take 2 less from single-target hits."
+rarity = 0
+archetype = ""
+mload = 0
+sort_index = 200018
+hook_key = ""
+tags = PackedStringArray("nonattack", "front")
+layer = "positional"
+core_axis = "pos"
+excludes = PackedStringArray("rule:rule_upside_down")
+disabled = true
+hidden_from_pool = true
+needs_hook = "H-incoming-dmg: target-side damage hook with single-target flag (damage_pipeline, lane A)"

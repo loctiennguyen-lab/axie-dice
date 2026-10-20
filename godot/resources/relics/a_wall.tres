@@ -19,3 +19,5 @@ act = {
 }
 tags = PackedStringArray("shield")
 layer = "active"
+
+hidden_from_pool = true

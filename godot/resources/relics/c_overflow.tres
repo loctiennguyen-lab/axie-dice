@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="RelicDef" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data_models/relic_def.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "c_overflow"
+name = "Overflow"
+description = "Mana above 8 turns into pierce damage to all enemies and drops back to 8."
+rarity = 1
+archetype = ""
+mload = 0
+sort_index = 201028
+hook_key = "c_overflow"
+tags = PackedStringArray("nonattack", "convert_to_dmg")
+layer = "economy"
+core_axis = "mana"
+excludes = PackedStringArray("rule:rule_dry_steppe")

@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="RelicDef" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data_models/relic_def.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "c_dewdrop"
+name = "Dewdrop"
+description = "+1 Mana at the start of every turn."
+rarity = 0
+archetype = ""
+mload = 0
+sort_index = 200001
+hook_key = "c_dewdrop"
+tags = PackedStringArray("nonattack")
+layer = "economy"
+core_axis = "stat"

@@ -1,0 +1,21 @@
+[gd_resource type="Resource" script_class="RelicDef" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data_models/relic_def.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "rule_cheap_mana"
+name = "Cheap Mana"
+description = "Every reroll costs 1 Mana, there is no free reroll, and you get at most 5 rerolls a turn. Teams without Mana get stuck."
+rarity = 0
+archetype = ""
+mload = 0
+sort_index = 200501
+hook_key = "rule_cheap_mana"
+tags = PackedStringArray("rule")
+layer = "engine"
+core_axis = "run_rule"
+run_rule = true
+weight = 1
+rerollUp = -1.0
+rule_knobs = {"reroll_mana_cost": 1, "free_reroll": 0, "reroll_max_total": 5, "asc_lt": 3}

@@ -15,3 +15,5 @@ hook_key = ""
 critBonus = 35.0
 tags = PackedStringArray("crit")
 layer = "enabler"
+
+hidden_from_pool = true

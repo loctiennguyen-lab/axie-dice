@@ -1,0 +1,17 @@
+[gd_resource type="Resource" script_class="RelicDef" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data_models/relic_def.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "c_prime_chain"
+name = "Prime Chain"
+description = "Using a shield or mana face primes the neighbouring Axies: their next damage face this turn deals +3."
+rarity = 0
+archetype = ""
+mload = 0
+sort_index = 200003
+hook_key = "c_prime_chain"
+tags = PackedStringArray("nonattack", "convert_to_dmg")
+layer = "dice"
+core_axis = "dice"
