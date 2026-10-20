@@ -2089,7 +2089,8 @@ static func core_flow_switches_allowed() -> bool:
 ## `pick` = the pick index the context is for (-1: the next one). A reroll must use the index its offer was built with.
 func _core_ctx(pick: int = -1) -> Dictionary:
 	return {"owned_ids": owned_relic_ids, "roster": roster, "seen": core_seen, "mode": mode,
-		"first_run": not rules_on, "pick_index": core_pick_index if pick < 0 else pick, "front_size": 2}
+		"first_run": not rules_on, "pick_index": core_pick_index if pick < 0 else pick, "front_size": 2,
+		"ascension": ascension}
 
 
 ## Knob from the held Run Rule's rule_knobs, else `default`.

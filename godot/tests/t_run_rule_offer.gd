@@ -91,4 +91,38 @@ func _ready() -> void:
 	var six := ["c_test_dice_moss_a", "c_test_dice_moss_b", "c_test_pos_moss_a", "c_test_pos_moss_b", "c_test_mana_moss_a", "c_test_mana_moss_b"]
 	_assert(RelicSlots.check_add(six, {}, "rule_test_a", 0, false)["ok"] and not RelicSlots.check_add(six, {}, "rule_test_a", 0, false)["needs_sell"], "rule fits with 6 Cores")
 	_assert(not RelicSlots.check_add(six + ["rule_test_a"], {}, "rule_test_c", 0, false)["ok"], "only one rule")
+	_review_rule_draw()
 	_done("t_run_rule_offer")
+
+
+## Review fixes: the draw honours weight (R12 = 2 vs Cheap Mana = 1), Cheap Mana needs ascension < 3,
+## Hard Shell needs a team that can break Plating.
+func _review_rule_draw() -> void:
+	var ctx := CoreTestUtil.ctx()
+	var heavy := 0
+	var light := 0
+	for sd in 4000:
+		for c in CoreOffer.build_rule_offer(sd, ctx, false):
+			if String(c["key"]) == "rule_old_forest":
+				heavy += 1
+			elif String(c["key"]) == "rule_cheap_mana":
+				light += 1
+	_assert(light > 0 and float(heavy) / float(light) > 1.5, "weight 2 rule drawn about twice as often (%d vs %d)" % [heavy, light])
+	var hi := CoreTestUtil.ctx()
+	hi["ascension"] = 3
+	var seen_cheap := false
+	for sd in 500:
+		for c in CoreOffer.build_rule_offer(sd, hi, false):
+			if String(c["key"]) == "rule_cheap_mana":
+				seen_cheap = true
+	_assert(not seen_cheap, "Cheap Mana never offered at ascension 3 (asc_lt)")
+	var no_break := ""
+	for k in ContentDB.heroes:
+		if not CombatTraits.team_can_break([{"hero_key": k, "muts": []}]):
+			no_break = String(k)
+			break
+	if no_break != "":
+		var weak := CoreTestUtil.ctx([], [], [no_break])
+		var def = RelicRegistry.get_def("rule_hard_shell")
+		_assert(not CoreOffer.is_valid(def, weak), "Hard Shell needs a team that can strip Plating")
+	_assert(CoreOffer.is_valid(RelicRegistry.get_def("rule_hard_shell"), CoreTestUtil.ctx([], [], ["bug1"])), "Hard Shell valid with a poison team")

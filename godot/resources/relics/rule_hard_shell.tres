@@ -15,6 +15,7 @@ hook_key = "rule_hard_shell"
 tags = PackedStringArray("rule")
 layer = "engine"
 core_axis = "run_rule"
+requires = PackedStringArray("team_can_break")
 run_rule = true
 weight = 2
 rule_knobs = {"plating_global": 2, "side_face_bonus": 2}

@@ -167,6 +167,8 @@ static func token_ok(token: String, ctx: Dictionary) -> bool:
 			return all.size() >= int(arg)
 		"front_hero":
 			return roster.size() > 0
+		"team_can_break":
+			return CombatTraits.team_can_break(roster)
 		"egg_source":
 			for e in roster:
 				var labs := _face_labels(_hero(e))
@@ -210,6 +212,9 @@ static func is_valid(def, ctx: Dictionary) -> bool:
 	for tk in def.excludes:
 		if token_ok(String(tk), ctx):
 			return false
+	var asc_lt = (def.rule_knobs as Dictionary).get("asc_lt", null)   # Cheap Mana: only below this ascension
+	if asc_lt != null and int(ctx.get("ascension", 0)) >= int(asc_lt):
+		return false
 	var first_run := bool(ctx.get("first_run", false))
 	if first_run and (bool(def.first_run_hidden) or String(def.core_axis) == "quest"):
 		return false
@@ -436,7 +441,16 @@ static func build_rule_offer(base_seed: int, ctx: Dictionary, allow_none: bool) 
 	var none_def = RelicRegistry.get_def(NO_RULE_ID)
 	var real := 2 - (1 if (want_none and none_def != null) else 0)
 	while out.size() < real and not pool.is_empty():
-		var k := rng.next_int(pool.size())
+		var total := 0
+		for d in pool:
+			total += maxi(1, int(d.weight))
+		var roll := rng.next_int(total)   # 2b.2: weight 2 for R10 / R12 / R13, 1 for the rest
+		var k := 0
+		for i in pool.size():
+			roll -= maxi(1, int(pool[i].weight))
+			if roll < 0:
+				k = i
+				break
 		out.append(rule_card_of(pool[k], out.size()))
 		pool.remove_at(k)
 	if want_none and none_def != null:

@@ -146,8 +146,8 @@ def main():
         id_ = "rule_" + r["slug"]
         if only and id_ not in only: continue
         ex = dict(r["extra"]); kn = ex.pop("knobs", {})
-        ex.pop("requires_extra", None)
-        open(os.path.join(out, id_ + ".tres"), "w").write(emit(out, id_, r["name"], r["desc"], 0, "run_rule", [], [], ["rule"], "engine", 500 + i, ex, is_rule=True, weight=r["weight"], knobs=kn))
+        rq = ex.pop("requires_extra", [])
+        open(os.path.join(out, id_ + ".tres"), "w").write(emit(out, id_, r["name"], r["desc"], 0, "run_rule", rq, [], ["rule"], "engine", 500 + i, ex, is_rule=True, weight=r["weight"], knobs=kn))
         n += 1
     print("wrote", n)
 
