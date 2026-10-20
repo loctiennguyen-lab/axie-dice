@@ -363,10 +363,20 @@ const ADD_PITCH_X := 1.5
 const ADD_Z_BACK := -10.2
 const ADD_Z_FRONT := 6.3
 const ADD_Z_BACK2 := -18.3
-## A boss model at least this wide (m, fitted) stands WIDE_BOSS_LIFT further back when adds are on the board:
-## its footprint is so large that the front row of adds would otherwise stand on its feet.
+## A boss model at least this wide (m, fitted) is "wide": its footprint covers the whole middle of the field, so adds
+## cannot stand in front of / behind it. The boss steps WIDE_BOSS_SHIFT_X toward the gate and the adds stand in a
+## column on its party side (x = boss left edge - WIDE_ADD_GAP), spread in depth by WIDE_ADD_Z[count]. The 5th add
+## onward stands on the far back row above the boss (ADD_EXTRA).
 const WIDE_BOSS_MIN_W := 3.5
-const WIDE_BOSS_LIFT := 1.8
+const WIDE_BOSS_SHIFT_X := 0.9
+const WIDE_ADD_GAP := 0.6
+const WIDE_ADD_GAP_4 := 0.95   # four adds: the mid ones are wider on screen, keep them off the boss
+const WIDE_ADD_Z := {
+	1: [1.5],
+	2: [-3.5, 5.5],
+	3: [-8.0, -2.0, 5.0],
+	4: [-11.4, -5.3, 0.7, 5.9],
+}
 ## Adds 5 and up (gooey SPLIT, summoners) stand on a second back row above the first one.
 const ADD_EXTRA := [[-1.0, -2], [1.0, -2], [0.0, -2], [-2.0, -2]]
 const ADD_PATTERNS := {
@@ -1332,9 +1342,10 @@ func reseat_side(uids: Array, is_enemy: bool) -> void:
 		var is_boss: bool = bool(lead_entry.get("is_boss", false))
 		var lead_pos: Vector3 = BOSS_POS if is_boss else ELITE_POS
 		if axie_uids.is_empty():
-			lead_pos.z += 0.0 if wide_lead_w > 0.0 else 0.5   # alone: no adds above and below, so it sits a little lower, on the gate's axis
+			lead_pos.z += 0.5   # alone: no adds above and below, so it sits a little lower, on the gate's axis
 		elif wide_lead_w > 0.0:
-			lead_pos.z -= WIDE_BOSS_LIFT   # its feet would otherwise reach up into the adds standing in front of it
+			lead_pos.z += 0.5 + (0.3 if axie_uids.size() >= 4 else 0.0)
+			lead_pos.x += WIDE_BOSS_SHIFT_X
 		placed.append([lead_uid, lead_pos])
 		if not is_boss and not bool(lead_entry.get("elite_scaled", false)):
 			lead_entry["elite_scaled"] = true
@@ -1349,6 +1360,12 @@ func reseat_side(uids: Array, is_enemy: bool) -> void:
 			if i >= 4:
 				ent = (ADD_EXTRA as Array)[(i - 4) % (ADD_EXTRA as Array).size()]   # 5th add onward: a second back row
 			var lead_x: float = (BOSS_POS if bool((_units[lead_uid] as Dictionary).get("is_boss", false)) else ELITE_POS).x
+			if wide_lead_w > 0.0:
+				lead_x += WIDE_BOSS_SHIFT_X
+				if i < 4:
+					var col_z: Array = WIDE_ADD_Z[mini(axie_uids.size(), 4)]
+					placed.append([axie_uids[i], Vector3(lead_x - wide_lead_w * 0.5 - (WIDE_ADD_GAP_4 if axie_uids.size() >= 4 else WIDE_ADD_GAP), _POS_Y, float(col_z[i]))])
+					continue
 			pos = Vector3(lead_x + float(ent[0]) * ADD_PITCH_X, _POS_Y, ADD_Z_FRONT if int(ent[1]) > 0 else (ADD_Z_BACK2 if int(ent[1]) < -1 else ADD_Z_BACK))
 		else:
 			pos = _slot_position(is_enemy, i, axie_uids.size())
