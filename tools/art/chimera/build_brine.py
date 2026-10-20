@@ -5,8 +5,9 @@ Headless and reproducible:
       --src "<.../Brine (Aqua)/3D/brine_ai.glb>" --out godot/assets/bosses/chimera_brine
 Options: --blend <file.blend> saves the rigged source; --cache <dir> reuses/creates the baked low-poly
 (decimate+bake is the slow step); --ratio 0.024; --tex 2048.
-Writes chimera_brine.glb (art colours, gooey_king) and chimera_brine_frost.glb (icy colourway,
-frost_lord): same mesh, same rig, same clips, second texture.
+Writes chimera_brine.glb (art colours, gooey_king) and chimera_brine_frost.glb (official blue/purple
+colourway, frost_lord): same mesh, same rig, same clips, second texture. Both get the back view
+repainted from the art (brine_recolor.py, ref/*.png).
 
 Blender space: metres, Z up, Brine faces -Y, feet on z=0, body axis x=0. It stands (no hover).
 The mace ball is a separate part of the AI mesh, so it gets its own free bone and swings in Attack.
@@ -16,6 +17,7 @@ import numpy as np
 from mathutils import Vector, Quaternion
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from brine_common import *
+import brine_recolor
 
 # --src / --out defaults below are machine-local (Liam's checkout, /tmp); pass both when running elsewhere.
 SRC = arg("src", "/Users/loc.tien.nguyen/my-game/asset-library/chimera-src/Brine (Aqua)/3D/brine_ai.glb")
@@ -321,50 +323,6 @@ def make_dead(arm):
 
 
 # ---------------------------------------------------------------------------------------------
-def frost_pixels(px):
-    """Icy colourway of the baked texture (px: HxWx4 float). Warm hues (red/orange/yellow) go
-    cyan-blue and brighter, magenta goes blue-violet, the purple-grey shell goes pale ice, whites
-    and greys stay."""
-    rgb = px[..., :3]
-    mx = rgb.max(-1)
-    mn = rgb.min(-1)
-    d = mx - mn
-    s = np.where(mx > 1e-6, d / np.maximum(mx, 1e-6), 0.0)
-    dd = np.maximum(d, 1e-6)
-    r, g, b = rgb[..., 0], rgb[..., 1], rgb[..., 2]
-    h = np.where(mx == r, ((g - b) / dd) % 6, np.where(mx == g, (b - r) / dd + 2, (r - g) / dd + 4)) / 6.0
-    t = np.where(h > 0.88, h - 1.0, h)                       # warm band: -0.12 .. 0.2
-    warm = (t > -0.12) & (t < 0.2)
-    mag = (h >= 0.78) & (h <= 0.88)
-    cool = (h > 0.45) & (h < 0.78)
-    h2 = h.copy()
-    s2 = s.copy()
-    v2 = mx.copy()
-    h2 = np.where(warm, 0.52 + (t + 0.12) / 0.32 * 0.07, h2)
-    s2 = np.where(warm, s * 0.78, s2)
-    v2 = np.where(warm, 0.5 + 0.5 * mx, v2)
-    h2 = np.where(mag, 0.64, h2)
-    s2 = np.where(mag, s * 0.7, s2)
-    v2 = np.where(mag, 0.55 + 0.45 * mx, v2)
-    h2 = np.where(cool, 0.60, h2)
-    s2 = np.where(cool, np.minimum(1.0, s * 0.75 + 0.05), s2)
-    v2 = np.where(cool, np.minimum(1.0, mx * 1.08 + 0.10), v2)
-    i = np.floor(h2 * 6.0).astype(int) % 6
-    f = h2 * 6.0 - np.floor(h2 * 6.0)
-    p = v2 * (1 - s2)
-    q = v2 * (1 - f * s2)
-    u = v2 * (1 - (1 - f) * s2)
-    out = np.zeros_like(rgb)
-    for k, (a_, b_, c_) in enumerate([(v2, u, p), (q, v2, p), (p, v2, u), (p, q, v2), (u, p, v2), (v2, p, q)]):
-        m = (i == k)
-        out[..., 0] = np.where(m, a_, out[..., 0])
-        out[..., 1] = np.where(m, b_, out[..., 1])
-        out[..., 2] = np.where(m, c_, out[..., 2])
-    res = px.copy()
-    res[..., :3] = out
-    return res
-
-
 def export(path):
     bpy.ops.object.select_all(action='SELECT')
     kw = dict(filepath=path, export_format='GLB', use_selection=False, export_animations=True,
@@ -402,15 +360,26 @@ def main():
         bpy.ops.wm.save_as_mainfile(filepath=BLEND, compress=True, copy=True)
     print("BRINE: tris %d bones %d clips %s" % (tri_count(low), len(arm.data.bones), [a.name for a in clips]))
     os.makedirs(OUT, exist_ok=True)
-    export(os.path.join(OUT, "chimera_brine.glb"))
-    # frost colourway: same mesh/rig/clips, hue+value-shifted texture
     img = bpy.data.images["T_Brine"]
     W, H = img.size
-    px = np.zeros(W * H * 4, dtype=np.float32)
-    img.pixels.foreach_get(px)
-    fr = frost_pixels(px.reshape(H, W, 4))
-    img.pixels.foreach_set(fr.ravel())
-    img.update()
+    px0 = np.zeros(W * H * 4, dtype=np.float32)
+    img.pixels.foreach_get(px0)
+    px0 = px0.reshape(H, W, 4)
+    pos, nrm, _ = brine_recolor.texel_maps(low, W, H)
+    xs = [v.co.x for v in low.data.vertices]
+    zs = [v.co.z for v in low.data.vertices]
+    box = (min(xs), max(xs), max(zs))
+
+    def set_tex(a):
+        img.pixels.foreach_set(a.ravel())
+        img.update()
+
+    # gooey_king: art colours, back repainted from the official red back view
+    set_tex(brine_recolor.paint_back(px0, pos, nrm, "brine_back_red.png", box))
+    export(os.path.join(OUT, "chimera_brine.glb"))
+    # frost_lord: official blue/purple colourway (per-region recolour) + the blue back view
+    fr = brine_recolor.official_blue(px0, pos)
+    set_tex(brine_recolor.paint_back(fr, pos, nrm, "brine_back_blue.png", box))
     export(os.path.join(OUT, "chimera_brine_frost.glb"))
 
 
