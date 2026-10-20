@@ -186,3 +186,15 @@ Commit (mới nhất trước): bf4486e feat(core): enable Fissure, Bastion, Gro
 - t_core_behaviour 147 -> 201: proof cho Vết Nứt, Thành Trì, Mai Lớn Dần, Mạch Ngầm (Deep Current), Tổ Ấm, Nhịp Gấp, Thuỷ Triều Lên, Thế Giới Lộn Ngược, Vỏ Cứng.
 - Anti-stall: trần 40 (đo thật 27-41+, vì quái đồng hành giữ khiên chồng) -> assert <= 14 (đo 8-12 trên 6 seed). Nguyên nhân thật là KHIÊN QUÁI chồng không mất, không phải Giáp/Mend. Knob: `plating.decay_turn` 7 -> 3, `plating.shield_decay_pct` MỚI = 100 (quái không phải boss mất hết khiên từ lượt decay; code ở `CombatTraits.turn_start`), `mend.fight_cap_pct` 0.5 -> 0.25. t_plating / t_enemy_traits sửa số theo knob. Đội test vẫn được hồi đầy mỗi lượt (HP thật: đội tier-1 chết sau 1-5 lượt ở pw 8). CẦN game-designer/Liam duyệt: decay_turn 3 rất sớm và xoá khiên quái là luật mới (RULES_VERSION/fingerprint cần làn I bump).
 - Review A: (a) t_replay assert R12 thật + tamper `plating_off`/`charge_pending` làm digest đổi; (b) t_preview_damage so với `use_die` (first-dmg bonus, Lõi flat) và không phát event, 45 -> 238 check; sửa `preview_damage` để không để lại bucket `relic_combat` lười (lệch digest so với replay); (c) `charge_roll` intent rỗng nay xoá charge_pending cũ (chỉ quái có affix charge); (d) gỡ `dmg_used_turn` (R13 chạy bằng hook).
+
+## Tích hợp (nhánh int/v3, 20/10)
+
+Nền: godot-port 5e352d0 + land/L + land/RV, rồi merge theo thứ tự:
+- depth/E 0af97a9 -> merge 581bac4 (conflict combat_engine.gd: giữ cả `_early_traits/_guarantee_tank/_apply_affix_start` của E và nhánh `ghost_team` của RV; affix chỉ áp cho encounter sinh ra, không áp cho ghost raid).
+- depth/D 2b8477d -> merge b69e8cd (conflict chỉ ở file hợp đồng này, giữ cả hai phía).
+- ui/result-bg e8306cc -> merge 2756557.
+- Sửa thêm: Result "Relics carried" -> "Cores" + dòng Run Rule (a9dcd58); `armor.png` + `.import` bị `.gitignore` (`web/`) nên depth/D không commit, đã `git add -f` (292de3c); test t_combat_seams, t_full_run_loop, t_combat_target_rules theo luật mới (start với `core_off`, một anh em mang dòng lý do đích sai).
+- RULES_VERSION mới: `godot-2026-10-20-o` (1046065). FINGERPRINT cập nhật trong t_rules_version.gd; Worker `SUPPORTED_RULE_VERSIONS` có thêm -o (giữ -n). Run dở lưu dưới -n bị `saved_run_status()` báo "rules" và huỷ không phạt.
+- Test: Godot 163/163 KHÔNG cờ skip (gồm t_rules_version thật); Worker 196/196. Mốc sàn mới: 163/163, Worker 196.
+
+Việc deploy, theo thứ tự (chưa làm, cần Liam bảo): D1 migration 0008 (raid) -> `cd worker && npx wrangler deploy` -> `bash export-web.sh` -> `bash deploy-r2.sh`. Chưa merge vào godot-port, chưa push.
