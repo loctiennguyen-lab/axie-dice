@@ -1587,8 +1587,8 @@ func _on_reward_chosen(reward: Dictionary) -> void:
 func open_slot_swap(reward: Dictionary, chk: Dictionary) -> void:
 	var key := String(reward.get("key", ""))
 	var nd = RelicRegistry.get_def(key)
-	if nd == null:
-		return
+	if nd == null or _overlay_root.find_child("SlotSwapSheet", true, false) != null:
+		return   # one sheet at a time: a second Take while it is open must not stack another
 	var active: bool = RelicSlots._is_active(nd)
 	var cap := RelicSlots.capacity(RunState.ascension, RunState.owned_relic_ids)
 	var cells: Array = []
