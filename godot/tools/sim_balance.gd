@@ -57,8 +57,8 @@ const ALWAYS_EVENTS := ["on_combat_start", "on_turn_start", "on_turn_end", "on_r
 	"reroll_mana_cost", "reroll_allowed", "before_reroll", "cantrip_extra", "roll_share_class", "descend_pick", "active_cost"]
 
 
-func _on_core_fired(a = null, b = null, c = null) -> void:
-	for x in [a, b, c]:
+func _on_core_fired(a = null, b = null, c = null, d = null) -> void:
+	for x in [a, b, c, d]:
 		if x is String and (String(x).begins_with("c_") or String(x).begins_with("rule_")):
 			_core_fired_seen[String(x)] = true
 			return
