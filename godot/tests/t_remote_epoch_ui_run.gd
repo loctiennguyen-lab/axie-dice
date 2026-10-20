@@ -64,7 +64,15 @@ class FakeRemote extends LocalEpochSource:
 
 	func _value_ok(sp: Dictionary, v) -> bool:
 		match String(sp["type"]):
-			"enum": return (sp["values"] as Array).has(v)
+			"enum":
+				for ev in (sp["values"] as Array):
+					# JSON numbers parse as float: 1.0 must accept int 1 (rmode)
+					if typeof(ev) == TYPE_STRING or typeof(v) == TYPE_STRING:
+						if ev == v:
+							return true
+					elif _is_int(ev) and _is_int(v) and int(ev) == int(v):
+						return true
+				return false
 			"int": return _is_int(v) and v >= sp["min"] and v <= sp["max"]
 			"int_list":
 				if not (v is Array) or v.size() < int(sp["min_len"]) or v.size() > int(sp["max_len"]):
