@@ -1,5 +1,14 @@
 # Axie Dice — trạng thái hiện tại
 
+## ⇢ BẮT ĐẦU TỪ ĐÂY (đêm 22/10/2026) — V4 ĐỦ, ĐANG ĐO TAY NGHỀ
+`../my-game-wt/V4` `depth/V4` = **7a3f76f**: engine v4 (review OK) + UI v4 (UX review 2 vòng, 5.1b, glyph, nhãn SET giữa nhóm) + knob TD r2
++ smoke luồng thật v4 6/7 ĐẠT (`production/qa/smoke-v4-2026-10-22.md`; A1 mana Tundra = cantrip, không lỗi; A2 sửa: một SlotSwapSheet)
++ bot sim v4. Suite 190/190 (skip t_rules_version). Sim v4 (`production/qa/sim/sim-v4-report.md`): random 14.4, spam 17.2, attack_only 3.7,
+expert 28.6 (n=325), gap 14.2 (trước v4 5.6). CHƯA: expert ngang bản cũ (cần 18-23); ablation 150 run nhiễu, tắt cả 4 cơ chế vẫn 26.7%
+→ chưa chứng minh quyết định đúng tạo khác biệt. Đang: `../my-game-wt/SV4` sửa heuristic expert (Liều/Mặt Tạm dùng sai) + ablation 300-500.
+Sau đó: làn TD2 (`../my-game-wt/TD2` tạo sẵn) tăng độ khó trên v4; rồi bump RULES_VERSION + merge godot-port + build. Nếu quyết định đúng
+vẫn không tạo khác biệt → báo Liam để chỉnh thiết kế (thưởng bộ 4/5), không chỉ chỉnh số. Deploy vẫn chờ Liam.
+
 ## ⇢ BẮT ĐẦU TỪ ĐÂY (tối 22/10/2026) — V4 ĐÃ GHÉP, ĐANG ĐO + SỬA UI
 `../my-game-wt/V4` `depth/V4` = engine v4 (review OK bước 1-5, security Worker PASS) + UI V4U (0d40b84) + knob TD r2 (263534f,
 plating.off_turns trả về 2, anti-stall 14); agent tích hợp đang thêm best_bo + chạy suite. TD xác nhận (trước v4): random 13.3,
