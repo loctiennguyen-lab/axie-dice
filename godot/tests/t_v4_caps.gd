@@ -7,6 +7,7 @@ func run() -> void:
 	set_knobs("default")
 	_thorn()
 	_poison()
+	_relic_poison()
 	_lieu_discount()
 	_codes()
 
@@ -36,6 +37,25 @@ func _poison() -> void:
 	for i in 5:
 		StatusEngine.add_status(e, foe, ["poison:8"], null)
 	eq(int(foe.status.get("poison", 0)), 15, "poison stack capped at stack_cap")
+
+
+## Relics that put +1 Poison straight on the status dict (sporegale, fumeblossom) obey poison.stack_cap too.
+func _relic_poison() -> void:
+	var e := engine(["r_sporegale", "r_fumeblossom"], 0)
+	var a: Unit = e.enemies[0]
+	var b: Unit = e.enemies[1]
+	a.status["poison"] = 15
+	b.status["poison"] = 15
+	RelicHooks.fire(e, "on_status_tick", {"combat": e, "tgt": a, "kind": "poison"})
+	eq(int(b.status.get("poison", 0)), 15, "sporegale tick: neighbour already at cap stays 15")
+	RelicHooks.fire(e, "on_status_tick", {"combat": e, "tgt": a, "kind": "burn"})
+	eq(int(a.status.get("poison", 0)), 15, "fumeblossom burn tick: at cap stays 15")
+	b.status["poison"] = 14
+	RelicHooks.fire(e, "on_status_tick", {"combat": e, "tgt": a, "kind": "poison"})
+	eq(int(b.status.get("poison", 0)), 15, "sporegale tick: 14 -> 15 (still adds under the cap)")
+	b.status["poison"] = 20
+	RelicHooks.fire(e, "on_status_tick", {"combat": e, "tgt": a, "kind": "poison"})
+	eq(int(b.status.get("poison", 0)), 20, "stack already above cap is not cut")
 
 
 func _lieu_discount() -> void:

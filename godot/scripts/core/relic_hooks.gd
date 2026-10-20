@@ -1253,7 +1253,7 @@ static var TABLE: Dictionary = {
 			var i := arr.find(t)
 			for x in [arr[i - 1] if i > 0 else null, arr[i + 1] if i >= 0 and i < arr.size() - 1 else null]:
 				if x != null:
-					x.status["poison"] = int(x.status.get("poison", 0)) + 1
+					x.status["poison"] = StatusEngine.capped_poison(ctx["combat"], int(x.status.get("poison", 0)), 1)
 					EventBus.float_text.emit(x.uid, "PSN 1", "poi", 0)
 			return,
 	},
@@ -1312,7 +1312,7 @@ static var TABLE: Dictionary = {
 				return
 			if String(ctx["kind"]) == "burn":
 				if RelicHooks.once_per_turn(c, "fume_b_%d" % t.uid):
-					t.status["poison"] = int(t.status.get("poison", 0)) + 1
+					t.status["poison"] = StatusEngine.capped_poison(ctx["combat"], int(t.status.get("poison", 0)), 1)
 					EventBus.float_text.emit(t.uid, "PSN 1", "poi", 0)
 			elif int(t.status.get("burn", 0)) > 0 and RelicHooks.once_per_turn(c, "fume_p_%d" % t.uid):
 				t.status["burn"] = int(t.status.get("burn", 0)) + 1
@@ -1326,7 +1326,7 @@ static var TABLE: Dictionary = {
 			var t: Unit = ctx["tgt"]
 			if not bool(ctx["secondary"]) or ctx["unit"].side != "p" or t.hp <= 0 or t.side != "e":
 				return
-			t.status["poison"] = int(t.status.get("poison", 0)) + 1
+			t.status["poison"] = StatusEngine.capped_poison(ctx["combat"], int(t.status.get("poison", 0)), 1)
 			EventBus.float_text.emit(t.uid, "PSN 1", "poi", 0)
 			return,
 		"on_status_tick": func(ctx: Dictionary):
@@ -1337,7 +1337,7 @@ static var TABLE: Dictionary = {
 			var i := arr.find(t)
 			for x in [arr[i - 1] if i > 0 else null, arr[i + 1] if i >= 0 and i < arr.size() - 1 else null]:
 				if x != null:
-					x.status["poison"] = int(x.status.get("poison", 0)) + 1
+					x.status["poison"] = StatusEngine.capped_poison(ctx["combat"], int(x.status.get("poison", 0)), 1)
 					EventBus.float_text.emit(x.uid, "PSN 1", "poi", 0)
 			return,
 	},
