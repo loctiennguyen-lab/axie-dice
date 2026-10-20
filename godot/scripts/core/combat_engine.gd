@@ -1492,6 +1492,27 @@ func wild_face(unit_uid: int, slot: int) -> bool:
 	return true
 
 
+## UI preview of Mat Tam ("-> BO BA x1.4"): what the Set groups would be if `uid` took part `slot`. Pure: no state change, no event, no rng.
+## Returns {ok, reason (wild_block_reason), bo_label ("" when no Set, else "BỘ BA/BỐN/NĂM"), mult (M of the die's group, 1.0 = none), groups (hypothetical bo)}.
+func preview_wild(unit_uid: int, slot: int) -> Dictionary:
+	var out := {"ok": false, "reason": wild_block_reason(unit_uid, slot), "bo_label": "", "mult": 1.0, "groups": []}
+	out["ok"] = out["reason"] == ""
+	var u := by_uid(unit_uid)
+	if u == null or u.side != "p" or slot < 0 or slot >= 6:
+		return out
+	var was := u.wild_slot
+	u.wild_slot = slot
+	var groups := recompute_bo()
+	u.wild_slot = was
+	out["groups"] = groups
+	for g in groups:
+		if (g["uids"] as Array).has(unit_uid):
+			out["mult"] = float(g["m100"]) / 100.0
+			out["bo_label"] = {3: "BỘ BA", 4: "BỘ BỐN", 5: "BỘ NĂM"}[int(g["size"])]
+			break
+	return out
+
+
 # ---- Overcast (lane OC): pay mana to power ONE die up this turn ---------------------------------------------
 func overcast_cost() -> int:
 	return maxi(0, int(tune_knob("overcast", "mana_cost", 3.0)))

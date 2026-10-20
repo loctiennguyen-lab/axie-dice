@@ -31,6 +31,15 @@ func _core(tag: String) -> void:
 	eq(JSON.stringify(e.party[2].die[2]), face_before, tag + ": real face untouched")
 	eq(e.party[2].roll_face_index(), 2, tag + ": roll index untouched")
 	eq(e._face_value(e.party[2], 2), int(ceil(5.0 * e.m100_for(e.party[2]) / 100.0)), tag + ": member gets the M bag")
+	# preview is pure and matches (checked on a twin before the action)
+	var pv_e := engine([], 10)
+	force(pv_e, [1, 1, 2, 3, 4])
+	var snap := digest(pv_e)
+	var pv := pv_e.preview_wild(pv_e.party[2].uid, 1)
+	eq(digest(pv_e), snap, tag + ": preview_wild leaves state alone")
+	ok(bool(pv["ok"]) and pv["bo_label"] == "BỘ BA", tag + ": preview label")
+	eq(int(round(float(pv["mult"]) * 100.0)), int(e.bo[0]["m100"]), tag + ": preview mult = real M")
+	ok(not bool(pv_e.preview_wild(pv_e.party[2].uid, 5)["ok"]), tag + ": preview flags a useless slot")
 	# one per turn
 	var m1 := e.mana
 	ok(not e.wild_face(e.party[3].uid, 1), tag + ": second Mat Tam refused")
