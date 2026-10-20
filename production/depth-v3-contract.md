@@ -70,3 +70,25 @@ Nhanh `depth/A`. Test lan nay xanh (chay le, AXIE_SKIP_RULES_FINGERPRINT=1): t_p
 - Ward nham ca chinh nguon (khien thap nhat, hoa -> o nho nhat). Mend hoi 20% Max HP cua MUC TIEU.
 - Quai thuong co thorns (Spikelet, Thornback, Warden) giu thorns cu; Spite chi qua affix va thay thorns cua con Elite do.
 - ContentDB.enemies them field `trait` (spikelet/thornback/e_bulwark plating, jellyfin/totem ward, warden mend). Fingerprint: doi file trong autoload/, assets/data/rules/ -> gop vao bump 1.
+
+
+## Lan A dot 3 - ban giao
+
+Commit (nhanh `depth/A`): `6d0588d` Don Nap, `9a8253f` team_can_break + choose_affixes + guarantee_tank, `80eca68` preview_damage, `4f0fdb4` t_anti_stall, `3f48327` R12, `c326083` t_replay ca elite. Test moi: t_charge 25, t_team_can_break 16, t_affix_pairs 4804, t_preview_damage 45, t_anti_stall 14, t_run_rule_r12 24; t_replay 65 -> 72. Them 6 file test vao suite (floor +6, lan I cap nhat).
+
+### Ham / field cho cac lan
+- `CombatTraits.team_can_break(team: Array) -> bool` (static, thuan). Phan tu: Unit, mang mat (die), Dictionary co "die", hoac roster entry (hero_key + muts). Lan B goi luc `begin_run`, luu vao state, truyen `team_can_break` vao combat_setup. LUU Y: tier-1 beast1 khong co keyword nao -> "back Beast" trong doc KHONG tu dong true; bird1/bug1/reptile1 moi true.
+- `CombatTraits.choose_affixes(seed, can_break, after_boss1, first_run=false) -> {"affix","affix2"}`: Rng rieng `seed ^ AFFIX_SALT`, khong dung rng chung; nhom A (loc `no_break_ok` neu khong pha duoc), sau boss 1 them 1 nhom B, bo cap cam (charge+rush, charge+frenzy). `affix_forbidden(a,b)`. Lan map/B goi ham nay roi dua `affix`/`affix2` vao combat_setup.
+- `CombatTraits.guarantee_tank(keys, avail)` + combat_setup `guarantee_tank: true` (tran thuong truoc Elite dau, A.13): rng khong doi, quai tank dat o o 0.
+- `CombatEngine.preview_damage(src, target, fi) -> {raw, after, plating, single, shield}`: thuan, khong event/rng. Khong tinh crit, exec/feral, hook Loi `mod_dmg`.
+- `affix_state()` them `id2`, va neu co charge: `charge_now`, `charge_next`, `strike_now`, `charge_target`.
+- Don Nap: intent co key `charge` = "start" | "hit" (elite) | "tell" (boss, luot Chuan bi). Boss khong x2.5; stun/freeze luc Chuan bi -> `charge_broken`, Don ve mat thuong. Event `charge_start/charge_hit/charge_break` da phat.
+- R12: `side_face_bonus` +2 cho mat shield/poison cua Axie (gia tri) va do manh keyword debuff (weaken:2 -> weaken:4); stun/freeze giu nguyen. `plating_global` da co.
+- R13: KHONG cai trong engine (lan C lam bang hook, tranh tru hai lan). `dmg_used_turn` van con trong state, chua dung.
+
+### Doan / de Liam quyet
+- t_anti_stall: doc muon <= 14 luot, do thuc te 27-33 luot (Elite pw 8 ~57 HP vs ~3 mat dmg yeu cua doi Aqua/Plant, ngay ca khong Mend). Giap het o luot 9 va Mend tran 28 HP deu chay dung; van chua dat 14. Test ghim tran 40. Can game-designer xem so HP elite / dmg doi.
+- Don Nap: muc tieu = HP+khien thap nhat trong hang truoc (front_row_targets), khong phu thuoc mat. Mat danh = mat dmg manh nhat. Chu ky theo `turn` cua tran.
+- R12 debuff +2 chi ap keyword co so (weaken, vulnerable, blind, burn, poison).
+- guarantee_tank chuyen tank len o 0 de tran tinh `traits.cap_early` khong cat mat.
+- Con thieu: `t_boss_plating_rhythm`, `t_plating_stack`, `t_damage_cap` (Giap x Loi), mo ta affix_state cho UI ngoai cac key tren.
