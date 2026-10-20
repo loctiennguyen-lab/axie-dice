@@ -186,3 +186,19 @@ Commit (mới nhất trước): bf4486e feat(core): enable Fissure, Bastion, Gro
 - t_core_behaviour 147 -> 201: proof cho Vết Nứt, Thành Trì, Mai Lớn Dần, Mạch Ngầm (Deep Current), Tổ Ấm, Nhịp Gấp, Thuỷ Triều Lên, Thế Giới Lộn Ngược, Vỏ Cứng.
 - Anti-stall: trần 40 (đo thật 27-41+, vì quái đồng hành giữ khiên chồng) -> assert <= 14 (đo 8-12 trên 6 seed). Nguyên nhân thật là KHIÊN QUÁI chồng không mất, không phải Giáp/Mend. Knob: `plating.decay_turn` 7 -> 3, `plating.shield_decay_pct` MỚI = 100 (quái không phải boss mất hết khiên từ lượt decay; code ở `CombatTraits.turn_start`), `mend.fight_cap_pct` 0.5 -> 0.25. t_plating / t_enemy_traits sửa số theo knob. Đội test vẫn được hồi đầy mỗi lượt (HP thật: đội tier-1 chết sau 1-5 lượt ở pw 8). CẦN game-designer/Liam duyệt: decay_turn 3 rất sớm và xoá khiên quái là luật mới (RULES_VERSION/fingerprint cần làn I bump).
 - Review A: (a) t_replay assert R12 thật + tamper `plating_off`/`charge_pending` làm digest đổi; (b) t_preview_damage so với `use_die` (first-dmg bonus, Lõi flat) và không phát event, 45 -> 238 check; sửa `preview_damage` để không để lại bucket `relic_combat` lười (lệch digest so với replay); (c) `charge_roll` intent rỗng nay xoá charge_pending cũ (chỉ quái có affix charge); (d) gỡ `dmg_used_turn` (R13 chạy bằng hook).
+
+
+## Làn VZ - Lõi phải nhìn thấy được (nhánh depth/VZ)
+
+**Hợp đồng tín hiệu (engine/làn FX phát, UI chỉ nghe):**
+`EventBus.core_fired(core_id: String, unit_uid: int, amount: int, kind: String)`
+- Không đổi `relic_pulsed(relic_id, uid)` (GDScript signal không có tham số mặc định, đổi chữ ký là phá mọi chỗ emit cũ). Lõi dùng `core_fired`, relic cũ vẫn `relic_pulsed`.
+- `core_id` = id RelicDef của Lõi (vd `c_bastion`). `unit_uid` = đơn vị nhận tác động (bị đánh / được khiên / người bắn nếu không có); 0 hoặc uid lạ thì UI gắn vào Axie đầu tiên.
+- `amount` > 0 = số thực sự đã xảy ra (sau khi tính xong, sau cap); 0 = không có số (chỉ hiện tên).
+- `kind`: `dmg` | `thorns` | `poison` (hiện "−N") ; `shield` | `block` | `heal` | `mana` | `reroll` | `quest_step` (hiện "+N"). "" hoặc lạ = chỉ tên.
+- Phát SAU khi hiệu ứng đã xảy ra, chỉ để hiển thị, không được gây hiệu ứng. Nhiều Lõi bắn cùng một nhịp, cùng đơn vị: UI gộp vào một chữ nổi (cùng Lõi+kind thì cộng số).
+- Emit ở engine chưa có (core_hooks.gd còn 84/100 hàm im lặng): việc của làn FX. Chưa emit = chưa thấy gì, UI sẵn sàng.
+
+**UI đã nối:** `CorePanel` (nháy ô + chip "xN" số lần trong trận, chỉ combat HUD), `CombatView._on_core_fired` (log + chữ nổi `UI3.core_float`, `core_float_log` cho test), `RunState.core_impact` ({core_id: {n, by:{kind: tổng}}}, thuần thống kê, có trong to_data/from_data, reset trong reset()), Result card "Cores" (mỗi Lõi + "blocked 21", Lõi nhiều nhất viền accent + "Most impact"). Helper chữ/màu: `scenes/shared/CoreFeedback.gd`.
+
+**Cho làn I:** đã sửa `autoload/EventBus.gd` (thêm signal) và `autoload/RunState.gd` (core_impact + kết nối) = file có trong fingerprint; cây chính cần bump `RULES_VERSION` (không đổi luật, chỉ để t_rules_version khớp). Chưa làm: tóm tắt Lõi sau mỗi trận trên overlay phần thưởng (tuỳ chọn).

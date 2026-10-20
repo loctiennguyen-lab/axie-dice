@@ -1,3 +1,4 @@
+class_name TCoreVisibilityUi
 extends Node
 ## Depth v3 lane VZ: Cores must be VISIBLE. Fake EventBus.core_fired for 3 Cores -> slot pulses + counts, float note text
 ## is right and merged per unit, the run stat adds up, and the Result "Cores" card shows the totals + top Core.

@@ -72,6 +72,7 @@ func _ready() -> void:
 		n.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 		_notice_host.add_child(n)
 	_fit.call_deferred()
+	_on_notice_layout.call_deferred()   # second pass once row heights settled (Cores rows were clipped)
 	_back.grab_focus.call_deferred()
 
 
@@ -485,8 +486,14 @@ func _build_relics_card(relic_ids: Array, run_rule_id: String = "", impact: Dict
 		var def = RelicRegistry.get_def(String(id))
 		var p := UI3.plate(&"row")
 		p.name = "CoreRow_%s" % id
-		if String(id) == top:
-			p.add_theme_stylebox_override("panel", UI3Theme.flat(UI3Theme.color("panel_raised"), UI3Theme.radius("s"), 4, UI3Theme.color("accent")))
+		var is_top := String(id) == top
+		var hi := UI3Theme.flat(UI3Theme.color("panel_raised"), UI3Theme.radius("s"), 4 if is_top else 0,
+			UI3Theme.color("accent") if is_top else UI3Theme.color("panel_raised"))
+		hi.content_margin_left = 12
+		hi.content_margin_right = 12
+		hi.content_margin_top = 8
+		hi.content_margin_bottom = 8
+		p.add_theme_stylebox_override("panel", hi)
 		var row := HBoxContainer.new()
 		row.add_theme_constant_override("separation", 12)
 		p.add_child(row)
@@ -504,6 +511,9 @@ func _build_relics_card(relic_ids: Array, run_rule_id: String = "", impact: Dict
 		im.name = "CoreImpact"
 		row.add_child(im)
 		list.add_child(p)
+	var pad := Control.new()
+	pad.custom_minimum_size.y = 4
+	col.add_child(pad)
 	return card
 
 

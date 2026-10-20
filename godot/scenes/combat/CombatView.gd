@@ -3068,9 +3068,8 @@ func _spawn_core_note(uid: int, lines: Array) -> void:
 	var rise := 8.0 if flashes_suppressed() else 24.0
 	var tw := chip.create_tween()
 	tw.tween_interval(1.1)
-	tw.set_parallel(true)
-	tw.tween_property(chip, "position:y", maxf(24.0, pos.y - rise), 0.5)
-	tw.tween_property(chip, "modulate:a", 0.0, 0.5)
+	tw.chain().tween_property(chip, "position:y", maxf(24.0, pos.y - rise), 0.5)
+	tw.parallel().tween_property(chip, "modulate:a", 0.0, 0.5)
 	tw.chain().tween_callback(func():
 		_core_float_live[target] = maxi(0, int(_core_float_live.get(target, 1)) - 1)
 		chip.queue_free())
