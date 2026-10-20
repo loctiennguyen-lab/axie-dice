@@ -164,12 +164,14 @@ func _launch_combat() -> void:
 		roster.append({"persistent_id": i + 1, "hero_key": keys[i], "tier": 1, "max_hp": 0, "muts": [], "growth": {}, "bonus_hp": 0})
 	# `tutorial: true` is the existing "embedded fight" contract: the combat screen writes nothing into the run
 	# or the save and reports the outcome through tutorial_combat_finished instead of changing scene.
+	var prev_pending: Dictionary = RunState.pending_combat   # not ours: put it back once the combat has consumed ours
 	RunState.pending_combat = {"node_id": "raid", "kind": "battle", "pw": 0, "ascension": 0,
 		"combat_seed": int(_challenge.get("seed", 1)), "roster_snapshot": roster, "relic_ids": [],
 		"tutorial": true, "ghost_team": _challenge.get("team", [])}
 	_shell["panel"].visible = false
 	_view = load("res://scenes/combat/Combat.tscn").instantiate()
-	add_child(_view)
+	add_child(_view)   # CombatView._ready() takes and clears pending_combat
+	RunState.pending_combat = prev_pending
 	_view.connect("tutorial_combat_finished", _on_fight_over)
 
 

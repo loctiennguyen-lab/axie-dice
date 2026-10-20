@@ -58,7 +58,7 @@ test('validateTeam: accepts a clean team, drops unknown fields, refuses every ba
   assert.equal(ok.length, 1);
   assert.equal(ok[0].evil, undefined);
   for (const bad of [null, [], 'x', team(6), [unit('Bad Key')], [unit('k', { cls: 'dragon' })], [unit('k', { hp: 0 })], [unit('k', { hp: 1000 })], [unit('k', { hp: 1.5 })],
-    [unit('k', { die: [] })], [{ ...unit(), die: unit().die.slice(0, 5) }], [{ ...unit(), die: unit().die.map((f, i) => (i ? f : { ...f, value: 100 })) }],
+    [unit('k', { die: [] })], [{ ...unit(), die: unit().die.map((f, i) => (i ? f : { ...f, type: 'explode' })) }], [{ ...unit(), die: unit().die.slice(0, 5) }], [{ ...unit(), die: unit().die.map((f, i) => (i ? f : { ...f, value: 100 })) }],
     [{ ...unit(), die: unit().die.map((f, i) => (i ? f : { ...f, type: 'DMG' })) }], [{ ...unit(), die: unit().die.map((f, i) => (i ? f : { ...f, kw: ['a', 'b', 'c', 'd', 'e'] })) }],
     [{ ...unit(), die: unit().die.map((f, i) => (i ? f : { ...f, kw: [1] })) }], [[]], [null]]) assert.equal(validateTeam(bad), null, JSON.stringify(bad).slice(0, 60));
 });

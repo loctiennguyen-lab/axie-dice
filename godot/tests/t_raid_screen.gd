@@ -75,6 +75,7 @@ func _ready() -> void:
 	# fight: opens the embedded combat, run/save untouched
 	_sent.clear()
 	var run_phase = RunState.phase
+	RunState.pending_combat = {"marker": 1}
 	s.challenge(0)
 	await get_tree().process_frame
 	await get_tree().process_frame
@@ -85,6 +86,7 @@ func _ready() -> void:
 		_ok(eng != null and eng.enemies.size() == 3 and String(eng.enemies[0].custom_state.get("ghost_key", "")) != "", "enemies are the ghost")
 		_ok(eng.party.size() == 3, "attacker party")
 		_ok(RunState.phase == run_phase, "RunState untouched")
+		_ok(RunState.pending_combat.get("marker", 0) == 1, "pre-existing pending_combat restored")
 		_sent.clear()
 		s._view.call("_finish", true)
 		for i in 240:
@@ -120,6 +122,7 @@ func _ready() -> void:
 	var land_src := FileAccess.get_file_as_string("res://scenes/land/Land.gd")
 	_ok(land_src.contains('&"raid"'), "Land has the Raid button")
 
+	RunState.pending_combat = {}
 	_guard.restore()
 	if _fails.is_empty():
 		print("t_raid_screen: PASS (%d checks)" % _checks)

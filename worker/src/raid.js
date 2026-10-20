@@ -18,6 +18,7 @@ export const TEAM_MAX = 5;
 export const FACES = 6;
 export const BODY_MAX = 6000;            // bytes of the whole request body
 export const CLASSES = ['plant', 'beast', 'aqua', 'reptile', 'bug', 'bird'];
+export const FACE_TYPES = ['dmg', 'shield', 'heal', 'mana', 'poison', 'debuff', 'buff', 'summon', 'blank'];
 export const OPPONENTS = 5;
 export const PER_GHOST_DAILY = 3;
 export const DAILY_RAIDS = 5;
@@ -49,7 +50,7 @@ export function validateTeam(team) {
     const die = [];
     for (const f of u.die) {
       if (!f || typeof f !== 'object' || Array.isArray(f)) return null;
-      if (typeof f.type !== 'string' || !/^[a-z_]{1,16}$/.test(f.type)) return null;
+      if (!FACE_TYPES.includes(f.type)) return null;
       if (!intIn(f.value, 0, 99)) return null;
       const kw = f.kw === undefined ? [] : f.kw;
       if (!Array.isArray(kw) || kw.length > 4 || !kw.every((k) => typeof k === 'string' && /^[a-z_]{1,16}$/.test(k))) return null;

@@ -43,6 +43,10 @@ func _ready() -> void:
 	var short: Array = [team[0].duplicate(true)]
 	(short[0]["die"] as Array).pop_back()
 	_ok(not RaidGhost.is_valid_team(short), "5-face die refused")
+	var odd: Array = [team[0].duplicate(true)]
+	odd[0]["die"][0]["type"] = "explode"
+	_ok(not RaidGhost.is_valid_team(odd), "unknown face type refused")
+	_ok(RaidGhost.make_enemy(odd[0], 1).die[0]["type"] == "blank", "unknown face type becomes blank on an enemy")
 	# snapshot is JSON-safe and keeps the Worker contract (key regex, kw regex, value range)
 	var j: Variant = JSON.parse_string(JSON.stringify(team))
 	_ok(j is Array and (j as Array).size() == team.size(), "JSON round trip")

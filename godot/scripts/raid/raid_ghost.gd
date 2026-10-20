@@ -9,6 +9,8 @@ extends RefCounted
 
 const CLASSES: Array[String] = ["plant", "beast", "aqua", "reptile", "bug", "bird"]
 const MAX_UNITS := 5
+## Face types the engine knows (ContentDB) - the same list the Worker accepts.
+const FACE_TYPES: Array[String] = ["dmg", "shield", "heal", "mana", "poison", "debuff", "buff", "summon", "blank"]
 ## Class -> enemy AI role (only changes who the unit targets / heals).
 const ROLE_BY_CLASS := {"plant": "tank", "beast": "bruiser", "aqua": "healer", "reptile": "poisoner", "bug": "assassin", "bird": "assassin"}
 ## Class -> existing monster art key, so the ghost has a body on the field (display only).
@@ -80,6 +82,8 @@ static func is_valid_team(team) -> bool:
 		for f in die:
 			if not (f is Dictionary) or String((f as Dictionary).get("type", "")) == "":
 				return false
+			if not FACE_TYPES.has(String((f as Dictionary).get("type", ""))):
+				return false
 	return true
 
 
@@ -101,6 +105,8 @@ static func make_enemy(snap: Dictionary, uid: int) -> Unit:
 	for f in snap.get("die", []):
 		var d: Dictionary = f
 		var t := String(d.get("type", "blank"))
+		if not FACE_TYPES.has(t):
+			t = "blank"
 		var v := clampi(int(d.get("value", 0)), 0, 99)
 		die.append({"part": "m", "type": t, "value": v, "keywords": _clean_kw(d.get("kw", [])), "rarity": 0})
 	u.die = die
