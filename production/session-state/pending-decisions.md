@@ -3,6 +3,22 @@
 Liam trả lời theo số, ví dụ "đồng ý hết, trừ 4: …". Mỗi câu có khuyến nghị. Các câu cũ đã trả lời đều đã ghi vào file
 nguồn, không nằm ở đây nữa.
 
+## ⇢ Liam trả lời 20/10 (đêm), đã chốt
+Q1 tạm giữ hình Founder, xin art Epic thật · Q2 đủ bộ mùa dành cho người nạp (giữ số hiện tại) · Q3 roll hộp lên server gộp vào đợt
+server RNG P0–P5 · Q4 duyệt 3 tên ECHO WALKER / MOONBOUND / LUNAR ECHO MASTER · Q5a writer viết chữ màn intro boss, Liam duyệt ·
+Q5b Venom: che chỗ cắt ngang hông (vũng độc / sương), cả intro lẫn trong trận, không dựng thêm thân · Q6 xác nhận lượt mở hộp mùa
+đầu tiên: MỖI PHIÊN CHƠI (không phải mỗi lần vào màn) · Q7 xoá `../my-game-wt/R/build/web-stage` (thực tế 964 MB; lệnh xoá bị
+chặn quyền, Liam tự xoá).
+
+## (đã trả lời ở trên) Câu hỏi 20/10
+Q1. **Art Epic tạm của hộp thường.** Sau khi tách pool mùa, bậc Epic hộp thường chỉ còn hình Founder Seal/Laurel (đồ Pass) làm hình hiển thị. Người chơi không nhận món Founder thật (id vẫn `std_e_NNN`), nhưng 28 món Epic trông giống đồ Pass. *Khuyến nghị:* tạm giữ, xin art Epic thật từ Claude Design / team Art.
+Q2. **Đủ bộ hộp mùa** cần ~289 vé (~64–72k Shard), vé free cả mùa ~55–60 (`production/qa/season-box-balance-2026-10-19.md`). Đủ bộ dành cho người nạp, hay người cày cũng phải đạt được? *Khuyến nghị:* để vậy (hợp hướng monetization 11/10), nhưng mốc 12/40 lượt cho danh hiệu thì người cày đạt được.
+Q3. **Roll hộp trên server.** Vé mua được bằng Gem, mà cả hộp thường lẫn hộp mùa đang roll ở client. *Khuyến nghị:* đưa vào đợt server RNG (P0–P5) cùng Worker endpoint, không làm riêng.
+Q4. **Tên 3 danh hiệu mùa:** ECHO WALKER (12 lượt), MOONBOUND (40 lượt), LUNAR ECHO MASTER (đủ bộ). Duyệt hay đổi?
+Q5. **Màn giới thiệu boss** (đã merge): xem ảnh `production/qa/evidence/boss_intro_*.png`. Venom là tượng bán thân cắt phẳng ở hông (art), chữ tiêu đề/đe doạ là chữ tạm (`godot/scripts/ui/boss_intro_data.gd`). Cho writer đặt chữ? Venom có cần dựng thêm phần thân dưới?
+Q6. Hộp mùa: bước xác nhận lượt mở đầu tiên giờ hỏi lại mỗi lần vào màn Echo Box (trước là mỗi phiên chơi). Giữ vậy?
+Q7. Xoá `../my-game-wt/R/build/web-stage` (~250 MB, bản stage web cũ)?
+
 ## A–C. Đã trả lời 12/10 (tối)
 1 có đăng nhập desktop · 2 Gem trên server · 3 cắt ngay #2 VIP thử, #3 hộp mùa, #4 Nhiệm vụ N1–N3 không nâng nhà, #10 boss → mascot; mục khác phải hỏi · 4–6 duyệt · 7 ~8 giờ/ngày · 8 "Axie Dice" ·
 9 `fun.axiedice.game` · 10 0.1.0 · 11 Slack + form, người nhận Liam. Ghi ở đầu `production/l1-sprint-plan.md`.
@@ -117,3 +133,21 @@ hạn/ngày, NFT dùng được) · UI request 02 + Round 1 · L1 = 3/11 nội b
 - (Liam 16/10, đã chốt) UI-03 dùng **Terrariums design system** (Liam đang làm với Claude Design), thay Dango. Vòng A = 3 cách áp Terrariums (bố cục/mật độ/HUD), không phải 3 phong cách khác nhau. Khi triển khai: thay `DangoTheme.gd` bằng theme sinh từ tokens Terrariums.
 - (Liam 18/10, đã chốt) UI-03 round 1 (A4 Blend): tải font Rowdies Bold + Work Sans Regular (OFL) từ Google Fonts; LÀM LUÔN xúc xắc 3D tung bằng vật lý (RigidBody3D) trong đợt port Combat; GIỮ bắt đăng nhập (bỏ ý 'offline vẫn chơi Normal' của mockup); port CẢ 25 màn, chạy song song nhiều làn.
 - (Liam 18/10, đã chốt) Reward UI-03: GIỮ KHÔNG có Skip (luật 21/9), dù mockup có Skip. Cờ `_REWARD_ALLOW_SKIP := false` trong RunMapController.gd.
+- (Liam 18/10, review b831) Văng game khi bấm phím tắt: xảy ra TRÊN LAND. Bố cục trận ngang: camera góc 3/4. Reroll 3D: giữ nhãn MAX + chip +2/−1 trên thẻ, bỏ chữ NICE/GREAT/JACKPOT. Land bỏ biển tên: hover/focus/chạm mới hiện tooltip (tên + phím + lý do khoá), bỏ nút "N Show names".
+- (Liam 18/10, review b831) Trùng Axie free: áp dụng mọi nơi (thường, Daily, Ranked, Team presets); Vault mỗi con 1 lần. Bump RULES_VERSION ngay trong đợt này (hỏi trước khi deploy Worker). Chip tài khoản: avatar giữ 48, khung ~72. Làm 3 làn song song (A sửa nhỏ, B trận, C Land).
+- (Liam 19/10) Cosmetics round 2: GIỮ mặt xúc xắc tối (jeweller's dial); tên hiển thị để Claude Design đặt, sau đó agent (writer) đặt lại cho hay hơn; token Uncommon #0094FF, Mythic #B04DFF duyệt; khung đang trang bị thì ẩn vòng amber "đã đồng bộ": duyệt.
+- (Liam 19/10) Trận: Axie và quái/boss không được sát nhau (thu nhỏ hoặc cách khác). Xúc xắc lúc đổ ĐƯỢC đè lên Axie/quái/boss; animation đổ đặt CHÍNH GIỮA màn hình. Icon enrage: chọn từ asset có sẵn. Sửa hiệu ứng skill đầu trận phủ giữa sân.
+- (Liam 19/10) Cổng (gate) phải nằm HẲN sau lưng quái/boss (mọi quái đứng giữa party và cổng), vẫn thấy rõ trên màn hình.
+- (Liam 19/10) Cosmetics: bắt đầu code luôn từ round 2, song song round 3 (PROMPT-ROUND-3.md); writer đặt lại 41 tên hiển thị ngay, Liam duyệt.
+- (Liam 19/10) DUYỆT 41 tên cosmetics trong design/handoffs/cosmetics-3d/NAMES-proposal.md (cột proposed). Cho phép build bản mới + push axiedice để Liam chơi thử.
+- (Liam 19/10 chiều) Feedback b896: map arctic quá trắng/chói; mặt dice phải hiện số N (vd WEAKEN đang hiện 0); battle log chuyển sang trái (bị bảng quái che); dàn quái phải đứng giữa thẳng cổng; map trận xấu, dùng Blender làm đẹp hơn; cây cối Land bị chìm, rối, lộn xộn. Round 3 cosmetics đã về.
+- (Liam 19/10) DUYỆT map Savannah v2 (Blender, lane V, l1/V a685436): gắn vào game sau khi làn C merge + làm 5 biome còn lại cùng kiểu. GIỮ vệt đường mòn đất qua chỗ Axie tới cổng.
+- (Liam 19/10) Xúc xắc khi đổ vẫn lăn ra ngoài quá nhiều: điểm rơi phải ở CHÍNH GIỮA khoảng trống giữa Axie và quái/boss.
+- (Liam 19/10) Xúc xắc lúc đổ: TO THÊM 15% (đang ~55 px ở 1920, 0.8 m).
+- (Liam 19/10) Viền tier quanh mặt dice (plate.png) góc vuông nhọn → bo tròn: đưa vào prompt round 4 (design/handoffs/cosmetics-3d/PROMPT-ROUND-4.md, kèm 12 khung bị cắt mép). KHÔNG làm bản tạm trong code, chờ ảnh mới của Claude Design.
+- (Liam 19/10 tối) Feedback b931: (1) run map cần background, màu tím, chọn từ background có sẵn; (2) "Enemy turn..." tràn màn hình; (3) bỏ chữ P/L/C trên Land + thêm tab Settings đổi phím tắt; (4) thêm decor nửa trên Land (land item trong kho asset); (5) không bấm được Claim 300 Gem (Daily); (6) Vault Axie trống nhiều ô. Round 4 cosmetics = phần art/UI cuối. Sau đó: ghi danh sách việc còn lại rồi làm lại game design (mechanics hay nhưng chưa đủ sâu).
+- (Liam 19/10 khuya) Duyệt backlog-after-b931: A làm luôn (web build+deploy, preload map, tách save test, dọn Dango, Worker); B ok (gom bump với game design); C để session sau; D: tên M6/M7 cho agent đặt; hộp mùa + pool Echo Box lấy cosmetic từ asset, thiếu thì tạm dùng của Claude Design, phải đủ phần cơ bản. Vault "trống ô" = mặt dice blank → phase game design. Gửi file boss Chimera từ team Art (5 class: Brine/Feral/Parasite/Tempest/Venom; chỉ Venom có FBX tĩnh, không rig/anim): dùng làm boss, chưa có 3D thì dựng bằng Blender, phải có animation.
+- (Liam 19/10 khuya) Chimera: THAY TOÀN BỘ 3 boss trong run bằng Chimera; làm Venom (có mesh) trước rồi dựng từng con bằng Blender (Brine → duyệt → 3 con còn lại); 6 hình nền Chimera dùng cho MÀN GIỚI THIỆU BOSS.
+- (Liam 19/10 khuya) M7 GIỮ như cũ (nhân mọi mặt dice của trận elite) → mô tả "Elite fight dice values x1.25 (damage, shields, heals)". Tên: M6 "Sturdy foes", M7 "Fierce elites". Hộp mùa: BẬT LUÔN + TÁCH POOL (bỏ 7 món mùa khỏi hộp thường), làm UI mở hộp mùa + mốc + 3 danh hiệu mùa, rương tạm Mystic; chạy balance check trước.
+- (Liam 20/10) Màn giới thiệu boss: LUÔN hiện bản đầy đủ; chỉ 5 Chimera (Blight/Plant để sau khi team Art có thiết kế); trên màn intro: MODEL 3D của boss đứng trước background của nó, có animation chuyển động mạnh mẽ (ta tự làm).
+- (Liam 20/10) Bản web ~253 MB: CHẤP NHẬN, deploy sau khi các làn đang chạy merge (Worker không cần deploy: code không đổi từ 16/10).

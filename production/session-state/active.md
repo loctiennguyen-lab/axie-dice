@@ -1,8 +1,138 @@
 # Axie Dice — trạng thái hiện tại
 
+## ⇢ BẮT ĐẦU TỪ ĐÂY (chốt trưa 20/10/2026) — SESSION MỚI = GAME DESIGN
+
+**Git:** godot-port = axiedice/main = **a6b7ba3**, suite **125/125**. Bản test Liam: `build/AxieDice-0.1.0-L1-b1049-a6b7ba3-macos.dmg`
++ `-windows.zip` (b945 → `build/old/`). Không có agent/Godot nào đang chạy.
+
+**Đã xong 20/10 (không làm lại):** merge U/E/M/C/V/K/L/S/A — màn giới thiệu boss; hộp mùa + 3 danh hiệu; test/with_lock luôn
+dùng user dir cô lập (cây chính an toàn khi Liam chơi) + chặn override.cfg lọt vào build; bỏ Dango; preload map; **6 boss Chimera**
+(agony Venom, mecha Tempest, mirror Feral, plague_mother Parasite = mesh team Art, gooey_king Brine, frost_lord Brine xanh-tím);
+boss nhìn về party hé ~12° (t_boss_facing); quái gọi ra 0.7 (t_boss_resume_summons); chữ đe doạ boss mới; số phase thật.
+Blender đang mở scene `Chimera_Review` (6 Chimera + script `chimera_clip.py` đổi clip).
+
+**Việc nhỏ còn treo (không chặn game design):**
+1. Liam chơi b1049, duyệt Chimera trong game → rồi **deploy web** theo `production/release/web-deploy-2026-10-19.md`
+   (HỎI Liam trước khi upload R2; Worker không cần deploy).
+2. Brine fit 5.3 (to hơn phải dời cổng/party); Tempest nhìn party nên thấy cánh từ cạnh; vỏ kiếm Parasite: UV FBX không khớp
+   texture team Art gửi → đang chiếu lại vùng texture (nhờ team Art sửa UV nếu muốn đúng gốc). Blight Chimera chờ team Art.
+3. Art Epic thật cho hộp thường (đang mượn hình Founder); phím B/S ở Run setup chưa vào tab Controls.
+4. Dọn worktree cũ (A,C,E,K,L,M,S,U,V,SIM; nhánh script/* giữ tham khảo bản Chimera dựng tay).
+
+**PHASE TIẾP: làm lại game design cho sâu hơn** (Liam: mechanics hay nhưng chưa đủ sâu). Quy trình: brainstorm → plan → Liam
+duyệt → làm (CLAUDE.md). Đầu vào: `production/backlog-after-b931.md` mục B + C (Vault trống ô = mặt dice BLANK → thiết kế lại
+cách part sinh mặt; chiều sâu xây đội part/bloodline/synergy; lựa chọn trong trận; cơ chế quái/boss; quyết định trên map;
+tiến triển dài hạn Land/Ascension/Nhiệm vụ; Nhiệm vụ cực khó; kế hoạch phase toàn dự án; sim cân bằng). Mọi thay đổi luật gom
+MỘT lần bump `RULES_VERSION` (+ comment "Mythic" bậc 4 cũ, Result Ranked/mất cọc) và deploy Worker (hỏi Liam).
+Doc: `design/gdd/systems-index.md`, `build-spec.md` (INV-1..7), `economy-progression.md`, `godot-port-rule-spec.md`.
+Agent gợi ý: `game-designer` + `creative-director` (/brainstorm), rồi `systems-designer`, `economy-designer`.
+
+## ⇢ BẮT ĐẦU TỪ ĐÂY (cập nhật sáng 20/10/2026 ~10:20, session "Session state active file")
+
+**Cập nhật 11:30:** Parasite giờ dùng MESH TEAM ART Liam gửi (FBX + texture ở `asset-library/chimera-src/Parasite (Bug)/3D/Bug_01/`),
+đúng nguyên bản (HAIR_SCALE 1.0); chỉ vỏ kiếm được chiếu lại vùng texture vì UV FBX không khớp texture gửi.
+axiedice/main = **a6b7ba3** (suite 125/125). Team Art có mesh con nào khác → thay theo cùng cách (build_venom/build_parasite).
+
+**5 Chimera boss đã vào game (merge d298ac4, đã push; mốc mới 125):**
+agony = Venom (art team mesh, VenomPool `cover`), mecha = Tempest, mirror = Feral, plague_mother = Parasite,
+gooey_king = Brine (màu tranh), frost_lord = Brine bản màu chính thức xanh dương-tím. 4 con sau = mesh AI Liam tạo bằng
+Meshy/Tripo (`asset-library/chimera-src/<tên>/3D/*_ai.glb`), dọn + rig + 6 clip bằng Blender CLI
+(`tools/art/chimera/build_<tên>.py`). Dựng tay bằng Blender script = Liam chê xấu, đã bỏ (nhánh script/* giữ tham khảo).
+**Luật Liam:** boss LUÔN nhìn về phía party, hé ~12° về camera (facing_deg 7; test `t_boss_facing` ≤15° + phía camera);
+intro có `intro_facing_deg` riêng. Quái do boss gọi ra vẽ SUMMON_SCALE 0.7 (cả khi resume), boss rộng có cột quái gọi ra
+bên phía party (`WIDE_*` trong CombatStage3D, chỉnh khít theo `t_combat_spacing`, lề ~1 px). `fit_width_m`, `hover_m`
+(Tempest bay), chip trạng thái theo đỉnh model. Mỏ Parasite: thẳng về TRƯỚC (tranh nghiêng `Bug_1.png` cột 3), tay tách áo.
+**Còn lại:** Liam duyệt ảnh 5 Chimera trong game → push → export web + HỎI Liam trước khi upload R2 → build desktop.
+Brine fit 5.3 (to hơn cần dời cổng/party — Liam quyết). Tempest nhìn party thì thấy cánh từ cạnh (hệ quả luật).
+Meshy MCP đã cài (user scope, key trong Keychain `meshy-api-key`, cần gói Pro).
+
+## (cũ hơn) ⇢ BẮT ĐẦU TỪ ĐÂY (cập nhật đêm 20/10/2026, session "Session state active file")
+
+**Git:** godot-port = axiedice/main **a9486d4** đã push (suite 123/123 ở worktree B). Sau đó merge chưa push: 0ed00cc (E: xác nhận hộp mùa
+mỗi phiên) + 2acedd5 (U: dòng đe doạ boss + số phase thật) — suite 2acedd5 **123/123**. Mốc test: **123**.
+**Đã merge hôm nay:** U (màn giới thiệu boss, nền lossy), E (hộp mùa + fingerprint 4871eef, giữ -n), M (user dir cô lập cho test,
+không lọt override.cfg vào build: exclude + guard + quét pck sau export; shot.sh qua with_lock; bỏ Dango; sửa watcher import để lại
+`sleep 240` mồ côi). `export-web.sh` (cây chính, gitignored) có guard override tạm.
+**Cây chính giờ an toàn khi Liam chơi**: test/with_lock dùng user dir AxieDice-test-my-game (sau merge M).
+**Liam trả lời 7 câu** (đầu `pending-decisions.md`). Chữ intro: giữ tiêu đề cũ, dùng dòng đe doạ mới.
+
+**Đang chạy lúc ghi (kiểm git từng worktree nếu session chết):**
+- Làn V `l1/V` 8b249aa: VenomPool che chỗ cắt hông Venom (intro + trận). Đang review → merge.
+- Làn U `l1/U` 7470131: HUD boss "Phase X of Y" chỉ hiện khi > 1 phase. Đang review → merge.
+- 4 Chimera dựng tay bằng Blender CLI (Liam: không có AI 3D; Brine dùng cho CẢ gooey_king + frost_lord, mỗi con 1 bộ màu):
+  A = Brine (gooey_king, frost_lord), K = Tempest (mecha), L = Feral (mirror), S = Parasite (plague_mother). Brief chung:
+  scratchpad `chimera-brief.md` (nội dung: build_<name>.py headless, 6 clip Idle/Attack/Hit/Dead/Cast/Roar, ≤3 MB, ≤25k tris,
+  gắn qua `godot/assets/atia/atia_models.json`, ảnh intro + trận 1920/1280, suite).
+**CẬP NHẬT (Liam, đêm 20/10): DỪNG làm Chimera bằng Blender script ("xấu quá").** 4 agent đã dừng, KHÔNG merge. Commit dở còn
+trên l1/A 3b5857e (Brine), l1/S 8c81f1e (Parasite), l1/K, l1/L — chỉ để tham khảo rig/anim. Liam không muốn trả phí AI 3D.
+Hướng tiếp (chờ Liam): xin mesh từ team Art như Venom, hoặc thử TRELLIS.2 (Microsoft, MIT, free trên HF Spaces) → GLB bỏ vào
+`asset-library/chimera-src/<tên>/3D/`, rồi rig/anim theo pipeline Venom. Hunyuan 3D free nhưng giấy phép loại EU/UK/KR.
+Làn V (VenomPool, field `cover` trong atia_models.json) + U (HUD phase) đã merge: d98bdd9. Deploy web với bản này.
+**(cũ) Sau đó:** review từng con → merge (atia_models.json mỗi làn sửa 1 key, có thể conflict nhẹ) → suite ở B → push →
+export web theo `production/release/web-deploy-2026-10-19.md` → **hỏi Liam trước khi upload R2** → build desktop mới.
+Liam: "làm hết rồi deploy 1 thể".
+
+## ⇢ BẮT ĐẦU TỪ ĐÂY (bàn giao 20/10/2026, session "Build b831 review và fixes")
+
+**Trạng thái git:** cây chính `godot-port` = **ca8bed3**; `axiedice/main` = **ca26343** (merge Venom, suite 122/122 ở worktree B). Chưa push: chỉ merge làn C (preload map, ca8bed3) — chạy suite cho ca8bed3 ở worktree B rồi push:
+`git -C ../my-game-wt/B checkout --detach godot-port && cd ../my-game-wt/B && AXIE_HANG_KILL=900 godot/tools/with_lock.sh $GODOT --headless --path godot --import && AXIE_HANG_KILL=500 bash godot/tools/run_tests.sh` → xanh thì `git push axiedice godot-port:main`.
+**Bản build Liam đang chơi:** b945 (40e33c7). **Mốc test:** 122/122 ở 40e33c7 (+ t_arena_preload sau merge C).
+
+**LUẬT MỚI (Liam 19–20/10):**
+- KHÔNG chạy suite/Godot ở cây chính khi Liam chơi (chung user dir "Axie Dice"); merge ở cây chính, chạy suite ở worktree B/R detached. (Làn M đã làm cách cô lập hẳn, đang chờ review → khi merge xong thì cây chính cũng an toàn.)
+- Không giới hạn số agent, tự chọn đúng chuyên gia; mỗi làn một vùng file; review + suite trước merge.
+- CHỐNG TREO tuyệt đối: AXIE_HANG_KILL (120 test lẻ / 500 suite / 900 import-export), không vòng until/while; bật bộ canh treo (Monitor, `ps -axww`) khi có agent chạy, bật lại mỗi 30 phút. Luật chung cho agent: `production/agent-lane-rules.md` (trỏ agent tới file này).
+- Art/UI coi như XONG (Liam). Phase sau: làm lại game design (session sau, brainstorm trước).
+
+**Làn đang dở lúc bàn giao (agent chết theo session cũ — kiểm git rồi giao agent mới làm tiếp):**
+1. **Làn M** `l1/M` fe75f6a (worktree M): 1c56816 test luôn dùng user dir riêng (temp override.cfg khi giữ lock) + fe75f6a xoá Dango (bỏ `[gui] theme/custom` khỏi project.godot). **Review = FIX FIRST, KHÔNG merge trước khi sửa:** (a) RỦI RO LỌT override.cfg VÀO BẢN EXPORT (build_desktop.sh chạy export qua with_lock → temp override.cfg có mặt lúc export; export-web.sh không khoá) → thêm `override.cfg` vào cả 3 `exclude_filter` trong `godot/export_presets.cfg` + guard trong `tools/build_desktop.sh` và `export-web.sh` dừng nếu `godot/override.cfg` có dấu `axie-temp-override`; kiểm lại bằng cách export rồi tìm override.cfg trong pck. (b) `with_lock_test.sh` dòng ~137/149: thay `sleep 1.5` bằng poll có giới hạn ~10 s. (c) Chụp 1280 Combat, Tutorial, Store, Leaderboard xem có mất theme không (InfoLabel/InfoPanel/log trong Combat.tscn, TutorialView, TutorialCoach dựa project theme). Sau đó merge + cập nhật FINGERPRINT nếu cần. (Bản b945 build TRƯỚC thay đổi này nên không bị ảnh hưởng.)
+2. **Làn E** `l1/E` **6f5803c** (worktree E, XONG, suite 122/122 có skip fingerprint): 4488ffd tên M6 "Sturdy foes"/M7 "Fierce elites"; e487236 balance `production/qa/season-box-balance-2026-10-19.md` (không vỡ INV-1..7; full set trung bình 57,7 lượt ≈ 289 vé, tối đa 400; vé free cả mùa chỉ ~55–60 → hoàn thành set cần Gem/Nhiệm vụ — CÂU HỎI DESIGN cho Liam); 2302828 bật hộp mùa + tách pool (die_m_moon cũng bỏ khỏi hộp thường) + 3 danh hiệu ECHO WALKER / MOONBOUND / LUNAR ECHO MASTER (`title:<NAME>`); 6f5803c tab Seasonal + t_season_box. **Cần Liam:** bậc Epic hộp thường giờ chỉ còn Founder Seal/Laurel làm hình tạm (vốn là đồ Pass) → cần art Epic thật; tên 3 danh hiệu. Worker chưa có endpoint roll hộp (hộp thường cũng roll client). Việc tiếp: review → merge → tính lại FINGERPRINT (echo_box.gd, echobox.json; kết quả run KHÔNG đổi).
+3. **Làn U** `l1/U` **5734b87** (worktree U, sạch; 9842203 hình nền + BossIntroData, 22dc39d màn BossIntro + phím boss_intro_skip + nối từ node boss, 5734b87 t_boss_intro; CHƯA chụp ảnh, CHƯA chạy suite đủ, CHƯA review — agent bị dừng khi bàn giao): **màn giới thiệu boss** — spec `design/ux/screens/52-boss-intro/spec.md` NHƯNG theo quyết định Liam: luôn bản đầy đủ; model 3D boss đứng trước hình nền TRƠN `asset-library/chimera-src/Backgrounds/Chimera_BG_<Name>.png`, animation mạnh (đẩy camera, Roar, chớp sáng tôn trọng Reduce flashing, bảng tên); 5 Chimera (Blight để sau); boss chưa có model Chimera thì dùng model hiện tại + nền cùng hệ; phím skip là action KeyBindings mới; resume bỏ intro.
+4. **Boss Chimera:** Venom xong (godot/assets/bosses/chimera_venom/, pipeline `tools/art/chimera/build_venom.py`, gắn boss `agony`). **Chờ Liam duyệt Venom** (ảnh `production/qa/evidence/chimera/`) → dựng Brine (Aqua) bằng Blender theo tranh `asset-library/chimera-src/Brine (Aqua)/` → duyệt → Feral, Parasite, Tempest. Liam: Chimera THAY CẢ 3 boss trong run (chia slot sau khi đủ model). Venom hơi mảnh trong trận (cỡ do `_fit_atia_model`); Cast/Roar chưa dùng trong trận (Roar hợp đổi phase). 4 biến thể Venom 02–05 ở scratchpad cũ, chưa commit.
+5. **Deploy web** (Liam duyệt, chấp nhận ~253 MB): sau khi M/E/U merge → làm theo `production/release/web-deploy-2026-10-19.md` (dọn `web/_pckparts`, `.DS_Store` trước khi `deploy-r2.sh`). Worker KHÔNG cần deploy (code không đổi từ 16/10, 184/184). Xoá `../my-game-wt/R/build/web-stage` (~250 MB, agent bị chặn quyền xoá — hỏi Liam).
+6. Sau cùng: build bản Mac/Win mới (`bash tools/build_desktop.sh`), dời bản cũ vào `build/old/`.
+
+**Còn trong backlog (đã duyệt):** `production/backlog-after-b931.md` — B gom bump RULES_VERSION với game design; C game design (session sau; Vault "trống ô" = mặt dice BLANK → thiết kế lại cách part sinh mặt); token Worker để sau L1. Phím B/S ở Run setup chưa vào tab Controls.
+
+
 Cập nhật: 2026-10-12. Nhánh `godot-port`, push lên `axiedice` (`git push axiedice godot-port:main`).
 
-## ⇢ BẮT ĐẦU TỪ ĐÂY (cập nhật 18/10/2026)
+## ⇢ BẮT ĐẦU TỪ ĐÂY (tối 18/10/2026, Liam review b831)
+
+Liam chơi b831, gửi 11 mục. Đã điều tra (chưa sửa code), đang chờ Liam trả lời câu hỏi rồi mới làm:
+1. Reroll vẫn là khay 2D cũ (`reroll_fx.gd`), chỉ lượt tung đầu dùng `DiceRoller3D` → chuyển reroll sang 3D (M).
+2. Bố cục trận: spec round 2 đặt Axie trái, quái phải; game vẫn dọc (`CombatStage3D.gd` :325, `CombatArena3D.gd` theo trục z) → xoay sang ngang, cổng sau quái, chạy ngang qua cổng (L).
+3. Bấm phím tắt văng game: SIGSEGV thật (`~/Library/Logs/DiagnosticReports/Axie Dice-2026-10-18-*.ips`), chưa tái hiện, đang hỏi Liam màn nào/phím nào. Lỗi phụ: `UnitPortrait.gd` connect `gui_input` 2 lần (:411/:443).
+4. Land: bỏ biển tên + badge, kéo nhà vào giữa (`BUILDINGS` Land.gd:48), cây không lòi ra ngoài (`_build_props` :585).
+5. Prompt cosmetics 3D: `design/handoffs/ui-03-redesign/PROMPT-COSMETICS-3D.md` (art-director đã review) → Liam gửi Claude Design.
+6. Cho trùng Axie free trong party, Vault mỗi con 1 lần (RunSetup.gd:208/225/792/1394, `team_presets.gd` là file luật → bump).
+7. Echo Box thẻ Stone dùng ảnh `UI3.icon("cur_stone")` (EchoBoxScreen.gd:623).
+8. Khung avatar lệch: `AvatarFrame.wrap` (Land.gd:1118), chưa rõ gốc, cần chụp.
+9. Continue run không phản hồi: nghi `RunContinue.busy` chờ reconnect, không báo gì (Land.gd:1461).
+10. Hiệu ứng (SHD/POI/THN) thành icon trên đầu unit, bỏ chữ trong bảng quái; chip "THN 2" đang trôi lơ lửng.
+11. Run map: ô đã qua hiện ổ khoá (RunMapController.gd:410 `passed` → locked); nhấn 2 lần vào ô = đi luôn.
+
+**Cập nhật 19/10 23:10:** godot-port = axiedice/main **40e33c7**. Suite **122/122** (worktree R). Bản test: `build/AxieDice-0.1.0-L1-b945-40e33c7-macos.dmg` + `-windows.zip`.
+Từ b931: run map nền tím (reptile class art), "Enemy turn" không tràn, tab Settings > Controls đổi phím (KeyBindings, MetaState.key_bindings — fingerprint đã cập nhật, giữ -n), bỏ chữ P/L/C, Claim Gem (Daily + Store) chờ server, Vault thẻ gọn + ô Import, decor nửa sau Land (NFT_Item, +8 MB), cosmetics round 4 (viền mặt dice bo tròn, khung hết cắt mép). Art/UI XONG (Liam).
+**Việc tiếp theo:** Liam duyệt `production/backlog-after-b931.md`, xác nhận Vault "trống nhiều ô" = mặt dice BLANK, rồi phase làm lại game design (brainstorm trước).
+
+**Cập nhật 19/10 18:15:** godot-port = axiedice/main **4593e6b**. Suite **119/119** (chạy ở worktree R vì Liam chơi trên save thật — KHÔNG chạy suite ở cây chính khi Liam đang chơi). Bản test: `build/AxieDice-0.1.0-L1-b931-4593e6b-macos.dmg` + `-windows.zip` (b896 vào `build/old/`).
+Từ b896: số N trên mặt dice (WEAKEN 3), battle log sang trái, cosmetics round 3, đội hình quái giữa trục cổng (2–3 con gần nhau, add 5+ hàng sau), Arctic bớt chói, 6 map trận mới làm bằng Blender (arena v2, `godot/assets/atia/arena_v2/`, pipeline `tools/art/arena_v2/`), xúc xắc rơi lưới gọn giữa 2 bên + không đè nhau + to thêm 15%, Land bớt cây (vài cụm, không chìm).
+Còn: frame_m_eclipse vẫn bị cắt mép trên (cần Claude Design sửa); arena v2 tải đồng bộ lần đầu mỗi biome (web có thể giật, nên preload); kiểm dung lượng bản web (+15 MB map); Land tier 1 khá thưa (Liam xem).
+
+**Cập nhật 19/10 14:00:** godot-port = axiedice/main **377135e**. Suite cây chính **116/116**. Bản cho Liam test: `build/AxieDice-0.1.0-L1-b896-377135e-macos.dmg` + `-windows.zip` (b831 đã vào `build/old/`).
+Đã merge 19/10: làn U (icon enrage, hiệu ứng skill đầu trận nhỏ trên caster), làn K (cosmetics 3D round 2: skin xúc xắc 3D, trims, khung ×1.5, Profile, Echo Box, Store, icon Stone/Ticket/Fragment, 41 tên Liam duyệt), làn C (giãn khoảng cách trận, quái theo chiều cao Axie, boss 2.6×, cổng trên đường tiến sau quái + ngoài cột bảng quái, xúc xắc rơi giữa màn hình).
+Còn: prompt cosmetics round 3 (`design/handoffs/cosmetics-3d/PROMPT-ROUND-3.md`, 6 mục) chờ Liam gửi; ô thưởng Pass chưa theo tile 48; web size_limit 256 cho skin khi build web; theo dõi 11 xúc xắc có đè nhau lúc dừng không; cổng hơi nhỏ so với boss, Thornback hơi bé.
+
+**Cập nhật cuối tối 18/10:** đã merge vào godot-port (CHƯA push, chưa build): làn M (e90646a: trùng Axie free, Stone Echo Box, run map),
+fingerprint f7ec3ca (kết quả run KHÔNG đổi, giữ -n, không cần deploy Worker), làn U (5a7585f: reroll 3D, icon hiệu ứng trên đầu),
+làn L (crash phím tắt Land + 23 màn, Continue, bỏ biển tên, nhà vào giữa, cây trong land, khung avatar), làn C (bố cục trận ngang 3/4).
+Suite cây chính **113/113**. Việc sau của làn C (review gợi ý, không chặn): quái sát nhau khi 3 con (ENEMY_CENTER_X), xúc xắc rơi
+chạm quái, cache pad texture quái; chưa chụp 4–5 quái / boss+summon / 4 Egg. Thiếu art icon enrage. Hiệu ứng skill đầu trận (đốm sáng to) cần xem.
+Cosmetics: Claude Design trả round 1 → `design/handoffs/cosmetics-3d/round-1/_zip/`. Prompt round 2 (chờ Liam chốt 3 câu ở đầu file rồi gửi):
+`design/handoffs/cosmetics-3d/PROMPT-ROUND-2.md`. Việc tiếp: Liam test bản build mới (cần build lại từ godot-port), push khi Liam bảo.
+
+## (cũ) ⇢ BẮT ĐẦU TỪ ĐÂY (cập nhật 18/10/2026)
 
 **Đang làm: port UI-03 (Claude Design, A4 Blend trên Terrariums) vào game.** Kế hoạch làn: `production/ui3-port-plan.md`.
 Bản giao round 1: `design/handoffs/ui-03-redesign/round-1/handoff/`. Màn chưa có mockup: `round-1/GAP-LIST.md`. Prompt round 2 đã
