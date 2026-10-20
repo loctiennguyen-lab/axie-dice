@@ -24,7 +24,7 @@ Hôm nay xúc xắc trong game gần như chỉ có một quyết định: dùng
 - **MẶT TẠM**: trả 2 mana, một viên chưa dùng được tính như part bạn chọn khi đếm Bộ (hiệu ứng thật giữ nguyên).
   Đây là cách dùng mana mua độ chắc chắn, cạnh tranh với Overcast (3 mana, x1.5 một viên) và reroll an toàn.
 
-Cộng thêm 5 Lõi chủ (chọn 1 trong 3 khi bắt đầu run) và mở dần theo tiến độ tài khoản để người mới không bị ngợp.
+Cộng thêm 5 Lõi chủ (chọn 1 trong 3 khi bắt đầu run; TÁCH sang bump sau, mục 10) và mở dần theo tiến độ tài khoản để người mới không bị ngợp.
 Bộ nâng trần sức mạnh của mọi người chơi kể cả bot bừa, nên độ khó phải kéo lại bằng quái nền +25% rồi chỉnh bằng sim
 (mục 7, mục 8). Mục tiêu thắng: random <= 10%, spam <= 12%, expert 18-23%, expert trừ random >= 12.
 
@@ -163,6 +163,13 @@ cắt gọn trường hợp Bộ năm + Overcast.
 Số học làm bằng số nguyên theo phần trăm để khỏi lệch dấu phẩy động: `M100` = M x 100 (150, 200, 250...);
 `v_sau = (v * M100 + 99) / 100` (chia nguyên, làm tròn lên). Ví dụ `v = 5`, `M100 = 150` cho `(750 + 99) / 100 = 8`.
 
+`M100` dựng từ đóng góp đã làm tròn từng cái MỘT lần (N11): `M100 = 100 + round(bo_add x bo.scale x 100) + round(oc_add x 100) + ...`, không
+nhân `0.8 x 100` bằng số thực rồi cộng. Với mặc định `bo.scale` 0.8: Bộ ba +0.40 (M 1.40), bốn +0.80 (1.80), năm +1.60 (2.60); Bộ bốn + Overcast = 2.30
+(`oc_add` không nhân `bo.scale`). Các ví dụ trong doc dùng `bo.scale` 1.0 và `m_cap` 3.5 (số danh nghĩa); test phải ghi rõ bộ knob nào (mục 8.1).
+
+Trần poison, thorn (N6, 21/10): `poison.face_cap` áp ở CUỐI chuỗi giá trị của mặt, tức sau bước 7 (sau `M`, Resonance, `face_final`, cộng phẳng
+Lõi, `first_dmg_face_bonus`) và TRƯỚC DamagePipeline. Lý do: một chỗ đo được, mọi nguồn cộng đều bị cắt, đỉnh một mặt poison luôn <= 8.
+
 Thứ tự tính cho một mặt của người chơi (chỗ đánh dấu MỚI là chỗ thêm; còn lại đã có trong `_face_value` / pipeline):
 
 | Bước | Việc | Ghi chú |
@@ -188,8 +195,12 @@ Hệ quả cần ghi rõ:
 
 ### 3.5 LIỀU: ba kiểu reroll
 
-Chỉ áp cho phe người chơi. Dùng lại biến có sẵn: `rerolls` (số lần tung miễn phí còn lại), `reroll_nonaid` (số lần reroll
-thường đã dùng trong lượt), knob `reroll.max_total`.
+Chỉ áp cho phe người chơi. Dùng lại biến có sẵn: `rerolls` (số lần tung miễn phí còn lại), knob `reroll.max_total`, và một biến MỚI `reroll_paid_k` (N1, 21/10):
+số lần Liều/An toàn đã chọn trong lượt. `reroll_paid_k` CHỈ tăng khi người chơi chọn Liều hoặc An toàn. Lần miễn phí gốc, lần relic/Lõi/Aqua
+tặng, và Aid KHÔNG làm nó tăng. (Code hiện tại tăng `reroll_nonaid` cho mọi lần không-Aid, kể cả lần free: sai với luật này, phải tách
+`reroll_paid_k` ra, đừng tái dùng `reroll_nonaid` cho việc này, và `reroll_is_payable` phải đọc `reroll_paid_k`.) Điều kiện còn được chọn Liều/An toàn:
+`reroll_paid_k + reroll.free < reroll.max_total`, tức `reroll_paid_k < 2` với số khởi điểm (`max_total` 3 = 1 lần gốc + 2 lần lựa chọn).
+`reroll_paid_k` nằm trong `_state_dict`, ảnh undo và save, reset ở `roll_all`.
 
 Cho mỗi lần xin reroll, engine xác định kiểu:
 
@@ -197,19 +208,21 @@ Cho mỗi lần xin reroll, engine xác định kiểu:
 |---|---|---|---|
 | Miễn phí an toàn | còn `rerolls > 0` (1 lần gốc, cộng thêm các lần relic tặng) | 0 | không |
 | Aid | đến từ Aid (tài nguyên meta, như hiện tại) | như hiện tại | không |
-| LIỀU | `rerolls == 0`, `reroll_nonaid < max_total`, người chơi chọn "Liều" | 0 | có, `crack_pct` mỗi viên tung lại |
+| LIỀU | `rerolls == 0`, `reroll_paid_k + reroll.free < max_total`, người chơi chọn "Liều" | 0 | có, `crack_pct` mỗi viên tung lại |
 | AN TOÀN trả mana | như trên, người chơi chọn "An toàn" | lần lựa chọn thứ nhất (tổng lần 2) `reroll.mana_cost_2` = 2 mana; lần thứ hai (tổng lần 3) `reroll.mana_cost_3` = 3 mana (+ phụ phí hook `before_reroll`, giảm giá hook `reroll_mana_cost`) | không |
 
 - **Giá thật cho lần 2-3 (sửa edge 32):** vì viên tung lại vốn cũng được dùng, Liều một mình gần như miễn phí; nên chỉ Nứt làm nó có giá, và Nứt phải đủ đau (30%, không phải 25%). Đường An toàn tăng giá theo lần: 2 rồi 3 mana. Chase đủ 3 reroll bằng mana tốn 5, gần hết mana một lượt, chắc chắn không còn Mặt Tạm hay Overcast. Một dòng cho người chơi: "tung thêm lần 2 tốn 2 mana, lần 3 tốn 3 mana". Không thêm luật nào khác.
 - `reroll.max_total` giảm từ 4 xuống 3 (lần 1 + hai lần lựa chọn). Relic tặng lần miễn phí vẫn cộng thêm như cũ (chúng đi
-  qua `rerolls`, không qua `max_total`).
+  qua `rerolls`, không qua `max_total` và không làm `reroll_paid_k` tăng). Ví dụ: có relic +1 thì thấy 1 gốc + 1 relic + 2 lựa chọn = 4 =
+  `hard_cap`; relic +2 thì vẫn 4 (cap cắt lần thứ 5). Giá An toàn đọc theo `reroll_paid_k` (0 thì `mana_cost_2`, 1 thì `mana_cost_3`), không theo
+  tổng số lần đã tung.
 - Chọn kiểu là một tham số mới của action: `reroll_dice(uids, from_aid, rmode)`. Tên key là `rmode`, KHÔNG phải `mode`, vì
   `worker/src/epoch_args.json` đã có `mode` = enum `short/full` cho `run_start`. `rmode` là số nguyên: `0` = Liều, `1` = An toàn
   (ActionLog canon không có bool/chuỗi cho arg này, giống `from_aid`). Với lần miễn phí an toàn và Aid, engine ĐỔI `rmode` thành `1`
   trước khi ghi log (không "bỏ qua"), để log và seed luôn có một giá trị rõ. `rmode` đi vào ActionLog và vào tham số xin seed
   (`_reroll_args`). Khoá và kiểm ở 3.10.2.
 - Tổng số lần tung lại mỗi lượt (mọi nguồn: miễn phí gốc, relic/Chaos tặng, Aid, Liều, An toàn) không vượt `reroll.hard_cap`
-  (3.10.3). `max_total` chỉ đếm hai lần lựa chọn Liều/An toàn.
+  (3.10.3). `max_total` chỉ so với `reroll_paid_k` (hai lần lựa chọn Liều/An toàn, cộng `reroll.free`).
 - Nứt: sau khi mọi viên được tung lại và `_resolve_cantrips()` chạy xong, với MỖI viên trong danh sách reroll (theo thứ tự
   uid người gọi truyền, đúng thứ tự log), rút một số `_rng.next_int(100)` từ chính luồng seed của lần reroll đó; nếu `< crack_pct`
   thì viên đó `cracked = true`. Luôn rút đủ một số mỗi viên dù viên đó đã chết hay không tung được, để mức tiêu thụ RNG
@@ -261,20 +274,22 @@ Một số nguyên `depth_stage` 1..3 tính một lần lúc bắt đầu run v�
 
 | Stage | Điều kiện khi bắt đầu run | Có | Ẩn |
 |---|---|---|---|
-| 1 | tài khoản chưa thắng boss act 1 lần nào | BỘ, reroll lần 1 an toàn, reroll thêm chỉ bằng mana (An toàn), Hold như cũ | Liều/Nứt, Mặt Tạm, Overcast, Lõi chủ, part cao bậc |
-| 2 | đã thắng boss act 1 ít nhất một lần (`META.first_boss_won`) | thêm Liều/Nứt, Mặt Tạm | Overcast, part cao bậc, Lõi chủ |
-| 3 | stage 2 và đã có >= 2 run có ít nhất một trận (`runs_with_battle >= 2`) | thêm Overcast, part cao bậc (+0.25), Lõi chủ (chọn 1 trong 3) | không |
+| 1 | tài khoản chưa có run hoàn thành nào (`runs_completed = 0`) | BỘ, reroll lần 1 an toàn, reroll thêm chỉ bằng mana (An toàn), Hold như cũ | Liều/Nứt, Mặt Tạm, Overcast, Lõi chủ, part cao bậc |
+| 2 | `runs_completed >= depth.stage2_runs` (1) | thêm Liều/Nứt, Mặt Tạm | Overcast, part cao bậc, Lõi chủ |
+| 3 | `runs_completed >= depth.stage3_runs` (3) | thêm Overcast, part cao bậc (+0.25), Lõi chủ (chọn 1 trong 3; Lõi chủ là "bump sau", mục 10) | không |
+
+`runs_completed` (N7, 21/10) = số run đã hoàn thành (thắng hoặc thua đến hết, có `run_finish`), thứ server đo được: Worker đã có dòng `run_finish` trong D1 cho
+mỗi run nộp xong, nên không cần Worker chạy luật. Bỏ `first_boss_won` (Worker không kiểm được thắng boss). Run bỏ giữa chừng không có `run_finish` thì không tính.
 
 Làn OC phải chặn Overcast ở `depth_stage < 3` (engine trả false, như mọi action stage cao). Ghi chú: các chỗ khác trong doc còn viết "Overcast ở stage 2" (9.4 C7, mục 1) thì đọc theo bảng này.
 
 - Tài khoản cũ không còn là newcomer (`runs_with_battle >= 5`, đúng `MetaState.is_newcomer()` đã có) bắt đầu thẳng ở stage 3,
-  để không bắt người đã chơi nhiều học lại. Cần migrate: field mới `first_boss_won` phải thêm vào cả `MetaState.reload_from_store()`
+  để không bắt người đã chơi nhiều học lại (đây là lối vào duy nhất còn dùng `runs_with_battle` cho stage; server tính từ D1 như 3.10.9). Cần migrate: field mới `runs_completed` phải thêm vào cả `MetaState.reload_from_store()`
   và đi qua `SaveStore`.
-- Thắng boss act 1 giữa run không mở ngay trong run đó (stage đóng băng ở đầu run). Màn kết run hiện "Mới mở: Liều, Mặt Tạm,
-  Overcast. Có từ run sau."
+- Hoàn thành run không mở ngay trong run đó (stage đóng băng ở đầu run). Màn kết run hiện "Mới mở: Liều, Mặt Tạm. Có từ run sau" (đúng phần stage kế mở ra).
 - Stage 1 dùng cùng `max_total = 3` như các stage khác (một số cố định, không đổi theo stage).
 - Stage ảnh hưởng tới: UI (ẩn nút), engine (action bị từ chối nếu stage thấp, trả `false`, không đổi state), và pool Lõi chủ.
-  Engine không được tin UI: `reroll_dice(mode="free")` ở stage 1 trả `false`.
+  Engine không được tin UI: `reroll_dice` với `rmode = 0` (Liều) ở stage 1 trả `false`.
 
 ### 3.9 Ví dụ một lượt 5 viên (giá trị là minh hoạ, loại mặt đúng luật class)
 
@@ -333,6 +348,14 @@ Mục này là luật chính thức, thắng mọi câu mâu thuẫn ở trên. 
 - Engine: `_state_dict` giữ `reroll_lock[k] = { rmode, uids }` cho lượt hiện tại. Xin tung lại một `k` đã có trong `reroll_lock` mà
   `rmode` hoặc `uids` khác thì trả `false`, state không đổi. Khoá này KHÔNG bị undo xoá (kể cả `safeReroll`: undo đưa `reroll_k`
   về giá trị cũ nhưng `reroll_lock` giữ nguyên, nên lần tung lại ở `k` đó chỉ được lặp đúng y chang). Khoá hết ở `roll_all` lượt sau.
+- Khoá có thêm `rsrc` (N3): 0 = lần free/An toàn/Liều, 1 = Aid. `rsrc` chỉ nằm trong engine/save (không vào ActionLog, không vào pin Worker; Worker
+  không biết sổ Aid). Xin tung lại ở `k` đã khoá mà `rsrc` khác thì `false`. Sổ Aid hoàn lại cùng undo (cùng ảnh undo với `reroll_k`); nếu không hoàn được
+  thì lần `k` đó chỉ được lặp bằng Aid. Nên không có đường "thấy kết quả rồi đổi nguồn trả". Free relic và An toàn trả mana cùng `rmode = 1` nhưng engine
+  luôn dùng lần free trước khi trả mana, nên nguồn không đổi được. Test: sổ Aid sau undo (`t_reroll_modes`, `t_aid_reroll_depth`).
+- Kẹt sau undo (N2): chọn cách đơn giản, không cho nhảy `k`. Nếu khoá ở `k` còn mà người chơi đã dùng/Hold một viên trong `uids` của khoá, danh sách cũ
+  không lặp lại được, thì nút tung lại xám kèm lý do "đã tung lần này với danh sách khác, bấm Hoàn tác để tung lại đúng danh sách cũ" và `reroll_dice` trả
+  `false`. Người chơi vẫn có lối ra: Hoàn tác việc dùng/Hold viên đó (use_die và stash đều có undo), rồi tung lại đúng danh sách khoá, hoặc đi tiếp
+  không tung. Lý do không chọn "nhảy `k+1`": với `safeReroll` nó mở đường câu seed bằng undo nhiều lần. Test: `t_reroll_modes` có ca này và ca lối ra.
 - Save/load giữa lượt: `reroll_lock` và mặt đã tung nằm trong save; nạp lại là đúng viên, đúng mặt, đúng Nứt, không "chia bài lại".
   Nạp một save CŨ hơn (trước lần tung) là save-scum; đường online được chặn ở Worker (dưới), đường offline không có ranked nên bỏ qua.
 - Worker: dòng pin hiện chỉ LƯU `uids`. Phải so: khi đã có pin cho `(battle, attempt, turn, k)`, request có `rmode` hoặc `uids`
@@ -344,11 +367,12 @@ Mục này là luật chính thức, thắng mọi câu mâu thuẫn ở trên. 
 #### 3.10.3 Aid và tổng số lần tung lại (G4, G17)
 
 - Quyết định tạm (CÂU HỎI CHO LIAM, mục 12 câu 5): Aid reroll là AN TOÀN: không Nứt, không tốn mana, không tính vào `reroll.max_total`
-  và không tính `reroll_nonaid`. Lý do: Aid là tài nguyên meta, người chơi đã trả (kể cả tiền thật, hướng bán giải pháp ngày 11/10).
+  và không làm `reroll_paid_k` tăng (3.5). Lý do: Aid là tài nguyên meta, người chơi đã trả (kể cả tiền thật, hướng bán giải pháp ngày 11/10).
   Rủi ro P2W ranked ghi thẳng ở đây: người có nhiều Aid có thêm tối đa các lần an toàn, tức Bộ chắc hơn trong ranked. Giảm rủi ro bằng
   cap cứng dưới đây, nên Aid chỉ thay chỗ trống chứ không vô hạn. Nếu Liam chọn "Aid tính vào `max_total`" thì Aid kiểu 1 trong 2 lần
   lựa chọn (không Nứt, không mana); số Aid mỗi lượt vẫn do luật Aid hiện tại giữ.
-- Cap cứng: `reroll.hard_cap` = 4 lần tung lại mỗi lượt, đếm MỌI nguồn (miễn phí gốc, relic/Chaos tặng, Aid, Liều, An toàn).
+- Cap cứng: `reroll.hard_cap` = 4 lần tung lại mỗi lượt, đếm MỌI nguồn (miễn phí gốc, relic/Chaos tặng, Aid, Liều, An toàn). Hai biến đếm khác nhau,
+  đừng gộp (N1): `reroll_total_turn` (mọi nguồn, so với `hard_cap`) và `reroll_paid_k` (chỉ Liều/An toàn, so với `max_total`, 3.5).
   Đạt cap thì `reroll_dice` trả `false`. Khởi điểm 4 = 1 gốc + 2 lựa chọn + 1 do relic/Aid. Với 5 viên, 4 lần an toàn đã ~90% có Bộ
   ba+, nên cap này không được nâng khi chưa sim.
 - Edge: nhiều relic tặng lần miễn phí không phá cap (chúng cộng vào `rerolls`, nhưng cap cứng cắt). Đếm bằng biến riêng `reroll_total_turn`,
@@ -359,8 +383,8 @@ Mục này là luật chính thức, thắng mọi câu mâu thuẫn ở trên. 
 - Câu luật: "Trận raid dùng đúng luật Bộ như trận thường, cho người tấn công. Quái ghost là phe `e` nên không có Bộ."
 - Hệ quả: BỎ `bo.enabled = 0` cho raid. Tắt Bộ chỉ ở raid sẽ làm raid yếu hơn trận thường một cách vô lý (người tấn công mất sức mạnh
   nhưng quái ghost không đổi). Knob `bo.enabled` chỉ còn là công tắc debug/rollback.
-- Việc còn lại cho làn RV: chạy sim độ khó ghost sau khi có Bộ (quái ghost không tăng D như quái nền). Nếu raid dễ quá thì chỉnh cấp
-  độ ghost, không tắt Bộ. (`t_bo_raid`: chạy hết một trận ghost, Bộ có áp cho phe `p`, không có cho phe `e`)
+- Việc còn lại cho làn RV (N12, vào DoD, mục 8.2): chạy sim độ khó ghost sau khi có Bộ (quái ghost không tăng D như quái nền) TRƯỚC khi merge Bộ.
+  Nếu raid dễ quá thì chỉnh cấp độ ghost, không tắt Bộ. (`t_bo_raid`: chạy hết một trận ghost, Bộ có áp cho phe `p`, không có cho phe `e`)
 
 #### 3.10.5 Viên ảo, Mặt Tạm vs Concord, Egg (G6, G7)
 
@@ -382,8 +406,10 @@ Mục này là luật chính thức, thắng mọi câu mâu thuẫn ở trên. 
   các viên trong Bộ, chỉ mặt loại `dmg/shield/heal/poison` (mana, debuff, summon, blank không cộng). Làm tròn lên.
   Sát thương nổ: `src` = viên kích nổ (KHÔNG null), `attack = false`, `from_burst = true`. Đi qua `DamagePipeline` đầy đủ; `tt.cap`
   (20) áp SAU pipeline lên sát thương cuối của mỗi quái, nghĩa là sau vulnerable, mod_dmg, crit-boss (nhưng nổ không tự có crit/Plating).
-  Hook đọc `from_burst`: vụ nổ không kích `on_use` của viên, không kích Tam Tấu lại; `on_hit/on_kill/thorn/spite` chạy bình thường
-  với `src` hợp lệ (giết bằng nổ tính cho viên kích). Test đi qua mọi hook `on_kill/on_hit` với `src` thật; một test riêng vẫn
+  Hook đọc `from_burst`: vụ nổ không kích `on_use` của viên, không kích Tam Tấu lại; `on_hit/on_kill/spite` chạy bình thường
+  với `src` hợp lệ (giết bằng nổ tính cho viên kích). Thorn của QUÁI (affix elite, thorn boss) KHÔNG phản lên `src` khi `from_burst` (N9): nổ không phải
+  đòn tấn công trực tiếp của viên (`attack = false`), và nếu không, một vụ nổ trúng 4 quái có thorn phản 4 lần lên viên kích, có thể giết Axie 1 HP. Lý do chọn
+  "không phản" thay vì "phản một lần": một luật, không ngoại lệ. Test `t_core_keystones` có ca elite thorn: viên kích không mất HP vì nổ. Test đi qua mọi hook `on_kill/on_hit` với `src` thật; một test riêng vẫn
   gọi pipeline với `src = null` để chắc không crash nếu ai đó truyền null (S1 lịch sử). Undo hoàn cờ.
 - **Con Bạc**: một lần Liều chỉ tính là "sạch" khi (a) số viên tung lại >= `cb.min_dice` = 2, và (b) không viên nào Nứt. Liều một viên
   không cộng, không phá. Lý do: Liều một viên rác hai lần cho +0.50 gần như không rủi ro. Tối đa +0.50, chỉ cho viên đang nằm trong Bộ.
@@ -396,19 +422,24 @@ Mục này là luật chính thức, thắng mọi câu mâu thuẫn ở trên. 
 #### 3.10.7 Thorn và Poison nhân Bộ (G11)
 
 - Quyết định: chặn bằng cách đọc giá trị gốc + knob trần, không "chấp nhận kèm sim", vì thorn là thứ duy nhất không có trần.
-- Thorn: Lõi `c_thorn_shield` (đổi khiên thành thorn, `t = shield / 2`) PHẢI đọc khiên TRƯỚC `M` (giá trị `v0`), không đọc khiên đã nhân.
-  Thorn do nó tạo ra còn bị trần mỗi mặt `thorn.shield_cap` = 6. Thorn nằm trên mặt (keyword) vẫn không bị `M` nhân (đúng edge 21), và
+- Thorn (N5, sửa 21/10): Lõi `c_thorn_shield` (đổi khiên thành thorn, `t = shield / 2`) chuyển CẢ KHO khiên của một Axie tại một thời điểm, nên không biết khiên
+  nào từ mặt nào. Bỏ yêu cầu "đọc khiên gốc trước `M`". Luật đo được: thorn sinh ra từ MỘT lần chuyển của MỘT Axie bị trần `thorn.shield_transfer_cap` = 6
+  (cho mỗi lần chuyển, mỗi Axie; không phải mỗi mặt). Công thức: `t_moved = min(shield_moved / 2, thorn.shield_transfer_cap)`. Phần khiên vượt trần vẫn bị
+  chuyển hết (không giữ lại), để luật một câu. Ví dụ Bộ năm khiên, kho khiên 40: `t = min(20, 6) = 6`. (Tên knob cũ `thorn.shield_cap` bỏ.) Thorn nằm trên mặt (keyword) vẫn không bị `M` nhân (đúng edge 21), và
   `thorns.cap = 0` (không trần tổng) của luật cũ giữ nguyên; trần mới chỉ áp cho thorn sinh từ khiên.
-- Poison: `M` vẫn áp lên giá trị poison của mặt (đã chốt 3.4) nhưng sau `M` bị trần mỗi mặt `poison.face_cap` = 8, và tổng poison đang
-  chồng trên một quái bị trần `poison.stack_cap` = 15 (phần vượt bị cắt, không cộng dồn lượt sau). Hai số là điểm xuất phát: sim phải đo
-  tổng sát thương độc đỉnh một lượt; nếu bản cũ đã có stack cao hơn ở một tổ hợp hợp lệ thì đặt `stack_cap` bằng đỉnh bản cũ, không nerf luật cũ.
+- Poison (N6): `M` vẫn áp lên giá trị poison của mặt (đã chốt 3.4); trần mỗi mặt `poison.face_cap` = 8 áp ở CUỐI chuỗi giá trị, sau bước 7 (xem 3.4). Tổng poison
+  đang chồng trên một quái bị trần `poison.stack_cap`, phần vượt bị cắt (không cộng dồn lượt sau). `stack_cap` KHÔNG đặt bừa 15: đặt bằng đỉnh stack
+  poison mà bản cũ (không Bộ) đạt được ở tổ hợp relic hợp lệ do sim đo, để không nerf luật cũ; 15 chỉ là số tạm cho tới khi sim đo. Test: so stack đỉnh
+  với bản cũ (`t_bo_stacking_ceiling`): không thấp hơn bản cũ, và Bộ không làm nó vượt `stack_cap`.
 - Edge: Bộ năm (M = 3.0) + Vỏ Cứng +2 (cộng phẳng trước M) + Rebound: poison/thorn đã có trần nên đỉnh tính được. Thêm vào danh sách
   tổ hợp cấm của sim. (`t_bo_order`, `t_bo_stacking_ceiling`)
 
 #### 3.10.8 Lõi chủ: epoch, và lọc Concord/Đồng Tộc giữa run (G13, G15)
 
 - Rút 3 trong 5 Lõi chủ dùng epoch kind MỚI `keystone` (thêm vào từ vựng đóng `epoch_args.json`, args `{}` ngoài khoá chung, một
-  lần mỗi run, `k = 0`). Worker pin seed theo run, nên không rút lại để chọn bộ ba đẹp hơn (không save-scum). Client không tự rút.
+  lần mỗi run, `k = 0`). **Mục 10 và toàn bộ 3.10.8 là "bump sau" (Liam 21/10): giữ thiết kế, chưa code trong bump này; stage 3 chỉ mở Overcast và part cao bậc.**
+  Khi làm: seed `keystone` pin theo (tài khoản, số run có trận `runs_with_battle`), KHÔNG pin theo run (N10): bỏ run trước trận rồi mở run mới thì ra cùng bộ ba,
+  chỉ đổi khi run trước đã có ít nhất một trận. Nên không câu được bằng bỏ run. Client không tự rút. Test: bỏ run trước trận, run mới ra cùng bộ ba.
   Chọn là action `pick_keystone(index)` (0..2), vào ActionLog, vào `ALLOWED_FNS` ở cả ba chỗ (3.10.9); index ngoài 0..2 hoặc chọn lần hai thì `false`.
 - Lõi chủ chỉ cấp lúc bắt đầu run (stage 3), KHÔNG cấp giữa run. Pool lúc rút: nếu run đã có Concord từ trước (kho/Vault khởi đầu), bỏ Đồng Tộc.
 - Giữa run: offer Lõi/relic khác (`core_offer`) PHẢI lọc cả hai chiều: đã có Đồng Tộc thì không đưa Concord; đã có Concord thì không đưa
@@ -418,13 +449,20 @@ Mục này là luật chính thức, thắng mọi câu mâu thuẫn ở trên. 
 
 - Vấn đề: Worker không chạy luật, `depth_stage` nằm ở header client gửi, nên client sửa header thành 3 để có Lõi chủ trong ranked.
 - Quyết định: với run ranked/online, `depth_stage` do SERVER ghi lúc `run_start` và trả về cho client; client không đặt. Server tính từ D1
-  của tài khoản: `runs_with_battle` = số run đã xin ít nhất một seed trận; `first_boss_won` = có ít nhất một run đã xin seed trận act 2
-  VÀ được RunVerifier xác nhận khi nộp. Mọi request epoch sau đó mang header `depth_stage` phải bằng giá trị server đã ghi, lệch thì
-  `stage_mismatch` (mã lỗi mới). RunVerifier phía client từ chối action cần stage cao hơn header (T6).
+  của tài khoản (N7): `runs_completed` = số run có dòng `run_finish` trong D1; stage 2 khi `runs_completed >= depth.stage2_runs` (1), stage 3 khi
+  `>= depth.stage3_runs` (3); tài khoản cũ đã qua newcomer (`runs_with_battle >= 5`, server đếm từ D1) vào thẳng stage 3. Không còn `first_boss_won`
+  (server không chạy luật nên không kiểm được "thắng boss"). Test Worker: `run_finish` là điều kiện duy nhất, không chỉ `run_start`.
+  `depth_stage` là HEADER của run (cạnh `newcomer`), KHÔNG phải arg trong `epoch_args.json` (N4): nên không cần thêm vào từ vựng arg, và mọi request epoch sau
+  đó mang header phải bằng giá trị server đã ghi, lệch thì `stage_mismatch`. Từ vựng đóng `epoch_args.json` thêm đúng hai thứ: key `rmode` (kind `reroll`) và kind
+  `keystone`. Mã lỗi mới `pin_mismatch` và `stage_mismatch` phải có trong bảng mã Worker VÀ trong fake remote của `t_flow_online_reroll` (UI hiện thông báo,
+  không treo); `t_depth_epoch_args_contract` kiểm cả ba (`rmode`, `keystone`, hai mã lỗi) và rằng `depth_stage` không bị coi là arg lạ.
+  RunVerifier phía client từ chối action cần stage cao hơn header (T6).
+- Run online: UI lấy stage DUY NHẤT từ giá trị server trả lúc `run_start` (N8), không đọc `MetaState`. Client có stage 3 offline mà server nói 1 thì UI ẩn
+  nút như stage 1 và engine từ chối action stage cao. Test `t_flow_newcomer_gating`: meta cao, server thấp.
 - Rủi ro còn lại, chấp nhận có lý do: người cố ý chơi hai run ngắn để mở stage 3 sớm. Stage chỉ mở thêm lựa chọn chứ không bỏ luật, và
-  hai run có trận là chi phí thật (mất thời gian), thấp hơn nhiều so với sửa header. Nếu Liam sợ, nâng `depth.stage3_runs`.
+  hai run hoàn thành là chi phí thật (mất thời gian), thấp hơn nhiều so với sửa header. Nếu Liam sợ, nâng `depth.stage3_runs`.
 - Run offline/guest (không lên bảng): client tự tính từ `MetaState`, không ảnh hưởng ranked.
-- `first_boss_won` và `runs_with_battle`: ghi qua `SaveStore`, thêm vào `MetaState.reload_from_store()`. Xung đột cloud/guest sang tài khoản/đổi máy: lấy giá trị LỚN HƠN
+- `runs_completed` và `runs_with_battle` (offline/guest dùng bản client): ghi qua `SaveStore`, thêm vào `MetaState.reload_from_store()`. Xung đột cloud/guest sang tài khoản/đổi máy: lấy giá trị LỚN HƠN
   (boolean OR, số lớn hơn); không bao giờ hạ stage đã mở. Test đi qua `SaveStore`: ghi, reload, đổi tài khoản. (`t_bo_stage`, `t_worker_stage_mirror`)
 - Action mới `wild_face`, `overcast`, `pick_keystone`, và nhánh `rmode` của `reroll_dice` phải có ở BA chỗ trong CÙNG một commit:
   `ActionLog.ALLOWED_FNS` (`action_log.gd` ~75, kèm danh sách chú thích đầu file), `ALLOWED_FNS` trong `worker/src/run_core.js` (~21),
@@ -567,12 +605,12 @@ Mỗi mục ghi rõ chuyện gì xảy ra. "Test" là tên test cần có (mục
 7. **Mặt Tạm chọn part của chính mặt thật**: từ chối (vô nghĩa). Mặt Tạm chọn part có sẵn 5 viên: từ chối.
 8. **Reroll sau khi đã dùng một phần**: viên đã dùng không tung lại được (như hiện tại) nhưng VẪN đếm trong Bộ. `recompute_bo()` chạy lại; viên chưa dùng nhận hệ số mới. Viên đã dùng không bị tính lại hồi tố.
 9. **Undo**: `use_die`, `wild_face`, `overcast`, `stash` có undo. Ảnh undo chứa `bo`, `cracked`, `wild_slot`, `overcast`, `wild_used`, mana. Reroll xoá ngăn xếp undo (trừ relic `safeReroll`); với `safeReroll`, undo đưa `reroll_k` về giá trị cũ nên reroll lại ra đúng kết quả cũ, kể cả Nứt. Test: `t_bo_undo`.
-10. **Save/load giữa lượt**: `bo`, `cracked`, `wild_slot`, `overcast`, `wild_used`, `reroll_k`, `reroll_nonaid`, `depth_stage` nằm trong `_state_dict`. Sau load, `bo` đọc từ save, KHÔNG tính lại (vì chết giữa lượt không đổi Bộ). Test: so digest trước/sau save-load ở giữa lượt, lúc có Bộ, có Nứt, có Mặt Tạm.
+10. **Save/load giữa lượt**: `bo`, `cracked`, `wild_slot`, `overcast`, `wild_used`, `reroll_k`, `reroll_nonaid`, `reroll_paid_k`, `reroll_lock` (có `rsrc`), `depth_stage` nằm trong `_state_dict`. Sau load, `bo` đọc từ save, KHÔNG tính lại (vì chết giữa lượt không đổi Bộ). Test: so digest trước/sau save-load ở giữa lượt, lúc có Bộ, có Nứt, có Mặt Tạm.
 11. **Replay (RunVerifier)**: action mới `wild_face(uid, slot)`, `overcast(uid)`, `reroll_dice(uids, aid, rmode)` vào ActionLog (key `rmode`, không phải `mode`); Nứt rút từ seed epoch nên replay ra đúng. Phải bump `RULES_VERSION` (t_rules_version sẽ đỏ trong cây chính nếu quên). Test: `t_bo_replay`, bảy tamper cũ của `t_replay` vẫn đỏ đúng chỗ, thêm tamper T1-T10 ở 8.1.
 12. **Mana không đủ / mana âm**: mọi hành động kiểm `mana >= tổng giá` (giá gốc + phụ phí hook) TRƯỚC khi đổi state; không đủ thì trả false, không tốn gì. Mana không bao giờ âm; nếu relic rút mana về dưới 0 thì kẹp ở 0.
 13. **Chọn "An toàn" khi mana < 2**: nút xám kèm lý do "cần 2 mana". "Liều" vẫn bấm được (miễn phí).
 14. **Overcast và Mặt Tạm cùng viên**: cho phép cả hai (tổng 5 mana). `M = 1 + bo_add(part của Mặt Tạm) + 0.50`. Ví dụ Bộ ba + Overcast = 2.00.
-15. **Bộ năm với Lõi nhân**: túi M cắt 3.50; rồi Resonance x1.15; rồi Lõi x1.5 với phần tăng tối đa +8; rồi cộng phẳng tối đa +10; rồi crit x2. Ví dụ mặt dmg 6: 21, LINK 25, Lõi x1.5 nên 33 (tăng 8, đã chạm trần), cộng phẳng +10 nên 43. Đỉnh này sim phải kiểm trên boss cuối.
+15. **Bộ năm với Lõi nhân**: túi M cắt 3.50; rồi Resonance x1.15; rồi Lõi x1.5 với phần tăng tối đa +8; rồi cộng phẳng tối đa +10; rồi crit x2. Ví dụ mặt dmg 6: 21, LINK 25, Lõi x1.5 nên 33 (tăng 8, đã chạm trần), cộng phẳng +10 nên 43. Đỉnh này sim phải kiểm trên boss cuối. (Số danh nghĩa `bo.scale` 1.0, `m_cap` 3.5; với mặc định 0.8 / 3.0 túi M tối đa 3.0, đỉnh mặt dmg 6 thấp hơn 43. Test chạy cả hai, 8.1.)
 
 **Loại mặt đặc biệt**
 
@@ -611,16 +649,16 @@ Mỗi mục ghi rõ chuyện gì xảy ra. "Test" là tên test cần có (mục
 36. **Đổi danh sách viên ở cùng `k`**: engine `false`; Worker `pin_mismatch`. Tamper T9.
 37. **Mặt Tạm lên viên Concord loại, hoặc viên ảo**: `false`, mana không đổi (3.10.5). **Viên có Mặt Tạm mất tư cách đếm do Concord đổi viên đếm**: `wild_slot` nằm im, không hoàn mana.
 38. **Overcast lên viên frozen / mặt mana / `v0 = 0` / viên ảo**: `false`, không mất mana. **Viên Overcast bị tung lại hoặc Hold**: `false`. **Viên Overcast chết trước khi dùng**: mất cờ và mana (3.10.1).
-39. **Tam Tấu nổ lần hai** (Bộ ba lên Bộ bốn sau reroll, hoặc Bộ khác trong cùng lượt): không nổ (`tt_fired`). **Nổ giết quái**: tính cho viên kích; thorn/`on_kill` chạy với `src` hợp lệ; `tt.cap` cắt sau pipeline.
+39. **Tam Tấu nổ lần hai** (Bộ ba lên Bộ bốn sau reroll, hoặc Bộ khác trong cùng lượt): không nổ (`tt_fired`). **Nổ giết quái**: tính cho viên kích; thorn/`on_kill` chạy với `src` hợp lệ; `tt.cap` cắt sau pipeline. **Thorn của quái không phản lên viên kích khi nổ** (`from_burst`, N9, 3.10.6).
 40. **Con Bạc Liều một viên**: không tính "Liều sạch", không phá các lần sạch trước. Cần >= 2 viên tung lại.
 41. **Mỏ Mana undo rồi dựng lại Bộ** 20 vòng: mana ròng không tăng. Bộ toàn mặt không nhân (ba Tai non-cantrip): không trả +1.
-42. **`c_thorn_shield` sau khiên Bộ năm**: thorn tính từ khiên GỐC, trần 6 mỗi mặt. **Poison**: tối đa 8 mỗi mặt sau M, 15 chồng mỗi quái.
-43. **Tổng tung lại**: relic + Aid + free + Liều + An toàn không vượt `reroll.hard_cap` = 4; đạt cap thì `false`.
+42. **`c_thorn_shield` sau khiên Bộ năm**: thorn = `min(khiên chuyển / 2, thorn.shield_transfer_cap = 6)` cho MỖI lần chuyển, MỖI Axie (N5; không đọc khiên gốc). **Poison**: tối đa 8 mỗi mặt, áp cuối chuỗi sau bước 7 (N6); `stack_cap` = đỉnh bản cũ do sim đo (15 chỉ là số tạm).
+43. **Tổng tung lại**: relic + Aid + free + Liều + An toàn không vượt `reroll.hard_cap` = 4; đạt cap thì `false`. Relic tặng lần free không ăn vào `max_total`: có relic +1 thì 1 gốc + 1 relic + 2 lựa chọn = 4; relic +2 thì vẫn 4 (N1, `reroll_paid_k`).
 44. **Aid reroll**: không Nứt, không mana, không `max_total`, nhưng CÓ tính `reroll.hard_cap` (3.10.3). Cần Liam xác nhận.
 45. **Mặt đổi bởi hiệu ứng sau lần chụp** (Loaded, `face_swap`, Chaos): gọi `recompute_bo()` (3.3 mục 5); không được để viên mang hệ số của mặt cũ.
-46. **Stage khai gian**: server ghi stage lúc `run_start`; header lệch thì `stage_mismatch`; engine từ chối action cần stage cao (3.10.9). **Xung đột save/cloud của `first_boss_won`**: lấy OR/lớn hơn, không hạ stage.
-47. **Lõi chủ rút/chọn lại**: `keystone` seed pin theo run, chọn lần hai hoặc index ngoài 0..2 là `false`; offer giữa run lọc Concord/Đồng Tộc hai chiều.
-48. **Biên làm tròn**: `v = 0` cho 0 (không Nứt, không nhân thành 1); `v = 1` Nứt còn 1; `M100` từ 100 (M luôn >= 1.00, Đồng Tộc cũng không hạ dưới 1.00) tới `bo.m_cap x 100`; Nứt trước rồi mới nhân. Mọi giá mana qua `maxi(0)`; action trả `false` thì mana và digest không đổi.
+46. **Stage khai gian**: server ghi stage lúc `run_start`; header lệch thì `stage_mismatch`; engine từ chối action cần stage cao (3.10.9). **Xung đột save/cloud của `runs_completed`**: lấy số lớn hơn, không hạ stage. **Online**: UI lấy stage từ server lúc `run_start`, không từ meta (N8). **Stage mở theo `runs_completed`** (run hoàn thành, `run_finish` trong D1): 1 run thì stage 2, 3 run thì stage 3 (N7).
+47. **Lõi chủ rút/chọn lại** (bump sau): `keystone` seed pin theo (tài khoản, `runs_with_battle`) nên bỏ run trước trận không đổi được bộ ba (N10); chọn lần hai hoặc index ngoài 0..2 là `false`; offer giữa run lọc Concord/Đồng Tộc hai chiều.
+48. **Khoá tung lại không khớp** (N2, N3): undo rồi đổi danh sách/kiểu/nguồn ở cùng `k` thì `false`, nút xám kèm lý do, không nhảy `k`; lối ra là Hoàn tác việc dùng/Hold viên rồi tung lại đúng danh sách cũ (3.10.2). **Biên làm tròn**: `v = 0` cho 0 (không Nứt, không nhân thành 1); `v = 1` Nứt còn 1; `M100` từ 100 (M luôn >= 1.00, Đồng Tộc cũng không hạ dưới 1.00) tới `bo.m_cap x 100`; Nứt trước rồi mới nhân. Mọi giá mana qua `maxi(0)`; action trả `false` thì mana và digest không đổi.
 
 ---
 
@@ -636,14 +674,14 @@ Chiều dữ liệu: A -> B nghĩa là A cung cấp cho B. "Hợp đồng" là t
 | Lõi Overcast (làn OC) | OC -> doc này | OC cung cấp action + cờ `overcast`; doc này cung cấp công thức `oc_add` trong túi M. Hai bên phải thống nhất 3.7 trước khi OC merge. |
 | `action_log.gd`, `run_verifier.gd`, `RULES_VERSION` | doc này -> replay | action mới `wild_face`, `overcast`, `pick_keystone` + `rmode` của `reroll_dice` ghi vào log; ba danh sách `ALLOWED_FNS` khớp nhau (3.10.9); `t_rules_version` yêu cầu bump. |
 | Worker (`worker/src/runs.js`, `run_core.js`, `epoch_args.json`) | doc này -> Worker | thêm key `rmode` (enum 0/1, kind `reroll`) và kind `keystone`; so `(rmode, uids)` với dòng pin, lệch thì `pin_mismatch`; tự ghi `depth_stage` lúc `run_start` từ D1, header lệch thì `stage_mismatch` (3.10.2, 3.10.9). Worker KHÔNG chạy luật (Q7). Deploy Worker: hỏi Liam. |
-| `MetaState.gd`, `RunState.gd`, `SaveStore` | doc này -> meta | field `first_boss_won`; `depth_stage` tính ở đầu run; ghi qua `SaveStore`, thêm vào `MetaState.reload_from_store()`. |
+| `MetaState.gd`, `RunState.gd`, `SaveStore` | doc này -> meta | field `runs_completed` (bỏ `first_boss_won`); `depth_stage` tính ở đầu run; ghi qua `SaveStore`, thêm vào `MetaState.reload_from_store()`. |
 | `axie_to_die.gd` | axie_to_die -> doc này | cung cấp `die[6]` theo SLOT_ORDER và `face.r` (mục 11). Không đổi file này. |
 | Hold/stash (depth v3, `depth-v3-design.md` 3.2) | cùng sở hữu | Hold nền giữ nguyên; chỉ thêm: viên Hold đếm Bộ, Mặt Tạm loại trừ Hold. |
 | Plating, Đòn Nạp, boss rhythm (depth v3 6.7) | engine -> doc này | chạy sau Bộ. Sim phải chỉnh lại ngưỡng sau khi có Bộ. |
 | Onboarding (`onboarding-tutorial.md`) và UI (UI-03) | doc này -> UI | mục 9. UI không tự tính Bộ, chỉ đọc `bo` từ engine và `preview_damage`. |
 | `part-tier-system.md` | doc này đọc | `face.r` là nguồn "part cao bậc". |
 | Land raid (`land-v1-spec.md`, làn RV) | doc này -> RV | raid KHÔNG tắt Bộ: người tấn công có Bộ, ghost (phe `e`) không (3.10.4). RV chạy sim độ khó ghost sau khi có Bộ. |
-| `c_thorn_shield`, poison (`core_hooks.gd`, `combat_tune.json`) | doc này -> Lõi | đọc khiên gốc trước `M`; knob `thorn.shield_cap`, `poison.face_cap`, `poison.stack_cap` (3.10.7). |
+| `c_thorn_shield`, poison (`core_hooks.gd`, `combat_tune.json`) | doc này -> Lõi | trần thorn mỗi lần chuyển mỗi Axie (không đọc khiên gốc); knob `thorn.shield_transfer_cap`, `poison.face_cap`, `poison.stack_cap` (3.10.7). |
 | Lõi Sixth Die (`_spawn_phantom_dice`) | engine -> doc này | viên ảo có `custom_state.phantom`, không có `is_token`: lọc theo cờ đó (3.10.5). |
 
 Backlink phải thêm (doc kia chưa nhắc doc này; việc của designer, CHƯA làm, nằm ngoài lượt vá này): `depth-v3-design.md` (mục Hold và reroll),
@@ -675,7 +713,7 @@ Loại: Feel (cảm giác), Curve (đường cong sức mạnh), Gate (nhịp/m�
 | `crack.value_div` | 2 | cố định | Feel | giá trị Nứt = ceil(v/2); không quét |
 | `reroll.hard_cap` | 4 | 3 đến 4 | Curve | tổng lần tung lại mỗi lượt, MỌI nguồn kể cả Aid/relic (3.10.3). Không nâng khi chưa sim (4 lần an toàn ~90% có Bộ) |
 | `hold.allow_cracked` | 1 | 0/1 | Gate | cho Hold viên Nứt (rửa Nứt); đặt 0 nếu sim thấy Expert lạm dụng (3.10.10) |
-| `thorn.shield_cap` | 6 | 4 đến 10 | Curve | trần thorn sinh từ khiên bởi `c_thorn_shield`, mỗi mặt (3.10.7) |
+| `thorn.shield_transfer_cap` | 6 | 4 đến 10 | Curve | trần thorn sinh từ khiên bởi `c_thorn_shield`, cho MỖI lần chuyển, MỖI Axie (không mỗi mặt; 3.10.7, N5) |
 | `poison.face_cap` / `poison.stack_cap` | 8 / 15 | 6-10 / 12-20 | Curve | trần poison mỗi mặt sau `M` / tổng chồng trên một quái; không thấp hơn đỉnh hợp lệ của bản cũ |
 | `mana.max` | giữ bản hiện có (nếu chưa có: 10) | 8 đến 12 | Gate | trần mana; mọi faucet (kể cả Mỏ Mana) kẹp ở đây |
 | `depth.server_stage` | 1 | 0/1 | Gate | 1 = server ghi và kiểm `depth_stage` cho run online (3.10.9) |
@@ -684,7 +722,9 @@ Loại: Feel (cảm giác), Curve (đường cong sức mạnh), Gate (nhịp/m�
 | `oc.cost` / `oc.add` | 3 / 0.50 | 2-4 / 0.25-0.75 | Curve | giao cho làn OC; doc này chỉ giữ `oc.add` trong túi |
 | `part.hi_add` | 0.25 | 0 đến 0.5 | Curve | mục 11; 0 = tắt |
 | `part.hi_r` | 2 | 2 đến 3 | Gate | ngưỡng `r` coi là "cao bậc" |
-| `depth.stage3_runs` | 2 | 1 đến 3 | Gate | số run có trận để mở Lõi chủ |
+| `depth.stage2_runs` | 1 | 1 đến 2 | Gate | số run hoàn thành (`run_finish`) để mở stage 2: Liều/Mặt Tạm (N7) |
+| `depth.stage3_runs` | 3 | 2 đến 5 | Gate | số run hoàn thành để mở stage 3: Overcast, part cao bậc (Lõi chủ sau) (N7) |
+| `reroll_paid_k` (biến, không phải knob) | | | | so với `reroll.max_total`; xem 3.5 (N1) |
 
 Câu chữ luật trong UI và Codex phải sinh từ các knob này (ví dụ "ba viên x1.5" đọc từ `1 + bo.add_3 * bo.scale`), không viết cứng,
 để sim đổi số thì chữ đổi theo. Test: `t_rule_text_from_knobs`.
@@ -724,24 +764,30 @@ Câu chữ luật trong UI và Codex phải sinh từ các knob này (ví dụ "
 |---|---|
 | `t_bo_groups` | nhóm theo `fi`; ngưỡng 3/4/5; ngoài Bộ thì M = 1; token/viên ảo/Nứt/blank/chết không đếm; viên đã dùng và Hold có đếm; 0-2 viên không Bộ |
 | `t_bo_timing` | `bo` chỉ đổi ở 4 thời điểm 3.3; dùng viên, chết giữa lượt, Hold không đổi `bo`; Bộ chụp sau cantrip |
-| `t_bo_order` | thứ tự bước 1-8 bằng số cụ thể; thorn không nhân; mana/debuff không nhân; làm tròn số nguyên đúng ví dụ 4.1 (5 x 1.5 = 8; 4 x 2.0 = 8; 3 x 1.5 = 5); trần M 3.5; trần +10 và +8 không đổi |
+| `t_bo_order` | (N11: hai lần chạy, xem khối "Hai bộ knob" dưới bảng) thứ tự bước 1-8 bằng số cụ thể; trần `poison.face_cap` áp sau bước 7 (N6); thorn không nhân; mana/debuff không nhân; làm tròn số nguyên đúng ví dụ 4.1 (5 x 1.5 = 8; 4 x 2.0 = 8; 3 x 1.5 = 5); trần M 3.5; trần +10 và +8 không đổi |
 | `t_crack` | Nứt chỉ trên viên vừa tung lại ở Liều; không Nứt ở lần miễn phí/An toàn/Aid; Nứt = ceil(v/2); Nứt loại khỏi Bộ; Nứt hết ở lượt sau; rút RNG đủ một số mỗi viên |
-| `t_reroll_modes` | chọn kiểu đúng theo `rerolls` và `max_total = 3`; giá An toàn 2 + hook; stage 1 từ chối `mode = "free"` |
+| `t_reroll_modes` | chọn kiểu đúng theo `rerolls` và `reroll_paid_k` (`max_total = 3`); giá An toàn 2 + hook; stage 1 từ chối `rmode = 0`. N1: relic +1 thì tổng 4 = `hard_cap`, relic +2 vẫn 4, và FLOW đếm số nút tung lại thấy được. N2: khoá không khớp thì nút xám có lý do, lối ra bằng Hoàn tác. N3: đổi nguồn `rsrc` ở cùng `k` bị từ chối, sổ Aid đúng sau undo |
 | `t_wild_face` | giá 2, một lần mỗi lượt, từ chối viên đã dùng/Hold/Nứt/cantrip/part của chính nó/part đã đủ 5; khoá tung lại và Hold; hết hiệu lực ở lượt sau; không đổi hiệu ứng mặt; mana không âm |
-| `t_bo_overcast` | Bộ bốn + Overcast ra M = 2.50 (không phải 3.0); Overcast + Mặt Tạm cùng viên; Overcast không áp mặt mana |
+| `t_bo_overcast` | Bộ bốn + Overcast ra M = 2.50 ở `bo.scale` 1.0 (2.30 ở mặc định 0.8; không phải 3.0); Overcast + Mặt Tạm cùng viên; Overcast không áp mặt mana |
 | `t_bo_concord` | có Concord thì mỗi class chỉ một viên đếm; không Concord thì đếm bình thường |
 | `t_bo_undo` / `t_bo_saveload` | undo và save/load giữa lượt giữ nguyên `bo`, Nứt, Mặt Tạm, mana; reroll `safeReroll` undo ra cùng kết quả |
 | `t_bo_replay` | RunVerifier replay một run có Bộ, Liều, Mặt Tạm, Overcast, Lõi chủ ra cùng digest; tamper T1-T10 (dưới) bị bắt ĐÚNG action bị sửa, không chỉ "digest cuối khác"; bảy tamper cũ của `t_replay` vẫn bị bắt |
 | `t_bo_stage` | tính `depth_stage` đúng ba mức; migrate tài khoản cũ lên stage 3; action stage cao ở stage thấp trả false, state không đổi; đi qua `SaveStore` + `reload_from_store`; xung đột cloud lấy giá trị lớn hơn |
-| `t_core_keystones` | mỗi Lõi chủ trong mục 10: số, thời điểm, giới hạn một lần; Tam Tấu một vụ mỗi lượt, cap sau pipeline, `src` thật và cả `src = null` không crash qua mọi hook; Con Bạc cần >= 2 viên; Mỏ Mana qua undo; Đồng Tộc/Concord lọc hai chiều; Giữ Lửa cap 2 |
+| `t_core_keystones` | mỗi Lõi chủ trong mục 10: số, thời điểm, giới hạn một lần; Tam Tấu một vụ mỗi lượt, cap sau pipeline, `src` thật và cả `src = null` không crash qua mọi hook; Con Bạc cần >= 2 viên; Mỏ Mana qua undo; Đồng Tộc/Concord lọc hai chiều; Giữ Lửa cap 2. N5: Bộ năm khiên rồi `c_thorn_shield`, thorn <= `thorn.shield_transfer_cap` mỗi lần chuyển mỗi Axie. N9: nổ trúng elite thorn, viên kích không mất HP. N10: bỏ run trước trận, run mới ra cùng bộ ba. (Lõi chủ là "bump sau": bộ test này chạy khi mục 10 được code.) |
 | `t_rule_text_from_knobs` | câu luật hiển thị khớp knob |
 | `t_rules_version` | vẫn xanh sau khi bump, chạy một lần ở cây chính |
 | `t_bo_property_fuzz` | 200 seed x chuỗi action ngẫu nhiên hợp lệ: mana trong [0, `mana.max`]; M trong [1, `bo.m_cap`]; action false không đổi digest; `bo` trùng `recompute_bo()` sau 5 thời điểm của 3.3; digest live = replay = save-load mỗi bước |
 | `t_bo_stacking_ceiling` | tổ hợp xấu nhất (Bộ năm + Overcast + part hiếm + Lõi x1.5 + LINK + cộng phẳng + crit) không vượt đỉnh ghi ở edge 15; poison/thorn đỉnh dưới `poison.*`/`thorn.*` |
-| `t_reroll_epoch_pin`, `t_depth_epoch_args_contract` | fake remote và Worker từ chối `rmode` sai, `(turn, k)` cũ với `rmode`/`uids` khác (`pin_mismatch`); `epoch_args.json` có `rmode` và kind `keystone`, `mode` giữ enum `short/full`; `node --test` thêm ca |
-| `t_worker_stage_mirror` (Worker) | server ghi `depth_stage` lúc `run_start`; header lệch trả `stage_mismatch` |
+| `t_reroll_epoch_pin`, `t_depth_epoch_args_contract` | fake remote và Worker từ chối `rmode` sai, `(turn, k)` cũ với `rmode`/`uids` khác (`pin_mismatch`); `epoch_args.json` có `rmode` và kind `keystone`, `mode` giữ enum `short/full`, `depth_stage` là header chứ không phải arg; mã `pin_mismatch`/`stage_mismatch` có trong bảng mã Worker và fake remote (N4); `node --test` thêm ca |
+| `t_worker_stage_mirror` (Worker) | server ghi `depth_stage` lúc `run_start` từ `runs_completed` (dòng `run_finish` trong D1: 1 run thì stage 2, 3 run thì stage 3; run chỉ có `run_start` không tính; tài khoản cũ qua newcomer vào stage 3); header lệch trả `stage_mismatch` (N7). N8: meta client cao, server thấp thì UI và engine theo server |
 | `t_bo_raid`, `t_hold_crack_cleanse`, `t_aid_reroll_depth` | raid: Bộ có cho `p`, không cho `e`; Hold viên Nứt: lượt sau sạch Nứt (theo knob); Aid theo luật Liam chốt, `hard_cap` đúng |
 | `t_allowed_fns_sync` | ba danh sách `ALLOWED_FNS` (3.10.9) bằng nhau |
+
+**Hai bộ knob (N11):** mỗi test có ví dụ M hoặc đỉnh bằng số (`t_bo_order`, `t_bo_overcast`, `t_flow_overcast_bo`, `t_bo_stacking_ceiling`) chạy HAI lần.
+(1) Cố định knob rõ trong test: `bo.scale` = 1.0, `bo.m_cap` = 3.5, số danh nghĩa (ví dụ "5 -> 10, túi 2.0", Bộ bốn + Overcast 2.50, đỉnh 43 ở edge 15).
+(2) Một bản chạy knob mặc định (0.8 / 3.0) đọc số từ knob rồi so với kỳ vọng tính trong test (Bộ ba 1.40, bốn 1.80 và 2.30 với Overcast, năm 2.60).
+Cả hai bộ số ghi trong test. Tính `M100` theo công thức nguyên ở 3.4 (làm tròn từng đóng góp một lần), cấm so số thực. Cấm "sửa số cho xanh": test đỏ vì knob đổi
+thì sửa knob cố định, không sửa kỳ vọng.
 
 **Tamper T1-T10** (mỗi cái: RunVerifier báo lệch VÀ chỉ đúng action đó):
 T1 đổi `rmode` của một reroll (An toàn thành Liều hoặc ngược lại); T2 đổi `slot` của `wild_face`; T3 `wild_face` thừa (lần 2 trong lượt);
@@ -787,6 +833,7 @@ Carlo 1e6 seed cố định; hàng "chính xác theo mẫu hình" khớp trong �
 | Boss cuối r18: Expert tới đó nhiều hơn Random | có (bản cũ: nửa số run mọi bot) |
 | Mỗi Lõi chủ được chọn | 10% đến 25% khi Expert chọn tự do; chênh winrate Expert giữa các Lõi chủ <= 5 điểm |
 | Xác suất Bộ đo được | khớp bảng 4.2 trong ±2 điểm (kiểm engine, không kiểm cân bằng) |
+| Ghost raid (N12, làn RV, TRƯỚC merge Bộ) | sim 2000 raid, người tấn công có Bộ vs bản cũ: tỉ lệ người tấn công thắng không tăng quá 10 điểm (số khởi điểm, Liam duyệt); vượt thì chỉnh cấp độ ghost, không tắt Bộ (3.10.4). Kết quả ghi vào doc này |
 
 "3-8 nước đi hợp lý mỗi lượt" bỏ ở vòng sim đầu (chưa đo được); dựa vào chỉ tiêu lượt Expert khác Greedy.
 
@@ -854,13 +901,16 @@ Trang "Luật xúc xắc" trong Codex gom bảy câu ở 3.0 (sinh từ knob). `
 
 ## 10. Lõi chủ (5)
 
+> **BUMP SAU (Liam 21/10/2026).** Mục này được TÁCH khỏi bump đầu (BỘ + LIỀU + MẶT TẠM + Overcast). Giữ nguyên thiết kế để làm sau; chưa code, chưa vào sim
+> vòng đầu, stage 3 chưa có Lõi chủ. Seed `keystone` khi làm phải pin theo (tài khoản, `runs_with_battle`) để không câu bằng bỏ run (3.10.8, N10).
+
 Chọn 1 trong 3 (rút ngẫu nhiên từ 5, seed của run, không lặp) lúc bắt đầu run từ stage 3; giữ suốt run, không bán, không đổi. Lõi chủ đổi LUẬT, không phải "+X% dmg". Số là điểm xuất phát (7.3).
 Điều kiện chung: mọi hệ số của Lõi cộng vào túi M (không nhân chồng); nằm dưới `bo.m_cap`; không tính vào trần cộng phẳng +10.
 
 ### 10.1 Tam Tấu
 
 - Một câu: "Mỗi Bộ ba trở lên nổ một lần, gây sát thương cho mọi quái bằng 35% tổng số gốc trên các viên trong Bộ (bốn viên 70%, năm viên 105%)."
-- Luật: nổ ở lần dùng viên ĐẦU TIÊN của Bộ đó, một lần mỗi Bộ mỗi lượt. Tổng = cộng `value` gốc (trước hệ số) của các viên trong Bộ, mọi loại có số. Làm tròn lên. Tối đa `tt.cap` = 20 mỗi quái. Sát thương nổ đi qua `DamagePipeline` với `src = null`, `attack = false` (không Plating, không crit).
+- Luật: nổ ở lần dùng viên ĐẦU TIÊN của Bộ đó, một lần mỗi Bộ mỗi lượt. Tổng = cộng `value` gốc (trước hệ số) của các viên trong Bộ, mọi loại có số. Làm tròn lên. Tối đa `tt.cap` = 20 mỗi quái. Sát thương nổ đi qua `DamagePipeline` với `src` = viên kích nổ (không null, 3.10.6), `attack = false` (không Plating, không crit), `from_burst = true`; một vụ nổ mỗi LƯỢT (3.10.6 thắng câu "mỗi Bộ" ở trên); thorn quái không phản lên viên kích (N9).
 - Ví dụ: Ba Sừng 5+3+4 = 12, nổ `ceil(0.35 x 12)` = 5 vào mọi quái.
 - Hợp với đội thấy nhiều quái, Lõi AoE, thorn, độc. Yếu khi chỉ một quái (5 sát thương chỉ như một viên nhỏ).
 - Không lấn át: nổ nhỏ, có trần, không tăng sát thương đòn đơn lên boss.
@@ -1001,17 +1051,34 @@ Bất đồng và điểm cần để ý:
 | G8 | Overcast + reroll/Hold | viên Overcast không tung lại, không Hold, hai chiều | 3.10.1, edge 38 |
 | G9 | Tam Tấu | một vụ nổ mỗi lượt, cap sau pipeline, `src` thật, `from_burst` | 3.10.6, edge 39, 7.3 |
 | G10 | Con Bạc | cần >= 2 viên tung lại (`cb.min_dice`) | 3.10.6, edge 40, 7.3 |
-| G11 | thorn/poison nhân Bộ | thorn đọc khiên gốc + `thorn.shield_cap` 6; poison `face_cap` 8, `stack_cap` 15 | 3.10.7, edge 42, 7.1 |
+| G11 | thorn/poison nhân Bộ | thorn trần mỗi lần chuyển mỗi Axie (`thorn.shield_transfer_cap` 6, sửa ở N5); poison `face_cap` 8 cuối chuỗi, `stack_cap` theo sim (N6) | 3.10.7, edge 42, 7.1 |
 | G12 | Mỏ Mana | `mana_bo_paid` vào state/undo/save; Bộ cần mặt nhân được; `mana.max` | 3.10.6, edge 41, 7.1 |
 | G13 | Lõi chủ epoch kind | kind mới `keystone`, pin theo run, `pick_keystone(index)` | 3.10.8, edge 47 |
 | G14 | stage khai gian | server ghi `depth_stage` lúc `run_start`, header lệch `stage_mismatch`; rủi ro còn lại có lý do | 3.10.9, edge 46, mục 12 Q7 |
 | G15 | Concord vs Đồng Tộc giữa run | lọc `core_offer` hai chiều; Lõi chủ chỉ cấp đầu run | 3.10.8, edge 47 |
 | G16 | Hold rửa Nứt, Hold neo | chấp nhận có ghi, knob `hold.allow_cracked`, bot Hold-anchor | 3.10.10, 7.1, 7.2 |
 | G17 | tổng lần tung lại gồm relic | `reroll.hard_cap` = 4, mọi nguồn | 3.10.3, edge 43 |
-| G18 | mất/lệch `first_boss_won` | lấy OR/lớn hơn; qua `SaveStore` + `reload_from_store` | 3.10.9, edge 46, `t_bo_stage` |
+| G18 | mất/lệch `runs_completed` (trước là `first_boss_won`, N7) | lấy số lớn hơn; qua `SaveStore` + `reload_from_store` | 3.10.9, edge 46, `t_bo_stage` |
 | G19 | bảng xác suất xấp xỉ vs ±2 | liệt kê chính xác lần đầu; Monte Carlo 1e6 phần sau; thay bảng bằng số đo | 8.1 (khối Xác suất) |
 | G20 | trạng thái "chưa có code", backlink | cập nhật đầu file; danh sách backlink ghi ở mục 6 (CHƯA làm trong doc kia) | đầu file, mục 6 |
 | G21 | cảm giác 0.5s không đo được | `bo_changed` tới banner <= 30 khung, đo trong `t_flow_bo_visible` | 8.1 (khối 0.5s) |
+
+### Bảng N# (QA vòng 2, 21/10/2026: `production/qa/dice-depth-v4-qa-plan.md` mục 6)
+
+| N | Chủ đề | Quyết định | Mục |
+|---|---|---|---|
+| N1 | relic free ăn vào `max_total` | biến riêng `reroll_paid_k` chỉ đếm Liều/An toàn; relic/Lõi/Aqua/Aid chỉ vào `hard_cap` | 3.5, 3.10.3, edge 10, 43, 8.1 `t_reroll_modes` |
+| N2 | soft-lock khoá + undo | `false` + nút xám có lý do, lối ra bằng Hoàn tác; không nhảy `k` (tránh câu seed) | 3.10.2, edge 48 |
+| N3 | đổi nguồn trả (Aid/free) sau khi thấy kết quả | khoá thêm `rsrc` (chỉ engine/save, không vào log/Worker); sổ Aid hoàn theo undo | 3.10.2, edge 10 |
+| N4 | từ vựng `epoch_args.json`, mã lỗi | `depth_stage` là header, không phải arg; thêm `rmode`, `keystone`; mã `pin_mismatch`, `stage_mismatch` vào Worker + fake remote | 3.10.9, 8.1 |
+| N5 | `c_thorn_shield` không đọc khiên gốc được | trần mỗi lần chuyển, mỗi Axie: `thorn.shield_transfer_cap` 6 | 3.10.7, edge 42, 7.1 |
+| N6 | vị trí trần poison | `face_cap` sau bước 7, trước pipeline; `stack_cap` = đỉnh bản cũ do sim đo | 3.4, 3.10.7, edge 42 |
+| N7 | `first_boss_won` server không kiểm được | stage theo `runs_completed` (`run_finish` trong D1): stage 2 từ 1 run, stage 3 từ 3 run; bỏ `first_boss_won`; tài khoản cũ vào stage 3 | 3.8, 3.10.9, edge 46, 7.1 |
+| N8 | hai nguồn stage | run online lấy stage chỉ từ server | 3.10.9, edge 46, 8.1 |
+| N9 | Tam Tấu bị thorn quái phản | `from_burst`: thorn quái không phản lên viên kích | 3.10.6, edge 39, 10.1 |
+| N10 | câu bộ ba Lõi chủ bằng bỏ run | mục 10 tách sang "bump sau"; seed `keystone` pin theo (tài khoản, `runs_with_battle`) | 3.10.8, mục 10, edge 47 |
+| N11 | số cũ/knob trong test | mỗi test chạy knob cố định (1.0/3.5) và knob mặc định (0.8/3.0); `M100` làm tròn từng đóng góp | 3.4, 8.1 (khối "Hai bộ knob"), edge 15 |
+| N12 | raid có Bộ, ghost không đổi | DoD: sim ghost của làn RV trước merge Bộ | 3.10.4, 8.2 |
 
 Các lỗ hổng QA không mang số G cũng đã xử lý: viên ảo/`is_token` (3.10.5), thorn qua khiên và poison (3.10.7), Mặt Tạm trước reroll,
 slot Tai, Egg nở (3.10.5, 3.10.10), mặt đổi sau chụp (3.3 mục 5), mana âm/trần (edge 48, `mana.max`), biên làm tròn (edge 48),
