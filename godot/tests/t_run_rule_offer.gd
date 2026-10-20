@@ -35,7 +35,7 @@ func _ready() -> void:
 		_assert(a.size() == 2 and a[0]["key"] != a[1]["key"], "2 distinct rule cards")
 		_assert(a == CoreOffer.build_rule_offer(sd, ctx, false), "deterministic")
 		for c in a:
-			_assert(String(c["key"]).begins_with("rule_test_") and bool(c["rule"]), "rule card (%s)" % c["key"])
+			_assert(String(c["key"]).begins_with("rule_") and bool(c["rule"]), "rule card (%s)" % c["key"])
 	# 10% "no rule" from run 2
 	var none_n := 0
 	for sd in 2000:

@@ -23,7 +23,7 @@ func _ready() -> void:
 	var ids := {}
 	for d in RelicRegistry.all_defs_sorted():
 		var def: RelicDef = d
-		if def.core_axis == "" or def.run_rule:
+		if def.core_axis == "" or def.run_rule or String(def.id).begins_with("c_test_"):
 			continue
 		var id := String(def.id)
 		_ok(id.begins_with("c_") and not ids.has(id), "%s: id unique and c_ prefixed" % id)

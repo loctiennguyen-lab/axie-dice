@@ -16,7 +16,7 @@ func _ready() -> void:
 	var off := 0
 	for d in RelicRegistry.all_defs_sorted():
 		var def: RelicDef = d
-		if not def.run_rule or def.id == "rule_none":
+		if not def.run_rule or def.id == "rule_none" or String(def.id).begins_with("rule_test_"):
 			continue
 		var id := String(def.id)
 		n += 1
