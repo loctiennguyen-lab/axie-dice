@@ -93,7 +93,7 @@
   "div": 12,
   "min": 2,
   "max": 4,
-  "off_turns": 1,
+  "off_turns": 2,
   "decay_turn": 3,
   "shield_decay_pct": 100,
   "iron_bonus": 1
