@@ -27,6 +27,7 @@ func _count(log: ActionLog, fn: String, nargs: int = -1) -> int:
 
 
 func _ready() -> void:
+	_guard.capture()
 	CoreTestUtil.enable()
 	var t := RelicSlots.tuning()
 	var old_slots := t.core_slots
@@ -89,6 +90,7 @@ func _ready() -> void:
 	_assert(kinds.has("core") and not kinds.has("relic"), "shop sells a Core pick, no old relic: %s" % str(kinds))
 	for k in ["core_reroll", "reroll_core"]:
 		_assert(not kinds.has(k), "no Core reroll for sale")
+	_guard.restore()
 	if _failures.is_empty():
 		print("t_core_replay: PASS — %d checks OK" % _checks)
 		get_tree().quit(0)

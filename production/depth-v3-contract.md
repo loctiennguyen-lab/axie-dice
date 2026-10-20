@@ -56,3 +56,7 @@ Commit: bb77554 (schema + ẩn relic cũ + CoreOffer + slots), ddeb88a (flow Run
 - Tier bump Elite affix(+) / Quạ: gọi `RunState.add_core_tier_bump(n)` trước khi offer kế mở (làn D/C nối).
 - Nội dung mẫu `c_test_*` / `rule_test_*` để `disabled = true` (người chơi không thấy); test gọi `CoreTestUtil.enable()`. `rule_none` bật thật. Hiện game thật không có Lõi nào hiển thị tới khi làn C thêm.
 - Relic cũ: tất cả non-pact đã `hidden_from_pool = true`; test cũ gọi `RelicRegistry.legacy_unhide_for_tests()`.
+
+
+### Làn B - cập nhật cuối (agent 2)
+Xong bước 7 (event chest/bet_small/gamble_legend xếp 1 lần chọn Lõi vào `core_bonus_queue`: chest = Hổ Phách, bet_small thắng và gamble_legend = Tinh Thể; shop có món "Core Pick" bậc Rêu giá `core_shop_cost`=60 shard trong run, đặt cuối danh sách, shop không còn bán relic cũ ở chế độ Lõi; không bán reroll Lõi), knob R6 `core_skip_picks` (mảng chỉ số lần chọn bị bỏ, 0-based; R6 = [1]; chưa có file R6, "+4 Max HP" chưa làm), test `t_core_replay` (RunBot có `core_script`, `drain_core_offers`), INV-6 trong build-spec. Pick Lõi từ event/shop mở ở `after_node` kế (không mở giữa shop). `pick_relic` và `pick_offer_relic` bỏ qua Lõi. Shop refresh (Aid R6) giờ ra hàng giống hệt (không còn relic ngẫu nhiên): cần hỏi Liam/economy có cần đổi. Giá 60 và bậc event là đoán.

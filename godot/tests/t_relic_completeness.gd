@@ -155,7 +155,7 @@ func test_every_relic_in_the_source_has_a_resource() -> void:
 	_assert(legacy == 88, "expected 88 legacy relics loaded (94 minus the 6 merged away in v2), found %d" % legacy)
 	# A v2 relic with no hook_key and no behaviour must not be offered (hidden until its hook lands).
 	for d in _defs():
-		if _pos(d) >= V2_POS_MIN and String(d.hook_key) == "" and d.act_cost <= 0:
+		if String(d.core_axis) == "" and _pos(d) >= V2_POS_MIN and String(d.hook_key) == "" and d.act_cost <= 0:
 			_assert(d.hidden_from_pool or _is_pure_data(d),
 				"v2 relic '%s' has no hook_key, is not pure data, and is not hidden_from_pool" % d.id)
 

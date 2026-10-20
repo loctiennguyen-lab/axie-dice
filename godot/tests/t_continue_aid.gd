@@ -125,7 +125,7 @@ func _ready() -> void:
 	RunState.enter_node("r1_c0", "shop", 11)
 	var before := JSON.stringify(RunState.shop_items)
 	_check(RunState.refresh_shop(99), "refresh in a shop")
-	_check(JSON.stringify(RunState.shop_items) != before, "the row changed")
+	_check(RunState.shop_items.size() > 0, "the row is rebuilt (items are fixed now: no random old relics, depth v3)")
 	_check(RunState.action_log.entries.back()["fn"] == "shop_refresh", "refresh logged")
 	var ctx := RunState.aid_context()
 	_check(bool(ctx["in_shop"]) and bool(ctx["boon_used"]), "aid_context reads the ledger")

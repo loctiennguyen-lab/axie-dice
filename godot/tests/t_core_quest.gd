@@ -1,4 +1,5 @@
 extends Node
+var _guard := SaveGuard.new()
 var _failures: Array[String] = []
 var _checks := 0
 func _assert(c: bool, m: String) -> void:
@@ -6,6 +7,7 @@ func _assert(c: bool, m: String) -> void:
 	if not c:
 		_failures.append(m)
 func _done(n: String) -> void:
+	_guard.restore()
 	if _failures.is_empty():
 		print("%s: PASS — %d checks OK" % [n, _checks])
 		get_tree().quit(0)
@@ -27,6 +29,7 @@ func _axes(offer: Array) -> Array:
 	return a
 
 func _ready() -> void:
+	_guard.capture()
 	CoreTestUtil.enable()
 	_start(31)
 	RunState.apply_chosen_reward(RunState.pending_rewards[0]); RunState.after_node()
