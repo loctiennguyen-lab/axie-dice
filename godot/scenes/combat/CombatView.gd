@@ -325,6 +325,7 @@ var last_throw: Dictionary = {}
 var _last_die_used: Dictionary = {}       # uid -> bool — drives the flip-on-use juice
 var _hovered_enemy_uid: int = -1          # enemy whose intent badge is currently hovered
 var _end_turn_acting_uid: int = -1        # most recent EventBus.enemy_intent_executed(uid) seen
+var _dm_audio: DiceMomentAudio = null    # v4 dice-moment sounds (dm_*)
 var _audio: CombatAudioDirector = null    # combat sound; see CombatAudioDirector.gd. Reacts to
 	# EventBus on its own — this file never calls it per event, only sets it up and starts/stops
 	# the music, so the "every handler funnels into _rebuild_all()" rule below stays intact.
@@ -431,6 +432,9 @@ func _ready() -> void:
 
 	_audio = CombatAudioDirector.new()
 	_audio.name = "CombatAudioDirector"
+	_dm_audio = DiceMomentAudio.new()
+	_dm_audio.name = "DiceMomentAudio"
+	add_child(_dm_audio)
 	add_child(_audio)   # must be in the tree (and so past its _ready) before _spawn_portrait()
 		# starts calling register_unit() below
 
@@ -2792,10 +2796,19 @@ func _do_reroll(uids: Array, rmode: int) -> void:
 	if _combat.rerolls > 0 or _combat.reroll_is_payable():
 		for uid in uids:
 			_reroll_prev[uid] = _combat.by_uid(uid).roll_face_index()
+	var gamble_on := rmode == 0 and _combat.depth_stage >= 2
+	_dm_audio.play("dm_gamble_arm" if gamble_on else ("dm_reroll_safe" if rmode != 0 else "dm_roll"))
 	var rr: Dictionary = await _combat.request_reroll_dice(uids, false, rmode)
 	if not _still_running():
 		return
 	var ok := bool(rr["ok"])
+	if ok and gamble_on:
+		var cracked := 0
+		for uid in uids:
+			var cu := _combat.by_uid(int(uid))
+			if cu != null and cu.cracked:
+				cracked += 1
+		_dm_audio.play("dm_crack" if cracked > 0 else "dm_gamble_clean")
 	_append_log("[input] reroll %d dice (%s): %s" % [uids.size(), "gamble" if rmode == 0 else "safe", "ok" if ok else "failed"])
 	if not ok:
 		_reroll_prev.clear()
@@ -3679,6 +3692,7 @@ func _start_dice_throw(fresh: Array) -> void:
 	_reroll_prev.clear()
 	if entries.is_empty():
 		return
+	_dm_audio.play("dm_roll")
 	last_throw = {"uids": entries.map(func(e): return int(e["uid"])), "reroll": rerolled}
 	var roller := _stage3d.get_dice_roller()
 	if MetaState.reduce_flash or roller == null or roller.will_skip():
@@ -4264,6 +4278,7 @@ func _log_bo_changes(groups: Array) -> void:
 		var sz := int(g["size"])
 		live[part] = sz
 		if sz > int(_bo_logged.get(part, 0)):
+			_dm_audio.play("dm_set%d" % clampi(sz, 3, 5))
 			_append_log("[set] %s x%d  %s" % [V4Ui.part_name(part), sz, V4Ui.mult_text(int(g["m100"]))])
 	_bo_logged = live
 
