@@ -37,6 +37,10 @@ class FakeRemote extends LocalEpochSource:
 	## [{kind, code}] each fires once, on the first matching request, and does not advance the hash chain
 	var fail_plan: Array = []
 	var injected := 0
+	## Depth v4 3.10.9: the stage the "server" wrote for the run (0 = not checked). Like the Worker, a request whose stage differs is
+	## refused `stage_mismatch` and does not advance the chain. The pin rule (`pin_mismatch`) is the inherited LocalEpochSource one.
+	var server_stage := 0
+	var stage_refusals := 0
 
 	static func load_spec() -> Dictionary:
 		var path := ProjectSettings.globalize_path("res://").path_join("../worker/src/epoch_args.json")
@@ -94,6 +98,10 @@ class FakeRemote extends LocalEpochSource:
 
 	func request(kind: String, args: Dictionary) -> EpochReply:
 		var r := EpochReply.new()
+		if server_stage > 0 and RunState.depth_stage != server_stage:
+			stage_refusals += 1
+			tree.process_frame.connect(func(): r.settle(false, 0, "stage_mismatch"), CONNECT_ONE_SHOT)
+			return r
 		late_kinds[kind] = int(late_kinds.get(kind, 0)) + 1
 		var why := problem(kind, args)
 		if why != "":
@@ -152,10 +160,11 @@ func _ready() -> void:
 	_check(RunState.start_run_with_epoch(_fake, {"team_keys": TEAM.duplicate(), "mode": "short",
 		"ascension": 0, "ranked": false,
 		"bonuses": {"hp_bonus": 40, "reward_reroll_max": 1}}, 424242), "run did not start on the fake remote source")
+	_fake.server_stage = RunState.depth_stage
 	RunState.shards_this_run = 999   # so the shop's heal item (a `shop_roll` epoch) can be bought
 	_tree.change_scene_to_file("res://scenes/run_map/RunMap.tscn")
 	await _drive()
-	_finish_test()
+	await _finish_test()
 
 
 func _finish_test() -> void:
@@ -166,6 +175,14 @@ func _finish_test() -> void:
 	_check(_fake.problem("shop_roll", {"node_id": "r2_c0", "item": RunState._shop_item_arg(0)}) == "",
 		"shop_roll item arg '%s' would be refused by the server" % RunState._shop_item_arg(0))
 	_check(_fake.problem("shop_roll", {"node_id": "r2_c0", "item": 0}) != "", "validator accepts an int item")
+	# stage_mismatch: a client whose stage differs from the one the server wrote is refused, nothing is consumed
+	var real_stage := RunState.depth_stage
+	RunState.depth_stage = 1 if real_stage != 1 else 2
+	var probe := _fake.request("end_turn", {"turn": 1})
+	await _tree.process_frame
+	await _tree.process_frame
+	RunState.depth_stage = real_stage
+	_check(probe.done and not probe.ok and probe.code == "stage_mismatch" and _fake.stage_refusals == 1, "fake remote: wrong stage -> stage_mismatch")
 	_check(_fake.rejected.is_empty(), "requests the server would refuse: %s" % str(_fake.rejected))
 	_check(_fake.fail_plan.is_empty(), "injected failures never fired: %s" % str(_fake.fail_plan))
 	_check(_signin_seen >= 1, "expired: NetNotice never showed SIGN IN")
