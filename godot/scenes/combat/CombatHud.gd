@@ -454,7 +454,9 @@ func _place_tiles(x: float, y: float, tiles: Array) -> int:
 			vis.append(b)
 	var n := vis.size()
 	var pitch := 0.0 if n <= 1 else (RIGHT_W - TILE) / float(n - 1)
-	var prev_end := -1000.0
+	var labs: Array = []
+	var xs: Array = []
+	var ws: Array = []
 	for i in n:
 		var b: Button = vis[i]
 		b.position = Vector2(x + pitch * i, y)
@@ -464,12 +466,20 @@ func _place_tiles(x: float, y: float, tiles: Array) -> int:
 		var lf := l.get_theme_font("font")
 		var lw := lf.get_string_size(l.text, HORIZONTAL_ALIGNMENT_LEFT, -1, 18).x + 8.0   # text + the plate's padding
 		l.size = Vector2(lw, TILE_LABEL_H)
-		# words never overlap each other: pushed right when the previous one is wide, 12 px of slack past the
-		# column edge (the screen margin is 24)
-		var lx := minf(maxf(b.position.x + (TILE - lw) * 0.5, prev_end + 2.0), x + RIGHT_W + 12.0 - lw)
-		lx = maxf(lx, x - 12.0)
-		prev_end = lx + lw
-		l.position = Vector2(lx, y + TILE + 2.0)
+		labs.append(l)
+		ws.append(lw)
+		xs.append(b.position.x + (TILE - lw) * 0.5)
+	# words never overlap: pushed right past the previous one, then pulled back left from the column edge
+	# (12 px of slack past it; the screen margin is 24), so the last word never sits on top of its neighbour
+	var lo := x - 12.0
+	var hi := x + RIGHT_W + 12.0
+	for i in n:
+		xs[i] = maxf(xs[i], lo if i == 0 else xs[i - 1] + ws[i - 1] + 2.0)
+	for i in range(n - 1, -1, -1):
+		var lim: float = hi - ws[i] if i == n - 1 else xs[i + 1] - 2.0 - ws[i]
+		xs[i] = minf(xs[i], lim)
+	for i in n:
+		(labs[i] as Label).position = Vector2(xs[i], y + TILE + 2.0)
 	for b in tiles:
 		if b != null and b.has_meta("tile_label") and not b.visible:
 			(b.get_meta("tile_label") as Label).visible = false
