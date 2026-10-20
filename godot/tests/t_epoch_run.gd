@@ -83,6 +83,7 @@ func _ready() -> void:
 		"from_aid is in the log")
 	var e2 := _engine(5)
 	e2.rerolls = 0
+	e2.mana = 0
 	_check(e2.reroll_dice(uids, 4242, true), "replay of the aid reroll is accepted")
 	_check(JSON.stringify(e.to_data()) == JSON.stringify(e2.to_data()), "aid reroll replays to the same state")
 	var e3 := _engine(5)
