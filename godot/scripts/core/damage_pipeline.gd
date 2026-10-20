@@ -75,6 +75,11 @@ static func resolve(ctx: Dictionary) -> int:
 		v = ceil(v * 1.5)                                                        # 6. vulnerable
 	if tgt.is_boss and attack and String(ctx.get("face_type", "dmg")) == "dmg" and combat.has_method("boss_hollow_taken_mult"):
 		v = ceil(v * float(combat.boss_hollow_taken_mult(tgt)))                  # 6b. boss rhythm: hollow turn (depth v3 6.3)
+	if attack and bool(ctx.get("single", false)) and not pierce and tgt.side == "e":
+		var plated := CombatTraits.reduce(combat, tgt, v)                        # 6c. Plating (depth v3 6.7 M1/M6), after every multiplier
+		if plated < v:
+			EventBus.plating.emit(tgt.uid, int(v), int(plated), CombatTraits.plating_of(combat, tgt))
+			v = plated
 	if tgt.side == "p":
 		var dr := RelicHooks.sum(combat, "dr")
 		if dr > 0.0:

@@ -64,6 +64,11 @@ var rolled: Array = []
 var held: bool = false
 var stash_carry: bool = false
 
+## Depth v3 6.7 M1: Plating value P (each single-target dmg face is cut by P, min 1) and the player turns
+## it is still switched off by a debuff / poison. Effective value: CombatEngine.plating_of(unit).
+var plating: int = 0
+var plating_off: int = 0
+
 var roster_index: int = -1      # index into RunState.roster — Formation Resonance key
                                  # (rule spec §4: position in s.roster, NEVER combat-board
                                  # position). -1 for tokens/enemies (never resonate).
@@ -159,6 +164,7 @@ func to_data() -> Dictionary:
 		"status": status.duplicate(true),
 		"frozen": frozen, "frozen_next": frozen_next, "overdrive": overdrive,
 		"resonant_now": resonant_now, "heavy": heavy, "held": held, "stash_carry": stash_carry,
+		"plating": plating, "plating_off": plating_off,
 		"die": die.duplicate(true),
 		"growth": growth.duplicate(true),
 		"rolled": rolled.duplicate(true),
@@ -190,6 +196,8 @@ static func from_data(d: Dictionary) -> Unit:
 	u.heavy = bool(d.get("heavy", false))
 	u.held = bool(d.get("held", false))
 	u.stash_carry = bool(d.get("stash_carry", false))
+	u.plating = int(d.get("plating", 0))
+	u.plating_off = int(d.get("plating_off", 0))
 	u.die = (d.get("die", []) as Array).duplicate(true)
 	# Keys are face INDEXES (ints). An in-memory round-trip preserves that; a trip through JSON
 	# does not — every key comes back as a string, `growth.get(3)` misses the value stored under

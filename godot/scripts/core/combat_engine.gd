@@ -71,6 +71,8 @@ var combat_seed: int = 0
 ## Which boss this node fields, chosen once per run by RunState (never re-rolled in combat),
 ## and the run-wide CURSE PACT enemy modifiers. Both arrive through the combat setup so that
 ## a combat is still reconstructible from data alone (architecture plan §4).
+var _early_traits: bool = false   ## setup flag `before_first_elite`: normal fights carry at most traits.cap_early trait bearers
+var run_rules: Array = []   ## Run rules active this fight ("R12" Plating everywhere + side bonus, "R13")
 var affix: String = ""   ## Elite affix id from combat_setup (depth v3 6.4), "" = none
 var _boss_key: String = ""
 var _run_mods: Dictionary = {"enemy_hp": 1.0, "enemy_dmg": 1.0}
@@ -201,6 +203,7 @@ func setup_new(combat_setup: Dictionary) -> void:
 	if start_summons > 0:
 		EventBus.relic_pulsed.emit("startSummon", 0)
 
+	_early_traits = bool(combat_setup.get("before_first_elite", false))
 	enemies = _generate_encounter(kind, pw)
 	_apply_affix_start()
 
@@ -1285,6 +1288,7 @@ func _do_face(u: Unit, target_uid: int, f: Dictionary, fi: int, is_echo: bool) -
 		var d: int = DamagePipeline.resolve({
 			"combat": self, "src": u, "tgt": t, "value": amount, "pierce": pierce, "attack": true,
 			"crit": crit, "exec": _has_kw(f, "exec"), "face_type": "dmg", "resonant": u.resonant_now,
+				"single": not pierce and not _has_kw(f, "aoe") and not bool(ctx_n[1]),
 		})
 		if _has_kw(f, "lifesteal") and d > 0:
 			DamagePipeline.apply_heal(self, u, d)
@@ -1586,6 +1590,7 @@ func finish_end_turn() -> void:
 		if u.frozen:
 			u.frozen = false
 	_affix_turn_start()
+	CombatTraits.turn_start(self)
 	EventBus.combat_clock_changed.emit(clock_state())
 	EventBus.combat_attrition_changed.emit(attrition_state())
 	RelicHooks.fire(self, "on_turn_start", {"combat": self})
@@ -2236,6 +2241,7 @@ func _generate_encounter(p_kind: String, p_pw: int) -> Array:
 	var out: Array = []
 	for k in keys:
 		out.append(_mk_monster(String(k), sc, em))
+	CombatTraits.assign_traits(self, out, is_elite, bool(_early_traits))
 	return out
 
 
@@ -2327,6 +2333,7 @@ func _mk_boss(boss_key: String, p_pw: int, amods: Dictionary) -> Unit:
 	u.die = (stats.get("die", []) as Array).duplicate(true)
 
 	u.custom_state["trait"] = trait_name
+	u.plating = CombatTraits.plating_for_pw(p_pw)   # M6: only counts on prep / strike turns (CombatTraits.plating_of)
 	u.custom_state["phase"] = 1
 	u.custom_state["adds"] = (stats.get("adds", []) as Array).duplicate()
 	u.custom_state["add_cap"] = int(stats.get("add_cap", 0))
