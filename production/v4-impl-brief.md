@@ -123,3 +123,12 @@ Lệnh deploy (CHỜ Liam bảo, theo thứ tự): 1) `cd worker && npx wrangler
 - Security: Worker `_consumeProblem` so `uids` log `reroll_dice` với uids đã pin (why `uids_mismatch`, anomaly `uids_mismatch`; phần tử sai kiểu/ngoài khoảng -> `uids_invalid`); cột `epochs.uids` giờ là JSON (`[1,2]`), hàng cũ `1,2` vẫn so được (normUids); `ALTER TABLE` chỉ nuốt "duplicate column"; ranked chỉ stage 3: client chặn ở RunSetup ("Ranked opens at depth stage 3"), Worker `ranked_stage` ở create (trừ ALLOW_GATED_MODES=1), run_close, leaderboard submit (depth_stage NULL = 3).
 - Floor Godot: suite đo 182/182 (t_rules_version skip), gồm +2 file mới của bước 5 (t_runs_completed, t_depth_epoch_args_contract). Worker 210/210.
 - DEPLOY: client và Worker phải lên CÙNG LÚC (client cũ không gửi depth_stage -> stage_mismatch). Thứ tự: migration 0009 -> wrangler deploy -> export-web + deploy-r2. Vẫn cần lane I bump RULES_VERSION.
+
+## UI - bàn giao (làn V4U)
+- Xong: BỘ trên tray (chip part, khung + nhãn, banner 4/5, v0->v, log `[set]`, tắt flash = không fade, FRONT/BACK ẩn chữ khi có Bộ); Liều/An toàn + % Nứt; Mặt Tạm picker + Overcast; ẩn theo stage + coach C1-C7; Result (Pact "Pact · passive", không vào "Most impact"; Core chưa bắn = "Not triggered this run"); âm `dm_*`.
+- Coach: cờ nằm ở `MetaState.v4_coach_seen` (meta save, có trong `reload_from_store`), không còn file riêng.
+- "Best set": `ResultView._best_set_line` đọc `stats.best_bo {part,size,m100}`. RunState/RunStatsAccumulator CHƯA có field này nên dòng đang ẨN. Cần lane rules thêm `best_bo` (đụng RULES_VERSION) rồi dòng tự hiện.
+- Âm: `scenes/combat/DiceMomentAudio.gd`, bảng `EVENTS` (event -> file). Có file tạm: dm_set3 (power_gain), dm_overcast_charge (power_awaken), dm_gamble_clean + dm_crack_fade (cleanse). Còn lại path rỗng = im lặng; thả .ogg vào `assets/audio/sfx/dice/` rồi điền path. Chưa nối: dm_land, dm_pair, dm_wild_match, dm_core_* (cần tín hiệu engine/Lõi chủ). Chưa có công tắc riêng trong Settings (câu hỏi 2 của spec audio, chờ Liam). Ducking Music chưa làm.
+- Chip REROLL chuyển lên trên thẻ, nhãn SET nâng 28px khi đang chọn tung lại (hết đè số/preview).
+- Ảnh: `production/qa/evidence/v4ui_*` (bo3, bo4, reroll_pick, gamble_pct, wild_picker, result; 1280x720 + 1920x1080) từ `tests/qa_v4ui_capture`.
+- Test mới: t_v4ui_bo, t_v4ui_stage_coach, t_v4ui_result, t_v4ui_audio (floor trong technical-preferences.md chưa đổi: lead cập nhật khi merge).

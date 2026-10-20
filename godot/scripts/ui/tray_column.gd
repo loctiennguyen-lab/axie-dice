@@ -172,6 +172,8 @@ static func update(content: Dictionary, d: Dictionary) -> void:
 		content["overcast_chip"] = ochip
 	if content.has("overcast_chip"):
 		(content["overcast_chip"] as Control).visible = oc
+	_update_v4(content, d)
+	_update_crack(content, d)
 	UI3Tooltip.bind(btn, String(d.get("tip", "")))
 	btn.set_meta("ui3_tip_side_of_row", true)
 
@@ -193,3 +195,104 @@ static func _apply_skin(content: Dictionary, skin: String) -> void:
 ## The DieTile lifts itself when selected (state "selected"); nothing to tween here.
 static func set_lifted(_view: Node, content: Dictionary, lifted: bool, _instant: bool) -> void:
 	content["lifted"] = lifted
+
+
+## Depth v4 (combat-v4.md 1.1 / 1.3): the part chip (32x32, glyph + short word for grayscale) top-left, and the
+## "5 -> 8" Set preview top-right. `d`: part_tex:Texture2D|null, part_text:String, pv:String ("" = none).
+static func _update_v4(content: Dictionary, d: Dictionary) -> void:
+	var body: Control = content["body"]
+	var part_text := String(d.get("part_text", ""))
+	if part_text != "" and not content.has("part_chip"):
+		var chip := PanelContainer.new()
+		chip.name = "PartChip"
+		chip.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		chip.theme = UI3Theme.get_theme()
+		var sb := UI3Theme.flat(UI3Theme.color("panel_raised"), UI3Theme.radius("s"), 2, UI3Theme.color("text_muted"))
+		sb.content_margin_left = 2
+		sb.content_margin_right = 2
+		sb.content_margin_top = 2
+		sb.content_margin_bottom = 2
+		chip.add_theme_stylebox_override("panel", sb)
+		chip.custom_minimum_size = Vector2(32, 32)
+		var tr := TextureRect.new()
+		tr.name = "Glyph"
+		tr.custom_minimum_size = Vector2(28, 28)
+		tr.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		tr.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		tr.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		chip.add_child(tr)
+		chip.position = Vector2(2, 2)
+		body.add_child(chip)
+		content["part_chip"] = chip
+	if content.has("part_chip"):
+		var chip2: Control = content["part_chip"]
+		chip2.visible = part_text != ""
+		var glyph: TextureRect = chip2.get_node("Glyph")
+		glyph.texture = d.get("part_tex", null)
+		chip2.set_meta("part_text", part_text)
+		UI3Tooltip.bind(chip2, "%s. %s" % [part_text, TranslationServer.translate("3 dice of the same part make a SET")])
+	var pv := String(d.get("pv", ""))
+	if pv != "" and not content.has("pv_label"):
+		var l := UI3.label("", "LabelDisplay")
+		l.name = "SetPreview"
+		l.add_theme_font_size_override("font_size", 18)
+		l.add_theme_color_override("font_color", UI3Theme.color("accent"))
+		l.add_theme_color_override("font_outline_color", UI3Theme.color("panel"))
+		l.add_theme_constant_override("outline_size", 4)
+		l.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		body.add_child(l)
+		content["pv_label"] = l
+	if content.has("pv_label"):
+		var pl: Label = content["pv_label"]
+		pl.visible = pv != ""
+		pl.text = pv
+		var w := pl.get_minimum_size().x + 2.0
+		pl.position = Vector2(W - PAD - w, 4)
+		pl.size = Vector2(w, 24)
+
+
+## Depth v4 2.2 / 2.4: Crack (a zig-zag drawn on the tile + a "1/2" chip, no colour wash, card stays readable) and the
+## reroll pick tick. `d`: cracked:bool, rr_tick:bool.
+static func _update_crack(content: Dictionary, d: Dictionary) -> void:
+	var body: Control = content["body"]
+	var cracked := bool(d.get("cracked", false))
+	if cracked and not content.has("crack_chip"):
+		var chip := UI3.chip("1/2")
+		chip.name = "CrackChip"
+		chip.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		chip.position = Vector2(W - 52.0, 34.0)
+		body.add_child(chip)
+		content["crack_chip"] = chip
+		var line := Line2D.new()
+		line.name = "CrackMark"
+		line.width = 3.0
+		line.default_color = UI3Theme.color("accent_text")
+		line.points = PackedVector2Array([Vector2(52, 4), Vector2(62, 26), Vector2(50, 44), Vector2(64, 64), Vector2(54, 90)])
+		body.add_child(line)
+		content["crack_mark"] = line
+	if content.has("crack_chip"):
+		(content["crack_chip"] as Control).visible = cracked
+		(content["crack_mark"] as CanvasItem).visible = cracked
+	var wt := String(d.get("wild_text", ""))
+	if wt != "" and not content.has("wild_chip"):
+		var wc := UI3.chip("?")
+		wc.name = "WildChip"
+		wc.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		wc.position = Vector2(W * 0.5 - 40.0, -8.0)
+		body.add_child(wc)
+		content["wild_chip"] = wc
+	if content.has("wild_chip"):
+		var wch: Control = content["wild_chip"]
+		wch.visible = wt != ""
+		if wt != "":
+			((wch.get_child(0)) as Label).text = "? " + wt
+	var tick := bool(d.get("rr_tick", false))
+	if tick and not content.has("rr_chip"):
+		var rc := UI3.chip("REROLL")
+		rc.name = "RerollChip"
+		rc.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		rc.position = Vector2(W * 0.5 - 40.0, -20.0)   # above the card: its top holds the die value and the Set preview
+		body.add_child(rc)
+		content["rr_chip"] = rc
+	if content.has("rr_chip"):
+		(content["rr_chip"] as Control).visible = tick

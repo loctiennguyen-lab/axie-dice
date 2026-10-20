@@ -13,6 +13,7 @@ signal menu_pressed
 signal ascension_pressed
 signal active_pressed(relic_id: String)
 signal overcast_pressed   ## Overcast button (CombatView turns it into the `overcast` action)
+signal wild_pressed   ## depth v4 Wild face button (CombatView opens the pick)
 signal hold_pressed   ## depth v3 3.2: the Hold button (CombatView turns it into the `stash` action)
 
 const TOP := 24.0
@@ -60,6 +61,8 @@ var reroll_button: Button
 var end_turn_button: Button
 var overcast_button: Button        ## Overcast (lane OC), owned here, sits above Hold
 var _overcast_wanted := true
+var wild_button: Button             ## depth v4 Wild face (stage >= 2)
+var _wild_wanted := false
 var hold_button: Button             ## depth v3 Hold, owned here (no scene node)
 var _hint: Label
 var _hold_wanted := true
@@ -431,6 +434,13 @@ func adopt_right_zone(undo: Button, reroll: Button, end_turn: Button) -> void:
 	overcast_button.clip_text = true
 	overcast_button.pressed.connect(func(): overcast_pressed.emit())
 	add_child(overcast_button)
+	wild_button = UI3.button("Wild", &"secondary", &"S")
+	wild_button.name = "WildButton"
+	wild_button.add_theme_font_size_override("font_size", 18)
+	wild_button.custom_minimum_size = Vector2(RIGHT_W, SMALL_H)
+	wild_button.clip_text = true
+	wild_button.pressed.connect(func(): wild_pressed.emit())
+	add_child(wild_button)
 	hold_button = UI3.button("Hold", &"secondary", &"S")
 	hold_button.name = "HoldButton"
 	hold_button.add_theme_font_size_override("font_size", 18)
@@ -593,7 +603,7 @@ func update_attrition(state: Dictionary, turn: int, newcomer: bool) -> void:
 
 ## Right zone texts + enabled states. Disabled buttons say why (UI3 rule).
 ## undo: {enabled, sub}  reroll: {n, enabled}  end: {sub, warn, enabled, resolving}
-func update_right(undo: Dictionary, reroll: Dictionary, end: Dictionary, hold: Dictionary = {}, overcast: Dictionary = {}) -> void:
+func update_right(undo: Dictionary, reroll: Dictionary, end: Dictionary, hold: Dictionary = {}, overcast: Dictionary = {}, wild: Dictionary = {}) -> void:
 	if undo_button == null:
 		return
 	undo_button.disabled = not bool(undo.get("enabled", false))
@@ -616,6 +626,10 @@ func update_right(undo: Dictionary, reroll: Dictionary, end: Dictionary, hold: D
 	overcast_button.disabled = not bool(overcast.get("enabled", false))
 	overcast_button.text = String(overcast.get("text", "Overcast"))
 	overcast_button.tooltip_text = String(overcast.get("tip", ""))
+	_wild_wanted = bool(wild.get("show", false))
+	wild_button.disabled = not bool(wild.get("enabled", false))
+	wild_button.text = String(wild.get("text", "Wild"))
+	wild_button.tooltip_text = String(wild.get("tip", ""))
 	_hold_wanted = bool(hold.get("show", false))
 	var hold_on := bool(hold.get("on", false))
 	hold_button.disabled = not bool(hold.get("enabled", false)) and not hold_on   # "on" = a pressed-in toggle, not disabled
@@ -710,6 +724,12 @@ func layout() -> void:
 		overcast_button.size = Vector2(RIGHT_W, SMALL_H)
 		overcast_button.visible = _overcast_wanted and not _speed.visible
 		_tray_top = y if overcast_button.visible else y + GAP + SMALL_H
+		wild_button.size = Vector2(RIGHT_W, SMALL_H)
+		wild_button.visible = _wild_wanted and not _speed.visible
+		if wild_button.visible:
+			# Hidden buttons leave no gap: Wild takes the Overcast slot while Overcast is locked (stage 2).
+			wild_button.position = Vector2(x, y - (GAP + SMALL_H if overcast_button.visible else 0.0))
+			_tray_top = wild_button.position.y
 		hold_button.visible = _hold_wanted and not _speed.visible
 		# Undo is hidden while input is locked: the speed control takes the slot.
 		undo_button.visible = not _speed.visible
