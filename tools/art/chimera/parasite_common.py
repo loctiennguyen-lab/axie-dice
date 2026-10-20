@@ -5,6 +5,7 @@ meshes ship at the origin, upright, and have to be placed on the back (see build
 """
 import bpy, os, sys, math, mathutils
 
+# Machine-local default (Liam's checkout; asset-library/ is not in git). Edit when building elsewhere.
 SRC = "/Users/loc.tien.nguyen/my-game/asset-library/chimera-src/Parasite (Bug)/3D/Bug_01"
 PARTS = {"Body": ("SM_Bug_Body_01.fbx", "T_Bug_Body_1_C.png"),
          "Hair": ("SM_Bug_Hair_01.fbx", "T_Bug_Hair_1_C.png"),

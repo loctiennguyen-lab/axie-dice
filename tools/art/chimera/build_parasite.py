@@ -17,7 +17,7 @@ from mathutils import Vector, Quaternion, Matrix
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from parasite_common import *
 
-OUT = arg("out", "/tmp/parasite")
+OUT = arg("out", "/tmp/parasite")   # machine-local default; pass --out godot/assets/bosses/chimera_parasite
 BLEND = arg("blend")
 FPS = 30
 SWORD_SCALE = 0.95    # the art shows a huge blade, as wide as the cape; the FBX is 4.7 m at 1.0
