@@ -358,11 +358,39 @@ const ENEMY_ROWS_TIGHT: Array[float] = [-1.7, 1.1, 3.8]
 const BOSS_POS := Vector3(1.5, 0.0, 1.9)
 const ELITE_POS := Vector3(1.5, 0.0, 0.7)   # spec: one elite, bigger
 const ELITE_SCALE := 1.4
+## Units a boss summons or splits off mid-fight (gooey slimes, plague_mother's adds, any boss add) are drawn this much
+## smaller than their normal model so they read as minions. Visual only: slot spacing, HP and the rules do not change.
+const SUMMON_SCALE := 0.7
 ## Other enemies next to a boss or an elite: two on the front line, two on the back line, clear of the big one.
 const ADD_PITCH_X := 1.5
 const ADD_Z_BACK := -10.2
 const ADD_Z_FRONT := 6.3
 const ADD_Z_BACK2 := -18.3
+## A boss model at least this wide (m, fitted) is "wide": its footprint covers the whole middle of the field, so adds
+## cannot stand in front of / behind it. The boss steps WIDE_BOSS_SHIFT_X toward the gate and the adds stand in a
+## column on its party side (x = boss left edge - WIDE_ADD_GAP), spread in depth by WIDE_ADD_Z[count]. The 5th add
+## onward stands on the far back row above the boss (ADD_EXTRA).
+## TUNED AGAINST t_combat_spacing: WIDE_BOSS_SHIFT_X, WIDE_ADD_GAP*, WIDE_ADD_Z, WIDE_ADD_DX and Brine's fit_width_m
+## (atia_models.json) leave only ~1 px boss<->gate margin with 4 adds and ~2 px on the party/enemy gap. Any change to
+## the camera, frame_band, SUMMON_SCALE or a wide boss's fit must re-run t_combat_spacing.
+const WIDE_BOSS_MIN_W := 3.5
+const WIDE_BOSS_SHIFT_X := 0.55
+const WIDE_ADD_GAP := 0.5
+const WIDE_ADD_GAP_4 := 0.6   # four adds: the mid ones are wider on screen, keep them off the boss
+const WIDE_ADD_Z := {
+	1: [1.5],
+	2: [-3.5, 5.5],
+	3: [-8.0, -2.0, 5.0],
+	4: [-10.56, -3.95, 1.62, 6.39],
+}
+## Per-add nudge (m, toward the boss) on top of WIDE_ADD_GAP: the front adds are nearer the camera and project further
+## left, so they get pulled in a little to keep the party/enemy gap.
+const WIDE_ADD_DX := {
+	1: [0.0],
+	2: [0.0, 0.3],
+	3: [0.0, 0.0, 0.0],
+	4: [0.0, 0.1, 0.17, 0.05],
+}
 ## Adds 5 and up (gooey SPLIT, summoners) stand on a second back row above the first one.
 const ADD_EXTRA := [[-1.0, -2], [1.0, -2], [0.0, -2], [-2.0, -2]]
 const ADD_PATTERNS := {
@@ -849,7 +877,7 @@ func _make_ground_shadow(width: float) -> MeshInstance3D:
 ## stand-in wearing its class colour. The Vault card already drew it this way; combat did not,
 ## and that mismatch was the report ("không hiển thị art của Vault Axie trong trận").
 func spawn_unit(uid: int, cls: String, is_enemy: bool, slot_index: int, slot_count: int,
-		is_boss: bool = false, unit_key: String = "", genes: String = "") -> void:
+		is_boss: bool = false, unit_key: String = "", genes: String = "", is_summon: bool = false) -> void:
 	var sheet_sprite_name := ""       # see the MonsterAnim block further down
 	var atia_info: Dictionary = {}
 	var sheet_target: Sprite3D = null
@@ -951,6 +979,11 @@ func spawn_unit(uid: int, cls: String, is_enemy: bool, slot_index: int, slot_cou
 	if is_egg and visual != null:
 		visual.scale *= 0.62   # tokens read smaller than the Axies they sit beside
 		shadow_width *= 0.62
+	if is_summon and is_enemy and not is_boss and not is_egg and visual != null:
+		visual.scale *= SUMMON_SCALE   # chips (head_height_of), hit boxes and shadow all follow the visual
+		shadow_width *= SUMMON_SCALE
+		if not atia_info.is_empty():
+			atia_info["width"] = float(atia_info["width"]) * SUMMON_SCALE
 	var shadow := _make_ground_shadow(shadow_width)
 	slot.add_child(shadow)
 
@@ -1316,6 +1349,12 @@ func reseat_side(uids: Array, is_enemy: bool) -> void:
 	for uid in axie_uids.duplicate():
 		if int(uid) == lead_uid:
 			axie_uids.erase(uid)
+	var wide_lead_w := 0.0   # fitted width (m) of a boss model wider than WIDE_BOSS_MIN_W, else 0
+	if lead_uid >= 0 and bool((_units[lead_uid] as Dictionary).get("is_boss", false)):
+		var lead_atia: Dictionary = (_units[lead_uid] as Dictionary).get("atia", {}) as Dictionary
+		var lw := float(lead_atia.get("width", 0.0))
+		if lw >= WIDE_BOSS_MIN_W:
+			wide_lead_w = lw
 	var placed: Array = []   # [uid, position]
 	if lead_uid >= 0:
 		var lead_entry: Dictionary = _units[lead_uid]
@@ -1323,6 +1362,9 @@ func reseat_side(uids: Array, is_enemy: bool) -> void:
 		var lead_pos: Vector3 = BOSS_POS if is_boss else ELITE_POS
 		if axie_uids.is_empty():
 			lead_pos.z += 0.5   # alone: no adds above and below, so it sits a little lower, on the gate's axis
+		elif wide_lead_w > 0.0:
+			lead_pos.z += 0.5 + (0.3 if axie_uids.size() >= 4 else 0.0)
+			lead_pos.x += WIDE_BOSS_SHIFT_X
 		placed.append([lead_uid, lead_pos])
 		if not is_boss and not bool(lead_entry.get("elite_scaled", false)):
 			lead_entry["elite_scaled"] = true
@@ -1337,6 +1379,12 @@ func reseat_side(uids: Array, is_enemy: bool) -> void:
 			if i >= 4:
 				ent = (ADD_EXTRA as Array)[(i - 4) % (ADD_EXTRA as Array).size()]   # 5th add onward: a second back row
 			var lead_x: float = (BOSS_POS if bool((_units[lead_uid] as Dictionary).get("is_boss", false)) else ELITE_POS).x
+			if wide_lead_w > 0.0:
+				lead_x += WIDE_BOSS_SHIFT_X
+				if i < 4:
+					var col_z: Array = WIDE_ADD_Z[mini(axie_uids.size(), 4)]
+					placed.append([axie_uids[i], Vector3(lead_x - wide_lead_w * 0.5 - (WIDE_ADD_GAP_4 if axie_uids.size() >= 4 else WIDE_ADD_GAP) + float((WIDE_ADD_DX[mini(axie_uids.size(), 4)] as Array)[i]), _POS_Y, float(col_z[i]))])
+					continue
 			pos = Vector3(lead_x + float(ent[0]) * ADD_PITCH_X, _POS_Y, ADD_Z_FRONT if int(ent[1]) > 0 else (ADD_Z_BACK2 if int(ent[1]) < -1 else ADD_Z_BACK))
 		else:
 			pos = _slot_position(is_enemy, i, axie_uids.size())

@@ -2098,7 +2098,14 @@ func _spawn_portrait(u: Unit, is_enemy: bool, slot_index: int, slot_count: int) 
 	# place that knows this key came from the Vault — Unit deliberately carries no gene field,
 	# so nothing here reaches into the engine or changes what a run replays as.
 	var genes := String((ContentDB.heroes.get(u.key, {}) as Dictionary).get("genes", ""))
-	_stage3d.spawn_unit(u.uid, u.cls, is_enemy, slot_index, slot_count, u.is_boss, u.key, genes)
+	var boss_on_field := false
+	for en in _combat.enemies:
+		if (en as Unit).is_boss and (en as Unit).hp > 0:
+			boss_on_field = true
+	# A boss fight starts with the boss alone, so any other enemy beside a live boss is a summon. Not tied to
+	# "spawned after the board was built": a fight resumed from a save rebuilds its summons in _ready() too.
+	var is_summon := is_enemy and not u.is_boss and boss_on_field
+	_stage3d.spawn_unit(u.uid, u.cls, is_enemy, slot_index, slot_count, u.is_boss, u.key, genes, is_summon)
 	# The audio director only ever sees uids in `hit_landed`, so it needs each unit's voice
 	# up front. Heroes carry their own class; monsters have none and get one derived from the
 	# Chimera sprite they wear — without this every enemy in the game would be silent.
