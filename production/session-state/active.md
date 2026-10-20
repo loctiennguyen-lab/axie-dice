@@ -1,5 +1,12 @@
 # Axie Dice — trạng thái hiện tại
 
+## ⇢ BẮT ĐẦU TỪ ĐÂY (tối 22/10/2026) — V4 ĐÃ GHÉP, ĐANG ĐO + SỬA UI
+`../my-game-wt/V4` `depth/V4` = engine v4 (review OK bước 1-5, security Worker PASS) + UI V4U (0d40b84) + knob TD r2 (263534f,
+plating.off_turns trả về 2, anti-stall 14); agent tích hợp đang thêm best_bo + chạy suite. TD xác nhận (trước v4): random 13.3,
+spam 15.1, attack_only 3.4, expert 18.9 (gap 5.6) — đã khó hơn bản cũ 7-10 điểm, gap vẫn nhỏ. Đang: `../my-game-wt/SV4` dạy bot sim
+v4 + ablation; `../my-game-wt/UF` sửa UI theo UX review (nghi lỗi đồng bộ banner BỘ 4 vs nhãn SET OF 3; chữ % Nứt nhỏ; bố cục
+cụm nút 2 hàng). Ranked chỉ stage 3 (mặc định, báo Liam). Deploy: 0008+0009 → Worker → web CÙNG LÚC (hỏi Liam).
+
 ## ⇢ BẮT ĐẦU TỪ ĐÂY (chiều 22/10/2026) — V4 ENGINE GẦN XONG, UI ĐANG LÀM
 `../my-game-wt/V4` `depth/V4` (đọc `production/v4-impl-brief.md` các mục "Bước N - xong/bàn giao"): bước 1 BỘ/túi M/Overcast +0.5;
 bước 2 Liều/An toàn/rmode/pin/Nứt; bước 3 Mặt Tạm + T10; bước 4 trần thorn/poison, stage server (migration 0009), pin rmode+source
