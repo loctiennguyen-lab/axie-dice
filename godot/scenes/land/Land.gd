@@ -120,6 +120,8 @@ var _blocked: Array[Dictionary] = [] # {p: Vector3, r: float}
 var _bld_rects: Array[Rect2] = []   # design-px screen rect of every building and empty plot: props keep off them
 var _footprints: Array[Dictionary] = []  # {p, r} of every building and prop, for the stay-on-the-land test
 var _lanes: Array[Array] = []        # [from, to] ground segments the Axies walk; props stay off them
+var _decor_zones: Array[Dictionary] = []   # keep-out discs for player decor (buildings, Portal ring, empty plots)
+var _edit: LandEdit
 var _hub := Vector3.ZERO             # where all lanes meet, in front of the Portal
 var _axies: Array[Dictionary] = []
 
@@ -191,6 +193,7 @@ func _ready() -> void:
 	_build_world()
 	_build_ground()
 	_build_buildings()
+	_build_decor()
 	_build_props()
 	_build_ui()
 	for i in WANDERERS:
@@ -547,6 +550,45 @@ func _build_buildings() -> void:
 	for p in _plots:
 		_blocked.append({"p": _ground_at(float(p["cx"]), float(p["base"]) - 40.0), "r": 6.0})
 		_bld_rects.append(Rect2(float(p["cx"]) - 100.0, float(p["base"]) - 108.0, 200.0, 108.0))
+	_decor_zones = _blocked.duplicate()   # only buildings, Portal ring and plots are in _blocked so far
+
+
+## Player decor (Edit Land): validated and instanced before the random props so those keep clear of it.
+func _build_decor() -> void:
+	_edit = LandEdit.new()
+	_edit.name = "LandEdit"
+	add_child(_edit)
+	_edit.setup(self, null, _cam, _inst, _aabb, _decor_ctx, _show_toast, _ui_floor)
+	for f in _edit.build_placed(_tier):
+		_blocked.append({"p": f["p"], "r": float(f["r"]) + 0.3})
+		_footprints.append({"p": f["p"], "r": float(f["r"]), "h": 1.0, "prop": true, "decor": true})
+
+
+func _decor_ctx() -> Dictionary:
+	var props: Array = []
+	for f in _footprints:
+		if f.has("prop") and not f.has("decor"):
+			props.append({"p": f["p"], "r": f["r"]})
+	return {"zones": _decor_zones, "lanes": _lanes, "props": props}
+
+
+func _on_edit_pressed() -> void:
+	if _modal == null and _edit != null:
+		_edit.enter()
+
+
+func _on_edit_mode(on: bool) -> void:
+	for id in _hits:
+		(_hits[id] as Control).visible = not on
+	for id in _plot_marks:
+		(_plot_marks[id] as Control).visible = not on
+	for c in [_hud_tl, _hud_bl, _hud_br, _start_hint, _offline_banner]:
+		if c != null:
+			(c as Control).visible = not on and (c != _offline_banner or _offline)
+	for a in _axies:
+		(a["node"] as Node3D).visible = not on
+	if not on:
+		_refresh_signs()
 
 
 func _aabb(n: Node, xf: Transform3D) -> AABB:
@@ -955,6 +997,9 @@ func _build_ui() -> void:
 	_build_hud()
 	_build_banners()
 	_build_toast()
+	_edit._ui = _ui
+	_edit.build_ui()
+	_edit.mode_changed.connect(_on_edit_mode)
 	_wire_focus()
 	_refresh_signs()
 
@@ -1192,6 +1237,11 @@ func _build_hud() -> void:
 	crow.add_theme_constant_override("separation", UI3Theme.space("12"))
 	crow.add_child(UI3.label("Codex"))
 	blr.add_child(_cell("Codex", crow, _on_rail_pressed.bind(&"codex")))
+	var erow := HBoxContainer.new()
+	erow.add_theme_constant_override("separation", UI3Theme.space("12"))
+	erow.add_child(UI3.label("Edit Land"))
+	erow.add_child(UI3.key_hint("E"))
+	blr.add_child(_cell("EditLand", erow, _on_edit_pressed))
 	# Moon Card: L1 shows it disabled, no price (answered in round 2). Hidden when signed out.
 	_moon_btn = UI3.button("Moon Card · Coming soon", &"secondary", &"S")
 	_moon_btn.name = "MoonCardButton"
@@ -1452,6 +1502,8 @@ func _fmt(v: int) -> String:
 func _layout() -> void:
 	if _ui == null or _hud_br == null:
 		return
+	if _edit != null:
+		_edit.layout()
 	var dy := (_ui.size.y - 1080.0) * 0.5
 	var f := _ui_floor()
 	_place_hud(f)
@@ -1697,6 +1749,11 @@ func _handle_key(keycode: int) -> bool:
 
 func _handle_key_event(ev: InputEventKey) -> bool:
 	KeyBindings.ensure()
+	if _edit != null and _edit.active:
+		return _edit.handle_key(ev)   # Edit Land owns the keyboard: hub shortcuts stay quiet
+	if ev.keycode == KEY_E and _modal == null and _edit != null and not ev.is_action_pressed(KeyBindings.MENU_BACK):
+		_edit.enter()
+		return true
 	if ev.is_action_pressed(KeyBindings.MENU_BACK):
 		if _modal != null:
 			_close_modal()
