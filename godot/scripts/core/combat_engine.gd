@@ -73,6 +73,9 @@ var combat_seed: int = 0
 ## a combat is still reconstructible from data alone (architecture plan §4).
 var _early_traits: bool = false   ## setup flag `before_first_elite`: normal fights carry at most traits.cap_early trait bearers
 var run_rules: Array = []   ## Run rules active this fight ("R12" Plating everywhere + side bonus, "R13")
+var affix2: String = ""   ## second Elite affix (group B, after boss 1)
+var spite_hits: Dictionary = {}   ## enemy uid -> single-target dmg faces landed on it this player turn (M3)
+var dmg_used_turn: int = 0        ## dmg faces the party has used this turn (R13)
 var affix: String = ""   ## Elite affix id from combat_setup (depth v3 6.4), "" = none
 var _boss_key: String = ""
 var _run_mods: Dictionary = {"enemy_hp": 1.0, "enemy_dmg": 1.0}
@@ -155,6 +158,15 @@ func setup_new(combat_setup: Dictionary) -> void:
 	combat_seed = int(combat_setup.get("combat_seed", 0))
 	_boss_key = String(combat_setup.get("boss_key", ""))
 	affix = String(combat_setup.get("affix", ""))
+	affix2 = String(combat_setup.get("affix2", ""))
+	run_rules = (combat_setup.get("run_rules", []) as Array).duplicate()
+	if kind == "elite" and bool(combat_setup.get("first_run_elite", false)):
+		# 6.4: the account's first run keeps the anti-spam affix: Giap Sat, or Khien Hoi when the team cannot break Plating.
+		var fr: Dictionary = ContentDB.elite_affix_meta.get("first_run", {})
+		affix = String(fr.get("default", "iron")) if bool(combat_setup.get("team_can_break", true)) else String(fr.get("no_break", "ward"))
+		affix2 = ""
+	spite_hits = {}
+	dmg_used_turn = 0
 	_run_mods = (combat_setup.get("run_mods", {}) as Dictionary).duplicate()
 	_rng = Rng.new(combat_seed)
 	_epoch = combat_setup.get("epoch", null) as EpochSource
@@ -297,6 +309,10 @@ func _state_dict() -> Dictionary:
 		"ascension": ascension,
 		"combat_seed": combat_seed,
 		"affix": affix,
+		"affix2": affix2,
+		"run_rules": run_rules.duplicate(),
+		"spite_hits": spite_hits.duplicate(),
+		"dmg_used_turn": dmg_used_turn,
 		"won": won,
 		"lost": lost,
 		"result_shards_earned": result_shards_earned,
@@ -344,6 +360,12 @@ func _apply_state_dict(d: Dictionary) -> void:
 	ascension = int(d.get("ascension", 0))
 	combat_seed = int(d.get("combat_seed", 0))
 	affix = String(d.get("affix", ""))
+	affix2 = String(d.get("affix2", ""))
+	run_rules = (d.get("run_rules", []) as Array).duplicate()
+	spite_hits = {}
+	for k in (d.get("spite_hits", {}) as Dictionary):
+		spite_hits[int(k)] = int((d["spite_hits"] as Dictionary)[k])
+	dmg_used_turn = int(d.get("dmg_used_turn", 0))
 	won = bool(d.get("won", false))
 	lost = bool(d.get("lost", false))
 	result_shards_earned = int(d.get("result_shards_earned", 0))
@@ -1285,11 +1307,14 @@ func _do_face(u: Unit, target_uid: int, f: Dictionary, fi: int, is_echo: bool) -
 	var ctx_n := [0, false]   # [hits so far, secondary-target mode] for the on_face_hit hook (FACE_CTX)
 	var hit := func(t: Unit, amount: int) -> int:
 		var pierce: bool = _has_kw(f, "pierce") or (u.side == "p" and u.cls == "bird" and _has_kw(f, "aoe"))
+		var single: bool = not pierce and not _has_kw(f, "aoe") and not bool(ctx_n[1])
 		var d: int = DamagePipeline.resolve({
 			"combat": self, "src": u, "tgt": t, "value": amount, "pierce": pierce, "attack": true,
 			"crit": crit, "exec": _has_kw(f, "exec"), "face_type": "dmg", "resonant": u.resonant_now,
-				"single": not pierce and not _has_kw(f, "aoe") and not bool(ctx_n[1]),
+			"single": single,
 		})
+		if single and u.side == "p":
+			CombatTraits.on_single_hit(self, u, t)
 		if _has_kw(f, "lifesteal") and d > 0:
 			DamagePipeline.apply_heal(self, u, d)
 		if kw_pure.size() > 0 and d >= 0:
@@ -1519,6 +1544,7 @@ func begin_end_turn(seed: int = -1) -> bool:
 			DamagePipeline.resolve({"combat": self, "src": src, "tgt": t, "value": v, "attack": false})
 		EventBus.float_text.emit((src.uid if src != null else 0), "OVERFLOW %d" % v, "man", 1)
 		mana = 0
+	CombatTraits.enemy_phase_start(self)
 	return true
 
 
@@ -1590,6 +1616,8 @@ func finish_end_turn() -> void:
 		if u.frozen:
 			u.frozen = false
 	_affix_turn_start()
+	spite_hits = {}
+	dmg_used_turn = 0
 	CombatTraits.turn_start(self)
 	EventBus.combat_clock_changed.emit(clock_state())
 	EventBus.combat_attrition_changed.emit(attrition_state())
@@ -1645,8 +1673,12 @@ func _any_die_has_keyword(units: Array, kw: String) -> bool:
 func _aff(e: Unit) -> Dictionary:
 	if e == null or e.side != "e":
 		return {}
-	var id := String(e.custom_state.get("affix", ""))
-	return (ContentDB.elite_affixes.get(id, {}) as Dictionary) if id != "" else {}
+	var out := {}
+	for key in ["affix", "affix2"]:
+		var id := String(e.custom_state.get(key, ""))
+		if id != "" and ContentDB.elite_affixes.has(id):
+			out.merge(ContentDB.elite_affixes[id] as Dictionary, true)
+	return out
 
 
 ## The elite (enemy 0) of an elite fight carries the affix; shield / thorns are set before turn 1.
@@ -1655,11 +1687,25 @@ func _apply_affix_start() -> void:
 		return
 	var e: Unit = enemies[0]
 	e.custom_state["affix"] = affix
+	if affix2 != "" and ContentDB.elite_affixes.has(affix2):
+		e.custom_state["affix2"] = affix2
 	var a := _aff(e)
 	if int(a.get("start_shield_pct", 0)) > 0:
 		e.shield = int(round(float(e.max_hp) * float(a["start_shield_pct"]) / 100.0))
 	if int(a.get("thorns", 0)) > 0:
 		e.custom_state["permanent_thorns"] = int(a["thorns"])
+	# 6.7b.6: an Elite with a group-A affix drops the trait of its own role (one anti-spam mechanic per fight).
+	var in_a := false
+	for id in [affix, affix2]:
+		if String((ContentDB.elite_affixes.get(id, {}) as Dictionary).get("group", "")) == "A":
+			in_a = true
+	if in_a:
+		e.custom_state.erase("m_trait")
+		e.plating = 0
+	if bool(a.get("iron", false)):
+		e.plating = CombatTraits.plating_for_pw(pw) + int(tune_knob("plating", "iron_bonus", 1.0))   # Giap Sat = P+1, not R12+1
+	if bool(a.get("spite", false)):
+		e.custom_state["spite"] = true          # M3: replaces any old thorns of this unit (pipeline ignores its thorns)
 
 
 func _affix_turn_start() -> void:

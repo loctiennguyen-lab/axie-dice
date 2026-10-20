@@ -178,6 +178,8 @@ const RULES_DIR := "res://assets/data/rules/"
 var ascension_table: Array = []   ## index = ascension level 0..10, each a Dictionary (see ascension.json)
 ## Depth v3 6.4: affix id -> effect keys (assets/data/rules/elite_affixes.json).
 var elite_affixes: Dictionary = {}
+## forbidden_pairs + first_run ids from the same file (6.4 / 6.7b.9).
+var elite_affix_meta: Dictionary = {}
 var combat_tune: Dictionary = {}  ## attrition, spike, phase_thresholds, newcomer_runs
 var boons: Dictionary = {}        ## boon_id -> {id, name_key, effect}
 var mission_table: Dictionary = {}  ## mission_rules.json: standard, rules, conditions
@@ -204,7 +206,9 @@ func _load_rules() -> void:
 		for k in (combat_tune["TUNE"] as Dictionary):
 			TUNE[k] = (combat_tune["TUNE"] as Dictionary)[k]
 	mission_table = _load_rules_json("mission_rules.json")
-	elite_affixes = (_load_rules_json("elite_affixes.json").get("affixes", {}) as Dictionary).duplicate(true)
+	var _ea := _load_rules_json("elite_affixes.json")
+	elite_affixes = (_ea.get("affixes", {}) as Dictionary).duplicate(true)
+	elite_affix_meta = {"forbidden_pairs": (_ea.get("forbidden_pairs", []) as Array).duplicate(true), "first_run": (_ea.get("first_run", {}) as Dictionary).duplicate(true)}
 	boons = {}
 	for b in (_load_rules_json("boons.json").get("boons", []) as Array):
 		boons[String((b as Dictionary).get("id", ""))] = (b as Dictionary).duplicate(true)
