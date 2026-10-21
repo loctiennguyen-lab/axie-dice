@@ -1253,13 +1253,7 @@ func _show_reward_overlay(title: String, _backdrop: Texture2D = null) -> void:
 	var title_lbl := UI3.label(tr(title), "LabelScreenTitle")
 	title_lbl.name = "RewardTitle"
 	head.add_child(title_lbl)
-	# Next pick's tier (lane B publishes RunState.core_next_tier, 0..2; -1 / absent = unknown): word + tier colour.
-	var nxt = RunState.get("core_next_tier")
-	if _core_offer_active() and not core_rule and nxt != null and int(nxt) >= 0:
-		var nt := clampi(int(nxt), 0, 2)
-		var chip := UI3.chip("Next: %s" % _CORE_TIER_NAME[nt])
-		chip.name = "NextTierChip"
-		head.add_child(chip)
+	# Gacha pack: the NEXT pick's tier is never shown anywhere (Liam 22/10).
 	head.add_child(UI3.currency_pill([{"icon": "cur_shard", "value": str(RunState.shards_this_run)}]))
 
 	_overlay_vbox = HBoxContainer.new()
@@ -1273,6 +1267,8 @@ func _show_reward_overlay(title: String, _backdrop: Texture2D = null) -> void:
 	var wide := RunState.pending_rewards.size() >= 4
 	for reward in RunState.pending_rewards:
 		_add_reward_card(reward, wide)
+
+	_start_core_reveal(col)
 
 	var actions := HBoxContainer.new()
 	actions.name = "RewardActions"
@@ -1348,6 +1344,8 @@ func _select_reward(i: int) -> void:
 
 
 func _take_selected_reward() -> void:
+	if _reveal != null and is_instance_valid(_reveal):
+		_reveal.skip()
 	if _reward_sel >= 0 and _reward_sel < RunState.pending_rewards.size():
 		var r: Dictionary = RunState.pending_rewards[_reward_sel]
 		if String(r.get("t", "")) in ["chaos", "curse"]:
@@ -1391,6 +1389,26 @@ func _trade_parts(r: Dictionary) -> Dictionary:
 		return {"gain": ("MP %d · " % int(gain["mp"]) if int(gain["mp"]) >= 0 else "") + String(gain["text"]),
 			"cost": cost, "cost_kind": &"gamble"}
 	return {"gain": sub.trim_prefix("IN EXCHANGE: you gain ").trim_suffix("."), "cost": desc, "cost_kind": &"curse"}
+
+
+## A1: Core offer cards arrive face-down with a tier halo, then flip left to right. Click / Space skips.
+var _reveal: GachaReveal = null
+
+func _start_core_reveal(shake_host: Control) -> void:
+	if _reveal != null and is_instance_valid(_reveal):
+		_reveal.queue_free()
+	_reveal = null
+	if not _core_offer_active() or _reward_cards.is_empty():
+		return
+	var first_r: Dictionary = RunState.pending_rewards[0]
+	if bool(first_r.get("rule", false)):
+		return
+	var tier := clampi(int(first_r.get("tier", 0)), 0, 2)
+	var first := UI3Gacha.first_seen(str(RunState.get("_core_base_seed")), tier)
+	_reveal = GachaReveal.new()
+	_reveal.name = "GachaReveal"
+	_overlay_root.add_child(_reveal)
+	_reveal.start(_reward_cards, tier, first, false, shake_host)
 
 
 func _add_reward_card(r: Dictionary, wide := false) -> PanelContainer:
