@@ -1261,7 +1261,7 @@ static func affix_tip(id: String) -> String:
 func _overcast_state(executing: bool) -> Dictionary:
 	var cost := _combat.overcast_cost()
 	var text := "Overcast %s %d MP" % [HudKit.dot(), cost]
-	var tip := TranslationServer.translate("+0.5 on the die's multiplier, added to the Set, not stacked.")
+	var tip := TranslationServer.translate("Overcast makes your whole Set stronger: +0.4 on every die in it.")
 	var ok := false
 	if _combat.overcast_count() > 0 and _combat.overcast_count() >= _combat.overcast_per_turn():
 		text = "Overcast: used"
@@ -1270,7 +1270,7 @@ func _overcast_state(executing: bool) -> Dictionary:
 		tip = "Overcast is only available on your turn."
 	elif _selected_die_uid == -1:
 		text = "Overcast: pick a die"
-		tip = "Pick an unused die first, then pay %d mana to power it up." % cost
+		tip = "Pick a die in a Set, then pay %d mana to power up the whole Set." % cost
 	else:
 		var why := _combat.overcast_block_reason(_selected_die_uid)
 		if why == "":
@@ -1281,10 +1281,15 @@ func _overcast_state(executing: bool) -> Dictionary:
 			var m_now := _combat.m100_for(u)
 			var m_after := mini(m_now + roundi(_combat.overcast_add() * 100.0), _combat.bo_cap100())
 			if not u.overcast:
-				tip = "%s\n%s" % [tip, TranslationServer.translate("This die's multiplier %s → %s") % [V4Ui.mult_text(m_now), V4Ui.mult_text(m_after)]]
+				tip = "%s\n%s" % [tip, TranslationServer.translate("The Set's multiplier %s → %s") % [V4Ui.mult_text(m_now), V4Ui.mult_text(m_after)]]
+			var gl: Array[String] = []
+			for e in _combat.overcast_group_preview(u):
+				gl.append("%d → %d" % [int(e["now"]), int(e["boosted"])])
+			text = "Overcast %s %s %d MP" % [" · ".join(gl), HudKit.dot(), cost]
+			tip = "%s\n%s" % [tip, " · ".join(gl)]
 		else:
 			text = "Overcast: %s" % why
-			tip = why
+			tip = TranslationServer.translate("Needs a Set. Overcast makes your whole Set stronger.") if why == "Needs a Set" else why
 	return {"show": _combat.overcast_per_turn() > 0 and _combat.depth_stage >= 3, "enabled": ok, "text": text, "tip": tip}
 
 
@@ -4322,7 +4327,7 @@ func _wild_any_valid() -> bool:
 
 
 func _wild_state(executing: bool) -> Dictionary:
-	var used: bool = _combat.wild_used >= _combat.wild_per_turn()
+	var used: bool = _combat.wild_used >= _combat.wild_per_battle()
 	var d := V4Ui.wild_button(_combat.depth_stage >= 2, used, _combat.mana, _combat.wild_cost(), _wild_any_valid())
 	if not executing:
 		d["enabled"] = false
@@ -4446,10 +4451,13 @@ func _update_coach() -> void:
 			var fi: int = u.roll_face_index()
 			parts[fi] = int(parts.get(fi, 0)) + 1
 	var pair := false
+	var set3 := false
 	for k in parts:
 		if int(parts[k]) == 2:
 			pair = true
-	var id := V4Coach.next_id({"stage": _combat.depth_stage, "rolled": rolled, "pair": pair, "bo": not _combat.bo.is_empty(),
+		if int(parts[k]) == 3:
+			set3 = true
+	var id := V4Coach.next_id({"stage": _combat.depth_stage, "rolled": rolled, "pair": pair, "set3": set3, "bo": not _combat.bo.is_empty(),
 		"free_left": _combat.rerolls, "payable": _combat.reroll_is_payable(), "mana": _combat.mana,
 		"reroll_cost": _combat.reroll_mana_cost(false, 1), "wild_cost": _combat.wild_cost(), "oc_cost": _combat.overcast_cost()})
 	if id == "":

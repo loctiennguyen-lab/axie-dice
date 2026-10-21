@@ -139,7 +139,7 @@ static var wild_script: bool = false
 
 ## Takes the first legal Mat Tam, if any. Returns true when one was taken (and so logged).
 static func try_wild(engine: CombatEngine) -> bool:
-	if engine.wild_used >= engine.wild_per_turn() or engine.mana < engine.wild_cost():
+	if engine.wild_used >= engine.wild_per_battle() or engine.mana < engine.wild_cost():
 		return false
 	for u in engine.party:
 		for slot in 6:

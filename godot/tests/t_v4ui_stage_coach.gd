@@ -18,7 +18,15 @@ func _ready() -> void:
 	var base := {"stage": 3, "rolled": true, "pair": false, "bo": false, "free_left": 1, "payable": true, "mana": 5, "reroll_cost": 2, "wild_cost": 2, "oc_cost": 3}
 	_check(V4Coach.next_id(base) == "C1", "C1 first")
 	V4Coach.mark("C1")
-	_check(V4Coach.next_id(base) == "C7", "C7 (>= 3 mana, stage 3) once free reroll is not the issue: %s" % V4Coach.next_id(base))
+	_check(V4Coach.next_id(base) == "", "MD 22/10: without a Set / a set of 3 neither C6 nor C7 shows: %s" % V4Coach.next_id(base))
+	var with_set3 := base.duplicate()
+	with_set3["set3"] = true
+	_check(V4Coach.next_id(with_set3) == "C6", "C6 needs a set of 3 and 2 mana: %s" % V4Coach.next_id(with_set3))
+	V4Coach.mark("C3")
+	V4Coach.mark("C6")
+	var with_bo := base.duplicate()
+	with_bo["bo"] = true
+	_check(V4Coach.next_id(with_bo) == "C7", "C7 needs a Set and 3 mana: %s" % V4Coach.next_id(with_bo))
 	var st1 := base.duplicate()
 	st1["stage"] = 1
 	_check(V4Coach.next_id(st1) == "", "stage 1 never gets C5-C7")
