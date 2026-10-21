@@ -154,7 +154,6 @@ static func banner(parent: Node, tier: String, combo_name: String) -> Control:
 	plate.add_child(m)
 	var l := UI3.label("%s %s" % [TranslationServer.translate("FULL!" if full else "PAIR!"), combo_name], "LabelScreenTitle")
 	l.name = "BannerText"
-	l.add_theme_font_size_override("font_size", 36)
 	l.add_theme_color_override("font_color", gold if full else UI3Theme.color("text"))
 	l.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	m.add_child(l)
