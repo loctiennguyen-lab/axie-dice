@@ -25,6 +25,7 @@ const CARD_W := 416
 var _shell: Dictionary
 var _banner_host: VBoxContainer
 var _body: HBoxContainer
+var _combo_host: VBoxContainer
 
 
 func _ready() -> void:
@@ -147,6 +148,9 @@ func _build() -> void:
 	_body.name = "Body"
 	_body.add_theme_constant_override("separation", UI3Theme.space("24"))
 	v.add_child(_body)
+	_combo_host = VBoxContainer.new()
+	_combo_host.name = "ComboHost"
+	v.add_child(_combo_host)
 	var close := UI3.button("Close", &"secondary", &"M")
 	close.name = "Close"
 	close.tooltip_text = "Esc"
@@ -222,6 +226,7 @@ func _day_chip(text: String, done: bool) -> Control:
 func _refresh() -> void:
 	if _body == null:
 		return
+	_refresh_combo()
 	UI3Meta.clear(_body)
 	var cfg := _Econ.get_table("daily")
 	var d: Dictionary = cfg.get("daily_reward", {})
@@ -266,3 +271,44 @@ func _refresh() -> void:
 		["Gem a day", "+%d" % int(g.get("per_day", 300))],
 		["You hold", str(MetaState.gem_wallet().balance())], ["Hold up to", str(cap)]],
 		_claim_button("ClaimGift", "Claim %d Gem" % int(g.get("per_day", 300)), gift_ok, greason, claim_gift, primary_gift)))
+
+
+## Daily challenge "Form combo X" (lane GM D2): a wide card under the three claim cards. Done = Pair or Full formed today
+## in any run. Reward is a title only (Combo Maker on the 1st, Combo Master on the 7th), never Shards.
+func _refresh_combo() -> void:
+	if _combo_host == null:
+		return
+	UI3Meta.clear(_combo_host)
+	var t := MetaState.combo_daily_today()
+	var cid := String(t["id"])
+	if cid == "":
+		return
+	var done := bool(t["done"])
+	var p := UI3.plate(&"card")
+	p.name = "ComboCard"
+	p.custom_minimum_size = Vector2(CARD_W * 3 + 48, 0)
+	var h := HBoxContainer.new()
+	h.add_theme_constant_override("separation", UI3Theme.space("24"))
+	p.add_child(h)
+	var left := VBoxContainer.new()
+	left.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	left.add_theme_constant_override("separation", UI3Theme.space("8"))
+	h.add_child(left)
+	left.add_child(UI3.label("Form combo: %s" % UI3.title_case(ComboAdapter.display_name(cid)), "LabelScreenTitle"))
+	var cores: Array[String] = []
+	for c in ComboAdapter.pair_cores(cid):
+		cores.append(RunCard.core_name(String(c)))
+	var sub := UI3.label("Hold %s in one run. Pair or Full both count." % " + ".join(cores), "LabelMuted")
+	sub.name = "Sub"
+	sub.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	left.add_child(sub)
+	var n := int(t["count"])
+	var next_title := "Combo Maker" if n < 1 else ("Combo Master" if n < 7 else "")
+	var reward := UI3.label("Reward: title %s (%d done)" % [next_title, n] if next_title != "" else "%d done" % n, "LabelMuted")
+	reward.name = "Reward"
+	left.add_child(reward)
+	var chip: Control = UI3.chip("Done") if done else UI3.chip("Not yet")
+	chip.name = "ComboStatus"
+	chip.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	h.add_child(chip)
+	_combo_host.add_child(p)
