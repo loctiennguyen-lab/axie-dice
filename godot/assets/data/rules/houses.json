@@ -38,9 +38,9 @@
     "name_en": "Crack Mana"
    },
    "tier2": {
-    "rule_en": "+2 mana. (Gambler awakening Second Wind is not chained: no Crack-mana-Overcast loop.)",
-    "mana": 2,
-    "per_turn": 1
+    "rule_en": "First two times each turn a die Cracks from a Gamble: +1 mana each.",
+    "mana": 1,
+    "per_turn": 2
    }
   }
  },
