@@ -3301,10 +3301,84 @@ func _spawn_combo_name(nm: String, full := false) -> void:
 		chip.queue_free())
 
 
+## Anchor lane: mutation fires. First one of the fight = small banner (house glyph, "MUTATION", 1.0 s, never blocks);
+## later ones = ONE float per house per turn. Test hook: mutation_log = [{house, mode: "banner" | "float"}].
+var mutation_log: Array = []
+var _mut_seen: Dictionary = {}
+var _mut_float_turn: Dictionary = {}
+
+
+func _on_mutation_fired(house: String, uid: int) -> void:
+	var m := AnchorAdapter.mutation_of(house)
+	var nm := String(m["name"]) if String(m["name"]) != "" else house
+	var turn := _combat.turn if _combat != null else 0
+	if not _mut_seen.has(house) and _combo_banners_live < 2:
+		_mut_seen[house] = true
+		mutation_log.append({"house": house, "mode": "banner"})
+		_spawn_mutation_banner(house, nm)
+		if _dm_audio != null:
+			_dm_audio.play("dm_mutation")
+		return
+	_mut_seen[house] = true
+	if int(_mut_float_turn.get(house, -1)) == turn:
+		return
+	_mut_float_turn[house] = turn
+	mutation_log.append({"house": house, "mode": "float"})
+	_spawn_core_note(uid, [{"text": nm, "token": "accent"}])
+
+
+func _spawn_mutation_banner(house: String, nm: String) -> void:
+	if disable_juice_for_tests or not is_inside_tree() or _unit_visuals_root == null:
+		return
+	var col := AnchorAdapter.house_color(house)
+	var chip := PanelContainer.new()
+	chip.name = "MutationBanner"
+	chip.theme = UI3Theme.get_theme()
+	chip.z_index = 40
+	chip.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	chip.add_theme_stylebox_override("panel", UI3Theme.flat(UI3Theme.color("panel"), UI3Theme.radius("m"), 3, col, Vector4(24, 12, 24, 12)))
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 12)
+	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	chip.add_child(row)
+	var ic := TextureRect.new()
+	ic.texture = UI3.icon(AnchorAdapter.house_icon(house))
+	ic.custom_minimum_size = Vector2(32, 32)
+	ic.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	ic.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	row.add_child(ic)
+	var tag := UI3.label(TranslationServer.translate("MUTATION"), "LabelMuted")
+	tag.add_theme_font_size_override("font_size", 18)
+	tag.add_theme_color_override("font_color", col)
+	tag.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	row.add_child(tag)
+	var l := UI3.label(nm, "LabelScreenTitle")
+	l.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	row.add_child(l)
+	_unit_visuals_root.add_child(chip)
+	var sz := chip.get_combined_minimum_size()
+	chip.size = sz
+	var slot := _combo_banners_live
+	_combo_banners_live += 1
+	chip.global_position = Vector2((get_viewport_rect().size.x - sz.x) / 2.0, 120.0 + float(slot) * (sz.y + 12.0))
+	var tw := chip.create_tween()
+	tw.tween_interval(0.75)
+	tw.tween_property(chip, "modulate:a", 0.0, 0.25)
+	tw.tween_callback(func():
+		_combo_banners_live = maxi(_combo_banners_live - 1, 0)
+		chip.queue_free())
+
+
 func _on_core_fired(core_id: String, uid: int, amount: int, kind: String) -> void:
 	_last_core_uid = uid
+	if kind == "mutation":
+		_append_log("[mutation] %s on %s" % [core_id, _unit_name(uid)])
+		_on_mutation_fired(core_id, uid)
+		return
 	var def = RelicRegistry.get_def(core_id)
 	var nm := UI3.title_case(UI3.player_text(String(def.name))) if def != null else core_id
+	if def == null and not Anchors.get_def(core_id).is_empty():
+		nm = AnchorAdapter.name_of(core_id)
 	_append_log("[core] %s on %s" % [CoreFeedback.float_line(nm, amount, kind), _unit_name(uid)])
 	var armed := not _core_batch.is_empty()
 	var group: Dictionary = _core_batch.get(uid, {})

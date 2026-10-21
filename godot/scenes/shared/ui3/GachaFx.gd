@@ -154,7 +154,7 @@ func _input(ev: InputEvent) -> void:
 ## Combo banner: a BIG panel in the middle of the screen over the Core-pick overlay, with a light scrim.
 ## Pair: one gold frame, "PAIR" tag, 1.6 s. Full: thicker frame + extra inner ring, "FULL" tag, 2.8 s, bigger, other sound.
 ## Name at 32 px (36 is for turn banners only). A click or Space dismisses it early. Returns the node (added to `parent`).
-static func banner(parent: Node, tier: String, combo_name: String, core_ids: Array = []) -> Control:
+static func banner(parent: Node, tier: String, combo_name: String, core_ids: Array = [], mutation: Dictionary = {}) -> Control:
 	var full := tier == "full"
 	var root := GachaFx.new()
 	root.z_index = 50
@@ -245,6 +245,8 @@ static func banner(parent: Node, tier: String, combo_name: String, core_ids: Arr
 	l.add_theme_color_override("font_color", gold if full else UI3Theme.color("text"))
 	l.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	v.add_child(l)
+	if not mutation.is_empty():
+		v.add_child(mutation_strip(String(mutation.get("house", "")), full))
 	var hint := UI3.label(TranslationServer.translate("Click to continue"), "LabelMuted")
 	hint.name = "BannerHint"
 	hint.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -254,6 +256,8 @@ static func banner(parent: Node, tier: String, combo_name: String, core_ids: Arr
 	root.set_meta("tier", tier)
 	UI3Gacha.play_sfx(root, "full" if full else "pair")
 	var secs := float(UI3Gacha.timing().get("banner_full_sec" if full else "banner_pair_sec", 1.6))
+	if not mutation.is_empty() and not full:
+		secs = maxf(secs, float(UI3Gacha.timing().get("banner_pair_mutation_sec", 2.0)))
 	if UI3Gacha.is_instant():
 		return root
 	root.running = true
@@ -273,3 +277,43 @@ func _banner_end() -> void:
 	running = false
 	finished.emit()
 	queue_free()
+
+
+## "[house glyph] MUTATION . <name>" + the one-line rule, in the house colour (spec 3.1). FULL says "LEVEL 2" in words.
+static func mutation_strip(house: String, full := false) -> VBoxContainer:
+	var m := AnchorAdapter.mutation_of(house)
+	var col := AnchorAdapter.house_color(house)
+	var box := VBoxContainer.new()
+	box.name = "MutationStrip"
+	box.add_theme_constant_override("separation", 4)
+	box.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var row := HBoxContainer.new()
+	row.alignment = BoxContainer.ALIGNMENT_CENTER
+	row.add_theme_constant_override("separation", 12)
+	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var ic := TextureRect.new()
+	ic.name = "HouseGlyph"
+	ic.texture = UI3.icon(AnchorAdapter.house_icon(house))
+	ic.custom_minimum_size = Vector2(24, 24)
+	ic.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	ic.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	row.add_child(ic)
+	var tag := UI3.label(TranslationServer.translate("MUTATION \u00b7 LEVEL 2") if full else TranslationServer.translate("MUTATION"), "LabelMuted")
+	tag.name = "MutationTag"
+	tag.add_theme_font_size_override("font_size", 18)
+	tag.add_theme_color_override("font_color", col)
+	tag.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	row.add_child(tag)
+	var nm := UI3.label(String(m["name"]), "LabelTitle")
+	nm.name = "MutationName"
+	nm.add_theme_font_size_override("font_size", 24)
+	nm.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	row.add_child(nm)
+	box.add_child(row)
+	var rl := UI3.label(String(m["rule"]), "LabelMuted")
+	rl.name = "MutationRule"
+	rl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	rl.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	rl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	box.add_child(rl)
+	return box

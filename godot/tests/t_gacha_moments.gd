@@ -175,8 +175,9 @@ func _banner() -> void:
 	var shot := OS.get_environment("AXIE_SHOT_PAIR")
 	if shot != "" and DisplayServer.get_name() != "headless":
 		get_viewport().get_texture().get_image().save_png(shot)
-	await _wait(1.8)
-	_check(rm._overlay_layer.find_child("ComboBanner", true, false) == null, "pair banner gone after 1.6 s")
+	_check(ban.find_child("MutationStrip", true, false) != null and ban.find_child("MutationName", true, false) != null, "pair banner carries the MUTATION strip")
+	await _wait(2.3)
+	_check(rm._overlay_layer.find_child("ComboBanner", true, false) == null, "pair banner gone after 2.0 s (mutation strip)")
 	RunState.owned_relic_ids.append("c_golden_egg")
 	await _offer_with(["c_spore_burst", "c_kindle", "c_dewdrop"])
 	await _wait(1.0)
