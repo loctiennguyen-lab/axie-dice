@@ -132,7 +132,11 @@ static func _core_section(recs: Array) -> String:
 				has_pair = true
 		if has_pair:
 			pair_runs += 1
-		for id in ids:
+		var wids: Array = ids.duplicate()   # S4: also Cores picked but gone by the end (c_fossil removes itself, c_dim_stone is swapped)
+		for pid in r.get("picked", []):
+			if String(pid).begins_with("c_") and not wids.has(pid):
+				wids.append(pid)
+		for id in wids:
 			if not with.has(id):
 				with[id] = [0, 0]
 			with[id][1] += 1
@@ -181,6 +185,7 @@ static func _freq_section(recs: Array, catalog: Array) -> String:
 	var pick := {}
 	var trig := {}
 	var trig_picked := {}
+	var win_pick := {}
 	for r in recs:
 		var pk := {}
 		for id in r["picked"]:
@@ -189,12 +194,14 @@ static func _freq_section(recs: Array, catalog: Array) -> String:
 			off[id] = int(off.get(id, 0)) + 1
 		for id in pk:
 			pick[id] = int(pick.get(id, 0)) + 1
+			if r["won"]:
+				win_pick[id] = int(win_pick.get(id, 0)) + 1
 		for id in r["trig"]:
 			trig[id] = int(trig.get(id, 0)) + 1
 			if pk.has(id):
 				trig_picked[id] = int(trig_picked.get(id, 0)) + 1
 	var out := "## Tan suat Loi / Luat run (% run)\n\nCot fire = Loi dang so huu co kich hoat it nhat 1 lan (heuristic: state bucket hoac event chac chan xay ra; engine chua co trace rieng). `LOW` = xuat hien < 10% run; `DEAD` = duoc chon nhung khong bao gio fire.\n\n"
-	out += "| id | truc | bac | offered | picked | fired | fired/picked | co |\n|---|---|---|---|---|---|---|---|\n"
+	out += "| id | truc | bac | offered | picked | picked/offered | fired | fired/picked | win khi chon | co |\n|---|---|---|---|---|---|---|---|---|---|\n"
 	for c in catalog:
 		var id: String = c["id"]
 		var o := int(off.get(id, 0))
@@ -205,8 +212,8 @@ static func _freq_section(recs: Array, catalog: Array) -> String:
 			flags.append("LOW")
 		if p > 0 and int(trig_picked.get(id, 0)) == 0:
 			flags.append("DEAD")
-		out += "| %s | %s | %d | %.1f%% | %.1f%% | %.1f%% | %s | %s |\n" % [id, c["axis"], c["rarity"], 100.0 * o / n,
-			100.0 * p / n, 100.0 * t / n, "-" if p == 0 else "%.0f%%" % (100.0 * int(trig_picked.get(id, 0)) / p), " ".join(flags)]
+		out += "| %s | %s | %d | %.1f%% | %.1f%% | %s | %.1f%% | %s | %s | %s |\n" % [id, c["axis"], c["rarity"], 100.0 * o / n,
+			100.0 * p / n, "-" if o == 0 else "%.0f%%" % (100.0 * p / o), 100.0 * t / n, "-" if p == 0 else "%.0f%%" % (100.0 * int(trig_picked.get(id, 0)) / p), _pct(int(win_pick.get(id, 0)), p), " ".join(flags)]
 	return out + "\n"
 
 
