@@ -321,3 +321,4 @@ Mặc định đã chốt kèm: ranked dùng Anchor nhưng sau MVP; knob `stage_
 (giá thay: Mặt Tạm 3 mana); chặn vòng Nứt→mana→Overcast (nấc 2 Con Bạc chỉ +1 mana); Bão Gai dùng `is_finisher`.
 MVP: 3 Anchor (Tam Tấu, Con Bạc, Mỏ Mana) + đột biến Cặp cho 6 nhà + thức tỉnh 3 Anchor + sửa rút trục Lõi (`core-visibility-fix.md` R1),
 gộp MỘT lần bump RULES_VERSION.
+- (23/10, điều phối) Nhà Con Bạc nấc 2 = "+1 mana cho 2 lần Nứt đầu mỗi lượt" (thay "+2 mana"); nấc 1 = +1 cho lần Nứt đầu. Lý do: vẫn là nâng cấp so với nấc 1, nhưng phải chịu 2 viên Nứt mới được 2 mana → không thành vòng Nứt→mana→Overcast miễn phí.
