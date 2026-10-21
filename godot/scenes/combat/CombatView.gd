@@ -3277,13 +3277,6 @@ func _spawn_combo_name(nm: String, full := false) -> void:
 	row.add_theme_constant_override("separation", 12)
 	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	chip.add_child(row)
-	var g := TextureRect.new()
-	g.texture = UI3.icon("ui_mooncard")
-	g.custom_minimum_size = Vector2(40, 40)
-	g.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-	g.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-	g.mouse_filter = Control.MOUSE_FILTER_IGNORE
-	row.add_child(g)
 	var tag := UI3.combo_tier_tag(full)   # PAIR / FULL tag (own colour, frame and glyph count), then the combo name
 	tag.name = "ComboTierTag"
 	row.add_child(tag)
