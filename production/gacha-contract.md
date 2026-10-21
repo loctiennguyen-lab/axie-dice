@@ -61,3 +61,18 @@ Dở: 4a near-miss (chưa làm: cover T vỡ thành H + lý do; điều kiện c
 
 ### Cập nhật GP (21/10, lượt 3) - XONG
 4a near-miss: `UI3Gacha.capped_from(offer_tier)` (UI đọc RunState, KHÔNG đụng file luật: milestone offer, chain[pick]==2, offer thấp hơn, Crystal sở hữu >= cap; bỏ sót case bump/Mua Sao) -> `GachaReveal.start(..., from_tier)` / `UI3Gacha.plan(..., from_tier)`: bìa mở bằng viền bậc T, nứt thành bậc thật + dòng "Crystal cap reached" + sfx near_miss, flip lùi `near_miss_sec` 0.6. Banner combo chữ 32 (36 chỉ cho banner lượt). Lỗi thật đã sửa: plate quay + banner bị vẽ DƯỚI card vì UI3 card panel z_index 6 -> fx z_index 50. Suite 194/194 (+1 SKIP t_rules_version do cờ). Ảnh: `production/qa/evidence/gacha_pick_{spin,nearmiss_before,nearmiss_crack}_{1920x1080,1280x720}.png`. Hoá Thạch vẫn không quay.
+
+## Làn GM - bàn giao (22/10)
+Nhánh `gacha/GM`. Xong, mỗi việc một commit, test lẻ xanh (t_combo_fired, t_gacha_result, t_core_codex, t_codex_books, t_result_screen, t_codex, t_ui_laws):
+- B5: `CombatView._on_combo_fired` (tên combo 1.0 s, 2 slot Lõi sáng + thanh nối ở `CorePanel.flash_combo`, âm `dm_combo` tạm power_gain; lần sau chỉ sáng icon). Name Tag: nameplate quái hiện `custom_state.nick`, tên gốc trong tooltip.
+- D3 Result: thẻ "Combos" (Pair / Full, Full viền vàng) + dòng "Skipped" (≤3 Lõi T). D4: nút "Copy run card" (`RunCard.text`), để kiểu `quiet` vì Result đã đủ 2 secondary (t_result_screen).
+- D1: `MetaState.core_codex`, `combo_codex`, `combo_daily` (save_to_disk + load + reload_from_store); `codex_sync_run()` gọi từ `EventBus.phase_changed`; Codex thêm tab Cores / Combos.
+- D2 (chỉ phần data): `ComboDaily.pick(day, combos)` + `MetaState.combo_daily_today()`; hoàn thành thì title "Combo Maker" (lần 1) / "Combo Master" (lần 7), không Shard.
+- Adapter: `scenes/shared/ComboAdapter.gd` là chỗ duy nhất đọc API làn GD (rỗng khi chưa có). Test dùng `ComboAdapter.test_combos/test_done/test_skipped`; `t_combo_fired` tự `add_user_signal("combo_fired")` nếu EventBus chưa có.
+Cập nhật cuối (GM xong):
+- Đã merge 616db7c (GD). `ComboAdapter` gọi thẳng `CoreCombos.all([])` (không lọc run rule, để daily + Codex ổn định), `RunState.combo_done/core_skipped_t`, `EventBus.combo_formed/fired`; hook test vẫn giữ.
+- Codex/daily đồng bộ bằng `phase_changed` + `combo_formed` (chỉ trong bộ nhớ) và ghi đĩa ở `run_ended` (ghi ở phase_changed làm 10 test không có SaveGuard bị runner báo đổi save). GD không có event "offer hiện": Core được offer vào `core_seen` và được sync ở phase_changed kế tiếp.
+- Daily: `DailyScreen` thẻ rộng `ComboCard` dưới 3 thẻ (chip "Not yet" viền / "Done" vàng, thưởng title). Test `t_combo_daily_card`.
+- Combo name nổi cao hơn note Core 64px (trước bị đè). `t_v4ui_audio` nới 3..5 file placeholder (dm_combo là cái thứ 5).
+- Ảnh: `production/qa/evidence/gacha_meta_{combat,result,codex,daily}_{1280x720,1920x1080}.png` (gitignore). Capture: `godot/tools/shot.sh res://tests/qa_gacha_meta_capture.tscn WxH`.
+- Suite (không cờ skip t_rules_version): 198 test, 197 pass + t_v4ui_audio đã sửa; chỉ t_rules_version bị skip (cần làn tích hợp bump RULES_VERSION vì MetaState.gd/combo_daily.gd trong fingerprint). Worker 212/212. Sàn test: +5 file GM (t_combo_fired, t_gacha_result, t_core_codex, t_codex_books, t_combo_daily_card).

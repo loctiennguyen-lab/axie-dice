@@ -83,6 +83,55 @@ func pulse(core_id: String) -> void:
 	tw.parallel().tween_property(s, "modulate", Color.WHITE, 0.18)
 
 
+## Lane GM (B5): a combo went off. Both Cores' slots light up; with `link` (the first time this fight) an accent
+## bar joins them for 1.2 s. Reduced motion: the bar still shows (it is not a flash), only the pulse is tint-only.
+## Test hooks: combo_links = how many bars were drawn, combo_link_ids = the Cores of the last bar.
+var combo_links := 0
+var combo_link_ids: Array = []
+var _link_ids: Array = []
+var _link_tw: Tween = null
+
+
+func flash_combo(core_ids: Array, link: bool) -> void:
+	for id in core_ids:
+		pulse(String(id))
+	if not link:
+		return
+	var a: PanelContainer = _slot_by_id.get(String(core_ids[0])) if core_ids.size() > 0 else null
+	var b: PanelContainer = _slot_by_id.get(String(core_ids[1])) if core_ids.size() > 1 else null
+	if a == null or b == null:
+		return
+	combo_links += 1
+	combo_link_ids = [String(core_ids[0]), String(core_ids[1])]
+	_link_ids = combo_link_ids.duplicate()
+	if not _slots.draw.is_connected(_draw_link):
+		_slots.draw.connect(_draw_link)
+	_slots.queue_redraw()
+	if _link_tw != null and _link_tw.is_valid():
+		_link_tw.kill()
+	if not is_inside_tree():
+		return
+	_link_tw = create_tween()
+	_link_tw.tween_interval(1.2)
+	_link_tw.tween_callback(func() -> void:
+		_link_ids = []
+		_slots.queue_redraw())
+
+
+func _draw_link() -> void:
+	if _link_ids.size() < 2:
+		return
+	var a: PanelContainer = _slot_by_id.get(String(_link_ids[0]))
+	var b: PanelContainer = _slot_by_id.get(String(_link_ids[1]))
+	if a == null or b == null or not is_instance_valid(a) or not is_instance_valid(b):
+		return
+	var ca := a.position + a.size * 0.5
+	var cb := b.position + b.size * 0.5
+	_slots.draw_line(ca, cb, UI3Theme.color("accent"), 4.0)
+	_slots.draw_circle(ca, 6.0, UI3Theme.color("accent"))
+	_slots.draw_circle(cb, 6.0, UI3Theme.color("accent"))
+
+
 func fire_count(core_id: String) -> int:
 	return int(_fires.get(core_id, 0))
 

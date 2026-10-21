@@ -1660,6 +1660,7 @@ func _connect_event_bus() -> void:
 	EventBus.resonance_triggered.connect(_on_resonance_triggered)
 	EventBus.relic_pulsed.connect(_on_relic_pulsed)
 	EventBus.core_fired.connect(_on_core_fired)
+	ComboAdapter.connect_fired(_on_combo_fired)
 	EventBus.float_text.connect(_on_float_text)
 	EventBus.plating_off.connect(_on_plating_off)
 	EventBus.plating_decay.connect(_on_plating_decay)
@@ -3234,7 +3235,56 @@ var _core_batch: Dictionary = {}          ## uid -> {"core|kind": {name, amount,
 const CORE_FLOAT_MAX_STACK := 3
 var _core_float_live: Dictionary = {}     ## uid -> notes currently on screen (stacked upward)
 
+## Lane GM (B5): a combo's two Cores both fired this turn. First time this fight: the combo name pops next to the
+## number for 1.0 s (never blocks input), both Core slots light and are joined by a bar, one sound. Later: icons only.
+var combo_float_log: Array = []           ## test hook: combo names shown as a float
+var _combo_named: Dictionary = {}
+var _last_core_uid := -1
+const COMBO_FLOAT_SEC := 1.0
+
+
+func _on_combo_fired(combo_id: String) -> void:
+	var first := not _combo_named.has(combo_id)
+	_combo_named[combo_id] = true
+	if _hud_frame != null and _hud_frame.core_panel != null:
+		_hud_frame.core_panel.flash_combo(ComboAdapter.pair_cores(combo_id), first)
+	if not first:
+		return
+	var nm := UI3.title_case(ComboAdapter.display_name(combo_id))
+	combo_float_log.append(nm)
+	if _dm_audio != null:
+		_dm_audio.play("dm_combo")
+	_spawn_combo_name(nm)
+
+
+func _spawn_combo_name(nm: String) -> void:
+	if disable_juice_for_tests or not is_inside_tree() or _stage3d == null or _unit_visuals_root == null or _combat == null:
+		return
+	var target := _last_core_uid
+	if target < 0 or _combat.by_uid(target) == null:
+		var alive := _party_dice_units()
+		if alive.is_empty():
+			return
+		target = alive[0].uid
+	var a := _status_head_anchor(target, not _combat_is_enemy_uid(target), _stage3d.position)
+	if a.x < 0.0:
+		return
+	var chip := UI3.core_float([{"text": nm, "token": "accent"}])
+	chip.name = "ComboFloat"
+	(chip.get_child(0).get_child(0) as Label).add_theme_font_size_override("font_size", 24)
+	_unit_visuals_root.add_child(chip)
+	var sz := chip.get_combined_minimum_size()
+	chip.size = sz
+	var vs := get_viewport_rect().size
+	chip.position = Vector2(clampf(a.x + 48.0, 24.0, vs.x - 24.0 - sz.x), clampf(a.y - sz.y * 1.6 - 64.0, 24.0, vs.y - 24.0 - sz.y))
+	var tw := chip.create_tween()
+	tw.tween_interval(COMBO_FLOAT_SEC - 0.25)
+	tw.tween_property(chip, "modulate:a", 0.0, 0.25)
+	tw.tween_callback(chip.queue_free)
+
+
 func _on_core_fired(core_id: String, uid: int, amount: int, kind: String) -> void:
+	_last_core_uid = uid
 	var def = RelicRegistry.get_def(core_id)
 	var nm := UI3.title_case(UI3.player_text(String(def.name))) if def != null else core_id
 	_append_log("[core] %s on %s" % [CoreFeedback.float_line(nm, amount, kind), _unit_name(uid)])
@@ -3388,6 +3438,9 @@ func _rebuild_all() -> void:
 		_update_portrait(u)
 	for e in _combat.enemies:
 		_update_portrait(e)
+		var np: UnitPortrait = _portraits.get(e.uid)
+		if np != null and is_instance_valid(np):
+			np.set_nick(String(e.custom_state.get("nick", "")), e.n)
 
 	_update_dice_tray()
 
@@ -3962,6 +4015,8 @@ func _unit_name(uid: int) -> String:
 	if _combat == null:
 		return "?"
 	var u := _combat.by_uid(uid)
+	if u != null and String(u.custom_state.get("nick", "")) != "":
+		return String(u.custom_state["nick"])
 	return u.n if u != null else "uid#%d" % uid
 
 
