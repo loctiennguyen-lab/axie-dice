@@ -1412,6 +1412,22 @@ func _start_core_reveal(shake_host: Control) -> void:
 		return
 	var first_r: Dictionary = RunState.pending_rewards[0]
 	if bool(first_r.get("rule", false)):
+		_reroll_slot = -1
+		return
+	if _reroll_slot >= 0 and _reroll_slot < _reward_cards.size():
+		var slot := _reroll_slot
+		_reroll_slot = -1
+		var rw: Dictionary = RunState.pending_rewards[slot]
+		var rt := clampi(int(rw.get("tier", 0)), 0, 2)
+		_reward_cards[slot].set_meta("gacha_tier", rt)
+		gacha_log.append("reroll_in:%d" % slot)
+		_reveal = GachaReveal.new()
+		_reveal.name = "GachaReveal"
+		_overlay_root.add_child(_reveal)
+		var jp := rt >= 2 and not UI3Gacha.combo_completes(UI3Gacha.owned_ids(), String(rw.get("key", ""))).is_empty()
+		_reveal.start([_reward_cards[slot]], rt, UI3Gacha.first_seen(str(RunState.get("_core_base_seed")), rt), jp, shake_host,
+			float(UI3Gacha.timing().get("reroll_in_sec", 0.5)))
+		_reroll_note(_reward_cards[slot])
 		return
 	var tier := 0
 	for k in _reward_cards.size():
@@ -1674,14 +1690,49 @@ func sheet_closed(ok: bool, reward: Dictionary, _left := false) -> void:
 		_finish_node()
 
 
-## Core offer: reroll ONE card (RunState action reroll_rewards [slot]).
+## Core offer: reroll ONE card (RunState action reroll_rewards [slot]). A7: the old card flies out (0.3 s) with the
+## line "Won't come back this run", then the new card arrives face-down -> halo -> flip (0.5 s). Result is already decided.
+var _reroll_slot := -1
+var gacha_log: Array[String] = []   ## test hook: reroll_out / reroll_in:<slot>
+
+
 func _on_core_card_reroll(idx: int) -> void:
+	var old_card: Control = _reward_cards[idx] if idx >= 0 and idx < _reward_cards.size() else null
 	var res: Dictionary = await RunState.request_reroll_pending_rewards(idx)
 	if not bool(res["ok"]):
 		if String(res["code"]) not in ["illegal", "busy"]:
 			NetNotice.show(self, String(res["code"]), _on_core_card_reroll.bind(idx))
 		return
+	if not UI3Gacha.is_instant() and old_card != null and is_instance_valid(old_card):
+		gacha_log.append("reroll_out")
+		old_card.pivot_offset = old_card.size / 2.0
+		var out := float(UI3Gacha.timing().get("reroll_out_sec", 0.3))
+		var tw := old_card.create_tween().set_parallel(true)
+		tw.tween_property(old_card, "position:y", old_card.position.y - 120.0, out)
+		tw.tween_property(old_card, "modulate:a", 0.0, out)
+		await tw.finished
+	_reroll_slot = idx
 	_show_reward_overlay("x")
+
+
+## The "Won't come back" line above the new card, fades after a moment.
+func _reroll_note(card: Control) -> void:
+	await get_tree().process_frame
+	if not is_instance_valid(card) or _overlay_root == null:
+		return
+	var l := UI3.label(tr("Won't come back this run"), "LabelMuted")
+	l.name = "RerollNote"
+	l.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	l.size = Vector2(card.size.x, 32)
+	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_overlay_root.add_child(l)
+	l.global_position = card.global_position + Vector2(0, -36)
+	if UI3Gacha.is_instant():
+		return
+	var tw := l.create_tween()
+	tw.tween_interval(1.4)
+	tw.tween_property(l, "modulate:a", 0.0, 0.3)
+	tw.tween_callback(l.queue_free)
 
 
 func _on_reward_reroll(title: String) -> void:
