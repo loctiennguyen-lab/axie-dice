@@ -164,6 +164,9 @@ static func play_sfx(host: Node, event: String) -> void:
 	if is_instant() or CombatView.disable_juice_for_tests or host == null or not host.is_inside_tree():
 		return
 	var d: Dictionary = (timing().get("sfx", {}) as Dictionary).get(event, {})
+	if d.has("layers"):
+		DiceMomentAudio.play_layers(host, d["layers"])
+		return
 	var path := String(d.get("path", ""))
 	if path == "" or not ResourceLoader.exists(path):
 		return

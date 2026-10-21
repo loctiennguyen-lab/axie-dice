@@ -3254,7 +3254,7 @@ func _on_combo_fired(combo_id: String) -> void:
 	var nm := UI3.title_case(ComboAdapter.display_name(combo_id))
 	combo_float_log.append(nm)
 	if _dm_audio != null:
-		_dm_audio.play("dm_combo")
+		_dm_audio.play("dm_combo_full" if ComboAdapter.done().get(combo_id, "pair") == "full" else "dm_combo")
 	_spawn_combo_name(nm, is_full)
 
 

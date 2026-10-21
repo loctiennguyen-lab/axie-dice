@@ -17,10 +17,10 @@
     "moss": {"path": "res://assets/audio/sfx/status/buff.ogg", "db": -6.0},
     "amber": {"path": "res://assets/audio/sfx/status/power_gain.ogg", "db": -3.0},
     "crystal": {"path": "res://assets/audio/sfx/status/power_awaken.ogg", "db": -1.0},
-    "jackpot": {"path": "res://assets/audio/sfx/status/morph_aura_burst.ogg", "db": -2.0},
-    "pair": {"path": "res://assets/audio/sfx/status/power_gain.ogg", "db": -3.0},
-    "full": {"path": "res://assets/audio/sfx/status/morph_aura_burst.ogg", "db": -2.0},
+    "jackpot": {"layers": [{"path": "res://assets/audio/sfx/ui/talent_capstone_unlock.ogg", "db": -2.0}]},
+    "pair": {"layers": [{"path": "res://assets/audio/sfx/ui/star_activate.ogg", "db": -3.0}]},
+    "full": {"layers": [{"path": "res://assets/audio/sfx/ui/axie_level_up.ogg", "db": -3.0}, {"path": "res://assets/audio/sfx/ui/talent_capstone_unlock.ogg", "db": -4.0, "delay_ms": 100}]},
     "spin_stop": {"path": "res://assets/audio/sfx/status/power_gain.ogg", "db": -3.0},
-    "near_miss": {"path": "res://assets/audio/sfx/status/debuff.ogg", "db": -8.0}
+    "near_miss": {"layers": [{"path": "res://assets/audio/sfx/ui/overflow_death_crack.ogg", "db": -12.0}]}
   }
 }
