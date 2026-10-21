@@ -230,7 +230,7 @@ const WATCHED_FILES: Array[String] = ["res://assets/data/part_faces.json"]
 ## Set (+0.4, needs a Set), wild_face only 3->4 (2 mana, once per fight, never onto an Overcast die), 2-tier Core combos
 ## (core_combos.json) + Core reroll bonus (cap 2), 3 meme Cores (first_run_hidden), Core Codex meta + daily combo challenge.
 ## Same actions give a different run. Worker SUPPORTED_RULE_VERSIONS gained -q.
-const FINGERPRINT := "8ecd60d210bd48d01de9d3c657f7a1478624bc0ff6da4d1007c005478d82a9e7"
+const FINGERPRINT := "ce0a58c2f11d1f912097150aa8a9cd44cc883e661f63b5b52167c2275c80b2f1"
 
 
 func _ready() -> void:
