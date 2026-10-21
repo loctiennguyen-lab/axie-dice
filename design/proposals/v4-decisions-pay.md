@@ -148,3 +148,8 @@ Ngày 21/10/2026. Đã kiểm lại phép tính EV (V, săn An toàn, Liều, t�
 8. **3 câu hỏi cho Liam**: Q1 đúng và đủ ý. Q2 đã sửa, phải đổi sang so `enemy_dmg_mult` vs bot free-hold. Q3 đúng. Thiếu câu thứ tư: Liam chọn nhịp "ăn mừng" nào, từ bộ ba hay chỉ từ bộ bốn (ảnh hưởng UI + `add_3`).
 
 Khuyến nghị cuối: A + An toàn 1 mana + `add_5` 1.6 + `wild.cost` 3 thử ở vòng 1; sửa bot trước; chưa chốt trước khi có số.
+
+## Liam chốt (22/10)
+1. Đồng ý hướng A+: bộ ba ×1.3, bộ bốn ×2.2, bộ năm ×2.6; An toàn lần đầu 1 mana; Mặt Tạm 3 mana và không tạo được Bộ năm; quái ~×1.50 để bù. Sim xác nhận bằng metric nhạy trước, đạt rồi mới đo win-rate 600 run.
+2. Mục tiêu người giỏi (expert) 20% ±3.
+3. Ăn mừng lớn (banner, âm jackpot) từ bộ bốn; bộ ba chỉ sáng nhẹ.
