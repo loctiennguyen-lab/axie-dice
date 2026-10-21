@@ -1,5 +1,12 @@
 # Axie Dice — trạng thái hiện tại
 
+## Liam 22/10 (ghi nhớ thứ tự)
+- **Polish để SAU CÙNG**, khi game design xong: Sảnh, Đổi mặt xúc xắc, Cược, Ascension thêm luật mới (thay vì +HP). Làm với **Claude Design**.
+- Âm thanh: Liam bảo "lấy trong asset có rất nhiều". Repo chỉ có 118 .ogg (sfx/class 78, sfx/status 35, music 5); asset-library không có âm.
+  Đang hỏi Liam có cho chép âm từ `~/Downloads/axie-asset-sources/` (cấm mở nếu chưa được phép). Trong lúc chờ: sound-designer map 18 event dm_* vào âm có sẵn.
+- Mana: Liam giao mình quyết câu 1-2 (đã quyết từ số liệu bước 0, `design/proposals/v4-mana-decisions.md` mục cuối), đồng ý câu 3 (cắt lỗ).
+  Làn MD (`../my-game-wt/MD`) đang code Overcast cả BỘ + Mặt Tạm 3→4 2 mana 1 lần/trận.
+
 ## ⇢ BẮT ĐẦU TỪ ĐÂY (22/10/2026) — V4 + A+ ĐÃ VÀO GODOT-PORT, BUILD b1304
 godot-port = axiedice/main = **0aef367** (merge depth/V4 c22162f + RULES_VERSION **-p** + sửa trần uid Worker 9999999 vì token uid từ
 100000; review security OK). Suite **192/192 KHÔNG cờ skip**, Worker **212/212**. Build `build/AxieDice-0.1.0-L1-b1304-0aef367-*` (b1196 → old).
