@@ -61,27 +61,24 @@ Win: random 16.0, spam 9.0, free_hold 15.5, expert 24.0 (muc tieu 20 +-3; CI cua
 **Da sua loi DEM**: cot "nhan tu mat mana" ra 0 vi moi mat mana la Tai cantrip, tu chay trong `roll_all/reroll -> _resolve_cantrips()` truoc khi bot hanh dong,
 nen mana do roi vao "dau luot"/"khac". Nay `sim_balance.gd` nghe `EventBus.float_text` ("+N MP", css "man") de dem luong mat mana (commit 59b2caf).
 Mat mana luc tung dau luot la so chinh xac; mat mana tu reroll giua luot bi chan tren boi muc tang mana khong giai thich duoc (expert co tung thu roi undo, cung phat float).
-Chi giu 4 bot (attack_spam, random_legal, free_hold, expert): cac bot expert_* kia chay voi ban dem cu, phan mx cua chung khong tin duoc (dmg/win khong anh huong).
+Chi giu 3 bot (attack_spam, random_legal, expert; expert da chay lai voi ban dem da chan): free_hold va cac bot expert_* kia chay voi ban dem cu, phan mx cua chung khong tin duoc (dmg/win khong anh huong).
 Cot "thua" la TON mana truoc end_turn (carry giua luot), khong phai ty le; dung "tieu/nhan". Cot "Mat mana lan ra" cuoi bang goc luon 0 (mat mana la cantrip da dung), bo qua.
 
 | policy | runs | luot/run | nhan/luot | tieu/luot | thua/luot | tieu/nhan % | thua/nhan % | nhan: mat | cantrip | Loi dung | dau luot | khac |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|
 | attack_spam | 200 | 37.24 | 0.77 | 0.43 | 7.56 | 55 | 980 | 0.43 | 0.00 | 0.26 | 0.08 | 0.00 |
-| free_hold | 200 | 37.64 | 12.59 | 11.72 | 7.69 | 93 | 61 | 11.73 | 0.00 | 0.31 | 0.08 | 0.47 |
 | random_legal | 200 | 34.66 | 1.35 | 0.91 | 6.57 | 68 | 486 | 0.70 | 0.00 | 0.29 | 0.04 | 0.31 |
 | expert | 200 | 35.38 | 1.53 | 1.33 | 4.61 | 87 | 302 | 0.61 | 0.00 | 0.24 | 0.05 | 0.62 |
 
 | policy | An toan lan 1 | An toan lan 2+ | Mat Tam | Overcast | Lieu/khac | mua AT1/tran | AT2+/tran | AT mien phi/tran | Mat Tam/tran | Overcast/tran | Lieu/tran |
 |---|---|---|---|---|---|---|---|---|---|---|---|
 | attack_spam | 0 | 0 | 0 | 0 | 100 | 0.00 | 0.00 | 0.00 | 0.00 | 0.00 | 0.00 |
-| free_hold | 0 | 0 | 0 | 0 | 100 | 0.20 | 0.14 | 20.91 | 0.00 | 0.00 | 0.00 |
 | random_legal | 6 | 0 | 5 | 6 | 82 | 1.64 | 0.08 | 5.04 | 0.80 | 0.67 | 8.46 |
 | expert | 13 | 4 | 18 | 26 | 39 | 5.62 | 0.89 | 18.20 | 4.28 | 4.11 | 10.81 |
 
 | policy | Mat Tam n=2 (->3) | n=3 (->4) | n=4 | luot co BO % | co BO + >=3 mana dau luot % | co BO + >=3 mana sau quyet dinh % |
 |---|---|---|---|---|---|---|
 | attack_spam | 0% (0) | 0% (0) | 0% (0) | 16.2 | 7.7 | 7.7 |
-| free_hold | 0% (0) | 0% (0) | 0% (0) | 30.8 | 14.7 | 16.0 |
 | random_legal | 0% (0) | 100% (160) | 0% (0) | 15.9 | 6.1 | 6.1 |
 | expert | 0% (0) | 100% (856) | 0% (0) | 31.9 | 13.7 | 7.4 |
 
