@@ -1425,7 +1425,7 @@ func _start_core_reveal(shake_host: Control) -> void:
 	var jackpot := false
 	if tier >= 2:
 		for rw in RunState.pending_rewards:
-			jackpot = jackpot or not UI3Gacha.combo_completes(RunState.owned_relic_ids, String(rw.get("key", ""))).is_empty()
+			jackpot = jackpot or not UI3Gacha.combo_completes(UI3Gacha.owned_ids(), String(rw.get("key", ""))).is_empty()
 	_reveal.start(_reward_cards, tier, first, jackpot, shake_host)
 
 

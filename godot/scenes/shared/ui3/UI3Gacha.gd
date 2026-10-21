@@ -131,46 +131,50 @@ static func play_sfx(host: Node, event: String) -> void:
 	p.play()
 
 
-# ---- Combo adapter (API owned by lane GD: CoreCombos.card_completes / matches / all). Falls back to {} / [] ----
-## Tests may set an object with the same three methods.
+# ---- Combo adapter (API from lane GD: CoreCombos). `combo_provider` lets tests fake the same three methods ----
 static var combo_provider: Object = null
 
 
-static func _combos() -> Object:
-	if combo_provider != null:
-		return combo_provider
-	const PATH := "res://scripts/core/core_combos.gd"
-	if ResourceLoader.exists(PATH):
-		return load(PATH)
-	return null
+## Owned Core ids as CoreCombos wants them (finished quest Cores still count). Falls back to owned_relic_ids.
+static func owned_ids() -> Array:
+	if RunState.has_method("combo_owned_ids"):
+		return RunState.combo_owned_ids()
+	return RunState.owned_relic_ids
 
 
 ## {id, tier: "pair"|"full"} when taking `core_id` completes a Pair / Full, else {}.
 static func combo_completes(owned: Array, core_id: String) -> Dictionary:
-	var c := _combos()
-	if c == null or not c.has_method("card_completes"):
-		return {}
-	var r = c.call("card_completes", owned, core_id)
+	var r = combo_provider.call("card_completes", owned, core_id) if combo_provider != null \
+		else CoreCombos.card_completes(owned, core_id)
 	return r if r is Dictionary else {}
 
 
 ## Up to 2 owned Core ids that go with this card (chip "Works with").
 static func combo_matches(owned: Array, core_id: String) -> Array:
-	var c := _combos()
-	if c == null or not c.has_method("matches"):
-		return []
-	var r = c.call("matches", owned, core_id)
+	var r = combo_provider.call("matches", owned, core_id) if combo_provider != null \
+		else CoreCombos.matches(owned, core_id)
 	return (r as Array).slice(0, 2) if r is Array else []
 
 
 static func combo_name(combo_id: String) -> String:
-	var c := _combos()
-	if c == null or not c.has_method("all"):
+	if combo_provider != null:
+		for row in combo_provider.call("all"):
+			if row is Dictionary and String(row.get("id", "")) == combo_id:
+				return String(row.get("name_en", combo_id))
 		return ""
-	for row in c.call("all"):
-		if row is Dictionary and String(row.get("id", "")) == combo_id:
-			return String(row.get("name_en", combo_id))
-	return ""
+	var row := CoreCombos.get_combo(combo_id)
+	return String(row.get("name_en", combo_id)) if not row.is_empty() else ""
+
+
+## combo id -> tier for combos that were raised by going from `before` to `after` owned ids (Pair/Full just formed).
+static func combos_formed(before: Array, after: Array) -> Array:
+	var b: Dictionary = CoreCombos.state(before)
+	var out: Array = []
+	var st: Dictionary = CoreCombos.state(after)
+	for id in st:
+		if String(b.get(id, "")) != String(st[id]):
+			out.append({"id": String(id), "tier": String(st[id])})
+	return out
 
 
 ## Crystal card silhouette: bevelled (corner_detail 1) opposite corners, flat fill, tier border. No shader / gradient.
