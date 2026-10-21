@@ -48,6 +48,7 @@ const EVENTS := {
 	"dm_combo": {"path": "", "db": -3.0, "prio": 85, "layers": [{"path": UI + "star_activate.ogg", "db": -3.0}]},       # TEMP (lane GM B5)
 	"dm_combo_full": {"path": "", "db": -3.0, "prio": 86, "layers": L_COMBO_FULL},
 	"dm_mutation": {"path": "", "db": -9.0, "prio": 80, "layers": [{"path": UI + "star_activate.ogg", "db": -9.0, "pitch": 0.8}]},   # TEMP (lane AU2, spec asks material_credit)
+	"dm_awaken": {"path": "", "db": -2.0, "prio": 95, "layers": [{"path": UI + "city_hall_upgrade_complete.ogg", "db": -2.0}]},   # lane AU2: Anchor awakening
 	"dm_crack_fade": {"path": STATUS + "cleanse.ogg", "db": -10.0, "prio": 15},    # TEMP
 }
 
