@@ -167,3 +167,8 @@ Mặt Tạm bấm ở n=2→3 63% (lỗ), n=3→4 37% (lời); lượt có BỘ 
 3. Cắt lỗ: cơ chế nào sau 2 vòng chỉnh vẫn đóng góp < +1.0 dmg/lượt (expert − bản tắt, 200 run cặp seed) thì bỏ hẳn.
 Theo dõi: mặt mana gần như không sinh mana (0.00-0.02/lượt) — tra nguyên nhân (bot không dùng hay mặt hiếm) ở vòng sau.
 Đo: cùng bộ 8 bot × 200 run cặp seed; mục tiêu Overcast ≥ +1.5, Mặt Tạm ≥ +1.0 dmg/lượt, expert − free_hold rộng ra, expert vẫn 20±3.
+
+## Vòng 2 (23/10) — kết quả và quyết định theo quy tắc cắt lỗ
+Knob: Overcast 2 mana, +0.5 cả BỘ; enemy_dmg_mult 1.55. Sim (`../my-game-wt/OC2/production/qa/sim/sim-v4-metric-oc2.md`): Overcast +1.19 ±1.05 dmg/lượt
+(400 run cặp seed) → GIỮ (≥ +1.0), sát nút, theo dõi qua playtest; Mặt Tạm +2.84 → giữ; Liều +1.49. Win: random 11.0, spam 10.5, free_hold 10.5,
+expert 18.8 (400 run) — đạt cả 3 mục tiêu. expert − free_hold +7.7 dmg/lượt (vòng 1 +6.3).
