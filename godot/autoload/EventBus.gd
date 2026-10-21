@@ -15,6 +15,7 @@ signal relic_pulsed(relic_id: String, uid: int)                            # ~ "
 		# the ONLY channel some relic effects have to become visible; never skip this.
 signal anchor_chosen(anchor_id: String)                                       # Anchor locked for the run (before the first Core offer)
 signal anchor_awakened(anchor_id: String)                                    # first time >= 2 house Cores are owned; never repeats in a run
+signal mutation_on(house_id: String, tier: int)                               # Anchor: a house mutation changed tier (0 -> 1, 1 -> 2) after a Core pick
 signal combo_formed(combo_id: String, tier: String)                         # gacha: a Core pick raised a combo to "pair" | "full"
 signal combo_fired(combo_id: String)                                       # gacha: first time this fight both Cores of a Pair fired in one turn
 signal core_fired(core_id: String, unit_uid: int, amount: int, kind: String)  # depth v3 lane VZ: a Core DID something

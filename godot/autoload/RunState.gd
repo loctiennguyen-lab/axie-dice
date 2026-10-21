@@ -907,6 +907,7 @@ func enter_node(node_id: String, node_kind: String, seed: int = -1) -> void:
 				"start_eggs": int(boon_n.get("start_eggs", 0)),
 				"anchor_id": anchor_id,
 				"anchor_awakened": anchor_awakened,
+				"house_tiers": house_tiers_now(),
 				"run_mods": run_mods.duplicate(),
 				"relic_state": relic_state.duplicate(true),
 				# Compatibility: lets CombatEngine ask for end_turn/reroll seeds itself until the UI
@@ -2587,6 +2588,7 @@ func combo_owned_ids() -> Array:
 ## Pair tier, so its first formation (Full) gives the reroll. Pure function of the grants, so replay reproduces it.
 func _note_combo_grant() -> void:
 	var st := CoreCombos.state(combo_owned_ids())
+	var tiers_before := _house_tiers_of(combo_done)
 	for cid in st.keys():
 		var tier := String(st[cid])
 		var had := String(combo_done.get(cid, ""))
@@ -2597,6 +2599,32 @@ func _note_combo_grant() -> void:
 			combo_rerolls_gained += 1
 			core_reroll_left += 1
 		EventBus.combo_formed.emit(String(cid), tier)
+	if anchor_id != "":
+		var tiers_after := _house_tiers_of(st)
+		for hid in tiers_after.keys():
+			if int(tiers_after[hid]) != int(tiers_before.get(hid, 0)):
+				EventBus.mutation_on.emit(String(hid), int(tiers_after[hid]))
+
+
+## Mutation tier per house (0 none, 1, 2) from a combo-state dict (combo id -> "pair"|"full"). Pure.
+func _house_tiers_of(combo_state: Dictionary) -> Dictionary:
+	var out := {}
+	for h in Anchors.houses():
+		var hid := String(h["id"])
+		out[hid] = Anchors.mutation_tier([], hid, combo_state)
+	return out
+
+
+## What the combat gets: {house_id: tier} for tiers > 0, only with an Anchor (without one: {} and every mutation hook is skipped).
+func house_tiers_now() -> Dictionary:
+	var out := {}
+	if anchor_id == "":
+		return out
+	var t := _house_tiers_of(CoreCombos.state(combo_owned_ids()))
+	for hid in t.keys():
+		if int(t[hid]) > 0:
+			out[hid] = int(t[hid])
+	return out
 
 
 func _on_combo_turn_phase(_old: int, new_phase: int) -> void:
