@@ -9,6 +9,9 @@ const COMBOS_SCRIPT := "res://scripts/core/core_combos.gd"
 
 ## Test hook: when non-null it replaces CoreCombos.all() (tests must not depend on lane GD's data).
 static var test_combos = null
+## Test hooks for RunState.combo_done / core_skipped_t while lane GD's fields do not exist (null = read RunState).
+static var test_done = null
+static var test_skipped = null
 
 
 ## Every combo enabled for this run (CoreCombos.all()), [] when the API does not exist yet.
@@ -48,12 +51,16 @@ static func pair_cores(combo_id: String) -> Array:
 
 ## RunState.combo_done: id -> "pair" | "full". {} before lane GD merges.
 static func done() -> Dictionary:
+	if test_done != null:
+		return test_done
 	var d = RunState.get("combo_done")
 	return d if d is Dictionary else {}
 
 
 ## RunState.core_skipped_t: Crystal Cores shown and not taken.
 static func skipped_t() -> Array:
+	if test_skipped != null:
+		return test_skipped
 	var d = RunState.get("core_skipped_t")
 	return d if d is Array else []
 
