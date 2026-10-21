@@ -188,12 +188,129 @@ function cacheFor(key) {
   return 'public, max-age=31536000, immutable';
 }
 
+
+/**
+ * index.pck is stored in R2 as several parts plus a manifest, because `wrangler r2 object put`
+ * refuses files over 300 MiB. Manifest: {"total": N, "md5": "...", "parts": [{"key", "size"}]}.
+ * No manifest object -> the caller falls back to the single `index.pck` object.
+ * Returns null (no manifest), a Response (error), or the parsed manifest.
+ */
+const PCK_MANIFEST_KEY = 'index.pck.parts.json';
+async function loadPckManifest(env) {
+  const obj = await env.GAME.get(PCK_MANIFEST_KEY);
+  if (obj === null) return null;
+  const bad = (why) => new Response(`index.pck manifest invalid: ${why}`, { status: 500 });
+  let m;
+  try { m = JSON.parse(await obj.text()); } catch { return bad('not JSON'); }
+  if (!m || !Number.isSafeInteger(m.total) || m.total <= 0 || !Array.isArray(m.parts) || m.parts.length === 0) {
+    return bad('missing total/parts');
+  }
+  let sum = 0;
+  for (const p of m.parts) {
+    if (!p || typeof p.key !== 'string' || !p.key || !Number.isSafeInteger(p.size) || p.size <= 0) return bad('bad part entry');
+    sum += p.size;
+  }
+  if (sum !== m.total) return bad(`part sizes sum to ${sum}, total says ${m.total}`);
+  return m;
+}
+
+/** One range: bytes=a-b | a- | -n. Returns {start,end} | 'unsatisfiable' | null (ignore header). */
+function parseRange(header, total) {
+  const m = /^bytes=(\d*)-(\d*)$/.exec((header || '').trim());
+  if (!m || (m[1] === '' && m[2] === '')) return null;
+  let start;
+  let end;
+  if (m[1] === '') {
+    const n = Number(m[2]);
+    if (n === 0) return 'unsatisfiable';
+    start = Math.max(0, total - n);
+    end = total - 1;
+  } else {
+    start = Number(m[1]);
+    end = m[2] === '' ? total - 1 : Math.min(Number(m[2]), total - 1);
+  }
+  if (start >= total || end < start) return 'unsatisfiable';
+  return { start, end };
+}
+
+/** Streams bytes [start,end] of the concatenated parts; only parts overlapping the range are read. */
+function streamParts(env, manifest, start, end) {
+  const segs = [];
+  let base = 0;
+  for (const p of manifest.parts) {
+    const lo = Math.max(start, base);
+    const hi = Math.min(end, base + p.size - 1);
+    if (lo <= hi) segs.push({ key: p.key, offset: lo - base, length: hi - lo + 1 });
+    base += p.size;
+  }
+  let i = 0;
+  let reader = null;
+  return new ReadableStream({
+    async pull(controller) {
+      try {
+        for (;;) {
+          if (!reader) {
+            if (i >= segs.length) { controller.close(); return; }
+            const s = segs[i++];
+            const o = await env.GAME.get(s.key, { range: { offset: s.offset, length: s.length } });
+            if (o === null) throw new Error(`pck part missing: ${s.key}`);
+            reader = o.body.getReader();
+          }
+          const { done, value } = await reader.read();
+          if (done) { reader = null; continue; }
+          controller.enqueue(value);
+          return;
+        }
+      } catch (e) {
+        controller.error(e);
+      }
+    },
+    cancel(reason) { return reader ? reader.cancel(reason) : undefined; },
+  });
+}
+
+async function servePck(request, env, manifest) {
+  const total = manifest.total;
+  const etag = manifest.md5 ? `"${manifest.md5}"` : `"pck-${total}"`;
+  const headers = new Headers({
+    'Content-Type': 'application/octet-stream',
+    ETag: etag,
+    'Cache-Control': cacheFor('index.pck'),
+    'Accept-Ranges': 'bytes',
+    'Cross-Origin-Opener-Policy': 'same-origin',
+    'Cross-Origin-Embedder-Policy': 'require-corp',
+  });
+  const rangeHeader = request.headers.get('range');
+  const r = rangeHeader ? parseRange(rangeHeader, total) : null;
+  if (r === 'unsatisfiable') {
+    headers.set('Content-Range', `bytes */${total}`);
+    return new Response(null, { status: 416, headers });
+  }
+  const inm = request.headers.get('if-none-match');
+  if (inm && !r) {
+    const wanted = inm.split(',').map((t) => t.trim().replace(/^W\//, ''));
+    if (wanted.includes('*') || wanted.includes(etag)) return new Response(null, { status: 304, headers });
+  }
+  const start = r ? r.start : 0;
+  const end = r ? r.end : total - 1;
+  headers.set('Content-Length', String(end - start + 1));
+  if (r) headers.set('Content-Range', `bytes ${start}-${end}/${total}`);
+  const body = request.method === 'HEAD' ? null : streamParts(env, manifest, start, end);
+  return new Response(body, { status: r ? 206 : 200, headers });
+}
+
 async function serveGame(request, env, url) {
   if (request.method !== 'GET' && request.method !== 'HEAD') {
     return new Response('Method not allowed', { status: 405 });
   }
   let key = decodeURIComponent(url.pathname.slice(1));
   if (key === '' || key.endsWith('/')) key += 'index.html';
+
+  if (key === 'index.pck') {
+    const manifest = await loadPckManifest(env);
+    if (manifest instanceof Response) return manifest;
+    if (manifest) return servePck(request, env, manifest);
+  }
 
   // Range matters here: index.pck is 189 MB and a browser that reconnects asks for the rest
   // rather than the whole thing again.
