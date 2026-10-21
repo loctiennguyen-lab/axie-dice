@@ -41,3 +41,24 @@ Dot bien Cap: h_gambler 11-16% run co nac 1, h_mana_mine 17% khi ep Mana Mine, n
 2. Thuc tinh/dot bien hiem vi chi ~0.3 combo/run: tang `anchor_house_bias` 1.5 -> 2.5 va `anchor_axis_bias` 1.5 -> 2.0 (ti le Loi ruot hien chi x1.2-1.37), hoac ha nguong thuc tinh xuong con 2 Loi ruot trong 1 offer dau; Volley can chu y nhat (14%).
 3. Mana Mine chi 15% khi expert tu chon (heuristic chi chon khi doi nhieu aqua); can heuristic/nhan xet tot hon truoc khi ket luan ve pick rate.
 Lenh tai tao: `godot/tools/sim_balance.sh --runs=40 --seed=<s> --policies=expert --anchor=auto|none|a_volley|a_gambler|a_mana_mine`.
+
+## Chan doan (~0.3 combo/run)
+1. `sim_combo_draw.gd` (1000 run, policy random): 4 moc chon Loi/run x 3 the = 12 the thay; 26.9% run co >=1 Cap, 0.31 combo/run (quest/shop/event Loi khong tinh).
+2. Moi combo chi 0.9-4.7% run; Loi ruot cua Anchor la 5 trong ~50 Loi, bias house 1.5/axis 1.5 chi nhan ~x1.2-1.4.
+3. Bot expert co Anchor chi 0.34-0.42 combo/run => bias cu gan nhu khong doi gi; thuc tinh can 2 Loi ruot nen thuong den muon (19-44% run).
+4. Khong co bias nao day Loi ban-doi-tac: Loi con lai cua combo da co 1 Loi chi duoc xuat hien theo xac suat thuong => them knob `anchor_partner_bias` (chi khi co Anchor).
+5. Anchor khong Anchor 17.5 vs co Anchor ~11: gia Anchor (nhat Volley) nang hon loi, khong phai chi do it combo.
+
+## Vong chinh
+### Vong 1 (Volley set_add 0.15->0.05, Gambler Nut 40->25, Mana Mine Mat Tam 3->2, house_bias 2.5, axis_bias 2.0)
+Do: expert auto 120 / random 120 / spam 80 / ep Anchor 80 moi cai.
+| chi so | truoc | vong 1 |
+|---|---|---|
+| expert auto | 11.0 | 11.7 |
+| ep Volley / Gambler / Mana Mine | 11 / 9 / 10 | 8.8 / 17.5 / 16.2 |
+| random / spam | 7 / 7.5 | 5.8 / 2.5 |
+| thuc tinh (auto) Volley/Gambler/Mine | 14/33/28% | 19/44/39% |
+| dot bien Cap nac1 (nha Anchor) | <=17% | Volley 6 / Gambler 15-26 / Mine 14% |
+| combo/run | 0.3 | 0.34-0.40 |
+Ket luan: Gambler/Mine len ~17, Volley van yeu (8.8), bias hau nhu khong tang combo.
+### Vong 2 (dang chay): Volley pct 40/65/90 cap 20, house_bias 3.5, axis_bias 2.5, them `anchor_partner_bias` 2.0 (core_offer.gd, relic_tuning.gd).

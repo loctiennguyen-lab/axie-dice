@@ -388,15 +388,39 @@ static func _pick_biased(rng: Rng, cands: Array, ctx: Dictionary):
 	if house.is_empty():
 		return cands[rng.next_int(cands.size())]
 	var hw := maxi(1, roundi(tuning().anchor_house_bias * 100.0))
+	# Partner bias (Anchor only): a card that is a member of a combo where the player already holds 1 other member weighs more.
+	var pw := maxi(100, roundi(tuning().anchor_partner_bias * 100.0))
+	var partners: Array = _partner_ids(ctx.get("owned_ids", [])) if pw > 100 else []
+	var weights: Array = []
 	var total := 0
 	for d in cands:
-		total += hw if house.has(String(d.id)) else 100
+		var w := hw if house.has(String(d.id)) else 100
+		if partners.has(String(d.id)):
+			w = roundi(float(w) * float(pw) / 100.0)
+		weights.append(w)
+		total += w
 	var roll := rng.next_int(total)
-	for d in cands:
-		roll -= hw if house.has(String(d.id)) else 100
+	for i in cands.size():
+		roll -= int(weights[i])
 		if roll < 0:
-			return d
+			return cands[i]
 	return cands[cands.size() - 1]
+
+
+## Ids of Cores that would add a 2nd member to a combo the player already holds exactly 1 member of (not yet owned).
+static func _partner_ids(owned: Array) -> Array:
+	var out: Array = []
+	for row in CoreCombos.all([]):
+		var mem: Array = CoreCombos.members(row)
+		var have := 0
+		for m in mem:
+			if owned.has(m):
+				have += 1
+		if have == 1:
+			for m in mem:
+				if not owned.has(m) and not out.has(m):
+					out.append(m)
+	return out
 
 
 ## R1: draw a list of axes without replacement, weight = min(valid Cores in the axis cell, axis_weight_cap). One rng call per axis.
