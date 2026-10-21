@@ -153,3 +153,17 @@ Verdict: HƯỚNG ĐÚNG, SỬA NHẸ. Đã sửa thẳng 4 chỗ ở trên; cò
 6. 3 câu hỏi: Q1 chứa tiền đề sai (boss), đã viết lại ở mục 2; Q2 đúng; Q3 cũ không phải việc của Liam, đã thay.
 
 Khuyến nghị cuối: làm bước 0 (đo mana) trước khi đổi bất cứ knob nào, rồi chạy P1 + P2 trên nhánh sim. Chưa cần Liam chốt per_battle hay per_run ngay; để sim vòng 1 chạy với per_battle, nếu Mặt Tạm vẫn < +1.0 thì thử per_run.
+
+## Quyết định (22/10) — Liam giao quyết câu 1-2 "dựa trên cơ sở, logic rõ ràng", câu 3 Liam đồng ý
+Số liệu bước 0 (sim A+, expert 200 run, `../my-game-wt/SV4/production/qa/sim/sim-2026-10-21-mx0_expert_*.md`): mana nhận ~1.35/lượt (mặt mana
+~0.00-0.02, đầu lượt ~0.6, khác ~0.5, Lõi ~0.2); expert tiêu 46% mana vào Overcast, 42% Mặt Tạm, 11% An toàn; Overcast/Mặt Tạm đóng góp ~0 dmg/lượt;
+Mặt Tạm bấm ở n=2→3 63% (lỗ), n=3→4 37% (lời); lượt có BỘ 43.6%, có BỘ + ≥3 mana đầu lượt 21.3%.
+1. **Overcast**: chỉ dùng khi có BỘ; +0.4 cho MỌI viên trong BỘ (tính theo BỘ lúc dùng viên); 3 mana; 1 lần/lượt. Lý do: Overcast 1 viên là cách tiêu
+   mana tệ nhất (~0.17 VTĐ/mana) mà hút 46% mana → bẫy; cả BỘ 0.4-0.67 VTĐ/mana, cạnh tranh thật với An toàn/Mặt Tạm; chỉ 21% lượt đủ điều kiện →
+   quyết định để dành mana. Luật một câu: "Overcast làm cả BỘ mạnh hơn."
+2. **Mặt Tạm**: chỉ biến bộ ba thành bộ bốn (n=3→4); 2 mana; 1 lần/trận (`per_battle`); vẫn cấm tạo Bộ năm. Lý do: 63% lần dùng là n=2→3 lỗ → bỏ bẫy;
+   n=3→4 là nhảy ×1.3→×2.2, gắn khoảnh khắc ăn mừng bộ bốn; 1 lần/run quá hiếm, không được thấy (bài học relic "vô hình"); 1 lần/trận = mỗi trận một
+   quyết định (dùng ngay hay chờ lượt Hở boss). Luật một câu: "Có bộ ba thì trả 2 mana để thành bộ bốn (1 lần mỗi trận)."
+3. Cắt lỗ: cơ chế nào sau 2 vòng chỉnh vẫn đóng góp < +1.0 dmg/lượt (expert − bản tắt, 200 run cặp seed) thì bỏ hẳn.
+Theo dõi: mặt mana gần như không sinh mana (0.00-0.02/lượt) — tra nguyên nhân (bot không dùng hay mặt hiếm) ở vòng sau.
+Đo: cùng bộ 8 bot × 200 run cặp seed; mục tiêu Overcast ≥ +1.5, Mặt Tạm ≥ +1.0 dmg/lượt, expert − free_hold rộng ra, expert vẫn 20±3.
