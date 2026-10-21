@@ -27,11 +27,24 @@ Phản hồi gốc của Liam: game "rời rạc, thiếu đột biến khi ráp
 
 ### Token / asset cần thêm (không dựng tại chỗ, thêm vào `tokens_ui3.json` + `UI3.gd`)
 
-- Màu 3 nhà `house_volley`, `house_gambler`, `house_mana` (+ 3 nhà chưa MVP có thể để sau): **art-director chọn màu**. Phải khác với 3 màu bậc (`rarity_*`) để không nhầm.
-- Màu thức tỉnh `anchor_awake` (nhóm vàng).
-- Glyph nhà (3 MVP + 3 nhà còn lại chỉ cần cho banner Cặp): tạm dùng icon có sẵn, art-director/technical-artist làm icon thật.
-  Tạm: Volley = `face_shield`, Gambler = `node_event`, Mana Mine = `face_mana` (ui-programmer kiểm tên file thật trong `assets/ui3/icons`; trong thư mục
-  hiện tôi thấy `face_mana` chỉ nằm trong bảng `CorePanel.AXIS_ICON`). Glyph "awakened" `ui_awaken` (dấu sao/chấm vàng) cần mới.
+- Màu nhà + thức tỉnh: **đã chốt và đã thêm vào `tokens_ui3.json`** (art-director, 21/10). Tương phản đo trên `plate`, đều >= 6.2:1. Màu chỉ để viền/khung/chip; nhà luôn đọc bằng glyph + tên.
+
+| Token | Hex | Nhà / dùng | Tương phản | Glyph tạm (file thật, `assets/ui3/icons/`) |
+|---|---|---|---|---|
+| `house_volley` | `#7f9cff` | Volley, xanh periwinkle | 6.2 | `face_shield.png` |
+| `house_gambler` | `#ff8cc8` | Gambler, hồng | 7.5 | `node_event.png` |
+| `house_mana_mine` | `#9be8c8` | Mana Mine, mint nhạt | 11.3 | `face_mana.svg` |
+| `house_kin` | `#a9c4a0` | Kin, xanh sage | 8.5 | `face_heal.png` |
+| `house_embers` | `#ff8a6b` | Embers, coral (không đỏ: đỏ = danger) | 7.0 | `face_dmg.png` |
+| `house_big_hand` | `#c8a27a` | Big Hand, tan | 6.8 | `face_summon.png` |
+| `anchor_awake` | `#ffd21f` | thức tỉnh, vàng chanh | 11.1 | `ui_awaken` = tạm `face_buff.svg` |
+
+  Phân biệt: không nhà nào trùng hue với `rarity_*` (mint nhạt và sage thấp bão hoà, sáng hơn `rarity_rare`; coral đỏ-cam hơn `face_buff`). `anchor_awake` vàng hơn và bão hoà hơn
+  `rarity_legendary`/`accent` (#ffb444) và `egg`/cream, nhưng hue gần nên **không bao giờ đứng một mình**: luôn khung đôi hoặc `ui_awaken` + chữ "Awakened". Mù màu: glyph + tên đọc được dù
+  mọi nhà thành một màu. Không dùng violet.
+  Glyph tạm là icon mặt xúc xắc / node, **nghĩa cũ khác** (face_shield = mặt Khiên...): chỉ để chạy được, phải thay bằng icon thật. Cần vẽ (SVG đơn sắc, lưới 64, nét >= 4,
+  đọc được ở 16 px, tô bằng token): Volley = ba mũi tên bay cong; Gambler = viên xúc xắc có vết nứt; Mana Mine = cuốc chim trên tinh thể; Kin = nhà/mái che có ba nấc người;
+  Embers = than hồng có tia lửa; Big Hand = bàn tay mở bốn ngón; `ui_awaken` = sao bốn cánh trong vòng tròn.
 - Component mới trong `UI3.gd`: `anchor_card()`, `house_chip()`, `awaken_mark()`. Node mới `AnchorFx` (cạnh `GachaFx`, `scenes/shared/ui3/`) cho moment thức tỉnh.
 - Knob nhịp thêm vào `gacha_timing.json` (không phải file luật): `anchor_flip_*`, `awaken_total_sec` 2.5, `awaken_reduced_sec` 1.6, `mutation_fire_sec` 1.0.
 
@@ -71,7 +84,8 @@ Từ trên xuống:
 2. `RULE` (18, mờ) rồi **một câu luật** (24, tối đa 3 dòng). Đây là phần gain.
 3. `PRICE` (18, mờ) rồi một dòng giá (24), chip có ký tự "−" đứng trước (giá là đánh đổi, **không dùng đỏ**: đỏ chỉ cho danger).
    Phần gain dùng ký tự "+" ở dòng RULE nếu câu luật cần. Cả hai phải đọc được khi không có màu.
-4. `AWAKENS` (18, mờ): "Awakens: <tên luật thức tỉnh>" + "Hold 2 House Cores" (18). Chỉ tên, **không** lộ luật (xem câu hỏi Liam số 1).
+4. `AWAKENS` (18, mờ): tên luật thức tỉnh (24) + **câu luật đầy đủ một câu (18, tối đa 2 dòng)** + "Hold 2 House Cores" (18). Liam chốt: thẻ hiện đủ luật thức tỉnh (xem mục Chốt).
+   Thẻ cao thêm ~44 so với bản chỉ-tên: kiểm lại vừa 560, không thì rút chữ.
 5. Hàng "House Cores": 5 icon Lõi ruột 48x48, độ mờ 55% (vẫn đọc được tên qua tooltip, không phải trang trí), nhãn 18 "House Cores" bên dưới.
    Rê / focus vào icon: `UI3Tooltip` tên Lõi + một dòng tác dụng của Lõi đó. Vùng bấm/hover mỗi icon 48 >= 44.
    Không bậc/độ hiếm trên icon (không lộ bậc).
@@ -132,10 +146,12 @@ Overlay đóng; thẻ Anchor nhỏ lại bay vào ô Anchor trên HUD/Core panel
 
 ### 2.2 Chip "House Cores x/2"
 
+- **Chống quá tải HUD (art-director)**: ngoài trận (run map, màn chọn Lõi) giữ chip một dòng như dưới. **Trong trận không có hàng chip**: `x/2` thành badge góc dưới phải của ô Anchor
+  (18, nền `panel_raised`), cột Lõi đã có Giáp/affix/nhịp boss. Cùng góc đó: chưa thức tỉnh = `x/2`, đã thức tỉnh = `xN` (số lần tác động); không bao giờ hai badge cùng lúc. Đã thức tỉnh thì chip ngoài trận cũng bỏ.
 - Dưới hàng slot, một chip một dòng, 18, cao 32 (chỉ thông tin, không bấm; mọi tooltip nằm ở ô Anchor): `[glyph nhà] House Cores 1/2`.
 - Giá trị `x` = số Lõi ruột đang giữ (đếm từ Lõi sở hữu, không lưu state). `0/2` vẫn hiện (cho biết đang săn cái gì).
 - Khi đủ 2/2 và thức tỉnh: chip đổi thành `[ui_awaken] Awakened` khung `anchor_awake`, hết đếm. Đó là trạng thái "sáng".
-- Nếu x tụt xuống dưới 2 (Lõi bị mất) thì chip và ô Anchor về trạng thái chưa thức tỉnh, có toast 1 dòng "Anchor sleeps: need 2 House Cores." Chỉ cần nếu game có đường mất Lõi (câu hỏi Liam số 4).
+- **Đã chốt (Chốt 4): thức tỉnh khoá tới hết run**, mất Lõi ruột cũng không tắt: không có toast "sleeps", không có đường quay về chưa thức tỉnh. Cờ thức tỉnh lưu theo run, không tính lại từ Lõi đang giữ.
 - Combat HUD: chip nằm trong cột Lõi như hiện nay, **không thêm hàng thứ hai**. Nếu 1280x720 chật: chip rút còn `[glyph] 1/2`, chữ "House Cores" vào tooltip.
 
 ### 2.3 Lõi ruột trong panel Lõi
@@ -205,7 +221,7 @@ Reduce flashing: bỏ sóng/giọt bay, chỉ còn số + float mờ vào.
 
 ### 4.1 Điều kiện hiện
 
-- Chuyển trạng thái "chưa thức tỉnh → đã thức tỉnh" (tính từ số House Cores đang giữ, bằng 2) lúc nhận Lõi từ **bất kỳ nguồn nào** (chọn Lõi, shop, sự kiện, treasure).
+- Chuyển trạng thái "chưa thức tỉnh → đã thức tỉnh" (số House Cores đang giữ chạm 2; sau đó khoá, xem 2.2) lúc nhận Lõi từ **bất kỳ nguồn nào** (chọn Lõi, shop, sự kiện, treasure).
   Moment chiếu **một lần mỗi run** (cờ "đã chiếu" theo run, cùng cơ chế `first_seen` của `UI3Gacha`; mở lại run đang dở không chiếu lại).
 - Nhận Lõi lúc đang trong trận (nếu có đường): xếp hàng, chiếu ngay khi trận xong, trước màn kế.
 - Thức tỉnh bằng thẻ vừa làm Cặp: một moment duy nhất, có dải "PAIR: <tên combo> · MUTATION: <tên>" ở dưới.
@@ -225,6 +241,8 @@ Reduce flashing: bỏ sóng/giọt bay, chỉ còn số + float mờ vào.
 
 - **Bấm chuột / Space / Enter / A / Esc bất kỳ lúc nào = nhảy tới trạng thái cuối** (thẻ bay về HUD luôn). Esc dùng để bỏ qua, **không** mở menu in-run trong lúc moment chạy.
 - Hiển thị tất cả trong khung 1920x1080; 1280x720 scale đều, không đổi bố cục. Mọi chữ <= 32; "to" đến từ thẻ 3x, scrim 80%, vòng, rung và âm, không phải cỡ chữ (36 chỉ cho banner lượt).
+- Review art-director: đủ khác FULL, với điều kiện giữ 3 thứ không được rớt khi implement: (a) khung đôi `anchor_awake` + `ui_awaken` (vì vàng gần FULL, hình dáng là thứ phân biệt), (b) chặn input + thẻ 3x, (c) trạng thái
+  ở lại trên HUD. Không dùng chữ "FULL"/sao FULL trong moment. Vòng sóng đầu màu nhà, vòng sau `anchor_awake`, để màu nhà cũng góp vào.
 - Khác FULL ở đâu (để Liam thấy nó không phải "banner lớn hơn"): FULL = panel ở giữa trên scrim 55%, 2.8 s, click-through, nhãn "FULL". Thức tỉnh = chiếm cả màn, chặn input,
   thẻ Anchor tự là nhân vật chính, có vòng + rung, và **kết quả ở lại** trên HUD (ô Anchor đổi khung vĩnh viễn).
 - Reduce flashing: không rung, không vòng sóng, không mảnh bắn, không hit-stop. Thẻ hiện, khung đổi bằng fade 0.3 s, chữ lên fade. Tổng **1.6 s**, vẫn bấm bỏ qua được.
@@ -241,7 +259,7 @@ Reduce flashing: bỏ sóng/giọt bay, chỉ còn số + float mờ vào.
 
 ### 4.4 Trong trận: trạng thái "awakened" + luật thức tỉnh tác động
 
-- Ô Anchor trên HUD: khung đôi `anchor_awake`, glyph `ui_awaken` ở góc, chip "Awakened". Nhìn lướt là biết.
+- Ô Anchor trên HUD: khung đôi `anchor_awake`, glyph `ui_awaken` ở góc, badge `xN` (không có hàng chip trong trận, xem 2.2). Nhìn lướt là biết.
 - Mỗi lần luật thức tỉnh tác động (và cả luật nền):
   - ô Anchor pulse (như `CorePanel.pulse`, ~0.3 s) + cập nhật "xN";
   - **lần đầu mỗi trận**: banner 32 giữa-trên, khung đôi vàng, nhãn "AWAKENED", tên luật, 1.2 s, không chặn input. Ưu tiên cao hơn banner combo và đột biến (banner nào vượt 2 thì xuống float);
