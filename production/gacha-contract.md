@@ -81,7 +81,9 @@ Cập nhật cuối (GM xong):
 - Merge theo thứ tự: MD 28fc6d0, GD 086e223, GP 83947eb, GM 9e01132. Conflict chỉ ở `production/gacha-contract.md` (GP, GM): lấy hợp các mục bàn giao. Code (RunState, combat_engine, CombatView, MetaState...) tự gộp sạch, `--import` không lỗi.
 - Sửa nhỏ từ review MD (671d382): `wild_block_reason` từ chối viên đã Overcast (lý do `overcast`, test trong t_bo_overcast); thêm hook `RunBot.overcast_script` + tamper trong t_run_tamper_v4: Overcast lên viên không thuộc BỘ bị ERR_REJECTED đúng index.
 - Suite: 200/200 pass, 1 skip (t_rules_version, chạy với AXIE_SKIP_RULES_FINGERPRINT=1). Worker 212/212. Không có đỏ do hai làn đụng nhau.
-- CHƯA bump RULES_VERSION (chờ review gacha); khi bump phải chạy lại t_rules_version không cờ skip.
+- ĐÃ bump 23/10: RULES_VERSION `godot-2026-10-22-p` -> `godot-2026-10-23-q` (+ SUPPORTED_RULE_VERSIONS của worker/src/run_do.js, fingerprint t_rules_version mới). ALLOWED_FNS khớp 3 chỗ (action_log.gd, run_verifier.gd, worker/src/run_core.js), không thêm fn mới.
+- Suite KHÔNG cờ skip (AXIE_HANG_KILL=900): 202/202 pass, gồm t_rules_version. Worker 212/212. Không phải sửa test nào (t_boss_pact, t_remote_epoch_ui_run, t_gacha_guards vẫn xanh sau khi đổi seed).
+- Sàn test mới: Godot 202/202, Worker 212/212.
 
 ## Sửa UI theo UX (GU) - bàn giao
 Nhánh `fix/GU`. Mỗi mục một commit; chỉ sửa `godot/scenes/**`, `godot/assets/data/ui/**`, tests. Capture: `GU_ONLY=jackpot,banner,nearmiss godot/tools/shot.sh res://tests/qa_gacha_gu_capture.tscn WxH` -> `production/qa/evidence/gu_*` (gitignore).
