@@ -61,4 +61,7 @@ Do: expert auto 120 / random 120 / spam 80 / ep Anchor 80 moi cai.
 | dot bien Cap nac1 (nha Anchor) | <=17% | Volley 6 / Gambler 15-26 / Mine 14% |
 | combo/run | 0.3 | 0.34-0.40 |
 Ket luan: Gambler/Mine len ~17, Volley van yeu (8.8), bias hau nhu khong tang combo.
-### Vong 2 (dang chay): Volley pct 40/65/90 cap 20, house_bias 3.5, axis_bias 2.5, them `anchor_partner_bias` 2.0 (core_offer.gd, relic_tuning.gd).
+### Vong 2: Volley pct 40/65/90 cap 20, house_bias 3.5, axis_bias 2.5, them `anchor_partner_bias` 2.0 (core_offer.gd, relic_tuning.gd).
+Do vong 2: expert auto 13.3 (n=120); ep Volley 11.2 / Gambler 13.8 / Mana Mine 17.5 (n=80); random 7.5; spam 2.5; thuc tinh auto Volley 25 / Gambler 44 / Mine 28% (ep: 27.5/40/38.8%); dot bien nac1 nha Anchor: Volley 16 / Gambler 22 / Mine 16%; combo/run 0.39-0.46.
+Ket luan: bias them (house 3.5, axis 2.5, partner x2) gan nhu khong nang combo/run (0.34 -> 0.4): nut that la so moc chon Loi (4/run), khong phai ti le xuat hien. CI +-7 diem nen chenh giua Anchor chua phan biet duoc.
+### Vong 3: Volley set_add 0.05->0.0, Gambler Nut 25->15 va set_add 0.30->0.35, house_bias 5.0, axis 3.0, partner 3.0.
