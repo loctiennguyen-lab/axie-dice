@@ -41,17 +41,9 @@ B5 combo nổ trong trận (nghe `combo_fired`), D3 Result: khối "Combos" (C�
 ## Luật chung
 UI3 (`godot/CLAUDE.md`): token/component, cỡ chữ 18/24/32 (+36 banner), disabled có lý do, tiếng Anh qua tr(). Test trước. Không vòng chờ không hạn chót; mọi Godot qua `with_lock.sh`. Không push/merge/deploy, không `git stash`.
 
-## Làn GD - bàn giao (22/10, dừng giữa chừng vì hết ngữ cảnh)
+## Làn GD - bàn giao (22/10, XONG)
 
-**Xong, đã commit, test xanh (t_core_combos 143, t_combo_run 18, t_replay, t_core_replay, t_core_seen, t_core_offer, t_core_filter):**
-- `godot/assets/data/rules/core_combos.json`: 14 combo bật (13 Cặp/Đủ + jackpot Mưa Đòn Lunacia). Thêm field ngoài hợp đồng: `enabled`, `jackpot_set` [3 Lõi] cho jackpot, `rule_synergy` (viền "hợp Luật"). `hide_if_rules` điền từ `excludes` của thành viên; Lõi disabled cũng ẩn.
-- `CoreCombos` (`godot/scripts/core/core_combos.gd`): `all(owned=null)`, `state(owned)`, `card_completes(owned, core_id)`, `matches(owned, core_id)`, thêm `get_combo(id)`, `members(row)`. `owned` phải kèm Luật run (nó là id trong owned_relic_ids). Dùng `RunState.combo_owned_ids()` (= owned + Lõi nhiệm vụ đã xong, lưu ở `RunState.core_quest_done`).
-- RunState: `combo_done` {id: "pair"|"full"}, `core_skipped_t`, `combo_rerolls_gained`, `core_quest_done` đều vào save (`core` dict) và tái hiện được vì suy ra từ lúc nhận Lõi. Thưởng +1 `core_reroll_left` lần đầu mỗi combo ráp (jackpot tính luôn lần đầu Đủ), cap `RelicTuning.combo_reroll_cap` = 2 (knob trong relic_tuning.gd, mặc định 2).
-- EventBus: `combo_formed(combo_id, tier)` lúc nhận Lõi; `combo_fired(combo_id)` lần đầu mỗi trận cả hai Lõi của Cặp cùng `core_fired` trong một lượt (reset ở phase ROLL).
-- Sim rút thẻ: `godot/tools/sim_combo_draw.tscn`, báo cáo `production/qa/sim/combo-draw-sim.md`. Săn combo: >=1 Cặp ~72% run, Đủ ~14%; không săn: ~30% / ~2.5%. Mỗi combo Cặp >=3% khi săn. Poison Garden bỏ (Lõi độc ít hiện), thay Slow Burn.
-
-**Jackpot Lunacia vẫn ~0%:** cần đúng 3 Lõi Tinh Thể cụ thể (Thác Đổ + Xúc Xắc Thứ Sáu + Mặt Gương) mà pool T có 13 Lõi, trần T Short là 3, và chuỗi bậc chỉ có tối đa 2 lần T. Đề xuất: (a) hạ còn 2 T + 1 Hổ Phách (ví dụ Thác Đổ + Mặt Gương + Sóng Khiên) rồi sim lại, hoặc (b) giữ làm "huyền thoại" và chỉ tính Lõi nhận từ quest/shop/event (CoreCombos đã tính mọi nguồn, sim chưa mô phỏng các nguồn đó). Cần Liam chọn.
-
-**Lõi meme (việc 4), dở:** đã xong `CoreOffer` giới hạn tối đa 1 meme mỗi bộ thẻ (tag `meme`, card có `meme` bool, cả build_offer và reroll_card) và 3 dòng trong `godot/tools/gen_cores.py` (c_meme_copycat, c_meme_nametag, c_meme_jumpy, Rêu, `first_run_hidden`). Chưa commit file .tres (sinh lại bằng `python3 godot/tools/gen_cores.py godot/resources/relics c_meme_copycat c_meme_nametag c_meme_jumpy`) vì t_core_catalog đòi hook trong `RelicHooks.TABLE`. CHƯA làm: hook của 3 Lõi (relic_hooks.gd + core_hooks.gd), `_bo_dice()` loại viên có `custom_state.copycat_turn == turn` (Copycat không vào Bộ), face_final trả 1 cho viên đó, Name Tag `custom_state.nick`, Jumpy hoán đổi `fi`, đổi `t_core_catalog` 53 -> 56, test trong t_core_behaviour/t_core_fires. Làn GM làm UI đọc `nick`.
-
-**Chưa làm (việc 5):** chạy cả suite + Worker test. Chưa đụng RULES_VERSION.
+- Combo data/logic xong (core_combos.json 14 combo, CoreCombos, RunState.combo_done, EventBus combo_formed/combo_fired, sim `godot/tools/sim_combo_draw.tscn`, báo cáo `production/qa/sim/combo-draw-sim.md`).
+- Jackpot Mưa Đòn Lunacia = 2 Tinh Thể + 1 Hổ Phách: Thác Đổ + Con Xúc Xắc Thứ Sáu + Khiên Gai, không có tầng Cặp. Sim: ~0.12% khi săn (5000 run), ~0% khi chọn ngẫu nhiên; chỉ chuỗi bậc [0,1,2,2] (10% run) cho đủ 2 T + 1 H. Chốt giữ nguyên chuỗi bậc. Lõi quest/shop/event cũng tính nhưng sim chưa mô phỏng.
+- 3 Lõi meme xong: `c_meme_copycat`, `c_meme_nametag`, `c_meme_jumpy` (Rêu, `first_run_hidden`, tag `meme`, tối đa 1 meme mỗi bộ thẻ). Hook trong `CoreHooks` (cuối file) + `RelicHooks.TABLE`; `CombatEngine._bo_dice` bỏ viên có `custom_state.copycat_turn == turn`. Tên Name Tag trong `assets/data/rules/meme_enemy_names.json` (12 tên), lưu ở `custom_state.nick`: **làn GM cần đọc `nick` ở UI**. Tất cả rút rng từ `combat._rng`. Test: t_core_behaviour (t_meme_cores), t_core_fires, t_core_offer, t_core_catalog (56).
+- Cần bump RULES_VERSION (đụng resources/relics, assets/data/rules, scripts/core) và cập nhật t_rules_version: làn I làm. Suite 193/193 (skip t_rules_version vì AXIE_SKIP_RULES_FINGERPRINT), Worker 212/212.
