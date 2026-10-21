@@ -29,7 +29,7 @@ const L_COMBO_FULL := [{"path": UI + "axie_level_up.ogg", "db": -3.0},
 ## event -> {path, db, prio}. path "" = silent until the asset exists.
 const EVENTS := {
 	"dm_set5": {"path": "", "db": 0.0, "prio": 100, "layers": L_SET5},
-	"dm_set4": {"path": "", "db": -1.0, "prio": 90},
+	"dm_set4": {"path": "", "db": -1.0, "prio": 90, "layers": [{"path": STATUS + "power_gain.ogg", "db": -2.0}, {"path": UI + "star_activate.ogg", "db": -6.0, "pitch": 1.1}]},
 	"dm_set3": {"path": STATUS + "power_gain.ogg", "db": -2.0, "prio": 80},        # TEMP, also the crit sound
 	"dm_overcast_charge": {"path": STATUS + "power_awaken.ogg", "db": -3.0, "prio": 70},   # TEMP
 	"dm_wild_match": {"path": "", "db": -4.0, "prio": 60, "layers": [{"path": UI + "ui_confirm_02.ogg", "db": -4.0, "pitch": 1.2}]},

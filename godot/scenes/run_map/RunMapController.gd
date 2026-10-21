@@ -1254,6 +1254,8 @@ func _show_reward_overlay(title: String, _backdrop: Texture2D = null) -> void:
 	head.alignment = BoxContainer.ALIGNMENT_CENTER
 	head.add_theme_constant_override("separation", 24)
 	head_holder.add_child(head)
+	if _core_offer_active():
+		_dm("dm_core_open")
 	var core_rule := false
 	for rr0 in RunState.pending_rewards:
 		core_rule = core_rule or bool((rr0 as Dictionary).get("rule", false))
@@ -1369,6 +1371,8 @@ func _take_selected_reward() -> void:
 		if String(r.get("t", "")) in ["chaos", "curse"]:
 			_ask_lasting_reward(r)
 			return
+		if _is_core_card(r):
+			_dm("dm_core_pick")
 		_on_reward_chosen(r)
 
 
@@ -1501,6 +1505,9 @@ func _add_reward_card(r: Dictionary, wide := false) -> PanelContainer:
 				tb.grab_focus())
 	_overlay_vbox.add_child(card)
 	_reward_cards.append(card)
+	if is_core:
+		card.mouse_entered.connect(_dm_core_hover)
+		card.focus_entered.connect(_dm_core_hover)
 	var crystal := is_core and not bool(r.get("rule", false)) and int(r.get("tier", 0)) >= 2
 	if crystal:
 		# A3: Crystal cards have their own bevelled silhouette, extra rings, a bigger name, and rise on hover.
@@ -1799,6 +1806,29 @@ func sheet_closed(ok: bool, reward: Dictionary, _left := false) -> void:
 ## Core offer: reroll ONE card (RunState action reroll_rewards [slot]). A7: the old card flies out (0.3 s) with the
 ## line "Won't come back this run", then the new card arrives face-down -> halo -> flip (0.5 s). Result is already decided.
 var _reroll_slot := -1
+var dm_log: Array[String] = []   ## test hook: dm_* events asked for (core open / hover / pick)
+var _dm_audio: DiceMomentAudio = null
+var _dm_hover_at := -1.0
+
+## Dice-moment sound for the Core offer. Always logged; silent in headless/tests (DiceMomentAudio builds no voices then).
+func _dm(event: String) -> void:
+	dm_log.append(event)
+	if CombatView.disable_juice_for_tests:
+		return
+	if _dm_audio == null or not is_instance_valid(_dm_audio):
+		_dm_audio = DiceMomentAudio.new()
+		add_child(_dm_audio)
+	_dm_audio.play(event)
+
+
+## Hover/focus tick on a Core card, at most one per 120 ms.
+func _dm_core_hover() -> void:
+	var now := Time.get_ticks_msec() / 1000.0
+	if _dm_hover_at >= 0.0 and now - _dm_hover_at < 0.12:
+		return
+	_dm_hover_at = now
+	_dm("dm_core_hover")
+
 var gacha_log: Array[String] = []   ## test hook: reroll_out / reroll_in:<slot>
 
 
