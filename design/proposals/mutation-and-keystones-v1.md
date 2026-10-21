@@ -312,3 +312,12 @@ Kiểm nhanh, đọc code đúng chỗ, không chạy sim.
   2.6 + Overcast 0.5 + Con Bạc 0.3-0.6 + Nhát Cuối 0.3-0.6 + Bàn Tay Lớn 0.4 sẽ chạm trần, nghĩa là ba-bốn nguồn cộng sau cùng thừa; sim
   nên đo xem có nguồn nào bị cap nuốt hoàn toàn). Khiên Gai Nảy × `c_thorn_shield` (4 combo, nguồn Gai chính) cần giữ luật "Gai không nhân
   BỘ lại"; Mana Tràn là sát thương không cần quyết định, giống spam, giữ theo dõi như 4.1.
+
+## Liam chốt (23/10)
+1. Cặp CÓ sức mạnh thật (đảo chốt 22/10 "Cặp không sức mạnh") — nhẹ, có điều kiện, theo nhà.
+2. Thức tỉnh khi giữ ĐÚNG 2 Lõi ruột bất kỳ của Lõi chủ.
+3. Tên nhóm tiếng Anh: **Anchor** (giữ tên relic `r_keystone`).
+Mặc định đã chốt kèm: ranked dùng Anchor nhưng sau MVP; knob `stage_dmg_mult` chỉ thêm khi sim cần; Mỏ Mana không dùng giá "mặt mana −1"
+(giá thay: Mặt Tạm 3 mana); chặn vòng Nứt→mana→Overcast (nấc 2 Con Bạc chỉ +1 mana); Bão Gai dùng `is_finisher`.
+MVP: 3 Anchor (Tam Tấu, Con Bạc, Mỏ Mana) + đột biến Cặp cho 6 nhà + thức tỉnh 3 Anchor + sửa rút trục Lõi (`core-visibility-fix.md` R1),
+gộp MỘT lần bump RULES_VERSION.
