@@ -29,6 +29,20 @@ func _axes(offer: Array) -> Array:
 
 func _ready() -> void:
 	CoreTestUtil.enable()
+	# gacha C5: at most one meme Core per offer; hidden in the account's first run; they do show up from run 2
+	var meme_seen := 0
+	for sd in 400:
+		var o := CoreOffer.build_offer(Rng.new(sd), 0, CoreTestUtil.ctx([], [], ["plant1", "beast1", "aqua1", "reptile1", "bug1"], 1), 3)
+		var mc := 0
+		for card in o:
+			if bool((card as Dictionary).get("meme", false)):
+				mc += 1
+		_assert(mc <= 1, "seed %d: at most 1 meme Core per offer (got %d)" % [sd, mc])
+		meme_seen += mc
+		var o1 := CoreOffer.build_offer(Rng.new(sd), 0, CoreTestUtil.ctx([], [], ["plant1", "beast1", "aqua1", "reptile1", "bug1"], 1, true), 3)
+		for card in o1:
+			_assert(not bool((card as Dictionary).get("meme", false)), "first run: no meme Core")
+	_assert(meme_seen > 0, "memes appear in Moss offers from run 2 (saw %d)" % meme_seen)
 	# 3 cards, same tier, different axes, deterministic
 	for tier in 3:
 		for sd in 40:

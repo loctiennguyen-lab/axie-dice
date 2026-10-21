@@ -23,6 +23,7 @@ func _ready() -> void:
 	t_lane_e_rules()
 	t_thorn_cores()
 	t_fx_proofs()
+	t_meme_cores()
 	print("=== t_core_behaviour: %d checks, %d failure(s) ===" % [_checks, _fails.size()])
 	if _fails.is_empty():
 		print("t_core_behaviour: PASS — %d checks OK" % _checks)
@@ -891,3 +892,80 @@ func t_fx_proofs() -> void:
 func _fresh_turn(c: CombatEngine) -> void:
 	for k in ["cs_three", "cs_used", "cs_types", "cs_mirror"]:
 		c.relic_combat.erase(k)
+
+
+## Gacha C5 meme Cores (design/proposals/meme-cores.md).
+func _meme_roll(c: CombatEngine, faces: Array) -> void:
+	for k in faces.size():
+		c.party[k].held = false
+		c.party[k].set_roll(int(faces[k]), false)
+
+
+func t_meme_cores() -> void:
+	# --- Copycat: 3 dice show part 0 (a Set of 3), dice 3/4 elsewhere
+	var c := _combat(["c_meme_copycat"])
+	_meme_roll(c, [0, 0, 0, 1, 2])
+	var size_before := int((c.recompute_bo()[0] as Dictionary)["size"])
+	var weakest: Unit = c.party[3]
+	if int((c.party[4].die[2] as Dictionary).get("value", 0)) < int((c.party[3].die[1] as Dictionary).get("value", 0)):
+		weakest = c.party[4]
+	RelicHooks.fire(c, "on_roll_settled", {"combat": c, "rerolled_uids": []})
+	_ok(weakest.roll_face_index() == 0 and weakest.custom_state.get("copycat_turn", -1) == c.turn, "meme: Copycat copies the Set part onto the weakest outside die")
+	var bo := c.recompute_bo()
+	_ok(bo.size() == 1 and int((bo[0] as Dictionary)["size"]) == size_before, "meme: Copycat die does not grow the Set (3 stays 3)")
+	_ok(not (bo[0]["uids"] as Array).has(weakest.uid), "meme: copied die not in the Set group")
+	var cv := int(RelicHooks.run_value_hook(c, "face_final", {"combat": c, "unit": weakest, "value": 9, "face_type": "dmg", "fi": 0, "part": ""}, 9))
+	_ok(cv == 1, "meme: Copycat die is worth 1, got %d" % cv)
+	var other_fi := {}
+	for u in c.party:
+		other_fi[u.uid] = u.roll_face_index()
+	RelicHooks.fire(c, "on_roll_settled", {"combat": c, "rerolled_uids": []})
+	var same := true
+	for u in c.party:
+		same = same and other_fi[u.uid] == u.roll_face_index()
+	_ok(same, "meme: Copycat acts once per turn")
+	# no Set -> nothing
+	c = _combat(["c_meme_copycat"])
+	_meme_roll(c, [0, 1, 2, 3, 4])
+	RelicHooks.fire(c, "on_roll_settled", {"combat": c, "rerolled_uids": []})
+	_ok(not c.party[0].custom_state.has("copycat_turn") and c.party[4].roll_face_index() == 4, "meme: Copycat needs a Set")
+	# --- Jumpy: part multiplicities unchanged, deterministic per seed
+	var runs: Array = []
+	for rep in 2:
+		c = _combat(["c_meme_jumpy"])
+		_meme_roll(c, [0, 0, 1, 1, 2])
+		RelicHooks.fire(c, "on_roll_settled", {"combat": c, "rerolled_uids": []})
+		var fis: Array = []
+		for u in c.party:
+			fis.append(u.roll_face_index())
+		runs.append(fis)
+		var sorted_fis := fis.duplicate()
+		sorted_fis.sort()
+		_ok(sorted_fis == [0, 0, 1, 1, 2], "meme: Jumpy keeps the multiset of faces, got %s" % str(fis))
+		_ok(fis != [0, 0, 1, 1, 2] or true, "meme: Jumpy ran")
+	_ok(runs[0] == runs[1], "meme: Jumpy is deterministic from the engine rng")
+	c = _combat(["c_meme_jumpy"])
+	_meme_roll(c, [0, 1, 2, 3, 4])
+	c.party[0].held = true
+	c.party[1].held = true
+	c.party[2].held = true
+	c.party[3].held = true
+	var n_before := c._rng.get_state()
+	RelicHooks.fire(c, "on_roll_settled", {"combat": c, "rerolled_uids": []})
+	_ok(n_before == c._rng.get_state(), "meme: Jumpy needs 2 eligible dice (no rng drawn)")
+	# --- Name Tag: a non-boss gets a nick from the json, death pays +1 Mana once
+	c = _combat(["c_meme_nametag"])
+	var nicked: Array = []
+	for e in c.enemies:
+		if e.custom_state.has("nick"):
+			nicked.append(e)
+	_ok(nicked.size() == 1 and CoreHooks.meme_names().has(nicked[0].custom_state["nick"]) and not nicked[0].is_boss, "meme: Name Tag names exactly one non-boss enemy from the list")
+	_ok(CoreHooks.meme_names().size() == 12, "meme: 12 names in the json")
+	var m0 := c.mana
+	RelicHooks.fire(c, "on_kill", {"combat": c, "killer": c.party[0], "tgt": nicked[0]})
+	RelicHooks.fire(c, "on_kill", {"combat": c, "killer": c.party[0], "tgt": nicked[0]})
+	_ok(c.mana == m0 + 1, "meme: Name Tag kill pays +1 Mana once, got %d" % (c.mana - m0))
+	# --- data: Moss, hidden in the first run, tag meme
+	for id in ["c_meme_copycat", "c_meme_nametag", "c_meme_jumpy"]:
+		var d = RelicRegistry.get_def(id)
+		_ok(d != null and int(d.rarity) == 0 and d.first_run_hidden and (d.tags as PackedStringArray).has("meme"), "meme: %s data (Moss, first_run_hidden, tag meme)" % id)

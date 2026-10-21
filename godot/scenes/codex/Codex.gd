@@ -20,6 +20,13 @@ var _topic_col: VBoxContainer
 var _no_match: Label
 var _current_tab := "basic"
 var _tab_buttons: Dictionary = {}   # key -> Button
+## Lane GM (D1): the Core book and the Combo book. Tiles are built from MetaState.core_codex / combo_codex.
+const BOOK_TABS: Array = [["cores", "CORES"], ["combos", "COMBOS"]]
+const BOOK_LEDE := {
+	"cores": "Every Core you have been offered. The ones you have not met yet stay a question mark.",
+	"combos": "Pairs and Fulls you have put together. Form one in a run to light its tile.",
+}
+var _book_grid: GridContainer
 
 
 func _ready() -> void:
@@ -114,6 +121,14 @@ func _build_reading(host: HBoxContainer) -> void:
 	_status_grid = _build_status_grid()
 	_status_grid.visible = false
 	stack.add_child(_status_grid)
+	_book_grid = GridContainer.new()
+	_book_grid.name = "BookGrid"
+	_book_grid.columns = 3
+	_book_grid.add_theme_constant_override("h_separation", UI3Theme.space("16"))
+	_book_grid.add_theme_constant_override("v_separation", UI3Theme.space("16"))
+	_book_grid.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	_book_grid.visible = false
+	stack.add_child(_book_grid)
 	_scroll = UI3Meta.scroll(stack)
 	_scroll.name = "BodyScroll"
 	col.add_child(_scroll)
@@ -168,7 +183,7 @@ func _build_topics(host: HBoxContainer) -> void:
 	_topic_col.name = "TabRow"
 	_topic_col.add_theme_constant_override("separation", UI3Theme.space("8"))
 	outer.add_child(UI3Meta.scroll(_topic_col))
-	for pair in CodexContent.TABS:
+	for pair in CodexContent.TABS + BOOK_TABS:
 		var key: String = pair[0]
 		var b := UI3Meta.tab(String(pair[1]), false)
 		b.name = "CodexTab_%s" % key
@@ -183,10 +198,10 @@ func _on_search_changed(q: String) -> void:
 	var needle := q.strip_edges().to_lower()
 	var n := 0
 	var first := ""
-	for pair in CodexContent.TABS:
+	for pair in CodexContent.TABS + BOOK_TABS:
 		var key: String = pair[0]
 		var hit := needle.is_empty() or String(pair[1]).to_lower().contains(needle) \
-			or CodexContent.tab_text(key).to_lower().contains(needle)
+			or (not BOOK_LEDE.has(key) and CodexContent.tab_text(key).to_lower().contains(needle))
 		(_tab_buttons[key] as Button).visible = hit
 		if hit:
 			n += 1
@@ -205,17 +220,87 @@ func _select_tab(key: String) -> void:
 	for k in _tab_buttons.keys():
 		(_tab_buttons[k] as Button).button_pressed = (k == key)
 	_title.text = _tab_label(key)
-	_lede.text = String(CodexContent.TAB_LEDE.get(key, ""))
+	_lede.text = String(CodexContent.TAB_LEDE.get(key, BOOK_LEDE.get(key, "")))
 	var is_status := key == "st"
+	var is_book := BOOK_LEDE.has(key)
 	_status_grid.visible = is_status
-	_body.visible = not is_status
-	if not is_status:
+	_book_grid.visible = is_book
+	_body.visible = not is_status and not is_book
+	if is_book:
+		_fill_book(key)
+	elif not is_status:
 		_body.text = CodexContent.tab_text(key)
 	_scroll.scroll_vertical = 0
 
 
+## One tile per Core / combo. Unmet = dimmed plate with "?" (the name is NOT in the tree, so it cannot leak).
+func _fill_book(key: String) -> void:
+	UI3Meta.clear(_book_grid)
+	var seen_n := 0
+	var total := 0
+	if key == "cores":
+		for def in RelicRegistry.all_defs_sorted():
+			if not RelicSlots.is_core(def) or def.disabled or int(def.rarity) > 2:
+				continue
+			total += 1
+			var e: Dictionary = MetaState.core_codex.get(String(def.id), {})
+			var seen := bool(e.get("seen", false))
+			seen_n += 1 if seen else 0
+			var tier: String = TierWords[clampi(int(def.rarity), 0, 2)]
+			var chips: Array[String] = []
+			if bool(e.get("picked", false)):
+				chips.append("Picked")
+			_book_grid.add_child(_tile("CoreTile_%s" % def.id, seen, UI3.title_case(UI3.player_text(String(def.name))),
+				tier + (" · " + ", ".join(chips) if not chips.is_empty() else "")))
+	else:
+		for c in ComboAdapter.all():
+			total += 1
+			var id := String((c as Dictionary).get("id", ""))
+			var e: Dictionary = MetaState.combo_codex.get(id, {})
+			var seen := bool(e.get("pair", false)) or bool(e.get("full", false))
+			seen_n += 1 if seen else 0
+			var tiers: Array[String] = []
+			if bool(e.get("pair", false)):
+				tiers.append("Pair")
+			if bool(e.get("full", false)):
+				tiers.append("Full")
+			_book_grid.add_child(_tile("ComboTile_%s" % id, seen, UI3.title_case(ComboAdapter.display_name(id)), " · ".join(tiers)))
+	if total == 0:
+		var l := UI3.label("No combos in this build yet.", "LabelMuted")
+		l.name = "BookEmpty"
+		_book_grid.add_child(l)
+	_lede.text = "%s  %d of %d met." % [BOOK_LEDE[key], seen_n, total]
+
+
+const TierWords := ["Moss", "Amber", "Crystal"]
+
+
+func _tile(node_name: String, seen: bool, title: String, sub: String) -> Control:
+	var card := UI3.plate(&"card")
+	card.name = node_name
+	card.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	card.custom_minimum_size.y = 96
+	card.set_meta("seen", seen)
+	var v := VBoxContainer.new()
+	v.add_theme_constant_override("separation", UI3Theme.space("8"))
+	card.add_child(v)
+	var t := UI3.label(title if seen else "?", "LabelTitle")
+	t.name = "TileName"
+	v.add_child(t)
+	var s := UI3.label((sub if sub != "" else TranslationServer.translate("Met")) if seen else TranslationServer.translate("Not met yet"), "LabelMuted")
+	s.name = "TileSub"
+	v.add_child(s)
+	# Border only separates tiles: the normal (disabled_border) token, same for met and unmet. Inner padding so the
+	# "?" / name never touches the edge. Met vs unmet reads from the text (name + tier vs "?" + "Not met yet").
+	card.add_theme_stylebox_override("panel", UI3Theme.flat(UI3Theme.color("panel_raised"), UI3Theme.radius("s"),
+		UI3Theme.stroke("hairline"), UI3Theme.color("disabled_border"), Vector4(16, 12, 16, 12)))
+	if not seen:
+		t.add_theme_color_override("font_color", UI3Theme.color("text_muted"))
+	return card
+
+
 func _tab_label(key: String) -> String:
-	for pair in CodexContent.TABS:
+	for pair in CodexContent.TABS + BOOK_TABS:
 		if String(pair[0]) == key:
 			return String(pair[1])
 	return key.to_upper()

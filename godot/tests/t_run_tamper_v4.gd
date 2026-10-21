@@ -21,7 +21,9 @@ func run() -> void:
 	_t2(log, tape, wi, honest)
 	_t3(log, tape, wi)
 	_t5(log, tape)
+	_md(log, tape, wi, honest)
 	_stage(log, tape, wi)
+	_oc_outside_set()
 
 
 func _find_run() -> Dictionary:
@@ -80,6 +82,43 @@ func _t3(log: ActionLog, tape: Array, wi: int) -> void:
 	ok(not bool(v2["ok"]) and int(v2["action_index"]) == wi + 1, "T3: second wild_face with another slot refused too")
 
 
+## MD 22/10 tampers through RunVerifier: (a) the Mat Tam moved onto another die (a pair / loose die cannot make 3 -> 4), (b) a second Mat Tam
+## in the same fight (a later turn: after the honest one, a copy at the end of the log's next end_turn), (c) an overcast inserted on every die
+## right after the Mat Tam (a die outside a Set, or no mana, is refused at its own index; never accepted with a different outcome unnoticed).
+func _md(log: ActionLog, tape: Array, wi: int, honest: Dictionary) -> void:
+	var args: Array = (log.entries[wi] as Dictionary)["args"]
+	var caught := 0
+	var tried := 0
+	for uid in range(1, 7):
+		if uid == int(args[0]):
+			continue
+		var t := _clone(log)
+		(t.entries[wi] as Dictionary)["args"] = [uid, args[1]]
+		var r := RunVerifier.verify(t, tape)
+		tried += 1
+		if not bool(r["ok"]) or int(r["score"]) != int(honest["score"]) or JSON.stringify(r["state"]) != JSON.stringify(honest["state"]):
+			caught += 1
+	eq(caught, tried, "MD: Mat Tam moved to another die is detected (refused or a different run)")
+	var ni := -1
+	for i in range(wi + 1, log.entries.size()):
+		if String((log.entries[i] as Dictionary)["fn"]) == "end_turn":
+			ni = i
+			break
+	if ni >= 0 and ni + 1 < log.entries.size():
+		var late := _clone(log)
+		late.entries.insert(ni + 1, (late.entries[wi] as Dictionary).duplicate(true))
+		var v := RunVerifier.verify(late, tape)
+		ok(not bool(v["ok"]) and int(v["action_index"]) == ni + 1, "MD: a 2nd Mat Tam in a later turn of the same fight is refused at its index (%s @%s)" % [str(v["error"]), str(v["action_index"])])
+	var oc_caught := 0
+	for uid in range(1, 7):
+		var o := _clone(log)
+		o.entries.insert(wi + 1, {"fn": "overcast", "args": [uid]})
+		var r2 := RunVerifier.verify(o, tape)
+		if not bool(r2["ok"]) or int(r2["score"]) != int(honest["score"]):
+			oc_caught += 1
+	ok(oc_caught >= 1, "MD: inserted overcasts are refused or change the run (%d of 6)" % oc_caught)
+
+
 ## T5: a wild_face with no mana: the first thing in a fresh fight (mana 0 at turn 1).
 func _t5(log: ActionLog, tape: Array) -> void:
 	var n := -1
@@ -127,3 +166,39 @@ func _stage(log: ActionLog, tape: Array, wi: int) -> void:
 	mid_log.header["depth_stage"] = 2
 	var v2 := RunVerifier.verify(mid_log, mid_tape)
 	ok(String(v2["error"]) != RunVerifier.ERR_STAGE_MISMATCH, "stage 2 header agreeing with its tape is not a stage mismatch")
+
+
+## MD review: an Overcast aimed at a die that is NOT in a Set is refused at its own index through RunVerifier. Bot hook overcast_script takes honest
+## Overcasts; for the first one, every other die is tried: a Set member verifies, anything else must be ERR_REJECTED at that index (>= 1 such die).
+func _oc_outside_set() -> void:
+	RunBot.overcast_script = true
+	var found := {}
+	for s in SEEDS:
+		var r := RunBot.play_run(int(s), TEAM)
+		var l := _clone(r["log"])
+		if _first(l, "overcast") >= 0:
+			found = {"log": l, "tape": (r["tape"] as Array).duplicate(true)}
+			break
+	RunBot.overcast_script = false
+	ok(not found.is_empty(), "found a run whose bot took an Overcast")
+	if found.is_empty():
+		return
+	var log: ActionLog = found["log"]
+	var tape: Array = found["tape"]
+	var oi := _first(log, "overcast")
+	ok(bool(RunVerifier.verify(log, tape)["ok"]), "honest run with an Overcast verifies")
+	var real := int(((log.entries[oi] as Dictionary)["args"] as Array)[0])
+	var refused := 0
+	for uid in range(1, 7):
+		if uid == real:
+			continue
+		var t := _clone(log)
+		(t.entries[oi] as Dictionary)["args"] = [uid]
+		var v := RunVerifier.verify(t, tape)
+		if not bool(v["ok"]) and int(v["action_index"]) == oi:
+			ok(String(v["error"]) == RunVerifier.ERR_REJECTED, "Overcast on die %d outside the Set is ERR_REJECTED at its own index" % uid)
+			refused += 1
+		else:
+			# accepted at oi = another Set member (same or different Set); it may only break LATER, never earlier
+			ok(bool(v["ok"]) or int(v["action_index"]) > oi, "Overcast on die %d accepted at oi: any failure comes later (%s @%s)" % [uid, str(v["error"]), str(v["action_index"])])
+	ok(refused >= 1, "at least one die outside the Set was refused (%d)" % refused)

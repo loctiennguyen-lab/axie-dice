@@ -1261,7 +1261,7 @@ static func affix_tip(id: String) -> String:
 func _overcast_state(executing: bool) -> Dictionary:
 	var cost := _combat.overcast_cost()
 	var text := "Overcast %s %d MP" % [HudKit.dot(), cost]
-	var tip := TranslationServer.translate("+0.5 on the die's multiplier, added to the Set, not stacked.")
+	var tip := TranslationServer.translate("Overcast makes your whole Set stronger: +0.4 on every die in it.")
 	var ok := false
 	if _combat.overcast_count() > 0 and _combat.overcast_count() >= _combat.overcast_per_turn():
 		text = "Overcast: used"
@@ -1270,7 +1270,7 @@ func _overcast_state(executing: bool) -> Dictionary:
 		tip = "Overcast is only available on your turn."
 	elif _selected_die_uid == -1:
 		text = "Overcast: pick a die"
-		tip = "Pick an unused die first, then pay %d mana to power it up." % cost
+		tip = "Pick a die in a Set, then pay %d mana to power up the whole Set." % cost
 	else:
 		var why := _combat.overcast_block_reason(_selected_die_uid)
 		if why == "":
@@ -1281,10 +1281,15 @@ func _overcast_state(executing: bool) -> Dictionary:
 			var m_now := _combat.m100_for(u)
 			var m_after := mini(m_now + roundi(_combat.overcast_add() * 100.0), _combat.bo_cap100())
 			if not u.overcast:
-				tip = "%s\n%s" % [tip, TranslationServer.translate("This die's multiplier %s → %s") % [V4Ui.mult_text(m_now), V4Ui.mult_text(m_after)]]
+				tip = "%s\n%s" % [tip, TranslationServer.translate("The Set's multiplier %s → %s") % [V4Ui.mult_text(m_now), V4Ui.mult_text(m_after)]]
+			var gl: Array[String] = []
+			for e in _combat.overcast_group_preview(u):
+				gl.append("%d → %d" % [int(e["now"]), int(e["boosted"])])
+			text = "Overcast %s %s %d MP" % [" · ".join(gl), HudKit.dot(), cost]
+			tip = "%s\n%s" % [tip, " · ".join(gl)]
 		else:
 			text = "Overcast: %s" % why
-			tip = why
+			tip = TranslationServer.translate("Needs a Set. Overcast makes your whole Set stronger.") if why == "Needs a Set" else why
 	return {"show": _combat.overcast_per_turn() > 0 and _combat.depth_stage >= 3, "enabled": ok, "text": text, "tip": tip}
 
 
@@ -1655,6 +1660,7 @@ func _connect_event_bus() -> void:
 	EventBus.resonance_triggered.connect(_on_resonance_triggered)
 	EventBus.relic_pulsed.connect(_on_relic_pulsed)
 	EventBus.core_fired.connect(_on_core_fired)
+	ComboAdapter.connect_fired(_on_combo_fired)
 	EventBus.float_text.connect(_on_float_text)
 	EventBus.plating_off.connect(_on_plating_off)
 	EventBus.plating_decay.connect(_on_plating_decay)
@@ -3229,7 +3235,74 @@ var _core_batch: Dictionary = {}          ## uid -> {"core|kind": {name, amount,
 const CORE_FLOAT_MAX_STACK := 3
 var _core_float_live: Dictionary = {}     ## uid -> notes currently on screen (stacked upward)
 
+## Lane GM (B5): a combo's two Cores both fired this turn. First time this fight: the combo name pops next to the
+## number for 1.0 s (never blocks input), both Core slots light and are joined by a bar, one sound. Later: icons only.
+var combo_float_log: Array = []           ## test hook: combo names shown as a float
+var _combo_named: Dictionary = {}
+var _last_core_uid := -1
+const COMBO_FLOAT_SEC := 1.8
+
+
+func _on_combo_fired(combo_id: String) -> void:
+	var first := not _combo_named.has(combo_id)
+	_combo_named[combo_id] = true
+	if _hud_frame != null and _hud_frame.core_panel != null:
+		_hud_frame.core_panel.flash_combo(ComboAdapter.pair_cores(combo_id), first)
+	if not first:
+		return
+	var is_full := String(ComboAdapter.done().get(combo_id, "pair")) == "full"
+	var nm := UI3.title_case(ComboAdapter.display_name(combo_id))
+	combo_float_log.append(nm)
+	if _dm_audio != null:
+		_dm_audio.play("dm_combo")
+	_spawn_combo_name(nm, is_full)
+
+
+## Fixed spot, top-centre (clear of the Axies below and the enemy column on the right), so it never sits on a unit or on a
+## Core float popup. Two combos in the same beat stack downward. 32 px, gold frame, pops in, fades out.
+var _combo_banners_live := 0
+
+
+func _spawn_combo_name(nm: String, full := false) -> void:
+	if disable_juice_for_tests or not is_inside_tree() or _unit_visuals_root == null:
+		return
+	var chip := PanelContainer.new()
+	chip.name = "ComboFloat"
+	chip.theme = UI3Theme.get_theme()
+	chip.z_index = 40
+	chip.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	chip.add_theme_stylebox_override("panel", UI3Theme.flat(UI3Theme.color("panel"), UI3Theme.radius("m"), 6,
+		UI3Theme.color("accent"), Vector4(24, 12, 24, 12)))
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 12)
+	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	chip.add_child(row)
+	var tag := UI3.combo_tier_tag(full)   # PAIR / FULL tag (own colour, frame and glyph count), then the combo name
+	tag.name = "ComboTierTag"
+	row.add_child(tag)
+	var l := UI3.label(nm, "LabelScreenTitle")   # 32
+	l.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	row.add_child(l)
+	_unit_visuals_root.add_child(chip)   # same layer as the Core floats (the 3D stage draws over plain children of this view)
+	var sz := chip.get_combined_minimum_size()
+	chip.size = sz
+	var vs := get_viewport_rect().size
+	var slot := _combo_banners_live
+	_combo_banners_live += 1
+	chip.global_position = Vector2((vs.x - sz.x) / 2.0, 120.0 + float(slot) * (sz.y + 12.0))
+	chip.pivot_offset = sz / 2.0
+	chip.scale = Vector2(0.7, 0.7)
+	var tw := chip.create_tween()
+	tw.tween_property(chip, "scale", Vector2.ONE, 0.18).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	tw.tween_interval(COMBO_FLOAT_SEC - 0.25)
+	tw.tween_property(chip, "modulate:a", 0.0, 0.25)
+	tw.tween_callback(func():
+		_combo_banners_live = maxi(_combo_banners_live - 1, 0)
+		chip.queue_free())
+
+
 func _on_core_fired(core_id: String, uid: int, amount: int, kind: String) -> void:
+	_last_core_uid = uid
 	var def = RelicRegistry.get_def(core_id)
 	var nm := UI3.title_case(UI3.player_text(String(def.name))) if def != null else core_id
 	_append_log("[core] %s on %s" % [CoreFeedback.float_line(nm, amount, kind), _unit_name(uid)])
@@ -3383,6 +3456,9 @@ func _rebuild_all() -> void:
 		_update_portrait(u)
 	for e in _combat.enemies:
 		_update_portrait(e)
+		var np: UnitPortrait = _portraits.get(e.uid)
+		if np != null and is_instance_valid(np):
+			np.set_nick(String(e.custom_state.get("nick", "")), e.n)
 
 	_update_dice_tray()
 
@@ -3957,6 +4033,8 @@ func _unit_name(uid: int) -> String:
 	if _combat == null:
 		return "?"
 	var u := _combat.by_uid(uid)
+	if u != null and String(u.custom_state.get("nick", "")) != "":
+		return String(u.custom_state["nick"])
 	return u.n if u != null else "uid#%d" % uid
 
 
@@ -4322,7 +4400,7 @@ func _wild_any_valid() -> bool:
 
 
 func _wild_state(executing: bool) -> Dictionary:
-	var used: bool = _combat.wild_used >= _combat.wild_per_turn()
+	var used: bool = _combat.wild_used >= _combat.wild_per_battle()
 	var d := V4Ui.wild_button(_combat.depth_stage >= 2, used, _combat.mana, _combat.wild_cost(), _wild_any_valid())
 	if not executing:
 		d["enabled"] = false
@@ -4446,10 +4524,13 @@ func _update_coach() -> void:
 			var fi: int = u.roll_face_index()
 			parts[fi] = int(parts.get(fi, 0)) + 1
 	var pair := false
+	var set3 := false
 	for k in parts:
 		if int(parts[k]) == 2:
 			pair = true
-	var id := V4Coach.next_id({"stage": _combat.depth_stage, "rolled": rolled, "pair": pair, "bo": not _combat.bo.is_empty(),
+		if int(parts[k]) == 3:
+			set3 = true
+	var id := V4Coach.next_id({"stage": _combat.depth_stage, "rolled": rolled, "pair": pair, "set3": set3, "bo": not _combat.bo.is_empty(),
 		"free_left": _combat.rerolls, "payable": _combat.reroll_is_payable(), "mana": _combat.mana,
 		"reroll_cost": _combat.reroll_mana_cost(false, 1), "wild_cost": _combat.wild_cost(), "oc_cost": _combat.overcast_cost()})
 	if id == "":

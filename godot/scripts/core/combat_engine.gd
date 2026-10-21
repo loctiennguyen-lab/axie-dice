@@ -109,8 +109,11 @@ var bo: Array = []
 var depth_stage: int = 3
 ## Depth v4 3.5 (N1): Lieu/An toan rerolls chosen this turn. ONLY these count against reroll.max_total; free, relic, Aid never do.
 var reroll_paid_k: int = 0
-## Depth v4 3.6: Mat Tam uses this turn (cap wild.per_turn). In the undo snapshot and the save; reset in roll_all.
+## Depth v4 3.6 (MD 22/10): Mat Tam uses this FIGHT (cap wild.per_battle). In the undo snapshot and the save; reset in setup_new only.
 var wild_used: int = 0
+## Depth v4 3.7 (MD 22/10): Overcasts used this turn (cap overcast.per_turn). The Set it hit is stored as the `overcast` flag on every
+## member die at the moment of use (locked: a later reroll / Mat Tam does not move it). In the undo snapshot and the save; reset in roll_all.
+var overcast_used: int = 0
 ## Every reroll this turn, any source: capped by reroll.hard_cap (3.10.3).
 var reroll_total_turn: int = 0
 ## Depth v4 3.10.2: lock per (turn, k) = {rmode, rsrc, uids, list}; asking for the same k again must repeat it exactly. NOT cleared by undo. Reset in roll_all.
@@ -348,6 +351,7 @@ func _state_dict() -> Dictionary:
 		"reroll_k": reroll_k,
 		"reroll_paid_k": reroll_paid_k,
 		"wild_used": wild_used,
+		"overcast_used": overcast_used,
 		"reroll_total_turn": reroll_total_turn,
 		"reroll_lock": _lock_to_data(),
 		"relic_combat": relic_combat.duplicate(true),
@@ -407,6 +411,7 @@ func _apply_state_dict(d: Dictionary) -> void:
 	depth_stage = clampi(int(d.get("depth_stage", 3)), 1, 3)
 	reroll_paid_k = int(d.get("reroll_paid_k", 0))
 	wild_used = int(d.get("wild_used", 0))
+	overcast_used = int(d.get("overcast_used", 0))
 	reroll_total_turn = int(d.get("reroll_total_turn", 0))
 	reroll_lock = _lock_from_data(d.get("reroll_lock", {}))
 	relic_combat = (d.get("relic_combat", {}) as Dictionary).duplicate(true)
@@ -564,7 +569,7 @@ func roll_all() -> void:
 	reroll_paid_k = 0
 	reroll_total_turn = 0
 	reroll_lock = {}
-	wild_used = 0
+	overcast_used = 0
 	for u in party:
 		u.overcast = false
 		u.wild_slot = -1   # Mat Tam lasts one turn, mana not refunded (3.6)
@@ -1422,15 +1427,15 @@ func stash(unit_uid: int) -> bool:
 
 # ---- Depth v4 3.6 MAT TAM ----------------------------------------------------------------------------------
 func wild_cost() -> int:
-	return maxi(0, int(tune_knob("wild", "cost", 3.0)))
+	return maxi(0, int(tune_knob("wild", "cost", 2.0)))
 
 
-func wild_per_turn() -> int:
-	return maxi(0, int(tune_knob("wild", "per_turn", 1.0)))
+func wild_per_battle() -> int:
+	return maxi(0, int(tune_knob("wild", "per_battle", 1.0)))
 
 
 ## "" when `uid` may take Mat Tam part `slot` now, else a short code: phase, slot, stage, no_die, limit, used, held, cracked, cantrip,
-## wild, same, not_counted, size, mana. Pure (the UI greys the picker with it).
+## wild, same, not_counted, need_set3 (result is not a group of exactly 4), set5, mana. Mat Tam only turns a Set of 3 into a Set of 4. Pure (the UI greys the picker with it).
 func wild_block_reason(unit_uid: int, slot: int) -> String:
 	if won or lost or phase != CombatPhase.EXECUTE:
 		return "phase"
@@ -1441,7 +1446,7 @@ func wild_block_reason(unit_uid: int, slot: int) -> String:
 	var u := by_uid(unit_uid)
 	if u == null or u.side != "p" or u.is_token or u.custom_state.has("phantom") or u.hp <= 0 or not u.has_rolled():
 		return "no_die"
-	if wild_used >= wild_per_turn():
+	if wild_used >= wild_per_battle():
 		return "limit"
 	if u.roll_used():
 		return "used"
@@ -1453,6 +1458,8 @@ func wild_block_reason(unit_uid: int, slot: int) -> String:
 		return "cantrip"
 	if u.wild_slot >= 0:
 		return "wild"
+	if u.overcast:
+		return "overcast"  # MD review: an Overcast die keeps its face (the +add is locked on the Set)
 	if slot == u.roll_face_index():
 		return "same"
 	if not _bo_dice().has(u):
@@ -1466,8 +1473,8 @@ func wild_block_reason(unit_uid: int, slot: int) -> String:
 		if (d.wild_slot if d.wild_slot >= 0 else d.roll_face_index()) == slot:
 			n += 1
 	u.wild_slot = -1
-	if n < 3:
-		return "size"
+	if n < 4:
+		return "need_set3"  # MD 22/10: only 3 -> 4 (a pair would become a 3: refused)
 	if n >= 5:
 		return "set5"  # A+ (Liam 22/10): Wild Face can never make a Set of 5
 	return ""
@@ -1535,11 +1542,15 @@ func overcast_per_turn() -> int:
 
 
 func overcast_count() -> int:
-	var n := 0
-	for u in party:
-		if u.overcast:
-			n += 1
-	return n
+	return overcast_used
+
+
+## Pure: uids of the Set (snapshot `bo`, size >= 3) the die belongs to right now, else []. Overcast hits all of them (MD 22/10).
+func overcast_set_uids(u: Unit) -> Array:
+	for g in bo:
+		if (g["uids"] as Array).has(u.uid):
+			return (g["uids"] as Array).duplicate()
+	return []
 
 
 ## "" when the die can be overcast now, else a short reason (the UI shows it on the disabled button).
@@ -1559,12 +1570,14 @@ func overcast_block_reason(unit_uid: int) -> String:
 		return "Die is frozen"
 	if u.overcast:
 		return "Already overcast"
-	if overcast_count() >= overcast_per_turn():
+	if overcast_used >= overcast_per_turn():
 		return "1 Overcast per turn"
 	if _has_kw(u.current_face(), "cantrip") or not BO_TYPES.has(String(u.current_face().get("type", ""))):
 		return "Not on this face"
 	if _face_base(u, u.roll_face_index()) < 1.0:
 		return "Face has no value"
+	if overcast_set_uids(u).is_empty():
+		return "Needs a Set"
 	if mana < overcast_cost():
 		return "Needs %d mana" % overcast_cost()
 	return ""
@@ -1574,20 +1587,41 @@ func can_overcast(unit_uid: int) -> bool:
 	return overcast_block_reason(unit_uid) == ""
 
 
-## Pays overcast_cost() mana and powers the die up for this turn. Undoable. Logged as `overcast [uid]`. No rng.
+## Pays overcast_cost() mana and powers up the WHOLE Set the die is in (the Set at this moment) for this turn: every member gets the
+## `overcast` flag (+overcast.add in its M bag). Undoable. Logged as `overcast [uid]`. No rng.
 func overcast(unit_uid: int) -> bool:
 	if not can_overcast(unit_uid):
 		return false
 	var u := by_uid(unit_uid)
+	var members: Array = overcast_set_uids(u)
 	_push_undo()
 	var before := _face_value(u, u.roll_face_index())
 	mana -= overcast_cost()
-	u.overcast = true
+	overcast_used += 1
+	for m in members:
+		var d := by_uid(int(m))
+		if d != null:
+			d.overcast = true
 	var after := _face_value(u, u.roll_face_index())
-	EventBus.float_text.emit(u.uid, "OVERCAST", "buf", 0)
+	for m in members:
+		EventBus.float_text.emit(int(m), "OVERCAST", "buf", 0)
 	EventBus.die_overcast.emit(u.uid, before, after)
 	_log("overcast", [unit_uid])
 	return true
+
+
+## Group preview for the UI: one {uid, now, boosted} per die of the Set `u` is in (u first), values of each die's current face.
+func overcast_group_preview(u: Unit) -> Array:
+	var out: Array = []
+	var uids: Array = overcast_set_uids(u)
+	uids.sort_custom(func(a, b): return int(a) == u.uid and int(b) != u.uid)
+	for m in uids:
+		var d := by_uid(int(m))
+		if d == null:
+			continue
+		var pv := overcast_preview(d)
+		out.append({"uid": d.uid, "now": pv[0], "boosted": pv[1]})
+	return out
 
 
 ## For the UI preview ("6 -> 9"): [value now, value if overcast] of the die's current face.
@@ -1794,6 +1828,8 @@ func _bo_dice() -> Array:
 			continue
 		if u.custom_state.has("phantom") and not phantom_ok:
 			continue
+		if u.custom_state.has("copycat_turn") and int(u.custom_state["copycat_turn"]) == turn:
+			continue   # meme Core Copycat: the copied die does not count toward Sets
 		if u.cracked or String((u.die[u.roll_face_index()] as Dictionary).get("type", "")) == "blank":
 			continue
 		if concord and u.cls != "":

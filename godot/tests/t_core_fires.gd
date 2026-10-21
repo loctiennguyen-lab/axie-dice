@@ -91,6 +91,12 @@ func _play(c: CombatEngine, u: Unit, f: Dictionary, tgt: int = -1) -> void:
 	c.use_die(u.uid, tgt)
 
 
+func _roll_faces(c: CombatEngine, faces: Array) -> void:
+	for k in faces.size():
+		c.party[k].held = false
+		c.party[k].set_roll(int(faces[k]), false)
+
+
 func _only(c: CombatEngine, u: Unit) -> void:
 	for o in c.party:
 		if o != u:
@@ -108,6 +114,9 @@ func _build_table() -> void:
 			"rule_old_forest", "rule_starfall", "rule_wasteland"]:
 		_scen[id] = func(i: String): _combat([i])
 	_scen["c_collector"] = func(i): _collector(i)
+	_scen["c_meme_nametag"] = func(i): _combat([i])
+	_scen["c_meme_copycat"] = func(i): var c := _combat([i]); _roll_faces(c, [0, 0, 0, 1, 2]); RelicHooks.fire(c, "on_roll_settled", {"combat": c, "rerolled_uids": []})
+	_scen["c_meme_jumpy"] = func(i): var c := _combat([i]); _roll_faces(c, [0, 1, 2, 3, 4]); RelicHooks.fire(c, "on_roll_settled", {"combat": c, "rerolled_uids": []})
 	_scen["c_backline_glow"] = func(i): var c := _combat([i]); _play(c, c.party[4], _face("heal", 4))
 	_scen["c_bastion"] = func(i): _hit_front(_combat([i]))
 	_scen["rule_rising_tide"] = func(i): var c := _combat([i]); CoreHooks.combat_state(c, "tide")["water"] = "front"; _hit_front(c)

@@ -107,6 +107,16 @@ var _boosted := false
 var _preview := 0
 
 
+## Lane GM (Name Tag meme Core): a nickname (custom_state.nick) replaces the nameplate text; the original name moves
+## into the plate tooltip. nick "" restores the original.
+func set_nick(nick: String, original: String) -> void:
+	if _name_label == null:
+		return
+	_name_label.text = nick if nick != "" else original
+	if _click_catcher != null:
+		_click_catcher.tooltip_text = "%s (%s)" % [nick, original] if nick != "" else ""
+
+
 func _ready() -> void:
 	pass
 

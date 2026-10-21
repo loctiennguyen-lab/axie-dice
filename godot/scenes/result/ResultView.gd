@@ -19,6 +19,8 @@ var _plate_scroll: ScrollContainer = null
 var _body: VBoxContainer = null
 var _notice_host: VBoxContainer = null
 var _run_id := ""
+var _snap: Dictionary = {}
+var last_card_text := ""   ## test hook: what the last "Copy run card" sent to the clipboard (headless has no clipboard)
 var _back: Button = null
 
 
@@ -39,6 +41,8 @@ func _ready() -> void:
 			return not String(x).begins_with("__") and String(x) != RunState.run_rule),
 		"run_rule": RunState.run_rule,
 		"core_impact": RunState.core_impact.duplicate(true),
+		"combo_done": ComboAdapter.done().duplicate(),            # lane GM: before end_run() clears the run
+		"skipped_t": ComboAdapter.skipped_t().duplicate(),
 		"roster": RunState.roster.duplicate(true),
 		"stats": RunStatsAccumulator.snapshot(RunState.mode),
 		"ranked": RunState.ranked,
@@ -62,6 +66,7 @@ func _ready() -> void:
 	snapshot["new_titles"] = MetaState.last_run_new_titles.duplicate()   # C7: only this run's grants
 	snapshot["stake_open"] = not MetaState.mission_escrow.is_empty()   # server-settled stakes close later
 
+	_snap = snapshot
 	_build_ui(snapshot)
 	if bool(snapshot["ranked"]):
 		# Neutral until RunState reports the real submit status (follow-up for the next RULES_VERSION bump,
@@ -102,7 +107,7 @@ func _build_ui(s: Dictionary) -> void:
 	plate.custom_minimum_size = Vector2(PLATE_W, 0)
 	center.add_child(plate)
 	var outer := VBoxContainer.new()
-	outer.add_theme_constant_override("separation", 24)
+	outer.add_theme_constant_override("separation", 16)
 	plate.add_child(outer)
 
 	outer.add_child(_build_header(s))
@@ -203,7 +208,7 @@ func _build_header(s: Dictionary) -> Control:
 	var won := bool(s["won"])
 	var col := VBoxContainer.new()
 	col.name = "TitleBand"
-	col.add_theme_constant_override("separation", 8)
+	col.add_theme_constant_override("separation", 12)
 	var new_best := won and int(s["power_level"]) > int(s["best_before"])
 	if new_best:
 		var chip := UI3.chip(tr("New best") + " · A%d" % int(s["ascension"]))
@@ -332,10 +337,63 @@ func _build_card_rows(s: Dictionary) -> VBoxContainer:
 	col.add_child(_build_shard_card(s))
 	col.add_child(_build_pass_card(s))
 	col.add_child(_build_relics_card(s["relic_ids"] as Array, String(s.get("run_rule", "")), s.get("core_impact", {}) as Dictionary))
+	var combos := _build_combos_card(s)
+	if combos != null:
+		col.add_child(combos)
 	var stake := _build_stake_box(s)
 	if stake != null:
 		col.add_child(stake)
+	var pad := Control.new()   # breathing room under the last card so the scroll never ends on a clipped line
+	pad.name = "EndPad"
+	pad.custom_minimum_size.y = 16
+	col.add_child(pad)
 	return col
+
+
+## Lane GM (D3): combos the run put together (Pair / Full, Full in a gold frame) and the near-miss line "Skipped"
+## (up to 3 Crystal Cores that were offered and not taken). Hidden when there is nothing to say and no combo data.
+func _build_combos_card(s: Dictionary) -> Control:
+	var done: Dictionary = s.get("combo_done", {})
+	var skipped := RunCard.skipped_names(s.get("skipped_t", []) as Array)
+	if done.is_empty() and skipped.is_empty() and ComboAdapter.all().is_empty():
+		return null
+	var card := UI3.plate(&"row")
+	card.name = "CombosCard"
+	var col := VBoxContainer.new()
+	col.add_theme_constant_override("separation", 8)
+	card.add_child(col)
+	col.add_child(_card_caption(tr("Combos") + " · %d" % done.size()))
+	if done.is_empty():
+		var none := UI3.label(tr("No combos this run."), "LabelMuted")
+		none.name = "NoCombos"
+		col.add_child(none)
+	for cid in done:
+		var full := String(done[cid]) == "full"
+		var p := UI3.plate(&"row")
+		p.name = "ComboRow_%s" % cid
+		var sb := UI3Theme.flat(UI3Theme.color("panel_raised"), UI3Theme.radius("s"), 4 if full else 0,
+			UI3Theme.color("accent") if full else UI3Theme.color("panel_raised"))
+		sb.content_margin_left = 12
+		sb.content_margin_right = 12
+		sb.content_margin_top = 8
+		sb.content_margin_bottom = 8
+		p.add_theme_stylebox_override("panel", sb)
+		var row := HBoxContainer.new()
+		p.add_child(row)
+		var nm := UI3.label(UI3.title_case(ComboAdapter.display_name(String(cid))), "LabelDisplay")
+		nm.name = "ComboName"
+		nm.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		row.add_child(nm)
+		var tier := UI3.label(tr("Full") if full else tr("Pair"), "LabelDisplay")
+		tier.name = "ComboTier"
+		row.add_child(tier)
+		col.add_child(p)
+	if not skipped.is_empty():
+		var sk := UI3.label(tr("Skipped") + ": " + ", ".join(skipped), "LabelMuted")
+		sk.name = "SkippedLine"
+		sk.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		col.add_child(sk)
+	return card
 
 
 func _card_caption(text: String) -> Label:
@@ -348,7 +406,7 @@ func _build_shard_card(s: Dictionary) -> Control:
 	var card := UI3.plate(&"row")
 	card.name = "ShardCard"
 	var col := VBoxContainer.new()
-	col.add_theme_constant_override("separation", 8)
+	col.add_theme_constant_override("separation", 12)
 	card.add_child(col)
 	col.add_child(_card_caption(tr("Gene Shard earned")))
 	var row := HBoxContainer.new()
@@ -419,7 +477,7 @@ func _build_pass_card(s: Dictionary) -> Control:
 	var card := UI3.plate(&"row")
 	card.name = "PassCard"
 	var col := VBoxContainer.new()
-	col.add_theme_constant_override("separation", 8)
+	col.add_theme_constant_override("separation", 12)
 	card.add_child(col)
 	var head := HBoxContainer.new()
 	head.add_theme_constant_override("separation", 12)
@@ -492,7 +550,7 @@ func _build_relics_card(relic_ids: Array, run_rule_id: String = "", impact: Dict
 	var card := UI3.plate(&"row")
 	card.name = "RelicsCard"
 	var col := VBoxContainer.new()
-	col.add_theme_constant_override("separation", 8)
+	col.add_theme_constant_override("separation", 12)
 	card.add_child(col)
 	col.add_child(_card_caption(tr("Cores") + " · %d" % relic_ids.size()))
 	if run_rule_id != "":
@@ -628,12 +686,24 @@ func _build_actions() -> Control:
 	again.custom_minimum_size.y = UI3Theme.size_of("btn_l")
 	again.pressed.connect(_on_menu_pressed)
 	host.add_child(again)
+	var copy := UI3.button(tr("Copy run card"), &"quiet", &"M")   # quiet: the screen already has its 2 secondary buttons (t_result_screen)
+	copy.name = "CopyRunCard"
+	copy.custom_minimum_size.y = UI3Theme.size_of("btn_l")
+	copy.pressed.connect(_on_copy_card.bind(copy))
+	host.add_child(copy)
 	_back = UI3.button(tr("Back to Land"), &"primary", &"L")
 	_back.name = "BackButton"
 	_back.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	_back.pressed.connect(_on_menu_pressed)
 	host.add_child(_back)
 	return host
+
+
+## Lane GM (D4): run card text to the clipboard; the button says "Copied" for the next click.
+func _on_copy_card(btn: Button) -> void:
+	last_card_text = RunCard.text(_snap)
+	DisplayServer.clipboard_set(last_card_text)
+	btn.text = tr("Copied")
 
 
 func _unhandled_input(event: InputEvent) -> void:

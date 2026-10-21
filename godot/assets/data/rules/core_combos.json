@@ -1,0 +1,207 @@
+[
+ {
+  "id": "combo_rain",
+  "name_en": "Lunacia Rain",
+  "name_vi": "Mưa Đòn Lunacia",
+  "enabled": true,
+  "jackpot": true,
+  "pair": null,
+  "full": null,
+  "jackpot_set": [
+   "c_cascade",
+   "c_sixth_die",
+   "c_thorn_shield"
+  ],
+  "hide_if_rules": [
+   "rule_balance"
+  ]
+ },
+ {
+  "id": "combo_turtle_fort",
+  "name_en": "Golden Turtle Fortress",
+  "name_vi": "Thành Trì Rùa Vàng",
+  "enabled": true,
+  "jackpot": false,
+  "pair": [
+   "c_living_wall",
+   "c_thorn_shield"
+  ],
+  "full": "c_gatekeeper",
+  "hide_if_rules": [
+   "rule_upside_down"
+  ]
+ },
+ {
+  "id": "combo_toxic_guard",
+  "name_en": "Toxic Bloom Guard",
+  "name_vi": "Hoa Độc Hộ Vệ",
+  "enabled": true,
+  "jackpot": false,
+  "pair": [
+   "c_sonic_shield",
+   "c_backline_glow"
+  ],
+  "full": "c_blood_sign",
+  "hide_if_rules": []
+ },
+ {
+  "id": "combo_golden_nest",
+  "name_en": "Golden Egg Blast",
+  "name_vi": "Ổ Nổ Trứng Vàng",
+  "enabled": true,
+  "jackpot": false,
+  "pair": [
+   "c_nest",
+   "c_golden_egg"
+  ],
+  "full": "c_spore_burst",
+  "hide_if_rules": []
+ },
+ {
+  "id": "combo_rising_tide",
+  "name_en": "Rising Tide",
+  "name_vi": "Triều Dâng",
+  "enabled": true,
+  "jackpot": false,
+  "pair": [
+   "c_tidecaller",
+   "c_overflow"
+  ],
+  "full": "c_backline_glow",
+  "hide_if_rules": [
+   "rule_dry_steppe"
+  ]
+ },
+ {
+  "id": "combo_lake_fishing",
+  "name_en": "Lakebed Fishing Rod",
+  "name_vi": "Cần Câu Đáy Hồ",
+  "enabled": true,
+  "jackpot": false,
+  "pair": [
+   "c_hollow_core",
+   "c_mana_ward"
+  ],
+  "full": "c_kindle",
+  "hide_if_rules": [
+   "rule_cheap_mana",
+   "rule_tundra"
+  ]
+ },
+ {
+  "id": "combo_shield_engine",
+  "name_en": "Shield Engine",
+  "name_vi": "Lò Khiên Phản Đòn",
+  "enabled": true,
+  "jackpot": false,
+  "pair": [
+   "c_sonic_shield",
+   "c_thorn_shield"
+  ],
+  "full": "c_prime_chain",
+  "hide_if_rules": []
+ },
+ {
+  "id": "combo_final_stroke",
+  "name_en": "Finishing Stroke",
+  "name_vi": "Nhát Chốt",
+  "enabled": true,
+  "jackpot": false,
+  "pair": [
+   "c_finisher",
+   "c_chimera_hunt"
+  ],
+  "full": "c_prime_chain",
+  "hide_if_rules": [],
+  "rule_synergy": "rule_heavy_finish"
+ },
+ {
+  "id": "combo_ancient_turtle",
+  "name_en": "Ancient Turtle",
+  "name_vi": "Rùa Ngàn Tuổi",
+  "enabled": true,
+  "jackpot": false,
+  "pair": [
+   "c_living_wall",
+   "c_early_scales"
+  ],
+  "full": "c_growing_shell",
+  "hide_if_rules": [
+   "rule_upside_down"
+  ]
+ },
+ {
+  "id": "combo_molt",
+  "name_en": "Molting",
+  "name_vi": "Lột Xác",
+  "enabled": true,
+  "jackpot": false,
+  "pair": [
+   "c_descend",
+   "c_thorn_shield"
+  ],
+  "full": "c_bastion",
+  "hide_if_rules": [
+   "rule_upside_down"
+  ]
+ },
+ {
+  "id": "combo_bramble_hide",
+  "name_en": "Bramble Hide",
+  "name_vi": "Da Gai Dày",
+  "enabled": true,
+  "jackpot": false,
+  "pair": [
+   "c_elder_trunk",
+   "c_thorn_shield"
+  ],
+  "full": "c_thorn_pact",
+  "hide_if_rules": [
+   "rule_cheap_mana",
+   "rule_tundra"
+  ]
+ },
+ {
+  "id": "combo_dice_rainbow",
+  "name_en": "Dice Rainbow",
+  "name_vi": "Cầu Vồng Xúc Xắc",
+  "enabled": true,
+  "jackpot": false,
+  "pair": [
+   "c_collector",
+   "c_sixth_die"
+  ],
+  "full": "c_prism",
+  "hide_if_rules": []
+ },
+ {
+  "id": "combo_slow_burn",
+  "name_en": "Slow Burn",
+  "name_vi": "Cháy Chậm",
+  "enabled": true,
+  "jackpot": false,
+  "pair": [
+   "c_overflow",
+   "c_three_dice"
+  ],
+  "full": "c_dewdrop",
+  "hide_if_rules": [
+   "rule_dry_steppe"
+  ]
+ },
+ {
+  "id": "combo_endless_mana",
+  "name_en": "Endless Mana Loop",
+  "name_vi": "Vòng Mana Bất Tận",
+  "enabled": true,
+  "jackpot": false,
+  "pair": [
+   "c_mana_pool",
+   "c_deep_current"
+  ],
+  "full": "c_loop",
+  "hide_if_rules": [
+   "rule_dry_steppe"
+  ]
+ }
+]

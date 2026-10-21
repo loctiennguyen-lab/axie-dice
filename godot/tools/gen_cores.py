@@ -63,6 +63,10 @@ core("loop", "Vòng Lặp", "Loop", 2, "rule", ["face:cantrip"], [], ["nonattack
 core("cascade", "Thác Đổ", "Cascade", 2, "rule", [], ["rule:rule_balance", "owned:c_toxic_still"], ["attack"], "Damage faces used back to back form a chain: the 2nd gets +2, the 3rd +4, the 4th +6, the 5th+ +8. Using a non-damage face breaks the chain.")
 core("sacrifice", "Hiến Tế", "Sacrifice", 2, "rule", [], [], ["nonattack", "tradeoff"], "Start of combat: the Axie in slot 5 sleeps (no die, cannot be targeted). The other four get +2 on every face and 1 extra free reroll each turn.", rerollUp=1)
 core("spore_burst", "Nổ Bào Tử", "Spore Burst", 0, "rule", [], [], ["nonattack", "convert_to_dmg"], "When an Axie falls it bursts: every enemy loses 20% of its Max HP (boss 8%), ignoring Shield. Eggs burst for half.")
+# ---- gacha C5 meme Cores (design/proposals/meme-cores.md): Moss, weak but funny, hidden in the account's first run, at most one per offer
+core("meme_copycat", "Bản Sao", "Copycat", 0, "dice", [], [], ["meme"], "Each turn you have a Set, your weakest die outside it copies the Set's part, but only for 1.", first_run_hidden=True)
+core("meme_nametag", "Thẻ Tên", "Name Tag", 0, "rule", [], [], ["meme"], "Start of combat: a random enemy gets a silly name. Kill it for +1 Mana.", first_run_hidden=True)
+core("meme_jumpy", "Xúc Xắc Nhảy", "Jumpy Dice", 0, "dice", [], [], ["meme"], "After the roll, two random dice jump and swap places. Sometimes it helps.", first_run_hidden=True)
 core("fossil", "Hoá Thạch", "Fossil", 0, "rule", [], [], ["nonattack"], "Does nothing now and takes a slot. Your next Core pick is one tier higher (Crystal: 4 cards; already 4 cards: +1 Core reroll), then it disappears. Only shows at picks 1-2.", first_run_hidden=True, bet=True, pick_max=2, kn={"next_pick_tier_up": 1, "crystal_extra_card": 4})
 core("dim_stone", "Hòn Đá Mờ", "Dim Stone", 1, "rule", [], [], ["nonattack"], "Pick this: nothing now, but you get a random Crystal Core of another axis. Not at pick 2, not at the last pick.", first_run_hidden=True, bet=True, kn={"grant_crystal_other_axis": True, "not_pick": [2, "last"], "max_chain_t": 2})
 # ---- disabled by design (2.10)

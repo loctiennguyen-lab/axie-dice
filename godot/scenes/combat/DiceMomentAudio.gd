@@ -27,6 +27,7 @@ const EVENTS := {
 	"dm_reroll_safe": {"path": "", "db": -6.0, "prio": 25},
 	"dm_roll": {"path": "", "db": -6.0, "prio": 20},
 	"dm_land": {"path": "", "db": -12.0, "prio": 10},
+	"dm_combo": {"path": STATUS + "power_gain.ogg", "db": -3.0, "prio": 85},       # TEMP (lane GM B5)
 	"dm_crack_fade": {"path": STATUS + "cleanse.ogg", "db": -10.0, "prio": 15},    # TEMP
 }
 

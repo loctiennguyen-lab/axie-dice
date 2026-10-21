@@ -1,5 +1,5 @@
 extends Node
-## Overcast (lane OC): pay mana to power ONE die up for the turn. Effect, price, limits, preview, undo, replay, tamper.
+## Overcast (lane OC): pay mana to power the WHOLE SET a die is in up for the turn (MD 22/10: needs a Set, no_set refusal otherwise). Effect, price, limits, preview, undo, replay, tamper.
 ## Knobs: combat_tune.json overcast.mana_cost / add / per_turn. Depth v4 3.7: Overcast adds +overcast.add to the M bag (with the Set), one integer multiply at step 4, before face_final; no own x1.5.
 
 var _guard := SaveGuard.new()
@@ -36,6 +36,8 @@ func _engine(mana: int) -> CombatEngine:
 	var e := CombatEngine.new()
 	e.setup_new({"node_id": "oc", "kind": "battle", "pw": 2, "ascension": 0, "roster_snapshot": _roster(),
 		"relic_ids": [], "combat_seed": SEED, "start_mana": mana})
+	# MD 22/10: Overcast needs a Set. Three Horn dmg faces (a Set of 3) + two loose dice, same on every build of this engine (replay).
+	BoTestBase.force(e, [1, 1, 1, 2, 3], [BoTestBase.face("dmg", 5), BoTestBase.face("dmg", 5), BoTestBase.face("dmg", 5), BoTestBase.face("dmg", 5), BoTestBase.face("dmg", 5)])
 	return e
 
 
@@ -60,9 +62,13 @@ func _candidates(e: CombatEngine) -> Array:
 func _t_effect_price_preview() -> void:
 	var e := _engine(5)
 	var c := _candidates(e)
-	_ok(c.size() >= 2, "need two overcastable dice on this seed (got %d)" % c.size())
-	if c.size() < 2:
+	_ok(c.size() == 3, "exactly the 3 Set dice are overcastable (got %d)" % c.size())
+	if c.size() < 3:
 		return
+	_ok(e.overcast_block_reason((e.party[3] as Unit).uid) == "Needs a Set", "loose die: reason Needs a Set, got %s" % e.overcast_block_reason((e.party[3] as Unit).uid))
+	_ok(not e.overcast((e.party[3] as Unit).uid), "loose die overcast accepted")
+	var gp := e.overcast_group_preview(e.party[0])
+	_ok(gp.size() == 3 and int(gp[0]["uid"]) == e.party[0].uid and int(gp[0]["boosted"]) > int(gp[0]["now"]), "group preview: 3 entries, selected first, raised: %s" % str(gp))
 	var u: Unit = e.by_uid(int(c[0]))
 	var pv := e.overcast_preview(u)
 	var plain := int(pv[0])
@@ -77,6 +83,11 @@ func _t_effect_price_preview() -> void:
 	_ok(e.overcast(u.uid), "overcast refused a legal die")
 	_ok(e.mana == m0 - 3, "overcast must cost 3 mana (had %d, now %d)" % [m0, e.mana])
 	_ok(u.overcast, "die not flagged")
+	for i in 3:
+		_ok((e.party[i] as Unit).overcast, "Set member %d not overcast" % i)
+	_ok(not (e.party[3] as Unit).overcast and not (e.party[4] as Unit).overcast, "a die outside the Set got Overcast")
+	_ok(e.m100_for(e.party[1]) == e.m100_for(e.party[0]), "members must share the same M")
+	_ok(e.m100_for(e.party[0]) == 100 + e.bo_add100(3) + 40, "M = Set add + 0.40 (got %d)" % e.m100_for(e.party[0]))
 	_ok(e._face_value(u, u.roll_face_index()) == int(pv[1]), "face value does not match the preview")
 	var rng_after: int = e._rng.get_state()
 	_ok(rng_before == rng_after, "overcast drew rng")
@@ -108,7 +119,8 @@ func _t_limits() -> void:
 		return
 	_ok(c.overcast(int(cand[0])), "first overcast refused")
 	_ok(not c.overcast(int(cand[1])), "second overcast in one turn accepted")
-	_ok(c.overcast_block_reason(int(cand[1])) == "1 Overcast per turn", "wrong reason: %s" % c.overcast_block_reason(int(cand[1])))
+	_ok(c.overcast_block_reason(int(cand[1])) == "Already overcast", "wrong reason: %s" % c.overcast_block_reason(int(cand[1])))
+	_ok(c.overcast_block_reason((c.party[3] as Unit).uid) == "1 Overcast per turn", "wrong reason: %s" % c.overcast_block_reason((c.party[3] as Unit).uid))
 	_ok(not c.overcast(int(cand[0])), "same die overcast twice")
 	# used die refused
 	var d := _engine(5)
@@ -121,7 +133,9 @@ func _t_limits() -> void:
 		_ok(not d.overcast(u.uid), "overcast on a used die accepted")
 	# next turn clears the flag
 	c.end_turn()
-	_ok(c.overcast_count() == 0, "flag survived the turn change")
+	_ok(c.overcast_count() == 0, "counter survived the turn change")
+	for x in c.party:
+		_ok(not (x as Unit).overcast, "flag survived the turn change")
 
 
 func _t_undo_and_stash() -> void:
@@ -131,7 +145,9 @@ func _t_undo_and_stash() -> void:
 	_ok(e.overcast(uid), "overcast refused")
 	_ok(not e.can_stash(uid), "an overcast die can be held")
 	_ok(e.undo_last(), "undo refused")
-	_ok(e.mana == 5 and not (e.by_uid(uid) as Unit).overcast, "undo did not restore mana/flag")
+	_ok(e.mana == 5 and not (e.by_uid(uid) as Unit).overcast and e.overcast_count() == 0, "undo did not restore mana/flag/counter")
+	for i in 3:
+		_ok(not (e.party[i] as Unit).overcast, "undo left Set member %d overcast" % i)
 	# a held die cannot be overcast
 	for u in e.party:
 		if e.can_stash((u as Unit).uid):
@@ -207,3 +223,9 @@ func _t_replay_and_tamper() -> void:
 	late.entries.remove_at(0)
 	late.entries.insert(1, ov)   # after use_die (entry 0 is now use_die)
 	_ok(not bool(_replay(late, 9)["ok"]), "replay accepted an overcast of a used die")
+	# tamper 5 (MD 22/10): Overcast on a die that is not in a Set (party[3]) is refused by the replay
+	var loose := ActionLog.from_data(JSON.parse_string(JSON.stringify(log.to_data())))
+	var lo: Dictionary = (loose.entries[0] as Dictionary).duplicate(true)
+	lo["args"] = [(e.party[3] as Unit).uid]
+	loose.entries[0] = lo
+	_ok(not bool(_replay(loose, 9)["ok"]), "replay accepted an Overcast on a die outside any Set")

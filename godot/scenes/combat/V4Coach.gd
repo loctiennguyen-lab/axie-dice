@@ -10,8 +10,8 @@ const TEXT := {
 	"C3": "The numbers on dice in a SET are multiplied.",
 	"C4": "Rerolling more costs mana.",
 	"C5": "Gamble: free, but each die has a chance to Crack.",
-	"C6": "Wild face: 2 mana, one die counts as the part you pick.",
-	"C7": "Overcast: 3 mana, +0.5 on the multiplier.",
+	"C6": "Have a set of 3? Pay 2 mana to make it 4 — once per fight.",
+	"C7": "Overcast makes your whole Set stronger.",
 }
 const MIN_STAGE := {"C5": 2, "C6": 2, "C7": 3}
 
@@ -63,9 +63,9 @@ static func next_id(s: Dictionary) -> String:
 				if int(s.get("free_left", 1)) <= 0 and bool(s.get("payable", false)) and int(s.get("mana", 0)) >= int(s.get("reroll_cost", 2)):
 					return id
 			"C6":
-				if bool(s.get("pair", false)) and int(s.get("mana", 0)) >= int(s.get("wild_cost", 2)):
+				if bool(s.get("set3", false)) and int(s.get("mana", 0)) >= int(s.get("wild_cost", 2)):
 					return id
 			"C7":
-				if int(s.get("mana", 0)) >= int(s.get("oc_cost", 3)):
+				if bool(s.get("bo", false)) and int(s.get("mana", 0)) >= int(s.get("oc_cost", 3)):
 					return id
 	return ""
