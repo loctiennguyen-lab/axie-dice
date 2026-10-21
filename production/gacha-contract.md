@@ -40,3 +40,17 @@ B5 combo nổ trong trận (nghe `combo_fired`), D3 Result: khối "Combos" (C�
 
 ## Luật chung
 UI3 (`godot/CLAUDE.md`): token/component, cỡ chữ 18/24/32 (+36 banner), disabled có lý do, tiếng Anh qua tr(). Test trước. Không vòng chờ không hạn chót; mọi Godot qua `with_lock.sh`. Không push/merge/deploy, không `git stash`.
+
+## Làn GM - bàn giao (22/10)
+Nhánh `gacha/GM`. Xong, mỗi việc một commit, test lẻ xanh (t_combo_fired, t_gacha_result, t_core_codex, t_codex_books, t_result_screen, t_codex, t_ui_laws):
+- B5: `CombatView._on_combo_fired` (tên combo 1.0 s, 2 slot Lõi sáng + thanh nối ở `CorePanel.flash_combo`, âm `dm_combo` tạm power_gain; lần sau chỉ sáng icon). Name Tag: nameplate quái hiện `custom_state.nick`, tên gốc trong tooltip.
+- D3 Result: thẻ "Combos" (Pair / Full, Full viền vàng) + dòng "Skipped" (≤3 Lõi T). D4: nút "Copy run card" (`RunCard.text`), để kiểu `quiet` vì Result đã đủ 2 secondary (t_result_screen).
+- D1: `MetaState.core_codex`, `combo_codex`, `combo_daily` (save_to_disk + load + reload_from_store); `codex_sync_run()` gọi từ `EventBus.phase_changed`; Codex thêm tab Cores / Combos.
+- D2 (chỉ phần data): `ComboDaily.pick(day, combos)` + `MetaState.combo_daily_today()`; hoàn thành thì title "Combo Maker" (lần 1) / "Combo Master" (lần 7), không Shard.
+- Adapter: `scenes/shared/ComboAdapter.gd` là chỗ duy nhất đọc API làn GD (rỗng khi chưa có). Test dùng `ComboAdapter.test_combos/test_done/test_skipped`; `t_combo_fired` tự `add_user_signal("combo_fired")` nếu EventBus chưa có.
+Còn lại / cần quyết:
+- UI daily: DailyScreen chưa có thẻ thứ 4 "Form combo X" (data + test đã có, chưa vẽ).
+- Ảnh: mới có `gacha_meta_combat_1280x720.png`; thiếu Result, Codex Combos, daily (evidence/ bị gitignore).
+- Chưa chạy cả suite. Có 5 file test mới (t_combo_fired, t_gacha_result, t_core_codex, t_codex_books; +1 qa_ capture không tính) = +4 vào sàn test.
+- `autoload/MetaState.gd` + `scripts/meta/combo_daily.gd` nằm trong fingerprint: cây chính cần bump RULES_VERSION / cập nhật t_rules_version (làn tích hợp lo).
+- Khi làn GD merge: Codex Cores dùng `RunState.core_seen`; kiểm `RunState.get("core_seen")` còn đúng tên.
