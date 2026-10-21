@@ -93,6 +93,8 @@ func _ready() -> void:
 		await _result()
 	if _want("nearmiss"):
 		await _nearmiss()
+	if _want("title"):
+		await _title_codex()
 	_guard.restore()
 	get_tree().quit(0)
 
@@ -196,3 +198,23 @@ func _result() -> void:
 	ComboAdapter.test_combos = []
 	ComboAdapter.test_done = {}
 	ComboAdapter.test_skipped = []
+
+
+## GU 8: pinned Core title with 1 / 2 rerolls left, and the Codex combo + Core tabs.
+func _title_codex() -> void:
+	for n in [2, 1]:
+		await _open_tier(0)
+		RunState.core_reroll_left = n
+		rm._show_reward_overlay("x")
+		await _wait(2.2)
+		_snap("title_%d" % n)
+	if rm != null:
+		rm.queue_free()
+	var codex: Node = load("res://scenes/codex/Codex.tscn").instantiate()
+	add_child(codex)
+	await get_tree().process_frame
+	for tab in ["combos", "cores"]:
+		codex.call("_select_tab", tab)
+		await _wait(0.4)
+		_snap("codex_" + tab)
+	codex.queue_free()
