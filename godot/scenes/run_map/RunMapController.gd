@@ -1241,10 +1241,17 @@ func _show_reward_overlay(title: String, _backdrop: Texture2D = null) -> void:
 	col.alignment = BoxContainer.ALIGNMENT_CENTER
 	center.add_child(col)
 
+	# Title row is pinned to the top of the screen so it never moves with card height (GU 8).
+	var head_holder := MarginContainer.new()
+	head_holder.name = "RewardHeadHolder"
+	head_holder.set_anchors_preset(Control.PRESET_TOP_WIDE)
+	head_holder.offset_top = 56
+	head_holder.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	host.add_child(head_holder)
 	var head := HBoxContainer.new()
 	head.alignment = BoxContainer.ALIGNMENT_CENTER
 	head.add_theme_constant_override("separation", 24)
-	col.add_child(head)
+	head_holder.add_child(head)
 	var core_rule := false
 	for rr0 in RunState.pending_rewards:
 		core_rule = core_rule or bool((rr0 as Dictionary).get("rule", false))
@@ -1284,12 +1291,12 @@ func _show_reward_overlay(title: String, _backdrop: Texture2D = null) -> void:
 	if _core_offer_active():
 		# Core offer: each card has its own Reroll button; here only the shared counter.
 		if not is_rule:
-			var lc := UI3.label(tr("%d rerolls left") % left, "LabelDisplay")
+			var lc := UI3.label((tr("%d reroll left") if left == 1 else tr("%d rerolls left")) % left, "LabelDisplay")
 			lc.name = "RerollLeft"
 			lc.add_theme_font_size_override("font_size", 18)
 			actions.add_child(lc)
 	else:
-		var reroll := UI3.button(tr("Reroll · %d left") % left, &"secondary", &"M")
+		var reroll := UI3.button((tr("Reroll · %d left")) % left, &"secondary", &"M")
 		reroll.visible = not is_rule   # no reroll for the Run rule pick (2b.1)
 		reroll.name = "RerollButton"
 		if left > 0:

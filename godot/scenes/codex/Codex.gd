@@ -287,11 +287,17 @@ func _tile(node_name: String, seen: bool, title: String, sub: String) -> Control
 	var t := UI3.label(title if seen else "?", "LabelTitle")
 	t.name = "TileName"
 	v.add_child(t)
-	var s := UI3.label(sub if seen else "Not met yet", "LabelMuted")
+	var s := UI3.label(sub if seen else TranslationServer.translate("Not met yet"), "LabelMuted")
 	s.name = "TileSub"
 	v.add_child(s)
+	# Every tile gets a visible border (met: cream, not met: muted token); no dimming, so "Not met yet" stays legible.
+	var sb: StyleBox = card.get_theme_stylebox("panel")
+	var flat: StyleBoxFlat = (sb.duplicate() as StyleBoxFlat) if sb is StyleBoxFlat else StyleBoxFlat.new()
+	flat.set_border_width_all(2)
+	flat.border_color = UI3Theme.color("text" if seen else "text_muted")
+	card.add_theme_stylebox_override("panel", flat)
 	if not seen:
-		card.modulate = Color(1, 1, 1, 0.45)
+		t.add_theme_color_override("font_color", UI3Theme.color("text_muted"))
 	return card
 
 
