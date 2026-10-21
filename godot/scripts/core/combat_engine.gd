@@ -1051,7 +1051,7 @@ func reroll_is_payable() -> bool:
 func reroll_mana_cost(from_aid: bool = false, rmode: int = 1) -> int:
 	if from_aid or rerolls > 0 or rmode == 0:
 		return 0   # Lieu is free (its price is the crack)
-	var base := int(tune_knob("reroll", "mana_cost_2", 2.0)) if reroll_paid_k <= 0 else int(tune_knob("reroll", "mana_cost_3", 3.0))
+	var base := int(tune_knob("reroll", "mana_cost_2", 1.0)) if reroll_paid_k <= 0 else int(tune_knob("reroll", "mana_cost_3", 3.0))
 	return maxi(0, int(RelicHooks.run_value_hook(self, "reroll_mana_cost", {"combat": self}, base)))
 
 
@@ -1422,7 +1422,7 @@ func stash(unit_uid: int) -> bool:
 
 # ---- Depth v4 3.6 MAT TAM ----------------------------------------------------------------------------------
 func wild_cost() -> int:
-	return maxi(0, int(tune_knob("wild", "cost", 2.0)))
+	return maxi(0, int(tune_knob("wild", "cost", 3.0)))
 
 
 func wild_per_turn() -> int:
@@ -1468,6 +1468,8 @@ func wild_block_reason(unit_uid: int, slot: int) -> String:
 	u.wild_slot = -1
 	if n < 3:
 		return "size"
+	if n >= 5:
+		return "set5"  # A+ (Liam 22/10): Wild Face can never make a Set of 5
 	return ""
 
 
@@ -1775,8 +1777,8 @@ func bo_cap100() -> int:
 ## Set add in percent for a group of `size` dice: round(add_N * scale * 100) (design 3.4, N11: each term rounded once).
 func bo_add100(size: int) -> int:
 	var n := clampi(size, 3, 5)
-	var def := {3: 0.5, 4: 1.0, 5: 2.0}[n] as float
-	return roundi(tune_knob("bo", "add_%d" % n, def) * tune_knob("bo", "scale", 0.8) * 100.0)
+	var def := {3: 0.3, 4: 1.2, 5: 1.6}[n] as float
+	return roundi(tune_knob("bo", "add_%d" % n, def) * tune_knob("bo", "scale", 1.0) * 100.0)
 
 
 ## Pure: the dice that count toward Sets right now (3.2 + Concord filter, before wild_slot is applied), in party order.

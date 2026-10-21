@@ -1,5 +1,5 @@
 extends BoTestBase
-## design 3.6 / 3.10.5 / 3.10.10 t_wild_face: Mat Tam (wild_face). Price 2, 1 per turn, refusals leave mana alone, only the Set part changes,
+## design 3.6 / 3.10.5 / 3.10.10 t_wild_face: Mat Tam (wild_face). Price 3 (A+), 1 per turn, refusals leave mana alone, only the Set part changes,
 ## no reroll / Hold, undo, save/load, expires at roll_all, replay tamper (missing mana, 2nd use, bad die, slot out of range).
 
 func run() -> void:
@@ -21,7 +21,7 @@ func _core(tag: String) -> void:
 	var face_before := JSON.stringify(e.party[2].die[2])
 	var m0 := e.mana
 	ok(e.wild_face(e.party[2].uid, 1), tag + ": wild_face accepted")
-	eq(e.mana, m0 - 2, tag + ": costs wild.cost")
+	eq(e.mana, m0 - e.wild_cost(), tag + ": costs wild.cost")
 	eq(e.wild_used, 1, tag + ": wild_used")
 	eq(e.party[2].wild_slot, 1, tag + ": slot stored")
 	eq(e.bo.size(), 1, tag + ": Set of three appears")
@@ -95,6 +95,21 @@ func _refusals() -> void:
 	var xw := engine([], 10)
 	force(xw, [1, 1, 2, 2, 2])
 	ok(xw.wild_face(xw.party[4].uid, 1), "wild on a die already in a Set")
+	# A+ (Liam 22/10): Wild Face can never make a Set of five (four natural + wild = five refused, mana kept)
+	var x5 := engine([], 10)
+	force(x5, [1, 1, 1, 1, 3])
+	var m5 := x5.mana
+	eq(x5.wild_block_reason(x5.party[4].uid, 1), "set5", "four + wild = five: reason set5")
+	ok(not x5.wild_face(x5.party[4].uid, 1), "Set of five via Wild Face refused")
+	eq(x5.mana, m5, "set5 refusal keeps mana")
+	eq(x5.wild_used, 0, "set5 refusal does not use the turn's Wild")
+	var pv5 := x5.preview_wild(x5.party[4].uid, 1)
+	ok(not bool(pv5["ok"]) and pv5["reason"] == "set5", "preview_wild reflects set5")
+	# three -> four is still fine
+	var x4 := engine([], 10)
+	force(x4, [1, 1, 1, 2, 3])
+	ok(x4.wild_face(x4.party[3].uid, 1), "three + wild = four still allowed")
+	eq(int(x4.bo[0]["size"]), 4, "Set of four")
 	# Concord: only the first die of a class counts; the other is refused
 	var xc := engine(["c_concord"], 10, 7, 3, ["plant1", "plant1", "beast1", "aqua1", "reptile1"])
 	var mc := xc.mana

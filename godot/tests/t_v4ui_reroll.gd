@@ -44,7 +44,7 @@ func _ready() -> void:
 	_check(v._rr_sel == want, "preselect = dice outside the Set: %s vs %s" % [str(v._rr_sel), str(want)])
 	_check(v._rr_bar.line.text == "At least 1 die Cracks: 51%", "pct line for 2 dice: %s" % v._rr_bar.line.text)
 	_check(not v._rr_bar.gamble_button.disabled and not v._rr_bar.safe_button.disabled, "both modes enabled")
-	_check(v._rr_bar.safe_button.text == "Safe · 2 MP", "safe shows price: %s" % v._rr_bar.safe_button.text)
+	_check(v._rr_bar.safe_button.text == "Safe · 1 MP", "safe shows price: %s" % v._rr_bar.safe_button.text)
 	v._rr_toggle(units[4].uid)
 	_check(v._rr_bar.line.text == "At least 1 die Cracks: 30%", "pct updates on deselect: %s" % v._rr_bar.line.text)
 	v._rr_toggle(units[4].uid)
@@ -53,9 +53,9 @@ func _ready() -> void:
 	_check(v._rr_sel.is_empty() and v._rr_bar.line.text.begins_with("Pick dice"), "empty pick says so: %s" % v._rr_bar.line.text)
 	_check(v._rr_bar.gamble_button.disabled and v._rr_bar.safe_button.disabled, "none picked: both disabled")
 	v._rr_toggle(units[3].uid)
-	c.mana = 1
+	c.mana = 0
 	v._rebuild_all()
-	_check(v._rr_bar.safe_button.disabled and v._rr_bar.line.text.contains("Need 2 mana (you have 1)"), "safe disabled says why: %s" % v._rr_bar.line.text)
+	_check(v._rr_bar.safe_button.disabled and v._rr_bar.line.text.contains("Need 1 mana (you have 0)"), "safe disabled says why: %s" % v._rr_bar.line.text)
 	_check(not v._rr_bar.gamble_button.disabled, "gamble needs no mana")
 	var k0: int = c.reroll_k
 	v._rr_bar.gamble_button.pressed.emit()
