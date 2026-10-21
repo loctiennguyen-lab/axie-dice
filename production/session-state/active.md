@@ -1,5 +1,19 @@
 # Axie Dice — trạng thái hiện tại
 
+## ⇢ BẮT ĐẦU TỪ ĐÂY (24/10, cập nhật) — CÒN LẠI CỦA ANCHOR MVP (theo thứ tự)
+Làn đang mở (mỗi làn có bàn giao trong `production/anchor-contract.md` của worktree đó):
+- `../my-game-wt/AE` nhánh `anchor/eng`: bước 1 xong (b07c0df..435e6a9, cfbbe3d hợp đồng sự kiện). Bước 2a (RunState anchor_id/anchor_awakened/
+  anchor_offer, cổng offline+normal+stage≥3, pick_anchor khoá trước offer đầu, R1 rút trục, bias nhà, reroll không bias, verifier bad_header) đang
+  sửa 5 file CHƯA commit. Bước 2b (hiệu ứng 3 Anchor + đột biến 6 nhà + thức tỉnh, theo `production/qa/anchor-mvp-qa-plan.md` mục 5) CHƯA làm.
+- `../my-game-wt/AU2` nhánh `anchor/ui`: màn chọn Anchor xong (7f519f2); HUD/chip x/2/AWAKEN đang sửa CHƯA commit; MUTATION, thức tỉnh AnchorFx +
+  dm_awaken, Result, Codex `MetaState.anchor_codex` (được duyệt sửa MetaState) CHƯA làm.
+- `../my-game-wt/LF` nhánh `fix/lowfire`: Key Strike = lỗi bot (đã sửa 9827d2f); còn prism/overflow/golden_egg/tidecaller/chimera_hunt/mana_ward/
+  deep_current/thorn_rebound → ghi vào `design/proposals/core-visibility-fix.md` mục "Lõi ít kích hoạt".
+Sau đó: merge AE + AU2 + LF vào một nhánh tích hợp → bump RULES_VERSION (-s) + fingerprint + Worker SUPPORTED → suite không skip → sim đo
+(expert 20±3, mỗi Anchor chọn 10-25%, chênh ≤5 điểm; thức tỉnh ≥1 lần/2-3 run) → review độc lập (lead-programmer + ux) → QA luồng thật (4 test FLOW
+trong QA plan) → kiểm khác biệt hiện ngay trong run thường (stage của tài khoản Liam!) → deploy (`deploy-r2.sh --pck-only` → `wrangler deploy` →
+`deploy-r2.sh --rest`, kiểm md5) → báo Liam 3-5 dòng. Nợ nhỏ Worker (deploy log) gom vào lần deploy này.
+
 ## ⇢ BẮT ĐẦU TỪ ĐÂY (24/10) — ANCHOR MVP ĐANG CODE; LIAM: XONG HẲN RỒI MỚI DEPLOY + ĐƯA TEST
 Liam chơi local "chưa thấy khác biệt" → luật mới (memory finish-then-deploy-for-playtest): không đưa bản dở; xong hẳn (engine + UI + sim + review +
 QA luồng thật) → deploy web → kiểm khác biệt hiện ngay trong run thường → báo Liam kèm 3-5 dòng "để ý gì".
