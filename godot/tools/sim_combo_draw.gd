@@ -46,8 +46,10 @@ func _run_policy(policy: String, runs: int, seed0: int) -> Dictionary:
 	var fulls := {}
 	var shown := {}       # core id -> times shown in a milestone offer card (first sight)
 	var picked := {}
+	var run_shown := {}   # core id -> runs where it appeared in >=1 card (a reroll showing it again does not count twice)
 	var sum_combos := 0
 	for i in runs:
+		var seen_run := {}
 		var seed := seed0 + i * 7919
 		var rng := Rng.new(seed ^ 0x51AB)
 		RunState.reset()
@@ -67,6 +69,7 @@ func _run_policy(policy: String, runs: int, seed0: int) -> Dictionary:
 				continue
 			for c in RunState.pending_rewards:
 				shown[String(c["key"])] = int(shown.get(String(c["key"]), 0)) + 1
+				seen_run[String(c["key"])] = true
 			var idx := _choose(policy, rng)
 			var card: Dictionary = RunState.pending_rewards[idx]
 			var sell := ""
@@ -76,6 +79,8 @@ func _run_policy(policy: String, runs: int, seed0: int) -> Dictionary:
 			picked[String(card["key"])] = int(picked.get(String(card["key"]), 0)) + 1
 			RunState.apply_chosen_reward(card, sell)
 			RunState.pending_rewards = []
+		for k in seen_run:
+			run_shown[k] = int(run_shown.get(k, 0)) + 1
 		var done := RunState.combo_done
 		if not done.is_empty():
 			any_pair += 1
@@ -97,7 +102,7 @@ func _run_policy(policy: String, runs: int, seed0: int) -> Dictionary:
 		if jm >= 2:
 			jack2 += 1
 	return {"any_pair": any_pair, "any_full": any_full, "jackpot": jackpot, "jack2": jack2, "formed": formed, "fulls": fulls, "shown": shown,
-		"picked": picked, "sum": sum_combos}
+		"picked": picked, "sum": sum_combos, "run_shown": run_shown}
 
 
 func _choose(policy: String, rng: Rng) -> int:
@@ -159,9 +164,10 @@ func _fmt(policy: String, runs: int, st: Dictionary, combos: Array) -> String:
 			any = true
 	if not any:
 		s += "- none\n"
-	s += "\nEvery Core: tier / axis / cards shown per run (a Core can show twice in one run through rerolls):\n\n| Core | Tier | Axis | Shown per 100 runs |\n|---|---|---|---|\n"
+	s += "\nEvery Core: tier / axis / cards shown per run (a Core can show twice in one run through rerolls):\n\n| Core | Tier | Axis | Shown per 100 runs | % runs shown >=1 | Picked % of runs |\n|---|---|---|---|---|---|\n"
 	rows.sort_custom(func(a, b): return a[1] > b[1])
 	for r in rows:
 		var d = RelicRegistry.get_def(String(r[0]))
-		s += "| %s | %s | %s | %.1f |\n" % [r[0], ["R", "H", "T"][int(d.rarity)], d.core_axis, 100.0 * r[1] / runs]
+		s += "| %s | %s | %s | %.1f | %.1f | %.1f |\n" % [r[0], ["R", "H", "T"][int(d.rarity)], d.core_axis, 100.0 * r[1] / runs,
+			100.0 * int(st["run_shown"].get(r[0], 0)) / runs, 100.0 * r[2] / runs]
 	return s + "\n"

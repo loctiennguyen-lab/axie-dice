@@ -248,6 +248,34 @@
     "phase_tick": {
       "value": "#ffe5b4",
       "meaning": "kam-9, 2 px"
+    },
+    "house_volley": {
+      "value": "#7f9cff",
+      "meaning": "Anchor MVP · House Volley (periwinkle). Always paired with the house glyph + name; ring/chip/frame only"
+    },
+    "house_gambler": {
+      "value": "#ff8cc8",
+      "meaning": "Anchor MVP · House Gambler (pink). Always paired with glyph + name"
+    },
+    "house_mana_mine": {
+      "value": "#9be8c8",
+      "meaning": "Anchor MVP · House Mana Mine (pale mint, light and low-saturation so it is not rarity_rare). Always paired with glyph + name"
+    },
+    "house_kin": {
+      "value": "#a9c4a0",
+      "meaning": "Anchor MVP · House Kin (sage). Always paired with glyph + name"
+    },
+    "house_embers": {
+      "value": "#ff8a6b",
+      "meaning": "Anchor MVP · House Embers (coral, not red: red = danger only). Always paired with glyph + name"
+    },
+    "house_big_hand": {
+      "value": "#c8a27a",
+      "meaning": "Anchor MVP · House Big Hand (tan). Always paired with glyph + name"
+    },
+    "anchor_awake": {
+      "value": "#ffd21f",
+      "meaning": "Anchor MVP · awakened state: double frame, chip, ui_awaken glyph, AWAKEN chip border. Lemon-gold, more saturated and yellower than rarity_legendary/accent (#ffb444) and egg/cream. Never alone: always with the double frame or the glyph ui_awaken + the word Awakened"
     }
   },
   "contrast": [
@@ -429,6 +457,48 @@
       "text": "text_muted",
       "background": "locked_cell",
       "ratio": 8.64,
+      "pass": "AA body"
+    },
+    {
+      "text": "house_volley",
+      "background": "plate",
+      "ratio": 6.0,
+      "pass": "AA body"
+    },
+    {
+      "text": "house_gambler",
+      "background": "plate",
+      "ratio": 7.28,
+      "pass": "AA body"
+    },
+    {
+      "text": "house_mana_mine",
+      "background": "plate",
+      "ratio": 10.94,
+      "pass": "AA body"
+    },
+    {
+      "text": "house_kin",
+      "background": "plate",
+      "ratio": 8.21,
+      "pass": "AA body"
+    },
+    {
+      "text": "house_embers",
+      "background": "plate",
+      "ratio": 6.74,
+      "pass": "AA body"
+    },
+    {
+      "text": "house_big_hand",
+      "background": "plate",
+      "ratio": 6.59,
+      "pass": "AA body"
+    },
+    {
+      "text": "anchor_awake",
+      "background": "plate",
+      "ratio": 10.73,
       "pass": "AA body"
     }
   ],
