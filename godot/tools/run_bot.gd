@@ -28,6 +28,9 @@ static var core_script: bool = false
 static var _core_rerolled: bool = false
 ## Core test hook: when set, drain_core_offers() takes the Core card with this id whenever it is on offer (else card 0).
 static var core_pick_id: String = ""
+## Gacha test hook: when true drain_core_offers() takes a Core card that completes a combo Pair/Full, else a card that belongs to
+## some combo, else card 0 (so a seed walk can assemble combos through the real take_reward path).
+static var combo_script: bool = false
 
 
 ## Takes every Core / Run Rule offer that is open (a pick can open the next one), calling after_node() as the screens do.
@@ -43,6 +46,8 @@ static func drain_core_offers() -> void:
 			for c in RunState.pending_rewards:
 				if String((c as Dictionary).get("key", "")) == core_pick_id:
 					card = c
+		if combo_script and RunState._core_offer_active:
+			card = _combo_card(RunState.pending_rewards, card)
 		var sell := ""
 		if not bool(card.get("rule", false)):
 			var chk := RelicSlots.check_add(RunState.owned_relic_ids, RunState.relic_stickers, String(card["key"]), RunState.ascension, false)
@@ -51,6 +56,19 @@ static func drain_core_offers() -> void:
 		if not RunState.apply_chosen_reward(card, sell):
 			break
 		RunState.after_node()
+
+
+static func _combo_card(cards: Array, fallback: Dictionary) -> Dictionary:
+	var owned := RunState.combo_owned_ids()
+	for c in cards:
+		if not bool((c as Dictionary).get("rule", false)) and not CoreCombos.card_completes(owned, String(c["key"])).is_empty():
+			return c
+	for c in cards:
+		var k := String((c as Dictionary).get("key", ""))
+		for r in CoreCombos.all(owned):
+			if CoreCombos.members(r).has(k):
+				return c
+	return fallback
 
 
 static func play_run(seed_value: int, team: Array[String] = DEFAULT_TEAM,
