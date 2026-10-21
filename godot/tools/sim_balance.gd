@@ -70,8 +70,11 @@ func _on_core_fired(a = null, b = null, c = null, d = null) -> void:
 ## Mana faces are Tai cantrips: they resolve inside roll_all / reroll (before the bot acts) and emit float_text "+N MP" (css "man").
 ## Count that exact amount so it is booked as in_face, not as turn-start / other.
 var _mx_ft := 0.0
+## OC2: false while the bot is only THINKING (_choose_move: trial use_die + undo_last, which emit the same float and are undone);
+## true again inside real rerolls (_mx_reroll) and outside _choose_move (end_turn roll, setup roll).
+var _mx_listen := true
 func _on_float_text(_uid, text, css, _big) -> void:
-	if String(css) == "man" and String(text).begins_with("+") and String(text).ends_with(" MP"):
+	if _mx_listen and String(css) == "man" and String(text).begins_with("+") and String(text).ends_with(" MP"):
 		_mx_ft += float(String(text).trim_prefix("+").trim_suffix(" MP").to_int())
 
 
@@ -414,7 +417,9 @@ func _play_turn(eng: CombatEngine) -> void:
 		_ma("out_other", _mx_prev_end - mx_start)
 	while guard < 24 and not (eng.won or eng.lost):
 		guard += 1
+		_mx_listen = false
 		var mv := _choose_move(eng)
+		_mx_listen = true
 		if v1 < 0.0:
 			_mx_decision_point(eng, mx_start)
 			v1 = _v_sum(eng)   # after the bot's roll decisions (rerolls / Mat Tam / Overcast happen inside the first _choose_move)
@@ -515,7 +520,10 @@ func _mx_close_turn(eng: CombatEngine, mana_start: int) -> void:
 func _mx_reroll(eng: CombatEngine, uids: Array, rm: int) -> bool:
 	var m0 := eng.mana
 	var free := eng.rerolls > 0
+	var was := _mx_listen
+	_mx_listen = true   # real reroll: its mana-face cantrips are real income
 	var ok := eng.reroll_dice(uids, -1, false, rm)
+	_mx_listen = was
 	if not ok:
 		return false
 	var d := m0 - eng.mana
