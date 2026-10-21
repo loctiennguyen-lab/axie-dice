@@ -351,7 +351,7 @@ static func build_offer(rng: Rng, tier: int, ctx: Dictionary, n: int) -> Array[D
 	var used_ids: Array = []
 	var t := tuning()
 	for i in n:
-		var order := _axis_order(rng, i, owned_axes, used_axes, out, pool, tier, used_ids)
+		var order := _axis_order(rng, i, owned_axes, used_axes, out, pool, tier, used_ids, ctx.get("anchor_house", []))
 		var picked = null
 		for ax in order:
 			var cands := _axis_candidates(pool, String(ax), tier, used_ids)
@@ -442,7 +442,7 @@ static func _count_axis(out: Array, axis: String) -> int:
 
 ## Axis preference order for card `i`. Deterministic given rng state.
 static func _axis_order(rng: Rng, i: int, owned_axes: Array, used_axes: Array, out: Array, pool: Array,
-		tier: int, used_ids: Array) -> Array:
+		tier: int, used_ids: Array, house: Array = []) -> Array:
 	var present: Array = []   # axes with at least one candidate (any tier)
 	var weights: Dictionary = {}   # R1: valid Cores left in each axis cell, capped
 	var wcap := maxi(1, tuning().axis_weight_cap)
@@ -454,6 +454,15 @@ static func _axis_order(rng: Rng, i: int, owned_axes: Array, used_axes: Array, o
 		if not present.has(ax):
 			present.append(ax)
 	present.sort()
+	if not house.is_empty():
+		# Anchor axis bias: an axis that holds one of the Anchor's house Cores weighs `anchor_axis_bias` (fixed point x100, same rng calls).
+		var house_axes: Array = []
+		for d in pool:
+			if house.has(String(d.id)) and not house_axes.has(String(d.core_axis)):
+				house_axes.append(String(d.core_axis))
+		var ab := maxf(0.01, tuning().anchor_axis_bias)
+		for ax in weights.keys():
+			weights[ax] = roundi(float(weights[ax]) * 100.0 * (ab if house_axes.has(ax) else 1.0))
 	var fresh: Array = present.filter(func(a): return not used_axes.has(a))
 	var first: Array = []
 	if i == 0:

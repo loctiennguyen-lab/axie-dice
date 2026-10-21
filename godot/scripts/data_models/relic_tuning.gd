@@ -74,6 +74,8 @@ extends Resource
 ## Anchor (lane AE 2a): relative weight of the Anchor's house Cores when a Core offer picks inside an axis cell.
 ## Reroll (reroll_card) never applies it (anchor-mvp QA #13). 1.0 = no bias.
 @export var anchor_house_bias: float = 1.5
+## Anchor: relative weight of an axis that holds one of the Anchor's house Cores, when a Core offer draws axes (anchor.axis_bias). Not used by reroll.
+@export var anchor_axis_bias: float = 1.5
 @export var core_quest_max_per_offer: int = 1
 ## Where Core pick 2.. opens: ["row", n] = after the node on map row n, ["boss", k] = after the k-th boss.
 @export var core_triggers_short: Array = [["row", 5], ["boss", 1], ["boss", 2]]
