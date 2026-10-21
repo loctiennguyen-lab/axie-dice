@@ -131,6 +131,7 @@ func _play_run(seed_value: int, team_name: String, asc: int, policy: String, cor
 			for k in ["no_bo_hunt", "no_lieu", "no_wild", "no_overcast"]:
 				_abl[k] = true
 	_rng = Rng.new(seed_value ^ SALT)
+	_brng.seed = seed_value * 7919 + 13
 	_fights = []
 	_offered = {}
 	_core_fired_seen = {}
@@ -564,6 +565,7 @@ func _move_greedy(eng: CombatEngine, ready: Array, foes: Array) -> Array:
 # ---------------------------------------------------------------- expert
 
 var _turn_seen := -1
+var _brng := RandomNumberGenerator.new()   # the bot's OWN stream for look-ahead samples (never the game rng)
 
 ## Whole-state value (higher = better for the party): foe HP/shield/threat left, expected unblocked damage from the
 ## public intents on each Axie, party HP, mana, poison on foes.
@@ -690,10 +692,13 @@ func _expert_turn_start(eng: CombatEngine, ready: Array, foes: Array) -> void:
 			if pick != null and pv >= 4:
 				eng.stash(pick.uid)
 			break
-	if not _noreroll:
-		_expert_rerolls(eng)
-	_expert_wild(eng)
-	_expert_overcast(eng)
+	if _abl.has("old"):   # first v4 heuristic (kept for before/after comparison)
+		if not _noreroll:
+			_expert_rerolls(eng)
+		_expert_wild(eng)
+		_expert_overcast(eng)
+	else:
+		_expert2_actions(eng)
 
 
 ## Best-of-plan value of the turn as it stands (beam 1 for speed): lets the bot price Mat Tam / Overcast with the engine's own numbers.
@@ -729,6 +734,31 @@ func _hunt_ev(eng: CombatEngine, n: int, a: float, k: int, p: float) -> float:
 		ev += ph * (float(n + h) * a * _m100_of_size(eng, n + h) - v0)
 	return ev
 
+
+
+# ---- diagnostics (AXIE_SIM_TRACE=<file>): one line per Lieu / Safe / Mat Tam / Overcast decision of the expert
+var _trace_path := OS.get_environment("AXIE_SIM_TRACE")
+var _trace_n := 0
+
+func _hand(eng: CombatEngine) -> String:
+	var parts: Array = []
+	for u in _ready_units(eng):
+		var f: Dictionary = u.current_face()
+		parts.append("%s%d%s%s" % [String(f.get("type", "?")).substr(0, 2), int(eng._face_value(u, u.roll_face_index())),
+			"p" + str(u.roll_face_index()), "X" if u.cracked else ""])
+	var bo: Array = []
+	for g in eng.bo:
+		bo.append("%dx%d" % [int(g["part"]), int(g["size"])])
+	return "[" + " ".join(parts) + "] bo=" + ",".join(bo) + " mana=" + str(eng.mana)
+
+
+func _trace(kind: String, eng: CombatEngine, before: String, tv0: float, extra: String) -> void:
+	if _trace_path == "":
+		return
+	var f := FileAccess.open(_trace_path, FileAccess.READ_WRITE if FileAccess.file_exists(_trace_path) else FileAccess.WRITE)
+	f.seek_end()
+	f.store_line("%s\tT%d\t%s\t-> %s\tdTV=%.1f\t%s" % [kind, int(eng.turn), before, _hand(eng), _turn_value(eng) - tv0, extra])
+	f.close()
 
 ## Up to 3 reroll rounds. v4: (a) hunt a bigger BỘ by rerolling the dice OUTSIDE the best part group, choosing Lieu vs An toan by
 ## expected value (Nứt % and mana); (b) otherwise reroll "weak" dice (never BỘ members), cheaply with Lieu.
@@ -794,6 +824,12 @@ func _try_hunt(eng: CombatEngine, crack_p: float) -> bool:
 		ev = ev_lieu
 	if ev < 1.0 or not eng.can_reroll(cands, false, rm):
 		return false
+	if _trace_path != "":
+		var h0 := _hand(eng)
+		var t0 := _turn_value(eng)
+		var okr := eng.reroll_dice(cands, -1, false, rm)
+		_trace("HUNT_" + ("LIEU" if rm == 0 else "SAFE"), eng, h0, t0, "free=%s k=%d n=%d evL=%.1f evS=%.1f" % [str(free), k, best_n, ev_lieu, ev_safe])
+		return okr
 	return eng.reroll_dice(cands, -1, false, rm)
 
 
@@ -826,6 +862,12 @@ func _try_weak_reroll(eng: CombatEngine) -> bool:
 			rm = 1
 		else:
 			return false
+	if _trace_path != "":
+		var h1 := _hand(eng)
+		var t1 := _turn_value(eng)
+		var okw := eng.reroll_dice(weak, -1, false, rm)
+		_trace("WEAK_" + ("LIEU" if rm == 0 else "SAFE"), eng, h1, t1, "free=%s n=%d" % [str(eng.rerolls > 0), weak.size()])
+		return okw
 	return eng.reroll_dice(weak, -1, false, rm)
 
 
@@ -850,7 +892,9 @@ func _expert_wild(eng: CombatEngine) -> void:
 					best_g = g
 					best = [u.uid, sl]
 	if not best.is_empty():
+		var h2 := _hand(eng)
 		eng.wild_face(int(best[0]), int(best[1]))
+		_trace("WILD", eng, h2, base, "gainSeen=%.1f" % best_g)
 
 
 ## Overcast: the die whose boost raises the turn value the most (BỘ dice come out on top because M multiplies), if it beats its mana.
@@ -873,4 +917,295 @@ func _expert_overcast(eng: CombatEngine) -> void:
 				best_g = g
 				best = u.uid
 	if best >= 0:
+		var h3 := _hand(eng)
 		eng.overcast(best)
+		_trace("OVERCAST", eng, h3, base, "gainSeen=%.1f" % best_g)
+
+
+# ================================================================ expert v2: decisions by sampled expected value
+# One greedy loop per turn over {no action, reroll subset S in Safe / Lieu, Mat Tam (die, slot), Overcast die}. Each option is
+# priced as  E[value after] - value now - mana spent * lambda(mana).  "value" is a cheap model of the turn (face values with the
+# BO bag M, Nứt halving, per-type weights); rerolls are sampled (N draws from the bot's own rng, SAME draws for every option =
+# common random numbers). The model uses the engine's own _face_base / bo_add100 / bo_cap100 / overcast_preview / preview_wild.
+
+const E2_SAMPLES := 16
+const E2_MIN_GAIN := 0.8
+const E2_TYPES_M := ["dmg", "shield", "heal", "poison"]
+var _e2_tv := {}   # per-decision cache: foe hp, incoming
+
+
+func _e2_lambda(m: int) -> float:
+	return 0.15 if m >= 10 else (0.35 if m >= 6 else 0.7)
+
+
+func _e2_mana_cost_val(mana: int, c: int) -> float:
+	var t := 0.0
+	for j in c:
+		t += _e2_lambda(mana - j)
+	return t
+
+
+## Entries for every die that matters this turn: ready ones (value now) and BO-eligible ones (group size).
+func _e2_ctx(eng: CombatEngine) -> Dictionary:
+	var elig := {}
+	for d in eng._bo_dice():
+		elig[(d as Unit).uid] = true
+	var ready := {}
+	for u in _ready_units(eng):
+		ready[(u as Unit).uid] = true
+	var ents: Array = []
+	var seen := {}
+	var order: Array = []
+	for u in eng.party:
+		if ready.has(u.uid) or elig.has(u.uid):
+			order.append(u)
+	for uu in order:
+		var u: Unit = uu
+		if seen.has(u.uid):
+			continue
+		seen[u.uid] = true
+		var was := u.cracked
+		u.cracked = false
+		var vb: Array = []
+		var ty: Array = []
+		var rar: Array = []
+		for fi in 6:
+			var fd: Dictionary = u.die[fi]
+			ty.append(String(fd.get("type", "")))
+			rar.append(int(fd.get("rarity", 0)))
+			vb.append(maxf(0.0, eng._face_base(u, fi)))
+		u.cracked = was
+		ents.append({"u": u, "uid": u.uid, "ready": ready.has(u.uid), "elig": elig.has(u.uid), "fi": u.roll_face_index(),
+			"cr": was, "wild": u.wild_slot, "vb": vb, "ty": ty, "rar": rar,
+			"rr": ready.has(u.uid) and u.wild_slot < 0 and not u.overcast and not u.frozen and not u.held})
+	var foe_hp := 0.0
+	for e in eng.alive_enemies():
+		foe_hp += float((e as Unit).hp) + 0.8 * float((e as Unit).shield)
+	var inc := 0.0
+	var miss := 0.0
+	for f in eng.alive_party():
+		inc += _incoming(eng, f as Unit)
+		miss += float((f as Unit).max_hp - (f as Unit).hp)
+	var hi_r := int(CombatEngine.tune_knob("part", "hi_r", 2.0))
+	var hi_add := roundi(CombatEngine.tune_knob("part", "hi_add", 0.25) * 100.0) if eng.depth_stage >= 3 else 0
+	return {"e": ents, "foe_hp": maxf(foe_hp, 1.0), "inc": inc, "miss": miss, "hi_r": hi_r, "hi_add": hi_add,
+		"cap": eng.bo_cap100(), "add3": eng.bo_add100(3), "add4": eng.bo_add100(4), "add5": eng.bo_add100(5),
+		"mana": eng.mana}
+
+
+## Model value of a hypothetical state: faces[i] (0..5), cracked[i], wild[i] (-1 none). bo_aware=false hides the sets (M = 1).
+func _e2_value(ctx: Dictionary, faces: Array, cracked: Array, wild: Array, bo_aware: bool = true) -> float:
+	var ents: Array = ctx["e"]
+	var cnt := {}
+	var hi := {}
+	if bo_aware:
+		for i in ents.size():
+			var en: Dictionary = ents[i]
+			if not en["elig"] or cracked[i]:
+				continue
+			var fi: int = faces[i]
+			if String(en["ty"][fi]) == "blank":
+				continue
+			var part: int = wild[i] if wild[i] >= 0 else fi
+			cnt[part] = int(cnt.get(part, 0)) + 1
+			if int(en["rar"][fi]) >= int(ctx["hi_r"]):
+				hi[part] = true
+	var dmg := 0.0
+	var sh := 0.0
+	var he := 0.0
+	var other := 0.0
+	for i in ents.size():
+		var en: Dictionary = ents[i]
+		if not en["ready"]:
+			continue
+		var fi: int = faces[i]
+		var t: String = en["ty"][fi]
+		if t == "blank":
+			continue
+		var v: float = en["vb"][fi]
+		if cracked[i] and v >= 1.0 and (t in E2_TYPES_M or t == "mana"):
+			v = ceil(v / 2.0)
+		if t in E2_TYPES_M:
+			var part: int = wild[i] if wild[i] >= 0 else fi
+			var n: int = int(cnt.get(part, 0))
+			if n >= 3 and not cracked[i]:
+				var m: int = 100 + (ctx["add3"] if n == 3 else (ctx["add4"] if n == 4 else ctx["add5"])) + (int(ctx["hi_add"]) if hi.has(part) else 0)
+				v = float(int(v) * clampi(m, 100, int(ctx["cap"])) + 99) / 100.0
+				v = floor(v)
+		match t:
+			"dmg":
+				dmg += v
+			"shield":
+				sh += v
+			"heal":
+				he += v
+			"poison":
+				other += 1.3 * v
+			"mana":
+				other += _e2_lambda(int(ctx["mana"])) * v
+			_:
+				other += 2.0
+	var fh: float = ctx["foe_hp"]
+	var inc: float = ctx["inc"]
+	return minf(dmg, fh) + 0.1 * maxf(0.0, dmg - fh) + 0.9 * minf(sh, inc) + 0.1 * maxf(0.0, sh - inc) \
+		+ 0.8 * minf(he, float(ctx["miss"])) + other
+
+
+func _e2_state(ctx: Dictionary) -> Array:
+	var faces: Array = []
+	var cr: Array = []
+	var wl: Array = []
+	for en in ctx["e"]:
+		faces.append(int(en["fi"]))
+		cr.append(bool(en["cr"]))
+		wl.append(int(en["wild"]))
+	return [faces, cr, wl]
+
+
+func _expert2_actions(eng: CombatEngine) -> void:
+	var crack_p := float(CombatEngine.tune_knob("crack", "pct", 30.0)) / 100.0
+	var bo_aware_roll := not _abl.has("no_bo_hunt")
+	CoreHooks.mute += 1
+	for step in 6:
+		var ctx := _e2_ctx(eng)
+		var st := _e2_state(ctx)
+		var ents: Array = ctx["e"]
+		var base := _e2_value(ctx, st[0], st[1], st[2])
+		var base_roll := _e2_value(ctx, st[0], st[1], st[2], bo_aware_roll)
+		var opts: Array = []   # {gain, kind, a, b}
+		# ---- rerolls
+		if not _noreroll and eng.reroll_total_turn < eng.reroll_hard_cap():
+			var idx: Array = []
+			for i in ents.size():
+				if ents[i]["rr"]:
+					idx.append(i)
+			if not idx.is_empty():
+				var free := eng.rerolls > 0
+				var sets := _e2_sets(ctx, idx, st, bo_aware_roll)
+				var draws: Array = []
+				for sidx in E2_SAMPLES:
+					var row: Array = []
+					for i in ents.size():
+						row.append([_brng.randi() % 6, _brng.randf()])
+					draws.append(row)
+				var modes: Array = [1]
+				if not free and not _abl.has("no_lieu") and eng.depth_stage >= 2:
+					modes.append(0)
+				for sset in sets:
+					for rm in modes:
+						var tot := 0.0
+						for row in draws:
+							var f2: Array = (st[0] as Array).duplicate()
+							var c2: Array = (st[1] as Array).duplicate()
+							for i in sset:
+								f2[i] = row[i][0]
+								c2[i] = rm == 0 and float(row[i][1]) < crack_p
+							tot += _e2_value(ctx, f2, c2, st[2], bo_aware_roll)
+						var cost := 0.0 if rm == 0 else _e2_mana_cost_val(eng.mana, eng.reroll_mana_cost(false, 1))
+						opts.append({"gain": tot / float(E2_SAMPLES) - base_roll - cost, "kind": "reroll", "a": sset, "b": rm})
+		# ---- Mat Tam
+		if not _abl.has("no_wild") and eng.depth_stage >= 2 and eng.wild_used < eng.wild_per_turn() and eng.mana >= eng.wild_cost():
+			var wcost := _e2_mana_cost_val(eng.mana, eng.wild_cost())
+			for i in ents.size():
+				if not ents[i]["ready"] or int(ents[i]["wild"]) >= 0:
+					continue
+				for sl in 6:
+					if sl == int(ents[i]["fi"]):
+						continue
+					var w2: Array = (st[2] as Array).duplicate()
+					w2[i] = sl
+					var g := _e2_value(ctx, st[0], st[1], w2) - base - wcost
+					if g > 0.0:
+						opts.append({"gain": g, "kind": "wild", "a": i, "b": sl})
+		# ---- Overcast
+		if not _abl.has("no_overcast"):
+			var ocost := _e2_mana_cost_val(eng.mana, eng.overcast_cost())
+			for i in ents.size():
+				var en: Dictionary = ents[i]
+				if not en["ready"] or not eng.can_overcast(int(en["uid"])):
+					continue
+				var pr: Array = eng.overcast_preview(en["u"])
+				var t: String = en["ty"][int(en["fi"])]
+				var w := 1.0 if t == "dmg" else (0.7 if t == "shield" else (0.6 if t == "heal" else 1.3))
+				opts.append({"gain": w * (float(pr[1]) - float(pr[0])) - ocost, "kind": "oc", "a": i, "b": 0})
+		opts.sort_custom(func(x, y): return float(x["gain"]) > float(y["gain"]))
+		var done := false
+		for o in opts:
+			if float(o["gain"]) < E2_MIN_GAIN:
+				break
+			var ok := false
+			var kind := String(o["kind"])
+			var h0 := _hand(eng) if _trace_path != "" else ""
+			var t0 := _turn_value(eng) if _trace_path != "" else 0.0
+			if kind == "reroll":
+				var uids: Array = []
+				for i in (o["a"] as Array):
+					uids.append(int(ents[i]["uid"]))
+				if eng.can_reroll(uids, false, int(o["b"])):
+					ok = eng.reroll_dice(uids, -1, false, int(o["b"]))
+			elif kind == "wild":
+				var uid := int(ents[int(o["a"])]["uid"])
+				if eng.wild_block_reason(uid, int(o["b"])) == "":
+					ok = eng.wild_face(uid, int(o["b"]))
+			else:
+				ok = eng.overcast(int(ents[int(o["a"])]["uid"]))
+			if ok:
+				if _trace_path != "":
+					_trace("E2_" + kind + (("_" + ("LIEU" if int(o["b"]) == 0 else "SAFE")) if kind == "reroll" else ""), eng, h0, t0, "pred=%.1f" % float(o["gain"]))
+				done = true
+				break
+		if not done:
+			break
+	CoreHooks.mute -= 1
+
+
+## Candidate reroll subsets (indices into ctx["e"]): every single die, the lowest-value prefixes, everything outside the best part group.
+func _e2_sets(ctx: Dictionary, idx: Array, st: Array, bo_aware: bool) -> Array:
+	var ents: Array = ctx["e"]
+	var keyv := {}
+	var by_part := {}
+	for i in idx:
+		var en: Dictionary = ents[i]
+		var fi: int = en["fi"]
+		by_part[fi] = int(by_part.get(fi, 0)) + 1
+	for i in idx:
+		var fi2: int = ents[i]["fi"]
+		var z: Array = (st[0] as Array).duplicate()
+		var base1 := _e2_value(ctx, st[0], st[1], st[2], false)
+		# value of the die by itself (no sets): replace it by a blank-ish removal via ready flag trick
+		var en2: Dictionary = ents[i]
+		en2["ready"] = false
+		var v1 := _e2_value(ctx, st[0], st[1], st[2], false)
+		en2["ready"] = true
+		keyv[i] = base1 - v1 + (100.0 if (bo_aware and int(by_part.get(fi2, 0)) >= 3) else 0.0)
+	var sorted := idx.duplicate()
+	sorted.sort_custom(func(x, y): return float(keyv[x]) < float(keyv[y]))
+	var out: Array = []
+	var seen := {}
+	var add := func(s: Array):
+		if s.is_empty():
+			return
+		var k := s.duplicate()
+		k.sort()
+		var key := str(k)
+		if not seen.has(key):
+			seen[key] = true
+			out.append(k)
+	for i in idx:
+		add.call([i])
+	for n in range(2, mini(sorted.size(), 5) + 1):
+		add.call(sorted.slice(0, n))
+	if bo_aware:
+		var best_pt := -1
+		var best_n := 0
+		for pt in by_part:
+			if int(by_part[pt]) > best_n:
+				best_n = int(by_part[pt])
+				best_pt = pt
+		if best_n >= 2:
+			var outside: Array = []
+			for i in idx:
+				if int(ents[i]["fi"]) != best_pt:
+					outside.append(i)
+			add.call(outside)
+	return out
