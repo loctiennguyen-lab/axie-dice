@@ -34,11 +34,18 @@ func start(cards: Array, tier: int, first: bool, jackpot: bool, shake_host: Cont
 	var near := from_tier > tier
 	events.append("aura")
 	UI3Gacha.play_sfx(self, UI3Gacha.TIER_KEY[clampi(from_tier if near else tier, 0, 2)])
+	var reason_given := false
 	for c in cards:
 		var card := c as Control
 		var col := card.get_child(0) as Control
 		col.modulate.a = 0.0
-		var cover := UI3Gacha.build_cover(int(card.get_meta("gacha_tier", tier)), from_tier, cards.find(c) == 0)
+		# Only a card the Crystal cap really pulled down (it sits at the offer's tier) holds the higher aura and cracks;
+		# a lower card of the same offer (e.g. Moss) is not demoted and keeps its own tier look.
+		var ct := int(card.get_meta("gacha_tier", tier))
+		var demoted := near and ct == tier
+		var cover := UI3Gacha.build_cover(ct, from_tier if demoted else -1, demoted and not reason_given)
+		cover.set_meta("demoted", demoted)
+		reason_given = reason_given or demoted
 		card.add_child(cover)
 		_covers.append(cover)
 		var halo := cover.get_node("Halo") as Panel
@@ -71,7 +78,7 @@ func _crack() -> void:
 	UI3Gacha.play_sfx(self, "near_miss")
 	for k in _covers.size():
 		var cv := _covers[k] as Control
-		if not is_instance_valid(cv):
+		if not is_instance_valid(cv) or not bool(cv.get_meta("demoted", false)):
 			continue
 		var real := UI3Gacha.tier_color(int(_cards[k].get_meta("gacha_tier", _tier)))
 		var st := cv.get_meta("style") as StyleBoxFlat

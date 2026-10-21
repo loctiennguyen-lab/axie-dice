@@ -222,7 +222,11 @@ func _near_miss() -> void:
 	rm._start_core_reveal(rm._overlay_root)
 	await _frames(2)
 	_check(rm.gacha_log.has("near_miss:2>1"), "overlay logs the near-miss")
-	var cov := rm._reward_cards[0].find_child("CardBack", true, false) as Control
+	var cov: Control = null   # first demoted card (at the offer's tier); lower cards are not demoted and carry no reason
+	for rc in rm._reward_cards:
+		if int(rc.get_meta("gacha_tier", 0)) == 1:
+			cov = rc.find_child("CardBack", true, false) as Control
+			break
 	_check(cov != null and cov.find_child("ReasonLine", true, false) != null, "cover carries the reason line")
 	_check(cov != null and (cov.find_child("TierWord", true, false) as Label).text == "Crystal", "cover starts as the capped tier")
 	await _wait(1.8)

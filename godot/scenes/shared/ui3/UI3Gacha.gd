@@ -212,6 +212,19 @@ static func combo_name(combo_id: String) -> String:
 	return String(row.get("name_en", combo_id)) if not row.is_empty() else ""
 
 
+## Core ids shown on the banner: 2 for Pair, 3 for Full (owned ones first, in combo order). [] if the combo is unknown.
+static func combo_members(combo_id: String, tier: String) -> Array:
+	if combo_provider != null:
+		return []
+	var row := CoreCombos.get_combo(combo_id)
+	if row.is_empty():
+		return []
+	var m: Array = CoreCombos.members(row)
+	var owned := owned_ids()
+	var sorted: Array = m.filter(func(x): return owned.has(x)) + m.filter(func(x): return not owned.has(x))
+	return sorted.slice(0, 3 if tier == "full" else 2)
+
+
 ## combo id -> tier for combos that were raised by going from `before` to `after` owned ids (Pair/Full just formed).
 static func combos_formed(before: Array, after: Array) -> Array:
 	var b: Dictionary = CoreCombos.state(before)

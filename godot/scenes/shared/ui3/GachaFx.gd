@@ -131,7 +131,7 @@ func _input(ev: InputEvent) -> void:
 ## Combo banner: a BIG panel in the middle of the screen over the Core-pick overlay, with a light scrim.
 ## Pair: one gold frame, "PAIR" tag, 1.6 s. Full: thicker frame + extra inner ring, "FULL" tag, 2.8 s, bigger, other sound.
 ## Name at 32 px (36 is for turn banners only). A click or Space dismisses it early. Returns the node (added to `parent`).
-static func banner(parent: Node, tier: String, combo_name: String) -> Control:
+static func banner(parent: Node, tier: String, combo_name: String, core_ids: Array = []) -> Control:
 	var full := tier == "full"
 	var root := GachaFx.new()
 	root.z_index = 50
@@ -183,16 +183,28 @@ static func banner(parent: Node, tier: String, combo_name: String) -> Control:
 	var glyphs := HBoxContainer.new()
 	glyphs.name = "ComboGlyphs"
 	glyphs.alignment = BoxContainer.ALIGNMENT_CENTER
-	glyphs.add_theme_constant_override("separation", 12)
+	glyphs.add_theme_constant_override("separation", 32)
 	glyphs.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	for i in (3 if full else 2):
+		var def = RelicRegistry.get_def(String(core_ids[i])) if i < core_ids.size() else null
+		var cell := VBoxContainer.new()
+		cell.name = "ComboCore%d" % i
+		cell.add_theme_constant_override("separation", 4)
+		cell.mouse_filter = Control.MOUSE_FILTER_IGNORE
 		var ic := TextureRect.new()
-		ic.texture = UI3.icon("ui_mooncard")
+		ic.texture = UI3.icon(String(CorePanel.AXIS_ICON.get(String(def.core_axis), "face_buff")) if def != null else "ui_mooncard")
 		ic.custom_minimum_size = Vector2(72, 72)
 		ic.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
 		ic.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 		ic.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		glyphs.add_child(ic)
+		cell.add_child(ic)
+		if def != null:
+			var nm := UI3.label(UI3.title_case(UI3.player_text(String(def.name))), "LabelMuted")
+			nm.name = "CoreName"
+			nm.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+			nm.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			cell.add_child(nm)
+		glyphs.add_child(cell)
 	v.add_child(glyphs)
 	# gold tag with dark text
 	var tagrow := HBoxContainer.new()

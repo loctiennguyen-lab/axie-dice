@@ -1725,7 +1725,8 @@ func _combo_banner(formed: Array) -> GachaFx:
 			best = f
 			break
 	gacha_log.append("banner:%s" % String(best["tier"]))
-	return GachaFx.banner(_overlay_layer, String(best["tier"]), UI3Gacha.combo_name(String(best["id"]))) as GachaFx
+	return GachaFx.banner(_overlay_layer, String(best["tier"]), UI3Gacha.combo_name(String(best["id"])),
+		UI3Gacha.combo_members(String(best["id"]), String(best["tier"]))) as GachaFx
 
 
 ## Spec 32: the slot kind of the new relic is full. The sale goes through RunState.acquire_relic (logged as
