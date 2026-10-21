@@ -1,5 +1,13 @@
 # Axie Dice — trạng thái hiện tại
 
+## ⇢ BẮT ĐẦU TỪ ĐÂY (23/10 tối) — PHẢN HỒI PLAYTEST: RỜI RẠC, THIẾU ĐỘT BIẾN
+Liam chơi b1393: "chưa đủ hay, còn rời rạc, thiếu đột biến khi chọn được combo Lõi đặc biệt" (ghi vào memory game-design-depth-priority).
+Đang: (1) game-designer brainstorm `design/proposals/combo-mutation-brainstorm.md` (combo phải đổi luật/cách chơi, kiểu Duo/Legendary Hades,
+Prismatic LoL Arena); (2) game-designer `design/proposals/keystones-v1.md` Lõi chủ làm mỏ neo nối Lõi thường + đột biến (Liam đồng ý làm);
+(3) systems-designer `design/proposals/core-visibility-fix.md` (Lõi <10% run / không fire; Liam đồng ý làm); (4) âm: Liam chọn (a) MyGame
+→ đã chép 44 SFX vào `asset-library/audio/mygame-sfx/`, sound-designer gắn ở `../my-game-wt/AU`; (5) **Liam CHO PHÉP DEPLOY** 23/10 →
+devops-engineer đang deploy (D1 0008+0009 → wrangler deploy → export-web + deploy-r2), nhật ký `production/release/deploy-2026-10-23.md`.
+
 ## ⇢ BẮT ĐẦU TỪ ĐÂY (23/10 chiều) — BUILD b1393, ĐỘ KHÓ + MANA ĐẠT MỤC TIÊU
 godot-port = axiedice/main = **805b6dc** (RULES_VERSION **-r**: Overcast 2 mana +0.5 cả BỘ, enemy_dmg_mult 1.55). Suite 205/205 không skip,
 Worker 212/212. Build `build/AxieDice-0.1.0-L1-b1393-805b6dc-*` (b1377 → old). Sim vòng 2 (`design/proposals/v4-mana-decisions.md` cuối):
