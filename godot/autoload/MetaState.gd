@@ -74,6 +74,13 @@ var key_bindings: Dictionary = {}
 ## 'YYYY-MM-DD' of the last grant; "" means never claimed.
 var daily_date: String = ""
 
+## Lane GM (gacha): Core codex {core_id: {"seen": bool, "picked": bool}}, combo codex {combo_id: {"pair": bool,
+## "full": bool}} and the daily combo challenge {"day": "YYYY-MM-DD", "done": bool, "count": int}. Saved through
+## SaveStore (save_to_disk) and reset in reload_from_store(). An old save without them reads as empty.
+var core_codex: Dictionary = {}
+var combo_codex: Dictionary = {}
+var combo_daily: Dictionary = {"day": "", "done": false, "count": 0}
+
 ## Onboarding tutorial (design/gdd/onboarding-tutorial.md), ported trigger. The JS gate is
 ## "after first login" (`!META.tut && META.runs===0`). This port's sign-in is optional (accounts,
 ## claude/ACCOUNT_SYSTEM_v1.md — a guest never signs in), so the equivalent trigger is still FIRST
@@ -156,6 +163,7 @@ func needs_tutorial() -> bool:
 
 func _ready() -> void:
 	load_from_disk()
+	EventBus.phase_changed.connect(_on_phase_for_codex)   # lane GM: Core / combo codex follows the run
 	KeyBindings.apply_overrides(key_bindings)
 	# DEFERRED on purpose. Autoloads are constructed in the order project.godot lists them, and
 	# MetaState comes before ContentDB — so at this point `ContentDB` does not exist yet, and
@@ -575,11 +583,88 @@ func reload_from_store() -> void:
 	reduce_flash = false
 	key_bindings = {}
 	daily_date = ""
+	core_codex = {}
+	combo_codex = {}
+	combo_daily = {"day": "", "done": false, "count": 0}
 	tutorial_seen = false
 	_reset_economy_fields()
 	load_from_disk()
 	KeyBindings.apply_overrides(key_bindings)
 	ensure_vault_heroes()
+
+
+## {id: {flag: bool}} from JSON; unknown shapes and flags are dropped.
+func _flags_from_json(v: Variant, flags: Array) -> Dictionary:
+	var out := {}
+	if not (v is Dictionary):
+		return out
+	for id in (v as Dictionary):
+		var row = v[id]
+		if row is Dictionary:
+			var e := {}
+			for f in flags:
+				e[f] = bool((row as Dictionary).get(f, false))
+			out[String(id)] = e
+	return out
+
+
+## Folds the current run into the Core / combo codex and the daily combo challenge: Cores shown (core_seen) = seen,
+## Cores held = seen + picked, combos formed (combo_done) = pair / full. Saves only when something changed, so it is
+## cheap to call on every phase change. Returns true when something changed.
+func codex_sync_run() -> bool:
+	var changed := false
+	var seen = RunState.get("core_seen")
+	for id in (seen if seen is Array else []):
+		changed = _codex_flag(core_codex, String(id), "seen") or changed
+	for id in RunState.owned_relic_ids:
+		if RelicSlots.is_core(RelicRegistry.get_def(String(id))):
+			changed = _codex_flag(core_codex, String(id), "seen") or changed
+			changed = _codex_flag(core_codex, String(id), "picked") or changed
+	var done := ComboAdapter.done()
+	for cid in done:
+		changed = _codex_flag(combo_codex, String(cid), "pair") or changed
+		if String(done[cid]) == "full":
+			changed = _codex_flag(combo_codex, String(cid), "full") or changed
+	changed = _combo_daily_check(done) or changed
+	if changed:
+		save_to_disk()
+	return changed
+
+
+func _codex_flag(book: Dictionary, id: String, flag: String) -> bool:
+	if id == "" or id.begins_with("__"):
+		return false
+	var e: Dictionary = book.get(id, {"seen": false, "picked": false} if flag in ["seen", "picked"] else {"pair": false, "full": false})
+	if bool(e.get(flag, false)):
+		return false
+	e[flag] = true
+	book[id] = e
+	return true
+
+
+## Today's challenge combo id ("" when there is none) and whether it is done.
+func combo_daily_today() -> Dictionary:
+	var day := today_utc()
+	var done := bool(combo_daily.get("done", false)) and String(combo_daily.get("day", "")) == day
+	return {"day": day, "id": ComboDaily.pick(day, ComboAdapter.all()), "done": done, "count": int(combo_daily.get("count", 0))}
+
+
+## Marks today's "Form combo X" done when the run has formed it (Pair or Full both count). Rewards are titles only,
+## at 1 and 7 completions. Does not save (codex_sync_run does).
+func _combo_daily_check(done: Dictionary) -> bool:
+	var t := combo_daily_today()
+	if String(t["id"]) == "" or bool(t["done"]) or not done.has(String(t["id"])):
+		return false
+	var n := int(combo_daily.get("count", 0)) + 1
+	combo_daily = {"day": String(t["day"]), "done": true, "count": n}
+	var title := String(ComboDaily.MILESTONES.get(n, ""))
+	if title != "" and not cosmetics_owned.has(title):
+		cosmetics_owned.append(title)
+	return true
+
+
+func _on_phase_for_codex(_old: int, _new: int) -> void:
+	codex_sync_run()
 
 
 ## {action: [int keycodes]} from JSON (numbers come back as floats). Unknown shapes are dropped.
@@ -675,6 +760,11 @@ func load_from_disk() -> void:
 	reduce_flash = bool(parsed.get("reduce_flash", false))
 	key_bindings = _key_bindings_from_json(parsed.get("key_bindings", {}))
 	daily_date = str(parsed.get("daily_date", ""))
+	core_codex = _flags_from_json(parsed.get("core_codex", {}), ["seen", "picked"])
+	combo_codex = _flags_from_json(parsed.get("combo_codex", {}), ["pair", "full"])
+	var cd = parsed.get("combo_daily", {})
+	combo_daily = {"day": String(cd.get("day", "")), "done": bool(cd.get("done", false)), "count": maxi(0, int(cd.get("count", 0)))} \
+		if cd is Dictionary else {"day": "", "done": false, "count": 0}
 	tutorial_seen = bool(parsed.get("tutorial_seen", false))
 	# Migration backfill (design/gdd/onboarding-tutorial.md §5 "Migration save cũ", ported):
 	# a save with real runs already on it predates this feature and must never be forced
@@ -935,6 +1025,9 @@ func save_to_disk() -> void:
 		"reduce_flash": reduce_flash,
 		"key_bindings": key_bindings,
 		"daily_date": daily_date,
+		"core_codex": core_codex,
+		"combo_codex": combo_codex,
+		"combo_daily": combo_daily,
 		"tutorial_seen": tutorial_seen,
 		"save_version": SAVE_VERSION,
 		"starter_granted": starter_granted,
