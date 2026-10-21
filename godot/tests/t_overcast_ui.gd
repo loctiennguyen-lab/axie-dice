@@ -39,16 +39,16 @@ func _ready() -> void:
 	v._selected_die_uid = us[3].uid
 	v._rebuild_all()
 	_check(ob.disabled and ob.text.contains("Needs a Set") and ob.tooltip_text.contains("Set"), "no Set: grey + Needs a Set: %s / %s" % [ob.text, ob.tooltip_text])
-	c.mana = 2
+	c.mana = 1
 	v._selected_die_uid = u.uid
 	v._rebuild_all()
 	_check(ob.disabled and ob.text.contains("mana"), "low mana: disabled with reason: %s" % ob.text)
 	c.mana = 5
 	v._rebuild_all()
-	_check(not ob.disabled and ob.text.contains("→") and ob.text.count("→") == 3 and ob.text.contains("3 MP"), "enabled shows the whole group (3 values) and price: %s" % ob.text)
+	_check(not ob.disabled and ob.text.contains("→") and ob.text.count("→") == 3 and ob.text.contains("2 MP"), "enabled shows the whole group (3 values) and price: %s" % ob.text)
 	ob.pressed.emit()
 	await get_tree().process_frame
-	_check(c.by_uid(u.uid).overcast and c.by_uid(us[2].uid).overcast and not c.by_uid(us[3].uid).overcast and c.mana == 2, "button -> engine overcast on the whole Set, mana paid")
+	_check(c.by_uid(u.uid).overcast and c.by_uid(us[2].uid).overcast and not c.by_uid(us[3].uid).overcast and c.mana == 3, "button -> engine overcast on the whole Set, mana paid")
 	_check(ob.disabled, "second overcast disabled")
 	print("=== t_overcast_ui: %d checks, %d failure(s) ===" % [_checks, _fails.size()])
 	_guard.restore()

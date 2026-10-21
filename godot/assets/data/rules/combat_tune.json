@@ -36,8 +36,8 @@
   "per_battle": 1
  },
  "overcast": {
-  "mana_cost": 3,
-  "add": 0.4,
+  "mana_cost": 2,
+  "add": 0.5,
   "per_turn": 1
  },
  "bo": {
@@ -80,7 +80,7 @@
   "front_size": 2
  },
  "difficulty": {
-  "enemy_dmg_mult": 1.5,
+  "enemy_dmg_mult": 1.55,
   "boss_hp_mult": 1.1
  },
  "boss_rhythm": {

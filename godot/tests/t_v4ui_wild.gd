@@ -62,7 +62,7 @@ func _ready() -> void:
 	v._selected_die_uid = units[0].uid
 	v._rebuild_all()
 	var ob: Button = v._hud_frame.overcast_button
-	_check(ob.tooltip_text.contains("×2.2 → ×2.6") and ob.tooltip_text.contains("+0.4"), "overcast tip: %s" % ob.tooltip_text)
+	_check(ob.tooltip_text.contains("×2.2 → ×2.7") and ob.tooltip_text.contains("+0.5"), "overcast tip: %s" % ob.tooltip_text)
 	# A+: a Wild face that would make a Set of 5 is refused with its own short reason
 	_check(V4Ui.wild_line({"ok": false, "reason": "set5"}, 0, {}) == "Wild can't make 5", "set5 reason text")
 	print("=== t_v4ui_wild: %d checks, %d failure(s) ===" % [_checks, _fails.size()])

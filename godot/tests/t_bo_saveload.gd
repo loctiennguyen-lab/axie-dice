@@ -9,7 +9,7 @@ func run() -> void:
 	var bo0 := JSON.stringify(e.bo)
 	var m_start := e.mana
 	ok(e.overcast(e.party[0].uid), "overcast")
-	eq(e.mana, m_start - 3, "mana paid")
+	eq(e.mana, m_start - 2, "mana paid")
 	ok(e.undo_last(), "undo")
 	eq(e.mana, m_start, "undo gives the mana back")
 	eq(JSON.stringify(e.bo), bo0, "undo keeps the Set")

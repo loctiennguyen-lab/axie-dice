@@ -81,13 +81,13 @@ func _t_effect_price_preview() -> void:
 	var rng_before: int = e._rng.get_state()
 	var m0 := e.mana
 	_ok(e.overcast(u.uid), "overcast refused a legal die")
-	_ok(e.mana == m0 - 3, "overcast must cost 3 mana (had %d, now %d)" % [m0, e.mana])
+	_ok(e.mana == m0 - 2, "overcast must cost 2 mana (had %d, now %d)" % [m0, e.mana])
 	_ok(u.overcast, "die not flagged")
 	for i in 3:
 		_ok((e.party[i] as Unit).overcast, "Set member %d not overcast" % i)
 	_ok(not (e.party[3] as Unit).overcast and not (e.party[4] as Unit).overcast, "a die outside the Set got Overcast")
 	_ok(e.m100_for(e.party[1]) == e.m100_for(e.party[0]), "members must share the same M")
-	_ok(e.m100_for(e.party[0]) == 100 + e.bo_add100(3) + 40, "M = Set add + 0.40 (got %d)" % e.m100_for(e.party[0]))
+	_ok(e.m100_for(e.party[0]) == 100 + e.bo_add100(3) + 50, "M = Set add + 0.50 (got %d)" % e.m100_for(e.party[0]))
 	_ok(e._face_value(u, u.roll_face_index()) == int(pv[1]), "face value does not match the preview")
 	var rng_after: int = e._rng.get_state()
 	_ok(rng_before == rng_after, "overcast drew rng")
@@ -200,7 +200,7 @@ func _t_replay_and_tamper() -> void:
 	var r := _replay(log, 5)
 	_ok(bool(r["ok"]) and String(r["digest"]) == JSON.stringify(played), "overcast did not replay to the same state")
 	# tamper 1: not enough mana
-	_ok(not bool(_replay(log, 2)["ok"]), "replay accepted an overcast without the mana")
+	_ok(not bool(_replay(log, 1)["ok"]), "replay accepted an overcast without the mana")
 	# tamper 2: drop the overcast, state must differ
 	var no_oc := ActionLog.from_data(JSON.parse_string(JSON.stringify(log.to_data())))
 	no_oc.entries.remove_at(0)
