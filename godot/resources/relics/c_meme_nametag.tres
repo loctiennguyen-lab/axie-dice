@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="RelicDef" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data_models/relic_def.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "c_meme_nametag"
+name = "Name Tag"
+description = "Start of combat: a random enemy gets a silly name. Kill it for +1 Mana."
+rarity = 0
+archetype = ""
+mload = 0
+sort_index = 200048
+hook_key = "c_meme_nametag"
+tags = PackedStringArray("meme")
+layer = "engine"
+core_axis = "rule"
+first_run_hidden = true

@@ -1249,3 +1249,134 @@ static func cheap_paid(ctx: Dictionary) -> void:
 		st["done"] = true
 		ctx["combat"].reroll_paid_k = maxi(0, ctx["combat"].reroll_paid_k - 1)
 		fire("rule_cheap_mana", 0, 1, "reroll")
+
+
+# --------------------------------------------------------------------------------------------
+# Gacha C5 meme Cores (design/proposals/meme-cores.md, Moss, weak but funny). All randomness uses combat._rng (engine seed).
+# --------------------------------------------------------------------------------------------
+
+const MEME_NAMES_PATH := "res://assets/data/rules/meme_enemy_names.json"
+static var _meme_names: Array = []
+
+
+static func meme_names() -> Array:
+	if _meme_names.is_empty():
+		var f := FileAccess.open(MEME_NAMES_PATH, FileAccess.READ)
+		if f != null:
+			var d = JSON.parse_string(f.get_as_text())
+			if d is Array:
+				_meme_names = d
+	return _meme_names
+
+
+## Dice that may be rewritten by a meme Core: count for Sets now, not held / spent / Wild-faced / already copied.
+static func _meme_dice(combat) -> Array:
+	var out: Array = []
+	for u in combat._bo_dice():
+		if u.held or u.stash_carry or u.roll_used() or u.wild_slot >= 0 or int(u.custom_state.get("copycat_turn", -1)) == int(combat.turn):
+			continue
+		out.append(u)
+	return out
+
+
+static func _set_face(u, fi: int) -> void:
+	var f: Dictionary = u.die[fi]
+	var crit: bool = u.roll_crit_now()
+	u.set_roll(fi, crit and String(f.get("type", "")) == "dmg")
+	u.heavy = _has_kw(f, "heavy")
+
+
+## Copycat: only the first roll of a turn. The weakest die outside every Set copies the best Set's part; it shows that face
+## for 1 (face_final) and does not count toward Sets (combat._bo_dice skips custom_state.copycat_turn == turn). No rng.
+static func copycat_settled(ctx: Dictionary) -> void:
+	var combat = ctx["combat"]
+	for u in combat.party:
+		if int(u.uid) in (ctx.get("rerolled_uids", []) as Array):
+			u.custom_state.erase("copycat_turn")
+	if not (ctx.get("rerolled_uids", []) as Array).is_empty() or bool(turn_state(combat, "cs_copycat").get("done", false)):
+		return
+	var groups: Array = combat.recompute_bo()
+	if groups.is_empty():
+		return
+	var best: Dictionary = groups[0]
+	for g in groups:
+		if int(g["size"]) > int(best["size"]) or (int(g["size"]) == int(best["size"]) and int(g["part"]) < int(best["part"])):
+			best = g
+	var in_set := {}
+	for g in groups:
+		for id in (g["uids"] as Array):
+			in_set[int(id)] = true
+	var pick = null
+	var pick_v := 0
+	for u in _meme_dice(combat):
+		if in_set.has(int(u.uid)):
+			continue
+		var v := int((u.die[u.roll_face_index()] as Dictionary).get("value", 0))
+		if pick == null or v < pick_v:
+			pick = u
+			pick_v = v
+	if pick == null:
+		return
+	turn_state(combat, "cs_copycat")["done"] = true
+	_set_face(pick, int(best["part"]))
+	pick.custom_state["copycat_turn"] = int(combat.turn)
+	EventBus.float_text.emit(pick.uid, "COPY!", "buf", 0)
+	fire("c_meme_copycat", pick.uid, 1, "rule")
+	combat._snap_bo()
+
+
+## Copycat die value is 1 for the turn it copied (a rerolled die sheds the flag in copycat_settled).
+static func copycat_face(ctx: Dictionary) -> int:
+	var u = ctx["unit"]
+	if int(u.custom_state.get("copycat_turn", -1)) == int(ctx["combat"].turn):
+		return 1
+	return int(ctx["value"])
+
+
+## Jumpy Dice: after the first roll of a turn two random eligible dice swap face index. Part multiplicities are unchanged.
+static func jumpy_settled(ctx: Dictionary) -> void:
+	var combat = ctx["combat"]
+	if not (ctx.get("rerolled_uids", []) as Array).is_empty() or bool(turn_state(combat, "cs_jumpy").get("done", false)):
+		return
+	var pool := _meme_dice(combat)
+	if pool.size() < 2:
+		return
+	turn_state(combat, "cs_jumpy")["done"] = true
+	var i: int = combat._rng.next_int(pool.size())
+	var j: int = combat._rng.next_int(pool.size() - 1)
+	if j >= i:
+		j += 1
+	var a = pool[i]
+	var b = pool[j]
+	var fa: int = a.roll_face_index()
+	var fb: int = b.roll_face_index()
+	_set_face(a, fb)
+	_set_face(b, fa)
+	EventBus.float_text.emit(a.uid, "JUMP!", "buf", 0)
+	EventBus.float_text.emit(b.uid, "JUMP!", "buf", 0)
+	fire("c_meme_jumpy", a.uid, 1, "rule")
+	combat._snap_bo()
+
+
+## Name Tag: start of combat a random non-boss living enemy gets a silly name (custom_state.nick); its death pays +1 Mana once.
+static func nametag_start(ctx: Dictionary) -> void:
+	var combat = ctx["combat"]
+	var pool: Array = []
+	for e in combat.enemies:
+		if e.hp > 0 and not e.is_boss:
+			pool.append(e)
+	var names := meme_names()
+	if pool.is_empty() or names.is_empty():
+		return
+	var e = pool[combat._rng.next_int(pool.size())]
+	e.custom_state["nick"] = String(names[combat._rng.next_int(names.size())])
+	fire("c_meme_nametag", e.uid, 1, "rule")
+
+
+static func nametag_kill(ctx: Dictionary) -> void:
+	var combat = ctx["combat"]
+	var e = ctx["tgt"]
+	if not e.custom_state.has("nick") or bool(combat_state(combat, "cs_nametag").get("paid", false)):
+		return
+	combat_state(combat, "cs_nametag")["paid"] = true
+	gain_mana(combat, 1, "RIP " + String(e.custom_state["nick"]), "c_meme_nametag")

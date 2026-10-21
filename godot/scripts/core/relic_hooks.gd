@@ -1725,6 +1725,15 @@ static var TABLE: Dictionary = {
 		"stash_repeat": func(ctx: Dictionary): return bool(ctx["value"]) or not CoreHooks.quest_done(ctx["combat"], "c_key_strike"),
 		"on_face_hit": func(ctx: Dictionary): CoreHooks.key_strike_hit(ctx),
 	},
+	"c_meme_copycat": {
+		"on_roll_settled": func(ctx: Dictionary): CoreHooks.copycat_settled(ctx),
+		"face_final": func(ctx: Dictionary): return CoreHooks.copycat_face(ctx),
+	},
+	"c_meme_jumpy": {"on_roll_settled": func(ctx: Dictionary): CoreHooks.jumpy_settled(ctx)},
+	"c_meme_nametag": {
+		"on_combat_start": func(ctx: Dictionary): CoreHooks.nametag_start(ctx),
+		"on_kill": func(ctx: Dictionary): CoreHooks.nametag_kill(ctx),
+	},
 	"c_chimera_hunt": {"on_kill": func(ctx: Dictionary): CoreHooks.chimera_kill(ctx)},
 	"c_golden_egg": {
 		"on_dmg_taken": func(ctx: Dictionary): CoreHooks.golden_egg_fall(ctx),
