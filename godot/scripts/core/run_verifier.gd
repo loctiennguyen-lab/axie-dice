@@ -79,6 +79,9 @@ static func verify(log: ActionLog, tape: Array = [], loadout: Dictionary = {}) -
 	if int(header.get("depth_stage", 3)) != tape_stage:
 		return _fail(ERR_STAGE_MISMATCH, "The record claims depth stage %d; the server issued stage %d." % [int(header.get("depth_stage", 3)), tape_stage])
 
+	# Anchors are offline-only (anchor-mvp QA #3): an online run that names one is not a run this referee can replay.
+	if String(header.get("anchor_id", "")) != "" or String((header.get("loadout", {}) as Dictionary).get("anchor_id", "")) != "":
+		return _fail(ERR_BAD_HEADER, "Anchors only exist in offline runs; this record names one.")
 	var team: Array[String] = []
 	for k in (header.get("team_keys", []) as Array):
 		team.append(String(k))

@@ -19,6 +19,7 @@ extends RefCounted
 
 const TIER_SALT := 0x7C0DE711
 const CORE_SALT := 0xC0DE0FFE
+const ANCHOR_SALT := 0xA17C4012
 const RULE_SALT := 0x2B1E5A17
 const NO_RULE_ID := "rule_none"
 const AXES := ["stat", "dice", "pos", "mana", "quest", "rule"]
@@ -362,7 +363,7 @@ static func build_offer(rng: Rng, tier: int, ctx: Dictionary, n: int) -> Array[D
 				continue
 			if String(ax) == "quest" and _count_axis(out, "quest") >= t.core_quest_max_per_offer:
 				continue
-			picked = cands[rng.next_int(cands.size())]
+			picked = _pick_biased(rng, cands, ctx)
 			break
 		if picked == null:
 			continue
@@ -377,6 +378,44 @@ static func build_offer(rng: Rng, tier: int, ctx: Dictionary, n: int) -> Array[D
 			if String(d.core_axis) == "stat" and int(d.rarity) == 0 and not used_ids.has(String(d.id)):
 				used_ids.append(String(d.id))
 				out.append(card_of(d, out.size()))
+	return out
+
+
+## One draw inside an axis cell. Without ctx.anchor_house it is the plain uniform `next_int(n)` (old runs stay identical);
+## with it the Anchor's house Cores weigh `anchor_house_bias` (fixed point x100), still ONE rng call.
+static func _pick_biased(rng: Rng, cands: Array, ctx: Dictionary):
+	var house: Array = ctx.get("anchor_house", [])
+	if house.is_empty():
+		return cands[rng.next_int(cands.size())]
+	var hw := maxi(1, roundi(tuning().anchor_house_bias * 100.0))
+	var total := 0
+	for d in cands:
+		total += hw if house.has(String(d.id)) else 100
+	var roll := rng.next_int(total)
+	for d in cands:
+		roll -= hw if house.has(String(d.id)) else 100
+		if roll < 0:
+			return d
+	return cands[cands.size() - 1]
+
+
+## R1: draw a list of axes without replacement, weight = min(valid Cores in the axis cell, axis_weight_cap). One rng call per axis.
+static func _weighted_axes(rng: Rng, axes: Array, weights: Dictionary) -> Array:
+	var left := axes.duplicate()
+	var out: Array = []
+	while not left.is_empty():
+		var total := 0
+		for a in left:
+			total += maxi(1, int(weights.get(a, 1)))
+		var roll := rng.next_int(total)
+		var k := 0
+		for i in left.size():
+			roll -= maxi(1, int(weights.get(left[i], 1)))
+			if roll < 0:
+				k = i
+				break
+		out.append(left[k])
+		left.remove_at(k)
 	return out
 
 
@@ -405,9 +444,14 @@ static func _count_axis(out: Array, axis: String) -> int:
 static func _axis_order(rng: Rng, i: int, owned_axes: Array, used_axes: Array, out: Array, pool: Array,
 		tier: int, used_ids: Array) -> Array:
 	var present: Array = []   # axes with at least one candidate (any tier)
+	var weights: Dictionary = {}   # R1: valid Cores left in each axis cell, capped
+	var wcap := maxi(1, tuning().axis_weight_cap)
 	for d in pool:
 		var ax := String(d.core_axis)
-		if not present.has(ax) and not used_ids.has(String(d.id)):
+		if used_ids.has(String(d.id)):
+			continue
+		weights[ax] = mini(int(weights.get(ax, 0)) + 1, wcap)
+		if not present.has(ax):
 			present.append(ax)
 	present.sort()
 	var fresh: Array = present.filter(func(a): return not used_axes.has(a))
@@ -418,17 +462,9 @@ static func _axis_order(rng: Rng, i: int, owned_axes: Array, used_axes: Array, o
 		first = fresh.filter(func(a): return not owned_axes.has(a))
 	if first.is_empty():
 		first = fresh
-	var order: Array = []
-	var firsts := first.duplicate()
-	while not firsts.is_empty():
-		var k := rng.next_int(firsts.size())
-		order.append(firsts[k])
-		firsts.remove_at(k)
+	var order: Array = _weighted_axes(rng, first, weights)
 	var rest := fresh.filter(func(a): return not order.has(a))
-	while not rest.is_empty():
-		var k2 := rng.next_int(rest.size())
-		order.append(rest[k2])
-		rest.remove_at(k2)
+	order.append_array(_weighted_axes(rng, rest, weights))
 	var dup := present.filter(func(a): return not order.has(a))   # axes already in the offer: last resort
 	order.append_array(dup)
 	return order
