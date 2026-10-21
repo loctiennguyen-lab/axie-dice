@@ -1,5 +1,15 @@
 # Axie Dice — trạng thái hiện tại
 
+## ⇢ BẮT ĐẦU TỪ ĐÂY (23/10 đêm) — ĐÃ DEPLOY PRODUCTION, CHỜ LIAM DUYỆT ĐỘT BIẾN + LÕI CHỦ
+**Production live** (Liam cho phép 23/10): D1 0008+0009; Worker `ea88583d` (RULES -r, phục vụ index.pck từ các phần R2 + manifest vì pck
+359 MB > 300 MiB CLI; review bảo mật ĐẠT, nợ nhỏ ghi ở `production/release/deploy-2026-10-23.md`); web = build 805b6dc, md5 khớp, game boot
+được. Có sự cố giữa chừng (web lên nửa → rollback Worker 4055be9c; lần ghép đầu cắt body) — đã xử lý. `deploy-r2.sh` (gitignore) có
+`--pck-only` / `--rest`. godot-port = **43e1d9d** + docs: thêm âm 18/18 dm_* + gacha từ MyGame SFX (`asset-library/audio/mygame-sfx/`), suite
+**206/206** không skip. Âm CHƯA lên production (lần deploy sau).
+Chờ Liam 3 câu ở `design/proposals/mutation-and-keystones-v1.md` (Cặp có sức mạnh thật? Thức tỉnh khi 2 Lõi ruột bất kỳ? tên "Anchor"?)
+rồi code MVP (3 Lõi chủ Tam Tấu/Con Bạc/Mỏ Mana + đột biến Cặp 6 nhà + thức tỉnh) gộp với sửa rút trục Lõi (`core-visibility-fix.md` R1)
+trong MỘT lần bump. Sim đếm Lõi (`../my-game-wt/SVIS`) đang đo baseline.
+
 ## ⇢ BẮT ĐẦU TỪ ĐÂY (23/10 tối) — PHẢN HỒI PLAYTEST: RỜI RẠC, THIẾU ĐỘT BIẾN
 Liam chơi b1393: "chưa đủ hay, còn rời rạc, thiếu đột biến khi chọn được combo Lõi đặc biệt" (ghi vào memory game-design-depth-priority).
 Đang: (1) game-designer brainstorm `design/proposals/combo-mutation-brainstorm.md` (combo phải đổi luật/cách chơi, kiểu Duo/Legendary Hades,
