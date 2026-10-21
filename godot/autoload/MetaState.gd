@@ -164,7 +164,8 @@ func needs_tutorial() -> bool:
 func _ready() -> void:
 	load_from_disk()
 	EventBus.phase_changed.connect(_on_phase_for_codex)   # lane GM: Core / combo codex follows the run
-	EventBus.combo_formed.connect(func(_id: String, _tier: String) -> void: codex_sync_run())   # a Core pick formed a combo
+	EventBus.combo_formed.connect(func(_id: String, _tier: String) -> void: codex_sync_run(false))   # a Core pick formed a combo
+	EventBus.run_ended.connect(func(_won: bool) -> void: codex_sync_run())   # the run's book entries reach the disk here
 	KeyBindings.apply_overrides(key_bindings)
 	# DEFERRED on purpose. Autoloads are constructed in the order project.godot lists them, and
 	# MetaState comes before ContentDB — so at this point `ContentDB` does not exist yet, and
@@ -611,8 +612,8 @@ func _flags_from_json(v: Variant, flags: Array) -> Dictionary:
 
 ## Folds the current run into the Core / combo codex and the daily combo challenge: Cores shown (core_seen) = seen,
 ## Cores held = seen + picked, combos formed (combo_done) = pair / full. Saves only when something changed, so it is
-## cheap to call on every phase change. Returns true when something changed.
-func codex_sync_run() -> bool:
+## cheap to call on every phase change. persist=false keeps the change in memory (written at run end). Returns true when something changed.
+func codex_sync_run(persist := true) -> bool:
 	var changed := false
 	var seen = RunState.get("core_seen")
 	for id in (seen if seen is Array else []):
@@ -627,7 +628,7 @@ func codex_sync_run() -> bool:
 		if String(done[cid]) == "full":
 			changed = _codex_flag(combo_codex, String(cid), "full") or changed
 	changed = _combo_daily_check(done) or changed
-	if changed:
+	if changed and persist:
 		save_to_disk()
 	return changed
 
@@ -665,7 +666,7 @@ func _combo_daily_check(done: Dictionary) -> bool:
 
 
 func _on_phase_for_codex(_old: int, _new: int) -> void:
-	codex_sync_run()
+	codex_sync_run(false)   # in memory only: the save is written when the run ends, so a mid-run phase never touches the disk
 
 
 ## {action: [int keycodes]} from JSON (numbers come back as floats). Unknown shapes are dropped.

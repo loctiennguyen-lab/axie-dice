@@ -48,9 +48,10 @@ Nhánh `gacha/GM`. Xong, mỗi việc một commit, test lẻ xanh (t_combo_fire
 - D1: `MetaState.core_codex`, `combo_codex`, `combo_daily` (save_to_disk + load + reload_from_store); `codex_sync_run()` gọi từ `EventBus.phase_changed`; Codex thêm tab Cores / Combos.
 - D2 (chỉ phần data): `ComboDaily.pick(day, combos)` + `MetaState.combo_daily_today()`; hoàn thành thì title "Combo Maker" (lần 1) / "Combo Master" (lần 7), không Shard.
 - Adapter: `scenes/shared/ComboAdapter.gd` là chỗ duy nhất đọc API làn GD (rỗng khi chưa có). Test dùng `ComboAdapter.test_combos/test_done/test_skipped`; `t_combo_fired` tự `add_user_signal("combo_fired")` nếu EventBus chưa có.
-Còn lại / cần quyết:
-- UI daily: DailyScreen chưa có thẻ thứ 4 "Form combo X" (data + test đã có, chưa vẽ).
-- Ảnh: mới có `gacha_meta_combat_1280x720.png`; thiếu Result, Codex Combos, daily (evidence/ bị gitignore).
-- Chưa chạy cả suite. Có 5 file test mới (t_combo_fired, t_gacha_result, t_core_codex, t_codex_books; +1 qa_ capture không tính) = +4 vào sàn test.
-- `autoload/MetaState.gd` + `scripts/meta/combo_daily.gd` nằm trong fingerprint: cây chính cần bump RULES_VERSION / cập nhật t_rules_version (làn tích hợp lo).
-- Khi làn GD merge: Codex Cores dùng `RunState.core_seen`; kiểm `RunState.get("core_seen")` còn đúng tên.
+Cập nhật cuối (GM xong):
+- Đã merge 616db7c (GD). `ComboAdapter` gọi thẳng `CoreCombos.all([])` (không lọc run rule, để daily + Codex ổn định), `RunState.combo_done/core_skipped_t`, `EventBus.combo_formed/fired`; hook test vẫn giữ.
+- Codex/daily đồng bộ bằng `phase_changed` + `combo_formed` (chỉ trong bộ nhớ) và ghi đĩa ở `run_ended` (ghi ở phase_changed làm 10 test không có SaveGuard bị runner báo đổi save). GD không có event "offer hiện": Core được offer vào `core_seen` và được sync ở phase_changed kế tiếp.
+- Daily: `DailyScreen` thẻ rộng `ComboCard` dưới 3 thẻ (chip "Not yet" viền / "Done" vàng, thưởng title). Test `t_combo_daily_card`.
+- Combo name nổi cao hơn note Core 64px (trước bị đè). `t_v4ui_audio` nới 3..5 file placeholder (dm_combo là cái thứ 5).
+- Ảnh: `production/qa/evidence/gacha_meta_{combat,result,codex,daily}_{1280x720,1920x1080}.png` (gitignore). Capture: `godot/tools/shot.sh res://tests/qa_gacha_meta_capture.tscn WxH`.
+- Suite (không cờ skip t_rules_version): 198 test, 197 pass + t_v4ui_audio đã sửa; chỉ t_rules_version bị skip (cần làn tích hợp bump RULES_VERSION vì MetaState.gd/combo_daily.gd trong fingerprint). Worker 212/212. Sàn test: +5 file GM (t_combo_fired, t_gacha_result, t_core_codex, t_codex_books, t_combo_daily_card).
