@@ -937,9 +937,11 @@ static func overflow_check(ctx: Dictionary) -> void:
 		_hit_enemy(combat, e, ex, "c_overflow")
 
 
-## v4: hollow_core / cheap_mana make a paid reroll 1 Mana cheaper than the knob price (reroll.mana_cost_2/_3), never below 0.
+## v4: hollow_core / cheap_mana make a paid reroll 1 Mana cheaper than the knob price (reroll.mana_cost_2/_3), never below 1:
+## a free Safe reroll would let these Cores farm mana from rerolled mana faces (A+ review).
 static func reroll_cheaper(ctx: Dictionary) -> int:
-	return maxi(0, int(ctx["value"]) - 1)
+	var v := int(ctx["value"])
+	return v if v <= 1 else v - 1
 
 
 ## v4: hollow_core / cheap_mana lift the hard per-turn reroll cap (reroll.hard_cap) by reroll.core_hard_cap_add, or the cap of 4 would eat their gain.

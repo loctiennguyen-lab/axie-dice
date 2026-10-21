@@ -286,7 +286,7 @@ func t_pos_mana_cores() -> void:
 	RelicHooks.fire(c, "on_turn_end", {"combat": c})
 	_ok(c.mana == 8 and c.enemies[0].hp < h0, "overflow: mana above 8 -> damage, back to 8")
 	c = _combat(["c_hollow_core"])
-	_ok(c.max_rerolls == 0 and c.reroll_mana_cost() == 0, "hollow_core: no free reroll, first chosen reroll 0 mana (mana_cost_2 1 - 1)")
+	_ok(c.max_rerolls == 0 and c.reroll_mana_cost() == 1, "hollow_core: no free reroll, first chosen reroll 1 mana (mana_cost_2 is already 1, floor 1)")
 	RelicHooks.fire(c, "on_roll_settled", {"combat": c, "rerolled_uids": [c.party[0].uid]})
 	_ok(_val(c, c.party[0], "dmg", 5) == _val(b, b.party[0], "dmg", 5) + 1, "hollow_core: rerolled die +1")
 	_ok(_val(c, c.party[0], "mana", 2) == _val(b, b.party[0], "mana", 2) + 2, "hollow_core: mana +1 and reroll +1")
@@ -416,7 +416,7 @@ func t_quests() -> void:
 func t_run_rules() -> void:
 	var b := _combat([])
 	var c := _combat(["rule_cheap_mana"])
-	_ok(c.max_rerolls == 0 and c.reroll_mana_cost() == 0, "cheap_mana: no free reroll, first chosen reroll 0 mana (mana_cost_2 1 - 1)")
+	_ok(c.max_rerolls == 0 and c.reroll_mana_cost() == 1, "cheap_mana: no free reroll, first chosen reroll 1 mana (mana_cost_2 is already 1, floor 1)")
 	_ok(c.reroll_hard_cap() == 5, "cheap_mana: hard_cap 4 -> 5")
 	c.reroll_paid_k = 1
 	_ok(c.reroll_mana_cost() == int(CombatEngine.tune_knob("reroll", "mana_cost_3", 3.0)) - 1, "cheap_mana: price = mana_cost_3 - 1")
