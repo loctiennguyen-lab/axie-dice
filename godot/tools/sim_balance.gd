@@ -67,6 +67,19 @@ func _on_core_fired(a = null, b = null, c = null, d = null) -> void:
 			return
 
 
+## Mana faces are Tai cantrips: they resolve inside roll_all / reroll (before the bot acts) and emit float_text "+N MP" (css "man").
+## Count that exact amount so it is booked as in_face, not as turn-start / other.
+var _mx_ft := 0.0
+func _on_float_text(_uid, text, css, _big) -> void:
+	if String(css) == "man" and String(text).begins_with("+") and String(text).ends_with(" MP"):
+		_mx_ft += float(String(text).trim_prefix("+").trim_suffix(" MP").to_int())
+
+
+func _mx_hook() -> void:
+	if not EventBus.float_text.is_connected(_on_float_text):
+		EventBus.float_text.connect(_on_float_text)
+
+
 func _ready() -> void:
 	if EventBus.has_signal("core_fired"):   # exact trigger counter (FX lane); else the heuristic in _note_triggers
 		EventBus.connect("core_fired", _on_core_fired)
@@ -109,6 +122,7 @@ func _parse_args() -> Dictionary:
 ## Returns an Array of run records (see _play_run). Public so the smoke test can call it.
 func run_batch(args: Dictionary) -> Array:
 	var recs: Array = []
+	_mx_hook()
 	var team_names: Array = TEAMS.keys() if String(args.get("teams", "all")) == "all" else String(args["teams"]).split(",")
 	_e2_samples = int(args.get("e2_samples", 16))
 	_e2_min_gain = float(args.get("e2_min_gain", 0.8))
@@ -137,6 +151,7 @@ var _mx_paid_k := 0     # paid Safe rerolls so far this turn
 func _play_run(seed_value: int, team_name: String, asc: int, policy: String, core_policy: String) -> Dictionary:
 	_policy = policy
 	_core_policy = core_policy
+	_mx_ft = 0.0
 	_abl = {}
 	_met = {"turns": 0, "dmg": 0.0, "v0": 0.0, "v1": 0.0, "dsq": 0.0, "boss_n": 0, "boss_turns": 0, "boss_won": 0, "boss_hp": 0.0}
 	for k in MX_KEYS:
@@ -389,8 +404,12 @@ func _play_turn(eng: CombatEngine) -> void:
 	var mx_start := eng.mana
 	_mx_paid_k = 0
 	_mx_acc_before = _mx_tracked_net()
+	var ft0 := _mx_ft   # mana-face cantrips resolved by the roll that started this turn
+	_mx_ft = 0.0
 	if mx_start >= _mx_prev_end:
-		_ma("in_turnstart", mx_start - _mx_prev_end)
+		var fr := minf(ft0, float(mx_start - _mx_prev_end))
+		_ma("in_face", fr)
+		_ma("in_turnstart", float(mx_start - _mx_prev_end) - fr)
 	else:
 		_ma("out_other", _mx_prev_end - mx_start)
 	while guard < 24 and not (eng.won or eng.lost):
@@ -405,7 +424,10 @@ func _play_turn(eng: CombatEngine) -> void:
 		var mt := String(mu.current_face().get("type", "")) if mu != null else ""
 		var mx_m0 := eng.mana
 		var mx_cant := int(eng._kw_val(mu.current_face(), "mana")) if mu != null and mu.side == "p" else 0
-		if not eng.use_die(int(mv[0]), int(mv[1])):
+		var ft_keep := _mx_ft
+		var used_ok := eng.use_die(int(mv[0]), int(mv[1]))
+		_mx_ft = ft_keep   # a mana face used by hand is booked by _mx_use_gain, not by the listener
+		if not used_ok:
 			break
 		_mx_use_gain(eng.mana - mx_m0, mt, mx_cant)
 		if mt == "shield":
@@ -416,6 +438,7 @@ func _play_turn(eng: CombatEngine) -> void:
 		_mx_prev_end = eng.mana
 	else:
 		_mx_prev_end = 0
+		_mx_ft = 0.0
 	var dd := float(eng.stat.get("dmg_dealt_clamped", 0)) - dmg0
 	_met["turns"] = int(_met["turns"]) + 1
 	_met["dmg"] = float(_met["dmg"]) + dd
@@ -476,6 +499,8 @@ func _mx_decision_point(eng: CombatEngine, mana_start: int) -> void:
 func _mx_close_turn(eng: CombatEngine, mana_start: int) -> void:
 	_ma("end_sum", eng.mana)
 	_ma("end_n", 1)
+	_ma("in_face", _mx_ft)   # mana faces that came in with rerolls this turn
+	_mx_ft = 0.0
 	var expect := float(mana_start) + (_mx_tracked_net() - _mx_acc_before)
 	var resid := float(eng.mana) - expect
 	if resid > 0.0:
