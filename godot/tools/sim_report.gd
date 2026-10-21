@@ -506,7 +506,7 @@ static func anchor_section(recs: Array) -> String:
 					aw += 1
 					awn += int(r["aw_node"])
 					awt += int(r["aw_turn"])
-				dm += float((r.get("m", {}) as Dictionary).get("dmg", 0.0)) * float((r.get("m", {}) as Dictionary).get("turns", 0))
+				dm += float((r.get("m", {}) as Dictionary).get("dmg", 0.0))
 				tn += float((r.get("m", {}) as Dictionary).get("turns", 0))
 			var n := rs.size()
 			var p := float(w) / n
