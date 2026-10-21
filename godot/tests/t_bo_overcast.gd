@@ -5,27 +5,27 @@ func run() -> void:
 	_name = "t_bo_overcast"
 	set_knobs("nominal")
 	var e := engine([], 10)
-	# MD 22/10: Overcast = +0.40 (knob overcast.add) on EVERY die of the Set. Nominal knobs: three Horns 1 + 0.3 + 0.4 = 1.7 -> 5 becomes 9
+	# MD 22/10: Overcast = +0.50 (knob overcast.add) on EVERY die of the Set. Nominal knobs: three Horns 1 + 0.3 + 0.5 = 1.8 -> 5 becomes 9
 	force(e, [1, 1, 1, 2, 3])
-	eq(e.overcast_preview(e.party[0]), [7, 9], "preview 7 -> 9 (x1.3 -> x1.7, rounded up)")
+	eq(e.overcast_preview(e.party[0]), [7, 9], "preview 7 -> 9 (x1.3 -> x1.8, rounded up)")
 	var m0 := e.mana
 	ok(e.overcast(e.party[0].uid), "overcast accepted")
-	eq(e.mana, m0 - 3, "costs 3")
+	eq(e.mana, m0 - 2, "costs 2")
 	eq(e._face_value(e.party[0], 1), 9, "5 with a Set of three + Overcast = 9")
 	for i in 3:
-		eq(e.m100_for(e.party[i]), 170, "member %d M 1.70" % i)
+		eq(e.m100_for(e.party[i]), 180, "member %d M 1.80" % i)
 	eq(e.m100_for(e.party[3]), 100, "loose die untouched")
-	# four + overcast = 1 + 1.2 + 0.4 = 2.60
+	# four + overcast = 1 + 1.2 + 0.5 = 2.70
 	var e4 := engine([], 10)
 	force(e4, [1, 1, 1, 1, 3], face("dmg", 6))
 	e4.overcast(e4.party[3].uid)   # any member works
 	for i in 4:
-		eq(e4.m100_for(e4.party[i]), 260, "four + overcast = 2.60 on member %d" % i)
-	# five + overcast hits the cap (nominal 3.5: 1 + 1.6 + 0.4 = 3.0 -> no clamp; shipped cap 3.0 also 3.0)
+		eq(e4.m100_for(e4.party[i]), 270, "four + overcast = 2.70 on member %d" % i)
+	# five + overcast hits the cap (nominal 3.5: 1 + 1.6 + 0.5 = 3.1 -> nominal cap 3.5 no clamp; shipped cap 3.0 clamps)
 	var e5 := engine([], 10)
 	force(e5, [1, 1, 1, 1, 1], face("dmg", 6))
 	e5.overcast(e5.party[0].uid)
-	eq(e5.m100_for(e5.party[4]), 300, "five + overcast = 3.00")
+	eq(e5.m100_for(e5.party[4]), 310, "five + overcast = 3.10 (nominal cap 3.5)")
 	# no Set -> refused, mana untouched, reason says Set
 	var eo := engine([], 10)
 	force(eo, [0, 1, 2, 3, 4])
@@ -58,19 +58,19 @@ func run() -> void:
 	ew.mana = 10
 	ok(ew.wild_face(ew.party[3].uid, 1), "wild 3 -> 4 after Overcast")
 	eq(ew.m100_for(ew.party[3]), 100 + ew.bo_add100(4) - 0, "the late fourth die has the Set add only, no Overcast")
-	eq(ew.m100_for(ew.party[0]), 100 + ew.bo_add100(4) + 40, "locked members keep Overcast and see the new Set size")
+	eq(ew.m100_for(ew.party[0]), 100 + ew.bo_add100(4) + 50, "locked members keep Overcast and see the new Set size")
 	# Overcast + Crack on a Set member
 	var ec := engine([], 10)
 	force(ec, [1, 1, 1, 3, 4])
 	ec.party[0].cracked = true   # a cracked die does not count: the pair left is no Set
 	ec._snap_bo()
 	ok(not ec.overcast(ec.party[1].uid), "cracked die broke the Set: no Overcast")
-	# default knobs: three + overcast = 1.30 + 0.40 = 1.70
+	# default knobs: three + overcast = 1.30 + 0.50 = 1.80
 	set_knobs("default")
 	var ed := engine([], 10)
 	force(ed, [1, 1, 1, 2, 3])
 	ed.overcast(ed.party[0].uid)
-	eq(ed.m100_for(ed.party[0]), 170, "default: three + overcast = 1.70")
+	eq(ed.m100_for(ed.party[0]), 180, "default: three + overcast = 1.80")
 	# MD review: a die that is already Overcast cannot be given a Mat Tam (reason "overcast", mana untouched)
 	var eq2 := engine([], 10)
 	force(eq2, [1, 1, 1, 2, 2])

@@ -1261,7 +1261,7 @@ static func affix_tip(id: String) -> String:
 func _overcast_state(executing: bool) -> Dictionary:
 	var cost := _combat.overcast_cost()
 	var text := "Overcast %s %d MP" % [HudKit.dot(), cost]
-	var tip := TranslationServer.translate("Overcast makes your whole Set stronger: +0.4 on every die in it.")
+	var tip := TranslationServer.translate("Overcast makes your whole Set stronger: +%s on every die in it.") % ("%.1f" % _combat.overcast_add())
 	var ok := false
 	if _combat.overcast_count() > 0 and _combat.overcast_count() >= _combat.overcast_per_turn():
 		text = "Overcast: used"
