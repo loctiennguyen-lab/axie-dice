@@ -201,7 +201,7 @@ func _set_capped_state(capped: bool) -> void:
 
 func _near_miss() -> void:
 	# Plan (pure): near-miss adds near_miss_sec before the first flip and nothing else.
-	var a := UI3Gacha.plan(3, 1, true, false, false)
+	var a := UI3Gacha.plan(3, 2, true, false, false)   # same aura as the capped Crystal halo
 	var b := UI3Gacha.plan(3, 1, true, false, false, -1.0, 2)
 	_check(is_equal_approx(b["flips"][0] - a["flips"][0], 0.6) and is_equal_approx(b["crack_at"], b["aura"]), "near-miss plan: crack at aura end, flips +0.6 s")
 	_check(is_equal_approx(UI3Gacha.plan(3, 2, true, false, false, -1.0, 2)["total"], UI3Gacha.plan(3, 2, true, false, false)["total"]), "no near-miss when the tier equals from_tier")

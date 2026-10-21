@@ -38,7 +38,7 @@ func start(cards: Array, tier: int, first: bool, jackpot: bool, shake_host: Cont
 		var card := c as Control
 		var col := card.get_child(0) as Control
 		col.modulate.a = 0.0
-		var cover := UI3Gacha.build_cover(int(card.get_meta("gacha_tier", tier)), from_tier)
+		var cover := UI3Gacha.build_cover(int(card.get_meta("gacha_tier", tier)), from_tier, cards.find(c) == 0)
 		card.add_child(cover)
 		_covers.append(cover)
 		var halo := cover.get_node("Halo") as Panel
@@ -86,12 +86,32 @@ func _crack() -> void:
 		var why := cv.find_child("ReasonLine", true, false) as Control
 		if why != null:
 			create_tween().tween_property(why, "modulate:a", 1.0, 0.15)
+		_crack_lines(cv)
 		if not MetaState.reduce_flash:
 			var base := cv.position
 			var tw := create_tween()
 			for j in 4:
 				tw.tween_property(cv, "position", base + Vector2(4 if j % 2 == 0 else -4, 0), 0.04)
 			tw.tween_property(cv, "position", base, 0.04)
+
+
+## Visible fracture: dark jagged strokes that cut across the border at three spots (flat Line2D, no shader).
+func _crack_lines(cv: Control) -> void:
+	var sz := cv.size
+	var ink := UI3Theme.color("bg")
+	var spots: Array = [
+		[Vector2(sz.x * 0.28, -6), Vector2(sz.x * 0.31, 14), Vector2(sz.x * 0.26, 30), Vector2(sz.x * 0.30, 46)],
+		[Vector2(sz.x + 6, sz.y * 0.35), Vector2(sz.x - 14, sz.y * 0.38), Vector2(sz.x - 30, sz.y * 0.33), Vector2(sz.x - 46, sz.y * 0.37)],
+		[Vector2(sz.x * 0.7, sz.y + 6), Vector2(sz.x * 0.67, sz.y - 14), Vector2(sz.x * 0.72, sz.y - 30), Vector2(sz.x * 0.68, sz.y - 46)]]
+	for pts in spots:
+		var ln := Line2D.new()
+		ln.name = "CrackLine"
+		ln.width = 8.0
+		ln.default_color = ink
+		ln.joint_mode = Line2D.LINE_JOINT_SHARP
+		for pt in pts:
+			ln.add_point(pt)
+		cv.add_child(ln)
 
 
 func _flip(i: int) -> void:

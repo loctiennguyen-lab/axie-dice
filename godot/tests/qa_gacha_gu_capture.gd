@@ -85,6 +85,8 @@ func _ready() -> void:
 		await _jackpot()
 	if _want("banner"):
 		await _banner()
+	if _want("nearmiss"):
+		await _nearmiss()
 	_guard.restore()
 	get_tree().quit(0)
 
@@ -120,3 +122,21 @@ func _banner() -> void:
 	await _wait(0.6)
 	_snap("banner_full")
 	await _wait(2.4)
+
+
+func _nearmiss() -> void:
+	RunState.owned_relic_ids.assign(["c_cascade", "c_blood_sign", "c_deep_current"])
+	RunState.core_tier_chain = [2, 2, 2, 2, 2, 2]
+	RunState._core_offer_pick = 1
+	RunState.core_pick_index = 2
+	await _open_tier(1)
+	await _until(func(): return rm._reveal != null and rm._reveal.events.has("aura"), 4.0)
+	for _i in 25:   # frames, not seconds: the first frames after a scene load can stall for a second
+		await get_tree().process_frame
+	print("nearmiss before: crack=", rm._reveal.events.has("crack"))
+	_snap("nearmiss_before")
+	await _until(func(): return rm._reveal.events.has("crack"), 4.0)
+	await _wait(0.35)
+	_snap("nearmiss_after_crack")
+	await _wait(2.0)
+	_snap("nearmiss_flipped")

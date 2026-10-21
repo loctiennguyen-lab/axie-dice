@@ -52,7 +52,9 @@ static func plan(n: int, tier: int, first: bool, jackpot: bool, reduce_flash: bo
 	# Near-miss: cards open as `from_tier` (the cap-held higher tier), crack to `tier` at `crack_at`, then flip.
 	var nm := float(t.get("near_miss_sec", 0.6)) if from_tier > tier else 0.0
 	var au: Dictionary = t["aura_sec"]
-	var aura := float(au[TIER_KEY[clampi(tier, 0, 2)]]) if first else float(au["repeat"])
+	# The halo shows the capped (higher) tier, so a near-miss holds the longer higher-tier aura before it cracks.
+	var aura_tier := from_tier if from_tier > tier else tier
+	var aura := float(au[TIER_KEY[clampi(aura_tier, 0, 2)]]) if first else float(au["repeat"])
 	var fl := float(t["flip_sec"]) if flip_sec < 0.0 else flip_sec
 	var flips: Array[float] = []
 	for i in n:
@@ -70,7 +72,7 @@ static func tier_color(tier: int) -> Color:
 
 
 ## The card back: raised plate, tier-coloured border, tier word (colour never alone) and a pulsing halo ring child.
-static func build_cover(tier: int, from_tier := -1) -> Panel:
+static func build_cover(tier: int, from_tier := -1, with_reason := true) -> Panel:
 	var near := from_tier > tier
 	var accent := tier_color(from_tier if near else tier)
 	var cover := Panel.new()
@@ -109,17 +111,31 @@ static func build_cover(tier: int, from_tier := -1) -> Panel:
 	w.add_theme_color_override("font_color", accent)
 	w.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	box.add_child(w)
-	if near:
-		var why := UI3.label("", "LabelDisplay")
-		why.name = "ReasonLine"
-		why.text = TranslationServer.translate("Crystal cap reached")
-		why.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		why.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		why.modulate.a = 0.0
-		why.mouse_filter = Control.MOUSE_FILTER_IGNORE
-		box.add_child(why)
+	if near and with_reason:
+		box.add_child(reason_strip())
 	cover.add_child(box)
 	return cover
+
+
+## The near-miss reason, on the one card that carries it: "Crystal cap reached - max N Crystal Cores this run"
+## (N is the engine's cap for this mode). Cream text on a solid notice plate with an amber border (readable, not red).
+static func reason_strip() -> PanelContainer:
+	var strip := PanelContainer.new()
+	strip.name = "ReasonLine"
+	strip.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var sb := UI3Theme.flat(UI3Theme.color("notice_bg"), UI3Theme.radius("m"), UI3Theme.stroke("hairline"),
+		UI3Theme.color("accent"), Vector4(16, 12, 16, 12))
+	strip.add_theme_stylebox_override("panel", sb)
+	var l := UI3.label(TranslationServer.translate("Crystal cap reached \u2014 max %d Crystal Cores this run") \
+		% CoreOffer.t_cap(String(RunState.get("mode"))), "LabelDisplay")
+	l.name = "ReasonText"
+	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	l.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	l.custom_minimum_size.x = 300
+	l.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	strip.add_child(l)
+	strip.modulate.a = 0.0
+	return strip
 
 
 ## Tier this offer would have been without the Crystal cap (2), or -1. UI-only read of the run state:
