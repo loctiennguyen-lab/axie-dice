@@ -3271,7 +3271,7 @@ func _spawn_combo_name(nm: String) -> void:
 	var sz := chip.get_combined_minimum_size()
 	chip.size = sz
 	var vs := get_viewport_rect().size
-	chip.position = Vector2(clampf(a.x + 48.0, 24.0, vs.x - 24.0 - sz.x), clampf(a.y - sz.y * 1.6, 24.0, vs.y - 24.0 - sz.y))
+	chip.position = Vector2(clampf(a.x + 48.0, 24.0, vs.x - 24.0 - sz.x), clampf(a.y - sz.y * 1.6 - 64.0, 24.0, vs.y - 24.0 - sz.y))
 	var tw := chip.create_tween()
 	tw.tween_interval(COMBO_FLOAT_SEC - 0.25)
 	tw.tween_property(chip, "modulate:a", 0.0, 0.25)

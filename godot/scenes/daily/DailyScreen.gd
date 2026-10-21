@@ -307,7 +307,7 @@ func _refresh_combo() -> void:
 	var reward := UI3.label("Reward: title %s (%d done)" % [next_title, n] if next_title != "" else "%d done" % n, "LabelMuted")
 	reward.name = "Reward"
 	left.add_child(reward)
-	var chip: Control = UI3.chip("Done") if done else UI3.chip("Not yet")
+	var chip: Control = UI3.chip("Done") if done else _day_chip("Not yet", false)
 	chip.name = "ComboStatus"
 	chip.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 	h.add_child(chip)
