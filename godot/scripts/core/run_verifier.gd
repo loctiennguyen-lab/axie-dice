@@ -36,6 +36,7 @@ const ERR_CONTENT_VERSION := "content_version_mismatch"
 const ERR_NOT_RANKED := "not_ranked"
 const ERR_BAD_HEADER := "bad_header"
 const ERR_REJECTED := "action_rejected"
+const ERR_STAGE_MISMATCH := "stage_mismatch"
 const ERR_UNKNOWN_ACTION := "unknown_action"
 
 
@@ -71,6 +72,12 @@ static func verify(log: ActionLog, tape: Array = [], loadout: Dictionary = {}) -
 		return _fail(ERR_NOT_RANKED,
 			"Only a ranked run can be verified. An unranked one starts from unlocks that exist "
 			+ "only on the player's own machine.")
+
+	# Depth v4 3.10.9 (T7): the stage is the one the SERVER wrote into the tape's run_start header. A log header that claims another one is a lie
+	# (the replay itself plays under the tape's stage, so a stage-gated action in a low-stage run is refused at its own index, T6).
+	var tape_stage := int((((tape[0] as Dictionary).get("extra", {}) as Dictionary).get("header", {}) as Dictionary).get("depth_stage", 3))
+	if int(header.get("depth_stage", 3)) != tape_stage:
+		return _fail(ERR_STAGE_MISMATCH, "The record claims depth stage %d; the server issued stage %d." % [int(header.get("depth_stage", 3)), tape_stage])
 
 	var team: Array[String] = []
 	for k in (header.get("team_keys", []) as Array):
@@ -158,7 +165,7 @@ static func verify(log: ActionLog, tape: Array = [], loadout: Dictionary = {}) -
 			"shop_refresh":
 				if not RunState.refresh_shop(-1):
 					return _fail(ERR_REJECTED, "A shop refresh was recorded that the replay cannot make.", i)
-			"use_die", "play_active", "reroll_dice", "undo_last", "end_turn", "tweak", "hold_pick", "loaded_pick", "continue", "stash":
+			"use_die", "play_active", "reroll_dice", "undo_last", "end_turn", "tweak", "hold_pick", "loaded_pick", "continue", "stash", "overcast", "wild_face":
 				if engine == null:
 					return _fail(ERR_REJECTED,
 						"A combat move was recorded outside a combat.", i)
@@ -257,8 +264,9 @@ static func _apply_combat(engine: CombatEngine, fn: String, args: Array) -> bool
 			return engine.play_active(String(args[0]), int(args[1]))
 		"reroll_dice":
 			# args[1] = from_aid (0/1); logs written before it existed have only the uids.
+			# args[2] = rmode (0 Lieu / 1 Safe); older logs have none = Safe.
 			return engine.reroll_dice(args[0] as Array, -1, \
-				args.size() > 1 and int(args[1]) != 0)
+				args.size() > 1 and int(args[1]) != 0, int(args[2]) if args.size() > 2 else 1)
 		"undo_last":
 			return engine.undo_last()
 		"continue":
@@ -269,6 +277,10 @@ static func _apply_combat(engine: CombatEngine, fn: String, args: Array) -> bool
 			return args.size() >= 1 and engine.hold_pick(int(args[0]))
 		"stash":
 			return args.size() >= 1 and engine.stash(int(args[0]))
+		"overcast":
+			return args.size() >= 1 and engine.overcast(int(args[0]))
+		"wild_face":
+			return args.size() >= 2 and engine.wild_face(int(args[0]), int(args[1]))
 		"loaded_pick":
 			return args.size() >= 2 and engine.loaded_pick(int(args[0]), int(args[1]))
 		"end_turn":

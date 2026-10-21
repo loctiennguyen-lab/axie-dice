@@ -262,7 +262,7 @@ func start_params() -> Dictionary:
 		if k != "":
 			keys.append(k)
 	return {"team_keys": keys, "mode": mode, "ascension": ascension, "kind": kind, "ranked": kind == "ranked",
-		"newcomer": is_newcomer()}
+		"newcomer": is_newcomer(), "depth_stage": MetaState.depth_stage()}
 
 
 ## Fetches the Daily tries. Only meaningful when dice are server-rolled; quiet on failure (the buttons
@@ -304,6 +304,8 @@ func kind_block_reason(k: String) -> String:
 	if is_newcomer():
 		var need := int(EconomyDBScript.get_table("missions").get("newcomer_runs", 5))
 		return "Opens after %d runs · %d of %d" % [need, mini(MetaState.runs_with_battle, need), need]
+	if MetaState.depth_stage() < 3:
+		return "Ranked opens at depth stage 3"
 	if _party_has_vault():
 		return "Imported Axies can't play Ranked"
 	return ""

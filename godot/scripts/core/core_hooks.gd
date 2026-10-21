@@ -835,7 +835,7 @@ static func thorn_growth_hit(ctx: Dictionary) -> void:
 static func thorn_shield_turn_end(ctx: Dictionary) -> void:
 	var combat = ctx["combat"]
 	for u in living_axies(combat):
-		var t: int = int(u.shield) / 2
+		var t: int = mini(int(u.shield) / 2, int(combat.tune_knob("thorn", "shield_transfer_cap", 6.0)))   # v4 N5: capped per Axie per transfer
 		if t <= 0:
 			continue
 		u.shield -= t * 2
@@ -937,14 +937,28 @@ static func overflow_check(ctx: Dictionary) -> void:
 		_hit_enemy(combat, e, ex, "c_overflow")
 
 
+## v4: hollow_core / cheap_mana make a paid reroll 1 Mana cheaper than the knob price (reroll.mana_cost_2/_3), never below 1:
+## a free Safe reroll would let these Cores farm mana from rerolled mana faces (A+ review).
+static func reroll_cheaper(ctx: Dictionary) -> int:
+	var v := int(ctx["value"])
+	return v if v <= 1 else v - 1
+
+
+## v4: hollow_core / cheap_mana lift the hard per-turn reroll cap (reroll.hard_cap) by reroll.core_hard_cap_add, or the cap of 4 would eat their gain.
+static func reroll_cap_up(ctx: Dictionary) -> int:
+	return int(ctx["value"]) + int(ctx["combat"].tune_knob("reroll", "core_hard_cap_add", 1.0))
+
+
 ## Hollow Core: reroll costs 1 Mana, up to 8 a turn (the engine cap counts each second paid reroll as free).
 static func hollow_paid(ctx: Dictionary) -> void:
+	if int(ctx.get("rmode", 1)) != 1:
+		return   # Lieu (rmode 0) is free and is never discounted: only a mana-paid Safe reroll counts
 	var combat = ctx["combat"]
 	var st := turn_state(combat, "cs_paid")
 	st["n"] = int(st.get("n", 0)) + 1
 	fire("c_hollow_core", 0, 1, "reroll")
 	if int(st["n"]) % 2 == 0:
-		combat.reroll_nonaid = maxi(0, combat.reroll_nonaid - 1)
+		combat.reroll_paid_k = maxi(0, combat.reroll_paid_k - 1)
 
 
 static func rerolled_count(ctx: Dictionary) -> void:
@@ -1228,8 +1242,10 @@ static func balance_used(ctx: Dictionary) -> void:
 
 ## Cheap Mana: the per-turn reroll cap goes 4 -> 5 (the first paid reroll of a turn does not count).
 static func cheap_paid(ctx: Dictionary) -> void:
+	if int(ctx.get("rmode", 1)) != 1:
+		return   # Lieu is free: it must not eat the "first paid reroll does not count" discount
 	var st := turn_state(ctx["combat"], "cs_cheap")
 	if not bool(st.get("done", false)):
 		st["done"] = true
-		ctx["combat"].reroll_nonaid = maxi(0, ctx["combat"].reroll_nonaid - 1)
+		ctx["combat"].reroll_paid_k = maxi(0, ctx["combat"].reroll_paid_k - 1)
 		fire("rule_cheap_mana", 0, 1, "reroll")

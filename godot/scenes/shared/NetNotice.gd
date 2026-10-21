@@ -25,7 +25,7 @@ static func text_for(code: String) -> String:
 			return RunState.GONE_MESSAGE
 		"busy":
 			return "Still waiting for the server. Try again in a moment."
-		"rejected", "out_of_order":
+		"rejected", "out_of_order", "pin_mismatch", "stage_mismatch":
 			return "The server didn't accept that move. It was undone."
 		"bad_request":
 			return "Something went wrong. Try that again."

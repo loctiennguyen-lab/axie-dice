@@ -356,6 +356,10 @@ func test_mirror_copies_the_players_biggest_face() -> void:
 		_assert(false, "mirror did not spawn")
 		return
 	var b: Unit = bosses[0]
+	# Own fixture: a party that survives to turn 3 (enemy_dmg_mult 1.45 would wipe the default one).
+	for pu in c.party:
+		(pu as Unit).max_hp = 100000
+		(pu as Unit).hp = 100000
 	var before: int = int((b.die[0] as Dictionary).get("value", 0))
 	# Stand in for "the strongest face the player used last turn".
 	c.last_big = {"v": before + 100, "f": {"part": "horn", "type": "dmg",

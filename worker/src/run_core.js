@@ -28,6 +28,10 @@ export const ALLOWED_FNS = new Set([
   'pact_pick',
   // depth v3 lane A: Hold ([uid])
   'stash',
+  // lane OC: Overcast ([uid])
+  'overcast',
+  // depth v4: Mat Tam ([uid, slot])
+  'wild_face',
 ]);
 
 /** kind -> action(s) that consume it at position log_len (ADR 4.2). null = consumed on reply. A list means any of them. */
@@ -84,6 +88,14 @@ export function argsProblem(kind, args) {
 // check that the (turn, k) of each reroll epoch matches the real turn and reroll count at that log
 // position, otherwise a client could request seeds under invented keys.
 
+/** A uids list is 1..16 integers 0..100000 (same shape as epoch_args.json int_list); nothing that could carry a comma or text. */
+const validUids = (a) => Array.isArray(a) && a.length >= 1 && a.length <= 16 && a.every((x) => Number.isInteger(x) && x >= 0 && x <= 100000);
+/** Canonical text of a stored uids column: JSON array. Rows written before this change used 'a,b,c'. */
+const normUids = (stored) => {
+  if (typeof stored !== 'string') return null;
+  if (stored.startsWith('[')) return stored;
+  return JSON.stringify(stored.split(',').map(Number));
+};
 const fail = (seq, code) => ({ t: 'epoch_err', seq, code });
 const isPaid = (kind, args) => KINDS[kind].paid || (kind === 'reroll' && args.source === 'aid');
 
@@ -106,7 +118,11 @@ export class RunCore {
       id INTEGER PRIMARY KEY CHECK (id = 1), run_id TEXT NOT NULL, player_id TEXT NOT NULL,
       is_guest INTEGER NOT NULL, mode TEXT NOT NULL, ascension INTEGER NOT NULL DEFAULT 0, rules_version TEXT NOT NULL,
       s_run BLOB NOT NULL, client_nonce TEXT, session_epoch INTEGER NOT NULL DEFAULT 0,
-      state TEXT NOT NULL, outcome TEXT, summary TEXT, created_at INTEGER NOT NULL)`);
+      state TEXT NOT NULL, outcome TEXT, summary TEXT, created_at INTEGER NOT NULL, depth_stage INTEGER)`);
+    // A Durable Object created before depth v4 has a meta table without the column: add it (NULL = no stage on record, nothing to check).
+    try { sql.exec('ALTER TABLE meta ADD COLUMN depth_stage INTEGER'); } catch (e) {
+      if (!/duplicate column/i.test(String(e && e.message))) throw e; // only "already there" is fine
+    }
     sql.exec(`CREATE TABLE IF NOT EXISTS pending_aid (
       seq INTEGER PRIMARY KEY, aid TEXT NOT NULL, idem_key TEXT NOT NULL, state TEXT NOT NULL)`);
     // One row per epoch, no secondary index (ADR 4.6 F4). req_digest makes a resend idempotent;
@@ -120,16 +136,17 @@ export class RunCore {
   // ------------------------------------------------------------------ creation
 
   /** Called once, right after the D1 batch inserted runs(state=pending). Returns the commitment. */
-  async init({ run_id, player_id, is_guest = false, mode = 'normal', ascension = 0, rules_version, client_nonce = null }) {
+  async init({ run_id, player_id, is_guest = false, mode = 'normal', ascension = 0, rules_version, client_nonce = null, depth_stage = null }) {
     RunCore.initSchema(this.sql);
     if (this.meta()) throw new Error('run already initialised');
     if (!/^[a-f0-9]{32}$/.test(run_id)) throw new Error('bad run_id');
     if (this.deps.supportsRules && !this.deps.supportsRules(rules_version)) return { ok: false, code: 'version' };
     const sRun = crypto.getRandomValues(new Uint8Array(32)); // never leaves the DO while the run is open
     this.sql.exec(
-      `INSERT INTO meta (id, run_id, player_id, is_guest, mode, ascension, rules_version, s_run, client_nonce, state, created_at)
-       VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?, 'open', ?)`,
+      `INSERT INTO meta (id, run_id, player_id, is_guest, mode, ascension, rules_version, s_run, client_nonce, state, created_at, depth_stage)
+       VALUES (1, ?, ?, ?, ?, ?, ?, ?, ?, 'open', ?, ?)`,
       run_id, player_id, is_guest ? 1 : 0, mode, ascension, rules_version, sRun, client_nonce, this.deps.now(),
+      Number.isInteger(depth_stage) && depth_stage >= 1 && depth_stage <= 3 ? depth_stage : null,
     );
     return { ok: true, commit: await commitOf(run_id, sRun) };
   }
@@ -241,6 +258,23 @@ export class RunCore {
     const need = KINDS[prev.kind].consume;
     if (!need) return null;
     if (delta.length === 0 || ![].concat(need).includes(delta[0].fn)) return 'unconsumed';
+    // Depth v4 T10: the Aid source the log claims (reroll_dice args[1] = from_aid) must be the source this epoch was granted for.
+    if (prev.kind === 'reroll' && delta[0].fn === 'reroll_dice') {
+      let pa = {};
+      try { pa = JSON.parse(prev.args); } catch { pa = {}; }
+      const claimedAid = !!(Array.isArray(delta[0].args) && Number(delta[0].args[1] ?? 0));
+      if (claimedAid !== (pa.source === 'aid')) return 'aid_mismatch';
+      // Depth v4 3.10.2 / T1: the rmode the log claims (reroll_dice args[2], absent = 1) must be the rmode this epoch was granted for.
+      const claimedRmode = Array.isArray(delta[0].args) && delta[0].args.length > 2 ? Number(delta[0].args[2]) : 1;
+      if (claimedRmode !== (pa.rmode ?? 1)) return 'rmode_mismatch';
+      // The dice the log re-rolled must be exactly the uids pinned on this epoch (ledger commitment).
+      const logUids = Array.isArray(delta[0].args) ? delta[0].args[0] : null;
+      if (!validUids(logUids)) return 'uids_invalid';
+      if (JSON.stringify(logUids) !== normUids(prev.uids)) {
+        this._anomaly('uids_mismatch', { seq: prev.seq });
+        return 'uids_mismatch';
+      }
+    }
     return null;
   }
 
@@ -253,8 +287,15 @@ export class RunCore {
 
   // ------------------------------------------------------------------ epoch_req
 
+  /** Depth v4 3.10.9: once the server has written a stage for this run, every request must carry exactly that stage (the client header is not trusted). */
+  _stageProblem(meta, m) {
+    if (meta.depth_stage == null) return false;
+    return m.depth_stage !== meta.depth_stage;
+  }
+
   async _epochReq(meta, m) {
     const seq = Number.isInteger(m.seq) ? m.seq : 0;
+    if (this._stageProblem(meta, m)) { this._anomaly('stage_mismatch', { seq }); return fail(seq, 'stage_mismatch'); }
     const spec = KINDS[m.kind];
     const args = m.args && typeof m.args === 'object' && !Array.isArray(m.args) ? m.args : null;
     if (!spec || !args || !Number.isInteger(m.seq) || m.seq < 0) return fail(seq, 'bad_request');
@@ -310,11 +351,20 @@ export class RunCore {
     let seed;
     let uids = null;
     if (m.kind === 'reroll') {
-      if (!Array.isArray(args.uids)) return fail(seq, 'bad_request');
-      uids = args.uids.join(',');
+      if (!validUids(args.uids)) return fail(seq, 'bad_request');
+      uids = JSON.stringify(args.uids);
       pin = `${this._battleSeq()}:${attempt}:${args.turn}:${args.k}`;
-      const pinned = this.sql.exec('SELECT seed FROM epochs WHERE pin_key = ? ORDER BY seq LIMIT 1', pin).toArray()[0];
-      if (pinned) seed = pinned.seed;
+      const pinned = this.sql.exec('SELECT seed, uids, args FROM epochs WHERE pin_key = ? ORDER BY seq LIMIT 1', pin).toArray()[0];
+      if (pinned) {
+        // Depth v4 3.10.2: a seen (turn, k) can only be asked again with the same rmode, the same source (rsrc) and the same uids.
+        let prevArgs = {};
+        try { prevArgs = JSON.parse(pinned.args); } catch { prevArgs = {}; }
+        if ((prevArgs.rmode ?? 1) !== (args.rmode ?? 1) || (prevArgs.source ?? 'base') !== (args.source ?? 'base') || normUids(pinned.uids) !== uids) {
+          this._anomaly('pin_mismatch', { seq });
+          return fail(seq, 'pin_mismatch');
+        }
+        seed = pinned.seed;
+      }
     }
     if (seed === undefined) {
       seed = await epochSeed(meta.s_run instanceof Uint8Array ? meta.s_run : new Uint8Array(meta.s_run), {
@@ -418,6 +468,9 @@ export class RunCore {
 
   async _runClose(meta, m) {
     const seq = Number.isInteger(m.seq) ? m.seq : 0;
+    if (this._stageProblem(meta, m)) { this._anomaly('stage_mismatch', { seq }); return fail(seq, 'stage_mismatch'); }
+    // Depth v4: a ranked run below stage 3 is never closed as ranked.
+    if (meta.mode === 'ranked' && meta.depth_stage != null && meta.depth_stage < 3) { this._anomaly('ranked_stage', { seq }); return fail(seq, 'ranked_stage'); }
     const last = this.last();
     if (!last) return fail(seq, 'out_of_order');
     if (seq !== last.seq + 1) return fail(seq, 'out_of_order');

@@ -31,6 +31,18 @@ async function newcomer(env, playerId) {
   return r.n < NEWCOMER_RUNS;
 }
 
+// Depth v4 3.8 (N7): stage 2 from STAGE2_RUNS completed runs, stage 3 from STAGE3_RUNS; an account already past the newcomer gate starts at 3.
+// "Completed" = a run the Durable Object wrote back as closed (won or lost); a run that only has run_start, or was abandoned, never counts.
+const STAGE2_RUNS = 1;
+const STAGE3_RUNS = 3;
+export async function depthStage(env, playerId) {
+  const r = await env.DB.prepare(`SELECT COUNT(*) AS n FROM runs WHERE player_id = ? AND state = 'closed' AND outcome IN ('won', 'lost')`).bind(playerId).first();
+  const n = r ? r.n : 0;
+  if (n >= STAGE3_RUNS) return 3;
+  if (n >= STAGE2_RUNS) return 2;
+  return (await newcomer(env, playerId)) ? 1 : 3;
+}
+
 async function createRun(request, env, url, player) {
   if (request.headers.get('Origin') && !shared.isAllowedOrigin(request.headers.get('Origin'), url)) return json({ error: 'forbidden' }, 403);
   let body;
@@ -62,6 +74,9 @@ async function createRun(request, env, url, player) {
   // TODO(wallet/LIAM-2): Boon source goes in this batch.
   const dailyMax = Number(env.DAILY_TRIES) || DAILY_TRIES_DEFAULT;
 
+  const stage = await depthStage(env, player.id);
+  // Depth v4: ranked only opens at stage 3.
+  if (mode === 'ranked' && stage < 3 && env.ALLOW_GATED_MODES !== '1') return json({ error: 'ranked_stage' }, 403);
   const runId = hex(crypto.getRandomValues(new Uint8Array(16)));
   const nowS = Math.floor(Date.now() / 1000);
   const dayStart = nowS - (nowS % 86400);
@@ -75,13 +90,13 @@ async function createRun(request, env, url, player) {
     // Cap check and insert are one statement, so concurrent requests cannot both slip under the cap.
     res = await env.DB.batch([
       env.DB.prepare(
-        `INSERT INTO runs (run_id, player_id, mode, ascension, rules_version, state, created_at)
-         SELECT ?, ?, ?, ?, ?, 'pending', ?
+        `INSERT INTO runs (run_id, player_id, mode, ascension, rules_version, state, created_at, depth_stage)
+         SELECT ?, ?, ?, ?, ?, 'pending', ?, ?
           WHERE (? = 'mission'
              OR (SELECT COUNT(*) FROM runs WHERE player_id = ? AND created_at >= ? AND mode != 'mission' AND state != 'infra_error') < ?)
            AND (? != 'daily'
              OR (SELECT COUNT(*) FROM runs WHERE player_id = ? AND mode = 'daily' AND created_at >= ? AND state != 'infra_error') < ?)`,
-      ).bind(runId, player.id, mode, ascension, rules, nowS, mode, player.id, dayStart, cap, mode, player.id, dayStart, dailyMax),
+      ).bind(runId, player.id, mode, ascension, rules, nowS, stage, mode, player.id, dayStart, cap, mode, player.id, dayStart, dailyMax),
       ...(mission ? escrowStatements(env, { runId, playerId: player.id, tier: mission.tier, stake: mission.stake, mult: mission.mult, at: nowS }) : []),
     ]);
   } catch (err) {
@@ -97,7 +112,7 @@ async function createRun(request, env, url, player) {
   try {
     const r = await stub(env, runId).fetch('https://do/init', {
       method: 'POST',
-      body: JSON.stringify({ run_id: runId, player_id: player.id, mode, ascension, rules_version: rules, client_nonce: nonce }),
+      body: JSON.stringify({ run_id: runId, player_id: player.id, mode, ascension, rules_version: rules, client_nonce: nonce, depth_stage: stage }),
     });
     init = await r.json();
   } catch (err) {
@@ -112,7 +127,7 @@ async function createRun(request, env, url, player) {
   const jti = newJti();
   await env.DB.prepare(`UPDATE runs SET state = 'open', commit_hash = ?, token_jti = ? WHERE run_id = ? AND state = 'pending'`).bind(init.commit, jti, runId).run();
   const run_token = await signRunToken(env, { player_id: player.id, run_id: runId, rules_version: rules, jti });
-  return json({ run_id: runId, run_token, commit: init.commit, ws_url: wsUrl(url, runId), header: { newcomer: await newcomer(env, player.id) } });
+  return json({ run_id: runId, run_token, commit: init.commit, ws_url: wsUrl(url, runId), header: { newcomer: await newcomer(env, player.id), depth_stage: stage } });
 }
 
 async function dailyUsed(env, playerId, dayStart) {
@@ -129,13 +144,13 @@ async function dailyInfo(env, player) {
 }
 
 async function openRun(env, url, player) {
-  const row = await env.DB.prepare(`SELECT run_id, rules_version, mode, commit_hash FROM runs WHERE player_id = ? AND state = 'open'`).bind(player.id).first();
+  const row = await env.DB.prepare(`SELECT run_id, rules_version, mode, commit_hash, depth_stage FROM runs WHERE player_id = ? AND state = 'open'`).bind(player.id).first();
   if (!row) return json({});
   // A new token revokes the previous one (other device, or a stolen copy): only the newest jti passes hello.
   const jti = newJti();
   await env.DB.prepare(`UPDATE runs SET token_jti = ? WHERE run_id = ? AND state = 'open'`).bind(jti, row.run_id).run();
   const run_token = await signRunToken(env, { player_id: player.id, run_id: row.run_id, rules_version: row.rules_version, jti });
-  return json({ run_id: row.run_id, run_token, commit: row.commit_hash, ws_url: wsUrl(url, row.run_id), header: { mode: row.mode, newcomer: await newcomer(env, player.id) } });
+  return json({ run_id: row.run_id, run_token, commit: row.commit_hash, ws_url: wsUrl(url, row.run_id), header: { mode: row.mode, newcomer: await newcomer(env, player.id), depth_stage: row.depth_stage ?? 3 } });
 }
 
 const changed = (r) => ((r && r.meta && r.meta.changes) || 0) > 0;

@@ -325,6 +325,7 @@ var last_throw: Dictionary = {}
 var _last_die_used: Dictionary = {}       # uid -> bool — drives the flip-on-use juice
 var _hovered_enemy_uid: int = -1          # enemy whose intent badge is currently hovered
 var _end_turn_acting_uid: int = -1        # most recent EventBus.enemy_intent_executed(uid) seen
+var _dm_audio: DiceMomentAudio = null    # v4 dice-moment sounds (dm_*)
 var _audio: CombatAudioDirector = null    # combat sound; see CombatAudioDirector.gd. Reacts to
 	# EventBus on its own — this file never calls it per event, only sets it up and starts/stops
 	# the music, so the "every handler funnels into _rebuild_all()" rule below stays intact.
@@ -431,6 +432,9 @@ func _ready() -> void:
 
 	_audio = CombatAudioDirector.new()
 	_audio.name = "CombatAudioDirector"
+	_dm_audio = DiceMomentAudio.new()
+	_dm_audio.name = "DiceMomentAudio"
+	add_child(_dm_audio)
 	add_child(_audio)   # must be in the tree (and so past its _ready) before _spawn_portrait()
 		# starts calling register_unit() below
 
@@ -580,6 +584,10 @@ func _unhandled_key_input(event: InputEvent) -> void:
 				_on_reroll_pressed()
 		elif event.is_action_pressed(KeyBindings.COMBAT_AID) and _aid != null and _aid.enabled and not _aid.modal_open():
 			_aid.toggle_tray()
+		elif event.is_action_pressed(KeyBindings.MENU_BACK) and _wild_mode:
+			_exit_wild_mode()
+		elif event.is_action_pressed(KeyBindings.MENU_BACK) and _rr_mode:
+			_exit_rr_mode()
 		elif event.is_action_pressed(KeyBindings.MENU_BACK) and _aid != null and _aid.handle_escape():
 			pass
 		elif event.is_action_pressed(KeyBindings.MENU_BACK) and _inspect_panel != null and is_instance_valid(_inspect_panel):
@@ -1058,6 +1066,8 @@ func _build_hud_r1() -> void:
 	_aid.offer_dismissed.connect(func(): _aid_offer_dismissed = true)
 	_hud_frame.menu_pressed.connect(_on_menu_pressed)
 	_hud_frame.hold_pressed.connect(_on_hold_pressed)
+	_hud_frame.wild_pressed.connect(_enter_wild_mode)
+	_hud_frame.overcast_pressed.connect(_on_overcast_pressed)
 	_hud_frame.active_pressed.connect(_on_active_pressed)
 	# Die slots leave the hidden deck bar for a root of their own, laid out by _layout_tray().
 	_tray_root = Control.new()
@@ -1066,6 +1076,9 @@ func _build_hud_r1() -> void:
 	_tray_root.set_anchors_preset(Control.PRESET_FULL_RECT)
 	_tray_root.z_index = 6
 	_shell_root.add_child(_tray_root)
+	_bo_layer = BoLayer.new()
+	_shell_root.add_child(_bo_layer)
+	_bo_layer.cards_provider = _card_rects
 	for b in _die_slot_buttons:
 		var nm: String = (b as Button).name
 		(b as Button).get_parent().remove_child(b)
@@ -1148,12 +1161,16 @@ func _update_hud() -> void:
 		 "resolving": _combat.phase != CombatPhase.EXECUTE,
 		 "enabled": not (_combat.won or _combat.lost) and _combat.phase != CombatPhase.END_TURN},
 		{"show": _combat.stash_cap() > 0, "enabled": can_hold, "text": hold_text, "tip": hold_tip,
-		 "on": _combat.stash_count() >= _combat.stash_cap() and _combat.stash_cap() > 0})
+		 "on": _combat.stash_count() >= _combat.stash_cap() and _combat.stash_cap() > 0},
+		_overcast_state(executing), _wild_state(executing))
 	_hud_frame.update_foe(_foe_state())
 	_update_aid(hs, executing)
 	_update_die_info()
 	_hud_frame.set_resolving(_combat.phase == CombatPhase.END_TURN and not (_combat.won or _combat.lost))
 	_layout_tray()
+	_update_rr_bar()
+	_update_wild_picker()
+	_update_coach()
 
 
 ## Boss rhythm + Elite affix for the HUD foe card (engine reads: boss_rhythm_state / affix_state).
@@ -1238,6 +1255,48 @@ static func affix_tip(id: String) -> String:
 	if d.has("charge"):
 		parts.append("Locks on an Axie, then strikes it hard on the 4th turn. Stun or freeze breaks the charge.")
 	return " ".join(parts) if not parts.is_empty() else "Elite affix."
+
+
+## Overcast button state (engine reads: overcast_block_reason / overcast_preview). Disabled always says why.
+func _overcast_state(executing: bool) -> Dictionary:
+	var cost := _combat.overcast_cost()
+	var text := "Overcast %s %d MP" % [HudKit.dot(), cost]
+	var tip := TranslationServer.translate("+0.5 on the die's multiplier, added to the Set, not stacked.")
+	var ok := false
+	if _combat.overcast_count() > 0 and _combat.overcast_count() >= _combat.overcast_per_turn():
+		text = "Overcast: used"
+		tip = "Only %d Overcast per turn. It resets next turn." % _combat.overcast_per_turn()
+	elif not executing:
+		tip = "Overcast is only available on your turn."
+	elif _selected_die_uid == -1:
+		text = "Overcast: pick a die"
+		tip = "Pick an unused die first, then pay %d mana to power it up." % cost
+	else:
+		var why := _combat.overcast_block_reason(_selected_die_uid)
+		if why == "":
+			ok = true
+			var u: Unit = _combat.by_uid(_selected_die_uid)
+			var pv := _combat.overcast_preview(u)
+			text = "Overcast %d > %d %s %d MP" % [int(pv[0]), int(pv[1]), HudKit.dot(), cost]
+			var m_now := _combat.m100_for(u)
+			var m_after := mini(m_now + roundi(_combat.overcast_add() * 100.0), _combat.bo_cap100())
+			if not u.overcast:
+				tip = "%s\n%s" % [tip, TranslationServer.translate("This die's multiplier %s → %s") % [V4Ui.mult_text(m_now), V4Ui.mult_text(m_after)]]
+		else:
+			text = "Overcast: %s" % why
+			tip = why
+	return {"show": _combat.overcast_per_turn() > 0 and _combat.depth_stage >= 3, "enabled": ok, "text": text, "tip": tip}
+
+
+## Overcast: pays mana and powers the picked die up (engine `overcast`, logged as `overcast [uid]`).
+func _on_overcast_pressed() -> void:
+	_land_dice_now()
+	if _is_animating or _gated("overcast") or _selected_die_uid == -1:
+		return
+	if _combat.overcast(_selected_die_uid):
+		_append_log("[input] overcast die")
+		_rebuild_all()
+		_save_run_progress()
 
 
 ## Hold: parks the picked die (engine `stash`, logged as `stash [uid]`).
@@ -1397,6 +1456,7 @@ func _layout_tray() -> void:
 		btn.size = Vector2(col_w, TrayColumn.H)
 		i += 1
 	_layout_row_strip(x0, col_w, gap, top)
+	_refresh_bo_layer()
 
 
 var _row_strip: Control = null
@@ -1444,6 +1504,7 @@ func _layout_row_strip(x0: float, col_w: float, gap: float, top: float) -> void:
 		UI3Tooltip.bind(l, "Front row (first %d Axies) takes single-target hits first. Back row is only hit once the front is down, or by area / piercing attacks." % _combat.front_row_size()
 			if r == 0 else "Back row: safe from single-target hits while a front-row Axie stands.")
 		_row_strip.add_child(l)
+		l.visible = _combat.bo.is_empty()
 		var line := ColorRect.new()
 		line.color = UI3Theme.color("text" if r == 0 else "text_muted")
 		line.position = Vector2(x + 4.0, top - 26.0)
@@ -1603,6 +1664,7 @@ func _connect_event_bus() -> void:
 	EventBus.turn_phase_changed.connect(_on_turn_phase_changed)
 	EventBus.combat_finished.connect(_on_combat_finished)
 	EventBus.unit_spawned.connect(_on_unit_spawned)
+	EventBus.bo_changed.connect(_on_bo_changed)
 
 
 
@@ -1753,9 +1815,9 @@ func _update_dice_tray() -> void:
 			"icons": UnitPortrait._STATUS_ICON, "status_tip": Callable(UnitPortrait, "_effect_tooltip"),
 			"skin": MetaState.equipped_die_skin,
 			"faces": faces, "rolled": u.roll_face_index() if u.has_rolled() else -1,
-			"alive": u.hp > 0, "spent": used_this_turn, "selected": is_sel, "held": u.held, "row": _combat.row_of(u),
+			"alive": u.hp > 0, "spent": used_this_turn, "selected": is_sel, "held": u.held, "overcast": u.overcast, "row": _combat.row_of(u),
 			"legal_target": as_target and _selected_ally_target_ok(u),
-			"tip": _tray_tooltip(u)})
+			"tip": _tray_tooltip(u)}.merged(_v4_card_data(u), true))
 		TrayColumn.set_lifted(self, content, is_sel, disable_juice_for_tests)
 		if _maybe_play_roll_juice(u, btn):
 			fresh.append({"slot": i, "u": u})
@@ -2083,7 +2145,10 @@ func _inspect_blockers() -> Array[Rect2]:
 		out.append(Rect2(0.0, t - 8.0, AidPanel.TRAY_W + 2.0 * AidPanel.EDGE, vs.y - t + 8.0))
 	var cluster := Rect2()
 	var first := true
-	for c in [_reroll_button, _undo_button, _end_turn_button]:
+	var cluster_btns: Array = [_reroll_button, _undo_button, _end_turn_button]
+	if _hud_frame != null:
+		cluster_btns.append_array([_hud_frame.hold_button, _hud_frame.wild_button, _hud_frame.overcast_button])
+	for c in cluster_btns:
 		if c != null and (c as Control).visible:
 			var r := (c as Control).get_global_rect()
 			cluster = r if first else cluster.merge(r)
@@ -2584,6 +2649,12 @@ func _on_die_slot_pressed(slot_index: int) -> void:
 	if slot_index >= units.size():
 		return
 	var u: Unit = units[slot_index]
+	if _rr_mode:
+		_rr_toggle(u.uid)
+		return
+	if _wild_mode:
+		_wild_pick_die(u.uid)
+		return
 	# With a die already selected, a click on ANOTHER column targets that Axie (heal / shield).
 	if _selected_die_uid != -1 and u.uid != _selected_die_uid and u.hp > 0 \
 			and _selected_ally_target_ok(u):
@@ -2697,24 +2768,52 @@ func _on_reroll_pressed() -> void:
 		_land_dice_now()
 		return
 	_land_dice_now()
-	if _gated("reroll") or _combat.epoch_pending:
+	if _gated("reroll") or _combat.epoch_pending or _rr_mode:
 		return
-	var uids: Array = []
-	var units := _party_dice_units()
-	for i in units.size():
-		var u: Unit = units[i]
-		if u.hp > 0 and u.has_rolled() and not u.roll_used() and not u.heavy and not u.frozen:
-			uids.append(u.uid)
+	# Depth v4 2.1: past the free reroll, from stage 2 on, "Reroll more" opens the pick mode (Gamble / Safe).
+	if _combat.rerolls <= 0 and _combat.depth_stage >= 2 and _combat.reroll_is_payable():
+		_enter_rr_mode()
+		return
+	await _do_reroll(_auto_reroll_uids(), 1)
+
+
+## Dice the one-button reroll throws: every rerollable die OUTSIDE a Set; if that leaves none, all of them.
+func _auto_reroll_uids() -> Array:
+	var all: Array = []
+	for u in _party_dice_units():
+		all.append((u as Unit).uid)
+	var ok: Array = []
+	var outside: Array = []
+	for u in _combat._rerollable(all):
+		ok.append((u as Unit).uid)
+		if V4Ui.group_of(_combat.bo, (u as Unit).uid).is_empty():
+			outside.append((u as Unit).uid)
+	return outside if not outside.is_empty() else ok
+
+
+func _do_reroll(uids: Array, rmode: int) -> void:
+	_exit_rr_mode(false)
+	_wild_mode = false
+	_wild_uid = -1
 	# The face each die showed BEFORE the reroll: the +2 / -1 / NEW chips are measured against it.
 	_reroll_prev.clear()
 	if _combat.rerolls > 0 or _combat.reroll_is_payable():
 		for uid in uids:
 			_reroll_prev[uid] = _combat.by_uid(uid).roll_face_index()
-	var rr: Dictionary = await _combat.request_reroll_dice(uids)
+	var gamble_on := rmode == 0 and _combat.depth_stage >= 2
+	_dm_audio.play("dm_gamble_arm" if gamble_on else ("dm_reroll_safe" if rmode != 0 else "dm_roll"))
+	var rr: Dictionary = await _combat.request_reroll_dice(uids, false, rmode)
 	if not _still_running():
 		return
 	var ok := bool(rr["ok"])
-	_append_log("[input] reroll %d dice : %s" % [uids.size(), "ok" if ok else "failed"])
+	if ok and gamble_on:
+		var cracked := 0
+		for uid in uids:
+			var cu := _combat.by_uid(int(uid))
+			if cu != null and cu.cracked:
+				cracked += 1
+		_dm_audio.play("dm_crack" if cracked > 0 else "dm_gamble_clean")
+	_append_log("[input] reroll %d dice (%s): %s" % [uids.size(), "gamble" if rmode == 0 else "safe", "ok" if ok else "failed"])
 	if not ok:
 		_reroll_prev.clear()
 		if String(rr["code"]) not in ["illegal", "busy"]:
@@ -2723,6 +2822,124 @@ func _on_reroll_pressed() -> void:
 	# The rebuild sees the rerolled dice in _reroll_prev and throws them in 3D, like the first roll.
 	_rebuild_all()
 	_save_run_progress()
+
+
+# ---- Depth v4 reroll pick mode (combat-v4.md 2.2, 2.3, 2.5) -------------------------------------------------
+var _rr_mode := false
+var _rr_sel: Array = []
+var _rr_bar: RerollBar = null
+
+
+func _rr_all_uids() -> Array:
+	var all: Array = []
+	for u in _party_dice_units():
+		all.append((u as Unit).uid)
+	return all
+
+
+func _rr_pinned() -> Dictionary:
+	var k: int = _combat.reroll_k + 1
+	return _combat.reroll_lock[k] if _combat.reroll_lock.has(k) else {}
+
+
+func _enter_rr_mode() -> void:
+	_coach_hide()
+	_wild_mode = false
+	_rr_mode = true
+	_selected_die_uid = -1
+	_selected_active_id = ""
+	var pin := _rr_pinned()
+	_rr_sel = (pin["uids"] as Array).duplicate() if not pin.is_empty() else _auto_reroll_uids()
+	_rebuild_all()
+	if _rr_bar != null:
+		(_rr_bar.safe_button if not _rr_bar.safe_button.disabled else _rr_bar.gamble_button).grab_focus()
+
+
+func _exit_rr_mode(rebuild := true) -> void:
+	if not _rr_mode:
+		return
+	_rr_mode = false
+	_rr_sel.clear()
+	if rebuild:
+		_rebuild_all()
+
+
+func _rr_toggle(uid: int) -> void:
+	if not _rr_pinned().is_empty():
+		return   # a locked roll must repeat the same dice
+	if _combat._rerollable([uid]).is_empty():
+		return
+	if _rr_sel.has(uid):
+		_rr_sel.erase(uid)
+	else:
+		_rr_sel.append(uid)
+	_rebuild_all()
+
+
+func _on_rr_chosen(rmode: int) -> void:
+	if not _rr_mode:
+		return
+	await _do_reroll(_rr_sel.duplicate(), rmode)
+
+
+## Why a die cannot be picked for the reroll ("" = it can).
+func _rr_die_why(u: Unit) -> String:
+	if u.hp <= 0 or not u.has_rolled():
+		return ""
+	if u.roll_used():
+		return TranslationServer.translate("Used")
+	if u.overcast:
+		return TranslationServer.translate("Has Overcast, cannot reroll")
+	if u.wild_slot >= 0:
+		return TranslationServer.translate("Has a Wild face, cannot reroll")
+	if u.held:
+		return TranslationServer.translate("Held")
+	if u.frozen or u.heavy:
+		return TranslationServer.translate("Frozen")
+	return ""
+
+
+func _update_rr_bar() -> void:
+	var hud := _hud_frame
+	if hud == null or _combat == null:
+		return
+	if _rr_mode and not (_combat.phase == CombatPhase.EXECUTE and not (_combat.won or _combat.lost)):
+		_rr_mode = false
+		_rr_sel.clear()
+	if _rr_bar == null:
+		_rr_bar = RerollBar.new()
+		_rr_bar.z_index = 9
+		_shell_root.add_child(_rr_bar)
+		_rr_bar.chosen.connect(_on_rr_chosen)
+	_rr_bar.visible = _rr_mode
+	if not _rr_mode:
+		return
+	for b in [hud.undo_button, hud.reroll_button, hud.hold_button, hud.overcast_button, hud.wild_button]:
+		(b as Control).visible = false   # 5.1b: only the tray and the pick bar while picking
+	var n := _rr_sel.size()
+	var pct := CombatEngine.tune_knob("crack", "pct", 30.0)
+	var gref := _combat.reroll_refusal(_rr_sel, false, 0)
+	var sref := _combat.reroll_refusal(_rr_sel, false, 1)
+	var cost := _combat.reroll_mana_cost(false, 1)
+	var line := ""
+	var pin := _rr_pinned()
+	if not pin.is_empty():
+		line = TranslationServer.translate("Locked for this roll: %s · %d dice") % [
+			TranslationServer.translate("GAMBLE") if int(pin["rmode"]) == 0 else TranslationServer.translate("SAFE"),
+			(pin["uids"] as Array).size()]
+	elif gref == "":
+		line = V4Ui.gamble_line(n, pct)
+	else:
+		line = V4Ui.refusal_text(gref, cost, _combat.mana)
+	if sref != "" and sref != gref and pin.is_empty():
+		line += "\n" + V4Ui.refusal_text(sref, cost, _combat.mana)
+	_rr_bar.update({
+		"gamble_ok": gref == "", "gamble_text": TranslationServer.translate("Gamble · free"),
+		"gamble_tip": TranslationServer.translate("Each rerolled die has a %d%% chance to Crack (half value, out of the Set, until next turn).") % int(pct) if gref == "" else V4Ui.refusal_text(gref, cost, _combat.mana),
+		"safe_ok": sref == "", "safe_text": TranslationServer.translate("Safe · %d MP") % cost,
+		"safe_tip": TranslationServer.translate("No risk. Costs mana.") if sref == "" else V4Ui.refusal_text(sref, cost, _combat.mana),
+		"line": line, "show_gamble": true})
+	_rr_bar.place(get_viewport_rect().size.x - 24.0, hud.reroll_button.position.y)
 
 
 ## True while DiceRoller3D has dice in the air.
@@ -2826,6 +3043,7 @@ func _on_log_toggle_pressed() -> void:
 ## (file-header: "NEVER contains game rules itself").
 func _on_undo_pressed() -> void:
 	_land_dice_now()   # dice still in the air land first: no tags / pending cards for an undone roll
+	_exit_rr_mode(false)
 	_reroll_prev.clear()
 	if _is_animating:
 		return
@@ -3478,6 +3696,7 @@ func _start_dice_throw(fresh: Array) -> void:
 	_reroll_prev.clear()
 	if entries.is_empty():
 		return
+	_dm_audio.play("dm_roll")
 	last_throw = {"uids": entries.map(func(e): return int(e["uid"])), "reroll": rerolled}
 	var roller := _stage3d.get_dice_roller()
 	if MetaState.reduce_flash or roller == null or roller.will_skip():
@@ -3988,3 +4207,275 @@ func _build_march_overlay() -> CanvasLayer:
 	top.add_child(skip)
 	skip.grab_focus()
 	return layer
+
+
+# ---- Depth v4 BO (combat-v4.md 1) ------------------------------------------------------------------------
+var _bo_layer: BoLayer = null
+
+
+## Chip + preview for one tray card. Values come from the engine (_face_base = v0 before M, _live_face_value after).
+func _v4_card_data(u: Unit) -> Dictionary:
+	var out := {"part_text": "", "part_tex": null, "pv": "", "cracked": u.cracked and _combat.depth_stage >= 2,
+		"rr_tick": _rr_mode and _rr_sel.has(u.uid)}
+	if _rr_mode:
+		var why := _rr_die_why(u)
+		if why != "":
+			out["tip"] = "%s\n%s" % [why, _tray_tooltip(u)]
+		out["legal_target"] = bool(out["rr_tick"])
+	if _wild_mode:
+		out["legal_target"] = _wild_valid(u.uid) or u.uid == _wild_uid
+		if _wild_uid == u.uid:
+			out["rr_tick"] = false
+		elif not _wild_valid(u.uid) and u.roll_used():
+			out["tip"] = "%s\n%s" % [TranslationServer.translate("Used"), _tray_tooltip(u)]
+	out["wild_text"] = V4Ui.part_name(u.wild_slot) if u.wild_slot >= 0 else ""
+	if bool(out["cracked"]):
+		out["tip"] = "%s\n%s" % [_tray_tooltip(u), TranslationServer.translate("Cracked: half value, out of the Set. Ends next turn.")]
+	if u.hp <= 0 or not u.has_rolled() or _combat == null:
+		return out
+	var fi := u.roll_face_index()
+	var part := String(V4Ui.SLOT_ORDER[clampi(fi, 0, 5)])
+	out["part_text"] = V4Ui.part_name(fi)
+	out["part_tex"] = _part_icon_for(String((u.die[fi] as Dictionary).get("part", part)), u.cls)
+	if not V4Ui.group_of(_combat.bo, u.uid).is_empty() and not u.roll_used():
+		var v0 := int(ceil(float(_combat._face_base(u, fi))))
+		var now := _live_face_value(u, fi)
+		if v0 > 0 and now > v0:
+			out["pv"] = "%d → %d" % [v0, now]
+	return out
+
+
+func _card_rects() -> Dictionary:
+	var rects := {}
+	var units := _party_dice_units()
+	for i in mini(units.size(), _die_slot_buttons.size()):
+		var b: Button = _die_slot_buttons[i]
+		if b.visible:
+			var gr := b.get_global_rect()
+			var inv := _bo_layer.get_global_transform().affine_inverse() if _bo_layer != null else Transform2D.IDENTITY
+			rects[(units[i] as Unit).uid] = Rect2(inv * gr.position, gr.size)
+	return rects
+
+
+func _refresh_bo_layer() -> void:
+	if _bo_layer == null or _combat == null:
+		return
+	_bo_layer.label_lift = 40.0 if _rr_mode else 0.0
+	_bo_layer.refresh(_combat.bo, _card_rects())
+
+
+func _on_bo_changed(groups: Array) -> void:
+	if _bo_layer == null or _combat == null:
+		return
+	_refresh_bo_layer()
+	var tray_top := get_viewport_rect().size.y - 24.0 - TrayColumn.H
+	_bo_layer.announce(groups, tray_top)
+	_log_bo_changes(groups)
+	_sync_row_labels()
+
+
+var _bo_logged: Dictionary = {}   # part -> size already written to the log this turn
+
+
+## One log line per NEW or HIGHER Set ("[set] HORN x4  ×1.8"), never repeated for the same size.
+func _log_bo_changes(groups: Array) -> void:
+	var live := {}
+	for g in groups:
+		var part := int(g["part"])
+		var sz := int(g["size"])
+		live[part] = sz
+		if sz > int(_bo_logged.get(part, 0)):
+			_dm_audio.play("dm_set%d" % clampi(sz, 3, 5))
+			_append_log("[set] %s x%d  %s" % [V4Ui.part_name(part), sz, V4Ui.mult_text(int(g["m100"]))])
+	_bo_logged = live
+
+
+## FRONT / BACK words sit where a Set label is drawn: while any Set is on the tray the words hide
+## (the two thin lines stay, and the Set label owns the space).
+func _sync_row_labels() -> void:
+	if _row_strip == null or _combat == null:
+		return
+	var hide := not _combat.bo.is_empty()
+	for c in _row_strip.get_children():
+		if c is Label:
+			c.visible = not hide
+
+
+# ---- Depth v4 Wild face (combat-v4.md 3) ---------------------------------------------------------------------
+var _wild_mode := false
+var _wild_uid := -1
+var _wild_picker: WildPicker = null
+
+
+func _wild_valid(uid: int) -> bool:
+	for slot in 6:
+		if _combat.can_wild_face(uid, slot):
+			return true
+	return false
+
+
+func _wild_any_valid() -> bool:
+	for u in _party_dice_units():
+		if _wild_valid((u as Unit).uid):
+			return true
+	return false
+
+
+func _wild_state(executing: bool) -> Dictionary:
+	var used: bool = _combat.wild_used >= _combat.wild_per_turn()
+	var d := V4Ui.wild_button(_combat.depth_stage >= 2, used, _combat.mana, _combat.wild_cost(), _wild_any_valid())
+	if not executing:
+		d["enabled"] = false
+		d["tip"] = TranslationServer.translate("Only on your turn.")
+	d["show"] = _combat.depth_stage >= 2
+	return d
+
+
+func _enter_wild_mode() -> void:
+	_coach_hide()
+	_land_dice_now()
+	if _is_animating or _gated("wild") or not _wild_any_valid():
+		return
+	_rr_mode = false
+	_rr_sel.clear()
+	_selected_die_uid = -1
+	_wild_mode = true
+	_wild_uid = -1
+	_rebuild_all()
+
+
+func _exit_wild_mode() -> void:
+	if not _wild_mode:
+		return
+	_wild_mode = false
+	_wild_uid = -1
+	_rebuild_all()
+
+
+func _wild_pick_die(uid: int) -> void:
+	if not _wild_valid(uid):
+		return
+	_wild_uid = uid
+	_rebuild_all()
+
+
+func _on_wild_chosen(slot: int) -> void:
+	if not _wild_mode or _wild_uid == -1:
+		return
+	if _combat.wild_face(_wild_uid, slot):
+		_append_log("[input] wild face")
+		_wild_mode = false
+		_wild_uid = -1
+		_rebuild_all()
+		_save_run_progress()
+
+
+func _update_wild_picker() -> void:
+	if _combat == null or _hud_frame == null:
+		return
+	if _wild_mode and not (_combat.phase == CombatPhase.EXECUTE and not (_combat.won or _combat.lost)):
+		_wild_mode = false
+		_wild_uid = -1
+	if _wild_picker == null:
+		_wild_picker = WildPicker.new()
+		_wild_picker.z_index = 9
+		_shell_root.add_child(_wild_picker)
+		_wild_picker.picked.connect(_on_wild_chosen)
+	_wild_picker.visible = _wild_mode and _wild_uid != -1
+	if _wild_mode:
+		for b in [_hud_frame.undo_button, _hud_frame.reroll_button, _hud_frame.hold_button, _hud_frame.overcast_button, _hud_frame.wild_button]:
+			(b as Control).visible = false
+	if not _wild_picker.visible:
+		return
+	var cur := V4Ui.group_of(_combat.bo, _wild_uid)
+	var rows: Array = []
+	var best := -1
+	var best_key := 0
+	for slot in 6:
+		var pv: Dictionary = _combat.preview_wild(_wild_uid, slot)
+		var line := V4Ui.wild_line(pv, _wild_uid, cur)
+		var key := 0
+		if bool(pv["ok"]) and line.begins_with("→"):
+			var g := V4Ui.group_of(pv["groups"], _wild_uid)
+			key = int(g["size"]) * 1000 + int(g["m100"])
+		if key > best_key:
+			best_key = key
+			best = slot
+		var wu: Unit = _combat.by_uid(_wild_uid)
+		rows.append({"ok": bool(pv["ok"]), "label": line, "best": false,
+			"tex": _part_icon_for(String(V4Ui.SLOT_ORDER[slot]), wu.cls if wu != null else "")})
+	if best >= 0:
+		rows[best]["best"] = true
+	_wild_picker.update(rows)
+	var vs := get_viewport_rect().size
+	var tray_top := vs.y - 24.0 - TrayColumn.H
+	_wild_picker.position = Vector2((vs.x - _wild_picker.size.x) * 0.5, tray_top - _wild_picker.size.y - 12.0)
+
+
+# ---- Depth v4 coach (combat-v4.md 5.3) -----------------------------------------------------------------------
+var _coach_box: PanelContainer = null
+var _coach_label: Label = null
+var _coach_turn := -1
+var coach_shown_id := ""                 # test hook
+
+
+func _coach_hide() -> void:
+	if _coach_box != null:
+		_coach_box.visible = false
+
+
+func _update_coach() -> void:
+	if _combat == null or _shell_root == null:
+		return
+	if CombatView.disable_juice_for_tests and not V4Coach.enabled_in_tests:
+		return
+	if _tutorial or not V4Coach.enabled:
+		return
+	var banner_up: bool = _bo_layer != null and _bo_layer._banner != null and _bo_layer._banner.visible
+	var executing := _combat.phase == CombatPhase.EXECUTE and not (_combat.won or _combat.lost)
+	if not executing or _rr_mode or _wild_mode or banner_up or _dice_in_air():
+		_coach_hide()
+		return
+	if _coach_turn == _combat.turn:
+		return   # one bubble per turn (it stays until the turn changes, an action opens a mode, or it is skipped)
+	var parts := {}
+	var rolled := false
+	for u in _party_dice_units():
+		if u.hp > 0 and u.has_rolled() and not u.is_token:
+			rolled = true
+			var fi: int = u.roll_face_index()
+			parts[fi] = int(parts.get(fi, 0)) + 1
+	var pair := false
+	for k in parts:
+		if int(parts[k]) == 2:
+			pair = true
+	var id := V4Coach.next_id({"stage": _combat.depth_stage, "rolled": rolled, "pair": pair, "bo": not _combat.bo.is_empty(),
+		"free_left": _combat.rerolls, "payable": _combat.reroll_is_payable(), "mana": _combat.mana,
+		"reroll_cost": _combat.reroll_mana_cost(false, 1), "wild_cost": _combat.wild_cost(), "oc_cost": _combat.overcast_cost()})
+	if id == "":
+		return
+	V4Coach.mark(id)
+	_coach_turn = _combat.turn
+	coach_shown_id = id
+	if _coach_box == null:
+		_coach_box = UI3.plate(&"plate")
+		_coach_box.name = "V4Coach"
+		_coach_box.z_index = 9
+		var row := HBoxContainer.new()
+		row.add_theme_constant_override("separation", 16)
+		_coach_label = UI3.label("")
+		_coach_label.add_theme_font_size_override("font_size", 18)
+		_coach_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		_coach_label.custom_minimum_size = Vector2(520, 0)
+		row.add_child(_coach_label)
+		var skip := UI3.button(TranslationServer.translate("Skip"), &"quiet")
+		skip.pressed.connect(_coach_hide)
+		row.add_child(skip)
+		_coach_box.add_child(row)
+		_shell_root.add_child(_coach_box)
+	_coach_label.text = V4Coach.text_for(id)
+	_coach_box.visible = true
+	_coach_box.size = Vector2.ZERO
+	var vs := get_viewport_rect().size
+	var w := _coach_box.get_combined_minimum_size().x
+	_coach_box.position = Vector2((vs.x - w) * 0.5, vs.y - 24.0 - TrayColumn.H - 190.0)

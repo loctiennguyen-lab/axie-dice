@@ -38,6 +38,11 @@ var perks: Dictionary = {}             # perk key -> stack count (reroll/relic0/
 ## worker/src/runs.js newcomer()). Counted once per run by RunState.apply_combat_result, so runs
 ## abandoned after a battle count and runs abandoned before any battle do not.
 var runs_with_battle: int = 0
+## Depth v4 (GDD stages): runs that ended won/lost on this account. Bumped by RunState.end_run, offline stage comes from it
+## (same thresholds as worker/src/runs.js depthStage()). Old saves without it: derived from runs / runs_with_battle.
+var runs_completed: int = 0
+const DEPTH_STAGE2_RUNS := 1
+const DEPTH_STAGE3_RUNS := 3
 ## Sample Continue (monetization-v1 2.6, E13): true once the account has had its free Continue. Remote runs: the
 ## server keeps the real flag (wallet ledger key free_continue); this copy is what the UI shows.
 var free_continue_used: bool = false
@@ -117,6 +122,8 @@ var mission_stone_day: Dictionary = {"day": "", "n": 0}
 var asc_wins: Dictionary = {}            # "asc" -> số run thắng
 var full_a9_won: bool = false
 var aid_hints_off: bool = false
+## Depth v4 coach lines already shown (V4Coach C1-C7): {"C1": true}. In the meta save so it follows the account.
+var v4_coach_seen: Dictionary = {}
 var last_daily_reward_utc: String = ""
 ## Số ngày UTC đã nhận daily trong tuần (thứ Hai UTC): {"week": "YYYY-MM-DD", "n": 0}. Cho chấm tuần M8.
 var daily_week: Dictionary = {"week": "", "n": 0, "paid": false}
@@ -557,6 +564,7 @@ func reload_from_store() -> void:
 	asc_max = 0
 	runs = 0
 	runs_with_battle = 0
+	runs_completed = 0
 	free_continue_used = false
 	battle_counted_seed = -1
 	wins = 0
@@ -614,6 +622,7 @@ func _reset_economy_fields() -> void:
 	asc_wins = {}
 	full_a9_won = false
 	aid_hints_off = false
+	v4_coach_seen = {}
 	last_daily_reward_utc = ""
 	daily_week = {"week": "", "n": 0, "paid": false}
 	ledger = []
@@ -652,6 +661,8 @@ func load_from_disk() -> void:
 	runs = int(parsed.get("runs", 0))
 	# Old saves have no counter: runs is the best available stand-in.
 	runs_with_battle = int(parsed.get("runs_with_battle", runs))
+	# Old saves have no counter: the larger of the two older counters, so an account past the newcomer gate is never sent back to stage 1.
+	runs_completed = int(parsed.get("runs_completed", maxi(runs, runs_with_battle)))
 	free_continue_used = bool(parsed.get("free_continue_used", false))
 	battle_counted_seed = int(parsed.get("battle_counted_seed", -1))
 	wins = int(parsed.get("wins", 0))
@@ -715,6 +726,12 @@ func _economy_from_json(parsed: Dictionary, raw_text: String = "") -> void:
 	asc_wins = _int_values(parsed.get("asc_wins", {}))
 	full_a9_won = bool(parsed.get("full_a9_won", false))
 	aid_hints_off = bool(parsed.get("aid_hints_off", false))
+	var vcs = parsed.get("v4_coach_seen", {})
+	v4_coach_seen = {}
+	if vcs is Dictionary:
+		for k in vcs:
+			if bool(vcs[k]):
+				v4_coach_seen[str(k)] = true
 	last_daily_reward_utc = str(parsed.get("last_daily_reward_utc", ""))
 	var dw = parsed.get("daily_week", {})
 	daily_week = {"week": String(dw.get("week", "")), "n": maxi(0, int(dw.get("n", 0))), "paid": bool(dw.get("paid", false))} if dw is Dictionary else {"week": "", "n": 0, "paid": false}
@@ -820,6 +837,21 @@ func is_newcomer() -> bool:
 	return runs_with_battle < int(EconomyDBScript.get_table("missions").get("newcomer_runs", 5))
 
 
+## Depth stage for an OFFLINE run (an online run takes it from the server header). Mirrors worker/src/runs.js depthStage():
+## >= stage3_runs completed -> 3, >= 1 -> 2, none: still a newcomer -> 1, else (old account) 3. Constants = worker STAGE2_RUNS / STAGE3_RUNS (kept out of rules JSON: no rules-version bump).
+func depth_stage() -> int:
+	if runs_completed >= DEPTH_STAGE3_RUNS:
+		return 3
+	if runs_completed >= DEPTH_STAGE2_RUNS:
+		return 2
+	return 1 if is_newcomer() else 3
+
+
+## Called by RunState.end_run for every run that ended won/lost.
+func note_run_completed() -> void:
+	runs_completed += 1
+
+
 func free_continue_left() -> bool:
 	return not free_continue_used
 
@@ -892,6 +924,7 @@ func save_to_disk() -> void:
 		"asc_max": asc_max,
 		"runs": runs,
 		"runs_with_battle": runs_with_battle,
+		"runs_completed": runs_completed,
 		"battle_counted_seed": battle_counted_seed,
 		"free_continue_used": free_continue_used,
 		"wins": wins,
@@ -926,6 +959,7 @@ func save_to_disk() -> void:
 		"asc_wins": asc_wins,
 		"full_a9_won": full_a9_won,
 		"aid_hints_off": aid_hints_off,
+		"v4_coach_seen": v4_coach_seen,
 		"last_daily_reward_utc": last_daily_reward_utc,
 		"daily_week": daily_week,
 		"ledger": ledger,

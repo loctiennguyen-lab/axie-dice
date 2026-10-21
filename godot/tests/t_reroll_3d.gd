@@ -69,6 +69,10 @@ func _flow() -> void:
 	var units: Array = view._party_dice_units()
 	var frozen: Unit = units[1]
 	frozen.frozen = true
+	# v4: the one-button reroll keeps dice that sit in a Set. Give every die its own part so none does.
+	for i in units.size():
+		(units[i] as Unit).set_roll(i, false)
+	combat._snap_bo()
 	view.last_throw = {}
 	view._on_reroll_pressed()
 	for _i in 6:

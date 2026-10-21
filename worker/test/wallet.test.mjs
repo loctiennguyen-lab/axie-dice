@@ -18,7 +18,7 @@ class Stmt {
   async run() { const r = this.db.prepare(this.sql).run(...this.args); return { success: true, meta: { changes: Number(r.changes) } }; }
 }
 class TxD1 {
-  constructor() { this.db = new DatabaseSync(':memory:'); this.db.exec('PRAGMA foreign_keys = ON;'); for (const f of ['0001_accounts.sql', '0002_runs.sql', '0003_wallet.sql']) this.db.exec(mig(f)); }
+  constructor() { this.db = new DatabaseSync(':memory:'); this.db.exec('PRAGMA foreign_keys = ON;'); for (const f of ['0001_accounts.sql', '0002_runs.sql', '0009_depth_stage.sql', '0003_wallet.sql']) this.db.exec(mig(f)); }
   prepare(s) { return new Stmt(this.db, s); }
   // D1 runs one batch at a time per database; the chain stands in for that.
   batch(stmts) { const run = (this.q || Promise.resolve()).then(() => this._batch(stmts)); this.q = run.catch(() => {}); return run; }
@@ -157,7 +157,7 @@ test('caps: R1 once per run, R2 four, total six; guests and missions never pay',
   let ok = 0;
   let first = true;
   for (let k = 1; k <= 6; k++) {
-    const acts = first ? [{ fn: 'continue', args: [] }] : [{ fn: 'reroll_dice', args: [[1], 0] }];
+    const acts = first ? [{ fn: 'continue', args: [] }] : [{ fn: 'reroll_dice', args: [[1], 1] }];
     first = false;
     const r = await ep('reroll', { turn: 1, k, source: 'aid', uids: [1] }, acts);
     if (r.t === 'epoch_res') ok++;
@@ -280,10 +280,10 @@ test('R5 counts toward the total Aid cap (6 at A0, 4 at A9) and is refused with 
   const { ep, env } = await paidRun(2000);
   let first = true;
   for (let k = 1; k <= 4; k++) {
-    await ep('reroll', { turn: 1, k, source: 'aid', uids: [1] }, [first ? EN : { fn: 'reroll_dice', args: [[1], 0] }]);
+    await ep('reroll', { turn: 1, k, source: 'aid', uids: [1] }, [first ? EN : { fn: 'reroll_dice', args: [[1], 1] }]);
     first = false;
   }
-  assert.equal((await ep('pact_reroll', { node_id: 'r1_c0', slot: 0 }, [{ fn: 'reroll_dice', args: [[1], 0] }])).t, 'epoch_res');
+  assert.equal((await ep('pact_reroll', { node_id: 'r1_c0', slot: 0 }, [{ fn: 'reroll_dice', args: [[1], 1] }])).t, 'epoch_res');
   assert.equal((await ep('pact_reroll', { node_id: 'r2_c0', slot: 0 }, [PR()])).t, 'epoch_res'); // 6th paid use
   assert.equal((await ep('pact_reroll', { node_id: 'r3_c0', slot: 0 }, [PR()])).code, 'rejected'); // total cap
   assert.equal(await balanceOf(env, 'p1'), 2000 - 6 * 15);

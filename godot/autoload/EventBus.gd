@@ -18,6 +18,9 @@ signal core_fired(core_id: String, unit_uid: int, amount: int, kind: String)  # 
 		# kind: dmg | shield | block | mana | poison | heal | reroll | thorns | quest_step ("" = unknown, UI shows the name only).
 		# Pure presentation + run stat; emit it from the engine AFTER the effect resolved, never to cause one.
 signal float_text(uid: int, text: String, css_class: String, big: int)     # ~ "ft"
+signal die_overcast(uid: int, before: int, after: int)                 # Overcast: mana paid, die powered up
+signal die_wild(uid: int, slot: int)                                     # Mat Tam: mana paid, die counts as part `slot` for Sets
+signal bo_changed(groups: Array)                                       # depth v4 BO: the Set snapshot changed ([{part,size,uids,hi,m100}], [] = no Set)
 signal die_stashed(uid: int)                                              # depth v3 Hold: a die was parked
 signal plating(uid: int, before: int, after: int, p: int)                  # depth v3 6.7 M1/M6: a single-target hit was reduced by Plating
 signal plating_off(uid: int, turns: int)                                  # a debuff / poison switched the Plating off for `turns` player turns

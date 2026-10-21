@@ -1,0 +1,282 @@
+# Sim balance main_cheap_A0
+
+Runs: 8000, wall 534.3s (0.07s/run).
+
+## Muc tieu (Short A0)
+
+- random_legal <= 5%: 20.6% -> CHUA DAT
+- attack_spam <= 5%: 22.8% -> CHUA DAT
+- attack_only <= 5%: 5.0% -> CHUA DAT
+- (tham khao) greedy: 23.9%
+
+
+## Phieu chet theo node (song sot tich luy)
+
+- **random_legal** (n=2000): r4 battle -70 (con 96%); r5 elite -209 (con 86%); r5 battle -21 (con 85%); r6 boss -106 (con 80%); r7 battle -7 (con 79%); r8 battle -29 (con 78%); r9 elite -150 (con 70%); r9 battle -14 (con 70%); r10 battle -10 (con 69%); r11 battle -17 (con 68%); r12 boss -214 (con 58%); r13 battle -13 (con 57%); r14 battle -14 (con 56%); r15 elite -190 (con 47%); r15 battle -12 (con 46%); r16 battle -4 (con 46%); r17 battle -9 (con 46%); r18 boss -499 (con 21%)
+- **attack_spam** (n=2000): r4 battle -54 (con 97%); r5 battle -12 (con 97%); r5 elite -186 (con 87%); r6 boss -120 (con 81%); r7 battle -2 (con 81%); r8 battle -13 (con 81%); r9 battle -3 (con 80%); r9 elite -125 (con 74%); r10 battle -2 (con 74%); r11 battle -11 (con 74%); r12 boss -275 (con 60%); r13 battle -2 (con 60%); r14 battle -5 (con 60%); r15 battle -8 (con 59%); r15 elite -181 (con 50%); r17 battle -6 (con 50%); r18 boss -539 (con 23%)
+- **attack_only** (n=2000): r1 battle -1 (con 100%); r3 battle -12 (con 99%); r4 battle -181 (con 90%); r5 elite -456 (con 68%); r5 battle -40 (con 66%); r6 boss -758 (con 28%); r7 battle -5 (con 27%); r8 battle -6 (con 27%); r9 elite -71 (con 24%); r9 battle -5 (con 23%); r10 battle -12 (con 23%); r11 battle -9 (con 22%); r12 boss -141 (con 15%); r13 battle -4 (con 15%); r14 battle -4 (con 15%); r15 battle -6 (con 14%); r15 elite -34 (con 13%); r16 battle -2 (con 13%); r17 battle -6 (con 12%); r18 boss -146 (con 5%)
+- **greedy** (n=2000): r4 battle -47 (con 98%); r5 elite -157 (con 90%); r5 battle -10 (con 89%); r6 boss -56 (con 86%); r7 battle -6 (con 86%); r8 battle -10 (con 86%); r9 elite -110 (con 80%); r9 battle -4 (con 80%); r10 battle -7 (con 80%); r11 battle -7 (con 79%); r12 boss -254 (con 67%); r13 battle -12 (con 66%); r14 battle -10 (con 66%); r15 elite -161 (con 57%); r15 battle -8 (con 57%); r16 battle -4 (con 57%); r17 battle -7 (con 56%); r18 boss -651 (con 24%)
+
+
+## Win-rate theo chinh sach x Ascension
+
+| policy | asc | win |
+|---|---|---|
+| attack_only | 0 | 5.0% (101/2000) |
+| attack_spam | 0 | 22.8% (456/2000) |
+| greedy | 0 | 23.9% (479/2000) |
+| random_legal | 0 | 20.6% (412/2000) |
+
+
+## Win-rate theo chinh sach x doi
+
+| policy | team | win |
+|---|---|---|
+| attack_only | aqua_plant | 1.0% (3/286) |
+| attack_only | beast_bird | 23.8% (68/286) |
+| attack_only | mixed_dmg | 4.9% (14/286) |
+| attack_only | mixed_std | 0.3% (1/286) |
+| attack_only | reptile_bug | 1.4% (4/286) |
+| attack_only | tank_heavy | 3.9% (11/285) |
+| attack_only | thorn_shield | 0.0% (0/285) |
+| attack_spam | aqua_plant | 10.5% (30/286) |
+| attack_spam | beast_bird | 21.3% (61/286) |
+| attack_spam | mixed_dmg | 24.1% (69/286) |
+| attack_spam | mixed_std | 19.9% (57/286) |
+| attack_spam | reptile_bug | 33.9% (97/286) |
+| attack_spam | tank_heavy | 23.2% (66/285) |
+| attack_spam | thorn_shield | 26.7% (76/285) |
+| greedy | aqua_plant | 9.8% (28/286) |
+| greedy | beast_bird | 23.1% (66/286) |
+| greedy | mixed_dmg | 22.0% (63/286) |
+| greedy | mixed_std | 23.8% (68/286) |
+| greedy | reptile_bug | 37.4% (107/286) |
+| greedy | tank_heavy | 22.1% (63/285) |
+| greedy | thorn_shield | 29.5% (84/285) |
+| random_legal | aqua_plant | 8.7% (25/286) |
+| random_legal | beast_bird | 19.6% (56/286) |
+| random_legal | mixed_dmg | 20.3% (58/286) |
+| random_legal | mixed_std | 20.6% (59/286) |
+| random_legal | reptile_bug | 29.4% (84/286) |
+| random_legal | tank_heavy | 20.4% (58/285) |
+| random_legal | thorn_shield | 25.3% (72/285) |
+
+
+## Win-rate theo chinh sach x cach chon Loi
+
+| policy | core_policy | win |
+|---|---|---|
+| attack_only | combo | 5.9% (39/665) |
+| attack_only | greedy_axis | 4.7% (31/665) |
+| attack_only | random | 4.6% (31/670) |
+| attack_spam | combo | 25.3% (168/665) |
+| attack_spam | greedy_axis | 20.9% (139/665) |
+| attack_spam | random | 22.2% (149/670) |
+| greedy | combo | 25.7% (171/665) |
+| greedy | greedy_axis | 22.1% (147/665) |
+| greedy | random | 24.0% (161/670) |
+| random_legal | combo | 22.4% (149/665) |
+| random_legal | greedy_axis | 19.1% (127/665) |
+| random_legal | random | 20.3% (136/670) |
+
+
+## So luot trung binh moi tran (chinh sach|loai)
+
+- attack_only|battle: 4.0 luot (n=9400)
+- attack_only|boss: 6.9 luot (n=2001)
+- attack_only|elite: 5.2 luot (n=1208)
+- attack_spam|battle: 3.5 luot (n=15088)
+- attack_spam|boss: 6.4 luot (n=4215)
+- attack_spam|elite: 5.0 luot (n=2241)
+- greedy|battle: 3.3 luot (n=15915)
+- greedy|boss: 6.0 luot (n=4502)
+- greedy|elite: 4.7 luot (n=2312)
+- random_legal|battle: 3.4 luot (n=14775)
+- random_legal|boss: 6.2 luot (n=3978)
+- random_legal|elite: 4.7 luot (n=2171)
+
+## Chet theo node (chinh sach|loai row)
+
+- attack_only|battle r1: 1
+- attack_only|battle r10: 12
+- attack_only|battle r11: 9
+- attack_only|battle r13: 4
+- attack_only|battle r14: 4
+- attack_only|battle r15: 6
+- attack_only|battle r16: 2
+- attack_only|battle r17: 6
+- attack_only|battle r3: 12
+- attack_only|battle r4: 181
+- attack_only|battle r5: 40
+- attack_only|battle r7: 5
+- attack_only|battle r8: 6
+- attack_only|battle r9: 5
+- attack_only|boss r12: 141
+- attack_only|boss r18: 146
+- attack_only|boss r6: 758
+- attack_only|elite r15: 34
+- attack_only|elite r5: 456
+- attack_only|elite r9: 71
+- attack_spam|battle r10: 2
+- attack_spam|battle r11: 11
+- attack_spam|battle r13: 2
+- attack_spam|battle r14: 5
+- attack_spam|battle r15: 8
+- attack_spam|battle r17: 6
+- attack_spam|battle r4: 54
+- attack_spam|battle r5: 12
+- attack_spam|battle r7: 2
+- attack_spam|battle r8: 13
+- attack_spam|battle r9: 3
+- attack_spam|boss r12: 275
+- attack_spam|boss r18: 539
+- attack_spam|boss r6: 120
+- attack_spam|elite r15: 181
+- attack_spam|elite r5: 186
+- attack_spam|elite r9: 125
+- greedy|battle r10: 7
+- greedy|battle r11: 7
+- greedy|battle r13: 12
+- greedy|battle r14: 10
+- greedy|battle r15: 8
+- greedy|battle r16: 4
+- greedy|battle r17: 7
+- greedy|battle r4: 47
+- greedy|battle r5: 10
+- greedy|battle r7: 6
+- greedy|battle r8: 10
+- greedy|battle r9: 4
+- greedy|boss r12: 254
+- greedy|boss r18: 651
+- greedy|boss r6: 56
+- greedy|elite r15: 161
+- greedy|elite r5: 157
+- greedy|elite r9: 110
+- random_legal|battle r10: 10
+- random_legal|battle r11: 17
+- random_legal|battle r13: 13
+- random_legal|battle r14: 14
+- random_legal|battle r15: 12
+- random_legal|battle r16: 4
+- random_legal|battle r17: 9
+- random_legal|battle r4: 70
+- random_legal|battle r5: 21
+- random_legal|battle r7: 7
+- random_legal|battle r8: 29
+- random_legal|battle r9: 14
+- random_legal|boss r12: 214
+- random_legal|boss r18: 499
+- random_legal|boss r6: 106
+- random_legal|elite r15: 190
+- random_legal|elite r5: 209
+- random_legal|elite r9: 150
+
+Tran ket > 20 luot hoac khong ket thuc: 61 / 77806
+
+## Tan suat Loi / Luat run (% run)
+
+Cot fire = Loi dang so huu co kich hoat it nhat 1 lan (heuristic: state bucket hoac event chac chan xay ra; engine chua co trace rieng). `LOW` = xuat hien < 10% run; `DEAD` = duoc chon nhung khong bao gio fire.
+
+| id | truc | bac | offered | picked | fired | fired/picked | co |
+|---|---|---|---|---|---|---|---|
+| c_early_scales | stat | 0 | 60.7% | 12.6% | 12.6% | 100% |  |
+| c_dewdrop | stat | 0 | 60.1% | 17.9% | 17.9% | 100% |  |
+| c_elder_trunk | stat | 0 | 59.3% | 17.7% | 17.7% | 100% |  |
+| c_prime_chain | dice | 0 | 46.3% | 17.6% | 17.6% | 100% |  |
+| c_finisher | dice | 0 | 47.0% | 17.5% | 17.5% | 100% |  |
+| c_bastion | pos | 0 | 66.8% | 22.7% | 22.7% | 100% |  |
+| c_tidecaller | mana | 0 | 48.6% | 11.7% | 0.0% | 0% | DEAD |
+| c_mana_pool | mana | 0 | 42.5% | 13.9% | 13.9% | 100% |  |
+| c_collector | quest | 0 | 22.3% | 3.9% | 3.9% | 100% |  |
+| c_nest | rule | 0 | 37.6% | 13.2% | 13.2% | 100% |  |
+| c_spore_burst | rule | 0 | 33.4% | 11.8% | 11.8% | 100% |  |
+| c_fossil | rule | 0 | 36.6% | 8.3% | 0.0% | 0% | DEAD |
+| rule_none | run_rule | 0 | 9.6% | 2.9% | 0.0% | 0% | LOW DEAD |
+| rule_cheap_mana | run_rule | 0 | 14.9% | 7.6% | 7.6% | 100% |  |
+| rule_tundra | run_rule | 0 | 16.1% | 8.7% | 8.7% | 100% |  |
+| rule_quick_beat | run_rule | 0 | 15.1% | 8.2% | 8.2% | 100% |  |
+| rule_starfall | run_rule | 0 | 17.0% | 9.6% | 9.6% | 100% |  |
+| rule_heavy_finish | run_rule | 0 | 14.3% | 7.8% | 7.8% | 100% |  |
+| rule_wasteland | run_rule | 0 | 14.8% | 8.1% | 8.1% | 100% |  |
+| rule_dry_steppe | run_rule | 0 | 13.6% | 7.2% | 7.2% | 100% |  |
+| rule_rising_tide | run_rule | 0 | 14.2% | 7.4% | 7.4% | 100% |  |
+| rule_upside_down | run_rule | 0 | 14.2% | 7.3% | 7.3% | 100% |  |
+| rule_old_forest | run_rule | 0 | 14.3% | 7.7% | 7.7% | 100% |  |
+| rule_crow | run_rule | 0 | 14.2% | 4.8% | 0.0% | 0% | DEAD |
+| rule_hard_shell | run_rule | 0 | 13.0% | 5.1% | 0.0% | 0% | DEAD |
+| rule_balance | run_rule | 0 | 14.7% | 7.7% | 7.7% | 100% |  |
+| c_prism | dice | 1 | 11.7% | 4.9% | 4.9% | 100% |  |
+| c_steady_hold | dice | 1 | 10.8% | 2.9% | 2.9% | 100% |  |
+| c_kindle | dice | 1 | 12.1% | 5.4% | 5.4% | 100% |  |
+| c_sonic_shield | dice | 1 | 11.3% | 5.0% | 5.0% | 100% |  |
+| c_fissure | dice | 1 | 7.4% | 3.0% | 3.0% | 100% | LOW |
+| c_field_medic | dice | 1 | 11.7% | 3.0% | 3.0% | 100% |  |
+| c_plague_spread | dice | 1 | 7.6% | 3.4% | 3.4% | 100% | LOW |
+| c_gatekeeper | pos | 1 | 31.3% | 15.7% | 15.7% | 100% |  |
+| c_backline_glow | pos | 1 | 30.7% | 16.3% | 16.3% | 100% |  |
+| c_growing_shell | pos | 1 | 30.3% | 15.4% | 15.4% | 100% |  |
+| c_mana_ward | mana | 1 | 27.7% | 7.6% | 7.6% | 100% |  |
+| c_overflow | mana | 1 | 24.3% | 10.2% | 10.2% | 100% |  |
+| c_thorn_pact | mana | 1 | 19.3% | 8.2% | 8.2% | 100% |  |
+| c_dry_well | quest | 1 | 22.6% | 2.8% | 2.8% | 100% |  |
+| c_night_watch | quest | 1 | 22.3% | 2.5% | 2.5% | 100% |  |
+| c_key_strike | quest | 1 | 22.1% | 2.3% | 2.3% | 100% |  |
+| c_chimera_hunt | quest | 1 | 22.7% | 4.7% | 4.7% | 99% |  |
+| c_golden_egg | rule | 1 | 5.3% | 4.3% | 4.3% | 100% | LOW |
+| c_dim_stone | rule | 1 | 47.6% | 11.0% | 0.0% | 0% | DEAD |
+| c_mirror_face | dice | 2 | 9.7% | 3.9% | 3.9% | 100% | LOW |
+| c_sixth_die | dice | 2 | 10.3% | 4.7% | 4.7% | 100% |  |
+| c_whittle | dice | 2 | 10.4% | 2.5% | 2.5% | 100% |  |
+| c_three_dice | dice | 2 | 9.8% | 4.2% | 4.2% | 100% | LOW |
+| c_concord | dice | 2 | 7.2% | 1.9% | 1.9% | 100% | LOW |
+| c_toxic_still | dice | 2 | 6.5% | 1.9% | 1.9% | 100% | LOW |
+| c_living_wall | pos | 2 | 26.4% | 12.2% | 12.2% | 100% |  |
+| c_open_ranks | pos | 2 | 7.4% | 3.0% | 3.0% | 100% | LOW |
+| c_descend | pos | 2 | 14.9% | 7.3% | 7.3% | 100% |  |
+| c_hollow_core | mana | 2 | 20.4% | 6.9% | 6.9% | 100% |  |
+| c_deep_current | mana | 2 | 28.4% | 7.2% | 7.2% | 100% |  |
+| c_blood_sign | rule | 2 | 10.1% | 4.5% | 4.5% | 100% |  |
+| c_loop | rule | 2 | 13.3% | 5.6% | 5.6% | 100% |  |
+| c_cascade | rule | 2 | 14.0% | 5.7% | 5.7% | 100% |  |
+| c_sacrifice | rule | 2 | 16.1% | 4.4% | 4.4% | 100% |  |
+
+
+## Loi
+
+Run rap duoc cap (2 Loi cung truc dice/mana/pos/rule): 67.9% (5435/8000)
+
+Win-rate khi co Loi (n >= 8). Top 10:
+- c_spore_burst: 46.3% (415/897)
+- c_mirror_face: 42.7% (134/314)
+- c_cascade: 37.9% (172/454)
+- c_fissure: 36.8% (89/242)
+- c_sixth_die: 36.3% (136/375)
+- c_golden_egg: 35.2% (122/347)
+- c_blood_sign: 33.1% (120/362)
+- c_sonic_shield: 32.2% (129/400)
+- c_nest: 31.5% (324/1030)
+- c_living_wall: 29.3% (284/969)
+
+Bottom 10:
+- c_three_dice: 9.9% (33/333)
+- c_mana_pool: 16.3% (176/1077)
+- c_bastion: 16.6% (291/1750)
+- c_tidecaller: 17.4% (159/915)
+- c_field_medic: 18.8% (45/240)
+- c_prime_chain: 19.2% (264/1377)
+- c_finisher: 19.4% (264/1364)
+- c_dewdrop: 19.6% (276/1408)
+- c_kindle: 20.3% (87/428)
+- c_backline_glow: 20.3% (264/1298)
+
+Cap Loi bat thuong (n >= 8): top 5 / bottom 5
+- c_fissure + c_spore_burst: 77.8% (21/27)
+- c_mana_ward + c_mirror_face: 76.9% (10/13)
+- c_golden_egg + c_mirror_face: 75.0% (6/8)
+- c_mirror_face + c_spore_burst: 74.1% (20/27)
+- c_nest + c_open_ranks: 72.7% (8/11)
+- c_open_ranks + c_tidecaller: 0.0% (0/9)
+- c_steady_hold + c_tidecaller: 0.0% (0/14)
+- c_three_dice + c_toxic_still: 0.0% (0/9)
+- c_concord + c_overflow: 0.0% (0/8)
+- c_open_ranks + c_thorn_pact: 0.0% (0/14)

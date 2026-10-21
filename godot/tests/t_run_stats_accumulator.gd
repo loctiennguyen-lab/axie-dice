@@ -33,6 +33,7 @@ func _ready() -> void:
 	_check_poison_and_thorns_count_toward_damage_dealt_but_not_biggest_hit()
 	_check_axies_lost_dedupes_a_revived_roster_unit()
 	_check_accumulator_is_wired_through_a_real_combat()
+	_check_best_bo()
 
 	_guard.restore()
 	print("=== t_run_stats_accumulator: %d checks, %d failure(s) ===" % [_checks, _failures.size()])
@@ -290,3 +291,24 @@ func _play_one_bot_turn(combat: CombatEngine) -> void:
 		if not acted:
 			break
 	combat.end_turn()
+
+
+## v4 "Best set": the run keeps the biggest Set (size, then m100), survives to_data/from_data, shows up in snapshot().
+func _check_best_bo() -> void:
+	var rsa := RunStatsAccumulator
+	_assert(rsa.better_bo({}, {"part": 1, "size": 2, "m100": 110}).is_empty(), "best_bo: a pair is not a Set")
+	var b3 := rsa.better_bo({}, {"part": 1, "size": 3, "m100": 120, "uids": [1, 2, 3]})
+	_assert(b3 == {"part": 1, "size": 3, "m100": 120}, "best_bo: clean 3-key copy")
+	_assert(rsa.better_bo(b3, {"part": 2, "size": 3, "m100": 150})["part"] == 2, "best_bo: same size, higher m100 wins")
+	_assert(rsa.better_bo({"part": 2, "size": 4, "m100": 130}, {"part": 3, "size": 3, "m100": 300})["size"] == 4, "best_bo: size beats m100")
+	RunState.reset()
+	RunState._fold_combat_stats({"best_bo": {"part": 1, "size": 3, "m100": 120}})
+	RunState._fold_combat_stats({"best_bo": {"part": 4, "size": 5, "m100": 260}})
+	RunState._fold_combat_stats({"turns": 1})
+	var d := RunState.to_data()
+	RunState.reset()
+	RunState.from_data(d)
+	_assert(RunState.run_stats.get("best_bo", {}) == {"part": 4, "size": 5, "m100": 260}, "best_bo: folded across fights and saved/loaded")
+	_assert(rsa.snapshot("short")["best_bo"] == {"part": 4, "size": 5, "m100": 260}, "best_bo: in snapshot()")
+	RunState.reset()
+	_assert((rsa.snapshot("short")["best_bo"] as Dictionary).is_empty(), "best_bo: empty after reset (no Set run)")

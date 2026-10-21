@@ -31,26 +31,62 @@
  "core": {
   "mult_cap": 8
  },
+ "wild": {
+  "cost": 3,
+  "per_turn": 1
+ },
+ "overcast": {
+  "mana_cost": 3,
+  "add": 0.5,
+  "per_turn": 1
+ },
+ "bo": {
+  "enabled": 1,
+  "add_3": 0.3,
+  "add_4": 1.2,
+  "add_5": 1.6,
+  "scale": 1.0,
+  "m_cap": 3.0,
+  "phantom_counts": 0
+ },
+ "crack": {
+  "pct": 30,
+  "value_div": 2
+ },
+ "part": {
+  "hi_add": 0.25,
+  "hi_r": 2
+ },
+ "thorn": {
+  "shield_transfer_cap": 6
+ },
+ "poison": {
+  "face_cap": 8,
+  "stack_cap": 15
+ },
  "stash": {
   "cap": 1
  },
  "reroll": {
   "free": 1,
-  "mana_cost": 2,
-  "max_total": 4,
+  "mana_cost_2": 1,
+  "mana_cost_3": 3,
+  "max_total": 3,
+  "hard_cap": 4,
+  "core_hard_cap_add": 1,
   "conduit_step": 3
  },
  "rows": {
   "front_size": 2
  },
  "difficulty": {
-  "enemy_dmg_mult": 1.2,
+  "enemy_dmg_mult": 1.5,
   "boss_hp_mult": 1.1
  },
  "boss_rhythm": {
   "enabled": 1,
   "period": 3,
-  "hollow_taken_pct": 30,
+  "hollow_taken_pct": 50,
   "hollow_dealt_pct": -30
  },
  "plating": {

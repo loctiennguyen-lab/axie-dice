@@ -155,6 +155,8 @@ const PACT_REROLL_SALT := 0x70AC7E11
 var boon_id: String = ""
 ## Account is in its first runs: attrition and the light clock are off. Fixed at run start (header).
 var newcomer: bool = false
+## Depth v4 3.8: 1..3, fixed at run start (server value online, params/default 3 offline). Handed to every CombatEngine.
+var depth_stage: int = 3
 ## Depth v3 Core run state (lane B). Saved in to_data/from_data.
 var core_first_extra: bool = false
 var core_tier_chain: Array[int] = []      ## tier of each Core pick, drawn once at new_run (TIER_SALT)
@@ -289,6 +291,7 @@ func reset() -> void:
 	_shop_refreshes = 0
 	mission = {}
 	newcomer = false
+	depth_stage = 3
 	core_first_extra = false
 	core_tier_chain = []
 	core_pick_index = 0
@@ -459,6 +462,7 @@ func _start_core(start_reply: EpochReply, params: Dictionary, display_seed: int)
 	reward_reroll_charges = reward_reroll_max
 	var hdr: Dictionary = start_reply.extra.get("header", {}) as Dictionary
 	newcomer = bool(hdr.get("newcomer", params.get("newcomer", false)))
+	depth_stage = clampi(int(hdr.get("depth_stage", params.get("depth_stage", 3))), 1, 3)
 	mission = (hdr.get("mission", params.get("mission", {})) as Dictionary).duplicate(true)
 	var is_mission := String(params.get("kind", "")) == "mission" or not mission.is_empty()
 	var want_boon := String((params.get("loadout", {}) as Dictionary).get("boon_id", ""))
@@ -522,7 +526,7 @@ func _start_core(start_reply: EpochReply, params: Dictionary, display_seed: int)
 	var hdr_extra: Dictionary = start_reply.extra.get("header", {}) as Dictionary
 	action_log.set_epoch_header(String(start_reply.extra.get("run_id", "")),
 		String(start_reply.extra.get("client_nonce", "")), loadout,
-		newcomer, mission)
+		newcomer, mission, depth_stage)
 	if epoch != null:
 		epoch.bind_log(action_log)
 	# Depth v3 Core / Run Rule state (lane B). Own Rng streams (seed ^ SALT), never the shared `_rng`.
@@ -865,6 +869,7 @@ func enter_node(node_id: String, node_kind: String, seed: int = -1) -> void:
 				"combat_seed": combat_seed,
 				"bonus_reroll": bonus_reroll + int(boon_n.get("bonus_reroll", 0)),
 				"newcomer": newcomer,
+				"depth_stage": depth_stage,
 				"mission": not mission.is_empty(),
 				"mission_rules": mission_rules(),
 				"start_shield_all": int(boon_n.get("start_shield_all", 0)),
@@ -983,6 +988,8 @@ func _fold_combat_stats(raw) -> void:
 	for key in ["dmg", "taken", "turns", "kills", "dmg_dealt_clamped"]:
 		run_stats[key] = int(run_stats.get(key, 0)) + int(stat.get(key, 0))
 	run_stats["max_hit"] = maxi(int(run_stats.get("max_hit", 0)), int(stat.get("max_hit", 0)))
+	if stat.get("best_bo", null) is Dictionary:
+		run_stats["best_bo"] = RunStatsAccumulator.better_bo(run_stats.get("best_bo", {}) as Dictionary, stat["best_bo"] as Dictionary)
 
 
 ## src/engine.js finishCombat()'s ENG-3 block (engine.js:986-994) write-back half. The
@@ -1033,6 +1040,7 @@ func end_run(won: bool) -> void:
 
 	# Lifetime stats and the Ascension ladder (src/client.html onRunEnd(), :5436-5446).
 	MetaState.runs += 1
+	MetaState.note_run_completed()
 	if power_level > MetaState.best:
 		MetaState.best = power_level
 	if won:
@@ -1817,7 +1825,7 @@ func to_data() -> Dictionary:
 		"node_seed": _node_seed,
 		"mission": mission.duplicate(true),
 		"aid_uses": aid_uses.duplicate(true), "boon_used": boon_used, "shop_refreshes": _shop_refreshes,
-		"boon_id": boon_id, "newcomer": newcomer, "fights_started": fights_started,
+		"boon_id": boon_id, "newcomer": newcomer, "depth_stage": depth_stage, "fights_started": fights_started,
 		"bosses_started": bosses_started, "first_battle_rewarded": first_battle_rewarded,
 		"relic_state": relic_state.duplicate(true),
 		"relic_stickers": relic_stickers.duplicate(true),
@@ -1866,6 +1874,8 @@ func from_data(d: Dictionary) -> void:
 	run_stats = {}
 	for key in ["dmg", "taken", "turns", "kills", "max_hit", "dmg_dealt_clamped"]:
 		run_stats[key] = int(saved_stats.get(key, 0))
+	if saved_stats.get("best_bo", null) is Dictionary:
+		run_stats["best_bo"] = RunStatsAccumulator.better_bo({}, saved_stats["best_bo"] as Dictionary)
 	core_impact = {}
 	var saved_impact = d.get("core_impact", {})
 	if saved_impact is Dictionary:
@@ -1898,6 +1908,7 @@ func from_data(d: Dictionary) -> void:
 	_shop_refreshes = int(d.get("shop_refreshes", 0))
 	boon_id = String(d.get("boon_id", ""))
 	newcomer = bool(d.get("newcomer", false))
+	depth_stage = clampi(int(d.get("depth_stage", 3)), 1, 3)
 	fights_started = int(d.get("fights_started", 0))
 	bosses_started = int(d.get("bosses_started", 0))
 	first_battle_rewarded = bool(d.get("first_battle_rewarded", false))

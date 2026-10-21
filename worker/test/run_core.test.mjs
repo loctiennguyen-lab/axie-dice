@@ -208,15 +208,26 @@ test('reroll pins its seed per (battle, attempt, turn, k); uids must be present 
   await c.hello();
   await start(c);
   await c.epoch('node', { node_id: 'r1_c0' }, []);
-  const r1 = await c.epoch('reroll', { turn: 1, k: 1, source: 'base', uids: [1, 2] }, [A('enter_node', ['r1_c0', 'battle'])]);
-  // player rerolls, undoes, asks again for the same key with other dice
-  const r2 = await c.epoch('reroll', { turn: 1, k: 1, source: 'base', uids: [3] }, [A('reroll_dice', [[1, 2], 0]), A('undo_last')]);
+  const r1 = await c.epoch('reroll', { turn: 1, k: 1, source: 'base', uids: [1, 2], rmode: 1 }, [A('enter_node', ['r1_c0', 'battle'])]);
+  // player rerolls, undoes, asks again for the same key: same uids and rmode -> same seed
+  const acts = [A('reroll_dice', [[1, 2], 0, 1]), A('undo_last')];
+  const r2 = await c.epoch('reroll', { turn: 1, k: 1, source: 'base', uids: [1, 2], rmode: 1 }, acts);
   assert.equal(r2.seed, r1.seed, 'same key -> same seed');
-  const r3 = await c.epoch('reroll', { turn: 1, k: 2, source: 'base', uids: [3] }, [A('reroll_dice', [[3], 0])]);
+  // Depth v4 3.10.2: other dice, or another rmode, on a pinned key -> pin_mismatch (no new seed)
+  assert.equal((await c.epoch('reroll', { turn: 1, k: 1, source: 'base', uids: [3], rmode: 1 }, [A('reroll_dice', [[1, 2], 0, 1]), A('undo_last')])).code, 'pin_mismatch');
+  assert.equal((await c.epoch('reroll', { turn: 1, k: 1, source: 'base', uids: [1, 2], rmode: 0 }, [A('reroll_dice', [[1, 2], 0, 1]), A('undo_last')])).code, 'pin_mismatch');
+  assert.equal((await c.epoch('reroll', { turn: 1, k: 1, source: 'base', uids: [1, 2], rmode: 2 }, [])).code, 'bad_request');
+  const r3 = await c.epoch('reroll', { turn: 1, k: 2, source: 'base', uids: [3] }, [A('reroll_dice', [[1, 2], 0])]);
   assert.notEqual(r3.seed, r1.seed);
   const uids = sql.exec(`SELECT uids FROM epochs WHERE kind = 'reroll' ORDER BY seq`).toArray().map((r) => r.uids);
-  assert.deepEqual(uids, ['1,2', '3', '3']);
+  assert.deepEqual(uids, ['[1,2]', '[1,2]', '[3]']);
+  // uids in the log must be the pinned epoch's uids (anomaly uids_mismatch), and a clean list
+  assert.equal((await c.epoch('reroll', { turn: 1, k: 3, source: 'base', uids: [3] }, [A('reroll_dice', [[4], 0, 1])])).code, 'rejected');
+  assert.equal((await c.epoch('reroll', { turn: 1, k: 3, source: 'base', uids: [3] }, [A('reroll_dice', [[-1], 0, 1])])).code, 'rejected'); // uids_invalid
   assert.equal((await c.epoch('reroll', { turn: 1, k: 3, source: 'base' }, [A('reroll_dice', [[3], 0])])).code, 'bad_request');
+  // T10 (rejected, anomaly delta_rejected/aid_mismatch): the log claims an Aid reroll (from_aid = 1) but the epoch granted was a base one
+  assert.equal((await c.epoch('reroll', { turn: 1, k: 3, source: 'base', uids: [3] }, [A('reroll_dice', [[3], 1, 1])])).code, 'rejected');
+  assert.equal((await c.epoch('reroll', { turn: 1, k: 3, source: 'base', uids: [3] }, [A('reroll_dice', [[3], 0, 1])])).t, 'epoch_res');
 });
 
 test('seed differs between runs even for identical requests (S_run is per run)', async () => {
@@ -556,4 +567,54 @@ test('B11: pact_reroll (R5) is paid 15 once per pact node, args {node_id, slot} 
   assert.deepEqual(charges, [['R5', 15]]);
   const again = await c.epoch('pact_reroll', { node_id: 'r1_c0', slot: 2 }, [A('pact_reroll', [1, 1])]);
   assert.equal(again.code, 'rejected', 'cap 1 per pact node');
+});
+
+test('depth v4 stage: the server-written depth_stage must ride on every request, a different one is stage_mismatch', async () => {
+  const { c } = await fresh({ depth_stage: 1 });
+  await c.hello();
+  assert.equal((await start(c)).code, 'stage_mismatch', 'no stage on the request');
+  assert.equal((await c.epoch('run_start', { mode: 'short', ascension: 0 }, [], { client_nonce: NONCE, depth_stage: 3 })).code, 'stage_mismatch', 'a client claiming 3 when the server wrote 1');
+  assert.equal((await c.epoch('run_start', { mode: 'short', ascension: 0 }, [], { client_nonce: NONCE, depth_stage: 1 })).t, 'epoch_res');
+  assert.equal((await c.epoch('node', { node_id: 'r1_c0' }, [], { depth_stage: 2 })).code, 'stage_mismatch');
+  assert.equal((await c.epoch('node', { node_id: 'r1_c0' }, [], { depth_stage: 1 })).t, 'epoch_res');
+  const close = await c.build('node', {}, [], {});
+  const bad = await c.send({ t: 'run_close', seq: c.seq + 1, log_delta: [], h: close.h, log_len: c.len, outcome: 'lost', depth_stage: 3 });
+  assert.equal(bad.code, 'stage_mismatch', 'run_close checks the stage too');
+});
+
+test('depth v4 stage: a run with no stage on record (created before v4) is not checked', async () => {
+  const { c } = await fresh();
+  await c.hello();
+  assert.equal((await start(c)).t, 'epoch_res');
+  assert.equal((await c.epoch('node', { node_id: 'r1_c0' }, [], { depth_stage: 3 })).t, 'epoch_res');
+});
+
+test('depth v4 T1: the rmode a reroll_dice logs must be the rmode of the epoch it consumes; the pin also holds the source', async () => {
+  const { c } = await fresh();
+  await c.hello();
+  await start(c);
+  await c.epoch('node', { node_id: 'r1_c0' }, []);
+  await c.epoch('reroll', { turn: 1, k: 1, source: 'base', uids: [1, 2], rmode: 0 }, [A('enter_node', ['r1_c0', 'battle'])]);
+  // the epoch was granted for Lieu (0); a log that claims Safe (1) is refused, a missing rmode counts as Safe
+  assert.equal((await c.epoch('reroll', { turn: 1, k: 2, source: 'base', uids: [3], rmode: 1 }, [A('reroll_dice', [[1, 2], 0, 1])])).code, 'rejected');
+  assert.equal((await c.epoch('reroll', { turn: 1, k: 2, source: 'base', uids: [3], rmode: 1 }, [A('reroll_dice', [[1, 2], 0])])).code, 'rejected');
+  const ok = await c.epoch('reroll', { turn: 1, k: 2, source: 'base', uids: [3], rmode: 1 }, [A('reroll_dice', [[1, 2], 0, 0])]);
+  assert.equal(ok.t, 'epoch_res');
+  // same key asked again with the other source -> pin_mismatch
+  assert.equal((await c.epoch('reroll', { turn: 1, k: 2, source: 'aid', uids: [3], rmode: 1 }, [A('reroll_dice', [[3], 0, 1]), A('undo_last')])).code, 'pin_mismatch');
+});
+
+test('initSchema: ALTER swallows only "duplicate column", any other error is thrown', () => {
+  const mk = (msg) => ({ exec: (q) => { if (/ALTER TABLE/.test(q)) throw new Error(msg); return { toArray: () => [] }; } });
+  RunCore.initSchema(mk('duplicate column name: depth_stage'));
+  assert.throws(() => RunCore.initSchema(mk('disk I/O error')), /disk I\/O/);
+});
+
+test('depth v4: a ranked run below stage 3 cannot be closed (ranked_stage); stage 3 closes', async () => {
+  const { c } = await fresh({ mode: 'ranked', depth_stage: 2 });
+  await c.hello();
+  assert.equal((await c.epoch('run_start', { mode: 'short', ascension: 0 }, [], { client_nonce: NONCE, depth_stage: 2 })).t, 'epoch_res');
+  const close = await c.build('node', {}, [], {});
+  const bad = await c.send({ t: 'run_close', seq: c.seq + 1, log_delta: [], h: close.h, log_len: c.len, outcome: 'lost', depth_stage: 2 });
+  assert.equal(bad.code, 'ranked_stage');
 });

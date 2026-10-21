@@ -248,9 +248,9 @@ func t_dice_cores() -> void:
 	c.enemies[0].status["poison"] = 6
 	RelicHooks.fire(c, "on_turn_end", {"combat": c})
 	_ok(int(c.enemies[0].status["poison"]) == 9, "toxic_still: +3 (half of 6)")
-	c.enemies[0].status["poison"] = 20
+	c.enemies[0].status["poison"] = 12
 	RelicHooks.fire(c, "on_turn_end", {"combat": c})
-	_ok(int(c.enemies[0].status["poison"]) == 24, "toxic_still: capped +4")
+	_ok(int(c.enemies[0].status["poison"]) == 15, "toxic_still: +4 cut by poison.stack_cap 15 (v4)")
 
 
 func t_pos_mana_cores() -> void:
@@ -286,15 +286,18 @@ func t_pos_mana_cores() -> void:
 	RelicHooks.fire(c, "on_turn_end", {"combat": c})
 	_ok(c.mana == 8 and c.enemies[0].hp < h0, "overflow: mana above 8 -> damage, back to 8")
 	c = _combat(["c_hollow_core"])
-	_ok(c.max_rerolls == 0 and c.reroll_mana_cost() == 1, "hollow_core: no free reroll, 1 mana each")
+	_ok(c.max_rerolls == 0 and c.reroll_mana_cost() == 1, "hollow_core: no free reroll, first chosen reroll 1 mana (mana_cost_2 is already 1, floor 1)")
 	RelicHooks.fire(c, "on_roll_settled", {"combat": c, "rerolled_uids": [c.party[0].uid]})
 	_ok(_val(c, c.party[0], "dmg", 5) == _val(b, b.party[0], "dmg", 5) + 1, "hollow_core: rerolled die +1")
 	_ok(_val(c, c.party[0], "mana", 2) == _val(b, b.party[0], "mana", 2) + 2, "hollow_core: mana +1 and reroll +1")
-	c.reroll_nonaid = 0
+	c.reroll_paid_k = 0
 	for i in 8:
-		c.reroll_nonaid += 1
+		c.reroll_paid_k += 1
 		RelicHooks.fire(c, "on_reroll_paid", {"combat": c, "cost": 1, "k": i + 1})
-	_ok(c.reroll_nonaid == 4, "hollow_core: 8 paid rerolls fill the cap of 4 counted")
+	_ok(c.reroll_paid_k == 4, "hollow_core: 8 paid rerolls fill the cap of 4 counted")
+	_ok(c.reroll_hard_cap() == 5 and b.reroll_hard_cap() == 4, "hollow_core: hard_cap 4 -> 5 (v4, the cap would eat the Core)")
+	c.reroll_paid_k = 1
+	_ok(c.reroll_mana_cost() == int(CombatEngine.tune_knob("reroll", "mana_cost_3", 3.0)) - 1, "hollow_core: price = mana_cost_3 - 1")
 	c = _combat(["c_thorn_pact"])
 	_ok(c.reroll_mana_cost() == 0, "thorn_pact: reroll costs no mana")
 	var u: Unit = c.party[0]
@@ -413,9 +416,12 @@ func t_quests() -> void:
 func t_run_rules() -> void:
 	var b := _combat([])
 	var c := _combat(["rule_cheap_mana"])
-	_ok(c.max_rerolls == 0 and c.reroll_mana_cost() == 1, "cheap_mana: no free reroll, 1 mana")
+	_ok(c.max_rerolls == 0 and c.reroll_mana_cost() == 1, "cheap_mana: no free reroll, first chosen reroll 1 mana (mana_cost_2 is already 1, floor 1)")
+	_ok(c.reroll_hard_cap() == 5, "cheap_mana: hard_cap 4 -> 5")
+	c.reroll_paid_k = 1
+	_ok(c.reroll_mana_cost() == int(CombatEngine.tune_knob("reroll", "mana_cost_3", 3.0)) - 1, "cheap_mana: price = mana_cost_3 - 1")
 	c = _combat(["rule_tundra"])
-	_ok(c.stash_cap() == 2 and c.max_rerolls == 0 and c.reroll_mana_cost() == 2, "tundra: hold 2, rerolls cost 2")
+	_ok(c.stash_cap() == 2 and c.max_rerolls == 0 and c.reroll_mana_cost() == 1, "tundra: hold 2, first chosen reroll costs 1")
 	var u: Unit = c.party[0]
 	RelicHooks.fire(c, "on_stash", {"combat": c, "unit": u, "face": u.die[0], "fi": 0})
 	u.stash_carry = true
