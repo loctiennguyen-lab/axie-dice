@@ -26,6 +26,9 @@ const TEAMS := {
 }
 
 var _rng: Rng
+## Sensitive metrics per run (see SimReport.metric_section): player turns, damage dealt, V (sum of BO-type face values after the M bag
+## over the ready dice) at turn start (v0) and after the bot's roll decisions (v1), sum of squared per-turn dmg, boss fight facts.
+var _met := {}
 var _policy := "greedy"
 var _core_policy := "random"
 var _fights: Array = []   # per run: {kind, turns, won, stuck}
@@ -130,6 +133,7 @@ func _play_run(seed_value: int, team_name: String, asc: int, policy: String, cor
 	_policy = policy
 	_core_policy = core_policy
 	_abl = {}
+	_met = {"turns": 0, "dmg": 0.0, "v0": 0.0, "v1": 0.0, "dsq": 0.0, "boss_n": 0, "boss_turns": 0, "boss_won": 0, "boss_hp": 0.0}
 	if policy.begins_with("expert_"):
 		for k in policy.trim_prefix("expert_").split("+"):
 			_abl[k] = true
@@ -173,6 +177,16 @@ func _play_run(seed_value: int, team_name: String, asc: int, policy: String, cor
 				_note_triggers(eng, owned_snap)
 				_fights.append({"kind": node.node_type, "turns": turns, "won": eng.won, "stuck": turns > STUCK_TURNS or not (eng.won or eng.lost), "affix": aff})
 				RunState.apply_combat_result(eng.get_result())
+				if node.node_type == "boss":
+					var hp_now := 0.0
+					var hp_max := 0.0
+					for pu in eng.party:
+						hp_now += float(maxi(0, (pu as Unit).hp))
+						hp_max += float((pu as Unit).max_hp)
+					_met["boss_n"] = int(_met["boss_n"]) + 1
+					_met["boss_turns"] = int(_met["boss_turns"]) + turns
+					_met["boss_won"] = 1 if eng.won else 0
+					_met["boss_hp"] = hp_now / maxf(hp_max, 1.0)
 				if not eng.won:
 					death_kind = node.node_type
 					death_row = node.row
@@ -211,7 +225,7 @@ func _play_run(seed_value: int, team_name: String, asc: int, policy: String, cor
 	return {"seed": seed_value, "policy": policy, "core_policy": core_policy, "team": team_name, "asc": asc,
 		"won": won, "death_kind": death_kind, "death_row": death_row, "rule": RunState.run_rule,
 		"cores": cores, "fights": _fights.duplicate(true), "offered": _offered.keys(), "picked": _picked.duplicate(),
-		"trig": _trig.keys()}
+		"trig": _trig.keys(), "m": _met.duplicate()}
 
 
 # ---------------------------------------------------------------- rewards / cores
@@ -361,9 +375,14 @@ func _play_turn(eng: CombatEngine) -> void:
 	var guard := 0
 	if _policy == "random_legal":
 		_random_extras(eng)
+	var dmg0 := float(eng.stat.get("dmg_dealt_clamped", 0))
+	var v0 := _v_sum(eng)
+	var v1 := -1.0
 	while guard < 24 and not (eng.won or eng.lost):
 		guard += 1
 		var mv := _choose_move(eng)
+		if v1 < 0.0:
+			v1 = _v_sum(eng)   # after the bot's roll decisions (rerolls / Mat Tam / Overcast happen inside the first _choose_move)
 		if mv.is_empty():
 			break
 		var mu: Unit = eng.by_uid(int(mv[0]))
@@ -374,6 +393,24 @@ func _play_turn(eng: CombatEngine) -> void:
 			_shield_used += 1
 	if not (eng.won or eng.lost):
 		eng.end_turn()
+	var dd := float(eng.stat.get("dmg_dealt_clamped", 0)) - dmg0
+	_met["turns"] = int(_met["turns"]) + 1
+	_met["dmg"] = float(_met["dmg"]) + dd
+	_met["dsq"] = float(_met["dsq"]) + dd * dd
+	_met["v0"] = float(_met["v0"]) + v0
+	_met["v1"] = float(_met["v1"]) + (v1 if v1 >= 0.0 else v0)
+
+
+## V = sum of face values (after the M bag, Cores muted) of the dmg/shield/heal/poison faces on the dice that can still be played.
+func _v_sum(eng: CombatEngine) -> float:
+	var t := 0.0
+	CoreHooks.mute += 1
+	for u in _ready_units(eng):
+		var uu: Unit = u
+		if String(uu.current_face().get("type", "")) in CombatEngine.BO_TYPES:
+			t += float(eng._face_value(uu, uu.roll_face_index()))
+	CoreHooks.mute -= 1
+	return t
 
 
 func _ready_units(eng: CombatEngine) -> Array:
@@ -392,7 +429,7 @@ func _choose_move(eng: CombatEngine) -> Array:
 	var foes: Array = eng.alive_enemies()
 	if foes.is_empty():
 		return []
-	if _policy.begins_with("expert"):   # expert, expert_no_bo_hunt, expert_no_lieu, expert_no_wild, expert_no_overcast, expert_legacy
+	if _policy.begins_with("expert") or _policy == "free_hold":   # expert, expert_no_bo_hunt, expert_no_lieu, expert_no_wild, expert_no_overcast, expert_legacy
 		return _move_expert(eng, ready, foes)
 	match _policy:
 		"attack_spam":
@@ -703,8 +740,68 @@ func _expert_turn_start(eng: CombatEngine, ready: Array, foes: Array) -> void:
 			_expert_rerolls(eng)
 		_expert_wild(eng)
 		_expert_overcast(eng)
+	elif _policy == "free_hold":
+		_free_hold_rerolls(eng)
 	else:
 		_expert2_actions(eng)
+
+
+## free_hold ("decent player, no thinking"): spend only FREE rerolls (never mana), keep the biggest part group, re-roll every other
+## die; if nothing pairs, keep just the single best die. No Mat Tam, no Overcast, no Lieu. Dice moves then use the same beam plan as
+## expert, so expert - free_hold isolates the PAID decisions (the v4 skill part) from the passive bag.
+func _free_hold_rerolls(eng: CombatEngine) -> void:
+	if _noreroll:
+		return
+	CoreHooks.mute += 1
+	for round in 3:
+		if eng.rerolls <= 0 or eng.reroll_total_turn >= eng.reroll_hard_cap():
+			break
+		var groups := {}
+		for d in eng._bo_dice():
+			var u: Unit = d
+			if u.wild_slot >= 0 or u.cracked:
+				continue
+			var pt: int = u.roll_face_index()
+			if not groups.has(pt):
+				groups[pt] = []
+			(groups[pt] as Array).append(u)
+		var keep := {}
+		var best_n := 0
+		var best_sum := -1.0
+		for pt in groups:
+			var g: Array = groups[pt]
+			var sm := 0.0
+			for u in g:
+				sm += maxf(0.0, eng._face_base(u, pt))
+			if g.size() > best_n or (g.size() == best_n and sm > best_sum):
+				best_n = g.size()
+				best_sum = sm
+				keep = {}
+				if g.size() >= 2:
+					for u in g:
+						keep[(u as Unit).uid] = true
+				else:
+					var bu: Unit = g[0]
+					for u in g:
+						if eng._face_base(u, pt) > eng._face_base(bu, pt):
+							bu = u
+					keep[bu.uid] = true
+		if best_n >= 5:
+			break
+		var cands: Array = []
+		for u in eng.alive_party():
+			var uu: Unit = u
+			if uu.has_rolled() and not uu.roll_used() and not uu.held and not keep.has(uu.uid):
+				cands.append(uu.uid)
+		var ok_units: Array = eng._rerollable(cands)
+		cands = []
+		for u in ok_units:
+			cands.append((u as Unit).uid)
+		if cands.is_empty() or not eng.can_reroll(cands, false, 1) or eng.reroll_mana_cost(false, 1) > 0:
+			break
+		if not eng.reroll_dice(cands, -1, false, 1):
+			break
+	CoreHooks.mute -= 1
 
 
 ## Best-of-plan value of the turn as it stands (beam 1 for speed): lets the bot price Mat Tam / Overcast with the engine's own numbers.
