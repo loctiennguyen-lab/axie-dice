@@ -36,3 +36,10 @@ t_anchor_rules (3 luật nền + giá), t_anchor_awaken (3 thức tỉnh; Second
 - Gambler Liều sạch tính trước Second Wind; Second Wind không rút Nứt lại, không tốn mana/reroll cap.
 - Test: t_anchor_rules 190, t_anchor_awaken 37; t_replay, t_bo_order, t_overcast, t_reroll_modes, t_reroll_pin xanh.
 - Còn: đổi combat_tune.json đổi luật nên RULES_VERSION/t_rules_version cần bump khi merge (chưa đụng); phần 2 (6 nhà, bias trục, t_replay run Anchor).
+
+## 2b phần 2 - xong
+- Code: combat_engine.gd (house_tiers + anchor_fight trong snapshot/save, anchor_turn thêm cr_n/safe_n; 6 hàm `_mut_*`; Gai tạm `custom_state.tmp_thorns`, xoá ở roll_all, cộng trong damage_pipeline), RunState (`house_tiers_now`, `EventBus.mutation_on` ở `_note_combo_grant`), core_offer.gd + relic_tuning.gd `anchor_axis_bias` 1.5 (reroll không bias). Knob nhà đọc từ houses.json.
+- Tỉ lệ Lõi ruột có/không Anchor (cell 1.5 + axis 1.5, 3 tầng, 2500 offer): a_volley x1.20, a_gambler x1.30, a_mana_mine x1.37 (chưa tới 1.5 vì offer chỉ 3 thẻ nên bão hoà). Chờ duyệt có muốn tăng knob không.
+- Quyết định chờ duyệt: Kin = lượt đầu của TRẬN có BỘ (cờ cả trận); Gai tạm đặt lên Axie nhận Khiên; Hunt Four tính "An toàn" là reroll Safe tốn mana (lần trả phí 1 = miễn, lần 2 T2 = giá 1); Overflow bỏ qua khi hết quái.
+- RunVerifier từ chối record có anchor_id (offline-only) nên t_replay chạy tái hiện cấp trận cho 3 Anchor (thức tỉnh + 6 nhà nấc 2), không phải RunVerifier cấp run.
+- Test: t_mutation_houses 86, t_core_offer_weights 57, t_replay 92; suite 211/211 (skip t_rules_version); Worker 229/229. Còn: bump RULES_VERSION khi merge.
