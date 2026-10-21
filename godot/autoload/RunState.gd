@@ -166,6 +166,7 @@ var core_reroll_left: int = 0             ## whole-run Core rerolls (one card ea
 var core_rerolls_used: int = 0
 var core_rerolled_slots: Array[int] = []  ## slots already rerolled in the CURRENT offer
 var core_tier_bump: int = 0               ## pending +tier for the next offer (Elite affix+, Crow...), consumed on open
+var core_quest_done: Array[String] = []   ## finished quest Cores (left their slot, still count for combos)
 var core_quest_progress: Dictionary = {}  ## core id -> {step:int, progress:int}
 var run_rule: String = ""                 ## id of the chosen Run Rule ("" = none yet)
 var rules_on: bool = false                ## false in the account's first run: no Run Rule, no quest/bet Cores
@@ -301,6 +302,7 @@ func reset() -> void:
 	core_rerolled_slots = []
 	core_tier_bump = 0
 	core_quest_progress = {}
+	core_quest_done = []
 	run_rule = ""
 	rules_on = false
 	core_off = false
@@ -2385,6 +2387,8 @@ func note_quest_event(kind: String, n: int = 1) -> void:
 		if int(pr["step"]) >= steps.size():
 			owned_relic_ids.erase(String(qid))
 			core_quest_progress.erase(qid)
+			if not core_quest_done.has(String(qid)):
+				core_quest_done.append(String(qid))
 		else:
 			core_quest_progress[qid] = pr
 
@@ -2420,3 +2424,12 @@ func _open_bonus_offer() -> bool:
 	reward_reroll_charges = core_reroll_left
 	set_phase(RunPhase.REWARD)
 	return true
+
+
+## Owned Core/rule ids PLUS finished quest Cores: what CoreCombos reads (gacha pack, a finished quest Core still counts).
+func combo_owned_ids() -> Array:
+	var out: Array = owned_relic_ids.duplicate()
+	for id in core_quest_done:
+		if not out.has(id):
+			out.append(id)
+	return out
