@@ -3,10 +3,12 @@ extends Node
 ## scene changes: Land -> RunSetup -> begin() -> RunMap (Run Rule offer, Core pick) -> Combat -> ... -> Result.
 ## No fake Core fires, no injected data. Only setup: MetaState.runs = 1 so the account is on its 2nd run (Run Rules on).
 ## Pass the phase with env QA_PHASE (1 = Land..first Core, 2 = combat, ...). Shots: production/qa/evidence/smoke_b1188_*.png
+var _guard := SaveGuard.new()
 var _out := ""
 var _log: Array[String] = []
 
 func _ready() -> void:
+	_guard.capture()
 	get_tree().current_scene = null
 	_out = OS.get_environment("ADT_EVIDENCE_DIR")
 	if _out == "":
@@ -15,6 +17,7 @@ func _ready() -> void:
 	await frames(2)
 	await _flow()
 	print("QA: LOG\n", "\n".join(_log))
+	_guard.restore()
 	get_tree().quit(0)
 
 func note(s: String) -> void:

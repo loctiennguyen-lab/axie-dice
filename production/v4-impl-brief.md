@@ -139,3 +139,9 @@ Lệnh deploy (CHỜ Liam bảo, theo thứ tự): 1) `cd worker && npx wrangler
 - Test đã chạy xanh: t_ui_laws, t_v4ui_*, t_depthv3_combat_ui, t_combat_right_block, t_ui3_theme. Suite đủ chạy lần cuối (trước fix L7) chỉ đỏ t_ui_laws, đã sửa; chưa chạy lại suite đủ sau 2 sửa cuối (RerollBar BTN_W 200 + line plate).
 - Ảnh `production/qa/evidence/v4uf_*` (bị gitignore): tiles_bo3/bo4, gamble_pct, wild_picker, result, reroll_pick, 2 cỡ. Chụp lại sau sửa cuối: gamble_pct/reroll_pick/wild_picker đã chụp; v4uf_result chưa xem lại kỹ.
 - Còn: kiểm Result 1920 (chữ >= 18, tương phản); xem tooltip ô Hold/Wild/Overcast (button.text giữ chữ trạng thái nhưng ẩn, lý do nằm ở tooltip); stage 1-2 chụp riêng (chỉ Undo+Hold); chạy cả suite 1 lần với AXIE_HANG_KILL=900.
+
+## A+ - xong (Liam chot 22/10, design/proposals/v4-decisions-pay.md)
+Knob: bo.scale 0.8 -> 1.0 + bo.add_3/4/5 0.5/1.0/2.0 -> 0.3/1.2/1.6 (he so cuoi x1.3/x2.2/x2.6, cap 3.0 giu); reroll.mana_cost_2 2 -> 1 (mana_cost_3 giu 3); wild.cost 2 -> 3; difficulty.enemy_dmg_mult 1.45 -> 1.50.
+Luat: `wild_block_reason` tra "set5" khi ket qua la nhom 5 (preview_wild phan anh; UI "Wild can't make 5"). Banner chi bo 4/5; nhan bo 3 van "SET OF 3 x1.3".
+Luu y: Core hollow_core/cheap_mana/tundra dung "gia knob - 1" nen reroll chon dau tien cua hollow/cheap gio 0 mana (hoi Liam co muon giu 1). CAN bump RULES_VERSION + t_rules_version (lane I). Anh: production/qa/evidence/v4ap_*.
+Suite: 189/191 (t_rules_version skip) + sua t_tundra_safe_mana, t_vault (qa_smoke_v4 thieu SaveGuard, loi cu) -> 2 test xanh le. Worker 210/210.

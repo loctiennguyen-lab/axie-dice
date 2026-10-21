@@ -18,8 +18,8 @@ func _ready() -> void:
 		if with_t != plain or with_t < 0:
 			print("FAIL seed %d tundra=%d plain=%d" % [seed, with_t, plain])
 			fails += 1
-		# 4 - 2 = 2; anything above is mana-face cantrips resolving on the re-rolled dice
-		if with_t > 2:
+		# 4 - 1 = 3 (A+: first Safe costs 1); anything above is mana-face cantrips resolving on the re-rolled dice
+		if with_t > 3:
 			saw_gain += 1
 	print("t_tundra_safe_mana: cantrip-gain seeds=%d fails=%d" % [saw_gain, fails])
 	if fails == 0 and saw_gain > 0:
@@ -28,7 +28,7 @@ func _ready() -> void:
 	get_tree().quit(0 if fails == 0 and saw_gain > 0 else 1)
 
 
-## Mana left after a Safe (paid, 2 Mana) reroll of all dice from 4 Mana, free charges at 0.
+## Mana left after a Safe (paid, 1 Mana, A+) reroll of all dice from 4 Mana, free charges at 0.
 func _safe(seed: int, relics: Array) -> int:
 	var roster: Array = []
 	for i in TEAM.size():
@@ -42,6 +42,6 @@ func _safe(seed: int, relics: Array) -> int:
 	var uids: Array = []
 	for u in e.party:
 		uids.append((u as Unit).uid)
-	if e.reroll_mana_cost(false, 1) != 2 or not e.reroll_dice(uids, -1, false, 1):
+	if e.reroll_mana_cost(false, 1) != 1 or not e.reroll_dice(uids, -1, false, 1):
 		return -1
 	return e.mana
