@@ -76,3 +76,9 @@ Cập nhật cuối (GM xong):
 - Combo name nổi cao hơn note Core 64px (trước bị đè). `t_v4ui_audio` nới 3..5 file placeholder (dm_combo là cái thứ 5).
 - Ảnh: `production/qa/evidence/gacha_meta_{combat,result,codex,daily}_{1280x720,1920x1080}.png` (gitignore). Capture: `godot/tools/shot.sh res://tests/qa_gacha_meta_capture.tscn WxH`.
 - Suite (không cờ skip t_rules_version): 198 test, 197 pass + t_v4ui_audio đã sửa; chỉ t_rules_version bị skip (cần làn tích hợp bump RULES_VERSION vì MetaState.gd/combo_daily.gd trong fingerprint). Worker 212/212. Sàn test: +5 file GM (t_combo_fired, t_gacha_result, t_core_codex, t_codex_books, t_combo_daily_card).
+
+## Tích hợp v4b (INT2, nhánh int/v4b, 22/10)
+- Merge theo thứ tự: MD 28fc6d0, GD 086e223, GP 83947eb, GM 9e01132. Conflict chỉ ở `production/gacha-contract.md` (GP, GM): lấy hợp các mục bàn giao. Code (RunState, combat_engine, CombatView, MetaState...) tự gộp sạch, `--import` không lỗi.
+- Sửa nhỏ từ review MD (671d382): `wild_block_reason` từ chối viên đã Overcast (lý do `overcast`, test trong t_bo_overcast); thêm hook `RunBot.overcast_script` + tamper trong t_run_tamper_v4: Overcast lên viên không thuộc BỘ bị ERR_REJECTED đúng index.
+- Suite: 200/200 pass, 1 skip (t_rules_version, chạy với AXIE_SKIP_RULES_FINGERPRINT=1). Worker 212/212. Không có đỏ do hai làn đụng nhau.
+- CHƯA bump RULES_VERSION (chờ review gacha); khi bump phải chạy lại t_rules_version không cờ skip.
