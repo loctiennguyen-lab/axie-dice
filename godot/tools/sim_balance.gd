@@ -530,7 +530,17 @@ func _mx_close_turn(eng: CombatEngine, mana_start: int) -> void:
 		_ma("out_other", -resid)
 
 
+## S3: a REAL action must not run muted: the callers (_expert2_actions, _free_hold_rerolls) mute CoreHooks for their look-ahead, which silenced
+## every core_fired raised by a paid reroll / Mat Tam / Overcast (c_tidecaller read 0% fired for that reason).
 func _mx_reroll(eng: CombatEngine, uids: Array, rm: int) -> bool:
+	var saved_mute := CoreHooks.mute
+	CoreHooks.mute = 0
+	var r := _mx_reroll_real(eng, uids, rm)
+	CoreHooks.mute = saved_mute
+	return r
+
+
+func _mx_reroll_real(eng: CombatEngine, uids: Array, rm: int) -> bool:
 	var m0 := eng.mana
 	var free := eng.rerolls > 0
 	var was := _mx_listen
@@ -555,7 +565,17 @@ func _mx_reroll(eng: CombatEngine, uids: Array, rm: int) -> bool:
 	return ok
 
 
+## S3: a REAL action must not run muted: the callers (_expert2_actions, _free_hold_rerolls) mute CoreHooks for their look-ahead, which silenced
+## every core_fired raised by a paid reroll / Mat Tam / Overcast (c_tidecaller read 0% fired for that reason).
 func _mx_wild(eng: CombatEngine, uid: int, slot: int) -> bool:
+	var saved_mute := CoreHooks.mute
+	CoreHooks.mute = 0
+	var r := _mx_wild_real(eng, uid, slot)
+	CoreHooks.mute = saved_mute
+	return r
+
+
+func _mx_wild_real(eng: CombatEngine, uid: int, slot: int) -> bool:
 	var m0 := eng.mana
 	var u := eng.by_uid(uid)
 	var after := 0
@@ -575,7 +595,17 @@ func _mx_wild(eng: CombatEngine, uid: int, slot: int) -> bool:
 	return true
 
 
+## S3: a REAL action must not run muted: the callers (_expert2_actions, _free_hold_rerolls) mute CoreHooks for their look-ahead, which silenced
+## every core_fired raised by a paid reroll / Mat Tam / Overcast (c_tidecaller read 0% fired for that reason).
 func _mx_overcast(eng: CombatEngine, uid: int) -> bool:
+	var saved_mute := CoreHooks.mute
+	CoreHooks.mute = 0
+	var r := _mx_overcast_real(eng, uid)
+	CoreHooks.mute = saved_mute
+	return r
+
+
+func _mx_overcast_real(eng: CombatEngine, uid: int) -> bool:
 	var m0 := eng.mana
 	if not eng.overcast(uid):
 		return false
@@ -853,7 +883,15 @@ func _move_expert(eng: CombatEngine, ready: Array, foes: Array) -> Array:
 
 ## Beam search over ordered (die, target) sequences inside the turn, scored by _eval after each step (exact state, via
 ## use_die + undo_last). A prefix may stop at any depth (a die can stay unused). Returns the best sequence found.
+## Trial use_die + undo_last must not count as a Core firing: mute the whole search.
 func _plan_turn(eng: CombatEngine, ready: Array, foes: Array) -> Array:
+	CoreHooks.mute += 1
+	var r := _plan_turn_inner(eng, ready, foes)
+	CoreHooks.mute -= 1
+	return r
+
+
+func _plan_turn_inner(eng: CombatEngine, ready: Array, foes: Array) -> Array:
 	var base := _eval(eng)
 	var beam: Array = [{"seq": [], "score": base}]
 	var best: Dictionary = beam[0]
