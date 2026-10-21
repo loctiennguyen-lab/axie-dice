@@ -156,3 +156,6 @@ Cảnh báo chung: Lõi chưa sim (2.7). Combo có Lõi bị cắt/disabled thì
 3. **Lỗi ở depth-v3, không sửa ở đây:** Nhà Sưu Tầm là Lõi nhiệm vụ bậc Rêu, mà Lõi nhiệm vụ không hiện ở lần chọn 1 (luôn là Rêu). Vậy nó chỉ gặp ở lần 2 chuỗi RR (35% run), shop Rêu hoặc luật thiếu pool: gần như không bao giờ thấy. Cần game-designer quyết: nâng nó lên H hoặc cho quest Rêu hiện ở lần 1 từ run thứ 2.
 4. **Combo 1 (Thác Đổ + Xúc Xắc Thứ Sáu + Mặt Gương) là đúng lối "chỉ bấm attack"** mà 2.10 và R10/R13 nhắm phá. Đặt tên và ăn mừng nó là dắt người chơi về đó. Đã để thành jackpot 3 T không có tầng Cặp; nếu Liam muốn bỏ hẳn khỏi danh sách combo cũng hợp lý.
 5. **Mọi tỉ lệ ráp Cặp/Đủ trong bài là ước tay.** Trước khi làm B2 phải có sim rút thẻ (chuỗi bậc + lọc đội + 3 thẻ khác trục + reroll), không cần mô phỏng trận.
+
+## Liam chốt (22/10)
+1. B nhưng KHÔNG lộ bậc lần chọn kế tiếp (bỏ A4 và ý lộ bậc của B4). 2. Có combo 2 tầng. 3. Chỉ hiện phần thưởng. 4. Có làm chậm, chậm hơn nữa cũng được để hồi hộp — thời gian do agent quyết. 5. Có Lõi meme. 6. Làm gói Lớn, đẩy nhanh hết hiệu suất, tối đa 2 ngày. Hợp đồng làn: `production/gacha-contract.md`.
