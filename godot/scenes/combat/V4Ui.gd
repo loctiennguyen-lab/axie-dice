@@ -20,7 +20,7 @@ static func part_name(part_index: int) -> String:
 	return _T(String(PART_WORD[SLOT_ORDER[part_index]]))
 
 
-## "x1.4" from an m100 (140 -> "x1.4"); never hard-coded, follows the bo.scale knob.
+## "x1.3" from an m100 (130 -> "x1.3"); never hard-coded, follows the bo.scale knob.
 static func mult_text(m100: int) -> String:
 	var v := float(m100) / 100.0
 	var s := "%.2f" % v
@@ -29,12 +29,12 @@ static func mult_text(m100: int) -> String:
 	return "×" + s
 
 
-## Group label on the tray: "SET OF 3 ×1.4".
+## Group label on the tray: "SET OF 3 ×1.3".
 static func set_label(size: int, m100: int) -> String:
 	return "%s %d %s" % [_T("SET OF"), size, mult_text(m100)]
 
 
-## Banner for four / five: "FOUR HORNS ×1.8!" (3 has no banner).
+## Banner for four / five: "FOUR HORNS ×2.2!" (3 has no banner).
 static func banner_text(part_index: int, size: int, m100: int) -> String:
 	var part := String(SLOT_ORDER[clampi(part_index, 0, 5)])
 	var ex := "!!" if size >= 5 else "!"
@@ -110,6 +110,8 @@ static func wild_line(pv: Dictionary, uid: int, cur_group: Dictionary) -> String
 				return _T("Needs 3 of a part")
 			"mana":
 				return _T("Need mana")
+			"set5":
+				return _T("Wild can't make 5")
 		return _T("Not allowed")
 	var size := 0
 	var m100 := 100
@@ -129,5 +131,5 @@ static func wild_button(stage_ok: bool, used: bool, mana: int, cost: int, has_di
 	if mana < cost:
 		return {"text": _T("Wild: need %d mana") % cost, "tip": _T("Need %d mana (you have %d)") % [cost, mana], "enabled": false}
 	if not has_die:
-		return {"text": _T("Wild: no valid die"), "tip": _T("No die can complete a Set with a Wild face."), "enabled": false}
+		return {"text": _T("Wild: no valid die"), "tip": _T("No die can make a Set of 3 or 4 with a Wild face (never 5)."), "enabled": false}
 	return {"text": _T("Wild %s %d MP") % ["·", cost], "tip": _T("Pay %d mana: one die counts as the part you pick, for Sets, this turn.") % cost, "enabled": true}
