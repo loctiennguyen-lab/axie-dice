@@ -40,3 +40,10 @@ B5 combo nổ trong trận (nghe `combo_fired`), D3 Result: khối "Combos" (C�
 
 ## Luật chung
 UI3 (`godot/CLAUDE.md`): token/component, cỡ chữ 18/24/32 (+36 banner), disabled có lý do, tiếng Anh qua tr(). Test trước. Không vòng chờ không hạn chót; mọi Godot qua `with_lock.sh`. Không push/merge/deploy, không `git stash`.
+
+## Làn GD - bàn giao (22/10, XONG)
+
+- Combo data/logic xong (core_combos.json 14 combo, CoreCombos, RunState.combo_done, EventBus combo_formed/combo_fired, sim `godot/tools/sim_combo_draw.tscn`, báo cáo `production/qa/sim/combo-draw-sim.md`).
+- Jackpot Mưa Đòn Lunacia = 2 Tinh Thể + 1 Hổ Phách: Thác Đổ + Con Xúc Xắc Thứ Sáu + Khiên Gai, không có tầng Cặp. Sim: ~0.12% khi săn (5000 run), ~0% khi chọn ngẫu nhiên; chỉ chuỗi bậc [0,1,2,2] (10% run) cho đủ 2 T + 1 H. Chốt giữ nguyên chuỗi bậc. Lõi quest/shop/event cũng tính nhưng sim chưa mô phỏng.
+- 3 Lõi meme xong: `c_meme_copycat`, `c_meme_nametag`, `c_meme_jumpy` (Rêu, `first_run_hidden`, tag `meme`, tối đa 1 meme mỗi bộ thẻ). Hook trong `CoreHooks` (cuối file) + `RelicHooks.TABLE`; `CombatEngine._bo_dice` bỏ viên có `custom_state.copycat_turn == turn`. Tên Name Tag trong `assets/data/rules/meme_enemy_names.json` (12 tên), lưu ở `custom_state.nick`: **làn GM cần đọc `nick` ở UI**. Tất cả rút rng từ `combat._rng`. Test: t_core_behaviour (t_meme_cores), t_core_fires, t_core_offer, t_core_catalog (56).
+- Cần bump RULES_VERSION (đụng resources/relics, assets/data/rules, scripts/core) và cập nhật t_rules_version: làn I làm. Suite 193/193 (skip t_rules_version vì AXIE_SKIP_RULES_FINGERPRINT), Worker 212/212.

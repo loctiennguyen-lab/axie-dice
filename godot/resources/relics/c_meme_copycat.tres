@@ -1,0 +1,18 @@
+[gd_resource type="Resource" script_class="RelicDef" load_steps=2 format=3]
+
+[ext_resource type="Script" path="res://scripts/data_models/relic_def.gd" id="1"]
+
+[resource]
+script = ExtResource("1")
+id = "c_meme_copycat"
+name = "Copycat"
+description = "Each turn you have a Set, your weakest die outside it copies the Set's part, but only for 1."
+rarity = 0
+archetype = ""
+mload = 0
+sort_index = 200047
+hook_key = "c_meme_copycat"
+tags = PackedStringArray("meme")
+layer = "dice"
+core_axis = "dice"
+first_run_hidden = true

@@ -1826,6 +1826,8 @@ func _bo_dice() -> Array:
 			continue
 		if u.custom_state.has("phantom") and not phantom_ok:
 			continue
+		if u.custom_state.has("copycat_turn") and int(u.custom_state["copycat_turn"]) == turn:
+			continue   # meme Core Copycat: the copied die does not count toward Sets
 		if u.cracked or String((u.die[u.roll_face_index()] as Dictionary).get("type", "")) == "blank":
 			continue
 		if concord and u.cls != "":

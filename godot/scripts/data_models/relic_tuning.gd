@@ -54,6 +54,7 @@ extends Resource
 @export var core_t_cap_short: int = 3          ## max owned Crystal (tier 2) Cores, Short
 @export var core_t_cap_full: int = 4
 @export var core_reroll_max: int = 2           ## Core rerolls per run (one card each)
+@export var combo_reroll_cap: int = 2          ## gacha: max +1 Core reroll per run from first-time combo Pairs (knob core.combo_reroll_cap)
 @export var core_cards: int = 3
 @export var core_shop_cost: int = 60           ## shards for a Moss Core pick in the shop (economy-designer to price)
 @export var core_cards_first_extra: int = 4    ## pick 1 with perk relic0/relic1
