@@ -203,6 +203,19 @@ test('reward and run_start kinds are consumed on reply (no follow-up action requ
   assert.equal((await c.epoch('reward', { node_id: 'r2_c0' })).t, 'epoch_res');
 });
 
+test('reroll accepts token uids (in-combat tokens/summons/Eggs/ghosts start at 100000) and refuses out-of-range ones', async () => {
+  const { c } = await fresh();
+  await c.hello();
+  await start(c);
+  await c.epoch('node', { node_id: 'r1_c0' }, []);
+  const big = [5, 100000, 100002, 100999];
+  const r = await c.epoch('reroll', { turn: 1, k: 1, source: 'base', uids: big, rmode: 1 }, [A('enter_node', ['r1_c0', 'battle'])]);
+  assert.equal(r.t, 'epoch_res');
+  // the same uids in the log pass the uids_mismatch check (validUids)
+  assert.equal((await c.epoch('reroll', { turn: 1, k: 1, source: 'base', uids: big, rmode: 1 }, [A('reroll_dice', [big, 0, 1]), A('undo_last')])).t, 'epoch_res');
+  assert.equal((await c.epoch('reroll', { turn: 1, k: 2, source: 'base', uids: [10000000], rmode: 1 }, [])).code, 'bad_request');
+});
+
 test('reroll pins its seed per (battle, attempt, turn, k); uids must be present and are ledgered', async () => {
   const { c, sql } = await fresh();
   await c.hello();

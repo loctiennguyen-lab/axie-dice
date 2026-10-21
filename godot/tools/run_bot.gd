@@ -71,7 +71,7 @@ static func play_run(seed_value: int, team: Array[String] = DEFAULT_TEAM,
 				engine.action_log = RunState.action_log
 				play_combat(engine)
 				RunState.apply_combat_result(engine.get_result())
-				if RunState.phase == RunState.RunPhase.PACT and swap_pact_slot >= 0:
+				if RunState.phase == RunState.RunPhase.PACT and swap_pact_slot >= 0 and RunState.pact_swap_possible(swap_pact_slot):
 					RunState.reroll_pact_slot(swap_pact_slot)
 				if RunState.phase == RunState.RunPhase.PACT and not RunState.take_pact(0):
 					RunState.skip_pact()

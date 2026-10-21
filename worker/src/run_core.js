@@ -88,8 +88,8 @@ export function argsProblem(kind, args) {
 // check that the (turn, k) of each reroll epoch matches the real turn and reroll count at that log
 // position, otherwise a client could request seeds under invented keys.
 
-/** A uids list is 1..16 integers 0..100000 (same shape as epoch_args.json int_list); nothing that could carry a comma or text. */
-const validUids = (a) => Array.isArray(a) && a.length >= 1 && a.length <= 16 && a.every((x) => Number.isInteger(x) && x >= 0 && x <= 100000);
+/** A uids list is 1..16 integers 0..9999999 (token uids start at 100000) (same shape as epoch_args.json int_list); nothing that could carry a comma or text. */
+const validUids = (a) => Array.isArray(a) && a.length >= 1 && a.length <= 16 && a.every((x) => Number.isInteger(x) && x >= 0 && x <= 9999999);
 /** Canonical text of a stored uids column: JSON array. Rows written before this change used 'a,b,c'. */
 const normUids = (stored) => {
   if (typeof stored !== 'string') return null;
