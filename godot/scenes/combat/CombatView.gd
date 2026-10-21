@@ -3240,7 +3240,7 @@ var _core_float_live: Dictionary = {}     ## uid -> notes currently on screen (s
 var combo_float_log: Array = []           ## test hook: combo names shown as a float
 var _combo_named: Dictionary = {}
 var _last_core_uid := -1
-const COMBO_FLOAT_SEC := 1.0
+const COMBO_FLOAT_SEC := 1.8
 
 
 func _on_combo_fired(combo_id: String) -> void:
@@ -3257,30 +3257,55 @@ func _on_combo_fired(combo_id: String) -> void:
 	_spawn_combo_name(nm)
 
 
+## Fixed spot, top-centre (clear of the Axies below and the enemy column on the right), so it never sits on a unit or on a
+## Core float popup. Two combos in the same beat stack downward. 32 px, gold frame, pops in, fades out.
+var _combo_banners_live := 0
+
+
 func _spawn_combo_name(nm: String) -> void:
-	if disable_juice_for_tests or not is_inside_tree() or _stage3d == null or _unit_visuals_root == null or _combat == null:
+	if disable_juice_for_tests or not is_inside_tree() or _unit_visuals_root == null:
 		return
-	var target := _last_core_uid
-	if target < 0 or _combat.by_uid(target) == null:
-		var alive := _party_dice_units()
-		if alive.is_empty():
-			return
-		target = alive[0].uid
-	var a := _status_head_anchor(target, not _combat_is_enemy_uid(target), _stage3d.position)
-	if a.x < 0.0:
-		return
-	var chip := UI3.core_float([{"text": nm, "token": "accent"}])
+	var chip := PanelContainer.new()
 	chip.name = "ComboFloat"
-	(chip.get_child(0).get_child(0) as Label).add_theme_font_size_override("font_size", 24)
-	_unit_visuals_root.add_child(chip)
+	chip.theme = UI3Theme.get_theme()
+	chip.z_index = 40
+	chip.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	chip.add_theme_stylebox_override("panel", UI3Theme.flat(UI3Theme.color("panel"), UI3Theme.radius("m"), 6,
+		UI3Theme.color("accent"), Vector4(24, 12, 24, 12)))
+	var row := HBoxContainer.new()
+	row.add_theme_constant_override("separation", 12)
+	row.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	chip.add_child(row)
+	var g := TextureRect.new()
+	g.texture = UI3.icon("ui_mooncard")
+	g.custom_minimum_size = Vector2(40, 40)
+	g.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	g.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+	g.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	row.add_child(g)
+	var tag := UI3.label(tr("COMBO"), "LabelTitle")
+	tag.add_theme_color_override("font_color", UI3Theme.color("accent"))
+	tag.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	row.add_child(tag)
+	var l := UI3.label(nm, "LabelScreenTitle")   # 32
+	l.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	row.add_child(l)
+	_unit_visuals_root.add_child(chip)   # same layer as the Core floats (the 3D stage draws over plain children of this view)
 	var sz := chip.get_combined_minimum_size()
 	chip.size = sz
 	var vs := get_viewport_rect().size
-	chip.position = Vector2(clampf(a.x + 48.0, 24.0, vs.x - 24.0 - sz.x), clampf(a.y - sz.y * 1.6 - 64.0, 24.0, vs.y - 24.0 - sz.y))
+	var slot := _combo_banners_live
+	_combo_banners_live += 1
+	chip.global_position = Vector2((vs.x - sz.x) / 2.0, 120.0 + float(slot) * (sz.y + 12.0))
+	chip.pivot_offset = sz / 2.0
+	chip.scale = Vector2(0.7, 0.7)
 	var tw := chip.create_tween()
+	tw.tween_property(chip, "scale", Vector2.ONE, 0.18).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 	tw.tween_interval(COMBO_FLOAT_SEC - 0.25)
 	tw.tween_property(chip, "modulate:a", 0.0, 0.25)
-	tw.tween_callback(chip.queue_free)
+	tw.tween_callback(func():
+		_combo_banners_live = maxi(_combo_banners_live - 1, 0)
+		chip.queue_free())
 
 
 func _on_core_fired(core_id: String, uid: int, amount: int, kind: String) -> void:

@@ -26,7 +26,7 @@ func _ready() -> void:
 	var met: Node = cx.find_child("CoreTile_c_bastion", true, false)
 	var unmet: Node = cx.find_child("CoreTile_c_fissure", true, false)
 	_check(met != null and met.find_child("TileName", true, false).text == "Bastion" and met.find_child("TileSub", true, false).text.contains("Picked"), "met Core tile shows name + Picked")
-	_check(unmet != null and unmet.find_child("TileName", true, false).text == "?" and (unmet as Control).modulate.a < 1.0, "unmet Core tile is a dim ?")
+	_check(unmet != null and unmet.find_child("TileName", true, false).text == "?" and not bool(unmet.get_meta("seen", true)), "unmet Core tile is a ? (muted, not dimmed)")
 	cx.call("_select_tab", "combos")
 	await get_tree().process_frame
 	_check(cx.find_child("ComboTile_t_a", true, false).find_child("TileSub", true, false).text == "Pair", "Pair tile")

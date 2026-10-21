@@ -1241,10 +1241,17 @@ func _show_reward_overlay(title: String, _backdrop: Texture2D = null) -> void:
 	col.alignment = BoxContainer.ALIGNMENT_CENTER
 	center.add_child(col)
 
+	# Title row is pinned to the top of the screen so it never moves with card height (GU 8).
+	var head_holder := MarginContainer.new()
+	head_holder.name = "RewardHeadHolder"
+	head_holder.set_anchors_preset(Control.PRESET_TOP_WIDE)
+	head_holder.offset_top = 56
+	head_holder.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	host.add_child(head_holder)
 	var head := HBoxContainer.new()
 	head.alignment = BoxContainer.ALIGNMENT_CENTER
 	head.add_theme_constant_override("separation", 24)
-	col.add_child(head)
+	head_holder.add_child(head)
 	var core_rule := false
 	for rr0 in RunState.pending_rewards:
 		core_rule = core_rule or bool((rr0 as Dictionary).get("rule", false))
@@ -1284,12 +1291,12 @@ func _show_reward_overlay(title: String, _backdrop: Texture2D = null) -> void:
 	if _core_offer_active():
 		# Core offer: each card has its own Reroll button; here only the shared counter.
 		if not is_rule:
-			var lc := UI3.label(tr("%d rerolls left") % left, "LabelDisplay")
+			var lc := UI3.label((tr("%d reroll left") if left == 1 else tr("%d rerolls left")) % left, "LabelDisplay")
 			lc.name = "RerollLeft"
 			lc.add_theme_font_size_override("font_size", 18)
 			actions.add_child(lc)
 	else:
-		var reroll := UI3.button(tr("Reroll · %d left") % left, &"secondary", &"M")
+		var reroll := UI3.button((tr("Reroll · %d left")) % left, &"secondary", &"M")
 		reroll.visible = not is_rule   # no reroll for the Run rule pick (2b.1)
 		reroll.name = "RerollButton"
 		if left > 0:
@@ -1346,7 +1353,12 @@ func _select_reward(i: int) -> void:
 					UI3Gacha.prism_style(_reward_cards[k].get_meta("prism_accent"), k == _reward_sel))
 
 
+var _taking := false   ## true from Take until the node finishes (spin + banner play in between): no double take
+
+
 func _take_selected_reward() -> void:
+	if _taking:
+		return
 	if _reveal != null and is_instance_valid(_reveal):
 		_reveal.skip()
 	if _reward_sel >= 0 and _reward_sel < RunState.pending_rewards.size():
@@ -1425,6 +1437,7 @@ func _start_core_reveal(shake_host: Control) -> void:
 		_reveal.name = "GachaReveal"
 		_overlay_root.add_child(_reveal)
 		var jp := rt >= 2 and not UI3Gacha.combo_completes(UI3Gacha.owned_ids(), String(rw.get("key", ""))).is_empty()
+		_reward_cards[slot].set_meta("jackpot_card", jp)
 		_reveal.start([_reward_cards[slot]], rt, UI3Gacha.first_seen(str(RunState.get("_core_base_seed")), rt), jp, shake_host,
 			float(UI3Gacha.timing().get("reroll_in_sec", 0.5)))
 		_reroll_note(_reward_cards[slot])
@@ -1443,8 +1456,11 @@ func _start_core_reveal(shake_host: Control) -> void:
 	_overlay_root.add_child(_reveal)
 	var jackpot := false
 	if tier >= 2:
-		for rw in RunState.pending_rewards:
-			jackpot = jackpot or not UI3Gacha.combo_completes(UI3Gacha.owned_ids(), String(rw.get("key", ""))).is_empty()
+		for k in RunState.pending_rewards.size():
+			var rw: Dictionary = RunState.pending_rewards[k]
+			var hit := int(rw.get("tier", 0)) >= 2 and not UI3Gacha.combo_completes(UI3Gacha.owned_ids(), String(rw.get("key", ""))).is_empty()
+			_reward_cards[k].set_meta("jackpot_card", hit)
+			jackpot = jackpot or hit
 	_reveal.start(_reward_cards, tier, first, jackpot, shake_host, -1.0, from_t)
 
 
@@ -1499,7 +1515,8 @@ func _add_reward_card(r: Dictionary, wide := false) -> PanelContainer:
 	var kind_text := String(_REWARD_KIND.get(t, "Reward"))
 	if is_core:
 		kind_text = "Run rule" if bool(r.get("rule", false)) else "Core"
-	col.add_child(UI3.label(tr(kind_text), "LabelMuted"))
+	if not (is_core and not bool(r.get("rule", false))):   # a Core's kind is obvious (tier + axis chips): saves a line
+		col.add_child(UI3.label(tr(kind_text), "LabelMuted"))
 
 	var art := Panel.new()
 	art.name = "Art"
@@ -1557,6 +1574,8 @@ func _add_reward_card(r: Dictionary, wide := false) -> PanelContainer:
 			chips.add_child(CorePanel.word_chip(tr(_CORE_TIER_NAME[tier]), "", accent, "TierChip"))
 		chips.add_child(CorePanel.word_chip(tr(String(CorePanel.AXIS_NAME.get(axis, "Core"))),
 			String(CorePanel.AXIS_ICON.get(axis, "face_buff")), UI3Theme.color("text_muted"), "AxisChip"))
+		if not bool(r.get("rule", false)):
+			_add_combo_labels(col, String(r.get("key", "")), chips)
 		col.add_child(chips)
 	else:
 		var rar_lbl := UI3.label(_rarity_name(rar))
@@ -1572,8 +1591,6 @@ func _add_reward_card(r: Dictionary, wide := false) -> PanelContainer:
 		col.add_child(UI3.trade_box(&"gain", String(tp["gain"])))
 		col.add_child(UI3.trade_box(tp["cost_kind"], String(tp["cost"])))
 		return card
-	if is_core and not bool(r.get("rule", false)):
-		_add_combo_labels(col, String(r.get("key", "")))
 	var desc := UI3.label(body_text)
 	desc.name = "RewardDesc"
 	desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -1593,28 +1610,52 @@ func _add_reward_card(r: Dictionary, wide := false) -> PanelContainer:
 
 
 
-## B2 / B3: "PAIR! <combo>" / "FULL! <combo>" when taking this card completes a combo, and "Works with: X, Y" for owned
-## partners. No 1/2 count and no progress bar anywhere.
-func _add_combo_labels(col: VBoxContainer, key: String) -> void:
+## B2 / B3: when taking this card completes a combo, a gold plate "<glyph> PAIR" / "<glyph> FULL" (dark text on gold,
+## glyph = 2 / 3 cards) plus the combo name; owned partners ride in one chip "With: X, Y" inside the chip row
+## (no separate "Works with" line). No 1/2 count and no progress bar anywhere.
+func _add_combo_labels(col: VBoxContainer, key: String, chips: HFlowContainer) -> void:
 	var owned := UI3Gacha.owned_ids()
 	var done := UI3Gacha.combo_completes(owned, key)
 	if not done.is_empty():
 		var full := String(done["tier"]) == "full"
-		var tag := UI3.label("%s %s" % [tr("FULL!") if full else tr("PAIR!"), UI3Gacha.combo_name(String(done["id"]))], "LabelTitle")
-		tag.name = "ComboTag"
-		tag.add_theme_color_override("font_color", UI3Theme.color("rarity_legendary") if full else UI3Theme.color("text"))
-		tag.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		col.add_child(tag)
+		var row := HBoxContainer.new()
+		row.name = "ComboTag"
+		row.add_theme_constant_override("separation", 8)
+		var plate := PanelContainer.new()
+		plate.name = "ComboPlate"
+		plate.add_theme_stylebox_override("panel", UI3Theme.flat(UI3Theme.color("accent"), UI3Theme.radius("s"), 0,
+			Color.TRANSPARENT, Vector4(8, 2, 12, 2)))
+		var pr := HBoxContainer.new()
+		pr.add_theme_constant_override("separation", 4)
+		for i in (3 if full else 2):
+			var g := TextureRect.new()
+			g.texture = UI3.icon("ui_mooncard")
+			g.custom_minimum_size = Vector2(24, 24)
+			g.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+			g.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+			pr.add_child(g)
+		var pl := UI3.label(tr("FULL") if full else tr("PAIR"), "LabelTitle")
+		pl.name = "ComboWord"
+		pl.add_theme_color_override("font_color", UI3Theme.color("accent_text"))
+		pr.add_child(pl)
+		plate.add_child(pr)
+		row.add_child(plate)
+		var nm := UI3.label(UI3Gacha.combo_name(String(done["id"])), "LabelMuted")
+		nm.name = "ComboName"
+		nm.clip_text = true
+		nm.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
+		nm.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		nm.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		row.add_child(nm)
+		col.add_child(row)
 	var names: Array[String] = []
 	for id in UI3Gacha.combo_matches(owned, key):
 		var d = RelicRegistry.get_def(String(id))
 		if d != null:
 			names.append(UI3.title_case(UI3.player_text(String(d.name))))
 	if not names.is_empty():
-		var ww := UI3.label(tr("Works with: %s") % ", ".join(names), "LabelMuted")
-		ww.name = "WorksWith"
-		ww.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-		col.add_child(ww)
+		var chip := UI3.icon_chip(tr("With: %s") % ", ".join(names), UI3.icon("ui_mooncard"), UI3Theme.color("accent"), "WorksWith")
+		chips.add_child(chip)
 
 
 ## A chromeless, full-rect Button used as a hit target over a styled PanelContainer. Every
@@ -1674,6 +1715,7 @@ func _on_reward_chosen(reward: Dictionary) -> void:
 ## Takes the reward (state decided here), then plays the after-pick beats: A5 spin for the Dim Stone bet, then the
 ## Pair / Full banner. The animations only show what RunState already did.
 func _apply_and_finish(reward: Dictionary) -> void:
+	_taking = true
 	var before_ids: Array = UI3Gacha.owned_ids().duplicate()
 	var before_owned: Array = RunState.owned_relic_ids.duplicate()
 	var is_core := _is_core_card(reward) and not bool(reward.get("rule", false))
@@ -1682,6 +1724,9 @@ func _apply_and_finish(reward: Dictionary) -> void:
 		for d in CoreOffer.valid_pool(RunState._core_ctx(RunState._core_offer_pick)):
 			if int(d.rarity) == 2:
 				pool_names.append(UI3.title_case(UI3.player_text(String(d.name))))
+	var pick_rect := Rect2()
+	if _reward_sel >= 0 and _reward_sel < _reward_cards.size() and is_instance_valid(_reward_cards[_reward_sel]):
+		pick_rect = (_reward_cards[_reward_sel] as Control).get_global_rect()
 	RunState.apply_chosen_reward(reward)
 	var granted := ""
 	if not pool_names.is_empty():
@@ -1693,25 +1738,30 @@ func _apply_and_finish(reward: Dictionary) -> void:
 		var fx := GachaFx.new()
 		fx.name = "GachaSpin"
 		_overlay_root.add_child(fx)
-		fx.start_spin(pool_names, granted, UI3Gacha.tier_color(2))
+		fx.start_spin(pool_names, granted, UI3Gacha.tier_color(2), pick_rect)
 		if fx.running:
 			await fx.finished
 	var formed := UI3Gacha.combos_formed(before_ids, UI3Gacha.owned_ids())
+	# The banner plays OVER the Core-pick overlay (it is still there), then the node finishes.
+	var ban := _combo_banner(formed)
+	if ban != null and ban.running:
+		await ban.finished
+	_taking = false
 	_finish_node()
-	_combo_banner(formed)
 
 
-## Shows the strongest newly formed combo (Full beats Pair) above the overlay layer; click-through.
-func _combo_banner(formed: Array) -> void:
+## Shows the strongest newly formed combo (Full beats Pair) as a big centre panel above the overlay layer.
+func _combo_banner(formed: Array) -> GachaFx:
 	if formed.is_empty() or _overlay_layer == null:
-		return
+		return null
 	var best: Dictionary = formed[0]
 	for f in formed:
 		if String(f["tier"]) == "full":
 			best = f
 			break
 	gacha_log.append("banner:%s" % String(best["tier"]))
-	GachaFx.banner(_overlay_layer, String(best["tier"]), UI3Gacha.combo_name(String(best["id"])))
+	return GachaFx.banner(_overlay_layer, String(best["tier"]), UI3Gacha.combo_name(String(best["id"])),
+		UI3Gacha.combo_members(String(best["id"]), String(best["tier"]))) as GachaFx
 
 
 ## Spec 32: the slot kind of the new relic is full. The sale goes through RunState.acquire_relic (logged as

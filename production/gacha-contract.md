@@ -82,3 +82,18 @@ Cập nhật cuối (GM xong):
 - Sửa nhỏ từ review MD (671d382): `wild_block_reason` từ chối viên đã Overcast (lý do `overcast`, test trong t_bo_overcast); thêm hook `RunBot.overcast_script` + tamper trong t_run_tamper_v4: Overcast lên viên không thuộc BỘ bị ERR_REJECTED đúng index.
 - Suite: 200/200 pass, 1 skip (t_rules_version, chạy với AXIE_SKIP_RULES_FINGERPRINT=1). Worker 212/212. Không có đỏ do hai làn đụng nhau.
 - CHƯA bump RULES_VERSION (chờ review gacha); khi bump phải chạy lại t_rules_version không cờ skip.
+
+## Sửa UI theo UX (GU) - bàn giao
+Nhánh `fix/GU`. Mỗi mục một commit; chỉ sửa `godot/scenes/**`, `godot/assets/data/ui/**`, tests. Capture: `GU_ONLY=jackpot,banner,nearmiss godot/tools/shot.sh res://tests/qa_gacha_gu_capture.tscn WxH` -> `production/qa/evidence/gu_*` (gitignore).
+Xong (1-3):
+- 1 Jackpot: rung trước đây có nhưng quá nhẹ (6 px, 0.6 s) và không có lấp lánh. Giờ: rung 10 px, vòng vàng nhấp nháy + 18 hạt lấp lánh trên thẻ Tinh Thể nào ráp được combo (meta `jackpot_card`), giữ 1.3 s. Reduce flashing tắt hết.
+- 2 Banner combo: panel lớn giữa màn trên overlay chọn Lõi (scrim 55%), tên 32, glyph thẻ trăng (2 = Cặp, 3 = Đủ), nhãn vàng PAIR / FULL, bấm/Space bỏ qua. Cặp: 1 khung vàng, 1.6 s. Đủ: khung dày + vòng thứ 3, rộng hơn, 2.8 s, âm khác. Node chỉ xong SAU banner (`_apply_and_finish` chờ `finished`); `_taking` chặn Take hai lần.
+- 3 Near-miss: halo/bìa giữ aura của bậc Tinh Thể (1.5 s) rồi mới vỡ; vết vỡ = 3 nét Line2D tối cắt qua viền; dòng lý do "Crystal cap reached — max N Crystal Cores this run" (N = `CoreOffer.t_cap(mode)`) trên khung notice viền vàng, CHỈ trên thẻ đầu (offer bị hạ cả bộ nên cả 3 thẻ cùng bị hạ; lý do nói một lần).
+Test xanh: t_gacha_reveal, t_gacha_moments (44), t_core_overlay_flow.
+Xong (A, 4-7):
+- A: banner combo hiện icon trục + tên của đúng các Lõi trong combo (`UI3Gacha.combo_members`); near-miss chỉ nứt thẻ bị hạ (bậc = bậc của offer), thẻ thấp hơn (Moss) giữ viền thật; dòng lý do ở thẻ bị hạ đầu tiên. Mặt úp vẫn dùng icon mặt trăng (icon thẻ của game, không có icon úp riêng).
+- 4: thẻ Core bỏ nhãn "Core"; nhãn nền vàng + glyph 2/3 thẻ + PAIR/FULL + tên combo một hàng; "Works with" thành chip "With: X, Y" trong hàng chip.
+- 5: cú cược quay nằm TRÊN thẻ được chọn (không che hai thẻ kia), mỗi tick tên nảy lên, tick cuối nảy lớn (tắt khi reduce flash).
+- 6: tên combo trong trận = banner 32 px giữa-trên (y 120), không đè Axie/popup Core, hai combo xếp dọc, 1.8 s.
+- 7: Result dãn khoảng cách (card 20, trong card 12, hàng combo 12) + đệm cuối để dòng Skipped không bị cắt.
+CÒN: 8 nhỏ (rerolls left, tiêu đề cố định, Codex), cả suite một lần, ảnh 1280 các mục còn lại.

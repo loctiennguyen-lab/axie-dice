@@ -154,9 +154,11 @@ func _banner() -> void:
 	await _wait(1.0)
 	# B2/B3 labels on the cards
 	var c0: Control = rm._reward_cards[0]
-	var tag := c0.find_child("ComboTag", true, false) as Label
-	_check(tag != null and tag.text.begins_with("PAIR!"), "card that completes a Pair says PAIR!")
-	_check(c0.find_child("WorksWith", true, false) != null and String((c0.find_child("WorksWith", true, false) as Label).text).contains("Nest"), "Works with lists the owned partner")
+	var tag := c0.find_child("ComboWord", true, false) as Label
+	_check(tag != null and tag.text == "PAIR" and c0.find_child("ComboPlate", true, false) != null, "card that completes a Pair has a gold PAIR plate")
+	var ww := c0.find_child("WorksWith", true, false)
+	_check(ww != null and String((ww.find_child("Text", true, false) as Label).text).contains("Nest"), "With chip lists the owned partner")
+	_check(c0.find_child("CoreChips", true, false).find_child("WorksWith", true, false) != null, "partner chip sits in the chip row")
 	_check((rm._reward_cards[1] as Control).find_child("ComboTag", true, false) == null, "other cards have no combo label")
 	_check(not tag.text.contains("1/2") and rm._overlay_root.find_child("ComboProgress", true, false) == null, "no 1/2 label, no progress bar")
 	rm.gacha_log.clear()
@@ -165,12 +167,16 @@ func _banner() -> void:
 	await _frames(3)
 	_check(rm.gacha_log.has("banner:pair"), "taking the Pair card raises the PAIR banner")
 	var ban: Node = rm._overlay_layer.find_child("ComboBanner", true, false)
-	_check(ban != null and ban.mouse_filter == Control.MOUSE_FILTER_IGNORE, "banner is click-through")
+	_check(ban != null and ban.find_child("BannerPlate", true, false) != null and ban.find_child("BannerScrim", true, false) != null, "banner is a centre panel with a scrim")
+	_check(rm._overlay_root.visible, "pair banner plays over the still-open Core overlay")
+	var bt := ban.find_child("BannerText", true, false) as Label
+	_check(bt != null and bt.theme_type_variation == &"LabelScreenTitle" and UI3Theme.get_theme().get_font_size("font_size", "LabelScreenTitle") == 32, "banner name is 32 px (not 36)")
+	_check(ban.find_child("BannerRing3", true, false) == null and (ban.find_child("TagText", true, false) as Label).text == "PAIR", "pair: single gold frame + PAIR tag")
 	var shot := OS.get_environment("AXIE_SHOT_PAIR")
 	if shot != "" and DisplayServer.get_name() != "headless":
 		get_viewport().get_texture().get_image().save_png(shot)
-	await _wait(1.4)
-	_check(rm._overlay_layer.find_child("ComboBanner", true, false) == null, "pair banner gone after 1.2 s")
+	await _wait(1.8)
+	_check(rm._overlay_layer.find_child("ComboBanner", true, false) == null, "pair banner gone after 1.6 s")
 	RunState.owned_relic_ids.append("c_golden_egg")
 	await _offer_with(["c_spore_burst", "c_kindle", "c_dewdrop"])
 	await _wait(1.0)
@@ -181,10 +187,11 @@ func _banner() -> void:
 	_check(rm.gacha_log.has("banner:full"), "taking the third Core raises the FULL banner")
 	ban = rm._overlay_layer.find_child("ComboBanner", true, false)
 	_check(ban != null, "full banner is up")
-	await _wait(1.4)
-	_check(rm._overlay_layer.find_child("ComboBanner", true, false) != null, "full banner outlasts the pair length (1.8 s)")
-	await _wait(0.7)
-	_check(rm._overlay_layer.find_child("ComboBanner", true, false) == null, "full banner gone after 1.8 s")
+	_check(ban.find_child("BannerRing3", true, false) != null and (ban.find_child("TagText", true, false) as Label).text == "FULL", "full: thicker frame + FULL tag")
+	await _wait(1.9)
+	_check(rm._overlay_layer.find_child("ComboBanner", true, false) != null, "full banner outlasts the pair length (2.8 s)")
+	await _wait(1.2)
+	_check(rm._overlay_layer.find_child("ComboBanner", true, false) == null, "full banner gone after 2.8 s")
 
 
 func _set_capped_state(capped: bool) -> void:
@@ -196,7 +203,7 @@ func _set_capped_state(capped: bool) -> void:
 
 func _near_miss() -> void:
 	# Plan (pure): near-miss adds near_miss_sec before the first flip and nothing else.
-	var a := UI3Gacha.plan(3, 1, true, false, false)
+	var a := UI3Gacha.plan(3, 2, true, false, false)   # same aura as the capped Crystal halo
 	var b := UI3Gacha.plan(3, 1, true, false, false, -1.0, 2)
 	_check(is_equal_approx(b["flips"][0] - a["flips"][0], 0.6) and is_equal_approx(b["crack_at"], b["aura"]), "near-miss plan: crack at aura end, flips +0.6 s")
 	_check(is_equal_approx(UI3Gacha.plan(3, 2, true, false, false, -1.0, 2)["total"], UI3Gacha.plan(3, 2, true, false, false)["total"]), "no near-miss when the tier equals from_tier")
@@ -217,7 +224,11 @@ func _near_miss() -> void:
 	rm._start_core_reveal(rm._overlay_root)
 	await _frames(2)
 	_check(rm.gacha_log.has("near_miss:2>1"), "overlay logs the near-miss")
-	var cov := rm._reward_cards[0].find_child("CardBack", true, false) as Control
+	var cov: Control = null   # first demoted card (at the offer's tier); lower cards are not demoted and carry no reason
+	for rc in rm._reward_cards:
+		if int(rc.get_meta("gacha_tier", 0)) == 1:
+			cov = rc.find_child("CardBack", true, false) as Control
+			break
 	_check(cov != null and cov.find_child("ReasonLine", true, false) != null, "cover carries the reason line")
 	_check(cov != null and (cov.find_child("TierWord", true, false) as Label).text == "Crystal", "cover starts as the capped tier")
 	await _wait(1.8)
