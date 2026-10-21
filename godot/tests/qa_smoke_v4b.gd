@@ -152,6 +152,13 @@ func advance_loop() -> void:
 			await frames(30)
 	note("step cap hit")
 
+var _stuck := 0
+func _btns(n: Node, acc: Array) -> void:
+	if n is Button and (n as Button).is_visible_in_tree():
+		acc.append("%s:%s%s" % [n.name, (n as Button).text, "(dis)" if (n as Button).disabled else ""])
+	for c in n.get_children():
+		_btns(c, acc)
+
 func map_step(sc: Node) -> void:
 	await frames(20)
 	if not RunState.pending_rewards.is_empty():
@@ -159,6 +166,24 @@ func map_step(sc: Node) -> void:
 		note("reward overlay core=%s rule=%s cards=%s" % [str(RunState._core_offer_active), str(RunState._rule_offer_active), str(RunState.pending_rewards.map(func(c): return c.get("key", "?")))])
 		if first(tag):
 			await shot("30_reward_%d" % _seen.size())
+		_stuck += 1
+		if _stuck > 3:
+			var bt := []
+			_btns(sc, bt)
+			note("STUCK reward overlay (%d tries) visible buttons=%s" % [_stuck, str(bt)])
+			if first("stuckshot"):
+				await shot("98_stuck_reward")
+			var sk = sc.find_child("SkipButton", true, false)
+			if sk != null:
+				sk.pressed.emit()
+				await frames(5)
+				var cf = sc.find_child("SkipConfirm", true, false)
+				if cf != null:
+					for b in cf.get_children():
+						if b is Button and b.text == "Skip":
+							b.pressed.emit()
+			await frames(20)
+			return
 		await frames(5)
 		if not sc._reward_cards.is_empty() and is_instance_valid(sc._reward_cards[0]):
 			sc._select_reward(0)
@@ -168,6 +193,7 @@ func map_step(sc: Node) -> void:
 		sc._take_selected_reward()
 		await frames(30)
 		return
+	_stuck = 0
 	if first("map"):
 		await shot("05_run_map")
 	var ids: Array = sc._reachable_now_ids()
@@ -593,16 +619,19 @@ func core_checks(m: Node) -> void:
 			continue
 		var a := String(row["pair"][0])
 		var b := String(row["pair"][1])
-		if RunState.owned_relic_ids.has(b):
+		if RunState.owned_relic_ids.has(b) or RunState.owned_relic_ids.has(a) and cid != cands[0] and false:
 			continue
 		if not RunState.owned_relic_ids.has(a):
 			RunState.acquire_relic(a, "qa")
 		var found := []
-		for sd in 3000:
-			var off := CoreOffer.build_offer(Rng.new(sd), 0, RunState._core_ctx(RunState._core_offer_pick), 3)
-			for c in off:
-				if String(c["key"]) == b:
-					found = off
+		for tr_ in [0, 1, 2]:
+			for sd in 1500:
+				var off := CoreOffer.build_offer(Rng.new(sd), tr_, RunState._core_ctx(RunState._core_offer_pick), 3)
+				for c in off:
+					if String(c["key"]) == b:
+						found = off
+						break
+				if not found.is_empty():
 					break
 			if not found.is_empty():
 				break
@@ -643,8 +672,29 @@ func btn_state(b: Button) -> String:
 	return "vis=%s dis=%s text='%s' tip='%s'" % [str(b.visible), str(b.disabled), b.text, b.tooltip_text]
 
 func turn_probe(v: Node) -> void:
+	if not is_instance_valid(v) or v._combat == null:
+		return
 	var c = v._combat
 	await wait_anim(v, 300)
+	var tw := 0
+	while is_instance_valid(v) and not v._hud_frame.overcast_button.visible and tw < 300:
+		tw += 1
+		await get_tree().process_frame
+	if not is_instance_valid(v):
+		return
+	if first("mana_setup"):
+		c.mana += 8
+		note("SETUP: mana +8 so Overcast/Wild are affordable")
+		v._rebuild_all()
+		await frames(5)
+	var hunts := 0
+	while c.bo.is_empty() and c.rerolls > 0 and hunts < 3 and is_instance_valid(v):
+		hunts += 1
+		await press_reroll(v)
+		if v._rr_mode:
+			v._rr_bar.gamble_button.pressed.emit()
+			await frames(10)
+			await wait_anim(v, 600)
 	var sizes = c.bo.map(func(g): return int(g["size"]))
 	var h = v._hud_frame
 	note("PROBE turn=%d bo_sizes=%s overcast[%s] wild[%s]" % [c.turn, str(sizes), btn_state(h.overcast_button), btn_state(h.wild_button)])
@@ -698,8 +748,6 @@ func turn_probe(v: Node) -> void:
 								note("ITEM5 wild used: wild[%s]" % btn_state(h.wild_button))
 								await shot("05_wild_used")
 								return
-	if _probe_done.has("wild_after") == false and first("wild_triple") == false and false:
-		pass
 
 func result_checks(sc: Node) -> void:
 	for w in ["Combos", "Skipped", "Pair", "Full"]:
