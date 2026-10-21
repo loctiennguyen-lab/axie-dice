@@ -187,7 +187,8 @@ Nguồn: MyGame SFX (Sky Mavis IP, Liam cho phép 23/10). File chép vào `godot
 | Event | File (độ dài) | dB | Pitch | Ghi chú |
 |---|---|---|---|---|
 | dm_roll, dm_reroll_free | ui_tap_01/02/03 (0.09 s) | -6 | 1.0 +-0.05 | chọn ngẫu nhiên 1 trong 3 |
-| dm_land | ui_tap_02 (0.09 s) | -12 | 1.2 | |
+| dm_land | ui_tap_02 (0.09 s) | -15 | 1.2 +-0.06 | phát mỗi viên (5/lượt); giảm 3 dB + jitter pitch sau review audio-director |
+| dm_set4 | power_gain (status) + star_activate | -2 / -6 | 1.0 / 1.1 | lớp 2 là phần "lên thêm một bậc" so với set3 |
 | dm_pair | ui_toast (0.40 s) | -9 | 1.0 | |
 | dm_reroll_safe | resource_collect_01 (0.40 s) | -6 | 1.0 | |
 | dm_gamble_arm | ui_tap_03 x5 (0.09 s) | -5 | 1.0, 1.07, 1.14, 1.22, 1.33 | delay 0/170/320/440/540 ms, nhanh dần |
@@ -205,4 +206,4 @@ Nguồn: MyGame SFX (Sky Mavis IP, Liam cho phép 23/10). File chép vào `godot
 | gacha jackpot | talent_capstone_unlock | -2 | 1.0 | |
 | gacha near_miss | overflow_death_crack | -12 | 1.0 | |
 
-Giữ nguyên (chưa đổi): dm_set3 (power_gain), dm_overcast_charge, dm_gamble_clean, dm_crack_fade (placeholder status/). dm_set4 vẫn im. Chưa có chỗ gọi trong scene cho dm_land, dm_pair, dm_core_open/hover/pick: slot đã map, cần nối khi có hook.
+Giữ nguyên (chưa đổi): dm_set3 (power_gain), dm_overcast_charge, dm_gamble_clean, dm_crack_fade (placeholder status/).

@@ -21,6 +21,6 @@
     "pair": {"layers": [{"path": "res://assets/audio/sfx/ui/star_activate.ogg", "db": -3.0}]},
     "full": {"layers": [{"path": "res://assets/audio/sfx/ui/axie_level_up.ogg", "db": -3.0}, {"path": "res://assets/audio/sfx/ui/talent_capstone_unlock.ogg", "db": -4.0, "delay_ms": 100}]},
     "spin_stop": {"path": "res://assets/audio/sfx/status/power_gain.ogg", "db": -3.0},
-    "near_miss": {"layers": [{"path": "res://assets/audio/sfx/ui/overflow_death_crack.ogg", "db": -12.0}]}
+    "near_miss": {"layers": [{"path": "res://assets/audio/sfx/ui/overflow_death_crack.ogg", "db": -12.0, "pitch": 1.3}]}
   }
 }

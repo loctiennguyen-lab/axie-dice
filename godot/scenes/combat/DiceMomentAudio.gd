@@ -41,7 +41,7 @@ const EVENTS := {
 	"dm_reroll_safe": {"path": "", "db": -6.0, "prio": 25, "layers": [{"path": UI + "resource_collect_01.ogg", "db": -6.0}]},
 	"dm_roll": {"path": "", "db": -6.0, "prio": 20, "layers": L_ROLL},
 	"dm_reroll_free": {"path": "", "db": -6.0, "prio": 20, "layers": L_ROLL},
-	"dm_land": {"path": "", "db": -12.0, "prio": 10, "layers": [{"path": UI + "ui_tap_02.ogg", "db": -12.0, "pitch": 1.2}]},
+	"dm_land": {"path": "", "db": -12.0, "prio": 10, "layers": [{"path": UI + "ui_tap_02.ogg", "db": -15.0, "pitch": 1.2, "pj": 0.06}]},   # one per die x5: quieter + jitter so it is not a machine gun
 	"dm_core_open": {"path": "", "db": -4.0, "prio": 55, "layers": [{"path": UI + "ui_modal_open.ogg", "db": -4.0}]},
 	"dm_core_hover": {"path": "", "db": -14.0, "prio": 5, "layers": [{"path": UI + "ui_tap_01.ogg", "db": -14.0, "pitch": 1.5}]},
 	"dm_core_pick": {"path": "", "db": -1.0, "prio": 88, "layers": [{"path": UI + "star_activate.ogg", "db": -1.0}]},
