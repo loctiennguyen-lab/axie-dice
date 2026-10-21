@@ -15,3 +15,29 @@ Baseline truoc Anchor (v4 OC2): expert 18.8, random 11, spam 10.5, free_hold 10.
 
 Chi tiet theo Anchor (pick%, win%, % run thuc tinh, node/luot thuc tinh): xem `raw/sim-*-anchor-auto.md` muc "## Anchor". Tom tat expert: Gambler 45% pick / 10.0% win / 38.9% thuc tinh; Volley 40% / 10.0% / 12.5%; Mana Mine 15% / 16.7% (n=30) / 23.3%.
 Dot bien Cap (expert, % run co >=1): h_gambler 15.5%, h_mana_mine 5.5%, h_kin 5%, h_volley 3%, h_embers 1%, h_big_hand 1%; nac 2 <=2%. Combo formed trung binh 0.33/run.
+
+## Nhom 2: expert none va ep tung Anchor (200 run moi, seed 1000-1199)
+
+| expert | win +-CI95 | thuc tinh % | node thuc tinh (TB) | luot combat thuc tinh (TB) | dmg/luot | combo formed |
+|---|---|---|---|---|---|---|
+| none (khong Anchor) | 17.5% (+-5.3) | - | - | - | - | - |
+| ep a_volley | 11.0% +-4.3 | 14.0 | 7.6 | 17.8 | 28.5 | 0.29 |
+| ep a_gambler | 9.0% +-4.0 | 33.0 | 6.2 | 15.4 | 25.9 | 0.36 |
+| ep a_mana_mine | 10.0% +-4.2 | 28.0 | 5.6 | 12.2 | 26.9 | 0.35 |
+| tu chon (heuristic) | 11.0% | 29.0 (gop) | | | | 0.33 |
+
+Do chenh giua 3 Anchor: 2.0 diem (dat <=5, nhung nam trong nhieu CI). Pick rate la do heuristic doi, khong phai "Anchor manh": Gambler 45%, Volley 40%, Mana Mine 15%.
+Dot bien Cap: h_gambler 11-16% run co nac 1, h_mana_mine 17% khi ep Mana Mine, nha khac <=7.5%; nac 2 <=4% moi nha. Combo formed ~0.3/run (it) la goc re cua ca thuc tinh lan dot bien.
+
+## So voi muc tieu
+- expert 20+-3: CHUA DAT. 17.5% khi khong Anchor (dat), nhung co Anchor 9-11%. Random 7.0 (<=12 dat), spam 7.5 (dat), free_hold 7.0 (dat).
+- Anchor thuc su KHONG lam game de di: no lam khoang 7 diem kho hon cho expert (17.5 -> ~10.3). Ca random/spam cung tut 3-4 diem.
+- Chenh giua Anchor <=5: DAT (2 diem). Pick rate 10-60%: DAT (15/40/45) nhung do heuristic.
+- Thuc tinh >=33% run: CHUA DAT tru Gambler (33%); Mana Mine 28%, Volley 14%. Cua random/spam chi 4-22%.
+- Dot bien Cap: nac 1 hiem (Volley 3-5%, Embers/Big Hand ~1%), nac 2 gan nhu khong: CHUA DAT "du thuong".
+
+## De xuat knob
+1. Nguyen nhan chinh: phi cua Anchor (Volley -0.15 BỘ, Gambler Nut 40%, Mana Mine Mat Tam 3) nang hon loi vi luat nen yeu va thuc tinh den muon. Giam phi hoac tang luat nen (vd Volley cost -0.15 -> -0.05, Gambler Nut Lieu 40% -> 25%) cho win-rate ve ~17-20.
+2. Thuc tinh/dot bien hiem vi chi ~0.3 combo/run: tang `anchor_house_bias` 1.5 -> 2.5 va `anchor_axis_bias` 1.5 -> 2.0 (ti le Loi ruot hien chi x1.2-1.37), hoac ha nguong thuc tinh xuong con 2 Loi ruot trong 1 offer dau; Volley can chu y nhat (14%).
+3. Mana Mine chi 15% khi expert tu chon (heuristic chi chon khi doi nhieu aqua); can heuristic/nhan xet tot hon truoc khi ket luan ve pick rate.
+Lenh tai tao: `godot/tools/sim_balance.sh --runs=40 --seed=<s> --policies=expert --anchor=auto|none|a_volley|a_gambler|a_mana_mine`.
