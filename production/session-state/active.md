@@ -1,5 +1,14 @@
 # Axie Dice — trạng thái hiện tại
 
+## ⇢ BẮT ĐẦU TỪ ĐÂY (24/10) — ANCHOR MVP ĐANG CODE; LIAM: XONG HẲN RỒI MỚI DEPLOY + ĐƯA TEST
+Liam chơi local "chưa thấy khác biệt" → luật mới (memory finish-then-deploy-for-playtest): không đưa bản dở; xong hẳn (engine + UI + sim + review +
+QA luồng thật) → deploy web → kiểm khác biệt hiện ngay trong run thường → báo Liam kèm 3-5 dòng "để ý gì".
+Liam chốt Anchor (23/10): Cặp có sức mạnh thật; thức tỉnh khi ≥2 Lõi ruột (khoá tới hết run); tên "Anchor". QA plan
+`production/qa/anchor-mvp-qa-plan.md` (23 lỗ hổng + mục 5 cách bịt đã chốt). UX `design/ux/anchor-mvp.md` (+ token house_* đã ở godot-port bf0a618).
+Làn: `../my-game-wt/AE` (anchor/eng: bước 1 data+API xong; 2a RunState/cổng/R1/cờ thức tỉnh đang làm; 2b hiệu ứng chưa), `../my-game-wt/AU2`
+(anchor/ui: màn chọn Anchor xong 7f519f2; HUD/mutation/thức tỉnh/Result/Codex đang làm), `../my-game-wt/LF` (tra Lõi ít kích hoạt).
+Hợp đồng sự kiện: `../my-game-wt/AE/production/anchor-contract.md`.
+
 ## ⇢ BẮT ĐẦU TỪ ĐÂY (23/10 đêm) — ĐÃ DEPLOY PRODUCTION, CHỜ LIAM DUYỆT ĐỘT BIẾN + LÕI CHỦ
 **Production live** (Liam cho phép 23/10): D1 0008+0009; Worker `ea88583d` (RULES -r, phục vụ index.pck từ các phần R2 + manifest vì pck
 359 MB > 300 MiB CLI; review bảo mật ĐẠT, nợ nhỏ ghi ở `production/release/deploy-2026-10-23.md`); web = build 805b6dc, md5 khớp, game boot
