@@ -166,6 +166,11 @@ var core_reroll_left: int = 0             ## whole-run Core rerolls (one card ea
 var core_rerolls_used: int = 0
 var core_rerolled_slots: Array[int] = []  ## slots already rerolled in the CURRENT offer
 var core_tier_bump: int = 0               ## pending +tier for the next offer (Elite affix+, Crow...), consumed on open
+var combo_done: Dictionary = {}           ## gacha: combo id -> "pair" | "full" (best tier ever formed this run; save + replay)
+var core_skipped_t: Array[String] = []    ## gacha: Crystal Cores shown in an offer and not taken (near-miss / Result "Skipped")
+var combo_rerolls_gained: int = 0         ## gacha: +1 Core rerolls granted by first-time combos (cap RelicTuning.combo_reroll_cap)
+var _combo_turn_fired: Dictionary = {}    ## core ids that fired this player turn (not saved, combat only)
+var _combo_fight_fired: Dictionary = {}   ## combo ids already announced this fight
 var core_quest_done: Array[String] = []   ## finished quest Cores (left their slot, still count for combos)
 var core_quest_progress: Dictionary = {}  ## core id -> {step:int, progress:int}
 var run_rule: String = ""                 ## id of the chosen Run Rule ("" = none yet)
@@ -228,12 +233,17 @@ var _event_rng: Rng = null
 func _ready() -> void:
 	reset()
 	EventBus.core_fired.connect(note_core_fired)
+	EventBus.turn_phase_changed.connect(_on_combo_turn_phase)
+	EventBus.combat_finished.connect(func(_won: bool) -> void:
+		_combo_fight_fired = {}
+		_combo_turn_fired = {})
 
 
 ## Adds one Core activation to the run's impact table (see `core_impact`). Display-only.
 func note_core_fired(core_id: String, _unit_uid: int, amount: int, kind: String) -> void:
 	if core_id == "":
 		return
+	_note_combo_fire(core_id)
 	var e: Dictionary = core_impact.get(core_id, {"n": 0, "by": {}})
 	e["n"] = int(e.get("n", 0)) + 1
 	if amount > 0:
@@ -303,6 +313,11 @@ func reset() -> void:
 	core_tier_bump = 0
 	core_quest_progress = {}
 	core_quest_done = []
+	combo_done = {}
+	core_skipped_t = []
+	combo_rerolls_gained = 0
+	_combo_turn_fired = {}
+	_combo_fight_fired = {}
 	run_rule = ""
 	rules_on = false
 	core_off = false
@@ -1661,6 +1676,8 @@ func _grant_relic(relic_id: String, source: String) -> void:
 	if gdef != null and not (gdef.quest as Dictionary).is_empty():
 		core_quest_progress[relic_id] = {"step": 0, "progress": 0}
 	RelicHooks.run_fire(owned_relic_ids, "on_relic_acquired", {"relic_id": relic_id, "source": source})   # H8
+	if RelicSlots.is_core(gdef):
+		_note_combo_grant()
 
 
 ## Takes a relic respecting the slot rules (RelicSlots.check_add). When every slot of its kind is
@@ -1842,7 +1859,9 @@ func to_data() -> Dictionary:
 			"tier_bump": core_tier_bump, "quest": core_quest_progress.duplicate(true), "run_rule": run_rule,
 			"rules_on": rules_on, "base_seed": _core_base_seed, "offer_active": _core_offer_active, "offer_pick": _core_offer_pick, "core_off": core_off,
 			"rule_offer_active": _rule_offer_active, "close_pending": _core_close_pending,
-			"bonus_queue": core_bonus_queue.duplicate(), "bonus_count": core_bonus_count},
+			"bonus_queue": core_bonus_queue.duplicate(), "bonus_count": core_bonus_count,
+			"combo_done": combo_done.duplicate(), "skipped_t": core_skipped_t.duplicate(), "quest_done": core_quest_done.duplicate(),
+			"combo_rerolls": combo_rerolls_gained},
 	}
 
 
@@ -2167,6 +2186,10 @@ func _core_from_data(c: Dictionary) -> void:
 	_core_close_pending = bool(c.get("close_pending", false))
 	core_bonus_queue.assign((c.get("bonus_queue", []) as Array).map(func(v): return int(v)))
 	core_bonus_count = int(c.get("bonus_count", 0))
+	combo_done = (c.get("combo_done", {}) as Dictionary).duplicate()
+	core_skipped_t.assign(c.get("skipped_t", []))
+	core_quest_done.assign(c.get("quest_done", []))
+	combo_rerolls_gained = int(c.get("combo_rerolls", 0))
 	# explicit flag; a save from before Core (no pick_index and no flag) plays the legacy flow
 	core_off = bool(c.get("core_off", not c.has("pick_index")))
 
@@ -2303,6 +2326,9 @@ func _reroll_core_card(seed: int, idx: int) -> bool:
 	if nc.is_empty():
 		return false
 	action_log.record("reroll_rewards", [idx])
+	var gone := pending_rewards[idx] as Dictionary
+	if bool(gone.get("core", false)) and int(gone.get("tier", 0)) >= 2 and not core_skipped_t.has(String(gone.get("key", ""))):
+		core_skipped_t.append(String(gone.get("key", "")))
 	core_seen.append(String(nc["key"]))
 	pending_rewards[idx] = nc
 	core_reroll_left -= 1
@@ -2357,6 +2383,12 @@ func _apply_core_pick(reward: Dictionary, sell_id: String) -> bool:
 		if dim != null:
 			core_seen.append(rid)
 			CoreHooks.fire("c_dim_stone", -1, 1, "tier")
+	if not bool(reward.get("rule", false)):
+		for oc in pending_rewards:
+			var od := oc as Dictionary
+			if od != reward and bool(od.get("core", false)) and int(od.get("tier", 0)) >= 2 \
+					and not core_skipped_t.has(String(od.get("key", ""))):
+				core_skipped_t.append(String(od.get("key", "")))
 	pending_rewards = []
 	if bool(reward.get("rule", false)):
 		run_rule = rid
@@ -2433,3 +2465,46 @@ func combo_owned_ids() -> Array:
 		if not out.has(id):
 			out.append(id)
 	return out
+
+
+## Gacha: after a Core is granted, recompute combo tiers. A combo reaching a higher tier than combo_done records it, emits
+## combo_formed, and its FIRST formation gives +1 Core reroll (max RelicTuning.combo_reroll_cap per run). The jackpot has no
+## Pair tier, so its first formation (Full) gives the reroll. Pure function of the grants, so replay reproduces it.
+func _note_combo_grant() -> void:
+	var st := CoreCombos.state(combo_owned_ids())
+	for cid in st.keys():
+		var tier := String(st[cid])
+		var had := String(combo_done.get(cid, ""))
+		if had == tier or (had == "full"):
+			continue
+		combo_done[cid] = tier
+		if had == "" and combo_rerolls_gained < RelicSlots.tuning().combo_reroll_cap:
+			combo_rerolls_gained += 1
+			core_reroll_left += 1
+		EventBus.combo_formed.emit(String(cid), tier)
+
+
+func _on_combo_turn_phase(_old: int, new_phase: int) -> void:
+	if new_phase == CombatEngine.CombatPhase.ROLL:
+		_combo_turn_fired = {}
+
+
+## Gacha B5: first time per fight both Cores of a formed combo fired within one player turn -> combo_fired.
+func _note_combo_fire(core_id: String) -> void:
+	if combo_done.is_empty():
+		return
+	_combo_turn_fired[core_id] = true
+	for cid in combo_done.keys():
+		if _combo_fight_fired.has(cid):
+			continue
+		var row := CoreCombos.get_combo(String(cid))
+		if row.is_empty():
+			continue
+		var pair: Array = (row["pair"] as Array) if row.get("pair") != null else (row.get("jackpot_set", []) as Array)
+		var all_fired := not pair.is_empty()
+		for m in pair:
+			if not _combo_turn_fired.has(m):
+				all_fired = false
+		if all_fired:
+			_combo_fight_fired[cid] = true
+			EventBus.combo_fired.emit(String(cid))
