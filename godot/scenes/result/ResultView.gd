@@ -208,7 +208,7 @@ func _build_header(s: Dictionary) -> Control:
 	var won := bool(s["won"])
 	var col := VBoxContainer.new()
 	col.name = "TitleBand"
-	col.add_theme_constant_override("separation", 8)
+	col.add_theme_constant_override("separation", 12)
 	var new_best := won and int(s["power_level"]) > int(s["best_before"])
 	if new_best:
 		var chip := UI3.chip(tr("New best") + " · A%d" % int(s["ascension"]))
@@ -333,7 +333,7 @@ func _best_set_line(stats: Dictionary) -> Control:
 func _build_card_rows(s: Dictionary) -> VBoxContainer:
 	var col := VBoxContainer.new()
 	col.name = "CardRow"
-	col.add_theme_constant_override("separation", 12)
+	col.add_theme_constant_override("separation", 20)
 	col.add_child(_build_shard_card(s))
 	col.add_child(_build_pass_card(s))
 	col.add_child(_build_relics_card(s["relic_ids"] as Array, String(s.get("run_rule", "")), s.get("core_impact", {}) as Dictionary))
@@ -343,6 +343,10 @@ func _build_card_rows(s: Dictionary) -> VBoxContainer:
 	var stake := _build_stake_box(s)
 	if stake != null:
 		col.add_child(stake)
+	var pad := Control.new()   # breathing room under the last card so the scroll never ends on a clipped line
+	pad.name = "EndPad"
+	pad.custom_minimum_size.y = 16
+	col.add_child(pad)
 	return col
 
 
@@ -356,7 +360,7 @@ func _build_combos_card(s: Dictionary) -> Control:
 	var card := UI3.plate(&"row")
 	card.name = "CombosCard"
 	var col := VBoxContainer.new()
-	col.add_theme_constant_override("separation", 8)
+	col.add_theme_constant_override("separation", 12)
 	card.add_child(col)
 	col.add_child(_card_caption(tr("Combos") + " · %d" % done.size()))
 	if done.is_empty():
@@ -371,8 +375,8 @@ func _build_combos_card(s: Dictionary) -> Control:
 			UI3Theme.color("accent") if full else UI3Theme.color("panel_raised"))
 		sb.content_margin_left = 12
 		sb.content_margin_right = 12
-		sb.content_margin_top = 8
-		sb.content_margin_bottom = 8
+		sb.content_margin_top = 12
+		sb.content_margin_bottom = 12
 		p.add_theme_stylebox_override("panel", sb)
 		var row := HBoxContainer.new()
 		p.add_child(row)
@@ -402,7 +406,7 @@ func _build_shard_card(s: Dictionary) -> Control:
 	var card := UI3.plate(&"row")
 	card.name = "ShardCard"
 	var col := VBoxContainer.new()
-	col.add_theme_constant_override("separation", 8)
+	col.add_theme_constant_override("separation", 12)
 	card.add_child(col)
 	col.add_child(_card_caption(tr("Gene Shard earned")))
 	var row := HBoxContainer.new()
@@ -473,7 +477,7 @@ func _build_pass_card(s: Dictionary) -> Control:
 	var card := UI3.plate(&"row")
 	card.name = "PassCard"
 	var col := VBoxContainer.new()
-	col.add_theme_constant_override("separation", 8)
+	col.add_theme_constant_override("separation", 12)
 	card.add_child(col)
 	var head := HBoxContainer.new()
 	head.add_theme_constant_override("separation", 12)
@@ -546,7 +550,7 @@ func _build_relics_card(relic_ids: Array, run_rule_id: String = "", impact: Dict
 	var card := UI3.plate(&"row")
 	card.name = "RelicsCard"
 	var col := VBoxContainer.new()
-	col.add_theme_constant_override("separation", 8)
+	col.add_theme_constant_override("separation", 12)
 	card.add_child(col)
 	col.add_child(_card_caption(tr("Cores") + " · %d" % relic_ids.size()))
 	if run_rule_id != "":

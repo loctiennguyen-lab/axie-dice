@@ -89,6 +89,8 @@ func _ready() -> void:
 		await _spin()
 	if _want("combat"):
 		await _combat()
+	if _want("result"):
+		await _result()
 	if _want("nearmiss"):
 		await _nearmiss()
 	_guard.restore()
@@ -173,3 +175,24 @@ func _combat() -> void:
 	_snap("combat_combo")
 	scene.queue_free()
 	await get_tree().process_frame
+
+
+func _result() -> void:
+	ComboAdapter.test_combos = [
+		{"id": "t_pair", "name_en": "Golden Turtle Fortress", "pair": ["c_bastion", "c_fissure"], "full": null, "jackpot": false},
+		{"id": "t_full", "name_en": "Iron Tide", "pair": ["c_bastion", "c_plague_spread"], "full": "c_fissure", "jackpot": false}]
+	ComboAdapter.test_done = {"t_pair": "pair", "t_full": "full"}
+	ComboAdapter.test_skipped = ["c_bastion", "c_fissure", "c_plague_spread"]
+	RunState.start_new_run(777001, ["plant1", "beast1", "aqua1", "reptile1", "bug1"] as Array[String], "short", 0, false)
+	RunState.owned_relic_ids.append("c_bastion")
+	RunState.set_phase(RunState.RunPhase.WON)
+	var v: Node = (load("res://scenes/result/Result.tscn") as PackedScene).instantiate()
+	get_tree().root.add_child(v)
+	for _i in 30:
+		await get_tree().process_frame
+	await _wait(1.0)
+	_snap("result")
+	v.queue_free()
+	ComboAdapter.test_combos = []
+	ComboAdapter.test_done = {}
+	ComboAdapter.test_skipped = []
