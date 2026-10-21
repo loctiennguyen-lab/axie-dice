@@ -62,8 +62,8 @@ Giới hạn giữ cảm giác đó: mọi cơ chế giải thích được tron
 | Tung lại (lần 1) | "Mỗi lượt tung lại 1 lần miễn phí, không rủi ro." |
 | LIỀU | "Tung lại tiếp thì trả mana cho chắc (2, rồi 3), hoặc liều miễn phí (mỗi viên tung lại có 30% bị Nứt)." |
 | Nứt | "Viên Nứt còn nửa số và không vào Bộ, hết sau lượt." (Chỉ viên vừa tung lại ở Liều mới Nứt: luật ở 3.5, không nằm trong câu cho người mới.) |
-| MẶT TẠM | "2 mana: một viên chưa dùng được tính là part bạn chọn để ghép Bộ. 1 lần mỗi lượt." |
-| Overcast | "3 mana: một viên chưa dùng được cộng thêm +0.5 vào hệ số (cộng với Bộ, không nhân chồng). 1 lần mỗi lượt." |
+| MẶT TẠM | "Có bộ ba thì trả 2 mana để thành bộ bốn (1 lần mỗi trận)." |
+| Overcast | "Overcast làm cả BỘ mạnh hơn." (3 mana, +0.4 cho mọi viên trong BỘ, 1 lần mỗi lượt) |
 | Lõi chủ | Mỗi Lõi một câu riêng ở mục 10. |
 
 Số trong bảng là bản khởi điểm (`bo.scale = 0.8`, mục 7.2). Mọi ví dụ trong doc dùng số danh nghĩa (scale 1.0: x1.5 / x2 / x3) cho dễ tính; chữ trong game sinh từ knob.
@@ -238,6 +238,10 @@ Cho mỗi lần xin reroll, engine xác định kiểu:
 
 ### 3.6 MẶT TẠM
 
+> **Sửa 22/10 (quyết định mana, `design/proposals/v4-mana-decisions.md`) — đè mọi chỗ khác trong mục này:** luật một câu: "Có bộ ba thì trả 2 mana để thành bộ bốn, 1 lần mỗi trận."
+> Chỉ hợp lệ khi KẾT QUẢ là nhóm đúng 4 viên (đang có bộ ba, viên được đổi nằm ngoài). Từ đôi (kết quả 3) bị từ chối, lý do `need_set3`; kết quả 5 vẫn bị từ chối, lý do `set5`. Knob: `wild.cost` = 2, `wild.per_battle` = 1
+> (thay `wild.per_turn`; biến `wild_used` đếm trong cả trận, reset ở `setup_new`, KHÔNG reset ở `roll_all`; có trong undo/save/to_data; undo hoàn lại lần dùng). `wild_slot` vẫn hết ở `roll_all`.
+
 - Hành động `wild_face(uid, slot)`: trả `wild.cost` = 2 mana, gắn `wild_slot = slot` (0..5) lên viên `uid`.
 - Giới hạn: `wild.per_turn` = 1 lần mỗi lượt (đếm trong `wild_used`, reset ở `roll_all`). Không có Lõi nào đổi con số này
   trong bump này.
@@ -255,6 +259,12 @@ Cho mỗi lần xin reroll, engine xác định kiểu:
 - Mana: kiểm `mana >= cost` TRƯỚC khi đổi bất cứ thứ gì. Không bao giờ để mana âm.
 
 ### 3.7 Overcast (làn OC, ghép vào)
+
+> **Sửa 22/10 (quyết định mana) — đè mọi chỗ khác trong mục này:** luật một câu: "Overcast làm cả BỘ mạnh hơn." Chỉ dùng được khi viên được chọn nằm trong một BỘ (size >= 3; ngược lại bị từ chối, lý do hiển thị "Needs a Set").
+> Hiệu ứng: cộng `overcast.add` = 0.4 (knob, trước 0.5) vào túi M của MỌI viên trong BỘ đó (trần `bo.m_cap` giữ). 3 mana, 1 lần mỗi lượt (`overcast_used`, reset ở `roll_all`, trong undo/save).
+> Cách lưu (tất định cho replay): tại lúc dùng, engine đọc BỘ trong snapshot `bo` và gắn cờ `overcast` lên từng viên thành viên (cờ sống trong `Unit.to_data`). BỘ bị CHỐT theo lúc dùng: reroll/Mặt Tạm sau đó không dời cờ
+> (viên thành viên không tung lại/Hold được; viên vào BỘ về sau, vd bộ ba thành bốn bằng Mặt Tạm, chỉ có phần cộng của BỘ, không có +0.4). Không có action mới: log vẫn là `overcast [uid]` với uid bất kỳ thành viên.
+> UI: nút xám + tooltip "Needs a Set" khi không có BỘ; preview hiện giá trị mới cho cả nhóm.
 
 Làn OC làm riêng action và UI. Hợp đồng để ghép vào túi `M`:
 
