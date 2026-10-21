@@ -105,3 +105,65 @@ static func awaken_rule(id: String) -> String:
 
 static func house_cores(id: String) -> Array:
 	return (Anchors.get_def(id).get("house_cores", []) as Array).duplicate()
+
+
+## ---- HUD / moment reads (job 2-5). Test hook extra keys: owned(Array), mutation_tiers({house: int}).
+
+static func has_anchor() -> bool:
+	return current_id() != ""
+
+
+## Core ids that count toward houses (finished quest Cores included).
+static func owned() -> Array:
+	if test_state != null:
+		return (_t().get("owned", []) as Array)
+	return UI3Gacha.owned_ids()
+
+
+## Latched by the engine, never turns off in a run. Falls back to the live count only when the engine has no flag yet.
+static func awakened() -> bool:
+	if test_state != null:
+		return bool(_t().get("awakened", false))
+	var v = RunState.get("anchor_awakened")
+	if v != null:
+		return bool(v)
+	return false
+
+
+static func house_count() -> int:
+	var id := current_id()
+	return Anchors.house_count(owned(), id) if id != "" else 0
+
+
+static func is_house_core(core_id: String) -> bool:
+	var id := current_id()
+	return id != "" and (Anchors.get_def(id).get("house_cores", []) as Array).has(core_id)
+
+
+## True when taking `core_id` takes the Anchor from 1/2 to 2/2 (awaken). Never says anything about the next pick tier.
+static func would_awaken(core_id: String) -> bool:
+	if not has_anchor() or awakened() or not is_house_core(core_id):
+		return false
+	var own := owned()
+	return not own.has(core_id) and Anchors.house_count(own, current_id()) == Anchors.AWAKEN_NEED - 1
+
+
+## Mutation of a house: {name, rule, rule2}; from houses.json only.
+static func mutation_of(house: String) -> Dictionary:
+	var m: Dictionary = Anchors.get_house(house).get("mutation", {}) as Dictionary
+	return {"name": String(m.get("name_en", "")),
+		"rule": UI3.player_text(String((m.get("tier1", {}) as Dictionary).get("rule_en", ""))),
+		"rule2": UI3.player_text(String((m.get("tier2", {}) as Dictionary).get("rule_en", "")))}
+
+
+static func house_of_combo(combo_id: String) -> String:
+	return Anchors.house_of_combo(combo_id)
+
+
+## Connects an EventBus signal when the engine already has it; false (and nothing connected) otherwise.
+static func listen(sig: String, cb: Callable) -> bool:
+	if not EventBus.has_signal(sig):
+		return false
+	if not EventBus.is_connected(sig, cb):
+		EventBus.connect(sig, cb)
+	return true

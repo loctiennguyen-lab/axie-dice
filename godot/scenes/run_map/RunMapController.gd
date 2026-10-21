@@ -1602,6 +1602,7 @@ func _add_reward_card(r: Dictionary, wide := false) -> PanelContainer:
 			String(CorePanel.AXIS_ICON.get(axis, "face_buff")), UI3Theme.color("text_muted"), "AxisChip"))
 		if not bool(r.get("rule", false)):
 			_add_combo_labels(col, String(r.get("key", "")), chips)
+			_add_house_chip(card, chips, String(r.get("key", "")))
 		col.add_child(chips)
 	else:
 		var rar_lbl := UI3.label(_rarity_name(rar))
@@ -1639,6 +1640,28 @@ func _add_reward_card(r: Dictionary, wide := false) -> PanelContainer:
 ## B2 / B3: when taking this card completes a combo, a gold plate "<glyph> PAIR" / "<glyph> FULL" (dark text on gold,
 ## glyph = 2 / 3 cards) plus the combo name; owned partners ride in one chip "With: X, Y" inside the chip row
 ## (no separate "Works with" line). No 1/2 count and no progress bar anywhere.
+## Anchor lane: a house Core gets a "[glyph] House" chip; the card that takes the Anchor to 2/2 says "1/2 -> AWAKEN" and gets a
+## 2 px anchor_awake edge. Never a word about the tier of the next pick (gacha contract).
+static func _add_house_chip(card: Control, chips: HFlowContainer, key: String) -> void:
+	if not AnchorAdapter.is_house_core(key):
+		return
+	var house := AnchorAdapter.house_id(AnchorAdapter.current_id())
+	var icon := UI3.icon(AnchorAdapter.house_icon(house))
+	if AnchorAdapter.would_awaken(key):
+		var gold := UI3Theme.color("anchor_awake")
+		var c := UI3.icon_chip("%d/%d \u2192 %s" % [Anchors.AWAKEN_NEED - 1, Anchors.AWAKEN_NEED, TranslationServer.translate("AWAKEN")], icon, gold, "AwakenChip")
+		chips.add_child(c)
+		var edge := Panel.new()
+		edge.name = "AwakenEdge"
+		edge.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+		edge.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		edge.add_theme_stylebox_override("panel", UI3Theme.flat(Color(0, 0, 0, 0), UI3Theme.radius("m"), 2, gold))
+		card.add_child(edge)
+		card.set_meta("awaken", true)
+	else:
+		chips.add_child(UI3.icon_chip(TranslationServer.translate("House"), icon, AnchorAdapter.house_color(house), "HouseChip"))
+
+
 func _add_combo_labels(col: VBoxContainer, key: String, chips: HFlowContainer) -> void:
 	var owned := UI3Gacha.owned_ids()
 	var done := UI3Gacha.combo_completes(owned, key)
