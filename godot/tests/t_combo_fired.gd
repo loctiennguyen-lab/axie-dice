@@ -43,6 +43,16 @@ func _ready() -> void:
 	_check(v.combo_float_log.size() == 1, "second fire: no name again")
 	_check(cp.combo_links == 1, "second fire: no bar again")
 	_check(int((cp._slot_by_id["c_bastion"] as Node).get_meta("pulsed", 0)) == 2, "second fire: icon still lights")
+	# Name Tag: custom_state.nick replaces the nameplate text, the original name stays in the tooltip.
+	var foe = v._combat.enemies[0]
+	foe.custom_state["nick"] = "Steve"
+	v._rebuild_all()
+	var pt: UnitPortrait = v._portraits[foe.uid]
+	_check(pt._name_label.text == "Steve", "nick on nameplate: %s" % pt._name_label.text)
+	_check(pt._click_catcher.tooltip_text.contains(foe.n), "original name in tooltip")
+	foe.custom_state.erase("nick")
+	v._rebuild_all()
+	_check(pt._name_label.text == foe.n, "nick removed restores the name")
 	v.queue_free()
 	ComboAdapter.test_combos = null
 	_guard.restore()

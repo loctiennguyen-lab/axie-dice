@@ -3433,6 +3433,9 @@ func _rebuild_all() -> void:
 		_update_portrait(u)
 	for e in _combat.enemies:
 		_update_portrait(e)
+		var np: UnitPortrait = _portraits.get(e.uid)
+		if np != null and is_instance_valid(np):
+			np.set_nick(String(e.custom_state.get("nick", "")), e.n)
 
 	_update_dice_tray()
 
@@ -4007,6 +4010,8 @@ func _unit_name(uid: int) -> String:
 	if _combat == null:
 		return "?"
 	var u := _combat.by_uid(uid)
+	if u != null and String(u.custom_state.get("nick", "")) != "":
+		return String(u.custom_state["nick"])
 	return u.n if u != null else "uid#%d" % uid
 
 
