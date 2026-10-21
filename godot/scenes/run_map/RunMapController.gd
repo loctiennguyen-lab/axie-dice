@@ -1346,7 +1346,12 @@ func _select_reward(i: int) -> void:
 					UI3Gacha.prism_style(_reward_cards[k].get_meta("prism_accent"), k == _reward_sel))
 
 
+var _taking := false   ## true from Take until the node finishes (spin + banner play in between): no double take
+
+
 func _take_selected_reward() -> void:
+	if _taking:
+		return
 	if _reveal != null and is_instance_valid(_reveal):
 		_reveal.skip()
 	if _reward_sel >= 0 and _reward_sel < RunState.pending_rewards.size():
@@ -1678,6 +1683,7 @@ func _on_reward_chosen(reward: Dictionary) -> void:
 ## Takes the reward (state decided here), then plays the after-pick beats: A5 spin for the Dim Stone bet, then the
 ## Pair / Full banner. The animations only show what RunState already did.
 func _apply_and_finish(reward: Dictionary) -> void:
+	_taking = true
 	var before_ids: Array = UI3Gacha.owned_ids().duplicate()
 	var before_owned: Array = RunState.owned_relic_ids.duplicate()
 	var is_core := _is_core_card(reward) and not bool(reward.get("rule", false))
@@ -1701,21 +1707,25 @@ func _apply_and_finish(reward: Dictionary) -> void:
 		if fx.running:
 			await fx.finished
 	var formed := UI3Gacha.combos_formed(before_ids, UI3Gacha.owned_ids())
+	# The banner plays OVER the Core-pick overlay (it is still there), then the node finishes.
+	var ban := _combo_banner(formed)
+	if ban != null and ban.running:
+		await ban.finished
+	_taking = false
 	_finish_node()
-	_combo_banner(formed)
 
 
-## Shows the strongest newly formed combo (Full beats Pair) above the overlay layer; click-through.
-func _combo_banner(formed: Array) -> void:
+## Shows the strongest newly formed combo (Full beats Pair) as a big centre panel above the overlay layer.
+func _combo_banner(formed: Array) -> GachaFx:
 	if formed.is_empty() or _overlay_layer == null:
-		return
+		return null
 	var best: Dictionary = formed[0]
 	for f in formed:
 		if String(f["tier"]) == "full":
 			best = f
 			break
 	gacha_log.append("banner:%s" % String(best["tier"]))
-	GachaFx.banner(_overlay_layer, String(best["tier"]), UI3Gacha.combo_name(String(best["id"])))
+	return GachaFx.banner(_overlay_layer, String(best["tier"]), UI3Gacha.combo_name(String(best["id"]))) as GachaFx
 
 
 ## Spec 32: the slot kind of the new relic is full. The sale goes through RunState.acquire_relic (logged as

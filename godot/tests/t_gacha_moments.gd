@@ -165,12 +165,16 @@ func _banner() -> void:
 	await _frames(3)
 	_check(rm.gacha_log.has("banner:pair"), "taking the Pair card raises the PAIR banner")
 	var ban: Node = rm._overlay_layer.find_child("ComboBanner", true, false)
-	_check(ban != null and ban.mouse_filter == Control.MOUSE_FILTER_IGNORE, "banner is click-through")
+	_check(ban != null and ban.find_child("BannerPlate", true, false) != null and ban.find_child("BannerScrim", true, false) != null, "banner is a centre panel with a scrim")
+	_check(rm._overlay_root.visible, "pair banner plays over the still-open Core overlay")
+	var bt := ban.find_child("BannerText", true, false) as Label
+	_check(bt != null and bt.theme_type_variation == &"LabelScreenTitle" and UI3Theme.get_theme().get_font_size("font_size", "LabelScreenTitle") == 32, "banner name is 32 px (not 36)")
+	_check(ban.find_child("BannerRing3", true, false) == null and (ban.find_child("TagText", true, false) as Label).text == "PAIR", "pair: single gold frame + PAIR tag")
 	var shot := OS.get_environment("AXIE_SHOT_PAIR")
 	if shot != "" and DisplayServer.get_name() != "headless":
 		get_viewport().get_texture().get_image().save_png(shot)
-	await _wait(1.4)
-	_check(rm._overlay_layer.find_child("ComboBanner", true, false) == null, "pair banner gone after 1.2 s")
+	await _wait(1.8)
+	_check(rm._overlay_layer.find_child("ComboBanner", true, false) == null, "pair banner gone after 1.6 s")
 	RunState.owned_relic_ids.append("c_golden_egg")
 	await _offer_with(["c_spore_burst", "c_kindle", "c_dewdrop"])
 	await _wait(1.0)
@@ -181,10 +185,11 @@ func _banner() -> void:
 	_check(rm.gacha_log.has("banner:full"), "taking the third Core raises the FULL banner")
 	ban = rm._overlay_layer.find_child("ComboBanner", true, false)
 	_check(ban != null, "full banner is up")
-	await _wait(1.4)
-	_check(rm._overlay_layer.find_child("ComboBanner", true, false) != null, "full banner outlasts the pair length (1.8 s)")
-	await _wait(0.7)
-	_check(rm._overlay_layer.find_child("ComboBanner", true, false) == null, "full banner gone after 1.8 s")
+	_check(ban.find_child("BannerRing3", true, false) != null and (ban.find_child("TagText", true, false) as Label).text == "FULL", "full: thicker frame + FULL tag")
+	await _wait(1.9)
+	_check(rm._overlay_layer.find_child("ComboBanner", true, false) != null, "full banner outlasts the pair length (2.8 s)")
+	await _wait(1.2)
+	_check(rm._overlay_layer.find_child("ComboBanner", true, false) == null, "full banner gone after 2.8 s")
 
 
 func _set_capped_state(capped: bool) -> void:

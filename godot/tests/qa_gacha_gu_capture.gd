@@ -83,6 +83,8 @@ func _ready() -> void:
 	await get_tree().process_frame
 	if _want("jackpot"):
 		await _jackpot()
+	if _want("banner"):
+		await _banner()
 	_guard.restore()
 	get_tree().quit(0)
 
@@ -99,3 +101,22 @@ func _jackpot() -> void:
 	await _wait(0.5)
 	_snap("jackpot_sparkle")
 	UI3Gacha.combo_provider = null
+
+
+func _banner() -> void:
+	RunState.owned_relic_ids.append("c_nest")
+	await _open_keys(["c_golden_egg", "c_kindle", "c_dewdrop"])
+	await _wait(2.2)
+	rm._select_reward(0)
+	rm._take_selected_reward()
+	await _wait(0.6)
+	_snap("banner_pair")
+	await _wait(1.6)
+	RunState.owned_relic_ids.append("c_golden_egg")
+	await _open_keys(["c_spore_burst", "c_kindle", "c_dewdrop"])
+	await _wait(2.2)
+	rm._select_reward(0)
+	rm._take_selected_reward()
+	await _wait(0.6)
+	_snap("banner_full")
+	await _wait(2.4)
