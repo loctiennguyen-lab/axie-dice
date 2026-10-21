@@ -1,5 +1,14 @@
 # Axie Dice — trạng thái hiện tại
 
+## ⇢ BẮT ĐẦU TỪ ĐÂY (22/10 tối) — GÓI GACHA LỚN (2 NGÀY) + MANA
+Liam chốt gacha: B không lộ bậc, 2 tầng, chỉ hiện thưởng, được chậm (agent chọn nhịp), có Lõi meme, **gói Lớn ≤2 ngày**. Hợp đồng
+`production/gacha-contract.md`. Làn: **GD** (`../my-game-wt/GD` data 14 combo + CoreCombos API + thưởng +1 reroll + sim rút thẻ + 3 Lõi meme),
+**GP** (`../my-game-wt/GP` UI chọn Lõi A1-A3, A5-A8, B2-B3), **GM** (`../my-game-wt/GM` B5 combo nổ, Result, Sổ Lõi, daily, copy run card);
+game-designer viết `design/proposals/meme-cores.md`. Mana: làn **MD** (`../my-game-wt/MD` 6751c99) xong + review (cần: bump -q lúc merge,
+thêm 1 tamper Overcast ngoài BỘ, chặn Mặt Tạm lên viên đã Overcast); sim **SM** (`../my-game-wt/SM`) đang đo 8×200. Âm: axie-asset-sources
+chỉ có SFX Origins (đã có) — hỏi Liam: (a) tìm trong ~/Downloads/MyGame hay (b) tải Kenney CC0 (khuyến nghị). Merge cuối: MD + GD + GP + GM
+→ bump RULES_VERSION -q → suite không skip → build.
+
 ## Liam 22/10 (ghi nhớ thứ tự)
 - **Polish để SAU CÙNG**, khi game design xong: Sảnh, Đổi mặt xúc xắc, Cược, Ascension thêm luật mới (thay vì +HP). Làm với **Claude Design**.
 - Âm thanh: Liam bảo "lấy trong asset có rất nhiều". Repo chỉ có 118 .ogg (sfx/class 78, sfx/status 35, music 5); asset-library không có âm.
