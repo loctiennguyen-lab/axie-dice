@@ -40,6 +40,9 @@ var _pact_mode := "take"   # take | skip   (--pact)
 var _shop_mode := "all"    # all | none     (--shop)
 var _nohold := false       # ablation (--hold=1)
 var _noreroll := false     # ablation (--noreroll=1)
+var _corehold := true      # S2: expert Holds dice when it owns c_steady_hold / c_kindle / rule_tundra (--corehold=0 turns off)
+const HOLD_CORES := ["c_steady_hold", "c_kindle", "rule_tundra"]
+var _force: Array = []     # --force=id,id : grant these Cores at run start (diagnosis only)
 var _beam := 3             # expert in-turn beam width (--beam)
 var _core_fired_seen := {} # ids reported by EventBus.core_fired, when the branch has that signal
 ## Real combos (design/proposals/core-pick-excitement-brainstorm.md 2.B1; members that exist as ids on this branch).
@@ -94,6 +97,8 @@ func _ready() -> void:
 	_beam = int(args.get("beam", 3))
 	_nohold = int(args.get("hold", 0)) != 1   # Hold is OFF by default: ablation showed it costs ~4 points
 	_noreroll = int(args.get("noreroll", 0)) == 1
+	_corehold = int(args.get("corehold", 1)) == 1
+	_force = Array(String(args.get("force", "")).split(",", false))
 	var recs: Array
 	if args.has("from"):   # --from=a.csv,b.csv : rebuild/merge a report from raw CSVs, no simulation
 		recs = SimReport.read_csvs(String(args["from"]).split(","))
@@ -179,6 +184,8 @@ func _play_run(seed_value: int, team_name: String, asc: int, policy: String, cor
 	RunState.start_run_with_epoch(LocalEpochSource.new(PackedByteArray(), seed_value), {
 		"team_keys": team, "mode": "short", "ascension": asc, "ranked": false, "rules_on": true,
 		"newcomer": false, "bonuses": {}}, seed_value)
+	for fid in _force:
+		RunState._grant_relic(String(fid), "sim_force")
 	_drain_core_offers()
 	var graph := RunMapGraph.from_data(RunState.map_graph)
 	var node := graph.find_node(graph.start_node_id)
@@ -242,6 +249,12 @@ func _play_run(seed_value: int, team_name: String, asc: int, policy: String, cor
 			break
 		node = graph.find_node(String(node.next_ids[_rng.next_int(node.next_ids.size())]))
 	var won := RunState.phase == RunState.RunPhase.WON
+	# S1: a Core counts as fired if it reported core_fired at ANY time of the run (also outside fights, also self-removing
+	# Cores such as c_fossil, or c_dim_stone that is swapped for a Crystal Core on pick) as long as it was picked/owned.
+	if EventBus.has_signal("core_fired"):
+		for fid in _core_fired_seen:
+			if _picked.has(fid) or RunState.owned_relic_ids.has(fid) or String(RunState.run_rule) == String(fid):
+				_trig[fid] = true
 	var cores: Array = []
 	for id in RunState.owned_relic_ids:
 		var d = RelicRegistry.get_def(String(id))
@@ -517,7 +530,17 @@ func _mx_close_turn(eng: CombatEngine, mana_start: int) -> void:
 		_ma("out_other", -resid)
 
 
+## S3: a REAL action must not run muted: the callers (_expert2_actions, _free_hold_rerolls) mute CoreHooks for their look-ahead, which silenced
+## every core_fired raised by a paid reroll / Mat Tam / Overcast (c_tidecaller read 0% fired for that reason).
 func _mx_reroll(eng: CombatEngine, uids: Array, rm: int) -> bool:
+	var saved_mute := CoreHooks.mute
+	CoreHooks.mute = 0
+	var r := _mx_reroll_real(eng, uids, rm)
+	CoreHooks.mute = saved_mute
+	return r
+
+
+func _mx_reroll_real(eng: CombatEngine, uids: Array, rm: int) -> bool:
 	var m0 := eng.mana
 	var free := eng.rerolls > 0
 	var was := _mx_listen
@@ -542,7 +565,17 @@ func _mx_reroll(eng: CombatEngine, uids: Array, rm: int) -> bool:
 	return ok
 
 
+## S3: a REAL action must not run muted: the callers (_expert2_actions, _free_hold_rerolls) mute CoreHooks for their look-ahead, which silenced
+## every core_fired raised by a paid reroll / Mat Tam / Overcast (c_tidecaller read 0% fired for that reason).
 func _mx_wild(eng: CombatEngine, uid: int, slot: int) -> bool:
+	var saved_mute := CoreHooks.mute
+	CoreHooks.mute = 0
+	var r := _mx_wild_real(eng, uid, slot)
+	CoreHooks.mute = saved_mute
+	return r
+
+
+func _mx_wild_real(eng: CombatEngine, uid: int, slot: int) -> bool:
 	var m0 := eng.mana
 	var u := eng.by_uid(uid)
 	var after := 0
@@ -562,7 +595,17 @@ func _mx_wild(eng: CombatEngine, uid: int, slot: int) -> bool:
 	return true
 
 
+## S3: a REAL action must not run muted: the callers (_expert2_actions, _free_hold_rerolls) mute CoreHooks for their look-ahead, which silenced
+## every core_fired raised by a paid reroll / Mat Tam / Overcast (c_tidecaller read 0% fired for that reason).
 func _mx_overcast(eng: CombatEngine, uid: int) -> bool:
+	var saved_mute := CoreHooks.mute
+	CoreHooks.mute = 0
+	var r := _mx_overcast_real(eng, uid)
+	CoreHooks.mute = saved_mute
+	return r
+
+
+func _mx_overcast_real(eng: CombatEngine, uid: int) -> bool:
 	var m0 := eng.mana
 	if not eng.overcast(uid):
 		return false
@@ -840,7 +883,15 @@ func _move_expert(eng: CombatEngine, ready: Array, foes: Array) -> Array:
 
 ## Beam search over ordered (die, target) sequences inside the turn, scored by _eval after each step (exact state, via
 ## use_die + undo_last). A prefix may stop at any depth (a die can stay unused). Returns the best sequence found.
+## Trial use_die + undo_last must not count as a Core firing: mute the whole search.
 func _plan_turn(eng: CombatEngine, ready: Array, foes: Array) -> Array:
+	CoreHooks.mute += 1
+	var r := _plan_turn_inner(eng, ready, foes)
+	CoreHooks.mute -= 1
+	return r
+
+
+func _plan_turn_inner(eng: CombatEngine, ready: Array, foes: Array) -> Array:
 	var base := _eval(eng)
 	var beam: Array = [{"seq": [], "score": base}]
 	var best: Dictionary = beam[0]
@@ -914,6 +965,38 @@ func _expert_turn_start(eng: CombatEngine, ready: Array, foes: Array) -> void:
 		_free_hold_rerolls(eng)
 	else:
 		_expert2_actions(eng)
+	if _corehold and not _nohold_cores_off(eng):
+		_core_hold(eng)
+
+
+func _nohold_cores_off(eng: CombatEngine) -> bool:
+	for id in HOLD_CORES:
+		if RunState.owned_relic_ids.has(id) or String(RunState.run_rule) == id:
+			return false
+	return true
+
+
+## S2: a Hold Core (c_steady_hold, c_kindle, rule_tundra) needs dice parked, and the plain expert never parks (Hold is only the
+## boss-strike trick). With such a Core owned: after the rerolls, park the lowest-value non-cantrip dice up to stash_cap, but always
+## keep 2 dice ready. A die carried from last turn (stash_carry) is used, not parked again, unless c_steady_hold allows repeat.
+func _core_hold(eng: CombatEngine) -> void:
+	var guard := 0
+	while guard < 6:
+		guard += 1
+		var ready := _ready_units(eng)
+		if ready.size() <= 2:
+			return
+		var pick: Unit = null
+		var pv := 1000000
+		for u in ready:
+			if not eng.can_stash(u.uid):
+				continue
+			var fv: int = eng._face_value(u, u.roll_face_index())
+			if fv < pv:
+				pv = fv
+				pick = u
+		if pick == null or not eng.stash(pick.uid):
+			return
 
 
 ## free_hold ("decent player, no thinking"): spend only FREE rerolls (never mana), keep the biggest part group, re-roll every other
