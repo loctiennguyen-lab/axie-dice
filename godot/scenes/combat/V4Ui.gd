@@ -106,8 +106,8 @@ static func wild_line(pv: Dictionary, uid: int, cur_group: Dictionary) -> String
 		match String(pv.get("reason", "")):
 			"same":
 				return _T("Current part")
-			"size":
-				return _T("Needs 3 of a part")
+			"need_set3":
+				return _T("Needs a set of 3")
 			"mana":
 				return _T("Need mana")
 			"set5":
@@ -126,10 +126,11 @@ static func wild_line(pv: Dictionary, uid: int, cur_group: Dictionary) -> String
 
 ## Wild button words by state: returns {text, tip, enabled}.
 static func wild_button(stage_ok: bool, used: bool, mana: int, cost: int, has_die: bool) -> Dictionary:
+	# MD 22/10: once per FIGHT; only a set of 3 -> 4.
 	if used:
-		return {"text": _T("Wild: used"), "tip": _T("1 Wild face per turn."), "enabled": false}
+		return {"text": _T("Wild: used this fight"), "tip": _T("Used this fight. Wild is once per fight."), "enabled": false}
 	if mana < cost:
 		return {"text": _T("Wild: need %d mana") % cost, "tip": _T("Need %d mana (you have %d)") % [cost, mana], "enabled": false}
 	if not has_die:
-		return {"text": _T("Wild: no valid die"), "tip": _T("No die can make a Set of 3 or 4 with a Wild face (never 5)."), "enabled": false}
-	return {"text": _T("Wild %s %d MP") % ["·", cost], "tip": _T("Pay %d mana: one die counts as the part you pick, for Sets, this turn.") % cost, "enabled": true}
+		return {"text": _T("Wild: no valid die"), "tip": _T("Needs a set of 3. Wild makes it 4 (never 5)."), "enabled": false}
+	return {"text": _T("Wild %s %d MP · 1 left") % ["·", cost], "tip": _T("Have a set of 3? Pay %d mana to make it 4. 1 left this fight.") % cost, "enabled": true}
