@@ -107,6 +107,12 @@ func _parse_args() -> Dictionary:
 func run_batch(args: Dictionary) -> Array:
 	var recs: Array = []
 	var team_names: Array = TEAMS.keys() if String(args.get("teams", "all")) == "all" else String(args["teams"]).split(",")
+	_e2_samples = int(args.get("e2_samples", 16))
+	_e2_min_gain = float(args.get("e2_min_gain", 0.8))
+	_e2_lam = [float(args.get("e2_lam_lo", 0.5)), float(args.get("e2_lam_mid", 0.35)), float(args.get("e2_lam_hi", 0.25))]
+	_e1_min_ev = float(args.get("e1_min_ev", 1.0))
+	_e1_mana_lam = float(args.get("e1_mana_lam", 0.35))
+	_e1_p = float(args.get("e1_p", -1.0))
 	var t0 := Time.get_ticks_msec()
 	for asc_s in String(args.get("asc", "0")).split(","):
 		for pol in String(args.get("policies", "greedy")).split(","):
@@ -774,6 +780,20 @@ func _expert_rerolls(eng: CombatEngine) -> void:
 			break
 
 
+## Chance a rerolled die lands on one given part: cantrip faces resolve and re-roll, so a die only rests on its non-cantrip faces
+## (1/5 with one Tai cantrip, 1/6 with none). Averaged over the dice in `uids`.
+func _p_land(eng: CombatEngine, uids: Array) -> float:
+	var tot := 0.0
+	for uid in uids:
+		var u: Unit = eng.by_uid(int(uid))
+		var nc := 0
+		for fi in 6:
+			if not eng._has_kw(u.die[fi], "cantrip"):
+				nc += 1
+		tot += 1.0 / float(maxi(nc, 1))
+	return tot / float(maxi(uids.size(), 1))
+
+
 func _try_hunt(eng: CombatEngine, crack_p: float) -> bool:
 	var groups := {}   # part -> Array[Unit]
 	for d in eng._bo_dice():
@@ -815,14 +835,15 @@ func _try_hunt(eng: CombatEngine, crack_p: float) -> bool:
 	var a := best_sum / float(best_n)
 	var k := cands.size()
 	var free := eng.rerolls > 0
-	var ev_safe := _hunt_ev(eng, best_n, a, k, 1.0 / 6.0) - (0.0 if free else float(eng.reroll_mana_cost(false, 1)) * 1.0)
-	var ev_lieu := _hunt_ev(eng, best_n, a, k, (1.0 / 6.0) * (1.0 - crack_p)) - crack_p * float(k) * a * 0.5
+	var p_land := _e1_p if _e1_p > 0.0 else _p_land(eng, cands)
+	var ev_safe := _hunt_ev(eng, best_n, a, k, p_land) - (0.0 if free else float(eng.reroll_mana_cost(false, 1)) * _e1_mana_lam)
+	var ev_lieu := _hunt_ev(eng, best_n, a, k, p_land * (1.0 - crack_p)) - crack_p * float(k) * a * 0.5
 	var rm := 1
 	var ev := ev_safe
 	if not free and not _abl.has("no_lieu") and eng.depth_stage >= 2 and ev_lieu > ev_safe:
 		rm = 0
 		ev = ev_lieu
-	if ev < 1.0 or not eng.can_reroll(cands, false, rm):
+	if ev < _e1_min_ev or not eng.can_reroll(cands, false, rm):
 		return false
 	if _trace_path != "":
 		var h0 := _hand(eng)
@@ -928,14 +949,36 @@ func _expert_overcast(eng: CombatEngine) -> void:
 # BO bag M, Nứt halving, per-type weights); rerolls are sampled (N draws from the bot's own rng, SAME draws for every option =
 # common random numbers). The model uses the engine's own _face_base / bo_add100 / bo_cap100 / overcast_preview / preview_wild.
 
-const E2_SAMPLES := 16
-const E2_MIN_GAIN := 0.8
+# Bot tuning params (override with --e2_*=..; set in run_batch). Reasons for the defaults:
+#  e2_samples 16     : CRN draws per option; enough because every option reuses the same draws (the SE of a gain DIFFERENCE is small).
+#  e2_min_gain 0.8   : an action must beat "do nothing" by ~1 value point (the model's noise floor); lower = twitchier bot.
+#  e2_lam_lo/mid/hi  : value of one mana (in face-value points) when mana < 6 / < 10 / >= 10. GDD v4 and v4-decisions-pay say
+#                      lambda 0.2-0.5; mana is only convertible to reroll/Overcast/active relics, so it is cheap when stocked.
+#  e1_min_ev 1.0     : legacy ("expert_old") hunt threshold. e1_mana_lam 0.35: legacy mana price (was a hard 1.0).
+#  e1_p              : legacy per-die chance to land on the wanted part; -1 = derive from the dice (1/(6 - cantrip faces)).
+var _e2_samples := 16
+var _e2_min_gain := 0.8
+var _e2_lam := [0.5, 0.35, 0.25]
+var _e1_min_ev := 1.0
+var _e1_mana_lam := 0.35
+var _e1_p := -1.0
 const E2_TYPES_M := ["dmg", "shield", "heal", "poison"]
 var _e2_tv := {}   # per-decision cache: foe hp, incoming
 
 
+## Faces a die can come to rest on after a (re)roll: cantrip faces auto-use and re-roll (the draw must skip them).
+func _non_cantrip_faces(eng: CombatEngine, u: Unit) -> Array:
+	var r: Array = []
+	for fi in 6:
+		if not eng._has_kw(u.die[fi], "cantrip"):
+			r.append(fi)
+	if r.is_empty():
+		r = [0, 1, 2, 3, 4, 5]
+	return r
+
+
 func _e2_lambda(m: int) -> float:
-	return 0.15 if m >= 10 else (0.35 if m >= 6 else 0.7)
+	return float(_e2_lam[2]) if m >= 10 else (float(_e2_lam[1]) if m >= 6 else float(_e2_lam[0]))
 
 
 func _e2_mana_cost_val(mana: int, c: int) -> float:
@@ -977,6 +1020,7 @@ func _e2_ctx(eng: CombatEngine) -> Dictionary:
 		u.cracked = was
 		ents.append({"u": u, "uid": u.uid, "ready": ready.has(u.uid), "elig": elig.has(u.uid), "fi": u.roll_face_index(),
 			"cr": was, "wild": u.wild_slot, "vb": vb, "ty": ty, "rar": rar,
+			"nc": _non_cantrip_faces(eng, u),
 			"rr": ready.has(u.uid) and u.wild_slot < 0 and not u.overcast and not u.frozen and not u.held})
 	var foe_hp := 0.0
 	for e in eng.alive_enemies():
@@ -1083,10 +1127,11 @@ func _expert2_actions(eng: CombatEngine) -> void:
 				var free := eng.rerolls > 0
 				var sets := _e2_sets(ctx, idx, st, bo_aware_roll)
 				var draws: Array = []
-				for sidx in E2_SAMPLES:
+				for sidx in _e2_samples:
 					var row: Array = []
 					for i in ents.size():
-						row.append([_brng.randi() % 6, _brng.randf()])
+						var ncf: Array = ents[i]["nc"]
+						row.append([ncf[int(_brng.randf() * float(ncf.size())) % ncf.size()], _brng.randf()])
 					draws.append(row)
 				var modes: Array = [1]
 				if not free and not _abl.has("no_lieu") and eng.depth_stage >= 2:
@@ -1102,7 +1147,7 @@ func _expert2_actions(eng: CombatEngine) -> void:
 								c2[i] = rm == 0 and float(row[i][1]) < crack_p
 							tot += _e2_value(ctx, f2, c2, st[2], bo_aware_roll)
 						var cost := 0.0 if rm == 0 else _e2_mana_cost_val(eng.mana, eng.reroll_mana_cost(false, 1))
-						opts.append({"gain": tot / float(E2_SAMPLES) - base_roll - cost, "kind": "reroll", "a": sset, "b": rm})
+						opts.append({"gain": tot / float(_e2_samples) - base_roll - cost, "kind": "reroll", "a": sset, "b": rm})
 		# ---- Mat Tam
 		if not _abl.has("no_wild") and eng.depth_stage >= 2 and eng.wild_used < eng.wild_per_turn() and eng.mana >= eng.wild_cost():
 			var wcost := _e2_mana_cost_val(eng.mana, eng.wild_cost())
@@ -1131,7 +1176,7 @@ func _expert2_actions(eng: CombatEngine) -> void:
 		opts.sort_custom(func(x, y): return float(x["gain"]) > float(y["gain"]))
 		var done := false
 		for o in opts:
-			if float(o["gain"]) < E2_MIN_GAIN:
+			if float(o["gain"]) < _e2_min_gain:
 				break
 			var ok := false
 			var kind := String(o["kind"])
