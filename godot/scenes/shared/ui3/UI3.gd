@@ -377,6 +377,36 @@ static func status_label_chip(status: String, count: int) -> PanelContainer:
 	return p
 
 
+## Combo tier tag. PAIR: light-orange plate, 2 moon-card glyphs. FULL: gold plate, thick cream frame, 3 glyphs, so the
+## two never read alike (colour + frame + glyph count + the word). Dark text on both. Named "ComboPlate" / "ComboWord".
+static func combo_tier_tag(full: bool, with_glyphs := true) -> PanelContainer:
+	var plate := PanelContainer.new()
+	plate.name = "ComboPlate"
+	plate.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var fill := UI3Theme.color("accent") if full else UI3Theme.color("face_buff")
+	plate.add_theme_stylebox_override("panel", UI3Theme.flat(fill, UI3Theme.radius("s"), 4 if full else 0,
+		UI3Theme.color("text"), Vector4(8, 2, 12, 2) if with_glyphs else Vector4(24, 4, 24, 4)))
+	var pr := HBoxContainer.new()
+	pr.add_theme_constant_override("separation", 4)
+	pr.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	if with_glyphs:
+		for i in (3 if full else 2):
+			var g := TextureRect.new()
+			g.texture = icon("ui_mooncard")
+			g.custom_minimum_size = Vector2(24, 24)
+			g.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+			g.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+			g.mouse_filter = Control.MOUSE_FILTER_IGNORE
+			pr.add_child(g)
+	var pl := label(TranslationServer.translate("FULL") if full else TranslationServer.translate("PAIR"), "LabelTitle")
+	pl.name = "ComboWord"
+	pl.add_theme_color_override("font_color", UI3Theme.color("accent_text"))
+	pl.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	pr.add_child(pl)
+	plate.add_child(pr)
+	return plate
+
+
 ## Chip with an optional icon 24 + word (Rowdies 18): wood-2 fill, 2 px border in `border`. The icon never carries
 ## meaning alone: the word is always there. Children are named "Icon" / "Text".
 static func icon_chip(text: String, tex: Texture2D, border: Color, chip_name := "") -> PanelContainer:

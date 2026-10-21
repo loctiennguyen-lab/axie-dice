@@ -1624,24 +1624,7 @@ func _add_combo_labels(col: VBoxContainer, key: String, chips: HFlowContainer) -
 		var row := HBoxContainer.new()
 		row.name = "ComboTag"
 		row.add_theme_constant_override("separation", 8)
-		var plate := PanelContainer.new()
-		plate.name = "ComboPlate"
-		plate.add_theme_stylebox_override("panel", UI3Theme.flat(UI3Theme.color("accent"), UI3Theme.radius("s"), 0,
-			Color.TRANSPARENT, Vector4(8, 2, 12, 2)))
-		var pr := HBoxContainer.new()
-		pr.add_theme_constant_override("separation", 4)
-		for i in (3 if full else 2):
-			var g := TextureRect.new()
-			g.texture = UI3.icon("ui_mooncard")
-			g.custom_minimum_size = Vector2(24, 24)
-			g.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-			g.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-			pr.add_child(g)
-		var pl := UI3.label(tr("FULL") if full else tr("PAIR"), "LabelTitle")
-		pl.name = "ComboWord"
-		pl.add_theme_color_override("font_color", UI3Theme.color("accent_text"))
-		pr.add_child(pl)
-		plate.add_child(pr)
+		var plate := UI3.combo_tier_tag(full)
 		row.add_child(plate)
 		var nm := UI3.label(UI3Gacha.combo_name(String(done["id"])), "LabelMuted")
 		nm.name = "ComboName"
