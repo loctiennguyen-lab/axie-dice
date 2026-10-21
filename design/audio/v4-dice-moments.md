@@ -114,3 +114,67 @@ Chế độ tắt:
 3. Chất âm: mình đề xuất marimba/kalimba/celesta/chuông, ấm và cute, hợp Lunacia. Nếu audio-director muốn nghiêng về arcade/synth hơn thì mình đổi lại danh sách nhạc cụ.
 4. Jackpot BỘ NĂM có cần có "stinger" nhạc (nhạc nền nhường chỗ 2 giây) không, hay chỉ ducking như trên là đủ?
 5. Tìm asset hay thuê làm? Mình chưa tìm thư viện nào ngoài; nếu dùng pack có sẵn thì cần Liam duyệt giấy phép.
+
+## 7. Bảng chọn âm từ kho hiện có
+
+Kho: `sfx/class/` (78 file, 6 class x 13 loại: bite/cast/gore/projectile/slash/smash/throw attack, fly, hit), `sfx/status/` (35 file), `music/` (5 bài, không dùng cho SFX).
+
+Lưu ý quan trọng: lượt này mình không có công cụ chạy `afinfo` hay nghe file, nên KHÔNG đo độ dài và KHÔNG nghe. Mọi lựa chọn dưới đây dựa vào tên file và cách game đang dùng chúng. Cột "độ tin" là mức mình tin vào tên: Cao / Vừa / Yếu. Cần audio-director nghe thử, chạy `afinfo <file> | grep duration` cho file được chọn, rồi chỉnh. Nếu file nào dài quá độ dài đích ở mục 2 thì cắt đuôi bằng fade khi import, không đổi bố trí.
+
+Loại bỏ cả nhóm `sfx/class/`: toàn tiếng đánh, bay, trúng đòn của Axie. Không có tiếng nào nghe như xúc xắc, chuông hay phần thưởng, và dùng chúng sẽ lẫn với combat (dải 200-500 Hz mà mục 4.5 muốn tránh). Chỉ lấy `status/`.
+
+Cách đọc cột pitch: số nhân `pitch_scale` (1.0 = gốc, 1.059 = +1 semitone, 1.122 = +2, 1.189 = +3, 1.26 = +4, 1.335 = +5, 1.5 = +7). Chồng lớp: các layer phát cùng lúc, hoặc lệch nhau `+N ms` khi ghi vậy. Pitch lên thì file ngắn lại theo, nên bậc cao nghe nhanh và sáng hơn (hợp ý tăng cấp).
+
+### 7.1 Tăng cấp BỘ (phần quan trọng nhất)
+
+Ý tưởng: dùng cùng một họ âm (`buff`, `power_gain`, `power_awaken`, `morph_aura_burst`), tăng cấp bằng số lớp chồng và độ cao, không bằng một file khác. Người chơi nghe ba = một lớp, bốn = hai lớp lên cao, năm = nhiều lớp + một cú nổ.
+
+| Event | File (res://assets/audio/sfx/status/...) | Pitch, vol, chồng lớp | Lý do | Độ tin |
+|---|---|---|---|---|
+| `dm_set3` | `buff.ogg` | Một lớp, pitch 1.0, -2 dB | "buff" là tiếng được cộng sức mạnh, đúng nghĩa "Bộ ba x1.4". Không dùng `power_gain` vì nó đang là tiếng crit, dễ lẫn (bản code tạm đang dùng power_gain, nên đổi) | Vừa |
+| `dm_set4` | `buff.ogg` + `power_gain.ogg` | Lớp A: buff pitch 1.12, -1 dB. Lớp B: power_gain pitch 1.26, -3 dB, lệch +90 ms | Hai lớp, cao hơn bậc ba 2 đến 4 semitone, lớp thứ hai vào sau tạo cảm giác "lên thêm một bậc" như arpeggio. Dài hơn set3 nhờ lớp B | Vừa |
+| `dm_set5` | `buff.ogg` + `power_gain.ogg` + `power_awaken.ogg` + `morph_aura_burst.ogg` | Lớp A: buff 1.26, 0 dB. Lớp B: power_gain 1.5, -2 dB, +90 ms. Lớp C: power_awaken 1.19, -2 dB, +200 ms (thân hợp âm). Lớp D: morph_aura_burst 1.0, -3 dB, +200 ms (cú nổ jackpot). Cắt mọi `dm_*` khác như mục 2.1 | Bốn lớp, đủ khác set4 từ 0.2 s đầu vì có lớp D. Thân + cú nổ lấy tên "awaken" và "aura burst" (thức tỉnh, bùng nổ). Mưa đá quý / đồng xu 0.8 s KHÔNG có trong kho, xem 7.4 | Yếu đến Vừa. Cần nghe: bốn lớp chồng dễ thành tiếng ồn, nếu vậy bỏ lớp C |
+| `dm_set_up` | (dùng set4 / set5) | Không thêm gì | Như mục 2.1 | - |
+
+Nếu muốn tăng cấp rõ hơn nữa mà không thêm file: set3 pitch 1.0, set4 pitch 1.12, set5 pitch 1.26 (cách nhau đều 2 đến 4 semitone), và bỏ random pitch ở set3 thấp quá (cho khỏi nhập nhằng thang này).
+
+### 7.2 Rủi ro và thoát Nứt
+
+| Event | File | Pitch, vol | Lý do | Độ tin |
+|---|---|---|---|---|
+| `dm_gamble_clean` | `cleanse.ogg` | 1.12, -5 dB. Thay thế được bằng `cure.ogg` | "Cleanse" = sạch, đúng nghĩa thở phào "không Nứt". Pitch lên một chút cho sáng. Mục 1 spec đã chọn sẵn | Vừa |
+| `dm_crack_fade` | `cleanse.ogg` | 1.3, -10 dB (bản nhỏ và cao hơn gamble_clean) | Cùng họ nhưng khác pitch và nhỏ hơn 5 dB, người chơi nghe ra "cùng ý nghĩa, nhỏ hơn" | Vừa |
+| `dm_crack` | KHÔNG CÓ | - | Xem 7.4. Các file `bleed`, `debuff`, `weak`, `vunerable`, `disarm` nghe như trừng phạt, đúng loại spec cấm ở mục 2.2 (Nứt phải "ối, hụt", không phải "thua") | - |
+
+### 7.3 Mặt Tạm, Overcast, Lõi
+
+| Event | File | Pitch, vol, chồng lớp | Lý do | Độ tin |
+|---|---|---|---|---|
+| `dm_wild_pick` | `feather.ogg` | pitch 1.2, -6 dB | Lông vũ = nhẹ, "swap/lật", gần với whoosh ngắn mà spec cần. Chỉ là placeholder, thiếu "chuông lật" | Yếu |
+| `dm_wild_match` | `shield.ogg` | pitch 1.5, -4 dB | Tiếng khoá / khớp vào (shield bật lên) ngắn, pitch cao gần "click" ghép mảnh. Không phải chọn mạnh, nghe thử so với `secret.ogg` | Yếu |
+| `dm_overcast_charge` | `power_awaken.ogg` + `power_gain.ogg` | Lớp A: power_awaken 1.0, -3 dB (giữ như code). Lớp B: power_gain pitch 1.5, -3 dB, lệch +600 ms làm "pop" cuối khi "+0.5" hiện (căn giờ theo độ dài file thật sau khi đo) | Swell + một nốt đỉnh duy nhất đúng ý "nạp" (mục 2.3). Chỉ một nốt đỉnh nên khác jackpot. Nếu awaken ngắn hơn 600 ms thì dời lớp B cho khớp | Vừa |
+| `dm_core_open` | `secret.ogg` | pitch 1.0, -4 dB | "Secret" = tiết lộ, huyền bí. Chỉ placeholder, thiếu chuông thuỷ tinh | Yếu |
+| `dm_core_pick` | `morph_aura_burst.ogg` + `buff.ogg` | Lớp A: morph_aura_burst 1.12, -3 dB. Lớp B: buff 1.5, -2 dB, +120 ms. Phải nhỏ hơn set5 (A của set5 là 0 dB, lớp D cùng file -3 dB nhưng pitch 1.0): dùng ít lớp hơn là đủ | "Kết tinh" gần với "aura burst" + một nốt sáng. Đỡ hoành tráng hơn jackpot vì 2 lớp so với 4 | Yếu |
+| `dm_core_hover` | KHÔNG CÓ | - | Xem 7.4 | - |
+
+### 7.4 Event kho hiện có KHÔNG có âm phù hợp (cần nguồn mới)
+
+| Event | Âm cần tìm | Ghi chú |
+|---|---|---|
+| `dm_roll` (và `dm_reroll_free`) | 3-5 viên xúc xắc gỗ/gốm nhỏ lăn rồi lách cách trên khay, 0.5 s, ấm, không kim loại. 4 biến thể | Kho không có tiếng va chạm vật cứng nào. Nhóm `fly` / `throw_fly` là whoosh, không phải lăn |
+| `dm_land` | Một "tok" gỗ khô cực ngắn 0.08 s, 3 biến thể | Cần tần số 800 Hz - 5 kHz. Không file nào ngắn và khô cỡ đó theo tên |
+| `dm_pair` | Một nốt marimba / kalimba G5, 0.25 s | Kho không có âm có cao độ rõ (kiểu nhạc cụ) |
+| `dm_reroll_safe` | `dm_roll` + `dm_mana_spend`: đồng xu rơi nhẹ 0.15 s | Phần roll thiếu (xem trên), phần "tinh" cũng thiếu |
+| `dm_gamble_arm` | 5-6 tiếng tick như mõ gỗ, nhanh dần, cao độ A4 -> D5, rồi 80 ms im | Nên làm từ một tick đơn lặp bằng code (một file tick, pitch tăng dần mỗi lần), chỉ cần 1 file mới |
+| `dm_crack` | Gốm/men nứt "tic-kít" nhỏ như vỏ trứng + một nốt "oop" xuống nhẹ (kiểu hoạt hình), 0.3 s, 3 biến thể | KHÔNG dùng buzzer, nốt trầm, thuỷ tinh vỡ chói |
+| `dm_core_hover` | Tick thuỷ tinh rất nhỏ 0.1 s | Có thể dùng chung một tick với gamble_arm nếu pitch cao |
+| Lớp "mưa đá quý/đồng xu" của `dm_set5` | Mưa đồng xu / đá quý nhỏ 0.8 s, 3 biến thể | Thiếu lớp này jackpot vẫn chạy bằng 4 lớp ở 7.1 nhưng sẽ kém hơn "kiểu gacha" |
+| `dm_wild_pick`, `dm_wild_match`, `dm_core_open`, `dm_core_pick` | Bản đích như mục 2.3 (chuông lật, click khớp, crystal bowl, celesta + harp) | Đã có placeholder Yếu ở 7.3, nhưng chất âm đúng vẫn phải làm mới |
+
+### 7.5 Tổng kết
+
+- 18 event: 6 event có âm dùng được (Vừa): `dm_set3`, `dm_set4`, `dm_set5`, `dm_gamble_clean`, `dm_crack_fade`, `dm_overcast_charge`.
+- 4 event có placeholder Yếu (nghe thử, nên thay): `dm_wild_pick`, `dm_wild_match`, `dm_core_open`, `dm_core_pick`.
+- 8 event thiếu hẳn, cần nguồn mới: `dm_roll`, `dm_reroll_free` (= roll), `dm_reroll_safe`, `dm_land`, `dm_pair`, `dm_gamble_arm`, `dm_crack`, `dm_core_hover`.
+- Việc cho người lập trình, nếu Liam duyệt: `EVENTS` trong `DiceMomentAudio.gd` hiện chỉ có 1 path và 1 db mỗi event. Chồng lớp và pitch nhân (bảng trên) cần đổi sang danh sách layer `{path, db, pitch, delay_ms}`. Chưa sửa gì.
+- Việc cần người nghe trước: đo độ dài từng file được chọn bằng `afinfo`, nghe thử 4 lớp của set5 xem có bị cháo không.
