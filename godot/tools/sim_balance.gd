@@ -26,6 +26,9 @@ const TEAMS := {
 }
 
 var _rng: Rng
+## Sensitive metrics per run (see SimReport.metric_section): player turns, damage dealt, V (sum of BO-type face values after the M bag
+## over the ready dice) at turn start (v0) and after the bot's roll decisions (v1), sum of squared per-turn dmg, boss fight facts.
+var _met := {}
 var _policy := "greedy"
 var _core_policy := "random"
 var _fights: Array = []   # per run: {kind, turns, won, stuck}
@@ -107,6 +110,12 @@ func _parse_args() -> Dictionary:
 func run_batch(args: Dictionary) -> Array:
 	var recs: Array = []
 	var team_names: Array = TEAMS.keys() if String(args.get("teams", "all")) == "all" else String(args["teams"]).split(",")
+	_e2_samples = int(args.get("e2_samples", 16))
+	_e2_min_gain = float(args.get("e2_min_gain", 0.8))
+	_e2_lam = [float(args.get("e2_lam_lo", 0.5)), float(args.get("e2_lam_mid", 0.35)), float(args.get("e2_lam_hi", 0.25))]
+	_e1_min_ev = float(args.get("e1_min_ev", 1.0))
+	_e1_mana_lam = float(args.get("e1_mana_lam", 0.35))
+	_e1_p = float(args.get("e1_p", -1.0))
 	var t0 := Time.get_ticks_msec()
 	for asc_s in String(args.get("asc", "0")).split(","):
 		for pol in String(args.get("policies", "greedy")).split(","):
@@ -124,6 +133,7 @@ func _play_run(seed_value: int, team_name: String, asc: int, policy: String, cor
 	_policy = policy
 	_core_policy = core_policy
 	_abl = {}
+	_met = {"turns": 0, "dmg": 0.0, "v0": 0.0, "v1": 0.0, "dsq": 0.0, "boss_n": 0, "boss_turns": 0, "boss_won": 0, "boss_hp": 0.0}
 	if policy.begins_with("expert_"):
 		for k in policy.trim_prefix("expert_").split("+"):
 			_abl[k] = true
@@ -167,6 +177,16 @@ func _play_run(seed_value: int, team_name: String, asc: int, policy: String, cor
 				_note_triggers(eng, owned_snap)
 				_fights.append({"kind": node.node_type, "turns": turns, "won": eng.won, "stuck": turns > STUCK_TURNS or not (eng.won or eng.lost), "affix": aff})
 				RunState.apply_combat_result(eng.get_result())
+				if node.node_type == "boss":
+					var hp_now := 0.0
+					var hp_max := 0.0
+					for pu in eng.party:
+						hp_now += float(maxi(0, (pu as Unit).hp))
+						hp_max += float((pu as Unit).max_hp)
+					_met["boss_n"] = int(_met["boss_n"]) + 1
+					_met["boss_turns"] = int(_met["boss_turns"]) + turns
+					_met["boss_won"] = 1 if eng.won else 0
+					_met["boss_hp"] = hp_now / maxf(hp_max, 1.0)
 				if not eng.won:
 					death_kind = node.node_type
 					death_row = node.row
@@ -205,7 +225,7 @@ func _play_run(seed_value: int, team_name: String, asc: int, policy: String, cor
 	return {"seed": seed_value, "policy": policy, "core_policy": core_policy, "team": team_name, "asc": asc,
 		"won": won, "death_kind": death_kind, "death_row": death_row, "rule": RunState.run_rule,
 		"cores": cores, "fights": _fights.duplicate(true), "offered": _offered.keys(), "picked": _picked.duplicate(),
-		"trig": _trig.keys()}
+		"trig": _trig.keys(), "m": _met.duplicate()}
 
 
 # ---------------------------------------------------------------- rewards / cores
@@ -355,9 +375,14 @@ func _play_turn(eng: CombatEngine) -> void:
 	var guard := 0
 	if _policy == "random_legal":
 		_random_extras(eng)
+	var dmg0 := float(eng.stat.get("dmg_dealt_clamped", 0))
+	var v0 := _v_sum(eng)
+	var v1 := -1.0
 	while guard < 24 and not (eng.won or eng.lost):
 		guard += 1
 		var mv := _choose_move(eng)
+		if v1 < 0.0:
+			v1 = _v_sum(eng)   # after the bot's roll decisions (rerolls / Mat Tam / Overcast happen inside the first _choose_move)
 		if mv.is_empty():
 			break
 		var mu: Unit = eng.by_uid(int(mv[0]))
@@ -368,6 +393,24 @@ func _play_turn(eng: CombatEngine) -> void:
 			_shield_used += 1
 	if not (eng.won or eng.lost):
 		eng.end_turn()
+	var dd := float(eng.stat.get("dmg_dealt_clamped", 0)) - dmg0
+	_met["turns"] = int(_met["turns"]) + 1
+	_met["dmg"] = float(_met["dmg"]) + dd
+	_met["dsq"] = float(_met["dsq"]) + dd * dd
+	_met["v0"] = float(_met["v0"]) + v0
+	_met["v1"] = float(_met["v1"]) + (v1 if v1 >= 0.0 else v0)
+
+
+## V = sum of face values (after the M bag, Cores muted) of the dmg/shield/heal/poison faces on the dice that can still be played.
+func _v_sum(eng: CombatEngine) -> float:
+	var t := 0.0
+	CoreHooks.mute += 1
+	for u in _ready_units(eng):
+		var uu: Unit = u
+		if String(uu.current_face().get("type", "")) in CombatEngine.BO_TYPES:
+			t += float(eng._face_value(uu, uu.roll_face_index()))
+	CoreHooks.mute -= 1
+	return t
 
 
 func _ready_units(eng: CombatEngine) -> Array:
@@ -386,7 +429,7 @@ func _choose_move(eng: CombatEngine) -> Array:
 	var foes: Array = eng.alive_enemies()
 	if foes.is_empty():
 		return []
-	if _policy.begins_with("expert"):   # expert, expert_no_bo_hunt, expert_no_lieu, expert_no_wild, expert_no_overcast, expert_legacy
+	if _policy.begins_with("expert") or _policy == "free_hold":   # expert, expert_no_bo_hunt, expert_no_lieu, expert_no_wild, expert_no_overcast, expert_legacy
 		return _move_expert(eng, ready, foes)
 	match _policy:
 		"attack_spam":
@@ -697,8 +740,68 @@ func _expert_turn_start(eng: CombatEngine, ready: Array, foes: Array) -> void:
 			_expert_rerolls(eng)
 		_expert_wild(eng)
 		_expert_overcast(eng)
+	elif _policy == "free_hold":
+		_free_hold_rerolls(eng)
 	else:
 		_expert2_actions(eng)
+
+
+## free_hold ("decent player, no thinking"): spend only FREE rerolls (never mana), keep the biggest part group, re-roll every other
+## die; if nothing pairs, keep just the single best die. No Mat Tam, no Overcast, no Lieu. Dice moves then use the same beam plan as
+## expert, so expert - free_hold isolates the PAID decisions (the v4 skill part) from the passive bag.
+func _free_hold_rerolls(eng: CombatEngine) -> void:
+	if _noreroll:
+		return
+	CoreHooks.mute += 1
+	for round in 3:
+		if eng.rerolls <= 0 or eng.reroll_total_turn >= eng.reroll_hard_cap():
+			break
+		var groups := {}
+		for d in eng._bo_dice():
+			var u: Unit = d
+			if u.wild_slot >= 0 or u.cracked:
+				continue
+			var pt: int = u.roll_face_index()
+			if not groups.has(pt):
+				groups[pt] = []
+			(groups[pt] as Array).append(u)
+		var keep := {}
+		var best_n := 0
+		var best_sum := -1.0
+		for pt in groups:
+			var g: Array = groups[pt]
+			var sm := 0.0
+			for u in g:
+				sm += maxf(0.0, eng._face_base(u, pt))
+			if g.size() > best_n or (g.size() == best_n and sm > best_sum):
+				best_n = g.size()
+				best_sum = sm
+				keep = {}
+				if g.size() >= 2:
+					for u in g:
+						keep[(u as Unit).uid] = true
+				else:
+					var bu: Unit = g[0]
+					for u in g:
+						if eng._face_base(u, pt) > eng._face_base(bu, pt):
+							bu = u
+					keep[bu.uid] = true
+		if best_n >= 5:
+			break
+		var cands: Array = []
+		for u in eng.alive_party():
+			var uu: Unit = u
+			if uu.has_rolled() and not uu.roll_used() and not uu.held and not keep.has(uu.uid):
+				cands.append(uu.uid)
+		var ok_units: Array = eng._rerollable(cands)
+		cands = []
+		for u in ok_units:
+			cands.append((u as Unit).uid)
+		if cands.is_empty() or not eng.can_reroll(cands, false, 1) or eng.reroll_mana_cost(false, 1) > 0:
+			break
+		if not eng.reroll_dice(cands, -1, false, 1):
+			break
+	CoreHooks.mute -= 1
 
 
 ## Best-of-plan value of the turn as it stands (beam 1 for speed): lets the bot price Mat Tam / Overcast with the engine's own numbers.
@@ -774,6 +877,20 @@ func _expert_rerolls(eng: CombatEngine) -> void:
 			break
 
 
+## Chance a rerolled die lands on one given part: cantrip faces resolve and re-roll, so a die only rests on its non-cantrip faces
+## (1/5 with one Tai cantrip, 1/6 with none). Averaged over the dice in `uids`.
+func _p_land(eng: CombatEngine, uids: Array) -> float:
+	var tot := 0.0
+	for uid in uids:
+		var u: Unit = eng.by_uid(int(uid))
+		var nc := 0
+		for fi in 6:
+			if not eng._has_kw(u.die[fi], "cantrip"):
+				nc += 1
+		tot += 1.0 / float(maxi(nc, 1))
+	return tot / float(maxi(uids.size(), 1))
+
+
 func _try_hunt(eng: CombatEngine, crack_p: float) -> bool:
 	var groups := {}   # part -> Array[Unit]
 	for d in eng._bo_dice():
@@ -815,14 +932,15 @@ func _try_hunt(eng: CombatEngine, crack_p: float) -> bool:
 	var a := best_sum / float(best_n)
 	var k := cands.size()
 	var free := eng.rerolls > 0
-	var ev_safe := _hunt_ev(eng, best_n, a, k, 1.0 / 6.0) - (0.0 if free else float(eng.reroll_mana_cost(false, 1)) * 1.0)
-	var ev_lieu := _hunt_ev(eng, best_n, a, k, (1.0 / 6.0) * (1.0 - crack_p)) - crack_p * float(k) * a * 0.5
+	var p_land := _e1_p if _e1_p > 0.0 else _p_land(eng, cands)
+	var ev_safe := _hunt_ev(eng, best_n, a, k, p_land) - (0.0 if free else float(eng.reroll_mana_cost(false, 1)) * _e1_mana_lam)
+	var ev_lieu := _hunt_ev(eng, best_n, a, k, p_land * (1.0 - crack_p)) - crack_p * float(k) * a * 0.5
 	var rm := 1
 	var ev := ev_safe
 	if not free and not _abl.has("no_lieu") and eng.depth_stage >= 2 and ev_lieu > ev_safe:
 		rm = 0
 		ev = ev_lieu
-	if ev < 1.0 or not eng.can_reroll(cands, false, rm):
+	if ev < _e1_min_ev or not eng.can_reroll(cands, false, rm):
 		return false
 	if _trace_path != "":
 		var h0 := _hand(eng)
@@ -928,14 +1046,36 @@ func _expert_overcast(eng: CombatEngine) -> void:
 # BO bag M, Nứt halving, per-type weights); rerolls are sampled (N draws from the bot's own rng, SAME draws for every option =
 # common random numbers). The model uses the engine's own _face_base / bo_add100 / bo_cap100 / overcast_preview / preview_wild.
 
-const E2_SAMPLES := 16
-const E2_MIN_GAIN := 0.8
+# Bot tuning params (override with --e2_*=..; set in run_batch). Reasons for the defaults:
+#  e2_samples 16     : CRN draws per option; enough because every option reuses the same draws (the SE of a gain DIFFERENCE is small).
+#  e2_min_gain 0.8   : an action must beat "do nothing" by ~1 value point (the model's noise floor); lower = twitchier bot.
+#  e2_lam_lo/mid/hi  : value of one mana (in face-value points) when mana < 6 / < 10 / >= 10. GDD v4 and v4-decisions-pay say
+#                      lambda 0.2-0.5; mana is only convertible to reroll/Overcast/active relics, so it is cheap when stocked.
+#  e1_min_ev 1.0     : legacy ("expert_old") hunt threshold. e1_mana_lam 0.35: legacy mana price (was a hard 1.0).
+#  e1_p              : legacy per-die chance to land on the wanted part; -1 = derive from the dice (1/(6 - cantrip faces)).
+var _e2_samples := 16
+var _e2_min_gain := 0.8
+var _e2_lam := [0.5, 0.35, 0.25]
+var _e1_min_ev := 1.0
+var _e1_mana_lam := 0.35
+var _e1_p := -1.0
 const E2_TYPES_M := ["dmg", "shield", "heal", "poison"]
 var _e2_tv := {}   # per-decision cache: foe hp, incoming
 
 
+## Faces a die can come to rest on after a (re)roll: cantrip faces auto-use and re-roll (the draw must skip them).
+func _non_cantrip_faces(eng: CombatEngine, u: Unit) -> Array:
+	var r: Array = []
+	for fi in 6:
+		if not eng._has_kw(u.die[fi], "cantrip"):
+			r.append(fi)
+	if r.is_empty():
+		r = [0, 1, 2, 3, 4, 5]
+	return r
+
+
 func _e2_lambda(m: int) -> float:
-	return 0.15 if m >= 10 else (0.35 if m >= 6 else 0.7)
+	return float(_e2_lam[2]) if m >= 10 else (float(_e2_lam[1]) if m >= 6 else float(_e2_lam[0]))
 
 
 func _e2_mana_cost_val(mana: int, c: int) -> float:
@@ -977,6 +1117,7 @@ func _e2_ctx(eng: CombatEngine) -> Dictionary:
 		u.cracked = was
 		ents.append({"u": u, "uid": u.uid, "ready": ready.has(u.uid), "elig": elig.has(u.uid), "fi": u.roll_face_index(),
 			"cr": was, "wild": u.wild_slot, "vb": vb, "ty": ty, "rar": rar,
+			"nc": _non_cantrip_faces(eng, u),
 			"rr": ready.has(u.uid) and u.wild_slot < 0 and not u.overcast and not u.frozen and not u.held})
 	var foe_hp := 0.0
 	for e in eng.alive_enemies():
@@ -1083,10 +1224,11 @@ func _expert2_actions(eng: CombatEngine) -> void:
 				var free := eng.rerolls > 0
 				var sets := _e2_sets(ctx, idx, st, bo_aware_roll)
 				var draws: Array = []
-				for sidx in E2_SAMPLES:
+				for sidx in _e2_samples:
 					var row: Array = []
 					for i in ents.size():
-						row.append([_brng.randi() % 6, _brng.randf()])
+						var ncf: Array = ents[i]["nc"]
+						row.append([ncf[int(_brng.randf() * float(ncf.size())) % ncf.size()], _brng.randf()])
 					draws.append(row)
 				var modes: Array = [1]
 				if not free and not _abl.has("no_lieu") and eng.depth_stage >= 2:
@@ -1102,7 +1244,7 @@ func _expert2_actions(eng: CombatEngine) -> void:
 								c2[i] = rm == 0 and float(row[i][1]) < crack_p
 							tot += _e2_value(ctx, f2, c2, st[2], bo_aware_roll)
 						var cost := 0.0 if rm == 0 else _e2_mana_cost_val(eng.mana, eng.reroll_mana_cost(false, 1))
-						opts.append({"gain": tot / float(E2_SAMPLES) - base_roll - cost, "kind": "reroll", "a": sset, "b": rm})
+						opts.append({"gain": tot / float(_e2_samples) - base_roll - cost, "kind": "reroll", "a": sset, "b": rm})
 		# ---- Mat Tam
 		if not _abl.has("no_wild") and eng.depth_stage >= 2 and eng.wild_used < eng.wild_per_turn() and eng.mana >= eng.wild_cost():
 			var wcost := _e2_mana_cost_val(eng.mana, eng.wild_cost())
@@ -1131,7 +1273,7 @@ func _expert2_actions(eng: CombatEngine) -> void:
 		opts.sort_custom(func(x, y): return float(x["gain"]) > float(y["gain"]))
 		var done := false
 		for o in opts:
-			if float(o["gain"]) < E2_MIN_GAIN:
+			if float(o["gain"]) < _e2_min_gain:
 				break
 			var ok := false
 			var kind := String(o["kind"])

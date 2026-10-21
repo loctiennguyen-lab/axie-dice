@@ -11,14 +11,14 @@ static func write(recs: Array, out_dir: String, tag: String, secs: float, catalo
 	var date := Time.get_date_string_from_system()
 	var base := out_dir.path_join("sim-%s-%s" % [date, tag])
 	var csv := FileAccess.open(base + ".csv", FileAccess.WRITE)
-	csv.store_line("seed,policy,core_policy,team,asc,won,death_kind,death_row,rule,cores,fights,offered,picked,trig")
+	csv.store_line("seed,policy,core_policy,team,asc,won,death_kind,death_row,rule,cores,fights,offered,picked,trig,m_turns,m_dmg,m_v0,m_v1,m_dsq,boss_n,boss_turns,boss_won,boss_hp")
 	for r in recs:
 		var fs: Array = []
 		for f in r["fights"]:
 			fs.append("%s:%d:%d:%s" % [f["kind"], f["turns"], 1 if f["won"] else 0, f.get("affix", "")])
-		csv.store_line("%d,%s,%s,%s,%d,%d,%s,%d,%s,%s,%s,%s,%s,%s" % [r["seed"], r["policy"], r["core_policy"], r["team"],
+		csv.store_line("%d,%s,%s,%s,%d,%d,%s,%d,%s,%s,%s,%s,%s,%s,%s" % [r["seed"], r["policy"], r["core_policy"], r["team"],
 			r["asc"], 1 if r["won"] else 0, r["death_kind"], r["death_row"], r["rule"], ";".join(r["cores"]), ";".join(fs),
-			";".join(r["offered"]), ";".join(r["picked"]), ";".join(r["trig"])])
+			";".join(r["offered"]), ";".join(r["picked"]), ";".join(r["trig"]), _mcols(r)])
 	csv.close()
 	var md := build_md(recs, tag, secs, catalog)
 	var f := FileAccess.open(base + ".md", FileAccess.WRITE)
@@ -28,6 +28,13 @@ static func write(recs: Array, out_dir: String, tag: String, secs: float, catalo
 	print("wrote ", base, ".md/.csv")
 
 
+static func _mcols(r: Dictionary) -> String:
+	var m: Dictionary = r.get("m", {})
+	return "%d,%.3f,%.3f,%.3f,%.3f,%d,%d,%d,%.4f" % [int(m.get("turns", 0)), float(m.get("dmg", 0.0)), float(m.get("v0", 0.0)),
+		float(m.get("v1", 0.0)), float(m.get("dsq", 0.0)), int(m.get("boss_n", 0)), int(m.get("boss_turns", 0)),
+		int(m.get("boss_won", 0)), float(m.get("boss_hp", 0.0))]
+
+
 static func build_md(recs: Array, tag: String, secs: float, catalog: Array = []) -> String:
 	var L: Array = []
 	L.append("# Sim balance %s\n" % tag)
@@ -35,6 +42,7 @@ static func build_md(recs: Array, tag: String, secs: float, catalog: Array = [])
 	# win-rate by policy x asc, policy x team, core policy
 	L.append(_goals(recs))
 	L.append(_funnel(recs))
+	L.append(metric_section(recs))
 	L.append(_table(recs, ["policy", "asc"], "Win-rate theo chinh sach x Ascension"))
 	L.append(_table(recs, ["policy", "team"], "Win-rate theo chinh sach x doi"))
 	L.append(_table(recs, ["policy", "core_policy"], "Win-rate theo chinh sach x cach chon Loi"))
@@ -247,7 +255,9 @@ static func read_csvs(paths: Array) -> Array:
 			out.append({"seed": int(c[0]), "policy": c[1], "core_policy": c[2], "team": c[3], "asc": int(c[4]), "won": c[5] == "1",
 				"death_kind": c[6], "death_row": int(c[7]), "rule": c[8], "cores": Array(String(c[9]).split(";", false)),
 				"fights": fights, "offered": Array(String(c[11]).split(";", false)), "picked": Array(String(c[12]).split(";", false)),
-				"trig": Array(String(c[13]).split(";", false))})
+				"trig": Array(String(c[13]).split(";", false)),
+				"m": ({"turns": int(c[14]), "dmg": float(c[15]), "v0": float(c[16]), "v1": float(c[17]), "dsq": float(c[18]),
+					"boss_n": int(c[19]), "boss_turns": int(c[20]), "boss_won": int(c[21]), "boss_hp": float(c[22])} if c.size() >= 23 else {})})
 	return out
 
 
@@ -276,4 +286,101 @@ static func _funnel(recs: Array) -> String:
 			alive -= int(rw[2])
 			parts.append("r%s -%d (con %.0f%%)" % [String(rw[1]).replace(" ", " "), rw[2], 100.0 * alive / int(cnt[pol])])
 		out += line + "; ".join(parts) + "\n"
+	return out + "\n"
+
+
+# ---------------------------------------------------------------- sensitive metrics (paired by seed)
+
+## Per-run values (missing key = undefined) of the metrics, from rec["m"].
+static func _mvals(r: Dictionary) -> Dictionary:
+	var m: Dictionary = r.get("m", {})
+	var out := {}
+	var t := float(m.get("turns", 0))
+	if t > 0.0:
+		var mean := float(m["dmg"]) / t
+		out["dmg_turn"] = mean
+		out["v0_turn"] = float(m["v0"]) / t
+		out["v1_turn"] = float(m["v1"]) / t
+		out["dmg_sd"] = sqrt(maxf(0.0, float(m["dsq"]) / t - mean * mean))
+	if int(m.get("boss_n", 0)) > 0:
+		out["boss_turns"] = float(m["boss_turns"]) / float(m["boss_n"])
+		if int(m.get("boss_won", 0)) == 1:
+			out["boss_hp"] = float(m["boss_hp"])
+	out["win"] = 100.0 if r["won"] else 0.0
+	return out
+
+
+const METRICS := [["dmg_turn", "dmg/luot"], ["v0_turn", "V dau luot"], ["v1_turn", "V sau quyet dinh"], ["dmg_sd", "sd dmg/luot"],
+	["boss_turns", "luot ha boss (run toi boss)"], ["boss_hp", "HP con sau boss (run thang boss)"], ["win", "win %"]]
+
+
+static func _mean_ci(xs: Array) -> Array:
+	var n := xs.size()
+	if n == 0:
+		return [0.0, 0.0, 0]
+	var m := 0.0
+	for x in xs:
+		m += float(x)
+	m /= n
+	var v := 0.0
+	for x in xs:
+		v += (float(x) - m) * (float(x) - m)
+	var se := sqrt(v / maxf(1.0, n - 1.0)) / sqrt(float(n))
+	return [m, 1.96 * se, n]
+
+
+static func _has_metrics(recs: Array) -> bool:
+	for r in recs:
+		if (r.get("m", {}) as Dictionary).has("turns"):
+			return true
+	return false
+
+
+## Table per policy (mean +- 95% CI, unpaired) and per-metric difference vs the reference policy (paired on the same seed).
+static func metric_section(recs: Array, ref: String = "expert") -> String:
+	if not _has_metrics(recs):
+		return ""
+	var by := {}   # policy -> seed -> vals
+	var order: Array = []
+	for r in recs:
+		var pol: String = r["policy"]
+		if not by.has(pol):
+			by[pol] = {}
+			order.append(pol)
+		by[pol][int(r["seed"])] = _mvals(r)
+	var out := "## Metric nhay (moi run = 1 diem; +- = 95% CI)\n\n| policy | n | "
+	for m in METRICS:
+		out += "%s | " % m[1]
+	out += "\n|---|---|" + "---|".repeat(METRICS.size()) + "\n"
+	for pol in order:
+		var row := "| %s | %d | " % [pol, (by[pol] as Dictionary).size()]
+		for m in METRICS:
+			var xs: Array = []
+			for sd in by[pol]:
+				if (by[pol][sd] as Dictionary).has(m[0]):
+					xs.append(by[pol][sd][m[0]])
+			var c := _mean_ci(xs)
+			row += ("%.1f +-%.1f | " if m[0] == "win" else "%.2f +-%.2f | ") % [c[0], c[1]]
+		out += row + "\n"
+	if by.has(ref):
+		out += "\n### Chenh lech so voi %s (cap seed; chi cac seed ca hai ben deu co so lieu)\n\n| policy | n cap | " % ref
+		for m in METRICS:
+			out += "d %s | " % m[1]
+		out += "\n|---|---|" + "---|".repeat(METRICS.size()) + "\n"
+		for pol in order:
+			if pol == ref:
+				continue
+			var ncommon := 0
+			for sd in by[pol]:
+				if by[ref].has(sd):
+					ncommon += 1
+			var row2 := "| %s | %d | " % [pol, ncommon]
+			for m in METRICS:
+				var ds: Array = []
+				for sd in by[pol]:
+					if by[ref].has(sd) and (by[pol][sd] as Dictionary).has(m[0]) and (by[ref][sd] as Dictionary).has(m[0]):
+						ds.append(float(by[pol][sd][m[0]]) - float(by[ref][sd][m[0]]))
+				var c2 := _mean_ci(ds)
+				row2 += "%+.2f +-%.2f (n=%d) | " % [c2[0], c2[1], c2[2]]
+			out += row2 + "\n"
 	return out + "\n"
