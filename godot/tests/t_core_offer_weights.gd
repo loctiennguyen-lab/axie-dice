@@ -90,8 +90,8 @@ func _ready() -> void:
 				s_no += int(no2.get(id, 0))
 				s_yes += int(yes2.get(id, 0))
 		var ratio := float(s_yes) / maxf(1.0, s_no)
-		print("  house Cores %s: no Anchor %d, Anchor %d -> x%.2f (target ~1.5)" % [aid, s_no, s_yes, ratio])
-		_assert(ratio > 1.15 and ratio < 2.2, "%s house Core ratio %.2f within 1.15..2.2" % [aid, ratio])
+		print("  house Cores %s: no Anchor %d, Anchor %d -> x%.2f (round 3 tuning ~2.0)" % [aid, s_no, s_yes, ratio])
+		_assert(ratio > 1.15 and ratio < 2.6, "%s house Core ratio %.2f within 1.15..2.6" % [aid, ratio])
 
 	# reroll never applies the bias: identical result with and without anchor_house
 	var offer := CoreOffer.build_offer(Rng.new(9), 1, ctx, 3)

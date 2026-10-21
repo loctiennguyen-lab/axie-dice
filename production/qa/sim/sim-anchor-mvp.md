@@ -65,3 +65,14 @@ Ket luan: Gambler/Mine len ~17, Volley van yeu (8.8), bias hau nhu khong tang co
 Do vong 2: expert auto 13.3 (n=120); ep Volley 11.2 / Gambler 13.8 / Mana Mine 17.5 (n=80); random 7.5; spam 2.5; thuc tinh auto Volley 25 / Gambler 44 / Mine 28% (ep: 27.5/40/38.8%); dot bien nac1 nha Anchor: Volley 16 / Gambler 22 / Mine 16%; combo/run 0.39-0.46.
 Ket luan: bias them (house 3.5, axis 2.5, partner x2) gan nhu khong nang combo/run (0.34 -> 0.4): nut that la so moc chon Loi (4/run), khong phai ti le xuat hien. CI +-7 diem nen chenh giua Anchor chua phan biet duoc.
 ### Vong 3: Volley set_add 0.05->0.0, Gambler Nut 25->15 va set_add 0.30->0.35, house_bias 5.0, axis 3.0, partner 3.0.
+Do vong 3: expert auto 14.2 (n=120); ep Volley 10.0 / Gambler 16.2 / Mana Mine 15.0 (n=80); random 6.7; spam 2.5; thuc tinh auto Volley 17 / Gambler 52 / Mine 33% (ep: 21/49/40%); dot bien nac1 nha Anchor ep: Volley 10 / Gambler 24 / Mine 24%; combo/run 0.33-0.53.
+### Bang tong ket (trung binh 3 Anchor ep: R1 12.8 / R2 14.2 / R3 13.7; auto 11.7 / 13.3 / 14.2)
+| chi so | muc tieu | truoc | V1 | V2 | V3 |
+|---|---|---|---|---|---|
+| expert auto | 20+-3 | 11 | 11.7 | 13.3 | 14.2 |
+| random / spam | <=12 | 7 / 7.5 | 5.8 / 2.5 | 7.5 / 2.5 | 6.7 / 2.5 |
+| chenh 3 Anchor (ep) | <=5 | 2 | 8.7 | 6.3 | 6.2 |
+| thuc tinh min Anchor | >=33% | 14% | 19% | 25% | 17% (auto, Volley) / 21% (ep) |
+| dot bien nac1 nha | >=40% | <=17% | <=26% | <=22% | <=24% |
+**Ket luan: CHUA DAT sau 3 vong.** Knob cuoi: volley 40/65/90 cap 20 set_add 0.0; gambler Nut 15% set_add 0.35; mine wild 2; house_bias 5.0, axis_bias 3.0, partner_bias 3.0 (moi). Ly do: giam gia + buff nhe dua expert tu 11 len ~14; bias nang Loi ruot (x1.7-2.3) nhung combo/run chi 0.3->0.4 vi chi co 4 moc chon Loi/run. Van xa 20: de dat can doi co che (them moc chon Loi, ha nguong Cap, hoac Anchor cho +dame truc tiep), khong chi so knob. Volley van yeu nhat (10), nhieu khi Volley khong thuc tinh (can 2 Loi ruot, Loi nha Volley nam o tier H). CI +-7 nen chenh giua Anchor chua tin duoc ngay ca voi 80 run.
+Test sua expect: t_anchor_rules, t_anchor_awaken, t_core_offer_weights (ratio 1.15..2.6). Xanh: t_anchor_rules 190, t_anchor_awaken 37, t_mutation_houses 86, t_core_offer_weights 57, t_core_combos 143, t_anchor_runstate 84, t_anchors 172.

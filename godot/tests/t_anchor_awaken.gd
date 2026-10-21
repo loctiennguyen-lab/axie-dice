@@ -34,8 +34,8 @@ func run() -> void:
 		e.use_die(e.party[1].uid, tgt.uid)
 		eq(other.hp, 90, "not every SET die used: no second blast (awake=%s)" % awake)
 		e.use_die(e.party[2].uid, tgt.uid)
-		eq(other.hp, 86 if awake else 90, "last SET die: second blast pierces Shield only when awakened")
-		eq(other.shield, 50 - 4, "first blast hit the Shield, second did not touch it again")
+		eq(other.hp, 84 if awake else 90, "last SET die: second blast pierces Shield only when awakened")
+		eq(other.shield, 50 - 6, "first blast hit the Shield, second did not touch it again")
 	var pl := _prep_volley(true)
 	(pl.enemies[0] as Unit).plating = 3
 	(pl.enemies[0] as Unit).shield = 0
@@ -43,7 +43,7 @@ func run() -> void:
 	pl.use_die(pl.party[1].uid, (pl.enemies[1] as Unit).uid)
 	var before := (pl.enemies[0] as Unit).hp
 	pl.use_die(pl.party[2].uid, (pl.enemies[1] as Unit).uid)
-	eq(before - (pl.enemies[0] as Unit).hp, 1, "Plating still cuts the second blast (4 - 3 = 1)")
+	eq(before - (pl.enemies[0] as Unit).hp, 3, "Plating still cuts the second blast (6 - 3 = 3)")
 	var sv := _prep_volley(true)   # undo: tally rewinds, blast fires again
 	sv.use_die(sv.party[0].uid, (sv.enemies[1] as Unit).uid)
 	sv.use_die(sv.party[1].uid, (sv.enemies[1] as Unit).uid)

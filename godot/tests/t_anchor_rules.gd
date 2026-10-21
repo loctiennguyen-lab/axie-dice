@@ -27,7 +27,7 @@ func run() -> void:
 	eq(plain.m100_for(plain.party[0]), 130, "no Anchor: SET of 3 = 1.30")
 	var v := _eng("a_volley")
 	BoTestBase.force(v, [1, 1, 1, 2, 3], [d5, d5, d5, d5, d5])
-	eq(v.m100_for(v.party[0]), 115, "Volley price: SET -0.15")
+	eq(v.m100_for(v.party[0]), 130, "Volley price: SET -0.0 (free after round 3 tuning)")
 	eq(v.m100_for(v.party[3]), 100, "Volley price: loose die untouched")
 	for t in v.enemies:
 		(t as Unit).hp = 90
@@ -41,14 +41,14 @@ func run() -> void:
 	var tgt := v.enemies[1] as Unit
 	ok(v.use_die(v.party[0].uid, tgt.uid), "use die 0")
 	var h1 := _hp(v)
-	eq(hp0[1] - h1[1], 6 + 4, "target takes die (5 x1.15 = 6) + blast 30% of 15 = 4")
-	eq(hp0[0] - h1[0], 4, "other enemy takes the blast (thorn enemy too)")
+	eq(hp0[1] - h1[1], 7 + 6, "target takes die (5 x1.30 = 7) + blast 40% of 15 = 6")
+	eq(hp0[0] - h1[0], 6, "other enemy takes the blast (thorn enemy too)")
 	var same := true
 	for i in v.party.size():
 		same = same and (v.party[i] as Unit).hp == party_hp[i]
 	ok(same, "enemy Thorns do not reflect the blast")
 	ok(v.use_die(v.party[1].uid, tgt.uid), "use die 1")
-	ok(h1[1] - _hp(v)[1] <= 7, "no second blast the same turn (die only, LINK may add 1)")
+	ok(h1[1] - _hp(v)[1] <= 9, "no second blast the same turn (die 7 + LINK 1; a blast would add 6)")
 	eq(h1[0] - _hp(v)[0], 0, "no second blast on the other enemy")
 	# base total counts damage faces only; size 5 hits the cap
 	var v5 := _eng("a_volley")
@@ -60,7 +60,7 @@ func run() -> void:
 	var b5 := _hp(v5)
 	var tg5 := v5.enemies[1] as Unit
 	v5.use_die(v5.party[0].uid, tg5.uid)
-	eq(b5[0] - _hp(v5)[0], 16, "SET of five: 80% of 25 = 20, capped at 16")
+	eq(b5[0] - _hp(v5)[0], 20, "SET of five: 90% of 25 = 22, capped at 20")
 	var vs := _eng("a_volley")
 	BoTestBase.force(vs, [1, 1, 1, 2, 3], [d5, d5, face("shield", 9), d5, d5])
 	for t in vs.enemies:
@@ -69,7 +69,7 @@ func run() -> void:
 		(t as Unit).shield = 0
 	var bs := _hp(vs)
 	vs.use_die(vs.party[0].uid, (vs.enemies[1] as Unit).uid)
-	eq(bs[0] - _hp(vs)[0], 3, "shield face not in the base: 30% of 10 = 3")
+	eq(bs[0] - _hp(vs)[0], 4, "shield face not in the base: 40% of 10 = 4")
 	# no Anchor: no extra blast
 	for t in plain.enemies:
 		(t as Unit).hp = 90
@@ -90,9 +90,9 @@ func run() -> void:
 	ok(clean_seed >= 0 and crack_seed >= 0, "found clean and cracking seeds")
 	var gc := _gamble_engine()
 	ok(gc.reroll_dice([gc.party[0].uid, gc.party[1].uid], clean_seed, false, 0), "clean Gamble accepted")
-	eq(gc.anchor_turn["gb100"], 30, "clean Gamble: +0.30")
+	eq(gc.anchor_turn["gb100"], 35, "clean Gamble: +0.35")
 	BoTestBase.force(gc, [1, 1, 1, 2, 3], [d5, d5, d5, d5, d5])
-	eq(gc.m100_for(gc.party[0]), 160, "SET M = 1.30 + 0.30")
+	eq(gc.m100_for(gc.party[0]), 165, "SET M = 1.30 + 0.35")
 	gc.anchor_turn["gb100"] = 50
 	gc.anchor_turn["gb100"] = mini(60, 50 + 30)
 	eq(int(gc.anchor_turn["gb100"]), 60, "cap +0.60 per turn")
@@ -106,7 +106,7 @@ func run() -> void:
 	var total := 300
 	for s in total:
 		cracks += int(_gamble_try(s, [0])["cracked"])
-	ok(cracks * 100 / total >= 34 and cracks * 100 / total <= 46, "Gambler Crack rate ~40%% (got %d%%)" % [cracks * 100 / total])
+	ok(cracks * 100 / total >= 9 and cracks * 100 / total <= 21, "Gambler Crack rate ~15%% (got %d%%)" % [cracks * 100 / total])
 	# save round trip keeps the tally
 	var rt := _gamble_engine()
 	rt.anchor_turn["gb100"] = 30
@@ -138,7 +138,7 @@ func run() -> void:
 	eq(mm.overcast_cost(), 1, "Overcast costs 1 after a natural SET")
 	mm.anchor_turn["mine"] = false
 	eq(mm.overcast_cost(), 2, "Overcast normal price without it")
-	eq(mm.wild_cost(), 3, "Mana Mine price: Temp Face 3")
+	eq(mm.wild_cost(), 2, "Mana Mine price: Temp Face 2")
 	eq(plain.wild_cost(), 2, "no Anchor: Temp Face 2")
 	eq(plain.overcast_cost(), 2, "no Anchor: Overcast 2")
 
