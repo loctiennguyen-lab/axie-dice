@@ -41,7 +41,7 @@ var _shop_mode := "all"    # all | none     (--shop)
 var _nohold := false       # ablation (--hold=1)
 var _noreroll := false     # ablation (--noreroll=1)
 var _corehold := true      # S2: expert Holds dice when it owns c_steady_hold / c_kindle / rule_tundra (--corehold=0 turns off)
-const HOLD_CORES := ["c_steady_hold", "c_kindle", "rule_tundra"]
+const HOLD_CORES := ["c_steady_hold", "c_kindle", "rule_tundra", "c_key_strike"]
 var _force: Array = []     # --force=id,id : grant these Cores at run start (diagnosis only)
 var _beam := 3             # expert in-turn beam width (--beam)
 var _core_fired_seen := {} # ids reported by EventBus.core_fired, when the branch has that signal
@@ -988,10 +988,14 @@ func _core_hold(eng: CombatEngine) -> void:
 			return
 		var pick: Unit = null
 		var pv := 1000000
+		# c_key_strike quest (Held die hits for 9+): park the BIGGEST die instead of the smallest.
+		var big: bool = RunState.owned_relic_ids.has("c_key_strike") and not CoreHooks.quest_done(eng, "c_key_strike")
 		for u in ready:
 			if not eng.can_stash(u.uid):
 				continue
 			var fv: int = eng._face_value(u, u.roll_face_index())
+			if big:
+				fv = -fv
 			if fv < pv:
 				pv = fv
 				pick = u
