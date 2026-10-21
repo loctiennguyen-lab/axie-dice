@@ -47,6 +47,7 @@ func _ready() -> void:
 	await _a7_reroll()
 	await _a5_spin()
 	await _banner()
+	await _near_miss()
 	UI3Gacha.instant_override = -1
 	print("=== t_gacha_moments: %d checks, %d failure(s) ===" % [_checks, _fails.size()])
 	for f in _fails:
@@ -184,3 +185,46 @@ func _banner() -> void:
 	_check(rm._overlay_layer.find_child("ComboBanner", true, false) != null, "full banner outlasts the pair length (1.8 s)")
 	await _wait(0.7)
 	_check(rm._overlay_layer.find_child("ComboBanner", true, false) == null, "full banner gone after 1.8 s")
+
+
+func _set_capped_state(capped: bool) -> void:
+	RunState.owned_relic_ids.assign(["c_cascade", "c_blood_sign", "c_deep_current"] if capped else [])
+	RunState.core_tier_chain = [2, 2, 2, 2, 2, 2]
+	RunState._core_offer_pick = 1
+	RunState.core_pick_index = 2
+
+
+func _near_miss() -> void:
+	# Plan (pure): near-miss adds near_miss_sec before the first flip and nothing else.
+	var a := UI3Gacha.plan(3, 1, true, false, false)
+	var b := UI3Gacha.plan(3, 1, true, false, false, -1.0, 2)
+	_check(is_equal_approx(b["flips"][0] - a["flips"][0], 0.6) and is_equal_approx(b["crack_at"], b["aura"]), "near-miss plan: crack at aura end, flips +0.6 s")
+	_check(is_equal_approx(UI3Gacha.plan(3, 2, true, false, false, -1.0, 2)["total"], UI3Gacha.plan(3, 2, true, false, false)["total"]), "no near-miss when the tier equals from_tier")
+	# Adapter: only the capped milestone case.
+	_set_capped_state(true)
+	_check(UI3Gacha.capped_from(1) == 2 and UI3Gacha.capped_from(2) == -1, "capped_from: Crystal chain + cap + lower offer")
+	RunState.core_pick_index = 1   # bonus offer (not a milestone)
+	_check(UI3Gacha.capped_from(1) == -1, "bonus offer is not a near-miss")
+	_set_capped_state(false)
+	_check(UI3Gacha.capped_from(1) == -1, "under the cap is not a near-miss")
+	_set_capped_state(true)
+	RunState.core_tier_chain = [2, 1, 2, 2, 2, 2]
+	_check(UI3Gacha.capped_from(1) == -1, "chain tier below Crystal is not a near-miss")
+	# Overlay.
+	_set_capped_state(true)
+	await _fresh_map(1)
+	_set_capped_state(true)
+	rm._start_core_reveal(rm._overlay_root)
+	await _frames(2)
+	_check(rm.gacha_log.has("near_miss:2>1"), "overlay logs the near-miss")
+	var cov := rm._reward_cards[0].find_child("CardBack", true, false) as Control
+	_check(cov != null and cov.find_child("ReasonLine", true, false) != null, "cover carries the reason line")
+	_check(cov != null and (cov.find_child("TierWord", true, false) as Label).text == "Crystal", "cover starts as the capped tier")
+	await _wait(1.8)
+	_check(rm._reveal.events.has("crack"), "crack happens before the flip")
+	var st: StyleBoxFlat = (rm._reveal._covers[0] as Control).get_meta("style") if not rm._reveal._covers.is_empty() else null
+	_check(st == null or st.border_color.is_equal_approx(UI3Gacha.tier_color(int(rm._reward_cards[0].get_meta("gacha_tier")))), "border broke into the real tier")
+	await _wait(2.0)
+	_check(not rm._reveal.running, "near-miss reveal finishes")
+	# No result change: the offer is identical before and after.
+	_set_capped_state(false)

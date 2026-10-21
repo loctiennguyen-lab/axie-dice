@@ -1434,7 +1434,10 @@ func _start_core_reveal(shake_host: Control) -> void:
 		var ct := clampi(int((RunState.pending_rewards[k] as Dictionary).get("tier", 0)), 0, 2)
 		_reward_cards[k].set_meta("gacha_tier", ct)
 		tier = maxi(tier, ct)
-	var first := UI3Gacha.first_seen(str(RunState.get("_core_base_seed")), tier)
+	var from_t := UI3Gacha.capped_from(tier)
+	if from_t > tier:
+		gacha_log.append("near_miss:%d>%d" % [from_t, tier])
+	var first := UI3Gacha.first_seen(str(RunState.get("_core_base_seed")), from_t if from_t > tier else tier)
 	_reveal = GachaReveal.new()
 	_reveal.name = "GachaReveal"
 	_overlay_root.add_child(_reveal)
@@ -1442,7 +1445,7 @@ func _start_core_reveal(shake_host: Control) -> void:
 	if tier >= 2:
 		for rw in RunState.pending_rewards:
 			jackpot = jackpot or not UI3Gacha.combo_completes(UI3Gacha.owned_ids(), String(rw.get("key", ""))).is_empty()
-	_reveal.start(_reward_cards, tier, first, jackpot, shake_host)
+	_reveal.start(_reward_cards, tier, first, jackpot, shake_host, -1.0, from_t)
 
 
 func _add_reward_card(r: Dictionary, wide := false) -> PanelContainer:

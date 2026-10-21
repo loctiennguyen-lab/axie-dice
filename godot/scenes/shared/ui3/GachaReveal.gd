@@ -10,6 +10,7 @@ var running := false
 var _cards: Array = []
 var _covers: Array = []
 var _tier := 0
+var _from := -1
 var _plan: Dictionary = {}
 var _tween: Tween
 var _shake_host: Control
@@ -17,24 +18,26 @@ var _pulses: Array[Tween] = []
 
 
 ## cards: Controls (PanelContainer cards whose first child is the content column). shake_host: node to jiggle on jackpot.
-func start(cards: Array, tier: int, first: bool, jackpot: bool, shake_host: Control = null, flip_sec := -1.0) -> void:
+func start(cards: Array, tier: int, first: bool, jackpot: bool, shake_host: Control = null, flip_sec := -1.0, from_tier := -1) -> void:
 	_cards = cards
 	_tier = tier
+	_from = from_tier
 	_shake_host = shake_host
 	var reduce := MetaState.reduce_flash
-	_plan = UI3Gacha.plan(cards.size(), tier, first, jackpot, reduce, flip_sec)
+	_plan = UI3Gacha.plan(cards.size(), tier, first, jackpot, reduce, flip_sec, from_tier)
 	if UI3Gacha.is_instant():
 		events.append("instant")
 		_done()
 		return
 	running = true
+	var near := from_tier > tier
 	events.append("aura")
-	UI3Gacha.play_sfx(self, UI3Gacha.TIER_KEY[clampi(tier, 0, 2)])
+	UI3Gacha.play_sfx(self, UI3Gacha.TIER_KEY[clampi(from_tier if near else tier, 0, 2)])
 	for c in cards:
 		var card := c as Control
 		var col := card.get_child(0) as Control
 		col.modulate.a = 0.0
-		var cover := UI3Gacha.build_cover(int(card.get_meta("gacha_tier", tier)))
+		var cover := UI3Gacha.build_cover(int(card.get_meta("gacha_tier", tier)), from_tier)
 		card.add_child(cover)
 		_covers.append(cover)
 		var halo := cover.get_node("Halo") as Panel
@@ -48,6 +51,10 @@ func start(cards: Array, tier: int, first: bool, jackpot: bool, shake_host: Cont
 	_tween = create_tween()
 	# One timeline: sleep to each flip start.
 	var t := 0.0
+	if near:
+		_tween.tween_interval(float(_plan["crack_at"]))
+		_tween.tween_callback(_crack)
+		t = float(_plan["crack_at"])
 	for i in cards.size():
 		var at := float(_plan["flips"][i])
 		_tween.tween_interval(at - t)
@@ -55,6 +62,35 @@ func start(cards: Array, tier: int, first: bool, jackpot: bool, shake_host: Cont
 		_tween.tween_callback(_flip.bind(i))
 	_tween.tween_interval(float(_plan["total"]) - t)
 	_tween.tween_callback(_done)
+
+
+## Near-miss: the cap-held higher border breaks into the real tier, short reason line, small shake.
+func _crack() -> void:
+	events.append("crack")
+	UI3Gacha.play_sfx(self, "near_miss")
+	for k in _covers.size():
+		var cv := _covers[k] as Control
+		if not is_instance_valid(cv):
+			continue
+		var real := UI3Gacha.tier_color(int(_cards[k].get_meta("gacha_tier", _tier)))
+		var st := cv.get_meta("style") as StyleBoxFlat
+		var w := cv.find_child("TierWord", true, false) as Label
+		if st != null:
+			st.border_color = real
+		if w != null:
+			w.text = UI3Gacha.tr_word(int(_cards[k].get_meta("gacha_tier", _tier)))
+			w.add_theme_color_override("font_color", real)
+		(cv.find_child("Halo", true, false) as Panel).add_theme_stylebox_override("panel",
+			UI3Theme.flat(Color(0, 0, 0, 0), UI3Theme.radius("l") + 8, UI3Theme.stroke("hairline"), real))
+		var why := cv.find_child("ReasonLine", true, false) as Control
+		if why != null:
+			create_tween().tween_property(why, "modulate:a", 1.0, 0.15)
+		if not MetaState.reduce_flash:
+			var base := cv.position
+			var tw := create_tween()
+			for j in 4:
+				tw.tween_property(cv, "position", base + Vector2(4 if j % 2 == 0 else -4, 0), 0.04)
+			tw.tween_property(cv, "position", base, 0.04)
 
 
 func _flip(i: int) -> void:

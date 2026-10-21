@@ -47,20 +47,22 @@ static func reset_seen() -> void:
 
 
 ## Pure schedule. Returns {aura, flips:[start sec of each flip], flip, jackpot_at, jackpot, total}.
-static func plan(n: int, tier: int, first: bool, jackpot: bool, reduce_flash: bool, flip_sec := -1.0) -> Dictionary:
+static func plan(n: int, tier: int, first: bool, jackpot: bool, reduce_flash: bool, flip_sec := -1.0, from_tier := -1) -> Dictionary:
 	var t := timing()
+	# Near-miss: cards open as `from_tier` (the cap-held higher tier), crack to `tier` at `crack_at`, then flip.
+	var nm := float(t.get("near_miss_sec", 0.6)) if from_tier > tier else 0.0
 	var au: Dictionary = t["aura_sec"]
 	var aura := float(au[TIER_KEY[clampi(tier, 0, 2)]]) if first else float(au["repeat"])
 	var fl := float(t["flip_sec"]) if flip_sec < 0.0 else flip_sec
 	var flips: Array[float] = []
 	for i in n:
-		flips.append(aura + i * float(t["flip_stagger_sec"]))
-	var end := aura + maxf(n - 1, 0) * float(t["flip_stagger_sec"]) + fl
+		flips.append(aura + nm + i * float(t["flip_stagger_sec"]))
+	var end := aura + nm + maxf(n - 1, 0) * float(t["flip_stagger_sec"]) + fl
 	var jp := jackpot and not reduce_flash
 	var jat := end
 	if jp:
 		end += float(t["jackpot_extra_sec"])
-	return {"aura": aura, "flips": flips, "flip": fl, "jackpot": jp, "jackpot_at": jat, "total": end}
+	return {"aura": aura, "near_miss": nm, "crack_at": aura, "flips": flips, "flip": fl, "jackpot": jp, "jackpot_at": jat, "total": end}
 
 
 static func tier_color(tier: int) -> Color:
@@ -68,13 +70,15 @@ static func tier_color(tier: int) -> Color:
 
 
 ## The card back: raised plate, tier-coloured border, tier word (colour never alone) and a pulsing halo ring child.
-static func build_cover(tier: int) -> Panel:
-	var accent := tier_color(tier)
+static func build_cover(tier: int, from_tier := -1) -> Panel:
+	var near := from_tier > tier
+	var accent := tier_color(from_tier if near else tier)
 	var cover := Panel.new()
 	cover.name = "CardBack"
 	cover.mouse_filter = Control.MOUSE_FILTER_STOP
-	cover.add_theme_stylebox_override("panel", UI3Theme.flat(UI3Theme.color("panel_raised"),
-		UI3Theme.radius("l"), UI3Theme.stroke("selected"), accent))
+	var cs := UI3Theme.flat(UI3Theme.color("panel_raised"), UI3Theme.radius("l"), UI3Theme.stroke("selected"), accent)
+	cover.add_theme_stylebox_override("panel", cs)
+	cover.set_meta("style", cs)
 	var halo := Panel.new()
 	halo.name = "Halo"
 	halo.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -99,14 +103,40 @@ static func build_cover(tier: int) -> Panel:
 	ic.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
 	ic.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	box.add_child(ic)
-	var w := UI3.label(tr_word(tier), "LabelTitle")
+	var w := UI3.label(tr_word(from_tier if near else tier), "LabelTitle")
 	w.name = "TierWord"
 	w.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	w.add_theme_color_override("font_color", accent)
 	w.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	box.add_child(w)
+	if near:
+		var why := UI3.label("", "LabelDisplay")
+		why.name = "ReasonLine"
+		why.text = TranslationServer.translate("Crystal cap reached")
+		why.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		why.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		why.modulate.a = 0.0
+		why.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		box.add_child(why)
 	cover.add_child(box)
 	return cover
+
+
+## Tier this offer would have been without the Crystal cap (2), or -1. UI-only read of the run state:
+## milestone offer (not a bonus one), chain says Crystal, the offer came out lower, owned Crystals >= cap.
+## Ignores bumps and Mua Sao (they never make it a false positive, only a missed near-miss).
+static func capped_from(offer_tier: int) -> int:
+	if offer_tier >= 2:
+		return -1
+	var pick := int(RunState.get("_core_offer_pick"))
+	if int(RunState.get("core_pick_index")) != pick + 1:
+		return -1
+	var chain: Array = RunState.get("core_tier_chain")
+	if pick < 0 or pick >= chain.size() or int(chain[pick]) != 2:
+		return -1
+	if CoreOffer.owned_crystal_count(RunState.owned_relic_ids) < CoreOffer.t_cap(String(RunState.get("mode"))):
+		return -1
+	return 2
 
 
 static func tr_word(tier: int) -> String:
