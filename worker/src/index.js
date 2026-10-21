@@ -234,7 +234,7 @@ function parseRange(header, total) {
 }
 
 /** Streams bytes [start,end] of the concatenated parts; only parts overlapping the range are read. */
-function streamParts(env, manifest, start, end) {
+function streamParts(env, manifest, start, end, ctx) {
   const segs = [];
   let base = 0;
   for (const p of manifest.parts) {
@@ -243,33 +243,29 @@ function streamParts(env, manifest, start, end) {
     if (lo <= hi) segs.push({ key: p.key, offset: lo - base, length: hi - lo + 1 });
     base += p.size;
   }
-  let i = 0;
-  let reader = null;
-  return new ReadableStream({
-    async pull(controller) {
-      try {
-        for (;;) {
-          if (!reader) {
-            if (i >= segs.length) { controller.close(); return; }
-            const s = segs[i++];
-            const o = await env.GAME.get(s.key, { range: { offset: s.offset, length: s.length } });
-            if (o === null) throw new Error(`pck part missing: ${s.key}`);
-            reader = o.body.getReader();
-          }
-          const { done, value } = await reader.read();
-          if (done) { reader = null; continue; }
-          controller.enqueue(value);
-          return;
-        }
-      } catch (e) {
-        controller.error(e);
+  // Native pipeTo per part into one fixed-length stream: the runtime does the copying with
+  // backpressure. (A hand-written pull() loop was cut off mid-body by the edge on a 360 MB file.)
+  const length = end - start + 1;
+  const { readable, writable } = typeof FixedLengthStream !== 'undefined'
+    ? new FixedLengthStream(length)
+    : new TransformStream();
+  const pump = (async () => {
+    try {
+      for (const s of segs) {
+        const o = await env.GAME.get(s.key, { range: { offset: s.offset, length: s.length } });
+        if (o === null) throw new Error(`pck part missing: ${s.key}`);
+        await o.body.pipeTo(writable, { preventClose: true });
       }
-    },
-    cancel(reason) { return reader ? reader.cancel(reason) : undefined; },
-  });
+      await writable.close();
+    } catch (e) {
+      try { await writable.abort(e); } catch { /* already errored */ }
+    }
+  })();
+  if (ctx && ctx.waitUntil) ctx.waitUntil(pump);
+  return readable;
 }
 
-async function servePck(request, env, manifest) {
+async function servePck(request, env, manifest, ctx) {
   const total = manifest.total;
   const etag = manifest.md5 ? `"${manifest.md5}"` : `"pck-${total}"`;
   const headers = new Headers({
@@ -295,11 +291,11 @@ async function servePck(request, env, manifest) {
   const end = r ? r.end : total - 1;
   headers.set('Content-Length', String(end - start + 1));
   if (r) headers.set('Content-Range', `bytes ${start}-${end}/${total}`);
-  const body = request.method === 'HEAD' ? null : streamParts(env, manifest, start, end);
+  const body = request.method === 'HEAD' ? null : streamParts(env, manifest, start, end, ctx);
   return new Response(body, { status: r ? 206 : 200, headers });
 }
 
-async function serveGame(request, env, url) {
+async function serveGame(request, env, url, ctx) {
   if (request.method !== 'GET' && request.method !== 'HEAD') {
     return new Response('Method not allowed', { status: 405 });
   }
@@ -309,7 +305,7 @@ async function serveGame(request, env, url) {
   if (key === 'index.pck') {
     const manifest = await loadPckManifest(env);
     if (manifest instanceof Response) return manifest;
-    if (manifest) return servePck(request, env, manifest);
+    if (manifest) return servePck(request, env, manifest, ctx);
   }
 
   // Range matters here: index.pck is 189 MB and a browser that reconnects asks for the rest
@@ -370,7 +366,7 @@ export { RunDO } from './run_do.js';
 
 export default {
   async scheduled(_event, env, ctx) { ctx.waitUntil(sweepPending(env)); },
-  async fetch(request, env) {
+  async fetch(request, env, ctx) {
     const url = new URL(request.url);
     if (url.pathname === '/api/axie') return handleAxie(request, url);
     if (url.pathname === '/terms' || url.pathname === '/privacy') return handleLegal(url);
@@ -380,6 +376,6 @@ export default {
     if (isMissionsPath(url.pathname)) return handleMissions(request, env, url);
     if (isLeaderboardPath(url.pathname)) return handleLeaderboard(request, env, url);
     if (isRaidPath(url.pathname)) return handleRaid(request, env, url);
-    return serveGame(request, env, url);
+    return serveGame(request, env, url, ctx);
   },
 };
