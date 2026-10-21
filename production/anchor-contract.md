@@ -25,3 +25,9 @@ Design: `design/proposals/mutation-and-keystones-v1.md` (2.1, 2.2, "Liam chốt 
   `EventBus.mutation_on(house_id: String, tier: int)` (fires on 0->1 and 1->2, like `combo_formed`).
 - Relic name stays `r_keystone`. One RULES_VERSION bump for the whole MVP, done in step 2, not before.
 - Four show-points (UI lane): offer card, HUD chip (with awakened state), mutation banner on fire, tier-2 upgrade toast.
+
+## Hợp đồng sự kiện cho UI (điều phối chốt 23/10)
+- Luật nền Anchor tác động: `EventBus.core_fired(core_id = anchor_id, unit_uid, amount, kind = "anchor")`.
+- Đột biến Cặp tác động: `core_fired(core_id = house_id, unit_uid, amount, kind = "mutation")`; khi nấc đột biến của một nhà thay đổi: `EventBus.mutation_on(house_id: String, tier: int)`.
+- Thức tỉnh: lần đầu đạt ≥2 Lõi ruột → `EventBus.anchor_awakened(anchor_id)` (một lần/run); luật thức tỉnh tác động: `core_fired(core_id = anchor_id, ..., kind = "awaken")`.
+- Codex: UI được thêm `MetaState.anchor_codex` (qua SaveStore + `reload_from_store()`); lần merge này bump RULES_VERSION nên fingerprint cập nhật luôn.
