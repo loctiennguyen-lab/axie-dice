@@ -154,9 +154,11 @@ func _banner() -> void:
 	await _wait(1.0)
 	# B2/B3 labels on the cards
 	var c0: Control = rm._reward_cards[0]
-	var tag := c0.find_child("ComboTag", true, false) as Label
-	_check(tag != null and tag.text.begins_with("PAIR!"), "card that completes a Pair says PAIR!")
-	_check(c0.find_child("WorksWith", true, false) != null and String((c0.find_child("WorksWith", true, false) as Label).text).contains("Nest"), "Works with lists the owned partner")
+	var tag := c0.find_child("ComboWord", true, false) as Label
+	_check(tag != null and tag.text == "PAIR" and c0.find_child("ComboPlate", true, false) != null, "card that completes a Pair has a gold PAIR plate")
+	var ww := c0.find_child("WorksWith", true, false)
+	_check(ww != null and String((ww.find_child("Text", true, false) as Label).text).contains("Nest"), "With chip lists the owned partner")
+	_check(c0.find_child("CoreChips", true, false).find_child("WorksWith", true, false) != null, "partner chip sits in the chip row")
 	_check((rm._reward_cards[1] as Control).find_child("ComboTag", true, false) == null, "other cards have no combo label")
 	_check(not tag.text.contains("1/2") and rm._overlay_root.find_child("ComboProgress", true, false) == null, "no 1/2 label, no progress bar")
 	rm.gacha_log.clear()

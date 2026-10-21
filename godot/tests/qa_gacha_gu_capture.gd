@@ -85,6 +85,8 @@ func _ready() -> void:
 		await _jackpot()
 	if _want("banner"):
 		await _banner()
+	if _want("spin"):
+		await _spin()
 	if _want("nearmiss"):
 		await _nearmiss()
 	_guard.restore()
@@ -109,6 +111,7 @@ func _banner() -> void:
 	RunState.owned_relic_ids.append("c_nest")
 	await _open_keys(["c_golden_egg", "c_kindle", "c_dewdrop"])
 	await _wait(2.2)
+	_snap("card_pair")
 	rm._select_reward(0)
 	rm._take_selected_reward()
 	await _wait(0.6)
@@ -140,3 +143,15 @@ func _nearmiss() -> void:
 	_snap("nearmiss_after_crack")
 	await _wait(2.0)
 	_snap("nearmiss_flipped")
+
+
+func _spin() -> void:
+	await _open_keys(["c_dim_stone", "c_kindle", "c_dewdrop"])
+	await _wait(2.2)
+	rm._select_reward(0)
+	rm._take_selected_reward()
+	await _wait(0.9)
+	_snap("spin_mid")
+	await _wait(1.2)
+	_snap("spin_late")
+	await _wait(2.0)

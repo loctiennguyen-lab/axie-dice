@@ -40,7 +40,8 @@ static func spin_faces(pool: Array, final: String, ticks: int) -> Array[String]:
 
 
 ## Builds the spin plate centred on the screen and runs it. pool: real Crystal Core names; final: the granted Core.
-func start_spin(pool: Array, final: String, accent: Color) -> void:
+## card_rect (global): when given, the plate sits ON the picked card, so the other cards stay visible.
+func start_spin(pool: Array, final: String, accent: Color, card_rect := Rect2()) -> void:
 	z_index = 50   # UI3 card panels use z_index 6; without this the plate drew behind the cards
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -51,6 +52,9 @@ func start_spin(pool: Array, final: String, accent: Color) -> void:
 	_frame = PanelContainer.new()
 	_frame.name = "SpinPlate"
 	_frame.custom_minimum_size = Vector2(640, 200)
+	var on_card := card_rect.size.x > 0.0
+	if on_card:
+		_frame.custom_minimum_size = card_rect.size
 	_frame.add_theme_stylebox_override("panel", UI3Theme.flat(UI3Theme.color("panel"), UI3Theme.radius("l"),
 		UI3Theme.stroke("selected"), accent))
 	var v := VBoxContainer.new()
@@ -63,8 +67,16 @@ func start_spin(pool: Array, final: String, accent: Color) -> void:
 	_label = UI3.label("", "LabelScreenTitle")
 	_label.name = "SpinName"
 	_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	v.add_child(_label)
-	cc.add_child(_frame)
+	if on_card:
+		cc.queue_free()
+		add_child(_frame)
+		_frame.global_position = card_rect.position
+		_frame.size = card_rect.size
+		cap.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	else:
+		cc.add_child(_frame)
 	_final = final
 	var t := UI3Gacha.timing()
 	var ticks := 16
@@ -90,10 +102,21 @@ func start_spin(pool: Array, final: String, accent: Color) -> void:
 func _tick(i: int) -> void:
 	_label.text = String(_names[i])
 	events.append("tick:%d" % i)
+	_pop(1.0 + 0.1 * float(i) / 16.0, 0.12)
+
+
+## Slot-reel feel: each name pops in; the last one lands bigger. No pop with reduce flashing.
+func _pop(amount: float, sec: float) -> void:
+	if MetaState.reduce_flash or _label == null:
+		return
+	_label.pivot_offset = _label.size / 2.0
+	_label.scale = Vector2.ONE * amount
+	create_tween().tween_property(_label, "scale", Vector2.ONE, sec).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
 
 
 func _stop() -> void:
 	_label.text = _final
+	_pop(1.3, 0.35)
 	events.append("stop")
 	UI3Gacha.play_sfx(self, "spin_stop")
 
