@@ -107,7 +107,7 @@ func _build_ui(s: Dictionary) -> void:
 	plate.custom_minimum_size = Vector2(PLATE_W, 0)
 	center.add_child(plate)
 	var outer := VBoxContainer.new()
-	outer.add_theme_constant_override("separation", 24)
+	outer.add_theme_constant_override("separation", 16)
 	plate.add_child(outer)
 
 	outer.add_child(_build_header(s))
@@ -333,7 +333,7 @@ func _best_set_line(stats: Dictionary) -> Control:
 func _build_card_rows(s: Dictionary) -> VBoxContainer:
 	var col := VBoxContainer.new()
 	col.name = "CardRow"
-	col.add_theme_constant_override("separation", 20)
+	col.add_theme_constant_override("separation", 12)
 	col.add_child(_build_shard_card(s))
 	col.add_child(_build_pass_card(s))
 	col.add_child(_build_relics_card(s["relic_ids"] as Array, String(s.get("run_rule", "")), s.get("core_impact", {}) as Dictionary))
@@ -360,7 +360,7 @@ func _build_combos_card(s: Dictionary) -> Control:
 	var card := UI3.plate(&"row")
 	card.name = "CombosCard"
 	var col := VBoxContainer.new()
-	col.add_theme_constant_override("separation", 12)
+	col.add_theme_constant_override("separation", 8)
 	card.add_child(col)
 	col.add_child(_card_caption(tr("Combos") + " · %d" % done.size()))
 	if done.is_empty():
@@ -375,8 +375,8 @@ func _build_combos_card(s: Dictionary) -> Control:
 			UI3Theme.color("accent") if full else UI3Theme.color("panel_raised"))
 		sb.content_margin_left = 12
 		sb.content_margin_right = 12
-		sb.content_margin_top = 12
-		sb.content_margin_bottom = 12
+		sb.content_margin_top = 8
+		sb.content_margin_bottom = 8
 		p.add_theme_stylebox_override("panel", sb)
 		var row := HBoxContainer.new()
 		p.add_child(row)
