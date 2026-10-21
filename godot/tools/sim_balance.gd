@@ -48,6 +48,7 @@ var _anchor_aw_node := -1
 var _anchor_aw_turn := -1
 var _anchor_mut := {}
 var _turns_total := 0
+var _team_keys: Array = []
 var _beam := 3             # expert in-turn beam width (--beam)
 var _core_fired_seen := {} # ids reported by EventBus.core_fired, when the branch has that signal
 ## Real combos (design/proposals/core-pick-excitement-brainstorm.md 2.B1; members that exist as ids on this branch).
@@ -191,6 +192,7 @@ func _play_run(seed_value: int, team_name: String, asc: int, policy: String, cor
 	var keys: Array = TEAMS[team_name] if TEAMS.has(team_name) else Array(team_name.split("+"))   # "a+b+c+d+e" = explicit heroes
 	for k in keys:
 		team.append(String(k))
+	_team_keys = team.duplicate()
 	RunState.start_run_with_epoch(LocalEpochSource.new(PackedByteArray(), seed_value), {
 		"team_keys": team, "mode": "short", "ascension": asc, "ranked": false, "rules_on": true,
 		"newcomer": false, "bonuses": {}, "anchor": _anchor_mode != "none"}, seed_value)
@@ -303,7 +305,7 @@ func _anchor_step() -> void:
 ## roster that profits from Lieu (beast/bird/bug). Ties go to the first in offer order.
 func _anchor_heuristic(offer: Array) -> String:
 	var n := {"shield": 0, "mana": 0, "gamble": 0}
-	for u in RunState.team_hero_keys:
+	for u in _team_keys:
 		var k := String(u)
 		if k.begins_with("plant") or k.begins_with("reptile"):
 			n["shield"] += 1
