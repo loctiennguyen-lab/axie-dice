@@ -1,7 +1,7 @@
 class_name BoTestBase
 extends Node
 ## Shared helpers for the depth v4 BO tests (design/gdd/dice-depth-v4.md 3.2-3.4, 8.1). Subclasses override run().
-## Knob sets (N11): nominal = bo.scale 1.0 / m_cap 3.5 (numbers of the doc); default = whatever combat_tune.json ships (0.8 / 3.0).
+## Knob sets (N11): nominal = bo.scale 1.0 / m_cap 3.5 (numbers of the doc); default = whatever combat_tune.json ships (1.0 / 3.0, A+ tiers x1.3 / x2.2 / x2.6).
 
 var _guard := SaveGuard.new()
 var _fail: Array[String] = []

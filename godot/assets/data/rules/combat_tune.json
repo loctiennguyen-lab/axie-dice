@@ -32,7 +32,7 @@
   "mult_cap": 8
  },
  "wild": {
-  "cost": 2,
+  "cost": 3,
   "per_turn": 1
  },
  "overcast": {
@@ -42,10 +42,10 @@
  },
  "bo": {
   "enabled": 1,
-  "add_3": 0.5,
-  "add_4": 1.0,
-  "add_5": 2.0,
-  "scale": 0.8,
+  "add_3": 0.3,
+  "add_4": 1.2,
+  "add_5": 1.6,
+  "scale": 1.0,
   "m_cap": 3.0,
   "phantom_counts": 0
  },
@@ -69,7 +69,7 @@
  },
  "reroll": {
   "free": 1,
-  "mana_cost_2": 2,
+  "mana_cost_2": 1,
   "mana_cost_3": 3,
   "max_total": 3,
   "hard_cap": 4,
@@ -80,7 +80,7 @@
   "front_size": 2
  },
  "difficulty": {
-  "enemy_dmg_mult": 1.45,
+  "enemy_dmg_mult": 1.5,
   "boss_hp_mult": 1.1
  },
  "boss_rhythm": {

@@ -56,7 +56,7 @@ func _ready() -> void:
 	_check(bl != null, "BoLayer exists")
 	var labels := bl.group_labels()
 	_check(labels.size() >= 1 and labels[0] == V4Ui.set_label(int(c.bo[0]["size"]), int(c.bo[0]["m100"])), "label from engine: %s" % str(labels))
-	_check(String(labels[0]).begins_with("SET OF 3") and String(labels[0]).contains("×1.4"), "set of 3 x1.4 at default knobs: %s" % str(labels))
+	_check(String(labels[0]).begins_with("SET OF 3") and String(labels[0]).contains("×1.3"), "set of 3 x1.3 at default knobs: %s" % str(labels))
 	_check(bl.last_banner == "", "no banner for a set of 3")
 	var chips := 0
 	for b in v._die_slot_buttons:

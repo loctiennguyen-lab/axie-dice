@@ -47,11 +47,11 @@ func _modes() -> void:
 	e.mana = 2
 	eq(e.reroll_refusal(all, false, 1), "mana", "Safe with 2 mana refused for the 3-mana reroll")
 	eq(e.reroll_refusal(all, false, 5), "bad_rmode", "rmode outside 0/1 refused")
-	# Safe first: costs 2
+	# Safe first: costs 1 (A+, reroll.mana_cost_2)
 	var e2 := engine([], 0, 11)
 	e2.reroll_dice(all, -1, false, 1)
-	eq(e2.reroll_mana_cost(false, 1), 2, "first chosen reroll costs 2")
-	e2.mana = 1
+	eq(e2.reroll_mana_cost(false, 1), 1, "first chosen reroll costs 1")
+	e2.mana = 0
 	ok(not e2.can_reroll(all, false, 1), "Safe without mana refused")
 	ok(e2.can_reroll(all, false, 0), "Lieu is still open with no mana")
 

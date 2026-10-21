@@ -5,21 +5,21 @@ func run() -> void:
 	_name = "t_bo_order"
 	set_knobs("nominal")
 	var e := engine()
-	# three x1.5: 5 -> 8 (ceil 7.5); four x2.0: 5 -> 10 ; doc says 4x2=8 for v=4
+	# A+ tiers: three x1.3, four x2.2, five x2.6 (ceil)
 	force(e, [1, 1, 1, 2, 3])
-	eq(e._face_value(e.party[0], 1), 8, "5 x1.5 = 8")
+	eq(e._face_value(e.party[0], 1), 7, "5 x1.3 = 6.5 -> 7")
 	force(e, [1, 1, 1, 1, 3], face("dmg", 4))
-	eq(e._face_value(e.party[0], 1), 8, "4 x2.0 = 8")
+	eq(e._face_value(e.party[0], 1), 9, "4 x2.2 = 8.8 -> 9")
 	force(e, [1, 1, 1, 2, 3], face("dmg", 3))
-	eq(e._face_value(e.party[0], 1), 5, "3 x1.5 = 5")
+	eq(e._face_value(e.party[0], 1), 4, "3 x1.3 = 3.9 -> 4")
 	for v in [0, 1, 2]:
 		force(e, [1, 1, 1, 2, 3], face("dmg", v))
-		eq(e._face_value(e.party[0], 1), (v * 150 + 99) / 100, "v=%d x1.5" % v)
-	# cap: five (3.0) + overcast (0.5) = 3.5 ok at nominal cap, v=6 -> 21
+		eq(e._face_value(e.party[0], 1), (v * 130 + 99) / 100, "v=%d x1.3" % v)
+	# five (2.6) + overcast (0.5) = 3.1: under nominal cap 3.5, v=6 -> 19; shipped cap 3.0 clamps to 18
 	force(e, [1, 1, 1, 1, 1], face("dmg", 6))
-	eq(e._face_value(e.party[0], 1), 18, "five x3.0 of 6")
+	eq(e._face_value(e.party[0], 1), 16, "five x2.6 of 6 = 15.6 -> 16")
 	e.party[0].overcast = true
-	eq(e._face_value(e.party[0], 1), 21, "five + overcast = 3.5 (cap) of 6")
+	eq(e._face_value(e.party[0], 1), 19, "five + overcast = 3.1 of 6 = 18.6 -> 19")
 	ContentDB.combat_tune["bo"]["m_cap"] = 3.0
 	eq(e._face_value(e.party[0], 1), 18, "m_cap 3.0 clamps")
 	set_knobs("nominal")
@@ -45,24 +45,24 @@ func run() -> void:
 	eq(e._face_value(e.party[3], 2), 0, "cracked 0 stays 0")
 	e.party[3].die[2] = face("mana", 3)
 	eq(e._face_value(e.party[3], 2), 2, "Crack also halves a mana face")
-	# default knobs: 3 -> 1.40, 4 -> 1.80, 5 -> 2.60, 4 + overcast = 2.30
+	# default knobs: 3 -> 1.30, 4 -> 2.20, 5 -> 2.60, 4 + overcast = 2.70
 	set_knobs("default")
 	force(e, [1, 1, 1, 2, 3], face("dmg", 5))
-	eq(e._face_value(e.party[0], 1), (5 * 140 + 99) / 100, "default three")
+	eq(e._face_value(e.party[0], 1), (5 * 130 + 99) / 100, "default three")
 	force(e, [1, 1, 1, 1, 3], face("dmg", 5))
-	eq(e.m100_for(e.party[0]), 180, "default four 1.80")
+	eq(e.m100_for(e.party[0]), 220, "default four 2.20")
 	e.party[0].overcast = true
-	eq(e.m100_for(e.party[0]), 230, "default four + overcast 2.30")
+	eq(e.m100_for(e.party[0]), 270, "default four + overcast 2.70")
 	force(e, [1, 1, 1, 1, 1], face("dmg", 5))
 	eq(e.m100_for(e.party[0]), 260, "default five 2.60")
 	# flat Core add stays outside M: face_final flat on a Set die adds exactly +N on top
 	set_knobs("nominal")
 	var ec := engine(["c_test_flat"] if RelicRegistry.get_def("c_test_flat") != null else [])
 	force(ec, [1, 1, 1, 2, 3], face("dmg", 5))
-	ok(ec._face_value(ec.party[0], 1) >= 8, "with a flat Core the value is never below the M value")
+	ok(ec._face_value(ec.party[0], 1) >= 7, "with a flat Core the value is never below the M value")
 	# preview_damage reflects M and Overcast
 	force(e, [1, 1, 1, 2, 3], face("dmg", 5))
 	var foe: Unit = e.alive_enemies()[0]
-	eq(int(e.preview_damage(e.party[0], foe, 1)["raw"]), 8, "preview_damage raw includes the Set")
+	eq(int(e.preview_damage(e.party[0], foe, 1)["raw"]), 7, "preview_damage raw includes the Set")
 	e.party[0].overcast = true
-	eq(int(e.preview_damage(e.party[0], foe, 1)["raw"]), 10, "preview with Overcast: 5 x 2.0 = 10, not 11.25")
+	eq(int(e.preview_damage(e.party[0], foe, 1)["raw"]), 9, "preview with Overcast: 5 x 1.8 = 9, not 1.3 x 1.5 after face_final")
