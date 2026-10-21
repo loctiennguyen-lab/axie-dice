@@ -87,6 +87,8 @@ func _ready() -> void:
 		await _banner()
 	if _want("spin"):
 		await _spin()
+	if _want("combat"):
+		await _combat()
 	if _want("nearmiss"):
 		await _nearmiss()
 	_guard.restore()
@@ -155,3 +157,19 @@ func _spin() -> void:
 	await _wait(1.2)
 	_snap("spin_late")
 	await _wait(2.0)
+
+
+func _combat() -> void:
+	RunState.enter_node("r5_c0", "battle")
+	var scene: Node = (load("res://scenes/combat/Combat.tscn") as PackedScene).instantiate()
+	get_tree().root.add_child(scene)
+	for _i in 90:
+		await get_tree().process_frame
+	scene._combo_named.clear()
+	scene._spawn_combo_name("Golden Turtle Fortress")
+	scene._spawn_combo_name("Lunacia Rain")
+	scene._on_core_fired("c_kindle", scene._party_dice_units()[0].uid, 4, "dmg")
+	await _wait(0.5)
+	_snap("combat_combo")
+	scene.queue_free()
+	await get_tree().process_frame
