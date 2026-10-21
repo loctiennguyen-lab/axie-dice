@@ -1458,6 +1458,8 @@ func wild_block_reason(unit_uid: int, slot: int) -> String:
 		return "cantrip"
 	if u.wild_slot >= 0:
 		return "wild"
+	if u.overcast:
+		return "overcast"  # MD review: an Overcast die keeps its face (the +add is locked on the Set)
 	if slot == u.roll_face_index():
 		return "same"
 	if not _bo_dice().has(u):

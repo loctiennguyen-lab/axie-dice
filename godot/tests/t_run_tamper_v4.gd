@@ -23,6 +23,7 @@ func run() -> void:
 	_t5(log, tape)
 	_md(log, tape, wi, honest)
 	_stage(log, tape, wi)
+	_oc_outside_set()
 
 
 func _find_run() -> Dictionary:
@@ -165,3 +166,39 @@ func _stage(log: ActionLog, tape: Array, wi: int) -> void:
 	mid_log.header["depth_stage"] = 2
 	var v2 := RunVerifier.verify(mid_log, mid_tape)
 	ok(String(v2["error"]) != RunVerifier.ERR_STAGE_MISMATCH, "stage 2 header agreeing with its tape is not a stage mismatch")
+
+
+## MD review: an Overcast aimed at a die that is NOT in a Set is refused at its own index through RunVerifier. Bot hook overcast_script takes honest
+## Overcasts; for the first one, every other die is tried: a Set member verifies, anything else must be ERR_REJECTED at that index (>= 1 such die).
+func _oc_outside_set() -> void:
+	RunBot.overcast_script = true
+	var found := {}
+	for s in SEEDS:
+		var r := RunBot.play_run(int(s), TEAM)
+		var l := _clone(r["log"])
+		if _first(l, "overcast") >= 0:
+			found = {"log": l, "tape": (r["tape"] as Array).duplicate(true)}
+			break
+	RunBot.overcast_script = false
+	ok(not found.is_empty(), "found a run whose bot took an Overcast")
+	if found.is_empty():
+		return
+	var log: ActionLog = found["log"]
+	var tape: Array = found["tape"]
+	var oi := _first(log, "overcast")
+	ok(bool(RunVerifier.verify(log, tape)["ok"]), "honest run with an Overcast verifies")
+	var real := int(((log.entries[oi] as Dictionary)["args"] as Array)[0])
+	var refused := 0
+	for uid in range(1, 7):
+		if uid == real:
+			continue
+		var t := _clone(log)
+		(t.entries[oi] as Dictionary)["args"] = [uid]
+		var v := RunVerifier.verify(t, tape)
+		if not bool(v["ok"]) and int(v["action_index"]) == oi:
+			ok(String(v["error"]) == RunVerifier.ERR_REJECTED, "Overcast on die %d outside the Set is ERR_REJECTED at its own index" % uid)
+			refused += 1
+		else:
+			# accepted at oi = another Set member (same or different Set); it may only break LATER, never earlier
+			ok(bool(v["ok"]) or int(v["action_index"]) > oi, "Overcast on die %d accepted at oi: any failure comes later (%s @%s)" % [uid, str(v["error"]), str(v["action_index"])])
+	ok(refused >= 1, "at least one die outside the Set was refused (%d)" % refused)

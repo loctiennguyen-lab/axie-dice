@@ -115,6 +115,8 @@ static func play_combat(engine: CombatEngine) -> int:
 
 
 static func play_turn(engine: CombatEngine) -> void:
+	if overcast_script:
+		try_overcast(engine)
 	if wild_script:
 		try_wild(engine)
 	var guard := 0
@@ -131,6 +133,18 @@ static func play_turn(engine: CombatEngine) -> void:
 	if wild_script:
 		try_wild(engine)
 	engine.end_turn()
+
+
+## Depth v4 test hook: when true the bot takes one Overcast (on any Set member) at the start of each turn when it can.
+static var overcast_script: bool = false
+
+
+## Takes the first legal Overcast, if any. Returns true when one was taken (and so logged).
+static func try_overcast(engine: CombatEngine) -> bool:
+	for u in engine.party:
+		if engine.overcast((u as Unit).uid):
+			return true
+	return false
 
 
 ## Depth v4 test hook: when true the bot takes one Mat Tam (wild_face) per turn the moment any (die, slot) is legal.

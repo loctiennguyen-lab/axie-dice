@@ -71,3 +71,11 @@ func run() -> void:
 	force(ed, [1, 1, 1, 2, 3])
 	ed.overcast(ed.party[0].uid)
 	eq(ed.m100_for(ed.party[0]), 170, "default: three + overcast = 1.70")
+	# MD review: a die that is already Overcast cannot be given a Mat Tam (reason "overcast", mana untouched)
+	var eq2 := engine([], 10)
+	force(eq2, [1, 1, 1, 2, 2])
+	eq2.overcast(eq2.party[0].uid)
+	eq2.mana = 10
+	eq(eq2.wild_block_reason(eq2.party[0].uid, 2), "overcast", "wild refused on an Overcast die")
+	ok(not eq2.wild_face(eq2.party[0].uid, 2), "wild_face on an Overcast die returns false")
+	eq(eq2.mana, 10, "mana untouched")
