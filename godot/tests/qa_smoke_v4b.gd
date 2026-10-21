@@ -159,6 +159,25 @@ func _btns(n: Node, acc: Array) -> void:
 	for c in n.get_children():
 		_btns(c, acc)
 
+## Full relic slots: Take opens SlotSwapSheet (RunMapController.open_slot_swap). Sell the first pickable cell, else Leave.
+func _handle_swap_sheet(sc: Node) -> void:
+	var sh := sc.find_child("SlotSwapSheet", true, false)
+	if sh == null:
+		return
+	note("swap sheet shown: cells=%s" % str(RunState.owned_relic_ids))
+	var cell: Button = null
+	for b in sh.find_children("SlotCell_*", "Button", true, false):
+		if not (b as Button).disabled:
+			cell = b
+			break
+	if cell != null:
+		cell.pressed.emit()
+		await frames(2)
+		(sh.find_child("SwapConfirm", true, false) as Button).pressed.emit()
+	else:
+		(sh.find_child("SwapLeave", true, false) as Button).pressed.emit()
+	await frames(5)
+
 func map_step(sc: Node) -> void:
 	await frames(20)
 	if not RunState.pending_rewards.is_empty():
@@ -191,6 +210,8 @@ func map_step(sc: Node) -> void:
 			note("WARN reward cards freed/empty before select (overlay rebuilt)")
 		await frames(3)
 		sc._take_selected_reward()
+		await frames(5)
+		await _handle_swap_sheet(sc)
 		await frames(30)
 		return
 	_stuck = 0
