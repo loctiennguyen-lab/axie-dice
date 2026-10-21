@@ -287,15 +287,13 @@ func _tile(node_name: String, seen: bool, title: String, sub: String) -> Control
 	var t := UI3.label(title if seen else "?", "LabelTitle")
 	t.name = "TileName"
 	v.add_child(t)
-	var s := UI3.label(sub if seen else TranslationServer.translate("Not met yet"), "LabelMuted")
+	var s := UI3.label((sub if sub != "" else TranslationServer.translate("Met")) if seen else TranslationServer.translate("Not met yet"), "LabelMuted")
 	s.name = "TileSub"
 	v.add_child(s)
-	# Every tile gets a visible border (met: cream, not met: muted token); no dimming, so "Not met yet" stays legible.
-	var sb: StyleBox = card.get_theme_stylebox("panel")
-	var flat: StyleBoxFlat = (sb.duplicate() as StyleBoxFlat) if sb is StyleBoxFlat else StyleBoxFlat.new()
-	flat.set_border_width_all(2)
-	flat.border_color = UI3Theme.color("text" if seen else "text_muted")
-	card.add_theme_stylebox_override("panel", flat)
+	# Border only separates tiles: the normal (disabled_border) token, same for met and unmet. Inner padding so the
+	# "?" / name never touches the edge. Met vs unmet reads from the text (name + tier vs "?" + "Not met yet").
+	card.add_theme_stylebox_override("panel", UI3Theme.flat(UI3Theme.color("panel_raised"), UI3Theme.radius("s"),
+		UI3Theme.stroke("hairline"), UI3Theme.color("disabled_border"), Vector4(16, 12, 16, 12)))
 	if not seen:
 		t.add_theme_color_override("font_color", UI3Theme.color("text_muted"))
 	return card
