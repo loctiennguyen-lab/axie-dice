@@ -1660,6 +1660,7 @@ func _connect_event_bus() -> void:
 	EventBus.resonance_triggered.connect(_on_resonance_triggered)
 	EventBus.relic_pulsed.connect(_on_relic_pulsed)
 	EventBus.core_fired.connect(_on_core_fired)
+	AnchorAdapter.listen("anchor_awakened", _on_anchor_awakened)
 	ComboAdapter.connect_fired(_on_combo_fired)
 	EventBus.float_text.connect(_on_float_text)
 	EventBus.plating_off.connect(_on_plating_off)
@@ -3367,6 +3368,24 @@ func _spawn_mutation_banner(house: String, nm: String) -> void:
 	tw.tween_callback(func():
 		_combo_banners_live = maxi(_combo_banners_live - 1, 0)
 		chip.queue_free())
+
+
+## Awaken moment inside a fight (once per run): plays over the combat, then HUD keeps "Awakened" (CorePanel reads the flag).
+var awaken_fx: AnchorFx = null
+var awaken_log: Array = []   ## test hook: "play" per moment shown here
+
+
+func _on_anchor_awakened(id: String) -> void:
+	AnchorFx.arm(id)
+	if not AnchorFx.take_pending():
+		return
+	awaken_log.append("play")
+	var rect := Rect2()
+	if _hud_frame != null and _hud_frame.core_panel != null and _hud_frame.core_panel.anchor_slot != null:
+		rect = _hud_frame.core_panel.anchor_slot.get_global_rect()
+	awaken_fx = AnchorFx.play(self, id, "", rect)
+	if _hud_frame != null and _hud_frame.core_panel != null:
+		_hud_frame.core_panel.refresh()
 
 
 func _on_core_fired(core_id: String, uid: int, amount: int, kind: String) -> void:

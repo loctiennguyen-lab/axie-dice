@@ -55,7 +55,7 @@ func _ready() -> void:
 
 
 ## Depth v3 lane VZ: the Core's slot flashes (and its counter ticks up) whenever the engine reports it fired.
-func _on_core_fired(core_id: String, _uid: int, _amount: int, _kind: String) -> void:
+func _on_core_fired(core_id: String, _uid: int, _amount: int, kind: String) -> void:
 	_fires[core_id] = int(_fires.get(core_id, 0)) + 1
 	var s: PanelContainer = _slot_by_id.get(core_id)
 	if s == null or not is_instance_valid(s):
@@ -63,6 +63,31 @@ func _on_core_fired(core_id: String, _uid: int, _amount: int, _kind: String) -> 
 	_update_count(s, core_id)
 	_update_anchor_badge()
 	pulse(core_id)
+	if kind == "awaken":
+		_awaken_mark(s)
+
+
+## Awaken rule acted: the Anchor tile gets a gold outline for 0.8 s (not a flash: it fades, no strobing).
+var awaken_marks := 0
+
+
+func _awaken_mark(s: PanelContainer) -> void:
+	awaken_marks += 1
+	if not s.is_inside_tree():
+		return
+	var old := s.get_node_or_null("AwakenMark")
+	if old != null:
+		old.queue_free()
+	var m := Panel.new()
+	m.name = "AwakenMark"
+	m.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
+	m.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	m.add_theme_stylebox_override("panel", UI3Theme.flat(Color(0, 0, 0, 0), UI3Theme.radius("s"), 4, UI3Theme.color("anchor_awake")))
+	s.add_child(m)
+	var tw := m.create_tween()
+	tw.tween_interval(0.5)
+	tw.tween_property(m, "modulate:a", 0.0, 0.3)
+	tw.tween_callback(m.queue_free)
 
 
 ## Short flash on a Core slot: scale 1 -> 1.18 -> 1 plus a cream tint (~0.3 s). Reduced motion: tint only.

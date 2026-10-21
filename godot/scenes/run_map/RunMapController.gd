@@ -95,6 +95,7 @@ const _BG_SCRIM_ALPHA := 0.6
 
 func _ready() -> void:
 	EventBus.node_entered.connect(_on_node_entered)
+	AnchorAdapter.listen("anchor_awakened", _on_anchor_awakened)
 	_graph = RunMapGraph.from_data(RunState.map_graph)
 	_root.theme = UI3Theme.get_theme()
 
@@ -1163,6 +1164,11 @@ func _tex_icon(tex: Texture2D, px: float) -> TextureRect:
 ## map still has to advance exactly once: after_node() is now ONLY ever called from
 ## _on_reward_chosen(), so nothing else would ever call it for this node.
 func _maybe_show_pending_reward() -> void:
+	var afx := _play_awaken()   # awakened by something other than a Core pick: plays on this map beat
+	if afx != null:
+		if afx.running:
+			afx.finished.connect(_maybe_show_pending_reward, CONNECT_ONE_SHOT)
+			return
 	if RunState.phase == RunState.RunPhase.PACT:
 		_show_pact_overlay()
 		return
@@ -1750,6 +1756,7 @@ func _apply_and_finish(reward: Dictionary) -> void:
 	_taking = true
 	var before_ids: Array = UI3Gacha.owned_ids().duplicate()
 	var before_owned: Array = RunState.owned_relic_ids.duplicate()
+	var was_awake := AnchorAdapter.awakened()
 	var is_core := _is_core_card(reward) and not bool(reward.get("rule", false))
 	var pool_names: Array = []
 	if is_core and String(reward.get("key", "")) == "c_dim_stone":
@@ -1774,12 +1781,45 @@ func _apply_and_finish(reward: Dictionary) -> void:
 		if fx.running:
 			await fx.finished
 	var formed := UI3Gacha.combos_formed(before_ids, UI3Gacha.owned_ids())
-	# The banner plays OVER the Core-pick overlay (it is still there), then the node finishes.
-	var ban := _combo_banner(formed)
-	if ban != null and ban.running:
-		await ban.finished
+	# Awakening and a Pair on the same pick: ONE moment (the Pair line goes inside it), queue = no second banner.
+	if AnchorAdapter.has_anchor() and not was_awake and AnchorAdapter.awakened():
+		AnchorFx.arm(AnchorAdapter.current_id())
+	var afx := _play_awaken(_awaken_extra_line(formed))
+	if afx != null and afx.running:
+		await afx.finished
+	elif afx == null:
+		# The banner plays OVER the Core-pick overlay (it is still there), then the node finishes.
+		var ban := _combo_banner(formed)
+		if ban != null and ban.running:
+			await ban.finished
 	_taking = false
 	_finish_node()
+
+
+## Plays the awaken moment when one is pending and this run has not seen it yet. null = nothing to play.
+func _play_awaken(extra_line := "") -> AnchorFx:
+	if _overlay_layer == null or not AnchorFx.take_pending():
+		return null
+	return AnchorFx.play(_overlay_layer, AnchorAdapter.current_id(), extra_line)
+
+
+## "PAIR: <combo> . MUTATION: <name>" for the strongest newly formed combo, "" when none.
+func _awaken_extra_line(formed: Array) -> String:
+	if formed.is_empty():
+		return ""
+	var best: Dictionary = formed[0]
+	for f in formed:
+		if String(f["tier"]) == "full":
+			best = f
+			break
+	var house := AnchorAdapter.house_of_combo(String(best["id"]))
+	var line := "%s: %s" % [TranslationServer.translate("PAIR") if String(best["tier"]) != "full" else TranslationServer.translate("FULL"), UI3Gacha.combo_name(String(best["id"]))]
+	var mn := String(AnchorAdapter.mutation_of(house)["name"]) if house != "" else ""
+	return line + (" . %s: %s" % [TranslationServer.translate("MUTATION"), mn] if mn != "" else "")
+
+
+func _on_anchor_awakened(id: String) -> void:
+	AnchorFx.arm(id)
 
 
 ## Shows the strongest newly formed combo (Full beats Pair) as a big centre panel above the overlay layer.

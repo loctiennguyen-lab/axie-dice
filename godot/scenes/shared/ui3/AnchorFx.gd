@@ -66,6 +66,8 @@ static func play(parent: Node, id: String, extra_line := "", fly_to := Rect2()) 
 	UI3Gacha.play_sfx(fx, "awaken")
 	if UI3Gacha.is_instant():
 		fx._show_final()
+		fx.log.append("end")
+		fx.queue_free()   # instant mode (tests / headless): content is built for this frame only, never blocks input
 		return fx
 	fx.running = true
 	fx._animate()
