@@ -1,11 +1,9 @@
 class_name ComboAdapter
 extends RefCounted
 ## Lane GM: the ONE place the UI reads the combo API of lane GD (CoreCombos, RunState.combo_done / core_skipped_t,
-## EventBus.combo_*). Until that lane merges every call falls back to "empty", so no screen needs to guard.
+## EventBus.combo_*). Lane GD's API is merged; the test hooks below still override it.
 ## Combo row (core_combos.json): {id, name_en, name_vi, pair:[core_a, core_b] | null, full:core_c | null, jackpot:bool}.
 ## No combo logic lives here: only lookups and display text.
-
-const COMBOS_SCRIPT := "res://scripts/core/core_combos.gd"
 
 ## Test hook: when non-null it replaces CoreCombos.all() (tests must not depend on lane GD's data).
 static var test_combos = null
@@ -14,17 +12,12 @@ static var test_done = null
 static var test_skipped = null
 
 
-## Every combo enabled for this run (CoreCombos.all()), [] when the API does not exist yet.
+## Every combo enabled in the data (CoreCombos.all([]): no run-rule filter, so the daily pick and the Codex are stable
+## whatever the current run holds).
 static func all() -> Array:
 	if test_combos != null:
 		return test_combos
-	if not ResourceLoader.exists(COMBOS_SCRIPT):
-		return []
-	var s = load(COMBOS_SCRIPT)
-	if s == null:
-		return []
-	var r = s.call("all")
-	return r if r is Array else []
+	return CoreCombos.all([])
 
 
 static func find(combo_id: String) -> Dictionary:
@@ -53,30 +46,24 @@ static func pair_cores(combo_id: String) -> Array:
 static func done() -> Dictionary:
 	if test_done != null:
 		return test_done
-	var d = RunState.get("combo_done")
-	return d if d is Dictionary else {}
+	return RunState.combo_done
 
 
 ## RunState.core_skipped_t: Crystal Cores shown and not taken.
 static func skipped_t() -> Array:
 	if test_skipped != null:
 		return test_skipped
-	var d = RunState.get("core_skipped_t")
-	return d if d is Array else []
+	return RunState.core_skipped_t
 
 
 ## Connects `cb` to EventBus.combo_fired when lane GD's signal exists. Returns whether it connected.
 static func connect_fired(cb: Callable) -> bool:
-	if not EventBus.has_signal("combo_fired"):
-		return false
-	if not EventBus.is_connected("combo_fired", cb):
-		EventBus.connect("combo_fired", cb)
+	if not EventBus.combo_fired.is_connected(cb):
+		EventBus.combo_fired.connect(cb)
 	return true
 
 
 static func connect_formed(cb: Callable) -> bool:
-	if not EventBus.has_signal("combo_formed"):
-		return false
-	if not EventBus.is_connected("combo_formed", cb):
-		EventBus.connect("combo_formed", cb)
+	if not EventBus.combo_formed.is_connected(cb):
+		EventBus.combo_formed.connect(cb)
 	return true

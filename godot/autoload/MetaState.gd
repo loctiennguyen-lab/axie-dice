@@ -164,6 +164,7 @@ func needs_tutorial() -> bool:
 func _ready() -> void:
 	load_from_disk()
 	EventBus.phase_changed.connect(_on_phase_for_codex)   # lane GM: Core / combo codex follows the run
+	EventBus.combo_formed.connect(func(_id: String, _tier: String) -> void: codex_sync_run())   # a Core pick formed a combo
 	KeyBindings.apply_overrides(key_bindings)
 	# DEFERRED on purpose. Autoloads are constructed in the order project.godot lists them, and
 	# MetaState comes before ContentDB — so at this point `ContentDB` does not exist yet, and
