@@ -1569,6 +1569,8 @@ func _add_reward_card(r: Dictionary, wide := false) -> PanelContainer:
 		col.add_child(UI3.trade_box(&"gain", String(tp["gain"])))
 		col.add_child(UI3.trade_box(tp["cost_kind"], String(tp["cost"])))
 		return card
+	if is_core and not bool(r.get("rule", false)):
+		_add_combo_labels(col, String(r.get("key", "")))
 	var desc := UI3.label(body_text)
 	desc.name = "RewardDesc"
 	desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -1586,6 +1588,30 @@ func _add_reward_card(r: Dictionary, wide := false) -> PanelContainer:
 		col.add_child(rr)
 	return card
 
+
+
+## B2 / B3: "PAIR! <combo>" / "FULL! <combo>" when taking this card completes a combo, and "Works with: X, Y" for owned
+## partners. No 1/2 count and no progress bar anywhere.
+func _add_combo_labels(col: VBoxContainer, key: String) -> void:
+	var owned := UI3Gacha.owned_ids()
+	var done := UI3Gacha.combo_completes(owned, key)
+	if not done.is_empty():
+		var full := String(done["tier"]) == "full"
+		var tag := UI3.label("%s %s" % [tr("FULL!") if full else tr("PAIR!"), UI3Gacha.combo_name(String(done["id"]))], "LabelTitle")
+		tag.name = "ComboTag"
+		tag.add_theme_color_override("font_color", UI3Theme.color("rarity_legendary") if full else UI3Theme.color("text"))
+		tag.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		col.add_child(tag)
+	var names: Array[String] = []
+	for id in UI3Gacha.combo_matches(owned, key):
+		var d = RelicRegistry.get_def(String(id))
+		if d != null:
+			names.append(UI3.title_case(UI3.player_text(String(d.name))))
+	if not names.is_empty():
+		var ww := UI3.label(tr("Works with: %s") % ", ".join(names), "LabelMuted")
+		ww.name = "WorksWith"
+		ww.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		col.add_child(ww)
 
 
 ## A chromeless, full-rect Button used as a hit target over a styled PanelContainer. Every
@@ -1639,8 +1665,50 @@ func _on_reward_chosen(reward: Dictionary) -> void:
 		if bool(chk["needs_sell"]):
 			open_slot_swap(reward, chk)
 			return
+	_apply_and_finish(reward)
+
+
+## Takes the reward (state decided here), then plays the after-pick beats: A5 spin for the Dim Stone bet, then the
+## Pair / Full banner. The animations only show what RunState already did.
+func _apply_and_finish(reward: Dictionary) -> void:
+	var before_ids: Array = UI3Gacha.owned_ids().duplicate()
+	var before_owned: Array = RunState.owned_relic_ids.duplicate()
+	var is_core := _is_core_card(reward) and not bool(reward.get("rule", false))
+	var pool_names: Array = []
+	if is_core and String(reward.get("key", "")) == "c_dim_stone":
+		for d in CoreOffer.valid_pool(RunState._core_ctx(RunState._core_offer_pick)):
+			if int(d.rarity) == 2:
+				pool_names.append(UI3.title_case(UI3.player_text(String(d.name))))
 	RunState.apply_chosen_reward(reward)
+	var granted := ""
+	if not pool_names.is_empty():
+		for id in RunState.owned_relic_ids:
+			if not before_owned.has(id) and RelicRegistry.get_def(String(id)) != null:
+				granted = UI3.title_case(UI3.player_text(String(RelicRegistry.get_def(String(id)).name)))
+	if granted != "" and _overlay_root != null:
+		gacha_log.append("spin")
+		var fx := GachaFx.new()
+		fx.name = "GachaSpin"
+		_overlay_root.add_child(fx)
+		fx.start_spin(pool_names, granted, UI3Gacha.tier_color(2))
+		if fx.running:
+			await fx.finished
+	var formed := UI3Gacha.combos_formed(before_ids, UI3Gacha.owned_ids())
 	_finish_node()
+	_combo_banner(formed)
+
+
+## Shows the strongest newly formed combo (Full beats Pair) above the overlay layer; click-through.
+func _combo_banner(formed: Array) -> void:
+	if formed.is_empty() or _overlay_layer == null:
+		return
+	var best: Dictionary = formed[0]
+	for f in formed:
+		if String(f["tier"]) == "full":
+			best = f
+			break
+	gacha_log.append("banner:%s" % String(best["tier"]))
+	GachaFx.banner(_overlay_layer, String(best["tier"]), UI3Gacha.combo_name(String(best["id"])))
 
 
 ## Spec 32: the slot kind of the new relic is full. The sale goes through RunState.acquire_relic (logged as
@@ -1686,8 +1754,7 @@ func sheet_closed(ok: bool, reward: Dictionary, _left := false) -> void:
 		sh.get_parent().remove_child(sh)
 		sh.queue_free()
 	if ok:
-		RunState.apply_chosen_reward(reward)
-		_finish_node()
+		_apply_and_finish(reward)
 
 
 ## Core offer: reroll ONE card (RunState action reroll_rewards [slot]). A7: the old card flies out (0.3 s) with the

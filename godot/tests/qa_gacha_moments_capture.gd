@@ -31,6 +31,23 @@ func _open(tier: int, seed := 13) -> void:
 	rm._show_reward_overlay("x")
 
 
+func _offer_with(keys: Array) -> void:
+	if rm != null:
+		rm.queue_free()
+	UI3Gacha.reset_seen()
+	rm = load("res://scenes/run_map/RunMap.tscn").instantiate()
+	add_child(rm)
+	await get_tree().process_frame
+	await get_tree().process_frame
+	var cards: Array[Dictionary] = []
+	for i in keys.size():
+		cards.append(CoreOffer.card_of(RelicRegistry.get_def(String(keys[i])), i))
+	RunState.pending_rewards = cards
+	RunState._core_offer_active = true
+	RunState.set_phase(RunState.RunPhase.REWARD)
+	rm._show_reward_overlay("x")
+
+
 func _ready() -> void:
 	_guard.capture()
 	ProjectSettings.set_setting("axie/epoch_source", "local")
@@ -44,5 +61,30 @@ func _ready() -> void:
 	await _wait(0.75)
 	_snap("reroll")
 	await _wait(1.0)
+	await _offer_with(["c_dim_stone", "c_nest", "c_kindle"])
+	await _wait(1.8)
+	rm._select_reward(0)
+	rm._take_selected_reward()
+	await _wait(0.9)
+	print("QA spin log ", rm.gacha_log, " fx ", rm._overlay_root.find_child("GachaSpin", true, false), " rect ", rm._overlay_root.find_child("SpinPlate", true, false).get_global_rect(), " fxsize ", rm._overlay_root.find_child("GachaSpin", true, false).size, " run ", rm._overlay_root.find_child("GachaSpin", true, false).running)
+	_snap("spin")
+	await _wait(2.0)
+	RunState.owned_relic_ids.append("c_nest")
+	await _offer_with(["c_golden_egg", "c_kindle", "c_dewdrop"])
+	await _wait(2.2)
+	_snap("pair_label")
+	rm._select_reward(0)
+	rm._take_selected_reward()
+	await _wait(0.4)
+	_snap("banner_pair")
+	await _wait(1.5)
+	RunState.owned_relic_ids.append("c_golden_egg")
+	await _offer_with(["c_spore_burst", "c_kindle", "c_dewdrop"])
+	await _wait(2.2)
+	_snap("full_label")
+	rm._select_reward(0)
+	rm._take_selected_reward()
+	await _wait(0.5)
+	_snap("banner_full")
 	_guard.restore()
 	get_tree().quit(0)
