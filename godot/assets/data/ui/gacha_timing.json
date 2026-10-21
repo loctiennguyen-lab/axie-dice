@@ -1,0 +1,26 @@
+{
+  "_note": "Gacha Core-pick pacing knobs (production/gacha-contract.md). Seconds. Not a rule file: UI only, no effect on seeds or the action log.",
+  "aura_sec": {"moss": 0.6, "amber": 0.9, "crystal": 1.5, "repeat": 0.4},
+  "flip_stagger_sec": 0.18,
+  "flip_sec": 0.35,
+  "spin_sec": 2.0,
+  "spin_hold_sec": 0.6,
+  "reroll_out_sec": 0.3,
+  "reroll_in_sec": 0.5,
+  "jackpot_extra_sec": 0.6,
+  "near_miss_sec": 0.6,
+  "banner_pair_sec": 1.2,
+  "banner_full_sec": 1.8,
+  "combo_fire_sec": 1.0,
+  "shake_px": 6,
+  "sfx": {
+    "moss": {"path": "res://assets/audio/sfx/status/buff.ogg", "db": -6.0},
+    "amber": {"path": "res://assets/audio/sfx/status/power_gain.ogg", "db": -3.0},
+    "crystal": {"path": "res://assets/audio/sfx/status/power_awaken.ogg", "db": -1.0},
+    "jackpot": {"path": "res://assets/audio/sfx/status/morph_aura_burst.ogg", "db": -2.0},
+    "pair": {"path": "res://assets/audio/sfx/status/power_gain.ogg", "db": -3.0},
+    "full": {"path": "res://assets/audio/sfx/status/morph_aura_burst.ogg", "db": -2.0},
+    "spin_stop": {"path": "res://assets/audio/sfx/status/power_gain.ogg", "db": -3.0},
+    "near_miss": {"path": "res://assets/audio/sfx/status/debuff.ogg", "db": -8.0}
+  }
+}

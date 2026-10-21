@@ -1253,13 +1253,7 @@ func _show_reward_overlay(title: String, _backdrop: Texture2D = null) -> void:
 	var title_lbl := UI3.label(tr(title), "LabelScreenTitle")
 	title_lbl.name = "RewardTitle"
 	head.add_child(title_lbl)
-	# Next pick's tier (lane B publishes RunState.core_next_tier, 0..2; -1 / absent = unknown): word + tier colour.
-	var nxt = RunState.get("core_next_tier")
-	if _core_offer_active() and not core_rule and nxt != null and int(nxt) >= 0:
-		var nt := clampi(int(nxt), 0, 2)
-		var chip := UI3.chip("Next: %s" % _CORE_TIER_NAME[nt])
-		chip.name = "NextTierChip"
-		head.add_child(chip)
+	# Gacha pack: the NEXT pick's tier is never shown anywhere (Liam 22/10).
 	head.add_child(UI3.currency_pill([{"icon": "cur_shard", "value": str(RunState.shards_this_run)}]))
 
 	_overlay_vbox = HBoxContainer.new()
@@ -1273,6 +1267,8 @@ func _show_reward_overlay(title: String, _backdrop: Texture2D = null) -> void:
 	var wide := RunState.pending_rewards.size() >= 4
 	for reward in RunState.pending_rewards:
 		_add_reward_card(reward, wide)
+
+	_start_core_reveal(col)
 
 	var actions := HBoxContainer.new()
 	actions.name = "RewardActions"
@@ -1345,9 +1341,14 @@ func _select_reward(i: int) -> void:
 	for k in _reward_cards.size():
 		if is_instance_valid(_reward_cards[k]):   # the overlay is rebuilt (old cards freed) on reroll / chained offers
 			UI3.set_card_selected(_reward_cards[k], k == _reward_sel, false)
+			if _reward_cards[k].has_meta("prism_accent"):
+				_reward_cards[k].add_theme_stylebox_override("panel",
+					UI3Gacha.prism_style(_reward_cards[k].get_meta("prism_accent"), k == _reward_sel))
 
 
 func _take_selected_reward() -> void:
+	if _reveal != null and is_instance_valid(_reveal):
+		_reveal.skip()
 	if _reward_sel >= 0 and _reward_sel < RunState.pending_rewards.size():
 		var r: Dictionary = RunState.pending_rewards[_reward_sel]
 		if String(r.get("t", "")) in ["chaos", "curse"]:
@@ -1393,6 +1394,60 @@ func _trade_parts(r: Dictionary) -> Dictionary:
 	return {"gain": sub.trim_prefix("IN EXCHANGE: you gain ").trim_suffix("."), "cost": desc, "cost_kind": &"curse"}
 
 
+## A1: Core offer cards arrive face-down with a tier halo, then flip left to right. Click / Space skips.
+var _reveal: GachaReveal = null
+
+func _prism_hover(card: Control, on: bool) -> void:
+	if _reveal != null and is_instance_valid(_reveal) and _reveal.running:
+		return
+	card.pivot_offset = card.size / 2.0
+	create_tween().tween_property(card, "scale", Vector2.ONE * (1.04 if on else 1.0), UI3Theme.motion_sec("fast"))
+
+
+func _start_core_reveal(shake_host: Control) -> void:
+	if _reveal != null and is_instance_valid(_reveal):
+		_reveal.queue_free()
+	_reveal = null
+	if not _core_offer_active() or _reward_cards.is_empty():
+		return
+	var first_r: Dictionary = RunState.pending_rewards[0]
+	if bool(first_r.get("rule", false)):
+		_reroll_slot = -1
+		return
+	if _reroll_slot >= 0 and _reroll_slot < _reward_cards.size():
+		var slot := _reroll_slot
+		_reroll_slot = -1
+		var rw: Dictionary = RunState.pending_rewards[slot]
+		var rt := clampi(int(rw.get("tier", 0)), 0, 2)
+		_reward_cards[slot].set_meta("gacha_tier", rt)
+		gacha_log.append("reroll_in:%d" % slot)
+		_reveal = GachaReveal.new()
+		_reveal.name = "GachaReveal"
+		_overlay_root.add_child(_reveal)
+		var jp := rt >= 2 and not UI3Gacha.combo_completes(UI3Gacha.owned_ids(), String(rw.get("key", ""))).is_empty()
+		_reveal.start([_reward_cards[slot]], rt, UI3Gacha.first_seen(str(RunState.get("_core_base_seed")), rt), jp, shake_host,
+			float(UI3Gacha.timing().get("reroll_in_sec", 0.5)))
+		_reroll_note(_reward_cards[slot])
+		return
+	var tier := 0
+	for k in _reward_cards.size():
+		var ct := clampi(int((RunState.pending_rewards[k] as Dictionary).get("tier", 0)), 0, 2)
+		_reward_cards[k].set_meta("gacha_tier", ct)
+		tier = maxi(tier, ct)
+	var from_t := UI3Gacha.capped_from(tier)
+	if from_t > tier:
+		gacha_log.append("near_miss:%d>%d" % [from_t, tier])
+	var first := UI3Gacha.first_seen(str(RunState.get("_core_base_seed")), from_t if from_t > tier else tier)
+	_reveal = GachaReveal.new()
+	_reveal.name = "GachaReveal"
+	_overlay_root.add_child(_reveal)
+	var jackpot := false
+	if tier >= 2:
+		for rw in RunState.pending_rewards:
+			jackpot = jackpot or not UI3Gacha.combo_completes(UI3Gacha.owned_ids(), String(rw.get("key", ""))).is_empty()
+	_reveal.start(_reward_cards, tier, first, jackpot, shake_host, -1.0, from_t)
+
+
 func _add_reward_card(r: Dictionary, wide := false) -> PanelContainer:
 	var t := String(r.get("t", ""))
 	var rar := _reward_rarity(r)
@@ -1427,10 +1482,19 @@ func _add_reward_card(r: Dictionary, wide := false) -> PanelContainer:
 				tb.grab_focus())
 	_overlay_vbox.add_child(card)
 	_reward_cards.append(card)
+	var crystal := is_core and not bool(r.get("rule", false)) and int(r.get("tier", 0)) >= 2
+	if crystal:
+		# A3: Crystal cards have their own bevelled silhouette, extra rings, a bigger name, and rise on hover.
+		card.set_meta("prism_accent", accent)
+		card.add_theme_stylebox_override("panel", UI3Gacha.prism_style(accent))
+		card.mouse_entered.connect(_prism_hover.bind(card, true))
+		card.mouse_exited.connect(_prism_hover.bind(card, false))
 
 	var col := VBoxContainer.new()
 	col.add_theme_constant_override("separation", 12)
 	card.add_child(col)
+	if crystal:
+		card.add_child(UI3Gacha.prism_frame(accent))
 
 	var kind_text := String(_REWARD_KIND.get(t, "Reward"))
 	if is_core:
@@ -1476,7 +1540,7 @@ func _add_reward_card(r: Dictionary, wide := false) -> PanelContainer:
 		body_text = tr("Play this run with the base rules.")
 	var dsc := UI3.describe(body_text)
 	body_text = ("MP %d · " % int(dsc["mp"]) if int(dsc["mp"]) >= 0 else "") + String(dsc["text"])
-	var name_lbl := UI3.label(name_text, "LabelTitle")
+	var name_lbl := UI3.label(name_text, "LabelTitle" if (not is_core or crystal) else "LabelDisplay")
 	name_lbl.name = "RewardName"
 	name_lbl.clip_text = true
 	name_lbl.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS
@@ -1508,6 +1572,8 @@ func _add_reward_card(r: Dictionary, wide := false) -> PanelContainer:
 		col.add_child(UI3.trade_box(&"gain", String(tp["gain"])))
 		col.add_child(UI3.trade_box(tp["cost_kind"], String(tp["cost"])))
 		return card
+	if is_core and not bool(r.get("rule", false)):
+		_add_combo_labels(col, String(r.get("key", "")))
 	var desc := UI3.label(body_text)
 	desc.name = "RewardDesc"
 	desc.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
@@ -1525,6 +1591,30 @@ func _add_reward_card(r: Dictionary, wide := false) -> PanelContainer:
 		col.add_child(rr)
 	return card
 
+
+
+## B2 / B3: "PAIR! <combo>" / "FULL! <combo>" when taking this card completes a combo, and "Works with: X, Y" for owned
+## partners. No 1/2 count and no progress bar anywhere.
+func _add_combo_labels(col: VBoxContainer, key: String) -> void:
+	var owned := UI3Gacha.owned_ids()
+	var done := UI3Gacha.combo_completes(owned, key)
+	if not done.is_empty():
+		var full := String(done["tier"]) == "full"
+		var tag := UI3.label("%s %s" % [tr("FULL!") if full else tr("PAIR!"), UI3Gacha.combo_name(String(done["id"]))], "LabelTitle")
+		tag.name = "ComboTag"
+		tag.add_theme_color_override("font_color", UI3Theme.color("rarity_legendary") if full else UI3Theme.color("text"))
+		tag.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		col.add_child(tag)
+	var names: Array[String] = []
+	for id in UI3Gacha.combo_matches(owned, key):
+		var d = RelicRegistry.get_def(String(id))
+		if d != null:
+			names.append(UI3.title_case(UI3.player_text(String(d.name))))
+	if not names.is_empty():
+		var ww := UI3.label(tr("Works with: %s") % ", ".join(names), "LabelMuted")
+		ww.name = "WorksWith"
+		ww.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+		col.add_child(ww)
 
 
 ## A chromeless, full-rect Button used as a hit target over a styled PanelContainer. Every
@@ -1578,8 +1668,50 @@ func _on_reward_chosen(reward: Dictionary) -> void:
 		if bool(chk["needs_sell"]):
 			open_slot_swap(reward, chk)
 			return
+	_apply_and_finish(reward)
+
+
+## Takes the reward (state decided here), then plays the after-pick beats: A5 spin for the Dim Stone bet, then the
+## Pair / Full banner. The animations only show what RunState already did.
+func _apply_and_finish(reward: Dictionary) -> void:
+	var before_ids: Array = UI3Gacha.owned_ids().duplicate()
+	var before_owned: Array = RunState.owned_relic_ids.duplicate()
+	var is_core := _is_core_card(reward) and not bool(reward.get("rule", false))
+	var pool_names: Array = []
+	if is_core and String(reward.get("key", "")) == "c_dim_stone":
+		for d in CoreOffer.valid_pool(RunState._core_ctx(RunState._core_offer_pick)):
+			if int(d.rarity) == 2:
+				pool_names.append(UI3.title_case(UI3.player_text(String(d.name))))
 	RunState.apply_chosen_reward(reward)
+	var granted := ""
+	if not pool_names.is_empty():
+		for id in RunState.owned_relic_ids:
+			if not before_owned.has(id) and RelicRegistry.get_def(String(id)) != null:
+				granted = UI3.title_case(UI3.player_text(String(RelicRegistry.get_def(String(id)).name)))
+	if granted != "" and _overlay_root != null:
+		gacha_log.append("spin")
+		var fx := GachaFx.new()
+		fx.name = "GachaSpin"
+		_overlay_root.add_child(fx)
+		fx.start_spin(pool_names, granted, UI3Gacha.tier_color(2))
+		if fx.running:
+			await fx.finished
+	var formed := UI3Gacha.combos_formed(before_ids, UI3Gacha.owned_ids())
 	_finish_node()
+	_combo_banner(formed)
+
+
+## Shows the strongest newly formed combo (Full beats Pair) above the overlay layer; click-through.
+func _combo_banner(formed: Array) -> void:
+	if formed.is_empty() or _overlay_layer == null:
+		return
+	var best: Dictionary = formed[0]
+	for f in formed:
+		if String(f["tier"]) == "full":
+			best = f
+			break
+	gacha_log.append("banner:%s" % String(best["tier"]))
+	GachaFx.banner(_overlay_layer, String(best["tier"]), UI3Gacha.combo_name(String(best["id"])))
 
 
 ## Spec 32: the slot kind of the new relic is full. The sale goes through RunState.acquire_relic (logged as
@@ -1625,18 +1757,52 @@ func sheet_closed(ok: bool, reward: Dictionary, _left := false) -> void:
 		sh.get_parent().remove_child(sh)
 		sh.queue_free()
 	if ok:
-		RunState.apply_chosen_reward(reward)
-		_finish_node()
+		_apply_and_finish(reward)
 
 
-## Core offer: reroll ONE card (RunState action reroll_rewards [slot]).
+## Core offer: reroll ONE card (RunState action reroll_rewards [slot]). A7: the old card flies out (0.3 s) with the
+## line "Won't come back this run", then the new card arrives face-down -> halo -> flip (0.5 s). Result is already decided.
+var _reroll_slot := -1
+var gacha_log: Array[String] = []   ## test hook: reroll_out / reroll_in:<slot>
+
+
 func _on_core_card_reroll(idx: int) -> void:
+	var old_card: Control = _reward_cards[idx] if idx >= 0 and idx < _reward_cards.size() else null
 	var res: Dictionary = await RunState.request_reroll_pending_rewards(idx)
 	if not bool(res["ok"]):
 		if String(res["code"]) not in ["illegal", "busy"]:
 			NetNotice.show(self, String(res["code"]), _on_core_card_reroll.bind(idx))
 		return
+	if not UI3Gacha.is_instant() and old_card != null and is_instance_valid(old_card):
+		gacha_log.append("reroll_out")
+		old_card.pivot_offset = old_card.size / 2.0
+		var out := float(UI3Gacha.timing().get("reroll_out_sec", 0.3))
+		var tw := old_card.create_tween().set_parallel(true)
+		tw.tween_property(old_card, "position:y", old_card.position.y - 120.0, out)
+		tw.tween_property(old_card, "modulate:a", 0.0, out)
+		await tw.finished
+	_reroll_slot = idx
 	_show_reward_overlay("x")
+
+
+## The "Won't come back" line above the new card, fades after a moment.
+func _reroll_note(card: Control) -> void:
+	await get_tree().process_frame
+	if not is_instance_valid(card) or _overlay_root == null:
+		return
+	var l := UI3.label(tr("Won't come back this run"), "LabelMuted")
+	l.name = "RerollNote"
+	l.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	l.size = Vector2(card.size.x, 32)
+	l.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_overlay_root.add_child(l)
+	l.global_position = card.global_position + Vector2(0, -36)
+	if UI3Gacha.is_instant():
+		return
+	var tw := l.create_tween()
+	tw.tween_interval(1.4)
+	tw.tween_property(l, "modulate:a", 0.0, 0.3)
+	tw.tween_callback(l.queue_free)
 
 
 func _on_reward_reroll(title: String) -> void:
