@@ -905,6 +905,8 @@ func enter_node(node_id: String, node_kind: String, seed: int = -1) -> void:
 				"start_mana": int(boon_n.get("start_mana", 0)),
 				"first_dmg_face_bonus": int(boon_n.get("first_dmg_face_bonus", 0)),
 				"start_eggs": int(boon_n.get("start_eggs", 0)),
+				"anchor_id": anchor_id,
+				"anchor_awakened": anchor_awakened,
 				"run_mods": run_mods.duplicate(),
 				"relic_state": relic_state.duplicate(true),
 				# Compatibility: lets CombatEngine ask for end_turn/reroll seeds itself until the UI
