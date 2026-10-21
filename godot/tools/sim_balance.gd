@@ -1159,8 +1159,10 @@ func _expert_overcast(eng: CombatEngine) -> void:
 	for u in _ready_units(eng):
 		if not eng.can_overcast(u.uid):
 			continue
-		var pr: Array = eng.overcast_preview(u)
-		if float(pr[1]) <= float(pr[0]):
+		var gtot := 0.0
+		for gp in eng.overcast_group_preview(u):
+			gtot += float(gp["boosted"]) - float(gp["now"])
+		if gtot <= 0.0:
 			continue
 		if eng.overcast(u.uid):
 			var g := _turn_value(eng) - base
@@ -1388,6 +1390,8 @@ func _expert2_actions(eng: CombatEngine) -> void:
 				for sl in 6:
 					if sl == int(ents[i]["fi"]):
 						continue
+					if eng.wild_block_reason(int(ents[i]["uid"]), sl) != "":   # v4/MD: only a Set of 3 -> 4 is legal (need_set3 etc.)
+						continue
 					var w2: Array = (st[2] as Array).duplicate()
 					w2[i] = sl
 					var g := _e2_value(ctx, st[0], st[1], w2) - base - wcost
@@ -1400,10 +1404,14 @@ func _expert2_actions(eng: CombatEngine) -> void:
 				var en: Dictionary = ents[i]
 				if not en["ready"] or not eng.can_overcast(int(en["uid"])):
 					continue
-				var pr: Array = eng.overcast_preview(en["u"])
-				var t: String = en["ty"][int(en["fi"])]
-				var w := 1.0 if t == "dmg" else (0.7 if t == "shield" else (0.6 if t == "heal" else 1.3))
-				opts.append({"gain": w * (float(pr[1]) - float(pr[0])) - ocost, "kind": "oc", "a": i, "b": 0})
+				# v4/MD: Overcast powers the WHOLE Set -> value = sum over every member (type-weighted), engine says who is in it.
+				var gsum := 0.0
+				for gp in eng.overcast_group_preview(en["u"]):
+					var gu := eng.by_uid(int(gp["uid"]))
+					var gt := String(gu.current_face().get("type", "")) if gu != null else ""
+					var w := 1.0 if gt == "dmg" else (0.7 if gt == "shield" else (0.6 if gt == "heal" else 1.3))
+					gsum += w * (float(gp["boosted"]) - float(gp["now"]))
+				opts.append({"gain": gsum - ocost, "kind": "oc", "a": i, "b": 0})
 		opts.sort_custom(func(x, y): return float(x["gain"]) > float(y["gain"]))
 		var done := false
 		for o in opts:
