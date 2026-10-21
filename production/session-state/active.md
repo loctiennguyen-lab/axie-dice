@@ -1,5 +1,12 @@
 # Axie Dice — trạng thái hiện tại
 
+## ⇢ BẮT ĐẦU TỪ ĐÂY (23/10 chiều) — BUILD b1393, ĐỘ KHÓ + MANA ĐẠT MỤC TIÊU
+godot-port = axiedice/main = **805b6dc** (RULES_VERSION **-r**: Overcast 2 mana +0.5 cả BỘ, enemy_dmg_mult 1.55). Suite 205/205 không skip,
+Worker 212/212. Build `build/AxieDice-0.1.0-L1-b1393-805b6dc-*` (b1377 → old). Sim vòng 2 (`design/proposals/v4-mana-decisions.md` cuối):
+random 11.0, spam 10.5, free_hold 10.5, expert 18.8 (đạt cả 3 mục tiêu); Overcast +1.19 (giữ, sát nút), Mặt Tạm +2.84, Liều +1.49.
+Tiếp theo (đề xuất, chờ Liam OK để code): Lõi chủ (GDD dice-depth-v4 mục 10, 5 Lõi chủ) + xử lý 8 Lõi <10% run và Hoá Thạch/Hòn Đá Mờ báo không
+kích hoạt; QA lại cả build mới. Chờ Liam: playtest, nguồn 8 âm (MyGame hay Kenney CC0), deploy.
+
 ## ⇢ BẮT ĐẦU TỪ ĐÂY (23/10) — GÓI GACHA L + MANA ĐÃ VÀO GODOT-PORT, BUILD b1377
 godot-port = axiedice/main = **04a83bc** (merge int/v4b): mana v4 (Overcast cả BỘ +0.4 3 mana; Mặt Tạm chỉ 3→4, 2 mana, 1 lần/trận) +
 gói gacha L (14 combo 2 tầng `core_combos.json`, +1 reroll Lõi khi ráp Cặp cap 2, 3 Lõi meme, màn chọn Lõi lật/jackpot/cược quay/near-miss/
