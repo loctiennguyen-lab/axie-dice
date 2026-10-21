@@ -309,7 +309,7 @@ static func valid_pool(ctx: Dictionary) -> Array:
 static func card_of(def, slot: int) -> Dictionary:
 	return {"t": "relic", "key": String(def.id), "rar": int(def.rarity), "title": "CORE", "desc": String(def.name),
 		"sub": RewardGenerator.relic_desc(def), "core": true, "axis": String(def.core_axis),
-		"tier": int(def.rarity), "slot": slot}
+		"tier": int(def.rarity), "slot": slot, "meme": is_meme(def)}
 
 
 static func _owned_axes(owned: Array) -> Array:
@@ -354,6 +354,8 @@ static func build_offer(rng: Rng, tier: int, ctx: Dictionary, n: int) -> Array[D
 		var picked = null
 		for ax in order:
 			var cands := _axis_candidates(pool, String(ax), tier, used_ids)
+			if _count_memes(out) >= 1:
+				cands = cands.filter(func(d): return not is_meme(d))   # gacha C5: at most one meme Core per offer
 			if cands.is_empty():
 				continue
 			if String(ax) == "stat" and _count_axis(out, "stat") >= t.core_stat_max_per_offer:
@@ -376,6 +378,19 @@ static func build_offer(rng: Rng, tier: int, ctx: Dictionary, n: int) -> Array[D
 				used_ids.append(String(d.id))
 				out.append(card_of(d, out.size()))
 	return out
+
+
+## Gacha C5: meme Cores carry the tag "meme"; an offer shows at most one.
+static func is_meme(def) -> bool:
+	return def != null and (def.tags as PackedStringArray).has("meme")
+
+
+static func _count_memes(cards: Array) -> int:
+	var n := 0
+	for c in cards:
+		if bool((c as Dictionary).get("meme", false)):
+			n += 1
+	return n
 
 
 static func _count_axis(out: Array, axis: String) -> int:
@@ -433,6 +448,8 @@ static func reroll_card(rng: Rng, offer: Array, idx: int, ctx: Dictionary) -> Di
 		used_ids.append(String((offer[j] as Dictionary).get("key", "")))
 		if j != idx:
 			others.append(offer[j])
+	if _count_memes(others) >= 1:
+		pool = pool.filter(func(d): return not is_meme(d))
 	var old_axis := String(old.get("axis", ""))
 	var same := _same_tier(pool, old_axis, tier, used_ids) if _axis_allowed(others, old_axis) else []
 	if not same.is_empty():
