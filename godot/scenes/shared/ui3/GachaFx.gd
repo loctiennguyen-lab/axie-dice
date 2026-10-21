@@ -41,6 +41,7 @@ static func spin_faces(pool: Array, final: String, ticks: int) -> Array[String]:
 
 ## Builds the spin plate centred on the screen and runs it. pool: real Crystal Core names; final: the granted Core.
 func start_spin(pool: Array, final: String, accent: Color) -> void:
+	z_index = 50   # UI3 card panels use z_index 6; without this the plate drew behind the cards
 	set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	mouse_filter = Control.MOUSE_FILTER_IGNORE
 	var cc := CenterContainer.new()
@@ -130,6 +131,7 @@ func _input(ev: InputEvent) -> void:
 static func banner(parent: Node, tier: String, combo_name: String) -> Control:
 	var full := tier == "full"
 	var root := GachaFx.new()
+	root.z_index = 50
 	root.name = "ComboBanner"
 	root.set_anchors_and_offsets_preset(Control.PRESET_FULL_RECT)
 	root.mouse_filter = Control.MOUSE_FILTER_IGNORE

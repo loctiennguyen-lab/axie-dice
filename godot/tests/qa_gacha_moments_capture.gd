@@ -66,7 +66,6 @@ func _ready() -> void:
 	rm._select_reward(0)
 	rm._take_selected_reward()
 	await _wait(0.9)
-	print("QA spin log ", rm.gacha_log, " fx ", rm._overlay_root.find_child("GachaSpin", true, false), " rect ", rm._overlay_root.find_child("SpinPlate", true, false).get_global_rect(), " fxsize ", rm._overlay_root.find_child("GachaSpin", true, false).size, " run ", rm._overlay_root.find_child("GachaSpin", true, false).running)
 	_snap("spin")
 	await _wait(2.0)
 	RunState.owned_relic_ids.append("c_nest")
@@ -86,5 +85,14 @@ func _ready() -> void:
 	rm._take_selected_reward()
 	await _wait(0.5)
 	_snap("banner_full")
+	RunState.owned_relic_ids.assign(["c_cascade", "c_blood_sign", "c_deep_current"])
+	RunState.core_tier_chain = [2, 2, 2, 2, 2, 2]
+	RunState._core_offer_pick = 1
+	RunState.core_pick_index = 2
+	await _open(1)
+	await _wait(1.2)
+	_snap("nearmiss_before")
+	await _wait(0.5)
+	_snap("nearmiss_crack")
 	_guard.restore()
 	get_tree().quit(0)
