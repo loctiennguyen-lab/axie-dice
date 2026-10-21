@@ -62,9 +62,9 @@ func _ready() -> void:
 	_assert(cc.get("tier", "") == "full", "third owned first, last pair card gives Full")
 
 	# jackpot: no pair tier
-	var jset := ["c_cascade", "c_sixth_die", "c_sonic_shield"]
+	var jset := ["c_cascade", "c_sixth_die", "c_thorn_shield"]
 	_assert(CoreCombos.state(["c_cascade", "c_sixth_die"]).get("combo_rain", "") == "", "jackpot has no Pair tier")
-	cc = CoreCombos.card_completes(["c_cascade", "c_sixth_die"], "c_sonic_shield")
+	cc = CoreCombos.card_completes(["c_cascade", "c_sixth_die"], "c_thorn_shield")
 	_assert(cc.get("id", "") == "combo_rain" and cc.get("tier", "") == "full", "jackpot completes straight to full")
 	_assert(CoreCombos.card_completes(["c_cascade"], "c_sixth_die").get("id", "") != "combo_rain", "2nd jackpot card is not a completion")
 	_assert(CoreCombos.state(jset).get("combo_rain", "") == "full", "jackpot full state")

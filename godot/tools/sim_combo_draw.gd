@@ -41,6 +41,7 @@ func _run_policy(policy: String, runs: int, seed0: int) -> Dictionary:
 	var any_pair := 0
 	var any_full := 0
 	var jackpot := 0
+	var jack2 := 0
 	var formed := {}      # combo id -> runs formed (pair or better)
 	var fulls := {}
 	var shown := {}       # core id -> times shown in a milestone offer card (first sight)
@@ -89,7 +90,13 @@ func _run_policy(policy: String, runs: int, seed0: int) -> Dictionary:
 			any_full += 1
 		if done.has("combo_rain"):
 			jackpot += 1
-	return {"any_pair": any_pair, "any_full": any_full, "jackpot": jackpot, "formed": formed, "fulls": fulls, "shown": shown,
+		var jm := 0
+		for jid in CoreCombos.members(CoreCombos.get_combo("combo_rain")):
+			if RunState.owned_relic_ids.has(jid):
+				jm += 1
+		if jm >= 2:
+			jack2 += 1
+	return {"any_pair": any_pair, "any_full": any_full, "jackpot": jackpot, "jack2": jack2, "formed": formed, "fulls": fulls, "shown": shown,
 		"picked": picked, "sum": sum_combos}
 
 
@@ -134,8 +141,8 @@ func _choose(policy: String, rng: Rng) -> int:
 
 func _fmt(policy: String, runs: int, st: Dictionary, combos: Array) -> String:
 	var s := "## Policy: %s\n\n" % policy
-	s += "- Runs with >=1 combo (Pair or better): **%.1f%%**\n- Runs with >=1 Full: **%.1f%%**\n- Jackpot (Lunacia Rain): **%.2f%%**\n- Avg combos formed per run: %.2f\n\n" % [
-		100.0 * st["any_pair"] / runs, 100.0 * st["any_full"] / runs, 100.0 * st["jackpot"] / runs, float(st["sum"]) / runs]
+	s += "- Runs with >=1 combo (Pair or better): **%.1f%%**\n- Runs with >=1 Full: **%.1f%%**\n- Jackpot (Lunacia Rain): **%.2f%%**\n- Runs holding 2 of the 3 jackpot Cores: %.2f%%\n- Avg combos formed per run: %.2f\n\n" % [
+		100.0 * st["any_pair"] / runs, 100.0 * st["any_full"] / runs, 100.0 * st["jackpot"] / runs, 100.0 * st["jack2"] / runs, float(st["sum"]) / runs]
 	s += "| Combo | Formed % | Full % |\n|---|---|---|\n"
 	for r in combos:
 		s += "| %s | %.1f | %.1f |\n" % [r["name_en"], 100.0 * int(st["formed"].get(r["id"], 0)) / runs, 100.0 * int(st["fulls"].get(r["id"], 0)) / runs]

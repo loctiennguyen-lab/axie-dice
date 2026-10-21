@@ -10,7 +10,7 @@
   "jackpot_set": [
    "c_cascade",
    "c_sixth_die",
-   "c_sonic_shield"
+   "c_thorn_shield"
   ],
   "hide_if_rules": [
    "rule_balance"
