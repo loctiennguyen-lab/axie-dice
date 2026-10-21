@@ -24,7 +24,11 @@ func _ready() -> void:
 		if p != "":
 			with_file += 1
 			_check(ResourceLoader.exists(p), "%s file exists: %s" % [e, p])
-	_check(with_file >= 3 and with_file <= 5, "placeholder files mapped: %d" % with_file)
+	for e in DiceMomentAudio.EVENTS:
+		for l in DiceMomentAudio.EVENTS[e].get("layers", []):
+			for lp in (l["paths"] if l.has("paths") else [l["path"]]):
+				_check(ResourceLoader.exists(String(lp)), "%s layer file exists: %s" % [e, lp])
+	_check(with_file >= 2 and with_file <= 5, "placeholder files mapped: %d" % with_file)
 	# priority window
 	_check(a.play("dm_set4", 10.0), "set4 plays")
 	_check(not a.play("dm_roll", 10.2), "roll inside the window after set4 is dropped")

@@ -3254,7 +3254,7 @@ func _on_combo_fired(combo_id: String) -> void:
 	var nm := UI3.title_case(ComboAdapter.display_name(combo_id))
 	combo_float_log.append(nm)
 	if _dm_audio != null:
-		_dm_audio.play("dm_combo")
+		_dm_audio.play("dm_combo_full" if ComboAdapter.done().get(combo_id, "pair") == "full" else "dm_combo")
 	_spawn_combo_name(nm, is_full)
 
 
@@ -3808,6 +3808,7 @@ func _throw_tray_target(i: int) -> Vector2:
 
 
 func _on_throw_arrived(i: int) -> void:
+	_dm_audio.play("dm_land")
 	if i >= 0 and i < _throw_uids.size():
 		_dice_pending.erase(_throw_uids[i])
 		if i < _throw_slots.size() and int(_throw_slots[i]) < _die_slot_buttons.size():
@@ -3816,6 +3817,29 @@ func _on_throw_arrived(i: int) -> void:
 			_show_reroll_tags(_throw_info[i])
 	if is_inside_tree() and _combat != null:
 		_update_dice_tray()
+	if _dice_pending.is_empty():
+		_maybe_dm_pair()
+
+
+var _dm_pair_turn := -1
+
+## One "pair" pling per turn: two dice on the same part and no Set (3+) showing. UI only, reads the rolled faces.
+func _maybe_dm_pair() -> void:
+	if _combat == null or _dm_pair_turn == _combat.turn:
+		return
+	var parts := {}
+	for u in _party_dice_units():
+		if u.hp > 0 and u.has_rolled() and not u.is_token:
+			var fi: int = u.roll_face_index()
+			parts[fi] = int(parts.get(fi, 0)) + 1
+	var pair := false
+	for k in parts:
+		if int(parts[k]) >= 3:
+			return
+		pair = pair or int(parts[k]) == 2
+	if pair:
+		_dm_pair_turn = _combat.turn
+		_dm_audio.play("dm_pair")
 
 
 ## Any HUD action while dice are still flying lands them first.

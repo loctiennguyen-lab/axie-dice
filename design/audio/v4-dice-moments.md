@@ -178,3 +178,32 @@ Nếu muốn tăng cấp rõ hơn nữa mà không thêm file: set3 pitch 1.0, s
 - 8 event thiếu hẳn, cần nguồn mới: `dm_roll`, `dm_reroll_free` (= roll), `dm_reroll_safe`, `dm_land`, `dm_pair`, `dm_gamble_arm`, `dm_crack`, `dm_core_hover`.
 - Việc cho người lập trình, nếu Liam duyệt: `EVENTS` trong `DiceMomentAudio.gd` hiện chỉ có 1 path và 1 db mỗi event. Chồng lớp và pitch nhân (bảng trên) cần đổi sang danh sách layer `{path, db, pitch, delay_ms}`. Chưa sửa gì.
 - Việc cần người nghe trước: đo độ dài từng file được chọn bằng `afinfo`, nghe thử 4 lớp của set5 xem có bị cháo không.
+
+
+## 8. Âm từ MyGame SFX
+
+Nguồn: MyGame SFX (Sky Mavis IP, Liam cho phép 23/10). File chép vào `godot/assets/audio/sfx/ui/`, giữ tên gốc. Code: `DiceMomentAudio.EVENTS` có thêm `layers` ({path | paths, db, pitch, pj, delay_ms}); biến thể và pitch ngẫu nhiên dùng rng UI riêng, không đụng rng engine. Gacha dùng chung qua `gacha_timing.json` (`layers`). Độ dài đo bằng `afinfo`. Không file nào quá 1.5 s nên không cần cắt.
+
+| Event | File (độ dài) | dB | Pitch | Ghi chú |
+|---|---|---|---|---|
+| dm_roll, dm_reroll_free | ui_tap_01/02/03 (0.09 s) | -6 | 1.0 +-0.05 | chọn ngẫu nhiên 1 trong 3 |
+| dm_land | ui_tap_02 (0.09 s) | -15 | 1.2 +-0.06 | phát mỗi viên (5/lượt); giảm 3 dB + jitter pitch sau review audio-director |
+| dm_set4 | power_gain (status) + star_activate | -2 / -6 | 1.0 / 1.1 | lớp 2 là phần "lên thêm một bậc" so với set3 |
+| dm_pair | ui_toast (0.40 s) | -9 | 1.0 | |
+| dm_reroll_safe | resource_collect_01 (0.40 s) | -6 | 1.0 | |
+| dm_gamble_arm | ui_tap_03 x5 (0.09 s) | -5 | 1.0, 1.07, 1.14, 1.22, 1.33 | delay 0/170/320/440/540 ms, nhanh dần |
+| dm_crack | overflow_death_crack (0.40 s) | -8 | 1.3 | đuôi 0.4 s, không cần stop |
+| dm_core_hover | ui_tap_01 (0.09 s) | -14 | 1.5 | |
+| dm_wild_pick | ui_confirm_01 (0.30 s) | -6 | 1.0 | |
+| dm_wild_match | ui_confirm_02 (0.30 s) | -4 | 1.2 | |
+| dm_core_open | ui_modal_open (0.30 s) | -4 | 1.0 | |
+| dm_core_pick | star_activate (1.30 s) | -1 | 1.0 | |
+| dm_set5 | talent_capstone_unlock (1.14 s) + axie_level_up (1.20 s) | 0 / -4 | 1.0 | lớp 2 trễ 120 ms |
+| dm_combo PAIR | star_activate | -3 | 1.0 | |
+| dm_combo_full (mới) | axie_level_up + talent_capstone_unlock | -3 / -4 | 1.0 | lớp 2 trễ 100 ms |
+| gacha pair | star_activate | -3 | 1.0 | |
+| gacha full | axie_level_up + talent_capstone_unlock | -3 / -4 | 1.0 | lớp 2 trễ 100 ms |
+| gacha jackpot | talent_capstone_unlock | -2 | 1.0 | |
+| gacha near_miss | overflow_death_crack | -12 | 1.0 | |
+
+Giữ nguyên (chưa đổi): dm_set3 (power_gain), dm_overcast_charge, dm_gamble_clean, dm_crack_fade (placeholder status/).
