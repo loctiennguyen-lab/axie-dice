@@ -2,6 +2,11 @@ class_name SimReport
 extends RefCounted
 ## Aggregates run records from sim_balance.gd into production/qa/sim/sim-<date>-<tag>.{md,csv}.
 
+const MX_COLS := ["mx_in_face", "mx_in_cantrip", "mx_in_use_other", "mx_in_turnstart", "mx_in_other", "mx_out_safe1", "mx_out_safe2",
+	"mx_out_wild", "mx_out_oc", "mx_out_lieu", "mx_out_other", "mx_end_sum", "mx_end_n", "mx_buy_safe1", "mx_buy_safe2", "mx_buy_safe_free",
+	"mx_buy_wild", "mx_buy_oc", "mx_buy_lieu", "mx_wild_n2", "mx_wild_n3", "mx_wild_n4", "mx_bo_turns", "mx_bo_m3_pre", "mx_bo_m3_post", "mx_face_rolled"]
+
+
 static func _pct(a: int, b: int) -> String:
 	return "-" if b == 0 else "%.1f%% (%d/%d)" % [100.0 * a / b, a, b]
 
@@ -11,7 +16,7 @@ static func write(recs: Array, out_dir: String, tag: String, secs: float, catalo
 	var date := Time.get_date_string_from_system()
 	var base := out_dir.path_join("sim-%s-%s" % [date, tag])
 	var csv := FileAccess.open(base + ".csv", FileAccess.WRITE)
-	csv.store_line("seed,policy,core_policy,team,asc,won,death_kind,death_row,rule,cores,fights,offered,picked,trig,m_turns,m_dmg,m_v0,m_v1,m_dsq,boss_n,boss_turns,boss_won,boss_hp")
+	csv.store_line("seed,policy,core_policy,team,asc,won,death_kind,death_row,rule,cores,fights,offered,picked,trig,m_turns,m_dmg,m_v0,m_v1,m_dsq,boss_n,boss_turns,boss_won,boss_hp," + ",".join(MX_COLS))
 	for r in recs:
 		var fs: Array = []
 		for f in r["fights"]:
@@ -30,9 +35,12 @@ static func write(recs: Array, out_dir: String, tag: String, secs: float, catalo
 
 static func _mcols(r: Dictionary) -> String:
 	var m: Dictionary = r.get("m", {})
-	return "%d,%.3f,%.3f,%.3f,%.3f,%d,%d,%d,%.4f" % [int(m.get("turns", 0)), float(m.get("dmg", 0.0)), float(m.get("v0", 0.0)),
+	var mx: Array = []
+	for k in MX_COLS:
+		mx.append("%.0f" % float(m.get(k, 0.0)))
+	return "%d,%.3f,%.3f,%.3f,%.3f,%d,%d,%d,%.4f,%s" % [int(m.get("turns", 0)), float(m.get("dmg", 0.0)), float(m.get("v0", 0.0)),
 		float(m.get("v1", 0.0)), float(m.get("dsq", 0.0)), int(m.get("boss_n", 0)), int(m.get("boss_turns", 0)),
-		int(m.get("boss_won", 0)), float(m.get("boss_hp", 0.0))]
+		int(m.get("boss_won", 0)), float(m.get("boss_hp", 0.0)), ",".join(mx)]
 
 
 static func build_md(recs: Array, tag: String, secs: float, catalog: Array = []) -> String:
@@ -43,6 +51,7 @@ static func build_md(recs: Array, tag: String, secs: float, catalog: Array = [])
 	L.append(_goals(recs))
 	L.append(_funnel(recs))
 	L.append(metric_section(recs))
+	L.append(mana_section(recs))
 	L.append(_table(recs, ["policy", "asc"], "Win-rate theo chinh sach x Ascension"))
 	L.append(_table(recs, ["policy", "team"], "Win-rate theo chinh sach x doi"))
 	L.append(_table(recs, ["policy", "core_policy"], "Win-rate theo chinh sach x cach chon Loi"))
@@ -257,8 +266,65 @@ static func read_csvs(paths: Array) -> Array:
 				"fights": fights, "offered": Array(String(c[11]).split(";", false)), "picked": Array(String(c[12]).split(";", false)),
 				"trig": Array(String(c[13]).split(";", false)),
 				"m": ({"turns": int(c[14]), "dmg": float(c[15]), "v0": float(c[16]), "v1": float(c[17]), "dsq": float(c[18]),
-					"boss_n": int(c[19]), "boss_turns": int(c[20]), "boss_won": int(c[21]), "boss_hp": float(c[22])} if c.size() >= 23 else {})})
+					"boss_n": int(c[19]), "boss_turns": int(c[20]), "boss_won": int(c[21]), "boss_hp": float(c[22])} if c.size() >= 23 else {}).merged(_mx_from(c))})
 	return out
+
+
+static func _mx_from(c: PackedStringArray) -> Dictionary:
+	var out := {}
+	if c.size() >= 23 + MX_COLS.size():
+		for i in MX_COLS.size():
+			out[MX_COLS[i]] = float(c[23 + i])
+	return out
+
+
+## Mana table per policy (step 0): income / spend / leftover per turn, spend split, buy counts per run, Mat Tam group size, BO opportunity.
+static func mana_section(recs: Array) -> String:
+	var agg := {}
+	var order: Array = []
+	for r in recs:
+		var m: Dictionary = r.get("m", {})
+		if not m.has("mx_end_n"):
+			continue
+		var pol: String = r["policy"]
+		if not agg.has(pol):
+			agg[pol] = {"runs": 0, "turns": 0.0}
+			for k in MX_COLS:
+				agg[pol][k] = 0.0
+			order.append(pol)
+		agg[pol]["runs"] += 1
+		agg[pol]["turns"] += float(m.get("turns", 0))
+		for k in MX_COLS:
+			agg[pol][k] += float(m.get(k, 0.0))
+	if order.is_empty():
+		return ""
+	var out := "## Mana (buoc 0): nhan / tieu / thua moi luot\n\n"
+	out += "Nhan = mat mana + cantrip + Loi/relic khi dung xuc xac + dau luot/dau tran (start_mana, hook) + khac. 'Loi/khac' khong tach duoc neu khong sua engine. Tieu = An toan + Mat Tam + Overcast + Lieu(0) + khac (hook). Thua = mana con truoc end_turn (chi luot chua ket thuc tran).\n\n"
+	out += "| policy | runs | luot/run | nhan/luot | tieu/luot | thua/luot | tieu/nhan % | thua/nhan % | nhan: mat | cantrip | Loi dung | dau luot | khac |\n|---|---|---|---|---|---|---|---|---|---|---|---|---|\n"
+	var out2 := "\n### Tieu mana vao dau (% tong mana tieu) va so lan mua moi tran\n\n| policy | An toan lan 1 | An toan lan 2+ | Mat Tam | Overcast | Lieu/khac | mua AT1/tran | AT2+/tran | AT mien phi/tran | Mat Tam/tran | Overcast/tran | Lieu/tran |\n|---|---|---|---|---|---|---|---|---|---|---|---|\n"
+	var out3 := "\n### Mat Tam theo size nhom luc bam, va co hoi Overcast-ca-BO (neu P1)\n\n| policy | Mat Tam n=2 (->3) | n=3 (->4) | n=4 | luot co BO % | co BO + >=3 mana dau luot % | co BO + >=3 mana sau quyet dinh % |\n|---|---|---|---|---|---|---|\n"
+	for pol in order:
+		var a: Dictionary = agg[pol]
+		var t := maxf(1.0, float(a["turns"]))
+		var inn: float = a["mx_in_face"] + a["mx_in_cantrip"] + a["mx_in_use_other"] + a["mx_in_turnstart"] + a["mx_in_other"]
+		var spent: float = a["mx_out_safe1"] + a["mx_out_safe2"] + a["mx_out_wild"] + a["mx_out_oc"] + a["mx_out_lieu"] + a["mx_out_other"]
+		var en := maxf(1.0, float(a["mx_end_n"]))
+		out += "| %s | %d | %.2f | %.2f | %.2f | %.2f | %.0f | %.0f | %.2f | %.2f | %.2f | %.2f | %.2f |\n" % [pol, a["runs"], t / a["runs"], inn / t,
+			spent / t, a["mx_end_sum"] / en, 100.0 * spent / maxf(inn, 0.001), 100.0 * (a["mx_end_sum"] / en) / maxf(inn / t, 0.001),
+			a["mx_in_face"] / t, a["mx_in_cantrip"] / t, a["mx_in_use_other"] / t, a["mx_in_turnstart"] / t, a["mx_in_other"] / t]
+		var sp := maxf(spent, 0.001)
+		var runs: float = a["runs"]
+		out2 += "| %s | %.0f | %.0f | %.0f | %.0f | %.0f | %.2f | %.2f | %.2f | %.2f | %.2f | %.2f |\n" % [pol, 100.0 * a["mx_out_safe1"] / sp,
+			100.0 * a["mx_out_safe2"] / sp, 100.0 * a["mx_out_wild"] / sp, 100.0 * a["mx_out_oc"] / sp, 100.0 * (a["mx_out_lieu"] + a["mx_out_other"]) / sp,
+			a["mx_buy_safe1"] / runs, a["mx_buy_safe2"] / runs, a["mx_buy_safe_free"] / runs, a["mx_buy_wild"] / runs, a["mx_buy_oc"] / runs, a["mx_buy_lieu"] / runs]
+		var wn := maxf(1.0, a["mx_wild_n2"] + a["mx_wild_n3"] + a["mx_wild_n4"])
+		out3 += "| %s | %.0f%% (%d) | %.0f%% (%d) | %.0f%% (%d) | %.1f | %.1f | %.1f |\n" % [pol, 100.0 * a["mx_wild_n2"] / wn, a["mx_wild_n2"],
+			100.0 * a["mx_wild_n3"] / wn, a["mx_wild_n3"], 100.0 * a["mx_wild_n4"] / wn, a["mx_wild_n4"], 100.0 * a["mx_bo_turns"] / t,
+			100.0 * a["mx_bo_m3_pre"] / t, 100.0 * a["mx_bo_m3_post"] / t]
+	out3 += "\nMat mana lan ra (san sang dung) moi luot, sau quyet dinh: "
+	for pol in order:
+		out3 += "%s %.2f; " % [pol, agg[pol]["mx_face_rolled"] / maxf(1.0, float(agg[pol]["turns"]))]
+	return out + out2 + out3 + "\n"
 
 
 ## Survival funnel per policy: of all runs, how many were still alive when they reached each map row (cumulative deaths).
