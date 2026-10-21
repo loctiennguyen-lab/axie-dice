@@ -43,6 +43,11 @@ var _noreroll := false     # ablation (--noreroll=1)
 var _corehold := true      # S2: expert Holds dice when it owns c_steady_hold / c_kindle / rule_tundra (--corehold=0 turns off)
 const HOLD_CORES := ["c_steady_hold", "c_kindle", "rule_tundra", "c_key_strike"]
 var _force: Array = []     # --force=id,id : grant these Cores at run start (diagnosis only)
+var _anchor_mode := "none"   # none | auto | a_volley | a_gambler | a_mana_mine  (--anchor=)
+var _anchor_aw_node := -1
+var _anchor_aw_turn := -1
+var _anchor_mut := {}
+var _turns_total := 0
 var _beam := 3             # expert in-turn beam width (--beam)
 var _core_fired_seen := {} # ids reported by EventBus.core_fired, when the branch has that signal
 ## Real combos (design/proposals/core-pick-excitement-brainstorm.md 2.B1; members that exist as ids on this branch).
@@ -95,6 +100,7 @@ func _ready() -> void:
 	_pact_mode = String(args.get("pact", "take"))
 	_shop_mode = String(args.get("shop", "all"))
 	_beam = int(args.get("beam", 3))
+	_anchor_mode = String(args.get("anchor", "none"))
 	_nohold = int(args.get("hold", 0)) != 1   # Hold is OFF by default: ablation showed it costs ~4 points
 	_noreroll = int(args.get("noreroll", 0)) == 1
 	_corehold = int(args.get("corehold", 1)) == 1
@@ -177,16 +183,21 @@ func _play_run(seed_value: int, team_name: String, asc: int, policy: String, cor
 	_core_fired_seen = {}
 	_picked = []
 	_trig = {}
+	_anchor_aw_node = -1
+	_anchor_aw_turn = -1
+	_anchor_mut = {}
+	_turns_total = 0
 	var team: Array[String] = []
 	var keys: Array = TEAMS[team_name] if TEAMS.has(team_name) else Array(team_name.split("+"))   # "a+b+c+d+e" = explicit heroes
 	for k in keys:
 		team.append(String(k))
 	RunState.start_run_with_epoch(LocalEpochSource.new(PackedByteArray(), seed_value), {
 		"team_keys": team, "mode": "short", "ascension": asc, "ranked": false, "rules_on": true,
-		"newcomer": false, "bonuses": {}}, seed_value)
+		"newcomer": false, "bonuses": {}, "anchor": _anchor_mode != "none"}, seed_value)
 	for fid in _force:
 		RunState._grant_relic(String(fid), "sim_force")
 	_drain_core_offers()
+	_poll_anchor(0)
 	var graph := RunMapGraph.from_data(RunState.map_graph)
 	var node := graph.find_node(graph.start_node_id)
 	var walked := 0
@@ -206,6 +217,7 @@ func _play_run(seed_value: int, team_name: String, asc: int, policy: String, cor
 				var owned_snap: Array = RunState.owned_relic_ids.duplicate()
 				_shield_used = 0
 				var turns := _play_combat(eng)
+				_turns_total += turns
 				_note_triggers(eng, owned_snap)
 				_fights.append({"kind": node.node_type, "turns": turns, "won": eng.won, "stuck": turns > STUCK_TURNS or not (eng.won or eng.lost), "affix": aff})
 				RunState.apply_combat_result(eng.get_result())
@@ -245,6 +257,7 @@ func _play_run(seed_value: int, team_name: String, asc: int, policy: String, cor
 			break
 		RunState.after_node()
 		_drain_core_offers()
+		_poll_anchor(walked)
 		if node.next_ids.is_empty():
 			break
 		node = graph.find_node(String(node.next_ids[_rng.next_int(node.next_ids.size())]))
@@ -263,14 +276,66 @@ func _play_run(seed_value: int, team_name: String, asc: int, policy: String, cor
 	return {"seed": seed_value, "policy": policy, "core_policy": core_policy, "team": team_name, "asc": asc,
 		"won": won, "death_kind": death_kind, "death_row": death_row, "rule": RunState.run_rule,
 		"cores": cores, "fights": _fights.duplicate(true), "offered": _offered.keys(), "picked": _picked.duplicate(),
-		"trig": _trig.keys(), "m": _met.duplicate()}
+		"trig": _trig.keys(), "m": _met.duplicate(),
+		"anchor": RunState.anchor_id, "aw_node": _anchor_aw_node, "aw_turn": _anchor_aw_turn,
+		"mut": _anchor_mut.duplicate(), "combos": RunState.combo_done.size()}
 
 
 # ---------------------------------------------------------------- rewards / cores
 
+## Anchor pick (opt-in with --anchor). random policies pick at random, expert by a team heuristic, --anchor=<id> forces one.
+func _anchor_step() -> void:
+	if _anchor_mode == "none" or not RunState._anchor_waiting or not RunState.anchor_offer_open():
+		return
+	var offer: Array = RunState.anchor_offer
+	var pick := String(offer[0])
+	if _anchor_mode != "auto":
+		pick = _anchor_mode if offer.has(_anchor_mode) else pick
+	elif _policy.begins_with("expert") or _policy == "free_hold":
+		pick = _anchor_heuristic(offer)
+	else:
+		pick = String(offer[_rng.next_int(offer.size())])
+	if not RunState.pick_anchor(pick):
+		RunState.decline_anchor()
+
+
+## Cheap team-based guess: Volley wants shield faces (plant/reptile), Mana Mine wants aqua/mana income, Gambler wants a
+## roster that profits from Lieu (beast/bird/bug). Ties go to the first in offer order.
+func _anchor_heuristic(offer: Array) -> String:
+	var n := {"shield": 0, "mana": 0, "gamble": 0}
+	for u in RunState.team_hero_keys:
+		var k := String(u)
+		if k.begins_with("plant") or k.begins_with("reptile"):
+			n["shield"] += 1
+		elif k.begins_with("aqua"):
+			n["mana"] += 1
+		else:
+			n["gamble"] += 1
+	var sc := {"a_volley": n["shield"] + 0.5, "a_mana_mine": n["mana"] * 1.5 + 0.7, "a_gambler": n["gamble"] + 0.6}
+	var best := String(offer[0])
+	for id in offer:
+		if float(sc.get(String(id), 0.0)) > float(sc.get(best, 0.0)):
+			best = String(id)
+	return best
+
+
+func _poll_anchor(node_no: int) -> void:
+	if RunState.anchor_id == "":
+		return
+	if RunState.anchor_awakened and _anchor_aw_node < 0:
+		_anchor_aw_node = node_no
+		_anchor_aw_turn = _turns_total
+	var t: Dictionary = RunState.house_tiers_now()
+	for hid in t.keys():
+		_anchor_mut[hid] = maxi(int(_anchor_mut.get(hid, 0)), int(t[hid]))
+
+
 func _drain_core_offers() -> void:
 	var guard := 0
-	while (RunState._core_offer_active or RunState._rule_offer_active) and not RunState.pending_rewards.is_empty() and guard < 16:
+	while guard < 16:
+		_anchor_step()
+		if not ((RunState._core_offer_active or RunState._rule_offer_active) and not RunState.pending_rewards.is_empty()):
+			break
 		guard += 1
 		var cards: Array = RunState.pending_rewards
 		for c in cards:
@@ -367,6 +432,9 @@ func catalog() -> Array:
 func _combo_score(id: String) -> float:
 	var d = RelicRegistry.get_def(id)
 	var sc := float(d.rarity) * 0.5 if d != null else 0.0
+	if RunState.anchor_id != "" and (_policy.begins_with("expert") or _policy == "free_hold") \
+			and (Anchors.get_def(RunState.anchor_id).get("house_cores", []) as Array).has(id):
+		sc += 3.0   # expert leans a little toward the Anchor's own-house Cores
 	var best := 0.0
 	for combo in COMBOS:
 		if not (combo as Array).has(id):

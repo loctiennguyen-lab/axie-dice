@@ -16,14 +16,15 @@ static func write(recs: Array, out_dir: String, tag: String, secs: float, catalo
 	var date := Time.get_date_string_from_system()
 	var base := out_dir.path_join("sim-%s-%s" % [date, tag])
 	var csv := FileAccess.open(base + ".csv", FileAccess.WRITE)
-	csv.store_line("seed,policy,core_policy,team,asc,won,death_kind,death_row,rule,cores,fights,offered,picked,trig,m_turns,m_dmg,m_v0,m_v1,m_dsq,boss_n,boss_turns,boss_won,boss_hp," + ",".join(MX_COLS))
+	csv.store_line("seed,policy,core_policy,team,asc,won,death_kind,death_row,rule,cores,fights,offered,picked,trig,m_turns,m_dmg,m_v0,m_v1,m_dsq,boss_n,boss_turns,boss_won,boss_hp," + ",".join(MX_COLS) + ",anchor,aw_node,aw_turn,mut,combos")
 	for r in recs:
 		var fs: Array = []
 		for f in r["fights"]:
 			fs.append("%s:%d:%d:%s" % [f["kind"], f["turns"], 1 if f["won"] else 0, f.get("affix", "")])
 		csv.store_line("%d,%s,%s,%s,%d,%d,%s,%d,%s,%s,%s,%s,%s,%s,%s" % [r["seed"], r["policy"], r["core_policy"], r["team"],
 			r["asc"], 1 if r["won"] else 0, r["death_kind"], r["death_row"], r["rule"], ";".join(r["cores"]), ";".join(fs),
-			";".join(r["offered"]), ";".join(r["picked"]), ";".join(r["trig"]), _mcols(r)])
+			";".join(r["offered"]), ";".join(r["picked"]), ";".join(r["trig"]), _mcols(r)] + ",%s,%d,%d,%s,%d" % [r.get("anchor", ""), int(r.get("aw_node", -1)), int(r.get("aw_turn", -1)),
+			";".join((r.get("mut", {}) as Dictionary).keys().map(func(k): return "%s:%d" % [k, int(r["mut"][k])])), int(r.get("combos", 0))])
 	csv.close()
 	var md := build_md(recs, tag, secs, catalog)
 	var f := FileAccess.open(base + ".md", FileAccess.WRITE)
@@ -49,6 +50,7 @@ static func build_md(recs: Array, tag: String, secs: float, catalog: Array = [])
 	L.append("Runs: %d, wall %.1fs (%.2fs/run).\n" % [recs.size(), secs, secs / maxf(1.0, recs.size())])
 	# win-rate by policy x asc, policy x team, core policy
 	L.append(_goals(recs))
+	L.append(anchor_section(recs))
 	L.append(_funnel(recs))
 	L.append(metric_section(recs))
 	L.append(mana_section(recs))
@@ -274,6 +276,12 @@ static func read_csvs(paths: Array) -> Array:
 				"trig": Array(String(c[13]).split(";", false)),
 				"m": ({"turns": int(c[14]), "dmg": float(c[15]), "v0": float(c[16]), "v1": float(c[17]), "dsq": float(c[18]),
 					"boss_n": int(c[19]), "boss_turns": int(c[20]), "boss_won": int(c[21]), "boss_hp": float(c[22])} if c.size() >= 23 else {}).merged(_mx_from(c))})
+			var ai := 23 + MX_COLS.size()
+			if c.size() >= ai + 5:
+				var mut := {}
+				for q in String(c[ai + 3]).split(";", false):
+					mut[q.get_slice(":", 0)] = int(q.get_slice(":", 1))
+				out[-1].merge({"anchor": c[ai], "aw_node": int(c[ai + 1]), "aw_turn": int(c[ai + 2]), "mut": mut, "combos": int(c[ai + 4])})
 	return out
 
 
@@ -456,4 +464,72 @@ static func metric_section(recs: Array, ref: String = "expert") -> String:
 				var c2 := _mean_ci(ds)
 				row2 += "%+.2f +-%.2f (n=%d) | " % [c2[0], c2[1], c2[2]]
 			out += row2 + "\n"
+	return out + "\n"
+
+
+## Anchor section (only when some run had an Anchor): win by policy x Anchor, pick rate, awakening, mutation tiers per house.
+static func anchor_section(recs: Array) -> String:
+	var any := false
+	for r in recs:
+		if String(r.get("anchor", "")) != "":
+			any = true
+	if not any:
+		return ""
+	var out := "## Anchor\n\n| policy | anchor | runs | pick% | win% | awakened% | avg aw node | avg aw combat turn | dmg/turn |\n|---|---|---|---|---|---|---|---|---|\n"
+	var pols := {}
+	for r in recs:
+		pols[r["policy"]] = true
+	for pol in pols.keys():
+		var tot := 0
+		var g := {}
+		for r in recs:
+			if r["policy"] != pol:
+				continue
+			tot += 1
+			var a := String(r.get("anchor", "")) if String(r.get("anchor", "")) != "" else "none"
+			if not g.has(a):
+				g[a] = []
+			(g[a] as Array).append(r)
+		var ids := g.keys()
+		ids.sort()
+		for a in ids:
+			var rs: Array = g[a]
+			var w := 0
+			var aw := 0
+			var awn := 0.0
+			var awt := 0.0
+			var dm := 0.0
+			var tn := 0.0
+			for r in rs:
+				w += 1 if r["won"] else 0
+				if int(r.get("aw_node", -1)) >= 0:
+					aw += 1
+					awn += int(r["aw_node"])
+					awt += int(r["aw_turn"])
+				dm += float((r.get("m", {}) as Dictionary).get("dmg", 0.0)) * float((r.get("m", {}) as Dictionary).get("turns", 0))
+				tn += float((r.get("m", {}) as Dictionary).get("turns", 0))
+			var n := rs.size()
+			var p := float(w) / n
+			var ci := 1.96 * sqrt(p * (1.0 - p) / n) * 100.0
+			out += "| %s | %s | %d | %.1f | %.1f +-%.1f | %.1f | %s | %s | %.2f |\n" % [pol, a, n, 100.0 * n / tot, 100.0 * p, ci,
+				100.0 * aw / n, ("%.1f" % (awn / aw)) if aw > 0 else "-", ("%.1f" % (awt / aw)) if aw > 0 else "-", dm / maxf(tn, 1.0)]
+	out += "\nDot bien (% run co nac >=1 / nac 2, theo nha, chi run co Anchor) va combo formed trung binh:\n\n| policy | house | tier>=1 | tier 2 |\n|---|---|---|---|\n"
+	for pol in pols.keys():
+		var n2 := 0
+		var h1 := {}
+		var h2 := {}
+		var cb := 0.0
+		for r in recs:
+			if r["policy"] != pol or String(r.get("anchor", "")) == "":
+				continue
+			n2 += 1
+			cb += int(r.get("combos", 0))
+			for h in (r.get("mut", {}) as Dictionary).keys():
+				h1[h] = int(h1.get(h, 0)) + 1
+				if int(r["mut"][h]) >= 2:
+					h2[h] = int(h2.get(h, 0)) + 1
+		for h in Anchors.houses():
+			var hid := String(h["id"])
+			out += "| %s | %s | %.1f%% | %.1f%% |\n" % [pol, hid, 100.0 * int(h1.get(hid, 0)) / maxi(n2, 1), 100.0 * int(h2.get(hid, 0)) / maxi(n2, 1)]
+		out += "| %s | combos formed avg | %.2f | |\n" % [pol, cb / maxi(n2, 1)]
 	return out + "\n"
