@@ -223,7 +223,10 @@ const WATCHED_FILES: Array[String] = ["res://assets/data/part_faces.json"]
 ## been deployed yet, so RULES_VERSION stays `godot-2026-10-20-o` (same unreleased version); only the FINGERPRINT moves.
 ## Moved 2026-10-20 by FX review fixes (RunState): empty-pool Dim Stone refunds a Core reroll, an empty offer keeps the Fossil, old-save
 ## offer_pick default. Same unreleased `-o`; RULES_VERSION unchanged.
-const FINGERPRINT := "381104b0fa6d23e5f28093878c11ca0664e1b633dd6c052e77686806948fdf5d"
+## BUMPED, 2026-10-22: `ActionLog.RULES_VERSION` -> `godot-2026-10-22-p`. Depth v4 integration (depth/V4 c22162f): Set (BO) per part,
+## Dose/Safe rmode + pin, Crack from epoch, wild_face, Overcast in the M bag, thorn/poison caps, depth_stage header, best_bo,
+## enemy_dmg 1.50. Same actions give a different run. Worker SUPPORTED_RULE_VERSIONS gained -p.
+const FINGERPRINT := "5e3ffc5f76e5b285b4556603156b6727c60db4a017fe9afb6d53e93941a2439e"
 
 
 func _ready() -> void:
