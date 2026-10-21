@@ -1166,12 +1166,28 @@ func _maybe_show_pending_reward() -> void:
 	if RunState.phase == RunState.RunPhase.PACT:
 		_show_pact_overlay()
 		return
+	if RunState.pending_rewards.is_empty() and AnchorAdapter.offer_open():
+		_show_anchor_overlay()
+		return
 	if RunState.pending_rewards.is_empty():
 		if RunState.phase == RunState.RunPhase.REWARD:
 			RunState.after_node()
 			_refresh(true)
 		return
 	_show_reward_overlay("CHOOSE ONE REWARD")
+
+
+## Anchor pick (design/ux/anchor-mvp.md 1): same overlay host as the Core pick, before the first Core offer.
+## After the pick the engine opens pick 1 into pending_rewards, so the normal reward overlay follows.
+func _show_anchor_overlay() -> void:
+	var host := _open_ui3_screen()
+	var view := AnchorPick.new()
+	view.name = "AnchorPick"
+	host.add_child(view)
+	view.setup(AnchorAdapter.offer(), UI3Gacha.first_seen(str(RunState.get("_core_base_seed")), 3))
+	view.picked.connect(func(_id: String) -> void:
+		_save_map_progress()
+		_maybe_show_pending_reward())
 
 
 ## The eyebrow above the reward title. The mockup reads "WAVE 3 CLEARED"; this build resolves a
