@@ -29,11 +29,11 @@ func _ready() -> void:
 	var r0 := RunState.core_reroll_left
 	RunState._grant_relic("c_living_wall", "core")
 	_assert(RunState.combo_done.is_empty() and _formed.is_empty(), "one member: nothing formed")
-	RunState._grant_relic("c_gatekeeper", "core")
+	RunState._grant_relic("c_thorn_shield", "core")
 	_assert(RunState.combo_done.get("combo_turtle_fort", "") == "pair", "pair recorded")
 	_assert(_formed == [["combo_turtle_fort", "pair"]], "combo_formed pair emitted: %s" % str(_formed))
 	_assert(RunState.core_reroll_left == r0 + 1 and RunState.combo_rerolls_gained == 1, "first Pair gives +1 Core reroll")
-	RunState._grant_relic("c_backline_glow", "core")
+	RunState._grant_relic("c_gatekeeper", "core")
 	_assert(RunState.combo_done.get("combo_turtle_fort", "") == "full" and _formed.back() == ["combo_turtle_fort", "full"], "Full upgrade emitted")
 	_assert(RunState.core_reroll_left == r0 + 1, "Full of an already-formed combo gives no 2nd reroll")
 	# cap: 2 per run
@@ -41,7 +41,7 @@ func _ready() -> void:
 	RunState._grant_relic("c_golden_egg", "core")
 	_assert(RunState.combo_rerolls_gained == 2 and RunState.core_reroll_left == r0 + 2, "second combo gives the 2nd reroll")
 	RunState._grant_relic("c_overflow", "core")
-	RunState._grant_relic("c_dewdrop", "core")
+	RunState._grant_relic("c_tidecaller", "core")
 	_assert(RunState.combo_done.has("combo_rising_tide"), "third combo still recorded")
 	_assert(RunState.combo_rerolls_gained == 2 and RunState.core_reroll_left == r0 + 2, "cap 2 per run: third combo gives no reroll")
 	# save round trip
@@ -55,26 +55,26 @@ func _ready() -> void:
 	EventBus.turn_phase_changed.emit(3, CombatEngine.CombatPhase.ROLL)
 	EventBus.core_fired.emit("c_living_wall", -1, 3, "x")
 	_assert(_fired.is_empty(), "one Core of the Pair is not enough")
-	EventBus.core_fired.emit("c_gatekeeper", -1, 3, "x")
+	EventBus.core_fired.emit("c_thorn_shield", -1, 3, "x")
 	_assert(_fired == ["combo_turtle_fort"], "both fired in a turn: combo_fired once: %s" % str(_fired))
 	EventBus.turn_phase_changed.emit(3, CombatEngine.CombatPhase.ROLL)
 	EventBus.core_fired.emit("c_living_wall", -1, 3, "x")
-	EventBus.core_fired.emit("c_gatekeeper", -1, 3, "x")
+	EventBus.core_fired.emit("c_thorn_shield", -1, 3, "x")
 	_assert(_fired.size() == 1, "second time in the same fight stays silent")
 	EventBus.combat_finished.emit(true)
 	EventBus.turn_phase_changed.emit(3, CombatEngine.CombatPhase.ROLL)
 	EventBus.core_fired.emit("c_living_wall", -1, 3, "x")
 	EventBus.turn_phase_changed.emit(3, CombatEngine.CombatPhase.ROLL)
-	EventBus.core_fired.emit("c_gatekeeper", -1, 3, "x")
+	EventBus.core_fired.emit("c_thorn_shield", -1, 3, "x")
 	_assert(_fired.size() == 1, "fires split over two turns do not count")
 	EventBus.core_fired.emit("c_living_wall", -1, 3, "x")
 	_assert(_fired.size() == 2, "new fight announces again")
 	# quest Core completion keeps counting
 	_start(6)
-	RunState._grant_relic("c_kindle", "core")
-	RunState.core_quest_done = ["c_key_strike"]
+	RunState._grant_relic("c_sixth_die", "core")
+	RunState.core_quest_done = ["c_collector"]
 	RunState._note_combo_grant()
-	_assert(RunState.combo_done.get("combo_kindling_brew", "") == "pair", "finished quest Core still forms the Pair")
+	_assert(RunState.combo_done.get("combo_dice_rainbow", "") == "pair", "finished quest Core still forms the Pair")
 	# skipped T: a real offer
 	_start(7)
 	var cards: Array = [{"core": true, "key": "c_bastion", "tier": 0}, {"core": true, "key": "c_cascade", "tier": 2},

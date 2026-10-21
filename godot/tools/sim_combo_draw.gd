@@ -152,8 +152,9 @@ func _fmt(policy: String, runs: int, st: Dictionary, combos: Array) -> String:
 			any = true
 	if not any:
 		s += "- none\n"
-	s += "\nShown count per run, top 5 Cores: "
+	s += "\nEvery Core: tier / axis / cards shown per run (a Core can show twice in one run through rerolls):\n\n| Core | Tier | Axis | Shown per 100 runs |\n|---|---|---|---|\n"
 	rows.sort_custom(func(a, b): return a[1] > b[1])
-	for j in mini(5, rows.size()):
-		s += "%s %.0f%% of runs; " % [rows[j][0], 100.0 * rows[j][1] / runs]
-	return s + "\n\n"
+	for r in rows:
+		var d = RelicRegistry.get_def(String(r[0]))
+		s += "| %s | %s | %s | %.1f |\n" % [r[0], ["R", "H", "T"][int(d.rarity)], d.core_axis, 100.0 * r[1] / runs]
+	return s + "\n"

@@ -12,7 +12,9 @@
    "c_sixth_die",
    "c_mirror_face"
   ],
-  "hide_if_rules": []
+  "hide_if_rules": [
+   "rule_balance"
+  ]
  },
  {
   "id": "combo_turtle_fort",
@@ -22,9 +24,9 @@
   "jackpot": false,
   "pair": [
    "c_living_wall",
-   "c_gatekeeper"
+   "c_thorn_shield"
   ],
-  "full": "c_backline_glow",
+  "full": "c_gatekeeper",
   "hide_if_rules": [
    "rule_upside_down"
   ]
@@ -62,8 +64,8 @@
   "enabled": true,
   "jackpot": false,
   "pair": [
-   "c_overflow",
-   "c_dewdrop"
+   "c_tidecaller",
+   "c_overflow"
   ],
   "full": "c_backline_glow",
   "hide_if_rules": [
@@ -78,25 +80,25 @@
   "jackpot": false,
   "pair": [
    "c_hollow_core",
-   "c_kindle"
+   "c_mana_ward"
   ],
-  "full": "c_dewdrop",
+  "full": "c_kindle",
   "hide_if_rules": [
    "rule_cheap_mana",
    "rule_tundra"
   ]
  },
  {
-  "id": "combo_kindling_brew",
-  "name_en": "Kindling Brew",
-  "name_vi": "Lò Ủ Lửa",
+  "id": "combo_shield_engine",
+  "name_en": "Shield Engine",
+  "name_vi": "Lò Khiên Phản Đòn",
   "enabled": true,
   "jackpot": false,
   "pair": [
-   "c_kindle",
-   "c_key_strike"
+   "c_sonic_shield",
+   "c_thorn_shield"
   ],
-  "full": "c_three_dice",
+  "full": "c_prime_chain",
   "hide_if_rules": []
  },
  {
@@ -121,9 +123,9 @@
   "jackpot": false,
   "pair": [
    "c_living_wall",
-   "c_growing_shell"
+   "c_early_scales"
   ],
-  "full": "c_finisher",
+  "full": "c_growing_shell",
   "hide_if_rules": [
    "rule_upside_down"
   ]
@@ -136,25 +138,24 @@
   "jackpot": false,
   "pair": [
    "c_descend",
-   "c_thorn_pact"
+   "c_thorn_shield"
   ],
   "full": "c_bastion",
   "hide_if_rules": [
-   "rule_cheap_mana",
-   "rule_tundra"
+   "rule_upside_down"
   ]
  },
  {
-  "id": "combo_blood_deal",
-  "name_en": "Blood Bargain",
-  "name_vi": "Giao Kèo Máu",
+  "id": "combo_bramble_hide",
+  "name_en": "Bramble Hide",
+  "name_vi": "Da Gai Dày",
   "enabled": true,
   "jackpot": false,
   "pair": [
-   "c_thorn_pact",
-   "c_elder_trunk"
+   "c_elder_trunk",
+   "c_thorn_shield"
   ],
-  "full": "c_backline_glow",
+  "full": "c_thorn_pact",
   "hide_if_rules": [
    "rule_cheap_mana",
    "rule_tundra"
@@ -167,24 +168,26 @@
   "enabled": true,
   "jackpot": false,
   "pair": [
-   "c_prism",
+   "c_collector",
    "c_sixth_die"
   ],
-  "full": "c_collector",
+  "full": "c_prism",
   "hide_if_rules": []
  },
  {
-  "id": "combo_poison_garden",
-  "name_en": "Poison Garden",
-  "name_vi": "Vườn Độc",
+  "id": "combo_slow_burn",
+  "name_en": "Slow Burn",
+  "name_vi": "Cháy Chậm",
   "enabled": true,
   "jackpot": false,
   "pair": [
-   "c_blood_sign",
-   "c_plague_spread"
+   "c_overflow",
+   "c_three_dice"
   ],
-  "full": "c_fissure",
-  "hide_if_rules": []
+  "full": "c_dewdrop",
+  "hide_if_rules": [
+   "rule_dry_steppe"
+  ]
  },
  {
   "id": "combo_endless_mana",
@@ -193,10 +196,10 @@
   "enabled": true,
   "jackpot": false,
   "pair": [
-   "c_loop",
-   "c_mana_pool"
+   "c_mana_pool",
+   "c_deep_current"
   ],
-  "full": "c_overflow",
+  "full": "c_loop",
   "hide_if_rules": [
    "rule_dry_steppe"
   ]
