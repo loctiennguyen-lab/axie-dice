@@ -100,3 +100,18 @@ Làm theo thứ tự, mỗi bước dừng đọc kết quả.
 3. `c_golden_egg`: nguồn fire thứ hai là gì (Egg nở, Egg bị gỡ, hay đầu trận khi có Egg)?
 4. `c_steady_hold`: buff như R8 hay để nguyên?
 5. Cho làm S1-S4 (chỉ sim, không bump luật) trước để có số thật rồi mới quyết R-nhóm?
+
+## Lõi ít kích hoạt
+Đo 21/10: expert, 40 run/Lõi, `--force=<id>`, seed 7000, A0, mọi đội. "fired" = % run có fire (raw `production/qa/sim/sim-2026-10-21-lf*_<id>.md`). Không có lỗi hook thật (a). Không đổi số thiết kế.
+
+| Lõi | loại | fired (ép sở hữu) | điều kiện / ghi chú | đề xuất (chờ Liam duyệt) |
+|---|---|---|---|---|
+| c_key_strike | c (bot) | 7.5% -> 77.5% sau sửa bot | cần Hold một die đánh >=9; bot cũ Hold die nhỏ nhất và không có Core này trong HOLD_CORES. Sửa trong sim_balance.gd (9827d2f). | không |
+| c_prism | c | 70% | cần 4 loại face trong 1 lượt; số cũ 33% là mẫu nhỏ (12 pick) | không |
+| c_overflow | c | 70% | cần mana >8; xảy ra khi có mana dư | không |
+| c_golden_egg | b | 52.5% | cần Egg chết; core_offer đã chặn theo egg_source nên ép sở hữu không có Egg thì không fire | thêm nguồn fire thứ hai (câu hỏi 3 ở trên) |
+| c_tidecaller | b | 55% | cần tiêu >=3 mana trong trận; trận ngắn thì không đủ | cân nhắc ngưỡng 3 -> 2 (chưa đổi) |
+| c_chimera_hunt | b | 87.5% | chỉ tính kill của die "finisher" (die cuối lượt); số cũ 63% là mẫu nhỏ | không |
+| c_mana_ward | c | 87.5% | cần mana >=2 cuối lượt; bot chi hết mana | không |
+| c_deep_current | b/c | 87.5% | cần mana dư cuối trận thắng; bot chi hết | không |
+| c_thorn_rebound | b | 75% | cần có Axie có Thorns và bị đánh | không (nếu muốn: gate offer theo nguồn Thorns) |
