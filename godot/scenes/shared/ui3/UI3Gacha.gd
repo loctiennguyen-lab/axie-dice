@@ -129,3 +129,84 @@ static func play_sfx(host: Node, event: String) -> void:
 	p.finished.connect(p.queue_free)
 	host.add_child(p)
 	p.play()
+
+
+# ---- Combo adapter (API owned by lane GD: CoreCombos.card_completes / matches / all). Falls back to {} / [] ----
+## Tests may set an object with the same three methods.
+static var combo_provider: Object = null
+
+
+static func _combos() -> Object:
+	if combo_provider != null:
+		return combo_provider
+	const PATH := "res://scripts/core/core_combos.gd"
+	if ResourceLoader.exists(PATH):
+		return load(PATH)
+	return null
+
+
+## {id, tier: "pair"|"full"} when taking `core_id` completes a Pair / Full, else {}.
+static func combo_completes(owned: Array, core_id: String) -> Dictionary:
+	var c := _combos()
+	if c == null or not c.has_method("card_completes"):
+		return {}
+	var r = c.call("card_completes", owned, core_id)
+	return r if r is Dictionary else {}
+
+
+## Up to 2 owned Core ids that go with this card (chip "Works with").
+static func combo_matches(owned: Array, core_id: String) -> Array:
+	var c := _combos()
+	if c == null or not c.has_method("matches"):
+		return []
+	var r = c.call("matches", owned, core_id)
+	return (r as Array).slice(0, 2) if r is Array else []
+
+
+static func combo_name(combo_id: String) -> String:
+	var c := _combos()
+	if c == null or not c.has_method("all"):
+		return ""
+	for row in c.call("all"):
+		if row is Dictionary and String(row.get("id", "")) == combo_id:
+			return String(row.get("name_en", combo_id))
+	return ""
+
+
+## Crystal card silhouette: bevelled (corner_detail 1) opposite corners, flat fill, tier border. No shader / gradient.
+static func prism_style(accent: Color, selected := false) -> StyleBoxFlat:
+	var sb := UI3Theme.flat(UI3Theme.color("panel_raised"), 32, UI3Theme.stroke("selected"),
+		UI3Theme.color("selected_outline") if selected else accent, Vector4(24, 24, 24, 24))
+	sb.corner_detail = 1
+	sb.corner_radius_top_right = 8
+	sb.corner_radius_bottom_left = 8
+	return sb
+
+
+## Two thin extra rings inside the card (expand_margin on a free Panel): the "facets".
+static func prism_frame(accent: Color) -> Panel:
+	var f := Panel.new()
+	f.name = "PrismFrame"
+	f.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var sb := UI3Theme.flat(Color(0, 0, 0, 0), 24, UI3Theme.stroke("hairline"), UI3Theme.color("text"))
+	sb.corner_detail = 1
+	sb.corner_radius_top_right = 6
+	sb.corner_radius_bottom_left = 6
+	sb.expand_margin_left = 16
+	sb.expand_margin_right = 16
+	sb.expand_margin_top = 16
+	sb.expand_margin_bottom = 16
+	f.add_theme_stylebox_override("panel", sb)
+	var inner := Panel.new()
+	inner.name = "PrismInner"
+	inner.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	inner.set_anchors_preset(Control.PRESET_FULL_RECT)
+	var sb2 := sb.duplicate() as StyleBoxFlat
+	sb2.border_color = accent
+	sb2.expand_margin_left = 8
+	sb2.expand_margin_right = 8
+	sb2.expand_margin_top = 8
+	sb2.expand_margin_bottom = 8
+	inner.add_theme_stylebox_override("panel", sb2)
+	f.add_child(inner)
+	return f

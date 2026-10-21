@@ -4,6 +4,15 @@ var _guard := SaveGuard.new()
 var rm: Node
 
 
+class FakeCombos extends RefCounted:
+	func card_completes(_owned: Array, core_id: String) -> Dictionary:
+		return {"id": "fake_combo", "tier": "pair"} if core_id != "" else {}
+	func matches(_owned: Array, _core_id: String) -> Array:
+		return []
+	func all() -> Array:
+		return [{"id": "fake_combo", "name_en": "Fortress"}]
+
+
 func _snap(name: String) -> void:
 	var tag := "%dx%d" % [int(DisplayServer.window_get_size().x), int(DisplayServer.window_get_size().y)]
 	var dir := QaPaths.evidence_dir()
@@ -40,5 +49,10 @@ func _ready() -> void:
 	_snap("facedown")
 	await _wait(1.6)
 	_snap("flip_crystal")
+	UI3Gacha.combo_provider = FakeCombos.new()
+	await _open(2)
+	await _wait(2.45)
+	_snap("jackpot")
+	UI3Gacha.combo_provider = null
 	_guard.restore()
 	get_tree().quit(0)

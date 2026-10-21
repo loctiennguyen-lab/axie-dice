@@ -34,7 +34,7 @@ func start(cards: Array, tier: int, first: bool, jackpot: bool, shake_host: Cont
 		var card := c as Control
 		var col := card.get_child(0) as Control
 		col.modulate.a = 0.0
-		var cover := UI3Gacha.build_cover(tier)
+		var cover := UI3Gacha.build_cover(int(card.get_meta("gacha_tier", tier)))
 		card.add_child(cover)
 		_covers.append(cover)
 		var halo := cover.get_node("Halo") as Panel

@@ -1341,6 +1341,9 @@ func _select_reward(i: int) -> void:
 	for k in _reward_cards.size():
 		if is_instance_valid(_reward_cards[k]):   # the overlay is rebuilt (old cards freed) on reroll / chained offers
 			UI3.set_card_selected(_reward_cards[k], k == _reward_sel, false)
+			if _reward_cards[k].has_meta("prism_accent"):
+				_reward_cards[k].add_theme_stylebox_override("panel",
+					UI3Gacha.prism_style(_reward_cards[k].get_meta("prism_accent"), k == _reward_sel))
 
 
 func _take_selected_reward() -> void:
@@ -1394,6 +1397,13 @@ func _trade_parts(r: Dictionary) -> Dictionary:
 ## A1: Core offer cards arrive face-down with a tier halo, then flip left to right. Click / Space skips.
 var _reveal: GachaReveal = null
 
+func _prism_hover(card: Control, on: bool) -> void:
+	if _reveal != null and is_instance_valid(_reveal) and _reveal.running:
+		return
+	card.pivot_offset = card.size / 2.0
+	create_tween().tween_property(card, "scale", Vector2.ONE * (1.04 if on else 1.0), UI3Theme.motion_sec("fast"))
+
+
 func _start_core_reveal(shake_host: Control) -> void:
 	if _reveal != null and is_instance_valid(_reveal):
 		_reveal.queue_free()
@@ -1403,12 +1413,20 @@ func _start_core_reveal(shake_host: Control) -> void:
 	var first_r: Dictionary = RunState.pending_rewards[0]
 	if bool(first_r.get("rule", false)):
 		return
-	var tier := clampi(int(first_r.get("tier", 0)), 0, 2)
+	var tier := 0
+	for k in _reward_cards.size():
+		var ct := clampi(int((RunState.pending_rewards[k] as Dictionary).get("tier", 0)), 0, 2)
+		_reward_cards[k].set_meta("gacha_tier", ct)
+		tier = maxi(tier, ct)
 	var first := UI3Gacha.first_seen(str(RunState.get("_core_base_seed")), tier)
 	_reveal = GachaReveal.new()
 	_reveal.name = "GachaReveal"
 	_overlay_root.add_child(_reveal)
-	_reveal.start(_reward_cards, tier, first, false, shake_host)
+	var jackpot := false
+	if tier >= 2:
+		for rw in RunState.pending_rewards:
+			jackpot = jackpot or not UI3Gacha.combo_completes(RunState.owned_relic_ids, String(rw.get("key", ""))).is_empty()
+	_reveal.start(_reward_cards, tier, first, jackpot, shake_host)
 
 
 func _add_reward_card(r: Dictionary, wide := false) -> PanelContainer:
@@ -1445,10 +1463,19 @@ func _add_reward_card(r: Dictionary, wide := false) -> PanelContainer:
 				tb.grab_focus())
 	_overlay_vbox.add_child(card)
 	_reward_cards.append(card)
+	var crystal := is_core and not bool(r.get("rule", false)) and int(r.get("tier", 0)) >= 2
+	if crystal:
+		# A3: Crystal cards have their own bevelled silhouette, extra rings, a bigger name, and rise on hover.
+		card.set_meta("prism_accent", accent)
+		card.add_theme_stylebox_override("panel", UI3Gacha.prism_style(accent))
+		card.mouse_entered.connect(_prism_hover.bind(card, true))
+		card.mouse_exited.connect(_prism_hover.bind(card, false))
 
 	var col := VBoxContainer.new()
 	col.add_theme_constant_override("separation", 12)
 	card.add_child(col)
+	if crystal:
+		card.add_child(UI3Gacha.prism_frame(accent))
 
 	var kind_text := String(_REWARD_KIND.get(t, "Reward"))
 	if is_core:
@@ -1494,7 +1521,7 @@ func _add_reward_card(r: Dictionary, wide := false) -> PanelContainer:
 		body_text = tr("Play this run with the base rules.")
 	var dsc := UI3.describe(body_text)
 	body_text = ("MP %d · " % int(dsc["mp"]) if int(dsc["mp"]) >= 0 else "") + String(dsc["text"])
-	var name_lbl := UI3.label(name_text, "LabelTitle")
+	var name_lbl := UI3.label(name_text, "LabelTitle" if (not is_core or crystal) else "LabelDisplay")
 	name_lbl.name = "RewardName"
 	name_lbl.clip_text = true
 	name_lbl.text_overrun_behavior = TextServer.OVERRUN_TRIM_ELLIPSIS

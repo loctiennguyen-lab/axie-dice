@@ -37,8 +37,10 @@ func _ready() -> void:
 	var rm: Node = load("res://scenes/run_map/RunMap.tscn").instantiate()
 	add_child(rm)
 	await _frames(4)
-	RunState._queue_core_pick(2)
-	rm._finish_node()
+	RunState.pending_rewards = CoreOffer.build_offer(Rng.new(13), 2, RunState._core_ctx(), 3)
+	RunState._core_offer_active = true
+	RunState.set_phase(RunState.RunPhase.REWARD)
+	rm._show_reward_overlay("x")
 	await _frames(3)
 	var rev: GachaReveal = rm._reveal
 	_check(rev != null and rev.running, "reveal running on a Core offer")
@@ -52,11 +54,15 @@ func _ready() -> void:
 	await get_tree().create_timer(2.2).timeout
 	_check(rev.events.has("flip:2") and not rev.running, "flips left to right then finishes")
 	_check(card.find_child("CardBack", true, false) == null, "cover gone after flip")
+	var c2: Control = rm._reward_cards[0]
+	_check(c2.has_meta("prism_accent") and c2.find_child("PrismFrame", true, false) != null, "Crystal card has the prism frame")
+	_check((c2.find_child("RewardName", true, false) as Label).theme_type_variation == "LabelTitle", "Crystal name is size 24")
 	# Skip: new offer, then a click.
 	RunState.pending_rewards = []
 	rm._close_overlay()
-	RunState._queue_core_pick(1)
-	rm._finish_node()
+	RunState.pending_rewards = CoreOffer.build_offer(Rng.new(14), 1, RunState._core_ctx(), 3)
+	RunState._core_offer_active = true
+	rm._show_reward_overlay("x")
 	await _frames(3)
 	rev = rm._reveal
 	_check(rev != null and rev.running, "second reveal running")
