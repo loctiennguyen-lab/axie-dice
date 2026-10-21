@@ -129,7 +129,7 @@ func run_batch(args: Dictionary) -> Array:
 	return recs
 
 
-const MX_KEYS := ['in_face', 'in_cantrip', 'in_use_other', 'in_turnstart', 'in_other', 'out_safe1', 'out_safe2', 'out_wild', 'out_oc', 'out_lieu', 'out_other', 'end_sum', 'end_n', 'buy_safe1', 'buy_safe2', 'buy_safe_free', 'buy_wild', 'buy_oc', 'buy_lieu', 'wild_n2', 'wild_n3', 'wild_n4', 'bo_turns', 'bo_m3_pre', 'bo_m3_post']
+const MX_KEYS := ['in_face', 'in_cantrip', 'in_use_other', 'in_turnstart', 'in_other', 'out_safe1', 'out_safe2', 'out_wild', 'out_oc', 'out_lieu', 'out_other', 'end_sum', 'end_n', 'buy_safe1', 'buy_safe2', 'buy_safe_free', 'buy_wild', 'buy_oc', 'buy_lieu', 'wild_n2', 'wild_n3', 'wild_n4', 'bo_turns', 'bo_m3_pre', 'bo_m3_post', 'face_rolled']
 var _mx_prev_end := 0   # mana left at the end of the previous turn of this fight (0 at fight start)
 var _mx_paid_k := 0     # paid Safe rerolls so far this turn
 
